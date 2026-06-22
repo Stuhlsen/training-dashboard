@@ -1,0 +1,20 @@
+# Secrets — NIEMALS committen
+.env
+*.env.local
+
+# Node
+node_modules/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Netlify (nicht mehr benötigt)
+.netlify/
+
+# IDE
+.vscode/
+.idea/
+
+# Backup-Dateien
+*.bak
