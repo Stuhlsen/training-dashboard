@@ -1,0 +1,50 @@
+# .github/workflows/sync-data.yml
+# Generiert rides.json aus der Notion-Trainingsdatenbank
+# und committed es ins Repo. GitHub Pages serviert es dann statisch.
+#
+# Benötigte Secrets (Settings → Secrets → Actions):
+#   NOTION_API_KEY      — Notion Integration Token (ntn_...)
+#   NOTION_DATABASE_ID  — ID der Trainingsdatenbank
+
+name: Sync Training Data
+
+on:
+  # Manuell auslösbar (Actions-Tab → "Run workflow")
+  workflow_dispatch:
+
+  # Automatisch alle 6 Stunden
+  schedule:
+    - cron: "0 */6 * * *"
+
+  # Bei Push auf main (falls JSON manuell gelöscht wurde)
+  push:
+    branches: [main]
+    paths: [".github/workflows/sync-data.yml", "scripts/generate-data.js"]
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Generate rides.json from Notion
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: node scripts/generate-data.js
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/rides.json
+          # Nur committen wenn sich was geändert hat
+          git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
+          git push
