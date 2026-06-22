@@ -1,0 +1,141 @@
+/* ============================================================
+   TABLE.CSS — Fahrtenbuch, Filters, Search, Sortable Table
+   ============================================================ */
+
+/* ── Filter Bar ──────────────────────────────────────────────── */
+.filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.filter-btn {
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--dim);
+  font-size: 0.78rem;
+  font-weight: 500;
+  transition: all var(--transition);
+  text-transform: none;
+}
+
+.filter-btn:hover  { color: var(--text); border-color: var(--border-light); }
+.filter-btn.active { border-color: var(--accent); background: var(--accent-dim); color: var(--accent); }
+
+.search-input {
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text);
+  font-size: 0.8rem;
+  width: 180px;
+  margin-left: auto;
+  transition: border-color var(--transition);
+}
+
+.search-input::placeholder { color: var(--dim2); }
+.search-input:focus { outline: none; border-color: var(--accent); }
+
+/* ── Active Week Filter Tag ──────────────────────────────────── */
+.week-filter-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--accent-dim);
+  border: 1px solid var(--accent-muted);
+  color: var(--accent);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  margin-bottom: 8px;
+}
+
+.week-filter-tag button {
+  background: none;
+  border: none;
+  color: var(--red);
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0 2px;
+  cursor: pointer;
+}
+
+/* ── Table Meta ──────────────────────────────────────────────── */
+.table-meta {
+  font-size: 0.72rem;
+  color: var(--dim2);
+  margin-bottom: 8px;
+}
+
+/* ── Table Wrap ──────────────────────────────────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+/* ── Table ───────────────────────────────────────────────────── */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+thead { position: sticky; top: 0; z-index: 1; }
+
+th {
+  background: var(--card-alt);
+  padding: 8px 8px;
+  text-align: left;
+  font-weight: 600;
+  color: var(--dim);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  transition: color var(--transition);
+}
+
+th:hover  { color: var(--text); }
+th.sorted { color: var(--accent); }
+
+th .sort-icon { opacity: 0.3; margin-left: 2px; font-size: 0.65rem; }
+th.sorted .sort-icon { opacity: 1; }
+
+td {
+  padding: 7px 8px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+
+tr:last-child td { border-bottom: none; }
+
+tr:hover td { background: var(--card-alt); }
+
+/* ── Column specific widths ──────────────────────────────────── */
+.col-name {
+  min-width: 200px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.col-typ  { font-size: 0.72rem; color: var(--dim); }
+.col-bold { font-weight: 600; }
+
+/* ── Table note ──────────────────────────────────────────────── */
+.table-note {
+  font-size: 0.7rem;
+  color: var(--dim2);
+  margin-top: 6px;
+}

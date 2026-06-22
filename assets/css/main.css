@@ -1,0 +1,215 @@
+/* ============================================================
+   MAIN.CSS — Design Tokens, Reset, Layout, Typography
+   12-Wochen-Trainingsplan Grundlagenausdauer
+   ============================================================ */
+
+/* ── Design Tokens ─────────────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg:        #141210;
+  --bg2:       #1a1714;
+  --card:      #1e1b18;
+  --card-alt:  #252119;
+  --card-hover:#2a261f;
+
+  /* Borders */
+  --border:       #2e2923;
+  --border-light: #3a342c;
+
+  /* Text */
+  --text:  #f0ebe4;
+  --dim:   #9a8f84;
+  --dim2:  #6b6158;
+
+  /* Accent — warm orange (primary) */
+  --accent:     #e07b39;
+  --accent-dim: #2d1a0a;
+  --accent-muted: #a05a28;
+
+  /* Semantic colors */
+  --green:      #5c9e6e;
+  --green-dim:  #162a1e;
+  --gold:       #c9a84c;
+  --gold-dim:   #2a2008;
+  --blue:       #4a7fa8;
+  --blue-dim:   #0f2233;
+  --red:        #c45c5c;
+  --red-dim:    #2d1212;
+
+  /* Phase colors */
+  --phase-vor: #c9a84c;
+  --phase-1:   #6b7280;
+  --phase-2:   #4a7fa8;
+  --phase-3:   #7c5cbf;
+
+  /* Sizing */
+  --radius:    8px;
+  --radius-sm: 4px;
+  --radius-lg: 12px;
+
+  /* Transitions */
+  --transition: 0.12s ease;
+}
+
+/* ── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  font-size: 14px;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+button { font-family: inherit; cursor: pointer; }
+input  { font-family: inherit; }
+
+/* ── Layout ─────────────────────────────────────────────────── */
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px 40px;
+}
+
+/* ── Loading & Error States ─────────────────────────────────── */
+#loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+  gap: 16px;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+#loading p { color: var(--dim); font-size: 0.85rem; }
+
+#error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: 12px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+#error h2 { color: var(--red); font-size: 1.1rem; }
+#error p  { color: var(--dim); font-size: 0.85rem; max-width: 500px; }
+
+#error code {
+  display: block;
+  padding: 12px 16px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 0.75rem;
+  color: var(--dim);
+  max-width: 640px;
+  text-align: left;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.btn-primary {
+  padding: 8px 20px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.btn-primary:hover { opacity: 0.85; }
+
+/* ── Section Headers ─────────────────────────────────────────── */
+.section-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--dim2);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin: 28px 0 14px;
+}
+
+/* ── Grid Utilities ──────────────────────────────────────────── */
+.grid { display: grid; gap: 10px; }
+.grid-auto  { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.grid-2col  { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid-3col  { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+
+/* ── Tooltip ─────────────────────────────────────────────────── */
+#tooltip {
+  position: fixed;
+  background: var(--card-alt);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  font-size: 0.76rem;
+  pointer-events: none;
+  z-index: 1000;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  max-width: 240px;
+  line-height: 1.5;
+}
+#tooltip .tt { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+#tooltip .tv { color: var(--accent); }
+#tooltip .td { color: var(--dim); font-size: 0.72rem; margin-top: 2px; }
+
+/* ── Footer ──────────────────────────────────────────────────── */
+#footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 20px 0 8px;
+  border-top: 1px solid var(--border);
+  margin-top: 40px;
+  color: var(--dim2);
+  font-size: 0.72rem;
+  flex-wrap: wrap;
+}
+
+.btn-refresh {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--dim);
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.72rem;
+  transition: all var(--transition);
+}
+.btn-refresh:hover { color: var(--accent); border-color: var(--accent); }
+
+/* ── Utility ─────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .container { padding: 0 12px 32px; }
+  .grid-2col { grid-template-columns: 1fr; }
+}

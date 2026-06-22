@@ -1,0 +1,82 @@
+/* ============================================================
+   CHARTS.CSS — Chart containers, SVG styles, chart-specific
+   ============================================================ */
+
+.chart-box {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 10px 0;
+  overflow-x: auto;
+}
+
+.chart-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.chart-title { font-size: 0.86rem; font-weight: 600; color: var(--text); }
+.chart-note  { font-size: 0.72rem; color: var(--dim); }
+
+svg.chart { width: 100%; height: auto; display: block; }
+
+/* Chart grid lines rendered via JS, styled via SVG attributes */
+/* Tooltip triggered on hover — see tooltip in main.css */
+
+/* ── Chart Legend ────────────────────────────────────────────── */
+.chart-legend {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--dim);
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── Scatterplot specific ────────────────────────────────────── */
+.scatter-dot {
+  cursor: pointer;
+  transition: r 0.1s ease;
+}
+
+/* ── Heatmap ─────────────────────────────────────────────────── */
+.heatmap-cell {
+  rx: 3;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.heatmap-cell:hover { opacity: 0.8; }
+
+/* ── PB Timeline ─────────────────────────────────────────────── */
+.pb-timeline {
+  position: relative;
+  padding: 8px 0;
+}
+
+/* ── Empty state ─────────────────────────────────────────────── */
+.chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  color: var(--dim2);
+  font-size: 0.82rem;
+}
