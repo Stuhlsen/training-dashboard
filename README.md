@@ -1,114 +1,98 @@
 # 🚴 Training Dashboard
 
-Statisches Dashboard für Radsport-Trainingsdaten. Gehostet auf GitHub Pages, Daten aus Notion (Plan 1) und intervals.icu (Plan 2).
+Statisches Dashboard für Radsport-Trainingsdaten mit automatisiertem Daten-Sync aus Notion. Gehostet auf GitHub Pages — kein Backend, keine laufenden Kosten.
+
+**Athlet:** Alexander Müller · **Zeitraum:** März 2026 – laufend
+**Plan 1:** Basisaufbau (12 Wochen, ~2.100 km, FTP 0→193W)
+**Plan 2:** FTP & Fitness aufbauen (12 Wochen, pyramidale Periodisierung, Ziel ≥210W)
 
 ## Architektur
 
 ```
-Notion DB ──→ GitHub Action ──→ data/rides.json ──→ GitHub Pages (Frontend)
-                  ↑                                        ↑
-          Alle 6h oder manuell              HTML + CSS + Chart.js (statisch)
+Notion DB (Plan 1) ──┐
+                      ├── GitHub Action ──→ data/rides.json ──→ GitHub Pages
+Notion DB (Plan 2) ──┘    (alle 6h)                              (statisch)
 ```
 
-**Kein Netlify, kein Backend, keine laufenden Kosten.** Der API-Key liegt als GitHub Secret — nie im Browser.
+Secrets (API-Keys, DB-IDs) liegen als GitHub Secrets — nie im Code, nie im Browser.
+
+## Features
+
+- **Übersicht:** KPIs, Meilensteine, Gesamtstatistiken
+- **Charts:** Wochenvolumen (phasengefärbt), CTL/ATL-Verlauf, TRIMP, Effizienz (W/bpm), HRV + Ruhepuls mit Trendlinien, Heatmap
+- **Tabelle:** Sortier- und filterbare Ansicht aller Fahrten
+- **Analyse:** Phasenübersicht getrennt nach Plan 1 / Plan 2, Detailkarten, Stärken & Entwicklungsfelder
 
 ## Projektstruktur
 
 ```
 training-dashboard/
-├── index.html
-├── .env.example             ← Vorlage für lokale Secrets
-├── .github/
-│   └── workflows/
-│       └── sync-data.yml    ← GitHub Action: Notion → JSON
+├── index.html                  Hauptseite
+├── .github/workflows/
+│   └── sync-data.yml           GitHub Action: Notion → JSON
 ├── scripts/
-│   └── generate-data.js     ← Daten-Generator (ersetzt Netlify Function)
+│   └── generate-data.js        Daten-Generator (beide Notion-DBs)
 ├── data/
-│   └── rides.json           ← Generierte Trainingsdaten (committed)
+│   └── rides.json              Generierte Trainingsdaten
 └── assets/
-    ├── css/
-    │   ├── main.css
-    │   ├── components.css
-    │   ├── charts.css
-    │   └── table.css
+    ├── css/                    Styling (main, components, charts, table)
     └── js/
-        ├── config.js        ← ⚙️  ALLE Einstellungen hier
-        ├── utils.js
-        ├── data.js          ← Datenladen + statischer Fallback
-        ├── charts.js
-        ├── overview.js
-        ├── table.js
-        ├── analysis.js
-        └── app.js
+        ├── config.js           Einstellungen (FTP, Zonen, Meilensteine)
+        ├── utils.js            Hilfsfunktionen, Formatierung
+        ├── data.js             Datenladen + Fallback
+        ├── charts.js           SVG-Charts (CTL, HRV, Effizienz, etc.)
+        ├── overview.js         Hero-Bereich, Metriken, Meilensteine
+        ├── table.js            Sortierbare Datentabelle
+        ├── analysis.js         Phasenanalyse, Detailkarten
+        └── app.js              Einstiegspunkt, Orchestrierung
 ```
 
-## Setup
+## GitHub Secrets
 
-### 1. GitHub Repo erstellen
+| Secret | Beschreibung |
+|---|---|
+| `NOTION_API_KEY` | Notion Integration Token |
+| `NOTION_DATABASE_ID` | Plan 1 Trainingsdatenbank |
+| `NOTION_DATABASE_ID_PLAN2` | Plan 2 Trainingsdatenbank |
+| `INTERVALS_API_KEY` | intervals.icu API Key (für zukünftige Integration) |
+| `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID |
 
-```bash
-git init
-git add .
-git commit -m "init: training dashboard"
-git remote add origin git@github.com:Stuhlsen/training-dashboard.git
-git push -u origin main
-```
-
-### 2. GitHub Pages aktivieren
-
-Settings → Pages → Source: "Deploy from a branch" → Branch: `main`, Ordner: `/ (root)`
-
-### 3. GitHub Secrets konfigurieren
-
-Settings → Secrets and variables → Actions → New repository secret:
-
-| Secret               | Wert                                 |
-|----------------------|--------------------------------------|
-| `NOTION_API_KEY`     | Notion Integration Token (`ntn_...`) |
-| `NOTION_DATABASE_ID` | ID der Trainingsdatenbank            |
-
-### 4. Ersten Sync auslösen
-
-Actions → "Sync Training Data" → "Run workflow"
-
-### 5. Lokale Entwicklung
+## Lokale Entwicklung
 
 ```bash
-# .env anlegen (nie committen!)
-cp .env.example .env
-# Werte eintragen...
-
-# JSON lokal generieren
+# .env anlegen mit den Secrets (nie committen!)
+# Dann JSON lokal generieren:
 node scripts/generate-data.js
 
-# Seite lokal testen (braucht HTTP-Server für fetch)
+# Seite lokal testen (braucht HTTP-Server für fetch):
 npx serve .
 # oder: python3 -m http.server
 ```
 
 ## Häufige Anpassungen
 
-### FTP aktualisieren
-→ `assets/js/config.js`, Werte `ftp` und `eFTP` ändern.
+| Was | Wo |
+|---|---|
+| FTP / eFTP aktualisieren | `assets/js/config.js` → `ftp`, `eFTP` |
+| Neuer Meilenstein | `assets/js/config.js` → `manualMilestones` |
+| Daten manuell synchen | Actions → "Sync Training Data" → "Run workflow" |
 
-### Neue Meilensteine
-→ `assets/js/config.js`, Array `manualMilestones` erweitern.
+## Technologie
 
-### Daten manuell aktualisieren
-→ Actions-Tab → "Sync Training Data" → "Run workflow"
+- **Frontend:** Vanilla HTML/CSS/JS, SVG-Charts (kein Build-Step)
+- **Datenquelle:** Notion API (zwei Datenbanken)
+- **Hosting:** GitHub Pages (statisch, kostenlos)
+- **CI/CD:** GitHub Actions (Cron alle 6h + manueller Trigger)
 
-## Migration von Netlify
+## Roadmap
 
-Dieses Repo ersetzt das Netlify-Deployment. Änderungen:
-- `netlify/functions/training.js` → `scripts/generate-data.js` (gleiche Logik, Datei-Output)
-- `/.netlify/functions/training` → `./data/rides.json` (statische Datei statt Serverless)
-- Netlify CLI / Deploy → GitHub Pages (automatisch)
-- Netlify Env Vars → GitHub Secrets (für die Action)
-
-## Nächste Schritte (Plan 2)
-
-- [ ] intervals.icu API Integration im generate-data Skript
-- [ ] Neue Felder: TSS, IF, VI, Aerobe Entkopplung, ATL/TSB
-- [ ] Plan-Filter im Dashboard (Plan 1 / Plan 2 / Alle)
-- [ ] Power Curve Chart
+- [x] Dashboard von Netlify auf GitHub Pages migriert
+- [x] Dual-DB Sync (Plan 1 + Plan 2)
+- [x] Plan-Trennung in der Analyse
+- [x] Trendlinien auf HRV- und Ruhepuls-Charts
+- [x] Erweiterte Felder: TSS, IF, VI, ATL/TSB, Aerobe Entkopplung
+- [ ] intervals.icu API Integration (automatischer Ride-Import)
+- [ ] Plan-Filter-Toggle im Dashboard (Plan 1 / Plan 2 / Alle)
 - [ ] Aerobe Entkopplung Trend-Chart
+- [ ] Power Curve Visualisierung
+- [ ] Postman Collection für API-Testing (QA-Lernprojekt)
