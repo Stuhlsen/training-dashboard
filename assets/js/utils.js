@@ -150,5 +150,13 @@ const phaseTagClass = (phase) => {
   if (phase.includes("Vor") || phase === "Vorbereitung") return "tag-vor";
   if (phase === "Phase 1") return "tag-p1";
   if (phase === "Phase 2") return "tag-p2";
-  return "tag-p3";
+  if (phase === "Phase 3") return "tag-p3";
+  // Plan 2
+  if (phase === "Übergang") return "tag-vor";
+  if (phase === "Sweet Spot") return "tag-p1";
+  if (phase === "Schwelle") return "tag-p2";
+  if (phase === "VO2max") return "tag-p3";
+  if (phase === "Erholung") return "tag-vor";
+  if (phase === "Taper") return "tag-vor";
+  return "";
 };

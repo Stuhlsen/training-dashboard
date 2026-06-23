@@ -13,41 +13,64 @@ const Analysis = {
 
   /* ── Phasen ─────────────────────────────────────────────────── */
   _renderPhases(rides) {
-    const phaseOrder = ["Vorbereitung", "Phase 1", "Phase 2", "Phase 3"];
-    const present    = phaseOrder.filter(p => rides.some(r => r.phase === p));
+    const plans = [
+      {
+        label: "Plan 1 — Basisaufbau (Mär–Jun 2026)",
+        phases: ["Vorbereitung", "Phase 1", "Phase 2", "Phase 3"],
+        filter: r => (r.plan || "Plan 1") === "Plan 1",
+      },
+      {
+        label: "Plan 2 — FTP & Fitness (Jun–Sep 2026)",
+        phases: ["Übergang", "Sweet Spot", "Schwelle", "VO2max", "Erholung", "Taper"],
+        filter: r => r.plan === "Plan 2",
+      },
+    ];
 
-    el("phase-blocks").innerHTML = present.map(phase => {
-      const pr    = rides.filter(r => r.phase === phase);
-      const km    = sum(pr, "km");
-      const avgMin = sum(pr, "min") / pr.length;
-      const avgHF  = avg(pr.filter(r => r.hf), "hf");
-      const avgKad = avg(pr.filter(r => r.kad), "kad");
-      const endCTL = pr.filter(r => r.ctl != null).slice(-1)[0]?.ctl;
-      const weeks  = [...new Set(pr.map(r => r.week))]
-        .sort((a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b));
-      const color  = CONFIG.phaseColor(phase);
+    el("phase-blocks").innerHTML = plans.map(plan => {
+      const planRides = rides.filter(plan.filter);
+      if (!planRides.length) return "";
+      const present = plan.phases.filter(p => planRides.some(r => r.phase === p));
+      if (!present.length) return "";
 
-      const stats = [
-        { v: pr.length,                  l: "Fahrten"  },
-        { v: Math.round(km) + " km",     l: "Distanz"  },
-        { v: fmt(km / pr.length) + " km", l: "Ø Fahrt"  },
-        { v: Math.round(avgMin) + " min", l: "Ø Dauer"  },
-        { v: fmtInt(avgHF) + " bpm",      l: "Ø HF"     },
-        { v: fmtInt(avgKad) + " RPM",     l: "Ø Kadenz" },
-        { v: endCTL != null ? fmt(endCTL) : "–", l: "CTL Ende" },
-      ];
+      const blocks = present.map(phase => {
+        const pr    = planRides.filter(r => r.phase === phase);
+        const km    = sum(pr, "km");
+        const avgMin = sum(pr, "min") / pr.length;
+        const avgHF  = avg(pr.filter(r => r.hf), "hf");
+        const avgKad = avg(pr.filter(r => r.kad), "kad");
+        const endCTL = pr.filter(r => r.ctl != null).slice(-1)[0]?.ctl;
+        const weeks  = [...new Set(pr.map(r => r.week))]
+          .sort((a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b));
+        const color  = CONFIG.phaseColor(phase);
 
-      return `
-        <div class="phase-block" style="--pb-color:${color}">
-          <h3>${phase} · ${weeks[0]} – ${weeks[weeks.length - 1]}</h3>
-          <div class="phase-stats">
-            ${stats.map(s => `
-              <div class="phase-stat">
-                <div class="ps-val" style="color:${color}">${s.v}</div>
-                <div class="ps-lbl">${s.l}</div>
-              </div>`).join("")}
-          </div>
-        </div>`;
+        const weekRange = weeks[0] === weeks[weeks.length - 1]
+          ? weeks[0]
+          : `${weeks[0]} – ${weeks[weeks.length - 1]}`;
+
+        const stats = [
+          { v: pr.length,                  l: "Fahrten"  },
+          { v: Math.round(km) + " km",     l: "Distanz"  },
+          { v: fmt(km / pr.length) + " km", l: "Ø Fahrt"  },
+          { v: Math.round(avgMin) + " min", l: "Ø Dauer"  },
+          { v: fmtInt(avgHF) + " bpm",      l: "Ø HF"     },
+          { v: fmtInt(avgKad) + " RPM",     l: "Ø Kadenz" },
+          { v: endCTL != null ? fmt(endCTL) : "–", l: "CTL Ende" },
+        ];
+
+        return `
+          <div class="phase-block" style="--pb-color:${color}">
+            <h3>${phase} · ${weekRange}</h3>
+            <div class="phase-stats">
+              ${stats.map(s => `
+                <div class="phase-stat">
+                  <div class="ps-val" style="color:${color}">${s.v}</div>
+                  <div class="ps-lbl">${s.l}</div>
+                </div>`).join("")}
+            </div>
+          </div>`;
+      }).join("");
+
+      return `<h2 class="section-label" style="margin-top:2rem">📊 ${plan.label}</h2>${blocks}`;
     }).join("");
   },
 
@@ -55,7 +78,6 @@ const Analysis = {
   _renderDetails(rides) {
     const avgHF   = avg(rides.filter(r => r.hf), "hf");
     const maxHF   = maxVal(rides.filter(r => r.hfMax), "hfMax");
-    const heuCnt  = rides.filter(r => r.heu).length;
     const ftpVal  = Data.ftpValue();
 
     // Kadenz: Anfang vs. Ende
@@ -87,10 +109,6 @@ const Analysis = {
       {
         t: "🎯  FTP-Progression",
         x: `eFTP-Entwicklung (Intervals.icu): 166 → 175 → 187 → ${CONFIG.eFTP}W. Gemessener Ramp Test: ${ftpVal}W. Beide Werte bestätigen sich gegenseitig. Nächstes Ziel: 220W durch strukturierte Schwellen-Sessions.`,
-      },
-      {
-        t: "🌡️  Heuschnupfen",
-        x: `${heuCnt} von ${rides.length} Fahrten (${Math.round(heuCnt / rides.length * 100)}%) unter Heuschnupfen-Einfluss dokumentiert. Kein messbarer negativer Langzeiteffekt auf die Leistungsprogression.`,
       },
       {
         t: "👥  Gruppenfahrten",

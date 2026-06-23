@@ -12,7 +12,7 @@ const CONFIG = {
 
   /* ── FTP & Leistung ────────────────────────────────────────── */
   ftp: 193,
-  eFTP: 198,
+  eFTP: 199,
 
   /* ── Herzfrequenz ──────────────────────────────────────────── */
   hrMax:   201,
@@ -63,6 +63,7 @@ const CONFIG = {
     { icon: "💯", text: 'Erster 100km-Ride — "Irgendwie einfach"',      dateISO: "2026-06-05", date: "05.06.2026", week: "W10" },
     { icon: "🎯", text: "FTP Ramp Test: 193W bestätigt",               dateISO: "2026-06-12", date: "12.06.2026", week: "W11" },
     { icon: "🥇", text: "PB: NP 200W · 29,6 km/h Schnitt",            dateISO: "2026-06-17", date: "17.06.2026", week: "W12" },
+    { icon: "🏔️", text: "138 km Abschlusstour bei 29°C",              dateISO: "2026-06-19", date: "19.06.2026", week: "W12" },
     // Plan 2
     { icon: "🔄", text: "Plan 2 Start",                                dateISO: "2026-06-29", date: "29.06.2026", week: "P2-W1" },
   ],
