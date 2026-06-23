@@ -381,6 +381,21 @@ const Charts = {
       points: pts.map(p => `${p.x},${p.y}`).join(" "),
     }));
 
+    // Lineare Regression (Trendlinie)
+    const n = pts.length;
+    if (n > 2) {
+      const mx = pts.reduce((s, p) => s + p.x, 0) / n;
+      const my = pts.reduce((s, p) => s + p.y, 0) / n;
+      const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
+                    pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+      const intercept = my - slope * mx;
+      const x1 = pts[0].x, x2 = pts[n - 1].x;
+      svg.appendChild(svgEl("line", {
+        x1, y1: slope * x1 + intercept, x2, y2: slope * x2 + intercept,
+        stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+      }));
+    }
+
     const step = Math.max(1, Math.floor(pts.length / 20));
     pts.forEach((p, i) => {
       if (i % step !== 0 && i !== pts.length - 1) return;
@@ -510,6 +525,21 @@ const Charts = {
       fill: "none", stroke: "#c45c5c", "stroke-width": "1.8",
       points: pts.map(p => `${p.x},${p.y}`).join(" "),
     }));
+
+    // Lineare Regression (Trendlinie)
+    const n = pts.length;
+    if (n > 2) {
+      const mx = pts.reduce((s, p) => s + p.x, 0) / n;
+      const my = pts.reduce((s, p) => s + p.y, 0) / n;
+      const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
+                    pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+      const intercept = my - slope * mx;
+      const x1 = pts[0].x, x2 = pts[n - 1].x;
+      svg.appendChild(svgEl("line", {
+        x1, y1: slope * x1 + intercept, x2, y2: slope * x2 + intercept,
+        stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+      }));
+    }
 
     const step = Math.max(1, Math.floor(pts.length / 20));
     pts.forEach((p, i) => {
