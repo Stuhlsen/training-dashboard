@@ -2051,12 +2051,49 @@
       "id": 57,
       "dateShort": "20.06",
       "dateISO": "2026-06-20"
+    },
+    {
+      "notionId": "3884b529-52c4-8160-8898-e22e18de3d0a",
+      "name": "Gruppenfahrt W0",
+      "date": "2026-06-23",
+      "week": "P2-W0",
+      "phase": "Übergang",
+      "typ": "Gruppenfahrt",
+      "plan": "Plan 2",
+      "km": 70.83,
+      "min": 161,
+      "kmh": 26.4,
+      "hf": 141,
+      "hfMax": 185,
+      "kad": 87,
+      "watt": 138,
+      "np": 175,
+      "ftpWatt": null,
+      "maxWatt": 835,
+      "trimp": null,
+      "ctl": 59,
+      "atl": 92,
+      "tsb": -33,
+      "tss": 204,
+      "vi": 1.27,
+      "ruhepuls": 52,
+      "hrv": 116,
+      "dtl": 125.2,
+      "hoehe": 91,
+      "feel": "Moderat",
+      "heu": false,
+      "wetter": "Teilw. bewölkt, 27°C, Wind 6.8 km/h NO",
+      "notizen": "Erster Ride Plan 2, W0 Übergang. Gruppenfahrt mit gutem Tempo, am Ende 8 km locker ausgerollt. War als Z2-Deckel-Fahrt geplant, aber in der Gruppe wie gewohnt mitgedrückt.",
+      "id": 58,
+      "dateShort": "23.06",
+      "dateISO": "2026-06-23"
     }
   ],
   "plans": [
-    "Plan 1"
+    "Plan 1",
+    "Plan 2"
   ],
-  "updated": "2026-06-23T19:02:41.287Z",
+  "updated": "2026-06-23T19:11:38.120Z",
   "source": "notion",
-  "count": 57
+  "count": 58
 }
