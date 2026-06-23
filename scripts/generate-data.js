@@ -32,6 +32,7 @@ if (fs.existsSync(envPath)) {
 
 const NOTION_KEY = process.env.NOTION_API_KEY;
 const DB_ID = process.env.NOTION_DATABASE_ID;
+const DB_ID_PLAN2 = process.env.NOTION_DATABASE_ID_PLAN2 || "";
 const OUT_FILE = path.join(__dirname, "..", "data", "rides.json");
 
 if (!NOTION_KEY || !DB_ID) {
@@ -69,10 +70,9 @@ function getRichText(prop) {
   return prop.rich_text?.map((t) => t.plain_text).join("") || "";
 }
 
-async function main() {
-  console.log("📡 Notion-Datenbank abfragen...");
+async function queryNotionDB(dbId, defaultPlan) {
+  console.log(`📡 Notion-Datenbank abfragen (${defaultPlan})...`);
 
-  // Alle Seiten laden (Notion paginiert bei >100)
   let allResults = [];
   let hasMore = true;
   let startCursor = undefined;
@@ -84,7 +84,7 @@ async function main() {
     };
     if (startCursor) body.start_cursor = startCursor;
 
-    const res = await fetch(`https://api.notion.com/v1/databases/${DB_ID}/query`, {
+    const res = await fetch(`https://api.notion.com/v1/databases/${dbId}/query`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${NOTION_KEY}`,
@@ -107,10 +107,13 @@ async function main() {
     console.log(`   ... ${allResults.length} Einträge geladen`);
   }
 
-  // Properties parsen (identisch mit Netlify Function)
-  const rides = allResults
-    .filter((p) => p.properties?.Status?.select?.name === "Erledigt")
-    .map((page, idx) => {
+  return allResults
+    .filter((p) => {
+      const st = p.properties?.Status;
+      const name = st?.select?.name || st?.status?.name;
+      return name === "Erledigt";
+    })
+    .map((page) => {
       const pr = page.properties;
 
       const rawName = getTitle(pr["Einheit"]);
@@ -126,14 +129,13 @@ async function main() {
       }
 
       return {
-        id: idx + 1,
         notionId: page.id,
         name: cleanName || rawName,
         date: getDate(pr["Datum"]),
         week: getSelect(pr["Woche"]),
         phase: getSelect(pr["Phase"]),
         typ: getSelect(pr["Typ"]),
-        plan: getSelect(pr["Plan"]) || "Plan 1",
+        plan: getSelect(pr["Plan"]) || defaultPlan,
         km: getNum(pr["Distanz (km)"]),
         min: getNum(pr["Dauer (min)"]),
         kmh: getNum(pr["Avg-Tempo (km/h)"]),
@@ -148,16 +150,29 @@ async function main() {
         ctl: getNum(pr["CTL (Fitness)"]),
         atl: getNum(pr["ATL (Ermüdung)"]),
         tsb: getNum(pr["TSB (Form)"]),
+        tss: getNum(pr["TSS"]),
+        vi: getNum(pr["VI"]),
         ruhepuls: getNum(pr["Ruhepuls"]),
         hrv: getNum(pr["HRV"]),
         dtl: getNum(pr["DTL"]),
-        hoehe: getNum(pr["Hoehengewinn (m)"]),
+        hoehe: getNum(pr["Hoehengewinn (m)"] || pr["Hoehengewinn"]),
         feel: getSelect(pr["Befinden"]),
         heu: getCheckbox(pr["Heuschnupfen"]),
         wetter: getRichText(pr["Wetter"]),
         notizen,
       };
     });
+}
+
+async function main() {
+  // Plan 1 Datenbank
+  let rides = await queryNotionDB(DB_ID, "Plan 1");
+
+  // Plan 2 Datenbank (optional)
+  if (DB_ID_PLAN2) {
+    const plan2Rides = await queryNotionDB(DB_ID_PLAN2, "Plan 2");
+    rides = rides.concat(plan2Rides);
+  }
 
   // Nach Datum sortieren, IDs neu vergeben
   rides.sort((a, b) => (a.date || "").localeCompare(b.date || ""));

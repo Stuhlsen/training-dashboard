@@ -1213,7 +1213,41 @@
       "dateShort": "17.06"
     },
     {
-      "id": 56,
+      "date": "2026-06-20",
+      "dateISO": "2026-06-20",
+      "dateShort": "20.06",
+      "week": "W12",
+      "phase": "Phase 3",
+      "name": "Große Abschlussrunde SFB→DD→SFB (138km!)",
+      "typ": "Z2 Lang",
+      "plan": "Plan 1",
+      "km": 138.4,
+      "min": 373,
+      "kmh": 22.2,
+      "hf": 132,
+      "hfMax": 167,
+      "kad": 84,
+      "watt": 119,
+      "maxWatt": 923,
+      "np": 145,
+      "trimp": 460,
+      "ctl": 59,
+      "atl": 100,
+      "tsb": -41,
+      "tss": 324,
+      "if": 0.73,
+      "vi": 1.22,
+      "dtl": 298.2,
+      "ruhepuls": 63,
+      "hrv": 95,
+      "hoehe": 399,
+      "feel": "Irgendwie schwer",
+      "heu": false,
+      "wetter": "Teilw. bewölkt, 29°C, gefühlt 30°C, Wind 6.1 km/h N",
+      "id": 56
+    },
+    {
+      "id": 57,
       "date": "2026-06-23",
       "dateISO": "2026-06-23",
       "dateShort": "23.06",
@@ -1251,6 +1285,6 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-06-23T18:39:05.669Z",
-  "count": 56
+  "updated": "2026-06-23T18:59:25.846Z",
+  "count": 57
 }

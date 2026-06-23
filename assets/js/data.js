@@ -158,5 +158,6 @@ const STATIC_RIDES = [
   {id:53,date:"2026-06-13",week:"W11",phase:"Phase 3",name:"Indoor Freestyle (MyWhoosh)",typ:"Ausserplanmaessig",plan:"Plan 1",km:62.1,min:136,kmh:null,hf:123,hfMax:157,kad:81,watt:132,np:144,trimp:128,ctl:51,feel:"Leicht"},
   {id:54,date:"2026-06-16",week:"W12",phase:"Phase 3",name:"Gruppenfahrt (außerplan.)",typ:"Ausserplanmaessig",plan:"Plan 1",km:70.7,min:167,kmh:25.1,hf:133,hfMax:180,kad:85,watt:141,np:170,trimp:212,ctl:51,feel:"Irgendwie einfach"},
   {id:55,date:"2026-06-17",week:"W12",phase:"Phase 3",name:"Trainingsrunde PB",typ:"Freestyle",plan:"Plan 1",km:19.5,min:40,kmh:29.6,hf:155,hfMax:171,kad:91,watt:186,np:200,trimp:89,ctl:53,feel:"Moderat"},
-  {id:56,date:"2026-06-23",week:"P2-W0",phase:"Übergang",name:"Gruppenfahrt W0",typ:"Gruppenfahrt",plan:"Plan 2",km:70.83,min:161,kmh:26.4,hf:141,hfMax:185,kad:87,watt:138,np:175,tss:204,ctl:59,atl:92,tsb:-33,vi:1.27,dtl:125.2,ruhepuls:52,hrv:116,hoehe:91,feel:"Moderat"},
+  {id:56,date:"2026-06-20",week:"W12",phase:"Phase 3",name:"Große Abschlussrunde SFB→DD→SFB (138km!)",typ:"Z2 Lang",plan:"Plan 1",km:138.4,min:373,kmh:22.2,hf:132,hfMax:167,kad:84,watt:119,np:145,trimp:460,ctl:59,atl:100,tsb:-41,tss:324,vi:1.22,dtl:298.2,ruhepuls:63,hrv:95,hoehe:399,feel:"Irgendwie schwer"},
+  {id:57,date:"2026-06-23",week:"P2-W0",phase:"Übergang",name:"Gruppenfahrt W0",typ:"Gruppenfahrt",plan:"Plan 2",km:70.83,min:161,kmh:26.4,hf:141,hfMax:185,kad:87,watt:138,np:175,tss:204,ctl:59,atl:92,tsb:-33,vi:1.27,dtl:125.2,ruhepuls:52,hrv:116,hoehe:91,feel:"Moderat"},
 ];
