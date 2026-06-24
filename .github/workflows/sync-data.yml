@@ -39,6 +39,8 @@ jobs:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           NOTION_DATABASE_ID_PLAN2: ${{ secrets.NOTION_DATABASE_ID_PLAN2 }}
+          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
+          INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
         run: node scripts/generate-data.js
 
       - name: Commit and push if changed
