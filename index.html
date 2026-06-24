@@ -3,25 +3,22 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>12-Wochen-Trainingsplan Grundlagenausdauer</title>
-
-  <!-- Styles -->
+  <title>Training Dashboard — Plan 1 & 2</title>
   <link rel="stylesheet" href="assets/css/main.css">
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/charts.css">
   <link rel="stylesheet" href="assets/css/table.css">
 </head>
 <body>
-
 <div class="container">
 
-  <!-- ── Loading ─────────────────────────────────────────────── -->
+  <!-- Loading -->
   <div id="loading">
     <div class="spinner"></div>
     <p>Trainingsdaten werden geladen…</p>
   </div>
 
-  <!-- ── Error ────────────────────────────────────────────────── -->
+  <!-- Error -->
   <div id="error" class="hidden">
     <h2>⚠️ Daten konnten nicht geladen werden</h2>
     <p>Prüfe ob die Notion-Integration korrekt eingerichtet ist.</p>
@@ -29,166 +26,221 @@
     <button class="btn-primary" onclick="location.reload()">Erneut versuchen</button>
   </div>
 
-  <!-- ── App ──────────────────────────────────────────────────── -->
+  <!-- App -->
   <div id="app" class="hidden">
 
     <!-- Hero -->
     <header class="hero">
       <div class="hero-layout">
         <div class="hero-title">
-          <h1>12-Wochen-Trainingsplan<br><em>Grundlagenausdauer</em></h1>
+          <h1>Training Dashboard<br><em>Plan 1 & 2</em></h1>
           <p class="hero-sub" id="hero-sub"></p>
         </div>
         <div class="hero-kpis" id="hero-kpis"></div>
       </div>
     </header>
 
-    <!-- Tabs -->
-    <nav class="tabs" id="tabs">
-      <button class="tab-btn active" data-tab="overview">Übersicht</button>
-      <button class="tab-btn" data-tab="charts">Charts</button>
-      <button class="tab-btn" data-tab="table">Fahrtenbuch</button>
-      <button class="tab-btn" data-tab="analysis">Analyse</button>
-    </nav>
-
-    <!-- ── Tab: Übersicht ──────────────────────────────────────── -->
-    <section id="tab-overview" class="tab-content">
-      <div class="grid grid-auto" id="metrics-grid"></div>
-
-      <h2 class="section-label">Meilensteine</h2>
-      <div class="milestones-grid" id="milestones-grid"></div>
+    <!-- ═══ Übersicht ═══ -->
+    <section class="dash-section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>📊 Übersicht</h2>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="section-body open">
+        <div class="grid grid-auto" id="metrics-grid"></div>
+        <h3 class="section-sublabel">Meilensteine</h3>
+        <div class="milestones-grid" id="milestones-grid"></div>
+      </div>
     </section>
 
-    <!-- ── Tab: Charts ─────────────────────────────────────────── -->
-    <section id="tab-charts" class="tab-content hidden">
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Wöchentliches Volumen (km)</span>
-          <span class="chart-note">Klick auf Balken → Fahrtenbuch-Filter</span>
-        </div>
-        <svg class="chart" id="chart-weekly" viewBox="0 0 780 270"></svg>
+    <!-- ═══ Fitness & Belastung ═══ -->
+    <section class="dash-section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>💪 Fitness & Belastung</h2>
+        <span class="toggle-icon">▾</span>
       </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">CTL-Progression — Fitnessentwicklung</span>
-          <span class="chart-note" id="ctl-note"></span>
+      <div class="section-body open">
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">PMC — Performance Management Chart</span>
+            <span class="chart-note" id="pmc-note"></span>
+          </div>
+          <svg class="chart" id="chart-pmc" viewBox="0 0 780 250"></svg>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> CTL (Fitness)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> ATL (Ermüdung)</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> TSB (Form)</div>
+          </div>
         </div>
-        <svg class="chart" id="chart-ctl" viewBox="0 0 780 210"></svg>
+
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Wöchentliches Volumen (km)</span>
+            <span class="chart-note">Farbig nach Phase</span>
+          </div>
+          <svg class="chart" id="chart-weekly" viewBox="0 0 780 270"></svg>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Wöchentlicher TSS</span>
+            <span class="chart-note">Trainingsbelastung pro Woche</span>
+          </div>
+          <svg class="chart" id="chart-weekly-tss" viewBox="0 0 780 230"></svg>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Trainingsbelastung TRIMP pro Woche</span>
+          </div>
+          <svg class="chart" id="chart-trimp" viewBox="0 0 780 230"></svg>
+        </div>
       </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Aerobe Effizienz — Watt pro Herzschlag</span>
-          <span class="chart-note" id="efficiency-note">Nur Powermeter-Fahrten (ab W6)</span>
-        </div>
-        <svg class="chart" id="chart-efficiency" viewBox="0 0 780 210"></svg>
-        <div class="chart-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> Trendlinie</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Einzelfahrt</div>
-        </div>
-        <p class="chart-note" style="margin-top:10px;padding:0 4px;font-size:0.78rem;color:var(--dim);line-height:1.5">Watt pro Herzschlag misst wie effizient dein Körper Energie in Vortrieb umwandelt. Ein steigender Wert bei gleichem oder niedrigerem HF-Niveau ist das klarste Zeichen aerober Anpassung — unabhängig von Tagesform, Wetter oder Strecke.</p>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Tempo vs. Herzfrequenz — Fortschritts-Scatterplot</span>
-          <span class="chart-note">Oben links = schnell bei niedriger HF = besser</span>
-        </div>
-        <svg class="chart" id="chart-scatter" viewBox="0 0 780 260"></svg>
-        <div class="chart-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Vorbereitung</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div> Phase 1</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Phase 2</div>
-          <div class="legend-item"><div class="legend-dot" style="background:#7c5cbf"></div> Phase 3</div>
-        </div>
-        <p class="chart-note" style="margin-top:10px;padding:0 4px;font-size:0.78rem;color:var(--dim);line-height:1.5">Jeder Punkt ist eine Fahrt. Punkte oben links (hohes Tempo, niedrige HF) sind effiziente Fahrten — Punkte unten rechts (niedriges Tempo, hohe HF) weniger. Wenn der Schwerpunkt der späteren Phasen (blau/lila) gegenüber den frühen Phasen (gelb/grau) nach oben links wandert, ist das aerober Fortschritt.</p>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">HRV — Heart Rate Variability</span>
-          <span class="chart-note">Höher = besser erholt</span>
-        </div>
-        <svg class="chart" id="chart-hrv" viewBox="0 0 780 200"></svg>
-        <p class="chart-note" style="margin-top:10px;padding:0 4px;font-size:0.78rem;color:var(--dim);line-height:1.5">HRV misst die Variabilität zwischen Herzschlägen in Millisekunden. Ein hoher Wert zeigt dass das parasympathische Nervensystem aktiv ist — der Körper ist erholt und bereit für Belastung. Niedrige Werte nach harten Einheiten sind normal; dauerhaft niedrige Werte sind ein Warnsignal.</p>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Ruhepuls — Morgenmessung</span>
-          <span class="chart-note">Sinkende Tendenz = positive Adaptation</span>
-        </div>
-        <svg class="chart" id="chart-rhf" viewBox="0 0 780 200"></svg>
-        <p class="chart-note" style="margin-top:10px;padding:0 4px;font-size:0.78rem;color:var(--dim);line-height:1.5">Ein langfristig sinkender Ruhepuls ist eines der zuverlässigsten Zeichen aerober Fitness-Entwicklung. Das Herz wird effizienter und pumpt pro Schlag mehr Blut — es braucht weniger Schläge in Ruhe. Tagesausreißer nach oben können auf unvollständige Erholung hinweisen.</p>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Trainingsbelastung TRIMP pro Woche</span>
-        </div>
-        <svg class="chart" id="chart-trimp" viewBox="0 0 780 230"></svg>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Ø Tempo — Entwicklung</span>
-          <span class="chart-note">km/h pro Fahrt</span>
-        </div>
-        <svg class="chart" id="chart-sm-tempo" viewBox="0 0 780 180"></svg>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Ø Herzfrequenz — Entwicklung</span>
-          <span class="chart-note">bpm pro Fahrt</span>
-        </div>
-        <svg class="chart" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Kadenz — Entwicklung</span>
-          <span class="chart-note">RPM pro Fahrt · gestrichelt = Ziel 90 RPM</span>
-        </div>
-        <svg class="chart" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
-      </div>
-
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Wochentag-Verteilung — an welchen Tagen trainierst du?</span>
-        </div>
-        <svg class="chart" id="chart-heatmap" viewBox="0 0 780 100"></svg>
-      </div>
-
     </section>
 
-    <!-- ── Tab: Fahrtenbuch ─────────────────────────────────────── -->
-    <section id="tab-table" class="tab-content hidden">
-      <div class="filter-bar" id="filter-bar"></div>
-      <div id="week-filter-tag"></div>
-      <div class="table-meta" id="table-meta"></div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr id="table-head"></tr></thead>
-          <tbody id="table-body"></tbody>
-        </table>
+    <!-- ═══ Leistung ═══ -->
+    <section class="dash-section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>⚡ Leistung</h2>
+        <span class="toggle-icon">▾</span>
       </div>
-      <p class="table-note">Befinden wird ausgeschrieben angezeigt · – = Wert nicht erfasst</p>
+      <div class="section-body">
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Aerobe Effizienz — Watt pro Herzschlag</span>
+            <span class="chart-note">Nur Powermeter-Fahrten</span>
+          </div>
+          <svg class="chart" id="chart-efficiency" viewBox="0 0 780 210"></svg>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> Trendlinie</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Einzelfahrt</div>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Tempo vs. Herzfrequenz</span>
+            <span class="chart-note">Oben links = schnell bei niedriger HF = besser</span>
+          </div>
+          <svg class="chart" id="chart-scatter" viewBox="0 0 780 260"></svg>
+          <div class="chart-legend">
+            <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Vorbereitung</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div> Phase 1</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Phase 2</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#7c5cbf"></div> Phase 3</div>
+            <div class="legend-item"><div class="legend-dot" style="background:#e07b39"></div> Plan 2</div>
+          </div>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-header"><span class="chart-title">Ø Tempo — Entwicklung</span></div>
+          <svg class="chart" id="chart-sm-tempo" viewBox="0 0 780 180"></svg>
+        </div>
+        <div class="chart-box">
+          <div class="chart-header"><span class="chart-title">Kadenz — Entwicklung</span><span class="chart-note">Gestrichelt = Ziel 90 RPM</span></div>
+          <svg class="chart" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
+        </div>
+      </div>
     </section>
 
-    <!-- ── Tab: Analyse ────────────────────────────────────────── -->
-    <section id="tab-analysis" class="tab-content hidden">
-      <div id="phase-blocks"></div>
+    <!-- ═══ Aerobe Gesundheit ═══ -->
+    <section class="dash-section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>❤️ Aerobe Gesundheit</h2>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Aerobe Entkopplung (Pw:Hr)</span>
+            <span class="chart-note">Unter 5% = gute aerobe Fitness</span>
+          </div>
+          <svg class="chart" id="chart-decoupling" viewBox="0 0 780 200"></svg>
+          <p class="chart-explainer">Aerobe Entkopplung zeigt wie stark HF und Leistung im Lauf einer Fahrt auseinanderdriften. Bei gut ausgebildeter aerober Basis bleibt die HF bei konstanter Leistung stabil (&lt;5%). Hohe Werte (>10%) deuten auf unvollständige aerobe Anpassung oder zu hohe Intensität hin.</p>
+        </div>
 
-      <h2 class="section-label">Detailanalyse (Plan 1)</h2>
-      <div class="grid grid-2col" id="detail-cards"></div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">HRV — Heart Rate Variability</span>
+            <span class="chart-note">Höher = besser erholt</span>
+          </div>
+          <svg class="chart" id="chart-hrv" viewBox="0 0 780 200"></svg>
+          <p class="chart-explainer">HRV misst die Variabilität zwischen Herzschlägen. Plan 1 = Apple Health (RMSSD, einzelner Spitzenwert). Plan 2 = intervals.icu (SDNN, Schlafschnitt). Die Methoden sind nicht direkt vergleichbar — daher getrennte Linien.</p>
+        </div>
 
-      <h2 class="section-label">Stärken & Entwicklungsfelder</h2>
-      <div class="grid grid-2col" id="strengths-grid"></div>
+        <div class="chart-box">
+          <div class="chart-header">
+            <span class="chart-title">Ruhepuls — Morgenmessung</span>
+            <span class="chart-note">Sinkende Tendenz = positive Adaptation</span>
+          </div>
+          <svg class="chart" id="chart-rhf" viewBox="0 0 780 200"></svg>
+          <p class="chart-explainer">Ein sinkender Ruhepuls zeigt kardiovaskuläre Anpassung. Das Herz pumpt effizienter — weniger Schläge in Ruhe. Tagesausreißer nach oben können auf unvollständige Erholung hinweisen.</p>
+        </div>
 
-      <div class="summary-block" id="summary-block"></div>
+        <div class="chart-box">
+          <div class="chart-header"><span class="chart-title">Ø Herzfrequenz — Entwicklung</span></div>
+          <svg class="chart" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Erholung & Wellness ═══ -->
+    <section class="dash-section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>😴 Erholung & Wellness</h2>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="chart-box">
+          <div class="chart-header"><span class="chart-title">Wochentag-Verteilung</span></div>
+          <svg class="chart" id="chart-heatmap" viewBox="0 0 780 100"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- ═══ Fahrtenbuch ═══ -->
+    <section class="dash-section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>📋 Fahrtenbuch</h2>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="filter-bar" id="filter-bar"></div>
+        <div id="week-filter-tag"></div>
+        <div class="table-meta" id="table-meta"></div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr id="table-head"></tr></thead>
+            <tbody id="table-body"></tbody>
+          </table>
+        </div>
+        <p class="table-note">Befinden wird ausgeschrieben angezeigt · – = Wert nicht erfasst</p>
+      </div>
+    </section>
+
+    <!-- ═══ Analyse ═══ -->
+    <section class="dash-section">
+      <div class="section-header" onclick="toggleSection(this)">
+        <h2>📈 Analyse</h2>
+        <span class="toggle-icon">▾</span>
+      </div>
+      <div class="section-body">
+        <div class="plan-toggle" id="plan-toggle">
+          <button class="plan-btn active" data-plan="all">Gesamt</button>
+          <button class="plan-btn" data-plan="Plan 1">Plan 1</button>
+          <button class="plan-btn" data-plan="Plan 2">Plan 2</button>
+        </div>
+
+        <div id="phase-blocks"></div>
+
+        <h3 class="section-sublabel">Detailanalyse</h3>
+        <div class="grid grid-2col" id="detail-cards"></div>
+
+        <h3 class="section-sublabel">Stärken & Entwicklungsfelder</h3>
+        <div class="grid grid-2col" id="strengths-grid"></div>
+
+        <div class="summary-block" id="summary-block"></div>
+      </div>
     </section>
 
     <!-- Footer -->
@@ -197,10 +249,8 @@
   </div><!-- /app -->
 </div><!-- /container -->
 
-<!-- Tooltip (global, außerhalb des Containers) -->
 <div id="tooltip" class="hidden"></div>
 
-<!-- ── Scripts (Reihenfolge wichtig: config → utils → data → module → app) -->
 <script src="assets/js/config.js"></script>
 <script src="assets/js/utils.js"></script>
 <script src="assets/js/data.js"></script>
@@ -209,6 +259,5 @@
 <script src="assets/js/table.js"></script>
 <script src="assets/js/analysis.js"></script>
 <script src="assets/js/app.js"></script>
-
 </body>
 </html>

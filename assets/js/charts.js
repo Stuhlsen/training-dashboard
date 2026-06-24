@@ -494,71 +494,351 @@ const Charts = {
   },
 
   /* ── 10. Ruhepuls-Entwicklung ────────────────────────────────── */
-  renderRHF(svgId, rides) {
-    // Ein sinkender Ruhepuls zeigt kardiovaskuläre Anpassung — nach unten = positiv
-    const data = rides.filter(r => r.ruhepuls != null)
+  renderHRV(svgId, rides) {
+    const plan1 = rides.filter(r => r.hrv != null && (r.plan || "Plan 1") === "Plan 1")
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const plan2 = rides.filter(r => r.hrv != null && r.plan === "Plan 2")
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const data = [...plan1, ...plan2];
     const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
 
     const W = 780, H = 200, pad = { l: 50, r: 16, t: 16, b: 36 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const minV = Math.max(0, Math.min(...data.map(d => d.ruhepuls)) - 3);
-    const maxV = Math.max(...data.map(d => d.ruhepuls)) + 3;
+    const allVals = data.map(d => d.hrv);
+    const minV = Math.max(0, Math.min(...allVals) - 5);
+    const maxV = Math.max(...allVals) + 5;
 
     this._gridLines(svg, W, H, pad, maxV, minV);
 
-    // Gestrichelte Durchschnittslinie
-    const avgRHF = data.reduce((s, d) => s + d.ruhepuls, 0) / data.length;
-    const avgY = pad.t + ch - (avgRHF - minV) / (maxV - minV) * ch;
-    svg.appendChild(svgEl("line", {
-      x1: pad.l, y1: avgY, x2: W - pad.r, y2: avgY,
-      stroke: "#6b6158", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.6",
-    }));
-
-    const pts = data.map((d, i) => ({
-      x: pad.l + i / Math.max(data.length - 1, 1) * cw,
-      y: pad.t + ch - (d.ruhepuls - minV) / (maxV - minV) * ch,
-      d,
-    }));
-
-    svg.appendChild(svgEl("polyline", {
-      fill: "none", stroke: "#c45c5c", "stroke-width": "1.8",
-      points: pts.map(p => `${p.x},${p.y}`).join(" "),
-    }));
-
-    // Lineare Regression (Trendlinie)
-    const n = pts.length;
-    if (n > 2) {
-      const mx = pts.reduce((s, p) => s + p.x, 0) / n;
-      const my = pts.reduce((s, p) => s + p.y, 0) / n;
-      const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
-                    pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
-      const intercept = my - slope * mx;
-      const x1 = pts[0].x, x2 = pts[n - 1].x;
-      svg.appendChild(svgEl("line", {
-        x1, y1: slope * x1 + intercept, x2, y2: slope * x2 + intercept,
-        stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+    const _drawPlan = (pdata, color, dashArray) => {
+      if (!pdata.length) return;
+      const pts = pdata.map((d, i) => {
+        const globalIdx = data.indexOf(d);
+        return {
+          x: pad.l + globalIdx / Math.max(data.length - 1, 1) * cw,
+          y: pad.t + ch - (d.hrv - minV) / (maxV - minV) * ch,
+          d,
+        };
+      });
+      svg.appendChild(svgEl("polyline", {
+        fill: "none", stroke: color, "stroke-width": "1.8",
+        "stroke-dasharray": dashArray || "none",
+        points: pts.map(p => `${p.x},${p.y}`).join(" "),
       }));
+      // Trend line
+      const n = pts.length;
+      if (n > 2) {
+        const mx = pts.reduce((s, p) => s + p.x, 0) / n;
+        const my = pts.reduce((s, p) => s + p.y, 0) / n;
+        const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
+                      pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+        const intercept = my - slope * mx;
+        svg.appendChild(svgEl("line", {
+          x1: pts[0].x, y1: slope * pts[0].x + intercept,
+          x2: pts[n-1].x, y2: slope * pts[n-1].x + intercept,
+          stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+        }));
+      }
+      // Dots
+      const step = Math.max(1, Math.floor(pts.length / 20));
+      pts.forEach((p, i) => {
+        if (i % step !== 0 && i !== pts.length - 1) return;
+        const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
+        c.style.cursor = "pointer";
+        c.addEventListener("mouseenter", e => Tooltip.show(e, `
+          <div class="tt">${p.d.dateShort} · ${p.d.week} · ${p.d.plan || "Plan 1"}</div>
+          <div class="tv">${p.d.hrv} ms</div>
+          <div class="td">${p.d.name}</div>
+        `));
+        c.addEventListener("mouseleave", () => Tooltip.hide());
+        svg.appendChild(c);
+      });
+    };
+
+    _drawPlan(plan1, "#7c5cbf");
+    _drawPlan(plan2, "#e07b39");
+
+    // Plan divider
+    if (plan1.length && plan2.length) {
+      const divX = pad.l + (data.indexOf(plan2[0]) - 0.5) / Math.max(data.length - 1, 1) * cw;
+      svg.appendChild(svgEl("line", {
+        x1: divX, y1: pad.t, x2: divX, y2: H - pad.b,
+        stroke: "#6b6158", "stroke-width": "1", "stroke-dasharray": "3,3", opacity: "0.5",
+      }));
+      const lbl = svgEl("text", { x: divX, y: pad.t - 4, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+      lbl.textContent = "Plan 2 →";
+      svg.appendChild(lbl);
     }
 
-    const step = Math.max(1, Math.floor(pts.length / 20));
-    pts.forEach((p, i) => {
-      if (i % step !== 0 && i !== pts.length - 1) return;
-      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#c45c5c", stroke: "#141210", "stroke-width": "1.5" });
+    // X labels
+    const allPts = data.map((d, i) => ({ x: pad.l + i / Math.max(data.length - 1, 1) * cw, d }));
+    const ls = Math.max(1, Math.floor(allPts.length / 10));
+    allPts.forEach((p, i) => {
+      if (i % ls === 0 || i === allPts.length - 1)
+        this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    });
+  },
+
+  renderRHF(svgId, rides) {
+    const plan1 = rides.filter(r => r.ruhepuls != null && (r.plan || "Plan 1") === "Plan 1")
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const plan2 = rides.filter(r => r.ruhepuls != null && r.plan === "Plan 2")
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const data = [...plan1, ...plan2];
+    const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+
+    const W = 780, H = 200, pad = { l: 50, r: 16, t: 16, b: 36 };
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+    const allVals = data.map(d => d.ruhepuls);
+    const minV = Math.max(0, Math.min(...allVals) - 3);
+    const maxV = Math.max(...allVals) + 3;
+
+    this._gridLines(svg, W, H, pad, maxV, minV);
+
+    const _drawPlan = (pdata, color) => {
+      if (!pdata.length) return;
+      const pts = pdata.map((d) => {
+        const globalIdx = data.indexOf(d);
+        return {
+          x: pad.l + globalIdx / Math.max(data.length - 1, 1) * cw,
+          y: pad.t + ch - (d.ruhepuls - minV) / (maxV - minV) * ch,
+          d,
+        };
+      });
+      svg.appendChild(svgEl("polyline", {
+        fill: "none", stroke: color, "stroke-width": "1.8",
+        points: pts.map(p => `${p.x},${p.y}`).join(" "),
+      }));
+      const n = pts.length;
+      if (n > 2) {
+        const mx = pts.reduce((s, p) => s + p.x, 0) / n;
+        const my = pts.reduce((s, p) => s + p.y, 0) / n;
+        const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
+                      pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+        const intercept = my - slope * mx;
+        svg.appendChild(svgEl("line", {
+          x1: pts[0].x, y1: slope * pts[0].x + intercept,
+          x2: pts[n-1].x, y2: slope * pts[n-1].x + intercept,
+          stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+        }));
+      }
+      const step = Math.max(1, Math.floor(pts.length / 20));
+      pts.forEach((p, i) => {
+        if (i % step !== 0 && i !== pts.length - 1) return;
+        const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
+        c.style.cursor = "pointer";
+        c.addEventListener("mouseenter", e => Tooltip.show(e, `
+          <div class="tt">${p.d.dateShort} · ${p.d.week} · ${p.d.plan || "Plan 1"}</div>
+          <div class="tv">${p.d.ruhepuls} bpm</div>
+          <div class="td">${p.d.name}</div>
+        `));
+        c.addEventListener("mouseleave", () => Tooltip.hide());
+        svg.appendChild(c);
+      });
+    };
+
+    _drawPlan(plan1, "#c45c5c");
+    _drawPlan(plan2, "#e07b39");
+
+    if (plan1.length && plan2.length) {
+      const divX = pad.l + (data.indexOf(plan2[0]) - 0.5) / Math.max(data.length - 1, 1) * cw;
+      svg.appendChild(svgEl("line", {
+        x1: divX, y1: pad.t, x2: divX, y2: H - pad.b,
+        stroke: "#6b6158", "stroke-width": "1", "stroke-dasharray": "3,3", opacity: "0.5",
+      }));
+      const lbl = svgEl("text", { x: divX, y: pad.t - 4, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+      lbl.textContent = "Plan 2 →";
+      svg.appendChild(lbl);
+    }
+
+    const allPts = data.map((d, i) => ({ x: pad.l + i / Math.max(data.length - 1, 1) * cw, d }));
+    const ls = Math.max(1, Math.floor(allPts.length / 10));
+    allPts.forEach((p, i) => {
+      if (i % ls === 0 || i === allPts.length - 1)
+        this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    });
+  },
+
+  /* ── PMC — Performance Management Chart ─────────────────────── */
+  renderPMC(svgId, rides) {
+    const data = rides.filter(r => r.ctl != null && r.atl != null)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+
+    const W = 780, H = 250, pad = { l: 50, r: 50, t: 20, b: 36 };
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+    const ctlVals = data.map(d => d.ctl);
+    const atlVals = data.map(d => d.atl);
+    const tsbVals = data.map(d => (d.tsb != null ? d.tsb : d.ctl - d.atl));
+
+    const maxCA = Math.max(...ctlVals, ...atlVals) * 1.1;
+    const minTSB = Math.min(...tsbVals) - 5;
+    const maxTSB = Math.max(...tsbVals) + 5;
+
+    this._gridLines(svg, W, H, pad, Math.round(maxCA), 0);
+
+    // TSB zero line
+    const tsbZeroY = pad.t + ch - (0 - minTSB) / (maxTSB - minTSB) * ch;
+    svg.appendChild(svgEl("line", {
+      x1: pad.l, y1: tsbZeroY, x2: W - pad.r, y2: tsbZeroY,
+      stroke: "#5c9e6e", "stroke-width": "0.5", "stroke-dasharray": "4,4", opacity: "0.4",
+    }));
+
+    const _line = (field, color, width, yMap) => {
+      const pts = data.map((d, i) => ({
+        x: pad.l + i / Math.max(data.length - 1, 1) * cw,
+        y: yMap(d),
+        d,
+      }));
+      svg.appendChild(svgEl("polyline", {
+        fill: "none", stroke: color, "stroke-width": width,
+        points: pts.map(p => `${p.x},${p.y}`).join(" "),
+      }));
+      return pts;
+    };
+
+    const ctlPts = _line("ctl", "#4a7fa8", "2", d => pad.t + ch - d.ctl / maxCA * ch);
+    const atlPts = _line("atl", "#c45c5c", "1.5", d => pad.t + ch - d.atl / maxCA * ch);
+    const tsbPts = _line("tsb", "#5c9e6e", "1.5", d => pad.t + ch - ((d.tsb != null ? d.tsb : d.ctl - d.atl) - minTSB) / (maxTSB - minTSB) * ch);
+
+    // TSB right axis labels
+    for (let i = 0; i <= 4; i++) {
+      const val = Math.round(minTSB + (maxTSB - minTSB) / 4 * (4 - i));
+      const y = pad.t + ch / 4 * i;
+      const t = svgEl("text", { x: W - pad.r + 6, y: y + 4, fill: "#5c9e6e", "font-size": "9" });
+      t.textContent = val;
+      svg.appendChild(t);
+    }
+
+    // Dots on CTL
+    const step = Math.max(1, Math.floor(ctlPts.length / 15));
+    ctlPts.forEach((p, i) => {
+      if (i % step !== 0 && i !== ctlPts.length - 1) return;
+      const tsb = p.d.tsb != null ? p.d.tsb : Math.round((p.d.ctl - p.d.atl) * 10) / 10;
+      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#4a7fa8", stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
-        <div class="tv">${p.d.ruhepuls} bpm</div>
+        <div class="tv">CTL ${fmt(p.d.ctl)} · ATL ${fmt(p.d.atl)} · TSB ${fmt(tsb)}</div>
         <div class="td">${p.d.name}</div>
       `));
       c.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(c);
     });
 
-    const ls = Math.max(1, Math.floor(pts.length / 10));
-    pts.forEach((p, i) => {
-      if (i % ls === 0 || i === pts.length - 1)
+    // Note
+    const lastCTL = data[data.length - 1];
+    const noteEl = el("pmc-note");
+    if (noteEl && lastCTL) {
+      const tsb = lastCTL.tsb != null ? lastCTL.tsb : Math.round((lastCTL.ctl - lastCTL.atl) * 10) / 10;
+      noteEl.textContent = `Aktuell: CTL ${fmt(lastCTL.ctl)} · ATL ${fmt(lastCTL.atl)} · TSB ${fmt(tsb)}`;
+    }
+
+    const ls = Math.max(1, Math.floor(ctlPts.length / 10));
+    ctlPts.forEach((p, i) => {
+      if (i % ls === 0 || i === ctlPts.length - 1)
         this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    });
+  },
+
+  /* ── Aerobe Entkopplung (Decoupling) ─────────────────────────── */
+  renderDecoupling(svgId, rides) {
+    const data = rides.filter(r => r.decoupling != null)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+
+    const W = 780, H = 200, pad = { l: 50, r: 16, t: 16, b: 36 };
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+    const maxV = Math.max(Math.max(...data.map(d => Math.abs(d.decoupling))), 10) + 3;
+    const minV = 0;
+
+    this._gridLines(svg, W, H, pad, maxV, minV);
+
+    // Target line at 5%
+    const targetY = pad.t + ch - (5 - minV) / (maxV - minV) * ch;
+    svg.appendChild(svgEl("line", {
+      x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
+      stroke: "#5c9e6e", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.6",
+    }));
+    const tgt = svgEl("text", { x: W - pad.r + 4, y: targetY + 4, fill: "#5c9e6e", "font-size": "9" });
+    tgt.textContent = "5%";
+    svg.appendChild(tgt);
+
+    const pts = data.map((d, i) => ({
+      x: pad.l + i / Math.max(data.length - 1, 1) * cw,
+      y: pad.t + ch - (Math.abs(d.decoupling) - minV) / (maxV - minV) * ch,
+      d,
+    }));
+
+    svg.appendChild(svgEl("polyline", {
+      fill: "none", stroke: "#e07b39", "stroke-width": "1.8",
+      points: pts.map(p => `${p.x},${p.y}`).join(" "),
+    }));
+
+    pts.forEach((p) => {
+      const color = Math.abs(p.d.decoupling) <= 5 ? "#5c9e6e" : Math.abs(p.d.decoupling) <= 10 ? "#c9a84c" : "#c45c5c";
+      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "4", fill: color, stroke: "#141210", "stroke-width": "1.5" });
+      c.style.cursor = "pointer";
+      c.addEventListener("mouseenter", e => Tooltip.show(e, `
+        <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
+        <div class="tv">${fmt(Math.abs(p.d.decoupling))}%</div>
+        <div class="td">${p.d.name}</div>
+      `));
+      c.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(c);
+    });
+
+    pts.forEach((p, i) => {
+      if (i === 0 || i === pts.length - 1)
+        this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    });
+  },
+
+  /* ── Weekly TSS ──────────────────────────────────────────────── */
+  renderWeeklyTSS(svgId, weeklyData) {
+    const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+    const data = weeklyData.filter(d => d.tss > 0);
+    if (!data.length) return;
+
+    const W = 780, H = 230, pad = { l: 50, r: 16, t: 16, b: 40 };
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+    const maxTSS = Math.max(...data.map(d => d.tss)) * 1.15 || 1;
+    const bw = Math.min(cw / data.length * 0.62, 52);
+    const gap = cw / data.length;
+
+    this._gridLines(svg, W, H, pad, maxTSS);
+
+    data.forEach((d, i) => {
+      const x  = pad.l + i * gap + (gap - bw) / 2;
+      const bh = Math.max(d.tss / maxTSS * ch, 1);
+      const y  = pad.t + ch - bh;
+      const color = CONFIG.phaseColor(d.phase);
+
+      const r = svgEl("rect", {
+        x, y, width: bw, height: bh, rx: 3,
+        fill: color, opacity: "0.85",
+      });
+      r.style.cursor = "pointer";
+      r.addEventListener("mouseenter", e => Tooltip.show(e, `
+        <div class="tt">${d.week}</div>
+        <div class="tv">${Math.round(d.tss)} TSS</div>
+        <div class="td">${d.rides} Fahrten · ${d.hours}h</div>
+      `));
+      r.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(r);
+
+      // Value label
+      if (bh > 15) {
+        const vt = svgEl("text", { x: x + bw/2, y: y - 4, "text-anchor": "middle", fill: color, "font-size": "9", "font-weight": "600" });
+        vt.textContent = Math.round(d.tss);
+        svg.appendChild(vt);
+      }
+
+      // Week label
+      const lt = svgEl("text", { x: x + bw/2, y: H - pad.b + 14, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+      lt.textContent = d.week.replace("P2-", "");
+      svg.appendChild(lt);
     });
   },
 };

@@ -4,15 +4,37 @@
 
 const Analysis = {
 
+  _allRides: [],
+
   render(rides) {
-    this._renderPhases(rides);
-    this._renderDetails(rides);
-    this._renderStrengths(rides);
-    this._renderSummary(rides);
+    this._allRides = rides;
+    this._initToggle();
+    this._renderForPlan("all");
+  },
+
+  _initToggle() {
+    const btns = document.querySelectorAll(".plan-btn");
+    btns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        btns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        this._renderForPlan(btn.dataset.plan);
+      });
+    });
+  },
+
+  _renderForPlan(plan) {
+    const rides = plan === "all"
+      ? this._allRides
+      : this._allRides.filter(r => (r.plan || "Plan 1") === plan);
+    this._renderPhases(rides, plan);
+    this._renderDetails(rides, plan);
+    this._renderStrengths(rides, plan);
+    this._renderSummary(rides, plan);
   },
 
   /* ── Phasen ─────────────────────────────────────────────────── */
-  _renderPhases(rides) {
+  _renderPhases(rides, planFilter) {
     const plans = [
       {
         label: "Plan 1 — Basisaufbau (Mär–Jun 2026)",

@@ -1,6 +1,6 @@
 # 🚴 Training Dashboard
 
-Statisches Dashboard für Radsport-Trainingsdaten mit automatisiertem Daten-Sync aus Notion. Gehostet auf GitHub Pages — kein Backend, keine laufenden Kosten.
+Statisches Dashboard für Radsport-Trainingsdaten mit automatisiertem Daten-Sync aus Notion und intervals.icu. Gehostet auf GitHub Pages — kein Backend, keine laufenden Kosten.
 
 **Athlet:** Alexander Müller · **Zeitraum:** März 2026 – laufend
 **Plan 1:** Basisaufbau (12 Wochen, ~2.100 km, FTP 0→193W)
@@ -9,43 +9,35 @@ Statisches Dashboard für Radsport-Trainingsdaten mit automatisiertem Daten-Sync
 ## Architektur
 
 ```
-Notion DB (Plan 1) ──┐
-                      ├── GitHub Action ──→ data/rides.json ──→ GitHub Pages
-Notion DB (Plan 2) ──┘    (alle 6h)                              (statisch)
-```
+                              ┌──→ Ride-Metriken (Power, HR, TSS, Decoupling...)
+intervals.icu API ────────────┤
+                              └──→ Wellness (RHF, HRV, Schlaf)
 
-Secrets (API-Keys, DB-IDs) liegen als GitHub Secrets — nie im Code, nie im Browser.
+Notion DB (Plan 1) ──→ Komplett (historisch)     ┐
+Notion DB (Plan 2) ──→ Nur Befinden + Notizen    ├──→ rides.json ──→ GitHub Pages
+                                                  │
+GitHub Action (alle 6h) ──────────────────────────┘
+```
 
 ## Features
 
 - **Übersicht:** KPIs, Meilensteine, Gesamtstatistiken
-- **Charts:** Wochenvolumen (phasengefärbt), CTL/ATL-Verlauf, TRIMP, Effizienz (W/bpm), HRV + Ruhepuls mit Trendlinien, Heatmap
-- **Tabelle:** Sortier- und filterbare Ansicht aller Fahrten
-- **Analyse:** Phasenübersicht getrennt nach Plan 1 / Plan 2, Detailkarten, Stärken & Entwicklungsfelder
+- **Fitness & Belastung:** PMC-Chart (CTL/ATL/TSB), Wochenvolumen (phasengefärbt), Wöchentlicher TSS, TRIMP
+- **Leistung:** Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo/Kadenz-Trends
+- **Aerobe Gesundheit:** Aerobe Entkopplung (Pw:Hr), HRV + Ruhepuls mit Trendlinien (nach Plan getrennt)
+- **Erholung & Wellness:** Wochentag-Heatmap
+- **Fahrtenbuch:** Sortier- und filterbare Tabelle aller Fahrten
+- **Analyse:** Plan-Toggle (Plan 1 / Plan 2 / Gesamt), Phasenübersicht, Detailkarten, Stärken & Entwicklungsfelder
+- **Ausklappbare Sektionen:** Thematisch gruppiert, einzeln auf-/zuklappbar
 
-## Projektstruktur
+## Datenquellen
 
-```
-training-dashboard/
-├── index.html                  Hauptseite
-├── .github/workflows/
-│   └── sync-data.yml           GitHub Action: Notion → JSON
-├── scripts/
-│   └── generate-data.js        Daten-Generator (beide Notion-DBs)
-├── data/
-│   └── rides.json              Generierte Trainingsdaten
-└── assets/
-    ├── css/                    Styling (main, components, charts, table)
-    └── js/
-        ├── config.js           Einstellungen (FTP, Zonen, Meilensteine)
-        ├── utils.js            Hilfsfunktionen, Formatierung
-        ├── data.js             Datenladen + Fallback
-        ├── charts.js           SVG-Charts (CTL, HRV, Effizienz, etc.)
-        ├── overview.js         Hero-Bereich, Metriken, Meilensteine
-        ├── table.js            Sortierbare Datentabelle
-        ├── analysis.js         Phasenanalyse, Detailkarten
-        └── app.js              Einstiegspunkt, Orchestrierung
-```
+| Daten | Plan 1 | Plan 2 |
+|---|---|---|
+| Ride-Metriken | Notion (manuell) | intervals.icu API (automatisch) |
+| Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health (automatisch) |
+| Befinden / Notizen | Notion | Notion (einziges manuelles Feld) |
+| Woche / Phase | Notion | Automatisch per Datum zugeordnet |
 
 ## GitHub Secrets
 
@@ -54,45 +46,27 @@ training-dashboard/
 | `NOTION_API_KEY` | Notion Integration Token |
 | `NOTION_DATABASE_ID` | Plan 1 Trainingsdatenbank |
 | `NOTION_DATABASE_ID_PLAN2` | Plan 2 Trainingsdatenbank |
-| `INTERVALS_API_KEY` | intervals.icu API Key (für zukünftige Integration) |
+| `INTERVALS_API_KEY` | intervals.icu API Key |
 | `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID |
 
 ## Lokale Entwicklung
 
 ```bash
-# .env anlegen mit den Secrets (nie committen!)
-# Dann JSON lokal generieren:
-node scripts/generate-data.js
-
-# Seite lokal testen (braucht HTTP-Server für fetch):
-npx serve .
-# oder: python3 -m http.server
+node scripts/generate-data.js    # JSON generieren
+npx serve .                      # Lokal testen
 ```
-
-## Häufige Anpassungen
-
-| Was | Wo |
-|---|---|
-| FTP / eFTP aktualisieren | `assets/js/config.js` → `ftp`, `eFTP` |
-| Neuer Meilenstein | `assets/js/config.js` → `manualMilestones` |
-| Daten manuell synchen | Actions → "Sync Training Data" → "Run workflow" |
-
-## Technologie
-
-- **Frontend:** Vanilla HTML/CSS/JS, SVG-Charts (kein Build-Step)
-- **Datenquelle:** Notion API (zwei Datenbanken)
-- **Hosting:** GitHub Pages (statisch, kostenlos)
-- **CI/CD:** GitHub Actions (Cron alle 6h + manueller Trigger)
 
 ## Roadmap
 
 - [x] Dashboard von Netlify auf GitHub Pages migriert
 - [x] Dual-DB Sync (Plan 1 + Plan 2)
-- [x] Plan-Trennung in der Analyse
+- [x] intervals.icu API Integration (Rides + Wellness)
+- [x] Plan-Trennung in der Analyse (Toggle)
+- [x] Ausklappbare Themen-Sektionen
+- [x] PMC-Chart (CTL / ATL / TSB)
+- [x] Aerobe Entkopplung Trend-Chart
+- [x] HRV/Ruhepuls nach Plan getrennt
+- [x] Wöchentlicher TSS Chart
 - [x] Trendlinien auf HRV- und Ruhepuls-Charts
-- [x] Erweiterte Felder: TSS, IF, VI, ATL/TSB, Aerobe Entkopplung
-- [ ] intervals.icu API Integration (automatischer Ride-Import)
-- [ ] Plan-Filter-Toggle im Dashboard (Plan 1 / Plan 2 / Alle)
-- [ ] Aerobe Entkopplung Trend-Chart
 - [ ] Power Curve Visualisierung
 - [ ] Postman Collection für API-Testing (QA-Lernprojekt)

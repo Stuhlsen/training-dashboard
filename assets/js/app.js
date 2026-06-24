@@ -1,91 +1,69 @@
 /* ============================================================
-   APP.JS — Einstiegspunkt, Initialisierung, Orchestrierung
+   APP.JS — Einstiegspunkt, Orchestrierung, Collapsible Sections
    ============================================================ */
 
-const App = {
+// Collapsible section toggle
+function toggleSection(headerEl) {
+  const body = headerEl.nextElementSibling;
+  const isOpen = body.classList.contains("open");
+  body.classList.toggle("open");
+  headerEl.querySelector(".toggle-icon").style.transform = isOpen ? "" : "rotate(180deg)";
+}
 
-  async init() {
-    Tooltip.init();
+// Main init
+(async function () {
+  const { ok, source, warning } = await Data.load();
 
-    // Daten laden
-    const result = await Data.load();
-
-    // Loading ausblenden, App einblenden
+  if (!ok) {
     el("loading").classList.add("hidden");
-    el("app").classList.remove("hidden");
+    el("error").classList.remove("hidden");
+    el("error-msg").textContent = warning || "Unbekannter Fehler";
+    return;
+  }
 
-    if (result.warning) {
-      console.warn("Datenquelle:", result.source, "|", result.warning);
-    }
+  el("loading").classList.add("hidden");
+  el("app").classList.remove("hidden");
 
-    // Tabs initialisieren
-    Tabs.init((tabName) => {
-      if (tabName === "charts") this._renderCharts();
-    });
+  const rides = Data.byDate();
+  const weekly = Data.weekly();
 
-    // Alle Tabs rendern
-    this._renderAll();
+  // Weekly with TSS aggregation
+  const weeklyWithTSS = weekly.map(w => {
+    const wr = rides.filter(r => r.week === w.week);
+    return {
+      ...w,
+      tss: Math.round(wr.reduce((s, r) => s + (r.tss || 0), 0)),
+      hours: Math.round(w.min / 6) / 10,
+    };
+  });
 
-    // Footer
-    this._renderFooter();
-  },
+  // Overview (Hero, Metrics, Milestones)
+  Overview.render(rides);
 
-  /* ── Alle Tabs rendern ──────────────────────────────────────── */
-  _renderAll() {
-    const rides = Data.byDate();
-    Overview.render(rides);
-    this._renderCharts();
-    Table.render();
-    Analysis.render(rides);
-  },
+  // Fitness & Belastung
+  Charts.renderPMC("chart-pmc", rides);
+  Charts.renderWeeklyVolume("chart-weekly", weekly);
+  Charts.renderWeeklyTSS("chart-weekly-tss", weeklyWithTSS);
+  Charts.renderTRIMP("chart-trimp", weekly);
 
-  /* ── Charts ─────────────────────────────────────────────────── */
-  _renderCharts() {
-    const rides  = Data.byDate();
-    const weekly = Data.weekly();
+  // Leistung
+  Charts.renderEfficiency("chart-efficiency", rides);
+  Charts.renderScatter("chart-scatter", rides);
+  Charts.renderSmallMultiples(rides);
 
-    Charts.renderWeeklyVolume("chart-weekly", weekly, (week) => {
-      Table.filterByWeek(week);
-      Tabs.switch("table");
-    });
+  // Aerobe Gesundheit
+  Charts.renderDecoupling("chart-decoupling", rides);
+  Charts.renderHRV("chart-hrv", rides);
+  Charts.renderRHF("chart-rhf", rides);
 
-    Charts.renderCTL("chart-ctl", rides);
-    Charts.renderTrimp("chart-trimp", weekly);
-    Charts.renderEfficiency("chart-efficiency", rides);
-    Charts.renderScatter("chart-scatter", rides);
-    Charts.renderHRV("chart-hrv", rides);
-    Charts.renderRHF("chart-rhf", rides);
-    Charts.renderSmallMultiples(rides);
-    Charts.renderHeatmap("chart-heatmap", rides);
+  // Fahrtenbuch
+  Table.render(rides);
 
-    const ctlRides = rides.filter(r => r.ctl != null);
-    if (ctlRides.length) {
-      const first = ctlRides[0].ctl, last = ctlRides[ctlRides.length - 1].ctl;
-      el("ctl-note").textContent = `CTL ${first} → ${last} in ${rides.length} Fahrten`;
-    }
+  // Analyse
+  Analysis.render(rides);
 
-    const effRides = rides.filter(r => r.efficiency);
-    if (effRides.length) {
-      const eStart = avg(effRides.slice(0, 5), "efficiency");
-      const eEnd   = avg(effRides.slice(-5), "efficiency");
-      if (eStart && eEnd) {
-        const delta = eEnd - eStart;
-        el("efficiency-note").textContent =
-          `${fmt(eStart, 2)} → ${fmt(eEnd, 2)} W/bpm (${delta > 0 ? "+" : ""}${fmt(delta, 2)})`;
-      }
-    }
-  },
-
-  /* ── Footer ─────────────────────────────────────────────────── */
-  _renderFooter() {
-    const now = new Date().toLocaleDateString("de-DE", {
-      day: "2-digit", month: "long", year: "numeric",
-    });
-    el("footer").innerHTML = `
-      <span>${CONFIG.planName} · ${now}</span>
-      <button class="btn-refresh" onclick="location.reload()">↻ Aktualisieren</button>`;
-  },
-};
-
-// ── Start ──────────────────────────────────────────────────────
-document.addEventListener("DOMContentLoaded", () => App.init());
+  // Footer
+  el("footer").innerHTML = `
+    <p>Daten: ${rides.length} Fahrten · Quelle: Notion + intervals.icu · Aktualisiert ${new Date().toLocaleDateString("de")}</p>
+  `;
+})();
