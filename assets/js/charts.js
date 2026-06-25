@@ -417,8 +417,9 @@ const Charts = {
           x1: pad.l, y1: ty, x2: W - pad.r, y2: ty,
           stroke: "#c9a84c", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.5",
         }));
-        const lt = svgEl("text", { x: W - pad.r + 4, y: ty + 4, fill: "#c9a84c", "font-size": "9" });
-        lt.textContent = `${targetLine}`;
+        // Label oberhalb der Linie, nicht rechts daneben — kein Overlap mit Plan-Label
+        const lt = svgEl("text", { x: W - pad.r - 4, y: ty - 5, "text-anchor": "end", fill: "#c9a84c", "font-size": "9", opacity: "0.85" });
+        lt.textContent = `Ziel ${targetLine}`;
         svg.appendChild(lt);
       }
 
@@ -480,9 +481,20 @@ const Charts = {
       }
     };
 
-    _render("chart-sm-tempo",  sorted.filter(r => r.kmh), "kmh", "#4a7fa8", "km/h", null);
-    _render("chart-sm-hf",     sorted.filter(r => r.hf),  "hf",  "#c45c5c", "bpm",  null);
-    _render("chart-sm-kadenz", sorted.filter(r => r.kad), "kad", "#c9a84c", "RPM",  CONFIG.cadenceTarget);
+    const _filterOutliers = (arr, field) => {
+      const vals = arr.map(d => d[field]).filter(v => v != null).sort((a, b) => a - b);
+      if (vals.length < 4) return arr;
+      const q1 = vals[Math.floor(vals.length * 0.25)];
+      const q3 = vals[Math.floor(vals.length * 0.75)];
+      const iqr = q3 - q1;
+      const lo = q1 - 2.5 * iqr;
+      const hi = q3 + 2.5 * iqr;
+      return arr.filter(d => d[field] == null || (d[field] >= lo && d[field] <= hi));
+    };
+
+    _render("chart-sm-tempo",  _filterOutliers(sorted.filter(r => r.kmh), "kmh"), "kmh", "#4a7fa8", "km/h", null);
+    _render("chart-sm-hf",     _filterOutliers(sorted.filter(r => r.hf),  "hf"),  "hf",  "#c45c5c", "bpm",  null);
+    _render("chart-sm-kadenz", _filterOutliers(sorted.filter(r => r.kad), "kad"), "kad", "#c9a84c", "RPM",  CONFIG.cadenceTarget);
   },
 
   /* ── 10. Ruhepuls-Entwicklung ────────────────────────────────── */
