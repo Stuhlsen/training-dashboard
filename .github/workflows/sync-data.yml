@@ -1,22 +1,19 @@
 # .github/workflows/sync-data.yml
-# Generiert rides.json aus der Notion-Trainingsdatenbank
+# Generiert rides.json aus Notion (Plan 1) und intervals.icu (Plan 2)
 # und committed es ins Repo. GitHub Pages serviert es dann statisch.
 #
 # Benötigte Secrets (Settings → Secrets → Actions):
-#   NOTION_API_KEY      — Notion Integration Token (ntn_...)
-#   NOTION_DATABASE_ID  — ID der Trainingsdatenbank
+#   NOTION_API_KEY      — Notion Integration Token
+#   NOTION_DATABASE_ID  — Plan 1 Trainingsdatenbank-ID
+#   INTERVALS_API_KEY   — intervals.icu API Key
+#   INTERVALS_ATHLETE_ID — intervals.icu Athlete ID
 
 name: Sync Training Data
 
 on:
-  # Manuell auslösbar (Actions-Tab → "Run workflow")
   workflow_dispatch:
-
-  # Automatisch alle 6 Stunden
   schedule:
     - cron: "0 */6 * * *"
-
-  # Bei Push auf main (falls JSON manuell gelöscht wurde)
   push:
     branches: [main]
     paths: [".github/workflows/sync-data.yml", "scripts/generate-data.js"]
@@ -38,7 +35,6 @@ jobs:
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          NOTION_DATABASE_ID_PLAN2: ${{ secrets.NOTION_DATABASE_ID_PLAN2 }}
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
           INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
         run: node scripts/generate-data.js
@@ -47,7 +43,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/rides.json
-          # Nur committen wenn sich was geändert hat
+          git add data/rides.json data/wellness.json 2>/dev/null || true
+          # subjective.json wird NIE von der Action committed — nur per Dashboard
           git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
           git push
