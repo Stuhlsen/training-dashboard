@@ -53,6 +53,12 @@
       <div class="grid grid-auto" id="metrics-grid"></div>
       <h2 class="section-label">Meilensteine</h2>
       <div class="milestones-grid" id="milestones-grid"></div>
+      <div class="chart-box" style="margin-top:1.2rem">
+        <div class="chart-header">
+          <span class="chart-title">📅 Aktivität — Wochentag-Verteilung</span>
+        </div>
+        <svg class="chart" id="chart-heatmap" viewBox="0 0 780 100"></svg>
+      </div>
     </section>
 
     <!-- ── Tab: Charts ─────────────────────────────────────────── -->
@@ -76,7 +82,7 @@
               <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> ATL (Ermüdung)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> TSB (Form)</div>
             </div>
-            <p class="chart-explainer">CTL (blau) zeigt die aufgebaute Fitness, ATL (rot) die aktuelle Ermüdung, TSB (grün, rechte Achse) die Form: positiv = frisch, negativ = müde. Für optimales Training sollte TSB zwischen -10 und -30 liegen.</p>
+            <p class="chart-explainer">CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
           </div>
 
           <div class="chart-box">
@@ -216,22 +222,6 @@
               <span class="chart-note">bpm pro Fahrt</span>
             </div>
             <svg class="chart" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
-          </div>
-        </div>
-      </div>
-
-      <!-- Block: Aktivität -->
-      <div class="chart-group">
-        <div class="chart-group-header" onclick="toggleChartGroup(this)">
-          <h2>📅 Aktivität</h2>
-          <span class="toggle-icon">▾</span>
-        </div>
-        <div class="chart-group-body">
-          <div class="chart-box">
-            <div class="chart-header">
-              <span class="chart-title">Wochentag-Verteilung — an welchen Tagen trainierst du?</span>
-            </div>
-            <svg class="chart" id="chart-heatmap" viewBox="0 0 780 100"></svg>
           </div>
         </div>
       </div>

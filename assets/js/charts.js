@@ -165,15 +165,25 @@ const Charts = {
     const maxV = Math.max(...weeklyData.map(d => d.trimp)) * 1.15 || 1;
     const bw = Math.min(cw / weeklyData.length * 0.62, 52);
     const gap = cw / weeklyData.length;
+    const maxTrimp = Math.max(...weeklyData.map(d => d.trimp)) || 1;
 
     this._gridLines(svg, W, H, pad, maxV);
+
+    // Warm color interpolation based on relative TRIMP
+    const _trimpColor = (v) => {
+      const t = Math.min(v / maxTrimp, 1);
+      const r = Math.round(140 + t * 84);  // 140→224
+      const g = Math.round(106 + t * 17);  // 106→123
+      const b = Math.round(74 - t * 17);   // 74→57
+      return `rgb(${r},${g},${b})`;
+    };
 
     weeklyData.forEach((d, i) => {
       const x  = pad.l + i * gap + (gap - bw) / 2;
       const bh = Math.max(d.trimp / maxV * ch, 1);
       const y  = pad.t + ch - bh;
-      const color = CONFIG.phaseColor(d.phase);
-      const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "3", fill: color, opacity: "0.75" });
+      const color = _trimpColor(d.trimp);
+      const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "3", fill: color, opacity: "0.82" });
       rect.style.cursor = "pointer";
       rect.style.transition = "opacity 0.12s";
       rect.addEventListener("mouseenter", e => {
@@ -184,8 +194,16 @@ const Charts = {
           <div class="td">${d.rides} Fahrten · ${Math.round(d.min / 6) / 10}h</div>
         `);
       });
-      rect.addEventListener("mouseleave", () => { rect.setAttribute("opacity", "0.75"); Tooltip.hide(); });
+      rect.addEventListener("mouseleave", () => { rect.setAttribute("opacity", "0.82"); Tooltip.hide(); });
       svg.appendChild(rect);
+
+      // Value label on top
+      if (bh > 15) {
+        const vt = svgEl("text", { x: x + bw / 2, y: y - 4, "text-anchor": "middle", fill: color, "font-size": "9", "font-weight": "600" });
+        vt.textContent = d.trimp;
+        svg.appendChild(vt);
+      }
+
       this._xLabel(svg, x + bw / 2, H - pad.b + 14, d.week);
     });
   },
@@ -616,31 +634,74 @@ const Charts = {
     const minTSB = Math.min(...tsbVals) - 5;
     const maxTSB = Math.max(...tsbVals) + 5;
 
+    const tsbY = (v) => pad.t + ch - (v - minTSB) / (maxTSB - minTSB) * ch;
+    const caY = (v) => pad.t + ch - v / maxCA * ch;
+
     this._gridLines(svg, W, H, pad, Math.round(maxCA), 0);
 
+    // TSB sweet spot zone (-10 to -30)
+    const zoneTop = tsbY(-10);
+    const zoneBot = tsbY(-30);
+    svg.appendChild(svgEl("rect", {
+      x: pad.l, y: Math.min(zoneTop, zoneBot),
+      width: cw, height: Math.abs(zoneBot - zoneTop),
+      fill: "#5c9e6e", opacity: "0.06", rx: "2",
+    }));
+    const zoneLabel = svgEl("text", {
+      x: pad.l + 4, y: Math.min(zoneTop, zoneBot) + 10,
+      fill: "#5c9e6e", "font-size": "8", opacity: "0.5",
+    });
+    zoneLabel.textContent = "Sweet Spot Zone";
+    svg.appendChild(zoneLabel);
+
     // TSB zero line
-    const tsbZeroY = pad.t + ch - (0 - minTSB) / (maxTSB - minTSB) * ch;
+    const tsbZeroY = tsbY(0);
     svg.appendChild(svgEl("line", {
       x1: pad.l, y1: tsbZeroY, x2: W - pad.r, y2: tsbZeroY,
       stroke: "#5c9e6e", "stroke-width": "0.5", "stroke-dasharray": "4,4", opacity: "0.4",
     }));
 
-    const _line = (field, color, width, yMap) => {
+    // TSB area fill (green above zero, red below)
+    const tsbPtsRaw = data.map((d, i) => ({
+      x: pad.l + i / Math.max(data.length - 1, 1) * cw,
+      v: d.tsb != null ? d.tsb : d.ctl - d.atl,
+    }));
+    // Positive fill (green)
+    const posPath = `M${tsbPtsRaw[0].x},${tsbZeroY} ` +
+      tsbPtsRaw.map(p => `L${p.x},${p.v >= 0 ? tsbY(p.v) : tsbZeroY}`).join(" ") +
+      ` L${tsbPtsRaw[tsbPtsRaw.length-1].x},${tsbZeroY} Z`;
+    svg.appendChild(svgEl("path", { d: posPath, fill: "#5c9e6e", opacity: "0.1" }));
+    // Negative fill (red)
+    const negPath = `M${tsbPtsRaw[0].x},${tsbZeroY} ` +
+      tsbPtsRaw.map(p => `L${p.x},${p.v < 0 ? tsbY(p.v) : tsbZeroY}`).join(" ") +
+      ` L${tsbPtsRaw[tsbPtsRaw.length-1].x},${tsbZeroY} Z`;
+    svg.appendChild(svgEl("path", { d: negPath, fill: "#c45c5c", opacity: "0.08" }));
+
+    // CTL area fill
+    const ctlAreaPath = `M${pad.l},${caY(0)} ` +
+      data.map((d, i) => `L${pad.l + i / Math.max(data.length - 1, 1) * cw},${caY(d.ctl)}`).join(" ") +
+      ` L${pad.l + (data.length - 1) / Math.max(data.length - 1, 1) * cw},${caY(0)} Z`;
+    svg.appendChild(svgEl("path", { d: ctlAreaPath, fill: "#4a7fa8", opacity: "0.08" }));
+
+    // Lines
+    const _line = (field, color, width, yMap, dash) => {
       const pts = data.map((d, i) => ({
         x: pad.l + i / Math.max(data.length - 1, 1) * cw,
         y: yMap(d),
         d,
       }));
-      svg.appendChild(svgEl("polyline", {
+      const attrs = {
         fill: "none", stroke: color, "stroke-width": width,
         points: pts.map(p => `${p.x},${p.y}`).join(" "),
-      }));
+      };
+      if (dash) attrs["stroke-dasharray"] = dash;
+      svg.appendChild(svgEl("polyline", attrs));
       return pts;
     };
 
-    const ctlPts = _line("ctl", "#4a7fa8", "2", d => pad.t + ch - d.ctl / maxCA * ch);
-    const atlPts = _line("atl", "#c45c5c", "1.5", d => pad.t + ch - d.atl / maxCA * ch);
-    const tsbPts = _line("tsb", "#5c9e6e", "1.5", d => pad.t + ch - ((d.tsb != null ? d.tsb : d.ctl - d.atl) - minTSB) / (maxTSB - minTSB) * ch);
+    const ctlPts = _line("ctl", "#4a7fa8", "2.5", d => caY(d.ctl));
+    const atlPts = _line("atl", "#c45c5c", "1.2", d => caY(d.atl), "4,2");
+    const tsbPts = _line("tsb", "#5c9e6e", "1.5", d => tsbY(d.tsb != null ? d.tsb : d.ctl - d.atl));
 
     // TSB right axis labels
     for (let i = 0; i <= 4; i++) {
