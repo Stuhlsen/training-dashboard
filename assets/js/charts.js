@@ -172,13 +172,19 @@ const Charts = {
       const x  = pad.l + i * gap + (gap - bw) / 2;
       const bh = Math.max(d.trimp / maxV * ch, 1);
       const y  = pad.t + ch - bh;
-      const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "3", fill: "#c45c5c", opacity: "0.72" });
-      rect.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${d.week}</div>
-        <div class="tv">TRIMP ${d.trimp}</div>
-        <div class="td">${d.rides} Fahrten</div>
-      `));
-      rect.addEventListener("mouseleave", () => Tooltip.hide());
+      const color = CONFIG.phaseColor(d.phase);
+      const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "3", fill: color, opacity: "0.75" });
+      rect.style.cursor = "pointer";
+      rect.style.transition = "opacity 0.12s";
+      rect.addEventListener("mouseenter", e => {
+        rect.setAttribute("opacity", "1");
+        Tooltip.show(e, `
+          <div class="tt">${d.week} · ${d.plan || "Plan 1"}</div>
+          <div class="tv">TRIMP ${d.trimp}</div>
+          <div class="td">${d.rides} Fahrten · ${Math.round(d.min / 6) / 10}h</div>
+        `);
+      });
+      rect.addEventListener("mouseleave", () => { rect.setAttribute("opacity", "0.75"); Tooltip.hide(); });
       svg.appendChild(rect);
       this._xLabel(svg, x + bw / 2, H - pad.b + 14, d.week);
     });
@@ -726,53 +732,6 @@ const Charts = {
     pts.forEach((p, i) => {
       if (i === 0 || i === pts.length - 1)
         this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
-    });
-  },
-
-  /* ── Weekly TSS ──────────────────────────────────────────────── */
-  renderWeeklyTSS(svgId, weeklyData) {
-    const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
-    const data = weeklyData.filter(d => d.tss > 0);
-    if (!data.length) return;
-
-    const W = 780, H = 230, pad = { l: 50, r: 16, t: 16, b: 40 };
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const maxTSS = Math.max(...data.map(d => d.tss)) * 1.15 || 1;
-    const bw = Math.min(cw / data.length * 0.62, 52);
-    const gap = cw / data.length;
-
-    this._gridLines(svg, W, H, pad, maxTSS);
-
-    data.forEach((d, i) => {
-      const x  = pad.l + i * gap + (gap - bw) / 2;
-      const bh = Math.max(d.tss / maxTSS * ch, 1);
-      const y  = pad.t + ch - bh;
-      const color = CONFIG.phaseColor(d.phase);
-
-      const r = svgEl("rect", {
-        x, y, width: bw, height: bh, rx: 3,
-        fill: color, opacity: "0.85",
-      });
-      r.style.cursor = "pointer";
-      r.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${d.week}</div>
-        <div class="tv">${Math.round(d.tss)} TSS</div>
-        <div class="td">${d.rides} Fahrten · ${d.hours}h</div>
-      `));
-      r.addEventListener("mouseleave", () => Tooltip.hide());
-      svg.appendChild(r);
-
-      // Value label
-      if (bh > 15) {
-        const vt = svgEl("text", { x: x + bw/2, y: y - 4, "text-anchor": "middle", fill: color, "font-size": "9", "font-weight": "600" });
-        vt.textContent = Math.round(d.tss);
-        svg.appendChild(vt);
-      }
-
-      // Week label
-      const lt = svgEl("text", { x: x + bw/2, y: H - pad.b + 14, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
-      lt.textContent = d.week.replace("P2-", "");
-      svg.appendChild(lt);
     });
   },
 };

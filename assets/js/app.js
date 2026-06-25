@@ -41,16 +41,6 @@ function toggleChartGroup(headerEl) {
   const rides = Data.byDate();
   const weekly = Data.weekly();
 
-  // Weekly with TSS aggregation
-  const weeklyWithTSS = weekly.map(w => {
-    const wr = rides.filter(r => r.week === w.week);
-    return {
-      ...w,
-      tss: Math.round(wr.reduce((s, r) => s + (r.tss || 0), 0)),
-      hours: Math.round(w.min / 6) / 10,
-    };
-  });
-
   // Init tabs
   initTabs();
 
@@ -66,7 +56,6 @@ function toggleChartGroup(headerEl) {
     el("tab-table").classList.remove("hidden");
     Table.filterByWeek(week);
   });
-  Charts.renderWeeklyTSS("chart-weekly-tss", weeklyWithTSS);
   Charts.renderTrimp("chart-trimp", weekly);
 
   // Charts — Leistung
