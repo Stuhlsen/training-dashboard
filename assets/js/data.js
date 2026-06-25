@@ -12,7 +12,7 @@ const Data = {
   /* ── Laden ──────────────────────────────────────────────────── */
   async load() {
     try {
-      const res = await fetch(CONFIG.apiEndpoint);
+      const res = await fetch(CONFIG.apiEndpoint + "?_=" + Date.now());
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
       const json = await res.json();
       if (json.rides && json.rides.length > 0) {
