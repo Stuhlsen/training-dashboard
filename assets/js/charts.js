@@ -376,16 +376,34 @@ const Charts = {
   /* ── 9. Small Multiples (Tempo · HF · Kadenz pro Fahrt) ────── */
   renderSmallMultiples(rides) {
     const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const W = 780, H = 180, pad = { l: 50, r: 24, t: 16, b: 36 };
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+    const PPT = 16;
+    const H = 180, pad = { l: 50, r: 24, t: 16, b: 36 };
 
     const _render = (svgId, data, field, color, unit, targetLine) => {
       const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+
+      const W = Math.max(780, data.length * PPT + 74);
+      const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+      svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+      svg.setAttribute("width", W);
+      svg.setAttribute("height", H);
+
       const vals = data.map(d => d[field]);
       const minV = Math.max(0, Math.min(...vals) - 2);
       const maxV = Math.max(...vals) + 2;
 
       this._gridLines(svg, W, H, pad, maxV, minV);
+
+      // Plan divider
+      const plan2Start = data.findIndex(d => d.plan === "Plan 2");
+      if (plan2Start > 0) {
+        const divX = pad.l + (plan2Start - 0.5) / Math.max(data.length - 1, 1) * cw;
+        svg.appendChild(svgEl("rect", {
+          x: divX - 0.5, y: pad.t, width: 1, height: ch,
+          fill: "#6b6158", opacity: "0.5",
+        }));
+      }
 
       if (targetLine != null) {
         const ty = pad.t + ch - (targetLine - minV) / (maxV - minV) * ch;
@@ -423,7 +441,7 @@ const Charts = {
         }));
       }
 
-      const step = Math.max(1, Math.floor(pts.length / 20));
+      const step = Math.max(1, Math.floor(pts.length / 25));
       pts.forEach((p, i) => {
         if (i % step !== 0 && i !== pts.length - 1) return;
         const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
@@ -437,11 +455,17 @@ const Charts = {
         svg.appendChild(c);
       });
 
-      const ls = Math.max(1, Math.floor(pts.length / 10));
+      const ls = Math.max(1, Math.floor(pts.length / Math.max(12, Math.floor(W / 70))));
       pts.forEach((p, i) => {
         if (i % ls === 0 || i === pts.length - 1)
           this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
       });
+
+      // Auto-scroll to right
+      const scrollContainer = svg.parentElement;
+      if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
+        requestAnimationFrame(() => { scrollContainer.scrollLeft = scrollContainer.scrollWidth; });
+      }
     };
 
     _render("chart-sm-tempo",  sorted.filter(r => r.kmh), "kmh", "#4a7fa8", "km/h", null);
@@ -629,8 +653,8 @@ const Charts = {
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
 
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-    svg.style.width = W + "px";
-    svg.style.minWidth = W + "px";
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
 
     const ctlVals = data.map(d => d.ctl);
     const atlVals = data.map(d => d.atl);

@@ -24,6 +24,7 @@
 .chart-note  { font-size: 0.72rem; color: var(--dim); }
 
 svg.chart { width: 100%; height: auto; display: block; }
+svg.chart.chart-wide { width: auto; max-width: none; }
 
 /* Chart grid lines rendered via JS, styled via SVG attributes */
 /* Tooltip triggered on hover — see tooltip in main.css */

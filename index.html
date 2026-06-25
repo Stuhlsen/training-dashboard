@@ -51,14 +51,14 @@
     <!-- ── Tab: Übersicht ──────────────────────────────────────── -->
     <section id="tab-overview" class="tab-content">
       <div class="grid grid-auto" id="metrics-grid"></div>
-      <h2 class="section-label">Meilensteine</h2>
-      <div class="milestones-grid" id="milestones-grid"></div>
       <div class="chart-box" style="margin-top:1.2rem">
         <div class="chart-header">
           <span class="chart-title">📅 Aktivität — Wochentag-Verteilung</span>
         </div>
         <svg class="chart" id="chart-heatmap" viewBox="0 0 780 100"></svg>
       </div>
+      <h2 class="section-label">Meilensteine</h2>
+      <div class="milestones-grid" id="milestones-grid"></div>
     </section>
 
     <!-- ── Tab: Charts ─────────────────────────────────────────── -->
@@ -144,7 +144,9 @@
               <span class="chart-title">Ø Tempo — Entwicklung</span>
               <span class="chart-note">km/h pro Fahrt</span>
             </div>
-            <svg class="chart" id="chart-sm-tempo" viewBox="0 0 780 180"></svg>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-sm-tempo" viewBox="0 0 780 180"></svg>
+            </div>
           </div>
 
           <div class="chart-box">
@@ -152,7 +154,9 @@
               <span class="chart-title">Kadenz — Entwicklung</span>
               <span class="chart-note">RPM pro Fahrt · gestrichelt = Ziel 90 RPM</span>
             </div>
-            <svg class="chart" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
+            </div>
           </div>
         </div>
       </div>
@@ -223,7 +227,9 @@
               <span class="chart-title">Ø Herzfrequenz — Entwicklung</span>
               <span class="chart-note">bpm pro Fahrt</span>
             </div>
-            <svg class="chart" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
+            </div>
           </div>
         </div>
       </div>
