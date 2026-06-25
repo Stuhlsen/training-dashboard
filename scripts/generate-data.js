@@ -200,44 +200,6 @@ async function queryNotionPlan1() {
     });
 }
 
-// === Notion: Plan 2 subjektive Daten (nur Befinden + Notizen) ===
-async function queryNotionPlan2Subjective() {
-  if (!DB_ID_PLAN2) return [];
-  console.log("📡 Notion-Datenbank abfragen (Plan 2 subjektiv)...");
-  let all = [], hasMore = true, cursor;
-
-  while (hasMore) {
-    const body = { page_size: 100, sorts: [{ property: "Datum", direction: "ascending" }] };
-    if (cursor) body.start_cursor = cursor;
-    const res = await fetch(`https://api.notion.com/v1/databases/${DB_ID_PLAN2}/query`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${NOTION_KEY}`, "Notion-Version": "2022-06-28", "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (!res.ok) { console.error(`❌ Notion Plan 2 (${res.status}):`, await res.text()); process.exit(1); }
-    const data = await res.json();
-    all = all.concat(data.results);
-    hasMore = data.has_more;
-    cursor = data.next_cursor;
-  }
-  console.log(`   ... ${all.length} Einträge geladen`);
-
-  const entries = {};
-  for (const page of all) {
-    const pr = page.properties;
-    const date = getDate(pr["Datum"]);
-    if (date) {
-      entries[date] = {
-        feel: getSelect(pr["Befinden"]),
-        notizen: getRichText(pr["Notizen"]),
-        typ: getSelect(pr["Typ"]),
-        name: getTitle(pr["Einheit"]),
-      };
-    }
-  }
-  return entries;
-}
-
 // === intervals.icu API ===
 async function intervalsGet(endpoint) {
   const url = `https://intervals.icu/api/v1${endpoint}`;
