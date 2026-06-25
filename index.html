@@ -70,7 +70,7 @@
           <h2>💪 Fitness & Belastung</h2>
           <span class="toggle-icon" style="transform:rotate(180deg)">▾</span>
         </div>
-        <div class="chart-group-body open">
+        <div class="chart-group-body">
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">PMC — Performance Management Chart</span>
@@ -158,6 +158,16 @@
               <svg class="chart chart-wide" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
             </div>
           </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Ø Herzfrequenz — Entwicklung</span>
+              <span class="chart-note">bpm pro Fahrt</span>
+            </div>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -174,7 +184,7 @@
               <span class="chart-note">Unter 5% = gute aerobe Fitness</span>
             </div>
             <svg class="chart" id="chart-decoupling" viewBox="0 0 780 200"></svg>
-            <p class="chart-explainer">Aerobe Entkopplung zeigt wie stark HF und Leistung im Lauf einer Fahrt auseinanderdriften. Bei guter aerober Basis bleibt die HF bei konstanter Leistung stabil (&lt;5%). Hohe Werte (>10%) deuten auf unvollständige aerobe Anpassung hin.</p>
+            <p class="chart-explainer">Aerobe Entkopplung zeigt wie stark HF und Leistung im Lauf einer Fahrt auseinanderdriften. Bei guter aerober Basis bleibt die HF bei konstanter Leistung stabil (&lt;5%). Hohe Werte (&gt;10%) deuten auf unvollständige aerobe Anpassung hin.</p>
           </div>
 
           <div class="chart-box">
@@ -220,6 +230,7 @@
                 <span class="plan-label plan-label-right">Plan 2</span>
               </div>
             </div>
+            <p class="chart-explainer">Sinkender Ruhepuls über Zeit zeigt kardiovaskuläre Anpassung. Plan 1 (rot) und Plan 2 (orange) auf eigener Skala — Slider ziehen zum Vergleich.</p>
           </div>
 
           <div class="chart-box">
@@ -230,13 +241,13 @@
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sleep" viewBox="0 0 780 200"></svg>
             </div>
-            <p class="chart-explainer">Schlafdauer (Balken, linke Achse) und durchschnittliche Schlaf-Herzfrequenz (Linie, rechte Achse) pro Nacht. Niedrige Schlaf-HF bei ausreichend Schlaf ist ein gutes Erholungssignal.</p>
-          </div>
-              <span class="chart-note">bpm pro Fahrt</span>
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> ≥7h (gut)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> 6–7h (ok)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> &lt;6h (zu wenig)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Schlaf-HF (bpm)</div>
             </div>
-            <div class="chart-scroll">
-              <svg class="chart chart-wide" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
-            </div>
+            <p class="chart-explainer">Schlafdauer als Balken (linke Achse): blau ≥7h, gold 6–7h, rot &lt;6h. Schlaf-Herzfrequenz als Linie (rechte Achse, rot) — niedrige Schlaf-HF bei ausreichend Schlaf ist ein gutes Erholungssignal. Goldene Linie = 7h-Ziel.</p>
           </div>
         </div>
       </div>
