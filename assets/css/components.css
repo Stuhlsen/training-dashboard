@@ -269,10 +269,10 @@
 
 .strength-card strong { color: var(--text); }
 
-/* ═══ Collapsible Sections ═══ */
-.dash-section { margin-bottom: 0.75rem; }
+/* ═══ Chart Groups (ausklappbare Blöcke im Charts-Tab) ═══ */
+.chart-group { margin-bottom: 0.75rem; }
 
-.section-header {
+.chart-group-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -284,25 +284,19 @@
   user-select: none;
   transition: background var(--transition);
 }
-.section-header:hover { background: var(--card-hover); }
-.section-header h2 { margin: 0; font-size: 0.95rem; font-weight: 600; }
-.toggle-icon { color: var(--dim); transition: transform 0.2s; font-size: 1rem; }
-.section-body.open ~ .section-header .toggle-icon,
-.section-header.open .toggle-icon { transform: rotate(180deg); }
+.chart-group-header:hover { background: var(--card-hover); }
+.chart-group-header h2 { margin: 0; font-size: 0.95rem; font-weight: 600; }
 
-.section-body {
+.chart-group-body {
   display: none;
-  padding: 0.75rem 0;
+  padding: 0.5rem 0;
 }
-.section-body.open { display: block; }
+.chart-group-body.open { display: block; }
 
-.section-sublabel {
-  font-size: 0.82rem;
-  font-weight: 600;
+.toggle-icon {
   color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 1.5rem 0 0.75rem;
+  transition: transform 0.2s;
+  font-size: 1rem;
 }
 
 .chart-explainer {
@@ -339,11 +333,4 @@
   background: var(--accent-dim);
   color: var(--accent);
   font-weight: 600;
-}
-
-/* ═══ Plan-split chart annotation ═══ */
-.plan-divider-label {
-  font-size: 9px;
-  fill: var(--dim);
-  text-anchor: middle;
 }

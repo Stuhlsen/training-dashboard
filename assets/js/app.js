@@ -1,13 +1,27 @@
 /* ============================================================
-   APP.JS — Einstiegspunkt, Orchestrierung, Collapsible Sections
+   APP.JS — Einstiegspunkt, Tab-Navigation, Chart-Gruppen
    ============================================================ */
 
-// Collapsible section toggle
-function toggleSection(headerEl) {
+// Tab Navigation
+function initTabs() {
+  const btns = document.querySelectorAll(".tab-btn");
+  btns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      btns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
+      el("tab-" + btn.dataset.tab).classList.remove("hidden");
+    });
+  });
+}
+
+// Chart Group Toggle (inside Charts tab)
+function toggleChartGroup(headerEl) {
   const body = headerEl.nextElementSibling;
+  const icon = headerEl.querySelector(".toggle-icon");
   const isOpen = body.classList.contains("open");
   body.classList.toggle("open");
-  headerEl.querySelector(".toggle-icon").style.transform = isOpen ? "" : "rotate(180deg)";
+  icon.style.transform = isOpen ? "" : "rotate(180deg)";
 }
 
 // Main init
@@ -37,29 +51,41 @@ function toggleSection(headerEl) {
     };
   });
 
-  // Overview (Hero, Metrics, Milestones)
+  // Init tabs
+  initTabs();
+
+  // Overview
   Overview.render(rides);
 
-  // Fitness & Belastung
+  // Charts — Fitness & Belastung
   Charts.renderPMC("chart-pmc", rides);
-  Charts.renderWeeklyVolume("chart-weekly", weekly);
+  Charts.renderWeeklyVolume("chart-weekly", weekly, (week) => {
+    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+    document.querySelector('[data-tab="table"]').classList.add("active");
+    document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
+    el("tab-table").classList.remove("hidden");
+    Table.filterByWeek(week);
+  });
   Charts.renderWeeklyTSS("chart-weekly-tss", weeklyWithTSS);
   Charts.renderTRIMP("chart-trimp", weekly);
 
-  // Leistung
+  // Charts — Leistung
   Charts.renderEfficiency("chart-efficiency", rides);
   Charts.renderScatter("chart-scatter", rides);
   Charts.renderSmallMultiples(rides);
 
-  // Aerobe Gesundheit
+  // Charts — Aerobe Gesundheit
   Charts.renderDecoupling("chart-decoupling", rides);
   Charts.renderHRV("chart-hrv", rides);
   Charts.renderRHF("chart-rhf", rides);
 
-  // Fahrtenbuch
+  // Charts — Aktivität
+  Charts.renderHeatmap("chart-heatmap", rides);
+
+  // Table
   Table.render(rides);
 
-  // Analyse
+  // Analysis
   Analysis.render(rides);
 
   // Footer
