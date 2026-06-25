@@ -7,7 +7,7 @@ const Charts = {
 
   /* ── Gemeinsame SVG-Helfer ──────────────────────────────────── */
 
-  _gridLines(svg, W, H, pad, maxV, minV = 0, steps = 4) {
+  _gridLines(svg, W, H, pad, maxV, minV = 0, steps = 4, noLabels = false) {
     for (let i = 0; i <= steps; i++) {
       const y   = pad.t + (H - pad.t - pad.b) / steps * i;
       const val = Math.round(maxV - (maxV - minV) / steps * i);
@@ -15,12 +15,14 @@ const Charts = {
         x1: pad.l, y1: y, x2: W - pad.r, y2: y,
         stroke: "#2e2923", "stroke-width": "1",
       }));
-      const t = svgEl("text", {
-        x: pad.l - 6, y: y + 4,
-        "text-anchor": "end", fill: "#6b6158", "font-size": "10",
-      });
-      t.textContent = val;
-      svg.appendChild(t);
+      if (!noLabels) {
+        const t = svgEl("text", {
+          x: pad.l - 6, y: y + 4,
+          "text-anchor": "end", fill: "#6b6158", "font-size": "10",
+        });
+        t.textContent = val;
+        svg.appendChild(t);
+      }
     }
   },
 
@@ -877,7 +879,7 @@ const Charts = {
     const minHR = hrVals.length ? Math.floor(Math.min(...hrVals) - 3) : 40;
     const maxHR = hrVals.length ? Math.ceil(Math.max(...hrVals) + 3) : 80;
 
-    this._gridLines(svg, W, H, pad, maxSleep, 0);
+    this._gridLines(svg, W, H, pad, maxSleep, 0, 4, true);
 
     const bw = Math.min(cw / data.length * 0.6, 20);
     const gap = cw / data.length;
@@ -902,18 +904,17 @@ const Charts = {
       svg.appendChild(rect);
     });
 
-    // 7h Ziel-Linie
+    // 7h Ziel-Linie — Gold statt Blau (kein Overlap mit Balkenfarbe)
     const targetY = pad.t + ch - (7 / maxSleep * ch);
     svg.appendChild(svgEl("line", {
       x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
-      stroke: "#4a7fa8", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.4",
+      stroke: "#c9a84c", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.6",
     }));
-    // Label rechts neben der Linie, nicht links (kein Overlap mit Y-Achse)
-    const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#4a7fa8", "font-size": "8", opacity: "0.6" });
+    const tl = svgEl("text", { x: pad.l + 4, y: targetY - 4, fill: "#c9a84c", "font-size": "9", opacity: "0.9" });
     tl.textContent = "7h Ziel"; svg.appendChild(tl);
 
-    // Linke Y-Achse: nur 4 Labels, ganzzahlige Stunden
-    const sleepStep = Math.ceil(maxSleep / 4);
+    // Linke Y-Achse: saubere ganzzahlige Labels, genug Abstand
+    const sleepStep = maxSleep <= 8 ? 2 : maxSleep <= 12 ? 3 : 4;
     for (let v = 0; v <= maxSleep; v += sleepStep) {
       const y = pad.t + ch - (v / maxSleep * ch);
       const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
