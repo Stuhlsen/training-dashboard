@@ -81,6 +81,24 @@ svg.chart { width: 100%; height: auto; display: block; }
   font-size: 0.82rem;
 }
 
+/* ── Scrollable chart container ───────────────────────────────── */
+.chart-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-light) transparent;
+}
+.chart-scroll::-webkit-scrollbar { height: 6px; }
+.chart-scroll::-webkit-scrollbar-track { background: transparent; }
+.chart-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+
+.chart-wide {
+  min-width: 100%;
+  height: auto;
+  display: block;
+}
+
 /* ── Plan Compare Slider ─────────────────────────────────────── */
 .plan-compare {
   position: relative;

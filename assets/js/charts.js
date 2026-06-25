@@ -368,7 +368,7 @@ const Charts = {
       const cnt = svgEl("text", { x: x + cellW / 2, y: 48, "text-anchor": "middle", fill: intensity > 0.4 ? "#f0ebe4" : "#9a8f84", "font-size": "16", "font-weight": "700" });
       cnt.textContent = counts[i]; svg.appendChild(cnt);
 
-      const km = svgEl("text", { x: x + cellW / 2, y: 62, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+      const km = svgEl("text", { x: x + cellW / 2, y: 62, "text-anchor": "middle", fill: intensity > 0.3 ? "rgba(240,235,228,0.7)" : "#9a8f84", "font-size": "9" });
       km.textContent = Math.round(kmTotals[i]) + " km"; svg.appendChild(km);
     });
   },
@@ -623,8 +623,14 @@ const Charts = {
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
 
-    const W = 780, H = 250, pad = { l: 50, r: 50, t: 20, b: 36 };
+    const PPT = 18;
+    const W = Math.max(780, data.length * PPT + 100);
+    const H = 250, pad = { l: 50, r: 50, t: 20, b: 36 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.style.width = W + "px";
+    svg.style.minWidth = W + "px";
 
     const ctlVals = data.map(d => d.ctl);
     const atlVals = data.map(d => d.atl);
@@ -638,6 +644,20 @@ const Charts = {
     const caY = (v) => pad.t + ch - v / maxCA * ch;
 
     this._gridLines(svg, W, H, pad, Math.round(maxCA), 0);
+
+    // Plan divider
+    const plan2Start = data.findIndex(d => d.plan === "Plan 2");
+    if (plan2Start > 0) {
+      const divX = pad.l + (plan2Start - 0.5) / Math.max(data.length - 1, 1) * cw;
+      svg.appendChild(svgEl("rect", {
+        x: divX - 0.5, y: pad.t, width: 1, height: ch,
+        fill: "#6b6158", opacity: "0.6",
+      }));
+      const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: "#6b6158", "font-size": "9", "font-weight": "600" });
+      lbl1.textContent = "Plan 1"; svg.appendChild(lbl1);
+      const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: "#e07b39", "font-size": "9", "font-weight": "600" });
+      lbl2.textContent = "Plan 2"; svg.appendChild(lbl2);
+    }
 
     // TSB sweet spot zone (-10 to -30)
     const zoneTop = tsbY(-10);
@@ -661,17 +681,15 @@ const Charts = {
       stroke: "#5c9e6e", "stroke-width": "0.5", "stroke-dasharray": "4,4", opacity: "0.4",
     }));
 
-    // TSB area fill (green above zero, red below)
+    // TSB area fill
     const tsbPtsRaw = data.map((d, i) => ({
       x: pad.l + i / Math.max(data.length - 1, 1) * cw,
       v: d.tsb != null ? d.tsb : d.ctl - d.atl,
     }));
-    // Positive fill (green)
     const posPath = `M${tsbPtsRaw[0].x},${tsbZeroY} ` +
       tsbPtsRaw.map(p => `L${p.x},${p.v >= 0 ? tsbY(p.v) : tsbZeroY}`).join(" ") +
       ` L${tsbPtsRaw[tsbPtsRaw.length-1].x},${tsbZeroY} Z`;
     svg.appendChild(svgEl("path", { d: posPath, fill: "#5c9e6e", opacity: "0.1" }));
-    // Negative fill (red)
     const negPath = `M${tsbPtsRaw[0].x},${tsbZeroY} ` +
       tsbPtsRaw.map(p => `L${p.x},${p.v < 0 ? tsbY(p.v) : tsbZeroY}`).join(" ") +
       ` L${tsbPtsRaw[tsbPtsRaw.length-1].x},${tsbZeroY} Z`;
@@ -684,7 +702,7 @@ const Charts = {
     svg.appendChild(svgEl("path", { d: ctlAreaPath, fill: "#4a7fa8", opacity: "0.08" }));
 
     // Lines
-    const _line = (field, color, width, yMap, dash) => {
+    const _line = (color, width, yMap, dash) => {
       const pts = data.map((d, i) => ({
         x: pad.l + i / Math.max(data.length - 1, 1) * cw,
         y: yMap(d),
@@ -699,9 +717,9 @@ const Charts = {
       return pts;
     };
 
-    const ctlPts = _line("ctl", "#4a7fa8", "2.5", d => caY(d.ctl));
-    const atlPts = _line("atl", "#c45c5c", "1.2", d => caY(d.atl), "4,2");
-    const tsbPts = _line("tsb", "#5c9e6e", "1.5", d => tsbY(d.tsb != null ? d.tsb : d.ctl - d.atl));
+    const ctlPts = _line("#4a7fa8", "2.5", d => caY(d.ctl));
+    _line("#c45c5c", "1.2", d => caY(d.atl), "4,2");
+    _line("#5c9e6e", "1.5", d => tsbY(d.tsb != null ? d.tsb : d.ctl - d.atl));
 
     // TSB right axis labels
     for (let i = 0; i <= 4; i++) {
@@ -713,7 +731,7 @@ const Charts = {
     }
 
     // Dots on CTL
-    const step = Math.max(1, Math.floor(ctlPts.length / 15));
+    const step = Math.max(1, Math.floor(ctlPts.length / 25));
     ctlPts.forEach((p, i) => {
       if (i % step !== 0 && i !== ctlPts.length - 1) return;
       const tsb = p.d.tsb != null ? p.d.tsb : Math.round((p.d.ctl - p.d.atl) * 10) / 10;
@@ -736,11 +754,18 @@ const Charts = {
       noteEl.textContent = `Aktuell: CTL ${fmt(lastCTL.ctl)} · ATL ${fmt(lastCTL.atl)} · TSB ${fmt(tsb)}`;
     }
 
-    const ls = Math.max(1, Math.floor(ctlPts.length / 10));
+    // X labels
+    const ls = Math.max(1, Math.floor(ctlPts.length / Math.max(12, Math.floor(W / 70))));
     ctlPts.forEach((p, i) => {
       if (i % ls === 0 || i === ctlPts.length - 1)
         this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
     });
+
+    // Auto-scroll to right
+    const scrollContainer = el("pmc-scroll");
+    if (scrollContainer) {
+      requestAnimationFrame(() => { scrollContainer.scrollLeft = scrollContainer.scrollWidth; });
+    }
   },
 
   /* ── Aerobe Entkopplung (Decoupling) ─────────────────────────── */
