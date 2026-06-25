@@ -43,6 +43,7 @@ function toggleChartGroup(headerEl) {
 
   // Init tabs
   initTabs();
+  Tooltip.init();
 
   // Overview
   Overview.render(rides);
