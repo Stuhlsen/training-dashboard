@@ -427,168 +427,170 @@ const Charts = {
 
   /* ── 10. Ruhepuls-Entwicklung ────────────────────────────────── */
   renderHRV(svgId, rides) {
-    const plan1 = rides.filter(r => r.hrv != null && (r.plan || "Plan 1") === "Plan 1")
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const plan2 = rides.filter(r => r.hrv != null && r.plan === "Plan 2")
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const data = [...plan1, ...plan2];
+    // Delegiert an Plan-Compare-Slider
+    // Legacy-Aufruf ignorieren — wird jetzt über renderPlanCompareHRV gesteuert
+  },
+
+  /* ── Plan-Compare: einzelnen Plan in SVG rendern ───────────── */
+  _renderPlanSeries(svgId, data, color, unit, planLabel, field) {
     const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
 
-    const W = 780, H = 200, pad = { l: 50, r: 16, t: 16, b: 36 };
+    const W = 780, H = 220, pad = { l: 50, r: 16, t: 28, b: 36 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const allVals = data.map(d => d.hrv);
+    const allVals = data.map(d => d[field]);
     const minV = Math.max(0, Math.min(...allVals) - 5);
     const maxV = Math.max(...allVals) + 5;
 
     this._gridLines(svg, W, H, pad, maxV, minV);
 
-    const _drawPlan = (pdata, color, dashArray) => {
-      if (!pdata.length) return;
-      const pts = pdata.map((d, i) => {
-        const globalIdx = data.indexOf(d);
-        return {
-          x: pad.l + globalIdx / Math.max(data.length - 1, 1) * cw,
-          y: pad.t + ch - (d.hrv - minV) / (maxV - minV) * ch,
-          d,
-        };
-      });
-      svg.appendChild(svgEl("polyline", {
-        fill: "none", stroke: color, "stroke-width": "1.8",
-        "stroke-dasharray": dashArray || "none",
-        points: pts.map(p => `${p.x},${p.y}`).join(" "),
-      }));
-      // Trend line
-      const n = pts.length;
-      if (n > 2) {
-        const mx = pts.reduce((s, p) => s + p.x, 0) / n;
-        const my = pts.reduce((s, p) => s + p.y, 0) / n;
-        const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
-                      pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
-        const intercept = my - slope * mx;
-        svg.appendChild(svgEl("line", {
-          x1: pts[0].x, y1: slope * pts[0].x + intercept,
-          x2: pts[n-1].x, y2: slope * pts[n-1].x + intercept,
-          stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
-        }));
-      }
-      // Dots
-      const step = Math.max(1, Math.floor(pts.length / 20));
-      pts.forEach((p, i) => {
-        if (i % step !== 0 && i !== pts.length - 1) return;
-        const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
-        c.style.cursor = "pointer";
-        c.addEventListener("mouseenter", e => Tooltip.show(e, `
-          <div class="tt">${p.d.dateShort} · ${p.d.week} · ${p.d.plan || "Plan 1"}</div>
-          <div class="tv">${p.d.hrv} ms</div>
-          <div class="td">${p.d.name}</div>
-        `));
-        c.addEventListener("mouseleave", () => Tooltip.hide());
-        svg.appendChild(c);
-      });
-    };
+    const pts = data.map((d, i) => ({
+      x: pad.l + i / Math.max(data.length - 1, 1) * cw,
+      y: pad.t + ch - (d[field] - minV) / (maxV - minV) * ch,
+      d,
+    }));
 
-    _drawPlan(plan1, "#7c5cbf");
-    _drawPlan(plan2, "#e07b39");
+    // Area fill
+    const areaPath = `M${pts[0].x},${H - pad.b} ` +
+      pts.map(p => `L${p.x},${p.y}`).join(" ") +
+      ` L${pts[pts.length-1].x},${H - pad.b} Z`;
+    svg.appendChild(svgEl("path", {
+      d: areaPath, fill: color, opacity: "0.08",
+    }));
 
-    // Plan divider
-    if (plan1.length && plan2.length) {
-      const divX = pad.l + (data.indexOf(plan2[0]) - 0.5) / Math.max(data.length - 1, 1) * cw;
+    // Line
+    svg.appendChild(svgEl("polyline", {
+      fill: "none", stroke: color, "stroke-width": "1.8",
+      points: pts.map(p => `${p.x},${p.y}`).join(" "),
+    }));
+
+    // Trend line
+    const n = pts.length;
+    if (n > 2) {
+      const mx = pts.reduce((s, p) => s + p.x, 0) / n;
+      const my = pts.reduce((s, p) => s + p.y, 0) / n;
+      const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
+                    pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+      const intercept = my - slope * mx;
       svg.appendChild(svgEl("line", {
-        x1: divX, y1: pad.t, x2: divX, y2: H - pad.b,
-        stroke: "#6b6158", "stroke-width": "1", "stroke-dasharray": "3,3", opacity: "0.5",
+        x1: pts[0].x, y1: slope * pts[0].x + intercept,
+        x2: pts[n-1].x, y2: slope * pts[n-1].x + intercept,
+        stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
       }));
-      const lbl = svgEl("text", { x: divX, y: pad.t - 4, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
-      lbl.textContent = "Plan 2 →";
-      svg.appendChild(lbl);
     }
 
-    // X labels
-    const allPts = data.map((d, i) => ({ x: pad.l + i / Math.max(data.length - 1, 1) * cw, d }));
-    const ls = Math.max(1, Math.floor(allPts.length / 10));
-    allPts.forEach((p, i) => {
-      if (i % ls === 0 || i === allPts.length - 1)
+    // Dots
+    const step = Math.max(1, Math.floor(pts.length / 20));
+    pts.forEach((p, i) => {
+      if (i % step !== 0 && i !== pts.length - 1) return;
+      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3.5", fill: color, stroke: "#141210", "stroke-width": "1.5" });
+      c.style.cursor = "pointer";
+      c.addEventListener("mouseenter", e => Tooltip.show(e, `
+        <div class="tt">${p.d.dateShort} · ${p.d.week} · ${planLabel}</div>
+        <div class="tv">${p.d[field]} ${unit}</div>
+        <div class="td">${p.d.name}</div>
+      `));
+      c.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(c);
+    });
+
+    // X labels — smart spacing
+    const labelStep = Math.max(1, Math.floor(pts.length / 8));
+    pts.forEach((p, i) => {
+      if (i % labelStep === 0 || i === pts.length - 1)
         this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    });
+
+    // Mean line
+    const mean = allVals.reduce((s, v) => s + v, 0) / allVals.length;
+    const meanY = pad.t + ch - (mean - minV) / (maxV - minV) * ch;
+    svg.appendChild(svgEl("line", {
+      x1: pad.l, y1: meanY, x2: W - pad.r, y2: meanY,
+      stroke: color, "stroke-width": "0.8", "stroke-dasharray": "3,4", opacity: "0.4",
+    }));
+    const meanLabel = svgEl("text", { x: W - pad.r - 2, y: meanY - 5, "text-anchor": "end", fill: color, "font-size": "9", opacity: "0.7" });
+    meanLabel.textContent = `Ø ${fmt(mean, 0)}`;
+    svg.appendChild(meanLabel);
+  },
+
+  /* ── Plan-Compare Slider Setup ─────────────────────────────── */
+  _initPlanCompareSlider(containerId, sliderId, topSvgId) {
+    const container = el(containerId);
+    const slider = el(sliderId);
+    const topSvg = el(topSvgId);
+    if (!container || !slider || !topSvg) return;
+
+    let dragging = false;
+
+    const setPosition = (clientX) => {
+      const rect = container.getBoundingClientRect();
+      const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+      const pct = (x / rect.width) * 100;
+      slider.style.left = pct + "%";
+      topSvg.style.clipPath = `inset(0 0 0 ${pct}%)`;
+    };
+
+    // Default: 50% for both plans visible, or 100% if only Plan 1 has data
+    const topSvgEl = el(topSvgId);
+    const hasP2 = topSvgEl && topSvgEl.childNodes.length > 0;
+    const defaultPct = hasP2 ? 50 : 100;
+    slider.style.left = defaultPct + "%";
+    topSvg.style.clipPath = `inset(0 0 0 ${defaultPct}%)`;
+
+    const onStart = (e) => {
+      dragging = true;
+      e.preventDefault();
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      setPosition(clientX);
+    };
+    const onMove = (e) => {
+      if (!dragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      setPosition(clientX);
+    };
+    const onEnd = () => { dragging = false; };
+
+    slider.addEventListener("mousedown", onStart);
+    slider.addEventListener("touchstart", onStart, { passive: false });
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("touchmove", onMove, { passive: false });
+    document.addEventListener("mouseup", onEnd);
+    document.addEventListener("touchend", onEnd);
+
+    // Click anywhere on container to jump slider
+    container.addEventListener("click", (e) => {
+      if (e.target.closest(".plan-compare-slider")) return;
+      setPosition(e.clientX);
     });
   },
 
+  /* ── HRV Plan Compare ──────────────────────────────────────── */
+  renderPlanCompareHRV(rides) {
+    const plan1 = rides.filter(r => r.hrv != null && (r.plan || "Plan 1") === "Plan 1")
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const plan2 = rides.filter(r => r.hrv != null && r.plan === "Plan 2")
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+
+    if (plan1.length) this._renderPlanSeries("chart-hrv-p1", plan1, "#7c5cbf", "ms", "Plan 1", "hrv");
+    if (plan2.length) this._renderPlanSeries("chart-hrv-p2", plan2, "#e07b39", "ms", "Plan 2", "hrv");
+
+    this._initPlanCompareSlider("hrv-compare", "hrv-slider", "chart-hrv-p2");
+  },
+
   renderRHF(svgId, rides) {
+    // Delegiert an Plan-Compare-Slider
+  },
+
+  /* ── RHF Plan Compare ──────────────────────────────────────── */
+  renderPlanCompareRHF(rides) {
     const plan1 = rides.filter(r => r.ruhepuls != null && (r.plan || "Plan 1") === "Plan 1")
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     const plan2 = rides.filter(r => r.ruhepuls != null && r.plan === "Plan 2")
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const data = [...plan1, ...plan2];
-    const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
 
-    const W = 780, H = 200, pad = { l: 50, r: 16, t: 16, b: 36 };
-    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const allVals = data.map(d => d.ruhepuls);
-    const minV = Math.max(0, Math.min(...allVals) - 3);
-    const maxV = Math.max(...allVals) + 3;
+    if (plan1.length) this._renderPlanSeries("chart-rhf-p1", plan1, "#c45c5c", "bpm", "Plan 1", "ruhepuls");
+    if (plan2.length) this._renderPlanSeries("chart-rhf-p2", plan2, "#e07b39", "bpm", "Plan 2", "ruhepuls");
 
-    this._gridLines(svg, W, H, pad, maxV, minV);
-
-    const _drawPlan = (pdata, color) => {
-      if (!pdata.length) return;
-      const pts = pdata.map((d) => {
-        const globalIdx = data.indexOf(d);
-        return {
-          x: pad.l + globalIdx / Math.max(data.length - 1, 1) * cw,
-          y: pad.t + ch - (d.ruhepuls - minV) / (maxV - minV) * ch,
-          d,
-        };
-      });
-      svg.appendChild(svgEl("polyline", {
-        fill: "none", stroke: color, "stroke-width": "1.8",
-        points: pts.map(p => `${p.x},${p.y}`).join(" "),
-      }));
-      const n = pts.length;
-      if (n > 2) {
-        const mx = pts.reduce((s, p) => s + p.x, 0) / n;
-        const my = pts.reduce((s, p) => s + p.y, 0) / n;
-        const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
-                      pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
-        const intercept = my - slope * mx;
-        svg.appendChild(svgEl("line", {
-          x1: pts[0].x, y1: slope * pts[0].x + intercept,
-          x2: pts[n-1].x, y2: slope * pts[n-1].x + intercept,
-          stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
-        }));
-      }
-      const step = Math.max(1, Math.floor(pts.length / 20));
-      pts.forEach((p, i) => {
-        if (i % step !== 0 && i !== pts.length - 1) return;
-        const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
-        c.style.cursor = "pointer";
-        c.addEventListener("mouseenter", e => Tooltip.show(e, `
-          <div class="tt">${p.d.dateShort} · ${p.d.week} · ${p.d.plan || "Plan 1"}</div>
-          <div class="tv">${p.d.ruhepuls} bpm</div>
-          <div class="td">${p.d.name}</div>
-        `));
-        c.addEventListener("mouseleave", () => Tooltip.hide());
-        svg.appendChild(c);
-      });
-    };
-
-    _drawPlan(plan1, "#c45c5c");
-    _drawPlan(plan2, "#e07b39");
-
-    if (plan1.length && plan2.length) {
-      const divX = pad.l + (data.indexOf(plan2[0]) - 0.5) / Math.max(data.length - 1, 1) * cw;
-      svg.appendChild(svgEl("line", {
-        x1: divX, y1: pad.t, x2: divX, y2: H - pad.b,
-        stroke: "#6b6158", "stroke-width": "1", "stroke-dasharray": "3,3", opacity: "0.5",
-      }));
-      const lbl = svgEl("text", { x: divX, y: pad.t - 4, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
-      lbl.textContent = "Plan 2 →";
-      svg.appendChild(lbl);
-    }
-
-    const allPts = data.map((d, i) => ({ x: pad.l + i / Math.max(data.length - 1, 1) * cw, d }));
-    const ls = Math.max(1, Math.floor(allPts.length / 10));
-    allPts.forEach((p, i) => {
-      if (i % ls === 0 || i === allPts.length - 1)
-        this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
-    });
+    this._initPlanCompareSlider("rhf-compare", "rhf-slider", "chart-rhf-p2");
   },
 
   /* ── PMC — Performance Management Chart ─────────────────────── */

@@ -80,3 +80,102 @@ svg.chart { width: 100%; height: auto; display: block; }
   color: var(--dim2);
   font-size: 0.82rem;
 }
+
+/* ── Plan Compare Slider ─────────────────────────────────────── */
+.plan-compare {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.plan-compare-layer {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.plan-compare-top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  clip-path: inset(0 0 0 100%);
+}
+
+.plan-compare-slider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 0;
+  z-index: 10;
+  cursor: ew-resize;
+}
+
+.plan-compare-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  background: var(--accent);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.plan-compare-handle {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 2px solid var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  cursor: ew-resize;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  z-index: 11;
+}
+
+.handle-arrow {
+  font-size: 9px;
+  color: var(--accent);
+  line-height: 1;
+}
+
+.plan-compare-labels {
+  position: absolute;
+  top: 4px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+  padding: 0 8px;
+  z-index: 5;
+}
+
+.plan-label {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+
+.plan-label-left {
+  color: #7c5cbf;
+  background: rgba(124, 92, 191, 0.12);
+}
+
+.plan-label-right {
+  color: var(--accent);
+  background: rgba(224, 123, 57, 0.12);
+}

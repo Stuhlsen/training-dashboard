@@ -76,8 +76,8 @@ function toggleChartGroup(headerEl) {
 
   // Charts — Aerobe Gesundheit
   Charts.renderDecoupling("chart-decoupling", rides);
-  Charts.renderHRV("chart-hrv", rides);
-  Charts.renderRHF("chart-rhf", rides);
+  Charts.renderPlanCompareHRV(rides);
+  Charts.renderPlanCompareRHF(rides);
 
   // Charts — Aktivität
   Charts.renderHeatmap("chart-heatmap", rides);
