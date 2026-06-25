@@ -397,7 +397,7 @@ const Charts = {
 
       this._gridLines(svg, W, H, pad, maxV, minV);
 
-      // Plan divider
+      // Plan divider + Labels
       const plan2Start = data.findIndex(d => d.plan === "Plan 2");
       if (plan2Start > 0) {
         const divX = pad.l + (plan2Start - 0.5) / Math.max(data.length - 1, 1) * cw;
@@ -405,6 +405,10 @@ const Charts = {
           x: divX - 0.5, y: pad.t, width: 1, height: ch,
           fill: "#6b6158", opacity: "0.5",
         }));
+        const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: "#6b6158", "font-size": "9", "font-weight": "600" });
+        lbl1.textContent = "Plan 1"; svg.appendChild(lbl1);
+        const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: "#e07b39", "font-size": "9", "font-weight": "600" });
+        lbl2.textContent = "Plan 2"; svg.appendChild(lbl2);
       }
 
       if (targetLine != null) {
@@ -455,15 +459,23 @@ const Charts = {
         svg.appendChild(c);
       });
 
-      const ls = Math.max(1, Math.floor(pts.length / Math.max(12, Math.floor(W / 70))));
+      // X-Labels: mindestens 55px Abstand zwischen Labels
+      let lastLabelX = -999;
       pts.forEach((p, i) => {
-        if (i % ls === 0 || i === pts.length - 1)
-          this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+        const isLast = i === pts.length - 1;
+        if (i % Math.max(1, Math.floor(pts.length / 15)) === 0 || isLast) {
+          if (p.x - lastLabelX >= 55 || isLast) {
+            this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+            lastLabelX = p.x;
+          }
+        }
       });
 
-      // Auto-scroll to right
+      // Scroll: Container-Breite explizit setzen damit Browser scrollt
       const scrollContainer = svg.parentElement;
       if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
+        scrollContainer.style.overflowX = "auto";
+        svg.style.minWidth = W + "px";
         requestAnimationFrame(() => { scrollContainer.scrollLeft = scrollContainer.scrollWidth; });
       }
     };
@@ -793,6 +805,8 @@ const Charts = {
     // Auto-scroll to right
     const scrollContainer = el("pmc-scroll");
     if (scrollContainer) {
+      scrollContainer.style.overflowX = "auto";
+      svg.style.minWidth = W + "px";
       requestAnimationFrame(() => { scrollContainer.scrollLeft = scrollContainer.scrollWidth; });
     }
   },
@@ -959,16 +973,22 @@ const Charts = {
       }
     }
 
-    // X Labels
-    const ls = Math.max(1, Math.floor(data.length / Math.max(8, Math.floor(W / 80))));
+    // X Labels mit Mindestabstand
+    let lastLabelX = -999;
     data.forEach((d, i) => {
-      if (i % ls === 0 || i === data.length - 1)
-        this._xLabel(svg, pad.l + i * gap + gap / 2, H - pad.b + 14, d.dateShort);
+      const x = pad.l + i * gap + gap / 2;
+      const isLast = i === data.length - 1;
+      if (x - lastLabelX >= 55 || isLast) {
+        this._xLabel(svg, x, H - pad.b + 14, d.dateShort);
+        lastLabelX = x;
+      }
     });
 
     // Auto-scroll
     const scrollContainer = svg.parentElement;
     if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
+      scrollContainer.style.overflowX = "auto";
+      svg.style.minWidth = W + "px";
       requestAnimationFrame(() => { scrollContainer.scrollLeft = scrollContainer.scrollWidth; });
     }
   },
