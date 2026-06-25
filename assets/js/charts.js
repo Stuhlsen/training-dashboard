@@ -441,9 +441,7 @@ const Charts = {
         }));
       }
 
-      const step = Math.max(1, Math.floor(pts.length / 25));
       pts.forEach((p, i) => {
-        if (i % step !== 0 && i !== pts.length - 1) return;
         const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
         c.style.cursor = "pointer";
         c.addEventListener("mouseenter", e => Tooltip.show(e, `
