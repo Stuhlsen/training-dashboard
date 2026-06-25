@@ -38,13 +38,29 @@
   letter-spacing: 0.08em;
 }
 
+.hero-desc {
+  color: var(--dim);
+  font-size: 0.78rem;
+  margin-top: 8px;
+  max-width: 480px;
+  line-height: 1.55;
+}
+
+.hero-desc strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .hero-kpis {
   display: flex;
   gap: 32px;
   flex-wrap: wrap;
 }
 
-.hero-kpi { text-align: right; }
+.hero-kpi {
+  text-align: right;
+  position: relative;
+}
 
 .hero-kpi .kpi-value {
   font-size: clamp(1.6rem, 4vw, 2.4rem);
@@ -55,10 +71,12 @@
 
 .hero-kpi .kpi-label {
   font-size: 0.68rem;
-  color: var(--dim2);
+  color: var(--text);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: 3px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  margin-top: 5px;
+  opacity: 0.7;
 }
 
 /* ── Tabs ────────────────────────────────────────────────────── */
