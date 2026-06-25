@@ -67,7 +67,7 @@ function toggleChartGroup(headerEl) {
     Table.filterByWeek(week);
   });
   Charts.renderWeeklyTSS("chart-weekly-tss", weeklyWithTSS);
-  Charts.renderTRIMP("chart-trimp", weekly);
+  Charts.renderTrimp("chart-trimp", weekly);
 
   // Charts — Leistung
   Charts.renderEfficiency("chart-efficiency", rides);
