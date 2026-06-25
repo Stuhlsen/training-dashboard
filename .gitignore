@@ -18,6 +18,3 @@ Thumbs.db
 
 # Backup-Dateien
 *.bak
-
-# Befinden-Daten — werden nur über Dashboard/GitHub API geschrieben, nie lokal pushen
-data/subjective.json
