@@ -1,6 +1,6 @@
 # .github/workflows/sync-data.yml
-# Generiert rides.json aus Notion (Plan 1) und intervals.icu (Plan 2)
-# und committed es ins Repo. GitHub Pages serviert es dann statisch.
+# Generiert rides.json aus Notion (Plan 1) und intervals.icu (Plan 2),
+# committed die Daten und deployt GitHub Pages direkt.
 #
 # Benötigte Secrets (Settings → Secrets → Actions):
 #   NOTION_API_KEY      — Notion Integration Token
@@ -20,10 +20,20 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  sync:
+  sync-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - uses: actions/checkout@v4
 
@@ -31,7 +41,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Generate rides.json from Notion
+      - name: Generate rides.json
         env:
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
@@ -39,11 +49,22 @@ jobs:
           INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
         run: node scripts/generate-data.js
 
-      - name: Commit and push if changed
+      - name: Commit data if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/rides.json data/wellness.json 2>/dev/null || true
-          # subjective.json wird NIE von der Action committed — nur per Dashboard
-          git diff --staged --quiet || git commit -m "chore: update training data"
+          git add data/rides.json
+          git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
           git push
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
