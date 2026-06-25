@@ -66,6 +66,7 @@ function toggleChartGroup(headerEl) {
 
   // Charts — Aerobe Gesundheit
   Charts.renderDecoupling("chart-decoupling", rides);
+  Charts.renderSleep("chart-sleep", rides);
   Charts.renderPlanCompareHRV(rides);
   Charts.renderPlanCompareRHF(rides);
 

@@ -847,4 +847,130 @@ const Charts = {
         this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
     });
   },
+
+  /* ── Schlaf — Dauer & Schlaf-HF ─────────────────────────────── */
+  renderSleep(svgId, rides) {
+    const data = rides
+      .filter(r => r.sleepHours != null || r.avgSleepingHR != null)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const svg = el(svgId);
+    if (!svg) return;
+    if (!data.length) {
+      svg.innerHTML = "";
+      const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+      t.textContent = "Schlafdaten ab Plan 2 verfügbar";
+      svg.appendChild(t);
+      return;
+    }
+    svg.innerHTML = "";
+
+    const PPT = 18;
+    const W = Math.max(780, data.length * PPT + 100);
+    const H = 200, pad = { l: 50, r: 50, t: 16, b: 36 };
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
+
+    // Skalen
+    const sleepVals = data.map(d => d.sleepHours).filter(Boolean);
+    const hrVals = data.map(d => d.avgSleepingHR).filter(Boolean);
+    const maxSleep = sleepVals.length ? Math.max(...sleepVals) * 1.2 : 10;
+    const minHR = hrVals.length ? Math.min(...hrVals) - 5 : 40;
+    const maxHR = hrVals.length ? Math.max(...hrVals) + 5 : 80;
+
+    this._gridLines(svg, W, H, pad, Math.ceil(maxSleep), 0);
+
+    const bw = Math.min(cw / data.length * 0.6, 24);
+    const gap = cw / data.length;
+
+    // Balken: Schlafdauer
+    data.forEach((d, i) => {
+      if (!d.sleepHours) return;
+      const x = pad.l + i * gap + (gap - bw) / 2;
+      const bh = Math.max(d.sleepHours / maxSleep * ch, 1);
+      const y = pad.t + ch - bh;
+      const color = d.sleepHours >= 7 ? "#4a7fa8" : d.sleepHours >= 6 ? "#c9a84c" : "#c45c5c";
+      const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "2", fill: color, opacity: "0.75" });
+      rect.style.cursor = "pointer";
+      rect.addEventListener("mouseenter", e => {
+        rect.setAttribute("opacity", "1");
+        Tooltip.show(e, `
+          <div class="tt">${d.dateShort} · ${d.week}</div>
+          <div class="tv">${d.sleepHours}h Schlaf${d.avgSleepingHR ? ` · ${d.avgSleepingHR} bpm` : ""}</div>
+        `);
+      });
+      rect.addEventListener("mouseleave", () => { rect.setAttribute("opacity", "0.75"); Tooltip.hide(); });
+      svg.appendChild(rect);
+    });
+
+    // 7h Ziel-Linie
+    const targetY = pad.t + ch - (7 / maxSleep * ch);
+    svg.appendChild(svgEl("line", {
+      x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
+      stroke: "#4a7fa8", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.4",
+    }));
+    const tl = svgEl("text", { x: pad.l + 4, y: targetY - 4, fill: "#4a7fa8", "font-size": "8", opacity: "0.6" });
+    tl.textContent = "7h Ziel"; svg.appendChild(tl);
+
+    // Linke Y-Achse Labels (Stunden)
+    for (let i = 0; i <= 4; i++) {
+      const val = Math.round(maxSleep / 4 * (4 - i) * 10) / 10;
+      const y = pad.t + ch / 4 * i;
+      const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
+      t.textContent = val + "h"; svg.appendChild(t);
+    }
+
+    // Linie: Schlaf-HF (rechte Achse)
+    if (hrVals.length) {
+      const hrPts = data
+        .filter(d => d.avgSleepingHR != null)
+        .map(d => {
+          const i = data.indexOf(d);
+          return {
+            x: pad.l + i * gap + gap / 2,
+            y: pad.t + ch - (d.avgSleepingHR - minHR) / (maxHR - minHR) * ch,
+            d,
+          };
+        });
+
+      svg.appendChild(svgEl("polyline", {
+        fill: "none", stroke: "#c45c5c", "stroke-width": "1.8",
+        points: hrPts.map(p => `${p.x},${p.y}`).join(" "),
+      }));
+
+      hrPts.forEach(p => {
+        const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#c45c5c", stroke: "#141210", "stroke-width": "1.5" });
+        c.style.cursor = "pointer";
+        c.addEventListener("mouseenter", e => Tooltip.show(e, `
+          <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
+          <div class="tv">${p.d.avgSleepingHR} bpm Schlaf-HF</div>
+        `));
+        c.addEventListener("mouseleave", () => Tooltip.hide());
+        svg.appendChild(c);
+      });
+
+      // Rechte Y-Achse Labels (bpm)
+      for (let i = 0; i <= 4; i++) {
+        const val = Math.round(minHR + (maxHR - minHR) / 4 * (4 - i));
+        const y = pad.t + ch / 4 * i;
+        const t = svgEl("text", { x: W - pad.r + 6, y: y + 4, fill: "#c45c5c", "font-size": "9" });
+        t.textContent = val; svg.appendChild(t);
+      }
+    }
+
+    // X Labels
+    const ls = Math.max(1, Math.floor(data.length / Math.max(8, Math.floor(W / 80))));
+    data.forEach((d, i) => {
+      if (i % ls === 0 || i === data.length - 1)
+        this._xLabel(svg, pad.l + i * gap + gap / 2, H - pad.b + 14, d.dateShort);
+    });
+
+    // Auto-scroll
+    const scrollContainer = svg.parentElement;
+    if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
+      requestAnimationFrame(() => { scrollContainer.scrollLeft = scrollContainer.scrollWidth; });
+    }
+  },
 };
