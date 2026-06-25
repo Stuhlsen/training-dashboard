@@ -7,6 +7,7 @@
 const Data = {
 
   rides: [],
+  wellness: [],
 
   /* ── Laden ──────────────────────────────────────────────────── */
   async load() {
@@ -16,12 +17,18 @@ const Data = {
       const json = await res.json();
       if (json.rides && json.rides.length > 0) {
         this.rides = json.rides.map(r => this._normalize(r));
+        this.wellness = (json.wellness || []).map(w => ({
+          ...w,
+          dateShort: fmtDate(w.date),
+          dateISO: w.date,
+        }));
         return { ok: true, source: "json", updated: json.updated };
       }
       throw new Error("Keine Daten in JSON-Datei");
     } catch (err) {
       console.warn("JSON nicht verfügbar, nutze eingebettete Daten:", err.message);
       this.rides = STATIC_RIDES.map(r => this._normalize(r));
+      this.wellness = [];
       return { ok: true, source: "static", warning: err.message };
     }
   },

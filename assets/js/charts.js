@@ -849,10 +849,8 @@ const Charts = {
   },
 
   /* ── Schlaf — Dauer & Schlaf-HF ─────────────────────────────── */
-  renderSleep(svgId, rides) {
-    const data = rides
-      .filter(r => r.sleepHours != null || r.avgSleepingHR != null)
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  renderSleep(svgId, wellness) {
+    const data = wellness.filter(w => w.sleepHours != null || w.avgSleepingHR != null);
     const svg = el(svgId);
     if (!svg) return;
     if (!data.length) {
@@ -866,23 +864,22 @@ const Charts = {
 
     const PPT = 18;
     const W = Math.max(780, data.length * PPT + 100);
-    const H = 200, pad = { l: 50, r: 50, t: 16, b: 36 };
+    const H = 200, pad = { l: 52, r: 52, t: 16, b: 36 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
 
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
     svg.setAttribute("width", W);
     svg.setAttribute("height", H);
 
-    // Skalen
     const sleepVals = data.map(d => d.sleepHours).filter(Boolean);
     const hrVals = data.map(d => d.avgSleepingHR).filter(Boolean);
-    const maxSleep = sleepVals.length ? Math.max(...sleepVals) * 1.2 : 10;
-    const minHR = hrVals.length ? Math.min(...hrVals) - 5 : 40;
-    const maxHR = hrVals.length ? Math.max(...hrVals) + 5 : 80;
+    const maxSleep = sleepVals.length ? Math.ceil(Math.max(...sleepVals) * 1.15) : 10;
+    const minHR = hrVals.length ? Math.floor(Math.min(...hrVals) - 3) : 40;
+    const maxHR = hrVals.length ? Math.ceil(Math.max(...hrVals) + 3) : 80;
 
-    this._gridLines(svg, W, H, pad, Math.ceil(maxSleep), 0);
+    this._gridLines(svg, W, H, pad, maxSleep, 0);
 
-    const bw = Math.min(cw / data.length * 0.6, 24);
+    const bw = Math.min(cw / data.length * 0.6, 20);
     const gap = cw / data.length;
 
     // Balken: Schlafdauer
@@ -897,7 +894,7 @@ const Charts = {
       rect.addEventListener("mouseenter", e => {
         rect.setAttribute("opacity", "1");
         Tooltip.show(e, `
-          <div class="tt">${d.dateShort} · ${d.week}</div>
+          <div class="tt">${d.dateShort}</div>
           <div class="tv">${d.sleepHours}h Schlaf${d.avgSleepingHR ? ` · ${d.avgSleepingHR} bpm` : ""}</div>
         `);
       });
@@ -911,15 +908,16 @@ const Charts = {
       x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
       stroke: "#4a7fa8", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.4",
     }));
-    const tl = svgEl("text", { x: pad.l + 4, y: targetY - 4, fill: "#4a7fa8", "font-size": "8", opacity: "0.6" });
+    // Label rechts neben der Linie, nicht links (kein Overlap mit Y-Achse)
+    const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#4a7fa8", "font-size": "8", opacity: "0.6" });
     tl.textContent = "7h Ziel"; svg.appendChild(tl);
 
-    // Linke Y-Achse Labels (Stunden)
-    for (let i = 0; i <= 4; i++) {
-      const val = Math.round(maxSleep / 4 * (4 - i) * 10) / 10;
-      const y = pad.t + ch / 4 * i;
+    // Linke Y-Achse: nur 4 Labels, ganzzahlige Stunden
+    const sleepStep = Math.ceil(maxSleep / 4);
+    for (let v = 0; v <= maxSleep; v += sleepStep) {
+      const y = pad.t + ch - (v / maxSleep * ch);
       const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
-      t.textContent = val + "h"; svg.appendChild(t);
+      t.textContent = v + "h"; svg.appendChild(t);
     }
 
     // Linie: Schlaf-HF (rechte Achse)
@@ -944,19 +942,19 @@ const Charts = {
         const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#c45c5c", stroke: "#141210", "stroke-width": "1.5" });
         c.style.cursor = "pointer";
         c.addEventListener("mouseenter", e => Tooltip.show(e, `
-          <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
+          <div class="tt">${p.d.dateShort}</div>
           <div class="tv">${p.d.avgSleepingHR} bpm Schlaf-HF</div>
         `));
         c.addEventListener("mouseleave", () => Tooltip.hide());
         svg.appendChild(c);
       });
 
-      // Rechte Y-Achse Labels (bpm)
-      for (let i = 0; i <= 4; i++) {
-        const val = Math.round(minHR + (maxHR - minHR) / 4 * (4 - i));
-        const y = pad.t + ch / 4 * i;
+      // Rechte Y-Achse: nur 4 Labels
+      const hrStep = Math.ceil((maxHR - minHR) / 4);
+      for (let v = minHR; v <= maxHR; v += hrStep) {
+        const y = pad.t + ch - ((v - minHR) / (maxHR - minHR) * ch);
         const t = svgEl("text", { x: W - pad.r + 6, y: y + 4, fill: "#c45c5c", "font-size": "9" });
-        t.textContent = val; svg.appendChild(t);
+        t.textContent = v; svg.appendChild(t);
       }
     }
 

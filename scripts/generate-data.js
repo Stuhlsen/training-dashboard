@@ -257,17 +257,33 @@ async function main() {
 
   // 2. Plan 2: intervals.icu + Notion subjektiv
   let plan2 = [];
+  let wellnessList = [];
   if (INTERVALS_KEY && INTERVALS_ATHLETE) {
     const oldest = PLAN2_SCHEDULE[0].start;
     const today = new Date().toISOString().split("T")[0];
     const newest = today > "2026-09-20" ? "2026-09-20" : today;
 
+    // Wellness ab Plan-1-Start für Schlaf-Chart (Apple Health sync in intervals.icu)
+    const PLAN1_START = "2026-03-24";
     const activities = await getIntervalsActivities(oldest, newest);
-    const wellness = await getIntervalsWellness(oldest, newest);
+    const wellness = await getIntervalsWellness(PLAN1_START, newest);
     const subjective = await queryNotionPlan2Subjective();
 
     plan2 = activities.map(act => mapActivity(act, wellness, subjective));
     console.log(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
+
+    // Wellness-Einträge als eigenständige Liste (für Schlaf-Chart)
+    wellnessList = Object.entries(wellness)
+      .filter(([, w]) => w.sleepSecs || w.avgSleepingHR)
+      .map(([date, w]) => ({
+        date,
+        sleepHours: w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null,
+        avgSleepingHR: w.avgSleepingHR || null,
+        restingHR: w.restingHR || null,
+        hrv: w.hrvSDNN || null,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+    console.log(`✅ Wellness: ${wellnessList.length} Tage mit Schlafdaten`);
   } else if (DB_ID_PLAN2) {
     // Fallback: Plan 2 komplett aus Notion (wenn kein intervals.icu Key)
     console.log("⚠️  Kein intervals.icu Key — Plan 2 aus Notion laden...");
@@ -292,6 +308,7 @@ async function main() {
 
   const output = {
     rides,
+    wellness: wellnessList,
     plans,
     updated: new Date().toISOString(),
     source: INTERVALS_KEY ? "notion+intervals" : "notion",
