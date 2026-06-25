@@ -275,6 +275,22 @@ async function getIntervalsWellness(oldest, newest) {
   return map;
 }
 
+// === Typ-Berechnung aus NP/FTP wenn kein Plan-Match ===
+const FTP = 193; // wird aktualisiert wenn neuer Ramp-Test
+
+function inferTypFromIF(np, min) {
+  if (!np || !FTP) return "Außerplanmäßig";
+  const ifVal = np / FTP;
+  // Kurze Fahrten (<30 min) mit hohem IF = Intervall/Test
+  if (min < 30 && ifVal > 0.95) return "FTP-Test";
+  if (ifVal < 0.75)              return "Z1 Recovery";
+  if (ifVal < 0.85)              return "Z2 Dauer";
+  if (ifVal < 0.90)              return "Tempo";
+  if (ifVal < 0.95)              return "Sweet Spot";
+  if (ifVal < 1.05)              return "Schwelle";
+  return "VO2max";
+}
+
 // === intervals.icu Activity → Ride-Objekt ===
 function mapActivity(act, wellness, subjective) {
   const date = act.start_date_local.split("T")[0];
@@ -283,16 +299,22 @@ function mapActivity(act, wellness, subjective) {
   const s = subjective[date] || {};
   const planned = PLANNED_SESSIONS[date] || {};
 
-  // Priorität: subjective.json > Trainingsplan-Mapping > intervals.icu/Strava
+  const np  = act.icu_weighted_avg_watts;
+  const min = Math.round((act.moving_time || 0) / 60);
+
+  // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
+  const typ = s.typ || planned.typ || inferTypFromIF(np, min);
+  const name = s.name || planned.name || act.name || "Radfahren";
+
   return {
-    name: s.name || planned.name || act.name || "Radfahren",
+    name,
     date,
     week,
     phase,
-    typ: s.typ || planned.typ || "Außerplanmäßig",
+    typ,
     plan: "Plan 2",
     km: Math.round((act.distance || 0) / 100) / 10,
-    min: Math.round((act.moving_time || 0) / 60),
+    min,
     kmh: Math.round((act.average_speed || 0) * 3.6 * 10) / 10,
     watt: act.icu_average_watts,
     maxWatt: null,
