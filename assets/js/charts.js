@@ -565,6 +565,8 @@ const Charts = {
     const container = el(containerId);
     const slider = el(sliderId);
     const topSvg = el(topSvgId);
+    // p1 = das untere SVG (immer zuerst im DOM)
+    const bottomSvg = container ? container.querySelector(".plan-compare-layer:not(.plan-compare-top)") : null;
     if (!container || !slider || !topSvg) return;
 
     let dragging = false;
@@ -574,15 +576,18 @@ const Charts = {
       const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
       const pct = (x / rect.width) * 100;
       slider.style.left = pct + "%";
+      // Plan 2 (oben): von links ab pct sichtbar
       topSvg.style.clipPath = `inset(0 0 0 ${pct}%)`;
+      // Plan 1 (unten): bis pct sichtbar, rechts abgeschnitten
+      if (bottomSvg) bottomSvg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
     };
 
-    // Default: 50% for both plans visible, or 100% if only Plan 1 has data
-    const topSvgEl = el(topSvgId);
-    const hasP2 = topSvgEl && topSvgEl.childNodes.length > 0;
+    // Default: 50% wenn beide Pläne Daten haben, 100% wenn nur Plan 1
+    const hasP2 = topSvg.childNodes.length > 0;
     const defaultPct = hasP2 ? 50 : 100;
     slider.style.left = defaultPct + "%";
     topSvg.style.clipPath = `inset(0 0 0 ${defaultPct}%)`;
+    if (bottomSvg) bottomSvg.style.clipPath = `inset(0 ${100 - defaultPct}% 0 0)`;
 
     const onStart = (e) => {
       dragging = true;

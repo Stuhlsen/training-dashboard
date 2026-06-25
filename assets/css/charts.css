@@ -104,7 +104,6 @@ svg.chart.chart-wide { width: auto; max-width: none; }
 .plan-compare {
   position: relative;
   width: 100%;
-  overflow: hidden;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -116,11 +115,20 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   display: block;
 }
 
+/* Plan 1 (Bottom) — nimmt den Platz ein, wird von rechts geclippt */
+.plan-compare-layer:not(.plan-compare-top) {
+  position: relative;
+  clip-path: inset(0 50% 0 0); /* wird per JS gesetzt */
+}
+
+/* Plan 2 (Top) — liegt absolut oben drüber, von links geclippt */
 .plan-compare-top {
   position: absolute;
   top: 0;
   left: 0;
-  clip-path: inset(0 0 0 100%);
+  width: 100%;
+  height: 100%;
+  clip-path: inset(0 0 0 50%); /* wird per JS gesetzt */
 }
 
 .plan-compare-slider {
