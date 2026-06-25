@@ -72,7 +72,30 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   padding: 8px 0;
 }
 
-/* ── Empty state ─────────────────────────────────────────────── */
+/* ── Befinden Dropdown (Plan 2) ──────────────────────────────── */
+.feel-select {
+  background: var(--card-alt);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  color: var(--text);
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  cursor: pointer;
+  max-width: 140px;
+  transition: border-color 0.15s;
+}
+.feel-select:hover  { border-color: var(--accent); }
+.feel-select:focus  { outline: none; border-color: var(--accent); }
+.feel-select:disabled { opacity: 0.5; cursor: wait; }
+
+/* Farben wie .feel Badges */
+.feel-select.feel-sehr-leicht { color: #5c9e6e; }
+.feel-select.feel-leicht      { color: #7ec88a; }
+.feel-select.feel-ok          { color: var(--dim); }
+.feel-select.feel-moderat     { color: var(--gold); }
+.feel-select.feel-schwer      { color: #e07b39; }
+.feel-select.feel-sehr-schwer { color: var(--red); }
+.feel-select.feel-hart        { color: var(--red); }
 .chart-empty {
   display: flex;
   align-items: center;

@@ -2,6 +2,78 @@
    TABLE.JS — Fahrtenbuch: Filter, Suche, Sort, Render
    ============================================================ */
 
+// === Befinden GitHub-Sync ===
+const Subjective = {
+  FEEL_OPTIONS: ["Sehr leicht", "Leicht", "Irgendwie einfach", "Moderat", "Irgendwie schwer", "Schwer", "Hart"],
+
+  _data: null,
+  _token: null,
+  _sha: null,
+
+  async load() {
+    try {
+      const res = await fetch("data/subjective.json?_=" + Date.now());
+      this._data = await res.json();
+    } catch { this._data = {}; }
+    return this._data;
+  },
+
+  get(date) { return this._data?.[date] || {}; },
+
+  getToken() {
+    if (!this._token) this._token = localStorage.getItem("gh_token");
+    return this._token;
+  },
+
+  promptToken() {
+    const t = prompt("GitHub Personal Access Token eingeben (wird nur lokal gespeichert):");
+    if (t) { this._token = t; localStorage.setItem("gh_token", t); }
+    return t;
+  },
+
+  async save(date, feel, notizen) {
+    if (!this._data) this._data = {};
+    this._data[date] = { ...this._data[date], feel, notizen };
+
+    let token = this.getToken();
+    if (!token) token = this.promptToken();
+    if (!token) return false;
+
+    try {
+      // Aktuellen SHA holen
+      const infoRes = await fetch(
+        "https://api.github.com/repos/Stuhlsen/training-dashboard/contents/data/subjective.json",
+        { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
+      );
+      const info = await infoRes.json();
+      const sha = info.sha;
+
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(this._data, null, 2))));
+      const putRes = await fetch(
+        "https://api.github.com/repos/Stuhlsen/training-dashboard/contents/data/subjective.json",
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+          body: JSON.stringify({ message: `subjective: Befinden ${date} → ${feel}`, content, sha }),
+        }
+      );
+      if (!putRes.ok) {
+        const err = await putRes.json();
+        if (err.message?.includes("Bad credentials")) {
+          localStorage.removeItem("gh_token");
+          this._token = null;
+          alert("Token ungültig. Bitte neu eingeben.");
+        }
+        return false;
+      }
+      return true;
+    } catch (e) {
+      console.error("GitHub Write Fehler:", e);
+      return false;
+    }
+  },
+};
+
 const Table = {
 
   state: {
@@ -31,6 +103,11 @@ const Table = {
   ],
 
   /* ── Öffentliche API ─────────────────────────────────────────── */
+  async init() {
+    await Subjective.load();
+    this.render();
+  },
+
   render() {
     this._renderFilters();
     this._renderWeekTag();
@@ -121,8 +198,24 @@ const Table = {
     );
 
     // Body
-    el("table-body").innerHTML = filtered.map(r => {
-      const feel = normalizeFeel(r.feel);
+    const tbody = el("table-body");
+    tbody.innerHTML = filtered.map(r => {
+      const isP2 = r.plan === "Plan 2";
+      const subj = isP2 ? Subjective.get(r.dateISO) : null;
+      const feelVal = subj?.feel || r.feel || "";
+      const feel = normalizeFeel(feelVal);
+
+      const feelCell = isP2
+        ? `<td>
+            <select class="feel-select feel-${feel.cls}" data-date="${r.dateISO}">
+              <option value="">– wählen –</option>
+              ${Subjective.FEEL_OPTIONS.map(f =>
+                `<option value="${f}"${feelVal === f ? " selected" : ""}>${f}</option>`
+              ).join("")}
+            </select>
+           </td>`
+        : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`;
+
       return `
         <tr>
           <td>${r.dateShort}</td>
@@ -139,9 +232,33 @@ const Table = {
           <td>${fmtInt(r.np)}</td>
           <td>${fmtInt(r.trimp)}</td>
           <td>${r.ctl != null ? fmt(r.ctl) : "–"}</td>
-          <td><span class="feel feel-${feel.cls}">${feel.label}</span></td>
+          ${feelCell}
         </tr>`;
     }).join("");
+
+    // Dropdown Event Listeners
+    tbody.querySelectorAll(".feel-select").forEach(sel => {
+      sel.addEventListener("change", async (e) => {
+        const date = e.target.dataset.date;
+        const feel = e.target.value;
+        const opt = e.target;
+        opt.disabled = true;
+
+        const ok = await Subjective.save(date, feel, Subjective.get(date).notizen || "");
+
+        opt.disabled = false;
+        const normalized = normalizeFeel(feel);
+        opt.className = `feel-select feel-${normalized.cls}`;
+
+        if (ok) {
+          // Visuelles Feedback
+          opt.style.outline = "1px solid var(--green)";
+          setTimeout(() => { opt.style.outline = ""; }, 1500);
+        } else {
+          alert("Speichern fehlgeschlagen. Ist der GitHub Token korrekt?");
+        }
+      });
+    });
   },
 
   /* ── Gefilterte + sortierte Daten ───────────────────────────── */

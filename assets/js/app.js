@@ -74,7 +74,7 @@ function toggleChartGroup(headerEl) {
   Charts.renderHeatmap("chart-heatmap", rides);
 
   // Table
-  Table.render(rides);
+  Table.init();
 
   // Analysis
   Analysis.render(rides);

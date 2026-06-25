@@ -3,10 +3,10 @@
  * generate-data.js
  * Generiert rides.json aus zwei Quellen:
  *   Plan 1: Notion-Datenbank (historisch, alle Felder)
- *   Plan 2: intervals.icu API (Rides + Wellness) + Notion (Befinden/Notizen)
+ *   Plan 2: intervals.icu API (Rides + Wellness) + data/subjective.json (Befinden)
  *
  * Secrets (env oder .env):
- *   NOTION_API_KEY, NOTION_DATABASE_ID, NOTION_DATABASE_ID_PLAN2
+ *   NOTION_API_KEY, NOTION_DATABASE_ID
  *   INTERVALS_API_KEY, INTERVALS_ATHLETE_ID
  */
 
@@ -27,10 +27,10 @@ if (fs.existsSync(envPath)) {
 
 const NOTION_KEY = process.env.NOTION_API_KEY;
 const DB_ID = process.env.NOTION_DATABASE_ID;
-const DB_ID_PLAN2 = process.env.NOTION_DATABASE_ID_PLAN2 || "";
 const INTERVALS_KEY = process.env.INTERVALS_API_KEY || "";
 const INTERVALS_ATHLETE = process.env.INTERVALS_ATHLETE_ID || "";
 const OUT_FILE = path.join(__dirname, "..", "data", "rides.json");
+const SUBJECTIVE_FILE = path.join(__dirname, "..", "data", "subjective.json");
 
 if (!NOTION_KEY || !DB_ID) {
   console.error("❌ NOTION_API_KEY oder NOTION_DATABASE_ID nicht gesetzt.");
@@ -54,11 +54,81 @@ const PLAN2_SCHEDULE = [
   { week: "P2-W12", phase: "Taper",      start: "2026-09-14", end: "2026-09-20" },
 ];
 
+// === Geplante Einheiten — Datum → Name + Typ ===
+// Di = Gruppenfahrt, Do = Intervalle (Sweet Spot/Schwelle/VO2max), Sa = Z2 Lang
+// Erholung: Di = Recovery, Do = Z2 Locker, Sa = moderate Z2
+const PLANNED_SESSIONS = {
+  // W0 Übergang
+  "2026-06-23": { name: "Gruppenfahrt W0",         typ: "Gruppenfahrt" },
+  "2026-06-25": { name: "Aktivierung W0",           typ: "Z1 Recovery"  },
+  "2026-06-27": { name: "Z2 Lang W0",              typ: "Z2 Lang"      },
+  // W1 Sweet Spot
+  "2026-06-30": { name: "Gruppenfahrt W1",         typ: "Gruppenfahrt" },
+  "2026-07-02": { name: "SS 3×10 min W1",          typ: "Sweet Spot"   },
+  "2026-07-04": { name: "Z2 Lang W1",              typ: "Z2 Lang"      },
+  // W2 Sweet Spot
+  "2026-07-07": { name: "Gruppenfahrt W2",         typ: "Gruppenfahrt" },
+  "2026-07-09": { name: "SS 3×12 min W2",          typ: "Sweet Spot"   },
+  "2026-07-11": { name: "Z2 Lang W2",              typ: "Z2 Lang"      },
+  // W3 Sweet Spot
+  "2026-07-14": { name: "Gruppenfahrt W3",         typ: "Gruppenfahrt" },
+  "2026-07-16": { name: "SS 2×20 min W3",          typ: "Sweet Spot"   },
+  "2026-07-18": { name: "Z2 Lang W3",              typ: "Z2 Lang"      },
+  // W4 Erholung
+  "2026-07-21": { name: "Recovery Fahrt W4",       typ: "Z1 Recovery"  },
+  "2026-07-23": { name: "Z2 Locker W4",            typ: "Z2 Dauer"     },
+  "2026-07-25": { name: "Z2 Lang W4",              typ: "Z2 Lang"      },
+  // W5 Schwelle
+  "2026-07-28": { name: "Gruppenfahrt W5",         typ: "Gruppenfahrt" },
+  "2026-07-30": { name: "Schwelle 3×8 min W5",     typ: "Schwelle"     },
+  "2026-08-01": { name: "Z2 Lang W5",              typ: "Z2 Lang"      },
+  // W6 Schwelle
+  "2026-08-04": { name: "Gruppenfahrt W6",         typ: "Gruppenfahrt" },
+  "2026-08-06": { name: "Schwelle 3×10 min W6",    typ: "Schwelle"     },
+  "2026-08-08": { name: "Z2 Lang W6",              typ: "Z2 Lang"      },
+  // W7 Schwelle
+  "2026-08-11": { name: "Gruppenfahrt W7",         typ: "Gruppenfahrt" },
+  "2026-08-13": { name: "Schwelle 2×20 min W7",    typ: "Schwelle"     },
+  "2026-08-15": { name: "Z2 Lang W7",              typ: "Z2 Lang"      },
+  // W8 Erholung
+  "2026-08-18": { name: "Recovery Fahrt W8",       typ: "Z1 Recovery"  },
+  "2026-08-20": { name: "Z2 Locker W8",            typ: "Z2 Dauer"     },
+  "2026-08-22": { name: "Z2 Lang W8",              typ: "Z2 Lang"      },
+  // W9 VO2max
+  "2026-08-25": { name: "Gruppenfahrt W9",         typ: "Gruppenfahrt" },
+  "2026-08-27": { name: "VO2max 5×3 min W9",       typ: "VO2max"       },
+  "2026-08-29": { name: "Z2 Lang W9",              typ: "Z2 Lang"      },
+  // W10 VO2max
+  "2026-09-01": { name: "Gruppenfahrt W10",        typ: "Gruppenfahrt" },
+  "2026-09-03": { name: "VO2max 6×3 min W10",      typ: "VO2max"       },
+  "2026-09-05": { name: "Z2 Lang W10",             typ: "Z2 Lang"      },
+  // W11 VO2max
+  "2026-09-08": { name: "Gruppenfahrt W11",        typ: "Gruppenfahrt" },
+  "2026-09-10": { name: "VO2max 4×4 min W11",      typ: "VO2max"       },
+  "2026-09-12": { name: "Z2 Lang W11",             typ: "Z2 Lang"      },
+  // W12 Taper
+  "2026-09-15": { name: "Gruppenfahrt W12",        typ: "Gruppenfahrt" },
+  "2026-09-17": { name: "Aktivierung vor Test W12",typ: "Z1 Recovery"  },
+  "2026-09-19": { name: "FTP Ramp Test W12",       typ: "FTP-Test"     },
+};
+
 function getPlan2WeekPhase(dateStr) {
   for (const s of PLAN2_SCHEDULE) {
     if (dateStr >= s.start && dateStr <= s.end) return { week: s.week, phase: s.phase };
   }
   return { week: null, phase: null };
+}
+
+// === subjective.json laden ===
+function loadSubjective() {
+  try {
+    if (fs.existsSync(SUBJECTIVE_FILE)) {
+      return JSON.parse(fs.readFileSync(SUBJECTIVE_FILE, "utf-8"));
+    }
+  } catch (e) {
+    console.warn("⚠️  subjective.json nicht lesbar:", e.message);
+  }
+  return {};
 }
 
 // === Notion Helpers ===
@@ -211,13 +281,15 @@ function mapActivity(act, wellness, subjective) {
   const { week, phase } = getPlan2WeekPhase(date);
   const w = wellness[date] || {};
   const s = subjective[date] || {};
+  const planned = PLANNED_SESSIONS[date] || {};
 
+  // Priorität: subjective.json > Trainingsplan-Mapping > intervals.icu/Strava
   return {
-    name: s.name || act.name || "Radfahren",
+    name: s.name || planned.name || act.name || "Radfahren",
     date,
     week,
     phase,
-    typ: s.typ || "Gruppenfahrt",
+    typ: s.typ || planned.typ || "Außerplanmäßig",
     plan: "Plan 2",
     km: Math.round((act.distance || 0) / 100) / 10,
     min: Math.round((act.moving_time || 0) / 60),
@@ -267,7 +339,8 @@ async function main() {
     const PLAN1_START = "2026-03-24";
     const activities = await getIntervalsActivities(oldest, newest);
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
-    const subjective = await queryNotionPlan2Subjective();
+    const subjective = loadSubjective();
+    console.log(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
 
     plan2 = activities.map(act => mapActivity(act, wellness, subjective));
     console.log(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
@@ -284,12 +357,8 @@ async function main() {
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
     console.log(`✅ Wellness: ${wellnessList.length} Tage mit Schlafdaten`);
-  } else if (DB_ID_PLAN2) {
-    // Fallback: Plan 2 komplett aus Notion (wenn kein intervals.icu Key)
-    console.log("⚠️  Kein intervals.icu Key — Plan 2 aus Notion laden...");
-    plan2 = await queryNotionPlan1_compat(DB_ID_PLAN2, "Plan 2");
   } else {
-    console.log("ℹ️  Kein Plan 2 konfiguriert");
+    console.log("ℹ️  Kein intervals.icu Key — Plan 2 wird übersprungen");
   }
 
   // 3. Zusammenführen
