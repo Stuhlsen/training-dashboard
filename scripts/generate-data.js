@@ -205,7 +205,7 @@ async function queryNotionPlan1() {
         dtl: getNum(pr["DTL"]),
         hoehe: getNum(pr["Hoehengewinn (m)"] || pr["Hoehengewinn"]),
         feel: getSelect(pr["Befinden"]), heu: getCheckbox(pr["Heuschnupfen"]),
-        wetter: getRichText(pr["Wetter"]), notizen,
+        wetter: null, notionWetter: getRichText(pr["Wetter"]), notizen,
       };
     });
 }
@@ -490,13 +490,17 @@ async function main() {
   if (Object.keys(weatherMap).length > 0) {
     let weatherAdded = 0;
     for (const r of plan1) {
-      if (!r.date || r.weather) continue;
+      if (!r.date) continue;
       const w = getWeatherForRide(weatherMap, r.date, 9, r.min || 120);
       if (w) {
         r.weather = w;
-        if (!r.wetter) r.wetter = `${w.temp}°C`;
+        r.wetter = `${w.temp}°C`;
         weatherAdded++;
+      } else {
+        // Fallback: Notion-Freitext wenn kein Open-Meteo-Wert
+        r.wetter = r.notionWetter || null;
       }
+      delete r.notionWetter;
     }
     console.log(`✅ Wetter: ${weatherAdded} Plan-1-Fahrten + ${plan2.filter(r => r.weather).length} Plan-2-Fahrten`);
   }
