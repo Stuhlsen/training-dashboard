@@ -1078,21 +1078,6 @@ const Charts = {
     }
 
 
-    const ZONES = [
-      { from: 0,    to: 0.55, color: "#6b6158", label: "Z1 · Aktive Erholung"  },
-      { from: 0.55, to: 0.75, color: "#4a7fa8", label: "Z2 · Grundlage"        },
-      { from: 0.75, to: 0.87, color: "#5c9e6e", label: "Z3 · Tempo"            },
-      { from: 0.87, to: 0.95, color: "#c9a84c", label: "Sweet Spot"            },
-      { from: 0.95, to: 1.05, color: "#e07b39", label: "Z4 · Schwelle"         },
-      { from: 1.05, to: 999,  color: "#c45c5c", label: "Z5+ · VO2max & Sprint" },
-    ];
-
-    const getZone = (watts) => {
-      if (!ftp) return ZONES[ZONES.length - 1];
-      const pct = watts / ftp;
-      return ZONES.find(z => pct >= z.from && pct < z.to) || ZONES[ZONES.length - 1];
-    };
-
     const W = 780, H = 260, pad = { l: 56, r: 16, t: 20, b: 44 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
     const maxW = Math.max(...curveData.map(d => d.watts)) * 1.1;
@@ -1128,49 +1113,59 @@ const Charts = {
       svg.appendChild(ft);
     }
 
-    // Area fill
+    // Fläche unter der Kurve bis zur X-Achse (neutral, sehr subtil)
     const areaPath = `M${xScale(0)},${pad.t + ch} ` +
       curveData.map((d, i) => `L${xScale(i)},${yScale(d.watts)}`).join(" ") +
       ` L${xScale(curveData.length - 1)},${pad.t + ch} Z`;
-    svg.appendChild(svgEl("path", { d: areaPath, fill: "#e07b39", opacity: "0.06" }));
+    svg.appendChild(svgEl("path", { d: areaPath, fill: "#e07b39", opacity: "0.04" }));
 
-    // Kurve (grau, neutral)
+    // Fläche ÜBER FTP-Linie — anaerobe Reserve hervorheben
+    if (ftp) {
+      const ftpY = yScale(ftp);
+      // Clip-Pfad: nur Bereich über der FTP-Linie füllen
+      const aboveFtpPath = `M${xScale(0)},${Math.min(yScale(curveData[0].watts), ftpY)} ` +
+        curveData.map((d, i) => {
+          const y = yScale(d.watts);
+          return `L${xScale(i)},${Math.min(y, ftpY)}`;
+        }).join(" ") +
+        ` L${xScale(curveData.length - 1)},${ftpY} L${xScale(0)},${ftpY} Z`;
+      svg.appendChild(svgEl("path", { d: aboveFtpPath, fill: "#c45c5c", opacity: "0.15" }));
+    }
+
+    // Kurve — orange
     svg.appendChild(svgEl("polyline", {
-      fill: "none", stroke: "#6b6158", "stroke-width": "1.5",
+      fill: "none", stroke: "#e07b39", "stroke-width": "2",
       "stroke-linejoin": "round",
       points: curveData.map((d, i) => `${xScale(i)},${yScale(d.watts)}`).join(" "),
     }));
 
-    // Punkte — zonenbasierte Farbe + Watt-Labels abwechselnd
+    // Punkte — einheitlich orange, Watt-Labels abwechselnd
     curveData.forEach((d, i) => {
       const x = xScale(i), y = yScale(d.watts);
-      const zone = getZone(d.watts);
       const above = i % 2 === 0;
+      const overFtp = ftp && d.watts > ftp;
 
-      // Punkt in Zonenfarbe
       svg.appendChild(svgEl("circle", {
         cx: x, cy: y, r: "5",
-        fill: zone.color, stroke: "#141210", "stroke-width": "1.5",
+        fill: "#e07b39", stroke: "#141210", "stroke-width": "1.5",
       }));
 
-      // Invisible größerer Kreis für besseres Hover-Target
       const hit = svgEl("circle", { cx: x, cy: y, r: "10", fill: "transparent" });
       hit.style.cursor = "pointer";
       hit.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${d.label}</div>
-        <div class="tv" style="color:${zone.color}">${Math.round(d.watts)} W</div>
-        <div class="td">${zone.label}${ftp ? ` · ${(d.watts / ftp).toFixed(2)}× FTP` : ""}</div>
+        <div class="tv">${Math.round(d.watts)} W</div>
+        <div class="td">${ftp ? `${(d.watts / ftp).toFixed(2)}× FTP · ${overFtp ? "über FTP" : "unter FTP"}` : ""}</div>
       `));
       hit.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(hit);
 
-      // Watt-Label — abwechselnd oben/unten, in Zonenfarbe
+      // Watt-Label abwechselnd oben/unten
       const labelY = above ? y - 10 : y + 18;
-      // Clamp damit Labels nicht aus dem SVG fallen
       const clampedY = Math.max(pad.t + 10, Math.min(pad.t + ch - 4, labelY));
       const wl = svgEl("text", {
         x, y: clampedY, "text-anchor": "middle",
-        fill: zone.color, "font-size": "9", "font-weight": "600",
+        fill: "#e07b39", "font-size": "9", "font-weight": "600",
       });
       wl.textContent = Math.round(d.watts) + "W";
       svg.appendChild(wl);
