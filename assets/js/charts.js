@@ -352,7 +352,6 @@ const Charts = {
     const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
     const dayIdx = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 };
 
-    // Fahrten pro Wochentag zählen
     const counts = new Array(7).fill(0);
     const kmTotals = new Array(7).fill(0);
     rides.forEach(r => {
@@ -364,33 +363,59 @@ const Charts = {
     });
 
     const maxCount = Math.max(...counts) || 1;
-    const W = 780, H = 100, cellW = 80, cellH = 56, startX = (W - 7 * cellW) / 2;
+    const W = 780, H = 110, cellW = 80, cellH = 64, startX = (W - 7 * cellW) / 2;
 
     days.forEach((day, i) => {
       const x = startX + i * cellW;
       const intensity = counts[i] / maxCount;
-      const color = `rgba(224, 123, 57, ${0.1 + intensity * 0.8})`;
+      const color = `rgba(224, 123, 57, ${0.1 + intensity * 0.85})`;
+      const isMax = counts[i] === maxCount;
 
       const rect = svgEl("rect", {
-        x: x + 4, y: 16, width: cellW - 8, height: cellH,
-        rx: "6", fill: color, stroke: "#2e2923", "stroke-width": "1",
+        x: x + 4, y: 20, width: cellW - 8, height: cellH,
+        rx: "8", fill: color,
+        stroke: isMax ? "#e07b39" : "#2e2923",
+        "stroke-width": isMax ? "1.5" : "1",
       });
       rect.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${day}</div>
         <div class="tv">${counts[i]} Fahrten</div>
-        <div class="td">${Math.round(kmTotals[i])} km gesamt</div>
+        <div class="td">${Math.round(kmTotals[i])} km gesamt · Ø ${counts[i] ? Math.round(kmTotals[i] / counts[i]) : 0} km/Fahrt</div>
       `));
       rect.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(rect);
 
-      const lbl = svgEl("text", { x: x + cellW / 2, y: 11, "text-anchor": "middle", fill: "#6b6158", "font-size": "10" });
-      lbl.textContent = day; svg.appendChild(lbl);
+      // Wochentag-Label — größer, heller
+      const lbl = svgEl("text", {
+        x: x + cellW / 2, y: 14,
+        "text-anchor": "middle",
+        fill: isMax ? "#e07b39" : "#9a8f84",
+        "font-size": "11",
+        "font-weight": isMax ? "700" : "500",
+        "letter-spacing": "0.05em",
+      });
+      lbl.textContent = day;
+      svg.appendChild(lbl);
 
-      const cnt = svgEl("text", { x: x + cellW / 2, y: 48, "text-anchor": "middle", fill: intensity > 0.4 ? "#f0ebe4" : "#9a8f84", "font-size": "16", "font-weight": "700" });
-      cnt.textContent = counts[i]; svg.appendChild(cnt);
+      // Fahrt-Anzahl
+      const cnt = svgEl("text", {
+        x: x + cellW / 2, y: 57,
+        "text-anchor": "middle",
+        fill: intensity > 0.35 ? "#f0ebe4" : "#9a8f84",
+        "font-size": "20", "font-weight": "700",
+      });
+      cnt.textContent = counts[i];
+      svg.appendChild(cnt);
 
-      const km = svgEl("text", { x: x + cellW / 2, y: 62, "text-anchor": "middle", fill: intensity > 0.3 ? "rgba(240,235,228,0.7)" : "#9a8f84", "font-size": "9" });
-      km.textContent = Math.round(kmTotals[i]) + " km"; svg.appendChild(km);
+      // km
+      const km = svgEl("text", {
+        x: x + cellW / 2, y: 74,
+        "text-anchor": "middle",
+        fill: intensity > 0.3 ? "rgba(240,235,228,0.75)" : "#6b6158",
+        "font-size": "9",
+      });
+      km.textContent = Math.round(kmTotals[i]) + " km";
+      svg.appendChild(km);
     });
   },
 
