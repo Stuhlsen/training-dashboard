@@ -133,9 +133,9 @@ const Overview = {
     const timelineY = H - pad.b;
     const cw = W - pad.l - pad.r;
 
-    // Zeitachse nur von erstem bis letztem Meilenstein + Puffer
-    const startDate = new Date("2026-03-17");
-    const endDate   = new Date("2026-07-20");
+    // Zeitachse: März bis Mitte Juli — genau die Meilensteine
+    const startDate = new Date("2026-03-24");
+    const endDate   = new Date("2026-07-13");
     const totalMs   = endDate - startDate;
 
     const xOf = (dateStr) => {
@@ -143,68 +143,61 @@ const Overview = {
       return pad.l + (ms / totalMs) * cw;
     };
 
-    // Phasen-Hintergründe
+    // Phasen inkl. Übergangswoche
     const phases = [
-      { label: "Vorbereitung", start: "2026-03-17", end: "2026-03-30", color: "#c9a84c" },
-      { label: "Plan 1",       start: "2026-03-31", end: "2026-06-21", color: "#4a7fa8" },
-      { label: "Plan 2 →",    start: "2026-06-22", end: "2026-07-20", color: "#e07b39" },
+      { label: "Plan 1",      start: "2026-03-24", end: "2026-06-21", color: "#4a7fa8" },
+      { label: "Übergang",    start: "2026-06-22", end: "2026-06-28", color: "#c9a84c" },
+      { label: "Plan 2 →",   start: "2026-06-29", end: "2026-07-13", color: "#e07b39" },
     ];
 
     phases.forEach(ph => {
       const x1 = xOf(ph.start), x2 = xOf(ph.end);
       svg.appendChild(svgEl("rect", {
         x: x1, y: pad.t, width: x2 - x1, height: timelineY - pad.t,
-        fill: ph.color, opacity: "0.06",
+        fill: ph.color, opacity: "0.08",
       }));
-      // Label linksbündig mit etwas Innenabstand — kein Abschneiden mehr
       const lbl = svgEl("text", {
         x: x1 + 6, y: pad.t + 11,
         "text-anchor": "start", fill: ph.color,
-        "font-size": "9", "font-weight": "700", opacity: "0.75",
+        "font-size": "9", "font-weight": "700", opacity: "0.8",
       });
       lbl.textContent = ph.label;
       svg.appendChild(lbl);
     });
 
-    // Plan-Divider
-    const divX = xOf("2026-06-22");
-    svg.appendChild(svgEl("line", {
-      x1: divX, y1: pad.t + 16, x2: divX, y2: timelineY,
-      stroke: "#e07b39", "stroke-width": "1.5",
-      "stroke-dasharray": "4,3", opacity: "0.5",
-    }));
+    // Plan-Divider bei Übergangsstart
+    [["2026-06-22", "#c9a84c"], ["2026-06-29", "#e07b39"]].forEach(([d, c]) => {
+      const x = xOf(d);
+      svg.appendChild(svgEl("line", {
+        x1: x, y1: pad.t + 16, x2: x, y2: timelineY,
+        stroke: c, "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.5",
+      }));
+    });
 
     // Zeitachse
     svg.appendChild(svgEl("line", {
-      x1: pad.l, y1: timelineY,
-      x2: W - pad.r - 4, y2: timelineY,
+      x1: pad.l, y1: timelineY, x2: W - pad.r - 4, y2: timelineY,
       stroke: "#3a342c", "stroke-width": "1.5",
     }));
-    // Pfeil rechts
     svg.appendChild(svgEl("polygon", {
       points: `${W - pad.r},${timelineY} ${W - pad.r - 6},${timelineY - 3} ${W - pad.r - 6},${timelineY + 3}`,
       fill: "#3a342c",
     }));
 
     // Monats-Ticks
-    [
-      ["2026-03-01","Mär"],["2026-04-01","Apr"],["2026-05-01","Mai"],
-      ["2026-06-01","Jun"],["2026-07-01","Jul"],
-    ].forEach(([d, l]) => {
+    [["2026-04-01","Apr"],["2026-05-01","Mai"],["2026-06-01","Jun"],["2026-07-01","Jul"]].forEach(([d, l]) => {
       const x = xOf(d);
+      if (x < pad.l || x > W - pad.r) return;
       svg.appendChild(svgEl("line", {
         x1: x, y1: timelineY, x2: x, y2: timelineY + 4,
-        stroke: "#3a342c", "stroke-width": "1",
+        stroke: "#2e2923", "stroke-width": "1",
       }));
-      const t = svgEl("text", {
-        x, y: timelineY + 22,
-        "text-anchor": "middle", fill: "#6b6158", "font-size": "9",
-      });
+      const t = svgEl("text", { x, y: timelineY + 22, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
       t.textContent = l;
       svg.appendChild(t);
     });
 
-    // Kurze Labels pro Meilenstein — Details im Tooltip
+    // Kurze Labels
     const SHORT_LABELS = {
       "2026-03-31": "Start",
       "2026-05-12": "Criterium",
@@ -215,87 +208,81 @@ const Overview = {
       "2026-06-29": "Plan 2 ▶",
     };
 
-    // Option B: Ebenen-Zuweisung mit Mindestabstand
+    // Ebenen-System
     const LEVELS = 3;
-    const LEVEL_Y = [
-      timelineY - 100,
-      timelineY - 62,
-      timelineY - 26,
-    ];
-    const MIN_DIST = 72;
+    const LEVEL_Y = [timelineY - 100, timelineY - 62, timelineY - 26];
+    const MIN_DIST = 68;
     const lastX = new Array(LEVELS).fill(-999);
+
+    // Datum-Labels: Mindestabstand 30px, sonst verschieben
+    const usedDateX = [];
 
     milestones.forEach((m) => {
       const x = xOf(m.dateISO);
-      // Farbe basiert auf Hintergrundbereich, nicht nur Datum
-      const isPlan2 = m.dateISO >= "2026-06-22";
-      const color = isPlan2 ? "#e07b39" : "#4a7fa8";
+      const isPlan2 = m.dateISO >= "2026-06-29";
+      const isTransition = m.dateISO >= "2026-06-22" && m.dateISO < "2026-06-29";
+      const color = isPlan2 ? "#e07b39" : isTransition ? "#c9a84c" : "#4a7fa8";
 
-      // Freie Ebene finden
+      // Freie Ebene
       let level = -1;
       for (let l = 0; l < LEVELS; l++) {
         if (x - lastX[l] >= MIN_DIST) { level = l; break; }
       }
-      if (level === -1) level = 0;
+      if (level === -1) {
+        // Ebene mit größtem Abstand wählen
+        level = lastX.map((lx, i) => ({ i, d: x - lx })).sort((a, b) => b.d - a.d)[0].i;
+      }
       lastX[level] = x;
       const labelY = LEVEL_Y[level];
 
       // Verbindungslinie
       svg.appendChild(svgEl("line", {
-        x1: x, y1: labelY + 20,
-        x2: x, y2: timelineY - 6,
-        stroke: color, "stroke-width": "1",
-        "stroke-dasharray": "2,2", opacity: "0.4",
+        x1: x, y1: labelY + 20, x2: x, y2: timelineY - 6,
+        stroke: color, "stroke-width": "1", "stroke-dasharray": "2,2", opacity: "0.4",
       }));
 
-      // Pfeilspitze zur Zeitlinie
+      // Pfeilspitze
       svg.appendChild(svgEl("polygon", {
         points: `${x},${timelineY - 3} ${x - 3},${timelineY - 9} ${x + 3},${timelineY - 9}`,
         fill: color, opacity: "0.7",
       }));
 
-      // Icon
-      const icon = svgEl("text", {
-        x, y: labelY,
-        "text-anchor": "middle", "font-size": "14",
-      });
+      // Icon + Label
+      const icon = svgEl("text", { x, y: labelY, "text-anchor": "middle", "font-size": "14" });
       icon.textContent = m.icon;
       svg.appendChild(icon);
 
-      // Kurzlabel
-      const shortLabel = SHORT_LABELS[m.dateISO] || m.text.slice(0, 10);
       const lbl = svgEl("text", {
-        x, y: labelY + 12,
-        "text-anchor": "middle", fill: color,
-        "font-size": "8", "font-weight": "600",
+        x, y: labelY + 12, "text-anchor": "middle",
+        fill: color, "font-size": "8", "font-weight": "600",
       });
-      lbl.textContent = shortLabel;
+      lbl.textContent = SHORT_LABELS[m.dateISO] || m.text.slice(0, 10);
       svg.appendChild(lbl);
 
-      // Datum als Tick an der Zeitachse — nicht am Pin
+      // Datum an Zeitachse — mit Mindestabstand zur Überschneidungsvermeidung
+      let dateX = x;
+      const tooClose = usedDateX.find(ux => Math.abs(ux - x) < 28);
+      if (tooClose) dateX = x + (x > tooClose ? 14 : -14);
+      usedDateX.push(x);
+
       svg.appendChild(svgEl("line", {
         x1: x, y1: timelineY, x2: x, y2: timelineY + 4,
         stroke: color, "stroke-width": "1.5",
       }));
       const dlbl = svgEl("text", {
-        x, y: timelineY + 13,
-        "text-anchor": "middle", fill: color,
-        "font-size": "7.5", "font-weight": "600",
+        x: dateX, y: timelineY + 13,
+        "text-anchor": "middle", fill: color, "font-size": "7.5", "font-weight": "600",
       });
       dlbl.textContent = m.date.slice(0, 5);
       svg.appendChild(dlbl);
 
-      // Hit-Area für Tooltip
-      const hit = svgEl("rect", {
-        x: x - 38, y: labelY - 16,
-        width: 76, height: 44,
-        fill: "transparent",
-      });
+      // Tooltip Hit-Area
+      const hit = svgEl("rect", { x: x - 38, y: labelY - 16, width: 76, height: 44, fill: "transparent" });
       hit.style.cursor = "pointer";
       hit.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${m.date} · ${m.week}</div>
         <div class="tv">${m.icon} ${m.text}</div>
-        <div class="td">${isPlan2 ? "Plan 2" : "Plan 1"}</div>
+        <div class="td">${isPlan2 ? "Plan 2" : isTransition ? "Übergang" : "Plan 1"}</div>
       `));
       hit.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(hit);
