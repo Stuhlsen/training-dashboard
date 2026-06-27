@@ -409,18 +409,15 @@ const Planned = {
           <div class="planned-z2-block">
             <div class="planned-z2-row">
               <span class="planned-z2-label">❤️ Ziel-HF</span>
-              <span class="planned-z2-pill">Z2 Aerobic · 123–152 bpm</span>
+              <span class="planned-z2-pill" style="color:#4a7fa8; background:#4a7fa822; border-color:#4a7fa855">Z2 Aerobic · 123–152 bpm</span>
             </div>
             <div class="planned-z2-row">
               <span class="planned-z2-label">📍 Distanz</span>
-              <div class="planned-z2-bar-wrap">
-                <div class="planned-z2-bar" style="width:${kmPct}%; background:#4a7fa8cc"></div>
-              </div>
-              <span class="planned-z2-val">${kmMin}–${kmMax} km</span>
+              <span class="planned-z2-pill" style="color:#6b9fa8; background:#6b9fa822; border-color:#6b9fa855">${kmMin}–${kmMax} km</span>
             </div>
             <div class="planned-z2-row">
               <span class="planned-z2-label">🔥 ~Kalorien</span>
-              <span class="planned-z2-detail">ca. ${kcal} kcal · ${Math.round(durationH * 10) / 10}h bei ~22 km/h</span>
+              <span class="planned-z2-pill" style="color:#c9a84c; background:#c9a84c22; border-color:#c9a84c55">ca. ${kcal} kcal · ${Math.round(durationH * 10) / 10}h</span>
             </div>
             <div class="planned-z2-note">${s.details}</div>
           </div>`;
