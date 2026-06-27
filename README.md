@@ -36,23 +36,25 @@ GitHub Action (alle 6h) ──────────────────�
 ### Tab: Übersicht
 - Hero mit Kurzbeschreibung beider Pläne für Außenstehende
 - KPIs: Gesamtdistanz, FTP, Fahrtenanzahl, Trainingszeit
-- Aktivitäts-Heatmap (Wochentag-Verteilung mit km)
-- Meilensteine (erste 100-km-Fahrt, FTP-Tests etc.)
+- Trainingsverteilung nach Wochentag (Heatmap, Farbskala grün→rot)
+- Meilensteine als Gantt-Diagramm mit Phasen-Hintergründen und Hover-Details
 
 ### Tab: Charts
 Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlängern den Chart automatisch nach rechts. Scrollbare Charts zeigen einen Plan-1/Plan-2-Divider mit Labels.
 
 | Block | Charts |
 |---|---|
-| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches Volumen (phasengefärbt, 200km-Zielzone), TRIMP pro Woche (Intensitätsgradient) |
+| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches Volumen (phasengefärbt, 200km-Zielzone), TRIMP pro Woche (absoluter Farbgradient grün→rot) |
 | ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert) |
-| ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV Vorher/Nachher-Slider, Ruhepuls Vorher/Nachher-Slider, Schlaf (Dauer + Schlaf-HF kombiniert) |
+| ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV Vorher/Nachher-Slider, Ruhepuls Vorher/Nachher-Slider, Schlaf (Dauer + Schlaf-HF kombiniert, täglich) |
 
-**Power Curve:** Zeigt Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus der intervals.icu API. Der rot eingefärbte Bereich über der FTP-Linie visualisiert die anaerobe Reserve.
+**Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus der intervals.icu API. Roter Bereich über der FTP-Linie = anaerobe Reserve.
 
-**HRV & Ruhepuls:** Vorher/Nachher-Slider mit getrennten Skalen pro Plan — Plan 1 (Apple Health RMSSD) und Plan 2 (intervals.icu SDNN) sind nicht direkt vergleichbar.
+**TRIMP Farbskala:** grün = <400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = >900 (sehr hoch). Erholungswochen sind bewusst grün.
 
-**Wöchentliches Volumen:** Phasengefärbte Balken (Vorbereitung → Sweet Spot → Schwelle → VO2max) mit 200km-Zielzone.
+**HRV & Ruhepuls:** Vorher/Nachher-Slider mit getrennten Skalen — Plan 1 (Apple Health RMSSD) und Plan 2 (intervals.icu SDNN) sind nicht direkt vergleichbar.
+
+**Heatmap:** Farbskala grün→gelb→orange→rot nach Fahrtenhäufigkeit pro Wochentag. Samstag ist mit Abstand der aktivste Tag.
 
 ### Tab: Fahrtenbuch
 Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion-Öffnen nötig.
@@ -133,11 +135,11 @@ Token beim ersten Speichern im Dashboard-Dropdown eingeben — wird im `localSto
 
 ### Git-Workflow
 
-Die GitHub Action committed Daten automatisch alle 6h. Bei Push-Konflikten (PowerShell):
+Die GitHub Action committed Daten automatisch alle 6h. Der `git sync` Alias holt vor jedem Push automatisch die aktuelle `subjective.json` aus GitHub — damit werden Befinden-Einträge nie überschrieben:
 
 ```powershell
-# Einmalig als Alias einrichten
-git config --global alias.sync "!git fetch origin && git push --force-with-lease origin main"
+# Einmalig einrichten
+git config --global alias.sync "!git fetch origin && git checkout origin/main -- data/subjective.json 2>/dev/null || true && git push --force-with-lease origin main"
 
 # Danach immer nur noch
 git sync
@@ -171,22 +173,29 @@ git sync
 - [x] intervals.icu API — Rides, Wellness, Schlaf, Power Curves
 - [x] PMC-Chart (CTL/ATL/TSB) mit Sweet-Spot-Zone, Plan-Divider, scrollbar
 - [x] Power Curve aus intervals.icu `/power-curves` API mit anaerober Reserve-Fläche
-- [x] Wöchentliches Volumen mit 200km-Zielzone
+- [x] Wöchentliches Volumen mit 200km-Zielzone und Phasenfarben
+- [x] TRIMP mit absolutem Farbgradient (grün→rot nach trainingswiss. Grenzwerten)
 - [x] Scrollbare Charts — neue Daten verlängern automatisch nach rechts
-- [x] Aerobe Entkopplung (Pw:Hr), TRIMP mit Intensitätsgradient
-- [x] HRV & Ruhepuls: Vorher/Nachher-Slider Plan 1 vs. Plan 2
-- [x] Schlaf-Chart täglich (Dauer + Schlaf-HF kombiniert, unabhängig von Rides)
-- [x] Aktivitäts-Heatmap in der Übersicht, Meilensteine
+- [x] Aerobe Entkopplung (Pw:Hr), HRV & Ruhepuls Vorher/Nachher-Slider
+- [x] Schlaf-Chart täglich (Dauer + Schlaf-HF, unabhängig von Rides)
+- [x] Aktivitäts-Heatmap (grün→rot Farbskala) in der Übersicht
+- [x] Meilensteine als Gantt-Diagramm mit Phasen und Hover-Details
 - [x] IQR-Ausreißerfilter in Small-Multiple-Charts (Kadenz, Tempo, HF)
 - [x] Notion Plan 2 vollständig abgelöst durch intervals.icu + subjective.json
 - [x] Befinden-Dropdown im Fahrtenbuch mit GitHub API Write
 - [x] IF-basierte Typ-Inferenz für außerplanmäßige Plan-2-Fahrten
-- [x] Pages-Deploy direkt in Sync-Action integriert (kein doppelter Trigger)
-- [x] Git-Alias `git sync` für konfliktfreien Push-Workflow
+- [x] Pages-Deploy direkt in Sync-Action integriert
+- [x] Git-Alias `git sync` mit automatischem subjective.json-Schutz
 
 **Geplant**
-- [ ] FTP automatisch aus letztem Ramp-Test-Eintrag ziehen
-- [ ] Postman Collection für API-Testing (QA-Portfolio)
+- [ ] Wochennotizen im Fahrtenbuch editierbar (aktuell nur Befinden)
+- [ ] Vergleichsansicht Plan 1 vs. Plan 2 — CTL-Kurve beider Pläne nebeneinander
+- [ ] W/kg-Anzeige in der Power Curve (Körpergewicht aus intervals.icu Wellness)
+- [ ] Kadenz-Ziel-Tracking: Anteil der Fahrten über 90 RPM
+- [ ] Herzfrequenz-Zonen-Verteilung pro Fahrt (Z1–Z5 als Balken im Fahrtenbuch)
+- [ ] Postman Collection für intervals.icu + Notion API (QA-Portfolio)
+- [ ] Selenium-Testfälle für Dashboard-UI (QA-Portfolio)
+- [ ] STLC-Dokumentation als verlinktes Dokument (QA-Portfolio)
 
 ---
 
