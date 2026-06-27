@@ -303,6 +303,31 @@
   color: #4a7fa8;
 }
 
+/* ── Z2 Lang Block ───────────────────────────────────────────── */
+.planned-z2-block { display: flex; flex-direction: column; gap: 8px; }
+.planned-z2-row { display: flex; align-items: center; gap: 8px; }
+.planned-z2-label { font-size: 0.72rem; color: var(--dim); min-width: 82px; flex-shrink: 0; }
+.planned-z2-hrbar-wrap { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.planned-z2-hrbar-bg { height: 8px; background: var(--border); border-radius: 4px; position: relative; overflow: hidden; }
+.planned-z2-hrzone { position: absolute; top: 0; height: 100%; background: #4a7fa8cc; border-radius: 2px; }
+.planned-z2-hrlabels { display: flex; font-size: 0.58rem; color: var(--dim2); }
+.planned-z2-bar-wrap { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+.planned-z2-bar { height: 100%; border-radius: 4px; }
+.planned-z2-val { font-size: 0.72rem; font-weight: 600; color: var(--text); min-width: 72px; text-align: right; flex-shrink: 0; }
+.planned-z2-detail { font-size: 0.72rem; color: var(--dim); }
+.planned-z2-note { font-size: 0.72rem; color: var(--dim2); padding-top: 4px; border-top: 1px solid var(--border); }
+
+/* ── Recovery Block ──────────────────────────────────────────── */
+.planned-rec-block { display: flex; flex-direction: column; gap: 6px; }
+.planned-rec-title { font-size: 0.72rem; font-weight: 600; color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 2px; }
+.planned-rec-row { display: flex; align-items: center; gap: 8px; }
+.planned-rec-label { font-size: 0.72rem; color: var(--dim); min-width: 82px; flex-shrink: 0; }
+.planned-rec-val { font-size: 0.78rem; font-weight: 600; color: var(--text); }
+.planned-rec-date { font-size: 0.68rem; color: var(--dim2); }
+.planned-rec-na { font-size: 0.72rem; color: var(--dim2); }
+.planned-rec-next { font-size: 0.72rem; color: var(--accent); font-weight: 500; padding: 5px 8px; background: var(--accent-dim); border-radius: var(--radius-sm); margin-top: 2px; }
+.planned-rec-note { font-size: 0.72rem; color: var(--dim2); padding-top: 4px; border-top: 1px solid var(--border); }
+
 /* Details (kein Workout) */
 .planned-details {
   font-size: 0.78rem;

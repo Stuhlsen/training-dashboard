@@ -386,7 +386,92 @@ const Planned = {
       workoutHtml += `${w.watts ? `<div class="planned-workout-watts">${w.watts[0]}–${w.watts[1]}W · Ziel: ${Math.round((w.watts[0]+w.watts[1])/2)}W</div>` : ""}
         </div>`;
     } else if (s.details) {
-      workoutHtml = `<div class="planned-details">${s.details}</div>`;
+      const isZ2 = s.typ === "Z2 Lang" || s.typ === "Z2 Dauer";
+      const isRecovery = s.typ === "Z1 Recovery";
+
+      if (isZ2 && s.km) {
+        // Z2 — HF-Zielzone + Distanz + Kalorienabschätzung
+        const hrMin = 123, hrMax = 152, hrAbsMin = 0, hrAbsMax = 201;
+        const barW = 100;
+        const z2Start = ((hrMin - hrAbsMin) / (hrAbsMax - hrAbsMin) * barW).toFixed(1);
+        const z2Width = ((hrMax - hrMin) / (hrAbsMax - hrAbsMin) * barW).toFixed(1);
+
+        // Distanzbereich aus Plan
+        const kmMin = s.typ === "Z2 Lang" ? Math.round(s.km * 0.85) : Math.round(s.km * 0.9);
+        const kmMax = Math.round(s.km * 1.15);
+        const kmPct = (s.km / kmMax * 100).toFixed(0);
+
+        // Kalorienabschätzung: Z2 ~600 kcal/h, Recovery ~400 kcal/h
+        const durationH = s.km / 22; // ~22 km/h Z2 Durchschnitt
+        const kcal = Math.round(durationH * 600 / 50) * 50; // auf 50 runden
+
+        workoutHtml = `
+          <div class="planned-z2-block">
+            <div class="planned-z2-row">
+              <span class="planned-z2-label">❤️ Ziel-HF</span>
+              <div class="planned-z2-hrbar-wrap">
+                <div class="planned-z2-hrbar-bg">
+                  <div class="planned-z2-hrzone" style="left:${z2Start}%; width:${z2Width}%"></div>
+                </div>
+                <div class="planned-z2-hrlabels">
+                  <span>0</span><span>${hrMin}</span><span style="margin-left:auto">${hrMax}</span><span>${hrAbsMax}</span>
+                </div>
+              </div>
+              <span class="planned-z2-val">123–152 bpm</span>
+            </div>
+            <div class="planned-z2-row">
+              <span class="planned-z2-label">📍 Distanz</span>
+              <div class="planned-z2-bar-wrap">
+                <div class="planned-z2-bar" style="width:${kmPct}%; background:#4a7fa8cc"></div>
+              </div>
+              <span class="planned-z2-val">${kmMin}–${kmMax} km</span>
+            </div>
+            <div class="planned-z2-row">
+              <span class="planned-z2-label">🔥 ~Kalorien</span>
+              <span class="planned-z2-detail">ca. ${kcal} kcal · ${Math.round(durationH * 10) / 10}h bei ~22 km/h</span>
+            </div>
+            <div class="planned-z2-note">${s.details}</div>
+          </div>`;
+
+      } else if (isRecovery) {
+        // Recovery — letzter HRV + RHF Wert + Erholungskontext
+        const wellness = Data.wellness || [];
+        const lastW = wellness.length > 0
+          ? [...wellness].sort((a, b) => b.dateISO.localeCompare(a.dateISO))[0]
+          : null;
+
+        const hrvHtml = lastW?.hrv
+          ? `<div class="planned-rec-row"><span class="planned-rec-label">💜 HRV</span><span class="planned-rec-val">${lastW.hrv} ms</span><span class="planned-rec-date">(${lastW.dateShort})</span></div>`
+          : `<div class="planned-rec-row"><span class="planned-rec-label">💜 HRV</span><span class="planned-rec-na">– nicht erfasst</span></div>`;
+
+        const rfHtml = lastW?.restingHR
+          ? `<div class="planned-rec-row"><span class="planned-rec-label">❤️ Ruhepuls</span><span class="planned-rec-val">${lastW.restingHR} bpm</span><span class="planned-rec-date">(${lastW.dateShort})</span></div>`
+          : `<div class="planned-rec-row"><span class="planned-rec-label">❤️ Ruhepuls</span><span class="planned-rec-na">– nicht erfasst</span></div>`;
+
+        // Nächste Belastungseinheit finden
+        const today = new Date().toISOString().split("T")[0];
+        const nextLoad = Data.plannedSessions
+          .filter(ps => ps.date > s.date && ps.workout)
+          .sort((a, b) => a.date.localeCompare(b.date))[0];
+        const daysToLoad = nextLoad
+          ? Math.ceil((new Date(nextLoad.date) - new Date(s.date)) / 86400000)
+          : null;
+
+        workoutHtml = `
+          <div class="planned-rec-block">
+            <div class="planned-rec-title">📊 Aktuelle Erholungswerte</div>
+            ${hrvHtml}
+            ${rfHtml}
+            ${nextLoad ? `
+              <div class="planned-rec-next">
+                ⚡ Nächste Belastung in ${daysToLoad} Tag${daysToLoad !== 1 ? "en" : ""}: ${nextLoad.name}
+              </div>` : ""}
+            <div class="planned-rec-note">${s.details}</div>
+          </div>`;
+
+      } else {
+        workoutHtml = `<div class="planned-details">${s.details}</div>`;
+      }
     }
 
     // Tage bis zur Session
