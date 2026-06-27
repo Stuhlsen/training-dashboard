@@ -190,19 +190,12 @@ const Charts = {
 
     this._gridLines(svg, W, H, pad, maxV);
 
-    // Grün → Gelb → Orange → Rot basierend auf relativem TRIMP
+    // Absolute Farbskala basierend auf trainingswissenschaftlichen Grenzwerten
     const _trimpColor = (v) => {
-      const t = Math.min(v / maxTrimp, 1);
-      if (t < 0.33) {
-        const f = t / 0.33;
-        return `rgb(${Math.round(92 + f * 137)}, ${Math.round(168 - f * 16)}, ${Math.round(110 - f * 110)})`;
-      } else if (t < 0.66) {
-        const f = (t - 0.33) / 0.33;
-        return `rgb(${Math.round(229 - f * 5)}, ${Math.round(152 - f * 29)}, 0)`;
-      } else {
-        const f = (t - 0.66) / 0.34;
-        return `rgb(${Math.round(224 - f * 28)}, ${Math.round(123 - f * 67)}, ${Math.round(57 - f * 57)})`;
-      }
+      if (v < 400)       return "#5c9e6e"; // grün  — Erholung
+      if (v < 600)       return "#c9a84c"; // gelb  — moderat
+      if (v < 900)       return "#e07b39"; // orange — hoch
+      return "#c45c5c";                    // rot   — sehr hoch
     };
 
     weeklyData.forEach((d, i) => {
