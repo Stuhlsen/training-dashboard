@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/charts.css">
   <link rel="stylesheet" href="assets/css/table.css">
+  <link rel="stylesheet" href="assets/css/planned.css">
 </head>
 <body>
 <div class="container">
@@ -46,6 +47,7 @@
       <button class="tab-btn active" data-tab="overview">Übersicht</button>
       <button class="tab-btn" data-tab="charts">Charts</button>
       <button class="tab-btn" data-tab="table">Fahrtenbuch</button>
+      <button class="tab-btn" data-tab="planned">Planung</button>
       <button class="tab-btn" data-tab="analysis">Analyse</button>
     </nav>
 
@@ -332,6 +334,11 @@
       </div>
     </section>
 
+    <!-- ── Tab: Planung ──────────────────────────────────────── -->
+    <section id="tab-planned" class="tab-content hidden">
+      <div id="planned-container"></div>
+    </section>
+
     <!-- ── Tab: Analyse ────────────────────────────────────────── -->
     <section id="tab-analysis" class="tab-content hidden">
       <div class="plan-toggle" id="plan-toggle">
@@ -365,6 +372,7 @@
 <script src="assets/js/charts.js"></script>
 <script src="assets/js/overview.js"></script>
 <script src="assets/js/table.js"></script>
+<script src="assets/js/planned.js"></script>
 <script src="assets/js/analysis.js"></script>
 <script src="assets/js/app.js"></script>
 </body>

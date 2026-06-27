@@ -1,0 +1,229 @@
+/* ============================================================
+   PLANNED.CSS — Geplante Fahrten Tab
+   ============================================================ */
+
+/* ── Loading / Empty ─────────────────────────────────────────── */
+.planned-loading,
+.planned-empty {
+  color: var(--dim);
+  font-size: 0.85rem;
+  padding: 40px 0;
+  text-align: center;
+}
+
+/* ── Section Title ───────────────────────────────────────────── */
+.planned-section-title {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  margin: 28px 0 12px;
+}
+.planned-done-title { margin-top: 40px; }
+
+/* ── Woche ───────────────────────────────────────────────────── */
+.planned-week { margin-bottom: 28px; }
+
+.planned-week-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.planned-week-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid;
+  letter-spacing: 0.04em;
+}
+
+.planned-week-phase {
+  font-size: 0.78rem;
+  color: var(--dim);
+}
+
+/* ── Cards Grid ──────────────────────────────────────────────── */
+.planned-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 12px;
+}
+
+/* ── Einzel-Karte ────────────────────────────────────────────── */
+.planned-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-left: 3px solid;
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: background 0.15s;
+}
+.planned-card:hover { background: var(--card-hover); }
+
+/* Header */
+.planned-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.planned-card-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.planned-card-icon { font-size: 1rem; }
+
+.planned-card-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.planned-card-date {
+  font-size: 0.75rem;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.planned-card-days {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.planned-card-km {
+  font-size: 0.7rem;
+  color: var(--dim2);
+}
+
+/* Wetter */
+.planned-weather {
+  font-size: 0.78rem;
+  font-weight: 500;
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* Details (kein Workout) */
+.planned-details {
+  font-size: 0.78rem;
+  color: var(--dim);
+  line-height: 1.5;
+}
+
+/* Workout-Details */
+.planned-workout-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planned-workout-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.planned-workout-blocks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+/* Workout-Blöcke Badges */
+.pwb {
+  font-size: 0.68rem;
+  padding: 2px 7px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  white-space: nowrap;
+}
+.pwb-warmup  { color: var(--dim); }
+.pwb-cooldown { color: var(--dim); }
+.pwb-rest    { color: var(--dim2); border-color: transparent; }
+.pwb-interval {
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.planned-workout-watts {
+  font-size: 0.72rem;
+  color: var(--dim);
+}
+
+/* Push-Button */
+.planned-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.planned-push-btn {
+  font-size: 0.72rem;
+  padding: 4px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.planned-push-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.planned-push-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.planned-push-status {
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* ── Erledigte Sessions (kompakt) ────────────────────────────── */
+.planned-done-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.planned-done-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  opacity: 0.65;
+  font-size: 0.78rem;
+}
+
+.planned-done-icon { font-size: 0.9rem; }
+.planned-done-date { color: var(--dim); min-width: 36px; }
+.planned-done-name { color: var(--text); flex: 1; }
+.planned-done-check { color: var(--green); font-weight: 700; }
+
+.planned-done-more {
+  font-size: 0.72rem;
+  color: var(--dim2);
+  padding: 6px 12px;
+  text-align: center;
+}

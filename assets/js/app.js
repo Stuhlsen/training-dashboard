@@ -82,6 +82,9 @@ function toggleChartGroup(headerEl) {
   // Table
   Table.init();
 
+  // Planung
+  Planned.render(rides);
+
   // Analysis
   Analysis.render(rides);
 

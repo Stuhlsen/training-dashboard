@@ -58,58 +58,68 @@ const PLAN2_SCHEDULE = [
 // Di = Gruppenfahrt, Do = Intervalle (Sweet Spot/Schwelle/VO2max), Sa = Z2 Lang
 // Erholung: Di = Recovery, Do = Z2 Locker, Sa = moderate Z2
 const PLANNED_SESSIONS = {
-  // W0 Übergang
-  "2026-06-23": { name: "Gruppenfahrt W0",         typ: "Gruppenfahrt" },
-  "2026-06-25": { name: "Aktivierung W0",           typ: "Z1 Recovery"  },
-  "2026-06-27": { name: "Z2 Lang W0",              typ: "Z2 Lang"      },
-  // W1 Sweet Spot
-  "2026-06-30": { name: "Gruppenfahrt W1",         typ: "Gruppenfahrt" },
-  "2026-07-02": { name: "SS 3×10 min W1",          typ: "Sweet Spot"   },
-  "2026-07-04": { name: "Z2 Lang W1",              typ: "Z2 Lang"      },
-  // W2 Sweet Spot
-  "2026-07-07": { name: "Gruppenfahrt W2",         typ: "Gruppenfahrt" },
-  "2026-07-09": { name: "SS 3×12 min W2",          typ: "Sweet Spot"   },
-  "2026-07-11": { name: "Z2 Lang W2",              typ: "Z2 Lang"      },
-  // W3 Sweet Spot
-  "2026-07-14": { name: "Gruppenfahrt W3",         typ: "Gruppenfahrt" },
-  "2026-07-16": { name: "SS 2×20 min W3",          typ: "Sweet Spot"   },
-  "2026-07-18": { name: "Z2 Lang W3",              typ: "Z2 Lang"      },
-  // W4 Erholung
-  "2026-07-21": { name: "Recovery Fahrt W4",       typ: "Z1 Recovery"  },
-  "2026-07-23": { name: "Z2 Locker W4",            typ: "Z2 Dauer"     },
-  "2026-07-25": { name: "Z2 Lang W4",              typ: "Z2 Lang"      },
-  // W5 Schwelle
-  "2026-07-28": { name: "Gruppenfahrt W5",         typ: "Gruppenfahrt" },
-  "2026-07-30": { name: "Schwelle 3×8 min W5",     typ: "Schwelle"     },
-  "2026-08-01": { name: "Z2 Lang W5",              typ: "Z2 Lang"      },
-  // W6 Schwelle
-  "2026-08-04": { name: "Gruppenfahrt W6",         typ: "Gruppenfahrt" },
-  "2026-08-06": { name: "Schwelle 3×10 min W6",    typ: "Schwelle"     },
-  "2026-08-08": { name: "Z2 Lang W6",              typ: "Z2 Lang"      },
-  // W7 Schwelle
-  "2026-08-11": { name: "Gruppenfahrt W7",         typ: "Gruppenfahrt" },
-  "2026-08-13": { name: "Schwelle 2×20 min W7",    typ: "Schwelle"     },
-  "2026-08-15": { name: "Z2 Lang W7",              typ: "Z2 Lang"      },
-  // W8 Erholung
-  "2026-08-18": { name: "Recovery Fahrt W8",       typ: "Z1 Recovery"  },
-  "2026-08-20": { name: "Z2 Locker W8",            typ: "Z2 Dauer"     },
-  "2026-08-22": { name: "Z2 Lang W8",              typ: "Z2 Lang"      },
-  // W9 VO2max
-  "2026-08-25": { name: "Gruppenfahrt W9",         typ: "Gruppenfahrt" },
-  "2026-08-27": { name: "VO2max 5×3 min W9",       typ: "VO2max"       },
-  "2026-08-29": { name: "Z2 Lang W9",              typ: "Z2 Lang"      },
-  // W10 VO2max
-  "2026-09-01": { name: "Gruppenfahrt W10",        typ: "Gruppenfahrt" },
-  "2026-09-03": { name: "VO2max 6×3 min W10",      typ: "VO2max"       },
-  "2026-09-05": { name: "Z2 Lang W10",             typ: "Z2 Lang"      },
-  // W11 VO2max
-  "2026-09-08": { name: "Gruppenfahrt W11",        typ: "Gruppenfahrt" },
-  "2026-09-10": { name: "VO2max 4×4 min W11",      typ: "VO2max"       },
-  "2026-09-12": { name: "Z2 Lang W11",             typ: "Z2 Lang"      },
-  // W12 Taper
-  "2026-09-15": { name: "Gruppenfahrt W12",        typ: "Gruppenfahrt" },
-  "2026-09-17": { name: "Aktivierung vor Test W12",typ: "Z1 Recovery"  },
-  "2026-09-19": { name: "FTP Ramp Test W12",       typ: "FTP-Test"     },
+  // ── W0 Übergang ────────────────────────────────────────────────
+  "2026-06-23": { name: "Gruppenfahrt W0",          typ: "Gruppenfahrt", week: "P2-W0", phase: "Übergang",   km: 70,  details: "Gruppenfahrt Di · HF frei · Spaß im Vordergrund" },
+  "2026-06-25": { name: "Aktivierung W0",            typ: "Z1 Recovery",  week: "P2-W0", phase: "Übergang",   km: 30,  details: "Lockere Aktivierungsfahrt · HF <123 bpm" },
+  "2026-06-27": { name: "Z2 Lang W0",               typ: "Z2 Lang",      week: "P2-W0", phase: "Übergang",   km: 70,  details: "Lange Z2 · HF 123–152 bpm · keine Intervalle" },
+  // ── W1 Sweet Spot ───────────────────────────────────────────────
+  "2026-06-30": { name: "Gruppenfahrt W1",          typ: "Gruppenfahrt", week: "P2-W1", phase: "Sweet Spot", km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-07-02": { name: "Sweet Spot 3×10 min",      typ: "Sweet Spot",   week: "P2-W1", phase: "Sweet Spot", km: 55,
+    workout: { warmup: 10, intervals: 3, duration: 10, rest: 3, cooldown: 8, zone: "SS", pct: [84, 97], watts: [162, 187], label: "3×10 min @ SS (84–97% FTP)" } },
+  "2026-07-04": { name: "Z2 Lang W1",               typ: "Z2 Lang",      week: "P2-W1", phase: "Sweet Spot", km: 80,  details: "Lange Z2 · HF 123–152 bpm · ≥3h anstreben" },
+  // ── W2 Sweet Spot ───────────────────────────────────────────────
+  "2026-07-07": { name: "Gruppenfahrt W2",          typ: "Gruppenfahrt", week: "P2-W2", phase: "Sweet Spot", km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-07-09": { name: "Sweet Spot 3×12 min",      typ: "Sweet Spot",   week: "P2-W2", phase: "Sweet Spot", km: 58,
+    workout: { warmup: 10, intervals: 3, duration: 12, rest: 3, cooldown: 8, zone: "SS", pct: [84, 97], watts: [162, 187], label: "3×12 min @ SS (84–97% FTP)" } },
+  "2026-07-11": { name: "Z2 Lang W2",               typ: "Z2 Lang",      week: "P2-W2", phase: "Sweet Spot", km: 85,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W3 Sweet Spot ───────────────────────────────────────────────
+  "2026-07-14": { name: "Gruppenfahrt W3",          typ: "Gruppenfahrt", week: "P2-W3", phase: "Sweet Spot", km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-07-16": { name: "Sweet Spot 2×20 min",      typ: "Sweet Spot",   week: "P2-W3", phase: "Sweet Spot", km: 62,
+    workout: { warmup: 10, intervals: 2, duration: 20, rest: 5, cooldown: 8, zone: "SS", pct: [84, 97], watts: [162, 187], label: "2×20 min @ SS (84–97% FTP)" } },
+  "2026-07-18": { name: "Z2 Lang W3",               typ: "Z2 Lang",      week: "P2-W3", phase: "Sweet Spot", km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W4 Erholung ─────────────────────────────────────────────────
+  "2026-07-21": { name: "Recovery Fahrt W4",        typ: "Z1 Recovery",  week: "P2-W4", phase: "Erholung",   km: 40,  details: "Recovery · HF <123 bpm · sehr locker" },
+  "2026-07-23": { name: "Z2 Locker W4",             typ: "Z2 Dauer",     week: "P2-W4", phase: "Erholung",   km: 50,  details: "Lockere Z2 · HF 123–145 bpm · kein Druck" },
+  "2026-07-25": { name: "Z2 Lang W4",               typ: "Z2 Lang",      week: "P2-W4", phase: "Erholung",   km: 60,  details: "Kurze Z2 Lang · Erholungswoche · −50% Volumen" },
+  // ── W5 Schwelle ─────────────────────────────────────────────────
+  "2026-07-28": { name: "Gruppenfahrt W5",          typ: "Gruppenfahrt", week: "P2-W5", phase: "Schwelle",   km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-07-30": { name: "Schwelle 3×8 min",         typ: "Schwelle",     week: "P2-W5", phase: "Schwelle",   km: 55,
+    workout: { warmup: 10, intervals: 3, duration: 8,  rest: 3, cooldown: 8, zone: "T",  pct: [95, 105], watts: [183, 202], label: "3×8 min @ Schwelle (95–105% FTP)" } },
+  "2026-08-01": { name: "Z2 Lang W5",               typ: "Z2 Lang",      week: "P2-W5", phase: "Schwelle",   km: 85,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W6 Schwelle ─────────────────────────────────────────────────
+  "2026-08-04": { name: "Gruppenfahrt W6",          typ: "Gruppenfahrt", week: "P2-W6", phase: "Schwelle",   km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-08-06": { name: "Schwelle 3×10 min",        typ: "Schwelle",     week: "P2-W6", phase: "Schwelle",   km: 58,
+    workout: { warmup: 10, intervals: 3, duration: 10, rest: 3, cooldown: 8, zone: "T",  pct: [95, 105], watts: [183, 202], label: "3×10 min @ Schwelle (95–105% FTP)" } },
+  "2026-08-08": { name: "Z2 Lang W6",               typ: "Z2 Lang",      week: "P2-W6", phase: "Schwelle",   km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W7 Schwelle ─────────────────────────────────────────────────
+  "2026-08-11": { name: "Gruppenfahrt W7",          typ: "Gruppenfahrt", week: "P2-W7", phase: "Schwelle",   km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-08-13": { name: "Schwelle 2×20 min",        typ: "Schwelle",     week: "P2-W7", phase: "Schwelle",   km: 65,
+    workout: { warmup: 10, intervals: 2, duration: 20, rest: 5, cooldown: 8, zone: "T",  pct: [95, 105], watts: [183, 202], label: "2×20 min @ Schwelle (95–105% FTP)" } },
+  "2026-08-15": { name: "Z2 Lang W7",               typ: "Z2 Lang",      week: "P2-W7", phase: "Schwelle",   km: 95,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W8 Erholung ─────────────────────────────────────────────────
+  "2026-08-18": { name: "Recovery Fahrt W8",        typ: "Z1 Recovery",  week: "P2-W8", phase: "Erholung",   km: 40,  details: "Recovery · HF <123 bpm · sehr locker" },
+  "2026-08-20": { name: "Z2 Locker W8",             typ: "Z2 Dauer",     week: "P2-W8", phase: "Erholung",   km: 50,  details: "Lockere Z2 · Erholungswoche" },
+  "2026-08-22": { name: "Z2 Lang W8",               typ: "Z2 Lang",      week: "P2-W8", phase: "Erholung",   km: 60,  details: "Kurze Z2 Lang · −50% Volumen" },
+  // ── W9 VO2max ───────────────────────────────────────────────────
+  "2026-08-25": { name: "Gruppenfahrt W9",          typ: "Gruppenfahrt", week: "P2-W9", phase: "VO2max",     km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-08-27": { name: "VO₂max 5×3 min",          typ: "VO2max",       week: "P2-W9", phase: "VO2max",     km: 50,
+    workout: { warmup: 10, intervals: 5, duration: 3,  rest: 4, cooldown: 8, zone: "V",  pct: [106, 120], watts: [205, 232], label: "5×3 min @ VO₂max (106–120% FTP)" } },
+  "2026-08-29": { name: "Z2 Lang W9",               typ: "Z2 Lang",      week: "P2-W9", phase: "VO2max",     km: 85,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W10 VO2max ──────────────────────────────────────────────────
+  "2026-09-01": { name: "Gruppenfahrt W10",         typ: "Gruppenfahrt", week: "P2-W10", phase: "VO2max",    km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-09-03": { name: "VO₂max 6×3 min",          typ: "VO2max",       week: "P2-W10", phase: "VO2max",    km: 52,
+    workout: { warmup: 10, intervals: 6, duration: 3,  rest: 4, cooldown: 8, zone: "V",  pct: [106, 120], watts: [205, 232], label: "6×3 min @ VO₂max (106–120% FTP)" } },
+  "2026-09-05": { name: "Z2 Lang W10",              typ: "Z2 Lang",      week: "P2-W10", phase: "VO2max",    km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W11 VO2max ──────────────────────────────────────────────────
+  "2026-09-08": { name: "Gruppenfahrt W11",         typ: "Gruppenfahrt", week: "P2-W11", phase: "VO2max",    km: 70,  details: "Gruppenfahrt Di · HF frei" },
+  "2026-09-10": { name: "VO₂max 4×4 min",          typ: "VO2max",       week: "P2-W11", phase: "VO2max",    km: 52,
+    workout: { warmup: 10, intervals: 4, duration: 4,  rest: 4, cooldown: 8, zone: "V",  pct: [106, 120], watts: [205, 232], label: "4×4 min @ VO₂max (106–120% FTP)" } },
+  "2026-09-12": { name: "Z2 Lang W11",              typ: "Z2 Lang",      week: "P2-W11", phase: "VO2max",    km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
+  // ── W12 Taper ───────────────────────────────────────────────────
+  "2026-09-15": { name: "Gruppenfahrt W12",         typ: "Gruppenfahrt", week: "P2-W12", phase: "Taper",     km: 60,  details: "Letzte Gruppenfahrt · locker bleiben" },
+  "2026-09-17": { name: "Aktivierung vor Test",     typ: "Z1 Recovery",  week: "P2-W12", phase: "Taper",     km: 30,  details: "Kurze Aktivierung · Beine locker halten vor Ramp Test" },
+  "2026-09-19": { name: "FTP Ramp Test",            typ: "FTP-Test",     week: "P2-W12", phase: "Taper",     km: 25,
+    workout: { warmup: 10, intervals: null, duration: null, rest: null, cooldown: 5, zone: "RAMP", pct: null, watts: null, label: "FTP Ramp Test · alle 1 min +20W bis zum Abbruch" } },
 };
 
 function getPlan2WeekPhase(dateStr) {
@@ -510,6 +520,7 @@ async function main() {
     wellness: wellnessList,
     powerCurves: powerCurves || null,
     athleteWeight,
+    plannedSessions: Object.entries(PLANNED_SESSIONS).map(([date, s]) => ({ date, ...s })),
     plans,
     updated: new Date().toISOString(),
     source: INTERVALS_KEY ? "notion+intervals" : "notion",

@@ -10,6 +10,7 @@ const Data = {
   wellness: [],
   powerCurves: null,
   athleteWeight: null,
+  plannedSessions: [],
 
   /* ── Laden ──────────────────────────────────────────────────── */
   async load() {
@@ -26,6 +27,7 @@ const Data = {
         }));
         this.powerCurves = json.powerCurves || null;
         this.athleteWeight = json.athleteWeight || null;
+        this.plannedSessions = json.plannedSessions || [];
         return { ok: true, source: "json", updated: json.updated };
       }
       throw new Error("Keine Daten in JSON-Datei");
@@ -35,6 +37,7 @@ const Data = {
       this.wellness = [];
       this.powerCurves = null;
       this.athleteWeight = null;
+      this.plannedSessions = [];
       return { ok: true, source: "static", warning: err.message };
     }
   },
