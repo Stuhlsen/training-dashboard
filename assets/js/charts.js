@@ -1042,28 +1042,33 @@ const Charts = {
     const STANDARD_SECS = [1, 5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600];
     const LABELS = ["1s", "5s", "10s", "30s", "1min", "2min", "5min", "10min", "20min", "30min", "60min"];
 
-    // Power-Curve Datenpunkte extrahieren
-    // intervals.icu Format: Array von { secs, watts } oder { secs: [], watts: [] }
+    // intervals.icu Format: { list: [{ id, label, secs: [...], watts: [...] }] }
+    // Wir nehmen den ersten Eintrag (längster Zeitraum = "1 year" oder ähnlich)
+    let secsArr, wattsArr;
     let curveData = [];
-    if (Array.isArray(powerCurves)) {
-      // Format: [{secs: 1, watts: 800}, ...]
-      const map = {};
-      for (const p of powerCurves) map[p.secs] = p.watts;
-      curveData = STANDARD_SECS.map((s, i) => ({
-        secs: s, watts: map[s] || null, label: LABELS[i]
-      })).filter(d => d.watts);
+    if (powerCurves.list && Array.isArray(powerCurves.list) && powerCurves.list.length > 0) {
+      // Eintrag mit den meisten Daten nehmen (längster Zeitraum)
+      const best = powerCurves.list[0];
+      secsArr = best.secs || [];
+      wattsArr = best.watts || [];
     } else if (powerCurves.secs && powerCurves.watts) {
-      // Format: { secs: [...], watts: [...] }
-      const map = {};
-      for (let i = 0; i < powerCurves.secs.length; i++) {
-        map[powerCurves.secs[i]] = powerCurves.watts[i];
-      }
-      curveData = STANDARD_SECS.map((s, i) => ({
-        secs: s,
-        watts: map[s] || this._nearestWatts(map, s),
-        label: LABELS[i]
-      })).filter(d => d.watts);
+      secsArr = powerCurves.secs;
+      wattsArr = powerCurves.watts;
+    } else {
+      secsArr = []; wattsArr = [];
     }
+
+    // Lookup-Map aufbauen: Sekunde → Watt
+    const wattsMap = {};
+    for (let i = 0; i < secsArr.length; i++) {
+      if (wattsArr[i] != null && wattsArr[i] > 0) wattsMap[secsArr[i]] = wattsArr[i];
+    }
+
+    curveData = STANDARD_SECS.map((s, i) => ({
+      secs: s,
+      watts: this._nearestWatts(wattsMap, s),
+      label: LABELS[i],
+    })).filter(d => d.watts && d.watts > 0);
 
     if (!curveData.length) {
       const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
