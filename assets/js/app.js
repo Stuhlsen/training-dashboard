@@ -7,22 +7,17 @@ function initTabs() {
   const btns = document.querySelectorAll(".tab-btn");
   const validTabs = Array.from(btns).map(b => b.dataset.tab);
 
-  function activateTab(tabId) {
+  window._activateTab = function(tabId) {
     if (!validTabs.includes(tabId)) tabId = validTabs[0];
     btns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
     document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
     el("tab-" + tabId).classList.remove("hidden");
-    // Hash setzen ohne Scroll-Sprung
     history.replaceState(null, "", "#" + tabId);
-  }
+  };
 
   btns.forEach(btn => {
-    btn.addEventListener("click", () => activateTab(btn.dataset.tab));
+    btn.addEventListener("click", () => window._activateTab(btn.dataset.tab));
   });
-
-  // Beim Laden: Hash aus URL lesen
-  const hash = location.hash.replace("#", "");
-  activateTab(hash || validTabs[0]);
 }
 
 // Chart Group Toggle (inside Charts tab)
@@ -94,4 +89,8 @@ function toggleChartGroup(headerEl) {
   el("footer").innerHTML = `
     <p>Daten: ${rides.length} Fahrten · Quelle: Notion + intervals.icu · Aktualisiert ${new Date().toLocaleDateString("de")}</p>
   `;
+
+  // Tab aus URL-Hash aktivieren — NACH allem Rendering damit nichts überschrieben wird
+  const hash = location.hash.replace("#", "");
+  window._activateTab(hash || "overview");
 })();
