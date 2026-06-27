@@ -1085,30 +1085,37 @@ const Charts = {
     const xScale = (i) => pad.l + (i / (curveData.length - 1)) * cw;
     const yScale = (w) => pad.t + ch - ((w - minW) / (maxW - minW)) * ch;
 
-    // Zonen-Hintergründe — Labels LINKS im Chart
+    // Zonen-Hintergründe — stärkere Farben + Labels rechts
     if (ftp) {
       const zones = [
-        { pct: 0.55, color: "#6b6158", label: "Z1" },
-        { pct: 0.75, color: "#4a7fa8", label: "Z2" },
-        { pct: 0.87, color: "#5c9e6e", label: "Z3" },
-        { pct: 0.95, color: "#c9a84c", label: "SS" },
-        { pct: 1.05, color: "#e07b39", label: "Z4" },
-        { pct: 1.20, color: "#c45c5c", label: "Z5" },
+        { pct: 0.55, color: "#6b6158", label: "Z1 · Aktive Erholung" },
+        { pct: 0.75, color: "#4a7fa8", label: "Z2 · Grundlage" },
+        { pct: 0.87, color: "#5c9e6e", label: "Z3 · Tempo" },
+        { pct: 0.95, color: "#c9a84c", label: "Sweet Spot" },
+        { pct: 1.05, color: "#e07b39", label: "Z4 · Schwelle" },
+        { pct: 1.20, color: "#c45c5c", label: "Z5 · VO2max" },
       ];
       let prevY = pad.t + ch;
       for (const z of zones) {
         const zY = yScale(ftp * z.pct);
         if (zY < pad.t) break;
         const bandH = prevY - zY;
+        // Farbige horizontale Linie an Zonengrenze
+        svg.appendChild(svgEl("line", {
+          x1: pad.l, y1: zY, x2: W - pad.r, y2: zY,
+          stroke: z.color, "stroke-width": "0.5", opacity: "0.3",
+        }));
+        // Zone-Band
         svg.appendChild(svgEl("rect", {
           x: pad.l, y: zY, width: cw, height: bandH,
-          fill: z.color, opacity: "0.06",
+          fill: z.color, opacity: "0.08",
         }));
-        // Label nur wenn Band hoch genug ist
-        if (bandH > 14) {
+        // Label in der Mitte des Bands, wenn genug Platz
+        if (bandH > 16) {
+          const midY = zY + bandH / 2 + 4;
           const zt = svgEl("text", {
-            x: pad.l + 6, y: zY + bandH / 2 + 4,
-            fill: z.color, "font-size": "8", opacity: "0.6",
+            x: pad.l + 10, y: midY,
+            fill: z.color, "font-size": "9", opacity: "0.85", "font-weight": "500",
           });
           zt.textContent = z.label;
           svg.appendChild(zt);
@@ -1159,9 +1166,10 @@ const Charts = {
       points: curveData.map((d, i) => `${xScale(i)},${yScale(d.watts)}`).join(" "),
     }));
 
-    // Punkte — Watt-Labels nur per Tooltip, nicht inline
+    // Punkte + Watt-Labels abwechselnd oben/unten
     curveData.forEach((d, i) => {
       const x = xScale(i), y = yScale(d.watts);
+      const above = i % 2 === 0; // abwechselnd oben/unten
 
       const c = svgEl("circle", { cx: x, cy: y, r: "4", fill: "#e07b39", stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
@@ -1172,6 +1180,15 @@ const Charts = {
       `));
       c.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(c);
+
+      // Watt-Label
+      const labelY = above ? y - 10 : y + 18;
+      const wl = svgEl("text", {
+        x, y: labelY, "text-anchor": "middle",
+        fill: "#e07b39", "font-size": "9", "font-weight": "600", opacity: "0.9",
+      });
+      wl.textContent = Math.round(d.watts) + "W";
+      svg.appendChild(wl);
 
       // X-Label (Zeitintervall)
       const xl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
