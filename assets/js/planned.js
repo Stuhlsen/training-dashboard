@@ -213,7 +213,7 @@ const Planned = {
     const weeksLeft = new Set(sessions.map(s => s.week)).size;
 
     // Hero + Fortschrittsanzeige
-    html += `
+    let html = `
       <div class="planned-hero">
         <div class="planned-hero-text">
           <h2 class="planned-hero-title">Trainingsplan Plan 2</h2>
@@ -251,8 +251,6 @@ const Planned = {
       if (!weekMap[s.week]) weekMap[s.week] = [];
       weekMap[s.week].push(s);
     }
-
-    let html = "";
 
     // Anstehende Sessions
     if (sessions.length) {
