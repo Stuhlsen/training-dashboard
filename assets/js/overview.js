@@ -202,61 +202,72 @@ const Overview = {
       svg.appendChild(t);
     });
 
+    // Kurze Labels pro Meilenstein — Details im Tooltip
+    const SHORT_LABELS = {
+      "2026-03-31": "Start",
+      "2026-05-12": "Criterium",
+      "2026-06-05": "100 km",
+      "2026-06-12": "FTP 193W",
+      "2026-06-17": "PB 200W NP",
+      "2026-06-19": "138 km",
+      "2026-06-29": "Plan 2 ▶",
+    };
+
     // Option B: Ebenen-Zuweisung mit Mindestabstand
-    // 3 Ebenen: 0 = oberste, 1 = mitte, 2 = unterste (direkt über Zeitlinie)
     const LEVELS = 3;
     const LEVEL_Y = [
-      timelineY - 100, // Ebene 0: oben
-      timelineY - 60,  // Ebene 1: mitte
-      timelineY - 24,  // Ebene 2: unten
+      timelineY - 100,
+      timelineY - 62,
+      timelineY - 26,
     ];
-    const MIN_DIST = 70; // px Mindestabstand zwischen Labels auf gleicher Ebene
+    const MIN_DIST = 72;
     const lastX = new Array(LEVELS).fill(-999);
 
     milestones.forEach((m) => {
       const x = xOf(m.dateISO);
+      // Farbe basiert auf Hintergrundbereich, nicht nur Datum
       const isPlan2 = m.dateISO >= "2026-06-22";
       const color = isPlan2 ? "#e07b39" : "#4a7fa8";
 
       // Freie Ebene finden
-      let level = 0;
+      let level = -1;
       for (let l = 0; l < LEVELS; l++) {
         if (x - lastX[l] >= MIN_DIST) { level = l; break; }
-        if (l === LEVELS - 1) level = 0; // Fallback
       }
+      if (level === -1) level = 0;
       lastX[level] = x;
       const labelY = LEVEL_Y[level];
 
-      // Verbindungslinie (gepunktet, von Label zur Zeitlinie)
+      // Verbindungslinie
       svg.appendChild(svgEl("line", {
-        x1: x, y1: labelY + 22,
-        x2: x, y2: timelineY - 5,
+        x1: x, y1: labelY + 20,
+        x2: x, y2: timelineY - 6,
         stroke: color, "stroke-width": "1",
-        "stroke-dasharray": "2,2", opacity: "0.45",
+        "stroke-dasharray": "2,2", opacity: "0.4",
       }));
 
-      // Pfeilspitze (zeigt ZUR Zeitlinie hin = nach unten)
+      // Pfeilspitze zur Zeitlinie
       svg.appendChild(svgEl("polygon", {
-        points: `${x},${timelineY - 4} ${x - 3},${timelineY - 10} ${x + 3},${timelineY - 10}`,
-        fill: color, opacity: "0.65",
+        points: `${x},${timelineY - 3} ${x - 3},${timelineY - 9} ${x + 3},${timelineY - 9}`,
+        fill: color, opacity: "0.7",
       }));
 
       // Icon
       const icon = svgEl("text", {
         x, y: labelY,
-        "text-anchor": "middle", "font-size": "15",
+        "text-anchor": "middle", "font-size": "14",
       });
       icon.textContent = m.icon;
       svg.appendChild(icon);
 
-      // Kurztext
-      const shortText = m.text.length > 20 ? m.text.slice(0, 19) + "…" : m.text;
+      // Kurzlabel
+      const shortLabel = SHORT_LABELS[m.dateISO] || m.text.slice(0, 10);
       const lbl = svgEl("text", {
         x, y: labelY + 12,
         "text-anchor": "middle", fill: color,
         "font-size": "8", "font-weight": "600",
       });
-      lbl.textContent = shortText;
+      lbl.textContent = shortLabel;
       svg.appendChild(lbl);
 
       // Datum
@@ -267,9 +278,9 @@ const Overview = {
       dlbl.textContent = m.date.slice(0, 5);
       svg.appendChild(dlbl);
 
-      // Unsichtbarer Hit-Bereich für Tooltip
+      // Hit-Area für Tooltip
       const hit = svgEl("rect", {
-        x: x - 38, y: labelY - 18,
+        x: x - 38, y: labelY - 16,
         width: 76, height: 44,
         fill: "transparent",
       });
