@@ -505,17 +505,7 @@ const Planned = {
         workoutHtml += `<div class="ptl-seg ptl-cooldown" style="width:${pctOf(w.cooldown)}%" title="Cool-down ${w.cooldown} min">CD</div>`;
         workoutHtml += `</div>`;
         workoutHtml += `<div class="planned-timeline-legend">
-          <div class="ptl-grid">
-            <span class="ptl-g-label">⬆ Warm-up</span>
-            <span class="ptl-g-val">${w.warmup} min</span>
-            <span class="ptl-g-label" style="color:${col}">● Intervall</span>
-            <span class="ptl-g-val" style="color:${col}">${w.duration} min × ${w.intervals}</span>
-            <span class="ptl-g-label">○ Pause</span>
-            <span class="ptl-g-val">${w.rest} min</span>
-            <span class="ptl-g-label">⬇ Cool-down</span>
-            <span class="ptl-g-val">${w.cooldown} min</span>
-          </div>
-          <div class="ptl-total">Gesamt: <strong>${totalMin} min</strong></div>
+          <span class="ptl-summary">${w.warmup} min Warm-up → ${w.intervals}× ${w.duration} min @ ${w.pct[0]}–${w.pct[1]}% (Pause: ${w.rest} min) → ${w.cooldown} min Cool-down · <strong>${totalMin} min gesamt</strong></span>
         </div>`;
       }
 

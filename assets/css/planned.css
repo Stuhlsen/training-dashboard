@@ -114,40 +114,18 @@
 /* ptl-interval bekommt Farbe inline */
 
 .planned-timeline-legend {
-  display: flex;
-  align-items: flex-end;
-  gap: 12px;
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
-.ptl-grid {
-  display: grid;
-  grid-template-columns: auto auto auto auto;
-  gap: 3px 14px;
-  flex: 1;
-}
-
-.ptl-g-label {
-  font-size: 0.7rem;
-  color: var(--dim);
-}
-
-.ptl-g-val {
-  font-size: 0.7rem;
-  font-weight: 600;
-  color: var(--text);
-}
-
-.ptl-total {
+.ptl-summary {
   font-size: 0.72rem;
   color: var(--dim);
-  white-space: nowrap;
-  flex-shrink: 0;
+  line-height: 1.5;
 }
 
-.ptl-total strong {
+.ptl-summary strong {
   color: var(--text);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ── Loading / Empty ─────────────────────────────────────────── */
