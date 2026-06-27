@@ -190,13 +190,19 @@ const Charts = {
 
     this._gridLines(svg, W, H, pad, maxV);
 
-    // Warm color interpolation based on relative TRIMP
+    // Grün → Gelb → Orange → Rot basierend auf relativem TRIMP
     const _trimpColor = (v) => {
       const t = Math.min(v / maxTrimp, 1);
-      const r = Math.round(140 + t * 84);  // 140→224
-      const g = Math.round(106 + t * 17);  // 106→123
-      const b = Math.round(74 - t * 17);   // 74→57
-      return `rgb(${r},${g},${b})`;
+      if (t < 0.33) {
+        const f = t / 0.33;
+        return `rgb(${Math.round(92 + f * 137)}, ${Math.round(168 - f * 16)}, ${Math.round(110 - f * 110)})`;
+      } else if (t < 0.66) {
+        const f = (t - 0.33) / 0.33;
+        return `rgb(${Math.round(229 - f * 5)}, ${Math.round(152 - f * 29)}, 0)`;
+      } else {
+        const f = (t - 0.66) / 0.34;
+        return `rgb(${Math.round(224 - f * 28)}, ${Math.round(123 - f * 67)}, ${Math.round(57 - f * 57)})`;
+      }
     };
 
     weeklyData.forEach((d, i) => {
@@ -365,16 +371,33 @@ const Charts = {
     const maxCount = Math.max(...counts) || 1;
     const W = 780, H = 110, cellW = 80, cellH = 64, startX = (W - 7 * cellW) / 2;
 
+    // Grün → Gelb → Orange → Rot basierend auf Intensität
+    const _heatColor = (t) => {
+      if (t < 0.33) {
+        // Grün → Gelb
+        const f = t / 0.33;
+        return `rgb(${Math.round(92 + f * 137)}, ${Math.round(168 - f * 16)}, ${Math.round(110 - f * 110)})`;
+      } else if (t < 0.66) {
+        // Gelb → Orange
+        const f = (t - 0.33) / 0.33;
+        return `rgb(${Math.round(229 - f * 5)}, ${Math.round(152 - f * 29)}, ${Math.round(0 + f * 0)})`;
+      } else {
+        // Orange → Rot
+        const f = (t - 0.66) / 0.34;
+        return `rgb(${Math.round(224 - f * 28)}, ${Math.round(123 - f * 67)}, ${Math.round(57 - f * 57)})`;
+      }
+    };
+
     days.forEach((day, i) => {
       const x = startX + i * cellW;
       const intensity = counts[i] / maxCount;
-      const color = `rgba(224, 123, 57, ${0.1 + intensity * 0.85})`;
+      const color = _heatColor(intensity);
       const isMax = counts[i] === maxCount;
 
       const rect = svgEl("rect", {
         x: x + 4, y: 20, width: cellW - 8, height: cellH,
         rx: "8", fill: color,
-        stroke: isMax ? "#e07b39" : "#2e2923",
+        stroke: isMax ? "#c45c5c" : "#2e2923",
         "stroke-width": isMax ? "1.5" : "1",
       });
       rect.addEventListener("mouseenter", e => Tooltip.show(e, `
@@ -389,7 +412,7 @@ const Charts = {
       const lbl = svgEl("text", {
         x: x + cellW / 2, y: 14,
         "text-anchor": "middle",
-        fill: isMax ? "#e07b39" : "#9a8f84",
+        fill: isMax ? "#c45c5c" : "#9a8f84",
         "font-size": "11",
         "font-weight": isMax ? "700" : "500",
         "letter-spacing": "0.05em",
