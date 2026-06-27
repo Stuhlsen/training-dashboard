@@ -133,8 +133,8 @@ const Overview = {
     const timelineY = H - pad.b;
     const cw = W - pad.l - pad.r;
 
-    // Zeitachse: März bis Mitte Juli — genau die Meilensteine
-    const startDate = new Date("2026-03-24");
+    // Zeitachse: Vorbereitung bis Plan 2 Start
+    const startDate = new Date("2026-03-17");
     const endDate   = new Date("2026-07-13");
     const totalMs   = endDate - startDate;
 
@@ -143,11 +143,12 @@ const Overview = {
       return pad.l + (ms / totalMs) * cw;
     };
 
-    // Phasen inkl. Übergangswoche
+    // Phasen inkl. Vorbereitung und Übergangswoche
     const phases = [
-      { label: "Plan 1",      start: "2026-03-24", end: "2026-06-21", color: "#4a7fa8" },
-      { label: "Übergang",    start: "2026-06-22", end: "2026-06-28", color: "#c9a84c" },
-      { label: "Plan 2 →",   start: "2026-06-29", end: "2026-07-13", color: "#e07b39" },
+      { label: "Vorbereitung", start: "2026-03-17", end: "2026-03-30", color: "#c9a84c" },
+      { label: "Plan 1",       start: "2026-03-31", end: "2026-06-21", color: "#4a7fa8" },
+      { label: "Übergang",     start: "2026-06-22", end: "2026-06-28", color: "#c9a84c" },
+      { label: "Plan 2 →",    start: "2026-06-29", end: "2026-07-13", color: "#e07b39" },
     ];
 
     phases.forEach(ph => {
@@ -199,13 +200,11 @@ const Overview = {
 
     // Kurze Labels
     const SHORT_LABELS = {
-      "2026-03-31": "Start",
       "2026-05-12": "Criterium",
       "2026-06-05": "100 km",
       "2026-06-12": "FTP 193W",
       "2026-06-17": "PB 200W NP",
       "2026-06-19": "138 km",
-      "2026-06-29": "Plan 2 ▶",
     };
 
     // Ebenen-System
