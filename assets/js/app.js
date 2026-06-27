@@ -5,14 +5,24 @@
 // Tab Navigation
 function initTabs() {
   const btns = document.querySelectorAll(".tab-btn");
+  const validTabs = Array.from(btns).map(b => b.dataset.tab);
+
+  function activateTab(tabId) {
+    if (!validTabs.includes(tabId)) tabId = validTabs[0];
+    btns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
+    document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
+    el("tab-" + tabId).classList.remove("hidden");
+    // Hash setzen ohne Scroll-Sprung
+    history.replaceState(null, "", "#" + tabId);
+  }
+
   btns.forEach(btn => {
-    btn.addEventListener("click", () => {
-      btns.forEach(b => b.classList.remove("active"));
-      btn.classList.add("active");
-      document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
-      el("tab-" + btn.dataset.tab).classList.remove("hidden");
-    });
+    btn.addEventListener("click", () => activateTab(btn.dataset.tab));
   });
+
+  // Beim Laden: Hash aus URL lesen
+  const hash = location.hash.replace("#", "");
+  activateTab(hash || validTabs[0]);
 }
 
 // Chart Group Toggle (inside Charts tab)
@@ -51,10 +61,7 @@ function toggleChartGroup(headerEl) {
   // Charts — Fitness & Belastung
   Charts.renderPMC("chart-pmc", rides);
   Charts.renderWeeklyVolume("chart-weekly", weekly, (week) => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelector('[data-tab="table"]').classList.add("active");
-    document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
-    el("tab-table").classList.remove("hidden");
+    document.querySelector('[data-tab="table"]').click();
     Table.filterByWeek(week);
   });
   Charts.renderTrimp("chart-trimp", weekly);
