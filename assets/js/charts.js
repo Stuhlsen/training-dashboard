@@ -1255,120 +1255,176 @@ const Charts = {
     });
   },
 
-  /* ── Temperatur vs. Herzfrequenz (Wettereinfluss) ─────────────── */
-  renderWeatherImpact(svgId, rides) {
-    const data = rides.filter(r => r.weather?.temp != null && r.hf != null && r.hf > 0)
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
-
-    if (data.length < 3) {
-      const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
-      t.textContent = "Noch nicht genug Wetterdaten — mindestens 3 Fahrten benötigt";
+  /* ── Wöchentliche Wetterbedingungen (Temp-Balken + Wind-Linie) ── */
+  renderWeatherWeekly(svgId, rides) {
+    // Nur Fahrten mit Wetterdaten, nach Woche gruppieren
+    const withWeather = rides.filter(r => r.weather?.temp != null);
+    if (!withWeather.length) {
+      const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+      const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+      t.textContent = "Noch keine Wetterdaten verfügbar";
       svg.appendChild(t);
       return;
     }
 
-    const W = 780, H = 300, pad = { l: 50, r: 16, t: 20, b: 44 };
+    // Wochenweise aggregieren
+    const weekMap = {};
+    for (const r of withWeather) {
+      const wk = r.week || "?";
+      if (!weekMap[wk]) weekMap[wk] = { week: wk, temps: [], winds: [], precips: [], rides: [] };
+      weekMap[wk].temps.push(r.weather.temp);
+      weekMap[wk].winds.push(r.weather.windSpeed);
+      weekMap[wk].precips.push(r.weather.precip || 0);
+      weekMap[wk].rides.push(r);
+    }
+
+    // Wochen in Trainingsreihenfolge sortieren
+    const weeks = Object.values(weekMap).sort((a, b) =>
+      CONFIG.weekIndex(a.week) - CONFIG.weekIndex(b.week)
+    );
+
+    const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
+    const data = weeks.map(w => ({
+      week: w.week,
+      temp: Math.round(mean(w.temps) * 10) / 10,
+      wind: Math.round(mean(w.winds) * 10) / 10,
+      precip: Math.round(w.precips.reduce((a, b) => a + b, 0) * 10) / 10,
+      rides: w.rides,
+    }));
+
+    const PPW = 52; // Pixel pro Woche
+    const W = Math.max(780, data.length * PPW + 80);
+    const H = 240, pad = { l: 50, r: 50, t: 20, b: 40 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
 
-    const temps = data.map(d => d.weather.temp);
-    const hrs = data.map(d => d.hf);
-    const minT = Math.floor(Math.min(...temps) / 5) * 5;
-    const maxT = Math.ceil(Math.max(...temps) / 5) * 5;
-    const minH = Math.floor(Math.min(...hrs) / 5) * 5 - 5;
-    const maxH = Math.ceil(Math.max(...hrs) / 5) * 5 + 5;
+    const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    svg.style.minWidth = W + "px";
 
-    const xScale = (t) => pad.l + ((t - minT) / (maxT - minT)) * cw;
-    const yScale = (h) => pad.t + ch - ((h - minH) / (maxH - minH)) * ch;
+    const temps = data.map(d => d.temp);
+    const winds = data.map(d => d.wind);
+    const maxT = Math.max(...temps, 25);
+    const minT = Math.min(Math.min(...temps) - 3, 0);
+    const maxW = Math.max(...winds, 30) * 1.15;
 
-    // Grid X (Temperatur)
-    for (let t = minT; t <= maxT; t += 5) {
-      const x = xScale(t);
-      svg.appendChild(svgEl("line", { x1: x, y1: pad.t, x2: x, y2: pad.t + ch, stroke: "#2e2923", "stroke-width": "1" }));
-      const lbl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+    const xMid  = (i) => pad.l + (i + 0.5) * (cw / data.length);
+    const yTemp = (t) => pad.t + ch - ((t - minT) / (maxT - minT)) * ch;
+    const yWind = (w) => pad.t + ch - (w / maxW) * ch;
+    const barW  = Math.max(10, (cw / data.length) - 6);
+
+    // Ampel-Farbe: grün/gelb/rot nach Bedingung
+    const condColor = (d) => {
+      const hot   = d.temp > 28;
+      const cold  = d.temp < 5;
+      const windy = d.wind > 30;
+      const rainy = d.precip > 0.5;
+      const bad = (hot ? 1 : 0) + (cold ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
+      if (bad >= 2 || hot || windy && rainy) return "#c45c5c";   // rot
+      if (bad === 1) return "#c9a84c";                           // gelb
+      return "#5c9e6e";                                          // grün
+    };
+
+    // Grid Y Temp (links)
+    const tStep = Math.ceil((maxT - minT) / 5 / 5) * 5;
+    for (let t = Math.ceil(minT / 5) * 5; t <= maxT; t += tStep) {
+      const y = yTemp(t);
+      svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#2e2923", "stroke-width": "1" }));
+      const lbl = svgEl("text", { x: pad.l - 5, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
       lbl.textContent = t + "°C";
       svg.appendChild(lbl);
     }
 
-    // Grid Y (HF)
-    const hStep = Math.ceil((maxH - minH) / 6 / 5) * 5;
-    for (let h = minH; h <= maxH; h += hStep) {
-      const y = yScale(h);
-      svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#2e2923", "stroke-width": "1" }));
-      const lbl = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
-      lbl.textContent = h;
+    // Grid Y Wind (rechts) — leicht transparent
+    const wStep = 10;
+    for (let w = 0; w <= maxW; w += wStep) {
+      const y = yWind(w);
+      if (y < pad.t) break;
+      const lbl = svgEl("text", { x: W - pad.r + 5, y: y + 4, "text-anchor": "start", fill: "#4a7fa8", "font-size": "9" });
+      lbl.textContent = w + " km/h";
       svg.appendChild(lbl);
     }
 
-    // Achsenbeschriftungen
-    const xLbl = svgEl("text", { x: pad.l + cw / 2, y: H - 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10" });
-    xLbl.textContent = "Temperatur (°C)";
-    svg.appendChild(xLbl);
-    const yLbl = svgEl("text", { x: 12, y: pad.t + ch / 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10", transform: `rotate(-90,12,${pad.t + ch / 2})` });
-    yLbl.textContent = "Ø HF (bpm)";
-    svg.appendChild(yLbl);
-
-    // Trendlinie (lineare Regression)
-    const n = data.length;
-    const sumX = temps.reduce((a, b) => a + b, 0);
-    const sumY = hrs.reduce((a, b) => a + b, 0);
-    const sumXY = temps.reduce((a, t, i) => a + t * hrs[i], 0);
-    const sumX2 = temps.reduce((a, t) => a + t * t, 0);
-    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
-    const intercept = (sumY - slope * sumX) / n;
-
-    if (isFinite(slope) && isFinite(intercept)) {
-      const trendY1 = slope * minT + intercept;
-      const trendY2 = slope * maxT + intercept;
-      svg.appendChild(svgEl("line", {
-        x1: xScale(minT), y1: yScale(trendY1),
-        x2: xScale(maxT), y2: yScale(trendY2),
-        stroke: "#c45c5c", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
-      }));
-
-      // Steigung anzeigen
-      const slopeBpm = slope.toFixed(2);
-      const trendNote = svgEl("text", {
-        x: W - pad.r - 4, y: pad.t + 14,
-        "text-anchor": "end", fill: "#c45c5c", "font-size": "9", "font-weight": "600",
-      });
-      trendNote.textContent = `${slope > 0 ? "+" : ""}${slopeBpm} bpm/°C`;
-      svg.appendChild(trendNote);
+    // 0°C-Linie wenn sichtbar
+    if (minT < 0 && maxT > 0) {
+      const y0 = yTemp(0);
+      svg.appendChild(svgEl("line", { x1: pad.l, y1: y0, x2: W - pad.r, y2: y0, stroke: "#4a7fa8", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.4" }));
     }
 
-    // Farben nach Typ
-    const typeColors = {
-      "Z2 Dauer": "#4a7fa8", "Z1 Recovery": "#5c9e6e",
-      "Sweet Spot": "#e07b39", "Schwelle": "#d94f4f", "VO2max": "#b83dba",
-      "Gruppenfahrt": "#c9a84c", "Tempo": "#c9a84c",
-    };
+    // Balken (Temperatur)
+    data.forEach((d, i) => {
+      const x = xMid(i) - barW / 2;
+      const y = yTemp(Math.max(d.temp, minT));
+      const bh = Math.abs(yTemp(minT) - y);
+      const col = condColor(d);
 
-    // Datenpunkte
-    data.forEach(d => {
-      const x = xScale(d.weather.temp);
-      const y = yScale(d.hf);
-      const color = typeColors[d.typ] || "#6b6158";
-      const r = Math.max(4, Math.min(8, (d.min || 60) / 30));
-
-      svg.appendChild(svgEl("circle", {
-        cx: x, cy: y, r: r.toFixed(1),
-        fill: color, opacity: "0.7",
-        stroke: "#141210", "stroke-width": "1",
+      svg.appendChild(svgEl("rect", {
+        x, y, width: barW, height: Math.max(2, bh),
+        fill: col, opacity: "0.75", rx: "2",
       }));
 
-      // Tooltip
-      const hit = svgEl("circle", { cx: x, cy: y, r: "10", fill: "transparent" });
+      // Regen-Markierung oben auf Balken
+      if (d.precip > 0.5) {
+        const rain = svgEl("text", { x: xMid(i), y: y - 3, "text-anchor": "middle", "font-size": "8" });
+        rain.textContent = "🌧";
+        svg.appendChild(rain);
+      }
+
+      // Temp-Label im Balken
+      if (bh > 16) {
+        const tl = svgEl("text", { x: xMid(i), y: y + bh / 2 + 4, "text-anchor": "middle", fill: "#141210", "font-size": "8", "font-weight": "600" });
+        tl.textContent = d.temp + "°";
+        svg.appendChild(tl);
+      }
+
+      // X-Label (Woche)
+      const xl = svgEl("text", { x: xMid(i), y: H - pad.b + 14, "text-anchor": "middle", fill: "#6b6158", "font-size": "8" });
+      xl.textContent = d.week.replace("P2-", "");
+      svg.appendChild(xl);
+
+      // Unsichtbare Hit-Fläche für Tooltip
+      const hit = svgEl("rect", { x: xMid(i) - barW / 2 - 2, y: pad.t, width: barW + 4, height: ch, fill: "transparent" });
       hit.style.cursor = "pointer";
-      const w = d.weather;
+      const icons = [
+        d.temp < 5 ? "🥶" : d.temp > 28 ? "🔥" : "🌡️",
+        d.precip > 0.5 ? `🌧️ ${d.precip}mm` : "",
+        d.wind > 30 ? `💨 ${d.wind} km/h` : `🌬️ ${d.wind} km/h`,
+      ].filter(Boolean).join(" · ");
+      const condLabel = condColor(d) === "#5c9e6e" ? "✅ Gute Bedingungen" : condColor(d) === "#c9a84c" ? "⚠️ Suboptimal" : "❌ Schwierige Bedingungen";
       hit.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${d.dateShort} · ${d.name || d.typ}</div>
-        <div class="tv">${weatherIcon(w.weatherCode)} ${w.temp}°C (gefühlt ${w.tempFeel}°C)</div>
-        <div class="td">Ø HF ${Math.round(d.hf)} bpm · ${d.watt ? d.watt + "W" : ""} · ${d.min} min</div>
-        <div class="td">${Math.round(w.windSpeed)} km/h Wind ${windDir(w.windDir)} · ${w.humidity}% Luftfeuchtigkeit</div>
+        <div class="tt">${d.week} · ${d.rides.length} Fahrt${d.rides.length > 1 ? "en" : ""}</div>
+        <div class="tv">${icons}</div>
+        <div class="td">${condLabel}</div>
       `));
       hit.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(hit);
     });
+
+    // Wind-Linie (blau, zweite Y-Achse)
+    const windPoints = data.map((d, i) => `${xMid(i)},${yWind(d.wind)}`).join(" ");
+    svg.appendChild(svgEl("polyline", {
+      fill: "none", stroke: "#4a7fa8", "stroke-width": "2",
+      "stroke-linejoin": "round", "stroke-linecap": "round",
+      points: windPoints, opacity: "0.85",
+    }));
+
+    // Wind-Punkte
+    data.forEach((d, i) => {
+      svg.appendChild(svgEl("circle", {
+        cx: xMid(i), cy: yWind(d.wind), r: "3",
+        fill: "#4a7fa8", stroke: "#141210", "stroke-width": "1",
+      }));
+    });
+
+    // Plan-Divider wenn Plan 1 + Plan 2
+    const p2Start = data.findIndex(d => d.week.startsWith("P2-"));
+    if (p2Start > 0) {
+      const dx = pad.l + p2Start * (cw / data.length);
+      svg.appendChild(svgEl("line", { x1: dx, y1: pad.t, x2: dx, y2: pad.t + ch, stroke: "#e07b39", "stroke-width": "1.5", "stroke-dasharray": "4,3", opacity: "0.5" }));
+      const dl = svgEl("text", { x: dx + 4, y: pad.t + 10, fill: "#e07b39", "font-size": "8", "font-weight": "600" });
+      dl.textContent = "Plan 2 →";
+      svg.appendChild(dl);
+    }
   },
 
   // Nächsten verfügbaren Watt-Wert für eine Sekunden-Anzahl finden

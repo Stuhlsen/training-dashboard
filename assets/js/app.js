@@ -72,7 +72,7 @@ function toggleChartGroup(headerEl) {
   Charts.renderPlanCompareRHF(rides);
 
   // Charts — Wetterbedingungen
-  Charts.renderWeatherImpact("chart-weather-impact", rides);
+  Charts.renderWeatherWeekly("chart-weather-weekly", rides);
 
   // Charts — Aktivität
   Charts.renderHeatmap("chart-heatmap", rides);

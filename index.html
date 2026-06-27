@@ -281,19 +281,19 @@
         <div class="chart-group-body">
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title">Temperatur vs. Herzfrequenz — Wettereinfluss</span>
-              <span class="chart-note">Höhere Temperatur → höhere HF bei gleicher Leistung</span>
+              <span class="chart-title">Trainingswetter — Temperatur & Wind pro Woche</span>
+              <span class="chart-note">Ø über alle Fahrten der Woche · Open-Meteo Senftenberg</span>
             </div>
-            <svg class="chart" id="chart-weather-impact" viewBox="0 0 780 300"></svg>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-weather-weekly" viewBox="0 0 780 240"></svg>
+            </div>
             <div class="chart-legend">
-              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Z2 Dauer</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Gruppenfahrt</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#e07b39"></div> Sweet Spot</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> Schwelle</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#b83dba"></div> VO₂max</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Trendlinie</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> Gute Bedingungen (5–28°C · Wind &lt;30 km/h · kein Regen)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Suboptimal (ein erschwerender Faktor)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> Schwierig (Hitze, Sturm oder Regen kombiniert)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Wind (km/h, rechte Achse)</div>
             </div>
-            <p class="chart-explainer">Jeder Punkt ist eine Fahrt — X-Achse zeigt die Außentemperatur (Open-Meteo), Y-Achse die durchschnittliche Herzfrequenz. Bei Hitze steigt die HF bei gleicher Leistung (Cardiac Drift). Die rote Trendlinie zeigt den Zusammenhang: ein positiver Wert (z.B. +0.5 bpm/°C) bedeutet, dass pro Grad mehr die HF um 0.5 bpm steigt. Punkt-Größe = Fahrtdauer, Farbe = Trainingstyp.</p>
+            <p class="chart-explainer">Jeder Balken zeigt die Durchschnittstemperatur der Trainingswoche. Die Farbe bewertet die Gesamtbedingungen: grün = angenehm zum Fahren, gelb = ein Faktor erschwert das Training (z.B. zu kalt oder windig), rot = mehrere Faktoren gleichzeitig oder Extrembedingungen. Die blaue Linie zeigt den Durchschnittswind. 🌧 über einem Balken bedeutet messbarer Niederschlag in dieser Woche.</p>
           </div>
         </div>
       </div>

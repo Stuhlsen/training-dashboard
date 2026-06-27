@@ -236,9 +236,19 @@ const Table = {
           <td>${fmtInt(r.trimp)}</td>
           <td>${r.ctl != null ? fmt(r.ctl) : "–"}</td>
           ${feelCell}
-          <td class="col-weather">${r.weather
-            ? `<span class="weather-cell" title="${r.weather.temp}°C (gefühlt ${r.weather.tempFeel}°C) · ${r.weather.windSpeed} km/h ${windDir(r.weather.windDir)} · ${r.weather.humidity}% Luftfeuchtigkeit${r.weather.precip > 0 ? " · " + r.weather.precip + " mm Niederschlag" : ""}">${weatherIcon(r.weather.weatherCode)} ${r.weather.temp}° · ${Math.round(r.weather.windSpeed)} km/h</span>`
-            : (r.wetter || "–")}</td>
+          <td class="col-weather">${r.weather ? (() => {
+            const w = r.weather;
+            const hot   = w.temp > 28;
+            const cold  = w.temp < 5;
+            const windy = w.wind > 30 || w.windSpeed > 30;
+            const rainy = (w.precip || 0) > 0.5;
+            const bad = (hot?1:0)+(cold?1:0)+((w.windSpeed||w.wind||0)>30?1:0)+(rainy?1:0);
+            const col = (bad >= 2 || hot || (windy && rainy)) ? "var(--red)"
+                      : bad === 1 ? "var(--gold)"
+                      : "var(--green)";
+            const wind = Math.round(w.windSpeed || 0);
+            return `<span class="weather-cell" style="color:${col}" title="${w.temp}°C (gefühlt ${w.tempFeel}°C) · ${wind} km/h ${windDir(w.windDir)} · ${w.humidity}% Luftfeuchtigkeit${(w.precip||0) > 0 ? " · " + w.precip + "mm Regen" : ""}">${weatherIcon(w.weatherCode)} ${w.temp}°C · ${wind} km/h</span>`;
+          })() : (r.wetter || "–")}</td>
         </tr>`;
     }).join("");
 
