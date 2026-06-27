@@ -4,7 +4,79 @@
    - Abgleich mit tatsächlichen Fahrten (erledigt/ausstehend)
    - Wetter-Forecast via Open-Meteo (bis 16 Tage voraus)
    - Push strukturierter Workouts zu intervals.icu
+   - Session-Verschiebung via adjustments.json
    ============================================================ */
+
+// === Adjustments GitHub-Sync ===
+const Adjustments = {
+  _data: null,
+  _token: null,
+
+  async load() {
+    try {
+      const res = await fetch("data/adjustments.json?_=" + Date.now());
+      this._data = res.ok ? await res.json() : {};
+    } catch { this._data = {}; }
+    this._data = { ...(Data.adjustments || {}), ...this._data };
+    return this._data;
+  },
+
+  get(date) { return this._data?.[date] || null; },
+
+  getToken() {
+    if (!this._token) this._token = localStorage.getItem("gh_token");
+    return this._token;
+  },
+
+  promptToken() {
+    const t = prompt("GitHub Personal Access Token eingeben:");
+    if (t) { this._token = t; localStorage.setItem("gh_token", t); }
+    return t;
+  },
+
+  async save(origDate, movedTo, reason) {
+    if (!this._data) this._data = {};
+    this._data[origDate] = { movedTo, reason: reason || "", savedAt: new Date().toISOString() };
+    return await this._write(`plan: ${origDate} → ${movedTo}${reason ? " (" + reason + ")" : ""}`);
+  },
+
+  async remove(origDate) {
+    if (!this._data?.[origDate]) return true;
+    delete this._data[origDate];
+    return await this._write(`plan: Verschiebung ${origDate} rückgängig`);
+  },
+
+  async _write(message) {
+    let token = this.getToken();
+    if (!token) token = this.promptToken();
+    if (!token) return false;
+    try {
+      const infoRes = await fetch(
+        "https://api.github.com/repos/Stuhlsen/training-dashboard/contents/data/adjustments.json",
+        { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
+      );
+      const info = await infoRes.json();
+      const content = btoa(unescape(encodeURIComponent(JSON.stringify(this._data, null, 2))));
+      const putRes = await fetch(
+        "https://api.github.com/repos/Stuhlsen/training-dashboard/contents/data/adjustments.json",
+        {
+          method: "PUT",
+          headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json", "Content-Type": "application/json" },
+          body: JSON.stringify({ message, content, sha: info.sha }),
+        }
+      );
+      if (!putRes.ok) {
+        const err = await putRes.json();
+        if (err.message?.includes("Bad credentials")) {
+          localStorage.removeItem("gh_token"); this._token = null;
+          alert("Token ungültig. Bitte neu eingeben.");
+        }
+        return false;
+      }
+      return true;
+    } catch (e) { console.error("Adjustments Write Fehler:", e); return false; }
+  },
+};
 
 const Planned = {
 
@@ -187,20 +259,32 @@ const Planned = {
 
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
 
-    // Bereits absolvierte Daten: Set aus tatsächlichen Datumswerten
+    // Adjustments + Forecast parallel laden
+    const [forecast] = await Promise.all([
+      this._loadForecast(),
+      Adjustments.load(),
+    ]);
+
+    // Bereits absolvierte Daten
     const doneDates = new Set(rides.map(r => r.date));
     const today = new Date().toISOString().split("T")[0];
 
-    // Forecast laden
-    const forecast = await this._loadForecast();
+    // Sessions mit Adjustments anwenden
+    const allSessions = Data.plannedSessions.map(s => {
+      const adj = Adjustments.get(s.date);
+      if (adj?.movedTo) {
+        return { ...s, originalDate: s.date, date: adj.movedTo, movedReason: adj.reason };
+      }
+      return s;
+    });
 
     // Sessions filtern: nur zukünftige oder heutige, nicht absolvierte
-    const sessions = Data.plannedSessions
+    const sessions = allSessions
       .filter(s => s.date >= today && !doneDates.has(s.date))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Bereits absolvierte Sessions (für "Erledigt"-Anzeige)
-    const doneSessions = Data.plannedSessions
+    // Bereits absolvierte Sessions
+    const doneSessions = allSessions
       .filter(s => doneDates.has(s.date))
       .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -297,6 +381,16 @@ const Planned = {
     // Push-Buttons verdrahten
     container.querySelectorAll(".planned-push-btn").forEach(btn => {
       btn.addEventListener("click", () => this._handlePush(btn));
+    });
+
+    // Verschieben-Buttons verdrahten
+    container.querySelectorAll(".planned-move-btn").forEach(btn => {
+      btn.addEventListener("click", () => this._handleMove(btn));
+    });
+
+    // Verschiebung rückgängig
+    container.querySelectorAll(".planned-undo-btn").forEach(btn => {
+      btn.addEventListener("click", () => this._handleUndo(btn));
     });
   },
 
@@ -480,16 +574,80 @@ const Planned = {
             ${s.km ? `<span class="planned-card-km">${s.workout ? "~" + s.km + " km Ausfahrt" : "~" + s.km + " km"}</span>` : ""}
           </div>
         </div>
+        ${s.originalDate ? `
+          <div class="planned-moved-badge">
+            📅 Verschoben von ${this._fmtDate(s.originalDate)}
+            ${s.movedReason ? `· ${s.movedReason}` : ""}
+            <button class="planned-undo-btn" data-orig="${s.originalDate}">↩ Rückgängig</button>
+          </div>` : ""}
         ${weatherHtml}
         ${workoutHtml}
-        ${hasWorkout ? `
-          <div class="planned-card-actions">
-            <button class="planned-push-btn" data-date="${s.date}" data-name="${s.name}">
-              📤 Workout zu intervals.icu pushen
-            </button>
-            <span class="planned-push-status" id="push-status-${s.date}"></span>
-          </div>` : ""}
+        <div class="planned-card-actions">
+          ${hasWorkout ? `<button class="planned-push-btn" data-date="${s.originalDate || s.date}" data-name="${s.name}">📤 Workout zu intervals.icu pushen</button>` : ""}
+          <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}">📅 Verschieben</button>
+          <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
+        </div>
       </div>`;
+  },
+
+  /* ── Verschieben-Handler ───────────────────────────────────── */
+  async _handleMove(btn) {
+    const origDate = btn.dataset.orig;
+    const currentDate = btn.dataset.current;
+
+    // Inline-Formular einblenden
+    const card = btn.closest(".planned-card");
+    if (card.querySelector(".planned-move-form")) return;
+
+    const form = document.createElement("div");
+    form.className = "planned-move-form";
+    form.innerHTML = `
+      <div class="planned-move-form-inner">
+        <label class="planned-move-label">Neues Datum</label>
+        <input type="date" class="planned-move-date" value="${currentDate}" min="${new Date().toISOString().split('T')[0]}">
+        <label class="planned-move-label">Grund (optional)</label>
+        <input type="text" class="planned-move-reason" placeholder="z.B. Hitze, Regen, Erschöpfung…" maxlength="60">
+        <div class="planned-move-actions">
+          <button class="planned-move-confirm">✓ Speichern</button>
+          <button class="planned-move-cancel">✕ Abbrechen</button>
+        </div>
+        <div class="planned-move-status"></div>
+      </div>`;
+
+    btn.insertAdjacentElement("afterend", form);
+
+    form.querySelector(".planned-move-cancel").addEventListener("click", () => form.remove());
+
+    form.querySelector(".planned-move-confirm").addEventListener("click", async () => {
+      const newDate = form.querySelector(".planned-move-date").value;
+      const reason = form.querySelector(".planned-move-reason").value.trim();
+      const statusEl = form.querySelector(".planned-move-status");
+
+      if (!newDate || newDate === origDate) { form.remove(); return; }
+
+      statusEl.textContent = "⏳ Speichern…";
+      const ok = await Adjustments.save(origDate, newDate, reason);
+      if (ok) {
+        statusEl.textContent = "✅ Gespeichert";
+        setTimeout(() => Planned.render(Data.byDate()), 800);
+      } else {
+        statusEl.textContent = "❌ Fehler beim Speichern";
+      }
+    });
+  },
+
+  /* ── Rückgängig-Handler ────────────────────────────────────── */
+  async _handleUndo(btn) {
+    const origDate = btn.dataset.orig;
+    btn.textContent = "⏳…";
+    btn.disabled = true;
+    const ok = await Adjustments.remove(origDate);
+    if (ok) {
+      Planned.render(Data.byDate());
+    } else {
+      btn.textContent = "❌ Fehler";
+      btn.disabled = false;
+    }
   },
 
   /* ── Push-Handler ──────────────────────────────────────────── */

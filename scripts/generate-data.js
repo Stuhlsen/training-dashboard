@@ -31,6 +31,7 @@ const INTERVALS_KEY = process.env.INTERVALS_API_KEY || "";
 const INTERVALS_ATHLETE = process.env.INTERVALS_ATHLETE_ID || "";
 const OUT_FILE = path.join(__dirname, "..", "data", "rides.json");
 const SUBJECTIVE_FILE = path.join(__dirname, "..", "data", "subjective.json");
+const ADJUSTMENTS_FILE = path.join(__dirname, "..", "data", "adjustments.json");
 
 if (!NOTION_KEY || !DB_ID) {
   console.error("❌ NOTION_API_KEY oder NOTION_DATABASE_ID nicht gesetzt.");
@@ -172,6 +173,18 @@ function loadSubjective() {
     }
   } catch (e) {
     console.warn("⚠️  subjective.json nicht lesbar:", e.message);
+  }
+  return {};
+}
+
+// === adjustments.json laden ===
+function loadAdjustments() {
+  try {
+    if (fs.existsSync(ADJUSTMENTS_FILE)) {
+      return JSON.parse(fs.readFileSync(ADJUSTMENTS_FILE, "utf-8"));
+    }
+  } catch (e) {
+    console.warn("⚠️  adjustments.json nicht lesbar:", e.message);
   }
   return {};
 }
@@ -488,7 +501,9 @@ async function main() {
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
     powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
     const subjective = loadSubjective();
+    const adjustments = loadAdjustments();
     console.log(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
+    console.log(`📋 adjustments.json: ${Object.keys(adjustments).length} Anpassungen`);
 
     plan2 = activities.map(act => mapActivity(act, wellness, subjective, weatherMap));
     console.log(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
@@ -560,6 +575,7 @@ async function main() {
     powerCurves: powerCurves || null,
     athleteWeight,
     plannedSessions: Object.entries(PLANNED_SESSIONS).map(([date, s]) => ({ date, ...s })),
+    adjustments: loadAdjustments(),
     plans,
     updated: new Date().toISOString(),
     source: INTERVALS_KEY ? "notion+intervals" : "notion",

@@ -379,6 +379,54 @@
   color: var(--dim);
 }
 
+/* ── Verschieben-Badge ───────────────────────────────────────── */
+.planned-moved-badge {
+  font-size: 0.72rem;
+  color: var(--gold);
+  background: #c9a84c15;
+  border: 1px solid #c9a84c33;
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.planned-undo-btn {
+  font-size: 0.68rem;
+  padding: 2px 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  cursor: pointer;
+  margin-left: auto;
+}
+.planned-undo-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Verschieben-Formular ────────────────────────────────────── */
+.planned-move-form { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; }
+.planned-move-form-inner { display: flex; flex-direction: column; gap: 6px; }
+.planned-move-label { font-size: 0.68rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.04em; }
+.planned-move-date, .planned-move-reason {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-sm);
+  color: var(--text); font-size: 0.78rem; padding: 5px 8px; font-family: inherit;
+  width: 100%; box-sizing: border-box;
+}
+.planned-move-date:focus, .planned-move-reason:focus { outline: none; border-color: var(--accent); }
+.planned-move-actions { display: flex; gap: 8px; margin-top: 2px; }
+.planned-move-confirm {
+  padding: 4px 14px; background: var(--accent-dim); border: 1px solid var(--accent);
+  border-radius: var(--radius-sm); color: var(--accent); font-size: 0.75rem; font-weight: 600; cursor: pointer;
+}
+.planned-move-confirm:hover { background: var(--accent); color: #141210; }
+.planned-move-cancel {
+  padding: 4px 10px; background: transparent; border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--dim); font-size: 0.75rem; cursor: pointer;
+}
+.planned-move-cancel:hover { border-color: var(--red); color: var(--red); }
+.planned-move-status { font-size: 0.72rem; font-weight: 600; min-height: 16px; }
+
 /* Push-Button */
 .planned-card-actions {
   display: flex;
@@ -403,6 +451,18 @@
   color: var(--accent);
 }
 .planned-push-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.planned-move-btn {
+  font-size: 0.72rem;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.planned-move-btn:hover { border-color: var(--gold); color: var(--gold); }
 
 .planned-push-status {
   font-size: 0.72rem;
