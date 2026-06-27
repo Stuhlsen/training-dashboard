@@ -66,7 +66,7 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion nötig. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip (Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Bewölkung, Niederschlag). Legende für Befinden und Wetter unterhalb der Tabelle. Tab-Position bleibt beim Reload erhalten (URL-Hash).
 
 ### Tab: Planung
-Alle geplanten Trainingseinheiten bis W12 auf einen Blick. Sessions werden automatisch als "erledigt" markiert sobald eine Fahrt mit passendem Datum in intervals.icu erfasst wird. Wetter-Forecast via Open-Meteo (bis 16 Tage voraus) zeigt Bedingungen für kommende Sessions. Strukturierte Intervall-Workouts (Sweet Spot / Schwelle / VO₂max) können per Knopfdruck zu intervals.icu gepusht werden — von dort landen sie automatisch auf dem Wahoo ELEMNT Roam.
+Alle geplanten Trainingseinheiten bis W12 auf einen Blick. Sessions werden automatisch als "erledigt" markiert sobald eine Fahrt mit passendem Datum in intervals.icu erfasst wird. Wetter-Forecast via Open-Meteo (bis 16 Tage voraus) zeigt Bedingungen für kommende Sessions. Strukturierte Intervall-Workouts (Sweet Spot / Schwelle / VO₂max) können per Knopfdruck zu intervals.icu gepusht werden — von dort landen sie automatisch auf dem Wahoo ELEMNT Roam. Sessions können per "📅 Verschieben"-Button auf ein neues Datum gelegt werden (mit optionalem Grund), oder per "❌ Ausgefallen" aus dem Plan entfernt werden. Alle Anpassungen werden in `data/adjustments.json` gespeichert und überleben jeden Sync und Deploy.
 
 ### Tab: Analyse
 Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stärken & Entwicklungsfelder.
@@ -90,6 +90,7 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 | Wetter (historisch) | Notion (manuell) | Open-Meteo Archive API (Senftenberg, stündlich, automatisch) |
 | Wetter (Forecast) | — | Open-Meteo Forecast API (bis 16 Tage, für Planungs-Tab) |
 | Geplante Sessions | — | `PLANNED_SESSIONS` in `generate-data.js` → `data/rides.json` |
+| Plan-Anpassungen (Verschiebung, Ausfall) | — | `data/adjustments.json` (via Dashboard, GitHub API) |
 
 **Typ-Inferenz Plan 2:** Fahrten ohne Trainingsplan-Match bekommen ihren Typ automatisch aus NP ÷ FTP berechnet (Intensity Factor). Priorität: `subjective.json` > Trainingsplan-Datum-Mapping > IF-Berechnung.
 
@@ -157,16 +158,18 @@ Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` ist lok
 ```powershell
 # Einmalig einrichten
 git update-index --skip-worktree data/subjective.json
+git update-index --skip-worktree data/adjustments.json
 git config --global alias.sync "!git fetch origin && git push --force-with-lease origin main"
 
 # Danach immer nur noch
 git sync
 ```
 
-Falls `subjective.json` bewusst lokal bearbeitet werden soll:
+Falls eine der Dateien bewusst lokal bearbeitet werden soll:
 
 ```powershell
 git update-index --no-skip-worktree data/subjective.json
+git update-index --no-skip-worktree data/adjustments.json
 ```
 
 ---
