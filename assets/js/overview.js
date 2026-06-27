@@ -128,13 +128,14 @@ const Overview = {
     const milestones = [...CONFIG.manualMilestones]
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-    const W = 780, H = 200;
-    const pad = { l: 12, r: 16, t: 12, b: 46 };
+    const W = 780, H = 215;
+    const pad = { l: 24, r: 24, t: 12, b: 46 };
     const timelineY = H - pad.b;
     const cw = W - pad.l - pad.r;
 
-    const startDate = new Date("2026-03-24");
-    const endDate   = new Date("2026-09-20");
+    // Zeitachse nur von erstem bis letztem Meilenstein + Puffer
+    const startDate = new Date("2026-03-17");
+    const endDate   = new Date("2026-07-20");
     const totalMs   = endDate - startDate;
 
     const xOf = (dateStr) => {
@@ -144,9 +145,9 @@ const Overview = {
 
     // Phasen-Hintergründe
     const phases = [
-      { label: "Vorbereitung", start: "2026-03-24", end: "2026-03-30", color: "#c9a84c" },
+      { label: "Vorbereitung", start: "2026-03-17", end: "2026-03-30", color: "#c9a84c" },
       { label: "Plan 1",       start: "2026-03-31", end: "2026-06-21", color: "#4a7fa8" },
-      { label: "Plan 2",       start: "2026-06-22", end: "2026-09-20", color: "#e07b39" },
+      { label: "Plan 2 →",    start: "2026-06-22", end: "2026-07-20", color: "#e07b39" },
     ];
 
     phases.forEach(ph => {
@@ -187,8 +188,8 @@ const Overview = {
 
     // Monats-Ticks
     [
-      ["2026-04-01","Apr"],["2026-05-01","Mai"],["2026-06-01","Jun"],
-      ["2026-07-01","Jul"],["2026-08-01","Aug"],["2026-09-01","Sep"],
+      ["2026-03-01","Mär"],["2026-04-01","Apr"],["2026-05-01","Mai"],
+      ["2026-06-01","Jun"],["2026-07-01","Jul"],
     ].forEach(([d, l]) => {
       const x = xOf(d);
       svg.appendChild(svgEl("line", {
