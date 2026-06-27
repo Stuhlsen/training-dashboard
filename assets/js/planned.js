@@ -409,15 +409,7 @@ const Planned = {
           <div class="planned-z2-block">
             <div class="planned-z2-row">
               <span class="planned-z2-label">❤️ Ziel-HF</span>
-              <div class="planned-z2-hrbar-wrap">
-                <div class="planned-z2-hrbar-bg">
-                  <div class="planned-z2-hrzone" style="left:${z2Start}%; width:${z2Width}%"></div>
-                </div>
-                <div class="planned-z2-hrlabels">
-                  <span>0</span><span>${hrMin}</span><span style="margin-left:auto">${hrMax}</span><span>${hrAbsMax}</span>
-                </div>
-              </div>
-              <span class="planned-z2-val">123–152 bpm</span>
+              <span class="planned-z2-pill">Z2 Aerobic · 123–152 bpm</span>
             </div>
             <div class="planned-z2-row">
               <span class="planned-z2-label">📍 Distanz</span>
