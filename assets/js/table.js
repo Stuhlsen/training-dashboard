@@ -246,6 +246,9 @@ const Table = {
             const col = (bad >= 2 || hot || (windy && rainy)) ? "var(--red)"
                       : bad === 1 ? "var(--gold)"
                       : "var(--green)";
+            const condLabel = (bad >= 2 || hot || (windy && rainy)) ? "❌ Schwierige Bedingungen"
+                      : bad === 1 ? "⚠️ Suboptimal"
+                      : "✅ Gute Bedingungen";
             const wind = Math.round(w.windSpeed || 0);
             return `<span class="weather-cell" style="color:${col}"
               data-wtemp="${w.temp}" data-wfeel="${w.tempFeel}" data-wwind="${wind}"
