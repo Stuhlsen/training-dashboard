@@ -214,6 +214,16 @@ async function intervalsGet(endpoint) {
   return res.json();
 }
 
+async function getIntervalsPowerCurves(oldest, newest) {
+  console.log(`🔄 intervals.icu Power Curves (${oldest} bis ${newest})...`);
+  const data = await intervalsGet(
+    `/athlete/${INTERVALS_ATHLETE}/power-curves?oldest=${oldest}&newest=${newest}&type=Ride`
+  );
+  if (!data) return null;
+  console.log(`   ... Power Curve geladen`);
+  return data;
+}
+
 async function getIntervalsActivities(oldest, newest) {
   console.log(`🔄 intervals.icu Activities (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
@@ -323,6 +333,7 @@ async function main() {
     const PLAN1_START = "2026-03-24";
     const activities = await getIntervalsActivities(oldest, newest);
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
+    const powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
     const subjective = loadSubjective();
     console.log(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
 
@@ -362,6 +373,7 @@ async function main() {
   const output = {
     rides,
     wellness: wellnessList,
+    powerCurves: powerCurves || null,
     plans,
     updated: new Date().toISOString(),
     source: INTERVALS_KEY ? "notion+intervals" : "notion",

@@ -8,6 +8,7 @@ const Data = {
 
   rides: [],
   wellness: [],
+  powerCurves: null,
 
   /* ── Laden ──────────────────────────────────────────────────── */
   async load() {
@@ -22,6 +23,7 @@ const Data = {
           dateShort: fmtDate(w.date),
           dateISO: w.date,
         }));
+        this.powerCurves = json.powerCurves || null;
         return { ok: true, source: "json", updated: json.updated };
       }
       throw new Error("Keine Daten in JSON-Datei");
@@ -29,6 +31,7 @@ const Data = {
       console.warn("JSON nicht verfügbar, nutze eingebettete Daten:", err.message);
       this.rides = STATIC_RIDES.map(r => this._normalize(r));
       this.wellness = [];
+      this.powerCurves = null;
       return { ok: true, source: "static", warning: err.message };
     }
   },

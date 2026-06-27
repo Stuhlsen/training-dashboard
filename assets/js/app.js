@@ -60,6 +60,7 @@ function toggleChartGroup(headerEl) {
   Charts.renderTrimp("chart-trimp", weekly);
 
   // Charts — Leistung
+  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, 193);
   Charts.renderEfficiency("chart-efficiency", rides);
   Charts.renderScatter("chart-scatter", rides);
   Charts.renderSmallMultiples(rides);

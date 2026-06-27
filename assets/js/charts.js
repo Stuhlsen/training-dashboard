@@ -1023,4 +1023,159 @@ const Charts = {
       requestAnimationFrame(() => { scrollContainer.scrollLeft = scrollContainer.scrollWidth; });
     }
   },
+
+  /* ── Power Curve ─────────────────────────────────────────────── */
+  renderPowerCurve(svgId, powerCurves, ftp) {
+    const svg = el(svgId);
+    if (!svg) return;
+    svg.innerHTML = "";
+
+    if (!powerCurves) {
+      const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+      t.textContent = "Power-Curve-Daten werden beim nächsten Sync geladen";
+      svg.appendChild(t);
+      return;
+    }
+
+    // intervals.icu gibt { secs: [...], watts: [...] } zurück
+    // Wir wollen nur die Standard-Zeitpunkte
+    const STANDARD_SECS = [1, 5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600];
+    const LABELS = ["1s", "5s", "10s", "30s", "1min", "2min", "5min", "10min", "20min", "30min", "60min"];
+
+    // Power-Curve Datenpunkte extrahieren
+    // intervals.icu Format: Array von { secs, watts } oder { secs: [], watts: [] }
+    let curveData = [];
+    if (Array.isArray(powerCurves)) {
+      // Format: [{secs: 1, watts: 800}, ...]
+      const map = {};
+      for (const p of powerCurves) map[p.secs] = p.watts;
+      curveData = STANDARD_SECS.map((s, i) => ({
+        secs: s, watts: map[s] || null, label: LABELS[i]
+      })).filter(d => d.watts);
+    } else if (powerCurves.secs && powerCurves.watts) {
+      // Format: { secs: [...], watts: [...] }
+      const map = {};
+      for (let i = 0; i < powerCurves.secs.length; i++) {
+        map[powerCurves.secs[i]] = powerCurves.watts[i];
+      }
+      curveData = STANDARD_SECS.map((s, i) => ({
+        secs: s,
+        watts: map[s] || this._nearestWatts(map, s),
+        label: LABELS[i]
+      })).filter(d => d.watts);
+    }
+
+    if (!curveData.length) {
+      const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+      t.textContent = "Noch keine Power-Curve-Daten verfügbar";
+      svg.appendChild(t);
+      return;
+    }
+
+    const W = 780, H = 260, pad = { l: 56, r: 80, t: 20, b: 44 };
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+    const maxW = Math.max(...curveData.map(d => d.watts)) * 1.1;
+    const minW = 0;
+    const xScale = (i) => pad.l + (i / (curveData.length - 1)) * cw;
+    const yScale = (w) => pad.t + ch - ((w - minW) / (maxW - minW)) * ch;
+
+    // Zonen-Hintergründe (basierend auf % FTP)
+    if (ftp) {
+      const zones = [
+        { pct: 0.55, color: "#6b6158", label: "Z1" },
+        { pct: 0.75, color: "#4a7fa8", label: "Z2" },
+        { pct: 0.87, color: "#5c9e6e", label: "Z3" },
+        { pct: 0.95, color: "#c9a84c", label: "SS" },
+        { pct: 1.05, color: "#e07b39", label: "Z4" },
+        { pct: 1.20, color: "#c45c5c", label: "Z5" },
+      ];
+      let prevY = pad.t + ch;
+      for (const z of zones) {
+        const zY = yScale(ftp * z.pct);
+        if (zY < pad.t) break;
+        svg.appendChild(svgEl("rect", {
+          x: pad.l, y: zY, width: cw, height: prevY - zY,
+          fill: z.color, opacity: "0.05",
+        }));
+        const zt = svgEl("text", { x: W - pad.r + 6, y: zY + (prevY - zY) / 2 + 4, fill: z.color, "font-size": "8", opacity: "0.7" });
+        zt.textContent = z.label;
+        svg.appendChild(zt);
+        prevY = zY;
+      }
+    }
+
+    // Grid-Linien Y
+    const wStep = Math.ceil(maxW / 5 / 50) * 50;
+    for (let w = 0; w <= maxW; w += wStep) {
+      const y = yScale(w);
+      if (y < pad.t) break;
+      svg.appendChild(svgEl("line", {
+        x1: pad.l, y1: y, x2: W - pad.r, y2: y,
+        stroke: "#2e2923", "stroke-width": "1",
+      }));
+      const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
+      t.textContent = w + "W";
+      svg.appendChild(t);
+    }
+
+    // FTP-Referenzlinie
+    if (ftp) {
+      const ftpY = yScale(ftp);
+      svg.appendChild(svgEl("line", {
+        x1: pad.l, y1: ftpY, x2: W - pad.r, y2: ftpY,
+        stroke: "#c9a84c", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+      }));
+      const ft = svgEl("text", { x: W - pad.r + 6, y: ftpY + 4, fill: "#c9a84c", "font-size": "9", "font-weight": "600" });
+      ft.textContent = `FTP ${ftp}W`;
+      svg.appendChild(ft);
+    }
+
+    // Area fill unter der Kurve
+    const areaPath = `M${xScale(0)},${pad.t + ch} ` +
+      curveData.map((d, i) => `L${xScale(i)},${yScale(d.watts)}`).join(" ") +
+      ` L${xScale(curveData.length - 1)},${pad.t + ch} Z`;
+    svg.appendChild(svgEl("path", { d: areaPath, fill: "#e07b39", opacity: "0.08" }));
+
+    // Kurve
+    svg.appendChild(svgEl("polyline", {
+      fill: "none", stroke: "#e07b39", "stroke-width": "2.5",
+      "stroke-linejoin": "round",
+      points: curveData.map((d, i) => `${xScale(i)},${yScale(d.watts)}`).join(" "),
+    }));
+
+    // Punkte + Labels
+    curveData.forEach((d, i) => {
+      const x = xScale(i), y = yScale(d.watts);
+      const wPerKg = d.watts / 75; // Näherung, könnte aus Profil kommen
+
+      const c = svgEl("circle", { cx: x, cy: y, r: "4", fill: "#e07b39", stroke: "#141210", "stroke-width": "1.5" });
+      c.style.cursor = "pointer";
+      c.addEventListener("mouseenter", e => Tooltip.show(e, `
+        <div class="tt">${d.label}</div>
+        <div class="tv">${Math.round(d.watts)} W</div>
+        <div class="td">${(d.watts / (ftp || 193)).toFixed(2)}× FTP</div>
+      `));
+      c.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(c);
+
+      // X-Label
+      const xl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+      xl.textContent = d.label;
+      svg.appendChild(xl);
+
+      // Watt-Label über Punkt
+      const wl = svgEl("text", { x, y: y - 8, "text-anchor": "middle", fill: "#e07b39", "font-size": "9", "font-weight": "600" });
+      wl.textContent = Math.round(d.watts) + "W";
+      svg.appendChild(wl);
+    });
+  },
+
+  // Nächsten verfügbaren Watt-Wert für eine Sekunden-Anzahl finden
+  _nearestWatts(map, targetSecs) {
+    const keys = Object.keys(map).map(Number).sort((a, b) => a - b);
+    const nearest = keys.reduce((prev, curr) =>
+      Math.abs(curr - targetSecs) < Math.abs(prev - targetSecs) ? curr : prev, keys[0]);
+    return nearest ? map[nearest] : null;
+  },
 };
