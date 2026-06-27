@@ -2,6 +2,135 @@
    PLANNED.CSS — Geplante Fahrten Tab
    ============================================================ */
 
+/* ── Hero + Fortschritt ──────────────────────────────────────── */
+.planned-hero {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px 24px;
+  margin-bottom: 8px;
+}
+
+.planned-hero-text { flex: 1; }
+
+.planned-hero-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 6px;
+}
+
+.planned-hero-desc {
+  font-size: 0.78rem;
+  color: var(--dim);
+  line-height: 1.6;
+  margin: 0;
+  max-width: 520px;
+}
+
+.planned-progress {
+  flex-shrink: 0;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.planned-progress-stats {
+  display: flex;
+  gap: 20px;
+}
+
+.planned-progress-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.planned-progress-val {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1;
+}
+
+.planned-progress-lbl {
+  font-size: 0.65rem;
+  color: var(--dim2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.planned-progress-bar-wrap {
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.planned-progress-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+.planned-progress-pct {
+  font-size: 0.7rem;
+  color: var(--dim);
+  text-align: right;
+}
+
+/* ── Workout Zeitstrahl ──────────────────────────────────────── */
+.planned-timeline {
+  display: flex;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  gap: 2px;
+  margin: 6px 0 4px;
+}
+
+.ptl-seg {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  overflow: hidden;
+  white-space: nowrap;
+  border-radius: 2px;
+  min-width: 12px;
+}
+
+.ptl-warmup  { background: #4a7fa8aa; }
+.ptl-rest    { background: #3a3530; border: 1px solid var(--border); color: var(--dim); }
+.ptl-cooldown { background: #4a7fa855; }
+/* ptl-interval bekommt Farbe inline */
+
+.planned-timeline-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.ptl-l {
+  font-size: 0.68rem;
+  color: var(--dim);
+}
+
+.ptl-l-total {
+  font-weight: 600;
+  color: var(--text);
+  margin-left: auto;
+}
+
 /* ── Loading / Empty ─────────────────────────────────────────── */
 .planned-loading,
 .planned-empty {

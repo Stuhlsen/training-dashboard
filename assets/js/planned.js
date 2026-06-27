@@ -205,6 +205,46 @@ const Planned = {
       return;
     }
 
+    // Fortschritt berechnen
+    const totalSessions = Data.plannedSessions.length;
+    const doneCount = doneSessions.length;
+    const pct = Math.round(doneCount / totalSessions * 100);
+    const currentWeek = sessions[0]?.week?.replace("P2-", "") || "W12";
+    const weeksLeft = new Set(sessions.map(s => s.week)).size;
+
+    // Hero + Fortschrittsanzeige
+    html += `
+      <div class="planned-hero">
+        <div class="planned-hero-text">
+          <h2 class="planned-hero-title">Trainingsplan Plan 2</h2>
+          <p class="planned-hero-desc">Alle geplanten Trainingseinheiten bis zum FTP-Retest in W12. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt in intervals.icu erfasst ist. Intervall-Workouts können direkt auf den Wahoo ELEMNT Roam gepusht werden.</p>
+        </div>
+        <div class="planned-progress">
+          <div class="planned-progress-stats">
+            <div class="planned-progress-stat">
+              <span class="planned-progress-val">${doneCount}</span>
+              <span class="planned-progress-lbl">absolviert</span>
+            </div>
+            <div class="planned-progress-stat">
+              <span class="planned-progress-val">${sessions.length}</span>
+              <span class="planned-progress-lbl">ausstehend</span>
+            </div>
+            <div class="planned-progress-stat">
+              <span class="planned-progress-val">${weeksLeft}</span>
+              <span class="planned-progress-lbl">Wochen</span>
+            </div>
+            <div class="planned-progress-stat">
+              <span class="planned-progress-val">${currentWeek}</span>
+              <span class="planned-progress-lbl">aktuell</span>
+            </div>
+          </div>
+          <div class="planned-progress-bar-wrap">
+            <div class="planned-progress-bar" style="width:${pct}%"></div>
+          </div>
+          <div class="planned-progress-pct">${pct}% abgeschlossen · ${totalSessions} Sessions gesamt</div>
+        </div>
+      </div>`;
+
     // Nach Wochen gruppieren
     const weekMap = {};
     for (const s of sessions) {
@@ -285,21 +325,33 @@ const Planned = {
     let workoutHtml = "";
     if (s.workout) {
       const w = s.workout;
-      workoutHtml = `
-        <div class="planned-workout-detail">
-          <span class="planned-workout-label">🏋 ${w.label}</span>
-          <div class="planned-workout-blocks">
-            <span class="pwb pwb-warmup">🔼 ${w.warmup} min Warm-up</span>`;
-      if (w.intervals) {
+      workoutHtml = `<div class="planned-workout-detail">
+          <span class="planned-workout-label">🏋 ${w.label}</span>`;
+
+      if (w.intervals && w.duration) {
+        const totalMin = w.warmup + (w.duration * w.intervals) + (w.rest * (w.intervals - 1)) + w.cooldown;
+        const pctOf = (min) => (min / totalMin * 100).toFixed(1);
+
+        workoutHtml += `<div class="planned-timeline">`;
+        workoutHtml += `<div class="ptl-seg ptl-warmup" style="width:${pctOf(w.warmup)}%" title="Warm-up ${w.warmup} min">WU</div>`;
         for (let i = 0; i < w.intervals; i++) {
-          workoutHtml += `<span class="pwb pwb-interval" style="background:${col}22; border-color:${col}55; color:${col}">${w.duration} min @ ${w.pct[0]}–${w.pct[1]}%</span>`;
-          if (i < w.intervals - 1) workoutHtml += `<span class="pwb pwb-rest">${w.rest} min Pause</span>`;
+          workoutHtml += `<div class="ptl-seg ptl-interval" style="width:${pctOf(w.duration)}%; background:${col}cc" title="${w.duration} min @ ${w.pct[0]}–${w.pct[1]}% FTP">${w.duration}'</div>`;
+          if (i < w.intervals - 1) {
+            workoutHtml += `<div class="ptl-seg ptl-rest" style="width:${pctOf(w.rest)}%" title="Pause ${w.rest} min">${w.rest}'</div>`;
+          }
         }
+        workoutHtml += `<div class="ptl-seg ptl-cooldown" style="width:${pctOf(w.cooldown)}%" title="Cool-down ${w.cooldown} min">CD</div>`;
+        workoutHtml += `</div>`;
+        workoutHtml += `<div class="planned-timeline-legend">
+          <span class="ptl-l ptl-l-warmup">▲ WU ${w.warmup} min</span>
+          <span class="ptl-l ptl-l-interval" style="color:${col}">● ${w.duration} min × ${w.intervals} @ ${w.pct[0]}–${w.pct[1]}%</span>
+          <span class="ptl-l ptl-l-rest">○ Pause ${w.rest} min</span>
+          <span class="ptl-l ptl-l-cooldown">▼ CD ${w.cooldown} min</span>
+          <span class="ptl-l ptl-l-total">${totalMin} min gesamt</span>
+        </div>`;
       }
-      workoutHtml += `
-            <span class="pwb pwb-cooldown">🔽 ${w.cooldown} min Cool-down</span>
-          </div>
-          ${w.watts ? `<div class="planned-workout-watts">${w.watts[0]}–${w.watts[1]}W · ${Math.round((w.watts[0]+w.watts[1])/2)} W Ziel</div>` : ""}
+
+      workoutHtml += `${w.watts ? `<div class="planned-workout-watts">${w.watts[0]}–${w.watts[1]}W · Ziel: ${Math.round((w.watts[0]+w.watts[1])/2)}W</div>` : ""}
         </div>`;
     } else if (s.details) {
       workoutHtml = `<div class="planned-details">${s.details}</div>`;
