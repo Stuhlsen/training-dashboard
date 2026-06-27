@@ -200,7 +200,7 @@ const Overview = {
 
     // Kurze Labels
     const SHORT_LABELS = {
-      "2026-05-12": "Criterium",
+      "2026-05-12": "1. Rennen",
       "2026-06-05": "100 km",
       "2026-06-12": "FTP 193W",
       "2026-06-17": "PB 200W NP",
