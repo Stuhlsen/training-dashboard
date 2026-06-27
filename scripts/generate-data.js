@@ -324,6 +324,7 @@ async function main() {
   // 2. Plan 2: intervals.icu + Notion subjektiv
   let plan2 = [];
   let wellnessList = [];
+  let powerCurves = null;
   if (INTERVALS_KEY && INTERVALS_ATHLETE) {
     const oldest = PLAN2_SCHEDULE[0].start;
     const today = new Date().toISOString().split("T")[0];
@@ -333,7 +334,7 @@ async function main() {
     const PLAN1_START = "2026-03-24";
     const activities = await getIntervalsActivities(oldest, newest);
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
-    const powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
+    powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
     const subjective = loadSubjective();
     console.log(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
 
