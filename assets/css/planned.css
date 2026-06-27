@@ -193,8 +193,20 @@
   flex-direction: column;
   gap: 10px;
   transition: background 0.15s;
+  min-height: 180px;
 }
 .planned-card:hover { background: var(--card-hover); }
+
+/* Push actions to bottom */
+.planned-card-actions {
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 /* Header */
 .planned-card-header {
@@ -406,13 +418,6 @@
 .planned-move-status { font-size: 0.72rem; font-weight: 600; min-height: 16px; }
 
 /* Push-Button */
-.planned-card-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-top: 2px;
-}
 
 .planned-push-btn {
   font-size: 0.72rem;
