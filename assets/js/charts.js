@@ -39,11 +39,30 @@ const Charts = {
     const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
     const W = 780, H = 270, pad = { l: 50, r: 16, t: 16, b: 40 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const maxKm = Math.max(...weeklyData.map(d => d.km)) * 1.15 || 1;
+    const TARGET_KM = 200;
+    const maxKm = Math.max(...weeklyData.map(d => d.km), TARGET_KM * 1.1) * 1.15 || 1;
     const bw = Math.min(cw / weeklyData.length * 0.62, 52);
     const gap = cw / weeklyData.length;
 
     this._gridLines(svg, W, H, pad, maxKm);
+
+    // Zielzone: 180–220 km als grünes Band
+    const zoneTopY = pad.t + ch - (220 / maxKm * ch);
+    const zoneBotY = pad.t + ch - (180 / maxKm * ch);
+    svg.appendChild(svgEl("rect", {
+      x: pad.l, y: zoneTopY,
+      width: cw, height: zoneBotY - zoneTopY,
+      fill: "#5c9e6e", opacity: "0.08",
+    }));
+
+    // Ziellinie bei 200km
+    const targetY = pad.t + ch - (TARGET_KM / maxKm * ch);
+    svg.appendChild(svgEl("line", {
+      x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
+      stroke: "#5c9e6e", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.5",
+    }));
+    const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#5c9e6e", "font-size": "9", opacity: "0.8" });
+    tl.textContent = "Ziel 200 km"; svg.appendChild(tl);
 
     weeklyData.forEach((d, i) => {
       const x  = pad.l + i * gap + (gap - bw) / 2;
