@@ -121,10 +121,16 @@
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title">Power Curve — Bestleistungen</span>
-              <span class="chart-note">Maximale Watt über Zeitintervalle · alle Fahrten</span>
+              <div class="chart-header-right">
+                <div class="unit-toggle" id="power-curve-unit-toggle">
+                  <button class="unit-btn active" data-unit="w">W</button>
+                  <button class="unit-btn" data-unit="wkg">W/kg</button>
+                </div>
+                <span class="chart-note">Maximale Watt über Zeitintervalle · alle Fahrten</span>
+              </div>
             </div>
             <svg class="chart" id="chart-power-curve" viewBox="0 0 780 260"></svg>
-            <p class="chart-explainer">Die Power Curve zeigt deine beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung). Die goldene Linie markiert deine FTP (193W). Der rot eingefärbte Bereich über der FTP-Linie ist deine anaerobe Reserve — je größer dieser Bereich, desto mehr Leistung kannst du kurzfristig über deine Dauerschwelle bringen. Punkte unter der FTP-Linie zeigen Intervalle wo deine Bestleistung noch unter FTP-Niveau liegt.</p>
+            <p class="chart-explainer">Die Power Curve zeigt deine beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung). Die goldene Linie markiert deine FTP (193W). Der rot eingefärbte Bereich über der FTP-Linie ist deine anaerobe Reserve — je größer dieser Bereich, desto mehr Leistung kannst du kurzfristig über deine Dauerschwelle bringen. Mit dem W/kg-Toggle siehst du die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu).</p>
           </div>
 
           <div class="chart-box">

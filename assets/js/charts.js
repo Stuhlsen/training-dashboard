@@ -1066,7 +1066,40 @@ const Charts = {
   },
 
   /* ── Power Curve ─────────────────────────────────────────────── */
-  renderPowerCurve(svgId, powerCurves, ftp) {
+  renderPowerCurve(svgId, powerCurves, ftp, weight) {
+    // Daten einmal parsen und cachen für Toggle
+    this._pcCache = { svgId, powerCurves, ftp, weight };
+    this._pcUnit = "w";
+    this._drawPowerCurve("w");
+
+    // Toggle-Buttons verdrahten
+    const toggle = document.getElementById("power-curve-unit-toggle");
+    if (toggle) {
+      const btns = toggle.querySelectorAll(".unit-btn");
+      const wkgBtn = toggle.querySelector('[data-unit="wkg"]');
+
+      // W/kg deaktivieren wenn kein Gewicht
+      if (!weight && wkgBtn) {
+        wkgBtn.disabled = true;
+        wkgBtn.title = "Kein Gewicht in intervals.icu verfügbar";
+      }
+
+      btns.forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (btn.disabled) return;
+          btns.forEach(b => b.classList.remove("active"));
+          btn.classList.add("active");
+          this._pcUnit = btn.dataset.unit;
+          this._drawPowerCurve(btn.dataset.unit);
+        });
+      });
+    }
+  },
+
+  _drawPowerCurve(unit) {
+    const { svgId, powerCurves, ftp, weight } = this._pcCache;
+    const isWkg = unit === "wkg" && weight > 0;
+
     const svg = el(svgId);
     if (!svg) return;
     svg.innerHTML = "";
@@ -1078,17 +1111,12 @@ const Charts = {
       return;
     }
 
-    // intervals.icu gibt { secs: [...], watts: [...] } zurück
-    // Wir wollen nur die Standard-Zeitpunkte
     const STANDARD_SECS = [1, 5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600];
     const LABELS = ["1s", "5s", "10s", "30s", "1min", "2min", "5min", "10min", "20min", "30min", "60min"];
 
-    // intervals.icu Format: { list: [{ id, label, secs: [...], watts: [...] }] }
-    // Wir nehmen den ersten Eintrag (längster Zeitraum = "1 year" oder ähnlich)
     let secsArr, wattsArr;
     let curveData = [];
     if (powerCurves.list && Array.isArray(powerCurves.list) && powerCurves.list.length > 0) {
-      // Eintrag mit den meisten Daten nehmen (längster Zeitraum)
       const best = powerCurves.list[0];
       secsArr = best.secs || [];
       wattsArr = best.watts || [];
@@ -1099,7 +1127,6 @@ const Charts = {
       secsArr = []; wattsArr = [];
     }
 
-    // Lookup-Map aufbauen: Sekunde → Watt
     const wattsMap = {};
     for (let i = 0; i < secsArr.length; i++) {
       if (wattsArr[i] != null && wattsArr[i] > 0) wattsMap[secsArr[i]] = wattsArr[i];
@@ -1118,30 +1145,38 @@ const Charts = {
       return;
     }
 
+    // Werte konvertieren wenn W/kg
+    const toVal = (w) => isWkg ? w / weight : w;
+    const fmtVal = (v) => isWkg ? v.toFixed(2) + " W/kg" : Math.round(v) + "W";
+    const fmtAxis = (v) => isWkg ? v.toFixed(1) : v + "W";
+    const ftpVal = ftp ? toVal(ftp) : null;
 
     const W = 780, H = 260, pad = { l: 56, r: 16, t: 20, b: 44 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const maxW = Math.max(...curveData.map(d => d.watts)) * 1.1;
+    const vals = curveData.map(d => toVal(d.watts));
+    const maxV = Math.max(...vals) * 1.1;
     const xScale = (i) => pad.l + (i / (curveData.length - 1)) * cw;
-    const yScale = (w) => pad.t + ch - (w / maxW) * ch;
+    const yScale = (v) => pad.t + ch - (v / maxV) * ch;
 
-    // Grid-Linien Y
-    const wStep = Math.ceil(maxW / 5 / 50) * 50;
-    for (let w = 0; w <= maxW; w += wStep) {
-      const y = yScale(w);
+    // Grid Y
+    const step = isWkg
+      ? (maxV > 10 ? 2 : maxV > 5 ? 1 : 0.5)
+      : Math.ceil(maxV / 5 / 50) * 50;
+    for (let v = 0; v <= maxV; v += step) {
+      const y = yScale(v);
       if (y < pad.t) break;
       svg.appendChild(svgEl("line", {
         x1: pad.l, y1: y, x2: W - pad.r, y2: y,
         stroke: "#2e2923", "stroke-width": "1",
       }));
       const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
-      t.textContent = w + "W";
+      t.textContent = fmtAxis(v);
       svg.appendChild(t);
     }
 
     // FTP-Linie
-    if (ftp) {
-      const ftpY = yScale(ftp);
+    if (ftpVal != null) {
+      const ftpY = yScale(ftpVal);
       svg.appendChild(svgEl("line", {
         x1: pad.l, y1: ftpY, x2: W - pad.r, y2: ftpY,
         stroke: "#c9a84c", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.8",
@@ -1150,39 +1185,39 @@ const Charts = {
         x: pad.l + 6, y: ftpY - 5,
         fill: "#c9a84c", "font-size": "9", "font-weight": "600",
       });
-      ft.textContent = `FTP ${ftp}W`;
+      ft.textContent = isWkg ? `FTP ${(ftp / weight).toFixed(2)} W/kg` : `FTP ${ftp}W`;
       svg.appendChild(ft);
     }
 
-    // Fläche unter der Kurve bis zur X-Achse (neutral, sehr subtil)
+    // Fläche unter der Kurve
     const areaPath = `M${xScale(0)},${pad.t + ch} ` +
-      curveData.map((d, i) => `L${xScale(i)},${yScale(d.watts)}`).join(" ") +
+      curveData.map((d, i) => `L${xScale(i)},${yScale(toVal(d.watts))}`).join(" ") +
       ` L${xScale(curveData.length - 1)},${pad.t + ch} Z`;
     svg.appendChild(svgEl("path", { d: areaPath, fill: "#e07b39", opacity: "0.04" }));
 
-    // Fläche ÜBER FTP-Linie — anaerobe Reserve hervorheben
-    if (ftp) {
-      const ftpY = yScale(ftp);
-      // Clip-Pfad: nur Bereich über der FTP-Linie füllen
-      const aboveFtpPath = `M${xScale(0)},${Math.min(yScale(curveData[0].watts), ftpY)} ` +
+    // Fläche über FTP — anaerobe Reserve
+    if (ftpVal != null) {
+      const ftpY = yScale(ftpVal);
+      const aboveFtpPath = `M${xScale(0)},${Math.min(yScale(toVal(curveData[0].watts)), ftpY)} ` +
         curveData.map((d, i) => {
-          const y = yScale(d.watts);
+          const y = yScale(toVal(d.watts));
           return `L${xScale(i)},${Math.min(y, ftpY)}`;
         }).join(" ") +
         ` L${xScale(curveData.length - 1)},${ftpY} L${xScale(0)},${ftpY} Z`;
       svg.appendChild(svgEl("path", { d: aboveFtpPath, fill: "#c45c5c", opacity: "0.15" }));
     }
 
-    // Kurve — orange
+    // Kurve
     svg.appendChild(svgEl("polyline", {
       fill: "none", stroke: "#e07b39", "stroke-width": "2",
       "stroke-linejoin": "round",
-      points: curveData.map((d, i) => `${xScale(i)},${yScale(d.watts)}`).join(" "),
+      points: curveData.map((d, i) => `${xScale(i)},${yScale(toVal(d.watts))}`).join(" "),
     }));
 
-    // Punkte — einheitlich orange, Watt-Labels abwechselnd
+    // Punkte + Labels
     curveData.forEach((d, i) => {
-      const x = xScale(i), y = yScale(d.watts);
+      const v = toVal(d.watts);
+      const x = xScale(i), y = yScale(v);
       const above = i % 2 === 0;
       const overFtp = ftp && d.watts > ftp;
 
@@ -1191,24 +1226,26 @@ const Charts = {
         fill: "#e07b39", stroke: "#141210", "stroke-width": "1.5",
       }));
 
+      // Tooltip — zeigt immer beide Einheiten
       const hit = svgEl("circle", { cx: x, cy: y, r: "10", fill: "transparent" });
       hit.style.cursor = "pointer";
+      const wkgInfo = weight ? `${(d.watts / weight).toFixed(2)} W/kg` : "";
       hit.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${d.label}</div>
-        <div class="tv">${Math.round(d.watts)} W</div>
+        <div class="tv">${Math.round(d.watts)} W${wkgInfo ? " · " + wkgInfo : ""}</div>
         <div class="td">${ftp ? `${(d.watts / ftp).toFixed(2)}× FTP · ${overFtp ? "über FTP" : "unter FTP"}` : ""}</div>
       `));
       hit.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(hit);
 
-      // Watt-Label abwechselnd oben/unten
+      // Wert-Label abwechselnd oben/unten
       const labelY = above ? y - 10 : y + 18;
       const clampedY = Math.max(pad.t + 10, Math.min(pad.t + ch - 4, labelY));
       const wl = svgEl("text", {
         x, y: clampedY, "text-anchor": "middle",
         fill: "#e07b39", "font-size": "9", "font-weight": "600",
       });
-      wl.textContent = Math.round(d.watts) + "W";
+      wl.textContent = fmtVal(v);
       svg.appendChild(wl);
 
       // X-Label

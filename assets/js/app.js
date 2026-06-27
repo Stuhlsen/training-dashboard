@@ -60,7 +60,7 @@ function toggleChartGroup(headerEl) {
   Charts.renderTrimp("chart-trimp", weekly);
 
   // Charts — Leistung
-  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, 193);
+  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, 193, Data.athleteWeight);
   Charts.renderEfficiency("chart-efficiency", rides);
   Charts.renderScatter("chart-scatter", rides);
   Charts.renderSmallMultiples(rides);

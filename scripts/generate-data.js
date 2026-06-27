@@ -324,6 +324,7 @@ async function main() {
   // 2. Plan 2: intervals.icu + Notion subjektiv
   let plan2 = [];
   let wellnessList = [];
+  let athleteWeight = null;
   let powerCurves = null;
   if (INTERVALS_KEY && INTERVALS_ATHLETE) {
     const oldest = PLAN2_SCHEDULE[0].start;
@@ -352,6 +353,17 @@ async function main() {
         hrv: w.hrvSDNN || null,
       }))
       .sort((a, b) => a.date.localeCompare(b.date));
+    // Letztes bekanntes Gewicht aus Wellness (Apple Health → intervals.icu)
+    const weightEntries = Object.entries(wellness)
+      .filter(([, w]) => w.weight && w.weight > 0)
+      .sort((a, b) => b[0].localeCompare(a[0])); // neuestes zuerst
+    if (weightEntries.length > 0) {
+      athleteWeight = Math.round(weightEntries[0][1].weight * 10) / 10;
+      console.log(`✅ Gewicht: ${athleteWeight} kg (Stand: ${weightEntries[0][0]})`);
+    } else {
+      console.log("⚠️  Kein Gewicht in Wellness-Daten gefunden");
+    }
+
     console.log(`✅ Wellness: ${wellnessList.length} Tage mit Schlafdaten`);
   } else {
     console.log("ℹ️  Kein intervals.icu Key — Plan 2 wird übersprungen");
@@ -375,6 +387,7 @@ async function main() {
     rides,
     wellness: wellnessList,
     powerCurves: powerCurves || null,
+    athleteWeight,
     plans,
     updated: new Date().toISOString(),
     source: INTERVALS_KEY ? "notion+intervals" : "notion",
