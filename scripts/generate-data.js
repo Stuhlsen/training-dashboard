@@ -221,6 +221,7 @@ async function getIntervalsPowerCurves(oldest, newest) {
   );
   if (!data) return null;
   console.log(`   ... Power Curve geladen`);
+  console.log(`   ... Format: ${JSON.stringify(data).slice(0, 300)}`);
   return data;
 }
 
