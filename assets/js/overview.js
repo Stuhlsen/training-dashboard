@@ -129,7 +129,7 @@ const Overview = {
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
     const W = 780, H = 200;
-    const pad = { l: 12, r: 16, t: 12, b: 32 };
+    const pad = { l: 12, r: 16, t: 12, b: 46 };
     const timelineY = H - pad.b;
     const cw = W - pad.l - pad.r;
 
@@ -155,9 +155,10 @@ const Overview = {
         x: x1, y: pad.t, width: x2 - x1, height: timelineY - pad.t,
         fill: ph.color, opacity: "0.06",
       }));
+      // Label linksbündig mit etwas Innenabstand — kein Abschneiden mehr
       const lbl = svgEl("text", {
-        x: x1 + (x2 - x1) / 2, y: pad.t + 11,
-        "text-anchor": "middle", fill: ph.color,
+        x: x1 + 6, y: pad.t + 11,
+        "text-anchor": "start", fill: ph.color,
         "font-size": "9", "font-weight": "700", opacity: "0.75",
       });
       lbl.textContent = ph.label;
@@ -195,7 +196,7 @@ const Overview = {
         stroke: "#3a342c", "stroke-width": "1",
       }));
       const t = svgEl("text", {
-        x, y: timelineY + 13,
+        x, y: timelineY + 22,
         "text-anchor": "middle", fill: "#6b6158", "font-size": "9",
       });
       t.textContent = l;
@@ -270,10 +271,15 @@ const Overview = {
       lbl.textContent = shortLabel;
       svg.appendChild(lbl);
 
-      // Datum
+      // Datum als Tick an der Zeitachse — nicht am Pin
+      svg.appendChild(svgEl("line", {
+        x1: x, y1: timelineY, x2: x, y2: timelineY + 4,
+        stroke: color, "stroke-width": "1.5",
+      }));
       const dlbl = svgEl("text", {
-        x, y: labelY + 21,
-        "text-anchor": "middle", fill: "#6b6158", "font-size": "7.5",
+        x, y: timelineY + 13,
+        "text-anchor": "middle", fill: color,
+        "font-size": "7.5", "font-weight": "600",
       });
       dlbl.textContent = m.date.slice(0, 5);
       svg.appendChild(dlbl);
