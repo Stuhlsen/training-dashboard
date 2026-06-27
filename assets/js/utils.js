@@ -144,6 +144,34 @@ const FEEL_MAP = {
 
 const normalizeFeel = (f) => FEEL_MAP[f] || { label: f || "–", cls: "" };
 
+/* ── Wetter-Icons (WMO Weather Code) ─────────────────────────── */
+const WEATHER_ICONS = {
+  0: "☀️", 1: "🌤️", 2: "⛅", 3: "☁️",
+  45: "🌫️", 48: "🌫️",
+  51: "🌦️", 53: "🌦️", 55: "🌦️",
+  61: "🌧️", 63: "🌧️", 65: "🌧️",
+  66: "🌧️", 67: "🌧️",
+  71: "❄️", 73: "❄️", 75: "❄️", 77: "❄️",
+  80: "🌦️", 81: "🌧️", 82: "🌧️",
+  85: "❄️", 86: "❄️",
+  95: "⛈️", 96: "⛈️", 99: "⛈️",
+};
+
+const weatherIcon = (code) => {
+  if (code == null) return "";
+  if (WEATHER_ICONS[code]) return WEATHER_ICONS[code];
+  // Nächsten bekannten Code finden
+  const codes = Object.keys(WEATHER_ICONS).map(Number).sort((a, b) => a - b);
+  const nearest = codes.reduce((prev, c) => Math.abs(c - code) < Math.abs(prev - code) ? c : prev, codes[0]);
+  return WEATHER_ICONS[nearest] || "🌤️";
+};
+
+const windDir = (deg) => {
+  if (deg == null) return "";
+  const dirs = ["N", "NO", "O", "SO", "S", "SW", "W", "NW"];
+  return dirs[Math.round(deg / 45) % 8];
+};
+
 /* ── Tag-Klasse für Phase/Woche ──────────────────────────────── */
 const phaseTagClass = (phase) => {
   if (!phase) return "";

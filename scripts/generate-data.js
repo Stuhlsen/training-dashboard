@@ -250,6 +250,96 @@ async function getIntervalsWellness(oldest, newest) {
 // === Typ-Berechnung aus NP/FTP wenn kein Plan-Match ===
 const FTP = 193; // wird aktualisiert wenn neuer Ramp-Test
 
+// === Open-Meteo Wetter-Integration ===
+const WEATHER_LAT = 51.5253; // Senftenberg
+const WEATHER_LON = 14.0016;
+
+async function getHistoricalWeather(startDate, endDate) {
+  console.log(`🌤️  Open-Meteo Wetter (${startDate} bis ${endDate})...`);
+  const params = [
+    `latitude=${WEATHER_LAT}`, `longitude=${WEATHER_LON}`,
+    `start_date=${startDate}`, `end_date=${endDate}`,
+    `hourly=temperature_2m,apparent_temperature,relative_humidity_2m,` +
+      `wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,weather_code`,
+    `timezone=Europe/Berlin`,
+  ].join("&");
+
+  try {
+    const res = await fetch(`https://archive-api.open-meteo.com/v1/archive?${params}`);
+    if (!res.ok) {
+      console.warn(`⚠️  Open-Meteo Archive (${res.status}): ${await res.text()}`);
+      return null;
+    }
+    const data = await res.json();
+    console.log(`   ... ${data.hourly?.time?.length || 0} Stundenwerte geladen`);
+    return data;
+  } catch (e) {
+    console.warn(`⚠️  Open-Meteo Fehler:`, e.message);
+    return null;
+  }
+}
+
+/**
+ * Baut eine Map: "YYYY-MM-DDTHH:00" → { temp, tempFeel, humidity, windSpeed, windDir, precip, cloudCover, weatherCode }
+ */
+function buildWeatherMap(data) {
+  if (!data?.hourly?.time) return {};
+  const map = {};
+  const h = data.hourly;
+  for (let i = 0; i < h.time.length; i++) {
+    map[h.time[i]] = {
+      temp: h.temperature_2m[i],
+      tempFeel: h.apparent_temperature[i],
+      humidity: h.relative_humidity_2m[i],
+      windSpeed: h.wind_speed_10m[i],
+      windDir: h.wind_direction_10m[i],
+      precip: h.precipitation[i],
+      cloudCover: h.cloud_cover[i],
+      weatherCode: h.weather_code[i],
+    };
+  }
+  return map;
+}
+
+/**
+ * Mittelt Wetter über das Zeitfenster einer Fahrt.
+ * @param {Object} weatherMap - Stündliche Wetterdaten
+ * @param {string} date - ISO-Datum (YYYY-MM-DD)
+ * @param {number|null} startHour - Startstunde (0-23), null → 09:00 (Fallback für Plan 1)
+ * @param {number} durationMin - Fahrtdauer in Minuten
+ */
+function getWeatherForRide(weatherMap, date, startHour, durationMin) {
+  const sH = startHour != null ? startHour : 9;
+  const hours = Math.max(1, Math.ceil((durationMin || 120) / 60));
+  const endH = Math.min(23, sH + hours);
+
+  const vals = { temp: [], tempFeel: [], humidity: [], windSpeed: [], windDir: [], precip: [], cloudCover: [], weatherCode: [] };
+
+  for (let h = sH; h <= endH; h++) {
+    const key = `${date}T${String(h).padStart(2, "0")}:00`;
+    const w = weatherMap[key];
+    if (!w) continue;
+    for (const k of Object.keys(vals)) {
+      if (w[k] != null) vals[k].push(w[k]);
+    }
+  }
+
+  if (!vals.temp.length) return null;
+
+  const mean = arr => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 10) / 10;
+
+  return {
+    temp: mean(vals.temp),
+    tempFeel: mean(vals.tempFeel),
+    humidity: Math.round(mean(vals.humidity)),
+    windSpeed: mean(vals.windSpeed),
+    windDir: Math.round(mean(vals.windDir)),
+    precip: Math.round(vals.precip.reduce((a, b) => a + b, 0) * 10) / 10,
+    cloudCover: Math.round(mean(vals.cloudCover)),
+    weatherCode: Math.max(...vals.weatherCode), // schlechteste Bedingung
+  };
+}
+
 function inferTypFromIF(np, min) {
   if (!np || !FTP) return "Außerplanmäßig";
   const ifVal = np / FTP;
@@ -264,7 +354,7 @@ function inferTypFromIF(np, min) {
 }
 
 // === intervals.icu Activity → Ride-Objekt ===
-function mapActivity(act, wellness, subjective) {
+function mapActivity(act, wellness, subjective, weatherMap) {
   const date = act.start_date_local.split("T")[0];
   const { week, phase } = getPlan2WeekPhase(date);
   const w = wellness[date] || {};
@@ -277,6 +367,12 @@ function mapActivity(act, wellness, subjective) {
   // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
   const typ = s.typ || planned.typ || inferTypFromIF(np, min);
   const name = s.name || planned.name || act.name || "Radfahren";
+
+  // Wetter: exakte Startzeit aus intervals.icu
+  const startHour = act.start_date_local
+    ? parseInt(act.start_date_local.split("T")[1]?.split(":")[0])
+    : null;
+  const weather = getWeatherForRide(weatherMap, date, startHour, min);
 
   return {
     name,
@@ -311,7 +407,8 @@ function mapActivity(act, wellness, subjective) {
     sleepHours: w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null,
     feel: s.feel || null,
     notizen: s.notizen || null,
-    wetter: act.average_temp ? `~${Math.round(act.average_temp)}°C` : null,
+    weather,
+    wetter: weather ? `${weather.temp}°C` : (act.average_temp ? `~${Math.round(act.average_temp)}°C` : null),
     source: "intervals.icu",
   };
 }
@@ -326,20 +423,29 @@ async function main() {
   let wellnessList = [];
   let athleteWeight = null;
   let powerCurves = null;
+
+  // 2a. Wetter: Open-Meteo für gesamten Zeitraum (unabhängig von intervals.icu)
+  const PLAN1_START = "2026-03-24";
+  const PLAN1_FIRST_DATE = plan1.length > 0 ? plan1[0].date : PLAN1_START;
+  const weatherEndDate = new Date();
+  weatherEndDate.setDate(weatherEndDate.getDate() - 2); // Archive hat ~2 Tage Verzögerung
+  const weatherEnd = weatherEndDate.toISOString().split("T")[0];
+  const weatherData = await getHistoricalWeather(PLAN1_FIRST_DATE, weatherEnd);
+  const weatherMap = buildWeatherMap(weatherData);
+
+  // 2b. Plan 2: intervals.icu + Notion subjektiv
   if (INTERVALS_KEY && INTERVALS_ATHLETE) {
     const oldest = PLAN2_SCHEDULE[0].start;
     const today = new Date().toISOString().split("T")[0];
     const newest = today > "2026-09-20" ? "2026-09-20" : today;
 
-    // Wellness ab Plan-1-Start für Schlaf-Chart (Apple Health sync in intervals.icu)
-    const PLAN1_START = "2026-03-24";
     const activities = await getIntervalsActivities(oldest, newest);
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
     powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
     const subjective = loadSubjective();
     console.log(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
 
-    plan2 = activities.map(act => mapActivity(act, wellness, subjective));
+    plan2 = activities.map(act => mapActivity(act, wellness, subjective, weatherMap));
     console.log(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
 
     // Wellness-Einträge als eigenständige Liste (für Schlaf-Chart)
@@ -369,7 +475,23 @@ async function main() {
     console.log("ℹ️  Kein intervals.icu Key — Plan 2 wird übersprungen");
   }
 
-  // 3. Zusammenführen
+  // 3. Wetter: Open-Meteo für ALLE Fahrten (Plan 1 + Plan 2)
+  // Plan 1 Rides bekommen nachträglich Wetter zugewiesen (Tageszeitfenster 09–17 Uhr)
+  if (Object.keys(weatherMap).length > 0) {
+    let weatherAdded = 0;
+    for (const r of plan1) {
+      if (!r.date || r.weather) continue;
+      const w = getWeatherForRide(weatherMap, r.date, 9, r.min || 120);
+      if (w) {
+        r.weather = w;
+        if (!r.wetter) r.wetter = `${w.temp}°C`;
+        weatherAdded++;
+      }
+    }
+    console.log(`✅ Wetter: ${weatherAdded} Plan-1-Fahrten + ${plan2.filter(r => r.weather).length} Plan-2-Fahrten`);
+  }
+
+  // 4. Zusammenführen
   const rides = [...plan1, ...plan2];
   rides.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
   rides.forEach((r, i) => {

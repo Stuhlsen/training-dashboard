@@ -20,7 +20,9 @@ intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)       │
                   ──→ Wellness (RHF, HRV, Schlaf, Gewicht)   ├──→ generate-data.js
                   ──→ Power Curves (Bestleistungen)          │         │
                                                               │         ▼
-data/subjective.json ──→ Befinden Plan 2 (via Dashboard)    ─┘   data/rides.json
+Open-Meteo API ────→ Historisches Wetter (Senftenberg) ──────┤   data/rides.json
+                                                              │         │
+data/subjective.json ──→ Befinden Plan 2 (via Dashboard)    ─┘         │
                                                                         │
 GitHub Action (alle 6h) ────────────────────────────────────────────────┘
         │
@@ -47,6 +49,7 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 | 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches Volumen (phasengefärbt, 200km-Zielzone), TRIMP pro Woche (absoluter Farbgradient grün→rot) |
 | ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche, W/kg-Toggle), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert) |
 | ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV Vorher/Nachher-Slider, Ruhepuls Vorher/Nachher-Slider, Schlaf (Dauer + Schlaf-HF kombiniert, täglich) |
+| 🌤️ Wetterbedingungen | Temperatur vs. Herzfrequenz Scatter (Cardiac Drift-Analyse, Trendlinie mit bpm/°C) |
 
 **Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus der intervals.icu API. Roter Bereich über der FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu Wellness).
 
@@ -56,8 +59,10 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 
 **Heatmap:** Farbskala grün→gelb→orange→rot nach Fahrtenhäufigkeit pro Wochentag. Samstag ist mit Abstand der aktivste Tag.
 
+**Wetter:** Historische Wetterdaten von Open-Meteo (Senftenberg) werden pro Fahrt automatisch zugeordnet — Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag. Plan-2-Fahrten bekommen Wetter für den exakten Fahrtzeitraum, Plan-1-Fahrten den Tagesdurchschnitt. Im Fahrtenbuch als kompakte Spalte mit Wetter-Icon, Temperatur und Windstärke. Der Scatter-Chart zeigt den Zusammenhang zwischen Außentemperatur und Herzfrequenz (Cardiac Drift).
+
 ### Tab: Fahrtenbuch
-Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion-Öffnen nötig.
+Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion-Öffnen nötig. Wetter-Spalte zeigt Icon, Temperatur und Windstärke (Hover für Details).
 
 ### Tab: Analyse
 Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stärken & Entwicklungsfelder.
@@ -78,6 +83,7 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 | Schlaf (Dauer, Schlaf-HF) | — | intervals.icu (Apple Health Sync, täglich) |
 | Befinden | Notion (manuell) | Dropdown im Dashboard → `data/subjective.json` → GitHub API |
 | Notizen | Notion | `data/subjective.json` |
+| Wetter | Notion (manuell) | Open-Meteo Archive API (Senftenberg, stündlich, automatisch) |
 
 **Typ-Inferenz Plan 2:** Fahrten ohne Trainingsplan-Match bekommen ihren Typ automatisch aus NP ÷ FTP berechnet (Intensity Factor). Priorität: `subjective.json` > Trainingsplan-Datum-Mapping > IF-Berechnung.
 
@@ -195,9 +201,9 @@ git update-index --no-skip-worktree data/subjective.json
 - [x] Pages-Deploy direkt in Sync-Action integriert
 - [x] Git-Alias `git sync` mit automatischem subjective.json-Schutz
 - [x] W/kg-Toggle in Power Curve (Körpergewicht aus intervals.icu Wellness / Apple Health)
+- [x] Wetter-Integration via Open-Meteo API — historisches Wetter pro Fahrt (Temperatur, Wind, Niederschlag), Wetter-Spalte im Fahrtenbuch, Temperatur-vs-HF-Analyse
 
 **Geplant — Dashboard & Training**
-- [ ] Wetter-Integration via Open-Meteo API — historische Wetterdaten (Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag) pro Fahrt automatisch zuordnen. Koordinaten: Senftenberg. Ziel: Wetter-Icons im Fahrtenbuch, Temperatur-vs-HF-Analyse (Cardiac Drift), Kontext für auffällige Trainingstage
 - [ ] Wochennotizen im Fahrtenbuch editierbar (aktuell nur Befinden)
 - [ ] Vergleichsansicht Plan 1 vs. Plan 2 — CTL-Kurve beider Pläne nebeneinander
 - [ ] Kadenz-Ziel-Tracking: Anteil der Fahrten über 90 RPM

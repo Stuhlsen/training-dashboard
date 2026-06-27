@@ -272,6 +272,32 @@
         </div>
       </div>
 
+      <!-- Block: Wetterbedingungen -->
+      <div class="chart-group">
+        <div class="chart-group-header" onclick="toggleChartGroup(this)">
+          <h2>🌤️ Wetterbedingungen</h2>
+          <span class="toggle-icon">▾</span>
+        </div>
+        <div class="chart-group-body">
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title">Temperatur vs. Herzfrequenz — Wettereinfluss</span>
+              <span class="chart-note">Höhere Temperatur → höhere HF bei gleicher Leistung</span>
+            </div>
+            <svg class="chart" id="chart-weather-impact" viewBox="0 0 780 300"></svg>
+            <div class="chart-legend">
+              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Z2 Dauer</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Gruppenfahrt</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#e07b39"></div> Sweet Spot</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> Schwelle</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#b83dba"></div> VO₂max</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Trendlinie</div>
+            </div>
+            <p class="chart-explainer">Jeder Punkt ist eine Fahrt — X-Achse zeigt die Außentemperatur (Open-Meteo), Y-Achse die durchschnittliche Herzfrequenz. Bei Hitze steigt die HF bei gleicher Leistung (Cardiac Drift). Die rote Trendlinie zeigt den Zusammenhang: ein positiver Wert (z.B. +0.5 bpm/°C) bedeutet, dass pro Grad mehr die HF um 0.5 bpm steigt. Punkt-Größe = Fahrtdauer, Farbe = Trainingstyp.</p>
+          </div>
+        </div>
+      </div>
+
     </section>
 
     <!-- ── Tab: Fahrtenbuch ─────────────────────────────────────── -->

@@ -132,6 +132,11 @@ tr:hover td { background: var(--card-alt); }
 
 .col-typ  { font-size: 0.72rem; color: var(--dim); }
 .col-bold { font-weight: 600; }
+.col-weather { white-space: nowrap; }
+.weather-cell {
+  font-size: 0.72rem;
+  cursor: help;
+}
 
 /* ── Table note ──────────────────────────────────────────────── */
 .table-note {

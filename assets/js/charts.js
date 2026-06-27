@@ -1255,6 +1255,122 @@ const Charts = {
     });
   },
 
+  /* ── Temperatur vs. Herzfrequenz (Wettereinfluss) ─────────────── */
+  renderWeatherImpact(svgId, rides) {
+    const data = rides.filter(r => r.weather?.temp != null && r.hf != null && r.hf > 0)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+
+    if (data.length < 3) {
+      const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+      t.textContent = "Noch nicht genug Wetterdaten — mindestens 3 Fahrten benötigt";
+      svg.appendChild(t);
+      return;
+    }
+
+    const W = 780, H = 300, pad = { l: 50, r: 16, t: 20, b: 44 };
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+    const temps = data.map(d => d.weather.temp);
+    const hrs = data.map(d => d.hf);
+    const minT = Math.floor(Math.min(...temps) / 5) * 5;
+    const maxT = Math.ceil(Math.max(...temps) / 5) * 5;
+    const minH = Math.floor(Math.min(...hrs) / 5) * 5 - 5;
+    const maxH = Math.ceil(Math.max(...hrs) / 5) * 5 + 5;
+
+    const xScale = (t) => pad.l + ((t - minT) / (maxT - minT)) * cw;
+    const yScale = (h) => pad.t + ch - ((h - minH) / (maxH - minH)) * ch;
+
+    // Grid X (Temperatur)
+    for (let t = minT; t <= maxT; t += 5) {
+      const x = xScale(t);
+      svg.appendChild(svgEl("line", { x1: x, y1: pad.t, x2: x, y2: pad.t + ch, stroke: "#2e2923", "stroke-width": "1" }));
+      const lbl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+      lbl.textContent = t + "°C";
+      svg.appendChild(lbl);
+    }
+
+    // Grid Y (HF)
+    const hStep = Math.ceil((maxH - minH) / 6 / 5) * 5;
+    for (let h = minH; h <= maxH; h += hStep) {
+      const y = yScale(h);
+      svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#2e2923", "stroke-width": "1" }));
+      const lbl = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
+      lbl.textContent = h;
+      svg.appendChild(lbl);
+    }
+
+    // Achsenbeschriftungen
+    const xLbl = svgEl("text", { x: pad.l + cw / 2, y: H - 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10" });
+    xLbl.textContent = "Temperatur (°C)";
+    svg.appendChild(xLbl);
+    const yLbl = svgEl("text", { x: 12, y: pad.t + ch / 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10", transform: `rotate(-90,12,${pad.t + ch / 2})` });
+    yLbl.textContent = "Ø HF (bpm)";
+    svg.appendChild(yLbl);
+
+    // Trendlinie (lineare Regression)
+    const n = data.length;
+    const sumX = temps.reduce((a, b) => a + b, 0);
+    const sumY = hrs.reduce((a, b) => a + b, 0);
+    const sumXY = temps.reduce((a, t, i) => a + t * hrs[i], 0);
+    const sumX2 = temps.reduce((a, t) => a + t * t, 0);
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+
+    if (isFinite(slope) && isFinite(intercept)) {
+      const trendY1 = slope * minT + intercept;
+      const trendY2 = slope * maxT + intercept;
+      svg.appendChild(svgEl("line", {
+        x1: xScale(minT), y1: yScale(trendY1),
+        x2: xScale(maxT), y2: yScale(trendY2),
+        stroke: "#c45c5c", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+      }));
+
+      // Steigung anzeigen
+      const slopeBpm = slope.toFixed(2);
+      const trendNote = svgEl("text", {
+        x: W - pad.r - 4, y: pad.t + 14,
+        "text-anchor": "end", fill: "#c45c5c", "font-size": "9", "font-weight": "600",
+      });
+      trendNote.textContent = `${slope > 0 ? "+" : ""}${slopeBpm} bpm/°C`;
+      svg.appendChild(trendNote);
+    }
+
+    // Farben nach Typ
+    const typeColors = {
+      "Z2 Dauer": "#4a7fa8", "Z1 Recovery": "#5c9e6e",
+      "Sweet Spot": "#e07b39", "Schwelle": "#d94f4f", "VO2max": "#b83dba",
+      "Gruppenfahrt": "#c9a84c", "Tempo": "#c9a84c",
+    };
+
+    // Datenpunkte
+    data.forEach(d => {
+      const x = xScale(d.weather.temp);
+      const y = yScale(d.hf);
+      const color = typeColors[d.typ] || "#6b6158";
+      const r = Math.max(4, Math.min(8, (d.min || 60) / 30));
+
+      svg.appendChild(svgEl("circle", {
+        cx: x, cy: y, r: r.toFixed(1),
+        fill: color, opacity: "0.7",
+        stroke: "#141210", "stroke-width": "1",
+      }));
+
+      // Tooltip
+      const hit = svgEl("circle", { cx: x, cy: y, r: "10", fill: "transparent" });
+      hit.style.cursor = "pointer";
+      const w = d.weather;
+      hit.addEventListener("mouseenter", e => Tooltip.show(e, `
+        <div class="tt">${d.dateShort} · ${d.name || d.typ}</div>
+        <div class="tv">${weatherIcon(w.weatherCode)} ${w.temp}°C (gefühlt ${w.tempFeel}°C)</div>
+        <div class="td">Ø HF ${Math.round(d.hf)} bpm · ${d.watt ? d.watt + "W" : ""} · ${d.min} min</div>
+        <div class="td">${Math.round(w.windSpeed)} km/h Wind ${windDir(w.windDir)} · ${w.humidity}% Luftfeuchtigkeit</div>
+      `));
+      hit.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(hit);
+    });
+  },
+
   // Nächsten verfügbaren Watt-Wert für eine Sekunden-Anzahl finden
   _nearestWatts(map, targetSecs) {
     const keys = Object.keys(map).map(Number).sort((a, b) => a - b);

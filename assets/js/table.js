@@ -101,6 +101,7 @@ const Table = {
     { k: "trimp",     l: "TRIMP"                    },
     { k: "ctl",       l: "CTL"                      },
     { k: "feel",      l: "Befinden"                 },
+    { k: "weather",   l: "Wetter"                    },
   ],
 
   /* ── Öffentliche API ─────────────────────────────────────────── */
@@ -234,6 +235,9 @@ const Table = {
           <td>${fmtInt(r.trimp)}</td>
           <td>${r.ctl != null ? fmt(r.ctl) : "–"}</td>
           ${feelCell}
+          <td class="col-weather">${r.weather
+            ? `<span class="weather-cell" title="${r.weather.temp}°C (gefühlt ${r.weather.tempFeel}°C) · ${r.weather.windSpeed} km/h ${windDir(r.weather.windDir)} · ${r.weather.humidity}% Luftfeuchtigkeit${r.weather.precip > 0 ? " · " + r.weather.precip + " mm Niederschlag" : ""}">${weatherIcon(r.weather.weatherCode)} ${r.weather.temp}° · ${Math.round(r.weather.windSpeed)} km/h</span>`
+            : (r.wetter || "–")}</td>
         </tr>`;
     }).join("");
 
