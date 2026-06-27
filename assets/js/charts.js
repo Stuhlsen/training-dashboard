@@ -1077,7 +1077,7 @@ const Charts = {
       return;
     }
 
-    const W = 780, H = 260, pad = { l: 56, r: 80, t: 20, b: 44 };
+    const W = 780, H = 260, pad = { l: 56, r: 16, t: 20, b: 44 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
 
     const maxW = Math.max(...curveData.map(d => d.watts)) * 1.1;
@@ -1085,7 +1085,7 @@ const Charts = {
     const xScale = (i) => pad.l + (i / (curveData.length - 1)) * cw;
     const yScale = (w) => pad.t + ch - ((w - minW) / (maxW - minW)) * ch;
 
-    // Zonen-Hintergründe (basierend auf % FTP)
+    // Zonen-Hintergründe — Labels LINKS im Chart
     if (ftp) {
       const zones = [
         { pct: 0.55, color: "#6b6158", label: "Z1" },
@@ -1099,13 +1099,20 @@ const Charts = {
       for (const z of zones) {
         const zY = yScale(ftp * z.pct);
         if (zY < pad.t) break;
+        const bandH = prevY - zY;
         svg.appendChild(svgEl("rect", {
-          x: pad.l, y: zY, width: cw, height: prevY - zY,
-          fill: z.color, opacity: "0.05",
+          x: pad.l, y: zY, width: cw, height: bandH,
+          fill: z.color, opacity: "0.06",
         }));
-        const zt = svgEl("text", { x: W - pad.r + 6, y: zY + (prevY - zY) / 2 + 4, fill: z.color, "font-size": "8", opacity: "0.7" });
-        zt.textContent = z.label;
-        svg.appendChild(zt);
+        // Label nur wenn Band hoch genug ist
+        if (bandH > 14) {
+          const zt = svgEl("text", {
+            x: pad.l + 6, y: zY + bandH / 2 + 4,
+            fill: z.color, "font-size": "8", opacity: "0.6",
+          });
+          zt.textContent = z.label;
+          svg.appendChild(zt);
+        }
         prevY = zY;
       }
     }
@@ -1124,19 +1131,22 @@ const Charts = {
       svg.appendChild(t);
     }
 
-    // FTP-Referenzlinie
+    // FTP-Referenzlinie — Label auf der Linie, nicht rechts daneben
     if (ftp) {
       const ftpY = yScale(ftp);
       svg.appendChild(svgEl("line", {
         x1: pad.l, y1: ftpY, x2: W - pad.r, y2: ftpY,
         stroke: "#c9a84c", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
       }));
-      const ft = svgEl("text", { x: W - pad.r + 6, y: ftpY + 4, fill: "#c9a84c", "font-size": "9", "font-weight": "600" });
+      const ft = svgEl("text", {
+        x: W - pad.r - 4, y: ftpY - 4,
+        "text-anchor": "end", fill: "#c9a84c", "font-size": "9", "font-weight": "600",
+      });
       ft.textContent = `FTP ${ftp}W`;
       svg.appendChild(ft);
     }
 
-    // Area fill unter der Kurve
+    // Area fill
     const areaPath = `M${xScale(0)},${pad.t + ch} ` +
       curveData.map((d, i) => `L${xScale(i)},${yScale(d.watts)}`).join(" ") +
       ` L${xScale(curveData.length - 1)},${pad.t + ch} Z`;
@@ -1149,30 +1159,24 @@ const Charts = {
       points: curveData.map((d, i) => `${xScale(i)},${yScale(d.watts)}`).join(" "),
     }));
 
-    // Punkte + Labels
+    // Punkte — Watt-Labels nur per Tooltip, nicht inline
     curveData.forEach((d, i) => {
       const x = xScale(i), y = yScale(d.watts);
-      const wPerKg = d.watts / 75; // Näherung, könnte aus Profil kommen
 
       const c = svgEl("circle", { cx: x, cy: y, r: "4", fill: "#e07b39", stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${d.label}</div>
         <div class="tv">${Math.round(d.watts)} W</div>
-        <div class="td">${(d.watts / (ftp || 193)).toFixed(2)}× FTP</div>
+        <div class="td">${ftp ? (d.watts / ftp).toFixed(2) + "× FTP" : ""}</div>
       `));
       c.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(c);
 
-      // X-Label
+      // X-Label (Zeitintervall)
       const xl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
       xl.textContent = d.label;
       svg.appendChild(xl);
-
-      // Watt-Label über Punkt
-      const wl = svgEl("text", { x, y: y - 8, "text-anchor": "middle", fill: "#e07b39", "font-size": "9", "font-weight": "600" });
-      wl.textContent = Math.round(d.watts) + "W";
-      svg.appendChild(wl);
     });
   },
 
