@@ -254,6 +254,7 @@ const Table = {
               data-wtemp="${w.temp}" data-wfeel="${w.tempFeel}" data-wwind="${wind}"
               data-wdir="${windDir(w.windDir)}" data-whumid="${w.humidity}"
               data-wrain="${(w.precip||0) > 0 ? w.precip + 'mm Regen' : ''}"
+              data-wcloud="${w.cloudCover != null ? w.cloudCover + '%' : ''}"
               data-wcond="${condLabel}"
               data-wicon="${weatherIcon(w.weatherCode)}"
             >${weatherIcon(w.weatherCode)} ${w.temp}°C · ${wind} km/h</span>`;
@@ -289,11 +290,15 @@ const Table = {
     tbody.querySelectorAll(".weather-cell[data-wtemp]").forEach(cell => {
       cell.addEventListener("mouseenter", e => {
         const d = cell.dataset;
-        const rainPart = d.wrain ? ` · ${d.wrain}` : "";
+        const rainRow  = d.wrain  ? `<div class="td">🌧 Niederschlag: ${d.wrain}</div>` : "";
+        const cloudRow = d.wcloud ? `<div class="td">☁️ Bewölkung: ${d.wcloud}</div>` : "";
         Tooltip.show(e, `
-          <div class="tt">${d.wicon} ${d.wtemp}°C (gefühlt ${d.wfeel}°C)</div>
-          <div class="tv">${d.wwind} km/h ${d.wdir} · ${d.whumid}% Luftfeuchtigkeit${rainPart}</div>
-          <div class="td">${d.wcond}</div>
+          <div class="tt">${d.wicon} ${d.wtemp}°C · gefühlt ${d.wfeel}°C</div>
+          <div class="td">💨 Wind: ${d.wwind} km/h ${d.wdir}</div>
+          <div class="td">💧 Luftfeuchtigkeit: ${d.whumid}%</div>
+          ${cloudRow}
+          ${rainRow}
+          <div class="td" style="margin-top:4px">${d.wcond}</div>
         `);
       });
       cell.addEventListener("mouseleave", () => Tooltip.hide());
