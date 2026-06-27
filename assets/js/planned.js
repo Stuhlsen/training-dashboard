@@ -59,7 +59,7 @@ const Planned = {
     try {
       const params = [
         "latitude=51.5253", "longitude=14.0016",
-        "hourly=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,precipitation_probability,weather_code",
+        "hourly=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,weather_code,uv_index",
         "forecast_days=16",
         "timezone=Europe/Berlin",
       ].join("&");
@@ -73,24 +73,28 @@ const Planned = {
         const [date, time] = h.time[i].split("T");
         const hour = parseInt(time);
         if (hour < 8 || hour > 18) continue;
-        if (!map[date]) map[date] = { temp: [], feel: [], humidity: [], wind: [], precipProb: [], code: [] };
-        if (h.temperature_2m[i]          != null) map[date].temp.push(h.temperature_2m[i]);
-        if (h.apparent_temperature[i]    != null) map[date].feel.push(h.apparent_temperature[i]);
-        if (h.relative_humidity_2m[i]    != null) map[date].humidity.push(h.relative_humidity_2m[i]);
-        if (h.wind_speed_10m[i]          != null) map[date].wind.push(h.wind_speed_10m[i]);
+        if (!map[date]) map[date] = { temp: [], feel: [], humidity: [], wind: [], windDir: [], precipProb: [], code: [], uv: [] };
+        if (h.temperature_2m[i]            != null) map[date].temp.push(h.temperature_2m[i]);
+        if (h.apparent_temperature[i]      != null) map[date].feel.push(h.apparent_temperature[i]);
+        if (h.relative_humidity_2m[i]      != null) map[date].humidity.push(h.relative_humidity_2m[i]);
+        if (h.wind_speed_10m[i]            != null) map[date].wind.push(h.wind_speed_10m[i]);
+        if (h.wind_direction_10m[i]        != null) map[date].windDir.push(h.wind_direction_10m[i]);
         if (h.precipitation_probability[i] != null) map[date].precipProb.push(h.precipitation_probability[i]);
-        if (h.weather_code[i]            != null) map[date].code.push(h.weather_code[i]);
+        if (h.weather_code[i]              != null) map[date].code.push(h.weather_code[i]);
+        if (h.uv_index[i]                  != null) map[date].uv.push(h.uv_index[i]);
       }
       const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
       const result = {};
       for (const [date, v] of Object.entries(map)) {
         result[date] = {
-          temp:       Math.round(mean(v.temp) * 10) / 10,
-          tempFeel:   Math.round(mean(v.feel) * 10) / 10,
-          humidity:   Math.round(mean(v.humidity)),
-          windSpeed:  Math.round(mean(v.wind) * 10) / 10,
-          precipProb: Math.round(mean(v.precipProb)),
+          temp:        Math.round(mean(v.temp) * 10) / 10,
+          tempFeel:    Math.round(mean(v.feel) * 10) / 10,
+          humidity:    Math.round(mean(v.humidity)),
+          windSpeed:   Math.round(mean(v.wind) * 10) / 10,
+          windDir:     Math.round(mean(v.windDir)),
+          precipProb:  Math.round(mean(v.precipProb)),
           weatherCode: Math.max(...v.code),
+          uvMax:       v.uv.length ? Math.round(Math.max(...v.uv) * 10) / 10 : null,
         };
       }
       this._forecastCache = result;
@@ -311,11 +315,35 @@ const Planned = {
       const hot = fw.temp > 32, cold = fw.temp < 5, windy = fw.windSpeed > 30, rainy = fw.precipProb > 50;
       const bad = (hot?1:0)+(cold?1:0)+(windy?1:0)+(rainy?1:0);
       const wcol = bad >= 2 || hot ? "var(--red)" : bad === 1 ? "var(--gold)" : "var(--green)";
+
+      // UV-Label
+      const uvLabel = fw.uvMax == null ? "" :
+        fw.uvMax >= 8  ? `☀️ UV ${fw.uvMax} (sehr hoch)` :
+        fw.uvMax >= 6  ? `☀️ UV ${fw.uvMax} (hoch)` :
+        fw.uvMax >= 3  ? `☀️ UV ${fw.uvMax} (mittel)` :
+                         `☀️ UV ${fw.uvMax} (niedrig)`;
+      const uvColor = fw.uvMax >= 8 ? "var(--red)" : fw.uvMax >= 6 ? "var(--gold)" : "var(--dim)";
+
+      // Hitzestress-Warnung
+      const heatWarning = fw.tempFeel > 32
+        ? `<div class="planned-weather-warn">⚠️ Hitzestress — viel trinken, Tempo anpassen</div>` : "";
+
+      // Kältewarnung
+      const coldWarning = fw.temp < 5
+        ? `<div class="planned-weather-warn planned-weather-warn-cold">🥶 Kalt — Winterausrüstung empfohlen</div>` : "";
+
       weatherHtml = `
-        <div class="planned-weather" style="color:${wcol}">
-          ${weatherIcon(fw.weatherCode)} ${fw.temp}°C
-          ${fw.precipProb > 20 ? `· 🌧 ${fw.precipProb}%` : ""}
-          · 💨 ${fw.windSpeed} km/h
+        <div class="planned-weather-block">
+          <div class="planned-weather-row">
+            <span style="color:${wcol}">${weatherIcon(fw.weatherCode)} ${fw.temp}°C <span class="planned-weather-feel">(gefühlt ${fw.tempFeel}°C)</span></span>
+            <span class="planned-weather-detail">💨 ${fw.windSpeed} km/h ${windDir(fw.windDir)}</span>
+          </div>
+          <div class="planned-weather-row">
+            <span class="planned-weather-detail">🌧 ${fw.precipProb}% Regen</span>
+            ${fw.uvMax != null ? `<span class="planned-weather-detail" style="color:${uvColor}">${uvLabel}</span>` : ""}
+          </div>
+          ${heatWarning}
+          ${coldWarning}
         </div>`;
     }
 

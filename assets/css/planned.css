@@ -240,12 +240,45 @@
 }
 
 /* Wetter */
-.planned-weather {
+.planned-weather-block {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.planned-weather-row {
+  display: flex;
+  gap: 14px;
+  align-items: center;
   font-size: 0.78rem;
   font-weight: 500;
-  display: flex;
-  gap: 6px;
   flex-wrap: wrap;
+}
+
+.planned-weather-feel {
+  font-weight: 400;
+  color: var(--dim);
+  font-size: 0.72rem;
+}
+
+.planned-weather-detail {
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+
+.planned-weather-warn {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--red);
+  margin-top: 2px;
+}
+
+.planned-weather-warn-cold {
+  color: #4a7fa8;
 }
 
 /* Details (kein Workout) */
