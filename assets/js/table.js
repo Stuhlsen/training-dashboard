@@ -247,7 +247,13 @@ const Table = {
                       : bad === 1 ? "var(--gold)"
                       : "var(--green)";
             const wind = Math.round(w.windSpeed || 0);
-            return `<span class="weather-cell" style="color:${col}" title="${w.temp}°C (gefühlt ${w.tempFeel}°C) · ${wind} km/h ${windDir(w.windDir)} · ${w.humidity}% Luftfeuchtigkeit${(w.precip||0) > 0 ? " · " + w.precip + "mm Regen" : ""}">${weatherIcon(w.weatherCode)} ${w.temp}°C · ${wind} km/h</span>`;
+            return `<span class="weather-cell" style="color:${col}"
+              data-wtemp="${w.temp}" data-wfeel="${w.tempFeel}" data-wwind="${wind}"
+              data-wdir="${windDir(w.windDir)}" data-whumid="${w.humidity}"
+              data-wrain="${(w.precip||0) > 0 ? w.precip + 'mm Regen' : ''}"
+              data-wcond="${condLabel}"
+              data-wicon="${weatherIcon(w.weatherCode)}"
+            >${weatherIcon(w.weatherCode)} ${w.temp}°C · ${wind} km/h</span>`;
           })() : (r.wetter || "–")}</td>
         </tr>`;
     }).join("");
@@ -274,6 +280,20 @@ const Table = {
           alert("Speichern fehlgeschlagen. Ist der GitHub Token korrekt?");
         }
       });
+    });
+
+    // Wetter-Tooltip Event Delegation
+    tbody.querySelectorAll(".weather-cell[data-wtemp]").forEach(cell => {
+      cell.addEventListener("mouseenter", e => {
+        const d = cell.dataset;
+        const rainPart = d.wrain ? ` · ${d.wrain}` : "";
+        Tooltip.show(e, `
+          <div class="tt">${d.wicon} ${d.wtemp}°C (gefühlt ${d.wfeel}°C)</div>
+          <div class="tv">${d.wwind} km/h ${d.wdir} · ${d.whumid}% Luftfeuchtigkeit${rainPart}</div>
+          <div class="td">${d.wcond}</div>
+        `);
+      });
+      cell.addEventListener("mouseleave", () => Tooltip.hide());
     });
   },
 
