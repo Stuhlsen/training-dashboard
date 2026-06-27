@@ -69,7 +69,7 @@ const PLANNED_SESSIONS = {
   "2026-06-30": { name: "Gruppenfahrt",           typ: "Gruppenfahrt", week: "P2-W1", phase: "Sweet Spot", km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-07-02": { name: "Sweet Spot 3×10 min",       typ: "Sweet Spot",   week: "P2-W1", phase: "Sweet Spot", km: 55,
     workout: { warmup: 10, intervals: 3, duration: 10, rest: 3, cooldown: 8, zone: "SS", pct: [84, 97], watts: [162, 187], label: "3×10 min @ SS (84–97% FTP)" } },
-  "2026-07-03": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W1", phase: "Sweet Spot", km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
+  "2026-07-03": { name: "Z2 Kurz",            typ: "Z2 Dauer",     week: "P2-W1", phase: "Sweet Spot", km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-07-04": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W1", phase: "Sweet Spot", km: 80,  details: "Lange Z2 · HF 123–152 bpm · ≥3h anstreben" },
 
   // ── W2 Sweet Spot ───────────────────────────────────────────────
@@ -77,7 +77,7 @@ const PLANNED_SESSIONS = {
   "2026-07-07": { name: "Gruppenfahrt",           typ: "Gruppenfahrt", week: "P2-W2", phase: "Sweet Spot", km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-07-09": { name: "Sweet Spot 3×12 min",       typ: "Sweet Spot",   week: "P2-W2", phase: "Sweet Spot", km: 58,
     workout: { warmup: 10, intervals: 3, duration: 12, rest: 3, cooldown: 8, zone: "SS", pct: [84, 97], watts: [162, 187], label: "3×12 min @ SS (84–97% FTP)" } },
-  "2026-07-10": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W2", phase: "Sweet Spot", km: 25,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-07-10": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W2", phase: "Sweet Spot", km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-07-11": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W2", phase: "Sweet Spot", km: 85,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W3 Sweet Spot ───────────────────────────────────────────────
@@ -85,14 +85,14 @@ const PLANNED_SESSIONS = {
   "2026-07-14": { name: "Gruppenfahrt",           typ: "Gruppenfahrt", week: "P2-W3", phase: "Sweet Spot", km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-07-16": { name: "Sweet Spot 2×20 min",       typ: "Sweet Spot",   week: "P2-W3", phase: "Sweet Spot", km: 62,
     workout: { warmup: 10, intervals: 2, duration: 20, rest: 5, cooldown: 8, zone: "SS", pct: [84, 97], watts: [162, 187], label: "2×20 min @ SS (84–97% FTP)" } },
-  "2026-07-17": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W3", phase: "Sweet Spot", km: 30,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-07-17": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W3", phase: "Sweet Spot", km: 30,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-07-18": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W3", phase: "Sweet Spot", km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W4 Erholung ─────────────────────────────────────────────────
   "2026-07-20": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W4", phase: "Erholung",   km: 20,  details: "Lockere Z2 · HF 123–145 bpm · sehr locker" },
   "2026-07-21": { name: "Recovery",         typ: "Z1 Recovery",  week: "P2-W4", phase: "Erholung",   km: 25,  details: "Recovery · HF <123 bpm · sehr locker" },
   "2026-07-23": { name: "Z2 Locker",             typ: "Z2 Dauer",     week: "P2-W4", phase: "Erholung",   km: 30,  details: "Lockere Z2 · kein Druck · −50% Volumen" },
-  "2026-07-24": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W4", phase: "Erholung",   km: 20,  details: "Lockere Z2 · HF 123–145 bpm" },
+  "2026-07-24": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W4", phase: "Erholung",   km: 20,  details: "Lockere Z2 · HF 123–145 bpm" },
   "2026-07-25": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W4", phase: "Erholung",   km: 60,  details: "Kurze Z2 Lang · Erholungswoche · −50% Volumen" },
 
   // ── W5 Schwelle ─────────────────────────────────────────────────
@@ -100,7 +100,7 @@ const PLANNED_SESSIONS = {
   "2026-07-28": { name: "Gruppenfahrt",           typ: "Gruppenfahrt", week: "P2-W5", phase: "Schwelle",   km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-07-30": { name: "Schwelle 3×8 min",          typ: "Schwelle",     week: "P2-W5", phase: "Schwelle",   km: 55,
     workout: { warmup: 10, intervals: 3, duration: 8,  rest: 3, cooldown: 8, zone: "T",  pct: [95, 105], watts: [183, 202], label: "3×8 min @ Schwelle (95–105% FTP)" } },
-  "2026-07-31": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W5", phase: "Schwelle",   km: 25,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-07-31": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W5", phase: "Schwelle",   km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-08-01": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W5", phase: "Schwelle",   km: 85,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W6 Schwelle ─────────────────────────────────────────────────
@@ -108,7 +108,7 @@ const PLANNED_SESSIONS = {
   "2026-08-04": { name: "Gruppenfahrt",           typ: "Gruppenfahrt", week: "P2-W6", phase: "Schwelle",   km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-08-06": { name: "Schwelle 3×10 min",         typ: "Schwelle",     week: "P2-W6", phase: "Schwelle",   km: 58,
     workout: { warmup: 10, intervals: 3, duration: 10, rest: 3, cooldown: 8, zone: "T",  pct: [95, 105], watts: [183, 202], label: "3×10 min @ Schwelle (95–105% FTP)" } },
-  "2026-08-07": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W6", phase: "Schwelle",   km: 25,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-08-07": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W6", phase: "Schwelle",   km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-08-08": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W6", phase: "Schwelle",   km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W7 Schwelle ─────────────────────────────────────────────────
@@ -116,14 +116,14 @@ const PLANNED_SESSIONS = {
   "2026-08-11": { name: "Gruppenfahrt",           typ: "Gruppenfahrt", week: "P2-W7", phase: "Schwelle",   km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-08-13": { name: "Schwelle 2×20 min",         typ: "Schwelle",     week: "P2-W7", phase: "Schwelle",   km: 65,
     workout: { warmup: 10, intervals: 2, duration: 20, rest: 5, cooldown: 8, zone: "T",  pct: [95, 105], watts: [183, 202], label: "2×20 min @ Schwelle (95–105% FTP)" } },
-  "2026-08-14": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W7", phase: "Schwelle",   km: 30,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-08-14": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W7", phase: "Schwelle",   km: 30,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-08-15": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W7", phase: "Schwelle",   km: 95,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W8 Erholung ─────────────────────────────────────────────────
   "2026-08-17": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W8", phase: "Erholung",   km: 20,  details: "Lockere Z2 · HF 123–145 bpm" },
   "2026-08-18": { name: "Recovery",         typ: "Z1 Recovery",  week: "P2-W8", phase: "Erholung",   km: 25,  details: "Recovery · HF <123 bpm · sehr locker" },
   "2026-08-20": { name: "Z2 Locker",             typ: "Z2 Dauer",     week: "P2-W8", phase: "Erholung",   km: 30,  details: "Lockere Z2 · Erholungswoche" },
-  "2026-08-21": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W8", phase: "Erholung",   km: 20,  details: "Lockere Z2 · HF 123–145 bpm" },
+  "2026-08-21": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W8", phase: "Erholung",   km: 20,  details: "Lockere Z2 · HF 123–145 bpm" },
   "2026-08-22": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W8", phase: "Erholung",   km: 60,  details: "Kurze Z2 Lang · −50% Volumen" },
 
   // ── W9 VO2max ───────────────────────────────────────────────────
@@ -131,7 +131,7 @@ const PLANNED_SESSIONS = {
   "2026-08-25": { name: "Gruppenfahrt",           typ: "Gruppenfahrt", week: "P2-W9", phase: "VO2max",     km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-08-27": { name: "VO₂max 5×3 min",           typ: "VO2max",       week: "P2-W9", phase: "VO2max",     km: 50,
     workout: { warmup: 10, intervals: 5, duration: 3,  rest: 4, cooldown: 8, zone: "V",  pct: [106, 120], watts: [205, 232], label: "5×3 min @ VO₂max (106–120% FTP)" } },
-  "2026-08-28": { name: "Z2 Dauer",           typ: "Z2 Dauer",     week: "P2-W9", phase: "VO2max",     km: 25,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-08-28": { name: "Z2 Kurz",           typ: "Z2 Dauer",     week: "P2-W9", phase: "VO2max",     km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-08-29": { name: "Z2 Lang",               typ: "Z2 Lang",      week: "P2-W9", phase: "VO2max",     km: 85,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W10 VO2max ──────────────────────────────────────────────────
@@ -139,7 +139,7 @@ const PLANNED_SESSIONS = {
   "2026-09-01": { name: "Gruppenfahrt",          typ: "Gruppenfahrt", week: "P2-W10", phase: "VO2max",    km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-09-03": { name: "VO₂max 6×3 min",           typ: "VO2max",       week: "P2-W10", phase: "VO2max",    km: 52,
     workout: { warmup: 10, intervals: 6, duration: 3,  rest: 4, cooldown: 8, zone: "V",  pct: [106, 120], watts: [205, 232], label: "6×3 min @ VO₂max (106–120% FTP)" } },
-  "2026-09-04": { name: "Z2 Dauer",          typ: "Z2 Dauer",     week: "P2-W10", phase: "VO2max",    km: 25,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-09-04": { name: "Z2 Kurz",          typ: "Z2 Dauer",     week: "P2-W10", phase: "VO2max",    km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-09-05": { name: "Z2 Lang",              typ: "Z2 Lang",      week: "P2-W10", phase: "VO2max",    km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W11 VO2max ──────────────────────────────────────────────────
@@ -147,7 +147,7 @@ const PLANNED_SESSIONS = {
   "2026-09-08": { name: "Gruppenfahrt",          typ: "Gruppenfahrt", week: "P2-W11", phase: "VO2max",    km: 70,  details: "Gruppenfahrt Di · HF frei" },
   "2026-09-10": { name: "VO₂max 4×4 min",           typ: "VO2max",       week: "P2-W11", phase: "VO2max",    km: 52,
     workout: { warmup: 10, intervals: 4, duration: 4,  rest: 4, cooldown: 8, zone: "V",  pct: [106, 120], watts: [205, 232], label: "4×4 min @ VO₂max (106–120% FTP)" } },
-  "2026-09-11": { name: "Z2 Dauer",          typ: "Z2 Dauer",     week: "P2-W11", phase: "VO2max",    km: 25,  details: "Kurze Z2 · HF 123–152 bpm" },
+  "2026-09-11": { name: "Z2 Kurz",          typ: "Z2 Dauer",     week: "P2-W11", phase: "VO2max",    km: 25,  details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen" },
   "2026-09-12": { name: "Z2 Lang",              typ: "Z2 Lang",      week: "P2-W11", phase: "VO2max",    km: 90,  details: "Lange Z2 · HF 123–152 bpm" },
 
   // ── W12 Taper ───────────────────────────────────────────────────
