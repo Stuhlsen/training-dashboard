@@ -128,23 +128,21 @@ const Overview = {
     const milestones = [...CONFIG.manualMilestones]
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-    const W = 780, H = 160;
-    const pad = { l: 12, r: 12, t: 16, b: 36 };
+    const W = 780, H = 200;
+    const pad = { l: 12, r: 16, t: 12, b: 32 };
     const timelineY = H - pad.b;
+    const cw = W - pad.l - pad.r;
 
-    // Zeitraum: Plan 1 Start bis Plan 2 Ende
     const startDate = new Date("2026-03-24");
     const endDate   = new Date("2026-09-20");
     const totalMs   = endDate - startDate;
-    const plan2Date = new Date("2026-06-22");
 
-    const cw = W - pad.l - pad.r;
     const xOf = (dateStr) => {
       const ms = new Date(dateStr) - startDate;
       return pad.l + (ms / totalMs) * cw;
     };
 
-    // Phasen-Blöcke im Hintergrund
+    // Phasen-Hintergründe
     const phases = [
       { label: "Vorbereitung", start: "2026-03-24", end: "2026-03-30", color: "#c9a84c" },
       { label: "Plan 1",       start: "2026-03-31", end: "2026-06-21", color: "#4a7fa8" },
@@ -152,20 +150,15 @@ const Overview = {
     ];
 
     phases.forEach(ph => {
-      const x1 = xOf(ph.start);
-      const x2 = xOf(ph.end);
-      // Hintergrund-Band
-      const rect = svgEl("rect", {
+      const x1 = xOf(ph.start), x2 = xOf(ph.end);
+      svg.appendChild(svgEl("rect", {
         x: x1, y: pad.t, width: x2 - x1, height: timelineY - pad.t,
         fill: ph.color, opacity: "0.06",
-      });
-      svg.appendChild(rect);
-
-      // Phasen-Label oben
+      }));
       const lbl = svgEl("text", {
-        x: x1 + (x2 - x1) / 2, y: pad.t + 10,
+        x: x1 + (x2 - x1) / 2, y: pad.t + 11,
         "text-anchor": "middle", fill: ph.color,
-        "font-size": "9", "font-weight": "600", opacity: "0.7",
+        "font-size": "9", "font-weight": "700", opacity: "0.75",
       });
       lbl.textContent = ph.label;
       svg.appendChild(lbl);
@@ -174,25 +167,29 @@ const Overview = {
     // Plan-Divider
     const divX = xOf("2026-06-22");
     svg.appendChild(svgEl("line", {
-      x1: divX, y1: pad.t, x2: divX, y2: timelineY,
-      stroke: "#e07b39", "stroke-width": "1.5", "stroke-dasharray": "4,3", opacity: "0.6",
+      x1: divX, y1: pad.t + 16, x2: divX, y2: timelineY,
+      stroke: "#e07b39", "stroke-width": "1.5",
+      "stroke-dasharray": "4,3", opacity: "0.5",
     }));
 
     // Zeitachse
     svg.appendChild(svgEl("line", {
-      x1: pad.l, y1: timelineY, x2: W - pad.r, y2: timelineY,
+      x1: pad.l, y1: timelineY,
+      x2: W - pad.r - 4, y2: timelineY,
       stroke: "#3a342c", "stroke-width": "1.5",
+    }));
+    // Pfeil rechts
+    svg.appendChild(svgEl("polygon", {
+      points: `${W - pad.r},${timelineY} ${W - pad.r - 6},${timelineY - 3} ${W - pad.r - 6},${timelineY + 3}`,
+      fill: "#3a342c",
     }));
 
     // Monats-Ticks
-    const months = [
-      "2026-03-01","2026-04-01","2026-05-01","2026-06-01",
-      "2026-07-01","2026-08-01","2026-09-01",
-    ];
-    const monthLabels = ["Mär","Apr","Mai","Jun","Jul","Aug","Sep"];
-    months.forEach((m, i) => {
-      const x = xOf(m);
-      if (x < pad.l || x > W - pad.r) return;
+    [
+      ["2026-04-01","Apr"],["2026-05-01","Mai"],["2026-06-01","Jun"],
+      ["2026-07-01","Jul"],["2026-08-01","Aug"],["2026-09-01","Sep"],
+    ].forEach(([d, l]) => {
+      const x = xOf(d);
       svg.appendChild(svgEl("line", {
         x1: x, y1: timelineY, x2: x, y2: timelineY + 4,
         stroke: "#3a342c", "stroke-width": "1",
@@ -201,79 +198,89 @@ const Overview = {
         x, y: timelineY + 13,
         "text-anchor": "middle", fill: "#6b6158", "font-size": "9",
       });
-      t.textContent = monthLabels[i];
+      t.textContent = l;
       svg.appendChild(t);
     });
 
-    // Meilensteine — Labels abwechselnd oben/unten
-    milestones.forEach((m, i) => {
+    // Option B: Ebenen-Zuweisung mit Mindestabstand
+    // 3 Ebenen: 0 = oberste, 1 = mitte, 2 = unterste (direkt über Zeitlinie)
+    const LEVELS = 3;
+    const LEVEL_Y = [
+      timelineY - 100, // Ebene 0: oben
+      timelineY - 60,  // Ebene 1: mitte
+      timelineY - 24,  // Ebene 2: unten
+    ];
+    const MIN_DIST = 70; // px Mindestabstand zwischen Labels auf gleicher Ebene
+    const lastX = new Array(LEVELS).fill(-999);
+
+    milestones.forEach((m) => {
       const x = xOf(m.dateISO);
       const isPlan2 = m.dateISO >= "2026-06-22";
       const color = isPlan2 ? "#e07b39" : "#4a7fa8";
-      const above = i % 2 === 0;
 
-      // Verbindungslinie Pin → Label
-      const labelY = above ? timelineY - 18 : timelineY - 60;
+      // Freie Ebene finden
+      let level = 0;
+      for (let l = 0; l < LEVELS; l++) {
+        if (x - lastX[l] >= MIN_DIST) { level = l; break; }
+        if (l === LEVELS - 1) level = 0; // Fallback
+      }
+      lastX[level] = x;
+      const labelY = LEVEL_Y[level];
+
+      // Verbindungslinie (gepunktet, von Label zur Zeitlinie)
       svg.appendChild(svgEl("line", {
-        x1: x, y1: timelineY - 6,
-        x2: x, y2: labelY + (above ? -2 : 14),
-        stroke: color, "stroke-width": "1", opacity: "0.5",
-        "stroke-dasharray": "2,2",
+        x1: x, y1: labelY + 22,
+        x2: x, y2: timelineY - 5,
+        stroke: color, "stroke-width": "1",
+        "stroke-dasharray": "2,2", opacity: "0.45",
       }));
 
-      // Pfeilspitze
-      const arrowY = timelineY - 8;
-      const arrow = svgEl("polygon", {
-        points: `${x},${arrowY} ${x-3},${arrowY-5} ${x+3},${arrowY-5}`,
-        fill: color, opacity: "0.7",
-      });
-      svg.appendChild(arrow);
+      // Pfeilspitze (zeigt ZUR Zeitlinie hin = nach unten)
+      svg.appendChild(svgEl("polygon", {
+        points: `${x},${timelineY - 4} ${x - 3},${timelineY - 10} ${x + 3},${timelineY - 10}`,
+        fill: color, opacity: "0.65",
+      }));
 
-      // Icon + Text Label
-      const textY = above ? timelineY - 22 : timelineY - 62;
+      // Icon
       const icon = svgEl("text", {
-        x, y: textY,
-        "text-anchor": "middle", "font-size": "14",
+        x, y: labelY,
+        "text-anchor": "middle", "font-size": "15",
       });
       icon.textContent = m.icon;
       svg.appendChild(icon);
 
+      // Kurztext
+      const shortText = m.text.length > 20 ? m.text.slice(0, 19) + "…" : m.text;
       const lbl = svgEl("text", {
-        x, y: textY + 12,
+        x, y: labelY + 12,
         "text-anchor": "middle", fill: color,
         "font-size": "8", "font-weight": "600",
       });
-      // Kurzes Label
-      const shortText = m.text.length > 22 ? m.text.slice(0, 20) + "…" : m.text;
       lbl.textContent = shortText;
       svg.appendChild(lbl);
 
-      const dateLbl = svgEl("text", {
-        x, y: textY + 21,
+      // Datum
+      const dlbl = svgEl("text", {
+        x, y: labelY + 21,
         "text-anchor": "middle", fill: "#6b6158", "font-size": "7.5",
       });
-      dateLbl.textContent = m.date.slice(0, 5); // DD.MM
-      svg.appendChild(dateLbl);
+      dlbl.textContent = m.date.slice(0, 5);
+      svg.appendChild(dlbl);
 
-      // Tooltip mit vollem Text
-      const hitArea = svgEl("rect", {
-        x: x - 40, y: textY - 18, width: 80, height: 45,
+      // Unsichtbarer Hit-Bereich für Tooltip
+      const hit = svgEl("rect", {
+        x: x - 38, y: labelY - 18,
+        width: 76, height: 44,
         fill: "transparent",
       });
-      hitArea.style.cursor = "pointer";
-      hitArea.addEventListener("mouseenter", e => Tooltip.show(e, `
+      hit.style.cursor = "pointer";
+      hit.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${m.date} · ${m.week}</div>
         <div class="tv">${m.icon} ${m.text}</div>
         <div class="td">${isPlan2 ? "Plan 2" : "Plan 1"}</div>
       `));
-      hitArea.addEventListener("mouseleave", () => Tooltip.hide());
-      svg.appendChild(hitArea);
+      hit.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(hit);
     });
-
-    // Pfeil am Ende der Zeitachse
-    svg.appendChild(svgEl("polygon", {
-      points: `${W - pad.r + 6},${timelineY} ${W - pad.r},${timelineY - 3} ${W - pad.r},${timelineY + 3}`,
-      fill: "#3a342c",
-    }));
   },
 };
