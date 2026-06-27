@@ -369,11 +369,17 @@ const Planned = {
         workoutHtml += `<div class="ptl-seg ptl-cooldown" style="width:${pctOf(w.cooldown)}%" title="Cool-down ${w.cooldown} min">CD</div>`;
         workoutHtml += `</div>`;
         workoutHtml += `<div class="planned-timeline-legend">
-          <span class="ptl-l ptl-l-warmup">▲ WU ${w.warmup} min</span>
-          <span class="ptl-l ptl-l-interval" style="color:${col}">● ${w.duration} min × ${w.intervals} @ ${w.pct[0]}–${w.pct[1]}%</span>
-          <span class="ptl-l ptl-l-rest">○ Pause ${w.rest} min</span>
-          <span class="ptl-l ptl-l-cooldown">▼ CD ${w.cooldown} min</span>
-          <span class="ptl-l ptl-l-total">${totalMin} min gesamt</span>
+          <div class="ptl-grid">
+            <span class="ptl-g-label">⬆ Warm-up</span>
+            <span class="ptl-g-val">${w.warmup} min</span>
+            <span class="ptl-g-label" style="color:${col}">● Intervall</span>
+            <span class="ptl-g-val" style="color:${col}">${w.duration} min × ${w.intervals}</span>
+            <span class="ptl-g-label">○ Pause</span>
+            <span class="ptl-g-val">${w.rest} min</span>
+            <span class="ptl-g-label">⬇ Cool-down</span>
+            <span class="ptl-g-val">${w.cooldown} min</span>
+          </div>
+          <div class="ptl-total">Gesamt: <strong>${totalMin} min</strong></div>
         </div>`;
       }
 
@@ -397,7 +403,7 @@ const Planned = {
           <div class="planned-card-meta">
             <span class="planned-card-date">${wd} ${fd}</span>
             <span class="planned-card-days" style="color:${daysUntil <= 2 ? "var(--accent)" : "var(--dim)"}">${daysLabel}</span>
-            ${s.km ? `<span class="planned-card-km">~${s.km} km</span>` : ""}
+            ${s.km ? `<span class="planned-card-km">${s.workout ? "~" + s.km + " km Ausfahrt" : "~" + s.km + " km"}</span>` : ""}
           </div>
         </div>
         ${weatherHtml}

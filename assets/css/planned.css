@@ -115,20 +115,39 @@
 
 .planned-timeline-legend {
   display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  align-items: flex-end;
+  gap: 12px;
   margin-bottom: 2px;
 }
 
-.ptl-l {
-  font-size: 0.68rem;
+.ptl-grid {
+  display: grid;
+  grid-template-columns: auto auto auto auto;
+  gap: 3px 14px;
+  flex: 1;
+}
+
+.ptl-g-label {
+  font-size: 0.7rem;
   color: var(--dim);
 }
 
-.ptl-l-total {
+.ptl-g-val {
+  font-size: 0.7rem;
   font-weight: 600;
   color: var(--text);
-  margin-left: auto;
+}
+
+.ptl-total {
+  font-size: 0.72rem;
+  color: var(--dim);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ptl-total strong {
+  color: var(--text);
+  font-weight: 700;
 }
 
 /* ── Loading / Empty ─────────────────────────────────────────── */
@@ -159,20 +178,23 @@
   align-items: center;
   gap: 10px;
   margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
 }
 
 .planned-week-badge {
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 3px 10px;
+  padding: 4px 12px;
   border-radius: var(--radius-sm);
   border: 1px solid;
   letter-spacing: 0.04em;
 }
 
 .planned-week-phase {
-  font-size: 0.78rem;
-  color: var(--dim);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text);
 }
 
 /* ── Cards Grid ──────────────────────────────────────────────── */
