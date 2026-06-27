@@ -1078,6 +1078,15 @@ const Charts = {
     }
 
 
+    const ZONES = [
+      { from: 0,    to: 0.55, color: "#6b6158", label: "Z1 · Aktive Erholung"  },
+      { from: 0.55, to: 0.75, color: "#4a7fa8", label: "Z2 · Grundlage"        },
+      { from: 0.75, to: 0.87, color: "#5c9e6e", label: "Z3 · Tempo"            },
+      { from: 0.87, to: 0.95, color: "#c9a84c", label: "Sweet Spot"            },
+      { from: 0.95, to: 1.05, color: "#e07b39", label: "Z4 · Schwelle"         },
+      { from: 1.05, to: 999,  color: "#c45c5c", label: "Z5+ · VO2max & Sprint" },
+    ];
+
     const getZone = (watts) => {
       if (!ftp) return ZONES[ZONES.length - 1];
       const pct = watts / ftp;
