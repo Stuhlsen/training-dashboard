@@ -59,7 +59,7 @@ const CONFIG = {
   manualMilestones: [
     // Plan 1
     { icon: "🚀", text: "Trainingsstart",                               dateISO: "2026-03-31", date: "31.03.2026", week: "W1"  },
-    { icon: "🏁", text: "Erstes Rennen: MyWhoosh Criterium (Pl. 8/12)", dateISO: "2026-05-12", date: "12.05.2026", week: "W7"  },
+    { icon: "🏁", text: "Erstes Rennen: MyWhoosh Criterium (Pl. 21/23 · Gr. 5/7)", dateISO: "2026-05-12", date: "12.05.2026", week: "W7"  },
     { icon: "💯", text: 'Erster 100km-Ride — "Irgendwie einfach"',      dateISO: "2026-06-05", date: "05.06.2026", week: "W10" },
     { icon: "🎯", text: "FTP Ramp Test: 193W bestätigt",               dateISO: "2026-06-12", date: "12.06.2026", week: "W11" },
     { icon: "🥇", text: "PB: NP 200W · 29,6 km/h Schnitt",            dateISO: "2026-06-17", date: "17.06.2026", week: "W12" },
