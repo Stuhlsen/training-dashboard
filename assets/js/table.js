@@ -238,11 +238,11 @@ const Table = {
           ${feelCell}
           <td class="col-weather">${r.weather ? (() => {
             const w = r.weather;
-            const hot   = w.temp > 28;
+            const hot   = w.temp > 32;
             const cold  = w.temp < 5;
-            const windy = w.wind > 30 || w.windSpeed > 30;
+            const windy = (w.windSpeed || w.wind || 0) > 30;
             const rainy = (w.precip || 0) > 0.5;
-            const bad = (hot?1:0)+(cold?1:0)+((w.windSpeed||w.wind||0)>30?1:0)+(rainy?1:0);
+            const bad = (hot?1:0)+(cold?1:0)+(windy?1:0)+(rainy?1:0);
             const col = (bad >= 2 || hot || (windy && rainy)) ? "var(--red)"
                       : bad === 1 ? "var(--gold)"
                       : "var(--green)";

@@ -1278,22 +1278,28 @@ const Charts = {
       weekMap[wk].rides.push(r);
     }
 
-    // Wochen in Trainingsreihenfolge sortieren
-    const weeks = Object.values(weekMap).sort((a, b) =>
+    // Wochen in Trainingsreihenfolge sortieren, mit Lücke zwischen Plan 1 und Plan 2
+    const rawWeeks = Object.values(weekMap).sort((a, b) =>
       CONFIG.weekIndex(a.week) - CONFIG.weekIndex(b.week)
     );
 
     const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
-    const data = weeks.map(w => ({
+    const data = rawWeeks.map(w => ({
       week: w.week,
       temp: Math.round(mean(w.temps) * 10) / 10,
       wind: Math.round(mean(w.winds) * 10) / 10,
       precip: Math.round(w.precips.reduce((a, b) => a + b, 0) * 10) / 10,
       rides: w.rides,
+      isP2: w.week.startsWith("P2-"),
     }));
 
-    const PPW = 52; // Pixel pro Woche
-    const W = Math.max(780, data.length * PPW + 80);
+    // Virtuellen Lücken-Slot zwischen Plan 1 und Plan 2 einrechnen
+    const p2Idx = data.findIndex(d => d.isP2);
+    const GAP_SLOTS = p2Idx > 0 ? 1.5 : 0; // 1.5 extra Slots als Lücke
+    const totalSlots = data.length + GAP_SLOTS;
+
+    const PPW = 52;
+    const W = Math.max(780, totalSlots * PPW + 80);
     const H = 240, pad = { l: 50, r: 50, t: 20, b: 40 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
 
@@ -1308,21 +1314,23 @@ const Charts = {
     const minT = Math.min(Math.min(...temps) - 3, 0);
     const maxW = Math.max(...winds, 30) * 1.15;
 
-    const xMid  = (i) => pad.l + (i + 0.5) * (cw / data.length);
+    // Slot-Index berücksichtigt die Gap zwischen Plan 1 und Plan 2
+    const slotIndex = (i) => p2Idx > 0 && i >= p2Idx ? i + GAP_SLOTS : i;
+    const xMid  = (i) => pad.l + (slotIndex(i) + 0.5) * (cw / totalSlots);
     const yTemp = (t) => pad.t + ch - ((t - minT) / (maxT - minT)) * ch;
     const yWind = (w) => pad.t + ch - (w / maxW) * ch;
-    const barW  = Math.max(10, (cw / data.length) - 6);
+    const barW  = Math.max(10, (cw / totalSlots) - 6);
 
     // Ampel-Farbe: grün/gelb/rot nach Bedingung
     const condColor = (d) => {
-      const hot   = d.temp > 28;
+      const hot   = d.temp > 32;   // angehoben: 28→32°C
       const cold  = d.temp < 5;
       const windy = d.wind > 30;
       const rainy = d.precip > 0.5;
       const bad = (hot ? 1 : 0) + (cold ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
-      if (bad >= 2 || hot || windy && rainy) return "#c45c5c";   // rot
-      if (bad === 1) return "#c9a84c";                           // gelb
-      return "#5c9e6e";                                          // grün
+      if (bad >= 2 || hot || (windy && rainy)) return "#c45c5c";
+      if (bad === 1) return "#c9a84c";
+      return "#5c9e6e";
     };
 
     // Grid Y Temp (links)
@@ -1335,7 +1343,7 @@ const Charts = {
       svg.appendChild(lbl);
     }
 
-    // Grid Y Wind (rechts) — leicht transparent
+    // Grid Y Wind (rechts)
     const wStep = 10;
     for (let w = 0; w <= maxW; w += wStep) {
       const y = yWind(w);
@@ -1370,9 +1378,15 @@ const Charts = {
         svg.appendChild(rain);
       }
 
-      // Temp-Label im Balken
+      // Temp-Label: mittig im Balken, aber Windpunkt ausweichen
       if (bh > 16) {
-        const tl = svgEl("text", { x: xMid(i), y: y + bh / 2 + 4, "text-anchor": "middle", fill: "#141210", "font-size": "8", "font-weight": "600" });
+        const windY = yWind(d.wind);
+        let labelY = y + bh / 2 + 4;
+        // Wenn Label zu nah am Windpunkt — nach unten verschieben
+        if (Math.abs(labelY - windY) < 10) labelY = windY + 12;
+        // Nicht aus dem Balken rauslaufen
+        labelY = Math.min(labelY, y + bh - 4);
+        const tl = svgEl("text", { x: xMid(i), y: labelY, "text-anchor": "middle", fill: "#141210", "font-size": "8", "font-weight": "600" });
         tl.textContent = d.temp + "°";
         svg.appendChild(tl);
       }
@@ -1386,11 +1400,13 @@ const Charts = {
       const hit = svgEl("rect", { x: xMid(i) - barW / 2 - 2, y: pad.t, width: barW + 4, height: ch, fill: "transparent" });
       hit.style.cursor = "pointer";
       const icons = [
-        d.temp < 5 ? "🥶" : d.temp > 28 ? "🔥" : "🌡️",
-        d.precip > 0.5 ? `🌧️ ${d.precip}mm` : "",
-        d.wind > 30 ? `💨 ${d.wind} km/h` : `🌬️ ${d.wind} km/h`,
+        d.temp < 5 ? "🥶" : d.temp > 32 ? "🔥" : "🌡️",
+        d.precip > 0.5 ? `🌧 ${d.precip}mm` : "",
+        d.wind > 30 ? `💨 ${d.wind} km/h` : `🌬 ${d.wind} km/h`,
       ].filter(Boolean).join(" · ");
-      const condLabel = condColor(d) === "#5c9e6e" ? "✅ Gute Bedingungen" : condColor(d) === "#c9a84c" ? "⚠️ Suboptimal" : "❌ Schwierige Bedingungen";
+      const condLabel = condColor(d) === "#5c9e6e" ? "✅ Gute Bedingungen"
+        : condColor(d) === "#c9a84c" ? "⚠️ Suboptimal"
+        : "❌ Schwierige Bedingungen";
       hit.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${d.week} · ${d.rides.length} Fahrt${d.rides.length > 1 ? "en" : ""}</div>
         <div class="tv">${icons}</div>
@@ -1416,14 +1432,21 @@ const Charts = {
       }));
     });
 
-    // Plan-Divider wenn Plan 1 + Plan 2
-    const p2Start = data.findIndex(d => d.week.startsWith("P2-"));
+    // Plan-Divider: in der Mitte der Lücke zwischen Plan 1 und Plan 2
+    const p2Start = data.findIndex(d => d.isP2);
     if (p2Start > 0) {
-      const dx = pad.l + p2Start * (cw / data.length);
-      svg.appendChild(svgEl("line", { x1: dx, y1: pad.t, x2: dx, y2: pad.t + ch, stroke: "#e07b39", "stroke-width": "1.5", "stroke-dasharray": "4,3", opacity: "0.5" }));
-      const dl = svgEl("text", { x: dx + 4, y: pad.t + 10, fill: "#e07b39", "font-size": "8", "font-weight": "600" });
-      dl.textContent = "Plan 2 →";
-      svg.appendChild(dl);
+      // Divider liegt in der Mitte des Gap-Bereichs
+      const dx = pad.l + (slotIndex(p2Start) - GAP_SLOTS / 2) * (cw / totalSlots);
+      svg.appendChild(svgEl("line", {
+        x1: dx, y1: pad.t, x2: dx, y2: pad.t + ch,
+        stroke: "#e07b39", "stroke-width": "1.5", "stroke-dasharray": "4,3", opacity: "0.6",
+      }));
+      const lp1 = svgEl("text", { x: dx - 6, y: pad.t + 10, "text-anchor": "end", fill: "#6b6158", "font-size": "8", "font-weight": "600" });
+      lp1.textContent = "← Plan 1";
+      svg.appendChild(lp1);
+      const lp2 = svgEl("text", { x: dx + 6, y: pad.t + 10, "text-anchor": "start", fill: "#e07b39", "font-size": "8", "font-weight": "600" });
+      lp2.textContent = "Plan 2 →";
+      svg.appendChild(lp2);
     }
   },
 

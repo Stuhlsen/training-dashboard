@@ -148,6 +148,28 @@ tr:hover td { background: var(--card-alt); }
   cursor: help;
 }
 
+/* ── Table Legend ────────────────────────────────────────────── */
+.table-legend {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.table-legend-group {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.table-legend-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: 56px;
+}
+
 /* ── Table note ──────────────────────────────────────────────── */
 .table-note {
   font-size: 0.7rem;
