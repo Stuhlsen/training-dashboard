@@ -17,7 +17,7 @@ Persönliches Radsport-Trainingsdashboard — statisch, kostenfrei, vollautomati
 Notion DB (Plan 1) ──────────────────────────────────────────┐
                                                               │
 intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)       │
-                  ──→ Wellness (RHF, HRV, Schlaf)            ├──→ generate-data.js
+                  ──→ Wellness (RHF, HRV, Schlaf, Gewicht)   ├──→ generate-data.js
                   ──→ Power Curves (Bestleistungen)          │         │
                                                               │         ▼
 data/subjective.json ──→ Befinden Plan 2 (via Dashboard)    ─┘   data/rides.json
@@ -45,10 +45,10 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 | Block | Charts |
 |---|---|
 | 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches Volumen (phasengefärbt, 200km-Zielzone), TRIMP pro Woche (absoluter Farbgradient grün→rot) |
-| ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert) |
+| ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche, W/kg-Toggle), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert) |
 | ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV Vorher/Nachher-Slider, Ruhepuls Vorher/Nachher-Slider, Schlaf (Dauer + Schlaf-HF kombiniert, täglich) |
 
-**Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus der intervals.icu API. Roter Bereich über der FTP-Linie = anaerobe Reserve.
+**Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus der intervals.icu API. Roter Bereich über der FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu Wellness).
 
 **TRIMP Farbskala:** grün = <400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = >900 (sehr hoch). Erholungswochen sind bewusst grün.
 
@@ -74,6 +74,7 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 | CTL / ATL / TSB | Notion (manuell berechnet) | intervals.icu (automatisch) |
 | Einheitsname & Typ | Notion | Datum-Mapping aus Trainingsplan → IF-Inferenz aus NP/FTP |
 | Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health (automatisch) |
+| Körpergewicht | — | intervals.icu Wellness (Apple Health Sync) → W/kg in Power Curve |
 | Schlaf (Dauer, Schlaf-HF) | — | intervals.icu (Apple Health Sync, täglich) |
 | Befinden | Notion (manuell) | Dropdown im Dashboard → `data/subjective.json` → GitHub API |
 | Notizen | Notion | `data/subjective.json` |
@@ -135,14 +136,21 @@ Token beim ersten Speichern im Dashboard-Dropdown eingeben — wird im `localSto
 
 ### Git-Workflow
 
-Die GitHub Action committed Daten automatisch alle 6h. Der `git sync` Alias holt vor jedem Push automatisch die aktuelle `subjective.json` aus GitHub — damit werden Befinden-Einträge nie überschrieben:
+Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` ist lokal per `skip-worktree` geschützt — Git ignoriert lokale Änderungen an der Datei, sodass sie nie versehentlich überschrieben wird:
 
 ```powershell
 # Einmalig einrichten
-git config --global alias.sync "!git fetch origin && git checkout origin/main -- data/subjective.json 2>/dev/null || true && git push --force-with-lease origin main"
+git update-index --skip-worktree data/subjective.json
+git config --global alias.sync "!git fetch origin && git push --force-with-lease origin main"
 
 # Danach immer nur noch
 git sync
+```
+
+Falls `subjective.json` bewusst lokal bearbeitet werden soll:
+
+```powershell
+git update-index --no-skip-worktree data/subjective.json
 ```
 
 ---
@@ -186,11 +194,12 @@ git sync
 - [x] IF-basierte Typ-Inferenz für außerplanmäßige Plan-2-Fahrten
 - [x] Pages-Deploy direkt in Sync-Action integriert
 - [x] Git-Alias `git sync` mit automatischem subjective.json-Schutz
+- [x] W/kg-Toggle in Power Curve (Körpergewicht aus intervals.icu Wellness / Apple Health)
 
 **Geplant — Dashboard & Training**
+- [ ] Wetter-Integration via Open-Meteo API — historische Wetterdaten (Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag) pro Fahrt automatisch zuordnen. Koordinaten: Senftenberg. Ziel: Wetter-Icons im Fahrtenbuch, Temperatur-vs-HF-Analyse (Cardiac Drift), Kontext für auffällige Trainingstage
 - [ ] Wochennotizen im Fahrtenbuch editierbar (aktuell nur Befinden)
 - [ ] Vergleichsansicht Plan 1 vs. Plan 2 — CTL-Kurve beider Pläne nebeneinander
-- [ ] W/kg-Anzeige in der Power Curve (Körpergewicht aus intervals.icu Wellness)
 - [ ] Kadenz-Ziel-Tracking: Anteil der Fahrten über 90 RPM
 - [ ] Herzfrequenz-Zonen-Verteilung pro Fahrt (Z1–Z5 als Balken im Fahrtenbuch)
 
