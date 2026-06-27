@@ -187,15 +187,34 @@ git sync
 - [x] Pages-Deploy direkt in Sync-Action integriert
 - [x] Git-Alias `git sync` mit automatischem subjective.json-Schutz
 
-**Geplant**
+**Geplant — Dashboard & Training**
 - [ ] Wochennotizen im Fahrtenbuch editierbar (aktuell nur Befinden)
 - [ ] Vergleichsansicht Plan 1 vs. Plan 2 — CTL-Kurve beider Pläne nebeneinander
 - [ ] W/kg-Anzeige in der Power Curve (Körpergewicht aus intervals.icu Wellness)
 - [ ] Kadenz-Ziel-Tracking: Anteil der Fahrten über 90 RPM
 - [ ] Herzfrequenz-Zonen-Verteilung pro Fahrt (Z1–Z5 als Balken im Fahrtenbuch)
-- [ ] Postman Collection für intervals.icu + Notion API (QA-Portfolio)
-- [ ] Selenium-Testfälle für Dashboard-UI (QA-Portfolio)
-- [ ] STLC-Dokumentation als verlinktes Dokument (QA-Portfolio)
+
+**Geplant — Manuelles Testen (QA-Portfolio)**
+- [ ] Testplan für Dashboard-Funktionalität (Navigation, Filter, Dropdown, Charts)
+- [ ] Strukturierte Testfälle nach ISTQB-Standard (Äquivalenzklassen, Grenzwerte)
+- [ ] Bug-Reports für gefundene Defekte als GitHub Issues
+- [ ] Testbericht mit Testergebnis-Zusammenfassung
+
+**Geplant — API-Testing & Mocking (QA-Portfolio)**
+- [ ] Postman Collection für intervals.icu API (Rides, Wellness, Power Curves)
+- [ ] Postman Collection für Notion API (Plan 1 Datenbank)
+- [ ] WireMock-Stubs für intervals.icu und Notion API — entkoppeltes Testen ohne echte API
+- [ ] Automatisierte API-Tests gegen WireMock in GitHub Actions integrieren
+
+**Geplant — Automatisierung (QA-Portfolio)**
+- [ ] Selenium-Testfälle für Dashboard-UI (Tab-Navigation, Chart-Rendering, Dropdown)
+- [ ] XPath-Selektoren für stabile Element-Lokalisierung
+- [ ] Testautomatisierung in GitHub Actions CI-Pipeline integrieren
+
+**Geplant — Docker (QA-Portfolio)**
+- [ ] `Dockerfile` für lokale Entwicklung — kein Node.js-Setup nötig
+- [ ] Docker-Container für `generate-data.js` Sync-Skript
+- [ ] `docker-compose.yml` für vollständige lokale Entwicklungsumgebung
 
 ---
 
