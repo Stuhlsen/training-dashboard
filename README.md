@@ -21,6 +21,7 @@ intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)       │
                   ──→ Power Curves (Bestleistungen)          │         │
                                                               │         ▼
 Open-Meteo API ────→ Historisches Wetter (Senftenberg) ──────┤   data/rides.json
+               ────→ Wetter-Forecast (bis 16 Tage)          │         │
                                                               │         │
 data/subjective.json ──→ Befinden Plan 2 (via Dashboard)    ─┘         │
                                                                         │
@@ -49,7 +50,7 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 | 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches Volumen (phasengefärbt, 200km-Zielzone), TRIMP pro Woche (absoluter Farbgradient grün→rot) |
 | ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche, W/kg-Toggle), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert) |
 | ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV Vorher/Nachher-Slider, Ruhepuls Vorher/Nachher-Slider, Schlaf (Dauer + Schlaf-HF kombiniert, täglich) |
-| 🌤️ Wetterbedingungen | Temperatur vs. Herzfrequenz Scatter (Cardiac Drift-Analyse, Trendlinie mit bpm/°C) |
+| 🌤️ Wetterbedingungen | Temperatur & Wind pro Woche (Balken + Windlinie, Ampel-Farbcodierung) |
 
 **Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus der intervals.icu API. Roter Bereich über der FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu Wellness).
 
@@ -59,10 +60,13 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 
 **Heatmap:** Farbskala grün→gelb→orange→rot nach Fahrtenhäufigkeit pro Wochentag. Samstag ist mit Abstand der aktivste Tag.
 
-**Wetter:** Historische Wetterdaten von Open-Meteo (Senftenberg) werden pro Fahrt automatisch zugeordnet — Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag. Plan-2-Fahrten bekommen Wetter für den exakten Fahrtzeitraum, Plan-1-Fahrten den Tagesdurchschnitt. Im Fahrtenbuch als kompakte Spalte mit Wetter-Icon, Temperatur und Windstärke. Der Scatter-Chart zeigt den Zusammenhang zwischen Außentemperatur und Herzfrequenz (Cardiac Drift).
+**Wetter:** Historische Wetterdaten von Open-Meteo (Senftenberg) werden pro Fahrt automatisch zugeordnet — Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag. Plan-2-Fahrten bekommen Wetter für den exakten Fahrtzeitraum, Plan-1-Fahrten den Tagesdurchschnitt. Im Fahrtenbuch als farbcodierte Ampel-Spalte (grün/gelb/rot). Wochenbalken-Chart zeigt Temperaturverlauf und Windentwicklung über den gesamten Trainingszeitraum.
 
 ### Tab: Fahrtenbuch
-Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion-Öffnen nötig. Wetter-Spalte zeigt Icon, Temperatur und Windstärke (Hover für Details).
+Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion nötig. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip (Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Bewölkung, Niederschlag). Legende für Befinden und Wetter unterhalb der Tabelle. Tab-Position bleibt beim Reload erhalten (URL-Hash).
+
+### Tab: Planung
+Alle geplanten Trainingseinheiten bis W12 auf einen Blick. Sessions werden automatisch als "erledigt" markiert sobald eine Fahrt mit passendem Datum in intervals.icu erfasst wird. Wetter-Forecast via Open-Meteo (bis 16 Tage voraus) zeigt Bedingungen für kommende Sessions. Strukturierte Intervall-Workouts (Sweet Spot / Schwelle / VO₂max) können per Knopfdruck zu intervals.icu gepusht werden — von dort landen sie automatisch auf dem Wahoo ELEMNT Roam.
 
 ### Tab: Analyse
 Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stärken & Entwicklungsfelder.
@@ -83,7 +87,9 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 | Schlaf (Dauer, Schlaf-HF) | — | intervals.icu (Apple Health Sync, täglich) |
 | Befinden | Notion (manuell) | Dropdown im Dashboard → `data/subjective.json` → GitHub API |
 | Notizen | Notion | `data/subjective.json` |
-| Wetter | Notion (manuell) | Open-Meteo Archive API (Senftenberg, stündlich, automatisch) |
+| Wetter (historisch) | Notion (manuell) | Open-Meteo Archive API (Senftenberg, stündlich, automatisch) |
+| Wetter (Forecast) | — | Open-Meteo Forecast API (bis 16 Tage, für Planungs-Tab) |
+| Geplante Sessions | — | `PLANNED_SESSIONS` in `generate-data.js` → `data/rides.json` |
 
 **Typ-Inferenz Plan 2:** Fahrten ohne Trainingsplan-Match bekommen ihren Typ automatisch aus NP ÷ FTP berechnet (Intensity Factor). Priorität: `subjective.json` > Trainingsplan-Datum-Mapping > IF-Berechnung.
 
@@ -140,6 +146,10 @@ Repository: `training-dashboard` · Permissions: **Contents = Read and write**
 
 Token beim ersten Speichern im Dashboard-Dropdown eingeben — wird im `localStorage` gespeichert.
 
+### Workout-Push zu intervals.icu einrichten
+
+Im Planungs-Tab können strukturierte Workouts direkt zu intervals.icu gepusht werden. Beim ersten Klick auf "Workout pushen" werden API-Key und Athlete-ID abgefragt und im `localStorage` gespeichert. Die Workouts erscheinen anschließend in intervals.icu und werden beim nächsten Wahoo-Sync auf den ELEMNT Roam übertragen.
+
 ### Git-Workflow
 
 Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` ist lokal per `skip-worktree` geschützt — Git ignoriert lokale Änderungen an der Datei, sodass sie nie versehentlich überschrieben wird:
@@ -167,66 +177,70 @@ git update-index --no-skip-worktree data/subjective.json
 
 | Block | Wochen | Intensität | Do-Intervall | Sa-Z2 |
 |---|---|---|---|---|
-| Sweet Spot | W1–W3 | 88–94% FTP | 3×10 → 3×12 → 2×20 min | 70–100 km |
+| Sweet Spot | W1–W3 | 84–97% FTP | 3×10 → 3×12 → 2×20 min | 70–100 km |
 | Erholung | W4 | Volumen −50% | nur Z2 locker | 60 km |
 | Schwelle | W5–W7 | 95–105% FTP | 3×8 → 3×10 → 2×20 min | 80–100 km |
 | Erholung | W8 | Volumen −50% | nur Z2 locker | 60 km |
-| VO2max | W9–W11 | 106–120% FTP | 5×3 → 6×3 → 4×4 min | 80–100 km |
+| VO₂max | W9–W11 | 106–120% FTP | 5×3 → 6×3 → 4×4 min | 80–100 km |
 | Taper + Test | W12 | Ausleiten | Aktivierung | Ramp-Test |
 
-**Wochenstruktur:** Di Gruppenfahrt · Do Strukturierte Intervalle · Sa Lange Z2 (HF ≤150 bpm)  
+**Wochenstruktur:** Di Gruppenfahrt · Do Strukturierte Intervalle · Sa Lange Z2 (HF ≤152 bpm)  
 **Equipment:** Favero Assioma PRO MX-1 Power Meter · Wahoo ELEMNT Roam v3 · TRACKR Brustgurt
 
 ---
 
 ## Roadmap
 
-**Abgeschlossen**
-- [x] Dashboard auf GitHub Pages
+### ✅ Abgeschlossen — Dashboard & Training
+- [x] Dashboard auf GitHub Pages (statisch, kein Backend)
 - [x] Dual-Source Sync: Plan 1 (Notion) + Plan 2 (intervals.icu)
 - [x] intervals.icu API — Rides, Wellness, Schlaf, Power Curves
 - [x] PMC-Chart (CTL/ATL/TSB) mit Sweet-Spot-Zone, Plan-Divider, scrollbar
-- [x] Power Curve aus intervals.icu `/power-curves` API mit anaerober Reserve-Fläche
+- [x] Power Curve aus intervals.icu mit anaerober Reserve-Fläche und W/kg-Toggle
 - [x] Wöchentliches Volumen mit 200km-Zielzone und Phasenfarben
 - [x] TRIMP mit absolutem Farbgradient (grün→rot nach trainingswiss. Grenzwerten)
 - [x] Scrollbare Charts — neue Daten verlängern automatisch nach rechts
 - [x] Aerobe Entkopplung (Pw:Hr), HRV & Ruhepuls Vorher/Nachher-Slider
 - [x] Schlaf-Chart täglich (Dauer + Schlaf-HF, unabhängig von Rides)
-- [x] Aktivitäts-Heatmap (grün→rot Farbskala) in der Übersicht
+- [x] Aktivitäts-Heatmap in der Übersicht
 - [x] Meilensteine als Gantt-Diagramm mit Phasen und Hover-Details
 - [x] IQR-Ausreißerfilter in Small-Multiple-Charts (Kadenz, Tempo, HF)
-- [x] Notion Plan 2 vollständig abgelöst durch intervals.icu + subjective.json
 - [x] Befinden-Dropdown im Fahrtenbuch mit GitHub API Write
 - [x] IF-basierte Typ-Inferenz für außerplanmäßige Plan-2-Fahrten
-- [x] Pages-Deploy direkt in Sync-Action integriert
-- [x] Git-Alias `git sync` mit automatischem subjective.json-Schutz
 - [x] W/kg-Toggle in Power Curve (Körpergewicht aus intervals.icu Wellness / Apple Health)
-- [x] Wetter-Integration via Open-Meteo API — historisches Wetter pro Fahrt (Temperatur, Wind, Niederschlag), Wetter-Spalte im Fahrtenbuch, Temperatur-vs-HF-Analyse
+- [x] Wetter-Integration via Open-Meteo — historisches Wetter pro Fahrt, Ampel-Farbcodierung, Wochenbalken-Chart mit Windlinie
+- [x] Planungs-Tab mit Wetter-Forecast, Workout-Visualisierung und Push zu intervals.icu
+- [x] Tab-Position bleibt beim Reload erhalten (URL-Hash)
 
-**Geplant — Dashboard & Training**
+### ✅ Abgeschlossen — Infrastruktur
+- [x] Pages-Deploy direkt in Sync-Action integriert (kein separater Workflow)
+- [x] `subjective.json` per `skip-worktree` vor versehentlichem Überschreiben geschützt
+- [x] Git-Alias `git sync` für sicheren Push trotz Action-Auto-Commits
+
+### 🔲 Geplant — Dashboard & Training
 - [ ] Wochennotizen im Fahrtenbuch editierbar (aktuell nur Befinden)
 - [ ] Vergleichsansicht Plan 1 vs. Plan 2 — CTL-Kurve beider Pläne nebeneinander
 - [ ] Kadenz-Ziel-Tracking: Anteil der Fahrten über 90 RPM
 - [ ] Herzfrequenz-Zonen-Verteilung pro Fahrt (Z1–Z5 als Balken im Fahrtenbuch)
 
-**Geplant — Manuelles Testen (QA-Portfolio)**
+### 🔲 Geplant — Manuelles Testen (QA-Portfolio)
 - [ ] Testplan für Dashboard-Funktionalität (Navigation, Filter, Dropdown, Charts)
 - [ ] Strukturierte Testfälle nach ISTQB-Standard (Äquivalenzklassen, Grenzwerte)
 - [ ] Bug-Reports für gefundene Defekte als GitHub Issues
 - [ ] Testbericht mit Testergebnis-Zusammenfassung
 
-**Geplant — API-Testing & Mocking (QA-Portfolio)**
+### 🔲 Geplant — API-Testing & Mocking (QA-Portfolio)
 - [ ] Postman Collection für intervals.icu API (Rides, Wellness, Power Curves)
 - [ ] Postman Collection für Notion API (Plan 1 Datenbank)
 - [ ] WireMock-Stubs für intervals.icu und Notion API — entkoppeltes Testen ohne echte API
 - [ ] Automatisierte API-Tests gegen WireMock in GitHub Actions integrieren
 
-**Geplant — Automatisierung (QA-Portfolio)**
+### 🔲 Geplant — Automatisierung (QA-Portfolio)
 - [ ] Selenium-Testfälle für Dashboard-UI (Tab-Navigation, Chart-Rendering, Dropdown)
 - [ ] XPath-Selektoren für stabile Element-Lokalisierung
 - [ ] Testautomatisierung in GitHub Actions CI-Pipeline integrieren
 
-**Geplant — Docker (QA-Portfolio)**
+### 🔲 Geplant — Docker (QA-Portfolio)
 - [ ] `Dockerfile` für lokale Entwicklung — kein Node.js-Setup nötig
 - [ ] Docker-Container für `generate-data.js` Sync-Skript
 - [ ] `docker-compose.yml` für vollständige lokale Entwicklungsumgebung
