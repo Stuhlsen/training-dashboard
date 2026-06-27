@@ -452,6 +452,20 @@
 }
 .planned-push-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
+.planned-cancelled-title { margin-top: 32px; }
+
+.planned-cancelled-item {
+  opacity: 0.7;
+  text-decoration: none;
+  border-left: 2px solid var(--red);
+}
+
+.planned-cancelled-reason {
+  font-size: 0.7rem;
+  color: var(--red);
+  opacity: 0.8;
+}
+
 .planned-move-btn {
   font-size: 0.72rem;
   padding: 4px 12px;
@@ -463,6 +477,18 @@
   transition: all 0.15s;
 }
 .planned-move-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+.planned-cancel-btn {
+  font-size: 0.72rem;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.planned-cancel-btn:hover { border-color: var(--red); color: var(--red); }
 
 .planned-push-status {
   font-size: 0.72rem;

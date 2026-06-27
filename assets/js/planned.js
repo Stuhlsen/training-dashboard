@@ -34,6 +34,12 @@ const Adjustments = {
     return t;
   },
 
+  async cancel(origDate, reason) {
+    if (!this._data) this._data = {};
+    this._data[origDate] = { cancelled: true, reason: reason || "", savedAt: new Date().toISOString() };
+    return await this._write(`plan: ${origDate} ausgefallen${reason ? " (" + reason + ")" : ""}`);
+  },
+
   async save(origDate, movedTo, reason) {
     if (!this._data) this._data = {};
     this._data[origDate] = { movedTo, reason: reason || "", savedAt: new Date().toISOString() };
@@ -272,20 +278,28 @@ const Planned = {
     // Sessions mit Adjustments anwenden
     const allSessions = Data.plannedSessions.map(s => {
       const adj = Adjustments.get(s.date);
+      if (adj?.cancelled) {
+        return { ...s, cancelled: true, cancelReason: adj.reason };
+      }
       if (adj?.movedTo) {
         return { ...s, originalDate: s.date, date: adj.movedTo, movedReason: adj.reason };
       }
       return s;
     });
 
-    // Sessions filtern: nur zukünftige oder heutige, nicht absolvierte
+    // Sessions filtern: nur zukünftige oder heutige, nicht absolvierte, nicht ausgefallen
     const sessions = allSessions
-      .filter(s => s.date >= today && !doneDates.has(s.date))
+      .filter(s => s.date >= today && !doneDates.has(s.date) && !s.cancelled)
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Bereits absolvierte Sessions
     const doneSessions = allSessions
-      .filter(s => doneDates.has(s.date))
+      .filter(s => doneDates.has(s.date) && !s.cancelled)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    // Ausgefallene Sessions
+    const cancelledSessions = allSessions
+      .filter(s => s.cancelled)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     if (!sessions.length && !doneSessions.length) {
@@ -296,6 +310,7 @@ const Planned = {
     // Fortschritt berechnen
     const totalSessions = Data.plannedSessions.length;
     const doneCount = doneSessions.length;
+    const cancelledCount = cancelledSessions.length;
     const pct = Math.round(doneCount / totalSessions * 100);
     const currentWeek = sessions[0]?.week?.replace("P2-", "") || "W12";
     const weeksLeft = new Set(sessions.map(s => s.week)).size;
@@ -325,6 +340,11 @@ const Planned = {
               <span class="planned-progress-val">${currentWeek}</span>
               <span class="planned-progress-lbl">aktuell</span>
             </div>
+            ${cancelledCount > 0 ? `
+            <div class="planned-progress-stat">
+              <span class="planned-progress-val" style="color:var(--red)">${cancelledCount}</span>
+              <span class="planned-progress-lbl">ausgefallen</span>
+            </div>` : ""}
           </div>
           <div class="planned-progress-bar-wrap">
             <div class="planned-progress-bar" style="width:${pct}%"></div>
@@ -376,6 +396,23 @@ const Planned = {
         </div>`;
     }
 
+    // Ausgefallene Sessions (kompakt)
+    if (cancelledSessions.length) {
+      html += `
+        <div class="planned-section-title planned-cancelled-title">❌ Ausgefallen — ${cancelledSessions.length} Sessions</div>
+        <div class="planned-done-list">
+          ${cancelledSessions.map(s => `
+            <div class="planned-done-item planned-cancelled-item">
+              <span class="planned-done-icon">${this._typIcon(s.typ)}</span>
+              <span class="planned-done-date">${this._fmtDate(s.date)}</span>
+              <span class="planned-done-name">${s.name}</span>
+              ${s.cancelReason ? `<span class="planned-cancelled-reason">${s.cancelReason}</span>` : ""}
+              <button class="planned-undo-btn planned-undo-cancel-btn" data-orig="${s.date}" style="margin-left:auto">↩ Wiederherstellen</button>
+            </div>
+          `).join("")}
+        </div>`;
+    }
+
     container.innerHTML = html;
 
     // Push-Buttons verdrahten
@@ -388,7 +425,12 @@ const Planned = {
       btn.addEventListener("click", () => this._handleMove(btn));
     });
 
-    // Verschiebung rückgängig
+    // Ausgefallen-Buttons verdrahten
+    container.querySelectorAll(".planned-cancel-btn").forEach(btn => {
+      btn.addEventListener("click", () => this._handleCancel(btn));
+    });
+
+    // Rückgängig-Buttons verdrahten (Verschiebung + Ausgefallen)
     container.querySelectorAll(".planned-undo-btn").forEach(btn => {
       btn.addEventListener("click", () => this._handleUndo(btn));
     });
@@ -585,9 +627,50 @@ const Planned = {
         <div class="planned-card-actions">
           ${hasWorkout ? `<button class="planned-push-btn" data-date="${s.originalDate || s.date}" data-name="${s.name}">📤 Workout zu intervals.icu pushen</button>` : ""}
           <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}">📅 Verschieben</button>
+          <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">❌ Ausgefallen</button>
           <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
         </div>
       </div>`;
+  },
+
+  /* ── Ausgefallen-Handler ───────────────────────────────────── */
+  async _handleCancel(btn) {
+    const origDate = btn.dataset.orig;
+    const name = btn.dataset.name;
+    const card = btn.closest(".planned-card");
+    if (card.querySelector(".planned-cancel-form")) return;
+
+    const form = document.createElement("div");
+    form.className = "planned-move-form planned-cancel-form";
+    form.innerHTML = `
+      <div class="planned-move-form-inner">
+        <label class="planned-move-label">❌ Session als ausgefallen markieren</label>
+        <input type="text" class="planned-move-reason" placeholder="Grund (z.B. Krank, Erschöpfung, Regen…)" maxlength="60">
+        <div class="planned-move-actions">
+          <button class="planned-cancel-confirm" style="border-color:var(--red); color:var(--red)">❌ Als ausgefallen markieren</button>
+          <button class="planned-move-cancel">✕ Abbrechen</button>
+        </div>
+        <div class="planned-move-status"></div>
+      </div>`;
+
+    btn.insertAdjacentElement("afterend", form);
+    form.querySelector(".planned-move-reason").focus();
+
+    form.querySelector(".planned-move-cancel").addEventListener("click", () => form.remove());
+
+    form.querySelector(".planned-cancel-confirm").addEventListener("click", async () => {
+      const reason = form.querySelector(".planned-move-reason").value.trim();
+      const statusEl = form.querySelector(".planned-move-status");
+
+      statusEl.textContent = "⏳ Speichern…";
+      const ok = await Adjustments.cancel(origDate, reason);
+      if (ok) {
+        statusEl.textContent = "✅ Gespeichert";
+        setTimeout(() => Planned.render(Data.byDate()), 800);
+      } else {
+        statusEl.textContent = "❌ Fehler — Token korrekt?";
+      }
+    });
   },
 
   /* ── Verschieben-Handler ───────────────────────────────────── */
