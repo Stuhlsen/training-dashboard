@@ -82,6 +82,7 @@
 /* ── Table ───────────────────────────────────────────────────── */
 table {
   width: 100%;
+  min-width: 1200px;
   border-collapse: collapse;
   font-size: 0.78rem;
 }
@@ -106,6 +107,8 @@ th {
 
 th:hover  { color: var(--text); }
 th.sorted { color: var(--accent); }
+th.col-nosort { cursor: default; }
+th.col-nosort:hover { color: var(--dim); }
 
 th .sort-icon { opacity: 0.3; margin-left: 2px; font-size: 0.65rem; }
 th.sorted .sort-icon { opacity: 1; }

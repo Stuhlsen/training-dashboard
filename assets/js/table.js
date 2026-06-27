@@ -101,7 +101,7 @@ const Table = {
     { k: "trimp",     l: "TRIMP"                    },
     { k: "ctl",       l: "CTL"                      },
     { k: "feel",      l: "Befinden"                 },
-    { k: "weather",   l: "Wetter"                    },
+    { k: "weather",   l: "Wetter",   noSort: true   },
   ],
 
   /* ── Öffentliche API ─────────────────────────────────────────── */
@@ -177,6 +177,7 @@ const Table = {
     // Header
     const thead = el("table-head");
     thead.innerHTML = this.COLS.map(c => {
+      if (c.noSort) return `<th class="col-nosort">${c.l}</th>`;
       const sortKey = c.sk || c.k;
       const sorted  = this.state.sortCol === sortKey;
       const icon    = sorted ? (this.state.sortDir === "asc" ? "↑" : "↓") : "↕";
@@ -186,7 +187,7 @@ const Table = {
         </th>`;
     }).join("");
 
-    thead.querySelectorAll("th").forEach(th =>
+    thead.querySelectorAll("th[data-sort]").forEach(th =>
       th.addEventListener("click", () => {
         const col = th.dataset.sort;
         if (this.state.sortCol === col) {
