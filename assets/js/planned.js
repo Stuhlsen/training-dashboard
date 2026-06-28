@@ -287,9 +287,9 @@ const Planned = {
       return s;
     });
 
-    // Sessions filtern: nur zukünftige oder heutige, nicht absolvierte, nicht ausgefallen
+    // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
-      .filter(s => s.date >= today && !doneDates.has(s.date) && !s.cancelled)
+      .filter(s => (s.date >= today || s.originalDate) && !doneDates.has(s.date) && !s.cancelled)
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Bereits absolvierte Sessions (Ride mit passendem Datum vorhanden)
@@ -299,7 +299,7 @@ const Planned = {
 
     // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben
     const missedSessions = allSessions
-      .filter(s => s.date < today && !doneDates.has(s.date) && !s.cancelled)
+      .filter(s => s.date < today && !doneDates.has(s.date) && !s.cancelled && !s.originalDate)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Ausgefallene Sessions
