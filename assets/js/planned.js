@@ -292,9 +292,14 @@ const Planned = {
       .filter(s => s.date >= today && !doneDates.has(s.date) && !s.cancelled)
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Bereits absolvierte Sessions
+    // Bereits absolvierte Sessions (Ride mit passendem Datum vorhanden)
     const doneSessions = allSessions
       .filter(s => doneDates.has(s.date) && !s.cancelled)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben
+    const missedSessions = allSessions
+      .filter(s => s.date < today && !doneDates.has(s.date) && !s.cancelled)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Ausgefallene Sessions
@@ -311,6 +316,7 @@ const Planned = {
     const totalSessions = Data.plannedSessions.length;
     const doneCount = doneSessions.length;
     const cancelledCount = cancelledSessions.length;
+    const missedCount = missedSessions.length;
     const pct = Math.round(doneCount / totalSessions * 100);
     const currentWeek = sessions[0]?.week?.replace("P2-", "") || "W12";
     const weeksLeft = new Set(sessions.map(s => s.week)).size;
@@ -344,6 +350,11 @@ const Planned = {
             <div class="planned-progress-stat">
               <span class="planned-progress-val" style="color:var(--red)">${cancelledCount}</span>
               <span class="planned-progress-lbl">ausgefallen</span>
+            </div>` : ""}
+            ${missedCount > 0 ? `
+            <div class="planned-progress-stat">
+              <span class="planned-progress-val" style="color:var(--gold)">${missedCount}</span>
+              <span class="planned-progress-lbl">verpasst</span>
             </div>` : ""}
           </div>
           <div class="planned-progress-bar-wrap">
@@ -396,7 +407,23 @@ const Planned = {
         </div>`;
     }
 
-    // Ausgefallene Sessions (kompakt)
+    // Verpasste Sessions — vergangen ohne Ride-Match
+    if (missedSessions.length) {
+      html += `
+        <div class="planned-section-title" style="color:var(--gold)">⚠️ Verpasst — ${missedSessions.length} Sessions ohne Fahrt</div>
+        <div class="planned-done-list">
+          ${missedSessions.map(s => `
+            <div class="planned-done-item" style="border-left:2px solid var(--gold); opacity:0.8">
+              <span class="planned-done-icon">${this._typIcon(s.typ)}</span>
+              <span class="planned-done-date">${this._fmtDate(s.originalDate || s.date)}</span>
+              <span class="planned-done-name">${s.name}</span>
+              <span style="font-size:0.7rem;color:var(--gold);margin-left:auto">kein Ride erfasst</span>
+              <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
+              <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>
+            </div>
+          `).join("")}
+        </div>`;
+    }
     if (cancelledSessions.length) {
       html += `
         <div class="planned-section-title planned-cancelled-title">❌ Ausgefallen — ${cancelledSessions.length} Sessions</div>
