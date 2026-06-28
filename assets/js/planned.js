@@ -15,8 +15,13 @@ const Adjustments = {
   async load() {
     try {
       const res = await fetch("data/adjustments.json?_=" + Date.now());
-      this._data = res.ok ? await res.json() : {};
+      if (res.ok) {
+        this._data = await res.json();
+      } else {
+        this._data = {};
+      }
     } catch { this._data = {}; }
+    // Mit Data.adjustments mergen (aus rides.json als Fallback)
     this._data = { ...(Data.adjustments || {}), ...this._data };
     return this._data;
   },
@@ -683,7 +688,9 @@ const Planned = {
       const ok = await Adjustments.cancel(origDate, reason);
       if (ok) {
         statusEl.textContent = "✅ Gespeichert";
-        setTimeout(() => Planned.render(Data.byDate()), 800);
+        Adjustments._data = null;
+        await Adjustments.load();
+        Planned.render(Data.byDate());
       } else {
         statusEl.textContent = "❌ Fehler — Token korrekt?";
       }
@@ -730,7 +737,9 @@ const Planned = {
       const ok = await Adjustments.save(origDate, newDate, reason);
       if (ok) {
         statusEl.textContent = "✅ Gespeichert";
-        setTimeout(() => Planned.render(Data.byDate()), 800);
+        Adjustments._data = null;
+        await Adjustments.load();
+        Planned.render(Data.byDate());
       } else {
         statusEl.textContent = "❌ Fehler beim Speichern";
       }
@@ -744,6 +753,8 @@ const Planned = {
     btn.disabled = true;
     const ok = await Adjustments.remove(origDate);
     if (ok) {
+      Adjustments._data = null;
+      await Adjustments.load();
       Planned.render(Data.byDate());
     } else {
       btn.textContent = "❌ Fehler";
