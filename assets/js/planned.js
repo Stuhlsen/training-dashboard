@@ -653,8 +653,8 @@ const Planned = {
   /* ── Ausgefallen-Handler ───────────────────────────────────── */
   async _handleCancel(btn) {
     const origDate = btn.dataset.orig;
-    const name = btn.dataset.name;
-    const card = btn.closest(".planned-card");
+    const card = btn.closest(".planned-card") || btn.closest(".planned-done-item");
+    if (!card) return;
     if (card.querySelector(".planned-cancel-form")) return;
 
     const form = document.createElement("div");
@@ -695,8 +695,9 @@ const Planned = {
     const origDate = btn.dataset.orig;
     const currentDate = btn.dataset.current;
 
-    // Inline-Formular einblenden
-    const card = btn.closest(".planned-card");
+    // Nächstmöglicher Container (Karte oder Done-Item)
+    const card = btn.closest(".planned-card") || btn.closest(".planned-done-item");
+    if (!card) return;
     if (card.querySelector(".planned-move-form")) return;
 
     const form = document.createElement("div");
