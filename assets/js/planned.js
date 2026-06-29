@@ -151,6 +151,20 @@ window.Planned = {
     return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
   },
 
+  _openInTable(date) {
+    window._activateTab("table");
+    setTimeout(() => Table.highlightByDate(date), 50);
+  },
+
+  scrollToDate(date) {
+    const item = document.querySelector(`.planned-done-item--link[data-ride-date="${date}"], .done-card-link[data-ride-date="${date}"]`);
+    if (item) {
+      item.closest(".planned-card, .planned-done-item") ?.classList.add("row-highlight");
+      item.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => item.closest(".planned-card, .planned-done-item")?.classList.remove("row-highlight"), 2500);
+    }
+  },
+
   /* ── Wetter-Forecast laden (Open-Meteo, bis 16 Tage) ───────── */
   async _loadForecast() {
     if (this._forecastCache) return this._forecastCache;
@@ -410,21 +424,34 @@ window.Planned = {
       }
     }
 
-    // Erledigte Sessions (kompakt)
+    // Erledigte Sessions — Plan 1 kompakt, Plan 2 als vollständige Vergleichskarte
     if (doneSessions.length) {
-      html += `
-        <div class="planned-section-title planned-done-title">✅ Absolviert — ${doneSessions.length} Sessions</div>
-        <div class="planned-done-list">
-          ${doneSessions.slice(0, 10).map(s => `
-            <div class="planned-done-item">
+      const doneP2 = doneSessions.filter(s => s.plan === "Plan 2" || Data.rides.find(r => r.date === s.date && r.plan === "Plan 2"));
+      const doneP1 = doneSessions.filter(s => !doneP2.includes(s));
+
+      html += `<div class="planned-section-title planned-done-title">✅ Absolviert — ${doneSessions.length} Sessions</div>`;
+
+      // Plan 2 — vollständige Vergleichskarten
+      if (doneP2.length) {
+        html += `<div class="planned-cards">
+          ${doneP2.map(s => this._renderDoneCard(s, rides)).join("")}
+        </div>`;
+      }
+
+      // Plan 1 — kompakte Liste
+      if (doneP1.length) {
+        html += `<div class="planned-done-list">
+          ${doneP1.map(s => `
+            <div class="planned-done-item planned-done-item--link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen">
               <span class="planned-done-icon">${this._typIcon(s.typ)}</span>
               <span class="planned-done-date">${this._fmtDate(s.date)}</span>
               <span class="planned-done-name">${s.name}</span>
               <span class="planned-done-check">✓</span>
+              <span class="planned-done-link-icon">↗</span>
             </div>
           `).join("")}
-          ${doneSessions.length > 10 ? `<div class="planned-done-more">+ ${doneSessions.length - 10} weitere im Fahrtenbuch</div>` : ""}
         </div>`;
+      }
     }
 
     // Verpasste Sessions — vergangen ohne Ride-Match
@@ -462,21 +489,23 @@ window.Planned = {
 
     container.innerHTML = html;
 
-    // Event Delegation — einmalig auf Container setzen
-    if (!container._delegationSet) {
-      container._delegationSet = true;
-      container.addEventListener("click", (e) => {
-        const moveBtn   = e.target.closest(".planned-move-btn");
-        const cancelBtn = e.target.closest(".planned-cancel-btn");
-        const pushBtn   = e.target.closest(".planned-push-btn");
-        const undoBtn   = e.target.closest(".planned-undo-btn");
+    // Event Delegation — neu auf Container setzen (innerHTML wurde ersetzt)
+    container.addEventListener("click", (e) => {
+      const moveBtn   = e.target.closest(".planned-move-btn");
+      const cancelBtn = e.target.closest(".planned-cancel-btn");
+      const pushBtn   = e.target.closest(".planned-push-btn");
+      const undoBtn   = e.target.closest(".planned-undo-btn");
+      const doneItem  = e.target.closest(".planned-done-item--link");
 
-        if (moveBtn)   Planned._handleMove(moveBtn);
-        if (cancelBtn) Planned._handleCancel(cancelBtn);
-        if (pushBtn)   Planned._handlePush(pushBtn);
-        if (undoBtn)   Planned._handleUndo(undoBtn);
-      });
-    }
+      if (moveBtn)   Planned._handleMove(moveBtn);
+      if (cancelBtn) Planned._handleCancel(cancelBtn);
+      if (pushBtn)   Planned._handlePush(pushBtn);
+      if (undoBtn)   Planned._handleUndo(undoBtn);
+      if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
+        const date = doneItem.dataset.rideDate;
+        if (date) Planned._openInTable(date);
+      }
+    });
   },
 
   /* ── Einzel-Karte ──────────────────────────────────────────── */
@@ -663,6 +692,139 @@ window.Planned = {
           <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">❌ Ausgefallen</button>
           <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
         </div>
+      </div>`;
+  },
+
+  /* ── Abgeschlossene Plan-2-Karte mit Geplant vs. Tatsächlich ── */
+  _renderDoneCard(s, rides) {
+    const col = this._typColor(s.typ);
+    const icon = this._typIcon(s.typ);
+    const wd = this._weekday(s.date);
+    const fd = this._fmtDate(s.date);
+
+    // Tatsächliche Fahrt aus rides
+    const ride = rides.find(r => r.date === s.date && r.plan === "Plan 2");
+
+    // Vergleichszeilen bauen
+    let compareHtml = "";
+    if (ride) {
+      const rows = [];
+
+      // Distanz
+      if (s.km && ride.km) {
+        const diff = Math.round((ride.km - s.km) * 10) / 10;
+        const ok = Math.abs(diff) <= s.km * 0.15;
+        const col2 = ok ? "var(--green)" : diff > 0 ? "var(--green)" : "var(--gold)";
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">📍 Distanz</span>
+            <span class="done-compare-plan">${s.km} km</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual" style="color:${col2}">${fmt(ride.km)} km</span>
+            <span class="done-compare-diff" style="color:${col2}">${diff > 0 ? "+" : ""}${diff} km</span>
+          </div>`);
+      }
+
+      // Herzfrequenz
+      if (ride.hf) {
+        const hfOk = ride.hf >= 123 && ride.hf <= 152;
+        const hfCol = (s.typ === "Z2 Lang" || s.typ === "Z2 Dauer")
+          ? (hfOk ? "var(--green)" : "var(--gold)")
+          : "var(--text)";
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">❤️ Ø HF</span>
+            <span class="done-compare-plan">${s.typ?.includes("Z2") ? "123–152 bpm" : "–"}</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual" style="color:${hfCol}">${ride.hf} bpm</span>
+            ${ride.hfMax ? `<span class="done-compare-diff" style="color:var(--dim)">max ${ride.hfMax}</span>` : ""}
+          </div>`);
+      }
+
+      // Watt (nur wenn Workout mit Zielwatt)
+      if (ride.watt && s.workout?.watts) {
+        const [wLow, wHigh] = s.workout.watts;
+        const wOk = ride.watt >= wLow && ride.watt <= wHigh;
+        const wCol = wOk ? "var(--green)" : ride.watt > wHigh ? "var(--gold)" : "var(--red)";
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">⚡ Ø Watt</span>
+            <span class="done-compare-plan">${wLow}–${wHigh} W</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual" style="color:${wCol}">${ride.watt} W</span>
+            ${ride.np ? `<span class="done-compare-diff" style="color:var(--dim)">NP ${ride.np} W</span>` : ""}
+          </div>`);
+      } else if (ride.watt) {
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">⚡ Ø Watt</span>
+            <span class="done-compare-plan">–</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual">${ride.watt} W</span>
+            ${ride.np ? `<span class="done-compare-diff" style="color:var(--dim)">NP ${ride.np} W</span>` : ""}
+          </div>`);
+      }
+
+      // Kadenz
+      if (ride.kad) {
+        const kadOk = ride.kad >= 85;
+        const kadCol = kadOk ? "var(--green)" : "var(--gold)";
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">🔄 Kadenz</span>
+            <span class="done-compare-plan">≥85 RPM</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual" style="color:${kadCol}">${ride.kad} RPM</span>
+          </div>`);
+      }
+
+      // Dauer
+      if (ride.min) {
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">⏱ Dauer</span>
+            <span class="done-compare-plan">${s.workout ? s.workout.warmup + (s.workout.duration * s.workout.intervals) + (s.workout.rest * (s.workout.intervals - 1)) + s.workout.cooldown + " min" : "–"}</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual">${ride.min} min</span>
+          </div>`);
+      }
+
+      // Befinden
+      const subj = Subjective ? Subjective.get(s.date) : null;
+      const feelVal = subj?.feel || ride.feel || "";
+      if (feelVal) {
+        const feel = normalizeFeel(feelVal);
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">😌 Befinden</span>
+            <span class="done-compare-plan">–</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual"><span class="feel feel-${feel.cls}">${feel.label}</span></span>
+          </div>`);
+      }
+
+      compareHtml = rows.length ? `
+        <div class="done-compare-block">
+          <div class="done-compare-title">Geplant → Tatsächlich</div>
+          ${rows.join("")}
+        </div>` : "";
+    }
+
+    return `
+      <div class="planned-card planned-card--done" style="border-left-color:${col}">
+        <div class="planned-card-header">
+          <div class="planned-card-title">
+            <span class="planned-card-icon">${icon}</span>
+            <span class="planned-card-name">${s.name}</span>
+            <span class="done-badge">✓ Absolviert</span>
+          </div>
+          <div class="planned-card-meta">
+            <span class="planned-card-date">${wd} ${fd}</span>
+            ${s.originalDate ? `<span style="font-size:0.75rem;color:var(--dim)">verschoben von ${this._fmtDate(s.originalDate)}</span>` : ""}
+            <button class="planned-done-item--link done-card-link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.75rem;color:var(--dim)">↗ Fahrtenbuch</button>
+          </div>
+        </div>
+        ${compareHtml}
       </div>`;
   },
 
