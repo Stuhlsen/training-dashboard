@@ -8,7 +8,7 @@
    ============================================================ */
 
 // === Adjustments GitHub-Sync ===
-const Adjustments = {
+window.Adjustments = {
   _data: null,
   _token: null,
 
@@ -102,7 +102,7 @@ const Adjustments = {
   },
 };
 
-const Planned = {
+window.Planned = {
 
   /* ── Wetter-Forecast Cache ─────────────────────────────────── */
   _forecastCache: null,
