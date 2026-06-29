@@ -631,3 +631,41 @@
   color: var(--dim2);
   margin-left: auto;
 }
+
+/* ── Done Card Header (neu) ──────────────────────────────────── */
+.done-card-header {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.done-card-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.done-moved-label {
+  font-size: 0.7rem;
+  color: var(--gold);
+}
+
+/* done-badge kleiner und dezenter */
+.done-badge {
+  font-size: 0.62rem !important;
+  font-weight: 700 !important;
+  color: var(--green) !important;
+  background: #5c9e6e18 !important;
+  border: 1px solid #5c9e6e44 !important;
+  border-radius: 20px !important;
+  padding: 1px 6px !important;
+  letter-spacing: 0.03em !important;
+}
+
+/* done-card-link immer in der Header-Zeile, nie überlappend */
+.done-card-link {
+  margin-left: auto !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+}

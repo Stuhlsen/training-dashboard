@@ -701,6 +701,9 @@ window.Planned = {
     const icon = this._typIcon(s.typ);
     const wd = this._weekday(s.date);
     const fd = this._fmtDate(s.date);
+    const isZ2 = s.typ === "Z2 Lang" || s.typ === "Z2 Dauer";
+    const isInterval = !!s.workout;
+    const isGroup = s.typ === "Gruppenfahrt";
 
     // Tatsächliche Fahrt aus rides
     const ride = rides.find(r => r.date === s.date && r.plan === "Plan 2");
@@ -711,81 +714,121 @@ window.Planned = {
       const rows = [];
 
       // Distanz
-      if (s.km && ride.km) {
-        const diff = Math.round((ride.km - s.km) * 10) / 10;
-        const ok = Math.abs(diff) <= s.km * 0.15;
-        const col2 = ok ? "var(--green)" : diff > 0 ? "var(--green)" : "var(--gold)";
+      if (ride.km) {
+        const planned = s.km || null;
+        const diff = planned ? Math.round((ride.km - planned) * 10) / 10 : null;
+        const col2 = !planned ? "var(--text)"
+          : Math.abs(diff) <= planned * 0.15 ? "var(--green)"
+          : diff > 0 ? "var(--green)" : "var(--gold)";
         rows.push(`
           <div class="done-compare-row">
             <span class="done-compare-label">📍 Distanz</span>
-            <span class="done-compare-plan">${s.km} km</span>
+            <span class="done-compare-plan">${planned ? planned + " km" : "–"}</span>
             <span class="done-compare-arrow">→</span>
             <span class="done-compare-actual" style="color:${col2}">${fmt(ride.km)} km</span>
-            <span class="done-compare-diff" style="color:${col2}">${diff > 0 ? "+" : ""}${diff} km</span>
+            ${diff != null ? `<span class="done-compare-diff" style="color:${col2}">${diff > 0 ? "+" : ""}${diff} km</span>` : ""}
           </div>`);
       }
 
-      // Herzfrequenz
+      // Herzfrequenz — mit echtem Zielbereich je Typ
       if (ride.hf) {
-        const hfOk = ride.hf >= 123 && ride.hf <= 152;
-        const hfCol = (s.typ === "Z2 Lang" || s.typ === "Z2 Dauer")
-          ? (hfOk ? "var(--green)" : "var(--gold)")
-          : "var(--text)";
+        let hfPlan = "–", hfCol = "var(--text)";
+        if (isZ2) {
+          hfPlan = "123–152 bpm";
+          hfCol = (ride.hf >= 123 && ride.hf <= 152) ? "var(--green)" : "var(--gold)";
+        } else if (isInterval) {
+          hfPlan = "167–181 bpm";
+          hfCol = (ride.hf >= 160) ? "var(--green)" : "var(--gold)";
+        } else if (isGroup) {
+          hfPlan = "Gruppenfahrt";
+        }
         rows.push(`
           <div class="done-compare-row">
             <span class="done-compare-label">❤️ Ø HF</span>
-            <span class="done-compare-plan">${s.typ?.includes("Z2") ? "123–152 bpm" : "–"}</span>
+            <span class="done-compare-plan">${hfPlan}</span>
             <span class="done-compare-arrow">→</span>
             <span class="done-compare-actual" style="color:${hfCol}">${ride.hf} bpm</span>
             ${ride.hfMax ? `<span class="done-compare-diff" style="color:var(--dim)">max ${ride.hfMax}</span>` : ""}
           </div>`);
       }
 
-      // Watt (nur wenn Workout mit Zielwatt)
-      if (ride.watt && s.workout?.watts) {
-        const [wLow, wHigh] = s.workout.watts;
-        const wOk = ride.watt >= wLow && ride.watt <= wHigh;
-        const wCol = wOk ? "var(--green)" : ride.watt > wHigh ? "var(--gold)" : "var(--red)";
+      // Watt
+      if (ride.watt) {
+        let wPlan = "–", wCol = "var(--text)";
+        if (s.workout?.watts) {
+          const [wLow, wHigh] = s.workout.watts;
+          wPlan = `${wLow}–${wHigh} W`;
+          wCol = (ride.watt >= wLow && ride.watt <= wHigh) ? "var(--green)"
+               : ride.watt > wHigh ? "var(--gold)" : "var(--red)";
+        }
         rows.push(`
           <div class="done-compare-row">
             <span class="done-compare-label">⚡ Ø Watt</span>
-            <span class="done-compare-plan">${wLow}–${wHigh} W</span>
+            <span class="done-compare-plan">${wPlan}</span>
             <span class="done-compare-arrow">→</span>
             <span class="done-compare-actual" style="color:${wCol}">${ride.watt} W</span>
             ${ride.np ? `<span class="done-compare-diff" style="color:var(--dim)">NP ${ride.np} W</span>` : ""}
           </div>`);
-      } else if (ride.watt) {
-        rows.push(`
-          <div class="done-compare-row">
-            <span class="done-compare-label">⚡ Ø Watt</span>
-            <span class="done-compare-plan">–</span>
-            <span class="done-compare-arrow">→</span>
-            <span class="done-compare-actual">${ride.watt} W</span>
-            ${ride.np ? `<span class="done-compare-diff" style="color:var(--dim)">NP ${ride.np} W</span>` : ""}
-          </div>`);
       }
 
-      // Kadenz
+      // Kadenz — für alle Typen
       if (ride.kad) {
-        const kadOk = ride.kad >= 85;
+        const kadTarget = isZ2 ? 80 : 85;
+        const kadOk = ride.kad >= kadTarget;
         const kadCol = kadOk ? "var(--green)" : "var(--gold)";
         rows.push(`
           <div class="done-compare-row">
             <span class="done-compare-label">🔄 Kadenz</span>
-            <span class="done-compare-plan">≥85 RPM</span>
+            <span class="done-compare-plan">≥${kadTarget} RPM</span>
             <span class="done-compare-arrow">→</span>
             <span class="done-compare-actual" style="color:${kadCol}">${ride.kad} RPM</span>
           </div>`);
       }
 
-      // Dauer
+      // Dauer — Schätzung aus km/Tempo für Z2
       if (ride.min) {
+        let durPlan = "–";
+        if (isInterval && s.workout) {
+          const w = s.workout;
+          const total = w.warmup + (w.duration * w.intervals) + (w.rest * (w.intervals - 1)) + w.cooldown;
+          durPlan = `${total} min`;
+        } else if (s.km) {
+          const avgKmh = isZ2 ? 22 : isGroup ? 26 : 23;
+          durPlan = `~${Math.round(s.km / avgKmh * 60)} min`;
+        }
         rows.push(`
           <div class="done-compare-row">
             <span class="done-compare-label">⏱ Dauer</span>
-            <span class="done-compare-plan">${s.workout ? s.workout.warmup + (s.workout.duration * s.workout.intervals) + (s.workout.rest * (s.workout.intervals - 1)) + s.workout.cooldown + " min" : "–"}</span>
+            <span class="done-compare-plan">${durPlan}</span>
             <span class="done-compare-arrow">→</span>
             <span class="done-compare-actual">${ride.min} min</span>
+          </div>`);
+      }
+
+      // TRIMP/TSS
+      if (ride.trimp) {
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">📊 TRIMP</span>
+            <span class="done-compare-plan">–</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual">${ride.trimp}</span>
+            ${ride.ctl != null ? `<span class="done-compare-diff" style="color:var(--dim)">CTL ${fmt(ride.ctl)}</span>` : ""}
+          </div>`);
+      }
+
+      // Wetter
+      if (ride.weather) {
+        const w = ride.weather;
+        const hot = w.temp > 32, windy = (w.windSpeed || 0) > 30, rainy = (w.precip || 0) > 0.5;
+        const bad = (hot?1:0)+(windy?1:0)+(rainy?1:0);
+        const wCol = bad >= 2 || hot ? "var(--red)" : bad === 1 ? "var(--gold)" : "var(--green)";
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">🌤️ Wetter</span>
+            <span class="done-compare-plan">–</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual" style="color:${wCol}">${weatherIcon(w.weatherCode)} ${w.temp}°C · ${Math.round(w.windSpeed||0)} km/h</span>
           </div>`);
       }
 
@@ -812,16 +855,16 @@ window.Planned = {
 
     return `
       <div class="planned-card planned-card--done" style="border-left-color:${col}">
-        <div class="planned-card-header">
+        <div class="planned-card-header done-card-header">
           <div class="planned-card-title">
             <span class="planned-card-icon">${icon}</span>
             <span class="planned-card-name">${s.name}</span>
-            <span class="done-badge">✓ Absolviert</span>
+            <span class="done-badge">✓</span>
           </div>
-          <div class="planned-card-meta">
+          <div class="done-card-header-right">
             <span class="planned-card-date">${wd} ${fd}</span>
-            ${s.originalDate ? `<span style="font-size:0.75rem;color:var(--dim)">verschoben von ${this._fmtDate(s.originalDate)}</span>` : ""}
-            <button class="planned-done-item--link done-card-link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen" style="margin-left:auto;background:none;border:1px solid var(--border);border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.75rem;color:var(--dim)">↗ Fahrtenbuch</button>
+            ${s.originalDate ? `<span class="done-moved-label">↪ ${this._fmtDate(s.originalDate)}</span>` : ""}
+            <button class="planned-done-item--link done-card-link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen">↗ Fahrtenbuch</button>
           </div>
         </div>
         ${compareHtml}
