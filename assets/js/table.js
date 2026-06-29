@@ -148,6 +148,25 @@ window.Table = {
     this.render();
   },
 
+  /** Fahrt per Datum highlighten und scrollen (aufgerufen vom Planungs-Tab) */
+  highlightByDate(date) {
+    // Filter zurücksetzen damit Fahrt sichtbar ist
+    this.state.phase  = "Alle";
+    this.state.weekF  = null;
+    this.state.search = "";
+    this.state.sortCol = "dateISO";
+    this.state.sortDir = "desc";
+    this.render();
+
+    setTimeout(() => {
+      const row = document.querySelector(`tr[data-date="${date}"]`);
+      if (!row) return;
+      row.classList.add("row-highlight");
+      row.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => row.classList.remove("row-highlight"), 2500);
+    }, 50);
+  },
+
   /* ── Filter Bar ─────────────────────────────────────────────── */
   _renderFilters() {
     const phases = ["Alle", ...new Set(Data.rides.map(r => r.phase).filter(Boolean))];
@@ -246,10 +265,10 @@ window.Table = {
         : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`;
 
       return `
-        <tr>
+        <tr data-date="${r.dateISO}">
           <td>${r.dateShort}</td>
           <td><span class="tag ${phaseTagClass(r.phase)}">${r.week || "–"}</span></td>
-          <td class="col-name" title="${r.name || ""}">${r.name || "–"}</td>
+          <td class="col-name" title="${r.name || ""}">${r.name || "–"}${r.plan === "Plan 2" ? ` <span class="table-plan-link" data-date="${r.dateISO}" title="Im Planungs-Tab öffnen">📅</span>` : ""}</td>
           <td class="col-typ">${r.typ || "–"}</td>
           <td class="col-bold">${fmt(r.km)}</td>
           <td>${fmtInt(r.min)}</td>
@@ -304,6 +323,16 @@ window.Table = {
         `);
       });
       cell.addEventListener("mouseleave", () => Tooltip.hide());
+    });
+
+    // Planungs-Tab Link für Plan-2-Fahrten
+    tbody.querySelectorAll(".table-plan-link").forEach(icon => {
+      icon.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const date = icon.dataset.date;
+        window._activateTab("planung");
+        setTimeout(() => Planned.scrollToDate(date), 100);
+      });
     });
   },
 

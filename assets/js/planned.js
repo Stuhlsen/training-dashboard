@@ -151,6 +151,23 @@ window.Planned = {
     return d.toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit" });
   },
 
+  _openInTable(date) {
+    window._activateTab("table");
+    setTimeout(() => {
+      Table.highlightByDate(date);
+    }, 50);
+  },
+
+  scrollToDate(date) {
+    // Zuerst in abgeschlossenen Sessions suchen
+    let el = document.querySelector(`.planned-done-item--link[data-ride-date="${date}"]`);
+    if (el) {
+      el.classList.add("row-highlight");
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+      setTimeout(() => el.classList.remove("row-highlight"), 2500);
+    }
+  },
+
   /* ── Wetter-Forecast laden (Open-Meteo, bis 16 Tage) ───────── */
   async _loadForecast() {
     if (this._forecastCache) return this._forecastCache;
@@ -416,11 +433,12 @@ window.Planned = {
         <div class="planned-section-title planned-done-title">✅ Absolviert — ${doneSessions.length} Sessions</div>
         <div class="planned-done-list">
           ${doneSessions.slice(0, 10).map(s => `
-            <div class="planned-done-item">
+            <div class="planned-done-item planned-done-item--link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen">
               <span class="planned-done-icon">${this._typIcon(s.typ)}</span>
               <span class="planned-done-date">${this._fmtDate(s.date)}</span>
               <span class="planned-done-name">${s.name}</span>
               <span class="planned-done-check">✓</span>
+              <span class="planned-done-link-icon">↗</span>
             </div>
           `).join("")}
           ${doneSessions.length > 10 ? `<div class="planned-done-more">+ ${doneSessions.length - 10} weitere im Fahrtenbuch</div>` : ""}
@@ -470,11 +488,16 @@ window.Planned = {
         const cancelBtn = e.target.closest(".planned-cancel-btn");
         const pushBtn   = e.target.closest(".planned-push-btn");
         const undoBtn   = e.target.closest(".planned-undo-btn");
+        const doneItem  = e.target.closest(".planned-done-item--link");
 
         if (moveBtn)   Planned._handleMove(moveBtn);
         if (cancelBtn) Planned._handleCancel(cancelBtn);
         if (pushBtn)   Planned._handlePush(pushBtn);
         if (undoBtn)   Planned._handleUndo(undoBtn);
+        if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
+          const date = doneItem.dataset.rideDate;
+          if (date) Planned._openInTable(date);
+        }
       });
     }
   },
