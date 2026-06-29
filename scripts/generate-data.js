@@ -342,8 +342,8 @@ async function getRecentWeather() {
   console.log(`🌤️  Open-Meteo Forecast (letzte 2 Tage)...`);
   const params = [
     `latitude=${WEATHER_LAT}`, `longitude=${WEATHER_LON}`,
-    `past_days=2`,
-    `forecast_days=0`,
+    `past_days=3`,
+    `forecast_days=1`,
     `hourly=temperature_2m,apparent_temperature,relative_humidity_2m,` +
       `wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,weather_code`,
     `timezone=Europe/Berlin`,
