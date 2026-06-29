@@ -107,6 +107,30 @@ const Table = {
   /* ── Öffentliche API ─────────────────────────────────────────── */
   async init() {
     await Subjective.load();
+
+    // Event Delegation einmalig auf stabilem Container setzen
+    const tableWrap = el("table-body").parentElement.parentElement;
+    tableWrap.addEventListener("change", async (e) => {
+      const sel = e.target.closest(".feel-select");
+      if (!sel) return;
+      const date = sel.dataset.date;
+      const feel = sel.value;
+      sel.disabled = true;
+
+      const ok = await Subjective.save(date, feel, Subjective.get(date).notizen || "");
+
+      sel.disabled = false;
+      const normalized = normalizeFeel(feel);
+      sel.className = `feel-select feel-${normalized.cls}`;
+
+      if (ok) {
+        sel.style.outline = "1px solid var(--green)";
+        setTimeout(() => { sel.style.outline = ""; }, 1500);
+      } else {
+        alert("Speichern fehlgeschlagen. Ist der GitHub Token korrekt?");
+      }
+    });
+
     this.render();
   },
 
@@ -261,30 +285,6 @@ const Table = {
           })() : (r.wetter || "–")}</td>
         </tr>`;
     }).join("");
-
-    // Dropdown Event Listeners
-    tbody.querySelectorAll(".feel-select").forEach(sel => {
-      sel.addEventListener("change", async (e) => {
-        const date = e.target.dataset.date;
-        const feel = e.target.value;
-        const opt = e.target;
-        opt.disabled = true;
-
-        const ok = await Subjective.save(date, feel, Subjective.get(date).notizen || "");
-
-        opt.disabled = false;
-        const normalized = normalizeFeel(feel);
-        opt.className = `feel-select feel-${normalized.cls}`;
-
-        if (ok) {
-          // Visuelles Feedback
-          opt.style.outline = "1px solid var(--green)";
-          setTimeout(() => { opt.style.outline = ""; }, 1500);
-        } else {
-          alert("Speichern fehlgeschlagen. Ist der GitHub Token korrekt?");
-        }
-      });
-    });
 
     // Wetter-Tooltip Event Delegation
     tbody.querySelectorAll(".weather-cell[data-wtemp]").forEach(cell => {
