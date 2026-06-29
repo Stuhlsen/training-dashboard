@@ -12,7 +12,9 @@ const Subjective = {
 
   async load() {
     try {
-      const res = await fetch("data/subjective.json?_=" + Date.now());
+      const res = await fetch(
+        "https://raw.githubusercontent.com/Stuhlsen/training-dashboard/main/data/subjective.json?_=" + Date.now()
+      );
       if (!res.ok) { this._data = {}; return this._data; }
       this._data = await res.json();
     } catch { this._data = {}; }

@@ -14,14 +14,16 @@ window.Adjustments = {
 
   async load() {
     try {
-      const res = await fetch("data/adjustments.json?_=" + Date.now());
+      // raw.githubusercontent.com umgeht den GitHub Pages CDN-Cache
+      const res = await fetch(
+        "https://raw.githubusercontent.com/Stuhlsen/training-dashboard/main/data/adjustments.json?_=" + Date.now()
+      );
       if (res.ok) {
         this._data = await res.json();
       } else {
         this._data = {};
       }
     } catch { this._data = {}; }
-    // Mit Data.adjustments mergen (aus rides.json als Fallback)
     this._data = { ...(Data.adjustments || {}), ...this._data };
     return this._data;
   },
