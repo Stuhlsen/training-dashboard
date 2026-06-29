@@ -284,7 +284,7 @@ window.Table = {
               data-wcond="${condLabel}"
               data-wicon="${weatherIcon(w.weatherCode)}"
             >${weatherIcon(w.weatherCode)} ${w.temp}°C · ${wind} km/h</span>`;
-          })() : (r.wetter || "–")}</td>
+          })() : r.wetter ? `<span style="color:var(--text-muted)">${r.wetter}</span>` : "–"}</td>
         </tr>`;
     }).join("");
 
