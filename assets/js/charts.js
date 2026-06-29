@@ -3,7 +3,7 @@
    Neue Charts: Effizienz, Scatterplot, Heatmap, TSB
    ============================================================ */
 
-const Charts = {
+window.Charts = {
 
   /* ── Gemeinsame SVG-Helfer ──────────────────────────────────── */
 

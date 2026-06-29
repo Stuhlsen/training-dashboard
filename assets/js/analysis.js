@@ -4,7 +4,7 @@
    Plan-Vergleich, Stärken/Entwicklung
    ============================================================ */
 
-const Analysis = {
+window.Analysis = {
 
   _allRides: [],
 

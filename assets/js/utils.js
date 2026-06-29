@@ -57,7 +57,7 @@ const svgEl = (tag, attrs = {}) => {
 };
 
 /* ── Tooltip ─────────────────────────────────────────────────── */
-const Tooltip = {
+window.Tooltip = {
   _el: null,
 
   init() {

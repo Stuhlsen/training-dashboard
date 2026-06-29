@@ -4,7 +4,7 @@
    Fallback: Eingebettete STATIC_RIDES (für lokale Entwicklung)
    ============================================================ */
 
-const Data = {
+window.Data = {
 
   rides: [],
   wellness: [],

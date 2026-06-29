@@ -2,7 +2,7 @@
    OVERVIEW.JS — Hero, Metriken, Meilensteine
    ============================================================ */
 
-const Overview = {
+window.Overview = {
 
   render(rides) {
     this._renderHero(rides);

@@ -3,7 +3,7 @@
    Hier anpassen wenn sich Werte ändern — kein Suchen im Code
    ============================================================ */
 
-const CONFIG = {
+window.CONFIG = {
 
   /* ── Plan-Info ─────────────────────────────────────────────── */
   planName:    "Trainingsdashboard",

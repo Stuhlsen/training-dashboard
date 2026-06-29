@@ -3,7 +3,7 @@
    ============================================================ */
 
 // === Befinden GitHub-Sync ===
-const Subjective = {
+window.Subjective = {
   FEEL_OPTIONS: ["Sehr leicht", "Leicht", "Irgendwie einfach", "Moderat", "Irgendwie schwer", "Schwer", "Hart"],
 
   _data: null,
@@ -77,7 +77,7 @@ const Subjective = {
   },
 };
 
-const Table = {
+window.Table = {
 
   state: {
     phase:   "Alle",
