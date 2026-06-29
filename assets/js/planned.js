@@ -697,8 +697,6 @@ const Planned = {
       const result = await Adjustments.cancel(origDate, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
-        Adjustments._data = null;
-        await Adjustments.load();
         Planned.render(Data.byDate());
       } else {
         statusEl.textContent = `❌ ${result.msg || "Fehler — Token korrekt?"}`;
@@ -746,8 +744,7 @@ const Planned = {
       const result = await Adjustments.save(origDate, newDate, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
-        Adjustments._data = null;
-        await Adjustments.load();
+        // Nicht neu laden — _data ist bereits aktuell im Speicher
         Planned.render(Data.byDate());
       } else {
         statusEl.textContent = `❌ ${result.msg || "Fehler beim Speichern"}`;
@@ -762,8 +759,6 @@ const Planned = {
     btn.disabled = true;
     const result = await Adjustments.remove(origDate);
     if (result.ok) {
-      Adjustments._data = null;
-      await Adjustments.load();
       Planned.render(Data.byDate());
     } else {
       btn.textContent = `❌ ${result.msg || "Fehler"}`;
