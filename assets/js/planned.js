@@ -283,10 +283,10 @@ window.Planned = {
 
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
 
-    // Adjustments + Forecast parallel laden
+    // Adjustments + Forecast parallel laden (Adjustments nur beim ersten Render)
     const [forecast] = await Promise.all([
       this._loadForecast(),
-      Adjustments.load(),
+      Adjustments._data === null ? Adjustments.load() : Promise.resolve(Adjustments._data),
     ]);
 
     // Bereits absolvierte Daten
