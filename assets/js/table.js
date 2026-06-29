@@ -150,14 +150,12 @@ window.Table = {
 
   /** Fahrt per Datum highlighten und scrollen (aufgerufen vom Planungs-Tab) */
   highlightByDate(date) {
-    // Filter zurücksetzen damit Fahrt sichtbar ist
     this.state.phase  = "Alle";
     this.state.weekF  = null;
     this.state.search = "";
     this.state.sortCol = "dateISO";
     this.state.sortDir = "desc";
     this.render();
-
     setTimeout(() => {
       const row = document.querySelector(`tr[data-date="${date}"]`);
       if (!row) return;
@@ -330,7 +328,7 @@ window.Table = {
       icon.addEventListener("click", (e) => {
         e.stopPropagation();
         const date = icon.dataset.date;
-        window._activateTab("planung");
+        window._activateTab("planned");
         setTimeout(() => Planned.scrollToDate(date), 100);
       });
     });
