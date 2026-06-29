@@ -337,6 +337,33 @@ async function getHistoricalWeather(startDate, endDate) {
   }
 }
 
+async function getRecentWeather() {
+  // Forecast-API liefert auch vergangene Stunden der letzten Tage (kein Delay wie Archive)
+  console.log(`🌤️  Open-Meteo Forecast (letzte 2 Tage)...`);
+  const params = [
+    `latitude=${WEATHER_LAT}`, `longitude=${WEATHER_LON}`,
+    `past_days=2`,
+    `forecast_days=0`,
+    `hourly=temperature_2m,apparent_temperature,relative_humidity_2m,` +
+      `wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,weather_code`,
+    `timezone=Europe/Berlin`,
+  ].join("&");
+
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+    if (!res.ok) {
+      console.warn(`⚠️  Open-Meteo Forecast (${res.status}): ${await res.text()}`);
+      return null;
+    }
+    const data = await res.json();
+    console.log(`   ... ${data.hourly?.time?.length || 0} Forecast-Stundenwerte geladen`);
+    return data;
+  } catch (e) {
+    console.warn(`⚠️  Open-Meteo Forecast Fehler:`, e.message);
+    return null;
+  }
+}
+
 /**
  * Baut eine Map: "YYYY-MM-DDTHH:00" → { temp, tempFeel, humidity, windSpeed, windDir, precip, cloudCover, weatherCode }
  */
@@ -490,6 +517,10 @@ async function main() {
   const weatherEnd = weatherEndDate.toISOString().split("T")[0];
   const weatherData = await getHistoricalWeather(PLAN1_FIRST_DATE, weatherEnd);
   const weatherMap = buildWeatherMap(weatherData);
+  // Forecast-API für die letzten 2 Tage (überbrückt Archive-Delay)
+  const recentData = await getRecentWeather();
+  const recentMap = buildWeatherMap(recentData);
+  Object.assign(weatherMap, recentMap); // recentMap überschreibt ggf. ältere Archive-Werte
 
   // 2b. Plan 2: intervals.icu + Notion subjektiv
   if (INTERVALS_KEY && INTERVALS_ATHLETE) {
