@@ -460,25 +460,21 @@ const Planned = {
 
     container.innerHTML = html;
 
-    // Push-Buttons verdrahten
-    container.querySelectorAll(".planned-push-btn").forEach(btn => {
-      btn.addEventListener("click", () => this._handlePush(btn));
-    });
+    // Event Delegation — einmalig auf Container setzen
+    if (!container._delegationSet) {
+      container._delegationSet = true;
+      container.addEventListener("click", (e) => {
+        const moveBtn   = e.target.closest(".planned-move-btn");
+        const cancelBtn = e.target.closest(".planned-cancel-btn");
+        const pushBtn   = e.target.closest(".planned-push-btn");
+        const undoBtn   = e.target.closest(".planned-undo-btn");
 
-    // Verschieben-Buttons verdrahten
-    container.querySelectorAll(".planned-move-btn").forEach(btn => {
-      btn.addEventListener("click", () => this._handleMove(btn));
-    });
-
-    // Ausgefallen-Buttons verdrahten
-    container.querySelectorAll(".planned-cancel-btn").forEach(btn => {
-      btn.addEventListener("click", () => this._handleCancel(btn));
-    });
-
-    // Rückgängig-Buttons verdrahten (Verschiebung + Ausgefallen)
-    container.querySelectorAll(".planned-undo-btn").forEach(btn => {
-      btn.addEventListener("click", () => this._handleUndo(btn));
-    });
+        if (moveBtn)   Planned._handleMove(moveBtn);
+        if (cancelBtn) Planned._handleCancel(cancelBtn);
+        if (pushBtn)   Planned._handlePush(pushBtn);
+        if (undoBtn)   Planned._handleUndo(undoBtn);
+      });
+    }
   },
 
   /* ── Einzel-Karte ──────────────────────────────────────────── */
