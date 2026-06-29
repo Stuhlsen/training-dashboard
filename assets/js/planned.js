@@ -52,7 +52,7 @@ const Adjustments = {
   },
 
   async remove(origDate) {
-    if (!this._data?.[origDate]) return true;
+    if (!this._data?.[origDate]) return { ok: true };
     delete this._data[origDate];
     return await this._write(`plan: Verschiebung ${origDate} rückgängig`);
   },
@@ -60,12 +60,21 @@ const Adjustments = {
   async _write(message) {
     let token = this.getToken();
     if (!token) token = this.promptToken();
-    if (!token) return false;
+    if (!token) return { ok: false, msg: "Kein Token" };
     try {
       const infoRes = await fetch(
         "https://api.github.com/repos/Stuhlsen/training-dashboard/contents/data/adjustments.json",
         { headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json" } }
       );
+      if (!infoRes.ok) {
+        const err = await infoRes.json();
+        console.error("GET adjustments.json Fehler:", err);
+        if (infoRes.status === 401) {
+          localStorage.removeItem("gh_token"); this._token = null;
+          return { ok: false, msg: "Token ungültig — bitte Seite neu laden und Token neu eingeben" };
+        }
+        return { ok: false, msg: `GET Fehler ${infoRes.status}: ${err.message}` };
+      }
       const info = await infoRes.json();
       const content = btoa(unescape(encodeURIComponent(JSON.stringify(this._data, null, 2))));
       const putRes = await fetch(
@@ -78,14 +87,18 @@ const Adjustments = {
       );
       if (!putRes.ok) {
         const err = await putRes.json();
-        if (err.message?.includes("Bad credentials")) {
+        console.error("PUT adjustments.json Fehler:", err);
+        if (putRes.status === 401) {
           localStorage.removeItem("gh_token"); this._token = null;
-          alert("Token ungültig. Bitte neu eingeben.");
+          return { ok: false, msg: "Token ungültig — bitte Seite neu laden und Token neu eingeben" };
         }
-        return false;
+        return { ok: false, msg: `PUT Fehler ${putRes.status}: ${err.message}` };
       }
-      return true;
-    } catch (e) { console.error("Adjustments Write Fehler:", e); return false; }
+      return { ok: true };
+    } catch (e) {
+      console.error("Adjustments Write Exception:", e);
+      return { ok: false, msg: e.message };
+    }
   },
 };
 
@@ -658,9 +671,9 @@ const Planned = {
   /* ── Ausgefallen-Handler ───────────────────────────────────── */
   async _handleCancel(btn) {
     const origDate = btn.dataset.orig;
-    const card = btn.closest(".planned-card") || btn.closest(".planned-done-item");
-    if (!card) return;
-    if (card.querySelector(".planned-cancel-form")) return;
+
+    const existing = document.querySelector(".planned-cancel-form");
+    if (existing) { existing.remove(); return; }
 
     const form = document.createElement("div");
     form.className = "planned-move-form planned-cancel-form";
@@ -685,14 +698,14 @@ const Planned = {
       const statusEl = form.querySelector(".planned-move-status");
 
       statusEl.textContent = "⏳ Speichern…";
-      const ok = await Adjustments.cancel(origDate, reason);
-      if (ok) {
+      const result = await Adjustments.cancel(origDate, reason);
+      if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
         Adjustments._data = null;
         await Adjustments.load();
         Planned.render(Data.byDate());
       } else {
-        statusEl.textContent = "❌ Fehler — Token korrekt?";
+        statusEl.textContent = `❌ ${result.msg || "Fehler — Token korrekt?"}`;
       }
     });
   },
@@ -702,17 +715,16 @@ const Planned = {
     const origDate = btn.dataset.orig;
     const currentDate = btn.dataset.current;
 
-    // Nächstmöglicher Container (Karte oder Done-Item)
-    const card = btn.closest(".planned-card") || btn.closest(".planned-done-item");
-    if (!card) return;
-    if (card.querySelector(".planned-move-form")) return;
+    // Existierendes Formular schließen wenn offen
+    const existing = document.querySelector(".planned-move-form");
+    if (existing) { existing.remove(); return; }
 
     const form = document.createElement("div");
     form.className = "planned-move-form";
     form.innerHTML = `
       <div class="planned-move-form-inner">
-        <label class="planned-move-label">Neues Datum</label>
-        <input type="date" class="planned-move-date" value="${currentDate}" min="${new Date().toISOString().split('T')[0]}">
+        <label class="planned-move-label">Neues Datum (auch vergangene Daten möglich)</label>
+        <input type="date" class="planned-move-date" value="${currentDate}">
         <label class="planned-move-label">Grund (optional)</label>
         <input type="text" class="planned-move-reason" placeholder="z.B. Hitze, Regen, Erschöpfung…" maxlength="60">
         <div class="planned-move-actions">
@@ -722,6 +734,7 @@ const Planned = {
         <div class="planned-move-status"></div>
       </div>`;
 
+    // Formular nach dem Button einfügen — egal in welchem Container
     btn.insertAdjacentElement("afterend", form);
 
     form.querySelector(".planned-move-cancel").addEventListener("click", () => form.remove());
@@ -731,17 +744,17 @@ const Planned = {
       const reason = form.querySelector(".planned-move-reason").value.trim();
       const statusEl = form.querySelector(".planned-move-status");
 
-      if (!newDate || newDate === origDate) { form.remove(); return; }
+      if (!newDate) { form.remove(); return; }
 
       statusEl.textContent = "⏳ Speichern…";
-      const ok = await Adjustments.save(origDate, newDate, reason);
-      if (ok) {
+      const result = await Adjustments.save(origDate, newDate, reason);
+      if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
         Adjustments._data = null;
         await Adjustments.load();
         Planned.render(Data.byDate());
       } else {
-        statusEl.textContent = "❌ Fehler beim Speichern";
+        statusEl.textContent = `❌ ${result.msg || "Fehler beim Speichern"}`;
       }
     });
   },
@@ -751,13 +764,13 @@ const Planned = {
     const origDate = btn.dataset.orig;
     btn.textContent = "⏳…";
     btn.disabled = true;
-    const ok = await Adjustments.remove(origDate);
-    if (ok) {
+    const result = await Adjustments.remove(origDate);
+    if (result.ok) {
       Adjustments._data = null;
       await Adjustments.load();
       Planned.render(Data.byDate());
     } else {
-      btn.textContent = "❌ Fehler";
+      btn.textContent = `❌ ${result.msg || "Fehler"}`;
       btn.disabled = false;
     }
   },

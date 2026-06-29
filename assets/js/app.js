@@ -82,8 +82,8 @@ function toggleChartGroup(headerEl) {
   // Table
   Table.init();
 
-  // Planung
-  Planned.render(rides);
+  // Planung — await weil async (Forecast-Load + Listener-Setup)
+  await Planned.render(rides);
 
   // Analysis
   Analysis.render(rides);
