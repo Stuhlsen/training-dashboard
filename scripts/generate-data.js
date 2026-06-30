@@ -520,7 +520,13 @@ function inferTypFromIF(np, min, ftp = FTP) {
   const ifVal = np / ftp;
   // Kurze Fahrten (<30 min) mit hohem IF = Intervall/Test
   if (min < 30 && ifVal > 0.95) return "FTP-Test";
-  if (ifVal < 0.75)              return "Z1 Recovery";
+  if (ifVal < 0.75) {
+    // Niedriger IF allein heißt nicht "Erholung" — lange Fahrten mit
+    // niedrigem NP sind typischerweise Grundlagenausdauer, nicht Recovery
+    if (min >= 120) return "Z2 Lang";
+    if (min >= 60)  return "Z2 Dauer";
+    return "Z1 Recovery";
+  }
   if (ifVal < 0.85)              return "Z2 Dauer";
   if (ifVal < 0.90)              return "Tempo";
   if (ifVal < 0.95)              return "Sweet Spot";
