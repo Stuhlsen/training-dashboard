@@ -90,7 +90,7 @@ async function renderAll(athleteId) {
   const rides = Data.byDate();
   const weekly = Data.weekly();
   const ownPlan = hasOwnPlan();
-  const ftp = ownPlan ? CONFIG.ftp : (Data.rides.find(r => r.np)?.np || null);
+  const ftp = ownPlan ? CONFIG.ftp : (Data.athleteFtp || Data.rides.find(r => r.np)?.np || null);
 
   togglePlanningTabVisibility(ownPlan);
 

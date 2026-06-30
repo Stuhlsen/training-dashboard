@@ -38,7 +38,7 @@ window.Overview = {
     el("hero-kpis").innerHTML = [
       { v: totalKm.toLocaleString("de"), l: "Kilometer",   c: "var(--accent)" },
       { v: rides.length,                 l: "Fahrten",     c: "var(--text)"   },
-      { v: ftpVal ? `${ftpVal}W` : "–", l: ownPlan ? "FTP" : "Bestes NP",         c: "var(--gold)"   },
+      { v: ftpVal ? `${ftpVal}W` : "–", l: ownPlan ? "FTP" : (Data.athleteFtp ? "FTP" : "Bestes NP"),         c: "var(--gold)"   },
       { v: fmtDuration(totalMin),        l: "Trainingszeit",  c: "var(--dim)"    },
     ].map(k => `
       <div class="hero-kpi">
@@ -87,7 +87,7 @@ window.Overview = {
       },
       {
         v: ftpVal ? ftpVal + "W" : "–",
-        l: ownPlan ? "FTP (Ramp Test)" : "Bestes Ø-Watt (NP)",
+        l: ownPlan ? "FTP (Ramp Test)" : (Data.athleteFtp ? "FTP (Ramp Test)" : "Bestes Ø-Watt (NP)"),
         d: ownPlan ? "Gemessene Functional Threshold Power, 12.06.2026" : "Höchster Normalized-Power-Wert einer Fahrt",
         c: "var(--gold)",
       },

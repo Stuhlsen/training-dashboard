@@ -10,6 +10,7 @@ window.Data = {
   wellness: [],
   powerCurves: null,
   athleteWeight: null,
+  athleteFtp: null,
   plannedSessions: [],
   adjustments: {},
   activeAthleteId: "alex",
@@ -30,6 +31,7 @@ window.Data = {
         }));
         this.powerCurves = json.powerCurves || null;
         this.athleteWeight = json.athleteWeight || null;
+        this.athleteFtp = json.ftp || null;
         this.plannedSessions = json.plannedSessions || [];
         this.adjustments = json.adjustments || {};
         return { ok: true, source: "json", updated: json.updated };
@@ -109,9 +111,9 @@ window.Data = {
   ftpValue() {
     const test = this.latestFTP();
     if (test) return test.ftpWatt || test.np || test.watt || CONFIG.ftp;
-    // Fallback nur für eigenen Plan sinnvoll — bei Vergleichsathleten ohne FTP-Test
-    // keinen fremden Wert (CONFIG.ftp) anzeigen, sondern aus NP schätzen oder null
+    // Vergleichsathlet: echte FTP aus dem JSON nutzen, falls vorhanden
     if (this.activeAthleteId !== "alex") {
+      if (this.athleteFtp) return this.athleteFtp;
       const npRides = this.rides.filter(r => r.np).sort((a, b) => b.np - a.np);
       return npRides.length ? npRides[0].np : null;
     }

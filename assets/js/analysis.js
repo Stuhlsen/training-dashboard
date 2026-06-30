@@ -64,7 +64,7 @@ window.Analysis = {
       { v: rides.length,                    l: "Fahrten",        sub: (plan === "all" && ownPlan) ? `${plan1Rides.length} P1 · ${plan2Rides.length} P2` : null },
       { v: totalKm.toLocaleString("de") + " km", l: "Distanz",  sub: `Ø ${avgKm} km/Fahrt` },
       { v: totalH + " h",                   l: "Trainingszeit",  sub: `${totalMin.toLocaleString("de")} min gesamt` },
-      { v: ftpVal ? ftpVal + "W" : "–",      l: ownPlan ? "FTP" : "Bestes NP", sub: ownPlan ? `eFTP ${CONFIG.eFTP}W` : null, color: "var(--accent)" },
+      { v: ftpVal ? ftpVal + "W" : "–",      l: ownPlan ? "FTP" : (Data.athleteFtp ? "FTP" : "Bestes NP"), sub: ownPlan ? `eFTP ${CONFIG.eFTP}W` : null, color: "var(--accent)" },
       { v: maxCTL,                           l: "Peak CTL",       sub: lastTSB != null ? `TSB heute: ${lastTSB > 0 ? "+" : ""}${fmt(lastTSB)}` : null },
       { v: avgHF + " bpm",                  l: "Ø Herzfrequenz", sub: null },
       { v: avgKad + " RPM",                 l: "Ø Kadenz",       sub: ownPlan ? `Ziel: ${CONFIG.cadenceTarget}+ RPM` : null },

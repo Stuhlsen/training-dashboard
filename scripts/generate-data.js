@@ -33,6 +33,7 @@ const INTERVALS_ATHLETE = process.env.INTERVALS_ATHLETE_ID || "";
 const INTERVALS_KEY_2 = process.env.INTERVALS_API_KEY_2 || "";
 const INTERVALS_ATHLETE_2 = process.env.INTERVALS_ATHLETE_ID_2 || "";
 const ATHLETE_2_NAME = "Siggi Lentes";
+const ATHLETE_2_FTP = 265; // letzter Ramp-Test — manuell aktualisieren bei neuem Test
 const OUT_FILE = path.join(__dirname, "..", "data", "rides.json");
 const OUT_FILE_2 = path.join(__dirname, "..", "data", "rides-2.json");
 const SUBJECTIVE_FILE = path.join(__dirname, "..", "data", "subjective.json");
@@ -690,13 +691,13 @@ async function main() {
     const wellness2 = await getIntervalsWellness(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
     const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
 
-    // FTP-Schätzung aus bestem NP einer Fahrt ≥20min (kein Ramp-Test verfügbar)
+    // Feste FTP aus letztem Ramp-Test (ATHLETE_2_FTP), Fallback: Schätzung aus bestem NP ≥20min
     const longRides2 = activities2.filter(a => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts);
     const bestNP2 = longRides2.length
       ? Math.max(...longRides2.map(a => a.icu_weighted_avg_watts))
       : null;
-    const estimatedFTP2 = bestNP2 ? Math.round(bestNP2 * 0.95) : null;
-    if (estimatedFTP2) console.log(`   ... geschätzte FTP (Siggi): ${estimatedFTP2}W (aus bestem NP ${bestNP2}W ≥20min)`);
+    const estimatedFTP2 = ATHLETE_2_FTP || (bestNP2 ? Math.round(bestNP2 * 0.95) : null);
+    console.log(`   ... FTP (Siggi): ${estimatedFTP2}W ${ATHLETE_2_FTP ? "(Ramp-Test)" : `(geschätzt aus bestem NP ${bestNP2}W ≥20min)`}`);
 
     const rides2 = activities2
       .map(act => mapActivity2(act, wellness2, weatherMap, estimatedFTP2))
@@ -721,6 +722,7 @@ async function main() {
 
     const output2 = {
       athleteName: ATHLETE_2_NAME,
+      ftp: estimatedFTP2,
       rides: rides2,
       wellness: wellnessList2,
       powerCurves: powerCurves2 || null,
