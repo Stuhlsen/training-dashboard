@@ -20,7 +20,7 @@ intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)       │
                   ──→ Wellness (RHF, HRV, Schlaf, Gewicht)   ├──→ generate-data.js
                   ──→ Power Curves (Bestleistungen)          │         │
                                                               │         ▼
-Open-Meteo API ────→ Historisches Wetter (Senftenberg) ──────┤   data/rides.json
+Open-Meteo API ────→ Historisches Wetter ──────┤   data/rides.json
                ────→ Wetter-Forecast (bis 16 Tage)          │         │
                                                               │         │
 data/subjective.json ──→ Befinden Plan 2 (via Dashboard)    ─┘         │
@@ -60,7 +60,7 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 
 **Heatmap:** Farbskala grün→gelb→orange→rot nach Fahrtenhäufigkeit pro Wochentag. Samstag ist mit Abstand der aktivste Tag.
 
-**Wetter:** Historische Wetterdaten von Open-Meteo (Senftenberg) werden pro Fahrt automatisch zugeordnet — Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag. Plan-2-Fahrten bekommen Wetter für den exakten Fahrtzeitraum, Plan-1-Fahrten den Tagesdurchschnitt. Im Fahrtenbuch als farbcodierte Ampel-Spalte (grün/gelb/rot). Wochenbalken-Chart zeigt Temperaturverlauf und Windentwicklung über den gesamten Trainingszeitraum.
+**Wetter:** Historische Wetterdaten von Open-Meteo werden pro Fahrt automatisch zugeordnet — Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag. Plan-2-Fahrten bekommen Wetter für den exakten Fahrtzeitraum, Plan-1-Fahrten den Tagesdurchschnitt. Im Fahrtenbuch als farbcodierte Ampel-Spalte (grün/gelb/rot). Wochenbalken-Chart zeigt Temperaturverlauf und Windentwicklung über den gesamten Trainingszeitraum.
 
 ### Tab: Fahrtenbuch
 Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion nötig. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip (Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Bewölkung, Niederschlag). Legende für Befinden und Wetter unterhalb der Tabelle. Tab-Position bleibt beim Reload erhalten (URL-Hash).
@@ -87,7 +87,7 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 | Schlaf (Dauer, Schlaf-HF) | — | intervals.icu (Apple Health Sync, täglich) |
 | Befinden | Notion (manuell) | Dropdown im Dashboard → `data/subjective.json` → GitHub API |
 | Notizen | Notion | `data/subjective.json` |
-| Wetter (historisch) | Notion (manuell) | Open-Meteo Archive API (Senftenberg, stündlich, automatisch) |
+| Wetter (historisch) | Notion (manuell) | Open-Meteo Archive API (stündlich, automatisch) |
 | Wetter (Forecast) | — | Open-Meteo Forecast API (bis 16 Tage, für Planungs-Tab) |
 | Geplante Sessions | — | `PLANNED_SESSIONS` in `generate-data.js` → `data/rides.json` |
 | Plan-Anpassungen (Verschiebung, Ausfall) | — | `data/adjustments.json` (via Dashboard, GitHub API) |

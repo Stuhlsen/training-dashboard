@@ -314,7 +314,7 @@ async function getIntervalsWellness(oldest, newest, key = INTERVALS_KEY, athlete
 const FTP = 193; // wird aktualisiert wenn neuer Ramp-Test
 
 // === Open-Meteo Wetter-Integration ===
-const WEATHER_LAT = 51.5253; // Senftenberg
+const WEATHER_LAT = 51.5253;
 const WEATHER_LON = 14.0016;
 
 async function getHistoricalWeather(startDate, endDate) {
