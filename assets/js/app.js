@@ -79,6 +79,12 @@ function updateChartExplainers(ownPlan, ftp) {
     set("explainer-power-curve", `Die Power Curve zeigt deine beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung). Die goldene Linie markiert deine FTP (${ftp}W). Der rot eingefärbte Bereich über der FTP-Linie ist deine anaerobe Reserve — je größer dieser Bereich, desto mehr Leistung kannst du kurzfristig über deine Dauerschwelle bringen. Mit dem W/kg-Toggle siehst du die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu).`);
     set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`);
     set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`);
+
+    set("note-cadence", `RPM pro Fahrt · gestrichelt = Ziel ${CONFIG.cadenceTarget} RPM`);
+    set("note-hrv", `Plan 1 (lila) · W0 (gold) · Plan 2 (orange)`);
+    set("note-rhf", `Plan 1 (rot) · W0 (gold) · Plan 2 (orange)`);
+    set("note-sleep", `Nur Plan 2 · intervals.icu`);
+    set("efficiency-note", `Nur Powermeter-Fahrten (ab W6)`);
   } else {
     set("explainer-heatmap", `Anzahl der Fahrten und Gesamtkilometer pro Wochentag über den erfassten Zeitraum. Farbe: grün = wenig aktiv · gelb = moderat · orange = aktiv · rot = sehr aktiv.`);
     set("explainer-pmc", `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`);
@@ -86,6 +92,12 @@ function updateChartExplainers(ownPlan, ftp) {
     set("explainer-power-curve", `Die Power Curve zeigt die beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung).${ftp ? ` Die goldene Linie markiert die FTP (${ftp}W).` : ""} Mit dem W/kg-Toggle wird die gewichtsnormierte Leistung angezeigt.`);
     set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Da kein eigener Trainingsplan vorliegt, wird hier ein durchgehender Verlauf ohne Plan-Trennung gezeigt.`);
     set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training.`);
+
+    set("note-cadence", `RPM pro Fahrt`);
+    set("note-hrv", `Verlauf über den erfassten Zeitraum`);
+    set("note-rhf", `Verlauf über den erfassten Zeitraum`);
+    set("note-sleep", `intervals.icu`);
+    set("efficiency-note", `Nur Powermeter-Fahrten`);
   }
 }
 

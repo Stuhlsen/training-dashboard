@@ -204,7 +204,7 @@
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">Kadenz · Entwicklung</span>
-              <span class="chart-note">RPM pro Fahrt · gestrichelt = Ziel 90 RPM</span>
+              <span class="chart-note" id="note-cadence">RPM pro Fahrt · gestrichelt = Ziel 90 RPM</span>
             </div>
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
@@ -242,7 +242,7 @@
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">HRV · Heart Rate Variability</span>
-              <span class="chart-note">Plan 1 (lila) · W0 (gold) · Plan 2 (orange)</span>
+              <span class="chart-note" id="note-hrv">Plan 1 (lila) · W0 (gold) · Plan 2 (orange)</span>
             </div>
             <svg class="chart" id="chart-hrv-p1" viewBox="0 0 780 250"></svg>
             <p class="chart-explainer" id="explainer-hrv">Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.</p>
@@ -251,7 +251,7 @@
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">Ruhepuls · Morgenmessung</span>
-              <span class="chart-note">Plan 1 (rot) · W0 (gold) · Plan 2 (orange)</span>
+              <span class="chart-note" id="note-rhf">Plan 1 (rot) · W0 (gold) · Plan 2 (orange)</span>
             </div>
             <svg class="chart" id="chart-rhf-p1" viewBox="0 0 780 220"></svg>
             <p class="chart-explainer" id="explainer-rhf">Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.</p>
@@ -260,7 +260,7 @@
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">Schlaf · Dauer & Schlaf-HF</span>
-              <span class="chart-note">Nur Plan 2 · intervals.icu</span>
+              <span class="chart-note" id="note-sleep">Nur Plan 2 · intervals.icu</span>
             </div>
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sleep" viewBox="0 0 780 200"></svg>
