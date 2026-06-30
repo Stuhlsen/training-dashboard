@@ -89,7 +89,7 @@
           <span class="chart-title heatmap-title">Trainingsverteilung nach Wochentag</span>
         </div>
         <svg class="chart" id="chart-heatmap" viewBox="0 0 780 110"></svg>
-        <p class="chart-explainer">Anzahl der Fahrten und Gesamtkilometer pro Wochentag über den gesamten Trainingszeitraum. Farbe: grün = wenig aktiv · gelb = moderat · orange = aktiv · rot = sehr aktiv. Samstag ist mit Abstand der aktivste Tag — dort liegen die langen Z2-Einheiten.</p>
+        <p class="chart-explainer" id="explainer-heatmap">Anzahl der Fahrten und Gesamtkilometer pro Wochentag über den gesamten Trainingszeitraum. Farbe: grün = wenig aktiv · gelb = moderat · orange = aktiv · rot = sehr aktiv. Samstag ist mit Abstand der aktivste Tag — dort liegen die langen Z2-Einheiten.</p>
       </div>
       <h2 class="section-label section-label-prominent">🏆 Meilensteine</h2>
       <div class="chart-box">
@@ -121,7 +121,7 @@
               <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> ATL (Ermüdung)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> TSB (Form)</div>
             </div>
-            <p class="chart-explainer">CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
+            <p class="chart-explainer" id="explainer-pmc">CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
           </div>
 
           <div class="chart-box">
@@ -138,7 +138,7 @@
               <span class="chart-note">Herzfrequenz-basierte Belastung</span>
             </div>
             <svg class="chart" id="chart-trimp" viewBox="0 0 780 230"></svg>
-            <p class="chart-explainer">TRIMP (Training Impulse) berechnet die Trainingsbelastung aus Dauer und Herzfrequenz-Intensität. Farbe: grün = &lt;400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = &gt;900 (sehr hoch). Erholungswochen sind bewusst grün — das ist gewollt und positiv.</p>
+            <p class="chart-explainer" id="explainer-trimp">TRIMP (Training Impulse) berechnet die Trainingsbelastung aus Dauer und Herzfrequenz-Intensität. Farbe: grün = &lt;400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = &gt;900 (sehr hoch). Erholungswochen sind bewusst grün — das ist gewollt und positiv.</p>
           </div>
         </div>
       </div>
@@ -162,7 +162,7 @@
               </div>
             </div>
             <svg class="chart" id="chart-power-curve" viewBox="0 0 780 260"></svg>
-            <p class="chart-explainer">Die Power Curve zeigt deine beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung). Die goldene Linie markiert deine FTP (193W). Der rot eingefärbte Bereich über der FTP-Linie ist deine anaerobe Reserve — je größer dieser Bereich, desto mehr Leistung kannst du kurzfristig über deine Dauerschwelle bringen. Mit dem W/kg-Toggle siehst du die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu).</p>
+            <p class="chart-explainer" id="explainer-power-curve">Die Power Curve zeigt deine beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung). Die goldene Linie markiert deine FTP (193W). Der rot eingefärbte Bereich über der FTP-Linie ist deine anaerobe Reserve — je größer dieser Bereich, desto mehr Leistung kannst du kurzfristig über deine Dauerschwelle bringen. Mit dem W/kg-Toggle siehst du die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu).</p>
           </div>
 
           <div class="chart-box">
@@ -245,7 +245,7 @@
               <span class="chart-note">Plan 1 (lila) · W0 (gold) · Plan 2 (orange)</span>
             </div>
             <svg class="chart" id="chart-hrv-p1" viewBox="0 0 780 250"></svg>
-            <p class="chart-explainer">Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.</p>
+            <p class="chart-explainer" id="explainer-hrv">Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.</p>
           </div>
 
           <div class="chart-box">
@@ -254,7 +254,7 @@
               <span class="chart-note">Plan 1 (rot) · W0 (gold) · Plan 2 (orange)</span>
             </div>
             <svg class="chart" id="chart-rhf-p1" viewBox="0 0 780 220"></svg>
-            <p class="chart-explainer">Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.</p>
+            <p class="chart-explainer" id="explainer-rhf">Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.</p>
           </div>
 
           <div class="chart-box">

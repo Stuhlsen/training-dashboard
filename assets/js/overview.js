@@ -35,13 +35,13 @@ window.Overview = {
     const descEl = el("hero-desc");
     if (descEl) {
       if (ownPlan) {
-        descEl.innerHTML = `Dieses Dashboard dokumentiert einen strukturierten Radsport-Trainingsplan über zwei Phasen. <strong>Plan 1</strong> umfasste 12 Wochen Basisaufbau (März–Juni 2026) mit dem Ziel, aerobe Fitness und Grundlagenausdauer aufzubauen — FTP von 166W auf 193W gesteigert. <strong>Plan 2</strong> läuft seit Juni 2026 mit pyramidaler Periodisierung über Sweet Spot, Schwelle und VO2max-Blöcke, Ziel: FTP ≥210W bis September 2026. Alle Daten kommen automatisch aus intervals.icu und Apple Health.`;
+        descEl.innerHTML = `<strong>Plan 1</strong>: 12 Wochen Basisaufbau (März–Juni 2026), FTP 166W → 193W. <strong>Plan 2</strong>: pyramidale Periodisierung seit Juni 2026, Ziel FTP ≥210W bis September. Daten automatisch aus intervals.icu und Apple Health.`;
       } else {
         const hist = CONFIG.historicalVolume?.[Data.activeAthleteId];
         const histNote = hist
-          ? ` Vor dem Beitritt zu unserem Erfassungssystem war ${athleteName} bereits deutlich aktiver auf Strava — die Gesamtdistanz unten berücksichtigt dieses historische Volumen zusätzlich zu den live erfassten Fahrten.`
+          ? ` Gesamtdistanz inkl. Strava-Historie vor Systembeitritt.`
           : "";
-        descEl.innerHTML = `Diese Ansicht zeigt Vergleichsdaten von <strong>${athleteName}</strong>, direkt aus intervals.icu. Es handelt sich um reine Leistungsdaten ohne eigenen Trainingsplan — kein Soll-Ist-Vergleich, keine Planung, keine Befinden-Erfassung.${histNote}`;
+        descEl.innerHTML = `Vergleichsdaten von <strong>${athleteName}</strong> aus intervals.icu — reine Leistungsdaten ohne eigenen Trainingsplan.${histNote}`;
       }
     }
 
