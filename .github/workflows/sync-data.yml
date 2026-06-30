@@ -3,10 +3,12 @@
 # committed die Daten und deployt GitHub Pages direkt.
 #
 # Benötigte Secrets (Settings → Secrets → Actions):
-#   NOTION_API_KEY      — Notion Integration Token
-#   NOTION_DATABASE_ID  — Plan 1 Trainingsdatenbank-ID
-#   INTERVALS_API_KEY   — intervals.icu API Key
-#   INTERVALS_ATHLETE_ID — intervals.icu Athlete ID
+#   NOTION_API_KEY        — Notion Integration Token
+#   NOTION_DATABASE_ID    — Plan 1 Trainingsdatenbank-ID
+#   INTERVALS_API_KEY     — intervals.icu API Key (Alex)
+#   INTERVALS_ATHLETE_ID  — intervals.icu Athlete ID (Alex)
+#   INTERVALS_API_KEY_2   — intervals.icu API Key (Siggi, optional — Vergleichsdaten)
+#   INTERVALS_ATHLETE_ID_2 — intervals.icu Athlete ID (Siggi, optional)
 
 name: Sync Training Data
 
@@ -51,6 +53,8 @@ jobs:
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
           INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
+          INTERVALS_API_KEY_2: ${{ secrets.INTERVALS_API_KEY_2 }}
+          INTERVALS_ATHLETE_ID_2: ${{ secrets.INTERVALS_ATHLETE_ID_2 }}
         run: node scripts/generate-data.js
 
       - name: Commit data if changed
@@ -59,7 +63,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin
           git checkout origin/main -- data/adjustments.json data/subjective.json
-          git add data/rides.json data/adjustments.json data/subjective.json
+          git add data/rides.json data/rides-2.json data/adjustments.json data/subjective.json
           git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
           git push
 

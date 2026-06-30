@@ -29,7 +29,12 @@ const NOTION_KEY = process.env.NOTION_API_KEY;
 const DB_ID = process.env.NOTION_DATABASE_ID;
 const INTERVALS_KEY = process.env.INTERVALS_API_KEY || "";
 const INTERVALS_ATHLETE = process.env.INTERVALS_ATHLETE_ID || "";
+// Zweiter Athlet (read-only Vergleich, kein eigener Trainingsplan)
+const INTERVALS_KEY_2 = process.env.INTERVALS_API_KEY_2 || "";
+const INTERVALS_ATHLETE_2 = process.env.INTERVALS_ATHLETE_ID_2 || "";
+const ATHLETE_2_NAME = "Siggi Lentes";
 const OUT_FILE = path.join(__dirname, "..", "data", "rides.json");
+const OUT_FILE_2 = path.join(__dirname, "..", "data", "rides-2.json");
 const SUBJECTIVE_FILE = path.join(__dirname, "..", "data", "subjective.json");
 const ADJUSTMENTS_FILE = path.join(__dirname, "..", "data", "adjustments.json");
 
@@ -259,9 +264,9 @@ async function queryNotionPlan1() {
 }
 
 // === intervals.icu API ===
-async function intervalsGet(endpoint) {
+async function intervalsGet(endpoint, key = INTERVALS_KEY) {
   const url = `https://intervals.icu/api/v1${endpoint}`;
-  const auth = Buffer.from(`API_KEY:${INTERVALS_KEY}`).toString("base64");
+  const auth = Buffer.from(`API_KEY:${key}`).toString("base64");
   const res = await fetch(url, {
     headers: { Authorization: `Basic ${auth}`, Accept: "application/json" },
   });
@@ -272,20 +277,20 @@ async function intervalsGet(endpoint) {
   return res.json();
 }
 
-async function getIntervalsPowerCurves(oldest, newest) {
+async function getIntervalsPowerCurves(oldest, newest, key = INTERVALS_KEY, athlete = INTERVALS_ATHLETE) {
   console.log(`🔄 intervals.icu Power Curves (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
-    `/athlete/${INTERVALS_ATHLETE}/power-curves?oldest=${oldest}&newest=${newest}&type=Ride`
+    `/athlete/${athlete}/power-curves?oldest=${oldest}&newest=${newest}&type=Ride`, key
   );
   if (!data) return null;
   console.log(`   ... Power Curve geladen`);
   return data;
 }
 
-async function getIntervalsActivities(oldest, newest) {
+async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athlete = INTERVALS_ATHLETE) {
   console.log(`🔄 intervals.icu Activities (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
-    `/athlete/${INTERVALS_ATHLETE}/activities?oldest=${oldest}&newest=${newest}`
+    `/athlete/${athlete}/activities?oldest=${oldest}&newest=${newest}`, key
   );
   if (!data) return [];
   const rides = data.filter(a => a.type === "Ride");
@@ -293,10 +298,10 @@ async function getIntervalsActivities(oldest, newest) {
   return rides;
 }
 
-async function getIntervalsWellness(oldest, newest) {
+async function getIntervalsWellness(oldest, newest, key = INTERVALS_KEY, athlete = INTERVALS_ATHLETE) {
   console.log(`🔄 intervals.icu Wellness (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
-    `/athlete/${INTERVALS_ATHLETE}/wellness?oldest=${oldest}&newest=${newest}`
+    `/athlete/${athlete}/wellness?oldest=${oldest}&newest=${newest}`, key
   );
   if (!data) return {};
   const map = {};
@@ -436,6 +441,58 @@ function inferTypFromIF(np, min) {
   if (ifVal < 0.95)              return "Sweet Spot";
   if (ifVal < 1.05)              return "Schwelle";
   return "VO2max";
+}
+
+// === intervals.icu Activity → Ride-Objekt (zweiter Athlet, ohne Plan-Bezug) ===
+function mapActivity2(act, wellness, weatherMap) {
+  const date = act.start_date_local.split("T")[0];
+  const w = wellness[date] || {};
+
+  const np  = act.icu_weighted_avg_watts;
+  const min = Math.round((act.moving_time || 0) / 60);
+
+  const startHour = act.start_date_local
+    ? parseInt(act.start_date_local.split("T")[1]?.split(":")[0])
+    : null;
+  const weather = getWeatherForRide(weatherMap, date, startHour, min);
+
+  return {
+    name: act.name || "Radfahren",
+    date,
+    week: null,
+    phase: null,
+    typ: inferTypFromIF(np, min),
+    plan: "Vergleich",
+    km: Math.round((act.distance || 0) / 100) / 10,
+    min,
+    kmh: Math.round((act.average_speed || 0) * 3.6 * 10) / 10,
+    watt: act.icu_average_watts,
+    maxWatt: null,
+    np: act.icu_weighted_avg_watts,
+    hf: act.average_heartrate,
+    hfMax: act.max_heartrate,
+    kad: act.average_cadence ? Math.round(act.average_cadence) : null,
+    hoehe: act.total_elevation_gain,
+    tss: act.icu_training_load,
+    if: act.icu_intensity ? Math.round(act.icu_intensity) / 100 : null,
+    vi: act.icu_variability_index ? Math.round(act.icu_variability_index * 100) / 100 : null,
+    trimp: act.trimp ? Math.round(act.trimp) : null,
+    ctl: act.icu_ctl ? Math.round(act.icu_ctl * 10) / 10 : null,
+    atl: act.icu_atl ? Math.round(act.icu_atl * 10) / 10 : null,
+    tsb: (act.icu_ctl != null && act.icu_atl != null)
+      ? Math.round((act.icu_ctl - act.icu_atl) * 10) / 10 : null,
+    decoupling: act.decoupling != null ? Math.round(act.decoupling * 10) / 10 : null,
+    dtl: act.icu_training_load,
+    ruhepuls: w.restingHR || null,
+    hrv: w.hrvSDNN || null,
+    avgSleepingHR: w.avgSleepingHR || null,
+    sleepHours: w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null,
+    feel: null,
+    notizen: null,
+    weather,
+    wetter: weather ? `${weather.temp}°C` : (act.average_temp ? `~${Math.round(act.average_temp)}°C` : null),
+    source: "intervals.icu",
+  };
 }
 
 // === intervals.icu Activity → Ride-Objekt ===
@@ -620,6 +677,54 @@ async function main() {
   console.log(`   Pläne: ${plans.join(", ")}`);
   console.log(`   Zeitraum: ${rides[0]?.dateISO || "?"} bis ${rides[rides.length - 1]?.dateISO || "?"}`);
   console.log(`   Quelle: ${output.source}`);
+
+  // 3. Zweiter Athlet (Vergleich, read-only, kein eigener Plan)
+  if (INTERVALS_KEY_2 && INTERVALS_ATHLETE_2) {
+    console.log(`\n🔄 Zweiter Athlet (${ATHLETE_2_NAME})...`);
+    const oldest2 = "2026-01-01";
+    const today2 = new Date().toISOString().split("T")[0];
+
+    const activities2 = await getIntervalsActivities(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
+    const wellness2 = await getIntervalsWellness(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
+    const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
+
+    const rides2 = activities2
+      .map(act => mapActivity2(act, wellness2, weatherMap))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const wellnessList2 = Object.entries(wellness2)
+      .filter(([, w]) => w.sleepSecs || w.avgSleepingHR)
+      .map(([date, w]) => ({
+        date,
+        sleepHours: w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null,
+        avgSleepingHR: w.avgSleepingHR || null,
+        restingHR: w.restingHR || null,
+        hrv: w.hrvSDNN || null,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date));
+
+    const weightEntries2 = Object.entries(wellness2)
+      .filter(([, w]) => w.weight && w.weight > 0)
+      .sort((a, b) => b[0].localeCompare(a[0]));
+    const athleteWeight2 = weightEntries2.length > 0
+      ? Math.round(weightEntries2[0][1].weight * 10) / 10 : null;
+
+    const output2 = {
+      athleteName: ATHLETE_2_NAME,
+      rides: rides2,
+      wellness: wellnessList2,
+      powerCurves: powerCurves2 || null,
+      athleteWeight: athleteWeight2,
+      updated: new Date().toISOString(),
+      source: "intervals.icu",
+      count: rides2.length,
+    };
+
+    fs.writeFileSync(OUT_FILE_2, JSON.stringify(output2, null, 2), "utf-8");
+    console.log(`✅ ${rides2.length} Fahrten (${ATHLETE_2_NAME}) → ${OUT_FILE_2}`);
+  } else {
+    console.log(`\n⏭️  Zweiter Athlet: kein API-Key gesetzt, übersprungen`);
+  }
 }
 
 // Fallback: Notion als Plan-2-Quelle (identisch mit Plan-1-Logik)
