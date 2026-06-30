@@ -287,14 +287,16 @@ async function getIntervalsPowerCurves(oldest, newest, key = INTERVALS_KEY, athl
   return data;
 }
 
-async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athlete = INTERVALS_ATHLETE) {
+const RIDE_TYPES = ["Ride", "VirtualRide", "MountainBikeRide", "GravelRide", "EBikeRide", "Handcycle"];
+
+async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athlete = INTERVALS_ATHLETE, allowedTypes = ["Ride"]) {
   console.log(`🔄 intervals.icu Activities (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
     `/athlete/${athlete}/activities?oldest=${oldest}&newest=${newest}`, key
   );
   if (!data) return [];
-  const rides = data.filter(a => a.type === "Ride");
-  console.log(`   ... ${rides.length} Rides geladen`);
+  const rides = data.filter(a => allowedTypes.includes(a.type));
+  console.log(`   ... ${rides.length} Rides geladen (Typen: ${allowedTypes.join(", ")})`);
   return rides;
 }
 
@@ -585,7 +587,7 @@ async function main() {
     const today = new Date().toISOString().split("T")[0];
     const newest = today > "2026-09-20" ? "2026-09-20" : today;
 
-    const activities = await getIntervalsActivities(oldest, newest);
+    const activities = await getIntervalsActivities(oldest, newest, INTERVALS_KEY, INTERVALS_ATHLETE, RIDE_TYPES);
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
     powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
     const subjective = loadSubjective();
@@ -684,7 +686,7 @@ async function main() {
     const oldest2 = "2026-01-01";
     const today2 = new Date().toISOString().split("T")[0];
 
-    const activities2 = await getIntervalsActivities(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
+    const activities2 = await getIntervalsActivities(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2, RIDE_TYPES);
     const wellness2 = await getIntervalsWellness(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
     const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
 
