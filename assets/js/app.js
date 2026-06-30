@@ -1,5 +1,6 @@
 /* ============================================================
-   APP.JS — Einstiegspunkt, Tab-Navigation, Chart-Gruppen
+   APP.JS — Einstiegspunkt, Tab-Navigation, Chart-Gruppen,
+   Athleten-Toggle (Vergleich Alex / Siggi)
    ============================================================ */
 
 // Tab Navigation
@@ -11,7 +12,8 @@ function initTabs() {
     if (!validTabs.includes(tabId)) tabId = validTabs[0];
     btns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
     document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
-    el("tab-" + tabId).classList.remove("hidden");
+    const target = el("tab-" + tabId);
+    if (target) target.classList.remove("hidden");
     history.replaceState(null, "", "#" + tabId);
   };
 
@@ -29,14 +31,56 @@ function toggleChartGroup(headerEl) {
   icon.style.transform = isOpen ? "" : "rotate(180deg)";
 }
 
-// Main init
-(async function () {
-  const { ok, source, warning } = await Data.load();
+/* ── Athleten-Toggle ─────────────────────────────────────────── */
+function initAthleteToggle() {
+  const wrap = el("athlete-toggle");
+  if (!wrap) return;
 
-  if (!ok) {
+  wrap.innerHTML = CONFIG.athletes.map(a => `
+    <button class="athlete-btn${a.id === Data.activeAthleteId ? " active" : ""}" data-athlete="${a.id}">${a.name}</button>
+  `).join("");
+
+  wrap.querySelectorAll(".athlete-btn").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const id = btn.dataset.athlete;
+      if (id === Data.activeAthleteId) return;
+      wrap.querySelectorAll(".athlete-btn").forEach(b => b.classList.toggle("active", b === btn));
+      await renderAll(id);
+    });
+  });
+}
+
+/* ── Hat der aktive Athlet einen Trainingsplan? ────────────────
+   Siggi (Vergleichsdaten) hat keine week/phase-Struktur, also
+   keine Planung/Übersicht-Meilensteine. */
+function hasOwnPlan() {
+  return Data.rides.some(r => r.week);
+}
+
+/** Planungs-Tab im UI je nach Datensatz ein-/ausblenden */
+function togglePlanningTabVisibility(show) {
+  const btn = document.querySelector('.tab-btn[data-tab="planned"]');
+  if (btn) btn.classList.toggle("hidden", !show);
+  // Falls aktuell aktiver Tab "planned" ist aber nicht mehr verfügbar → zurück zu Übersicht
+  if (!show && btn?.classList.contains("active")) {
+    window._activateTab("overview");
+  }
+}
+
+/* ── Gesamtes Dashboard rendern (initial + bei Athletenwechsel) ─ */
+async function renderAll(athleteId) {
+  el("loading").classList.remove("hidden");
+  el("app").classList.add("hidden");
+  el("error").classList.add("hidden");
+
+  const result = athleteId
+    ? await Data.switchAthlete(athleteId)
+    : await Data.load();
+
+  if (!result.ok) {
     el("loading").classList.add("hidden");
     el("error").classList.remove("hidden");
-    el("error-msg").textContent = warning || "Unbekannter Fehler";
+    el("error-msg").textContent = result.warning || "Unbekannter Fehler";
     return;
   }
 
@@ -45,10 +89,10 @@ function toggleChartGroup(headerEl) {
 
   const rides = Data.byDate();
   const weekly = Data.weekly();
+  const ownPlan = hasOwnPlan();
+  const ftp = ownPlan ? CONFIG.ftp : (Data.rides.find(r => r.np)?.np || null);
 
-  // Init tabs
-  initTabs();
-  Tooltip.init();
+  togglePlanningTabVisibility(ownPlan);
 
   // Overview
   Overview.render(rides);
@@ -62,7 +106,7 @@ function toggleChartGroup(headerEl) {
   Charts.renderTrimp("chart-trimp", weekly);
 
   // Charts — Leistung
-  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, 193, Data.athleteWeight);
+  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, ftp, Data.athleteWeight);
   Charts.renderEfficiency("chart-efficiency", rides);
   Charts.renderScatter("chart-scatter", rides);
   Charts.renderSmallMultiples(rides);
@@ -82,16 +126,28 @@ function toggleChartGroup(headerEl) {
   // Table
   Table.init();
 
-  // Planung — await weil async (Forecast-Load + Listener-Setup)
-  await Planned.render(rides);
+  // Planung — nur für den eigenen Plan relevant
+  if (ownPlan) {
+    await Planned.render(rides);
+  }
 
   // Analysis
   Analysis.render(rides);
 
   // Footer
+  const athleteName = CONFIG.athletes.find(a => a.id === Data.activeAthleteId)?.name || "";
   el("footer").innerHTML = `
-    <p>Daten: ${rides.length} Fahrten · Quelle: Notion + intervals.icu · Aktualisiert ${new Date().toLocaleDateString("de")}</p>
+    <p>Daten: ${rides.length} Fahrten · ${athleteName} · Quelle: ${ownPlan ? "Notion + intervals.icu" : "intervals.icu"} · Aktualisiert ${new Date().toLocaleDateString("de")}</p>
   `;
+}
+
+// Main init
+(async function () {
+  initTabs();
+  initAthleteToggle();
+  Tooltip.init();
+
+  await renderAll();
 
   // Tab aus URL-Hash aktivieren — NACH allem Rendering damit nichts überschrieben wird
   const hash = location.hash.replace("#", "");

@@ -5,19 +5,31 @@
 window.Overview = {
 
   render(rides) {
-    this._renderHero(rides);
+    const ownPlan = rides.some(r => r.week);
+    this._renderHero(rides, ownPlan);
     this._renderMetrics(rides);
-    this._renderMilestones();
+    const ganttSection = el("milestones-gantt")?.closest(".chart-box");
+    const ganttHeading = ganttSection?.previousElementSibling;
+    if (ownPlan) {
+      if (ganttSection) ganttSection.classList.remove("hidden");
+      if (ganttHeading?.classList.contains("section-label-prominent")) ganttHeading.classList.remove("hidden");
+      this._renderMilestones();
+    } else {
+      if (ganttSection) ganttSection.classList.add("hidden");
+      if (ganttHeading?.classList.contains("section-label-prominent")) ganttHeading.classList.add("hidden");
+    }
   },
 
   /* ── Hero ───────────────────────────────────────────────────── */
-  _renderHero(rides) {
+  _renderHero(rides, ownPlan) {
     const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     if (!sorted.length) return;
 
     const first = sorted[0], last = sorted[sorted.length - 1];
-    el("hero-sub").textContent =
-      `${first.dateShort} – ${last.dateShort} · ${CONFIG.planVersion}`;
+    const athleteName = CONFIG.athletes.find(a => a.id === Data.activeAthleteId)?.name || "";
+    el("hero-sub").textContent = ownPlan
+      ? `${first.dateShort} – ${last.dateShort} · ${CONFIG.planVersion}`
+      : `${first.dateShort} – ${last.dateShort} · Vergleichsdaten · ${athleteName}`;
 
     const totalKm  = Math.round(sum(rides, "km"));
     const ftpVal   = Data.ftpValue();
@@ -26,7 +38,7 @@ window.Overview = {
     el("hero-kpis").innerHTML = [
       { v: totalKm.toLocaleString("de"), l: "Kilometer",   c: "var(--accent)" },
       { v: rides.length,                 l: "Fahrten",     c: "var(--text)"   },
-      { v: ftpVal ? `${ftpVal}W` : "–", l: "FTP",         c: "var(--gold)"   },
+      { v: ftpVal ? `${ftpVal}W` : "–", l: ownPlan ? "FTP" : "Bestes NP",         c: "var(--gold)"   },
       { v: fmtDuration(totalMin),        l: "Trainingszeit",  c: "var(--dim)"    },
     ].map(k => `
       <div class="hero-kpi">
@@ -38,6 +50,7 @@ window.Overview = {
 
   /* ── Metriken ───────────────────────────────────────────────── */
   _renderMetrics(rides) {
+    const ownPlan  = rides.some(r => r.week);
     const totalKm  = sum(rides, "km");
     const totalMin = sum(rides, "min");
     const avgKmh   = avg(rides.filter(r => r.kmh), "kmh");
@@ -74,16 +87,16 @@ window.Overview = {
       },
       {
         v: ftpVal ? ftpVal + "W" : "–",
-        l: "FTP (Ramp Test)",
-        d: "Gemessene Functional Threshold Power, 12.06.2026",
+        l: ownPlan ? "FTP (Ramp Test)" : "Bestes Ø-Watt (NP)",
+        d: ownPlan ? "Gemessene Functional Threshold Power, 12.06.2026" : "Höchster Normalized-Power-Wert einer Fahrt",
         c: "var(--gold)",
       },
-      {
+      ...(ownPlan ? [{
         v: CONFIG.eFTP + "W",
         l: "eFTP (Intervals.icu)",
         d: "Geschätzte FTP aus den besten Leistungen über verschiedene Zeitfenster",
         c: "var(--green)",
-      },
+      }] : []),
       {
         v: fmtInt(maxCTL),
         l: "CTL Peak",

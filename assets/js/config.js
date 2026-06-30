@@ -70,6 +70,12 @@ window.CONFIG = {
   apiEndpoint: "./data/rides.json",
   cacheMinutes: 5,
 
+  /* ── Athleten (für Vergleichs-Toggle) ───────────────────────── */
+  athletes: [
+    { id: "alex",  name: "Alex Stuhlsen",  endpoint: "./data/rides.json"   },
+    { id: "siggi", name: "Siggi Lentes",   endpoint: "./data/rides-2.json" },
+  ],
+
 };
 
 // Hilfsfunktion: Phasenfarbe abrufen

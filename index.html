@@ -11,6 +11,31 @@
   <link rel="stylesheet" href="assets/css/charts.css">
   <link rel="stylesheet" href="assets/css/table.css">
   <link rel="stylesheet" href="assets/css/planned.css">
+  <style>
+    .athlete-toggle {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .athlete-btn {
+      font-size: 0.78rem;
+      font-weight: 600;
+      padding: 6px 16px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      color: var(--dim);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .athlete-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .athlete-btn.active {
+      background: var(--accent-dim);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .tab-btn.hidden { display: none; }
+  </style>
 </head>
 <body>
 <div class="container">
@@ -31,6 +56,9 @@
 
   <!-- App -->
   <div id="app" class="hidden">
+
+    <!-- Athleten-Toggle -->
+    <div class="athlete-toggle" id="athlete-toggle"></div>
 
     <!-- Hero -->
     <header class="hero">

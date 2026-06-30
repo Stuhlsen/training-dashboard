@@ -12,11 +12,13 @@ window.Data = {
   athleteWeight: null,
   plannedSessions: [],
   adjustments: {},
+  activeAthleteId: "alex",
 
   /* ── Laden ──────────────────────────────────────────────────── */
-  async load() {
+  async load(endpoint) {
+    const url = endpoint || CONFIG.apiEndpoint;
     try {
-      const res = await fetch(CONFIG.apiEndpoint + "?_=" + Date.now());
+      const res = await fetch(url + "?_=" + Date.now());
       if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
       const json = await res.json();
       if (json.rides && json.rides.length > 0) {
@@ -35,6 +37,16 @@ window.Data = {
       throw new Error("Keine Daten in JSON-Datei");
     } catch (err) {
       console.warn("JSON nicht verfügbar, nutze eingebettete Daten:", err.message);
+      // Fallback-Daten nur für den primären Endpoint sinnvoll
+      if (url !== CONFIG.apiEndpoint) {
+        this.rides = [];
+        this.wellness = [];
+        this.powerCurves = null;
+        this.athleteWeight = null;
+        this.plannedSessions = [];
+        this.adjustments = {};
+        return { ok: false, source: "none", warning: err.message };
+      }
       this.rides = STATIC_RIDES.map(r => this._normalize(r));
       this.wellness = [];
       this.powerCurves = null;
@@ -43,6 +55,14 @@ window.Data = {
       this.adjustments = {};
       return { ok: true, source: "static", warning: err.message };
     }
+  },
+
+  /** Athleten wechseln — lädt den passenden Datensatz und liefert das Ergebnis zurück */
+  async switchAthlete(athleteId) {
+    const athlete = CONFIG.athletes.find(a => a.id === athleteId);
+    if (!athlete) return { ok: false, warning: "Unbekannter Athlet" };
+    this.activeAthleteId = athleteId;
+    return await this.load(athlete.endpoint);
   },
 
   /* ── Normalisierung ─────────────────────────────────────────── */
@@ -89,6 +109,12 @@ window.Data = {
   ftpValue() {
     const test = this.latestFTP();
     if (test) return test.ftpWatt || test.np || test.watt || CONFIG.ftp;
+    // Fallback nur für eigenen Plan sinnvoll — bei Vergleichsathleten ohne FTP-Test
+    // keinen fremden Wert (CONFIG.ftp) anzeigen, sondern aus NP schätzen oder null
+    if (this.activeAthleteId !== "alex") {
+      const npRides = this.rides.filter(r => r.np).sort((a, b) => b.np - a.np);
+      return npRides.length ? npRides[0].np : null;
+    }
     return CONFIG.ftp;
   },
 
