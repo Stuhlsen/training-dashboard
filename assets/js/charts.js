@@ -82,7 +82,7 @@ window.Charts = {
       rect.addEventListener("mouseenter", e => {
         rect.setAttribute("opacity", "1");
         Tooltip.show(e, `
-          <div class="tt">${d.week}</div>
+          <div class="tt">${d.week || ""}</div>
           <div class="tv">${d.km} km</div>
           <div class="td">${d.rides} Fahrten · ${Math.round(d.min / 60)}h</div>
         `);
@@ -166,7 +166,7 @@ window.Charts = {
       });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
+        <div class="tt">${p.d.dateShort}${p.d.week ? " · " + p.d.week : ""}</div>
         <div class="tv">CTL ${Math.round(p.d.ctlVal)}${interp ? " (interpoliert)" : ""}</div>
         <div class="td">${p.d.name}</div>
       `));
@@ -212,7 +212,7 @@ window.Charts = {
       rect.addEventListener("mouseenter", e => {
         rect.setAttribute("opacity", "1");
         Tooltip.show(e, `
-          <div class="tt">${d.week} · ${d.plan || "Plan 1"}</div>
+          <div class="tt">${d.week || ""}${d.plan && d.plan !== "Vergleich" ? " · " + d.plan : ""}</div>
           <div class="tv">TRIMP ${d.trimp}</div>
           <div class="td">${d.rides} Fahrten · ${Math.round(d.min / 6) / 10}h</div>
         `);
@@ -274,7 +274,7 @@ window.Charts = {
       const c = svgEl("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4a7fa8", opacity: "0.8", stroke: "#141210", "stroke-width": "1" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${d.dateShort} · ${d.week}</div>
+        <div class="tt">${d.dateShort} · ${d.week || ""}</div>
         <div class="tv">Effizienz: ${fmt(d.efficiency, 2)} W/bpm</div>
         <div class="td">${fmtInt(d.watt)}W · ${fmtInt(d.hf)} bpm</div>
         <div class="td">${d.name}</div>
@@ -339,7 +339,7 @@ window.Charts = {
       const c = svgEl("circle", { cx: px, cy: py, r: "5", fill: color, opacity: "0.75", stroke: "#141210", "stroke-width": "1" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${d.dateShort} · ${d.week}</div>
+        <div class="tt">${d.dateShort} · ${d.week || ""}</div>
         <div class="tv">${fmt(d.kmh)} km/h · ${fmtInt(d.hf)} bpm</div>
         <div class="td">${d.name}</div>
       `));
@@ -516,7 +516,7 @@ window.Charts = {
         const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
         c.style.cursor = "pointer";
         c.addEventListener("mouseenter", e => Tooltip.show(e, `
-          <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
+          <div class="tt">${p.d.dateShort}${p.d.week ? " · " + p.d.week : ""}</div>
           <div class="tv">${Math.round(p.d[field] * 10) / 10} ${unit}</div>
           <div class="td">${p.d.name}</div>
         `));
@@ -655,7 +655,7 @@ window.Charts = {
       const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3.5", fill: dotColor, stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${p.d.dateShort} · ${p.d.week || ""} · ${p.d.plan || "Plan 1"}</div>
+        <div class="tt">${p.d.dateShort} · ${p.d.week ? p.d.week + " · " : ""}${p.d.plan && p.d.plan !== "Vergleich" ? p.d.plan : ""}</div>
         <div class="tv">${p.d[field]} ${unit}</div>
         <div class="td">${p.d.name}</div>
       `));
@@ -932,7 +932,7 @@ window.Charts = {
       const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#4a7fa8", stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
+        <div class="tt">${p.d.dateShort}${p.d.week ? " · " + p.d.week : ""}</div>
         <div class="tv">CTL ${fmt(p.d.ctl)} · ATL ${fmt(p.d.atl)} · TSB ${fmt(tsb)}</div>
         <div class="td">${p.d.name}</div>
       `));
@@ -1003,7 +1003,7 @@ window.Charts = {
       const c = svgEl("circle", { cx: p.x, cy: p.y, r: "4", fill: color, stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${p.d.dateShort} · ${p.d.week}</div>
+        <div class="tt">${p.d.dateShort}${p.d.week ? " · " + p.d.week : ""}</div>
         <div class="tv">${fmt(Math.abs(p.d.decoupling))}%</div>
         <div class="td">${p.d.name}</div>
       `));
