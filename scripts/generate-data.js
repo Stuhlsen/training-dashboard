@@ -297,6 +297,15 @@ async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athle
   );
   if (!data) return [];
   console.log(`   ... Roh-Antwort: ${data.length} Aktivitäten gesamt, Typen: ${[...new Set(data.map(a => a.type))].join(", ")}`);
+  // Detail-Breakdown pro Typ zur Diagnose
+  const typeCounts = {};
+  for (const a of data) {
+    const key2 = JSON.stringify(a.type);
+    if (!typeCounts[key2]) typeCounts[key2] = { count: 0, withDistance: 0 };
+    typeCounts[key2].count++;
+    if (a.distance > 0) typeCounts[key2].withDistance++;
+  }
+  console.log(`   ... Breakdown: ${Object.entries(typeCounts).map(([t, c]) => `${t}=${c.count} (${c.withDistance} mit Distanz)`).join(", ")}`);
   const rides = data.filter(a => {
     const typeOk = allowedTypes.includes(a.type) || a.type === "" || a.type == null;
     if (!typeOk) return false;
