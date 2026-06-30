@@ -1361,10 +1361,12 @@ window.Charts = {
       weekMap[wk].rides.push(r);
     }
 
-    // Wochen in Trainingsreihenfolge sortieren, mit Lücke zwischen Plan 1 und Plan 2
-    const rawWeeks = Object.values(weekMap).sort((a, b) =>
-      CONFIG.weekIndex(a.week) - CONFIG.weekIndex(b.week)
-    );
+    // Wochen in Trainingsreihenfolge sortieren — Fallback auf alphabetisch für Monats-Keys
+    const rawWeeks = Object.values(weekMap).sort((a, b) => {
+      const ia = CONFIG.weekIndex(a.week), ib = CONFIG.weekIndex(b.week);
+      if (ia !== 999 || ib !== 999) return ia - ib;
+      return a.week.localeCompare(b.week);
+    });
 
     const mean = arr => arr.reduce((a, b) => a + b, 0) / arr.length;
     const data = rawWeeks.map(w => ({

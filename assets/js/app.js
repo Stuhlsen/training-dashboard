@@ -113,6 +113,104 @@ function updateChartExplainers(ownPlan, ftp) {
   }
 }
 
+/* ── Wochen/Monats-Toggle für Volumen, TRIMP und Wetter ─────── */
+
+/** Aggregiert Rides nach Kalendermonat (YYYY-MM) — analog zu Data.weekly() */
+function monthlyData() {
+  const grouped = {};
+  for (const r of Data.rides) {
+    const key = r.dateISO.slice(0, 7); // YYYY-MM
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(r);
+  }
+  return Object.entries(grouped)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, rides]) => {
+      const label = new Date(month + "-01")
+        .toLocaleDateString("de-DE", { month: "short", year: "2-digit" });
+      return {
+        week:   label,          // Chart-Funktionen erwarten "week" als x-Label
+        phase:  rides[0]?.phase || null,
+        plan:   rides[0]?.plan  || "Vergleich",
+        rides:  rides.length,
+        km:     Math.round(rides.reduce((s, r) => s + (r.km || 0), 0) * 10) / 10,
+        min:    rides.reduce((s, r) => s + (r.min || 0), 0),
+        trimp:  Math.round(rides.reduce((s, r) => s + (r.trimp || 0), 0)),
+        avgHF:  Math.round(rides.filter(r => r.hf).reduce((s, r) => s + r.hf, 0) / (rides.filter(r => r.hf).length || 1)),
+        avgKad: Math.round(rides.filter(r => r.kad).reduce((s, r) => s + r.kad, 0) / (rides.filter(r => r.kad).length || 1)),
+        // Wetter: Durchschnitt aller Fahrten mit Wetterdaten
+        temp:      (() => { const ws = rides.filter(r => r.weather?.temp != null); return ws.length ? Math.round(ws.reduce((s, r) => s + r.weather.temp, 0) / ws.length * 10) / 10 : null; })(),
+        windSpeed: (() => { const ws = rides.filter(r => r.weather?.windSpeed != null); return ws.length ? Math.round(ws.reduce((s, r) => s + r.weather.windSpeed, 0) / ws.length * 10) / 10 : null; })(),
+        precip:    (() => { const ws = rides.filter(r => r.weather?.precip != null); return ws.length ? Math.round(ws.reduce((s, r) => s + r.weather.precip, 0) / ws.length * 10) / 10 : null; })(),
+        badCount:  rides.filter(r => r.weather && ((r.weather.temp > 32) || (r.weather.temp < 5) || ((r.weather.windSpeed || 0) > 30) || ((r.weather.precip || 0) > 0.5))).length,
+      };
+    });
+}
+
+/** Liest oder setzt den Period-Toggle-Status für den aktuellen Athleten */
+function getPeriod(chartId) {
+  return localStorage.getItem(`period_${Data.activeAthleteId}_${chartId}`) || "week";
+}
+function setPeriod(chartId, value) {
+  localStorage.setItem(`period_${Data.activeAthleteId}_${chartId}`, value);
+}
+
+/** Initialisiert die drei Period-Toggle-Buttons und rendert Charts entsprechend */
+function initPeriodToggles(rides, weekly, onBarClick) {
+  const charts = [
+    { toggleId: "toggle-weekly", titleId: "title-weekly", chartFn: (data) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick),
+      titleWeek: "Wöchentliches Volumen (km)", titleMonth: "Monatliches Volumen (km)" },
+    { toggleId: "toggle-trimp",  titleId: "title-trimp",  chartFn: (data) => Charts.renderTrimp("chart-trimp", data),
+      titleWeek: "Trainingsbelastung TRIMP pro Woche", titleMonth: "Trainingsbelastung TRIMP pro Monat" },
+    { toggleId: "toggle-weather", titleId: "title-weather",
+      chartFn: (data, period) => {
+        if (period === "month") {
+          // Fahrten temporär mit Monat als "week" versehen für die Aggregation in renderWeatherWeekly
+          const ridesWithMonth = Data.rides.map(r => ({
+            ...r,
+            week: r.dateISO ? r.dateISO.slice(0, 7) : (r.week || "?"),
+          }));
+          Charts.renderWeatherWeekly("chart-weather-weekly", ridesWithMonth);
+        } else {
+          Charts.renderWeatherWeekly("chart-weather-weekly", Data.rides);
+        }
+      },
+      titleWeek: "Trainingswetter · Temperatur & Wind pro Woche",
+      titleMonth: "Trainingswetter · Temperatur & Wind pro Monat" },
+  ];
+
+  for (const cfg of charts) {
+    const wrap = el(cfg.toggleId);
+    if (!wrap) continue;
+
+    // Toggle-Status aus localStorage wiederherstellen
+    const saved = getPeriod(cfg.toggleId);
+    wrap.querySelectorAll(".unit-btn").forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.period === saved);
+    });
+    if (cfg.titleId) {
+      const titleEl = el(cfg.titleId);
+      if (titleEl) titleEl.textContent = saved === "month" ? cfg.titleMonth : cfg.titleWeek;
+    }
+
+    // Initial rendern mit gespeichertem Wert
+    cfg.chartFn(saved === "month" ? monthlyData() : weekly, saved);
+
+    // Click-Handler
+    wrap.querySelectorAll(".unit-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const period = btn.dataset.period;
+        if (btn.classList.contains("active")) return;
+        wrap.querySelectorAll(".unit-btn").forEach(b => b.classList.toggle("active", b === btn));
+        setPeriod(cfg.toggleId, period);
+        const titleEl = el(cfg.titleId);
+        if (titleEl) titleEl.textContent = period === "month" ? cfg.titleMonth : cfg.titleWeek;
+        cfg.chartFn(period === "month" ? monthlyData() : weekly, period);
+      });
+    });
+  }
+}
+
 /* ── Gesamtes Dashboard rendern (initial + bei Athletenwechsel) ─ */
 async function renderAll(athleteId) {
   el("loading").classList.remove("hidden");
@@ -146,11 +244,10 @@ async function renderAll(athleteId) {
 
   // Charts — Fitness & Belastung
   Charts.renderPMC("chart-pmc", rides);
-  Charts.renderWeeklyVolume("chart-weekly", weekly, (week) => {
+  initPeriodToggles(rides, weekly, (week) => {
     document.querySelector('[data-tab="table"]').click();
     Table.filterByWeek(week);
   });
-  Charts.renderTrimp("chart-trimp", weekly);
 
   // Charts — Leistung
   Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, ftp, Data.athleteWeight);
@@ -163,9 +260,6 @@ async function renderAll(athleteId) {
   Charts.renderSleep("chart-sleep", Data.wellness, ownPlan);
   Charts.renderPlanCompareHRV(rides);
   Charts.renderPlanCompareRHF(rides);
-
-  // Charts — Wetterbedingungen
-  Charts.renderWeatherWeekly("chart-weather-weekly", rides);
 
   // Charts — Aktivität
   Charts.renderHeatmap("chart-heatmap", rides);

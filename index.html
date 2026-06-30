@@ -126,16 +126,28 @@
 
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">Wöchentliches Volumen (km)</span>
-              <span class="chart-note">Klick auf Balken → Fahrtenbuch-Filter</span>
+              <span class="chart-title heatmap-title" id="title-weekly">Wöchentliches Volumen (km)</span>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="unit-toggle" id="toggle-weekly">
+                  <button class="unit-btn active" data-period="week">Wochen</button>
+                  <button class="unit-btn" data-period="month">Monate</button>
+                </div>
+                <span class="chart-note">Klick auf Balken → Fahrtenbuch-Filter</span>
+              </div>
             </div>
             <svg class="chart" id="chart-weekly" viewBox="0 0 780 270"></svg>
           </div>
 
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">Trainingsbelastung TRIMP pro Woche</span>
-              <span class="chart-note">Herzfrequenz-basierte Belastung</span>
+              <span class="chart-title heatmap-title" id="title-trimp">Trainingsbelastung TRIMP pro Woche</span>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="unit-toggle" id="toggle-trimp">
+                  <button class="unit-btn active" data-period="week">Wochen</button>
+                  <button class="unit-btn" data-period="month">Monate</button>
+                </div>
+                <span class="chart-note">Herzfrequenz-basierte Belastung</span>
+              </div>
             </div>
             <svg class="chart" id="chart-trimp" viewBox="0 0 780 230"></svg>
             <p class="chart-explainer" id="explainer-trimp">TRIMP (Training Impulse) berechnet die Trainingsbelastung aus Dauer und Herzfrequenz-Intensität. Farbe: grün = &lt;400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = &gt;900 (sehr hoch). Erholungswochen sind bewusst grün — das ist gewollt und positiv.</p>
@@ -287,8 +299,14 @@
         <div class="chart-group-body">
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">Trainingswetter · Temperatur & Wind pro Woche</span>
-              <span class="chart-note">Ø über alle Fahrten der Woche · Open-Meteo</span>
+              <span class="chart-title heatmap-title" id="title-weather">Trainingswetter · Temperatur & Wind pro Woche</span>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div class="unit-toggle" id="toggle-weather">
+                  <button class="unit-btn active" data-period="week">Wochen</button>
+                  <button class="unit-btn" data-period="month">Monate</button>
+                </div>
+                <span class="chart-note">Ø über alle Fahrten der Woche · Open-Meteo</span>
+              </div>
             </div>
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-weather-weekly" viewBox="0 0 780 240"></svg>
