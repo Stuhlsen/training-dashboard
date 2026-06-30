@@ -550,6 +550,7 @@ function mapActivity2(act, wellness, weatherMap, estimatedFtp) {
   return {
     name: act.name || "Radfahren",
     date,
+    startTime: act.start_date_local || null,
     week: null,
     phase: null,
     typ: inferTypFromIF(np, min, estimatedFtp),
@@ -610,6 +611,7 @@ function mapActivity(act, wellness, subjective, weatherMap) {
   return {
     name,
     date,
+    startTime: act.start_date_local || null,
     week,
     phase,
     typ,

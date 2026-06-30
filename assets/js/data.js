@@ -90,7 +90,13 @@ window.Data = {
 
   /** Alle Fahrten sortiert nach Datum aufsteigend */
   byDate() {
-    return [...this.rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    return [...this.rides].sort((a, b) => {
+      const dateComp = a.dateISO.localeCompare(b.dateISO);
+      if (dateComp !== 0) return dateComp;
+      // Tiebreaker: Startzeitpunkt (z.B. zwei Fahrten am selben Tag)
+      if (a.startTime && b.startTime) return a.startTime.localeCompare(b.startTime);
+      return 0;
+    });
   },
 
   /** Fahrten nach Phase filtern */
