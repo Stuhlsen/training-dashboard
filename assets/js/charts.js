@@ -441,6 +441,7 @@ window.Charts = {
   /* ── 9. Small Multiples (Tempo · HF · Kadenz pro Fahrt) ────── */
   renderSmallMultiples(rides) {
     const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const ownPlan = rides.some(r => r.week);
     const PPT = 16;
     const H = 180, pad = { l: 50, r: 24, t: 16, b: 36 };
 
@@ -557,7 +558,7 @@ window.Charts = {
 
     _render("chart-sm-tempo",  _filterOutliers(sorted.filter(r => r.kmh), "kmh"), "kmh", "#4a7fa8", "km/h", null);
     _render("chart-sm-hf",     _filterOutliers(sorted.filter(r => r.hf),  "hf"),  "hf",  "#c45c5c", "bpm",  null);
-    _render("chart-sm-kadenz", _filterOutliers(sorted.filter(r => r.kad), "kad"), "kad", "#c9a84c", "RPM",  CONFIG.cadenceTarget);
+    _render("chart-sm-kadenz", _filterOutliers(sorted.filter(r => r.kad), "kad"), "kad", "#c9a84c", "RPM",  ownPlan ? CONFIG.cadenceTarget : null);
   },
 
   /* ── 10. Ruhepuls-Entwicklung ────────────────────────────────── */
@@ -983,14 +984,14 @@ window.Charts = {
   },
 
   /* ── Schlaf — Dauer & Schlaf-HF ─────────────────────────────── */
-  renderSleep(svgId, wellness) {
+  renderSleep(svgId, wellness, ownPlan = true) {
     const data = wellness.filter(w => w.sleepHours != null || w.avgSleepingHR != null);
     const svg = el(svgId);
     if (!svg) return;
     if (!data.length) {
       svg.innerHTML = "";
       const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
-      t.textContent = "Schlafdaten ab Plan 2 verfügbar";
+      t.textContent = ownPlan ? "Schlafdaten ab Plan 2 verfügbar" : "Keine Schlafdaten verfügbar";
       svg.appendChild(t);
       return;
     }
@@ -1036,14 +1037,16 @@ window.Charts = {
       svg.appendChild(rect);
     });
 
-    // 7h Ziel-Linie — Gold statt Blau (kein Overlap mit Balkenfarbe)
-    const targetY = pad.t + ch - (7 / maxSleep * ch);
-    svg.appendChild(svgEl("line", {
-      x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
-      stroke: "#c9a84c", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.6",
-    }));
-    const tl = svgEl("text", { x: pad.l + 4, y: targetY - 4, fill: "#c9a84c", "font-size": "9", opacity: "0.9" });
-    tl.textContent = "7h Ziel"; svg.appendChild(tl);
+    // 7h Ziel-Linie — Gold statt Blau (kein Overlap mit Balkenfarbe) — nur eigener Plan
+    if (ownPlan) {
+      const targetY = pad.t + ch - (7 / maxSleep * ch);
+      svg.appendChild(svgEl("line", {
+        x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
+        stroke: "#c9a84c", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.6",
+      }));
+      const tl = svgEl("text", { x: pad.l + 4, y: targetY - 4, fill: "#c9a84c", "font-size": "9", opacity: "0.9" });
+      tl.textContent = "7h Ziel"; svg.appendChild(tl);
+    }
 
     // Linke Y-Achse: saubere ganzzahlige Labels, genug Abstand
     const sleepStep = maxSleep <= 8 ? 2 : maxSleep <= 12 ? 3 : 4;

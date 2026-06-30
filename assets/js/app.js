@@ -45,6 +45,7 @@ function initAthleteToggle() {
       const id = btn.dataset.athlete;
       if (id === Data.activeAthleteId) return;
       wrap.querySelectorAll(".athlete-btn").forEach(b => b.classList.toggle("active", b === btn));
+      localStorage.setItem("active_athlete", id);
       await renderAll(id);
     });
   });
@@ -148,7 +149,7 @@ async function renderAll(athleteId) {
 
   // Charts — Aerobe Gesundheit
   Charts.renderDecoupling("chart-decoupling", rides);
-  Charts.renderSleep("chart-sleep", Data.wellness);
+  Charts.renderSleep("chart-sleep", Data.wellness, ownPlan);
   Charts.renderPlanCompareHRV(rides);
   Charts.renderPlanCompareRHF(rides);
 
@@ -179,10 +180,15 @@ async function renderAll(athleteId) {
 // Main init
 (async function () {
   initTabs();
-  initAthleteToggle();
   Tooltip.init();
 
-  await renderAll();
+  // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird
+  const savedAthlete = localStorage.getItem("active_athlete");
+  const validAthlete = CONFIG.athletes.some(a => a.id === savedAthlete);
+  Data.activeAthleteId = validAthlete ? savedAthlete : "alex";
+
+  initAthleteToggle();
+  await renderAll(validAthlete ? savedAthlete : null);
 
   // Tab aus URL-Hash aktivieren — NACH allem Rendering damit nichts überschrieben wird
   const hash = location.hash.replace("#", "");
