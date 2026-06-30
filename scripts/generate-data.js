@@ -288,7 +288,7 @@ async function getIntervalsPowerCurves(oldest, newest, key = INTERVALS_KEY, athl
   return data;
 }
 
-const RIDE_TYPES = ["Ride", "VirtualRide", "MountainBikeRide", "GravelRide", "EBikeRide", "Handcycle"];
+const RIDE_TYPES = ["Ride", "VirtualRide", "MountainBikeRide", "GravelRide", "EBikeRide", "Handcycle", "Workout"];
 
 async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athlete = INTERVALS_ATHLETE, allowedTypes = ["Ride"]) {
   console.log(`🔄 intervals.icu Activities (${oldest} bis ${newest})...`);
@@ -297,7 +297,14 @@ async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athle
   );
   if (!data) return [];
   console.log(`   ... Roh-Antwort: ${data.length} Aktivitäten gesamt, Typen: ${[...new Set(data.map(a => a.type))].join(", ")}`);
-  const rides = data.filter(a => allowedTypes.includes(a.type));
+  const rides = data.filter(a => {
+    if (!allowedTypes.includes(a.type)) return false;
+    // "Workout" ist generisch (z.B. unklassifizierte Strava-Importe) — nur als
+    // Radfahrt zählen wenn eine plausible Distanz vorhanden ist (Krafttraining
+    // o.ä. hat i.d.R. distance=0 oder null)
+    if (a.type === "Workout" && !(a.distance > 0)) return false;
+    return true;
+  });
   console.log(`   ... ${rides.length} Rides geladen (Typen: ${allowedTypes.join(", ")})`);
   return rides;
 }
