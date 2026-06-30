@@ -563,8 +563,8 @@ window.Charts = {
     // Legacy-Aufruf ignorieren — wird jetzt über renderPlanCompareHRV gesteuert
   },
 
-  /* ── Plan-Compare: einzelnen Plan in SVG rendern ───────────── */
-  _renderPlanSeries(svgId, data, color, unit, planLabel, field) {
+  /* ── HRV / Ruhepuls — durchgehende Linie mit Plan-Divider ───── */
+  _renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote) {
     const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
 
     const W = 780, H = 220, pad = { l: 50, r: 16, t: 28, b: 36 };
@@ -581,21 +581,33 @@ window.Charts = {
       d,
     }));
 
-    // Area fill
-    const areaPath = `M${pts[0].x},${H - pad.b} ` +
-      pts.map(p => `L${p.x},${p.y}`).join(" ") +
-      ` L${pts[pts.length-1].x},${H - pad.b} Z`;
-    svg.appendChild(svgEl("path", {
-      d: areaPath, fill: color, opacity: "0.08",
-    }));
+    const plan2Start = data.findIndex(d => d.plan === "Plan 2");
+    const hasSplit = plan2Start > 0;
 
-    // Line
-    svg.appendChild(svgEl("polyline", {
-      fill: "none", stroke: color, "stroke-width": "1.8",
-      points: pts.map(p => `${p.x},${p.y}`).join(" "),
-    }));
+    // Zwei Segmente zeichnen (Plan 1 Farbe / Plan 2 Farbe), an der Naht überlappend
+    const seg1 = hasSplit ? pts.slice(0, plan2Start) : pts;
+    const seg2 = hasSplit ? pts.slice(plan2Start - 1) : []; // -1 für nahtlosen Übergang
 
-    // Trend line
+    const drawSegment = (segment, color) => {
+      if (segment.length < 1) return;
+      if (segment.length === 1) {
+        svg.appendChild(svgEl("circle", { cx: segment[0].x, cy: segment[0].y, r: "3.5", fill: color }));
+        return;
+      }
+      const areaPath = `M${segment[0].x},${H - pad.b} ` +
+        segment.map(p => `L${p.x},${p.y}`).join(" ") +
+        ` L${segment[segment.length-1].x},${H - pad.b} Z`;
+      svg.appendChild(svgEl("path", { d: areaPath, fill: color, opacity: "0.08" }));
+      svg.appendChild(svgEl("polyline", {
+        fill: "none", stroke: color, "stroke-width": "1.8",
+        points: segment.map(p => `${p.x},${p.y}`).join(" "),
+      }));
+    };
+
+    drawSegment(seg1, color1);
+    if (hasSplit) drawSegment(seg2, color2);
+
+    // Trend line (über alle Punkte)
     const n = pts.length;
     if (n > 2) {
       const mx = pts.reduce((s, p) => s + p.x, 0) / n;
@@ -610,14 +622,15 @@ window.Charts = {
       }));
     }
 
-    // Dots
-    const step = Math.max(1, Math.floor(pts.length / 20));
+    // Dots — Farbe je nach Plan
+    const step = Math.max(1, Math.floor(pts.length / 24));
     pts.forEach((p, i) => {
       if (i % step !== 0 && i !== pts.length - 1) return;
-      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3.5", fill: color, stroke: "#141210", "stroke-width": "1.5" });
+      const dotColor = p.d.plan === "Plan 2" ? color2 : color1;
+      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3.5", fill: dotColor, stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">${p.d.dateShort} · ${p.d.week} · ${planLabel}</div>
+        <div class="tt">${p.d.dateShort} · ${p.d.week || ""} · ${p.d.plan || "Plan 1"}</div>
         <div class="tv">${p.d[field]} ${unit}</div>
         <div class="td">${p.d.name}</div>
       `));
@@ -625,109 +638,75 @@ window.Charts = {
       svg.appendChild(c);
     });
 
-    // X labels — smart spacing
+    // X labels
     const labelStep = Math.max(1, Math.floor(pts.length / 8));
     pts.forEach((p, i) => {
       if (i % labelStep === 0 || i === pts.length - 1)
         this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
     });
 
-    // Mean line
-    const mean = allVals.reduce((s, v) => s + v, 0) / allVals.length;
-    const meanY = pad.t + ch - (mean - minV) / (maxV - minV) * ch;
-    svg.appendChild(svgEl("line", {
-      x1: pad.l, y1: meanY, x2: W - pad.r, y2: meanY,
-      stroke: color, "stroke-width": "0.8", "stroke-dasharray": "3,4", opacity: "0.4",
-    }));
-    const meanLabel = svgEl("text", { x: W - pad.r - 2, y: meanY - 5, "text-anchor": "end", fill: color, "font-size": "9", opacity: "0.7" });
-    meanLabel.textContent = `Ø ${fmt(mean, 0)}`;
-    svg.appendChild(meanLabel);
-  },
+    // Plan-Divider mit Methodenwechsel-Hinweis
+    if (hasSplit) {
+      const divX = pad.l + (plan2Start - 0.5) / Math.max(data.length - 1, 1) * cw;
+      svg.appendChild(svgEl("rect", {
+        x: divX - 1, y: pad.t, width: 2, height: ch,
+        fill: "#c9a84c", opacity: "0.7",
+      }));
+      const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: color1, "font-size": "9", "font-weight": "600" });
+      lbl1.textContent = "← Plan 1"; svg.appendChild(lbl1);
+      const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: color2, "font-size": "9", "font-weight": "600" });
+      lbl2.textContent = "Plan 2 →"; svg.appendChild(lbl2);
 
-  /* ── Plan-Compare Slider Setup ─────────────────────────────── */
-  _initPlanCompareSlider(containerId, sliderId, topSvgId) {
-    const container = el(containerId);
-    const slider = el(sliderId);
-    const topSvg = el(topSvgId);
-    // p1 = das untere SVG (immer zuerst im DOM)
-    const bottomSvg = container ? container.querySelector(".plan-compare-layer:not(.plan-compare-top)") : null;
-    if (!container || !slider || !topSvg) return;
+      if (methodNote) {
+        const noteLbl = svgEl("text", { x: divX, y: pad.t + ch + 30, "text-anchor": "middle", fill: "#c9a84c", "font-size": "9", "font-weight": "600" });
+        noteLbl.textContent = methodNote;
+        svg.appendChild(noteLbl);
+      }
+    }
 
-    let dragging = false;
-
-    const setPosition = (clientX) => {
-      const rect = container.getBoundingClientRect();
-      const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
-      const pct = (x / rect.width) * 100;
-      slider.style.left = pct + "%";
-      // Plan 2 (oben): von links ab pct sichtbar
-      topSvg.style.clipPath = `inset(0 0 0 ${pct}%)`;
-      // Plan 1 (unten): bis pct sichtbar, rechts abgeschnitten
-      if (bottomSvg) bottomSvg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+    // Mean lines getrennt je Plan
+    const meanFor = (arr, color, fromIdx, toIdx) => {
+      if (!arr.length) return;
+      const mean = arr.reduce((s, v) => s + v, 0) / arr.length;
+      const meanY = pad.t + ch - (mean - minV) / (maxV - minV) * ch;
+      const x1 = pad.l + fromIdx / Math.max(data.length - 1, 1) * cw;
+      const x2 = pad.l + toIdx / Math.max(data.length - 1, 1) * cw;
+      svg.appendChild(svgEl("line", {
+        x1, y1: meanY, x2, y2: meanY,
+        stroke: color, "stroke-width": "0.8", "stroke-dasharray": "3,4", opacity: "0.4",
+      }));
+      const meanLabel = svgEl("text", { x: x2 - 2, y: meanY - 5, "text-anchor": "end", fill: color, "font-size": "9", opacity: "0.7" });
+      meanLabel.textContent = `Ø ${fmt(mean, 0)}`;
+      svg.appendChild(meanLabel);
     };
 
-    // Default: 50% wenn beide Pläne Daten haben, 100% wenn nur Plan 1
-    const hasP2 = topSvg.childNodes.length > 0;
-    const defaultPct = hasP2 ? 50 : 100;
-    slider.style.left = defaultPct + "%";
-    topSvg.style.clipPath = `inset(0 0 0 ${defaultPct}%)`;
-    if (bottomSvg) bottomSvg.style.clipPath = `inset(0 ${100 - defaultPct}% 0 0)`;
-
-    const onStart = (e) => {
-      dragging = true;
-      e.preventDefault();
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      setPosition(clientX);
-    };
-    const onMove = (e) => {
-      if (!dragging) return;
-      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-      setPosition(clientX);
-    };
-    const onEnd = () => { dragging = false; };
-
-    slider.addEventListener("mousedown", onStart);
-    slider.addEventListener("touchstart", onStart, { passive: false });
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("touchmove", onMove, { passive: false });
-    document.addEventListener("mouseup", onEnd);
-    document.addEventListener("touchend", onEnd);
-
-    // Click anywhere on container to jump slider
-    container.addEventListener("click", (e) => {
-      if (e.target.closest(".plan-compare-slider")) return;
-      setPosition(e.clientX);
-    });
+    if (hasSplit) {
+      const vals1 = data.slice(0, plan2Start).map(d => d[field]);
+      const vals2 = data.slice(plan2Start).map(d => d[field]);
+      meanFor(vals1, color1, 0, plan2Start - 1);
+      meanFor(vals2, color2, plan2Start, data.length - 1);
+    } else {
+      meanFor(allVals, color1, 0, data.length - 1);
+    }
   },
 
   /* ── HRV Plan Compare ──────────────────────────────────────── */
   renderPlanCompareHRV(rides) {
-    const plan1 = rides.filter(r => r.hrv != null && (r.plan || "Plan 1") === "Plan 1")
+    const data = rides.filter(r => r.hrv != null)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const plan2 = rides.filter(r => r.hrv != null && r.plan === "Plan 2")
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-
-    if (plan1.length) this._renderPlanSeries("chart-hrv-p1", plan1, "#7c5cbf", "ms", "Plan 1", "hrv");
-    if (plan2.length) this._renderPlanSeries("chart-hrv-p2", plan2, "#e07b39", "ms", "Plan 2", "hrv");
-
-    this._initPlanCompareSlider("hrv-compare", "hrv-slider", "chart-hrv-p2");
+    this._renderHrvRhfChart("chart-hrv-p1", data, "#7c5cbf", "#e07b39", "ms", "hrv",
+      "⚠ Methodenwechsel: Plan 1 = RMSSD (Apple Health) · Plan 2 = SDNN Schlafschnitt (intervals.icu) — nicht direkt vergleichbar");
   },
 
   renderRHF(svgId, rides) {
-    // Delegiert an Plan-Compare-Slider
+    // Delegiert an Plan-Compare
   },
 
   /* ── RHF Plan Compare ──────────────────────────────────────── */
   renderPlanCompareRHF(rides) {
-    const plan1 = rides.filter(r => r.ruhepuls != null && (r.plan || "Plan 1") === "Plan 1")
+    const data = rides.filter(r => r.ruhepuls != null)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-    const plan2 = rides.filter(r => r.ruhepuls != null && r.plan === "Plan 2")
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
-
-    if (plan1.length) this._renderPlanSeries("chart-rhf-p1", plan1, "#c45c5c", "bpm", "Plan 1", "ruhepuls");
-    if (plan2.length) this._renderPlanSeries("chart-rhf-p2", plan2, "#e07b39", "bpm", "Plan 2", "ruhepuls");
-
-    this._initPlanCompareSlider("rhf-compare", "rhf-slider", "chart-rhf-p2");
+    this._renderHrvRhfChart("chart-rhf-p1", data, "#c45c5c", "#e07b39", "bpm", "ruhepuls", null);
   },
 
   /* ── PMC — Performance Management Chart ─────────────────────── */
