@@ -760,10 +760,27 @@ window.Charts = {
 
   /* ── HRV Plan Compare ──────────────────────────────────────── */
   renderPlanCompareHRV(rides) {
-    const data = rides.filter(r => r.hrv != null)
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const ownPlan = rides.some(r => r.week);
+    let data;
+    if (ownPlan) {
+      data = rides.filter(r => r.hrv != null)
+        .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    } else {
+      // Kein eigener Plan — direkt aus Wellness lesen (alle Tage, nicht nur Fahrtdaten)
+      data = (Data.wellness || [])
+        .filter(w => w.hrv != null)
+        .map(w => ({
+          dateISO:   w.dateISO || w.date,
+          dateShort: w.dateShort || (w.date ? w.date.slice(5).replace("-", ".") : ""),
+          week:      null,
+          plan:      "Vergleich",
+          name:      "",
+          hrv:       w.hrv,
+        }))
+        .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    }
     this._renderHrvRhfChart("chart-hrv-p1", data, "#7c5cbf", "#e07b39", "ms", "hrv",
-      "⚠ Methodenwechsel: Plan 1 = RMSSD (Apple Health), Plan 2 = SDNN Schlafschnitt (intervals.icu) — Niveau nicht direkt vergleichbar, Trend pro Segment getrennt berechnet.");
+      ownPlan ? "⚠ Methodenwechsel: Plan 1 = RMSSD (Apple Health), Plan 2 = SDNN Schlafschnitt (intervals.icu) — Niveau nicht direkt vergleichbar, Trend pro Segment getrennt berechnet." : null);
   },
 
   renderRHF(svgId, rides) {
@@ -772,8 +789,25 @@ window.Charts = {
 
   /* ── RHF Plan Compare ──────────────────────────────────────── */
   renderPlanCompareRHF(rides) {
-    const data = rides.filter(r => r.ruhepuls != null)
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const ownPlan = rides.some(r => r.week);
+    let data;
+    if (ownPlan) {
+      data = rides.filter(r => r.ruhepuls != null)
+        .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    } else {
+      // Kein eigener Plan — direkt aus Wellness lesen (alle Tage, nicht nur Fahrtdaten)
+      data = (Data.wellness || [])
+        .filter(w => w.restingHR != null)
+        .map(w => ({
+          dateISO:   w.dateISO || w.date,
+          dateShort: w.dateShort || (w.date ? w.date.slice(5).replace("-", ".") : ""),
+          week:      null,
+          plan:      "Vergleich",
+          name:      "",
+          ruhepuls:  w.restingHR,
+        }))
+        .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    }
     this._renderHrvRhfChart("chart-rhf-p1", data, "#c45c5c", "#e07b39", "bpm", "ruhepuls", null);
   },
 
