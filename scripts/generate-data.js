@@ -298,11 +298,11 @@ async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athle
   if (!data) return [];
   console.log(`   ... Roh-Antwort: ${data.length} Aktivitäten gesamt, Typen: ${[...new Set(data.map(a => a.type))].join(", ")}`);
   const rides = data.filter(a => {
-    if (!allowedTypes.includes(a.type)) return false;
-    // "Workout" ist generisch (z.B. unklassifizierte Strava-Importe) — nur als
-    // Radfahrt zählen wenn eine plausible Distanz vorhanden ist (Krafttraining
-    // o.ä. hat i.d.R. distance=0 oder null)
-    if (a.type === "Workout" && !(a.distance > 0)) return false;
+    const typeOk = allowedTypes.includes(a.type) || a.type === "" || a.type == null;
+    if (!typeOk) return false;
+    // "Workout" und leerer Typ sind generisch (unklassifizierte Strava-Importe) —
+    // nur als Radfahrt zählen wenn eine plausible Distanz vorhanden ist
+    if ((a.type === "Workout" || a.type === "" || a.type == null) && !(a.distance > 0)) return false;
     return true;
   });
   console.log(`   ... ${rides.length} Rides geladen (Typen: ${allowedTypes.join(", ")})`);
