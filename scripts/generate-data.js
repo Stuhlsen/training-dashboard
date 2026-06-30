@@ -296,6 +296,7 @@ async function getIntervalsActivities(oldest, newest, key = INTERVALS_KEY, athle
     `/athlete/${athlete}/activities?oldest=${oldest}&newest=${newest}`, key
   );
   if (!data) return [];
+  console.log(`   ... Roh-Antwort: ${data.length} Aktivitäten gesamt, Typen: ${[...new Set(data.map(a => a.type))].join(", ")}`);
   const rides = data.filter(a => allowedTypes.includes(a.type));
   console.log(`   ... ${rides.length} Rides geladen (Typen: ${allowedTypes.join(", ")})`);
   return rides;
