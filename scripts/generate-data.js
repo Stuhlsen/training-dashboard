@@ -432,9 +432,9 @@ function getWeatherForRide(weatherMap, date, startHour, durationMin) {
   };
 }
 
-function inferTypFromIF(np, min) {
-  if (!np || !FTP) return "Außerplanmäßig";
-  const ifVal = np / FTP;
+function inferTypFromIF(np, min, ftp = FTP) {
+  if (!np || !ftp) return "Außerplanmäßig";
+  const ifVal = np / ftp;
   // Kurze Fahrten (<30 min) mit hohem IF = Intervall/Test
   if (min < 30 && ifVal > 0.95) return "FTP-Test";
   if (ifVal < 0.75)              return "Z1 Recovery";
@@ -446,7 +446,7 @@ function inferTypFromIF(np, min) {
 }
 
 // === intervals.icu Activity → Ride-Objekt (zweiter Athlet, ohne Plan-Bezug) ===
-function mapActivity2(act, wellness, weatherMap) {
+function mapActivity2(act, wellness, weatherMap, estimatedFtp) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
 
@@ -463,7 +463,7 @@ function mapActivity2(act, wellness, weatherMap) {
     date,
     week: null,
     phase: null,
-    typ: inferTypFromIF(np, min),
+    typ: inferTypFromIF(np, min, estimatedFtp),
     plan: "Vergleich",
     km: Math.round((act.distance || 0) / 100) / 10,
     min,
@@ -690,8 +690,16 @@ async function main() {
     const wellness2 = await getIntervalsWellness(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
     const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
 
+    // FTP-Schätzung aus bestem NP einer Fahrt ≥20min (kein Ramp-Test verfügbar)
+    const longRides2 = activities2.filter(a => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts);
+    const bestNP2 = longRides2.length
+      ? Math.max(...longRides2.map(a => a.icu_weighted_avg_watts))
+      : null;
+    const estimatedFTP2 = bestNP2 ? Math.round(bestNP2 * 0.95) : null;
+    if (estimatedFTP2) console.log(`   ... geschätzte FTP (Siggi): ${estimatedFTP2}W (aus bestem NP ${bestNP2}W ≥20min)`);
+
     const rides2 = activities2
-      .map(act => mapActivity2(act, wellness2, weatherMap))
+      .map(act => mapActivity2(act, wellness2, weatherMap, estimatedFTP2))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     const wellnessList2 = Object.entries(wellness2)
