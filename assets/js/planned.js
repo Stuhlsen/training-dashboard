@@ -106,9 +106,6 @@ window.Adjustments = {
 
 window.Planned = {
 
-  /* ── Wetter-Forecast Cache ─────────────────────────────────── */
-  _forecastCache: null,
-
   /* ── Typ → Farbe ───────────────────────────────────────────── */
   _typColor(typ) {
     const map = {
@@ -166,55 +163,10 @@ window.Planned = {
   },
 
   /* ── Wetter-Forecast laden (Open-Meteo, bis 16 Tage) ───────── */
+  /* ── Wetter-Forecast lesen (serverseitig berechnet — Standort
+       bleibt in GitHub Secrets, nie im Frontend-Code sichtbar) ── */
   async _loadForecast() {
-    if (this._forecastCache) return this._forecastCache;
-    try {
-      const params = [
-        "latitude=51.5253", "longitude=14.0016",
-        "hourly=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,weather_code,uv_index",
-        "forecast_days=16",
-        "timezone=Europe/Berlin",
-      ].join("&");
-      const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
-      if (!res.ok) return null;
-      const data = await res.json();
-      // Map aufbauen: "YYYY-MM-DD" → gemittelte Tageswerte (08–18 Uhr)
-      const map = {};
-      const h = data.hourly;
-      for (let i = 0; i < h.time.length; i++) {
-        const [date, time] = h.time[i].split("T");
-        const hour = parseInt(time);
-        if (hour < 8 || hour > 18) continue;
-        if (!map[date]) map[date] = { temp: [], feel: [], humidity: [], wind: [], windDir: [], precipProb: [], code: [], uv: [] };
-        if (h.temperature_2m[i]            != null) map[date].temp.push(h.temperature_2m[i]);
-        if (h.apparent_temperature[i]      != null) map[date].feel.push(h.apparent_temperature[i]);
-        if (h.relative_humidity_2m[i]      != null) map[date].humidity.push(h.relative_humidity_2m[i]);
-        if (h.wind_speed_10m[i]            != null) map[date].wind.push(h.wind_speed_10m[i]);
-        if (h.wind_direction_10m[i]        != null) map[date].windDir.push(h.wind_direction_10m[i]);
-        if (h.precipitation_probability[i] != null) map[date].precipProb.push(h.precipitation_probability[i]);
-        if (h.weather_code[i]              != null) map[date].code.push(h.weather_code[i]);
-        if (h.uv_index[i]                  != null) map[date].uv.push(h.uv_index[i]);
-      }
-      const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
-      const result = {};
-      for (const [date, v] of Object.entries(map)) {
-        result[date] = {
-          temp:        Math.round(mean(v.temp) * 10) / 10,
-          tempFeel:    Math.round(mean(v.feel) * 10) / 10,
-          humidity:    Math.round(mean(v.humidity)),
-          windSpeed:   Math.round(mean(v.wind) * 10) / 10,
-          windDir:     Math.round(mean(v.windDir)),
-          precipProb:  Math.round(mean(v.precipProb)),
-          weatherCode: Math.max(...v.code),
-          uvMax:       v.uv.length ? Math.round(Math.max(...v.uv) * 10) / 10 : null,
-        };
-      }
-      this._forecastCache = result;
-      return result;
-    } catch (e) {
-      console.warn("Open-Meteo Forecast Fehler:", e.message);
-      return null;
-    }
+    return Data.forecast || {};
   },
 
   /* ── Workout zu intervals.icu pushen ───────────────────────── */

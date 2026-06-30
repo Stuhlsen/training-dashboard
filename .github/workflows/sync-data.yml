@@ -9,6 +9,8 @@
 #   INTERVALS_ATHLETE_ID  — intervals.icu Athlete ID (Alex)
 #   INTERVALS_API_KEY_2   — intervals.icu API Key (Siggi, optional — Vergleichsdaten)
 #   INTERVALS_ATHLETE_ID_2 — intervals.icu Athlete ID (Siggi, optional)
+#   WEATHER_LAT / WEATHER_LON     — Standort Alex (Breitengrad/Längengrad, privat)
+#   WEATHER_LAT_2 / WEATHER_LON_2 — Standort Siggi (optional, privat)
 
 name: Sync Training Data
 
@@ -55,6 +57,10 @@ jobs:
           INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
           INTERVALS_API_KEY_2: ${{ secrets.INTERVALS_API_KEY_2 }}
           INTERVALS_ATHLETE_ID_2: ${{ secrets.INTERVALS_ATHLETE_ID_2 }}
+          WEATHER_LAT: ${{ secrets.WEATHER_LAT }}
+          WEATHER_LON: ${{ secrets.WEATHER_LON }}
+          WEATHER_LAT_2: ${{ secrets.WEATHER_LAT_2 }}
+          WEATHER_LON_2: ${{ secrets.WEATHER_LON_2 }}
         run: node scripts/generate-data.js
 
       - name: Commit data if changed

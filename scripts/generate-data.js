@@ -325,13 +325,20 @@ async function getIntervalsWellness(oldest, newest, key = INTERVALS_KEY, athlete
 const FTP = 193; // wird aktualisiert wenn neuer Ramp-Test
 
 // === Open-Meteo Wetter-Integration ===
-const WEATHER_LAT = 51.5253;
-const WEATHER_LON = 14.0016;
+// Standorte ausschließlich über Secrets — keine Koordinaten im Code
+const WEATHER_LAT = process.env.WEATHER_LAT || null;
+const WEATHER_LON = process.env.WEATHER_LON || null;
+const WEATHER_LAT_2 = process.env.WEATHER_LAT_2 || null;
+const WEATHER_LON_2 = process.env.WEATHER_LON_2 || null;
 
-async function getHistoricalWeather(startDate, endDate) {
+async function getHistoricalWeather(startDate, endDate, lat = WEATHER_LAT, lon = WEATHER_LON) {
+  if (!lat || !lon) {
+    console.log(`🌤️  Open-Meteo Wetter: kein Standort-Secret gesetzt, übersprungen`);
+    return null;
+  }
   console.log(`🌤️  Open-Meteo Wetter (${startDate} bis ${endDate})...`);
   const params = [
-    `latitude=${WEATHER_LAT}`, `longitude=${WEATHER_LON}`,
+    `latitude=${lat}`, `longitude=${lon}`,
     `start_date=${startDate}`, `end_date=${endDate}`,
     `hourly=temperature_2m,apparent_temperature,relative_humidity_2m,` +
       `wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,weather_code`,
@@ -353,11 +360,15 @@ async function getHistoricalWeather(startDate, endDate) {
   }
 }
 
-async function getRecentWeather() {
+async function getRecentWeather(lat = WEATHER_LAT, lon = WEATHER_LON) {
+  if (!lat || !lon) {
+    console.log(`🌤️  Open-Meteo Forecast: kein Standort-Secret gesetzt, übersprungen`);
+    return null;
+  }
   // Forecast-API liefert auch vergangene Stunden der letzten Tage (kein Delay wie Archive)
   console.log(`🌤️  Open-Meteo Forecast (letzte 2 Tage)...`);
   const params = [
-    `latitude=${WEATHER_LAT}`, `longitude=${WEATHER_LON}`,
+    `latitude=${lat}`, `longitude=${lon}`,
     `past_days=3`,
     `forecast_days=1`,
     `hourly=temperature_2m,apparent_temperature,relative_humidity_2m,` +
@@ -376,6 +387,69 @@ async function getRecentWeather() {
     return data;
   } catch (e) {
     console.warn(`⚠️  Open-Meteo Forecast Fehler:`, e.message);
+    return null;
+  }
+}
+
+/**
+ * 16-Tage-Forecast für den Planungs-Tab — aggregiert auf Tagesdurchschnitte
+ * (08–18 Uhr). Läuft serverseitig damit der Standort nie im Frontend-Code
+ * oder im Browser-Request sichtbar wird.
+ */
+async function getPlanningForecast(lat = WEATHER_LAT, lon = WEATHER_LON) {
+  if (!lat || !lon) {
+    console.log(`🌤️  Planungs-Forecast: kein Standort-Secret gesetzt, übersprungen`);
+    return null;
+  }
+  console.log(`🌤️  Open-Meteo Planungs-Forecast (16 Tage)...`);
+  const params = [
+    `latitude=${lat}`, `longitude=${lon}`,
+    `hourly=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,weather_code,uv_index`,
+    `forecast_days=16`,
+    `timezone=Europe/Berlin`,
+  ].join("&");
+
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?${params}`);
+    if (!res.ok) {
+      console.warn(`⚠️  Open-Meteo Planungs-Forecast (${res.status}): ${await res.text()}`);
+      return null;
+    }
+    const data = await res.json();
+    const map = {};
+    const h = data.hourly;
+    for (let i = 0; i < h.time.length; i++) {
+      const [date, time] = h.time[i].split("T");
+      const hour = parseInt(time);
+      if (hour < 8 || hour > 18) continue;
+      if (!map[date]) map[date] = { temp: [], feel: [], humidity: [], wind: [], windDir: [], precipProb: [], code: [], uv: [] };
+      if (h.temperature_2m[i]            != null) map[date].temp.push(h.temperature_2m[i]);
+      if (h.apparent_temperature[i]      != null) map[date].feel.push(h.apparent_temperature[i]);
+      if (h.relative_humidity_2m[i]      != null) map[date].humidity.push(h.relative_humidity_2m[i]);
+      if (h.wind_speed_10m[i]            != null) map[date].wind.push(h.wind_speed_10m[i]);
+      if (h.wind_direction_10m[i]        != null) map[date].windDir.push(h.wind_direction_10m[i]);
+      if (h.precipitation_probability[i] != null) map[date].precipProb.push(h.precipitation_probability[i]);
+      if (h.weather_code[i]              != null) map[date].code.push(h.weather_code[i]);
+      if (h.uv_index[i]                  != null) map[date].uv.push(h.uv_index[i]);
+    }
+    const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+    const result = {};
+    for (const [date, v] of Object.entries(map)) {
+      result[date] = {
+        temp:        Math.round(mean(v.temp) * 10) / 10,
+        tempFeel:    Math.round(mean(v.feel) * 10) / 10,
+        humidity:    Math.round(mean(v.humidity)),
+        windSpeed:   Math.round(mean(v.wind) * 10) / 10,
+        windDir:     Math.round(mean(v.windDir)),
+        precipProb:  Math.round(mean(v.precipProb)),
+        weatherCode: Math.max(...v.code),
+        uvMax:       v.uv.length ? Math.round(Math.max(...v.uv) * 10) / 10 : null,
+      };
+    }
+    console.log(`   ... Forecast für ${Object.keys(result).length} Tage aggregiert`);
+    return result;
+  } catch (e) {
+    console.warn(`⚠️  Open-Meteo Planungs-Forecast Fehler:`, e.message);
     return null;
   }
 }
@@ -668,6 +742,9 @@ async function main() {
 
   const plans = [...new Set(rides.map(r => r.plan))].filter(Boolean).sort();
 
+  // Planungs-Forecast serverseitig laden (Standort bleibt im Secret, nie im Frontend)
+  const planningForecast = await getPlanningForecast();
+
   const output = {
     rides,
     wellness: wellnessList,
@@ -675,6 +752,7 @@ async function main() {
     athleteWeight,
     plannedSessions: Object.entries(PLANNED_SESSIONS).map(([date, s]) => ({ date, ...s })),
     adjustments: loadAdjustments(),
+    forecast: planningForecast || {},
     plans,
     updated: new Date().toISOString(),
     source: INTERVALS_KEY ? "notion+intervals" : "notion",
@@ -699,6 +777,12 @@ async function main() {
     const wellness2 = await getIntervalsWellness(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
     const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, INTERVALS_KEY_2, INTERVALS_ATHLETE_2);
 
+    // Eigener Standort für Siggi (separates Secret) — kein Rückfall auf Alex' Koordinaten
+    const weatherData2 = await getHistoricalWeather(oldest2, weatherEnd, WEATHER_LAT_2, WEATHER_LON_2);
+    const weatherMap2 = buildWeatherMap(weatherData2);
+    const recentData2 = await getRecentWeather(WEATHER_LAT_2, WEATHER_LON_2);
+    Object.assign(weatherMap2, buildWeatherMap(recentData2));
+
     // Feste FTP aus letztem Ramp-Test (ATHLETE_2_FTP), Fallback: Schätzung aus bestem NP ≥20min
     const longRides2 = activities2.filter(a => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts);
     const bestNP2 = longRides2.length
@@ -708,7 +792,7 @@ async function main() {
     console.log(`   ... FTP (Siggi): ${estimatedFTP2}W ${ATHLETE_2_FTP ? "(Ramp-Test)" : `(geschätzt aus bestem NP ${bestNP2}W ≥20min)`}`);
 
     const rides2 = activities2
-      .map(act => mapActivity2(act, wellness2, weatherMap, estimatedFTP2))
+      .map(act => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     const wellnessList2 = Object.entries(wellness2)

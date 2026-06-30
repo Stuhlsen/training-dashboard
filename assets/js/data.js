@@ -13,6 +13,7 @@ window.Data = {
   athleteFtp: null,
   plannedSessions: [],
   adjustments: {},
+  forecast: {},
   activeAthleteId: "alex",
 
   /* ── Laden ──────────────────────────────────────────────────── */
@@ -34,6 +35,7 @@ window.Data = {
         this.athleteFtp = json.ftp || null;
         this.plannedSessions = json.plannedSessions || [];
         this.adjustments = json.adjustments || {};
+        this.forecast = json.forecast || {};
         return { ok: true, source: "json", updated: json.updated };
       }
       throw new Error("Keine Daten in JSON-Datei");
@@ -47,6 +49,7 @@ window.Data = {
         this.athleteWeight = null;
         this.plannedSessions = [];
         this.adjustments = {};
+        this.forecast = {};
         return { ok: false, source: "none", warning: err.message };
       }
       this.rides = STATIC_RIDES.map(r => this._normalize(r));
@@ -55,6 +58,7 @@ window.Data = {
       this.athleteWeight = null;
       this.plannedSessions = [];
       this.adjustments = {};
+      this.forecast = {};
       return { ok: true, source: "static", warning: err.message };
     }
   },
