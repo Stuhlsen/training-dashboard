@@ -122,6 +122,9 @@ window.Data = {
 
   /** Wöchentliche Aggregation */
   weekly() {
+    const hasOwnPlan = this.rides.some(r => r.week);
+    if (!hasOwnPlan) return this._weeklyByCalendar();
+
     const weeks = [...new Set(this.rides.map(r => r.week))]
       .filter(Boolean)
       .sort((a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b));
@@ -141,6 +144,41 @@ window.Data = {
         avgEff: avg(wr.filter(r => r.efficiency), "efficiency"),
       };
     });
+  },
+
+  /** Wochen-Aggregation nach Kalenderwoche — Fallback für Athleten ohne
+      eigene Trainingsplan-Wochenstruktur (z.B. Vergleichsdaten). */
+  _weeklyByCalendar() {
+    const isoWeekKey = (dateStr) => {
+      const d = new Date(dateStr);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
+      const week1 = new Date(d.getFullYear(), 0, 4);
+      const weekNum = 1 + Math.round(((d - week1) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+      return `${d.getFullYear()}-KW${String(weekNum).padStart(2, "0")}`;
+    };
+
+    const grouped = {};
+    for (const r of this.rides) {
+      const key = isoWeekKey(r.dateISO);
+      if (!grouped[key]) grouped[key] = [];
+      grouped[key].push(r);
+    }
+
+    return Object.entries(grouped)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([week, wr]) => ({
+        week,
+        phase:  null,
+        plan:   "Vergleich",
+        rides:  wr.length,
+        km:     Math.round(sum(wr, "km") * 10) / 10,
+        min:    sum(wr, "min"),
+        trimp:  Math.round(sum(wr, "trimp")),
+        avgHF:  avg(wr, "hf"),
+        avgKad: avg(wr, "kad"),
+        avgEff: avg(wr.filter(r => r.efficiency), "efficiency"),
+      }));
   },
 };
 

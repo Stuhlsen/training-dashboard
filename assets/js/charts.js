@@ -37,38 +37,41 @@ window.Charts = {
   /* ── 1. Wöchentliches Volumen (Balken) ──────────────────────── */
   renderWeeklyVolume(svgId, weeklyData, onBarClick) {
     const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+    if (!weeklyData.length) { svg.innerHTML = `<text x="390" y="135" text-anchor="middle" fill="#6b6158" font-size="11">Keine Wochendaten verfügbar</text>`; return; }
     const W = 780, H = 270, pad = { l: 50, r: 16, t: 16, b: 40 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+    const ownPlan = weeklyData.some(d => d.phase != null);
     const TARGET_KM = 200;
-    const maxKm = Math.max(...weeklyData.map(d => d.km), TARGET_KM * 1.1) * 1.15 || 1;
+    const maxKm = Math.max(...weeklyData.map(d => d.km || 0), ownPlan ? TARGET_KM * 1.1 : 0) * 1.15 || 1;
     const bw = Math.min(cw / weeklyData.length * 0.62, 52);
     const gap = cw / weeklyData.length;
 
     this._gridLines(svg, W, H, pad, maxKm);
 
-    // Zielzone: 180–220 km als grünes Band
-    const zoneTopY = pad.t + ch - (220 / maxKm * ch);
-    const zoneBotY = pad.t + ch - (180 / maxKm * ch);
-    svg.appendChild(svgEl("rect", {
-      x: pad.l, y: zoneTopY,
-      width: cw, height: zoneBotY - zoneTopY,
-      fill: "#5c9e6e", opacity: "0.08",
-    }));
+    // Zielzone nur sinnvoll für den eigenen Trainingsplan
+    if (ownPlan) {
+      const zoneTopY = pad.t + ch - (220 / maxKm * ch);
+      const zoneBotY = pad.t + ch - (180 / maxKm * ch);
+      svg.appendChild(svgEl("rect", {
+        x: pad.l, y: zoneTopY,
+        width: cw, height: zoneBotY - zoneTopY,
+        fill: "#5c9e6e", opacity: "0.08",
+      }));
 
-    // Ziellinie bei 200km
-    const targetY = pad.t + ch - (TARGET_KM / maxKm * ch);
-    svg.appendChild(svgEl("line", {
-      x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
-      stroke: "#5c9e6e", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.5",
-    }));
-    const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#5c9e6e", "font-size": "9", opacity: "0.8" });
-    tl.textContent = "Ziel 200 km"; svg.appendChild(tl);
+      const targetY = pad.t + ch - (TARGET_KM / maxKm * ch);
+      svg.appendChild(svgEl("line", {
+        x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
+        stroke: "#5c9e6e", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.5",
+      }));
+      const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#5c9e6e", "font-size": "9", opacity: "0.8" });
+      tl.textContent = "Ziel 200 km"; svg.appendChild(tl);
+    }
 
     weeklyData.forEach((d, i) => {
       const x  = pad.l + i * gap + (gap - bw) / 2;
-      const bh = Math.max(d.km / maxKm * ch, 1);
+      const bh = Math.max((d.km || 0) / maxKm * ch, 1);
       const y  = pad.t + ch - bh;
-      const color = CONFIG.phaseColor(d.phase);
+      const color = ownPlan ? CONFIG.phaseColor(d.phase) : "#4a7fa8";
 
       const rect = svgEl("rect", {
         x, y, width: bw, height: bh, rx: "3",
@@ -181,12 +184,12 @@ window.Charts = {
   /* ── 3. TRIMP pro Woche ─────────────────────────────────────── */
   renderTrimp(svgId, weeklyData) {
     const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+    if (!weeklyData.length) { svg.innerHTML = `<text x="390" y="115" text-anchor="middle" fill="#6b6158" font-size="11">Keine Wochendaten verfügbar</text>`; return; }
     const W = 780, H = 230, pad = { l: 50, r: 16, t: 16, b: 40 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-    const maxV = Math.max(...weeklyData.map(d => d.trimp)) * 1.15 || 1;
+    const maxV = Math.max(...weeklyData.map(d => d.trimp || 0)) * 1.15 || 1;
     const bw = Math.min(cw / weeklyData.length * 0.62, 52);
     const gap = cw / weeklyData.length;
-    const maxTrimp = Math.max(...weeklyData.map(d => d.trimp)) || 1;
 
     this._gridLines(svg, W, H, pad, maxV);
 
@@ -200,9 +203,9 @@ window.Charts = {
 
     weeklyData.forEach((d, i) => {
       const x  = pad.l + i * gap + (gap - bw) / 2;
-      const bh = Math.max(d.trimp / maxV * ch, 1);
+      const bh = Math.max((d.trimp || 0) / maxV * ch, 1);
       const y  = pad.t + ch - bh;
-      const color = _trimpColor(d.trimp);
+      const color = _trimpColor(d.trimp || 0);
       const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "3", fill: color, opacity: "0.82" });
       rect.style.cursor = "pointer";
       rect.style.transition = "opacity 0.12s";
@@ -220,7 +223,7 @@ window.Charts = {
       // Value label on top
       if (bh > 15) {
         const vt = svgEl("text", { x: x + bw / 2, y: y - 4, "text-anchor": "middle", fill: color, "font-size": "9", "font-weight": "600" });
-        vt.textContent = d.trimp;
+        vt.textContent = d.trimp || 0;
         svg.appendChild(vt);
       }
 

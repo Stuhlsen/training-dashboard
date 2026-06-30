@@ -87,7 +87,7 @@ window.Table = {
     search:  "",
   },
 
-  COLS: [
+  COLS_BASE: [
     { k: "dateShort", l: "Datum",    sk: "dateISO" },
     { k: "week",      l: "Woche"                   },
     { k: "name",      l: "Einheit",  wide: true     },
@@ -105,6 +105,12 @@ window.Table = {
     { k: "feel",      l: "Befinden"                 },
     { k: "weather",   l: "Wetter",   noSort: true   },
   ],
+
+  /** Spalten je nach Athlet — Befinden nur bei eigenem Plan relevant */
+  get COLS() {
+    const ownPlan = Data.rides.some(r => r.week);
+    return ownPlan ? this.COLS_BASE : this.COLS_BASE.filter(c => c.k !== "feel");
+  },
 
   /* ── Öffentliche API ─────────────────────────────────────────── */
   async init() {
@@ -140,6 +146,20 @@ window.Table = {
     this._renderFilters();
     this._renderWeekTag();
     this._renderTable();
+    this._toggleLegend();
+  },
+
+  /** Befinden-Legende und Hinweistext je nach Athlet ein-/ausblenden */
+  _toggleLegend() {
+    const ownPlan = Data.rides.some(r => r.week);
+    const legendGroup = el("feel-legend-group");
+    const note = el("table-note");
+    if (legendGroup) legendGroup.classList.toggle("hidden", !ownPlan);
+    if (note) {
+      note.textContent = ownPlan
+        ? "– = Wert nicht erfasst · Befinden nur bei Plan-2-Fahrten editierbar · Wetter von Open-Meteo"
+        : "– = Wert nicht erfasst · Wetter von Open-Meteo";
+    }
   },
 
   /** Von außen aufrufbar um Wochen-Filter zu setzen */
@@ -244,6 +264,7 @@ window.Table = {
     );
 
     // Body
+    const ownPlan = Data.rides.some(r => r.week);
     const tbody = el("table-body");
     tbody.innerHTML = filtered.map(r => {
       const isP2 = r.plan === "Plan 2";
@@ -251,7 +272,7 @@ window.Table = {
       const feelVal = subj?.feel || r.feel || "";
       const feel = normalizeFeel(feelVal);
 
-      const feelCell = isP2
+      const feelCell = !ownPlan ? "" : (isP2
         ? `<td>
             <select class="feel-select feel-${feel.cls}" data-date="${r.dateISO}">
               <option value="">– wählen –</option>
@@ -260,7 +281,7 @@ window.Table = {
               ).join("")}
             </select>
            </td>`
-        : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`;
+        : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`);
 
       return `
         <tr data-date="${r.dateISO}">

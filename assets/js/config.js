@@ -76,6 +76,19 @@ window.CONFIG = {
     { id: "siggi", name: "Siggi Lentes",   endpoint: "./data/rides-2.json" },
   ],
 
+  /* ── Historisches Volumen vor Systembeitritt (Strava-Lifetime) ─
+     Siggi war vor seinem intervals.icu-Beitritt schon aktiv auf Strava.
+     Diese Werte werden einmalig erfasst und zur Live-Distanz addiert,
+     damit die Gesamtdistanz nicht künstlich klein wirkt.
+     Bei neuem Strava-Abgleich manuell aktualisieren. */
+  historicalVolume: {
+    siggi: {
+      totalKmLifetime: 4568.5,       // Strava "Insgesamt" zum Stand der Erfassung
+      kmAlreadyInSystem: 339,         // Distanz der Fahrten, die bereits über intervals.icu erfasst sind
+      capturedAt: "2026-06-30",
+    },
+  },
+
 };
 
 // Hilfsfunktion: Phasenfarbe abrufen

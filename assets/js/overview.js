@@ -31,13 +31,32 @@ window.Overview = {
       ? `${first.dateShort} – ${last.dateShort} · ${CONFIG.planVersion}`
       : `${first.dateShort} – ${last.dateShort} · Vergleichsdaten · ${athleteName}`;
 
+    // Hero-Beschreibung athletenabhängig
+    const descEl = el("hero-desc");
+    if (descEl) {
+      if (ownPlan) {
+        descEl.innerHTML = `Dieses Dashboard dokumentiert einen strukturierten Radsport-Trainingsplan über zwei Phasen. <strong>Plan 1</strong> umfasste 12 Wochen Basisaufbau (März–Juni 2026) mit dem Ziel, aerobe Fitness und Grundlagenausdauer aufzubauen — FTP von 166W auf 193W gesteigert. <strong>Plan 2</strong> läuft seit Juni 2026 mit pyramidaler Periodisierung über Sweet Spot, Schwelle und VO2max-Blöcke, Ziel: FTP ≥210W bis September 2026. Alle Daten kommen automatisch aus intervals.icu und Apple Health.`;
+      } else {
+        const hist = CONFIG.historicalVolume?.[Data.activeAthleteId];
+        const histNote = hist
+          ? ` Vor dem Beitritt zu unserem Erfassungssystem war ${athleteName} bereits deutlich aktiver auf Strava — die Gesamtdistanz unten berücksichtigt dieses historische Volumen zusätzlich zu den live erfassten Fahrten.`
+          : "";
+        descEl.innerHTML = `Diese Ansicht zeigt Vergleichsdaten von <strong>${athleteName}</strong>, direkt aus intervals.icu. Es handelt sich um reine Leistungsdaten ohne eigenen Trainingsplan — kein Soll-Ist-Vergleich, keine Planung, keine Befinden-Erfassung.${histNote}`;
+      }
+    }
+
     const totalKm  = Math.round(sum(rides, "km"));
     const ftpVal   = Data.ftpValue();
     const totalMin = sum(rides, "min");
 
+    // Historisches Volumen addieren (nur für Athleten mit erfasster Historie)
+    const hist = CONFIG.historicalVolume?.[Data.activeAthleteId];
+    const historicalKm = hist ? Math.max(0, hist.totalKmLifetime - hist.kmAlreadyInSystem) : 0;
+    const displayKm = totalKm + Math.round(historicalKm);
+
     el("hero-kpis").innerHTML = [
-      { v: totalKm.toLocaleString("de"), l: "Kilometer",   c: "var(--accent)" },
-      { v: rides.length,                 l: "Fahrten",     c: "var(--text)"   },
+      { v: displayKm.toLocaleString("de"), l: historicalKm > 0 ? "Kilometer (inkl. Strava-Historie)" : "Kilometer",   c: "var(--accent)" },
+      { v: rides.length,                 l: "Fahrten" + (historicalKm > 0 ? " (erfasst)" : ""),     c: "var(--text)"   },
       { v: ftpVal ? `${ftpVal}W` : "–", l: ownPlan ? "FTP" : (Data.athleteFtp ? "FTP" : "Bestes NP"),         c: "var(--gold)"   },
       { v: fmtDuration(totalMin),        l: "Trainingszeit",  c: "var(--dim)"    },
     ].map(k => `
