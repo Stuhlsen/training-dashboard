@@ -567,7 +567,7 @@ window.Charts = {
   _renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote) {
     const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
 
-    const W = 780, H = 220, pad = { l: 50, r: 16, t: 28, b: 36 };
+    const W = 780, H = 250, pad = { l: 50, r: 16, t: 28, b: 36 };
     const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
     const allVals = data.map(d => d[field]);
     const minV = Math.max(0, Math.min(...allVals) - 5);
@@ -581,14 +581,29 @@ window.Charts = {
       d,
     }));
 
-    const plan2Start = data.findIndex(d => d.plan === "Plan 2");
+    // Drei Segmente: Plan 1 / Übergang W0 / Plan 2
+    const w0Start = data.findIndex(d => d.week === "P2-W0");
+    const w1Start = data.findIndex(d => d.week && d.week.startsWith("P2-") && d.week !== "P2-W0");
+    const plan2Start = w0Start >= 0 ? w0Start : data.findIndex(d => d.plan === "Plan 2");
+    const hasW0 = w0Start >= 0 && w1Start > w0Start;
     const hasSplit = plan2Start > 0;
 
-    // Zwei Segmente zeichnen (Plan 1 Farbe / Plan 2 Farbe), an der Naht überlappend
-    const seg1 = hasSplit ? pts.slice(0, plan2Start) : pts;
-    const seg2 = hasSplit ? pts.slice(plan2Start - 1) : []; // -1 für nahtlosen Übergang
+    const colorW0 = "#c9a84c";
 
-    const drawSegment = (segment, color) => {
+    let seg1, segW0, seg2;
+    if (hasW0) {
+      seg1 = pts.slice(0, w0Start + 1);
+      segW0 = pts.slice(w0Start, w1Start + 1);
+      seg2 = pts.slice(w1Start);
+    } else if (hasSplit) {
+      seg1 = pts.slice(0, plan2Start + 1);
+      segW0 = [];
+      seg2 = pts.slice(plan2Start);
+    } else {
+      seg1 = pts; segW0 = []; seg2 = [];
+    }
+
+    const drawSegment = (segment, color, dashed) => {
       if (segment.length < 1) return;
       if (segment.length === 1) {
         svg.appendChild(svgEl("circle", { cx: segment[0].x, cy: segment[0].y, r: "3.5", fill: color }));
@@ -597,36 +612,42 @@ window.Charts = {
       const areaPath = `M${segment[0].x},${H - pad.b} ` +
         segment.map(p => `L${p.x},${p.y}`).join(" ") +
         ` L${segment[segment.length-1].x},${H - pad.b} Z`;
-      svg.appendChild(svgEl("path", { d: areaPath, fill: color, opacity: "0.08" }));
+      svg.appendChild(svgEl("path", { d: areaPath, fill: color, opacity: dashed ? "0.05" : "0.08" }));
       svg.appendChild(svgEl("polyline", {
         fill: "none", stroke: color, "stroke-width": "1.8",
+        "stroke-dasharray": dashed ? "5,4" : "none",
         points: segment.map(p => `${p.x},${p.y}`).join(" "),
       }));
     };
 
-    drawSegment(seg1, color1);
-    if (hasSplit) drawSegment(seg2, color2);
+    drawSegment(seg1, color1, false);
+    if (hasW0) drawSegment(segW0, colorW0, true);
+    if (seg2.length) drawSegment(seg2, color2, false);
 
-    // Trend line (über alle Punkte)
-    const n = pts.length;
-    if (n > 2) {
-      const mx = pts.reduce((s, p) => s + p.x, 0) / n;
-      const my = pts.reduce((s, p) => s + p.y, 0) / n;
-      const slope = pts.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) /
-                    pts.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+    // Getrennte Trendlinien je Segment (Plan 1 und Plan 2 — W0 zu kurz für eigenen Trend)
+    const drawTrend = (segment) => {
+      const n = segment.length;
+      if (n < 3) return;
+      const mx = segment.reduce((s, p) => s + p.x, 0) / n;
+      const my = segment.reduce((s, p) => s + p.y, 0) / n;
+      const denom = segment.reduce((s, p) => s + (p.x - mx) ** 2, 0);
+      if (denom === 0) return;
+      const slope = segment.reduce((s, p) => s + (p.x - mx) * (p.y - my), 0) / denom;
       const intercept = my - slope * mx;
       svg.appendChild(svgEl("line", {
-        x1: pts[0].x, y1: slope * pts[0].x + intercept,
-        x2: pts[n-1].x, y2: slope * pts[n-1].x + intercept,
+        x1: segment[0].x, y1: slope * segment[0].x + intercept,
+        x2: segment[n-1].x, y2: slope * segment[n-1].x + intercept,
         stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
       }));
-    }
+    };
+    drawTrend(pts.slice(0, plan2Start > 0 ? plan2Start : pts.length));
+    if (seg2.length >= 3) drawTrend(seg2);
 
-    // Dots — Farbe je nach Plan
+    // Dots — Farbe je Segment
     const step = Math.max(1, Math.floor(pts.length / 24));
     pts.forEach((p, i) => {
       if (i % step !== 0 && i !== pts.length - 1) return;
-      const dotColor = p.d.plan === "Plan 2" ? color2 : color1;
+      const dotColor = p.d.week === "P2-W0" ? colorW0 : p.d.plan === "Plan 2" ? color2 : color1;
       const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3.5", fill: dotColor, stroke: "#141210", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
@@ -641,31 +662,50 @@ window.Charts = {
     // X labels
     const labelStep = Math.max(1, Math.floor(pts.length / 8));
     pts.forEach((p, i) => {
-      if (i % labelStep === 0 || i === pts.length - 1)
+      if (i % labelStep === 0 || i === pts.length - 1 || i === plan2Start)
         this._xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
     });
 
-    // Plan-Divider mit Methodenwechsel-Hinweis
-    if (hasSplit) {
-      const divX = pad.l + (plan2Start - 0.5) / Math.max(data.length - 1, 1) * cw;
+    // Divider-Linien: Plan1→W0 und W0→Plan2 (falls W0 existiert), sonst nur ein Divider
+    const diviAt = (idx, label1, label2, c1, c2) => {
+      const divX = pad.l + (idx - 0.5) / Math.max(data.length - 1, 1) * cw;
       svg.appendChild(svgEl("rect", {
         x: divX - 1, y: pad.t, width: 2, height: ch,
-        fill: "#c9a84c", opacity: "0.7",
+        fill: "#6b6158", opacity: "0.6",
       }));
-      const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: color1, "font-size": "9", "font-weight": "600" });
-      lbl1.textContent = "← Plan 1"; svg.appendChild(lbl1);
-      const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: color2, "font-size": "9", "font-weight": "600" });
-      lbl2.textContent = "Plan 2 →"; svg.appendChild(lbl2);
-
-      if (methodNote) {
-        const noteLbl = svgEl("text", { x: divX, y: pad.t + ch + 30, "text-anchor": "middle", fill: "#c9a84c", "font-size": "9", "font-weight": "600" });
-        noteLbl.textContent = methodNote;
-        svg.appendChild(noteLbl);
+      if (label1) {
+        const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: c1, "font-size": "9", "font-weight": "600" });
+        lbl1.textContent = label1; svg.appendChild(lbl1);
       }
+      if (label2) {
+        const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: c2, "font-size": "9", "font-weight": "600" });
+        lbl2.textContent = label2; svg.appendChild(lbl2);
+      }
+      return divX;
+    };
+
+    if (hasW0) {
+      diviAt(w0Start, "← Plan 1", "W0 →", color1, colorW0);
+      diviAt(w1Start, "← W0", "Plan 2 →", colorW0, color2);
+    } else if (hasSplit) {
+      diviAt(plan2Start, "← Plan 1", "Plan 2 →", color1, color2);
     }
 
-    // Mean lines getrennt je Plan
-    const meanFor = (arr, color, fromIdx, toIdx) => {
+    // Methodenwechsel-Hinweis — umgebrochen, unter der X-Achse
+    if (methodNote && hasSplit) {
+      const lines = this._wrapText(methodNote, 92);
+      lines.forEach((line, i) => {
+        const noteLbl = svgEl("text", {
+          x: W / 2, y: H - 6 + i * 11, "text-anchor": "middle",
+          fill: "#c9a84c", "font-size": "9", "font-weight": "600",
+        });
+        noteLbl.textContent = line;
+        svg.appendChild(noteLbl);
+      });
+    }
+
+    // Mean lines getrennt je Segment (Plan 1 / Plan 2, W0 ausgelassen — zu kurz für aussagekräftigen Mittelwert)
+    const meanFor = (arr, color, fromIdx, toIdx, labelAbove) => {
       if (!arr.length) return;
       const mean = arr.reduce((s, v) => s + v, 0) / arr.length;
       const meanY = pad.t + ch - (mean - minV) / (maxV - minV) * ch;
@@ -675,19 +715,43 @@ window.Charts = {
         x1, y1: meanY, x2, y2: meanY,
         stroke: color, "stroke-width": "0.8", "stroke-dasharray": "3,4", opacity: "0.4",
       }));
-      const meanLabel = svgEl("text", { x: x2 - 2, y: meanY - 5, "text-anchor": "end", fill: color, "font-size": "9", opacity: "0.7" });
+      const meanLabel = svgEl("text", {
+        x: x2 - 2, y: labelAbove ? meanY - 5 : meanY + 12,
+        "text-anchor": "end", fill: color, "font-size": "9", opacity: "0.7",
+      });
       meanLabel.textContent = `Ø ${fmt(mean, 0)}`;
       svg.appendChild(meanLabel);
     };
 
+    const p1EndIdx = hasW0 ? w0Start : (hasSplit ? plan2Start : data.length - 1);
+    const p2StartIdx = hasW0 ? w1Start : plan2Start;
+    const vals1 = data.slice(0, p1EndIdx + 1).map(d => d[field]);
+    meanFor(vals1, color1, 0, p1EndIdx, true);
     if (hasSplit) {
-      const vals1 = data.slice(0, plan2Start).map(d => d[field]);
-      const vals2 = data.slice(plan2Start).map(d => d[field]);
-      meanFor(vals1, color1, 0, plan2Start - 1);
-      meanFor(vals2, color2, plan2Start, data.length - 1);
-    } else {
-      meanFor(allVals, color1, 0, data.length - 1);
+      const vals2 = data.slice(p2StartIdx).map(d => d[field]);
+      // Label-Kollision vermeiden: wenn Plan-1-Mittelwert nah am Plan-2-Mittelwert liegt, Plan-2-Label tiefer setzen
+      const mean1 = vals1.reduce((s,v)=>s+v,0)/vals1.length;
+      const mean2 = vals2.reduce((s,v)=>s+v,0)/vals2.length;
+      const closeMeans = Math.abs(mean1 - mean2) < (maxV - minV) * 0.08;
+      meanFor(vals2, color2, p2StartIdx, data.length - 1, !closeMeans);
     }
+  },
+
+  /** Bricht einen Text an Wortgrenzen auf mehrere Zeilen um (max. ~maxChars pro Zeile) */
+  _wrapText(text, maxChars) {
+    const words = text.split(" ");
+    const lines = [];
+    let cur = "";
+    words.forEach(w => {
+      if ((cur + " " + w).trim().length > maxChars) {
+        lines.push(cur.trim());
+        cur = w;
+      } else {
+        cur = (cur + " " + w).trim();
+      }
+    });
+    if (cur) lines.push(cur);
+    return lines;
   },
 
   /* ── HRV Plan Compare ──────────────────────────────────────── */
@@ -695,7 +759,7 @@ window.Charts = {
     const data = rides.filter(r => r.hrv != null)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     this._renderHrvRhfChart("chart-hrv-p1", data, "#7c5cbf", "#e07b39", "ms", "hrv",
-      "⚠ Methodenwechsel: Plan 1 = RMSSD (Apple Health) · Plan 2 = SDNN Schlafschnitt (intervals.icu) — nicht direkt vergleichbar");
+      "⚠ Methodenwechsel: Plan 1 = RMSSD (Apple Health), Plan 2 = SDNN Schlafschnitt (intervals.icu) — Niveau nicht direkt vergleichbar, Trend pro Segment getrennt berechnet.");
   },
 
   renderRHF(svgId, rides) {
