@@ -81,6 +81,14 @@ function updateChartExplainers(ownPlan, ftp) {
     set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`);
     set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`);
 
+    set("explainer-scatter", `Jeder Punkt zeigt eine Fahrt: Tempo (x-Achse) gegen Durchschnittsherzfrequenz (y-Achse). Punkte oben links sind effizient — schnelles Tempo bei niedriger Herzfrequenz. Die Phasenfarben zeigen wie sich diese Beziehung über die Trainingsphasen verschoben hat.`);
+    set("legend-scatter", `
+      <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Vorbereitung</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div> Phase 1</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Phase 2</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7c5cbf"></div> Phase 3</div>
+    `);
+
     set("note-cadence", `RPM pro Fahrt · gestrichelt = Ziel ${CONFIG.cadenceTarget} RPM`);
     set("note-hrv", `Plan 1 (lila) · W0 (gold) · Plan 2 (orange)`);
     set("note-rhf", `Plan 1 (rot) · W0 (gold) · Plan 2 (orange)`);
@@ -93,6 +101,9 @@ function updateChartExplainers(ownPlan, ftp) {
     set("explainer-power-curve", `Die Power Curve zeigt die beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung).${ftp ? ` Die goldene Linie markiert die FTP (${ftp}W).` : ""} Mit dem W/kg-Toggle wird die gewichtsnormierte Leistung angezeigt.`);
     set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Da kein eigener Trainingsplan vorliegt, wird hier ein durchgehender Verlauf ohne Plan-Trennung gezeigt.`);
     set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training.`);
+
+    set("explainer-scatter", `Jeder Punkt zeigt eine Fahrt: Tempo (x-Achse) gegen Durchschnittsherzfrequenz (y-Achse). Punkte oben links sind effizient — schnelles Tempo bei niedriger Herzfrequenz.`);
+    set("legend-scatter", `<div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Fahrten</div>`);
 
     set("note-cadence", `RPM pro Fahrt`);
     set("note-hrv", `Verlauf über den erfassten Zeitraum`);
