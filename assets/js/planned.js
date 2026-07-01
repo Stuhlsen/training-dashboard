@@ -639,7 +639,7 @@ window.Planned = {
         ${weatherHtml}
         ${workoutHtml}
         <div class="planned-card-actions">
-          ${hasWorkout ? `<button class="planned-push-btn" data-date="${s.originalDate || s.date}" data-name="${s.name}">📤 Workout zu intervals.icu pushen</button>` : ""}
+          ${hasWorkout ? `<button class="planned-push-btn" data-date="${s.originalDate || s.date}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
           <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}">📅 Verschieben</button>
           <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">❌ Ausgefallen</button>
           <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
@@ -954,7 +954,7 @@ window.Planned = {
     const result = await this._pushWorkout(session, token, athleteId);
 
     btn.disabled = false;
-    btn.textContent = "📤 Workout zu intervals.icu pushen";
+    btn.textContent = "📤 Auf Wahoo pushen";
 
     if (result.ok) {
       if (statusEl) {
