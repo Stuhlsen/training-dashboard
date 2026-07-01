@@ -306,9 +306,9 @@
       "decoupling": -15.5,
       "dtl": 3,
       "ruhepuls": 52,
-      "hrv": 43,
+      "hrv": 40,
       "avgSleepingHR": 53,
-      "sleepHours": 7.5,
+      "sleepHours": 7.4,
       "feel": null,
       "notizen": null,
       "weather": {
@@ -352,9 +352,9 @@
       "decoupling": 6.1,
       "dtl": 50,
       "ruhepuls": 52,
-      "hrv": 43,
+      "hrv": 40,
       "avgSleepingHR": 53,
-      "sleepHours": 7.5,
+      "sleepHours": 7.4,
       "feel": null,
       "notizen": null,
       "weather": {
@@ -368,6 +368,52 @@
         "weatherCode": 3
       },
       "wetter": "28.4°C",
+      "source": "intervals.icu"
+    },
+    {
+      "name": "Afternoon Ride",
+      "date": "2026-07-01",
+      "startTime": "2026-07-01T15:40:40",
+      "week": null,
+      "phase": null,
+      "typ": "Z2 Lang",
+      "plan": "Vergleich",
+      "km": 100.9,
+      "min": 255,
+      "kmh": 23.7,
+      "watt": 72,
+      "maxWatt": null,
+      "np": 96,
+      "hf": 115,
+      "hfMax": 140,
+      "kad": 81,
+      "hoehe": 262,
+      "tss": 56,
+      "if": 0.36,
+      "vi": 1.33,
+      "trimp": 184,
+      "ctl": 24.6,
+      "atl": 40.8,
+      "tsb": -16.2,
+      "decoupling": -26.5,
+      "dtl": 56,
+      "ruhepuls": null,
+      "hrv": null,
+      "avgSleepingHR": 54,
+      "sleepHours": 7.4,
+      "feel": null,
+      "notizen": null,
+      "weather": {
+        "temp": 24.2,
+        "tempFeel": 23.7,
+        "humidity": 52,
+        "windSpeed": 11,
+        "windDir": 303,
+        "precip": 0,
+        "cloudCover": 99,
+        "weatherCode": 3
+      },
+      "wetter": "24.2°C",
       "source": "intervals.icu"
     }
   ],
@@ -584,10 +630,17 @@
     },
     {
       "date": "2026-06-30",
-      "sleepHours": 7.5,
+      "sleepHours": 7.4,
       "avgSleepingHR": 53,
       "restingHR": 52,
-      "hrv": 43
+      "hrv": 40
+    },
+    {
+      "date": "2026-07-01",
+      "sleepHours": 7.4,
+      "avgSleepingHR": 54,
+      "restingHR": null,
+      "hrv": null
     }
   ],
   "powerCurves": {
@@ -2278,7 +2331,7 @@
     }
   },
   "athleteWeight": 92.9,
-  "updated": "2026-07-01T16:16:47.402Z",
+  "updated": "2026-07-01T20:18:33.770Z",
   "source": "intervals.icu",
-  "count": 8
+  "count": 9
 }
