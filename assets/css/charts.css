@@ -1,5 +1,6 @@
 /* ============================================================
    CHARTS.CSS — Chart containers, SVG styles, chart-specific
+   KONZEPT 3 STUFE 3 — Sports-App Styling
    ============================================================ */
 
 .chart-box {
@@ -9,6 +10,12 @@
   padding: 16px;
   margin: 10px 0;
   overflow: visible;
+  /* Stufe 3: leichter Hover-Effekt */
+  transition: border-color var(--transition);
+}
+
+.chart-box:hover {
+  border-color: var(--border-light);
 }
 
 .chart-header {
@@ -20,15 +27,13 @@
   margin-bottom: 14px;
 }
 
-.chart-title { font-size: 0.86rem; font-weight: 600; color: var(--text); }
+/* Stufe 3: Titel etwas schlanker, Note dezenter */
+.chart-title { font-size: 0.86rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
 .chart-title.heatmap-title { font-size: 1.05rem; font-weight: 700; }
-.chart-note  { font-size: 0.72rem; color: var(--dim); }
+.chart-note  { font-size: 0.7rem; color: var(--dim2); letter-spacing: 0.02em; }
 
 svg.chart { width: 100%; height: auto; display: block; }
 svg.chart.chart-wide { width: auto; max-width: none; }
-
-/* Chart grid lines rendered via JS, styled via SVG attributes */
-/* Tooltip triggered on hover — see tooltip in main.css */
 
 /* ── Chart Legend ────────────────────────────────────────────── */
 .chart-legend {
@@ -53,7 +58,7 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   flex-shrink: 0;
 }
 
-/* ── Scatterplot specific ────────────────────────────────────── */
+/* ── Scatterplot ─────────────────────────────────────────────── */
 .scatter-dot {
   cursor: pointer;
   transition: r 0.1s ease;
@@ -73,10 +78,10 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   padding: 8px 0;
 }
 
-/* ── Befinden Dropdown (Plan 2) ──────────────────────────────── */
+/* ── Befinden Dropdown ───────────────────────────────────────── */
 .feel-select {
   background: var(--card-alt);
-  border: 1px solid var(--border-light);
+  border: 1px solid var(--border);
   border-radius: 4px;
   color: var(--text);
   font-size: 0.75rem;
@@ -89,14 +94,14 @@ svg.chart.chart-wide { width: auto; max-width: none; }
 .feel-select:focus  { outline: none; border-color: var(--accent); }
 .feel-select:disabled { opacity: 0.5; cursor: wait; }
 
-/* Farben wie .feel Badges */
-.feel-select.feel-sehr-leicht { color: #5c9e6e; }
-.feel-select.feel-leicht      { color: #7ec88a; }
+.feel-select.feel-sehr-leicht { color: #4ade80; }
+.feel-select.feel-leicht      { color: #86efac; }
 .feel-select.feel-ok          { color: var(--dim); }
 .feel-select.feel-moderat     { color: var(--gold); }
-.feel-select.feel-schwer      { color: #e07b39; }
+.feel-select.feel-schwer      { color: #fb923c; }
 .feel-select.feel-sehr-schwer { color: var(--red); }
 .feel-select.feel-hart        { color: var(--red); }
+
 .chart-empty {
   display: flex;
   align-items: center;
@@ -106,21 +111,26 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   font-size: 0.82rem;
 }
 
-/* ── Unit Toggle (W / W/kg) ───────────────────────────────── */
+/* ── Unit Toggle (W / W/kg) — Stufe 3: Sports-App-Stil ──────── */
 .chart-header-right {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .unit-toggle {
   display: flex;
   gap: 0;
+  /* Stufe 3: Abgerundeter Pill-Stil statt eckig */
+  background: var(--bg2);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: 20px;
   overflow: hidden;
+  padding: 2px;
 }
+
 .unit-btn {
-  padding: 3px 10px;
+  padding: 3px 12px;
   background: transparent;
   border: none;
   color: var(--dim);
@@ -128,15 +138,18 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
-  border-right: 1px solid var(--border);
+  border-radius: 16px;
 }
-.unit-btn:last-child { border-right: none; }
-.unit-btn:hover { background: var(--card-hover); color: var(--text); }
+
+.unit-btn:hover { color: var(--text); }
+
 .unit-btn.active {
-  background: var(--accent-dim);
-  color: var(--accent);
+  /* Stufe 3: Solid fill statt nur Farbe */
+  background: var(--accent);
+  color: #fff;
   font-weight: 600;
 }
+
 .unit-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
@@ -147,16 +160,20 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
+  /* Stufe 3: Scrollbalken in Akzentfarbe */
   scrollbar-width: thin;
-  scrollbar-color: var(--border-light) transparent;
-  display: block; /* wichtig: kein flex, damit SVG-Breite nicht gestreckt wird */
+  scrollbar-color: var(--accent-muted) transparent;
+  display: block;
 }
-.chart-scroll::-webkit-scrollbar { height: 6px; }
+.chart-scroll::-webkit-scrollbar { height: 4px; }
 .chart-scroll::-webkit-scrollbar-track { background: transparent; }
-.chart-scroll::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
+.chart-scroll::-webkit-scrollbar-thumb {
+  background: var(--accent-muted);
+  border-radius: 2px;
+}
 
 svg.chart.chart-wide {
-  width: auto !important;   /* überschreibt svg.chart { width: 100% } */
+  width: auto !important;
   max-width: none !important;
   height: auto;
   display: block;
@@ -178,20 +195,18 @@ svg.chart.chart-wide {
   display: block;
 }
 
-/* Plan 1 (Bottom) — nimmt den Platz ein, wird von rechts geclippt */
 .plan-compare-layer:not(.plan-compare-top) {
   position: relative;
-  clip-path: inset(0 50% 0 0); /* wird per JS gesetzt */
+  clip-path: inset(0 50% 0 0);
 }
 
-/* Plan 2 (Top) — liegt absolut oben drüber, von links geclippt */
 .plan-compare-top {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  clip-path: inset(0 0 0 50%); /* wird per JS gesetzt */
+  clip-path: inset(0 0 0 50%);
 }
 
 .plan-compare-slider {
@@ -220,8 +235,8 @@ svg.chart.chart-wide {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--card);
   border: 2px solid var(--accent);
@@ -230,7 +245,7 @@ svg.chart.chart-wide {
   justify-content: center;
   gap: 2px;
   cursor: ew-resize;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 12px rgba(249,115,22,0.3);
   z-index: 11;
 }
 
@@ -261,11 +276,13 @@ svg.chart.chart-wide {
 }
 
 .plan-label-left {
-  color: #7c5cbf;
-  background: rgba(124, 92, 191, 0.12);
+  color: #a78bfa;
+  background: rgba(167,139,250,0.12);
+  border: 1px solid rgba(167,139,250,0.2);
 }
 
 .plan-label-right {
   color: var(--accent);
-  background: rgba(224, 123, 57, 0.12);
+  background: rgba(249,115,22,0.12);
+  border: 1px solid rgba(249,115,22,0.2);
 }
