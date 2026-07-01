@@ -19,7 +19,7 @@ Notion DB (Plan 1) ────────────────────�
 intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)               │
                   ──→ Wellness (RHF, HRV, Schlaf, Gewicht)           ├──→ generate-data.js
                   ──→ Power Curves (Bestleistungen)                  │         │
-                  ──→ Vergleichsathlet (Siggi Lentes, read-only)     │         ▼
+                  ──→ Vergleichsathlet (Athlete 2, read-only)     │         ▼
                                                                       │   data/rides.json
 Open-Meteo API ────→ Historisches Wetter (Archive API)               │   data/rides-2.json
                ────→ Aktuelles Wetter (Forecast API, letzte 3 Tage) ─┘         │
@@ -40,7 +40,7 @@ GitHub Action (alle 6h) ──────────────────�
 ## Features
 
 ### Athleten-Toggle
-Das Dashboard unterstützt zwei Athleten: **Alex Stuhlsen** (eigener Trainingsplan) und **Siggi Lentes** (Vergleichsdaten, read-only). Der Toggle oben rechts im Header wechselt die Ansicht — alle Charts, Texte und Erklärtexte passen sich automatisch an den aktiven Athleten an. Die Auswahl bleibt persistent über Reload (localStorage), sodass jeder beim Reload wieder bei seinem eigenen Datensatz landet.
+Das Dashboard unterstützt zwei Athleten: **Athlete 1** (eigener Trainingsplan) und **Athlete 2** (Vergleichsdaten, read-only). Der Toggle oben rechts im Header wechselt die Ansicht — alle Charts, Texte und Erklärtexte passen sich automatisch an den aktiven Athleten an. Die Auswahl bleibt persistent über Reload (localStorage), sodass jeder beim Reload wieder bei seinem eigenen Datensatz landet.
 
 Unterschiede bei Vergleichsdaten:
 - Kein Trainingsplan, keine Planungs-Phase, kein Befinden-Dropdown
@@ -88,7 +88,7 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 
 ## Datenquellen
 
-| Feld | Plan 1 | Plan 2 | Vergleich (Siggi) |
+| Feld | Plan 1 | Plan 2 | Vergleich (Athlete 2) |
 |---|---|---|---|
 | Ride-Metriken (Power, HR, TSS …) | Notion (manuell) | intervals.icu API | intervals.icu API |
 | Power Curve | — | intervals.icu `/power-curves` | intervals.icu `/power-curves` |
@@ -123,14 +123,14 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 |---|---|
 | `NOTION_API_KEY` | Notion Integration Token (nur für Plan 1) |
 | `NOTION_DATABASE_ID` | Plan 1 Trainingsdatenbank-ID |
-| `INTERVALS_API_KEY` | intervals.icu API Key (Alex) |
-| `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID (Alex) |
-| `INTERVALS_API_KEY_2` | intervals.icu API Key (Siggi, optional) |
-| `INTERVALS_ATHLETE_ID_2` | intervals.icu Athlete ID (Siggi, optional) |
-| `WEATHER_LAT` | Breitengrad Alex (Dezimalgrad mit Punkt, z.B. `51.5253`) |
-| `WEATHER_LON` | Längengrad Alex (Dezimalgrad mit Punkt, z.B. `14.0016`) |
-| `WEATHER_LAT_2` | Breitengrad Siggi (optional) |
-| `WEATHER_LON_2` | Längengrad Siggi (optional) |
+| `INTERVALS_API_KEY` | intervals.icu API Key (Athlete 1) |
+| `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID (Athlete 1) |
+| `INTERVALS_API_KEY_2` | intervals.icu API Key (Athlete 2, optional) |
+| `INTERVALS_ATHLETE_ID_2` | intervals.icu Athlete ID (Athlete 2, optional) |
+| `WEATHER_LAT` | Breitengrad Athlete 1 (Dezimalgrad mit Punkt — kein Komma, keine ganze Zahl) |
+| `WEATHER_LON` | Längengrad Athlete 1 (Dezimalgrad mit Punkt — kein Komma, keine ganze Zahl) |
+| `WEATHER_LAT_2` | Breitengrad Athlete 2 (optional) |
+| `WEATHER_LON_2` | Längengrad Athlete 2 (optional) |
 
 ⚠️ **Standortdaten:** Koordinaten niemals im Code oder in JSON-Dateien eintragen — ausschließlich über GitHub Secrets. Der Wetter-Forecast wird serverseitig in der Action berechnet und nur als aggregierte Wetterwerte in `rides.json` gespeichert.
 
@@ -208,7 +208,7 @@ git sync
 ### ✅ Abgeschlossen — Dashboard & Training
 - [x] Dashboard auf GitHub Pages (statisch, kein Backend)
 - [x] Dual-Source Sync: Plan 1 (Notion) + Plan 2 (intervals.icu)
-- [x] Zweiter Athlet (Siggi Lentes) als Vergleichsdaten — read-only, eigene intervals.icu-Verbindung
+- [x] Zweiter Athlet (Athlete 2) als Vergleichsdaten — read-only, eigene intervals.icu-Verbindung
 - [x] Athleten-Toggle mit persistenter Auswahl (localStorage, überlebt Reload + F5)
 - [x] Alle Charts, Texte, Legenden und Ziellinien athletenabhängig angepasst
 - [x] PMC-Chart (CTL/ATL/TSB) mit Sweet-Spot-Zone, Plan-Divider, scrollbar
