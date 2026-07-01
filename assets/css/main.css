@@ -4,50 +4,71 @@
    ============================================================ */
 
 /* ── Design Tokens ─────────────────────────────────────────── */
+/*
+   KONZEPT 3 — Sports-App (Stufe 1: nur Token-Änderungen)
+   Alte Werte als Kommentar zum schnellen Rückgängigmachen:
+
+   --bg:          #141210  (alt: Braun-Schwarz)
+   --bg2:         #1a1714
+   --card:        #1e1b18  (alt: Braun-Dunkel)
+   --card-alt:    #252119
+   --card-hover:  #2a261f
+   --border:      #2e2923  (alt: Braun-Rand)
+   --border-light:#3a342c
+   --text:        #f0ebe4  (alt: Warm-Weiß → bleibt)
+   --dim:         #9a8f84  (alt: Braun-Grau)
+   --dim2:        #6b6158
+   --accent:      #e07b39  (alt: Gedämpftes Orange)
+   --accent-dim:  #2d1a0a
+   --accent-muted:#a05a28
+   --green:       #5c9e6e
+   --blue:        #4a7fa8
+   --red:         #c45c5c
+*/
 :root {
-  /* Backgrounds */
-  --bg:        #141210;
-  --bg2:       #1a1714;
-  --card:      #1e1b18;
-  --card-alt:  #252119;
-  --card-hover:#2a261f;
+  /* Backgrounds — Dunkelblau-Schiefer statt Braun-Schwarz */
+  --bg:        #0f172a;
+  --bg2:       #162032;
+  --card:      #1e293b;
+  --card-alt:  #253045;
+  --card-hover:#2d3a50;
 
-  /* Borders */
-  --border:       #2e2923;
-  --border-light: #3a342c;
+  /* Borders — Blau-Grau statt Braun */
+  --border:       #2d3f55;
+  --border-light: #3a4f68;
 
-  /* Text */
-  --text:  #f0ebe4;
-  --dim:   #9a8f84;
-  --dim2:  #6b6158;
+  /* Text — leicht kühler, bleibt gut lesbar */
+  --text:  #f1f5f9;
+  --dim:   #94a3b8;
+  --dim2:  #64748b;
 
-  /* Accent — warm orange (primary) */
-  --accent:     #e07b39;
-  --accent-dim: #2d1a0a;
-  --accent-muted: #a05a28;
+  /* Accent — sattes Strava-Orange statt gedämpftes Braun-Orange */
+  --accent:       #f97316;
+  --accent-dim:   #431a05;
+  --accent-muted: #c2500a;
 
-  /* Semantic colors */
-  --green:      #5c9e6e;
-  --green-dim:  #162a1e;
-  --gold:       #c9a84c;
-  --gold-dim:   #2a2008;
-  --blue:       #4a7fa8;
-  --blue-dim:   #0f2233;
-  --red:        #c45c5c;
-  --red-dim:    #2d1212;
+  /* Semantic colors — etwas lebendiger */
+  --green:      #22c55e;
+  --green-dim:  #052e16;
+  --gold:       #fbbf24;
+  --gold-dim:   #2d1f03;
+  --blue:       #38bdf8;
+  --blue-dim:   #082030;
+  --red:        #f87171;
+  --red-dim:    #2d0a0a;
 
-  /* Phase colors */
-  --phase-vor: #c9a84c;
+  /* Phase colors — bleiben strukturell gleich, etwas klarer */
+  --phase-vor: #fbbf24;
   --phase-1:   #6b7280;
-  --phase-2:   #4a7fa8;
-  --phase-3:   #7c5cbf;
+  --phase-2:   #38bdf8;
+  --phase-3:   #a78bfa;
 
-  /* Sizing */
+  /* Sizing — unverändert */
   --radius:    8px;
   --radius-sm: 4px;
   --radius-lg: 12px;
 
-  /* Transitions */
+  /* Transitions — unverändert */
   --transition: 0.12s ease;
 }
 
