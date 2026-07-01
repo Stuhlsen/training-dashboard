@@ -14,18 +14,21 @@ Persönliches Radsport-Trainingsdashboard — statisch, kostenfrei, vollautomati
 ## Architektur
 
 ```
-Notion DB (Plan 1) ──────────────────────────────────────────┐
-                                                              │
-intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)       │
-                  ──→ Wellness (RHF, HRV, Schlaf, Gewicht)   ├──→ generate-data.js
-                  ──→ Power Curves (Bestleistungen)          │         │
-                                                              │         ▼
-Open-Meteo API ────→ Historisches Wetter ──────┤   data/rides.json
-               ────→ Wetter-Forecast (bis 16 Tage)          │         │
-                                                              │         │
-data/subjective.json ──→ Befinden Plan 2 (via Dashboard)    ─┘         │
-                                                                        │
-GitHub Action (alle 6h) ────────────────────────────────────────────────┘
+Notion DB (Plan 1) ──────────────────────────────────────────────────┐
+                                                                      │
+intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)               │
+                  ──→ Wellness (RHF, HRV, Schlaf, Gewicht)           ├──→ generate-data.js
+                  ──→ Power Curves (Bestleistungen)                  │         │
+                  ──→ Vergleichsathlet (Siggi Lentes, read-only)     │         ▼
+                                                                      │   data/rides.json
+Open-Meteo API ────→ Historisches Wetter (Archive API)               │   data/rides-2.json
+               ────→ Aktuelles Wetter (Forecast API, letzte 3 Tage) ─┘         │
+               ────→ Planungs-Forecast (16 Tage, serverseitig)                 │
+                                                                                │
+data/subjective.json ──→ Befinden Plan 2 (via Dashboard, GitHub API)           │
+data/adjustments.json ──→ Session-Anpassungen (Verschiebung, Ausfall)          │
+                                                                                │
+GitHub Action (alle 6h) ────────────────────────────────────────────────────────┘
         │
         └──→ GitHub Pages Deploy (automatisch nach jedem Sync)
 ```
@@ -36,74 +39,81 @@ GitHub Action (alle 6h) ──────────────────�
 
 ## Features
 
+### Athleten-Toggle
+Das Dashboard unterstützt zwei Athleten: **Alex Stuhlsen** (eigener Trainingsplan) und **Siggi Lentes** (Vergleichsdaten, read-only). Der Toggle oben rechts im Header wechselt die Ansicht — alle Charts, Texte und Erklärtexte passen sich automatisch an den aktiven Athleten an. Die Auswahl bleibt persistent über Reload (localStorage), sodass jeder beim Reload wieder bei seinem eigenen Datensatz landet.
+
+Unterschiede bei Vergleichsdaten:
+- Kein Trainingsplan, keine Planungs-Phase, kein Befinden-Dropdown
+- Typ-Inferenz über IF-Berechnung (NP ÷ FTP) + Fahrtdauer als Kriterium
+- Strava-Historik vor intervals.icu-Beitritt als additiver Kontext-KPI in der Übersicht
+- Planungs-Tab vollständig ausgeblendet
+
 ### Tab: Übersicht
-- Hero mit Kurzbeschreibung beider Pläne für Außenstehende
-- KPIs: Gesamtdistanz, FTP, Fahrtenanzahl, Trainingszeit
+- Hero mit athletenabhängiger Kurzbeschreibung
+- KPIs: Gesamtdistanz (inkl. optionaler Strava-Historik für Vergleichsathleten), FTP, Fahrtenanzahl, Trainingszeit
 - Trainingsverteilung nach Wochentag (Heatmap, Farbskala grün→rot)
-- Meilensteine als Gantt-Diagramm mit Phasen-Hintergründen und Hover-Details
+- Meilensteine als Gantt-Diagramm mit Phasen-Hintergründen (nur beim eigenen Plan)
 
 ### Tab: Charts
-Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlängern den Chart automatisch nach rechts. Scrollbare Charts zeigen einen Plan-1/Plan-2-Divider mit Labels.
+
+Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlängern den Chart automatisch nach rechts. Drei Charts haben einen **Wochen/Monats-Toggle** (oben rechts im Chart-Header) der die Aggregationsebene umschaltet — die Auswahl ist persistent pro Athlet.
 
 | Block | Charts |
 |---|---|
-| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches Volumen (phasengefärbt, 200km-Zielzone), TRIMP pro Woche (absoluter Farbgradient grün→rot) |
-| ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche, W/kg-Toggle), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert) |
-| ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV Vorher/Nachher-Slider, Ruhepuls Vorher/Nachher-Slider, Schlaf (Dauer + Schlaf-HF kombiniert, täglich) |
-| 🌤️ Wetterbedingungen | Temperatur & Wind pro Woche (Balken + Windlinie, Ampel-Farbcodierung) |
+| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches/Monatliches Volumen (Toggle, phasengefärbt, 200km-Zielzone beim eigenen Plan), TRIMP pro Woche/Monat (Toggle, absoluter Farbgradient grün→rot) |
+| ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche, FTP-Linie, W/kg-Toggle), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert, 90-RPM-Ziellinie beim eigenen Plan) |
+| ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV (Plan-Compare oder Wellness-Verlauf), Ruhepuls (Plan-Compare oder Wellness-Verlauf), Schlaf (Dauer + Schlaf-HF, täglich, 7h-Ziel beim eigenen Plan) |
+| 🌤️ Wetterbedingungen | Temperatur & Wind pro Woche/Monat (Toggle, Balken + Windlinie, Ampel-Farbcodierung) |
 
-**Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus der intervals.icu API. Roter Bereich über der FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu Wellness).
+**Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus intervals.icu. Roter Bereich über FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt gewichtsnormierte Leistung.
 
-**TRIMP Farbskala:** grün = <400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = >900 (sehr hoch). Erholungswochen sind bewusst grün.
+**TRIMP Farbskala:** grün = <400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = >900 (sehr hoch).
 
-**HRV & Ruhepuls:** Vorher/Nachher-Slider mit getrennten Skalen — Plan 1 (Apple Health RMSSD) und Plan 2 (intervals.icu SDNN) sind nicht direkt vergleichbar.
+**HRV & Ruhepuls:** Beim eigenen Plan: Plan-Compare mit Segment-Trennung (Plan 1 / W0 / Plan 2) und getrennten Trendlinien — weil Plan 1 Apple Health RMSSD und Plan 2 intervals.icu SDNN nutzt (unterschiedliche Messmethoden). Bei Vergleichsathleten: durchgehender Verlauf direkt aus Wellness-Daten (alle Tage, nicht nur Fahrtdaten).
 
-**Heatmap:** Farbskala grün→gelb→orange→rot nach Fahrtenhäufigkeit pro Wochentag. Samstag ist mit Abstand der aktivste Tag.
+**Wochen/Monats-Toggle:** Volumen, TRIMP und Wetter können zwischen Wochen- und Monatsaggregation umgeschaltet werden. Toggle-Status ist persistent pro Athlet.
 
-**Wetter:** Historische Wetterdaten von Open-Meteo werden pro Fahrt automatisch zugeordnet — Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Niederschlag. Plan-2-Fahrten bekommen Wetter für den exakten Fahrtzeitraum, Plan-1-Fahrten den Tagesdurchschnitt. Im Fahrtenbuch als farbcodierte Ampel-Spalte (grün/gelb/rot). Wochenbalken-Chart zeigt Temperaturverlauf und Windentwicklung über den gesamten Trainingszeitraum.
+**Wetter:** Alle Standortdaten (Koordinaten) liegen ausschließlich als GitHub Secrets — niemals im Code, nie in der JSON, nie im Frontend-JavaScript. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig in der GitHub Action berechnet. Pro Fahrt wird das Wetter für den exakten Fahrt-Zeitraum ermittelt. Beide Athleten nutzen getrennte Standort-Secrets.
 
 ### Tab: Fahrtenbuch
-Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Plan-2-Fahrten haben ein Befinden-Dropdown das direkt per GitHub API ins Repo schreibt — kein Notion nötig. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip (Temperatur, gefühlte Temperatur, Wind, Luftfeuchtigkeit, Bewölkung, Niederschlag). Legende für Befinden und Wetter unterhalb der Tabelle. Tab-Position bleibt beim Reload erhalten (URL-Hash).
+Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Befinden-Dropdown nur bei eigenen Plan-2-Fahrten. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip. Bei Vergleichsdaten: keine Befinden-Spalte, keine Befinden-Legende.
 
-### Tab: Planung
-Alle geplanten Trainingseinheiten bis W12 auf einen Blick. Sessions werden automatisch als "erledigt" markiert sobald eine Fahrt mit passendem Datum in intervals.icu erfasst wird. Wetter-Forecast via Open-Meteo (bis 16 Tage voraus) zeigt Bedingungen für kommende Sessions. Strukturierte Intervall-Workouts (Sweet Spot / Schwelle / VO₂max) können per Knopfdruck zu intervals.icu gepusht werden — von dort landen sie automatisch auf dem Wahoo ELEMNT Roam. Sessions können per "📅 Verschieben"-Button auf ein neues Datum gelegt werden (mit optionalem Grund), oder per "❌ Ausgefallen" aus dem Plan entfernt werden. Alle Anpassungen werden in `data/adjustments.json` gespeichert und überleben jeden Sync und Deploy.
+### Tab: Planung (nur eigener Plan)
+Alle geplanten Trainingseinheiten bis W12. Sessions werden automatisch als „erledigt" markiert sobald eine passende intervals.icu-Fahrt gefunden wird — mit Soll-Ist-Vergleich (Distanz, Watt, HF, Kadenz, Dauer, TRIMP/CTL, Wetter, Befinden). Wetter-Forecast serverseitig (kein Standort im Frontend). Strukturierte Workouts können per Knopfdruck zu intervals.icu gepusht werden. Bidirektionale Verlinkung mit dem Fahrtenbuch. Sessions können verschoben oder als ausgefallen markiert werden.
 
-### Tab: Analyse
+### Tab: Analyse (nur eigener Plan)
 Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stärken & Entwicklungsfelder.
 
 ---
 
 ## Datenquellen
 
-| Feld | Plan 1 | Plan 2 |
-|---|---|---|
-| Ride-Metriken (Power, HR, TSS …) | Notion (manuell eingetragen) | intervals.icu API (automatisch via Wahoo) |
-| Power Curve | — | intervals.icu `/power-curves` API |
-| Aerobe Entkopplung (Pw:Hr) | — | intervals.icu `decoupling` Feld |
-| CTL / ATL / TSB | Notion (manuell berechnet) | intervals.icu (automatisch) |
-| Einheitsname & Typ | Notion | Datum-Mapping aus Trainingsplan → IF-Inferenz aus NP/FTP |
-| Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health (automatisch) |
-| Körpergewicht | — | intervals.icu Wellness (Apple Health Sync) → W/kg in Power Curve |
-| Schlaf (Dauer, Schlaf-HF) | — | intervals.icu (Apple Health Sync, täglich) |
-| Befinden | Notion (manuell) | Dropdown im Dashboard → `data/subjective.json` → GitHub API |
-| Notizen | Notion | `data/subjective.json` |
-| Wetter (historisch) | Notion (manuell) | Open-Meteo Archive API (stündlich, automatisch) |
-| Wetter (Forecast) | — | Open-Meteo Forecast API (bis 16 Tage, für Planungs-Tab) |
-| Geplante Sessions | — | `PLANNED_SESSIONS` in `generate-data.js` → `data/rides.json` |
-| Plan-Anpassungen (Verschiebung, Ausfall) | — | `data/adjustments.json` (via Dashboard, GitHub API) |
+| Feld | Plan 1 | Plan 2 | Vergleich (Siggi) |
+|---|---|---|---|
+| Ride-Metriken (Power, HR, TSS …) | Notion (manuell) | intervals.icu API | intervals.icu API |
+| Power Curve | — | intervals.icu `/power-curves` | intervals.icu `/power-curves` |
+| CTL / ATL / TSB | Notion (manuell) | intervals.icu (automatisch) | intervals.icu (automatisch) |
+| FTP | 166→193W (historisch) | 193W (Ramp-Test, hardcodiert bis W12) | 265W (Ramp-Test, hardcodiert) |
+| Einheitstyp | Notion | Datum-Mapping → IF-Inferenz | IF-Inferenz (NP ÷ FTP) + Dauer |
+| Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health | intervals.icu + Apple Health |
+| Schlaf | — | intervals.icu (Apple Health Sync) | intervals.icu (Apple Health Sync) |
+| Befinden | Notion (manuell) | Dashboard-Dropdown → `subjective.json` | — |
+| Wetter | Notion (manuell) | Open-Meteo (automatisch, Secrets) | Open-Meteo (automatisch, eigene Secrets) |
+| Wetter-Forecast | — | Open-Meteo Forecast, serverseitig | — |
+| Geplante Sessions | — | `PLANNED_SESSIONS` in `generate-data.js` | — |
+| Plan-Anpassungen | — | `data/adjustments.json` | — |
 
-**Typ-Inferenz Plan 2:** Fahrten ohne Trainingsplan-Match bekommen ihren Typ automatisch aus NP ÷ FTP berechnet (Intensity Factor). Priorität: `subjective.json` > Trainingsplan-Datum-Mapping > IF-Berechnung.
+**Typ-Inferenz:** NP ÷ FTP = Intensity Factor (IF). Fahrten unter IF 0,75 werden zusätzlich nach Dauer klassifiziert — ≥120 min = Z2 Lang, ≥60 min = Z2 Dauer, <60 min = Z1 Recovery. Priorität: Notion/Planungsfeld > Datum-Mapping > IF-Inferenz.
 
-**HRV-Diskrepanz:** Plan 1 = Apple Health RMSSD (Einzelmessung, ~60–116 ms). Plan 2 = intervals.icu SDNN Schlaf-Durchschnitt (~47 ms). Nicht direkt vergleichbar — deshalb getrennte Darstellung mit Slider.
+**HRV-Diskrepanz:** Plan 1 = Apple Health RMSSD (~60–116 ms). Plan 2 = intervals.icu SDNN Schlaf-Durchschnitt (~40–50 ms). Nicht direkt vergleichbar — deshalb getrennte Darstellung mit Plan-Divider und separaten Trendlinien.
 
 ---
 
 ## Setup
 
 ### Voraussetzungen
-
 - GitHub-Account mit aktiviertem GitHub Pages
-- intervals.icu Account mit verbundenem Wahoo / Garmin
+- intervals.icu Account (Wahoo / Garmin verbunden)
 - Notion Integration Token (nur für Plan 1 Historik)
 - Node.js ≥ 20 (nur für lokale Entwicklung)
 
@@ -113,8 +123,16 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 |---|---|
 | `NOTION_API_KEY` | Notion Integration Token (nur für Plan 1) |
 | `NOTION_DATABASE_ID` | Plan 1 Trainingsdatenbank-ID |
-| `INTERVALS_API_KEY` | intervals.icu API Key (unter Einstellungen → API) |
-| `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID (in der Profil-URL) |
+| `INTERVALS_API_KEY` | intervals.icu API Key (Alex) |
+| `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID (Alex) |
+| `INTERVALS_API_KEY_2` | intervals.icu API Key (Siggi, optional) |
+| `INTERVALS_ATHLETE_ID_2` | intervals.icu Athlete ID (Siggi, optional) |
+| `WEATHER_LAT` | Breitengrad Alex (Dezimalgrad mit Punkt, z.B. `51.5253`) |
+| `WEATHER_LON` | Längengrad Alex (Dezimalgrad mit Punkt, z.B. `14.0016`) |
+| `WEATHER_LAT_2` | Breitengrad Siggi (optional) |
+| `WEATHER_LON_2` | Längengrad Siggi (optional) |
+
+⚠️ **Standortdaten:** Koordinaten niemals im Code oder in JSON-Dateien eintragen — ausschließlich über GitHub Secrets. Der Wetter-Forecast wird serverseitig in der Action berechnet und nur als aggregierte Wetterwerte in `rides.json` gespeichert.
 
 ### GitHub Pages einrichten
 
@@ -130,6 +148,8 @@ NOTION_API_KEY=...
 NOTION_DATABASE_ID=...
 INTERVALS_API_KEY=...
 INTERVALS_ATHLETE_ID=...
+WEATHER_LAT=...
+WEATHER_LON=...
 
 # JSON generieren
 node scripts/generate-data.js
@@ -140,36 +160,27 @@ npx serve .
 
 ### Befinden-Dropdown einrichten
 
-Das Dashboard schreibt Befinden direkt via GitHub API ins Repo — kein Notion nötig. Einmalig einen Token erstellen:
-
 GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → New token  
 Repository: `training-dashboard` · Permissions: **Contents = Read and write**
 
 Token beim ersten Speichern im Dashboard-Dropdown eingeben — wird im `localStorage` gespeichert.
 
-### Workout-Push zu intervals.icu einrichten
+### Workout-Push zu intervals.icu
 
-Im Planungs-Tab können strukturierte Workouts direkt zu intervals.icu gepusht werden. Beim ersten Klick auf "Workout pushen" werden API-Key und Athlete-ID abgefragt und im `localStorage` gespeichert. Die Workouts erscheinen anschließend in intervals.icu und werden beim nächsten Wahoo-Sync auf den ELEMNT Roam übertragen.
+Im Planungs-Tab können strukturierte Workouts direkt zu intervals.icu gepusht werden. Beim ersten Klick auf „Workout pushen" werden API-Key und Athlete-ID abgefragt und im `localStorage` gespeichert.
 
 ### Git-Workflow
 
-Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` ist lokal per `skip-worktree` geschützt — Git ignoriert lokale Änderungen an der Datei, sodass sie nie versehentlich überschrieben wird:
+Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` und `adjustments.json` werden durch den Action-Workflow vor Überschreiben geschützt:
 
 ```powershell
-# Einmalig einrichten
-git update-index --skip-worktree data/subjective.json
-git update-index --skip-worktree data/adjustments.json
+# Empfohlener Alias
 git config --global alias.sync "!git fetch origin && git push --force-with-lease origin main"
 
-# Danach immer nur noch
+# Normaler Workflow
+git add <dateien>
+git commit -m "..."
 git sync
-```
-
-Falls eine der Dateien bewusst lokal bearbeitet werden soll:
-
-```powershell
-git update-index --no-skip-worktree data/subjective.json
-git update-index --no-skip-worktree data/adjustments.json
 ```
 
 ---
@@ -197,56 +208,55 @@ git update-index --no-skip-worktree data/adjustments.json
 ### ✅ Abgeschlossen — Dashboard & Training
 - [x] Dashboard auf GitHub Pages (statisch, kein Backend)
 - [x] Dual-Source Sync: Plan 1 (Notion) + Plan 2 (intervals.icu)
-- [x] intervals.icu API — Rides, Wellness, Schlaf, Power Curves
+- [x] Zweiter Athlet (Siggi Lentes) als Vergleichsdaten — read-only, eigene intervals.icu-Verbindung
+- [x] Athleten-Toggle mit persistenter Auswahl (localStorage, überlebt Reload + F5)
+- [x] Alle Charts, Texte, Legenden und Ziellinien athletenabhängig angepasst
 - [x] PMC-Chart (CTL/ATL/TSB) mit Sweet-Spot-Zone, Plan-Divider, scrollbar
-- [x] Power Curve aus intervals.icu mit anaerober Reserve-Fläche und W/kg-Toggle
-- [x] Wöchentliches Volumen mit 200km-Zielzone und Phasenfarben
-- [x] TRIMP mit absolutem Farbgradient (grün→rot nach trainingswiss. Grenzwerten)
-- [x] Scrollbare Charts — neue Daten verlängern automatisch nach rechts
-- [x] Aerobe Entkopplung (Pw:Hr), HRV & Ruhepuls Vorher/Nachher-Slider
-- [x] Schlaf-Chart täglich (Dauer + Schlaf-HF, unabhängig von Rides)
-- [x] Aktivitäts-Heatmap in der Übersicht
-- [x] Meilensteine als Gantt-Diagramm mit Phasen und Hover-Details
-- [x] IQR-Ausreißerfilter in Small-Multiple-Charts (Kadenz, Tempo, HF)
-- [x] Befinden-Dropdown im Fahrtenbuch mit GitHub API Write
-- [x] IF-basierte Typ-Inferenz für außerplanmäßige Plan-2-Fahrten
-- [x] W/kg-Toggle in Power Curve (Körpergewicht aus intervals.icu Wellness / Apple Health)
-- [x] Wetter-Integration via Open-Meteo — historisches Wetter pro Fahrt, Ampel-Farbcodierung, Wochenbalken-Chart mit Windlinie
-- [x] Planungs-Tab mit Wetter-Forecast, Workout-Visualisierung und Push zu intervals.icu
+- [x] Power Curve mit anaerober Reserve-Fläche, athletenabhängiger FTP-Linie, W/kg-Toggle
+- [x] Wöchentliches Volumen mit Phasenfarben, 200km-Zielzone (nur eigener Plan)
+- [x] TRIMP mit absolutem Farbgradient
+- [x] **Wochen/Monats-Toggle** für Volumen, TRIMP und Wetter — persistent pro Athlet
+- [x] Scrollbare Charts
+- [x] HRV & Ruhepuls — Plan-Compare beim eigenen Plan, Wellness-Verlauf bei Vergleichsathleten
+- [x] Schlaf-Chart täglich (Dauer + Schlaf-HF, 7h-Ziel nur eigener Plan)
+- [x] IQR-Ausreißerfilter in Small-Multiple-Charts
+- [x] Befinden-Dropdown im Fahrtenbuch mit GitHub API Write (nur eigene Plan-2-Fahrten)
+- [x] IF + Dauer-basierte Typ-Inferenz für unklassifizierte Fahrten
+- [x] Fahrtenbuch: Sortierung nach Startzeitpunkt als Tiebreaker bei gleichem Datum
+- [x] Planungs-Tab mit serverseitigem Wetter-Forecast, Workout-Push, Soll-Ist-Vergleich
+- [x] Bidirektionale Verlinkung Planungs-Tab ↔ Fahrtenbuch
 - [x] Tab-Position bleibt beim Reload erhalten (URL-Hash)
 
-### ✅ Abgeschlossen — Infrastruktur
-- [x] Pages-Deploy direkt in Sync-Action integriert (kein separater Workflow)
-- [x] `subjective.json` per `skip-worktree` vor versehentlichem Überschreiben geschützt
-- [x] Git-Alias `git sync` für sicheren Push trotz Action-Auto-Commits
+### ✅ Abgeschlossen — Datenschutz & Infrastruktur
+- [x] **Alle Standortdaten ausschließlich in GitHub Secrets** — kein Koordinaten-Hardcode im Code oder JSON
+- [x] Wetter-Forecast serverseitig — Frontend hat niemals Zugriff auf Koordinaten
+- [x] Getrennte Standort-Secrets für beide Athleten
+- [x] Pages-Deploy direkt in Sync-Action integriert
+- [x] `subjective.json` und `adjustments.json` durch Action-Workflow geschützt
 
 ### 🔲 Geplant — Dashboard & Training
-- [ ] Wochennotizen im Fahrtenbuch editierbar (aktuell nur Befinden)
+- [ ] Wochennotizen im Fahrtenbuch editierbar
 - [ ] Vergleichsansicht Plan 1 vs. Plan 2 — CTL-Kurve beider Pläne nebeneinander
 - [ ] Kadenz-Ziel-Tracking: Anteil der Fahrten über 90 RPM
-- [ ] Herzfrequenz-Zonen-Verteilung pro Fahrt (Z1–Z5 als Balken im Fahrtenbuch)
+- [ ] Herzfrequenz-Zonen-Verteilung pro Fahrt
 
 ### 🔲 Geplant — Manuelles Testen (QA-Portfolio)
-- [ ] Testplan für Dashboard-Funktionalität (Navigation, Filter, Dropdown, Charts)
-- [ ] Strukturierte Testfälle nach ISTQB-Standard (Äquivalenzklassen, Grenzwerte)
-- [ ] Bug-Reports für gefundene Defekte als GitHub Issues
-- [ ] Testbericht mit Testergebnis-Zusammenfassung
+- [ ] Testplan für Dashboard-Funktionalität
+- [ ] Strukturierte Testfälle nach ISTQB-Standard
+- [ ] Bug-Reports als GitHub Issues
+- [ ] Testbericht
 
 ### 🔲 Geplant — API-Testing & Mocking (QA-Portfolio)
-- [ ] Postman Collection für intervals.icu API (Rides, Wellness, Power Curves)
-- [ ] Postman Collection für Notion API (Plan 1 Datenbank)
-- [ ] WireMock-Stubs für intervals.icu und Notion API — entkoppeltes Testen ohne echte API
-- [ ] Automatisierte API-Tests gegen WireMock in GitHub Actions integrieren
+- [ ] Postman Collection für intervals.icu API und Notion API
+- [ ] WireMock-Stubs für entkoppeltes Testen
+- [ ] Automatisierte API-Tests in GitHub Actions
 
 ### 🔲 Geplant — Automatisierung (QA-Portfolio)
-- [ ] Selenium-Testfälle für Dashboard-UI (Tab-Navigation, Chart-Rendering, Dropdown)
-- [ ] XPath-Selektoren für stabile Element-Lokalisierung
-- [ ] Testautomatisierung in GitHub Actions CI-Pipeline integrieren
+- [ ] Selenium-Testfälle für Dashboard-UI
+- [ ] Testautomatisierung in GitHub Actions CI-Pipeline
 
 ### 🔲 Geplant — Docker (QA-Portfolio)
-- [ ] `Dockerfile` für lokale Entwicklung — kein Node.js-Setup nötig
-- [ ] Docker-Container für `generate-data.js` Sync-Skript
-- [ ] `docker-compose.yml` für vollständige lokale Entwicklungsumgebung
+- [ ] `Dockerfile` und `docker-compose.yml` für lokale Entwicklung
 
 ---
 
