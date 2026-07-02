@@ -191,3 +191,7 @@ WEATHER_LAT_2           WEATHER_LON_2
   nicht aus Ride-Objekten (nur wenige Fahrten mit Distanz erfasst)
 - Athlete 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
   distanzlose/unklassifizierte Aktivitäten werden bewusst ausgeschlossen
+- Race Condition möglich: Frontend committed direkt (Befinden-Speichern in
+  table.js) während der Sync-Workflow läuft → Push kann mit
+  `non-fast-forward` fehlschlagen. sync-data.yml pusht daher mit
+  Rebase-Retry-Schleife (3 Versuche, siehe Schritt "Commit data if changed").
