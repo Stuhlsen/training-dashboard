@@ -218,6 +218,7 @@ window.Planned = {
 
     // Workout-Objekt für intervals.icu
     const workout = {
+      category: "WORKOUT",
       name: session.name,
       description: w.label + (session.details ? `\n${session.details}` : ""),
       type: "Ride",
