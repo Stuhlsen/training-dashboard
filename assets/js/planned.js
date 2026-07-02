@@ -174,56 +174,35 @@ window.Planned = {
     const w = session.workout;
     if (!w) return { ok: false, msg: "Kein strukturiertes Workout definiert" };
 
-    // Workout-Schritte aufbauen
-    const steps = [];
+    // intervals.icu erwartet KEIN steps-JSON im Event-Payload, sondern
+    // parst die Workout-Struktur selbst aus einer Klartext-Syntax im
+    // description-Feld (Format: "Xm Y% Zrpm", Blöcke mit Leerzeile getrennt,
+    // "Main Set Nx" für Wiederholungen). Siehe intervals.icu Workout-Builder-Doku.
+    const lines = [];
+    lines.push("Warmup");
+    lines.push(`- ${w.warmup}m 60% 85rpm`);
+    lines.push("");
 
-    // Warm-up
-    steps.push({
-      type: "SteadyState",
-      duration: w.warmup * 60,
-      power: { value: 0.60, units: "PercentOfFTP" },
-      cadence: { value: 85, units: "RPM" },
-    });
-
-    // Intervalle
     if (w.intervals && w.duration) {
-      const pctMid = (w.pct[0] + w.pct[1]) / 2 / 100;
-      const restPct = 0.50;
-
-      for (let i = 0; i < w.intervals; i++) {
-        steps.push({
-          type: "SteadyState",
-          duration: w.duration * 60,
-          power: { value: pctMid, units: "PercentOfFTP" },
-          cadence: { value: 90, units: "RPM" },
-        });
-        if (i < w.intervals - 1) {
-          steps.push({
-            type: "SteadyState",
-            duration: w.rest * 60,
-            power: { value: restPct, units: "PercentOfFTP" },
-            cadence: { value: 80, units: "RPM" },
-          });
-        }
-      }
+      lines.push(`Main Set ${w.intervals}x`);
+      lines.push(`- ${w.duration}m ${w.pct[0]}-${w.pct[1]}% 90rpm`);
+      if (w.rest) lines.push(`- ${w.rest}m 50% 80rpm`);
+      lines.push("");
     }
 
-    // Cool-down
-    steps.push({
-      type: "SteadyState",
-      duration: w.cooldown * 60,
-      power: { value: 0.55, units: "PercentOfFTP" },
-      cadence: { value: 80, units: "RPM" },
-    });
+    lines.push("Cooldown");
+    lines.push(`- ${w.cooldown}m 50%-40% 80rpm`);
+
+    const workoutText = lines.join("\n");
+    const label = w.label + (session.details ? `\n${session.details}` : "");
 
     // Workout-Objekt für intervals.icu
     const workout = {
       category: "WORKOUT",
       name: session.name,
-      description: w.label + (session.details ? `\n${session.details}` : ""),
+      description: `${label}\n\n${workoutText}`,
       type: "Ride",
       start_date_local: session.date + "T07:00:00",
-      steps,
     };
 
     try {
