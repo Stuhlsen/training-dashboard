@@ -157,10 +157,10 @@ export const Analysis = {
     const typColors = {
       "Z2 Lang":        "#4a7fa8",
       "Z2 Dauer":       "#5a8fb8",
-      "Z1 Recovery":    "#5c9e6e",
-      "Sweet Spot":     "#e07b39",
+      "Z1 Recovery":    "#4a9a6e",
+      "Sweet Spot":     "#e08a3c",
       "Schwelle":       "#d94f4f",
-      "VO2max":         "#b83dba",
+      "VO2max":         "#a24ad0",
       "Gruppenfahrt":   "#c9a84c",
       "Etappe":         "#c9a84c",
       "Ausserplanmaessig": "#6b7280",

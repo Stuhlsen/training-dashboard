@@ -16,7 +16,7 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
   if (!svg) return;
   if (!data.length) {
     svg.innerHTML = "";
-    const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+    const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#5f6878", "font-size": "12" });
     t.textContent = ownPlan ? "Schlafdaten ab Plan 2 verfügbar" : "Keine Schlafdaten verfügbar";
     svg.appendChild(t);
     return;
@@ -49,7 +49,7 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
     const x = pad.l + i * gap + (gap - bw) / 2;
     const bh = Math.max(d.sleepHours / maxSleep * ch, 1);
     const y = pad.t + ch - bh;
-    const color = d.sleepHours >= 7 ? "#4a7fa8" : d.sleepHours >= 6 ? "#c9a84c" : "#c45c5c";
+    const color = d.sleepHours >= 7 ? "#4a7fa8" : d.sleepHours >= 6 ? "#c9a84c" : "#d94f4f";
     const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "2", fill: color, opacity: "0.75" });
     rect.style.cursor = "pointer";
     rect.addEventListener("mouseenter", e => {
@@ -78,7 +78,7 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
   const sleepStep = maxSleep <= 8 ? 2 : maxSleep <= 12 ? 3 : 4;
   for (let v = 0; v <= maxSleep; v += sleepStep) {
     const y = pad.t + ch - (v / maxSleep * ch);
-    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
+    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#5f6878", "font-size": "9" });
     t.textContent = v + "h"; svg.appendChild(t);
   }
 
@@ -96,12 +96,12 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
       });
 
     svg.appendChild(svgEl("polyline", {
-      fill: "none", stroke: "#c45c5c", "stroke-width": "1.8",
+      fill: "none", stroke: "#d94f4f", "stroke-width": "1.8",
       points: hrPts.map(p => `${p.x},${p.y}`).join(" "),
     }));
 
     hrPts.forEach(p => {
-      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#c45c5c", stroke: "#141210", "stroke-width": "1.5" });
+      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#d94f4f", stroke: "#0b0e13", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${p.d.dateShort}</div>
@@ -115,7 +115,7 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
     const hrStep = Math.ceil((maxHR - minHR) / 4);
     for (let v = minHR; v <= maxHR; v += hrStep) {
       const y = pad.t + ch - ((v - minHR) / (maxHR - minHR) * ch);
-      const t = svgEl("text", { x: W - pad.r + 6, y: y + 4, fill: "#c45c5c", "font-size": "9" });
+      const t = svgEl("text", { x: W - pad.r + 6, y: y + 4, fill: "#d94f4f", "font-size": "9" });
       t.textContent = v; svg.appendChild(t);
     }
   }
@@ -208,7 +208,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     svg.appendChild(svgEl("line", {
       x1: segment[0].x, y1: slope * segment[0].x + intercept,
       x2: segment[n - 1].x, y2: slope * segment[n - 1].x + intercept,
-      stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
+      stroke: "#4a9a6e", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.7",
     }));
   };
   drawTrend(pts.slice(0, plan2Start > 0 ? plan2Start : pts.length));
@@ -219,7 +219,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
   pts.forEach((p, i) => {
     if (i % step !== 0 && i !== pts.length - 1) return;
     const dotColor = p.d.week === "P2-W0" ? colorW0 : p.d.plan === "Plan 2" ? color2 : color1;
-    const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3.5", fill: dotColor, stroke: "#141210", "stroke-width": "1.5" });
+    const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3.5", fill: dotColor, stroke: "#0b0e13", "stroke-width": "1.5" });
     c.style.cursor = "pointer";
     c.addEventListener("mouseenter", e => Tooltip.show(e, `
       <div class="tt">${p.d.dateShort} · ${p.d.week ? p.d.week + " · " : ""}${p.d.plan && p.d.plan !== "Vergleich" ? p.d.plan : ""}</div>
@@ -242,7 +242,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     const divX = pad.l + (idx - 0.5) / Math.max(data.length - 1, 1) * cw;
     svg.appendChild(svgEl("rect", {
       x: divX - 1, y: pad.t, width: 2, height: ch,
-      fill: "#6b6158", opacity: "0.6",
+      fill: "#5f6878", opacity: "0.6",
     }));
     if (label1) {
       const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: c1, "font-size": "9", "font-weight": "600" });
@@ -329,7 +329,7 @@ export function renderPlanCompareHRV(rides) {
       }))
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   }
-  renderHrvRhfChart("chart-hrv-p1", data, "#7c5cbf", "#e07b39", "ms", "hrv",
+  renderHrvRhfChart("chart-hrv-p1", data, "#7c5cbf", "#e08a3c", "ms", "hrv",
     ownPlan ? "⚠ Methodenwechsel: Plan 1 = RMSSD (Apple Health), Plan 2 = SDNN Schlafschnitt (intervals.icu) — Niveau nicht direkt vergleichbar, Trend pro Segment getrennt berechnet." : null);
 }
 
@@ -354,5 +354,5 @@ export function renderPlanCompareRHF(rides) {
       }))
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   }
-  renderHrvRhfChart("chart-rhf-p1", data, "#c45c5c", "#e07b39", "bpm", "ruhepuls", null);
+  renderHrvRhfChart("chart-rhf-p1", data, "#d94f4f", "#e08a3c", "bpm", "ruhepuls", null);
 }

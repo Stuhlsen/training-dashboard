@@ -62,12 +62,12 @@ export const Planned = {
   /* ── Typ → Farbe ───────────────────────────────────────────── */
   _typColor(typ) {
     const map = {
-      "Sweet Spot":  "#e07b39",
+      "Sweet Spot":  "#e08a3c",
       "Schwelle":    "#d94f4f",
-      "VO2max":      "#b83dba",
+      "VO2max":      "#a24ad0",
       "Z2 Lang":     "#4a7fa8",
       "Z2 Dauer":    "#4a7fa8",
-      "Z1 Recovery": "#5c9e6e",
+      "Z1 Recovery": "#4a9a6e",
       "Gruppenfahrt":"#c9a84c",
       "FTP-Test":    "#c9a84c",
     };

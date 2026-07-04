@@ -10,7 +10,7 @@ import { gridLines, xLabel } from "./base.js";
 /* ── Wöchentliches Volumen (Balken) ──────────────────────────── */
 export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
   const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
-  if (!weeklyData.length) { svg.innerHTML = `<text x="390" y="135" text-anchor="middle" fill="#6b6158" font-size="11">Keine Wochendaten verfügbar</text>`; return; }
+  if (!weeklyData.length) { svg.innerHTML = `<text x="390" y="135" text-anchor="middle" fill="#5f6878" font-size="11">Keine Wochendaten verfügbar</text>`; return; }
   const W = 780, H = 270, pad = { l: 50, r: 16, t: 16, b: 40 };
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
   const ownPlan = weeklyData.some(d => d.phase != null);
@@ -28,15 +28,15 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
     svg.appendChild(svgEl("rect", {
       x: pad.l, y: zoneTopY,
       width: cw, height: zoneBotY - zoneTopY,
-      fill: "#5c9e6e", opacity: "0.08",
+      fill: "#4a9a6e", opacity: "0.08",
     }));
 
     const targetY = pad.t + ch - (TARGET_KM / maxKm * ch);
     svg.appendChild(svgEl("line", {
       x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY,
-      stroke: "#5c9e6e", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.5",
+      stroke: "#4a9a6e", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.5",
     }));
-    const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#5c9e6e", "font-size": "9", opacity: "0.8" });
+    const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#4a9a6e", "font-size": "9", opacity: "0.8" });
     tl.textContent = "Ziel 200 km"; svg.appendChild(tl);
   }
 
@@ -70,7 +70,7 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
     if (bh > 16) {
       const vt = svgEl("text", {
         x: x + bw / 2, y: y - 4,
-        "text-anchor": "middle", fill: "#9a8f84", "font-size": "9",
+        "text-anchor": "middle", fill: "#97a1b3", "font-size": "9",
       });
       vt.textContent = Math.round(d.km);
       svg.appendChild(vt);
@@ -82,7 +82,7 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
 /* ── TRIMP pro Woche ─────────────────────────────────────────── */
 export function renderTrimp(svgId, weeklyData) {
   const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
-  if (!weeklyData.length) { svg.innerHTML = `<text x="390" y="115" text-anchor="middle" fill="#6b6158" font-size="11">Keine Wochendaten verfügbar</text>`; return; }
+  if (!weeklyData.length) { svg.innerHTML = `<text x="390" y="115" text-anchor="middle" fill="#5f6878" font-size="11">Keine Wochendaten verfügbar</text>`; return; }
   const W = 780, H = 230, pad = { l: 50, r: 16, t: 16, b: 40 };
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
   const maxV = Math.max(...weeklyData.map(d => d.trimp || 0)) * 1.15 || 1;
@@ -93,10 +93,10 @@ export function renderTrimp(svgId, weeklyData) {
 
   // Absolute Farbskala basierend auf trainingswissenschaftlichen Grenzwerten
   const trimpColor = (v) => {
-    if (v < 400)       return "#5c9e6e"; // grün  — Erholung
+    if (v < 400)       return "#4a9a6e"; // grün  — Erholung
     if (v < 600)       return "#c9a84c"; // gelb  — moderat
-    if (v < 900)       return "#e07b39"; // orange — hoch
-    return "#c45c5c";                    // rot   — sehr hoch
+    if (v < 900)       return "#e08a3c"; // orange — hoch
+    return "#d94f4f";                    // rot   — sehr hoch
   };
 
   weeklyData.forEach((d, i) => {
@@ -174,7 +174,7 @@ export function renderHeatmap(svgId, rides) {
     const rect = svgEl("rect", {
       x: x + 4, y: 20, width: cellW - 8, height: cellH,
       rx: "8", fill: color,
-      stroke: isMax ? "#c45c5c" : "#2e2923",
+      stroke: isMax ? "#d94f4f" : "#232a37",
       "stroke-width": isMax ? "1.5" : "1",
     });
     rect.addEventListener("mouseenter", e => Tooltip.show(e, `
@@ -189,7 +189,7 @@ export function renderHeatmap(svgId, rides) {
     const lbl = svgEl("text", {
       x: x + cellW / 2, y: 14,
       "text-anchor": "middle",
-      fill: isMax ? "#c45c5c" : "#9a8f84",
+      fill: isMax ? "#d94f4f" : "#97a1b3",
       "font-size": "11",
       "font-weight": isMax ? "700" : "500",
       "letter-spacing": "0.05em",
@@ -201,7 +201,7 @@ export function renderHeatmap(svgId, rides) {
     const cnt = svgEl("text", {
       x: x + cellW / 2, y: 57,
       "text-anchor": "middle",
-      fill: intensity > 0.35 ? "#f0ebe4" : "#9a8f84",
+      fill: intensity > 0.35 ? "#e2e7ef" : "#97a1b3",
       "font-size": "20", "font-weight": "700",
     });
     cnt.textContent = counts[i];
@@ -211,7 +211,7 @@ export function renderHeatmap(svgId, rides) {
     const km = svgEl("text", {
       x: x + cellW / 2, y: 74,
       "text-anchor": "middle",
-      fill: intensity > 0.3 ? "rgba(240,235,228,0.75)" : "#6b6158",
+      fill: intensity > 0.3 ? "rgba(240,235,228,0.75)" : "#5f6878",
       "font-size": "9",
     });
     km.textContent = Math.round(kmTotals[i]) + " km";
@@ -225,7 +225,7 @@ export function renderWeatherWeekly(svgId, rides) {
   const withWeather = rides.filter(r => r.weather?.temp != null);
   if (!withWeather.length) {
     const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
-    const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+    const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#5f6878", "font-size": "12" });
     t.textContent = "Noch keine Wetterdaten verfügbar";
     svg.appendChild(t);
     return;
@@ -294,17 +294,17 @@ export function renderWeatherWeekly(svgId, rides) {
     const windy = d.wind > 30;
     const rainy = d.precip > 0.5;
     const bad = (hot ? 1 : 0) + (cold ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
-    if (bad >= 2 || hot || (windy && rainy)) return "#c45c5c";
+    if (bad >= 2 || hot || (windy && rainy)) return "#d94f4f";
     if (bad === 1) return "#c9a84c";
-    return "#5c9e6e";
+    return "#4a9a6e";
   };
 
   // Grid Y Temp (links)
   const tStep = Math.ceil((maxT - minT) / 5 / 5) * 5;
   for (let t = Math.ceil(minT / 5) * 5; t <= maxT; t += tStep) {
     const y = yTemp(t);
-    svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#2e2923", "stroke-width": "1" }));
-    const lbl = svgEl("text", { x: pad.l - 5, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
+    svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#232a37", "stroke-width": "1" }));
+    const lbl = svgEl("text", { x: pad.l - 5, y: y + 4, "text-anchor": "end", fill: "#5f6878", "font-size": "9" });
     lbl.textContent = t + "°C";
     svg.appendChild(lbl);
   }
@@ -352,13 +352,13 @@ export function renderWeatherWeekly(svgId, rides) {
       if (Math.abs(labelY - windY) < 10) labelY = windY + 12;
       // Nicht aus dem Balken rauslaufen
       labelY = Math.min(labelY, y + bh - 4);
-      const tl = svgEl("text", { x: xMid(i), y: labelY, "text-anchor": "middle", fill: "#141210", "font-size": "8", "font-weight": "600" });
+      const tl = svgEl("text", { x: xMid(i), y: labelY, "text-anchor": "middle", fill: "#0b0e13", "font-size": "8", "font-weight": "600" });
       tl.textContent = d.temp + "°";
       svg.appendChild(tl);
     }
 
     // X-Label (Woche)
-    const xl = svgEl("text", { x: xMid(i), y: H - pad.b + 14, "text-anchor": "middle", fill: "#6b6158", "font-size": "8" });
+    const xl = svgEl("text", { x: xMid(i), y: H - pad.b + 14, "text-anchor": "middle", fill: "#5f6878", "font-size": "8" });
     xl.textContent = d.week.replace("P2-", "");
     svg.appendChild(xl);
 
@@ -370,7 +370,7 @@ export function renderWeatherWeekly(svgId, rides) {
       d.precip > 0.5 ? `🌧 ${d.precip}mm` : "",
       d.wind > 30 ? `💨 ${d.wind} km/h` : `🌬 ${d.wind} km/h`,
     ].filter(Boolean).join(" · ");
-    const condLabel = condColor(d) === "#5c9e6e" ? "✅ Gute Bedingungen"
+    const condLabel = condColor(d) === "#4a9a6e" ? "✅ Gute Bedingungen"
       : condColor(d) === "#c9a84c" ? "⚠️ Suboptimal"
       : "❌ Schwierige Bedingungen";
     hit.addEventListener("mouseenter", e => Tooltip.show(e, `
@@ -394,7 +394,7 @@ export function renderWeatherWeekly(svgId, rides) {
   data.forEach((d, i) => {
     svg.appendChild(svgEl("circle", {
       cx: xMid(i), cy: yWind(d.wind), r: "3",
-      fill: "#4a7fa8", stroke: "#141210", "stroke-width": "1",
+      fill: "#4a7fa8", stroke: "#0b0e13", "stroke-width": "1",
     }));
   });
 
@@ -405,12 +405,12 @@ export function renderWeatherWeekly(svgId, rides) {
     const dx = pad.l + (slotIndex(p2Start) - GAP_SLOTS / 2) * (cw / totalSlots);
     svg.appendChild(svgEl("line", {
       x1: dx, y1: pad.t, x2: dx, y2: pad.t + ch,
-      stroke: "#e07b39", "stroke-width": "1.5", "stroke-dasharray": "4,3", opacity: "0.6",
+      stroke: "#e08a3c", "stroke-width": "1.5", "stroke-dasharray": "4,3", opacity: "0.6",
     }));
-    const lp1 = svgEl("text", { x: dx - 6, y: pad.t + 10, "text-anchor": "end", fill: "#6b6158", "font-size": "8", "font-weight": "600" });
+    const lp1 = svgEl("text", { x: dx - 6, y: pad.t + 10, "text-anchor": "end", fill: "#5f6878", "font-size": "8", "font-weight": "600" });
     lp1.textContent = "← Plan 1";
     svg.appendChild(lp1);
-    const lp2 = svgEl("text", { x: dx + 6, y: pad.t + 10, "text-anchor": "start", fill: "#e07b39", "font-size": "8", "font-weight": "600" });
+    const lp2 = svgEl("text", { x: dx + 6, y: pad.t + 10, "text-anchor": "start", fill: "#e08a3c", "font-size": "8", "font-weight": "600" });
     lp2.textContent = "Plan 2 →";
     svg.appendChild(lp2);
   }

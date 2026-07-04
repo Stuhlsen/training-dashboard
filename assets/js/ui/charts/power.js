@@ -21,7 +21,7 @@ function drawTrendLine(svg, pts, opts = {}) {
   svg.appendChild(svgEl("line", {
     x1, y1: slope * x1 + intercept,
     x2, y2: slope * x2 + intercept,
-    stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3",
+    stroke: "#4a9a6e", "stroke-width": "1.5", "stroke-dasharray": "6,3",
     opacity: opts.opacity || "0.6",
   }));
 }
@@ -53,7 +53,7 @@ export function renderEfficiency(svgId, rides) {
   // Datenpunkte
   data.forEach((d, i) => {
     const p = pts[i];
-    const c = svgEl("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4a7fa8", opacity: "0.8", stroke: "#141210", "stroke-width": "1" });
+    const c = svgEl("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4a7fa8", opacity: "0.8", stroke: "#0b0e13", "stroke-width": "1" });
     c.style.cursor = "pointer";
     c.addEventListener("mouseenter", e => Tooltip.show(e, `
       <div class="tt">${d.dateShort} · ${d.week || ""}</div>
@@ -89,21 +89,21 @@ export function renderScatter(svgId, rides) {
   for (let i = 0; i <= 4; i++) {
     const y = pad.t + ch / 4 * i;
     const yVal = Math.round(maxY - (maxY - minY) / 4 * i);
-    svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#2e2923", "stroke-width": "1" }));
-    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "10" });
+    svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#232a37", "stroke-width": "1" }));
+    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#5f6878", "font-size": "10" });
     t.textContent = yVal; svg.appendChild(t);
   }
   for (let i = 0; i <= 4; i++) {
     const x = pad.l + cw / 4 * i;
     const xVal = (minX + (maxX - minX) / 4 * i).toFixed(1);
-    const t = svgEl("text", { x, y: H - pad.b + 14, "text-anchor": "middle", fill: "#6b6158", "font-size": "10" });
+    const t = svgEl("text", { x, y: H - pad.b + 14, "text-anchor": "middle", fill: "#5f6878", "font-size": "10" });
     t.textContent = xVal; svg.appendChild(t);
   }
 
   // Achsen-Labels
-  const xLbl = svgEl("text", { x: W / 2, y: H - 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10" });
+  const xLbl = svgEl("text", { x: W / 2, y: H - 2, "text-anchor": "middle", fill: "#5f6878", "font-size": "10" });
   xLbl.textContent = "Tempo (km/h)"; svg.appendChild(xLbl);
-  const yLbl = svgEl("text", { x: 12, y: H / 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10",
+  const yLbl = svgEl("text", { x: 12, y: H / 2, "text-anchor": "middle", fill: "#5f6878", "font-size": "10",
     transform: `rotate(-90, 12, ${H / 2})` });
   yLbl.textContent = "Ø HF (bpm)"; svg.appendChild(yLbl);
 
@@ -117,7 +117,7 @@ export function renderScatter(svgId, rides) {
   // Punkte — Farbe nach Phase
   pts.forEach(({ px, py, d }) => {
     const color = CONFIG.phaseColor(d.phase);
-    const c = svgEl("circle", { cx: px, cy: py, r: "5", fill: color, opacity: "0.75", stroke: "#141210", "stroke-width": "1" });
+    const c = svgEl("circle", { cx: px, cy: py, r: "5", fill: color, opacity: "0.75", stroke: "#0b0e13", "stroke-width": "1" });
     c.style.cursor = "pointer";
     c.addEventListener("mouseenter", e => Tooltip.show(e, `
       <div class="tt">${d.dateShort} · ${d.week || ""}</div>
@@ -158,11 +158,11 @@ export function renderSmallMultiples(rides) {
       const divX = pad.l + (plan2Start - 0.5) / Math.max(data.length - 1, 1) * cw;
       svg.appendChild(svgEl("rect", {
         x: divX - 0.5, y: pad.t, width: 1, height: ch,
-        fill: "#6b6158", opacity: "0.5",
+        fill: "#5f6878", opacity: "0.5",
       }));
-      const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: "#6b6158", "font-size": "9", "font-weight": "600" });
+      const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: "#5f6878", "font-size": "9", "font-weight": "600" });
       lbl1.textContent = "Plan 1"; svg.appendChild(lbl1);
-      const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: "#e07b39", "font-size": "9", "font-weight": "600" });
+      const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: "#e08a3c", "font-size": "9", "font-weight": "600" });
       lbl2.textContent = "Plan 2"; svg.appendChild(lbl2);
     }
 
@@ -192,7 +192,7 @@ export function renderSmallMultiples(rides) {
     drawTrendLine(svg, pts);
 
     pts.forEach((p) => {
-      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
+      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#0b0e13", "stroke-width": "1.5" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", e => Tooltip.show(e, `
         <div class="tt">${p.d.dateShort}${p.d.week ? " · " + p.d.week : ""}</div>
@@ -234,7 +234,7 @@ export function renderSmallMultiples(rides) {
   };
 
   render("chart-sm-tempo",  filterOutliers(sorted.filter(r => r.kmh), "kmh"), "kmh", "#4a7fa8", "km/h", null);
-  render("chart-sm-hf",     filterOutliers(sorted.filter(r => r.hf),  "hf"),  "hf",  "#c45c5c", "bpm",  null);
+  render("chart-sm-hf",     filterOutliers(sorted.filter(r => r.hf),  "hf"),  "hf",  "#d94f4f", "bpm",  null);
   render("chart-sm-kadenz", filterOutliers(sorted.filter(r => r.kad), "kad"), "kad", "#c9a84c", "RPM",  ownPlan ? CONFIG.cadenceTarget : null);
 }
 
@@ -280,7 +280,7 @@ function drawPowerCurve(unit) {
   svg.innerHTML = "";
 
   if (!powerCurves) {
-    const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+    const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#5f6878", "font-size": "12" });
     t.textContent = "Power-Curve-Daten werden beim nächsten Sync geladen";
     svg.appendChild(t);
     return;
@@ -290,7 +290,7 @@ function drawPowerCurve(unit) {
   const curveData = buildCurveData(powerCurves);
 
   if (!curveData.length) {
-    const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+    const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#5f6878", "font-size": "12" });
     t.textContent = "Noch keine Power-Curve-Daten verfügbar";
     svg.appendChild(t);
     return;
@@ -318,9 +318,9 @@ function drawPowerCurve(unit) {
     if (y < pad.t) break;
     svg.appendChild(svgEl("line", {
       x1: pad.l, y1: y, x2: W - pad.r, y2: y,
-      stroke: "#2e2923", "stroke-width": "1",
+      stroke: "#232a37", "stroke-width": "1",
     }));
-    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
+    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#5f6878", "font-size": "9" });
     t.textContent = fmtAxis(v);
     svg.appendChild(t);
   }
@@ -344,7 +344,7 @@ function drawPowerCurve(unit) {
   const areaPath = `M${xScale(0)},${pad.t + ch} ` +
     curveData.map((d, i) => `L${xScale(i)},${yScale(toVal(d.watts))}`).join(" ") +
     ` L${xScale(curveData.length - 1)},${pad.t + ch} Z`;
-  svg.appendChild(svgEl("path", { d: areaPath, fill: "#e07b39", opacity: "0.04" }));
+  svg.appendChild(svgEl("path", { d: areaPath, fill: "#e08a3c", opacity: "0.04" }));
 
   // Fläche über FTP — anaerobe Reserve
   if (ftpVal != null) {
@@ -355,12 +355,12 @@ function drawPowerCurve(unit) {
         return `L${xScale(i)},${Math.min(y, ftpY)}`;
       }).join(" ") +
       ` L${xScale(curveData.length - 1)},${ftpY} L${xScale(0)},${ftpY} Z`;
-    svg.appendChild(svgEl("path", { d: aboveFtpPath, fill: "#c45c5c", opacity: "0.15" }));
+    svg.appendChild(svgEl("path", { d: aboveFtpPath, fill: "#d94f4f", opacity: "0.15" }));
   }
 
   // Kurve
   svg.appendChild(svgEl("polyline", {
-    fill: "none", stroke: "#e07b39", "stroke-width": "2",
+    fill: "none", stroke: "#e08a3c", "stroke-width": "2",
     "stroke-linejoin": "round",
     points: curveData.map((d, i) => `${xScale(i)},${yScale(toVal(d.watts))}`).join(" "),
   }));
@@ -374,7 +374,7 @@ function drawPowerCurve(unit) {
 
     svg.appendChild(svgEl("circle", {
       cx: x, cy: y, r: "5",
-      fill: "#e07b39", stroke: "#141210", "stroke-width": "1.5",
+      fill: "#e08a3c", stroke: "#0b0e13", "stroke-width": "1.5",
     }));
 
     // Tooltip — zeigt immer beide Einheiten
@@ -394,13 +394,13 @@ function drawPowerCurve(unit) {
     const clampedY = Math.max(pad.t + 10, Math.min(pad.t + ch - 4, labelY));
     const wl = svgEl("text", {
       x, y: clampedY, "text-anchor": "middle",
-      fill: "#e07b39", "font-size": "9", "font-weight": "600",
+      fill: "#e08a3c", "font-size": "9", "font-weight": "600",
     });
     wl.textContent = fmtVal(v);
     svg.appendChild(wl);
 
     // X-Label
-    const xl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+    const xl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#5f6878", "font-size": "9" });
     xl.textContent = d.label;
     svg.appendChild(xl);
   });
