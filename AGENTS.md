@@ -178,15 +178,18 @@ Wochenstruktur: Di Gruppenfahrt · Do Strukturierte Intervalle · Sa Lange Z2
 
 Cube Nuroad Race Gravel · Favero Assioma PRO MX-1 Power Meter · Wahoo ELEMNT Roam v3
 
-## Design — Konzept 3 Sports-App
+## Design — Konzept 5 (Kachel-Anatomie × Zonen-Farbsystem)
 
-CSS-Variablen in `assets/css/main.css`:
-- Hintergrund: `#0f172a` (Dunkelblau-Schiefer)
-- Karten: `#1e293b`
-- Akzent: `#f97316` (sattes Orange)
-- Borders: `#2d3f55`
-- Pill-Form bei Buttons/Badges: `border-radius: 20px`
-- Unit-Toggle: Pill mit solidem Orange-Fill beim aktiven Button
+Tokens in `assets/css/main.css` (Namen stabil halten — Chart-JS spiegelt sie):
+- Hintergrund: `#0b0e13` Anthrazit-Blau mit fixierten Zonen-Gradienten (Z2-Schimmer oben rechts, Sweet-Spot-Glut unten links)
+- Kacheln: Glas — `rgba(255,255,255,0.045)` + 1px-Hauchrand, Radius 22/28px; Tooltip/Dropdowns deckend via `--card-solid`
+- **Zonen-Skala als Farbsystem** (Farbe = Bedeutung, nie Deko):
+  `--z1 #4a9a6e` (Recovery/positiv) · `--z2 #4a7fa8` (Grundlage/Plan 1) · `--ss #e08a3c` (Sweet Spot/Akzent/Plan 2) · `--thr #d94f4f` (Schwelle/Warnung) · `--vo2 #a24ad0`
+- Typografie: **Sora** (Display/Zahlen, `--font-disp`) · **IBM Plex Mono** (Labels/Meta, `--font-mono`) · **Inter** (Fließtext, `--font-body`); Google-Fonts-Link in index.html mit System-Fallbacks
+- Pills überall interaktiv (`--pill`): Tabs (aktiv = SS-Fill mit dunklem Text `#17110a`), Athleten-Toggle (aktiv = Z2), Unit-/Plan-Toggle
+- Hero-Signaturen: **FTP-Zonen-Band** (Segmente aus `core/ftp-progress.js::zoneSegments`, Pins FTP/eFTP/Ziel) und **FTP-Fortschrittsring** (Z2→SS-Gradient, Fortschritt `ringProgress(eFTP, ftpBase, ftpGoal)`), plus Session-Pill (nächste Einheit via `nextPlannedSession`)
+- SVG-Chart-Farben können keine CSS-Variablen nutzen → Palette ist als `CHART_THEME` in `assets/js/ui/charts/base.js` gespiegelt. Bei Palettenwechsel: main.css-Tokens UND CHART_THEME UND die Hex-Literale in `ui/charts/*` per Suchen/Ersetzen anpassen (Mapping-Kommentar in base.js).
+- `prefers-reduced-motion` wird respektiert (main.css global + Ring-Transition)
 
 ## Wichtige Konventionen
 
