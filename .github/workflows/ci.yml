@@ -1,0 +1,29 @@
+# CI: Tests + Lint bei jedem Push/PR
+# Getrennt von sync-data.yml (Daten-Sync) — dieser Workflow committet nichts.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # Keine Dependencies nötig — node:test ist eingebaut
+      - name: Unit-Tests (node --test)
+        run: node --test
+
+      # ESLint via npx, ohne package im Repo zu installieren
+      - name: Lint (ESLint 9, Flat Config)
+        run: npx --yes eslint@9 assets/js scripts tests
