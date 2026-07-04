@@ -1,35 +1,21 @@
 /* ============================================================
-   APP.JS — Einstiegspunkt, Tab-Navigation, Chart-Gruppen,
-   Athleten-Toggle (Vergleich Alex / Siggi)
+   APP.JS — Einstiegspunkt (ES-Modul)
+   Tab-Navigation, Chart-Gruppen, Athleten-Toggle (Athlet 1 / 2),
+   renderAll(), Chart-Explainer, Period-Toggles
+   Ladereihenfolge ergibt sich aus dem Import-Graph — kein
+   Script-Tag-Management mehr in index.html nötig.
    ============================================================ */
 
-// Tab Navigation
-function initTabs() {
-  const btns = document.querySelectorAll(".tab-btn");
-  const validTabs = Array.from(btns).map(b => b.dataset.tab);
-
-  window._activateTab = function(tabId) {
-    if (!validTabs.includes(tabId)) tabId = validTabs[0];
-    btns.forEach(b => b.classList.toggle("active", b.dataset.tab === tabId));
-    document.querySelectorAll(".tab-content").forEach(s => s.classList.add("hidden"));
-    const target = el("tab-" + tabId);
-    if (target) target.classList.remove("hidden");
-    history.replaceState(null, "", "#" + tabId);
-  };
-
-  btns.forEach(btn => {
-    btn.addEventListener("click", () => window._activateTab(btn.dataset.tab));
-  });
-}
-
-// Chart Group Toggle (inside Charts tab)
-function toggleChartGroup(headerEl) {
-  const body = headerEl.nextElementSibling;
-  const icon = headerEl.querySelector(".toggle-icon");
-  const isOpen = body.classList.contains("open");
-  body.classList.toggle("open");
-  icon.style.transform = isOpen ? "" : "rotate(180deg)";
-}
+import { monthlyFromRides } from "./core/aggregate.js";
+import { CONFIG } from "./state/config.js";
+import { Data } from "./state/data.js";
+import { el, Tooltip } from "./ui/dom.js";
+import { activateTab, initTabs, initChartGroupToggles } from "./ui/nav.js";
+import { Charts } from "./ui/charts/index.js";
+import { Overview } from "./ui/overview.js";
+import { Table } from "./ui/table.js";
+import { Planned } from "./ui/planned.js";
+import { Analysis } from "./ui/analysis.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
 function initAthleteToggle() {
@@ -52,7 +38,7 @@ function initAthleteToggle() {
 }
 
 /* ── Hat der aktive Athlet einen Trainingsplan? ────────────────
-   Siggi (Vergleichsdaten) hat keine week/phase-Struktur, also
+   Athlet 2 (Vergleichsdaten) hat keine week/phase-Struktur, also
    keine Planung/Übersicht-Meilensteine. */
 function hasOwnPlan() {
   return Data.rides.some(r => r.week);
@@ -64,7 +50,7 @@ function togglePlanningTabVisibility(show) {
   if (btn) btn.classList.toggle("hidden", !show);
   // Falls aktuell aktiver Tab "planned" ist aber nicht mehr verfügbar → zurück zu Übersicht
   if (!show && btn?.classList.contains("active")) {
-    window._activateTab("overview");
+    activateTab("overview");
   }
 }
 
@@ -115,38 +101,6 @@ function updateChartExplainers(ownPlan, ftp) {
 
 /* ── Wochen/Monats-Toggle für Volumen, TRIMP und Wetter ─────── */
 
-/** Aggregiert Rides nach Kalendermonat (YYYY-MM) — analog zu Data.weekly() */
-function monthlyData() {
-  const grouped = {};
-  for (const r of Data.rides) {
-    const key = r.dateISO.slice(0, 7); // YYYY-MM
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(r);
-  }
-  return Object.entries(grouped)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([month, rides]) => {
-      const label = new Date(month + "-01")
-        .toLocaleDateString("de-DE", { month: "short", year: "2-digit" });
-      return {
-        week:   label,          // Chart-Funktionen erwarten "week" als x-Label
-        phase:  rides[0]?.phase || null,
-        plan:   rides[0]?.plan  || "Vergleich",
-        rides:  rides.length,
-        km:     Math.round(rides.reduce((s, r) => s + (r.km || 0), 0) * 10) / 10,
-        min:    rides.reduce((s, r) => s + (r.min || 0), 0),
-        trimp:  Math.round(rides.reduce((s, r) => s + (r.trimp || 0), 0)),
-        avgHF:  Math.round(rides.filter(r => r.hf).reduce((s, r) => s + r.hf, 0) / (rides.filter(r => r.hf).length || 1)),
-        avgKad: Math.round(rides.filter(r => r.kad).reduce((s, r) => s + r.kad, 0) / (rides.filter(r => r.kad).length || 1)),
-        // Wetter: Durchschnitt aller Fahrten mit Wetterdaten
-        temp:      (() => { const ws = rides.filter(r => r.weather?.temp != null); return ws.length ? Math.round(ws.reduce((s, r) => s + r.weather.temp, 0) / ws.length * 10) / 10 : null; })(),
-        windSpeed: (() => { const ws = rides.filter(r => r.weather?.windSpeed != null); return ws.length ? Math.round(ws.reduce((s, r) => s + r.weather.windSpeed, 0) / ws.length * 10) / 10 : null; })(),
-        precip:    (() => { const ws = rides.filter(r => r.weather?.precip != null); return ws.length ? Math.round(ws.reduce((s, r) => s + r.weather.precip, 0) / ws.length * 10) / 10 : null; })(),
-        badCount:  rides.filter(r => r.weather && ((r.weather.temp > 32) || (r.weather.temp < 5) || ((r.weather.windSpeed || 0) > 30) || ((r.weather.precip || 0) > 0.5))).length,
-      };
-    });
-}
-
 /** Liest oder setzt den Period-Toggle-Status für den aktuellen Athleten */
 function getPeriod(chartId) {
   return localStorage.getItem(`period_${Data.activeAthleteId}_${chartId}`) || "week";
@@ -194,7 +148,7 @@ function initPeriodToggles(rides, weekly, onBarClick) {
     }
 
     // Initial rendern mit gespeichertem Wert
-    cfg.chartFn(saved === "month" ? monthlyData() : weekly, saved);
+    cfg.chartFn(saved === "month" ? monthlyFromRides(Data.rides) : weekly, saved);
 
     // Click-Handler
     wrap.querySelectorAll(".unit-btn").forEach(btn => {
@@ -205,7 +159,7 @@ function initPeriodToggles(rides, weekly, onBarClick) {
         setPeriod(cfg.toggleId, period);
         const titleEl = el(cfg.titleId);
         if (titleEl) titleEl.textContent = period === "month" ? cfg.titleMonth : cfg.titleWeek;
-        cfg.chartFn(period === "month" ? monthlyData() : weekly, period);
+        cfg.chartFn(period === "month" ? monthlyFromRides(Data.rides) : weekly, period);
       });
     });
   }
@@ -224,7 +178,7 @@ async function renderAll(athleteId) {
   if (!result.ok) {
     el("loading").classList.add("hidden");
     el("error").classList.remove("hidden");
-    el("error-msg").textContent = result.warning || "Unbekannter Fehler";
+    el("error-msg").textContent = result.error?.message || "Unbekannter Fehler";
     return;
   }
 
@@ -285,17 +239,21 @@ async function renderAll(athleteId) {
 // Main init
 (async function () {
   initTabs();
+  initChartGroupToggles();
   Tooltip.init();
 
-  // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird
+  // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird.
+  // Alte/unbekannte IDs (aus früheren Versionen) fallen auf den Primär-Athleten
+  // zurück — der Toggle setzt sich dabei einmalig zurück.
   const savedAthlete = localStorage.getItem("active_athlete");
   const validAthlete = CONFIG.athletes.some(a => a.id === savedAthlete);
-  Data.activeAthleteId = validAthlete ? savedAthlete : "alex";
+  if (savedAthlete && !validAthlete) localStorage.removeItem("active_athlete");
+  Data.activeAthleteId = validAthlete ? savedAthlete : CONFIG.primaryAthleteId;
 
   initAthleteToggle();
   await renderAll(validAthlete ? savedAthlete : null);
 
   // Tab aus URL-Hash aktivieren — NACH allem Rendering damit nichts überschrieben wird
   const hash = location.hash.replace("#", "");
-  window._activateTab(hash || "overview");
+  activateTab(hash || "overview");
 })();

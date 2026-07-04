@@ -1,0 +1,407 @@
+/* ============================================================
+   UI/CHARTS/POWER.JS — Power Curve, Effizienz, Scatter,
+   Small Multiples (Tempo · HF · Kadenz)
+   Rendering only — Kurven-Parsing in core/powercurve.js,
+   Regression in core/stats.js.
+   ============================================================ */
+
+import { fmt, fmtInt } from "../../core/format.js";
+import { linearTrend } from "../../core/stats.js";
+import { buildCurveData } from "../../core/powercurve.js";
+import { CONFIG } from "../../state/config.js";
+import { el, svgEl, Tooltip } from "../dom.js";
+import { gridLines, xLabel, autoScrollRight } from "./base.js";
+
+/** Zeichnet die Trendlinie einer Punktwolke (falls berechenbar) */
+function drawTrendLine(svg, pts, opts = {}) {
+  const trend = linearTrend(pts);
+  if (!trend) return;
+  const { slope, intercept } = trend;
+  const x1 = pts[0].x, x2 = pts[pts.length - 1].x;
+  svg.appendChild(svgEl("line", {
+    x1, y1: slope * x1 + intercept,
+    x2, y2: slope * x2 + intercept,
+    stroke: "#5c9e6e", "stroke-width": "1.5", "stroke-dasharray": "6,3",
+    opacity: opts.opacity || "0.6",
+  }));
+}
+
+/* ── Aerobe Effizienz (Watt/HF über Zeit) ────────────────────── */
+export function renderEfficiency(svgId, rides) {
+  const data = rides
+    .filter(r => r.efficiency)
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+
+  const W = 780, H = 210, pad = { l: 50, r: 16, t: 16, b: 36 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const vals = data.map(d => d.efficiency);
+  const minV = Math.max(0, Math.min(...vals) - 0.1);
+  const maxV = Math.max(...vals) + 0.1;
+
+  gridLines(svg, W, H, pad, maxV, minV);
+
+  const pts = data.map((d, i) => ({
+    x: pad.l + i / Math.max(data.length - 1, 1) * cw,
+    y: pad.t + ch - (d.efficiency - minV) / (maxV - minV) * ch,
+    d,
+  }));
+
+  // Trendlinie (einfache lineare Regression, core/stats.js)
+  drawTrendLine(svg, pts);
+
+  // Datenpunkte
+  data.forEach((d, i) => {
+    const p = pts[i];
+    const c = svgEl("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4a7fa8", opacity: "0.8", stroke: "#141210", "stroke-width": "1" });
+    c.style.cursor = "pointer";
+    c.addEventListener("mouseenter", e => Tooltip.show(e, `
+      <div class="tt">${d.dateShort} · ${d.week || ""}</div>
+      <div class="tv">Effizienz: ${fmt(d.efficiency, 2)} W/bpm</div>
+      <div class="td">${fmtInt(d.watt)}W · ${fmtInt(d.hf)} bpm</div>
+      <div class="td">${d.name}</div>
+    `));
+    c.addEventListener("mouseleave", () => Tooltip.hide());
+    svg.appendChild(c);
+  });
+
+  const ls = Math.max(1, Math.floor(pts.length / 8));
+  pts.forEach((p, i) => {
+    if (i % ls === 0 || i === pts.length - 1)
+      xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+  });
+}
+
+/* ── Tempo vs. HF Scatterplot ────────────────────────────────── */
+export function renderScatter(svgId, rides) {
+  const data = rides.filter(r => r.kmh && r.hf)
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+
+  const W = 780, H = 260, pad = { l: 54, r: 20, t: 16, b: 44 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const minX = Math.min(...data.map(d => d.kmh)) - 1;
+  const maxX = Math.max(...data.map(d => d.kmh)) + 1;
+  const minY = Math.min(...data.map(d => d.hf)) - 5;
+  const maxY = Math.max(...data.map(d => d.hf)) + 5;
+
+  // Grid
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch / 4 * i;
+    const yVal = Math.round(maxY - (maxY - minY) / 4 * i);
+    svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#2e2923", "stroke-width": "1" }));
+    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "10" });
+    t.textContent = yVal; svg.appendChild(t);
+  }
+  for (let i = 0; i <= 4; i++) {
+    const x = pad.l + cw / 4 * i;
+    const xVal = (minX + (maxX - minX) / 4 * i).toFixed(1);
+    const t = svgEl("text", { x, y: H - pad.b + 14, "text-anchor": "middle", fill: "#6b6158", "font-size": "10" });
+    t.textContent = xVal; svg.appendChild(t);
+  }
+
+  // Achsen-Labels
+  const xLbl = svgEl("text", { x: W / 2, y: H - 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10" });
+  xLbl.textContent = "Tempo (km/h)"; svg.appendChild(xLbl);
+  const yLbl = svgEl("text", { x: 12, y: H / 2, "text-anchor": "middle", fill: "#6b6158", "font-size": "10",
+    transform: `rotate(-90, 12, ${H / 2})` });
+  yLbl.textContent = "Ø HF (bpm)"; svg.appendChild(yLbl);
+
+  // Koordinaten vorberechnen
+  const pts = data.map(d => ({
+    px: pad.l + (d.kmh - minX) / (maxX - minX) * cw,
+    py: pad.t + ch - (d.hf - minY) / (maxY - minY) * ch,
+    d,
+  }));
+
+  // Punkte — Farbe nach Phase
+  pts.forEach(({ px, py, d }) => {
+    const color = CONFIG.phaseColor(d.phase);
+    const c = svgEl("circle", { cx: px, cy: py, r: "5", fill: color, opacity: "0.75", stroke: "#141210", "stroke-width": "1" });
+    c.style.cursor = "pointer";
+    c.addEventListener("mouseenter", e => Tooltip.show(e, `
+      <div class="tt">${d.dateShort} · ${d.week || ""}</div>
+      <div class="tv">${fmt(d.kmh)} km/h · ${fmtInt(d.hf)} bpm</div>
+      <div class="td">${d.name}</div>
+    `));
+    c.addEventListener("mouseleave", () => Tooltip.hide());
+    svg.appendChild(c);
+  });
+}
+
+/* ── Small Multiples (Tempo · HF · Kadenz pro Fahrt) ─────────── */
+export function renderSmallMultiples(rides) {
+  const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  const ownPlan = rides.some(r => r.week);
+  const PPT = 16;
+  const H = 180, pad = { l: 50, r: 24, t: 16, b: 36 };
+
+  const render = (svgId, data, field, color, unit, targetLine) => {
+    const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+
+    const W = Math.max(780, data.length * PPT + 74);
+    const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    svg.setAttribute("height", H);
+
+    const vals = data.map(d => d[field]);
+    const minV = Math.max(0, Math.min(...vals) - 2);
+    const maxV = Math.max(...vals) + 2;
+
+    gridLines(svg, W, H, pad, maxV, minV);
+
+    // Plan divider + Labels
+    const plan2Start = data.findIndex(d => d.plan === "Plan 2");
+    if (plan2Start > 0) {
+      const divX = pad.l + (plan2Start - 0.5) / Math.max(data.length - 1, 1) * cw;
+      svg.appendChild(svgEl("rect", {
+        x: divX - 0.5, y: pad.t, width: 1, height: ch,
+        fill: "#6b6158", opacity: "0.5",
+      }));
+      const lbl1 = svgEl("text", { x: divX - 8, y: pad.t + 12, "text-anchor": "end", fill: "#6b6158", "font-size": "9", "font-weight": "600" });
+      lbl1.textContent = "Plan 1"; svg.appendChild(lbl1);
+      const lbl2 = svgEl("text", { x: divX + 8, y: pad.t + 12, "text-anchor": "start", fill: "#e07b39", "font-size": "9", "font-weight": "600" });
+      lbl2.textContent = "Plan 2"; svg.appendChild(lbl2);
+    }
+
+    if (targetLine != null) {
+      const ty = pad.t + ch - (targetLine - minV) / (maxV - minV) * ch;
+      svg.appendChild(svgEl("line", {
+        x1: pad.l, y1: ty, x2: W - pad.r, y2: ty,
+        stroke: "#c9a84c", "stroke-width": "1", "stroke-dasharray": "4,3", opacity: "0.5",
+      }));
+      // Label oberhalb der Linie, nicht rechts daneben — kein Overlap mit Plan-Label
+      const lt = svgEl("text", { x: W - pad.r - 4, y: ty - 5, "text-anchor": "end", fill: "#c9a84c", "font-size": "9", opacity: "0.85" });
+      lt.textContent = `Ziel ${targetLine}`;
+      svg.appendChild(lt);
+    }
+
+    const pts = data.map((d, i) => ({
+      x: pad.l + i / Math.max(data.length - 1, 1) * cw,
+      y: pad.t + ch - (d[field] - minV) / (maxV - minV) * ch,
+      d,
+    }));
+
+    svg.appendChild(svgEl("polyline", {
+      fill: "none", stroke: color, "stroke-width": "1.8",
+      points: pts.map(p => `${p.x},${p.y}`).join(" "),
+    }));
+
+    drawTrendLine(svg, pts);
+
+    pts.forEach((p) => {
+      const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: color, stroke: "#141210", "stroke-width": "1.5" });
+      c.style.cursor = "pointer";
+      c.addEventListener("mouseenter", e => Tooltip.show(e, `
+        <div class="tt">${p.d.dateShort}${p.d.week ? " · " + p.d.week : ""}</div>
+        <div class="tv">${Math.round(p.d[field] * 10) / 10} ${unit}</div>
+        <div class="td">${p.d.name}</div>
+      `));
+      c.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(c);
+    });
+
+    // X-Labels: mindestens 55px Abstand zwischen Labels
+    let lastLabelX = -999;
+    pts.forEach((p, i) => {
+      const isLast = i === pts.length - 1;
+      if (i % Math.max(1, Math.floor(pts.length / 15)) === 0 || isLast) {
+        if (p.x - lastLabelX >= 55 || isLast) {
+          xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+          lastLabelX = p.x;
+        }
+      }
+    });
+
+    // Scroll: Container-Breite explizit setzen damit Browser scrollt
+    const scrollContainer = svg.parentElement;
+    if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
+      autoScrollRight(svg, W, scrollContainer);
+    }
+  };
+
+  const filterOutliers = (arr, field) => {
+    const vals = arr.map(d => d[field]).filter(v => v != null).sort((a, b) => a - b);
+    if (vals.length < 4) return arr;
+    const q1 = vals[Math.floor(vals.length * 0.25)];
+    const q3 = vals[Math.floor(vals.length * 0.75)];
+    const iqr = q3 - q1;
+    const lo = q1 - 2.5 * iqr;
+    const hi = q3 + 2.5 * iqr;
+    return arr.filter(d => d[field] == null || (d[field] >= lo && d[field] <= hi));
+  };
+
+  render("chart-sm-tempo",  filterOutliers(sorted.filter(r => r.kmh), "kmh"), "kmh", "#4a7fa8", "km/h", null);
+  render("chart-sm-hf",     filterOutliers(sorted.filter(r => r.hf),  "hf"),  "hf",  "#c45c5c", "bpm",  null);
+  render("chart-sm-kadenz", filterOutliers(sorted.filter(r => r.kad), "kad"), "kad", "#c9a84c", "RPM",  ownPlan ? CONFIG.cadenceTarget : null);
+}
+
+/* ── Power Curve ─────────────────────────────────────────────── */
+
+// Cache für den W/W-kg-Toggle (Modul-Zustand statt this._pcCache)
+let pcCache = null;
+
+export function renderPowerCurve(svgId, powerCurves, ftp, weight) {
+  // Daten einmal cachen für Toggle
+  pcCache = { svgId, powerCurves, ftp, weight };
+  drawPowerCurve("w");
+
+  // Toggle-Buttons verdrahten
+  const toggle = el("power-curve-unit-toggle");
+  if (toggle) {
+    const btns = toggle.querySelectorAll(".unit-btn");
+    const wkgBtn = toggle.querySelector('[data-unit="wkg"]');
+
+    // W/kg deaktivieren wenn kein Gewicht
+    if (!weight && wkgBtn) {
+      wkgBtn.disabled = true;
+      wkgBtn.title = "Kein Gewicht in intervals.icu verfügbar";
+    }
+
+    btns.forEach(btn => {
+      btn.addEventListener("click", () => {
+        if (btn.disabled) return;
+        btns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        drawPowerCurve(btn.dataset.unit);
+      });
+    });
+  }
+}
+
+function drawPowerCurve(unit) {
+  const { svgId, powerCurves, ftp, weight } = pcCache;
+  const isWkg = unit === "wkg" && weight > 0;
+
+  const svg = el(svgId);
+  if (!svg) return;
+  svg.innerHTML = "";
+
+  if (!powerCurves) {
+    const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+    t.textContent = "Power-Curve-Daten werden beim nächsten Sync geladen";
+    svg.appendChild(t);
+    return;
+  }
+
+  // Beide intervals.icu-Formate → Standard-Datenpunkte (core/powercurve.js)
+  const curveData = buildCurveData(powerCurves);
+
+  if (!curveData.length) {
+    const t = svgEl("text", { x: 390, y: 120, "text-anchor": "middle", fill: "#6b6158", "font-size": "12" });
+    t.textContent = "Noch keine Power-Curve-Daten verfügbar";
+    svg.appendChild(t);
+    return;
+  }
+
+  // Werte konvertieren wenn W/kg
+  const toVal = (w) => isWkg ? w / weight : w;
+  const fmtVal = (v) => isWkg ? v.toFixed(2) + " W/kg" : Math.round(v) + "W";
+  const fmtAxis = (v) => isWkg ? v.toFixed(1) : v + "W";
+  const ftpVal = ftp ? toVal(ftp) : null;
+
+  const W = 780, H = 260, pad = { l: 56, r: 16, t: 20, b: 44 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const vals = curveData.map(d => toVal(d.watts));
+  const maxV = Math.max(...vals) * 1.1;
+  const xScale = (i) => pad.l + (i / (curveData.length - 1)) * cw;
+  const yScale = (v) => pad.t + ch - (v / maxV) * ch;
+
+  // Grid Y
+  const step = isWkg
+    ? (maxV > 10 ? 2 : maxV > 5 ? 1 : 0.5)
+    : Math.ceil(maxV / 5 / 50) * 50;
+  for (let v = 0; v <= maxV; v += step) {
+    const y = yScale(v);
+    if (y < pad.t) break;
+    svg.appendChild(svgEl("line", {
+      x1: pad.l, y1: y, x2: W - pad.r, y2: y,
+      stroke: "#2e2923", "stroke-width": "1",
+    }));
+    const t = svgEl("text", { x: pad.l - 6, y: y + 4, "text-anchor": "end", fill: "#6b6158", "font-size": "9" });
+    t.textContent = fmtAxis(v);
+    svg.appendChild(t);
+  }
+
+  // FTP-Linie
+  if (ftpVal != null) {
+    const ftpY = yScale(ftpVal);
+    svg.appendChild(svgEl("line", {
+      x1: pad.l, y1: ftpY, x2: W - pad.r, y2: ftpY,
+      stroke: "#c9a84c", "stroke-width": "1.5", "stroke-dasharray": "6,3", opacity: "0.8",
+    }));
+    const ft = svgEl("text", {
+      x: pad.l + 6, y: ftpY - 5,
+      fill: "#c9a84c", "font-size": "9", "font-weight": "600",
+    });
+    ft.textContent = isWkg ? `FTP ${(ftp / weight).toFixed(2)} W/kg` : `FTP ${ftp}W`;
+    svg.appendChild(ft);
+  }
+
+  // Fläche unter der Kurve
+  const areaPath = `M${xScale(0)},${pad.t + ch} ` +
+    curveData.map((d, i) => `L${xScale(i)},${yScale(toVal(d.watts))}`).join(" ") +
+    ` L${xScale(curveData.length - 1)},${pad.t + ch} Z`;
+  svg.appendChild(svgEl("path", { d: areaPath, fill: "#e07b39", opacity: "0.04" }));
+
+  // Fläche über FTP — anaerobe Reserve
+  if (ftpVal != null) {
+    const ftpY = yScale(ftpVal);
+    const aboveFtpPath = `M${xScale(0)},${Math.min(yScale(toVal(curveData[0].watts)), ftpY)} ` +
+      curveData.map((d, i) => {
+        const y = yScale(toVal(d.watts));
+        return `L${xScale(i)},${Math.min(y, ftpY)}`;
+      }).join(" ") +
+      ` L${xScale(curveData.length - 1)},${ftpY} L${xScale(0)},${ftpY} Z`;
+    svg.appendChild(svgEl("path", { d: aboveFtpPath, fill: "#c45c5c", opacity: "0.15" }));
+  }
+
+  // Kurve
+  svg.appendChild(svgEl("polyline", {
+    fill: "none", stroke: "#e07b39", "stroke-width": "2",
+    "stroke-linejoin": "round",
+    points: curveData.map((d, i) => `${xScale(i)},${yScale(toVal(d.watts))}`).join(" "),
+  }));
+
+  // Punkte + Labels
+  curveData.forEach((d, i) => {
+    const v = toVal(d.watts);
+    const x = xScale(i), y = yScale(v);
+    const above = i % 2 === 0;
+    const overFtp = ftp && d.watts > ftp;
+
+    svg.appendChild(svgEl("circle", {
+      cx: x, cy: y, r: "5",
+      fill: "#e07b39", stroke: "#141210", "stroke-width": "1.5",
+    }));
+
+    // Tooltip — zeigt immer beide Einheiten
+    const hit = svgEl("circle", { cx: x, cy: y, r: "10", fill: "transparent" });
+    hit.style.cursor = "pointer";
+    const wkgInfo = weight ? `${(d.watts / weight).toFixed(2)} W/kg` : "";
+    hit.addEventListener("mouseenter", e => Tooltip.show(e, `
+      <div class="tt">${d.label}</div>
+      <div class="tv">${Math.round(d.watts)} W${wkgInfo ? " · " + wkgInfo : ""}</div>
+      <div class="td">${ftp ? `${(d.watts / ftp).toFixed(2)}× FTP · ${overFtp ? "über FTP" : "unter FTP"}` : ""}</div>
+    `));
+    hit.addEventListener("mouseleave", () => Tooltip.hide());
+    svg.appendChild(hit);
+
+    // Wert-Label abwechselnd oben/unten
+    const labelY = above ? y - 10 : y + 18;
+    const clampedY = Math.max(pad.t + 10, Math.min(pad.t + ch - 4, labelY));
+    const wl = svgEl("text", {
+      x, y: clampedY, "text-anchor": "middle",
+      fill: "#e07b39", "font-size": "9", "font-weight": "600",
+    });
+    wl.textContent = fmtVal(v);
+    svg.appendChild(wl);
+
+    // X-Label
+    const xl = svgEl("text", { x, y: H - pad.b + 16, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+    xl.textContent = d.label;
+    svg.appendChild(xl);
+  });
+}
