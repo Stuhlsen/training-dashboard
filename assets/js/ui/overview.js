@@ -3,10 +3,12 @@
    ============================================================ */
 
 import { fmt, fmtInt, fmtDuration } from "../core/format.js";
+import { zoneSegments, pinPercent, ringProgress, nextPlannedSession } from "../core/ftp-progress.js";
 import { avg, maxVal, sum } from "../core/stats.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { el, svgEl, Tooltip } from "./dom.js";
+import { Planned } from "./planned.js";
 
 export const Overview = {
 
@@ -55,22 +57,139 @@ export const Overview = {
     const ftpVal   = Data.ftpValue();
     const totalMin = sum(rides, "min");
 
+    // Eyebrow: aktuelle Woche/Phase (aus der letzten Fahrt) bzw. Vergleichsmodus
+    const eyebrowEl = el("hero-eyebrow");
+    if (eyebrowEl) {
+      if (ownPlan) {
+        const lastWithWeek = [...sorted].reverse().find(r => r.week);
+        eyebrowEl.textContent = lastWithWeek
+          ? `${lastWithWeek.plan || "Plan"} · ${lastWithWeek.week}${lastWithWeek.phase ? " · " + lastWithWeek.phase : ""}`
+          : CONFIG.planVersion;
+      } else {
+        eyebrowEl.textContent = "Vergleichsdaten · read-only";
+      }
+    }
+
+    this._renderSessionPill(rides, ownPlan);
+    this._renderZoneBand(ftpVal, ownPlan);
+    this._renderFtpRing(ftpVal, ownPlan);
+
     // Historisches Volumen addieren (nur für Athleten mit erfasster Historie)
-    const hist = CONFIG.historicalVolume?.[Data.activeAthleteId];
-    const historicalKm = hist ? Math.max(0, hist.totalKmLifetime - hist.kmAlreadyInSystem) : 0;
+    const hist2 = CONFIG.historicalVolume?.[Data.activeAthleteId];
+    const historicalKm = hist2 ? Math.max(0, hist2.totalKmLifetime - hist2.kmAlreadyInSystem) : 0;
     const displayKm = totalKm + Math.round(historicalKm);
 
+    // KPI-Kacheln mit Zonen-Akzentkante (K5): Kante trägt die Zonenfarbe,
+    // der Wert bleibt neutral hell — Farbe = Bedeutung, nicht Dekoration
     el("hero-kpis").innerHTML = [
-      { v: displayKm.toLocaleString("de"), l: historicalKm > 0 ? "Kilometer (inkl. Strava-Historie)" : "Kilometer",   c: "var(--accent)" },
-      { v: rides.length,                 l: "Fahrten" + (historicalKm > 0 ? " (erfasst)" : ""),     c: "var(--text)"   },
+      { v: displayKm.toLocaleString("de"), l: historicalKm > 0 ? "Kilometer (inkl. Strava-Historie)" : "Kilometer",   c: "var(--ss)" },
+      { v: rides.length,                 l: "Fahrten" + (historicalKm > 0 ? " (erfasst)" : ""),     c: "var(--z2)"   },
       { v: ftpVal ? `${ftpVal}W` : "–", l: ownPlan ? "FTP" : (Data.athleteFtp ? "FTP" : "Bestes NP"),         c: "var(--gold)"   },
-      { v: fmtDuration(totalMin),        l: "Trainingszeit",  c: "var(--dim)"    },
+      { v: fmtDuration(totalMin),        l: "Trainingszeit",  c: "var(--z1)"    },
     ].map(k => `
-      <div class="hero-kpi">
-        <div class="kpi-value" style="color:${k.c}">${k.v}</div>
+      <div class="hero-kpi" style="--kpi-c:${k.c}">
+        <div class="kpi-value">${k.v}</div>
         <div class="kpi-label">${k.l}</div>
       </div>
     `).join("");
+  },
+
+  /* ── Session-Pill: heutige bzw. nächste geplante Einheit ────── */
+  _renderSessionPill(rides, ownPlan) {
+    const wrap = el("hero-session");
+    if (!wrap) return;
+    if (!ownPlan || !Data.plannedSessions.length) { wrap.innerHTML = ""; return; }
+
+    const todayISO = new Date().toISOString().split("T")[0];
+    const doneDates = new Set(rides.map(r => r.date));
+    const next = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
+    if (!next) { wrap.innerHTML = ""; return; }
+
+    const color = Planned._typColor(next.typ);
+    const when = next.isToday
+      ? "Heute"
+      : new Date(next.date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
+    const km = next.km ? ` · ~${next.km} km` : "";
+    const details = next.workout?.label ? ` · ${next.workout.label}` : "";
+    wrap.innerHTML = `
+      <div class="session-pill" style="--sp-color:${color}">
+        <span class="zdot"></span>
+        <span>${when} · <b>${next.name || next.typ || "Einheit"}</b>${km}${details}</span>
+      </div>`;
+  },
+
+  /* ── Zonen-Band: FTP-Leistungsskala mit Pins (Signatur) ─────── */
+  _renderZoneBand(ftpVal, ownPlan) {
+    const wrap = el("hero-zoneband");
+    if (!wrap) return;
+    const scaleMax = CONFIG.powerScaleMax;
+    if (!ftpVal || !scaleMax) { wrap.innerHTML = ""; return; }
+
+    const segments = zoneSegments(ftpVal, scaleMax)
+      .map(s => `<span class="zseg-${s.cls}" style="width:${s.pct.toFixed(2)}%"></span>`)
+      .join("");
+
+    // Pins: FTP immer; eFTP + Saisonziel nur für den eigenen Plan
+    const pins = [{ w: ftpVal, l: `FTP ${ftpVal}`, goal: false }];
+    if (ownPlan) {
+      if (CONFIG.eFTP && CONFIG.eFTP !== ftpVal) pins.push({ w: CONFIG.eFTP, l: `eFTP ${CONFIG.eFTP}`, goal: false });
+      if (CONFIG.ftpGoal) pins.push({ w: CONFIG.ftpGoal, l: `Ziel ${CONFIG.ftpGoal}`, goal: true });
+    }
+    const pinHtml = pins
+      .map(p => ({ ...p, pct: pinPercent(p.w, scaleMax) }))
+      .filter(p => p.pct != null)
+      .map(p => `<div class="pin${p.goal ? " goal" : ""}" style="left:${p.pct.toFixed(2)}%" data-l="${p.l}"></div>`)
+      .join("");
+
+    const mid = Math.round(scaleMax / 2);
+    wrap.innerHTML = `
+      <div class="zlabel">Leistungsskala · Watt @ FTP-Zonen</div>
+      <div class="band">${segments}${pinHtml}</div>
+      <div class="band-scale"><span>0 W</span><span>${mid} W</span><span>${scaleMax} W</span></div>`;
+  },
+
+  /* ── FTP-Fortschrittsring (Zonenfarben Z2 → Sweet Spot) ─────── */
+  _renderFtpRing(ftpVal, ownPlan) {
+    const wrap = el("hero-ring");
+    if (!wrap) return;
+    if (!ftpVal) { wrap.innerHTML = ""; return; }
+
+    const R = 84;
+    const CIRC = 2 * Math.PI * R;
+    let val, unit, cap, progress;
+
+    if (ownPlan) {
+      val = CONFIG.eFTP || ftpVal;
+      progress = ringProgress(val, CONFIG.ftpBase, CONFIG.ftpGoal);
+      const remaining = Math.max(0, CONFIG.ftpGoal - val);
+      unit = `VON ${CONFIG.ftpGoal} W`;
+      cap = remaining > 0 ? `Saisonziel · noch <b>${remaining} W</b>` : `Saisonziel <b>erreicht</b> 🎉`;
+    } else {
+      val = ftpVal;
+      progress = 1;
+      unit = Data.athleteFtp ? "W · RAMP-TEST" : "W · BESTES NP";
+      cap = "Read-only · <b>kein Ziel</b>";
+    }
+
+    wrap.innerHTML = `
+      <svg width="200" height="200" viewBox="0 0 200 200" role="img" aria-label="FTP-Fortschritt">
+        <circle cx="100" cy="100" r="${R}" fill="none" stroke="rgba(255,255,255,0.09)" stroke-width="13"/>
+        <circle class="ring-progress" id="ftp-ring-arc" cx="100" cy="100" r="${R}" fill="none"
+          stroke="url(#ftp-ring-grad)" stroke-width="13" stroke-linecap="round"
+          stroke-dasharray="${CIRC.toFixed(1)}" stroke-dashoffset="${CIRC.toFixed(1)}" transform="rotate(-90 100 100)"/>
+        <defs>
+          <linearGradient id="ftp-ring-grad" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0%" stop-color="#4a7fa8"/><stop offset="100%" stop-color="#e08a3c"/>
+          </linearGradient>
+        </defs>
+        <text x="100" y="97" text-anchor="middle" class="ring-val">${val}</text>
+        <text x="100" y="120" text-anchor="middle" class="ring-unit">${unit}</text>
+      </svg>
+      <div class="ring-cap">${cap}</div>`;
+
+    // Fortschritt im nächsten Frame setzen → CSS-Transition läuft an
+    const arc = el("ftp-ring-arc");
+    requestAnimationFrame(() => arc.setAttribute("stroke-dashoffset", (CIRC * (1 - progress)).toFixed(1)));
   },
 
   /* ── Metriken ───────────────────────────────────────────────── */
@@ -186,7 +305,7 @@ export const Overview = {
       { label: "Vorbereitung", start: "2026-03-17", end: "2026-03-30", color: "#c9a84c" },
       { label: "Plan 1",       start: "2026-03-31", end: "2026-06-21", color: "#4a7fa8" },
       { label: "Übergang",     start: "2026-06-22", end: "2026-06-28", color: "#c9a84c" },
-      { label: "Plan 2 →",    start: "2026-06-29", end: "2026-07-13", color: "#e07b39" },
+      { label: "Plan 2 →",    start: "2026-06-29", end: "2026-07-13", color: "#e08a3c" },
     ];
 
     phases.forEach(ph => {
@@ -205,7 +324,7 @@ export const Overview = {
     });
 
     // Plan-Divider bei Übergangsstart
-    [["2026-06-22", "#c9a84c"], ["2026-06-29", "#e07b39"]].forEach(([d, c]) => {
+    [["2026-06-22", "#c9a84c"], ["2026-06-29", "#e08a3c"]].forEach(([d, c]) => {
       const x = xOf(d);
       svg.appendChild(svgEl("line", {
         x1: x, y1: pad.t + 16, x2: x, y2: timelineY,
@@ -216,11 +335,11 @@ export const Overview = {
     // Zeitachse
     svg.appendChild(svgEl("line", {
       x1: pad.l, y1: timelineY, x2: W - pad.r - 4, y2: timelineY,
-      stroke: "#3a342c", "stroke-width": "1.5",
+      stroke: "#2a3140", "stroke-width": "1.5",
     }));
     svg.appendChild(svgEl("polygon", {
       points: `${W - pad.r},${timelineY} ${W - pad.r - 6},${timelineY - 3} ${W - pad.r - 6},${timelineY + 3}`,
-      fill: "#3a342c",
+      fill: "#2a3140",
     }));
 
     // Monats-Ticks
@@ -229,9 +348,9 @@ export const Overview = {
       if (x < pad.l || x > W - pad.r) return;
       svg.appendChild(svgEl("line", {
         x1: x, y1: timelineY, x2: x, y2: timelineY + 4,
-        stroke: "#2e2923", "stroke-width": "1",
+        stroke: "#232a37", "stroke-width": "1",
       }));
-      const t = svgEl("text", { x, y: timelineY + 22, "text-anchor": "middle", fill: "#6b6158", "font-size": "9" });
+      const t = svgEl("text", { x, y: timelineY + 22, "text-anchor": "middle", fill: "#5f6878", "font-size": "9" });
       t.textContent = l;
       svg.appendChild(t);
     });
@@ -258,7 +377,7 @@ export const Overview = {
       const x = xOf(m.dateISO);
       const isPlan2 = m.dateISO >= "2026-06-29";
       const isTransition = m.dateISO >= "2026-06-22" && m.dateISO < "2026-06-29";
-      const color = isPlan2 ? "#e07b39" : isTransition ? "#c9a84c" : "#4a7fa8";
+      const color = isPlan2 ? "#e08a3c" : isTransition ? "#c9a84c" : "#4a7fa8";
 
       // Freie Ebene
       let level = -1;

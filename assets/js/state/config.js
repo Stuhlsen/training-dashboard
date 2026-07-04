@@ -15,6 +15,9 @@ export const CONFIG = {
   /* ── FTP & Leistung ────────────────────────────────────────── */
   ftp: 193,
   eFTP: 199,
+  ftpBase: 166,        // Start-FTP der Saison (Ring-Fortschritt ab hier)
+  ftpGoal: 210,        // Saisonziel (Plan 2, W12-Retest)
+  powerScaleMax: 300,  // Skalenende des Zonen-Bands im Hero (Watt)
 
   /* ── Herzfrequenz ──────────────────────────────────────────── */
   hrMax:   201,
@@ -50,9 +53,9 @@ export const CONFIG = {
     "Phase 3":      { color: "#7c5cbf", label: "Phase 3 — Leistungsaufbau" },
     // Plan 2
     "Übergang":     { color: "#c9a84c", label: "Übergang"                  },
-    "Sweet Spot":   { color: "#e07b39", label: "Block 1 — Sweet Spot"      },
+    "Sweet Spot":   { color: "#e08a3c", label: "Block 1 — Sweet Spot"      },
     "Schwelle":     { color: "#d94f4f", label: "Block 2 — Schwelle"        },
-    "VO2max":       { color: "#b83dba", label: "Block 3 — VO₂max"         },
+    "VO2max":       { color: "#a24ad0", label: "Block 3 — VO₂max"         },
     "Taper":        { color: "#4a9a6e", label: "Taper + Retest"            },
     "Erholung":     { color: "#6b9fa8", label: "Erholungswoche"            },
   },
