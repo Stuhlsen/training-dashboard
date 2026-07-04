@@ -5,12 +5,12 @@
 # Benötigte Secrets (Settings → Secrets → Actions):
 #   NOTION_API_KEY        — Notion Integration Token
 #   NOTION_DATABASE_ID    — Plan 1 Trainingsdatenbank-ID
-#   INTERVALS_API_KEY     — intervals.icu API Key (Alex)
-#   INTERVALS_ATHLETE_ID  — intervals.icu Athlete ID (Alex)
-#   INTERVALS_API_KEY_2   — intervals.icu API Key (Siggi, optional — Vergleichsdaten)
-#   INTERVALS_ATHLETE_ID_2 — intervals.icu Athlete ID (Siggi, optional)
-#   WEATHER_LAT / WEATHER_LON     — Standort Alex (Breitengrad/Längengrad, privat)
-#   WEATHER_LAT_2 / WEATHER_LON_2 — Standort Siggi (optional, privat)
+#   INTERVALS_API_KEY     — intervals.icu API Key (Athlet 1)
+#   INTERVALS_ATHLETE_ID  — intervals.icu Athlete ID (Athlet 1)
+#   INTERVALS_API_KEY_2   — intervals.icu API Key (Athlet 2, optional — Vergleichsdaten)
+#   INTERVALS_ATHLETE_ID_2 — intervals.icu Athlete ID (Athlet 2, optional)
+#   WEATHER_LAT / WEATHER_LON     — Standort Athlet 1 (Breitengrad/Längengrad, privat)
+#   WEATHER_LAT_2 / WEATHER_LON_2 — Standort Athlet 2 (optional, privat)
 
 name: Sync Training Data
 

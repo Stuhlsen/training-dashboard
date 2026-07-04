@@ -54,4 +54,4 @@ assignees: Stuhlsen
 
 ## Getestet am
 Datum: 
-Tester: Alexander Müller
+Tester: Stuhlsen
