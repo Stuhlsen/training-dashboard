@@ -1,0 +1,13 @@
+{
+  "name": "training-dashboard",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Radsport-Trainingsdashboard — Vanilla JS auf GitHub Pages, Datensync via GitHub Actions",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "sync": "node scripts/generate-data.js",
+    "lint": "npx --yes eslint@9 assets/js scripts tests",
+    "format": "npx --yes prettier@3 --write \"assets/js/**/*.js\" \"scripts/**/*.js\" \"tests/**/*.js\""
+  }
+}
