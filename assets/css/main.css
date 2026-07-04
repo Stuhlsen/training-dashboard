@@ -1,75 +1,74 @@
 /* ============================================================
    MAIN.CSS — Design Tokens, Reset, Layout, Typography
-   12-Wochen-Trainingsplan Grundlagenausdauer
+   KONZEPT 5 — Mischung: Kachel-Anatomie (K3) × Farb-Logik (K1)
+   - Tiefes Anthrazit-Blau mit subtilen Zonen-Gradienten
+   - Weiche Glas-Kacheln (rgba + großer Radius)
+   - Trainingszonen-Skala als Farbsystem (Farbe = Bedeutung)
+   - Sora (Display-Zahlen) · IBM Plex Mono (Labels/Meta) · Inter (Text)
+   Token-NAMEN bleiben stabil — nachgelagerte CSS-Dateien und
+   Chart-JS referenzieren sie. Chart-SVG-Farben sind in
+   assets/js/ui/charts/base.js gespiegelt (CHART_THEME).
    ============================================================ */
 
-/* ── Design Tokens ─────────────────────────────────────────── */
-/*
-   KONZEPT 3 — Sports-App (Stufe 1: nur Token-Änderungen)
-   Alte Werte als Kommentar zum schnellen Rückgängigmachen:
-
-   --bg:          #141210  (alt: Braun-Schwarz)
-   --bg2:         #1a1714
-   --card:        #1e1b18  (alt: Braun-Dunkel)
-   --card-alt:    #252119
-   --card-hover:  #2a261f
-   --border:      #2e2923  (alt: Braun-Rand)
-   --border-light:#3a342c
-   --text:        #f0ebe4  (alt: Warm-Weiß → bleibt)
-   --dim:         #9a8f84  (alt: Braun-Grau)
-   --dim2:        #6b6158
-   --accent:      #e07b39  (alt: Gedämpftes Orange)
-   --accent-dim:  #2d1a0a
-   --accent-muted:#a05a28
-   --green:       #5c9e6e
-   --blue:        #4a7fa8
-   --red:         #c45c5c
-*/
 :root {
-  /* Backgrounds — Dunkelblau-Schiefer statt Braun-Schwarz */
-  --bg:        #0f172a;
-  --bg2:       #162032;
-  --card:      #1e293b;
-  --card-alt:  #253045;
-  --card-hover:#2d3a50;
+  /* Backgrounds — tiefes Anthrazit-Blau (K1) */
+  --bg:  #0b0e13;
+  --bg2: #0e1219;
 
-  /* Borders — Blau-Grau statt Braun */
-  --border:       #2d3f55;
-  --border-light: #3a4f68;
+  /* Glas-Kacheln (K3) — rgba statt Solid, Rand als heller Hauch */
+  --card:       rgba(255, 255, 255, 0.045);
+  --card-alt:   rgba(255, 255, 255, 0.07);
+  --card-hover: rgba(255, 255, 255, 0.09);
+  --card-solid: #141924;   /* für Tooltip/Dropdowns: deckend, lesbar */
 
-  /* Text — leicht kühler, bleibt gut lesbar */
-  --text:  #f1f5f9;
-  --dim:   #94a3b8;
-  --dim2:  #64748b;
+  --border:       rgba(255, 255, 255, 0.10);
+  --border-light: rgba(255, 255, 255, 0.18);
 
-  /* Accent — sattes Strava-Orange statt gedämpftes Braun-Orange */
-  --accent:       #f97316;
-  --accent-dim:   #431a05;
-  --accent-muted: #c2500a;
+  /* Text */
+  --text:  #e2e7ef;
+  --dim:   #97a1b3;
+  --dim2:  #5f6878;
 
-  /* Semantic colors — etwas lebendiger */
-  --green:      #22c55e;
-  --green-dim:  #052e16;
-  --gold:       #fbbf24;
-  --gold-dim:   #2d1f03;
-  --blue:       #38bdf8;
-  --blue-dim:   #082030;
-  --red:        #f87171;
-  --red-dim:    #2d0a0a;
+  /* Zonen-Skala als Farbsystem (K1) — Farbe trägt Bedeutung */
+  --z1:  #4a9a6e;   /* Recovery / positiv */
+  --z2:  #4a7fa8;   /* Grundlage / Plan 1 */
+  --ss:  #e08a3c;   /* Sweet Spot / Akzent / Plan 2 */
+  --thr: #d94f4f;   /* Schwelle / Warnung */
+  --vo2: #a24ad0;   /* VO2max */
 
-  /* Phase colors — bleiben strukturell gleich, etwas klarer */
-  --phase-vor: #fbbf24;
+  /* Semantische Aliasse — bestehende Komponenten nutzen diese Namen */
+  --accent:       var(--ss);
+  --accent-dim:   rgba(224, 138, 60, 0.14);
+  --accent-muted: #b06a28;
+  --green:        var(--z1);
+  --green-dim:    rgba(74, 154, 110, 0.14);
+  --gold:         #c9a84c;
+  --gold-dim:     rgba(201, 168, 76, 0.14);
+  --blue:         var(--z2);
+  --blue-dim:     rgba(74, 127, 168, 0.14);
+  --red:          var(--thr);
+  --red-dim:      rgba(217, 79, 79, 0.14);
+
+  /* Phase colors (Plan 1 — unverändert unterscheidbar) */
+  --phase-vor: #c9a84c;
   --phase-1:   #6b7280;
-  --phase-2:   #38bdf8;
-  --phase-3:   #a78bfa;
+  --phase-2:   #4a7fa8;
+  --phase-3:   #7c5cbf;
 
-  /* Sizing — unverändert */
-  --radius:    8px;
-  --radius-sm: 4px;
-  --radius-lg: 12px;
+  /* Typografie */
+  --font-disp: "Sora", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --font-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 
-  /* Transitions — unverändert */
-  --transition: 0.12s ease;
+  /* Sizing — K3: weiche, große Radien */
+  --radius:     12px;
+  --radius-sm:  8px;
+  --radius-lg:  22px;
+  --radius-xl:  28px;
+  --pill:       999px;
+
+  /* Transitions */
+  --transition: 0.15s ease;
 }
 
 /* ── Reset ──────────────────────────────────────────────────── */
@@ -82,8 +81,15 @@
 html { scroll-behavior: smooth; }
 
 body {
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  background: var(--bg);
+  font-family: var(--font-body);
+  /* K5-Bühne: Anthrazit mit Zonen-Schimmer (Z2-Blau oben rechts,
+     Sweet-Spot-Glut unten links) — subtil, fixiert */
+  background:
+    radial-gradient(90% 55% at 82% -10%, rgba(74, 127, 168, 0.16) 0%, transparent 60%),
+    radial-gradient(70% 45% at 8% 110%, rgba(224, 138, 60, 0.10) 0%, transparent 55%),
+    linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+  background-attachment: fixed;
+  background-color: var(--bg);
   color: var(--text);
   line-height: 1.6;
   font-size: 14px;
@@ -122,7 +128,7 @@ input  { font-family: inherit; }
 
 @keyframes spin { to { transform: rotate(360deg); } }
 
-#loading p { color: var(--dim); font-size: 0.85rem; }
+#loading p { color: var(--dim); font-size: 0.85rem; font-family: var(--font-mono); }
 
 #error {
   display: flex;
@@ -135,16 +141,17 @@ input  { font-family: inherit; }
   padding: 40px 20px;
 }
 
-#error h2 { color: var(--red); font-size: 1.1rem; }
+#error h2 { color: var(--red); font-size: 1.1rem; font-family: var(--font-disp); }
 #error p  { color: var(--dim); font-size: 0.85rem; max-width: 500px; }
 
 #error code {
   display: block;
   padding: 12px 16px;
-  background: var(--card);
+  background: var(--card-solid);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   font-size: 0.75rem;
+  font-family: var(--font-mono);
   color: var(--dim);
   max-width: 640px;
   text-align: left;
@@ -153,31 +160,34 @@ input  { font-family: inherit; }
 }
 
 .btn-primary {
-  padding: 8px 20px;
+  padding: 9px 22px;
   background: var(--accent);
-  color: var(--bg);
+  color: #17110a;
   border: none;
-  border-radius: var(--radius);
+  border-radius: var(--pill);
+  font-family: var(--font-disp);
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: opacity var(--transition);
+  transition: opacity var(--transition), transform var(--transition);
 }
-.btn-primary:hover { opacity: 0.85; }
+.btn-primary:hover { opacity: 0.88; }
 
-/* ── Section Headers ─────────────────────────────────────────── */
+/* ── Section Headers — Mono-Etiketten (K1) ──────────────────── */
 .section-label {
-  font-size: 0.7rem;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 500;
   color: var(--dim2);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.14em;
   border-bottom: 1px solid var(--border);
   padding-bottom: 8px;
   margin: 28px 0 14px;
 }
 
 .section-label.section-label-prominent {
+  font-family: var(--font-disp);
   font-size: 1rem;
   font-weight: 700;
   color: var(--text);
@@ -188,22 +198,22 @@ input  { font-family: inherit; }
 }
 
 /* ── Grid Utilities ──────────────────────────────────────────── */
-.grid { display: grid; gap: 10px; }
-.grid-auto  { grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); }
+.grid { display: grid; gap: 12px; }
+.grid-auto  { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .grid-2col  { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
 .grid-3col  { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
 
-/* ── Tooltip ─────────────────────────────────────────────────── */
+/* ── Tooltip — deckend für Lesbarkeit über Charts ────────────── */
 #tooltip {
   position: fixed;
-  background: var(--card-alt);
+  background: var(--card-solid);
   border: 1px solid var(--border-light);
   border-radius: var(--radius);
   padding: 8px 12px;
   font-size: 0.76rem;
   pointer-events: none;
   z-index: 1000;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
   max-width: 240px;
   line-height: 1.5;
 }
@@ -221,7 +231,9 @@ input  { font-family: inherit; }
   border-top: 1px solid var(--border);
   margin-top: 40px;
   color: var(--dim2);
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.04em;
   flex-wrap: wrap;
 }
 
@@ -229,8 +241,8 @@ input  { font-family: inherit; }
   background: transparent;
   border: 1px solid var(--border);
   color: var(--dim);
-  padding: 3px 10px;
-  border-radius: var(--radius-sm);
+  padding: 3px 12px;
+  border-radius: var(--pill);
   font-size: 0.72rem;
   transition: all var(--transition);
 }
@@ -243,4 +255,10 @@ input  { font-family: inherit; }
 @media (max-width: 640px) {
   .container { padding: 0 12px 32px; }
   .grid-2col { grid-template-columns: 1fr; }
+}
+
+/* Reduzierte Bewegung respektieren */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

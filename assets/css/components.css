@@ -3,27 +3,41 @@
    KONZEPT 3 STUFE 2 — Sports-App Styling
    ============================================================ */
 
-/* ── Hero ────────────────────────────────────────────────────── */
+/* ── Hero — Glas-Kachel mit Zonen-Band + FTP-Ring (K5) ──────── */
 .hero {
-  padding: 28px 0 22px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 24px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 26px 30px 24px;
+  margin-bottom: 18px;
+}
+@supports (backdrop-filter: blur(1px)) {
+  .hero { backdrop-filter: blur(12px); }
 }
 
 .hero-layout {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 232px;
+  align-items: center;
+  gap: 30px;
+}
+
+.hero-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 8px;
 }
 
 .hero-title h1 {
-  font-size: clamp(1.2rem, 3vw, 1.9rem);
+  font-family: var(--font-disp);
+  font-size: clamp(1.35rem, 3vw, 1.9rem);
   font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
-  line-height: 1.2;
+  line-height: 1.18;
 }
 
 .hero-title h1 em {
@@ -32,79 +46,188 @@
 }
 
 .hero-title .hero-sub {
+  font-family: var(--font-mono);
   color: var(--dim2);
-  font-size: 0.72rem;
-  margin-top: 5px;
+  font-size: 0.7rem;
+  margin-top: 6px;
   text-transform: uppercase;
   letter-spacing: 0.09em;
 }
 
 .hero-desc {
   color: var(--dim);
-  font-size: 0.78rem;
-  margin-top: 8px;
-  max-width: 480px;
-  line-height: 1.55;
+  font-size: 0.8rem;
+  margin-top: 10px;
+  max-width: 54ch;
+  line-height: 1.6;
 }
 
 .hero-desc strong {
-  color: var(--accent);
+  color: var(--text);
   font-weight: 600;
 }
 
-.hero-kpis {
+/* Session-Pill: heutige/nächste geplante Einheit */
+.session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  background: var(--blue-dim);
+  border: 1px solid rgba(74, 127, 168, 0.4);
+  border-radius: var(--pill);
+  padding: 7px 16px;
+  font-size: 0.8rem;
+  color: var(--dim);
+}
+.session-pill b { color: var(--text); font-weight: 600; }
+.session-pill .zdot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: var(--sp-color, var(--z2));
+  flex-shrink: 0;
+}
+
+/* Zonen-Band: FTP-Leistungsskala mit Pins (Signatur aus K1) */
+.zoneband { margin-top: 22px; }
+.zoneband .zlabel {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dim2);
+  margin-bottom: 12px;
+}
+.zoneband .band {
+  position: relative;
+  height: 9px;
   display: flex;
-  gap: 28px;
-  flex-wrap: wrap;
+  border-radius: var(--pill);
+}
+.zoneband .band span { height: 100%; opacity: 0.9; }
+.zoneband .band span:first-child { border-radius: var(--pill) 0 0 var(--pill); }
+.zoneband .band span:last-child  { border-radius: 0 var(--pill) var(--pill) 0; }
+.zoneband .zseg-z1  { background: var(--z1); }
+.zoneband .zseg-z2  { background: var(--z2); }
+.zoneband .zseg-ss  { background: var(--ss); }
+.zoneband .zseg-thr { background: var(--thr); }
+.zoneband .zseg-vo2 { background: var(--vo2); }
+.zoneband .zseg-rest { background: rgba(255, 255, 255, 0.08); }
+.zoneband .pin {
+  position: absolute;
+  top: -7px;
+  width: 3px;
+  height: 23px;
+  background: var(--text);
+  border-radius: 2px;
+  transform: translateX(-50%);
+}
+.zoneband .pin::after {
+  content: attr(data-l);
+  position: absolute;
+  top: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--dim);
+  white-space: nowrap;
+}
+.zoneband .pin.goal {
+  background: none;
+  border-left: 2px dashed var(--dim);
+  border-radius: 0;
+}
+.zoneband .band-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--dim2);
+  margin-top: 32px;
+}
+
+/* FTP-Fortschrittsring (K3-Anatomie, Zonenfarben) */
+.hero-ring { text-align: center; }
+.hero-ring svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
+.hero-ring .ring-val  { font-family: var(--font-disp); font-weight: 700; font-size: 38px; fill: var(--text); }
+.hero-ring .ring-unit { font-family: var(--font-mono); font-size: 11px; letter-spacing: 0.06em; fill: var(--dim); }
+.hero-ring .ring-cap  { margin-top: 8px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.06em; }
+.hero-ring .ring-cap b { color: var(--accent); font-weight: 500; }
+@media (prefers-reduced-motion: no-preference) {
+  .hero-ring .ring-progress { transition: stroke-dashoffset 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
+}
+
+/* KPI-Kacheln unter dem Hero: Glas + Zonen-Akzentkante links */
+.hero-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
 }
 
 .hero-kpi {
-  text-align: right;
   position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 15px 18px 14px 20px;
+  overflow: hidden;
+  transition: transform var(--transition), border-color var(--transition);
 }
+.hero-kpi::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 13px; bottom: 13px;
+  width: 3px;
+  border-radius: 3px;
+  background: var(--kpi-c, var(--z2));
+}
+.hero-kpi:hover { transform: translateY(-2px); border-color: var(--border-light); }
 
 .hero-kpi .kpi-value {
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
+  font-family: var(--font-disp);
+  font-size: clamp(1.45rem, 3.2vw, 1.85rem);
   font-weight: 700;
-  line-height: 1;
-  letter-spacing: -0.03em;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
 }
 
 .hero-kpi .kpi-label {
-  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
   color: var(--dim);
   text-transform: uppercase;
   letter-spacing: 0.1em;
-  font-weight: 600;
-  margin-top: 5px;
+  font-weight: 500;
+  margin-top: 6px;
 }
 
-/* ── Tabs ────────────────────────────────────────────────────── */
+/* ── Tabs — Pills (K3), aktiv = Sweet-Spot-Fill ──────────────── */
 .tabs {
   display: flex;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 24px;
+  gap: 8px;
+  margin-bottom: 22px;
   overflow-x: auto;
-  gap: 0;
+  padding-bottom: 4px;
 }
 
 .tab-btn {
-  padding: 10px 20px;
-  border: none;
-  /* Stufe 2: Unterstrich in Akzentfarbe statt 2px transparent */
-  border-bottom: 2px solid transparent;
-  background: transparent;
+  padding: 8px 18px;
+  border: 1px solid var(--border);
+  background: var(--card);
   color: var(--dim);
-  font-weight: 500;
-  font-size: 0.82rem;
+  font-family: var(--font-disp);
+  font-weight: 600;
+  font-size: 0.8rem;
   white-space: nowrap;
+  border-radius: var(--pill);
   transition: all var(--transition);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
 }
 
-.tab-btn:hover { color: var(--text); border-bottom-color: var(--border-light); }
-.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 600; }
+.tab-btn:hover { color: var(--text); border-color: var(--border-light); }
+.tab-btn.active { background: var(--accent); color: #17110a; border-color: transparent; }
+.tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── Base Card ───────────────────────────────────────────────── */
 .card {
@@ -114,51 +237,50 @@
   padding: 16px;
 }
 
-/* ── Metric Cards ────────────────────────────────────────────── */
-/*
-   Stufe 2: Akzentlinie jetzt UNTEN statt oben (Sports-App-Stil),
-   etwas mehr Padding, leichte Hover-Elevation
-*/
+/* ── Metric Cards — Glas-Kacheln mit Zonen-Akzentkante (K5) ──── */
 .metric-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 14px 16px 14px;
+  border-radius: var(--radius-lg);
+  padding: 14px 16px 14px 19px;
   position: relative;
   overflow: hidden;
-  transition: border-color var(--transition), background var(--transition);
+  transition: border-color var(--transition), transform var(--transition);
 }
 
-/* Akzentlinie unten statt oben */
+/* Akzentkante links, weich abgesetzt (statt Linie unten) */
 .metric-card::before {
   content: '';
   position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 2px;
+  left: 0; top: 12px; bottom: 12px;
+  width: 3px;
+  border-radius: 3px;
   background: var(--mc-color, var(--accent));
-  opacity: 0.6;
 }
 
 .metric-card:hover {
   border-color: var(--border-light);
-  background: var(--card-hover);
+  transform: translateY(-2px);
 }
 
 .metric-card .mc-value {
-  font-size: 1.55rem;
+  font-family: var(--font-disp);
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--mc-color, var(--accent));
   letter-spacing: -0.02em;
   line-height: 1.1;
+  font-variant-numeric: tabular-nums;
 }
 
 .metric-card .mc-label {
-  font-size: 0.65rem;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
   color: var(--dim2);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-top: 5px;
-  font-weight: 600;
+  letter-spacing: 0.1em;
+  margin-top: 6px;
+  font-weight: 500;
 }
 
 .metric-card .mc-desc {
@@ -464,14 +586,15 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.65rem 1rem;
+  padding: 0.7rem 1.1rem;
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   cursor: pointer;
   user-select: none;
   transition: background var(--transition), border-color var(--transition);
 }
+.chart-group-header h2 { font-family: var(--font-disp); }
 .chart-group-header:hover {
   background: var(--card-hover);
   border-color: var(--border-light);
@@ -504,24 +627,32 @@
   gap: 0;
   margin-bottom: 1.25rem;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  background: var(--card);
+  border-radius: var(--pill);
   overflow: hidden;
   width: fit-content;
+  padding: 3px;
 }
 .plan-btn {
-  padding: 0.45rem 1.1rem;
+  padding: 0.4rem 1.1rem;
   background: transparent;
   border: none;
+  border-radius: var(--pill);
   color: var(--dim);
-  font-size: 0.82rem;
-  font-weight: 500;
-  transition: all var(--transition);
-  border-right: 1px solid var(--border);
-}
-.plan-btn:last-child { border-right: none; }
-.plan-btn:hover { background: var(--card-hover); color: var(--text); }
-.plan-btn.active {
-  background: var(--accent-dim);
-  color: var(--accent);
+  font-family: var(--font-disp);
+  font-size: 0.8rem;
   font-weight: 600;
+  transition: all var(--transition);
+}
+.plan-btn:hover { color: var(--text); }
+.plan-btn.active {
+  background: var(--accent);
+  color: #17110a;
+}
+
+/* ── K5 Responsive: Hero stapelt auf Mobil ───────────────────── */
+@media (max-width: 840px) {
+  .hero-layout { grid-template-columns: 1fr; }
+  .hero-ring { order: -1; }
+  .zoneband .pin::after { font-size: 0.58rem; }
 }

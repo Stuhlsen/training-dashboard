@@ -6,8 +6,8 @@
 .chart-box {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 16px;
+  border-radius: var(--radius-lg);
+  padding: 18px;
   margin: 10px 0;
   overflow: visible;
   /* Stufe 3: leichter Hover-Effekt */
@@ -28,9 +28,9 @@
 }
 
 /* Stufe 3: Titel etwas schlanker, Note dezenter */
-.chart-title { font-size: 0.86rem; font-weight: 600; color: var(--text); letter-spacing: -0.01em; }
+.chart-title { font-family: var(--font-disp); font-size: 0.88rem; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
 .chart-title.heatmap-title { font-size: 1.05rem; font-weight: 700; }
-.chart-note  { font-size: 0.7rem; color: var(--dim2); letter-spacing: 0.02em; }
+.chart-note  { font-family: var(--font-mono); font-size: 0.66rem; color: var(--dim2); letter-spacing: 0.05em; text-transform: uppercase; }
 
 svg.chart { width: 100%; height: auto; display: block; }
 svg.chart.chart-wide { width: auto; max-width: none; }
@@ -47,7 +47,9 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
   color: var(--dim);
 }
 
@@ -122,11 +124,11 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   display: flex;
   gap: 0;
   /* Stufe 3: Abgerundeter Pill-Stil statt eckig */
-  background: var(--bg2);
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 20px;
+  border-radius: var(--pill);
   overflow: hidden;
-  padding: 2px;
+  padding: 3px;
 }
 
 .unit-btn {
@@ -138,15 +140,14 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   font-weight: 500;
   cursor: pointer;
   transition: all 0.15s;
-  border-radius: 16px;
+  border-radius: var(--pill);
 }
 
 .unit-btn:hover { color: var(--text); }
 
 .unit-btn.active {
-  /* Stufe 3: Solid fill statt nur Farbe */
   background: var(--accent);
-  color: #fff;
+  color: #17110a;
   font-weight: 600;
 }
 

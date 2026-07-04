@@ -6,34 +6,56 @@
   <title>Radsport · Trainingsdashboard</title>
   <meta property="og:title" content="Radsport · Trainingsdashboard">
   <meta property="og:description" content="Persönliches Radsport-Trainingsdashboard — Leistung, HRV, Schlaf und Wetterdaten aus intervals.icu und Apple Health.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/css/main.css">
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/charts.css">
   <link rel="stylesheet" href="assets/css/table.css">
   <link rel="stylesheet" href="assets/css/planned.css">
   <style>
-    .athlete-toggle {
+    /* Kopfzeile: Marke + Athleten-Pillengruppe (K5) */
+    .topbar {
       display: flex;
-      gap: 8px;
-      margin-bottom: 12px;
+      align-items: center;
+      gap: 12px;
+      padding: 20px 0 14px;
     }
-    .athlete-btn {
-      font-size: 0.78rem;
-      font-weight: 600;
-      padding: 6px 16px;
+    .topbar .brand {
+      font-family: var(--font-disp);
+      font-weight: 700;
+      font-size: 1.05rem;
+      letter-spacing: -0.01em;
+    }
+    .topbar .brand span { color: var(--accent); }
+    .athlete-toggle {
+      margin-left: auto;
+      display: flex;
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: var(--radius-sm);
+      border-radius: var(--pill);
+      padding: 3px;
+    }
+    .athlete-btn {
+      font-family: var(--font-disp);
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 6px 16px;
+      background: transparent;
+      border: none;
+      border-radius: var(--pill);
       color: var(--dim);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all var(--transition);
     }
-    .athlete-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .athlete-btn:hover { color: var(--text); }
     .athlete-btn.active {
-      background: var(--accent-dim);
-      border-color: var(--accent);
-      color: var(--accent);
+      background: var(--blue);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(74, 127, 168, 0.35);
     }
+    .athlete-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .tab-btn.hidden { display: none; }
   </style>
 </head>
@@ -57,20 +79,29 @@
   <!-- App -->
   <div id="app" class="hidden">
 
-    <!-- Athleten-Toggle -->
-    <div class="athlete-toggle" id="athlete-toggle"></div>
+    <!-- Kopfzeile: Marke + Athleten-Toggle -->
+    <div class="topbar">
+      <div class="brand">Training<span>·</span>Dashboard</div>
+      <div class="athlete-toggle" id="athlete-toggle"></div>
+    </div>
 
-    <!-- Hero -->
+    <!-- Hero: Wochenstatus + Zonen-Band + FTP-Ring (K5-Signaturen) -->
     <header class="hero">
       <div class="hero-layout">
         <div class="hero-title">
+          <div class="hero-eyebrow" id="hero-eyebrow"></div>
           <h1>Radsport<br><em>Trainingsdashboard</em></h1>
           <p class="hero-sub" id="hero-sub"></p>
           <p class="hero-desc" id="hero-desc">Dieses Dashboard dokumentiert einen strukturierten Radsport-Trainingsplan über zwei Phasen. <strong>Plan 1</strong> umfasste 12 Wochen Basisaufbau (März–Juni 2026) mit dem Ziel, aerobe Fitness und Grundlagenausdauer aufzubauen — FTP von 166W auf 193W gesteigert. <strong>Plan 2</strong> läuft seit Juni 2026 mit pyramidaler Periodisierung über Sweet Spot, Schwelle und VO2max-Blöcke, Ziel: FTP ≥210W bis September 2026. Alle Daten kommen automatisch aus intervals.icu und Apple Health.</p>
+          <div id="hero-session"></div>
+          <div class="zoneband" id="hero-zoneband"></div>
         </div>
-        <div class="hero-kpis" id="hero-kpis"></div>
+        <div class="hero-ring" id="hero-ring"></div>
       </div>
     </header>
+
+    <!-- KPI-Kacheln -->
+    <div class="hero-kpis" id="hero-kpis"></div>
 
     <!-- Tabs -->
     <nav class="tabs" id="tabs">
