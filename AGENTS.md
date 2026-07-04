@@ -6,34 +6,42 @@ Live: stuhlsen.github.io/training-dashboard
 
 ## Stack
 
-Vanilla HTML/CSS/JS · SVG-Charts (kein Framework, kein Build-Step)
-Node.js für Datensync · GitHub Actions (alle 6h automatisch)
-Keine automatisierten Tests vorhanden — Verifikation manuell (siehe Workflow).
+Vanilla HTML/CSS/JS als **native ES-Module** · SVG-Charts (kein Framework, kein Build-Step, kein Bundler)
+Node.js ≥ 20 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
+`package.json` existiert NUR für `"type": "module"` und die npm-Scripts — es gibt
+keine Dependencies und kein `npm install`. Tests laufen mit dem eingebauten `node:test`.
 
 ## Befehle
 
 ```powershell
-# Lokaler Dev-Server (Dashboard im Browser testen)
+# Lokaler Dev-Server (Dashboard im Browser testen — ES-Module brauchen HTTP, kein file://)
 npx serve .
 
+# Unit-Tests (eingebauter Node-Test-Runner, kein Install nötig)
+npm test
+
 # Datensync lokal ausführen (braucht .env mit Secrets, siehe unten)
-node scripts/generate-data.js
+npm run sync
 
 # Syntax-Check einer JS-Datei — PFLICHT vor jedem Commit
-node -c assets/js/<datei>.js
+node -c assets/js/<pfad>/<datei>.js
+
+# Lint + Formatierung (lädt eslint/prettier on-the-fly via npx, nichts wird installiert)
+npm run lint
+npm run format
 ```
 
-Kein `npm install`, kein Build-Step (Vanilla JS).
-Lokale `.env` (nicht committen, steht in .gitignore) für `generate-data.js`:
+Lokale `.env` (nicht committen, steht in .gitignore) für `npm run sync`:
 `NOTION_API_KEY`, `NOTION_DATABASE_ID`, `INTERVALS_API_KEY`, `INTERVALS_ATHLETE_ID`,
 `WEATHER_LAT`, `WEATHER_LON` (+ optional die `_2`-Varianten).
 
 ## Workflow vor jedem Commit
 
 1. Bei JS-Änderung: `node -c <datei>` — muss ohne Fehler durchlaufen
-2. Betroffene Seite lokal prüfen (`npx serve .`, Browser-Hard-Refresh bei CSS)
-3. Commit mit Konvention (siehe unten)
-4. `git sync`
+2. `npm test` — alle Tests müssen grün sein (CI prüft das ebenfalls)
+3. Betroffene Seite lokal prüfen (`npx serve .`, Browser-Hard-Refresh bei CSS)
+4. Commit mit Konvention (siehe unten)
+5. `git sync`
 
 `data/*.json` NICHT manuell committen — die werden von der Action regeneriert;
 manuelle Commits erzeugen Konflikte mit dem Auto-Commit.
@@ -46,70 +54,110 @@ Prefix + knappe deutsche Beschreibung:
 - `design:` — reine CSS-/Styling-Änderung
 - `docs:`   — Dokumentation (README, AGENTS.md)
 - `chore:`  — Wartung, Config, Workflow
+- `test:`   — Tests hinzugefügt/geändert
 
-## Boot / Ladereihenfolge
+## Boot / Modul-Architektur
 
-- Kein Build, keine ES-Module. Alle JS-Dateien werden als klassische
-  `<script>`-Tags in `index.html` geladen, in fester Reihenfolge.
-- Globale Objekte zur Laufzeit: `Data`, `CONFIG`, `Charts`, `App`.
-- Reihenfolge in `index.html` beachten: erst `config.js` + `data.js`,
-  dann die Render-Module (charts/overview/table/planned/analysis),
-  zuletzt `app.js` (Einstiegspunkt).
-- **Neue JS-Datei anlegen → Script-Tag an passender Stelle in `index.html` ergänzen**,
-  sonst ist das globale Objekt zur Laufzeit nicht verfügbar.
+- **Ein einziges** `<script type="module" src="assets/js/app.js">` in `index.html`.
+  Die Ladereihenfolge ergibt sich aus dem Import-Graph — kein Script-Tag-Management.
+- **Neue JS-Datei anlegen → per `import` einbinden**, NICHT in index.html eintragen.
+- Keine Inline-`onclick`-Handler in index.html (mit Modulen nicht mehr erreichbar) —
+  Event-Handler werden in `ui/nav.js` bzw. den jeweiligen UI-Modulen registriert.
+  Einzige Ausnahme: der Reload-Button im Error-Screen (`location.reload()`).
+- **Schichtenregel:**
+  - `core/` — reine Berechnung. Greift NIEMALS auf `document`, `window`,
+    `localStorage` oder `fetch` zu. Alles hier ist mit `node:test` testbar.
+  - `state/` — Konfiguration + Daten-Store (lädt JSON, hält Zustand).
+  - `ui/` — DOM, SVG-Rendering, Event-Handler, GitHub-/intervals.icu-Schreibzugriffe.
+  - Importrichtung: `ui → state → core`. `core` importiert nichts aus `state`/`ui`.
+- Typen via **JSDoc + jsconfig.json (`checkJs`)** — kein TypeScript, keine Kompilierung.
+  Zentrale Typdefinitionen in `assets/js/types.js` (Ride, WellnessDay, Result, …).
+
+## Fehlerbehandlung / Result-Konvention
+
+Fehlbare Operationen (Laden, GitHub-Write, intervals.icu-Push) geben einheitlich
+`{ ok: true, ... }` oder `{ ok: false, error: { code, message } }` zurück
+(Typ `Result` in types.js; Codes: HTTP, NETWORK, TOKEN_INVALID, SCHEMA, NO_DATA, UNKNOWN).
+Aufrufstellen prüfen `result.ok` und zeigen `result.error?.message`.
+Logging läuft über `ui/log.js` (Frontend, Prefix `[dashboard]`) bzw.
+`scripts/lib/log.js` (Sync — zählt Warnungen/Fehler, bestimmt den Exit-Code).
+Keine rohen `console.*`-Aufrufe in neuen Dateien.
+
+## Schema-Validierung
+
+`core/validate.js` prüft geladene `rides.json`-Payloads zur Laufzeit (Stichprobe).
+**Neues Feld im Datenformat → an DREI Stellen ergänzen:**
+1. `scripts/` (Erzeugung), 2. `core/validate.js` (Schema), 3. `types.js` (JSDoc-Typ).
+Abweichungen werden als Warnung geloggt; fehlende/leere `rides` sind fatal.
 
 ## Dateistruktur
 
 ```
-index.html          → Einstiegs-HTML. Hält ALLE Element-IDs, die das JS ansteuert
-                      (Chart-Explainer, Notes, Legenden, Titel, Hero, Tabs) sowie
-                      die Script-Ladereihenfolge. Neue IDs/Charts hier eintragen.
+index.html            → Einstiegs-HTML. Hält ALLE Element-IDs, die das JS ansteuert,
+                        und das eine Module-Script-Tag. Neue IDs/Charts hier eintragen.
 
-assets/css/
-  main.css          → Design-Tokens, Reset, Layout
-  components.css    → Hero, Tabs, Cards, Metric-Cards, Tags
-  charts.css        → Chart-Boxen, Unit-Toggle, Scrollbalken, Plan-Compare-Slider
-  table.css         → Fahrtenbuch, Filter, Suche, Tabelle
-  planned.css       → Planungs-Tab, Session-Karten, Workout-Badges
+assets/css/           → main / components / charts / table / planned (unverändert)
 
 assets/js/
-  app.js            → Einstiegspunkt, Tab-Navigation, Athleten-Toggle, renderAll(),
-                      updateChartExplainers(), initPeriodToggles(), monthlyData()
-  data.js           → Datenladen, byDate(), weekly(), _weeklyByCalendar(),
-                      ftpValue(), athleteFtp, forecast
-  config.js         → Athleten-Config, historicalVolume, weekIndex()
-  charts.js         → Alle SVG-Chart-Render-Funktionen
-  overview.js       → Übersicht-Tab, Hero, KPIs, Meilensteine
-  table.js          → Fahrtenbuch-Render, COLS-Getter, Subjective GitHub-Write
-  planned.js        → Planungs-Tab, Forecast aus Data.forecast, Workout-Push
-  analysis.js       → Analyse-Tab
+  app.js              → Einstiegspunkt: Init, Athleten-Toggle, renderAll(),
+                        updateChartExplainers(), Period-Toggles
+  types.js            → Zentrale JSDoc-Typdefinitionen (kein Laufzeit-Code)
+  core/               → REINE Berechnung, kein DOM — vollständig testbar
+    format.js         → fmt/fmtInt/fmtDate/fmtDuration, weatherIcon, windDir, …
+    stats.js          → sum/avg/max/min, linearTrend (Regression)
+    aggregate.js      → isoWeekKey, weeklyFromPlanWeeks, weeklyByCalendar, monthlyFromRides
+    pmc.js            → interpolateCtl, tsbOf
+    powercurve.js     → extractPowerCurve (beide intervals.icu-Formate), buildCurveData
+    normalize.js      → normalizeRide/normalizeFeel/normalizeWellness
+    validate.js       → Laufzeit-Schema-Prüfung für rides.json
+  state/
+    config.js         → CONFIG: Athleten, Phasen, FTP, historicalVolume, weekIndex()
+    static-rides.js   → Fallback-Daten für lokale Entwicklung
+    data.js           → Data-Store: load()/switchAthlete()/byDate()/weekly()/ftpValue()
+  ui/
+    log.js            → Frontend-Logger
+    dom.js            → el/els/svgEl, Tooltip
+    nav.js            → Tab-Navigation, Chart-Gruppen-Toggle (ersetzt Inline-onclick)
+    github-client.js  → Token-Handling + GET-SHA/PUT (Contents-API), fetchRawJson
+    charts/           → base (Grid/Labels/Scroll) · training · pmc · power · wellness
+                        index.js bündelt alles als Charts.renderXxx-Fassade
+    overview.js       → Übersicht-Tab, Hero, KPIs, Meilensteine
+    table.js          → Fahrtenbuch + Subjective (Befinden-Write via github-client)
+    planned.js        → Planungs-Tab + Adjustments (Verschieben/Ausfall) + Workout-Push
+    analysis.js       → Analyse-Tab
 
 scripts/
-  generate-data.js  → Node.js, läuft in GitHub Action:
-                      Notion (Plan 1) + intervals.icu (Plan 2 + Athlete 2)
-                      + Open-Meteo Wetter → data/rides.json + data/rides-2.json
+  generate-data.js    → Dünner Orchestrator (läuft in der Action + `npm run sync`)
+  lib/
+    env.js            → .env-Loader, ENV-Objekt, requireEnv()
+    log.js            → Logger mit Zählern + summary() → Exit-Code
+    http.js           → fetchJson mit Timeout (20s) und einem Retry
+    plan2.js          → PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2WeekPhase
+    notion.js         → Plan-1-Abfrage + Property-Getter + parseFtpFromNotes
+    intervals.js      → Activities/Wellness/PowerCurves (Athlet 1 + 2)
+    weather.js        → Open-Meteo: Archiv, Forecast, 16-Tage-Planungs-Forecast
+    map-activity.js   → inferTypFromIF, mapActivity (Plan 2), mapActivity2 (Athlet 2)
+    output.js         → subjective/adjustments laden, rides.json/rides-2.json schreiben
+
+tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test)
 
 .github/workflows/
-  sync-data.yml     → Cron alle 6h, generiert JSON, committed, deployt Pages
-
-data/
-  rides.json        → Athlete 1 (generiert, NICHT manuell bearbeiten/committen)
-  rides-2.json      → Athlete 2 (generiert, NICHT manuell bearbeiten/committen)
-  subjective.json   → Befinden Athlete 1 Plan 2 (via Dashboard geschrieben)
-  adjustments.json  → Session-Verschiebungen/Ausfälle (via Dashboard geschrieben)
+  sync-data.yml       → Cron alle 6h, generiert JSON, committed, deployt Pages
+  ci.yml              → Push/PR: npm test + ESLint (committet nichts)
 ```
 
 ## Athleten
 
-- **Athlete 1** — eigener Trainingsplan (Plan 1 + Plan 2), Primärnutzer
-  FTP: 193W (hardcodiert bis W12 Ramp Test in `generate-data.js`)
-- **Athlete 2** — Vergleichsdaten read-only, kein eigener Plan, kein Befinden
-  FTP: 265W (hardcodiert, letzter Ramp Test in `generate-data.js`)
+- **Athlet 1** (`athlete1`) — eigener Trainingsplan (Plan 1 + Plan 2), Primärnutzer
+  FTP: 193W (CONFIG.ftp; DEFAULT_FTP in scripts/lib/map-activity.js)
+- **Athlet 2** (`athlete2`) — Vergleichsdaten read-only, kein eigener Plan, kein Befinden
+  FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test)
 
-Athleten-Toggle persistent via `localStorage("active_athlete")`.
-Bei Athlete 2: Planungs-Tab ausgeblendet, keine Befinden-Spalte, keine Ziellinien.
-Interne IDs in `config.js` `athletes[]`. (Offen: falls IDs noch echte Namen sind,
-auf `athlete1`/`athlete2` umstellen — betrifft config.js, app.js, localStorage-Keys.)
+Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen "Athlet 1"/"Athlet 2"
+(anpassbar in `state/config.js` → `athletes[].name`). Athleten-Toggle persistent via
+`localStorage("active_athlete")`; unbekannte/alte IDs werden beim Start verworfen
+(Fallback auf `CONFIG.primaryAthleteId`).
+Bei Athlet 2: Planungs-Tab ausgeblendet, keine Befinden-Spalte, keine Ziellinien.
 
 ## Trainingspläne
 
@@ -126,7 +174,7 @@ Plan-2-Struktur (12 Wochen, pyramidale Periodisierung):
 
 Wochenstruktur: Di Gruppenfahrt · Do Strukturierte Intervalle · Sa Lange Z2
 
-## Equipment (Athlete 1)
+## Equipment (Athlet 1)
 
 Cube Nuroad Race Gravel · Favero Assioma PRO MX-1 Power Meter · Wahoo ELEMNT Roam v3
 
@@ -146,7 +194,8 @@ CSS-Variablen in `assets/css/main.css`:
 - Standortkoordinaten NIEMALS im Code, JSON oder Kommentaren
 - Ausschließlich über GitHub Secrets: WEATHER_LAT, WEATHER_LON, WEATHER_LAT_2, WEATHER_LON_2
 - Wetter-Forecast wird serverseitig in der Action berechnet → nur Wetterwerte in rides.json
-- Keine echten Namen von Athleten in Code, Kommentaren, Config oder Commit-Messages
+- Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder Commit-Messages —
+  intern `athlete1`/`athlete2`, in der UI "Athlet 1"/"Athlet 2"
 
 **Git-Workflow:**
 ```powershell
@@ -156,18 +205,21 @@ git sync   # Alias für: git fetch origin && git push --force-with-lease origin 
 ```
 - PowerShell: KEIN `&&` zwischen Befehlen — jeweils eigene Zeile
 - Bei Konflikten mit Action-Auto-Commits: `git fetch origin` dann `git push --force-with-lease origin main`
+- Zeilenenden: `.gitattributes` erzwingt LF im Repo (`* text=auto eol=lf`)
 
 **JavaScript:**
-- `Data.activeAthleteId` — aktuell aktiver Athlet (ID aus config.js)
-- `hasOwnPlan()` — true wenn Athlete 1 aktiv (prüft ob rides eine week haben)
-- `Data.ftpValue()` — liest aus athleteFtp (Athlete 2) oder CONFIG.ftp (Athlete 1)
+- `Data.activeAthleteId` — aktuell aktiver Athlet (ID aus state/config.js)
+- `hasOwnPlan()` — true wenn Athlet 1 aktiv (prüft ob rides eine week haben)
+- `Data.ftpValue()` — liest aus athleteFtp (Athlet 2) oder CONFIG.ftp (Athlet 1)
 - `Data.forecast` — 16-Tage-Forecast, serverseitig befüllt, kein API-Call im Frontend
-- `Data.weekly()` — Plan-Wochen bei Athlete 1, Kalenderwochen-Fallback bei Athlete 2
+- `Data.weekly()` — Plan-Wochen bei Athlet 1, Kalenderwochen-Fallback bei Athlet 2
 - `updateChartExplainers(ownPlan, ftp)` — alle Chart-Texte/Legenden athletenabhängig
+- Berechnung gehört nach `core/` (mit Test), Rendering nach `ui/` — nicht mischen
 
-**Typ-Inferenz (generate-data.js):**
+**Typ-Inferenz (scripts/lib/map-activity.js):**
 `inferTypFromIF(np, min, ftp)` — NP÷FTP = IF, dann Dauer als zweites Kriterium:
 IF < 0.75 + ≥120min → "Z2 Lang", ≥60min → "Z2 Dauer", <60min → "Z1 Recovery"
+Grenzwerte sind in `tests/typ-inferenz.test.js` festgeschrieben.
 
 ## GitHub Secrets (vorhanden, nie im Code)
 
@@ -187,11 +239,18 @@ WEATHER_LAT_2           WEATHER_LON_2
   in `localStorage("period_<athleteId>_<chartId>")`
 - Fahrten am selben Datum werden nach `startTime` (start_date_local) sortiert;
   Plan-1-Fahrten (Notion) haben kein startTime → dort kein Tiebreaker
-- HRV/Ruhepuls bei Athlete 2 direkt aus `Data.wellness` (alle Tage),
+- HRV/Ruhepuls bei Athlet 2 direkt aus `Data.wellness` (alle Tage),
   nicht aus Ride-Objekten (nur wenige Fahrten mit Distanz erfasst)
-- Athlete 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
+- Athlet 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
   distanzlose/unklassifizierte Aktivitäten werden bewusst ausgeschlossen
 - Race Condition möglich: Frontend committed direkt (Befinden-Speichern in
-  table.js) während der Sync-Workflow läuft → Push kann mit
+  ui/table.js) während der Sync-Workflow läuft → Push kann mit
   `non-fast-forward` fehlschlagen. sync-data.yml pusht daher mit
   Rebase-Retry-Schleife (3 Versuche, siehe Schritt "Commit data if changed").
+- `ui/table.js` ↔ `ui/planned.js` importieren sich gegenseitig (Table.highlightByDate
+  bzw. Planned.scrollToDate/Subjective). Das ist mit ES-Modulen unproblematisch,
+  solange die Nutzung in Funktionen/Handlern bleibt — nichts davon auf Modul-Top-Level
+  aufrufen.
+- Entfernter Alt-Code (bewusst, bei Bedarf via Git-History): `Tabs`-Objekt (utils.js),
+  `renderHRV`/`renderRHF`-Legacy-Stubs (charts.js), `queryNotionPlan1_compat`
+  (generate-data.js) — alle drei waren unreferenziert.
