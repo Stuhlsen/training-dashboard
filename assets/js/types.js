@@ -54,6 +54,12 @@
  * @property {number|null} [avgSleepingHR]
  * @property {number|null} [restingHR]
  * @property {number|null} [hrv]
+ * @property {number|null} [weight]          kg (Apple Health → intervals.icu)
+ * @property {number|null} [bodyFat]         %
+ * @property {number|null} [kcalConsumed]    aufgenommene Kalorien
+ * @property {number|null} [hydration]       Hydrations-Score (intervals.icu)
+ * @property {number|null} [hydrationVolume] ml
+ * @property {number|null} [eftp]            eFTP (Ride) aus Wellness-sportInfo
  */
 
 /**

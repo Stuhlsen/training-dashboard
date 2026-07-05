@@ -20,6 +20,7 @@ import { queryNotionPlan1 } from "./lib/notion.js";
 import { RIDE_TYPES, getIntervalsActivities, getIntervalsWellness, getIntervalsPowerCurves } from "./lib/intervals.js";
 import { getHistoricalWeather, getRecentWeather, getPlanningForecast, buildWeatherMap, getWeatherForRide } from "./lib/weather.js";
 import { mapActivity, mapActivity2 } from "./lib/map-activity.js";
+import { mapWellnessList, latestWeight, logWellnessCoverage } from "./lib/wellness.js";
 import { loadSubjective, loadAdjustments, writeOutput, OUT_FILE, OUT_FILE_2 } from "./lib/output.js";
 
 requireEnv(["NOTION_KEY", "DB_ID"]);
@@ -76,29 +77,22 @@ async function main() {
     plan2 = activities.map(act => mapActivity(act, wellness, subjective, weatherMap));
     log.info(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
 
-    // Wellness-Einträge als eigenständige Liste (für Schlaf-Chart)
-    wellnessList = Object.entries(wellness)
-      .filter(([, w]) => w.sleepSecs || w.avgSleepingHR)
-      .map(([date, w]) => ({
-        date,
-        sleepHours: w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null,
-        avgSleepingHR: w.avgSleepingHR || null,
-        restingHR: w.restingHR || null,
-        hrv: w.hrvSDNN || null,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    // Wellness-Einträge als eigenständige Liste (Schlaf-Chart, Readiness,
+    // Regeneration & Körper) — Mapping zentral in lib/wellness.js
+    wellnessList = mapWellnessList(wellness);
     // Letztes bekanntes Gewicht aus Wellness (Apple Health → intervals.icu)
-    const weightEntries = Object.entries(wellness)
-      .filter(([, w]) => w.weight && w.weight > 0)
-      .sort((a, b) => b[0].localeCompare(a[0])); // neuestes zuerst
-    if (weightEntries.length > 0) {
-      athleteWeight = Math.round(weightEntries[0][1].weight * 10) / 10;
-      log.info(`✅ Gewicht: ${athleteWeight} kg (Stand: ${weightEntries[0][0]})`);
+    const latest = latestWeight(wellness);
+    if (latest) {
+      athleteWeight = latest.weight;
+      log.info(`✅ Gewicht: ${athleteWeight} kg (Stand: ${latest.date})`);
     } else {
       log.warn("Kein Gewicht in Wellness-Daten gefunden");
     }
 
-    log.info(`✅ Wellness: ${wellnessList.length} Tage mit Schlafdaten`);
+    log.info(`✅ Wellness: ${wellnessList.length} Tage mit Daten`);
+    // Verifikationslauf: reale Feldabdeckung loggen (Basis für die
+    // datengetriebene Sichtbarkeit der "Regeneration & Körper"-Sektion)
+    logWellnessCoverage(wellnessList, "Athlet 1");
   } else {
     log.info("ℹ️  Kein intervals.icu Key — Plan 2 wird übersprungen");
   }
@@ -190,22 +184,11 @@ async function main() {
       .map(act => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2))
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    const wellnessList2 = Object.entries(wellness2)
-      .filter(([, w]) => w.sleepSecs || w.avgSleepingHR)
-      .map(([date, w]) => ({
-        date,
-        sleepHours: w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null,
-        avgSleepingHR: w.avgSleepingHR || null,
-        restingHR: w.restingHR || null,
-        hrv: w.hrvSDNN || null,
-      }))
-      .sort((a, b) => a.date.localeCompare(b.date));
+    const wellnessList2 = mapWellnessList(wellness2);
+    logWellnessCoverage(wellnessList2, ATHLETE_2_NAME);
 
-    const weightEntries2 = Object.entries(wellness2)
-      .filter(([, w]) => w.weight && w.weight > 0)
-      .sort((a, b) => b[0].localeCompare(a[0]));
-    const athleteWeight2 = weightEntries2.length > 0
-      ? Math.round(weightEntries2[0][1].weight * 10) / 10 : null;
+    const latest2 = latestWeight(wellness2);
+    const athleteWeight2 = latest2 ? latest2.weight : null;
 
     const output2 = {
       athleteName: ATHLETE_2_NAME,

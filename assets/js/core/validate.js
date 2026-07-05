@@ -72,6 +72,14 @@ export const WELLNESS_SCHEMA = {
   avgSleepingHR: "number?",
   restingHR: "number?",
   hrv: "number?",
+  // Regeneration & Körper (Sync-Erweiterung, siehe scripts/lib/wellness.js)
+  weight: "number?",
+  bodyFat: "number?",
+  kcalConsumed: "number?",
+  hydration: "number?",
+  hydrationVolume: "number?",
+  // eFTP aus Wellness-sportInfo (Tageswert für die FTP-Prognose)
+  eftp: "number?",
 };
 
 const PAYLOAD_SCHEMA = {
