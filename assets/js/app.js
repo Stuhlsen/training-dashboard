@@ -6,7 +6,16 @@
    Script-Tag-Management mehr in index.html nötig.
    ============================================================ */
 
-import { monthlyFromRides } from "./core/aggregate.js";
+import { isoWeekKey, monthlyFromRides } from "./core/aggregate.js";
+import { cadenceCoach } from "./core/cadence.js";
+import { yearCalendar } from "./core/consistency.js";
+import { efficiencyTrend } from "./core/efficiency.js";
+import { eftpHistory, forecastFtp } from "./core/ftp-forecast.js";
+import { buildLoadGuard } from "./core/loadguard.js";
+import { assessReadiness } from "./core/readiness.js";
+import { recordProgression } from "./core/records.js";
+import { buildWeekReview } from "./core/weekreview.js";
+import { weeklyZoneShares } from "./core/zones.js";
 import { CONFIG } from "./state/config.js";
 import { Data } from "./state/data.js";
 import { el, Tooltip } from "./ui/dom.js";
@@ -16,6 +25,7 @@ import { Overview } from "./ui/overview.js";
 import { Table } from "./ui/table.js";
 import { Planned } from "./ui/planned.js";
 import { Analysis } from "./ui/analysis.js";
+import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
 function initAthleteToggle() {
@@ -60,10 +70,10 @@ function updateChartExplainers(ownPlan, ftp) {
   const set = (id, html) => { const e = el(id); if (e) e.innerHTML = html; };
 
   if (ownPlan) {
-    set("explainer-heatmap", `Anzahl der Fahrten und Gesamtkilometer pro Wochentag über den gesamten Trainingszeitraum. Farbe: grün = wenig aktiv · gelb = moderat · orange = aktiv · rot = sehr aktiv. Samstag ist mit Abstand der aktivste Tag — dort liegen die langen Z2-Einheiten.`);
+
     set("explainer-pmc", `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.`);
-    set("explainer-trimp", `TRIMP (Training Impulse) berechnet die Trainingsbelastung aus Dauer und Herzfrequenz-Intensität. Farbe: grün = &lt;400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = &gt;900 (sehr hoch). Erholungswochen sind bewusst grün — das ist gewollt und positiv.`);
-    set("explainer-power-curve", `Die Power Curve zeigt deine beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung). Die goldene Linie markiert deine FTP (${ftp}W). Der rot eingefärbte Bereich über der FTP-Linie ist deine anaerobe Reserve — je größer dieser Bereich, desto mehr Leistung kannst du kurzfristig über deine Dauerschwelle bringen. Mit dem W/kg-Toggle siehst du die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu).`);
+    set("explainer-trimp", `Balken: TRIMP-Wochenlast (grün &lt;400 · gelb · orange · rot &gt;900). Weiße Linie: CTL-Anstieg pro Woche — der grüne Korridor (+3 bis +6) ist der sichere Aufbaubereich, ab +8 steigt das Überlastungsrisiko deutlich. ⚠ markiert Foster-Monotonie ≥ 2: gleiche Last jeden Tag ist riskanter als gemischte Tage. Erholungswochen sollen grün und ohne ⚠ sein.`);
+    set("explainer-power-curve", `Beste gemessene Leistung je Zeitintervall — von 1 Sekunde (Sprint) bis 60 Minuten (Ausdauer). Gold: FTP (${ftp}W); der rote Bereich darüber ist die anaerobe Reserve. Der Blöcke-Toggle legt die Kurven der Trainingsblöcke übereinander: so siehst du, WO jeder Block gewirkt hat — Sweet Spot sollte 20–60 min heben, VO2max die 1–8 min. W/kg nutzt das Gewicht aus Apple Health.`);
     set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`);
     set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`);
 
@@ -81,10 +91,10 @@ function updateChartExplainers(ownPlan, ftp) {
     set("note-sleep", `Nur Plan 2 · intervals.icu`);
     set("efficiency-note", `Nur Powermeter-Fahrten (ab W6)`);
   } else {
-    set("explainer-heatmap", `Anzahl der Fahrten und Gesamtkilometer pro Wochentag über den erfassten Zeitraum. Farbe: grün = wenig aktiv · gelb = moderat · orange = aktiv · rot = sehr aktiv.`);
+
     set("explainer-pmc", `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`);
-    set("explainer-trimp", `TRIMP (Training Impulse) berechnet die Trainingsbelastung aus Dauer und Herzfrequenz-Intensität. Farbe: grün = &lt;400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = &gt;900 (sehr hoch).`);
-    set("explainer-power-curve", `Die Power Curve zeigt die beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung).${ftp ? ` Die goldene Linie markiert die FTP (${ftp}W).` : ""} Mit dem W/kg-Toggle wird die gewichtsnormierte Leistung angezeigt.`);
+    set("explainer-trimp", `Balken: TRIMP-Wochenlast (grün &lt;400 · gelb · orange · rot &gt;900). Weiße Linie: CTL-Anstieg pro Kalenderwoche — Korridor +3 bis +6 = nachhaltiger Aufbau, ab +8 deutlich erhöhtes Überlastungsrisiko. ⚠ = Foster-Monotonie ≥ 2 (Belastung zu gleichförmig verteilt).`);
+    set("explainer-power-curve", `Beste gemessene Leistung je Zeitintervall — von 1 Sekunde (Sprint) bis 60 Minuten (Ausdauer).${ftp ? ` Gold: FTP (${ftp}W).` : ""} Der Blockvergleich ist nur für den eigenen Trainingsplan verfügbar; W/kg nutzt das Gewicht aus intervals.icu.`);
     set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Da kein eigener Trainingsplan vorliegt, wird hier ein durchgehender Verlauf ohne Plan-Trennung gezeigt.`);
     set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training.`);
 
@@ -110,12 +120,13 @@ function setPeriod(chartId, value) {
 }
 
 /** Initialisiert die drei Period-Toggle-Buttons und rendert Charts entsprechend */
-function initPeriodToggles(rides, weekly, onBarClick) {
+function initPeriodToggles(rides, weekly, guard, onBarClick) {
   const charts = [
     { toggleId: "toggle-weekly", titleId: "title-weekly", chartFn: (data) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick),
       titleWeek: "Wöchentliches Volumen (km)", titleMonth: "Monatliches Volumen (km)" },
-    { toggleId: "toggle-trimp",  titleId: "title-trimp",  chartFn: (data) => Charts.renderTrimp("chart-trimp", data),
-      titleWeek: "Trainingsbelastung TRIMP pro Woche", titleMonth: "Trainingsbelastung TRIMP pro Monat" },
+    { toggleId: "toggle-trimp",  titleId: "title-trimp",
+      chartFn: (data, period) => Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard),
+      titleWeek: "Belastungswächter · TRIMP, Ramp & Monotonie", titleMonth: "Trainingsbelastung TRIMP pro Monat" },
     { toggleId: "toggle-weather", titleId: "title-weather",
       chartFn: (data, period) => {
         if (period === "month") {
@@ -189,6 +200,13 @@ async function renderAll(athleteId) {
   const weekly = Data.weekly();
   const ownPlan = hasOwnPlan();
   const ftp = ownPlan ? CONFIG.ftp : (Data.athleteFtp || Data.rides.find(r => r.np)?.np || null);
+  const todayISO = new Date().toISOString().split("T")[0];
+
+  // Wochen-Zuordnung: Plan-Wochen (Athlet 1) bzw. ISO-Kalenderwochen
+  const weekKeyFn = ownPlan ? (r) => r.week : (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
+  const weekSortFn = ownPlan
+    ? (a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b)
+    : (a, b) => a.localeCompare(b);
 
   togglePlanningTabVisibility(ownPlan);
   updateChartExplainers(ownPlan, ftp);
@@ -196,18 +214,35 @@ async function renderAll(athleteId) {
   // Overview
   Overview.render(rides);
 
-  // Charts — Fitness & Belastung
+  // Panels: Tagesform (7d vs. 42d-Baseline) + Wochenrückblick + Bestwerte
+  renderReadiness("readiness-panel", assessReadiness(Data.wellness, todayISO));
+  renderWeekReview("weekreview-card", buildWeekReview(rides, ownPlan ? Data.plannedSessions : [], Data.adjustments, todayISO));
+  renderRecords("records-wall", recordProgression(rides));
+
+  // Charts — Fitness & Belastung (Belastungswächter: Ramp + Foster-Monotonie)
+  const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn);
   Charts.renderPMC("chart-pmc", rides);
-  initPeriodToggles(rides, weekly, (week) => {
+  initPeriodToggles(rides, weekly, guard, (week) => {
     document.querySelector('[data-tab="table"]').click();
     Table.filterByWeek(week);
   });
+  Charts.renderZoneWeekly("chart-zones", weeklyZoneShares(rides, weekKeyFn, weekSortFn));
 
   // Charts — Leistung
-  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, ftp, Data.athleteWeight);
-  Charts.renderEfficiency("chart-efficiency", rides);
+  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, ftp, Data.athleteWeight, ownPlan ? Data.powerCurveBlocks : []);
+  Charts.renderEfficiency("chart-efficiency", rides, efficiencyTrend(rides));
   Charts.renderScatter("chart-scatter", rides);
   Charts.renderSmallMultiples(rides);
+  Charts.renderCadenceCoach("kadenz-coach", cadenceCoach(rides, CONFIG.cadenceTarget), CONFIG.cadenceTarget);
+
+  // FTP-Projektion: nur für den eigenen Plan (Ziel + Retest-Termin)
+  const forecastBox = el("box-ftp-forecast");
+  if (forecastBox) forecastBox.classList.toggle("hidden", !ownPlan);
+  if (ownPlan) {
+    const history = eftpHistory(rides);
+    const fc = forecastFtp(history, CONFIG.retestDate);
+    Charts.renderFtpForecast("chart-ftp-forecast", history, fc, CONFIG.ftpGoal, CONFIG.retestDate);
+  }
 
   // Charts — Aerobe Gesundheit
   Charts.renderDecoupling("chart-decoupling", rides);
@@ -215,8 +250,8 @@ async function renderAll(athleteId) {
   Charts.renderPlanCompareHRV(rides);
   Charts.renderPlanCompareRHF(rides);
 
-  // Charts — Aktivität
-  Charts.renderHeatmap("chart-heatmap", rides);
+  // Übersicht — Konsistenz-Jahreskalender (ersetzt Wochentags-Heatmap)
+  Charts.renderConsistency("chart-consistency", yearCalendar(rides, todayISO));
 
   // Table
   Table.init();

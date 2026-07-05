@@ -103,6 +103,12 @@
     <!-- KPI-Kacheln -->
     <div class="hero-kpis" id="hero-kpis"></div>
 
+    <!-- Tagesform & Wochenrückblick -->
+    <div class="insight-row">
+      <div id="readiness-panel"></div>
+      <div id="weekreview-card"></div>
+    </div>
+
     <!-- Tabs -->
     <nav class="tabs" id="tabs">
       <button class="tab-btn active" data-tab="overview">Übersicht</button>
@@ -117,16 +123,20 @@
       <div class="grid grid-auto" id="metrics-grid"></div>
       <div class="chart-box" style="margin-top:1.2rem">
         <div class="chart-header">
-          <span class="chart-title heatmap-title">Trainingsverteilung nach Wochentag</span>
+          <span class="chart-title heatmap-title">Trainingskonsistenz · Jahreskalender</span>
+          <span class="chart-note">Zeilen = Wochentage (mit Fahrten-Zähler) · Farbe = Tageslast</span>
         </div>
-        <svg class="chart" id="chart-heatmap" viewBox="0 0 780 110"></svg>
-        <p class="chart-explainer" id="explainer-heatmap">Anzahl der Fahrten und Gesamtkilometer pro Wochentag über den gesamten Trainingszeitraum. Farbe: grün = wenig aktiv · gelb = moderat · orange = aktiv · rot = sehr aktiv. Samstag ist mit Abstand der aktivste Tag — dort liegen die langen Z2-Einheiten.</p>
+        <svg class="chart" id="chart-consistency" viewBox="0 0 820 190"></svg>
+        <p class="chart-explainer" id="explainer-consistency">Jeder aktive Tag des Jahres als Zelle, eingefärbt nach Trainingslast (relativ zu den eigenen Werten). Konsistenz ist der stärkste Prädiktor für Langzeitfortschritt — Lücken sind hier ehrlicher als jeder Durchschnittswert. Die Zeilen-Zähler zeigen zugleich die Wochentagsverteilung.</p>
       </div>
       <h2 class="section-label section-label-prominent">🏆 Meilensteine</h2>
       <div class="chart-box">
         <svg class="chart" id="milestones-gantt" viewBox="0 0 780 215"></svg>
-        <p class="chart-explainer">Schlüsselereignisse entlang der Trainingsachse — chronologisch von März bis September 2026. Blau = Plan 1 (Basisaufbau), Orange = Plan 2 (FTP-Aufbau). Hover über einen Meilenstein für Details.</p>
+        <p class="chart-explainer">Schlüsselereignisse entlang der Trainingsachse — chronologisch von März bis September 2026. Blau = Plan 1, Orange = Plan 2. Hover für Details.</p>
       </div>
+      <h2 class="section-label section-label-prominent" id="records-heading">🥇 Bestwerte</h2>
+      <div class="records-grid" id="records-wall"></div>
+      <p class="chart-explainer" style="margin-top:2px">Automatisch erkannte persönliche Bestleistungen — mit Ablöse-Historie: welcher Wert wann übertroffen wurde. Keine erfundenen Abzeichen, nur echte Meilensteine aus den Daten.</p>
     </section>
 
     <!-- ── Tab: Charts ─────────────────────────────────────────── -->
@@ -149,8 +159,8 @@
             </div>
             <div class="chart-legend">
               <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> CTL (Fitness)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> ATL (Ermüdung)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> TSB (Form)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> ATL (Ermüdung)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#4a9a6e"></div> TSB (Form)</div>
             </div>
             <p class="chart-explainer" id="explainer-pmc">CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
           </div>
@@ -171,17 +181,26 @@
 
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title" id="title-trimp">Trainingsbelastung TRIMP pro Woche</span>
+              <span class="chart-title heatmap-title" id="title-trimp">Belastungswächter · TRIMP, Ramp &amp; Monotonie</span>
               <div style="display:flex;align-items:center;gap:12px">
                 <div class="unit-toggle" id="toggle-trimp">
                   <button class="unit-btn active" data-period="week">Wochen</button>
                   <button class="unit-btn" data-period="month">Monate</button>
                 </div>
-                <span class="chart-note">Herzfrequenz-basierte Belastung</span>
+                <span class="chart-note">Balken = TRIMP · Linie = ΔCTL/Woche · ⚠ = Monotonie ≥ 2</span>
               </div>
             </div>
             <svg class="chart" id="chart-trimp" viewBox="0 0 780 230"></svg>
-            <p class="chart-explainer" id="explainer-trimp">TRIMP (Training Impulse) berechnet die Trainingsbelastung aus Dauer und Herzfrequenz-Intensität. Farbe: grün = &lt;400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = &gt;900 (sehr hoch). Erholungswochen sind bewusst grün — das ist gewollt und positiv.</p>
+            <p class="chart-explainer" id="explainer-trimp">Balken: TRIMP-Wochenlast (grün &lt;400 · gelb · orange · rot &gt;900). Weiße Linie: CTL-Anstieg pro Woche — der grüne Korridor (+3 bis +6) ist der sichere Aufbaubereich, ab +8 steigt das Überlastungsrisiko deutlich. ⚠ markiert Wochen mit Foster-Monotonie ≥ 2: gleiche Last jeden Tag ist riskanter als gemischte Tage. Erholungswochen sollen grün und ohne ⚠ sein.</p>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title heatmap-title">Intensitätsverteilung · Zeit in Zonen</span>
+              <span class="chart-note">Blau = Z1–Z2 · Orange = Z3–Z4 · Rot = Z5+ · nur Fahrten mit Powerdaten</span>
+            </div>
+            <svg class="chart" id="chart-zones" viewBox="0 0 780 230"></svg>
+            <p class="chart-explainer" id="explainer-zones">Wie sich die Trainingszeit tatsächlich auf die Leistungszonen verteilt — pro Woche, aus den Powermeter-Daten. Der bewährte Richtwert für Ausdauersportler (Seiler): ≥ 80&nbsp;% der Zeit in der Grundlage (Z1–Z2). Der häufigste Fehler ist „zu viel Mitte" — Z2-Fahrten, die in Wahrheit Tempo waren. Die Prozentzahl über jedem Balken zeigt den Grundlagen-Anteil der Woche.</p>
           </div>
         </div>
       </div>
@@ -197,15 +216,29 @@
             <div class="chart-header">
               <span class="chart-title heatmap-title">Power Curve · Bestleistungen</span>
               <div class="chart-header-right">
+                <div class="unit-toggle" id="power-curve-block-toggle">
+                  <button class="unit-btn active" data-mode="total">Gesamt</button>
+                  <button class="unit-btn" data-mode="blocks">Blöcke</button>
+                </div>
                 <div class="unit-toggle" id="power-curve-unit-toggle">
                   <button class="unit-btn active" data-unit="w">W</button>
                   <button class="unit-btn" data-unit="wkg">W/kg</button>
                 </div>
-                <span class="chart-note">Maximale Watt über Zeitintervalle · alle Fahrten</span>
+                <span class="chart-note">Maximale Watt über Zeitintervalle</span>
               </div>
             </div>
             <svg class="chart" id="chart-power-curve" viewBox="0 0 780 260"></svg>
+            <div class="chart-legend hidden" id="power-curve-block-legend"></div>
             <p class="chart-explainer" id="explainer-power-curve">Die Power Curve zeigt deine beste gemessene Leistung für jedes Zeitintervall — von 1 Sekunde (Sprintkraft) bis 60 Minuten (Ausdauerleistung). Die goldene Linie markiert deine FTP (193W). Der rot eingefärbte Bereich über der FTP-Linie ist deine anaerobe Reserve — je größer dieser Bereich, desto mehr Leistung kannst du kurzfristig über deine Dauerschwelle bringen. Mit dem W/kg-Toggle siehst du die gewichtsnormierte Leistung (Körpergewicht aus Apple Health via intervals.icu).</p>
+          </div>
+
+          <div class="chart-box" id="box-ftp-forecast">
+            <div class="chart-header">
+              <span class="chart-title heatmap-title">FTP-Projektion · Retest W12</span>
+              <span class="chart-note" id="note-ftp-forecast">eFTP-Verlauf (intervals.icu) · Prognose mit Unsicherheitsband</span>
+            </div>
+            <svg class="chart" id="chart-ftp-forecast" viewBox="0 0 780 200"></svg>
+            <p class="chart-explainer" id="explainer-ftp-forecast">Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das 210-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt in W11 aus Frust zu viel nachzulegen.</p>
           </div>
 
           <div class="chart-box">
@@ -215,10 +248,11 @@
             </div>
             <svg class="chart" id="chart-efficiency" viewBox="0 0 780 210"></svg>
             <div class="chart-legend">
-              <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> Trendlinie</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Einzelfahrt</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Vergleichbare Z2-Fahrt (≥60 min)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#5f6878"></div> Übrige Fahrten (Kontext)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#4a9a6e"></div> Gleitender EF-Trend</div>
             </div>
-            <p class="chart-explainer" id="explainer-efficiency">Watt pro Herzschlag zeigt wie viel Leistung bei gleicher Herzfrequenz erbracht wird — ein steigender Trend bedeutet bessere aerobe Fitness, da derselbe Puls zunehmend mehr Leistung ermöglicht.</p>
+            <p class="chart-explainer" id="explainer-efficiency">Watt pro Herzschlag — steigt der Wert bei gleicher HF, trägt die aerobe Grundlage. Der grüne Trend läuft nur über <b>vergleichbare</b> Fahrten (Z2, ≥ 60 min, moderate Temperatur); Intervall- und Hitzetage erscheinen ausgegraut als Kontext, damit sie den Trend nicht verfälschen. So ist der sauberste Feldtest-Nachweis aerober Anpassung zwischen zwei FTP-Tests ablesbar.</p>
           </div>
 
           <div class="chart-box">
@@ -248,9 +282,10 @@
 
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">Kadenz · Entwicklung</span>
+              <span class="chart-title heatmap-title">Kadenz-Coach · 80 → 90+ RPM</span>
               <span class="chart-note" id="note-cadence">RPM pro Fahrt · gestrichelt = Ziel 90 RPM</span>
             </div>
+            <div id="kadenz-coach"></div>
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
             </div>
@@ -313,8 +348,8 @@
             <div class="chart-legend">
               <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> ≥7h (gut)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> 6–7h (ok)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> &lt;6h (zu wenig)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Schlaf-HF (bpm)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> &lt;6h (zu wenig)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Schlaf-HF (bpm)</div>
             </div>
             <p class="chart-explainer">Schlafdauer als Balken (linke Achse): blau ≥7h, gold 6–7h, rot &lt;6h. Schlaf-Herzfrequenz als Linie (rechte Achse, rot) — niedrige Schlaf-HF bei ausreichend Schlaf ist ein gutes Erholungssignal. Goldene Linie = 7h-Ziel.</p>
           </div>
@@ -343,9 +378,9 @@
               <svg class="chart chart-wide" id="chart-weather-weekly" viewBox="0 0 780 240"></svg>
             </div>
             <div class="chart-legend">
-              <div class="legend-item"><div class="legend-dot" style="background:#5c9e6e"></div> Gute Bedingungen (5–32°C · Wind &lt;30 km/h · kein Regen)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#4a9a6e"></div> Gute Bedingungen (5–32°C · Wind &lt;30 km/h · kein Regen)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Suboptimal (ein erschwerender Faktor)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#c45c5c"></div> Schwierig (Hitze, Sturm oder Regen kombiniert)</div>
+              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> Schwierig (Hitze, Sturm oder Regen kombiniert)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Wind (km/h, rechte Achse)</div>
             </div>
             <p class="chart-explainer">Jeder Balken zeigt die Durchschnittstemperatur der Trainingswoche. Die Farbe bewertet die Gesamtbedingungen: grün = angenehm zum Fahren, gelb = ein Faktor erschwert das Training (z.B. zu kalt oder windig), rot = mehrere Faktoren gleichzeitig oder Extrembedingungen. Die blaue Linie zeigt den Durchschnittswind. 🌧 über einem Balken bedeutet messbarer Niederschlag in dieser Woche.</p>

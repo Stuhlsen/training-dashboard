@@ -26,12 +26,22 @@ function drawTrendLine(svg, pts, opts = {}) {
   }));
 }
 
-/* ── Aerobe Effizienz (Watt/HF über Zeit) ────────────────────── */
-export function renderEfficiency(svgId, rides) {
+/* ── Aerobe Effizienz (Watt/HF) — EF-Trend über vergleichbare
+      Z2-Fahrten, Intervalltage nur als Kontext ─────────────────── */
+export function renderEfficiency(svgId, rides, trend) {
   const data = rides
     .filter(r => r.efficiency)
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   const svg = el(svgId); if (!svg || !data.length) return; svg.innerHTML = "";
+  const comparableSet = new Set((trend?.comparable || []).map(r => r.dateISO + (r.name || "")));
+
+  // Hinweiszeile im Chart-Header aktualisieren
+  const note = el("efficiency-note");
+  if (note) {
+    note.textContent = trend && trend.comparable.length
+      ? `EF-Trend: ${trend.comparable.length} vergleichbare Z2-Fahrten${trend.slopePer30d != null ? ` · ${trend.slopePer30d > 0 ? "+" : ""}${trend.slopePer30d} W/bpm je 30 Tage` : ""}`
+      : "Nur Powermeter-Fahrten";
+  }
 
   const W = 780, H = 210, pad = { l: 50, r: 16, t: 16, b: 36 };
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
@@ -47,18 +57,34 @@ export function renderEfficiency(svgId, rides) {
     d,
   }));
 
-  // Trendlinie (einfache lineare Regression, core/stats.js)
-  drawTrendLine(svg, pts);
+  // Rolling-Mean-Linie über die vergleichbaren Fahrten (core/efficiency.js)
+  if (trend && trend.comparable.length >= 3) {
+    const rollPts = [];
+    trend.comparable.forEach((r, ci) => {
+      const idx = data.findIndex(d => d.dateISO === r.dateISO && d.name === r.name);
+      const rv = trend.rolling[ci];
+      if (idx >= 0 && rv != null) rollPts.push(`${pts[idx].x},${pad.t + ch - (rv - minV) / (maxV - minV) * ch}`);
+    });
+    if (rollPts.length >= 2) {
+      svg.appendChild(svgEl("polyline", {
+        fill: "none", stroke: "#4a9a6e", "stroke-width": "2",
+        "stroke-linejoin": "round", points: rollPts.join(" "), opacity: "0.9",
+      }));
+    }
+  } else {
+    drawTrendLine(svg, pts);
+  }
 
-  // Datenpunkte
+  // Datenpunkte: vergleichbare Z2-Fahrten voll, andere als Kontext ausgegraut
   data.forEach((d, i) => {
     const p = pts[i];
-    const c = svgEl("circle", { cx: p.x, cy: p.y, r: "4", fill: "#4a7fa8", opacity: "0.8", stroke: "#0b0e13", "stroke-width": "1" });
+    const comparable = !trend || comparableSet.has(d.dateISO + (d.name || ""));
+    const c = svgEl("circle", { cx: p.x, cy: p.y, r: comparable ? "4.5" : "3", fill: comparable ? "#4a7fa8" : "#5f6878", opacity: comparable ? "0.9" : "0.35", stroke: "#0b0e13", "stroke-width": "1" });
     c.style.cursor = "pointer";
     c.addEventListener("mouseenter", e => Tooltip.show(e, `
       <div class="tt">${d.dateShort} · ${d.week || ""}</div>
       <div class="tv">Effizienz: ${fmt(d.efficiency, 2)} W/bpm</div>
-      <div class="td">${fmtInt(d.watt)}W · ${fmtInt(d.hf)} bpm</div>
+      <div class="td">${fmtInt(d.watt)}W · ${fmtInt(d.hf)} bpm${trend ? (comparableSet.has(d.dateISO + (d.name || "")) ? " · vergleichbar (Z2)" : " · Kontext") : ""}</div>
       <div class="td">${d.name}</div>
     `));
     c.addEventListener("mouseleave", () => Tooltip.hide());
@@ -240,13 +266,36 @@ export function renderSmallMultiples(rides) {
 
 /* ── Power Curve ─────────────────────────────────────────────── */
 
-// Cache für den W/W-kg-Toggle (Modul-Zustand statt this._pcCache)
+// Cache für Einheiten-/Block-Toggle (Modul-Zustand statt this._pcCache)
 let pcCache = null;
+let pcMode = "total"; // "total" | "blocks"
+let pcUnit = "w";
 
-export function renderPowerCurve(svgId, powerCurves, ftp, weight) {
-  // Daten einmal cachen für Toggle
-  pcCache = { svgId, powerCurves, ftp, weight };
+const BLOCK_COLORS = { plan1: "#4a7fa8", "sweet-spot": "#e08a3c", schwelle: "#d94f4f", vo2max: "#a24ad0" };
+
+export function renderPowerCurve(svgId, powerCurves, ftp, weight, blocks) {
+  // Daten einmal cachen für Toggles
+  pcCache = { svgId, powerCurves, ftp, weight, blocks: blocks || [] };
+  pcMode = "total";
+  pcUnit = "w";
   drawPowerCurve("w");
+
+  // Block-Toggle: nur zeigen wenn Blockkurven vorhanden
+  const blockToggle = el("power-curve-block-toggle");
+  if (blockToggle) {
+    const usable = pcCache.blocks.filter(b => buildCurveData(b.curve).length);
+    blockToggle.classList.toggle("hidden", usable.length < 2);
+    const btns = blockToggle.querySelectorAll(".unit-btn");
+    btns.forEach(btn => {
+      btn.classList.toggle("active", btn.dataset.mode === "total");
+      btn.addEventListener("click", () => {
+        btns.forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        pcMode = btn.dataset.mode;
+        drawPowerCurve(pcUnit);
+      });
+    });
+  }
 
   // Toggle-Buttons verdrahten
   const toggle = el("power-curve-unit-toggle");
@@ -265,14 +314,16 @@ export function renderPowerCurve(svgId, powerCurves, ftp, weight) {
         if (btn.disabled) return;
         btns.forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
-        drawPowerCurve(btn.dataset.unit);
+        pcUnit = btn.dataset.unit;
+        drawPowerCurve(pcUnit);
       });
     });
   }
 }
 
 function drawPowerCurve(unit) {
-  const { svgId, powerCurves, ftp, weight } = pcCache;
+  const { svgId, powerCurves, ftp, weight, blocks } = pcCache;
+  const blockMode = pcMode === "blocks";
   const isWkg = unit === "wkg" && weight > 0;
 
   const svg = el(svgId);
@@ -358,12 +409,63 @@ function drawPowerCurve(unit) {
     svg.appendChild(svgEl("path", { d: aboveFtpPath, fill: "#d94f4f", opacity: "0.15" }));
   }
 
-  // Kurve
+  // Hauptkurve (Gesamt): im Blockmodus nur als heller Kontext
   svg.appendChild(svgEl("polyline", {
-    fill: "none", stroke: "#e08a3c", "stroke-width": "2",
-    "stroke-linejoin": "round",
+    fill: "none", stroke: "#e2e7ef", "stroke-width": blockMode ? "1.4" : "2",
+    "stroke-linejoin": "round", opacity: blockMode ? "0.35" : "0",
+    "stroke-dasharray": blockMode ? "4,3" : "none",
     points: curveData.map((d, i) => `${xScale(i)},${yScale(toVal(d.watts))}`).join(" "),
   }));
+  if (!blockMode) {
+    svg.appendChild(svgEl("polyline", {
+      fill: "none", stroke: "#e08a3c", "stroke-width": "2",
+      "stroke-linejoin": "round",
+      points: curveData.map((d, i) => `${xScale(i)},${yScale(toVal(d.watts))}`).join(" "),
+    }));
+  }
+
+  // Block-Overlay: eine Kurve je Trainingsblock — zeigt, WO welcher Block
+  // Leistung gebracht hat (Sweet Spot → 20–60 min, VO2max → 1–8 min)
+  const legend = el("power-curve-block-legend");
+  if (blockMode && blocks?.length) {
+    const legendItems = [];
+    for (const block of blocks) {
+      const bd = buildCurveData(block.curve);
+      if (!bd.length) continue;
+      const color = BLOCK_COLORS[block.key] || "#c9a84c";
+      // auf die Standard-Labels der Hauptkurve mappen
+      const pts = bd
+        .map(d => {
+          const idx = curveData.findIndex(c => c.secs === d.secs);
+          return idx >= 0 ? `${xScale(idx)},${yScale(toVal(d.watts))}` : null;
+        })
+        .filter(Boolean);
+      if (pts.length < 2) continue;
+      const line = svgEl("polyline", {
+        fill: "none", stroke: color, "stroke-width": "2",
+        "stroke-linejoin": "round", points: pts.join(" "), opacity: "0.9",
+      });
+      line.addEventListener("mouseenter", e => Tooltip.show(e, `<div class="tt">${block.label}</div><div class="td">${block.from.split("-").reverse().join(".")} – ${block.to.split("-").reverse().join(".")}</div>`));
+      line.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(line);
+      legendItems.push(`<div class="legend-item"><div class="legend-dot" style="background:${color}"></div> ${block.label}</div>`);
+    }
+    if (legend) {
+      legend.innerHTML = legendItems.join("") + `<div class="legend-item"><div class="legend-dot" style="background:#e2e7ef;opacity:0.4"></div> Gesamt</div>`;
+      legend.classList.remove("hidden");
+    }
+  } else if (legend) {
+    legend.classList.add("hidden");
+  }
+  if (blockMode) {
+    // X-Labels auch ohne Punkt-Layer zeichnen
+    curveData.forEach((d, i) => {
+      const xl = svgEl("text", { x: xScale(i), y: H - pad.b + 16, "text-anchor": "middle", fill: "#5f6878", "font-size": "9" });
+      xl.textContent = d.label;
+      svg.appendChild(xl);
+    });
+    return; // Punkte/Wert-Labels nur in der Gesamtansicht
+  }
 
   // Punkte + Labels
   curveData.forEach((d, i) => {
@@ -404,4 +506,30 @@ function drawPowerCurve(unit) {
     xl.textContent = d.label;
     svg.appendChild(xl);
   });
+}
+
+/* ── Kadenz-Coach: Statuszeile über dem Kadenz-Chart ─────────── */
+export function renderCadenceCoach(containerId, coach, target) {
+  const wrap = el(containerId);
+  if (!wrap) return;
+  if (!coach) { wrap.innerHTML = ""; return; }
+
+  const deltaCls = coach.delta == null ? "" : coach.delta >= 0 ? "coach-up" : "coach-down";
+  const goalReached = coach.recentAvg >= target;
+
+  wrap.innerHTML = `
+    <div class="coach-chip">
+      <span class="coach-label">Ø zuletzt</span>
+      <span class="coach-val" style="color:${goalReached ? "var(--z1)" : "var(--gold)"}">${coach.recentAvg} RPM</span>
+      ${coach.delta != null ? `<span class="coach-sub ${deltaCls}">${coach.delta > 0 ? "+" : ""}${coach.delta} seit Start</span>` : ""}
+    </div>
+    <div class="coach-chip">
+      <span class="coach-label">Ziel ≥${target}</span>
+      <span class="coach-val">${coach.shareAbove}%</span>
+      <span class="coach-sub">${coach.nAbove}/${coach.nTotal} Fahrten</span>
+    </div>
+    <div class="coach-chip coach-types">
+      <span class="coach-label">Nach Typ</span>
+      ${coach.perType.map(t => `<span class="coach-type">${t.typ} <b style="color:${t.avg >= target ? "var(--z1)" : "var(--dim)"}">${t.avg}</b></span>`).join("")}
+    </div>`;
 }

@@ -17,6 +17,7 @@ export const CONFIG = {
   eFTP: 199,
   ftpBase: 166,        // Start-FTP der Saison (Ring-Fortschritt ab hier)
   ftpGoal: 210,        // Saisonziel (Plan 2, W12-Retest)
+  retestDate: "2026-09-19", // FTP-Retest in W12 (Taper-Woche 14.–20.09.)
   powerScaleMax: 300,  // Skalenende des Zonen-Bands im Hero (Watt)
 
   /* ── Herzfrequenz ──────────────────────────────────────────── */

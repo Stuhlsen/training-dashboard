@@ -1,8 +1,13 @@
 /* ============================================================
-   UI/CHARTS/TRAINING.JS — Volumen, TRIMP, Heatmap, Wetter
-   Rendering only — Aggregation kommt aus core/aggregate.js.
+   UI/CHARTS/TRAINING.JS — Volumen, Belastungswächter,
+   Intensitätsverteilung, Konsistenzkalender, Wetter
+   Rendering only — Berechnung in core/aggregate.js,
+   core/loadguard.js, core/zones.js, core/consistency.js.
    ============================================================ */
 
+import { fmt } from "../../core/format.js";
+import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js";
+import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
 import { CONFIG } from "../../state/config.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import { gridLines, xLabel } from "./base.js";
@@ -79,11 +84,14 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
   });
 }
 
-/* ── TRIMP pro Woche ─────────────────────────────────────────── */
-export function renderTrimp(svgId, weeklyData) {
+/* ── Belastungswächter: TRIMP/TSS-Wochen + Ramp & Monotonie ──── */
+export function renderTrimp(svgId, weeklyData, guard) {
   const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
   if (!weeklyData.length) { svg.innerHTML = `<text x="390" y="115" text-anchor="middle" fill="#5f6878" font-size="11">Keine Wochendaten verfügbar</text>`; return; }
-  const W = 780, H = 230, pad = { l: 50, r: 16, t: 16, b: 40 };
+  const guardByWeek = {};
+  if (guard) for (const g of guard) guardByWeek[g.week] = g;
+  const hasGuard = guard && guard.some(g => g.ramp != null || g.monotony != null);
+  const W = 780, H = 230, pad = { l: 50, r: hasGuard ? 46 : 16, t: 16, b: 40 };
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
   const maxV = Math.max(...weeklyData.map(d => d.trimp || 0)) * 1.15 || 1;
   const bw = Math.min(cw / weeklyData.length * 0.62, 52);
@@ -104,22 +112,30 @@ export function renderTrimp(svgId, weeklyData) {
     const bh = Math.max((d.trimp || 0) / maxV * ch, 1);
     const y  = pad.t + ch - bh;
     const color = trimpColor(d.trimp || 0);
+    const g = guardByWeek[d.week];
     const rect = svgEl("rect", { x, y, width: bw, height: bh, rx: "3", fill: color, opacity: "0.82" });
     rect.style.cursor = "pointer";
     rect.style.transition = "opacity 0.12s";
     rect.addEventListener("mouseenter", e => {
       rect.setAttribute("opacity", "1");
+      const guardInfo = g ? `
+        <div class="td">Ramp ${g.ramp != null ? (g.ramp > 0 ? "+" : "") + fmt(g.ramp) + " CTL" : "–"} · Monotonie ${g.monotony != null ? fmt(g.monotony, 2) : "–"}</div>
+        <div class="td">${g.risk === "high" ? "🔴 Überlastungsrisiko" : g.risk === "caution" ? "🟡 Erhöht — beobachten" : "🟢 Im sicheren Bereich"}</div>` : "";
       Tooltip.show(e, `
         <div class="tt">${d.week || ""}${d.plan && d.plan !== "Vergleich" ? " · " + d.plan : ""}</div>
-        <div class="tv">TRIMP ${d.trimp}</div>
-        <div class="td">${d.rides} Fahrten · ${Math.round(d.min / 6) / 10}h</div>
+        <div class="tv">TRIMP ${d.trimp}${g?.total ? " · TSS " + g.total : ""}</div>
+        <div class="td">${d.rides} Fahrten · ${Math.round(d.min / 6) / 10}h</div>${guardInfo}
       `);
     });
     rect.addEventListener("mouseleave", () => { rect.setAttribute("opacity", "0.82"); Tooltip.hide(); });
     svg.appendChild(rect);
 
-    // Value label on top
-    if (bh > 15) {
+    // Monotonie-Warnmarker über dem Balken (Foster ≥ 2,0 = zu eintönig)
+    if (g?.monotony != null && g.monotony >= MONOTONY_WARN) {
+      const warn = svgEl("text", { x: x + bw / 2, y: y - 16, "text-anchor": "middle", "font-size": "11" });
+      warn.textContent = "⚠";
+      svg.appendChild(warn);
+    } else if (bh > 15) {
       const vt = svgEl("text", { x: x + bw / 2, y: y - 4, "text-anchor": "middle", fill: color, "font-size": "9", "font-weight": "600" });
       vt.textContent = d.trimp || 0;
       svg.appendChild(vt);
@@ -127,95 +143,195 @@ export function renderTrimp(svgId, weeklyData) {
 
     xLabel(svg, x + bw / 2, H - pad.b + 14, d.week);
   });
+
+  // Ramp-Overlay: CTL-Anstieg/Woche als Linie auf zweiter Achse,
+  // sicherer Korridor +3…+6 als grüne Zone
+  if (hasGuard) {
+    const ramps = weeklyData.map(d => guardByWeek[d.week]?.ramp).map(v => v == null ? null : v);
+    const vals = ramps.filter(v => v != null);
+    if (vals.length >= 2) {
+      const rMax = Math.max(...vals, RAMP_OK_MAX + 2, 8);
+      const rMin = Math.min(...vals, 0) - 1;
+      const rY = v => pad.t + ch - (v - rMin) / (rMax - rMin) * ch;
+
+      // Korridor
+      svg.appendChild(svgEl("rect", {
+        x: pad.l, y: rY(RAMP_OK_MAX), width: W - pad.l - pad.r, height: Math.max(1, rY(RAMP_OK_MIN) - rY(RAMP_OK_MAX)),
+        fill: "#4a9a6e", opacity: "0.08",
+      }));
+
+      const pts = [];
+      weeklyData.forEach((d, i) => {
+        const v = ramps[i];
+        if (v == null) return;
+        pts.push({ x: pad.l + i * gap + gap / 2, y: rY(v), v, week: d.week });
+      });
+      svg.appendChild(svgEl("polyline", {
+        fill: "none", stroke: "#e2e7ef", "stroke-width": "1.6", "stroke-dasharray": "5,3",
+        points: pts.map(p => `${p.x},${p.y}`).join(" "), opacity: "0.85",
+      }));
+      pts.forEach(p => {
+        const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: p.v > 8 ? "#d94f4f" : p.v > RAMP_OK_MAX ? "#c9a84c" : "#e2e7ef", stroke: "#0b0e13", "stroke-width": "1" });
+        c.style.cursor = "pointer";
+        c.addEventListener("mouseenter", e => Tooltip.show(e, `<div class="tt">${p.week}</div><div class="tv">Ramp ${p.v > 0 ? "+" : ""}${fmt(p.v)} CTL/Woche</div><div class="td">Korridor: +${RAMP_OK_MIN} bis +${RAMP_OK_MAX}</div>`));
+        c.addEventListener("mouseleave", () => Tooltip.hide());
+        svg.appendChild(c);
+      });
+
+      // Rechte Achse
+      [rMin, 0, RAMP_OK_MAX, rMax].forEach(v => {
+        const t = svgEl("text", { x: W - pad.r + 6, y: rY(v) + 3, fill: "#97a1b3", "font-size": "9" });
+        t.textContent = (v > 0 ? "+" : "") + Math.round(v);
+        svg.appendChild(t);
+      });
+      const axisLbl = svgEl("text", { x: W - pad.r + 6, y: pad.t - 4, fill: "#5f6878", "font-size": "8" });
+      axisLbl.textContent = "ΔCTL";
+      svg.appendChild(axisLbl);
+    }
+  }
 }
 
-/* ── Wochentag-Heatmap ───────────────────────────────────────── */
-export function renderHeatmap(svgId, rides) {
+/* ── Konsistenz-Jahreskalender (ersetzt Wochentags-Heatmap) ──── */
+export function renderConsistency(svgId, cal) {
   const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
-  const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
-  const dayIdx = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 0: 6 };
+  if (!cal || !cal.activeDays) {
+    const t = svgEl("text", { x: 410, y: 90, "text-anchor": "middle", fill: "#5f6878", "font-size": "12" });
+    t.textContent = "Keine Trainingstage im laufenden Jahr";
+    svg.appendChild(t);
+    return;
+  }
 
-  const counts = new Array(7).fill(0);
-  const kmTotals = new Array(7).fill(0);
-  rides.forEach(r => {
-    if (!r.dateISO) return;
-    const d = new Date(r.dateISO).getDay();
-    const idx = dayIdx[d];
-    counts[idx]++;
-    kmTotals[idx] += r.km || 0;
+  const CELL = 13, GAP = 3, padL = 64, padT = 26;
+  const days = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+  const LEVEL_COLORS = ["rgba(255,255,255,0.05)", "#274b3a", "#3a7a58", "#4a9a6e", "#e08a3c"];
+
+  const jan1 = new Date(`${cal.year}-01-01T00:00:00`);
+  const jan1Dow = (jan1.getDay() + 6) % 7; // Mo=0
+  const totalCells = jan1Dow + cal.totalDays;
+  const weeks = Math.ceil(totalCells / 7);
+
+  const W = padL + weeks * (CELL + GAP) + 12;
+  const H = padT + 7 * (CELL + GAP) + 34;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  // Wochentags-Zeilenlabels mit Zähler (übernimmt die alte Heatmap-Info)
+  days.forEach((d, row) => {
+    const t = svgEl("text", { x: padL - 10, y: padT + row * (CELL + GAP) + CELL - 3, "text-anchor": "end", fill: "#97a1b3", "font-size": "9", "font-family": "IBM Plex Mono, monospace" });
+    t.textContent = `${d} ${cal.weekdayCounts[row] || 0}×`;
+    svg.appendChild(t);
   });
 
-  const maxCount = Math.max(...counts) || 1;
-  const W = 780, cellW = 80, cellH = 64, startX = (W - 7 * cellW) / 2;
-
-  // Grün → Gelb → Orange → Rot basierend auf Intensität
-  const heatColor = (t) => {
-    if (t < 0.33) {
-      // Grün → Gelb
-      const f = t / 0.33;
-      return `rgb(${Math.round(92 + f * 137)}, ${Math.round(168 - f * 16)}, ${Math.round(110 - f * 110)})`;
-    } else if (t < 0.66) {
-      // Gelb → Orange
-      const f = (t - 0.33) / 0.33;
-      return `rgb(${Math.round(229 - f * 5)}, ${Math.round(152 - f * 29)}, ${Math.round(0 + f * 0)})`;
-    } else {
-      // Orange → Rot
-      const f = (t - 0.66) / 0.34;
-      return `rgb(${Math.round(224 - f * 28)}, ${Math.round(123 - f * 67)}, ${Math.round(57 - f * 57)})`;
+  // Monatslabels
+  let lastMonth = -1;
+  for (let w = 0; w < weeks; w++) {
+    const firstOfCol = new Date(jan1);
+    firstOfCol.setDate(jan1.getDate() + w * 7 - jan1Dow);
+    const m = firstOfCol.getMonth();
+    if (m !== lastMonth && firstOfCol.getFullYear() === cal.year) {
+      lastMonth = m;
+      const t = svgEl("text", { x: padL + w * (CELL + GAP), y: padT - 8, fill: "#5f6878", "font-size": "9", "font-family": "IBM Plex Mono, monospace" });
+      t.textContent = firstOfCol.toLocaleDateString("de-DE", { month: "short" });
+      svg.appendChild(t);
     }
-  };
+  }
 
-  days.forEach((day, i) => {
-    const x = startX + i * cellW;
-    const intensity = counts[i] / maxCount;
-    const color = heatColor(intensity);
-    const isMax = counts[i] === maxCount;
+  // Tageszellen
+  const todayLimit = cal.totalDays;
+  for (let i = 0; i < todayLimit; i++) {
+    const date = new Date(jan1);
+    date.setDate(jan1.getDate() + i);
+    const iso = date.toISOString().split("T")[0];
+    const cellIdx = i + jan1Dow;
+    const col = Math.floor(cellIdx / 7), row = cellIdx % 7;
+    const d = cal.days[iso];
+    const level = d ? d.level : 0;
 
     const rect = svgEl("rect", {
-      x: x + 4, y: 20, width: cellW - 8, height: cellH,
-      rx: "8", fill: color,
-      stroke: isMax ? "#d94f4f" : "#232a37",
-      "stroke-width": isMax ? "1.5" : "1",
+      x: padL + col * (CELL + GAP), y: padT + row * (CELL + GAP),
+      width: CELL, height: CELL, rx: "3",
+      fill: LEVEL_COLORS[level],
     });
-    rect.addEventListener("mouseenter", e => Tooltip.show(e, `
-      <div class="tt">${day}</div>
-      <div class="tv">${counts[i]} Fahrten</div>
-      <div class="td">${Math.round(kmTotals[i])} km gesamt · Ø ${counts[i] ? Math.round(kmTotals[i] / counts[i]) : 0} km/Fahrt</div>
-    `));
-    rect.addEventListener("mouseleave", () => Tooltip.hide());
+    if (d) {
+      rect.style.cursor = "pointer";
+      rect.addEventListener("mouseenter", e => Tooltip.show(e, `
+        <div class="tt">${iso.split("-").reverse().join(".")}</div>
+        <div class="tv">${d.km} km · Last ${d.load}</div>
+      `));
+      rect.addEventListener("mouseleave", () => Tooltip.hide());
+    }
     svg.appendChild(rect);
+  }
 
-    // Wochentag-Label — größer, heller
-    const lbl = svgEl("text", {
-      x: x + cellW / 2, y: 14,
-      "text-anchor": "middle",
-      fill: isMax ? "#d94f4f" : "#97a1b3",
-      "font-size": "11",
-      "font-weight": isMax ? "700" : "500",
-      "letter-spacing": "0.05em",
-    });
-    lbl.textContent = day;
+  // Fußzeile: Konsistenz-Quote + Level-Legende
+  const foot = svgEl("text", { x: padL, y: H - 8, fill: "#97a1b3", "font-size": "10", "font-family": "IBM Plex Mono, monospace" });
+  foot.textContent = `${cal.activeDays} von ${cal.totalDays} Tagen aktiv (${Math.round(cal.activeDays / cal.totalDays * 100)}%)`;
+  svg.appendChild(foot);
+  LEVEL_COLORS.forEach((c, i) => {
+    svg.appendChild(svgEl("rect", { x: W - 12 - (LEVEL_COLORS.length - i) * (CELL + 2), y: H - 18, width: CELL, height: CELL, rx: "3", fill: c }));
+  });
+  const legLbl = svgEl("text", { x: W - 12 - LEVEL_COLORS.length * (CELL + 2) - 8, y: H - 8, "text-anchor": "end", fill: "#5f6878", "font-size": "9" });
+  legLbl.textContent = "Last: wenig → viel";
+  svg.appendChild(legLbl);
+}
+
+/* ── Intensitätsverteilung: Zeit in Zonen pro Woche ──────────── */
+export function renderZoneWeekly(svgId, weeks) {
+  const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+  if (!weeks || !weeks.length) {
+    const t = svgEl("text", { x: 390, y: 100, "text-anchor": "middle", fill: "#5f6878", "font-size": "12" });
+    t.textContent = "Zonendaten werden ab dem nächsten Sync aufgebaut";
+    svg.appendChild(t);
+    return;
+  }
+
+  const W = 780, H = 230, pad = { l: 50, r: 16, t: 20, b: 40 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const COLORS = { low: "#4a7fa8", mid: "#e08a3c", high: "#d94f4f" };
+
+  // Y-Achse: Anteile 0–100 %
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.t + ch / 4 * i;
+    svg.appendChild(svgEl("line", { x1: pad.l, y1: y, x2: W - pad.r, y2: y, stroke: "#232a37" }));
+    const t = svgEl("text", { x: pad.l - 6, y: y + 3, "text-anchor": "end", fill: "#5f6878", "font-size": "10" });
+    t.textContent = `${100 - i * 25}%`;
+    svg.appendChild(t);
+  }
+
+  // 80%-Richtwert (Seiler): Ziel-Anteil niedriger Intensität
+  const targetY = pad.t + ch * (1 - LOW_INTENSITY_TARGET);
+  svg.appendChild(svgEl("line", { x1: pad.l, y1: targetY, x2: W - pad.r, y2: targetY, stroke: "#4a9a6e", "stroke-width": "1", "stroke-dasharray": "5,3", opacity: "0.7" }));
+  const tl = svgEl("text", { x: W - pad.r - 4, y: targetY - 4, "text-anchor": "end", fill: "#4a9a6e", "font-size": "9" });
+  tl.textContent = "Ziel ≥80% Grundlage";
+  svg.appendChild(tl);
+
+  const gap = cw / weeks.length, bw = Math.min(gap * 0.6, 48);
+  weeks.forEach((wk, i) => {
+    const total = wk.low + wk.mid + wk.high;
+    const x = pad.l + i * gap + (gap - bw) / 2;
+    let yCursor = pad.t + ch;
+    for (const band of ["low", "mid", "high"]) {
+      const h = total ? (wk[band] / total) * ch : 0;
+      if (h <= 0) continue;
+      yCursor -= h;
+      svg.appendChild(svgEl("rect", { x, y: yCursor, width: bw, height: h, fill: COLORS[band], opacity: "0.85" }));
+    }
+    // Low-Share-Label + Zielstatus
+    const lbl = svgEl("text", { x: x + bw / 2, y: pad.t + ch * (1 - wk.lowShare) - 5, "text-anchor": "middle", fill: wk.onTarget ? "#4a9a6e" : "#c9a84c", "font-size": "9", "font-weight": "600" });
+    lbl.textContent = `${Math.round(wk.lowShare * 100)}%`;
     svg.appendChild(lbl);
 
-    // Fahrt-Anzahl
-    const cnt = svgEl("text", {
-      x: x + cellW / 2, y: 57,
-      "text-anchor": "middle",
-      fill: intensity > 0.35 ? "#e2e7ef" : "#97a1b3",
-      "font-size": "20", "font-weight": "700",
-    });
-    cnt.textContent = counts[i];
-    svg.appendChild(cnt);
+    const hit = svgEl("rect", { x, y: pad.t, width: bw, height: ch, fill: "transparent" });
+    hit.style.cursor = "pointer";
+    hit.addEventListener("mouseenter", e => Tooltip.show(e, `
+      <div class="tt">${wk.week} · ${wk.hours}h mit Powerdaten</div>
+      <div class="tv">${Math.round(wk.lowShare * 100)}% Grundlage (Z1–Z2)</div>
+      <div class="td">Mitte (Z3–Z4): ${Math.round(wk.mid / total * 100)}% · Hoch (Z5+): ${Math.round(wk.high / total * 100)}%</div>
+      <div class="td">${wk.onTarget ? "✅ Pyramidal im Soll" : "⚠️ Zu viel Intensität — Z2 schützen"}</div>
+    `));
+    hit.addEventListener("mouseleave", () => Tooltip.hide());
+    svg.appendChild(hit);
 
-    // km
-    const km = svgEl("text", {
-      x: x + cellW / 2, y: 74,
-      "text-anchor": "middle",
-      fill: intensity > 0.3 ? "rgba(240,235,228,0.75)" : "#5f6878",
-      "font-size": "9",
-    });
-    km.textContent = Math.round(kmTotals[i]) + " km";
-    svg.appendChild(km);
+    xLabel(svg, x + bw / 2, H - pad.b + 14, wk.week);
   });
 }
 

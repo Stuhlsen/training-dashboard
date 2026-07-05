@@ -656,3 +656,101 @@
   .hero-ring { order: -1; }
   .zoneband .pin::after { font-size: 0.58rem; }
 }
+
+/* ── Übersicht-Panels: Tagesform, Wochenrückblick (K5-Kacheln) ── */
+.insight-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+
+.panel-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+  height: 100%;
+}
+
+.panel-title {
+  font-family: var(--font-disp);
+  font-size: 0.88rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.panel-title .panel-meta {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  font-weight: 400;
+  color: var(--dim2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-left: 8px;
+}
+.panel-empty { font-size: 0.78rem; color: var(--dim); line-height: 1.55; }
+
+/* Tagesform */
+.readiness-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.readiness-dot { width: 16px; height: 16px; border-radius: 50%; flex-shrink: 0; }
+.readiness-level { font-family: var(--font-disp); font-weight: 700; font-size: 1rem; }
+.readiness-reco { font-size: 0.78rem; color: var(--dim); margin-top: 2px; }
+.readiness-metrics { display: flex; flex-direction: column; gap: 5px; }
+.readiness-metric {
+  display: flex; align-items: baseline; gap: 8px;
+  font-family: var(--font-mono); font-size: 0.72rem;
+  border-top: 1px solid var(--border); padding-top: 5px;
+}
+.readiness-metric .rm-label { color: var(--dim); }
+.readiness-metric .rm-val { margin-left: auto; color: var(--text); font-weight: 500; }
+.readiness-metric .rm-base { color: var(--dim2); }
+
+/* Wochenrückblick */
+.wr-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+.wr-chip {
+  font-family: var(--font-mono); font-size: 0.72rem; color: var(--dim);
+  background: var(--card-alt); border: 1px solid var(--border);
+  border-radius: var(--pill); padding: 4px 12px;
+}
+.wr-chip b { color: var(--text); font-weight: 600; }
+.wr-highlight { font-size: 0.78rem; color: var(--dim); margin-top: 6px; }
+.wr-highlight b { color: var(--text); }
+
+/* Bestwerte-Wand */
+.records-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(215px, 1fr));
+  gap: 14px;
+  margin-bottom: 8px;
+}
+.record-card {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 14px 16px;
+  transition: transform var(--transition), border-color var(--transition);
+}
+.record-card:hover { transform: translateY(-2px); border-color: var(--border-light); }
+.record-icon { font-size: 1.3rem; line-height: 1; margin-top: 2px; }
+.record-value { font-family: var(--font-disp); font-size: 1.2rem; font-weight: 700; color: var(--gold); }
+.record-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 3px; }
+.record-meta { font-family: var(--font-mono); font-size: 0.66rem; color: var(--dim2); margin-top: 3px; }
+.record-prev { font-size: 0.68rem; color: var(--dim2); margin-top: 5px; font-style: italic; }
+.record-prev.record-first { color: var(--z1); font-style: normal; }
+
+/* Kadenz-Coach-Chips */
+#kadenz-coach { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+#kadenz-coach:empty { display: none; }
+.coach-chip {
+  display: flex; align-items: baseline; gap: 8px;
+  background: var(--card-alt); border: 1px solid var(--border);
+  border-radius: var(--pill); padding: 5px 14px;
+  font-family: var(--font-mono); font-size: 0.7rem; color: var(--dim);
+}
+.coach-chip .coach-val { font-family: var(--font-disp); font-weight: 700; font-size: 0.9rem; }
+.coach-chip .coach-sub { color: var(--dim2); font-size: 0.66rem; }
+.coach-chip .coach-sub.coach-up { color: var(--z1); }
+.coach-chip .coach-sub.coach-down { color: var(--thr); }
+.coach-chip .coach-type { margin-left: 4px; }
+.coach-chip .coach-type b { font-weight: 600; }

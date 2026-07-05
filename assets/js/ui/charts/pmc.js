@@ -271,3 +271,77 @@ export function renderDecoupling(svgId, rides) {
       xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
   });
 }
+
+/* ── FTP-Projektion: eFTP-Verlauf + Prognose auf den Retest ──── */
+export function renderFtpForecast(svgId, history, fc, goal, retestISO) {
+  const svg = el(svgId); if (!svg) return; svg.innerHTML = "";
+  if (!history || history.length < 3) {
+    const t = svgEl("text", { x: 390, y: 95, "text-anchor": "middle", fill: "#5f6878", "font-size": "12" });
+    t.textContent = "eFTP-Historie wird ab dem nächsten Daten-Sync aufgebaut";
+    svg.appendChild(t);
+    return;
+  }
+
+  const W = 780, H = 200, pad = { l: 46, r: 60, t: 18, b: 32 };
+  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+
+  const t0 = new Date(history[0].date).getTime();
+  const tEnd = new Date(retestISO).getTime();
+  const xOf = (iso) => pad.l + ((new Date(iso).getTime() - t0) / (tEnd - t0)) * cw;
+
+  const vals = history.map(h => h.eftp);
+  const minV = Math.min(...vals, fc ? fc.low : goal) - 4;
+  const maxV = Math.max(...vals, fc ? fc.high : goal, goal) + 4;
+  const yOf = (v) => pad.t + ch - ((v - minV) / (maxV - minV)) * ch;
+
+  gridLines(svg, W, H, pad, maxV, minV);
+
+  // Ziel-Linie
+  const gy = yOf(goal);
+  svg.appendChild(svgEl("line", { x1: pad.l, y1: gy, x2: W - pad.r, y2: gy, stroke: "#c9a84c", "stroke-width": "1.2", "stroke-dasharray": "6,3", opacity: "0.8" }));
+  const gl = svgEl("text", { x: W - pad.r + 4, y: gy + 3, fill: "#c9a84c", "font-size": "9" });
+  gl.textContent = `Ziel ${goal}`;
+  svg.appendChild(gl);
+
+  // Historie
+  const histPts = history.map(h => ({ x: xOf(h.date), y: yOf(h.eftp), h }));
+  svg.appendChild(svgEl("polyline", {
+    fill: "none", stroke: "#e08a3c", "stroke-width": "2", "stroke-linejoin": "round",
+    points: histPts.map(p => `${p.x},${p.y}`).join(" "),
+  }));
+  const step = Math.max(1, Math.floor(histPts.length / 14));
+  histPts.forEach((p, i) => {
+    if (i % step !== 0 && i !== histPts.length - 1) return;
+    const c = svgEl("circle", { cx: p.x, cy: p.y, r: "3", fill: "#e08a3c", stroke: "#0b0e13", "stroke-width": "1.5" });
+    c.style.cursor = "pointer";
+    c.addEventListener("mouseenter", e => Tooltip.show(e, `<div class="tt">${p.h.date.split("-").reverse().join(".")}</div><div class="tv">eFTP ${p.h.eftp} W</div>`));
+    c.addEventListener("mouseleave", () => Tooltip.hide());
+    svg.appendChild(c);
+  });
+
+  // Projektion mit Unsicherheitsband bis zum Retest
+  if (fc) {
+    const last = histPts[histPts.length - 1];
+    const xT = xOf(retestISO);
+    svg.appendChild(svgEl("path", {
+      d: `M${last.x},${last.y} L${xT},${yOf(fc.high)} L${xT},${yOf(fc.low)} Z`,
+      fill: "#e08a3c", opacity: "0.12",
+    }));
+    svg.appendChild(svgEl("line", {
+      x1: last.x, y1: last.y, x2: xT, y2: yOf(fc.projected),
+      stroke: "#e08a3c", "stroke-width": "1.6", "stroke-dasharray": "5,4",
+    }));
+    const proj = svgEl("text", { x: xT + 4, y: yOf(fc.projected) + 3, fill: "#e2e7ef", "font-size": "10", "font-weight": "600" });
+    proj.textContent = `~${fc.projected} W`;
+    svg.appendChild(proj);
+    const band = svgEl("text", { x: xT + 4, y: yOf(fc.projected) + 15, fill: "#97a1b3", "font-size": "8.5" });
+    band.textContent = `${fc.low}–${fc.high}`;
+    svg.appendChild(band);
+  }
+
+  // Retest-Markierung
+  const xr = xOf(retestISO);
+  svg.appendChild(svgEl("line", { x1: xr, y1: pad.t, x2: xr, y2: pad.t + ch, stroke: "#5f6878", "stroke-width": "1", "stroke-dasharray": "2,3" }));
+  xLabel(svg, xr, H - pad.b + 14, "Retest " + retestISO.slice(5).split("-").reverse().join("."));
+  xLabel(svg, histPts[0].x, H - pad.b + 14, history[0].date.slice(5).split("-").reverse().join("."));
+}
