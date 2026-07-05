@@ -107,6 +107,15 @@ assets/js/
     stats.js          → sum/avg/max/min, linearTrend (Regression)
     aggregate.js      → isoWeekKey, weeklyFromPlanWeeks, weeklyByCalendar, monthlyFromRides
     pmc.js            → interpolateCtl, tsbOf
+    loadguard.js      → Foster-Monotonie/Strain, CTL-Ramp (Belastungswächter)
+    readiness.js      → Tagesform: 7d vs. 42d-Baseline (nur intervals.icu-SDNN!)
+    zones.js          → Time-in-Zone-Normalisierung + Wochenverteilung
+    efficiency.js     → EF-Trend über vergleichbare Z2-Fahrten
+    cadence.js        → Kadenz-Coach-Kennzahlen
+    ftp-forecast.js   → eFTP-Historie + Retest-Projektion
+    records.js        → Bestwerte mit Ablöse-Historie
+    weekreview.js     → Wochenrückblick (letzte abgeschlossene Woche)
+    consistency.js    → Jahreskalender-Daten (ersetzt Wochentags-Heatmap)
     powercurve.js     → extractPowerCurve (beide intervals.icu-Formate), buildCurveData
     normalize.js      → normalizeRide/normalizeFeel/normalizeWellness
     validate.js       → Laufzeit-Schema-Prüfung für rides.json
@@ -234,6 +243,17 @@ WEATHER_LAT             WEATHER_LON
 WEATHER_LAT_2           WEATHER_LON_2
 ```
 
+## Chart-Merge-Konvention
+
+Neue Auswertungen möglichst in bestehende Charts integrieren statt neue Boxen
+anzulegen (Chart-Masse begrenzen): Belastungswächter lebt IM TRIMP-Chart
+(Ramp-Linie + ⚠), EF-Trend IM Effizienz-Chart, Blockvergleich IM Power-Curve-
+Chart (Toggle), Kadenz-Coach als Chips ÜBER dem Kadenz-Chart. Der Konsistenz-
+kalender hat die Wochentags-Heatmap ERSETZT (Wochentagszähler in den Zeilen-
+labels). Explainer-Texte bei Chart-Änderungen immer mitziehen — sie werden
+teils statisch in index.html, teils via updateChartExplainers (app.js, BEIDE
+Athleten-Varianten!) gesetzt.
+
 ## Bekannte Eigenheiten
 
 - `subjective.json` und `adjustments.json` werden vom Action-Workflow vor
@@ -256,4 +276,8 @@ WEATHER_LAT_2           WEATHER_LON_2
   aufrufen.
 - Entfernter Alt-Code (bewusst, bei Bedarf via Git-History): `Tabs`-Objekt (utils.js),
   `renderHRV`/`renderRHF`-Legacy-Stubs (charts.js), `queryNotionPlan1_compat`
-  (generate-data.js) — alle drei waren unreferenziert.
+  (generate-data.js), `renderHeatmap` (durch renderConsistency ersetzt).
+- `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
+  `icu_eftp`) — Feldnamen beim ersten echten Sync-Lauf verifizieren; das
+  Frontend normalisiert beide bekannten Formate und degradiert mit
+  Hinweistext, wenn die Felder fehlen.

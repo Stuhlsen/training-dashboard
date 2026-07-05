@@ -16,9 +16,9 @@ Persönliches Radsport-Trainingsdashboard — statisch, kostenfrei, vollautomati
 ```
 Notion DB (Plan 1) ──────────────────────────────────────────────────┐
                                                                       │
-intervals.icu API ──→ Ride-Metriken (Power, HR, TSS …)               │
+intervals.icu API ──→ Ride-Metriken (Power, HR, TSS, Zone-Times, eFTP)│
                   ──→ Wellness (RHF, HRV, Schlaf, Gewicht)           ├──→ generate-data.js
-                  ──→ Power Curves (Bestleistungen)                  │         │
+                  ──→ Power Curves (gesamt + je Trainingsblock)      │         │
                   ──→ Vergleichsathlet (Athlete 2, read-only)     │         ▼
                                                                       │   data/rides.json
 Open-Meteo API ────→ Historisches Wetter (Archive API)               │   data/rides-2.json
@@ -33,7 +33,9 @@ GitHub Action (alle 6h) ──────────────────�
         └──→ GitHub Pages Deploy (automatisch nach jedem Sync)
 ```
 
-**Tech-Stack:** Vanilla HTML/CSS/JS · SVG-Charts (kein Framework, kein Build-Step) · Node.js · GitHub Actions
+**Tech-Stack:** Vanilla HTML/CSS/JS als native ES-Module · SVG-Charts (kein Framework, kein Build-Step) · Node.js · GitHub Actions (Daten-Sync alle 6 h + CI mit `node:test`-Suite und ESLint)
+
+**Code-Architektur (Frontend):** strikte Schichtentrennung `core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Zonen, EF-Trend, FTP-Prognose, Bestwerte, Konsistenz) → `state/` (Konfiguration + Daten-Store) → `ui/` (DOM, SVG-Rendering, Panels). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
 
 ---
 
@@ -49,10 +51,13 @@ Unterschiede bei Vergleichsdaten:
 - Planungs-Tab vollständig ausgeblendet
 
 ### Tab: Übersicht
-- Hero mit athletenabhängiger Kurzbeschreibung
+- Hero mit **FTP-Zonen-Band** (Watt-Skala mit Pins für FTP, eFTP und Saisonziel), **FTP-Fortschrittsring** und **Session-Pill** (nächste geplante Einheit, berücksichtigt Verschiebungen/Ausfälle)
+- **Tagesform-Ampel**: HRV (SDNN), Ruhepuls und Schlaf der letzten 7 Tage gegen eine rollierende 42-Tage-Baseline — mit konkreter Trainingsempfehlung (wie geplant / Intensität reduzieren / Erholung). Grundlage: HRV-gesteuertes Training (u. a. Javaloyes 2019)
+- **Wochenrückblick**: die letzte abgeschlossene Woche als Karte — Umfang, stärkste Einheit, Wetter-Highlight, Plan-Erfüllung
 - KPIs: Gesamtdistanz (inkl. optionaler Strava-Historik für Vergleichsathleten), FTP, Fahrtenanzahl, Trainingszeit
-- Trainingsverteilung nach Wochentag (Heatmap, Farbskala grün→rot)
+- **Konsistenz-Jahreskalender** (GitHub-Stil): jeder Trainingstag als Zelle, gefärbt nach Tageslast; die Zeilenzähler übernehmen die Wochentagsverteilung
 - Meilensteine als Gantt-Diagramm mit Phasen-Hintergründen (nur beim eigenen Plan)
+- **Bestwerte-Wand**: automatisch erkannte persönliche Bestleistungen (längste Fahrt/Fahrzeit, beste NP ≥ 20 min, schnellste 40 km+, meiste Höhenmeter, größte Woche) — jeweils mit Ablöse-Historie
 
 ### Tab: Charts
 
@@ -60,14 +65,20 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 
 | Block | Charts |
 |---|---|
-| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches/Monatliches Volumen (Toggle, phasengefärbt, 200km-Zielzone beim eigenen Plan), TRIMP pro Woche/Monat (Toggle, absoluter Farbgradient grün→rot) |
-| ⚡ Leistung | Power Curve (Bestleistungen mit anaerober Reserve-Fläche, FTP-Linie, W/kg-Toggle), Aerobe Effizienz (W/bpm), Tempo vs. HF Scatter, Tempo / Kadenz / HF Entwicklung (scrollbar, IQR-gefiltert, 90-RPM-Ziellinie beim eigenen Plan) |
+| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches/Monatliches Volumen (Toggle, phasengefärbt, 200km-Zielzone beim eigenen Plan), **Belastungswächter** (TRIMP-Balken + CTL-Ramp-Linie mit Sicherheitskorridor + Foster-Monotonie-Marker), **Intensitätsverteilung** (Zeit in Zonen pro Woche, 80%-Grundlagen-Richtwert) |
+| ⚡ Leistung | Power Curve (anaerobe Reserve, FTP-Linie, W/kg-Toggle, **Blockvergleich**: Kurven je Trainingsblock übereinander), **FTP-Projektion** (eFTP-Verlauf mit Prognose-Fächer auf den W12-Retest), Aerobe Effizienz mit **EF-Trend** über vergleichbare Z2-Fahrten, Tempo vs. HF Scatter, **Kadenz-Coach** (Statistik-Chips + Verlauf), Tempo / HF Entwicklung (scrollbar, IQR-gefiltert) |
 | ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV (Plan-Compare oder Wellness-Verlauf), Ruhepuls (Plan-Compare oder Wellness-Verlauf), Schlaf (Dauer + Schlaf-HF, täglich, 7h-Ziel beim eigenen Plan) |
 | 🌤️ Wetterbedingungen | Temperatur & Wind pro Woche/Monat (Toggle, Balken + Windlinie, Ampel-Farbcodierung) |
 
 **Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus intervals.icu. Roter Bereich über FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt gewichtsnormierte Leistung.
 
-**TRIMP Farbskala:** grün = <400 (Erholung) · gelb = 400–600 (moderat) · orange = 600–900 (hoch) · rot = >900 (sehr hoch).
+**Belastungswächter:** kombiniert zwei Überlastungs-Frühindikatoren. Die CTL-Ramp-Rate (Fitness-Anstieg pro Woche) mit sicherem Korridor +3 bis +6 — ab +8 steigt das Risiko deutlich. Dazu Foster-Monotonie (Ø Tageslast ÷ Standardabweichung, inkl. Ruhetage): ⚠ ab 2,0 — gleiche Last jeden Tag ist riskanter als gemischte Tage. TRIMP-Farbskala der Balken: grün = <400 (Erholung) · gelb · orange · rot = >900.
+
+**Intensitätsverteilung:** wöchentliche Zeit in den Leistungszonen aus den Powermeter-Daten (Zone-Times aus intervals.icu), verdichtet auf Grundlage (Z1–Z2) / Mitte (Z3–Z4) / Hoch (Z5+). Richtwert nach Seiler: ≥ 80 % Grundlage — deckt den klassischen Fehler „Z2-Fahrten, die eigentlich Tempo waren" auf.
+
+**EF-Trend:** Watt pro Herzschlag über ausschließlich vergleichbare Fahrten (Z2, ≥ 60 min, 5–30 °C) mit gleitendem Mittel — der sauberste Feldtest-Nachweis aerober Anpassung zwischen zwei FTP-Tests. Intervall- und Hitzetage bleiben als grauer Kontext sichtbar.
+
+**FTP-Projektion:** lineare Fortschreibung der eFTP-Historie (letzte 8 Wochen) auf den Retest-Termin, mit Unsicherheitsband aus den Residuen statt Punktversprechen — zeigt vor dem Taper, ob das 210-W-Ziel in Reichweite ist.
 
 **HRV & Ruhepuls:** Beim eigenen Plan: Plan-Compare mit Segment-Trennung (Plan 1 / W0 / Plan 2) und getrennten Trendlinien — weil Plan 1 Apple Health RMSSD und Plan 2 intervals.icu SDNN nutzt (unterschiedliche Messmethoden). Bei Vergleichsathleten: durchgehender Verlauf direkt aus Wellness-Daten (alle Tage, nicht nur Fahrtdaten).
 
@@ -91,7 +102,9 @@ Plan-Toggle (Gesamt / Plan 1 / Plan 2), Phasenübersicht mit Detailkarten, Stär
 | Feld | Plan 1 | Plan 2 | Vergleich (Athlete 2) |
 |---|---|---|---|
 | Ride-Metriken (Power, HR, TSS …) | Notion (manuell) | intervals.icu API | intervals.icu API |
-| Power Curve | — | intervals.icu `/power-curves` | intervals.icu `/power-curves` |
+| Power Curve | — | intervals.icu `/power-curves` (gesamt + je Trainingsblock) | intervals.icu `/power-curves` |
+| Zone-Times (Zeit in Zonen) | — | intervals.icu (`icu_zone_times`) | intervals.icu (`icu_zone_times`) |
+| eFTP-Historie | — | intervals.icu (`icu_eftp` je Fahrt) | — |
 | CTL / ATL / TSB | Notion (manuell) | intervals.icu (automatisch) | intervals.icu (automatisch) |
 | FTP | 166→193W (historisch) | 193W (Ramp-Test, hardcodiert bis W12) | 265W (Ramp-Test, hardcodiert) |
 | Einheitstyp | Notion | Datum-Mapping → IF-Inferenz | IF-Inferenz (NP ÷ FTP) + Dauer |
@@ -226,6 +239,18 @@ git sync
 - [x] Planungs-Tab mit serverseitigem Wetter-Forecast, Workout-Push, Soll-Ist-Vergleich
 - [x] Bidirektionale Verlinkung Planungs-Tab ↔ Fahrtenbuch
 - [x] Tab-Position bleibt beim Reload erhalten (URL-Hash)
+- [x] **Belastungswächter**: CTL-Ramp-Rate mit Sicherheitskorridor + Foster-Monotonie/Strain im TRIMP-Chart
+- [x] **Tagesform-Ampel**: HRV/Ruhepuls/Schlaf vs. rollierende 42-Tage-Baseline mit Trainingsempfehlung
+- [x] **Intensitätsverteilung**: Zeit in Zonen pro Woche gegen den 80%-Grundlagen-Richtwert (Seiler)
+- [x] **EF-Trend**: aerober Fortschritts-Marker über vergleichbare Z2-Fahrten (Temperatur-/Dauerfilter)
+- [x] **Power-Curve-Blockvergleich**: Kurven je Trainingsblock (Plan 1 / Sweet Spot / Schwelle / VO2max)
+- [x] **FTP-Retest-Prognose** aus der eFTP-Historie mit Unsicherheitsband
+- [x] **Kadenz-Coach**: Entwicklung, Zielquote ≥90 RPM, Aufschlüsselung nach Fahrttyp
+- [x] **Wochenrückblick-Karte** (letzte abgeschlossene Woche, automatisch)
+- [x] **Bestwerte-Wand** mit Ablöse-Historie
+- [x] **Konsistenz-Jahreskalender** (ersetzt die Wochentags-Heatmap)
+- [x] ES-Modul-Architektur (core/state/ui), 69 Unit-Tests (`node:test`), CI-Workflow
+- [x] Design-System Konzept 5 (Glas-Kacheln, Zonen-Farbsystem, FTP-Zonen-Band + Fortschrittsring im Hero)
 
 ### ✅ Abgeschlossen — Datenschutz & Infrastruktur
 - [x] **Alle Standortdaten ausschließlich in GitHub Secrets** — kein Koordinaten-Hardcode im Code oder JSON
@@ -237,8 +262,6 @@ git sync
 ### 🔲 Geplant — Dashboard & Training
 - [ ] Wochennotizen im Fahrtenbuch editierbar
 - [ ] Vergleichsansicht Plan 1 vs. Plan 2 — CTL-Kurve beider Pläne nebeneinander
-- [ ] Kadenz-Ziel-Tracking: Anteil der Fahrten über 90 RPM
-- [ ] Herzfrequenz-Zonen-Verteilung pro Fahrt
 
 ### 🔲 Geplant — Manuelles Testen (QA-Portfolio)
 - [ ] Testplan für Dashboard-Funktionalität
