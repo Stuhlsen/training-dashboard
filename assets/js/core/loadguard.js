@@ -92,3 +92,32 @@ export function buildLoadGuard(rides, weekKeyFn, weekSortFn) {
     };
   });
 }
+
+/**
+ * Interpretierte Wochen-Einordnung für die Analyse-Tabelle:
+ * benennt, WELCHES Signal die Einstufung treibt (Ramp vs. Monotonie).
+ * @param {{ramp: number|null, monotony: number|null, risk: "ok"|"caution"|"high"}} row Zeile aus buildLoadGuard
+ * @returns {{label: string, detail: string}}
+ */
+export function describeWeek(row) {
+  const { ramp, monotony, risk } = row;
+  if (risk === "high") {
+    if (ramp != null && ramp > RAMP_HIGH) {
+      return { label: "Übersteuert", detail: `Ramp +${ramp} CTL/Woche — deutlich über dem sicheren Korridor (${RAMP_OK_MIN}–${RAMP_OK_MAX}).` };
+    }
+    return { label: "Eintönig hart", detail: `Monotonie ${monotony} — Belastung ohne Rhythmuswechsel, Strain-Risiko.` };
+  }
+  if (risk === "caution") {
+    if (ramp != null && ramp > RAMP_OK_MAX) {
+      return { label: "Zügiger Aufbau", detail: `Ramp +${ramp} CTL/Woche — leicht über dem Korridor, beobachten.` };
+    }
+    return { label: "Wenig Rhythmus", detail: `Monotonie ${monotony} — mehr Wechsel zwischen harten und leichten Tagen einplanen.` };
+  }
+  if (ramp != null && ramp < 0) {
+    return { label: "Entlastung", detail: `CTL ${ramp} — Erholungs- oder reduzierte Woche.` };
+  }
+  if (ramp != null && ramp >= RAMP_OK_MIN) {
+    return { label: "Produktiver Aufbau", detail: `Ramp +${ramp} CTL/Woche im sicheren Korridor.` };
+  }
+  return { label: "Stabil", detail: "Belastung gehalten — weder Aufbau noch Entlastung." };
+}

@@ -68,3 +68,39 @@ export function efficiencyTrend(rides) {
     last: rollVals.length ? Math.round(rollVals[rollVals.length - 1] * 100) / 100 : null,
   };
 }
+
+/** Ab diesem Decoupling gilt eine Fahrt als aerob stabil (Pw:HR < 5%) */
+export const DECOUPLING_STABLE = 5;
+/** Mindestpunkte für einen aussagekräftigen Decoupling-Trend */
+export const DECOUPLING_MIN_POINTS = 5;
+
+/**
+ * HF-Decoupling-Trend über Fahrten mit Decoupling-Wert.
+ * Steady-State-Kriterien wie beim EF (nur Z2-Typen ab 60 min) —
+ * auf Intervallfahrten ist Decoupling nicht interpretierbar.
+ * @param {import("../types.js").Ride[]} rides
+ * @returns {null | {points: Array<{date: string, value: number}>, median: number, stableShare: number, slopePer30d: number|null, n: number}}
+ *   null wenn < DECOUPLING_MIN_POINTS geeignete Fahrten (UI: "Datenbasis wächst noch")
+ */
+export function decouplingTrend(rides) {
+  const usable = (rides || [])
+    .filter((r) => r.decoupling != null && COMPARABLE.types.includes(r.typ) && (r.min || 0) >= COMPARABLE.minDurationMin)
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  if (usable.length < DECOUPLING_MIN_POINTS) return null;
+
+  const points = usable.map((r) => ({ date: r.dateISO, value: r.decoupling }));
+  const sortedVals = points.map((p) => p.value).sort((a, b) => a - b);
+  const mid = Math.floor(sortedVals.length / 2);
+  const median = sortedVals.length % 2
+    ? sortedVals[mid]
+    : Math.round(((sortedVals[mid - 1] + sortedVals[mid]) / 2) * 10) / 10;
+
+  const stableShare = Math.round((points.filter((p) => p.value < DECOUPLING_STABLE).length / points.length) * 100);
+
+  let slopePer30d = null;
+  const t0 = new Date(points[0].date).getTime();
+  const trend = linearTrend(points.map((p) => ({ x: (new Date(p.date).getTime() - t0) / 86400000, y: p.value })));
+  if (trend) slopePer30d = Math.round(trend.slope * 30 * 100) / 100;
+
+  return { points, median, stableShare, slopePer30d, n: points.length };
+}
