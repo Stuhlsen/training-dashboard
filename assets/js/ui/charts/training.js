@@ -10,7 +10,7 @@ import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js
 import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
 import { CONFIG } from "../../state/config.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel } from "./base.js";
+import { gridLines, xLabel, pickLabelIndices, weekDisplayLabels } from "./base.js";
 
 /* ── Wöchentliches Volumen (Balken) ──────────────────────────── */
 export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
@@ -23,6 +23,9 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
   const maxKm = Math.max(...weeklyData.map(d => d.km || 0), ownPlan ? TARGET_KM * 1.1 : 0) * 1.15 || 1;
   const bw = Math.min(cw / weeklyData.length * 0.62, 52);
   const gap = cw / weeklyData.length;
+  const labels = weekDisplayLabels(weeklyData.map(d => d.week));
+  const labelIdx = pickLabelIndices(weeklyData.map((_, i) => pad.l + i * gap + gap / 2), 40);
+  const denseValues = gap < 22; // Wert-Labels ausdünnen, sobald es eng wird
 
   gridLines(svg, W, H, pad, maxKm);
 
@@ -72,7 +75,7 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
     if (onBarClick) rect.addEventListener("click", () => onBarClick(d.week));
     svg.appendChild(rect);
 
-    if (bh > 16) {
+    if (bh > 16 && (!denseValues || labelIdx.has(i))) {
       const vt = svgEl("text", {
         x: x + bw / 2, y: y - 4,
         "text-anchor": "middle", fill: "#97a1b3", "font-size": "9",
@@ -80,7 +83,7 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
       vt.textContent = Math.round(d.km);
       svg.appendChild(vt);
     }
-    xLabel(svg, x + bw / 2, H - pad.b + 14, d.week);
+    if (labelIdx.has(i)) xLabel(svg, x + bw / 2, H - pad.b + 14, labels[i]);
   });
 }
 
@@ -92,6 +95,7 @@ export function renderTrimp(svgId, weeklyData, guard) {
   if (guard) for (const g of guard) guardByWeek[g.week] = g;
   const hasGuard = guard && guard.some(g => g.ramp != null || g.monotony != null);
   const W = 780, H = 230, pad = { l: 50, r: hasGuard ? 46 : 16, t: 16, b: 40 };
+  const labels = weekDisplayLabels(weeklyData.map(d => d.week));
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
   const maxV = Math.max(...weeklyData.map(d => d.trimp || 0)) * 1.15 || 1;
   const bw = Math.min(cw / weeklyData.length * 0.62, 52);
@@ -107,6 +111,8 @@ export function renderTrimp(svgId, weeklyData, guard) {
     return "#d94f4f";                    // rot   — sehr hoch
   };
 
+  const labelIdx = pickLabelIndices(weeklyData.map((_, i) => pad.l + i * gap + gap / 2), 40);
+  const denseValues = gap < 22;
   weeklyData.forEach((d, i) => {
     const x  = pad.l + i * gap + (gap - bw) / 2;
     const bh = Math.max((d.trimp || 0) / maxV * ch, 1);
@@ -135,13 +141,13 @@ export function renderTrimp(svgId, weeklyData, guard) {
       const warn = svgEl("text", { x: x + bw / 2, y: y - 16, "text-anchor": "middle", "font-size": "11" });
       warn.textContent = "⚠";
       svg.appendChild(warn);
-    } else if (bh > 15) {
+    } else if (bh > 15 && (!denseValues || labelIdx.has(i))) {
       const vt = svgEl("text", { x: x + bw / 2, y: y - 4, "text-anchor": "middle", fill: color, "font-size": "9", "font-weight": "600" });
       vt.textContent = d.trimp || 0;
       svg.appendChild(vt);
     }
 
-    xLabel(svg, x + bw / 2, H - pad.b + 14, d.week);
+    if (labelIdx.has(i)) xLabel(svg, x + bw / 2, H - pad.b + 14, labels[i]);
   });
 
   // Ramp-Overlay: CTL-Anstieg/Woche als Linie auf zweiter Achse,
@@ -305,6 +311,9 @@ export function renderZoneWeekly(svgId, weeks) {
   svg.appendChild(tl);
 
   const gap = cw / weeks.length, bw = Math.min(gap * 0.6, 48);
+  const labels = weekDisplayLabels(weeks.map(w => w.week));
+  const labelIdx = pickLabelIndices(weeks.map((_, i) => pad.l + i * gap + gap / 2), 40);
+  const denseValues = gap < 24; // %-Labels brauchen etwas mehr Platz
   weeks.forEach((wk, i) => {
     const total = wk.low + wk.mid + wk.high;
     const x = pad.l + i * gap + (gap - bw) / 2;
@@ -315,10 +324,12 @@ export function renderZoneWeekly(svgId, weeks) {
       yCursor -= h;
       svg.appendChild(svgEl("rect", { x, y: yCursor, width: bw, height: h, fill: COLORS[band], opacity: "0.85" }));
     }
-    // Low-Share-Label + Zielstatus
-    const lbl = svgEl("text", { x: x + bw / 2, y: pad.t + ch * (1 - wk.lowShare) - 5, "text-anchor": "middle", fill: wk.onTarget ? "#4a9a6e" : "#c9a84c", "font-size": "9", "font-weight": "600" });
-    lbl.textContent = `${Math.round(wk.lowShare * 100)}%`;
-    svg.appendChild(lbl);
+    // Low-Share-Label + Zielstatus (bei dichten Wochen nur ausgedünnt)
+    if (!denseValues || labelIdx.has(i)) {
+      const lbl = svgEl("text", { x: x + bw / 2, y: pad.t + ch * (1 - wk.lowShare) - 5, "text-anchor": "middle", fill: wk.onTarget ? "#4a9a6e" : "#c9a84c", "font-size": "9", "font-weight": "600" });
+      lbl.textContent = `${Math.round(wk.lowShare * 100)}%`;
+      svg.appendChild(lbl);
+    }
 
     const hit = svgEl("rect", { x, y: pad.t, width: bw, height: ch, fill: "transparent" });
     hit.style.cursor = "pointer";
@@ -331,7 +342,7 @@ export function renderZoneWeekly(svgId, weeks) {
     hit.addEventListener("mouseleave", () => Tooltip.hide());
     svg.appendChild(hit);
 
-    xLabel(svg, x + bw / 2, H - pad.b + 14, wk.week);
+    if (labelIdx.has(i)) xLabel(svg, x + bw / 2, H - pad.b + 14, labels[i]);
   });
 }
 
@@ -442,6 +453,8 @@ export function renderWeatherWeekly(svgId, rides) {
   }
 
   // Balken (Temperatur)
+  const wLabels = weekDisplayLabels(data.map(d => d.week));
+  const wLabelIdx = pickLabelIndices(data.map((_, i) => xMid(i)), 34);
   data.forEach((d, i) => {
     const x = xMid(i) - barW / 2;
     const y = yTemp(Math.max(d.temp, minT));
@@ -460,8 +473,9 @@ export function renderWeatherWeekly(svgId, rides) {
       svg.appendChild(rain);
     }
 
-    // Temp-Label: mittig im Balken, aber Windpunkt ausweichen
-    if (bh > 16) {
+    // Temp-Label: mittig im Balken, aber Windpunkt ausweichen —
+    // nur wenn der Balken breit genug für "xx.x°" ist (Überlappungsschutz)
+    if (bh > 16 && barW >= 24) {
       const windY = yWind(d.wind);
       let labelY = y + bh / 2 + 4;
       // Wenn Label zu nah am Windpunkt — nach unten verschieben
@@ -473,10 +487,12 @@ export function renderWeatherWeekly(svgId, rides) {
       svg.appendChild(tl);
     }
 
-    // X-Label (Woche)
-    const xl = svgEl("text", { x: xMid(i), y: H - pad.b + 14, "text-anchor": "middle", fill: "#5f6878", "font-size": "8" });
-    xl.textContent = d.week.replace("P2-", "");
-    svg.appendChild(xl);
+    // X-Label (Woche) — ausgedünnt, kompakte KW-Schreibweise
+    if (wLabelIdx.has(i)) {
+      const xl = svgEl("text", { x: xMid(i), y: H - pad.b + 14, "text-anchor": "middle", fill: "#5f6878", "font-size": "8" });
+      xl.textContent = wLabels[i].replace("P2-", "");
+      svg.appendChild(xl);
+    }
 
     // Unsichtbare Hit-Fläche für Tooltip
     const hit = svgEl("rect", { x: xMid(i) - barW / 2 - 2, y: pad.t, width: barW + 4, height: ch, fill: "transparent" });

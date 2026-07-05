@@ -45,6 +45,58 @@ export function gridLines(svg, W, H, pad, maxV, minV = 0, steps = 4, noLabels = 
 }
 
 /** Zentriertes X-Achsen-Label */
+/* ── Label-Layout (pure Funktionen, getestet in tests/chart-layout) ──
+   Charts dürfen X-/Wert-Labels nie pro Datenpunkt ohne Ausdünnung
+   zeichnen — bei Athlet 2 (viele Kalenderwochen) überlappen sie sonst. */
+
+/**
+ * Wählt Label-Indizes mit Mindestabstand (px). Greedy von links,
+ * der LETZTE Punkt ist immer dabei — Kandidaten, die mit ihm
+ * kollidieren würden, werden übersprungen.
+ * @param {number[]} xs Aufsteigende X-Positionen (Balken-/Punktmitten)
+ * @param {number} [minPx]
+ * @returns {Set<number>}
+ */
+export function pickLabelIndices(xs, minPx = 38) {
+  const n = xs.length;
+  const picked = new Set();
+  if (!n) return picked;
+  const lastX = xs[n - 1];
+  let prev = -Infinity;
+  for (let i = 0; i < n - 1; i++) {
+    if (xs[i] - prev >= minPx && lastX - xs[i] >= minPx) {
+      picked.add(i);
+      prev = xs[i];
+    }
+  }
+  picked.add(n - 1);
+  return picked;
+}
+
+/**
+ * Kompakte Anzeige-Labels für Wochen-Keys. Kalenderwochen verlieren
+ * das Jahrespräfix ("2026-KW27" → "KW27"); bei Jahreswechsel innerhalb
+ * der Reihe wird das neue Jahr einmal markiert ("KW01 ’27").
+ * Monats-Keys werden zu "MM/JJ", Plan-Wochen bleiben unverändert.
+ * @param {string[]} weeks
+ * @returns {string[]}
+ */
+export function weekDisplayLabels(weeks) {
+  let prevYear = null;
+  return (weeks || []).map((w) => {
+    const kw = /^(\d{4})-KW(\d{2})$/.exec(w || "");
+    if (kw) {
+      const [, year, num] = kw;
+      const label = prevYear && year !== prevYear ? `KW${num} ’${year.slice(2)}` : `KW${num}`;
+      prevYear = year;
+      return label;
+    }
+    const mo = /^(\d{4})-(\d{2})$/.exec(w || "");
+    if (mo) return `${mo[2]}/${mo[1].slice(2)}`;
+    return w;
+  });
+}
+
 export function xLabel(svg, x, y, text) {
   const t = svgEl("text", {
     x, y, "text-anchor": "middle", fill: "#5f6878", "font-size": "10",

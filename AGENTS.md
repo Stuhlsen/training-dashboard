@@ -243,6 +243,20 @@ WEATHER_LAT             WEATHER_LON
 WEATHER_LAT_2           WEATHER_LON_2
 ```
 
+## Chart-Label-Konvention (Überlappungsschutz)
+
+X-Achsen- und Wert-Labels NIEMALS pro Datenpunkt/Balken ohne Ausdünnung
+zeichnen — bei Athlet 2 (30+ Kalenderwochen) überlappt sonst die Achse.
+Pflicht für jedes Chart mit variabler Datenmenge:
+- `pickLabelIndices(xs, minPx)` aus ui/charts/base.js (pure, getestet in
+  tests/chart-layout.test.js): Mindestabstand, letzter Punkt garantiert und
+  kollisionsfrei. Richtwerte: 40px für Wochen-Balken, 55–60px für Datums-Labels.
+- Wochen-Keys über `weekDisplayLabels()` kürzen ("2026-KW27" → "KW27",
+  Jahreswechsel wird markiert, Monate → "MM/JJ").
+- Wert-Labels auf Balken bei Pitch < ~22px nur auf den Label-Indizes zeichnen;
+  In-Balken-Labels zusätzlich per Balkenbreite gaten (siehe Wetter-Chart).
+- Keine "Modulo-Step + letzter immer"-Guards mehr — die erzeugen End-Kollisionen.
+
 ## Chart-Merge-Konvention
 
 Neue Auswertungen möglichst in bestehende Charts integrieren statt neue Boxen

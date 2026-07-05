@@ -7,7 +7,7 @@ import { fmt, wrapText } from "../../core/format.js";
 import { linearTrend } from "../../core/stats.js";
 import { Data } from "../../state/data.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel, autoScrollRight } from "./base.js";
+import { gridLines, xLabel, autoScrollRight, pickLabelIndices } from "./base.js";
 
 /* ── Schlaf — Dauer & Schlaf-HF ──────────────────────────────── */
 export function renderSleep(svgId, wellness, ownPlan = true) {
@@ -120,15 +120,10 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
     }
   }
 
-  // X Labels mit Mindestabstand
-  let lastLabelX = -999;
+  // X Labels mit Mindestabstand (letztes Label garantiert kollisionsfrei)
+  const sleepLblIdx = pickLabelIndices(data.map((_, i) => pad.l + i * gap + gap / 2), 55);
   data.forEach((d, i) => {
-    const x = pad.l + i * gap + gap / 2;
-    const isLast = i === data.length - 1;
-    if (x - lastLabelX >= 55 || isLast) {
-      xLabel(svg, x, H - pad.b + 14, d.dateShort);
-      lastLabelX = x;
-    }
+    if (sleepLblIdx.has(i)) xLabel(svg, pad.l + i * gap + gap / 2, H - pad.b + 14, d.dateShort);
   });
 
   // Auto-scroll
@@ -230,11 +225,11 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     svg.appendChild(c);
   });
 
-  // X labels
-  const labelStep = Math.max(1, Math.floor(pts.length / 8));
+  // X labels — Mindestabstand; der Plan-Übergang bekommt immer ein Label
+  const lblIdx = pickLabelIndices(pts.map(p => p.x), 60);
+  if (plan2Start > 0) lblIdx.add(plan2Start);
   pts.forEach((p, i) => {
-    if (i % labelStep === 0 || i === pts.length - 1 || i === plan2Start)
-      xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    if (lblIdx.has(i)) xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
   });
 
   // Divider-Linien: Plan1→W0 und W0→Plan2 (falls W0 existiert), sonst nur ein Divider

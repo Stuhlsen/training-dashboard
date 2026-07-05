@@ -6,7 +6,7 @@
 import { fmt } from "../../core/format.js";
 import { interpolateCtl, tsbOf } from "../../core/pmc.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel, autoScrollRight } from "./base.js";
+import { gridLines, xLabel, autoScrollRight, pickLabelIndices } from "./base.js";
 
 /* ── CTL-Progression mit Interpolation ───────────────────────── */
 export function renderCTL(svgId, rides) {
@@ -64,10 +64,9 @@ export function renderCTL(svgId, rides) {
     svg.appendChild(c);
   });
 
-  const ls = Math.max(1, Math.floor(pts.length / 10));
+  const lblIdx = pickLabelIndices(pts.map(p => p.x), 60);
   pts.forEach((p, i) => {
-    if (i % ls === 0 || i === pts.length - 1)
-      xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    if (lblIdx.has(i)) xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
   });
 }
 
@@ -208,11 +207,10 @@ export function renderPMC(svgId, rides) {
     noteEl.textContent = `Aktuell: CTL ${fmt(lastCTL.ctl)} · ATL ${fmt(lastCTL.atl)} · TSB ${fmt(tsb)}`;
   }
 
-  // X labels
-  const ls = Math.max(1, Math.floor(ctlPts.length / Math.max(12, Math.floor(W / 70))));
+  // X labels — Mindestabstand statt Modulo-Step (keine End-Kollision)
+  const lblIdx = pickLabelIndices(ctlPts.map(p => p.x), 60);
   ctlPts.forEach((p, i) => {
-    if (i % ls === 0 || i === ctlPts.length - 1)
-      xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    if (lblIdx.has(i)) xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
   });
 
   // Auto-scroll to right

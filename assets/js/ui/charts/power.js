@@ -10,7 +10,7 @@ import { linearTrend } from "../../core/stats.js";
 import { buildCurveData } from "../../core/powercurve.js";
 import { CONFIG } from "../../state/config.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel, autoScrollRight } from "./base.js";
+import { gridLines, xLabel, autoScrollRight, pickLabelIndices } from "./base.js";
 
 /** Zeichnet die Trendlinie einer Punktwolke (falls berechenbar) */
 function drawTrendLine(svg, pts, opts = {}) {
@@ -91,10 +91,9 @@ export function renderEfficiency(svgId, rides, trend) {
     svg.appendChild(c);
   });
 
-  const ls = Math.max(1, Math.floor(pts.length / 8));
+  const lblIdx = pickLabelIndices(pts.map(p => p.x), 60);
   pts.forEach((p, i) => {
-    if (i % ls === 0 || i === pts.length - 1)
-      xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    if (lblIdx.has(i)) xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
   });
 }
 
@@ -230,15 +229,9 @@ export function renderSmallMultiples(rides) {
     });
 
     // X-Labels: mindestens 55px Abstand zwischen Labels
-    let lastLabelX = -999;
+    const effLblIdx = pickLabelIndices(pts.map(p => p.x), 55);
     pts.forEach((p, i) => {
-      const isLast = i === pts.length - 1;
-      if (i % Math.max(1, Math.floor(pts.length / 15)) === 0 || isLast) {
-        if (p.x - lastLabelX >= 55 || isLast) {
-          xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
-          lastLabelX = p.x;
-        }
-      }
+      if (effLblIdx.has(i)) xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
     });
 
     // Scroll: Container-Breite explizit setzen damit Browser scrollt
