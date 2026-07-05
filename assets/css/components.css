@@ -754,3 +754,278 @@
 .coach-chip .coach-sub.coach-down { color: var(--thr); }
 .coach-chip .coach-type { margin-left: 4px; }
 .coach-chip .coach-type b { font-weight: 600; }
+
+/* ============================================================
+   ANALYSE-TAB — Umbau (Konzept 5, Glas-Kacheln)
+   Sektions-Wrapper, Erklärtexte und die neuen Sektionsblöcke
+   (Briefing, LoadGuard-Tabelle, Zonen-Band, Aerob-Grid, FTP-
+   Dreiklang, Bestwerte-Digest, Periodisierungs-Zeilen)
+   ============================================================ */
+
+.analysis-section { margin-top: 2rem; }
+.analysis-section.hidden { display: none; }
+
+.analysis-explainer {
+  font-size: 0.75rem;
+  color: var(--dim);
+  line-height: 1.5;
+  margin: 4px 0 12px;
+  max-width: 70ch;
+}
+
+.analysis-note {
+  font-size: 0.68rem;
+  color: var(--dim2);
+  line-height: 1.5;
+  margin-top: 10px;
+}
+
+.analysis-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+}
+
+/* ── 1 · Status-Briefing ─────────────────────────────────────── */
+.briefing-head { display: flex; align-items: center; gap: 10px; }
+
+.briefing-dot {
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 12px currentColor;
+}
+.briefing-dot.small { width: 8px; height: 8px; box-shadow: none; }
+
+.briefing-headline {
+  font-family: var(--font-disp);
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.briefing-reco {
+  font-size: 0.9rem;
+  color: var(--text);
+  margin: 10px 0 14px;
+  line-height: 1.5;
+}
+
+.briefing-signals { display: flex; flex-direction: column; gap: 7px; }
+
+.briefing-signal {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.76rem;
+  color: var(--dim);
+}
+
+/* ── 2 · Belastung & Erholung (Tabelle) ──────────────────────── */
+.load-table { display: flex; flex-direction: column; }
+
+.load-row {
+  display: grid;
+  grid-template-columns: 66px 52px 52px 56px 56px 1fr;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+.load-row:last-child { border-bottom: none; }
+
+.load-head {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dim2);
+}
+
+.load-week { font-family: var(--font-mono); color: var(--dim); font-size: 0.72rem; }
+
+.load-desc { display: flex; flex-direction: column; gap: 2px; }
+
+.load-chip {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.load-detail { font-size: 0.68rem; color: var(--dim2); line-height: 1.4; }
+
+/* ── 3 · Intensitätsverteilung (Band) ────────────────────────── */
+.zone-bar {
+  display: flex;
+  height: 22px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--border);
+}
+.zone-seg { height: 100%; transition: width 0.4s ease; }
+
+.zone-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 10px;
+  font-size: 0.72rem;
+  color: var(--dim);
+  align-items: center;
+}
+.zone-legend i {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 2px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+.zone-target { color: var(--dim2); margin-left: auto; font-size: 0.68rem; }
+
+.zone-shape { font-size: 0.8rem; color: var(--text); margin-top: 12px; line-height: 1.5; }
+.zone-shape strong { color: var(--accent); }
+
+/* ── 4 · Aerobe Entwicklung / Körper-Kacheln ─────────────────── */
+.aerobic-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  transition: border-color var(--transition);
+}
+.aerobic-card:hover { border-color: var(--border-light); }
+
+.aerobic-title {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim2);
+  margin-bottom: 8px;
+}
+
+.aerobic-val {
+  font-family: var(--font-disp);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
+}
+.aerobic-unit { font-size: 0.7rem; font-weight: 400; color: var(--dim); margin-left: 4px; }
+
+.aerobic-sub { font-size: 0.7rem; color: var(--dim); margin-top: 5px; line-height: 1.45; }
+
+.aerobic-empty { font-size: 0.74rem; color: var(--dim2); line-height: 1.5; padding: 4px 0; }
+
+/* ── 5 · Leistungsdiagnostik (FTP-Dreiklang) ─────────────────── */
+.ftp-triad { display: flex; flex-direction: column; }
+
+.ftp-triad-row {
+  display: grid;
+  grid-template-columns: 28px 82px 64px 74px 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.82rem;
+}
+.ftp-triad-row:last-child { border-bottom: none; }
+
+.ftp-triad-icon { font-size: 1rem; text-align: center; }
+
+.ftp-triad-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dim);
+}
+
+.ftp-triad-val {
+  font-family: var(--font-disp);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.ftp-triad-wkg { font-size: 0.74rem; color: var(--accent); font-variant-numeric: tabular-nums; }
+.ftp-triad-meta { font-size: 0.68rem; color: var(--dim2); line-height: 1.4; }
+
+.ftp-forecast-line {
+  font-size: 0.78rem;
+  color: var(--text);
+  line-height: 1.5;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.ftp-forecast-line strong { color: var(--accent); }
+
+/* ── Bestwerte-Digest ────────────────────────────────────────── */
+.records-digest {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+}
+.record-chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.record-icon { font-size: 1rem; }
+.record-val {
+  font-family: var(--font-disp);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.record-lbl { font-size: 0.7rem; color: var(--dim); }
+.record-date { font-size: 0.63rem; color: var(--dim2); }
+
+/* ── 8 · Periodisierungs-Erfüllung ───────────────────────────── */
+.phase-comp-row {
+  display: grid;
+  grid-template-columns: 12px 96px 130px auto 1fr;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 4px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.78rem;
+}
+.phase-comp-row:last-child { border-bottom: none; }
+
+.phase-comp-dot { width: 10px; height: 10px; border-radius: 50%; }
+.phase-comp-name { font-weight: 600; color: var(--text); }
+.phase-comp-weeks { font-family: var(--font-mono); font-size: 0.68rem; color: var(--dim2); }
+.phase-comp-note { font-size: 0.7rem; color: var(--dim); line-height: 1.4; }
+
+.phase-comp-recovery { margin-top: 6px; }
+
+/* ── Responsive: Tabellen auf schmalen Screens ───────────────── */
+@media (max-width: 640px) {
+  .load-row {
+    grid-template-columns: 54px 1fr 1fr;
+    grid-auto-rows: min-content;
+  }
+  .load-row > span:nth-child(4),
+  .load-row > span:nth-child(5) { display: none; }
+  .load-head { display: none; }
+  .load-desc { grid-column: 1 / -1; }
+  .ftp-triad-row {
+    grid-template-columns: 24px 1fr auto;
+    row-gap: 2px;
+  }
+  .ftp-triad-wkg { grid-column: 2; }
+  .ftp-triad-meta { grid-column: 1 / -1; }
+  .phase-comp-row {
+    grid-template-columns: 12px 1fr auto;
+  }
+  .phase-comp-note { grid-column: 1 / -1; }
+}
