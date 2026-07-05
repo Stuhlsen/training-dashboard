@@ -107,12 +107,25 @@ assets/js/
     stats.js          → sum/avg/max/min, linearTrend (Regression)
     aggregate.js      → isoWeekKey, weeklyFromPlanWeeks, weeklyByCalendar, monthlyFromRides
     pmc.js            → interpolateCtl, tsbOf
-    loadguard.js      → Foster-Monotonie/Strain, CTL-Ramp (Belastungswächter)
+    loadguard.js      → Foster-Monotonie/Strain, CTL-Ramp (Belastungswächter);
+                        describeWeek() für die Analyse-Wocheneinordnung
     readiness.js      → Tagesform: 7d vs. 42d-Baseline (nur intervals.icu-SDNN!)
-    zones.js          → Time-in-Zone-Normalisierung + Wochenverteilung
-    efficiency.js     → EF-Trend über vergleichbare Z2-Fahrten
+    briefing.js       → Status-Briefing: fusioniert readiness+TSB+LoadGuard zu
+                        einem Tagesstatus (rotes Erholungssignal schlägt grünen TSB)
+    body.js           → Regeneration & Körper: Gewichtstrend, W/kg, Energie-
+                        Näherung (kJ≈kcal), Hydration; availability() blendet
+                        Kacheln datengetrieben ein (≥5 Punkte / 30 Tage)
+    periodization.js  → Periodisierungs-Erfüllung Plan 2: Reizsignatur je Block
+                        (Typ ODER IF-Korridor), Quality-Dichte, Erholungswochen
+    adherence.js      → Konsistenz: Wochen-Streak, Frequenztrend, Plan-Adhärenz
+                        (Adjustments-Matching wie weekreview, über den Zeitraum)
+    zones.js          → Time-in-Zone-Normalisierung + Wochenverteilung; Gesamt-
+                        verteilung (overallZoneShares), IF-Fallback (overallBandsFromIF
+                        mit rideIF-Ableitung NP/FTP), distributionShape
+    efficiency.js     → EF-Trend über vergleichbare Z2-Fahrten; decouplingTrend
     cadence.js        → Kadenz-Coach-Kennzahlen
-    ftp-forecast.js   → eFTP-Historie + Retest-Projektion
+    ftp-forecast.js   → eFTP-Historie (+ aus Wellness-sportInfo) + Retest-Projektion;
+                        dateForTarget() = invertierte Prognose (Ziel-Horizont)
     records.js        → Bestwerte mit Ablöse-Historie
     weekreview.js     → Wochenrückblick (letzte abgeschlossene Woche)
     consistency.js    → Jahreskalender-Daten (ersetzt Wochentags-Heatmap)
@@ -133,7 +146,12 @@ assets/js/
     overview.js       → Übersicht-Tab, Hero, KPIs, Meilensteine
     table.js          → Fahrtenbuch + Subjective (Befinden-Write via github-client)
     planned.js        → Planungs-Tab + Adjustments (Verschieben/Ausfall) + Workout-Push
-    analysis.js       → Analyse-Tab
+    analysis.js       → Analyse-Tab: 8 Sektionen (Briefing · Belastung ·
+                        Intensität · Aerob · Leistungsdiagnostik · Regeneration
+                        & Körper · Konsistenz · Periodisierung). Plan-Toggle
+                        filtert nur bestandsbezogene Sektionen; FTP-Dreiklang
+                        (gemessen/geschätzt/Ziel) strikt getrennt. Sektionen
+                        Körper + Periodisierung blenden sich datengetrieben aus
 
 scripts/
   generate-data.js    → Dünner Orchestrator (läuft in der Action + `npm run sync`)
@@ -146,6 +164,10 @@ scripts/
     intervals.js      → Activities/Wellness/PowerCurves (Athlet 1 + 2)
     weather.js        → Open-Meteo: Archiv, Forecast, 16-Tage-Planungs-Forecast
     map-activity.js   → inferTypFromIF, mapActivity (Plan 2), mapActivity2 (Athlet 2)
+    wellness.js       → Wellness-Mapping (beide Athleten): erweiterte Felder
+                        (Gewicht/Kalorien/Hydration/Körperfett/eFTP aus sportInfo),
+                        mapWellnessList/latestWeight + logWellnessCoverage
+                        (Verifikationslog: welche Felder real befüllt sind)
     output.js         → subjective/adjustments laden, rides.json/rides-2.json schreiben
 
 tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test)
