@@ -62,6 +62,8 @@ export const RIDE_SCHEMA = {
   hrv: "number?",
   feel: "string?",
   weather: "object?",
+  zoneTimes: "array?",
+  eftp: "number?",
 };
 
 export const WELLNESS_SCHEMA = {

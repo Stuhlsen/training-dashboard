@@ -40,6 +40,8 @@
  * @property {number|null} [efficiency]  Watt pro Herzschlag (berechnet)
  * @property {Object|null} [weather]
  * @property {string|null} [wetter]
+ * @property {Array<number|{id: string, secs: number}>|null} [zoneTimes] Zeit je Leistungszone (intervals.icu)
+ * @property {number|null} [eftp] eFTP zum Fahrtzeitpunkt (intervals.icu)
  */
 
 /**
