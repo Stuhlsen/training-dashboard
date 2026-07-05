@@ -79,12 +79,23 @@ export const CONFIG = {
   // Keine Klarnamen (Datenschutz-Konvention, siehe AGENTS.md).
   // Anzeigenamen hier bei Bedarf anpassen — IDs bleiben athlete1/athlete2.
   primaryAthleteId: "athlete1",
+  // FTP-Dreiklang pro Athlet (Analyse-Tab, Leistungsdiagnostik):
+  // ftpMeasured = per Ramp-Test GEMESSEN (mit Testdatum) — nie mit dem
+  // laufend GESCHÄTZTEN eFTP aus intervals.icu verrechnen/vermischen.
+  // ftpGoal = angestrebtes Ziel (Athlet 1: Plan-2-Retest, Athlet 2: 300W).
   athletes: [
-    { id: "athlete1", name: "Athlet 1", endpoint: "./data/rides.json"   },
-    { id: "athlete2", name: "Athlet 2", endpoint: "./data/rides-2.json" },
+    { id: "athlete1", name: "Athlet 1", endpoint: "./data/rides.json",
+      ftpMeasured: 193, ftpMeasuredDate: "2026-06-12", ftpGoal: 210 },
+    { id: "athlete2", name: "Athlet 2", endpoint: "./data/rides-2.json",
+      ftpMeasured: 265, ftpMeasuredDate: null, ftpGoal: 300 },
   ],
 
   /* ── Hilfsfunktionen ───────────────────────────────────────── */
+
+  /** Athleten-Eintrag inkl. FTP-Dreiklang @param {string} id */
+  athleteConfig(id) {
+    return this.athletes.find((a) => a.id === id) || null;
+  },
 
   /** Phasenfarbe abrufen @param {string} phase @returns {string} */
   phaseColor(phase) {
