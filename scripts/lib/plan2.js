@@ -129,3 +129,41 @@ export function getPlan2WeekPhase(dateStr) {
   }
   return { week: null, phase: null };
 }
+
+/**
+ * Leitet die Trainingsblöcke für den Power-Curve-Vergleich ab:
+ * Plan 1 als Ganzes plus die zusammenhängenden Plan-2-Phasenblöcke
+ * (Sweet Spot / Schwelle / VO2max) aus PLAN2_SCHEDULE. Rein und testbar.
+ * @param {string} todayISO Blöcke, die noch nicht begonnen haben, entfallen;
+ *                          laufende Blöcke werden auf heute gekappt.
+ * @returns {Array<{key: string, label: string, from: string, to: string}>}
+ */
+export function getPlan2Blocks(todayISO) {
+  const blocks = [{ key: "plan1", label: "Plan 1", from: "2026-03-24", to: "2026-06-21" }];
+
+  const PHASES = ["Sweet Spot", "Schwelle", "VO2max"];
+  let current = null;
+  for (const w of PLAN2_SCHEDULE) {
+    if (PHASES.includes(w.phase)) {
+      if (current && current.label === w.phase) {
+        current.to = w.end;
+      } else {
+        if (current) blocks.push(current);
+        current = {
+          key: w.phase.toLowerCase().replace(/\s+/g, "-"),
+          label: w.phase,
+          from: w.start,
+          to: w.end,
+        };
+      }
+    } else if (current) {
+      blocks.push(current);
+      current = null;
+    }
+  }
+  if (current) blocks.push(current);
+
+  return blocks
+    .filter((b) => b.from <= todayISO)
+    .map((b) => ({ ...b, to: b.to > todayISO ? todayISO : b.to }));
+}

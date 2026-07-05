@@ -63,6 +63,12 @@ function baseFields(act, weather) {
       ? Math.round((act.icu_ctl - act.icu_atl) * 10) / 10 : null,
     decoupling: act.decoupling != null ? Math.round(act.decoupling * 10) / 10 : null,
     dtl: act.icu_training_load,
+    // Zeit in Leistungszonen (Sekunden je Zone) und eFTP zum Fahrtzeitpunkt.
+    // Feldnamen defensiv: intervals.icu liefert icu_zone_times als Array von
+    // Sekunden ODER als Array von {id, secs} — Normalisierung im Frontend
+    // (core/zones.js). Fehlende Felder bleiben null (ältere Aktivitäten).
+    zoneTimes: act.icu_zone_times || null,
+    eftp: act.icu_eftp || null,
     weather,
     wetter: weather ? `${weather.temp}°C` : (act.average_temp ? `~${Math.round(act.average_temp)}°C` : null),
     source: "intervals.icu",

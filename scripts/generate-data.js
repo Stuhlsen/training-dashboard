@@ -15,7 +15,7 @@
 
 import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
-import { PLAN2_SCHEDULE, PLANNED_SESSIONS } from "./lib/plan2.js";
+import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks } from "./lib/plan2.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
 import { RIDE_TYPES, getIntervalsActivities, getIntervalsWellness, getIntervalsPowerCurves } from "./lib/intervals.js";
 import { getHistoricalWeather, getRecentWeather, getPlanningForecast, buildWeatherMap, getWeatherForRide } from "./lib/weather.js";
@@ -36,6 +36,7 @@ async function main() {
   let wellnessList = [];
   let athleteWeight = null;
   let powerCurves = null;
+  const powerCurveBlocks = [];
 
   // 2a. Wetter: Open-Meteo für gesamten Zeitraum (unabhängig von intervals.icu)
   const PLAN1_START = "2026-03-24";
@@ -59,6 +60,14 @@ async function main() {
     const activities = await getIntervalsActivities(oldest, newest, ENV.INTERVALS_KEY, ENV.INTERVALS_ATHLETE, RIDE_TYPES);
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
     powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
+
+    // Power-Curve-Blockvergleich: eigene Kurve je Trainingsblock
+    // (Plan 1 + Plan-2-Phasenblöcke, sobald begonnen — max. 4 Zusatz-Calls)
+    for (const block of getPlan2Blocks(today)) {
+      const curve = await getIntervalsPowerCurves(block.from, block.to);
+      if (curve) powerCurveBlocks.push({ ...block, curve });
+    }
+    log.info(`✅ Power-Curve-Blöcke: ${powerCurveBlocks.length}`);
     const subjective = loadSubjective();
     const adjustments = loadAdjustments();
     log.info(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
@@ -135,6 +144,7 @@ async function main() {
     rides,
     wellness: wellnessList,
     powerCurves: powerCurves || null,
+    powerCurveBlocks,
     athleteWeight,
     plannedSessions: Object.entries(PLANNED_SESSIONS).map(([date, s]) => ({ date, ...s })),
     adjustments: loadAdjustments(),
