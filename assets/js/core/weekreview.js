@@ -17,7 +17,10 @@ export function lastCompletedWeekRange(todayISO) {
   to.setDate(thisMonday.getDate() - 1); // letzter Sonntag
   const from = new Date(to);
   from.setDate(to.getDate() - 6); // Montag davor
-  const iso = (x) => x.toISOString().split("T")[0];
+  // Lokale Datumskomponenten statt toISOString() (das nach UTC konvertiert
+  // und je nach Zeitzone/Serverlaufzeit das Datum um einen Tag verschieben kann)
+  const iso = (x) =>
+    `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, "0")}-${String(x.getDate()).padStart(2, "0")}`;
   return { from: iso(from), to: iso(to) };
 }
 
