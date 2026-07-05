@@ -120,7 +120,7 @@ assets/js/
     normalize.js      → normalizeRide/normalizeFeel/normalizeWellness
     validate.js       → Laufzeit-Schema-Prüfung für rides.json
   state/
-    config.js         → CONFIG: Athleten, Phasen, FTP, historicalVolume, weekIndex()
+    config.js         → CONFIG: Athleten, Phasen, FTP-Werte/Ziele, weekIndex()
     static-rides.js   → Fallback-Daten für lokale Entwicklung
     data.js           → Data-Store: load()/switchAthlete()/byDate()/weekly()/ftpValue()
   ui/

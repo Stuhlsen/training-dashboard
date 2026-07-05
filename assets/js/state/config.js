@@ -84,19 +84,6 @@ export const CONFIG = {
     { id: "athlete2", name: "Athlet 2", endpoint: "./data/rides-2.json" },
   ],
 
-  /* ── Historisches Volumen vor Systembeitritt (Strava-Lifetime) ─
-     Athlet 2 war vor seinem intervals.icu-Beitritt schon aktiv auf Strava.
-     Diese Werte werden einmalig erfasst und zur Live-Distanz addiert,
-     damit die Gesamtdistanz nicht künstlich klein wirkt.
-     Bei neuem Strava-Abgleich manuell aktualisieren. */
-  historicalVolume: {
-    athlete2: {
-      totalKmLifetime: 4568.5,        // Strava "Insgesamt" zum Stand der Erfassung
-      kmAlreadyInSystem: 339,         // Distanz der Fahrten, die bereits über intervals.icu erfasst sind
-      capturedAt: "2026-06-30",
-    },
-  },
-
   /* ── Hilfsfunktionen ───────────────────────────────────────── */
 
   /** Phasenfarbe abrufen @param {string} phase @returns {string} */

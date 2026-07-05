@@ -45,11 +45,7 @@ export const Overview = {
       if (ownPlan) {
         descEl.innerHTML = `<strong>Plan 1</strong>: 12 Wochen Basisaufbau (März–Juni 2026), FTP 166W → 193W. <strong>Plan 2</strong>: pyramidale Periodisierung seit Juni 2026, Ziel FTP ≥210W bis September. Daten automatisch aus intervals.icu und Apple Health.`;
       } else {
-        const hist = CONFIG.historicalVolume?.[Data.activeAthleteId];
-        const histNote = hist
-          ? ` Gesamtdistanz inkl. Strava-Historie vor Systembeitritt.`
-          : "";
-        descEl.innerHTML = `Vergleichsdaten von <strong>${athleteName}</strong> aus intervals.icu — reine Leistungsdaten ohne eigenen Trainingsplan.${histNote}`;
+        descEl.innerHTML = `Vergleichsdaten von <strong>${athleteName}</strong> aus intervals.icu — reine Leistungsdaten ohne eigenen Trainingsplan.`;
       }
     }
 
@@ -74,16 +70,12 @@ export const Overview = {
     this._renderZoneBand(ftpVal, ownPlan);
     this._renderFtpRing(ftpVal, ownPlan);
 
-    // Historisches Volumen addieren (nur für Athleten mit erfasster Historie)
-    const hist2 = CONFIG.historicalVolume?.[Data.activeAthleteId];
-    const historicalKm = hist2 ? Math.max(0, hist2.totalKmLifetime - hist2.kmAlreadyInSystem) : 0;
-    const displayKm = totalKm + Math.round(historicalKm);
-
     // KPI-Kacheln mit Zonen-Akzentkante (K5): Kante trägt die Zonenfarbe,
-    // der Wert bleibt neutral hell — Farbe = Bedeutung, nicht Dekoration
+    // der Wert bleibt neutral hell — Farbe = Bedeutung, nicht Dekoration.
+    // Distanz = ausschließlich getrackte Fahrten (keine externe Historie).
     el("hero-kpis").innerHTML = [
-      { v: displayKm.toLocaleString("de"), l: historicalKm > 0 ? "Kilometer (inkl. Strava-Historie)" : "Kilometer",   c: "var(--ss)" },
-      { v: rides.length,                 l: "Fahrten" + (historicalKm > 0 ? " (erfasst)" : ""),     c: "var(--z2)"   },
+      { v: totalKm.toLocaleString("de"), l: "Kilometer",   c: "var(--ss)" },
+      { v: rides.length,                 l: "Fahrten",     c: "var(--z2)"   },
       { v: ftpVal ? `${ftpVal}W` : "–", l: ownPlan ? "FTP" : (Data.athleteFtp ? "FTP" : "Bestes NP"),         c: "var(--gold)"   },
       { v: fmtDuration(totalMin),        l: "Trainingszeit",  c: "var(--z1)"    },
     ].map(k => `

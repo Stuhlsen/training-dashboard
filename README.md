@@ -47,14 +47,13 @@ Das Dashboard unterstützt zwei Athleten: **Athlete 1** (eigener Trainingsplan) 
 Unterschiede bei Vergleichsdaten:
 - Kein Trainingsplan, keine Planungs-Phase, kein Befinden-Dropdown
 - Typ-Inferenz über IF-Berechnung (NP ÷ FTP) + Fahrtdauer als Kriterium
-- Strava-Historik vor intervals.icu-Beitritt als additiver Kontext-KPI in der Übersicht
 - Planungs-Tab vollständig ausgeblendet
 
 ### Tab: Übersicht
 - Hero mit **FTP-Zonen-Band** (Watt-Skala mit Pins für FTP, eFTP und Saisonziel), **FTP-Fortschrittsring** und **Session-Pill** (nächste geplante Einheit, berücksichtigt Verschiebungen/Ausfälle)
 - **Tagesform-Ampel**: HRV (SDNN), Ruhepuls und Schlaf der letzten 7 Tage gegen eine rollierende 42-Tage-Baseline — mit konkreter Trainingsempfehlung (wie geplant / Intensität reduzieren / Erholung). Grundlage: HRV-gesteuertes Training (u. a. Javaloyes 2019)
 - **Wochenrückblick**: die letzte abgeschlossene Woche als Karte — Umfang, stärkste Einheit, Wetter-Highlight, Plan-Erfüllung
-- KPIs: Gesamtdistanz (inkl. optionaler Strava-Historik für Vergleichsathleten), FTP, Fahrtenanzahl, Trainingszeit
+- KPIs: Gesamtdistanz (nur getrackte Fahrten), FTP, Fahrtenanzahl, Trainingszeit
 - **Konsistenz-Jahreskalender** (GitHub-Stil): jeder Trainingstag als Zelle, gefärbt nach Tageslast; die Zeilenzähler übernehmen die Wochentagsverteilung
 - Meilensteine als Gantt-Diagramm mit Phasen-Hintergründen (nur beim eigenen Plan)
 - **Bestwerte-Wand**: automatisch erkannte persönliche Bestleistungen (längste Fahrt/Fahrzeit, beste NP ≥ 20 min, schnellste 40 km+, meiste Höhenmeter, größte Woche) — jeweils mit Ablöse-Historie
