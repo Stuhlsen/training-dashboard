@@ -438,21 +438,62 @@
       <!-- KPI Hero -->
       <div class="analysis-kpi-grid" id="analysis-kpis"></div>
 
-      <!-- Phasenübersicht -->
-      <h2 class="section-label" style="margin-top:2rem">📋 Phasenübersicht</h2>
-      <div id="phase-blocks"></div>
+      <!-- 1 · Status-Briefing (Entscheidungskopf) -->
+      <div class="analysis-section" id="asec-briefing">
+        <h2 class="section-label">🚦 Status-Briefing</h2>
+        <div class="analysis-box" id="analysis-briefing"></div>
+      </div>
 
-      <!-- Trainingstyp-Verteilung -->
-      <h2 class="section-label" style="margin-top:2rem">🗂️ Trainingstyp-Verteilung</h2>
-      <div class="analysis-box" id="typ-distribution"></div>
+      <!-- 2 · Belastung & Erholung -->
+      <div class="analysis-section" id="asec-load">
+        <h2 class="section-label">🛡️ Belastung & Erholung</h2>
+        <p class="analysis-explainer">Ramp-Rate (sicherer Aufbau: +3 bis +6 CTL/Woche) und Foster-Monotonie/Strain pro Woche — erkennt Übersteuerung und „gleichförmig hart“-Muster, die die CTL allein maskiert.</p>
+        <div class="analysis-box" id="analysis-load"></div>
+      </div>
 
-      <!-- Plan 1 vs Plan 2 Vergleich -->
-      <h2 class="section-label" style="margin-top:2rem">⚖️ Plan 1 vs. Plan 2</h2>
-      <div class="analysis-box" id="plan-comparison"></div>
+      <!-- 3 · Intensitätsverteilung -->
+      <div class="analysis-section" id="asec-zones">
+        <h2 class="section-label">📊 Intensitätsverteilung</h2>
+        <p class="analysis-explainer">Zeit in niedriger/mittlerer/hoher Intensität. Für nachhaltige Ausdauerentwicklung haben sich Verteilungen mit ≥80 % niedriger Intensität bewährt (Seiler).</p>
+        <div class="analysis-box" id="analysis-zones"></div>
+        <div class="analysis-box" id="typ-distribution" style="margin-top:10px"></div>
+      </div>
 
-      <!-- Stärken & Entwicklungsfelder -->
-      <h2 class="section-label" style="margin-top:2rem">💡 Stärken & Entwicklungsfelder</h2>
-      <div class="grid grid-2col" id="strengths-grid"></div>
+      <!-- 4 · Aerobe Entwicklung -->
+      <div class="analysis-section" id="asec-aerobic">
+        <h2 class="section-label">🫀 Aerobe Entwicklung</h2>
+        <p class="analysis-explainer">Effizienzfaktor (Watt/Herzschlag), HF-Decoupling (&lt;5 % = aerob stabil) und Kadenz-Ökonomie über vergleichbare Grundlagenfahrten.</p>
+        <div class="analysis-grid-3" id="analysis-aerobic"></div>
+      </div>
+
+      <!-- 5 · Leistungsdiagnostik -->
+      <div class="analysis-section" id="asec-power">
+        <h2 class="section-label">⚡ Leistungsdiagnostik</h2>
+        <div class="analysis-box" id="analysis-ftp"></div>
+        <div class="analysis-box" id="analysis-records" style="margin-top:10px"></div>
+        <div class="analysis-box" id="plan-comparison" style="margin-top:10px"></div>
+      </div>
+
+      <!-- 6 · Regeneration & Körper (datengetrieben ein-/ausgeblendet) -->
+      <div class="analysis-section hidden" id="asec-body">
+        <h2 class="section-label">🩺 Regeneration & Körper</h2>
+        <p class="analysis-explainer">Energieverfügbarkeit und Flüssigkeitshaushalt beeinflussen Erholungsfähigkeit und Trainingsqualität — und die Aussagekraft HF-basierter Marker. Gewicht koppelt über W/kg an die Leistungsdiagnostik.</p>
+        <div class="analysis-grid-3" id="analysis-body"></div>
+      </div>
+
+      <!-- 7 · Konsistenz & Adhärenz -->
+      <div class="analysis-section" id="asec-consistency">
+        <h2 class="section-label">📆 Konsistenz & Adhärenz</h2>
+        <p class="analysis-explainer">Trainingskonsistenz ist der stärkste einzelne Prädiktor für Langzeitfortschritt — wichtiger als jede Einzelsession.</p>
+        <div class="analysis-box" id="analysis-consistency"></div>
+      </div>
+
+      <!-- 8 · Periodisierungs-Erfüllung (nur eigener Plan) -->
+      <div class="analysis-section" id="asec-periodization">
+        <h2 class="section-label">🧭 Periodisierungs-Erfüllung</h2>
+        <p class="analysis-explainer">Ist jeder Plan-2-Block phasengerecht umgesetzt? Reizsignatur pro Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.</p>
+        <div class="analysis-box" id="analysis-periodization"></div>
+      </div>
 
     </section>
 
