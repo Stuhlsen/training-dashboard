@@ -4,6 +4,7 @@
 
 import { fmt, fmtInt, fmtDuration } from "../core/format.js";
 import { zoneSegments, pinPercent, ringProgress, nextPlannedSession } from "../core/ftp-progress.js";
+import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../core/ftp-forecast.js";
 import { avg, maxVal, sum } from "../core/stats.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
@@ -205,6 +206,17 @@ export const Overview = {
     const ftpVal   = Data.ftpValue();
     const avgKad = avg(rides.filter(r => r.kad), "kad");
 
+    // eFTP pro Athlet: eigener Plan → CONFIG.eFTP; sonst letzter Wert aus
+    // der Daten-Historie (icu_eftp je Fahrt + Wellness-sportInfo). Kachel
+    // erscheint nur, wenn ein Wert existiert (datengetrieben).
+    let eftpVal = null;
+    if (ownPlan) {
+      eftpVal = CONFIG.eFTP || null;
+    } else {
+      const hist = mergeEftpHistories(eftpHistory(rides), eftpHistoryFromWellness(Data.wellness));
+      eftpVal = hist.length ? hist[hist.length - 1].eftp : null;
+    }
+
     const metrics = [
       {
         v: Math.round(totalKm).toLocaleString("de") + " km",
@@ -240,10 +252,12 @@ export const Overview = {
               : "Höchster Normalized-Power-Wert einer Fahrt"),
         c: "var(--gold)",
       },
-      ...(ownPlan ? [{
-        v: CONFIG.eFTP + "W",
+      ...(eftpVal ? [{
+        v: eftpVal + "W",
         l: "eFTP (Intervals.icu)",
-        d: "Geschätzte FTP aus den besten Leistungen über verschiedene Zeitfenster",
+        d: ownPlan
+          ? "Geschätzte FTP aus den besten Leistungen über verschiedene Zeitfenster"
+          : "Geschätzte FTP aus intervals.icu (Vergleichsdaten)",
         c: "var(--green)",
       }] : []),
       {
