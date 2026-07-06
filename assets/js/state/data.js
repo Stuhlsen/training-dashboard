@@ -147,17 +147,20 @@ export const Data = {
     return tests.length ? tests[tests.length - 1] : null;
   },
 
-  /** FTP-Wert: letzter FTP-Test > athleteFtp (Athlet 2) > CONFIG.ftp
+  /** FTP-Wert: eigener Plan → letzter FTP-Test > CONFIG.ftp;
+   *  Vergleichsathlet → gemessene Ramp-Test-FTP aus der Config (Dreiklang),
+   *  nie aus NP/latestFTP abgeleitet.
    *  @returns {number|null} */
   ftpValue() {
-    const test = this.latestFTP();
-    if (test) return test.ftpWatt || test.np || test.watt || CONFIG.ftp;
-    // Vergleichsathlet: echte FTP aus dem JSON nutzen, falls vorhanden
     if (this.activeAthleteId !== CONFIG.primaryAthleteId) {
+      const cfg = CONFIG.athleteConfig(this.activeAthleteId);
+      if (cfg?.ftpMeasured) return cfg.ftpMeasured;
       if (this.athleteFtp) return this.athleteFtp;
       const npRides = this.rides.filter((r) => r.np).sort((a, b) => b.np - a.np);
       return npRides.length ? npRides[0].np : null;
     }
+    const test = this.latestFTP();
+    if (test) return test.ftpWatt || test.np || test.watt || CONFIG.ftp;
     return CONFIG.ftp;
   },
 

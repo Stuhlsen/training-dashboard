@@ -158,9 +158,18 @@ export const Overview = {
       cap = remaining > 0 ? `Saisonziel · noch <b>${remaining} W</b>` : `Saisonziel <b>erreicht</b> 🎉`;
     } else {
       val = ftpVal;
-      progress = 1;
-      unit = Data.athleteFtp ? "W · RAMP-TEST" : "W · BESTES NP";
-      cap = "Read-only · <b>kein Ziel</b>";
+      const cfg = CONFIG.athleteConfig(Data.activeAthleteId);
+      if (cfg?.ftpGoal) {
+        // Vergleichsathlet mit Zielvorgabe: gemessene FTP → Ziel (wie Athlet 1)
+        progress = Math.max(0, Math.min(1, val / cfg.ftpGoal));
+        const remaining = Math.max(0, cfg.ftpGoal - val);
+        unit = `VON ${cfg.ftpGoal} W`;
+        cap = remaining > 0 ? `Ziel · noch <b>${remaining} W</b>` : `Ziel <b>erreicht</b> 🎉`;
+      } else {
+        progress = 1;
+        unit = cfg?.ftpMeasured || Data.athleteFtp ? "W · RAMP-TEST" : "W · BESTES NP";
+        cap = "Read-only · <b>kein Ziel</b>";
+      }
     }
 
     wrap.innerHTML = `
@@ -223,8 +232,12 @@ export const Overview = {
       },
       {
         v: ftpVal ? ftpVal + "W" : "–",
-        l: ownPlan ? "FTP (Ramp Test)" : (Data.athleteFtp ? "FTP (Ramp Test)" : "Bestes Ø-Watt (NP)"),
-        d: ownPlan ? "Gemessene Functional Threshold Power, 12.06.2026" : "Höchster Normalized-Power-Wert einer Fahrt",
+        l: ownPlan || CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured ? "FTP (Ramp Test)" : "Bestes Ø-Watt (NP)",
+        d: ownPlan
+          ? "Gemessene Functional Threshold Power, 12.06.2026"
+          : (CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured
+              ? "Gemessene FTP aus dem letzten Ramp-Test"
+              : "Höchster Normalized-Power-Wert einer Fahrt"),
         c: "var(--gold)",
       },
       ...(ownPlan ? [{

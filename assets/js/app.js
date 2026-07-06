@@ -199,7 +199,9 @@ async function renderAll(athleteId) {
   const rides = Data.byDate();
   const weekly = Data.weekly();
   const ownPlan = hasOwnPlan();
-  const ftp = ownPlan ? CONFIG.ftp : (Data.athleteFtp || Data.rides.find(r => r.np)?.np || null);
+  const ftp = ownPlan
+    ? CONFIG.ftp
+    : (CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured || Data.athleteFtp || Data.rides.find(r => r.np)?.np || null);
   const todayISO = new Date().toISOString().split("T")[0];
 
   // Wochen-Zuordnung: Plan-Wochen (Athlet 1) bzw. ISO-Kalenderwochen
