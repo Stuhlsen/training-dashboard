@@ -8,5 +8,10 @@
     "movedTo": "2026-07-05",
     "reason": "Regen",
     "savedAt": "2026-07-04T20:18:48.474Z"
+  },
+  "2026-07-06": {
+    "cancelled": true,
+    "reason": "Regeneration",
+    "savedAt": "2026-07-06T14:50:27.596Z"
   }
 }
