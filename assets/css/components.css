@@ -124,13 +124,24 @@
 .zoneband .pin::after {
   content: attr(data-l);
   position: absolute;
-  top: 26px;
+  top: calc(26px + var(--row, 0) * 15px);
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-mono);
   font-size: 0.66rem;
   color: var(--dim);
   white-space: nowrap;
+}
+/* Verbindungslinie vom Pin zum (ggf. tiefer gestapelten) Label */
+.zoneband .pin::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 23px;
+  width: 1px;
+  height: calc(var(--row, 0) * 15px + 3px);
+  background: var(--border-light);
+  transform: translateX(-50%);
 }
 .zoneband .pin.goal {
   background: none;
@@ -158,68 +169,34 @@
 }
 
 /* KPI-Kacheln unter dem Hero: Glas + Zonen-Akzentkante links */
-.hero-kpis {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 14px;
-  margin-bottom: 22px;
-}
-
-.hero-kpi {
-  position: relative;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 15px 18px 14px 20px;
-  overflow: hidden;
-  transition: transform var(--transition), border-color var(--transition);
-}
-.hero-kpi::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 13px; bottom: 13px;
-  width: 3px;
-  border-radius: 3px;
-  background: var(--kpi-c, var(--z2));
-}
-.hero-kpi:hover { transform: translateY(-2px); border-color: var(--border-light); }
-
-.hero-kpi .kpi-value {
-  font-family: var(--font-disp);
-  font-size: clamp(1.45rem, 3.2vw, 1.85rem);
-  font-weight: 700;
-  line-height: 1.1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.hero-kpi .kpi-label {
-  font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-weight: 500;
-  margin-top: 6px;
-}
-
 /* ── Tabs — Pills (K3), aktiv = Sweet-Spot-Fill ──────────────── */
 .tabs {
   display: flex;
-  gap: 8px;
-  margin-bottom: 22px;
+  gap: 10px;
   overflow-x: auto;
-  padding-bottom: 4px;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  margin: 0 -20px 22px;
+  padding: 12px 20px;
+  background: rgba(11, 14, 19, 0.9);
+  border-bottom: 1px solid var(--border);
+}
+@supports (backdrop-filter: blur(1px)) {
+  .tabs {
+    background: rgba(11, 14, 19, 0.72);
+    backdrop-filter: blur(10px);
+  }
 }
 
 .tab-btn {
-  padding: 8px 18px;
+  padding: 11px 22px;
   border: 1px solid var(--border);
   background: var(--card);
   color: var(--dim);
   font-family: var(--font-disp);
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.92rem;
   white-space: nowrap;
   border-radius: var(--pill);
   transition: all var(--transition);

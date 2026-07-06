@@ -100,16 +100,7 @@
       </div>
     </header>
 
-    <!-- KPI-Kacheln -->
-    <div class="hero-kpis" id="hero-kpis"></div>
-
-    <!-- Tagesform & Wochenrückblick -->
-    <div class="insight-row">
-      <div id="readiness-panel"></div>
-      <div id="weekreview-card"></div>
-    </div>
-
-    <!-- Tabs -->
+    <!-- Tabs (sticky, direkt unter dem Hero) -->
     <nav class="tabs" id="tabs">
       <button class="tab-btn active" data-tab="overview">Übersicht</button>
       <button class="tab-btn" data-tab="charts">Charts</button>
@@ -120,6 +111,11 @@
 
     <!-- ── Tab: Übersicht ──────────────────────────────────────── -->
     <section id="tab-overview" class="tab-content">
+      <!-- Tagesform & Wochenrückblick (nur auf der Übersicht) -->
+      <div class="insight-row">
+        <div id="readiness-panel"></div>
+        <div id="weekreview-card"></div>
+      </div>
       <div class="grid grid-auto" id="metrics-grid"></div>
       <div class="chart-box" style="margin-top:1.2rem">
         <div class="chart-header">

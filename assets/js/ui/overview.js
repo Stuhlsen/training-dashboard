@@ -49,9 +49,7 @@ export const Overview = {
       }
     }
 
-    const totalKm  = Math.round(sum(rides, "km"));
-    const ftpVal   = Data.ftpValue();
-    const totalMin = sum(rides, "min");
+    const ftpVal = Data.ftpValue();
 
     // Eyebrow: aktuelle Woche/Phase (aus der letzten Fahrt) bzw. Vergleichsmodus
     const eyebrowEl = el("hero-eyebrow");
@@ -69,21 +67,6 @@ export const Overview = {
     this._renderSessionPill(rides, ownPlan);
     this._renderZoneBand(ftpVal, ownPlan);
     this._renderFtpRing(ftpVal, ownPlan);
-
-    // KPI-Kacheln mit Zonen-Akzentkante (K5): Kante trägt die Zonenfarbe,
-    // der Wert bleibt neutral hell — Farbe = Bedeutung, nicht Dekoration.
-    // Distanz = ausschließlich getrackte Fahrten (keine externe Historie).
-    el("hero-kpis").innerHTML = [
-      { v: totalKm.toLocaleString("de"), l: "Kilometer",   c: "var(--ss)" },
-      { v: rides.length,                 l: "Fahrten",     c: "var(--z2)"   },
-      { v: ftpVal ? `${ftpVal}W` : "–", l: ownPlan ? "FTP" : (Data.athleteFtp ? "FTP" : "Bestes NP"),         c: "var(--gold)"   },
-      { v: fmtDuration(totalMin),        l: "Trainingszeit",  c: "var(--z1)"    },
-    ].map(k => `
-      <div class="hero-kpi" style="--kpi-c:${k.c}">
-        <div class="kpi-value">${k.v}</div>
-        <div class="kpi-label">${k.l}</div>
-      </div>
-    `).join("");
   },
 
   /* ── Session-Pill: heutige bzw. nächste geplante Einheit ────── */
@@ -127,17 +110,34 @@ export const Overview = {
       if (CONFIG.eFTP && CONFIG.eFTP !== ftpVal) pins.push({ w: CONFIG.eFTP, l: `eFTP ${CONFIG.eFTP}`, goal: false });
       if (CONFIG.ftpGoal) pins.push({ w: CONFIG.ftpGoal, l: `Ziel ${CONFIG.ftpGoal}`, goal: true });
     }
-    const pinHtml = pins
+
+    // Kollisionsvermeidung: FTP/eFTP/Ziel liegen dicht beieinander, deshalb
+    // stapeln sich zu nah stehende Labels vertikal (Zeile 0/1/2) statt zu
+    // überlappen. MIN_GAP ≈ Labelbreite in % der Skala.
+    const MIN_GAP = 13;
+    const placed = pins
       .map(p => ({ ...p, pct: pinPercent(p.w, scaleMax) }))
       .filter(p => p.pct != null)
-      .map(p => `<div class="pin${p.goal ? " goal" : ""}" style="left:${p.pct.toFixed(2)}%" data-l="${p.l}"></div>`)
+      .sort((a, b) => a.pct - b.pct);
+    const rowLastPct = [];
+    let maxRow = 0;
+    for (const p of placed) {
+      let row = 0;
+      while (rowLastPct[row] != null && p.pct - rowLastPct[row] < MIN_GAP) row++;
+      rowLastPct[row] = p.pct;
+      p.row = row;
+      if (row > maxRow) maxRow = row;
+    }
+    const pinHtml = placed
+      .map(p => `<div class="pin${p.goal ? " goal" : ""}" style="left:${p.pct.toFixed(2)}%; --row:${p.row}" data-l="${p.l}"></div>`)
       .join("");
 
     const mid = Math.round(scaleMax / 2);
+    const scaleGap = Math.max(32, 24 + maxRow * 15); // Platz für gestapelte Labels
     wrap.innerHTML = `
       <div class="zlabel">Leistungsskala · Watt @ FTP-Zonen</div>
       <div class="band">${segments}${pinHtml}</div>
-      <div class="band-scale"><span>0 W</span><span>${mid} W</span><span>${scaleMax} W</span></div>`;
+      <div class="band-scale" style="margin-top:${scaleGap}px"><span>0 W</span><span>${mid} W</span><span>${scaleMax} W</span></div>`;
   },
 
   /* ── FTP-Fortschrittsring (Zonenfarben Z2 → Sweet Spot) ─────── */
