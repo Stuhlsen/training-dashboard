@@ -1,6 +1,12 @@
 # .github/workflows/sync-data.yml
 # Generiert rides.json aus Notion (Plan 1) und intervals.icu (Plan 2),
-# committed die Daten und deployt GitHub Pages direkt.
+# committed die Daten und deployt GitHub Pages.
+#
+# Struktur: getrennte Jobs "sync" (Daten erzeugen + committen + Artefakt
+# hochladen) und "deploy" (nur deploy-pages). Grund: Upload und Deploy im
+# selben Job dupliziert bei einem Re-Run das "github-pages"-Artefakt
+# ("Multiple artifacts named github-pages... count is 2"). Getrennt re-runnt
+# "Re-run failed jobs" nur den Deploy — kein zweiter Upload.
 #
 # Benötigte Secrets (Settings → Secrets → Actions):
 #   NOTION_API_KEY        — Notion Integration Token
@@ -36,18 +42,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  sync-and-deploy:
+  # 1) Daten erzeugen, committen und das Pages-Artefakt hochladen
+  sync:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
       - uses: actions/checkout@v4
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Generate rides.json
         env:
@@ -87,6 +90,14 @@ jobs:
         with:
           path: '.'
 
+  # 2) Nur Deploy — bei transientem Fehler isoliert re-runnbar (kein Re-Upload)
+  deploy:
+    needs: sync
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
