@@ -119,11 +119,11 @@
       <div class="grid grid-auto" id="metrics-grid"></div>
       <div class="chart-box" style="margin-top:1.2rem">
         <div class="chart-header">
-          <span class="chart-title heatmap-title">Trainingskonsistenz · Jahreskalender</span>
-          <span class="chart-note">Zeilen = Wochentage (mit Fahrten-Zähler) · Farbe = Tageslast</span>
+          <span class="chart-title heatmap-title">Trainingskonsistenz</span>
+          <span class="chart-note">Eine Zelle pro Woche · Zahl &amp; Farbe = Trainingstage</span>
         </div>
-        <svg class="chart" id="chart-consistency" viewBox="0 0 820 190"></svg>
-        <p class="chart-explainer" id="explainer-consistency">Jeder aktive Tag des Jahres als Zelle, eingefärbt nach Trainingslast (relativ zu den eigenen Werten). Konsistenz ist der stärkste Prädiktor für Langzeitfortschritt — Lücken sind hier ehrlicher als jeder Durchschnittswert. Die Zeilen-Zähler zeigen zugleich die Wochentagsverteilung.</p>
+        <svg class="chart" id="chart-consistency" viewBox="0 0 820 136"></svg>
+        <p class="chart-explainer" id="explainer-consistency">Jede Woche eine Zelle ab der ersten aktiven Woche — Zahl und Grünton zeigen die Trainingstage (0–7). Konsistenz ist der stärkste Prädiktor für Langzeitfortschritt, und aufeinanderfolgende aktive Wochen (Serie) zählen mehr als jede Einzelsession. Lücken bleiben als blasse Zellen sichtbar.</p>
       </div>
       <h2 class="section-label section-label-prominent">🏆 Meilensteine</h2>
       <div class="chart-box">
@@ -137,6 +137,10 @@
 
     <!-- ── Tab: Charts ─────────────────────────────────────────── -->
     <section id="tab-charts" class="tab-content hidden">
+
+      <div class="charts-toolbar">
+        <button class="ghost-toggle" id="toggle-empty-charts" type="button" aria-pressed="false">Leere Charts einblenden</button>
+      </div>
 
       <!-- Block: Fitness & Belastung -->
       <div class="chart-group">

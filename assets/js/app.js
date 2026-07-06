@@ -8,7 +8,7 @@
 
 import { isoWeekKey, monthlyFromRides } from "./core/aggregate.js";
 import { cadenceCoach } from "./core/cadence.js";
-import { yearCalendar } from "./core/consistency.js";
+import { weeklyConsistency } from "./core/consistency.js";
 import { efficiencyTrend } from "./core/efficiency.js";
 import { eftpHistory, forecastFtp } from "./core/ftp-forecast.js";
 import { buildLoadGuard } from "./core/loadguard.js";
@@ -25,6 +25,7 @@ import { Overview } from "./ui/overview.js";
 import { Table } from "./ui/table.js";
 import { Planned } from "./ui/planned.js";
 import { Analysis } from "./ui/analysis.js";
+import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
@@ -237,9 +238,8 @@ async function renderAll(athleteId) {
   Charts.renderSmallMultiples(rides);
   Charts.renderCadenceCoach("kadenz-coach", cadenceCoach(rides, CONFIG.cadenceTarget), CONFIG.cadenceTarget);
 
-  // FTP-Projektion: nur für den eigenen Plan (Ziel + Retest-Termin)
-  const forecastBox = el("box-ftp-forecast");
-  if (forecastBox) forecastBox.classList.toggle("hidden", !ownPlan);
+  // FTP-Projektion: nur für den eigenen Plan (Ziel + Retest-Termin).
+  // Sichtbarkeit übernimmt ChartVisibility (Prädikat chart-ftp-forecast).
   if (ownPlan) {
     const history = eftpHistory(rides);
     const fc = forecastFtp(history, CONFIG.retestDate);
@@ -253,7 +253,7 @@ async function renderAll(athleteId) {
   Charts.renderPlanCompareRHF(rides);
 
   // Übersicht — Konsistenz-Jahreskalender (ersetzt Wochentags-Heatmap)
-  Charts.renderConsistency("chart-consistency", yearCalendar(rides, todayISO));
+  Charts.renderConsistency("chart-consistency", weeklyConsistency(rides, todayISO));
 
   // Table
   Table.init();
@@ -266,6 +266,10 @@ async function renderAll(athleteId) {
   // Analysis
   Analysis.render(rides);
 
+  // Datengetriebene Chart-Sichtbarkeit anwenden (leere Charts/Kategorien
+  // ausblenden, sofern nicht per Umschalter eingeblendet)
+  ChartVisibility.apply();
+
   // Footer
   const athleteName = CONFIG.athletes.find(a => a.id === Data.activeAthleteId)?.name || "";
   el("footer").innerHTML = `
@@ -277,6 +281,7 @@ async function renderAll(athleteId) {
 (async function () {
   initTabs();
   initChartGroupToggles();
+  ChartVisibility.init();
   Tooltip.init();
 
   // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird.

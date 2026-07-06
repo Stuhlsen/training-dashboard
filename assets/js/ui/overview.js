@@ -196,11 +196,12 @@ export const Overview = {
   },
 
   /* ── eFTP-Auflösung (geteilt von Ring & Kachel) ─────────────── */
-  _eftpValue(rides, ownPlan) {
+  _eftpValue(rides) {
     const hist = mergeEftpHistories(eftpHistory(rides), eftpHistoryFromWellness(Data.wellness));
     if (hist.length) return hist[hist.length - 1].eftp;
-    // Fallback nur für den eigenen Plan, solange die Daten noch keinen eFTP tragen
-    return ownPlan ? (CONFIG.eFTP || null) : null;
+    // Fallback: geschätzte FTP aus der pro-Athlet-Config, solange die Daten
+    // noch keinen eFTP tragen (nach dem Sync übernimmt der Datenwert).
+    return CONFIG.athleteConfig(Data.activeAthleteId)?.eFTP || null;
   },
 
   /* ── Metriken ───────────────────────────────────────────────── */

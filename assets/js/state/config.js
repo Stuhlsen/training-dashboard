@@ -14,7 +14,6 @@ export const CONFIG = {
 
   /* ── FTP & Leistung ────────────────────────────────────────── */
   ftp: 193,
-  eFTP: 199,
   ftpBase: 166,        // Start-FTP der Saison (Ring-Fortschritt ab hier)
   ftpGoal: 210,        // Saisonziel (Plan 2, W12-Retest)
   retestDate: "2026-09-19", // FTP-Retest in W12 (Taper-Woche 14.–20.09.)
@@ -82,12 +81,13 @@ export const CONFIG = {
   // FTP-Dreiklang pro Athlet (Analyse-Tab, Leistungsdiagnostik):
   // ftpMeasured = per Ramp-Test GEMESSEN (mit Testdatum) — nie mit dem
   // laufend GESCHÄTZTEN eFTP aus intervals.icu verrechnen/vermischen.
+  // eFTP = geschätzte FTP (Fallback, solange die Daten keinen eFTP tragen).
   // ftpGoal = angestrebtes Ziel (Athlet 1: Plan-2-Retest, Athlet 2: 300W).
   athletes: [
     { id: "athlete1", name: "Athlet 1", endpoint: "./data/rides.json",
-      ftpMeasured: 193, ftpMeasuredDate: "2026-06-12", ftpGoal: 210 },
+      ftpMeasured: 193, ftpMeasuredDate: "2026-06-12", eFTP: 199, ftpGoal: 210 },
     { id: "athlete2", name: "Athlet 2", endpoint: "./data/rides-2.json",
-      ftpMeasured: 265, ftpMeasuredDate: null, ftpGoal: 300 },
+      ftpMeasured: 265, ftpMeasuredDate: null, eFTP: 261, ftpGoal: 300 },
   ],
 
   /* ── Hilfsfunktionen ───────────────────────────────────────── */
