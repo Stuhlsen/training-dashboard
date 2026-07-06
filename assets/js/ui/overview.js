@@ -66,8 +66,9 @@ export const Overview = {
     }
 
     this._renderSessionPill(rides, ownPlan);
-    this._renderZoneBand(ftpVal, ownPlan);
-    this._renderFtpRing(ftpVal, ownPlan);
+    const eftpVal = this._eftpValue(rides, ownPlan);
+    this._renderZoneBand(ftpVal, ownPlan, eftpVal);
+    this._renderFtpRing(ftpVal, ownPlan, eftpVal);
   },
 
   /* ── Session-Pill: heutige bzw. nächste geplante Einheit ────── */
@@ -95,7 +96,7 @@ export const Overview = {
   },
 
   /* ── Zonen-Band: FTP-Leistungsskala mit Pins (Signatur) ─────── */
-  _renderZoneBand(ftpVal, ownPlan) {
+  _renderZoneBand(ftpVal, ownPlan, eftpVal) {
     const wrap = el("hero-zoneband");
     if (!wrap) return;
     const scaleMax = CONFIG.powerScaleMax;
@@ -108,7 +109,7 @@ export const Overview = {
     // Pins: FTP immer; eFTP + Saisonziel nur für den eigenen Plan
     const pins = [{ w: ftpVal, l: `FTP ${ftpVal}`, goal: false }];
     if (ownPlan) {
-      if (CONFIG.eFTP && CONFIG.eFTP !== ftpVal) pins.push({ w: CONFIG.eFTP, l: `eFTP ${CONFIG.eFTP}`, goal: false });
+      if (eftpVal && eftpVal !== ftpVal) pins.push({ w: eftpVal, l: `eFTP ${eftpVal}`, goal: false });
       if (CONFIG.ftpGoal) pins.push({ w: CONFIG.ftpGoal, l: `Ziel ${CONFIG.ftpGoal}`, goal: true });
     }
 
@@ -142,7 +143,7 @@ export const Overview = {
   },
 
   /* ── FTP-Fortschrittsring (Zonenfarben Z2 → Sweet Spot) ─────── */
-  _renderFtpRing(ftpVal, ownPlan) {
+  _renderFtpRing(ftpVal, ownPlan, eftpVal) {
     const wrap = el("hero-ring");
     if (!wrap) return;
     if (!ftpVal) { wrap.innerHTML = ""; return; }
@@ -152,7 +153,7 @@ export const Overview = {
     let val, unit, cap, progress;
 
     if (ownPlan) {
-      val = CONFIG.eFTP || ftpVal;
+      val = eftpVal || ftpVal;
       progress = ringProgress(val, CONFIG.ftpBase, CONFIG.ftpGoal);
       const remaining = Math.max(0, CONFIG.ftpGoal - val);
       unit = `VON ${CONFIG.ftpGoal} W`;
@@ -194,6 +195,14 @@ export const Overview = {
     requestAnimationFrame(() => arc.setAttribute("stroke-dashoffset", (CIRC * (1 - progress)).toFixed(1)));
   },
 
+  /* ── eFTP-Auflösung (geteilt von Ring & Kachel) ─────────────── */
+  _eftpValue(rides, ownPlan) {
+    const hist = mergeEftpHistories(eftpHistory(rides), eftpHistoryFromWellness(Data.wellness));
+    if (hist.length) return hist[hist.length - 1].eftp;
+    // Fallback nur für den eigenen Plan, solange die Daten noch keinen eFTP tragen
+    return ownPlan ? (CONFIG.eFTP || null) : null;
+  },
+
   /* ── Metriken ───────────────────────────────────────────────── */
   _renderMetrics(rides) {
     const ownPlan  = rides.some(r => r.week);
@@ -205,17 +214,9 @@ export const Overview = {
     const avgHF    = avg(rides.filter(r => r.hf), "hf");
     const ftpVal   = Data.ftpValue();
     const avgKad = avg(rides.filter(r => r.kad), "kad");
-
-    // eFTP pro Athlet: eigener Plan → CONFIG.eFTP; sonst letzter Wert aus
-    // der Daten-Historie (icu_eftp je Fahrt + Wellness-sportInfo). Kachel
-    // erscheint nur, wenn ein Wert existiert (datengetrieben).
-    let eftpVal = null;
-    if (ownPlan) {
-      eftpVal = CONFIG.eFTP || null;
-    } else {
-      const hist = mergeEftpHistories(eftpHistory(rides), eftpHistoryFromWellness(Data.wellness));
-      eftpVal = hist.length ? hist[hist.length - 1].eftp : null;
-    }
+    const ac = CONFIG.athleteConfig(Data.activeAthleteId);
+    // eFTP datengetrieben für beide Athleten (Config nur als Fallback für A1)
+    const eftpVal = this._eftpValue(rides, ownPlan);
 
     const metrics = [
       {
@@ -244,12 +245,10 @@ export const Overview = {
       },
       {
         v: ftpVal ? ftpVal + "W" : "–",
-        l: ownPlan || CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured ? "FTP (Ramp Test)" : "Bestes Ø-Watt (NP)",
-        d: ownPlan
-          ? "Gemessene Functional Threshold Power, 12.06.2026"
-          : (CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured
-              ? "Gemessene FTP aus dem letzten Ramp-Test"
-              : "Höchster Normalized-Power-Wert einer Fahrt"),
+        l: (ownPlan || ac?.ftpMeasured) ? "FTP (Ramp Test)" : "Bestes Ø-Watt (NP)",
+        d: (ownPlan || ac?.ftpMeasured)
+          ? `Gemessene FTP aus dem Ramp-Test${ac?.ftpMeasuredDate ? " vom " + ac.ftpMeasuredDate.split("-").reverse().join(".") : ""}`
+          : "Höchster Normalized-Power-Wert einer Fahrt",
         c: "var(--gold)",
       },
       ...(eftpVal ? [{
@@ -269,7 +268,7 @@ export const Overview = {
       {
         v: fmt(maxKm) + " km",
         l: "Längste Fahrt",
-        d: "Die längste einzelne Ausfahrt im Trainingsplan",
+        d: "Die längste einzelne Ausfahrt",
         c: "var(--blue)",
       },
       {
