@@ -173,7 +173,7 @@ scripts/
 tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test)
 
 .github/workflows/
-  sync-data.yml       → Cron alle 6h, generiert JSON, committed, deployt Pages
+  sync-data.yml       → Cron alle 6h; Jobs: sync (JSON generieren + committen + Artefakt-Upload) → deploy (Pages, needs: sync)
   ci.yml              → Push/PR: npm test + ESLint (committet nichts)
 ```
 
@@ -183,6 +183,10 @@ tests/                → node:test-Suiten für core/* und scripts/lib/* (npm te
   FTP: 193W (CONFIG.ftp; DEFAULT_FTP in scripts/lib/map-activity.js)
 - **Athlet 2** (`athlete2`) — Vergleichsdaten read-only, kein eigener Plan, kein Befinden
   FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test)
+
+FTP-Dreiklang pro Athlet in `state/config.js` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
+(Ramp-Test) und `ftpGoal` (Ziel) — im Analyse-Tab strikt getrennt von der laufend
+geschätzten eFTP. Helper: `CONFIG.athleteConfig(id)`.
 
 Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen "Athlet 1"/"Athlet 2"
 (anpassbar in `state/config.js` → `athletes[].name`). Athleten-Toggle persistent via
@@ -203,7 +207,13 @@ Plan-2-Struktur (12 Wochen, pyramidale Periodisierung):
 - W9–W11: VO2max (106–120% FTP)
 - W12: Taper + Ramp Test
 
-Wochenstruktur: Di Gruppenfahrt · Do Strukturierte Intervalle · Sa Lange Z2
+Wochenstruktur (ab W2, Fokus Leistungsaufbau): Mo lockere Z2 (optional) · Di Gruppenfahrt
+~65 km · Do strukturierte Intervalle · Fr Recovery (optional) · Sa Sweet-Spot-Ausdauerfahrt
+(zweite Qualitätseinheit). Mo/Fr sind die Stoßdämpfer (bei müden Beinen streichen), Do+Sa
+die zwei Qualitätstage. Definiert in `scripts/lib/plan2.js` (PLANNED_SESSIONS + PLAN2_SCHEDULE);
+die Sa-Sessions haben strukturierte `workout`-Objekte (SS-Blöcke), pushbar zu intervals.icu.
+W0/W1 stehen als abgeschlossene Historie unverändert — die Umstellung greift ab W2.
+Realistisches FTP-Ziel: 210W (Korridor ~205–213W bis Retest 19.09.).
 
 ## Equipment (Athlet 1)
 
@@ -313,7 +323,16 @@ Athleten-Varianten!) gesetzt.
 - Entfernter Alt-Code (bewusst, bei Bedarf via Git-History): `Tabs`-Objekt (utils.js),
   `renderHRV`/`renderRHF`-Legacy-Stubs (charts.js), `queryNotionPlan1_compat`
   (generate-data.js), `renderHeatmap` (durch renderConsistency ersetzt).
+- Pages-Deploy: `sync-data.yml` hat GETRENNTE Jobs `sync` (Daten + Artefakt-Upload) und
+  `deploy` (`deploy-pages`, `needs: sync`). NICHT wieder zusammenlegen — Upload + Deploy im
+  selben Job dupliziert bei einem Re-Run das `github-pages`-Artefakt („Multiple artifacts…
+  count is 2"). Getrennt re-runnt „Re-run failed jobs" nur den Deploy, kein zweiter Upload.
 - `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
   `icu_eftp`) — Feldnamen beim ersten echten Sync-Lauf verifizieren; das
   Frontend normalisiert beide bekannten Formate und degradiert mit
   Hinweistext, wenn die Felder fehlen.
+- eFTP-Historie mergt `icu_eftp` (je Fahrt) mit dem Wellness-Tageswert aus `sportInfo`
+  (`scripts/lib/wellness.js`). Wellness trägt seit dem Analyse-Umbau zusätzlich
+  Gewicht/Kalorien/Hydration/Körperfett; welche Felder real befüllt sind, zeigt
+  `logWellnessCoverage` im Sync-Log — die „Regeneration & Körper"-Sektion blendet sich
+  datengetrieben danach ein (≥5 Punkte / 30 Tage).
