@@ -8,7 +8,7 @@ import { cadenceCoach } from "../assets/js/core/cadence.js";
 import { eftpHistory, forecastFtp } from "../assets/js/core/ftp-forecast.js";
 import { recordProgression } from "../assets/js/core/records.js";
 import { lastCompletedWeekRange, buildWeekReview } from "../assets/js/core/weekreview.js";
-import { yearCalendar } from "../assets/js/core/consistency.js";
+import { weeklyConsistency } from "../assets/js/core/consistency.js";
 import { getPlan2Blocks } from "../scripts/lib/plan2.js";
 
 /* ── EF-Trend ───────────────────────────────────────────────── */
@@ -36,7 +36,12 @@ test("efficiencyTrend: Steigung pro 30 Tage aus vergleichbaren Fahrten", () => {
   for (let i = 0; i < 6; i++) {
     const d = new Date("2026-04-01T00:00:00");
     d.setDate(d.getDate() + i * 10);
-    rides.push({ dateISO: d.toISOString().split("T")[0], typ: "Z2 Lang", min: 90, efficiency: 1.1 + i * 0.02 });
+    rides.push({
+      dateISO: d.toISOString().split("T")[0],
+      typ: "Z2 Lang",
+      min: 90,
+      efficiency: 1.1 + i * 0.02,
+    });
   }
   rides.push({ dateISO: "2026-05-01", typ: "VO2max", min: 60, efficiency: 1.6 }); // wird gefiltert
   const t = efficiencyTrend(rides);
@@ -109,7 +114,10 @@ test("recordProgression: Ablöse-Historie chronologisch, NP nur ≥20min", () =>
   const recs = recordProgression(rides);
   const km = recs.find((r) => r.key === "km");
   assert.equal(km.value, 138);
-  assert.deepEqual(km.history.map((h) => h.value), [50, 100]);
+  assert.deepEqual(
+    km.history.map((h) => h.value),
+    [50, 100]
+  );
   const np = recs.find((r) => r.key === "np20");
   assert.equal(np.value, 210); // 260 zählt nicht (15 min)
   const week = recs.find((r) => r.key === "weekKm");
@@ -127,13 +135,29 @@ test("lastCompletedWeekRange: Mo–So der Vorwoche", () => {
 
 test("buildWeekReview: Summen, stärkste Leistung, Plan-Erfüllung mit Adjustments", () => {
   const rides = [
-    { dateISO: "2026-06-23", km: 68, min: 150, tss: 140, np: 175, name: "Gruppenfahrt", weather: { temp: 24, windSpeed: 15 } },
-    { dateISO: "2026-06-27", km: 85, min: 220, tss: 180, np: 160, name: "Z2 Lang", weather: { temp: 31, windSpeed: 10 } },
+    {
+      dateISO: "2026-06-23",
+      km: 68,
+      min: 150,
+      tss: 140,
+      np: 175,
+      name: "Gruppenfahrt",
+      weather: { temp: 24, windSpeed: 15 },
+    },
+    {
+      dateISO: "2026-06-27",
+      km: 85,
+      min: 220,
+      tss: 180,
+      np: 160,
+      name: "Z2 Lang",
+      weather: { temp: 31, windSpeed: 10 },
+    },
   ];
   const sessions = [
     { date: "2026-06-23", name: "Gruppenfahrt" },
-    { date: "2026-06-25", name: "Intervalle" },   // wird verschoben auf Sa
-    { date: "2026-06-26", name: "Extra" },        // fällt aus
+    { date: "2026-06-25", name: "Intervalle" }, // wird verschoben auf Sa
+    { date: "2026-06-26", name: "Extra" }, // fällt aus
   ];
   const adjustments = {
     "2026-06-25": { movedTo: "2026-06-27" },
@@ -142,28 +166,35 @@ test("buildWeekReview: Summen, stärkste Leistung, Plan-Erfüllung mit Adjustmen
   const rv = buildWeekReview(rides, sessions, adjustments, "2026-07-04");
   assert.equal(rv.km, 153);
   assert.equal(rv.best.name, "Gruppenfahrt"); // höchste NP
-  assert.equal(rv.plan.planned, 2);           // Ausfall zählt nicht
-  assert.equal(rv.plan.done, 2);              // verschobene Session am 27. erfüllt
+  assert.equal(rv.plan.planned, 2); // Ausfall zählt nicht
+  assert.equal(rv.plan.done, 2); // verschobene Session am 27. erfüllt
   assert.match(rv.weatherNote, /31/);
   assert.equal(buildWeekReview([], sessions, {}, "2026-07-04"), null);
 });
 
 /* ── Konsistenzkalender ─────────────────────────────────────── */
 
-test("yearCalendar: Level aus Quantilen, Wochentagsstatistik (Mo=0)", () => {
+test("weeklyConsistency: Wochen-Buckets, Lücken, Serien und Ø Tage/Woche", () => {
   const rides = [
-    { dateISO: "2026-06-29", tss: 50, km: 30 },  // Montag
-    { dateISO: "2026-06-30", tss: 100, km: 60 }, // Dienstag
-    { dateISO: "2026-07-02", tss: 200, km: 90 }, // Donnerstag
+    { dateISO: "2026-06-01", km: 30 }, // Mo – Woche 1
+    { dateISO: "2026-06-03", km: 40 }, // Mi – Woche 1
+    { dateISO: "2026-06-08", km: 50 }, // Mo – Woche 2
+    // Woche 3 (ab 2026-06-15) bleibt leer → Lücke
+    { dateISO: "2026-06-22", km: 60 }, // Mo – Woche 4
   ];
-  const cal = yearCalendar(rides, "2026-07-04");
-  assert.equal(cal.year, 2026);
-  assert.equal(cal.activeDays, 3);
-  assert.equal(cal.days["2026-07-02"].level, 4);
-  assert.ok(cal.days["2026-06-29"].level >= 1);
-  assert.equal(cal.weekdayCounts[0], 1); // Mo
-  assert.equal(cal.weekdayCounts[3], 1); // Do
-  assert.equal(cal.weekdayCounts[6], 0); // So
+  const wc = weeklyConsistency(rides, "2026-06-24");
+  assert.ok(wc);
+  assert.equal(wc.totalWeeks, 4);
+  assert.equal(wc.weeks[0].days, 2); // Mo + Mi
+  assert.equal(wc.weeks[1].days, 1);
+  assert.equal(wc.weeks[2].days, 0); // Lücke bleibt sichtbar
+  assert.equal(wc.weeks[3].days, 1);
+  assert.equal(wc.activeWeeks, 3);
+  assert.equal(wc.activeDays, 4);
+  assert.equal(wc.streakLongest, 2);   // Woche 1 + 2
+  assert.equal(wc.streakCurrent, 1);   // aktuelle Woche aktiv, davor Lücke
+  assert.equal(wc.avgDays, 1);         // 4 Tage / 4 Wochen
+  assert.equal(weeklyConsistency([], "2026-06-24"), null);
 });
 
 /* ── Plan-2-Blöcke (Sync) ───────────────────────────────────── */
@@ -174,7 +205,10 @@ test("getPlan2Blocks: Plan 1 + begonnene Phasenblöcke, laufender Block gekappt"
   const ss = blocks.find((b) => b.label === "Sweet Spot");
   assert.ok(ss);
   assert.equal(ss.to, "2026-07-04"); // läuft noch → auf heute gekappt
-  assert.equal(blocks.find((b) => b.label === "VO2max"), undefined); // noch nicht begonnen
+  assert.equal(
+    blocks.find((b) => b.label === "VO2max"),
+    undefined
+  ); // noch nicht begonnen
 });
 
 test("getPlan2Blocks: nach Saisonende alle Blöcke mit vollen Zeiträumen", () => {
