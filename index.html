@@ -362,6 +362,37 @@
             </div>
             <p class="chart-explainer">Schlafdauer als Balken (linke Achse): blau ≥7h, gold 6–7h, rot &lt;6h. Schlaf-Herzfrequenz als Linie (rechte Achse, rot) — niedrige Schlaf-HF bei ausreichend Schlaf ist ein gutes Erholungssignal. Goldene Linie = 7h-Ziel.</p>
           </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title heatmap-title">Gewichtsverlauf</span>
+              <span class="chart-note">kg pro Tag · grüne Linie = 7-Tage-Schnitt</span>
+            </div>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-weight" viewBox="0 0 780 200"></svg>
+            </div>
+            <p class="chart-explainer">Körpergewicht aus Apple Health (via intervals.icu). Die grüne Linie glättet über 7 Tage — Tagesschwankungen (Wasser, Ernährung) verschwinden, der echte Trend bleibt. Relevant fürs Leistungsgewicht (W/kg), nicht als Selbstzweck.</p>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title heatmap-title">Energiebilanz-Näherung</span>
+              <span class="chart-note">Balken = Zufuhr (kcal) · Linie = Trainingsenergie (kJ ≈ kcal)</span>
+            </div>
+            <svg class="chart" id="chart-energy" viewBox="0 0 780 210"></svg>
+            <p class="chart-explainer">Aufgenommene Kalorien (blaue Balken) gegen die Trainingsenergie des Tages (orange Linie). Bewusst keine echte Bilanz — der Grundumsatz fehlt. Zweck: sehen, ob harte Tage von entsprechender Zufuhr begleitet werden, statt chronisch unterversorgt zu trainieren.</p>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title heatmap-title">Hydration</span>
+              <span class="chart-note">pro Tag · gestrichelt = Ø</span>
+            </div>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-hydration" viewBox="0 0 780 200"></svg>
+            </div>
+            <p class="chart-explainer">Tägliche Flüssigkeitsaufnahme (aus Apple Health via intervals.icu). Die gestrichelte Linie ist der Durchschnitt — an Trainingstagen sollte der Wert eher darüber liegen.</p>
+          </div>
         </div>
       </div>
 

@@ -9,6 +9,7 @@
 import { isoWeekKey, monthlyFromRides } from "./core/aggregate.js";
 import { cadenceCoach } from "./core/cadence.js";
 import { weeklyConsistency } from "./core/consistency.js";
+import { weightTrend, energyView, hydrationSeries } from "./core/body.js";
 import { efficiencyTrend } from "./core/efficiency.js";
 import { eftpHistory, forecastFtp } from "./core/ftp-forecast.js";
 import { buildLoadGuard } from "./core/loadguard.js";
@@ -33,15 +34,19 @@ function initAthleteToggle() {
   const wrap = el("athlete-toggle");
   if (!wrap) return;
 
-  wrap.innerHTML = CONFIG.athletes.map(a => `
+  wrap.innerHTML = CONFIG.athletes
+    .map(
+      (a) => `
     <button class="athlete-btn${a.id === Data.activeAthleteId ? " active" : ""}" data-athlete="${a.id}">${a.name}</button>
-  `).join("");
+  `
+    )
+    .join("");
 
-  wrap.querySelectorAll(".athlete-btn").forEach(btn => {
+  wrap.querySelectorAll(".athlete-btn").forEach((btn) => {
     btn.addEventListener("click", async () => {
       const id = btn.dataset.athlete;
       if (id === Data.activeAthleteId) return;
-      wrap.querySelectorAll(".athlete-btn").forEach(b => b.classList.toggle("active", b === btn));
+      wrap.querySelectorAll(".athlete-btn").forEach((b) => b.classList.toggle("active", b === btn));
       localStorage.setItem("active_athlete", id);
       await renderAll(id);
     });
@@ -52,7 +57,7 @@ function initAthleteToggle() {
    Athlet 2 (Vergleichsdaten) hat keine week/phase-Struktur, also
    keine Planung/Übersicht-Meilensteine. */
 function hasOwnPlan() {
-  return Data.rides.some(r => r.week);
+  return Data.rides.some((r) => r.week);
 }
 
 /** Planungs-Tab im UI je nach Datensatz ein-/ausblenden */
@@ -68,23 +73,46 @@ function togglePlanningTabVisibility(show) {
 /** Chart-Erklärtexte je Athlet anpassen — generische Vergleichsdaten statt
     personalisierte "du"-Ansprache und Plan-spezifische Begriffe */
 function updateChartExplainers(ownPlan, ftp) {
-  const set = (id, html) => { const e = el(id); if (e) e.innerHTML = html; };
+  const set = (id, html) => {
+    const e = el(id);
+    if (e) e.innerHTML = html;
+  };
 
   if (ownPlan) {
+    set(
+      "explainer-pmc",
+      `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.`
+    );
+    set(
+      "explainer-trimp",
+      `Balken: TRIMP-Wochenlast (grün &lt;400 · gelb · orange · rot &gt;900). Weiße Linie: CTL-Anstieg pro Woche — der grüne Korridor (+3 bis +6) ist der sichere Aufbaubereich, ab +8 steigt das Überlastungsrisiko deutlich. ⚠ markiert Foster-Monotonie ≥ 2: gleiche Last jeden Tag ist riskanter als gemischte Tage. Erholungswochen sollen grün und ohne ⚠ sein.`
+    );
+    set(
+      "explainer-power-curve",
+      `Beste gemessene Leistung je Zeitintervall — von 1 Sekunde (Sprint) bis 60 Minuten (Ausdauer). Gold: FTP (${ftp}W); der rote Bereich darüber ist die anaerobe Reserve. Der Blöcke-Toggle legt die Kurven der Trainingsblöcke übereinander: so siehst du, WO jeder Block gewirkt hat — Sweet Spot sollte 20–60 min heben, VO2max die 1–8 min. W/kg nutzt das Gewicht aus Apple Health.`
+    );
+    set(
+      "explainer-hrv",
+      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`
+    );
+    set(
+      "explainer-rhf",
+      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`
+    );
 
-    set("explainer-pmc", `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.`);
-    set("explainer-trimp", `Balken: TRIMP-Wochenlast (grün &lt;400 · gelb · orange · rot &gt;900). Weiße Linie: CTL-Anstieg pro Woche — der grüne Korridor (+3 bis +6) ist der sichere Aufbaubereich, ab +8 steigt das Überlastungsrisiko deutlich. ⚠ markiert Foster-Monotonie ≥ 2: gleiche Last jeden Tag ist riskanter als gemischte Tage. Erholungswochen sollen grün und ohne ⚠ sein.`);
-    set("explainer-power-curve", `Beste gemessene Leistung je Zeitintervall — von 1 Sekunde (Sprint) bis 60 Minuten (Ausdauer). Gold: FTP (${ftp}W); der rote Bereich darüber ist die anaerobe Reserve. Der Blöcke-Toggle legt die Kurven der Trainingsblöcke übereinander: so siehst du, WO jeder Block gewirkt hat — Sweet Spot sollte 20–60 min heben, VO2max die 1–8 min. W/kg nutzt das Gewicht aus Apple Health.`);
-    set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`);
-    set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`);
-
-    set("explainer-scatter", `Jeder Punkt zeigt eine Fahrt: Tempo (x-Achse) gegen Durchschnittsherzfrequenz (y-Achse). Punkte oben links sind effizient — schnelles Tempo bei niedriger Herzfrequenz. Die Phasenfarben zeigen wie sich diese Beziehung über die Trainingsphasen verschoben hat.`);
-    set("legend-scatter", `
+    set(
+      "explainer-scatter",
+      `Jeder Punkt zeigt eine Fahrt: Tempo (x-Achse) gegen Durchschnittsherzfrequenz (y-Achse). Punkte oben links sind effizient — schnelles Tempo bei niedriger Herzfrequenz. Die Phasenfarben zeigen wie sich diese Beziehung über die Trainingsphasen verschoben hat.`
+    );
+    set(
+      "legend-scatter",
+      `
       <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Vorbereitung</div>
       <div class="legend-item"><div class="legend-dot" style="background:#6b7280"></div> Phase 1</div>
       <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Phase 2</div>
       <div class="legend-item"><div class="legend-dot" style="background:#7c5cbf"></div> Phase 3</div>
-    `);
+    `
+    );
 
     set("note-cadence", `RPM pro Fahrt · gestrichelt = Ziel ${CONFIG.cadenceTarget} RPM`);
     set("note-hrv", `Plan 1 (lila) · W0 (gold) · Plan 2 (orange)`);
@@ -92,15 +120,35 @@ function updateChartExplainers(ownPlan, ftp) {
     set("note-sleep", `Nur Plan 2 · intervals.icu`);
     set("efficiency-note", `Nur Powermeter-Fahrten (ab W6)`);
   } else {
+    set(
+      "explainer-pmc",
+      `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`
+    );
+    set(
+      "explainer-trimp",
+      `Balken: TRIMP-Wochenlast (grün &lt;400 · gelb · orange · rot &gt;900). Weiße Linie: CTL-Anstieg pro Kalenderwoche — Korridor +3 bis +6 = nachhaltiger Aufbau, ab +8 deutlich erhöhtes Überlastungsrisiko. ⚠ = Foster-Monotonie ≥ 2 (Belastung zu gleichförmig verteilt).`
+    );
+    set(
+      "explainer-power-curve",
+      `Beste gemessene Leistung je Zeitintervall — von 1 Sekunde (Sprint) bis 60 Minuten (Ausdauer).${ftp ? ` Gold: FTP (${ftp}W).` : ""} Der Blockvergleich ist nur für den eigenen Trainingsplan verfügbar; W/kg nutzt das Gewicht aus intervals.icu.`
+    );
+    set(
+      "explainer-hrv",
+      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Da kein eigener Trainingsplan vorliegt, wird hier ein durchgehender Verlauf ohne Plan-Trennung gezeigt.`
+    );
+    set(
+      "explainer-rhf",
+      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training.`
+    );
 
-    set("explainer-pmc", `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`);
-    set("explainer-trimp", `Balken: TRIMP-Wochenlast (grün &lt;400 · gelb · orange · rot &gt;900). Weiße Linie: CTL-Anstieg pro Kalenderwoche — Korridor +3 bis +6 = nachhaltiger Aufbau, ab +8 deutlich erhöhtes Überlastungsrisiko. ⚠ = Foster-Monotonie ≥ 2 (Belastung zu gleichförmig verteilt).`);
-    set("explainer-power-curve", `Beste gemessene Leistung je Zeitintervall — von 1 Sekunde (Sprint) bis 60 Minuten (Ausdauer).${ftp ? ` Gold: FTP (${ftp}W).` : ""} Der Blockvergleich ist nur für den eigenen Trainingsplan verfügbar; W/kg nutzt das Gewicht aus intervals.icu.`);
-    set("explainer-hrv", `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Da kein eigener Trainingsplan vorliegt, wird hier ein durchgehender Verlauf ohne Plan-Trennung gezeigt.`);
-    set("explainer-rhf", `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training.`);
-
-    set("explainer-scatter", `Jeder Punkt zeigt eine Fahrt: Tempo (x-Achse) gegen Durchschnittsherzfrequenz (y-Achse). Punkte oben links sind effizient — schnelles Tempo bei niedriger Herzfrequenz.`);
-    set("legend-scatter", `<div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Fahrten</div>`);
+    set(
+      "explainer-scatter",
+      `Jeder Punkt zeigt eine Fahrt: Tempo (x-Achse) gegen Durchschnittsherzfrequenz (y-Achse). Punkte oben links sind effizient — schnelles Tempo bei niedriger Herzfrequenz.`
+    );
+    set(
+      "legend-scatter",
+      `<div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> Fahrten</div>`
+    );
 
     set("note-cadence", `RPM pro Fahrt`);
     set("note-hrv", `Verlauf über den erfassten Zeitraum`);
@@ -123,18 +171,30 @@ function setPeriod(chartId, value) {
 /** Initialisiert die drei Period-Toggle-Buttons und rendert Charts entsprechend */
 function initPeriodToggles(rides, weekly, guard, onBarClick) {
   const charts = [
-    { toggleId: "toggle-weekly", titleId: "title-weekly", chartFn: (data) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick),
-      titleWeek: "Wöchentliches Volumen (km)", titleMonth: "Monatliches Volumen (km)" },
-    { toggleId: "toggle-trimp",  titleId: "title-trimp",
-      chartFn: (data, period) => Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard),
-      titleWeek: "Belastungswächter · TRIMP, Ramp & Monotonie", titleMonth: "Trainingsbelastung TRIMP pro Monat" },
-    { toggleId: "toggle-weather", titleId: "title-weather",
+    {
+      toggleId: "toggle-weekly",
+      titleId: "title-weekly",
+      chartFn: (data) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick),
+      titleWeek: "Wöchentliches Volumen (km)",
+      titleMonth: "Monatliches Volumen (km)",
+    },
+    {
+      toggleId: "toggle-trimp",
+      titleId: "title-trimp",
+      chartFn: (data, period) =>
+        Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard),
+      titleWeek: "Belastungswächter · TRIMP, Ramp & Monotonie",
+      titleMonth: "Trainingsbelastung TRIMP pro Monat",
+    },
+    {
+      toggleId: "toggle-weather",
+      titleId: "title-weather",
       chartFn: (data, period) => {
         if (period === "month") {
           // Fahrten temporär mit Monat als "week" versehen für die Aggregation in renderWeatherWeekly
-          const ridesWithMonth = Data.rides.map(r => ({
+          const ridesWithMonth = Data.rides.map((r) => ({
             ...r,
-            week: r.dateISO ? r.dateISO.slice(0, 7) : (r.week || "?"),
+            week: r.dateISO ? r.dateISO.slice(0, 7) : r.week || "?",
           }));
           Charts.renderWeatherWeekly("chart-weather-weekly", ridesWithMonth);
         } else {
@@ -142,7 +202,8 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
         }
       },
       titleWeek: "Trainingswetter · Temperatur & Wind pro Woche",
-      titleMonth: "Trainingswetter · Temperatur & Wind pro Monat" },
+      titleMonth: "Trainingswetter · Temperatur & Wind pro Monat",
+    },
   ];
 
   for (const cfg of charts) {
@@ -151,7 +212,7 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
 
     // Toggle-Status aus localStorage wiederherstellen
     const saved = getPeriod(cfg.toggleId);
-    wrap.querySelectorAll(".unit-btn").forEach(btn => {
+    wrap.querySelectorAll(".unit-btn").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.period === saved);
     });
     if (cfg.titleId) {
@@ -163,11 +224,11 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
     cfg.chartFn(saved === "month" ? monthlyFromRides(Data.rides) : weekly, saved);
 
     // Click-Handler
-    wrap.querySelectorAll(".unit-btn").forEach(btn => {
+    wrap.querySelectorAll(".unit-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const period = btn.dataset.period;
         if (btn.classList.contains("active")) return;
-        wrap.querySelectorAll(".unit-btn").forEach(b => b.classList.toggle("active", b === btn));
+        wrap.querySelectorAll(".unit-btn").forEach((b) => b.classList.toggle("active", b === btn));
         setPeriod(cfg.toggleId, period);
         const titleEl = el(cfg.titleId);
         if (titleEl) titleEl.textContent = period === "month" ? cfg.titleMonth : cfg.titleWeek;
@@ -183,9 +244,7 @@ async function renderAll(athleteId) {
   el("app").classList.add("hidden");
   el("error").classList.add("hidden");
 
-  const result = athleteId
-    ? await Data.switchAthlete(athleteId)
-    : await Data.load();
+  const result = athleteId ? await Data.switchAthlete(athleteId) : await Data.load();
 
   if (!result.ok) {
     el("loading").classList.add("hidden");
@@ -202,7 +261,10 @@ async function renderAll(athleteId) {
   const ownPlan = hasOwnPlan();
   const ftp = ownPlan
     ? CONFIG.ftp
-    : (CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured || Data.athleteFtp || Data.rides.find(r => r.np)?.np || null);
+    : CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured ||
+      Data.athleteFtp ||
+      Data.rides.find((r) => r.np)?.np ||
+      null;
   const todayISO = new Date().toISOString().split("T")[0];
 
   // Wochen-Zuordnung: Plan-Wochen (Athlet 1) bzw. ISO-Kalenderwochen
@@ -219,7 +281,10 @@ async function renderAll(athleteId) {
 
   // Panels: Tagesform (7d vs. 42d-Baseline) + Wochenrückblick + Bestwerte
   renderReadiness("readiness-panel", assessReadiness(Data.wellness, todayISO));
-  renderWeekReview("weekreview-card", buildWeekReview(rides, ownPlan ? Data.plannedSessions : [], Data.adjustments, todayISO));
+  renderWeekReview(
+    "weekreview-card",
+    buildWeekReview(rides, ownPlan ? Data.plannedSessions : [], Data.adjustments, todayISO)
+  );
   renderRecords("records-wall", recordProgression(rides));
 
   // Charts — Fitness & Belastung (Belastungswächter: Ramp + Foster-Monotonie)
@@ -232,11 +297,21 @@ async function renderAll(athleteId) {
   Charts.renderZoneWeekly("chart-zones", weeklyZoneShares(rides, weekKeyFn, weekSortFn));
 
   // Charts — Leistung
-  Charts.renderPowerCurve("chart-power-curve", Data.powerCurves, ftp, Data.athleteWeight, ownPlan ? Data.powerCurveBlocks : []);
+  Charts.renderPowerCurve(
+    "chart-power-curve",
+    Data.powerCurves,
+    ftp,
+    Data.athleteWeight,
+    ownPlan ? Data.powerCurveBlocks : []
+  );
   Charts.renderEfficiency("chart-efficiency", rides, efficiencyTrend(rides));
   Charts.renderScatter("chart-scatter", rides);
   Charts.renderSmallMultiples(rides);
-  Charts.renderCadenceCoach("kadenz-coach", cadenceCoach(rides, CONFIG.cadenceTarget), CONFIG.cadenceTarget);
+  Charts.renderCadenceCoach(
+    "kadenz-coach",
+    cadenceCoach(rides, CONFIG.cadenceTarget),
+    CONFIG.cadenceTarget
+  );
 
   // FTP-Projektion: nur für den eigenen Plan (Ziel + Retest-Termin).
   // Sichtbarkeit übernimmt ChartVisibility (Prädikat chart-ftp-forecast).
@@ -251,6 +326,12 @@ async function renderAll(athleteId) {
   Charts.renderSleep("chart-sleep", Data.wellness, ownPlan);
   Charts.renderPlanCompareHRV(rides);
   Charts.renderPlanCompareRHF(rides);
+
+  // Körper: Gewicht/Energie/Hydration (erscheinen nur bei vorhandenen Daten,
+  // Sichtbarkeit via ChartVisibility)
+  Charts.renderWeight("chart-weight", weightTrend(Data.wellness));
+  Charts.renderEnergy("chart-energy", energyView(Data.wellness, rides));
+  Charts.renderHydration("chart-hydration", hydrationSeries(Data.wellness));
 
   // Übersicht — Konsistenz-Jahreskalender (ersetzt Wochentags-Heatmap)
   Charts.renderConsistency("chart-consistency", weeklyConsistency(rides, todayISO));
@@ -271,7 +352,7 @@ async function renderAll(athleteId) {
   ChartVisibility.apply();
 
   // Footer
-  const athleteName = CONFIG.athletes.find(a => a.id === Data.activeAthleteId)?.name || "";
+  const athleteName = CONFIG.athletes.find((a) => a.id === Data.activeAthleteId)?.name || "";
   el("footer").innerHTML = `
     <p>Daten: ${rides.length} Fahrten · ${athleteName} · Quelle: ${ownPlan ? "Notion + intervals.icu" : "intervals.icu"} · Aktualisiert ${new Date().toLocaleDateString("de")}</p>
   `;
@@ -288,7 +369,7 @@ async function renderAll(athleteId) {
   // Alte/unbekannte IDs (aus früheren Versionen) fallen auf den Primär-Athleten
   // zurück — der Toggle setzt sich dabei einmalig zurück.
   const savedAthlete = localStorage.getItem("active_athlete");
-  const validAthlete = CONFIG.athletes.some(a => a.id === savedAthlete);
+  const validAthlete = CONFIG.athletes.some((a) => a.id === savedAthlete);
   if (savedAthlete && !validAthlete) localStorage.removeItem("active_athlete");
   Data.activeAthleteId = validAthlete ? savedAthlete : CONFIG.primaryAthleteId;
 

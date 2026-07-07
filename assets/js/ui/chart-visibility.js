@@ -11,26 +11,31 @@
    ============================================================ */
 
 import { Data } from "../state/data.js";
+import { weightTrend, energyView, hydrationSeries } from "../core/body.js";
 import { el } from "./dom.js";
 
 /** Verfügbarkeits-Prädikate je Chart-SVG-ID (aktiver Athlet) */
 const AVAILABILITY = {
-  "chart-pmc":            () => Data.rides.some((r) => r.ctl != null),
-  "chart-weekly":         () => Data.rides.length > 0,
-  "chart-trimp":          () => Data.rides.some((r) => r.trimp || r.tss),
-  "chart-zones":          () => Data.rides.some((r) => r.np != null),
-  "chart-power-curve":    () => !!Data.powerCurves,
-  "chart-ftp-forecast":   () => Data.rides.some((r) => r.week), // Plan-2-Retest nur mit eigenem Plan
-  "chart-efficiency":     () => Data.rides.filter((r) => r.watt && r.hf && (r.min || 0) >= 60).length >= 2,
-  "chart-scatter":        () => Data.rides.some((r) => r.hf && r.kmh),
-  "chart-sm-tempo":       () => Data.rides.some((r) => r.kmh),
-  "chart-sm-kadenz":      () => Data.rides.some((r) => r.kad),
-  "chart-sm-hf":          () => Data.rides.some((r) => r.hf),
-  "chart-decoupling":     () => Data.rides.some((r) => r.decoupling != null),
-  "chart-hrv-p1":         () => Data.wellness.some((w) => w.hrv != null),
-  "chart-rhf-p1":         () => Data.wellness.some((w) => w.restingHR != null),
-  "chart-sleep":          () => Data.wellness.some((w) => w.sleepHours != null),
+  "chart-pmc": () => Data.rides.some((r) => r.ctl != null),
+  "chart-weekly": () => Data.rides.length > 0,
+  "chart-trimp": () => Data.rides.some((r) => r.trimp || r.tss),
+  "chart-zones": () => Data.rides.some((r) => r.np != null),
+  "chart-power-curve": () => !!Data.powerCurves,
+  "chart-ftp-forecast": () => Data.rides.some((r) => r.week), // Plan-2-Retest nur mit eigenem Plan
+  "chart-efficiency": () =>
+    Data.rides.filter((r) => r.watt && r.hf && (r.min || 0) >= 60).length >= 2,
+  "chart-scatter": () => Data.rides.some((r) => r.hf && r.kmh),
+  "chart-sm-tempo": () => Data.rides.some((r) => r.kmh),
+  "chart-sm-kadenz": () => Data.rides.some((r) => r.kad),
+  "chart-sm-hf": () => Data.rides.some((r) => r.hf),
+  "chart-decoupling": () => Data.rides.some((r) => r.decoupling != null),
+  "chart-hrv-p1": () => Data.wellness.some((w) => w.hrv != null),
+  "chart-rhf-p1": () => Data.wellness.some((w) => w.restingHR != null),
+  "chart-sleep": () => Data.wellness.some((w) => w.sleepHours != null),
   "chart-weather-weekly": () => Data.rides.some((r) => r.weather || r.wetter),
+  "chart-weight": () => weightTrend(Data.wellness) !== null,
+  "chart-energy": () => energyView(Data.wellness, Data.rides) !== null,
+  "chart-hydration": () => hydrationSeries(Data.wellness) !== null,
 };
 
 /** Ist der Chart für den aktiven Athleten mit Daten belegt?
@@ -38,7 +43,11 @@ const AVAILABILITY = {
 function isAvailable(id) {
   const pred = AVAILABILITY[id];
   if (!pred) return true; // unbekannt → nicht ausblenden
-  try { return !!pred(); } catch { return false; }
+  try {
+    return !!pred();
+  } catch {
+    return false;
+  }
 }
 
 export const ChartVisibility = {
