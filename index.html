@@ -243,6 +243,36 @@
 
           <div class="chart-box">
             <div class="chart-header">
+              <span class="chart-title heatmap-title">Ø Tempo · Entwicklung</span>
+              <span class="chart-note">km/h pro Fahrt</span>
+            </div>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-sm-tempo" viewBox="0 0 780 180"></svg>
+            </div>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title heatmap-title">Kadenz-Coach · 80 → 90+ RPM</span>
+              <span class="chart-note" id="note-cadence">RPM pro Fahrt · gestrichelt = Ziel 90 RPM</span>
+            </div>
+            <div id="kadenz-coach"></div>
+            <div class="chart-scroll">
+              <svg class="chart chart-wide" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Block: Aerobe Entwicklung -->
+      <div class="chart-group">
+        <div class="chart-group-header">
+          <h2>🫀 Aerobe Entwicklung</h2>
+          <span class="toggle-icon">▾</span>
+        </div>
+        <div class="chart-group-body">
+          <div class="chart-box">
+            <div class="chart-header">
               <span class="chart-title heatmap-title">Aerobe Effizienz · Watt pro Herzschlag</span>
               <span class="chart-note" id="efficiency-note">Nur Powermeter-Fahrten (ab W6)</span>
             </div>
@@ -253,6 +283,15 @@
               <div class="legend-item"><div class="legend-dot" style="background:#4a9a6e"></div> Gleitender EF-Trend</div>
             </div>
             <p class="chart-explainer" id="explainer-efficiency">Watt pro Herzschlag — steigt der Wert bei gleicher HF, trägt die aerobe Grundlage. Der grüne Trend läuft nur über <b>vergleichbare</b> Fahrten (Z2, ≥ 60 min, moderate Temperatur); Intervall- und Hitzetage erscheinen ausgegraut als Kontext, damit sie den Trend nicht verfälschen. So ist der sauberste Feldtest-Nachweis aerober Anpassung zwischen zwei FTP-Tests ablesbar.</p>
+          </div>
+
+          <div class="chart-box">
+            <div class="chart-header">
+              <span class="chart-title heatmap-title">Aerobe Entkopplung (Pw:Hr)</span>
+              <span class="chart-note">Unter 5% = gute aerobe Fitness</span>
+            </div>
+            <svg class="chart" id="chart-decoupling" viewBox="0 0 780 200"></svg>
+            <p class="chart-explainer">Aerobe Entkopplung zeigt wie stark HF und Leistung im Lauf einer Fahrt auseinanderdriften. Bei guter aerober Basis bleibt die HF bei konstanter Leistung stabil (&lt;5%). Hohe Werte (&gt;10%) deuten auf unvollständige aerobe Anpassung hin.</p>
           </div>
 
           <div class="chart-box">
@@ -272,27 +311,6 @@
 
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">Ø Tempo · Entwicklung</span>
-              <span class="chart-note">km/h pro Fahrt</span>
-            </div>
-            <div class="chart-scroll">
-              <svg class="chart chart-wide" id="chart-sm-tempo" viewBox="0 0 780 180"></svg>
-            </div>
-          </div>
-
-          <div class="chart-box">
-            <div class="chart-header">
-              <span class="chart-title heatmap-title">Kadenz-Coach · 80 → 90+ RPM</span>
-              <span class="chart-note" id="note-cadence">RPM pro Fahrt · gestrichelt = Ziel 90 RPM</span>
-            </div>
-            <div id="kadenz-coach"></div>
-            <div class="chart-scroll">
-              <svg class="chart chart-wide" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
-            </div>
-          </div>
-
-          <div class="chart-box">
-            <div class="chart-header">
               <span class="chart-title heatmap-title">Ø Herzfrequenz · Entwicklung</span>
               <span class="chart-note">bpm pro Fahrt</span>
             </div>
@@ -303,22 +321,13 @@
         </div>
       </div>
 
-      <!-- Block: Aerobe Gesundheit -->
+      <!-- Block: Erholung & Körper -->
       <div class="chart-group">
         <div class="chart-group-header">
-          <h2>❤️ Aerobe Gesundheit</h2>
+          <h2>😴 Erholung & Körper</h2>
           <span class="toggle-icon">▾</span>
         </div>
         <div class="chart-group-body">
-          <div class="chart-box">
-            <div class="chart-header">
-              <span class="chart-title heatmap-title">Aerobe Entkopplung (Pw:Hr)</span>
-              <span class="chart-note">Unter 5% = gute aerobe Fitness</span>
-            </div>
-            <svg class="chart" id="chart-decoupling" viewBox="0 0 780 200"></svg>
-            <p class="chart-explainer">Aerobe Entkopplung zeigt wie stark HF und Leistung im Lauf einer Fahrt auseinanderdriften. Bei guter aerober Basis bleibt die HF bei konstanter Leistung stabil (&lt;5%). Hohe Werte (&gt;10%) deuten auf unvollständige aerobe Anpassung hin.</p>
-          </div>
-
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">HRV · Heart Rate Variability</span>
