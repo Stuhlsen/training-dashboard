@@ -143,7 +143,7 @@ assets/js/
     github-client.js  → Token-Handling + GET-SHA/PUT (Contents-API), fetchRawJson
     charts/           → base (Grid/Labels/Scroll) · training · pmc · power · wellness
                         index.js bündelt alles als Charts.renderXxx-Fassade
-    overview.js       → Übersicht-Tab, Hero, KPIs, Meilensteine
+    overview.js       → Übersicht-Tab, Hero, KPIs
     table.js          → Fahrtenbuch + Subjective (Befinden-Write via github-client)
     planned.js        → Planungs-Tab + Adjustments (Verschieben/Ausfall) + Workout-Push
     analysis.js       → Analyse-Tab: 8 Sektionen (Briefing · Belastung ·

@@ -55,7 +55,7 @@ function initAthleteToggle() {
 
 /* ── Hat der aktive Athlet einen Trainingsplan? ────────────────
    Athlet 2 (Vergleichsdaten) hat keine week/phase-Struktur, also
-   keine Planung/Übersicht-Meilensteine. */
+   keine Planung. */
 function hasOwnPlan() {
   return Data.rides.some((r) => r.week);
 }
