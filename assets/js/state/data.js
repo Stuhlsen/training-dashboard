@@ -14,7 +14,6 @@ import { validateRidesPayload } from "../core/validate.js";
 import { log } from "../ui/log.js";
 
 export const Data = {
-
   /** @type {import("../types.js").Ride[]} */
   rides: [],
   /** @type {import("../types.js").WellnessDay[]} */
@@ -109,7 +108,11 @@ export const Data = {
   async switchAthlete(athleteId) {
     const athlete = CONFIG.athletes.find((a) => a.id === athleteId);
     if (!athlete) {
-      return { ok: false, source: "none", error: { code: "UNKNOWN", message: "Unbekannter Athlet" } };
+      return {
+        ok: false,
+        source: "none",
+        error: { code: "UNKNOWN", message: "Unbekannter Athlet" },
+      };
     }
     this.activeAthleteId = athleteId;
     return await this.load(athlete.endpoint);

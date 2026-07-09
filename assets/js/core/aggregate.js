@@ -16,7 +16,8 @@ export function isoWeekKey(dateStr) {
   d.setDate(d.getDate() + 3 - ((d.getDay() + 6) % 7));
   const week1 = new Date(d.getFullYear(), 0, 4);
   const weekNum =
-    1 + Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
+    1 +
+    Math.round(((d.getTime() - week1.getTime()) / 86400000 - 3 + ((week1.getDay() + 6) % 7)) / 7);
   return `${d.getFullYear()}-KW${String(weekNum).padStart(2, "0")}`;
 }
 
@@ -35,7 +36,10 @@ function aggregateGroup(week, wr, meta = {}) {
     trimp: Math.round(sum(wr, "trimp")),
     avgHF: avg(wr, "hf"),
     avgKad: avg(wr, "kad"),
-    avgEff: avg(wr.filter((r) => r.efficiency), "efficiency"),
+    avgEff: avg(
+      wr.filter((r) => r.efficiency),
+      "efficiency"
+    ),
   };
 }
 
@@ -112,8 +116,20 @@ export function monthlyFromRides(rides) {
           phase: mRides[0]?.phase || null,
           plan: mRides[0]?.plan || "Vergleich",
         }),
-        avgHF: Math.round(avg(mRides.filter((r) => r.hf), "hf") || 0) || null,
-        avgKad: Math.round(avg(mRides.filter((r) => r.kad), "kad") || 0) || null,
+        avgHF:
+          Math.round(
+            avg(
+              mRides.filter((r) => r.hf),
+              "hf"
+            ) || 0
+          ) || null,
+        avgKad:
+          Math.round(
+            avg(
+              mRides.filter((r) => r.kad),
+              "kad"
+            ) || 0
+          ) || null,
         temp: weatherMean(mRides, "temp"),
         windSpeed: weatherMean(mRides, "windSpeed"),
         precip: weatherMean(mRides, "precip"),

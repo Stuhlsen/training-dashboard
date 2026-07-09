@@ -84,22 +84,32 @@ export const DECOUPLING_MIN_POINTS = 5;
  */
 export function decouplingTrend(rides) {
   const usable = (rides || [])
-    .filter((r) => r.decoupling != null && COMPARABLE.types.includes(r.typ) && (r.min || 0) >= COMPARABLE.minDurationMin)
+    .filter(
+      (r) =>
+        r.decoupling != null &&
+        COMPARABLE.types.includes(r.typ) &&
+        (r.min || 0) >= COMPARABLE.minDurationMin
+    )
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   if (usable.length < DECOUPLING_MIN_POINTS) return null;
 
   const points = usable.map((r) => ({ date: r.dateISO, value: r.decoupling }));
   const sortedVals = points.map((p) => p.value).sort((a, b) => a - b);
   const mid = Math.floor(sortedVals.length / 2);
-  const median = sortedVals.length % 2
-    ? sortedVals[mid]
-    : Math.round(((sortedVals[mid - 1] + sortedVals[mid]) / 2) * 10) / 10;
+  const median =
+    sortedVals.length % 2
+      ? sortedVals[mid]
+      : Math.round(((sortedVals[mid - 1] + sortedVals[mid]) / 2) * 10) / 10;
 
-  const stableShare = Math.round((points.filter((p) => p.value < DECOUPLING_STABLE).length / points.length) * 100);
+  const stableShare = Math.round(
+    (points.filter((p) => p.value < DECOUPLING_STABLE).length / points.length) * 100
+  );
 
   let slopePer30d = null;
   const t0 = new Date(points[0].date).getTime();
-  const trend = linearTrend(points.map((p) => ({ x: (new Date(p.date).getTime() - t0) / 86400000, y: p.value })));
+  const trend = linearTrend(
+    points.map((p) => ({ x: (new Date(p.date).getTime() - t0) / 86400000, y: p.value }))
+  );
   if (trend) slopePer30d = Math.round(trend.slope * 30 * 100) / 100;
 
   return { points, median, stableShare, slopePer30d, n: points.length };

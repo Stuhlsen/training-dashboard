@@ -28,12 +28,18 @@ export const Adjustments = {
     return this._data;
   },
 
-  get(date) { return this._data?.[date] || null; },
+  get(date) {
+    return this._data?.[date] || null;
+  },
 
   /** @returns {Promise<import("../types.js").Result>} */
   async cancel(origDate, reason) {
     if (!this._data) this._data = {};
-    this._data[origDate] = { cancelled: true, reason: reason || "", savedAt: new Date().toISOString() };
+    this._data[origDate] = {
+      cancelled: true,
+      reason: reason || "",
+      savedAt: new Date().toISOString(),
+    };
     return await this._write(`plan: ${origDate} ausgefallen${reason ? " (" + reason + ")" : ""}`);
   },
 
@@ -58,18 +64,17 @@ export const Adjustments = {
 };
 
 export const Planned = {
-
   /* ── Typ → Farbe ───────────────────────────────────────────── */
   _typColor(typ) {
     const map = {
-      "Sweet Spot":  "#e08a3c",
-      "Schwelle":    "#d94f4f",
-      "VO2max":      "#a24ad0",
-      "Z2 Lang":     "#4a7fa8",
-      "Z2 Dauer":    "#4a7fa8",
+      "Sweet Spot": "#e08a3c",
+      Schwelle: "#d94f4f",
+      VO2max: "#a24ad0",
+      "Z2 Lang": "#4a7fa8",
+      "Z2 Dauer": "#4a7fa8",
       "Z1 Recovery": "#4a9a6e",
-      "Gruppenfahrt":"#c9a84c",
-      "FTP-Test":    "#c9a84c",
+      Gruppenfahrt: "#c9a84c",
+      "FTP-Test": "#c9a84c",
     };
     return map[typ] || "#6b7280";
   },
@@ -77,14 +82,14 @@ export const Planned = {
   /* ── Typ → Icon ────────────────────────────────────────────── */
   _typIcon(typ) {
     const map = {
-      "Sweet Spot":  "⚡",
-      "Schwelle":    "🔥",
-      "VO2max":      "💜",
-      "Z2 Lang":     "🚴",
-      "Z2 Dauer":    "🚴",
+      "Sweet Spot": "⚡",
+      Schwelle: "🔥",
+      VO2max: "💜",
+      "Z2 Lang": "🚴",
+      "Z2 Dauer": "🚴",
       "Z1 Recovery": "🌿",
-      "Gruppenfahrt":"👥",
-      "FTP-Test":    "🎯",
+      Gruppenfahrt: "👥",
+      "FTP-Test": "🎯",
     };
     return map[typ] || "📅";
   },
@@ -107,11 +112,16 @@ export const Planned = {
   },
 
   scrollToDate(date) {
-    const item = document.querySelector(`.planned-done-item--link[data-ride-date="${date}"], .done-card-link[data-ride-date="${date}"]`);
+    const item = document.querySelector(
+      `.planned-done-item--link[data-ride-date="${date}"], .done-card-link[data-ride-date="${date}"]`
+    );
     if (item) {
       item.closest(".planned-card, .planned-done-item")?.classList.add("row-highlight");
       item.scrollIntoView({ behavior: "smooth", block: "center" });
-      setTimeout(() => item.closest(".planned-card, .planned-done-item")?.classList.remove("row-highlight"), 2500);
+      setTimeout(
+        () => item.closest(".planned-card, .planned-done-item")?.classList.remove("row-highlight"),
+        2500
+      );
     }
   },
 
@@ -125,7 +135,11 @@ export const Planned = {
   /** @returns {Promise<import("../types.js").Result>} */
   async _pushWorkout(session, token, athleteId) {
     const w = session.workout;
-    if (!w) return { ok: false, error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" } };
+    if (!w)
+      return {
+        ok: false,
+        error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" },
+      };
 
     // intervals.icu erwartet KEIN steps-JSON im Event-Payload, sondern
     // parst die Workout-Struktur selbst aus einer Klartext-Syntax im
@@ -163,13 +177,16 @@ export const Planned = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Basic " + btoa("API_KEY:" + token),
+          Authorization: "Basic " + btoa("API_KEY:" + token),
         },
         body: JSON.stringify(workout),
       });
       if (!res.ok) {
         const txt = await res.text();
-        return { ok: false, error: { code: "HTTP", message: `intervals.icu Fehler ${res.status}: ${txt}` } };
+        return {
+          ok: false,
+          error: { code: "HTTP", message: `intervals.icu Fehler ${res.status}: ${txt}` },
+        };
       }
       return { ok: true };
     } catch (e) {
@@ -191,11 +208,11 @@ export const Planned = {
     ]);
 
     // Bereits absolvierte Daten
-    const doneDates = new Set(rides.map(r => r.date));
+    const doneDates = new Set(rides.map((r) => r.date));
     const today = new Date().toISOString().split("T")[0];
 
     // Sessions mit Adjustments anwenden
-    const allSessions = Data.plannedSessions.map(s => {
+    const allSessions = Data.plannedSessions.map((s) => {
       const adj = Adjustments.get(s.date);
       if (adj?.cancelled) {
         return { ...s, cancelled: true, cancelReason: adj.reason };
@@ -208,22 +225,22 @@ export const Planned = {
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
-      .filter(s => (s.date >= today || s.originalDate) && !doneDates.has(s.date) && !s.cancelled)
+      .filter((s) => (s.date >= today || s.originalDate) && !doneDates.has(s.date) && !s.cancelled)
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Bereits absolvierte Sessions (Ride mit passendem Datum vorhanden)
     const doneSessions = allSessions
-      .filter(s => doneDates.has(s.date) && !s.cancelled)
+      .filter((s) => doneDates.has(s.date) && !s.cancelled)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben
     const missedSessions = allSessions
-      .filter(s => s.date < today && !doneDates.has(s.date) && !s.cancelled && !s.originalDate)
+      .filter((s) => s.date < today && !doneDates.has(s.date) && !s.cancelled && !s.originalDate)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Ausgefallene Sessions
     const cancelledSessions = allSessions
-      .filter(s => s.cancelled)
+      .filter((s) => s.cancelled)
       .sort((a, b) => b.date.localeCompare(a.date));
 
     if (!sessions.length && !doneSessions.length) {
@@ -236,9 +253,9 @@ export const Planned = {
     const doneCount = doneSessions.length;
     const cancelledCount = cancelledSessions.length;
     const missedCount = missedSessions.length;
-    const pct = Math.round(doneCount / totalSessions * 100);
+    const pct = Math.round((doneCount / totalSessions) * 100);
     const currentWeek = sessions[0]?.week?.replace("P2-", "") || "W12";
-    const weeksLeft = new Set(sessions.map(s => s.week)).size;
+    const weeksLeft = new Set(sessions.map((s) => s.week)).size;
 
     // Hero + Fortschrittsanzeige
     let html = `
@@ -265,16 +282,24 @@ export const Planned = {
               <span class="planned-progress-val">${currentWeek}</span>
               <span class="planned-progress-lbl">aktuell</span>
             </div>
-            ${cancelledCount > 0 ? `
+            ${
+              cancelledCount > 0
+                ? `
             <div class="planned-progress-stat">
               <span class="planned-progress-val" style="color:var(--red)">${cancelledCount}</span>
               <span class="planned-progress-lbl">ausgefallen</span>
-            </div>` : ""}
-            ${missedCount > 0 ? `
+            </div>`
+                : ""
+            }
+            ${
+              missedCount > 0
+                ? `
             <div class="planned-progress-stat">
               <span class="planned-progress-val" style="color:var(--gold)">${missedCount}</span>
               <span class="planned-progress-lbl">verpasst</span>
-            </div>` : ""}
+            </div>`
+                : ""
+            }
           </div>
           <div class="planned-progress-bar-wrap">
             <div class="planned-progress-bar" style="width:${pct}%"></div>
@@ -303,7 +328,7 @@ export const Planned = {
               <span class="planned-week-phase">${phase}</span>
             </div>
             <div class="planned-cards">
-              ${wSessions.map(s => this._renderCard(s, forecast, false)).join("")}
+              ${wSessions.map((s) => this._renderCard(s, forecast, false)).join("")}
             </div>
           </div>`;
       }
@@ -311,22 +336,27 @@ export const Planned = {
 
     // Erledigte Sessions — Plan 1 kompakt, Plan 2 als vollständige Vergleichskarte
     if (doneSessions.length) {
-      const doneP2 = doneSessions.filter(s => s.plan === "Plan 2" || Data.rides.find(r => r.date === s.date && r.plan === "Plan 2"));
-      const doneP1 = doneSessions.filter(s => !doneP2.includes(s));
+      const doneP2 = doneSessions.filter(
+        (s) =>
+          s.plan === "Plan 2" || Data.rides.find((r) => r.date === s.date && r.plan === "Plan 2")
+      );
+      const doneP1 = doneSessions.filter((s) => !doneP2.includes(s));
 
       html += `<div class="planned-section-title planned-done-title">✅ Absolviert — ${doneSessions.length} Sessions</div>`;
 
       // Plan 2 — vollständige Vergleichskarten
       if (doneP2.length) {
         html += `<div class="planned-cards">
-          ${doneP2.map(s => this._renderDoneCard(s, rides)).join("")}
+          ${doneP2.map((s) => this._renderDoneCard(s, rides)).join("")}
         </div>`;
       }
 
       // Plan 1 — kompakte Liste
       if (doneP1.length) {
         html += `<div class="planned-done-list">
-          ${doneP1.map(s => `
+          ${doneP1
+            .map(
+              (s) => `
             <div class="planned-done-item planned-done-item--link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen">
               <span class="planned-done-icon">${this._typIcon(s.typ)}</span>
               <span class="planned-done-date">${this._fmtDate(s.date)}</span>
@@ -334,7 +364,9 @@ export const Planned = {
               <span class="planned-done-check">✓</span>
               <span class="planned-done-link-icon">↗</span>
             </div>
-          `).join("")}
+          `
+            )
+            .join("")}
         </div>`;
       }
     }
@@ -344,7 +376,9 @@ export const Planned = {
       html += `
         <div class="planned-section-title" style="color:var(--gold)">⚠️ Verpasst — ${missedSessions.length} Sessions ohne Fahrt</div>
         <div class="planned-done-list">
-          ${missedSessions.map(s => `
+          ${missedSessions
+            .map(
+              (s) => `
             <div class="planned-done-item" style="border-left:2px solid var(--gold); opacity:0.8">
               <span class="planned-done-icon">${this._typIcon(s.typ)}</span>
               <span class="planned-done-date">${this._fmtDate(s.originalDate || s.date)}</span>
@@ -353,14 +387,18 @@ export const Planned = {
               <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
               <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>
             </div>
-          `).join("")}
+          `
+            )
+            .join("")}
         </div>`;
     }
     if (cancelledSessions.length) {
       html += `
         <div class="planned-section-title planned-cancelled-title">❌ Ausgefallen — ${cancelledSessions.length} Sessions</div>
         <div class="planned-done-list">
-          ${cancelledSessions.map(s => `
+          ${cancelledSessions
+            .map(
+              (s) => `
             <div class="planned-done-item planned-cancelled-item">
               <span class="planned-done-icon">${this._typIcon(s.typ)}</span>
               <span class="planned-done-date">${this._fmtDate(s.date)}</span>
@@ -368,7 +406,9 @@ export const Planned = {
               ${s.cancelReason ? `<span class="planned-cancelled-reason">${s.cancelReason}</span>` : ""}
               <button class="planned-undo-btn planned-undo-cancel-btn" data-orig="${s.date}" style="margin-left:auto">↩ Wiederherstellen</button>
             </div>
-          `).join("")}
+          `
+            )
+            .join("")}
         </div>`;
     }
 
@@ -376,16 +416,16 @@ export const Planned = {
 
     // Event Delegation — neu auf Container setzen (innerHTML wurde ersetzt)
     container.addEventListener("click", (e) => {
-      const moveBtn   = e.target.closest(".planned-move-btn");
+      const moveBtn = e.target.closest(".planned-move-btn");
       const cancelBtn = e.target.closest(".planned-cancel-btn");
-      const pushBtn   = e.target.closest(".planned-push-btn");
-      const undoBtn   = e.target.closest(".planned-undo-btn");
-      const doneItem  = e.target.closest(".planned-done-item--link");
+      const pushBtn = e.target.closest(".planned-push-btn");
+      const undoBtn = e.target.closest(".planned-undo-btn");
+      const doneItem = e.target.closest(".planned-done-item--link");
 
-      if (moveBtn)   Planned._handleMove(moveBtn);
+      if (moveBtn) Planned._handleMove(moveBtn);
       if (cancelBtn) Planned._handleCancel(cancelBtn);
-      if (pushBtn)   Planned._handlePush(pushBtn);
-      if (undoBtn)   Planned._handleUndo(undoBtn);
+      if (pushBtn) Planned._handlePush(pushBtn);
+      if (undoBtn) Planned._handleUndo(undoBtn);
       if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
         const date = doneItem.dataset.rideDate;
         if (date) Planned._openInTable(date);
@@ -405,25 +445,37 @@ export const Planned = {
     // Wetter-Badge
     let weatherHtml = "";
     if (fw) {
-      const hot = fw.temp > 32, cold = fw.temp < 5, windy = fw.windSpeed > 30, rainy = fw.precipProb > 50;
-      const bad = (hot?1:0)+(cold?1:0)+(windy?1:0)+(rainy?1:0);
+      const hot = fw.temp > 32,
+        cold = fw.temp < 5,
+        windy = fw.windSpeed > 30,
+        rainy = fw.precipProb > 50;
+      const bad = (hot ? 1 : 0) + (cold ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
       const wcol = bad >= 2 || hot ? "var(--red)" : bad === 1 ? "var(--gold)" : "var(--green)";
 
       // UV-Label
-      const uvLabel = fw.uvMax == null ? "" :
-        fw.uvMax >= 8  ? `☀️ UV ${fw.uvMax} (sehr hoch)` :
-        fw.uvMax >= 6  ? `☀️ UV ${fw.uvMax} (hoch)` :
-        fw.uvMax >= 3  ? `☀️ UV ${fw.uvMax} (mittel)` :
-                         `☀️ UV ${fw.uvMax} (niedrig)`;
+      const uvLabel =
+        fw.uvMax == null
+          ? ""
+          : fw.uvMax >= 8
+            ? `☀️ UV ${fw.uvMax} (sehr hoch)`
+            : fw.uvMax >= 6
+              ? `☀️ UV ${fw.uvMax} (hoch)`
+              : fw.uvMax >= 3
+                ? `☀️ UV ${fw.uvMax} (mittel)`
+                : `☀️ UV ${fw.uvMax} (niedrig)`;
       const uvColor = fw.uvMax >= 8 ? "var(--red)" : fw.uvMax >= 6 ? "var(--gold)" : "var(--dim)";
 
       // Hitzestress-Warnung
-      const heatWarning = fw.tempFeel > 32
-        ? `<div class="planned-weather-warn">⚠️ Hitzestress — viel trinken, Tempo anpassen</div>` : "";
+      const heatWarning =
+        fw.tempFeel > 32
+          ? `<div class="planned-weather-warn">⚠️ Hitzestress — viel trinken, Tempo anpassen</div>`
+          : "";
 
       // Kältewarnung
-      const coldWarning = fw.temp < 5
-        ? `<div class="planned-weather-warn planned-weather-warn-cold">🥶 Kalt — Winterausrüstung empfohlen</div>` : "";
+      const coldWarning =
+        fw.temp < 5
+          ? `<div class="planned-weather-warn planned-weather-warn-cold">🥶 Kalt — Winterausrüstung empfohlen</div>`
+          : "";
 
       weatherHtml = `
         <div class="planned-weather-block">
@@ -448,8 +500,9 @@ export const Planned = {
           <span class="planned-workout-label">🏋 ${w.label}</span>`;
 
       if (w.intervals && w.duration) {
-        const totalMin = w.warmup + (w.duration * w.intervals) + (w.rest * (w.intervals - 1)) + w.cooldown;
-        const pctOf = (min) => (min / totalMin * 100).toFixed(1);
+        const totalMin =
+          w.warmup + w.duration * w.intervals + w.rest * (w.intervals - 1) + w.cooldown;
+        const pctOf = (min) => ((min / totalMin) * 100).toFixed(1);
 
         workoutHtml += `<div class="planned-timeline">`;
         workoutHtml += `<div class="ptl-seg ptl-warmup" style="width:${pctOf(w.warmup)}%" title="Warm-up ${w.warmup} min">WU</div>`;
@@ -466,7 +519,7 @@ export const Planned = {
         </div>`;
       }
 
-      workoutHtml += `${w.watts ? `<div class="planned-workout-watts">${w.watts[0]}–${w.watts[1]}W · Ziel: ${Math.round((w.watts[0]+w.watts[1])/2)}W</div>` : ""}
+      workoutHtml += `${w.watts ? `<div class="planned-workout-watts">${w.watts[0]}–${w.watts[1]}W · Ziel: ${Math.round((w.watts[0] + w.watts[1]) / 2)}W</div>` : ""}
         </div>`;
     } else if (s.details) {
       const isZ2 = s.typ === "Z2 Lang" || s.typ === "Z2 Dauer";
@@ -480,7 +533,7 @@ export const Planned = {
 
         // Kalorienabschätzung: Z2 ~600 kcal/h, Recovery ~400 kcal/h
         const durationH = s.km / 22; // ~22 km/h Z2 Durchschnitt
-        const kcal = Math.round(durationH * 600 / 50) * 50; // auf 50 runden
+        const kcal = Math.round((durationH * 600) / 50) * 50; // auf 50 runden
 
         workoutHtml = `
           <div class="planned-z2-block">
@@ -498,13 +551,13 @@ export const Planned = {
             </div>
             <div class="planned-z2-note">${s.details}</div>
           </div>`;
-
       } else if (isRecovery) {
         // Recovery — letzter HRV + RHF Wert + Erholungskontext
         const wellness = Data.wellness || [];
-        const lastW = wellness.length > 0
-          ? [...wellness].sort((a, b) => b.dateISO.localeCompare(a.dateISO))[0]
-          : null;
+        const lastW =
+          wellness.length > 0
+            ? [...wellness].sort((a, b) => b.dateISO.localeCompare(a.dateISO))[0]
+            : null;
 
         const hrvHtml = lastW?.hrv
           ? `<div class="planned-rec-row"><span class="planned-rec-label">💜 HRV</span><span class="planned-rec-val">${lastW.hrv} ms</span><span class="planned-rec-date">(${lastW.dateShort})</span></div>`
@@ -516,7 +569,7 @@ export const Planned = {
 
         // Nächste Belastungseinheit finden
         const nextLoad = Data.plannedSessions
-          .filter(ps => ps.date > s.date && ps.workout)
+          .filter((ps) => ps.date > s.date && ps.workout)
           .sort((a, b) => a.date.localeCompare(b.date))[0];
         const daysToLoad = nextLoad
           ? Math.ceil((new Date(nextLoad.date) - new Date(s.date)) / 86400000)
@@ -527,13 +580,16 @@ export const Planned = {
             <div class="planned-rec-title">📊 Aktuelle Erholungswerte</div>
             ${hrvHtml}
             ${rfHtml}
-            ${nextLoad ? `
+            ${
+              nextLoad
+                ? `
               <div class="planned-rec-next">
                 ⚡ Nächste Belastung in ${daysToLoad} Tag${daysToLoad !== 1 ? "en" : ""}: ${nextLoad.name}
-              </div>` : ""}
+              </div>`
+                : ""
+            }
             <div class="planned-rec-note">${s.details}</div>
           </div>`;
-
       } else {
         workoutHtml = `<div class="planned-details">${s.details}</div>`;
       }
@@ -541,7 +597,8 @@ export const Planned = {
 
     // Tage bis zur Session
     const daysUntil = Math.ceil((new Date(s.date) - new Date()) / 86400000);
-    const daysLabel = daysUntil === 0 ? "Heute!" : daysUntil === 1 ? "Morgen" : `in ${daysUntil} Tagen`;
+    const daysLabel =
+      daysUntil === 0 ? "Heute!" : daysUntil === 1 ? "Morgen" : `in ${daysUntil} Tagen`;
 
     return `
       <div class="planned-card" style="border-left-color:${col}">
@@ -556,12 +613,16 @@ export const Planned = {
             ${s.km ? `<span class="planned-card-km">${s.workout ? "~" + s.km + " km Ausfahrt" : "~" + s.km + " km"}</span>` : ""}
           </div>
         </div>
-        ${s.originalDate ? `
+        ${
+          s.originalDate
+            ? `
           <div class="planned-moved-badge">
             📅 Verschoben von ${this._fmtDate(s.originalDate)}
             ${s.movedReason ? `· ${s.movedReason}` : ""}
             <button class="planned-undo-btn" data-orig="${s.originalDate}">↩ Rückgängig</button>
-          </div>` : ""}
+          </div>`
+            : ""
+        }
         ${weatherHtml}
         ${workoutHtml}
         <div class="planned-card-actions">
@@ -584,7 +645,7 @@ export const Planned = {
     const isGroup = s.typ === "Gruppenfahrt";
 
     // Tatsächliche Fahrt aus rides
-    const ride = rides.find(r => r.date === s.date && r.plan === "Plan 2");
+    const ride = rides.find((r) => r.date === s.date && r.plan === "Plan 2");
 
     // Vergleichszeilen bauen
     let compareHtml = "";
@@ -595,9 +656,13 @@ export const Planned = {
       if (ride.km) {
         const planned = s.km || null;
         const diff = planned ? Math.round((ride.km - planned) * 10) / 10 : null;
-        const col2 = !planned ? "var(--text)"
-          : Math.abs(diff) <= planned * 0.15 ? "var(--green)"
-          : diff > 0 ? "var(--green)" : "var(--gold)";
+        const col2 = !planned
+          ? "var(--text)"
+          : Math.abs(diff) <= planned * 0.15
+            ? "var(--green)"
+            : diff > 0
+              ? "var(--green)"
+              : "var(--gold)";
         rows.push(`
           <div class="done-compare-row">
             <span class="done-compare-label">📍 Distanz</span>
@@ -610,13 +675,14 @@ export const Planned = {
 
       // Herzfrequenz — mit echtem Zielbereich je Typ
       if (ride.hf) {
-        let hfPlan = "–", hfCol = "var(--text)";
+        let hfPlan = "–",
+          hfCol = "var(--text)";
         if (isZ2) {
           hfPlan = "123–152 bpm";
-          hfCol = (ride.hf >= 123 && ride.hf <= 152) ? "var(--green)" : "var(--gold)";
+          hfCol = ride.hf >= 123 && ride.hf <= 152 ? "var(--green)" : "var(--gold)";
         } else if (isInterval) {
           hfPlan = "167–181 bpm";
-          hfCol = (ride.hf >= 160) ? "var(--green)" : "var(--gold)";
+          hfCol = ride.hf >= 160 ? "var(--green)" : "var(--gold)";
         } else if (isGroup) {
           hfPlan = "Gruppenfahrt";
         }
@@ -632,12 +698,17 @@ export const Planned = {
 
       // Watt
       if (ride.watt) {
-        let wPlan = "–", wCol = "var(--text)";
+        let wPlan = "–",
+          wCol = "var(--text)";
         if (s.workout?.watts) {
           const [wLow, wHigh] = s.workout.watts;
           wPlan = `${wLow}–${wHigh} W`;
-          wCol = (ride.watt >= wLow && ride.watt <= wHigh) ? "var(--green)"
-               : ride.watt > wHigh ? "var(--gold)" : "var(--red)";
+          wCol =
+            ride.watt >= wLow && ride.watt <= wHigh
+              ? "var(--green)"
+              : ride.watt > wHigh
+                ? "var(--gold)"
+                : "var(--red)";
         }
         rows.push(`
           <div class="done-compare-row">
@@ -668,11 +739,12 @@ export const Planned = {
         let durPlan = "–";
         if (isInterval && s.workout) {
           const w = s.workout;
-          const total = w.warmup + (w.duration * w.intervals) + (w.rest * (w.intervals - 1)) + w.cooldown;
+          const total =
+            w.warmup + w.duration * w.intervals + w.rest * (w.intervals - 1) + w.cooldown;
           durPlan = `${total} min`;
         } else if (s.km) {
           const avgKmh = isZ2 ? 22 : isGroup ? 26 : 23;
-          durPlan = `~${Math.round(s.km / avgKmh * 60)} min`;
+          durPlan = `~${Math.round((s.km / avgKmh) * 60)} min`;
         }
         rows.push(`
           <div class="done-compare-row">
@@ -698,15 +770,17 @@ export const Planned = {
       // Wetter
       if (ride.weather) {
         const w = ride.weather;
-        const hot = w.temp > 32, windy = (w.windSpeed || 0) > 30, rainy = (w.precip || 0) > 0.5;
-        const bad = (hot?1:0)+(windy?1:0)+(rainy?1:0);
+        const hot = w.temp > 32,
+          windy = (w.windSpeed || 0) > 30,
+          rainy = (w.precip || 0) > 0.5;
+        const bad = (hot ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
         const wCol = bad >= 2 || hot ? "var(--red)" : bad === 1 ? "var(--gold)" : "var(--green)";
         rows.push(`
           <div class="done-compare-row">
             <span class="done-compare-label">🌤️ Wetter</span>
             <span class="done-compare-plan">–</span>
             <span class="done-compare-arrow">→</span>
-            <span class="done-compare-actual" style="color:${wCol}">${weatherIcon(w.weatherCode)} ${w.temp}°C · ${Math.round(w.windSpeed||0)} km/h</span>
+            <span class="done-compare-actual" style="color:${wCol}">${weatherIcon(w.weatherCode)} ${w.temp}°C · ${Math.round(w.windSpeed || 0)} km/h</span>
           </div>`);
       }
 
@@ -724,11 +798,13 @@ export const Planned = {
           </div>`);
       }
 
-      compareHtml = rows.length ? `
+      compareHtml = rows.length
+        ? `
         <div class="done-compare-block">
           <div class="done-compare-title">Geplant → Tatsächlich</div>
           ${rows.join("")}
-        </div>` : "";
+        </div>`
+        : "";
     }
 
     return `
@@ -754,7 +830,10 @@ export const Planned = {
     const origDate = btn.dataset.orig;
 
     const existing = document.querySelector(".planned-cancel-form");
-    if (existing) { existing.remove(); return; }
+    if (existing) {
+      existing.remove();
+      return;
+    }
 
     const form = document.createElement("div");
     form.className = "planned-move-form planned-cancel-form";
@@ -796,7 +875,10 @@ export const Planned = {
 
     // Existierendes Formular schließen wenn offen
     const existing = document.querySelector(".planned-move-form");
-    if (existing) { existing.remove(); return; }
+    if (existing) {
+      existing.remove();
+      return;
+    }
 
     const form = document.createElement("div");
     form.className = "planned-move-form";
@@ -823,7 +905,10 @@ export const Planned = {
       const reason = form.querySelector(".planned-move-reason").value.trim();
       const statusEl = form.querySelector(".planned-move-status");
 
-      if (!newDate) { form.remove(); return; }
+      if (!newDate) {
+        form.remove();
+        return;
+      }
 
       statusEl.textContent = "⏳ Speichern…";
       const result = await Adjustments.save(origDate, newDate, reason);
@@ -855,7 +940,7 @@ export const Planned = {
   async _handlePush(btn) {
     const date = btn.dataset.date;
     const statusEl = el(`push-status-${date}`);
-    const session = Data.plannedSessions.find(s => s.date === date);
+    const session = Data.plannedSessions.find((s) => s.date === date);
     if (!session?.workout) return;
 
     // Token aus localStorage (gleicher Mechanismus wie Befinden)
@@ -888,7 +973,9 @@ export const Planned = {
         statusEl.style.color = "var(--green)";
       }
       btn.style.outline = "1px solid var(--green)";
-      setTimeout(() => { btn.style.outline = ""; }, 2000);
+      setTimeout(() => {
+        btn.style.outline = "";
+      }, 2000);
     } else {
       if (statusEl) {
         statusEl.textContent = "❌ " + (result.error?.message || "Fehler");

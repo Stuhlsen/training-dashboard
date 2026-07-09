@@ -37,7 +37,8 @@ export function forecastFtp(history, targetISO, opts = {}) {
 
   const lastDate = history[history.length - 1].date;
   const cutoff = new Date(new Date(lastDate).getTime() - windowDays * 86400000)
-    .toISOString().split("T")[0];
+    .toISOString()
+    .split("T")[0];
   const window = history.filter((h) => h.date >= cutoff);
   if (window.length < 3) return null;
 
@@ -117,7 +118,8 @@ export function dateForTarget(history, targetWatts, opts = {}) {
   }
 
   const cutoff = new Date(new Date(lastDate).getTime() - windowDays * 86400000)
-    .toISOString().split("T")[0];
+    .toISOString()
+    .split("T")[0];
   const window = history.filter((h) => h.date >= cutoff);
   if (window.length < 3) return null;
 

@@ -13,15 +13,22 @@ const HOURLY_FIELDS =
   "temperature_2m,apparent_temperature,relative_humidity_2m," +
   "wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,weather_code";
 
-export async function getHistoricalWeather(startDate, endDate, lat = ENV.WEATHER_LAT, lon = ENV.WEATHER_LON) {
+export async function getHistoricalWeather(
+  startDate,
+  endDate,
+  lat = ENV.WEATHER_LAT,
+  lon = ENV.WEATHER_LON
+) {
   if (!lat || !lon) {
     log.info(`🌤️  Open-Meteo Wetter: kein Standort-Secret gesetzt, übersprungen`);
     return null;
   }
   log.info(`🌤️  Open-Meteo Wetter (${startDate} bis ${endDate})...`);
   const params = [
-    `latitude=${lat}`, `longitude=${lon}`,
-    `start_date=${startDate}`, `end_date=${endDate}`,
+    `latitude=${lat}`,
+    `longitude=${lon}`,
+    `start_date=${startDate}`,
+    `end_date=${endDate}`,
     `hourly=${HOURLY_FIELDS}`,
     `timezone=Europe/Berlin`,
   ].join("&");
@@ -44,7 +51,8 @@ export async function getRecentWeather(lat = ENV.WEATHER_LAT, lon = ENV.WEATHER_
   // Forecast-API liefert auch vergangene Stunden der letzten Tage (kein Delay wie Archive)
   log.info(`🌤️  Open-Meteo Forecast (letzte 2 Tage)...`);
   const params = [
-    `latitude=${lat}`, `longitude=${lon}`,
+    `latitude=${lat}`,
+    `longitude=${lon}`,
     `past_days=3`,
     `forecast_days=1`,
     `hourly=${HOURLY_FIELDS}`,
@@ -73,7 +81,8 @@ export async function getPlanningForecast(lat = ENV.WEATHER_LAT, lon = ENV.WEATH
   }
   log.info(`🌤️  Open-Meteo Planungs-Forecast (16 Tage)...`);
   const params = [
-    `latitude=${lat}`, `longitude=${lon}`,
+    `latitude=${lat}`,
+    `longitude=${lon}`,
     `hourly=temperature_2m,apparent_temperature,relative_humidity_2m,wind_speed_10m,wind_direction_10m,precipitation_probability,weather_code,uv_index`,
     `forecast_days=16`,
     `timezone=Europe/Berlin`,
@@ -92,28 +101,39 @@ export async function getPlanningForecast(lat = ENV.WEATHER_LAT, lon = ENV.WEATH
     const [date, time] = h.time[i].split("T");
     const hour = parseInt(time);
     if (hour < 8 || hour > 18) continue;
-    if (!map[date]) map[date] = { temp: [], feel: [], humidity: [], wind: [], windDir: [], precipProb: [], code: [], uv: [] };
-    if (h.temperature_2m[i]            != null) map[date].temp.push(h.temperature_2m[i]);
-    if (h.apparent_temperature[i]      != null) map[date].feel.push(h.apparent_temperature[i]);
-    if (h.relative_humidity_2m[i]      != null) map[date].humidity.push(h.relative_humidity_2m[i]);
-    if (h.wind_speed_10m[i]            != null) map[date].wind.push(h.wind_speed_10m[i]);
-    if (h.wind_direction_10m[i]        != null) map[date].windDir.push(h.wind_direction_10m[i]);
-    if (h.precipitation_probability[i] != null) map[date].precipProb.push(h.precipitation_probability[i]);
-    if (h.weather_code[i]              != null) map[date].code.push(h.weather_code[i]);
-    if (h.uv_index[i]                  != null) map[date].uv.push(h.uv_index[i]);
+    if (!map[date])
+      map[date] = {
+        temp: [],
+        feel: [],
+        humidity: [],
+        wind: [],
+        windDir: [],
+        precipProb: [],
+        code: [],
+        uv: [],
+      };
+    if (h.temperature_2m[i] != null) map[date].temp.push(h.temperature_2m[i]);
+    if (h.apparent_temperature[i] != null) map[date].feel.push(h.apparent_temperature[i]);
+    if (h.relative_humidity_2m[i] != null) map[date].humidity.push(h.relative_humidity_2m[i]);
+    if (h.wind_speed_10m[i] != null) map[date].wind.push(h.wind_speed_10m[i]);
+    if (h.wind_direction_10m[i] != null) map[date].windDir.push(h.wind_direction_10m[i]);
+    if (h.precipitation_probability[i] != null)
+      map[date].precipProb.push(h.precipitation_probability[i]);
+    if (h.weather_code[i] != null) map[date].code.push(h.weather_code[i]);
+    if (h.uv_index[i] != null) map[date].uv.push(h.uv_index[i]);
   }
-  const mean = arr => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null;
+  const mean = (arr) => (arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null);
   const result = {};
   for (const [date, v] of Object.entries(map)) {
     result[date] = {
-      temp:        Math.round(mean(v.temp) * 10) / 10,
-      tempFeel:    Math.round(mean(v.feel) * 10) / 10,
-      humidity:    Math.round(mean(v.humidity)),
-      windSpeed:   Math.round(mean(v.wind) * 10) / 10,
-      windDir:     Math.round(mean(v.windDir)),
-      precipProb:  Math.round(mean(v.precipProb)),
+      temp: Math.round(mean(v.temp) * 10) / 10,
+      tempFeel: Math.round(mean(v.feel) * 10) / 10,
+      humidity: Math.round(mean(v.humidity)),
+      windSpeed: Math.round(mean(v.wind) * 10) / 10,
+      windDir: Math.round(mean(v.windDir)),
+      precipProb: Math.round(mean(v.precipProb)),
       weatherCode: Math.max(...v.code),
-      uvMax:       v.uv.length ? Math.round(Math.max(...v.uv) * 10) / 10 : null,
+      uvMax: v.uv.length ? Math.round(Math.max(...v.uv) * 10) / 10 : null,
     };
   }
   log.info(`   ... Forecast für ${Object.keys(result).length} Tage aggregiert`);
@@ -154,7 +174,16 @@ export function getWeatherForRide(weatherMap, date, startHour, durationMin) {
   const hours = Math.max(1, Math.ceil((durationMin || 120) / 60));
   const endH = Math.min(23, sH + hours);
 
-  const vals = { temp: [], tempFeel: [], humidity: [], windSpeed: [], windDir: [], precip: [], cloudCover: [], weatherCode: [] };
+  const vals = {
+    temp: [],
+    tempFeel: [],
+    humidity: [],
+    windSpeed: [],
+    windDir: [],
+    precip: [],
+    cloudCover: [],
+    weatherCode: [],
+  };
 
   for (let h = sH; h <= endH; h++) {
     const key = `${date}T${String(h).padStart(2, "0")}:00`;
@@ -167,7 +196,7 @@ export function getWeatherForRide(weatherMap, date, startHour, durationMin) {
 
   if (!vals.temp.length) return null;
 
-  const mean = arr => Math.round(arr.reduce((a, b) => a + b, 0) / arr.length * 10) / 10;
+  const mean = (arr) => Math.round((arr.reduce((a, b) => a + b, 0) / arr.length) * 10) / 10;
 
   return {
     temp: mean(vals.temp),

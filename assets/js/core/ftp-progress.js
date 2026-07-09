@@ -16,7 +16,11 @@
 export function zoneSegments(ftp, scaleMax) {
   if (!ftp || !scaleMax || scaleMax <= 0) return [];
   const bounds = [
-    ["z1", 0.55], ["z2", 0.85], ["ss", 0.97], ["thr", 1.05], ["vo2", 1.20],
+    ["z1", 0.55],
+    ["z2", 0.85],
+    ["ss", 0.97],
+    ["thr", 1.05],
+    ["vo2", 1.2],
   ];
   const segments = [];
   let prev = 0;

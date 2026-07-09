@@ -18,9 +18,9 @@
  *  Untergrenzen bewusst leicht unter Intervall-Zielbereich, weil
  *  Ein-/Ausrollen den Ganzfahrt-IF nach unten zieht. */
 export const PHASE_SIGNATURES = {
-  "Sweet Spot": { ifMin: 0.80, ifMax: 0.97, types: ["Sweet Spot"] },
-  "Schwelle":   { ifMin: 0.90, ifMax: 1.05, types: ["Schwelle"] },
-  "VO2max":     { ifMin: 1.00, ifMax: 1.40, types: ["VO2max"] },
+  "Sweet Spot": { ifMin: 0.8, ifMax: 0.97, types: ["Sweet Spot"] },
+  Schwelle: { ifMin: 0.9, ifMax: 1.05, types: ["Schwelle"] },
+  VO2max: { ifMin: 1.0, ifMax: 1.4, types: ["VO2max"] },
 };
 
 /** Erholungswoche gilt als erfüllt, wenn Wochen-TSS ≤ RECOVERY_MAX_SHARE
@@ -99,7 +99,16 @@ export function phaseCompliance(rides, weekIndexFn) {
       status = "abweichend";
       note = `Nur ${quality}/${expectedQuality} Sessions mit ${phase}-Signatur — Block ohne spezifischen Reiz.`;
     }
-    blocks.push({ phase, weeks: phaseWeeks, rides: phaseRides.length, quality, expectedQuality, share, status, note });
+    blocks.push({
+      phase,
+      weeks: phaseWeeks,
+      rides: phaseRides.length,
+      quality,
+      expectedQuality,
+      share,
+      status,
+      note,
+    });
   }
 
   // Erholungswochen: TSS vs. Mittel der angrenzenden Blockwochen

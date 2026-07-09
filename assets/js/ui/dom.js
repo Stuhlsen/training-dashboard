@@ -46,7 +46,8 @@ export const Tooltip = {
     const tip = this._el;
     const tw = tip.offsetWidth || 220;
     const th = tip.offsetHeight || 60;
-    const x = e.clientX, y = e.clientY;
+    const x = e.clientX,
+      y = e.clientY;
     tip.style.left = Math.min(x + 14, window.innerWidth - tw - 8) + "px";
     tip.style.top = Math.max(y - th - 10, 8) + "px";
   },

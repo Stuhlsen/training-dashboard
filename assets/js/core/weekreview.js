@@ -49,10 +49,13 @@ export function buildWeekReview(rides, plannedSessions, adjustments, todayISO) {
   const withW = wr.filter((r) => r.weather?.temp != null);
   if (withW.length) {
     const hot = withW.reduce((m, r) => (r.weather.temp > m.weather.temp ? r : m));
-    const windy = withW.reduce((m, r) => ((r.weather.windSpeed || 0) > (m.weather.windSpeed || 0) ? r : m));
+    const windy = withW.reduce((m, r) =>
+      (r.weather.windSpeed || 0) > (m.weather.windSpeed || 0) ? r : m
+    );
     const rainy = withW.filter((r) => (r.weather.precip || 0) > 0.5);
     if (hot.weather.temp >= 30) weatherNote = `Bei ${hot.weather.temp}\u00A0°C gefahren`;
-    else if ((windy.weather.windSpeed || 0) >= 28) weatherNote = `${Math.round(windy.weather.windSpeed)}\u00A0km/h Wind getrotzt`;
+    else if ((windy.weather.windSpeed || 0) >= 28)
+      weatherNote = `${Math.round(windy.weather.windSpeed)}\u00A0km/h Wind getrotzt`;
     else if (rainy.length) weatherNote = `${rainy.length}× im Regen unterwegs`;
     else if (hot.weather.temp <= 5) weatherNote = `Bei ${hot.weather.temp}\u00A0°C durchgezogen`;
   }
@@ -77,12 +80,20 @@ export function buildWeekReview(rides, plannedSessions, adjustments, todayISO) {
   }
 
   return {
-    from, to,
+    from,
+    to,
     rides: wr.length,
     km: Math.round(sum("km") * 10) / 10,
     min: Math.round(sum("min")),
     tss: Math.round(sum("tss")),
-    best: best ? { name: best.name || best.typ || "Fahrt", np: best.np || null, km: best.km || null, date: best.dateISO } : null,
+    best: best
+      ? {
+          name: best.name || best.typ || "Fahrt",
+          np: best.np || null,
+          km: best.km || null,
+          date: best.dateISO,
+        }
+      : null,
     weatherNote,
     plan,
   };

@@ -86,18 +86,27 @@ export function weeklyZoneShares(rides, weekKeyFn, weekSortFn) {
  * @returns {null | {low: number, mid: number, high: number, total: number, shares: {low: number, mid: number, high: number}, hours: number, nRides: number, source: "zoneTimes"}}
  */
 export function overallZoneShares(rides) {
-  let low = 0, mid = 0, high = 0, n = 0;
+  let low = 0,
+    mid = 0,
+    high = 0,
+    n = 0;
   for (const r of rides || []) {
     const secs = normalizeZoneTimes(r.zoneTimes);
     if (!secs) continue;
     const b = bandZoneTimes(secs);
-    low += b.low; mid += b.mid; high += b.high; n++;
+    low += b.low;
+    mid += b.mid;
+    high += b.high;
+    n++;
   }
   const total = low + mid + high;
   if (!total || !n) return null;
   const share = (v) => Math.round((v / total) * 1000) / 1000;
   return {
-    low, mid, high, total,
+    low,
+    mid,
+    high,
+    total,
     shares: { low: share(low), mid: share(mid), high: share(high) },
     hours: Math.round((total / 3600) * 10) / 10,
     nRides: n,
@@ -130,7 +139,10 @@ export function rideIF(r) {
  * @returns {null | {low: number, mid: number, high: number, total: number, shares: {low: number, mid: number, high: number}, hours: number, nRides: number, source: "if"}}
  */
 export function overallBandsFromIF(rides) {
-  let low = 0, mid = 0, high = 0, n = 0;
+  let low = 0,
+    mid = 0,
+    high = 0,
+    n = 0;
   for (const r of rides || []) {
     const factor = rideIF(r);
     if (factor == null || !r.min) continue;
@@ -144,7 +156,10 @@ export function overallBandsFromIF(rides) {
   if (!total || !n) return null;
   const share = (v) => Math.round((v / total) * 1000) / 1000;
   return {
-    low, mid, high, total,
+    low,
+    mid,
+    high,
+    total,
     shares: { low: share(low), mid: share(mid), high: share(high) },
     hours: Math.round((total / 3600) * 10) / 10,
     nRides: n,

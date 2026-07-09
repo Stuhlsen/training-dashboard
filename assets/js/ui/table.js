@@ -15,7 +15,15 @@ import { Planned } from "./planned.js";
 
 // === Befinden GitHub-Sync ===
 export const Subjective = {
-  FEEL_OPTIONS: ["Sehr leicht", "Leicht", "Irgendwie einfach", "Moderat", "Irgendwie schwer", "Schwer", "Hart"],
+  FEEL_OPTIONS: [
+    "Sehr leicht",
+    "Leicht",
+    "Irgendwie einfach",
+    "Moderat",
+    "Irgendwie schwer",
+    "Schwer",
+    "Hart",
+  ],
 
   _data: null,
 
@@ -24,7 +32,9 @@ export const Subjective = {
     return this._data;
   },
 
-  get(date) { return this._data?.[date] || {}; },
+  get(date) {
+    return this._data?.[date] || {};
+  },
 
   /** Speichert Befinden/Notizen für ein Datum ins Repo
    *  @returns {Promise<import("../types.js").Result>} */
@@ -40,38 +50,37 @@ export const Subjective = {
 };
 
 export const Table = {
-
   state: {
-    phase:   "Alle",
-    weekF:   null,
+    phase: "Alle",
+    weekF: null,
     sortCol: "dateISO",
     sortDir: "desc",
-    search:  "",
+    search: "",
   },
 
   COLS_BASE: [
-    { k: "dateShort", l: "Datum",    sk: "dateISO" },
-    { k: "week",      l: "Woche"                   },
-    { k: "name",      l: "Einheit",  wide: true     },
-    { k: "typ",       l: "Typ"                      },
-    { k: "km",        l: "km"                       },
-    { k: "min",       l: "min"                      },
-    { k: "kmh",       l: "km/h"                     },
-    { k: "hf",        l: "Ø HF"                     },
-    { k: "hfMax",     l: "HF-Max"                   },
-    { k: "kad",       l: "Kadenz"                   },
-    { k: "watt",      l: "Ø W"                      },
-    { k: "np",        l: "NP"                       },
-    { k: "trimp",     l: "TRIMP"                    },
-    { k: "ctl",       l: "CTL"                      },
-    { k: "feel",      l: "Befinden"                 },
-    { k: "weather",   l: "Wetter",   noSort: true   },
+    { k: "dateShort", l: "Datum", sk: "dateISO" },
+    { k: "week", l: "Woche" },
+    { k: "name", l: "Einheit", wide: true },
+    { k: "typ", l: "Typ" },
+    { k: "km", l: "km" },
+    { k: "min", l: "min" },
+    { k: "kmh", l: "km/h" },
+    { k: "hf", l: "Ø HF" },
+    { k: "hfMax", l: "HF-Max" },
+    { k: "kad", l: "Kadenz" },
+    { k: "watt", l: "Ø W" },
+    { k: "np", l: "NP" },
+    { k: "trimp", l: "TRIMP" },
+    { k: "ctl", l: "CTL" },
+    { k: "feel", l: "Befinden" },
+    { k: "weather", l: "Wetter", noSort: true },
   ],
 
   /** Spalten je nach Athlet — Befinden nur bei eigenem Plan relevant */
   get COLS() {
-    const ownPlan = Data.rides.some(r => r.week);
-    return ownPlan ? this.COLS_BASE : this.COLS_BASE.filter(c => c.k !== "feel");
+    const ownPlan = Data.rides.some((r) => r.week);
+    return ownPlan ? this.COLS_BASE : this.COLS_BASE.filter((c) => c.k !== "feel");
   },
 
   /* ── Öffentliche API ─────────────────────────────────────────── */
@@ -95,7 +104,9 @@ export const Table = {
 
       if (result.ok) {
         sel.style.outline = "1px solid var(--green)";
-        setTimeout(() => { sel.style.outline = ""; }, 1500);
+        setTimeout(() => {
+          sel.style.outline = "";
+        }, 1500);
       } else {
         alert(result.error?.message || "Speichern fehlgeschlagen. Ist der GitHub Token korrekt?");
       }
@@ -113,7 +124,7 @@ export const Table = {
 
   /** Befinden-Legende und Hinweistext je nach Athlet ein-/ausblenden */
   _toggleLegend() {
-    const ownPlan = Data.rides.some(r => r.week);
+    const ownPlan = Data.rides.some((r) => r.week);
     const legendGroup = el("feel-legend-group");
     const note = el("table-note");
     if (legendGroup) legendGroup.classList.toggle("hidden", !ownPlan);
@@ -132,8 +143,8 @@ export const Table = {
 
   /** Fahrt per Datum highlighten und scrollen (aufgerufen vom Planungs-Tab) */
   highlightByDate(date) {
-    this.state.phase  = "Alle";
-    this.state.weekF  = null;
+    this.state.phase = "Alle";
+    this.state.weekF = null;
     this.state.search = "";
     this.state.sortCol = "dateISO";
     this.state.sortDir = "desc";
@@ -149,16 +160,22 @@ export const Table = {
 
   /* ── Filter Bar ─────────────────────────────────────────────── */
   _renderFilters() {
-    const phases = ["Alle", ...new Set(Data.rides.map(r => r.phase).filter(Boolean))];
+    const phases = ["Alle", ...new Set(Data.rides.map((r) => r.phase).filter(Boolean))];
     const bar = el("filter-bar");
 
-    bar.innerHTML = phases.map(p => `
+    bar.innerHTML =
+      phases
+        .map(
+          (p) => `
       <button class="filter-btn${this.state.phase === p ? " active" : ""}" data-phase="${p}">${p}</button>
-    `).join("") + `
+    `
+        )
+        .join("") +
+      `
       <input class="search-input" placeholder="Einheit oder Typ suchen…" value="${this.state.search}">
     `;
 
-    bar.querySelectorAll(".filter-btn").forEach(b =>
+    bar.querySelectorAll(".filter-btn").forEach((b) =>
       b.addEventListener("click", () => {
         this.state.phase = b.dataset.phase;
         this.state.weekF = null;
@@ -166,7 +183,7 @@ export const Table = {
       })
     );
 
-    bar.querySelector(".search-input").addEventListener("input", e => {
+    bar.querySelector(".search-input").addEventListener("input", (e) => {
       this.state.search = e.target.value;
       this._renderWeekTag();
       this._renderTable();
@@ -194,25 +211,25 @@ export const Table = {
   /* ── Tabelle ────────────────────────────────────────────────── */
   _renderTable() {
     const filtered = this._getFiltered();
-    const totalKm  = Math.round(sum(filtered, "km"));
+    const totalKm = Math.round(sum(filtered, "km"));
 
     el("table-meta").textContent =
       `${filtered.length} Fahrten · ${totalKm.toLocaleString("de")} km`;
 
     // Header
     const thead = el("table-head");
-    thead.innerHTML = this.COLS.map(c => {
+    thead.innerHTML = this.COLS.map((c) => {
       if (c.noSort) return `<th class="col-nosort">${c.l}</th>`;
       const sortKey = c.sk || c.k;
-      const sorted  = this.state.sortCol === sortKey;
-      const icon    = sorted ? (this.state.sortDir === "asc" ? "↑" : "↓") : "↕";
+      const sorted = this.state.sortCol === sortKey;
+      const icon = sorted ? (this.state.sortDir === "asc" ? "↑" : "↓") : "↕";
       return `
         <th class="${sorted ? "sorted" : ""}" data-sort="${sortKey}">
           ${c.l}<span class="sort-icon">${icon}</span>
         </th>`;
     }).join("");
 
-    thead.querySelectorAll("th[data-sort]").forEach(th =>
+    thead.querySelectorAll("th[data-sort]").forEach((th) =>
       th.addEventListener("click", () => {
         const col = th.dataset.sort;
         if (this.state.sortCol === col) {
@@ -226,26 +243,29 @@ export const Table = {
     );
 
     // Body
-    const ownPlan = Data.rides.some(r => r.week);
+    const ownPlan = Data.rides.some((r) => r.week);
     const tbody = el("table-body");
-    tbody.innerHTML = filtered.map(r => {
-      const isP2 = r.plan === "Plan 2";
-      const subj = isP2 ? Subjective.get(r.dateISO) : null;
-      const feelVal = subj?.feel || r.feel || "";
-      const feel = normalizeFeel(feelVal);
+    tbody.innerHTML = filtered
+      .map((r) => {
+        const isP2 = r.plan === "Plan 2";
+        const subj = isP2 ? Subjective.get(r.dateISO) : null;
+        const feelVal = subj?.feel || r.feel || "";
+        const feel = normalizeFeel(feelVal);
 
-      const feelCell = !ownPlan ? "" : (isP2
-        ? `<td>
+        const feelCell = !ownPlan
+          ? ""
+          : isP2
+            ? `<td>
             <select class="feel-select feel-${feel.cls}" data-date="${r.dateISO}">
               <option value="">– wählen –</option>
-              ${Subjective.FEEL_OPTIONS.map(f =>
-                `<option value="${f}"${feelVal === f ? " selected" : ""}>${f}</option>`
+              ${Subjective.FEEL_OPTIONS.map(
+                (f) => `<option value="${f}"${feelVal === f ? " selected" : ""}>${f}</option>`
               ).join("")}
             </select>
            </td>`
-        : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`);
+            : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`;
 
-      return `
+        return `
         <tr data-date="${r.dateISO}">
           <td>${r.dateShort}</td>
           <td><span class="tag ${phaseTagClass(r.phase)}">${r.week || "–"}</span></td>
@@ -262,52 +282,68 @@ export const Table = {
           <td>${fmtInt(r.trimp)}</td>
           <td>${r.ctl != null ? fmt(r.ctl) : "–"}</td>
           ${feelCell}
-          <td class="col-weather">${r.weather ? (() => {
-            const w = r.weather;
-            const hot   = w.temp > 32;
-            const cold  = w.temp < 5;
-            const windy = (w.windSpeed || w.wind || 0) > 30;
-            const rainy = (w.precip || 0) > 0.5;
-            const bad = (hot?1:0)+(cold?1:0)+(windy?1:0)+(rainy?1:0);
-            const col = (bad >= 2 || hot || (windy && rainy)) ? "var(--red)"
-                      : bad === 1 ? "var(--gold)"
-                      : "var(--green)";
-            const condLabel = (bad >= 2 || hot || (windy && rainy)) ? "❌ Schwierige Bedingungen"
-                      : bad === 1 ? "⚠️ Suboptimal"
-                      : "✅ Gute Bedingungen";
-            const wind = Math.round(w.windSpeed || 0);
-            return `<span class="weather-cell" style="color:${col}"
+          <td class="col-weather">${
+            r.weather
+              ? (() => {
+                  const w = r.weather;
+                  const hot = w.temp > 32;
+                  const cold = w.temp < 5;
+                  const windy = (w.windSpeed || w.wind || 0) > 30;
+                  const rainy = (w.precip || 0) > 0.5;
+                  const bad = (hot ? 1 : 0) + (cold ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
+                  const col =
+                    bad >= 2 || hot || (windy && rainy)
+                      ? "var(--red)"
+                      : bad === 1
+                        ? "var(--gold)"
+                        : "var(--green)";
+                  const condLabel =
+                    bad >= 2 || hot || (windy && rainy)
+                      ? "❌ Schwierige Bedingungen"
+                      : bad === 1
+                        ? "⚠️ Suboptimal"
+                        : "✅ Gute Bedingungen";
+                  const wind = Math.round(w.windSpeed || 0);
+                  return `<span class="weather-cell" style="color:${col}"
               data-wtemp="${w.temp}" data-wfeel="${w.tempFeel}" data-wwind="${wind}"
               data-wdir="${windDir(w.windDir)}" data-whumid="${w.humidity}"
-              data-wrain="${(w.precip||0) > 0 ? w.precip + 'mm Regen' : ''}"
-              data-wcloud="${w.cloudCover != null ? w.cloudCover + '%' : ''}"
+              data-wrain="${(w.precip || 0) > 0 ? w.precip + "mm Regen" : ""}"
+              data-wcloud="${w.cloudCover != null ? w.cloudCover + "%" : ""}"
               data-wcond="${condLabel}"
               data-wicon="${weatherIcon(w.weatherCode)}"
             >${weatherIcon(w.weatherCode)} ${w.temp}°C · ${wind} km/h</span>`;
-          })() : r.wetter ? `<span style="color:var(--text-muted)">${r.wetter}</span>` : "–"}</td>
+                })()
+              : r.wetter
+                ? `<span style="color:var(--text-muted)">${r.wetter}</span>`
+                : "–"
+          }</td>
         </tr>`;
-    }).join("");
+      })
+      .join("");
 
     // Wetter-Tooltip Event Delegation
-    tbody.querySelectorAll(".weather-cell[data-wtemp]").forEach(cell => {
-      cell.addEventListener("mouseenter", e => {
+    tbody.querySelectorAll(".weather-cell[data-wtemp]").forEach((cell) => {
+      cell.addEventListener("mouseenter", (e) => {
         const d = cell.dataset;
-        const rainRow  = d.wrain  ? `<div class="td">🌧 Niederschlag: ${d.wrain}</div>` : "";
+        const rainRow = d.wrain ? `<div class="td">🌧 Niederschlag: ${d.wrain}</div>` : "";
         const cloudRow = d.wcloud ? `<div class="td">☁️ Bewölkung: ${d.wcloud}</div>` : "";
-        Tooltip.show(e, `
+        Tooltip.show(
+          e,
+          `
           <div class="tt">${d.wicon} ${d.wtemp}°C · gefühlt ${d.wfeel}°C</div>
           <div class="td">💨 Wind: ${d.wwind} km/h ${d.wdir}</div>
           <div class="td">💧 Luftfeuchtigkeit: ${d.whumid}%</div>
           ${cloudRow}
           ${rainRow}
           <div class="td" style="margin-top:4px">${d.wcond}</div>
-        `);
+        `
+        );
       });
       cell.addEventListener("mouseleave", () => Tooltip.hide());
     });
 
     // Planungs-Tab Link für Plan-2-Fahrten
-    tbody.querySelectorAll(".table-plan-link").forEach(icon => {
+    tbody.querySelectorAll(".table-plan-link").forEach((icon) => {
       icon.addEventListener("click", (e) => {
         e.stopPropagation();
         const date = icon.dataset.date;
@@ -321,17 +357,14 @@ export const Table = {
   _getFiltered() {
     let r = [...Data.rides];
 
-    if (this.state.phase !== "Alle")
-      r = r.filter(x => x.phase === this.state.phase);
+    if (this.state.phase !== "Alle") r = r.filter((x) => x.phase === this.state.phase);
 
-    if (this.state.weekF)
-      r = r.filter(x => x.week === this.state.weekF);
+    if (this.state.weekF) r = r.filter((x) => x.week === this.state.weekF);
 
     if (this.state.search) {
       const s = this.state.search.toLowerCase();
-      r = r.filter(x =>
-        (x.name || "").toLowerCase().includes(s) ||
-        (x.typ  || "").toLowerCase().includes(s)
+      r = r.filter(
+        (x) => (x.name || "").toLowerCase().includes(s) || (x.typ || "").toLowerCase().includes(s)
       );
     }
 
@@ -342,7 +375,8 @@ export const Table = {
         va = CONFIG.weekIndex(a.week);
         vb = CONFIG.weekIndex(b.week);
       } else {
-        va = a[col]; vb = b[col];
+        va = a[col];
+        vb = b[col];
       }
       if (va == null) return 1;
       if (vb == null) return -1;

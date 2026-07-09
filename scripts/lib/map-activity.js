@@ -27,13 +27,13 @@ export function inferTypFromIF(np, min, ftp = DEFAULT_FTP) {
     // Niedriger IF allein heißt nicht "Erholung" — lange Fahrten mit
     // niedrigem NP sind typischerweise Grundlagenausdauer, nicht Recovery
     if (min >= 120) return "Z2 Lang";
-    if (min >= 60)  return "Z2 Dauer";
+    if (min >= 60) return "Z2 Dauer";
     return "Z1 Recovery";
   }
-  if (ifVal < 0.85)              return "Z2 Dauer";
-  if (ifVal < 0.90)              return "Tempo";
-  if (ifVal < 0.95)              return "Sweet Spot";
-  if (ifVal < 1.05)              return "Schwelle";
+  if (ifVal < 0.85) return "Z2 Dauer";
+  if (ifVal < 0.9) return "Tempo";
+  if (ifVal < 0.95) return "Sweet Spot";
+  if (ifVal < 1.05) return "Schwelle";
   return "VO2max";
 }
 
@@ -59,8 +59,10 @@ function baseFields(act, weather) {
     trimp: act.trimp ? Math.round(act.trimp) : null,
     ctl: act.icu_ctl ? Math.round(act.icu_ctl * 10) / 10 : null,
     atl: act.icu_atl ? Math.round(act.icu_atl * 10) / 10 : null,
-    tsb: (act.icu_ctl != null && act.icu_atl != null)
-      ? Math.round((act.icu_ctl - act.icu_atl) * 10) / 10 : null,
+    tsb:
+      act.icu_ctl != null && act.icu_atl != null
+        ? Math.round((act.icu_ctl - act.icu_atl) * 10) / 10
+        : null,
     decoupling: act.decoupling != null ? Math.round(act.decoupling * 10) / 10 : null,
     dtl: act.icu_training_load,
     // Zeit in Leistungszonen (Sekunden je Zone) und eFTP zum Fahrtzeitpunkt.
@@ -70,7 +72,11 @@ function baseFields(act, weather) {
     zoneTimes: act.icu_zone_times || null,
     eftp: act.icu_eftp || null,
     weather,
-    wetter: weather ? `${weather.temp}°C` : (act.average_temp ? `~${Math.round(act.average_temp)}°C` : null),
+    wetter: weather
+      ? `${weather.temp}°C`
+      : act.average_temp
+        ? `~${Math.round(act.average_temp)}°C`
+        : null,
     source: "intervals.icu",
   };
 }
@@ -87,9 +93,7 @@ function wellnessFields(w) {
 
 /** Startstunde aus start_date_local, oder null (→ Wetter-Fallback 09:00) */
 function startHourOf(act) {
-  return act.start_date_local
-    ? parseInt(act.start_date_local.split("T")[1]?.split(":")[0])
-    : null;
+  return act.start_date_local ? parseInt(act.start_date_local.split("T")[1]?.split(":")[0]) : null;
 }
 
 // === intervals.icu Activity → Ride-Objekt (Athlet 1, Plan 2) ===
@@ -100,7 +104,7 @@ export function mapActivity(act, wellness, subjective, weatherMap) {
   const s = subjective[date] || {};
   const planned = PLANNED_SESSIONS[date] || {};
 
-  const np  = act.icu_weighted_avg_watts;
+  const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
 
   // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
@@ -128,7 +132,7 @@ export function mapActivity2(act, wellness, weatherMap, estimatedFtp) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
 
-  const np  = act.icu_weighted_avg_watts;
+  const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
 
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);

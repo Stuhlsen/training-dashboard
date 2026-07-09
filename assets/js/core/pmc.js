@@ -25,7 +25,10 @@ export function interpolateCtl(sorted) {
   return sorted
     .map((r, i) => {
       if (r.ctl != null) return { ...r, ctlVal: r.ctl, interpolated: false };
-      const prev = sorted.slice(0, i).reverse().find((x) => x.ctl != null);
+      const prev = sorted
+        .slice(0, i)
+        .reverse()
+        .find((x) => x.ctl != null);
       const next = sorted.slice(i + 1).find((x) => x.ctl != null);
       if (prev && next) {
         const pi = sorted.indexOf(prev);

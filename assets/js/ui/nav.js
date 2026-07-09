@@ -12,9 +12,9 @@ let validTabs = [];
  *  @param {string} tabId */
 export function activateTab(tabId) {
   if (!validTabs.includes(tabId)) tabId = validTabs[0];
-  document.querySelectorAll(".tab-btn").forEach((b) =>
-    b.classList.toggle("active", b.dataset.tab === tabId)
-  );
+  document
+    .querySelectorAll(".tab-btn")
+    .forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
   document.querySelectorAll(".tab-content").forEach((s) => s.classList.add("hidden"));
   const target = el("tab-" + tabId);
   if (target) target.classList.remove("hidden");

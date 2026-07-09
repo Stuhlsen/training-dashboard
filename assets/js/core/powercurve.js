@@ -5,7 +5,19 @@
    ============================================================ */
 
 export const STANDARD_SECS = [1, 5, 10, 30, 60, 120, 300, 600, 1200, 1800, 3600];
-export const STANDARD_LABELS = ["1s", "5s", "10s", "30s", "1min", "2min", "5min", "10min", "20min", "30min", "60min"];
+export const STANDARD_LABELS = [
+  "1s",
+  "5s",
+  "10s",
+  "30s",
+  "1min",
+  "2min",
+  "5min",
+  "10min",
+  "20min",
+  "30min",
+  "60min",
+];
 
 /**
  * Nächsten verfügbaren Watt-Wert für eine Sekunden-Anzahl finden.
@@ -14,7 +26,9 @@ export const STANDARD_LABELS = ["1s", "5s", "10s", "30s", "1min", "2min", "5min"
  * @returns {number|null}
  */
 export function nearestWatts(map, targetSecs) {
-  const keys = Object.keys(map).map(Number).sort((a, b) => a - b);
+  const keys = Object.keys(map)
+    .map(Number)
+    .sort((a, b) => a - b);
   if (!keys.length) return null;
   const nearest = keys.reduce(
     (prev, curr) => (Math.abs(curr - targetSecs) < Math.abs(prev - targetSecs) ? curr : prev),

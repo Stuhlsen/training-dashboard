@@ -45,7 +45,9 @@ export const ENV = {
 export function requireEnv(names) {
   const missing = names.filter((n) => !ENV[n]);
   if (missing.length) {
-    console.error(`❌ Fehlende Umgebungsvariablen: ${missing.join(", ")} — .env oder GitHub Secrets prüfen.`);
+    console.error(
+      `❌ Fehlende Umgebungsvariablen: ${missing.join(", ")} — .env oder GitHub Secrets prüfen.`
+    );
     process.exit(1);
   }
 }

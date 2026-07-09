@@ -11,7 +11,7 @@
    ============================================================ */
 
 /** TSB-Schwellen für die Interpretation */
-export const TSB_FRESH = 5;      // darüber: frisch/erholt
+export const TSB_FRESH = 5; // darüber: frisch/erholt
 export const TSB_DEEP_FATIGUE = -20; // darunter: tiefe Ermüdung
 
 /** TSB-Einordnung als Signal
@@ -31,8 +31,10 @@ export function tsbSignal(tsb) {
  *  @returns {{status: "ok"|"caution"|"alert"|"nodata", text: string}} */
 export function loadSignal(risk) {
   if (risk == null) return { status: "nodata", text: "Keine Wochenlast-Daten" };
-  if (risk === "high") return { status: "alert", text: "Belastungswächter: hohes Risiko (Ramp/Monotonie)" };
-  if (risk === "caution") return { status: "caution", text: "Belastungswächter: erhöht (Ramp/Monotonie)" };
+  if (risk === "high")
+    return { status: "alert", text: "Belastungswächter: hohes Risiko (Ramp/Monotonie)" };
+  if (risk === "caution")
+    return { status: "caution", text: "Belastungswächter: erhöht (Ramp/Monotonie)" };
   return { status: "ok", text: "Belastungsaufbau im sicheren Korridor" };
 }
 
@@ -40,9 +42,12 @@ export function loadSignal(risk) {
  *  @param {null|{level: "green"|"yellow"|"red"}} readiness
  *  @returns {{status: "ok"|"caution"|"alert"|"nodata", text: string}} */
 export function readinessSignal(readiness) {
-  if (!readiness) return { status: "nodata", text: "Keine HRV-Baseline — Status ohne Erholungsmarker" };
-  if (readiness.level === "red") return { status: "alert", text: "Tagesform: Erholungsmarker deutlich unter Baseline" };
-  if (readiness.level === "yellow") return { status: "caution", text: "Tagesform: Erholungsmarker leicht unter Baseline" };
+  if (!readiness)
+    return { status: "nodata", text: "Keine HRV-Baseline — Status ohne Erholungsmarker" };
+  if (readiness.level === "red")
+    return { status: "alert", text: "Tagesform: Erholungsmarker deutlich unter Baseline" };
+  if (readiness.level === "yellow")
+    return { status: "caution", text: "Tagesform: Erholungsmarker leicht unter Baseline" };
   return { status: "ok", text: "Tagesform: Erholungsmarker im Normalbereich" };
 }
 
@@ -72,15 +77,18 @@ export function buildBriefing({ readiness, tsb, loadRisk, nextSession = null }) 
   else if (statuses.includes("caution")) level = "yellow";
 
   const headline =
-    level === "green" ? "Grünes Licht"
-    : level === "yellow" ? "Mit Bedacht"
-    : "Erholung priorisieren";
+    level === "green"
+      ? "Grünes Licht"
+      : level === "yellow"
+        ? "Mit Bedacht"
+        : "Erholung priorisieren";
 
   let recommendation;
   if (level === "red") {
     recommendation = "Heute keinen harten Reiz setzen — Ruhetag oder lockeres Ausrollen.";
   } else if (level === "yellow") {
-    recommendation = "Intensität eine Stufe reduzieren oder die harte Einheit verschieben — Umfang ist okay.";
+    recommendation =
+      "Intensität eine Stufe reduzieren oder die harte Einheit verschieben — Umfang ist okay.";
   } else {
     recommendation = "Harter Trainingsreiz heute vertretbar.";
   }

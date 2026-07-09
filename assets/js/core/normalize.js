@@ -6,16 +6,16 @@ import { fmtDate } from "./format.js";
 
 /* ── Normalisierung Befinden ─────────────────────────────────── */
 const FEEL_MAP = {
-  "Sehr leicht":       { label: "Sehr leicht",       cls: "sleicht"  },
-  "Sleicht":           { label: "Sehr leicht",       cls: "sleicht"  },
-  "Leicht":            { label: "Leicht",            cls: "leicht"   },
+  "Sehr leicht": { label: "Sehr leicht", cls: "sleicht" },
+  Sleicht: { label: "Sehr leicht", cls: "sleicht" },
+  Leicht: { label: "Leicht", cls: "leicht" },
   "Irgendwie einfach": { label: "Irgendwie einfach", cls: "ieinfach" },
-  "Ieinfach":          { label: "Irgendwie einfach", cls: "ieinfach" },
-  "Moderat":           { label: "Moderat",           cls: "moderat"  },
-  "Irgendwie schwer":  { label: "Irgendwie schwer",  cls: "ischwer"  },
-  "Ischwer":           { label: "Irgendwie schwer",  cls: "ischwer"  },
-  "Schwer":            { label: "Schwer",            cls: "schwer"   },
-  "Hart":              { label: "Hart",              cls: "hart"     },
+  Ieinfach: { label: "Irgendwie einfach", cls: "ieinfach" },
+  Moderat: { label: "Moderat", cls: "moderat" },
+  "Irgendwie schwer": { label: "Irgendwie schwer", cls: "ischwer" },
+  Ischwer: { label: "Irgendwie schwer", cls: "ischwer" },
+  Schwer: { label: "Schwer", cls: "schwer" },
+  Hart: { label: "Hart", cls: "hart" },
 };
 
 /** Befinden-Rohwert → { label, cls }

@@ -9,13 +9,18 @@ import { fmt, fmtDuration, fmtDate } from "../core/format.js";
 import { el } from "./dom.js";
 
 const LEVEL = {
-  green:  { color: "var(--z1)",  label: "Bereit" },
+  green: { color: "var(--z1)", label: "Bereit" },
   yellow: { color: "var(--gold)", label: "Angeschlagen" },
-  red:    { color: "var(--thr)", label: "Erholung nötig" },
+  red: { color: "var(--thr)", label: "Erholung nötig" },
 };
 
 const STATUS_ICON = { ok: "●", caution: "●", alert: "●", nodata: "○" };
-const STATUS_COLOR = { ok: "var(--z1)", caution: "var(--gold)", alert: "var(--thr)", nodata: "var(--dim2)" };
+const STATUS_COLOR = {
+  ok: "var(--z1)",
+  caution: "var(--gold)",
+  alert: "var(--thr)",
+  nodata: "var(--dim2)",
+};
 
 /* ── Tagesform-Ampel ─────────────────────────────────────────── */
 export function renderReadiness(containerId, assessment) {
@@ -42,13 +47,17 @@ export function renderReadiness(containerId, assessment) {
         </div>
       </div>
       <div class="readiness-metrics">
-        ${assessment.metrics.map(m => `
+        ${assessment.metrics
+          .map(
+            (m) => `
           <div class="readiness-metric" title="z = ${m.z != null ? m.z : "–"}">
             <span class="rm-status" style="color:${STATUS_COLOR[m.status]}">${STATUS_ICON[m.status]}</span>
             <span class="rm-label">${m.label}</span>
             <span class="rm-val">${m.recent != null ? m.recent : "–"}</span>
             <span class="rm-base">Ø ${m.baseline != null ? m.baseline : "–"}</span>
-          </div>`).join("")}
+          </div>`
+          )
+          .join("")}
       </div>
     </div>`;
 }
@@ -73,7 +82,9 @@ export function renderWeekReview(containerId, review) {
   const bestHtml = review.best
     ? `<div class="wr-highlight">⚡ Stärkste Einheit: <b>${review.best.name}</b>${review.best.np ? ` · NP ${review.best.np} W` : ""}${review.best.km ? ` · ${fmt(review.best.km)} km` : ""}</div>`
     : "";
-  const weatherHtml = review.weatherNote ? `<div class="wr-highlight">🌤️ ${review.weatherNote}</div>` : "";
+  const weatherHtml = review.weatherNote
+    ? `<div class="wr-highlight">🌤️ ${review.weatherNote}</div>`
+    : "";
 
   wrap.innerHTML = `
     <div class="panel-card">
@@ -94,22 +105,32 @@ export function renderWeekReview(containerId, review) {
 export function renderRecords(containerId, records) {
   const wrap = el(containerId);
   if (!wrap) return;
-  if (!records || !records.length) { wrap.innerHTML = ""; return; }
+  if (!records || !records.length) {
+    wrap.innerHTML = "";
+    return;
+  }
 
-  wrap.innerHTML = records.map(r => {
-    const prev = r.history.length ? r.history[r.history.length - 1] : null;
-    const valStr = r.unit === "min" ? fmtDuration(r.value) : `${fmt(r.value, r.unit === "km/h" ? 1 : 0)} ${r.unit}`;
-    return `
+  wrap.innerHTML = records
+    .map((r) => {
+      const prev = r.history.length ? r.history[r.history.length - 1] : null;
+      const valStr =
+        r.unit === "min"
+          ? fmtDuration(r.value)
+          : `${fmt(r.value, r.unit === "km/h" ? 1 : 0)} ${r.unit}`;
+      return `
       <div class="record-card">
         <div class="record-icon">${r.icon}</div>
         <div class="record-body">
           <div class="record-value">${valStr}</div>
           <div class="record-label">${r.label}</div>
           <div class="record-meta">${fmtDate(r.date)}${r.key === "weekKm" ? ` · ${r.name}` : ""}</div>
-          ${prev
-            ? `<div class="record-prev">löste ${r.unit === "min" ? fmtDuration(prev.value) : fmt(prev.value, r.unit === "km/h" ? 1 : 0) + " " + r.unit} ab (${fmtDate(prev.date)})</div>`
-            : `<div class="record-prev record-first">Erster Eintrag</div>`}
+          ${
+            prev
+              ? `<div class="record-prev">löste ${r.unit === "min" ? fmtDuration(prev.value) : fmt(prev.value, r.unit === "km/h" ? 1 : 0) + " " + r.unit} ab (${fmtDate(prev.date)})</div>`
+              : `<div class="record-prev record-first">Erster Eintrag</div>`
+          }
         </div>
       </div>`;
-  }).join("");
+    })
+    .join("");
 }

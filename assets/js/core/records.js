@@ -8,11 +8,46 @@
 import { isoWeekKey } from "./aggregate.js";
 
 const DEFS = [
-  { key: "km",       label: "Längste Fahrt",        unit: "km",    icon: "📏", value: (r) => r.km,    ok: (r) => r.km != null },
-  { key: "duration", label: "Längste Fahrzeit",      unit: "min",   icon: "⏱",  value: (r) => r.min,   ok: (r) => r.min != null },
-  { key: "np20",     label: "Beste NP (≥20 min)",   unit: "W",     icon: "⚡", value: (r) => r.np,    ok: (r) => r.np != null && (r.min || 0) >= 20 },
-  { key: "speed40",  label: "Schnellste 40 km+",    unit: "km/h",  icon: "💨", value: (r) => r.kmh,   ok: (r) => r.kmh != null && (r.km || 0) >= 40 },
-  { key: "hoehe",    label: "Meiste Höhenmeter",     unit: "m",     icon: "⛰",  value: (r) => r.hoehe, ok: (r) => r.hoehe != null && r.hoehe > 0 },
+  {
+    key: "km",
+    label: "Längste Fahrt",
+    unit: "km",
+    icon: "📏",
+    value: (r) => r.km,
+    ok: (r) => r.km != null,
+  },
+  {
+    key: "duration",
+    label: "Längste Fahrzeit",
+    unit: "min",
+    icon: "⏱",
+    value: (r) => r.min,
+    ok: (r) => r.min != null,
+  },
+  {
+    key: "np20",
+    label: "Beste NP (≥20 min)",
+    unit: "W",
+    icon: "⚡",
+    value: (r) => r.np,
+    ok: (r) => r.np != null && (r.min || 0) >= 20,
+  },
+  {
+    key: "speed40",
+    label: "Schnellste 40 km+",
+    unit: "km/h",
+    icon: "💨",
+    value: (r) => r.kmh,
+    ok: (r) => r.kmh != null && (r.km || 0) >= 40,
+  },
+  {
+    key: "hoehe",
+    label: "Meiste Höhenmeter",
+    unit: "m",
+    icon: "⛰",
+    value: (r) => r.hoehe,
+    ok: (r) => r.hoehe != null && r.hoehe > 0,
+  },
 ];
 
 /**
@@ -39,7 +74,14 @@ export function recordProgression(rides) {
       }
     }
     if (best) {
-      out.push({ key: def.key, label: def.label, unit: def.unit, icon: def.icon, ...best, history });
+      out.push({
+        key: def.key,
+        label: def.label,
+        unit: def.unit,
+        icon: def.icon,
+        ...best,
+        history,
+      });
     }
   }
 
@@ -62,7 +104,14 @@ export function recordProgression(rides) {
     }
   }
   if (bestWeek) {
-    out.push({ key: "weekKm", label: "Größte Woche", unit: "km", icon: "📆", ...bestWeek, history: weekHistory });
+    out.push({
+      key: "weekKm",
+      label: "Größte Woche",
+      unit: "km",
+      icon: "📆",
+      ...bestWeek,
+      history: weekHistory,
+    });
   }
 
   return out;

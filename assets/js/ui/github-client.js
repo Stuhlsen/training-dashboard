@@ -41,7 +41,10 @@ export function invalidateToken() {
 
 /** @returns {import("../types.js").AppError} */
 function tokenError() {
-  return { code: "TOKEN_INVALID", message: "Token ungültig — bitte Seite neu laden und Token neu eingeben" };
+  return {
+    code: "TOKEN_INVALID",
+    message: "Token ungültig — bitte Seite neu laden und Token neu eingeben",
+  };
 }
 
 /**
@@ -89,7 +92,10 @@ export async function writeRepoFile(path, message, dataObj) {
         invalidateToken();
         return { ok: false, error: tokenError() };
       }
-      return { ok: false, error: { code: "HTTP", message: `GET Fehler ${infoRes.status}: ${err.message || ""}` } };
+      return {
+        ok: false,
+        error: { code: "HTTP", message: `GET Fehler ${infoRes.status}: ${err.message || ""}` },
+      };
     }
     const info = await infoRes.json();
 
@@ -107,7 +113,10 @@ export async function writeRepoFile(path, message, dataObj) {
         invalidateToken();
         return { ok: false, error: tokenError() };
       }
-      return { ok: false, error: { code: "HTTP", message: `PUT Fehler ${putRes.status}: ${err.message || ""}` } };
+      return {
+        ok: false,
+        error: { code: "HTTP", message: `PUT Fehler ${putRes.status}: ${err.message || ""}` },
+      };
     }
     return { ok: true };
   } catch (e) {

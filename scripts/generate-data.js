@@ -17,16 +17,33 @@ import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
 import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks } from "./lib/plan2.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
-import { RIDE_TYPES, getIntervalsActivities, getIntervalsWellness, getIntervalsPowerCurves } from "./lib/intervals.js";
-import { getHistoricalWeather, getRecentWeather, getPlanningForecast, buildWeatherMap, getWeatherForRide } from "./lib/weather.js";
+import {
+  RIDE_TYPES,
+  getIntervalsActivities,
+  getIntervalsWellness,
+  getIntervalsPowerCurves,
+} from "./lib/intervals.js";
+import {
+  getHistoricalWeather,
+  getRecentWeather,
+  getPlanningForecast,
+  buildWeatherMap,
+  getWeatherForRide,
+} from "./lib/weather.js";
 import { mapActivity, mapActivity2 } from "./lib/map-activity.js";
 import { mapWellnessList, latestWeight, logWellnessCoverage } from "./lib/wellness.js";
-import { loadSubjective, loadAdjustments, writeOutput, OUT_FILE, OUT_FILE_2 } from "./lib/output.js";
+import {
+  loadSubjective,
+  loadAdjustments,
+  writeOutput,
+  OUT_FILE,
+  OUT_FILE_2,
+} from "./lib/output.js";
 
 requireEnv(["NOTION_KEY", "DB_ID"]);
 
 const ATHLETE_2_NAME = "Athlet 2"; // Anzeigename — keine Klarnamen (Datenschutz)
-const ATHLETE_2_FTP = 265;         // Fester Wert aus letztem Ramp-Test
+const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
 
 async function main() {
   // 1. Plan 1: komplett aus Notion
@@ -58,7 +75,13 @@ async function main() {
     const today = new Date().toISOString().split("T")[0];
     const newest = today > "2026-09-20" ? "2026-09-20" : today;
 
-    const activities = await getIntervalsActivities(oldest, newest, ENV.INTERVALS_KEY, ENV.INTERVALS_ATHLETE, RIDE_TYPES);
+    const activities = await getIntervalsActivities(
+      oldest,
+      newest,
+      ENV.INTERVALS_KEY,
+      ENV.INTERVALS_ATHLETE,
+      RIDE_TYPES
+    );
     const wellness = await getIntervalsWellness(PLAN1_START, newest);
     powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
 
@@ -74,7 +97,7 @@ async function main() {
     log.info(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
     log.info(`📋 adjustments.json: ${Object.keys(adjustments).length} Anpassungen`);
 
-    plan2 = activities.map(act => mapActivity(act, wellness, subjective, weatherMap));
+    plan2 = activities.map((act) => mapActivity(act, wellness, subjective, weatherMap));
     log.info(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
 
     // Wellness-Einträge als eigenständige Liste (Schlaf-Chart, Readiness,
@@ -114,7 +137,9 @@ async function main() {
       }
       delete r.notionWetter;
     }
-    log.info(`✅ Wetter: ${weatherAdded} Plan-1-Fahrten + ${plan2.filter(r => r.weather).length} Plan-2-Fahrten`);
+    log.info(
+      `✅ Wetter: ${weatherAdded} Plan-1-Fahrten + ${plan2.filter((r) => r.weather).length} Plan-2-Fahrten`
+    );
   }
 
   // 4. Zusammenführen
@@ -129,7 +154,7 @@ async function main() {
     }
   });
 
-  const plans = [...new Set(rides.map(r => r.plan))].filter(Boolean).sort();
+  const plans = [...new Set(rides.map((r) => r.plan))].filter(Boolean).sort();
 
   // Planungs-Forecast serverseitig laden (Standort bleibt im Secret, nie im Frontend)
   const planningForecast = await getPlanningForecast();
@@ -153,7 +178,9 @@ async function main() {
 
   log.info(`\n✅ ${rides.length} Fahrten → ${OUT_FILE}`);
   log.info(`   Pläne: ${plans.join(", ")}`);
-  log.info(`   Zeitraum: ${rides[0]?.dateISO || "?"} bis ${rides[rides.length - 1]?.dateISO || "?"}`);
+  log.info(
+    `   Zeitraum: ${rides[0]?.dateISO || "?"} bis ${rides[rides.length - 1]?.dateISO || "?"}`
+  );
   log.info(`   Quelle: ${output.source}`);
 
   // 5. Zweiter Athlet (Vergleich, read-only, kein eigener Plan)
@@ -162,26 +189,51 @@ async function main() {
     const oldest2 = "2026-01-01";
     const today2 = new Date().toISOString().split("T")[0];
 
-    const activities2 = await getIntervalsActivities(oldest2, today2, ENV.INTERVALS_KEY_2, ENV.INTERVALS_ATHLETE_2, RIDE_TYPES);
-    const wellness2 = await getIntervalsWellness(oldest2, today2, ENV.INTERVALS_KEY_2, ENV.INTERVALS_ATHLETE_2);
-    const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, ENV.INTERVALS_KEY_2, ENV.INTERVALS_ATHLETE_2);
+    const activities2 = await getIntervalsActivities(
+      oldest2,
+      today2,
+      ENV.INTERVALS_KEY_2,
+      ENV.INTERVALS_ATHLETE_2,
+      RIDE_TYPES
+    );
+    const wellness2 = await getIntervalsWellness(
+      oldest2,
+      today2,
+      ENV.INTERVALS_KEY_2,
+      ENV.INTERVALS_ATHLETE_2
+    );
+    const powerCurves2 = await getIntervalsPowerCurves(
+      oldest2,
+      today2,
+      ENV.INTERVALS_KEY_2,
+      ENV.INTERVALS_ATHLETE_2
+    );
 
     // Eigener Standort für Athlet 2 (separates Secret) — kein Rückfall auf den Standort von Athlet 1
-    const weatherData2 = await getHistoricalWeather(oldest2, weatherEnd, ENV.WEATHER_LAT_2, ENV.WEATHER_LON_2);
+    const weatherData2 = await getHistoricalWeather(
+      oldest2,
+      weatherEnd,
+      ENV.WEATHER_LAT_2,
+      ENV.WEATHER_LON_2
+    );
     const weatherMap2 = buildWeatherMap(weatherData2);
     const recentData2 = await getRecentWeather(ENV.WEATHER_LAT_2, ENV.WEATHER_LON_2);
     Object.assign(weatherMap2, buildWeatherMap(recentData2));
 
     // Feste FTP aus letztem Ramp-Test (ATHLETE_2_FTP), Fallback: Schätzung aus bestem NP ≥20min
-    const longRides2 = activities2.filter(a => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts);
+    const longRides2 = activities2.filter(
+      (a) => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts
+    );
     const bestNP2 = longRides2.length
-      ? Math.max(...longRides2.map(a => a.icu_weighted_avg_watts))
+      ? Math.max(...longRides2.map((a) => a.icu_weighted_avg_watts))
       : null;
     const estimatedFTP2 = ATHLETE_2_FTP || (bestNP2 ? Math.round(bestNP2 * 0.95) : null);
-    log.info(`   ... FTP (${ATHLETE_2_NAME}): ${estimatedFTP2}W ${ATHLETE_2_FTP ? "(Ramp-Test)" : `(geschätzt aus bestem NP ${bestNP2}W ≥20min)`}`);
+    log.info(
+      `   ... FTP (${ATHLETE_2_NAME}): ${estimatedFTP2}W ${ATHLETE_2_FTP ? "(Ramp-Test)" : `(geschätzt aus bestem NP ${bestNP2}W ≥20min)`}`
+    );
 
     const rides2 = activities2
-      .map(act => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2))
+      .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     const wellnessList2 = mapWellnessList(wellness2);
@@ -212,7 +264,7 @@ async function main() {
   if (log.counts.errors > 0) process.exit(1);
 }
 
-main().catch(err => {
+main().catch((err) => {
   log.error("Fehler:", err.message);
   process.exit(1);
 });

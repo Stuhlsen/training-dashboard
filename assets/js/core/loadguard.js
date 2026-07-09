@@ -41,7 +41,8 @@ export function fosterWeek(dailyLoads) {
  *  @returns {"ok"|"caution"|"high"} */
 export function riskLevel(ramp, monotony) {
   if ((ramp != null && ramp > RAMP_HIGH) || (monotony != null && monotony >= 2.5)) return "high";
-  if ((ramp != null && ramp > RAMP_OK_MAX) || (monotony != null && monotony >= MONOTONY_WARN)) return "caution";
+  if ((ramp != null && ramp > RAMP_OK_MAX) || (monotony != null && monotony >= MONOTONY_WARN))
+    return "caution";
   return "ok";
 }
 
@@ -76,9 +77,12 @@ export function buildLoadGuard(rides, weekKeyFn, weekSortFn) {
 
     const foster = fosterWeek(dailyLoads);
 
-    const withCtl = wr.filter((r) => r.ctl != null).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const withCtl = wr
+      .filter((r) => r.ctl != null)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     const ctlEnd = withCtl.length ? withCtl[withCtl.length - 1].ctl : null;
-    const ramp = ctlEnd != null && prevCtl != null ? Math.round((ctlEnd - prevCtl) * 10) / 10 : null;
+    const ramp =
+      ctlEnd != null && prevCtl != null ? Math.round((ctlEnd - prevCtl) * 10) / 10 : null;
     if (ctlEnd != null) prevCtl = ctlEnd;
 
     return {
@@ -103,15 +107,27 @@ export function describeWeek(row) {
   const { ramp, monotony, risk } = row;
   if (risk === "high") {
     if (ramp != null && ramp > RAMP_HIGH) {
-      return { label: "Übersteuert", detail: `Ramp +${ramp} CTL/Woche — deutlich über dem sicheren Korridor (${RAMP_OK_MIN}–${RAMP_OK_MAX}).` };
+      return {
+        label: "Übersteuert",
+        detail: `Ramp +${ramp} CTL/Woche — deutlich über dem sicheren Korridor (${RAMP_OK_MIN}–${RAMP_OK_MAX}).`,
+      };
     }
-    return { label: "Eintönig hart", detail: `Monotonie ${monotony} — Belastung ohne Rhythmuswechsel, Strain-Risiko.` };
+    return {
+      label: "Eintönig hart",
+      detail: `Monotonie ${monotony} — Belastung ohne Rhythmuswechsel, Strain-Risiko.`,
+    };
   }
   if (risk === "caution") {
     if (ramp != null && ramp > RAMP_OK_MAX) {
-      return { label: "Zügiger Aufbau", detail: `Ramp +${ramp} CTL/Woche — leicht über dem Korridor, beobachten.` };
+      return {
+        label: "Zügiger Aufbau",
+        detail: `Ramp +${ramp} CTL/Woche — leicht über dem Korridor, beobachten.`,
+      };
     }
-    return { label: "Wenig Rhythmus", detail: `Monotonie ${monotony} — mehr Wechsel zwischen harten und leichten Tagen einplanen.` };
+    return {
+      label: "Wenig Rhythmus",
+      detail: `Monotonie ${monotony} — mehr Wechsel zwischen harten und leichten Tagen einplanen.`,
+    };
   }
   if (ramp != null && ramp < 0) {
     return { label: "Entlastung", detail: `CTL ${ramp} — Erholungs- oder reduzierte Woche.` };
