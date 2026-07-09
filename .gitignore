@@ -8,6 +8,13 @@ replacements.txt
 # Node
 node_modules/
 
+# Fallow / Agent-Skills-Installer — generierte Tooling-Artefakte, kein Quellcode
+# (package-lock.json bleibt versioniert für reproduzierbare Fallow-Version)
+.agents/
+agent/
+data/skills/
+skills-lock.json
+
 # OS
 .DS_Store
 Thumbs.db
