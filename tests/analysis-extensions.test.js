@@ -171,7 +171,7 @@ test("mapWellnessList: erweiterte Felder, Tage ohne Werte entfallen, sortiert", 
       weight: 92.9,
       restingEnergy: 1755.6,
       activeEnergy: 640.2,
-      hydrationVolume: 2200,
+      hydrationVolume: 1.654,
       sportInfo: [{ type: "Ride", eftp: 262.3 }],
     },
     "2026-07-01": { hrvSDNN: 43 },
@@ -185,7 +185,7 @@ test("mapWellnessList: erweiterte Felder, Tage ohne Werte entfallen, sortiert", 
   assert.equal(d2.weight, 92.9);
   assert.equal(d2.restingEnergy, 1756);
   assert.equal(d2.activeEnergy, 640);
-  assert.equal(d2.hydrationVolume, 2200);
+  assert.equal(d2.hydrationVolume, 1.65); // Liter, 2 Nachkommastellen
   assert.equal(d2.eftp, 262);
   assert.equal(d2.hrv, null);
 });

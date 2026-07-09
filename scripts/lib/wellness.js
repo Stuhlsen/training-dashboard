@@ -34,7 +34,12 @@ export const WELLNESS_FIELDS = [
   // Verbrauch, damit Zufuhr-Tracker (z. B. Athlet 2) ihr Chart bekommen.
   { out: "kcalConsumed", pick: (w) => posNum(w.kcalConsumed) },
   { out: "hydration", pick: (w) => (w.hydration != null ? w.hydration : null) },
-  { out: "hydrationVolume", pick: (w) => posNum(w.hydrationVolume ?? w.Water ?? w.water) },
+  // hydrationVolume kommt aus intervals.icu in LITERN (z. B. 1.6) — nicht auf
+  // ganze ml runden (sonst „2 ml"), sondern als Liter mit 2 Nachkommastellen.
+  { out: "hydrationVolume", pick: (w) => {
+    const v = w.hydrationVolume ?? w.Water ?? w.water;
+    return typeof v === "number" && v > 0 ? Math.round(v * 100) / 100 : null;
+  } },
   // eFTP aus sportInfo (Ride) — robusteste Tagesquelle für die FTP-Prognose,
   // falls icu_eftp an den Activities leer bleibt
   { out: "eftp", pick: (w) => eftpFromSportInfo(w) },

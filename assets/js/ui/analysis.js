@@ -727,16 +727,20 @@ export const Analysis = {
       const e = energyView(Data.wellness);
       if (e) {
         const parts = [];
-        if (e.hasExpenditure) parts.push(`Verbrauch Ø ${e.avgBurned.toLocaleString("de")} kcal/Tag (Grundumsatz ${e.avgResting} + aktiv ${e.avgActive})`);
+        if (e.hasExpenditure) {
+          parts.push(e.hasResting
+            ? `Verbrauch Ø ${e.avgBurned.toLocaleString("de")} kcal/Tag (Grundumsatz ${e.avgResting} + aktiv ${e.avgActive})`
+            : `Aktiv verbrannt Ø ${e.avgActive.toLocaleString("de")} kcal/Tag`);
+        }
         if (e.hasIntake) parts.push(`Zufuhr Ø ${e.avgIntake.toLocaleString("de")} kcal/Tag`);
-        const headVal = e.hasExpenditure ? e.avgBurned : e.avgIntake;
-        const headUnit = e.hasExpenditure ? "kcal/Tag Ø Verbrauch" : "kcal/Tag Ø Zufuhr";
+        const headVal = e.hasExpenditure ? (e.hasResting ? e.avgBurned : e.avgActive) : e.avgIntake;
+        const headUnit = e.hasExpenditure ? (e.hasResting ? "kcal/Tag Ø Verbrauch" : "kcal/Tag Ø aktiv") : "kcal/Tag Ø Zufuhr";
         cards.push(`
           <div class="aerobic-card">
             <div class="aerobic-title">Energie</div>
             <div class="aerobic-val">${headVal.toLocaleString("de")}<span class="aerobic-unit">${headUnit}</span></div>
             <div class="aerobic-sub">${parts.join(" · ")} · ${e.n} Tage</div>
-            <div class="aerobic-sub">${e.hasExpenditure && e.hasIntake ? "Zufuhr unter dem Verbrauch = negatives Energiedefizit — bei hoher Last die Regeneration im Blick behalten." : "Aus Apple Health via intervals.icu."}</div>
+            <div class="aerobic-sub">${e.hasExpenditure && e.hasIntake ? "Zufuhr unter dem Verbrauch = negatives Energiedefizit — bei hoher Last die Regeneration im Blick behalten." : "Quelle: intervals.icu (Apple Health / Amazfit)."}</div>
           </div>`);
       }
     }

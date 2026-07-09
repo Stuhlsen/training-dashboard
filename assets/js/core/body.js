@@ -128,6 +128,7 @@ export function energyView(wellness) {
   return {
     days,
     hasExpenditure: days.some((d) => d.burned > 0),
+    hasResting: days.some((d) => d.resting > 0),
     hasIntake: days.some((d) => d.intake != null),
     avgBurned: avg((d) => d.burned),
     avgResting: avg((d) => d.resting),

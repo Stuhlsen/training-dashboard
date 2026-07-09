@@ -554,7 +554,11 @@ export function renderEnergy(svgId, ev) {
   const base = H - pad.b;
   const tip = (d) => {
     const parts = [];
-    if (d.burned > 0) parts.push(`Verbrauch ${d.burned} kcal (Grundumsatz ${d.resting} · aktiv ${d.active})`);
+    if (d.burned > 0) {
+      parts.push(d.resting > 0
+        ? `Verbrauch ${d.burned} kcal (Grundumsatz ${d.resting} · aktiv ${d.active})`
+        : `Aktiv verbrannt ${d.active} kcal`);
+    }
     if (d.intake != null) parts.push(`Zufuhr ${d.intake} kcal`);
     return `<div class="tt">${d.date.split("-").reverse().join(".")}</div><div class="tv">${parts.join(" · ")}</div>`;
   };
@@ -599,7 +603,7 @@ export function renderHydration(svgId, hy) {
   svg.innerHTML = "";
   const W = 780, H = 200, pad = { l: 50, r: 16, t: 24, b: 34 };
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-  const unit = hy.field === "hydrationVolume" ? "ml" : "";
+  const unit = hy.field === "hydrationVolume" ? "L" : "";
   const maxV = Math.max(1, ...hy.points.map((p) => p.value)) * 1.1;
   gridLines(svg, W, H, pad, maxV, 0);
   const X = (i) => pad.l + (i / Math.max(hy.points.length - 1, 1)) * cw;
