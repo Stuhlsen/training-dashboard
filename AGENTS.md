@@ -8,8 +8,10 @@ Live: stuhlsen.github.io/training-dashboard
 
 Vanilla HTML/CSS/JS als **native ES-Module** · SVG-Charts (kein Framework, kein Build-Step, kein Bundler)
 Node.js ≥ 20 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
-`package.json` existiert NUR für `"type": "module"` und die npm-Scripts — es gibt
-keine Dependencies und kein `npm install`. Tests laufen mit dem eingebauten `node:test`.
+`package.json` existiert primär für `"type": "module"` und die npm-Scripts — Dashboard
+und Datensync brauchen kein `npm install`. Einzige Ausnahme: `fallow` als `devDependency`
+(nur für den lokalen/CI-Codebase-Qualitätscheck, siehe Abschnitt „Codebase-Qualität").
+Tests laufen mit dem eingebauten `node:test`.
 
 ## Befehle
 
@@ -100,7 +102,9 @@ Abweichungen werden als Warnung geloggt; fehlende/leere `rides` sind fatal.
 
 `npx fallow` analysiert das Repo als System (Dependency-Graph, nicht nur Einzeldateien):
 Health Score, Circular Deps, Duplication, Dead Code, Complexity Hotspots.
-Deterministisch, keine KI im Analyzer.
+Deterministisch, keine KI im Analyzer. `fallow` ist als `devDependency` in `package.json`
+gepinnt (einzige Ausnahme von „kein npm install nötig") — für reproduzierbare Scores über
+die Zeit; `package-lock.json` ist dafür bewusst versioniert.
 
 - **CI**: läuft als eigener Job `code-quality` in `ci.yml`, parallel zu `test` —
   **non-blocking** (`continue-on-error: true`), da Schwellwerte noch nicht kalibriert
@@ -365,3 +369,6 @@ Athleten-Varianten!) gesetzt.
   Gewicht/Kalorien/Hydration/Körperfett; welche Felder real befüllt sind, zeigt
   `logWellnessCoverage` im Sync-Log — die „Regeneration & Körper"-Sektion blendet sich
   datengetrieben danach ein (≥5 Punkte / 30 Tage).
+- `npm install` (für Fallow) bzw. der Skills-Installer legen `.agents/`, `agent/`,
+  `data/skills/` und `skills-lock.json` an — generierte Tooling-Artefakte, kein
+  Quellcode, bewusst in `.gitignore` (nicht committen, auch nicht bei `git add -A`).
