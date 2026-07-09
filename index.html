@@ -125,6 +125,11 @@
         <svg class="chart" id="chart-consistency" viewBox="0 0 820 136"></svg>
         <p class="chart-explainer" id="explainer-consistency">Jede Woche eine Zelle ab der ersten aktiven Woche — Zahl und Grünton zeigen die Trainingstage (0–7). Konsistenz ist der stärkste Prädiktor für Langzeitfortschritt, und aufeinanderfolgende aktive Wochen (Serie) zählen mehr als jede Einzelsession. Lücken bleiben als blasse Zellen sichtbar.</p>
       </div>
+      <h2 class="section-label section-label-prominent">🏆 Meilensteine</h2>
+      <div class="chart-box">
+        <svg class="chart" id="milestones-gantt" viewBox="0 0 780 215"></svg>
+        <p class="chart-explainer">Schlüsselereignisse entlang der Trainingsachse — chronologisch von März bis September 2026. Blau = Plan 1, Orange = Plan 2. Hover für Details.</p>
+      </div>
       <h2 class="section-label section-label-prominent" id="records-heading">🥇 Bestwerte</h2>
       <div class="records-grid" id="records-wall"></div>
       <p class="chart-explainer" style="margin-top:2px">Automatisch erkannte persönliche Bestleistungen — mit Ablöse-Historie: welcher Wert wann übertroffen wurde. Keine erfundenen Abzeichen, nur echte Meilensteine aus den Daten.</p>
@@ -371,11 +376,11 @@
 
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">Energiebilanz-Näherung</span>
-              <span class="chart-note">Balken = Zufuhr (kcal) · Linie = Trainingsenergie (kJ ≈ kcal)</span>
+              <span class="chart-title heatmap-title">Energieverbrauch</span>
+              <span class="chart-note">Grundumsatz + aktiv = Tagesverbrauch (kcal)</span>
             </div>
             <svg class="chart" id="chart-energy" viewBox="0 0 780 210"></svg>
-            <p class="chart-explainer">Aufgenommene Kalorien (blaue Balken) gegen die Trainingsenergie des Tages (orange Linie). Bewusst keine echte Bilanz — der Grundumsatz fehlt. Zweck: sehen, ob harte Tage von entsprechender Zufuhr begleitet werden, statt chronisch unterversorgt zu trainieren.</p>
+            <p class="chart-explainer">Täglicher Energieverbrauch aus Apple Health (via intervals.icu): Grundumsatz (dunkel, RestingEnergy) plus aktiv verbrannte Kalorien (orange, ActiveEnergy) ergeben den Tages-Gesamtverbrauch. Nützlich, um harte Tage und den realen Kalorienbedarf einzuordnen.</p>
           </div>
 
           <div class="chart-box">

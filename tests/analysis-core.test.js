@@ -4,10 +4,33 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildBriefing, tsbSignal, loadSignal, readinessSignal } from "../assets/js/core/briefing.js";
-import { availability, weightTrend, wattsPerKg, energyView, hydrationSeries, rideKJ, MIN_POINTS } from "../assets/js/core/body.js";
-import { phaseCompliance, matchesSignature, RECOVERY_MAX_SHARE } from "../assets/js/core/periodization.js";
-import { weeklyStreak, frequencyTrend, planAdherence, buildConsistency, mondayOf } from "../assets/js/core/adherence.js";
+import {
+  buildBriefing,
+  tsbSignal,
+  loadSignal,
+  readinessSignal,
+} from "../assets/js/core/briefing.js";
+import {
+  availability,
+  weightTrend,
+  wattsPerKg,
+  energyView,
+  hydrationSeries,
+  rideKJ,
+  MIN_POINTS,
+} from "../assets/js/core/body.js";
+import {
+  phaseCompliance,
+  matchesSignature,
+  RECOVERY_MAX_SHARE,
+} from "../assets/js/core/periodization.js";
+import {
+  weeklyStreak,
+  frequencyTrend,
+  planAdherence,
+  buildConsistency,
+  mondayOf,
+} from "../assets/js/core/adherence.js";
 
 /* ── Briefing ───────────────────────────────────────────────── */
 
@@ -37,7 +60,9 @@ test("buildBriefing: rotes Erholungssignal schlägt grünen TSB", () => {
 
 test("buildBriefing: alles grün → green, mit nächster Einheit im Text", () => {
   const b = buildBriefing({
-    readiness: { level: "green" }, tsb: 2, loadRisk: "ok",
+    readiness: { level: "green" },
+    tsb: 2,
+    loadRisk: "ok",
     nextSession: { date: "2026-07-09", title: "3×12 Sweet Spot" },
   });
   assert.equal(b.level, "green");
@@ -98,25 +123,27 @@ test("wattsPerKg + rideKJ: Grundrechnungen", () => {
   assert.equal(rideKJ({ min: 60 }), null);
 });
 
-test("energyView: kcal vs. Trainingsenergie pro Tag", () => {
+test("energyView: Tagesverbrauch = Grundumsatz + aktiv", () => {
   const wellness = [
-    day("2026-07-01", { kcalConsumed: 2600 }),
-    day("2026-07-02", { kcalConsumed: 2900 }),
-    day("2026-07-03", { kcalConsumed: 2500 }),
-    day("2026-07-04", { kcalConsumed: 3100 }),
-    day("2026-07-05", { kcalConsumed: 2700 }),
+    day("2026-07-01", { restingEnergy: 1750, activeEnergy: 500 }),
+    day("2026-07-02", { restingEnergy: 1750, activeEnergy: 900 }),
+    day("2026-07-03", { restingEnergy: 1760, activeEnergy: 400 }),
+    day("2026-07-04", { restingEnergy: 1740, activeEnergy: 700 }),
+    day("2026-07-05", { restingEnergy: 1750, activeEnergy: 600 }),
   ];
-  const rides = [{ dateISO: "2026-07-02", watt: 200, min: 60 }];
-  const e = energyView(wellness, rides);
+  const e = energyView(wellness);
   assert.ok(e);
   assert.equal(e.n, 5);
-  assert.equal(e.days.find((d) => d.date === "2026-07-02").trainingKcal, 720);
-  assert.equal(e.days.find((d) => d.date === "2026-07-01").trainingKcal, 0);
-  assert.equal(energyView(wellness.slice(0, 2), rides), null);
+  assert.equal(e.days.find((d) => d.date === "2026-07-02").total, 2650);
+  assert.equal(e.days.find((d) => d.date === "2026-07-01").active, 500);
+  assert.equal(e.avgResting, 1750);
+  assert.equal(energyView(wellness.slice(0, 2)), null);
 });
 
 test("hydrationSeries: bevorzugt Volumen, Fallback Score, null ohne Daten", () => {
-  const vol = Array.from({ length: 5 }, (_, i) => day(`2026-07-0${i + 1}`, { hydrationVolume: 2000 + i * 100, hydration: 3 }));
+  const vol = Array.from({ length: 5 }, (_, i) =>
+    day(`2026-07-0${i + 1}`, { hydrationVolume: 2000 + i * 100, hydration: 3 })
+  );
   assert.equal(hydrationSeries(vol).field, "hydrationVolume");
   const score = Array.from({ length: 5 }, (_, i) => day(`2026-07-0${i + 1}`, { hydration: 3 }));
   assert.equal(hydrationSeries(score).field, "hydration");
@@ -136,13 +163,22 @@ test("matchesSignature: Typ-Match oder IF-Korridor (≥30min)", () => {
 });
 
 test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
-  const r = (week, phase, typ, tss, extra = {}) =>
-    ({ plan: "Plan 2", week, phase, typ, tss, dateISO: "2026-07-01", ...extra });
+  const r = (week, phase, typ, tss, extra = {}) => ({
+    plan: "Plan 2",
+    week,
+    phase,
+    typ,
+    tss,
+    dateISO: "2026-07-01",
+    ...extra,
+  });
   const rides = [
     // SS-Block, 2 Wochen à 2 Quality → voll erfüllt
-    r("P2-W1", "Sweet Spot", "Sweet Spot", 90), r("P2-W1", "Sweet Spot", "Gruppenfahrt", 80, { if: 0.85, min: 90 }),
+    r("P2-W1", "Sweet Spot", "Sweet Spot", 90),
+    r("P2-W1", "Sweet Spot", "Gruppenfahrt", 80, { if: 0.85, min: 90 }),
     r("P2-W1", "Sweet Spot", "Z2 Lang", 70),
-    r("P2-W2", "Sweet Spot", "Sweet Spot", 95), r("P2-W2", "Sweet Spot", "Sweet Spot", 92),
+    r("P2-W2", "Sweet Spot", "Sweet Spot", 95),
+    r("P2-W2", "Sweet Spot", "Sweet Spot", 92),
     // Erholungswoche mit klar reduziertem TSS
     r("P2-W4", "Erholung", "Z1 Recovery", 40),
     // Schwellen-Woche OHNE Schwellen-Signatur → abweichend
@@ -152,8 +188,8 @@ test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   const c = phaseCompliance(rides, weekIdx);
   assert.ok(c);
   const ss = c.blocks.find((b) => b.phase === "Sweet Spot");
-  assert.equal(ss.quality, 4);           // 3 Typ-Matches + 1 IF-Match
-  assert.equal(ss.expectedQuality, 4);   // 2 Wochen × 2
+  assert.equal(ss.quality, 4); // 3 Typ-Matches + 1 IF-Match
+  assert.equal(ss.expectedQuality, 4); // 2 Wochen × 2
   assert.equal(ss.status, "ok");
   const thr = c.blocks.find((b) => b.phase === "Schwelle");
   assert.equal(thr.quality, 0);
@@ -196,9 +232,13 @@ test("frequencyTrend: letzte 4 abgeschlossene Wochen vs. 4 davor", () => {
   const today = "2026-07-05";
   const rides = [
     // letzte 4 Wochen (01.06.–28.06.): 8 Fahrten → 2/Woche
-    ...Array.from({ length: 8 }, (_, i) => ({ dateISO: `2026-06-${String(1 + i * 3).padStart(2, "0")}` })),
+    ...Array.from({ length: 8 }, (_, i) => ({
+      dateISO: `2026-06-${String(1 + i * 3).padStart(2, "0")}`,
+    })),
     // 4 Wochen davor (04.05.–31.05.): 4 Fahrten → 1/Woche
-    ...Array.from({ length: 4 }, (_, i) => ({ dateISO: `2026-05-${String(5 + i * 6).padStart(2, "0")}` })),
+    ...Array.from({ length: 4 }, (_, i) => ({
+      dateISO: `2026-05-${String(5 + i * 6).padStart(2, "0")}`,
+    })),
   ];
   const f = frequencyTrend(rides, today);
   assert.equal(f.recent, 2);
@@ -221,8 +261,8 @@ test("planAdherence: Adjustments (Ausfall/Verschiebung) wie im Wochenrückblick"
   };
   const rides = [{ dateISO: "2026-06-30" }, { dateISO: "2026-07-03" }];
   const a = planAdherence(rides, planned, adjustments, today);
-  assert.equal(a.planned, 2);   // Sa gestrichen, Zukunft raus
-  assert.equal(a.done, 2);      // Di direkt + Do auf verschobenem Datum
+  assert.equal(a.planned, 2); // Sa gestrichen, Zukunft raus
+  assert.equal(a.done, 2); // Di direkt + Do auf verschobenem Datum
   assert.equal(a.quote, 100);
   assert.equal(a.missed.length, 0);
 });

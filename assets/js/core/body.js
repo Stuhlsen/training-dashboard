@@ -1,6 +1,6 @@
 /* ============================================================
    CORE/BODY.JS — Regeneration & Körper (kein DOM)
-   Gewichtstrend, Leistungsgewicht (W/kg), Energiebilanz-Näherung
+   Gewichtstrend, Leistungsgewicht (W/kg), Energieverbrauch
    und Hydration aus der Wellness-Reihe.
 
    Hintergrund: Chronisch niedrige Energieverfügbarkeit verschlechtert
@@ -51,7 +51,7 @@ function recentValues(wellness, field, todayISO, windowDays) {
 export function availability(wellness, todayISO) {
   const has = (field) => recentValues(wellness, field, todayISO, WINDOW_DAYS).length >= MIN_POINTS;
   const weight = has("weight");
-  const energy = has("kcalConsumed");
+  const energy = has("activeEnergy") || has("restingEnergy");
   const hydration = has("hydrationVolume") || has("hydration");
   return { weight, energy, hydration, any: weight || energy || hydration };
 }
@@ -95,35 +95,25 @@ export function wattsPerKg(watts, weightKg) {
 }
 
 /**
- * Energiebilanz-Näherung: aufgenommene kcal vs. Trainingsenergie (kJ ≈ kcal).
- * KEINE echte Bilanz (Grundumsatz fehlt bewusst) — zeigt nur, ob hohe
- * Trainingslast von entsprechender Zufuhr begleitet wird.
+ * Energieverbrauch: Grundumsatz (RestingEnergy) + aktiv (ActiveEnergy) je Tag
+ * aus Apple Health via intervals.icu. Näherung des Tages-Gesamtverbrauchs.
  * @param {import("../types.js").WellnessDay[]} wellness
- * @param {import("../types.js").Ride[]} rides
- * @returns {null | {days: Array<{date: string, kcalIn: number, trainingKcal: number}>, avgIn: number, avgTraining: number, n: number}}
+ * @returns {null | {days: Array<{date: string, resting: number, active: number, total: number}>, avgTotal: number, avgActive: number, avgResting: number, n: number}}
  */
-export function energyView(wellness, rides) {
-  const kcalDays = (wellness || []).filter((w) => w.kcalConsumed != null);
-  if (kcalDays.length < MIN_POINTS) return null;
+export function energyView(wellness) {
+  const rows = (wellness || []).filter((w) => w.activeEnergy != null || w.restingEnergy != null);
+  if (rows.length < MIN_POINTS) return null;
 
-  const trainingByDate = {};
-  for (const r of rides || []) {
-    const kj = rideKJ(r);
-    if (kj == null) continue;
-    const d = r.dateISO || r.date;
-    trainingByDate[d] = (trainingByDate[d] || 0) + kj;
-  }
-
-  const days = kcalDays
-    .map((w) => ({
-      date: w.dateISO || w.date,
-      kcalIn: w.kcalConsumed,
-      trainingKcal: trainingByDate[w.dateISO || w.date] || 0,
-    }))
+  const days = rows
+    .map((w) => {
+      const resting = w.restingEnergy || 0;
+      const active = w.activeEnergy || 0;
+      return { date: w.dateISO || w.date, resting, active, total: resting + active };
+    })
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const avg = (k) => Math.round(days.reduce((s, d) => s + d[k], 0) / days.length);
-  return { days, avgIn: avg("kcalIn"), avgTraining: avg("trainingKcal"), n: days.length };
+  return { days, avgTotal: avg("total"), avgActive: avg("active"), avgResting: avg("resting"), n: days.length };
 }
 
 /**

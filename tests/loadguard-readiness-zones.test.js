@@ -27,10 +27,10 @@ test("fosterWeek: identische Tage (sd=0) → Monotonie null statt Division durch
 
 test("riskLevel: Ramp-Korridor und Monotonie-Schwellen", () => {
   assert.equal(riskLevel(4, 1.2), "ok");
-  assert.equal(riskLevel(7, 1.2), "caution");   // Ramp > 6
-  assert.equal(riskLevel(9, 1.2), "high");      // Ramp > 8
-  assert.equal(riskLevel(4, 2.1), "caution");   // Monotonie ≥ 2
-  assert.equal(riskLevel(4, 2.6), "high");      // Monotonie ≥ 2.5
+  assert.equal(riskLevel(7, 1.2), "caution"); // Ramp > 6
+  assert.equal(riskLevel(9, 1.2), "high"); // Ramp > 8
+  assert.equal(riskLevel(4, 2.1), "caution"); // Monotonie ≥ 2
+  assert.equal(riskLevel(4, 2.6), "high"); // Monotonie ≥ 2.5
   assert.equal(riskLevel(null, null), "ok");
 });
 
@@ -46,12 +46,16 @@ test("buildLoadGuard: Wochen gruppiert, Ramp gegen Vorwoche", () => {
     { week: "W1", dateISO: "2026-07-01", tss: 100, ctl: 52 },
     { week: "W2", dateISO: "2026-07-06", tss: 150, ctl: 57 },
   ];
-  const guard = buildLoadGuard(rides, (r) => r.week, (a, b) => a.localeCompare(b));
+  const guard = buildLoadGuard(
+    rides,
+    (r) => r.week,
+    (a, b) => a.localeCompare(b)
+  );
   assert.equal(guard.length, 2);
   assert.equal(guard[0].week, "W1");
   assert.equal(guard[0].total, 200);
-  assert.equal(guard[0].ramp, null);          // keine Vorwoche
-  assert.equal(guard[1].ramp, 5);             // 57 − 52
+  assert.equal(guard[0].ramp, null); // keine Vorwoche
+  assert.equal(guard[1].ramp, 5); // 57 − 52
   assert.ok(guard[1].monotony > 0);
 });
 
@@ -65,9 +69,9 @@ test("baselineStats: braucht mindestens 5 Werte", () => {
 });
 
 test("metricStatus: Richtung wird berücksichtigt", () => {
-  assert.equal(metricStatus(-1.6, true), "alert");   // HRV stark unter Baseline
-  assert.equal(metricStatus(1.6, true), "ok");       // HRV über Baseline = gut
-  assert.equal(metricStatus(1.6, false), "alert");   // Ruhepuls stark erhöht
+  assert.equal(metricStatus(-1.6, true), "alert"); // HRV stark unter Baseline
+  assert.equal(metricStatus(1.6, true), "ok"); // HRV über Baseline = gut
+  assert.equal(metricStatus(1.6, false), "alert"); // Ruhepuls stark erhöht
   assert.equal(metricStatus(null, true), "nodata");
 });
 
@@ -84,14 +88,16 @@ function makeWellness(n, hrv, rhr, sleep) {
 
 test("assessReadiness: stabile Werte → grün; HRV-Einbruch + RHF-Anstieg → rot", () => {
   // Baseline: 42 Tage stabil (leichte Variation für sd>0)
-  const base = makeWellness(60, 62, 52, 7.2).map((w, i) => ({ ...w, hrv: 62 + (i % 3) - 1, restingHR: 52 + (i % 2) }));
+  const base = makeWellness(60, 62, 52, 7.2).map((w, i) => ({
+    ...w,
+    hrv: 62 + (i % 3) - 1,
+    restingHR: 52 + (i % 2),
+  }));
   const green = assessReadiness(base, "2026-07-04");
   assert.equal(green.level, "green");
 
   // Letzte 7 Tage: HRV −15, Ruhepuls +6 → alert
-  const stressed = base.map((w) =>
-    w.date >= "2026-06-27" ? { ...w, hrv: 45, restingHR: 60 } : w
-  );
+  const stressed = base.map((w) => (w.date >= "2026-06-27" ? { ...w, hrv: 45, restingHR: 60 } : w));
   const red = assessReadiness(stressed, "2026-07-04");
   assert.equal(red.level, "red");
   assert.equal(red.metrics.find((m) => m.key === "hrv").status, "alert");
@@ -105,7 +111,13 @@ test("assessReadiness: zu wenig Historie → null", () => {
 
 test("normalizeZoneTimes: beide intervals.icu-Formate", () => {
   assert.deepEqual(normalizeZoneTimes([100, 200, 300]), [100, 200, 300]);
-  assert.deepEqual(normalizeZoneTimes([{ id: "Z1", secs: 100 }, { id: "Z2", secs: 200 }]), [100, 200]);
+  assert.deepEqual(
+    normalizeZoneTimes([
+      { id: "Z1", secs: 100 },
+      { id: "Z2", secs: 200 },
+    ]),
+    [100, 200]
+  );
   assert.equal(normalizeZoneTimes(null), null);
   assert.equal(normalizeZoneTimes([]), null);
 });
@@ -120,11 +132,15 @@ test("bandZoneTimes: Z1+Z2 → low, Z3+Z4 → mid, Rest → high", () => {
 
 test("weeklyZoneShares: Anteile + Zielprüfung (80% low)", () => {
   const rides = [
-    { week: "W1", dateISO: "2026-06-30", zoneTimes: [3600, 3600, 900, 0, 0] },  // 88.9% low
+    { week: "W1", dateISO: "2026-06-30", zoneTimes: [3600, 3600, 900, 0, 0] }, // 88.9% low
     { week: "W2", dateISO: "2026-07-07", zoneTimes: [1800, 1800, 1800, 1800, 0] }, // 50% low
     { week: "W3", dateISO: "2026-07-14" }, // keine Zonendaten → entfällt
   ];
-  const weeks = weeklyZoneShares(rides, (r) => r.week, (a, b) => a.localeCompare(b));
+  const weeks = weeklyZoneShares(
+    rides,
+    (r) => r.week,
+    (a, b) => a.localeCompare(b)
+  );
   assert.equal(weeks.length, 2);
   assert.equal(weeks[0].onTarget, true);
   assert.equal(weeks[1].onTarget, false);

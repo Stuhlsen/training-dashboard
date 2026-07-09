@@ -34,7 +34,7 @@ const AVAILABILITY = {
   "chart-sleep": () => Data.wellness.some((w) => w.sleepHours != null),
   "chart-weather-weekly": () => Data.rides.some((r) => r.weather || r.wetter),
   "chart-weight": () => weightTrend(Data.wellness) !== null,
-  "chart-energy": () => energyView(Data.wellness, Data.rides) !== null,
+  "chart-energy": () => energyView(Data.wellness) !== null,
   "chart-hydration": () => hydrationSeries(Data.wellness) !== null,
 };
 

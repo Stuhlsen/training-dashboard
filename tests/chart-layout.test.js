@@ -13,8 +13,10 @@ test("pickLabelIndices: hält den Mindestabstand ein und enthält immer den letz
 
   assert.ok(picked.includes(26), "letzter Index muss enthalten sein");
   for (let k = 1; k < picked.length; k++) {
-    assert.ok(xs[picked[k]] - xs[picked[k - 1]] >= 40,
-      `Abstand ${xs[picked[k]] - xs[picked[k - 1]]}px zwischen Index ${picked[k - 1]} und ${picked[k]} unterschreitet 40px`);
+    assert.ok(
+      xs[picked[k]] - xs[picked[k - 1]] >= 40,
+      `Abstand ${xs[picked[k]] - xs[picked[k - 1]]}px zwischen Index ${picked[k - 1]} und ${picked[k]} unterschreitet 40px`
+    );
   }
   assert.ok(picked.length < 27, "es muss ausgedünnt werden");
   assert.ok(picked.length >= 10, "aber nicht übermäßig");
@@ -36,10 +38,12 @@ test("pickLabelIndices: genug Platz → alle Labels; leere Eingabe → leer", ()
 });
 
 test("weekDisplayLabels: Kalenderwochen kompakt, Jahreswechsel markiert", () => {
-  assert.deepEqual(
-    weekDisplayLabels(["2026-KW51", "2026-KW52", "2027-KW01", "2027-KW02"]),
-    ["KW51", "KW52", "KW01 ’27", "KW02"]
-  );
+  assert.deepEqual(weekDisplayLabels(["2026-KW51", "2026-KW52", "2027-KW01", "2027-KW02"]), [
+    "KW51",
+    "KW52",
+    "KW01 ’27",
+    "KW02",
+  ]);
 });
 
 test("weekDisplayLabels: Monats-Keys kompakt, Plan-Wochen unverändert", () => {

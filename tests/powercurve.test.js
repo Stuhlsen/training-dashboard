@@ -5,7 +5,12 @@ import assert from "node:assert/strict";
 import { extractPowerCurve, nearestWatts, buildCurveData } from "../assets/js/core/powercurve.js";
 
 test("extractPowerCurve: list-Format (erstes Element = beste Kurve)", () => {
-  const pc = { list: [{ secs: [1, 60], watts: [800, 300] }, { secs: [1], watts: [100] }] };
+  const pc = {
+    list: [
+      { secs: [1, 60], watts: [800, 300] },
+      { secs: [1], watts: [100] },
+    ],
+  };
   assert.deepEqual(extractPowerCurve(pc), { secs: [1, 60], watts: [800, 300] });
 });
 

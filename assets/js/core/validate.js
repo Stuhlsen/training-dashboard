@@ -30,7 +30,9 @@ export function checkObject(obj, schema, label) {
   const problems = [];
   for (const [field, spec] of Object.entries(schema)) {
     if (!matchesType(obj[field], spec)) {
-      problems.push(`${label}.${field}: erwartet ${spec}, erhalten ${obj[field] === null ? "null" : typeof obj[field]}`);
+      problems.push(
+        `${label}.${field}: erwartet ${spec}, erhalten ${obj[field] === null ? "null" : typeof obj[field]}`
+      );
     }
   }
   return problems;
@@ -75,7 +77,8 @@ export const WELLNESS_SCHEMA = {
   // Regeneration & Körper (Sync-Erweiterung, siehe scripts/lib/wellness.js)
   weight: "number?",
   bodyFat: "number?",
-  kcalConsumed: "number?",
+  activeEnergy: "number?",
+  restingEnergy: "number?",
   hydration: "number?",
   hydrationVolume: "number?",
   // eFTP aus Wellness-sportInfo (Tageswert für die FTP-Prognose)

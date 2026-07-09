@@ -55,7 +55,7 @@ function initAthleteToggle() {
 
 /* ── Hat der aktive Athlet einen Trainingsplan? ────────────────
    Athlet 2 (Vergleichsdaten) hat keine week/phase-Struktur, also
-   keine Planung. */
+   keine Planung/Übersicht-Meilensteine. */
 function hasOwnPlan() {
   return Data.rides.some((r) => r.week);
 }
@@ -330,7 +330,7 @@ async function renderAll(athleteId) {
   // Körper: Gewicht/Energie/Hydration (erscheinen nur bei vorhandenen Daten,
   // Sichtbarkeit via ChartVisibility)
   Charts.renderWeight("chart-weight", weightTrend(Data.wellness));
-  Charts.renderEnergy("chart-energy", energyView(Data.wellness, rides));
+  Charts.renderEnergy("chart-energy", energyView(Data.wellness));
   Charts.renderHydration("chart-hydration", hydrationSeries(Data.wellness));
 
   // Übersicht — Konsistenz-Jahreskalender (ersetzt Wochentags-Heatmap)

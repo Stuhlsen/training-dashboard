@@ -20,18 +20,18 @@ test("kurze Fahrt mit hohem IF → FTP-Test", () => {
 
 test("niedriger IF: Dauer entscheidet zwischen Recovery/Z2", () => {
   const np = DEFAULT_FTP * 0.6; // IF 0.60
-  assert.equal(inferTypFromIF(np, 45), "Z1 Recovery");   // < 60 min
-  assert.equal(inferTypFromIF(np, 60), "Z2 Dauer");      // >= 60 min
-  assert.equal(inferTypFromIF(np, 120), "Z2 Lang");      // >= 120 min
+  assert.equal(inferTypFromIF(np, 45), "Z1 Recovery"); // < 60 min
+  assert.equal(inferTypFromIF(np, 60), "Z2 Dauer"); // >= 60 min
+  assert.equal(inferTypFromIF(np, 120), "Z2 Lang"); // >= 120 min
 });
 
 test("IF-Stufen 0.75–1.05+", () => {
   const at = (ifVal) => inferTypFromIF(Math.round(DEFAULT_FTP * ifVal), 90);
-  assert.equal(at(0.80), "Z2 Dauer");
+  assert.equal(at(0.8), "Z2 Dauer");
   assert.equal(at(0.87), "Tempo");
   assert.equal(at(0.92), "Sweet Spot");
-  assert.equal(at(1.00), "Schwelle");
-  assert.equal(at(1.10), "VO2max");
+  assert.equal(at(1.0), "Schwelle");
+  assert.equal(at(1.1), "VO2max");
 });
 
 test("Grenzwerte exakt (>= kippt in die nächste Stufe)", () => {

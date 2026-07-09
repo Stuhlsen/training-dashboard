@@ -538,7 +538,7 @@ export function renderWeight(svgId, wt) {
   _bodyDateLabels(svg, wt.points, pad, cw, H);
 }
 
-/** Energiebilanz-Näherung: Zufuhr (Balken) vs. Trainingsenergie (Linie)
+/** Energieverbrauch je Tag: Grundumsatz (unten) + aktiv (oben), gestapelt
  *  @param {string} svgId @param {ReturnType<import("../../core/body.js").energyView>} ev */
 export function renderEnergy(svgId, ev) {
   const svg = el(svgId);
@@ -546,21 +546,25 @@ export function renderEnergy(svgId, ev) {
   svg.innerHTML = "";
   const W = 780, H = 210, pad = { l: 52, r: 16, t: 24, b: 34 };
   const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-  const maxV = Math.max(1, ...ev.days.map((d) => Math.max(d.kcalIn, d.trainingKcal))) * 1.1;
+  const maxV = Math.max(1, ...ev.days.map((d) => d.total)) * 1.1;
   gridLines(svg, W, H, pad, maxV, 0);
-  const n = ev.days.length, slot = cw / n, bw = Math.min(slot * 0.6, 22);
+  const n = ev.days.length, slot = cw / n, bw = Math.min(slot * 0.62, 22);
   const Y = (v) => pad.t + ch - (v / maxV) * ch;
+  const base = H - pad.b;
 
   ev.days.forEach((d, i) => {
     const cx = pad.l + slot * (i + 0.5);
-    const bar = svgEl("rect", { x: cx - bw / 2, y: Y(d.kcalIn), width: bw, height: Math.max(0, (H - pad.b) - Y(d.kcalIn)), rx: "2", fill: "#4a7fa8", opacity: "0.85" });
-    bar.style.cursor = "pointer";
-    bar.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${d.date.split("-").reverse().join(".")}</div><div class="tv">Zufuhr ${d.kcalIn} kcal · Training ${d.trainingKcal} kcal</div>`));
-    bar.addEventListener("mouseleave", () => Tooltip.hide());
-    svg.appendChild(bar);
+    const rTop = Y(d.resting);
+    const aTop = Y(d.total);
+    const rest = svgEl("rect", { x: cx - bw / 2, y: rTop, width: bw, height: Math.max(0, base - rTop), rx: "2", fill: "#3a4a5c" });
+    const act = svgEl("rect", { x: cx - bw / 2, y: aTop, width: bw, height: Math.max(0, rTop - aTop), rx: "2", fill: "#e08a3c" });
+    [rest, act].forEach((bar) => {
+      bar.style.cursor = "pointer";
+      bar.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${d.date.split("-").reverse().join(".")}</div><div class="tv">Verbrauch ${d.total} kcal · Grundumsatz ${d.resting} · aktiv ${d.active}</div>`));
+      bar.addEventListener("mouseleave", () => Tooltip.hide());
+      svg.appendChild(bar);
+    });
   });
-  const line = ev.days.map((d, i) => `${pad.l + slot * (i + 0.5)},${Y(d.trainingKcal)}`).join(" ");
-  svg.appendChild(svgEl("polyline", { fill: "none", stroke: "#e08a3c", "stroke-width": "2", points: line }));
   _bodyDateLabels(svg, ev.days, pad, cw, H);
 }
 

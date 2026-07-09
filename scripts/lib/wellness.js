@@ -10,22 +10,31 @@
 
 import { log } from "./log.js";
 
+/** Positiver, gerundeter Zahlenwert oder null @param {unknown} v */
+function posNum(v) {
+  return typeof v === "number" && v > 0 ? Math.round(v) : null;
+}
+
 /** Felder, die in die wellnessList übernommen werden (Quelle → Ziel).
  *  Reihenfolge = Reihenfolge im Coverage-Log. */
 export const WELLNESS_FIELDS = [
-  { out: "sleepHours",      pick: (w) => (w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null) },
-  { out: "avgSleepingHR",   pick: (w) => w.avgSleepingHR || null },
-  { out: "restingHR",       pick: (w) => w.restingHR || null },
-  { out: "hrv",             pick: (w) => w.hrvSDNN || null },
+  { out: "sleepHours", pick: (w) => (w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null) },
+  { out: "avgSleepingHR", pick: (w) => w.avgSleepingHR || null },
+  { out: "restingHR", pick: (w) => w.restingHR || null },
+  { out: "hrv", pick: (w) => w.hrvSDNN || null },
   // Regeneration & Körper (neu) — null-tolerant, UI blendet datengetrieben aus
-  { out: "weight",          pick: (w) => (w.weight > 0 ? Math.round(w.weight * 10) / 10 : null) },
-  { out: "bodyFat",         pick: (w) => (w.bodyFat > 0 ? Math.round(w.bodyFat * 10) / 10 : null) },
-  { out: "kcalConsumed",    pick: (w) => (w.kcalConsumed > 0 ? Math.round(w.kcalConsumed) : null) },
-  { out: "hydration",       pick: (w) => (w.hydration != null ? w.hydration : null) },
-  { out: "hydrationVolume", pick: (w) => (w.hydrationVolume > 0 ? Math.round(w.hydrationVolume) : null) },
+  { out: "weight", pick: (w) => (w.weight > 0 ? Math.round(w.weight * 10) / 10 : null) },
+  { out: "bodyFat", pick: (w) => (w.bodyFat > 0 ? Math.round(w.bodyFat * 10) / 10 : null) },
+  // Energieverbrauch (Apple Health via intervals.icu): Feldnamen laut UI
+  // ActiveEnergy (aktiv verbrannt) + RestingEnergy (Grundumsatz). Groß-/Klein-
+  // schreibung tolerant, da intervals.icu die Rohfelder unter dem Code-Namen liefert.
+  { out: "activeEnergy", pick: (w) => posNum(w.ActiveEnergy ?? w.activeEnergy) },
+  { out: "restingEnergy", pick: (w) => posNum(w.RestingEnergy ?? w.restingEnergy) },
+  { out: "hydration", pick: (w) => (w.hydration != null ? w.hydration : null) },
+  { out: "hydrationVolume", pick: (w) => posNum(w.hydrationVolume ?? w.Water ?? w.water) },
   // eFTP aus sportInfo (Ride) — robusteste Tagesquelle für die FTP-Prognose,
   // falls icu_eftp an den Activities leer bleibt
-  { out: "eftp",            pick: (w) => eftpFromSportInfo(w) },
+  { out: "eftp", pick: (w) => eftpFromSportInfo(w) },
 ];
 
 /** eFTP (Ride) aus dem sportInfo-Array eines Wellness-Tags
@@ -93,8 +102,12 @@ export function logWellnessCoverage(wellnessList, label) {
   const total = (wellnessList || []).length;
   const parts = Object.entries(counts).map(([k, n]) => `${k}: ${n}/${total}`);
   log.info(`   📊 Wellness-Feldabdeckung ${label}: ${parts.join(" · ")}`);
-  const empty = Object.entries(counts).filter(([, n]) => n === 0).map(([k]) => k);
+  const empty = Object.entries(counts)
+    .filter(([, n]) => n === 0)
+    .map(([k]) => k);
   if (empty.length) {
-    log.info(`   ℹ️  Ohne Daten (${label}): ${empty.join(", ")} — zugehörige UI-Kacheln bleiben ausgeblendet`);
+    log.info(
+      `   ℹ️  Ohne Daten (${label}): ${empty.join(", ")} — zugehörige UI-Kacheln bleiben ausgeblendet`
+    );
   }
 }

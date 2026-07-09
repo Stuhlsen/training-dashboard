@@ -6,19 +6,34 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { overallZoneShares, overallBandsFromIF, distributionShape, rideIF, LOW_INTENSITY_TARGET } from "../assets/js/core/zones.js";
+import {
+  overallZoneShares,
+  overallBandsFromIF,
+  distributionShape,
+  rideIF,
+  LOW_INTENSITY_TARGET,
+} from "../assets/js/core/zones.js";
 import { decouplingTrend, DECOUPLING_MIN_POINTS } from "../assets/js/core/efficiency.js";
-import { dateForTarget, eftpHistoryFromWellness, mergeEftpHistories } from "../assets/js/core/ftp-forecast.js";
+import {
+  dateForTarget,
+  eftpHistoryFromWellness,
+  mergeEftpHistories,
+} from "../assets/js/core/ftp-forecast.js";
 import { describeWeek } from "../assets/js/core/loadguard.js";
-import { mapWellnessList, latestWeight, fieldCoverage, eftpFromSportInfo } from "../scripts/lib/wellness.js";
+import {
+  mapWellnessList,
+  latestWeight,
+  fieldCoverage,
+  eftpFromSportInfo,
+} from "../scripts/lib/wellness.js";
 
 /* ── Zonen ──────────────────────────────────────────────────── */
 
 test("overallZoneShares: aggregiert über Fahrten, null ohne zoneTimes", () => {
   const rides = [
-    { zoneTimes: [3600, 3600, 0, 0, 0] },       // 2h low
-    { zoneTimes: [0, 0, 1800, 0, 0] },          // 0.5h mid
-    { zoneTimes: [{ id: "Z5", secs: 900 }] },   // 0.25h high? Nein: Index 0 = Z1
+    { zoneTimes: [3600, 3600, 0, 0, 0] }, // 2h low
+    { zoneTimes: [0, 0, 1800, 0, 0] }, // 0.5h mid
+    { zoneTimes: [{ id: "Z5", secs: 900 }] }, // 0.25h high? Nein: Index 0 = Z1
   ];
   // Objektformat: Index bestimmt die Zone — [900] ist Z1 (low)
   const s = overallZoneShares(rides);
@@ -32,16 +47,16 @@ test("overallZoneShares: aggregiert über Fahrten, null ohne zoneTimes", () => {
 test("rideIF: bevorzugt r.if, leitet sonst aus NP/FTP ab", () => {
   assert.equal(rideIF({ if: 0.84 }), 0.84);
   assert.equal(rideIF({ np: 163, ftpWatt: 193 }), 163 / 193);
-  assert.equal(rideIF({ np: 163 }), null);        // ohne FTP keine Ableitung
+  assert.equal(rideIF({ np: 163 }), null); // ohne FTP keine Ableitung
   assert.equal(rideIF({ km: 10 }), null);
 });
 
 test("overallBandsFromIF: Dauer-gewichtete Näherung, IF aus NP/FTP abgeleitet", () => {
   const rides = [
-    { if: 0.6, min: 120 },              // low: 7200s (direktes IF)
+    { if: 0.6, min: 120 }, // low: 7200s (direktes IF)
     { np: 175, ftpWatt: 193, min: 60 }, // IF≈0.91 → mid: 3600s (abgeleitet)
-    { if: 1.1, min: 30 },               // high: 1800s
-    { min: 60 },                        // kein IF ableitbar → fällt raus
+    { if: 1.1, min: 30 }, // high: 1800s
+    { min: 60 }, // kein IF ableitbar → fällt raus
   ];
   const b = overallBandsFromIF(rides);
   assert.equal(b.low, 7200);
@@ -53,32 +68,40 @@ test("overallBandsFromIF: Dauer-gewichtete Näherung, IF aus NP/FTP abgeleitet",
 });
 
 test("distributionShape: polarisiert / pyramidal / schwellenlastig", () => {
-  assert.equal(distributionShape({ low: 0.85, mid: 0.05, high: 0.10 }).shape, "polarisiert");
+  assert.equal(distributionShape({ low: 0.85, mid: 0.05, high: 0.1 }).shape, "polarisiert");
   assert.equal(distributionShape({ low: 0.82, mid: 0.13, high: 0.05 }).shape, "pyramidal");
-  assert.equal(distributionShape({ low: 0.45, mid: 0.50, high: 0.05 }).shape, "schwellenlastig");
-  assert.equal(distributionShape({ low: 0.85, mid: 0.05, high: 0.10 }).onTarget, 0.85 >= LOW_INTENSITY_TARGET);
+  assert.equal(distributionShape({ low: 0.45, mid: 0.5, high: 0.05 }).shape, "schwellenlastig");
+  assert.equal(
+    distributionShape({ low: 0.85, mid: 0.05, high: 0.1 }).onTarget,
+    0.85 >= LOW_INTENSITY_TARGET
+  );
   assert.equal(distributionShape({ low: 0.6, mid: 0.3, high: 0.1 }).onTarget, false);
 });
 
 /* ── Decoupling-Trend ───────────────────────────────────────── */
 
 test("decouplingTrend: nur Steady-State-Fahrten, Median + stabiler Anteil", () => {
-  const mk = (date, value, typ = "Z2 Lang", min = 90) => ({ dateISO: date, decoupling: value, typ, min });
+  const mk = (date, value, typ = "Z2 Lang", min = 90) => ({
+    dateISO: date,
+    decoupling: value,
+    typ,
+    min,
+  });
   const rides = [
     mk("2026-06-01", 6.0),
     mk("2026-06-08", 5.0),
     mk("2026-06-15", 4.0),
     mk("2026-06-22", 3.0),
     mk("2026-06-29", 2.0),
-    mk("2026-06-30", 9.9, "VO2max"),      // falscher Typ → raus
+    mk("2026-06-30", 9.9, "VO2max"), // falscher Typ → raus
     mk("2026-07-01", 9.9, "Z2 Lang", 45), // zu kurz → raus
   ];
   const t = decouplingTrend(rides);
   assert.ok(t);
   assert.equal(t.n, 5);
   assert.equal(t.median, 4);
-  assert.equal(t.stableShare, 60);       // 3 von 5 unter 5%
-  assert.ok(t.slopePer30d < 0);          // fallender Trend
+  assert.equal(t.stableShare, 60); // 3 von 5 unter 5%
+  assert.ok(t.slopePer30d < 0); // fallender Trend
   assert.equal(decouplingTrend(rides.slice(0, DECOUPLING_MIN_POINTS - 1)), null);
 });
 
@@ -118,7 +141,10 @@ test("eftpHistoryFromWellness + mergeEftpHistories: Tageswerte, pro Tag Maximum"
   assert.equal(h.length, 2);
   assert.equal(h[0].date, "2026-06-01");
 
-  const merged = mergeEftpHistories(h, [{ date: "2026-06-01", eftp: 202 }, { date: "2026-06-05", eftp: 205 }]);
+  const merged = mergeEftpHistories(h, [
+    { date: "2026-06-01", eftp: 202 },
+    { date: "2026-06-05", eftp: 205 },
+  ]);
   assert.equal(merged.length, 3);
   assert.equal(merged.find((x) => x.date === "2026-06-01").eftp, 202);
 });
@@ -139,7 +165,15 @@ test("describeWeek: benennt das treibende Signal", () => {
 
 test("mapWellnessList: erweiterte Felder, Tage ohne Werte entfallen, sortiert", () => {
   const raw = {
-    "2026-07-02": { sleepSecs: 27000, restingHR: 52, weight: 92.9, kcalConsumed: 2800.4, hydrationVolume: 2200, sportInfo: [{ type: "Ride", eftp: 262.3 }] },
+    "2026-07-02": {
+      sleepSecs: 27000,
+      restingHR: 52,
+      weight: 92.9,
+      restingEnergy: 1755.6,
+      activeEnergy: 640.2,
+      hydrationVolume: 2200,
+      sportInfo: [{ type: "Ride", eftp: 262.3 }],
+    },
     "2026-07-01": { hrvSDNN: 43 },
     "2026-07-03": {}, // komplett leer → raus
   };
@@ -149,14 +183,23 @@ test("mapWellnessList: erweiterte Felder, Tage ohne Werte entfallen, sortiert", 
   const d2 = list[1];
   assert.equal(d2.sleepHours, 7.5);
   assert.equal(d2.weight, 92.9);
-  assert.equal(d2.kcalConsumed, 2800);
+  assert.equal(d2.restingEnergy, 1756);
+  assert.equal(d2.activeEnergy, 640);
   assert.equal(d2.hydrationVolume, 2200);
   assert.equal(d2.eftp, 262);
   assert.equal(d2.hrv, null);
 });
 
 test("eftpFromSportInfo: nur Ride-Eintrag mit eftp > 0", () => {
-  assert.equal(eftpFromSportInfo({ sportInfo: [{ type: "Run", eftp: 300 }, { type: "Ride", eftp: 261.7 }] }), 262);
+  assert.equal(
+    eftpFromSportInfo({
+      sportInfo: [
+        { type: "Run", eftp: 300 },
+        { type: "Ride", eftp: 261.7 },
+      ],
+    }),
+    262
+  );
   assert.equal(eftpFromSportInfo({ sportInfo: [{ type: "Ride", eftp: 0 }] }), null);
   assert.equal(eftpFromSportInfo({}), null);
 });
@@ -175,5 +218,5 @@ test("latestWeight + fieldCoverage: neuester Wert, non-null-Zählung", () => {
   const cov = fieldCoverage(mapWellnessList(raw));
   assert.equal(cov.weight, 2);
   assert.equal(cov.sleepHours, 1);
-  assert.equal(cov.kcalConsumed, 0);
+  assert.equal(cov.activeEnergy, 0);
 });

@@ -3,15 +3,23 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { zoneSegments, pinPercent, ringProgress, nextPlannedSession } from "../assets/js/core/ftp-progress.js";
+import {
+  zoneSegments,
+  pinPercent,
+  ringProgress,
+  nextPlannedSession,
+} from "../assets/js/core/ftp-progress.js";
 
 test("zoneSegments: Segmente decken die Skala vollständig ab (Summe 100%)", () => {
   const segs = zoneSegments(193, 300);
   const total = segs.reduce((s, x) => s + x.pct, 0);
   assert.ok(Math.abs(total - 100) < 1e-9);
-  assert.deepEqual(segs.map(s => s.cls), ["z1", "z2", "ss", "thr", "vo2", "rest"]);
+  assert.deepEqual(
+    segs.map((s) => s.cls),
+    ["z1", "z2", "ss", "thr", "vo2", "rest"]
+  );
   // Z1-Grenze: 0.55 × 193 = 106.15 W → 35.38 % der 300er-Skala
-  assert.ok(Math.abs(segs[0].pct - (193 * 0.55 / 300) * 100) < 1e-9);
+  assert.ok(Math.abs(segs[0].pct - ((193 * 0.55) / 300) * 100) < 1e-9);
 });
 
 test("zoneSegments: hohe FTP kappt am Skalenende, kein rest-Segment", () => {
