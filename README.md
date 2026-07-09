@@ -33,7 +33,7 @@ GitHub Action (alle 6h) ──────────────────�
         └──→ GitHub Pages Deploy (automatisch nach jedem Sync)
 ```
 
-**Tech-Stack:** Vanilla HTML/CSS/JS als native ES-Module · SVG-Charts (kein Framework, kein Build-Step) · Node.js · GitHub Actions (Daten-Sync alle 6 h + CI mit `node:test`-Suite und ESLint)
+**Tech-Stack:** Vanilla HTML/CSS/JS als native ES-Module · SVG-Charts (kein Framework, kein Build-Step) · Node.js · GitHub Actions (Daten-Sync alle 6 h + CI mit `node:test`-Suite, ESLint und Fallow-Codebase-Qualitätsreport)
 
 **Code-Architektur (Frontend):** strikte Schichtentrennung `core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Status-Briefing, Intensitätsverteilung, EF- und HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierungs-Erfüllung, Konsistenz & Adhärenz, Bestwerte) → `state/` (Konfiguration + Daten-Store) → `ui/` (DOM, SVG-Rendering, Panels). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
 
@@ -265,6 +265,8 @@ git sync
 - [x] **Regeneration & Körper**: Gewicht/Energie/Hydration aus erweiterten Wellness-Feldern, datengetrieben eingeblendet
 - [x] **Plan 2 auf Leistungsaufbau ausgerichtet**: Sa = Sweet-Spot-Ausdauerfahrt (zwei Qualitätstage), Mo/Fr optional
 - [x] ES-Modul-Architektur (core/state/ui), 103 Unit-Tests (`node:test`), CI-Workflow
+- [x] **Fallow Codebase-Intelligence**: Health Score, Circular-Deps-, Duplication- und
+      Dead-Code-Report in CI (non-blocking) + Agent Skill für Claude Code
 - [x] Design-System Konzept 5 (Glas-Kacheln, Zonen-Farbsystem, FTP-Zonen-Band + Fortschrittsring im Hero)
 
 ### ✅ Abgeschlossen — Datenschutz & Infrastruktur

@@ -27,3 +27,36 @@ jobs:
       # ESLint via npx, ohne package im Repo zu installieren
       - name: Lint (ESLint 9, Flat Config)
         run: npx --yes eslint@9 assets/js scripts tests
+
+  # Codebase-Intelligence-Report (Fallow): Health Score, Circular Deps,
+  # Duplication, Dead Code, Complexity Hotspots. Läuft parallel zu "test"
+  # und blockiert NICHTS — reiner Report als Download-Artefakt.
+  # Grund non-blocking: Schwellwerte/Baseline sind noch nicht kalibriert;
+  # erst beobachten, dann ggf. auf "hart blocken" umstellen
+  # (continue-on-error entfernen + --threshold setzen).
+  code-quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # voller Git-Log nötig für Hotspot-/Churn-Analyse
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Fallow Audit (JSON, non-blocking)
+        continue-on-error: true
+        run: npx --yes fallow audit --format json --quiet > fallow-report.json
+
+      - name: Fallow Health Summary (Log)
+        continue-on-error: true
+        run: npx --yes fallow health --score --hotspots --circular-deps
+
+      - name: Fallow-Report hochladen
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fallow-report
+          path: fallow-report.json
+          retention-days: 30

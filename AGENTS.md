@@ -29,6 +29,12 @@ node -c assets/js/<pfad>/<datei>.js
 # Lint + Formatierung (lädt eslint/prettier on-the-fly via npx, nichts wird installiert)
 npm run lint
 npm run format
+
+# Codebase-Intelligence-Report (Fallow): Health Score, Circular Deps, Duplication,
+# Dead Code, Complexity Hotspots — läuft auch automatisch non-blocking in CI
+npx fallow health --score --hotspots --circular-deps
+npx fallow dead-code
+npx fallow dupes
 ```
 
 Lokale `.env` (nicht committen, steht in .gitignore) für `npm run sync`:
@@ -89,6 +95,25 @@ Keine rohen `console.*`-Aufrufe in neuen Dateien.
 **Neues Feld im Datenformat → an DREI Stellen ergänzen:**
 1. `scripts/` (Erzeugung), 2. `core/validate.js` (Schema), 3. `types.js` (JSDoc-Typ).
 Abweichungen werden als Warnung geloggt; fehlende/leere `rides` sind fatal.
+
+## Codebase-Qualität (Fallow)
+
+`npx fallow` analysiert das Repo als System (Dependency-Graph, nicht nur Einzeldateien):
+Health Score, Circular Deps, Duplication, Dead Code, Complexity Hotspots.
+Deterministisch, keine KI im Analyzer.
+
+- **CI**: läuft als eigener Job `code-quality` in `ci.yml`, parallel zu `test` —
+  **non-blocking** (`continue-on-error: true`), da Schwellwerte noch nicht kalibriert
+  sind. Report als Artefakt (`fallow-report.json`, 30 Tage). Wenn sich der Score
+  stabilisiert hat: `continue-on-error` entfernen + `--threshold` setzen für hartes Gate.
+- **Lokal**: `npx fallow health --score` für den schnellen Check, `--hotspots
+  --circular-deps` für Details. Circular Deps ist hier besonders relevant, weil es
+  direkt die Schichtenregel (`ui → state → core`) verletzen kann.
+- **Skill**: unter `.claude/skills/fallow` (repo) und optional global unter
+  `~/.claude/skills/fallow` — erlaubt Anfragen wie "check code health" oder
+  "find circular dependencies" direkt in Claude Code.
+- Baseline-Score (09.07.2026, vor erstem gezielten Cleanup): 79 (B).
+  Größte Deductions: Unit Size (−10.0), Circular Deps (−7.0).
 
 ## Dateistruktur
 
@@ -174,7 +199,11 @@ tests/                → node:test-Suiten für core/* und scripts/lib/* (npm te
 
 .github/workflows/
   sync-data.yml       → Cron alle 6h; Jobs: sync (JSON generieren + committen + Artefakt-Upload) → deploy (Pages, needs: sync)
-  ci.yml              → Push/PR: npm test + ESLint (committet nichts)
+  ci.yml              → Push/PR: npm test + ESLint + Fallow code-quality (committet nichts)
+
+.claude/skills/
+  fallow/             → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
+                        — übersetzt Anfragen wie "check code health" in fallow-Befehle
 ```
 
 ## Athleten
