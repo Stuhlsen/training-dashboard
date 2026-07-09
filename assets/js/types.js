@@ -58,6 +58,7 @@
  * @property {number|null} [bodyFat]         %
  * @property {number|null} [activeEnergy]     aktiv verbrannte kcal (Apple Health)
  * @property {number|null} [restingEnergy]    Grundumsatz-kcal (Apple Health)
+ * @property {number|null} [kcalConsumed]     aufgenommene kcal (Zufuhr)
  * @property {number|null} [hydration]       Hydrations-Score (intervals.icu)
  * @property {number|null} [hydrationVolume] ml
  * @property {number|null} [eftp]            eFTP (Ride) aus Wellness-sportInfo

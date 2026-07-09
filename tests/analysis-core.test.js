@@ -123,10 +123,10 @@ test("wattsPerKg + rideKJ: Grundrechnungen", () => {
   assert.equal(rideKJ({ min: 60 }), null);
 });
 
-test("energyView: Tagesverbrauch = Grundumsatz + aktiv", () => {
+test("energyView: Verbrauch (Grundumsatz+aktiv) und Zufuhr, datengetrieben", () => {
   const wellness = [
-    day("2026-07-01", { restingEnergy: 1750, activeEnergy: 500 }),
-    day("2026-07-02", { restingEnergy: 1750, activeEnergy: 900 }),
+    day("2026-07-01", { restingEnergy: 1750, activeEnergy: 500, kcalConsumed: 2400 }),
+    day("2026-07-02", { restingEnergy: 1750, activeEnergy: 900, kcalConsumed: 2900 }),
     day("2026-07-03", { restingEnergy: 1760, activeEnergy: 400 }),
     day("2026-07-04", { restingEnergy: 1740, activeEnergy: 700 }),
     day("2026-07-05", { restingEnergy: 1750, activeEnergy: 600 }),
@@ -134,9 +134,20 @@ test("energyView: Tagesverbrauch = Grundumsatz + aktiv", () => {
   const e = energyView(wellness);
   assert.ok(e);
   assert.equal(e.n, 5);
-  assert.equal(e.days.find((d) => d.date === "2026-07-02").total, 2650);
-  assert.equal(e.days.find((d) => d.date === "2026-07-01").active, 500);
+  assert.equal(e.hasExpenditure, true);
+  assert.equal(e.hasIntake, true);
+  assert.equal(e.days.find((d) => d.date === "2026-07-02").burned, 2650);
+  assert.equal(e.days.find((d) => d.date === "2026-07-02").intake, 2900);
+  assert.equal(e.days.find((d) => d.date === "2026-07-03").intake, null);
   assert.equal(e.avgResting, 1750);
+
+  // nur Zufuhr getrackt, kein Verbrauch
+  const intakeOnly = [1, 2, 3, 4, 5].map((i) => day(`2026-08-0${i}`, { kcalConsumed: 2500 + i * 50 }));
+  const e2 = energyView(intakeOnly);
+  assert.equal(e2.hasExpenditure, false);
+  assert.equal(e2.hasIntake, true);
+  assert.equal(e2.avgBurned, null);
+
   assert.equal(energyView(wellness.slice(0, 2)), null);
 });
 

@@ -30,6 +30,9 @@ export const WELLNESS_FIELDS = [
   // schreibung tolerant, da intervals.icu die Rohfelder unter dem Code-Namen liefert.
   { out: "activeEnergy", pick: (w) => posNum(w.ActiveEnergy ?? w.activeEnergy) },
   { out: "restingEnergy", pick: (w) => posNum(w.RestingEnergy ?? w.restingEnergy) },
+  // Aufgenommene Kalorien (intervals.icu-Natives Feld, Zufuhr) — parallel zum
+  // Verbrauch, damit Zufuhr-Tracker (z. B. Athlet 2) ihr Chart bekommen.
+  { out: "kcalConsumed", pick: (w) => posNum(w.kcalConsumed) },
   { out: "hydration", pick: (w) => (w.hydration != null ? w.hydration : null) },
   { out: "hydrationVolume", pick: (w) => posNum(w.hydrationVolume ?? w.Water ?? w.water) },
   // eFTP aus sportInfo (Ride) — robusteste Tagesquelle für die FTP-Prognose,

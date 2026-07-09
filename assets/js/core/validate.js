@@ -79,6 +79,7 @@ export const WELLNESS_SCHEMA = {
   bodyFat: "number?",
   activeEnergy: "number?",
   restingEnergy: "number?",
+  kcalConsumed: "number?",
   hydration: "number?",
   hydrationVolume: "number?",
   // eFTP aus Wellness-sportInfo (Tageswert für die FTP-Prognose)

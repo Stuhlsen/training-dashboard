@@ -726,12 +726,17 @@ export const Analysis = {
     if (avail.energy) {
       const e = energyView(Data.wellness);
       if (e) {
+        const parts = [];
+        if (e.hasExpenditure) parts.push(`Verbrauch Ø ${e.avgBurned.toLocaleString("de")} kcal/Tag (Grundumsatz ${e.avgResting} + aktiv ${e.avgActive})`);
+        if (e.hasIntake) parts.push(`Zufuhr Ø ${e.avgIntake.toLocaleString("de")} kcal/Tag`);
+        const headVal = e.hasExpenditure ? e.avgBurned : e.avgIntake;
+        const headUnit = e.hasExpenditure ? "kcal/Tag Ø Verbrauch" : "kcal/Tag Ø Zufuhr";
         cards.push(`
           <div class="aerobic-card">
-            <div class="aerobic-title">Energieverbrauch</div>
-            <div class="aerobic-val">${e.avgTotal.toLocaleString("de")}<span class="aerobic-unit">kcal/Tag Ø</span></div>
-            <div class="aerobic-sub">Grundumsatz ${e.avgResting.toLocaleString("de")} + aktiv ${e.avgActive.toLocaleString("de")} kcal/Tag · ${e.n} Tage</div>
-            <div class="aerobic-sub">Tages-Gesamtverbrauch aus Apple Health (aktiv + Grundumsatz).</div>
+            <div class="aerobic-title">Energie</div>
+            <div class="aerobic-val">${headVal.toLocaleString("de")}<span class="aerobic-unit">${headUnit}</span></div>
+            <div class="aerobic-sub">${parts.join(" · ")} · ${e.n} Tage</div>
+            <div class="aerobic-sub">${e.hasExpenditure && e.hasIntake ? "Zufuhr unter dem Verbrauch = negatives Energiedefizit — bei hoher Last die Regeneration im Blick behalten." : "Aus Apple Health via intervals.icu."}</div>
           </div>`);
       }
     }

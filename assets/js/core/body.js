@@ -51,7 +51,7 @@ function recentValues(wellness, field, todayISO, windowDays) {
 export function availability(wellness, todayISO) {
   const has = (field) => recentValues(wellness, field, todayISO, WINDOW_DAYS).length >= MIN_POINTS;
   const weight = has("weight");
-  const energy = has("activeEnergy") || has("restingEnergy");
+  const energy = has("activeEnergy") || has("restingEnergy") || has("kcalConsumed");
   const hydration = has("hydrationVolume") || has("hydration");
   return { weight, energy, hydration, any: weight || energy || hydration };
 }
@@ -95,25 +95,46 @@ export function wattsPerKg(watts, weightKg) {
 }
 
 /**
- * Energieverbrauch: Grundumsatz (RestingEnergy) + aktiv (ActiveEnergy) je Tag
- * aus Apple Health via intervals.icu. Näherung des Tages-Gesamtverbrauchs.
+ * Energie je Tag: Verbrauch (Grundumsatz RestingEnergy + aktiv ActiveEnergy)
+ * und/oder Zufuhr (kcalConsumed) — je nachdem, was getrackt wird. Quelle
+ * Apple Health / intervals.icu. Bei beidem ergibt sich eine Bilanz-Ansicht.
  * @param {import("../types.js").WellnessDay[]} wellness
- * @returns {null | {days: Array<{date: string, resting: number, active: number, total: number}>, avgTotal: number, avgActive: number, avgResting: number, n: number}}
+ * @returns {null | {days: Array<{date: string, resting: number, active: number, burned: number, intake: number|null}>, hasExpenditure: boolean, hasIntake: boolean, avgBurned: number|null, avgResting: number|null, avgActive: number|null, avgIntake: number|null, n: number}}
  */
 export function energyView(wellness) {
-  const rows = (wellness || []).filter((w) => w.activeEnergy != null || w.restingEnergy != null);
+  const rows = (wellness || []).filter(
+    (w) => w.activeEnergy != null || w.restingEnergy != null || w.kcalConsumed != null
+  );
   if (rows.length < MIN_POINTS) return null;
 
   const days = rows
     .map((w) => {
       const resting = w.restingEnergy || 0;
       const active = w.activeEnergy || 0;
-      return { date: w.dateISO || w.date, resting, active, total: resting + active };
+      return {
+        date: w.dateISO || w.date,
+        resting,
+        active,
+        burned: resting + active,
+        intake: w.kcalConsumed != null ? w.kcalConsumed : null,
+      };
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const avg = (k) => Math.round(days.reduce((s, d) => s + d[k], 0) / days.length);
-  return { days, avgTotal: avg("total"), avgActive: avg("active"), avgResting: avg("resting"), n: days.length };
+  const avg = (sel) => {
+    const vals = days.map(sel).filter((v) => v != null && v > 0);
+    return vals.length ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null;
+  };
+  return {
+    days,
+    hasExpenditure: days.some((d) => d.burned > 0),
+    hasIntake: days.some((d) => d.intake != null),
+    avgBurned: avg((d) => d.burned),
+    avgResting: avg((d) => d.resting),
+    avgActive: avg((d) => d.active),
+    avgIntake: avg((d) => d.intake),
+    n: days.length,
+  };
 }
 
 /**
