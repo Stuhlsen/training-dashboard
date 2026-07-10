@@ -13,5 +13,10 @@
     "cancelled": true,
     "reason": "Regeneration",
     "savedAt": "2026-07-06T14:50:27.596Z"
+  },
+  "2026-07-09": {
+    "movedTo": "2026-07-07",
+    "reason": "Tausch mit Groupride",
+    "savedAt": "2026-07-09T16:38:51.295Z"
   }
 }
