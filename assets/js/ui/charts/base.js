@@ -118,6 +118,56 @@ export function xLabel(svg, x, y, text) {
   svg.appendChild(t);
 }
 
+/**
+ * Achsentitel (Einheit/Bedeutung) — X unten mittig, Y-Achsen links/rechts
+ * rotiert. Einheitliche Konvention für alle Charts (klein, gedämpfte
+ * Farbe wie die übrigen Achsen-Labels) statt handgestrickt pro Chart.
+ * Nutzt den vorhandenen Rand (pad) — Charts mit sehr knappem pad.b/pad.l/
+ * pad.r sollten das beim Aufruf berücksichtigen.
+ * @param {SVGElement} svg
+ * @param {number} W @param {number} H
+ * @param {{l:number,r:number,t:number,b:number}} pad
+ * @param {{x?:string, yLeft?:string, yRight?:string}} labels
+ */
+export function axisTitles(svg, W, H, pad, { x, yLeft, yRight } = {}) {
+  const midY = pad.t + (H - pad.t - pad.b) / 2;
+  if (x) {
+    const t = svgEl("text", {
+      x: pad.l + (W - pad.l - pad.r) / 2,
+      y: H - 2,
+      "text-anchor": "middle",
+      fill: "#5f6878",
+      "font-size": "9",
+    });
+    t.textContent = x;
+    svg.appendChild(t);
+  }
+  if (yLeft) {
+    const t = svgEl("text", {
+      x: 10,
+      y: midY,
+      "text-anchor": "middle",
+      fill: "#5f6878",
+      "font-size": "9",
+      transform: `rotate(-90, 10, ${midY})`,
+    });
+    t.textContent = yLeft;
+    svg.appendChild(t);
+  }
+  if (yRight) {
+    const t = svgEl("text", {
+      x: W - 8,
+      y: midY,
+      "text-anchor": "middle",
+      fill: "#5f6878",
+      "font-size": "9",
+      transform: `rotate(90, ${W - 8}, ${midY})`,
+    });
+    t.textContent = yRight;
+    svg.appendChild(t);
+  }
+}
+
 /** Horizontales Auto-Scroll für breite Charts: Container scrollbar machen
  *  und ganz nach rechts (neueste Daten) scrollen */
 export function autoScrollRight(svg, W, container) {
@@ -129,4 +179,32 @@ export function autoScrollRight(svg, W, container) {
       scrollContainer.scrollLeft = scrollContainer.scrollWidth;
     });
   }
+}
+
+/* ── Breite scrollbarer Charts (.chart-scroll + .chart-wide) ────
+   Diese Charts setzen ihre SVG-Breite datengetrieben (mehr Datenpunkte
+   → breiter, damit alles Platz hat) mit einem festen Minimum von 780px.
+   Auf breiten Desktop-Karten (bis zu ~1200px) ist das Minimum oft
+   kleiner als die Karte selbst → Lücke rechts, obwohl die Karte laut
+   Design die volle Breite füllen soll (Mobile ist unauffällig, weil
+   dort ohnehin gescrollt wird). #app wird vor jedem Chart-Rendering
+   sichtbar geschaltet (siehe app.js::renderAll) und ist NIE per
+   Tab-Wechsel versteckt — anders als die Chart-Karte selbst, die beim
+   allerersten Rendern noch im unsichtbaren Charts-Tab stecken kann
+   (clientWidth 0). Darum hier über #app schätzen statt den Chart-
+   Container selbst zu messen. */
+const CHART_BOX_PADDING = 36; // .chart-box padding: 18px links + rechts
+
+/**
+ * Verfügbare Kartenbreite für scrollbare Charts (Floor statt fixer 780px),
+ * damit die Karte auf breiten Screens gefüllt wird statt eine Lücke zu
+ * lassen — Mehr-Daten-Fall bleibt unverändert (Math.max mit dem Aufrufer).
+ * @param {number} [fallback] Minimum, falls #app nicht messbar ist
+ * @returns {number}
+ */
+export function cardContentWidth(fallback = 780) {
+  const app = document.getElementById("app");
+  if (!app) return fallback;
+  const w = app.clientWidth - CHART_BOX_PADDING;
+  return w > fallback ? w : fallback;
 }

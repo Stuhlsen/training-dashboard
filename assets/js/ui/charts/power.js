@@ -10,7 +10,14 @@ import { linearTrend } from "../../core/stats.js";
 import { buildCurveData } from "../../core/powercurve.js";
 import { CONFIG } from "../../state/config.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel, autoScrollRight, pickLabelIndices } from "./base.js";
+import {
+  gridLines,
+  xLabel,
+  autoScrollRight,
+  pickLabelIndices,
+  cardContentWidth,
+  axisTitles,
+} from "./base.js";
 
 /** Zeichnet die Trendlinie einer Punktwolke (falls berechenbar) */
 function drawTrendLine(svg, pts, opts = {}) {
@@ -61,6 +68,7 @@ export function renderEfficiency(svgId, rides, trend) {
   const maxV = Math.max(...vals) + 0.1;
 
   gridLines(svg, W, H, pad, maxV, minV);
+  axisTitles(svg, W, H, pad, { x: "Datum", yLeft: "Effizienz (W/bpm)" });
 
   const pts = data.map((d, i) => ({
     x: pad.l + (i / Math.max(data.length - 1, 1)) * cw,
@@ -188,26 +196,7 @@ export function renderScatter(svgId, rides) {
     svg.appendChild(t);
   }
 
-  // Achsen-Labels
-  const xLbl = svgEl("text", {
-    x: W / 2,
-    y: H - 2,
-    "text-anchor": "middle",
-    fill: "#5f6878",
-    "font-size": "10",
-  });
-  xLbl.textContent = "Tempo (km/h)";
-  svg.appendChild(xLbl);
-  const yLbl = svgEl("text", {
-    x: 12,
-    y: H / 2,
-    "text-anchor": "middle",
-    fill: "#5f6878",
-    "font-size": "10",
-    transform: `rotate(-90, 12, ${H / 2})`,
-  });
-  yLbl.textContent = "Ø HF (bpm)";
-  svg.appendChild(yLbl);
+  axisTitles(svg, W, H, pad, { x: "Tempo (km/h)", yLeft: "Ø HF (bpm)" });
 
   // Koordinaten vorberechnen
   const pts = data.map((d) => ({
@@ -252,12 +241,12 @@ export function renderSmallMultiples(rides) {
   const H = 180,
     pad = { l: 50, r: 24, t: 16, b: 36 };
 
-  const render = (svgId, data, field, color, unit, targetLine) => {
+  const render = (svgId, data, field, color, unit, targetLine, yTitle) => {
     const svg = el(svgId);
     if (!svg || !data.length) return;
     svg.innerHTML = "";
 
-    const W = Math.max(780, data.length * PPT + 74);
+    const W = Math.max(cardContentWidth(), data.length * PPT + 74);
     const cw = W - pad.l - pad.r,
       ch = H - pad.t - pad.b;
 
@@ -270,6 +259,7 @@ export function renderSmallMultiples(rides) {
     const maxV = Math.max(...vals) + 2;
 
     gridLines(svg, W, H, pad, maxV, minV);
+    axisTitles(svg, W, H, pad, { x: "Datum", yLeft: yTitle });
 
     // Plan divider + Labels
     const plan2Start = data.findIndex((d) => d.plan === "Plan 2");
@@ -414,7 +404,8 @@ export function renderSmallMultiples(rides) {
     "kmh",
     "#4a7fa8",
     "km/h",
-    null
+    null,
+    "Tempo (km/h)"
   );
   render(
     "chart-sm-hf",
@@ -425,7 +416,8 @@ export function renderSmallMultiples(rides) {
     "hf",
     "#d94f4f",
     "bpm",
-    null
+    null,
+    "Herzfrequenz (bpm)"
   );
   render(
     "chart-sm-kadenz",
@@ -436,7 +428,8 @@ export function renderSmallMultiples(rides) {
     "kad",
     "#c9a84c",
     "RPM",
-    ownPlan ? CONFIG.cadenceTarget : null
+    ownPlan ? CONFIG.cadenceTarget : null,
+    "Kadenz (RPM)"
   );
 }
 
@@ -581,6 +574,7 @@ function drawPowerCurve(unit) {
     t.textContent = fmtAxis(v);
     svg.appendChild(t);
   }
+  axisTitles(svg, W, H, pad, { x: "Zeitintervall", yLeft: isWkg ? "Leistung (W/kg)" : "Leistung (W)" });
 
   // FTP-Linie
   if (ftpVal != null) {

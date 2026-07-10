@@ -8,6 +8,21 @@ import { el } from "./dom.js";
 
 let validTabs = [];
 
+/** Scrollbare Zeitreihen-Charts (ui/charts/base.js::autoScrollRight) ans
+ *  aktuelle Ende (rechts) scrollen. Nötig als Nachzieh-Schritt, weil sie
+ *  oft gerendert werden, während ihr Tab oder ihre Chart-Gruppe noch
+ *  unsichtbar ist (scrollWidth dort 0, das ursprüngliche Auto-Scroll
+ *  beim Rendern greift also nicht) — hier erneut anstoßen, sobald der
+ *  Container tatsächlich sichtbar wird.
+ *  @param {ParentNode} container */
+function scrollChartsToLatest(container) {
+  requestAnimationFrame(() => {
+    container.querySelectorAll(".chart-scroll").forEach((sc) => {
+      sc.scrollLeft = sc.scrollWidth;
+    });
+  });
+}
+
 /** Aktiviert einen Tab (mit Fallback auf den ersten gültigen)
  *  @param {string} tabId */
 export function activateTab(tabId) {
@@ -17,7 +32,10 @@ export function activateTab(tabId) {
     .forEach((b) => b.classList.toggle("active", b.dataset.tab === tabId));
   document.querySelectorAll(".tab-content").forEach((s) => s.classList.add("hidden"));
   const target = el("tab-" + tabId);
-  if (target) target.classList.remove("hidden");
+  if (target) {
+    target.classList.remove("hidden");
+    scrollChartsToLatest(target);
+  }
   history.replaceState(null, "", "#" + tabId);
 }
 
@@ -40,6 +58,9 @@ export function initChartGroupToggles() {
       const isOpen = body.classList.contains("open");
       body.classList.toggle("open");
       if (icon) icon.style.transform = isOpen ? "" : "rotate(180deg)";
+      // Beim Öffnen: enthaltene Charts waren bis eben unsichtbar (display:none)
+      // → ans aktuelle Ende scrollen, jetzt wo eine echte Breite messbar ist.
+      if (!isOpen) scrollChartsToLatest(body);
     });
   });
 }

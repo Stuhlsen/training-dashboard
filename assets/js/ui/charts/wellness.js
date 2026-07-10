@@ -7,7 +7,14 @@ import { fmt, wrapText } from "../../core/format.js";
 import { linearTrend } from "../../core/stats.js";
 import { Data } from "../../state/data.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel, autoScrollRight, pickLabelIndices } from "./base.js";
+import {
+  gridLines,
+  xLabel,
+  autoScrollRight,
+  pickLabelIndices,
+  cardContentWidth,
+  axisTitles,
+} from "./base.js";
 
 /* ── Schlaf — Dauer & Schlaf-HF ──────────────────────────────── */
 export function renderSleep(svgId, wellness, ownPlan = true) {
@@ -30,7 +37,7 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
   svg.innerHTML = "";
 
   const PPT = 18;
-  const W = Math.max(780, data.length * PPT + 100);
+  const W = Math.max(cardContentWidth(), data.length * PPT + 100);
   const H = 200,
     pad = { l: 52, r: 52, t: 16, b: 36 };
   const cw = W - pad.l - pad.r,
@@ -47,6 +54,11 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
   const maxHR = hrVals.length ? Math.ceil(Math.max(...hrVals) + 3) : 80;
 
   gridLines(svg, W, H, pad, maxSleep, 0, 4, true);
+  axisTitles(svg, W, H, pad, {
+    x: "Datum",
+    yLeft: "Schlafdauer (h)",
+    yRight: hrVals.length ? "Schlaf-HF (bpm)" : undefined,
+  });
 
   const bw = Math.min((cw / data.length) * 0.6, 20);
   const gap = cw / data.length;
@@ -213,6 +225,10 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
   const maxV = Math.max(...allVals) + 5;
 
   gridLines(svg, W, H, pad, maxV, minV);
+  axisTitles(svg, W, H, pad, {
+    x: "Datum",
+    yLeft: field === "hrv" ? `HRV (${unit})` : `Ruhepuls (${unit})`,
+  });
 
   const pts = data.map((d, i) => ({
     x: pad.l + (i / Math.max(data.length - 1, 1)) * cw,
@@ -517,7 +533,7 @@ export function renderEnergy(svgId, ev, wt) {
   const svg = el(svgId);
   if (!svg || !ev || !ev.days.length) return;
   svg.innerHTML = "";
-  const W = 780, padL = 50, padR = 16;
+  const W = 780, H = 300, padL = 50, padR = 16;
   const cw = W - padL - padR;
   const hasWeight = !!(wt && wt.points && wt.points.length);
   const eTop = 20, eBase = hasWeight ? 190 : 250, ech = eBase - eTop;
@@ -539,6 +555,7 @@ export function renderEnergy(svgId, ev, wt) {
     svg.appendChild(svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: "rgba(255,255,255,0.06)" }));
     const t = txt(padL - 6, y + 3, "9.5", "#5f6878", "end"); t.textContent = Math.round(v); svg.appendChild(t);
   }
+  axisTitles(svg, W, H, { l: padL, r: padR, t: eTop, b: H - eBase }, { yLeft: "Kalorien (kcal)" });
 
   const tip = (d) => {
     const parts = [];
@@ -612,6 +629,7 @@ export function renderHydration(svgId, hy) {
   const unit = hy.field === "hydrationVolume" ? "L" : "";
   const maxV = Math.max(1, ...hy.points.map((p) => p.value)) * 1.1;
   gridLines(svg, W, H, pad, maxV, 0);
+  axisTitles(svg, W, H, pad, { x: "Datum", yLeft: unit ? `Hydration (${unit})` : "Hydration" });
   const X = (i) => pad.l + (i / Math.max(hy.points.length - 1, 1)) * cw;
   const Y = (v) => pad.t + ch - (v / maxV) * ch;
   const pts = hy.points.map((p, i) => ({ x: X(i), y: Y(p.value) }));
