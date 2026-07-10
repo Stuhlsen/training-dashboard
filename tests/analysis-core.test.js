@@ -15,6 +15,7 @@ import {
   weightTrend,
   wattsPerKg,
   energyView,
+  estimateBMR,
   hydrationSeries,
   rideKJ,
   MIN_POINTS,

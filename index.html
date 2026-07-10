@@ -365,23 +365,13 @@
 
           <div class="chart-box">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">Gewichtsverlauf</span>
-              <span class="chart-note">kg pro Tag · grüne Linie = 7-Tage-Schnitt</span>
+              <span class="chart-title heatmap-title">Energie & Gewicht</span>
+              <span class="chart-note">Verbrauch + Zufuhr (Balken) · Gewicht (Spur unten)</span>
             </div>
-            <div class="chart-scroll">
-              <svg class="chart chart-wide" id="chart-weight" viewBox="0 0 780 200"></svg>
-            </div>
-            <p class="chart-explainer">Körpergewicht aus Apple Health (via intervals.icu). Die grüne Linie glättet über 7 Tage — Tagesschwankungen (Wasser, Ernährung) verschwinden, der echte Trend bleibt. Relevant fürs Leistungsgewicht (W/kg), nicht als Selbstzweck.</p>
+            <svg class="chart" id="chart-energy" viewBox="0 0 780 300"></svg>
+            <p class="chart-explainer">Pro Tag zwei Balken: Verbrauch (Grundumsatz dunkel + aktiv orange) und Zufuhr (blau). Fehlt der Grundumsatz vom Tracker (z. B. Amazfit), wird er aus Größe, Alter und Gewicht geschätzt (Mifflin-St-Jeor), damit Verbrauch und Zufuhr vergleichbar werden. Darunter der Gewichtsverlauf auf eigener kg-Skala — so siehst du, ob sich Defizit- und Überschusstage auf der Waage niederschlagen.</p>
           </div>
 
-          <div class="chart-box">
-            <div class="chart-header">
-              <span class="chart-title heatmap-title">Energie</span>
-              <span class="chart-note">Verbrauch (Balken) · Zufuhr (grüne Linie)</span>
-            </div>
-            <svg class="chart" id="chart-energy" viewBox="0 0 780 210"></svg>
-            <p class="chart-explainer">Energiehaushalt aus Apple Health / intervals.icu — zeigt, was getrackt wird: der Tagesverbrauch als gestapelte Balken (Grundumsatz dunkel + aktiv orange) und die aufgenommenen Kalorien als grüne Linie. Sind beide vorhanden, ergibt sich der Bilanz-Blick (Zufuhr über oder unter Verbrauch). Wird nur die Zufuhr getrackt, erscheint sie als Balken.</p>
-          </div>
 
           <div class="chart-box">
             <div class="chart-header">

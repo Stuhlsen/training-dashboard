@@ -9,7 +9,7 @@
 import { isoWeekKey, monthlyFromRides } from "./core/aggregate.js";
 import { cadenceCoach } from "./core/cadence.js";
 import { weeklyConsistency } from "./core/consistency.js";
-import { weightTrend, energyView, hydrationSeries } from "./core/body.js";
+import { weightTrend, energyView, hydrationSeries, estimateBMR } from "./core/body.js";
 import { efficiencyTrend } from "./core/efficiency.js";
 import { eftpHistory, forecastFtp } from "./core/ftp-forecast.js";
 import { buildLoadGuard } from "./core/loadguard.js";
@@ -329,8 +329,17 @@ async function renderAll(athleteId) {
 
   // Körper: Gewicht/Energie/Hydration (erscheinen nur bei vorhandenen Daten,
   // Sichtbarkeit via ChartVisibility)
-  Charts.renderWeight("chart-weight", weightTrend(Data.wellness));
-  Charts.renderEnergy("chart-energy", energyView(Data.wellness));
+  // Energie + Gewicht (Variante B): Verbrauch/Zufuhr als gruppierte Balken,
+  // Gewichts-Spur darunter. Fehlt der Grundumsatz (z. B. Amazfit), wird er
+  // aus den Körperdaten der Config geschätzt (Mifflin-St-Jeor).
+  const wt = weightTrend(Data.wellness);
+  const ac = CONFIG.athleteConfig(Data.activeAthleteId);
+  let estBMR = null;
+  if (ac && ac.bmr) {
+    const refWeight = (wt && wt.points.length && wt.points[wt.points.length - 1].weight) || ac.bmr.weightKg;
+    estBMR = estimateBMR({ weightKg: refWeight, heightCm: ac.bmr.heightCm, age: ac.bmr.age, sex: ac.bmr.sex });
+  }
+  Charts.renderEnergy("chart-energy", energyView(Data.wellness, estBMR), wt);
   Charts.renderHydration("chart-hydration", hydrationSeries(Data.wellness));
 
   // Übersicht — Konsistenz-Jahreskalender (ersetzt Wochentags-Heatmap)

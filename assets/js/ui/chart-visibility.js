@@ -11,7 +11,7 @@
    ============================================================ */
 
 import { Data } from "../state/data.js";
-import { weightTrend, energyView, hydrationSeries } from "../core/body.js";
+import { energyView, hydrationSeries } from "../core/body.js";
 import { el } from "./dom.js";
 
 /** Verfügbarkeits-Prädikate je Chart-SVG-ID (aktiver Athlet) */
@@ -33,7 +33,6 @@ const AVAILABILITY = {
   "chart-rhf-p1": () => Data.wellness.some((w) => w.restingHR != null),
   "chart-sleep": () => Data.wellness.some((w) => w.sleepHours != null),
   "chart-weather-weekly": () => Data.rides.some((r) => r.weather || r.wetter),
-  "chart-weight": () => weightTrend(Data.wellness) !== null,
   "chart-energy": () => energyView(Data.wellness) !== null,
   "chart-hydration": () => hydrationSeries(Data.wellness) !== null,
 };

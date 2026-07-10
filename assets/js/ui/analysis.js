@@ -20,6 +20,7 @@ import {
   weightTrend,
   wattsPerKg,
   energyView,
+  estimateBMR,
   hydrationSeries,
   MIN_POINTS,
 } from "../core/body.js";
@@ -724,12 +725,20 @@ export const Analysis = {
     }
 
     if (avail.energy) {
-      const e = energyView(Data.wellness);
+      const _ac = CONFIG.athleteConfig(Data.activeAthleteId);
+      let _estBMR = null;
+      if (_ac && _ac.bmr) {
+        const _wt = weightTrend(Data.wellness);
+        const _rw = (_wt && _wt.points.length && _wt.points[_wt.points.length - 1].weight) || _ac.bmr.weightKg;
+        _estBMR = estimateBMR({ weightKg: _rw, heightCm: _ac.bmr.heightCm, age: _ac.bmr.age, sex: _ac.bmr.sex });
+      }
+      const e = energyView(Data.wellness, _estBMR);
       if (e) {
+        const gu = e.restingEstimated ? "Grundumsatz gesch." : "Grundumsatz";
         const parts = [];
         if (e.hasExpenditure) {
           parts.push(e.hasResting
-            ? `Verbrauch Ø ${e.avgBurned.toLocaleString("de")} kcal/Tag (Grundumsatz ${e.avgResting} + aktiv ${e.avgActive})`
+            ? `Verbrauch Ø ${e.avgBurned.toLocaleString("de")} kcal/Tag (${gu} ${e.avgResting} + aktiv ${e.avgActive})`
             : `Aktiv verbrannt Ø ${e.avgActive.toLocaleString("de")} kcal/Tag`);
         }
         if (e.hasIntake) parts.push(`Zufuhr Ø ${e.avgIntake.toLocaleString("de")} kcal/Tag`);

@@ -101,15 +101,20 @@ export function wattsPerKg(watts, weightKg) {
  * @param {import("../types.js").WellnessDay[]} wellness
  * @returns {null | {days: Array<{date: string, resting: number, active: number, burned: number, intake: number|null}>, hasExpenditure: boolean, hasIntake: boolean, avgBurned: number|null, avgResting: number|null, avgActive: number|null, avgIntake: number|null, n: number}}
  */
-export function energyView(wellness) {
+export function energyView(wellness, estBMR = null) {
   const rows = (wellness || []).filter(
     (w) => w.activeEnergy != null || w.restingEnergy != null || w.kcalConsumed != null
   );
   if (rows.length < MIN_POINTS) return null;
 
+  let usedEstimate = false;
   const days = rows
     .map((w) => {
-      const resting = w.restingEnergy || 0;
+      let resting = w.restingEnergy != null ? w.restingEnergy : 0;
+      if (w.restingEnergy == null && estBMR) {
+        resting = estBMR;
+        usedEstimate = true;
+      }
       const active = w.activeEnergy || 0;
       return {
         date: w.dateISO || w.date,
@@ -129,6 +134,7 @@ export function energyView(wellness) {
     days,
     hasExpenditure: days.some((d) => d.burned > 0),
     hasResting: days.some((d) => d.resting > 0),
+    restingEstimated: usedEstimate,
     hasIntake: days.some((d) => d.intake != null),
     avgBurned: avg((d) => d.burned),
     avgResting: avg((d) => d.resting),
@@ -136,6 +142,17 @@ export function energyView(wellness) {
     avgIntake: avg((d) => d.intake),
     n: days.length,
   };
+}
+
+/**
+ * Grundumsatz-Schätzung nach Mifflin-St-Jeor.
+ * @param {{weightKg:number, heightCm:number, age:number, sex?:string}} p
+ * @returns {number|null} kcal/Tag oder null bei fehlenden Angaben
+ */
+export function estimateBMR({ weightKg, heightCm, age, sex }) {
+  if (!weightKg || !heightCm || !age) return null;
+  const s = sex === "f" || sex === "w" ? -161 : 5;
+  return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + s);
 }
 
 /**

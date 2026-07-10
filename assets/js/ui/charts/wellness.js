@@ -510,89 +510,95 @@ function _bodyDateLabels(svg, points, pad, cw, H) {
   });
 }
 
-/** Gewichtsverlauf: Rohpunkte + 7-Tage-Glättung
- *  @param {string} svgId @param {ReturnType<import("../../core/body.js").weightTrend>} wt */
-export function renderWeight(svgId, wt) {
-  const svg = el(svgId);
-  if (!svg || !wt || !wt.points.length) return;
-  svg.innerHTML = "";
-  const W = 780, H = 200, pad = { l: 46, r: 16, t: 24, b: 34 };
-  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
-  const vals = wt.points.map((p) => p.weight);
-  const minV = Math.min(...vals) - 1, maxV = Math.max(...vals) + 1;
-  gridLines(svg, W, H, pad, maxV, minV);
-  const X = (i) => pad.l + (i / Math.max(wt.points.length - 1, 1)) * cw;
-  const Y = (v) => pad.t + ch - ((v - minV) / (maxV - minV || 1)) * ch;
-
-  wt.points.forEach((p, i) => {
-    const c = svgEl("circle", { cx: X(i), cy: Y(p.weight), r: "2.4", fill: "#5f6878" });
-    c.style.cursor = "pointer";
-    c.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${p.date.split("-").reverse().join(".")}</div><div class="tv">${fmt(p.weight)} kg</div>`));
-    c.addEventListener("mouseleave", () => Tooltip.hide());
-    svg.appendChild(c);
-  });
-  const sm = wt.smoothed.map((v, i) => (v == null ? null : `${X(i)},${Y(v)}`)).filter(Boolean);
-  if (sm.length > 1) {
-    svg.appendChild(svgEl("polyline", { fill: "none", stroke: "#4a9a6e", "stroke-width": "2", points: sm.join(" ") }));
-  }
-  _bodyDateLabels(svg, wt.points, pad, cw, H);
-}
-
 /** Energie je Tag: Verbrauch (Grundumsatz + aktiv, gestapelte Balken) und/oder
  *  Zufuhr (Linie, bzw. Balken wenn kein Verbrauch getrackt wird)
  *  @param {string} svgId @param {ReturnType<import("../../core/body.js").energyView>} ev */
-export function renderEnergy(svgId, ev) {
+export function renderEnergy(svgId, ev, wt) {
   const svg = el(svgId);
   if (!svg || !ev || !ev.days.length) return;
   svg.innerHTML = "";
-  const W = 780, H = 210, pad = { l: 52, r: 16, t: 24, b: 34 };
-  const cw = W - pad.l - pad.r, ch = H - pad.t - pad.b;
+  const W = 780, padL = 50, padR = 16;
+  const cw = W - padL - padR;
+  const hasWeight = !!(wt && wt.points && wt.points.length);
+  const eTop = 20, eBase = hasWeight ? 190 : 250, ech = eBase - eTop;
+  const n = ev.days.length, slot = cw / n, bw = Math.min(slot * 0.34, 15);
   const maxV = Math.max(1, ...ev.days.map((d) => Math.max(d.burned, d.intake || 0))) * 1.1;
-  gridLines(svg, W, H, pad, maxV, 0);
-  const n = ev.days.length, slot = cw / n, bw = Math.min(slot * 0.62, 22);
-  const Y = (v) => pad.t + ch - (v / maxV) * ch;
-  const base = H - pad.b;
+  const Y = (v) => eBase - (v / maxV) * ech;
+  const cx = (i) => padL + slot * (i + 0.5);
+  const dateIdx = {};
+  ev.days.forEach((d, i) => (dateIdx[d.date] = i));
+
+  const mono = "var(--font-mono)";
+  const txt = (x, y, s, fill, anchor) => {
+    const t = svgEl("text", { x, y, "font-size": s, fill, "font-family": mono });
+    if (anchor) t.setAttribute("text-anchor", anchor);
+    return t;
+  };
+  for (let k = 0; k <= 4; k++) {
+    const v = (maxV / 4) * k, y = Y(v);
+    svg.appendChild(svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: "rgba(255,255,255,0.06)" }));
+    const t = txt(padL - 6, y + 3, "9.5", "#5f6878", "end"); t.textContent = Math.round(v); svg.appendChild(t);
+  }
+
   const tip = (d) => {
     const parts = [];
-    if (d.burned > 0) {
-      parts.push(d.resting > 0
-        ? `Verbrauch ${d.burned} kcal (Grundumsatz ${d.resting} · aktiv ${d.active})`
-        : `Aktiv verbrannt ${d.active} kcal`);
-    }
+    if (d.burned > 0) parts.push(d.resting > 0
+      ? `Verbrauch ${d.burned} kcal (Grundumsatz ${d.resting}${ev.restingEstimated ? " gesch." : ""} · aktiv ${d.active})`
+      : `Aktiv verbrannt ${d.active} kcal`);
     if (d.intake != null) parts.push(`Zufuhr ${d.intake} kcal`);
     return `<div class="tt">${d.date.split("-").reverse().join(".")}</div><div class="tv">${parts.join(" · ")}</div>`;
   };
 
   ev.days.forEach((d, i) => {
-    const cx = pad.l + slot * (i + 0.5);
-    const bars = [];
-    if (ev.hasExpenditure) {
-      // Verbrauch gestapelt: Grundumsatz (unten) + aktiv (oben)
+    const c = cx(i), ex = c - bw - 1.5, ix = c + 1.5;
+    if (d.burned > 0) {
       const rTop = Y(d.resting), aTop = Y(d.burned);
-      bars.push(svgEl("rect", { x: cx - bw / 2, y: rTop, width: bw, height: Math.max(0, base - rTop), rx: "2", fill: "#3a4a5c" }));
-      bars.push(svgEl("rect", { x: cx - bw / 2, y: aTop, width: bw, height: Math.max(0, rTop - aTop), rx: "2", fill: "#e08a3c" }));
-    } else if (d.intake != null) {
-      // nur Zufuhr getrackt → Zufuhr als Balken
-      const iTop = Y(d.intake);
-      bars.push(svgEl("rect", { x: cx - bw / 2, y: iTop, width: bw, height: Math.max(0, base - iTop), rx: "2", fill: "#4a7fa8", opacity: "0.85" }));
+      if (d.resting > 0) svg.appendChild(svgEl("rect", { x: ex, y: rTop, width: bw, height: Math.max(0, eBase - rTop), rx: "2", fill: "#3a4a5c" }));
+      const orangeFrom = d.resting > 0 ? rTop : eBase;
+      svg.appendChild(svgEl("rect", { x: ex, y: aTop, width: bw, height: Math.max(0, orangeFrom - aTop), rx: "2", fill: "#e08a3c" }));
     }
-    bars.forEach((bar) => {
-      bar.style.cursor = "pointer";
-      bar.addEventListener("mouseenter", (e) => Tooltip.show(e, tip(d)));
-      bar.addEventListener("mouseleave", () => Tooltip.hide());
-      svg.appendChild(bar);
-    });
+    if (d.intake != null) {
+      const iTop = Y(d.intake);
+      svg.appendChild(svgEl("rect", { x: ix, y: iTop, width: bw, height: Math.max(0, eBase - iTop), rx: "2", fill: "#4a7fa8" }));
+    }
+    const hit = svgEl("rect", { x: c - slot / 2, y: eTop, width: slot, height: eBase - eTop, fill: "transparent" });
+    hit.style.cursor = "pointer";
+    hit.addEventListener("mouseenter", (e) => Tooltip.show(e, tip(d)));
+    hit.addEventListener("mouseleave", () => Tooltip.hide());
+    svg.appendChild(hit);
+    if (!hasWeight) {
+      const tl = txt(c, eBase + 16, "9", "#5f6878", "middle"); tl.textContent = d.date.slice(5).replace("-", "."); svg.appendChild(tl);
+    }
   });
 
-  // Zufuhr-Linie zusätzlich, wenn auch Verbrauch da ist (Bilanz-Blick)
-  if (ev.hasExpenditure && ev.hasIntake) {
-    const pts = ev.days
-      .map((d, i) => (d.intake != null ? `${pad.l + slot * (i + 0.5)},${Y(d.intake)}` : null))
-      .filter(Boolean)
-      .join(" ");
-    svg.appendChild(svgEl("polyline", { fill: "none", stroke: "#4a9a6e", "stroke-width": "2", points: pts }));
-  }
-  _bodyDateLabels(svg, ev.days, pad, cw, H);
+  if (!hasWeight) return;
+
+  // ── Gewichts-Spur (eigene kg-Skala, gleiche Datums-Achse) ──
+  const sep = eBase + 18;
+  svg.appendChild(svgEl("line", { x1: padL, y1: sep, x2: W - padR, y2: sep, stroke: "rgba(255,255,255,0.10)" }));
+  const dW = wt.delta30d != null ? `  ·  Δ ${wt.delta30d > 0 ? "+" : ""}${fmt(wt.delta30d)} kg` : "";
+  const lbl = txt(padL, sep + 14, "10", "#5f6878"); lbl.textContent = "Gewicht (kg)" + dW; svg.appendChild(lbl);
+  const wTop = sep + 22, wBot = sep + 66, wch = wBot - wTop;
+  const ws = wt.points.map((p) => p.weight);
+  const wMin = Math.min(...ws) - 0.4, wMax = Math.max(...ws) + 0.4;
+  const wY = (w) => wBot - ((w - wMin) / (wMax - wMin || 1)) * wch;
+  [wMax, wMin].forEach((w) => {
+    const y = wY(w);
+    svg.appendChild(svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: "rgba(255,255,255,0.05)" }));
+    const t = txt(padL - 6, y + 3, "9", "#5f6878", "end"); t.textContent = fmt(w); svg.appendChild(t);
+  });
+  const wp = wt.points.filter((p) => dateIdx[p.date] != null).map((p) => ({ x: cx(dateIdx[p.date]), y: wY(p.weight), p }));
+  if (wp.length > 1) svg.appendChild(svgEl("polyline", { fill: "none", stroke: "#d9b64c", "stroke-width": "2.2", "stroke-linejoin": "round", points: wp.map((q) => `${q.x},${q.y}`).join(" ") }));
+  wp.forEach((q) => {
+    const dot = svgEl("circle", { cx: q.x, cy: q.y, r: "3.2", fill: "#d9b64c", stroke: "#0b0e13", "stroke-width": "1.3" });
+    dot.style.cursor = "pointer";
+    dot.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${q.p.date.split("-").reverse().join(".")}</div><div class="tv">${fmt(q.p.weight)} kg</div>`));
+    dot.addEventListener("mouseleave", () => Tooltip.hide());
+    svg.appendChild(dot);
+  });
+  ev.days.forEach((d, i) => {
+    const tl = txt(cx(i), wBot + 16, "9", "#5f6878", "middle"); tl.textContent = d.date.slice(5).replace("-", "."); svg.appendChild(tl);
+  });
 }
 
 /** Hydration: Fläche + Linie + Ø-Referenz
