@@ -21,7 +21,10 @@ const AVAILABILITY = {
   "chart-trimp": () => Data.rides.some((r) => r.trimp || r.tss),
   "chart-zones": () => Data.rides.some((r) => r.np != null),
   "chart-power-curve": () => !!Data.powerCurves,
-  "chart-ftp-forecast": () => Data.rides.some((r) => r.week), // Plan-2-Retest nur mit eigenem Plan
+  // chart-ftp-forecast: bewusst kein Prädikat — für beide Athleten aus
+  // derselben eFTP-Quelle befüllt (Task: FTP-Projektion). Ohne Historie
+  // zeigt renderFtpForecast selbst einen Empty-State statt die Box zu
+  // verstecken (siehe app.js).
   "chart-efficiency": () =>
     Data.rides.filter((r) => r.watt && r.hf && (r.min || 0) >= 60).length >= 2,
   "chart-scatter": () => Data.rides.some((r) => r.hf && r.kmh),

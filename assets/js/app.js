@@ -11,7 +11,13 @@ import { cadenceCoach } from "./core/cadence.js";
 import { weeklyConsistency } from "./core/consistency.js";
 import { weightTrend, energyView, hydrationSeries, estimateBMR } from "./core/body.js";
 import { efficiencyTrend } from "./core/efficiency.js";
-import { eftpHistory, forecastFtp } from "./core/ftp-forecast.js";
+import {
+  eftpHistory,
+  eftpHistoryFromWellness,
+  mergeEftpHistories,
+  forecastFtp,
+  dateForTarget,
+} from "./core/ftp-forecast.js";
 import { buildLoadGuard } from "./core/loadguard.js";
 import { assessReadiness } from "./core/readiness.js";
 import { recordProgression } from "./core/records.js";
@@ -158,6 +164,36 @@ function updateChartExplainers(ownPlan, ftp) {
   }
 }
 
+/** FTP-Projektion-Titel/Erklärtext: Athlet 1 hat einen festen Retest-Termin
+ *  (W12), Athlet 2 keinen eigenen Plan — dort zeigt targetISO das Datum,
+ *  an dem der eFTP-Trend das Ziel erreichen würde (core/ftp-forecast.js::
+ *  dateForTarget), oder ist null, wenn sich kein Horizont ableiten lässt. */
+function updateFtpForecastText(ownPlan, goal, targetISO) {
+  const set = (id, html) => {
+    const e = el(id);
+    if (e) e.innerHTML = html;
+  };
+  if (ownPlan) {
+    set("title-ftp-forecast", "FTP-Projektion · Retest W12");
+    set(
+      "explainer-ftp-forecast",
+      `Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das ${goal}-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt in W11 aus Frust zu viel nachzulegen.`
+    );
+  } else if (targetISO) {
+    set("title-ftp-forecast", `FTP-Projektion · Ziel ${goal}W`);
+    set(
+      "explainer-ftp-forecast",
+      `Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen — der Fächer zeigt die realistische Spannweite bis zu dem Datum, an dem das ${goal}-W-Ziel beim aktuellen Trend erreichbar wäre. Keine Terminvorgabe wie bei einem Plan-Retest, sondern eine reine Trend-Fortschreibung.`
+    );
+  } else {
+    set("title-ftp-forecast", "FTP-Projektion");
+    set(
+      "explainer-ftp-forecast",
+      `eFTP-Verlauf aus intervals.icu (Ramp-Test-Schätzung). Der aktuelle Trend lässt aktuell kein belastbares Zieldatum${goal ? ` für ${goal} W` : ""} ableiten — sobald genug Datenpunkte in eine klare Richtung zeigen, erscheint hier eine Prognose.`
+    );
+  }
+}
+
 /* ── Wochen/Monats-Toggle für Volumen, TRIMP und Wetter ─────── */
 
 /** Liest oder setzt den Period-Toggle-Status für den aktuellen Athleten */
@@ -174,7 +210,7 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
     {
       toggleId: "toggle-weekly",
       titleId: "title-weekly",
-      chartFn: (data) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick),
+      chartFn: (data, period) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick, period),
       titleWeek: "Wöchentliches Volumen (km)",
       titleMonth: "Monatliches Volumen (km)",
     },
@@ -182,7 +218,7 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
       toggleId: "toggle-trimp",
       titleId: "title-trimp",
       chartFn: (data, period) =>
-        Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard),
+        Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard, period),
       titleWeek: "Belastungswächter · TRIMP, Ramp & Monotonie",
       titleMonth: "Trainingsbelastung TRIMP pro Monat",
     },
@@ -196,9 +232,9 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
             ...r,
             week: r.dateISO ? r.dateISO.slice(0, 7) : r.week || "?",
           }));
-          Charts.renderWeatherWeekly("chart-weather-weekly", ridesWithMonth);
+          Charts.renderWeatherWeekly("chart-weather-weekly", ridesWithMonth, period);
         } else {
-          Charts.renderWeatherWeekly("chart-weather-weekly", Data.rides);
+          Charts.renderWeatherWeekly("chart-weather-weekly", Data.rides, period);
         }
       },
       titleWeek: "Trainingswetter · Temperatur & Wind pro Woche",
@@ -313,12 +349,30 @@ async function renderAll(athleteId) {
     CONFIG.cadenceTarget
   );
 
-  // FTP-Projektion: nur für den eigenen Plan (Ziel + Retest-Termin).
-  // Sichtbarkeit übernimmt ChartVisibility (Prädikat chart-ftp-forecast).
-  if (ownPlan) {
-    const history = eftpHistory(rides);
-    const fc = forecastFtp(history, CONFIG.retestDate);
-    Charts.renderFtpForecast("chart-ftp-forecast", history, fc, CONFIG.ftpGoal, CONFIG.retestDate);
+  // FTP-Projektion: für BEIDE Athleten aus derselben Datenquelle (Ride-eFTP
+  // + Wellness-eFTP gemergt, wie Overview._eftpValue). Athlet 1 hat einen
+  // festen Plan-Retest-Termin, Athlet 2 keinen Plan — dort wird stattdessen
+  // der Ziel-Horizont aus dem aktuellen Trend abgeleitet (dateForTarget).
+  // Ohne verwertbare Historie zeigt die Chart-Funktion selbst den Empty-State.
+  {
+    const ac = CONFIG.athleteConfig(Data.activeAthleteId);
+    const history = mergeEftpHistories(eftpHistory(rides), eftpHistoryFromWellness(Data.wellness));
+    const goal = ownPlan ? CONFIG.ftpGoal : ac?.ftpGoal || null;
+    let targetISO = ownPlan ? CONFIG.retestDate : null;
+    if (!targetISO && goal && history.length >= 3) {
+      const t = dateForTarget(history, goal);
+      if (t?.reached) targetISO = t.date;
+    }
+    const fc = targetISO ? forecastFtp(history, targetISO) : null;
+    updateFtpForecastText(ownPlan, goal, targetISO);
+    Charts.renderFtpForecast(
+      "chart-ftp-forecast",
+      history,
+      fc,
+      goal,
+      targetISO,
+      ownPlan ? "Retest" : "Ziel"
+    );
   }
 
   // Charts — Aerobe Gesundheit

@@ -6,7 +6,14 @@
 import { fmt } from "../../core/format.js";
 import { interpolateCtl, tsbOf } from "../../core/pmc.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel, autoScrollRight, pickLabelIndices } from "./base.js";
+import {
+  gridLines,
+  xLabel,
+  autoScrollRight,
+  pickLabelIndices,
+  cardContentWidth,
+  axisTitles,
+} from "./base.js";
 
 /* ── CTL-Progression mit Interpolation ───────────────────────── */
 export function renderCTL(svgId, rides) {
@@ -102,7 +109,7 @@ export function renderPMC(svgId, rides) {
   svg.innerHTML = "";
 
   const PPT = 18;
-  const W = Math.max(780, data.length * PPT + 100);
+  const W = Math.max(cardContentWidth(), data.length * PPT + 100);
   const H = 250,
     pad = { l: 50, r: 50, t: 20, b: 36 };
   const cw = W - pad.l - pad.r,
@@ -124,6 +131,7 @@ export function renderPMC(svgId, rides) {
   const caY = (v) => pad.t + ch - (v / maxCA) * ch;
 
   gridLines(svg, W, H, pad, Math.round(maxCA), 0);
+  axisTitles(svg, W, H, pad, { x: "Datum", yLeft: "CTL / ATL", yRight: "TSB" });
 
   // Plan divider
   const plan2Start = data.findIndex((d) => d.plan === "Plan 2");
@@ -324,6 +332,7 @@ export function renderDecoupling(svgId, rides) {
   const minV = 0;
 
   gridLines(svg, W, H, pad, maxV, minV);
+  axisTitles(svg, W, H, pad, { x: "Datum", yLeft: "Aerobe Entkopplung (%)" });
 
   // Target line at 5%
   const targetY = pad.t + ch - ((5 - minV) / (maxV - minV)) * ch;
@@ -398,8 +407,13 @@ export function renderDecoupling(svgId, rides) {
   });
 }
 
-/* ── FTP-Projektion: eFTP-Verlauf + Prognose auf den Retest ──── */
-export function renderFtpForecast(svgId, history, fc, goal, retestISO) {
+/* ── FTP-Projektion: eFTP-Verlauf + Prognose auf ein Zieldatum ──
+   Athlet 1: fester Retest-Termin. Athlet 2 (kein Plan/Retest): invertierte
+   Ziel-Horizont-Prognose (core/ftp-forecast.js::dateForTarget) — retestISO
+   ist dann das errechnete Datum, an dem der Trend das Ziel erreicht, oder
+   null, wenn sich kein belastbarer Horizont ableiten lässt (dann nur
+   Verlauf ohne Prognosefächer). */
+export function renderFtpForecast(svgId, history, fc, goal, retestISO, targetLabel = "Retest") {
   const svg = el(svgId);
   if (!svg) return;
   svg.innerHTML = "";
@@ -418,38 +432,54 @@ export function renderFtpForecast(svgId, history, fc, goal, retestISO) {
 
   const W = 780,
     H = 200,
-    pad = { l: 46, r: 60, t: 18, b: 32 };
+    pad = { l: 46, r: 60, t: 18, b: 36 };
   const cw = W - pad.l - pad.r,
     ch = H - pad.t - pad.b;
 
+  // Ohne Zieldatum (Athlet 2 ohne belastbaren Horizont) endet die X-Achse
+  // am letzten Historienpunkt — reine Verlaufsdarstellung ohne Fächer.
   const t0 = new Date(history[0].date).getTime();
-  const tEnd = new Date(retestISO).getTime();
+  const lastISO = history[history.length - 1].date;
+  const tEnd = Math.max(new Date(retestISO || lastISO).getTime(), t0 + 86400000);
   const xOf = (iso) => pad.l + ((new Date(iso).getTime() - t0) / (tEnd - t0)) * cw;
 
   const vals = history.map((h) => h.eftp);
-  const minV = Math.min(...vals, fc ? fc.low : goal) - 4;
-  const maxV = Math.max(...vals, fc ? fc.high : goal, goal) + 4;
+  const lowCandidates = [...vals];
+  const highCandidates = [...vals];
+  if (fc) {
+    lowCandidates.push(fc.low);
+    highCandidates.push(fc.high);
+  }
+  if (goal != null) {
+    lowCandidates.push(goal);
+    highCandidates.push(goal);
+  }
+  const minV = Math.min(...lowCandidates) - 4;
+  const maxV = Math.max(...highCandidates) + 4;
   const yOf = (v) => pad.t + ch - ((v - minV) / (maxV - minV)) * ch;
 
   gridLines(svg, W, H, pad, maxV, minV);
+  axisTitles(svg, W, H, pad, { x: "Datum", yLeft: "eFTP (W)" });
 
-  // Ziel-Linie
-  const gy = yOf(goal);
-  svg.appendChild(
-    svgEl("line", {
-      x1: pad.l,
-      y1: gy,
-      x2: W - pad.r,
-      y2: gy,
-      stroke: "#c9a84c",
-      "stroke-width": "1.2",
-      "stroke-dasharray": "6,3",
-      opacity: "0.8",
-    })
-  );
-  const gl = svgEl("text", { x: W - pad.r + 4, y: gy + 3, fill: "#c9a84c", "font-size": "9" });
-  gl.textContent = `Ziel ${goal}`;
-  svg.appendChild(gl);
+  // Ziel-Linie (nur wenn ein Ziel konfiguriert ist)
+  if (goal != null) {
+    const gy = yOf(goal);
+    svg.appendChild(
+      svgEl("line", {
+        x1: pad.l,
+        y1: gy,
+        x2: W - pad.r,
+        y2: gy,
+        stroke: "#c9a84c",
+        "stroke-width": "1.2",
+        "stroke-dasharray": "6,3",
+        opacity: "0.8",
+      })
+    );
+    const gl = svgEl("text", { x: W - pad.r + 4, y: gy + 3, fill: "#c9a84c", "font-size": "9" });
+    gl.textContent = `Ziel ${goal}`;
+    svg.appendChild(gl);
+  }
 
   // Historie
   const histPts = history.map((h) => ({ x: xOf(h.date), y: yOf(h.eftp), h }));
@@ -484,8 +514,8 @@ export function renderFtpForecast(svgId, history, fc, goal, retestISO) {
     svg.appendChild(c);
   });
 
-  // Projektion mit Unsicherheitsband bis zum Retest
-  if (fc) {
+  // Projektion mit Unsicherheitsband bis zum Zieldatum (nur wenn bekannt)
+  if (fc && retestISO) {
     const last = histPts[histPts.length - 1];
     const xT = xOf(retestISO);
     svg.appendChild(
@@ -525,20 +555,27 @@ export function renderFtpForecast(svgId, history, fc, goal, retestISO) {
     svg.appendChild(band);
   }
 
-  // Retest-Markierung
-  const xr = xOf(retestISO);
-  svg.appendChild(
-    svgEl("line", {
-      x1: xr,
-      y1: pad.t,
-      x2: xr,
-      y2: pad.t + ch,
-      stroke: "#5f6878",
-      "stroke-width": "1",
-      "stroke-dasharray": "2,3",
-    })
-  );
-  xLabel(svg, xr, H - pad.b + 14, "Retest " + retestISO.slice(5).split("-").reverse().join("."));
+  // Ziel-/Retest-Markierung (nur wenn ein Zieldatum bekannt ist)
+  if (retestISO) {
+    const xr = xOf(retestISO);
+    svg.appendChild(
+      svgEl("line", {
+        x1: xr,
+        y1: pad.t,
+        x2: xr,
+        y2: pad.t + ch,
+        stroke: "#5f6878",
+        "stroke-width": "1",
+        "stroke-dasharray": "2,3",
+      })
+    );
+    xLabel(
+      svg,
+      xr,
+      H - pad.b + 14,
+      `${targetLabel} ${retestISO.slice(5).split("-").reverse().join(".")}`
+    );
+  }
   xLabel(
     svg,
     histPts[0].x,
