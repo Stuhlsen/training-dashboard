@@ -125,11 +125,6 @@
         <svg class="chart" id="chart-consistency" viewBox="0 0 820 136"></svg>
         <p class="chart-explainer" id="explainer-consistency">Jede Woche eine Zelle ab der ersten aktiven Woche — Zahl und Grünton zeigen die Trainingstage (0–7). Konsistenz ist der stärkste Prädiktor für Langzeitfortschritt, und aufeinanderfolgende aktive Wochen (Serie) zählen mehr als jede Einzelsession. Lücken bleiben als blasse Zellen sichtbar.</p>
       </div>
-      <h2 class="section-label section-label-prominent">🏆 Meilensteine</h2>
-      <div class="chart-box">
-        <svg class="chart" id="milestones-gantt" viewBox="0 0 780 215"></svg>
-        <p class="chart-explainer">Schlüsselereignisse entlang der Trainingsachse — chronologisch von März bis September 2026. Blau = Plan 1, Orange = Plan 2. Hover für Details.</p>
-      </div>
       <h2 class="section-label section-label-prominent" id="records-heading">🥇 Bestwerte</h2>
       <div class="records-grid" id="records-wall"></div>
       <p class="chart-explainer" style="margin-top:2px">Automatisch erkannte persönliche Bestleistungen — mit Ablöse-Historie: welcher Wert wann übertroffen wurde. Keine erfundenen Abzeichen, nur echte Meilensteine aus den Daten.</p>
@@ -177,6 +172,7 @@
               </div>
             </div>
             <svg class="chart" id="chart-weekly" viewBox="0 0 780 270"></svg>
+            <p class="chart-explainer">Balkenhöhe = gefahrene Kilometer pro Woche, eingefärbt nach Trainingsphase (nur eigener Plan, sonst durchgehend blau). Die gestrichelte grüne Linie markiert das 200-km-Wochenziel mit akzeptablem Korridor als grüne Zone. Klick auf einen Balken öffnet die Woche im Fahrtenbuch.</p>
           </div>
 
           <div class="chart-box">
@@ -234,7 +230,7 @@
 
           <div class="chart-box" id="box-ftp-forecast">
             <div class="chart-header">
-              <span class="chart-title heatmap-title">FTP-Projektion · Retest W12</span>
+              <span class="chart-title heatmap-title" id="title-ftp-forecast">FTP-Projektion · Retest W12</span>
               <span class="chart-note" id="note-ftp-forecast">eFTP-Verlauf (intervals.icu) · Prognose mit Unsicherheitsband</span>
             </div>
             <svg class="chart" id="chart-ftp-forecast" viewBox="0 0 780 200"></svg>
@@ -249,6 +245,7 @@
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sm-tempo" viewBox="0 0 780 180"></svg>
             </div>
+            <p class="chart-explainer">Durchschnittstempo jeder Fahrt in chronologischer Reihenfolge, mit Trendlinie (grün gestrichelt). Ausreißer werden vorab gefiltert, damit einzelne sehr kurze oder sehr lange Fahrten den Trend nicht verzerren.</p>
           </div>
 
           <div class="chart-box">
@@ -260,6 +257,7 @@
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sm-kadenz" viewBox="0 0 780 180"></svg>
             </div>
+            <p class="chart-explainer">Trittfrequenz jeder Fahrt; die gestrichelte Linie zeigt die Zielkadenz (nur eigener Plan). Die Chips darüber fassen den Ø-Wert der letzten Fahrten, den Anteil über dem Ziel und den Schnitt je Fahrttyp zusammen — höhere Kadenz bei gleicher Leistung schont die Gelenke und verlagert die Belastung Richtung Herz-Kreislauf-System.</p>
           </div>
         </div>
       </div>
@@ -317,6 +315,7 @@
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sm-hf" viewBox="0 0 780 180"></svg>
             </div>
+            <p class="chart-explainer">Durchschnittsherzfrequenz jeder Fahrt mit Trendlinie. Sinkt die HF über die Zeit bei ähnlichem Tempo, ist das ein Zeichen verbesserter aerober Fitness (siehe auch Aerobe Effizienz weiter unten).</p>
           </div>
         </div>
       </div>
@@ -360,7 +359,7 @@
               <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> &lt;6h (zu wenig)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#d94f4f; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Schlaf-HF (bpm)</div>
             </div>
-            <p class="chart-explainer">Schlafdauer als Balken (linke Achse): blau ≥7h, gold 6–7h, rot &lt;6h. Schlaf-Herzfrequenz als Linie (rechte Achse, rot) — niedrige Schlaf-HF bei ausreichend Schlaf ist ein gutes Erholungssignal. Goldene Linie = 7h-Ziel.</p>
+            <p class="chart-explainer">Schlafdauer als Balken (linke Achse): blau ≥7h, gold 6–7h, rot &lt;6h. Schlaf-Herzfrequenz als Linie (rechte Achse, rot) — niedrige Schlaf-HF bei ausreichend Schlaf ist ein gutes Erholungssignal. Goldene Linie = 7h-Ziel (nur eigener Plan).</p>
           </div>
 
           <div class="chart-box">
@@ -412,6 +411,7 @@
               <div class="legend-item"><div class="legend-dot" style="background:#c9a84c"></div> Suboptimal (ein erschwerender Faktor)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> Schwierig (Hitze, Sturm oder Regen kombiniert)</div>
               <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8; border-radius:0; height:2px; width:14px; margin-top:6px"></div> Wind (km/h, rechte Achse)</div>
+              <div class="legend-item">🌧 Niederschlag &gt;0,5 mm in der Woche</div>
             </div>
             <p class="chart-explainer">Jeder Balken zeigt die Durchschnittstemperatur der Trainingswoche. Die Farbe bewertet die Gesamtbedingungen: grün = angenehm zum Fahren, gelb = ein Faktor erschwert das Training (z.B. zu kalt oder windig), rot = mehrere Faktoren gleichzeitig oder Extrembedingungen. Die blaue Linie zeigt den Durchschnittswind. 🌧 über einem Balken bedeutet messbarer Niederschlag in dieser Woche.</p>
           </div>

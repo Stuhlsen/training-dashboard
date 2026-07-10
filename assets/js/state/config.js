@@ -81,45 +81,6 @@ export const CONFIG = {
     Erholung: { color: "#6b9fa8", label: "Erholungswoche" },
   },
 
-  /* ── Bekannte Meilensteine ─────────────────────────────────── */
-  manualMilestones: [
-    {
-      icon: "🏁",
-      text: "Erstes Rennen: MyWhoosh Criterium (Pl. 21/23 · Gr. 5/7)",
-      dateISO: "2026-05-12",
-      date: "12.05.2026",
-      week: "W7",
-    },
-    {
-      icon: "💯",
-      text: 'Erster 100km-Ride — "Irgendwie einfach"',
-      dateISO: "2026-06-05",
-      date: "05.06.2026",
-      week: "W10",
-    },
-    {
-      icon: "🎯",
-      text: "FTP Ramp Test: 193W bestätigt",
-      dateISO: "2026-06-12",
-      date: "12.06.2026",
-      week: "W11",
-    },
-    {
-      icon: "🥇",
-      text: "PB: NP 200W · 29,6 km/h Schnitt",
-      dateISO: "2026-06-17",
-      date: "17.06.2026",
-      week: "W12",
-    },
-    {
-      icon: "🏔️",
-      text: "138 km Abschlusstour bei 29°C",
-      dateISO: "2026-06-19",
-      date: "19.06.2026",
-      week: "W12",
-    },
-  ],
-
   /* ── Datenquelle ──────────────────────────────────────────── */
   // Statisches JSON — wird per GitHub Action aus Notion/intervals.icu generiert
   apiEndpoint: "./data/rides.json",
