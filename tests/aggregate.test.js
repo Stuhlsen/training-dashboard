@@ -8,6 +8,7 @@ import {
   weeklyByCalendar,
   weeklyFromPlanWeeks,
   monthlyFromRides,
+  rideWeekKey,
 } from "../assets/js/core/aggregate.js";
 
 test("sum ignoriert null, avg ignoriert null/NaN", () => {
@@ -115,6 +116,25 @@ test("monthlyFromRides aggregiert Wetter und badCount", () => {
   assert.equal(months[0].temp, 27);
   assert.equal(months[0].badCount, 1);
   assert.equal(months[0].avgHF, 145);
+});
+
+test("rideWeekKey: Plan-Woche vor ISO-Fallback, null wenn beides fehlt", () => {
+  assert.equal(rideWeekKey({ week: "W3", dateISO: "2026-07-01" }), "W3");
+  assert.equal(rideWeekKey({ dateISO: "2026-07-01" }), "2026-KW27");
+  assert.equal(rideWeekKey({}), null);
+});
+
+test("rideWeekKey: Athlet-2-ähnliche Fahrten (kein r.week) gruppieren pro echter ISO-Woche statt in einem Sammel-Bucket", () => {
+  // Regression: Trainingswetter-Wochenansicht gruppierte bei Athlet 2 zuvor
+  // alles unter "?", weil r.week bei Vergleichsathleten nie gesetzt ist.
+  const rides = [
+    { dateISO: "2026-07-01" }, // KW27
+    { dateISO: "2026-07-03" }, // KW27
+    { dateISO: "2026-07-08" }, // KW28
+  ];
+  const keys = rides.map(rideWeekKey);
+  assert.deepEqual(keys, ["2026-KW27", "2026-KW27", "2026-KW28"]);
+  assert.equal(new Set(keys).size, 2); // zwei echte Wochen, kein gemeinsamer "?"-Bucket
 });
 
 test("linearTrend: Steigung einer perfekten Geraden, null bei Degeneration", () => {

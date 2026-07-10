@@ -21,6 +21,21 @@ export function isoWeekKey(dateStr) {
   return `${d.getFullYear()}-KW${String(weekNum).padStart(2, "0")}`;
 }
 
+/**
+ * Wochen-Schlüssel einer Fahrt — eigene Plan-Woche wenn vorhanden, sonst
+ * ISO-Kalenderwoche aus dem Datum. Vergleichsathleten (kein eigener Plan)
+ * haben nie r.week gesetzt; Aufrufstellen, die trotzdem direkt nach r.week
+ * gruppieren, sammeln sonst ALLE Fahrten in einem falschen "undefined"-
+ * Bucket (siehe Bug: Trainingswetter-Wochenansicht bei Athlet 2).
+ * @param {import("../types.js").Ride} r
+ * @returns {string|null} null wenn weder Plan-Woche noch Datum vorhanden
+ */
+export function rideWeekKey(r) {
+  if (r.week) return r.week;
+  if (r.dateISO) return isoWeekKey(r.dateISO);
+  return null;
+}
+
 /** Gemeinsames Aggregat für eine Gruppe von Fahrten
  *  @param {string} week @param {import("../types.js").Ride[]} wr
  *  @param {{phase?: string|null, plan?: string}} meta

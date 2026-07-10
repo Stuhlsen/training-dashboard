@@ -8,12 +8,22 @@
 import { fmt } from "../../core/format.js";
 import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js";
 import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
+import { rideWeekKey } from "../../core/aggregate.js";
 import { CONFIG } from "../../state/config.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import { gridLines, xLabel, pickLabelIndices, weekDisplayLabels } from "./base.js";
+import { log } from "../log.js";
+import {
+  gridLines,
+  xLabel,
+  pickLabelIndices,
+  weekDisplayLabels,
+  autoScrollRight,
+  cardContentWidth,
+  axisTitles,
+} from "./base.js";
 
 /* ── Wöchentliches Volumen (Balken) ──────────────────────────── */
-export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
+export function renderWeeklyVolume(svgId, weeklyData, onBarClick, period = "week") {
   const svg = el(svgId);
   if (!svg) return;
   svg.innerHTML = "";
@@ -40,6 +50,7 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
   const denseValues = gap < 22; // Wert-Labels ausdünnen, sobald es eng wird
 
   gridLines(svg, W, H, pad, maxKm);
+  axisTitles(svg, W, H, pad, { x: period === "month" ? "Monat" : "Woche", yLeft: "Distanz (km)" });
 
   // Zielzone nur sinnvoll für den eigenen Trainingsplan
   if (ownPlan) {
@@ -132,7 +143,7 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick) {
 }
 
 /* ── Belastungswächter: TRIMP/TSS-Wochen + Ramp & Monotonie ──── */
-export function renderTrimp(svgId, weeklyData, guard) {
+export function renderTrimp(svgId, weeklyData, guard, period = "week") {
   const svg = el(svgId);
   if (!svg) return;
   svg.innerHTML = "";
@@ -154,6 +165,11 @@ export function renderTrimp(svgId, weeklyData, guard) {
   const gap = cw / weeklyData.length;
 
   gridLines(svg, W, H, pad, maxV);
+  axisTitles(svg, W, H, pad, {
+    x: period === "month" ? "Monat" : "Woche",
+    yLeft: "TRIMP",
+    yRight: hasGuard ? "ΔCTL / Woche" : undefined,
+  });
 
   // Absolute Farbskala basierend auf trainingswissenschaftlichen Grenzwerten
   const trimpColor = (v) => {
@@ -218,11 +234,17 @@ export function renderTrimp(svgId, weeklyData, guard) {
       warn.textContent = "⚠";
       svg.appendChild(warn);
     } else if (bh > 15 && (!denseValues || labelIdx.has(i))) {
+      // Dunkle Outline (paint-order: stroke hinter die Füllung) statt reiner
+      // Flächenfarbe — sonst verschwindet z.B. ein rotes Wert-Label bei
+      // Spitzenwochen im gleichfarbigen Ramp-Linienpunkt darüber/dahinter.
       const vt = svgEl("text", {
         x: x + bw / 2,
-        y: y - 4,
+        y: y - 6,
         "text-anchor": "middle",
         fill: color,
+        stroke: "#0b0e13",
+        "stroke-width": "3",
+        "paint-order": "stroke",
         "font-size": "9",
         "font-weight": "600",
       });
@@ -304,14 +326,6 @@ export function renderTrimp(svgId, weeklyData, guard) {
         t.textContent = (v > 0 ? "+" : "") + Math.round(v);
         svg.appendChild(t);
       });
-      const axisLbl = svgEl("text", {
-        x: W - pad.r + 6,
-        y: pad.t - 4,
-        fill: "#5f6878",
-        "font-size": "8",
-      });
-      axisLbl.textContent = "ΔCTL";
-      svg.appendChild(axisLbl);
     }
   }
 }
@@ -443,6 +457,7 @@ export function renderZoneWeekly(svgId, weeks) {
     t.textContent = `${100 - i * 25}%`;
     svg.appendChild(t);
   }
+  axisTitles(svg, W, H, pad, { x: "Woche", yLeft: "Anteil Trainingszeit (%)" });
 
   // 80%-Richtwert (Seiler): Ziel-Anteil niedriger Intensität
   const targetY = pad.t + ch * (1 - LOW_INTENSITY_TARGET);
@@ -523,7 +538,7 @@ export function renderZoneWeekly(svgId, weeks) {
 }
 
 /* ── Wöchentliche Wetterbedingungen (Temp-Balken + Wind-Linie) ── */
-export function renderWeatherWeekly(svgId, rides) {
+export function renderWeatherWeekly(svgId, rides, period = "week") {
   // Nur Fahrten mit Wetterdaten, nach Woche gruppieren
   const withWeather = rides.filter((r) => r.weather?.temp != null);
   if (!withWeather.length) {
@@ -542,10 +557,16 @@ export function renderWeatherWeekly(svgId, rides) {
     return;
   }
 
-  // Wochenweise aggregieren
+  // Wochenweise aggregieren — Plan-Woche wenn vorhanden, sonst ISO-Kalenderwoche
+  // (core/aggregate.js::rideWeekKey). Fahrten ohne verwertbares Datum werden
+  // übersprungen und geloggt statt in einen falschen Sammel-Bucket zu fallen.
   const weekMap = {};
   for (const r of withWeather) {
-    const wk = r.week || "?";
+    const wk = rideWeekKey(r);
+    if (!wk) {
+      log.warn("Wetter-Chart: Fahrt ohne Woche/Datum übersprungen", r.name || r.dateISO);
+      continue;
+    }
     if (!weekMap[wk]) weekMap[wk] = { week: wk, temps: [], winds: [], precips: [], rides: [] };
     weekMap[wk].temps.push(r.weather.temp);
     weekMap[wk].winds.push(r.weather.windSpeed);
@@ -577,7 +598,7 @@ export function renderWeatherWeekly(svgId, rides) {
   const totalSlots = data.length + GAP_SLOTS;
 
   const PPW = 52;
-  const W = Math.max(780, totalSlots * PPW + 80);
+  const W = Math.max(cardContentWidth(), totalSlots * PPW + 80);
   const H = 240,
     pad = { l: 50, r: 50, t: 20, b: 40 };
   const cw = W - pad.l - pad.r,
@@ -588,7 +609,6 @@ export function renderWeatherWeekly(svgId, rides) {
   svg.innerHTML = "";
   svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
   svg.setAttribute("width", W);
-  svg.style.minWidth = W + "px";
 
   const temps = data.map((d) => d.temp);
   const winds = data.map((d) => d.wind);
@@ -655,6 +675,11 @@ export function renderWeatherWeekly(svgId, rides) {
     lbl.textContent = w + " km/h";
     svg.appendChild(lbl);
   }
+  axisTitles(svg, W, H, pad, {
+    x: period === "month" ? "Monat" : "Woche",
+    yLeft: "Temperatur (°C)",
+    yRight: "Wind (km/h)",
+  });
 
   // 0°C-Linie wenn sichtbar
   if (minT < 0 && maxT > 0) {
@@ -844,5 +869,11 @@ export function renderWeatherWeekly(svgId, rides) {
     });
     lp2.textContent = "Plan 2 →";
     svg.appendChild(lp2);
+  }
+
+  // Auto-scroll ans aktuelle Ende (rechts = neueste Woche)
+  const scrollContainer = svg.parentElement;
+  if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
+    autoScrollRight(svg, W, scrollContainer);
   }
 }
