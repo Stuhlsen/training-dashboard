@@ -1,5 +1,5 @@
 /* ============================================================
-   COMPONENTS.CSS — Hero, Tabs, Cards, Metrics, Milestones
+   COMPONENTS.CSS — Hero, Tabs, Cards, Metrics
    KONZEPT 3 STUFE 2 — Sports-App Styling
    ============================================================ */
 
@@ -112,6 +112,19 @@
 .zoneband .zseg-thr { background: var(--thr); }
 .zoneband .zseg-vo2 { background: var(--vo2); }
 .zoneband .zseg-rest { background: rgba(255, 255, 255, 0.08); }
+.zoneband .band-labels {
+  display: flex;
+  margin-top: 3px;
+}
+.zoneband .band-labels span {
+  text-align: center;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.02em;
+  color: var(--dim2);
+}
 .zoneband .pin {
   position: absolute;
   top: -7px;
@@ -124,7 +137,10 @@
 .zoneband .pin::after {
   content: attr(data-l);
   position: absolute;
-  top: calc(26px + var(--row, 0) * 15px);
+  /* +15px Basisabstand für die Zonen-Beschriftungszeile unter dem Band
+     (siehe .band-labels) — sonst würden Pin-Label und Zonen-Kürzel
+     kollidieren. Muss zum JS-scaleGap (ui/overview.js) passen. */
+  top: calc(41px + var(--row, 0) * 15px);
   left: 50%;
   transform: translateX(-50%);
   font-family: var(--font-mono);
@@ -137,7 +153,7 @@
   content: '';
   position: absolute;
   left: 50%;
-  top: 23px;
+  top: 38px;
   width: 1px;
   height: calc(var(--row, 0) * 15px + 3px);
   background: var(--border-light);
@@ -606,6 +622,7 @@
   .hero-layout { grid-template-columns: 1fr; }
   .hero-ring { order: -1; }
   .zoneband .pin::after { font-size: 0.58rem; }
+  .zoneband .band-labels span { font-size: 0.54rem; }
 }
 
 /* ── Übersicht-Panels: Tagesform, Wochenrückblick (K5-Kacheln) ── */

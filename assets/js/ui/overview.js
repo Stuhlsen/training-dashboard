@@ -16,6 +16,11 @@ import { Data } from "../state/data.js";
 import { el, svgEl, Tooltip } from "./dom.js";
 import { Planned } from "./planned.js";
 
+/* Kurzcodes für die Zonen-Segment-Beschriftung im Hero-Band — dieselbe
+   Nomenklatur wie Phasen/Farbsystem (AGENTS.md → Design). "rest" (anaerobe
+   Reserve oberhalb VO2max) hat keine eigene Zone und bleibt unbeschriftet. */
+const ZONE_LABELS = { z1: "Z1", z2: "Z2", ss: "SS", thr: "SCHW", vo2: "VO2" };
+
 export const Overview = {
   render(rides) {
     const ownPlan = rides.some((r) => r.week);
@@ -110,22 +115,39 @@ export const Overview = {
       return;
     }
 
-    const segments = zoneSegments(ftpVal, scaleMax)
+    const zoneSegs = zoneSegments(ftpVal, scaleMax);
+    const segments = zoneSegs
       .map((s) => `<span class="zseg-${s.cls}" style="width:${s.pct.toFixed(2)}%"></span>`)
       .join("");
+    // Zonen-Beschriftung unter den Farbsegmenten — nur wenn ein Segment breit
+    // genug ist (≥6% der Skala), sonst überlappen die Kürzel auf schmalen
+    // Bändern (z.B. Schwelle bei niedriger FTP). "rest" (anaerobe Reserve
+    // über VO2max) bleibt unbeschriftet, dafür gibt es keine feste Zonen-
+    // Nomenklatur in der App.
+    const segLabels = zoneSegs
+      .map(
+        (s) =>
+          `<span style="width:${s.pct.toFixed(2)}%">${s.pct >= 6 && ZONE_LABELS[s.cls] ? ZONE_LABELS[s.cls] : ""}</span>`
+      )
+      .join("");
 
-    // Pins: FTP immer; eFTP + Saisonziel nur für den eigenen Plan
+    // Pins: FTP immer. eFTP + Ziel für BEIDE Athleten — eFTP nur wenn eine
+    // Datenquelle vorhanden ist (Athlet 2 sonst kommentarlos ohne eFTP-Pin,
+    // kein Layout-Bruch). Ziel kommt aus dem Plan (Athlet 1) bzw. der Athleten-
+    // Config (Athlet 2, ftpGoal 300W).
+    const goalVal = ownPlan ? CONFIG.ftpGoal : CONFIG.athleteConfig(Data.activeAthleteId)?.ftpGoal;
     const pins = [{ w: ftpVal, l: `FTP ${ftpVal}`, goal: false }];
-    if (ownPlan) {
-      if (eftpVal && eftpVal !== ftpVal)
-        pins.push({ w: eftpVal, l: `eFTP ${eftpVal}`, goal: false });
-      if (CONFIG.ftpGoal) pins.push({ w: CONFIG.ftpGoal, l: `Ziel ${CONFIG.ftpGoal}`, goal: true });
-    }
+    if (eftpVal && eftpVal !== ftpVal) pins.push({ w: eftpVal, l: `eFTP ${eftpVal}`, goal: false });
+    if (goalVal) pins.push({ w: goalVal, l: `Ziel ${goalVal}`, goal: true });
 
     // Kollisionsvermeidung: FTP/eFTP/Ziel liegen dicht beieinander, deshalb
     // stapeln sich zu nah stehende Labels vertikal (Zeile 0/1/2) statt zu
-    // überlappen. MIN_GAP ≈ Labelbreite in % der Skala.
-    const MIN_GAP = 13;
+    // überlappen. MIN_GAP ≈ Labelbreite in % der Skala — bewusst etwas
+    // großzügiger als die reine Zeichenbreite (16 statt 13), weil sonst
+    // exakte Prozent-Übereinstimmungen (z.B. Athlet 2: eFTP 261/300 W =
+    // genau 13% Abstand zu Ziel 300 W) durch die Bindestrich-Regel "< "
+    // in dieselbe Zeile rutschen und auf schmalen Mobile-Karten kollidieren.
+    const MIN_GAP = 16;
     const placed = pins
       .map((p) => ({ ...p, pct: pinPercent(p.w, scaleMax) }))
       .filter((p) => p.pct != null)
@@ -147,10 +169,13 @@ export const Overview = {
       .join("");
 
     const mid = Math.round(scaleMax / 2);
-    const scaleGap = Math.max(32, 24 + maxRow * 15); // Platz für gestapelte Labels
+    // Platz für gestapelte Pin-Labels — Basiswerte müssen zum CSS-Offset in
+    // .pin::after passen (+15px für die Zonen-Beschriftungszeile darüber).
+    const scaleGap = Math.max(47, 39 + maxRow * 15);
     wrap.innerHTML = `
       <div class="zlabel">Leistungsskala · Watt @ FTP-Zonen</div>
       <div class="band">${segments}${pinHtml}</div>
+      <div class="band-labels">${segLabels}</div>
       <div class="band-scale" style="margin-top:${scaleGap}px"><span>0 W</span><span>${mid} W</span><span>${scaleMax} W</span></div>`;
   },
 
