@@ -10051,31 +10051,31 @@
   },
   "forecast": {
     "2026-07-13": {
-      "temp": 25.2,
+      "temp": 25.3,
       "tempFeel": 26.1,
       "humidity": 53,
-      "windSpeed": 7.6,
+      "windSpeed": 7.9,
       "windDir": 75,
       "precipProb": 0,
       "weatherCode": 2,
       "uvMax": 6.7
     },
     "2026-07-14": {
-      "temp": 25.3,
-      "tempFeel": 26.1,
+      "temp": 24.9,
+      "tempFeel": 25.5,
       "humidity": 58,
-      "windSpeed": 11.4,
-      "windDir": 48,
+      "windSpeed": 10.9,
+      "windDir": 68,
       "precipProb": 54,
-      "weatherCode": 3,
+      "weatherCode": 95,
       "uvMax": 6.7
     },
     "2026-07-15": {
-      "temp": 24.4,
-      "tempFeel": 24.2,
-      "humidity": 43,
+      "temp": 24.7,
+      "tempFeel": 24.4,
+      "humidity": 42,
       "windSpeed": 7.8,
-      "windDir": 46,
+      "windDir": 69,
       "precipProb": 18,
       "weatherCode": 2,
       "uvMax": 6.7
@@ -10215,7 +10215,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-13T16:24:01.531Z",
+  "updated": "2026-07-13T16:33:40.567Z",
   "source": "notion+intervals",
   "count": 69
 }
