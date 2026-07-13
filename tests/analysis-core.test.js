@@ -77,6 +77,28 @@ test("buildBriefing: ohne Readiness degradiert (degraded-Flag), caution → yell
   assert.equal(b.level, "yellow");
 });
 
+test("buildBriefing: gute Tagesform + negatives TSB kippt von grün auf gelb", () => {
+  const b = buildBriefing({ readiness: { level: "green" }, tsb: -15, loadRisk: "ok" });
+  assert.equal(b.level, "yellow");
+  assert.equal(b.degraded, false);
+});
+
+test("buildBriefing: gute Tagesform + gesundes TSB → grün, konsistent", () => {
+  const b = buildBriefing({ readiness: { level: "green" }, tsb: 8, loadRisk: "ok" });
+  assert.equal(b.level, "green");
+});
+
+test("buildBriefing: schlechte Tagesform + gutes TSB → Konfliktfall bleibt rot (Erholung vor Belastung)", () => {
+  const b = buildBriefing({ readiness: { level: "red" }, tsb: 15, loadRisk: "ok" });
+  assert.equal(b.level, "red");
+});
+
+test("buildBriefing: ohne geplante Einheit bleibt die Empfehlung generisch", () => {
+  const b = buildBriefing({ readiness: { level: "green" }, tsb: 2, loadRisk: "ok" });
+  assert.equal(b.level, "green");
+  assert.doesNotMatch(b.recommendation, /Nächste Einheit/);
+});
+
 /* ── Body / Regeneration ────────────────────────────────────── */
 
 const day = (date, extra) => ({ date, dateISO: date, ...extra });
