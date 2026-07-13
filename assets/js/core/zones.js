@@ -262,6 +262,33 @@ export function scaleMaxWatts(ftp) {
   return zones.length ? zones[zones.length - 1].bisW : 0;
 }
 
+/** Fester Watt-Puffer für whatIfScaleMax() — siehe dort. */
+export const WHATIF_SCALE_HEADROOM_W = 80;
+
+/**
+ * Referenzskala für die INTERAKTIVE Leistungsskala im Hero-Header (What-if-
+ * Slider). NICHT dasselbe wie scaleMaxWatts(ftp): eine reine Multiplikation
+ * (scaleMax = 1.2×ftp) würde bedeuten, dass Zonengrenzen UND Skalenmaximum
+ * exakt proportional zum selben ftp wachsen — der Skalierungsfaktor kürzt
+ * sich dann für JEDEN Watt-Wert (Zonenbreiten-Anteile, aber auch der
+ * Ziel-Marker selbst, da Ziel === ftp) exakt heraus, wodurch sie bei jedem
+ * Ziel-FTP identisch aussehen, obwohl sich der Slider bewegt (Regression:
+ * siehe tests/zones-coggan.test.js). Ein fester additiver Watt-Puffer
+ * (WHATIF_SCALE_HEADROOM_W) durchbricht diese exakte Selbstkürzung, sodass
+ * Zonenbreiten UND alle Watt-Marker (FTP/eFTP/Ziel) sich beim Verschieben
+ * des Sliders sichtbar verändern. Der äußere Skala-CONTAINER ist davon
+ * unabhängig — dessen Pixelbreite kommt ausschließlich aus dem Layout
+ * (ui/overview.js setzt nie eine Container-Breite, nur %-Breiten der
+ * Kind-Elemente relativ zu diesem Rückgabewert).
+ * @param {number} ftp
+ * @param {number} [headroomWatts]
+ * @returns {number}
+ */
+export function whatIfScaleMax(ftp, headroomWatts = WHATIF_SCALE_HEADROOM_W) {
+  const base = scaleMaxWatts(ftp);
+  return base ? base + headroomWatts : 0;
+}
+
 /**
  * Zeit-in-Zone (Sekunden) über alle Rides der letzten 7 Tage
  * (inkl. todayISO), für die Hover-Tooltips der Leistungsskala. Nutzt

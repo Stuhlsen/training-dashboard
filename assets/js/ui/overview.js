@@ -12,7 +12,7 @@ import {
   estimateSessionTSS,
   buildMilestones,
 } from "../core/ftp-progress.js";
-import { computeZones, sweetSpotBand, scaleMaxWatts, last7DayZoneTimes } from "../core/zones.js";
+import { computeZones, sweetSpotBand, whatIfScaleMax, last7DayZoneTimes } from "../core/zones.js";
 import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../core/ftp-forecast.js";
 import { avg, maxVal, sum } from "../core/stats.js";
 import { CONFIG } from "../state/config.js";
@@ -20,21 +20,19 @@ import { Data } from "../state/data.js";
 import { el } from "./dom.js";
 import { Planned } from "./planned.js";
 
-/* Obergrenze des What-if-Sliders (Ziel-FTP) — siehe _bindWhatIf(). Auch die
- * Referenzskala der Zonenband-Breiten (WHATIF_SCALE_MAX) hängt fest daran,
- * siehe Kommentar dort für die Begründung (Regression-Test in
- * tests/zones-coggan.test.js pinnt genau dieses Verhalten fest). */
+/* Obergrenze des What-if-Sliders (Ziel-FTP) — siehe _bindWhatIf(). Die
+ * Referenzskala der Zonenband-Breiten kommt aus core/zones.js::whatIfScaleMax
+ * (Skalenmax + fester Watt-Puffer) — NICHT aus einer reinen Multiplikation
+ * mit whatIfFtp (self-relative) und NICHT aus einer komplett fixen Konstante:
+ * beide Extreme frieren jeweils einen Teil der Anzeige ein (Zonenbreiten
+ * bzw. Ziel-Marker bei self-relative; FTP-/eFTP-Marker bei komplett fix) —
+ * siehe die ausführliche Begründung + Regressionstests in
+ * core/zones.js::whatIfScaleMax und tests/zones-coggan.test.js. Der äußere
+ * Skala-CONTAINER selbst bekommt HIER NIRGENDS eine Breite gesetzt — nur
+ * die Kind-Elemente (Segmente/Overlay/Pins) per %-Breite relativ zu diesem
+ * Skalenwert; die Container-Pixelbreite kommt ausschließlich aus dem CSS-
+ * Layout (.zoneband/.band in components.css) und bleibt beim Slidern fix. */
 const WHATIF_MAX_FTP = 430;
-// Feste Referenzskala für die Zonenband-Breiten — NICHT bei jedem Slider-Tick
-// aus scaleMaxWatts(whatIfFtp) neu berechnen: Zonen-Grenzen UND Skalenmax
-// skalieren sonst mit demselben Faktor (whatIfFtp), wodurch sich die
-// Breiten-ANTEILE exakt herauskürzen und für jeden FTP-Wert identisch
-// aussehen — der Slider bewegt dann zwar Pins/Zahlen, aber die farbigen
-// Balken selbst bleiben optisch eingefroren (der ursprünglich gemeldete Bug).
-// Mit einer FESTEN Skala (= Z5-Ende beim Slider-Maximum) wachsen/schrumpfen
-// die Balken sichtbar mit whatIfFtp, und da whatIfFtp nie über
-// WHATIF_MAX_FTP hinausgeht, kann Zone 5 die Skala nie überlaufen.
-const WHATIF_SCALE_MAX = scaleMaxWatts(WHATIF_MAX_FTP);
 
 export const Overview = {
   /** Zwischenspeicher für den What-if-Slider (ftpVal/eftpVal/7-Tage-Zeiten
@@ -177,9 +175,10 @@ export const Overview = {
 
     const zones = computeZones(whatIfFtp);
     const ss = sweetSpotBand(whatIfFtp);
-    // Feste Referenzskala (siehe WHATIF_SCALE_MAX weiter oben) — NICHT aus
-    // whatIfFtp neu berechnen, sonst frieren die Balkenbreiten optisch ein.
-    const scaleMax = WHATIF_SCALE_MAX;
+    // core/zones.js::whatIfScaleMax (Skalenmax + Watt-Puffer) — siehe
+    // ausführlichen Kommentar oben, warum weder eine reine Multiplikation
+    // von whatIfFtp noch eine komplett fixe Konstante hier richtig wäre.
+    const scaleMax = whatIfScaleMax(whatIfFtp);
     if (!zones.length) {
       wrap.innerHTML = "";
       return;
@@ -246,8 +245,8 @@ export const Overview = {
       .join("");
 
     // Z6+-Andeutung sitzt direkt hinter dem tatsächlichen Zone-5-Ende (nicht
-    // mehr am rechten Bandrand fixiert) — bei fester Skala liegt dieses Ende
-    // nicht mehr zwingend bei 100%, siehe WHATIF_SCALE_MAX oben.
+    // am rechten Bandrand fixiert) — durch den Watt-Puffer in whatIfScaleMax
+    // liegt dieses Ende nie exakt bei 100% (siehe Import-Kommentar oben).
     const z5EndPct = pinPercent(zones[zones.length - 1].bisW, scaleMax);
     const z6Edge = z5EndPct != null ? `<div class="z6-edge" style="left:${z5EndPct.toFixed(2)}%"></div>` : "";
 
@@ -303,7 +302,7 @@ export const Overview = {
     }
 
     const min = Math.max(50, Math.round(base - 20));
-    const max = 430;
+    const max = WHATIF_MAX_FTP;
     const start = Math.min(max, Math.max(min, ac?.ftpGoal || base));
 
     wrap.innerHTML = `

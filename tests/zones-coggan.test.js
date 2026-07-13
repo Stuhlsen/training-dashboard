@@ -10,6 +10,7 @@ import {
   sweetSpotBand,
   scaleMaxWatts,
   last7DayZoneTimes,
+  whatIfScaleMax,
 } from "../assets/js/core/zones.js";
 
 test("computeZones(193): fünf Zonen mit korrekten, gerundeten Watt-Grenzen", () => {
@@ -128,35 +129,55 @@ test("last7DayZoneTimes: Index ≥4 wird zu Z5+ zusammengefasst", () => {
   assert.equal(secs[4], 175);
 });
 
-/* Regression: What-if-Slider-Bug — die Hero-Leistungsskala (ui/overview.js)
- * rendert Zonenbreiten als (bisW - vonW) / scaleMax. Wird scaleMax bei JEDEM
- * Slider-Tick erneut aus scaleMaxWatts(whatIfFtp) berechnet (self-relative),
- * sind die Breiten-Anteile für JEDEN FTP-Wert IDENTISCH (Zone-Grenzen UND
- * Skalenmax skalieren mit demselben Faktor, kürzt sich exakt heraus) — der
- * Slider bewegt dann zwar Pins/Zahlen, aber die farbigen Balken bleiben
- * optisch "eingefroren". Der Fix in ui/overview.js hält scaleMax fest auf
- * scaleMaxWatts(WHATIF_MAX_FTP) (430, dem Slider-Obergrenze), sodass die
- * Breiten mit whatIfFtp echt variieren. Dieser Test pinnt genau das fest. */
-test("Regression: Zonenbreiten relativ zu FESTER Skala unterscheiden sich für unterschiedliche Ziel-FTP (What-if-Slider muss die Balken sichtbar verändern)", () => {
-  const WHATIF_MAX_FTP = 430; // muss zum Slider-max in ui/overview.js passen
-  const fixedScale = scaleMaxWatts(WHATIF_MAX_FTP);
-  const relWidths = (ftp) => computeZones(ftp).map((z) => (z.bisW - z.vonW) / fixedScale);
+/* Regressionen rund um den What-if-Slider (drei Runden Bugreports):
+ * (1) Self-relative scaleMax (= reine Multiplikation aus ftp) macht die
+ *     Zonenbreiten-ANTEILE für jeden FTP-Wert identisch (Faktor kürzt sich
+ *     algebraisch heraus) UND friert den Ziel-Marker ein (Ziel === ftp,
+ *     gleicher Kürzungseffekt) — Balken UND Ziel-Marker "hängen" fest.
+ * (2) Eine rein FIXE Skala (unabhängig von ftp) löst (1), friert aber
+ *     FTP-/eFTP-Marker ein (fixe Watt-Werte / fixe Skala = fixer Prozentsatz).
+ * whatIfScaleMax() (Skalenmax + fester Watt-Puffer) löst beide Probleme
+ * gleichzeitig: Zonenbreiten, Ziel-Marker UND FTP/eFTP-Marker bewegen sich
+ * alle sichtbar mit dem Ziel-FTP. Die Container-Breite selbst ist davon
+ * unberührt, da core/ nur Prozentwerte liefert — die Pixelbreite des
+ * äußeren Skala-Containers setzt ui/overview.js nie per JS (manuell im
+ * Browser verifiziert, nicht separat unit-testbar ohne DOM). */
+test("whatIfScaleMax: KEINE reine Multiplikation von ftp (Puffer bricht die Selbstkürzung)", () => {
+  // Bei purer Multiplikation (scaleMaxWatts(ftp) = 1.2×ftp) wäre
+  // whatIfScaleMax(ftp)/ftp für jeden ftp identisch — mit Puffer nicht.
+  const ratio = (ftp) => whatIfScaleMax(ftp) / ftp;
+  assert.notEqual(ratio(210).toFixed(4), ratio(430).toFixed(4));
+});
 
+test("whatIfScaleMax: Zonenbreiten-Anteile unterscheiden sich sichtbar für unterschiedliche Ziel-FTP", () => {
+  const relWidths = (ftp) => computeZones(ftp).map((z) => (z.bisW - z.vonW) / whatIfScaleMax(ftp));
   const at210 = relWidths(210);
-  const at430 = relWidths(WHATIF_MAX_FTP);
+  const at430 = relWidths(430);
   assert.notDeepEqual(at210, at430);
-  // Z1 füllt bei 210W nur ~22% der festen Skala, bei 430W ~46% — deutlich sichtbarer Unterschied
-  assert.ok(at430[0] - at210[0] > 0.15);
+  assert.ok(Math.abs(at430[0] - at210[0]) > 0.03); // Z1: deutlich mehr als Rundungsrauschen
+});
 
-  // Gegenprobe: die alte (fehlerhafte) self-relative Rechnung liefert für
-  // jeden FTP praktisch dieselben Anteile (Rundungsrauschen < 0.5 Prozentpunkte)
-  const relWidthsSelfRelative = (ftp) => computeZones(ftp).map((z) => (z.bisW - z.vonW) / scaleMaxWatts(ftp));
-  const selfAt210 = relWidthsSelfRelative(210);
-  const selfAt430 = relWidthsSelfRelative(WHATIF_MAX_FTP);
-  for (let i = 0; i < selfAt210.length; i++) {
-    assert.ok(Math.abs(selfAt210[i] - selfAt430[i]) < 0.005);
-  }
+test("whatIfScaleMax: Ziel-Marker (Wert === ftp selbst) bewegt sich sichtbar mit dem Slider", () => {
+  const zielPct = (ftp) => (ftp / whatIfScaleMax(ftp)) * 100;
+  assert.ok(Math.abs(zielPct(430) - zielPct(210)) > 5); // Prozentpunkte
+});
 
-  // Am Slider-Maximum füllt Zone 5 exakt die feste Skala aus (kein Überlauf möglich)
-  assert.equal(computeZones(WHATIF_MAX_FTP)[4].bisW, fixedScale);
+test("whatIfScaleMax: FTP-/eFTP-Marker (feste Watt-Werte) bewegen sich sichtbar, wenn NUR der Ziel-FTP (Slider) sich ändert", () => {
+  const FIXED_FTP = 193; // reale, unveränderliche Athleten-FTP — nicht der Slider-Wert
+  const pinPctAt = (targetFtp) => (FIXED_FTP / whatIfScaleMax(targetFtp)) * 100;
+  const at210 = pinPctAt(210);
+  const at430 = pinPctAt(430);
+  assert.ok(Math.abs(at430 - at210) > 5); // Prozentpunkte — sichtbare Verschiebung, nicht eingefroren
+
+  // Gegenprobe: unter reinem scaleMaxWatts (self-relative, ohne Puffer) wäre
+  // die Verschiebung zwar vorhanden, aber der Ziel-Marker gleichzeitig fast
+  // eingefroren (< 1 Prozentpunkt) — genau das Problem, das whatIfScaleMax löst.
+  const zielPctSelfRelative = (ftp) => (ftp / scaleMaxWatts(ftp)) * 100;
+  assert.ok(Math.abs(zielPctSelfRelative(430) - zielPctSelfRelative(210)) < 1);
+});
+
+test("whatIfScaleMax: wächst monoton mit ftp, 0 bei ungültigem ftp", () => {
+  assert.ok(whatIfScaleMax(300) > whatIfScaleMax(210));
+  assert.equal(whatIfScaleMax(0), 0);
+  assert.equal(whatIfScaleMax(null), 0);
 });
