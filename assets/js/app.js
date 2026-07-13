@@ -18,6 +18,8 @@ import {
   forecastFtp,
   dateForTarget,
 } from "./core/ftp-forecast.js";
+import { buildBriefing } from "./core/briefing.js";
+import { nextPlannedSession } from "./core/ftp-progress.js";
 import { buildLoadGuard } from "./core/loadguard.js";
 import { assessReadiness } from "./core/readiness.js";
 import { recordProgression } from "./core/records.js";
@@ -326,6 +328,7 @@ async function renderAll(athleteId) {
   const weekSortFn = ownPlan
     ? (a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b)
     : (a, b) => a.localeCompare(b);
+  const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn);
 
   togglePlanningTabVisibility(ownPlan);
   updateChartExplainers(ownPlan, ftp);
@@ -333,8 +336,19 @@ async function renderAll(athleteId) {
   // Overview
   Overview.render(rides);
 
-  // Panels: Tagesform (7d vs. 42d-Baseline) + Wochenrückblick + Bestwerte
-  renderReadiness("readiness-panel", assessReadiness(Data.wellness, todayISO));
+  // Panels: Tagesform (7d vs. 42d-Baseline) + Wochenrückblick + Bestwerte.
+  // Das Status-Briefing (gleiche Berechnung wie Analysis::_renderBriefing)
+  // wird hier mitgebaut, damit die Tagesform-Karte darauf verlinken kann.
+  const readiness = assessReadiness(Data.wellness, todayISO);
+  const tsb = rides.filter((r) => r.tsb != null).slice(-1)[0]?.tsb ?? null;
+  const loadRisk = guard.length ? guard[guard.length - 1].risk : null;
+  let nextSession = null;
+  if (ownPlan && Data.plannedSessions?.length) {
+    const doneDates = new Set(rides.map((r) => r.dateISO));
+    nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
+  }
+  const briefing = buildBriefing({ readiness, tsb, loadRisk, nextSession });
+  renderReadiness("readiness-panel", readiness, briefing);
   renderWeekReview(
     "weekreview-card",
     buildWeekReview(rides, ownPlan ? Data.plannedSessions : [], Data.adjustments, todayISO)
@@ -342,7 +356,6 @@ async function renderAll(athleteId) {
   renderRecords("records-wall", recordProgression(rides));
 
   // Charts — Fitness & Belastung (Belastungswächter: Ramp + Foster-Monotonie)
-  const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn);
   Charts.renderPMC("chart-pmc", rides);
   initPeriodToggles(rides, weekly, guard, (week) => {
     document.querySelector('[data-tab="table"]').click();

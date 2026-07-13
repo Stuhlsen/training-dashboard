@@ -740,6 +740,15 @@
 .readiness-metric .rm-label { color: var(--dim); }
 .readiness-metric .rm-val { margin-left: auto; color: var(--text); font-weight: 500; }
 .readiness-metric .rm-base { color: var(--dim2); }
+.readiness-basis { font-size: 0.68rem; color: var(--dim2); margin-top: 8px; }
+.readiness-stale-warning { font-size: 0.72rem; color: var(--ss); margin-top: 4px; }
+.readiness-briefing-link {
+  display: block; width: 100%; margin-top: 12px; padding-top: 10px;
+  border: none; border-top: 1px solid var(--border); background: none;
+  font-family: var(--font-mono); font-size: 0.72rem; text-align: left;
+  cursor: pointer;
+}
+.readiness-briefing-link:hover { text-decoration: underline; }
 
 /* Wochenrückblick */
 .wr-stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }

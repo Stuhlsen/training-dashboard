@@ -7,6 +7,7 @@
 
 import { fmt, fmtDuration, fmtDate } from "../core/format.js";
 import { el } from "./dom.js";
+import { activateTab } from "./nav.js";
 
 const LEVEL = {
   green: { color: "var(--z1)", label: "Bereit" },
@@ -22,8 +23,22 @@ const STATUS_COLOR = {
   nodata: "var(--dim2)",
 };
 
+const CONFIDENCE_BADGE = { vorhanden: "", ausstehend: "⏳", veraltet: "⚠" };
+
+/** Footer-Link zur Status-Briefing-Karte (Analyse-Tab) — dieselbe
+ *  buildBriefing()-Berechnung wie dort, nicht bloß visuell ähnlich. */
+function briefingLinkHtml(briefing) {
+  if (!briefing) return "";
+  const color = LEVEL[briefing.level]?.color || "var(--dim)";
+  return `<button type="button" class="readiness-briefing-link" style="color:${color}">Status-Briefing: ${briefing.headline} →</button>`;
+}
+
+function wireBriefingLink(wrap) {
+  wrap.querySelector(".readiness-briefing-link")?.addEventListener("click", () => activateTab("analysis"));
+}
+
 /* ── Tagesform-Ampel ─────────────────────────────────────────── */
-export function renderReadiness(containerId, assessment) {
+export function renderReadiness(containerId, assessment, briefing = null) {
   const wrap = el(containerId);
   if (!wrap) return;
   if (!assessment) {
@@ -31,7 +46,9 @@ export function renderReadiness(containerId, assessment) {
       <div class="panel-card">
         <div class="panel-title">Tagesform</div>
         <p class="panel-empty">Noch zu wenig Wellness-Historie für eine belastbare Baseline (braucht ~6 Wochen intervals.icu-Daten).</p>
+        ${briefingLinkHtml(briefing)}
       </div>`;
+    wireBriefingLink(wrap);
     return;
   }
 
@@ -50,16 +67,20 @@ export function renderReadiness(containerId, assessment) {
         ${assessment.metrics
           .map(
             (m) => `
-          <div class="readiness-metric" title="z = ${m.z != null ? m.z : "–"}">
+          <div class="readiness-metric" title="z = ${m.z != null ? m.z : "–"} · Konfidenz: ${m.confidence}${m.daysSinceLastValue != null ? ` (${m.daysSinceLastValue}d)` : ""}">
             <span class="rm-status" style="color:${STATUS_COLOR[m.status]}">${STATUS_ICON[m.status]}</span>
             <span class="rm-label">${m.label}</span>
-            <span class="rm-val">${m.recent != null ? m.recent : "–"}</span>
+            <span class="rm-val">${m.recent != null ? m.recent : "–"}${CONFIDENCE_BADGE[m.confidence] ? ` ${CONFIDENCE_BADGE[m.confidence]}` : ""}</span>
             <span class="rm-base">Ø ${m.baseline != null ? m.baseline : "–"}</span>
           </div>`
           )
           .join("")}
       </div>
+      ${assessment.basisNote ? `<div class="readiness-basis">${assessment.basisNote}</div>` : ""}
+      ${assessment.staleWarning ? `<div class="readiness-stale-warning">⚠ ${assessment.staleWarning}</div>` : ""}
+      ${briefingLinkHtml(briefing)}
     </div>`;
+  wireBriefingLink(wrap);
 }
 
 /* ── Wochenrückblick ─────────────────────────────────────────── */
