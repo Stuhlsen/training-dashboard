@@ -35,6 +35,12 @@
   --ss:  #e08a3c;   /* Sweet Spot / Akzent / Plan 2 */
   --thr: #d94f4f;   /* Schwelle / Warnung */
   --vo2: #a24ad0;   /* VO2max */
+  /* Tempo (Hero-Leistungsskala) — abgeleitet aus --ss (gleicher Hue, abgedunkelt),
+     keine neue Basisfarbe. Ein Mix aus --z2+--ss in sRGB/OKLab kippt auf einen
+     matschigen Grau-/Taupe-Ton (Blau+Orange sind nahezu komplementär), deshalb
+     stattdessen ein abgedunkelter --ss-Ton — reiht sich sichtbar zwischen
+     Endurance-Blau und Schwelle-Rot ein, ohne mit --vo2 (Lila) zu kollidieren. */
+  --z3:  color-mix(in oklch, var(--ss) 75%, black 25%);
 
   /* Semantische Aliasse — bestehende Komponenten nutzen diese Namen */
   --accent:       var(--ss);

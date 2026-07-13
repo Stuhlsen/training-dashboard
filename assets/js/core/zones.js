@@ -191,3 +191,105 @@ export function distributionShape(shares) {
         : `${shape === "polarisiert" ? "Polarisierte" : "Pyramidale"} Form, aber der Grundlagenanteil liegt unter dem 80%-Richtwert.`;
   return { shape, onTarget, note };
 }
+
+/* ============================================================
+   COGGAN-LEISTUNGSZONEN (FTP-basiert, für den Hero-Header)
+   Getrennt vom Ride-Historie-Bänderungscode oben — hier geht es um
+   FTP-Prozent-Grenzen für die interaktive Leistungsskala, nicht um
+   die Auswertung geloggter zoneTimes.
+   ============================================================ */
+
+/** Obergrenzen der Coggan-Zonen in % FTP (Z1 <55% · Z2 55–75% ·
+ *  Z3 76–90% · Z4 91–105% · Z5 106–120%). Die Zonen werden lückenlos
+ *  verkettet (Zone n.bisW === Zone n+1.vonW) — die minimalen
+ *  1%-Textlücken der Spec ("75%" vs. "76%") verschwinden ohnehin bei
+ *  gerundeten Wattgrenzen und würden sonst eine Lücke in der Skala
+ *  reißen. Z6+ (>120%) ist bewusst NICHT Teil des Arrays — auf der
+ *  Skala nur als offener Rand angedeutet, kein volles Segment. */
+export const COGGAN_ZONE_UPPER_PCT = [0.55, 0.75, 0.9, 1.05, 1.2];
+
+const COGGAN_ZONE_META = [
+  { id: "z1", label: "Z1 Recovery", farbe: "var(--z1)" },
+  { id: "z2", label: "Z2 Endurance", farbe: "var(--z2)" },
+  { id: "z3", label: "Z3 Tempo", farbe: "var(--z3)" },
+  { id: "z4", label: "Z4 Threshold", farbe: "var(--thr)" },
+  { id: "z5", label: "Z5 VO2max", farbe: "var(--vo2)" },
+];
+
+/** Sweet-Spot-Overlay-Band in % FTP (88–94%) — KEINE eigene Zone,
+ *  sondern ein Band, das über der Z3/Z4-Grenze liegt. */
+export const SWEET_SPOT_PCT = [0.88, 0.94];
+
+/**
+ * Coggan-Trainingszonen für einen FTP-Wert, als lückenlose Kette.
+ * @param {number} ftp FTP in Watt (> 0)
+ * @returns {Array<{id: string, label: string, vonW: number, bisW: number, farbe: string}>}
+ *   Genau 5 Einträge z1..z5, alle Watt-Werte Math.round.
+ */
+export function computeZones(ftp) {
+  if (!ftp || ftp <= 0) return [];
+  let prev = 0;
+  return COGGAN_ZONE_UPPER_PCT.map((pct, i) => {
+    const bisW = Math.round(ftp * pct);
+    const zone = { ...COGGAN_ZONE_META[i], vonW: prev, bisW };
+    prev = bisW;
+    return zone;
+  });
+}
+
+/**
+ * Sweet-Spot-Overlay-Band (88–94% FTP) — kein Segment, sondern eine
+ * zusätzliche Watt-Range für ein Overlay-Element über Z3/Z4.
+ * @param {number} ftp
+ * @returns {{vonW: number, bisW: number}}
+ */
+export function sweetSpotBand(ftp) {
+  if (!ftp || ftp <= 0) return { vonW: 0, bisW: 0 };
+  return {
+    vonW: Math.round(ftp * SWEET_SPOT_PCT[0]),
+    bisW: Math.round(ftp * SWEET_SPOT_PCT[1]),
+  };
+}
+
+/**
+ * Skalenmaximum der Leistungsskala = Ende von Zone 5 (120% FTP),
+ * gerundet. Wächst dynamisch mit ftp (auch für den What-if-Slider).
+ * @param {number} ftp
+ * @returns {number}
+ */
+export function scaleMaxWatts(ftp) {
+  const zones = computeZones(ftp);
+  return zones.length ? zones[zones.length - 1].bisW : 0;
+}
+
+/**
+ * Zeit-in-Zone (Sekunden) über alle Rides der letzten 7 Tage
+ * (inkl. todayISO), für die Hover-Tooltips der Leistungsskala. Nutzt
+ * die bestehende normalizeZoneTimes()-Normalisierung — Ride-Zonen
+ * kommen bereits vorklassifiziert von intervals.icu, hier wird nur
+ * nach Datum gefiltert und aufsummiert (Index 0=Z1..4=Z5, Index≥4
+ * wird wie bandZoneTimes() zu Z5+ zusammengefasst).
+ * @param {Array<{dateISO?: string, date?: string, zoneTimes?: unknown}>} rides
+ * @param {string} todayISO "YYYY-MM-DD" — Ende des 7-Tage-Fensters (inklusiv)
+ * @returns {number[]} Sekunden, Länge 5 (Index 0=Z1..4=Z5+)
+ */
+export function last7DayZoneTimes(rides, todayISO) {
+  const result = [0, 0, 0, 0, 0];
+  if (!todayISO) return result;
+  const end = new Date(todayISO + "T00:00:00Z");
+  const start = new Date(end);
+  start.setUTCDate(start.getUTCDate() - 6);
+  const startISO = start.toISOString().slice(0, 10);
+
+  for (const r of rides || []) {
+    const d = r.dateISO || r.date;
+    if (!d || d < startISO || d > todayISO) continue;
+    const secs = normalizeZoneTimes(r.zoneTimes);
+    if (!secs) continue;
+    for (let i = 0; i < secs.length; i++) {
+      const idx = Math.min(i, 4);
+      result[idx] += secs[i] || 0;
+    }
+  }
+  return result;
+}

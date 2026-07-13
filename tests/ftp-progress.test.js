@@ -4,36 +4,14 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  zoneSegments,
   pinPercent,
   ringProgress,
   nextPlannedSession,
+  workoutWattRange,
+  workoutDurationMinutes,
+  estimateSessionTSS,
+  buildMilestones,
 } from "../assets/js/core/ftp-progress.js";
-
-test("zoneSegments: Segmente decken die Skala vollständig ab (Summe 100%)", () => {
-  const segs = zoneSegments(193, 300);
-  const total = segs.reduce((s, x) => s + x.pct, 0);
-  assert.ok(Math.abs(total - 100) < 1e-9);
-  assert.deepEqual(
-    segs.map((s) => s.cls),
-    ["z1", "z2", "ss", "thr", "vo2", "rest"]
-  );
-  // Z1-Grenze: 0.55 × 193 = 106.15 W → 35.38 % der 300er-Skala
-  assert.ok(Math.abs(segs[0].pct - ((193 * 0.55) / 300) * 100) < 1e-9);
-});
-
-test("zoneSegments: hohe FTP kappt am Skalenende, kein rest-Segment", () => {
-  // 1.20 × 265 = 318 > 300 → VO2-Segment endet an der Skala
-  const segs = zoneSegments(265, 300);
-  assert.equal(segs[segs.length - 1].cls, "vo2");
-  const total = segs.reduce((s, x) => s + x.pct, 0);
-  assert.ok(Math.abs(total - 100) < 1e-9);
-});
-
-test("zoneSegments: ungültige Eingaben → leer", () => {
-  assert.deepEqual(zoneSegments(null, 300), []);
-  assert.deepEqual(zoneSegments(193, 0), []);
-});
 
 test("pinPercent klemmt auf 0–100", () => {
   assert.equal(pinPercent(150, 300), 50);
@@ -81,4 +59,94 @@ test("nextPlannedSession: adjustments — ausgefallen übersprungen, verschoben 
 test("nextPlannedSession: nichts mehr offen → null", () => {
   assert.equal(nextPlannedSession(SESSIONS, {}, new Set(), "2026-09-30"), null);
   assert.equal(nextPlannedSession([], {}, new Set(), "2026-07-04"), null);
+});
+
+// Fixture aus scripts/lib/plan2.js ("2026-07-02": Sweet Spot 3×10 min,
+// authored watts:[162,187] gelten nur für FTP=193 — Tests prüfen bewusst
+// gegen einen ANDEREN ftp (210), um die Neu-Skalierung zu verifizieren.
+const WORKOUT = { warmup: 10, intervals: 3, duration: 10, rest: 3, cooldown: 8, pct: [84, 97] };
+
+test("workoutWattRange: skaliert pct auf aktuellen ftp, nicht den Autorenzeit-Wert", () => {
+  // 210 × 0.84 = 176.4 → 176, 210 × 0.97 = 203.7 → 204 (NICHT das gespeicherte [162,187])
+  assert.deepEqual(workoutWattRange(WORKOUT, 210), [176, 204]);
+});
+
+test("workoutWattRange: ohne pct (z.B. FTP-Ramp-Test) → null", () => {
+  assert.equal(workoutWattRange({ pct: null }, 210), null);
+  assert.equal(workoutWattRange(null, 210), null);
+});
+
+test("workoutDurationMinutes: warmup + intervals×duration + (intervals-1)×rest + cooldown", () => {
+  // 10 + 3×10 + 2×3 + 8 = 10 + 30 + 6 + 8 = 54
+  assert.equal(workoutDurationMinutes(WORKOUT), 54);
+});
+
+test("workoutDurationMinutes: intervals=1 → kein Zwischen-Rest", () => {
+  assert.equal(workoutDurationMinutes({ warmup: 10, intervals: 1, duration: 20, rest: 5, cooldown: 5 }), 35);
+});
+
+test("workoutDurationMinutes: leeres/fehlendes workout → 0", () => {
+  assert.equal(workoutDurationMinutes(null), 0);
+  assert.equal(workoutDurationMinutes({}), 0);
+});
+
+test("estimateSessionTSS: bekannte Eingabe ergibt handgerechneten Wert", () => {
+  // Segmente: Warmup 10min@IF0.6, Hauptsatz 30min@IF0.905 (Mittel aus 84/97%),
+  // Pausen 6min@IF0.5, Cooldown 8min@IF0.5 → Σ IF²×(min/60)×100 ≈ 52.78 → 53
+  assert.equal(estimateSessionTSS(WORKOUT), 53);
+});
+
+test("estimateSessionTSS: höhere Zielintensität bei gleicher Dauer → höherer TSS", () => {
+  const easier = { ...WORKOUT, pct: [60, 70] };
+  const harder = { ...WORKOUT, pct: [100, 110] };
+  assert.ok(estimateSessionTSS(harder) > estimateSessionTSS(easier));
+});
+
+test("estimateSessionTSS: deterministisch und ohne workout → 0", () => {
+  assert.equal(estimateSessionTSS(WORKOUT), estimateSessionTSS(WORKOUT));
+  assert.equal(estimateSessionTSS(null), 0);
+});
+
+const ATHLETE1_CFG = {
+  seasonStartFtp: 166,
+  ftpMeasured: 193,
+  ftpMeasuredDate: "2026-06-12",
+  ftpGoal: 210,
+};
+const ATHLETE2_CFG = {
+  seasonStartFtp: null,
+  ftpMeasured: 265,
+  ftpMeasuredDate: null,
+  ftpGoal: 300,
+};
+
+test("buildMilestones: vollständige Config (Athlet 1) → 4 Einträge in Reihenfolge", () => {
+  const ms = buildMilestones(ATHLETE1_CFG, 197);
+  assert.deepEqual(
+    ms.map((m) => m.label),
+    ["Start-FTP", "Ramp-Test", "Aktuelle eFTP", "Saisonziel"]
+  );
+  assert.equal(ms[0].value, 166);
+  assert.equal(ms[1].value, 193);
+  assert.equal(ms[1].date, "2026-06-12");
+  assert.equal(ms[2].value, 197);
+  assert.equal(ms[3].value, 210);
+});
+
+test("buildMilestones: lückenhafte Config (Athlet 2) → weniger Einträge, kein Platzhalter", () => {
+  const ms = buildMilestones(ATHLETE2_CFG, 261);
+  assert.deepEqual(
+    ms.map((m) => m.label),
+    ["Ramp-Test", "Aktuelle eFTP", "Saisonziel"]
+  );
+  assert.equal("date" in ms[0], false);
+});
+
+test("buildMilestones: fehlender eFTP (null) → Eintrag fehlt komplett", () => {
+  const ms = buildMilestones(ATHLETE1_CFG, null);
+  assert.ok(!ms.some((m) => m.label === "Aktuelle eFTP"));
+});
+
+test("buildMilestones: keine Config → leeres Array", () => {
+  assert.deepEqual(buildMilestones(null, 200), []);
 });

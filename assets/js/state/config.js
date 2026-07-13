@@ -104,6 +104,10 @@ export const CONFIG = {
       ftpMeasuredDate: "2026-06-12",
       eFTP: 199,
       ftpGoal: 210,
+      // Hero-Header (Meilensteine/Ring): Saison-Start-FTP, nur für Athlet 1
+      // vorhanden (Athlet 2 hat keine eigene Saison-Basis, s.u.).
+      seasonStartFtp: 166,
+      dataSources: ["intervals.icu", "Apple Health"],
     },
     {
       id: "athlete2",
@@ -114,6 +118,8 @@ export const CONFIG = {
       eFTP: 261,
       ftpGoal: 300,
       bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92 },
+      seasonStartFtp: null,
+      dataSources: ["intervals.icu", "Amazfit"],
     },
   ],
 

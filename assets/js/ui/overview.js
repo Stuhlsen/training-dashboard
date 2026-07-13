@@ -2,26 +2,30 @@
    UI/OVERVIEW.JS — Hero, Metriken
    ============================================================ */
 
-import { fmt, fmtInt, fmtDuration } from "../core/format.js";
+import { fmt, fmtInt, fmtDuration, fmtDate, weatherIcon } from "../core/format.js";
 import {
-  zoneSegments,
   pinPercent,
   ringProgress,
   nextPlannedSession,
+  workoutWattRange,
+  workoutDurationMinutes,
+  estimateSessionTSS,
+  buildMilestones,
 } from "../core/ftp-progress.js";
+import { computeZones, sweetSpotBand, scaleMaxWatts, last7DayZoneTimes } from "../core/zones.js";
 import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../core/ftp-forecast.js";
 import { avg, maxVal, sum } from "../core/stats.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
-import { el, svgEl, Tooltip } from "./dom.js";
+import { el } from "./dom.js";
 import { Planned } from "./planned.js";
 
-/* Kurzcodes für die Zonen-Segment-Beschriftung im Hero-Band — dieselbe
-   Nomenklatur wie Phasen/Farbsystem (AGENTS.md → Design). "rest" (anaerobe
-   Reserve oberhalb VO2max) hat keine eigene Zone und bleibt unbeschriftet. */
-const ZONE_LABELS = { z1: "Z1", z2: "Z2", ss: "SS", thr: "SCHW", vo2: "VO2" };
-
 export const Overview = {
+  /** Zwischenspeicher für den What-if-Slider (ftpVal/eftpVal/7-Tage-Zeiten
+   *  ändern sich nicht während des Sliderziehens — nur einmal pro Render
+   *  berechnen, nicht bei jedem input-Event). */
+  _heroState: {},
+
   render(rides) {
     const ownPlan = rides.some((r) => r.week);
     this._renderHero(rides, ownPlan);
@@ -35,46 +39,50 @@ export const Overview = {
 
     const first = sorted[0],
       last = sorted[sorted.length - 1];
-    const athleteName = CONFIG.athletes.find((a) => a.id === Data.activeAthleteId)?.name || "";
-    el("hero-sub").textContent = ownPlan
-      ? `${first.dateShort} – ${last.dateShort} · ${CONFIG.planVersion}`
-      : `${first.dateShort} – ${last.dateShort} · Vergleichsdaten · ${athleteName}`;
+    const ac = CONFIG.athleteConfig(Data.activeAthleteId);
+    const athleteName = ac?.name || "";
+    const sources = (ac?.dataSources || []).join(" + ");
 
-    // Hero-Beschreibung athletenabhängig
+    // Untertitel: nur noch Zeitraum + Datenquellen — kein hardcodierter
+    // Plan-Text mehr (siehe AGENTS.md: kein Plan-1/Plan-2-Wissen im UI-Layer).
+    el("hero-sub").textContent = ownPlan
+      ? `${first.dateShort} – ${last.dateShort} · ${sources}`
+      : `${first.dateShort} – ${last.dateShort} · Vergleichsdaten · ${sources}`;
+
     const descEl = el("hero-desc");
     if (descEl) {
-      if (ownPlan) {
-        descEl.innerHTML = `<strong>Plan 1</strong>: 12 Wochen Basisaufbau (März–Juni 2026), FTP 166W → 193W. <strong>Plan 2</strong>: pyramidale Periodisierung seit Juni 2026, Ziel FTP ≥210W bis September. Daten automatisch aus intervals.icu und Apple Health.`;
-      } else {
-        descEl.innerHTML = `Vergleichsdaten von <strong>${athleteName}</strong> aus intervals.icu — reine Leistungsdaten ohne eigenen Trainingsplan.`;
-      }
+      descEl.innerHTML = ownPlan
+        ? `Strukturierter Trainingsplan mit Periodisierung über mehrere Blöcke. Daten automatisch aus ${sources}.`
+        : `Vergleichsdaten von <strong>${athleteName}</strong> aus ${sources} — reine Leistungsdaten ohne eigenen Trainingsplan.`;
     }
 
-    const ftpVal = Data.ftpValue();
-
-    // Eyebrow: aktuelle Woche/Phase (aus der letzten Fahrt) bzw. Vergleichsmodus
+    // Phasen-Badge: nur befüllen wenn die letzte Fahrt mit Wochenangabe
+    // auch eine Phase trägt — sonst ausgeblendet statt Platzhalter
+    // (.hero-eyebrow:empty{display:none} in components.css).
     const eyebrowEl = el("hero-eyebrow");
     if (eyebrowEl) {
-      if (ownPlan) {
-        const lastWithWeek = [...sorted].reverse().find((r) => r.week);
-        eyebrowEl.textContent = lastWithWeek
-          ? `${lastWithWeek.plan || "Plan"} · ${lastWithWeek.week}${lastWithWeek.phase ? " · " + lastWithWeek.phase : ""}`
-          : CONFIG.planVersion;
-      } else {
-        eyebrowEl.textContent = "Vergleichsdaten · read-only";
-      }
+      const lastWithWeek = ownPlan ? [...sorted].reverse().find((r) => r.week) : null;
+      eyebrowEl.textContent = lastWithWeek?.phase
+        ? `${lastWithWeek.week} · ${lastWithWeek.phase}`
+        : "";
     }
 
     const badgeEl = el("hero-athlete-badge");
     if (badgeEl) badgeEl.textContent = athleteName;
 
     this._renderSessionPill(rides, ownPlan);
-    const eftpVal = this._eftpValue(rides, ownPlan);
-    this._renderZoneBand(ftpVal, ownPlan, eftpVal);
-    this._renderFtpRing(ftpVal, ownPlan, eftpVal);
+
+    const ftpVal = Data.ftpValue();
+    const eftpVal = this._eftpValue(rides);
+    const todayISO = new Date().toISOString().split("T")[0];
+    this._heroState = { ftpVal, eftpVal, sevenDaySecs: last7DayZoneTimes(rides, todayISO) };
+
+    this._renderFtpRing(ac, eftpVal);
+    this._renderMilestones(ac, eftpVal);
+    this._bindWhatIf(ac, eftpVal);
   },
 
-  /* ── Session-Pill: heutige bzw. nächste geplante Einheit ────── */
+  /* ── Session-Karte: heutige bzw. nächste geplante Einheit ────── */
   _renderSessionPill(rides, ownPlan) {
     const wrap = el("hero-session");
     if (!wrap) return;
@@ -100,56 +108,94 @@ export const Overview = {
           month: "2-digit",
         });
     const km = next.km ? ` · ~${next.km} km` : "";
-    const details = next.workout?.label ? ` · ${next.workout.label}` : "";
+
+    // Watt-Ziel/Dauer/TSS nur für strukturierte Einheiten (next.workout) —
+    // bei Recovery/Z2/Gruppenfahrten gibt es keine harten Vorgaben, dort
+    // wird nichts erfunden, nur der bestehende Freitext (details) gezeigt.
+    let detailHtml = "";
+    if (next.workout) {
+      const ftpVal = Data.ftpValue();
+      const wattRange = workoutWattRange(next.workout, ftpVal);
+      const minutes = workoutDurationMinutes(next.workout);
+      const tss = estimateSessionTSS(next.workout);
+      // workout.label trägt die Intervallstruktur (z.B. "3×10 min @ SS") —
+      // die reine Watt/Dauer/TSS-Rechnung verliert diese Information sonst.
+      const parts = [];
+      if (next.workout.label) parts.push(next.workout.label);
+      if (wattRange) parts.push(`aktuell ${wattRange[0]}–${wattRange[1]} W`);
+      if (minutes) parts.push(`~${minutes} min gesamt`);
+      if (tss) parts.push(`TSS ~${tss}`);
+      if (parts.length) detailHtml = `<div class="session-detail">${parts.join(" · ")}</div>`;
+    } else if (next.details) {
+      detailHtml = `<div class="session-detail">${next.details}</div>`;
+    }
+
+    const wx = Data.forecast?.[next.date];
+    const weatherHtml = wx
+      ? `<div class="session-weather">${weatherIcon(wx.weatherCode)} ${fmt(wx.temp, 0)}°C${
+          wx.precipProb != null ? ` · ${fmtInt(wx.precipProb)}% Regen` : ""
+        }</div>`
+      : "";
+
     wrap.innerHTML = `
       <div class="session-pill" style="--sp-color:${color}">
         <span class="zdot"></span>
-        <span>${when} · <b>${next.name || next.typ || "Einheit"}</b>${km}${details}</span>
-      </div>`;
+        <span>${when} · <b>${next.name || next.typ || "Einheit"}</b>${km}</span>
+      </div>
+      ${detailHtml}
+      ${weatherHtml}`;
   },
 
-  /* ── Zonen-Band: FTP-Leistungsskala mit Pins (Signatur) ─────── */
-  _renderZoneBand(ftpVal, ownPlan, eftpVal) {
+  /* ── Zonen-Band: interaktive Leistungsskala (Coggan-Zonen) ───── */
+  _renderZoneBand(whatIfFtp) {
     const wrap = el("hero-zoneband");
     if (!wrap) return;
-    const scaleMax = CONFIG.powerScaleMax;
-    if (!ftpVal || !scaleMax) {
+    const { ftpVal, eftpVal, sevenDaySecs } = this._heroState;
+    if (!whatIfFtp) {
       wrap.innerHTML = "";
       return;
     }
 
-    const zoneSegs = zoneSegments(ftpVal, scaleMax);
-    const segments = zoneSegs
-      .map((s) => `<span class="zseg-${s.cls}" style="width:${s.pct.toFixed(2)}%"></span>`)
+    const zones = computeZones(whatIfFtp);
+    const ss = sweetSpotBand(whatIfFtp);
+    const scaleMax = scaleMaxWatts(whatIfFtp);
+    if (!zones.length || !scaleMax) {
+      wrap.innerHTML = "";
+      return;
+    }
+
+    const segments = zones
+      .map((z, i) => {
+        const pct = ((z.bisW - z.vonW) / scaleMax) * 100;
+        return `<span class="zseg-${z.id}" data-zone-idx="${i}" tabindex="0" style="width:${pct.toFixed(2)}%"></span>`;
+      })
       .join("");
-    // Zonen-Beschriftung unter den Farbsegmenten — nur wenn ein Segment breit
-    // genug ist (≥6% der Skala), sonst überlappen die Kürzel auf schmalen
-    // Bändern (z.B. Schwelle bei niedriger FTP). "rest" (anaerobe Reserve
-    // über VO2max) bleibt unbeschriftet, dafür gibt es keine feste Zonen-
-    // Nomenklatur in der App.
-    const segLabels = zoneSegs
-      .map(
-        (s) =>
-          `<span style="width:${s.pct.toFixed(2)}%">${s.pct >= 6 && ZONE_LABELS[s.cls] ? ZONE_LABELS[s.cls] : ""}</span>`
-      )
+    // Zonen-Beschriftung nur wenn ein Segment breit genug ist (≥6% der
+    // Skala), sonst überlappen die Kürzel auf schmalen Bändern.
+    const segLabels = zones
+      .map((z) => {
+        const pct = ((z.bisW - z.vonW) / scaleMax) * 100;
+        return `<span style="width:${pct.toFixed(2)}%">${pct >= 6 ? z.id.toUpperCase() : ""}</span>`;
+      })
       .join("");
 
-    // Pins: FTP immer. eFTP + Ziel für BEIDE Athleten — eFTP nur wenn eine
-    // Datenquelle vorhanden ist (Athlet 2 sonst kommentarlos ohne eFTP-Pin,
-    // kein Layout-Bruch). Ziel kommt aus dem Plan (Athlet 1) bzw. der Athleten-
-    // Config (Athlet 2, ftpGoal 300W).
-    const goalVal = ownPlan ? CONFIG.ftpGoal : CONFIG.athleteConfig(Data.activeAthleteId)?.ftpGoal;
+    // Sweet-Spot-Overlay (88–94% FTP) — KEIN Segment, sondern ein Akzent-
+    // balken über der Z3/Z4-Naht (core/zones.js::sweetSpotBand).
+    const ssLeft = pinPercent(ss.vonW, scaleMax);
+    const ssRight = pinPercent(ss.bisW, scaleMax);
+    const ssOverlay =
+      ssLeft != null && ssRight != null
+        ? `<div class="ss-overlay" style="left:${ssLeft.toFixed(2)}%; width:${(ssRight - ssLeft).toFixed(2)}%"></div>`
+        : "";
+
+    // Pins: FTP (Ramp-Test/gemessen) immer, eFTP wenn abweichend, Ziel-
+    // Marker = der aktuelle What-if-Wert (bewegt sich live mit dem Slider).
     const pins = [{ w: ftpVal, l: `FTP ${ftpVal}`, goal: false }];
     if (eftpVal && eftpVal !== ftpVal) pins.push({ w: eftpVal, l: `eFTP ${eftpVal}`, goal: false });
-    if (goalVal) pins.push({ w: goalVal, l: `Ziel ${goalVal}`, goal: true });
+    pins.push({ w: whatIfFtp, l: `Ziel ${whatIfFtp}`, goal: true });
 
-    // Kollisionsvermeidung: FTP/eFTP/Ziel liegen dicht beieinander, deshalb
-    // stapeln sich zu nah stehende Labels vertikal (Zeile 0/1/2) statt zu
-    // überlappen. MIN_GAP ≈ Labelbreite in % der Skala — bewusst etwas
-    // großzügiger als die reine Zeichenbreite (16 statt 13), weil sonst
-    // exakte Prozent-Übereinstimmungen (z.B. Athlet 2: eFTP 261/300 W =
-    // genau 13% Abstand zu Ziel 300 W) durch die Bindestrich-Regel "< "
-    // in dieselbe Zeile rutschen und auf schmalen Mobile-Karten kollidieren.
+    // Kollisionsvermeidung: dicht beieinanderliegende Pins stapeln sich
+    // vertikal (Zeile 0/1/2) statt zu überlappen.
     const MIN_GAP = 16;
     const placed = pins
       .map((p) => ({ ...p, pct: pinPercent(p.w, scaleMax) }))
@@ -172,50 +218,129 @@ export const Overview = {
       .join("");
 
     const mid = Math.round(scaleMax / 2);
-    // Platz für gestapelte Pin-Labels — Basiswerte müssen zum CSS-Offset in
-    // .pin::after passen (+15px für die Zonen-Beschriftungszeile darüber).
     const scaleGap = Math.max(47, 39 + maxRow * 15);
     wrap.innerHTML = `
-      <div class="zlabel">Leistungsskala · Watt @ FTP-Zonen</div>
-      <div class="band">${segments}${pinHtml}</div>
+      <div class="zlabel">Leistungsskala · Watt (Hover für Details)</div>
+      <div class="band">${segments}${ssOverlay}<div class="z6-edge"></div>${pinHtml}<div class="zone-tooltip" id="hero-zone-tooltip"></div></div>
       <div class="band-labels">${segLabels}</div>
       <div class="band-scale" style="margin-top:${scaleGap}px"><span>0 W</span><span>${mid} W</span><span>${scaleMax} W</span></div>`;
+
+    this._bindZoneTooltips(wrap, zones, scaleMax, sevenDaySecs);
+  },
+
+  /* ── Hover-Tooltips pro Zonen-Segment (Name/Wattbereich/7-Tage-Zeit) ── */
+  _bindZoneTooltips(wrap, zones, scaleMax, sevenDaySecs) {
+    const tooltip = wrap.querySelector("#hero-zone-tooltip");
+    if (!tooltip) return;
+    wrap.querySelectorAll(".band [data-zone-idx]").forEach((span) => {
+      const i = Number(span.dataset.zoneIdx);
+      const z = zones[i];
+      const secs = sevenDaySecs?.[i] || 0;
+      const show = () => {
+        const pct = ((z.vonW + z.bisW) / 2 / scaleMax) * 100;
+        tooltip.style.left = `${Math.min(96, Math.max(4, pct)).toFixed(2)}%`;
+        tooltip.innerHTML = `<b>${z.label}</b><br>${z.vonW}–${z.bisW} W<br>${secs > 0 ? fmtDuration(secs / 60) : "0:00h"} · letzte 7 Tage`;
+        tooltip.classList.add("visible");
+      };
+      const hide = () => tooltip.classList.remove("visible");
+      span.addEventListener("mouseenter", show);
+      span.addEventListener("mouseleave", hide);
+      span.addEventListener("focus", show);
+      span.addEventListener("blur", hide);
+    });
+  },
+
+  /* ── What-if-Slider: Ziel-FTP live erkunden ──────────────────── */
+  _bindWhatIf(ac, eftpVal) {
+    const wrap = el("hero-whatif");
+    if (!wrap) return;
+    const { ftpVal } = this._heroState;
+    const base = eftpVal || ftpVal;
+    if (!base) {
+      wrap.innerHTML = "";
+      this._renderZoneBand(0);
+      return;
+    }
+
+    const min = Math.max(50, Math.round(base - 20));
+    const max = 430;
+    const start = Math.min(max, Math.max(min, ac?.ftpGoal || base));
+
+    wrap.innerHTML = `
+      <div class="wi-label"><span>What-if · Ziel-FTP</span><b id="hero-whatif-val">${start} W</b></div>
+      <input type="range" id="hero-whatif-slider" min="${min}" max="${max}" step="1" value="${start}"
+        aria-label="Ziel-FTP für die Leistungsskala (nur Vorschau, ändert nicht das echte Saisonziel)">
+      <div class="wi-readout" id="hero-whatif-readout"></div>`;
+
+    this._renderZoneBand(start);
+    this._updateWhatIfReadout(start, eftpVal);
+
+    // Der Slider feuert "input" ggf. sehr häufig (jede Wertänderung beim
+    // Ziehen) — _renderZoneBand baut das Band per innerHTML komplett neu
+    // auf. Auf höchstens einen Rebuild pro Animationsframe drosseln, statt
+    // synchron bei jedem Tick zu rendern.
+    const slider = el("hero-whatif-slider");
+    let pendingFrame = null;
+    slider.addEventListener("input", () => {
+      const v = Number(slider.value);
+      el("hero-whatif-val").textContent = `${v} W`;
+      if (pendingFrame != null) return;
+      pendingFrame = requestAnimationFrame(() => {
+        pendingFrame = null;
+        this._renderZoneBand(Number(slider.value));
+        this._updateWhatIfReadout(Number(slider.value), eftpVal);
+      });
+    });
+  },
+
+  _updateWhatIfReadout(whatIfFtp, eftpVal) {
+    const readout = el("hero-whatif-readout");
+    if (!readout) return;
+    if (eftpVal == null) {
+      readout.textContent = `Ziel-FTP ${whatIfFtp} W`;
+      return;
+    }
+    const remaining = Math.max(0, whatIfFtp - eftpVal);
+    readout.textContent =
+      remaining > 0
+        ? `noch ${remaining} W bis ${whatIfFtp} W (Skala nur Vorschau — echtes Saisonziel siehe Ring)`
+        : `Ziel-FTP ${whatIfFtp} W bereits erreicht`;
   },
 
   /* ── FTP-Fortschrittsring (Zonenfarben Z2 → Sweet Spot) ─────── */
-  _renderFtpRing(ftpVal, ownPlan, eftpVal) {
+  _renderFtpRing(ac, eftpVal) {
     const wrap = el("hero-ring");
     if (!wrap) return;
-    if (!ftpVal) {
+    const { ftpVal } = this._heroState;
+    if (!ftpVal || !ac) {
       wrap.innerHTML = "";
       return;
     }
 
     const R = 84;
     const CIRC = 2 * Math.PI * R;
-    let val, unit, cap, progress;
+    const val = eftpVal || ftpVal;
+    let unit, cap, progress;
 
-    if (ownPlan) {
-      val = eftpVal || ftpVal;
-      progress = ringProgress(val, CONFIG.ftpBase, CONFIG.ftpGoal);
-      const remaining = Math.max(0, CONFIG.ftpGoal - val);
-      unit = `VON ${CONFIG.ftpGoal} W`;
+    if (ac.ftpGoal) {
+      // Mit echter Saison-Basis (Athlet 1: seasonStartFtp) zeigt der Ring
+      // Fortschritt SEIT Saisonstart. Ohne Saison-Basis (Athlet 2: kein
+      // eigener Plan) wäre ftpMeasured als Basis ein irreführender Anker —
+      // der aktuelle eFTP liegt oft UNTER dem letzten Ramp-Test-Wert, was
+      // den Ring fälschlich fast leer zeigen würde. Dort einfacher Anteil
+      // am Ziel (wie vor dem athletenagnostischen Umbau).
+      progress =
+        ac.seasonStartFtp != null
+          ? ringProgress(val, ac.seasonStartFtp, ac.ftpGoal)
+          : Math.max(0, Math.min(1, val / ac.ftpGoal));
+      const remaining = Math.max(0, ac.ftpGoal - val);
+      unit = `VON ${ac.ftpGoal} W`;
       cap =
         remaining > 0 ? `Saisonziel · noch <b>${remaining} W</b>` : `Saisonziel <b>erreicht</b> 🎉`;
     } else {
-      val = ftpVal;
-      const cfg = CONFIG.athleteConfig(Data.activeAthleteId);
-      if (cfg?.ftpGoal) {
-        // Vergleichsathlet mit Zielvorgabe: gemessene FTP → Ziel (wie Athlet 1)
-        progress = Math.max(0, Math.min(1, val / cfg.ftpGoal));
-        const remaining = Math.max(0, cfg.ftpGoal - val);
-        unit = `VON ${cfg.ftpGoal} W`;
-        cap = remaining > 0 ? `Ziel · noch <b>${remaining} W</b>` : `Ziel <b>erreicht</b> 🎉`;
-      } else {
-        progress = 1;
-        unit = cfg?.ftpMeasured || Data.athleteFtp ? "W · RAMP-TEST" : "W · BESTES NP";
-        cap = "Read-only · <b>kein Ziel</b>";
-      }
+      progress = 1;
+      unit = ac.ftpMeasured ? "W · RAMP-TEST" : "W · BESTES NP";
+      cap = "Read-only · <b>kein Ziel</b>";
     }
 
     wrap.innerHTML = `
@@ -239,6 +364,22 @@ export const Overview = {
     requestAnimationFrame(() =>
       arc.setAttribute("stroke-dashoffset", (CIRC * (1 - progress)).toFixed(1))
     );
+  },
+
+  /* ── Meilenstein-Liste (Start-FTP/Ramp-Test/eFTP/Ziel) ───────── */
+  _renderMilestones(ac, eftpVal) {
+    const wrap = el("hero-milestones");
+    if (!wrap) return;
+    const milestones = buildMilestones(ac, eftpVal);
+    wrap.innerHTML = milestones
+      .map(
+        (m) => `
+      <li>
+        <span class="ms-label">${m.label}</span>
+        <span><span class="ms-value">${m.value} W</span>${m.date ? `<span class="ms-date"> · ${fmtDate(m.date)}</span>` : ""}</span>
+      </li>`
+      )
+      .join("");
   },
 
   /* ── eFTP-Auflösung (geteilt von Ring & Kachel) ─────────────── */

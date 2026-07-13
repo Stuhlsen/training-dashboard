@@ -7,39 +7,6 @@
 import { effectiveSessions } from "./planning.js";
 
 /**
- * Segmentgrenzen des FTP-Zonen-Bands, relativ zur Watt-Skala.
- * Zonen (an Coggan angelehnt, vereinfacht auf 5 Bänder):
- * Z1 ≤55% · Z2 ≤85% · Sweet Spot ≤97% · Schwelle ≤105% · VO2max ≤120%,
- * darüber Rest-Segment bis zum Skalenende.
- * @param {number} ftp
- * @param {number} scaleMax Skalenende in Watt (z.B. 300)
- * @returns {Array<{cls: string, pct: number}>} Segmente mit Breite in % (Summe 100)
- */
-export function zoneSegments(ftp, scaleMax) {
-  if (!ftp || !scaleMax || scaleMax <= 0) return [];
-  const bounds = [
-    ["z1", 0.55],
-    ["z2", 0.85],
-    ["ss", 0.97],
-    ["thr", 1.05],
-    ["vo2", 1.2],
-  ];
-  const segments = [];
-  let prev = 0;
-  for (const [cls, factor] of bounds) {
-    const upper = Math.min(ftp * factor, scaleMax);
-    if (upper <= prev) continue;
-    segments.push({ cls, pct: ((upper - prev) / scaleMax) * 100 });
-    prev = upper;
-    if (prev >= scaleMax) break;
-  }
-  if (prev < scaleMax) {
-    segments.push({ cls: "rest", pct: ((scaleMax - prev) / scaleMax) * 100 });
-  }
-  return segments;
-}
-
-/**
  * Position eines Watt-Werts auf der Skala in Prozent (0–100, geklemmt).
  * @param {number|null|undefined} watts
  * @param {number} scaleMax
@@ -85,4 +52,109 @@ export function nextPlannedSession(sessions, adjustments, doneDates, todayISO) {
   if (!effective.length) return null;
   const next = effective[0];
   return { ...next, isToday: next.date === todayISO };
+}
+
+/**
+ * Ziel-Wattbereich einer strukturierten Einheit für den AKTUELLEN ftp —
+ * NICHT das in scripts/lib/plan2.js fest verdrahtete workout.watts, das
+ * nur für FTP=193 (Autorenzeitpunkt) stimmt und sonst veraltet.
+ * @param {{pct?: [number, number]|null}} workout
+ * @param {number} ftp
+ * @returns {[number, number]|null} [vonW, bisW] gerundet, null ohne pct
+ */
+export function workoutWattRange(workout, ftp) {
+  if (!workout?.pct || !ftp) return null;
+  const [lo, hi] = workout.pct;
+  return [Math.round((ftp * lo) / 100), Math.round((ftp * hi) / 100)];
+}
+
+/**
+ * Zerlegt ein workout in seine Zeitsegmente (Minuten, ungerundet) — von
+ * workoutDurationMinutes() UND estimateSessionTSS() genutzt, damit die
+ * Intervall-Zeitrechnung (Hauptsatz/Pausen) nur an einer Stelle steht.
+ * @param {{warmup?: number, intervals?: number, duration?: number, rest?: number, cooldown?: number}} workout
+ * @returns {{warmup: number, mainMin: number, restMin: number, cooldown: number}}
+ */
+function workoutSegments(workout) {
+  const warmup = workout?.warmup || 0;
+  const cooldown = workout?.cooldown || 0;
+  const intervals = workout?.intervals || 0;
+  const duration = workout?.duration || 0;
+  const rest = workout?.rest || 0;
+  return {
+    warmup,
+    mainMin: intervals * duration,
+    // (intervals-1)×rest: Pausen zwischen den Wiederholungen, keine Pause nach der letzten
+    restMin: Math.max(0, intervals - 1) * rest,
+    cooldown,
+  };
+}
+
+/**
+ * Gesamtdauer einer strukturierten Einheit in Minuten: warmup +
+ * Hauptsatz + Pausen + cooldown (siehe workoutSegments()).
+ * @param {{warmup?: number, intervals?: number, duration?: number, rest?: number, cooldown?: number}} workout
+ * @returns {number} Minuten, gerundet
+ */
+export function workoutDurationMinutes(workout) {
+  if (!workout) return 0;
+  const { warmup, mainMin, restMin, cooldown } = workoutSegments(workout);
+  return Math.round(warmup + mainMin + restMin + cooldown);
+}
+
+/** Pauschale Intensitätsfaktor-Annahmen für Warmup/Pausen/Cooldown —
+ *  dokumentierte Schätzwerte, keine Messwerte (siehe estimateSessionTSS). */
+const TSS_ASSUMED_IF = { warmup: 0.6, rest: 0.5, cooldown: 0.5 };
+
+/**
+ * Geschätzter TSS einer strukturierten Einheit: Σ_segment IF²×(min/60)×100.
+ * Hauptsatz-IF = Mittelwert aus workout.pct/100 (Zielintensität aus dem
+ * Plan). Warmup/Pausen/Cooldown nutzen TSS_ASSUMED_IF — explizit eine
+ * Schätzung, keine gemessene Belastung.
+ * @param {{warmup?: number, intervals?: number, duration?: number, rest?: number, cooldown?: number, pct?: [number, number]|null}} workout
+ * @returns {number} TSS, gerundet; 0 ohne verwertbare Segmente
+ */
+export function estimateSessionTSS(workout) {
+  if (!workout) return 0;
+  const { warmup, mainMin, restMin, cooldown } = workoutSegments(workout);
+  const mainIF = workout.pct ? (workout.pct[0] + workout.pct[1]) / 2 / 100 : 0;
+
+  const segments = [
+    { min: warmup, if: TSS_ASSUMED_IF.warmup },
+    { min: mainMin, if: mainIF },
+    { min: restMin, if: TSS_ASSUMED_IF.rest },
+    { min: cooldown, if: TSS_ASSUMED_IF.cooldown },
+  ];
+  const tss = segments.reduce((sum, s) => sum + s.if * s.if * (s.min / 60) * 100, 0);
+  return Math.round(tss);
+}
+
+/**
+ * Geordnete Meilensteine aus der Athleten-Config + aktuellem eFTP. Jeder
+ * Eintrag erscheint nur, wenn sein WERT vorhanden ist (Datum ist optionale
+ * Deko, kein Gate) — kein Platzhalter für fehlende Werte.
+ * @param {{seasonStartFtp?: number|null, ftpMeasured?: number, ftpMeasuredDate?: string|null, ftpGoal?: number}} athleteCfg
+ * @param {number|null} currentEftp
+ * @returns {Array<{label: string, value: number, date?: string}>}
+ */
+export function buildMilestones(athleteCfg, currentEftp) {
+  if (!athleteCfg) return [];
+  const milestones = [];
+  if (athleteCfg.seasonStartFtp) {
+    milestones.push({ label: "Start-FTP", value: athleteCfg.seasonStartFtp });
+  }
+  if (athleteCfg.ftpMeasured) {
+    milestones.push({
+      label: "Ramp-Test",
+      value: athleteCfg.ftpMeasured,
+      ...(athleteCfg.ftpMeasuredDate ? { date: athleteCfg.ftpMeasuredDate } : {}),
+    });
+  }
+  if (currentEftp != null) {
+    milestones.push({ label: "Aktuelle eFTP", value: currentEftp });
+  }
+  if (athleteCfg.ftpGoal) {
+    milestones.push({ label: "Saisonziel", value: athleteCfg.ftpGoal });
+  }
+  return milestones;
 }

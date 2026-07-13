@@ -30,6 +30,7 @@
   color: var(--accent);
   margin-bottom: 8px;
 }
+.hero-eyebrow:empty { display: none; margin-bottom: 0; }
 
 .hero-title h1 {
   font-family: var(--font-disp);
@@ -86,6 +87,13 @@
   background: var(--sp-color, var(--z2));
   flex-shrink: 0;
 }
+.session-detail, .session-weather {
+  margin-top: 4px;
+  margin-left: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dim2);
+}
 
 /* Zonen-Band: FTP-Leistungsskala mit Pins (Signatur aus K1) */
 .zoneband { margin-top: 22px; }
@@ -108,10 +116,62 @@
 .zoneband .band span:last-child  { border-radius: 0 var(--pill) var(--pill) 0; }
 .zoneband .zseg-z1  { background: var(--z1); }
 .zoneband .zseg-z2  { background: var(--z2); }
-.zoneband .zseg-ss  { background: var(--ss); }
-.zoneband .zseg-thr { background: var(--thr); }
-.zoneband .zseg-vo2 { background: var(--vo2); }
-.zoneband .zseg-rest { background: rgba(255, 255, 255, 0.08); }
+.zoneband .zseg-z3  { background: var(--z3); }
+.zoneband .zseg-z4  { background: var(--thr); }
+.zoneband .zseg-z5  { background: var(--vo2); }
+.zoneband .band span:hover { opacity: 1; cursor: default; }
+
+/* Sweet-Spot-Overlay: KEIN eigenes Segment (siehe core/zones.js), sondern
+   ein schmaler Akzentbalken über der Z3/Z4-Naht des Bands. */
+.zoneband .ss-overlay {
+  position: absolute;
+  top: -4px;
+  height: 3px;
+  background: var(--ss);
+  border-radius: 2px;
+  opacity: 0.85;
+  pointer-events: none;
+}
+
+/* Z6+-Andeutung: schmaler offener Rand rechts, kein volles Segment */
+.zoneband .z6-edge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: 12px;
+  background: repeating-linear-gradient(
+    -45deg,
+    rgba(255, 255, 255, 0.14) 0,
+    rgba(255, 255, 255, 0.14) 2px,
+    transparent 2px,
+    transparent 5px
+  );
+  border-radius: 0 var(--pill) var(--pill) 0;
+  pointer-events: none;
+}
+
+/* Hover-Tooltip pro Zonen-Segment */
+.zoneband .zone-tooltip {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  transform: translateX(-50%);
+  background: var(--card-solid, #12151c);
+  border: 1px solid var(--border-light);
+  border-radius: 10px;
+  padding: 7px 11px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dim);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease;
+  z-index: 5;
+}
+.zoneband .zone-tooltip.visible { opacity: 1; visibility: visible; }
+.zoneband .zone-tooltip b { color: var(--text); font-weight: 600; }
 .zoneband .band-labels {
   display: flex;
   margin-top: 3px;
@@ -173,6 +233,30 @@
   margin-top: 32px;
 }
 
+/* What-if-Slider: Ziel-FTP live erkunden (eigener Block NACH der Skala,
+   bewusst nicht in die Pin-Stacking-CSS verschachtelt) */
+.hero-whatif { margin-top: 18px; }
+.hero-whatif .wi-label {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dim);
+  margin-bottom: 6px;
+}
+.hero-whatif .wi-label b { color: var(--accent); font-weight: 600; }
+.hero-whatif input[type="range"] {
+  width: 100%;
+  accent-color: var(--ss);
+  cursor: pointer;
+}
+.hero-whatif .wi-readout {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--dim2);
+}
+
 /* FTP-Fortschrittsring (K3-Anatomie, Zonenfarben) + Athleten-Badge darüber */
 .hero-ring-col {
   display: flex;
@@ -201,6 +285,27 @@
 @media (prefers-reduced-motion: no-preference) {
   .hero-ring .ring-progress { transition: stroke-dashoffset 0.8s cubic-bezier(0.2, 0.7, 0.2, 1); }
 }
+
+/* Meilenstein-Liste: FTP-Historie kompakt unter dem Ring */
+.hero-milestones {
+  width: 100%;
+  margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.hero-milestones:empty { display: none; }
+.hero-milestones li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--dim2);
+}
+.hero-milestones .ms-label { white-space: nowrap; }
+.hero-milestones .ms-value { color: var(--text); font-weight: 600; }
+.hero-milestones .ms-date { color: var(--dim2); }
 
 /* KPI-Kacheln unter dem Hero: Glas + Zonen-Akzentkante links */
 /* ── Tabs — Pills (K3), aktiv = Sweet-Spot-Fill ──────────────── */

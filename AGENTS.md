@@ -220,6 +220,14 @@ tests/                → node:test-Suiten für core/* und scripts/lib/* (npm te
 FTP-Dreiklang pro Athlet in `state/config.js` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
 (Ramp-Test) und `ftpGoal` (Ziel) — im Analyse-Tab strikt getrennt von der laufend
 geschätzten eFTP. Helper: `CONFIG.athleteConfig(id)`.
+Zusätzlich für den Hero-Header: `seasonStartFtp` (Saison-Start-FTP für den
+Fortschrittsring/die Meilensteinliste — nur bei Athlet 1 gesetzt, Athlet 2 hat
+keine Saison-Basis → `null`, Meilenstein entfällt statt Platzhalter) und
+`dataSources` (Anzeige im Untertitel, z.B. `["intervals.icu", "Apple Health"]`).
+Diese beiden Felder sind unabhängig von den globalen Singletons `CONFIG.ftpBase`/
+`ftpGoal`/`retestDate` (weiterhin von `app.js`/`ui/analysis.js` für FTP-Forecast-
+Chart bzw. Leistungsdiagnostik genutzt) — bewusst nicht zusammengeführt, um diese
+bestehenden Features nicht anzufassen.
 
 Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen "Athlet 1"/"Athlet 2"
 (anpassbar in `state/config.js` → `athletes[].name`). Athleten-Toggle persistent via
@@ -258,10 +266,10 @@ Tokens in `assets/css/main.css` (Namen stabil halten — Chart-JS spiegelt sie):
 - Hintergrund: `#0b0e13` Anthrazit-Blau mit fixierten Zonen-Gradienten (Z2-Schimmer oben rechts, Sweet-Spot-Glut unten links)
 - Kacheln: Glas — `rgba(255,255,255,0.045)` + 1px-Hauchrand, Radius 22/28px; Tooltip/Dropdowns deckend via `--card-solid`
 - **Zonen-Skala als Farbsystem** (Farbe = Bedeutung, nie Deko):
-  `--z1 #4a9a6e` (Recovery/positiv) · `--z2 #4a7fa8` (Grundlage/Plan 1) · `--ss #e08a3c` (Sweet Spot/Akzent/Plan 2) · `--thr #d94f4f` (Schwelle/Warnung) · `--vo2 #a24ad0`
+  `--z1 #4a9a6e` (Recovery/positiv) · `--z2 #4a7fa8` (Grundlage/Plan 1) · `--z3 color-mix(in oklch, var(--ss) 75%, black 25%)` (Tempo, Hero-Leistungsskala — abgeleitetes Token, keine neue Basisfarbe; ein Mix aus `--z2`+`--ss` kippt in sRGB/OKLab auf Grau/Taupe, weil Blau/Orange nahezu komplementär sind, deshalb stattdessen ein abgedunkelter `--ss`-Ton) · `--ss #e08a3c` (Sweet Spot/Akzent/Plan 2) · `--thr #d94f4f` (Schwelle/Warnung) · `--vo2 #a24ad0`
 - Typografie: **Sora** (Display/Zahlen, `--font-disp`) · **IBM Plex Mono** (Labels/Meta, `--font-mono`) · **Inter** (Fließtext, `--font-body`); Google-Fonts-Link in index.html mit System-Fallbacks
 - Pills überall interaktiv (`--pill`): Tabs (aktiv = SS-Fill mit dunklem Text `#17110a`), Athleten-Toggle (aktiv = Z2), Unit-/Plan-Toggle
-- Hero-Signaturen: **FTP-Zonen-Band** (Segmente aus `core/ftp-progress.js::zoneSegments`, Pins FTP/eFTP/Ziel) und **FTP-Fortschrittsring** (Z2→SS-Gradient, Fortschritt `ringProgress(eFTP, ftpBase, ftpGoal)`), plus Session-Pill (nächste Einheit via `nextPlannedSession`)
+- Hero-Signaturen: **interaktive Leistungsskala** (Coggan-Zonen Z1–Z5 aus `core/zones.js::computeZones`, Sweet-Spot-Overlay `sweetSpotBand` statt eigenem Segment, Skalenmax `scaleMaxWatts` = Z5-Ende, What-if-Slider für die Ziel-FTP-Vorschau, Pins FTP/eFTP/Ziel via `core/ftp-progress.js::pinPercent`), **FTP-Fortschrittsring** (Z2→SS-Gradient, Fortschritt `ringProgress(eFTP, athleteCfg.seasonStartFtp ?? ftpMeasured, athleteCfg.ftpGoal)` — athletenagnostisch aus `CONFIG.athleteConfig(id)`), **Meilensteinliste** (`buildMilestones`, nur vorhandene Werte) und **Session-Karte** (nächste Einheit via `nextPlannedSession`, Watt-Ziel/Dauer/TSS-Schätzung nur bei strukturiertem `workout` via `workoutWattRange`/`workoutDurationMinutes`/`estimateSessionTSS`)
 - SVG-Chart-Farben können keine CSS-Variablen nutzen → Palette ist als `CHART_THEME` in `assets/js/ui/charts/base.js` gespiegelt. Bei Palettenwechsel: main.css-Tokens UND CHART_THEME UND die Hex-Literale in `ui/charts/*` per Suchen/Ersetzen anpassen (Mapping-Kommentar in base.js).
 - `prefers-reduced-motion` wird respektiert (main.css global + Ring-Transition)
 
