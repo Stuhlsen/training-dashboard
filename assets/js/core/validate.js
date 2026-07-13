@@ -89,6 +89,7 @@ export const WELLNESS_SCHEMA = {
 const PAYLOAD_SCHEMA = {
   rides: "array",
   wellness: "array?",
+  wellnessMeta: "object?",
   powerCurves: "object?",
   athleteWeight: "number?",
   plannedSessions: "array?",

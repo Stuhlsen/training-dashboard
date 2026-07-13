@@ -101,6 +101,24 @@ export function fieldCoverage(wellnessList) {
   return counts;
 }
 
+/** Letztes Datum mit einem non-null Wert je Feld, aus der bereits gemappten
+ *  (aufsteigend sortierten) Liste. "Zeitstempel des letzten Datenupdates"
+ *  heißt hier konkret: das jüngste Kalenderdatum mit befülltem Wert —
+ *  intervals.icu liefert keine Uhrzeit/keinen Sync-Zeitpunkt je Feld, nur
+ *  Tagesgranularität. Keine höhere Präzision vortäuschen als die Quelle
+ *  hergibt (Grundlage für die Konfidenz-Einordnung in core/readiness.js).
+ *  @param {Array<Record<string, unknown>>} wellnessList
+ *  @param {string[]} fields
+ *  @returns {Record<string, string|null>} */
+export function lastFieldDates(wellnessList, fields) {
+  const out = {};
+  for (const f of fields) out[f] = null;
+  for (const day of wellnessList || []) {
+    for (const f of fields) if (day[f] != null) out[f] = day.date;
+  }
+  return out;
+}
+
 /** Verifikationslog: welche Wellness-Felder sind real befüllt?
  *  Entscheidungsgrundlage für die "Regeneration & Körper"-Sektion.
  *  @param {Array<Record<string, unknown>>} wellnessList

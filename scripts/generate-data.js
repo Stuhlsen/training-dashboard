@@ -31,7 +31,16 @@ import {
   getWeatherForRide,
 } from "./lib/weather.js";
 import { mapActivity, mapActivity2 } from "./lib/map-activity.js";
-import { mapWellnessList, latestWeight, logWellnessCoverage } from "./lib/wellness.js";
+import {
+  mapWellnessList,
+  latestWeight,
+  logWellnessCoverage,
+  lastFieldDates,
+} from "./lib/wellness.js";
+
+// Readiness-Metriken (core/readiness.js), deren letztes Update-Datum je Sync
+// mitgeschrieben wird — Basis für die Konfidenz-Einordnung im Frontend.
+const READINESS_FIELDS = ["hrv", "restingHR", "sleepHours"];
 import {
   loadSubjective,
   loadAdjustments,
@@ -162,6 +171,7 @@ async function main() {
   const output = {
     rides,
     wellness: wellnessList,
+    wellnessMeta: { lastUpdated: lastFieldDates(wellnessList, READINESS_FIELDS) },
     powerCurves: powerCurves || null,
     powerCurveBlocks,
     athleteWeight,
@@ -247,6 +257,7 @@ async function main() {
       ftp: estimatedFTP2,
       rides: rides2,
       wellness: wellnessList2,
+      wellnessMeta: { lastUpdated: lastFieldDates(wellnessList2, READINESS_FIELDS) },
       powerCurves: powerCurves2 || null,
       athleteWeight: athleteWeight2,
       updated: new Date().toISOString(),

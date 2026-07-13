@@ -18,6 +18,8 @@ export const Data = {
   rides: [],
   /** @type {import("../types.js").WellnessDay[]} */
   wellness: [],
+  /** @type {import("../types.js").WellnessMeta|null} */
+  wellnessMeta: null,
   powerCurves: null,
   powerCurveBlocks: [],
   athleteWeight: null,
@@ -31,6 +33,7 @@ export const Data = {
   _reset() {
     this.rides = [];
     this.wellness = [];
+    this.wellnessMeta = null;
     this.powerCurves = null;
     this.powerCurveBlocks = [];
     this.athleteWeight = null;
@@ -44,6 +47,7 @@ export const Data = {
   _apply(json) {
     this.rides = json.rides.map((r) => normalizeRide(r));
     this.wellness = (json.wellness || []).map((w) => normalizeWellness(w));
+    this.wellnessMeta = json.wellnessMeta || null;
     this.powerCurves = json.powerCurves || null;
     this.powerCurveBlocks = json.powerCurveBlocks || [];
     this.athleteWeight = json.athleteWeight || null;

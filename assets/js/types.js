@@ -65,6 +65,17 @@
  */
 
 /**
+ * Letztes Update je Readiness-Metrik (core/readiness.js) — ein Kalenderdatum,
+ * KEIN Wall-Clock-Zeitstempel: intervals.icu liefert pro Wellness-Feld keine
+ * Uhrzeit, nur Tagesgranularität (siehe scripts/lib/wellness.js::lastFieldDates).
+ * @typedef {Object} WellnessMeta
+ * @property {Object} lastUpdated
+ * @property {string|null} lastUpdated.hrv
+ * @property {string|null} lastUpdated.restingHR
+ * @property {string|null} lastUpdated.sleepHours
+ */
+
+/**
  * Wochen-Aggregat aus core/aggregate.js.
  * @typedef {Object} WeekAggregate
  * @property {string} week
