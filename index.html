@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="assets/css/table.css">
   <link rel="stylesheet" href="assets/css/planned.css">
   <style>
-    /* Kopfzeile: Marke + Athleten-Pillengruppe (K5) */
+    /* Kopfzeile: nur noch die Marke (Athleten-Toggle sitzt in der Tab-Zeile) */
     .topbar {
       display: flex;
       align-items: center;
@@ -29,33 +29,6 @@
       letter-spacing: -0.01em;
     }
     .topbar .brand span { color: var(--accent); }
-    .athlete-toggle {
-      margin-left: auto;
-      display: flex;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--pill);
-      padding: 3px;
-    }
-    .athlete-btn {
-      font-family: var(--font-disp);
-      font-size: 0.76rem;
-      font-weight: 600;
-      padding: 6px 16px;
-      background: transparent;
-      border: none;
-      border-radius: var(--pill);
-      color: var(--dim);
-      cursor: pointer;
-      transition: all var(--transition);
-    }
-    .athlete-btn:hover { color: var(--text); }
-    .athlete-btn.active {
-      background: var(--blue);
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(74, 127, 168, 0.35);
-    }
-    .athlete-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
     .tab-btn.hidden { display: none; }
   </style>
 </head>
@@ -79,10 +52,9 @@
   <!-- App -->
   <div id="app" class="hidden">
 
-    <!-- Kopfzeile: Marke + Athleten-Toggle -->
+    <!-- Kopfzeile: nur noch die Marke -->
     <div class="topbar">
       <div class="brand">Training<span>·</span>Dashboard</div>
-      <div class="athlete-toggle" id="athlete-toggle"></div>
     </div>
 
     <!-- Hero: Wochenstatus + Zonen-Band + FTP-Ring (K5-Signaturen) -->
@@ -96,17 +68,26 @@
           <div id="hero-session"></div>
           <div class="zoneband" id="hero-zoneband"></div>
         </div>
-        <div class="hero-ring" id="hero-ring"></div>
+        <div class="hero-ring-col">
+          <div class="hero-athlete-badge" id="hero-athlete-badge"></div>
+          <div class="hero-ring" id="hero-ring"></div>
+        </div>
       </div>
     </header>
 
-    <!-- Tabs (sticky, direkt unter dem Hero) -->
+    <!-- Tabs (sticky, direkt unter dem Hero) + Athleten-Toggle (rechtsbündig) -->
     <nav class="tabs" id="tabs">
-      <button class="tab-btn active" data-tab="overview">Übersicht</button>
-      <button class="tab-btn" data-tab="charts">Charts</button>
-      <button class="tab-btn" data-tab="table">Fahrtenbuch</button>
-      <button class="tab-btn" data-tab="planned">Planung</button>
-      <button class="tab-btn" data-tab="analysis">Analyse</button>
+      <div class="tab-group">
+        <button class="tab-btn active" data-tab="overview">Übersicht</button>
+        <button class="tab-btn" data-tab="charts">Charts</button>
+        <button class="tab-btn" data-tab="table">Fahrtenbuch</button>
+        <button class="tab-btn" data-tab="planned">Planung</button>
+        <button class="tab-btn" data-tab="analysis">Analyse</button>
+      </div>
+      <div class="tabs-athlete">
+        <span class="tabs-divider" aria-hidden="true"></span>
+        <div class="athlete-toggle" id="athlete-toggle"></div>
+      </div>
     </nav>
 
     <!-- ── Tab: Übersicht ──────────────────────────────────────── -->

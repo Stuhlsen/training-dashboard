@@ -173,7 +173,25 @@
   margin-top: 32px;
 }
 
-/* FTP-Fortschrittsring (K3-Anatomie, Zonenfarben) */
+/* FTP-Fortschrittsring (K3-Anatomie, Zonenfarben) + Athleten-Badge darüber */
+.hero-ring-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.hero-athlete-badge {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+  background: var(--card-alt);
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  padding: 4px 12px;
+}
+.hero-athlete-badge:empty { display: none; }
 .hero-ring { text-align: center; }
 .hero-ring svg { display: block; margin: 0 auto; max-width: 100%; height: auto; }
 .hero-ring .ring-val  { font-family: var(--font-disp); font-weight: 700; font-size: 38px; fill: var(--text); }
@@ -188,8 +206,10 @@
 /* ── Tabs — Pills (K3), aktiv = Sweet-Spot-Fill ──────────────── */
 .tabs {
   display: flex;
-  gap: 10px;
-  overflow-x: auto;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  justify-content: space-between;
   position: sticky;
   top: 0;
   z-index: 30;
@@ -203,6 +223,12 @@
     background: rgba(11, 14, 19, 0.72);
     backdrop-filter: blur(10px);
   }
+}
+
+.tab-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
 }
 
 .tab-btn {
@@ -221,6 +247,48 @@
 .tab-btn:hover { color: var(--text); border-color: var(--border-light); }
 .tab-btn.active { background: var(--accent); color: #17110a; border-color: transparent; }
 .tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Athleten-Toggle in der Tab-Zeile — optisch getrennt, rechtsbündig; bei
+   Platzmangel rutscht der Block per margin-left:auto rechtsbündig in eine
+   zweite Zeile statt die Tabs zu verdrängen. */
+.tabs-athlete {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+}
+.tabs-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+.athlete-toggle {
+  display: flex;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  padding: 3px;
+}
+.athlete-btn {
+  font-family: var(--font-disp);
+  font-size: 0.76rem;
+  font-weight: 600;
+  padding: 6px 16px;
+  background: transparent;
+  border: none;
+  border-radius: var(--pill);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.athlete-btn:hover { color: var(--text); }
+.athlete-btn.active {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(74, 127, 168, 0.35);
+}
+.athlete-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ── Base Card ───────────────────────────────────────────────── */
 .card {
@@ -620,7 +688,7 @@
 /* ── K5 Responsive: Hero stapelt auf Mobil ───────────────────── */
 @media (max-width: 840px) {
   .hero-layout { grid-template-columns: 1fr; }
-  .hero-ring { order: -1; }
+  .hero-ring-col { order: -1; }
   .zoneband .pin::after { font-size: 0.58rem; }
   .zoneband .band-labels span { font-size: 0.54rem; }
 }

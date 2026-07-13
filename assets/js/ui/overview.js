@@ -65,6 +65,9 @@ export const Overview = {
       }
     }
 
+    const badgeEl = el("hero-athlete-badge");
+    if (badgeEl) badgeEl.textContent = athleteName;
+
     this._renderSessionPill(rides, ownPlan);
     const eftpVal = this._eftpValue(rides, ownPlan);
     this._renderZoneBand(ftpVal, ownPlan, eftpVal);
