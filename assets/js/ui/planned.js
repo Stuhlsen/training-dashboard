@@ -10,6 +10,7 @@
 
 import { fmt, weatherIcon, windDir } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
+import { applyAdjustment } from "../core/planning.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { el } from "./dom.js";
@@ -28,10 +29,6 @@ export const Adjustments = {
     return this._data;
   },
 
-  get(date) {
-    return this._data?.[date] || null;
-  },
-
   /** @returns {Promise<import("../types.js").Result>} */
   async cancel(origDate, reason) {
     if (!this._data) this._data = {};
@@ -40,6 +37,7 @@ export const Adjustments = {
       reason: reason || "",
       savedAt: new Date().toISOString(),
     };
+    Data.adjustments = this._data;
     return await this._write(`plan: ${origDate} ausgefallen${reason ? " (" + reason + ")" : ""}`);
   },
 
@@ -47,6 +45,7 @@ export const Adjustments = {
   async save(origDate, movedTo, reason) {
     if (!this._data) this._data = {};
     this._data[origDate] = { movedTo, reason: reason || "", savedAt: new Date().toISOString() };
+    Data.adjustments = this._data;
     return await this._write(`plan: ${origDate} → ${movedTo}${reason ? " (" + reason + ")" : ""}`);
   },
 
@@ -54,6 +53,7 @@ export const Adjustments = {
   async remove(origDate) {
     if (!this._data?.[origDate]) return { ok: true };
     delete this._data[origDate];
+    Data.adjustments = this._data;
     return await this._write(`plan: Verschiebung ${origDate} rückgängig`);
   },
 
@@ -64,6 +64,11 @@ export const Adjustments = {
 };
 
 export const Planned = {
+  /* Wird von app.js gesetzt: refresht Hero/Wochenrückblick/Analyse
+     nach einer Adjustment-Änderung, ohne dass planned.js überkreuz
+     ui/overview.js bzw. ui/analysis.js importieren muss. */
+  onAdjustmentChange: null,
+
   /* ── Typ → Farbe ───────────────────────────────────────────── */
   _typColor(typ) {
     const map = {
@@ -212,16 +217,7 @@ export const Planned = {
     const today = new Date().toISOString().split("T")[0];
 
     // Sessions mit Adjustments anwenden
-    const allSessions = Data.plannedSessions.map((s) => {
-      const adj = Adjustments.get(s.date);
-      if (adj?.cancelled) {
-        return { ...s, cancelled: true, cancelReason: adj.reason };
-      }
-      if (adj?.movedTo) {
-        return { ...s, originalDate: s.date, date: adj.movedTo, movedReason: adj.reason };
-      }
-      return s;
-    });
+    const allSessions = Data.plannedSessions.map((s) => applyAdjustment(s, Adjustments._data));
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
@@ -626,7 +622,7 @@ export const Planned = {
         ${weatherHtml}
         ${workoutHtml}
         <div class="planned-card-actions">
-          ${hasWorkout ? `<button class="planned-push-btn" data-date="${s.originalDate || s.date}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
+          ${hasWorkout ? `<button class="planned-push-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
           <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}">📅 Verschieben</button>
           <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">❌ Ausgefallen</button>
           <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
@@ -862,6 +858,7 @@ export const Planned = {
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
         Planned.render(Data.byDate());
+        Planned.onAdjustmentChange?.();
       } else {
         statusEl.textContent = `❌ ${result.error?.message || "Fehler — Token korrekt?"}`;
       }
@@ -916,6 +913,7 @@ export const Planned = {
         statusEl.textContent = "✅ Gespeichert";
         // Nicht neu laden — _data ist bereits aktuell im Speicher
         Planned.render(Data.byDate());
+        Planned.onAdjustmentChange?.();
       } else {
         statusEl.textContent = `❌ ${result.error?.message || "Fehler beim Speichern"}`;
       }
@@ -930,6 +928,7 @@ export const Planned = {
     const result = await Adjustments.remove(origDate);
     if (result.ok) {
       Planned.render(Data.byDate());
+      Planned.onAdjustmentChange?.();
     } else {
       btn.textContent = `❌ ${result.error?.message || "Fehler"}`;
       btn.disabled = false;
@@ -938,9 +937,12 @@ export const Planned = {
 
   /* ── Push-Handler ──────────────────────────────────────────── */
   async _handlePush(btn) {
-    const date = btn.dataset.date;
-    const statusEl = el(`push-status-${date}`);
-    const session = Data.plannedSessions.find((s) => s.date === date);
+    const origDate = btn.dataset.orig;
+    const statusEl = el(`push-status-${origDate}`);
+    // Adjustment erneut auflösen statt der rohen plannedSessions-Liste zu
+    // vertrauen — sonst pusht ein verschobenes Workout auf das alte Datum.
+    const raw = Data.plannedSessions.find((s) => s.date === origDate);
+    const session = raw ? applyAdjustment(raw, Adjustments._data) : null;
     if (!session?.workout) return;
 
     // Token aus localStorage (gleicher Mechanismus wie Befinden)

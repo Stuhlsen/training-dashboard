@@ -274,6 +274,24 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
   }
 }
 
+/* ── Nach einer Adjustment-Änderung (verschoben/ausgefallen) im
+   Planungs-Tab: Panels, die plannedSessions+adjustments lesen, ohne
+   vollständigen Reload aktualisieren (Hero-Session-Pill, Wochenrückblick,
+   Analyse-Briefing/Konsistenz). Planned.render() selbst übernimmt
+   ui/planned.js. ── */
+function refreshAfterAdjustment() {
+  if (!hasOwnPlan()) return;
+  const rides = Data.byDate();
+  const todayISO = new Date().toISOString().split("T")[0];
+  Overview.render(rides);
+  renderWeekReview(
+    "weekreview-card",
+    buildWeekReview(rides, Data.plannedSessions, Data.adjustments, todayISO)
+  );
+  Analysis.render(rides);
+}
+Planned.onAdjustmentChange = refreshAfterAdjustment;
+
 /* ── Gesamtes Dashboard rendern (initial + bei Athletenwechsel) ─ */
 async function renderAll(athleteId) {
   el("loading").classList.remove("hidden");

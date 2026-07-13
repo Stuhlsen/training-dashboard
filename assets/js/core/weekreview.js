@@ -6,6 +6,8 @@
    der regelmäßiges Reinschauen belohnt.
    ============================================================ */
 
+import { effectiveSessions } from "./planning.js";
+
 /** Mo–So-Bereich der letzten abgeschlossenen Woche vor todayISO
  *  @param {string} todayISO @returns {{from: string, to: string}} */
 export function lastCompletedWeekRange(todayISO) {
@@ -64,14 +66,9 @@ export function buildWeekReview(rides, plannedSessions, adjustments, todayISO) {
   // Adjustments (ausgefallen raus, verschoben aufs neue Datum) vs. Fahrten
   let plan = null;
   if (plannedSessions?.length) {
-    const adj = adjustments || {};
-    const effective = plannedSessions
-      .map((s) => {
-        const a = adj[s.date];
-        if (a?.cancelled) return null;
-        return a?.movedTo ? { ...s, date: a.movedTo } : s;
-      })
-      .filter((s) => s && s.date >= from && s.date <= to);
+    const effective = effectiveSessions(plannedSessions, adjustments).filter(
+      (s) => s.date >= from && s.date <= to
+    );
     if (effective.length) {
       const doneDates = new Set(wr.map((r) => r.dateISO));
       const done = effective.filter((s) => doneDates.has(s.date)).length;

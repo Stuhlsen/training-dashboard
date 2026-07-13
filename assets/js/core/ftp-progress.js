@@ -4,6 +4,8 @@
    Rein und testbar — Rendering liegt in ui/overview.js.
    ============================================================ */
 
+import { effectiveSessions } from "./planning.js";
+
 /**
  * Segmentgrenzen des FTP-Zonen-Bands, relativ zur Watt-Skala.
  * Zonen (an Coggan angelehnt, vereinfacht auf 5 Bänder):
@@ -75,16 +77,9 @@ export function ringProgress(current, base, goal) {
  */
 export function nextPlannedSession(sessions, adjustments, doneDates, todayISO) {
   const done = doneDates instanceof Set ? doneDates : new Set(doneDates || []);
-  const adj = adjustments || {};
 
-  const effective = (sessions || [])
-    .map((s) => {
-      const a = adj[s.date];
-      if (a?.cancelled) return null;
-      if (a?.movedTo) return { ...s, date: a.movedTo };
-      return s;
-    })
-    .filter((s) => s && s.date >= todayISO && !done.has(s.date))
+  const effective = effectiveSessions(sessions, adjustments)
+    .filter((s) => s.date >= todayISO && !done.has(s.date))
     .sort((a, b) => a.date.localeCompare(b.date));
 
   if (!effective.length) return null;

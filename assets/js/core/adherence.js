@@ -9,6 +9,8 @@
    (eine Woche) auf den gesamten Zeitraum.
    ============================================================ */
 
+import { effectiveSessions } from "./planning.js";
+
 /** Lokales ISO-Datum ohne UTC-Verschiebung @param {Date} d */
 function isoLocal(d) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -101,15 +103,10 @@ export function frequencyTrend(rides, todayISO) {
  */
 export function planAdherence(rides, plannedSessions, adjustments, todayISO) {
   if (!plannedSessions?.length) return null;
-  const adj = adjustments || {};
 
-  const effective = plannedSessions
-    .map((s) => {
-      const a = adj[s.date];
-      if (a?.cancelled) return null;
-      return a?.movedTo ? { ...s, date: a.movedTo } : s;
-    })
-    .filter((s) => s && s.date <= todayISO);
+  const effective = effectiveSessions(plannedSessions, adjustments).filter(
+    (s) => s.date <= todayISO
+  );
   if (!effective.length) return null;
 
   const doneDates = new Set((rides || []).map((r) => r.dateISO || r.date));
