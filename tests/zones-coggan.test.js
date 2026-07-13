@@ -127,3 +127,36 @@ test("last7DayZoneTimes: Index ≥4 wird zu Z5+ zusammengefasst", () => {
   const secs = last7DayZoneTimes(rides, "2026-07-13");
   assert.equal(secs[4], 175);
 });
+
+/* Regression: What-if-Slider-Bug — die Hero-Leistungsskala (ui/overview.js)
+ * rendert Zonenbreiten als (bisW - vonW) / scaleMax. Wird scaleMax bei JEDEM
+ * Slider-Tick erneut aus scaleMaxWatts(whatIfFtp) berechnet (self-relative),
+ * sind die Breiten-Anteile für JEDEN FTP-Wert IDENTISCH (Zone-Grenzen UND
+ * Skalenmax skalieren mit demselben Faktor, kürzt sich exakt heraus) — der
+ * Slider bewegt dann zwar Pins/Zahlen, aber die farbigen Balken bleiben
+ * optisch "eingefroren". Der Fix in ui/overview.js hält scaleMax fest auf
+ * scaleMaxWatts(WHATIF_MAX_FTP) (430, dem Slider-Obergrenze), sodass die
+ * Breiten mit whatIfFtp echt variieren. Dieser Test pinnt genau das fest. */
+test("Regression: Zonenbreiten relativ zu FESTER Skala unterscheiden sich für unterschiedliche Ziel-FTP (What-if-Slider muss die Balken sichtbar verändern)", () => {
+  const WHATIF_MAX_FTP = 430; // muss zum Slider-max in ui/overview.js passen
+  const fixedScale = scaleMaxWatts(WHATIF_MAX_FTP);
+  const relWidths = (ftp) => computeZones(ftp).map((z) => (z.bisW - z.vonW) / fixedScale);
+
+  const at210 = relWidths(210);
+  const at430 = relWidths(WHATIF_MAX_FTP);
+  assert.notDeepEqual(at210, at430);
+  // Z1 füllt bei 210W nur ~22% der festen Skala, bei 430W ~46% — deutlich sichtbarer Unterschied
+  assert.ok(at430[0] - at210[0] > 0.15);
+
+  // Gegenprobe: die alte (fehlerhafte) self-relative Rechnung liefert für
+  // jeden FTP praktisch dieselben Anteile (Rundungsrauschen < 0.5 Prozentpunkte)
+  const relWidthsSelfRelative = (ftp) => computeZones(ftp).map((z) => (z.bisW - z.vonW) / scaleMaxWatts(ftp));
+  const selfAt210 = relWidthsSelfRelative(210);
+  const selfAt430 = relWidthsSelfRelative(WHATIF_MAX_FTP);
+  for (let i = 0; i < selfAt210.length; i++) {
+    assert.ok(Math.abs(selfAt210[i] - selfAt430[i]) < 0.005);
+  }
+
+  // Am Slider-Maximum füllt Zone 5 exakt die feste Skala aus (kein Überlauf möglich)
+  assert.equal(computeZones(WHATIF_MAX_FTP)[4].bisW, fixedScale);
+});

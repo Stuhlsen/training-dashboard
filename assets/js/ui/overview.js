@@ -20,6 +20,22 @@ import { Data } from "../state/data.js";
 import { el } from "./dom.js";
 import { Planned } from "./planned.js";
 
+/* Obergrenze des What-if-Sliders (Ziel-FTP) — siehe _bindWhatIf(). Auch die
+ * Referenzskala der Zonenband-Breiten (WHATIF_SCALE_MAX) hängt fest daran,
+ * siehe Kommentar dort für die Begründung (Regression-Test in
+ * tests/zones-coggan.test.js pinnt genau dieses Verhalten fest). */
+const WHATIF_MAX_FTP = 430;
+// Feste Referenzskala für die Zonenband-Breiten — NICHT bei jedem Slider-Tick
+// aus scaleMaxWatts(whatIfFtp) neu berechnen: Zonen-Grenzen UND Skalenmax
+// skalieren sonst mit demselben Faktor (whatIfFtp), wodurch sich die
+// Breiten-ANTEILE exakt herauskürzen und für jeden FTP-Wert identisch
+// aussehen — der Slider bewegt dann zwar Pins/Zahlen, aber die farbigen
+// Balken selbst bleiben optisch eingefroren (der ursprünglich gemeldete Bug).
+// Mit einer FESTEN Skala (= Z5-Ende beim Slider-Maximum) wachsen/schrumpfen
+// die Balken sichtbar mit whatIfFtp, und da whatIfFtp nie über
+// WHATIF_MAX_FTP hinausgeht, kann Zone 5 die Skala nie überlaufen.
+const WHATIF_SCALE_MAX = scaleMaxWatts(WHATIF_MAX_FTP);
+
 export const Overview = {
   /** Zwischenspeicher für den What-if-Slider (ftpVal/eftpVal/7-Tage-Zeiten
    *  ändern sich nicht während des Sliderziehens — nur einmal pro Render
@@ -51,9 +67,12 @@ export const Overview = {
 
     const descEl = el("hero-desc");
     if (descEl) {
+      // Athlet 2: kein "ohne eigenen Trainingsplan" mehr — fachlich falsch,
+      // da ein Plan noch folgt. Neutrale Formulierung ohne erfundenen
+      // Platzhalter (kein "in Vorbereitung"-Text ohne echte Datenbasis).
       descEl.innerHTML = ownPlan
         ? `Strukturierter Trainingsplan mit Periodisierung über mehrere Blöcke. Daten automatisch aus ${sources}.`
-        : `Vergleichsdaten von <strong>${athleteName}</strong> aus ${sources} — reine Leistungsdaten ohne eigenen Trainingsplan.`;
+        : `Trainingsdaten von <strong>${athleteName}</strong> aus ${sources}.`;
     }
 
     // Phasen-Badge: nur befüllen wenn die letzte Fahrt mit Wochenangabe
@@ -158,8 +177,10 @@ export const Overview = {
 
     const zones = computeZones(whatIfFtp);
     const ss = sweetSpotBand(whatIfFtp);
-    const scaleMax = scaleMaxWatts(whatIfFtp);
-    if (!zones.length || !scaleMax) {
+    // Feste Referenzskala (siehe WHATIF_SCALE_MAX weiter oben) — NICHT aus
+    // whatIfFtp neu berechnen, sonst frieren die Balkenbreiten optisch ein.
+    const scaleMax = WHATIF_SCALE_MAX;
+    if (!zones.length) {
       wrap.innerHTML = "";
       return;
     }
@@ -180,13 +201,20 @@ export const Overview = {
       .join("");
 
     // Sweet-Spot-Overlay (88–94% FTP) — KEIN Segment, sondern ein Akzent-
-    // balken über der Z3/Z4-Naht (core/zones.js::sweetSpotBand).
+    // balken über der Z3/Z4-Naht (core/zones.js::sweetSpotBand), MIT
+    // Beschriftung darüber. Label horizontal an der Bandmitte verankert
+    // (translateX(-50%) in CSS) statt an die Overlay-Breite gebunden, damit
+    // es auch bei einem schmalen Overlay (Slider nahe Skalenminimum) nicht
+    // abgeschnitten wird.
     const ssLeft = pinPercent(ss.vonW, scaleMax);
     const ssRight = pinPercent(ss.bisW, scaleMax);
-    const ssOverlay =
-      ssLeft != null && ssRight != null
-        ? `<div class="ss-overlay" style="left:${ssLeft.toFixed(2)}%; width:${(ssRight - ssLeft).toFixed(2)}%"></div>`
-        : "";
+    let ssOverlay = "";
+    if (ssLeft != null && ssRight != null) {
+      const ssMid = (ssLeft + ssRight) / 2;
+      ssOverlay = `
+        <div class="ss-overlay" style="left:${ssLeft.toFixed(2)}%; width:${(ssRight - ssLeft).toFixed(2)}%"></div>
+        <div class="ss-label" style="left:${ssMid.toFixed(2)}%">Sweet Spot</div>`;
+    }
 
     // Pins: FTP (Ramp-Test/gemessen) immer, eFTP wenn abweichend, Ziel-
     // Marker = der aktuelle What-if-Wert (bewegt sich live mit dem Slider).
@@ -217,11 +245,19 @@ export const Overview = {
       )
       .join("");
 
+    // Z6+-Andeutung sitzt direkt hinter dem tatsächlichen Zone-5-Ende (nicht
+    // mehr am rechten Bandrand fixiert) — bei fester Skala liegt dieses Ende
+    // nicht mehr zwingend bei 100%, siehe WHATIF_SCALE_MAX oben.
+    const z5EndPct = pinPercent(zones[zones.length - 1].bisW, scaleMax);
+    const z6Edge = z5EndPct != null ? `<div class="z6-edge" style="left:${z5EndPct.toFixed(2)}%"></div>` : "";
+
     const mid = Math.round(scaleMax / 2);
+    // +12px Kopfraum für das Sweet-Spot-Label über dem Band (siehe .ss-label
+    // in components.css) — zusätzlich zum bestehenden Pin-Stacking-Abstand.
     const scaleGap = Math.max(47, 39 + maxRow * 15);
     wrap.innerHTML = `
       <div class="zlabel">Leistungsskala · Watt (Hover für Details)</div>
-      <div class="band">${segments}${ssOverlay}<div class="z6-edge"></div>${pinHtml}<div class="zone-tooltip" id="hero-zone-tooltip"></div></div>
+      <div class="band">${segments}${ssOverlay}${z6Edge}${pinHtml}<div class="zone-tooltip" id="hero-zone-tooltip"></div></div>
       <div class="band-labels">${segLabels}</div>
       <div class="band-scale" style="margin-top:${scaleGap}px"><span>0 W</span><span>${mid} W</span><span>${scaleMax} W</span></div>`;
 
@@ -239,7 +275,11 @@ export const Overview = {
       const show = () => {
         const pct = ((z.vonW + z.bisW) / 2 / scaleMax) * 100;
         tooltip.style.left = `${Math.min(96, Math.max(4, pct)).toFixed(2)}%`;
-        tooltip.innerHTML = `<b>${z.label}</b><br>${z.vonW}–${z.bisW} W<br>${secs > 0 ? fmtDuration(secs / 60) : "0:00h"} · letzte 7 Tage`;
+        // z.farbe ist bereits "var(--z1)" etc. (core/zones.js::computeZones)
+        // — als Akzent (Punkt + Wattzahl) übernehmen, damit sofort klar ist,
+        // welche Zone gehovert wird, statt einer grauen Wattzahl.
+        tooltip.style.setProperty("--tt-accent", z.farbe);
+        tooltip.innerHTML = `<b><span class="tt-dot"></span>${z.label}</b><br><span class="tt-watt">${z.vonW}–${z.bisW} W</span><br>${secs > 0 ? fmtDuration(secs / 60) : "0:00h"} · letzte 7 Tage`;
         tooltip.classList.add("visible");
       };
       const hide = () => tooltip.classList.remove("visible");

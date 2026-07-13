@@ -103,7 +103,9 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: var(--dim2);
-  margin-bottom: 12px;
+  /* Erweitert (12px → 28px) für Kopfraum des Sweet-Spot-Labels über dem
+     Band (.ss-label) — sonst kollidiert das Label mit dieser Zeile. */
+  margin-bottom: 28px;
 }
 .zoneband .band {
   position: relative;
@@ -122,7 +124,7 @@
 .zoneband .band span:hover { opacity: 1; cursor: default; }
 
 /* Sweet-Spot-Overlay: KEIN eigenes Segment (siehe core/zones.js), sondern
-   ein schmaler Akzentbalken über der Z3/Z4-Naht des Bands. */
+   ein schmaler Akzentbalken über der Z3/Z4-Naht des Bands, plus Label. */
 .zoneband .ss-overlay {
   position: absolute;
   top: -4px;
@@ -132,12 +134,25 @@
   opacity: 0.85;
   pointer-events: none;
 }
+.zoneband .ss-label {
+  position: absolute;
+  top: -19px;
+  transform: translateX(-50%);
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.03em;
+  color: var(--ss);
+  white-space: nowrap;
+  pointer-events: none;
+}
 
-/* Z6+-Andeutung: schmaler offener Rand rechts, kein volles Segment */
+/* Z6+-Andeutung: schmaler offener Rand direkt hinter dem Zone-5-Ende (per
+   JS positioniert, siehe _renderZoneBand) — kein volles Segment. Bei fester
+   Skala (WHATIF_SCALE_MAX) liegt dieses Ende nicht mehr zwingend am rechten
+   Bandrand, deshalb links-positioniert statt fix rechts. */
 .zoneband .z6-edge {
   position: absolute;
   top: 0;
-  right: 0;
   height: 100%;
   width: 12px;
   background: repeating-linear-gradient(
@@ -147,19 +162,23 @@
     transparent 2px,
     transparent 5px
   );
-  border-radius: 0 var(--pill) var(--pill) 0;
+  border-radius: 2px;
   pointer-events: none;
 }
 
-/* Hover-Tooltip pro Zonen-Segment */
+/* Hover-Tooltip pro Zonen-Segment — heller als Seite/Karte (abgeleitet aus
+   --card-solid) + farblicher Akzent (--tt-accent, per JS aus z.farbe
+   gesetzt) für sofortige Zonen-Zuordnung. */
 .zoneband .zone-tooltip {
+  --tt-accent: var(--text);
   position: absolute;
   bottom: calc(100% + 8px);
   transform: translateX(-50%);
-  background: var(--card-solid, #12151c);
+  background: color-mix(in srgb, var(--card-solid) 100%, white 9%);
   border: 1px solid var(--border-light);
+  border-left: 3px solid var(--tt-accent);
   border-radius: 10px;
-  padding: 7px 11px;
+  padding: 7px 11px 7px 9px;
   font-family: var(--font-mono);
   font-size: 0.68rem;
   color: var(--dim);
@@ -168,10 +187,17 @@
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.15s ease;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
   z-index: 5;
 }
 .zoneband .zone-tooltip.visible { opacity: 1; visibility: visible; }
-.zoneband .zone-tooltip b { color: var(--text); font-weight: 600; }
+.zoneband .zone-tooltip b { color: var(--text); font-weight: 600; display: inline-flex; align-items: center; gap: 6px; }
+.zoneband .zone-tooltip .tt-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--tt-accent);
+  flex-shrink: 0;
+}
+.zoneband .zone-tooltip .tt-watt { color: var(--tt-accent); font-weight: 600; }
 .zoneband .band-labels {
   display: flex;
   margin-top: 3px;
