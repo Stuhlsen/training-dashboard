@@ -2791,10 +2791,10 @@
       "dateISO": "2026-06-25"
     },
     {
-      "name": "Radfahren",
+      "name": "Z2 Lang",
       "week": "P2-W0",
       "phase": "Übergang",
-      "typ": "Z2 Dauer",
+      "typ": "Z2 Lang",
       "plan": "Plan 2",
       "date": "2026-06-28",
       "startTime": "2026-06-28T04:55:10",
@@ -3211,10 +3211,10 @@
       "dateISO": "2026-07-03"
     },
     {
-      "name": "MyWhoosh - Ardennes",
+      "name": "Z2 Lang",
       "week": "P2-W1",
       "phase": "Sweet Spot",
-      "typ": "Z2 Dauer",
+      "typ": "Z2 Lang",
       "plan": "Plan 2",
       "date": "2026-07-05",
       "startTime": "2026-07-05T16:37:16",
@@ -3295,10 +3295,10 @@
       "dateISO": "2026-07-05"
     },
     {
-      "name": "Gruppenfahrt",
+      "name": "Sweet Spot 3×12 min",
       "week": "P2-W2",
       "phase": "Sweet Spot",
-      "typ": "Gruppenfahrt",
+      "typ": "Sweet Spot",
       "plan": "Plan 2",
       "date": "2026-07-07",
       "startTime": "2026-07-07T18:32:52",
@@ -3379,7 +3379,7 @@
       "dateISO": "2026-07-07"
     },
     {
-      "name": "Sweet Spot 3×12 min",
+      "name": "Radfahren",
       "week": "P2-W2",
       "phase": "Sweet Spot",
       "typ": "Sweet Spot",
@@ -3547,10 +3547,10 @@
       "dateISO": "2026-07-10"
     },
     {
-      "name": "Radfahren",
+      "name": "SS-Ausdauer 3×15 min",
       "week": "P2-W2",
       "phase": "Sweet Spot",
-      "typ": "Z2 Dauer",
+      "typ": "Sweet Spot",
       "plan": "Plan 2",
       "date": "2026-07-12",
       "startTime": "2026-07-12T14:54:22",
@@ -3631,10 +3631,10 @@
       "dateISO": "2026-07-12"
     },
     {
-      "name": "Gruppenfahrt",
+      "name": "Sweet Spot 2×20 min",
       "week": "P2-W3",
       "phase": "Sweet Spot",
-      "typ": "Gruppenfahrt",
+      "typ": "Sweet Spot",
       "plan": "Plan 2",
       "date": "2026-07-14",
       "startTime": "2026-07-14T18:25:30",
@@ -10048,7 +10048,7 @@
       "windSpeed": 4.5,
       "windDir": 107,
       "precipProb": 13,
-      "weatherCode": 2,
+      "weatherCode": 1,
       "uvMax": 6.3
     },
     "2026-07-28": {
@@ -10058,7 +10058,7 @@
       "windSpeed": 12.9,
       "windDir": 126,
       "precipProb": 0,
-      "weatherCode": 0,
+      "weatherCode": 3,
       "uvMax": 6.5
     },
     "2026-07-29": {
@@ -10076,7 +10076,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-14T17:41:17.041Z",
+  "updated": "2026-07-14T19:04:06.457Z",
   "source": "notion+intervals",
   "count": 70
 }
