@@ -53,7 +53,7 @@ import {
 
 requireEnv(["NOTION_KEY", "DB_ID"]);
 
-const ATHLETE_2_NAME = "Athlet 2"; // Anzeigename — keine Klarnamen (Datenschutz)
+const ATHLETE_2_NAME = "hc_diZee"; // Anzeigename (Pseudonym) — keine Klarnamen (Datenschutz)
 const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
 
 async function main() {

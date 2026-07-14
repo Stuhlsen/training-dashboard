@@ -3,7 +3,8 @@
    Hier anpassen wenn sich Werte ändern — kein Suchen im Code
 
    Datenschutz: Keine echten Namen — Athleten heißen intern
-   athlete1/athlete2 und in der UI "Athlet 1"/"Athlet 2".
+   athlete1/athlete2 und in der UI unter ihren selbstgewählten
+   Pseudonymen (GitHub-Handles) "Stuhlsen"/"hc_diZee" (athletes[].name).
    ============================================================ */
 
 export const CONFIG = {
@@ -114,7 +115,9 @@ export const CONFIG = {
   cacheMinutes: 5,
 
   /* ── Athleten (für Vergleichs-Toggle) ───────────────────────── */
-  // Keine Klarnamen (Datenschutz-Konvention, siehe AGENTS.md).
+  // Keine Klarnamen (Datenschutz-Konvention, siehe AGENTS.md) — name ist
+  // das selbstgewählte Pseudonym (GitHub-Handle) und die einzige Stelle,
+  // von der alle UI-Komponenten den Anzeigenamen lesen.
   // Anzeigenamen hier bei Bedarf anpassen — IDs bleiben athlete1/athlete2.
   primaryAthleteId: "athlete1",
   // FTP-Dreiklang pro Athlet (Analyse-Tab, Leistungsdiagnostik):
@@ -125,7 +128,7 @@ export const CONFIG = {
   athletes: [
     {
       id: "athlete1",
-      name: "Athlet 1",
+      name: "Stuhlsen",
       endpoint: "./data/rides.json",
       ftpMeasured: 193,
       ftpMeasuredDate: "2026-06-12",
@@ -138,7 +141,7 @@ export const CONFIG = {
     },
     {
       id: "athlete2",
-      name: "Athlet 2",
+      name: "hc_diZee",
       endpoint: "./data/rides-2.json",
       ftpMeasured: 265,
       ftpMeasuredDate: "2026-06-24",

@@ -239,8 +239,10 @@ Diese beiden Felder sind unabhängig von den globalen Singletons `CONFIG.ftpBase
 Chart bzw. Leistungsdiagnostik genutzt) — bewusst nicht zusammengeführt, um diese
 bestehenden Features nicht anzufassen.
 
-Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen "Athlet 1"/"Athlet 2"
-(anpassbar in `state/config.js` → `athletes[].name`). Athleten-Toggle persistent via
+Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen sind die selbstgewählten
+Pseudonyme (GitHub-Handles) "Stuhlsen"/"hc_diZee" (einzige Quelle: `state/config.js`
+→ `athletes[].name`, von dort lesen alle UI-Komponenten — nicht hartkodiert
+duplizieren). Athleten-Toggle persistent via
 `localStorage("active_athlete")`; unbekannte/alte IDs werden beim Start verworfen
 (Fallback auf `CONFIG.primaryAthleteId`).
 Bei Athlet 2: Planungs-Tab read-only sichtbar (kein Verschieben/Ausfallen/Wahoo-
@@ -302,7 +304,8 @@ Tokens in `assets/css/main.css` (Namen stabil halten — Chart-JS spiegelt sie):
 - Ausschließlich über GitHub Secrets: WEATHER_LAT, WEATHER_LON, WEATHER_LAT_2, WEATHER_LON_2
 - Wetter-Forecast wird serverseitig in der Action berechnet → nur Wetterwerte in rides.json
 - Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder Commit-Messages —
-  intern `athlete1`/`athlete2`, in der UI "Athlet 1"/"Athlet 2"
+  intern `athlete1`/`athlete2`, in der UI die selbstgewählten Pseudonyme
+  (GitHub-Handles) "Stuhlsen"/"hc_diZee" (`state/config.js` → `athletes[].name`)
 
 **Git-Workflow:**
 ```powershell
