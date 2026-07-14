@@ -38,6 +38,8 @@ import { Planned } from "./ui/planned.js";
 import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
+import { initSession } from "./state/session.js";
+import "./ui/header.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
 function initAthleteToggle() {
@@ -489,6 +491,8 @@ async function renderAll(athleteId) {
 
   initAthleteToggle();
   await renderAll(validAthlete ? savedAthlete : null);
+
+  initSession();
 
   // Tab aus URL-Hash aktivieren — NACH allem Rendering damit nichts überschrieben wird
   const hash = location.hash.replace("#", "");
