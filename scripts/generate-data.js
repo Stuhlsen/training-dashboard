@@ -97,9 +97,18 @@ async function main() {
     powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
 
     // Power-Curve-Blockvergleich: eigene Kurve je Trainingsblock
-    // (Plan 1 + Plan-2-Phasenblöcke, sobald begonnen — max. 4 Zusatz-Calls)
+    // (Plan 1 + Plan-2-Phasenblöcke, sobald begonnen — max. 4 Zusatz-Calls).
+    // `curves=r.<von>.<bis>` ist zwingend: ohne diesen Range-Spezifizierer
+    // ignoriert intervals.icu `oldest` und liefert das "1y"-Preset ab
+    // `newest` — dann wäre jeder Block praktisch identisch zur Gesamtkurve.
     for (const block of getPlan2Blocks(today)) {
-      const curve = await getIntervalsPowerCurves(block.from, block.to);
+      const curve = await getIntervalsPowerCurves(
+        block.from,
+        block.to,
+        ENV.INTERVALS_KEY,
+        ENV.INTERVALS_ATHLETE,
+        `r.${block.from}.${block.to}`
+      );
       if (curve) powerCurveBlocks.push({ ...block, curve });
     }
     log.info(`✅ Power-Curve-Blöcke: ${powerCurveBlocks.length}`);
