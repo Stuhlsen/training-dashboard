@@ -1,5 +1,7 @@
 import { supabase } from "./client.js";
 
+const NOT_CONFIGURED = "Supabase nicht konfiguriert";
+
 function toGoal(row) {
   return {
     id: row.id,
@@ -12,6 +14,7 @@ function toGoal(row) {
 }
 
 export async function getGoals(athleteId) {
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from("goals")
     .select("id, kind, target_value, target_date, note, is_active")
@@ -23,6 +26,7 @@ export async function getGoals(athleteId) {
 }
 
 export async function saveGoal(athleteId, goal) {
+  if (!supabase) return { id: null, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from("goals")
     .insert({
@@ -39,6 +43,7 @@ export async function saveGoal(athleteId, goal) {
 }
 
 export async function deactivateGoal(goalId) {
+  if (!supabase) return { error: NOT_CONFIGURED };
   const { error } = await supabase.from("goals").update({ is_active: false }).eq("id", goalId);
   if (error) return { error: error.message };
   return { error: null };

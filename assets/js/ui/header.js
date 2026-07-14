@@ -1,4 +1,4 @@
-import { getSession, onSessionChange, signOut } from "../state/session.js";
+import { getSession, onSessionChange, signOut, isSupabaseConfigured } from "../state/session.js";
 import { openModal } from "./auth-modal.js";
 import { openPanel } from "./settings-panel.js";
 import { el } from "./dom.js";
@@ -58,6 +58,12 @@ function renderLoggedIn(wrap, user) {
 function render(user) {
   const wrap = el("topbar-auth");
   if (!wrap) return;
+  // Kein Supabase-Host (z.B. dashboard-prod vor Phase-1-Merge) → Auth-UI
+  // bleibt unsichtbar statt einen dauerhaft fehlschlagenden Login anzubieten.
+  if (!isSupabaseConfigured) {
+    wrap.innerHTML = "";
+    return;
+  }
   if (user) renderLoggedIn(wrap, user);
   else renderLoggedOut(wrap);
 }

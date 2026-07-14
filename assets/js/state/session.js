@@ -4,6 +4,9 @@ import {
   updateDisplayName as updateDisplayNameAdapter,
   updateWellbeingPublic as updateWellbeingPublicAdapter,
 } from "../data-access/supabase/profiles.js";
+import { isSupabaseConfigured } from "../data-access/supabase/client.js";
+
+export { isSupabaseConfigured };
 
 let currentUser = null;
 const listeners = new Set();
@@ -12,8 +15,11 @@ function notify() {
   for (const fn of listeners) fn(currentUser);
 }
 
-/** Registriert onAuthChange, lädt bei Login das Profil, hält currentUser aktuell */
+/** Registriert onAuthChange, lädt bei Login das Profil, hält currentUser aktuell.
+ *  No-op wenn der Host keine Supabase-Config hat (z.B. dashboard-prod vor
+ *  Phase-1-Merge) — Auth-UI bleibt dann inaktiv, Rest des Dashboards läuft normal. */
 export function initSession() {
+  if (!isSupabaseConfigured) return;
   onAuthChange(async (session) => {
     if (!session?.user) {
       currentUser = null;

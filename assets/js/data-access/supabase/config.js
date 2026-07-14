@@ -13,16 +13,16 @@
   }
 };
 
+/** Liefert die Supabase-Config für den aktuellen Hostname, oder null wenn
+ *  der Host unbekannt ist oder die Config (noch) leere Platzhalter hat
+ *  (z.B. dashboard-prod vor Phase-1-Merge) — Aufrufer degradieren dann
+ *  graceful statt zu crashen (s. client.js). */
 export function getConfig() {
   const host = window.location.hostname;
   const port = window.location.port ? `:${window.location.port}` : '';
   const fullHost = port ? `${host}${port}` : host;
 
-  if (SUPABASE_CONFIG[fullHost]) return SUPABASE_CONFIG[fullHost];
-  if (SUPABASE_CONFIG[host])     return SUPABASE_CONFIG[host];
-
-  throw new Error(
-    `[Supabase] Hostname "${fullHost}" nicht bekannt. ` +
-    `Erwartet: ${Object.keys(SUPABASE_CONFIG).join(', ')}`
-  );
+  const cfg = SUPABASE_CONFIG[fullHost] || SUPABASE_CONFIG[host];
+  if (!cfg || !cfg.projectUrl || !cfg.anonKey) return null;
+  return cfg;
 }
