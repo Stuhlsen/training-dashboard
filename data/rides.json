@@ -9814,6 +9814,11 @@
       "movedTo": "2026-07-12",
       "reason": "",
       "savedAt": "2026-07-13T17:08:04.098Z"
+    },
+    "2026-07-14": {
+      "movedTo": "2026-07-16",
+      "reason": "Regen",
+      "savedAt": "2026-07-14T14:49:30.634Z"
     }
   },
   "forecast": {
@@ -9982,7 +9987,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-14T13:55:16.367Z",
+  "updated": "2026-07-14T14:49:48.934Z",
   "source": "notion+intervals",
   "count": 69
 }
