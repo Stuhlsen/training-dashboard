@@ -356,6 +356,39 @@ Pflicht für jedes Chart mit variabler Datenmenge:
 - Wert-Labels auf Balken bei Pitch < ~22px nur auf den Label-Indizes zeichnen;
   In-Balken-Labels zusätzlich per Balkenbreite gaten (siehe Wetter-Chart).
 - Keine "Modulo-Step + letzter immer"-Guards mehr — die erzeugen End-Kollisionen.
+- Segment-/Phasen-Labels an Divider-Linien (z. B. "Plan 1"/"Übergang"/
+  "Plan 2" im HRV/RHF-Chart) zentriert im eigenen Segment zeichnen, nie an
+  den Rändern der Divider-Linie (zwei benachbarte Rand-Labels kollidieren,
+  sobald ein Segment schmal wird — z. B. eine kurze Übergangswoche). Vor
+  dem Zeichnen mit `fitsLabel(spanPx, text)` aus ui/charts/base.js prüfen
+  (pure, getestet in tests/chart-layout.test.js) und das Label bei zu
+  wenig Platz weglassen statt überlappend zu zeichnen. Bisher nur im HRV/
+  RHF-Chart (wellness.js) umgesetzt — power.js/pmc.js/training.js zeichnen
+  ihre "Plan 1"/"Plan 2"-Divider-Labels noch nach dem alten Rand-Muster;
+  bei Berührung dieser Charts auf dasselbe schmale-Segment-Risiko prüfen
+  und ggf. auf `fitsLabel`/das segmentLabel-Muster umstellen.
+- Mehrzeilige SVG-Texte (z. B. per `wrapText()`) grundsätzlich gegen die
+  viewBox-Höhe absichern — der SVG-Root clippt Inhalt außerhalb der
+  viewBox standardmäßig, eine zu tief platzierte zweite Zeile ist dann
+  unsichtbar statt nur falsch positioniert. Ein Filter wie
+  `lines.filter((_, i) => y(i) <= H - 4)` ist nur dann wirklich dynamisch,
+  wenn `y(i)` unabhängig von einer Konstante prüfbar bleibt — bei fixer
+  Chart-Höhe (`H` lokal hartkodiert) kann so ein Filter unbemerkt zu einem
+  festen Zeilenlimit degenerieren. Einfacher und ehrlicher: wenn ohnehin
+  nur eine Zeile Platz hat (wie im HRV/RHF-Hinweis), explizit nur die
+  erste `wrapText()`-Zeile zeichnen statt mit einer Pseudo-Dynamik zu tun,
+  als würde mehr passen.
+
+## Datumsformat (Charts)
+
+Einheitlich **DD.MM** für Achsen-/Label-Text (`fmtDate(iso)`, core/format.js)
+und **DD.MM.JJJJ** für Tooltips, wo das Jahr zur Eindeutigkeit gebraucht wird
+(`fmtDateFull(iso)`, core/format.js) — DD.MM ist die Mehrheitskonvention im
+restlichen Dashboard (Fahrtenbuch, `normalizeRide`/`normalizeWellness`).
+Datums-Achsenlabels ausschließlich über `xLabel()` aus ui/charts/base.js
+zeichnen (font-size 10, zentriert) statt eigener `<text>`-Elemente — das
+hält Schriftgröße/-schnitt über alle Chart-Komponenten konsistent. Kein
+Chart-Modul soll `iso.split("-")`/`iso.slice(5)` selbst zusammensetzen.
 
 ## Chart-Merge-Konvention
 
@@ -380,6 +413,16 @@ Athleten-Varianten!) gesetzt.
   nicht aus Ride-Objekten (nur wenige Fahrten mit Distanz erfasst)
 - Athlet 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
   distanzlose/unklassifizierte Aktivitäten werden bewusst ausgeschlossen
+- intervals.icu `/power-curves`: `oldest`/`newest` allein grenzen die
+  Kurve NICHT auf den Zeitraum ein — ohne `curves`-Parameter liefert die
+  API ein Preset (beobachtet: `id: "1y"`, ein Jahr rückwärts ab `newest`,
+  `oldest` wird ignoriert). Für eine zeitraumgebundene Kurve (Power-Curve-
+  Blockvergleich, `getPlan2Blocks()`) ist `curves=r.<von>.<bis>` (intervals.icu-
+  Range-Spezifizierer) zwingend, s. `powerCurveQuery()` in
+  scripts/lib/intervals.js. Ohne diesen Parameter sind alle Blockkurven
+  praktisch identisch zur Gesamtkurve (nur der Anker-Zeitpunkt unterscheidet
+  sich) — der Blöcke-Toggle im Power-Curve-Chart zeigt dann keine sinnvoll
+  unterscheidbaren Kurven.
 - Race Condition möglich: Frontend committed direkt (Befinden-Speichern in
   ui/table.js) während der Sync-Workflow läuft → Push kann mit
   `non-fast-forward` fehlschlagen. sync-data.yml pusht daher mit
