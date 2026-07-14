@@ -21,14 +21,20 @@ export function onAuthChange(callback) {
   const {
     data: { subscription },
   } = supabase.auth.onAuthStateChange(async (_event, session) => {
-    // supabase-js aktualisiert den intern für REST-Requests genutzten
-    // Auth-Header offenbar erst NACH dem SIGNED_IN-Event, nicht davor —
-    // ein sofortiger Folge-Request im Callback (z.B. getProfile direkt
-    // nach dem Login) lief dadurch beobachtet noch mit anon-Rechten
-    // raus (403, kein Authorization-Header). getSession() (rein lesend,
-    // löst selbst keinen neuen Auth-Event aus, im Unterschied zu
-    // setSession()) abwarten gibt dem internen Sync die nötige Zeit.
-    if (session) await supabase.auth.getSession();
+    // Ein einzelnes getSession() reichte nicht (weiterhin 403 ohne
+    // Authorization-Header auf den ersten Folge-Request nach SIGNED_IN,
+    // s. Commit 92a61bc) — bis zu 3 Versuche mit 50ms Pause, bis
+    // getSession() einen Access-Token zurückgibt. Kein Endlos-Warten:
+    // nach 3 Versuchen läuft der Callback so oder so weiter.
+    if (session) {
+      let attempt = 0;
+      let synced = null;
+      while (attempt < 3 && !synced?.access_token) {
+        synced = (await supabase.auth.getSession()).data.session;
+        if (!synced?.access_token) await new Promise((r) => setTimeout(r, 50));
+        attempt++;
+      }
+    }
     callback(session);
   });
   return subscription;
