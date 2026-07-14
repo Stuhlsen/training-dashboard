@@ -33,5 +33,10 @@
     "movedTo": "2026-07-16",
     "reason": "Regen",
     "savedAt": "2026-07-14T14:49:30.634Z"
+  },
+  "2026-07-16": {
+    "movedTo": "2026-07-14",
+    "reason": "Tausch mit Gruppenfahrt",
+    "savedAt": "2026-07-14T14:52:04.781Z"
   }
 }
