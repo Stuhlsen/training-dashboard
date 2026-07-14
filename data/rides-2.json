@@ -1929,10 +1929,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Medellin City",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-02-14",
       "startTime": "2026-02-14T14:26:57",
@@ -2334,10 +2334,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Hudayriyat",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-02-19",
       "startTime": "2026-02-19T18:33:55",
@@ -4602,10 +4602,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - The Sprinter's Paradise",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-04-07",
       "startTime": "2026-04-07T15:36:01",
@@ -4845,10 +4845,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Mompox City",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-04-14",
       "startTime": "2026-04-14T15:37:27",
@@ -5169,10 +5169,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Old Town Sprint",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-04-21",
       "startTime": "2026-04-21T15:33:18",
@@ -6141,10 +6141,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Silent Dunes",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-05-12",
       "startTime": "2026-05-12T15:26:01",
@@ -6384,10 +6384,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Valley of Tombs",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-05-19",
       "startTime": "2026-05-19T15:28:01",
@@ -7113,10 +7113,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-06-02",
       "startTime": "2026-06-02T15:37:27",
@@ -7842,10 +7842,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-06-16",
       "startTime": "2026-06-16T15:32:54",
@@ -8814,10 +8814,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-06-30",
       "startTime": "2026-06-30T15:39:08",
@@ -9138,10 +9138,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh längeres Rennen",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-07-04",
       "startTime": "2026-07-04T13:50:35",
@@ -9705,10 +9705,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh längeres Rennen",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-07-11",
       "startTime": "2026-07-11T13:58:04",
@@ -9948,10 +9948,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit",
+      "name": "Ausrollen",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Ausrollen",
       "plan": "Vergleich",
       "date": "2026-07-14",
       "startTime": "2026-07-14T15:33:44",
@@ -15783,7 +15783,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-14T17:41:19.768Z",
+  "updated": "2026-07-14T18:54:43.078Z",
   "source": "intervals.icu",
   "count": 126
 }
