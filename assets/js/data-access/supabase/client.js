@@ -8,4 +8,8 @@ const config = getConfig();
  *  Import-Graph beim Modul-Laden crashen zu lassen. */
 export const isSupabaseConfigured = !!config;
 
-export const supabase = config ? createClient(config.projectUrl, config.anonKey) : null;
+export const supabase = config
+  ? createClient(config.projectUrl, config.anonKey, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true },
+    })
+  : null;
