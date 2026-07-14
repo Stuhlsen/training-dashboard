@@ -52,6 +52,14 @@ function isAvailable(id) {
   }
 }
 
+/** Zählt leere Charts aus denselben Verfügbarkeits-Flags, die apply() auch
+ *  für die chart-empty-Klasse verwendet — reine Funktion (kein DOM), damit
+ *  Button-Badge und Ausblend-Logik nie auseinanderlaufen können.
+ *  @param {boolean[]} availableFlags @returns {number} */
+export function countEmpty(availableFlags) {
+  return availableFlags.filter((available) => !available).length;
+}
+
 export const ChartVisibility = {
   showEmpty: false,
 
@@ -64,18 +72,21 @@ export const ChartVisibility = {
       this.showEmpty = !this.showEmpty;
       btn.classList.toggle("active", this.showEmpty);
       btn.setAttribute("aria-pressed", String(this.showEmpty));
-      btn.textContent = this.showEmpty ? "Leere Charts ausblenden" : "Leere Charts einblenden";
+      const label = el("toggle-empty-charts-label");
+      if (label) label.textContent = this.showEmpty ? "Leere Charts ausblenden" : "Leere Charts einblenden";
       this.apply();
     });
   },
 
   /** Sichtbarkeit auf alle Charts/Kategorien anwenden (nach jedem Render) */
   apply() {
+    const flags = [];
     document.querySelectorAll("#tab-charts .chart-group").forEach((group) => {
       let anyVisible = false;
       group.querySelectorAll(".chart-box").forEach((box) => {
         const svg = box.querySelector("svg.chart");
         const available = svg ? isAvailable(svg.id) : true;
+        flags.push(available);
         box.classList.toggle("chart-empty", !available);
         const visible = available || this.showEmpty;
         box.classList.toggle("hidden", !visible);
@@ -84,6 +95,15 @@ export const ChartVisibility = {
       });
       group.classList.toggle("hidden", !anyVisible);
     });
+    this._updateBadge(countEmpty(flags));
+  },
+
+  /** Badge neben dem Umschalter auf die aktuelle Anzahl leerer Charts setzen */
+  _updateBadge(count) {
+    const badge = el("toggle-empty-charts-badge");
+    if (!badge) return;
+    badge.textContent = String(count);
+    badge.dataset.zero = String(count === 0);
   },
 
   /** Platzhalter-Hinweis in leeren, aber sichtbaren Boxen ein-/ausblenden */
