@@ -20,5 +20,7 @@ export async function saveGoal(goal) {
 }
 
 export async function deactivateGoal(goalId) {
+  const user = getSession();
+  if (!user) return { error: "Nicht eingeloggt" };
   return deactivateGoalAdapter(goalId);
 }
