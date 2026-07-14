@@ -10048,7 +10048,7 @@
       "windSpeed": 4.5,
       "windDir": 107,
       "precipProb": 13,
-      "weatherCode": 2,
+      "weatherCode": 1,
       "uvMax": 6.3
     },
     "2026-07-28": {
@@ -10058,7 +10058,7 @@
       "windSpeed": 12.9,
       "windDir": 126,
       "precipProb": 0,
-      "weatherCode": 0,
+      "weatherCode": 3,
       "uvMax": 6.5
     },
     "2026-07-29": {
@@ -10076,7 +10076,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-14T18:56:27.485Z",
+  "updated": "2026-07-14T19:04:06.457Z",
   "source": "notion+intervals",
   "count": 70
 }
