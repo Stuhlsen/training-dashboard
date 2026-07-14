@@ -1,5 +1,5 @@
 {
-  "athleteName": "Athlet 2",
+  "athleteName": "hc_diZee",
   "ftp": 265,
   "rides": [
     {
@@ -7113,10 +7113,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Ride",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-02",
       "startTime": "2026-06-02T15:37:27",
@@ -7194,10 +7194,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit Racing",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Sweet Spot",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-02",
       "startTime": "2026-06-02T15:01:20",
@@ -7275,10 +7275,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Ausdauer auf HF 125-145",
+      "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-06-03",
       "startTime": "2026-06-03T12:00:06",
@@ -7356,10 +7356,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Sweetspot Train W4",
+      "name": "Sweetspot 2×15 Min",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Sweet Spot",
       "plan": "Vergleich",
       "date": "2026-06-04",
       "startTime": "2026-06-04T11:15:33",
@@ -7437,10 +7437,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Brussels Town Square",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-06-06",
       "startTime": "2026-06-06T14:06:04",
@@ -7518,10 +7518,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Road Race",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Tempo",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-06-06",
       "startTime": "2026-06-06T13:01:17",
@@ -7599,10 +7599,10 @@
       "notizen": null
     },
     {
-      "name": "Morning Ride",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Z2 Lang",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-09",
       "startTime": "2026-06-09T11:24:09",
@@ -7680,10 +7680,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Bruges",
+      "name": "Sweetspot 3×12 Min",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Sweet Spot",
       "plan": "Vergleich",
       "date": "2026-06-11",
       "startTime": "2026-06-11T08:53:55",
@@ -7761,10 +7761,10 @@
       "notizen": null
     },
     {
-      "name": "Morning Ride",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Z2 Lang",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-06-13",
       "startTime": "2026-06-13T10:20:21",
@@ -7842,10 +7842,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Old Town Sprint",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-16",
       "startTime": "2026-06-16T15:32:54",
@@ -7923,10 +7923,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit Racing",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Schwelle",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-16",
       "startTime": "2026-06-16T15:01:03",
@@ -8004,10 +8004,10 @@
       "notizen": null
     },
     {
-      "name": "Fahrt am Nachmittag",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-16",
       "startTime": "2026-06-16T13:54:53",
@@ -8085,10 +8085,10 @@
       "notizen": null
     },
     {
-      "name": "Morning Ride",
+      "name": "Z2 Rolle (vor Abfahrt)",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-06-17",
       "startTime": "2026-06-17T10:19:44",
@@ -8166,10 +8166,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Bruges",
+      "name": "NLS6 Renntag",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "NLS",
       "plan": "Vergleich",
       "date": "2026-06-18",
       "startTime": "2026-06-18T10:54:56",
@@ -8247,10 +8247,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Bruges",
+      "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-06-24",
       "startTime": "2026-06-24T16:08:10",
@@ -8328,10 +8328,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Bruges",
+      "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "FTP-Test",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-06-24",
       "startTime": "2026-06-24T15:42:46",
@@ -8409,10 +8409,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Bruges",
+      "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-06-24",
       "startTime": "2026-06-24T15:30:45",
@@ -8490,10 +8490,10 @@
       "notizen": null
     },
     {
-      "name": "Morning Ride",
+      "name": "Threshold 2×10 Min",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Schwelle",
       "plan": "Vergleich",
       "date": "2026-06-25",
       "startTime": "2026-06-25T07:45:20",
@@ -8571,10 +8571,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Brussels Town Square",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-06-27",
       "startTime": "2026-06-27T18:18:34",
@@ -8652,10 +8652,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Road Race",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-06-27",
       "startTime": "2026-06-27T17:02:39",
@@ -8733,10 +8733,10 @@
       "notizen": null
     },
     {
-      "name": "Evening Ride",
+      "name": "Z2 outdoor",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-06-28",
       "startTime": "2026-06-28T19:42:48",
@@ -8814,10 +8814,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Al Wathba-S",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-30",
       "startTime": "2026-06-30T15:39:08",
@@ -8895,10 +8895,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit Racing",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Sweet Spot",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-06-30",
       "startTime": "2026-06-30T15:01:27",
@@ -8976,10 +8976,10 @@
       "notizen": null
     },
     {
-      "name": "Afternoon Ride",
+      "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2 Lang",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-07-01",
       "startTime": "2026-07-01T15:40:40",
@@ -9057,10 +9057,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Over-Under 3x8 Min - hc_diZee",
+      "name": "Over-Under 3×8 Min",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Schwelle",
       "plan": "Vergleich",
       "date": "2026-07-02",
       "startTime": "2026-07-02T11:58:00",
@@ -9138,10 +9138,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Brussels Town Square",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-07-04",
       "startTime": "2026-07-04T13:50:35",
@@ -9219,10 +9219,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Road Race",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Sweet Spot",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-07-04",
       "startTime": "2026-07-04T13:00:28",
@@ -9300,10 +9300,10 @@
       "notizen": null
     },
     {
-      "name": "Zone2 Revovery",
+      "name": "Z2 outdoor",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-07-05",
       "startTime": "2026-07-05T11:04:36",
@@ -9381,10 +9381,10 @@
       "notizen": null
     },
     {
-      "name": "Zone 2 Recovery",
+      "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "VO2max",
       "plan": "Vergleich",
       "date": "2026-07-07",
       "startTime": "2026-07-07T16:45:59",
@@ -9462,10 +9462,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Bruges",
+      "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-07-08",
       "startTime": "2026-07-08T16:11:43",
@@ -9543,10 +9543,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Crit Racing",
+      "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "FTP-Test",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-07-08",
       "startTime": "2026-07-08T15:45:36",
@@ -9624,10 +9624,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Over-Under 3x10 Min - hc_diZee KW28",
+      "name": "Over-Under 3×10 Min",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Schwelle",
       "plan": "Vergleich",
       "date": "2026-07-09",
       "startTime": "2026-07-09T11:10:50",
@@ -9705,10 +9705,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh - Brussels Town Square",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-07-11",
       "startTime": "2026-07-11T13:58:04",
@@ -9786,10 +9786,10 @@
       "notizen": null
     },
     {
-      "name": "MyWhoosh Road Race",
+      "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Sweet Spot",
+      "typ": "Rennen",
       "plan": "Vergleich",
       "date": "2026-07-11",
       "startTime": "2026-07-11T13:01:35",
@@ -9867,10 +9867,10 @@
       "notizen": null
     },
     {
-      "name": "Zone 2 Recovery (muss los)",
+      "name": "Z2 outdoor",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Z2",
       "plan": "Vergleich",
       "date": "2026-07-12",
       "startTime": "2026-07-12T20:36:23",
@@ -12846,9 +12846,24 @@
     },
     {
       "date": "2026-07-13",
-      "sleepHours": 8.4,
+      "sleepHours": 8.5,
       "avgSleepingHR": 52,
-      "restingHR": 49,
+      "restingHR": 50,
+      "hrv": 35,
+      "weight": 93.5,
+      "bodyFat": null,
+      "activeEnergy": 259,
+      "restingEnergy": null,
+      "kcalConsumed": 2934,
+      "hydration": null,
+      "hydrationVolume": 1.31,
+      "eftp": 261
+    },
+    {
+      "date": "2026-07-14",
+      "sleepHours": 8.8,
+      "avgSleepingHR": null,
+      "restingHR": 48,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -12860,14 +12875,21 @@
       "eftp": 261
     }
   ],
+  "wellnessMeta": {
+    "lastUpdated": {
+      "hrv": "2026-07-13",
+      "restingHR": "2026-07-14",
+      "sleepHours": "2026-07-14"
+    }
+  },
   "powerCurves": {
     "list": [
       {
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-13T00:00:00",
-        "end_date_local": "2026-07-13T23:59:59",
+        "start_date_local": "2025-07-14T00:00:00",
+        "end_date_local": "2026-07-14T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -14771,7 +14793,824 @@
     }
   },
   "athleteWeight": 93.5,
-  "updated": "2026-07-13T16:33:41.928Z",
+  "plannedSessions": [
+    {
+      "date": "2026-06-01",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW23",
+      "phase": "Basis"
+    },
+    {
+      "date": "2026-06-02",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW23",
+      "phase": "Basis",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-06-03",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW23",
+      "phase": "Basis",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-06-04",
+      "name": "Sweetspot 2×15 Min",
+      "typ": "Sweet Spot",
+      "week": "KW23",
+      "phase": "Basis",
+      "workout": {
+        "warmup": 15,
+        "intervals": 2,
+        "duration": 15,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "SS",
+        "watts": [
+          232,
+          245
+        ],
+        "label": "2×15 Min @ SS (232–245W)"
+      }
+    },
+    {
+      "date": "2026-06-05",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW23",
+      "phase": "Basis"
+    },
+    {
+      "date": "2026-06-06",
+      "name": "MyWhoosh längeres Rennen",
+      "typ": "Rennen",
+      "week": "KW23",
+      "phase": "Basis",
+      "details": "60–75 Min · Z3/Z4 · 207–245W"
+    },
+    {
+      "date": "2026-06-07",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW23",
+      "phase": "Basis",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-06-08",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW24",
+      "phase": "Basis"
+    },
+    {
+      "date": "2026-06-09",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW24",
+      "phase": "Basis",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-06-10",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW24",
+      "phase": "Basis",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-06-11",
+      "name": "Sweetspot 3×12 Min",
+      "typ": "Sweet Spot",
+      "week": "KW24",
+      "phase": "Basis",
+      "workout": {
+        "warmup": 15,
+        "intervals": 3,
+        "duration": 12,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "SS",
+        "watts": [
+          232,
+          245
+        ],
+        "label": "3×12 Min @ SS (232–245W)"
+      }
+    },
+    {
+      "date": "2026-06-12",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW24",
+      "phase": "Basis"
+    },
+    {
+      "date": "2026-06-13",
+      "name": "MyWhoosh längeres Rennen",
+      "typ": "Rennen",
+      "week": "KW24",
+      "phase": "Basis",
+      "details": "75 Min · Z3/Z4 · 207–245W"
+    },
+    {
+      "date": "2026-06-14",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW24",
+      "phase": "Basis",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-06-15",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW25",
+      "phase": "Basis"
+    },
+    {
+      "date": "2026-06-16",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW25",
+      "phase": "Basis",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-06-17",
+      "name": "Z2 Rolle (vor Abfahrt)",
+      "typ": "Z2",
+      "week": "KW25",
+      "phase": "Basis",
+      "details": "60 Min · 155–207W · danach Abfahrt NLS 14:00 Uhr"
+    },
+    {
+      "date": "2026-06-18",
+      "name": "NLS6 Renntag",
+      "typ": "NLS",
+      "week": "KW25",
+      "phase": "Basis",
+      "details": "Eifel Trophy · kein Training"
+    },
+    {
+      "date": "2026-06-19",
+      "name": "NLS6 + Heimfahrt",
+      "typ": "NLS",
+      "week": "KW25",
+      "phase": "Basis",
+      "details": "kein Training"
+    },
+    {
+      "date": "2026-06-20",
+      "name": "Regeneration leicht",
+      "typ": "Z1",
+      "week": "KW25",
+      "phase": "Basis",
+      "details": "45 Min · Z1 · <155W"
+    },
+    {
+      "date": "2026-06-22",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW26",
+      "phase": "Basis"
+    },
+    {
+      "date": "2026-06-23",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW26",
+      "phase": "Basis",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-06-24",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW26",
+      "phase": "Basis",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-06-25",
+      "name": "Threshold 2×10 Min",
+      "typ": "Schwelle",
+      "week": "KW26",
+      "phase": "Basis",
+      "workout": {
+        "warmup": 15,
+        "intervals": 2,
+        "duration": 10,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          245,
+          265
+        ],
+        "label": "2×10 Min @ Schwelle (245–265W)"
+      }
+    },
+    {
+      "date": "2026-06-26",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW26",
+      "phase": "Basis"
+    },
+    {
+      "date": "2026-06-27",
+      "name": "MyWhoosh längeres Rennen",
+      "typ": "Rennen",
+      "week": "KW26",
+      "phase": "Basis",
+      "details": "75 Min · Z3/Z4 · 207–245W"
+    },
+    {
+      "date": "2026-06-28",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW26",
+      "phase": "Basis",
+      "details": "90 Min · 155–207W · Wochenfazit: Block 1 abgeschlossen, FTP neu 265W, Klassensieg Road Race bei 40°C"
+    },
+    {
+      "date": "2026-06-29",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW27",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-06-30",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW27",
+      "phase": "Aufbau",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-07-01",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW27",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-02",
+      "name": "Over-Under 3×8 Min",
+      "typ": "Schwelle",
+      "week": "KW27",
+      "phase": "Aufbau",
+      "workout": {
+        "warmup": 15,
+        "intervals": 3,
+        "duration": 8,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          252,
+          278
+        ],
+        "label": "3×8 Min Over-Under (252–278W)"
+      }
+    },
+    {
+      "date": "2026-07-03",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW27",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-07-04",
+      "name": "MyWhoosh längeres Rennen",
+      "typ": "Rennen",
+      "week": "KW27",
+      "phase": "Aufbau",
+      "details": "75 Min · Z3/Z4 · 207–258W"
+    },
+    {
+      "date": "2026-07-05",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW27",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-06",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW28",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-07-07",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW28",
+      "phase": "Aufbau",
+      "details": "~30 Min · Stream · >258W (Z5) · Platz 3 in Klasse"
+    },
+    {
+      "date": "2026-07-08",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW28",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-09",
+      "name": "Over-Under 3×10 Min",
+      "typ": "Schwelle",
+      "week": "KW28",
+      "phase": "Aufbau",
+      "workout": {
+        "warmup": 15,
+        "intervals": 3,
+        "duration": 10,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          252,
+          278
+        ],
+        "label": "3×10 Min Over-Under (252–278W)"
+      },
+      "details": "Gang-Problem am Cube (Kadenz-Sprünge) — ab dieser Einheit ERG-Modus für Intervalle"
+    },
+    {
+      "date": "2026-07-10",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW28",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-07-11",
+      "name": "MyWhoosh längeres Rennen",
+      "typ": "Rennen",
+      "week": "KW28",
+      "phase": "Aufbau",
+      "details": "75 Min · Z3/Z4 · 207–258W · Platz 2 in Klasse"
+    },
+    {
+      "date": "2026-07-12",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW28",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-13",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW29",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-07-14",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW29",
+      "phase": "Aufbau",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-07-15",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW29",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-16",
+      "name": "Over-Under 3×12 Min",
+      "typ": "Schwelle",
+      "week": "KW29",
+      "phase": "Aufbau",
+      "workout": {
+        "warmup": 15,
+        "intervals": 3,
+        "duration": 12,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          252,
+          278
+        ],
+        "label": "3×12 Min Over-Under (252–278W)"
+      }
+    },
+    {
+      "date": "2026-07-17",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW29",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-07-18",
+      "name": "MyWhoosh Rennsimulation",
+      "typ": "Rennen",
+      "week": "KW29",
+      "phase": "Aufbau",
+      "details": "90 Min · Z3/Z4 · 207–258W · Hinweis: entfällt evtl., siehe adjustments-2.json"
+    },
+    {
+      "date": "2026-07-19",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW29",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-20",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW30",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-07-21",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW30",
+      "phase": "Aufbau",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-07-22",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW30",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-23",
+      "name": "Threshold 3×12 Min @95%",
+      "typ": "Schwelle",
+      "week": "KW30",
+      "phase": "Aufbau",
+      "workout": {
+        "warmup": 15,
+        "intervals": 3,
+        "duration": 12,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          245,
+          265
+        ],
+        "label": "3×12 Min @ Schwelle 95% (245–265W)"
+      }
+    },
+    {
+      "date": "2026-07-24",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW30",
+      "phase": "Aufbau"
+    },
+    {
+      "date": "2026-07-25",
+      "name": "MyWhoosh Rennsimulation",
+      "typ": "Rennen",
+      "week": "KW30",
+      "phase": "Aufbau",
+      "details": "90 Min · Z3/Z4 · 207–258W"
+    },
+    {
+      "date": "2026-07-26",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW30",
+      "phase": "Aufbau",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-07-27",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW31",
+      "phase": "Rennhärte"
+    },
+    {
+      "date": "2026-07-28",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW31",
+      "phase": "Rennhärte",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-07-29",
+      "name": "Z2 Rolle (vor Abfahrt)",
+      "typ": "Z2",
+      "week": "KW31",
+      "phase": "Rennhärte",
+      "details": "60 Min · 155–207W · danach Abfahrt NLS 14:00 Uhr"
+    },
+    {
+      "date": "2026-07-30",
+      "name": "NLS7 Renntag",
+      "typ": "NLS",
+      "week": "KW31",
+      "phase": "Rennhärte",
+      "details": "6h Ruhr-Pokal · kein Training"
+    },
+    {
+      "date": "2026-07-31",
+      "name": "NLS7 + Heimfahrt",
+      "typ": "NLS",
+      "week": "KW31",
+      "phase": "Rennhärte",
+      "details": "kein Training"
+    },
+    {
+      "date": "2026-08-01",
+      "name": "Regeneration leicht",
+      "typ": "Z1",
+      "week": "KW31",
+      "phase": "Rennhärte",
+      "details": "45 Min · Z1 · <155W"
+    },
+    {
+      "date": "2026-08-03",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW32",
+      "phase": "Rennhärte"
+    },
+    {
+      "date": "2026-08-04",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW32",
+      "phase": "Rennhärte",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-08-05",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW32",
+      "phase": "Rennhärte",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-08-06",
+      "name": "Threshold 3×12 Min + Sprint",
+      "typ": "Schwelle",
+      "week": "KW32",
+      "phase": "Rennhärte",
+      "workout": {
+        "warmup": 15,
+        "intervals": 3,
+        "duration": 12,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          252,
+          278
+        ],
+        "label": "3×12 Min @ Schwelle + Schlusssprint (252–278W)"
+      }
+    },
+    {
+      "date": "2026-08-07",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW32",
+      "phase": "Rennhärte"
+    },
+    {
+      "date": "2026-08-08",
+      "name": "Rennsimulation mit Schlusssprint",
+      "typ": "Rennen",
+      "week": "KW32",
+      "phase": "Rennhärte",
+      "details": "90 Min · Z3/Z4 · 207–270W"
+    },
+    {
+      "date": "2026-08-09",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW32",
+      "phase": "Rennhärte",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-08-10",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW33",
+      "phase": "Rennhärte"
+    },
+    {
+      "date": "2026-08-11",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW33",
+      "phase": "Rennhärte",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-08-12",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW33",
+      "phase": "Rennhärte",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-08-13",
+      "name": "Over-Under 3×10 Min + Sprint",
+      "typ": "Schwelle",
+      "week": "KW33",
+      "phase": "Rennhärte",
+      "workout": {
+        "warmup": 15,
+        "intervals": 3,
+        "duration": 10,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          252,
+          278
+        ],
+        "label": "3×10 Min Over-Under + Schlusssprint (252–278W)"
+      }
+    },
+    {
+      "date": "2026-08-14",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW33",
+      "phase": "Rennhärte"
+    },
+    {
+      "date": "2026-08-15",
+      "name": "Rennsimulation 90 Min",
+      "typ": "Rennen",
+      "week": "KW33",
+      "phase": "Rennhärte",
+      "details": "90 Min · Ø 220–240W"
+    },
+    {
+      "date": "2026-08-16",
+      "name": "Z2 outdoor",
+      "typ": "Z2",
+      "week": "KW33",
+      "phase": "Rennhärte",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-08-17",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW34",
+      "phase": "Rennhärte"
+    },
+    {
+      "date": "2026-08-18",
+      "name": "MyWhoosh Crit",
+      "typ": "VO2max",
+      "week": "KW34",
+      "phase": "Rennhärte",
+      "details": "~30 Min · Stream · >258W (Z5)"
+    },
+    {
+      "date": "2026-08-19",
+      "name": "Z2 Rolle",
+      "typ": "Z2",
+      "week": "KW34",
+      "phase": "Rennhärte",
+      "details": "90 Min · 155–207W"
+    },
+    {
+      "date": "2026-08-20",
+      "name": "Threshold 2×15 Min",
+      "typ": "Schwelle",
+      "week": "KW34",
+      "phase": "Rennhärte",
+      "workout": {
+        "warmup": 15,
+        "intervals": 2,
+        "duration": 15,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "THR",
+        "watts": [
+          245,
+          265
+        ],
+        "label": "2×15 Min @ Schwelle (245–265W)"
+      }
+    },
+    {
+      "date": "2026-08-21",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW34",
+      "phase": "Rennhärte"
+    },
+    {
+      "date": "2026-08-22",
+      "name": "Letzte Rennsimulation 75 Min",
+      "typ": "Rennen",
+      "week": "KW34",
+      "phase": "Rennhärte",
+      "details": "75 Min · Ø 220–240W"
+    },
+    {
+      "date": "2026-08-23",
+      "name": "Z2 leicht",
+      "typ": "Z2",
+      "week": "KW34",
+      "phase": "Rennhärte",
+      "details": "60 Min · 155–190W"
+    },
+    {
+      "date": "2026-08-24",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "KW35",
+      "phase": "Taper"
+    },
+    {
+      "date": "2026-08-25",
+      "name": "MyWhoosh Crit kurz",
+      "typ": "VO2max",
+      "week": "KW35",
+      "phase": "Taper",
+      "details": "~20 Min · >258W (Z5)"
+    },
+    {
+      "date": "2026-08-26",
+      "name": "Z2 leicht",
+      "typ": "Z2",
+      "week": "KW35",
+      "phase": "Taper",
+      "details": "60 Min · 155–190W"
+    },
+    {
+      "date": "2026-08-27",
+      "name": "Sweetspot 2×8 Min",
+      "typ": "Sweet Spot",
+      "week": "KW35",
+      "phase": "Taper",
+      "workout": {
+        "warmup": 10,
+        "intervals": 2,
+        "duration": 8,
+        "rest": 5,
+        "cooldown": 10,
+        "zone": "SS",
+        "watts": [
+          232,
+          245
+        ],
+        "label": "2×8 Min @ SS (232–245W)"
+      }
+    },
+    {
+      "date": "2026-08-28",
+      "name": "Ruhetag — Ausrüstung checken",
+      "typ": "Ruhetag",
+      "week": "KW35",
+      "phase": "Taper"
+    },
+    {
+      "date": "2026-08-30",
+      "name": "🏁 GFNY BREMEN",
+      "typ": "Race",
+      "week": "KW35",
+      "phase": "Taper",
+      "km": 100,
+      "details": "Ziel unter 3:00h · Ø 220–235W · 4km neutralisiert, 2× Hauptrunde á ~42km, 500m Kopfsteinpflaster bei km~50, Zielsprint km 95. Runde 1 Peloton/Z3 <152bpm, Runde 2 Tempo hoch, letzte 5km alles."
+    }
+  ],
+  "adjustments": {},
+  "updated": "2026-07-14T13:10:53.796Z",
   "source": "intervals.icu",
   "count": 124
 }
