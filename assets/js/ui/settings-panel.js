@@ -157,10 +157,13 @@ async function buildGoalsSection() {
     <input name="targetValue" type="number" placeholder="Zielwert" step="any" style="${inputStyle}">
     <input name="targetDate" type="date" style="${inputStyle}">
     <input name="note" type="text" placeholder="Notiz (optional)" style="${inputStyle}">
+    <div id="settings-goal-error" style="font-family: var(--font-mono); font-size:0.62rem; color: var(--red); min-height:1em;"></div>
     <button type="submit" class="btn-primary" style="align-self:flex-start;">Speichern</button>
   `;
+  const goalErrorEl = form.querySelector("#settings-goal-error");
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
+    goalErrorEl.textContent = "";
     const fd = new FormData(form);
     const result = await saveGoal({
       kind: fd.get("kind"),
@@ -168,12 +171,14 @@ async function buildGoalsSection() {
       targetDate: fd.get("targetDate") || null,
       note: fd.get("note") || null,
     });
-    if (!result.error) {
-      form.reset();
-      form.style.display = "none";
-      addBtn.style.display = "";
-      renderList();
+    if (result.error) {
+      goalErrorEl.textContent = "Ziel konnte nicht gespeichert werden.";
+      return;
     }
+    form.reset();
+    form.style.display = "none";
+    addBtn.style.display = "";
+    renderList();
   });
 
   addBtn.addEventListener("click", () => {
