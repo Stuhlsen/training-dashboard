@@ -1,7 +1,7 @@
 /* ============================================================
    UI/ANALYSIS.JS — Analyse-Tab (Entscheidungs-Ansicht)
    Sektionen in Trainer-Fragereihenfolge:
-   1 Status-Briefing · 2 Belastung & Erholung · 3 Intensitäts-
+   1 Belastungsempfehlung · 2 Belastung & Erholung · 3 Intensitäts-
    verteilung · 4 Aerobe Entwicklung · 5 Leistungsdiagnostik ·
    6 Regeneration & Körper (datengetrieben) · 7 Konsistenz &
    Adhärenz · 8 Periodisierungs-Erfüllung (nur eigener Plan)
@@ -32,7 +32,7 @@ import {
   DECOUPLING_STABLE,
   DECOUPLING_MIN_POINTS,
 } from "../core/efficiency.js";
-import { fmt, fmtInt, fmtDate } from "../core/format.js";
+import { fmt, fmtInt, fmtDate, localISODate } from "../core/format.js";
 import {
   eftpHistory,
   eftpHistoryFromWellness,
@@ -42,6 +42,7 @@ import {
 } from "../core/ftp-forecast.js";
 import { nextPlannedSession } from "../core/ftp-progress.js";
 import { buildLoadGuard, describeWeek } from "../core/loadguard.js";
+import { currentPmc, tsbTrend } from "../core/pmc.js";
 import { phaseCompliance } from "../core/periodization.js";
 import { assessReadiness } from "../core/readiness.js";
 import { recordProgression } from "../core/records.js";
@@ -56,11 +57,7 @@ import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { el } from "./dom.js";
 
-/** Lokales ISO-Datum (kein UTC-Versatz) */
-function todayISO() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+const todayISO = localISODate;
 
 const LEVEL_COLOR = {
   green: "var(--z1, #4a9a6e)",
@@ -78,8 +75,8 @@ export const Analysis = {
   _toggleInit: false,
 
   /** @param {boolean} [hasPlanningTab] s. overview.js::render() — separat von
-   *  ownPlan, damit nur das Status-Briefing (nextSession) für Athlet 2s GFNY-
-   *  Plan mitzieht, ohne die restlichen Plan-1/2-exklusiven Sektionen unten. */
+   *  ownPlan, damit nur die Belastungsempfehlung (nextSession) für Athlet 2s
+   *  GFNY-Plan mitzieht, ohne die restlichen Plan-1/2-exklusiven Sektionen unten. */
   render(rides, hasPlanningTab = rides.some((r) => r.week)) {
     this._allRides = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     const ownPlan = rides.some((r) => r.week);
@@ -167,7 +164,11 @@ export const Analysis = {
         "tss"
       )
     );
-    const lastTSB = rides.filter((r) => r.tsb != null).slice(-1)[0]?.tsb;
+    // TSB ist ein athletenweiter "heute"-Wert, kein plan-gefilterter — immer
+    // aus dem vollen Datensatz und auf heute fortgeschrieben (s. _renderBriefing/
+    // core/pmc.js::currentPmc), sonst widerspricht diese Kachel der Belastungs-
+    // empfehlung direkt darüber.
+    const lastTSB = currentPmc(this._allRides, todayISO())?.tsb ?? null;
 
     const plan1Rides = this._allRides.filter((r) => (r.plan || "Plan 1") === "Plan 1");
     const plan2Rides = this._allRides.filter((r) => r.plan === "Plan 2");
@@ -207,14 +208,19 @@ export const Analysis = {
       .join("");
   },
 
-  /* ── 1 · Status-Briefing ──────────────────────────────────── */
+  /* ── 1 · Belastungsempfehlung ──────────────────────────────── */
   _renderBriefing(ownPlan, today, hasPlanningTab = ownPlan) {
     const box = el("analysis-briefing");
     if (!box) return;
 
     const readiness = assessReadiness(Data.wellness, today);
-    const withTsb = this._allRides.filter((r) => r.tsb != null);
-    const tsb = withTsb.length ? withTsb[withTsb.length - 1].tsb : null;
+    // currentPmc() schreibt den TSB auf `today` fort (Ruhetage seit der
+    // letzten Fahrt werden lastfrei projiziert) statt ihn am Stand der
+    // letzten Fahrt einzufrieren — sonst zeigt ein Ruhetag fälschlich
+    // weiter den alten, tieferen TSB-Alarm.
+    const pmc = currentPmc(this._allRides, today);
+    const tsb = pmc?.tsb ?? null;
+    const trend = tsbTrend(this._allRides, today);
 
     const { weekKeyFn, weekSortFn } = this._weekFns(ownPlan);
     const guard = buildLoadGuard(this._allRides, weekKeyFn, weekSortFn);
@@ -226,7 +232,7 @@ export const Analysis = {
       nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, today);
     }
 
-    const b = buildBriefing({ readiness, tsb, loadRisk, nextSession });
+    const b = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend });
     const dot = (status) =>
       status === "alert"
         ? "var(--thr, #d94f4f)"
@@ -253,7 +259,12 @@ export const Analysis = {
           )
           .join("")}
       </div>
-      ${b.degraded ? `<p class="analysis-note">Ohne HRV-Baseline (zu wenig Wellness-Historie) — Status nur aus Belastungssignalen.</p>` : ""}`;
+      ${b.degraded ? `<p class="analysis-note">Ohne HRV-Baseline (zu wenig Wellness-Historie) — Status nur aus Belastungssignalen.</p>` : ""}
+      ${
+        pmc && pmc.daysProjected > 0
+          ? `<p class="analysis-note">TSB-Stand: ${fmtDate(pmc.asOfDate)}, ${pmc.daysProjected} Tag${pmc.daysProjected > 1 ? "e" : ""} ohne neue Fahrt fortgeschrieben.</p>`
+          : ""
+      }`;
   },
 
   /* ── 2 · Belastung & Erholung ─────────────────────────────── */

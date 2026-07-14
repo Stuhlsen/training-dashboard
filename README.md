@@ -35,7 +35,7 @@ GitHub Action (alle 6h) ──────────────────�
 
 **Tech-Stack:** Vanilla HTML/CSS/JS als native ES-Module · SVG-Charts (kein Framework, kein Build-Step) · Node.js · GitHub Actions (Daten-Sync alle 6 h + CI mit `node:test`-Suite, ESLint und Fallow-Codebase-Qualitätsreport)
 
-**Code-Architektur (Frontend):** strikte Schichtentrennung `core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Status-Briefing, Intensitätsverteilung, EF- und HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierungs-Erfüllung, Konsistenz & Adhärenz, Bestwerte) → `state/` (Konfiguration + Daten-Store) → `ui/` (DOM, SVG-Rendering, Panels). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
+**Code-Architektur (Frontend):** strikte Schichtentrennung `core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Belastungsempfehlung, Intensitätsverteilung, EF- und HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierungs-Erfüllung, Konsistenz & Adhärenz, Bestwerte) → `state/` (Konfiguration + Daten-Store) → `ui/` (DOM, SVG-Rendering, Panels). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
 
 ---
 
@@ -93,7 +93,7 @@ Alle geplanten Trainingseinheiten bis W12. Sessions werden automatisch als „er
 ### Tab: Analyse
 Acht aufeinander aufbauende Sektionen in Trainer-Fragereihenfolge — für **beide Athleten** verfügbar; plan-spezifische Sektionen erscheinen nur beim eigenen Plan, die Körper-Sektion blendet sich datengetrieben ein.
 
-1. **Status-Briefing** — fusioniert Tagesform (Readiness), Belastungsbilanz (TSB) und Wochenlast-Risiko (Belastungswächter) zu einem Ampelstatus mit konkreter Empfehlung; ein rotes Erholungssignal schlägt dabei einen grünen TSB. Degradiert sauber, wenn die HRV-Baseline noch fehlt.
+1. **Belastungsempfehlung** — fusioniert Tagesform (Readiness), Belastungsbilanz (TSB, auf "heute" fortgeschrieben statt am Stand der letzten Fahrt eingefroren) samt 3-Tage-Trend und Wochenlast-Risiko (Belastungswächter) zu einem Ampelstatus mit konkreter Empfehlung; ein rotes Erholungssignal schlägt dabei einen grünen TSB — außer TSB ist die einzige Alert-Quelle und Trend+HRV zeigen bereits aktive Erholung ("Erholung wirkt bereits"). Degradiert sauber, wenn die HRV-Baseline noch fehlt.
 2. **Belastung & Erholung** — Wochentabelle mit CTL-Ramp, Foster-Monotonie/Strain und benannter Einordnung („Produktiver Aufbau", „Eintönig hart", „Entlastung" …).
 3. **Intensitätsverteilung** — Zeit in niedriger/mittlerer/hoher Intensität mit Formklassifikation (polarisiert / pyramidal / schwellenlastig) gegen den 80%-Richtwert. Ohne Zone-Times greift eine IF-Näherung (aus NP÷FTP), die bei zu geringer Leistungsdaten-Abdeckung ehrlich warnt statt ein Fehlurteil zu zeigen.
 4. **Aerobe Entwicklung** — Effizienzfaktor (W/HF), HF-Decoupling-Trend (<5 % = aerob stabil) und Kadenz-Ökonomie über vergleichbare Grundlagenfahrten.
@@ -259,7 +259,7 @@ git sync
 - [x] **Wochenrückblick-Karte** (letzte abgeschlossene Woche, automatisch)
 - [x] **Bestwerte-Wand** mit Ablöse-Historie
 - [x] **Konsistenz-Jahreskalender** (ersetzt die Wochentags-Heatmap)
-- [x] **Analyse-Tab neu**: 8 sportwissenschaftliche Sektionen (Status-Briefing, Belastung & Erholung, Intensitätsverteilung, Aerobe Entwicklung, Leistungsdiagnostik, Regeneration & Körper, Konsistenz & Adhärenz, Periodisierungs-Erfüllung) — für beide Athleten
+- [x] **Analyse-Tab neu**: 8 sportwissenschaftliche Sektionen (Belastungsempfehlung, Belastung & Erholung, Intensitätsverteilung, Aerobe Entwicklung, Leistungsdiagnostik, Regeneration & Körper, Konsistenz & Adhärenz, Periodisierungs-Erfüllung) — für beide Athleten
 - [x] **FTP-Dreiklang** gemessen/geschätzt/Ziel strikt getrennt, je mit W/kg-Bezug
 - [x] **HF-Decoupling-Trend** + IF-Fallback für die Intensitätsverteilung (bei fehlenden Zone-Times, mit Abdeckungs-Warnung)
 - [x] **Regeneration & Körper**: Gewicht/Energie/Hydration aus erweiterten Wellness-Feldern, datengetrieben eingeblendet

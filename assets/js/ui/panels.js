@@ -25,12 +25,12 @@ const STATUS_COLOR = {
 
 const CONFIDENCE_BADGE = { vorhanden: "", ausstehend: "⏳", veraltet: "⚠" };
 
-/** Footer-Link zur Status-Briefing-Karte (Analyse-Tab) — dieselbe
+/** Footer-Link zur Belastungsempfehlung-Karte (Analyse-Tab) — dieselbe
  *  buildBriefing()-Berechnung wie dort, nicht bloß visuell ähnlich. */
 function briefingLinkHtml(briefing) {
   if (!briefing) return "";
   const color = LEVEL[briefing.level]?.color || "var(--dim)";
-  return `<button type="button" class="readiness-briefing-link" style="color:${color}">Status-Briefing: ${briefing.headline} →</button>`;
+  return `<button type="button" class="readiness-briefing-link" style="color:${color}">Belastungsempfehlung: ${briefing.headline} →</button>`;
 }
 
 function wireBriefingLink(wrap) {

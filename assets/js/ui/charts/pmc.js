@@ -3,8 +3,8 @@
    Rendering only — Interpolation/TSB kommt aus core/pmc.js.
    ============================================================ */
 
-import { fmt, fmtDate, fmtDateFull } from "../../core/format.js";
-import { interpolateCtl, tsbOf } from "../../core/pmc.js";
+import { fmt, fmtDate, fmtDateFull, localISODate } from "../../core/format.js";
+import { interpolateCtl, tsbOf, currentPmc } from "../../core/pmc.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import {
   gridLines,
@@ -292,13 +292,14 @@ export function renderPMC(svgId, rides) {
     svg.appendChild(c);
   });
 
-  // Note
-  const lastCTL = data[data.length - 1];
+  // Note — TSB auf heute fortgeschrieben (s. core/pmc.js::currentPmc), sonst
+  // widerspricht dieses "Aktuell" der Belastungsempfehlung nach Ruhetagen.
   const noteEl = el("pmc-note");
-  if (noteEl && lastCTL) {
-    const tsb =
-      lastCTL.tsb != null ? lastCTL.tsb : Math.round((lastCTL.ctl - lastCTL.atl) * 10) / 10;
-    noteEl.textContent = `Aktuell: CTL ${fmt(lastCTL.ctl)} · ATL ${fmt(lastCTL.atl)} · TSB ${fmt(tsb)}`;
+  const pmcNow = currentPmc(data, localISODate());
+  if (noteEl && pmcNow) {
+    const asOfNote =
+      pmcNow.daysProjected > 0 ? ` (Stand ${fmtDate(pmcNow.asOfDate)}, fortgeschrieben)` : "";
+    noteEl.textContent = `Aktuell: CTL ${fmt(pmcNow.ctl)} · ATL ${fmt(pmcNow.atl)} · TSB ${fmt(pmcNow.tsb)}${asOfNote}`;
   }
 
   // X labels — Mindestabstand statt Modulo-Step (keine End-Kollision)

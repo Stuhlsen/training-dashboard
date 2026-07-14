@@ -19,8 +19,10 @@ import {
   dateForTarget,
 } from "./core/ftp-forecast.js";
 import { buildBriefing } from "./core/briefing.js";
+import { localISODate } from "./core/format.js";
 import { nextPlannedSession } from "./core/ftp-progress.js";
 import { buildLoadGuard } from "./core/loadguard.js";
+import { currentPmc, tsbTrend } from "./core/pmc.js";
 import { assessReadiness } from "./core/readiness.js";
 import { recordProgression } from "./core/records.js";
 import { buildWeekReview } from "./core/weekreview.js";
@@ -331,7 +333,10 @@ async function renderAll(athleteId) {
       Data.athleteFtp ||
       Data.rides.find((r) => r.np)?.np ||
       null;
-  const todayISO = new Date().toISOString().split("T")[0];
+  // localISODate() statt toISOString() — sonst würde todayISO bei UTC-Versatz
+  // (z.B. CEST) zwischen Mitternacht lokal und UTC auf den Vortag
+  // zurückrutschen und von analysis.js's eigenem lokalen todayISO() abweichen.
+  const todayISO = localISODate();
 
   // Wochen-Zuordnung: Plan-Wochen (Athlet 1) bzw. ISO-Kalenderwochen
   const weekKeyFn = ownPlan ? (r) => r.week : (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
@@ -347,17 +352,21 @@ async function renderAll(athleteId) {
   Overview.render(rides, hasPlanningTab);
 
   // Panels: Tagesform (7d vs. 42d-Baseline) + Wochenrückblick + Bestwerte.
-  // Das Status-Briefing (gleiche Berechnung wie Analysis::_renderBriefing)
+  // Die Belastungsempfehlung (gleiche Berechnung wie Analysis::_renderBriefing)
   // wird hier mitgebaut, damit die Tagesform-Karte darauf verlinken kann.
   const readiness = assessReadiness(Data.wellness, todayISO);
-  const tsb = rides.filter((r) => r.tsb != null).slice(-1)[0]?.tsb ?? null;
+  // currentPmc() schreibt den TSB auf heute fort statt ihn am Stand der
+  // letzten Fahrt einzufrieren (s. core/pmc.js, core/briefing.js).
+  const pmc = currentPmc(rides, todayISO);
+  const tsb = pmc?.tsb ?? null;
+  const trend = tsbTrend(rides, todayISO);
   const loadRisk = guard.length ? guard[guard.length - 1].risk : null;
   let nextSession = null;
   if (hasPlanningTab) {
     const doneDates = new Set(rides.map((r) => r.dateISO));
     nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
   }
-  const briefing = buildBriefing({ readiness, tsb, loadRisk, nextSession });
+  const briefing = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend });
   renderReadiness("readiness-panel", readiness, briefing);
   renderWeekReview(
     "weekreview-card",

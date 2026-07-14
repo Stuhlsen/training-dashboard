@@ -135,12 +135,18 @@ assets/js/
     format.js         → fmt/fmtInt/fmtDate/fmtDuration, weatherIcon, windDir, …
     stats.js          → sum/avg/max/min, linearTrend (Regression)
     aggregate.js      → isoWeekKey, weeklyFromPlanWeeks, weeklyByCalendar, monthlyFromRides
-    pmc.js            → interpolateCtl, tsbOf
+    pmc.js            → interpolateCtl, tsbOf; currentPmc()/projectPmc() schreiben
+                        CTL/ATL/TSB lastfrei auf "heute" fort (Ruhetage seit der
+                        letzten Fahrt), tsbTrend() liefert den 3-Tage-Trend darauf
     loadguard.js      → Foster-Monotonie/Strain, CTL-Ramp (Belastungswächter);
                         describeWeek() für die Analyse-Wocheneinordnung
     readiness.js      → Tagesform: 7d vs. 42d-Baseline (nur intervals.icu-SDNN!)
-    briefing.js       → Status-Briefing: fusioniert readiness+TSB+LoadGuard zu
-                        einem Tagesstatus (rotes Erholungssignal schlägt grünen TSB)
+    briefing.js       → Belastungsempfehlung (UI-Name; Datei/Funktion heißen
+                        weiter briefing.js/buildBriefing): fusioniert readiness+
+                        TSB(+Trend)+LoadGuard zu einem Tagesstatus (rotes
+                        Erholungssignal schlägt grünen TSB) — Ausnahme: ist TSB
+                        die einzige Alert-Quelle UND Trend+HRV zeigen aktive
+                        Erholung, kippt rot auf gelb ("Erholung wirkt bereits")
     body.js           → Regeneration & Körper: Gewichtstrend, W/kg, Energie-
                         Näherung (kJ≈kcal), Hydration; availability() blendet
                         Kacheln datengetrieben ein (≥5 Punkte / 30 Tage)

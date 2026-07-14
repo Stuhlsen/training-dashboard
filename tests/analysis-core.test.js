@@ -1,4 +1,4 @@
-/* Tests: Analyse-Tab-Kernlogik — Status-Briefing (core/briefing.js),
+/* Tests: Analyse-Tab-Kernlogik — Belastungsempfehlung (core/briefing.js),
    Regeneration & Körper (core/body.js), Periodisierungs-Erfüllung
    (core/periodization.js), Konsistenz & Adhärenz (core/adherence.js) */
 
@@ -9,7 +9,9 @@ import {
   tsbSignal,
   loadSignal,
   readinessSignal,
+  tsbTrendSignal,
 } from "../assets/js/core/briefing.js";
+import { currentPmc, tsbTrend } from "../assets/js/core/pmc.js";
 import {
   availability,
   weightTrend,
@@ -97,6 +99,137 @@ test("buildBriefing: ohne geplante Einheit bleibt die Empfehlung generisch", () 
   const b = buildBriefing({ readiness: { level: "green" }, tsb: 2, loadRisk: "ok" });
   assert.equal(b.level, "green");
   assert.doesNotMatch(b.recommendation, /Nächste Einheit/);
+});
+
+/* ── HRV × TSB-Trend: "Erholung wirkt bereits" ──────────────────
+   Deckt den gemeldeten Bug ab: TSB allein als Alert-Quelle, aber
+   Trend + HRV zeigen aktive Erholung → rot kippt auf gelb statt
+   eine bereits laufende Erholung als Warnung zu präsentieren. */
+
+test("buildBriefing: TSB niedrig + HRV normal + Trend steigend → 'Erholung wirkt bereits' (gelb statt rot)", () => {
+  const b = buildBriefing({
+    readiness: { level: "green", metrics: [{ key: "hrv", z: 0.1 }] },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.level, "yellow");
+  assert.equal(b.recovering, true);
+  assert.match(b.recommendation, /Erholung wirkt bereits/);
+});
+
+test("tsbTrendSignal: formatiert Richtung/Pfeil/Vorzeichen, null ohne Trend", () => {
+  assert.equal(tsbTrendSignal(null), null);
+  const s = tsbTrendSignal({ direction: "steigend", delta: 6.1 });
+  assert.equal(s.status, "ok");
+  assert.match(s.text, /steigend ↑ \(\+6\.1\)/);
+  assert.match(tsbTrendSignal({ direction: "fallend", delta: -3 }).text, /fallend ↓ \(-3\)/);
+});
+
+test("buildBriefing: TSB niedrig + Trend steigend, aber Ruhepuls deutlich erhöht (HRV unauffällig) → bleibt rot", () => {
+  // Deckt ab, dass hrvNotContradicting NICHT nur HRV prüft, sondern auch
+  // restingHR — ein isoliert erhöhter Ruhepuls darf die Entschärfung
+  // genauso blockieren wie eine niedrige HRV.
+  const b = buildBriefing({
+    readiness: {
+      level: "yellow",
+      metrics: [
+        { key: "hrv", z: 0.1 },
+        { key: "restingHR", z: 2.0 },
+      ],
+    },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.recovering, false);
+});
+
+test("buildBriefing: TSB niedrig + Trend steigend, HRV ohne Baseline (z null) blockiert die Entschärfung NICHT", () => {
+  // Fehlende Baseline darf nicht wie ein Widerspruch behandelt werden
+  // (s. Modul-Kommentar "ohne Baseline zählt das als kein Widerspruch").
+  const b = buildBriefing({
+    readiness: {
+      level: "yellow",
+      metrics: [
+        { key: "hrv", z: null },
+        { key: "restingHR", z: 0.1 },
+      ],
+    },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.level, "yellow");
+  assert.equal(b.recovering, true);
+});
+
+test("buildBriefing: TSB niedrig + Trend steigend, aber HRV deutlich unter Baseline → bleibt rot", () => {
+  const b = buildBriefing({
+    readiness: { level: "red", metrics: [{ key: "hrv", z: -2 }] },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.recovering, false);
+});
+
+test("buildBriefing: HRV-Z-Score über der Schwelle entschärft auch bei sonst gelber Tagesform (z.B. Schlaf)", () => {
+  const b = buildBriefing({
+    readiness: { level: "yellow", metrics: [{ key: "hrv", z: -0.2 }] },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.level, "yellow");
+  assert.equal(b.recovering, true);
+});
+
+test("buildBriefing: TSB niedrig + Trend fallend → bleibt rot, keine Entschärfung ohne echte Erholung", () => {
+  const b = buildBriefing({
+    readiness: { level: "green", metrics: [{ key: "hrv", z: 0.1 }] },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "fallend", delta: -10 },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.recovering, false);
+});
+
+test("buildBriefing: LoadGuard-Alert schlägt auch bei erholendem TSB durch (kein Freibrief bei Überlastungswarnung)", () => {
+  const b = buildBriefing({
+    readiness: { level: "green", metrics: [{ key: "hrv", z: 0.1 }] },
+    tsb: -25,
+    loadRisk: "high",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.recovering, false);
+});
+
+test("buildBriefing: Regression — Ruhetage nach hartem Block liefern konsistente Formulierung (kein eingefrorener Alarm)", () => {
+  // End eines harten Blocks: TSB roh -100, danach ausschließlich Ruhetage.
+  const rides = [{ dateISO: "2026-07-08", ctl: 70, atl: 170 }];
+  const today = "2026-07-11"; // 3 Ruhetage später
+  const pmc = currentPmc(rides, today);
+  const trend = tsbTrend(rides, today);
+
+  // TSB ist real gestiegen, liegt aber weiterhin im Alert-Bereich (< -20) —
+  // ohne die Trend/HRV-Ausnahme würde das weiterhin "Erholung priorisieren" zeigen.
+  assert.ok(pmc.tsb < -20);
+  assert.equal(trend.direction, "steigend");
+
+  const b = buildBriefing({
+    readiness: { level: "green", metrics: [{ key: "hrv", z: 0.2 }] },
+    tsb: pmc.tsb,
+    loadRisk: "ok",
+    trend,
+  });
+  assert.equal(b.level, "yellow");
+  assert.equal(b.recovering, true);
+  assert.match(b.recommendation, /Erholung wirkt bereits/);
 });
 
 /* ── Body / Regeneration ────────────────────────────────────── */

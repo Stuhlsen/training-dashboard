@@ -23,6 +23,22 @@ export const fmtThousands = (v) => {
   return Math.round(v).toLocaleString("de-DE");
 };
 
+/** Date-Objekt → lokales ISO-Datum (YYYY-MM-DD), OHNE UTC-Konvertierung.
+ *  `date.toISOString()` würde bei UTC-Versatz (z.B. CEST) zwischen
+ *  Mitternacht lokal und UTC auf den Vortag zurückrutschen — das hat in
+ *  diesem Codebase schon mehrfach zu Bugs geführt (s. core/pmc.js::tsbTrend).
+ *  @param {Date} [date] @returns {string} */
+export const localISODate = (date = new Date()) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+
+/** Tage zwischen zwei ISO-Datumsangaben (lokal, kein UTC-Versatz), a − b.
+ *  @param {string} aISO @param {string} bISO @returns {number} */
+export const diffDays = (aISO, bISO) => {
+  const a = new Date(`${aISO}T00:00:00`);
+  const b = new Date(`${bISO}T00:00:00`);
+  return Math.round((a.getTime() - b.getTime()) / 86400000);
+};
+
 /** ISO-Datum (2026-03-24) → DD.MM — kompaktes Format für Achsenbeschriftungen
  *  (Jahr weggelassen, da im Chart-Kontext meist eindeutig).
  *  @param {string|null|undefined} iso @returns {string} */

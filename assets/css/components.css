@@ -962,7 +962,7 @@
   gap: 10px;
 }
 
-/* ── 1 · Status-Briefing ─────────────────────────────────────── */
+/* ── 1 · Belastungsempfehlung ─────────────────────────────────── */
 .briefing-head { display: flex; align-items: center; gap: 10px; }
 
 .briefing-dot {
