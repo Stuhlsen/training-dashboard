@@ -26,7 +26,8 @@ Open-Meteo API ────→ Historisches Wetter (Archive API)               �
                ────→ Planungs-Forecast (16 Tage, serverseitig)                 │
                                                                                 │
 data/subjective.json ──→ Befinden Plan 2 (via Dashboard, GitHub API)           │
-data/adjustments.json ──→ Session-Anpassungen (Verschiebung, Ausfall)          │
+data/adjustments.json ──→ Session-Anpassungen Athlete 1 (Verschiebung, Ausfall)│
+data/adjustments-2.json → Session-Anpassungen Athlete 2 (GFNY Bremen 2026)     │
                                                                                 │
 GitHub Action (alle 6h) ────────────────────────────────────────────────────────┘
         │
@@ -42,12 +43,12 @@ GitHub Action (alle 6h) ──────────────────�
 ## Features
 
 ### Athleten-Toggle
-Das Dashboard unterstützt zwei Athleten: **Athlete 1** (eigener Trainingsplan) und **Athlete 2** (Vergleichsdaten, read-only). Der Toggle oben rechts im Header wechselt die Ansicht — alle Charts, Texte und Erklärtexte passen sich automatisch an den aktiven Athleten an. Die Auswahl bleibt persistent über Reload (localStorage), sodass jeder beim Reload wieder bei seinem eigenen Datensatz landet.
+Das Dashboard unterstützt zwei Athleten (UI-Anzeigenamen sind selbstgewählte Pseudonyme, siehe `state/config.js`): **Athlete 1** ("Stuhlsen", eigener Trainingsplan Plan 1+2) und **Athlete 2** ("hc_diZee", Vergleichsdaten — weiterhin read-only, aber seit GFNY Bremen 2026 mit eigenem Planungstab). Der Toggle oben rechts im Header wechselt die Ansicht — alle Charts, Texte und Erklärtexte passen sich automatisch an den aktiven Athleten an. Die Auswahl bleibt persistent über Reload (localStorage), sodass jeder beim Reload wieder bei seinem eigenen Datensatz landet.
 
-Unterschiede bei Vergleichsdaten:
-- Kein Trainingsplan, keine Planungs-Phase, kein Befinden-Dropdown
+Unterschiede bei Athlete 2 (Vergleichsdaten):
+- Kein Befinden-Dropdown, kein Workout-Push
 - Typ-Inferenz über IF-Berechnung (NP ÷ FTP) + Fahrtdauer als Kriterium
-- Planungs-Tab vollständig ausgeblendet
+- Eigener Planungs-Tab (GFNY Bremen 2026) — read-only: Sessions können nicht verschoben oder als ausgefallen markiert werden
 
 ### Tab: Übersicht
 - Hero mit **FTP-Zonen-Band** (Watt-Skala mit Pins für FTP, eFTP und Saisonziel), **FTP-Fortschrittsring** und **Session-Pill** (nächste geplante Einheit, berücksichtigt Verschiebungen/Ausfälle)
@@ -87,8 +88,11 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 ### Tab: Fahrtenbuch
 Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Befinden-Dropdown nur bei eigenen Plan-2-Fahrten. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip. Bei Vergleichsdaten: keine Befinden-Spalte, keine Befinden-Legende.
 
-### Tab: Planung (nur eigener Plan)
-Alle geplanten Trainingseinheiten bis W12. Sessions werden automatisch als „erledigt" markiert sobald eine passende intervals.icu-Fahrt gefunden wird — mit Soll-Ist-Vergleich (Distanz, Watt, HF, Kadenz, Dauer, TRIMP/CTL, Wetter, Befinden). Wetter-Forecast serverseitig (kein Standort im Frontend). Strukturierte Workouts können per Knopfdruck zu intervals.icu gepusht werden. Bidirektionale Verlinkung mit dem Fahrtenbuch. Sessions können verschoben oder als ausgefallen markiert werden.
+### Tab: Planung
+Alle geplanten Trainingseinheiten des jeweiligen Athleten. Sessions werden automatisch als „erledigt" markiert sobald eine passende intervals.icu-Fahrt gefunden wird — mit Soll-Ist-Vergleich (Distanz, Watt, HF, Kadenz, Dauer, TRIMP/CTL, Wetter, Befinden). Wetter-Forecast serverseitig (kein Standort im Frontend). Bidirektionale Verlinkung mit dem Fahrtenbuch.
+
+- **Athlete 1** (eigener Plan, bis W12): voll editierbar — Sessions verschieben oder als ausgefallen markieren, strukturierte Workouts per Knopfdruck zu intervals.icu pushen.
+- **Athlete 2** (GFNY Bremen 2026, bis KW35/Renntag): read-only — keine Verschiebung/Ausfall-Markierung, kein Workout-Push. Eigene Anpassungsdatei `data/adjustments-2.json`, damit sich Datums-Kollisionen mit Athlete 1s Plan nicht überschneiden.
 
 ### Tab: Analyse
 Acht aufeinander aufbauende Sektionen in Trainer-Fragereihenfolge — für **beide Athleten** verfügbar; plan-spezifische Sektionen erscheinen nur beim eigenen Plan, die Körper-Sektion blendet sich datengetrieben ein.
@@ -123,8 +127,8 @@ Der Plan-Toggle (Gesamt / Plan 1 / Plan 2) filtert die bestandsbezogenen Sektion
 | Befinden | Notion (manuell) | Dashboard-Dropdown → `subjective.json` | — |
 | Wetter | Notion (manuell) | Open-Meteo (automatisch, Secrets) | Open-Meteo (automatisch, eigene Secrets) |
 | Wetter-Forecast | — | Open-Meteo Forecast, serverseitig | — |
-| Geplante Sessions | — | `PLANNED_SESSIONS` in `scripts/lib/plan2.js` | — |
-| Plan-Anpassungen | — | `data/adjustments.json` | — |
+| Geplante Sessions | — | `PLANNED_SESSIONS` in `scripts/lib/plan2.js` | `PLANNED_SESSIONS_ATHLETE2` in `scripts/lib/plan-athlete2.js` (GFNY Bremen 2026) |
+| Plan-Anpassungen | — | `data/adjustments.json` | `data/adjustments-2.json` |
 
 **Typ-Inferenz:** NP ÷ FTP = Intensity Factor (IF). Fahrten unter IF 0,75 werden zusätzlich nach Dauer klassifiziert — ≥120 min = Z2 Lang, ≥60 min = Z2 Dauer, <60 min = Z1 Recovery. Priorität: Notion/Planungsfeld > Datum-Mapping > IF-Inferenz.
 
@@ -226,77 +230,37 @@ git sync
 
 ---
 
+## Trainingsplan GFNY Bremen 2026 (Athlete 2)
+
+13-Wochen-Plan auf das Gran-Fondo-Rennen GFNY Bremen 2026 (Renntag 30.08., Ziel < 3:00 h auf 100 km), FTP 265 W → Ziel 280 W:
+
+| Block | Wochen | Fokus |
+|---|---|---|
+| Basis | KW23–26 | Aerobe Basis + Sweet Spot |
+| Aufbau | KW27–30 | Threshold + Over-Under |
+| Rennhärte | KW31–34 | Rennsimulation + Sprint |
+| Taper | KW35 | Volumen halbieren |
+
+**Wochenstruktur:** Mo Ruhetag · Di MyWhoosh Crit (~30 min) · Mi Z2 Rolle 90 min · Do Intervalle 90 min · Fr Ruhetag · Sa MyWhoosh Rennen 60–75 min · So Z2 outdoor/Rolle 90 min. Zwei Trainingslager ersetzen in ihren Wochen Do–Sa durch Abfahrt/Renntag/Heimfahrt.
+
+Eigenständiger Namensraum zu Plan 1/2 (Athlete 1), definiert in `scripts/lib/plan-athlete2.js` — read-only im Dashboard (siehe [Tab: Planung](#tab-planung)).
+
+---
+
 ## Roadmap
 
-### ✅ Abgeschlossen — Dashboard & Training
-- [x] Dashboard auf GitHub Pages (statisch, kein Backend)
-- [x] Dual-Source Sync: Plan 1 (Notion) + Plan 2 (intervals.icu)
-- [x] Zweiter Athlet (Athlete 2) als Vergleichsdaten — read-only, eigene intervals.icu-Verbindung
-- [x] Athleten-Toggle mit persistenter Auswahl (localStorage, überlebt Reload + F5)
-- [x] Alle Charts, Texte, Legenden und Ziellinien athletenabhängig angepasst
-- [x] PMC-Chart (CTL/ATL/TSB) mit Sweet-Spot-Zone, Plan-Divider, scrollbar
-- [x] Power Curve mit anaerober Reserve-Fläche, athletenabhängiger FTP-Linie, W/kg-Toggle
-- [x] Wöchentliches Volumen mit Phasenfarben, 200km-Zielzone (nur eigener Plan)
-- [x] TRIMP mit absolutem Farbgradient
-- [x] **Wochen/Monats-Toggle** für Volumen, TRIMP und Wetter — persistent pro Athlet
-- [x] Scrollbare Charts
-- [x] HRV & Ruhepuls — Plan-Compare beim eigenen Plan, Wellness-Verlauf bei Vergleichsathleten
-- [x] Schlaf-Chart täglich (Dauer + Schlaf-HF, 7h-Ziel nur eigener Plan)
-- [x] IQR-Ausreißerfilter in Small-Multiple-Charts
-- [x] Befinden-Dropdown im Fahrtenbuch mit GitHub API Write (nur eigene Plan-2-Fahrten)
-- [x] IF + Dauer-basierte Typ-Inferenz für unklassifizierte Fahrten
-- [x] Fahrtenbuch: Sortierung nach Startzeitpunkt als Tiebreaker bei gleichem Datum
-- [x] Planungs-Tab mit serverseitigem Wetter-Forecast, Workout-Push, Soll-Ist-Vergleich
-- [x] Bidirektionale Verlinkung Planungs-Tab ↔ Fahrtenbuch
-- [x] Tab-Position bleibt beim Reload erhalten (URL-Hash)
-- [x] **Belastungswächter**: CTL-Ramp-Rate mit Sicherheitskorridor + Foster-Monotonie/Strain im TRIMP-Chart
-- [x] **Tagesform-Ampel**: HRV/Ruhepuls/Schlaf vs. rollierende 42-Tage-Baseline mit Trainingsempfehlung
-- [x] **Intensitätsverteilung**: Zeit in Zonen pro Woche gegen den 80%-Grundlagen-Richtwert (Seiler)
-- [x] **EF-Trend**: aerober Fortschritts-Marker über vergleichbare Z2-Fahrten (Temperatur-/Dauerfilter)
-- [x] **Power-Curve-Blockvergleich**: Kurven je Trainingsblock (Plan 1 / Sweet Spot / Schwelle / VO2max)
-- [x] **FTP-Retest-Prognose** aus der eFTP-Historie mit Unsicherheitsband
-- [x] **Kadenz-Coach**: Entwicklung, Zielquote ≥90 RPM, Aufschlüsselung nach Fahrttyp
-- [x] **Wochenrückblick-Karte** (letzte abgeschlossene Woche, automatisch)
-- [x] **Bestwerte-Wand** mit Ablöse-Historie
-- [x] **Konsistenz-Jahreskalender** (ersetzt die Wochentags-Heatmap)
-- [x] **Analyse-Tab neu**: 8 sportwissenschaftliche Sektionen (Belastungsempfehlung, Belastung & Erholung, Intensitätsverteilung, Aerobe Entwicklung, Leistungsdiagnostik, Regeneration & Körper, Konsistenz & Adhärenz, Periodisierungs-Erfüllung) — für beide Athleten
-- [x] **FTP-Dreiklang** gemessen/geschätzt/Ziel strikt getrennt, je mit W/kg-Bezug
-- [x] **HF-Decoupling-Trend** + IF-Fallback für die Intensitätsverteilung (bei fehlenden Zone-Times, mit Abdeckungs-Warnung)
-- [x] **Regeneration & Körper**: Gewicht/Energie/Hydration aus erweiterten Wellness-Feldern, datengetrieben eingeblendet
-- [x] **Plan 2 auf Leistungsaufbau ausgerichtet**: Sa = Sweet-Spot-Ausdauerfahrt (zwei Qualitätstage), Mo/Fr optional
-- [x] ES-Modul-Architektur (core/state/ui), 103 Unit-Tests (`node:test`), CI-Workflow
-- [x] **Fallow Codebase-Intelligence**: Health Score, Circular-Deps-, Duplication- und
-      Dead-Code-Report in CI (non-blocking) + Agent Skill für Claude Code
-- [x] Design-System Konzept 5 (Glas-Kacheln, Zonen-Farbsystem, FTP-Zonen-Band + Fortschrittsring im Hero)
-
-### ✅ Abgeschlossen — Datenschutz & Infrastruktur
-- [x] **Alle Standortdaten ausschließlich in GitHub Secrets** — kein Koordinaten-Hardcode im Code oder JSON
-- [x] Wetter-Forecast serverseitig — Frontend hat niemals Zugriff auf Koordinaten
-- [x] Getrennte Standort-Secrets für beide Athleten
-- [x] Pages-Deploy direkt in Sync-Action integriert (getrennte Jobs `sync`/`deploy` — kein doppeltes Artefakt bei Re-Run)
-- [x] `subjective.json` und `adjustments.json` durch Action-Workflow geschützt
+### ✅ Abgeschlossen
+Alle Kernfunktionen sind live — Details siehe [Features](#features) oben. Größte Meilensteine: Dual-Source-Sync (Notion + intervals.icu), Belastungswächter, Tagesform-Ampel, 8-teiliger Analyse-Tab, FTP-Dreiklang, Zweiter Athlet mit eigenem Vergleichsdatensatz **und** eigenem Trainingsplan (GFNY Bremen 2026, read-only), Standortdaten ausschließlich in GitHub Secrets, Fallow-Codebase-Intelligence in CI, ES-Modul-Architektur mit 193 Unit-Tests. Vollständige Historie: `git log`.
 
 ### 🔲 Geplant — Dashboard & Training
 - [ ] Wochennotizen im Fahrtenbuch editierbar
 - [ ] Vergleichsansicht Plan 1 vs. Plan 2 als **CTL-Kurven-Overlay** (Kennzahlen-Vergleich existiert bereits im Analyse-Tab)
 
-### 🔲 Geplant — Manuelles Testen (QA-Portfolio)
-- [ ] Testplan für Dashboard-Funktionalität
-- [ ] Strukturierte Testfälle nach ISTQB-Standard
-- [ ] Bug-Reports als GitHub Issues
-- [ ] Testbericht
-
-### 🔲 Geplant — API-Testing & Mocking (QA-Portfolio)
-- [ ] Postman Collection für intervals.icu API und Notion API
-- [ ] WireMock-Stubs für entkoppeltes Testen
-- [ ] Automatisierte API-Tests in GitHub Actions
-
-### 🔲 Geplant — Automatisierung (QA-Portfolio)
-- [ ] Selenium-Testfälle für Dashboard-UI
-- [ ] Testautomatisierung in GitHub Actions CI-Pipeline
-
-### 🔲 Geplant — Docker (QA-Portfolio)
-- [ ] `Dockerfile` und `docker-compose.yml` für lokale Entwicklung
+### 🔲 Geplant — QA-Portfolio
+- [ ] Manuelles Testen: Testplan, ISTQB-Testfälle, Bug-Reports als GitHub Issues, Testbericht
+- [ ] API-Testing & Mocking: Postman Collection (intervals.icu/Notion), WireMock-Stubs, automatisierte API-Tests in CI
+- [ ] Automatisierung: Selenium-Testfälle für Dashboard-UI, Testautomatisierung in der CI-Pipeline
+- [ ] Docker: `Dockerfile` + `docker-compose.yml` für lokale Entwicklung
 
 ---
 
