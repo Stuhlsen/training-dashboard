@@ -1,4 +1,4 @@
-import { getSession, onSessionChange, signOut, isSupabaseConfigured } from "../state/session.js";
+import { onSessionChange, signOut, isSupabaseConfigured } from "../state/session.js";
 import { openModal } from "./auth-modal.js";
 import { openPanel } from "./settings-panel.js";
 import { el } from "./dom.js";
@@ -68,5 +68,9 @@ function render(user) {
   else renderLoggedOut(wrap);
 }
 
-render(getSession());
+// Kein sofortiges render(getSession()) hier: initSession() (app.js) läuft
+// erst nach renderAll() und currentUser ist bis dahin immer null — ein
+// sofortiger Render würde bei bereits eingeloggten Rückkehrern kurz
+// "Anmelden" zeigen und dann auf "eingeloggt als …" umspringen. Der Topbar-
+// Container bleibt leer, bis onSessionChange den ersten echten Zustand liefert.
 onSessionChange(render);
