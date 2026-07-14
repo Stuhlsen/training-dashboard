@@ -1,4 +1,4 @@
-import { signIn } from "../data-access/supabase/auth.js";
+import { signIn } from "../state/session.js";
 
 let overlay = null;
 let errorEl = null;

@@ -1,4 +1,4 @@
-import { onAuthChange } from "../data-access/supabase/auth.js";
+import { onAuthChange, signIn as signInAdapter, signOut as signOutAdapter } from "../data-access/supabase/auth.js";
 import { getProfile } from "../data-access/supabase/profiles.js";
 
 let currentUser = null;
@@ -20,6 +20,17 @@ export function initSession() {
     currentUser = profile?.error ? null : profile;
     notify();
   });
+}
+
+/** Reicht signIn/signOut aus data-access/ durch, damit ui/ nie direkt
+ *  gegen data-access/ importiert (Schichtenregel). currentUser wird
+ *  jeweils via onAuthChange aktualisiert, nicht hier. */
+export async function signIn(email, password) {
+  return signInAdapter(email, password);
+}
+
+export async function signOut() {
+  return signOutAdapter();
 }
 
 export function getSession() {
