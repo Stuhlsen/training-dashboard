@@ -20,6 +20,7 @@ import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { el } from "./dom.js";
 import { fetchRawJson, writeRepoFile } from "./github-client.js";
+import { log } from "./log.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
 
@@ -178,6 +179,34 @@ export const Planned = {
     return Data.forecast || {};
   },
 
+  /* ── Basic-Auth-Header fürs intervals.icu-API (Events GET + POST) ──── */
+  _intervalsAuthHeader(token) {
+    return { Authorization: "Basic " + btoa("API_KEY:" + token) };
+  },
+
+  /* ── Prüfen, ob für dieses Datum bereits ein Workout-Event existiert ──
+     Idempotenz-Guard vor dem POST: verhindert Duplikate bei erneutem Push
+     (Retry nach Timeout, mehrfacher Klick). intervals.icu kennt keine
+     externe Referenz-ID im Event-Payload — daher Name+Datum+Beschreibung
+     als Match (nicht nur Name: sonst würde ein Push mit geändertem
+     Workout-Inhalt am selben Datum fälschlich als "bereits vorhanden"
+     übersprungen, statt den aktualisierten Inhalt zu pushen). */
+  async _findExistingEvent(date, name, description, token, athleteId) {
+    const res = await fetch(
+      `https://intervals.icu/api/v1/athlete/${athleteId}/events?oldest=${date}&newest=${date}&category=WORKOUT`,
+      { headers: this._intervalsAuthHeader(token) }
+    );
+    if (!res.ok) {
+      const err = new Error(`intervals.icu Fehler ${res.status} beim Duplikat-Check`);
+      err.code = "HTTP";
+      throw err;
+    }
+    const events = await res.json();
+    return Array.isArray(events)
+      ? events.some((e) => e.name === name && e.description === description)
+      : false;
+  },
+
   /* ── Workout zu intervals.icu pushen ───────────────────────── */
   /** @returns {Promise<import("../types.js").Result>} */
   async _pushWorkout(session, token, athleteId) {
@@ -228,16 +257,32 @@ export const Planned = {
     };
 
     try {
+      // Idempotenz-Guard: ohne diese Prüfung legt ein Retry (Timeout, Doppel-
+      // klick) ein zusätzliches Duplikat-Event an, weil intervals.icu selbst
+      // keine Dedup-Prüfung übers Event-API macht.
+      const alreadyExists = await this._findExistingEvent(
+        session.date,
+        session.name,
+        workout.description,
+        token,
+        athleteId
+      );
+      if (alreadyExists) {
+        log.warn("Wahoo-Push übersprungen (existiert bereits):", session.date, session.name);
+        return { ok: true, skipped: true };
+      }
+
       const res = await fetch(`https://intervals.icu/api/v1/athlete/${athleteId}/events`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: "Basic " + btoa("API_KEY:" + token),
+          ...this._intervalsAuthHeader(token),
         },
         body: JSON.stringify(workout),
       });
       if (!res.ok) {
         const txt = await res.text();
+        log.error("Wahoo-Push fehlgeschlagen:", session.date, session.name, res.status, txt);
         return {
           ok: false,
           error: { code: "HTTP", message: `intervals.icu Fehler ${res.status}: ${txt}` },
@@ -245,7 +290,8 @@ export const Planned = {
       }
       return { ok: true };
     } catch (e) {
-      return { ok: false, error: { code: "NETWORK", message: e.message, cause: e } };
+      log.error("Wahoo-Push fehlgeschlagen:", session.date, session.name, e.message);
+      return { ok: false, error: { code: e.code || "NETWORK", message: e.message, cause: e } };
     }
   },
 
@@ -489,23 +535,31 @@ export const Planned = {
 
     container.innerHTML = html;
 
-    // Event Delegation — neu auf Container setzen (innerHTML wurde ersetzt)
-    container.addEventListener("click", (e) => {
-      const moveBtn = e.target.closest(".planned-move-btn");
-      const cancelBtn = e.target.closest(".planned-cancel-btn");
-      const pushBtn = e.target.closest(".planned-push-btn");
-      const undoBtn = e.target.closest(".planned-undo-btn");
-      const doneItem = e.target.closest(".planned-done-item--link");
+    // Event Delegation — container-Node bleibt über render()-Aufrufe hinweg
+    // bestehen (nur innerHTML wird ersetzt), daher Listener nur EINMAL binden.
+    // Ohne diesen Guard stapelt jeder erneute render() (Athletenwechsel,
+    // Adjustment-Change, …) einen weiteren Click-Handler — ein Klick auf
+    // "Push"/Move/Cancel/Undo feuert dann entsprechend oft (Ursache der
+    // Wahoo-Push-Duplikate).
+    if (!container.dataset.plannedBound) {
+      container.dataset.plannedBound = "1";
+      container.addEventListener("click", (e) => {
+        const moveBtn = e.target.closest(".planned-move-btn");
+        const cancelBtn = e.target.closest(".planned-cancel-btn");
+        const pushBtn = e.target.closest(".planned-push-btn");
+        const undoBtn = e.target.closest(".planned-undo-btn");
+        const doneItem = e.target.closest(".planned-done-item--link");
 
-      if (moveBtn) Planned._handleMove(moveBtn);
-      if (cancelBtn) Planned._handleCancel(cancelBtn);
-      if (pushBtn) Planned._handlePush(pushBtn);
-      if (undoBtn) Planned._handleUndo(undoBtn);
-      if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
-        const date = doneItem.dataset.rideDate;
-        if (date) Planned._openInTable(date);
-      }
-    });
+        if (moveBtn) Planned._handleMove(moveBtn);
+        if (cancelBtn) Planned._handleCancel(cancelBtn);
+        if (pushBtn) Planned._handlePush(pushBtn);
+        if (undoBtn) Planned._handleUndo(undoBtn);
+        if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
+          const date = doneItem.dataset.rideDate;
+          if (date) Planned._openInTable(date);
+        }
+      });
+    }
   },
 
   /* ── Einzel-Karte ──────────────────────────────────────────── */
@@ -1075,7 +1129,12 @@ export const Planned = {
     btn.disabled = false;
     btn.textContent = "📤 Auf Wahoo pushen";
 
-    if (result.ok) {
+    if (result.ok && result.skipped) {
+      if (statusEl) {
+        statusEl.textContent = "ℹ️ Bereits vorhanden — kein Duplikat angelegt";
+        statusEl.style.color = "var(--gold)";
+      }
+    } else if (result.ok) {
       if (statusEl) {
         statusEl.textContent = "✅ Gepusht!";
         statusEl.style.color = "var(--green)";

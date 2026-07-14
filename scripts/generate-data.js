@@ -31,7 +31,13 @@ import {
   buildWeatherMap,
   getWeatherForRide,
 } from "./lib/weather.js";
-import { mapActivity, mapActivity2 } from "./lib/map-activity.js";
+import {
+  mapActivity,
+  mapActivity2,
+  buildEffectivePlanIndex,
+  classifyCooldowns,
+  DEFAULT_FTP,
+} from "./lib/map-activity.js";
 import {
   mapWellnessList,
   latestWeight,
@@ -117,7 +123,15 @@ async function main() {
     log.info(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
     log.info(`📋 adjustments.json: ${Object.keys(adjustments).length} Anpassungen`);
 
-    plan2 = activities.map((act) => mapActivity(act, wellness, subjective, weatherMap));
+    // Kartentausch/-verschiebung berücksichtigen: ohne effectivePlan würde
+    // mapActivity() nach einer Verschiebung im Planungstab weiter die
+    // ursprüngliche (unverschobene) Plankarte für ein Datum liefern.
+    const effectivePlan = buildEffectivePlanIndex(PLANNED_SESSIONS, adjustments);
+    plan2 = activities.map((act) => mapActivity(act, wellness, subjective, weatherMap, effectivePlan));
+    // Ausrollen nach einem harten Workout (gleicher Tag, kurz, deutlich
+    // niedrigere Leistung) erbt sonst dieselbe Tages-Plankarte — analog zum
+    // Fix für Athlet 2 weiter unten.
+    classifyCooldowns(plan2, DEFAULT_FTP);
     log.info(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
 
     // Wellness-Einträge als eigenständige Liste (Schlaf-Chart, Readiness,
@@ -254,18 +268,22 @@ async function main() {
       `   ... FTP (${ATHLETE_2_NAME}): ${estimatedFTP2}W ${ATHLETE_2_FTP ? "(Ramp-Test)" : `(geschätzt aus bestem NP ${bestNP2}W ≥20min)`}`
     );
 
+    const adjustments2 = loadAdjustments2();
+    log.info(`📋 adjustments-2.json: ${Object.keys(adjustments2).length} Anpassungen`);
+    const effectivePlan2 = buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2);
+
     const rides2 = activities2
-      .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2))
+      .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2))
       .sort((a, b) => a.date.localeCompare(b.date));
+    // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
+    // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.
+    classifyCooldowns(rides2, estimatedFTP2);
 
     const wellnessList2 = mapWellnessList(wellness2);
     logWellnessCoverage(wellnessList2, ATHLETE_2_NAME);
 
     const latest2 = latestWeight(wellness2);
     const athleteWeight2 = latest2 ? latest2.weight : null;
-
-    const adjustments2 = loadAdjustments2();
-    log.info(`📋 adjustments-2.json: ${Object.keys(adjustments2).length} Anpassungen`);
 
     const output2 = {
       athleteName: ATHLETE_2_NAME,

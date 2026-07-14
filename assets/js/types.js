@@ -105,6 +105,9 @@
  * @typedef {Object} Result
  * @property {boolean} ok
  * @property {AppError} [error]  Nur gesetzt wenn ok === false
+ * @property {boolean} [skipped]  Nur bei ok === true: Operation war idempotent
+ *   ohne Wirkung (z.B. Wahoo-Push übersprungen, weil das Workout für dieses
+ *   Datum bereits existiert) — kein Fehler, aber vom UI abweichend anzuzeigen.
  */
 
 /**

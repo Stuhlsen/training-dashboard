@@ -4,12 +4,42 @@
    die beiden Mapper für Athlet 1 (Plan 2) und Athlet 2.
    ============================================================ */
 
+import { effectiveSessions } from "../../assets/js/core/planning.js";
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { getWeatherForRide } from "./weather.js";
 
 /** Fallback-FTP für die Typ-Ableitung — wird bei neuem Ramp-Test aktualisiert */
 export const DEFAULT_FTP = 193;
+
+/**
+ * Baut aus einer statischen Plankarten-Map + adjustments.json den Index
+ * "welche Plankarte gilt aktuell für Datum X" — berücksichtigt Verschiebungen
+ * (movedTo) und Ausfälle (cancelled). Ohne diesen Schritt würde die Ride-
+ * Zuordnung (mapActivity/mapActivity2) nach einem Kartentausch im Planungstab
+ * weiter die ursprüngliche, unverschobene Karte für ein Datum liefern.
+ * Nutzt effectiveSessions() (core/planning.js) statt die Adjustment-Auflösung
+ * ein zweites Mal zu duplizieren.
+ * @param {Record<string, Object>} sessionsByDate PLANNED_SESSIONS[_ATHLETE2]
+ * @param {Record<string, Object>} [adjustments]
+ * @returns {Record<string, Object>} Datum → aktuell gültige Session
+ */
+export function buildEffectivePlanIndex(sessionsByDate, adjustments) {
+  const sessions = Object.entries(sessionsByDate).map(([date, s]) => ({ date, ...s }));
+  const effective = effectiveSessions(sessions, adjustments);
+
+  const index = {};
+  // Zwei Durchgänge statt eines: eine verschobene Session (originalDate
+  // gesetzt) MUSS eine unverschobene Session verdrängen, die zufällig auf
+  // ihrem Zieldatum "wohnt" (einseitige Verschiebung auf ein Datum mit
+  // eigener, unveränderter Karte — kein wechselseitiger Tausch). Ein
+  // einziger Durchgang wäre von der Object.entries-Reihenfolge (= Datums-
+  // Reihenfolge in PLANNED_SESSIONS) abhängig und könnte die verschobene
+  // Session je nach Zufall stillschweigend verlieren.
+  for (const s of effective) if (!s.originalDate) index[s.date] = s;
+  for (const s of effective) if (s.originalDate) index[s.date] = s;
+  return index;
+}
 
 /**
  * Trainingstyp aus NP/FTP (Intensity Factor) ableiten, wenn kein Plan-Match.
@@ -98,12 +128,12 @@ function startHourOf(act) {
 }
 
 // === intervals.icu Activity → Ride-Objekt (Athlet 1, Plan 2) ===
-export function mapActivity(act, wellness, subjective, weatherMap) {
+export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan = PLANNED_SESSIONS) {
   const date = act.start_date_local.split("T")[0];
   const { week, phase } = getPlan2WeekPhase(date);
   const w = wellness[date] || {};
   const s = subjective[date] || {};
-  const planned = PLANNED_SESSIONS[date] || {};
+  const planned = effectivePlan[date] || {};
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
@@ -134,10 +164,16 @@ export function mapActivity(act, wellness, subjective, weatherMap) {
 // generate-data.js), nicht über ride.week/ride.phase. Das hält
 // hasOwnPlan()/Data.weekly() in app.js unangetastet (Athlet-1-exklusive
 // Plan-1/2-Semantik), während der Planungstab trotzdem funktioniert.
-export function mapActivity2(act, wellness, weatherMap, estimatedFtp) {
+export function mapActivity2(
+  act,
+  wellness,
+  weatherMap,
+  estimatedFtp,
+  effectivePlan = PLANNED_SESSIONS_ATHLETE2
+) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
-  const planned = PLANNED_SESSIONS_ATHLETE2[date] || {};
+  const planned = effectivePlan[date] || {};
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
@@ -161,4 +197,64 @@ export function mapActivity2(act, wellness, weatherMap, estimatedFtp) {
     feel: null,
     notizen: null,
   };
+}
+
+/**
+ * Erkennt ein kurzes, niedrig-intensives Workout direkt nach einem harten
+ * (renn-artigen) Workout am selben Tag und markiert es als "Ausrollen" statt
+ * der vom Datum geerbten Plankarten-Bezeichnung. Notwendig, weil die
+ * Plan-Zuordnung pro Kalendertag erfolgt (ein Eintrag in PLANNED_SESSIONS*)
+ * — bei zwei echten Aktivitäten am selben Tag (Rennen + Ausrollen) würden
+ * sonst beide dieselbe (Renn-)Bezeichnung erben.
+ * Rein, testbar — siehe tests/map-activity.test.js.
+ * @param {Array<Object>} rides bereits gemappte Ride-Objekte
+ * @param {number|null} [ftp]
+ * @returns {Array<Object>} rides (in-place korrigiert)
+ */
+export function classifyCooldowns(rides, ftp) {
+  const byDate = new Map();
+  for (const r of rides) {
+    if (!r.date) continue;
+    if (!byDate.has(r.date)) byDate.set(r.date, []);
+    byDate.get(r.date).push(r);
+  }
+  for (const dayRides of byDate.values()) {
+    if (dayRides.length < 2) continue;
+    dayRides.sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+    for (let i = 1; i < dayRides.length; i++) {
+      const prior = dayRides[i - 1];
+      const cur = dayRides[i];
+      const priorPower = prior.np ?? prior.watt;
+      const curPower = cur.np ?? cur.watt;
+      const priorIF = ftp && priorPower ? priorPower / ftp : 0;
+      const curIF = ftp && curPower ? curPower / ftp : 0;
+      const priorWasHard = priorIF >= 0.9;
+      // Zusätzlich zum relativen Verhältnis (curIF <= priorIF*0.6) eine
+      // absolute Obergrenze: sonst würde ein selbst noch harter zweiter
+      // Effort (z.B. IF 1.1 nach einem Extrem-Sprint IF 2.0) fälschlich
+      // als "Ausrollen" durchgehen, nur weil er relativ leichter war.
+      const curIsShortEasy =
+        (cur.min ?? Infinity) <= 25 && curIF > 0 && curIF <= 0.55 && curIF <= priorIF * 0.6;
+      if (priorWasHard && curIsShortEasy && isShortlyAfter(prior, cur)) {
+        cur.typ = "Ausrollen";
+        cur.name = "Ausrollen";
+      }
+    }
+  }
+  return rides;
+}
+
+/**
+ * Prüft, ob `cur` zeitlich unmittelbar (≤90 Min Pause) nach dem Ende von
+ * `prior` beginnt — verhindert, dass zwei unabhängige, nur zufällig am
+ * selben Kalendertag liegende Fahrten (z.B. Rennen morgens, Pendel-Fahrt
+ * abends) als Ausrollen-Paar erkannt werden.
+ * @param {Object} prior @param {Object} cur
+ */
+function isShortlyAfter(prior, cur) {
+  if (!prior.startTime || !cur.startTime) return false;
+  const priorEnd = new Date(prior.startTime).getTime() + (prior.min || 0) * 60000;
+  const curStart = new Date(cur.startTime).getTime();
+  const gapMin = (curStart - priorEnd) / 60000;
+  return gapMin >= -5 && gapMin <= 90;
 }
