@@ -195,14 +195,21 @@ function buildDataSourcesSection() {
   const section = document.createElement("div");
   section.style.cssText = "padding: 18px 16px;";
 
+  // Es gibt keine Verknüpfung zwischen dem Supabase-Login und einer
+  // CONFIG.athletes-ID — diese Sektion zeigt zwangsläufig die Quellen des
+  // gerade im Dashboard angezeigten Athleten (Athleten-Toggle), nicht
+  // zwingend die des eingeloggten Users. Label macht das explizit, statt
+  // "meine Datenquellen" zu suggerieren.
   const ac = CONFIG.athleteConfig(Data.activeAthleteId);
+  const athleteName = CONFIG.athletes.find((a) => a.id === Data.activeAthleteId)?.name || "";
   const sources = ac?.dataSources || [];
   const lastDate = latestDataDate();
 
   section.innerHTML = `
     <div style="font-family: var(--font-mono); font-size:0.62rem; text-transform:uppercase;
-      letter-spacing:0.06em; color: var(--dim); margin-bottom:10px;">Datenquellen</div>
+      letter-spacing:0.06em; color: var(--dim); margin-bottom:10px;"></div>
   `;
+  section.firstElementChild.textContent = `Datenquellen · ${athleteName}`;
   const list = document.createElement("div");
   list.style.cssText = "display:flex; flex-direction:column; gap:8px;";
   for (const src of sources) {
