@@ -9,6 +9,7 @@ import { getGoals, saveGoal, deactivateGoal } from "../state/goals.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { fmtDate } from "../core/format.js";
+import { log } from "./log.js";
 
 let panel = null;
 let isOpen = false;
@@ -111,8 +112,16 @@ async function buildGoalsSection() {
 
   async function renderList() {
     list.innerHTML = "";
-    const goals = await getGoals();
-    for (const goal of goals) {
+    const result = await getGoals();
+    if (!result.ok) {
+      log.warn("Ziele konnten nicht geladen werden:", result.error);
+      const errEl = document.createElement("div");
+      errEl.textContent = "Ziele konnten nicht geladen werden.";
+      errEl.style.cssText = "font-family: var(--font-mono); font-size:0.65rem; color: var(--red);";
+      list.appendChild(errEl);
+      return;
+    }
+    for (const goal of result.goals) {
       const item = document.createElement("div");
       item.style.cssText =
         "display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:6px 8px; border-radius:8px;";

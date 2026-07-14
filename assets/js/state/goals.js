@@ -5,10 +5,10 @@ import {
 } from "../data-access/supabase/goals.js";
 import { getSession } from "./session.js";
 
-/** Aktive Ziele des eingeloggten Athleten */
+/** Aktive Ziele des eingeloggten Athleten → { ok, goals, error } */
 export async function getGoals() {
   const user = getSession();
-  if (!user) return [];
+  if (!user) return { ok: true, goals: [] };
   return getGoalsAdapter(user.id);
 }
 

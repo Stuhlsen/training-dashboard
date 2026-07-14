@@ -14,15 +14,15 @@ function toGoal(row) {
 }
 
 export async function getGoals(athleteId) {
-  if (!supabase) return [];
+  if (!supabase) return { ok: true, goals: [] };
   const { data, error } = await supabase
     .from("goals")
     .select("id, kind, target_value, target_date, note, is_active")
     .eq("athlete_id", athleteId)
     .eq("is_active", true)
     .order("created_at", { ascending: true });
-  if (error) return [];
-  return data.map(toGoal);
+  if (error) return { ok: false, error: error.message };
+  return { ok: true, goals: data.map(toGoal) };
 }
 
 export async function saveGoal(athleteId, goal) {
