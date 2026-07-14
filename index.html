@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <link rel="stylesheet" href="assets/css/main.css">
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/charts.css">
@@ -19,6 +20,7 @@
     .topbar {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
       padding: 20px 0 14px;
     }
@@ -55,6 +57,7 @@
     <!-- Kopfzeile: nur noch die Marke -->
     <div class="topbar">
       <div class="brand">Training<span>·</span>Dashboard</div>
+      <div id="topbar-auth"></div>
     </div>
 
     <!-- Hero: Wochenstatus + Zonen-Band + FTP-Ring (K5-Signaturen) -->
