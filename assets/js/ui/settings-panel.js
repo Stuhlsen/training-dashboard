@@ -83,7 +83,7 @@ function buildProfileSection(user) {
     }
     if (name === user.displayName) return;
     const result = await updateDisplayName(name);
-    if (!result.error) flashSaved(section.querySelector("#settings-name-feedback"));
+    if (result.ok) flashSaved(section.querySelector("#settings-name-feedback"));
   });
 
   if (isAthlete()) {
@@ -177,7 +177,7 @@ async function buildGoalsSection() {
       targetDate: fd.get("targetDate") || null,
       note: fd.get("note") || null,
     });
-    if (result.error) {
+    if (!result.ok) {
       goalErrorEl.textContent = "Ziel konnte nicht gespeichert werden.";
       return;
     }

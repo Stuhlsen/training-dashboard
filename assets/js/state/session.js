@@ -26,15 +26,15 @@ export function initSession() {
       notify();
       return;
     }
-    let profile = await getProfile(session.user.id);
-    if (profile?.error) {
+    let result = await getProfile(session.user.id);
+    if (!result.ok) {
       // Möglicher Trigger-Race direkt nach Signup: die profiles-Zeile aus
       // handle_new_user() ist evtl. noch nicht committed, wenn onAuthChange
       // zuerst feuert. Ein Retry reicht — kein Endlos-Polling.
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      profile = await getProfile(session.user.id);
+      result = await getProfile(session.user.id);
     }
-    currentUser = profile?.error ? null : profile;
+    currentUser = result.ok ? result.profile : null;
     notify();
   });
 }
@@ -53,9 +53,9 @@ export async function signOut() {
 /** Speichert den Display-Namen des eingeloggten Users und hält currentUser
  *  synchron, damit Header/Settings-Panel ohne Reload den neuen Wert zeigen. */
 export async function updateDisplayName(name) {
-  if (!currentUser) return { error: "Nicht eingeloggt" };
+  if (!currentUser) return { ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } };
   const result = await updateDisplayNameAdapter(currentUser.id, name);
-  if (!result.error) {
+  if (result.ok) {
     currentUser = { ...currentUser, displayName: name };
     notify();
   }
@@ -64,9 +64,9 @@ export async function updateDisplayName(name) {
 
 /** Speichert wellbeing_public des eingeloggten Users, currentUser synchron */
 export async function updateWellbeingPublic(value) {
-  if (!currentUser) return { error: "Nicht eingeloggt" };
+  if (!currentUser) return { ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } };
   const result = await updateWellbeingPublicAdapter(currentUser.id, value);
-  if (!result.error) {
+  if (result.ok) {
     currentUser = { ...currentUser, wellbeingPublic: value };
     notify();
   }

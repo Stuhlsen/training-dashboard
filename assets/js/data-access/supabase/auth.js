@@ -1,19 +1,19 @@
 import { supabase } from "./client.js";
 
-const NOT_CONFIGURED = "Supabase nicht konfiguriert";
+const NOT_CONFIGURED = { code: "UNKNOWN", message: "Supabase nicht konfiguriert" };
 
 export async function signIn(email, password) {
-  if (!supabase) return { user: null, error: NOT_CONFIGURED };
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { user: null, error: error.message };
-  return { user: data.user, error: null };
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, user: data.user };
 }
 
 export async function signOut() {
-  if (!supabase) return { error: NOT_CONFIGURED };
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await supabase.auth.signOut();
-  if (error) return { error: error.message };
-  return { error: null };
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
 }
 
 export function onAuthChange(callback) {

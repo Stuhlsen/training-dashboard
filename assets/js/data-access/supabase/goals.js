@@ -1,6 +1,6 @@
 import { supabase } from "./client.js";
 
-const NOT_CONFIGURED = "Supabase nicht konfiguriert";
+const NOT_CONFIGURED = { code: "UNKNOWN", message: "Supabase nicht konfiguriert" };
 
 function toGoal(row) {
   return {
@@ -21,12 +21,12 @@ export async function getGoals(athleteId) {
     .eq("athlete_id", athleteId)
     .eq("is_active", true)
     .order("created_at", { ascending: true });
-  if (error) return { ok: false, error: error.message };
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true, goals: data.map(toGoal) };
 }
 
 export async function saveGoal(athleteId, goal) {
-  if (!supabase) return { id: null, error: NOT_CONFIGURED };
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const { data, error } = await supabase
     .from("goals")
     .insert({
@@ -38,13 +38,13 @@ export async function saveGoal(athleteId, goal) {
     })
     .select("id")
     .single();
-  if (error) return { id: null, error: error.message };
-  return { id: data.id, error: null };
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, id: data.id };
 }
 
 export async function deactivateGoal(goalId) {
-  if (!supabase) return { error: NOT_CONFIGURED };
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await supabase.from("goals").update({ is_active: false }).eq("id", goalId);
-  if (error) return { error: error.message };
-  return { error: null };
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
 }

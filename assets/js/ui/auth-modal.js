@@ -73,12 +73,12 @@ function build() {
   modal.querySelector("#auth-modal-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     errorEl.textContent = "";
-    const { user, error } = await signIn(emailInput.value, passwordInput.value);
-    if (error) {
-      errorEl.textContent = error;
+    const result = await signIn(emailInput.value, passwordInput.value);
+    if (!result.ok) {
+      errorEl.textContent = result.error.message;
       return;
     }
-    if (user) closeModal();
+    closeModal();
   });
 }
 
