@@ -26,7 +26,14 @@ export function initSession() {
       notify();
       return;
     }
-    const profile = await getProfile(session.user.id);
+    let profile = await getProfile(session.user.id);
+    if (profile?.error) {
+      // Möglicher Trigger-Race direkt nach Signup: die profiles-Zeile aus
+      // handle_new_user() ist evtl. noch nicht committed, wenn onAuthChange
+      // zuerst feuert. Ein Retry reicht — kein Endlos-Polling.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      profile = await getProfile(session.user.id);
+    }
     currentUser = profile?.error ? null : profile;
     notify();
   });
