@@ -3708,7 +3708,7 @@
       "hrv": 62,
       "avgSleepingHR": 49,
       "sleepHours": 5.4,
-      "feel": null,
+      "feel": "Moderat",
       "notizen": null,
       "id": 70,
       "dateShort": "14.07",
@@ -10076,7 +10076,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-14T17:39:04.273Z",
+  "updated": "2026-07-14T17:41:17.041Z",
   "source": "notion+intervals",
   "count": 70
 }
