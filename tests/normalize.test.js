@@ -3,7 +3,15 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { normalizeFeel, normalizeRide, normalizeWellness } from "../assets/js/core/normalize.js";
-import { fmt, fmtInt, fmtDate, fmtDuration, wrapText, windDir } from "../assets/js/core/format.js";
+import {
+  fmt,
+  fmtInt,
+  fmtDate,
+  fmtDateFull,
+  fmtDuration,
+  wrapText,
+  windDir,
+} from "../assets/js/core/format.js";
 import { parseFtpFromNotes } from "../scripts/lib/notion.js";
 
 test("normalizeFeel: Kurzformen werden auf Labels + CSS-Klassen gemappt", () => {
@@ -41,6 +49,15 @@ test("fmt/fmtInt/fmtDate/fmtDuration: deutsche Formate + null-Handling", () => {
   assert.equal(fmtDate("2026-03-24"), "24.03");
   assert.equal(fmtDuration(125), "2:05h");
   assert.equal(fmtDuration(null), "–");
+});
+
+test("fmtDateFull: volles DD.MM.JJJJ-Format für Tooltips, konsistent zu fmtDate ohne Jahr", () => {
+  assert.equal(fmtDateFull("2026-03-24"), "24.03.2026");
+  assert.equal(fmtDateFull(null), "–");
+  // Achsenbeschriftung (fmtDate) und Tooltip (fmtDateFull) müssen densel-
+  // ben Tag/Monat liefern — nur das Jahr ist der Unterschied (Punkt 4:
+  // ein Datumsformat statt abweichender Ad-hoc-Implementierungen je Chart).
+  assert.equal(fmtDateFull("2026-03-24").slice(0, 5), fmtDate("2026-03-24"));
 });
 
 test("wrapText bricht an Wortgrenzen um", () => {

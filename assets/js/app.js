@@ -105,11 +105,11 @@ function updateChartExplainers(ownPlan, ftp) {
     );
     set(
       "explainer-hrv",
-      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`
+      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche (W0) markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`
     );
     set(
       "explainer-rhf",
-      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`
+      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche (W0) trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`
     );
 
     set(
@@ -127,8 +127,8 @@ function updateChartExplainers(ownPlan, ftp) {
     );
 
     set("note-cadence", `RPM pro Fahrt · gestrichelt = Ziel ${CONFIG.cadenceTarget} RPM`);
-    set("note-hrv", `Plan 1 (lila) · W0 (gold) · Plan 2 (orange)`);
-    set("note-rhf", `Plan 1 (rot) · W0 (gold) · Plan 2 (orange)`);
+    set("note-hrv", `Plan 1 (lila) · Übergang (gold) · Plan 2 (orange)`);
+    set("note-rhf", `Plan 1 (rot) · Übergang (gold) · Plan 2 (orange)`);
     set("note-sleep", `Nur Plan 2 · intervals.icu`);
     set("efficiency-note", `Nur Powermeter-Fahrten (ab W6)`);
   } else {

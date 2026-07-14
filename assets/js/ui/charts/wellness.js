@@ -3,7 +3,7 @@
    Rendering only — Trend-Berechnung in core/stats.js.
    ============================================================ */
 
-import { fmt, wrapText } from "../../core/format.js";
+import { fmt, fmtDate, fmtDateFull, wrapText } from "../../core/format.js";
 import { linearTrend } from "../../core/stats.js";
 import { Data } from "../../state/data.js";
 import { el, svgEl, Tooltip } from "../dom.js";
@@ -14,6 +14,7 @@ import {
   pickLabelIndices,
   cardContentWidth,
   axisTitles,
+  fitsLabel,
 } from "./base.js";
 
 /* ── Schlaf — Dauer & Schlaf-HF ──────────────────────────────── */
@@ -224,9 +225,21 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
   const minV = Math.max(0, Math.min(...allVals) - 5);
   const maxV = Math.max(...allVals) + 5;
 
+  // Drei Segmente: Plan 1 / Übergang W0 / Plan 2 — vorab ermittelt (statt
+  // erst nach den Achsentiteln), weil der "Datum"-Achsentitel und der
+  // Methodenwechsel-Hinweis sich dieselbe Zeile unter der X-Achse teilen:
+  // bei einem Plan-Split zeigen wir dort den (kompakten) Hinweis statt des
+  // Achsentitels — beide gleichzeitig kollidierten sonst sichtbar.
+  const w0Start = data.findIndex((d) => d.week === "P2-W0");
+  const w1Start = data.findIndex((d) => d.week && d.week.startsWith("P2-") && d.week !== "P2-W0");
+  const plan2Start = w0Start >= 0 ? w0Start : data.findIndex((d) => d.plan === "Plan 2");
+  const hasW0 = w0Start >= 0 && w1Start > w0Start;
+  const hasSplit = plan2Start > 0;
+  const showsMethodNote = !!(methodNote && hasSplit);
+
   gridLines(svg, W, H, pad, maxV, minV);
   axisTitles(svg, W, H, pad, {
-    x: "Datum",
+    x: showsMethodNote ? undefined : "Datum",
     yLeft: field === "hrv" ? `HRV (${unit})` : `Ruhepuls (${unit})`,
   });
 
@@ -235,13 +248,6 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     y: pad.t + ch - ((d[field] - minV) / (maxV - minV)) * ch,
     d,
   }));
-
-  // Drei Segmente: Plan 1 / Übergang W0 / Plan 2
-  const w0Start = data.findIndex((d) => d.week === "P2-W0");
-  const w1Start = data.findIndex((d) => d.week && d.week.startsWith("P2-") && d.week !== "P2-W0");
-  const plan2Start = w0Start >= 0 ? w0Start : data.findIndex((d) => d.plan === "Plan 2");
-  const hasW0 = w0Start >= 0 && w1Start > w0Start;
-  const hasSplit = plan2Start > 0;
 
   const colorW0 = "#c9a84c";
 
@@ -348,8 +354,9 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     if (lblIdx.has(i)) xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
   });
 
-  // Divider-Linien: Plan1→W0 und W0→Plan2 (falls W0 existiert), sonst nur ein Divider
-  const diviAt = (idx, label1, label2, c1, c2) => {
+  // Divider-Linie an einer Segmentgrenze (reine Trennlinie, kein Label —
+  // Labels werden separat, zentriert je Segment, gezeichnet, s. u.)
+  const divider = (idx) => {
     const divX = pad.l + ((idx - 0.5) / Math.max(data.length - 1, 1)) * cw;
     svg.appendChild(
       svgEl("rect", {
@@ -361,55 +368,59 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         opacity: "0.6",
       })
     );
-    if (label1) {
-      const lbl1 = svgEl("text", {
-        x: divX - 8,
-        y: pad.t + 12,
-        "text-anchor": "end",
-        fill: c1,
-        "font-size": "9",
-        "font-weight": "600",
-      });
-      lbl1.textContent = label1;
-      svg.appendChild(lbl1);
-    }
-    if (label2) {
-      const lbl2 = svgEl("text", {
-        x: divX + 8,
-        y: pad.t + 12,
-        "text-anchor": "start",
-        fill: c2,
-        "font-size": "9",
-        "font-weight": "600",
-      });
-      lbl2.textContent = label2;
-      svg.appendChild(lbl2);
-    }
     return divX;
   };
 
+  // Segment-Label mittig im jeweiligen Segment statt an den Rändern der
+  // Divider-Linie — bei einer kurzen Übergangswoche (schmales Segment)
+  // kollidierten die beiden angrenzenden Labels sonst ("W0 →" / "← W0").
+  // Wird unterdrückt statt überlappend gezeichnet, wenn der Platz nicht reicht.
+  const segmentLabel = (fromX, toX, text, color) => {
+    if (!fitsLabel(toX - fromX, text)) return;
+    const t = svgEl("text", {
+      x: (fromX + toX) / 2,
+      y: pad.t + 12,
+      "text-anchor": "middle",
+      fill: color,
+      "font-size": "9",
+      "font-weight": "600",
+    });
+    t.textContent = text;
+    svg.appendChild(t);
+  };
+
+  const leftEdge = pad.l,
+    rightEdge = W - pad.r;
   if (hasW0) {
-    diviAt(w0Start, "← Plan 1", "W0 →", color1, colorW0);
-    diviAt(w1Start, "← W0", "Plan 2 →", colorW0, color2);
+    const d1 = divider(w0Start);
+    const d2 = divider(w1Start);
+    segmentLabel(leftEdge, d1, "Plan 1", color1);
+    segmentLabel(d1, d2, "Übergang", colorW0);
+    segmentLabel(d2, rightEdge, "Plan 2", color2);
   } else if (hasSplit) {
-    diviAt(plan2Start, "← Plan 1", "Plan 2 →", color1, color2);
+    const d1 = divider(plan2Start);
+    segmentLabel(leftEdge, d1, "Plan 1", color1);
+    segmentLabel(d1, rightEdge, "Plan 2", color2);
   }
 
-  // Methodenwechsel-Hinweis — umgebrochen, unter der X-Achse
-  if (methodNote && hasSplit) {
-    const lines = wrapText(methodNote, 92);
-    lines.forEach((line, i) => {
-      const noteLbl = svgEl("text", {
-        x: W / 2,
-        y: H - 6 + i * 11,
-        "text-anchor": "middle",
-        fill: "#c9a84c",
-        "font-size": "9",
-        "font-weight": "600",
-      });
-      noteLbl.textContent = line;
-      svg.appendChild(noteLbl);
+  // Kurzer Hinweis unter der X-Achse (die ausführliche Erklärung steht im
+  // chart-explainer-Text unter dem Chart — hier bewusst nur ein kompakter
+  // Pointer statt derselben Erklärung ein zweites Mal, s. AGENTS.md). Der
+  // verfügbare Platz zwischen X-Achsen-Labels und Kartenrand reicht nur für
+  // EINE Zeile — bewusst nur die erste `wrapText()`-Zeile zeichnen statt
+  // eine zweite Zeile unsichtbar über den viewBox-Rand hinauslaufen zu
+  // lassen (SVG-Root clippt standardmäßig).
+  if (showsMethodNote) {
+    const noteLbl = svgEl("text", {
+      x: W / 2,
+      y: H - 6,
+      "text-anchor": "middle",
+      fill: "#c9a84c",
+      "font-size": "9",
+      "font-weight": "600",
     });
+    noteLbl.textContent = wrapText(methodNote, 92)[0];
+    svg.appendChild(noteLbl);
   }
 
   // Mean lines getrennt je Segment (Plan 1 / Plan 2, W0 ausgelassen — zu kurz für aussagekräftigen Mittelwert)
@@ -469,7 +480,7 @@ export function renderPlanCompareHRV(rides) {
       .filter((w) => w.hrv != null)
       .map((w) => ({
         dateISO: w.dateISO || w.date,
-        dateShort: w.dateShort || (w.date ? w.date.slice(5).replace("-", ".") : ""),
+        dateShort: w.dateShort || (w.date ? fmtDate(w.date) : ""),
         week: null,
         plan: "Vergleich",
         name: "",
@@ -484,9 +495,9 @@ export function renderPlanCompareHRV(rides) {
     "#e08a3c",
     "ms",
     "hrv",
-    ownPlan
-      ? "⚠ Methodenwechsel: Plan 1 = RMSSD (Apple Health), Plan 2 = SDNN Schlafschnitt (intervals.icu) — Niveau nicht direkt vergleichbar, Trend pro Segment getrennt berechnet."
-      : null
+    // Kompakter Pointer — die volle Erklärung (RMSSD vs. SDNN) steht schon
+    // im chart-explainer-Text unter dem Chart, hier keine zweite Kopie.
+    ownPlan ? "⚠ Methodenwechsel bei Plan 2 (RMSSD → SDNN) — siehe Beschreibung unten" : null
   );
 }
 
@@ -504,7 +515,7 @@ export function renderPlanCompareRHF(rides) {
       .filter((w) => w.restingHR != null)
       .map((w) => ({
         dateISO: w.dateISO || w.date,
-        dateShort: w.dateShort || (w.date ? w.date.slice(5).replace("-", ".") : ""),
+        dateShort: w.dateShort || (w.date ? fmtDate(w.date) : ""),
         week: null,
         plan: "Vergleich",
         name: "",
@@ -522,7 +533,7 @@ function _bodyDateLabels(svg, points, pad, cw, H) {
   const xs = points.map((_, i) => pad.l + (i / Math.max(points.length - 1, 1)) * cw);
   pickLabelIndices(xs, 44).forEach((i) => {
     const iso = points[i].date;
-    xLabel(svg, xs[i], H - 12, iso ? iso.slice(5).replace("-", ".") : "");
+    xLabel(svg, xs[i], H - 12, iso ? fmtDate(iso) : "");
   });
 }
 
@@ -563,7 +574,7 @@ export function renderEnergy(svgId, ev, wt) {
       ? `Verbrauch ${d.burned} kcal (Grundumsatz ${d.resting}${ev.restingEstimated ? " gesch." : ""} · aktiv ${d.active})`
       : `Aktiv verbrannt ${d.active} kcal`);
     if (d.intake != null) parts.push(`Zufuhr ${d.intake} kcal`);
-    return `<div class="tt">${d.date.split("-").reverse().join(".")}</div><div class="tv">${parts.join(" · ")}</div>`;
+    return `<div class="tt">${fmtDateFull(d.date)}</div><div class="tv">${parts.join(" · ")}</div>`;
   };
 
   ev.days.forEach((d, i) => {
@@ -584,7 +595,7 @@ export function renderEnergy(svgId, ev, wt) {
     hit.addEventListener("mouseleave", () => Tooltip.hide());
     svg.appendChild(hit);
     if (!hasWeight) {
-      const tl = txt(c, eBase + 16, "9", "#5f6878", "middle"); tl.textContent = d.date.slice(5).replace("-", "."); svg.appendChild(tl);
+      xLabel(svg, c, eBase + 16, fmtDate(d.date));
     }
   });
 
@@ -609,12 +620,12 @@ export function renderEnergy(svgId, ev, wt) {
   wp.forEach((q) => {
     const dot = svgEl("circle", { cx: q.x, cy: q.y, r: "3.2", fill: "#d9b64c", stroke: "#0b0e13", "stroke-width": "1.3" });
     dot.style.cursor = "pointer";
-    dot.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${q.p.date.split("-").reverse().join(".")}</div><div class="tv">${fmt(q.p.weight)} kg</div>`));
+    dot.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${fmtDateFull(q.p.date)}</div><div class="tv">${fmt(q.p.weight)} kg</div>`));
     dot.addEventListener("mouseleave", () => Tooltip.hide());
     svg.appendChild(dot);
   });
   ev.days.forEach((d, i) => {
-    const tl = txt(cx(i), wBot + 16, "9", "#5f6878", "middle"); tl.textContent = d.date.slice(5).replace("-", "."); svg.appendChild(tl);
+    xLabel(svg, cx(i), wBot + 16, fmtDate(d.date));
   });
 }
 
@@ -641,7 +652,7 @@ export function renderHydration(svgId, hy) {
   hy.points.forEach((p, i) => {
     const c = svgEl("circle", { cx: X(i), cy: Y(p.value), r: "2.4", fill: "#4a7fa8" });
     c.style.cursor = "pointer";
-    c.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${p.date.split("-").reverse().join(".")}</div><div class="tv">${fmt(p.value)} ${unit}</div>`));
+    c.addEventListener("mouseenter", (e) => Tooltip.show(e, `<div class="tt">${fmtDateFull(p.date)}</div><div class="tv">${fmt(p.value)} ${unit}</div>`));
     c.addEventListener("mouseleave", () => Tooltip.hide());
     svg.appendChild(c);
   });

@@ -4,7 +4,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickLabelIndices, weekDisplayLabels } from "../assets/js/ui/charts/base.js";
+import { pickLabelIndices, weekDisplayLabels, fitsLabel } from "../assets/js/ui/charts/base.js";
 
 test("pickLabelIndices: hält den Mindestabstand ein und enthält immer den letzten Punkt", () => {
   // 27 Balken auf 714px Plotbreite (Screenshot-Fall) — Pitch ~26px < 40px minPx
@@ -50,4 +50,25 @@ test("weekDisplayLabels: Monats-Keys kompakt, Plan-Wochen unverändert", () => {
   assert.deepEqual(weekDisplayLabels(["2026-07", "2026-08"]), ["07/26", "08/26"]);
   assert.deepEqual(weekDisplayLabels(["W1", "P2-W3", "Vorb."]), ["W1", "P2-W3", "Vorb."]);
   assert.deepEqual(weekDisplayLabels([]), []);
+});
+
+/* fitsLabel — Regression: HRV/RHF-Chart zeichnete "W0 →" / "← W0" an den
+   beiden Grenzen einer kurzen Übergangswoche, die sich bei schmalem Segment
+   überlappten. Segment-Labels werden jetzt unterdrückt statt überlappend
+   gezeichnet, wenn der verfügbare Platz nicht reicht. */
+test("fitsLabel: kurzer Text in breitem Segment passt", () => {
+  assert.equal(fitsLabel(200, "Plan 1"), true);
+});
+
+test("fitsLabel: Label in zu schmalem Segment (kurze Übergangswoche) passt nicht", () => {
+  // Realistischer Fall: W0-Segment nur ~16px breit (s. tests/power-curve-blocks.test.js-
+  // Nachbarschaft zu echten Sync-Daten mit kurzer Übergangsphase)
+  assert.equal(fitsLabel(16, "Übergang"), false);
+});
+
+test("fitsLabel: Grenzfall exakt an der Formel", () => {
+  const text = "Plan 2";
+  const exact = text.length * 5.4 + 8;
+  assert.equal(fitsLabel(exact, text), true);
+  assert.equal(fitsLabel(exact - 1, text), false);
 });

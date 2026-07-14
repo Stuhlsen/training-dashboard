@@ -23,13 +23,24 @@ export const fmtThousands = (v) => {
   return Math.round(v).toLocaleString("de-DE");
 };
 
-/** ISO-Datum (2026-03-24) → DD.MM
+/** ISO-Datum (2026-03-24) → DD.MM — kompaktes Format für Achsenbeschriftungen
+ *  (Jahr weggelassen, da im Chart-Kontext meist eindeutig).
  *  @param {string|null|undefined} iso @returns {string} */
 export const fmtDate = (iso) => {
   if (!iso) return "–";
   const parts = iso.split("-");
   if (parts.length < 3) return iso;
   return `${parts[2]}.${parts[1]}`;
+};
+
+/** ISO-Datum (2026-03-24) → DD.MM.JJJJ — volles Format für Tooltips, wo das
+ *  Jahr (anders als auf der Achse) zur Eindeutigkeit gebraucht wird.
+ *  @param {string|null|undefined} iso @returns {string} */
+export const fmtDateFull = (iso) => {
+  if (!iso) return "–";
+  const parts = iso.split("-");
+  if (parts.length < 3) return iso;
+  return `${parts[2]}.${parts[1]}.${parts[0]}`;
 };
 
 /** Minuten → "4:02h" Format

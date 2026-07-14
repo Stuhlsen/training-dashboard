@@ -106,6 +106,21 @@ export function weekDisplayLabels(weeks) {
   });
 }
 
+/**
+ * Schätzt, ob ein Label (font-size 9, Standard-Zeichenbreite) in eine
+ * gegebene Segmentbreite passt. Genutzt um Phasen-/Segment-Labels (z. B.
+ * "Übergang" im HRV/RHF-Chart) zu unterdrücken statt sie mit dem
+ * Nachbarsegment überlappen zu lassen, wenn das Segment (z. B. eine kurze
+ * Übergangswoche) dafür zu schmal ist.
+ * @param {number} spanPx Verfügbare Breite in px
+ * @param {string} text
+ * @param {number} [charPx] geschätzte Breite je Zeichen bei font-size 9
+ * @returns {boolean}
+ */
+export function fitsLabel(spanPx, text, charPx = 5.4) {
+  return spanPx >= text.length * charPx + 8;
+}
+
 export function xLabel(svg, x, y, text) {
   const t = svgEl("text", {
     x,
