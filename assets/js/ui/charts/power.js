@@ -5,7 +5,7 @@
    Regression in core/stats.js.
    ============================================================ */
 
-import { fmt, fmtInt } from "../../core/format.js";
+import { fmt, fmtInt, fmtDateFull } from "../../core/format.js";
 import { linearTrend } from "../../core/stats.js";
 import { buildCurveData } from "../../core/powercurve.js";
 import { CONFIG } from "../../state/config.js";
@@ -676,7 +676,7 @@ function drawPowerCurve(unit) {
       line.addEventListener("mouseenter", (e) =>
         Tooltip.show(
           e,
-          `<div class="tt">${block.label}</div><div class="td">${block.from.split("-").reverse().join(".")} – ${block.to.split("-").reverse().join(".")}</div>`
+          `<div class="tt">${block.label}</div><div class="td">${fmtDateFull(block.from)} – ${fmtDateFull(block.to)}</div>`
         )
       );
       line.addEventListener("mouseleave", () => Tooltip.hide());

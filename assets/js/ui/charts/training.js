@@ -5,7 +5,7 @@
    core/loadguard.js, core/zones.js, core/consistency.js.
    ============================================================ */
 
-import { fmt } from "../../core/format.js";
+import { fmt, fmtDateFull } from "../../core/format.js";
 import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js";
 import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
 import { rideWeekKey } from "../../core/aggregate.js";
@@ -382,7 +382,7 @@ export function renderConsistency(svgId, wc) {
     if (w.days > 0) {
       rect.style.cursor = "pointer";
       rect.addEventListener("mouseenter", e => Tooltip.show(e, `
-        <div class="tt">Woche ab ${w.monday.split("-").reverse().join(".")}</div>
+        <div class="tt">Woche ab ${fmtDateFull(w.monday)}</div>
         <div class="tv">${w.days} Trainingstag${w.days === 1 ? "" : "e"} · ${w.km} km</div>
       `));
       rect.addEventListener("mouseleave", () => Tooltip.hide());

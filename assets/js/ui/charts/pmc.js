@@ -3,7 +3,7 @@
    Rendering only — Interpolation/TSB kommt aus core/pmc.js.
    ============================================================ */
 
-import { fmt } from "../../core/format.js";
+import { fmt, fmtDate, fmtDateFull } from "../../core/format.js";
 import { interpolateCtl, tsbOf } from "../../core/pmc.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import {
@@ -507,7 +507,7 @@ export function renderFtpForecast(svgId, history, fc, goal, retestISO, targetLab
     c.addEventListener("mouseenter", (e) =>
       Tooltip.show(
         e,
-        `<div class="tt">${p.h.date.split("-").reverse().join(".")}</div><div class="tv">eFTP ${p.h.eftp} W</div>`
+        `<div class="tt">${fmtDateFull(p.h.date)}</div><div class="tv">eFTP ${p.h.eftp} W</div>`
       )
     );
     c.addEventListener("mouseleave", () => Tooltip.hide());
@@ -569,17 +569,7 @@ export function renderFtpForecast(svgId, history, fc, goal, retestISO, targetLab
         "stroke-dasharray": "2,3",
       })
     );
-    xLabel(
-      svg,
-      xr,
-      H - pad.b + 14,
-      `${targetLabel} ${retestISO.slice(5).split("-").reverse().join(".")}`
-    );
+    xLabel(svg, xr, H - pad.b + 14, `${targetLabel} ${fmtDate(retestISO)}`);
   }
-  xLabel(
-    svg,
-    histPts[0].x,
-    H - pad.b + 14,
-    history[0].date.slice(5).split("-").reverse().join(".")
-  );
+  xLabel(svg, histPts[0].x, H - pad.b + 14, fmtDate(history[0].date));
 }
