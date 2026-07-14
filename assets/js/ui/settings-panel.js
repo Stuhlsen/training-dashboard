@@ -75,7 +75,13 @@ function buildProfileSection(user) {
   nameInput.value = user.displayName || "";
   nameInput.addEventListener("blur", async () => {
     const name = nameInput.value.trim();
-    if (!name || name === user.displayName) return;
+    if (!name) {
+      // Leeres Feld ist kein gültiger Name — zurücksetzen statt visuell leer
+      // stehen zu lassen, während der Server noch den alten Namen hat.
+      nameInput.value = user.displayName || "";
+      return;
+    }
+    if (name === user.displayName) return;
     const result = await updateDisplayName(name);
     if (!result.error) flashSaved(section.querySelector("#settings-name-feedback"));
   });
