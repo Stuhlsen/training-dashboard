@@ -20,23 +20,7 @@ export function onAuthChange(callback) {
   if (!supabase) return null;
   const {
     data: { subscription },
-  } = supabase.auth.onAuthStateChange(async (_event, session) => {
-    // Ein einzelnes getSession() reichte nicht (weiterhin 403 ohne
-    // Authorization-Header auf den ersten Folge-Request nach SIGNED_IN,
-    // s. Commit 92a61bc) — bis zu 3 Versuche mit 50ms Pause, bis
-    // getSession() einen Access-Token zurückgibt. Kein Endlos-Warten:
-    // nach 3 Versuchen läuft der Callback so oder so weiter.
-    if (session) {
-      let attempt = 0;
-      let synced = null;
-      while (attempt < 3 && !synced?.access_token) {
-        synced = (await supabase.auth.getSession()).data.session;
-        if (!synced?.access_token) await new Promise((r) => setTimeout(r, 50));
-        attempt++;
-      }
-    }
-    callback(session);
-  });
+  } = supabase.auth.onAuthStateChange((_event, session) => callback(session));
   return subscription;
 }
 

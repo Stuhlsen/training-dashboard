@@ -1,4 +1,4 @@
-import { supabase } from "./client.js";
+import { supabase, getAuthedClient } from "./client.js";
 
 const NOT_CONFIGURED = { code: "UNKNOWN", message: "Supabase nicht konfiguriert" };
 
@@ -15,7 +15,8 @@ function toProfile(row) {
 
 export async function getProfile(userId) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
-  const { data, error } = await supabase
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
     .from("profiles")
     .select("id, display_name, role, coach_id, wellbeing_public, is_admin")
     .eq("id", userId)
@@ -26,7 +27,8 @@ export async function getProfile(userId) {
 
 export async function updateDisplayName(userId, name) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await supabase
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client
     .from("profiles")
     .update({ display_name: name })
     .eq("id", userId);
@@ -36,7 +38,8 @@ export async function updateDisplayName(userId, name) {
 
 export async function updateWellbeingPublic(userId, value) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
-  const { error } = await supabase
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client
     .from("profiles")
     .update({ wellbeing_public: value })
     .eq("id", userId);
