@@ -5,6 +5,7 @@
    ============================================================ */
 
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
+import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { getWeatherForRide } from "./weather.js";
 
 /** Fallback-FTP für die Typ-Ableitung — wird bei neuem Ramp-Test aktualisiert */
@@ -127,10 +128,16 @@ export function mapActivity(act, wellness, subjective, weatherMap) {
   };
 }
 
-// === intervals.icu Activity → Ride-Objekt (Athlet 2, ohne Plan-Bezug) ===
+// === intervals.icu Activity → Ride-Objekt (Athlet 2, GFNY Bremen 2026) ===
+// week/phase bleiben bewusst null — der Plan-Bezug läuft ausschließlich
+// über die eigenständigen plannedSessions/adjustments-Felder (siehe
+// generate-data.js), nicht über ride.week/ride.phase. Das hält
+// hasOwnPlan()/Data.weekly() in app.js unangetastet (Athlet-1-exklusive
+// Plan-1/2-Semantik), während der Planungstab trotzdem funktioniert.
 export function mapActivity2(act, wellness, weatherMap, estimatedFtp) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
+  const planned = PLANNED_SESSIONS_ATHLETE2[date] || {};
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
@@ -138,10 +145,16 @@ export function mapActivity2(act, wellness, weatherMap, estimatedFtp) {
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
 
   return {
-    name: act.name || "Radfahren",
+    name: planned.name || act.name || "Radfahren",
     week: null,
     phase: null,
-    typ: inferTypFromIF(np, min, estimatedFtp),
+    typ: planned.typ || inferTypFromIF(np, min, estimatedFtp),
+    // "Vergleich" bewusst beibehalten (nicht "GFNY Bremen 2026"): mehrere
+    // UI-Stellen (charts/training.js, charts/wellness.js, core/aggregate.js)
+    // nutzen "Vergleich" als Sentinel, um den Plan-Namen aus Tooltips/
+    // Aggregaten herauszuhalten — mit einem echten Rennnamen würde der auf
+    // JEDEM Datenpunkt erscheinen. Der Rennname steht stattdessen einmalig
+    // im Planungstab-Hero-Titel (ui/planned.js).
     plan: "Vergleich",
     ...baseFields(act, weather),
     ...wellnessFields(w),

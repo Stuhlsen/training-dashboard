@@ -188,16 +188,23 @@ scripts/
     env.js            → .env-Loader, ENV-Objekt, requireEnv()
     log.js            → Logger mit Zählern + summary() → Exit-Code
     http.js           → fetchJson mit Timeout (20s) und einem Retry
-    plan2.js          → PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2WeekPhase
+    plan2.js          → PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2WeekPhase (Athlet 1)
+    plan-athlete2.js  → PLANNED_SESSIONS_ATHLETE2 (Athlet 2, GFNY Bremen 2026 —
+                        eigener Namensraum, kein Bezug zu plan2.js/Plan 1+2; kein
+                        separates Schedule-Array, week/phase stehen pro Session)
     notion.js         → Plan-1-Abfrage + Property-Getter + parseFtpFromNotes
     intervals.js      → Activities/Wellness/PowerCurves (Athlet 1 + 2)
     weather.js        → Open-Meteo: Archiv, Forecast, 16-Tage-Planungs-Forecast
-    map-activity.js   → inferTypFromIF, mapActivity (Plan 2), mapActivity2 (Athlet 2)
+    map-activity.js   → inferTypFromIF, mapActivity (Plan 2, Athlet 1),
+                        mapActivity2 (Athlet 2 — Plan-Priorität aus
+                        PLANNED_SESSIONS_ATHLETE2, week/phase bleiben bewusst null,
+                        s. "Bekannte Eigenheiten")
     wellness.js       → Wellness-Mapping (beide Athleten): erweiterte Felder
                         (Gewicht/Kalorien/Hydration/Körperfett/eFTP aus sportInfo),
                         mapWellnessList/latestWeight + logWellnessCoverage
                         (Verifikationslog: welche Felder real befüllt sind)
-    output.js         → subjective/adjustments laden, rides.json/rides-2.json schreiben
+    output.js         → subjective/adjustments (Athlet 1) + adjustments-2 (Athlet 2)
+                        laden, rides.json/rides-2.json schreiben
 
 tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test)
 
@@ -214,8 +221,11 @@ tests/                → node:test-Suiten für core/* und scripts/lib/* (npm te
 
 - **Athlet 1** (`athlete1`) — eigener Trainingsplan (Plan 1 + Plan 2), Primärnutzer
   FTP: 193W (CONFIG.ftp; DEFAULT_FTP in scripts/lib/map-activity.js)
-- **Athlet 2** (`athlete2`) — Vergleichsdaten read-only, kein eigener Plan, kein Befinden
-  FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test)
+- **Athlet 2** (`athlete2`) — Vergleichsathlet, weiterhin read-only (kein Befinden,
+  keine Schreibaktionen), hat aber seit GFNY Bremen 2026 einen eigenen Planungstab
+  (`scripts/lib/plan-athlete2.js`) — Anzeige-only, s. "Bekannte Eigenheiten"
+  FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test),
+  FTP-Ziel 280W (Notion-Korridor 275–285W)
 
 FTP-Dreiklang pro Athlet in `state/config.js` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
 (Ramp-Test) und `ftpGoal` (Ziel) — im Analyse-Tab strikt getrennt von der laufend
@@ -233,7 +243,8 @@ Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen "Athlet 1"/"Athlet 2"
 (anpassbar in `state/config.js` → `athletes[].name`). Athleten-Toggle persistent via
 `localStorage("active_athlete")`; unbekannte/alte IDs werden beim Start verworfen
 (Fallback auf `CONFIG.primaryAthleteId`).
-Bei Athlet 2: Planungs-Tab ausgeblendet, keine Befinden-Spalte, keine Ziellinien.
+Bei Athlet 2: Planungs-Tab read-only sichtbar (kein Verschieben/Ausfallen/Wahoo-
+Push, s. `_canEdit()` in ui/planned.js), keine Befinden-Spalte, keine Ziellinien.
 
 ## Trainingspläne
 
@@ -255,6 +266,17 @@ die zwei Qualitätstage. Definiert in `scripts/lib/plan2.js` (PLANNED_SESSIONS +
 die Sa-Sessions haben strukturierte `workout`-Objekte (SS-Blöcke), pushbar zu intervals.icu.
 W0/W1 stehen als abgeschlossene Historie unverändert — die Umstellung greift ab W2.
 Realistisches FTP-Ziel: 210W (Korridor ~205–213W bis Retest 19.09.).
+
+**GFNY Bremen 2026** (Athlet 2, eigenständiger Plan, kein Bezug zu Plan 1/2) —
+KW23–KW35 (01.06.–30.08.2026), Renntag So 30.08. (Ziel <3:00h, 100km). Die
+Wochenschema-Termine (Ruhetag/Crit/Z2/Intervalle/Rennsim.) waren am
+13.07.2026 durchgängig einen Tag zu spät eingetragen und wurden um -1 Tag
+korrigiert — der Renntag selbst ist ein fester externer Termin und blieb
+unverändert (29.08. bleibt bewusst frei, s. Kopfkommentar in
+plan-athlete2.js). Definiert in
+`scripts/lib/plan-athlete2.js` (PLANNED_SESSIONS_ATHLETE2), Blöcke
+Basis→Aufbau→Rennhärte→Taper. Ruhetage werden im Planungstab nicht angezeigt
+(s. "Bekannte Eigenheiten"). Read-only im Frontend, FTP-Ziel 280W.
 
 ## Equipment (Athlet 1)
 
@@ -294,10 +316,15 @@ git sync   # Alias für: git fetch origin && git push --force-with-lease origin 
 
 **JavaScript:**
 - `Data.activeAthleteId` — aktuell aktiver Athlet (ID aus state/config.js)
-- `hasOwnPlan()` — true wenn Athlet 1 aktiv (prüft ob rides eine week haben)
+- `hasOwnPlan()` — true wenn Athlet 1 aktiv (prüft ob rides eine week haben); steuert
+  NUR die Plan-1/2-spezifischen Inhalte (HRV/RHF-Split an W0, "Plan 2"/W12-Retest-Text,
+  Wochen-Aggregation). Für den Planungstab selbst (auch Athlet 2s GFNY-Plan) gilt
+  stattdessen `hasPlanningTab = Data.plannedSessions.length > 0` in app.js — bewusst
+  getrennt, damit Athlet-1-exklusive Inhalte nicht in Athlet 2s Ansicht durchschlagen
 - `Data.ftpValue()` — liest aus athleteFtp (Athlet 2) oder CONFIG.ftp (Athlet 1)
 - `Data.forecast` — 16-Tage-Forecast, serverseitig befüllt, kein API-Call im Frontend
 - `Data.weekly()` — Plan-Wochen bei Athlet 1, Kalenderwochen-Fallback bei Athlet 2
+  (Athlet 2s Rides tragen bewusst kein `week`/`phase`, s. "Bekannte Eigenheiten")
 - `updateChartExplainers(ownPlan, ftp)` — alle Chart-Texte/Legenden athletenabhängig
 - Berechnung gehört nach `core/` (mit Test), Rendering nach `ui/` — nicht mischen
 
@@ -380,3 +407,30 @@ Athleten-Varianten!) gesetzt.
 - `npm install` (für Fallow) bzw. der Skills-Installer legen `.agents/`, `agent/`,
   `data/skills/` und `skills-lock.json` an — generierte Tooling-Artefakte, kein
   Quellcode, bewusst in `.gitignore` (nicht committen, auch nicht bei `git add -A`).
+- Athlet 2s Planungstab (GFNY Bremen 2026) ist read-only: `ui/planned.js` hat
+  einen `_canEdit()`-Gate (`Data.activeAthleteId === CONFIG.primaryAthleteId`),
+  der Verschieben/Ausfallen/Wahoo-Push-Buttons nur für Athlet 1 rendert. Eigene
+  `data/adjustments-2.json` (analog `adjustments.json`) verhindert Datums-
+  Kollisionen zwischen den beiden Plänen; `Adjustments._loadedFor` in
+  ui/planned.js merkt sich, für welchen Athleten zuletzt geladen wurde, damit
+  ein Athletenwechsel nicht die falsche Datei im Cache behält.
+- `mapActivity2()` (scripts/lib/map-activity.js) setzt für Athlet-2-Fahrten
+  bewusst `week: null, phase: null` — der Plan-Bezug läuft ausschließlich über
+  die eigenständigen `plannedSessions`/`adjustments`-Felder in rides-2.json,
+  NICHT über `ride.week`. Würde man das setzen, kippt `hasOwnPlan()` in app.js
+  global auf `true` für Athlet 2 und reißt Athlet-1-exklusive Inhalte (Plan-1/2-
+  HRV-Split, "Plan 2"/W12-Retest-Text) mit rein.
+- Phase-Key `"Taper"` wird zwischen Plan 2 (Athlet 1) und Athlet 2s Plan
+  geteilt (identische Farbe in `CONFIG.phases`) — `phaseColor()` ist die
+  einzige Stelle, die `CONFIG.phases[phase]` liest (`.color`), `.label` wird
+  im UI nirgends gerendert (`ui/planned.js` zeigt den rohen Phase-Key als
+  Text). Deshalb brauchen "Basis"/"Aufbau"/"Rennhärte" (Athlet 2, keine
+  Namensüberschneidung mit Plan 1/2) auch kein Präfix.
+- Athlet-2-Workout-Objekte (`scripts/lib/plan-athlete2.js`) tragen nur `watts`,
+  kein `pct` (% FTP) wie bei Athlet 1 — `_renderCard()` in ui/planned.js
+  fällt für die Intervall-Beschriftung auf `watts` zurück, wenn `pct` fehlt.
+- Ruhetage (Athlet 2, `typ: "Ruhetag"`) werden im Planungstab bewusst nicht
+  angezeigt — weder als anstehend noch als "verpasst" (kein Ride zu
+  erwarten). Reine Anzeigefilterung in `ui/planned.js::render()`
+  (`allSessions`), `Data.plannedSessions` bleibt vollständig für andere
+  Konsumenten (z.B. `nextPlannedSession` in der Recovery-Detailkarte).

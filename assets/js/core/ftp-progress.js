@@ -58,14 +58,20 @@ export function nextPlannedSession(sessions, adjustments, doneDates, todayISO) {
  * Ziel-Wattbereich einer strukturierten Einheit für den AKTUELLEN ftp —
  * NICHT das in scripts/lib/plan2.js fest verdrahtete workout.watts, das
  * nur für FTP=193 (Autorenzeitpunkt) stimmt und sonst veraltet.
- * @param {{pct?: [number, number]|null}} workout
+ * Fallback auf workout.watts, wenn kein pct vorhanden ist (z.B. Athlet 2,
+ * scripts/lib/plan-athlete2.js hat nur watts, kein pct) — dort dann der
+ * statische Autorenzeit-Wert statt einer Neuskalierung.
+ * @param {{pct?: [number, number]|null, watts?: [number, number]|null}} workout
  * @param {number} ftp
- * @returns {[number, number]|null} [vonW, bisW] gerundet, null ohne pct
+ * @returns {[number, number]|null} [vonW, bisW] gerundet, null ohne pct/watts
  */
 export function workoutWattRange(workout, ftp) {
-  if (!workout?.pct || !ftp) return null;
-  const [lo, hi] = workout.pct;
-  return [Math.round((ftp * lo) / 100), Math.round((ftp * hi) / 100)];
+  if (workout?.pct && ftp) {
+    const [lo, hi] = workout.pct;
+    return [Math.round((ftp * lo) / 100), Math.round((ftp * hi) / 100)];
+  }
+  if (workout?.watts) return workout.watts;
+  return null;
 }
 
 /**
@@ -109,15 +115,21 @@ const TSS_ASSUMED_IF = { warmup: 0.6, rest: 0.5, cooldown: 0.5 };
 /**
  * Geschätzter TSS einer strukturierten Einheit: Σ_segment IF²×(min/60)×100.
  * Hauptsatz-IF = Mittelwert aus workout.pct/100 (Zielintensität aus dem
- * Plan). Warmup/Pausen/Cooldown nutzen TSS_ASSUMED_IF — explizit eine
- * Schätzung, keine gemessene Belastung.
- * @param {{warmup?: number, intervals?: number, duration?: number, rest?: number, cooldown?: number, pct?: [number, number]|null}} workout
+ * Plan), oder — ohne pct (z.B. Athlet 2) — aus workout.watts/ftp, sofern
+ * ftp übergeben wurde. Warmup/Pausen/Cooldown nutzen TSS_ASSUMED_IF —
+ * explizit eine Schätzung, keine gemessene Belastung.
+ * @param {{warmup?: number, intervals?: number, duration?: number, rest?: number, cooldown?: number, pct?: [number, number]|null, watts?: [number, number]|null}} workout
+ * @param {number} [ftp] Nur für den watts-Fallback nötig, wenn pct fehlt.
  * @returns {number} TSS, gerundet; 0 ohne verwertbare Segmente
  */
-export function estimateSessionTSS(workout) {
+export function estimateSessionTSS(workout, ftp) {
   if (!workout) return 0;
   const { warmup, mainMin, restMin, cooldown } = workoutSegments(workout);
-  const mainIF = workout.pct ? (workout.pct[0] + workout.pct[1]) / 2 / 100 : 0;
+  const mainIF = workout.pct
+    ? (workout.pct[0] + workout.pct[1]) / 2 / 100
+    : workout.watts && ftp
+      ? (workout.watts[0] + workout.watts[1]) / 2 / ftp
+      : 0;
 
   const segments = [
     { min: warmup, if: TSS_ASSUMED_IF.warmup },

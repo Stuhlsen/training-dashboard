@@ -4,10 +4,10 @@
    `npm run sync`. Die eigentliche Logik liegt in scripts/lib/:
 
      env.js           .env/Secrets           log.js   Logging+Zähler
-     http.js          fetch mit Retry        plan2.js Plan-2-Struktur
-     notion.js        Plan 1 (Notion)        intervals.js  intervals.icu
-     weather.js       Open-Meteo             map-activity.js  Mapping
-     output.js        Dateien lesen/schreiben
+     http.js          fetch mit Retry        plan2.js Plan-2-Struktur (Athlet 1)
+     notion.js        Plan 1 (Notion)        plan-athlete2.js Plan-Struktur (Athlet 2)
+     weather.js       Open-Meteo             intervals.js  intervals.icu
+     map-activity.js  Mapping                output.js  Dateien lesen/schreiben
 
    Ablauf: Plan 1 (Notion) → Wetter → Plan 2 (intervals.icu)
    → mergen/sortieren → rides.json → Athlet 2 → rides-2.json
@@ -16,6 +16,7 @@
 import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
 import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks } from "./lib/plan2.js";
+import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
 import {
   RIDE_TYPES,
@@ -44,6 +45,7 @@ const READINESS_FIELDS = ["hrv", "restingHR", "sleepHours"];
 import {
   loadSubjective,
   loadAdjustments,
+  loadAdjustments2,
   writeOutput,
   OUT_FILE,
   OUT_FILE_2,
@@ -193,7 +195,8 @@ async function main() {
   );
   log.info(`   Quelle: ${output.source}`);
 
-  // 5. Zweiter Athlet (Vergleich, read-only, kein eigener Plan)
+  // 5. Zweiter Athlet (Vergleichsathlet, read-only — hat aber seit GFNY
+  //    Bremen 2026 einen eigenen Planungstab, s. plannedSessions unten)
   if (ENV.INTERVALS_KEY_2 && ENV.INTERVALS_ATHLETE_2) {
     log.info(`\n🔄 Zweiter Athlet (${ATHLETE_2_NAME})...`);
     const oldest2 = "2026-01-01";
@@ -252,6 +255,9 @@ async function main() {
     const latest2 = latestWeight(wellness2);
     const athleteWeight2 = latest2 ? latest2.weight : null;
 
+    const adjustments2 = loadAdjustments2();
+    log.info(`📋 adjustments-2.json: ${Object.keys(adjustments2).length} Anpassungen`);
+
     const output2 = {
       athleteName: ATHLETE_2_NAME,
       ftp: estimatedFTP2,
@@ -260,6 +266,11 @@ async function main() {
       wellnessMeta: { lastUpdated: lastFieldDates(wellnessList2, READINESS_FIELDS) },
       powerCurves: powerCurves2 || null,
       athleteWeight: athleteWeight2,
+      plannedSessions: Object.entries(PLANNED_SESSIONS_ATHLETE2).map(([date, s]) => ({
+        date,
+        ...s,
+      })),
+      adjustments: adjustments2,
       updated: new Date().toISOString(),
       source: "intervals.icu",
       count: rides2.length,

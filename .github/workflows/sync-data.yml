@@ -31,6 +31,7 @@ on:
       - "scripts/generate-data.js"
       - "data/adjustments.json"
       - "data/subjective.json"
+      - "data/adjustments-2.json"
 
 permissions:
   contents: write
@@ -72,8 +73,14 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin
           git checkout origin/main -- data/adjustments.json data/subjective.json
+          # adjustments-2.json (Athlet 2) existiert erst, sobald einmal committet —
+          # git checkout würde ohne diesen Existenz-Check auf einem frischen Stand
+          # fehlschlagen (Datei noch nicht auf origin/main vorhanden).
+          git cat-file -e origin/main:data/adjustments-2.json 2>/dev/null && \
+            git checkout origin/main -- data/adjustments-2.json
           git add data/rides.json data/adjustments.json data/subjective.json
           [ -f data/rides-2.json ] && git add data/rides-2.json
+          [ -f data/adjustments-2.json ] && git add data/adjustments-2.json
           git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
           for i in 1 2 3; do
             git fetch origin

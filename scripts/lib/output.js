@@ -16,6 +16,10 @@ export const OUT_FILE = path.join(DATA_DIR, "rides.json");
 export const OUT_FILE_2 = path.join(DATA_DIR, "rides-2.json");
 const SUBJECTIVE_FILE = path.join(DATA_DIR, "subjective.json");
 const ADJUSTMENTS_FILE = path.join(DATA_DIR, "adjustments.json");
+// Athlet 2 hat kein Befinden (kein subjective-2), aber einen eigenen Plan
+// (GFNY Bremen 2026) mit eigenen Verschiebungen/Ausfällen — eigene Datei,
+// damit Datums-Kollisionen mit Athlet 1s adjustments.json ausgeschlossen sind.
+const ADJUSTMENTS_FILE_2 = path.join(DATA_DIR, "adjustments-2.json");
 
 /** JSON-Datei tolerant laden — {} wenn nicht vorhanden/lesbar */
 function loadJsonFile(file, label) {
@@ -35,6 +39,10 @@ export function loadSubjective() {
 
 export function loadAdjustments() {
   return loadJsonFile(ADJUSTMENTS_FILE, "adjustments.json");
+}
+
+export function loadAdjustments2() {
+  return loadJsonFile(ADJUSTMENTS_FILE_2, "adjustments-2.json");
 }
 
 /** Output-Objekt als JSON schreiben (Verzeichnis wird angelegt)

@@ -62,6 +62,20 @@ export const CONFIG = {
     "P2-W10",
     "P2-W11",
     "P2-W12",
+    // Athlet 2 (eigener Plan, GFNY Bremen 2026, KW23–KW35)
+    "KW23",
+    "KW24",
+    "KW25",
+    "KW26",
+    "KW27",
+    "KW28",
+    "KW29",
+    "KW30",
+    "KW31",
+    "KW32",
+    "KW33",
+    "KW34",
+    "KW35",
   ],
 
   /* ── Phasen ────────────────────────────────────────────────── */
@@ -77,8 +91,21 @@ export const CONFIG = {
     "Sweet Spot": { color: "#e08a3c", label: "Block 1 — Sweet Spot" },
     Schwelle: { color: "#d94f4f", label: "Block 2 — Schwelle" },
     VO2max: { color: "#a24ad0", label: "Block 3 — VO₂max" },
+    // "Taper" wird von Plan 2 (Athlet 1) UND Athlet 2 (GFNY Bremen 2026)
+    // genutzt — bewusst ohne Präfix geteilt: .label wird nirgends gerendert
+    // (nur .color über phaseColor()), und beide Pläne wollen hier ohnehin
+    // dasselbe Grün (Taper = Erholung/Reduktion, s. Zonen-Farbsystem).
     Taper: { color: "#4a9a6e", label: "Taper + Retest" },
     Erholung: { color: "#6b9fa8", label: "Erholungswoche" },
+    // Athlet 2 (eigener Plan, GFNY Bremen 2026) — diese drei Namen
+    // existieren bei Plan 1/2 (Athlet 1) nicht, brauchen daher kein Präfix.
+    // planned.js zeigt den Phase-Key selbst als Text an (kein Label-Lookup).
+    Basis: { color: "#4a7fa8", label: "Block 1 — Basis (KW23–26)" },
+    Aufbau: {
+      color: "#e08a3c",
+      label: "Block 2 — Aufbau: Threshold + Over-Under (KW27–30)",
+    },
+    Rennhärte: { color: "#d94f4f", label: "Block 3 — Rennhärte + Sprint (KW31–34)" },
   },
 
   /* ── Datenquelle ──────────────────────────────────────────── */
@@ -94,7 +121,7 @@ export const CONFIG = {
   // ftpMeasured = per Ramp-Test GEMESSEN (mit Testdatum) — nie mit dem
   // laufend GESCHÄTZTEN eFTP aus intervals.icu verrechnen/vermischen.
   // eFTP = geschätzte FTP (Fallback, solange die Daten keinen eFTP tragen).
-  // ftpGoal = angestrebtes Ziel (Athlet 1: Plan-2-Retest, Athlet 2: 300W).
+  // ftpGoal = angestrebtes Ziel (Athlet 1: Plan-2-Retest, Athlet 2: 280W).
   athletes: [
     {
       id: "athlete1",
@@ -114,10 +141,10 @@ export const CONFIG = {
       name: "Athlet 2",
       endpoint: "./data/rides-2.json",
       ftpMeasured: 265,
-      ftpMeasuredDate: null,
+      ftpMeasuredDate: "2026-06-24",
       eFTP: 261,
-      ftpGoal: 300,
-      bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92 },
+      ftpGoal: 280,
+      bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92.5 },
       seasonStartFtp: null,
       dataSources: ["intervals.icu", "Amazfit"],
     },

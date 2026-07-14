@@ -6,6 +6,11 @@
    - Push strukturierter Workouts zu intervals.icu
    - Session-Verschiebung via adjustments.json
    GitHub-Zugriff läuft über ui/github-client.js (Result-Typ).
+
+   Athlet 2 (eigener Plan seit GFNY Bremen 2026) nutzt denselben Tab
+   read-only: _canEdit() gated Verschieben/Ausfallen/Wahoo-Push auf
+   CONFIG.primaryAthleteId — Athlet 2 sieht nur die Anzeige, keine
+   Schreibaktionen, keine Wahoo-Erwähnung im Hero-Text.
    ============================================================ */
 
 import { fmt, weatherIcon, windDir } from "../core/format.js";
@@ -18,14 +23,33 @@ import { fetchRawJson, writeRepoFile } from "./github-client.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
 
+/** Nur der primäre Athlet (Athlet 1) darf Verschieben/Ausfallen/Wahoo-Push
+ *  auslösen — Athlet 2 hat seit GFNY Bremen 2026 zwar einen eigenen Plan,
+ *  bleibt aber laut AGENTS.md ein reiner Vergleichsathlet (read-only). */
+function _canEdit() {
+  return Data.activeAthleteId === CONFIG.primaryAthleteId;
+}
+
+/** adjustments.json-Pfad je aktivem Athleten — sonst würde der Cache-
+ *  Bypass-Fetch in Adjustments.load() immer Athlet 1s Datei laden, auch
+ *  wenn Athlet 2 aktiv ist. */
+function _adjustmentsPath() {
+  return _canEdit() ? "data/adjustments.json" : "data/adjustments-2.json";
+}
+
 // === Adjustments GitHub-Sync ===
 export const Adjustments = {
   _data: null,
+  // Athlet, für den _data zuletzt geladen wurde — ohne diesen Tracker
+  // bliebe nach einem Athletenwechsel die alte Datei im Speicher (siehe
+  // render(): _data === null entscheidet sonst allein über einen Reload).
+  _loadedFor: null,
 
   async load() {
     // raw.githubusercontent.com umgeht den GitHub Pages CDN-Cache
-    const remote = await fetchRawJson("data/adjustments.json");
+    const remote = await fetchRawJson(_adjustmentsPath());
     this._data = { ...(Data.adjustments || {}), ...remote };
+    this._loadedFor = Data.activeAthleteId;
     return this._data;
   },
 
@@ -59,7 +83,11 @@ export const Adjustments = {
 
   /** @returns {Promise<import("../types.js").Result>} */
   async _write(message) {
-    return await writeRepoFile("data/adjustments.json", message, this._data);
+    // Athletenabhängig wie load() (_adjustmentsPath()) — auch wenn die
+    // Schreibaktionen aktuell nur über per _canEdit() ausgeblendete Buttons
+    // erreichbar sind: kein hartcodierter Pfad, der Athlet 2s Daten in
+    // Athlet 1s adjustments.json schreiben könnte.
+    return await writeRepoFile(_adjustmentsPath(), message, this._data);
   },
 };
 
@@ -80,6 +108,13 @@ export const Planned = {
       "Z1 Recovery": "#4a9a6e",
       Gruppenfahrt: "#c9a84c",
       "FTP-Test": "#c9a84c",
+      // Athlet 2 (GFNY Bremen 2026) — eigenes, schmaleres Typ-Vokabular
+      Ruhetag: "#6b7280",
+      NLS: "#6b7280",
+      Z1: "#4a9a6e",
+      Z2: "#4a7fa8",
+      Rennen: "#c9a84c",
+      Race: "#f2b705",
     };
     return map[typ] || "#6b7280";
   },
@@ -95,6 +130,13 @@ export const Planned = {
       "Z1 Recovery": "🌿",
       Gruppenfahrt: "👥",
       "FTP-Test": "🎯",
+      // Athlet 2 (GFNY Bremen 2026)
+      Ruhetag: "🔴",
+      NLS: "🏁",
+      Z1: "🌿",
+      Z2: "🚴",
+      Rennen: "🏆",
+      Race: "🎯",
     };
     return map[typ] || "📅";
   },
@@ -144,6 +186,14 @@ export const Planned = {
       return {
         ok: false,
         error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" },
+      };
+    // intervals.icu-Workout-Text braucht %FTP (w.pct) — nicht alle Workout-
+    // Objekte tragen das (z.B. Athlet 2s watts-only Sessions in
+    // plan-athlete2.js; Push ist dort aber ohnehin über _canEdit() versteckt).
+    if (w.intervals && w.duration && !w.pct)
+      return {
+        ok: false,
+        error: { code: "NO_DATA", message: "Workout ohne %FTP-Angabe (pct) — Push nicht möglich" },
       };
 
     // intervals.icu erwartet KEIN steps-JSON im Event-Payload, sondern
@@ -206,18 +256,27 @@ export const Planned = {
 
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
 
-    // Adjustments + Forecast parallel laden (Adjustments nur beim ersten Render)
+    // Adjustments + Forecast parallel laden (Adjustments nur beim ersten Render
+    // bzw. erneut nach einem Athletenwechsel — s. Adjustments._loadedFor)
     const [forecast] = await Promise.all([
       this._loadForecast(),
-      Adjustments._data === null ? Adjustments.load() : Promise.resolve(Adjustments._data),
+      Adjustments._data === null || Adjustments._loadedFor !== Data.activeAthleteId
+        ? Adjustments.load()
+        : Promise.resolve(Adjustments._data),
     ]);
 
     // Bereits absolvierte Daten
     const doneDates = new Set(rides.map((r) => r.date));
     const today = new Date().toISOString().split("T")[0];
 
-    // Sessions mit Adjustments anwenden
-    const allSessions = Data.plannedSessions.map((s) => applyAdjustment(s, Adjustments._data));
+    // Sessions mit Adjustments anwenden — Ruhetage (Athlet 2) werden im
+    // Planungstab nicht angezeigt, weder als anstehend noch als "verpasst"
+    // (kein Ride zu erwarten) — reine Anzeigefilterung, Data.plannedSessions
+    // bleibt vollständig für andere Konsumenten (z.B. Gesamtzahl-Sessions
+    // an anderer Stelle, "nächste Belastungseinheit" in der Recovery-Karte).
+    const allSessions = Data.plannedSessions
+      .filter((s) => s.typ !== "Ruhetag")
+      .map((s) => applyAdjustment(s, Adjustments._data));
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
@@ -244,21 +303,28 @@ export const Planned = {
       return;
     }
 
-    // Fortschritt berechnen
-    const totalSessions = Data.plannedSessions.length;
+    // Fortschritt berechnen — Basis ist allSessions (ohne Ruhetage), nicht
+    // Data.plannedSessions.length, sonst wäre der Nenner künstlich hoch
+    // (Ruhetage zählen nie als "absolviert", da nie ein Ride erwartet wird).
+    const totalSessions = allSessions.length;
     const doneCount = doneSessions.length;
     const cancelledCount = cancelledSessions.length;
     const missedCount = missedSessions.length;
     const pct = Math.round((doneCount / totalSessions) * 100);
-    const currentWeek = sessions[0]?.week?.replace("P2-", "") || "W12";
+    const editable = _canEdit();
+    const currentWeek = sessions[0]?.week?.replace("P2-", "") || (editable ? "W12" : "–");
     const weeksLeft = new Set(sessions.map((s) => s.week)).size;
+    const heroTitle = editable ? "Trainingsplan Plan 2" : "Trainingsplan — GFNY Bremen 2026";
+    const heroDesc = editable
+      ? "Alle geplanten Trainingseinheiten bis zum FTP-Retest in W12. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt in intervals.icu erfasst ist. Intervall-Workouts können direkt auf den Wahoo ELEMNT Roam gepusht werden."
+      : "Alle geplanten Trainingseinheiten im Überblick. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt erfasst ist.";
 
     // Hero + Fortschrittsanzeige
     let html = `
       <div class="planned-hero">
         <div class="planned-hero-text">
-          <h2 class="planned-hero-title">Trainingsplan Plan 2</h2>
-          <p class="planned-hero-desc">Alle geplanten Trainingseinheiten bis zum FTP-Retest in W12. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt in intervals.icu erfasst ist. Intervall-Workouts können direkt auf den Wahoo ELEMNT Roam gepusht werden.</p>
+          <h2 class="planned-hero-title">${heroTitle}</h2>
+          <p class="planned-hero-desc">${heroDesc}</p>
         </div>
         <div class="planned-progress">
           <div class="planned-progress-stats">
@@ -330,14 +396,23 @@ export const Planned = {
       }
     }
 
-    // Erledigte Sessions — Plan 1 kompakt, Plan 2 als vollständige Vergleichskarte
-    if (doneSessions.length) {
-      const doneP2 = doneSessions.filter(
+    // Erledigte Sessions — Plan 1 kompakt, Plan 2 als vollständige Vergleichskarte.
+    // Athlet 2 hat kein Plan-1/2-Unterscheidung (ein einziger, telemetrie-
+    // reicher Plan aus intervals.icu) — dort bekommen alle erledigten
+    // Sessions die volle Vergleichskarte.
+    let doneP2, doneP1;
+    if (editable) {
+      doneP2 = doneSessions.filter(
         (s) =>
           s.plan === "Plan 2" || Data.rides.find((r) => r.date === s.date && r.plan === "Plan 2")
       );
-      const doneP1 = doneSessions.filter((s) => !doneP2.includes(s));
+      doneP1 = doneSessions.filter((s) => !doneP2.includes(s));
+    } else {
+      doneP2 = doneSessions;
+      doneP1 = [];
+    }
 
+    if (doneSessions.length) {
       html += `<div class="planned-section-title planned-done-title">✅ Absolviert — ${doneSessions.length} Sessions</div>`;
 
       // Plan 2 — vollständige Vergleichskarten
@@ -380,8 +455,12 @@ export const Planned = {
               <span class="planned-done-date">${this._fmtDate(s.originalDate || s.date)}</span>
               <span class="planned-done-name">${s.name}</span>
               <span style="font-size:0.7rem;color:var(--gold);margin-left:auto">kein Ride erfasst</span>
-              <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
-              <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>
+              ${
+                editable
+                  ? `<button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
+              <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>`
+                  : ""
+              }
             </div>
           `
             )
@@ -400,7 +479,7 @@ export const Planned = {
               <span class="planned-done-date">${this._fmtDate(s.date)}</span>
               <span class="planned-done-name">${s.name}</span>
               ${s.cancelReason ? `<span class="planned-cancelled-reason">${s.cancelReason}</span>` : ""}
-              <button class="planned-undo-btn planned-undo-cancel-btn" data-orig="${s.date}" style="margin-left:auto">↩ Wiederherstellen</button>
+              ${editable ? `<button class="planned-undo-btn planned-undo-cancel-btn" data-orig="${s.date}" style="margin-left:auto">↩ Wiederherstellen</button>` : ""}
             </div>
           `
             )
@@ -499,11 +578,18 @@ export const Planned = {
         const totalMin =
           w.warmup + w.duration * w.intervals + w.rest * (w.intervals - 1) + w.cooldown;
         const pctOf = (min) => ((min / totalMin) * 100).toFixed(1);
+        // Athlet 2s Workouts (plan-athlete2.js) tragen nur watts, kein pct
+        // (% FTP) — Fallback auf Watt-Angabe statt Crash bei fehlendem pct.
+        const intensityLabel = w.pct
+          ? `${w.pct[0]}–${w.pct[1]}% FTP`
+          : w.watts
+            ? `${w.watts[0]}–${w.watts[1]}W`
+            : "";
 
         workoutHtml += `<div class="planned-timeline">`;
         workoutHtml += `<div class="ptl-seg ptl-warmup" style="width:${pctOf(w.warmup)}%" title="Warm-up ${w.warmup} min">WU</div>`;
         for (let i = 0; i < w.intervals; i++) {
-          workoutHtml += `<div class="ptl-seg ptl-interval" style="width:${pctOf(w.duration)}%; background:${col}cc" title="${w.duration} min @ ${w.pct[0]}–${w.pct[1]}% FTP">${w.duration}'</div>`;
+          workoutHtml += `<div class="ptl-seg ptl-interval" style="width:${pctOf(w.duration)}%; background:${col}cc" title="${w.duration} min @ ${intensityLabel}">${w.duration}'</div>`;
           if (i < w.intervals - 1) {
             workoutHtml += `<div class="ptl-seg ptl-rest" style="width:${pctOf(w.rest)}%" title="Pause ${w.rest} min">${w.rest}'</div>`;
           }
@@ -511,15 +597,20 @@ export const Planned = {
         workoutHtml += `<div class="ptl-seg ptl-cooldown" style="width:${pctOf(w.cooldown)}%" title="Cool-down ${w.cooldown} min">CD</div>`;
         workoutHtml += `</div>`;
         workoutHtml += `<div class="planned-timeline-legend">
-          <span class="ptl-summary">${w.warmup} min Warm-up → ${w.intervals}× ${w.duration} min @ ${w.pct[0]}–${w.pct[1]}% (Pause: ${w.rest} min) → ${w.cooldown} min Cool-down · <strong>${totalMin} min gesamt</strong></span>
+          <span class="ptl-summary">${w.warmup} min Warm-up → ${w.intervals}× ${w.duration} min @ ${intensityLabel} (Pause: ${w.rest} min) → ${w.cooldown} min Cool-down · <strong>${totalMin} min gesamt</strong></span>
         </div>`;
       }
 
       workoutHtml += `${w.watts ? `<div class="planned-workout-watts">${w.watts[0]}–${w.watts[1]}W · Ziel: ${Math.round((w.watts[0] + w.watts[1]) / 2)}W</div>` : ""}
         </div>`;
     } else if (s.details) {
+      // isZ2 bleibt auf Athlet-1-Typen beschränkt: der Zweig darunter
+      // braucht zusätzlich s.km, das Athlet 2s "Z2"-Sessions nicht führen —
+      // eine Erweiterung hier hätte ohne km-Daten keinen sichtbaren Effekt.
       const isZ2 = s.typ === "Z2 Lang" || s.typ === "Z2 Dauer";
-      const isRecovery = s.typ === "Z1 Recovery";
+      // isRecovery: Athlet 2s "Z1" (z.B. "Regeneration leicht") bekommt
+      // dieselbe angereicherte HRV/Ruhepuls-Ansicht wie Athlet 1s "Z1 Recovery".
+      const isRecovery = s.typ === "Z1 Recovery" || s.typ === "Z1";
 
       if (isZ2 && s.km) {
         // Z2 — HF-Zielzone + Distanz + Kalorienabschätzung
@@ -615,22 +706,28 @@ export const Planned = {
           <div class="planned-moved-badge">
             📅 Verschoben von ${this._fmtDate(s.originalDate)}
             ${s.movedReason ? `· ${s.movedReason}` : ""}
-            <button class="planned-undo-btn" data-orig="${s.originalDate}">↩ Rückgängig</button>
+            ${_canEdit() ? `<button class="planned-undo-btn" data-orig="${s.originalDate}">↩ Rückgängig</button>` : ""}
           </div>`
             : ""
         }
         ${weatherHtml}
         ${workoutHtml}
+        ${
+          _canEdit()
+            ? `
         <div class="planned-card-actions">
           ${hasWorkout ? `<button class="planned-push-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
           <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}">📅 Verschieben</button>
           <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">❌ Ausgefallen</button>
           <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
-        </div>
+        </div>`
+            : ""
+        }
       </div>`;
   },
 
-  /* ── Abgeschlossene Plan-2-Karte mit Geplant vs. Tatsächlich ── */
+  /* ── Abgeschlossene Karte mit Geplant vs. Tatsächlich (Plan 2 bei
+     Athlet 1, GFNY Bremen 2026 bei Athlet 2) ── */
   _renderDoneCard(s, rides) {
     const col = this._typColor(s.typ);
     const icon = this._typIcon(s.typ);
@@ -640,8 +737,13 @@ export const Planned = {
     const isInterval = !!s.workout;
     const isGroup = s.typ === "Gruppenfahrt";
 
-    // Tatsächliche Fahrt aus rides
-    const ride = rides.find((r) => r.date === s.date && r.plan === "Plan 2");
+    // Tatsächliche Fahrt aus rides: bei Athlet 1 (editable) exakt wie zuvor
+    // nach plan==="Plan 2" filtern (schützt vor Fehlzuordnung an Tagen mit
+    // sowohl Plan-1- als auch Plan-2-Fahrt, z.B. in der P2-W0-Übergangswoche).
+    // Athlet 2 hat diese Plan-1/2-Unterscheidung nicht — dort reicht das Datum.
+    const ride = _canEdit()
+      ? rides.find((r) => r.date === s.date && r.plan === "Plan 2")
+      : rides.find((r) => r.date === s.date);
 
     // Vergleichszeilen bauen
     let compareHtml = "";
@@ -669,14 +771,18 @@ export const Planned = {
           </div>`);
       }
 
-      // Herzfrequenz — mit echtem Zielbereich je Typ
+      // Herzfrequenz — mit echtem Zielbereich je Typ. Die Bpm-Grenzen sind
+      // Athlet 1s HF-Zonen (CONFIG.hrMax/hrZones) — Athlet 2 hat andere
+      // Zonen, die noch nicht pro Athlet konfiguriert sind, daher zeigt
+      // die read-only-Ansicht hier bewusst nur den Ist-Wert ohne Zielband
+      // statt einer falschen Referenz.
       if (ride.hf) {
         let hfPlan = "–",
           hfCol = "var(--text)";
-        if (isZ2) {
+        if (_canEdit() && isZ2) {
           hfPlan = "123–152 bpm";
           hfCol = ride.hf >= 123 && ride.hf <= 152 ? "var(--green)" : "var(--gold)";
-        } else if (isInterval) {
+        } else if (_canEdit() && isInterval) {
           hfPlan = "167–181 bpm";
           hfCol = ride.hf >= 160 ? "var(--green)" : "var(--gold)";
         } else if (isGroup) {

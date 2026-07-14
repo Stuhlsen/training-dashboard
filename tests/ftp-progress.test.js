@@ -76,6 +76,14 @@ test("workoutWattRange: ohne pct (z.B. FTP-Ramp-Test) → null", () => {
   assert.equal(workoutWattRange(null, 210), null);
 });
 
+test("workoutWattRange: ohne pct aber mit watts (Athlet 2) → statischer watts-Wert", () => {
+  assert.deepEqual(workoutWattRange({ pct: null, watts: [232, 245] }, 280), [232, 245]);
+});
+
+test("workoutWattRange: pct hat Vorrang vor watts (Neuskalierung schlägt Autorenwert)", () => {
+  assert.deepEqual(workoutWattRange({ pct: [84, 97], watts: [162, 187] }, 210), [176, 204]);
+});
+
 test("workoutDurationMinutes: warmup + intervals×duration + (intervals-1)×rest + cooldown", () => {
   // 10 + 3×10 + 2×3 + 8 = 10 + 30 + 6 + 8 = 54
   assert.equal(workoutDurationMinutes(WORKOUT), 54);
@@ -105,6 +113,13 @@ test("estimateSessionTSS: höhere Zielintensität bei gleicher Dauer → höhere
 test("estimateSessionTSS: deterministisch und ohne workout → 0", () => {
   assert.equal(estimateSessionTSS(WORKOUT), estimateSessionTSS(WORKOUT));
   assert.equal(estimateSessionTSS(null), 0);
+});
+
+test("estimateSessionTSS: ohne pct aber mit watts+ftp (Athlet 2) → watts-basierter IF statt 0", () => {
+  const watout = { warmup: 10, intervals: 3, duration: 10, rest: 3, cooldown: 8, watts: [235, 265] };
+  assert.ok(estimateSessionTSS(watout, 280) > 0);
+  // ohne ftp bleibt der Hauptsatz-Anteil 0 (kein IF ableitbar) — kleiner als mit ftp
+  assert.ok(estimateSessionTSS(watout, 280) > estimateSessionTSS(watout));
 });
 
 const ATHLETE1_CFG = {

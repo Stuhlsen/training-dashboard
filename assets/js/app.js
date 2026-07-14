@@ -61,9 +61,13 @@ function initAthleteToggle() {
   });
 }
 
-/* ── Hat der aktive Athlet einen Trainingsplan? ────────────────
-   Athlet 2 (Vergleichsdaten) hat keine week/phase-Struktur, also
-   keine Planung/Übersicht-Meilensteine. */
+/* ── Hat der aktive Athlet Athlet 1s Plan-1/2-Struktur? ─────────
+   Steuert NUR die Plan-1/2-spezifischen Inhalte (HRV/RHF-Split an
+   der W0-Übergangswoche, "Plan 2"/W12-Retest-Texte, Wochen-Aggregation
+   nach Plan- statt Kalenderwochen) — exklusiv Athlet 1, erkannt an
+   ride.week (Athlet 2 hat das bewusst nicht, s. map-activity.js).
+   Für den Planungstab selbst (auch bei Athlet 2 mit eigenem Plan seit
+   GFNY Bremen 2026) ist stattdessen `hasPlanningTab` unten zuständig. */
 function hasOwnPlan() {
   return Data.rides.some((r) => r.week);
 }
@@ -282,15 +286,15 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
    Analyse-Briefing/Konsistenz). Planned.render() selbst übernimmt
    ui/planned.js. ── */
 function refreshAfterAdjustment() {
-  if (!hasOwnPlan()) return;
+  if (!Data.plannedSessions.length) return;
   const rides = Data.byDate();
   const todayISO = new Date().toISOString().split("T")[0];
-  Overview.render(rides);
+  Overview.render(rides, true);
   renderWeekReview(
     "weekreview-card",
     buildWeekReview(rides, Data.plannedSessions, Data.adjustments, todayISO)
   );
-  Analysis.render(rides);
+  Analysis.render(rides, true);
 }
 Planned.onAdjustmentChange = refreshAfterAdjustment;
 
@@ -315,6 +319,12 @@ async function renderAll(athleteId) {
   const rides = Data.byDate();
   const weekly = Data.weekly();
   const ownPlan = hasOwnPlan();
+  // Schmalerer Flag als ownPlan: schaltet nur den Planungstab + Tagesform-
+  // Pill/Wochenrückblick frei, rein datengetrieben (plannedSessions kommt
+  // für Athlet 2 seit GFNY Bremen 2026 ebenfalls aus rides-2.json) — ohne
+  // die Athlet-1-exklusiven Plan-1/2-Inhalte zu berühren, die weiter an
+  // ownPlan hängen (s. Kommentar bei hasOwnPlan()).
+  const hasPlanningTab = Data.plannedSessions.length > 0;
   const ftp = ownPlan
     ? CONFIG.ftp
     : CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured ||
@@ -330,11 +340,11 @@ async function renderAll(athleteId) {
     : (a, b) => a.localeCompare(b);
   const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn);
 
-  togglePlanningTabVisibility(ownPlan);
+  togglePlanningTabVisibility(hasPlanningTab);
   updateChartExplainers(ownPlan, ftp);
 
   // Overview
-  Overview.render(rides);
+  Overview.render(rides, hasPlanningTab);
 
   // Panels: Tagesform (7d vs. 42d-Baseline) + Wochenrückblick + Bestwerte.
   // Das Status-Briefing (gleiche Berechnung wie Analysis::_renderBriefing)
@@ -343,7 +353,7 @@ async function renderAll(athleteId) {
   const tsb = rides.filter((r) => r.tsb != null).slice(-1)[0]?.tsb ?? null;
   const loadRisk = guard.length ? guard[guard.length - 1].risk : null;
   let nextSession = null;
-  if (ownPlan && Data.plannedSessions?.length) {
+  if (hasPlanningTab) {
     const doneDates = new Set(rides.map((r) => r.dateISO));
     nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
   }
@@ -351,7 +361,7 @@ async function renderAll(athleteId) {
   renderReadiness("readiness-panel", readiness, briefing);
   renderWeekReview(
     "weekreview-card",
-    buildWeekReview(rides, ownPlan ? Data.plannedSessions : [], Data.adjustments, todayISO)
+    buildWeekReview(rides, hasPlanningTab ? Data.plannedSessions : [], Data.adjustments, todayISO)
   );
   renderRecords("records-wall", recordProgression(rides));
 
@@ -433,13 +443,14 @@ async function renderAll(athleteId) {
   // Table
   Table.init();
 
-  // Planung — nur für den eigenen Plan relevant
-  if (ownPlan) {
+  // Planung — sobald plannedSessions vorhanden sind (Athlet 1 immer,
+  // Athlet 2 seit GFNY Bremen 2026 ebenfalls — dort read-only, s. planned.js)
+  if (hasPlanningTab) {
     await Planned.render(rides);
   }
 
   // Analysis
-  Analysis.render(rides);
+  Analysis.render(rides, hasPlanningTab);
 
   // Datengetriebene Chart-Sichtbarkeit anwenden (leere Charts/Kategorien
   // ausblenden, sofern nicht per Umschalter eingeblendet)

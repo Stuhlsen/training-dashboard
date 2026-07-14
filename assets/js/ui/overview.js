@@ -40,14 +40,18 @@ export const Overview = {
    *  berechnen, nicht bei jedem input-Event). */
   _heroState: {},
 
-  render(rides) {
+  /** @param {boolean} [hasPlanningTab] Athlet-1-exklusives ownPlan steuert Plan-1/2-
+   *  Texte; hasPlanningTab (rein datengetrieben über Data.plannedSessions) steuert
+   *  NUR die Session-Pill — separat, damit Athlet 2s GFNY-Plan die Pill freischaltet,
+   *  ohne Plan-1/2-Inhalte in Athlet 2s Ansicht zu ziehen (s. app.js hasOwnPlan()). */
+  render(rides, hasPlanningTab = rides.some((r) => r.week)) {
     const ownPlan = rides.some((r) => r.week);
-    this._renderHero(rides, ownPlan);
+    this._renderHero(rides, ownPlan, hasPlanningTab);
     this._renderMetrics(rides);
   },
 
   /* ── Hero ───────────────────────────────────────────────────── */
-  _renderHero(rides, ownPlan) {
+  _renderHero(rides, ownPlan, hasPlanningTab) {
     const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     if (!sorted.length) return;
 
@@ -87,7 +91,7 @@ export const Overview = {
     const badgeEl = el("hero-athlete-badge");
     if (badgeEl) badgeEl.textContent = athleteName;
 
-    this._renderSessionPill(rides, ownPlan);
+    this._renderSessionPill(rides, hasPlanningTab);
 
     const ftpVal = Data.ftpValue();
     const eftpVal = this._eftpValue(rides);
@@ -100,10 +104,10 @@ export const Overview = {
   },
 
   /* ── Session-Karte: heutige bzw. nächste geplante Einheit ────── */
-  _renderSessionPill(rides, ownPlan) {
+  _renderSessionPill(rides, hasPlanningTab) {
     const wrap = el("hero-session");
     if (!wrap) return;
-    if (!ownPlan || !Data.plannedSessions.length) {
+    if (!hasPlanningTab || !Data.plannedSessions.length) {
       wrap.innerHTML = "";
       return;
     }
@@ -134,7 +138,7 @@ export const Overview = {
       const ftpVal = Data.ftpValue();
       const wattRange = workoutWattRange(next.workout, ftpVal);
       const minutes = workoutDurationMinutes(next.workout);
-      const tss = estimateSessionTSS(next.workout);
+      const tss = estimateSessionTSS(next.workout, ftpVal);
       // workout.label trägt die Intervallstruktur (z.B. "3×10 min @ SS") —
       // die reine Watt/Dauer/TSS-Rechnung verliert diese Information sonst.
       const parts = [];

@@ -77,7 +77,10 @@ export const Analysis = {
   _allRides: [],
   _toggleInit: false,
 
-  render(rides) {
+  /** @param {boolean} [hasPlanningTab] s. overview.js::render() — separat von
+   *  ownPlan, damit nur das Status-Briefing (nextSession) für Athlet 2s GFNY-
+   *  Plan mitzieht, ohne die restlichen Plan-1/2-exklusiven Sektionen unten. */
+  render(rides, hasPlanningTab = rides.some((r) => r.week)) {
     this._allRides = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     const ownPlan = rides.some((r) => r.week);
     const today = todayISO();
@@ -90,7 +93,7 @@ export const Analysis = {
     }
 
     // Zeitpunkt-/verlaufsbezogene Sektionen: immer voller Datensatz
-    this._renderBriefing(ownPlan, today);
+    this._renderBriefing(ownPlan, today, hasPlanningTab);
     this._renderLoad(ownPlan);
     this._renderBody(today);
     this._renderConsistency(ownPlan, today);
@@ -205,7 +208,7 @@ export const Analysis = {
   },
 
   /* ── 1 · Status-Briefing ──────────────────────────────────── */
-  _renderBriefing(ownPlan, today) {
+  _renderBriefing(ownPlan, today, hasPlanningTab = ownPlan) {
     const box = el("analysis-briefing");
     if (!box) return;
 
@@ -218,7 +221,7 @@ export const Analysis = {
     const loadRisk = guard.length ? guard[guard.length - 1].risk : null;
 
     let nextSession = null;
-    if (ownPlan && Data.plannedSessions?.length) {
+    if (hasPlanningTab && Data.plannedSessions?.length) {
       const doneDates = new Set(this._allRides.map((r) => r.dateISO));
       nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, today);
     }
