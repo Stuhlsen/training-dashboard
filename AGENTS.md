@@ -72,12 +72,22 @@ Prefix + knappe deutsche Beschreibung:
 - Keine Inline-`onclick`-Handler in index.html (mit Modulen nicht mehr erreichbar) —
   Event-Handler werden in `ui/nav.js` bzw. den jeweiligen UI-Modulen registriert.
   Einzige Ausnahme: der Reload-Button im Error-Screen (`location.reload()`).
-- **Schichtenregel:**
+- **Schichtenregel (Dashboard 1.x + 2.0):**
   - `core/` — reine Berechnung. Greift NIEMALS auf `document`, `window`,
     `localStorage` oder `fetch` zu. Alles hier ist mit `node:test` testbar.
-  - `state/` — Konfiguration + Daten-Store (lädt JSON, hält Zustand).
-  - `ui/` — DOM, SVG-Rendering, Event-Handler, GitHub-/intervals.icu-Schreibzugriffe.
-  - Importrichtung: `ui → state → core`. `core` importiert nichts aus `state`/`ui`.
+  - `data-access/` — I/O-Grenze (Dashboard 2.0). Kapselt JSON-Pipeline (`pipeline.js`)
+    und Supabase-Adapter (`supabase/`), gibt schlichte Domänenobjekte zurück, nie rohe
+    API-Responses. EINZIGE Schicht mit `await`. Importiert nur `core/`.
+  - `state/` — Orchestrierung + Daten-Store. Lädt aus `data-access/`, hält Session
+    (currentUser, Athleten-Zuordnung) und Trainings-Zustand.
+  - `ui/` — DOM, SVG-Rendering, Event-Handler. Ruft `state/` auf, kennt `data-access/` nicht.
+  - **Abhängigkeitstabelle** (Default: importiere nie höher):
+    | Schicht | darf importieren | darf NICHT |
+    |---------|---|---|
+    | `core/` | — | alles |
+    | `data-access/` | `core/` (nur Typen) | `state/`, `ui/` |
+    | `state/` | `core/`, `data-access/` | `ui/` |
+    | `ui/` | `core/`, `state/` | `data-access/` |
 - Typen via **JSDoc + jsconfig.json (`checkJs`)** — kein TypeScript, keine Kompilierung.
   Zentrale Typdefinitionen in `assets/js/types.js` (Ride, WellnessDay, Result, …).
 
@@ -119,9 +129,80 @@ die Zeit; `package-lock.json` ist dafür bewusst versioniert.
 - Baseline-Score (09.07.2026, vor erstem gezielten Cleanup): 79 (B).
   Größte Deductions: Unit Size (−10.0), Circular Deps (−7.0).
 
+## Dashboard 2.0 — Branch + Dev/Prod-Trennung
+
+**Ziel:** Neubau läuft auf `dashboard-2.0`-Branch, unterbricht `main` nicht. Zwei Supabase-Projekte (Free Tier) halten Entwicklung und Produktion getrennt.
+
+### Branch-Modell
+- **`main`** — das aktuell live gebaute Dashboard (GitHub Pages). Live-Leser sehen das.
+- **`dashboard-2.0`** — langlebiger Feature-Branch für alle 7 Phase-2.0-Phasen.
+  Lokal: `git checkout dashboard-2.0` vor Dashboard-2.0-Arbeit.
+- **Merge-Strategie:** Phasenweise nach `main`, sobald die Phase gegen `dashboard-dev` getestet ist.
+  Phase 1 kann live gehen, während Phase 3 noch auf dem Branch lebt. Jede Phase ist für sich
+  lauffähig — das ist genau die Architektur-Aufteilung: Auth → Befinden → Planungstab → usw.
+- **Vor jedem Commit auf `dashboard-2.0`:** `node -c`, `npm test`, und lokal im Browser prüfen.
+  Standard-Workflow (Abschnitt „Workflow vor jedem Commit") ändert sich nicht.
+
+### Supabase-Projekte
+**Free Tier:** max. 2 Projekte, perfekt für dev/prod. `dashboard-2.0` auf dem `dashboard-2.0`-Branch
+hat unterschiedliche `.env`-Einträge als `main`.
+
+| Projekt | Zweck | Status | Keep-Alive |
+|---------|---|---|---|
+| `dashboard-dev` | Entwicklung, Tests, Testaccounts (athlet-test, trainer-test) | Wird jetzt angelegt (Phase 0 Punkt 3) | nein (pausiert nach 1 Woche is ok) |
+| `dashboard-prod` | echte Daten, echte Accounts | Wird beim Merge von Phase 1 angelegt | ja (in `sync-data.yml`, 6h-Ping wie die Datensync-Action) |
+
+**Hostname-basierte Config** (Phase 0, Punkt 2):
+```javascript
+// assets/js/data-access/supabase/config.js
+const PROJECT_CONFIG = {
+  'localhost': { url: 'https://[dev-id].supabase.co', anonKey: 'dev-anon-key' },
+  'localhost:3000': { url: 'https://[dev-id].supabase.co', anonKey: 'dev-anon-key' },
+  'stuhlsen.github.io': { url: 'https://[prod-id].supabase.co', anonKey: 'prod-anon-key' }
+};
+// beide Keys sind öffentlich (per Design, RLS schützt — siehe Migration)
+```
+Das ist die einzige Stelle, die env-abhängig konfiguriert wird. Kein Build-Schritt, kein Secret-Management — Prod-Key ist sichtbar, ist aber per RLS wirkungslos ohne Login.
+
+### Migrations-Workflow
+SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/` (wie zeitstempel-nummeriert):
+- `0001_initial_schema.sql` — Tabellen, RLS, Trigger für User-Onboarding
+- Weitere Migrations pro Phase, wenn das Schema sich erweitert (Phase 1, 2, etc.)
+
+**Einspielen (Sequence):**
+1. Lokal gegen `dashboard-dev`: `supabase db push` (wenn supabase-cli installiert ist)
+   oder manuell: Supabase-UI → SQL-Editor → Migration kopieren + ausführen.
+2. Nach jedem Merge auf `main` (Phase 1, 2, etc.): dieselbe Migration in `dashboard-prod`
+   einspielen (oder später: CI-Job, der das automatisiert).
+3. Migration wird commits — Versionshistorie, Portfolio-Dokumentation, reproduzierbar.
+
+### Test-Sicherheit
+`tests/supabase-rls.test.js` (neu mit Phase 1) prüft:
+- anon + no login → nichts schreibbar
+- Athlet A + session → nur eigene Daten lesbar/änderbar
+- Trainer A + session → nur zugeordnete Athleten sichtbar
+- Admin-Only-Operationen (`is_admin` Flag) prüfen
+
+Das ist der "Sicherheits-Review"-Prüfpunkt aus Phase 0. Tests laufen gegen `dashboard-dev`-Projekt
+und müssen vor jedem Merge grün sein.
+
+### Datenquellen-Mix (lesen/schreiben)
+- **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline wie heute
+  (Action alle 6h, `scripts/generate-data.js`). Kein Change.
+- **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
+  → Supabase (RLS, Session-basiert).
+- **Die Linie ist scharf:** JSON-Loader zieht in `data-access/pipeline.js` um, sein Code bleibt
+  unverändert. `state/` fragt abstrakt "gib mir Athletendaten", bekommt sie woher auch immer.
+
 ## Dateistruktur
 
+supabase/
+  migrations/
+    0001_initial_schema.sql   → Tabellen, RLS, Auth-Trigger (Phase 0)
+    [weitere Migrations pro Phase, wenn Schema-Änderungen nötig sind]
+
 ```
+
 index.html            → Einstiegs-HTML. Hält ALLE Element-IDs, die das JS ansteuert,
                         und das eine Module-Script-Tag. Neue IDs/Charts hier eintragen.
 
@@ -132,6 +213,19 @@ assets/js/
                         updateChartExplainers(), Period-Toggles
   types.js            → Zentrale JSDoc-Typdefinitionen (kein Laufzeit-Code)
   core/               → REINE Berechnung, kein DOM — vollständig testbar
+  data-access/        → I/O-Grenze (Dashboard 2.0)
+    pipeline.js       → JSON-Loader (bisheriger Code zieht hierher um)
+    supabase/
+      config.js       → Hostname → dev/prod Project-URL + anon-Key
+      client.js       → Supabase-Client-Singleton
+      auth.js         → signIn/signOut/onAuthChange
+      goals.js        → CRUD-Wrapper für goals-Tabelle
+      events.js       → CRUD-Wrapper für events-Tabelle
+      wellbeing.js    → Befinden-Check-ins (upsert, nur Athlet schreibt)
+      plan-cards.js   → Trainingskarten (Drag & Drop, Status)
+      proposals.js    → Trainer-Vorschläge (human + Claude)
+      feedback.js     → Besucher-Feedback (anonym, gated auf is_approved)
+  state/              → Orchestrierung + Session + Zustand
     format.js         → fmt/fmtInt/fmtDate/fmtDuration, weatherIcon, windDir, …
     stats.js          → sum/avg/max/min, linearTrend (Regression)
     aggregate.js      → isoWeekKey, weeklyFromPlanWeeks, weeklyByCalendar, monthlyFromRides
