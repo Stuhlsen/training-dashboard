@@ -10,6 +10,7 @@ import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { fmtDate } from "../core/format.js";
 import { log } from "./log.js";
+import { openDialog as openCheckinDialog } from "./checkin-dialog.js";
 
 let panel = null;
 let isOpen = false;
@@ -57,13 +58,19 @@ function buildProfileSection(user) {
     </div>
     ${
       isAthlete()
-        ? `<div style="display:flex; align-items:center; justify-content:space-between;">
-            <span style="font-family: var(--font-mono); font-size:0.65rem; color: var(--dim);">Befinden öffentlich</span>
-            <button id="settings-wellbeing-toggle" type="button" style="width:36px; height:20px; border-radius:999px;
-              border:none; cursor:pointer; position:relative; background: rgba(255,255,255,0.10); transition: background 0.15s;">
-              <span style="position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
-                background:#fff; transition: transform 0.15s;"></span>
+        ? `<div style="display:flex; flex-direction:column; gap:10px;">
+            <button type="button" id="settings-open-checkin" style="align-self:flex-start; background:none;
+              border:none; cursor:pointer; font-family: var(--font-mono); font-size:0.62rem; color: var(--accent); padding:0;">
+              Befinden anpassen
             </button>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <span style="font-family: var(--font-mono); font-size:0.65rem; color: var(--dim);">Befinden öffentlich</span>
+              <button id="settings-wellbeing-toggle" type="button" style="width:36px; height:20px; border-radius:999px;
+                border:none; cursor:pointer; position:relative; background: rgba(255,255,255,0.10); transition: background 0.15s;">
+                <span style="position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+                  background:#fff; transition: transform 0.15s;"></span>
+              </button>
+            </div>
           </div>`
         : ""
     }
@@ -87,6 +94,11 @@ function buildProfileSection(user) {
   });
 
   if (isAthlete()) {
+    section.querySelector("#settings-open-checkin").addEventListener("click", () => {
+      closePanel();
+      openCheckinDialog();
+    });
+
     let wellbeingOn = !!user.wellbeingPublic;
     const toggle = section.querySelector("#settings-wellbeing-toggle");
     const knob = toggle.querySelector("span");

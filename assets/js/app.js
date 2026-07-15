@@ -40,6 +40,7 @@ import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
 import { initSession } from "./state/session.js";
 import "./ui/header.js";
+import "./ui/wellbeing-card.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
 function initAthleteToggle() {
