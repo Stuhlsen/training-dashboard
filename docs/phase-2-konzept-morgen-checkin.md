@@ -123,11 +123,17 @@ Der Check-in exponiert eine reine Funktion; die Governor-Verrechnung passiert in
 ```js
 getSubjectiveReadiness(athleteId, date) → {
   score:      number | null,          // Mittel 1..5, null ohne Eintrag
-  level:      'gruen' | 'gelb' | 'rot' | null,
+  level:      'green' | 'yellow' | 'red' | null,
   freshness:  'vorhanden' | 'veraltet' | 'ausstehend',
   components: { energy, muscleFeel, mood }
 }
 ```
+
+> Level-Vokabular bewusst **englisch** (`green`/`yellow`/`red`), nicht `gruen`/`gelb`/`rot`
+> wie in einer früheren Fassung dieses Dokuments — konsistent zu `assessReadiness`
+> (objektiver Kanal, dieselbe Datei), `core/briefing.js` und der `LEVEL`-Map in
+> `ui/panels.js`. Der spätere Governor (Abschnitt 5.2) kombiniert beide Kanäle und
+> braucht ein gemeinsames Vokabular statt einer Übersetzung zwischen zweien.
 
 readiness.js kombiniert `level` mit dem objektiven Level per Governor-Tabelle (5.2) und respektiert `freshness`.
 

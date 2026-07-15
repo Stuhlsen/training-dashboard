@@ -165,3 +165,77 @@ export function assessReadiness(wellness, todayISO) {
 
   return { level, metrics, recommendation, basisNote, staleWarning };
 }
+
+/* ── Subjektiver Kanal (Morgen-Check-in) ─────────────────────────
+   Reine Vertragsfunktion (Schritt F, docs/phase-2-konzept-morgen-
+   checkin.md Abschnitt 5.5) — noch KEINE Governor-Verrechnung mit dem
+   objektiven Kanal oben. Das ist der spätere [OP]-Punkt
+   "Belastungsempfehlungs-Logik um Befinden erweitern" und hängt an
+   core/briefing.js, nicht hier.
+   core/ bleibt Supabase-frei: anders als im Konzept-Pseudocode
+   (`getSubjectiveReadiness(athleteId, date)`) nimmt diese Funktion die
+   Check-ins als Daten entgegen, nicht als IDs zum Nachladen — exakt
+   das Muster von assessReadiness(wellness, todayISO) oben in dieser
+   Datei. Der Athleten-/Datums-Bezug passiert beim Aufrufer (state/).
+   Einzige Quelle für die Subjektiv-Schwellen/-Gewichte — ein späterer
+   Verrechnungscode (core/briefing.js) soll `greenMin`/`yellowMin` importieren,
+   nicht die Zahlen erneut hardcoden (Konsistenztest folgt mit Schritt G,
+   analog zu READINESS_CONFIG oben und tests/readiness-confidence.test.js). */
+export const SUBJECTIVE_READINESS_CONFIG = {
+  greenMin: 4.0, // Mittel ≥ 4,0 → grün
+  yellowMin: 2.75, // 2,75–3,99 → gelb, < 2,75 → rot
+  // v1 gleichgewichtet (Konzept D6) — als Config offen für spätere Tuning.
+  weights: { energy: 1, muscleFeel: 1, mood: 1 },
+};
+
+/**
+ * Subjektive Tagesform aus dem Morgen-Check-in — reiner Vertrag, keine
+ * Verrechnung mit dem objektiven Kanal.
+ * @param {Array<{date: string, energy: number|null, muscleFeel: number|null, mood: number|null}>} checkins
+ *   beliebig sortiert; nur `date === todayISO` bzw. genau ein Tag davor werden betrachtet.
+ * @param {string} todayISO
+ * @returns {{
+ *   score: number|null,
+ *   level: "green"|"yellow"|"red"|null,
+ *   freshness: "vorhanden"|"ausstehend"|"veraltet",
+ *   components: { energy: number|null, muscleFeel: number|null, mood: number|null }
+ * }}
+ */
+export function getSubjectiveReadiness(checkins, todayISO) {
+  const list = checkins || [];
+  const today = list.find((c) => c.date === todayISO) || null;
+  // Nur exakt "gestern" zählt als veraltet-aber-relevant (Konzept 5.4) — älter
+  // ist fachlich gleichwertig zu "kein Eintrag", nicht eine weitere Stufe.
+  const yesterday = !today ? list.find((c) => diffDays(todayISO, c.date) === 1) || null : null;
+  const entry = today || yesterday;
+  // Absichtlich ANDERE Bedeutung als metricConfidence() oben in dieser Datei
+  // (dort: Tagesalter einer Metrik seit dem letzten Wert). Hier: "heute
+  // erfasst" vs. "nur gestern" vs. "noch kein Eintrag" — zwei verschiedene
+  // Fragen, dieselben drei Wortlaute (Konzept 5.4).
+  const freshness = today ? "vorhanden" : yesterday ? "veraltet" : "ausstehend";
+
+  const components = {
+    energy: entry?.energy ?? null,
+    muscleFeel: entry?.muscleFeel ?? null,
+    mood: entry?.mood ?? null,
+  };
+
+  const { weights } = SUBJECTIVE_READINESS_CONFIG;
+  let weightSum = 0;
+  let valueSum = 0;
+  for (const key of Object.keys(weights)) {
+    const v = components[key];
+    if (v == null) continue;
+    weightSum += weights[key];
+    valueSum += v * weights[key];
+  }
+  const score = weightSum > 0 ? Math.round((valueSum / weightSum) * 100) / 100 : null;
+
+  let level = null;
+  if (score != null) {
+    const { greenMin, yellowMin } = SUBJECTIVE_READINESS_CONFIG;
+    level = score >= greenMin ? "green" : score >= yellowMin ? "yellow" : "red";
+  }
+
+  return { score, level, freshness, components };
+}
