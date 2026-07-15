@@ -63,6 +63,9 @@ export const RIDE_SCHEMA = {
   ruhepuls: "number?",
   hrv: "number?",
   feel: "string?",
+  // Nach-Fahrt-Befinden aus intervals.icu (nicht das manuelle `feel` oben)
+  rpe: "number?",
+  feelIcu: "number?",
   weather: "object?",
   zoneTimes: "array?",
   eftp: "number?",

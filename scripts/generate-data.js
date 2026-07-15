@@ -36,6 +36,7 @@ import {
   mapActivity2,
   buildEffectivePlanIndex,
   classifyCooldowns,
+  logRpeFeelCoverage,
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
 import {
@@ -133,6 +134,7 @@ async function main() {
     // Fix für Athlet 2 weiter unten.
     classifyCooldowns(plan2, DEFAULT_FTP);
     log.info(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
+    logRpeFeelCoverage(plan2, "Athlet 1");
 
     // Wellness-Einträge als eigenständige Liste (Schlaf-Chart, Readiness,
     // Regeneration & Körper) — Mapping zentral in lib/wellness.js
@@ -278,6 +280,7 @@ async function main() {
     // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
     // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.
     classifyCooldowns(rides2, estimatedFTP2);
+    logRpeFeelCoverage(rides2, ATHLETE_2_NAME);
 
     const wellnessList2 = mapWellnessList(wellness2);
     logWellnessCoverage(wellnessList2, ATHLETE_2_NAME);

@@ -8,6 +8,7 @@ import { effectiveSessions } from "../../assets/js/core/planning.js";
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { getWeatherForRide } from "./weather.js";
+import { log } from "./log.js";
 
 /** Fallback-FTP für die Typ-Ableitung — wird bei neuem Ramp-Test aktualisiert */
 export const DEFAULT_FTP = 193;
@@ -102,6 +103,13 @@ function baseFields(act, weather) {
     // (core/zones.js). Fehlende Felder bleiben null (ältere Aktivitäten).
     zoneTimes: act.icu_zone_times || null,
     eftp: act.icu_eftp || null,
+    // Nach-Fahrt-Befinden, vom Athleten direkt in intervals.icu eingetragen
+    // (nicht zu verwechseln mit `feel` unten — dem manuellen Dropdown-Wert
+    // aus subjective.json/Fahrtenbuch, s. baseFields-Aufrufer). Feldnamen
+    // laut intervals.icu-API (perceived_exertion/feel); Ist-Befüllung wird
+    // pro Sync-Lauf via logRpeFeelCoverage() verifiziert statt angenommen.
+    rpe: act.perceived_exertion ?? null,
+    feelIcu: act.feel ?? null,
     weather,
     wetter: weather
       ? `${weather.temp}°C`
@@ -110,6 +118,33 @@ function baseFields(act, weather) {
         : null,
     source: "intervals.icu",
   };
+}
+
+/** Non-null-Zählung für rpe/feelIcu über gemappte Rides.
+ *  @param {Array<Object>} rides @returns {{rpe: number, feelIcu: number}} */
+export function rpeFeelCoverage(rides) {
+  const counts = { rpe: 0, feelIcu: 0 };
+  for (const r of rides || []) {
+    if (r.rpe != null) counts.rpe++;
+    if (r.feelIcu != null) counts.feelIcu++;
+  }
+  return counts;
+}
+
+/** Verifikationslog: sind rpe/feelIcu aus intervals.icu real befüllt?
+ *  Grundlage, um die angenommenen API-Feldnamen (perceived_exertion/feel)
+ *  gegen einen echten Sync-Lauf zu bestätigen (s. Kommentar in baseFields()).
+ *  @param {Array<Object>} rides @param {string} label z.B. "Athlet 1" */
+export function logRpeFeelCoverage(rides, label) {
+  const { rpe, feelIcu } = rpeFeelCoverage(rides);
+  const total = (rides || []).length;
+  log.info(`   📊 RPE/Feel-Abdeckung (intervals.icu) ${label}: rpe ${rpe}/${total} · feelIcu ${feelIcu}/${total}`);
+  const empty = [];
+  if (total > 0 && rpe === 0) empty.push("rpe (perceived_exertion)");
+  if (total > 0 && feelIcu === 0) empty.push("feelIcu (feel)");
+  if (empty.length) {
+    log.warn(`   Nicht befüllt (${label}): ${empty.join(", ")} — Feldnamen prüfen`);
+  }
 }
 
 /** Wellness-Felder eines Tages @param {Object} w */

@@ -13,6 +13,7 @@ import {
   mapActivity,
   mapActivity2,
   classifyCooldowns,
+  rpeFeelCoverage,
 } from "../scripts/lib/map-activity.js";
 
 function baseAct(overrides = {}) {
@@ -98,6 +99,35 @@ test("mapActivity: ohne effectivePlan (Default-Fallback) bleibt Altverhalten mö
   // weglässt.
   const ride = mapActivity(baseAct({ start_date_local: "2099-01-01T09:00:00" }), {}, {}, {});
   assert.equal(typeof ride.typ, "string");
+});
+
+test("mapActivity: rpe/feelIcu aus intervals.icu-Feldern übernommen", () => {
+  const ride = mapActivity(
+    baseAct({ perceived_exertion: 7, feel: 3 }),
+    {},
+    {},
+    {}
+  );
+  assert.equal(ride.rpe, 7);
+  assert.equal(ride.feelIcu, 3);
+});
+
+test("mapActivity: rpe/feelIcu fehlen → null statt Fehler", () => {
+  const ride = mapActivity(baseAct(), {}, {}, {});
+  assert.equal(ride.rpe, null);
+  assert.equal(ride.feelIcu, null);
+});
+
+test("mapActivity2: rpe/feelIcu aus intervals.icu-Feldern übernommen", () => {
+  const ride = mapActivity2(baseAct({ perceived_exertion: 4, feel: 5 }), {}, {}, 265);
+  assert.equal(ride.rpe, 4);
+  assert.equal(ride.feelIcu, 5);
+});
+
+test("rpeFeelCoverage: zählt non-null rpe/feelIcu über Rides", () => {
+  const rides = [{ rpe: 5, feelIcu: null }, { rpe: null, feelIcu: 2 }, { rpe: 6, feelIcu: 4 }];
+  assert.deepEqual(rpeFeelCoverage(rides), { rpe: 2, feelIcu: 2 });
+  assert.deepEqual(rpeFeelCoverage([]), { rpe: 0, feelIcu: 0 });
 });
 
 test("mapActivity2: Ride am getauschten Datum bekommt die verschobene Karte", () => {

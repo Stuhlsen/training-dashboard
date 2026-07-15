@@ -35,8 +35,10 @@
  * @property {number|null} [decoupling]
  * @property {number|null} [ruhepuls]
  * @property {number|null} [hrv]
- * @property {string|null} [feel]
+ * @property {string|null} [feel]        Manuelles Befinden (Fahrtenbuch-Dropdown, subjective.json)
  * @property {string} [feelCls]
+ * @property {number|null} [rpe]         Perceived Exertion, vom Athleten in intervals.icu eingetragen
+ * @property {number|null} [feelIcu]     Feel-Skala aus intervals.icu (nicht zu verwechseln mit `feel`)
  * @property {number|null} [efficiency]  Watt pro Herzschlag (berechnet)
  * @property {Object|null} [weather]
  * @property {string|null} [wetter]
