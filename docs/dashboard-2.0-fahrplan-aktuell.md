@@ -76,7 +76,7 @@
 - [x] Konzept: Event-Verwaltung — Rennen/Touren mit Datum, Priorität, Countdown; Verknüpfung mit "Nächste Einheit"-Karte und FTP-Zielen **[SO]** → `docs/phase-2-konzept-event-verwaltung.md`
 - [ ] Mockups erstellen und iterieren **[SO]** (Check-in-Dialog-Mockup erledigt; Event-Timeline-Mockup-Schritt übersprungen, direkt gegen den echten `.plan-toggle`/`.panel-card`-Look implementiert statt separatem Mockup)
 - [x] Umsetzung: Check-in-Dialog + `wellbeing`-Tabelle **[SO]** → `supabase/migrations/0003_wellbeing.sql`, `state/wellbeing.js`, `ui/checkin-dialog.js`
-- [x] Umsetzung: Event-CRUD + Timeline-Anzeige **[SO]** → `supabase/migrations/0004_events.sql`, `data-access/supabase/events.js`, `state/events.js`, `ui/event-form.js`, `ui/event-timeline.js`. Header-Integration (`#event-timeline`-Mount in `index.html`/`app.js`, Countdown in der "Nächste Einheit"-Karte) noch offen — Komponente ist fertig, aber noch nirgends eingehängt.
+- [x] Umsetzung: Event-CRUD + Timeline-Anzeige inkl. Header-Integration **[SO]** → `supabase/migrations/0004_events.sql`, `data-access/supabase/events.js`, `state/events.js`, `ui/event-form.js`, `ui/event-timeline.js`; `#event-timeline`-Mount in `index.html`/`app.js`, Renn-Countdown in der "Nächste Einheit"-Karte (`ui/overview.js`, geteilte `countdownCard()`-Formatierung)
 - [ ] Belastungsempfehlungs-Logik um Befinden erweitern (hängt an `core/briefing.js`, subjektiver Kanal in `core/readiness.js` steht bereits als Vertragsfunktion) **[OP]** — s. `docs/offene-punkte.md`
 - [ ] Tests **[SO]** (Subjektiv-Kanal + RPE/Feel-Mapping getestet; `upsertToday` und `tests/supabase-rls.test.js` offen — s. `docs/offene-punkte.md`)
 
