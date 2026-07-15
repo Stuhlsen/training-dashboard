@@ -78,6 +78,36 @@ einzige Quelle der Wahrheit. Aufgefallen im Code-Review zu `event-form.js`
 (Juli 2026). Kein Bug, jede Kopie ist für sich korrekt; Extraktion würde
 mehrere bereits geprüfte/committete Dateien anfassen.
 
+**`ui/event-timeline.js` nutzt Inline-Styles statt neuer `components.css`-Klassen**
+`badge()`/`eventRow()`/`countdownCard()` und der "+ Event hinzufügen"-Button
+bauen Layout/Typografie komplett über Inline-`style`-Strings statt über
+wiederverwendbare Klassen in `assets/css/components.css` (anders als
+statische Panels wie `.readiness-metric`/`.record-card`). Folgt aber demselben
+Muster wie `checkin-dialog.js`/`settings-panel.js` (dynamisch per JS gebaute
+Dialoge nutzen dort ebenfalls Inline-Styles) — kein Ausreißer, nur eine von
+zwei parallelen Konventionen im Code. Aufgefallen im Code-Review zu
+`event-timeline.js` (Juli 2026), bewusst nicht angegangen.
+
+**`event-timeline.js`s `upcoming`-Filter dupliziert eine Grenzprüfung aus `nextRaceEvent()`**
+`events.filter((e) => e.eventDate >= todayIso)` wiederholt dieselbe
+Datums-Vergleichslogik wie `state/events.js::nextRaceEvent()` (dort nur
+zusätzlich auf `type === "race"` eingeschränkt). Zu trivial (eine Zeile) für
+eine eigene geteilte Selektor-Funktion, aber falls sich die Definition von
+"anstehend" mal ändert (z. B. Cutoff-Uhrzeit statt Tagesgrenze), gibt es zwei
+Stellen, die synchron bleiben müssen. Aufgefallen im Code-Review zu
+`event-timeline.js` (Juli 2026), bewusst nicht angegangen.
+
+**`event-timeline.js` rendert bei jeder `onEventsChange`-Änderung komplett neu**
+`_draw()` baut bei jedem Aufruf das komplette `innerHTML` des Panels neu und
+bindet alle Zeilen-/Button-Listener neu — `onEventsChange` ist nicht
+athletenscoped, jede Mutation (auch für einen anderen Athleten, falls
+irgendwann mehrere Timeline-Instanzen gleichzeitig offen sind) löst einen
+vollen Rebuild aus, plus ein garantierter Doppel-Rebuild pro `loadEvents()`
+(einmal für `loading:true`, einmal fürs Ergebnis). Bei der erwarteten
+Listengröße (eine Handvoll Events pro Athlet) kein reales Performance-Problem,
+nur vermerkt für den Fall, dass sich das mal ändert. Aufgefallen im
+Code-Review zu `event-timeline.js` (Juli 2026), bewusst nicht angegangen.
+
 **`rpeFeelCoverage`/`logRpeFeelCoverage` dupliziert das `wellness.js`-Muster**
 `scripts/lib/map-activity.js` hat mit der RPE/Feel-Erweiterung eine zweite,
 ride-spezifische Coverage-Verifikation bekommen, die dasselbe Muster wie

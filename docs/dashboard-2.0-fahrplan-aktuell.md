@@ -73,10 +73,10 @@
 - [x] Konzept: Tägliches Morgen-Check-in (3-4 Slider: Schlaf, Energie, Muskelgefühl, Stimmung + optionale Notiz) — Kopplung an Belastungsempfehlung; liefert auch an Ruhetagen einen Datenpunkt **[OP]** → `docs/phase-2-konzept-morgen-checkin.md`
 - [x] Entschieden: Nach-Fahrt-Befinden (RPE/Feel) läuft über intervals.icu, nicht Supabase
 - [x] Umsetzung: `generate-data.js` erweitern — RPE/Feel pro Aktivität aus intervals.icu holen **[SO]** → `rpe`/`feelIcu` in `scripts/lib/map-activity.js`
-- [ ] Konzept: Event-Verwaltung — Rennen/Touren mit Datum, Priorität, Countdown; Verknüpfung mit "Nächste Einheit"-Karte und FTP-Zielen **[SO]**
-- [ ] Mockups erstellen und iterieren **[SO]** (Check-in-Dialog-Mockup erledigt, Event-Timeline-Mockup offen)
+- [x] Konzept: Event-Verwaltung — Rennen/Touren mit Datum, Priorität, Countdown; Verknüpfung mit "Nächste Einheit"-Karte und FTP-Zielen **[SO]** → `docs/phase-2-konzept-event-verwaltung.md`
+- [ ] Mockups erstellen und iterieren **[SO]** (Check-in-Dialog-Mockup erledigt; Event-Timeline-Mockup-Schritt übersprungen, direkt gegen den echten `.plan-toggle`/`.panel-card`-Look implementiert statt separatem Mockup)
 - [x] Umsetzung: Check-in-Dialog + `wellbeing`-Tabelle **[SO]** → `supabase/migrations/0003_wellbeing.sql`, `state/wellbeing.js`, `ui/checkin-dialog.js`
-- [ ] Umsetzung: Event-CRUD + Timeline-Anzeige **[SO]**
+- [x] Umsetzung: Event-CRUD + Timeline-Anzeige **[SO]** → `supabase/migrations/0004_events.sql`, `data-access/supabase/events.js`, `state/events.js`, `ui/event-form.js`, `ui/event-timeline.js`. Header-Integration (`#event-timeline`-Mount in `index.html`/`app.js`, Countdown in der "Nächste Einheit"-Karte) noch offen — Komponente ist fertig, aber noch nirgends eingehängt.
 - [ ] Belastungsempfehlungs-Logik um Befinden erweitern (hängt an `core/briefing.js`, subjektiver Kanal in `core/readiness.js` steht bereits als Vertragsfunktion) **[OP]** — s. `docs/offene-punkte.md`
 - [ ] Tests **[SO]** (Subjektiv-Kanal + RPE/Feel-Mapping getestet; `upsertToday` und `tests/supabase-rls.test.js` offen — s. `docs/offene-punkte.md`)
 

@@ -34,9 +34,14 @@ function requireUser() {
   return { ok: true, user };
 }
 
-/** Aktueller In-Memory-Zustand der geladenen Events → { events, loading, error } */
+/** Aktueller In-Memory-Zustand der geladenen Events →
+ *  { events, loading, error, loadedForAthleteId }. `loadedForAthleteId`
+ *  lässt Konsumenten erkennen, ob `events` wirklich zum gerade angeforderten
+ *  Athleten gehört, statt während eines Athleten-Wechsels versehentlich noch
+ *  die Liste des vorherigen Athleten anzuzeigen (der geteilte State hält bis
+ *  zum Abschluss von loadEvents() den alten Stand). */
 export function getState() {
-  return { events, loading, error };
+  return { events, loading, error, loadedForAthleteId };
 }
 
 /** Lädt alle Events von `athleteId` neu — öffentlich lesbar (E1), kein Login
