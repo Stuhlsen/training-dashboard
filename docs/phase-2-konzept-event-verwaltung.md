@@ -91,7 +91,7 @@ Laut Phase-0-Entscheidung **E1**: `goals`, `events`, `plan_cards` sind öffentli
 
 - **Athlet:** voller Zugriff (read/write) auf eigene Events. *(bereits bestehend, `0001`)*
 - **Trainer:** read/write auf die Events *seines* Athleten. *(bereits bestehend, `0001` — s. Abschnitt 5, keine neue Entscheidung)*
-- **Admin:** read/write auf alle Events. **Fehlt aktuell in der RLS-Policy** — die bestehende Schreib-Policy prüft nur `athlete_id = auth.uid() or is_coach_of(athlete_id)`, kein `is_admin()`. Muss als eigene Ergänzung in `0004_events.sql` nachgezogen werden (s. Abschnitt 10, offener Punkt).
+- **Admin:** read/write auf alle Events. *(erledigt: eigene additive Policy `"events: Admin schreibt alle"` in `0004_events.sql`, gegen `dashboard-dev` getestet — s. Abschnitt 10)*
 - **anon/öffentlich:** lesend, wie bei `goals`/`plan_cards` bereits so gehandhabt — keine Notiz-artige private Spalte hier vorgesehen, `note` ist ein optionales Freitextfeld ähnlich öffentlicher Natur wie der Rest der Zeile (anders als bei `wellbeing.note`, das explizit privat sein musste, weil die Select-Policy dort kein Column-Splitting kennt). Falls das nicht gewünscht ist, wäre eine spaltenweise Einschränkung analog zum Wellbeing-Muster nachrüstbar — für v1 aber nicht vorgesehen, da Events grundsätzlich öffentliche Planungsdaten sind (E1).
 
 ### 4a — Nullability-Constraint als echter DB-Check
@@ -114,7 +114,7 @@ Grund: RLS und Grants verhindern nicht, dass ein Client (Bug, direkter Supabase-
 
 **Korrektur:** Athlet- und Trainer-Schreibzugriff auf `events` ist **keine neue Entscheidung dieses Konzepts**, sondern besteht unverändert seit Phase 0 (`0001_initial_schema.sql`, Policy `"events: Athlet+Trainer schreiben"`, `for all`) — identisches Muster wie bei `goals` und `plan_cards`. Das unterscheidet sich zwar bewusst vom `wellbeing`-Pattern (dort schreibt nur der Athlet selbst seine Slider, der Trainer nur lesend inkl. `note`), aber dieser Unterschied existiert bereits seit Phase 0 für alle drei öffentlich lesbaren Tabellen — er wird hier nicht neu eingeführt oder "vorgezogen".
 
-**Tatsächlich neu in diesem Konzept:** der Admin-Schreibzugriff (s. Abschnitt 4, Abschnitt 10) — das ist die einzige RLS-Änderung, die `0004_events.sql` tatsächlich bringen muss.
+**Tatsächlich neu in diesem Konzept:** der Admin-Schreibzugriff (s. Abschnitt 4) — das war die einzige RLS-Änderung, die `0004_events.sql` bringen musste, und ist erledigt (s. Abschnitt 10).
 
 ---
 
@@ -162,7 +162,7 @@ Schichtregel bleibt: `core/` → `data-access/` → `state/` → `ui/`.
 
 ## 10 — Offene Punkte (für `docs/offene-punkte.md`, falls übernommen)
 
-- **Admin-Schreibzugriff auf `events` fehlt in der RLS** — bestehende Policy prüft nur `athlete_id = auth.uid() or is_coach_of(athlete_id)`, kein `is_admin()`. Muss in `0004_events.sql` als eigene Policy-Ergänzung nachgezogen werden, bevor Admin-Funktionalität im UI vorausgesetzt wird.
-- **`priority`-Datenbestand in `dashboard-dev` noch nicht geprüft** — Migration `0004_events.sql` wird erst geschrieben, wenn die Abfrage aus Abschnitt 3 ausgeführt und das Ergebnis zurückgemeldet wurde.
+- ~~Admin-Schreibzugriff auf `events` fehlt in der RLS~~ — **erledigt**: `0004_events.sql` hat die additive Policy `"events: Admin schreibt alle"` ergänzt, gegen `dashboard-dev` getestet (Admin kann Events beliebiger Athleten anlegen/ändern).
+- ~~`priority`-Datenbestand in `dashboard-dev` noch nicht geprüft~~ — **erledigt**: Abfrage aus Abschnitt 3 lief am 2026-07-15 gegen `dashboard-dev` ("Success. No rows returned"), kein Bestand vorhanden, direkte Umstellung ohne Mapping in `0004_events.sql` umgesetzt.
 - Mehrtägige Events (Start-/Enddatum) sind in v1 nicht abgebildet.
 - Genaue Anzeige-Priorität in der "Nächste Einheit"-Karte, wenn sowohl eine geplante Einheit als auch ein Event nah beieinanderliegen, ist ein Umsetzungsdetail, kein Konzeptpunkt — sollte aber beim Bauen kurz festgehalten werden, welche Regel gewählt wurde.
