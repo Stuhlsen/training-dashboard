@@ -188,4 +188,15 @@ Nach diesem Konzept: Mockup Check-in-Dialog **[SO]** → Umsetzung `wellbeing` +
 
 `profiles.wellbeing_public` und die `wellbeing_shared`-View (Phase 1 bzw. Migration 0003) sind DB-seitig fertig und getestet — `anon` kann `date/energy/muscle_feel/mood` lesen, wenn der Athlet den Toggle aktiviert hat, `note` nie. Es gibt aber **noch keinen Frontend-Konsumenten**: `data-access/supabase/wellbeing.js` fragt ausschließlich den authentifizierten Client für den eigenen heutigen Check-in ab, keine Funktion liest `wellbeing_shared` für einen fremden/betrachteten Athleten. Die „Befinden heute"-Karte (Abschnitt 6) ist bewusst nur für den eingeloggten Athleten selbst gedacht, nicht für Besucher — der Toggle hat dadurch aktuell sichtbar **keinen Effekt** im UI.
 
+---
+
+## 11 — Offene Punkte: Testlücken aus Schritt G
+
+Schritt G ist mit den `getSubjectiveReadiness`-Tests (Level-/Freshness-Ableitung inkl. Grenzfälle 2,75/4,0 und „kein Eintrag" → ausstehend, `tests/readiness-confidence.test.js`) abgeschlossen. Zwei im ursprünglichen Schritt-G-Umfang genannte Punkte bleiben bewusst offen, statt sie hier spontan mitzuziehen:
+
+- **Upsert-Logik (`data-access/supabase/wellbeing.js`)**: kein Unit-Test, weil im Repo aktuell kein Mocking-Seam für den Supabase-Client existiert — weder hier noch bei den strukturell identischen Siblings (`goals.js`, `profiles.js`). Testbar machen würde eine echte Restrukturierung von bereits reviewtem/committetem Code nur für Testbarkeit erfordern, nicht bloß einen Test hinzufügen.
+- **RLS-Grundannahmen (`tests/supabase-rls.test.js`)**: laut AGENTS.md ein geplanter Test gegen das echte `dashboard-dev`-Projekt (Testaccounts `athlet-test`/`trainer-test`) — braucht Live-Credentials, die in dieser Session nicht vorliegen.
+
+Beide folgen in einer Session mit `dashboard-dev`-Zugang bzw. einer bewussten Entscheidung für einen Mocking-Seam.
+
 Eigener späterer Punkt mit eigenem kurzen Konzept/Mockup: was genau zeigt die öffentliche Ansicht (nur „heute"? Verlauf? in welchem Tab?), bevor Umsetzung.
