@@ -175,3 +175,11 @@ Schichtregel bleibt: `core/` → `data-access/` → `state/` → `ui/`. readines
 ## 9 — Danach in Phase 2
 
 Nach diesem Konzept: Mockup Check-in-Dialog **[SO]** → Umsetzung `wellbeing` + Dialog **[SO]** → dann der separate **[OP]**-Punkt „Belastungsempfehlungs-Logik um Befinden erweitern" (Governor real in readiness.js). Parallel-Strang bleibt Event-Verwaltung / Timeline.
+
+---
+
+## 10 — Offener Punkt: öffentliche Anzeige (`wellbeing_public`)
+
+`profiles.wellbeing_public` und die `wellbeing_shared`-View (Phase 1 bzw. Migration 0003) sind DB-seitig fertig und getestet — `anon` kann `date/energy/muscle_feel/mood` lesen, wenn der Athlet den Toggle aktiviert hat, `note` nie. Es gibt aber **noch keinen Frontend-Konsumenten**: `data-access/supabase/wellbeing.js` fragt ausschließlich den authentifizierten Client für den eigenen heutigen Check-in ab, keine Funktion liest `wellbeing_shared` für einen fremden/betrachteten Athleten. Die „Befinden heute"-Karte (Abschnitt 6) ist bewusst nur für den eingeloggten Athleten selbst gedacht, nicht für Besucher — der Toggle hat dadurch aktuell sichtbar **keinen Effekt** im UI.
+
+Eigener späterer Punkt mit eigenem kurzen Konzept/Mockup: was genau zeigt die öffentliche Ansicht (nur „heute"? Verlauf? in welchem Tab?), bevor Umsetzung.
