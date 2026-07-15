@@ -86,7 +86,12 @@ export async function createEvent(athleteId, event) {
   const gate = requireUser();
   if (!gate.ok) return gate;
   const myRequest = ++requestId;
-  const result = await createEventAdapter(athleteId, event);
+  // type -> "other" macht priority/ftp_goal ungültig (Check-Constraint
+  // events_priority_only_for_race) — hier erzwingen statt jedem Aufrufer
+  // (aktuell ui/event-form.js, künftig ggf. Quick-Add/Import) zuzumuten,
+  // das selbst zu wissen. Spiegelt updateEvent()s Logik.
+  const payload = event.type === "other" ? { ...event, priority: null, ftpGoal: null } : event;
+  const result = await createEventAdapter(athleteId, payload);
   if (myRequest !== requestId) return result; // durch neueren Aufruf überholt
   // loadedForAthleteId === null: noch nie geladen (z.B. Quick-Add ohne
   // vorherigen Timeline-Besuch) — Cache trotzdem für athleteId initialisieren,

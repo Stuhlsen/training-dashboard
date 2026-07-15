@@ -59,6 +59,25 @@ gemessener Schlafscore über die intervals.icu-API in den objektiven Kanal
 
 ## Dashboard 2.0 — Cleanup
 
+**Glass-Input-Style dreifach dupliziert (settings-panel.js, checkin-dialog.js, event-form.js)**
+`ui/event-form.js::INPUT_STYLE` ist eine dritte, fast identische Kopie desselben
+Input-Looks (Hintergrund/Border/Radius/Font) wie `settings-panel.js`s lokales
+`inputStyle` (Ziele-Formular) und `checkin-dialog.js`s Textarea-Style — mit
+leichtem kosmetischem Drift (Padding, Border-Radius). Aufgefallen im
+Code-Review zu `event-form.js` (Juli 2026). Kein Bug, nur fehlende geteilte
+Konstante; Extraktion würde drei bereits geprüfte/committete Dateien anfassen,
+bewusst nicht im Rahmen des Event-Verwaltung-Features mitgemacht.
+
+**`openToken`-Race-Guard 4× unabhängig kopiert statt geteiltem Helper**
+Dasselbe 4-Zeilen-Muster (`let openToken = 0; ... const myToken = openToken; ...
+if (myToken !== openToken) return;`) existiert jetzt unabhängig in
+`checkin-dialog.js`, `state/wellbeing.js`, `state/events.js` (dort als
+`requestId`) und `ui/event-form.js`. Ein `createRequestGuard()`-Helper (z. B.
+in `ui/dom.js` für die UI-Dialoge, oder ein Pendant für `state/`) wäre die
+einzige Quelle der Wahrheit. Aufgefallen im Code-Review zu `event-form.js`
+(Juli 2026). Kein Bug, jede Kopie ist für sich korrekt; Extraktion würde
+mehrere bereits geprüfte/committete Dateien anfassen.
+
 **`rpeFeelCoverage`/`logRpeFeelCoverage` dupliziert das `wellness.js`-Muster**
 `scripts/lib/map-activity.js` hat mit der RPE/Feel-Erweiterung eine zweite,
 ride-spezifische Coverage-Verifikation bekommen, die dasselbe Muster wie
