@@ -141,7 +141,7 @@ Grund: RLS und Grants verhindern nicht, dass ein Client (Bug, direkter Supabase-
 | Schicht | Datei | Inhalt |
 |---|---|---|
 | Migration | `supabase/migrations/0004_events.sql` | Additive Spalten (`type`, `ftp_goal`, `updated_at` + Trigger), `priority`-Umstellung (nullable + `main`/`secondary`, s. Abschnitt 3 Migrationsschritt — **erst nach dem Datenbestands-Check**), CHECK-Constraint (Abschnitt 4a), neue Admin-Policy (Abschnitt 10) |
-| data-access | `data-access/supabase/events.js` | `list(athleteId)`, `create(...)`, `update(id, ...)`, `remove(id)`, `getNext(athleteId, type)` |
+| data-access | `data-access/supabase/events.js` | `listEvents(athleteId)`, `createEvent(athleteId, event)`, `updateEvent(id, patch)`, `removeEvent(id)`, `getNextEvent(athleteId, todayIso, type = "race")` — `todayIso` vom Aufrufer übergeben (analog `wellbeing.js::getToday`), `type: null` hebt den Typ-Filter auf |
 | state | `state/events.js` | Events als State, Subscribe/Notify, abgeleiteter Countdown-Wert |
 | ui | `ui/event-form.js` | Formular (Modal), Typ-abhängige Feld-Sichtbarkeit |
 | ui | `ui/event-timeline.js` | Kompakte Liste/Timeline kommender Events |

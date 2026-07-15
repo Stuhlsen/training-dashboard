@@ -11,7 +11,12 @@
 --     (Abschnitt 2/3) — Bestandscheck gegen dashboard-dev am 2026-07-15
 --     ("select priority, count(*) from events group by priority" ->
 --     "Success. No rows returned", Tabelle war leer) hat KEIN Mapping
---     nötig gemacht, deshalb direkte Umstellung ohne Datenmigration.
+--     nötig gemacht. Umstellung bewusst NICHT über drop+recreate der
+--     Spalte (Erstfassung dieser Migration hatte das so gemacht — Bug:
+--     nicht idempotent, jeder Re-Run hätte künftige priority-Werte
+--     kommentarlos gelöscht, auch beim späteren Einspielen auf
+--     dashboard-prod). Stattdessen NOT NULL + alte Check-Constraint
+--     gezielt ersetzen, Spalte und ihr Inhalt bleiben erhalten.
 --   - "ftp_goal" neu, optional (Abschnitt 3)
 --   - "updated_at" + Trigger — wiederverwendet set_updated_at() aus
 --     0003_wellbeing.sql, kein neues Funktions-Duplikat (Abschnitt 3)
@@ -45,13 +50,19 @@ alter table public.events
 -- ------------------------------------------------------------
 -- 2. priority: not null/A-B-C -> nullable/main-secondary
 --    Kein Bestand vorhanden (s. Kopfkommentar) -> direkte Umstellung,
---    kein Mapping.
+--    kein Mapping. Idempotent über NOT NULL/Constraint-Ersatz statt
+--    drop+recreate der Spalte — ein Re-Run löscht keine Daten mehr;
+--    enthält die Spalte zum Zeitpunkt des Re-Runs noch alte A/B/C-Werte
+--    (z.B. unmigriertes dashboard-prod), schlägt der neue Check-Constraint
+--    kontrolliert fehl statt die Werte stillschweigend zu verwerfen.
 -- ------------------------------------------------------------
 alter table public.events
-  drop column if exists priority;
+  alter column priority drop not null;
 
 alter table public.events
-  add column priority text check (priority in ('main', 'secondary'));
+  drop constraint if exists events_priority_check;
+alter table public.events
+  add constraint events_priority_check check (priority in ('main', 'secondary'));
 
 -- ------------------------------------------------------------
 -- 3. ftp_goal (neu, optional)
