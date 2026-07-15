@@ -10,6 +10,8 @@ import {
   loadSignal,
   readinessSignal,
   tsbTrendSignal,
+  subjectiveSignal,
+  governLevel,
 } from "../assets/js/core/briefing.js";
 import { currentPmc, tsbTrend } from "../assets/js/core/pmc.js";
 import {
@@ -230,6 +232,111 @@ test("buildBriefing: Regression — Ruhetage nach hartem Block liefern konsisten
   assert.equal(b.level, "yellow");
   assert.equal(b.recovering, true);
   assert.match(b.recommendation, /Erholung wirkt bereits/);
+});
+
+/* ── Governor: subjektiver Kanal (Morgen-Check-in) ──────────────
+   Konzept docs/phase-2-konzept-morgen-checkin.md Abschnitt 5.2/5.4. */
+
+test("subjectiveSignal: null (nicht eingeloggt/kein Athlet) → keine Zeile", () => {
+  assert.equal(subjectiveSignal(null), null);
+});
+
+test("subjectiveSignal: ausstehend oder ohne Werte → nodata, kein Level-Text", () => {
+  assert.equal(subjectiveSignal({ level: null, freshness: "ausstehend" }).status, "nodata");
+  assert.equal(subjectiveSignal({ level: null, freshness: "vorhanden" }).status, "nodata");
+});
+
+test("subjectiveSignal: alle drei Level korrekt gemappt, 'veraltet' mit Zusatz", () => {
+  assert.equal(subjectiveSignal({ level: "green", freshness: "vorhanden" }).status, "ok");
+  assert.equal(subjectiveSignal({ level: "yellow", freshness: "vorhanden" }).status, "caution");
+  assert.equal(subjectiveSignal({ level: "red", freshness: "vorhanden" }).status, "alert");
+  assert.match(subjectiveSignal({ level: "red", freshness: "veraltet" }).text, /gestern/);
+});
+
+test("governLevel: alle 9 Zellen der Konzept-Tabelle 5.2", () => {
+  const table = {
+    "green|green": "green",
+    "green|yellow": "yellow",
+    "green|red": "yellow",
+    "yellow|green": "yellow",
+    "yellow|yellow": "yellow",
+    "yellow|red": "red",
+    "red|green": "red",
+    "red|yellow": "red",
+    "red|red": "red",
+  };
+  for (const [key, expected] of Object.entries(table)) {
+    const [obj, subj] = key.split("|");
+    assert.equal(governLevel(obj, subj), expected, `${obj}+${subj} → ${expected}`);
+  }
+});
+
+test("buildBriefing: subjective weggelassen/ausstehend → level unverändert, subjectiveApplied false (Rückwärtskompatibilität)", () => {
+  const withoutSubjective = buildBriefing({ readiness: { level: "green" }, tsb: 2, loadRisk: "ok" });
+  assert.equal(withoutSubjective.subjectiveApplied, false);
+
+  const ausstehend = buildBriefing({
+    readiness: { level: "green" },
+    tsb: 2,
+    loadRisk: "ok",
+    subjective: { level: null, freshness: "ausstehend" },
+  });
+  assert.equal(ausstehend.level, withoutSubjective.level);
+  assert.equal(ausstehend.subjectiveApplied, false);
+});
+
+test("buildBriefing: grün (objektiv) + rot (subjektiv) → gelb, subjectiveWarning true, eigener Empfehlungstext", () => {
+  const b = buildBriefing({
+    readiness: { level: "green" },
+    tsb: 2,
+    loadRisk: "ok",
+    subjective: { level: "red", freshness: "vorhanden" },
+  });
+  assert.equal(b.level, "yellow");
+  assert.equal(b.subjectiveApplied, true);
+  assert.equal(b.subjectiveWarning, true);
+  assert.equal(b.subjectiveIllnessWarning, false);
+  assert.match(b.recommendation, /Overreaching|Infekt/);
+});
+
+test("buildBriefing: rot (objektiv) + rot (subjektiv) → bleibt rot, subjectiveIllnessWarning true", () => {
+  const b = buildBriefing({
+    readiness: { level: "red" },
+    tsb: -25,
+    loadRisk: "ok",
+    subjective: { level: "red", freshness: "vorhanden" },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.subjectiveIllnessWarning, true);
+  assert.match(b.recommendation, /Infekt|ärztlich/);
+});
+
+test("buildBriefing: rot (objektiv) + grün (subjektiv) → bleibt rot (nie grün bei objektiv rot)", () => {
+  const b = buildBriefing({
+    readiness: { level: "red" },
+    tsb: -25,
+    loadRisk: "ok",
+    subjective: { level: "green", freshness: "vorhanden" },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.subjectiveWarning, false);
+  assert.equal(b.subjectiveIllnessWarning, false);
+});
+
+test("buildBriefing: Governor wirkt NACH der 'Erholung wirkt bereits'-Ausnahme, nicht auf dem rohen TSB-Alert", () => {
+  // Objektiv allein: TSB-Alert + steigender Trend + unauffällige HRV → bereits
+  // von rot auf gelb entschärft (bestehende Logik). Subjektiv gelb darf das
+  // Ergebnis dann nicht nochmal verschlechtern (gelb+gelb → gelb).
+  const b = buildBriefing({
+    readiness: { level: "green", metrics: [{ key: "hrv", z: 0.1 }] },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+    subjective: { level: "yellow", freshness: "vorhanden" },
+  });
+  assert.equal(b.recovering, true);
+  assert.equal(b.level, "yellow");
+  assert.equal(b.subjectiveApplied, true);
 });
 
 /* ── Body / Regeneration ────────────────────────────────────── */

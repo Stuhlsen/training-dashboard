@@ -77,8 +77,8 @@
 - [ ] Mockups erstellen und iterieren **[SO]** (Check-in-Dialog-Mockup erledigt; Event-Timeline-Mockup-Schritt übersprungen, direkt gegen den echten `.plan-toggle`/`.panel-card`-Look implementiert statt separatem Mockup)
 - [x] Umsetzung: Check-in-Dialog + `wellbeing`-Tabelle **[SO]** → `supabase/migrations/0003_wellbeing.sql`, `state/wellbeing.js`, `ui/checkin-dialog.js`
 - [x] Umsetzung: Event-CRUD + Timeline-Anzeige inkl. Header-Integration **[SO]** → `supabase/migrations/0004_events.sql`, `data-access/supabase/events.js`, `state/events.js`, `ui/event-form.js`, `ui/event-timeline.js`; `#event-timeline`-Mount in `index.html`/`app.js`, Renn-Countdown in der "Nächste Einheit"-Karte (`ui/overview.js`, geteilte `countdownCard()`-Formatierung)
-- [ ] Belastungsempfehlungs-Logik um Befinden erweitern (hängt an `core/briefing.js`, subjektiver Kanal in `core/readiness.js` steht bereits als Vertragsfunktion) **[OP]** — s. `docs/offene-punkte.md`
-- [ ] Tests **[SO]** (Subjektiv-Kanal + RPE/Feel-Mapping getestet; `upsertToday` und `tests/supabase-rls.test.js` offen — s. `docs/offene-punkte.md`)
+- [x] Belastungsempfehlungs-Logik um Befinden erweitern **[OP]** → Governor (`governLevel()`/`subjectiveSignal()`) in `core/briefing.js`, verdrahtet über `state/wellbeing.js` (2-Tage-Range) in `app.js`/`ui/analysis.js`, nur beim eingeloggten Athleten (`isAthlete()`-Gate), Tests in `tests/analysis-core.test.js`
+- [ ] Tests **[SO]** (Subjektiv-Kanal + RPE/Feel-Mapping + Governor getestet; `upsertToday` und `tests/supabase-rls.test.js` offen — s. `docs/offene-punkte.md`)
 
 ---
 

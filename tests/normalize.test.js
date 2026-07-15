@@ -11,6 +11,7 @@ import {
   fmtDuration,
   wrapText,
   windDir,
+  addDaysISO,
 } from "../assets/js/core/format.js";
 import { parseFtpFromNotes } from "../scripts/lib/notion.js";
 
@@ -71,6 +72,14 @@ test("windDir: Grad → Himmelsrichtung", () => {
   assert.equal(windDir(90), "O");
   assert.equal(windDir(225), "SW");
   assert.equal(windDir(null), "");
+});
+
+test("addDaysISO: einfache Verschiebung sowie Monats-/Jahreswechsel", () => {
+  assert.equal(addDaysISO("2026-07-15", -1), "2026-07-14");
+  assert.equal(addDaysISO("2026-07-15", 1), "2026-07-16");
+  assert.equal(addDaysISO("2026-03-01", -1), "2026-02-28"); // Monatswechsel
+  assert.equal(addDaysISO("2026-01-01", -1), "2025-12-31"); // Jahreswechsel
+  assert.equal(addDaysISO("2024-03-01", -1), "2024-02-29"); // Schaltjahr
 });
 
 test("parseFtpFromNotes extrahiert den FTP-Wert aus Freitext", () => {

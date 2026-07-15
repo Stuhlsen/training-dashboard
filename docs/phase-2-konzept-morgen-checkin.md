@@ -2,7 +2,7 @@
 
 > **Ziel:** Ein kurzes tägliches Selbst-Check-in (3 Slider + optionale Notiz), das ein subjektives Bereitschaftssignal liefert — gekoppelt an die **Belastungsempfehlung** und auch an **Ruhetagen** verwertbar.
 >
-> **Scope-Abgrenzung:** Dieses Konzept definiert das Feature selbst (Datenmodell, UI, Sichtbarkeit) **und den Vertrag** zur Belastungsempfehlung. Die *tiefe* Verrechnung ist der eigene spätere Phase-2-Punkt „Belastungsempfehlungs-Logik um Befinden erweitern" **[OP]** und hängt am `core/readiness.js`-Refactor. Hier wird das Zusammenspiel entworfen, dort implementiert.
+> **Scope-Abgrenzung:** Dieses Konzept definiert das Feature selbst (Datenmodell, UI, Sichtbarkeit) **und den Vertrag** zur Belastungsempfehlung. Die *tiefe* Verrechnung war der eigene spätere Phase-2-Punkt „Belastungsempfehlungs-Logik um Befinden erweitern" **[OP]** — ✅ **erledigt**, implementiert als Governor in `core/briefing.js` (nicht in `core/readiness.js`, s. Abschnitt 9). Hier wurde das Zusammenspiel entworfen, dort umgesetzt.
 
 ---
 
@@ -154,12 +154,13 @@ readiness.js kombiniert `level` mit dem objektiven Level per Governor-Tabelle (5
 | Schicht | Datei | Inhalt |
 |---|---|---|
 | Migration | `supabase/migrations/0003_wellbeing.sql` | Spalten/Constraints, RLS-Policies, **GRANTs inkl. spaltengenauer anon-Rechte** |
-| data-access | `data-access/supabase/wellbeing.js` | `getToday`, `upsertToday`, `getRange` |
-| state | `state/wellbeing.js` | heutiger Check-in als State, Subscribe |
+| data-access | `data-access/supabase/wellbeing.js` | `upsertToday`, `getRange` (`getToday` entfernt — `state/wellbeing.js` lädt seit dem Governor eine 2-Tage-Range statt eines Einzeltags, s. Abschnitt 9) |
+| state | `state/wellbeing.js` | heutiger Check-in + `subjective` (Governor-Input) als State, Subscribe |
 | ui | `ui/checkin-dialog.js` | Modal (3 Slider + Notiz) |
 | ui | Übersicht-Renderer | Befinden-Statuskarte |
 | ui | `ui/settings-panel.js` | „Befinden anpassen" + `wellbeing_public`-Toggle |
-| core | `core/readiness.js` | subjektiver Kanal + Governor *(Großteil = späterer [OP]-Punkt)* |
+| core | `core/readiness.js` | subjektiver Kanal (reine Vertragsfunktion) |
+| core | `core/briefing.js` | Governor (`governLevel`/`subjectiveSignal`) — s. Abschnitt 9 |
 | pipeline | `generate-data.js` | Schlafscore aus intervals.icu ziehen → objektiver Kanal *(eigener [SO]-Punkt in Phase 2)* |
 
 Schichtregel bleibt: `core/` → `data-access/` → `state/` → `ui/`. readiness.js (core) konsumiert nur die reine Vertragsfunktion, kennt kein Supabase.
@@ -180,7 +181,7 @@ Schichtregel bleibt: `core/` → `data-access/` → `state/` → `ui/`. readines
 
 ## 9 — Danach in Phase 2
 
-Nach diesem Konzept: Mockup Check-in-Dialog **[SO]** → Umsetzung `wellbeing` + Dialog **[SO]** → dann der separate **[OP]**-Punkt „Belastungsempfehlungs-Logik um Befinden erweitern" (Governor real in readiness.js). Parallel-Strang bleibt Event-Verwaltung / Timeline.
+Nach diesem Konzept: Mockup Check-in-Dialog **[SO]** → Umsetzung `wellbeing` + Dialog **[SO]** → dann der separate **[OP]**-Punkt „Belastungsempfehlungs-Logik um Befinden erweitern". ✅ **Erledigt** — Governor ist in `core/briefing.js` implementiert (`governLevel()`/`subjectiveSignal()`, nicht in `readiness.js` selbst, s. dortigen Kommentar), verdrahtet über `state/wellbeing.js` (holt jetzt gestern+heute für die Freshness-Ableitung) in `app.js`/`ui/analysis.js`. Nur beim eingeloggten Athleten selbst wirksam (`isAthlete()`-Gate), greift erst beim nächsten vollen Render (kein Live-Nachziehen bei neuem Check-in, konsistent zu TSB/LoadGuard). Die Notiz-Eskalationsfußnote aus Abschnitt 5.2 ("Notiz + klar rot" → hochstufen) bleibt bewusst nicht umgesetzt — bräuchte Sentiment-Analyse der Freitext-Notiz, außerhalb des v1-Scopes. Tests: `tests/analysis-core.test.js`.
 
 ---
 

@@ -15,20 +15,6 @@ function toCheckin(row) {
   };
 }
 
-export async function getToday(athleteId, isoDate) {
-  if (!supabase) return { ok: true, checkin: null };
-  const client = await getAuthedClient();
-  if (!client) return { ok: true, checkin: null };
-  const { data, error } = await client
-    .from("wellbeing")
-    .select(SELECT_COLS)
-    .eq("athlete_id", athleteId)
-    .eq("date", isoDate)
-    .maybeSingle();
-  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
-  return { ok: true, checkin: data ? toCheckin(data) : null };
-}
-
 export async function upsertToday(athleteId, isoDate, { energy, muscleFeel, mood, note }) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;

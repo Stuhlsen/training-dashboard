@@ -14,6 +14,19 @@
    zeigt aktive Erholung UND HRV/RHR widersprechen nicht — dann kippt
    der Status von rot auf gelb ("Erholung wirkt bereits", s. unten),
    statt eine schon laufende Erholung fälschlich als Warnung zu zeigen.
+
+   Optionaler vierter Kanal: der subjektive Morgen-Check-in (Konzept
+   docs/phase-2-konzept-morgen-checkin.md Abschnitt 5.2, core/readiness.js::
+   getSubjectiveReadiness). Wirkt NICHT gleichgewichtet mit, sondern als
+   asymmetrischer Governor NACH der obigen Objektiv-Kombination (s.
+   governLevel): verschiebt das Ergebnis in beide Richtungen um höchstens
+   eine Stufe relativ zu Objektiv (deckt sich mit der Konzept-Tabelle 5.2 —
+   auch ein subjektiv "rot" zieht ein objektiv "grün" nur auf "gelb", nicht
+   auf "rot"), MIT EINER harten Ausnahme: nie auf grün heben, wenn Objektiv
+   rot ist ("nie grün bei objektiv rot" schlägt den Ein-Stufen-Spielraum).
+   Nur relevant, wenn der Aufrufer einen frischen `subjective`-Wert übergibt
+   (state/wellbeing.js, nur beim eingeloggten Athleten selbst) — ohne ihn
+   verhält sich buildBriefing exakt wie zuvor (reiner Drei-Signale-Fall).
    ============================================================ */
 
 /** TSB-Schwellen für die Interpretation */
@@ -76,6 +89,43 @@ export function tsbTrendSignal(trend) {
   return { status: "ok", text: `TSB-Trend (3 Tage): ${trend.direction} ${arrow} (${sign}${trend.delta})` };
 }
 
+/** Subjektiver Kanal (Morgen-Check-in, core/readiness.js::getSubjectiveReadiness)
+ *  als informatives Signal — geht NICHT in die objektive Signal-Kombination
+ *  ein (das übernimmt governLevel unten), taucht aber wie die anderen Signale
+ *  in der Signal-Liste auf. `null` (nicht eingeloggt/kein Athlet) → keine Zeile,
+ *  "ausstehend" (noch kein Check-in heute) → eigene nodata-Zeile statt Stille,
+ *  damit der Athlet weiß, dass ein Check-in fehlt.
+ *  @param {null|{level: "green"|"yellow"|"red"|null, freshness: "vorhanden"|"veraltet"|"ausstehend"}} subjective
+ *  @returns {null|{status: "ok"|"caution"|"alert"|"nodata", text: string}} */
+export function subjectiveSignal(subjective) {
+  if (!subjective) return null;
+  if (subjective.freshness === "ausstehend" || subjective.level == null) {
+    return { status: "nodata", text: "Befinden: noch kein Check-in heute" };
+  }
+  const suffix = subjective.freshness === "veraltet" ? " (Check-in von gestern)" : "";
+  if (subjective.level === "red") return { status: "alert", text: `Befinden: angeschlagen${suffix}` };
+  if (subjective.level === "yellow") return { status: "caution", text: `Befinden: durchwachsen${suffix}` };
+  return { status: "ok", text: `Befinden: fit${suffix}` };
+}
+
+/** Goodness-Skala für den Governor (Konzept docs/phase-2-konzept-morgen-
+ *  checkin.md Abschnitt 5.2): höher = besser, spiegelbildlich zu status. */
+const GOVERNOR_GOODNESS = { red: 0, yellow: 1, green: 2 };
+const GOVERNOR_LEVELS = ["red", "yellow", "green"];
+
+/** Governor-Tabelle (Konzept Abschnitt 5.2): Subjektiv verschiebt Objektiv um
+ *  höchstens eine Stufe in jede Richtung — außer der harten Ausnahme "nie auf
+ *  grün heben, wenn Objektiv rot ist", die den Ein-Stufen-Spielraum in diesem
+ *  einen Fall überstimmt. Verifiziert gegen alle 9 Zellen der Konzept-Tabelle
+ *  (s. tests/analysis-core.test.js).
+ *  @param {"green"|"yellow"|"red"} objLevel @param {"green"|"yellow"|"red"} subjLevel
+ *  @returns {"green"|"yellow"|"red"} */
+export function governLevel(objLevel, subjLevel) {
+  const obj = GOVERNOR_GOODNESS[objLevel];
+  const subj = GOVERNOR_GOODNESS[subjLevel];
+  return GOVERNOR_LEVELS[Math.min(obj, Math.max(subj, obj - 1))];
+}
+
 /**
  * Gesamtstatus aus den drei Signalen.
  * Priorisierung: irgendein alert → red · ≥1 caution → yellow · sonst green.
@@ -91,22 +141,36 @@ export function tsbTrendSignal(trend) {
  * @param {"ok"|"caution"|"high"|null} input.loadRisk aktuelle LoadGuard-Woche
  * @param {null|{date: string, title?: string, typ?: string}} [input.nextSession] nächste geplante Einheit (nur Athlet 1)
  * @param {null|{direction: "steigend"|"fallend"|"stabil", delta: number}} [input.trend] TSB-Trend aus core/pmc.js::tsbTrend
+ * @param {null|{level: "green"|"yellow"|"red"|null, freshness: "vorhanden"|"veraltet"|"ausstehend"}} [input.subjective]
+ *   Morgen-Check-in aus core/readiness.js::getSubjectiveReadiness — nur bei eingeloggtem Athleten (Aufrufer entscheidet, s. state/wellbeing.js)
  * @returns {{
  *   level: "green"|"yellow"|"red",
  *   headline: string,
  *   recommendation: string,
  *   signals: Array<{status: string, text: string}>,
  *   degraded: boolean,
- *   recovering: boolean
+ *   recovering: boolean,
+ *   subjectiveApplied: boolean,
+ *   subjectiveWarning: boolean,
+ *   subjectiveIllnessWarning: boolean
  * }}
  */
-export function buildBriefing({ readiness, tsb, loadRisk, nextSession = null, trend = null }) {
+export function buildBriefing({
+  readiness,
+  tsb,
+  loadRisk,
+  nextSession = null,
+  trend = null,
+  subjective = null,
+}) {
   const rSig = readinessSignal(readiness);
   const tSig = tsbSignal(tsb);
   const lSig = loadSignal(loadRisk);
   const signals = [rSig, tSig, lSig];
   const trendSig = tsbTrendSignal(trend);
   if (trendSig) signals.push(trendSig);
+  const subjSig = subjectiveSignal(subjective);
+  if (subjSig) signals.push(subjSig);
   const statuses = [rSig.status, tSig.status, lSig.status];
   const degraded = !readiness; // ohne HRV-Baseline: Status nur aus Last-Signalen
 
@@ -135,6 +199,19 @@ export function buildBriefing({ readiness, tsb, loadRisk, nextSession = null, tr
     level = "yellow";
     recovering = true;
   }
+
+  // Governor (Konzept Abschnitt 5.2): Subjektiv wirkt NACH der objektiven
+  // Kombination (inkl. der "Erholung wirkt bereits"-Ausnahme oben), nicht
+  // auf dem rohen TSB-Alert — objLevel ist der Stand, den Objektiv allein
+  // ergeben hätte. "ausstehend" (kein frischer Check-in) lässt den Governor
+  // unangetastet (Konzept 5.4: Fallback auf rein objektiv).
+  const objLevel = level;
+  const subjectiveApplied =
+    !!subjective && subjective.freshness !== "ausstehend" && subjective.level != null;
+  if (subjectiveApplied) level = governLevel(objLevel, subjective.level);
+  const subjectiveWarning = subjectiveApplied && objLevel === "green" && subjective.level === "red";
+  const subjectiveIllnessWarning =
+    subjectiveApplied && objLevel === "red" && subjective.level === "red";
 
   const headline =
     level === "green"
@@ -169,5 +246,26 @@ export function buildBriefing({ readiness, tsb, loadRisk, nextSession = null, tr
     }
   }
 
-  return { level, headline, recommendation, signals, degraded, recovering };
+  // Governor-Sonderfälle (Konzept Abschnitt 5.2/5.3 Fußnoten) übersteuern die
+  // generische Empfehlung — sie betreffen genau die zwei Fälle, für die der
+  // Governor überhaupt existiert (Objektiv wirkt erholt, aber Befinden warnt).
+  if (subjectiveWarning) {
+    recommendation =
+      "Objektiv wirkt erholt, aber das Befinden ist schlecht — mögliches Overreaching oder ein Infekt bahnt sich an. Heute vorsichtig sein, Belastung nicht wie geplant steigern.";
+  } else if (subjectiveIllnessWarning) {
+    recommendation =
+      "Beide Kanäle zeigen deutlich rot — starkes Signal für eine ernsthafte Erholungsnotwendigkeit (ggf. beginnender Infekt). Ruhetag, bei anhaltenden Beschwerden ärztlich abklären lassen.";
+  }
+
+  return {
+    level,
+    headline,
+    recommendation,
+    signals,
+    degraded,
+    recovering,
+    subjectiveApplied,
+    subjectiveWarning,
+    subjectiveIllnessWarning,
+  };
 }

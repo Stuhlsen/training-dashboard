@@ -38,7 +38,8 @@ import { Planned } from "./ui/planned.js";
 import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
-import { initSession } from "./state/session.js";
+import { initSession, isAthlete } from "./state/session.js";
+import { getState as getWellbeingState } from "./state/wellbeing.js";
 import { EventTimeline } from "./ui/event-timeline.js";
 import "./ui/header.js";
 import "./ui/wellbeing-card.js";
@@ -378,7 +379,15 @@ async function renderAll(athleteId) {
     const doneDates = new Set(rides.map((r) => r.dateISO));
     nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
   }
-  const briefing = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend });
+  // Subjektiver Kanal (Morgen-Check-in) nur beim eingeloggten Athleten selbst
+  // — unabhängig von Data.activeAthleteId (state/wellbeing.js hängt am
+  // Supabase-Login, nicht am Athleten-Toggle; dieselbe bereits bestehende
+  // Lücke wie bei Goals/Events, s. ui/settings-panel.js-Kommentar). Greift
+  // erst beim nächsten vollen renderAll() (Athleten-Toggle/Reload), nicht
+  // reaktiv auf einen späteren Check-in — konsistent zu TSB/LoadGuard, die
+  // ebenfalls nicht live nachziehen.
+  const subjective = isAthlete() ? getWellbeingState().subjective : null;
+  const briefing = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend, subjective });
   renderReadiness("readiness-panel", readiness, briefing);
   renderWeekReview(
     "weekreview-card",

@@ -168,19 +168,19 @@ export function assessReadiness(wellness, todayISO) {
 
 /* ── Subjektiver Kanal (Morgen-Check-in) ─────────────────────────
    Reine Vertragsfunktion (Schritt F, docs/phase-2-konzept-morgen-
-   checkin.md Abschnitt 5.5) — noch KEINE Governor-Verrechnung mit dem
-   objektiven Kanal oben. Das ist der spätere [OP]-Punkt
-   "Belastungsempfehlungs-Logik um Befinden erweitern" und hängt an
-   core/briefing.js, nicht hier.
+   checkin.md Abschnitt 5.5). Die Governor-Verrechnung mit dem objektiven
+   Kanal oben ist in core/briefing.js implementiert (governLevel() +
+   subjectiveSignal(), s. dort) — diese Funktion liefert nur den fertigen
+   Vertrag ({score, level, freshness, components}), keine Kombinationslogik.
    core/ bleibt Supabase-frei: anders als im Konzept-Pseudocode
    (`getSubjectiveReadiness(athleteId, date)`) nimmt diese Funktion die
    Check-ins als Daten entgegen, nicht als IDs zum Nachladen — exakt
    das Muster von assessReadiness(wellness, todayISO) oben in dieser
-   Datei. Der Athleten-/Datums-Bezug passiert beim Aufrufer (state/).
-   Einzige Quelle für die Subjektiv-Schwellen/-Gewichte — ein späterer
-   Verrechnungscode (core/briefing.js) soll `greenMin`/`yellowMin` importieren,
-   nicht die Zahlen erneut hardcoden (Konsistenztest folgt mit Schritt G,
-   analog zu READINESS_CONFIG oben und tests/readiness-confidence.test.js). */
+   Datei. Der Athleten-/Datums-Bezug passiert beim Aufrufer (state/wellbeing.js).
+   Einzige Quelle für die Subjektiv-Schwellen/-Gewichte — core/briefing.js
+   bekommt von hier nur das bereits fertig abgeleitete `level`, nie den
+   rohen Score, kann `greenMin`/`yellowMin` also strukturell nicht duplizieren
+   (kein Import nötig, anders als ursprünglich hier vermerkt). */
 export const SUBJECTIVE_READINESS_CONFIG = {
   greenMin: 4.0, // Mittel ≥ 4,0 → grün
   yellowMin: 2.75, // 2,75–3,99 → gelb, < 2,75 → rot

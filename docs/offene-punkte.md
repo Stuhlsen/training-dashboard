@@ -40,16 +40,6 @@ sieht nur eigene Daten, Trainer A nur zugeordnete Athleten, Admin-Only-Ops
 geprüft. Braucht Live-Credentials, die in normalen Sessions nicht vorliegen.
 → Details: `AGENTS.md` (Abschnitt „Test-Sicherheit"), `docs/phase-2-konzept-morgen-checkin.md` Abschnitt zu RLS-Grundannahmen.
 
-**Governor-Integration in `core/briefing.js`**
-Der subjektive Kanal (`getSubjectiveReadiness()` in `core/readiness.js`) ist
-eine reine Vertragsfunktion ohne Verrechnung mit dem objektiven Kanal. Die
-eigentliche Governor-Logik ("Belastungsempfehlungs-Logik um Befinden
-erweitern") soll laut Code-Kommentar in `core/briefing.js` passieren, ist dort
-aber noch nicht begonnen. `briefing.js` soll `greenMin`/`yellowMin` aus
-`SUBJECTIVE_READINESS_CONFIG` importieren statt die Schwellen erneut
-hardzucoden (Konsistenztest folgt mit der Umsetzung).
-→ Anker-Kommentar: `assets/js/core/readiness.js:169-183`.
-
 **Schlafscore-Pull aus intervals.icu**
 Schlaf soll bewusst **kein** Slider im Morgen-Check-in sein — stattdessen als
 gemessener Schlafscore über die intervals.icu-API in den objektiven Kanal
@@ -58,6 +48,17 @@ gemessener Schlafscore über die intervals.icu-API in den objektiven Kanal
 → Details: `docs/phase-2-konzept-morgen-checkin.md`, Abschnitte 2 und 5.2.
 
 ## Dashboard 2.0 — Cleanup
+
+**`addDaysISO()` (core/format.js) noch nicht an bestehenden Stellen nachgezogen**
+Für den Governor neu eingeführt (Juli 2026), weil `state/wellbeing.js` "gestern"
+für die 2-Tage-Range brauchte. Mehrere bestehende Dateien reimplementieren
+dasselbe Datum-±-n-Tage-Muster inline statt den neuen Helper zu nutzen:
+`core/pmc.js::tsbTrend` (Fenster-Start), `core/adherence.js::mondayOf`/
+`weeklyStreak`/`frequencyTrend` (dort zusätzlich eine eigene `isoLocal()`-Kopie
+von `localISODate`), `core/consistency.js`. Aufgefallen im Code-Review zum
+Governor-Feature. Kein Bug, jede Stelle ist für sich korrekt; Konsolidierung
+würde mehrere bereits geprüfte/committete Dateien anfassen, bewusst nicht im
+Rahmen des Governor-Features mitgemacht.
 
 **Glass-Input-Style dreifach dupliziert (settings-panel.js, checkin-dialog.js, event-form.js)**
 `ui/event-form.js::INPUT_STYLE` ist eine dritte, fast identische Kopie desselben

@@ -55,6 +55,8 @@ import {
 } from "../core/zones.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
+import { isAthlete } from "../state/session.js";
+import { getState as getWellbeingState } from "../state/wellbeing.js";
 import { el } from "./dom.js";
 
 const todayISO = localISODate;
@@ -232,7 +234,10 @@ export const Analysis = {
       nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, today);
     }
 
-    const b = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend });
+    // Subjektiver Kanal nur beim eingeloggten Athleten selbst — dieselbe
+    // Session-basierte Gate wie in app.js::renderAll(), s. dortigen Kommentar.
+    const subjective = isAthlete() ? getWellbeingState().subjective : null;
+    const b = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend, subjective });
     const dot = (status) =>
       status === "alert"
         ? "var(--thr, #d94f4f)"
