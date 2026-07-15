@@ -39,6 +39,7 @@ import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
 import { initSession } from "./state/session.js";
+import { EventTimeline } from "./ui/event-timeline.js";
 import "./ui/header.js";
 import "./ui/wellbeing-card.js";
 
@@ -350,6 +351,14 @@ async function renderAll(athleteId) {
 
   togglePlanningTabVisibility(hasPlanningTab);
   updateChartExplainers(ownPlan, ftp);
+
+  // Events-Timeline + Renn-Countdown: bewusst NICHT awaited — beide Panels
+  // (ui/event-timeline.js, Overview._renderSessionPill) hängen an
+  // onEventsChange (state/events.js) und zeichnen sich selbst neu, sobald
+  // der Ladevorgang durchkommt. Ein await hier würde die komplette restliche
+  // Render-Pipeline (Charts, Panels) auf einen Supabase-Roundtrip warten
+  // lassen, ohne dass irgendetwas davon Event-Daten braucht.
+  EventTimeline.render(Data.activeAthleteId);
 
   // Overview
   Overview.render(rides, hasPlanningTab);

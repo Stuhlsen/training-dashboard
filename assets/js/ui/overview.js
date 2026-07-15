@@ -2,7 +2,7 @@
    UI/OVERVIEW.JS — Hero, Metriken
    ============================================================ */
 
-import { fmt, fmtInt, fmtDuration, fmtDate, weatherIcon } from "../core/format.js";
+import { fmt, fmtInt, fmtDuration, fmtDate, weatherIcon, localISODate } from "../core/format.js";
 import {
   pinPercent,
   ringProgress,
@@ -17,8 +17,10 @@ import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../cor
 import { avg, maxVal, sum } from "../core/stats.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
+import { getState as getEventsState, raceCountdown, onEventsChange } from "../state/events.js";
 import { el } from "./dom.js";
 import { Planned } from "./planned.js";
+import { countdownCard } from "./event-timeline.js";
 
 /* Obergrenze des What-if-Sliders (Ziel-FTP) — siehe _bindWhatIf(). Die
  * Referenzskala der Zonenband-Breiten kommt aus core/zones.js::whatIfScaleMax
@@ -46,6 +48,12 @@ export const Overview = {
    *  ohne Plan-1/2-Inhalte in Athlet 2s Ansicht zu ziehen (s. app.js hasOwnPlan()). */
   render(rides, hasPlanningTab = rides.some((r) => r.week)) {
     const ownPlan = rides.some((r) => r.week);
+    // Für die onEventsChange-Subscription unten — die kennt nur athleteId-
+    // unabhängige Änderungen am Event-State, nicht rides/hasPlanningTab, muss
+    // sich also den letzten render()-Aufruf merken, um _renderSessionPill
+    // eigenständig neu anstoßen zu können.
+    this._lastRides = rides;
+    this._lastHasPlanningTab = hasPlanningTab;
     this._renderHero(rides, ownPlan, hasPlanningTab);
     this._renderMetrics(rides);
   },
@@ -107,16 +115,33 @@ export const Overview = {
   _renderSessionPill(rides, hasPlanningTab) {
     const wrap = el("hero-session");
     if (!wrap) return;
+
+    // Renn-Countdown (docs/phase-2-konzept-event-verwaltung.md Abschnitt 6):
+    // eigene Datenquelle (events, nicht plannedSessions) — bleibt getrennt,
+    // wird nur in derselben Karte mitangezeigt. Unabhängig von hasPlanningTab,
+    // da auch ein Athlet ohne eigenen Trainingsplan Events haben kann.
+    // loadedForAthleteId-Guard wie in event-timeline.js::_draw(): der geteilte
+    // events-State hält bis zum Abschluss von loadEvents() noch den Stand des
+    // vorherigen Athleten — ohne den Guard würde bei einem fehlgeschlagenen
+    // Ladevorgang nach Athletenwechsel der Countdown des ALTEN Athleten unter
+    // dem neuen Athleten hängen bleiben. countdownCard() liefert dieselbe
+    // .session-pill-Optik wie ui/event-timeline.js (geteilter Helper statt
+    // einer zweiten, unabhängig driftenden Formatierung).
+    const eventsState = getEventsState();
+    const countdown =
+      eventsState.loadedForAthleteId === Data.activeAthleteId ? raceCountdown() : null;
+    const countdownHtml = countdownCard(countdown);
+
     if (!hasPlanningTab || !Data.plannedSessions.length) {
-      wrap.innerHTML = "";
+      wrap.innerHTML = countdownHtml;
       return;
     }
 
-    const todayISO = new Date().toISOString().split("T")[0];
+    const todayISO = localISODate();
     const doneDates = new Set(rides.map((r) => r.date));
     const next = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
     if (!next) {
-      wrap.innerHTML = "";
+      wrap.innerHTML = countdownHtml;
       return;
     }
 
@@ -164,7 +189,8 @@ export const Overview = {
         <span>${when} · <b>${next.name || next.typ || "Einheit"}</b>${km}</span>
       </div>
       ${detailHtml}
-      ${weatherHtml}`;
+      ${weatherHtml}
+      ${countdownHtml}`;
   },
 
   /* ── Zonen-Band: interaktive Leistungsskala (Coggan-Zonen) ───── */
@@ -546,3 +572,12 @@ export const Overview = {
       .join("");
   },
 };
+
+// Renn-Countdown in der Session-Pill hält sich sonst nur bis zum nächsten
+// vollen render() aktuell (Athletenwechsel/Reload) — reagiert jetzt auf jede
+// Event-Änderung (create/update/remove aus ui/event-form.js), analog zu
+// ui/event-timeline.js::onSessionChange. Nur relevant, nachdem render()
+// mindestens einmal gelaufen ist (sonst keine rides/hasPlanningTab bekannt).
+onEventsChange(() => {
+  if (Overview._lastRides) Overview._renderSessionPill(Overview._lastRides, Overview._lastHasPlanningTab);
+});

@@ -9,6 +9,14 @@ export const el = (id) => document.getElementById(id);
  *  @param {string} sel @param {Document|Element} [parent] @returns {Element[]} */
 export const els = (sel, parent = document) => [...parent.querySelectorAll(sel)];
 
+const ESCAPE_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
+
+/** HTML-escaped einen String für die sichere Interpolation in innerHTML —
+ *  Pflicht für jeden Text, den ein Athlet/Trainer selbst eingegeben hat
+ *  (z.B. Event-Titel), bevor er per Template-String ins DOM landet.
+ *  @param {unknown} str @returns {string} */
+export const escapeHtml = (str) => String(str).replace(/[&<>"']/g, (c) => ESCAPE_MAP[c]);
+
 /* ── SVG Helper ──────────────────────────────────────────────── */
 const SVG_NS = "http://www.w3.org/2000/svg";
 

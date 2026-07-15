@@ -1,25 +1,20 @@
 import { getState, loadEvents, raceCountdown, onEventsChange, removeEvent } from "../state/events.js";
 import { getSession, onSessionChange } from "../state/session.js";
 import { fmtDate, localISODate } from "../core/format.js";
-import { el } from "./dom.js";
+import { el, escapeHtml } from "./dom.js";
 import { openEventForm } from "./event-form.js";
 
 const TYPE_LABEL = { race: "Rennen/Tour", other: "Sonstiges" };
 const PRIORITY_LABEL = { main: "Hauptziel", secondary: "Nebenziel" };
-const ESCAPE_MAP = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" };
-
 // event.title ist freier, öffentlich sichtbarer Text (E1: events öffentlich
 // lesbar, jeder Athlet/Trainer kann ihn über ui/event-form.js setzen) und
-// landet hier per innerHTML im DOM — ohne Escaping wäre das gespeicherter
+// landet hier per innerHTML im DOM — ohne escapeHtml() wäre das gespeicherter
 // XSS für jeden Besucher der Timeline. Badge-Labels laufen über denselben
 // Helper, auch wenn sie normalerweise aus einer festen Lookup-Tabelle kommen
 // (type/priority sind DB-seitig per CHECK-Constraint auf einen festen Wertesatz
 // begrenzt) — der `?? event.type`-Fallback für einen unbekannten Wert soll
 // nicht der einzige ungeschützte Pfad sein, falls der Wertesatz sich mal
 // ändert oder eine Altzeile abweicht.
-function escapeHtml(str) {
-  return String(str).replace(/[&<>"']/g, (c) => ESCAPE_MAP[c]);
-}
 
 function badge(label, color) {
   return `<span style="font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em;
@@ -27,7 +22,10 @@ function badge(label, color) {
     white-space: nowrap;">${escapeHtml(label)}</span>`;
 }
 
-function countdownCard(countdown) {
+/** Renn-Countdown als .session-pill-Karte — von overview.js (Hero-"Nächste
+ *  Einheit"-Karte) mitgenutzt, damit es nur eine Formatierung für "nächstes
+ *  Rennen" gibt statt zweier unabhängig driftender Kopien. */
+export function countdownCard(countdown) {
   if (!countdown) return "";
   return `
     <div class="session-pill" style="--sp-color: var(--ss); margin-bottom: 12px;">
