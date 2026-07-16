@@ -9929,16 +9929,16 @@
       ],
       "eftp": null,
       "weather": {
-        "temp": 28.9,
-        "tempFeel": 28.5,
-        "humidity": 39,
-        "windSpeed": 9.5,
-        "windDir": 353,
-        "precip": 0,
-        "cloudCover": 50,
-        "weatherCode": 2
+        "temp": 27.5,
+        "tempFeel": 26.9,
+        "humidity": 44,
+        "windSpeed": 12.9,
+        "windDir": 3,
+        "precip": 0.1,
+        "cloudCover": 14,
+        "weatherCode": 51
       },
-      "wetter": "28.9°C",
+      "wetter": "27.5°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 52,
@@ -10184,8 +10184,8 @@
       "wetter": "24.7°C",
       "source": "intervals.icu",
       "ruhepuls": 48,
-      "hrv": null,
-      "avgSleepingHR": null,
+      "hrv": 45,
+      "avgSleepingHR": 50,
       "sleepHours": 8.2,
       "feel": null,
       "notizen": null
@@ -13110,7 +13110,7 @@
       "hrv": 78,
       "weight": 94,
       "bodyFat": null,
-      "activeEnergy": 914,
+      "activeEnergy": 935,
       "restingEnergy": null,
       "kcalConsumed": 3072,
       "hydration": null,
@@ -13120,10 +13120,25 @@
     {
       "date": "2026-07-15",
       "sleepHours": 8.2,
-      "avgSleepingHR": null,
+      "avgSleepingHR": 50,
       "restingHR": 48,
+      "hrv": 45,
+      "weight": 92.6,
+      "bodyFat": null,
+      "activeEnergy": 928,
+      "restingEnergy": null,
+      "kcalConsumed": 3154,
+      "hydration": null,
+      "hydrationVolume": 1.15,
+      "eftp": 261
+    },
+    {
+      "date": "2026-07-16",
+      "sleepHours": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
       "hrv": null,
-      "weight": 92,
+      "weight": null,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
@@ -13135,7 +13150,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-14",
+      "hrv": "2026-07-15",
       "restingHR": "2026-07-15",
       "sleepHours": "2026-07-15"
     }
@@ -13146,12 +13161,12 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-15T00:00:00",
-        "end_date_local": "2026-07-15T23:59:59",
+        "start_date_local": "2025-07-16T00:00:00",
+        "end_date_local": "2026-07-16T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92,
+        "weight": 92.6,
         "secs": [
           1,
           2,
@@ -15061,7 +15076,7 @@
       }
     }
   },
-  "athleteWeight": 92,
+  "athleteWeight": 92.6,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -15879,7 +15894,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-15T20:06:29.056Z",
+  "updated": "2026-07-16T01:47:59.927Z",
   "source": "intervals.icu",
   "count": 127
 }
