@@ -35,6 +35,7 @@ import { Charts } from "./ui/charts/index.js";
 import { Overview } from "./ui/overview.js";
 import { Table } from "./ui/table.js";
 import { Planned } from "./ui/planned.js";
+import { PlanCardDialog } from "./ui/plan-card-dialog.js";
 import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
@@ -304,6 +305,13 @@ function refreshAfterAdjustment() {
   Analysis.render(rides, true);
 }
 Planned.onAdjustmentChange = refreshAfterAdjustment;
+// Karten-Dialog (Anlegen/Bearbeiten/Löschen) kennt planned.js nicht direkt
+// (kein Zirkelimport dort) — meldet Erfolg über diesen Callback zurück,
+// analog zu Planned.onAdjustmentChange oben.
+PlanCardDialog.onSaved = () => {
+  Planned.render(Data.byDate());
+  refreshAfterAdjustment();
+};
 
 /* ── Gesamtes Dashboard rendern (initial + bei Athletenwechsel) ─ */
 async function renderAll(athleteId) {

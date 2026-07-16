@@ -49,8 +49,9 @@ export async function listPlanCards(athleteId) {
   return { ok: true, cards: data.map(toSession) };
 }
 
-/** Patch-Update für Move/Cancel/Undo (Karten-CRUD in Schritt 2 braucht
- *  ggf. weitere Felder — hier nur, was ui/planned.js aktuell schreibt). */
+/** Patch-Update für Move/Cancel/Undo/Karten-Bearbeitung/Push — alle Aufrufer
+ *  schicken nur die Felder, die sie tatsächlich ändern (movePlanCard z.B.
+ *  nie title/workout), das `!== undefined`-Muster hält das entkoppelt. */
 export async function updatePlanCard(id, patch) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
@@ -60,6 +61,13 @@ export async function updatePlanCard(id, patch) {
   if (patch.moveReason !== undefined) updates.move_reason = patch.moveReason;
   if (patch.status !== undefined) updates.status = patch.status;
   if (patch.cancelReason !== undefined) updates.cancel_reason = patch.cancelReason;
+  if (patch.title !== undefined) updates.title = patch.title;
+  if (patch.typ !== undefined) updates.workout_type = patch.typ;
+  if (patch.tssPlanned !== undefined) updates.tss_planned = patch.tssPlanned;
+  if (patch.km !== undefined) updates.km = patch.km;
+  if (patch.details !== undefined) updates.note = patch.details;
+  if (patch.workout !== undefined) updates.workout = patch.workout;
+  if (patch.pushedExternalId !== undefined) updates.pushed_external_id = patch.pushedExternalId;
 
   const { data, error } = await client
     .from("plan_cards")
@@ -69,4 +77,37 @@ export async function updatePlanCard(id, patch) {
     .single();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true, card: toSession(data) };
+}
+
+/** Legt eine neue Karte an — `card` in der Session-Shape (s. toSession()),
+ *  `sortOrder` wird vom Aufrufer (state/plan-cards.js) berechnet, damit die
+ *  data-access-Schicht keine Kenntnis vom übrigen geladenen State braucht. */
+export async function createPlanCard(athleteId, card) {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("plan_cards")
+    .insert({
+      athlete_id: athleteId,
+      planned_date: card.date,
+      sort_order: card.sortOrder ?? 0,
+      title: card.name,
+      workout_type: card.typ,
+      tss_planned: card.tssPlanned ?? null,
+      km: card.km ?? null,
+      note: card.details ?? null,
+      workout: card.workout ?? null,
+    })
+    .select(SELECT_COLS)
+    .single();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, card: toSession(data) };
+}
+
+export async function removePlanCard(id) {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("plan_cards").delete().eq("id", id);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
 }

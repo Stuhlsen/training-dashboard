@@ -502,6 +502,254 @@
 
 .planned-cancelled-title { margin-top: 32px; }
 
+.planned-edit-btn {
+  font-size: 0.72rem;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.planned-edit-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* ── "+ Karte"-Button im Hero ───────────────────────────────── */
+.planned-add-card-btn {
+  margin-top: 12px;
+  padding: 5px 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.planned-add-card-btn:hover { opacity: 0.85; }
+
+/* ── Karten-Dialog (Anlegen/Bearbeiten) ─────────────────────────
+   Overlay/Modal-Aufbau analog ui/event-form.js/checkin-dialog.js,
+   aber mit dedizierten CSS-Klassen statt Inline-Styles (Karten-CRUD,
+   Schritt 2) — Footer-Buttons im .planned-move-confirm/-cancel-Stil. */
+.planned-card-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 14, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.planned-card-dialog {
+  background: var(--card-solid, #141924);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  padding: 26px 24px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.planned-card-dialog-title {
+  font-family: var(--font-disp);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.planned-card-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.planned-card-dialog-row {
+  display: flex;
+  gap: 10px;
+}
+.planned-card-dialog-row > label { flex: 1; min-width: 0; }
+
+.planned-card-dialog-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.planned-card-dialog-input,
+.planned-card-dialog-select,
+.planned-card-dialog-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  padding: 8px 10px;
+}
+.planned-card-dialog-textarea { resize: vertical; }
+.planned-card-dialog-input:focus,
+.planned-card-dialog-select:focus,
+.planned-card-dialog-textarea:focus { outline: none; border-color: var(--accent); }
+
+.planned-card-dialog-blocks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.planned-card-dialog-blocks-title {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+.planned-card-dialog-add-block {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.planned-card-dialog-add-block:hover { border-color: var(--accent); color: var(--accent); }
+
+.planned-card-dialog-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.planned-card-dialog-block-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.planned-card-dialog-block-row--new {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.planned-card-dialog-block-text {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text);
+}
+.planned-card-dialog-block-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  padding: 5px 8px;
+}
+.planned-card-dialog-block-type {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  padding: 5px 6px;
+}
+.planned-card-dialog-block-remove {
+  background: transparent;
+  border: none;
+  color: var(--dim2);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.planned-card-dialog-block-remove:hover { color: var(--red); }
+
+.planned-card-dialog-error {
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  min-height: 1em;
+}
+
+.planned-card-dialog-pushed-note {
+  font-size: 0.72rem;
+  color: var(--gold);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.planned-card-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.planned-card-dialog-footer-left {
+  margin-right: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.card-dialog-save {
+  padding: 5px 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.card-dialog-save:hover { opacity: 0.85; }
+.card-dialog-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.card-dialog-cancel {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.card-dialog-cancel:hover { border-color: var(--red); color: var(--red); }
+
+.card-dialog-delete {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.card-dialog-delete:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+
 .planned-cancelled-item {
   opacity: 0.7;
   border-left: 2px solid var(--red);

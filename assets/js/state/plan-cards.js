@@ -1,6 +1,8 @@
 import {
   listPlanCards as listPlanCardsAdapter,
   updatePlanCard as updatePlanCardAdapter,
+  createPlanCard as createPlanCardAdapter,
+  removePlanCard as removePlanCardAdapter,
 } from "../data-access/supabase/plan-cards.js";
 import { findProfileIdByDisplayName } from "../data-access/supabase/profiles.js";
 import { CONFIG } from "./config.js";
@@ -159,6 +161,69 @@ export async function undoAdjustment(id) {
     moveReason: null,
   });
   return applyCardUpdate(result);
+}
+
+/** Legt eine neue Karte für `athleteId` an (Karten-Dialog, Teil B). Löst die
+ *  Profil-UUID wie loadPlanCards() auf; sort_order wird als max()+1 unter
+ *  den bereits geladenen Karten desselben Datums berechnet (0 wenn keine),
+ *  damit zwei Karten am selben Tag stabil sortiert bleiben (s. Konzept §7). */
+export async function createPlanCard(athleteId, cardData) {
+  const gate = requireUser();
+  if (!gate.ok) return gate;
+  const profileId = await resolveAthleteProfileId(athleteId);
+  if (!profileId)
+    return { ok: false, error: { code: "NO_DATA", message: "Athlet hat (noch) keinen Supabase-Account" } };
+
+  const sameDateOrders = cards.filter((c) => c.date === cardData.date).map((c) => c.sortOrder ?? 0);
+  const sortOrder = sameDateOrders.length ? Math.max(...sameDateOrders) + 1 : 0;
+
+  const result = await createPlanCardAdapter(profileId, { ...cardData, sortOrder });
+  // Analog zu state/events.js::createEvent: ohne diesen Guard könnte ein
+  // Athletenwechsel während des laufenden Inserts die neue Karte in die
+  // inzwischen für einen ANDEREN Athleten geladene `cards`-Liste hängen.
+  if (result.ok && (loadedForAthleteId === null || athleteId === loadedForAthleteId)) {
+    cards = [...cards, result.card].sort(
+      (a, b) => a.date.localeCompare(b.date) || a.sortOrder - b.sortOrder
+    );
+    loadedForAthleteId = athleteId;
+    notify();
+  }
+  return result;
+}
+
+/** Vollbearbeitung einer bestehenden Karte (Karten-Dialog, Teil B) — anders
+ *  als movePlanCard/cancelPlanCard, die nur einzelne Adjustment-Felder
+ *  patchen, schreibt das hier Titel/Datum/Typ/TSS/km/Notiz/Workout in einem
+ *  Zug. */
+export async function updatePlanCard(id, cardData) {
+  const gate = requireUser();
+  if (!gate.ok) return gate;
+  const result = await updatePlanCardAdapter(id, {
+    plannedDate: cardData.date,
+    title: cardData.name,
+    typ: cardData.typ,
+    tssPlanned: cardData.tssPlanned ?? null,
+    km: cardData.km ?? null,
+    details: cardData.details ?? null,
+    workout: cardData.workout ?? null,
+  });
+  return applyCardUpdate(result);
+}
+
+/** Löscht eine Karte unwiderruflich (Konzept §3 — eigener Fall neben
+ *  "Ausgefallen"). Entfernt sie erst aus dem lokalen State, nachdem der
+ *  Server die Löschung bestätigt hat (kein optimistisches Rollback nötig,
+ *  analog zu den übrigen Aktionen in diesem Modul). */
+export async function deletePlanCard(id) {
+  const gate = requireUser();
+  if (!gate.ok) return gate;
+  const result = await removePlanCardAdapter(id);
+  if (result.ok) {
+    const before = cards.length;
+    cards = cards.filter((c) => c.id !== id);
+    if (cards.length !== before) notify();
+  }
+  return result;
 }
 
 export function onPlanCardsChange(fn) {

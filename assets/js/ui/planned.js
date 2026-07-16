@@ -28,10 +28,26 @@ import {
   cancelPlanCard,
   undoAdjustment,
 } from "../state/plan-cards.js";
-import { el } from "./dom.js";
+import { el, escapeHtml } from "./dom.js";
 import { log } from "./log.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
+import { openPlanCardDialog } from "./plan-card-dialog.js";
+
+/** Athlet-1-Zonen-Vokabular für den Karten-Dialog (Typ-Select) — dieselben
+ *  Keys wie Planned._typColor/_typIcon, hier zentral exportiert statt in
+ *  plan-card-dialog.js dupliziert. Athlet 2 hat keinen Dialog-Zugriff
+ *  (_canEdit()-Gate), sein schmaleres Vokabular ist hier bewusst außen vor. */
+export const TYP_OPTIONS = [
+  "Sweet Spot",
+  "Schwelle",
+  "VO2max",
+  "Z2 Lang",
+  "Z2 Dauer",
+  "Z1 Recovery",
+  "Gruppenfahrt",
+  "FTP-Test",
+];
 
 /** Nur der primäre Athlet (Athlet 1) darf Verschieben/Ausfallen/Wahoo-Push
  *  auslösen — Athlet 2 hat seit GFNY Bremen 2026 zwar einen eigenen Plan,
@@ -329,6 +345,7 @@ export const Planned = {
         <div class="planned-hero-text">
           <h2 class="planned-hero-title">${heroTitle}</h2>
           <p class="planned-hero-desc">${heroDesc}</p>
+          ${editable ? `<button class="planned-add-card-btn">➕ Karte</button>` : ""}
         </div>
         <div class="planned-progress">
           <div class="planned-progress-stats">
@@ -506,12 +523,16 @@ export const Planned = {
         const cancelBtn = e.target.closest(".planned-cancel-btn");
         const pushBtn = e.target.closest(".planned-push-btn");
         const undoBtn = e.target.closest(".planned-undo-btn");
+        const editBtn = e.target.closest(".planned-edit-btn");
+        const addBtn = e.target.closest(".planned-add-card-btn");
         const doneItem = e.target.closest(".planned-done-item--link");
 
         if (moveBtn) Planned._handleMove(moveBtn);
         if (cancelBtn) Planned._handleCancel(cancelBtn);
         if (pushBtn) Planned._handlePush(pushBtn);
         if (undoBtn) Planned._handleUndo(undoBtn);
+        if (editBtn) Planned._handleEdit(editBtn);
+        if (addBtn) openPlanCardDialog(Data.activeAthleteId);
         if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
           const date = doneItem.dataset.rideDate;
           if (date) Planned._openInTable(date);
@@ -581,7 +602,25 @@ export const Planned = {
 
     // Workout-Details
     let workoutHtml = "";
-    if (s.workout) {
+    if (s.workout?.blocks) {
+      // Neue, dialog-erzeugte Workout-Form (Karten-CRUD, Schritt 2): frei
+      // getippte Blöcke statt numerischer Struktur — keine Timeline
+      // möglich (kein duration/pct pro Block), stattdessen eine Pill-Reihe
+      // über das bisher ungenutzte .pwb-Pill-Set (planned.css, "Stufe 5").
+      // WU/CD bekommen ein Kurz-Präfix, Intervall-Pills zeigen den Freitext
+      // direkt (z.B. "4x8' SS 84–97%") ohne Präfix.
+      const PREFIX = { warmup: "WU · ", cooldown: "CD · ", interval: "" };
+      workoutHtml = `<div class="planned-workout-detail">
+        <div class="planned-workout-blocks">
+          ${s.workout.blocks
+            .map(
+              (b) =>
+                `<span class="pwb pwb-${b.type === "interval" ? "interval" : b.type}">${PREFIX[b.type] || ""}${escapeHtml(b.text)}</span>`
+            )
+            .join("")}
+        </div>
+      </div>`;
+    } else if (s.workout) {
       const w = s.workout;
       workoutHtml = `<div class="planned-workout-detail">
           <span class="planned-workout-label">🏋 ${w.label}</span>`;
@@ -731,6 +770,7 @@ export const Planned = {
           _canEdit()
             ? `
         <div class="planned-card-actions">
+          <button class="planned-edit-btn" data-id="${s.id}">✏️ Bearbeiten</button>
           ${hasWorkout ? `<button class="planned-push-btn" data-id="${s.id}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
           <button class="planned-move-btn" data-id="${s.id}" data-current="${s.date}">📅 Verschieben</button>
           <button class="planned-cancel-btn" data-id="${s.id}" data-name="${s.name}">❌ Ausgefallen</button>
@@ -854,7 +894,10 @@ export const Planned = {
       // Dauer — Schätzung aus km/Tempo für Z2
       if (ride.min) {
         let durPlan = "–";
-        if (isInterval && s.workout) {
+        // Nur die alte, numerische Workout-Form (warmup/intervals/duration/
+        // rest/cooldown) trägt genug Angaben für eine Summen-Dauer — die neue
+        // Blockform (Karten-Dialog) hat nur Freitext, keine Minutenwerte.
+        if (isInterval && s.workout && !Array.isArray(s.workout.blocks)) {
           const w = s.workout;
           const total =
             w.warmup + w.duration * w.intervals + w.rest * (w.intervals - 1) + w.cooldown;
@@ -1039,6 +1082,13 @@ export const Planned = {
         statusEl.textContent = `❌ ${result.error?.message || "Fehler beim Speichern"}`;
       }
     });
+  },
+
+  /* ── Bearbeiten-Handler ────────────────────────────────────── */
+  _handleEdit(btn) {
+    const id = btn.dataset.id;
+    const card = getPlanCardsState().cards.find((c) => c.id === id);
+    if (card) openPlanCardDialog(Data.activeAthleteId, card);
   },
 
   /* ── Rückgängig-Handler ────────────────────────────────────── */
