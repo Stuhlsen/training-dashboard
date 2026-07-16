@@ -1,11 +1,15 @@
 /* ============================================================
    UI/PLANNED.JS — Geplante Fahrten Tab
-   - Zeigt alle geplanten Sessions aus plannedSessions
+   - Zeigt alle Trainingskarten aus state/plan-cards.js (Supabase
+     plan_cards, migriert per scripts/migrate-plan-to-supabase.js —
+     s. docs/phase-3-konzept-planungstab.md §8.4)
    - Abgleich mit tatsächlichen Fahrten (erledigt/ausstehend)
    - Wetter-Forecast serverseitig berechnet (Data.forecast)
-   - Push strukturierter Workouts zu intervals.icu
-   - Session-Verschiebung via adjustments.json
-   GitHub-Zugriff läuft über ui/github-client.js (Result-Typ).
+   - Push strukturierter Workouts zu intervals.icu (Result-Typ)
+   - Verschieben/Ausfallen/Rückgängig schreiben direkt gegen plan_cards
+     (state/plan-cards.js) — verlangt einen eingeloggten Supabase-User
+     (Athlet oder Trainer, RLS), anders als der frühere GitHub-Commit-
+     Schreibpfad über adjustments.json (archiviert, s. docs/offene-punkte.md)
 
    Athlet 2 (eigener Plan seit GFNY Bremen 2026) nutzt denselben Tab
    read-only: _canEdit() gated Verschieben/Ausfallen/Wahoo-Push auf
@@ -15,11 +19,16 @@
 
 import { fmt, weatherIcon, windDir } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
-import { applyAdjustment } from "../core/planning.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
+import {
+  loadPlanCards,
+  getState as getPlanCardsState,
+  movePlanCard,
+  cancelPlanCard,
+  undoAdjustment,
+} from "../state/plan-cards.js";
 import { el } from "./dom.js";
-import { fetchRawJson, writeRepoFile } from "./github-client.js";
 import { log } from "./log.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
@@ -30,67 +39,6 @@ import { Table, Subjective } from "./table.js";
 function _canEdit() {
   return Data.activeAthleteId === CONFIG.primaryAthleteId;
 }
-
-/** adjustments.json-Pfad je aktivem Athleten — sonst würde der Cache-
- *  Bypass-Fetch in Adjustments.load() immer Athlet 1s Datei laden, auch
- *  wenn Athlet 2 aktiv ist. */
-function _adjustmentsPath() {
-  return _canEdit() ? "data/adjustments.json" : "data/adjustments-2.json";
-}
-
-// === Adjustments GitHub-Sync ===
-export const Adjustments = {
-  _data: null,
-  // Athlet, für den _data zuletzt geladen wurde — ohne diesen Tracker
-  // bliebe nach einem Athletenwechsel die alte Datei im Speicher (siehe
-  // render(): _data === null entscheidet sonst allein über einen Reload).
-  _loadedFor: null,
-
-  async load() {
-    // raw.githubusercontent.com umgeht den GitHub Pages CDN-Cache
-    const remote = await fetchRawJson(_adjustmentsPath());
-    this._data = { ...(Data.adjustments || {}), ...remote };
-    this._loadedFor = Data.activeAthleteId;
-    return this._data;
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async cancel(origDate, reason) {
-    if (!this._data) this._data = {};
-    this._data[origDate] = {
-      cancelled: true,
-      reason: reason || "",
-      savedAt: new Date().toISOString(),
-    };
-    Data.adjustments = this._data;
-    return await this._write(`plan: ${origDate} ausgefallen${reason ? " (" + reason + ")" : ""}`);
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async save(origDate, movedTo, reason) {
-    if (!this._data) this._data = {};
-    this._data[origDate] = { movedTo, reason: reason || "", savedAt: new Date().toISOString() };
-    Data.adjustments = this._data;
-    return await this._write(`plan: ${origDate} → ${movedTo}${reason ? " (" + reason + ")" : ""}`);
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async remove(origDate) {
-    if (!this._data?.[origDate]) return { ok: true };
-    delete this._data[origDate];
-    Data.adjustments = this._data;
-    return await this._write(`plan: Verschiebung ${origDate} rückgängig`);
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async _write(message) {
-    // Athletenabhängig wie load() (_adjustmentsPath()) — auch wenn die
-    // Schreibaktionen aktuell nur über per _canEdit() ausgeblendete Buttons
-    // erreichbar sind: kein hartcodierter Pfad, der Athlet 2s Daten in
-    // Athlet 1s adjustments.json schreiben könnte.
-    return await writeRepoFile(_adjustmentsPath(), message, this._data);
-  },
-};
 
 export const Planned = {
   /* Wird von app.js gesetzt: refresht Hero/Wochenrückblick/Analyse
@@ -302,27 +250,28 @@ export const Planned = {
 
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
 
-    // Adjustments + Forecast parallel laden (Adjustments nur beim ersten Render
-    // bzw. erneut nach einem Athletenwechsel — s. Adjustments._loadedFor)
+    // Karten + Forecast parallel laden (Karten nur beim ersten Render bzw.
+    // erneut nach einem Athletenwechsel — s. loadedForAthleteId; nach einem
+    // Move/Cancel/Undo ist der lokale State schon aktuell, kein Reload nötig).
+    const cardsBefore = getPlanCardsState();
     const [forecast] = await Promise.all([
       this._loadForecast(),
-      Adjustments._data === null || Adjustments._loadedFor !== Data.activeAthleteId
-        ? Adjustments.load()
-        : Promise.resolve(Adjustments._data),
+      cardsBefore.loadedForAthleteId === Data.activeAthleteId && !cardsBefore.loading
+        ? Promise.resolve(cardsBefore)
+        : loadPlanCards(Data.activeAthleteId),
     ]);
 
     // Bereits absolvierte Daten
     const doneDates = new Set(rides.map((r) => r.date));
     const today = new Date().toISOString().split("T")[0];
 
-    // Sessions mit Adjustments anwenden — Ruhetage (Athlet 2) werden im
-    // Planungstab nicht angezeigt, weder als anstehend noch als "verpasst"
-    // (kein Ride zu erwarten) — reine Anzeigefilterung, Data.plannedSessions
-    // bleibt vollständig für andere Konsumenten (z.B. Gesamtzahl-Sessions
-    // an anderer Stelle, "nächste Belastungseinheit" in der Recovery-Karte).
-    const allSessions = Data.plannedSessions
-      .filter((s) => s.typ !== "Ruhetag")
-      .map((s) => applyAdjustment(s, Adjustments._data));
+    // plan_cards sind bereits im "aufgelösten" Zustand (Verschiebung/Ausfall
+    // schon eingerechnet, s. state/plan-cards.js). Ruhetage (Athlet 2) werden
+    // im Planungstab nicht angezeigt, weder als anstehend noch als "verpasst"
+    // (kein Ride zu erwarten) — reine Anzeigefilterung, getPlanCardsState()
+    // bleibt vollständig für andere Konsumenten (z.B. "nächste Belastungs-
+    // einheit" in der Recovery-Karte).
+    const allSessions = getPlanCardsState().cards.filter((s) => s.typ !== "Ruhetag");
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
@@ -343,6 +292,15 @@ export const Planned = {
     const cancelledSessions = allSessions
       .filter((s) => s.cancelled)
       .sort((a, b) => b.date.localeCompare(a.date));
+
+    // Ladefehler explizit von "alles erledigt" unterscheiden — sonst sieht
+    // ein fehlgeschlagenes Laden (Supabase nicht erreichbar, Athlet ohne
+    // Account) optisch identisch zu einem vollständig abgeschlossenen Plan aus.
+    const cardsError = getPlanCardsState().error;
+    if (cardsError && !allSessions.length) {
+      container.innerHTML = `<p class="planned-empty">⚠️ Trainingsplan konnte nicht geladen werden: ${cardsError.message}</p>`;
+      return;
+    }
 
     if (!sessions.length && !doneSessions.length) {
       container.innerHTML = `<p class="planned-empty">Alle geplanten Sessions sind abgeschlossen 🎉</p>`;
@@ -503,8 +461,8 @@ export const Planned = {
               <span style="font-size:0.7rem;color:var(--gold);margin-left:auto">kein Ride erfasst</span>
               ${
                 editable
-                  ? `<button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
-              <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>`
+                  ? `<button class="planned-cancel-btn" data-id="${s.id}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
+              <button class="planned-move-btn" data-id="${s.id}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>`
                   : ""
               }
             </div>
@@ -525,7 +483,7 @@ export const Planned = {
               <span class="planned-done-date">${this._fmtDate(s.date)}</span>
               <span class="planned-done-name">${s.name}</span>
               ${s.cancelReason ? `<span class="planned-cancelled-reason">${s.cancelReason}</span>` : ""}
-              ${editable ? `<button class="planned-undo-btn planned-undo-cancel-btn" data-orig="${s.date}" style="margin-left:auto">↩ Wiederherstellen</button>` : ""}
+              ${editable ? `<button class="planned-undo-btn planned-undo-cancel-btn" data-id="${s.id}" style="margin-left:auto">↩ Wiederherstellen</button>` : ""}
             </div>
           `
             )
@@ -708,7 +666,10 @@ export const Planned = {
           ? `<div class="planned-rec-row"><span class="planned-rec-label">❤️ Ruhepuls</span><span class="planned-rec-val">${lastW.restingHR} bpm</span><span class="planned-rec-date">(${lastW.dateShort})</span></div>`
           : `<div class="planned-rec-row"><span class="planned-rec-label">❤️ Ruhepuls</span><span class="planned-rec-na">– nicht erfasst</span></div>`;
 
-        // Nächste Belastungseinheit finden
+        // Nächste Belastungseinheit finden — bewusst noch aus dem
+        // unmigrierten Data.plannedSessions (JSON-Pipeline), nicht aus
+        // plan_cards: reiner Hinweistext, kein Schreibpfad, Migration auf
+        // plan_cards ist hier kein separater Schritt wert (s. docs/offene-punkte.md).
         const nextLoad = Data.plannedSessions
           .filter((ps) => ps.date > s.date && ps.workout)
           .sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -760,7 +721,7 @@ export const Planned = {
           <div class="planned-moved-badge">
             📅 Verschoben von ${this._fmtDate(s.originalDate)}
             ${s.movedReason ? `· ${s.movedReason}` : ""}
-            ${_canEdit() ? `<button class="planned-undo-btn" data-orig="${s.originalDate}">↩ Rückgängig</button>` : ""}
+            ${_canEdit() ? `<button class="planned-undo-btn" data-id="${s.id}">↩ Rückgängig</button>` : ""}
           </div>`
             : ""
         }
@@ -770,10 +731,10 @@ export const Planned = {
           _canEdit()
             ? `
         <div class="planned-card-actions">
-          ${hasWorkout ? `<button class="planned-push-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
-          <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}">📅 Verschieben</button>
-          <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">❌ Ausgefallen</button>
-          <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
+          ${hasWorkout ? `<button class="planned-push-btn" data-id="${s.id}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
+          <button class="planned-move-btn" data-id="${s.id}" data-current="${s.date}">📅 Verschieben</button>
+          <button class="planned-cancel-btn" data-id="${s.id}" data-name="${s.name}">❌ Ausgefallen</button>
+          <span class="planned-push-status" id="push-status-${s.id}"></span>
         </div>`
             : ""
         }
@@ -983,7 +944,7 @@ export const Planned = {
 
   /* ── Ausgefallen-Handler ───────────────────────────────────── */
   async _handleCancel(btn) {
-    const origDate = btn.dataset.orig;
+    const id = btn.dataset.id;
 
     const existing = document.querySelector(".planned-cancel-form");
     if (existing) {
@@ -1014,20 +975,20 @@ export const Planned = {
       const statusEl = form.querySelector(".planned-move-status");
 
       statusEl.textContent = "⏳ Speichern…";
-      const result = await Adjustments.cancel(origDate, reason);
+      const result = await cancelPlanCard(id, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
       } else {
-        statusEl.textContent = `❌ ${result.error?.message || "Fehler — Token korrekt?"}`;
+        statusEl.textContent = `❌ ${result.error?.message || "Fehler — eingeloggt?"}`;
       }
     });
   },
 
   /* ── Verschieben-Handler ───────────────────────────────────── */
   async _handleMove(btn) {
-    const origDate = btn.dataset.orig;
+    const id = btn.dataset.id;
     const currentDate = btn.dataset.current;
 
     // Existierendes Formular schließen wenn offen
@@ -1068,10 +1029,10 @@ export const Planned = {
       }
 
       statusEl.textContent = "⏳ Speichern…";
-      const result = await Adjustments.save(origDate, newDate, reason);
+      const result = await movePlanCard(id, newDate, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
-        // Nicht neu laden — _data ist bereits aktuell im Speicher
+        // Nicht neu laden — der State ist bereits aktuell im Speicher
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
       } else {
@@ -1082,10 +1043,10 @@ export const Planned = {
 
   /* ── Rückgängig-Handler ────────────────────────────────────── */
   async _handleUndo(btn) {
-    const origDate = btn.dataset.orig;
+    const id = btn.dataset.id;
     btn.textContent = "⏳…";
     btn.disabled = true;
-    const result = await Adjustments.remove(origDate);
+    const result = await undoAdjustment(id);
     if (result.ok) {
       Planned.render(Data.byDate());
       Planned.onAdjustmentChange?.();
@@ -1097,12 +1058,12 @@ export const Planned = {
 
   /* ── Push-Handler ──────────────────────────────────────────── */
   async _handlePush(btn) {
-    const origDate = btn.dataset.orig;
-    const statusEl = el(`push-status-${origDate}`);
-    // Adjustment erneut auflösen statt der rohen plannedSessions-Liste zu
+    const id = btn.dataset.id;
+    const statusEl = el(`push-status-${id}`);
+    // Karte aus dem bereits geladenen State holen (trägt das aufgelöste
+    // Datum inkl. Verschiebung) statt der rohen Plan-Definition zu
     // vertrauen — sonst pusht ein verschobenes Workout auf das alte Datum.
-    const raw = Data.plannedSessions.find((s) => s.date === origDate);
-    const session = raw ? applyAdjustment(raw, Adjustments._data) : null;
+    const session = getPlanCardsState().cards.find((c) => c.id === id);
     if (!session?.workout) return;
 
     // Token aus localStorage (gleicher Mechanismus wie Befinden)

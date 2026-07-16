@@ -36,6 +36,14 @@ export const ENV = {
   WEATHER_LON: process.env.WEATHER_LON || null,
   WEATHER_LAT_2: process.env.WEATHER_LAT_2 || null,
   WEATHER_LON_2: process.env.WEATHER_LON_2 || null,
+  // Nur für scripts/migrate-plan-to-supabase.js (Einmal-Migration) —
+  // generate-data.js/npm run sync braucht diese nicht.
+  SUPABASE_URL: process.env.SUPABASE_URL || "",
+  SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
+  SUPABASE_ATHLETE1_EMAIL: process.env.SUPABASE_ATHLETE1_EMAIL || "",
+  SUPABASE_ATHLETE1_PASSWORD: process.env.SUPABASE_ATHLETE1_PASSWORD || "",
+  SUPABASE_ATHLETE2_EMAIL: process.env.SUPABASE_ATHLETE2_EMAIL || "",
+  SUPABASE_ATHLETE2_PASSWORD: process.env.SUPABASE_ATHLETE2_PASSWORD || "",
 };
 
 /**

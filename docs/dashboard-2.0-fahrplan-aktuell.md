@@ -89,7 +89,7 @@
 - [x] Konzept: Trainingskarten hinzufügen / bearbeiten / löschen / per Drag & Drop verschieben **[OP]** → `docs/phase-3-konzept-planungstab.md`
 - [x] Konzept: Konfliktlogik — TSS/CTL-Prognose bei Verschiebung **[F5]** → `docs/phase-3-konzept-konfliktlogik-prognose.md`
 - [ ] Mockup erstellen und iterieren **[SO]**
-- [ ] Umsetzung: Migrationsskript `scripts/migrate-plan-to-supabase.js` — Basisplan + adjustments einmalig nach `plan_cards` materialisieren (Konzept §8.4); Nebenprodukt: Median-TSS pro Typ für core/config **[SO]**
+- [x] Umsetzung: Migrationsskript `scripts/migrate-plan-to-supabase.js` — Basisplan + adjustments einmalig nach `plan_cards` materialisiert (Konzept §8.4); `ui/planned.js` liest/schreibt jetzt gegen `state/plan-cards.js`. Nebenprodukt Median-TSS pro Typ nur geloggt (Dry-Run), noch nicht in Konfliktlogik verdrahtet (kommt mit Schritt 4). M3 (Wahoo-Push-Umzug) zurückgestellt → `docs/offene-punkte.md` **[SO]**
 - [ ] Umsetzung: Karten-CRUD gegen `plan_cards` **[SO]**
 - [ ] Umsetzung: Drag & Drop ohne Framework (Vanilla JS, Pointer Events) **[OP]**
 - [ ] Umsetzung: Prognose-Neuberechnung bei Planänderung **[OP]**
@@ -160,4 +160,4 @@
 
 ## Nächster Schritt
 
-➡️ **Phase 3, Umsetzung:** Migrationsskript scripts/migrate-plan-to-supabase.js (Konzept §8.4) **[SO]** — danach Karten-CRUD; parallel Mockup Nach-Drop-Feedback **[SO]**
+➡️ **Phase 3, Umsetzung:** Karten-CRUD gegen `plan_cards` **[SO]** — dabei M3 (Wahoo-Push-Umzug nach `data-access/` + `external_id`) mit erledigen, s. `docs/offene-punkte.md`; parallel Mockup Nach-Drop-Feedback **[SO]**

@@ -123,6 +123,56 @@ Code-Review zum RPE/Feel-Feature (Juli 2026), noch nicht angegangen.
 `logRpeFeelCoverage`) vs. `scripts/lib/wellness.js` (`fieldCoverage`,
 `logWellnessCoverage`).
 
+## Phase 2 — vermuteter Bestandsfehler, bei der plan_cards-Migration entdeckt
+
+**`state/events.js`/`state/goals.js` filtern vermutlich mit der falschen ID gegen eine uuid-Spalte**
+Beim Bau von `state/plan-cards.js` (Phase 3) fiel auf: `ui/event-timeline.js`
+ruft `EventTimeline.render(Data.activeAthleteId)` (app.js) und damit
+`loadEvents("athlete1"|"athlete2")` auf — die interne String-ID, nicht die
+Supabase-Profil-UUID. `data-access/supabase/events.js::listEvents()` filtert
+aber `.eq("athlete_id", athleteId)` direkt gegen `events.athlete_id`, eine
+`uuid`-Spalte (`0001_initial_schema.sql`). Dasselbe Muster vermutlich in
+`state/goals.js`. Für `plan_cards` wurde das mit `findProfileIdByDisplayName()`
+(`data-access/supabase/profiles.js`, Auflösung über den öffentlichen
+`display_name`) gelöst — noch NICHT für events/goals nachgezogen, das war
+außerhalb des beauftragten Migrationsschritts. Live-Verifikation gegen
+`dashboard-dev` steht noch aus (ob das wirklich als Postgres-Fehler statt
+leerer Liste durchschlägt); falls bestätigt, denselben Resolver in
+`state/events.js`/`state/goals.js` nachziehen.
+
+## Phase 3 — Planungstab
+
+**M3 — Wahoo-Push-Umzug nach `data-access/` + `external_id`-Umbau zurückgestellt**
+Die Vollmigration nach `plan_cards` (`scripts/migrate-plan-to-supabase.js`,
+09.2026) legt die Spalte `pushed_external_id` bereits an, lässt den
+Push-Code aber bewusst in `ui/planned.js` (`_pushWorkout`/
+`_findExistingEvent`) unverändert — der Umzug nach `data-access/` und die
+Umstellung des Duplikat-Guards von der Name+Datum-Heuristik auf
+`external_id = plan_cards.id` (bestätigte Wurzel des 4×-Push-Bugs, s.
+`docs/phase-3-konzept-planungstab.md` §5) war zusammen mit Schema+
+Migrationsskript+data-access+state+Handler-Umbau zu groß für einen Schritt.
+Vorgesehen für den Karten-CRUD-Schritt.
+→ Details: `docs/phase-3-konzept-planungstab.md` §5, §8.4 Schritt 4.
+
+**Dualität: `weekreview.js`/`adherence.js`/`ftp-progress.js` + Hero/Analyse-Panels lesen weiter die alte JSON-Pipeline**
+Diese drei `core/`-Module hängen weiterhin an `Data.plannedSessions` +
+`Data.adjustments` (unverändert aus `generate-data.js` bzw.
+`data/adjustments.json`/`-2.json`) statt an `plan_cards` — sie wurden bei
+der `plan_cards`-Migration bewusst nicht mitgezogen (deutlich über den
+beauftragten Umfang hinaus). Seit die Schreibpfade in `ui/planned.js`
+(Verschieben/Ausfallen/Rückgängig) auf `plan_cards` umgestellt sind, werden
+NEUE Anpassungen nicht mehr in `adjustments.json`/`-2.json` gespeichert.
+**Wichtig, über "künftige Läufe sehen es nicht" hinaus:** `app.js`s
+`refreshAfterAdjustment()` (verdrahtet als `Planned.onAdjustmentChange`)
+feuert nach JEDER Verschiebung/Ausfall/Rückgängig weiterhin und rendert
+Hero-Session-Pill, Wochenrückblick und Analyse-Briefing neu — aber aus dem
+weiterhin eingefrorenen `Data.plannedSessions`/`Data.adjustments`. Die
+Anzeige wirkt also, als würde sie live aktualisieren, tut es aber nicht
+mehr — schon in derselben Session, nicht erst nach einem Reload/Re-Sync.
+Migrationskandidat für einen späteren Schritt (auf `plan_cards` als Quelle
+umstellen, analog zu `ui/planned.js`).
+→ Details: `docs/phase-3-konzept-planungstab.md` §8.
+
 ## Erledigt (zur Historie, nicht mehr offen)
 
 **Kartentausch → Wahoo-Push-Duplikate, falsche Fahrtenbuch-Zuordnung, fehlende Ausrollen-Erkennung**

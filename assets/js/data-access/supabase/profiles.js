@@ -13,6 +13,24 @@ function toProfile(row) {
   };
 }
 
+/** Löst den Anzeigenamen eines Athleten (CONFIG.athletes[].name, z.B.
+ *  "Stuhlsen"/"hc_diZee") auf seine Supabase-Profil-UUID auf. Nötig, weil
+ *  `Data.activeAthleteId` intern nur "athlete1"/"athlete2" ist, athleten-
+ *  scoped Tabellen (plan_cards, events, goals, …) aber die echte UUID als
+ *  `athlete_id` erwarten — ein `.eq("athlete_id", "athlete1")` würde am
+ *  uuid-Spaltentyp scheitern. Öffentlicher Read (RLS: "profiles: öffentlich
+ *  lesbar"), kein Login nötig. */
+export async function findProfileIdByDisplayName(displayName) {
+  if (!supabase) return { ok: true, id: null };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id")
+    .eq("display_name", displayName)
+    .maybeSingle();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, id: data?.id ?? null };
+}
+
 export async function getProfile(userId) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
