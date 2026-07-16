@@ -5,6 +5,7 @@ import {
   removePlanCard as removePlanCardAdapter,
 } from "../data-access/supabase/plan-cards.js";
 import { findProfileIdByDisplayName } from "../data-access/supabase/profiles.js";
+import { pushCardWorkout } from "../data-access/intervals/push.js";
 import { CONFIG } from "./config.js";
 import { getSession } from "./session.js";
 
@@ -223,6 +224,26 @@ export async function deletePlanCard(id) {
     cards = cards.filter((c) => c.id !== id);
     if (cards.length !== before) notify();
   }
+  return result;
+}
+
+/** Pusht das Workout einer Karte zu intervals.icu (M3 — Karten-CRUD,
+ *  Schritt 2). Holt die Karte aus dem bereits geladenen State (trägt das
+ *  aufgelöste Datum inkl. Verschiebung), ruft data-access/intervals/push.js
+ *  und persistiert bei Erfolg `pushed_external_id`, damit ein erneuter Push
+ *  (nach einem Verschieben) über external_id aktualisiert statt dupliziert.
+ *  Kein requireUser()-Gate — der Push braucht den intervals.icu-API-Key aus
+ *  localStorage, keine Supabase-Session (ui/planned.js::_canEdit() blendet
+ *  den Button ohnehin athletenscharf aus). */
+export async function pushPlanCard(id, token, athleteId) {
+  const card = cards.find((c) => c.id === id);
+  if (!card) return { ok: false, error: { code: "NO_DATA", message: "Karte nicht gefunden" } };
+
+  const result = await pushCardWorkout(card, token, athleteId);
+  if (!result.ok) return result;
+
+  const patchResult = await updatePlanCardAdapter(id, { pushedExternalId: card.id });
+  applyCardUpdate(patchResult);
   return result;
 }
 

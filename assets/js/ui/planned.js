@@ -27,9 +27,9 @@ import {
   movePlanCard,
   cancelPlanCard,
   undoAdjustment,
+  pushPlanCard,
 } from "../state/plan-cards.js";
 import { el, escapeHtml } from "./dom.js";
-import { log } from "./log.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
 import { openPlanCardDialog } from "./plan-card-dialog.js";
@@ -141,122 +141,6 @@ export const Planned = {
        bleibt in GitHub Secrets, nie im Frontend-Code sichtbar) ── */
   async _loadForecast() {
     return Data.forecast || {};
-  },
-
-  /* ── Basic-Auth-Header fürs intervals.icu-API (Events GET + POST) ──── */
-  _intervalsAuthHeader(token) {
-    return { Authorization: "Basic " + btoa("API_KEY:" + token) };
-  },
-
-  /* ── Prüfen, ob für dieses Datum bereits ein Workout-Event existiert ──
-     Idempotenz-Guard vor dem POST: verhindert Duplikate bei erneutem Push
-     (Retry nach Timeout, mehrfacher Klick). intervals.icu kennt keine
-     externe Referenz-ID im Event-Payload — daher Name+Datum+Beschreibung
-     als Match (nicht nur Name: sonst würde ein Push mit geändertem
-     Workout-Inhalt am selben Datum fälschlich als "bereits vorhanden"
-     übersprungen, statt den aktualisierten Inhalt zu pushen). */
-  async _findExistingEvent(date, name, description, token, athleteId) {
-    const res = await fetch(
-      `https://intervals.icu/api/v1/athlete/${athleteId}/events?oldest=${date}&newest=${date}&category=WORKOUT`,
-      { headers: this._intervalsAuthHeader(token) }
-    );
-    if (!res.ok) {
-      const err = new Error(`intervals.icu Fehler ${res.status} beim Duplikat-Check`);
-      err.code = "HTTP";
-      throw err;
-    }
-    const events = await res.json();
-    return Array.isArray(events)
-      ? events.some((e) => e.name === name && e.description === description)
-      : false;
-  },
-
-  /* ── Workout zu intervals.icu pushen ───────────────────────── */
-  /** @returns {Promise<import("../types.js").Result>} */
-  async _pushWorkout(session, token, athleteId) {
-    const w = session.workout;
-    if (!w)
-      return {
-        ok: false,
-        error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" },
-      };
-    // intervals.icu-Workout-Text braucht %FTP (w.pct) — nicht alle Workout-
-    // Objekte tragen das (z.B. Athlet 2s watts-only Sessions in
-    // plan-athlete2.js; Push ist dort aber ohnehin über _canEdit() versteckt).
-    if (w.intervals && w.duration && !w.pct)
-      return {
-        ok: false,
-        error: { code: "NO_DATA", message: "Workout ohne %FTP-Angabe (pct) — Push nicht möglich" },
-      };
-
-    // intervals.icu erwartet KEIN steps-JSON im Event-Payload, sondern
-    // parst die Workout-Struktur selbst aus einer Klartext-Syntax im
-    // description-Feld (Format: "Xm Y% Zrpm", Blöcke mit Leerzeile getrennt,
-    // "Main Set Nx" für Wiederholungen). Siehe intervals.icu Workout-Builder-Doku.
-    const lines = [];
-    lines.push("Warmup");
-    lines.push(`- ${w.warmup}m 60% 85rpm`);
-    lines.push("");
-
-    if (w.intervals && w.duration) {
-      lines.push(`Main Set ${w.intervals}x`);
-      lines.push(`- ${w.duration}m ${w.pct[0]}-${w.pct[1]}% 90rpm`);
-      if (w.rest) lines.push(`- ${w.rest}m 50% 80rpm`);
-      lines.push("");
-    }
-
-    lines.push("Cooldown");
-    lines.push(`- ${w.cooldown}m 50%-40% 80rpm`);
-
-    const workoutText = lines.join("\n");
-    const label = w.label + (session.details ? `\n${session.details}` : "");
-
-    // Workout-Objekt für intervals.icu
-    const workout = {
-      category: "WORKOUT",
-      name: session.name,
-      description: `${label}\n\n${workoutText}`,
-      type: "Ride",
-      start_date_local: session.date + "T07:00:00",
-    };
-
-    try {
-      // Idempotenz-Guard: ohne diese Prüfung legt ein Retry (Timeout, Doppel-
-      // klick) ein zusätzliches Duplikat-Event an, weil intervals.icu selbst
-      // keine Dedup-Prüfung übers Event-API macht.
-      const alreadyExists = await this._findExistingEvent(
-        session.date,
-        session.name,
-        workout.description,
-        token,
-        athleteId
-      );
-      if (alreadyExists) {
-        log.warn("Wahoo-Push übersprungen (existiert bereits):", session.date, session.name);
-        return { ok: true, skipped: true };
-      }
-
-      const res = await fetch(`https://intervals.icu/api/v1/athlete/${athleteId}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...this._intervalsAuthHeader(token),
-        },
-        body: JSON.stringify(workout),
-      });
-      if (!res.ok) {
-        const txt = await res.text();
-        log.error("Wahoo-Push fehlgeschlagen:", session.date, session.name, res.status, txt);
-        return {
-          ok: false,
-          error: { code: "HTTP", message: `intervals.icu Fehler ${res.status}: ${txt}` },
-        };
-      }
-      return { ok: true };
-    } catch (e) {
-      log.error("Wahoo-Push fehlgeschlagen:", session.date, session.name, e.message);
-      return { ok: false, error: { code: e.code || "NETWORK", message: e.message, cause: e } };
-    }
   },
 
   /* ── Render ────────────────────────────────────────────────── */
@@ -1135,17 +1019,12 @@ export const Planned = {
     btn.textContent = "⏳ Wird gepusht…";
     if (statusEl) statusEl.textContent = "";
 
-    const result = await this._pushWorkout(session, token, athleteId);
+    const result = await pushPlanCard(id, token, athleteId);
 
     btn.disabled = false;
     btn.textContent = "📤 Auf Wahoo pushen";
 
-    if (result.ok && result.skipped) {
-      if (statusEl) {
-        statusEl.textContent = "ℹ️ Bereits vorhanden — kein Duplikat angelegt";
-        statusEl.style.color = "var(--gold)";
-      }
-    } else if (result.ok) {
+    if (result.ok) {
       if (statusEl) {
         statusEl.textContent = "✅ Gepusht!";
         statusEl.style.color = "var(--green)";
