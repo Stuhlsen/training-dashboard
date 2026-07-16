@@ -13125,7 +13125,7 @@
       "hrv": 45,
       "weight": 92.6,
       "bodyFat": null,
-      "activeEnergy": 928,
+      "activeEnergy": 945,
       "restingEnergy": null,
       "kcalConsumed": 3154,
       "hydration": null,
@@ -13134,8 +13134,8 @@
     },
     {
       "date": "2026-07-16",
-      "sleepHours": null,
-      "avgSleepingHR": null,
+      "sleepHours": 8,
+      "avgSleepingHR": 51,
       "restingHR": null,
       "hrv": null,
       "weight": null,
@@ -13152,7 +13152,7 @@
     "lastUpdated": {
       "hrv": "2026-07-15",
       "restingHR": "2026-07-15",
-      "sleepHours": "2026-07-15"
+      "sleepHours": "2026-07-16"
     }
   },
   "powerCurves": {
@@ -15894,7 +15894,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-16T07:26:32.806Z",
+  "updated": "2026-07-16T07:57:08.960Z",
   "source": "intervals.icu",
   "count": 127
 }
