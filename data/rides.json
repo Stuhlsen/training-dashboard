@@ -4771,11 +4771,11 @@
       "sleepHours": 6.4,
       "avgSleepingHR": 51,
       "restingHR": null,
-      "hrv": null,
-      "weight": null,
-      "bodyFat": null,
-      "activeEnergy": null,
-      "restingEnergy": null,
+      "hrv": 85,
+      "weight": 79.4,
+      "bodyFat": 23.1,
+      "activeEnergy": 30,
+      "restingEnergy": 677,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -4784,7 +4784,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-15",
+      "hrv": "2026-07-16",
       "restingHR": "2026-07-15",
       "sleepHours": "2026-07-16"
     }
@@ -9047,7 +9047,7 @@
       }
     }
   ],
-  "athleteWeight": 79.1,
+  "athleteWeight": 79.4,
   "plannedSessions": [
     {
       "date": "2026-06-23",
@@ -10106,7 +10106,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-16T07:19:47.379Z",
+  "updated": "2026-07-16T07:26:30.590Z",
   "source": "notion+intervals",
   "count": 70
 }
