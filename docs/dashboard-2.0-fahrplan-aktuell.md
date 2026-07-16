@@ -86,13 +86,22 @@
 
 *Mockup: Wochenplaner mit Karten-Interaktionen. Technisch anspruchsvollste UI-Phase.*
 
-- [ ] Konzept: Trainingskarten hinzufügen / bearbeiten / löschen / per Drag & Drop verschieben **[OP]**
-- [ ] Konzept: Konfliktlogik — TSS/CTL-Prognose bei Verschiebung **[F5]**
+- [x] Konzept: Trainingskarten hinzufügen / bearbeiten / löschen / per Drag & Drop verschieben **[OP]** → `docs/phase-3-konzept-planungstab.md`
+- [x] Konzept: Konfliktlogik — TSS/CTL-Prognose bei Verschiebung **[F5]** → `docs/phase-3-konzept-konfliktlogik-prognose.md`
 - [ ] Mockup erstellen und iterieren **[SO]**
+- [ ] Umsetzung: Migrationsskript `scripts/migrate-plan-to-supabase.js` — Basisplan + adjustments einmalig nach `plan_cards` materialisieren (Konzept §8.4); Nebenprodukt: Median-TSS pro Typ für core/config **[SO]**
 - [ ] Umsetzung: Karten-CRUD gegen `plan_cards` **[SO]**
 - [ ] Umsetzung: Drag & Drop ohne Framework (Vanilla JS, Pointer Events) **[OP]**
 - [ ] Umsetzung: Prognose-Neuberechnung bei Planänderung **[OP]**
 - [ ] Tests inkl. Edge Cases (überlappende Einheiten, Verschieben in die Vergangenheit) **[SO]**
+
+**Entscheidungen Phase 3:**
+- M1: Alle Sessions migrieren, auch erledigte/vergangene ✅
+- M2: adjustments.json archivieren (read-only), Schreibpfad stillgelegt ✅
+- M3: Wahoo-Push-Umzug nach data-access/ + external_id-Umbau im Zuge der Migration ✅
+- K1: Konflikt-Schwellen = Coggan-Defaults, Review gegen Ist-Daten nach Plan 2 ✅
+- K2: v1 nur Nach-Drop-Feedback; Drag-Live-Färbung als Polish-Schritt danach ✅
+- K3: Typ-Default-TSS als Median pro Typ aus Ist-Fahrten kalibriert ✅
 
 ---
 
@@ -100,14 +109,21 @@
 
 *Mockup: Trainer-Dashboard + Vorschlags-Review-Flow.*
 
-- [ ] Konzept: Trainer-Sicht — sieht "seinen" Athleten komplett, kann direkt ändern oder als Vorschlag markieren **[F5]**
-- [ ] Konzept: Vorschlags-Schema (JSON) — einheitlich für Mensch und Claude **[F5]**
+- [x] Konzept: Trainer-Sicht — sieht "seinen" Athleten komplett, kann direkt ändern oder als Vorschlag markieren **[F5]** → `docs/phase-4-konzept-trainer-sicht.md`
+- [x] Konzept: Vorschlags-Schema (JSON) — einheitlich für Mensch und Claude **[F5]** → `docs/phase-4-konzept-vorschlags-schema.md`
 - [ ] Konzept: Export/Import-Workflow (Briefing raus → Claude Pro → Vorschlags-JSON rein) **[OP]**
-- [ ] Prompt-Vorlage für Claude-Trainer schreiben **[F5]**
+- [x] Prompt-Vorlage für Claude-Trainer schreiben **[F5]** → `docs/phase-4-prompt-vorlage-claude-trainer.md`
 - [ ] Mockups erstellen und iterieren **[SO]**
 - [ ] Umsetzung: Trainer-Dashboard + `proposals`-Tabelle mit Annehmen/Ablehnen-Flow **[SO]**
 - [ ] Umsetzung: Export-Generator + Import-Parser mit Validierung **[SO]**
 - [ ] Tests **[SO]**
+
+**Entscheidungen Phase 4:**
+- T1: Check-in-Notiz für Trainer nur per Athleten-Toggle (Default aus); Slider immer ✅
+- T2: Trainer-Direktrechte nur ändern/verschieben; Anlegen/Löschen stets als Vorschlag ✅
+- V1: Claude-Importe landen immer als offene Vorschläge im Review ("Alle übernehmen" als Abkürzung) ✅
+- V2: Entschiedene Vorschläge werden unbegrenzt aufbewahrt ✅
+- Review-Kern: Vergleichsansicht alte/neue Karte nebeneinander, Direkt-Übernahme ohne Vergleich möglich ✅
 
 ---
 
@@ -127,15 +143,21 @@
 
 *Mockup: Feedback-Widget + Sichtbarkeitskonzept.*
 
-- [ ] Konzept: Besucher-Feedback (anonym oder mit Name, Moderation, Spam-Schutz) **[F5]**
-- [ ] Konzept: Öffentlich vs. hinter Login — finale Sichtbarkeits-Entscheidung pro Datentyp **[F5]**
+- [x] Konzept: Besucher-Feedback (anonym oder mit Name, Moderation, Spam-Schutz) **[F5]** → `docs/phase-6-konzept-besucher-feedback.md`
+- [x] Konzept: Öffentlich vs. hinter Login — finale Sichtbarkeits-Entscheidung pro Datentyp **[F5]** → `docs/phase-6-konzept-sichtbarkeit.md`
 - [ ] Mockup erstellen und iterieren **[SO]**
 - [ ] Umsetzung: `feedback`-Tabelle + Widget **[SO]**
-- [ ] Finaler Privacy-/Security-Review Gesamtsystem **[F5]**
+- [ ] Finaler Privacy-/Security-Review Gesamtsystem **[F5]** (Prüfliste = Sichtbarkeits-Matrix)
 - [ ] README + Portfolio-Doku aktualisieren **[HA]**
+
+**Entscheidungen Phase 6:**
+- F1: Pre-Moderation — nichts erscheint vor Admin-Freigabe ✅
+- F2: Kein Captcha in v1; Turnstile via Edge Function als Nachrüstpfad ✅
+- S1: proposals öffentlich lesbar; reason gilt als öffentlich und wird ausschließlich lastbasiert formuliert ✅
+- S2: wellbeing_public-Toggle Default: aus ✅
 
 ---
 
 ## Nächster Schritt
 
-➡️ **Phase 2, erster Punkt:** Konzept Morgen-Check-in ausarbeiten **[OP]**
+➡️ **Phase 3, Umsetzung:** Migrationsskript scripts/migrate-plan-to-supabase.js (Konzept §8.4) **[SO]** — danach Karten-CRUD; parallel Mockup Nach-Drop-Feedback **[SO]**
