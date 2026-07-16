@@ -90,7 +90,7 @@
 - [x] Konzept: Konfliktlogik — TSS/CTL-Prognose bei Verschiebung **[F5]** → `docs/phase-3-konzept-konfliktlogik-prognose.md`
 - [ ] Mockup erstellen und iterieren **[SO]**
 - [x] Umsetzung: Migrationsskript `scripts/migrate-plan-to-supabase.js` — Basisplan + adjustments einmalig nach `plan_cards` materialisiert (Konzept §8.4); `ui/planned.js` liest/schreibt jetzt gegen `state/plan-cards.js`. Nebenprodukt Median-TSS pro Typ nur geloggt (Dry-Run), noch nicht in Konfliktlogik verdrahtet (kommt mit Schritt 4). M3 (Wahoo-Push-Umzug) zurückgestellt → `docs/offene-punkte.md` **[SO]**
-- [ ] Umsetzung: Karten-CRUD gegen `plan_cards` **[SO]**
+- [x] Umsetzung: Karten-CRUD gegen `plan_cards` **[SO]** → `ui/plan-card-dialog.js` (Anlegen/Bearbeiten/Löschen, wiederholbare Workout-Blöcke), `createPlanCard`/`updatePlanCard`/`deletePlanCard` in `data-access/supabase/plan-cards.js` + `state/plan-cards.js`; M3 (Wahoo-Push-Umzug nach `data-access/intervals/push.js`, `external_id`-Upsert statt Heuristik-Duplikat-Check) im selben Schritt miterledigt. Commits `30b6bbe`/`a4169bd`. Live-Test von M3 gegen echten intervals.icu-Account noch offen (s. `docs/offene-punkte.md`)
 - [ ] Umsetzung: Drag & Drop ohne Framework (Vanilla JS, Pointer Events) **[OP]**
 - [ ] Umsetzung: Prognose-Neuberechnung bei Planänderung **[OP]**
 - [ ] Tests inkl. Edge Cases (überlappende Einheiten, Verschieben in die Vergangenheit) **[SO]**
@@ -160,4 +160,4 @@
 
 ## Nächster Schritt
 
-➡️ **Phase 3, Umsetzung:** Karten-CRUD gegen `plan_cards` **[SO]** — dabei M3 (Wahoo-Push-Umzug nach `data-access/` + `external_id`) mit erledigen, s. `docs/offene-punkte.md`; parallel Mockup Nach-Drop-Feedback **[SO]**
+➡️ **Phase 3, Umsetzung:** Drag & Drop ohne Framework (Vanilla JS, Pointer Events) **[OP]** — Griff an der Karte, Drop-Zone am Zieltag, Vergangenheits-Tage abgewiesen (s. `docs/phase-3-konzept-planungstab.md` §4/§6); danach Prognose-Neuberechnung bei Planänderung (`core/projection.js`/`core/conflicts.js`, Schritt 4)

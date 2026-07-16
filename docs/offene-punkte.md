@@ -142,16 +142,18 @@ leerer Liste durchschlägt); falls bestätigt, denselben Resolver in
 
 ## Phase 3 — Planungstab
 
-**M3 — Wahoo-Push-Umzug nach `data-access/` + `external_id`-Umbau zurückgestellt**
-Die Vollmigration nach `plan_cards` (`scripts/migrate-plan-to-supabase.js`,
-09.2026) legt die Spalte `pushed_external_id` bereits an, lässt den
-Push-Code aber bewusst in `ui/planned.js` (`_pushWorkout`/
-`_findExistingEvent`) unverändert — der Umzug nach `data-access/` und die
-Umstellung des Duplikat-Guards von der Name+Datum-Heuristik auf
-`external_id = plan_cards.id` (bestätigte Wurzel des 4×-Push-Bugs, s.
-`docs/phase-3-konzept-planungstab.md` §5) war zusammen mit Schema+
-Migrationsskript+data-access+state+Handler-Umbau zu groß für einen Schritt.
-Vorgesehen für den Karten-CRUD-Schritt.
+**M3 — external_id-Upsert noch nicht live gegen intervals.icu verifiziert**
+Der Wahoo-Push-Umzug (`_pushWorkout`/`_findExistingEvent` aus `ui/planned.js`
+raus nach `data-access/intervals/push.js`, Duplikat-Guard von der
+Name+Datum-Heuristik auf `external_id = plan_cards.id` umgestellt) ist mit
+dem Karten-CRUD-Schritt erledigt (Commit `a4169bd`). Der Push nutzt jetzt
+`POST /api/v1/athlete/{id}/events/bulk?upsert=true` mit `external_id` im
+Payload — das ist anhand von Forum-/API-Hinweisen recherchiert, aber
+**noch nicht live gegen einen echten Account getestet**. Vor Vertrauen in
+Produktion: Karte mit Workout pushen → auf intervals.icu ein Event prüfen
+→ Karte verschieben → erneut pushen → weiterhin nur EIN Event (aktualisiert,
+kein Duplikat). Kommentar mit demselben Hinweis direkt in
+`data-access/intervals/push.js`.
 → Details: `docs/phase-3-konzept-planungstab.md` §5, §8.4 Schritt 4.
 
 **Dualität: `weekreview.js`/`adherence.js`/`ftp-progress.js` + Hero/Analyse-Panels lesen weiter die alte JSON-Pipeline**
