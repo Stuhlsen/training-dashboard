@@ -38,5 +38,10 @@
     "movedTo": "2026-07-14",
     "reason": "Tausch mit Gruppenfahrt",
     "savedAt": "2026-07-14T14:52:04.781Z"
+  },
+  "2026-07-17": {
+    "cancelled": true,
+    "reason": "Regeneration",
+    "savedAt": "2026-07-17T10:17:43.187Z"
   }
 }
