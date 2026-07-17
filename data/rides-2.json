@@ -64,8 +64,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 1.3,
+        "tempFeel": -5.4,
+        "humidity": 72,
+        "windSpeed": 27.6,
+        "windDir": 257,
+        "precip": 0,
+        "cloudCover": 98,
+        "weatherCode": 3
+      },
+      "wetter": "1.3°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -136,8 +145,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -4,
+        "tempFeel": -9,
+        "humidity": 81,
+        "windSpeed": 14.5,
+        "windDir": 174,
+        "precip": 0,
+        "cloudCover": 9,
+        "weatherCode": 0
+      },
+      "wetter": "-4°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -208,8 +226,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -0.5,
+        "tempFeel": -3.9,
+        "humidity": 88,
+        "windSpeed": 6.6,
+        "windDir": 158,
+        "precip": 0,
+        "cloudCover": 99,
+        "weatherCode": 3
+      },
+      "wetter": "-0.5°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -280,8 +307,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 0.8,
+        "tempFeel": -3.1,
+        "humidity": 89,
+        "windSpeed": 10.6,
+        "windDir": 165,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "0.8°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -319,8 +355,17 @@
       "dtl": null,
       "zoneTimes": null,
       "eftp": null,
-      "weather": null,
-      "wetter": "~24°C",
+      "weather": {
+        "temp": 2.6,
+        "tempFeel": -0.4,
+        "humidity": 94,
+        "windSpeed": 8,
+        "windDir": 189,
+        "precip": 0,
+        "cloudCover": 99,
+        "weatherCode": 3
+      },
+      "wetter": "2.6°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -391,8 +436,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 4.7,
+        "tempFeel": 0.7,
+        "humidity": 92,
+        "windSpeed": 17.1,
+        "windDir": 229,
+        "precip": 2.2,
+        "cloudCover": 100,
+        "weatherCode": 61
+      },
+      "wetter": "4.7°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -463,8 +517,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 8.4,
+        "tempFeel": 6,
+        "humidity": 91,
+        "windSpeed": 10.6,
+        "windDir": 191,
+        "precip": 0,
+        "cloudCover": 32,
+        "weatherCode": 1
+      },
+      "wetter": "8.4°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -502,8 +565,17 @@
       "dtl": 35,
       "zoneTimes": null,
       "eftp": null,
-      "weather": null,
-      "wetter": "~4°C",
+      "weather": {
+        "temp": 4.6,
+        "tempFeel": 0.4,
+        "humidity": 73,
+        "windSpeed": 13.5,
+        "windDir": 126,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "4.6°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -541,8 +613,17 @@
       "dtl": 48,
       "zoneTimes": null,
       "eftp": null,
-      "weather": null,
-      "wetter": "~2°C",
+      "weather": {
+        "temp": 3.8,
+        "tempFeel": -1.1,
+        "humidity": 44,
+        "windSpeed": 13,
+        "windDir": 136,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "3.8°C",
       "source": "intervals.icu",
       "ruhepuls": 55,
       "hrv": null,
@@ -613,8 +694,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 0.7,
+        "tempFeel": -2.9,
+        "humidity": 60,
+        "windSpeed": 4.4,
+        "windDir": 105,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "0.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -685,8 +775,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 0,
+        "tempFeel": -4.1,
+        "humidity": 61,
+        "windSpeed": 7.7,
+        "windDir": 66,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "0°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -757,8 +856,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -2.2,
+        "tempFeel": -6.5,
+        "humidity": 89,
+        "windSpeed": 11.3,
+        "windDir": 50,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 71
+      },
+      "wetter": "-2.2°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -829,8 +937,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -0.8,
+        "tempFeel": -4.1,
+        "humidity": 89,
+        "windSpeed": 6.3,
+        "windDir": 103,
+        "precip": 0,
+        "cloudCover": 61,
+        "weatherCode": 3
+      },
+      "wetter": "-0.8°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -901,8 +1018,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -1.2,
+        "tempFeel": -5.3,
+        "humidity": 89,
+        "windSpeed": 11.1,
+        "windDir": 60,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "-1.2°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -973,8 +1099,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -2.1,
+        "tempFeel": -6.5,
+        "humidity": 86,
+        "windSpeed": 12.2,
+        "windDir": 89,
+        "precip": 0,
+        "cloudCover": 99,
+        "weatherCode": 3
+      },
+      "wetter": "-2.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -1045,8 +1180,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -4.8,
+        "tempFeel": -9.7,
+        "humidity": 85,
+        "windSpeed": 13.5,
+        "windDir": 103,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "-4.8°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -1117,8 +1261,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -6.5,
+        "tempFeel": -11.4,
+        "humidity": 81,
+        "windSpeed": 12.2,
+        "windDir": 79,
+        "precip": 0,
+        "cloudCover": 85,
+        "weatherCode": 3
+      },
+      "wetter": "-6.5°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -1189,8 +1342,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -1.9,
+        "tempFeel": -5.5,
+        "humidity": 94,
+        "windSpeed": 7.6,
+        "windDir": 65,
+        "precip": 0.5,
+        "cloudCover": 100,
+        "weatherCode": 71
+      },
+      "wetter": "-1.9°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -1261,8 +1423,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 1,
+        "tempFeel": -1.6,
+        "humidity": 98,
+        "windSpeed": 3.4,
+        "windDir": 37,
+        "precip": 0.8,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "1°C",
       "source": "intervals.icu",
       "ruhepuls": null,
       "hrv": null,
@@ -1333,8 +1504,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 0.5,
+        "tempFeel": -2,
+        "humidity": 99,
+        "windSpeed": 3,
+        "windDir": 58,
+        "precip": 1.7,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "0.5°C",
       "source": "intervals.icu",
       "ruhepuls": null,
       "hrv": null,
@@ -1405,8 +1585,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 1,
+        "tempFeel": -2.6,
+        "humidity": 89,
+        "windSpeed": 9.1,
+        "windDir": 125,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "1°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -1477,8 +1666,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 4.5,
+        "tempFeel": 2.6,
+        "humidity": 99,
+        "windSpeed": 4,
+        "windDir": 150,
+        "precip": 0.2,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "4.5°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -1549,8 +1747,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 7.3,
+        "tempFeel": 4.6,
+        "humidity": 95,
+        "windSpeed": 12.1,
+        "windDir": 180,
+        "precip": 4.6,
+        "cloudCover": 100,
+        "weatherCode": 63
+      },
+      "wetter": "7.3°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -1621,8 +1828,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 7,
+        "tempFeel": 4.2,
+        "humidity": 96,
+        "windSpeed": 12.6,
+        "windDir": 176,
+        "precip": 1.7,
+        "cloudCover": 100,
+        "weatherCode": 61
+      },
+      "wetter": "7°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -1693,8 +1909,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 0.5,
+        "tempFeel": -3,
+        "humidity": 98,
+        "windSpeed": 9.6,
+        "windDir": 21,
+        "precip": 0.5,
+        "cloudCover": 100,
+        "weatherCode": 71
+      },
+      "wetter": "0.5°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -1765,8 +1990,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 1,
+        "tempFeel": -3.5,
+        "humidity": 76,
+        "windSpeed": 13.3,
+        "windDir": 19,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -1837,8 +2071,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 1,
+        "tempFeel": -3.5,
+        "humidity": 76,
+        "windSpeed": 13.3,
+        "windDir": 19,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -1909,8 +2152,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -1.9,
+        "tempFeel": -7.1,
+        "humidity": 65,
+        "windSpeed": 14.6,
+        "windDir": 140,
+        "precip": 0,
+        "cloudCover": 7,
+        "weatherCode": 1
+      },
+      "wetter": "-1.9°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -1981,8 +2233,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 1.5,
+        "tempFeel": -1.8,
+        "humidity": 97,
+        "windSpeed": 8.8,
+        "windDir": 267,
+        "precip": 0.9,
+        "cloudCover": 100,
+        "weatherCode": 53
+      },
+      "wetter": "1.5°C",
       "source": "intervals.icu",
       "ruhepuls": 49,
       "hrv": null,
@@ -2053,8 +2314,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -1.4,
+        "tempFeel": -5.3,
+        "humidity": 71,
+        "windSpeed": 6.9,
+        "windDir": 50,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "-1.4°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -2125,8 +2395,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -1.7,
+        "tempFeel": -6.7,
+        "humidity": 65,
+        "windSpeed": 14.1,
+        "windDir": 70,
+        "precip": 0,
+        "cloudCover": 9,
+        "weatherCode": 0
+      },
+      "wetter": "-1.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -2197,8 +2476,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": -1.7,
+        "tempFeel": -6.7,
+        "humidity": 65,
+        "windSpeed": 14.1,
+        "windDir": 70,
+        "precip": 0,
+        "cloudCover": 9,
+        "weatherCode": 0
+      },
+      "wetter": "-1.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -2269,8 +2557,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 8.8,
+        "tempFeel": 4.6,
+        "humidity": 79,
+        "windSpeed": 20.6,
+        "windDir": 268,
+        "precip": 0,
+        "cloudCover": 75,
+        "weatherCode": 3
+      },
+      "wetter": "8.8°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -2341,8 +2638,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 8.8,
+        "tempFeel": 4.6,
+        "humidity": 79,
+        "windSpeed": 20.6,
+        "windDir": 268,
+        "precip": 0,
+        "cloudCover": 75,
+        "weatherCode": 3
+      },
+      "wetter": "8.8°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -2413,8 +2719,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 10.9,
+        "tempFeel": 7.7,
+        "humidity": 93,
+        "windSpeed": 21.7,
+        "windDir": 256,
+        "precip": 3.3,
+        "cloudCover": 100,
+        "weatherCode": 61
+      },
+      "wetter": "10.9°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -2485,8 +2800,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 9.8,
+        "tempFeel": 7.1,
+        "humidity": 71,
+        "windSpeed": 9.2,
+        "windDir": 290,
+        "precip": 0,
+        "cloudCover": 99,
+        "weatherCode": 3
+      },
+      "wetter": "9.8°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -2557,8 +2881,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 10.7,
+        "tempFeel": 8.4,
+        "humidity": 81,
+        "windSpeed": 10.9,
+        "windDir": 138,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "10.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -2629,8 +2962,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 13.2,
+        "tempFeel": 11.4,
+        "humidity": 76,
+        "windSpeed": 9.7,
+        "windDir": 204,
+        "precip": 0,
+        "cloudCover": 62,
+        "weatherCode": 3
+      },
+      "wetter": "13.2°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -2701,8 +3043,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 13.2,
+        "tempFeel": 11.4,
+        "humidity": 76,
+        "windSpeed": 9.7,
+        "windDir": 204,
+        "precip": 0,
+        "cloudCover": 62,
+        "weatherCode": 3
+      },
+      "wetter": "13.2°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -2773,8 +3124,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 13.2,
+        "tempFeel": 11.4,
+        "humidity": 76,
+        "windSpeed": 9.7,
+        "windDir": 204,
+        "precip": 0,
+        "cloudCover": 62,
+        "weatherCode": 3
+      },
+      "wetter": "13.2°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -2845,8 +3205,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~12°C",
+      "weather": {
+        "temp": 16.2,
+        "tempFeel": 13.9,
+        "humidity": 59,
+        "windSpeed": 11.9,
+        "windDir": 203,
+        "precip": 0,
+        "cloudCover": 92,
+        "weatherCode": 3
+      },
+      "wetter": "16.2°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -2917,8 +3286,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 11.4,
+        "tempFeel": 8,
+        "humidity": 46,
+        "windSpeed": 8.7,
+        "windDir": 243,
+        "precip": 0,
+        "cloudCover": 1,
+        "weatherCode": 0
+      },
+      "wetter": "11.4°C",
       "source": "intervals.icu",
       "ruhepuls": 56,
       "hrv": null,
@@ -2989,8 +3367,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 15.1,
+        "tempFeel": 13.8,
+        "humidity": 55,
+        "windSpeed": 2.2,
+        "windDir": 260,
+        "precip": 0,
+        "cloudCover": 84,
+        "weatherCode": 3
+      },
+      "wetter": "15.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -3061,8 +3448,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~6°C",
+      "weather": {
+        "temp": 6.1,
+        "tempFeel": 3.7,
+        "humidity": 86,
+        "windSpeed": 6.4,
+        "windDir": 26,
+        "precip": 0,
+        "cloudCover": 6,
+        "weatherCode": 0
+      },
+      "wetter": "6.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -3133,8 +3529,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 10.1,
+        "tempFeel": 6.9,
+        "humidity": 61,
+        "windSpeed": 10.9,
+        "windDir": 113,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "10.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -3205,8 +3610,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 10.1,
+        "tempFeel": 6.9,
+        "humidity": 61,
+        "windSpeed": 10.9,
+        "windDir": 113,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "10.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -3277,8 +3691,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 10.1,
+        "tempFeel": 6.9,
+        "humidity": 61,
+        "windSpeed": 10.9,
+        "windDir": 113,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "10.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -3349,8 +3772,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 11.3,
+        "tempFeel": 9.7,
+        "humidity": 67,
+        "windSpeed": 3.1,
+        "windDir": 113,
+        "precip": 0,
+        "cloudCover": 23,
+        "weatherCode": 2
+      },
+      "wetter": "11.3°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -3421,8 +3853,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 15.2,
+        "tempFeel": 12.6,
+        "humidity": 51,
+        "windSpeed": 9.3,
+        "windDir": 117,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "15.2°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -3493,8 +3934,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 15.2,
+        "tempFeel": 12.6,
+        "humidity": 51,
+        "windSpeed": 9.6,
+        "windDir": 120,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "15.2°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -3565,8 +4015,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 16.7,
+        "tempFeel": 15.2,
+        "humidity": 49,
+        "windSpeed": 3.6,
+        "windDir": 201,
+        "precip": 0,
+        "cloudCover": 41,
+        "weatherCode": 1
+      },
+      "wetter": "16.7°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -3637,8 +4096,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~13°C",
+      "weather": {
+        "temp": 11.3,
+        "tempFeel": 9.1,
+        "humidity": 48,
+        "windSpeed": 1.6,
+        "windDir": 289,
+        "precip": 0,
+        "cloudCover": 1,
+        "weatherCode": 0
+      },
+      "wetter": "11.3°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -3709,8 +4177,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 5.7,
+        "tempFeel": 1.8,
+        "humidity": 68,
+        "windSpeed": 12.3,
+        "windDir": 230,
+        "precip": 0.8,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "5.7°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -3781,8 +4258,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 7.6,
+        "tempFeel": 2.7,
+        "humidity": 59,
+        "windSpeed": 19.4,
+        "windDir": 314,
+        "precip": 0,
+        "cloudCover": 50,
+        "weatherCode": 2
+      },
+      "wetter": "7.6°C",
       "source": "intervals.icu",
       "ruhepuls": 58,
       "hrv": null,
@@ -3853,8 +4339,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 8.3,
+        "tempFeel": 4.2,
+        "humidity": 64,
+        "windSpeed": 15.5,
+        "windDir": 315,
+        "precip": 0.1,
+        "cloudCover": 63,
+        "weatherCode": 51
+      },
+      "wetter": "8.3°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -3925,8 +4420,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 8.6,
+        "tempFeel": 6,
+        "humidity": 64,
+        "windSpeed": 5.2,
+        "windDir": 108,
+        "precip": 0,
+        "cloudCover": 24,
+        "weatherCode": 1
+      },
+      "wetter": "8.6°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -3997,8 +4501,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~7°C",
+      "weather": {
+        "temp": 8.5,
+        "tempFeel": 4.5,
+        "humidity": 50,
+        "windSpeed": 11.8,
+        "windDir": 257,
+        "precip": 0,
+        "cloudCover": 74,
+        "weatherCode": 3
+      },
+      "wetter": "8.5°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -4069,8 +4582,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~10°C",
+      "weather": {
+        "temp": 12.4,
+        "tempFeel": 8.5,
+        "humidity": 64,
+        "windSpeed": 19.4,
+        "windDir": 282,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "12.4°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -4141,8 +4663,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 13.6,
+        "tempFeel": 9.9,
+        "humidity": 34,
+        "windSpeed": 12.5,
+        "windDir": 341,
+        "precip": 0,
+        "cloudCover": 2,
+        "weatherCode": 0
+      },
+      "wetter": "13.6°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -4213,8 +4744,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 13.6,
+        "tempFeel": 9.9,
+        "humidity": 34,
+        "windSpeed": 12.5,
+        "windDir": 341,
+        "precip": 0,
+        "cloudCover": 2,
+        "weatherCode": 0
+      },
+      "wetter": "13.6°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -4285,8 +4825,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 9.6,
+        "tempFeel": 6.4,
+        "humidity": 34,
+        "windSpeed": 3.8,
+        "windDir": 81,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "9.6°C",
       "source": "intervals.icu",
       "ruhepuls": 63,
       "hrv": null,
@@ -4357,8 +4906,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 12.9,
+        "tempFeel": 9.4,
+        "humidity": 59,
+        "windSpeed": 15.3,
+        "windDir": 314,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "12.9°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -4429,8 +4987,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 12.9,
+        "tempFeel": 9.4,
+        "humidity": 59,
+        "windSpeed": 15.3,
+        "windDir": 314,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "12.9°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -4501,8 +5068,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~12°C",
+      "weather": {
+        "temp": 12.4,
+        "tempFeel": 10.4,
+        "humidity": 59,
+        "windSpeed": 7.1,
+        "windDir": 158,
+        "precip": 0,
+        "cloudCover": 40,
+        "weatherCode": 3
+      },
+      "wetter": "12.4°C",
       "source": "intervals.icu",
       "ruhepuls": 55,
       "hrv": null,
@@ -4573,8 +5149,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 15.5,
+        "tempFeel": 14.2,
+        "humidity": 57,
+        "windSpeed": 3.2,
+        "windDir": 281,
+        "precip": 0,
+        "cloudCover": 9,
+        "weatherCode": 0
+      },
+      "wetter": "15.5°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -4645,8 +5230,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 12.4,
+        "tempFeel": 8.9,
+        "humidity": 43,
+        "windSpeed": 12.4,
+        "windDir": 36,
+        "precip": 0,
+        "cloudCover": 90,
+        "weatherCode": 3
+      },
+      "wetter": "12.4°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -4717,8 +5311,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 12.4,
+        "tempFeel": 8.9,
+        "humidity": 43,
+        "windSpeed": 12.4,
+        "windDir": 36,
+        "precip": 0,
+        "cloudCover": 90,
+        "weatherCode": 3
+      },
+      "wetter": "12.4°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -4789,8 +5392,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 10.5,
+        "tempFeel": 8,
+        "humidity": 48,
+        "windSpeed": 5.9,
+        "windDir": 317,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "10.5°C",
       "source": "intervals.icu",
       "ruhepuls": 55,
       "hrv": null,
@@ -4861,8 +5473,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 9.1,
+        "tempFeel": 5.8,
+        "humidity": 70,
+        "windSpeed": 13.9,
+        "windDir": 297,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "9.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -4933,8 +5554,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~21°C",
+      "weather": {
+        "temp": 17.8,
+        "tempFeel": 16.5,
+        "humidity": 36,
+        "windSpeed": 2.9,
+        "windDir": 111,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "17.8°C",
       "source": "intervals.icu",
       "ruhepuls": 49,
       "hrv": null,
@@ -5005,8 +5635,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~23°C",
+      "weather": {
+        "temp": 26.2,
+        "tempFeel": 23.7,
+        "humidity": 27,
+        "windSpeed": 15,
+        "windDir": 216,
+        "precip": 0,
+        "cloudCover": 86,
+        "weatherCode": 3
+      },
+      "wetter": "26.2°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -5077,8 +5716,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 17.7,
+        "tempFeel": 17,
+        "humidity": 71,
+        "windSpeed": 9.1,
+        "windDir": 19,
+        "precip": 2.7,
+        "cloudCover": 100,
+        "weatherCode": 63
+      },
+      "wetter": "17.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -5149,8 +5797,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 18,
+        "tempFeel": 17.9,
+        "humidity": 69,
+        "windSpeed": 5.8,
+        "windDir": 19,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "18°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -5221,8 +5878,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 11.3,
+        "tempFeel": 9.1,
+        "humidity": 88,
+        "windSpeed": 13.4,
+        "windDir": 47,
+        "precip": 0.1,
+        "cloudCover": 90,
+        "weatherCode": 51
+      },
+      "wetter": "11.3°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -5293,8 +5959,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 8,
+        "tempFeel": 5.1,
+        "humidity": 90,
+        "windSpeed": 13.4,
+        "windDir": 51,
+        "precip": 1.3,
+        "cloudCover": 100,
+        "weatherCode": 53
+      },
+      "wetter": "8°C",
       "source": "intervals.icu",
       "ruhepuls": 51,
       "hrv": null,
@@ -5365,8 +6040,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 13.5,
+        "tempFeel": 11.9,
+        "humidity": 70,
+        "windSpeed": 7.3,
+        "windDir": 112,
+        "precip": 0.1,
+        "cloudCover": 99,
+        "weatherCode": 51
+      },
+      "wetter": "13.5°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -5437,8 +6121,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 11,
+        "tempFeel": 7.4,
+        "humidity": 85,
+        "windSpeed": 21.5,
+        "windDir": 296,
+        "precip": 0.7,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "11°C",
       "source": "intervals.icu",
       "ruhepuls": 48,
       "hrv": null,
@@ -5509,8 +6202,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 7.7,
+        "tempFeel": 3.2,
+        "humidity": 78,
+        "windSpeed": 20.4,
+        "windDir": 283,
+        "precip": 1.6,
+        "cloudCover": 95,
+        "weatherCode": 53
+      },
+      "wetter": "7.7°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -5581,8 +6283,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 7.7,
+        "tempFeel": 3.2,
+        "humidity": 78,
+        "windSpeed": 20.4,
+        "windDir": 283,
+        "precip": 1.6,
+        "cloudCover": 95,
+        "weatherCode": 53
+      },
+      "wetter": "7.7°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -5653,8 +6364,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 11.1,
+        "tempFeel": 7.4,
+        "humidity": 65,
+        "windSpeed": 18.1,
+        "windDir": 255,
+        "precip": 0.9,
+        "cloudCover": 75,
+        "weatherCode": 53
+      },
+      "wetter": "11.1°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -5725,8 +6445,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 17.8,
+        "tempFeel": 16.3,
+        "humidity": 51,
+        "windSpeed": 10.8,
+        "windDir": 190,
+        "precip": 0.1,
+        "cloudCover": 38,
+        "weatherCode": 51
+      },
+      "wetter": "17.8°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -5797,8 +6526,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 17.8,
+        "tempFeel": 16.3,
+        "humidity": 51,
+        "windSpeed": 10.8,
+        "windDir": 190,
+        "precip": 0.1,
+        "cloudCover": 38,
+        "weatherCode": 51
+      },
+      "wetter": "17.8°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -5869,8 +6607,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~16°C",
+      "weather": {
+        "temp": 18.4,
+        "tempFeel": 17.2,
+        "humidity": 65,
+        "windSpeed": 13.5,
+        "windDir": 228,
+        "precip": 0.2,
+        "cloudCover": 76,
+        "weatherCode": 51
+      },
+      "wetter": "18.4°C",
       "source": "intervals.icu",
       "ruhepuls": null,
       "hrv": null,
@@ -5941,8 +6688,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 20,
+        "tempFeel": 18.3,
+        "humidity": 54,
+        "windSpeed": 14.5,
+        "windDir": 275,
+        "precip": 0,
+        "cloudCover": 75,
+        "weatherCode": 2
+      },
+      "wetter": "20°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6013,8 +6769,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~22°C",
+      "weather": {
+        "temp": 23.5,
+        "tempFeel": 23.2,
+        "humidity": 57,
+        "windSpeed": 11.6,
+        "windDir": 295,
+        "precip": 0,
+        "cloudCover": 92,
+        "weatherCode": 3
+      },
+      "wetter": "23.5°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -6085,8 +6850,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~15°C",
+      "weather": {
+        "temp": 29.6,
+        "tempFeel": 28.1,
+        "humidity": 29,
+        "windSpeed": 11.1,
+        "windDir": 248,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "29.6°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6157,8 +6931,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~17°C",
+      "weather": {
+        "temp": 18.2,
+        "tempFeel": 17.2,
+        "humidity": 40,
+        "windSpeed": 8.6,
+        "windDir": 309,
+        "precip": 0,
+        "cloudCover": 6,
+        "weatherCode": 0
+      },
+      "wetter": "18.2°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6229,8 +7012,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~17°C",
+      "weather": {
+        "temp": 25.5,
+        "tempFeel": 24.9,
+        "humidity": 28,
+        "windSpeed": 8.2,
+        "windDir": 182,
+        "precip": 0,
+        "cloudCover": 21,
+        "weatherCode": 1
+      },
+      "wetter": "25.5°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6301,8 +7093,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~17°C",
+      "weather": {
+        "temp": 19.6,
+        "tempFeel": 19.8,
+        "humidity": 60,
+        "windSpeed": 2.9,
+        "windDir": 160,
+        "precip": 0,
+        "cloudCover": 89,
+        "weatherCode": 3
+      },
+      "wetter": "19.6°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -6373,8 +7174,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 24.2,
+        "tempFeel": 22.2,
+        "humidity": 43,
+        "windSpeed": 15.4,
+        "windDir": 153,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "24.2°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -6445,8 +7255,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 24.2,
+        "tempFeel": 22.2,
+        "humidity": 43,
+        "windSpeed": 15.4,
+        "windDir": 153,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "24.2°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": null,
@@ -6517,8 +7336,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 19.4,
+        "tempFeel": 18,
+        "humidity": 53,
+        "windSpeed": 14.3,
+        "windDir": 249,
+        "precip": 0.1,
+        "cloudCover": 99,
+        "weatherCode": 51
+      },
+      "wetter": "19.4°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": null,
@@ -6589,8 +7417,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 21,
+        "tempFeel": 19.3,
+        "humidity": 58,
+        "windSpeed": 17.6,
+        "windDir": 198,
+        "precip": 0,
+        "cloudCover": 93,
+        "weatherCode": 3
+      },
+      "wetter": "21°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6661,8 +7498,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 23.6,
+        "tempFeel": 21.7,
+        "humidity": 34,
+        "windSpeed": 10.2,
+        "windDir": 179,
+        "precip": 0,
+        "cloudCover": 98,
+        "weatherCode": 3
+      },
+      "wetter": "23.6°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6733,8 +7579,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 23.1,
+        "tempFeel": 21.9,
+        "humidity": 36,
+        "windSpeed": 10.1,
+        "windDir": 176,
+        "precip": 0.1,
+        "cloudCover": 88,
+        "weatherCode": 51
+      },
+      "wetter": "23.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6805,8 +7660,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~16°C",
+      "weather": {
+        "temp": 17.9,
+        "tempFeel": 14.5,
+        "humidity": 49,
+        "windSpeed": 20.8,
+        "windDir": 265,
+        "precip": 0.6,
+        "cloudCover": 49,
+        "weatherCode": 51
+      },
+      "wetter": "17.9°C",
       "source": "intervals.icu",
       "ruhepuls": 48,
       "hrv": null,
@@ -6877,8 +7741,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 13.8,
+        "tempFeel": 11,
+        "humidity": 65,
+        "windSpeed": 14.4,
+        "windDir": 284,
+        "precip": 0,
+        "cloudCover": 16,
+        "weatherCode": 0
+      },
+      "wetter": "13.8°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -6949,8 +7822,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~14°C",
+      "weather": {
+        "temp": 19.4,
+        "tempFeel": 16.7,
+        "humidity": 55,
+        "windSpeed": 21.5,
+        "windDir": 267,
+        "precip": 0.3,
+        "cloudCover": 60,
+        "weatherCode": 51
+      },
+      "wetter": "19.4°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -7021,8 +7903,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 21.3,
+        "tempFeel": 22.2,
+        "humidity": 55,
+        "windSpeed": 3.8,
+        "windDir": 263,
+        "precip": 0,
+        "cloudCover": 73,
+        "weatherCode": 3
+      },
+      "wetter": "21.3°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 38,
@@ -7093,8 +7984,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 21.3,
+        "tempFeel": 22.2,
+        "humidity": 55,
+        "windSpeed": 3.8,
+        "windDir": 263,
+        "precip": 0,
+        "cloudCover": 73,
+        "weatherCode": 3
+      },
+      "wetter": "21.3°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 38,
@@ -7165,8 +8065,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 19,
+        "tempFeel": 18.2,
+        "humidity": 58,
+        "windSpeed": 5.9,
+        "windDir": 201,
+        "precip": 0,
+        "cloudCover": 91,
+        "weatherCode": 3
+      },
+      "wetter": "19°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 38,
@@ -7237,8 +8146,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~19°C",
+      "weather": {
+        "temp": 21.1,
+        "tempFeel": 20.9,
+        "humidity": 50,
+        "windSpeed": 7.4,
+        "windDir": 270,
+        "precip": 0,
+        "cloudCover": 59,
+        "weatherCode": 3
+      },
+      "wetter": "21.1°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 32,
@@ -7309,8 +8227,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 25.3,
+        "tempFeel": 26.9,
+        "humidity": 61,
+        "windSpeed": 7.9,
+        "windDir": 225,
+        "precip": 0,
+        "cloudCover": 29,
+        "weatherCode": 1
+      },
+      "wetter": "25.3°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 32,
@@ -7381,8 +8308,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 31.6,
+        "tempFeel": 32.3,
+        "humidity": 32,
+        "windSpeed": 7,
+        "windDir": 314,
+        "precip": 0,
+        "cloudCover": 39,
+        "weatherCode": 2
+      },
+      "wetter": "31.6°C",
       "source": "intervals.icu",
       "ruhepuls": 51,
       "hrv": 39,
@@ -7453,8 +8389,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 31.5,
+        "tempFeel": 33.5,
+        "humidity": 34,
+        "windSpeed": 5,
+        "windDir": 317,
+        "precip": 0,
+        "cloudCover": 54,
+        "weatherCode": 2
+      },
+      "wetter": "31.5°C",
       "source": "intervals.icu",
       "ruhepuls": 51,
       "hrv": 39,
@@ -7525,8 +8470,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 31.5,
+        "tempFeel": 33.5,
+        "humidity": 34,
+        "windSpeed": 5,
+        "windDir": 317,
+        "precip": 0,
+        "cloudCover": 54,
+        "weatherCode": 2
+      },
+      "wetter": "31.5°C",
       "source": "intervals.icu",
       "ruhepuls": 51,
       "hrv": 39,
@@ -7597,8 +8551,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~24°C",
+      "weather": {
+        "temp": 25,
+        "tempFeel": 26.8,
+        "humidity": 61,
+        "windSpeed": 4,
+        "windDir": 318,
+        "precip": 0,
+        "cloudCover": 10,
+        "weatherCode": 1
+      },
+      "wetter": "25°C",
       "source": "intervals.icu",
       "ruhepuls": 49,
       "hrv": 39,
@@ -7669,8 +8632,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 34.3,
+        "tempFeel": 35.9,
+        "humidity": 34,
+        "windSpeed": 3.3,
+        "windDir": 203,
+        "precip": 0.1,
+        "cloudCover": 94,
+        "weatherCode": 51
+      },
+      "wetter": "34.3°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 38,
@@ -7741,8 +8713,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 33.7,
+        "tempFeel": 34.9,
+        "humidity": 36,
+        "windSpeed": 7.4,
+        "windDir": 247,
+        "precip": 0.3,
+        "cloudCover": 96,
+        "weatherCode": 51
+      },
+      "wetter": "33.7°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 38,
@@ -7813,8 +8794,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~29°C",
+      "weather": {
+        "temp": 33.4,
+        "tempFeel": 32.8,
+        "humidity": 35,
+        "windSpeed": 16.8,
+        "windDir": 321,
+        "precip": 0,
+        "cloudCover": 6,
+        "weatherCode": 0
+      },
+      "wetter": "33.4°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 46,
@@ -7885,8 +8875,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 27.9,
+        "tempFeel": 27.4,
+        "humidity": 38,
+        "windSpeed": 8.8,
+        "windDir": 67,
+        "precip": 0,
+        "cloudCover": 98,
+        "weatherCode": 3
+      },
+      "wetter": "27.9°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 40,
@@ -7957,8 +8956,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 27.9,
+        "tempFeel": 27.4,
+        "humidity": 38,
+        "windSpeed": 8.8,
+        "windDir": 67,
+        "precip": 0,
+        "cloudCover": 98,
+        "weatherCode": 3
+      },
+      "wetter": "27.9°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 40,
@@ -8029,8 +9037,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~21°C",
+      "weather": {
+        "temp": 22.1,
+        "tempFeel": 22.8,
+        "humidity": 66,
+        "windSpeed": 8.1,
+        "windDir": 278,
+        "precip": 1.6,
+        "cloudCover": 82,
+        "weatherCode": 55
+      },
+      "wetter": "22.1°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 35,
@@ -8101,8 +9118,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 23.9,
+        "tempFeel": 23.5,
+        "humidity": 49,
+        "windSpeed": 14,
+        "windDir": 247,
+        "precip": 0,
+        "cloudCover": 4,
+        "weatherCode": 0
+      },
+      "wetter": "23.9°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 36,
@@ -8173,8 +9199,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 16,
+        "tempFeel": 14.8,
+        "humidity": 72,
+        "windSpeed": 9.8,
+        "windDir": 238,
+        "precip": 1.5,
+        "cloudCover": 100,
+        "weatherCode": 53
+      },
+      "wetter": "16°C",
       "source": "intervals.icu",
       "ruhepuls": 51,
       "hrv": 41,
@@ -8245,8 +9280,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 16,
+        "tempFeel": 14.8,
+        "humidity": 72,
+        "windSpeed": 9.8,
+        "windDir": 238,
+        "precip": 1.5,
+        "cloudCover": 100,
+        "weatherCode": 53
+      },
+      "wetter": "16°C",
       "source": "intervals.icu",
       "ruhepuls": 51,
       "hrv": 41,
@@ -8317,8 +9361,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~20°C",
+      "weather": {
+        "temp": 21,
+        "tempFeel": 19.5,
+        "humidity": 63,
+        "windSpeed": 22.5,
+        "windDir": 299,
+        "precip": 0.3,
+        "cloudCover": 76,
+        "weatherCode": 51
+      },
+      "wetter": "21°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 43,
@@ -8389,8 +9442,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~19°C",
+      "weather": {
+        "temp": 22.3,
+        "tempFeel": 20.9,
+        "humidity": 62,
+        "windSpeed": 20.1,
+        "windDir": 284,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "22.3°C",
       "source": "intervals.icu",
       "ruhepuls": 48,
       "hrv": 35,
@@ -8461,8 +9523,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 22.5,
+        "tempFeel": 20.5,
+        "humidity": 45,
+        "windSpeed": 18.6,
+        "windDir": 296,
+        "precip": 0,
+        "cloudCover": 42,
+        "weatherCode": 2
+      },
+      "wetter": "22.5°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": 36,
@@ -8533,8 +9604,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 22.2,
+        "tempFeel": 20.9,
+        "humidity": 46,
+        "windSpeed": 16.9,
+        "windDir": 292,
+        "precip": 0,
+        "cloudCover": 36,
+        "weatherCode": 1
+      },
+      "wetter": "22.2°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": 36,
@@ -8605,8 +9685,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 18.2,
+        "tempFeel": 17,
+        "humidity": 68,
+        "windSpeed": 12.4,
+        "windDir": 304,
+        "precip": 0.3,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
+      "wetter": "18.2°C",
       "source": "intervals.icu",
       "ruhepuls": 51,
       "hrv": 34,
@@ -8677,8 +9766,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 26.7,
+        "tempFeel": 27.2,
+        "humidity": 35,
+        "windSpeed": 6.4,
+        "windDir": 349,
+        "precip": 0,
+        "cloudCover": 63,
+        "weatherCode": 3
+      },
+      "wetter": "26.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 33,
@@ -8749,8 +9847,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 26.7,
+        "tempFeel": 27.2,
+        "humidity": 35,
+        "windSpeed": 6.4,
+        "windDir": 349,
+        "precip": 0,
+        "cloudCover": 63,
+        "weatherCode": 3
+      },
+      "wetter": "26.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 33,
@@ -8821,8 +9928,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~23°C",
+      "weather": {
+        "temp": 27.5,
+        "tempFeel": 26.9,
+        "humidity": 44,
+        "windSpeed": 12.9,
+        "windDir": 3,
+        "precip": 0.1,
+        "cloudCover": 14,
+        "weatherCode": 51
+      },
+      "wetter": "27.5°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 52,
@@ -14874,7 +15990,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-17T13:06:43.586Z",
+  "updated": "2026-07-17T18:54:11.190Z",
   "source": "intervals.icu",
   "count": 128
 }

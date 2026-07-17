@@ -30,8 +30,18 @@
       "hoehe": 22,
       "feel": "Hart",
       "heu": false,
-      "wetter": null,
+      "wetter": "7.4°C",
       "notizen": "Kalibrierungsfahrt vor Planstart. Ø-HF 163 = Z4-Bereich. Kadenz 74 RPM unter späterem Ziel. Höchstes Tempo dieser Vorbereitungswoche (23,9 km/h).",
+      "weather": {
+        "temp": 7.4,
+        "tempFeel": 4,
+        "humidity": 66,
+        "windSpeed": 9.6,
+        "windDir": 225,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
       "id": 1,
       "dateShort": "24.03",
       "dateISO": "2026-03-24"
@@ -66,8 +76,18 @@
       "hoehe": 26,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": null,
+      "wetter": "12°C",
       "notizen": "Kalibrierungsfahrt vor Planstart. Ø-HF 133 – deutlich niedriger als Vortag (163). HF-Max nur 149 – sehr kontrolliert gefahren. DTL gestiegen.",
+      "weather": {
+        "temp": 12,
+        "tempFeel": 6.9,
+        "humidity": 49,
+        "windSpeed": 21.8,
+        "windDir": 207,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
       "id": 2,
       "dateShort": "25.03",
       "dateISO": "2026-03-25"
@@ -102,8 +122,18 @@
       "hoehe": 20,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": null,
+      "wetter": "4.5°C",
       "notizen": "Kalibrierungsfahrt vor Planstart. Ø-HF 131 – niedrigster Wert der Vorbereitungswoche. Kadenz 84 RPM bereits nahe am späteren Ziel (85–90). Befinden sehr gut.",
+      "weather": {
+        "temp": 4.5,
+        "tempFeel": 0.2,
+        "humidity": 77,
+        "windSpeed": 15.3,
+        "windDir": 291,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
       "id": 3,
       "dateShort": "26.03",
       "dateISO": "2026-03-26"
@@ -138,8 +168,18 @@
       "hoehe": 25,
       "feel": "Moderat",
       "heu": false,
-      "wetter": null,
+      "wetter": "1.8°C",
       "notizen": "Kalibrierungsfahrt vor Planstart. Ø-HF 139 – etwas höher als Do (131). Kadenz 81 RPM. DTL stabil.",
+      "weather": {
+        "temp": 1.8,
+        "tempFeel": -1.8,
+        "humidity": 71,
+        "windSpeed": 7.8,
+        "windDir": 272,
+        "precip": 0,
+        "cloudCover": 1,
+        "weatherCode": 0
+      },
       "id": 4,
       "dateShort": "27.03",
       "dateISO": "2026-03-27"
@@ -174,8 +214,18 @@
       "hoehe": 21,
       "feel": "Moderat",
       "heu": false,
-      "wetter": null,
+      "wetter": "3.9°C",
       "notizen": "Kalibrierungsfahrt vor Planstart. Höchstes Tempo der kontrollierten Tage (21,7 km/h). DTL leicht sinkend (41.3). Gute Abschlussfahrt der Vorbereitungswoche.",
+      "weather": {
+        "temp": 3.9,
+        "tempFeel": 0.3,
+        "humidity": 59,
+        "windSpeed": 6.1,
+        "windDir": 225,
+        "precip": 0,
+        "cloudCover": 72,
+        "weatherCode": 3
+      },
       "id": 5,
       "dateShort": "28.03",
       "dateISO": "2026-03-28"
@@ -210,8 +260,18 @@
       "hoehe": null,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "kalt, nass",
+      "wetter": "4.6°C",
       "notizen": "Mo-Einheit wegen Kälte/Nässe auf Di verschoben. Ø-H",
+      "weather": {
+        "temp": 4.6,
+        "tempFeel": 0.5,
+        "humidity": 85,
+        "windSpeed": 16.4,
+        "windDir": 316,
+        "precip": 0.1,
+        "cloudCover": 61,
+        "weatherCode": 51
+      },
       "id": 6,
       "dateShort": "31.03",
       "dateISO": "2026-03-31"
@@ -246,8 +306,18 @@
       "hoehe": null,
       "feel": "Leicht",
       "heu": false,
-      "wetter": "9°C, sonnig",
+      "wetter": "4.6°C",
       "notizen": "Erstmals Ø-HF sauber in alter Z2 (134). HF-Max deutlich niedriger als Di. Hausstrecke leicht erweitert.",
+      "weather": {
+        "temp": 4.6,
+        "tempFeel": 2.8,
+        "humidity": 91,
+        "windSpeed": 0.5,
+        "windDir": 270,
+        "precip": 0.1,
+        "cloudCover": 93,
+        "weatherCode": 51
+      },
       "id": 7,
       "dateShort": "01.04",
       "dateISO": "2026-04-01"
@@ -282,8 +352,18 @@
       "hoehe": null,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": null,
+      "wetter": "6.2°C",
       "notizen": "Kein geplanter Trainingstag. Anstrengung 'Irgendwie einfach' – starkes Zeichen für aerobe Basis.",
+      "weather": {
+        "temp": 6.2,
+        "tempFeel": 3.7,
+        "humidity": 67,
+        "windSpeed": 2.8,
+        "windDir": 272,
+        "precip": 0,
+        "cloudCover": 1,
+        "weatherCode": 0
+      },
       "id": 8,
       "dateShort": "02.04",
       "dateISO": "2026-04-02"
@@ -318,8 +398,18 @@
       "hoehe": 60,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": null,
+      "wetter": "12.2°C",
       "notizen": "Zeitlich keine Große Seenrunde möglich. Freestyle Route. 3. Mal in Folge 'Irgendwie einfach'.",
+      "weather": {
+        "temp": 12.2,
+        "tempFeel": 8.6,
+        "humidity": 71,
+        "windSpeed": 19.5,
+        "windDir": 256,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
       "id": 9,
       "dateShort": "04.04",
       "dateISO": "2026-04-04"
@@ -354,8 +444,18 @@
       "hoehe": null,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "starker Wind",
+      "wetter": "15.9°C",
       "notizen": "5. Fahrt in Folge (Di-So). Anstrengung erstmals 'Moderat' (Wind-Einfluss). DTL neues 90-Tage-Max.",
+      "weather": {
+        "temp": 15.9,
+        "tempFeel": 12.8,
+        "humidity": 59,
+        "windSpeed": 16.5,
+        "windDir": 209,
+        "precip": 0,
+        "cloudCover": 74,
+        "weatherCode": 3
+      },
       "id": 10,
       "dateShort": "05.04",
       "dateISO": "2026-04-05"
@@ -390,8 +490,18 @@
       "hoehe": null,
       "feel": "Irgendwie schwer",
       "heu": true,
-      "wetter": "windig",
+      "wetter": "8.6°C",
       "notizen": "Heuschnupfen aktiv – erhöhte Körperbelastung. Ø-HF niedrigstes Ergebnis bisher (131). Tempo instinktiv reduziert.",
+      "weather": {
+        "temp": 8.6,
+        "tempFeel": 3.3,
+        "humidity": 56,
+        "windSpeed": 21.9,
+        "windDir": 273,
+        "precip": 0,
+        "cloudCover": 5,
+        "weatherCode": 0
+      },
       "id": 11,
       "dateShort": "06.04",
       "dateISO": "2026-04-06"
@@ -426,8 +536,18 @@
       "hoehe": null,
       "feel": "Irgendwie einfach",
       "heu": true,
-      "wetter": null,
+      "wetter": "7.3°C",
       "notizen": "DTL erstmals sinkend. Kadenz 85 – Ziel erstmals erreicht.",
+      "weather": {
+        "temp": 7.3,
+        "tempFeel": 4.6,
+        "humidity": 53,
+        "windSpeed": 2.3,
+        "windDir": 19,
+        "precip": 0,
+        "cloudCover": 12,
+        "weatherCode": 1
+      },
       "id": 12,
       "dateShort": "08.04",
       "dateISO": "2026-04-08"
@@ -462,8 +582,18 @@
       "hoehe": 115,
       "feel": "Moderat",
       "heu": true,
-      "wetter": null,
+      "wetter": "5.5°C",
       "notizen": "Lange Tour mit Kumpel (Z3-Bereich). Bisher längste Fahrt. DTL fast doppelt so hoch wie bisheriges Maximum. W2-Sa danach entfallen.",
+      "weather": {
+        "temp": 5.5,
+        "tempFeel": 2.1,
+        "humidity": 58,
+        "windSpeed": 7.7,
+        "windDir": 53,
+        "precip": 0,
+        "cloudCover": 85,
+        "weatherCode": 3
+      },
       "id": 13,
       "dateShort": "09.04",
       "dateISO": "2026-04-09"
@@ -498,8 +628,18 @@
       "hoehe": null,
       "feel": "Moderat",
       "heu": true,
-      "wetter": "Gegenwind",
+      "wetter": "10.4°C",
       "notizen": "Gegenwind erhöht Widerstand. DTL 49.3 zeigt gute Erholung nach Do-Tour.",
+      "weather": {
+        "temp": 10.4,
+        "tempFeel": 7.6,
+        "humidity": 74,
+        "windSpeed": 12.3,
+        "windDir": 96,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
       "id": 14,
       "dateShort": "13.04",
       "dateISO": "2026-04-13"
@@ -534,8 +674,18 @@
       "hoehe": null,
       "feel": "Irgendwie einfach",
       "heu": true,
-      "wetter": null,
+      "wetter": "10.5°C",
       "notizen": "Intervalle bewusst weggelassen, stattdessen Distanzaufbau. 'Irgendwie einfach' bei fast 2h und 39 km – starkes Zeichen.",
+      "weather": {
+        "temp": 10.5,
+        "tempFeel": 8.6,
+        "humidity": 66,
+        "windSpeed": 4.6,
+        "windDir": 38,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
       "id": 15,
       "dateShort": "15.04",
       "dateISO": "2026-04-15"
@@ -570,8 +720,18 @@
       "hoehe": null,
       "feel": "Moderat",
       "heu": true,
-      "wetter": null,
+      "wetter": "13°C",
       "notizen": "Bewusst keine Z2-Einheit – Kopf freibekommen. Ø-HF 155 = Z4. Höchstes Tempo bisher.",
+      "weather": {
+        "temp": 13,
+        "tempFeel": 11.2,
+        "humidity": 73,
+        "windSpeed": 9.1,
+        "windDir": 247,
+        "precip": 0,
+        "cloudCover": 39,
+        "weatherCode": 1
+      },
       "id": 16,
       "dateShort": "16.04",
       "dateISO": "2026-04-16"
@@ -606,8 +766,18 @@
       "hoehe": null,
       "feel": "Moderat",
       "heu": true,
-      "wetter": null,
+      "wetter": "15.2°C",
       "notizen": "Bewusst variiert – Z2-Phasen + härtere Abschnitte. Höchstes Ø-Tempo seit Planstart. HF-Spitze 192 Einzelspitze beim Reintreten.",
+      "weather": {
+        "temp": 15.2,
+        "tempFeel": 13.7,
+        "humidity": 54,
+        "windSpeed": 4.1,
+        "windDir": 107,
+        "precip": 0,
+        "cloudCover": 94,
+        "weatherCode": 3
+      },
       "id": 17,
       "dateShort": "18.04",
       "dateISO": "2026-04-18"
@@ -642,8 +812,18 @@
       "hoehe": null,
       "feel": "Leicht",
       "heu": true,
-      "wetter": "Regen, 6°C",
+      "wetter": "5.4°C",
       "notizen": "Regen, 6°C. Kälte erhöht HF. Anstrengung 'Leicht' – Körper erholt sich.",
+      "weather": {
+        "temp": 5.4,
+        "tempFeel": 1.7,
+        "humidity": 95,
+        "windSpeed": 15.6,
+        "windDir": 282,
+        "precip": 1.4,
+        "cloudCover": 100,
+        "weatherCode": 53
+      },
       "id": 18,
       "dateShort": "20.04",
       "dateISO": "2026-04-20"
@@ -678,8 +858,18 @@
       "hoehe": null,
       "feel": "Leicht",
       "heu": true,
-      "wetter": null,
+      "wetter": "9.2°C",
       "notizen": "Anstrengung 'Leicht' bei 100 min ist das entscheidende Signal – Körper hat sich erholt.",
+      "weather": {
+        "temp": 9.2,
+        "tempFeel": 5.5,
+        "humidity": 70,
+        "windSpeed": 16.3,
+        "windDir": 269,
+        "precip": 0,
+        "cloudCover": 84,
+        "weatherCode": 3
+      },
       "id": 19,
       "dateShort": "25.04",
       "dateISO": "2026-04-25"
@@ -714,8 +904,18 @@
       "hoehe": null,
       "feel": "Leicht",
       "heu": true,
-      "wetter": "14°C, sonnig",
+      "wetter": "9.4°C",
       "notizen": "Kein festes Ziel, einfach genießen. Ø-HF sauber in Z2. 'Leicht' bei 2h und 40 km – sehr starkes Zeichen.",
+      "weather": {
+        "temp": 9.4,
+        "tempFeel": 6.4,
+        "humidity": 56,
+        "windSpeed": 9.7,
+        "windDir": 310,
+        "precip": 0,
+        "cloudCover": 2,
+        "weatherCode": 0
+      },
       "id": 20,
       "dateShort": "26.04",
       "dateISO": "2026-04-26"
@@ -750,8 +950,18 @@
       "hoehe": null,
       "feel": "Sehr leicht",
       "heu": false,
-      "wetter": null,
+      "wetter": "11.7°C",
       "notizen": "Sehr kontrollierte Fahrt. DTL auf Tiefstand.",
+      "weather": {
+        "temp": 11.7,
+        "tempFeel": 9.5,
+        "humidity": 46,
+        "windSpeed": 2.7,
+        "windDir": 265,
+        "precip": 0,
+        "cloudCover": 59,
+        "weatherCode": 2
+      },
       "id": 21,
       "dateShort": "27.04",
       "dateISO": "2026-04-27"
@@ -786,8 +996,18 @@
       "hoehe": null,
       "feel": "Sehr leicht",
       "heu": false,
-      "wetter": null,
+      "wetter": "9.8°C",
       "notizen": "Niedrigste Ø-HF seit Planstart. Kadenz 88 – sehr gut.",
+      "weather": {
+        "temp": 9.8,
+        "tempFeel": 5.8,
+        "humidity": 44,
+        "windSpeed": 12.3,
+        "windDir": 65,
+        "precip": 0,
+        "cloudCover": 43,
+        "weatherCode": 2
+      },
       "id": 22,
       "dateShort": "28.04",
       "dateISO": "2026-04-28"
@@ -822,8 +1042,18 @@
       "hoehe": null,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": null,
+      "wetter": "8.7°C",
       "notizen": "HF-Spitze 169 Einzelspitze. DTL-Sprung durch höhere Intensität.",
+      "weather": {
+        "temp": 8.7,
+        "tempFeel": 4.4,
+        "humidity": 40,
+        "windSpeed": 12.3,
+        "windDir": 68,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
       "id": 23,
       "dateShort": "29.04",
       "dateISO": "2026-04-29"
@@ -858,8 +1088,18 @@
       "hoehe": 376,
       "feel": "Schwer",
       "heu": false,
-      "wetter": null,
+      "wetter": "16.8°C",
       "notizen": "Graveltour! 45 km unbefestigt/Schotter. DTL-Rekord. Sa+So bewusst sehr locker.",
+      "weather": {
+        "temp": 16.8,
+        "tempFeel": 15.7,
+        "humidity": 47,
+        "windSpeed": 4.9,
+        "windDir": 289,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
       "id": 24,
       "dateShort": "01.05",
       "dateISO": "2026-05-01"
@@ -894,8 +1134,18 @@
       "hoehe": 209,
       "feel": "Irgendwie schwer",
       "heu": false,
-      "wetter": "27°C, sonnig",
+      "wetter": "23.7°C",
       "notizen": "27°C Hitze. Müde Beine nach Fr-Gravel. Straßenroute war richtig. HF hitzbedingt erhöht.",
+      "weather": {
+        "temp": 23.7,
+        "tempFeel": 22,
+        "humidity": 33,
+        "windSpeed": 9.5,
+        "windDir": 202,
+        "precip": 0,
+        "cloudCover": 68,
+        "weatherCode": 3
+      },
       "id": 25,
       "dateShort": "03.05",
       "dateISO": "2026-05-03"
@@ -930,8 +1180,18 @@
       "hoehe": null,
       "feel": "Leicht",
       "heu": false,
-      "wetter": null,
+      "wetter": "16.2°C",
       "notizen": "Z2 Erholungsfahrt nach Etappenwochenende. Beine wieder locker.",
+      "weather": {
+        "temp": 16.2,
+        "tempFeel": 13.1,
+        "humidity": 73,
+        "windSpeed": 23,
+        "windDir": 244,
+        "precip": 0.1,
+        "cloudCover": 57,
+        "weatherCode": 51
+      },
       "id": 26,
       "dateShort": "06.05",
       "dateISO": "2026-05-06"
@@ -966,8 +1226,18 @@
       "hoehe": 6,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Bewölkt, 12°C, gefühlt 11°C, Luftfeuchtigkeit 73%, Wind 6,5 km/h aus NO",
+      "wetter": "8.8°C",
       "notizen": "Spontanfahrt zum Testen der neuen Favero Assioma PRO MX-1 Pedale. Kein Fokus auf HF oder Kadenz – einfach gefahren, hier und da Sprints eingelegt. Max-Watt 851W (Sprintwert, kein HF-Max). NP 177W, TSS 63, IF 0.89, VI 1.27. Laut Plan war heute Ruhetag (W6-Fr).",
+      "weather": {
+        "temp": 8.8,
+        "tempFeel": 6.9,
+        "humidity": 87,
+        "windSpeed": 7.3,
+        "windDir": 49,
+        "precip": 0.1,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
       "id": 27,
       "dateShort": "08.05",
       "dateISO": "2026-05-08"
@@ -1002,8 +1272,18 @@
       "hoehe": 53,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": "Bewölkt, 15°C, gefühlt 15°C, Luftfeuchtigkeit 54%, Wind 5,8 km/h aus O",
+      "wetter": "13.5°C",
       "notizen": "Spontanfahrt, längere Runde. Laut Plan war heute Ruhetag (W6-Sa). So 10.05. (geplante Z2 Lang) fällt dafür aus. NP 169W, TSS 168, IF 0.85, VI 1.46. Zeit in Zonen: Z1 0:45 (0.6%), Z2 54:57 (41%), Z3 1:04:58 (49%), Z4 9:10 (7%), Z5 2:46 (2%). Kalorien 981 kcal.",
+      "weather": {
+        "temp": 13.5,
+        "tempFeel": 11.7,
+        "humidity": 59,
+        "windSpeed": 4.9,
+        "windDir": 78,
+        "precip": 0,
+        "cloudCover": 78,
+        "weatherCode": 3
+      },
       "id": 28,
       "dateShort": "09.05",
       "dateISO": "2026-05-09"
@@ -1038,8 +1318,18 @@
       "hoehe": 0,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Indoor",
+      "wetter": "14°C",
       "notizen": "Indoor-Einheit auf Wahoo Kickr Core (geliehen). MyWhoosh – Bruges. NP 124W, TSS 91.13, IF 77.5%, Arbeit 587 kJ. Ø-HF 132 bpm liegt sauber in Z2 (neue Zonen 122–152). Kadenz mit 79 RPM leicht unter Z2-Ziel (80–90). HF-Max 147 bpm = obere Z2. Erste Indoor-Einheit mit Smarttrainer.",
+      "weather": {
+        "temp": 14,
+        "tempFeel": 13.3,
+        "humidity": 86,
+        "windSpeed": 8.1,
+        "windDir": 185,
+        "precip": 1.8,
+        "cloudCover": 98,
+        "weatherCode": 55
+      },
       "id": 29,
       "dateShort": "11.05",
       "dateISO": "2026-05-11"
@@ -1074,8 +1364,18 @@
       "hoehe": 37,
       "feel": "Sehr leicht",
       "heu": false,
-      "wetter": "Indoor",
+      "wetter": "8.5°C",
       "notizen": "Ausrollen nach dem Crit-Rennen. MyWhoosh – Silent Dunes. NP 104W (Intervals.icu) / Gew. Leistung 99W (Strava), TSS 7, IF 46%, Arbeit 119 kJ. Ø-Tempo 22,3 km/h, Max 47,0 km/h. HF kommt sauber runter nach dem Rennen. Kadenzdaten unreliabel (Pedale nicht verbunden). Indoor – Wahoo Kickr Core.",
+      "weather": {
+        "temp": 8.5,
+        "tempFeel": 3.6,
+        "humidity": 60,
+        "windSpeed": 19.9,
+        "windDir": 253,
+        "precip": 0.1,
+        "cloudCover": 43,
+        "weatherCode": 51
+      },
       "id": 30,
       "dateShort": "12.05",
       "dateISO": "2026-05-12"
@@ -1110,8 +1410,18 @@
       "hoehe": 28,
       "feel": "Hart",
       "heu": false,
-      "wetter": "Indoor",
+      "wetter": "8.5°C",
       "notizen": "Erstes Crit-Rennen in MyWhoosh – Mompox City. Abschluss: Platz 21. PR auf Mompox City: 12:39. NP 174W (Intervals.icu) / Gew. Leistung 162W (Strava), TSS 27, IF 75%, Arbeit 262 kJ. Ø-HF 172 bpm (Z4), HF-Max 187 bpm (Z5). Ø-Tempo 29,1 km/h, Max 40,0 km/h. Pedale waren NICHT mit der Rolle verbunden – Watt- und Kadenzdaten sind unzuverlässig. HF-Daten via TRACKR sind zuverlässig. Indoor – Wahoo Kickr Core.",
+      "weather": {
+        "temp": 8.5,
+        "tempFeel": 3.6,
+        "humidity": 60,
+        "windSpeed": 19.9,
+        "windDir": 253,
+        "precip": 0.1,
+        "cloudCover": 43,
+        "weatherCode": 51
+      },
       "id": 31,
       "dateShort": "12.05",
       "dateISO": "2026-05-12"
@@ -1146,8 +1456,18 @@
       "hoehe": 111,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Indoor",
+      "wetter": "10.9°C",
       "notizen": "Spontane späte Indoor-Einheit. MyWhoosh – Heart of Switzerland. Gew. Leistung 135W (Strava), Arbeit 429 kJ, TSS 40, IF 63%. Ø-Tempo 25,6 km/h, Max 54,4 km/h. Best Efforts: 1h 119W, 45min 126W, 30min 134W, 1min 246W. Laut Plan war heute Ramp Test (FTP) geplant – wurde ausgelassen. Mi 13.05. war Ruhetag. Indoor – Wahoo Kickr Core.",
+      "weather": {
+        "temp": 10.9,
+        "tempFeel": 6.3,
+        "humidity": 65,
+        "windSpeed": 23,
+        "windDir": 237,
+        "precip": 0.5,
+        "cloudCover": 29,
+        "weatherCode": 51
+      },
       "id": 32,
       "dateShort": "14.05",
       "dateISO": "2026-05-14"
@@ -1182,8 +1502,18 @@
       "hoehe": 44,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": "Teilweise bewölkt, 13°C, gefühlt 11°C, Luftfeuchtigkeit 60%, Wind 13,0 km/h aus WNW",
+      "wetter": "11.4°C",
       "notizen": "Runde mit Kollegen. Subjektiv: hätte nochmal eine Runde drankhängen können – sehr gutes Gefühl. NP 158W, TSS 102, IF 0.79, VI 1.17, Arbeit 806 kJ. Zeit in Zonen: Z1 9:25 (9%), Z2 1:08:52 (69%), Z3 15:33 (16%), Z4 5:22 (5%), Z5 0%. 806 kcal.",
+      "weather": {
+        "temp": 11.4,
+        "tempFeel": 9,
+        "humidity": 64,
+        "windSpeed": 7.9,
+        "windDir": 302,
+        "precip": 0.1,
+        "cloudCover": 46,
+        "weatherCode": 51
+      },
       "id": 33,
       "dateShort": "16.05",
       "dateISO": "2026-05-16"
@@ -1218,8 +1548,18 @@
       "hoehe": 55,
       "feel": "Leicht",
       "heu": false,
-      "wetter": "Teilweise bewölkt, 15°C, gefühlt 16°C, Luftfeuchtigkeit 43%, Wind 6,8 km/h aus SW",
+      "wetter": "13.9°C",
       "notizen": "Gemütliche Sonntagsrunde. NP 156W, TSS 121, IF 0.78, VI 1.25, Arbeit 900 kJ, 907 kcal. Zeit in Zonen: Z1 12:06 (10%), Z2 1:15:56 (63%), Z3 26:41 (22%), Z4 5:04 (4%), Z5 0%. HRV + RHF ab heute korrekt als Morgenwert gemessen (direkt nach dem Aufwachen, im Liegen).",
+      "weather": {
+        "temp": 13.9,
+        "tempFeel": 11.9,
+        "humidity": 46,
+        "windSpeed": 4.6,
+        "windDir": 240,
+        "precip": 0,
+        "cloudCover": 9,
+        "weatherCode": 1
+      },
       "id": 34,
       "dateShort": "17.05",
       "dateISO": "2026-05-17"
@@ -1254,8 +1594,18 @@
       "hoehe": 50,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": "Bewölkt, 19°C, gefühlt 18°C, Luftfeuchtigkeit 40%, Wind 7,2 km/h aus OSO",
+      "wetter": "15.3°C",
       "notizen": "Erster Tag W8. NP 179W, TSS 104, IF 0.89, VI 1.21, Arbeit 698 kJ, 698 kcal. Zeit in Zonen: Z1 5:26 (7%), Z2 55:35 (71%), Z3 15:05 (19%), Z4 2:24 (3%), Z5 0%. HRV + RHF als korrekte Morgenwerte gemessen.",
+      "weather": {
+        "temp": 15.3,
+        "tempFeel": 13.1,
+        "humidity": 50,
+        "windSpeed": 8.7,
+        "windDir": 108,
+        "precip": 0,
+        "cloudCover": 68,
+        "weatherCode": 3
+      },
       "id": 35,
       "dateShort": "18.05",
       "dateISO": "2026-05-18"
@@ -1290,8 +1640,18 @@
       "hoehe": 24,
       "feel": "Irgendwie einfach",
       "heu": true,
-      "wetter": "Bewölkt, 20°C, Gefühlt 18°C, Wind 13 km/h aus SW",
+      "wetter": "18.9°C",
       "notizen": "Ø HF 148 bpm – oberes Z2, technisch noch drin aber knapp am Rand (Z2: 122–152). HF-Spitzen bis 177 bpm (Z4) – vermutlich Anfahrt, Windböen oder kleine Steigungen. Avg-Watt 160 W am unteren Z2-Rand (120–161 W), NP 181 W, IF 0,84 – passt zu lockerer Endurance. Kadenz 88 rpm – unterer Rand des Ziels (88–92 rpm) getroffen. Gegenwind aus SW erklärt erhöhte HF-Tendenz. Subjektiv 'irgendwie einfach' – trotz oberer Z2-HF. DTL 51,1 / TSB -18 – normale Trainingsermüdung.",
+      "weather": {
+        "temp": 18.9,
+        "tempFeel": 16.4,
+        "humidity": 48,
+        "windSpeed": 13.1,
+        "windDir": 237,
+        "precip": 0,
+        "cloudCover": 75,
+        "weatherCode": 3
+      },
       "id": 36,
       "dateShort": "20.05",
       "dateISO": "2026-05-20"
@@ -1326,8 +1686,18 @@
       "hoehe": 14,
       "feel": "Leicht",
       "heu": true,
-      "wetter": "Bewölkt, 20°C, Gefühlt 19°C, Wind 10,4 km/h aus WNW",
+      "wetter": "17°C",
       "notizen": "Ø HF 130 bpm – mittleres Z2 (122–152), sehr kontrolliert. Max 148 bpm. Avg-Watt 124 W, NP 137 W, IF 0,64 – echte Endurance-Runde, kein Überziehen. Kadenz 85 rpm – leicht unter Ziel (88–92), für spontane Fahrt ok. Ruhetag laut Wochenplan. HRV-Sprung von 44 (Mi) auf 90 ms – starkes Erholungssignal.",
+      "weather": {
+        "temp": 17,
+        "tempFeel": 16.2,
+        "humidity": 68,
+        "windSpeed": 7.7,
+        "windDir": 288,
+        "precip": 0.1,
+        "cloudCover": 55,
+        "weatherCode": 51
+      },
       "id": 37,
       "dateShort": "21.05",
       "dateISO": "2026-05-21"
@@ -1362,8 +1732,18 @@
       "hoehe": 19,
       "feel": "Leicht",
       "heu": true,
-      "wetter": "Bewölkt, 22°C, Gefühlt 22°C, Wind 5,4 km/h aus WNW",
+      "wetter": "19.8°C",
       "notizen": "Ø HF 146 bpm – solides Z2 (75% der Zeit in Z2, 14% Z3, 7% Z4). HF-Spitze 181 bpm einzelner Moment. Avg-Watt 134 W, NP 161 W, IF 0,81, VI 1,20 – etwas variabel aber normal für Seerunde. Max 749 W. Kadenz 86 rpm – leicht unter Ziel (88–92). HRV-Rückgang 90→47 ms nach zwei Fahrten in Folge – normal, kein Alarmsignal. CTL auf 37 gestiegen, 3 Fahrten diese Woche.",
+      "weather": {
+        "temp": 19.8,
+        "tempFeel": 19.4,
+        "humidity": 53,
+        "windSpeed": 5.6,
+        "windDir": 282,
+        "precip": 0,
+        "cloudCover": 21,
+        "weatherCode": 1
+      },
       "id": 38,
       "dateShort": "22.05",
       "dateISO": "2026-05-22"
@@ -1398,8 +1778,18 @@
       "hoehe": 45,
       "feel": "Moderat",
       "heu": true,
-      "wetter": "Klar, 24°C, Gefühlt 26°C, Wind 2,9 km/h aus S",
+      "wetter": "23.2°C",
       "notizen": "Erste Gruppenfahrt mit 2 Kollegen. 69% Z2, 19% Z3, 4% Z4 – typisch für Gruppenfahrt. HF-Abfall nach 1:40h – Ermüdungsmuster. NP 160 W / IF 0,80 / TSS 139 / VI 1,22 – konsistente interne Belastung. Max 1.123 W (Sprint/Anfahrt). Kadenz 85 rpm – bei Gruppenfahrt schwerer kontrollierbar. CTL auf 39, höchster TRIMP bisher (214). HRV-Trend W8: 90→47→39 ms – Ermüdungsakkumulation nach 4 Fahrten. Ruhige W9-Einleitung empfohlen.",
+      "weather": {
+        "temp": 23.2,
+        "tempFeel": 24.3,
+        "humidity": 48,
+        "windSpeed": 0.8,
+        "windDir": 149,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
       "id": 39,
       "dateShort": "23.05",
       "dateISO": "2026-05-23"
@@ -1434,8 +1824,18 @@
       "hoehe": 46,
       "feel": "Leicht",
       "heu": false,
-      "wetter": "Teilweise bewölkt, 28°C, Gefühlt 28°C, Wind 10,8 km/h aus W",
+      "wetter": "25.9°C",
       "notizen": "W8-Abschluss, 200km-Wochenziel erfüllt. Wärmste Fahrt bisher (28°C) – Hitzedrift in HF sichtbar, Avg-Watt entsprechend niedrig. 73% Z2, Max 184 bpm nur 8 Sek Z5. VI 1,33 – viel Stop-and-go. Kadenz 78 rpm – bei gemütlicher Runde + Hitze ok. CTL auf 41 (neuer Höchstwert). HRV-Erholung 39→78 ms über Nacht.",
+      "weather": {
+        "temp": 25.9,
+        "tempFeel": 25.8,
+        "humidity": 45,
+        "windSpeed": 10.3,
+        "windDir": 258,
+        "precip": 0,
+        "cloudCover": 40,
+        "weatherCode": 2
+      },
       "id": 40,
       "dateShort": "24.05",
       "dateISO": "2026-05-24"
@@ -1470,8 +1870,18 @@
       "hoehe": 10,
       "feel": "Sehr leicht",
       "heu": false,
-      "wetter": "Klar, 23°C, Gefühlt 22°C, Wind 4,7 km/h aus NW",
+      "wetter": "19.1°C",
       "notizen": "Geplanter Ruhetag, spontane Abendrunde. 83% Z2, 16% Z3, keine Z4-Ausreißer. VI 1,08 – sehr gleichmäßige Leistungsabgabe. Kadenz 89 rpm – erstmals im Zielbereich (88–92). IF 0,84 aber subjektiv sehr leicht.",
+      "weather": {
+        "temp": 19.1,
+        "tempFeel": 19.3,
+        "humidity": 59,
+        "windSpeed": 1.8,
+        "windDir": 227,
+        "precip": 0,
+        "cloudCover": 3,
+        "weatherCode": 0
+      },
       "id": 41,
       "dateShort": "25.05",
       "dateISO": "2026-05-25"
@@ -1506,8 +1916,18 @@
       "hoehe": 25,
       "feel": "Leicht",
       "heu": false,
-      "wetter": "Klar, 23°C, Gefühlt 23°C, Wind 16,6 km/h aus NW",
+      "wetter": "21.2°C",
       "notizen": "83% Z2, 13% Z3, 0% Z4 – bisher sauberste Zonenverteilung. Max 160 bpm bleibt in Z3. VI 1,12, IF 0,78 – gleichmäßige kontrollierte Fahrt. Kadenz 86 rpm – leicht unter Ziel, Gegenwind 16,6 km/h aus NW hat gedrückt. ATL sinkt 64→58, TSB verbessert sich −23→−17.",
+      "weather": {
+        "temp": 21.2,
+        "tempFeel": 20.2,
+        "humidity": 56,
+        "windSpeed": 12.9,
+        "windDir": 332,
+        "precip": 0,
+        "cloudCover": 8,
+        "weatherCode": 1
+      },
       "id": 42,
       "dateShort": "27.05",
       "dateISO": "2026-05-27"
@@ -1542,8 +1962,18 @@
       "hoehe": 93,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Klar, 22°C, Gefühlt 21°C, Wind 12,2 km/h aus NW",
+      "wetter": "17.5°C",
       "notizen": "Gruppenfahrt zu dritt, richtig fliegen lassen. 69% Z2, 20% Z3, 3% Z4, 0,5% Z5. IF 0,97 – fast FTP-Dauertempo über 2h+. NP 180W und TSS 206 – neue persönliche Höchstwerte. Neues eFTP erkannt: 175W (+9W gegenüber 166W). CTL auf 43, ATL 71, TSB -28 – höchste Belastung bisher. Echte Regeneration nötig.",
+      "weather": {
+        "temp": 17.5,
+        "tempFeel": 15.7,
+        "humidity": 45,
+        "windSpeed": 9.8,
+        "windDir": 309,
+        "precip": 0,
+        "cloudCover": 6,
+        "weatherCode": 0
+      },
       "id": 43,
       "dateShort": "28.05",
       "dateISO": "2026-05-28"
@@ -1578,8 +2008,18 @@
       "hoehe": 21,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Teilweise bewölkt, 22°C, Gefühlt 21°C, Wind 15,1 km/h aus NW",
+      "wetter": "21.3°C",
       "notizen": "Bewusst Druck gemacht auf Trainingsrunde, kein Z2. 45% Z3, 38% Z2, 5% Z4 – Tempofahrt. HF-Kurve progressiv ansteigend. NP 186W – neuer Solo-Rekord. IF 0,93 in unter einer Stunde. Kadenz 90 rpm – erstmals sauber im Zielbereich (88-92). Neues eFTP: 187W (+12W), 21m bei 195W erkannt. Zweiter eFTP-Sprung in 2 Tagen (166→175→187W). HRV 89ms – exzellente Erholung nach Do-Etappe.",
+      "weather": {
+        "temp": 21.3,
+        "tempFeel": 20.3,
+        "humidity": 62,
+        "windSpeed": 14.6,
+        "windDir": 297,
+        "precip": 0,
+        "cloudCover": 15,
+        "weatherCode": 0
+      },
       "id": 44,
       "dateShort": "30.05",
       "dateISO": "2026-05-30"
@@ -1614,8 +2054,18 @@
       "hoehe": 31,
       "feel": "Irgendwie einfach",
       "heu": true,
-      "wetter": "Bewölkt, 21°C, Gefühlt 20°C, Wind 12,2 km/h aus NW",
+      "wetter": "17.6°C",
       "notizen": "W10-Auftakt. 70% Z2, 18% Z3, 5% Z4. IF 0,82, VI 1,20. TSB verbessert sich weiter (-19→-14). ATL sinkt auf 57. Heuschnupfen.",
+      "weather": {
+        "temp": 17.6,
+        "tempFeel": 17.2,
+        "humidity": 74,
+        "windSpeed": 8.5,
+        "windDir": 303,
+        "precip": 0.6,
+        "cloudCover": 90,
+        "weatherCode": 51
+      },
       "id": 45,
       "dateShort": "01.06",
       "dateISO": "2026-06-01"
@@ -1650,8 +2100,18 @@
       "hoehe": 43,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Bewölkt, 25°C, Gefühlt 24°C, Wind 10,1 km/h aus SSO",
+      "wetter": "22.8°C",
       "notizen": "Gruppenfahrt zu dritt mit Gegenwind. 64% Z2, 18% Z3, 3% Z4 – kontrolliert für Gruppenfahrt. Ø HF 140 bpm – niedriger als Do-Etappe (144) trotz ähnlicher Distanz. TSS 160 – zweithöchste Einzeleinheit. CTL 45 und TRIMP 225 – neue persönliche Höchstwerte. HRV 93ms – neuer HRV-Rekord, exzellente Erholung trotz hoher Belastung.",
+      "weather": {
+        "temp": 22.8,
+        "tempFeel": 22.1,
+        "humidity": 44,
+        "windSpeed": 7.9,
+        "windDir": 151,
+        "precip": 0,
+        "cloudCover": 95,
+        "weatherCode": 3
+      },
       "id": 46,
       "dateShort": "02.06",
       "dateISO": "2026-06-02"
@@ -1686,8 +2146,18 @@
       "hoehe": 4,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Bewölkt, 19°C, Gefühlt 17°C, Wind 13,3 km/h aus WSW",
+      "wetter": "15.6°C",
       "notizen": "Erste strukturierte Intervalleinheit. Alle 3 SS-Blöcke abgeschlossen. 171W während der Intervalle (Ziel 165-176W) ✓. Gesamt-NP/Avg niedrig durch Ein- und Ausfahren + Pausen. 80% Z2, nur 5 Sek Z3, 0% Z4 – HF sehr kontrolliert. Kadenz 90 rpm ✓. Wind 13,3 km/h aus WSW machte exaktes Watthalten schwer. CTL 46 – neuer Höchstwert.",
+      "weather": {
+        "temp": 15.6,
+        "tempFeel": 15.5,
+        "humidity": 95,
+        "windSpeed": 11.6,
+        "windDir": 256,
+        "precip": 0.8,
+        "cloudCover": 100,
+        "weatherCode": 53
+      },
       "id": 47,
       "dateShort": "03.06",
       "dateISO": "2026-06-03"
@@ -1722,8 +2192,18 @@
       "hoehe": 84,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": "Bewölkt, 19°C, Gefühlt 17°C, Wind 9,4 km/h aus W",
+      "wetter": "17.1°C",
       "notizen": "Erster 100km-Ride! Spontan entstanden – nach 60km noch so fit dass Seerunde und dann volle 100km drangehangen. 78% Z2, 10% Z3, 0% Z4 über 4h – außergewöhnliche Zonendisziplin. Typischer HF-Drift in 2. Hälfte aber nie übergelaufen. TSS 236, TRIMP 322 und CTL 48 – alle drei neue Persönliche Höchstwerte. Kadenz 89 rpm ✓. Nach der Fahrt immer noch sehr fit – Beweis für starke Aerobasis nach 10 Wochen Training.",
+      "weather": {
+        "temp": 17.1,
+        "tempFeel": 15.7,
+        "humidity": 70,
+        "windSpeed": 12.6,
+        "windDir": 251,
+        "precip": 0.4,
+        "cloudCover": 100,
+        "weatherCode": 51
+      },
       "id": 48,
       "dateShort": "05.06",
       "dateISO": "2026-06-05"
@@ -1758,8 +2238,18 @@
       "hoehe": 25,
       "feel": "Leicht",
       "heu": false,
-      "wetter": "Teilweise bewölkt, 23°C, Luftfeuchtigkeit 44%, Wind 7,2 km/h aus SSO",
+      "wetter": "19°C",
       "notizen": "Außerplanmäßige Erholungsfahrt statt Ruhetag (W10). Tag nach 100km-Tour. Ganz gemütlich gefahren. Ø-HF 121 bpm – überwiegend Z1/untere Z2. HRV 51ms (deutlich unter persönlichem Best 93ms), RHF 55 bpm – Erholung noch nicht abgeschlossen. TSS 61, IF 0,65 – belastungsarm. Anstrengung: Leicht.",
+      "weather": {
+        "temp": 19,
+        "tempFeel": 19.4,
+        "humidity": 59,
+        "windSpeed": 2,
+        "windDir": 193,
+        "precip": 0.1,
+        "cloudCover": 37,
+        "weatherCode": 51
+      },
       "id": 49,
       "dateShort": "06.06",
       "dateISO": "2026-06-06"
@@ -1794,8 +2284,18 @@
       "hoehe": 27,
       "feel": "Leicht",
       "heu": true,
-      "wetter": "Bewölkt, 25°C, Luftfeuchtigkeit 44%, Wind 6,8 km/h aus S",
+      "wetter": "20.8°C",
       "notizen": "Spontane außerplanmäßige Tour (W11). Gemütlich gefahren, längere Pause beim Kumpel (~1h) mitten in der Aufzeichnung – Pause nicht als Ende markiert, daher Gesamtzeit größer als reine Fahrzeit. Ø-HF 136 bpm, 71% Z2, 12% Z3, 1% Z4. HRV 76ms (deutlich besser als 06.06. mit 51ms) – Erholung schreitet voran. RHF 55 bpm.",
+      "weather": {
+        "temp": 20.8,
+        "tempFeel": 21,
+        "humidity": 53,
+        "windSpeed": 5.2,
+        "windDir": 164,
+        "precip": 0,
+        "cloudCover": 56,
+        "weatherCode": 3
+      },
       "id": 50,
       "dateShort": "08.06",
       "dateISO": "2026-06-08"
@@ -1830,8 +2330,18 @@
       "hoehe": 92,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": "Bewölkt, 19°C, Gefühlt 16°C, Luftfeuchtigkeit 54%, Wind 18,4 km/h aus WSW",
+      "wetter": "19°C",
       "notizen": "Gruppenfahrt zu dritt (W11, Di). Teilweise heftiger Gegenwind aus WSW (18,4 km/h). Gravel-Anteil dabei. TSS 179, IF 0,77 – sportlicher als typische Z2-Tour. 65% Z2, 2% Z3, 0,3% Z4 (HF-Max 175 bpm). Variabilitätsindex 1,22 – ungleichmäßige Leistungsabgabe durch Gegenwind und Gelände. Anstrengung: Irgendwie einfach. HRV 63ms (gestern 76ms, leicht rückläufig), RHF 61 bpm (etwas erhöht).",
+      "weather": {
+        "temp": 19,
+        "tempFeel": 17.8,
+        "humidity": 74,
+        "windSpeed": 17.2,
+        "windDir": 258,
+        "precip": 1.7,
+        "cloudCover": 99,
+        "weatherCode": 53
+      },
       "id": 51,
       "dateShort": "09.06",
       "dateISO": "2026-06-09"
@@ -1866,8 +2376,18 @@
       "hoehe": null,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": "Indoor/virtuell – ca. 20°C, Fenster offen",
+      "wetter": "14.8°C",
       "notizen": "FTP Ramp Test in MyWhoosh (Capital Circuit), KICKR ERG Mode. Neues FTP: 193W (eFTP 193W bestätigt). Vorheriger Planwert: 215W. Beste 1-Minute: ~249W. Normleistung 163W, VI 1,25. Intensität SS 36. Zwei Ruhetage (Mi/Do) vor dem Test. TSB noch negativ (-10) nach der Dienstag-Gruppenfahrt (TSS 179). HRV 73ms (von 63ms am Di erholt), RHF 55 bpm – solide Biomarker. Befinden während Test: gut. Ergebnis niedriger als der gesetzte Planwert, aber realistisch – 193W passt zur organischen eFTP-Entwicklung (166→175→187→193W). Basis für W12-Training aktualisiert.",
+      "weather": {
+        "temp": 14.8,
+        "tempFeel": 13.1,
+        "humidity": 69,
+        "windSpeed": 10.1,
+        "windDir": 213,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
       "id": 52,
       "dateShort": "12.06",
       "dateISO": "2026-06-12"
@@ -1902,8 +2422,18 @@
       "hoehe": 80,
       "feel": "Leicht",
       "heu": false,
-      "wetter": "Indoor/virtuell – MyWhoosh",
+      "wetter": "16.7°C",
       "notizen": "Spontane Indoorsession auf MyWhoosh (Al Qudra). Dauer 2:15:27, 62 km virtuell (Wahoo-Distanzanzeige abweichend, Intervals-Wert verwendet). Avg 132W, NP 144W, TSS 151, IF 0,75, VI 1,09 – lockere Z2-Dauereinheit. HF sehr kontrolliert: Avg 123 bpm, Max 157 bpm. 50% Z1, 50% Z2, 0,4% Z3 (Wahoo-Zonen). TRIMP 128. CTL steigt auf 51, TSB weiter negativ (-17). Erster Tag W12. HRV 82ms (gestern nach Ramp Test 73ms), RHF 56 bpm – solide Erholung. Befinden: leicht. Spontan entschieden, kein geplanter Trainingstag.",
+      "weather": {
+        "temp": 16.7,
+        "tempFeel": 15.8,
+        "humidity": 86,
+        "windSpeed": 14.9,
+        "windDir": 259,
+        "precip": 3.2,
+        "cloudCover": 84,
+        "weatherCode": 63
+      },
       "id": 53,
       "dateShort": "13.06",
       "dateISO": "2026-06-13"
@@ -1938,8 +2468,18 @@
       "hoehe": 122,
       "feel": "Irgendwie einfach",
       "heu": false,
-      "wetter": "Bewölkt, 22°C, 55% Luftfeuchtigkeit, Wind 10,4 km/h WSW",
+      "wetter": "17.2°C",
       "notizen": "Gruppenfahrt zu dritt. TSS 202, IF 0,85, VI 1,21. HF überwiegend Z2 (65%), Z3 8%, Z4 4%, Max 180 bpm. Außerplanmäßig – laut Plan war Di Ruhetag (W12). 1.428 kJ Arbeit. Laut Wahoo: 'Irgendwie einfach'.",
+      "weather": {
+        "temp": 17.2,
+        "tempFeel": 15.2,
+        "humidity": 56,
+        "windSpeed": 12.9,
+        "windDir": 245,
+        "precip": 0,
+        "cloudCover": 93,
+        "weatherCode": 3
+      },
       "id": 54,
       "dateShort": "16.06",
       "dateISO": "2026-06-16"
@@ -1974,8 +2514,18 @@
       "hoehe": 9,
       "feel": "Moderat",
       "heu": false,
-      "wetter": "Bewölkt, 25°C, Luftfeuchtigkeit 44%, Wind 12,2 km/h aus W",
+      "wetter": "19.2°C",
       "notizen": "Intervalle (4×5 min Z4) nach Groupride Di nicht gemacht. Stattdessen Trainingsrunde Freestyle – neue persönliche Bestzeit auf der Runde. IF 1,00, NP 200W vs. FTP 193W. Z3 38%, Z4 40% der Zeit. TSS 66.",
+      "weather": {
+        "temp": 19.2,
+        "tempFeel": 19.6,
+        "humidity": 73,
+        "windSpeed": 6.7,
+        "windDir": 281,
+        "precip": 0,
+        "cloudCover": 96,
+        "weatherCode": 3
+      },
       "id": 55,
       "dateShort": "17.06",
       "dateISO": "2026-06-17"
@@ -2010,8 +2560,18 @@
       "hoehe": 18,
       "feel": "Sehr leicht",
       "heu": false,
-      "wetter": "Bewölkt, 28°C, gefühlt 28°C, LF 53%, Wind 5,8 km/h WNW",
+      "wetter": "24°C",
       "notizen": "Aktivierungsfahrt vor Großer Tour Sa. TSS 62, IF 0,73, VI 1,11, Arbeit 554 kJ. Z1 9% / Z2 83% / Z3 7% / Z4 0,8%. HF-Max 167 bpm. Sehr sauber im Z2 gehalten. HRV 95ms (exzellent), RHF 56 bpm – Körper erholt und bereit. Kein Heuschnupfen. Befinden: Sehr leicht.",
+      "weather": {
+        "temp": 24,
+        "tempFeel": 24.1,
+        "humidity": 59,
+        "windSpeed": 11.2,
+        "windDir": 260,
+        "precip": 0,
+        "cloudCover": 71,
+        "weatherCode": 3
+      },
       "id": 56,
       "dateShort": "18.06",
       "dateISO": "2026-06-18"
@@ -2046,8 +2606,18 @@
       "hoehe": 399,
       "feel": "Irgendwie schwer",
       "heu": false,
-      "wetter": "Teilweise bewölkt, 29°C, gefühlt 30°C, LF 60%, Wind 6,1 km/h aus N",
+      "wetter": "26.9°C",
       "notizen": "ABSCHLUSS PLAN 1 🏁 Große SFB→DD→SFB Loop. 138,4km, 399Hm, 6:13h bei 29-30°C. TSS 324, IF 0,73, VI 1,22, Arbeit 2.675 kJ, 2.676 kcal. Z1 30% / Z2 62% / Z3 7% / Z4 0,4%. HF-Max 167 bpm. Nordwind auf dem Hinweg Rückenwind, auf dem Rückweg Gegenwind. CTL springt von 53 auf 59 — neuer Höchststand. ATL 100, TSB -41. TRIMP 460 — größte Einzelbelastung des gesamten Plans. HRV 95ms, RHF 63 bpm. Kein Heuschnupfen. Plan-1-Abschluss nach 86 Tagen, 40+3 Fahrten, ~2.020km gesamt.",
+      "weather": {
+        "temp": 26.9,
+        "tempFeel": 29.8,
+        "humidity": 67,
+        "windSpeed": 9.3,
+        "windDir": 292,
+        "precip": 1.4,
+        "cloudCover": 48,
+        "weatherCode": 55
+      },
       "id": 57,
       "dateShort": "20.06",
       "dateISO": "2026-06-20"
@@ -2114,8 +2684,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~26°C",
+      "weather": {
+        "temp": 26.2,
+        "tempFeel": 26,
+        "humidity": 44,
+        "windSpeed": 7.9,
+        "windDir": 46,
+        "precip": 0,
+        "cloudCover": 13,
+        "weatherCode": 1
+      },
+      "wetter": "26.2°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 47,
@@ -2189,8 +2768,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~31°C",
+      "weather": {
+        "temp": 30.4,
+        "tempFeel": 31.1,
+        "humidity": 41,
+        "windSpeed": 8.1,
+        "windDir": 126,
+        "precip": 0,
+        "cloudCover": 38,
+        "weatherCode": 2
+      },
+      "wetter": "30.4°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": 70,
@@ -2264,8 +2852,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~24°C",
+      "weather": {
+        "temp": 28.1,
+        "tempFeel": 29.2,
+        "humidity": 50,
+        "windSpeed": 8.3,
+        "windDir": 191,
+        "precip": 0,
+        "cloudCover": 71,
+        "weatherCode": 3
+      },
+      "wetter": "28.1°C",
       "source": "intervals.icu",
       "ruhepuls": 65,
       "hrv": 42,
@@ -2339,8 +2936,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~24°C",
+      "weather": {
+        "temp": 26,
+        "tempFeel": 27.7,
+        "humidity": 65,
+        "windSpeed": 10.8,
+        "windDir": 351,
+        "precip": 0.3,
+        "cloudCover": 78,
+        "weatherCode": 51
+      },
+      "wetter": "26°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": 56,
@@ -2414,8 +3020,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~22°C",
+      "weather": {
+        "temp": 20.9,
+        "tempFeel": 23.6,
+        "humidity": 94,
+        "windSpeed": 7.5,
+        "windDir": 21,
+        "precip": 3.1,
+        "cloudCover": 84,
+        "weatherCode": 61
+      },
+      "wetter": "20.9°C",
       "source": "intervals.icu",
       "ruhepuls": 56,
       "hrv": 46,
@@ -2489,8 +3104,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~27°C",
+      "weather": {
+        "temp": 25.8,
+        "tempFeel": 23.8,
+        "humidity": 39,
+        "windSpeed": 18.6,
+        "windDir": 254,
+        "precip": 0,
+        "cloudCover": 45,
+        "weatherCode": 3
+      },
+      "wetter": "25.8°C",
       "source": "intervals.icu",
       "ruhepuls": 55,
       "hrv": 53,
@@ -2564,8 +3188,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~20°C",
+      "weather": {
+        "temp": 20.2,
+        "tempFeel": 17.1,
+        "humidity": 47,
+        "windSpeed": 18.7,
+        "windDir": 282,
+        "precip": 0,
+        "cloudCover": 32,
+        "weatherCode": 2
+      },
+      "wetter": "20.2°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 51,
@@ -2639,8 +3272,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": null,
+      "weather": {
+        "temp": 22.6,
+        "tempFeel": 19.9,
+        "humidity": 46,
+        "windSpeed": 21.3,
+        "windDir": 297,
+        "precip": 0,
+        "cloudCover": 96,
+        "weatherCode": 3
+      },
+      "wetter": "22.6°C",
       "source": "intervals.icu",
       "ruhepuls": 56,
       "hrv": 53,
@@ -2714,8 +3356,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~27°C",
+      "weather": {
+        "temp": 21,
+        "tempFeel": 19.9,
+        "humidity": 68,
+        "windSpeed": 18.6,
+        "windDir": 282,
+        "precip": 1.5,
+        "cloudCover": 98,
+        "weatherCode": 61
+      },
+      "wetter": "21°C",
       "source": "intervals.icu",
       "ruhepuls": 54,
       "hrv": 44,
@@ -2789,8 +3440,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~24°C",
+      "weather": {
+        "temp": 23.5,
+        "tempFeel": 21.6,
+        "humidity": 40,
+        "windSpeed": 14.2,
+        "windDir": 307,
+        "precip": 0,
+        "cloudCover": 2,
+        "weatherCode": 0
+      },
+      "wetter": "23.5°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": 55,
@@ -2864,8 +3524,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~31°C",
+      "weather": {
+        "temp": 25.5,
+        "tempFeel": 25.2,
+        "humidity": 40,
+        "windSpeed": 12.1,
+        "windDir": 332,
+        "precip": 0,
+        "cloudCover": 29,
+        "weatherCode": 2
+      },
+      "wetter": "25.5°C",
       "source": "intervals.icu",
       "ruhepuls": 69,
       "hrv": 65,
@@ -2939,8 +3608,17 @@
         }
       ],
       "eftp": null,
-      "weather": null,
-      "wetter": "~35°C",
+      "weather": {
+        "temp": 27.7,
+        "tempFeel": 26.9,
+        "humidity": 39,
+        "windSpeed": 14.3,
+        "windDir": 279,
+        "precip": 0.3,
+        "cloudCover": 26,
+        "weatherCode": 51
+      },
+      "wetter": "27.7°C",
       "source": "intervals.icu",
       "ruhepuls": 59,
       "hrv": 45,
@@ -9388,84 +10066,84 @@
   },
   "forecast": {
     "2026-07-17": {
-      "temp": 25.4,
+      "temp": 25.5,
       "tempFeel": 26.9,
       "humidity": 64,
-      "windSpeed": 8,
-      "windDir": 158,
-      "precipProb": 32,
+      "windSpeed": 8.9,
+      "windDir": 155,
+      "precipProb": 30,
       "weatherCode": 80,
       "uvMax": 6
     },
     "2026-07-18": {
       "temp": 23.4,
-      "tempFeel": 22.1,
+      "tempFeel": 21.8,
       "humidity": 50,
-      "windSpeed": 15.8,
-      "windDir": 279,
-      "precipProb": 1,
+      "windSpeed": 16.8,
+      "windDir": 285,
+      "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.7
     },
     "2026-07-19": {
-      "temp": 20.1,
-      "tempFeel": 18.2,
-      "humidity": 50,
-      "windSpeed": 12.1,
-      "windDir": 268,
-      "precipProb": 6,
-      "weatherCode": 3,
-      "uvMax": 4.7
+      "temp": 18.5,
+      "tempFeel": 16.9,
+      "humidity": 60,
+      "windSpeed": 10.7,
+      "windDir": 260,
+      "precipProb": 15,
+      "weatherCode": 61,
+      "uvMax": 4.3
     },
     "2026-07-20": {
-      "temp": 18,
-      "tempFeel": 15.2,
-      "humidity": 54,
-      "windSpeed": 16.5,
-      "windDir": 284,
-      "precipProb": 13,
+      "temp": 17.2,
+      "tempFeel": 14.6,
+      "humidity": 59,
+      "windSpeed": 16.1,
+      "windDir": 273,
+      "precipProb": 22,
       "weatherCode": 3,
-      "uvMax": 4.8
+      "uvMax": 5
     },
     "2026-07-21": {
-      "temp": 16.6,
-      "tempFeel": 15.4,
-      "humidity": 68,
-      "windSpeed": 10.2,
-      "windDir": 293,
-      "precipProb": 13,
+      "temp": 17.3,
+      "tempFeel": 15.8,
+      "humidity": 69,
+      "windSpeed": 13.5,
+      "windDir": 302,
+      "precipProb": 25,
       "weatherCode": 61,
-      "uvMax": 5.4
+      "uvMax": 6.6
     },
     "2026-07-22": {
-      "temp": 16.4,
-      "tempFeel": 15.8,
-      "humidity": 73,
-      "windSpeed": 7.8,
-      "windDir": 258,
-      "precipProb": 8,
+      "temp": 17.6,
+      "tempFeel": 16,
+      "humidity": 65,
+      "windSpeed": 12.6,
+      "windDir": 268,
+      "precipProb": 7,
       "weatherCode": 61,
-      "uvMax": 1.8
+      "uvMax": 5.5
     },
     "2026-07-23": {
-      "temp": 20.1,
-      "tempFeel": 20.1,
-      "humidity": 65,
-      "windSpeed": 6.5,
-      "windDir": 318,
-      "precipProb": 32,
+      "temp": 19.6,
+      "tempFeel": 18.5,
+      "humidity": 56,
+      "windSpeed": 8.6,
+      "windDir": 305,
+      "precipProb": 57,
       "weatherCode": 3,
       "uvMax": 4.4
     },
     "2026-07-24": {
-      "temp": 18.5,
-      "tempFeel": 16.7,
-      "humidity": 63,
-      "windSpeed": 15,
-      "windDir": 284,
-      "precipProb": 19,
-      "weatherCode": 3,
-      "uvMax": 6.4
+      "temp": 21,
+      "tempFeel": 21.1,
+      "humidity": 64,
+      "windSpeed": 9,
+      "windDir": 277,
+      "precipProb": 20,
+      "weatherCode": 80,
+      "uvMax": 4.7
     },
     "2026-07-25": {
       "temp": 18.7,
@@ -9475,7 +10153,7 @@
       "windDir": 255,
       "precipProb": 18,
       "weatherCode": 51,
-      "uvMax": 6.3
+      "uvMax": 5.9
     },
     "2026-07-26": {
       "temp": 23.1,
@@ -9485,7 +10163,7 @@
       "windDir": 210,
       "precipProb": 28,
       "weatherCode": 1,
-      "uvMax": 6.4
+      "uvMax": 3.9
     },
     "2026-07-27": {
       "temp": 25.3,
@@ -9495,7 +10173,7 @@
       "windDir": 249,
       "precipProb": 11,
       "weatherCode": 1,
-      "uvMax": 6.4
+      "uvMax": 3.4
     },
     "2026-07-28": {
       "temp": 24.5,
@@ -9505,7 +10183,7 @@
       "windDir": 229,
       "precipProb": 21,
       "weatherCode": 51,
-      "uvMax": 6.1
+      "uvMax": 4.8
     },
     "2026-07-29": {
       "temp": 19.2,
@@ -9515,7 +10193,7 @@
       "windDir": 296,
       "precipProb": 18,
       "weatherCode": 51,
-      "uvMax": 4.4
+      "uvMax": 4
     },
     "2026-07-30": {
       "temp": 20,
@@ -9525,7 +10203,7 @@
       "windDir": 294,
       "precipProb": 10,
       "weatherCode": 1,
-      "uvMax": 4.3
+      "uvMax": 5.3
     },
     "2026-07-31": {
       "temp": 23.1,
@@ -9535,24 +10213,24 @@
       "windDir": 93,
       "precipProb": 20,
       "weatherCode": 1,
-      "uvMax": 3.4
+      "uvMax": 4.5
     },
     "2026-08-01": {
-      "temp": 25.2,
-      "tempFeel": 24.8,
-      "humidity": 47,
-      "windSpeed": 9.8,
-      "windDir": 250,
+      "temp": 18.9,
+      "tempFeel": 16.8,
+      "humidity": 58,
+      "windSpeed": 15.5,
+      "windDir": 280,
       "precipProb": 0,
-      "weatherCode": 3,
-      "uvMax": 5.5
+      "weatherCode": 51,
+      "uvMax": 4.6
     }
   },
   "plans": [
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-17T13:06:42.520Z",
+  "updated": "2026-07-17T18:54:10.012Z",
   "source": "notion+intervals",
   "count": 71
 }
