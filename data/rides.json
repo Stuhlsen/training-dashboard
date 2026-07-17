@@ -3735,7 +3735,7 @@
       "tss": 175,
       "if": 0.95,
       "vi": 1.12,
-      "trimp": 187,
+      "trimp": 185,
       "ctl": 65.7,
       "atl": 81.3,
       "tsb": -15.6,
@@ -3788,8 +3788,8 @@
       },
       "wetter": "28.7°C",
       "source": "intervals.icu",
-      "ruhepuls": 61,
-      "hrv": 59,
+      "ruhepuls": 62,
+      "hrv": 51,
       "avgSleepingHR": 51,
       "sleepHours": 6.4,
       "feel": null,
@@ -4854,12 +4854,12 @@
       "date": "2026-07-16",
       "sleepHours": 6.4,
       "avgSleepingHR": 51,
-      "restingHR": 61,
-      "hrv": 59,
+      "restingHR": 62,
+      "hrv": 51,
       "weight": 79.4,
       "bodyFat": 23.1,
-      "activeEnergy": 822,
-      "restingEnergy": 1659,
+      "activeEnergy": 846,
+      "restingEnergy": 1883,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -4867,14 +4867,14 @@
     },
     {
       "date": "2026-07-17",
-      "sleepHours": null,
-      "avgSleepingHR": null,
+      "sleepHours": 9,
+      "avgSleepingHR": 58,
       "restingHR": null,
-      "hrv": null,
+      "hrv": 52,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": null,
-      "restingEnergy": null,
+      "activeEnergy": 25,
+      "restingEnergy": 715,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -4883,9 +4883,9 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-16",
+      "hrv": "2026-07-17",
       "restingHR": "2026-07-16",
-      "sleepHours": "2026-07-16"
+      "sleepHours": "2026-07-17"
     }
   },
   "powerCurves": {
@@ -10225,7 +10225,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-17T07:53:02.966Z",
+  "updated": "2026-07-17T08:05:22.276Z",
   "source": "notion+intervals",
   "count": 71
 }
