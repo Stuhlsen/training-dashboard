@@ -33,6 +33,7 @@ import { el, escapeHtml } from "./dom.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
 import { openPlanCardDialog } from "./plan-card-dialog.js";
+import { initPlanDrag, cancelActiveDrag } from "./plan-drag.js";
 
 /** Athlet-1-Zonen-Vokabular für den Karten-Dialog (Typ-Select) — dieselben
  *  Keys wie Planned._typColor/_typIcon, hier zentral exportiert statt in
@@ -147,6 +148,12 @@ export const Planned = {
   async render(rides) {
     const container = el("planned-container");
     if (!container) return;
+
+    // Ein laufender Drag überlebt den innerHTML-Austausch nicht (die
+    // gezogene Karte wird unter dem Ghost weggerissen). Betrifft u.a. den
+    // Athletenwechsel mitten im Drag — Konzept §7: abbrechen, keine
+    // Fremd-Karte schreiben.
+    cancelActiveDrag();
 
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
 
@@ -402,6 +409,7 @@ export const Planned = {
     // Wahoo-Push-Duplikate).
     if (!container.dataset.plannedBound) {
       container.dataset.plannedBound = "1";
+      initPlanDrag(container, (cardId, date) => Planned._handleDrop(cardId, date));
       container.addEventListener("click", (e) => {
         const moveBtn = e.target.closest(".planned-move-btn");
         const cancelBtn = e.target.closest(".planned-cancel-btn");
@@ -625,10 +633,18 @@ export const Planned = {
     const daysLabel =
       daysUntil === 0 ? "Heute!" : daysUntil === 1 ? "Morgen" : `in ${daysUntil} Tagen`;
 
+    // Per Drag verschiebbar nur, was auch verschoben werden DARF: keine
+    // read-only-Ansicht (Athlet 2) und keine vergangene Einheit. Eine
+    // vergangene Karte behält den "Verschieben"-Button — abgewiesen wird
+    // sie als Drag-QUELLE, während ein vergangener Tag als Drop-ZIEL
+    // abgewiesen wird (Konzept §6); das sind zwei verschiedene Regeln.
+    const draggable = _canEdit() && s.date >= new Date().toISOString().split("T")[0];
+
     return `
-      <div class="planned-card" style="border-left-color:${col}">
+      <div class="planned-card" style="border-left-color:${col}" data-card-id="${s.id}" data-date="${s.date}">
         <div class="planned-card-header">
           <div class="planned-card-title">
+            ${draggable ? `<span class="planned-card-grip ti ti-grip-vertical" title="Auf einen anderen Tag ziehen"></span>` : ""}
             <span class="planned-card-icon">${icon}</span>
             <span class="planned-card-name">${s.name}</span>
           </div>
@@ -966,6 +982,35 @@ export const Planned = {
         statusEl.textContent = `❌ ${result.error?.message || "Fehler beim Speichern"}`;
       }
     });
+  },
+
+  /* ── Drop-Handler (Drag & Drop) ────────────────────────────── */
+  /** Gültiger Drop auf einen Tag — zweite Eingabeart für denselben
+   *  Verschiebe-Vorgang wie _handleMove(), deshalb derselbe Aufruf:
+   *  movePlanCard(). Ohne Grund (das Drag-Raster hat kein Textfeld) und
+   *  ohne Wahoo-Push: der bleibt die bewusste Pro-Karte-Aktion (§5).
+   *  Die Regeln (Vergangenheit/selber Tag) hat ui/plan-drag.js schon
+   *  angewandt — hier kommen nur noch echte Verschiebungen an. */
+  async _handleDrop(cardId, date) {
+    // movePlanCard setzt den State optimistisch, BEVOR es auf den Server
+    // wartet — dieses render() zeigt die Karte deshalb sofort am Zieltag.
+    const pending = movePlanCard(cardId, date, "");
+    await Planned.render(Data.byDate());
+    Planned.onAdjustmentChange?.();
+
+    const result = await pending;
+    if (result.ok) return;
+
+    // Fehlgeschlagen: state/plan-cards.js hat bereits zurückgerollt —
+    // sichtbar machen und den Fehler an der Karte anzeigen (dieselbe
+    // Pro-Karte-Statuszeile wie der Push).
+    await Planned.render(Data.byDate());
+    Planned.onAdjustmentChange?.();
+    const statusEl = el(`push-status-${cardId}`);
+    if (statusEl) {
+      statusEl.textContent = `❌ ${result.error?.message || "Verschieben fehlgeschlagen"}`;
+      statusEl.style.color = "var(--red)";
+    }
   },
 
   /* ── Bearbeiten-Handler ────────────────────────────────────── */

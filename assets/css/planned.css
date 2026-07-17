@@ -931,3 +931,109 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
+
+/* ── Drag & Drop (Phase 3) ───────────────────────────────────── */
+/* Griff an der Karte: startet den Verschiebe-Modus (Konzept §2/§4).
+   touch-action:none ist Pflicht — sonst scrollt Touch die Seite,
+   statt die Karte zu ziehen. */
+.planned-card-grip {
+  color: var(--dim);
+  cursor: grab;
+  touch-action: none;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px;
+  margin-left: -4px;
+  border-radius: 4px;
+  transition: color var(--transition), background var(--transition);
+}
+.planned-card-grip:hover {
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+.planned-card-grip:active { cursor: grabbing; }
+
+/* Originalkarte während des Ziehens — reduziert, bleibt aber als
+   Platzhalter sichtbar. */
+.planned-card--dragging {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+/* Der Ghost hängt am Zeiger. pointer-events:none hält ihn aus
+   elementFromPoint() raus, sonst träfe der Treffertest immer ihn
+   selbst statt den Slot darunter. */
+.planned-card--ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.9;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  transform: translate(0, 0);
+  cursor: grabbing;
+}
+/* Abgewiesener Drop: Ghost schnappt sichtbar zurück (§6) */
+.planned-card--ghost-snapback {
+  transition: transform 0.18s ease-out;
+}
+
+body.is-card-dragging { cursor: grabbing; user-select: none; }
+
+/* Tages-Slots — existieren nur während eines Drags (ui/plan-drag.js) */
+.planned-day-slots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.planned-day-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 62px;
+  padding: 6px 4px;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.planned-day-slot-day {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text);
+}
+.planned-day-slot-hint {
+  font-size: 0.62rem;
+  color: var(--dim);
+}
+
+/* Zieltag unter dem Zeiger */
+.planned-day-slot--over {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: rgba(224, 138, 60, 0.12);
+}
+.planned-day-slot--over .planned-day-slot-day { color: var(--accent); }
+
+/* Vergangener Tag: gedimmt, nimmt keine Karte an (§6) */
+.planned-day-slot--blocked {
+  opacity: 0.35;
+  border-style: solid;
+  border-color: var(--border);
+  background: none;
+}
+
+@media (max-width: 640px) {
+  /* 7 Spalten sind auf dem Telefon unbedienbar schmal */
+  .planned-day-slots { grid-template-columns: repeat(4, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planned-card--ghost-snapback { transition: none; }
+}

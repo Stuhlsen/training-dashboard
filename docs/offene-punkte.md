@@ -175,6 +175,54 @@ Migrationskandidat für einen späteren Schritt (auf `plan_cards` als Quelle
 umstellen, analog zu `ui/planned.js`).
 → Details: `docs/phase-3-konzept-planungstab.md` §8.
 
+**Drag & Drop: Warnung beim Verschieben einer bereits gepushten Karte fehlt**
+Konzept §5 sieht vor, dass die UI beim Verschieben einer Karte mit gesetztem
+`pushed_external_id` warnt („schon auf Wahoo, dort ggf. manuell anpassen") —
+ohne selbst einen externen Call zu machen. Das ist bislang **weder im
+Drag-Pfad noch im „Verschieben"-Button** umgesetzt; es nur für Drag
+einzubauen hätte zwei unterschiedlich laute Eingabearten für denselben
+Vorgang erzeugt. Gehört zur Nach-Drop-Feedback-Ebene (Fahrplan-Schritt 5)
+und sollte dann für BEIDE Pfade zugleich kommen — die Stelle dafür ist
+`state/plan-cards.js::movePlanCard()` bzw. dessen Aufrufer.
+→ Details: `docs/phase-3-konzept-planungstab.md` §5.
+
+**Drag & Drop: Verschieben per Tastatur (A11y)**
+`ui/plan-drag.js` ist Pointer-basiert (Maus/Touch/Pen). Das Konzept nennt als
+A11y-Fallback ausdrücklich das bestehende `.planned-move-form` (Datum manuell
+wählen) — das existiert und bleibt an jeder Karte erreichbar, die Funktion ist
+also nicht rein maus-/touchgebunden. Offen bleibt die Konzeptfrage, ob echtes
+Tastatur-Verschieben (Karte fokussierbar, Pfeile + Enter) noch nachgezogen
+wird; der Griff ist derzeit nicht fokussierbar.
+→ Details: `docs/phase-3-konzept-planungstab.md` §4.
+
+**Drag & Drop: keine Umsortierung innerhalb eines Tages (`sort_order`)**
+Konzept §7 nennt „zwei Karten am selben Tag → Drag innerhalb des Tages
+sortiert um". Der Drop zielt aktuell nur auf einen TAG und schreibt nur
+`planned_date`; ein Drop auf denselben Tag ist ein No-Op. `sort_order` wird
+beim Anlegen vergeben (`createPlanCard`: max+1 des Tages) und danach nie mehr
+geändert. Umsortieren per Drag ist damit noch offen.
+
+**Drag & Drop: Karte auf einen komplett leeren Wochenblock behält ihr altes week-Label**
+`core/plan-drag.js::weekLabelForDate()` übernimmt `week`/`phase` von den Karten,
+die bereits in der Zielwoche liegen. Hat die Zielwoche keine andere Karte (die
+gezogene selbst zählt bewusst nicht), gibt es nichts zu übernehmen → die Karte
+behält ihr altes Label und hängt unter der alten Wochenüberschrift. Praktisch
+selten, weil der Tab nur Wochen rendert, die mindestens eine Karte haben — der
+Fall tritt v.a. auf, wenn die gezogene Karte die einzige ihrer Woche war.
+Sauber lösen ließe sich das nur mit einer echten Datum→Plan-Woche-Ableitung
+(die Plan-Struktur dafür lebt in `scripts/lib/plan2.js`, nicht im Frontend).
+Bewusste v1-Einschränkung.
+
+**`today` wird dashboard-weit aus UTC abgeleitet, nicht lokal**
+`new Date().toISOString().split("T")[0]` (in `ui/planned.js`, `app.js`,
+`ui/overview.js`, `ui/plan-drag.js`) liefert das UTC-Datum. In deutscher
+Sommerzeit (UTC+2) heißt das: zwischen 00:00 und 02:00 lokaler Zeit meint
+„heute" noch den Vortag. Für Drag & Drop heißt das, dass der gerade
+abgelaufene Tag in diesem Zeitfenster noch als gültiges Drop-Ziel gilt
+(fehlertolerant, nicht datenverletzend). Bestehendes Muster, bewusst nicht
+im Zuge von Drag & Drop einseitig geändert — eine Korrektur sollte alle
+Aufrufstellen zugleich erfassen.
+
 ## Erledigt (zur Historie, nicht mehr offen)
 
 **Kartentausch → Wahoo-Push-Duplikate, falsche Fahrtenbuch-Zuordnung, fehlende Ausrollen-Erkennung**
