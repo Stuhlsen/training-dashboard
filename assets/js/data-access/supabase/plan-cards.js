@@ -68,6 +68,8 @@ export async function updatePlanCard(id, patch) {
   if (patch.details !== undefined) updates.note = patch.details;
   if (patch.workout !== undefined) updates.workout = patch.workout;
   if (patch.pushedExternalId !== undefined) updates.pushed_external_id = patch.pushedExternalId;
+  if (patch.week !== undefined) updates.week = patch.week;
+  if (patch.phase !== undefined) updates.phase = patch.phase;
 
   const { data, error } = await client
     .from("plan_cards")

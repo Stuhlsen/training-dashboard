@@ -6,6 +6,7 @@ import {
 } from "../data-access/supabase/plan-cards.js";
 import { findProfileIdByDisplayName } from "../data-access/supabase/profiles.js";
 import { pushCardWorkout } from "../data-access/intervals/push.js";
+import { weekLabelForDate } from "../core/plan-drag.js";
 import { CONFIG } from "./config.js";
 import { getSession } from "./session.js";
 
@@ -88,11 +89,17 @@ export async function loadPlanCards(athleteId) {
   return result;
 }
 
+/** Ersetzt eine Karte im lokalen Cache und hält die Sortierung stabil
+ *  (Datum, dann sort_order — dieselbe Ordnung wie listPlanCards()). */
+function replaceCard(next) {
+  cards = cards
+    .map((c) => (c.id === next.id ? next : c))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.sortOrder - b.sortOrder);
+}
+
 function applyCardUpdate(result) {
   if (result.ok && cards.some((c) => c.id === result.card.id)) {
-    cards = cards
-      .map((c) => (c.id === result.card.id ? result.card : c))
-      .sort((a, b) => a.date.localeCompare(b.date) || a.sortOrder - b.sortOrder);
+    replaceCard(result.card);
     notify();
   }
   return result;
@@ -101,24 +108,63 @@ function applyCardUpdate(result) {
 /** Verschiebt eine Karte auf ein neues Datum — merkt sich das ursprüngliche
  *  Datum nur beim ERSTEN Verschieben (moved_from_date bleibt bei einer
  *  erneuten Verschiebung derselben Karte auf dem allerersten Ursprung
- *  stehen, analog zum bisherigen "Verschoben von …"-Badge-Verhalten). */
+ *  stehen, analog zum bisherigen "Verschoben von …"-Badge-Verhalten).
+ *
+ *  Gemeinsamer Schreibpfad für BEIDE Eingabearten: den "Verschieben"-
+ *  Button (Datumsfeld) und Drag & Drop (ui/planned.js). Optimistik und
+ *  requestId-Schutz liegen deshalb hier und nicht im Drag-Handler — sonst
+ *  hätte der Button-Pfad sie nicht.
+ *
+ *  Die Karte übernimmt das week/phase-Label der Zielwoche (core/plan-drag.js),
+ *  sonst hinge sie nach einem Drop über die Wochengrenze unter der alten
+ *  Wochenüberschrift; ist die Zielwoche leer, bleibt das Label stehen. */
 export async function movePlanCard(id, newDate, reason) {
   const gate = requireUser();
   if (!gate.ok) return gate;
-  const card = cards.find((c) => c.id === id);
-  const movedFromDate = card?.originalDate ?? card?.date;
+  const snapshot = cards.find((c) => c.id === id);
+  if (!snapshot) return { ok: false, error: { code: "NO_DATA", message: "Karte nicht gefunden" } };
+
+  const movedFromDate = snapshot.originalDate ?? snapshot.date;
+  const label = weekLabelForDate(cards, newDate, id);
   // status/cancelReason mit zurücksetzen: eine Karte kann in der DB
   // theoretisch gleichzeitig "ausgefallen" UND "verschoben" markiert sein
   // (getrennte Spalten, kein Constraint) — das alte adjustments.json-Modell
   // kannte pro Datum nur EINEN aktiven Zustand. Verschieben einer
   // ausgefallenen Karte reaktiviert sie also implizit als geplant.
-  const result = await updatePlanCardAdapter(id, {
+  const patch = {
     plannedDate: newDate,
     movedFromDate,
     moveReason: reason || "",
     status: "geplant",
     cancelReason: null,
+    ...(label ? { week: label.week, phase: label.phase } : {}),
+  };
+
+  const myRequest = ++requestId;
+  // Optimistisch: die Karte springt sofort an den Zieltag, ohne auf die
+  // Runde zum Server zu warten (Konzept §4).
+  replaceCard({
+    ...snapshot,
+    date: newDate,
+    originalDate: movedFromDate,
+    movedReason: reason || undefined,
+    cancelled: undefined,
+    cancelReason: undefined,
+    ...(label ? { week: label.week, phase: label.phase } : {}),
   });
+  notify();
+
+  const result = await updatePlanCardAdapter(id, patch);
+  // Überholt (schneller Zweit-Drop, Athletenwechsel): NICHT anwenden — und
+  // vor allem NICHT zurückrollen. Ein blinder Rollback im Fehlerzweig würde
+  // sonst den bereits gesetzten Zustand des NEUEREN Vorgangs überschreiben:
+  // A optimistisch → B startet → A schlägt fehl → A's Snapshot klobbert B.
+  if (myRequest !== requestId) return result;
+  if (!result.ok) {
+    replaceCard(snapshot);
+    notify();
+    return result;
+  }
   return applyCardUpdate(result);
 }
 
