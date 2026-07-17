@@ -18,6 +18,12 @@ let loadedForAthleteId = null;
 // den State überschreibt (Athletenwechsel während eines laufenden Loads,
 // oder ein Move/Cancel/Undo, das schneller zurückkommt als ein zuvor
 // gestarteter loadPlanCards()).
+// JEDE Mutation bumpt mit, nicht nur loadPlanCards() — sonst sähe eine
+// laufende Mutation die dazwischengeschobene andere nicht und würde deren
+// Ergebnis überschreiben. Für movePlanCard() ist das scharf: es schreibt
+// optimistisch und müsste bei einem Fehler zurückrollen — ein Rollback
+// gegen einen inzwischen geänderten Stand macht die neuere Änderung
+// unsichtbar, obwohl die DB sie führt.
 let requestId = 0;
 const listeners = new Set();
 // athleteId ("athlete1"/"athlete2") -> aufgelöste Supabase-Profil-UUID.
@@ -171,6 +177,7 @@ export async function movePlanCard(id, newDate, reason) {
 export async function cancelPlanCard(id, reason) {
   const gate = requireUser();
   if (!gate.ok) return gate;
+  const myRequest = ++requestId;
   // moved_from_date/move_reason mit löschen (s. movePlanCard-Kommentar) —
   // sonst bliebe eine bereits verschobene Karte nach dem Ausfallen mit
   // stehengebliebenen Verschiebe-Daten zurück, und "Rückgängig" bräuchte
@@ -182,6 +189,7 @@ export async function cancelPlanCard(id, reason) {
     movedFromDate: null,
     moveReason: null,
   });
+  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
 }
 
@@ -196,9 +204,11 @@ export async function undoAdjustment(id) {
   if (!gate.ok) return gate;
   const card = cards.find((c) => c.id === id);
   if (!card) return { ok: true };
+  const myRequest = ++requestId;
 
   if (card.cancelled) {
     const result = await updatePlanCardAdapter(id, { status: "geplant", cancelReason: null });
+    if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
     return applyCardUpdate(result);
   }
   if (!card.originalDate) return { ok: true };
@@ -207,6 +217,7 @@ export async function undoAdjustment(id) {
     movedFromDate: null,
     moveReason: null,
   });
+  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
 }
 
@@ -245,6 +256,7 @@ export async function createPlanCard(athleteId, cardData) {
 export async function updatePlanCard(id, cardData) {
   const gate = requireUser();
   if (!gate.ok) return gate;
+  const myRequest = ++requestId;
   const result = await updatePlanCardAdapter(id, {
     plannedDate: cardData.date,
     title: cardData.name,
@@ -254,6 +266,7 @@ export async function updatePlanCard(id, cardData) {
     details: cardData.details ?? null,
     workout: cardData.workout ?? null,
   });
+  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
 }
 
@@ -264,7 +277,9 @@ export async function updatePlanCard(id, cardData) {
 export async function deletePlanCard(id) {
   const gate = requireUser();
   if (!gate.ok) return gate;
+  const myRequest = ++requestId;
   const result = await removePlanCardAdapter(id);
+  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
   if (result.ok) {
     const before = cards.length;
     cards = cards.filter((c) => c.id !== id);

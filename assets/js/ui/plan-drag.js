@@ -20,13 +20,15 @@
    ============================================================ */
 
 import { resolveDrop, daySlots } from "../core/plan-drag.js";
+import { fmtDate, localISODate } from "../core/format.js";
 
 /** Pixel, die der Zeiger sich bewegen muss, bevor aus einem Druck auf den
  *  Griff ein Drag wird — sonst startet jeder Klick/Tap einen Ghost. */
 const DRAG_THRESHOLD_PX = 5;
 /** Abstand zum Fensterrand, ab dem der Ghost die Seite mitscrollt (§4). */
 const AUTOSCROLL_ZONE_PX = 90;
-const AUTOSCROLL_SPEED_PX = 14;
+/** Pro Frame, nicht pro Mausbewegung — bei 60fps ~480px/s. */
+const AUTOSCROLL_SPEED_PX = 8;
 
 const WEEKDAYS = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
 
@@ -35,18 +37,11 @@ let drag = null;
 /** Von initPlanDrag() gesetzt: was bei einem gültigen Drop passiert. */
 let dropHandler = null;
 
-/** Gleiche Ableitung wie ui/planned.js::render() — bewusst dasselbe
- *  Ausdrucksmuster wie im übrigen Dashboard (app.js, overview.js), damit
- *  Slot-Regeln und Abschnitts-Filterung denselben Tag meinen. */
-function todayISO() {
-  return new Date().toISOString().split("T")[0];
-}
-
+/** "Mi 22.07." — Tagesformat der Slots. Der DD.MM-Teil kommt aus
+ *  core/format.js::fmtDate (dashboard-weite Konvention), der Wochentag
+ *  davor ist das, was einen Slot überhaupt erst als Tag lesbar macht. */
 function fmtDay(iso) {
-  const d = new Date(iso);
-  const dd = String(d.getDate()).padStart(2, "0");
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  return `${WEEKDAYS[d.getDay()]} ${dd}.${mm}.`;
+  return `${WEEKDAYS[new Date(iso).getDay()]} ${fmtDate(iso)}`;
 }
 
 /* ── Tages-Slots ein-/ausblenden ───────────────────────────────── */
@@ -87,6 +82,11 @@ function makeGhost(cardEl, event) {
   const ghost = cardEl.cloneNode(true);
   ghost.classList.add("planned-card--ghost");
   ghost.querySelector(".planned-card-grip")?.remove();
+  // Der Klon zöge sonst jede id der Karte (z.B. push-status-<id>) ein
+  // zweites Mal ins Dokument — getElementById fände dann je nach
+  // Baumreihenfolge den Ghost statt der echten Karte.
+  for (const withId of ghost.querySelectorAll("[id]")) withId.removeAttribute("id");
+  ghost.removeAttribute("id");
   ghost.style.width = `${rect.width}px`;
   ghost.style.height = `${rect.height}px`;
   document.body.appendChild(ghost);
@@ -95,8 +95,6 @@ function makeGhost(cardEl, event) {
     // Greifpunkt merken, damit der Ghost nicht unter dem Zeiger springt
     offsetX: event.clientX - rect.left,
     offsetY: event.clientY - rect.top,
-    homeX: rect.left,
-    homeY: rect.top,
   };
 }
 
@@ -106,9 +104,26 @@ function moveGhost(ghost, x, y) {
 
 /* ── Autoscroll ────────────────────────────────────────────────── */
 
-function autoscroll(y) {
-  if (y < AUTOSCROLL_ZONE_PX) window.scrollBy(0, -AUTOSCROLL_SPEED_PX);
-  else if (y > window.innerHeight - AUTOSCROLL_ZONE_PX) window.scrollBy(0, AUTOSCROLL_SPEED_PX);
+/** Läuft als rAF-Schleife, solange gezogen wird — NICHT aus pointermove
+ *  heraus: am Rand stillgehaltene Zeiger scrollen sonst nicht (ohne
+ *  Bewegung kein Event), und man müsste im Randstreifen wackeln, um die
+ *  Liste weiterzubewegen. */
+function autoscrollTick() {
+  if (!drag?.active) return;
+  const y = drag.pointerY;
+  const dy =
+    y < AUTOSCROLL_ZONE_PX
+      ? -AUTOSCROLL_SPEED_PX
+      : y > window.innerHeight - AUTOSCROLL_ZONE_PX
+        ? AUTOSCROLL_SPEED_PX
+        : 0;
+  if (dy) {
+    window.scrollBy(0, dy);
+    // Der Zeiger steht still, aber der Inhalt wandert unter ihm durch —
+    // ohne das hier bliebe die Hervorhebung am alten Slot kleben.
+    highlight(slotUnder(drag.pointerX, y));
+  }
+  drag.rafId = window.requestAnimationFrame(autoscrollTick);
 }
 
 /* ── Drop-Ziel unter dem Zeiger ────────────────────────────────── */
@@ -136,6 +151,7 @@ function beginDrag(event) {
   document.body.classList.add("is-card-dragging");
   showDaySlots(drag.container, drag.today);
   moveGhost(drag.ghost, event.clientX, event.clientY);
+  drag.rafId = window.requestAnimationFrame(autoscrollTick);
 }
 
 /** Räumt Ghost, Slots und Listener ab. `snapBack` lässt den Ghost sichtbar
@@ -144,6 +160,7 @@ function beginDrag(event) {
 function endDrag(snapBack) {
   if (!drag) return;
   const { ghost, cardEl, container } = drag;
+  if (drag.rafId) window.cancelAnimationFrame(drag.rafId);
   window.removeEventListener("pointermove", onPointerMove);
   window.removeEventListener("pointerup", onPointerUp);
   window.removeEventListener("pointercancel", onPointerCancel);
@@ -155,9 +172,15 @@ function endDrag(snapBack) {
   document.body.classList.remove("is-card-dragging");
 
   if (ghost) {
-    if (snapBack) {
+    if (snapBack && cardEl?.isConnected) {
+      // Zielposition LIVE lesen: der Ghost wird per transform gesetzt, und
+      // die Ausgangsposition der Karte hat sich seit dem Greifen verschoben
+      // (Autoscroll, eingeblendete Slot-Zeilen). Ein gemerkter Startwert —
+      // oder gar translate(0,0), was der Viewport-Ecke entspräche — ließe
+      // den Ghost woandershin fliegen als zur Karte.
+      const home = cardEl.getBoundingClientRect();
       ghost.el.classList.add("planned-card--ghost-snapback");
-      ghost.el.style.transform = "translate(0px, 0px)";
+      ghost.el.style.transform = `translate(${home.left}px, ${home.top}px)`;
       ghost.el.addEventListener("transitionend", () => ghost.el.remove(), { once: true });
       // Fallback, falls die Transition nie feuert (reduced-motion o. Ä.)
       setTimeout(() => ghost.el.remove(), 400);
@@ -178,9 +201,10 @@ function onPointerMove(event) {
     beginDrag(event);
   }
   event.preventDefault();
+  drag.pointerX = event.clientX;
+  drag.pointerY = event.clientY;
   moveGhost(drag.ghost, event.clientX, event.clientY);
   highlight(slotUnder(event.clientX, event.clientY));
-  autoscroll(event.clientY);
 }
 
 function onPointerUp(event) {
@@ -222,12 +246,19 @@ function onPointerDown(event) {
     cardEl,
     cardId: cardEl.dataset.cardId,
     cardDate: cardEl.dataset.date,
-    today: todayISO(),
+    // localISODate() statt toISOString(): letzteres liefert das UTC-Datum
+    // und würde in deutscher Sommerzeit zwischen 00:00 und 02:00 noch den
+    // Vortag als "heute" ausweisen — der gerade abgelaufene Tag bliebe
+    // dann ein gültiges Drop-Ziel.
+    today: localISODate(),
     startX: event.clientX,
     startY: event.clientY,
+    pointerX: event.clientX,
+    pointerY: event.clientY,
     active: false,
     ghost: null,
     hoverEl: null,
+    rafId: 0,
   };
   window.addEventListener("pointermove", onPointerMove, { passive: false });
   window.addEventListener("pointerup", onPointerUp);

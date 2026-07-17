@@ -27,7 +27,7 @@ let pending = [];
 
 mock.module(u("data-access/supabase/plan-cards.js"), {
   exports: {
-    listPlanCards: async () => ({ ok: true, cards: structuredClone(SEED) }),
+    listPlanCards: async () => ({ ok: true, cards: SEED.map((c) => ({ ...c })) }),
     updatePlanCard: (id, patch) =>
       new Promise((resolve) => pending.push({ id, patch, resolve })),
     createPlanCard: async () => ({ ok: true, card: {} }),
@@ -44,7 +44,7 @@ mock.module(u("state/session.js"), {
   exports: { getSession: () => ({ id: "user-1" }) },
 });
 
-const { loadPlanCards, movePlanCard, undoAdjustment, getState } = await import(
+const { loadPlanCards, movePlanCard, cancelPlanCard, undoAdjustment, getState } = await import(
   u("state/plan-cards.js")
 );
 
@@ -197,6 +197,30 @@ test("Race: eine überholte ERFOLGS-Antwort überschreibt den neueren Move nicht
   pending[1].resolve({ ok: true, card: serverCard(SEED[0], pending[1].patch) });
   await pB;
   assert.equal(cardById("card-A").date, "2026-07-24");
+});
+
+test("Race: der Rollback eines Moves überschreibt keine dazwischen gelaufene Mutation", async () => {
+  await seed();
+  // Move optimistisch losschicken …
+  const pMove = movePlanCard("card-A", "2026-07-22", "");
+  assert.equal(cardById("card-A").date, "2026-07-22");
+
+  // … und die Karte, während der Move noch unterwegs ist, ausfallen lassen.
+  const pCancel = cancelPlanCard("card-A", "Krank");
+  pending[1].resolve({
+    ok: true,
+    card: { ...SEED[0], date: "2026-07-22", cancelled: true, cancelReason: "Krank" },
+  });
+  await pCancel;
+  assert.equal(cardById("card-A").cancelled, true);
+
+  // Jetzt schlägt der Move fehl. Ohne Bump in cancelPlanCard() sähe der
+  // Move-Guard denselben requestId wie beim Start und würde den Ausfall
+  // wegrollen — obwohl die DB die Karte als ausgefallen führt.
+  pending[0].resolve({ ok: false, error: { code: "HTTP", message: "503" } });
+  await pMove;
+
+  assert.equal(cardById("card-A").cancelled, true, "Ausfall bleibt sichtbar");
 });
 
 /* ── Rückgängig nach Drag = Rückgängig nach Button ───────────── */

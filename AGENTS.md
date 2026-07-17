@@ -7,11 +7,21 @@ Live: stuhlsen.github.io/training-dashboard
 ## Stack
 
 Vanilla HTML/CSS/JS als **native ES-Module** · SVG-Charts (kein Framework, kein Build-Step, kein Bundler)
-Node.js ≥ 20 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
+Node.js ≥ 22.3 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
 `package.json` existiert primär für `"type": "module"` und die npm-Scripts — Dashboard
 und Datensync brauchen kein `npm install`. Einzige Ausnahme: `fallow` als `devDependency`
 (nur für den lokalen/CI-Codebase-Qualitätscheck, siehe Abschnitt „Codebase-Qualität").
 Tests laufen mit dem eingebauten `node:test`.
+
+**Warum 22.3 und nicht 20:** `npm test` läuft als
+`node --test --experimental-test-module-mocks`. Das Flag (und `mock.module()`)
+gibt es erst ab Node 22.3 — auf Node 20 bricht `node` bei der unbekannten Option
+ab, es liefe **kein einziger** Test. Alle Workflows (`ci.yml`, `sync-data.yml`)
+pinnen ohnehin schon Node 22. Gebraucht wird das Mocking von
+`tests/plan-cards-move.test.js`: die `state/`-Schicht ist sonst nicht testbar,
+weil `data-access/supabase/client.js` per URL von esm.sh lädt und Node das im
+Import-Graph nicht auflösen kann. Wenn das Flag stört, ist der Preis der
+Verlust der `state/`-Tests — nicht nur dieser einen Datei.
 
 ## Befehle
 
@@ -306,7 +316,9 @@ scripts/
     output.js         → subjective/adjustments (Athlet 1) + adjustments-2 (Athlet 2)
                         laden, rides.json/rides-2.json schreiben
 
-tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test)
+tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test);
+                        plan-cards-move.test.js testet zusätzlich state/ —
+                        data-access per mock.module() gestubbt (s. Stack-Abschnitt)
 
 .github/workflows/
   sync-data.yml       → Cron alle 6h; Jobs: sync (JSON generieren + committen + Artefakt-Upload) → deploy (Pages, needs: sync)

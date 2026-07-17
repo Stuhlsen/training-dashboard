@@ -17,7 +17,7 @@
    Schreibaktionen, keine Wahoo-Erwähnung im Hero-Text.
    ============================================================ */
 
-import { fmt, weatherIcon, windDir } from "../core/format.js";
+import { fmt, weatherIcon, windDir, localISODate } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
@@ -171,6 +171,12 @@ export const Planned = {
     // Bereits absolvierte Daten
     const doneDates = new Set(rides.map((r) => r.date));
     const today = new Date().toISOString().split("T")[0];
+    // Eigener, lokal abgeleiteter Tag für die Drag-Regeln (localISODate,
+    // s. core/format.js). `today` oben bleibt bewusst unangetastet: es
+    // steuert die Abschnitts-Filterung (Ausstehend/Verpasst/Absolviert)
+    // und würde sonst im selben Zug sein Verhalten ändern — s.
+    // docs/offene-punkte.md.
+    const todayLocal = localISODate();
 
     // plan_cards sind bereits im "aufgelösten" Zustand (Verschiebung/Ausfall
     // schon eingerechnet, s. state/plan-cards.js). Ruhetage (Athlet 2) werden
@@ -302,7 +308,7 @@ export const Planned = {
               <span class="planned-week-phase">${phase}</span>
             </div>
             <div class="planned-cards">
-              ${wSessions.map((s) => this._renderCard(s, forecast, false)).join("")}
+              ${wSessions.map((s) => this._renderCard(s, forecast, false, todayLocal)).join("")}
             </div>
           </div>`;
       }
@@ -434,7 +440,10 @@ export const Planned = {
   },
 
   /* ── Einzel-Karte ──────────────────────────────────────────── */
-  _renderCard(s, forecast, done) {
+  /** `todayLocal` kommt aus render() (localISODate) — bewusst durchgereicht
+   *  statt pro Karte neu aus der Uhr gelesen: sonst hätte jede Karte ihre
+   *  eigene Wahrheit darüber, was "heute" ist. */
+  _renderCard(s, forecast, done, todayLocal) {
     const col = this._typColor(s.typ);
     const icon = this._typIcon(s.typ);
     const wd = this._weekday(s.date);
@@ -638,7 +647,7 @@ export const Planned = {
     // vergangene Karte behält den "Verschieben"-Button — abgewiesen wird
     // sie als Drag-QUELLE, während ein vergangener Tag als Drop-ZIEL
     // abgewiesen wird (Konzept §6); das sind zwei verschiedene Regeln.
-    const draggable = _canEdit() && s.date >= new Date().toISOString().split("T")[0];
+    const draggable = _canEdit() && s.date >= todayLocal;
 
     return `
       <div class="planned-card" style="border-left-color:${col}" data-card-id="${s.id}" data-date="${s.date}">

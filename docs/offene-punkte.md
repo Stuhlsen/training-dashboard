@@ -213,15 +213,18 @@ Sauber lösen ließe sich das nur mit einer echten Datum→Plan-Woche-Ableitung
 (die Plan-Struktur dafür lebt in `scripts/lib/plan2.js`, nicht im Frontend).
 Bewusste v1-Einschränkung.
 
-**`today` wird dashboard-weit aus UTC abgeleitet, nicht lokal**
-`new Date().toISOString().split("T")[0]` (in `ui/planned.js`, `app.js`,
-`ui/overview.js`, `ui/plan-drag.js`) liefert das UTC-Datum. In deutscher
-Sommerzeit (UTC+2) heißt das: zwischen 00:00 und 02:00 lokaler Zeit meint
-„heute" noch den Vortag. Für Drag & Drop heißt das, dass der gerade
-abgelaufene Tag in diesem Zeitfenster noch als gültiges Drop-Ziel gilt
-(fehlertolerant, nicht datenverletzend). Bestehendes Muster, bewusst nicht
-im Zuge von Drag & Drop einseitig geändert — eine Korrektur sollte alle
-Aufrufstellen zugleich erfassen.
+**`ui/planned.js` leitet `today` für die Abschnitts-Filterung noch aus UTC ab**
+`core/format.js::localISODate()` existiert genau dafür und wird von `app.js`
+und `state/events.js` bereits benutzt; `ui/planned.js::render()` berechnet
+sein `today` aber weiterhin als `new Date().toISOString().split("T")[0]`, also
+in UTC. In deutscher Sommerzeit (UTC+2) meint „heute" damit zwischen 00:00 und
+02:00 lokaler Zeit noch den Vortag — eine Karte von gestern erscheint in dem
+Fenster fälschlich unter „Ausstehend" statt unter „Verpasst".
+Die **Drag-Regeln sind davon nicht betroffen**: `ui/plan-drag.js` und der
+Draggable-Gate in `_renderCard()` nutzen `localISODate()` und sind korrekt.
+Bewusst nicht im Zuge von Drag & Drop mitgeändert, weil es die bestehende
+Filterung von Ausstehend/Verpasst/Absolviert anfasst — eigener kleiner Fix,
+dann für alle drei Abschnitte zugleich.
 
 ## Erledigt (zur Historie, nicht mehr offen)
 
