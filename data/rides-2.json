@@ -10010,16 +10010,16 @@
       ],
       "eftp": null,
       "weather": {
-        "temp": 23.7,
-        "tempFeel": 23.7,
-        "humidity": 60,
-        "windSpeed": 11.8,
-        "windDir": 59,
-        "precip": 0,
-        "cloudCover": 100,
-        "weatherCode": 3
+        "temp": 24.4,
+        "tempFeel": 25.3,
+        "humidity": 61,
+        "windSpeed": 13.5,
+        "windDir": 54,
+        "precip": 0.4,
+        "cloudCover": 57,
+        "weatherCode": 51
       },
-      "wetter": "23.7°C",
+      "wetter": "24.4°C",
       "source": "intervals.icu",
       "ruhepuls": 48,
       "hrv": 78,
@@ -10091,16 +10091,16 @@
       ],
       "eftp": null,
       "weather": {
-        "temp": 23.7,
-        "tempFeel": 23.7,
-        "humidity": 60,
-        "windSpeed": 11.8,
-        "windDir": 59,
-        "precip": 0,
-        "cloudCover": 100,
-        "weatherCode": 3
+        "temp": 24.4,
+        "tempFeel": 25.3,
+        "humidity": 61,
+        "windSpeed": 13.5,
+        "windDir": 54,
+        "precip": 0.4,
+        "cloudCover": 57,
+        "weatherCode": 51
       },
-      "wetter": "23.7°C",
+      "wetter": "24.4°C",
       "source": "intervals.icu",
       "ruhepuls": 48,
       "hrv": 78,
@@ -13230,9 +13230,24 @@
     },
     {
       "date": "2026-07-17",
-      "sleepHours": 7.1,
+      "sleepHours": 7.2,
       "avgSleepingHR": 52,
-      "restingHR": 50,
+      "restingHR": 49,
+      "hrv": 35,
+      "weight": 91.8,
+      "bodyFat": null,
+      "activeEnergy": 311,
+      "restingEnergy": null,
+      "kcalConsumed": 1687,
+      "hydration": null,
+      "hydrationVolume": 0.84,
+      "eftp": 261
+    },
+    {
+      "date": "2026-07-18",
+      "sleepHours": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -13246,7 +13261,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-16",
+      "hrv": "2026-07-17",
       "restingHR": "2026-07-17",
       "sleepHours": "2026-07-17"
     }
@@ -13257,8 +13272,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-17T00:00:00",
-        "end_date_local": "2026-07-17T23:59:59",
+        "start_date_local": "2025-07-18T00:00:00",
+        "end_date_local": "2026-07-18T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -15990,7 +16005,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-17T18:54:11.190Z",
+  "updated": "2026-07-18T01:41:12.958Z",
   "source": "intervals.icu",
   "count": 128
 }
