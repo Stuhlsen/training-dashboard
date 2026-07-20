@@ -10253,16 +10253,16 @@
       ],
       "eftp": null,
       "weather": {
-        "temp": 25.6,
-        "tempFeel": 25.2,
-        "humidity": 43,
-        "windSpeed": 6.2,
-        "windDir": 33,
+        "temp": 24.4,
+        "tempFeel": 23,
+        "humidity": 42,
+        "windSpeed": 10.1,
+        "windDir": 41,
         "precip": 0,
-        "cloudCover": 89,
-        "weatherCode": 3
+        "cloudCover": 1,
+        "weatherCode": 0
       },
-      "wetter": "25.6°C",
+      "wetter": "24.4°C",
       "source": "intervals.icu",
       "ruhepuls": 47,
       "hrv": 52,
@@ -13251,7 +13251,7 @@
       "hrv": 57,
       "weight": 94.4,
       "bodyFat": null,
-      "activeEnergy": 1027,
+      "activeEnergy": 1042,
       "restingEnergy": null,
       "kcalConsumed": 552,
       "hydration": null,
@@ -13261,8 +13261,23 @@
     {
       "date": "2026-07-19",
       "sleepHours": 9.1,
-      "avgSleepingHR": null,
+      "avgSleepingHR": 54,
       "restingHR": 52,
+      "hrv": 72,
+      "weight": null,
+      "bodyFat": null,
+      "activeEnergy": 114,
+      "restingEnergy": null,
+      "kcalConsumed": 1748,
+      "hydration": null,
+      "hydrationVolume": 0.33,
+      "eftp": 260
+    },
+    {
+      "date": "2026-07-20",
+      "sleepHours": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -13276,7 +13291,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-18",
+      "hrv": "2026-07-19",
       "restingHR": "2026-07-19",
       "sleepHours": "2026-07-19"
     }
@@ -13287,8 +13302,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-19T00:00:00",
-        "end_date_local": "2026-07-19T23:59:59",
+        "start_date_local": "2025-07-20T00:00:00",
+        "end_date_local": "2026-07-20T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -16020,7 +16035,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-19T18:52:46.367Z",
+  "updated": "2026-07-20T02:06:42.250Z",
   "source": "intervals.icu",
   "count": 128
 }
