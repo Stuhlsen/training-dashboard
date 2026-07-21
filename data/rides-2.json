@@ -10348,7 +10348,7 @@
       "ruhepuls": 47,
       "hrv": null,
       "avgSleepingHR": null,
-      "sleepHours": 8,
+      "sleepHours": 8.1,
       "feel": null,
       "notizen": null
     },
@@ -10429,7 +10429,7 @@
       "ruhepuls": 47,
       "hrv": null,
       "avgSleepingHR": null,
-      "sleepHours": 8,
+      "sleepHours": 8.1,
       "feel": null,
       "notizen": null
     }
@@ -13452,7 +13452,7 @@
     },
     {
       "date": "2026-07-21",
-      "sleepHours": 8,
+      "sleepHours": 8.1,
       "avgSleepingHR": null,
       "restingHR": 47,
       "hrv": null,
@@ -16222,7 +16222,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-21T14:04:27.847Z",
+  "updated": "2026-07-21T17:54:48.569Z",
   "source": "intervals.icu",
   "count": 130
 }
