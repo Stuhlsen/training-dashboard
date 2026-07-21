@@ -5008,6 +5008,21 @@
       "hydration": null,
       "hydrationVolume": null,
       "eftp": 196
+    },
+    {
+      "date": "2026-07-21",
+      "sleepHours": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
+      "hrv": null,
+      "weight": null,
+      "bodyFat": null,
+      "activeEnergy": null,
+      "restingEnergy": null,
+      "kcalConsumed": null,
+      "hydration": null,
+      "hydrationVolume": null,
+      "eftp": 196
     }
   ],
   "wellnessMeta": {
@@ -5023,8 +5038,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-20T00:00:00",
-        "end_date_local": "2026-07-20T23:59:59",
+        "start_date_local": "2025-07-21T00:00:00",
+        "end_date_local": "2026-07-21T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -10199,65 +10214,55 @@
     }
   },
   "forecast": {
-    "2026-07-20": {
-      "temp": 16.7,
-      "tempFeel": 14.7,
-      "humidity": 68,
-      "windSpeed": 15.2,
-      "windDir": 275,
-      "precipProb": 26,
-      "weatherCode": 80,
-      "uvMax": 6.5
-    },
     "2026-07-21": {
-      "temp": 18.8,
-      "tempFeel": 16.7,
-      "humidity": 56,
-      "windSpeed": 13.4,
-      "windDir": 302,
+      "temp": 18.6,
+      "tempFeel": 17.5,
+      "humidity": 62,
+      "windSpeed": 9.3,
+      "windDir": 303,
       "precipProb": 1,
-      "weatherCode": 3,
-      "uvMax": 6.4
+      "weatherCode": 80,
+      "uvMax": 5.9
     },
     "2026-07-22": {
-      "temp": 17.4,
-      "tempFeel": 15.7,
-      "humidity": 65,
-      "windSpeed": 13.1,
-      "windDir": 262,
-      "precipProb": 3,
-      "weatherCode": 3,
-      "uvMax": 5.1
+      "temp": 16.8,
+      "tempFeel": 15.4,
+      "humidity": 70,
+      "windSpeed": 12.3,
+      "windDir": 260,
+      "precipProb": 2,
+      "weatherCode": 61,
+      "uvMax": 5.4
     },
     "2026-07-23": {
-      "temp": 17.2,
-      "tempFeel": 14.9,
+      "temp": 17.4,
+      "tempFeel": 15.4,
       "humidity": 61,
-      "windSpeed": 14.8,
-      "windDir": 283,
-      "precipProb": 24,
-      "weatherCode": 3,
-      "uvMax": 6.1
+      "windSpeed": 13.8,
+      "windDir": 277,
+      "precipProb": 20,
+      "weatherCode": 61,
+      "uvMax": 5.7
     },
     "2026-07-24": {
-      "temp": 19.9,
-      "tempFeel": 19.1,
-      "humidity": 59,
-      "windSpeed": 7.6,
-      "windDir": 284,
-      "precipProb": 11,
+      "temp": 20.1,
+      "tempFeel": 19.2,
+      "humidity": 57,
+      "windSpeed": 8.9,
+      "windDir": 302,
+      "precipProb": 4,
       "weatherCode": 3,
-      "uvMax": 5.2
+      "uvMax": 6.6
     },
     "2026-07-25": {
-      "temp": 24,
-      "tempFeel": 23.5,
-      "humidity": 43,
-      "windSpeed": 6.3,
-      "windDir": 229,
+      "temp": 22.8,
+      "tempFeel": 22.5,
+      "humidity": 49,
+      "windSpeed": 6,
+      "windDir": 228,
       "precipProb": 0,
       "weatherCode": 3,
-      "uvMax": 5.8
+      "uvMax": 6.5
     },
     "2026-07-26": {
       "temp": 21.8,
@@ -10267,7 +10272,7 @@
       "windDir": 249,
       "precipProb": 10,
       "weatherCode": 61,
-      "uvMax": 5.1
+      "uvMax": 3.4
     },
     "2026-07-27": {
       "temp": 18.3,
@@ -10277,7 +10282,7 @@
       "windDir": 297,
       "precipProb": 19,
       "weatherCode": 3,
-      "uvMax": 4.6
+      "uvMax": 3.3
     },
     "2026-07-28": {
       "temp": 20,
@@ -10285,9 +10290,9 @@
       "humidity": 58,
       "windSpeed": 18.1,
       "windDir": 282,
-      "precipProb": 22,
+      "precipProb": 16,
       "weatherCode": 51,
-      "uvMax": 6.2
+      "uvMax": 4.7
     },
     "2026-07-29": {
       "temp": 24.5,
@@ -10295,9 +10300,9 @@
       "humidity": 44,
       "windSpeed": 7.9,
       "windDir": 203,
-      "precipProb": 11,
+      "precipProb": 7,
       "weatherCode": 3,
-      "uvMax": 4.8
+      "uvMax": 4.5
     },
     "2026-07-30": {
       "temp": 25.3,
@@ -10305,9 +10310,9 @@
       "humidity": 50,
       "windSpeed": 8.5,
       "windDir": 262,
-      "precipProb": 17,
+      "precipProb": 12,
       "weatherCode": 1,
-      "uvMax": 5.6
+      "uvMax": 6.4
     },
     "2026-07-31": {
       "temp": 27.5,
@@ -10315,7 +10320,7 @@
       "humidity": 45,
       "windSpeed": 5.4,
       "windDir": 132,
-      "precipProb": 10,
+      "precipProb": 7,
       "weatherCode": 2,
       "uvMax": 6.4
     },
@@ -10325,9 +10330,9 @@
       "humidity": 31,
       "windSpeed": 13.3,
       "windDir": 222,
-      "precipProb": 12,
+      "precipProb": 6,
       "weatherCode": 2,
-      "uvMax": 6.3
+      "uvMax": 6.4
     },
     "2026-08-02": {
       "temp": 23,
@@ -10335,9 +10340,9 @@
       "humidity": 86,
       "windSpeed": 7.4,
       "windDir": 197,
-      "precipProb": 8,
+      "precipProb": 14,
       "weatherCode": 55,
-      "uvMax": 5.7
+      "uvMax": 6.5
     },
     "2026-08-03": {
       "temp": 26,
@@ -10345,26 +10350,36 @@
       "humidity": 70,
       "windSpeed": 6.4,
       "windDir": 36,
-      "precipProb": 21,
+      "precipProb": 19,
       "weatherCode": 51,
-      "uvMax": 4.6
+      "uvMax": 6.4
     },
     "2026-08-04": {
-      "temp": 28.3,
-      "tempFeel": 27.9,
-      "humidity": 45,
-      "windSpeed": 13.8,
-      "windDir": 188,
-      "precipProb": 0,
+      "temp": 29.6,
+      "tempFeel": 30.6,
+      "humidity": 49,
+      "windSpeed": 11.4,
+      "windDir": 204,
+      "precipProb": 16,
       "weatherCode": 51,
-      "uvMax": 4.3
+      "uvMax": 5.4
+    },
+    "2026-08-05": {
+      "temp": 30.5,
+      "tempFeel": 30.1,
+      "humidity": 33,
+      "windSpeed": 9.1,
+      "windDir": 282,
+      "precipProb": 0,
+      "weatherCode": 3,
+      "uvMax": 6.3
     }
   },
   "plans": [
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-20T19:26:09.798Z",
+  "updated": "2026-07-21T01:49:25.524Z",
   "source": "notion+intervals",
   "count": 72
 }

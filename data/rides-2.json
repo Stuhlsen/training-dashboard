@@ -13266,7 +13266,7 @@
       "hrv": 72,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": 114,
+      "activeEnergy": 125,
       "restingEnergy": null,
       "kcalConsumed": 1748,
       "hydration": null,
@@ -13275,6 +13275,21 @@
     },
     {
       "date": "2026-07-20",
+      "sleepHours": 7.5,
+      "avgSleepingHR": 52,
+      "restingHR": 48,
+      "hrv": 40,
+      "weight": null,
+      "bodyFat": null,
+      "activeEnergy": 197,
+      "restingEnergy": null,
+      "kcalConsumed": 2778,
+      "hydration": null,
+      "hydrationVolume": 0.12,
+      "eftp": 260
+    },
+    {
+      "date": "2026-07-21",
       "sleepHours": null,
       "avgSleepingHR": null,
       "restingHR": null,
@@ -13291,9 +13306,9 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-19",
-      "restingHR": "2026-07-19",
-      "sleepHours": "2026-07-19"
+      "hrv": "2026-07-20",
+      "restingHR": "2026-07-20",
+      "sleepHours": "2026-07-20"
     }
   },
   "powerCurves": {
@@ -13302,8 +13317,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-20T00:00:00",
-        "end_date_local": "2026-07-20T23:59:59",
+        "start_date_local": "2025-07-21T00:00:00",
+        "end_date_local": "2026-07-21T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -16035,7 +16050,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-20T19:26:12.701Z",
+  "updated": "2026-07-21T01:49:28.006Z",
   "source": "intervals.icu",
   "count": 128
 }
