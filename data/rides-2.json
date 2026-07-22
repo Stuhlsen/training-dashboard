@@ -10348,7 +10348,7 @@
       "ruhepuls": 47,
       "hrv": 36,
       "avgSleepingHR": 51,
-      "sleepHours": 8,
+      "sleepHours": 8.1,
       "feel": null,
       "notizen": null
     },
@@ -10429,7 +10429,88 @@
       "ruhepuls": 47,
       "hrv": 36,
       "avgSleepingHR": 51,
-      "sleepHours": 8,
+      "sleepHours": 8.1,
+      "feel": null,
+      "notizen": null
+    },
+    {
+      "name": "Z2 Rolle",
+      "week": null,
+      "phase": null,
+      "typ": "Z2",
+      "plan": "Vergleich",
+      "date": "2026-07-22",
+      "startTime": "2026-07-22T11:15:45",
+      "km": 27.7,
+      "min": 60,
+      "kmh": 27.6,
+      "watt": 178,
+      "maxWatt": null,
+      "np": 184,
+      "hf": 136,
+      "hfMax": 150,
+      "kad": 90,
+      "hoehe": 225.2,
+      "tss": 48,
+      "if": 0.69,
+      "vi": 1.03,
+      "trimp": 78,
+      "ctl": 31.4,
+      "atl": 32.4,
+      "tsb": -1,
+      "decoupling": -2.5,
+      "dtl": 48,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 561
+        },
+        {
+          "id": "Z2",
+          "secs": 2168
+        },
+        {
+          "id": "Z3",
+          "secs": 774
+        },
+        {
+          "id": "Z4",
+          "secs": 74
+        },
+        {
+          "id": "Z5",
+          "secs": 11
+        },
+        {
+          "id": "Z6",
+          "secs": 16
+        },
+        {
+          "id": "Z7",
+          "secs": 7
+        },
+        {
+          "id": "SS",
+          "secs": 191
+        }
+      ],
+      "eftp": null,
+      "weather": {
+        "temp": 16.4,
+        "tempFeel": 14.6,
+        "humidity": 68,
+        "windSpeed": 13.3,
+        "windDir": 262,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "16.4°C",
+      "source": "intervals.icu",
+      "ruhepuls": 52,
+      "hrv": null,
+      "avgSleepingHR": 53,
+      "sleepHours": 9.1,
       "feel": null,
       "notizen": null
     }
@@ -13452,7 +13533,7 @@
     },
     {
       "date": "2026-07-21",
-      "sleepHours": 8,
+      "sleepHours": 8.1,
       "avgSleepingHR": 51,
       "restingHR": 47,
       "hrv": 36,
@@ -13469,7 +13550,7 @@
       "date": "2026-07-22",
       "sleepHours": 9.1,
       "avgSleepingHR": 53,
-      "restingHR": null,
+      "restingHR": 52,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -13484,7 +13565,7 @@
   "wellnessMeta": {
     "lastUpdated": {
       "hrv": "2026-07-21",
-      "restingHR": "2026-07-21",
+      "restingHR": "2026-07-22",
       "sleepHours": "2026-07-22"
     }
   },
@@ -16237,7 +16318,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-22T10:09:56.895Z",
+  "updated": "2026-07-22T10:17:05.265Z",
   "source": "intervals.icu",
-  "count": 130
+  "count": 131
 }
