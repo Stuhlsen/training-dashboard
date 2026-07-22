@@ -10496,16 +10496,16 @@
       ],
       "eftp": null,
       "weather": {
-        "temp": 16.4,
-        "tempFeel": 14.6,
-        "humidity": 68,
-        "windSpeed": 13.3,
-        "windDir": 262,
+        "temp": 17.2,
+        "tempFeel": 15.1,
+        "humidity": 64,
+        "windSpeed": 14.8,
+        "windDir": 275,
         "precip": 0,
         "cloudCover": 100,
         "weatherCode": 3
       },
-      "wetter": "16.4°C",
+      "wetter": "17.2°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": null,
@@ -16318,7 +16318,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-22T10:17:05.265Z",
+  "updated": "2026-07-22T13:22:56.265Z",
   "source": "intervals.icu",
   "count": 131
 }
