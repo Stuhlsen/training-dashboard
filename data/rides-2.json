@@ -10346,9 +10346,9 @@
       "wetter": "22.7°C",
       "source": "intervals.icu",
       "ruhepuls": 47,
-      "hrv": null,
-      "avgSleepingHR": null,
-      "sleepHours": 8.1,
+      "hrv": 36,
+      "avgSleepingHR": 51,
+      "sleepHours": 8,
       "feel": null,
       "notizen": null
     },
@@ -10427,9 +10427,9 @@
       "wetter": "22.7°C",
       "source": "intervals.icu",
       "ruhepuls": 47,
-      "hrv": null,
-      "avgSleepingHR": null,
-      "sleepHours": 8.1,
+      "hrv": 36,
+      "avgSleepingHR": 51,
+      "sleepHours": 8,
       "feel": null,
       "notizen": null
     }
@@ -13443,7 +13443,7 @@
       "hrv": 40,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": 197,
+      "activeEnergy": 200,
       "restingEnergy": null,
       "kcalConsumed": 2778,
       "hydration": null,
@@ -13452,11 +13452,26 @@
     },
     {
       "date": "2026-07-21",
-      "sleepHours": 8.1,
-      "avgSleepingHR": null,
+      "sleepHours": 8,
+      "avgSleepingHR": 51,
       "restingHR": 47,
-      "hrv": null,
+      "hrv": 36,
       "weight": 92,
+      "bodyFat": null,
+      "activeEnergy": 855,
+      "restingEnergy": null,
+      "kcalConsumed": 3149,
+      "hydration": null,
+      "hydrationVolume": 1.03,
+      "eftp": 260
+    },
+    {
+      "date": "2026-07-22",
+      "sleepHours": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
+      "hrv": null,
+      "weight": null,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
@@ -13468,7 +13483,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-20",
+      "hrv": "2026-07-21",
       "restingHR": "2026-07-21",
       "sleepHours": "2026-07-21"
     }
@@ -13479,8 +13494,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-21T00:00:00",
-        "end_date_local": "2026-07-21T23:59:59",
+        "start_date_local": "2025-07-22T00:00:00",
+        "end_date_local": "2026-07-22T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -16222,7 +16237,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-21T19:04:50.044Z",
+  "updated": "2026-07-22T01:48:36.589Z",
   "source": "intervals.icu",
   "count": 130
 }
