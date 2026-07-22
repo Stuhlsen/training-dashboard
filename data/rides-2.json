@@ -10348,7 +10348,7 @@
       "ruhepuls": 47,
       "hrv": 36,
       "avgSleepingHR": 51,
-      "sleepHours": 8.1,
+      "sleepHours": 8,
       "feel": null,
       "notizen": null
     },
@@ -10429,7 +10429,7 @@
       "ruhepuls": 47,
       "hrv": 36,
       "avgSleepingHR": 51,
-      "sleepHours": 8.1,
+      "sleepHours": 8,
       "feel": null,
       "notizen": null
     }
@@ -13452,23 +13452,23 @@
     },
     {
       "date": "2026-07-21",
-      "sleepHours": 8.1,
+      "sleepHours": 8,
       "avgSleepingHR": 51,
       "restingHR": 47,
       "hrv": 36,
       "weight": 92,
       "bodyFat": null,
-      "activeEnergy": 855,
+      "activeEnergy": 861,
       "restingEnergy": null,
-      "kcalConsumed": 3149,
+      "kcalConsumed": 3231,
       "hydration": null,
       "hydrationVolume": 1.03,
       "eftp": 260
     },
     {
       "date": "2026-07-22",
-      "sleepHours": null,
-      "avgSleepingHR": null,
+      "sleepHours": 9.1,
+      "avgSleepingHR": 53,
       "restingHR": null,
       "hrv": null,
       "weight": null,
@@ -13485,7 +13485,7 @@
     "lastUpdated": {
       "hrv": "2026-07-21",
       "restingHR": "2026-07-21",
-      "sleepHours": "2026-07-21"
+      "sleepHours": "2026-07-22"
     }
   },
   "powerCurves": {
@@ -16237,7 +16237,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-22T08:09:46.721Z",
+  "updated": "2026-07-22T10:09:56.895Z",
   "source": "intervals.icu",
   "count": 130
 }
