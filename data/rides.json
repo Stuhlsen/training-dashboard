@@ -4044,7 +4044,7 @@
       "hrv": 47,
       "avgSleepingHR": 50,
       "sleepHours": 7.3,
-      "feel": null,
+      "feel": "Moderat",
       "notizen": null,
       "id": 74,
       "dateShort": "23.07",
@@ -10581,7 +10581,7 @@
       "windSpeed": 12.2,
       "windDir": 254,
       "precipProb": 0,
-      "weatherCode": 81,
+      "weatherCode": 2,
       "uvMax": 6.2
     }
   },
@@ -10589,7 +10589,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-23T17:42:08.026Z",
+  "updated": "2026-07-23T17:44:28.632Z",
   "source": "notion+intervals",
   "count": 74
 }
