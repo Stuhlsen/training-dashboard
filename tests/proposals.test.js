@@ -118,9 +118,16 @@ const SEED_PROPOSALS = [
   },
 ];
 
-const { loadProposals, createTrainerProposal, acceptProposal, acceptGroup, rejectProposal, getState } = await import(
-  u("state/proposals.js")
-);
+const {
+  loadProposals,
+  createTrainerProposal,
+  acceptProposal,
+  acceptGroup,
+  rejectProposal,
+  previewClaudeImport,
+  importClaudeProposals,
+  getState,
+} = await import(u("state/proposals.js"));
 const { loadPlanCards } = await import(u("state/plan-cards.js"));
 
 async function seed() {
@@ -241,4 +248,84 @@ test("rejectProposal: setzt den Vorschlag auf rejected", async () => {
   assert.equal(result.ok, true);
   assert.deepEqual(decided[0], { id: "prop-1", status: "rejected" });
   assert.equal(getState().proposals.find((x) => x.id === "prop-1").status, "rejected");
+});
+
+/* ── previewClaudeImport / importClaudeProposals (Export/Import-Workflow) ── */
+
+const VALID_IMPORT_TEXT = `Alles passt bis auf eine Einheit, hier mein Vorschlag.
+
+\`\`\`json
+{
+  "schema_version": 1,
+  "athlete": "trainer-1",
+  "source": "claude",
+  "proposals": [
+    {
+      "op": "replace",
+      "target_card_id": "card-A",
+      "target_updated_at": "2026-07-20T00:00:00Z",
+      "reason": "TSB zu tief vor dem Event",
+      "payload": { "title": "Entschärft", "type": "Z2 Dauer", "plan_date": "2026-07-28", "target_tss": 40 }
+    },
+    {
+      "op": "add",
+      "payload": { "title": "Neue Einheit", "type": "Z2 Dauer", "plan_date": "2026-08-05" }
+    }
+  ]
+}
+\`\`\``;
+
+test("previewClaudeImport: extrahiert + validiert, beide Vorschläge valide (bekannte Karte, eigene athlete_id)", async () => {
+  await seed();
+  const result = previewClaudeImport(VALID_IMPORT_TEXT);
+  assert.equal(result.ok, true);
+  assert.equal(result.results.length, 2);
+  assert.equal(result.results[0].valid, true);
+  assert.equal(result.results[1].valid, true);
+});
+
+test("previewClaudeImport: kein JSON-Block → harter Abbruch, eigener Fehlerzweig", async () => {
+  await seed();
+  const result = previewClaudeImport("Ich würde nichts ändern.");
+  assert.equal(result.ok, false);
+  assert.match(result.error.message, /Kein JSON-Block/);
+});
+
+test("previewClaudeImport: fremde athlete_id im JSON → harter Abbruch", async () => {
+  await seed();
+  const text = VALID_IMPORT_TEXT.replace('"athlete": "trainer-1"', '"athlete": "jemand-anderes"');
+  const result = previewClaudeImport(text);
+  assert.equal(result.ok, false);
+  assert.match(result.error.message, /anderen Account/);
+});
+
+test("previewClaudeImport: unbekannte target_card_id → dieser Eintrag invalide, Rest bleibt geprüft (Teilerfolg)", async () => {
+  await seed();
+  const text = VALID_IMPORT_TEXT.replace('"card-A"', '"card-ghost"');
+  const result = previewClaudeImport(text);
+  assert.equal(result.ok, true);
+  assert.equal(result.results[0].valid, false);
+  assert.equal(result.results[1].valid, true);
+});
+
+test("importClaudeProposals: legt alle validen Einträge mit source=claude und geteilter groupId an", async () => {
+  await seed();
+  const preview = previewClaudeImport(VALID_IMPORT_TEXT);
+  const validOnes = preview.results.filter((r) => r.valid).map((r) => r.proposal);
+  const result = await importClaudeProposals("athlete1", validOnes);
+  assert.equal(result.ok, true);
+  assert.equal(inserted.length, 2);
+  assert.ok(inserted.every((row) => row.source === "claude"));
+  assert.ok(inserted.every((row) => row.createdBy === "trainer-1"));
+  assert.equal(inserted[0].groupId, inserted[1].groupId);
+  assert.ok(inserted[0].groupId, "groupId ist gesetzt, nicht null");
+  assert.equal(getState().proposals.filter((p) => p.source === "claude").length, 2);
+});
+
+test("importClaudeProposals: leere Liste ist ein No-Op, kein Insert-Aufruf", async () => {
+  await seed();
+  const before = inserted.length;
+  const result = await importClaudeProposals("athlete1", []);
+  assert.equal(result.ok, true);
+  assert.equal(inserted.length, before);
 });

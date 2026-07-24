@@ -26,6 +26,8 @@ import {
   getState as getPlanCardsState,
 } from "./plan-cards.js";
 import { payloadToCardData } from "../core/proposal-payload.js";
+import { parseProposalImport } from "../core/proposal-import-parser.js";
+import { validateImport } from "../core/proposal-validator.js";
 import { getSession } from "./session.js";
 
 let proposals = [];
@@ -106,6 +108,64 @@ export async function createTrainerProposal(athleteId, { op, targetCardId, targe
     notify();
   }
   return result.ok ? { ok: true, proposal: result.proposals[0] } : result;
+}
+
+/** Parst + validiert eine eingefügte Claude-Antwort (Export/Import-Workflow-
+ *  Konzept §3/§4) — reiner Auswertungsschritt, schreibt NICHTS. Der Import-
+ *  Dialog (ui/) ruft nur dies auf und kennt core/proposal-import-parser.js/
+ *  core/proposal-validator.js nicht direkt (Schichtenregel: ui → state →
+ *  core). `knownCardIds` kommt aus dem bereits geladenen plan-cards-State
+ *  (Planungstab lädt die Karten des Athleten ohnehin vor dem Öffnen des
+ *  Dialogs). Rückgabe bei hartem Abbruch (kein JSON-Block, kaputtes JSON,
+ *  fremde athlete_id, unbekannte schema_version): `{ ok:false, error }`.
+ *  Bei erfolgreicher Struktur: `{ ok:true, results: [{proposal, valid,
+ *  errors}] }` — ein Eintrag pro Vorschlag, Teilerfolg möglich (Konzept §4). */
+export function previewClaudeImport(text) {
+  const gate = requireUser();
+  if (!gate.ok) return gate;
+
+  const parsed = parseProposalImport(text);
+  if (!parsed.ok) return parsed;
+
+  const knownCardIds = new Set(getPlanCardsState().cards.map((c) => c.id));
+  return validateImport(parsed.data, { ownAthleteId: gate.user.id, knownCardIds });
+}
+
+/** Legt die validen Einträge eines Claude-Imports als offene Vorschläge an —
+ *  derselbe Insert-Pfad wie der menschliche Trainer (insertProposalsAdapter),
+ *  `source: "claude"`, `created_by` = der importierende Athlet selbst
+ *  (Schema-Konzept §5). Alle Einträge EINES Imports teilen sich eine
+ *  `groupId`, damit sie im Review als zusammengehörige Runde erscheinen und
+ *  über "Alle übernehmen" gemeinsam angenommen werden können (Schema-
+ *  Konzept §5, V1). `validProposals` sind die rohen, bereits als valide
+ *  geprüften Einträge aus previewClaudeImport() (`op`/`target_card_id`/
+ *  `target_updated_at`/`payload`/`reason` im JSON-Schema-Format).
+ *  @param {string} athleteId interne Kennung ("athlete1"/"athlete2") — nur
+ *    für den lokalen Cache-Schlüssel, athlete_id/created_by sind immer die
+ *    eigene Profil-UUID (Selbst-Import). */
+export async function importClaudeProposals(athleteId, validProposals) {
+  const gate = requireUser();
+  if (!gate.ok) return gate;
+  if (!validProposals?.length) return { ok: true, proposals: [] };
+
+  const groupId = crypto.randomUUID();
+  const items = validProposals.map((p) => ({
+    op: p.op,
+    targetCardId: p.target_card_id ?? null,
+    targetUpdatedAt: p.target_updated_at ?? null,
+    payload: p.payload,
+    reason: p.reason ?? null,
+    source: "claude",
+    groupId,
+  }));
+
+  const result = await insertProposalsAdapter(gate.user.id, gate.user.id, items);
+  if (result.ok && (loadedForAthleteId === null || athleteId === loadedForAthleteId)) {
+    proposals = [...result.proposals, ...proposals];
+    loadedForAthleteId = athleteId;
+    notify();
+  }
+  return result;
 }
 
 function replaceLocal(updated) {
