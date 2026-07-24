@@ -353,35 +353,54 @@ zweiten Testlauf aber trotzdem aktiv (s. nächster Punkt). Die DOM-gebundene Ver
 Repo verifiziert `ui/`-Änderungen laut AGENTS.md/CLAUDE.md über `node -c` + Browser-Test, nicht
 über eine jsdom-Suite; entsprechend im Browser bestätigt.
 
-**Drag-Grip im Vorschlag-Modus ignorierte den Umschalter — Ursache: Render-Reihenfolge (behoben)**
-Zweiter Browser-Testlauf: Der Griff blieb trotz des obigen Fixes aktiv, eine Karte ließ sich
-per Drag & Drop weiterhin direkt verschieben. Ursache war NICHT die Gate-Bedingung selbst
-(`_isTrainerProposalMode()` in der `draggable`-Berechnung, `ui/planned.js::_renderCard()`),
-sondern die Reihenfolge in `app.js::renderAll()`: `Planned.render(rides)` lief bereits VOR
-`TrainerBar.render()`, welches erst `state/trainer-view.js::loadTrainerContext()` lädt. Die
-Karten wurden also mit dem alten/Default-Trainer-Kontext gezeichnet (`isTrainer: false`),
-bevor der echte Kontext überhaupt bekannt war — der Griff blieb dadurch in der Praxis immer
-aktiv. Behoben durch einen zweiten, gezielten `Planned.render(rides)`-Aufruf NACH
-`TrainerBar.render()`/`ProposalBanner.render()` (billig, da `plan_cards`/Forecast schon im
-State liegen, kein erneuter Request) — bewusst kein `onTrainerViewChange`-Abo in `planned.js`,
-das bei jeder Kategorien-/Vorschläge-Ladephase erneut feuern würde.
+**Drag-Grip im Vorschlag-Modus ignorierte den Umschalter — Ursache: Race zwischen zwei onSessionChange-Abos (behoben, live per Playwright bestätigt)**
+Zwei Fixversuche (Render-Reihenfolge in `app.js`, dann ein `onSessionChange`-Abo direkt in
+`ui/planned.js`) zeigten beide keine Wirkung im Browser-Test — beide isoliert aus dem Code
+plausibel, aber der TATSÄCHLICHE Ablauf war ein dritter, subtilerer Fall: Ein Athlet lädt die
+Seite ANONYM (oder mit einer noch nicht wiederhergestellten Supabase-Session), `renderAll()`
+zeichnet die Karten also zunächst korrekt OHNE Trainer-Kontext. Loggt sich der Trainer DANACH
+über das Modal ein (oder wird eine bereits persistierte Session erst nachträglich restauriert),
+ändert das nur `state/session.js` — kein `renderAll()`-Zyklus läuft erneut. Ein Abo auf
+`onSessionChange` allein (erster Versuch) reicht nicht: es feuert, SOBALD sich die Session
+ändert, aber `ui/trainer-bar.js`s `loadTrainerContext()` (ein echter Supabase-Request) ist dann
+oft noch nicht fertig — während `plan_cards` an der Stelle häufig schon aus dem State-Cache
+bedient wird (schneller). `ui/planned.js`s eigener `onSessionChange`-Listener gewann das Rennen
+und rendert mit demselben veralteten `trainerContext` neu, bevor `ui/trainer-bar.js`s Listener
+die korrekte Kontext-Auflösung überhaupt abgeschlossen hatte.
 
-**Drag & Drop friert nach dem ersten Drop für ALLE Karten ein, bis zum Reload (gehärtet)**
-Dritter Fund desselben Testlaufs: nach einem erfolgreichen Drop ließ sich keine Karte mehr
-ziehen — Symptom exakt wie ein Lock (`ui/plan-drag.js`'s modul-globale `drag`-Variable, die
-`onPointerDown` bei jedem neuen Griff-Versuch prüft), der beim Aufräumen nach einem Drop
-gesetzt, aber nie zurückgesetzt wird. Eine vollständige Nachverfolgung von
-`onPointerDown → onPointerMove → onPointerUp → endDrag()` zeigt, dass der Lock beim
-Erfolgsfall korrekt vor dem Aufruf von `dropHandler()` freigegeben wird — die exakte werfende
-Stelle ließ sich ohne Browser-Debugger (in dieser Session nicht verfügbar) nicht abschließend
-nachvollziehen. `endDrag()` wurde defensiv gehärtet: die komplette Aufräumlogik läuft jetzt in
-einem `try`, die Listener-Abmeldung + `drag = null` in `finally` — ein dauerhaft hängender Lock
-ist dadurch strukturell ausgeschlossen, unabhängig davon, was im Aufräumteil im Einzelnen
-schiefgeht. Kein automatisierter Test möglich (DOM-/Pointer-Event-Integration, kein jsdom in
-diesem Projekt) — im Browser zu bestätigen: zwei aufeinanderfolgende Drag-Verschiebungen in
-derselben Session, die zweite muss genauso funktionieren wie die erste. Sollte das Einfrieren
-trotz der Härtung weiter auftreten, wäre die Browser-Konsole beim Reproduzieren (Fehlermeldung
-zum Zeitpunkt des Einfrierens) der nächste Anhaltspunkt.
+Per Playwright MCP (`@playwright/mcp`, live gegen `dashboard-dev` als Trainer-ST) live bestätigt:
+`state/trainer-view.js::getState()` zeigte `trainerContext.isTrainer: true` und
+`saveMode: "proposal"` korrekt im Speicher, während gleichzeitig 41 `.planned-card-grip`-Elemente
+im DOM standen — der Bruch lag also nachweislich zwischen korrektem State und veraltetem
+Render, nicht in `canDragCard()` selbst (isoliert aufgerufen lieferte die Funktion immer das
+richtige Ergebnis). Ein manueller `Planned.render()`-Aufruf zur Laufzeit (mit dem bereits
+korrekten State) entfernte alle Griffe sofort — das bestätigte die Diagnose vor dem Fix.
+
+Behoben: `ui/planned.js` abonniert jetzt `state/trainer-view.js::onTrainerViewChange` statt
+`state/session.js::onSessionChange` — dieses Event feuert garantiert ERST NACH dem
+Abschluss von `loadTrainerContext()` (der `notify()`-Aufruf steht dort hinter der
+Kontext-Zuweisung), race-frei. Danach per Playwright end-to-end erneut geprüft (frischer
+Seitenaufbau mit bereits persistierter Trainer-Session, keine manuelle Zwischenaktion):
+0 Griffe im Vorschlag-Modus, 41 Griffe sofort nach Umschalten auf "Direkt" — beide Richtungen
+reaktiv ohne Reload bestätigt.
+
+**Drag & Drop friert nach dem ersten Drop für ALLE Karten ein — per Playwright NICHT reproduzierbar (Härtung bleibt bestehen)**
+Dritter Fund des ersten Testlaufs: nach einem erfolgreichen Drop ließ sich keine Karte mehr
+ziehen. `endDrag()` wurde vorsorglich gehärtet (komplette Aufräumlogik in `try`, Listener-
+Abmeldung + `drag = null` in `finally`, s. Commit `85c7c4e`). Mit Playwright MCP wurden danach
+vier reale Drag-Sequenzen gegen den echten `dashboard-dev`-Server nachgestellt (native
+`PointerEvent`-Dispatches über Griff → Tages-Slot → Drop, inkl. eines bewussten Stresstests mit
+zwei Drags ohne Wartezeit dazwischen): alle vier Karten wurden korrekt verschoben, keine
+Konsolenfehler, keine hängengebliebene `is-card-dragging`-Klasse, keine verwaisten
+Tages-Slot-Zeilen, Griffe nach jedem Zyklus wieder normal vorhanden. Der Freeze ließ sich also
+NICHT reproduzieren — entweder hat die Härtung das ursprüngliche Problem tatsächlich behoben,
+oder die Ursache hing an einer Eigenheit der echten Maus-/Touch-Interaktion (z. B. deutlich mehr
+Zwischenereignisse über eine längere reale Geste), die die synthetischen Events nicht abbilden.
+Kein automatisierter Regressionstest möglich (DOM-/Pointer-Event-Integration, kein jsdom in
+diesem Projekt) — falls das Einfrieren im echten Browser der Nutzerin trotzdem weiter auftritt,
+ist das ein starkes Signal, dass die Ursache eng an der realen Interaktion hängt; in dem Fall
+lohnt sich ein Playwright-Nachbau mit `browser_drag`/langsameren, vielstufigen Bewegungen statt
+der hier verwendeten Zwei-Schritt-Simulation.
 
 **Trainer-Leiste/Athleten-Banner verschwinden nach F5 (behoben, zur Historie)**
 Ebenfalls beim ersten Browser-Test reproduziert: Nach einem echten Seiten-Reload (nicht nur
