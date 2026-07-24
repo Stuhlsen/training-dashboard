@@ -118,6 +118,7 @@
 - [x] Umsetzung: Trainer-Dashboard + `proposals`-Tabelle mit Annehmen/Ablehnen-Flow **[SO]** → Migration `supabase/migrations/0006_proposals_v1.sql` (proposals auf Schema v1 additiv umgestellt, `plan_cards.updated_by`, neue Tabelle `trainer_view_prefs`); `data-access/supabase/proposals.js` + `trainer-view-prefs.js`; `core/proposal-payload.js`/`proposal-preview.js`/`proposal-groups.js`/`proposal-summary.js` (reine Ableitungen, Wiederverwendung von `core/projection.js`/`core/conflicts.js`); `state/proposals.js` (Annehmen wendet den Vorschlag über die bestehenden `state/plan-cards.js`-Aktionen an statt die Karten-Logik zu duplizieren) + `state/trainer-view.js` (Kontext/Kategorien/Speicher-Modus); `ui/trainer-bar.js`, `ui/proposal-list.js`, `ui/proposal-compare.js`, `ui/proposal-banner.js`; `ui/plan-card-dialog.js` um einen Speichern-Modus-Hook erweitert (Trainer + Modus "Vorschlag" → `createTrainerProposal` statt Direktschreiben, einzige Stelle, an der ein menschlicher Trainer in dieser Umsetzung Vorschläge erzeugen kann — s. Einschränkung unten). **`/code-review --level high` vor dem Commit** deckte einen kritischen RLS-Rollen-Mismatch auf (nur der Athlet darf laut Policy über einen Vorschlag entscheiden, die Review-UI war aber nur über die Trainer-Leiste erreichbar) + vier weitere Korrektheitslücken (Veraltet-Erkennung fehlte, Teilerfolg von "Alle übernehmen" wurde verschluckt, kein Refresh nach Annehmen, keine requestId-Absicherung) — alle behoben, Details in `docs/offene-punkte.md`.
 - [ ] Umsetzung: Export-Generator + Import-Parser mit Validierung **[SO]** — Konzept steht (`docs/phase-4-konzept-export-import-workflow.md`), Umsetzung noch offen; bis dahin ist der menschliche Trainer-Pfad über den Karten-Dialog der einzige Weg, `proposals`-Zeilen anzulegen
 - [x] Tests **[SO]** → `tests/proposals.test.js` (State-Layer, data-access gemockt wie `tests/plan-cards-move.test.js`), `tests/proposal-preview.test.js`/`proposal-groups.test.js`/`proposal-summary.test.js` (reine core-Module); RLS-Erweiterung in `tests/supabase-rls.test.js` weiterhin offen — braucht Live-Credentials gegen `dashboard-dev`, s. `docs/offene-punkte.md`/AGENTS.md „Test-Sicherheit"
+- [x] Browser-Testzyklus (Trainer-Modus) **[SO]** → zwei Bugs gefunden und behoben, beide von Alex im echten Browser bestätigt (24.07.2026): (1) Direkt/Vorschlag-Umschalter wurde beim Drag & Drop ignoriert — Ursache eine Race Condition zwischen zwei `onSessionChange`-Abos, erst per Playwright-Live-Diagnose gefunden, nachdem zwei code-lesebasierte Fixversuche wirkungslos blieben (`ui/planned.js` reagiert jetzt auf `state/trainer-view.js::onTrainerViewChange` statt `onSessionChange`); (2) Drag & Drop fror nach einem Drop für alle Karten ein — `endDrag()` in `ui/plan-drag.js` defensiv gehärtet (`try`/`finally`), unter realen Bedingungen nicht mehr reproduzierbar. Nebenbefund + behoben: `events`-Query scheiterte mit 400 (interne Athleten-ID gegen `uuid`-Spalte, `state/events.js`). Dabei Playwright MCP projektlokal eingerichtet (`.mcp.json`) — Konvention zur künftigen Nutzung in `CLAUDE.md`.
 
 **Entscheidungen Phase 4:**
 - T1: Check-in-Notiz für Trainer nur per Athleten-Toggle (Default aus); Slider immer ✅
@@ -165,9 +166,10 @@
 ➡️ **Phase 3 ist abgeschlossen** (Migration, Karten-CRUD, Drag & Drop, Prognose/Konfliktlogik, Nach-Drop-Feedback — s. Phase-3-Abschnitt oben). Offen bleibt nur die manuelle Browser-Verifikation von Schritt 5 gegen `training-dashboard-dev` (Drag/Move/Event-Änderung live prüfen, s. `docs/offene-punkte.md`) sowie die Drag-Live-Färbung (K2) als späterer Polish-Schritt — beides kein Blocker für Phase 4.
 
 ➡️ **Phase 4 — Trainer-Rolle & Claude-Workflow:** Trainer-Dashboard + `proposals`-CRUD
-sind umgesetzt (Migration `0006`, Trainer-Leiste, Vorschlagsliste, Vergleichsansicht,
-Tests — s. Phase-4-Abschnitt oben). Offen: Migration `0006` einmal gegen
-`training-dashboard-dev` einspielen und die Prüfliste am Ende der Datei durchgehen
-(noch nicht live verifiziert, s. `docs/offene-punkte.md`); danach Export-Generator +
-Import-Parser **[SO]** (letzter Baustein aus Phase 4, Konzept bereits fertig) sowie die
-Browser-Verifikation des gesamten Trainer-Flows mit einem echten `trainer-test`-Account.
+sind umgesetzt UND im echten Browser gegen `training-dashboard-dev` getestet (Migration
+`0006`, Trainer-Leiste, Vorschlagsliste, Vergleichsansicht, Tests — s. Phase-4-Abschnitt
+oben). Zwei dabei gefundene Bugs (Toggle-Race, Drag-Freeze) sind behoben und von Alex
+im echten Browser bestätigt (24.07.2026, s. `docs/offene-punkte.md`). Offen: die
+Migration-0006-Prüfliste am Ende der Datei einmal vollständig durchgehen (Browser-Verifikation
+des Trainer-Flows selbst ist erledigt, s. o.); danach Export-Generator + Import-Parser **[SO]**
+(letzter Baustein aus Phase 4, Konzept bereits fertig).

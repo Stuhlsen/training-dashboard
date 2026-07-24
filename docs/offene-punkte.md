@@ -353,7 +353,7 @@ zweiten Testlauf aber trotzdem aktiv (s. nächster Punkt). Die DOM-gebundene Ver
 Repo verifiziert `ui/`-Änderungen laut AGENTS.md/CLAUDE.md über `node -c` + Browser-Test, nicht
 über eine jsdom-Suite; entsprechend im Browser bestätigt.
 
-**Drag-Grip im Vorschlag-Modus ignorierte den Umschalter — Ursache: Race zwischen zwei onSessionChange-Abos (behoben, live per Playwright bestätigt)**
+**Drag-Grip im Vorschlag-Modus ignorierte den Umschalter — Ursache: Race zwischen zwei onSessionChange-Abos (behoben, im echten Browser bestätigt)**
 Zwei Fixversuche (Render-Reihenfolge in `app.js`, dann ein `onSessionChange`-Abo direkt in
 `ui/planned.js`) zeigten beide keine Wirkung im Browser-Test — beide isoliert aus dem Code
 plausibel, aber der TATSÄCHLICHE Ablauf war ein dritter, subtilerer Fall: Ein Athlet lädt die
@@ -379,12 +379,23 @@ korrekten State) entfernte alle Griffe sofort — das bestätigte die Diagnose v
 Behoben: `ui/planned.js` abonniert jetzt `state/trainer-view.js::onTrainerViewChange` statt
 `state/session.js::onSessionChange` — dieses Event feuert garantiert ERST NACH dem
 Abschluss von `loadTrainerContext()` (der `notify()`-Aufruf steht dort hinter der
-Kontext-Zuweisung), race-frei. Danach per Playwright end-to-end erneut geprüft (frischer
-Seitenaufbau mit bereits persistierter Trainer-Session, keine manuelle Zwischenaktion):
-0 Griffe im Vorschlag-Modus, 41 Griffe sofort nach Umschalten auf "Direkt" — beide Richtungen
-reaktiv ohne Reload bestätigt.
+Kontext-Zuweisung), race-frei. Per Playwright end-to-end geprüft (frischer Seitenaufbau mit
+bereits persistierter Trainer-Session, keine manuelle Zwischenaktion): 0 Griffe im
+Vorschlag-Modus, 41 Griffe sofort nach Umschalten auf "Direkt" — beide Richtungen reaktiv
+ohne Reload. **Zusätzlich von Alex im eigenen Browser manuell nachgetestet und bestätigt
+(24.07.2026)** — abgeschlossen.
 
-**Drag & Drop friert nach dem ersten Drop für ALLE Karten ein — per Playwright NICHT reproduzierbar (Härtung bleibt bestehen)**
+**Wichtige Lehre für künftige UI-/Timing-Bugs:** Zwei rein code-lesebasierte Fixversuche
+(Render-Reihenfolge in `app.js`, dann ein naives `onSessionChange`-Abo) waren beide in sich
+logisch schlüssig, aber beide wirkungslos — die Ursache war eine Race Condition zwischen zwei
+unabhängigen Event-Listenern, die sich durch reines Lesen des Codes nicht zuverlässig auflösen
+ließ (die relative Reihenfolge zweier konkurrierender async-Operationen ist keine Eigenschaft,
+die im Quelltext sichtbar ist). Erst die Einrichtung von Playwright MCP (`.mcp.json`, s. u.) und
+die direkte Inspektion des Laufzeit-Zustands per `browser_evaluate` (dynamisches `import()` der
+laufenden App-Module) machte die Diagnose eindeutig — s. Konvention weiter unten unter
+„Playwright MCP für UI-nahe Bugs" bzw. `CLAUDE.md`.
+
+**Drag & Drop friert nach dem ersten Drop für ALLE Karten ein — unter realen Bedingungen nicht mehr reproduzierbar (Härtung bleibt bestehen, bestätigt)**
 Dritter Fund des ersten Testlaufs: nach einem erfolgreichen Drop ließ sich keine Karte mehr
 ziehen. `endDrag()` wurde vorsorglich gehärtet (komplette Aufräumlogik in `try`, Listener-
 Abmeldung + `drag = null` in `finally`, s. Commit `85c7c4e`). Mit Playwright MCP wurden danach
@@ -397,10 +408,13 @@ NICHT reproduzieren — entweder hat die Härtung das ursprüngliche Problem tat
 oder die Ursache hing an einer Eigenheit der echten Maus-/Touch-Interaktion (z. B. deutlich mehr
 Zwischenereignisse über eine längere reale Geste), die die synthetischen Events nicht abbilden.
 Kein automatisierter Regressionstest möglich (DOM-/Pointer-Event-Integration, kein jsdom in
-diesem Projekt) — falls das Einfrieren im echten Browser der Nutzerin trotzdem weiter auftritt,
-ist das ein starkes Signal, dass die Ursache eng an der realen Interaktion hängt; in dem Fall
-lohnt sich ein Playwright-Nachbau mit `browser_drag`/langsameren, vielstufigen Bewegungen statt
-der hier verwendeten Zwei-Schritt-Simulation.
+diesem Projekt). **Von Alex im eigenen Browser manuell nachgetestet und bestätigt (24.07.2026):
+mehrere aufeinanderfolgende Drag-Verschiebungen funktionieren wie erwartet, kein Einfrieren
+mehr** — abgeschlossen. Die `try/finally`-Härtung in `endDrag()` (Commit `85c7c4e`) bleibt
+bestehen; sollte das Symptom in einer späteren Session dennoch wieder auftreten, ist ein
+Playwright-Nachbau mit `browser_drag`/langsameren, vielstufigen Bewegungen statt der hier
+verwendeten Zwei-Schritt-Simulation der nächste Schritt (echte Maus-/Touch-Gesten erzeugen
+deutlich mehr Zwischenereignisse als die synthetischen Events dieser Diagnose).
 
 **Trainer-Leiste/Athleten-Banner verschwinden nach F5 (behoben, zur Historie)**
 Ebenfalls beim ersten Browser-Test reproduziert: Nach einem echten Seiten-Reload (nicht nur
