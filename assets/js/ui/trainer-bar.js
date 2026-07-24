@@ -137,7 +137,23 @@ function panelHtml(selected) {
 
 function _draw() {
   if (!container) return;
-  const { categories, saveMode } = getTrainerViewState();
+  const { categories, saveMode, trainerContext } = getTrainerViewState();
+  // Bugfix (25.07.2026, live per Playwright bestätigt): _draw() wird auch
+  // von onProposalsChange() unten aufgerufen, das bei JEDER Änderung am
+  // proposals-State feuert — z.B. wenn ui/proposal-banner.js für den
+  // eingeloggten ATHLETEN SELBST loadProposals() aufruft (passiert bei
+  // jedem renderAll()). Ohne dieses Gate rendert dieser Aufruf die Leiste
+  // unconditional neu, selbst nachdem render() sie oben korrekt geleert
+  // hatte, weil er trainerContext.isTrainer nie geprüft hat — die Leiste
+  // erschien dadurch deterministisch auch für Athleten, die sich selbst
+  // betrachten (kein Trainer). Die Buttons blieben dabei ungefährlich
+  // (ui/planned.js::_isTrainerProposalMode()/ui/plan-card-dialog.js prüfen
+  // isCoach()+trainerContext.isTrainer selbst noch einmal vor jedem
+  // Schreibzugriff), aber die Anzeige widersprach Trainer-Sicht-Konzept §5.
+  if (!trainerContext.isTrainer) {
+    container.innerHTML = "";
+    return;
+  }
   const openCount = getProposalsState().proposals.filter((p) => p.status === "open").length;
   const planState = getPlanCardsState();
   const events = getEventsState().events;

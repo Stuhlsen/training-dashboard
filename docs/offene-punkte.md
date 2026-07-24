@@ -290,6 +290,50 @@ berechnet, eine verpasste Karte liegt per Definition in der Vergangenheit), die
 Push-Warnung könnte dort theoretisch greifen. Bewusst nicht mitgezogen, um die
 Verpasst-Liste nicht auf die aufwendigere Card-Struktur umzustellen.
 
+## Phase 4 — Trainer-Leiste erschien fälschlich beim Athleten selbst (behoben, per Playwright live bestätigt)
+
+Von Alex im manuellen Nachtest gefunden (25.07.2026): Als Athlet „Stuhlsen" (kein
+Trainer-Account) eingeloggt, zeigte der Planungstab trotzdem „Du trainierst
+Stuhlsen" mit vollem Direkt/Vorschlag-Toggle — Widerspruch zu Trainer-Sicht-
+Konzept §5 (Leiste nur für den zugeordneten Trainer, nie beim Athleten selbst).
+
+**Live reproduziert** (frischer Login als `stuhlsen@training-dashboard.dev` über
+das echte Formular, kein Trainer-Account beteiligt): `state/session.js`/
+`state/trainer-view.js` hatten den korrekten Zustand (`isCoach(): false`,
+`trainerContext.isTrainer: false`), trotzdem stand `.trainer-bar` im DOM.
+Gezielt nachgestellt: `#trainer-bar-container` manuell geleert (simuliert den
+korrekten leeren Render), dann `loadProposals('athlete1')` direkt aufgerufen
+(genau das, was `ui/proposal-banner.js::ProposalBanner.render()` bei JEDEM
+`renderAll()` für den eingeloggten Athleten selbst tut) — die Trainer-Leiste
+erschien dadurch sofort wieder.
+
+**Ursache:** `ui/trainer-bar.js::_draw()` prüfte `trainerContext.isTrainer`
+nirgends selbst — nur der AUFRUFENDE `TrainerBar.render()` tat das vor dem
+ersten `_draw()`-Aufruf. Der modul-globale Listener `onProposalsChange(() => {
+if (container) _draw(); })` (unten in derselben Datei) feuert aber bei JEDER
+Änderung am geteilten `proposals`-State — auch wenn diese Änderung vom
+Athleten-eigenen `ProposalBanner`-Ladevorgang stammt, nicht von einer echten
+Trainer-Aktion. Da `container` nach dem ersten (korrekten) Render bereits
+gesetzt war, rendert dieser Listener unconditional neu, ohne den Trainer-Gate
+erneut zu prüfen — deterministisch bei jedem Seitenaufbau eines eingeloggten
+Athleten mit Planungstab, kein Timing-Zufall.
+
+**Sicherheitsfolge geprüft, keine gefunden:** Die sichtbaren Buttons waren
+technisch „live" (`setSaveMode()` änderte echten State), aber jeder tatsächliche
+Schreibpfad prüft `isCoach() && trainerContext.isTrainer` selbst noch einmal
+unabhängig (`ui/planned.js::_isTrainerProposalMode()`,
+`ui/plan-card-dialog.js::isTrainerSaving`) — für Stuhlsen beides `false`, also
+kein Vorschlag an sich selbst erzeugbar, keine Trainer-Rechte nutzbar. Die
+„⚙ Ansicht anpassen"-Speicherung scheiterte sicher (No-op, `athleteProfileId`
+war `null`). Rein ein Anzeige-/Vertrauensproblem, keine RLS-Umgehung.
+
+**Behoben:** `_draw()` prüft jetzt selbst `trainerContext.isTrainer` als
+erste Zeile und leert den Container statt zu rendern, wenn falsch — schützt
+damit ALLE Aufrufer von `_draw()`, nicht nur `render()`. Per Playwright erneut
+bestätigt: Athlet selbst → Leiste leer; Trainer-ST auf seinem Athleten
+(Stuhlsen) → Leiste korrekt sichtbar; Trainer-ST auf fremdem Athleten
+(hc_diZee) → weiterhin leer.
+
 ## Phase 4 — Export/Import-Workflow
 
 **Umsetzung abgeschlossen, im echten Browser gegen `dashboard-dev` bestätigt (24.07.2026)**
