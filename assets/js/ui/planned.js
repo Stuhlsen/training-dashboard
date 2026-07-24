@@ -32,7 +32,7 @@ import {
   pushPlanCard,
 } from "../state/plan-cards.js";
 import { getState as getEventsState } from "../state/events.js";
-import { getState as getTrainerViewState } from "../state/trainer-view.js";
+import { getState as getTrainerViewState, onTrainerViewChange } from "../state/trainer-view.js";
 import { createTrainerProposal } from "../state/proposals.js";
 import { moveProposalArgs, cancelProposalArgs } from "../core/proposal-payload.js";
 import { isCoach } from "../state/session.js";
@@ -1271,3 +1271,24 @@ export const Planned = {
     }
   },
 };
+
+// Live per Playwright bestätigt (Juli 2026), zwei Runden: ein Athlet lädt die
+// Seite zuerst ANONYM oder mit noch nicht wiederhergestellter Session,
+// renderAll() zeichnet die Karten also zunächst ohne (oder mit veraltetem)
+// Trainer-Kontext. Ein Abo auf state/session.js::onSessionChange allein
+// (erster Versuch) reicht NICHT: es feuert, sobald sich irgendetwas an der
+// Session ändert, aber BEVOR ui/trainer-bar.js's loadTrainerContext() (ein
+// echter Supabase-Request) fertig ist — plan_cards ist an der Stelle oft
+// schon aus dem Cache bedient (schneller), Planned.render() liefe dann mit
+// demselben veralteten trainerContext neu. state/trainer-view.js::
+// onTrainerViewChange() feuert dagegen erst NACH dem eigentlichen
+// loadTrainerContext()-Abschluss (notify() steht dort hinter der Zuweisung) —
+// race-frei. Guard über loadedForAthleteId statt Data.plannedSessions.length
+// (wie app.js's onEventsChange-Listener): verhindert einen Render-Versuch,
+// bevor der Planungstab für den aktuellen Athleten überhaupt einmal geladen
+// wurde.
+onTrainerViewChange(() => {
+  if (getPlanCardsState().loadedForAthleteId === Data.activeAthleteId) {
+    Planned.render(Data.byDate());
+  }
+});
