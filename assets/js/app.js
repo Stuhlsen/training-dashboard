@@ -310,7 +310,8 @@ Planned.onAdjustmentChange = refreshAfterAdjustment;
 // Karten-Dialog (Anlegen/Bearbeiten/Löschen) kennt planned.js nicht direkt
 // (kein Zirkelimport dort) — meldet Erfolg über diesen Callback zurück,
 // analog zu Planned.onAdjustmentChange oben.
-PlanCardDialog.onSaved = () => {
+PlanCardDialog.onSaved = (beforeProjection) => {
+  Planned._recordDelta(beforeProjection);
   Planned.render(Data.byDate());
   refreshAfterAdjustment();
 };
@@ -522,7 +523,14 @@ async function renderAll(athleteId) {
   });
   // Ein Event-Load ist keine Karten-Mutation, verändert aber Horizont/K-EVENT —
   // deshalb die Prognose auch dann neu rechnen, wenn nur Events sich ändern.
-  onEventsChange(() => recomputeProjection());
+  // recomputeProjection() ruft bewusst kein notify() (sonst Rekursion), daher
+  // hier zusätzlich den Planungstab selbst neu zeichnen — sonst zeigte er nach
+  // einer reinen Event-Änderung (neues A-Event, Prioritätswechsel) eine
+  // veraltete Prognose bis zur nächsten Karten-Mutation (s. docs/offene-punkte.md).
+  onEventsChange(() => {
+    recomputeProjection();
+    if (Data.plannedSessions.length) Planned.render(Data.byDate());
+  });
 
   // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird.
   // Alte/unbekannte IDs (aus früheren Versionen) fallen auf den Primär-Athleten

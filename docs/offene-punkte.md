@@ -175,17 +175,6 @@ Migrationskandidat für einen späteren Schritt (auf `plan_cards` als Quelle
 umstellen, analog zu `ui/planned.js`).
 → Details: `docs/phase-3-konzept-planungstab.md` §8.
 
-**Drag & Drop: Warnung beim Verschieben einer bereits gepushten Karte fehlt**
-Konzept §5 sieht vor, dass die UI beim Verschieben einer Karte mit gesetztem
-`pushed_external_id` warnt („schon auf Wahoo, dort ggf. manuell anpassen") —
-ohne selbst einen externen Call zu machen. Das ist bislang **weder im
-Drag-Pfad noch im „Verschieben"-Button** umgesetzt; es nur für Drag
-einzubauen hätte zwei unterschiedlich laute Eingabearten für denselben
-Vorgang erzeugt. Gehört zur Nach-Drop-Feedback-Ebene (Fahrplan-Schritt 5)
-und sollte dann für BEIDE Pfade zugleich kommen — die Stelle dafür ist
-`state/plan-cards.js::movePlanCard()` bzw. dessen Aufrufer.
-→ Details: `docs/phase-3-konzept-planungstab.md` §5.
-
 **Drag & Drop: Verschieben per Tastatur (A11y)**
 `ui/plan-drag.js` ist Pointer-basiert (Maus/Touch/Pen). Das Konzept nennt als
 A11y-Fallback ausdrücklich das bestehende `.planned-move-form` (Datum manuell
@@ -248,16 +237,25 @@ im Horizont löst K-RAMPE daher nie aus. Erweiterung möglich, wenn der Ist-Seed
 gebraucht wird.
 → Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §3 (K-RAMPE).
 
-**Event-Änderung rechnet die Prognose neu, benachrichtigt aber keine plan-cards-Listener**
-`app.js` triggert bei `onEventsChange` ein `recomputeProjection()` (state/plan-cards.js) —
-so ist der abgeleitete Store (`getState().projection`/`.conflicts`) nach einer
-Event-Änderung frisch. `recomputeProjection()` ruft aber bewusst NICHT `notify()`
-(sonst Rekursion: `notify()` → `recomputeProjection()`). Ein künftiger
-Schritt-5-Konsument, der sich per `onPlanCardsChange` neu zeichnet, erfährt eine
-reine Event-Änderung (z.B. neues A-Event → neuer K-EVENT-Befund) daher nicht sofort,
-sondern erst bei der nächsten Karten-Mutation. Für die reine Datenschicht (Schritt 4)
-korrekt; die Re-Render-Verdrahtung gehört zu Schritt 5 (dort z.B. den Renderer
-zusätzlich an `onEventsChange` hängen).
+**Nach-Drop-Feedback (Schritt 5): Browser-Verifikation gegen training-dashboard-dev noch offen**
+Delta-Banner, Konflikt-Badges, Push-Warnung und die Re-Render-Verdrahtung
+(`onEventsChange`) sind implementiert und unit-getestet (`tests/plan-feedback.test.js`
+für die reinen Ableitungen), aber nicht live im Browser gegen einen eingeloggten
+Athlet-1-Testaccount durchgeklickt (Karte verschieben → Delta-Zeile mit korrekten
+TSB-Werten, betroffene Karten zeigen passende Badges, Event anlegen löst
+Neuberechnung ohne Reload aus). Keine Browser-Automatisierung/Testcredentials in der
+Session verfügbar, in der Schritt 5 gebaut wurde — vor Vertrauen in die Anzeige einmal
+manuell durchspielen.
+→ Details: `docs/dashboard-2.0-fahrplan-aktuell.md` Phase 3, `docs/phase-3-konzept-konfliktlogik-prognose.md` §4.
+
+**Push-Warnung/Konflikt-Badges nicht auf verpassten (`missed`) Karten sichtbar**
+`ui/planned.js` rendert die Konflikt-Badges (inkl. Push-Warnung) nur in `_renderCard()`
+(Struktur mit `.planned-card-header`) — die "Verpasst"-Sektion nutzt ein eigenes,
+einfacheres `.planned-done-item`-Markup ohne diese Struktur, obwohl dort ebenfalls ein
+„Verschieben"-Button existiert. Praktisch selten relevant (Konflikte werden nur ab heute
+berechnet, eine verpasste Karte liegt per Definition in der Vergangenheit), die
+Push-Warnung könnte dort theoretisch greifen. Bewusst nicht mitgezogen, um die
+Verpasst-Liste nicht auf die aufwendigere Card-Struktur umzustellen.
 
 ## Erledigt (zur Historie, nicht mehr offen)
 

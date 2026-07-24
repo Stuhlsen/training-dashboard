@@ -381,6 +381,70 @@
   color: var(--dim);
 }
 
+/* ── Nach-Drop-Feedback: Delta-Banner (Phase 3, Schritt 5) ──────
+   Persistent bis manuell geschlossen (kein Auto-Dismiss), border in
+   gold — oberhalb der Kartenliste, unterhalb des Hero. */
+.planned-delta-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+.planned-delta-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.planned-delta-old { color: var(--dim2); opacity: 0.75; }
+.planned-delta-new { font-weight: 700; }
+.planned-delta-hint { font-size: 0.68rem; color: var(--dim2); }
+.planned-delta-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+  transition: color var(--transition);
+}
+.planned-delta-close:hover { color: var(--red); }
+
+/* ── Konflikt-Badges + Push-Warnung an einer Karte ───────────────
+   Eigene Pill-Zeile unter .planned-card-header (Konzept §4): jede
+   passende Regel aus getState().conflicts eine eigene Zeile, warning
+   vor info (s. core/plan-feedback.js::conflictsForCard). */
+.planned-conflict-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.planned-conflict-badge {
+  font-size: 0.7rem;
+  border-radius: 20px;
+  padding: 4px 12px;
+  border: 1px solid;
+  line-height: 1.4;
+}
+.planned-conflict-badge--warning {
+  color: var(--red);
+  background: var(--red-dim);
+  border-color: rgba(217,79,79,0.3);
+}
+.planned-conflict-badge--info {
+  color: var(--gold);
+  background: rgba(251,191,36,0.08);
+  border-color: rgba(251,191,36,0.2);
+}
+
 /* ── Verschieben-Badge ───────────────────────────────────────── */
 .planned-moved-badge {
   font-size: 0.72rem;

@@ -14,7 +14,12 @@
    ============================================================ */
 
 import { escapeHtml } from "./dom.js";
-import { createPlanCard, updatePlanCard, deletePlanCard } from "../state/plan-cards.js";
+import {
+  createPlanCard,
+  updatePlanCard,
+  deletePlanCard,
+  getState as getPlanCardsState,
+} from "../state/plan-cards.js";
 import { TYP_OPTIONS } from "./planned.js";
 
 const TYPE_LABEL = { warmup: "WU", interval: "Intervall", cooldown: "CD" };
@@ -43,6 +48,11 @@ let deleteConfirmTimer = null;
 // (oder geschlossenen) Dialog nicht mehr beeinflussen.
 let openToken = 0;
 
+/** `onSaved(beforeProjection)` — beforeProjection ist der Prognose-Stand
+ *  (getState().projection) von UNMITTELBAR VOR dem Speichern, für die
+ *  Delta-Zeile (Nach-Drop-Feedback, Schritt 5). Läuft über den Callback statt
+ *  eines direkten Imports von ui/planned.js, um keinen Zirkelimport
+ *  einzuführen (planned.js importiert bereits openPlanCardDialog von hier). */
 export const PlanCardDialog = { onSaved: null };
 
 function renderBlockList() {
@@ -244,6 +254,7 @@ function build() {
       workout,
     };
 
+    const before = getPlanCardsState().projection;
     const result = currentCard
       ? await updatePlanCard(currentCard.id, cardData)
       : await createPlanCard(currentAthleteId, cardData);
@@ -255,7 +266,7 @@ function build() {
       errorEl.textContent = result.error?.message || "Karte konnte nicht gespeichert werden.";
       return;
     }
-    PlanCardDialog.onSaved?.();
+    PlanCardDialog.onSaved?.(before);
     closePlanCardDialog();
   });
 }

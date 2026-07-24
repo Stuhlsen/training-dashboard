@@ -19,6 +19,7 @@
 
 import { fmt, weatherIcon, windDir, localISODate } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
+import { conflictsForCard, horizonRaceEvent, tsbOnDate } from "../core/plan-feedback.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import {
@@ -29,6 +30,7 @@ import {
   undoAdjustment,
   pushPlanCard,
 } from "../state/plan-cards.js";
+import { getState as getEventsState } from "../state/events.js";
 import { el, escapeHtml } from "./dom.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
@@ -56,6 +58,16 @@ export const TYP_OPTIONS = [
 function _canEdit() {
   return Data.activeAthleteId === CONFIG.primaryAthleteId;
 }
+
+/* Nach-Drop-Feedback (Phase 3, Schritt 5): Delta-Zeile oberhalb der
+   Kartenliste, persistent bis manuell geschlossen (kein Auto-Dismiss).
+   Modul-State statt Teil von state/plan-cards.js, weil sie NUR eine
+   Wirkung der zuletzt in DIESEM Tab ausgelösten Aktion zeigt (Vorher/
+   Nachher-Vergleich), nicht den laufend aktuellen Prognose-Stand — s.
+   Planned._recordDelta(). Wird bei einem Athletenwechsel verworfen
+   (an einen fremden Athleten/Event gebundene Werte wären dort irreführend). */
+let deltaBanner = null;
+let deltaBannerAthleteId = null;
 
 export const Planned = {
   /* Wird von app.js gesetzt: refresht Hero/Wochenrückblick/Analyse
@@ -144,6 +156,74 @@ export const Planned = {
     return Data.forecast || {};
   },
 
+  /* ── Nach-Drop-Feedback: Delta-Zeile ─────────────────────────
+     Vergleicht die Projektion VOR einer Aktion mit dem Stand danach
+     und merkt sich das Ergebnis für den Banner — nur wenn ein
+     A/B/C-Rennen im Prognosehorizont liegt (Konzept §4). Ohne
+     passendes Event wird ein evtl. vorhandener Banner verworfen: er
+     bezöge sich sonst auf die VORHERIGE Aktion, nicht auf die gerade
+     abgeschlossene. Aufgerufen NACH einer erfolgreichen Karten-
+     Mutation (Move/Drop/Cancel/Anlegen/Bearbeiten), mit der
+     `getPlanCardsState().projection` von UNMITTELBAR VOR der Mutation. */
+  _recordDelta(beforeProjection) {
+    const afterProjection = getPlanCardsState().projection;
+    const events = getEventsState().events;
+    const todayLocal = localISODate();
+    const event = horizonRaceEvent(events, afterProjection, todayLocal);
+    const before = event ? tsbOnDate(beforeProjection, event.eventDate) : null;
+    const after = event ? tsbOnDate(afterProjection, event.eventDate) : null;
+    deltaBanner = event && before != null && after != null ? { event, before, after } : null;
+  },
+
+  /* ── Nach-Drop-Feedback: Delta-Banner rendern ────────────────
+     Persistent bis manuell geschlossen (kein Auto-Dismiss/Toast) —
+     Schließen setzt deltaBanner zurück (Klick-Handler in render()). */
+  _renderDeltaBanner() {
+    if (!deltaBanner) return "";
+    const { event, before, after } = deltaBanner;
+    const worse = after < before;
+    const label = event.title
+      ? `${escapeHtml(event.title)}, ${this._fmtDate(event.eventDate)}`
+      : this._fmtDate(event.eventDate);
+    return `
+      <div class="planned-delta-banner">
+        <div class="planned-delta-banner-text">
+          <span>TSB am Eventtag (${label}): <span class="planned-delta-old">${Math.round(before)}</span> → <span class="planned-delta-new" style="color:${worse ? "var(--gold)" : "var(--text)"}">${Math.round(after)}</span></span>
+          <span class="planned-delta-hint">nur Information, keine Blockade</span>
+        </div>
+        <button class="planned-delta-close" title="Schließen">✕</button>
+      </div>`;
+  },
+
+  /* ── Konflikt-Badges + Push-Warnung an einer Karte ───────────
+     Eigene Pill-Zeile unter .planned-card-header (nicht in der
+     Actions-Leiste, nicht im border-left) — pro Karte alle passenden
+     Konflikte aus getState().conflicts (warning vor info, s.
+     core/plan-feedback.js::conflictsForCard) plus, ans Ende gehängt,
+     der Push-Hinweis, solange pushed_external_id gesetzt ist (Konzept
+     §5 — kein Blocker, bleibt bis zum nächsten Push stehen). */
+  _renderCardBadges(session) {
+    const items = conflictsForCard(getPlanCardsState().conflicts, session.id).map((c) => ({
+      severity: c.severity,
+      text: c.message,
+    }));
+    if (session.pushedExternalId) {
+      items.push({
+        severity: "info",
+        text: "📤 Bereits auf Wahoo gepusht — wird beim nächsten Push aktualisiert.",
+      });
+    }
+    if (!items.length) return "";
+    return `<div class="planned-conflict-badges">
+      ${items
+        .map(
+          (i) =>
+            `<div class="planned-conflict-badge planned-conflict-badge--${i.severity}">${escapeHtml(i.text)}</div>`
+        )
+        .join("")}
+    </div>`;
+  },
+
   /* ── Render ────────────────────────────────────────────────── */
   async render(rides) {
     const container = el("planned-container");
@@ -167,6 +247,14 @@ export const Planned = {
         ? Promise.resolve(cardsBefore)
         : loadPlanCards(Data.activeAthleteId),
     ]);
+
+    // Delta-Banner gehört zur zuletzt in DIESEM Tab ausgelösten Aktion —
+    // bei einem Athletenwechsel bezöge er sich sonst auf einen fremden
+    // Athleten/Event, deshalb verwerfen statt stehen lassen.
+    if (deltaBannerAthleteId !== Data.activeAthleteId) {
+      deltaBanner = null;
+      deltaBannerAthleteId = Data.activeAthleteId;
+    }
 
     // Bereits absolvierte Daten
     const doneDates = new Set(rides.map((r) => r.date));
@@ -287,6 +375,8 @@ export const Planned = {
           <div class="planned-progress-pct">${pct}% abgeschlossen · ${totalSessions} Sessions gesamt</div>
         </div>
       </div>`;
+
+    html += this._renderDeltaBanner();
 
     // Nach Wochen gruppieren
     const weekMap = {};
@@ -423,6 +513,7 @@ export const Planned = {
         const undoBtn = e.target.closest(".planned-undo-btn");
         const editBtn = e.target.closest(".planned-edit-btn");
         const addBtn = e.target.closest(".planned-add-card-btn");
+        const deltaCloseBtn = e.target.closest(".planned-delta-close");
         const doneItem = e.target.closest(".planned-done-item--link");
 
         if (moveBtn) Planned._handleMove(moveBtn);
@@ -431,6 +522,10 @@ export const Planned = {
         if (undoBtn) Planned._handleUndo(undoBtn);
         if (editBtn) Planned._handleEdit(editBtn);
         if (addBtn) openPlanCardDialog(Data.activeAthleteId);
+        if (deltaCloseBtn) {
+          deltaBanner = null;
+          Planned.render(Data.byDate());
+        }
         if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
           const date = doneItem.dataset.rideDate;
           if (date) Planned._openInTable(date);
@@ -663,6 +758,7 @@ export const Planned = {
             ${s.km ? `<span class="planned-card-km">${s.workout ? "~" + s.km + " km Ausfahrt" : "~" + s.km + " km"}</span>` : ""}
           </div>
         </div>
+        ${this._renderCardBadges(s)}
         ${
           s.originalDate
             ? `
@@ -927,9 +1023,11 @@ export const Planned = {
       const statusEl = form.querySelector(".planned-move-status");
 
       statusEl.textContent = "⏳ Speichern…";
+      const before = getPlanCardsState().projection;
       const result = await cancelPlanCard(id, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
+        Planned._recordDelta(before);
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
       } else {
@@ -981,9 +1079,11 @@ export const Planned = {
       }
 
       statusEl.textContent = "⏳ Speichern…";
+      const before = getPlanCardsState().projection;
       const result = await movePlanCard(id, newDate, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
+        Planned._recordDelta(before);
         // Nicht neu laden — der State ist bereits aktuell im Speicher
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
@@ -1001,6 +1101,7 @@ export const Planned = {
    *  Die Regeln (Vergangenheit/selber Tag) hat ui/plan-drag.js schon
    *  angewandt — hier kommen nur noch echte Verschiebungen an. */
   async _handleDrop(cardId, date) {
+    const before = getPlanCardsState().projection;
     // movePlanCard setzt den State optimistisch, BEVOR es auf den Server
     // wartet — dieses render() zeigt die Karte deshalb sofort am Zieltag.
     const pending = movePlanCard(cardId, date, "");
@@ -1008,7 +1109,14 @@ export const Planned = {
     Planned.onAdjustmentChange?.();
 
     const result = await pending;
-    if (result.ok) return;
+    if (result.ok) {
+      // Delta erst nach bestätigtem Erfolg berechnen (nicht am optimistischen
+      // Zwischenstand) — sonst zeigte ein fehlgeschlagener, zurückgerollter
+      // Drop einen Delta-Banner für eine Änderung, die gar nicht stattfand.
+      Planned._recordDelta(before);
+      Planned.render(Data.byDate());
+      return;
+    }
 
     // Fehlgeschlagen: state/plan-cards.js hat bereits zurückgerollt —
     // sichtbar machen und den Fehler an der Karte anzeigen (dieselbe
