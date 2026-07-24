@@ -292,6 +292,21 @@ Verpasst-Liste nicht auf die aufwendigere Card-Struktur umzustellen.
 
 ## Phase 4 — Export/Import-Workflow
 
+**Umsetzung abgeschlossen, im echten Browser gegen `dashboard-dev` bestätigt (24.07.2026)**
+`core/export-briefing.js`/`core/proposal-import-parser.js`/`core/proposal-validator.js`
+(+ `state/export.js`, `state/proposals.js::previewClaudeImport`/`importClaudeProposals`,
+`ui/export-panel.js`, `ui/import-dialog.js`) sind der letzte Baustein aus Phase 4 — s.
+Fahrplan-Abschnitt. Per Playwright MCP als `athlete1` durchgespielt: Export-Dialog baut ein
+echtes Briefing mit echten `plan_cards`-IDs/`updated_at` aus `dashboard-dev`, Kopieren
+(`navigator.clipboard`) und Datei-Download (`claude-briefing-athlete1-2026-07-24.md`)
+funktionieren; Import mit einer simulierten Claude-Antwort (1 valider `add`-Vorschlag + 1
+mit drei Fehlern — fehlendes `plan_date`/`title`, unbekannter `type`) zeigte die Vorschau
+korrekt (Teilerfolg, alle Fehler gesammelt), "1 von 2 importieren" landete reaktiv im
+Vorschläge-Zähler (Banner + Trainer-Leiste, ohne manuellen Refresh) und in der
+Vorschlagsliste mit korrekt berechneter Konfliktanzeige (`core/proposal-preview.js`
+funktioniert unverändert auch für `source: "claude"`-Einträge). Test-Vorschlag danach
+wieder gelöscht (RLS erlaubte `DELETE` auf die eigene `open`-Zeile).
+
 **Keine Dedup-Erkennung für doppelten Claude-Import (bewusste v1-Einschränkung)**
 Importiert ein Athlet dieselbe Claude-Antwort zweimal (z. B. versehentlich erneut
 eingefügt), erzeugt jeder Import unabhängig neue offene `proposals`-Zeilen — es gibt
