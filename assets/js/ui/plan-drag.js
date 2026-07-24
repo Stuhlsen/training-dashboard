@@ -156,39 +156,55 @@ function beginDrag(event) {
 
 /** Räumt Ghost, Slots und Listener ab. `snapBack` lässt den Ghost sichtbar
  *  an die Ausgangsposition zurückschnappen (Konzept §6: abgewiesener Drop)
- *  statt einfach zu verschwinden. */
+ *  statt einfach zu verschwinden.
+ *
+ *  `drag = null` steht in `finally`: ein Bugreport (Browser-Test, Juli 2026)
+ *  beschrieb Drag & Drop als nach dem ERSTEN erfolgreichen Drop für ALLE
+ *  Karten eingefroren, bis zum nächsten Seiten-Reload — exakt das Bild eines
+ *  Locks, der bei einer während des Aufräumens geworfenen Exception nie mehr
+ *  freigegeben wird (`onPointerDown` verweigert jeden neuen Drag, solange
+ *  `drag` nicht null ist). Die genaue werfende Stelle ließ sich ohne Browser-
+ *  Debugger nicht abschließend nachvollziehen — das `finally` macht einen
+ *  dauerhaft hängenden Lock aber strukturell unmöglich, unabhängig davon,
+ *  was im Aufräumteil im Einzelnen schiefgeht. */
 function endDrag(snapBack) {
   if (!drag) return;
   const { ghost, cardEl, container } = drag;
-  if (drag.rafId) window.cancelAnimationFrame(drag.rafId);
-  window.removeEventListener("pointermove", onPointerMove);
-  window.removeEventListener("pointerup", onPointerUp);
-  window.removeEventListener("pointercancel", onPointerCancel);
-  window.removeEventListener("keydown", onKeyDown);
+  try {
+    if (drag.rafId) window.cancelAnimationFrame(drag.rafId);
+    drag.hoverEl?.classList.remove("planned-day-slot--over");
+    hideDaySlots(container);
+    cardEl?.classList.remove("planned-card--dragging");
+    document.body.classList.remove("is-card-dragging");
 
-  drag.hoverEl?.classList.remove("planned-day-slot--over");
-  hideDaySlots(container);
-  cardEl?.classList.remove("planned-card--dragging");
-  document.body.classList.remove("is-card-dragging");
-
-  if (ghost) {
-    if (snapBack && cardEl?.isConnected) {
-      // Zielposition LIVE lesen: der Ghost wird per transform gesetzt, und
-      // die Ausgangsposition der Karte hat sich seit dem Greifen verschoben
-      // (Autoscroll, eingeblendete Slot-Zeilen). Ein gemerkter Startwert —
-      // oder gar translate(0,0), was der Viewport-Ecke entspräche — ließe
-      // den Ghost woandershin fliegen als zur Karte.
-      const home = cardEl.getBoundingClientRect();
-      ghost.el.classList.add("planned-card--ghost-snapback");
-      ghost.el.style.transform = `translate(${home.left}px, ${home.top}px)`;
-      ghost.el.addEventListener("transitionend", () => ghost.el.remove(), { once: true });
-      // Fallback, falls die Transition nie feuert (reduced-motion o. Ä.)
-      setTimeout(() => ghost.el.remove(), 400);
-    } else {
-      ghost.el.remove();
+    if (ghost) {
+      if (snapBack && cardEl?.isConnected) {
+        // Zielposition LIVE lesen: der Ghost wird per transform gesetzt, und
+        // die Ausgangsposition der Karte hat sich seit dem Greifen verschoben
+        // (Autoscroll, eingeblendete Slot-Zeilen). Ein gemerkter Startwert —
+        // oder gar translate(0,0), was der Viewport-Ecke entspräche — ließe
+        // den Ghost woandershin fliegen als zur Karte.
+        const home = cardEl.getBoundingClientRect();
+        ghost.el.classList.add("planned-card--ghost-snapback");
+        ghost.el.style.transform = `translate(${home.left}px, ${home.top}px)`;
+        ghost.el.addEventListener("transitionend", () => ghost.el.remove(), { once: true });
+        // Fallback, falls die Transition nie feuert (reduced-motion o. Ä.)
+        setTimeout(() => ghost.el.remove(), 400);
+      } else {
+        ghost.el.remove();
+      }
     }
+  } finally {
+    // IMMER zuerst: window-Listener runter, danach den Lock freigeben — in
+    // dieser Reihenfolge unabhängig vom Ausgang des try-Blocks, sonst könnte
+    // ein removeEventListener-Fehlschlag (unwahrscheinlich, aber s.o.) auch
+    // noch drag=null verhindern.
+    window.removeEventListener("pointermove", onPointerMove);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointercancel", onPointerCancel);
+    window.removeEventListener("keydown", onKeyDown);
+    drag = null;
   }
-  drag = null;
 }
 
 function onPointerMove(event) {
