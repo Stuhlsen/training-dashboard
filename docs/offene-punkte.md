@@ -328,12 +328,40 @@ Feldform mehr (jetzt op-abhängige Mindestprüfung); die Vorschau eines `move`-V
 reaktivierte eine ausgefallene Zielkarte nicht (anders als das echte `movePlanCard`).
 Alle Fixes unit-getestet, 331 Tests grün.
 
-**Migration 0006 noch nicht live gegen `training-dashboard-dev` verifiziert**
-`supabase/migrations/0006_proposals_v1.sql` stellt `proposals` additiv auf Schema v1 um
-(u. a. `coach_id` → `created_by`, Status-Werte, neue Spalten) und legt `trainer_view_prefs`
-neu an. Nur lokal geschrieben/gelesen (Migration + Code), noch nicht im SQL-Editor gegen
-das dev-Projekt eingespielt — die Prüfliste am Ende der Migration steht noch aus, bevor
-der Trainer-Flow gegen echte Daten vertraut werden kann.
+**Migration 0006 gegen `dashboard-dev` verifiziert (24.07.2026, Befund behoben) — zur Historie**
+Prüfliste am Ende von `supabase/migrations/0006_proposals_v1.sql` per Playwright MCP
+(`browser_evaluate`, dynamischer Import von `data-access/supabase/{auth,client}.js`,
+Login als `trainer-st`/`athlete1`) gegen `dashboard-dev` durchlaufen — sechs von sieben
+Punkten bestätigt:
+- Spalten-Check (`created_by`/`group_id`/`op`/`target_card_id`/`target_updated_at`/`reason`) ✓
+- Trainer A (Trainer-ST, coacht Stuhlsen/athlete1) legt Vorschlag für Athlet A an ✓,
+  für Athlet B (hc_diZee/athlete2, gecoacht von Trainer-DZ) `RLS`-abgelehnt ✓
+- Athlet A legt Vorschlag für sich selbst an (Claude-Import-Pfad, `source: 'claude'`) ✓,
+  setzt Status auf `accepted` ✓, liest fremden Vorschlag (Athlet B) → 0 Zeilen ✓
+- Trainer A liest alle Vorschläge von Athlet A inkl. `created_by = Athlet A` (Claude-Import) ✓,
+  Status-Änderung durch den Trainer selbst → RLS filtert still (0 Zeilen aktualisiert) ✓
+- `trainer_view_prefs`: Trainer A legt Zeile für Athlet A an ✓, für Athlet B RLS-abgelehnt ✓;
+  Athlet A selbst kann weder lesen (0 Zeilen) noch schreiben (RLS-abgelehnt) ✓
+- **`payload`-CHECK-Constraint ✗ — nicht wie in der Datei:** `op='add'`/`'replace'`/`'move'`
+  mit `payload={}` wurden alle klaglos eingefügt (sollten laut Zeile 72–83 der Migration mit
+  `23514`/`violates check constraint "proposals_payload_check"` abgelehnt werden — genau der
+  Fall, den der Kommentar in der Migration als Grund für die op-abhängige Mindestprüfung nennt).
+  Die live-Constraint prüft nachweislich nur noch `jsonb_typeof(payload) = 'object'`
+  (bestätigt: ein nicht-Objekt-Payload `[]` UND ein ungültiger `op`-Wert wurden korrekt
+  abgelehnt — die Constraint existiert und greift, nur mit einer älteren/schwächeren
+  Bedingung als im aktuellen Dateistand). Wahrscheinlichste Erklärung: eine frühere
+  Version von Migration 0006 wurde eingespielt, bevor die op-abhängige Payload-Prüfung
+  (Zeile 54–83) in die Datei kam, und die aktualisierte Datei wurde seither nicht erneut
+  gegen `dashboard-dev` ausgeführt.
+  **Behoben (24.07.2026):** Alex hat Zeile 72–83 aus `0006_proposals_v1.sql` erneut im
+  Supabase SQL-Editor gegen `dashboard-dev` ausgeführt. Per Playwright MCP re-verifiziert:
+  `op='add'`/`'replace'` mit `payload={}` jetzt korrekt mit `23514`
+  (`violates check constraint "proposals_payload_check"`) abgelehnt, `op='cancel'` weiterhin
+  ohne Pflichtfelder erlaubt. Test-Zeilen wieder gelöscht. Migration 0006 damit vollständig
+  gegen `dashboard-dev` verifiziert — kein offener Punkt mehr. (Test-Zeilen aus der ersten
+  Prüfrunde wurden ebenfalls wieder gelöscht; eine `accepted`-Testzeile aus dem Claude-
+  Import-Pfad-Test ließ sich per RLS nicht mehr löschen (nur `status='open'` löschbar) und
+  bleibt als harmlose Dev-Testzeile stehen.)
 
 **Move/Ausfallen als Vorschlag über die Planungstab-Buttons (behoben, zur Historie)**
 Beim ersten Browser-Test als Trainer reproduziert: Der Direkt/Vorschlag-Umschalter zeigte

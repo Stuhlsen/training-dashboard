@@ -169,7 +169,8 @@
 sind umgesetzt UND im echten Browser gegen `training-dashboard-dev` getestet (Migration
 `0006`, Trainer-Leiste, Vorschlagsliste, Vergleichsansicht, Tests — s. Phase-4-Abschnitt
 oben). Zwei dabei gefundene Bugs (Toggle-Race, Drag-Freeze) sind behoben und von Alex
-im echten Browser bestätigt (24.07.2026, s. `docs/offene-punkte.md`). Offen: die
-Migration-0006-Prüfliste am Ende der Datei einmal vollständig durchgehen (Browser-Verifikation
-des Trainer-Flows selbst ist erledigt, s. o.); danach Export-Generator + Import-Parser **[SO]**
-(letzter Baustein aus Phase 4, Konzept bereits fertig).
+im echten Browser bestätigt (24.07.2026, s. `docs/offene-punkte.md`). Migration-0006-Prüfliste
+per Playwright MCP gegen `dashboard-dev` vollständig durchgelaufen und bestätigt (24.07.2026,
+s. `docs/offene-punkte.md` — ein Befund unterwegs: veraltete `payload`-CHECK-Constraint,
+von Alex im SQL-Editor neu eingespielt, re-verifiziert). Nächster Schritt: Export-Generator +
+Import-Parser **[SO]** (letzter Baustein aus Phase 4, Konzept bereits fertig).
