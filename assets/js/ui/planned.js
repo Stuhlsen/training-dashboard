@@ -31,6 +31,10 @@ import {
   pushPlanCard,
 } from "../state/plan-cards.js";
 import { getState as getEventsState } from "../state/events.js";
+import { getState as getTrainerViewState } from "../state/trainer-view.js";
+import { createTrainerProposal } from "../state/proposals.js";
+import { moveProposalArgs, cancelProposalArgs } from "../core/proposal-payload.js";
+import { isCoach } from "../state/session.js";
 import { el, escapeHtml } from "./dom.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
@@ -57,6 +61,20 @@ export const TYP_OPTIONS = [
  *  bleibt aber laut AGENTS.md ein reiner Vergleichsathlet (read-only). */
 function _canEdit() {
   return Data.activeAthleteId === CONFIG.primaryAthleteId;
+}
+
+/** Ist der eingeloggte User Trainer des angezeigten Athleten UND steht der
+ *  Speichern-Modus auf "Vorschlag"? Steuert, ob Verschieben/Ausfallen einen
+ *  proposals-Eintrag erzeugen statt plan_cards direkt zu ändern — derselbe
+ *  Umschalter, den ui/plan-card-dialog.js für Anlegen/Bearbeiten bereits
+ *  respektiert (Trainer-Sicht-Konzept §3/T2: "ändern/verschieben" ist
+ *  toggle-gesteuert, nur Anlegen/Löschen ist immer Vorschlag — Streichen/
+ *  Ausfallen zählt hier zu "ändern", nicht zu "Löschen", s. Bugfix-Notiz
+ *  docs/offene-punkte.md). Für den Athleten selbst (isCoach() === false)
+ *  immer false — der Umschalter betrifft ausschließlich Trainer-Aktionen. */
+function _isTrainerProposalMode() {
+  const { trainerContext, saveMode } = getTrainerViewState();
+  return isCoach() && trainerContext.isTrainer && saveMode === "proposal";
 }
 
 /* Nach-Drop-Feedback (Phase 3, Schritt 5): Delta-Zeile oberhalb der
@@ -742,7 +760,12 @@ export const Planned = {
     // vergangene Karte behält den "Verschieben"-Button — abgewiesen wird
     // sie als Drag-QUELLE, während ein vergangener Tag als Drop-ZIEL
     // abgewiesen wird (Konzept §6); das sind zwei verschiedene Regeln.
-    const draggable = _canEdit() && s.date >= todayLocal;
+    // Drag & Drop bleibt Trainern im Vorschlag-Modus verwehrt: der Grip hat
+    // kein Begründungs-Feld und plan-drag.js bewegt die Karte optimistisch
+    // VOR jeder Bestätigung — beides passt nicht zu "erzeugt nur einen
+    // Vorschlag, ändert den echten Plan nicht". Das Verschieben-Formular
+    // (mit Grund-Feld) bleibt der Weg für einen Trainer im Vorschlag-Modus.
+    const draggable = _canEdit() && s.date >= todayLocal && !_isTrainerProposalMode();
 
     return `
       <div class="planned-card" style="border-left-color:${col}" data-card-id="${s.id}" data-date="${s.date}">
@@ -1000,6 +1023,7 @@ export const Planned = {
       return;
     }
 
+    const proposalMode = _isTrainerProposalMode();
     const form = document.createElement("div");
     form.className = "planned-move-form planned-cancel-form";
     form.innerHTML = `
@@ -1007,7 +1031,7 @@ export const Planned = {
         <label class="planned-move-label">❌ Session als ausgefallen markieren</label>
         <input type="text" class="planned-move-reason" placeholder="Grund (z.B. Krank, Erschöpfung, Regen…)" maxlength="60">
         <div class="planned-move-actions">
-          <button class="planned-cancel-confirm" style="border-color:var(--red); color:var(--red)">❌ Als ausgefallen markieren</button>
+          <button class="planned-cancel-confirm" style="border-color:var(--red); color:var(--red)">❌ ${proposalMode ? "Als Vorschlag speichern" : "Als ausgefallen markieren"}</button>
           <button class="planned-move-cancel">✕ Abbrechen</button>
         </div>
         <div class="planned-move-status"></div>
@@ -1021,8 +1045,19 @@ export const Planned = {
     form.querySelector(".planned-cancel-confirm").addEventListener("click", async () => {
       const reason = form.querySelector(".planned-move-reason").value.trim();
       const statusEl = form.querySelector(".planned-move-status");
-
       statusEl.textContent = "⏳ Speichern…";
+
+      if (proposalMode) {
+        const result = await Planned._proposeCancel(id, reason);
+        if (result.ok) {
+          statusEl.textContent = "✅ Als Vorschlag gespeichert";
+          Planned.render(Data.byDate());
+        } else {
+          statusEl.textContent = `❌ ${result.error?.message || "Fehler"}`;
+        }
+        return;
+      }
+
       const before = getPlanCardsState().projection;
       const result = await cancelPlanCard(id, reason);
       if (result.ok) {
@@ -1034,6 +1069,13 @@ export const Planned = {
         statusEl.textContent = `❌ ${result.error?.message || "Fehler — eingeloggt?"}`;
       }
     });
+  },
+
+  /** Erzeugt einen `cancel`-Vorschlag statt die Karte direkt auszufallen —
+   *  Trainer-Sicht-Konzept §3/T2 (s. _isTrainerProposalMode()-Kommentar). */
+  async _proposeCancel(id, reason) {
+    const card = getPlanCardsState().cards.find((c) => c.id === id);
+    return createTrainerProposal(Data.activeAthleteId, cancelProposalArgs(card, reason));
   },
 
   /* ── Verschieben-Handler ───────────────────────────────────── */
@@ -1048,6 +1090,7 @@ export const Planned = {
       return;
     }
 
+    const proposalMode = _isTrainerProposalMode();
     const form = document.createElement("div");
     form.className = "planned-move-form";
     form.innerHTML = `
@@ -1057,7 +1100,7 @@ export const Planned = {
         <label class="planned-move-label">Grund (optional)</label>
         <input type="text" class="planned-move-reason" placeholder="z.B. Hitze, Regen, Erschöpfung…" maxlength="60">
         <div class="planned-move-actions">
-          <button class="planned-move-confirm">✓ Speichern</button>
+          <button class="planned-move-confirm">✓ ${proposalMode ? "Als Vorschlag speichern" : "Speichern"}</button>
           <button class="planned-move-cancel">✕ Abbrechen</button>
         </div>
         <div class="planned-move-status"></div>
@@ -1079,6 +1122,18 @@ export const Planned = {
       }
 
       statusEl.textContent = "⏳ Speichern…";
+
+      if (proposalMode) {
+        const result = await Planned._proposeMove(id, newDate, reason);
+        if (result.ok) {
+          statusEl.textContent = "✅ Als Vorschlag gespeichert";
+          Planned.render(Data.byDate());
+        } else {
+          statusEl.textContent = `❌ ${result.error?.message || "Fehler beim Speichern"}`;
+        }
+        return;
+      }
+
       const before = getPlanCardsState().projection;
       const result = await movePlanCard(id, newDate, reason);
       if (result.ok) {
@@ -1091,6 +1146,13 @@ export const Planned = {
         statusEl.textContent = `❌ ${result.error?.message || "Fehler beim Speichern"}`;
       }
     });
+  },
+
+  /** Erzeugt einen `move`-Vorschlag statt die Karte direkt zu verschieben —
+   *  Trainer-Sicht-Konzept §3/T2 (s. _isTrainerProposalMode()-Kommentar). */
+  async _proposeMove(id, newDate, reason) {
+    const card = getPlanCardsState().cards.find((c) => c.id === id);
+    return createTrainerProposal(Data.activeAthleteId, moveProposalArgs(card, newDate, reason));
   },
 
   /* ── Drop-Handler (Drag & Drop) ────────────────────────────── */

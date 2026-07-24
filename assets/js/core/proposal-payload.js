@@ -26,3 +26,35 @@ export function payloadToCardData(payload) {
     workout: payload?.workout ?? null,
   };
 }
+
+/** Baut die Argumente für state/proposals.js::createTrainerProposal() aus
+ *  einer Karte + neuem Datum/Grund — Trainer-Vorschlag "move" (Verschieben-
+ *  Formular in ui/planned.js, Trainer-Sicht-Konzept §3/T2: Verschieben ist
+ *  toggle-gesteuert, kein Direktschreiben mehr im Vorschlag-Modus). Reine
+ *  Funktion, damit dieser Teil der Logik ohne DOM testbar ist — ui/planned.js
+ *  ruft nur noch createTrainerProposal(athleteId, moveProposalArgs(...)) auf.
+ *  @param {{id: string, updatedAt?: string}|null|undefined} card
+ *  @param {string} newDate
+ *  @param {string} [reason] */
+export function moveProposalArgs(card, newDate, reason) {
+  return {
+    op: "move",
+    targetCardId: card?.id ?? null,
+    targetUpdatedAt: card?.updatedAt ?? null,
+    payload: { plan_date: newDate },
+    reason: reason || null,
+  };
+}
+
+/** Dasselbe für "cancel" (Ausfallen-Formular in ui/planned.js).
+ *  @param {{id: string, updatedAt?: string}|null|undefined} card
+ *  @param {string} [reason] */
+export function cancelProposalArgs(card, reason) {
+  return {
+    op: "cancel",
+    targetCardId: card?.id ?? null,
+    targetUpdatedAt: card?.updatedAt ?? null,
+    payload: { reason: reason || null },
+    reason: reason || null,
+  };
+}
