@@ -185,7 +185,19 @@ export function buildBriefingMarkdown({
 
   lines.push("## Form (CTL/ATL/TSB)");
   if (projection) {
-    lines.push(`- Heute (${projection.asOf}): CTL ${projection.startCtl} · ATL ${projection.startAtl}`);
+    // projection.asOf ist der Anker (letzte Fahrt mit TSB-Signal, core/pmc.js::
+    // currentPmc), NICHT "heute" — startCtl/startAtl sind aber bereits lastfrei
+    // bis todayIso fortgeschrieben (dieselben Zahlen, die auch der Analyse-Tab
+    // zeigt). "Heute" muss deshalb immer todayIso tragen, sonst widerspricht
+    // sich der JSON-Anhang (today) mit diesem Abschnitt im selben Briefing —
+    // per Nachtest bestätigter Bug, s. docs/offene-punkte.md. Weicht der Anker
+    // vom heutigen Tag ab, macht ein Hinweis das transparent (Konvention aus
+    // ui/analysis.js/ui/charts/pmc.js: "Stand …, fortgeschrieben").
+    const staleness =
+      projection.asOf !== todayIso
+        ? ` (Datenstand ${projection.asOf}, seither ohne neue Fahrt fortgeschrieben)`
+        : "";
+    lines.push(`- Heute (${todayIso}): CTL ${projection.startCtl} · ATL ${projection.startAtl}${staleness}`);
     const last = projection.days[projection.days.length - 1];
     if (last) {
       lines.push(`- Projektion Horizont-Ende (${last.date}): CTL ${last.ctl} · ATL ${last.atl} · TSB ${last.tsb}`);

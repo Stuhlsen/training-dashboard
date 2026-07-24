@@ -64,6 +64,29 @@ test("buildBriefingMarkdown: JSON-Anhang trägt schema_version, athlete und Kart
   assert.equal(parsed.cards[0].updated_at, "2026-07-20T00:00:00Z");
 });
 
+test("buildBriefingMarkdown: 'Heute' zeigt immer todayIso, auch wenn die Projektion einen älteren Anker (asOf) hat", () => {
+  // Regressionstest für einen per Nachtest gefundenen Bug: projection.asOf ist
+  // der Anker (letzte Fahrt mit TSB-Signal, core/pmc.js::currentPmc), NICHT
+  // "heute" — startCtl/startAtl sind aber bereits bis todayIso fortgeschrieben.
+  // Eine frühere Fassung zeigte "Heute (${projection.asOf})" und widersprach
+  // damit dem "today"-Feld im selben JSON-Anhang (zehn Tage Differenz im
+  // Live-Test). s. docs/offene-punkte.md.
+  const staleCtx = {
+    ...CTX,
+    projection: { ...CTX.projection, asOf: "2026-07-14" },
+  };
+  const md = buildBriefingMarkdown(staleCtx);
+  assert.match(md, /Heute \(2026-07-24\): CTL/);
+  assert.doesNotMatch(md, /Heute \(2026-07-14\)/, "der alte Anker darf nie als 'Heute' beschriftet werden");
+  assert.match(md, /Datenstand 2026-07-14, seither ohne neue Fahrt fortgeschrieben/);
+});
+
+test("buildBriefingMarkdown: kein Fortschreibungs-Hinweis, wenn der Anker mit heute übereinstimmt", () => {
+  const md = buildBriefingMarkdown(CTX); // CTX.projection.asOf === CTX.today
+  assert.match(md, /Heute \(2026-07-24\): CTL 55.2 · ATL 48.1$/m);
+  assert.doesNotMatch(md, /fortgeschrieben/);
+});
+
 test("buildBriefingMarkdown: leere Eingaben crashen nicht, zeigen Leer-Hinweise", () => {
   const md = buildBriefingMarkdown({ athleteId: "x" });
   assert.match(md, /Keine Events erfasst/);

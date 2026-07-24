@@ -259,6 +259,21 @@ Werte ZUERST gegenprüfen** — zusammen mit den Konflikt-Schwellen im selben Mo
 Kommentar mit derselben Liste steht direkt an der Tabelle in `core/plan-config.js`.
 → Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §2/§3 (K1/K3).
 
+**K-EVENT feuert nie mehr — `core/conflicts.js` prüft `priority === "A"/"B"`, die DB liefert seit Migration 0004 `"main"/"secondary"` (neu entdeckt, nicht behoben)**
+Beim Anlegen eines Test-Events für den Export/Import-Nachtest (Finding 2, 25.07.2026)
+aufgefallen: `events.priority` erlaubt laut `0004_events.sql` (`events_priority_check`)
+nur noch `'main'`/`'secondary'` — die Migration selbst dokumentiert die Umstellung
+("priority von not-null/A-B-C auf nullable/main-secondary umgestellt"). `core/conflicts.js`
+(K-EVENT-Regel, Zeile 154/163) wurde dabei nicht mitgezogen und vergleicht weiterhin gegen
+`"A"`/`"B"` — dieser Vergleich ist seit der Migration für JEDES reale Event `false`,
+`window` wird immer `null`, K-EVENT kann also nie mehr auslösen. Betrifft auch
+`ui/trainer-bar.js::tsbTile()`/`core/plan-feedback.js::horizonRaceEvent()` nicht (die
+filtern nur auf `type === "race"`, nicht auf `priority`), aber jede TSB-Zielfenster-Prüfung
+für Events fehlt seither still. Kein Fix im Rahmen dieses Schritts (Phase 3, außerhalb
+Export/Import-Scope) — Entscheidung nötig: `core/conflicts.js`/`core/plan-config.js`
+(`eventWindowA`/`eventWindowB`) auf `main`/`secondary` ummappen, oder umgekehrt.
+→ Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §3 (K-EVENT).
+
 **K-RAMPE vergleicht in v1 nur aufeinanderfolgende Projektionswochen (Plan-vs-Plan)**
 `core/conflicts.js::detectConflicts` (Regel K-RAMPE) bildet die Wochenlast aus den
 projizierten Tagen und vergleicht nur **volle** 7-Tage-Wochen miteinander (partielle
@@ -336,7 +351,7 @@ bestätigt: Athlet selbst → Leiste leer; Trainer-ST auf seinem Athleten
 
 ## Phase 4 — Export/Import-Workflow
 
-**Umsetzung abgeschlossen, im echten Browser gegen `dashboard-dev` bestätigt (24.07.2026)**
+**Umsetzung abgeschlossen, im echten Browser gegen `dashboard-dev` bestätigt (24.–25.07.2026)**
 `core/export-briefing.js`/`core/proposal-import-parser.js`/`core/proposal-validator.js`
 (+ `state/export.js`, `state/proposals.js::previewClaudeImport`/`importClaudeProposals`,
 `ui/export-panel.js`, `ui/import-dialog.js`) sind der letzte Baustein aus Phase 4 — s.
@@ -350,6 +365,33 @@ Vorschläge-Zähler (Banner + Trainer-Leiste, ohne manuellen Refresh) und in der
 Vorschlagsliste mit korrekt berechneter Konfliktanzeige (`core/proposal-preview.js`
 funktioniert unverändert auch für `source: "claude"`-Einträge). Test-Vorschlag danach
 wieder gelöscht (RLS erlaubte `DELETE` auf die eigene `open`-Zeile).
+
+**Manueller Nachtest (Finding 2, 25.07.2026) fand einen echten Datumswiderspruch im
+Briefing — behoben.** `projection.asOf` (core/pmc.js::currentPmc) ist der ANKER (letzte
+Fahrt mit TSB-Signal), NICHT "heute" — `startCtl`/`startAtl` sind aber bereits lastfrei bis
+`today` fortgeschrieben (dieselben Zahlen wie im Analyse-Tab). Eine frühere Fassung von
+`core/export-briefing.js` beschriftete den Form-Abschnitt trotzdem mit `Heute
+(${projection.asOf})` — im Live-Test zehn Tage älter als das `today`-Feld im JSON-Anhang
+desselben Briefings. Behoben: „Heute" zeigt immer `today`, ein Hinweis macht die
+Fortschreibung transparent, wenn der Anker abweicht (Konvention aus `ui/analysis.js`/
+`ui/charts/pmc.js`: „Stand …, fortgeschrieben"). Regressionstest in
+`tests/export-briefing.test.js`.
+
+**Übrige Finding-2-Punkte, kein Bug:**
+- „Keine Events erfasst" — Testevent für `athlete1` angelegt (`Playwright-Testevent
+  (Export-Nachtest)`, 06.09.2026, `priority: 'main'`), Export danach inhaltlich
+  aussagekräftiger. Kann bei Bedarf gelöscht werden.
+- RPE/Feel bei den Ist-Fahrten durchgehend „–": kommt aus `data/rides.json`
+  (JSON-Sync-Pipeline, echte intervals.icu-Werte) — bewusst NICHT fabriziert, das würde
+  echte Trainingsdaten verfälschen. Bleibt Testdaten-bedingt, bis ein echter Sync-Lauf
+  mit RPE/Feel-Werten für diese Fahrten vorliegt.
+- Befinden-Notiz „–": nicht befüllt, da eine vorhandene echte Check-in-Zeile ohne Notiz
+  nicht mit einer erfundenen Notiz überschrieben werden sollte (könnte reale Athleten-
+  Eingabe verfälschen) — bewusst unangetastet gelassen, Alex kann bei Bedarf selbst eine
+  echte Notiz im Morgen-Check-in ergänzen.
+
+**Nebenbefund beim Testevent-Anlegen: K-EVENT feuert nie mehr (`priority`-Skalen-Mismatch,
+neu entdeckt, s. eigener Punkt unter „Phase 3 — Planungstab").**
 
 **Keine Dedup-Erkennung für doppelten Claude-Import (bewusste v1-Einschränkung)**
 Importiert ein Athlet dieselbe Claude-Antwort zweimal (z. B. versehentlich erneut
