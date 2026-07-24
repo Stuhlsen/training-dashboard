@@ -655,13 +655,16 @@ Render nach einem Athletenwechsel noch die alte Datenquelle gezeigt;
 `Planned.render()` erkennt den bereits geladenen Stand und lädt nicht doppelt.
 Nebenbei: `refreshAfterAdjustment()` berechnete `todayISO` in UTC statt lokal
 (gleiche Bugklasse wie Commit `d3e6996`) — auf `localISODate()` umgestellt.
-Live gegen `training-dashboard-dev` per Playwright MCP verifiziert (kein Login in
-der Session verfügbar, daher Kartenmutation direkt am `plan_cards`-State simuliert
-statt über `movePlanCard()`/`cancelPlanCard()` — deren Schreibpfade selbst sind
-bereits in `tests/plan-cards-move.test.js` abgedeckt): Karte als ausgefallen
-markiert → Hero-Pill, Wochenrückblick (Plan 2/3 → 2/2) und Analyse-Briefing
-aktualisieren sich SOFORT ohne Reload; Rückgängig stellt den Ursprungszustand
-wieder her. Athlet 2 (GFNY-Plan, `hasPlanningTab` ohne `ownPlan`) ebenfalls
+Live gegen `training-dashboard-dev` per Playwright MCP verifiziert — zunächst mit
+einer simulierten Kartenmutation (kein Login in der ersten Prüfrunde verfügbar),
+danach mit einem ECHTEN Login (`stuhlsen@training-dashboard.dev`, Credentials aus
+`.env`) und einem echten `cancelPlanCard()`-Write gegengeprüft (Ergebnis identisch,
+danach per `undoAdjustment()` wieder rückgängig gemacht — DB unverändert): Karte
+als ausgefallen markiert → Hero-Pill ("Z2 Lang" → "Z2 Locker, 27.07."),
+Analyse-Briefing ("Nächste Einheit" auf die neue Karte) und Konsistenz-Panel
+(Plan-Adhärenz 70%→74%) aktualisieren sich SOFORT ohne Reload; Rückgängig stellt
+den Ursprungszustand wieder her (Hero-Pill wieder "Z2 Lang", DB-Zeile wieder ohne
+`cancelled`). Athlet 2 (GFNY-Plan, `hasPlanningTab` ohne `ownPlan`) ebenfalls
 geprüft — Konsistenz-Panel zeigt weiterhin bewusst keine Plan-Adhärenz. Bestehende
 `core/`-Tests unverändert grün, da `core/` selbst nicht angefasst wurde.
 → Commit `a549249`. Details: `docs/phase-3-konzept-planungstab.md` §8.
