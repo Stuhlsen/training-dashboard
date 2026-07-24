@@ -112,12 +112,12 @@
 
 - [x] Konzept: Trainer-Sicht — sieht "seinen" Athleten komplett, kann direkt ändern oder als Vorschlag markieren **[F5]** → `docs/phase-4-konzept-trainer-sicht.md`
 - [x] Konzept: Vorschlags-Schema (JSON) — einheitlich für Mensch und Claude **[F5]** → `docs/phase-4-konzept-vorschlags-schema.md`
-- [ ] Konzept: Export/Import-Workflow (Briefing raus → Claude Pro → Vorschlags-JSON rein) **[OP]**
+- [x] Konzept: Export/Import-Workflow (Briefing raus → Claude Pro → Vorschlags-JSON rein) **[OP]** → `docs/phase-4-konzept-export-import-workflow.md`
 - [x] Prompt-Vorlage für Claude-Trainer schreiben **[F5]** → `docs/phase-4-prompt-vorlage-claude-trainer.md`
-- [ ] Mockups erstellen und iterieren **[SO]**
-- [ ] Umsetzung: Trainer-Dashboard + `proposals`-Tabelle mit Annehmen/Ablehnen-Flow **[SO]**
-- [ ] Umsetzung: Export-Generator + Import-Parser mit Validierung **[SO]**
-- [ ] Tests **[SO]**
+- [x] Mockups erstellen und iterieren **[SO]** — im Chat iteriert und abgenommen (kein separates Mockup-Artefakt, wie bereits bei Phase 2/3 gehandhabt), Beschreibung der drei Ansichten (Trainer-Leiste, Vorschlagsliste, Vergleichsansicht) im Umsetzungs-Prompt festgehalten
+- [x] Umsetzung: Trainer-Dashboard + `proposals`-Tabelle mit Annehmen/Ablehnen-Flow **[SO]** → Migration `supabase/migrations/0006_proposals_v1.sql` (proposals auf Schema v1 additiv umgestellt, `plan_cards.updated_by`, neue Tabelle `trainer_view_prefs`); `data-access/supabase/proposals.js` + `trainer-view-prefs.js`; `core/proposal-payload.js`/`proposal-preview.js`/`proposal-groups.js`/`proposal-summary.js` (reine Ableitungen, Wiederverwendung von `core/projection.js`/`core/conflicts.js`); `state/proposals.js` (Annehmen wendet den Vorschlag über die bestehenden `state/plan-cards.js`-Aktionen an statt die Karten-Logik zu duplizieren) + `state/trainer-view.js` (Kontext/Kategorien/Speicher-Modus); `ui/trainer-bar.js`, `ui/proposal-list.js`, `ui/proposal-compare.js`, `ui/proposal-banner.js`; `ui/plan-card-dialog.js` um einen Speichern-Modus-Hook erweitert (Trainer + Modus "Vorschlag" → `createTrainerProposal` statt Direktschreiben, einzige Stelle, an der ein menschlicher Trainer in dieser Umsetzung Vorschläge erzeugen kann — s. Einschränkung unten). **`/code-review --level high` vor dem Commit** deckte einen kritischen RLS-Rollen-Mismatch auf (nur der Athlet darf laut Policy über einen Vorschlag entscheiden, die Review-UI war aber nur über die Trainer-Leiste erreichbar) + vier weitere Korrektheitslücken (Veraltet-Erkennung fehlte, Teilerfolg von "Alle übernehmen" wurde verschluckt, kein Refresh nach Annehmen, keine requestId-Absicherung) — alle behoben, Details in `docs/offene-punkte.md`.
+- [ ] Umsetzung: Export-Generator + Import-Parser mit Validierung **[SO]** — Konzept steht (`docs/phase-4-konzept-export-import-workflow.md`), Umsetzung noch offen; bis dahin ist der menschliche Trainer-Pfad über den Karten-Dialog der einzige Weg, `proposals`-Zeilen anzulegen
+- [x] Tests **[SO]** → `tests/proposals.test.js` (State-Layer, data-access gemockt wie `tests/plan-cards-move.test.js`), `tests/proposal-preview.test.js`/`proposal-groups.test.js`/`proposal-summary.test.js` (reine core-Module); RLS-Erweiterung in `tests/supabase-rls.test.js` weiterhin offen — braucht Live-Credentials gegen `dashboard-dev`, s. `docs/offene-punkte.md`/AGENTS.md „Test-Sicherheit"
 
 **Entscheidungen Phase 4:**
 - T1: Check-in-Notiz für Trainer nur per Athleten-Toggle (Default aus); Slider immer ✅
@@ -125,6 +125,7 @@
 - V1: Claude-Importe landen immer als offene Vorschläge im Review ("Alle übernehmen" als Abkürzung) ✅
 - V2: Entschiedene Vorschläge werden unbegrenzt aufbewahrt ✅
 - Review-Kern: Vergleichsansicht alte/neue Karte nebeneinander, Direkt-Übernahme ohne Vergleich möglich ✅
+- Kategorien-Auswahl der Trainer-Leiste: **DB-persistiert** pro Trainer-Athlet-Paar (neue Tabelle `trainer_view_prefs`) statt nur Session-Zustand ✅ *(Nutzerentscheidung, erweitert bewusst die bisherige Trainer-Settings-Entscheidung aus Phase 4 §1)*
 
 ---
 
@@ -163,4 +164,10 @@
 
 ➡️ **Phase 3 ist abgeschlossen** (Migration, Karten-CRUD, Drag & Drop, Prognose/Konfliktlogik, Nach-Drop-Feedback — s. Phase-3-Abschnitt oben). Offen bleibt nur die manuelle Browser-Verifikation von Schritt 5 gegen `training-dashboard-dev` (Drag/Move/Event-Änderung live prüfen, s. `docs/offene-punkte.md`) sowie die Drag-Live-Färbung (K2) als späterer Polish-Schritt — beides kein Blocker für Phase 4.
 
-➡️ **Phase 4 — Trainer-Rolle & Claude-Workflow:** Konzepte (Trainer-Sicht, Vorschlags-Schema, Prompt-Vorlage) stehen bereits. Nächster offener Punkt laut Fahrplan: Konzept „Export/Import-Workflow" (Briefing raus → Claude Pro → Vorschlags-JSON rein) **[OP]**, danach Mockups + Umsetzung Trainer-Dashboard/`proposals`-Tabelle.
+➡️ **Phase 4 — Trainer-Rolle & Claude-Workflow:** Trainer-Dashboard + `proposals`-CRUD
+sind umgesetzt (Migration `0006`, Trainer-Leiste, Vorschlagsliste, Vergleichsansicht,
+Tests — s. Phase-4-Abschnitt oben). Offen: Migration `0006` einmal gegen
+`training-dashboard-dev` einspielen und die Prüfliste am Ende der Datei durchgehen
+(noch nicht live verifiziert, s. `docs/offene-punkte.md`); danach Export-Generator +
+Import-Parser **[SO]** (letzter Baustein aus Phase 4, Konzept bereits fertig) sowie die
+Browser-Verifikation des gesamten Trainer-Flows mit einem echten `trainer-test`-Account.

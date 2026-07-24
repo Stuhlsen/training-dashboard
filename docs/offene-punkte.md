@@ -257,6 +257,123 @@ berechnet, eine verpasste Karte liegt per Definition in der Vergangenheit), die
 Push-Warnung könnte dort theoretisch greifen. Bewusst nicht mitgezogen, um die
 Verpasst-Liste nicht auf die aufwendigere Card-Struktur umzustellen.
 
+## Phase 4 — Export/Import-Workflow
+
+**Keine Dedup-Erkennung für doppelten Claude-Import (bewusste v1-Einschränkung)**
+Importiert ein Athlet dieselbe Claude-Antwort zweimal (z. B. versehentlich erneut
+eingefügt), erzeugt jeder Import unabhängig neue offene `proposals`-Zeilen — es gibt
+keinen Content-Hash- oder Zeitfenster-Vergleich, der das erkennt. Der Athlet sieht die
+doppelten Vorschläge im normalen Review wie jeden anderen offenen Vorschlag und lehnt
+sie dort ab. Bewusst zurückgestellt, da eine Erkennung einen Mechanismus bräuchte, der
+im Vorschlags-Schema (v1) nirgends vorgesehen ist.
+→ Details: `docs/phase-4-konzept-export-import-workflow.md` §6.
+
+## Phase 4 — Trainer-Dashboard + proposals-CRUD
+
+**Ultra-Review vor dem ersten Commit gefunden + behoben (zur Historie)**
+Ein `/code-review --level high` auf den vollständigen Diff (8 Finder-Agenten, mehrfach
+unabhängig bestätigt) deckte vor dem Commit einen kritischen Architekturfehler auf: Die
+RLS-Policy "proposals: Athlet entscheidet" erlaubt das Setzen von `status` (Annehmen/
+Ablehnen) ausschließlich dem Athleten selbst (`athlete_id = auth.uid()`) — die
+Vorschlagsliste/Vergleichsansicht war aber ursprünglich NUR über die Trainer-Leiste
+erreichbar (nur sichtbar für den Trainer). Ein Trainer hätte beim Klick auf "Übernehmen"
+die Karte erfolgreich geändert (RLS erlaubt das via `is_coach_of`), aber `decideProposal`
+wäre an der RLS gescheitert — der Vorschlag wäre für immer "offen" hängen geblieben, ohne
+klaren Fehlertext. Behoben: neuer Athleten-Banner (`ui/proposal-banner.js`, "N Vorschläge
+offen" über dem Plan, nur bei `isAthlete()`) als tatsächlicher Entscheidungs-Einstieg;
+Accept/Reject-Buttons in `ui/proposal-list.js`/`ui/proposal-compare.js` nur noch bei
+`isAthlete()` gerendert, sonst read-only Hinweistext für den Trainer. Zusätzlich im selben
+Review-Durchlauf behoben: `acceptProposal` prüfte `target_updated_at` nie gegen den
+Live-Stand der Karte (Schema-Konzept §4, Veraltet-Erkennung) — jetzt bricht Annehmen ab
+und markiert sich selbst `stale`, wenn die Karte seit Vorschlagserstellung geändert wurde;
+`acceptGroup`s Teilerfolg-Ergebnis wurde von `ui/proposal-list.js` stillschweigend
+verworfen (jetzt Fehleranzeige); Annehmen löste keinen Refresh des Planungstabs/Overview/
+Analyse aus (jetzt über `Planned.onAdjustmentChange`, wie bei Move/Cancel/Anlegen);
+`loadTrainerContext` hatte keinen requestId-Schutz gegen schnellen Athletenwechsel; die
+`payload`-CHECK-Constraint der Migration validierte nach der Umstellung gar keine
+Feldform mehr (jetzt op-abhängige Mindestprüfung); die Vorschau eines `move`-Vorschlags
+reaktivierte eine ausgefallene Zielkarte nicht (anders als das echte `movePlanCard`).
+Alle Fixes unit-getestet, 331 Tests grün.
+
+**Migration 0006 noch nicht live gegen `training-dashboard-dev` verifiziert**
+`supabase/migrations/0006_proposals_v1.sql` stellt `proposals` additiv auf Schema v1 um
+(u. a. `coach_id` → `created_by`, Status-Werte, neue Spalten) und legt `trainer_view_prefs`
+neu an. Nur lokal geschrieben/gelesen (Migration + Code), noch nicht im SQL-Editor gegen
+das dev-Projekt eingespielt — die Prüfliste am Ende der Migration steht noch aus, bevor
+der Trainer-Flow gegen echte Daten vertraut werden kann.
+
+**Move/Ausfallen als Vorschlag nicht über die bestehenden Planungstab-Buttons**
+Der Speichern-Modus-Umschalter (Direkt/Vorschlag) wirkt bisher NUR im Karten-Dialog
+(`ui/plan-card-dialog.js`, Anlegen/Bearbeiten → `add`/`replace`). Die "Verschieben"-/
+"Ausfallen"-Buttons und -Formulare in `ui/planned.js` schreiben für einen eingeloggten
+Trainer weiterhin immer direkt gegen `plan_cards` (RLS erlaubt das über `is_coach_of()`,
+das Modul kennt den Speichern-Modus schlicht noch nicht). Ein Trainer kann `move`/`cancel`-
+Vorschläge aktuell nur über den Karten-Dialog o. Ä. gar nicht erzeugen — nur Claude
+(sobald der Import-Parser existiert, s. u.) oder ein direkter Insert würden solche
+Vorschläge anlegen. Bewusst zurückgestellt: die Verschieben-/Ausfallen-Formulare bräuchten
+ein eigenes "als Vorschlag"-Gating (analog zum Karten-Dialog-Hook), das über den in diesem
+Schritt beauftragten Umfang hinausging.
+→ Details: `docs/phase-4-konzept-trainer-sicht.md` §3, `assets/js/ui/plan-card-dialog.js`
+(Submit-Handler-Branch als Referenzimplementierung für einen künftigen Move/Cancel-Hook).
+
+**Trainer kann eine Karte nie hart löschen (bewusst, nicht nur zurückgestellt)**
+`ui/plan-card-dialog.js` blendet den "Löschen"-Button für jeden Trainer-Speichervorgang
+aus, unabhängig vom Direkt/Vorschlag-Umschalter — das Vorschlags-Schema kennt v1 bewusst
+kein `delete`-Op (Streichen läuft über `cancel`), und T2 verlangt ohnehin, dass Löschen nie
+unilateral passiert. Kein offener Punkt, nur hier vermerkt, falls später ein `delete`-Op
+diskutiert wird.
+
+**"withdrawn"-Status ohne UI-Pfad**
+Das Schema (`proposals.status`) kennt `withdrawn` als Wert, aber kein Mockup/keine
+UI-Aktion dieses Schritts erzeugt ihn — Zurückziehen eines eigenen offenen Vorschlags läuft
+aktuell nur über die RLS-erlaubte harte Löschung (DELETE, `status = 'open'`), für die es
+ebenfalls noch keinen UI-Button gibt. Nicht dringend (Vorschläge lassen sich stattdessen
+einfach ablehnen), aber eine Lücke zum Schema.
+
+**CTL/ATL-Verlauf-Kachel zeigt nur den aktuellen Snapshot, keinen echten Verlauf**
+Die optionale Trainer-Leisten-Kachel "CTL/ATL-Verlauf" (`ui/trainer-bar.js::ctlAtlTile`)
+zeigt nur `projection.startCtl`/`startAtl` (den heutigen Ist-Stand), keine Sparkline über
+die Zeit — eine echte Verlaufsdarstellung hätte die bestehende SVG-Chart-Infrastruktur
+(`ui/charts/`) angebunden, was für eine Standardmäßig-aus-Kachel nicht im Verhältnis zum
+Aufwand stand. Name der Kachel ("Verlauf") ist dadurch etwas großzügig ausgelegt.
+
+**RLS-Testfälle für `proposals`/`trainer_view_prefs` noch nicht ergänzt**
+`tests/supabase-rls.test.js` existiert weiterhin nicht (s. bestehender Punkt oben zu Phase
+2) — die in Migration `0006` beschriebene Prüfliste (Trainer sieht Athlet-A-Vorschläge
+inkl. Claude-Importen, nicht Athlet B; `trainer_view_prefs` nur für den eigenen Trainer)
+ist manuell gegen `dashboard-dev` zu prüfen, sobald Live-Credentials verfügbar sind.
+
+**Review-Restpunkte, bewusst nicht behoben (niedrigere Priorität)**
+Aus demselben Review-Durchlauf zurückgestellt, da sie keine Korrektheit gefährden, nur
+Performance/Wartbarkeit:
+- `core/proposal-preview.js::previewProposal` läuft pro Zeile in `ui/proposal-list.js`
+  neu (volle PMC-Projektion + Konfliktsuche, 2× `projectLoad`/`detectConflicts` pro
+  offenem Vorschlag) — bei vielen offenen Vorschlägen (z. B. ein großer Claude-Import)
+  spürbar langsamer als nötig, da die "Vorher"-Projektion für alle Vorschläge identisch
+  ist und nur einmal berechnet werden müsste.
+- `ui/trainer-bar.js::TrainerBar.render()` lädt Trainer-Kontext, Kategorien, Vorschläge
+  und die Check-in-Range sequentiell statt der drei unabhängigen letzten drei parallel
+  (`Promise.all`) — unnötige zusätzliche Round-Trip-Latenz beim Öffnen des Planungstabs.
+- Dialog-Grundgerüst (Overlay/Modal/Escape-Handler) ist jetzt ein viertes Mal separat
+  implementiert (`ui/proposal-list.js`, `ui/proposal-compare.js`, neben
+  `ui/checkin-dialog.js`/`ui/plan-card-dialog.js`) — kein gemeinsamer Dialog-Helper in
+  `ui/dom.js`. Größerer Umbau, nicht im Rahmen dieses Schritts angegangen.
+- `core/proposal-payload.js::payloadToCardData` liefert immer alle Felder (auch als
+  `undefined`, wenn im payload nicht vorhanden) — bei einem hypothetisch unvollständigen
+  `replace`-Payload würde `ui/proposal-compare.js`s Vorschau-Spread ein vorhandenes Feld
+  fälschlich als "–" zeigen. Heute folgenlos, da der einzige Erzeuger
+  (`ui/plan-card-dialog.js`) immer ein vollständiges Payload sendet; relevant erst, wenn
+  der Claude-Import (noch nicht gebaut) unvollständige Payloads zulassen sollte.
+
+**Browser-Verifikation des gesamten Trainer-Flows noch offen**
+Trainer-Leiste, Vorschlagsliste, Vergleichsansicht und der Karten-Dialog-Hook sind
+unit-getestet (`tests/proposals.test.js`, `tests/proposal-*.test.js`), aber nicht live im
+Browser gegen einen eingeloggten `trainer-test`-Account durchgeklickt (Kategorien-Toggle
+speichert wirklich, Vorschlag anlegen → in der Liste sichtbar → Vergleichsansicht zeigt
+korrekte TSB-Delta/Konflikt-Badges → Annehmen ändert die Karte tatsächlich). Keine
+Browser-Automatisierung/Testcredentials in dieser Session verfügbar — konsistent mit dem
+bereits etablierten Muster aus Phase 2/3 (s. entsprechende Punkte oben).
+
 ## Erledigt (zur Historie, nicht mehr offen)
 
 **Kartentausch → Wahoo-Push-Duplikate, falsche Fahrtenbuch-Zuordnung, fehlende Ausrollen-Erkennung**
