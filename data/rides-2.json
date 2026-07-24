@@ -13659,9 +13659,9 @@
     },
     {
       "date": "2026-07-24",
-      "sleepHours": null,
+      "sleepHours": 5,
       "avgSleepingHR": null,
-      "restingHR": null,
+      "restingHR": 57,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -13676,8 +13676,8 @@
   "wellnessMeta": {
     "lastUpdated": {
       "hrv": "2026-07-22",
-      "restingHR": "2026-07-23",
-      "sleepHours": "2026-07-23"
+      "restingHR": "2026-07-24",
+      "sleepHours": "2026-07-24"
     }
   },
   "powerCurves": {
@@ -16429,7 +16429,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-24T01:51:48.168Z",
+  "updated": "2026-07-24T08:09:08.248Z",
   "source": "intervals.icu",
   "count": 132
 }
