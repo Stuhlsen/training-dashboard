@@ -20,6 +20,7 @@
 import { fmt, weatherIcon, windDir, localISODate } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
 import { conflictsForCard, horizonRaceEvent, tsbOnDate } from "../core/plan-feedback.js";
+import { canDragCard } from "../core/plan-drag.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import {
@@ -765,7 +766,12 @@ export const Planned = {
     // VOR jeder Bestätigung — beides passt nicht zu "erzeugt nur einen
     // Vorschlag, ändert den echten Plan nicht". Das Verschieben-Formular
     // (mit Grund-Feld) bleibt der Weg für einen Trainer im Vorschlag-Modus.
-    const draggable = _canEdit() && s.date >= todayLocal && !_isTrainerProposalMode();
+    const draggable = canDragCard({
+      canEdit: _canEdit(),
+      cardDate: s.date,
+      today: todayLocal,
+      trainerProposalMode: _isTrainerProposalMode(),
+    });
 
     return `
       <div class="planned-card" style="border-left-color:${col}" data-card-id="${s.id}" data-date="${s.date}">

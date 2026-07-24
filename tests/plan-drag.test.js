@@ -6,6 +6,7 @@ import {
   weekDays,
   daySlots,
   weekLabelForDate,
+  canDragCard,
 } from "../assets/js/core/plan-drag.js";
 
 const TODAY = "2026-07-17"; // Freitag
@@ -122,4 +123,34 @@ test("weekLabelForDate: robust gegen leere/fehlende Eingaben", () => {
   assert.equal(weekLabelForDate([], "2026-07-22", "a"), null);
   assert.equal(weekLabelForDate(undefined, "2026-07-22", "a"), null);
   assert.equal(weekLabelForDate(CARDS, null, "a"), null);
+});
+
+/* ── canDragCard — Bugfix: Drag & Drop umging den Trainer-Vorschlag-Modus
+   vollständig (Trainer-Sicht-Konzept §3, Nachtrag Juli 2026) ─────────── */
+
+test("canDragCard: Trainer im Vorschlag-Modus bekommt keinen Griff, auch bei sonst erlaubter Karte", () => {
+  const result = canDragCard({
+    canEdit: true,
+    cardDate: "2026-07-20",
+    today: TODAY,
+    trainerProposalMode: true,
+  });
+  assert.equal(result, false);
+});
+
+test("canDragCard: außerhalb des Trainer-Vorschlag-Modus unverändert ziehbar (canEdit + Datum entscheiden)", () => {
+  assert.equal(
+    canDragCard({ canEdit: true, cardDate: "2026-07-20", today: TODAY, trainerProposalMode: false }),
+    true
+  );
+  assert.equal(
+    canDragCard({ canEdit: true, cardDate: "2026-07-16", today: TODAY, trainerProposalMode: false }),
+    false,
+    "vergangene Karte bleibt unabhängig vom Vorschlag-Modus keine Drag-Quelle"
+  );
+  assert.equal(
+    canDragCard({ canEdit: false, cardDate: "2026-07-20", today: TODAY, trainerProposalMode: false }),
+    false,
+    "kein Bearbeitungsrecht (z. B. Athlet 2) bleibt unabhängig vom Vorschlag-Modus gesperrt"
+  );
 });

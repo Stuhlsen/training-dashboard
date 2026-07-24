@@ -502,6 +502,18 @@ async function renderAll(athleteId) {
     // (RLS "proposals: Athlet entscheidet") einen Vorschlag annehmen/ablehnen
     // darf — die Trainer-Leiste zeigt den Zähler nur zur Information.
     await ProposalBanner.render(Data.activeAthleteId);
+    // Zweiter, gezielter Redraw: Planned.render() lief OBEN bereits, bevor
+    // TrainerBar.render() den Trainer-Kontext geladen hat — die draggable-
+    // Flags der gerade gezeichneten Karten (ui/planned.js::_isTrainerProposalMode())
+    // spiegeln also noch den alten/Default-Kontext (Bugreport: Drag & Drop
+    // umging den Vorschlag-Modus vollständig, weil der Grip nie tatsächlich
+    // ausgeblendet wurde). Ein zweiter Render danach ist billig (plan_cards/
+    // Forecast liegen schon im State, kein erneuter Request) und macht die
+    // Karten mit dem jetzt korrekten Kontext konsistent — gezielt EIN
+    // zusätzlicher Aufruf hier statt eines onTrainerViewChange-Abos in
+    // planned.js, das bei jeder Kategorien-/Vorschläge-Ladephase erneut
+    // feuern würde.
+    await Planned.render(rides);
   }
 
   // Analysis

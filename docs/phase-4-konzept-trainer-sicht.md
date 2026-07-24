@@ -52,6 +52,20 @@ Besucher.
   Planungstab und nimmt an oder lehnt ab (Flow im Schema-Konzept). Für alles
   Substanzielle — Wochenumbau, neue Blöcke, Streichungen.
 
+**Drag & Drop im Vorschlag-Modus (Nachtrag, Browser-Test Juli 2026):** Der
+Umschalter gilt auch für Verschieben/Ausfallen über die Planungstab-Buttons
+(`ui/planned.js::_handleMove`/`_handleCancel`) — dort erzeugt „Als Vorschlag"
+einen `move`-/`cancel`-Eintrag statt `plan_cards` direkt zu ändern. Für
+Drag & Drop (`ui/plan-drag.js`) wurde bewusst **Weg (a)** gewählt: der Griff
+wird für einen Trainer im Vorschlag-Modus gar nicht erst gerendert (Karte
+nicht ziehbar), statt Weg (b) — ein Drop, der ebenfalls einen Vorschlag
+erzeugt. Begründung: Drag & Drop hat kein Begründungsfeld (jeder Vorschlag
+soll laut Schema-Konzept einen kurzen `reason` tragen) und bewegt die Karte
+per Konzept §4 *optimistisch sofort sichtbar*, bevor der Server antwortet —
+beides passt nicht zu „erzeugt nur einen Vorschlag, der Plan selbst ändert
+sich nicht". Das Verschieben-Formular (mit Grund-Feld) bleibt für einen
+Trainer im Vorschlag-Modus der einzige Weg, eine Karte zu verschieben.
+
 **Harte Grenzen (RLS-durchgesetzt):**
 
 - Kein Zugriff auf Athleten, bei denen `trainer_id ≠ auth.uid()`.

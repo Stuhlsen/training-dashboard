@@ -47,6 +47,19 @@ export function isDropAllowed(date, today) {
   return date >= today;
 }
 
+/** Darf eine Karte überhaupt als Drag-Quelle gegriffen werden? Fasst die
+ *  Gate-Bedingungen aus ui/planned.js::_renderCard() zusammen (Bearbeitungs-
+ *  recht, Datum, Trainer-Vorschlag-Modus) — als eigene, reine Funktion, damit
+ *  der Vorschlag-Modus-Anteil (Bugfix: Drag & Drop umging den Direkt/
+ *  Vorschlag-Umschalter vollständig, Trainer-Sicht-Konzept §3) ohne DOM
+ *  testbar ist. Ein Trainer im Vorschlag-Modus bekommt keinen Griff — Drag &
+ *  Drop hat kein Begründungsfeld und bewegt optimistisch sofort, beides passt
+ *  nicht zu "erzeugt nur einen Vorschlag" (s. Konzept-Nachtrag).
+ *  @param {{canEdit: boolean, cardDate: string, today: string, trainerProposalMode: boolean}} args */
+export function canDragCard({ canEdit, cardDate, today, trainerProposalMode }) {
+  return !!canEdit && cardDate >= today && !trainerProposalMode;
+}
+
 /**
  * Tages-Slots für den Wochenblock, der `weekCards` enthält — die Zeile
  * gestrichelter Drop-Zonen, die ui/planned.js beim Drag-Start einblendet.
