@@ -53,6 +53,7 @@
  * @property {string} [dateISO]
  * @property {string} [dateShort]
  * @property {number|null} [sleepHours]
+ * @property {number|null} [sleepScore]      gemessener Schlafqualitäts-Score (intervals.icu `sleepScore`), nicht die Dauer
  * @property {number|null} [avgSleepingHR]
  * @property {number|null} [restingHR]
  * @property {number|null} [hrv]

@@ -19,6 +19,13 @@ function posNum(v) {
  *  Reihenfolge = Reihenfolge im Coverage-Log. */
 export const WELLNESS_FIELDS = [
   { out: "sleepHours", pick: (w) => (w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null) },
+  // Gemessener Schlafqualitäts-Score (intervals.icu `sleepScore`, laut
+  // API-Schema ein float) — NICHT `sleepQuality` (kleine Integer-Skala,
+  // gehört zur selben self-reported Feldfamilie wie soreness/fatigue/
+  // stress/mood/motivation, kein gemessener Wert). Bewusst kein Slider im
+  // Morgen-Check-in (docs/phase-2-konzept-morgen-checkin.md Abschnitt 2) —
+  // kommt stattdessen hier, objektiv, wie RHR/HRV.
+  { out: "sleepScore", pick: (w) => (typeof w.sleepScore === "number" ? Math.round(w.sleepScore) : null) },
   { out: "avgSleepingHR", pick: (w) => w.avgSleepingHR || null },
   { out: "restingHR", pick: (w) => w.restingHR || null },
   { out: "hrv", pick: (w) => w.hrvSDNN || null },

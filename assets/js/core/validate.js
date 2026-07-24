@@ -74,6 +74,7 @@ export const RIDE_SCHEMA = {
 export const WELLNESS_SCHEMA = {
   date: "string",
   sleepHours: "number?",
+  sleepScore: "number?",
   avgSleepingHR: "number?",
   restingHR: "number?",
   hrv: "number?",
