@@ -31,6 +31,22 @@ export async function findProfileIdByDisplayName(displayName) {
   return { ok: true, id: data?.id ?? null };
 }
 
+/** Wie findProfileIdByDisplayName(), liefert aber das volle Profil (inkl.
+ *  coachId) statt nur der ID — gebraucht, um zu prüfen, ob der eingeloggte
+ *  Trainer tatsächlich der Trainer des gerade angezeigten Athleten ist
+ *  (Trainer-Sicht-Konzept §1/§5). Öffentlicher Read wie
+ *  findProfileIdByDisplayName, kein Login nötig. */
+export async function getProfileByDisplayName(displayName) {
+  if (!supabase) return { ok: true, profile: null };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, role, coach_id, wellbeing_public, is_admin")
+    .eq("display_name", displayName)
+    .maybeSingle();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, profile: data ? toProfile(data) : null };
+}
+
 export async function getProfile(userId) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
