@@ -275,6 +275,13 @@ im selben Tab, Merge- und Divergenz-Komplexität ohne Endzustand. Abgelehnt.
 - **M3 — Push-Umzug im Zuge der Migration:** `data-access`-Umzug + `external_id`-Umbau
   in einem Schritt, da beides dieselben Funktionen anfasst. ✅
 
+**Nachtrag (25.07.2026) ✅** — `core/weekreview.js`/`core/adherence.js`/`core/ftp-progress.js`
++ die Hero-Session-Pill-/Analyse-Panel-Renderpfade (`app.js`, `ui/overview.js`,
+`ui/analysis.js`) waren bei der ursprünglichen M-A-Migration bewusst nicht mitgezogen
+worden (Dualität, s. `docs/offene-punkte.md` „Erledigt"-Abschnitt, Commit `a549249`) —
+jetzt ebenfalls auf `plan_cards` umgestellt. Die drei `core/`-Module selbst brauchten
+keine Änderung, da `plan_cards`-Zeilen über `toSession()` bereits „effektiv" sind.
+
 ---
 
 ## Offene Punkte → `docs/offene-punkte.md`

@@ -19,20 +19,6 @@ den tatsächlichen Code-/Doku-Stand nachgezogen.
 
 ## Phase 2 — Befinden & Events
 
-**wellbeing_public/wellbeing_shared — kein Frontend-Konsument**
-DB-seitig fertig (Migration `0003_wellbeing.sql`, RLS erlaubt `anon`-Lesezugriff
-auf `date/energy/muscle_feel/mood` wenn Toggle aktiv). `data-access/supabase/
-wellbeing.js` fragt aber nur den eigenen, authentifizierten Check-in ab — keine
-Funktion liest `wellbeing_shared` für einen fremden/betrachteten Athleten. Der
-Toggle hat aktuell sichtbar keinen Effekt im UI.
-→ Details: `docs/phase-2-konzept-morgen-checkin.md`, Abschnitt 10.
-
-**`upsertToday`-Unit-Test fehlt**
-Kein Test für `data-access/supabase/wellbeing.js` (`upsertToday`/`getToday`/
-`getRange`) existiert. Braucht einen Mocking-Seam für den Supabase-Client, den
-es im Repo bisher nicht gibt — andere `data-access/supabase/*`-Module sind
-ebenfalls ungetestet, das ist also kein Einzelfall, aber hier zuerst relevant.
-
 **`tests/supabase-rls.test.js` fehlt**
 Geplanter Test gegen das echte `dashboard-dev`-Supabase-Projekt (Testaccounts
 `athlet-test`/`trainer-test`): anon+kein Login → nichts schreibbar, Athlet A
@@ -40,12 +26,16 @@ sieht nur eigene Daten, Trainer A nur zugeordnete Athleten, Admin-Only-Ops
 geprüft. Braucht Live-Credentials, die in normalen Sessions nicht vorliegen.
 → Details: `AGENTS.md` (Abschnitt „Test-Sicherheit"), `docs/phase-2-konzept-morgen-checkin.md` Abschnitt zu RLS-Grundannahmen.
 
-**Schlafscore-Pull aus intervals.icu**
-Schlaf soll bewusst **kein** Slider im Morgen-Check-in sein — stattdessen als
-gemessener Schlafscore über die intervals.icu-API in den objektiven Kanal
-(wie RHR/HRV/TSB), damit nichts doppelt erfasst wird. Noch nicht in
-`generate-data.js` umgesetzt.
-→ Details: `docs/phase-2-konzept-morgen-checkin.md`, Abschnitte 2 und 5.2.
+**Schlafscore noch nicht im Governor/UI verrechnet (bewusste Folge-Lücke)**
+`sleepScore` (intervals.icu) wird seit Commit `c8c7975` in den Wellness-
+Datenpipeline gezogen (`scripts/lib/wellness.js`), fließt aber noch NICHT in
+`core/readiness.js::assessReadiness()` oder den Governor (`core/briefing.js`)
+ein — das wäre ein kalibrierungssensibler Eingriff in bereits getestete
+Schwellenwerte, den der Konzeptpunkt nicht explizit verlangt (Fahrplan nennt
+das selbst als „nach readiness-Refactor"-Folgeschritt). Auch keine eigene
+Chart-Darstellung, der bestehende Schlaf-Chart zeigt weiterhin nur die Dauer
+(`sleepHours`). Eigener späterer Schritt, wenn gewünscht.
+→ Details: `docs/phase-2-konzept-morgen-checkin.md`, Abschnitte 2 und 5.1.
 
 ## Dashboard 2.0 — Cleanup
 
@@ -189,24 +179,16 @@ kein Duplikat). Kommentar mit demselben Hinweis direkt in
 `data-access/intervals/push.js`.
 → Details: `docs/phase-3-konzept-planungstab.md` §5, §8.4 Schritt 4.
 
-**Dualität: `weekreview.js`/`adherence.js`/`ftp-progress.js` + Hero/Analyse-Panels lesen weiter die alte JSON-Pipeline**
-Diese drei `core/`-Module hängen weiterhin an `Data.plannedSessions` +
-`Data.adjustments` (unverändert aus `generate-data.js` bzw.
-`data/adjustments.json`/`-2.json`) statt an `plan_cards` — sie wurden bei
-der `plan_cards`-Migration bewusst nicht mitgezogen (deutlich über den
-beauftragten Umfang hinaus). Seit die Schreibpfade in `ui/planned.js`
-(Verschieben/Ausfallen/Rückgängig) auf `plan_cards` umgestellt sind, werden
-NEUE Anpassungen nicht mehr in `adjustments.json`/`-2.json` gespeichert.
-**Wichtig, über "künftige Läufe sehen es nicht" hinaus:** `app.js`s
-`refreshAfterAdjustment()` (verdrahtet als `Planned.onAdjustmentChange`)
-feuert nach JEDER Verschiebung/Ausfall/Rückgängig weiterhin und rendert
-Hero-Session-Pill, Wochenrückblick und Analyse-Briefing neu — aber aus dem
-weiterhin eingefrorenen `Data.plannedSessions`/`Data.adjustments`. Die
-Anzeige wirkt also, als würde sie live aktualisieren, tut es aber nicht
-mehr — schon in derselben Session, nicht erst nach einem Reload/Re-Sync.
-Migrationskandidat für einen späteren Schritt (auf `plan_cards` als Quelle
-umstellen, analog zu `ui/planned.js`).
-→ Details: `docs/phase-3-konzept-planungstab.md` §8.
+**`planAdherence()`/`buildWeekReview()`s "verpasst"-Titel zeigt immer generisch "Einheit" (vorbestehende Lücke, unverändert)**
+`core/adherence.js::planAdherence()` liest `s.title || "Einheit"` für die
+Liste der verpassten Termine — sowohl die alten `plannedSessions`-Objekte
+(`scripts/lib/plan2.js`/`plan-athlete2.js`, Feld `name`) als auch die neuen
+`plan_cards`-Sessions (`toSession()`, Feld `name`) tragen aber nie ein
+`.title`-Feld, nur `.name`. Der Fallback greift also seit jeher IMMER —
+kein Regressions-Effekt der `plan_cards`-Migration (Teil 4 unten), sondern
+eine bereits vorher bestehende, bei der Migration nur mit-verifizierte
+Lücke. Nicht mitgefixt, um Teil 4 nicht mit einer fachlich unabhängigen
+Änderung zu vermischen.
 
 **Drag & Drop: Verschieben per Tastatur (A11y)**
 `ui/plan-drag.js` ist Pointer-basiert (Maus/Touch/Pen). Das Konzept nennt als
@@ -618,6 +600,71 @@ jsdom-Suite (keine jsdom-Dependency, `render()` braucht `document`) — ein
 Mitternachts-/UTC-Rollover-Test bräuchte einen Mocking-Seam für die Systemzeit in
 `render()`, den es nicht gibt.
 → Commit `d3e6996`.
+
+**wellbeing_public/wellbeing_shared — kein Frontend-Konsument (behoben)**
+`data-access/supabase/wellbeing.js::getSharedRange()` liest jetzt die öffentliche
+`wellbeing_shared`-View (0003_wellbeing.sql). `state/wellbeing.js::loadSharedToday()`
+löst die Athleten-ID wie überall sonst über `resolveAthleteProfileId()`
+(state/plan-cards.js) auf. `ui/wellbeing-card.js` zeigt die freigegebenen Werte
+(Energie/Muskeln/Stimmung, nie `note`) des per Athleten-Toggle betrachteten
+Athleten für Betrachter ohne Athlet-Rolle (Besucher, fremder Coach) — der
+eingeloggte Athlet behält weiterhin seine eigene, vom Toggle unabhängige
+Editor-Karte (bestehende, bewusste Design-Entscheidung, nicht angetastet).
+Live gegen `training-dashboard-dev` per Playwright MCP verifiziert: Toggle an +
+Eintrag vorhanden → Werte sichtbar; kein Eintrag für heute → Karte verschwindet;
+Toggle aus (athlete2, `wellbeing_public=false`) → View liefert leer, RLS greift.
+→ Commit `73f1190`. Details: `docs/phase-2-konzept-morgen-checkin.md` Abschnitt 10.
+
+**`upsertToday`-Unit-Test fehlt (behoben)**
+Erster direkter Test einer `data-access/supabase/*`-Datei (`tests/wellbeing.test.js`)
+über einen neuen, wiederverwendbaren Fake-Supabase-Client-Seam
+(`tests/helpers/fake-supabase-client.js`) statt nur über eine gemockte `state/`-
+Grenze — `client.js` selbst wird per `mock.module()` ersetzt. Deckt Query-Aufbau,
+Row-Mapping und Result-Konvention für `upsertToday`/`getRange`/`getSharedRange` ab.
+Bewusst nur an diesem einen Modul eingeführt — die übrigen `data-access/supabase/*`-
+Module (goals.js, profiles.js, events.js, …) bleiben vorerst ungetestet, das wäre
+ein eigener, größerer Schritt.
+→ Commits `73f1190`, `0afe075`.
+
+**Schlafscore-Pull aus intervals.icu (Datenerfassung behoben, Governor/UI bewusst offen gelassen)**
+`scripts/lib/wellness.js::WELLNESS_FIELDS` liest jetzt `sleepScore` (intervals.icu-
+API-Schema: gemessener float-Score) — bewusst NICHT `sleepQuality` (kleine
+Integer-Skala, self-reported, gehört zur selben Feldfamilie wie soreness/fatigue/
+stress/mood/motivation). Feldname per offiziellem OpenAPI-Schema
+(`intervals.icu/api/v1/docs`) geprüft, nicht geraten. Alle drei Pflichtstellen
+ergänzt (`scripts/lib/wellness.js`, `core/validate.js`, `types.js`); `generate-data.js`
+selbst brauchte keine Änderung, ruft `mapWellnessList()`/`logWellnessCoverage()`
+bereits generisch auf. Verrechnung in `core/readiness.js`/dem Governor sowie eine
+eigene Chart-Darstellung bewusst NICHT gemacht (s. neuer Punkt oben unter Phase 2 —
+kalibrierungssensibel, vom Konzept nicht explizit verlangt).
+→ Commit `c8c7975`. Details: `docs/phase-2-konzept-morgen-checkin.md` Abschnitte 2, 5.1.
+
+**Dualität: `weekreview.js`/`adherence.js`/`ftp-progress.js` + Hero/Analyse-Panels lasen die alte JSON-Pipeline (behoben)**
+`core/weekreview.js`/`core/adherence.js`/`core/ftp-progress.js` selbst brauchten
+KEINE Änderung: `plan_cards`-Zeilen kommen über `toSession()`
+(`data-access/supabase/plan-cards.js`) bereits in exakt der „effektiven"
+Session-Shape (Verschiebung/Ausfall schon eingerechnet), die
+`core/planning.js::effectiveSessions()` vorher aus `plannedSessions`+`adjustments`
+zusammengebaut hat — ein leeres `{}` als `adjustments`-Argument reicht. Geändert
+wurden die 5 Aufrufstellen (`app.js` ×3 inkl. `refreshAfterAdjustment()`,
+`ui/overview.js`, `ui/analysis.js` ×2): lesen jetzt `getState().cards` aus
+`state/plan-cards.js` statt `Data.plannedSessions`/`Data.adjustments`. `app.js::
+renderAll()` lädt `plan_cards` jetzt früh (vor der Hero/Wochenrückblick-Berechnung,
+nicht erst in `Planned.render()` weiter unten) — sonst hätte auch der allererste
+Render nach einem Athletenwechsel noch die alte Datenquelle gezeigt;
+`Planned.render()` erkennt den bereits geladenen Stand und lädt nicht doppelt.
+Nebenbei: `refreshAfterAdjustment()` berechnete `todayISO` in UTC statt lokal
+(gleiche Bugklasse wie Commit `d3e6996`) — auf `localISODate()` umgestellt.
+Live gegen `training-dashboard-dev` per Playwright MCP verifiziert (kein Login in
+der Session verfügbar, daher Kartenmutation direkt am `plan_cards`-State simuliert
+statt über `movePlanCard()`/`cancelPlanCard()` — deren Schreibpfade selbst sind
+bereits in `tests/plan-cards-move.test.js` abgedeckt): Karte als ausgefallen
+markiert → Hero-Pill, Wochenrückblick (Plan 2/3 → 2/2) und Analyse-Briefing
+aktualisieren sich SOFORT ohne Reload; Rückgängig stellt den Ursprungszustand
+wieder her. Athlet 2 (GFNY-Plan, `hasPlanningTab` ohne `ownPlan`) ebenfalls
+geprüft — Konsistenz-Panel zeigt weiterhin bewusst keine Plan-Adhärenz. Bestehende
+`core/`-Tests unverändert grün, da `core/` selbst nicht angefasst wurde.
+→ Commit `a549249`. Details: `docs/phase-3-konzept-planungstab.md` §8.
 
 **Kartentausch → Wahoo-Push-Duplikate, falsche Fahrtenbuch-Zuordnung, fehlende Ausrollen-Erkennung**
 Drei zusammenhängende Bugs im Planungstab/Sync, sichtbar beim Kartentausch

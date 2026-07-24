@@ -154,14 +154,14 @@ readiness.js kombiniert `level` mit dem objektiven Level per Governor-Tabelle (5
 | Schicht | Datei | Inhalt |
 |---|---|---|
 | Migration | `supabase/migrations/0003_wellbeing.sql` | Spalten/Constraints, RLS-Policies, **GRANTs inkl. spaltengenauer anon-Rechte** |
-| data-access | `data-access/supabase/wellbeing.js` | `upsertToday`, `getRange` (`getToday` entfernt — `state/wellbeing.js` lädt seit dem Governor eine 2-Tage-Range statt eines Einzeltags, s. Abschnitt 9) |
-| state | `state/wellbeing.js` | heutiger Check-in + `subjective` (Governor-Input) als State, Subscribe |
+| data-access | `data-access/supabase/wellbeing.js` | `upsertToday`, `getRange` (`getToday` entfernt — `state/wellbeing.js` lädt seit dem Governor eine 2-Tage-Range statt eines Einzeltags, s. Abschnitt 9), `getSharedRange` (öffentliche `wellbeing_shared`-View, s. Abschnitt 10) |
+| state | `state/wellbeing.js` | heutiger Check-in + `subjective` (Governor-Input) als State, Subscribe; `loadSharedToday` (Betrachter, s. Abschnitt 10) |
 | ui | `ui/checkin-dialog.js` | Modal (3 Slider + Notiz) |
-| ui | Übersicht-Renderer | Befinden-Statuskarte |
+| ui | `ui/wellbeing-card.js` | Befinden-Statuskarte (Editor beim Athleten selbst, `wellbeing_shared`-Anzeige für andere Betrachter) |
 | ui | `ui/settings-panel.js` | „Befinden anpassen" + `wellbeing_public`-Toggle |
 | core | `core/readiness.js` | subjektiver Kanal (reine Vertragsfunktion) |
 | core | `core/briefing.js` | Governor (`governLevel`/`subjectiveSignal`) — s. Abschnitt 9 |
-| pipeline | `generate-data.js` | Schlafscore aus intervals.icu ziehen → objektiver Kanal *(eigener [SO]-Punkt in Phase 2)* |
+| pipeline | `scripts/lib/wellness.js` | `sleepScore` aus intervals.icu ziehen → objektiver Kanal ✅ erledigt (25.07.2026, Commit `c8c7975`); Verrechnung in Governor/UI bewusst offen, s. `docs/offene-punkte.md` |
 
 Schichtregel bleibt: `core/` → `data-access/` → `state/` → `ui/`. readiness.js (core) konsumiert nur die reine Vertragsfunktion, kennt kein Supabase.
 
@@ -185,19 +185,15 @@ Nach diesem Konzept: Mockup Check-in-Dialog **[SO]** → Umsetzung `wellbeing` +
 
 ---
 
-## 10 — Offener Punkt: öffentliche Anzeige (`wellbeing_public`)
+## 10 — Öffentliche Anzeige (`wellbeing_public`) ✅ erledigt
 
-`profiles.wellbeing_public` und die `wellbeing_shared`-View (Phase 1 bzw. Migration 0003) sind DB-seitig fertig und getestet — `anon` kann `date/energy/muscle_feel/mood` lesen, wenn der Athlet den Toggle aktiviert hat, `note` nie. Es gibt aber **noch keinen Frontend-Konsumenten**: `data-access/supabase/wellbeing.js` fragt ausschließlich den authentifizierten Client für den eigenen heutigen Check-in ab, keine Funktion liest `wellbeing_shared` für einen fremden/betrachteten Athleten. Die „Befinden heute"-Karte (Abschnitt 6) ist bewusst nur für den eingeloggten Athleten selbst gedacht, nicht für Besucher — der Toggle hat dadurch aktuell sichtbar **keinen Effekt** im UI.
+`profiles.wellbeing_public` und die `wellbeing_shared`-View (Phase 1 bzw. Migration 0003) sind DB-seitig fertig und getestet — `anon` kann `date/energy/muscle_feel/mood` lesen, wenn der Athlet den Toggle aktiviert hat, `note` nie. **Frontend-Konsument ergänzt** (25.07.2026, Commit `73f1190`): `data-access/supabase/wellbeing.js::getSharedRange()` liest die View, `state/wellbeing.js::loadSharedToday()` löst die Athleten-ID auf. UI-Entscheidung (statt zu raten, wie am Ende dieses Abschnitts ursprünglich vorgemerkt): die bestehende „Befinden heute"-Karte (Abschnitt 6, `ui/wellbeing-card.js`) wurde erweitert — der eingeloggte Athlet behält seine eigene, vom Athleten-Toggle unabhängige Editor-Karte, alle anderen Betrachter (Besucher, fremder Coach) sehen bei aktivem Toggle stattdessen die freigegebenen Werte des per Toggle betrachteten Athleten (nur „heute", kein Verlauf — passt zur bestehenden Kachel). Live gegen `training-dashboard-dev` per Playwright MCP verifiziert: Toggle an + Eintrag → sichtbar; kein Eintrag heute → Karte verschwindet; Toggle aus → View liefert leer, RLS greift.
 
 ---
 
-## 11 — Offene Punkte: Testlücken aus Schritt G
+## 11 — Testlücken aus Schritt G ✅ erledigt (bis auf RLS-Suite)
 
-Schritt G ist mit den `getSubjectiveReadiness`-Tests (Level-/Freshness-Ableitung inkl. Grenzfälle 2,75/4,0 und „kein Eintrag" → ausstehend, `tests/readiness-confidence.test.js`) abgeschlossen. Zwei im ursprünglichen Schritt-G-Umfang genannte Punkte bleiben bewusst offen, statt sie hier spontan mitzuziehen:
+Schritt G ist mit den `getSubjectiveReadiness`-Tests (Level-/Freshness-Ableitung inkl. Grenzfälle 2,75/4,0 und „kein Eintrag" → ausstehend, `tests/readiness-confidence.test.js`) abgeschlossen. Von den zwei ursprünglich offen gelassenen Punkten:
 
-- **Upsert-Logik (`data-access/supabase/wellbeing.js`)**: kein Unit-Test, weil im Repo aktuell kein Mocking-Seam für den Supabase-Client existiert — weder hier noch bei den strukturell identischen Siblings (`goals.js`, `profiles.js`). Testbar machen würde eine echte Restrukturierung von bereits reviewtem/committetem Code nur für Testbarkeit erfordern, nicht bloß einen Test hinzufügen.
-- **RLS-Grundannahmen (`tests/supabase-rls.test.js`)**: laut AGENTS.md ein geplanter Test gegen das echte `dashboard-dev`-Projekt (Testaccounts `athlet-test`/`trainer-test`) — braucht Live-Credentials, die in dieser Session nicht vorliegen.
-
-Beide folgen in einer Session mit `dashboard-dev`-Zugang bzw. einer bewussten Entscheidung für einen Mocking-Seam.
-
-Eigener späterer Punkt mit eigenem kurzen Konzept/Mockup: was genau zeigt die öffentliche Ansicht (nur „heute"? Verlauf? in welchem Tab?), bevor Umsetzung.
+- **Upsert-Logik (`data-access/supabase/wellbeing.js`)** ✅ erledigt (25.07.2026, Commits `73f1190`/`0afe075`): neuer, wiederverwendbarer Fake-Supabase-Client-Seam (`tests/helpers/fake-supabase-client.js`, ersetzt `client.js` per `mock.module()`), `tests/wellbeing.test.js` deckt `upsertToday`/`getRange`/`getSharedRange` ab. Bewusst nur an diesem einen Modul eingeführt — `goals.js`/`profiles.js`/… bleiben vorerst ungetestet, eigener größerer Schritt.
+- **RLS-Grundannahmen (`tests/supabase-rls.test.js`)**: weiterhin offen — braucht Live-Credentials, die in normalen Sessions nicht vorliegen.
