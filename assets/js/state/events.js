@@ -5,6 +5,7 @@ import {
   removeEvent as removeEventAdapter,
 } from "../data-access/supabase/events.js";
 import { getSession } from "./session.js";
+import { resolveAthleteProfileId } from "./plan-cards.js";
 import { localISODate } from "../core/format.js";
 
 let events = [];
@@ -45,14 +46,28 @@ export function getState() {
 }
 
 /** Lädt alle Events von `athleteId` neu — öffentlich lesbar (E1), kein Login
- *  nötig. `athleteId` ist der gerade betrachtete Athlet (Data.activeAthleteId),
- *  NICHT zwingend der eingeloggte User. */
+ *  nötig. `athleteId` ist der gerade betrachtete Athlet (Data.activeAthleteId,
+ *  z. B. "athlete1"), NICHT zwingend der eingeloggte User — `events.athlete_id`
+ *  ist aber eine echte `uuid`-Spalte, deshalb erst auf die Supabase-Profil-UUID
+ *  auflösen (wie state/plan-cards.js, das denselben Resolver teilt). Ohne das
+ *  scheitert die Query mit "invalid input syntax for type uuid" (400) —
+ *  live bestätigt (Browser-Konsole, Juli 2026), vorher nur als Verdacht in
+ *  docs/offene-punkte.md vermerkt. */
 export async function loadEvents(athleteId) {
   const myRequest = ++requestId;
   loading = true;
   error = null;
   notify();
-  const result = await listEventsAdapter(athleteId);
+  const profileId = await resolveAthleteProfileId(athleteId);
+  if (myRequest !== requestId) return { ok: false, error: { code: "UNKNOWN", message: "Überholt" } };
+  if (!profileId) {
+    loading = false;
+    events = [];
+    loadedForAthleteId = athleteId;
+    notify();
+    return { ok: true, events: [] };
+  }
+  const result = await listEventsAdapter(profileId);
   if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
   loading = false;
   if (result.ok) {
@@ -90,13 +105,16 @@ export function raceCountdown(todayIso = localISODate()) {
 export async function createEvent(athleteId, event) {
   const gate = requireUser();
   if (!gate.ok) return gate;
+  const profileId = await resolveAthleteProfileId(athleteId);
+  if (!profileId)
+    return { ok: false, error: { code: "NO_DATA", message: "Athlet hat (noch) keinen Supabase-Account" } };
   const myRequest = ++requestId;
   // type -> "other" macht priority/ftp_goal ungültig (Check-Constraint
   // events_priority_only_for_race) — hier erzwingen statt jedem Aufrufer
   // (aktuell ui/event-form.js, künftig ggf. Quick-Add/Import) zuzumuten,
   // das selbst zu wissen. Spiegelt updateEvent()s Logik.
   const payload = event.type === "other" ? { ...event, priority: null, ftpGoal: null } : event;
-  const result = await createEventAdapter(athleteId, payload);
+  const result = await createEventAdapter(profileId, payload);
   if (myRequest !== requestId) return result; // durch neueren Aufruf überholt
   // loadedForAthleteId === null: noch nie geladen (z.B. Quick-Add ohne
   // vorherigen Timeline-Besuch) — Cache trotzdem für athleteId initialisieren,
