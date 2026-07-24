@@ -12,7 +12,7 @@
    ============================================================ */
 
 import { el } from "./dom.js";
-import { isAthlete } from "../state/session.js";
+import { isAthlete, onSessionChange } from "../state/session.js";
 import { loadProposals, getState as getProposalsState, onProposalsChange } from "../state/proposals.js";
 import { openProposalList } from "./proposal-list.js";
 
@@ -59,4 +59,13 @@ export const ProposalBanner = {
 
 onProposalsChange(() => {
   if (container) draw();
+});
+
+// Wie ui/trainer-bar.js: app.js ruft render() beim initialen Page-Load VOR
+// initSession() auf, die Session ist dann noch nicht wiederhergestellt —
+// ohne diesen Listener bliebe der Banner nach F5 unsichtbar, bis der Athlet
+// den Athleten-Toggle erneut anfasst. Holt den Render einmal nach, sobald
+// die Session (auch später) tatsächlich vorliegt.
+onSessionChange(() => {
+  if (currentAthleteId) ProposalBanner.render(currentAthleteId);
 });

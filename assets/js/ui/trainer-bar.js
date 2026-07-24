@@ -30,6 +30,7 @@ import { loadProposals, getState as getProposalsState, onProposalsChange } from 
 import { loadRangeForAthlete } from "../state/wellbeing.js";
 import { getState as getPlanCardsState } from "../state/plan-cards.js";
 import { getState as getEventsState } from "../state/events.js";
+import { onSessionChange } from "../state/session.js";
 import { openProposalList } from "./proposal-list.js";
 
 let container = null;
@@ -237,4 +238,17 @@ export const TrainerBar = {
 // dass ui/proposal-list.js diese Datei kennen müsste.
 onProposalsChange(() => {
   if (container) _draw();
+});
+
+// app.js ruft TrainerBar.render() als Teil von renderAll() auf — beim
+// initialen Page-Load passiert das VOR initSession() (s. app.js-Kommentar
+// "NACH allem Rendering"), die Supabase-Session ist zu dem Zeitpunkt also
+// noch nicht wiederhergestellt und loadTrainerContext() sieht (korrekt für
+// diesen Moment) keinen eingeloggten User. Ohne diese Reaktion bliebe die
+// Leiste nach einem F5 leer, bis der Athlet erneut manuell togglet — dieser
+// Listener holt den bereits gecachten Render-Kontext nach, sobald die Session
+// (auch später) tatsächlich vorliegt. Kein Effekt vor dem ersten render()
+// (currentAthleteId noch null).
+onSessionChange(() => {
+  if (currentAthleteId) TrainerBar.render(currentAthleteId, { briefing: lastBriefing, tsb: lastTsb, rides: lastRides });
 });
