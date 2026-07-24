@@ -38,6 +38,7 @@ import { Planned } from "./ui/planned.js";
 import { PlanCardDialog } from "./ui/plan-card-dialog.js";
 import { TrainerBar } from "./ui/trainer-bar.js";
 import { ProposalBanner } from "./ui/proposal-banner.js";
+import { ExportImportBar } from "./ui/export-panel.js";
 import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
@@ -502,6 +503,10 @@ async function renderAll(athleteId) {
     // (RLS "proposals: Athlet entscheidet") einen Vorschlag annehmen/ablehnen
     // darf — die Trainer-Leiste zeigt den Zähler nur zur Information.
     await ProposalBanner.render(Data.activeAthleteId);
+    // Export/Import-Leiste: eigenes, synchrones Gate (nur der eingeloggte
+    // Athlet auf seinem EIGENEN Plan, Export/Import-Workflow-Konzept §1) —
+    // kein weiterer Ladepfad nötig, deshalb kein await.
+    ExportImportBar.render(Data.activeAthleteId);
     // Zweiter, gezielter Redraw: Planned.render() lief OBEN bereits, bevor
     // TrainerBar.render() den Trainer-Kontext geladen hat — die draggable-
     // Flags der gerade gezeichneten Karten (ui/planned.js::_isTrainerProposalMode())
