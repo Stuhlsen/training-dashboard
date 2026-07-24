@@ -49,6 +49,22 @@ gemessener Schlafscore über die intervals.icu-API in den objektiven Kanal
 
 ## Dashboard 2.0 — Cleanup
 
+**"Multiple GoTrueClient instances"-Warnung in der Browser-Konsole (harmlos, eingeordnet)**
+Beim Trainer-Dashboard-Test aufgefallen. Ursache: `data-access/supabase/client.js::
+getAuthedClient()` erzeugt bei JEDEM Aufruf einen neuen `createClient(...)` — bewusst so
+gebaut (Kommentar in derselben Datei), weil der Singleton-Client seinen Authorization-
+Header nach dem Login nicht zuverlässig aktualisiert (beobachtet: dauerhaft 403 ohne
+Bearer-Token). Jeder neue Client instanziiert intern einen eigenen GoTrueClient, auch mit
+`persistSession:false`/`autoRefreshToken:false` — Supabase warnt dann unabhängig von der
+tatsächlichen Persistenz, sobald mehr als eine Instanz im selben Tab existiert. Kein
+Zusammenhang mit `npx serve .`/Hot-Reload. Funktional harmlos (die ephemeren Clients
+schreiben nie eigenständig in `localStorage`, konkurrieren also nicht um die Session) —
+aber ein Hinweis auf echten Mehraufwand: bei jedem authentifizierten Request in dieser
+Session (Trainer-Kontext, Kategorien, Vorschläge, Check-in-Range, …) wird ein komplett
+neuer Client aufgebaut statt einen bereits authentifizierten wiederzuverwenden. Absichtlich
+nicht im Rahmen dieses Bugfix-Schritts angegangen (Cache-Invalidierung bei Token-Wechsel
+bräuchte eigenes Konzept) — Kandidat für einen späteren Performance-Polish-Schritt.
+
 **`addDaysISO()` (core/format.js) noch nicht an bestehenden Stellen nachgezogen**
 Für den Governor neu eingeführt (Juli 2026), weil `state/wellbeing.js` "gestern"
 für die 2-Tage-Range brauchte. Mehrere bestehende Dateien reimplementieren
@@ -123,22 +139,39 @@ Code-Review zum RPE/Feel-Feature (Juli 2026), noch nicht angegangen.
 `logRpeFeelCoverage`) vs. `scripts/lib/wellness.js` (`fieldCoverage`,
 `logWellnessCoverage`).
 
-## Phase 2 — vermuteter Bestandsfehler, bei der plan_cards-Migration entdeckt
+## Phase 2 — Bestandsfehler, live bestätigt und behoben
 
-**`state/events.js`/`state/goals.js` filtern vermutlich mit der falschen ID gegen eine uuid-Spalte**
-Beim Bau von `state/plan-cards.js` (Phase 3) fiel auf: `ui/event-timeline.js`
+**`state/events.js` filterte mit der falschen ID gegen eine uuid-Spalte (behoben)**
+Seit der `plan_cards`-Migration (Phase 3) als Verdacht vermerkt, jetzt live über die
+Browser-Konsole bestätigt (Trainer-Dashboard-Test, Juli 2026): `ui/event-timeline.js`
 ruft `EventTimeline.render(Data.activeAthleteId)` (app.js) und damit
 `loadEvents("athlete1"|"athlete2")` auf — die interne String-ID, nicht die
-Supabase-Profil-UUID. `data-access/supabase/events.js::listEvents()` filtert
-aber `.eq("athlete_id", athleteId)` direkt gegen `events.athlete_id`, eine
-`uuid`-Spalte (`0001_initial_schema.sql`). Dasselbe Muster vermutlich in
-`state/goals.js`. Für `plan_cards` wurde das mit `findProfileIdByDisplayName()`
-(`data-access/supabase/profiles.js`, Auflösung über den öffentlichen
-`display_name`) gelöst — noch NICHT für events/goals nachgezogen, das war
-außerhalb des beauftragten Migrationsschritts. Live-Verifikation gegen
-`dashboard-dev` steht noch aus (ob das wirklich als Postgres-Fehler statt
-leerer Liste durchschlägt); falls bestätigt, denselben Resolver in
-`state/events.js`/`state/goals.js` nachziehen.
+Supabase-Profil-UUID. `data-access/supabase/events.js::listEvents()` filterte
+`.eq("athlete_id", athleteId)` direkt gegen `events.athlete_id`, eine `uuid`-Spalte
+(`0001_initial_schema.sql`) → PostgREST antwortete mit 400 ("invalid input syntax for
+type uuid"), sichtbar in der Konsole bei jedem Seitenaufbau/Athletenwechsel (nicht
+spezifisch durch Drag & Drop ausgelöst — `EventTimeline.render()` läuft in `app.js`
+einmal pro `renderAll()`, unabhängig von Kartenaktionen). Behoben: `state/events.js`
+löst `athleteId` jetzt über `resolveAthleteProfileId()` (wiederverwendet aus
+`state/plan-cards.js`, das denselben Resolver bereits hatte) auf die Profil-UUID auf,
+bevor `listEvents`/`createEvent` aufgerufen werden. Getestet in
+`tests/events-athlete-resolution.test.js`. `state/goals.js` war entgegen der
+ursprünglichen Vermutung NICHT betroffen — es ruft `data-access/supabase/goals.js`
+ausschließlich mit `getSession().id` (der echten UUID des eingeloggten Users) auf,
+nie mit der internen Athleten-Kennung.
+
+**Kausalität zu den Drag-&-Drop-Bugs (Bug 1/3) geprüft: kein struktureller Zusammenhang**
+Der 400 wird über den Result-Vertrag (`{ok:false, error}`) abgefangen — `state/
+events.js::loadEvents()` wirft dabei nie eine Exception, kann also nicht den
+`await`-Ablauf in `app.js::renderAll()` oder `ui/plan-drag.js::endDrag()` unterbrechen.
+Die events-Query-Reparatur oben ist trotzdem ein eigenständiger, längst überfälliger
+Fix, nur vermutlich nicht die Ursache für Bug 1 (Drag-Grip weiterhin aktiv) oder
+Bug 3 (Drag-Freeze) — beide Codepfade wurden bereits in den vorherigen Schritten
+korrigiert (Render-Reihenfolge bzw. try/finally-Härtung); falls sich im nächsten
+Browser-Test weiterhin NICHTS ändert, ist ein Browser-Cache-Effekt (`npx serve .`
+liefert eine veraltete, gecachte Version der ES-Module aus) die naheliegendste
+verbleibende Erklärung — vor weiterer Code-Suche per Hard-Refresh (Strg+Shift+R)
+oder privatem Fenster auszuschließen.
 
 ## Phase 3 — Planungstab
 
