@@ -302,19 +302,35 @@ neu an. Nur lokal geschrieben/gelesen (Migration + Code), noch nicht im SQL-Edit
 das dev-Projekt eingespielt — die Prüfliste am Ende der Migration steht noch aus, bevor
 der Trainer-Flow gegen echte Daten vertraut werden kann.
 
-**Move/Ausfallen als Vorschlag nicht über die bestehenden Planungstab-Buttons**
-Der Speichern-Modus-Umschalter (Direkt/Vorschlag) wirkt bisher NUR im Karten-Dialog
-(`ui/plan-card-dialog.js`, Anlegen/Bearbeiten → `add`/`replace`). Die "Verschieben"-/
-"Ausfallen"-Buttons und -Formulare in `ui/planned.js` schreiben für einen eingeloggten
-Trainer weiterhin immer direkt gegen `plan_cards` (RLS erlaubt das über `is_coach_of()`,
-das Modul kennt den Speichern-Modus schlicht noch nicht). Ein Trainer kann `move`/`cancel`-
-Vorschläge aktuell nur über den Karten-Dialog o. Ä. gar nicht erzeugen — nur Claude
-(sobald der Import-Parser existiert, s. u.) oder ein direkter Insert würden solche
-Vorschläge anlegen. Bewusst zurückgestellt: die Verschieben-/Ausfallen-Formulare bräuchten
-ein eigenes "als Vorschlag"-Gating (analog zum Karten-Dialog-Hook), das über den in diesem
-Schritt beauftragten Umfang hinausging.
-→ Details: `docs/phase-4-konzept-trainer-sicht.md` §3, `assets/js/ui/plan-card-dialog.js`
-(Submit-Handler-Branch als Referenzimplementierung für einen künftigen Move/Cancel-Hook).
+**Move/Ausfallen als Vorschlag über die Planungstab-Buttons (behoben, zur Historie)**
+Beim ersten Browser-Test als Trainer reproduziert: Der Direkt/Vorschlag-Umschalter zeigte
+sichtbar "Vorschlag", das Verschieben einer Karte änderte `plan_cards` aber trotzdem sofort
+direkt (persistiert über F5 hinweg) — der Umschalter wirkte nur im Karten-Dialog
+(`add`/`replace`), nicht in `ui/planned.js`s "Verschieben"-/"Ausfallen"-Formularen und nicht
+beim Drag & Drop. Behoben: `_handleMove`/`_handleCancel` prüfen jetzt `_isTrainerProposalMode()`
+und rufen bei "Vorschlag" `createTrainerProposal()` (`op: "move"`/`"cancel"`) statt
+`movePlanCard()`/`cancelPlanCard()` direkt auf — die Argumentbildung sitzt dafür als reine,
+getestete Funktion in `core/proposal-payload.js` (`moveProposalArgs`/`cancelProposalArgs`,
+s. `tests/proposal-payload.test.js`). Drag & Drop ist im Vorschlag-Modus für Trainer
+deaktiviert (kein Begründungsfeld, optimistische Sofort-Bewegung passt nicht zu "erzeugt nur
+einen Vorschlag") — das Verschieben-Formular bleibt der Weg. Die DOM-gebundene Verzweigung
+selbst (welcher Zweig bei Klick tatsächlich läuft) ist nicht per `node:test` abgedeckt —
+dieses Repo verifiziert `ui/`-Änderungen laut AGENTS.md/CLAUDE.md über `node -c` + Browser-Test,
+nicht über eine jsdom-Suite; entsprechend im Browser erneut bestätigt.
+
+**Trainer-Leiste/Athleten-Banner verschwinden nach F5 (behoben, zur Historie)**
+Ebenfalls beim ersten Browser-Test reproduziert: Nach einem echten Seiten-Reload (nicht nur
+Athleten-Toggle) blieb die Trainer-Leiste leer, obwohl der eingeloggte User weiterhin Trainer
+des angezeigten Athleten war. Ursache: `app.js`s Haupt-IIFE ruft `renderAll()` (und darin
+`TrainerBar.render()`/`ProposalBanner.render()`) VOR `initSession()` auf — beim ersten
+Seitenaufbau ist die Supabase-Session dadurch noch nicht wiederhergestellt,
+`loadTrainerContext()` sieht (korrekt für diesen Moment) keinen eingeloggten User, und nichts
+löste einen erneuten Render aus, sobald `initSession()` die Session später asynchron nachlud.
+Behoben: `ui/trainer-bar.js` und `ui/proposal-banner.js` abonnieren jetzt selbst
+`state/session.js::onSessionChange` und rendern mit dem bereits gecachten Kontext
+(Athlet-ID/briefing/tsb/rides) erneut, sobald sich der Session-Status ändert — kein Eingriff
+in `app.js`s Init-Reihenfolge nötig. Auch hier: DOM-gebunden, nicht per `node:test` abgedeckt,
+Browser-verifiziert.
 
 **Trainer kann eine Karte nie hart löschen (bewusst, nicht nur zurückgestellt)**
 `ui/plan-card-dialog.js` blendet den "Löschen"-Button für jeden Trainer-Speichervorgang
