@@ -1344,6 +1344,60 @@ body.is-card-dragging { cursor: grabbing; user-select: none; }
 }
 .proposal-banner { border-color: var(--accent); cursor: pointer; }
 
+/* ============================================================
+   EXPORT/IMPORT-LEISTE (Export/Import-Workflow-Konzept §1–§4)
+   ============================================================ */
+.export-import-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.export-import-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.76rem;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.export-import-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.export-dialog { max-width: 620px; }
+.export-dialog-hint { font-size: 0.76rem; color: var(--dim); margin: -6px 0 12px; }
+.export-dialog-textarea {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  min-height: 320px;
+}
+
+.import-dialog { max-width: 620px; }
+.import-dialog-file { margin-top: 8px; font-size: 0.76rem; color: var(--dim); }
+.import-dialog-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+.import-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.import-row--valid { border-color: rgba(74, 154, 110, 0.35); }
+.import-row--invalid { border-color: rgba(217, 79, 79, 0.35); }
+.import-row-status { font-size: 1rem; flex-shrink: 0; }
+.import-row-text { min-width: 0; }
+.import-row-desc { font-size: 0.82rem; color: var(--text); }
+.import-row-reason { font-size: 0.74rem; color: var(--dim); font-style: italic; margin-top: 2px; }
+.import-row-errors { margin: 4px 0 0; padding-left: 18px; font-size: 0.72rem; color: var(--red); }
+
 @media (max-width: 560px) {
   .proposal-compare-grid { grid-template-columns: 1fr; }
 }

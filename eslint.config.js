@@ -21,6 +21,11 @@ export default [
         btoa: "readonly",
         unescape: "readonly",
         Node: "readonly",
+        navigator: "readonly",
+        Blob: "readonly",
+        URL: "readonly",
+        FileReader: "readonly",
+        crypto: "readonly",
       },
     },
     rules: {
