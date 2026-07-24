@@ -235,19 +235,6 @@ Sauber lösen ließe sich das nur mit einer echten Datum→Plan-Woche-Ableitung
 (die Plan-Struktur dafür lebt in `scripts/lib/plan2.js`, nicht im Frontend).
 Bewusste v1-Einschränkung.
 
-**`ui/planned.js` leitet `today` für die Abschnitts-Filterung noch aus UTC ab**
-`core/format.js::localISODate()` existiert genau dafür und wird von `app.js`
-und `state/events.js` bereits benutzt; `ui/planned.js::render()` berechnet
-sein `today` aber weiterhin als `new Date().toISOString().split("T")[0]`, also
-in UTC. In deutscher Sommerzeit (UTC+2) meint „heute" damit zwischen 00:00 und
-02:00 lokaler Zeit noch den Vortag — eine Karte von gestern erscheint in dem
-Fenster fälschlich unter „Ausstehend" statt unter „Verpasst".
-Die **Drag-Regeln sind davon nicht betroffen**: `ui/plan-drag.js` und der
-Draggable-Gate in `_renderCard()` nutzen `localISODate()` und sind korrekt.
-Bewusst nicht im Zuge von Drag & Drop mitgeändert, weil es die bestehende
-Filterung von Ausstehend/Verpasst/Absolviert anfasst — eigener kleiner Fix,
-dann für alle drei Abschnitte zugleich.
-
 **K3 — Typ-Default-TSS auf dünner Datenbasis kalibriert**
 `core/plan-config.js::TYPE_DEFAULT_TSS` (Prioritätsstufe 3 der TSS-Herkunft) trägt
 die Median-TRIMP-Werte je Session-Typ aus den Ist-Fahrten (Nebenprodukt von
@@ -258,21 +245,6 @@ grobe Anhaltspunkte. **Beim K1-Schwellen-Review nach Plan 2 (mehr Historie) dies
 Werte ZUERST gegenprüfen** — zusammen mit den Konflikt-Schwellen im selben Modul.
 Kommentar mit derselben Liste steht direkt an der Tabelle in `core/plan-config.js`.
 → Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §2/§3 (K1/K3).
-
-**K-EVENT feuert nie mehr — `core/conflicts.js` prüft `priority === "A"/"B"`, die DB liefert seit Migration 0004 `"main"/"secondary"` (neu entdeckt, nicht behoben)**
-Beim Anlegen eines Test-Events für den Export/Import-Nachtest (Finding 2, 25.07.2026)
-aufgefallen: `events.priority` erlaubt laut `0004_events.sql` (`events_priority_check`)
-nur noch `'main'`/`'secondary'` — die Migration selbst dokumentiert die Umstellung
-("priority von not-null/A-B-C auf nullable/main-secondary umgestellt"). `core/conflicts.js`
-(K-EVENT-Regel, Zeile 154/163) wurde dabei nicht mitgezogen und vergleicht weiterhin gegen
-`"A"`/`"B"` — dieser Vergleich ist seit der Migration für JEDES reale Event `false`,
-`window` wird immer `null`, K-EVENT kann also nie mehr auslösen. Betrifft auch
-`ui/trainer-bar.js::tsbTile()`/`core/plan-feedback.js::horizonRaceEvent()` nicht (die
-filtern nur auf `type === "race"`, nicht auf `priority`), aber jede TSB-Zielfenster-Prüfung
-für Events fehlt seither still. Kein Fix im Rahmen dieses Schritts (Phase 3, außerhalb
-Export/Import-Scope) — Entscheidung nötig: `core/conflicts.js`/`core/plan-config.js`
-(`eventWindowA`/`eventWindowB`) auf `main`/`secondary` ummappen, oder umgekehrt.
-→ Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §3 (K-EVENT).
 
 **K-RAMPE vergleicht in v1 nur aufeinanderfolgende Projektionswochen (Plan-vs-Plan)**
 `core/conflicts.js::detectConflicts` (Regel K-RAMPE) bildet die Wochenlast aus den
@@ -391,7 +363,7 @@ Fortschreibung transparent, wenn der Anker abweicht (Konvention aus `ui/analysis
   echte Notiz im Morgen-Check-in ergänzen.
 
 **Nebenbefund beim Testevent-Anlegen: K-EVENT feuert nie mehr (`priority`-Skalen-Mismatch,
-neu entdeckt, s. eigener Punkt unter „Phase 3 — Planungstab").**
+s. „Erledigt" unten, behoben Commit `f09481d`).**
 
 **Keine Dedup-Erkennung für doppelten Claude-Import (bewusste v1-Einschränkung)**
 Importiert ein Athlet dieselbe Claude-Antwort zweimal (z. B. versehentlich erneut
@@ -618,6 +590,34 @@ Browser-Automatisierung/Testcredentials in dieser Session verfügbar — konsist
 bereits etablierten Muster aus Phase 2/3 (s. entsprechende Punkte oben).
 
 ## Erledigt (zur Historie, nicht mehr offen)
+
+**K-EVENT feuert nie mehr — priority-Skalen-Mismatch main/secondary statt A/B (behoben)**
+`core/conflicts.js` (K-EVENT-Regel) verglich `events.priority` gegen die alten Werte
+`"A"`/`"B"`, obwohl `0004_events.sql` (`events_priority_check`) seit der Migration nur
+noch `"main"`/`"secondary"` erlaubt — der Vergleich war seither für jedes reale Event
+`false`, K-EVENT konnte nie mehr auslösen (Nebenbefund beim Testevent-Anlegen für den
+Export/Import-Nachtest, 25.07.2026, s. Phase-4-Abschnitt oben). Behoben:
+`core/conflicts.js` und `core/plan-config.js` (`eventWindowA`/`eventWindowB` →
+`eventWindowMain`/`eventWindowSecondary`, keine weiteren Aufrufer) auf `main`/`secondary`
+umgestellt. `ui/trainer-bar.js::tsbTile()`/`core/plan-feedback.js::horizonRaceEvent()`
+verifiziert nicht betroffen (filtern nur auf `type === "race"`). Regressionstests in
+`tests/conflicts.test.js` auf `main`/`secondary` umgestellt.
+→ Commit `f09481d`. Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §3 (K-EVENT).
+
+**`ui/planned.js` berechnete `today` für die Abschnitts-Filterung in UTC statt lokal (behoben)**
+`render()` nutzte `new Date().toISOString().split("T")[0]` für die Abschnitts-Filterung
+(Ausstehend/Verpasst/Absolviert) — in deutscher Sommerzeit (UTC+2) zeigte das zwischen
+00:00 und 02:00 Uhr lokaler Zeit noch den Vortag, eine Karte von gestern erschien in dem
+Fenster fälschlich unter „Ausstehend" statt „Verpasst". Behoben: auf die bereits
+vorhandene, für die Drag-Regeln bereits genutzte `localISODate()` (`core/format.js`)
+umgestellt — eine einzige `todayLocal`-Variable statt zwei parallelen „heute"-Quellen.
+Die Drag-Regeln (`ui/plan-drag.js`, `_renderCard()`-Gate) waren davon nicht betroffen und
+blieben unverändert. Kein automatisierter Regressionstest ergänzt: `ui/`-Änderungen
+werden in diesem Repo über `node -c` + Browser-Test verifiziert, nicht über eine
+jsdom-Suite (keine jsdom-Dependency, `render()` braucht `document`) — ein
+Mitternachts-/UTC-Rollover-Test bräuchte einen Mocking-Seam für die Systemzeit in
+`render()`, den es nicht gibt.
+→ Commit `d3e6996`.
 
 **Kartentausch → Wahoo-Push-Duplikate, falsche Fahrtenbuch-Zuordnung, fehlende Ausrollen-Erkennung**
 Drei zusammenhängende Bugs im Planungstab/Sync, sichtbar beim Kartentausch
