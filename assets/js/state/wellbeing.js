@@ -1,8 +1,10 @@
 import {
   getRange as getRangeAdapter,
+  getSharedRange as getSharedRangeAdapter,
   upsertToday as upsertTodayAdapter,
 } from "../data-access/supabase/wellbeing.js";
 import { getSession, onSessionChange } from "./session.js";
+import { resolveAthleteProfileId } from "./plan-cards.js";
 import { localISODate, addDaysISO } from "../core/format.js";
 import { getSubjectiveReadiness } from "../core/readiness.js";
 
@@ -113,6 +115,25 @@ export async function saveToday({ energy, muscleFeel, mood, note }) {
  *  (RLS erlaubt das via is_coach_of, s. 0001_initial_schema.sql). */
 export async function loadRangeForAthlete(athleteProfileId, fromIso, toIso) {
   return getRangeAdapter(athleteProfileId, fromIso, toIso);
+}
+
+/** Lädt den heutigen FREIGEGEBENEN Check-in (wellbeing_shared) eines
+ *  BELIEBIGEN Athleten — für Betrachter, die weder der Athlet selbst noch
+ *  dessen Trainer sind (Besucher, fremder Coach; kein Login nötig). Anders
+ *  als loadRangeForAthlete() (Basistabelle, nur per RLS für den Coach
+ *  lesbar) reiner Passthrough auf getSharedRange(); löst `athleteId`
+ *  ("athlete1"/"athlete2") wie überall sonst über resolveAthleteProfileId()
+ *  auf (state/plan-cards.js, s. dortigen Kommentar) statt die Auflösung
+ *  hier zu duplizieren. `checkin: null` sowohl ohne Supabase-Account als
+ *  auch ohne aktiven Toggle/Eintrag — für den Aufrufer (ui/wellbeing-card.js)
+ *  nicht unterscheidbar und muss es auch nicht sein. */
+export async function loadSharedToday(athleteId) {
+  const profileId = await resolveAthleteProfileId(athleteId);
+  if (!profileId) return { ok: true, checkin: null };
+  const today = localISODate();
+  const result = await getSharedRangeAdapter(profileId, today, today);
+  if (!result.ok) return result;
+  return { ok: true, checkin: result.checkins[0] || null };
 }
 
 export function onWellbeingChange(fn) {

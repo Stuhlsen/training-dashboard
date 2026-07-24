@@ -43,6 +43,7 @@ mock.module(u("data-access/supabase/events.js"), {
 mock.module(u("data-access/supabase/wellbeing.js"), {
   exports: {
     getRange: async () => ({ ok: true, checkins: WELLBEING_SEED.map((w) => ({ ...w })) }),
+    getSharedRange: async () => ({ ok: true, checkins: [] }),
     upsertToday: async () => ({ ok: true, checkin: {} }),
   },
 });

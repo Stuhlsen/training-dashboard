@@ -47,8 +47,8 @@ import { getState as getWellbeingState } from "./state/wellbeing.js";
 import { configureProjection, recomputeProjection } from "./state/plan-cards.js";
 import { getState as getEventsState, onEventsChange } from "./state/events.js";
 import { EventTimeline } from "./ui/event-timeline.js";
+import { WellbeingCard } from "./ui/wellbeing-card.js";
 import "./ui/header.js";
-import "./ui/wellbeing-card.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
 function initAthleteToggle() {
@@ -374,6 +374,11 @@ async function renderAll(athleteId) {
   // Render-Pipeline (Charts, Panels) auf einen Supabase-Roundtrip warten
   // lassen, ohne dass irgendetwas davon Event-Daten braucht.
   EventTimeline.render(Data.activeAthleteId);
+  // "Befinden heute"-Karte: eigener Editor beim eingeloggten Athleten
+  // (unabhängig vom Toggle), sonst wellbeing_shared des per Toggle gerade
+  // betrachteten Athleten für Besucher/fremde Coaches (Konzept Abschnitt
+  // 10) — bewusst NICHT awaited, aus demselben Grund wie EventTimeline oben.
+  WellbeingCard.render(Data.activeAthleteId);
 
   // Overview
   Overview.render(rides, hasPlanningTab);
