@@ -268,12 +268,13 @@ export const Planned = {
 
     // Bereits absolvierte Daten
     const doneDates = new Set(rides.map((r) => r.date));
-    const today = new Date().toISOString().split("T")[0];
-    // Eigener, lokal abgeleiteter Tag für die Drag-Regeln (localISODate,
-    // s. core/format.js). `today` oben bleibt bewusst unangetastet: es
-    // steuert die Abschnitts-Filterung (Ausstehend/Verpasst/Absolviert)
-    // und würde sonst im selben Zug sein Verhalten ändern — s.
-    // docs/offene-punkte.md.
+    // localISODate() (core/format.js) statt new Date().toISOString() — UTC
+    // zeigt in deutscher Sommerzeit zwischen 00:00–02:00 Uhr lokal noch den
+    // Vortag, was eine Karte von gestern fälschlich unter "Ausstehend" statt
+    // "Verpasst" einsortiert hätte (s. docs/offene-punkte.md). Dieselbe
+    // Variable steuert jetzt sowohl die Abschnitts-Filterung unten als auch
+    // die Drag-Regeln (_renderCard/plan-drag.js), die bereits vorher korrekt
+    // localISODate() nutzten.
     const todayLocal = localISODate();
 
     // plan_cards sind bereits im "aufgelösten" Zustand (Verschiebung/Ausfall
@@ -286,7 +287,9 @@ export const Planned = {
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
-      .filter((s) => (s.date >= today || s.originalDate) && !doneDates.has(s.date) && !s.cancelled)
+      .filter(
+        (s) => (s.date >= todayLocal || s.originalDate) && !doneDates.has(s.date) && !s.cancelled
+      )
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Bereits absolvierte Sessions (Ride mit passendem Datum vorhanden)
@@ -296,7 +299,9 @@ export const Planned = {
 
     // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben
     const missedSessions = allSessions
-      .filter((s) => s.date < today && !doneDates.has(s.date) && !s.cancelled && !s.originalDate)
+      .filter(
+        (s) => s.date < todayLocal && !doneDates.has(s.date) && !s.cancelled && !s.originalDate
+      )
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Ausgefallene Sessions
