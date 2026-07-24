@@ -21,6 +21,7 @@ import { fmt, weatherIcon, windDir, localISODate } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
 import { conflictsForCard, horizonRaceEvent, tsbOnDate } from "../core/plan-feedback.js";
 import { canDragCard } from "../core/plan-drag.js";
+import { KNOWN_PLAN_TYPES } from "../core/plan-config.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import {
@@ -42,20 +43,10 @@ import { Table, Subjective } from "./table.js";
 import { openPlanCardDialog } from "./plan-card-dialog.js";
 import { initPlanDrag, cancelActiveDrag } from "./plan-drag.js";
 
-/** Athlet-1-Zonen-Vokabular für den Karten-Dialog (Typ-Select) — dieselben
- *  Keys wie Planned._typColor/_typIcon, hier zentral exportiert statt in
- *  plan-card-dialog.js dupliziert. Athlet 2 hat keinen Dialog-Zugriff
- *  (_canEdit()-Gate), sein schmaleres Vokabular ist hier bewusst außen vor. */
-export const TYP_OPTIONS = [
-  "Sweet Spot",
-  "Schwelle",
-  "VO2max",
-  "Z2 Lang",
-  "Z2 Dauer",
-  "Z1 Recovery",
-  "Gruppenfahrt",
-  "FTP-Test",
-];
+/** Re-export für ui/plan-card-dialog.js (Typ-Select) — Liste selbst lebt in
+ *  core/plan-config.js, weil core/proposal-validator.js sie ebenfalls braucht
+ *  und core/ nicht aus ui/ importieren darf (Schichtenregel). */
+export const TYP_OPTIONS = KNOWN_PLAN_TYPES;
 
 /** Nur der primäre Athlet (Athlet 1) darf Verschieben/Ausfallen/Wahoo-Push
  *  auslösen — Athlet 2 hat seit GFNY Bremen 2026 zwar einen eigenen Plan,

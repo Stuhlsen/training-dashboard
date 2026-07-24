@@ -74,6 +74,24 @@ export const TYPE_DEFAULT_TSS = Object.freeze({
  *  tssPlanned/workout trägt — grober Mittelwert einer moderaten Einheit. */
 export const FALLBACK_TSS = 70;
 
+/** Athlet-1-Zonen-Vokabular für den Karten-Dialog (Typ-Select) — hier statt
+ *  in ui/planned.js, weil core/proposal-validator.js dieselbe Liste braucht
+ *  (Schema-Konzept §4: "type aus der bekannten Typenliste"), core/ aber nie
+ *  aus ui/ importieren darf (Schichtenregel). ui/planned.js re-exportiert
+ *  dies weiterhin als TYP_OPTIONS, damit ui/plan-card-dialog.js unverändert
+ *  bleibt. Athlet 2 hat keinen Dialog-/Import-Zugriff, sein schmaleres
+ *  Vokabular ist hier bewusst außen vor. */
+export const KNOWN_PLAN_TYPES = [
+  "Sweet Spot",
+  "Schwelle",
+  "VO2max",
+  "Z2 Lang",
+  "Z2 Dauer",
+  "Z1 Recovery",
+  "Gruppenfahrt",
+  "FTP-Test",
+];
+
 /**
  * Intensitätsklassen für K-HART (harte Einheiten an Folgetagen). Deckungs-
  * gleich mit den border-left-Farben aus dem CRUD-Konzept §2:
