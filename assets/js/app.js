@@ -44,7 +44,12 @@ import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
 import { initSession, isAthlete } from "./state/session.js";
 import { getState as getWellbeingState } from "./state/wellbeing.js";
-import { configureProjection, recomputeProjection } from "./state/plan-cards.js";
+import {
+  configureProjection,
+  recomputeProjection,
+  loadPlanCards,
+  getState as getPlanCardsState,
+} from "./state/plan-cards.js";
 import { getState as getEventsState, onEventsChange } from "./state/events.js";
 import { EventTimeline } from "./ui/event-timeline.js";
 import { WellbeingCard } from "./ui/wellbeing-card.js";
@@ -294,18 +299,23 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
 }
 
 /* ── Nach einer Adjustment-Änderung (verschoben/ausgefallen) im
-   Planungs-Tab: Panels, die plannedSessions+adjustments lesen, ohne
-   vollständigen Reload aktualisieren (Hero-Session-Pill, Wochenrückblick,
-   Analyse-Briefing/Konsistenz). Planned.render() selbst übernimmt
-   ui/planned.js. ── */
+   Planungs-Tab: Panels, die den Plan lesen, ohne vollständigen Reload
+   aktualisieren (Hero-Session-Pill, Wochenrückblick, Analyse-Briefing/
+   Konsistenz). Quelle ist plan_cards (state/plan-cards.js), nicht mehr
+   Data.plannedSessions/Data.adjustments — die JSON-Pipeline bekommt seit
+   der plan_cards-Migration keine neuen Schreibvorgänge mehr und wäre hier
+   dauerhaft eingefroren (docs/offene-punkte.md "Dualität"). plan_cards ist
+   an dieser Stelle garantiert schon geladen: dieser Callback feuert immer
+   NACH einer Karten-Mutation, die ihrerseits einen bereits gerenderten
+   Planungstab voraussetzt. Planned.render() selbst übernimmt ui/planned.js. ── */
 function refreshAfterAdjustment() {
-  if (!Data.plannedSessions.length) return;
+  if (!getPlanCardsState().cards.length) return;
   const rides = Data.byDate();
-  const todayISO = new Date().toISOString().split("T")[0];
+  const todayISO = localISODate();
   Overview.render(rides, true);
   renderWeekReview(
     "weekreview-card",
-    buildWeekReview(rides, Data.plannedSessions, Data.adjustments, todayISO)
+    buildWeekReview(rides, getPlanCardsState().cards, {}, todayISO)
   );
   Analysis.render(rides, true);
 }
@@ -346,6 +356,14 @@ async function renderAll(athleteId) {
   // die Athlet-1-exklusiven Plan-1/2-Inhalte zu berühren, die weiter an
   // ownPlan hängen (s. Kommentar bei hasOwnPlan()).
   const hasPlanningTab = Data.plannedSessions.length > 0;
+  // plan_cards früh laden (nicht erst später in Planned.render()) — Hero-
+  // Session-Pill/Wochenrückblick/Analyse-Briefing weiter unten brauchen den
+  // aktuellen Kartenstand VOR Planned.render(); ohne diesen Vorzug-Load
+  // läsen sie noch die eingefrorene Data.plannedSessions/Data.adjustments-
+  // JSON-Pipeline (docs/offene-punkte.md "Dualität"). Planned.render()
+  // erkennt den bereits geladenen Stand (loadedForAthleteId) und lädt dann
+  // nicht doppelt.
+  if (hasPlanningTab) await loadPlanCards(Data.activeAthleteId);
   const ftp = ownPlan
     ? CONFIG.ftp
     : CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured ||
@@ -396,7 +414,7 @@ async function renderAll(athleteId) {
   let nextSession = null;
   if (hasPlanningTab) {
     const doneDates = new Set(rides.map((r) => r.dateISO));
-    nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
+    nextSession = nextPlannedSession(getPlanCardsState().cards, {}, doneDates, todayISO);
   }
   // Subjektiver Kanal (Morgen-Check-in) nur beim eingeloggten Athleten selbst
   // — unabhängig von Data.activeAthleteId (state/wellbeing.js hängt am
@@ -410,7 +428,7 @@ async function renderAll(athleteId) {
   renderReadiness("readiness-panel", readiness, briefing);
   renderWeekReview(
     "weekreview-card",
-    buildWeekReview(rides, hasPlanningTab ? Data.plannedSessions : [], Data.adjustments, todayISO)
+    buildWeekReview(rides, hasPlanningTab ? getPlanCardsState().cards : [], {}, todayISO)
   );
   renderRecords("records-wall", recordProgression(rides));
 

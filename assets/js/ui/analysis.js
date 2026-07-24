@@ -55,6 +55,7 @@ import {
 } from "../core/zones.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
+import { getState as getPlanCardsState } from "../state/plan-cards.js";
 import { isAthlete } from "../state/session.js";
 import { getState as getWellbeingState } from "../state/wellbeing.js";
 import { el } from "./dom.js";
@@ -228,10 +229,14 @@ export const Analysis = {
     const guard = buildLoadGuard(this._allRides, weekKeyFn, weekSortFn);
     const loadRisk = guard.length ? guard[guard.length - 1].risk : null;
 
+    // Quelle ist plan_cards, nicht mehr Data.plannedSessions/Data.adjustments
+    // (die JSON-Pipeline ist seit der plan_cards-Migration eingefroren, s.
+    // docs/offene-punkte.md "Dualität") — app.js::renderAll() lädt plan_cards
+    // VOR Analysis.render(), refreshAfterAdjustment() ebenfalls davor.
     let nextSession = null;
-    if (hasPlanningTab && Data.plannedSessions?.length) {
+    if (hasPlanningTab && getPlanCardsState().cards.length) {
       const doneDates = new Set(this._allRides.map((r) => r.dateISO));
-      nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, today);
+      nextSession = nextPlannedSession(getPlanCardsState().cards, {}, doneDates, today);
     }
 
     // Subjektiver Kanal nur beim eingeloggten Athleten selbst — dieselbe
@@ -794,10 +799,12 @@ export const Analysis = {
     const box = el("analysis-consistency");
     if (!box) return;
 
+    // Quelle ist plan_cards, nicht mehr Data.plannedSessions/Data.adjustments
+    // — s. Kommentar bei _renderBriefing() oben.
     const c = buildConsistency(
       this._allRides,
-      ownPlan ? Data.plannedSessions : null,
-      ownPlan ? Data.adjustments : null,
+      ownPlan ? getPlanCardsState().cards : null,
+      ownPlan ? {} : null,
       today
     );
 

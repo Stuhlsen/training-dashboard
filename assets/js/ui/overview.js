@@ -18,6 +18,7 @@ import { avg, maxVal, sum } from "../core/stats.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { getState as getEventsState, raceCountdown, onEventsChange } from "../state/events.js";
+import { getState as getPlanCardsState } from "../state/plan-cards.js";
 import { el } from "./dom.js";
 import { Planned } from "./planned.js";
 import { countdownCard } from "./event-timeline.js";
@@ -132,14 +133,20 @@ export const Overview = {
       eventsState.loadedForAthleteId === Data.activeAthleteId ? raceCountdown() : null;
     const countdownHtml = countdownCard(countdown);
 
-    if (!hasPlanningTab || !Data.plannedSessions.length) {
+    // Quelle ist plan_cards (state/plan-cards.js), nicht mehr
+    // Data.plannedSessions/Data.adjustments — die JSON-Pipeline bekommt seit
+    // der plan_cards-Migration keine neuen Schreibvorgänge mehr (Verschieben/
+    // Ausfallen landet nur noch in plan_cards) und wäre hier dauerhaft
+    // eingefroren (docs/offene-punkte.md "Dualität"). app.js::renderAll()
+    // lädt plan_cards VOR diesem Aufruf, s. dortigen Kommentar.
+    if (!hasPlanningTab || !getPlanCardsState().cards.length) {
       wrap.innerHTML = countdownHtml;
       return;
     }
 
     const todayISO = localISODate();
     const doneDates = new Set(rides.map((r) => r.date));
-    const next = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
+    const next = nextPlannedSession(getPlanCardsState().cards, {}, doneDates, todayISO);
     if (!next) {
       wrap.innerHTML = countdownHtml;
       return;
