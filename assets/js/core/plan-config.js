@@ -24,8 +24,8 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
   hardStreakInfo: 2, // K-HART   Hinweis ab 2 harten Tagen in Folge
   hardStreakWarn: 3, //          Warnung ab 3 harten Tagen in Folge
   weekRampPct: 20, // K-RAMPE  Wochen-TSS-Sprung > +20 % → Hinweis
-  eventWindowA: [5, 20], // K-EVENT  A-Event Ziel-TSB-Fenster (außerhalb → Warnung)
-  eventWindowB: [-5, 15], //          B-Event Ziel-TSB-Fenster (außerhalb → Hinweis)
+  eventWindowMain: [5, 20], // K-EVENT  Hauptziel-Event Ziel-TSB-Fenster (außerhalb → Warnung)
+  eventWindowSecondary: [-5, 15], //          Nebenziel-Event Ziel-TSB-Fenster (außerhalb → Hinweis)
   restBlockDays: 3, // K-LEER   harte Einheit direkt nach ≥ 3 Ruhetagen → Hinweis
 });
 

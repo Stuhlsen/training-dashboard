@@ -139,33 +139,33 @@ test("K-RAMPE feuert nicht bei +10 % Wochenlast", () => {
 
 /* ── K-EVENT ─────────────────────────────────────────────────── */
 
-const raceA = { eventDate: "2026-07-26", title: "GFNY", type: "race", priority: "A" };
+const raceMain = { eventDate: "2026-07-26", title: "GFNY", type: "race", priority: "main" };
 
-test("K-EVENT (A): TSB außerhalb +5…+20 am Eventtag → Warnung", () => {
+test("K-EVENT (main/Hauptziel): TSB außerhalb +5…+20 am Eventtag → Warnung", () => {
   const proj = mkProj([{ date: "2026-07-26", tsb: 2 }]);
-  const c = byRule(detectConflicts(proj, [], [raceA]), "K-EVENT");
+  const c = byRule(detectConflicts(proj, [], [raceMain]), "K-EVENT");
   assert.equal(c.length, 1);
   assert.equal(c[0].severity, "warning");
   assert.deepEqual(c[0].dates, ["2026-07-26"]);
 });
 
-test("K-EVENT (A): TSB im Zielfenster → kein Befund", () => {
+test("K-EVENT (main/Hauptziel): TSB im Zielfenster → kein Befund", () => {
   const proj = mkProj([{ date: "2026-07-26", tsb: 10 }]);
-  assert.equal(byRule(detectConflicts(proj, [], [raceA]), "K-EVENT").length, 0);
+  assert.equal(byRule(detectConflicts(proj, [], [raceMain]), "K-EVENT").length, 0);
 });
 
-test("K-EVENT (B): TSB außerhalb −5…+15 → nur Hinweis (info)", () => {
+test("K-EVENT (secondary/Nebenziel): TSB außerhalb −5…+15 → nur Hinweis (info)", () => {
   const proj = mkProj([{ date: "2026-07-26", tsb: 20 }]);
-  const ev = { ...raceA, priority: "B" };
+  const ev = { ...raceMain, priority: "secondary" };
   const c = byRule(detectConflicts(proj, [], [ev]), "K-EVENT");
   assert.equal(c[0].severity, "info");
 });
 
-test("K-EVENT ignoriert Nicht-Rennen und C-Events", () => {
+test("K-EVENT ignoriert Nicht-Rennen und Events ohne Priorität", () => {
   const proj = mkProj([{ date: "2026-07-26", tsb: 2 }]);
   const other = { eventDate: "2026-07-26", type: "other" };
-  const cEvent = { ...raceA, priority: "C" };
-  assert.equal(byRule(detectConflicts(proj, [], [other, cEvent]), "K-EVENT").length, 0);
+  const noPriority = { ...raceMain, priority: null };
+  assert.equal(byRule(detectConflicts(proj, [], [other, noPriority]), "K-EVENT").length, 0);
 });
 
 /* ── K-OVERLAP (Schritt-3-Edge-Case) ─────────────────────────── */

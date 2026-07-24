@@ -23,6 +23,12 @@ import { CONFLICT_THRESHOLDS, INTENSITY_CLASS, intensityClass } from "./plan-con
  *  @property {string[]} cardIds  betroffene Karten-IDs (für Badges in Schritt 5)
  *  @property {string} message    fertiger Anzeigetext */
 
+/** Anzeigetext für events.priority (DB-Werte seit Migration 0004: "main"/
+ *  "secondary", nullable) — dupliziert ui/event-timeline.js::PRIORITY_LABEL
+ *  bewusst hier, weil dieses Modul laut Dateikopf fertigen Anzeigetext
+ *  erzeugt und core/ nicht aus ui/ importieren darf (Schichtenregel). */
+const EVENT_PRIORITY_LABEL = { main: "Hauptziel", secondary: "Nebenziel" };
+
 /** Datumsbereich lesbar: "24.07." oder "24.07.–26.07." */
 function dateRange(dates) {
   if (!dates.length) return "";
@@ -151,21 +157,27 @@ export function detectConflicts(projection, cards, events = [], options = {}) {
   const dayByDate = new Map(days.map((d) => [d.date, d]));
   for (const ev of events || []) {
     if (ev.type !== "race") continue;
-    const window = ev.priority === "A" ? cfg.eventWindowA : ev.priority === "B" ? cfg.eventWindowB : null;
-    if (!window) continue; // C-Events / ohne Priorität: kein Zielfenster in v1
+    const window =
+      ev.priority === "main"
+        ? cfg.eventWindowMain
+        : ev.priority === "secondary"
+          ? cfg.eventWindowSecondary
+          : null;
+    if (!window) continue; // ohne Priorität: kein Zielfenster in v1
     const day = dayByDate.get(ev.eventDate);
     if (!day) continue; // Event außerhalb des Horizonts
     const [lo, hi] = window;
     if (day.tsb < lo || day.tsb > hi) {
       const label = ev.title ? `${ev.title}, ` : "";
+      const priorityLabel = EVENT_PRIORITY_LABEL[ev.priority] ?? ev.priority;
       conflicts.push({
         rule: "K-EVENT",
-        severity: ev.priority === "A" ? "warning" : "info",
+        severity: ev.priority === "main" ? "warning" : "info",
         dates: [ev.eventDate],
         cardIds: day.cardIds,
         message: `TSB am Eventtag (${label}${fmtDate(ev.eventDate)}): ${Math.round(
           day.tsb
-        )} — außerhalb Zielfenster ${ev.priority} (${lo > 0 ? "+" : ""}${lo}…${hi > 0 ? "+" : ""}${hi})`,
+        )} — außerhalb Zielfenster ${priorityLabel} (${lo > 0 ? "+" : ""}${lo}…${hi > 0 ? "+" : ""}${hi})`,
       });
     }
   }
