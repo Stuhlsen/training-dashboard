@@ -1098,6 +1098,256 @@ body.is-card-dragging { cursor: grabbing; user-select: none; }
   .planned-day-slots { grid-template-columns: repeat(4, 1fr); }
 }
 
+/* ============================================================
+   TRAINER-LEISTE (Phase 4 — Trainer-Sicht-Konzept §5, Mockup 1)
+   ============================================================ */
+.trainer-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.trainer-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.trainer-bar-title {
+  font-family: var(--font-disp);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.trainer-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trainer-bar-adjust-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.trainer-bar-adjust-btn:hover { color: var(--text); border-color: var(--accent); }
+
+.trainer-bar-mode-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--pill);
+  padding: 2px;
+}
+.trainer-bar-mode-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.trainer-bar-mode-btn.active { background: var(--ss); color: #17110a; }
+
+.trainer-bar-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.trainer-bar-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.trainer-bar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.trainer-tile {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.trainer-tile--clickable { cursor: pointer; transition: border-color var(--transition); }
+.trainer-tile--clickable:hover { border-color: var(--accent); }
+.trainer-tile-title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim2);
+  margin-bottom: 6px;
+}
+.trainer-tile-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--text);
+}
+.trainer-tile-big { font-family: var(--font-disp); font-size: 1.3rem; font-weight: 700; color: var(--text); }
+.trainer-tile-headline { font-family: var(--font-disp); font-weight: 700; font-size: 0.88rem; }
+.trainer-tile-sub { font-size: 0.7rem; color: var(--dim); margin-top: 2px; }
+.trainer-tile-empty { font-size: 0.76rem; color: var(--dim2); }
+
+/* ============================================================
+   VORSCHLAGSLISTE (Vorschlags-Schema-Konzept §5, Mockup 2)
+   ============================================================ */
+.proposal-list-dialog { max-width: 560px; }
+.proposal-list-body { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; }
+.proposal-list-empty { font-size: 0.82rem; color: var(--dim); text-align: center; padding: 20px 0; }
+
+.proposal-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.proposal-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.74rem;
+  color: var(--dim);
+}
+.proposal-group-header-text { flex: 1; }
+.proposal-group-accept-all,
+.proposal-row-compare,
+.proposal-row-accept {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.7rem;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.proposal-group-accept-all:hover,
+.proposal-row-accept:hover { border-color: var(--accent); color: var(--text); }
+.proposal-row-compare:hover { border-color: var(--dim); color: var(--text); }
+
+.proposal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.proposal-group .proposal-row { border: none; border-top: 1px solid var(--border); border-radius: 0; }
+.proposal-row-main { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.proposal-row-icon { font-size: 1rem; flex-shrink: 0; }
+.proposal-row-text { min-width: 0; }
+.proposal-row-desc { font-size: 0.82rem; color: var(--text); }
+.proposal-row-sub { font-size: 0.68rem; color: var(--dim2); margin-top: 2px; }
+.proposal-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ============================================================
+   VERGLEICHSANSICHT (Vorschlags-Schema-Konzept §5, Mockup 3)
+   ============================================================ */
+.proposal-compare-dialog { max-width: 680px; }
+.proposal-compare-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+.proposal-compare-group-hint {
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: var(--dim2);
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  padding: 2px 10px;
+}
+.proposal-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.proposal-compare-col-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim2);
+  margin-bottom: 6px;
+}
+.proposal-compare-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  min-height: 90px;
+}
+.proposal-compare-card--accent { border-color: var(--accent); }
+.proposal-compare-card--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dim2);
+}
+.proposal-compare-card-title { font-weight: 600; font-size: 0.86rem; color: var(--text); }
+.proposal-compare-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--dim);
+  margin-top: 4px;
+}
+.proposal-compare-card-tss { font-size: 0.74rem; color: var(--text); margin-top: 4px; }
+.proposal-compare-card-cancelled { font-size: 0.74rem; color: var(--red); margin-top: 6px; }
+.proposal-compare-field--changed { color: var(--accent); font-weight: 700; }
+
+.proposal-compare-impact {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.proposal-compare-reason { font-size: 0.78rem; color: var(--text); font-style: italic; }
+.proposal-compare-impact-line { font-size: 0.8rem; color: var(--text); }
+.proposal-compare-readonly-note {
+  margin-top: 12px;
+  font-size: 0.74rem;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+.proposal-banner { border-color: var(--accent); cursor: pointer; }
+
+@media (max-width: 560px) {
+  .proposal-compare-grid { grid-template-columns: 1fr; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .planned-card--ghost-snapback { transition: none; }
 }

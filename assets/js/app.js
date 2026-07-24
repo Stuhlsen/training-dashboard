@@ -36,6 +36,8 @@ import { Overview } from "./ui/overview.js";
 import { Table } from "./ui/table.js";
 import { Planned } from "./ui/planned.js";
 import { PlanCardDialog } from "./ui/plan-card-dialog.js";
+import { TrainerBar } from "./ui/trainer-bar.js";
+import { ProposalBanner } from "./ui/proposal-banner.js";
 import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
@@ -488,6 +490,18 @@ async function renderAll(athleteId) {
   // Athlet 2 seit GFNY Bremen 2026 ebenfalls — dort read-only, s. planned.js)
   if (hasPlanningTab) {
     await Planned.render(rides);
+    // Trainer-Leiste NACH Planned.render(), damit plan_cards/Projektion/
+    // Konflikte (state/plan-cards.js) bereits geladen sind, wenn die
+    // Trainer-Leiste ihre Konflikt-/CTL-ATL-Kachel zeichnet. briefing/tsb
+    // kommen unverändert aus derselben Rechnung wie die Tagesform-Kachel
+    // (Wiederverwendung statt Neubau, Trainer-Sicht-Konzept §5). Rendert
+    // selbst leer, wenn der eingeloggte User nicht Trainer dieses Athleten
+    // ist (state/trainer-view.js::loadTrainerContext).
+    await TrainerBar.render(Data.activeAthleteId, { briefing, tsb, rides });
+    // Athleten-Banner: eigener Ladepfad/Einstieg, da nur der Athlet selbst
+    // (RLS "proposals: Athlet entscheidet") einen Vorschlag annehmen/ablehnen
+    // darf — die Trainer-Leiste zeigt den Zähler nur zur Information.
+    await ProposalBanner.render(Data.activeAthleteId);
   }
 
   // Analysis

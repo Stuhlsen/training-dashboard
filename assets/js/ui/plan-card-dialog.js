@@ -20,6 +20,9 @@ import {
   deletePlanCard,
   getState as getPlanCardsState,
 } from "../state/plan-cards.js";
+import { createTrainerProposal } from "../state/proposals.js";
+import { getState as getTrainerViewState } from "../state/trainer-view.js";
+import { isCoach } from "../state/session.js";
 import { TYP_OPTIONS } from "./planned.js";
 
 const TYPE_LABEL = { warmup: "WU", interval: "Intervall", cooldown: "CD" };
@@ -38,9 +41,16 @@ let typSelect = null;
 let tssInput = null;
 let kmInput = null;
 let noteInput = null;
+let reasonRow = null;
+let reasonInput = null;
 
 let currentAthleteId = null;
 let currentCard = null; // null = anlegen, sonst bearbeiten
+// true, wenn der eingeloggte User Trainer des Athleten ist UND der
+// Speichern-Modus in der Trainer-Leiste auf "Vorschlag" steht (Default) —
+// steuert, ob der Submit-Handler createTrainerProposal() statt
+// createPlanCard()/updatePlanCard() aufruft (Trainer-Sicht-Konzept §3/§5).
+let currentProposalMode = false;
 let localBlocks = []; // [{ type, text, isNew }]
 let deleteConfirmTimer = null;
 // Analog zu ui/event-form.js::openToken: eine spät eintreffende
@@ -126,6 +136,13 @@ function build() {
         <textarea name="details" rows="2" class="planned-card-dialog-textarea"></textarea>
       </label>
 
+      <div id="plan-card-dialog-reason-row" class="planned-card-dialog-row" style="display:none;">
+        <label class="planned-card-dialog-label" style="flex:1;">
+          Begründung (öffentlich sichtbar, sachlich — nur Last/Plan/Events, s. Prompt-Vorlage-Konvention)
+          <input name="reason" type="text" maxlength="140" class="planned-card-dialog-input" placeholder="z. B. TSB vor Event zu tief — Einheit entschärfen">
+        </label>
+      </div>
+
       <div>
         <div class="planned-card-dialog-blocks-header">
           <span class="planned-card-dialog-blocks-title">Workout-Blöcke</span>
@@ -165,6 +182,8 @@ function build() {
   tssInput = form.querySelector('[name="tssPlanned"]');
   kmInput = form.querySelector('[name="km"]');
   noteInput = form.querySelector('[name="details"]');
+  reasonRow = modal.querySelector("#plan-card-dialog-reason-row");
+  reasonInput = form.querySelector('[name="reason"]');
 
   modal.querySelector("#plan-card-dialog-cancel").addEventListener("click", closePlanCardDialog);
   overlay.addEventListener("click", (e) => {
@@ -255,18 +274,53 @@ function build() {
     };
 
     const before = getPlanCardsState().projection;
-    const result = currentCard
-      ? await updatePlanCard(currentCard.id, cardData)
-      : await createPlanCard(currentAthleteId, cardData);
+    let result;
+    if (currentProposalMode) {
+      // Trainer-Modus "Vorschlag": schreibt in proposals statt direkt in
+      // plan_cards — landet als offener Vorschlag im Review-Flow (Schema-
+      // Konzept §3/§5), keine Prognose-Änderung VOR der Annahme.
+      const payload = {
+        title: cardData.name,
+        type: cardData.typ,
+        plan_date: cardData.date,
+        target_tss: cardData.tssPlanned,
+        km: cardData.km,
+        workout: cardData.workout,
+        note: cardData.details,
+      };
+      result = currentCard
+        ? await createTrainerProposal(currentAthleteId, {
+            op: "replace",
+            targetCardId: currentCard.id,
+            targetUpdatedAt: currentCard.updatedAt,
+            payload,
+            reason: fd.get("reason")?.trim() || null,
+          })
+        : await createTrainerProposal(currentAthleteId, {
+            op: "add",
+            targetCardId: null,
+            targetUpdatedAt: null,
+            payload,
+            reason: fd.get("reason")?.trim() || null,
+          });
+    } else {
+      result = currentCard
+        ? await updatePlanCard(currentCard.id, cardData)
+        : await createPlanCard(currentAthleteId, cardData);
+    }
 
     if (myToken !== openToken) return;
     saveBtn.disabled = false;
-    saveBtn.textContent = "Speichern";
+    saveBtn.textContent = currentProposalMode ? "Als Vorschlag speichern" : "Speichern";
     if (!result.ok) {
-      errorEl.textContent = result.error?.message || "Karte konnte nicht gespeichert werden.";
+      errorEl.textContent =
+        result.error?.message ||
+        (currentProposalMode ? "Vorschlag konnte nicht angelegt werden." : "Karte konnte nicht gespeichert werden.");
       return;
     }
-    PlanCardDialog.onSaved?.(before);
+    // Ein Vorschlag ändert plan_cards nicht direkt — kein Delta/Re-Render
+    // der Prognose nötig (die passiert erst bei Annahme, s. state/proposals.js).
+    if (!currentProposalMode) PlanCardDialog.onSaved?.(before);
     closePlanCardDialog();
   });
 }
@@ -317,8 +371,33 @@ export function openPlanCardDialog(athleteId, card = null) {
   currentCard = card;
   openToken++;
   errorEl.textContent = "";
-  modal.querySelector("#plan-card-dialog-title").textContent = card ? "Karte bearbeiten" : "Karte anlegen";
+
+  const { trainerContext, saveMode } = getTrainerViewState();
+  const isTrainerSaving = isCoach() && trainerContext.isTrainer;
+  // T2 (Trainer-Sicht-Konzept §3): Anlegen läuft für einen Trainer IMMER als
+  // Vorschlag, unabhängig vom Direkt/Vorschlag-Umschalter — der Umschalter
+  // entscheidet nur bei einer BESTEHENDEN Karte (replace). Der Athlet selbst
+  // (isTrainerSaving === false) ist von dieser Einschränkung nie betroffen.
+  currentProposalMode = isTrainerSaving && (!card || saveMode === "proposal");
+  reasonRow.style.display = currentProposalMode ? "flex" : "none";
+  reasonInput.value = "";
+  saveBtn.textContent = currentProposalMode ? "Als Vorschlag speichern" : "Speichern";
+  modal.querySelector("#plan-card-dialog-title").textContent = card
+    ? currentProposalMode
+      ? "Karte bearbeiten (als Vorschlag)"
+      : "Karte bearbeiten"
+    : currentProposalMode
+      ? "Karte anlegen (als Vorschlag)"
+      : "Karte anlegen";
   fillForm(card);
+  // fillForm() zeigt "Löschen" bei einer bestehenden Karte — für einen
+  // Trainer IMMER ausgeblendet (auch im Direkt-Modus): T2 verlangt, dass
+  // Löschen nie unilateral passiert, das Vorschlags-Schema kennt aber v1
+  // bewusst kein "delete"-Op (Streichen läuft dort über "cancel"). Ein
+  // Trainer kann eine Karte also nicht hart löschen, nur ausfallen lassen
+  // (Planungstab-Button, nicht dieser Dialog) — konsequent aus beiden
+  // Konzepten, keine Ausnahme über den Speichern-Modus-Umschalter.
+  if (isTrainerSaving) deleteBtn.style.display = "none";
   overlay.style.display = "flex";
   document.addEventListener("keydown", onKeydown);
 }
