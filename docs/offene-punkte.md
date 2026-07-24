@@ -311,12 +311,44 @@ beim Drag & Drop. Behoben: `_handleMove`/`_handleCancel` prüfen jetzt `_isTrain
 und rufen bei "Vorschlag" `createTrainerProposal()` (`op: "move"`/`"cancel"`) statt
 `movePlanCard()`/`cancelPlanCard()` direkt auf — die Argumentbildung sitzt dafür als reine,
 getestete Funktion in `core/proposal-payload.js` (`moveProposalArgs`/`cancelProposalArgs`,
-s. `tests/proposal-payload.test.js`). Drag & Drop ist im Vorschlag-Modus für Trainer
-deaktiviert (kein Begründungsfeld, optimistische Sofort-Bewegung passt nicht zu "erzeugt nur
-einen Vorschlag") — das Verschieben-Formular bleibt der Weg. Die DOM-gebundene Verzweigung
-selbst (welcher Zweig bei Klick tatsächlich läuft) ist nicht per `node:test` abgedeckt —
-dieses Repo verifiziert `ui/`-Änderungen laut AGENTS.md/CLAUDE.md über `node -c` + Browser-Test,
-nicht über eine jsdom-Suite; entsprechend im Browser erneut bestätigt.
+s. `tests/proposal-payload.test.js`). Drag & Drop sollte im Vorschlag-Modus für Trainer
+deaktiviert sein (kein Begründungsfeld, optimistische Sofort-Bewegung passt nicht zu "erzeugt
+nur einen Vorschlag", Design-Entscheidung in `docs/phase-4-konzept-trainer-sicht.md` §3
+nachgetragen) — die Button-/Formular-Seite war beim ersten Fix korrekt, der Drag-Grip blieb im
+zweiten Testlauf aber trotzdem aktiv (s. nächster Punkt). Die DOM-gebundene Verzweigung selbst
+(welcher Zweig bei Klick/Drop tatsächlich läuft) ist nicht per `node:test` abgedeckt — dieses
+Repo verifiziert `ui/`-Änderungen laut AGENTS.md/CLAUDE.md über `node -c` + Browser-Test, nicht
+über eine jsdom-Suite; entsprechend im Browser bestätigt.
+
+**Drag-Grip im Vorschlag-Modus ignorierte den Umschalter — Ursache: Render-Reihenfolge (behoben)**
+Zweiter Browser-Testlauf: Der Griff blieb trotz des obigen Fixes aktiv, eine Karte ließ sich
+per Drag & Drop weiterhin direkt verschieben. Ursache war NICHT die Gate-Bedingung selbst
+(`_isTrainerProposalMode()` in der `draggable`-Berechnung, `ui/planned.js::_renderCard()`),
+sondern die Reihenfolge in `app.js::renderAll()`: `Planned.render(rides)` lief bereits VOR
+`TrainerBar.render()`, welches erst `state/trainer-view.js::loadTrainerContext()` lädt. Die
+Karten wurden also mit dem alten/Default-Trainer-Kontext gezeichnet (`isTrainer: false`),
+bevor der echte Kontext überhaupt bekannt war — der Griff blieb dadurch in der Praxis immer
+aktiv. Behoben durch einen zweiten, gezielten `Planned.render(rides)`-Aufruf NACH
+`TrainerBar.render()`/`ProposalBanner.render()` (billig, da `plan_cards`/Forecast schon im
+State liegen, kein erneuter Request) — bewusst kein `onTrainerViewChange`-Abo in `planned.js`,
+das bei jeder Kategorien-/Vorschläge-Ladephase erneut feuern würde.
+
+**Drag & Drop friert nach dem ersten Drop für ALLE Karten ein, bis zum Reload (gehärtet)**
+Dritter Fund desselben Testlaufs: nach einem erfolgreichen Drop ließ sich keine Karte mehr
+ziehen — Symptom exakt wie ein Lock (`ui/plan-drag.js`'s modul-globale `drag`-Variable, die
+`onPointerDown` bei jedem neuen Griff-Versuch prüft), der beim Aufräumen nach einem Drop
+gesetzt, aber nie zurückgesetzt wird. Eine vollständige Nachverfolgung von
+`onPointerDown → onPointerMove → onPointerUp → endDrag()` zeigt, dass der Lock beim
+Erfolgsfall korrekt vor dem Aufruf von `dropHandler()` freigegeben wird — die exakte werfende
+Stelle ließ sich ohne Browser-Debugger (in dieser Session nicht verfügbar) nicht abschließend
+nachvollziehen. `endDrag()` wurde defensiv gehärtet: die komplette Aufräumlogik läuft jetzt in
+einem `try`, die Listener-Abmeldung + `drag = null` in `finally` — ein dauerhaft hängender Lock
+ist dadurch strukturell ausgeschlossen, unabhängig davon, was im Aufräumteil im Einzelnen
+schiefgeht. Kein automatisierter Test möglich (DOM-/Pointer-Event-Integration, kein jsdom in
+diesem Projekt) — im Browser zu bestätigen: zwei aufeinanderfolgende Drag-Verschiebungen in
+derselben Session, die zweite muss genauso funktionieren wie die erste. Sollte das Einfrieren
+trotz der Härtung weiter auftreten, wäre die Browser-Konsole beim Reproduzieren (Fehlermeldung
+zum Zeitpunkt des Einfrierens) der nächste Anhaltspunkt.
 
 **Trainer-Leiste/Athleten-Banner verschwinden nach F5 (behoben, zur Historie)**
 Ebenfalls beim ersten Browser-Test reproduziert: Nach einem echten Seiten-Reload (nicht nur
