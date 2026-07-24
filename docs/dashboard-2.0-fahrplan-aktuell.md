@@ -91,9 +91,9 @@
 - [ ] Mockup erstellen und iterieren **[SO]**
 - [x] Umsetzung: Migrationsskript `scripts/migrate-plan-to-supabase.js` — Basisplan + adjustments einmalig nach `plan_cards` materialisiert (Konzept §8.4); `ui/planned.js` liest/schreibt jetzt gegen `state/plan-cards.js`. Nebenprodukt Median-TSS pro Typ nur geloggt (Dry-Run), noch nicht in Konfliktlogik verdrahtet (kommt mit Schritt 4). M3 (Wahoo-Push-Umzug) zurückgestellt → `docs/offene-punkte.md` **[SO]**
 - [x] Umsetzung: Karten-CRUD gegen `plan_cards` **[SO]** → `ui/plan-card-dialog.js` (Anlegen/Bearbeiten/Löschen, wiederholbare Workout-Blöcke), `createPlanCard`/`updatePlanCard`/`deletePlanCard` in `data-access/supabase/plan-cards.js` + `state/plan-cards.js`; M3 (Wahoo-Push-Umzug nach `data-access/intervals/push.js`, `external_id`-Upsert statt Heuristik-Duplikat-Check) im selben Schritt miterledigt. Commits `30b6bbe`/`a4169bd`. Live-Test von M3 gegen echten intervals.icu-Account noch offen (s. `docs/offene-punkte.md`)
-- [ ] Umsetzung: Drag & Drop ohne Framework (Vanilla JS, Pointer Events) **[OP]**
+- [x] Umsetzung: Drag & Drop ohne Framework (Vanilla JS, Pointer Events) **[OP]** → `core/plan-drag.js` (Drop-Regeln, week/phase-Adoption, pure), `ui/plan-drag.js` (Griff, Pointer-Ghost, ephemere Tages-Slots, Kanten-Autoscroll), Anbindung über dieselbe `movePlanCard()` wie der „Verschieben"-Button (Optimistik + requestId-Guard in `state/plan-cards.js`). Vergangene Tage als Drop-Ziel abgewiesen (§6), Drop auf selben Tag No-Op (§7). Zurückgestellt → `docs/offene-punkte.md`: Push-Warnung bei bereits gepushter Karte, Tastatur-Verschieben (A11y), `sort_order`-Umsortierung innerhalb eines Tages. Commits `e54a701`/`71242b1`/`6f9e4f4`/`78c05f3`
 - [ ] Umsetzung: Prognose-Neuberechnung bei Planänderung **[OP]**
-- [ ] Tests inkl. Edge Cases (überlappende Einheiten, Verschieben in die Vergangenheit) **[SO]**
+- [ ] Tests inkl. Edge Cases **[SO]** — Drag-Edge-Cases erledigt (Vergangenheit abgewiesen, selber Tag No-Op, Rückgängig nach Drag = nach Button, Rollback-Race) in `tests/plan-drag.test.js` + `tests/plan-cards-move.test.js`; überlappende Einheiten hängt an der Prognoselogik aus Schritt 4 und bleibt offen
 
 **Entscheidungen Phase 3:**
 - M1: Alle Sessions migrieren, auch erledigte/vergangene ✅
@@ -160,4 +160,4 @@
 
 ## Nächster Schritt
 
-➡️ **Phase 3, Umsetzung:** Drag & Drop ohne Framework (Vanilla JS, Pointer Events) **[OP]** — Griff an der Karte, Drop-Zone am Zieltag, Vergangenheits-Tage abgewiesen (s. `docs/phase-3-konzept-planungstab.md` §4/§6); danach Prognose-Neuberechnung bei Planänderung (`core/projection.js`/`core/conflicts.js`, Schritt 4)
+➡️ **Phase 3, Umsetzung:** Prognose-Neuberechnung bei Planänderung **[OP]** — `core/projection.js`/`core/conflicts.js` (s. `docs/phase-3-konzept-konfliktlogik-prognose.md`): nach jedem Drop/Verschieben die TSS/CTL-Prognose neu rechnen, überlappende Einheiten erkennen. Erst danach folgt die Nach-Drop-Feedback-Ebene (Delta-Zeile, Konflikt-Badges, Push-Warnung bei bereits gepushter Karte — Schritt 5). Drag & Drop selbst ist erledigt (Griff, Tages-Slots, Vergangenheit abgewiesen).
