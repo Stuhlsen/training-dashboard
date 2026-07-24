@@ -41,6 +41,8 @@ import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
 import { initSession, isAthlete } from "./state/session.js";
 import { getState as getWellbeingState } from "./state/wellbeing.js";
+import { configureProjection, recomputeProjection } from "./state/plan-cards.js";
+import { getState as getEventsState, onEventsChange } from "./state/events.js";
 import { EventTimeline } from "./ui/event-timeline.js";
 import "./ui/header.js";
 import "./ui/wellbeing-card.js";
@@ -507,6 +509,20 @@ async function renderAll(athleteId) {
   initChartGroupToggles();
   ChartVisibility.init();
   Tooltip.init();
+
+  // Prognose-Quellen verdrahten (Phase 3, Schritt 4): state/plan-cards.js rechnet
+  // TSS/CTL-Prognose + Konflikte nach jeder Karten-Mutation neu, braucht dafür die
+  // Ist-Fahrten (für den PMC-Startpunkt), die Events (Horizont + K-EVENT) und die
+  // aktive FTP (Workout-TSS-Schätzung). Bewusst als Provider statt Import, damit
+  // plan-cards.js state/data.js/state/events.js nicht am Top-Level ziehen muss.
+  configureProjection({
+    getActuals: () => Data.byDate(),
+    getEvents: () => getEventsState().events,
+    getFtp: () => Data.ftpValue(),
+  });
+  // Ein Event-Load ist keine Karten-Mutation, verändert aber Horizont/K-EVENT —
+  // deshalb die Prognose auch dann neu rechnen, wenn nur Events sich ändern.
+  onEventsChange(() => recomputeProjection());
 
   // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird.
   // Alte/unbekannte IDs (aus früheren Versionen) fallen auf den Primär-Athleten

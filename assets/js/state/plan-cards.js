@@ -7,6 +7,8 @@ import {
 import { findProfileIdByDisplayName } from "../data-access/supabase/profiles.js";
 import { pushCardWorkout } from "../data-access/intervals/push.js";
 import { weekLabelForDate } from "../core/plan-drag.js";
+import { projectLoad } from "../core/projection.js";
+import { detectConflicts } from "../core/conflicts.js";
 import { CONFIG } from "./config.js";
 import { getSession } from "./session.js";
 
@@ -32,8 +34,51 @@ const listeners = new Set();
 // uuid-Spaltentyp scheitern (s. findProfileIdByDisplayName-Kommentar).
 const profileIdCache = new Map();
 
+// ── Abgeleiteter State: TSS/CTL-Prognose + Konfliktliste (Phase 3, Schritt 4).
+// Wird nach JEDER Karten-Mutation neu gerechnet (recomputeProjection() im
+// notify()) — der eine Zusammenlaufpunkt, den Drag UND Button teilen. Schritt 5
+// rendert daraus nur noch (Delta-Zeile, Badges), diese Schicht liefert Daten.
+/** @type {ReturnType<typeof projectLoad> | null} */
+let projection = null;
+let conflicts = [];
+// Ist-Fahrten/Events kommen als injizierte Provider (configureProjection),
+// damit dieses Modul state/data.js/state/events.js NICHT am Top-Level
+// importieren muss — sonst zöge tests/plan-cards-move.test.js transitiv
+// data-access/supabase/client.js (esm.sh-URL) herein, das node:test nicht
+// auflösen kann. Default = leere Quellen (Prognose harmlos, Baseline 0).
+let projectionSources = {
+  getActuals: () => [],
+  getEvents: () => [],
+  getFtp: () => undefined,
+};
+
+/** Verdrahtet die Prognose-Quellen (Ist-Fahrten/Events/FTP) — einmalig aus
+ *  app.js (Composition Root, darf state/* lesen). Rechnet direkt einmal neu,
+ *  damit der abgeleitete State ab Init konsistent ist. */
+export function configureProjection(sources) {
+  projectionSources = { ...projectionSources, ...sources };
+  recomputeProjection();
+}
+
+/** Rechnet Prognose + Konfliktliste aus dem aktuellen `cards`-Stand neu. Rein
+ *  synchron aus dem In-Memory-Zustand: eine überholte Server-Antwort kehrt vor
+ *  notify() zurück und kann die Prognose daher nicht mit veraltetem Stand
+ *  überschreiben (erbt den requestId-/Rollback-Schutz aus Schritt 3). Auch
+ *  extern aufrufbar (app.js triggert nach einem Event-Load, s. onEventsChange),
+ *  weil ein Event den Horizont und K-EVENT beeinflusst, aber keine
+ *  Karten-Mutation ist. */
+export function recomputeProjection() {
+  const actuals = projectionSources.getActuals() || [];
+  const events = projectionSources.getEvents() || [];
+  const ftp = projectionSources.getFtp?.();
+  projection = projectLoad(cards, actuals, { events, ftp });
+  conflicts = detectConflicts(projection, cards, events);
+}
+
 function notify() {
-  for (const fn of listeners) fn(getState());
+  recomputeProjection();
+  const state = getState();
+  for (const fn of listeners) fn(state);
 }
 
 function requireUser() {
@@ -56,11 +101,13 @@ async function resolveAthleteProfileId(athleteId) {
 }
 
 /** Aktueller In-Memory-Zustand der geladenen Karten → { cards, loading,
- *  error, loadedForAthleteId }. `loadedForAthleteId` lässt Konsumenten
- *  erkennen, ob `cards` wirklich zum gerade angeforderten Athleten gehört
- *  (analog state/events.js). */
+ *  error, loadedForAthleteId, projection, conflicts }. `loadedForAthleteId`
+ *  lässt Konsumenten erkennen, ob `cards` wirklich zum gerade angeforderten
+ *  Athleten gehört (analog state/events.js). `projection`/`conflicts` sind der
+ *  nach jeder Mutation neu gerechnete abgeleitete State (Schritt 4) — Schritt 5
+ *  rendert daraus Delta-Zeile + Konflikt-Badges. */
 export function getState() {
-  return { cards, loading, error, loadedForAthleteId };
+  return { cards, loading, error, loadedForAthleteId, projection, conflicts };
 }
 
 /** Lädt alle plan_cards von `athleteId` ("athlete1"/"athlete2") neu —

@@ -226,6 +226,39 @@ Bewusst nicht im Zuge von Drag & Drop mitgeändert, weil es die bestehende
 Filterung von Ausstehend/Verpasst/Absolviert anfasst — eigener kleiner Fix,
 dann für alle drei Abschnitte zugleich.
 
+**K3 — Typ-Default-TSS auf dünner Datenbasis kalibriert**
+`core/plan-config.js::TYPE_DEFAULT_TSS` (Prioritätsstufe 3 der TSS-Herkunft) trägt
+die Median-TRIMP-Werte je Session-Typ aus den Ist-Fahrten (Nebenprodukt von
+`scripts/migrate-plan-to-supabase.js::logMedianTssPerType`). Mehrere Typen haben nur
+sehr wenige Datenpunkte: NLS n=1 · Gruppenfahrt n=2 · Außerplanmäßig n=2 · Z2
+Erholung n=2 · Tempo n=3 · Etappe n=4 · Z2 Kadenz n=4. Diese Defaults sind daher nur
+grobe Anhaltspunkte. **Beim K1-Schwellen-Review nach Plan 2 (mehr Historie) diese
+Werte ZUERST gegenprüfen** — zusammen mit den Konflikt-Schwellen im selben Modul.
+Kommentar mit derselben Liste steht direkt an der Tabelle in `core/plan-config.js`.
+→ Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §2/§3 (K1/K3).
+
+**K-RAMPE vergleicht in v1 nur aufeinanderfolgende Projektionswochen (Plan-vs-Plan)**
+`core/conflicts.js::detectConflicts` (Regel K-RAMPE) bildet die Wochenlast aus den
+projizierten Tagen und vergleicht nur **volle** 7-Tage-Wochen miteinander (partielle
+Anfangs-/Endwochen würden den Rampenvergleich verfälschen). Das Konzept nennt
+„gegenüber Vorwoche (Ist bzw. Plan)" — der Ist-Vergleich der ERSTEN Planwoche gegen
+die letzte tatsächlich gefahrene Woche fehlt in v1 bewusst (bräuchte die
+TSS-Historie der Ist-Fahrten als Seed). Ein Plan mit weniger als zwei vollen Wochen
+im Horizont löst K-RAMPE daher nie aus. Erweiterung möglich, wenn der Ist-Seed
+gebraucht wird.
+→ Details: `docs/phase-3-konzept-konfliktlogik-prognose.md` §3 (K-RAMPE).
+
+**Event-Änderung rechnet die Prognose neu, benachrichtigt aber keine plan-cards-Listener**
+`app.js` triggert bei `onEventsChange` ein `recomputeProjection()` (state/plan-cards.js) —
+so ist der abgeleitete Store (`getState().projection`/`.conflicts`) nach einer
+Event-Änderung frisch. `recomputeProjection()` ruft aber bewusst NICHT `notify()`
+(sonst Rekursion: `notify()` → `recomputeProjection()`). Ein künftiger
+Schritt-5-Konsument, der sich per `onPlanCardsChange` neu zeichnet, erfährt eine
+reine Event-Änderung (z.B. neues A-Event → neuer K-EVENT-Befund) daher nicht sofort,
+sondern erst bei der nächsten Karten-Mutation. Für die reine Datenschicht (Schritt 4)
+korrekt; die Re-Render-Verdrahtung gehört zu Schritt 5 (dort z.B. den Renderer
+zusätzlich an `onEventsChange` hängen).
+
 ## Erledigt (zur Historie, nicht mehr offen)
 
 **Kartentausch → Wahoo-Push-Duplikate, falsche Fahrtenbuch-Zuordnung, fehlende Ausrollen-Erkennung**
