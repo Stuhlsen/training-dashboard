@@ -105,6 +105,16 @@ export async function saveToday({ energy, muscleFeel, mood, note }) {
   return result;
 }
 
+/** Lädt Check-ins eines BELIEBIGEN Athleten (Supabase-Profil-UUID) im
+ *  Zeitraum — anders als loadToday()/saveToday() (an die auth.uid() des
+ *  eingeloggten Users gebunden) mutiert das hier keinen Modul-State, reiner
+ *  Passthrough zu getRangeAdapter. Für die Trainer-Leiste (ui/trainer-bar.js):
+ *  ein Trainer braucht die Check-ins SEINES Athleten, nicht seine eigenen
+ *  (RLS erlaubt das via is_coach_of, s. 0001_initial_schema.sql). */
+export async function loadRangeForAthlete(athleteProfileId, fromIso, toIso) {
+  return getRangeAdapter(athleteProfileId, fromIso, toIso);
+}
+
 export function onWellbeingChange(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);

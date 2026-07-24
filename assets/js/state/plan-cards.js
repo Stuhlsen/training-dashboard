@@ -90,7 +90,7 @@ function requireUser() {
 /** Löst die interne Athleten-ID auf ihre Supabase-Profil-UUID auf (gecacht,
  *  öffentlicher Read über den Anzeigenamen — s. profiles.js). null wenn der
  *  Athlet (noch) keinen Supabase-Account hat. */
-async function resolveAthleteProfileId(athleteId) {
+export async function resolveAthleteProfileId(athleteId) {
   if (profileIdCache.has(athleteId)) return profileIdCache.get(athleteId);
   const name = CONFIG.athleteConfig(athleteId)?.name;
   if (!name) return null;
