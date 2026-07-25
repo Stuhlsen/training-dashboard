@@ -4133,6 +4133,90 @@
       "id": 75,
       "dateShort": "24.07",
       "dateISO": "2026-07-24"
+    },
+    {
+      "name": "Z2 Lang",
+      "week": "P2-W4",
+      "phase": "Erholung",
+      "typ": "Z2 Lang",
+      "plan": "Plan 2",
+      "date": "2026-07-25",
+      "startTime": "2026-07-25T14:56:16",
+      "km": 100.9,
+      "min": 244,
+      "kmh": 24.7,
+      "watt": 136,
+      "maxWatt": null,
+      "np": 159,
+      "hf": 137,
+      "hfMax": 167,
+      "kad": 88,
+      "hoehe": 76,
+      "tss": 276,
+      "if": 0.82,
+      "vi": 1.17,
+      "trimp": 235,
+      "ctl": 71.9,
+      "atl": 106,
+      "tsb": -34.1,
+      "decoupling": 2.6,
+      "dtl": 276,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 3578
+        },
+        {
+          "id": "Z2",
+          "secs": 3151
+        },
+        {
+          "id": "Z3",
+          "secs": 3609
+        },
+        {
+          "id": "Z4",
+          "secs": 2613
+        },
+        {
+          "id": "Z5",
+          "secs": 965
+        },
+        {
+          "id": "Z6",
+          "secs": 533
+        },
+        {
+          "id": "Z7",
+          "secs": 211
+        },
+        {
+          "id": "SS",
+          "secs": 3074
+        }
+      ],
+      "eftp": null,
+      "weather": {
+        "temp": 28.8,
+        "tempFeel": 27.8,
+        "humidity": 28,
+        "windSpeed": 8,
+        "windDir": 209,
+        "precip": 0,
+        "cloudCover": 4,
+        "weatherCode": 1
+      },
+      "wetter": "28.8°C",
+      "source": "intervals.icu",
+      "ruhepuls": 63,
+      "hrv": 59,
+      "avgSleepingHR": 55,
+      "sleepHours": 8.3,
+      "feel": null,
+      "notizen": null,
+      "id": 76,
+      "dateShort": "25.07",
+      "dateISO": "2026-07-25"
     }
   ],
   "wellness": [
@@ -5325,12 +5409,12 @@
       "date": "2026-07-25",
       "sleepHours": 8.3,
       "avgSleepingHR": 55,
-      "restingHR": null,
-      "hrv": 64,
+      "restingHR": 63,
+      "hrv": 59,
       "weight": 80.5,
       "bodyFat": 23.7,
-      "activeEnergy": 31,
-      "restingEnergy": 766,
+      "activeEnergy": 1067,
+      "restingEnergy": 1572,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -5340,7 +5424,7 @@
   "wellnessMeta": {
     "lastUpdated": {
       "hrv": "2026-07-25",
-      "restingHR": "2026-07-24",
+      "restingHR": "2026-07-25",
       "sleepHours": "2026-07-25"
     }
   },
@@ -5355,7 +5439,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 80.2,
+        "weight": 80.45,
         "secs": [
           1,
           2,
@@ -5737,20 +5821,20 @@
           129,
           128,
           125,
-          111,
-          112,
-          113,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
+          122,
+          122,
+          123,
+          122,
+          120,
+          120,
+          120,
+          121,
+          121,
+          120,
+          120,
+          120,
+          119,
+          117,
           114,
           113
         ],
@@ -5936,20 +6020,20 @@
           "i167827258",
           "i167827258",
           "i167827258",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
           "i154603521",
           "i154603521"
         ],
@@ -6135,20 +6219,20 @@
           1.6175549,
           1.6050156,
           1.5673981,
-          1.3214285,
-          1.3333334,
-          1.3452381,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
-          1.3571428,
+          1.51647,
+          1.51647,
+          1.5289,
+          1.51647,
+          1.4916097,
+          1.4916097,
+          1.4916097,
+          1.5040399,
+          1.5040399,
+          1.4916097,
+          1.4916097,
+          1.4916097,
+          1.4791796,
+          1.4543195,
           1.3571428,
           1.3452381
         ],
@@ -6334,20 +6418,20 @@
           "i167827258",
           "i167827258",
           "i167827258",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
-          "i154603521",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
+          "i169160035",
           "i154603521",
           "i154603521"
         ],
@@ -6400,10 +6484,10 @@
           "startIndex": 71,
           "poStartIndex": 99,
           "poEndIndex": 185,
-          "poIntercept": 5.110495630004684,
-          "poSlope": -0.35340054844016633,
-          "poR2": 0.8497764693446717,
-          "po95Confidence": 0.03223990506003283,
+          "poIntercept": 4.992852221805535,
+          "poSlope": -0.33794095706638133,
+          "poR2": 0.8868489686093917,
+          "po95Confidence": 0.026191185636796017,
           "map": 0,
           "mapSecs": 0,
           "mapWatts": 0
@@ -6590,20 +6674,20 @@
           129,
           128,
           125,
-          111,
-          112,
-          113,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
-          114,
+          122,
+          122,
+          123,
+          122,
+          120,
+          120,
+          120,
+          121,
+          121,
+          120,
+          120,
+          120,
+          119,
+          117,
           114,
           113
         ],
@@ -6740,6 +6824,16 @@
         "training_load": 45,
         "icu_weight": 84,
         "start_date_local": "2026-05-11T15:31:38",
+        "race": false
+      },
+      "i169160035": {
+        "id": "i169160035",
+        "name": "Kleine gemütliche Runde",
+        "distance": 100937.16,
+        "moving_time": 14660,
+        "training_load": 276,
+        "icu_weight": 80.45,
+        "start_date_local": "2026-07-25T14:56:16",
         "race": false
       },
       "i159753873": {
@@ -10540,83 +10634,83 @@
   "forecast": {
     "2026-07-25": {
       "temp": 24.8,
-      "tempFeel": 24.5,
+      "tempFeel": 24.6,
       "humidity": 42,
-      "windSpeed": 6.9,
-      "windDir": 206,
+      "windSpeed": 6.4,
+      "windDir": 204,
       "precipProb": 0,
-      "weatherCode": 3,
+      "weatherCode": 1,
       "uvMax": 6.6
     },
     "2026-07-26": {
-      "temp": 26.1,
-      "tempFeel": 25.5,
-      "humidity": 40,
-      "windSpeed": 8.6,
-      "windDir": 243,
-      "precipProb": 1,
+      "temp": 25.8,
+      "tempFeel": 25.1,
+      "humidity": 42,
+      "windSpeed": 8.4,
+      "windDir": 235,
+      "precipProb": 0,
       "weatherCode": 3,
-      "uvMax": 6.2
+      "uvMax": 5.9
     },
     "2026-07-27": {
-      "temp": 20.2,
-      "tempFeel": 18.3,
-      "humidity": 58,
-      "windSpeed": 16.8,
-      "windDir": 292,
-      "precipProb": 24,
-      "weatherCode": 80,
-      "uvMax": 5.6
+      "temp": 20,
+      "tempFeel": 17.9,
+      "humidity": 60,
+      "windSpeed": 18.2,
+      "windDir": 290,
+      "precipProb": 14,
+      "weatherCode": 61,
+      "uvMax": 6
     },
     "2026-07-28": {
-      "temp": 22.6,
-      "tempFeel": 22.3,
-      "humidity": 54,
-      "windSpeed": 10.4,
-      "windDir": 274,
+      "temp": 22.2,
+      "tempFeel": 21.3,
+      "humidity": 51,
+      "windSpeed": 11.1,
+      "windDir": 283,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.5
     },
     "2026-07-29": {
-      "temp": 29.6,
-      "tempFeel": 31.2,
-      "humidity": 43,
-      "windSpeed": 5.1,
-      "windDir": 158,
+      "temp": 27.7,
+      "tempFeel": 29.3,
+      "humidity": 48,
+      "windSpeed": 5.2,
+      "windDir": 140,
       "precipProb": 0,
-      "weatherCode": 1,
-      "uvMax": 6.5
+      "weatherCode": 2,
+      "uvMax": 6.6
     },
     "2026-07-30": {
-      "temp": 32.4,
-      "tempFeel": 34.3,
-      "humidity": 39,
-      "windSpeed": 4.6,
-      "windDir": 232,
+      "temp": 31.8,
+      "tempFeel": 33.4,
+      "humidity": 40,
+      "windSpeed": 5.1,
+      "windDir": 217,
       "precipProb": 0,
-      "weatherCode": 1,
-      "uvMax": 6.4
+      "weatherCode": 3,
+      "uvMax": 6.5
     },
     "2026-07-31": {
-      "temp": 35.8,
-      "tempFeel": 36.4,
-      "humidity": 29,
-      "windSpeed": 8.2,
-      "windDir": 176,
-      "precipProb": 3,
-      "weatherCode": 3,
-      "uvMax": 6.4
+      "temp": 36.1,
+      "tempFeel": 35.9,
+      "humidity": 26,
+      "windSpeed": 10.4,
+      "windDir": 164,
+      "precipProb": 0,
+      "weatherCode": 1,
+      "uvMax": 6.1
     },
     "2026-08-01": {
-      "temp": 26.4,
-      "tempFeel": 29,
-      "humidity": 63,
-      "windSpeed": 4.7,
-      "windDir": 179,
-      "precipProb": 13,
-      "weatherCode": 80,
-      "uvMax": 6.4
+      "temp": 28.5,
+      "tempFeel": 30.7,
+      "humidity": 53,
+      "windSpeed": 6.2,
+      "windDir": 282,
+      "precipProb": 12,
+      "weatherCode": 3,
+      "uvMax": 6
     },
     "2026-08-02": {
       "temp": 26.9,
@@ -10626,7 +10720,7 @@
       "windDir": 33,
       "precipProb": 10,
       "weatherCode": 51,
-      "uvMax": 6.4
+      "uvMax": 6.5
     },
     "2026-08-03": {
       "temp": 26.7,
@@ -10636,7 +10730,7 @@
       "windDir": 258,
       "precipProb": 14,
       "weatherCode": 51,
-      "uvMax": 6.4
+      "uvMax": 6.2
     },
     "2026-08-04": {
       "temp": 21.3,
@@ -10646,7 +10740,7 @@
       "windDir": 36,
       "precipProb": 19,
       "weatherCode": 95,
-      "uvMax": 6.4
+      "uvMax": 6
     },
     "2026-08-05": {
       "temp": 22,
@@ -10656,7 +10750,7 @@
       "windDir": 178,
       "precipProb": 19,
       "weatherCode": 95,
-      "uvMax": 5.2
+      "uvMax": 6.3
     },
     "2026-08-06": {
       "temp": 24.8,
@@ -10666,7 +10760,7 @@
       "windDir": 280,
       "precipProb": 11,
       "weatherCode": 51,
-      "uvMax": 6.2
+      "uvMax": 5.7
     },
     "2026-08-07": {
       "temp": 27.1,
@@ -10676,7 +10770,7 @@
       "windDir": 148,
       "precipProb": 14,
       "weatherCode": 51,
-      "uvMax": 4.8
+      "uvMax": 6
     },
     "2026-08-08": {
       "temp": 21.4,
@@ -10686,24 +10780,24 @@
       "windDir": 277,
       "precipProb": 20,
       "weatherCode": 80,
-      "uvMax": 4.8
+      "uvMax": 6
     },
     "2026-08-09": {
-      "temp": 20.2,
-      "tempFeel": 17.8,
-      "humidity": 44,
-      "windSpeed": 14.7,
-      "windDir": 276,
+      "temp": 29.8,
+      "tempFeel": 27.5,
+      "humidity": 34,
+      "windSpeed": 19.7,
+      "windDir": 250,
       "precipProb": 0,
       "weatherCode": 3,
-      "uvMax": 6
+      "uvMax": 4.1
     }
   },
   "plans": [
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-25T13:03:12.421Z",
+  "updated": "2026-07-25T18:34:45.375Z",
   "source": "notion+intervals",
-  "count": 75
+  "count": 76
 }
