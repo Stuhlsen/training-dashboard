@@ -441,11 +441,38 @@ Tokens in `assets/css/main.css` (Namen stabil halten — Chart-JS spiegelt sie):
 ```powershell
 git add <dateien>
 git commit -m "..."
-git sync   # Alias für: git fetch origin && git push --force-with-lease origin main
+git sync   # nur von main aus laufen lassen — s. Warnung unten
 ```
 - PowerShell: KEIN `&&` zwischen Befehlen — jeweils eigene Zeile
 - Bei Konflikten mit Action-Auto-Commits: `git fetch origin` dann `git push --force-with-lease origin main`
 - Zeilenenden: `.gitattributes` erzwingt LF im Repo (`* text=auto eol=lf`)
+
+**`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
+```
+git fetch origin
+git checkout origin/main -- data/adjustments.json
+git checkout origin/main -- data/subjective.json
+git add data/adjustments.json data/subjective.json
+git diff --staged --quiet || git commit -m 'chore: preserve browser-written data'
+git push --force-with-lease=main:<lokaler main-HEAD vor dem Fetch> origin main
+```
+Holt zuerst die beiden Dateien, die die Action bewusst vor Überschreiben schützt
+(s. „Bekannte Eigenheiten"), aus `origin/main` in den aktuellen Arbeitsbaum, committet
+sie bei Bedarf mit der festen Message „chore: preserve browser-written data", und
+pusht danach die lokale `main`-Branch-Referenz — **unabhängig davon, welcher Branch
+gerade ausgecheckt ist**.
+
+**Zwingend nur von `main` aus laufen lassen.** Der Alias weigert sich (Branch-Guard),
+wenn `HEAD` nicht `main` ist — das ist kein Stilhinweis, sondern eine echte Sicherung:
+am 25.07.2026 lag lokales `main` wochenlang veraltet herum (seit Einführung des
+`dashboard-2.0`-Branches nie wieder ausgecheckt/aktualisiert), `git sync` wurde versehentlich
+von `dashboard-2.0` aus aufgerufen und hätte damit `origin/main` um ~70 Commits (u. a. echte
+Befinden-/Plan-Einträge) zurückgesetzt. `--force-with-lease=main:<erwarteter Wert>` (statt
+dem bloßen `--force-with-lease` ohne Erwartungswert) lässt den Push zusätzlich hart fehlschlagen,
+wenn lokales `main` seinerseits hinter `origin/main` zurückliegt — bloßes `--force-with-lease`
+prüft nur gegen den `origin/main`-Tracking-Stand direkt nach dem vorangegangenen Fetch-Schritt
+im selben Alias-Lauf, das schützt gerade NICHT vor einem seit längerem veralteten lokalen `main`.
+Vorfall + Wiederherstellung: s. Commit-Historie um den 25.07.2026, kein separates Dokument.
 
 **JavaScript:**
 - `Data.activeAthleteId` — aktuell aktiver Athlet (ID aus state/config.js)
