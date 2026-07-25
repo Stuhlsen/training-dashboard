@@ -10,11 +10,6 @@
 
 ## Phase 2 — Befinden & Events
 
-- **`tests/supabase-rls.test.js` fehlt** — geplanter Test gegen das echte
-  `dashboard-dev`-Projekt (Testaccounts `athlet-test`/`trainer-test`):
-  anon/Athlet/Trainer/Admin-Rechte. Braucht Live-Credentials. Deckt auch die
-  Migration-`0006`-Prüfliste ab (`proposals`/`trainer_view_prefs`, s. Phase 4).
-  → `AGENTS.md` „Test-Sicherheit", `docs/phase-2-konzept-morgen-checkin.md`.
 - **Schlafscore fließt noch nicht in Governor/UI** — `sleepScore` wird seit
   Commit `c8c7975` gezogen, aber `core/readiness.js`/`core/briefing.js`
   nutzen es noch nicht (kalibrierungssensibler Eingriff in bereits getestete
@@ -47,10 +42,15 @@ mehrere bereits committete Dateien anfassen:
 
 ## Phase 3 — Planungstab
 
-- **M3 — `external_id`-Upsert noch nicht live gegen intervals.icu
-  verifiziert** — Push nutzt `external_id = plan_cards.id`, nur anhand von
-  API-Doku recherchiert. Vor Produktion: pushen → Karte verschieben → erneut
-  pushen → weiterhin nur EIN Event. → `docs/phase-3-konzept-planungstab.md` §5/§8.4.
+- **M3 — `external_id`-Upsert weiterhin nicht live gegen intervals.icu
+  verifiziert** — am 25.07.2026 bewusst gestoppt statt ausgeführt: keine
+  Live-intervals.icu-Credentials verfügbar (`INTERVALS_API_KEY`/
+  `INTERVALS_ATHLETE_ID` in `.env` auskommentiert), ein Push würde gegen den
+  echten Trainingskalender von Athlet 1/2 schreiben — kein Sandbox-Account
+  vorhanden. Push nutzt weiterhin `external_id = plan_cards.id`, nur anhand
+  von API-Doku recherchiert (s. Kopfkommentar `data-access/intervals/
+  push.js`). Vor Produktion: pushen → Karte verschieben → erneut pushen →
+  weiterhin nur EIN Event. → `docs/phase-3-konzept-planungstab.md` §5/§8.4.
 - **`planAdherence()`s „verpasst"-Titel zeigt immer „Einheit"** — liest
   `.title`, alte wie neue Sessions tragen nur `.name`. Vorbestehende Lücke,
   nicht durch die `plan_cards`-Migration verursacht.
@@ -59,6 +59,16 @@ mehrere bereits committete Dateien anfassen:
   Umsortierung innerhalb eines Tages (`sort_order` wird nach dem Anlegen nie
   neu vergeben); Karte auf einen komplett leeren Wochenblock behält ihr altes
   `week`-Label. → §4/§7 im Konzept.
+- **NEU (25.07.2026, per Playwright bei der Nach-Drop-Feedback-Verifikation
+  entdeckt): `undoAdjustment()` (`state/plan-cards.js`) restauriert bei
+  einer verschobenen Karte nur `plannedDate`, ruft aber `weekLabelForDate()`
+  nicht erneut auf** — die Karte behält nach "Rückgängig" das week/phase-
+  Label ihrer zuletzt gezogenen Zielwoche, auch wenn die ursprüngliche
+  Woche nicht leer ist (also unabhängig von der oben genannten, bereits
+  bekannten Einschränkung). Sichtbar als Karte unter der falschen Wochen-
+  überschrift trotz korrektem Datum. Für den Playwright-Testlauf manuell per
+  direktem `data-access`-Patch nachkorrigiert, kein Code-Fix in diesem
+  Durchgang (Scope-Ausschluss "Drag & Drop … Labels").
 - **K3 — Typ-Default-TSS auf dünner Datenbasis** (`core/plan-config.js::TYPE_DEFAULT_TSS`,
   n=1–4 bei mehreren Typen) — beim K1-Schwellen-Review nach Plan 2 (mehr
   Historie) zuerst gegenprüfen. → `docs/phase-3-konzept-konfliktlogik-prognose.md` §2/§3.
@@ -67,9 +77,6 @@ mehrere bereits committete Dateien anfassen:
 - **Push-Warnung/Konflikt-Badges fehlen in der „Verpasst"-Sektion**
   (`ui/planned.js`, eigenes `.planned-done-item`-Markup ohne Badge-Struktur)
   — praktisch selten relevant (Konflikte gelten nur ab heute).
-- **Nach-Drop-Feedback: Browser-Verifikation gegen `dashboard-dev` noch
-  offen** — Delta-Banner/Konflikt-Badges/Push-Warnung sind unit-getestet
-  (`tests/plan-feedback.test.js`), nicht live durchgeklickt.
 
 ## Phase 4 — Trainer-Dashboard & Export/Import
 
@@ -90,9 +97,6 @@ mehrere bereits committete Dateien anfassen:
   Dialog-Grundgerüst ist jetzt 4× separat implementiert (kein
   `ui/dom.js`-Helper); `payloadToCardData()` liefert unvollständige Payloads
   nicht robust (heute folgenlos, einziger Erzeuger sendet immer vollständig).
-- **Browser-Verifikation des gesamten Trainer-Flows noch offen**
-  (Kategorien-Toggle, Vorschlag anlegen → Liste → Vergleichsansicht →
-  Annehmen) — unit-getestet, nicht live als `trainer-test` durchgeklickt.
 
 ---
 
@@ -148,3 +152,37 @@ mehrere bereits committete Dateien anfassen:
 - **Dualität: weekreview/adherence/ftp-progress + Hero/Analyse lasen die alte
   JSON-Pipeline** → alle 5 Aufrufstellen auf `plan_cards` umgestellt. Commit
   `a549249`, live mit echtem Login gegenbestätigt (Nachtrag `9a7e06b`).
+- **`tests/supabase-rls.test.js` gegen `dashboard-dev`**: `wellbeing_shared`-
+  Toggle-Regression, `proposals`-Zugriff (Trainer/Athlet, RLS statt nur
+  App-Gate geprüft), `trainer_view_prefs` nur für den zugehörigen Trainer.
+  Accounts Stuhlsen/Trainer-ST (einzige real verknüpfte Coach-Beziehung in
+  dashboard-dev — die ursprünglich angenommenen generischen "athlet-test"/
+  "trainer-test"-Accounts existieren so nicht). Selbst-korrigiert: ein
+  Insert-Test nutzte anfangs die eigene Trainer-ID als "fremde" athlete_id,
+  was die Policy trivial erfüllt (OR-Klausel `athlete_id = auth.uid()`) und
+  kurzzeitig eine echte Zeile anlegte — gefunden, gelöscht, Test korrigiert.
+  10/10 Assertions grün, kein Rest in dashboard-dev. Commit `cb39c59`.
+- **Trainer-Flow Ende-zu-Ende per Playwright gegen `dashboard-dev`**
+  (Accounts Stuhlsen/Trainer-ST): Kategorien-Toggle inkl. DB-Persistenz über
+  Reload, Vorschlag anlegen (Trainer, Vorschlag-Modus respektiert), Liste,
+  Vergleichsansicht (read-only für Trainer, interaktiv für Athlet), Annehmen
+  → echte `plan_cards`-Änderung sichtbar ohne Reload. Reine Verifikation,
+  kein Bug, kein Commit nötig.
+- **Nach-Drop-Feedback per Playwright gegen `dashboard-dev` verifiziert**:
+  echte mehrstufige Pointer-Event-Geste (down→move×n→up, kein Ein-Schritt-
+  Kurzschluss), Delta-Banner mit korrektem TSB-vor/-nach-Inhalt am Eventtag, K-EVENT
+  bestätigt aktiv (Fix aus Block A hält), "Verschoben von …"-Badge mit
+  Rückgängig. Dabei einen neuen Bug gefunden (`undoAdjustment()` recomputet
+  week/phase nicht) — bewusst nicht gefixt, s. Drag-&-Drop-Einschränkungen
+  oben. Kein Commit (reine Verifikation + manuelle DB-Korrektur des
+  Testartefakts).
+- **Git-Vorfall (25.07.2026): `git sync`-Alias hätte `origin/main` um ~70
+  Commits zurückgesetzt** — versehentlich von `dashboard-2.0` aus gestartet,
+  während lokales `main` seit der Branch-Einführung nie aktualisiert worden
+  war; der Alias pusht die lokale `main`-Referenz unabhängig vom
+  ausgecheckten Branch. Sofort erkannt und `origin/main` wiederhergestellt
+  (keine Daten verloren), lokales `main` auf `origin/main` zurückgesetzt +
+  Upstream-Tracking gesetzt. Alias um Branch-Guard + gepinnten
+  `--force-with-lease=main:<SHA>`-Erwartungswert ergänzt (lebt in der
+  lokalen gitconfig, nicht im Repo). Dokumentiert in AGENTS.md „Git-
+  Workflow". Commit `00b3efe`.
