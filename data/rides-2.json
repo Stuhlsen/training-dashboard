@@ -13659,7 +13659,7 @@
     },
     {
       "date": "2026-07-24",
-      "sleepHours": 8.7,
+      "sleepHours": 8.8,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -16444,7 +16444,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-25T07:51:35.790Z",
+  "updated": "2026-07-25T13:03:14.683Z",
   "source": "intervals.icu",
   "count": 132
 }
