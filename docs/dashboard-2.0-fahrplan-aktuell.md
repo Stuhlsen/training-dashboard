@@ -134,11 +134,24 @@
 
 *Mockup: Explorer-Ansicht.*
 
-- [ ] Konzept: Verknüpfte Charts, Zeitraum-Brushing, Vergleichsmodus, What-if-Szenarien **[OP]**
+- [x] Konzept: Verknüpfte Charts, Zeitraum-Brushing, Vergleichsmodus, What-if-Szenarien **[OP]** → `docs/phase-5-konzept-explorer.md`
 - [ ] Mockup erstellen und iterieren **[SO]**
 - [ ] Umsetzung schrittweise pro Interaktion **[SO]**, bei kniffligen Chart-Interaktionen **[OP]**
 - [ ] Vereinheitlichung mit bestehendem Charts-Tab (Datumsformate, Kategorien) **[HA]**
 - [ ] Tests **[SO]**
+
+**Entscheidungen Phase 5:**
+- X1: Vergleichsachse 3A (Zeitraum vs. Zeitraum, relative x-Achse) ✅
+- X2: separate Explorer-Ansicht statt Charts-Tab-Umbau ✅
+- X3: kontinuierliche Datumsskala in ui/charts/base.js als Schritt-0-Vorbedingung ✅
+- X4: Skalen-Migration der Bestandscharts expliziter Nicht-Zielpunkt ✅
+- X5: Heute-/Zukunftsmarke separat gezeichnet statt pickLabelIndices-Erweiterung ✅
+- X6: Explorer öffentlich + Serien-nach-Quelle-Regel ✅
+- X7: projection.asOf als einzige Ist/Prognose-Naht ✅
+- X8: Achse reicht immer bis horizonEnd ✅
+- X9: Zustandspersistenz via localStorage ✅
+- X10: kein eigener Trainer-Modus ✅
+- X11: Mobil: Presets statt Brush ✅
 
 ---
 
@@ -175,6 +188,6 @@ unterwegs — veraltete `payload`-CHECK-Constraint — von Alex im SQL-Editor ne
 re-verifiziert). Damit erzeugt ein Athlet Vorschläge jetzt auf zwei Wegen: direkt durch
 seinen menschlichen Trainer (Karten-Dialog) oder durch Claude über den Export/Import-Workflow.
 
-➡️ **Nächster Schritt: Phase 5 — Explorative Datenansichten.** Noch kein Konzept
-geschrieben (erster offener Punkt: verknüpfte Charts, Zeitraum-Brushing, Vergleichsmodus,
-What-if-Szenarien, s. Phase-5-Abschnitt oben) — **[OP]**.
+➡️ **Phase 5 — Konzept abgeschlossen** (`docs/phase-5-konzept-explorer.md`, Entscheidungen
+X1–X11 s. Phase-5-Abschnitt oben). **Nächster Schritt: Mockup-Runde** (Visualizer,
+iterativ, Abnahme durch Alex vor jeglicher Implementierung) — **[SO]**.

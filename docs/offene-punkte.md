@@ -100,6 +100,19 @@ mehrere bereits committete Dateien anfassen:
 
 ---
 
+## Phase 5 — Explorer
+
+- **Skalen-Migration der Bestandscharts bewusst zurückgestellt** — `pmc/power/
+  training/wellness.js` rechnen ihr x indexbasiert (`pad.l + (i / (n-1)) * cw`
+  bzw. slotbasiert), nicht als Zeitachse. Eine Umstellung auf die in Phase 5
+  eingeführte kontinuierliche `makeDateScale()` würde Tage ohne Daten als
+  Lücken sichtbar machen, wo die Achse sie heute zusammenschiebt — bei
+  Athlet 2 (dünne Datenlage) eine optische Regression an öffentlich
+  sichtbarer Stelle. Expliziter Nicht-Zielpunkt von Phase 5, nicht Teil des
+  [HA]-Vereinheitlichungsschritts (der bleibt auf Datumsformate/Kategorien
+  beschränkt). Voraussetzung für Cursor-Sync über den Explorer hinaus.
+  → `docs/phase-5-konzept-explorer.md` §1.2/§8, X4.
+
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
 - **Roadmap-Versionierung**: Fahrplan-Datei liegt jetzt in `docs/`, lag vorher
