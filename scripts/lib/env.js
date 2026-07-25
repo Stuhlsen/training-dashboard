@@ -44,6 +44,11 @@ export const ENV = {
   SUPABASE_ATHLETE1_PASSWORD: process.env.SUPABASE_ATHLETE1_PASSWORD || "",
   SUPABASE_ATHLETE2_EMAIL: process.env.SUPABASE_ATHLETE2_EMAIL || "",
   SUPABASE_ATHLETE2_PASSWORD: process.env.SUPABASE_ATHLETE2_PASSWORD || "",
+  // Nur für tests/supabase-rls.test.js (Live-RLS-Check gegen dashboard-dev,
+  // Account "Trainer-ST", coacht dort den SUPABASE_ATHLETE1_EMAIL-Account
+  // "Stuhlsen") — s. AGENTS.md "Test-Sicherheit".
+  SUPABASE_TRAINER_EMAIL: process.env.SUPABASE_TRAINER_EMAIL || "",
+  SUPABASE_TRAINER_PASSWORD: process.env.SUPABASE_TRAINER_PASSWORD || "",
 };
 
 /**

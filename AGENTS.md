@@ -187,14 +187,32 @@ SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migr
 3. Migration wird commits — Versionshistorie, Portfolio-Dokumentation, reproduzierbar.
 
 ### Test-Sicherheit
-`tests/supabase-rls.test.js` (neu mit Phase 1) prüft:
-- anon + no login → nichts schreibbar
-- Athlet A + session → nur eigene Daten lesbar/änderbar
-- Trainer A + session → nur zugeordnete Athleten sichtbar
-- Admin-Only-Operationen (`is_admin` Flag) prüfen
+`tests/supabase-rls.test.js` läuft echt (kein Mock) gegen das `dashboard-dev`-Projekt und prüft:
+- `wellbeing_shared`: anon sieht nur bei aktivem `wellbeing_public`-Toggle, nie `note`
+- `proposals`: nur der zugehörige Trainer/Athlet liest/schreibt, keine fremde `athlete_id`
+- `trainer_view_prefs`: nur der jeweilige Trainer liest/ändert seine eigene Zeile
+- anon ohne Login: `proposals`/`trainer_view_prefs` komplett zu (kein GRANT)
 
-Das ist der "Sicherheits-Review"-Prüfpunkt aus Phase 0. Tests laufen gegen `dashboard-dev`-Projekt
-und müssen vor jedem Merge grün sein.
+Das ist der "Sicherheits-Review"-Prüfpunkt aus Phase 0. Läuft nur mit Live-Credentials in `.env`,
+sonst überspringt sich die Datei selbst (kein Fehlschlag in CI, wo diese Secrets nicht existieren):
+
+```
+SUPABASE_URL                              SUPABASE_ANON_KEY
+SUPABASE_ATHLETE1_EMAIL / _PASSWORD       (Account "Stuhlsen")
+SUPABASE_TRAINER_EMAIL / _PASSWORD        (Account "Trainer-ST", coacht Stuhlsen)
+```
+
+Diese beiden Accounts sind die einzige in `dashboard-dev` bereits real verknüpfte Coach-Athlet-
+Beziehung (`profiles.coach_id`) — dashboard-dev spiegelt zwei Paare (Trainer-ST↔Stuhlsen,
+Trainer-DZ↔hc_diZee), keine generischen "athlet-test"/"trainer-test"-Accounts wie ursprünglich
+in Phase 0 skizziert. `SUPABASE_ATHLETE2_EMAIL`/`_PASSWORD` (hc_diZee, für
+`scripts/migrate-plan-to-supabase.js`) bleibt unabhängig davon bestehen.
+
+Jede Testzeile räumt sich selbst wieder auf (`cleanupTasks` im `after()`-Hook, inkl. Wieder-
+herstellen von `wellbeing_public`/`trainer_view_prefs` auf den vorgefundenen Ausgangszustand) —
+schlägt ein Aufräumschritt fehl, wirft der Hook mit einer Liste der Reste, statt es zu verschlucken.
+Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder gezielt
+`node --test --experimental-test-module-mocks tests/supabase-rls.test.js`.
 
 ### Datenquellen-Mix (lesen/schreiben)
 - **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline wie heute
