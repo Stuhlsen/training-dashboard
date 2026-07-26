@@ -173,10 +173,29 @@ export function makeIndexScale({ ws, we, pad, width }) {
 }
 ```
 
-**Densifiziert wird das Achsengerüst, nicht die Serie.** Lastmetriken (TSS, CTL, ATL,
-TSB) werden mit `0` aufgefüllt, Messmetriken (HRV, Ruhepuls, Gewicht, aerobe Effizienz,
-Decoupling, eFTP) bekommen eine Lücke — eine genullte Effizienz an einem Ruhetag wäre
-eine Falschaussage. Jede Serie erklärt dazu `absence: "zero" | "gap"`.
+**Densifiziert wird das Achsengerüst, nicht die Serie — und ein fehlender Tag bedeutet
+nicht bei jeder Metrikart dasselbe (drei Fälle, nicht zwei — korrigiert nach einem
+Playwright-Fund beim ersten Rendern des Explorer-Hauptcharts in Schritt 0, s.
+`core/days.js`):**
+
+1. **Echte Tagesbelastung** (TSS, Distanz, Höhenmeter) — an einem Ruhetag tatsächlich
+   `0`. `absence: "zero"`.
+2. **Zustandsgrößen** (CTL, ATL, TSB) — anders als zuerst angenommen **nicht** `"zero"`:
+   CTL/ATL sind eine kontinuierlich geglättete Größe, die an einem Ruhetag existiert und
+   langsam weiter zerfällt, nur eben ohne eigene Zeile in `Data.rides` (das nur
+   Aktivitäten führt, keine Ruhetage). `0` wäre hier eine Falschaussage wie bei einer
+   Messmetrik — der erste gerenderte Explorer-Chart zeigte CTL/ATL sonst sichtbar auf 0
+   einbrechend an jedem Ruhetag. Aufgelöst wie eine Lücke (`absence: "gap"`), aber
+   zusätzlich mit `core/days.js::fillGaps()` linear zwischen bekannten Nachbarn
+   interpoliert (Ränder ohne Nachbarn: nächstliegender bekannter Wert) — anders als bei
+   echten Messmetriken ist eine Zwischenlage hier physikalisch begründet, keine
+   erfundene Präzision.
+3. **Messmetriken** (HRV, Ruhepuls, Gewicht, aerobe Effizienz, Decoupling, eFTP) —
+   `absence: "gap"`, aber bewusst **ohne** `fillGaps()`: eine interpolierte Effizienz an
+   einem Ruhetag wäre eine Präzision, die die Messung nicht hergibt.
+
+`alignToDays()` selbst kennt nur zwei Werte (`"zero" | "gap"`) — Fall 2 und 3 nutzen
+beide `"gap"`, unterscheiden sich aber darin, ob `fillGaps()` danach läuft.
 
 Der Preis gegenüber einer Zeitstempelskala: bricht die Dichtezusage irgendwo, verschiebt
 sich die Achse still. `densifyDays()` ist deshalb eine reine Funktion mit eigenen Tests
@@ -557,8 +576,11 @@ Playwright gegen `dashboard-dev`.
   `from === to`, Monats- und Jahreswechsel, Sommerzeit-Übergang (Zeitzonen-Falle —
   `localISODate()`-Konvention aus Phase 3 beachten, nicht UTC); Nachweis, dass eine
   Eingabe mit Lücken dieselbe Achsenlänge erzeugt wie eine ohne.
-- **`absence`-Auflösung:** Lastmetrik wird zu `0`, Messmetrik zu einer Lücke; eine
-  Serie mit ausschließlich Lücken bricht nichts.
+- **`absence`-Auflösung:** echte Tagesbelastung wird zu `0`; Zustandsgrößen (CTL/ATL/TSB)
+  werden zur Lücke und anschließend über `fillGaps()` interpoliert (Ränder: nächst-
+  liegender bekannter Wert); Messmetriken bleiben ohne `fillGaps()` eine echte Lücke —
+  eine Serie mit ausschließlich Lücken bricht in keinem der drei Fälle etwas
+  (`tests/days.test.js`).
 - **`makeIndexScale()`** (`tests/chart-layout.test.js`): `x()`/`invert()` als Rundreise;
   Ein-Tages-Fenster; Index außerhalb des Fensters.
 - **Kalender-Ticks**: Monats- und Wochenkandidaten, Monatsanfang am Bereichsrand.
@@ -585,10 +607,13 @@ Playwright gegen `dashboard-dev`.
   (Tag 1 = Blockstart), ungleiche Längen werden nicht gestreckt. ✅
 - **X2 — Separate Explorer-Ansicht** statt Umbau des Charts-Tabs; „Vereinheitlichung"
   bleibt eigener späterer Fahrplan-Schritt. ✅
-- **X3 (überarbeitet) — Dichtes Tagesgerüst (`densifyDays()` in `core/`) plus
-  Indexskala (`makeIndexScale()` in `ui/charts/base.js`)** als eigentliche Vorbedingung
-  von Schritt 0, statt einer Zeitstempelskala. Densifiziert wird die Achse, nicht die
-  Serie (`absence: "zero" | "gap"`). `renderFtpForecast` bleibt die Vorlage des
+- **X3 (überarbeitet, Schritt-0-Umsetzung korrigiert §2.2) — Dichtes Tagesgerüst
+  (`densifyDays()` in `core/days.js`) plus Indexskala (`makeIndexScale()` in
+  `ui/charts/base.js`)** als eigentliche Vorbedingung von Schritt 0, statt einer
+  Zeitstempelskala. Densifiziert wird die Achse, nicht die Serie — **drei** Fälle statt
+  ursprünglich zwei: `"zero"` für echte Tagesbelastung (TSS/Distanz/Höhenmeter), `"gap"` +
+  `fillGaps()` für Zustandsgrößen (CTL/ATL/TSB — interpoliert, kein Nullen), `"gap"` ohne
+  Auffüllung für Messmetriken (echte Lücke). `renderFtpForecast` bleibt die Vorlage des
   Explorer-Hauptcharts, nicht `renderPMC`. → `docs/chart-grundlagen.md` §5, G10. ✅
 - **X4 — Skalen-Migration der Bestandscharts ist expliziter Nicht-Zielpunkt** von
   Phase 5; Athlet-2-Regressionsrisiko bei dünner Datenlage. In `docs/offene-punkte.md`
