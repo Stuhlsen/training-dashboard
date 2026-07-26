@@ -53,6 +53,7 @@ import {
 import { getState as getEventsState, onEventsChange } from "./state/events.js";
 import { EventTimeline } from "./ui/event-timeline.js";
 import { WellbeingCard } from "./ui/wellbeing-card.js";
+import { initExplorer } from "./ui/explorer.js";
 import "./ui/header.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
@@ -434,6 +435,7 @@ async function renderAll(athleteId) {
 
   // Charts — Fitness & Belastung (Belastungswächter: Ramp + Foster-Monotonie)
   Charts.renderPMC("chart-pmc", rides);
+  initExplorer(); // Phase 5, Schritt 0 — eigener Tab, öffentlich, kein Gate
   initPeriodToggles(rides, weekly, guard, (week) => {
     document.querySelector('[data-tab="table"]').click();
     Table.filterByWeek(week);

@@ -4,7 +4,12 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickLabelIndices, weekDisplayLabels, fitsLabel } from "../assets/js/ui/charts/base.js";
+import {
+  pickLabelIndices,
+  weekDisplayLabels,
+  fitsLabel,
+  makeIndexScale,
+} from "../assets/js/ui/charts/base.js";
 
 test("pickLabelIndices: hält den Mindestabstand ein und enthält immer den letzten Punkt", () => {
   // 27 Balken auf 714px Plotbreite (Screenshot-Fall) — Pitch ~26px < 40px minPx
@@ -71,4 +76,29 @@ test("fitsLabel: Grenzfall exakt an der Formel", () => {
   const exact = text.length * 5.4 + 8;
   assert.equal(fitsLabel(exact, text), true);
   assert.equal(fitsLabel(exact - 1, text), false);
+});
+
+/* makeIndexScale — Phase 5, Schritt 0 (docs/phase-5-konzept-explorer.md §2.2/§11):
+   Indexskala über ein dichtes Tagesgerüst. invert() ist die Umkehrung, die
+   im Bestand bislang nirgends existierte (Brushing/Crosshair brauchen sie). */
+test("makeIndexScale: x()/invert() als Rundreise", () => {
+  const scale = makeIndexScale({ ws: 0, we: 99, pad: { l: 40, r: 20 }, width: 780 });
+  for (const i of [0, 1, 37, 99]) {
+    assert.ok(Math.abs(scale.invert(scale.x(i)) - i) < 1e-9, `Rundreise schlägt fehl bei i=${i}`);
+  }
+  assert.equal(scale.x(0), 40); // linker Rand = pad.l
+  assert.equal(scale.x(99), 780 - 20); // rechter Rand = width - pad.r
+});
+
+test("makeIndexScale: Ein-Tages-Fenster (ws === we) teilt nicht durch 0", () => {
+  const scale = makeIndexScale({ ws: 5, we: 5, pad: { l: 10, r: 10 }, width: 400 });
+  assert.equal(scale.x(5), 10); // pad.l, span auf 1 erzwungen (Math.max(1, we-ws))
+  assert.ok(Number.isFinite(scale.x(5)));
+  assert.ok(Math.abs(scale.invert(scale.x(5)) - 5) < 1e-9);
+});
+
+test("makeIndexScale: Index außerhalb des Fensters extrapoliert linear, ohne Klemmung", () => {
+  const scale = makeIndexScale({ ws: 10, we: 20, pad: { l: 0, r: 0 }, width: 100 });
+  assert.ok(scale.x(30) > 100, "ein Index jenseits von we liegt jenseits der Plotbreite");
+  assert.ok(scale.x(0) < 0, "ein Index vor ws liegt vor dem linken Rand");
 });
