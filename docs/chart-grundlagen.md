@@ -30,7 +30,7 @@
 
 Die Zeichenfunktionen lesen aus React nur `this.state.ws/we` (Fensterindizes) und
 `this.props.*` (Sichtbarkeits-Schalter). Beides wird beim Port zu Argumenten bzw. zu
-Lesezugriffen auf `state/explorer.js`. **Kein einziger React-Aufruf steht in der
+Lesezugriffen auf `state/chart-view.js`. **Kein einziger React-Aufruf steht in der
 Zeichenschicht.**
 
 ---
@@ -267,41 +267,40 @@ Daraus folgt eine echte Vereinfachung gegenüber X3:
 > Umkehrung `invert(px) → Index → Datum` ist trivial.
 
 **Entscheidend: densifiziert wird die *Achse*, nicht die *Serie*.** Ein Nulltag bedeutet
-nicht bei jeder Metrik dasselbe — und hier war die erste Fassung dieses Dokuments selbst
-falsch: CTL/ATL/TSB unter „Lastmetriken" mit `0` aufzufüllen. Ein Playwright-Check des
-ersten gebauten Explorer-Hauptcharts (Phase 5, Schritt 0) zeigte den Fehler sofort
-sichtbar — CTL/ATL brachen an jedem Ruhetag auf 0 ein, obwohl CTL/ATL eine
-kontinuierlich geglättete Zustandsgröße sind, die an einem Ruhetag weiter existiert
-(nur ohne eigene Zeile in `Data.rides`, das nur Aktivitäten führt). Richtig sind **drei**
-Kategorien, nicht zwei:
+nicht bei jeder Metrik dasselbe:
 
 | Metrikart | Fehlender Tag bedeutet | Auffüllung |
 |---|---|---|
-| **Echte Tagesbelastung** — TSS, Distanz, Höhenmeter | tatsächlich keine Belastung | `0` ist korrekt |
-| **Zustandsgrößen** — CTL, ATL, TSB | kein Ruhetag ohne Zustand, nur keine eigene Zeile | Lücke, aber linear zwischen bekannten Nachbarn **interpoliert** (`core/days.js::fillGaps()`) — physikalisch begründet, keine erfundene Präzision |
-| **Messmetriken** — HRV, Ruhepuls, Schlaf, Gewicht, aerobe Effizienz, Decoupling, eFTP | nicht gemessen bzw. nicht gefahren | `0` **und** eine Interpolation wären eine **Falschaussage** — echte Lücke, unverändert |
+| **Rohe Lastmetriken** — TSS, Distanz, Höhenmeter | tatsächlich keine Belastung | `0` ist korrekt |
+| **Abgeleitete/geglättete Metriken** — CTL, ATL, TSB, eFTP-Verlauf | der Input war an diesem Tag 0, der geglättete Wert selbst aber nicht | **letzten bekannten Wert fortschreiben** (`carry`), erst bei mehreren Fehltagen in Folge zur Lücke |
+| **Messmetriken** — HRV, Ruhepuls, Schlaf, Gewicht, aerobe Effizienz, Decoupling | nicht gemessen bzw. nicht gefahren | `0` wäre eine **Falschaussage** |
 
 Eine aerobe Effizienz von 0 an einem Ruhetag ist kein Datenpunkt, sondern ein erfundener
 Einbruch — und würde jede Trendlinie verfälschen. Messmetriken bekommen deshalb eine
-**Lücke** in der Linie, keinen Nullwert, und bleiben unverändert (keine Interpolation —
-das wäre eine Präzision, die die Messung nicht hergibt). Zustandsgrößen bekommen
-ebenfalls zunächst eine Lücke, aber die wird anschließend gefüllt: anders als bei einer
-Messung ist der Zwischenwert zwischen zwei bekannten CTL/ATL-Punkten kein Wunschdenken,
-sondern folgt direkt aus dem Modell (exponentielle Glättung, kein Sprung möglich).
+**Lücke** in der Linie, keinen Nullwert.
+
+**Derselbe Fehler droht bei CTL/ATL/TSB, nur subtiler — und ist bereits einmal
+tatsächlich aufgetreten:** Diese drei sind bereits geglättete, abgeleitete Werte. Ein
+einzelner Ruhetag hat TSS 0, aber CTL fällt an diesem Tag nicht auf 0 — nur der
+*Input* war 0. Werden CTL/ATL/TSB pauschal mit `absence: "zero"` behandelt (weil sie
+wie Lastmetriken „wirken"), entsteht ein sichtbarer Zero-Einbruch an jedem Ruhetag, der
+fachlich falsch ist. Für diese drei gilt deshalb ein dritter Modus:
 
 ```js
 // jede Serie erklärt ihr Verhalten bei fehlenden Tagen
-{ key: "tss",        absence: "zero" }
-{ key: "ctl",        absence: "gap", fillGaps: true  }  // Zustandsgröße — interpoliert
-{ key: "decoupling", absence: "gap", fillGaps: false }  // Messmetrik — echte Lücke
+{ key: "tss",        absence: "zero"  }  // rohe Belastungseingabe
+{ key: "ctl",        absence: "carry" }  // geglättet: letzten Wert fortschreiben
+{ key: "decoupling", absence: "gap"   }  // Messmetrik: echte Lücke
 ```
 
-Das Achsengerüst ist für alle drei dasselbe — dadurch bleiben alle Zeitreihen-Charts
+Faustregel: **rohe Eingabe → zero. Geglättete/abgeleitete Reihe → carry. Messung →
+gap.** Bei jedem neuen Chart zuerst prüfen, in welche der drei Spalten eine Serie
+gehört — nicht automatisch „ist eine Lastmetrik" mit „nullen" gleichsetzen.
+
+Das Achsengerüst ist für beide dasselbe — dadurch bleiben alle Zeitreihen-Charts
 pixelgenau untereinander ausgerichtet, unabhängig davon, wie dicht die jeweilige Serie
-ist. Der Tooltip zeigt bei einer echten Messlücke ausdrücklich „keine Messung", nie einen
-interpolierten oder genullten Wert — bei einer interpolierten Zustandsgröße dagegen ist
-der angezeigte Wert der tatsächliche (Modell-)Zustand, keine Näherung, die verschwiegen
-werden müsste.
+ist. Der Tooltip zeigt bei `absence: "gap"` an einem Tag ohne Messung ausdrücklich
+„keine Messung", nie einen interpolierten oder genullten Wert.
 
 **Bedingung:** Die Densifizierung muss verbindlich *vor* jedem Zeichnen laufen, und
 `data/*.json` sowie die Projektion müssen auf dieselbe Tagesreihe gebracht werden. Bricht
@@ -356,7 +355,7 @@ statt Neuzeichnen (§4.1) · Filter-IDs pro Instanz namensräumen (G8) · kein T
 
 | Familie | Charts | x-Achse | Beschriftung | Glow | Brush | Fadenkreuz |
 |---|---|---|---|---|---|---|
-| **1 · Zeitreihe dicht** | PMC (CTL/ATL/TSB), FTP-Prognose | Tagesindex, `absence` je Serie (CTL/ATL/TSB: `gap`+`fillGaps()`, echte Tagesbelastung wie TSS: `zero` — s. §5) | direkt an der Kurve, `halo()` + `flat()` | Hauptserie | ✅ Fläche | ✅ tagesgenau |
+| **1 · Zeitreihe dicht** | PMC (CTL/ATL/TSB), FTP-Prognose | Tagesindex, `absence: zero` | direkt an der Kurve, `halo()` + `flat()` | Hauptserie | ✅ Fläche | ✅ tagesgenau |
 | **2 · Zeitreihe lückig** | HRV, Ruhepuls, Schlaf, Gewicht, aerobe Effizienz, Decoupling, eFTP-Verlauf | Tagesindex, `absence: gap` | direkt an der Kurve | nur wenn Hauptserie des Charts | ✅ Fläche | ✅ tagesgenau, „keine Messung" bei Lücke |
 | **3 · Aggregatbalken** | Wochenvolumen, wochenweises Wetter | Zeit-Buckets (Woche/Monat) | Wert am Balken, kein `flat()` | ⛔ nie | Ziel, nicht Fläche | ✅ bucketweise |
 | **4 · Nicht-Datumsachse** | Power-Curve (Dauer, log), Zonenverteilung, Streudiagramme | eigene Skala (kategorial oder numerisch) | Achsentitel, keine Kurvenbeschriftung | ⛔ | ⛔ | ⛔ |
@@ -406,7 +405,15 @@ keine sinnvolle Zwischenposition.
 
 ---
 
-## 8. Konsequenz für den Bestand
+## 8. Konsequenz für den Bestand (korrigiert)
+
+> **Nachtrag nach erster Umsetzungsrunde:** Der ursprüngliche §8 ging von einem
+> separaten Explorer-Tab neben dem unveränderten Charts-Tab aus und wog drei Wege ab,
+> wie beide später zusammengeführt würden. Diese Prämisse war falsch — Alex' Ziel war
+> von Anfang an die direkte Modernisierung von `pmc.js` und den anderen Bestandscharts,
+> kein zusätzlicher Tab. Es gibt deshalb keine zwei Bildsprachen, die vereinheitlicht
+> werden müssten, und keinen separaten Phase-7-Schritt. Die drei Wege unten sind
+> historisch stehen gelassen, gelten aber nicht mehr — s. G12 (revidiert).
 
 Diese Grundlage ist **nicht** kompatibel mit dem heutigen Charts-Tab. Unterschiedlich sind:
 Rahmen (`0.5px solid #2a3140` gegen rahmenlos), Radien, Serienfarben, Skalenverhalten
@@ -452,19 +459,16 @@ einzuplanen, ist der einzige Weg, der sicher schiefgeht.
 - **G8 — Glow nur auf Hauptserien-Linien**, nie auf Balken oder Small Multiples;
   Filter-IDs pro Chart-Instanz namensräumen.
 - **G9 — Tilt/Sheen nicht in Charts.**
-- **G10 — X3 wird ersetzt: Densifizierung statt Zeitstempelskala** (korrigiert nach
-  einem Playwright-Fund in Phase-5-Schritt-0: CTL/ATL/TSB gehören NICHT zu den mit `0`
-  aufgefüllten Metriken). Densifiziert wird das **Achsengerüst**, nicht die Serie, in
-  drei Fällen: echte Tagesbelastung (TSS/Distanz/Höhenmeter) wird mit `0` aufgefüllt;
-  Zustandsgrößen (CTL/ATL/TSB) bekommen eine Lücke, die anschließend linear interpoliert
-  wird (`fillGaps()`); Messmetriken (HRV, Ruhepuls, Gewicht, aerobe Effizienz,
-  Decoupling) bekommen eine Lücke, die so bleibt. `alignToDays()` kennt nur
-  `absence: "zero" | "gap"` — Zustandsgrößen und Messmetriken teilen sich `"gap"` und
-  unterscheiden sich nur darin, ob `fillGaps()` danach läuft.
+- **G10 — X3 wird ersetzt: Densifizierung statt Zeitstempelskala.** Densifiziert wird
+  das **Achsengerüst**, nicht die Serie: Lastmetriken (TSS/CTL/ATL/TSB) werden mit `0`
+  aufgefüllt, Messmetriken (HRV, Ruhepuls, Gewicht, aerobe Effizienz, Decoupling)
+  bekommen eine Lücke. Jede Serie erklärt `absence: "zero" | "gap"`.
 - **G11 — Kalender-Ticks + `pickLabelIndices()` bleiben**, die Tick-Logik des Entwurfs
   wird verworfen.
-- **G12 — Charts-Tab wird als eigener Fahrplan-Schritt nachgezogen** ([OP], nicht [HA]),
-  s. §8.
+- **G12 (revidiert) — Kein eigener Nachzug-Schritt.** Die Bestandscharts werden direkt
+  modernisiert (`pmc.js` zuerst, s. `docs/phase-5-konzept-explorer.md` §2.3), nicht über
+  einen separaten Tab mit späterer Vereinheitlichung. Ursprüngliche Fassung von G12 in
+  §8 historisch dokumentiert, gilt nicht mehr.
 - **G13 — Die Grundlage ist zweischichtig:** Schicht A (Tokens, Tooltip, Hover-Ebene,
   gemessene Breite, Achseneinheit) gilt ausnahmslos; Schicht B (Beschriftung, Glow,
   Brush, Fadenkreuz) wird pro Chart-Familie abgeleitet, s. §7.

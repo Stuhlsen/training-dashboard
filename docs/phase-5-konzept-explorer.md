@@ -1,5 +1,9 @@
 # Phase 5 — Konzept: Explorative Datenansichten [OP]
 
+> **Nachtrag:** Titel und Fahrplan-Phasenname bleiben aus Historiengründen erhalten;
+> gemeint ist inzwischen die Modernisierung der Bestandscharts, kein separater Tab.
+> Siehe die korrigierte Zusammenfassung ganz oben und §2.1/§2.3.
+
 > **Ziel:** Eine eigene Explorer-Ansicht, in der Trainingsdaten *befragt* statt nur
 > *angezeigt* werden: verknüpfte Charts, Zeitraum-Brushing, Vergleich zweier Zeiträume
 > und What-if-Szenarien auf der bestehenden Prognose. Vanilla JS, handgeschriebenes SVG,
@@ -10,8 +14,13 @@
 >   *relativen* x-Achse (Tag 1 = Blockstart), nicht auf absoluten Daten (§5).
 > - **Sichtbarkeit: öffentlich**, abgeleitet aus der Phase-6-Sichtbarkeitsmatrix, die den
 >   Explorer bereits namentlich adressiert (§9).
-> - **Separate Ansicht**, nicht Umbau des Charts-Tabs. Die „Vereinheitlichung" bleibt
->   eigener, späterer Fahrplan-Schritt **[HA]** (§8).
+> - **KORRIGIERT (s. Nachtrag am Dokumentende): kein separater Explorer-Tab.** Die
+>   ursprüngliche Entscheidung X2 (separate Ansicht, Vereinheitlichung später) wurde
+>   nach einer ersten Umsetzungsrunde revidiert. Alex' eigentliches Ziel war von Anfang
+>   an, `renderPMC()` und die anderen Bestandscharts direkt zu modernisieren — nicht,
+>   eine zusätzliche Ansicht daneben zu bauen. Was unten als „Explorer" beschrieben
+>   ist, meint jetzt: **die Fähigkeiten (Achse, Naht, Brush, Verknüpfung, What-if,
+>   Vergleich) werden in die bestehenden Charts eingebaut**, beginnend mit `pmc.js`.
 > - **Skalen-Migration der Bestandscharts ist expliziter Nicht-Zielpunkt** dieser Phase
 >   (§8, X4).
 >
@@ -134,24 +143,28 @@ hängen, das bei schmalen Segmenten kollidiert. **Der Explorer nutzt von Anfang 
 
 ```
 core/
-  scenario.js        NEU  – What-if-Parameter → synthetischer Kartensatz (pure)
-  compare.js         NEU  – zwei Zeiträume → relativ ausgerichtete Serien (pure)
-  projection.js      unverändert – liefert die Prognose (§6)
+  days.js            NEU  – densifyDays()/joinSeries() (pure, s. §2.2)
+  scenario.js         NEU  – What-if-Parameter → synthetischer Kartensatz (pure)
+  compare.js          NEU  – zwei Zeiträume → relativ ausgerichtete Serien (pure)
+  projection.js       unverändert – liefert die Prognose (§6)
 
 state/
-  explorer.js        NEU  – Ansichtszustand: range, hovered, selected,
-                            compareSlots, scenario; localStorage-Persistenz (§10.3)
+  chart-view.js       NEU  – geteilter Ansichtszustand: range, hovered, selected,
+                            compareSlots, scenario; localStorage-Persistenz (§10.3).
+                            Ersetzt das ursprünglich geplante `state/explorer.js` —
+                            gleicher Inhalt, anderer Name, weil kein eigener Tab mehr
+                            existiert, dessen Zustand er wäre.
 
 ui/
-  explorer.js        NEU  – Mount, Layout, Verdrahtung Zustand ↔ Charts
   charts/
-    base.js          ERWEITERT – makeDateScale(), crosshair(), brushOverlay(),
-                                 SERIES_STYLE
-    explorer.js      NEU  – die Explorer-Charts auf der Datumsskala
+    base.js          ERWEITERT – makeIndexScale(), Interaktions-Primitiven (§2.2),
+                                 Schicht-A-Primitiven aus chart-grundlagen.md
+    pmc.js           UMGEBAUT  – renderPMC() auf die neue Achse und Optik, s. §2.3
 ```
 
-Die vier Bestandsmodule `pmc/power/training/wellness.js` werden **nicht angefasst**,
-mit einer Ausnahme: dem Publizieren des Hover-Datums aus den vorhandenen Handlern (§3).
+**Kein separater Explorer-Tab, kein `ui/explorer.js`.** Die bestehenden Chart-Module
+werden direkt umgebaut, beginnend mit `pmc.js`; `power/training/wellness.js` folgen in
+eigenen, späteren Schritten nach demselben Muster (Reihenfolge s. §7.2).
 
 ### 2.2 Die tragende Ergänzung: ein dichtes Tagesgerüst statt einer Zeitstempelskala
 
@@ -165,7 +178,7 @@ garantiert.
 export function densifyDays(fromISO, toISO);   // → lückenloses Tagesgerüst
 
 // ui/charts/base.js — neu, pure, testbar in tests/chart-layout.test.js
-export function makeIndexScale({ ws, we, pad, width }) {
+export function makeIndexScale({ ws, we, padLeft, width }) {
   return {
     x(i),          // Tagesindex → px
     invert(px),    // px → Tagesindex   ← existiert bislang nirgends
@@ -173,29 +186,10 @@ export function makeIndexScale({ ws, we, pad, width }) {
 }
 ```
 
-**Densifiziert wird das Achsengerüst, nicht die Serie — und ein fehlender Tag bedeutet
-nicht bei jeder Metrikart dasselbe (drei Fälle, nicht zwei — korrigiert nach einem
-Playwright-Fund beim ersten Rendern des Explorer-Hauptcharts in Schritt 0, s.
-`core/days.js`):**
-
-1. **Echte Tagesbelastung** (TSS, Distanz, Höhenmeter) — an einem Ruhetag tatsächlich
-   `0`. `absence: "zero"`.
-2. **Zustandsgrößen** (CTL, ATL, TSB) — anders als zuerst angenommen **nicht** `"zero"`:
-   CTL/ATL sind eine kontinuierlich geglättete Größe, die an einem Ruhetag existiert und
-   langsam weiter zerfällt, nur eben ohne eigene Zeile in `Data.rides` (das nur
-   Aktivitäten führt, keine Ruhetage). `0` wäre hier eine Falschaussage wie bei einer
-   Messmetrik — der erste gerenderte Explorer-Chart zeigte CTL/ATL sonst sichtbar auf 0
-   einbrechend an jedem Ruhetag. Aufgelöst wie eine Lücke (`absence: "gap"`), aber
-   zusätzlich mit `core/days.js::fillGaps()` linear zwischen bekannten Nachbarn
-   interpoliert (Ränder ohne Nachbarn: nächstliegender bekannter Wert) — anders als bei
-   echten Messmetriken ist eine Zwischenlage hier physikalisch begründet, keine
-   erfundene Präzision.
-3. **Messmetriken** (HRV, Ruhepuls, Gewicht, aerobe Effizienz, Decoupling, eFTP) —
-   `absence: "gap"`, aber bewusst **ohne** `fillGaps()`: eine interpolierte Effizienz an
-   einem Ruhetag wäre eine Präzision, die die Messung nicht hergibt.
-
-`alignToDays()` selbst kennt nur zwei Werte (`"zero" | "gap"`) — Fall 2 und 3 nutzen
-beide `"gap"`, unterscheiden sich aber darin, ob `fillGaps()` danach läuft.
+**Densifiziert wird das Achsengerüst, nicht die Serie.** Lastmetriken (TSS, CTL, ATL,
+TSB) werden mit `0` aufgefüllt, Messmetriken (HRV, Ruhepuls, Gewicht, aerobe Effizienz,
+Decoupling, eFTP) bekommen eine Lücke — eine genullte Effizienz an einem Ruhetag wäre
+eine Falschaussage. Jede Serie erklärt dazu `absence: "zero" | "carry" | "gap"` — Details und der carry-Modus für abgeleitete Metriken wie CTL/ATL/TSB in `docs/chart-grundlagen.md` §5.
 
 Der Preis gegenüber einer Zeitstempelskala: bricht die Dichtezusage irgendwo, verschiebt
 sich die Achse still. `densifyDays()` ist deshalb eine reine Funktion mit eigenen Tests
@@ -226,16 +220,26 @@ data/*.json ──► data-access/pipeline.js ──► state/data.js (Data.ride
 plan_cards ──► state/plan-cards.js ──► core/projection.js ──► getState().projection
                                                     │  Plan, ab asOf
                                                     ▼
-                                          state/explorer.js  ◄── core/scenario.js
-                                                    │           core/compare.js
-                                                    ▼
-                                          ui/explorer.js ──► ui/charts/explorer.js
+                                          ui/charts/pmc.js::renderPMC()
+                                                    ▲
+                                          state/chart-view.js (Fenster/Hover)
 ```
 
-`ui/` liest ausschließlich aus `state/`, `core/` bleibt rein, `data-access/` wird vom
-Explorer nie direkt berührt — die Schichtenregel bleibt unverletzt.
+`ui/` liest ausschließlich aus `state/`, `core/` bleibt rein, `data-access/` wird von
+den modernisierten Charts nie direkt berührt — die Schichtenregel bleibt unverletzt.
+`core/scenario.js`/`core/compare.js` kommen erst mit Baustein 3/4 (What-if/Vergleich,
+§6/§5) dazu — in Schritt 0 noch nicht verdrahtet.
 
 ---
+
+### 2.4 Reihenfolge des Umbaus über die vier Bestandscharts
+
+`pmc.js` zuerst — es hat mit `renderFtpForecast()` bereits eine kontinuierliche Achse
+und ist damit der günstigste Umbau. Danach `power.js`, `training.js`, `wellness.js` in
+je einem eigenen Schritt, jedes nach seiner Chart-Familie aus `docs/chart-grundlagen.md`
+§7.2 (PMC = Familie 1, Wochenvolumen/Wetter = Familie 3, Power-Curve = Familie 4,
+Wellness je nach Serie Familie 1 oder 2). Jeder Umbau ist ein eigener Commit; die
+Reihenfolge wird nicht vorgezogen, auch wenn ein späteres Chart einfach aussieht.
 
 ## 3. Baustein 1 — Verknüpfte Charts
 
@@ -340,7 +344,7 @@ Kartensatz plus Start-CTL/ATL entgegen. Was fehlt, ist lediglich ein **zweiter,
 nicht-persistierender Aufrufpfad**: heute läuft die Berechnung über `recomputeProjection()`
 im `notify()` von `state/plan-cards.js` und ist damit an den echten Kartenzustand
 gekoppelt. Ein Szenario ruft `projectLoad()` mit beliebigem Kartensatz auf, und das
-Ergebnis landet **nicht** in `getState()`, sondern in `state/explorer.js`. Das ist eine
+Ergebnis landet **nicht** in `getState()`, sondern in `state/chart-view.js`. Das ist eine
 kleine Ergänzung in `state/`, kein neues Modul in `core/`.
 
 ### 6.2 Der bestehende Hero-What-if-Slider bleibt unangetastet
@@ -362,7 +366,7 @@ Politur.
 ### 6.4 Szenarien sind flüchtig
 
 Ein Szenario wird nie nach `plan_cards` geschrieben und erzeugt keinen Vorschlag. Es
-lebt in `state/explorer.js` und in der localStorage-Persistenz (§10.3). Die Brücke
+lebt in `state/chart-view.js` und in der localStorage-Persistenz (§10.3). Die Brücke
 „Szenario → Trainer-Vorschlag" wäre eine Phase-4-Kreuzung und ist als möglicher späterer
 Schritt in `docs/offene-punkte.md` vermerkt.
 
@@ -375,7 +379,7 @@ Schritt in `docs/offene-punkte.md` vermerkt.
 - **§4 → §5:** „Zwei Zeiträume vergleichen" *ist* „zwei Brush-Auswahlen". Der
   Zeitraumzustand wird deshalb ab Schritt 0 als **Liste von Slots** modelliert, nicht als
   Einzelwert — der nachträgliche Umbau von 1 auf n wäre der teure.
-- **§3 ↔ §4** teilen sich denselben Zustandsspeicher (`state/explorer.js`). Einmal bauen,
+- **§3 ↔ §4** teilen sich denselben Zustandsspeicher (`state/chart-view.js`). Einmal bauen,
   zuerst.
 - **§5 ↔ §6** teilen sich dieselbe Rendering-Fähigkeit („zweite Serie über der ersten",
   inkl. Legende und Farbsemantik) — `SERIES_STYLE` wird vor dem ersten von beiden
@@ -390,7 +394,7 @@ Schritt in `docs/offene-punkte.md` vermerkt.
 
 | Schritt | Inhalt | Modell |
 |---|---|---|
-| **0** | `densifyDays()` in `core/` + `makeIndexScale()` in `base.js` + `state/explorer.js` + Explorer-Hauptchart nach dem `renderFtpForecast`-Muster | Entwurf **[OP]**, Umsetzung **[SO]** |
+| **0** | `densifyDays()`/`joinSeries()` in `core/days.js` + `makeIndexScale()` in `base.js` + `state/chart-view.js` + `renderPMC()` direkt umgebaut nach dem `renderFtpForecast`-Muster | Entwurf **[OP]**, Umsetzung **[SO]** |
 | **1** | Zeitraum-Brushing (§4) — etabliert den Zeitraum als zentrale Zustandsachse | **[SO]** |
 | **2** | Verknüpfte Charts (§3) — Selektion, dann Cursor-Sync | **[SO]** |
 | **3** | What-if (§6) — erste Mehrserien-Überlagerung, Zweitserie **erzeugt** | **[OP]** |
@@ -576,11 +580,9 @@ Playwright gegen `dashboard-dev`.
   `from === to`, Monats- und Jahreswechsel, Sommerzeit-Übergang (Zeitzonen-Falle —
   `localISODate()`-Konvention aus Phase 3 beachten, nicht UTC); Nachweis, dass eine
   Eingabe mit Lücken dieselbe Achsenlänge erzeugt wie eine ohne.
-- **`absence`-Auflösung:** echte Tagesbelastung wird zu `0`; Zustandsgrößen (CTL/ATL/TSB)
-  werden zur Lücke und anschließend über `fillGaps()` interpoliert (Ränder: nächst-
-  liegender bekannter Wert); Messmetriken bleiben ohne `fillGaps()` eine echte Lücke —
-  eine Serie mit ausschließlich Lücken bricht in keinem der drei Fälle etwas
-  (`tests/days.test.js`).
+- **`absence`-Auflösung:** rohe Eingabe wird zu `0`, geglättete/abgeleitete Reihe
+  schreibt den letzten Wert fort (`carry`), Messmetrik wird zur Lücke; eine
+  Serie mit ausschließlich Lücken bricht nichts.
 - **`makeIndexScale()`** (`tests/chart-layout.test.js`): `x()`/`invert()` als Rundreise;
   Ein-Tages-Fenster; Index außerhalb des Fensters.
 - **Kalender-Ticks**: Monats- und Wochenkandidaten, Monatsanfang am Bereichsrand.
@@ -590,7 +592,7 @@ Playwright gegen `dashboard-dev`.
   Szenario ohne Karten im Horizont, `uncertain`-Weitergabe aus `estimateTss()`.
 - **`core/compare.js`**: gleich lange Slots, ungleich lange Slots (kürzere endet früher,
   keine Streckung), leerer Slot, überlappende Slots.
-- **`state/explorer.js`**: localStorage-Rundreise, Athletenwechsel lädt den fremden
+- **`state/chart-view.js`**: localStorage-Rundreise, Athletenwechsel lädt den fremden
   Zustand nicht (Muster `loadedForAthleteId` aus `state/plan-cards.js`), defektes
   JSON in localStorage führt zu Default statt Absturz.
 - **Sichtbarkeit:** Test, dass `wellbeing`-Serien bei fehlender Freigabe **nicht geladen**
@@ -605,15 +607,15 @@ Playwright gegen `dashboard-dev`.
 
 - **X1 — Vergleichsachse: Zeitraum vs. Zeitraum, selber Athlet**, relative x-Achse
   (Tag 1 = Blockstart), ungleiche Längen werden nicht gestreckt. ✅
-- **X2 — Separate Explorer-Ansicht** statt Umbau des Charts-Tabs; „Vereinheitlichung"
-  bleibt eigener späterer Fahrplan-Schritt. ✅
-- **X3 (überarbeitet, Schritt-0-Umsetzung korrigiert §2.2) — Dichtes Tagesgerüst
-  (`densifyDays()` in `core/days.js`) plus Indexskala (`makeIndexScale()` in
-  `ui/charts/base.js`)** als eigentliche Vorbedingung von Schritt 0, statt einer
-  Zeitstempelskala. Densifiziert wird die Achse, nicht die Serie — **drei** Fälle statt
-  ursprünglich zwei: `"zero"` für echte Tagesbelastung (TSS/Distanz/Höhenmeter), `"gap"` +
-  `fillGaps()` für Zustandsgrößen (CTL/ATL/TSB — interpoliert, kein Nullen), `"gap"` ohne
-  Auffüllung für Messmetriken (echte Lücke). `renderFtpForecast` bleibt die Vorlage des
+- **X2 (revidiert) — Kein separater Explorer-Tab.** Die Bestandscharts werden direkt
+  modernisiert, `pmc.js` zuerst. „Vereinheitlichung" (Phase 7) entfällt als eigener
+  späterer Schritt, weil es keine zwei Bildsprachen mehr gibt, die zu vereinheitlichen
+  wären — die Modernisierung *ist* die Vereinheitlichung. ✅ (korrigiert nach erster
+  Umsetzungsrunde)
+- **X3 (überarbeitet) — Dichtes Tagesgerüst (`densifyDays()` in `core/`) plus
+  Indexskala (`makeIndexScale()` in `ui/charts/base.js`)** als eigentliche Vorbedingung
+  von Schritt 0, statt einer Zeitstempelskala. Densifiziert wird die Achse, nicht die
+  Serie (`absence: "zero" | "carry" | "gap"`). `renderFtpForecast` bleibt die Vorlage des
   Explorer-Hauptcharts, nicht `renderPMC`. → `docs/chart-grundlagen.md` §5, G10. ✅
 - **X4 — Skalen-Migration der Bestandscharts ist expliziter Nicht-Zielpunkt** von
   Phase 5; Athlet-2-Regressionsrisiko bei dünner Datenlage. In `docs/offene-punkte.md`
