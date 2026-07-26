@@ -113,6 +113,21 @@ mehrere bereits committete Dateien anfassen:
   beschränkt). Voraussetzung für Cursor-Sync über den Explorer hinaus.
   → `docs/phase-5-konzept-explorer.md` §1.2/§8, X4.
 
+## Infrastruktur/CI
+
+- **`sync-data.yml` läuft per Cron nur auf dem Default-Branch `main`** —
+  `on.schedule` führt GitHub Actions ausschließlich mit der Workflow-Datei
+  vom Default-Branch aus, unabhängig davon, welcher Branch gerade sonst
+  aktiv ist. `dashboard-2.0` bekommt dadurch **keine** automatischen
+  6h-Updates und fällt bei längerer Branch-Lebensdauer zunehmend zurück —
+  zuletzt 12 Tage (`data/rides.json` auf `dashboard-2.0` stand auf 14.07.,
+  während `main` bis 25.07./26.07. aktuell war). Kein Bug in
+  `scripts/generate-data.js`, reines GitHub-Actions-Verhalten. Gefunden
+  beim Playwright-Screenshot-Review der PMC-Naht in Phase 5 (die
+  ungewöhnlich lange asOf→heute-Brücke war ein direktes Symptom davon).
+  Entscheidung zu main→dashboard-2.0-Datensync oder Workflow-Anpassung
+  (z. B. zusätzlicher Trigger für Feature-Branches) steht aus.
+
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
 - **Roadmap-Versionierung**: Fahrplan-Datei liegt jetzt in `docs/`, lag vorher
