@@ -153,18 +153,34 @@ ui/
 Die vier Bestandsmodule `pmc/power/training/wellness.js` werden **nicht angefasst**,
 mit einer Ausnahme: dem Publizieren des Hover-Datums aus den vorhandenen Handlern (§3).
 
-### 2.2 Die tragende Ergänzung: eine kontinuierliche Datumsskala
+### 2.2 Die tragende Ergänzung: ein dichtes Tagesgerüst statt einer Zeitstempelskala
+
+*Geändert gegenüber der ersten Fassung — Begründung in `docs/chart-grundlagen.md` §5.*
+Eine Zeitstempelskala ist nicht nötig: über einer **lückenlosen Tagesreihe** ist der
+Index bereits eine Datumsachse. Statt aus Millisekunden zu rechnen, wird die Dichte
+garantiert.
 
 ```js
+// core/days.js — neu, pure
+export function densifyDays(fromISO, toISO);   // → lückenloses Tagesgerüst
+
 // ui/charts/base.js — neu, pure, testbar in tests/chart-layout.test.js
-export function makeDateScale({ fromISO, toISO, pad, width }) {
+export function makeIndexScale({ ws, we, pad, width }) {
   return {
-    x(iso),            // Datum → px
-    invert(px),        // px → Datum   ← existiert bislang nirgends
-    ticks(stepDays),   // Kalender-Kandidaten für pickLabelIndices
+    x(i),          // Tagesindex → px
+    invert(px),    // px → Tagesindex   ← existiert bislang nirgends
   };
 }
 ```
+
+**Densifiziert wird das Achsengerüst, nicht die Serie.** Lastmetriken (TSS, CTL, ATL,
+TSB) werden mit `0` aufgefüllt, Messmetriken (HRV, Ruhepuls, Gewicht, aerobe Effizienz,
+Decoupling, eFTP) bekommen eine Lücke — eine genullte Effizienz an einem Ruhetag wäre
+eine Falschaussage. Jede Serie erklärt dazu `absence: "zero" | "gap"`.
+
+Der Preis gegenüber einer Zeitstempelskala: bricht die Dichtezusage irgendwo, verschiebt
+sich die Achse still. `densifyDays()` ist deshalb eine reine Funktion mit eigenen Tests
+und wird verbindlich vor jedem Zeichnen aufgerufen, nie als Nebenwirkung im Ladepfad.
 
 **Warum in `ui/charts/base.js` und nicht in `core/`:** Die Funktion ist reine Arithmetik
 und wäre in `core/` formal sauberer. Dagegen steht, dass `base.js` mit
@@ -355,12 +371,12 @@ Schritt in `docs/offene-punkte.md` vermerkt.
 
 | Schritt | Inhalt | Modell |
 |---|---|---|
-| **0** | `makeDateScale()` in `base.js` + `state/explorer.js` + Explorer-Hauptchart nach dem `renderFtpForecast`-Muster | Entwurf **[OP]**, Umsetzung **[SO]** |
+| **0** | `densifyDays()` in `core/` + `makeIndexScale()` in `base.js` + `state/explorer.js` + Explorer-Hauptchart nach dem `renderFtpForecast`-Muster | Entwurf **[OP]**, Umsetzung **[SO]** |
 | **1** | Zeitraum-Brushing (§4) — etabliert den Zeitraum als zentrale Zustandsachse | **[SO]** |
 | **2** | Verknüpfte Charts (§3) — Selektion, dann Cursor-Sync | **[SO]** |
 | **3** | What-if (§6) — erste Mehrserien-Überlagerung, Zweitserie **erzeugt** | **[OP]** |
 | **4** | Vergleichsmodus (§5) — Zweitserie aus **echten** Daten, relative Ausrichtung | **[OP]** |
-| **5** | Vereinheitlichung mit dem Charts-Tab (Datumsformate, Kategorien) | **[HA]** |
+| **5** | Charts-Tab auf die neue Grundlage nachziehen — eigener Fahrplan-Schritt, s. §8 | **[OP]** |
 
 **Warum What-if vor Vergleichsmodus** (abweichend von der Fahrplan-Nennreihenfolge):
 Beide brauchen dieselbe Mehrserien-Fähigkeit, aber die Zweitserie des Szenarios stammt aus
@@ -380,15 +396,25 @@ bewährt hat.
   dünner Datenlage wäre das eine echte optische Regression an öffentlich sichtbarer
   Stelle. Als eigener Punkt in `docs/offene-punkte.md` vermerkt, für eine mögliche
   spätere, bewusste Entscheidung.
-- **Der Fahrplan-Schritt „Vereinheitlichung" [HA] bleibt auf Kosmetik beschränkt** —
-  Datumsformate und Kategorienamen, wie im Fahrplan formuliert. Er umfasst **nicht** die
-  Skalen-Migration; sonst wächst er in der Umsetzung still zu einem [OP]-Schritt.
+- **Der Fahrplan-Schritt „Vereinheitlichung" wird von [HA] auf [OP] hochgestuft und neu
+  geschnitten.** Mit der Chart-Grundlage aus `docs/chart-grundlagen.md` ist er kein
+  Kosmetikschritt mehr: rahmenlose Karten statt `0.5px solid #2a3140`, andere
+  Serienfarben, gemessene Breite statt skaliertem viewBox, geteiltes Tooltip-Overlay
+  statt `Tooltip` aus `ui/dom.js`, Direktbeschriftung statt Legende. Der Schritt bleibt
+  **nach** Phase 5 und wird ausdrücklich als eigener Posten eingeplant, statt still
+  anzuwachsen. → `docs/chart-grundlagen.md` §8, G12.
 - **Kein Facetten-/Kategorienfilter (1C)** in v1.
 - **Kein Athletenvergleich (3B)** — die beiden Athleten hängen an verschiedenen Quellen
   (intervals.icu vs. Amazfit/Zepp); HRV und Schlaf sind zwischen den Geräten nicht sauber
   vergleichbar. Ein Vergleich wäre optisch überzeugend und inhaltlich unsauber.
 - **Kein Plan-vs-Ist-Vergleich (3C)** in v1 — inhaltlich attraktiv, aber ein eigenes
   Chart, kein Modus.
+- **Keine lückigen Messreihen im Explorer v1.** Die `absence: "gap"`-Semantik wird in
+  Schritt 0 mitgebaut und getestet (sonst müsste sie später nachgerüstet werden, und bis
+  dahin würde still genullt), aber es wird v1 keine Messmetrik im Explorer dargestellt.
+  Aerobe Effizienz und Decoupling bleiben vorerst im Charts-Tab.
+- **Keine bucketweise Kopplung in v1.** Balkencharts nehmen erst am Fadenkreuz teil, wenn
+  der Charts-Tab nachgezogen wird (G12/G14).
 - **Kein neuer Rechenkern.** Weder eine zweite PMC-Implementierung noch eine
   Konfliktregel-Erweiterung. Monotonie/Strain nach Foster (im
   Konfliktlogik-Konzept §3 als „Phase-5-Material" erwähnt) bleibt draußen — Phase 5 ist
@@ -527,11 +553,15 @@ dem Telefon ohnehin den größeren Teil des Nutzens.
 Nach dem Phase-3-Muster: reine Funktionen vollständig, UI-Interaktion manuell bzw. per
 Playwright gegen `dashboard-dev`.
 
-- **`makeDateScale()`** (`tests/chart-layout.test.js`, zur bestehenden Datei): `x()`/
-  `invert()` als Rundreise; Randfälle `fromISO === toISO`, Datum außerhalb des Bereichs,
-  Sommerzeit-Übergang (Zeitzonen-Falle — `localISODate()`-Konvention aus Phase 3
-  beachten, nicht UTC).
-- **`ticks()`**: Monats- und Wochenkandidaten, Monatsanfang am Bereichsrand.
+- **`densifyDays()`** (`core/`): lückenloses Gerüst über einen Bereich; Randfälle
+  `from === to`, Monats- und Jahreswechsel, Sommerzeit-Übergang (Zeitzonen-Falle —
+  `localISODate()`-Konvention aus Phase 3 beachten, nicht UTC); Nachweis, dass eine
+  Eingabe mit Lücken dieselbe Achsenlänge erzeugt wie eine ohne.
+- **`absence`-Auflösung:** Lastmetrik wird zu `0`, Messmetrik zu einer Lücke; eine
+  Serie mit ausschließlich Lücken bricht nichts.
+- **`makeIndexScale()`** (`tests/chart-layout.test.js`): `x()`/`invert()` als Rundreise;
+  Ein-Tages-Fenster; Index außerhalb des Fensters.
+- **Kalender-Ticks**: Monats- und Wochenkandidaten, Monatsanfang am Bereichsrand.
 - **`pickLabelIndices()`** mit Skalen-Ticks statt Datenindizes — belegt, dass die
   Funktion unverändert trägt (§1.4).
 - **`core/scenario.js`**: jeder Parameter einzeln, Kombination zweier Parameter,
@@ -555,10 +585,11 @@ Playwright gegen `dashboard-dev`.
   (Tag 1 = Blockstart), ungleiche Längen werden nicht gestreckt. ✅
 - **X2 — Separate Explorer-Ansicht** statt Umbau des Charts-Tabs; „Vereinheitlichung"
   bleibt eigener späterer Fahrplan-Schritt. ✅
-- **X3 — Kontinuierliche Datumsskala (`makeDateScale`) in `ui/charts/base.js`** als
-  eigentliche Vorbedingung von Schritt 0; `renderFtpForecast` ist die Vorlage des
-  Explorer-Hauptcharts, nicht `renderPMC`. Ort bewusst `ui/charts/base.js` statt `core/`
-  (bestehende pure Helfer + Testdatei liegen dort). ✅
+- **X3 (überarbeitet) — Dichtes Tagesgerüst (`densifyDays()` in `core/`) plus
+  Indexskala (`makeIndexScale()` in `ui/charts/base.js`)** als eigentliche Vorbedingung
+  von Schritt 0, statt einer Zeitstempelskala. Densifiziert wird die Achse, nicht die
+  Serie (`absence: "zero" | "gap"`). `renderFtpForecast` bleibt die Vorlage des
+  Explorer-Hauptcharts, nicht `renderPMC`. → `docs/chart-grundlagen.md` §5, G10. ✅
 - **X4 — Skalen-Migration der Bestandscharts ist expliziter Nicht-Zielpunkt** von
   Phase 5; Athlet-2-Regressionsrisiko bei dünner Datenlage. In `docs/offene-punkte.md`
   vorgemerkt. ✅

@@ -23,10 +23,14 @@
 
 | Kürzel | Modell | Wofür |
 |---|---|---|
-| **[F5]** | Opus 4.7/4.8 | Architektur-Entscheidungen, Sicherheitskonzepte (RLS!), komplexes Debugging |
-| **[OP]** | Opus 4.6 | Große Refactorings, anspruchsvolle UI-Logik (Drag & Drop, State-Sync) |
-| **[SO]** | Sonnet 4.6 | Das Arbeitspferd: normale Implementierung in Claude Code, Mockups, CRUD-Features |
-| **[HA]** | Haiku 4.5 | Kleinkram: Texte, Umbenennungen, Commit-Messages, simple Fixes |
+| **[F5]** | Claude Fable 5 | Architektur-Entscheidungen, Sicherheitskonzepte (RLS!), komplexes Debugging |
+| **[OP]** | Claude Opus 5 | Große Refactorings, anspruchsvolle UI-Logik (Drag & Drop, State-Sync) |
+| **[SO]** | Claude Sonnet 5 | Das Arbeitspferd: normale Implementierung in Claude Code, Mockups, CRUD-Features |
+| **[HA]** | Claude Haiku 4.5 | Kleinkram: Texte, Umbenennungen, Commit-Messages, simple Fixes |
+
+> Fable 5 sitzt über Opus in Anthropics Mythos-Tier. Es läuft mit Safeguards, die
+> einzelne Anfragen an Opus 5 umleiten — laut Anthropic im Schnitt unter 5 % der
+> Sitzungen.
 
 ---
 
@@ -132,26 +136,34 @@
 
 ## Phase 5 — Explorative Datenansichten 🔍
 
-*Mockup: Explorer-Ansicht.*
+*Mockup: Explorer-Ansicht — im Chat iteriert und abgenommen.*
 
-- [x] Konzept: Verknüpfte Charts, Zeitraum-Brushing, Vergleichsmodus, What-if-Szenarien **[OP]** → `docs/phase-5-konzept-explorer.md`
-- [ ] Mockup erstellen und iterieren **[SO]**
-- [ ] Umsetzung schrittweise pro Interaktion **[SO]**, bei kniffligen Chart-Interaktionen **[OP]**
-- [ ] Vereinheitlichung mit bestehendem Charts-Tab (Datumsformate, Kategorien) **[HA]**
+- [x] Konzept: Verknüpfte Charts, Zeitraum-Brushing, Vergleichsmodus, What-if-Szenarien **[OP]** → `docs/phase-5-konzept-explorer.md` (Entscheidungen X1–X11)
+- [x] Chart-Grundlagen aus dem Claude-Design-Entwurf abgeleitet **[OP]** → `docs/chart-grundlagen.md` (Entscheidungen G1–G14): Tokens, Zeichenprimitiven, Interaktionskonventionen, sechs Chart-Familien
+- [x] Mockup erstellen und iterieren **[SO]** — drei Varianten im Chat, Variante B (Fokus mit Kennzahlenzeile) gewählt, mit Claude Design gegengeprüft. Zurückgestellt: lückige Messreihen und bucketweise Kopplung im Explorer (§8 im Konzept)
+- [ ] Schritt 0 — Explorer-Gerüst: `densifyDays()` in `core/`, `makeIndexScale()` + Primitiven in `base.js`, `state/explorer.js`, Hauptchart nach dem `renderFtpForecast`-Muster **[SO]** → `docs/claude-code-prompt-phase5-schritt0.md`
+- [ ] Schritt 1 — Zeitraum-Brushing: Übersichtsleiste + Presets **[SO]**
+- [ ] Schritt 2 — Verknüpfte Charts: Selektion, dann Cursor-Sync **[SO]**
+- [ ] Schritt 3 — What-if-Szenarien auf `core/projection.js`, kein eigener Prognose-Layer **[OP]**
+- [ ] Schritt 4 — Vergleichsmodus: zwei Zeiträume, selber Athlet, relative x-Achse **[OP]**
 - [ ] Tests **[SO]**
 
+> Der ursprünglich hier geplante Schritt „Vereinheitlichung mit bestehendem Charts-Tab
+> **[HA]**" ist entfallen und als eigene Phase 7 neu geschnitten — Begründung in
+> `docs/chart-grundlagen.md` §8 (G12).
+
 **Entscheidungen Phase 5:**
-- X1: Vergleichsachse 3A (Zeitraum vs. Zeitraum, relative x-Achse) ✅
-- X2: separate Explorer-Ansicht statt Charts-Tab-Umbau ✅
-- X3: kontinuierliche Datumsskala in ui/charts/base.js als Schritt-0-Vorbedingung ✅
-- X4: Skalen-Migration der Bestandscharts expliziter Nicht-Zielpunkt ✅
-- X5: Heute-/Zukunftsmarke separat gezeichnet statt pickLabelIndices-Erweiterung ✅
-- X6: Explorer öffentlich + Serien-nach-Quelle-Regel ✅
-- X7: projection.asOf als einzige Ist/Prognose-Naht ✅
-- X8: Achse reicht immer bis horizonEnd ✅
-- X9: Zustandspersistenz via localStorage ✅
-- X10: kein eigener Trainer-Modus ✅
-- X11: Mobil: Presets statt Brush ✅
+- X1: Vergleichsachse = zwei Zeiträume, selber Athlet, relative x-Achse ✅
+- X2: Separate Explorer-Ansicht, keine Erweiterung des Charts-Tabs ✅
+- X3: Dichtes Tagesgerüst (`densifyDays`) + Indexskala statt Zeitstempelskala ✅
+- X4: Skalen-Migration der Bestandscharts ist Nicht-Zielpunkt von Phase 5 ✅
+- X5: Heute-/Zukunftsmarke separat zeichnen, `pickLabelIndices()` unangetastet ✅
+- X6: Explorer öffentlich; Serien nach Quelle führen, nie nach Thema zusammenfassen ✅
+- X7: `projection.asOf` ist die einzige Naht; Historie wird nie neu gerechnet ✅
+- X8: Achse reicht immer bis `horizonEnd`; What-if parametrisch auf `core/projection.js` ✅
+- X9: Zustandspersistenz über `localStorage("explorer_<athleteId>")`, kein Router ✅
+- X10: Kein eigener Trainer-Modus in v1 ✅
+- X11: Mobil Presets statt Brush unterhalb einer Viewport-Schwelle ✅
 
 ---
 
@@ -174,6 +186,27 @@
 
 ---
 
+## Phase 7 — Charts-Tab auf die neue Grundlage nachziehen 📊
+
+*Ersetzt den ursprünglichen [HA]-Schritt „Vereinheitlichung" aus Phase 5. Hochgestuft,
+weil die Chart-Grundlage nicht kosmetisch mit dem Bestand verträglich ist: rahmenlose
+Karten statt `0.5px solid #2a3140`, Rollenfarben, gemessene Breite statt skaliertem
+viewBox, geteiltes Tooltip-Overlay statt `Tooltip` aus `ui/dom.js`, Direktbeschriftung
+statt Legende. → `docs/chart-grundlagen.md` §8, G12.*
+
+*Bewusst nach Phase 6: Der finale Security-Review am Ende von Phase 6 schließt den
+Funktionsbogen — ein Redesign davor ließe die Prüfliste gegen ein bewegliches Ziel laufen.*
+
+- [ ] `pmc.js`/`power.js`/`training.js`/`wellness.js` von indexbasierten auf dichte Tagesachsen (`densifyDays()`) **[OP]**
+- [ ] Rollenfarben, rahmenlose Karten, gemessene Breite + `ResizeObserver` **[SO]**
+- [ ] `Tooltip` aus `ui/dom.js` und das geteilte Overlay-Muster zusammenführen **[OP]**
+- [ ] Direktbeschriftung statt Legende; Segment-Label-Muster (`fitsLabel`) in `pmc/power/training` nachziehen **[SO]**
+- [ ] Bucketweise Kopplung ans Fadenkreuz (`Tag → Bucket` als reine Funktion in `core/`) **[SO]**
+- [ ] Lückige Messreihen (`absence: "gap"`) sichtbar machen: aerobe Effizienz, Decoupling, HRV **[SO]**
+- [ ] Regressionsprüfung bei dünner Datenlage (Athlet 2) — Tage ohne Daten erscheinen künftig als Lücken, wo die Achse sie heute zusammenschiebt **[SO]**
+
+---
+
 ## Nächster Schritt
 
 ➡️ **Phase 3 ist abgeschlossen** (Migration, Karten-CRUD, Drag & Drop, Prognose/Konfliktlogik, Nach-Drop-Feedback — s. Phase-3-Abschnitt oben). Offen bleibt nur die manuelle Browser-Verifikation von Schritt 5 gegen `training-dashboard-dev` (Drag/Move/Event-Änderung live prüfen, s. `docs/offene-punkte.md`) sowie die Drag-Live-Färbung (K2) als späterer Polish-Schritt — beides kein Blocker für Phase 4.
@@ -188,6 +221,14 @@ unterwegs — veraltete `payload`-CHECK-Constraint — von Alex im SQL-Editor ne
 re-verifiziert). Damit erzeugt ein Athlet Vorschläge jetzt auf zwei Wegen: direkt durch
 seinen menschlichen Trainer (Karten-Dialog) oder durch Claude über den Export/Import-Workflow.
 
-➡️ **Phase 5 — Konzept abgeschlossen** (`docs/phase-5-konzept-explorer.md`, Entscheidungen
-X1–X11 s. Phase-5-Abschnitt oben). **Nächster Schritt: Mockup-Runde** (Visualizer,
-iterativ, Abnahme durch Alex vor jeglicher Implementierung) — **[SO]**.
+➡️ **Phase 5 — Explorative Datenansichten läuft.** Konzept (`docs/phase-5-konzept-explorer.md`,
+X1–X11) und Chart-Grundlagen (`docs/chart-grundlagen.md`, G1–G14) sind geschrieben und
+abgenommen; die Mockup-Runde ist durch (drei Varianten im Chat, Variante B gewählt, mit
+Claude Design gegengeprüft).
+
+➡️ **Nächster Schritt: Phase 5, Schritt 0 — Explorer-Gerüst** — **[SO] Claude Sonnet 5**.
+Prompt liegt in `docs/claude-code-prompt-phase5-schritt0.md`. Umfang: `densifyDays()` in
+`core/`, `makeIndexScale()` + Zeichenprimitiven in `ui/charts/base.js`,
+`state/explorer.js`, Hauptchart nach dem `renderFtpForecast`-Muster. Ein Commit.
+Bei Problemen an der Naht `data/*.json` ↔ `getState().projection` auf **[OP] Claude Opus 5**
+wechseln.
