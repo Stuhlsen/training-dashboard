@@ -4,8 +4,8 @@
    ============================================================ */
 
 import { fmt, fmtDate, fmtDateFull, localISODate, addDaysISO } from "../../core/format.js";
-import { interpolateCtl, tsbOf, currentPmc } from "../../core/pmc.js";
-import { densifyDays, joinSeries } from "../../core/days.js";
+import { interpolateCtl, tsbOf, currentPmc, projectPmc } from "../../core/pmc.js";
+import { densifyDays } from "../../core/days.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import {
   gridLines,
@@ -129,6 +129,73 @@ function measuredWidth(svg, fallback = 780) {
   return w > 0 ? w : fallback;
 }
 
+/**
+ * Lückenlose CTL/ATL/TSB-Reihe über den gesamten Skelett-Bereich.
+ *
+ * CTL/ATL sind eine kontinuierlich geglättete Zustandsgröße — sie existieren
+ * an JEDEM Tag, unabhängig davon, wie viele Tage seit der letzten Fahrt
+ * vergangen sind. Ein früherer Versuch, das über `joinSeries(..., "carry")`
+ * zu lösen, brach genau dort: die generische "carry"-Regel überträgt nur
+ * EINEN einzelnen fehlenden Tag und behandelt zwei oder mehr als echte
+ * Lücke. Das erzeugte zwei sichtbare Fehler (Playwright-Screenshot-Review):
+ * eine Lücke zwischen der letzten Fahrt (`asOf`) und "heute" bei Stuhlsen
+ * (Brücke oft länger als 1 Tag), und bei hc_diZee zerfiel die gesamte
+ * Ist-Kurve in Fragmente, weil dünnere Datenlage regelmäßig Trainingspausen
+ * von 2+ Tagen enthält, die keine "echte Datenlücke" sind, sondern schlicht
+ * Ruhetage.
+ *
+ * Statt einer willkürlichen Lauflängen-Schwelle wird hier für JEDEN Tag ohne
+ * eigene Ride-Zeile über `core/pmc.js::projectPmc()` (TSS=0) vom letzten
+ * bekannten CTL/ATL aus weiter zerfallen — dieselbe Fortschreibung, die
+ * `currentPmc()` bereits für den "Aktuell"-Wert im Chart-Header nutzt.
+ * Das deckt sowohl innerhalb der Historie liegende Ruhetage als auch die
+ * Brücke zwischen `asOf` und "heute" ab, ohne dass hier selbst Prognose
+ * betrieben würde (X7 bleibt gewahrt: ab `todayIdx` werden ausschließlich
+ * die bereits fertigen Werte aus `projection.days` übernommen, nie
+ * eigenständig weitergerechnet).
+ * @param {Array<{dateISO:string}>} skeleton
+ * @param {import("../../types.js").Ride[]} sortedRides Nach dateISO aufsteigend, nur mit ctl+atl
+ * @param {Array<{dateISO:string, ctl:number, atl:number, tsb:number}>} projRows Prognosetage (bereits dicht)
+ * @param {number} todayIdx Skelett-Index von "heute" (Prognosestart), -1 wenn unbekannt
+ * @returns {{ctl: Array<number|null>, atl: Array<number|null>, tsb: Array<number|null>}}
+ */
+function densifyPmc(skeleton, sortedRides, projRows, todayIdx) {
+  const rideByDate = new Map(sortedRides.map((r) => [r.dateISO, r]));
+  const projByDate = new Map(projRows.map((r) => [r.dateISO, r]));
+  const n = skeleton.length;
+  const ctl = new Array(n).fill(null);
+  const atl = new Array(n).fill(null);
+  const tsb = new Array(n).fill(null);
+  const histEnd = todayIdx >= 0 ? todayIdx : n; // exklusiv — ab hier zählt nur projection.days
+
+  let last = null; // { ctl, atl, sinceIdx }
+  for (let i = 0; i < histEnd; i++) {
+    const ride = rideByDate.get(skeleton[i].dateISO);
+    if (ride) {
+      ctl[i] = ride.ctl;
+      atl[i] = ride.atl;
+      tsb[i] = tsbOf(ride);
+      last = { ctl: ride.ctl, atl: ride.atl, sinceIdx: i };
+    } else if (last) {
+      const proj = projectPmc(last.ctl, last.atl, i - last.sinceIdx);
+      ctl[i] = proj.ctl;
+      atl[i] = proj.atl;
+      tsb[i] = proj.tsb;
+    }
+    // sonst: vor der ersten bekannten Fahrt im sichtbaren Fenster — bleibt null,
+    // kein erfundener Vorgeschichte-Wert.
+  }
+  for (let i = Math.max(histEnd, 0); i < n; i++) {
+    const row = projByDate.get(skeleton[i].dateISO);
+    if (row) {
+      ctl[i] = row.ctl;
+      atl[i] = row.atl;
+      tsb[i] = row.tsb;
+    }
+  }
+  return { ctl, atl, tsb };
+}
+
 /** Baut zusammenhängende Pfad-Segmente aus einer Werteserie, an `null`-Lücken
  *  unterbrochen (kein Sprung über eine echte Datenlücke hinweg). */
 function segmentsFor(vals, from, to, scale, yOf) {
@@ -181,12 +248,6 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     const scale = makeIndexScale({ ws, we, padLeft: pad.l, width: plotW });
 
     // Ist-Fahrten + Prognosetage auf dasselbe Tagesgerüst bringen (X7).
-    const histRows = sorted.map((r) => ({
-      dateISO: r.dateISO,
-      ctl: r.ctl,
-      atl: r.atl,
-      tsb: tsbOf(r),
-    }));
     const projRows = (projection?.days || []).map((d) => ({
       dateISO: d.date,
       ctl: d.ctl,
@@ -194,12 +255,6 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       tsb: d.tsb,
       uncertain: d.uncertain,
     }));
-    const allRows = [...histRows, ...projRows];
-
-    const ctlVals = joinSeries(skeleton, allRows, { key: "ctl", absence: "carry" });
-    const atlVals = joinSeries(skeleton, allRows, { key: "atl", absence: "carry" });
-    const tsbVals = joinSeries(skeleton, allRows, { key: "tsb", absence: "carry" });
-
     const uncertainDates = new Set(projRows.filter((r) => r.uncertain).map((r) => r.dateISO));
 
     const todayISO = projection?.days?.[0]?.date ?? null;
@@ -207,6 +262,8 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     const asOfISO = projection?.asOf ?? null;
     const foundAsOfIdx = asOfISO ? skeleton.findIndex((s) => s.dateISO === asOfISO) : -1;
     const seamIdx = foundAsOfIdx >= 0 ? foundAsOfIdx : todayIdx;
+
+    const { ctl: ctlVals, atl: atlVals, tsb: tsbVals } = densifyPmc(skeleton, sorted, projRows, todayIdx);
 
     const knownVals = [...ctlVals, ...atlVals].filter((v) => v != null);
     const maxCA = knownVals.length ? Math.max(...knownVals) * 1.1 : 10;
@@ -250,13 +307,31 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
 
     // Unsicherheitsband: Prognosetage mit uncertain===true (§6.3) — Hinweisfläche,
     // kein erfundener Präzisionsschein bei dünner K3-Typ-Default-TSS-Basis.
+    // EIN durchgehendes Band über den gesamten unsicheren Bereich (erster bis
+    // letzter unsicherer Tag), nicht ein Rechteck pro Tag oder pro Lauf —
+    // `uncertain` wechselt tageweise (K3-Typ-Default hängt von der jeweiligen
+    // Karte ab), ein Rechteck pro zusammenhängendem Lauf hätte bei täglichem
+    // Wechsel dasselbe Zebra-Muster erzeugt wie Einzeltag-Rechtecke
+    // (Playwright-Screenshot-Review). Ein einzelnes zusammenfassendes Band
+    // sagt ehrlich "irgendwo in diesem Bereich ist die Prognose unsicher",
+    // ohne den Eindruck tagesgenauer Präzision zu erwecken, den die
+    // zugrunde liegende K3-Typ-Default-TSS ohnehin nicht hergibt.
+    let uMin = null,
+      uMax = null;
     for (let i = Math.max(seamIdx, 0); i <= we; i++) {
       if (!uncertainDates.has(skeleton[i].dateISO)) continue;
+      if (uMin === null) uMin = i;
+      uMax = i;
+    }
+    if (uMin !== null) {
+      const halfStep = (scale.x(1) - scale.x(0)) / 2;
+      const x0 = scale.x(uMin) - halfStep;
+      const x1 = scale.x(uMax) + halfStep;
       svg.appendChild(
         svgEl("rect", {
-          x: scale.x(i) - (scale.x(1) - scale.x(0)) / 2,
+          x: x0,
           y: pad.t,
-          width: Math.max(1, scale.x(1) - scale.x(0)),
+          width: Math.max(1, x1 - x0),
           fill: CHART_THEME.role.status,
           opacity: "0.06",
           height: plotH,
