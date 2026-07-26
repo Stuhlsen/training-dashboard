@@ -111,7 +111,7 @@ function updateChartExplainers(ownPlan, ftp) {
   if (ownPlan) {
     set(
       "explainer-pmc",
-      `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.`
+      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.`
     );
     set(
       "explainer-trimp",
@@ -152,7 +152,7 @@ function updateChartExplainers(ownPlan, ftp) {
   } else {
     set(
       "explainer-pmc",
-      `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`
+      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`
     );
     set(
       "explainer-trimp",
@@ -433,7 +433,13 @@ async function renderAll(athleteId) {
   renderRecords("records-wall", recordProgression(rides));
 
   // Charts — Fitness & Belastung (Belastungswächter: Ramp + Foster-Monotonie)
-  Charts.renderPMC("chart-pmc", rides);
+  Charts.renderPMC(
+    "chart-pmc",
+    rides,
+    getPlanCardsState().projection,
+    getEventsState().events,
+    Data.activeAthleteId
+  );
   initPeriodToggles(rides, weekly, guard, (week) => {
     document.querySelector('[data-tab="table"]').click();
     Table.filterByWeek(week);

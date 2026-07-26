@@ -4,7 +4,14 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickLabelIndices, weekDisplayLabels, fitsLabel } from "../assets/js/ui/charts/base.js";
+import {
+  pickLabelIndices,
+  weekDisplayLabels,
+  fitsLabel,
+  makeIndexScale,
+  pathD,
+  flattestIndex,
+} from "../assets/js/ui/charts/base.js";
 
 test("pickLabelIndices: hält den Mindestabstand ein und enthält immer den letzten Punkt", () => {
   // 27 Balken auf 714px Plotbreite (Screenshot-Fall) — Pitch ~26px < 40px minPx
@@ -71,4 +78,65 @@ test("fitsLabel: Grenzfall exakt an der Formel", () => {
   const exact = text.length * 5.4 + 8;
   assert.equal(fitsLabel(exact, text), true);
   assert.equal(fitsLabel(exact - 1, text), false);
+});
+
+/* makeIndexScale — Phase 5, Schritt 0 (docs/phase-5-konzept-explorer.md §2.2/§11):
+   Indexskala über ein dichtes Tagesgerüst. invert() ist die Umkehrung, die
+   im Bestand bislang nirgends existierte (Brushing/Crosshair brauchen sie). */
+test("makeIndexScale: x()/invert() als Rundreise", () => {
+  const scale = makeIndexScale({ ws: 0, we: 99, padLeft: 40, width: 720 });
+  for (const i of [0, 1, 37, 99]) {
+    assert.ok(Math.abs(scale.invert(scale.x(i)) - i) < 1e-9, `Rundreise schlägt fehl bei i=${i}`);
+  }
+  assert.equal(scale.x(0), 40); // linker Rand = padLeft
+  assert.equal(scale.x(99), 40 + 720); // rechter Rand = padLeft + width
+});
+
+test("makeIndexScale: Ein-Tages-Fenster (ws === we) teilt nicht durch 0", () => {
+  const scale = makeIndexScale({ ws: 5, we: 5, padLeft: 10, width: 380 });
+  assert.equal(scale.x(5), 10); // span auf 1 erzwungen (Math.max(1, we-ws))
+  assert.ok(Number.isFinite(scale.x(5)));
+  assert.ok(Math.abs(scale.invert(scale.x(5)) - 5) < 1e-9);
+});
+
+test("makeIndexScale: Index außerhalb des Fensters extrapoliert linear, ohne Klemmung", () => {
+  const scale = makeIndexScale({ ws: 10, we: 20, padLeft: 0, width: 100 });
+  assert.ok(scale.x(30) > 100, "ein Index jenseits von we liegt jenseits der Plotbreite");
+  assert.ok(scale.x(0) < 0, "ein Index vor ws liegt vor dem linken Rand");
+});
+
+/* pathD — d-String aus Punktpaaren, ersetzt polyline points= */
+test("pathD: baut M/L-Pfad aus Punktpaaren", () => {
+  assert.equal(
+    pathD([
+      [0, 10],
+      [5, 20],
+      [10, 0],
+    ]),
+    "M0,10 L5,20 L10,0"
+  );
+});
+
+test("pathD: leere Punktliste ergibt leeren Pfad", () => {
+  assert.equal(pathD([]), "");
+});
+
+/* flattestIndex — Labelplatzierung auf dem flachsten Kurvenstück */
+test("flattestIndex: findet das eindeutig flache Stück einer Kurve", () => {
+  // Werte fallen steil, verlaufen zwischen Index 4..7 flach, steigen dann wieder
+  const values = [100, 80, 60, 45, 40, 39, 38, 38, 60, 90];
+  const idx = flattestIndex(values, 0, values.length - 1, (v) => v, 0, 1);
+  assert.ok(idx >= 4 && idx <= 7, `erwarte einen Index im flachen Bereich, bekam ${idx}`);
+});
+
+test("flattestIndex: null-Werte (Lücken) werden übersprungen, kein Crash", () => {
+  const values = [10, null, null, 12, 12, 40];
+  const idx = flattestIndex(values, 0, values.length - 1, (v) => v, 0, 1);
+  assert.equal(idx, 3); // 12→12 ist die einzige bewertbare flache Kante
+});
+
+test("flattestIndex: keine zwei benachbarten bekannten Werte im Fenster → null", () => {
+  const values = [10, null, null, null, 40];
+  const idx = flattestIndex(values, 0, values.length - 1, (v) => v, 0, 1);
+  assert.equal(idx, null);
 });

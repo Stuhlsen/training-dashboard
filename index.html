@@ -140,20 +140,13 @@
           <span class="toggle-icon" style="transform:rotate(180deg)">▾</span>
         </div>
         <div class="chart-group-body">
-          <div class="chart-box">
+          <div class="chart-box chart-box--modern">
             <div class="chart-header">
               <span class="chart-title heatmap-title">PMC · Performance Management Chart</span>
               <span class="chart-note" id="pmc-note"></span>
             </div>
-            <div class="chart-scroll" id="pmc-scroll">
-              <svg class="chart chart-wide" id="chart-pmc" viewBox="0 0 780 250"></svg>
-            </div>
-            <div class="chart-legend">
-              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> CTL (Fitness)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> ATL (Ermüdung)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#4a9a6e"></div> TSB (Form)</div>
-            </div>
-            <p class="chart-explainer" id="explainer-pmc">CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
+            <svg class="chart" id="chart-pmc"></svg>
+            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
           </div>
 
           <div class="chart-box">

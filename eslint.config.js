@@ -26,6 +26,7 @@ export default [
         URL: "readonly",
         FileReader: "readonly",
         crypto: "readonly",
+        ResizeObserver: "readonly",
       },
     },
     rules: {

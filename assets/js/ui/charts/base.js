@@ -22,6 +22,28 @@ export const CHART_THEME = {
   thr: "#d94f4f", // Rot / Schwelle (--thr)
   vo2: "#a24ad0", // VO2max (--vo2)
   gold: "#c9a84c", // Übergang / Hinweise (--gold)
+
+  // Rollenfarben (docs/chart-grundlagen.md §2.1, G2) — zusätzlich zu den
+  // Zonenfarben oben, ersetzt sie nicht. Zonenfarben bleiben für Kartenrahmen
+  // der Plankarten und die Leistungsskala in Gebrauch; Rollenfarben benennen
+  // die FUNKTION einer Serie im jeweiligen Chart (Rolle→Serie ist pro Chart
+  // zu bestimmen, nicht global).
+  role: {
+    primary: "#4a9eff", // Hauptmetrik (z.B. CTL)
+    secondary: "#e0736b", // Nebenmetrik (z.B. ATL)
+    positive: "#6fc48c", // Form/TSB im unkritischen Bereich
+    status: "#e8b73f", // Zustand, Schwellenüberschreitung, Events
+  },
+  surface: {
+    plate: "#141619", // Label-Plättchen im Chart (haloLabel), opacity .9
+    tooltip: "rgba(24,27,33,0.96)",
+  },
+  ink: {
+    ink: "#f0f2f5", // Zahlen/Überschriften
+    soft: "#9aa0a8", // Fließtext
+    label: "#6b7178", // Achsen-/Kachel-Labels
+    faint: "#565b62", // Achseneinheiten, Randnotizen
+  },
 };
 
 /** Horizontale Grid-Linien mit Y-Achsen-Labels */
@@ -181,6 +203,174 @@ export function axisTitles(svg, W, H, pad, { x, yLeft, yRight } = {}) {
     t.textContent = yRight;
     svg.appendChild(t);
   }
+}
+
+/**
+ * Index-basierte x-Skala über ein Fenster [ws, we] (Phase 5, Schritt 0 —
+ * docs/phase-5-konzept-explorer.md §2.2). Arbeitet auf Tagesindizes eines
+ * dichten Tagesgerüsts (core/days.js::densifyDays), nicht auf Zeitstempeln.
+ * `width` ist die bereits um beide Ränder reduzierte Plotbreite (Aufrufer
+ * zieht `pad.l`/`pad.r` vorher ab) — `padLeft` verschiebt nur den Ursprung.
+ * `invert()` extrapoliert linear über [ws, we] hinaus (keine Klemmung).
+ * @param {{ws:number, we:number, padLeft:number, width:number}} args
+ * @returns {{x:(i:number)=>number, invert:(px:number)=>number}}
+ */
+export function makeIndexScale({ ws, we, padLeft, width }) {
+  const span = Math.max(1, we - ws);
+  return {
+    x: (i) => padLeft + ((i - ws) / span) * width,
+    invert: (px) => ws + ((px - padLeft) / width) * span,
+  };
+}
+
+/**
+ * d-String aus Punktpaaren — ersetzt das `points`-Attribut von `<polyline>`.
+ * Baut zusätzlich geschlossene Flächen (`pathD(pts) + " L… Z"`) und Bänder.
+ * @param {Array<[number, number]>} points
+ * @returns {string}
+ */
+export function pathD(points) {
+  if (!points.length) return "";
+  return points.map(([x, y], i) => `${i === 0 ? "M" : "L"}${x},${y}`).join(" ");
+}
+
+/**
+ * Label-Plättchen (docs/chart-grundlagen.md §3.2): abgerundetes Rechteck in
+ * `CHART_THEME.surface.plate` (fill-opacity .9) hinter dem Text — Direkt-
+ * beschriftung bleibt so lesbar, auch über Linien/Flächen. Breite wird NICHT
+ * geschätzt (`text.length * 6.4` bricht bei Umlauten/anderen Schriftgrößen),
+ * sondern per `getComputedTextLength()` nach dem Einfügen gemessen.
+ * @param {SVGElement} svg
+ * @param {number} x @param {number} y
+ * @param {string} text
+ * @param {string} fill Textfarbe (i.d.R. die Serienfarbe)
+ * @param {string|number} [weight]
+ */
+export function haloLabel(svg, x, y, text, fill, weight = 600) {
+  const t = svgEl("text", {
+    x,
+    y,
+    "text-anchor": "middle",
+    fill,
+    "font-size": "12",
+    "font-weight": String(weight),
+  });
+  t.textContent = text;
+  svg.appendChild(t);
+  const tw = t.getComputedTextLength ? t.getComputedTextLength() : text.length * 6.4;
+  const plate = svgEl("rect", {
+    x: x - tw / 2 - 5,
+    y: y - 12,
+    width: tw + 10,
+    height: 16,
+    rx: 4,
+    fill: CHART_THEME.surface.plate,
+    "fill-opacity": "0.9",
+  });
+  svg.insertBefore(plate, t);
+  return t;
+}
+
+/**
+ * Findet die flachste Stelle einer Kurve zwischen zwei relativen Positionen
+ * — für Direktbeschriftung ohne Legende (docs/chart-grundlagen.md §3.2).
+ * Sucht den Index mit der geringsten lokalen Steigung |y[i+1]-y[i]|.
+ * @param {Array<number|null>} values Serie in Skelettlänge (Tagesindex)
+ * @param {number} ws Fensteranfang (Tagesindex)
+ * @param {number} we Fensterende (Tagesindex)
+ * @param {(v:number)=>number} yOf Wert → px
+ * @param {number} [from] relative Startposition im Fenster (0..1)
+ * @param {number} [to] relative Endposition im Fenster (0..1)
+ * @returns {number|null} Tagesindex der flachsten Stelle, oder null ohne Kandidaten
+ */
+export function flattestIndex(values, ws, we, yOf, from = 0, to = 1) {
+  const lo = Math.round(ws + (we - ws) * from);
+  const hi = Math.round(ws + (we - ws) * to);
+  let bestIdx = null;
+  let bestSlope = Infinity;
+  for (let i = Math.max(lo, ws); i < Math.min(hi, we); i++) {
+    const a = values[i];
+    const b = values[i + 1];
+    if (a == null || b == null) continue;
+    const slope = Math.abs(yOf(b) - yOf(a));
+    if (slope < bestSlope) {
+      bestSlope = slope;
+      bestIdx = i;
+    }
+  }
+  return bestIdx;
+}
+
+/**
+ * `feDropShadow`-Filter für Glow auf Hauptserien-Linien (docs/chart-
+ * grundlagen.md §6, G8). `id` MUSS pro Chart-Instanz namensräumt werden —
+ * SVG-Filter-IDs sind dokumentweit, und die App zeigt viele Charts auf einer
+ * Seite. Kein Default: ein Aufrufer ohne eigene, eindeutige ID bekommt einen
+ * Fehler statt eines möglicherweise kollidierenden generischen Filters.
+ * @param {SVGElement} defs
+ * @param {string} id Eindeutig pro Chart-Instanz, z.B. "glow-pmc-ctl"
+ * @param {string} color
+ * @param {number} [stdDeviation]
+ * @returns {string} `url(#id)`
+ */
+export function glowFilter(defs, id, color, stdDeviation = 2.5) {
+  if (!id) throw new Error("glowFilter: id ist pflicht (pro Chart-Instanz namensräumen)");
+  const filter = svgEl("filter", { id, x: "-50%", y: "-50%", width: "200%", height: "200%" });
+  filter.appendChild(
+    svgEl("feDropShadow", {
+      dx: "0",
+      dy: "0",
+      stdDeviation,
+      "flood-color": color,
+      "flood-opacity": "0.55",
+    })
+  );
+  defs.appendChild(filter);
+  return `url(#${id})`;
+}
+
+/**
+ * Abgestuftes Gitter (docs/chart-grundlagen.md §2.4): wird nach unten hin
+ * heller (`rgba(255,255,255, 0.04 + k*0.008)`), hält den oberen Chartbereich
+ * ruhig, wo die Kurven meist liegen. Ersetzt `gridLines()`s feste Linie dort,
+ * wo ein Chart auf die neue Optik umgestellt wird — `gridLines()` selbst
+ * bleibt für Bestandscharts unverändert.
+ * @param {SVGElement} svg
+ * @param {{x0:number, x1:number, yOf:(v:number)=>number, lo:number, hi:number, steps?:number}} args
+ */
+export function gradedGrid(svg, { x0, x1, yOf, lo, hi, steps = 4 }) {
+  for (let k = 0; k <= steps; k++) {
+    const v = lo + ((hi - lo) / steps) * k;
+    const y = yOf(v);
+    svg.appendChild(
+      svgEl("line", {
+        x1: x0,
+        y1: y,
+        x2: x1,
+        y2: y,
+        stroke: `rgba(255,255,255,${0.04 + k * 0.008})`,
+        "stroke-width": "1",
+      })
+    );
+  }
+}
+
+/**
+ * Achseneinheit über der obersten Achsenzahl, rechtsbündig, in `faint`
+ * (docs/chart-grundlagen.md §3.4, G4). Kein rotierter Achsentitel.
+ * @param {SVGElement} svg
+ * @param {{x:number, y:number, text:string}} args
+ */
+export function axisUnit(svg, { x, y, text }) {
+  const t = svgEl("text", {
+    x,
+    y,
+    "text-anchor": "end",
+    fill: CHART_THEME.ink.faint,
+    "font-size": "9",
+  });
+  t.textContent = text;
+  svg.appendChild(t);
 }
 
 /** Horizontales Auto-Scroll für breite Charts: Container scrollbar machen
