@@ -91,7 +91,6 @@
         <button class="tab-btn" data-tab="table">Fahrtenbuch</button>
         <button class="tab-btn" data-tab="planned">Planung</button>
         <button class="tab-btn" data-tab="analysis">Analyse</button>
-        <button class="tab-btn" data-tab="explorer">Explorer</button>
       </div>
       <div class="tabs-athlete">
         <span class="tabs-divider" aria-hidden="true"></span>
@@ -525,20 +524,6 @@
         <div class="analysis-box" id="analysis-periodization"></div>
       </div>
 
-    </section>
-
-    <!-- ── Tab: Explorer (Phase 5, Schritt 0) ──────────────────────
-         Öffentlich, kein Gate (docs/phase-5-konzept-explorer.md §9).
-         Nur der Hauptchart — Brush/Presets/Crosshair folgen in Schritt 1/2. -->
-    <section id="tab-explorer" class="tab-content hidden">
-      <div class="chart-box">
-        <div class="chart-header">
-          <span class="chart-title">Explorer</span>
-          <span class="chart-note">CTL (blau) · ATL (rot) · durchgezogen = Ist, gestrichelt = Prognose</span>
-        </div>
-        <svg class="chart" id="chart-explorer-main" viewBox="0 0 780 200"></svg>
-        <p class="chart-explainer">Erster Baustein der explorativen Ansicht: eine kontinuierliche Tagesachse über Historie und Prognose hinweg. Zeitraum-Brushing, verknüpfte Charts und What-if-Szenarien folgen in den nächsten Schritten.</p>
-      </div>
     </section>
 
     <!-- Footer -->

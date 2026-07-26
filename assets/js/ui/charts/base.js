@@ -183,24 +183,6 @@ export function axisTitles(svg, W, H, pad, { x, yLeft, yRight } = {}) {
   }
 }
 
-/**
- * Index-basierte x-Skala über ein Fenster [ws, we] (Phase 5, Schritt 0 —
- * docs/phase-5-konzept-explorer.md §2.2). Arbeitet auf Tagesindizes eines
- * dichten Tagesgerüsts (core/days.js::densifyDays), nicht auf Zeitstempeln.
- * `invert()` extrapoliert linear über [ws, we] hinaus (keine Klemmung) —
- * das Clipping auf den sichtbaren Bereich ist Sache des aufrufenden Charts.
- * @param {{ws:number, we:number, pad:{l:number,r:number}, width:number}} args
- * @returns {{x:(i:number)=>number, invert:(px:number)=>number}}
- */
-export function makeIndexScale({ ws, we, pad, width }) {
-  const innerW = width - pad.l - pad.r;
-  const span = Math.max(1, we - ws);
-  return {
-    x: (i) => pad.l + ((i - ws) / span) * innerW,
-    invert: (px) => ws + ((px - pad.l) / innerW) * span,
-  };
-}
-
 /** Horizontales Auto-Scroll für breite Charts: Container scrollbar machen
  *  und ganz nach rechts (neueste Daten) scrollen */
 export function autoScrollRight(svg, W, container) {
