@@ -122,6 +122,18 @@ mehrere bereits committete Dateien anfassen:
   State-Slot plus die Frage, wie sich `selected` zu `hovered` verhält
   (welches gewinnt visuell), nicht nur ein zusätzlicher Funktionsaufruf.
   → `docs/phase-5-konzept-explorer.md` §2.1, §3.
+- **Vergleichsmodus (Schritt 4) vergleicht nur CTL**, nicht ATL/TSB — bewusste
+  Scope-Begrenzung, analog zur Szenario-Zweitserie (Schritt 3), die ebenfalls
+  nur CTL überlagert. Eine spätere Erweiterung auf ATL/TSB bräuchte eine
+  eigene Entscheidung, wie zwei zusätzliche Serienpaare (4 Kurven auf einer
+  Achse) ohne Überladung darstellbar sind.
+- **`compareSlots` in `state/chart-view.js` ist ein eigenständiges Feld,
+  keine Verallgemeinerung von `ws`/`we` auf eine Liste** — das Konzept (§7.1)
+  hatte den Zeitraumzustand ab Schritt 0 als Liste vorausgesehen, tatsächlich
+  blieb der Hauptbrush ein Einzelwert. Nutzerentscheidung: additiv statt
+  Umbau, geringeres Risiko für Schritt 0–3. Falls ein künftiger Baustein
+  einen dritten unabhängigen Zeitraum bräuchte, wäre das wieder eine
+  Einzelfall-Erweiterung, kein automatischer Fall für die bestehende Form.
 
 ## Infrastruktur/CI
 

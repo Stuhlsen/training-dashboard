@@ -221,7 +221,36 @@
   (Basis + Szenario) sichtbar, Parameter überleben Reload bei
   `enabled:false` **[OP]**. Vier Commits (`71d9b22`, `e2451d1`, `02f28f0`,
   `dac9e93`).
-- [ ] Schritt 4 — Vergleichsmodus: zwei Zeiträume, selber Athlet, relative x-Achse **[OP]**
+- [x] Schritt 4 — Vergleichsmodus: zwei Zeiträume, selber Athlet, relative x-Achse **[OP]**.
+  Teil A: `core/compare.js` (neu, pure) — `buildCompare(rides, slotA, slotB)`
+  richtet auf `dayOffset` aus (`densifyDays`/`joinSeries` aus `core/days.js`
+  wiederverwendet, kein neuer Kontinuitätsalgorithmus), Kennzahlen (Σ TSS,
+  ⌀ CTL, Rampe, harte Tage über `intensityClass` aus `core/plan-config.js`),
+  ungleiche Slot-Längen werden nicht gestreckt. Teil B: additives
+  `compareSlots`-Feld (`{enabled, a, b}`) in `state/chart-view.js`, Muster
+  wie `scenario` — Slots bleiben gemerkt, auch wenn der Modus aus ist;
+  bestehender `ws`/`we`-Hauptbrush aus Schritt 1 unverändert (Nutzer-
+  entscheidung gegen den im Konzept vorausgesetzten Umbau auf eine
+  Slot-Liste, s. §7.1). Teil C: `drawCompareView()` in `renderPMC()` ersetzt
+  bei aktivem Vergleich die normale Historie/Prognose-Zeichnung komplett
+  (relative + absolute Achse passen nicht in dieselbe `<svg>`), Serie A
+  `--z2` durchgezogen, Serie B `--ss` über `SERIES_STYLE.secondary`
+  (Konvention aus Schritt 3 wiederverwendet). Wochen-Aggregation je Slot
+  getrennt (zwei farbige Tick-Zeilen), `weekDisplayLabels()` auf der
+  vollständigen geordneten Wochenliste vor dem Ausdünnen (§1.4). Teil D:
+  Cursor pro Slot fällt aus dem bestehenden Mehrserien-Hover-Muster heraus
+  (ein Crosshair, zwei `hoverDot()`s) — bewusst lokal am SVG-Knoten, nicht
+  über `state/chart-view.js::hoveredDate` (zwei echte Daten pro `dayOffset`
+  passen nicht auf ein einzelnes globales Datum). Teil E: „Als A/B merken"
+  + Ein-/Ausschalten + Kennzahlen-Anzeige unter dem PMC-Chart, Explainer-Text
+  in BEIDEN `app.js::updateChartExplainers()`-Athleten-Zweigen UND der
+  statischen `index.html`-Fassung ergänzt (AGENTS.md-Hinweis bestätigt).
+  Playwright-Verifikation deckte einen Scoping-Bug auf (`scenario`/
+  `compareSlots` nur im neuen Compare-Zweig sichtbar, brach den Szenario-
+  Regler-Sync bei JEDEM Render, nicht nur im Vergleichsmodus) — Fix in den
+  verursachenden Commit zurück-amendet statt separatem Fixup-Commit. Für
+  beide Athleten gegen `training-dashboard-dev` verifiziert (Playwright).
+  Fünf Commits (`1e915b4`, `a480da5`, `7efd90e`, `2bbf432`, `940ab8f`).
 - [ ] Schritt 5 — `power.js` modernisieren (Chart-Familie 4) **[SO]**
 - [ ] Schritt 6 — `training.js` modernisieren (Chart-Familie 3) **[SO]**
 - [ ] Schritt 7 — `wellness.js` modernisieren (Chart-Familien 1/2) **[SO]**
@@ -310,12 +339,35 @@ Achsenhorizont bleibt beim Ein-/Ausschalten stabil (X8), Szenario-Parameter
 persistieren, das Ergebnis selbst nie (§6.4). Für beide Athleten gegen
 `training-dashboard-dev` per Playwright verifiziert.
 
-➡️ **Nächster Schritt: Phase 5, Schritt 4 — Vergleichsmodus** — **[OP]**.
-Zwei Zeiträume desselben Athleten, relative x-Achse (Tag 1 = Blockstart),
-`core/compare.js` (neu, pure). Teilt sich mit Schritt 3 dieselbe
-Mehrserien-Rendering-Fähigkeit (`SERIES_STYLE`, jetzt in `base.js`) und
-denselben Zustandsspeicher (`state/chart-view.js`, `compareSlots` als Liste
-von Slots vorgesehen, s. Konzept §7.1).
+➡️ **Phase 5, Schritt 4 (Vergleichsmodus) ist abgeschlossen.**
+`core/compare.js` (neu, pure) richtet zwei Zeiträume auf `dayOffset`
+(Tag 1 = Blockstart) aus, komplett auf bereits vorhandenen, getesteten
+Primitiven aufgebaut (`densifyDays`/`joinSeries` aus `core/days.js`,
+`intensityClass` aus `core/plan-config.js` für „harte Tage") — keine neue
+Kontinuitätslogik. `state/chart-view.js` bekam ein additives
+`compareSlots`-Feld (`{enabled, a, b}`, Muster wie `scenario`) statt eines
+Umbaus von `ws`/`we` auf eine Liste (Nutzerentscheidung: der bestehende
+Hauptbrush aus Schritt 1 bleibt unangetastet). `renderPMC()` schaltet bei
+aktivem Vergleich komplett auf die relative Achse um (ersetzt, überlagert
+nicht — eine relative und eine absolute Achse passen nicht in dieselbe
+`<svg>`), Serie A in `--z2`, Serie B über `SERIES_STYLE.secondary` in
+`--ss`. Cursor pro Slot fiel aus dem bestehenden Mehrserien-Hover-Muster
+heraus (ein Crosshair, zwei `hoverDot()`s), bewusst lokal am SVG-Knoten statt
+über das globale `hoveredDate` (zwei echte Daten pro `dayOffset` lassen sich
+nicht auf ein einzelnes Datum abbilden). Wochen-Aggregation ab ~40px/Tag,
+`weekDisplayLabels()` läuft je Slot auf der vollständigen geordneten
+Wochenliste vor dem Ausdünnen (§1.4-Reihenfolge). Playwright-Verifikation
+deckte einen Scoping-Bug auf (`scenario`/`compareSlots` nur im neuen
+Zweig sichtbar, brach den Szenario-Regler-Sync bei jedem Render) — in den
+verursachenden Commit zurück-amendet, kein separater Fixup-Commit. Für
+beide Athleten gegen `training-dashboard-dev` verifiziert (Playwright):
+Serien überlagert, ungleiche Längen strecken nicht, Cursor zeigt pro Slot
+korrekte Werte/Tooltip, Wochen-Umschaltung inkl. Athlet-2-Lückenfall
+(`joinSeries("carry")`, 2+ fehlende Tage bleiben Lücke statt fortgeschrieben).
+Fünf Commits (`1e915b4`, `a480da5`, `7efd90e`, `2bbf432`, `940ab8f`).
+
+➡️ **Nächster Schritt: Phase 5, Schritt 5 — `power.js` modernisieren**
+(Chart-Familie 4, `docs/chart-grundlagen.md` §7.2) — **[SO]**.
 
 ➡️ **Nächster Schritt: Phase 5, Schritt 3 — What-if-Szenarien** —
 **[OP]**. Parametrische Szenarien (Wochen-TSS ±%, zusätzliche Ruhetage,
