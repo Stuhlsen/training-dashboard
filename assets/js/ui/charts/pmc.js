@@ -17,6 +17,7 @@ import {
   pickLabelIndices,
   axisTitles,
   makeIndexScale,
+  measuredWidth,
   pathD,
   haloLabel,
   flattestIndex,
@@ -141,11 +142,6 @@ export function renderCTL(svgId, rides) {
 
 const PMC_H = 260;
 const PMC_PAD = { l: 54, r: 56, t: 30, b: 40 };
-
-function measuredWidth(svg, fallback = 780) {
-  const w = svg.clientWidth;
-  return w > 0 ? w : fallback;
-}
 
 /**
  * Lückenlose CTL/ATL/TSB-Reihe über den gesamten Skelett-Bereich.

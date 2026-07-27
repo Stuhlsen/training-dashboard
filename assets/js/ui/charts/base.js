@@ -372,6 +372,19 @@ export function gradedGrid(svg, { x0, x1, yOf, lo, hi, steps = 4 }) {
 }
 
 /**
+ * Gemessene Chart-Breite (G7) statt skaliertem viewBox — `svg.clientWidth`
+ * ist 0, solange das Element unsichtbar ist (z.B. noch im nicht aktiven
+ * Tab), deshalb der Fallback. Zentral hier statt pro Chart-Modul dupliziert
+ * (ursprünglich lokal in ui/charts/pmc.js, jetzt geteilt mit training.js).
+ * @param {SVGElement} svg @param {number} [fallback]
+ * @returns {number}
+ */
+export function measuredWidth(svg, fallback = 780) {
+  const w = svg.clientWidth;
+  return w > 0 ? w : fallback;
+}
+
+/**
  * Achseneinheit über der obersten Achsenzahl, rechtsbündig, in `faint`
  * (docs/chart-grundlagen.md §3.4, G4). Kein rotierter Achsentitel.
  * @param {SVGElement} svg
