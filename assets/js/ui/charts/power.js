@@ -17,6 +17,12 @@ import {
   pickLabelIndices,
   cardContentWidth,
   axisTitles,
+  gradedGrid,
+  axisUnit,
+  pathD,
+  crosshair,
+  hoverDot,
+  CHART_THEME,
 } from "./base.js";
 
 /** Zeichnet die Trendlinie einer Punktwolke (falls berechenbar) */
@@ -433,7 +439,21 @@ export function renderSmallMultiples(rides) {
   );
 }
 
-/* ── Power Curve ─────────────────────────────────────────────── */
+/* ── Power Curve (docs/chart-grundlagen.md §7.2, Familie 4 — Nicht-
+   Datumsachse: Dauer, keine Tagesachse). Schicht A vollständig übernommen:
+   Tokens, abgestuftes Gitter, Achseneinheit über der obersten Achsenzahl
+   (G4), gemessene Breite + ResizeObserver (G7) statt skaliertem viewBox,
+   pathD()/xLabel() statt Handschrift, lokale Hover-Ebene (§4.1). Schicht B
+   bewusst OHNE Brush, OHNE Fadenkreuz-Kopplung zu anderen Charts, OHNE Glow
+   und OHNE Kurvenbeschriftung (halo()/flat()) — Achsentitel statt Kurven-
+   label, Hover ist "nächstgelegener Punkt" auf der Dauer-Achse statt
+   Tages-Snapping (§7.2/§7.3). crosshair()/hoverDot() werden hier rein LOKAL
+   als Zeichenprimitiven verwendet (kein setHovered()/state/chart-view.js),
+   dasselbe Muster wie das Vergleichsmodus-Hover in pmc.js — Dauer-Buckets
+   sind keine Tagesindizes und nehmen an der Chart-übergreifenden Kopplung
+   nicht teil. Achsenlogik (Watt-/W-kg-Rundung, Bucket-Labels aus
+   core/powercurve.js) bewusst unverändert übernommen, nur die
+   Zeichenprimitiven ausgetauscht. ───────────────────────────────────── */
 
 // Cache für Einheiten-/Block-Toggle (Modul-Zustand statt this._pcCache)
 let pcCache = null;
@@ -441,11 +461,19 @@ let pcMode = "total"; // "total" | "blocks"
 let pcUnit = "w";
 
 const BLOCK_COLORS = {
-  plan1: "#4a7fa8",
-  "sweet-spot": "#e08a3c",
-  schwelle: "#d94f4f",
-  vo2max: "#a24ad0",
+  plan1: CHART_THEME.z2,
+  "sweet-spot": CHART_THEME.ss,
+  schwelle: CHART_THEME.thr,
+  vo2max: CHART_THEME.vo2,
 };
+
+const POWER_H = 260;
+const POWER_PAD = { l: 56, r: 16, t: 30, b: 44 };
+
+function measuredWidth(svg, fallback = 780) {
+  const w = svg.clientWidth;
+  return w > 0 ? w : fallback;
+}
 
 export function renderPowerCurve(svgId, powerCurves, ftp, weight, blocks) {
   // Daten einmal cachen für Toggles
@@ -493,6 +521,18 @@ export function renderPowerCurve(svgId, powerCurves, ftp, weight, blocks) {
       });
     });
   }
+
+  // Gemessene Breite + ResizeObserver (G7) statt skaliertem viewBox — draw()
+  // ist idempotent (svg.innerHTML wird am Anfang geleert). Alten Observer
+  // trennen, bevor ein neuer registriert wird (renderPowerCurve läuft pro
+  // Athletenwechsel/renderAll erneut, sonst stapeln sich Observer).
+  const svg = el(svgId);
+  if (svg) {
+    if (svg.__pcResizeObserver) svg.__pcResizeObserver.disconnect();
+    const observer = new ResizeObserver(() => drawPowerCurve(pcUnit));
+    observer.observe(svg);
+    svg.__pcResizeObserver = observer;
+  }
 }
 
 function drawPowerCurve(unit) {
@@ -504,12 +544,17 @@ function drawPowerCurve(unit) {
   if (!svg) return;
   svg.innerHTML = "";
 
+  const W = measuredWidth(svg);
+  const H = POWER_H,
+    pad = POWER_PAD;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
   if (!powerCurves) {
     const t = svgEl("text", {
-      x: 390,
-      y: 120,
+      x: W / 2,
+      y: H / 2,
       "text-anchor": "middle",
-      fill: "#5f6878",
+      fill: CHART_THEME.ink.soft,
       "font-size": "12",
     });
     t.textContent = "Power-Curve-Daten werden beim nächsten Sync geladen";
@@ -522,10 +567,10 @@ function drawPowerCurve(unit) {
 
   if (!curveData.length) {
     const t = svgEl("text", {
-      x: 390,
-      y: 120,
+      x: W / 2,
+      y: H / 2,
       "text-anchor": "middle",
-      fill: "#5f6878",
+      fill: CHART_THEME.ink.soft,
       "font-size": "12",
     });
     t.textContent = "Noch keine Power-Curve-Daten verfügbar";
@@ -539,9 +584,6 @@ function drawPowerCurve(unit) {
   const fmtAxis = (v) => (isWkg ? v.toFixed(1) : v + "W");
   const ftpVal = ftp ? toVal(ftp) : null;
 
-  const W = 780,
-    H = 260,
-    pad = { l: 56, r: 16, t: 20, b: 44 };
   const cw = W - pad.l - pad.r,
     ch = H - pad.t - pad.b;
   const vals = curveData.map((d) => toVal(d.watts));
@@ -549,32 +591,33 @@ function drawPowerCurve(unit) {
   const xScale = (i) => pad.l + (i / (curveData.length - 1)) * cw;
   const yScale = (v) => pad.t + ch - (v / maxV) * ch;
 
-  // Grid Y
+  // Gitter (abgestuft, §2.4) + y-Einheit über der obersten Achsenzahl (G4).
+  // Rundung/Schrittweite unverändert aus dem Bestand — nur die Zeichnung
+  // (gradedGrid statt fester Grid-Linie) und die Farbtoken sind neu.
   const step = isWkg ? (maxV > 10 ? 2 : maxV > 5 ? 1 : 0.5) : Math.ceil(maxV / 5 / 50) * 50;
-  for (let v = 0; v <= maxV; v += step) {
-    const y = yScale(v);
-    if (y < pad.t) break;
-    svg.appendChild(
-      svgEl("line", {
-        x1: pad.l,
-        y1: y,
-        x2: W - pad.r,
-        y2: y,
-        stroke: "#232a37",
-        "stroke-width": "1",
-      })
-    );
+  const gridSteps = Math.max(1, Math.floor(maxV / step));
+  gradedGrid(svg, {
+    x0: pad.l,
+    x1: W - pad.r,
+    yOf: yScale,
+    lo: 0,
+    hi: gridSteps * step,
+    steps: gridSteps,
+  });
+  for (let i = 0; i <= gridSteps; i++) {
+    const v = i * step;
     const t = svgEl("text", {
       x: pad.l - 6,
-      y: y + 4,
+      y: yScale(v) + 4,
       "text-anchor": "end",
-      fill: "#5f6878",
+      fill: CHART_THEME.ink.label,
       "font-size": "9",
     });
     t.textContent = fmtAxis(v);
     svg.appendChild(t);
   }
-  axisTitles(svg, W, H, pad, { x: "Zeitintervall", yLeft: isWkg ? "Leistung (W/kg)" : "Leistung (W)" });
+  axisUnit(svg, { x: pad.l - 6, y: pad.t - 10, text: isWkg ? "W/kg" : "Watt" });
+  axisTitles(svg, W, H, pad, { x: "Zeitintervall" });
 
   // FTP-Linie
   if (ftpVal != null) {
@@ -585,7 +628,7 @@ function drawPowerCurve(unit) {
         y1: ftpY,
         x2: W - pad.r,
         y2: ftpY,
-        stroke: "#c9a84c",
+        stroke: CHART_THEME.gold,
         "stroke-width": "1.5",
         "stroke-dasharray": "6,3",
         opacity: "0.8",
@@ -594,7 +637,7 @@ function drawPowerCurve(unit) {
     const ft = svgEl("text", {
       x: pad.l + 6,
       y: ftpY - 5,
-      fill: "#c9a84c",
+      fill: CHART_THEME.gold,
       "font-size": "9",
       "font-weight": "600",
     });
@@ -603,47 +646,45 @@ function drawPowerCurve(unit) {
   }
 
   // Fläche unter der Kurve
-  const areaPath =
-    `M${xScale(0)},${pad.t + ch} ` +
-    curveData.map((d, i) => `L${xScale(i)},${yScale(toVal(d.watts))}`).join(" ") +
-    ` L${xScale(curveData.length - 1)},${pad.t + ch} Z`;
-  svg.appendChild(svgEl("path", { d: areaPath, fill: "#e08a3c", opacity: "0.04" }));
+  const curvePts = curveData.map((d, i) => [xScale(i), yScale(toVal(d.watts))]);
+  const areaD =
+    pathD([[xScale(0), pad.t + ch], ...curvePts, [xScale(curveData.length - 1), pad.t + ch]]) + " Z";
+  svg.appendChild(svgEl("path", { d: areaD, fill: CHART_THEME.ss, opacity: "0.04" }));
 
   // Fläche über FTP — anaerobe Reserve
   if (ftpVal != null) {
     const ftpY = yScale(ftpVal);
-    const aboveFtpPath =
-      `M${xScale(0)},${Math.min(yScale(toVal(curveData[0].watts)), ftpY)} ` +
-      curveData
-        .map((d, i) => {
-          const y = yScale(toVal(d.watts));
-          return `L${xScale(i)},${Math.min(y, ftpY)}`;
-        })
-        .join(" ") +
-      ` L${xScale(curveData.length - 1)},${ftpY} L${xScale(0)},${ftpY} Z`;
-    svg.appendChild(svgEl("path", { d: aboveFtpPath, fill: "#d94f4f", opacity: "0.15" }));
+    const clampedPts = curvePts.map(([x, y]) => [x, Math.min(y, ftpY)]);
+    const aboveFtpD =
+      pathD([
+        [xScale(0), Math.min(curvePts[0][1], ftpY)],
+        ...clampedPts,
+        [xScale(curveData.length - 1), ftpY],
+        [xScale(0), ftpY],
+      ]) + " Z";
+    svg.appendChild(svgEl("path", { d: aboveFtpD, fill: CHART_THEME.thr, opacity: "0.15" }));
   }
 
   // Hauptkurve (Gesamt): im Blockmodus nur als heller Kontext
   svg.appendChild(
-    svgEl("polyline", {
+    svgEl("path", {
+      d: pathD(curvePts),
       fill: "none",
-      stroke: "#e2e7ef",
+      stroke: CHART_THEME.ink.ink,
       "stroke-width": blockMode ? "1.4" : "2",
       "stroke-linejoin": "round",
       opacity: blockMode ? "0.35" : "0",
       "stroke-dasharray": blockMode ? "4,3" : "none",
-      points: curveData.map((d, i) => `${xScale(i)},${yScale(toVal(d.watts))}`).join(" "),
     })
   );
   if (!blockMode) {
     svg.appendChild(
-      svgEl("polyline", {
+      svgEl("path", {
+        d: pathD(curvePts),
         fill: "none",
-        stroke: "#e08a3c",
+        stroke: CHART_THEME.ss,
         "stroke-width": "2",
         "stroke-linejoin": "round",
-        points: curveData.map((d, i) => `${xScale(i)},${yScale(toVal(d.watts))}`).join(" "),
       })
     );
   }
@@ -656,21 +697,21 @@ function drawPowerCurve(unit) {
     for (const block of blocks) {
       const bd = buildCurveData(block.curve);
       if (!bd.length) continue;
-      const color = BLOCK_COLORS[block.key] || "#c9a84c";
+      const color = BLOCK_COLORS[block.key] || CHART_THEME.gold;
       // auf die Standard-Labels der Hauptkurve mappen
       const pts = bd
         .map((d) => {
           const idx = curveData.findIndex((c) => c.secs === d.secs);
-          return idx >= 0 ? `${xScale(idx)},${yScale(toVal(d.watts))}` : null;
+          return idx >= 0 ? [xScale(idx), yScale(toVal(d.watts))] : null;
         })
         .filter(Boolean);
       if (pts.length < 2) continue;
-      const line = svgEl("polyline", {
+      const line = svgEl("path", {
+        d: pathD(pts),
         fill: "none",
         stroke: color,
         "stroke-width": "2",
         "stroke-linejoin": "round",
-        points: pts.join(" "),
         opacity: "0.9",
       });
       line.addEventListener("mouseenter", (e) =>
@@ -688,27 +729,30 @@ function drawPowerCurve(unit) {
     if (legend) {
       legend.innerHTML =
         legendItems.join("") +
-        `<div class="legend-item"><div class="legend-dot" style="background:#e2e7ef;opacity:0.4"></div> Gesamt</div>`;
+        `<div class="legend-item"><div class="legend-dot" style="background:${CHART_THEME.ink.ink};opacity:0.4"></div> Gesamt</div>`;
       legend.classList.remove("hidden");
     }
   } else if (legend) {
     legend.classList.add("hidden");
   }
   if (blockMode) {
-    // X-Labels auch ohne Punkt-Layer zeichnen
+    // X-Labels auch ohne Punkt-/Hover-Layer zeichnen
     curveData.forEach((d, i) => {
-      const xl = svgEl("text", {
-        x: xScale(i),
-        y: H - pad.b + 16,
-        "text-anchor": "middle",
-        fill: "#5f6878",
-        "font-size": "9",
-      });
-      xl.textContent = d.label;
-      svg.appendChild(xl);
+      xLabel(svg, xScale(i), H - pad.b + 16, d.label);
     });
-    return; // Punkte/Wert-Labels nur in der Gesamtansicht
+    return; // Punkte/Wert-Labels/Hover nur in der Gesamtansicht
   }
+
+  // Hover-Ebene (§4.1): eigene <g>, wird bei jedem Hover geleert und neu
+  // befüllt statt den Chart neu zu zeichnen. Familie 4 nimmt NICHT an der
+  // Chart-übergreifenden Fadenkreuz-Kopplung teil (§7.3) — crosshair()/
+  // hoverDot() werden hier rein lokal als Zeichenprimitiven verwendet, ohne
+  // state/chart-view.js, genau wie das Vergleichsmodus-Hover in pmc.js.
+  // "Nächstgelegener Punkt" ist hier trivial erfüllt: jeder Datenpunkt ist
+  // bereits ein diskreter Dauer-Bucket, es gibt nichts dazwischen zu
+  // interpolieren.
+  const hoverLayer = svgEl("g", {});
+  svg.appendChild(hoverLayer);
 
   // Punkte + Labels
   curveData.forEach((d, i) => {
@@ -723,17 +767,21 @@ function drawPowerCurve(unit) {
         cx: x,
         cy: y,
         r: "5",
-        fill: "#e08a3c",
-        stroke: "#0b0e13",
+        fill: CHART_THEME.ss,
+        stroke: CHART_THEME.bg,
         "stroke-width": "1.5",
       })
     );
 
-    // Tooltip — zeigt immer beide Einheiten
+    // Hit-Fläche (größerer Radius) trägt Hover + Tooltip — zeigt immer
+    // beide Einheiten
     const hit = svgEl("circle", { cx: x, cy: y, r: "10", fill: "transparent" });
     hit.style.cursor = "pointer";
     const wkgInfo = weight ? `${(d.watts / weight).toFixed(2)} W/kg` : "";
-    hit.addEventListener("mouseenter", (e) =>
+    hit.addEventListener("mouseenter", (e) => {
+      hoverLayer.textContent = "";
+      crosshair(hoverLayer, { x, top: pad.t, bottom: pad.t + ch });
+      hoverDot(hoverLayer, x, y, CHART_THEME.ss);
       Tooltip.show(
         e,
         `
@@ -741,9 +789,12 @@ function drawPowerCurve(unit) {
       <div class="tv">${Math.round(d.watts)} W${wkgInfo ? " · " + wkgInfo : ""}</div>
       <div class="td">${ftp ? `${(d.watts / ftp).toFixed(2)}× FTP · ${overFtp ? "über FTP" : "unter FTP"}` : ""}</div>
     `
-      )
-    );
-    hit.addEventListener("mouseleave", () => Tooltip.hide());
+      );
+    });
+    hit.addEventListener("mouseleave", () => {
+      hoverLayer.textContent = "";
+      Tooltip.hide();
+    });
     svg.appendChild(hit);
 
     // Wert-Label abwechselnd oben/unten
@@ -753,7 +804,7 @@ function drawPowerCurve(unit) {
       x,
       y: clampedY,
       "text-anchor": "middle",
-      fill: "#e08a3c",
+      fill: CHART_THEME.ss,
       "font-size": "9",
       "font-weight": "600",
     });
@@ -761,15 +812,7 @@ function drawPowerCurve(unit) {
     svg.appendChild(wl);
 
     // X-Label
-    const xl = svgEl("text", {
-      x,
-      y: H - pad.b + 16,
-      "text-anchor": "middle",
-      fill: "#5f6878",
-      "font-size": "9",
-    });
-    xl.textContent = d.label;
-    svg.appendChild(xl);
+    xLabel(svg, x, H - pad.b + 16, d.label);
   });
 }
 

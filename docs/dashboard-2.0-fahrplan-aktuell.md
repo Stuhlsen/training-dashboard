@@ -251,7 +251,26 @@
   verursachenden Commit zurück-amendet statt separatem Fixup-Commit. Für
   beide Athleten gegen `training-dashboard-dev` verifiziert (Playwright).
   Fünf Commits (`1e915b4`, `a480da5`, `7efd90e`, `2bbf432`, `940ab8f`).
-- [ ] Schritt 5 — `power.js` modernisieren (Chart-Familie 4) **[SO]**
+- [x] Schritt 5 — `power.js` modernisieren (Chart-Familie 4) **[SO]**.
+  Scope bewusst auf `renderPowerCurve()` begrenzt (Rückfrage vor der
+  Umsetzung, da der Auftrag nur die Power-Curve beschrieb) —
+  `renderEfficiency`/`renderScatter`/`renderSmallMultiples` in derselben
+  Datei bleiben offen, s. `docs/offene-punkte.md`. Schicht A vollständig
+  übernommen: Design-Tokens (`CHART_THEME`, inkl. `BLOCK_COLORS` jetzt aus
+  Zonenfarben statt eigener Hex-Literale), abgestuftes Gitter (`gradedGrid`),
+  Achseneinheit über der obersten Achsenzahl (`axisUnit`, "Watt"/"W/kg"),
+  gemessene Breite + `ResizeObserver` statt festem `viewBox 780×260`,
+  `pathD()`/`xLabel()` statt Handschrift. Schicht B nach Familie 4: kein
+  Brush, keine Fadenkreuz-Kopplung zu anderen Charts, kein Glow, keine
+  Kurvenbeschriftung (Achsentitel statt `halo()`/`flat()`) — Hover ist
+  "nächstgelegener Punkt" auf der Dauer-Achse, rein lokal am SVG-Knoten über
+  eine eigene Hover-`<g>` mit `crosshair()`/`hoverDot()` als Zeichen-
+  primitiven (kein `state/chart-view.js`, analog zum Vergleichsmodus-Hover
+  in `pmc.js`). Achsenlogik (Watt-/W-kg-Rundung, Bucket-Labels aus
+  `core/powercurve.js`) unverändert übernommen. Für beide Athleten gegen
+  einen lokalen Dev-Server per Playwright verifiziert: Gesamt-/Block-/W-kg-
+  Ansicht, Hover-Tooltip + Crosshair, `ResizeObserver`-Redraw bei
+  Viewport-Resize (1202px → 807px), keine Konsolenfehler.
 - [ ] Schritt 6 — `training.js` modernisieren (Chart-Familie 3) **[SO]**
 - [ ] Schritt 7 — `wellness.js` modernisieren (Chart-Familien 1/2) **[SO]**
 - [ ] Tests **[SO]**
@@ -366,8 +385,12 @@ korrekte Werte/Tooltip, Wochen-Umschaltung inkl. Athlet-2-Lückenfall
 (`joinSeries("carry")`, 2+ fehlende Tage bleiben Lücke statt fortgeschrieben).
 Fünf Commits (`1e915b4`, `a480da5`, `7efd90e`, `2bbf432`, `940ab8f`).
 
-➡️ **Nächster Schritt: Phase 5, Schritt 5 — `power.js` modernisieren**
-(Chart-Familie 4, `docs/chart-grundlagen.md` §7.2) — **[SO]**.
+➡️ **Phase 5, Schritt 5 (`power.js`/Power-Curve, Chart-Familie 4) ist
+abgeschlossen.** Scope bewusst auf `renderPowerCurve()` begrenzt, s.
+Phase-5-Abschnitt oben und `docs/offene-punkte.md`.
+
+➡️ **Nächster Schritt: Phase 5, Schritt 6 — `training.js` modernisieren**
+(Chart-Familie 3, `docs/chart-grundlagen.md` §7.2) — **[SO]**.
 
 ➡️ **Nächster Schritt: Phase 5, Schritt 3 — What-if-Szenarien** —
 **[OP]**. Parametrische Szenarien (Wochen-TSS ±%, zusätzliche Ruhetage,

@@ -134,6 +134,16 @@ mehrere bereits committete Dateien anfassen:
   Umbau, geringeres Risiko für Schritt 0–3. Falls ein künftiger Baustein
   einen dritten unabhängigen Zeitraum bräuchte, wäre das wieder eine
   Einzelfall-Erweiterung, kein automatischer Fall für die bestehende Form.
+- **Schritt 5 modernisierte in `power.js` bewusst NUR `renderPowerCurve()`
+  (Familie 4)** — `renderEfficiency()` (Familie 2, lückige Zeitreihe),
+  `renderScatter()` und `renderSmallMultiples()` (Familie 5, Small
+  Multiples) blieben unangetastet, obwohl sie in derselben Datei stehen. Der
+  Schritt-5-Auftrag beschrieb ausschließlich die Power-Curve, ohne die drei
+  anderen Charts zu erwähnen (auch nicht als expliziten Ausschluss) —
+  Nutzerentscheidung (Rückfrage vor der Umsetzung): Scope bleibt auf die
+  Power-Curve begrenzt. Brauchen bei Bedarf eigene Schritte (5b/5c oder als
+  Teil von Schritt 6/7), jeweils nach ihrer eigenen Familie aus
+  `docs/chart-grundlagen.md` §7.2. → `docs/phase-5-konzept-explorer.md` §2.4.
 
 ## Infrastruktur/CI
 
