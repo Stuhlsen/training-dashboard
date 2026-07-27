@@ -221,6 +221,72 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   max-width: 420px;
 }
 
+/* ── Vergleichsmodus (Phase 5, Schritt 4, Teil E) — docs/phase-5-konzept-
+   explorer.md §5: gleicher Wrapper-Stil wie .chart-scenario (eigene Domäne,
+   kein Wiederverwenden derselben Klasse — Szenario ist Prognose, Vergleich
+   ist Ist-Vergangenheit). Slot-Farben spiegeln die Serienfarben im Chart
+   (A = --z2, B = --ss). ── */
+.chart-compare {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.chart-compare-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.chart-compare-toggle input[type="checkbox"] {
+  accent-color: var(--z2);
+  cursor: pointer;
+}
+.chart-compare-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.chart-compare-slots .unit-btn[data-compare-slot="a"] {
+  border-color: var(--z2);
+}
+.chart-compare-slots .unit-btn[data-compare-slot="b"] {
+  border-color: var(--ss);
+}
+.chart-compare-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 480px;
+}
+.chart-compare-metrics dl {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dim);
+  border-left: 2px solid transparent;
+  padding-left: 8px;
+}
+.chart-compare-metrics dl[data-slot="a"] {
+  border-left-color: var(--z2);
+}
+.chart-compare-metrics dl[data-slot="b"] {
+  border-left-color: var(--ss);
+}
+.chart-compare-metrics dt {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.chart-compare-metrics dd {
+  margin: 0 0 2px 0;
+}
+
 /* ── Scrollable chart container ───────────────────────────────── */
 .chart-scroll {
   overflow-x: auto;

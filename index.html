@@ -179,7 +179,27 @@
                 </div>
               </div>
             </div>
-            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. Darunter die Übersichtsleiste: Fenster ziehen oder Zeitraum-Button klicken, um die Ansicht einzugrenzen. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert.</p>
+            <div class="chart-compare" id="pmc-compare">
+              <label class="chart-compare-toggle">
+                <input type="checkbox" id="pmc-compare-toggle">
+                <span>Vergleichsmodus</span>
+              </label>
+              <div class="chart-compare-slots">
+                <button class="unit-btn" type="button" data-compare-slot="a">Als A merken</button>
+                <button class="unit-btn" type="button" data-compare-slot="b">Als B merken</button>
+              </div>
+              <div class="chart-compare-metrics">
+                <dl data-slot="a" id="pmc-compare-metrics-a">
+                  <dt>Zeitraum A</dt>
+                  <dd>noch nicht gemerkt</dd>
+                </dl>
+                <dl data-slot="b" id="pmc-compare-metrics-b">
+                  <dt>Zeitraum B</dt>
+                  <dd>noch nicht gemerkt</dd>
+                </dl>
+              </div>
+            </div>
+            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. Darunter die Übersichtsleiste: Fenster ziehen oder Zeitraum-Button klicken, um die Ansicht einzugrenzen. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert. Vergleichsmodus: aktuelles Fenster als Zeitraum A/B merken, um zwei Blöcke überlagert auf einer relativen Tage-Achse zu vergleichen (Tag 1 = Blockstart) — ungleich lange Zeiträume werden nicht gestreckt.</p>
           </div>
 
           <div class="chart-box">

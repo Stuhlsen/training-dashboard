@@ -41,6 +41,8 @@ import {
   onChartViewChange,
   setScenarioParams,
   setScenarioEnabled,
+  setCompareSlot,
+  setCompareEnabled,
 } from "../../state/chart-view.js";
 
 /* ── CTL-Progression mit Interpolation ───────────────────────── */
@@ -529,6 +531,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
   const overviewSvg = el("chart-pmc-overview");
   const presetsWrap = el("pmc-brush-presets");
   const scenarioWrap = el("pmc-scenario");
+  const compareWrap = el("pmc-compare");
 
   const sorted = (rides || [])
     .filter((r) => r.ctl != null && r.atl != null)
@@ -615,8 +618,9 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     // Presets und Szenario-Regler bleiben unverändert aktiv (Fensterwahl für
     // "Als A/B merken" bleibt möglich, unabhängig vom Anzeigemodus).
     const compareActive = !!(compareSlots.enabled && compareSlots.a && compareSlots.b);
+    let compareResult = null;
     if (compareActive) {
-      drawCompareView(svg, { W, H }, rides, compareSlots);
+      compareResult = drawCompareView(svg, { W, H }, rides, compareSlots);
     } else {
     // Y-Skalen aus dem SICHTBAREN Fenster, nicht aus dem vollen Skelett —
     // Reinzoomen zeigt mehr Y-Detail (erwartete Brush/Zoom-Semantik).
@@ -1111,6 +1115,34 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       if (rampInput) rampInput.value = String(scenario.rampRatePct);
       if (rampVal) rampVal.textContent = `${scenario.rampRatePct > 0 ? "+" : ""}${scenario.rampRatePct}%`;
     }
+
+    // Vergleichsmodus-Bedienelemente (Phase 5, Schritt 4, Teil E) — hält
+    // `draw`/`skeleton` aktuell (Muster wie presetsWrap.__pmcApi, für die
+    // "Als A/B merken"-Buttons, die ws/we über das aktuelle Skelett in
+    // {from, to} umrechnen müssen) UND spiegelt Toggle + Kennzahlen.
+    if (compareWrap) {
+      compareWrap.__pmcApi = { draw, skeleton, ws, we };
+      const toggle = compareWrap.querySelector("#pmc-compare-toggle");
+      if (toggle) toggle.checked = compareSlots.enabled;
+
+      const renderMetrics = (id, label, slot, metrics) => {
+        const dl = compareWrap.querySelector(`#${id}`);
+        if (!dl) return;
+        if (!slot) {
+          dl.innerHTML = `<dt>${label}</dt><dd>noch nicht gemerkt</dd>`;
+        } else if (!compareActive) {
+          dl.innerHTML = `<dt>${label}</dt><dd>gemerkt — Vergleichsmodus einschalten für Kennzahlen</dd>`;
+        } else {
+          dl.innerHTML = `<dt>${label}</dt>
+            <dd>Σ TSS ${fmt(metrics.sumTss)}</dd>
+            <dd>⌀ CTL ${metrics.avgCtl != null ? fmt(metrics.avgCtl) : "–"}</dd>
+            <dd>Rampe ${metrics.ramp != null ? (metrics.ramp > 0 ? "+" : "") + fmt(metrics.ramp) : "–"}</dd>
+            <dd>Harte Tage ${metrics.hardDays}</dd>`;
+        }
+      };
+      renderMetrics("pmc-compare-metrics-a", "Zeitraum A", compareSlots.a, compareResult?.a?.metrics);
+      renderMetrics("pmc-compare-metrics-b", "Zeitraum B", compareSlots.b, compareResult?.b?.metrics);
+    }
   };
 
   draw();
@@ -1175,6 +1207,37 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       if (rampVal) rampVal.textContent = `${v > 0 ? "+" : ""}${v}%`;
       setScenarioParams({ rampRatePct: v });
       redraw();
+    });
+  }
+
+  // Vergleichsmodus-Bedienelemente (Schritt 4, Teil E) — EINMAL gebunden
+  // (Guard wie bei Presets/Szenario), liest `compareWrap.__pmcApi` erst beim
+  // jeweiligen Event. "Als A/B merken" rechnet das aktuelle Brush-Fenster
+  // (ws/we, Tagesindex) über das zuletzt gezeichnete Skelett in {from, to}
+  // (ISO) um — der Vergleich ist damit die natürliche Fortsetzung des
+  // Brush-Fensters aus Schritt 1, kein eigenes Bedienkonzept.
+  if (compareWrap && !compareWrap._bound) {
+    compareWrap._bound = true;
+    const redraw = () => compareWrap.__pmcApi?.draw();
+
+    const toggle = compareWrap.querySelector("#pmc-compare-toggle");
+    toggle?.addEventListener("change", () => {
+      setCompareEnabled(toggle.checked);
+      redraw();
+    });
+
+    compareWrap.querySelectorAll("[data-compare-slot]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const api = compareWrap.__pmcApi;
+        if (!api) return;
+        const { skeleton, ws: curWs, we: curWe } = api;
+        if (!skeleton?.length) return;
+        const from = skeleton[curWs]?.dateISO;
+        const to = skeleton[curWe]?.dateISO;
+        if (!from || !to) return;
+        setCompareSlot(btn.dataset.compareSlot, { from, to });
+        redraw();
+      });
     });
   }
 
