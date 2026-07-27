@@ -22,6 +22,8 @@ import {
   CHART_THEME,
   presetWindow,
   brushOverlay,
+  crosshair,
+  hoverDot,
 } from "./base.js";
 import {
   loadForAthlete as loadChartView,
@@ -29,6 +31,7 @@ import {
   setWindow,
   setHovered,
   clearHovered,
+  onChartViewChange,
 } from "../../state/chart-view.js";
 
 /* ── CTL-Progression mit Interpolation ───────────────────────── */
@@ -285,6 +288,32 @@ function drawOverview(svg, { skeleton, ctlVals, seamIdx, todayIdx, totalWs, tota
   }
 
   brushOverlay(svg, { scale: fullScale, pad, H, plotW, totalWs, totalWe, ws, we, minW: MIN_W, onChange });
+}
+
+/** Zeichnet das Fadenkreuz + je Serie einen Doppelkreis für den aktuell
+ *  gehoverten Tag (Schritt 2, Teil B) — leert und befüllt ausschließlich
+ *  `geo.hoverLayer`, das Chart selbst wird nie neu gezeichnet (§4.1). Liest
+ *  `svg.__pmcGeometry` frisch bei jedem Aufruf (wie `svg.__brushConfig` in
+ *  base.js), nie eine über einen renderPMC()-Aufruf hinweg festgehaltene
+ *  Closure — ein Athletenwechsel ersetzt die Geometrie vor dem nächsten
+ *  Hover-Event.
+ * @param {SVGElement} svg */
+function paintHover(svg) {
+  const geo = svg.__pmcGeometry;
+  if (!geo) return;
+  geo.hoverLayer.textContent = "";
+  const { hoveredDate } = getChartViewState();
+  if (!hoveredDate) return;
+  const i = geo.skeleton.findIndex((s) => s.dateISO === hoveredDate);
+  if (i < 0 || i < geo.ws || i > geo.we) return;
+
+  const x = geo.x(i);
+  crosshair(geo.hoverLayer, { x, top: geo.top, bottom: geo.top + geo.plotH });
+  for (const s of geo.series) {
+    const v = s.vals[i];
+    if (v == null) continue;
+    hoverDot(geo.hoverLayer, x, s.yOf(v), s.color);
+  }
 }
 
 export function renderPMC(svgId, rides, projection, events, athleteId) {
@@ -639,9 +668,11 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     });
     xLabel(svg, scale.x(ws), H - pad.b + 14, fmtDate(skeleton[ws].dateISO));
 
-    // Hover-Ebene (§4.1) — in Schritt 0 noch leer, Geometrie für Schritt 1/2
-    // (Brush/Crosshair) am SVG-Knoten hinterlegt, damit spätere Schritte sie
-    // ohne erneutes Zeichnen finden.
+    // Hover-Ebene (§4.1) — Geometrie-Objekt am SVG-Knoten hinterlegt, damit
+    // paintHover() (Schritt 2, Teil B) sie ohne erneutes Zeichnen findet.
+    // `series` trägt CTL/ATL/TSB mit ihrer jeweils eigenen y-Skala (TSB
+    // läuft auf tsbY, nicht caY) — ein Hover markiert alle drei am selben
+    // Tagesindex (§3, "hovern CTL/ATL/TSB gemeinsam auf denselben Index").
     const hoverLayer = svgEl("g", {});
     svg.appendChild(hoverLayer);
     svg.__pmcGeometry = {
@@ -653,7 +684,16 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       plotH,
       width: W,
       hoverLayer,
+      skeleton,
+      ws,
+      we,
+      series: [
+        { vals: ctlVals, yOf: caY, color: CHART_THEME.role.primary },
+        { vals: atlVals, yOf: caY, color: CHART_THEME.role.secondary },
+        { vals: tsbVals, yOf: tsbY, color: CHART_THEME.role.positive },
+      ],
     };
+    paintHover(svg);
 
     // Punkte + Tooltip auf CTL, ausgedünnt (wie zuvor)
     const step = Math.max(1, Math.floor((we - ws) / 25));
@@ -766,6 +806,15 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
         api.draw();
       });
     });
+  }
+
+  // Cursor-Sync (Schritt 2, Teil B) — EINMAL abonniert (Guard wie bei den
+  // Preset-Buttons), sonst stapeln sich Listener bei jedem renderPMC()-
+  // Aufruf. paintHover() liest `svg.__pmcGeometry` erst beim jeweiligen
+  // Change-Event, nie eine veraltete Closure.
+  if (!svg.__pmcHoverBound) {
+    svg.__pmcHoverBound = true;
+    onChartViewChange(() => paintHover(svg));
   }
 
   // Gemessene Breite + ResizeObserver statt skaliertem viewBox (G7) — draw()

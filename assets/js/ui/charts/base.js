@@ -373,6 +373,59 @@ export function axisUnit(svg, { x, y, text }) {
   svg.appendChild(t);
 }
 
+/* ── Cursor-Sync (Phase 5, Schritt 2, Teil B — docs/phase-5-konzept-
+   explorer.md §2.2/§3, docs/chart-grundlagen.md §4.1/§4.2) ───────────
+   Reine Zeichenfunktionen, kein State: der Aufrufer liest den gehoverten
+   Tagesindex aus state/chart-view.js und übergibt hier nur noch fertige
+   px-Koordinaten. Beide hängen an einer leeren Hover-`<g>` (Geometrie-
+   Objekt jedes Charts, z.B. `svg.__pmcGeometry.hoverLayer`), die vor jedem
+   Aufruf geleert wird — das Chart selbst wird dafür nie neu gezeichnet. */
+
+/**
+ * Vertikale Fadenkreuz-Linie an einer festen x-Position.
+ * @param {SVGElement} parent i.d.R. die Hover-`<g>` eines Charts
+ * @param {{x:number, top:number, bottom:number}} args
+ */
+export function crosshair(parent, { x, top, bottom }) {
+  parent.appendChild(
+    svgEl("line", {
+      x1: x,
+      y1: top,
+      x2: x,
+      y2: bottom,
+      stroke: CHART_THEME.ink.label,
+      "stroke-width": "1",
+      "stroke-dasharray": "3,3",
+    })
+  );
+}
+
+/**
+ * Doppelkreis-Markierung am Fadenkreuz-Schnittpunkt einer Serie (chart-
+ * grundlagen.md §4.2): Halo (r 9, fill-opacity .16, Serienfarbe) plus
+ * Punkt (r 4.2, Kartenfarbe, 2,4px Rand in Serienfarbe) — der Punkt selbst
+ * bekommt NICHT die Serienfarbe als Füllung, sonst verschwimmt er mit dem
+ * Halo dahinter.
+ * @param {SVGElement} parent
+ * @param {number} x @param {number} y
+ * @param {string} color Serienfarbe
+ */
+export function hoverDot(parent, x, y, color) {
+  parent.appendChild(
+    svgEl("circle", { cx: x, cy: y, r: "9", fill: color, "fill-opacity": "0.16" })
+  );
+  parent.appendChild(
+    svgEl("circle", {
+      cx: x,
+      cy: y,
+      r: "4.2",
+      fill: CHART_THEME.bg,
+      stroke: color,
+      "stroke-width": "2.4",
+    })
+  );
+}
+
 /* ── Zeitraum-Brushing (Phase 5, Schritt 1 — docs/phase-5-konzept-
    explorer.md §4, docs/chart-grundlagen.md §4.4) ─────────────────
    presetWindow()/brushHitTest()/nextBrushWindow() sind reine
