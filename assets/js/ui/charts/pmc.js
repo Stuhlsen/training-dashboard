@@ -5,7 +5,7 @@
 
 import { fmt, fmtDate, fmtDateFull, localISODate, addDaysISO } from "../../core/format.js";
 import { interpolateCtl, tsbOf, currentPmc, projectPmc } from "../../core/pmc.js";
-import { densifyDays } from "../../core/days.js";
+import { densifyDays, pmcSkeletonAnchor } from "../../core/days.js";
 import { isoWeekKey } from "../../core/aggregate.js";
 import { buildCompare } from "../../core/compare.js";
 import { el, svgEl, Tooltip } from "../dom.js";
@@ -552,8 +552,10 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     // "365 Tage"/"Alles" keinen Spielraum. Stabil über die Zeit (frühestes
     // Datum ändert sich nicht rückwirkend), damit bleiben persistierte
     // Fenster-Indizes über Tage/Reloads hinweg gültig — nur das Skelett-Ende
-    // (Prognosehorizont) wandert mit "heute" mit.
-    const from = sorted.length ? sorted[0].dateISO : addDaysISO(today, -90);
+    // (Prognosehorizont) wandert mit "heute" mit. pmcSkeletonAnchor() ist die
+    // geteilte, benannte Fassung dieser Regel (core/days.js) — andere Module
+    // (ui/charts/training.js, Teil D) treffen darüber denselben Anker.
+    const from = pmcSkeletonAnchor(rides) ?? addDaysISO(today, -90);
     const lastRideISO = sorted.length ? sorted[sorted.length - 1].dateISO : today;
     const rawTo = projection?.horizonEnd ?? lastRideISO;
     const to = rawTo < from ? from : rawTo;

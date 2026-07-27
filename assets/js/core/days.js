@@ -45,6 +45,26 @@ export function densifyDays(fromISO, toISO) {
  * @param {{key: string, absence: "zero"|"carry"|"gap"}} opts
  * @returns {Array<number|null>} Werte in Skelettlänge
  */
+/**
+ * Anker-Datum des PMC-Tagesskeletts: frühestes Datum unter den Fahrten mit
+ * gesetztem CTL/ATL (ui/charts/pmc.js::renderPMC() beginnt sein Skelett
+ * genau hier — Kommentar dort: "stabil über die Zeit", weil sich das
+ * früheste bekannte Datum nicht rückwirkend ändert). Andere Module (z.B.
+ * ui/charts/training.js, Phase 5 Schritt 6 Teil D) müssen denselben Anker
+ * treffen, um Tagesindizes im selben Koordinatensystem wie state/
+ * chart-view.js (`ws`/`we`) zu berechnen — sonst driftet ein damit gesetztes
+ * Fenster still auseinander (docs/chart-grundlagen.md §5). Deshalb hier als
+ * benannte, geteilte Funktion statt einer zweiten unabhängigen Kopie.
+ * @param {import("../types.js").Ride[]} rides
+ * @returns {string|null} ISO-Datum, oder `null` ohne passende Fahrt
+ */
+export function pmcSkeletonAnchor(rides) {
+  const sorted = (rides || [])
+    .filter((r) => r.ctl != null && r.atl != null)
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  return sorted.length ? sorted[0].dateISO : null;
+}
+
 export function joinSeries(skeleton, rows, { key, absence }) {
   const byDate = new Map();
   for (const r of rows || []) {
