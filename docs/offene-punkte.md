@@ -144,6 +144,31 @@ mehrere bereits committete Dateien anfassen:
   Power-Curve begrenzt. Brauchen bei Bedarf eigene Schritte (5b/5c oder als
   Teil von Schritt 6/7), jeweils nach ihrer eigenen Familie aus
   `docs/chart-grundlagen.md` §7.2. → `docs/phase-5-konzept-explorer.md` §2.4.
+- **Schritt 6 modernisierte in `training.js` bewusst NUR `renderWeeklyVolume()`
+  und `renderWeatherWeekly()`** (Familie 3) — exakt die beiden Charts, die
+  `docs/phase-5-konzept-explorer.md` §2.4 wörtlich als „Wochenvolumen/Wetter
+  = Familie 3" nennt. `renderTrimp()` (Belastungswächter) ist strukturell
+  derselben Familie sehr ähnlich (wochenweise Balken + Ramp-Linie auf
+  zweiter Achse), wurde aber vom Auftrag nicht namentlich genannt — Scope
+  bewusst nicht ausgeweitet (Rückfrage vor der Umsetzung, analog zu
+  Schritt 5). `renderConsistency()` gehört laut Familientabelle zu
+  Familie 6 (Kalender/Matrix), nicht 3. `renderZoneWeekly()` bleibt
+  mehrdeutig zwischen Familie 3 (x-Achse = Wochen-Buckets) und der in
+  `docs/chart-grundlagen.md` §7.2 genannten Familie-4-Ausnahme
+  „Zonenverteilung" (dort ist unklar, ob das dieselbe oder eine andere,
+  rein kategoriale Zonenansicht meint) — braucht bei Bedarf eine eigene
+  Klärung, kein automatischer Fall für Familie 3.
+- **Schritt 6: Monats-Periode nicht an der bucketweisen Fadenkreuz-Kopplung/
+  dem Brush-Klick beteiligt** — `renderWeeklyVolume()`/`renderWeatherWeekly()`
+  haben einen Wochen-/Monats-Toggle, dessen Monats-Bucket-Schlüssel sich
+  zwischen beiden Charts unterscheiden (`renderWeeklyVolume` über
+  `monthlyFromRides()` ein bereits lokalisierter Anzeige-String, z.B.
+  „Jul '26"; `renderWeatherWeekly` dagegen der rohe `"YYYY-MM"`-Schlüssel,
+  von `app.js` vor dem Aufruf gesetzt). `core/chart-buckets.js` unterstützt
+  deshalb nur die Wochen-Periode; bei aktivem Monats-Toggle bleibt die
+  Optik modernisiert, aber ohne Hervorhebung/Brush-Klick. Eine spätere
+  Vereinheitlichung bräuchte zunächst eine gemeinsame Monats-Bucket-
+  Konvention für beide Charts.
 
 ## Infrastruktur/CI
 

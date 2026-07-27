@@ -271,7 +271,31 @@
   einen lokalen Dev-Server per Playwright verifiziert: Gesamt-/Block-/W-kg-
   Ansicht, Hover-Tooltip + Crosshair, `ResizeObserver`-Redraw bei
   Viewport-Resize (1202px → 807px), keine Konsolenfehler.
-- [ ] Schritt 6 — `training.js` modernisieren (Chart-Familie 3) **[SO]**
+- [x] Schritt 6 — `training.js` modernisieren (Chart-Familie 3) **[SO]**.
+  Scope bewusst auf `renderWeeklyVolume()` + `renderWeatherWeekly()` begrenzt
+  (Rückfrage vor der Umsetzung, wörtlich mit `docs/phase-5-konzept-
+  explorer.md` §2.4 abgeglichen) — `renderTrimp()`/`renderConsistency()`/
+  `renderZoneWeekly()` bleiben offen, s. `docs/offene-punkte.md`. Teil A:
+  Schicht A vollständig übernommen (`gradedGrid`, `axisUnit` "km"/"°C"/
+  "km/h", gemessene Breite + `ResizeObserver` statt festem `viewBox`,
+  `pathD()` statt `<polyline points>` für die Windlinie, Hover-`<g>` statt
+  Neuzeichnen); `measuredWidth()` aus `pmc.js` nach `base.js` zentralisiert.
+  Tooltip bleibt bewusst `Tooltip` aus `ui/dom.js` (Präzedenzfall `pmc.js`).
+  Teil B: `core/chart-buckets.js` (neu) — `dateToWeekBucket()`/
+  `weekBucketDateRange()`, pure, konsistent mit `core/aggregate.js::
+  rideWeekKey()`; `core/days.js::pmcSkeletonAnchor()` extrahiert den
+  bisher inline in `pmc.js::renderPMC()` berechneten Skelett-Anker als
+  geteilte Funktion (verhaltensgleiches Refactoring), damit Teil D
+  denselben Datums→Index-Anker trifft. Teil C: bucketweise Fadenkreuz-
+  Kopplung — Hover in `pmc.js` hebt den passenden Wochen-Balken hervor.
+  Teil D: Klick auf einen Balken setzt das PMC-Brush-Fenster auf die
+  entsprechende Kalenderwoche, bestehendes Fahrtenbuch-Filter-Verhalten
+  bleibt erhalten. Teil C/D nur für `period === "week"` aktiv (Monats-
+  Periode bewusst nicht unterstützt, zwei inkonsistente Bucket-
+  Konventionen zwischen den Charts, s. `docs/offene-punkte.md`). 14 neue
+  Tests (`tests/chart-buckets.test.js`). Für beide Athleten gegen einen
+  lokalen Dev-Server per Playwright verifiziert (Hover-Highlight,
+  Brush-Klick, `ResizeObserver`-Redraw, keine neuen Konsolenfehler).
 - [ ] Schritt 7 — `wellness.js` modernisieren (Chart-Familien 1/2) **[SO]**
 - [ ] Tests **[SO]**
 
@@ -389,13 +413,9 @@ Fünf Commits (`1e915b4`, `a480da5`, `7efd90e`, `2bbf432`, `940ab8f`).
 abgeschlossen.** Scope bewusst auf `renderPowerCurve()` begrenzt, s.
 Phase-5-Abschnitt oben und `docs/offene-punkte.md`.
 
-➡️ **Nächster Schritt: Phase 5, Schritt 6 — `training.js` modernisieren**
-(Chart-Familie 3, `docs/chart-grundlagen.md` §7.2) — **[SO]**.
+➡️ **Phase 5, Schritt 6 (`training.js`, Chart-Familie 3) ist abgeschlossen.**
+Scope bewusst auf `renderWeeklyVolume()` + `renderWeatherWeekly()` begrenzt,
+s. Phase-5-Abschnitt oben und `docs/offene-punkte.md`.
 
-➡️ **Nächster Schritt: Phase 5, Schritt 3 — What-if-Szenarien** —
-**[OP]**. Parametrische Szenarien (Wochen-TSS ±%, zusätzliche Ruhetage,
-Rampenrate) über `core/scenario.js` (neu, pure) → `core/projection.js::
-projectLoad()` mit synthetischem Kartensatz, Ergebnis in
-`state/chart-view.js` statt `getState()`. `uncertain`-Flag muss sichtbar
-bleiben (§6.3) — keine Präzision vortäuschen, die die K3-Typ-Default-TSS
-nicht hergibt.
+➡️ **Nächster Schritt: Phase 5, Schritt 7 — `wellness.js` modernisieren**
+(Chart-Familien 1/2, `docs/chart-grundlagen.md` §7.2) — **[SO]**.
