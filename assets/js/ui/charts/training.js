@@ -69,6 +69,23 @@ function paintBucketHover(svg, geoKey) {
   );
 }
 
+/* ── Brush-Klick auf Balken (Phase 5, Schritt 6, Teil D —
+   docs/chart-grundlagen.md §7.2/§7.3, §4.4) ───────────────────────
+   Familie-3-Balkencharts sind Brush-Ziel, nicht Brush-Fläche: ein Klick auf
+   eine Woche setzt das PMC-Zeitfenster (state/chart-view.js::setWindow) auf
+   die Montag–Sonntag-Kalenderwoche dieses Bucket-Schlüssels — kein Ziehen im
+   Balkenchart selbst. Der Datums→Index-Anker muss derselbe sein wie in
+   ui/charts/pmc.js::renderPMC() (core/days.js::pmcSkeletonAnchor), sonst
+   driftet das gesetzte Fenster. Nur für period === "week" aktiv, s.
+   paintBucketHover(). */
+function jumpBrushToWeekBucket(bucketKey, rides, period) {
+  if (period !== "week") return;
+  const range = weekBucketDateRange(bucketKey, rides);
+  const anchor = pmcSkeletonAnchor(rides);
+  if (!range || !anchor) return;
+  setWindow(Math.max(0, diffDays(range.from, anchor)), diffDays(range.to, anchor));
+}
+
 /* ── Wöchentliches Volumen (Balken) ──────────────────────────── */
 /** @param {string} svgId @param {Array} weeklyData @param {Function} [onBarClick]
  *  @param {"week"|"month"} [period] @param {import("../../types.js").Ride[]} [rides]
@@ -183,7 +200,10 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick, period = "week
         rect.setAttribute("opacity", "0.75");
         Tooltip.hide();
       });
-      if (onBarClick) rect.addEventListener("click", () => onBarClick(d.week));
+      rect.addEventListener("click", () => {
+        if (onBarClick) onBarClick(d.week);
+        jumpBrushToWeekBucket(d.week, rides, period);
+      });
       svg.appendChild(rect);
 
       if (bh > 16 && (!denseValues || labelIdx.has(i))) {
@@ -872,6 +892,7 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
         )
       );
       hit.addEventListener("mouseleave", () => Tooltip.hide());
+      hit.addEventListener("click", () => jumpBrushToWeekBucket(d.week, rides, period));
       svg.appendChild(hit);
     });
 

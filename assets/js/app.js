@@ -235,7 +235,8 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
     {
       toggleId: "toggle-weekly",
       titleId: "title-weekly",
-      chartFn: (data, period) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick, period),
+      chartFn: (data, period) =>
+        Charts.renderWeeklyVolume("chart-weekly", data, onBarClick, period, rides),
       titleWeek: "Wöchentliches Volumen (km)",
       titleMonth: "Monatliches Volumen (km)",
     },
