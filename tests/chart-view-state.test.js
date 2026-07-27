@@ -17,12 +17,13 @@ function installLocalStorageStub() {
 }
 
 const store = installLocalStorageStub();
-const { getState, loadForAthlete, setWindow } = await import("../assets/js/state/chart-view.js");
+const { getState, loadForAthlete, setWindow, setHovered, clearHovered, onChartViewChange } =
+  await import("../assets/js/state/chart-view.js");
 
 test("loadForAthlete: legt den übergebenen Default an, wenn nichts gespeichert ist", () => {
   store.clear();
   loadForAthlete("athlete-cv-1", { ws: 0, we: 89 });
-  assert.deepEqual(getState(), { ws: 0, we: 89, hoveredIndex: null });
+  assert.deepEqual(getState(), { ws: 0, we: 89, hoveredDate: null });
 });
 
 test("setWindow: persistiert und ist nach erneutem Laden wieder da (Rundreise)", () => {
@@ -59,5 +60,44 @@ test("loadForAthlete: defektes JSON in localStorage führt zu Default statt Abst
   assert.doesNotThrow(() => {
     loadForAthlete("athlete-cv-broken", { ws: 1, we: 91 });
   });
-  assert.deepEqual(getState(), { ws: 1, we: 91, hoveredIndex: null });
+  assert.deepEqual(getState(), { ws: 1, we: 91, hoveredDate: null });
+});
+
+/* setHovered/clearHovered — Phase 5, Schritt 2, Teil A (1B). */
+test("setHovered: setzt hoveredDate und benachrichtigt Listener", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-hover-1", { ws: 0, we: 10 });
+  const seen = [];
+  const unsubscribe = onChartViewChange((s) => seen.push(s.hoveredDate));
+
+  setHovered("2026-07-20");
+  assert.equal(getState().hoveredDate, "2026-07-20");
+  assert.deepEqual(seen, ["2026-07-20"]);
+
+  unsubscribe();
+});
+
+test("clearHovered: setzt hoveredDate zurück auf null, No-op-Guard verschluckt keinen fälligen Wechsel", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-hover-2", { ws: 0, we: 10 });
+  setHovered("2026-07-21");
+
+  clearHovered();
+  assert.equal(getState().hoveredDate, null);
+
+  const seen = [];
+  const unsubscribe = onChartViewChange((s) => seen.push(s.hoveredDate));
+  clearHovered(); // bereits null → kein weiterer notify()
+  assert.deepEqual(seen, []);
+  unsubscribe();
+});
+
+test("loadForAthlete: Athletenwechsel setzt einen aktiven Hover zurück", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-hover-a", { ws: 0, we: 10 });
+  setHovered("2026-07-22");
+  assert.equal(getState().hoveredDate, "2026-07-22");
+
+  loadForAthlete("athlete-cv-hover-b", { ws: 0, we: 10 });
+  assert.equal(getState().hoveredDate, null);
 });

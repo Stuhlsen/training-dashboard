@@ -27,6 +27,8 @@ import {
   loadForAthlete as loadChartView,
   getState as getChartViewState,
   setWindow,
+  setHovered,
+  clearHovered,
 } from "../../state/chart-view.js";
 
 /* ── CTL-Progression mit Interpolation ───────────────────────── */
@@ -668,14 +670,18 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       });
       c.style.cursor = "pointer";
       const dateISO = skeleton[i].dateISO;
-      c.addEventListener("mouseenter", (e) =>
+      c.addEventListener("mouseenter", (e) => {
         Tooltip.show(
           e,
           `<div class="tt">${fmtDateFull(dateISO)}</div>
            <div class="tv">CTL ${fmt(ctlVals[i])} · ATL ${fmt(atlVals[i])} · TSB ${fmt(tsbVals[i])}</div>`
-        )
-      );
-      c.addEventListener("mouseleave", () => Tooltip.hide());
+        );
+        setHovered(dateISO);
+      });
+      c.addEventListener("mouseleave", () => {
+        Tooltip.hide();
+        clearHovered();
+      });
       svg.appendChild(c);
     }
 

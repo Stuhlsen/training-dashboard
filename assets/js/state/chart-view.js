@@ -11,11 +11,21 @@
    Schritt 0: das Fenster ist fest (letzte 90 Tage + Horizont) — Brushing
    folgt in einem späteren Schritt. `ws`/`we` existieren schon jetzt, damit
    der spätere Umbau von "immer volle Breite" auf "echtes Brush-Fenster"
-   keine State-Form-Änderung braucht. */
+   keine State-Form-Änderung braucht.
+
+   Schritt 2: Hover wird als `dateISO` geführt, nicht als chart-lokaler
+   Tagesindex — der Zustand wird über `Table.highlightByDate`/
+   `Planned.scrollToDate` (beide datumsbasiert, s. AGENTS.md „Bekannte
+   Eigenheiten") hinaus gebraucht, und ein Index ist nur innerhalb des
+   Skeletts sinnvoll, das genau EIN Chart beim Zeichnen erzeugt hat. Diese
+   Schicht bleibt trotzdem `state/` und importiert bewusst NICHT `ui/`
+   (Schichtenregel) — wer auf einen Hover reagiert (Crosshair, Fahrtenbuch-
+   Highlight), abonniert `onChartViewChange` aus der jeweiligen `ui/`-Stelle
+   selbst, statt dass dieses Modul in die UI hineinruft. */
 
 let ws = 0; // Fensteranfang (Tagesindex)
 let we = 0; // Fensterende (Tagesindex)
-let hoveredIndex = null;
+let hoveredDate = null; // dateISO oder null
 let loadedForAthleteId = null;
 
 const listeners = new Set();
@@ -29,9 +39,9 @@ function notify() {
   for (const fn of listeners) fn(state);
 }
 
-/** @returns {{ws:number, we:number, hoveredIndex:number|null}} */
+/** @returns {{ws:number, we:number, hoveredDate:string|null}} */
 export function getState() {
-  return { ws, we, hoveredIndex };
+  return { ws, we, hoveredDate };
 }
 
 /** @param {(state: ReturnType<typeof getState>) => void} fn @returns {() => void} */
@@ -61,7 +71,7 @@ export function loadForAthlete(athleteId, defaultWindow) {
 
   ws = saved?.ws ?? defaultWindow.ws;
   we = saved?.we ?? defaultWindow.we;
-  hoveredIndex = null;
+  hoveredDate = null;
   notify();
 }
 
@@ -83,8 +93,21 @@ export function setWindow(nextWs, nextWe) {
   notify();
 }
 
-/** @param {number|null} index */
-export function setHoveredIndex(index) {
-  hoveredIndex = index;
+/** Publiziert das gehoverte Datum (Phase 5, Schritt 2, Teil A/1B) — z.B. aus
+ *  dem `mouseenter`-Handler eines PMC-Datenpunkts. Kein No-op-Guard bei
+ *  gleichem Wert: `notify()` ist billig (State-Kopie + Listener-Aufrufe,
+ *  keine Neuzeichnung), und ein Guard würde bei schnellem Rein/Raus
+ *  zwischen zwei Punkten mit demselben Datum (kommt am Skelett-Rand vor)
+ *  einen fälligen Re-Paint verschlucken.
+ *  @param {string} dateISO */
+export function setHovered(dateISO) {
+  hoveredDate = dateISO;
+  notify();
+}
+
+/** Löscht den Hover (z.B. `mouseleave`). */
+export function clearHovered() {
+  if (hoveredDate === null) return;
+  hoveredDate = null;
   notify();
 }
