@@ -51,6 +51,7 @@ import {
   getState as getPlanCardsState,
 } from "./state/plan-cards.js";
 import { getState as getEventsState, onEventsChange } from "./state/events.js";
+import { configureScenarioSources } from "./state/chart-view.js";
 import { EventTimeline } from "./ui/event-timeline.js";
 import { WellbeingCard } from "./ui/wellbeing-card.js";
 import "./ui/header.js";
@@ -590,6 +591,18 @@ async function renderAll(athleteId) {
   onEventsChange(() => {
     recomputeProjection();
     if (Data.plannedSessions.length) Planned.render(Data.byDate());
+  });
+
+  // What-if-Szenario-Quellen verdrahten (Phase 5, Schritt 3): state/chart-view.js
+  // ruft core/projection.js::projectLoad() ein zweites Mal mit einem synthetischen
+  // Kartensatz auf (core/scenario.js), braucht dafür dieselben Ist-Fahrten/Events/FTP
+  // wie configureProjection oben, zusätzlich die echten Plan-Karten als Ausgangsbasis
+  // für den synthetischen Satz. Gleiches Provider-Muster wie configureProjection.
+  configureScenarioSources({
+    getCards: () => getPlanCardsState().cards,
+    getActuals: () => Data.byDate(),
+    getEvents: () => getEventsState().events,
+    getFtp: () => Data.ftpValue(),
   });
 
   // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird.
