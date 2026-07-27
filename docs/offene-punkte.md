@@ -112,6 +112,16 @@ mehrere bereits committete Dateien anfassen:
   [HA]-Vereinheitlichungsschritts (der bleibt auf Datumsformate/Kategorien
   beschränkt). Voraussetzung für Cursor-Sync über den Explorer hinaus.
   → `docs/phase-5-konzept-explorer.md` §1.2/§8, X4.
+- **Rückrichtung Fahrtenbuch-Klick → Chart-Crosshair (Schritt 2) nicht
+  gebaut** — nur Chart→Fahrtenbuch/Planungstab war Auftragsumfang. Kein
+  vernachlässigbarer Zusatzaufwand: eine Zeile in `state/chart-view.js`
+  reicht NICHT, weil "eine Zeile anklicken und dauerhaft im Chart markiert
+  lassen" semantisch ein **Klick-Pin**, kein Hover ist — genau das Feld
+  `selected` aus der ursprünglichen Zustandsskizze (§2.1), das in Schritt 0
+  bewusst noch nicht angelegt wurde. Voraussetzung wäre also ein neuer
+  State-Slot plus die Frage, wie sich `selected` zu `hovered` verhält
+  (welches gewinnt visuell), nicht nur ein zusätzlicher Funktionsaufruf.
+  → `docs/phase-5-konzept-explorer.md` §2.1, §3.
 
 ## Infrastruktur/CI
 

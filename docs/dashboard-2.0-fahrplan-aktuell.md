@@ -159,8 +159,35 @@
   `docs/offene-punkte.md`); mit frischen Testdaten lag die Naht praktisch bei „heute",
   kein dritter visueller Zustand nötig.
   → `docs/phase-5-konzept-explorer.md`, `docs/chart-grundlagen.md`
-- [ ] Schritt 1 — Zeitraum-Brushing im PMC-Chart: Übersichtsleiste + Presets **[SO]**
-- [ ] Schritt 2 — Verknüpfte Charts: Selektion, dann Cursor-Sync **[SO]**
+- [x] **Schritt 1 — Zeitraum-Brushing im PMC-Chart.** Übersichtsleiste (immer
+  voller Horizont) trägt den Brush (Pointer Events, Griffe + Pan, `MIN_W=7`
+  Tage); Presets 30/90/365 Tage, Plan 2, Alles. `presetWindow()`/
+  `brushHitTest()`/`nextBrushWindow()` als reine, getestete Indexarithmetik in
+  `base.js`. Y-Skalen reagieren jetzt auf das sichtbare Fenster statt auf das
+  volle Skelett **[SO]**. Commit `3ac10e1`.
+- [x] **Schritt 2 — Verknüpfte Charts: Selektion, dann Cursor-Sync.** Teil A:
+  `state/chart-view.js::hoveredIndex` (nie genutztes Schritt-0-Gerüst) durch
+  dateISO-basiertes `hoveredDate` (`setHovered`/`clearHovered`) ersetzt — der
+  Zustand wird über die Tagesachse eines einzelnen Charts hinaus gebraucht.
+  Teil B: `crosshair()`/`hoverDot()` als neue Primitiven in `base.js`
+  (`chart-grundlagen.md` §4.1/§4.2); `renderPMC()` hinterlegt Skelett,
+  Fenster und CTL/ATL/TSB im Geometrie-Objekt, `paintHover()` zeichnet nur in
+  die Hover-`<g>`, nie das ganze Chart neu — alle drei Serien hovern
+  gemeinsam auf denselben Tagesindex. Teil C: Fahrtenbuch-Zeile folgt dem
+  Hover über eine bewusst NEUE, leichte `Table.setHoverDate()` (nur
+  `.row-hover`-Klasse) statt der bestehenden `Table.highlightByDate()` — die
+  setzt Filter/Suche/Sortierung zurück und scrollt, was bei jedem Mausmove
+  über den Chart die Fahrtenbuch-Ansicht laufend umgebaut hätte. Der
+  Planungstab-Sprung (`Planned.scrollToDate()`) bleibt auf Klick beschränkt,
+  nicht Hover — Scrollen bei jeder Mausbewegung wäre unruhig, und der Tab ist
+  beim Chart-Betrachten meist gar nicht aktiv. Für beide Athleten gegen
+  `training-dashboard-dev` (lokaler Dev-Server, Hostname-Config bindet
+  `localhost` an das Dev-Projekt) verifiziert: Crosshair + Doppelkreise auf
+  allen drei Serien, Fahrtenbuch-Highlight, Klick löst Tab-Wechsel +
+  Planungstab-Highlight aus **[SO]**. Drei Commits (`fee6e4c`, `9908ff2`,
+  `1f40cf2`). Vorbedingung war beim Auftragsstart fälschlich als „Schritt 1
+  bereits committet" angenommen — lag unfertig im Arbeitsverzeichnis und
+  wurde vor Schritt 2 nachgeholt (s. Commit `3ac10e1`).
 - [ ] Schritt 3 — What-if-Szenarien auf `core/projection.js`, kein eigener Prognose-Layer **[OP]**
 - [ ] Schritt 4 — Vergleichsmodus: zwei Zeiträume, selber Athlet, relative x-Achse **[OP]**
 - [ ] Schritt 5 — `power.js` modernisieren (Chart-Familie 4) **[SO]**
@@ -231,7 +258,17 @@ Infrastruktur-Punkt (Cron läuft nur auf `main`) ist in `docs/offene-punkte.md`
 dokumentiert und wartet auf eine separate Entscheidung — kein Blocker für die
 nächsten Schritte.
 
-➡️ **Nächster Schritt: Phase 5, Schritt 1 — Zeitraum-Brushing im PMC-Chart** —
-**[SO] Claude Sonnet 5**. Übersichtsleiste mit ziehbarem Fenster + Preset-Knöpfe
-(30/90/365 Tage, Plan 2, Alles), aufbauend auf `state/chart-view.js` und
-`makeIndexScale()` aus Schritt 0.
+➡️ **Phase 5, Schritt 1 (Zeitraum-Brushing) und Schritt 2 (Verknüpfte
+Charts/Cursor-Sync) sind abgeschlossen.** Der PMC-Chart hat jetzt eine
+Übersichtsleiste mit Brush + Presets, ein Fadenkreuz, das CTL/ATL/TSB
+gemeinsam markiert, und ist über den geteilten Hover-Zustand
+(`state/chart-view.js`) mit Fahrtenbuch (Hover) und Planungstab (Klick)
+verkabelt. Für beide Athleten gegen `training-dashboard-dev` verifiziert.
+
+➡️ **Nächster Schritt: Phase 5, Schritt 3 — What-if-Szenarien** —
+**[OP]**. Parametrische Szenarien (Wochen-TSS ±%, zusätzliche Ruhetage,
+Rampenrate) über `core/scenario.js` (neu, pure) → `core/projection.js::
+projectLoad()` mit synthetischem Kartensatz, Ergebnis in
+`state/chart-view.js` statt `getState()`. `uncertain`-Flag muss sichtbar
+bleiben (§6.3) — keine Präzision vortäuschen, die die K3-Typ-Default-TSS
+nicht hergibt.
