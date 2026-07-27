@@ -188,7 +188,39 @@
   `1f40cf2`). Vorbedingung war beim Auftragsstart fälschlich als „Schritt 1
   bereits committet" angenommen — lag unfertig im Arbeitsverzeichnis und
   wurde vor Schritt 2 nachgeholt (s. Commit `3ac10e1`).
-- [ ] Schritt 3 — What-if-Szenarien auf `core/projection.js`, kein eigener Prognose-Layer **[OP]**
+- [x] **Schritt 3 — What-if-Szenarien (4A) auf `core/projection.js`, kein
+  eigener Prognose-Layer.** Teil A: `core/scenario.js` (neu, pure) —
+  `buildScenario()` skaliert Wochen-TSS ± %, entfernt pro ISO-Woche die N
+  höchstbelasteten Karten als zusätzliche Ruhetage (bewusst entfernt statt auf
+  0 genullt — Begründung im Kopfkommentar) und verkettet die Rampenrate
+  wochenweise; `uncertain`-Herkunft (K3-Typ-Default/Workout-Schätzung) wird
+  VOR der Skalierung über das bereits exportierte `estimateTss()` erfasst und
+  als Karten-ID-Set zurückgegeben, `core/projection.js` bleibt dadurch
+  unangetastet. Teil B: `state/chart-view.js` bekommt einen zweiten,
+  nicht-persistierenden `projectLoad()`-Aufrufpfad (`configureScenarioSources`
+  als Provider-Muster wie `plan-cards.js::configureProjection`,
+  `setScenarioParams`/`setScenarioEnabled`) — die Karten-ID-Brücke verknüpft
+  die `uncertain`-Herkunft nachträglich über `day.cardIds` in
+  `scenarioProjection.days[].uncertain`. Teil C: `SERIES_STYLE` (neu in
+  `base.js`, Konvention für Schritt 4 mitgebaut) + Szenario-CTL-Kurve in
+  `renderPMC()`, startet bei "heute" (nicht `seamIdx`), eigenes
+  Unsicherheitsband; Achsenhorizont bleibt an der Basisprognose verankert
+  (X8) — bestätigt beim Ein-/Ausschalten unverändert. Teil D: Ein/Aus-Toggle +
+  drei Regler unter dem PMC-Chart, visueller Stil des Hero-What-if-Sliders
+  geteilt (`.wi-label`/`.wi-readout`), keine Logik-Wiederverwendung (§6.2).
+  Parameter (nicht das Ergebnis) persistieren im bestehenden
+  `chart_view_<athleteId>`-Schlüssel. Code-Review vor dem letzten
+  Implementierungscommit fand einen echten Bug: `app.js::
+  updateChartExplainers()` überschreibt `explainer-pmc` bei jedem Render für
+  beide Athleten-Zweige — der neue What-if-Erklärtext musste dort zusätzlich
+  zur statischen `index.html`-Fassung ergänzt werden (AGENTS.md-Hinweis
+  „Explainer-Texte … BEIDE Athleten-Varianten" bestätigt). Für beide Athleten
+  gegen `training-dashboard-dev` verifiziert (Playwright): zweite gestrichelte
+  Kurve erscheint/verschwindet mit dem Toggle, Achsenhorizont bleibt stabil
+  (Pfadanzahl/Tick-Beschriftung geprüft), zwei getrennte Unsicherheitsbänder
+  (Basis + Szenario) sichtbar, Parameter überleben Reload bei
+  `enabled:false` **[OP]**. Vier Commits (`71d9b22`, `e2451d1`, `02f28f0`,
+  `dac9e93`).
 - [ ] Schritt 4 — Vergleichsmodus: zwei Zeiträume, selber Athlet, relative x-Achse **[OP]**
 - [ ] Schritt 5 — `power.js` modernisieren (Chart-Familie 4) **[SO]**
 - [ ] Schritt 6 — `training.js` modernisieren (Chart-Familie 3) **[SO]**
@@ -264,6 +296,26 @@ Charts/Cursor-Sync) sind abgeschlossen.** Der PMC-Chart hat jetzt eine
 gemeinsam markiert, und ist über den geteilten Hover-Zustand
 (`state/chart-view.js`) mit Fahrtenbuch (Hover) und Planungstab (Klick)
 verkabelt. Für beide Athleten gegen `training-dashboard-dev` verifiziert.
+
+➡️ **Phase 5, Schritt 3 (What-if-Szenarien) ist abgeschlossen.**
+`core/scenario.js` (neu, pure) erzeugt aus den drei Parametern (Wochen-TSS
+± %, N Ruhetage, Rampenrate) einen synthetischen Kartensatz; ein zweiter,
+nicht-persistierender `projectLoad()`-Aufrufpfad in `state/chart-view.js`
+(`configureScenarioSources`/`setScenarioParams`/`setScenarioEnabled`) legt
+daraus eine zweite, gestrichelte CTL-Kurve über die Basisprognose —
+`core/projection.js` bleibt unverändert, die `uncertain`-Herkunft wird über
+eine Karten-ID-Brücke nachträglich verknüpft (§6.3). Ein/Aus-Toggle + drei
+Regler unter dem PMC-Chart im Hero-What-if-Slider-Stil (nur Optik geteilt).
+Achsenhorizont bleibt beim Ein-/Ausschalten stabil (X8), Szenario-Parameter
+persistieren, das Ergebnis selbst nie (§6.4). Für beide Athleten gegen
+`training-dashboard-dev` per Playwright verifiziert.
+
+➡️ **Nächster Schritt: Phase 5, Schritt 4 — Vergleichsmodus** — **[OP]**.
+Zwei Zeiträume desselben Athleten, relative x-Achse (Tag 1 = Blockstart),
+`core/compare.js` (neu, pure). Teilt sich mit Schritt 3 dieselbe
+Mehrserien-Rendering-Fähigkeit (`SERIES_STYLE`, jetzt in `base.js`) und
+denselben Zustandsspeicher (`state/chart-view.js`, `compareSlots` als Liste
+von Slots vorgesehen, s. Konzept §7.1).
 
 ➡️ **Nächster Schritt: Phase 5, Schritt 3 — What-if-Szenarien** —
 **[OP]**. Parametrische Szenarien (Wochen-TSS ±%, zusätzliche Ruhetage,
