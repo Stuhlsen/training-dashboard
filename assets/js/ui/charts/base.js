@@ -240,32 +240,6 @@ export function makeIndexScale({ ws, we, padLeft, width }) {
 }
 
 /**
- * Zerlegt eine Werteserie (Skelettlänge, `null` an Messlücken — docs/chart-
- * grundlagen.md §5, `absence: "gap"`) in zusammenhängende Nicht-Null-Läufe.
- * Eine Linien-/Flächenserie darf nie über eine Messlücke hinweg verbunden
- * werden (sonst suggeriert die Linie einen Wert, der nie gemessen wurde) —
- * jeder Lauf wird deshalb als eigenes Pfad-Fragment gezeichnet. Balken-
- * Serien brauchen das nicht (jeder Tag steht für sich, `null` wird pro Tag
- * einzeln übersprungen).
- * @param {Array<number|null>} vals
- * @returns {Array<{start: number, end: number}>} inklusive Skelett-Indizes
- */
-export function splitRuns(vals) {
-  const runs = [];
-  let start = null;
-  for (let i = 0; i < vals.length; i++) {
-    if (vals[i] != null) {
-      if (start == null) start = i;
-    } else if (start != null) {
-      runs.push({ start, end: i - 1 });
-      start = null;
-    }
-  }
-  if (start != null) runs.push({ start, end: vals.length - 1 });
-  return runs;
-}
-
-/**
  * d-String aus Punktpaaren — ersetzt das `points`-Attribut von `<polyline>`.
  * Baut zusätzlich geschlossene Flächen (`pathD(pts) + " L… Z"`) und Bänder.
  * @param {Array<[number, number]>} points

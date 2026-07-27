@@ -14,7 +14,6 @@ import {
   presetWindow,
   brushHitTest,
   nextBrushWindow,
-  splitRuns,
 } from "../assets/js/ui/charts/base.js";
 
 test("pickLabelIndices: hält den Mindestabstand ein und enthält immer den letzten Punkt", () => {
@@ -236,46 +235,4 @@ test("nextBrushWindow: pan klemmt an den Gesamtgrenzen, ohne die Breite zu ände
     totalWe: 100,
   });
   assert.deepEqual(right, { ws: 70, we: 100 });
-});
-
-/* splitRuns() — Phase 5, Schritt 7 (wellness.js, Familie 2, absence:"gap").
-   Zerlegt eine Werteserie in zusammenhängende Nicht-Null-Läufe, damit eine
-   Linien-/Flächenserie nie über eine Messlücke hinweg verbunden wird. */
-test("splitRuns: durchgehend besetzte Serie → ein einziger Lauf über die volle Länge", () => {
-  const runs = splitRuns([1, 2, 3, 4]);
-  assert.deepEqual(runs, [{ start: 0, end: 3 }]);
-});
-
-test("splitRuns: einzelne Lücke in der Mitte → zwei Läufe", () => {
-  const runs = splitRuns([1, 2, null, 4, 5]);
-  assert.deepEqual(runs, [
-    { start: 0, end: 1 },
-    { start: 3, end: 4 },
-  ]);
-});
-
-test("splitRuns: mehrtägige Lücke wird nicht anders behandelt als eine einzelne", () => {
-  const runs = splitRuns([1, null, null, null, 5]);
-  assert.deepEqual(runs, [
-    { start: 0, end: 0 },
-    { start: 4, end: 4 },
-  ]);
-});
-
-test("splitRuns: führende/nachgestellte Lücken werden nicht als Lauf gezählt", () => {
-  const runs = splitRuns([null, null, 3, 4, null]);
-  assert.deepEqual(runs, [{ start: 2, end: 3 }]);
-});
-
-test("splitRuns: komplett leere/nur-null Serie → keine Läufe", () => {
-  assert.deepEqual(splitRuns([]), []);
-  assert.deepEqual(splitRuns([null, null]), []);
-});
-
-test("splitRuns: 0 ist ein gültiger Wert, keine Lücke (Unterschied zu Boolean-Filtern)", () => {
-  const runs = splitRuns([0, 0, null, 0]);
-  assert.deepEqual(runs, [
-    { start: 0, end: 1 },
-    { start: 3, end: 3 },
-  ]);
 });

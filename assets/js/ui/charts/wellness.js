@@ -33,7 +33,6 @@ import {
   axisUnit,
   measuredWidth,
   makeIndexScale,
-  splitRuns,
   haloLabel,
   flattestIndex,
   crosshair,
@@ -200,18 +199,22 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
       svg.appendChild(tl);
     }
 
-    // Linie: Schlaf-HF (rechte Achse) — bricht an Messlücken (splitRuns)
+    // Linie: Schlaf-HF (rechte Achse) — verbindet über Messlücken hinweg
+    // (Alex' Design-Entscheidung, wie HRV/Ruhepuls/Gewicht): alle Tage mit
+    // echtem Wert werden direkt verbunden statt an jeder Lücke abzureißen.
+    // Marker bleiben ausschließlich an echten Messtagen (s. Dot-Schleife).
     if (definedHR.length) {
-      for (const run of splitRuns(hrVals)) {
-        const runPts = [];
-        for (let i = run.start; i <= run.end; i++) runPts.push({ x: xOf(i), y: hrY(hrVals[i]) });
-        if (runPts.length < 2) continue;
+      const hrPts = [];
+      for (let i = 0; i < hrVals.length; i++) {
+        if (hrVals[i] != null) hrPts.push({ x: xOf(i), y: hrY(hrVals[i]) });
+      }
+      if (hrPts.length > 1) {
         svg.appendChild(
           svgEl("polyline", {
             fill: "none",
             stroke: "#d94f4f",
             "stroke-width": "1.8",
-            points: runPts.map((p) => `${p.x},${p.y}`).join(" "),
+            points: hrPts.map((p) => `${p.x},${p.y}`).join(" "),
           })
         );
       }
@@ -383,11 +386,11 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         : [[0, lastIdx, color1, false]];
 
     // Linie verbindet bewusst über Messlücken hinweg (Alex' Design-Entscheidung,
-    // Phase 5 Bugfix-Nachtrag) — nur die tatsächlich gemessenen Punkte werden
-    // gesammelt und DIREKT verbunden, Lücken-Tage werden einfach übersprungen
-    // statt das Liniensegment zu unterbrechen. Punkte/Marker (s. "Dots" unten)
-    // bleiben ausschließlich an echten Messtagen. Kein `splitRuns()` hier mehr
-    // (anders als z.B. Schlaf-HF/Hydration, die weiter an Lücken abbrechen).
+    // Phase 5 Bugfix-Nachtrag, gilt für alle vier absence:"gap"-Serien in
+    // dieser Datei) — nur die tatsächlich gemessenen Punkte werden gesammelt
+    // und DIREKT verbunden, Lücken-Tage werden einfach übersprungen statt das
+    // Liniensegment zu unterbrechen. Punkte/Marker (s. "Dots" unten) bleiben
+    // ausschließlich an echten Messtagen.
     const drawSegmentLine = (fromIdx, toIdx, color, dashed) => {
       const segment = [];
       for (let i = fromIdx; i <= toIdx; i++) {
@@ -1048,24 +1051,26 @@ export function renderHydration(svgId, hy) {
     axisUnit(svg, { x: pad.l - 6, y: pad.t - 6, text: unit || "Hydration" });
     axisTitles(svg, W, H, pad, { x: "Datum" });
 
-    for (const run of splitRuns(vals)) {
-      const runPts = [];
-      for (let i = run.start; i <= run.end; i++) runPts.push({ x: scale.x(i), y: Y(vals[i]) });
-      // Läufe mit nur einem Punkt brauchen keine Linie/Fläche — der Punkt
-      // selbst wird unten von der pro-Tag-Dot-Schleife gezeichnet (inkl.
-      // Tooltip-Handler, die hier fehlen würden).
-      if (runPts.length < 2) continue;
+    // Linie verbindet über Messlücken hinweg (Alex' Design-Entscheidung, wie
+    // HRV/Ruhepuls/Gewicht/Schlaf-HF) — alle Tage mit echtem Wert werden
+    // direkt verbunden. Marker bleiben ausschließlich an echten Messtagen
+    // (Dot-Schleife unten).
+    const hydrationPts = [];
+    for (let i = 0; i < vals.length; i++) {
+      if (vals[i] != null) hydrationPts.push({ x: scale.x(i), y: Y(vals[i]) });
+    }
+    if (hydrationPts.length > 1) {
       const area =
-        `M${runPts[0].x},${H - pad.b} ` +
-        runPts.map((p) => `L${p.x},${p.y}`).join(" ") +
-        ` L${runPts[runPts.length - 1].x},${H - pad.b} Z`;
+        `M${hydrationPts[0].x},${H - pad.b} ` +
+        hydrationPts.map((p) => `L${p.x},${p.y}`).join(" ") +
+        ` L${hydrationPts[hydrationPts.length - 1].x},${H - pad.b} Z`;
       svg.appendChild(svgEl("path", { d: area, fill: "#4a7fa8", opacity: "0.08" }));
       svg.appendChild(
         svgEl("polyline", {
           fill: "none",
           stroke: "#4a7fa8",
           "stroke-width": "2",
-          points: runPts.map((p) => `${p.x},${p.y}`).join(" "),
+          points: hydrationPts.map((p) => `${p.x},${p.y}`).join(" "),
         })
       );
     }
