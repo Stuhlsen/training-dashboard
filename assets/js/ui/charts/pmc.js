@@ -6,6 +6,8 @@
 import { fmt, fmtDate, fmtDateFull, localISODate, addDaysISO } from "../../core/format.js";
 import { interpolateCtl, tsbOf, currentPmc, projectPmc } from "../../core/pmc.js";
 import { densifyDays } from "../../core/days.js";
+import { isoWeekKey } from "../../core/aggregate.js";
+import { buildCompare } from "../../core/compare.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import { activateTab } from "../nav.js";
 import { Planned } from "../planned.js";
@@ -27,6 +29,8 @@ import {
   crosshair,
   hoverDot,
   SERIES_STYLE,
+  fitsLabel,
+  weekDisplayLabels,
 } from "./base.js";
 import {
   loadForAthlete as loadChartView,
@@ -305,7 +309,11 @@ function drawOverview(svg, { skeleton, ctlVals, seamIdx, todayIdx, totalWs, tota
  * @param {SVGElement} svg */
 function paintHover(svg) {
   const geo = svg.__pmcGeometry;
-  if (!geo) return;
+  // Vergleichsmodus (Schritt 4) hinterlegt keine Geometrie mit `skeleton`
+  // (Hover läuft dort lokal, s. drawCompareView/Teil D) — ohne diese Wache
+  // würde ein beliebiger chart-view-Change (z.B. setCompareEnabled selbst)
+  // hier auf `geo.skeleton.findIndex` crashen.
+  if (!geo || !geo.skeleton) return;
   geo.hoverLayer.textContent = "";
   const { hoveredDate } = getChartViewState();
   if (!hoveredDate) return;
@@ -319,6 +327,142 @@ function paintHover(svg) {
     if (v == null) continue;
     hoverDot(geo.hoverLayer, x, s.yOf(v), s.color);
   }
+}
+
+/* ── Vergleichsmodus (Phase 5, Schritt 4, Teil C — docs/phase-5-konzept-
+   explorer.md §5): zwei gemerkte Zeiträume desselben Athleten, überlagert
+   auf einer RELATIVEN dayOffset-Achse (Tag 1 = Blockstart). Ersetzt die
+   normale Historie/Prognose/Szenario-Zeichnung für diesen draw()-Aufruf
+   komplett (nicht überlagert) — eine relative und eine absolute Achse
+   lassen sich nicht gleichzeitig in derselben <svg> darstellen. Nur CTL
+   wird verglichen (nicht ATL/TSB) — dieselbe Beschränkung, mit der schon
+   die Szenario-Zweitserie (Schritt 3) nur die CTL-Kurve überlagert. */
+const COMPARE_PAD = { l: 54, r: 24, t: 30, b: 50 };
+const MIN_DAY_TICK_PX = 40;
+const MIN_WEEK_TICK_PX = 50;
+
+/** Erste Tag-Position jeder ISO-Kalenderwoche, die in `days` vorkommt —
+ *  vollständige, geordnete Liste (Voraussetzung für weekDisplayLabels()s
+ *  zustandsbehafteten Jahreswechsel-Marker, §1.4), noch NICHT ausgedünnt.
+ *  @param {Array<{dayOffset:number, dateISO:string}>} days
+ *  @returns {Array<{key:string, dayOffset:number}>} */
+function weekStartsFor(days) {
+  const weeks = [];
+  let lastKey = null;
+  for (const d of days) {
+    const key = isoWeekKey(d.dateISO);
+    if (key !== lastKey) {
+      weeks.push({ key, dayOffset: d.dayOffset });
+      lastKey = key;
+    }
+  }
+  return weeks;
+}
+
+/** Zeichnet eine ausgedünnte Reihe farbiger Wochen-Ticks für einen Slot
+ *  (eigene Zeile je Slot, s. Teil C — beide Slots liegen auf unterschied-
+ *  lichen realen Kalenderwochen, teilen sich aber dieselbe x-Skala). */
+function drawWeekTicks(svg, days, scale, color, y) {
+  const weeks = weekStartsFor(days);
+  if (!weeks.length) return;
+  // Reihenfolge-Vorbedingung §1.4: weekDisplayLabels() läuft auf der
+  // VOLLSTÄNDIGEN geordneten Liste, bevor pickLabelIndices() ausdünnt.
+  const labels = weekDisplayLabels(weeks.map((w) => w.key));
+  const tickX = weeks.map((w) => scale.x(w.dayOffset));
+  const picked = pickLabelIndices(tickX, MIN_WEEK_TICK_PX);
+  weeks.forEach((w, i) => {
+    if (!picked.has(i)) return;
+    const t = svgEl("text", {
+      x: tickX[i],
+      y,
+      "text-anchor": "middle",
+      fill: color,
+      "font-size": "9",
+    });
+    t.textContent = labels[i];
+    svg.appendChild(t);
+  });
+}
+
+/**
+ * @param {SVGElement} svg
+ * @param {{W:number, H:number}} dims
+ * @param {import("../../types.js").Ride[]} rides Voller, ungefilterter Bestand
+ * @param {{a: {from:string,to:string}, b: {from:string,to:string}}} compareSlots
+ * @returns {{a: ReturnType<typeof buildCompare>["a"], b: ReturnType<typeof buildCompare>["b"]}}
+ */
+function drawCompareView(svg, { W, H }, rides, compareSlots) {
+  const pad = COMPARE_PAD;
+  const { a, b } = buildCompare(rides, compareSlots.a, compareSlots.b);
+  const maxLen = Math.max(a.days.length, b.days.length, 1);
+  const plotW = W - pad.l - pad.r;
+  const plotH = H - pad.t - pad.b;
+  const scale = makeIndexScale({ ws: 0, we: Math.max(1, maxLen - 1), padLeft: pad.l, width: plotW });
+
+  const aCtl = a.days.map((d) => d.ctl);
+  const bCtl = b.days.map((d) => d.ctl);
+  const known = [...aCtl, ...bCtl].filter((v) => v != null);
+  const maxCA = known.length ? Math.max(...known) * 1.12 : 10;
+  const caY = (v) => pad.t + plotH - (v / maxCA) * plotH;
+
+  gradedGrid(svg, { x0: pad.l, x1: W - pad.r, yOf: caY, lo: 0, hi: maxCA, steps: 4 });
+  axisUnit(svg, { x: pad.l - 6, y: pad.t - 10, text: "CTL" });
+  axisTitles(svg, W, H, pad, { x: "Tage seit Blockstart" });
+
+  const drawSeries = (days, vals, color, dashed, glowId) => {
+    if (!days.length) return;
+    const defs = svg.querySelector("defs") || svg.insertBefore(svgEl("defs", {}), svg.firstChild);
+    const filterUrl = !dashed && glowId ? glowFilter(defs, glowId, color, 2.5) : null;
+    const segs = segmentsFor(vals, 0, days.length - 1, scale, caY);
+    for (const seg of segs) {
+      svg.appendChild(
+        svgEl("path", {
+          d: pathD(seg),
+          fill: "none",
+          stroke: color,
+          "stroke-width": "2.2",
+          filter: filterUrl || undefined,
+          "stroke-dasharray": dashed ? SERIES_STYLE.secondary["stroke-dasharray"] : undefined,
+          opacity: dashed ? SERIES_STYLE.secondary.opacity : undefined,
+        })
+      );
+    }
+  };
+
+  // Serie A: durchgezogen + Glow (Erstserie). Serie B: SERIES_STYLE.secondary
+  // (gestrichelt, reduzierte Deckkraft) — Konvention aus Schritt 3, hier für
+  // eine echte Zweitserie statt einem synthetischen Szenario.
+  drawSeries(a.days, aCtl, CHART_THEME.z2, false, `glow-${svg.id}-compare-a`);
+  drawSeries(b.days, bCtl, CHART_THEME.ss, true, null);
+
+  // Segment-Labels über das fitsLabel()-Muster (§1.4) — der Explorer nutzt
+  // es von Anfang an, anders als pmc/power/training.js' altes Rand-Muster.
+  if (a.days.length && fitsLabel(plotW, "Zeitraum A")) {
+    const idx = flattestIndex(aCtl, 0, a.days.length - 1, caY, 0.3, 1);
+    if (idx != null) haloLabel(svg, scale.x(idx), caY(aCtl[idx]) - 12, "Zeitraum A", CHART_THEME.z2);
+  }
+  if (b.days.length && fitsLabel(plotW, "Zeitraum B")) {
+    const idx = flattestIndex(bCtl, 0, b.days.length - 1, caY, 0.3, 1);
+    if (idx != null) haloLabel(svg, scale.x(idx), caY(bCtl[idx]) + 16, "Zeitraum B", CHART_THEME.ss);
+  }
+
+  // Tages- vs. Wochen-Ticks je nach Pixel-Teilung (§5, Teil C).
+  const pxPerDay = plotW / maxLen;
+  if (pxPerDay >= MIN_DAY_TICK_PX) {
+    const tickIdx = Array.from({ length: maxLen }, (_, i) => i);
+    const tickX = tickIdx.map((i) => scale.x(i));
+    const picked = pickLabelIndices(tickX, MIN_DAY_TICK_PX);
+    tickIdx.forEach((i, k) => {
+      if (picked.has(k)) xLabel(svg, scale.x(i), H - pad.b + 14, `Tag ${i + 1}`);
+    });
+  } else {
+    // Zwei Tick-Zeilen (eine je Slot) — beide Slots liegen auf verschiedenen
+    // realen Kalenderwochen, teilen sich aber denselben dayOffset-x-Punkt.
+    drawWeekTicks(svg, a.days, scale, CHART_THEME.z2, H - pad.b + 14);
+    drawWeekTicks(svg, b.days, scale, CHART_THEME.ss, H - pad.b + 26);
+  }
+
+  return { a, b };
 }
 
 export function renderPMC(svgId, rides, projection, events, athleteId) {
@@ -401,6 +545,21 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
 
     const { ctl: ctlVals, atl: atlVals, tsb: tsbVals } = densifyPmc(skeleton, sorted, projRows, todayIdx);
 
+    // scenario/scenarioProjection UND compareSlots werden hier (vor dem
+    // Modus-Zweig) aus demselben getChartViewState()-Aufruf gelesen: beide
+    // werden auch AUSSERHALB des Zweigs gebraucht (Szenario-Regler-Sync bzw.
+    // Vergleichsmodus-Bedienelemente laufen unverändert nach dem Zweig).
+    const { scenario, scenarioProjection, compareSlots } = getChartViewState();
+
+    // Vergleichsmodus (Schritt 4, Teil C) — ersetzt die normale Historie/
+    // Prognose/Szenario-Zeichnung komplett für diesen draw()-Aufruf (relative
+    // und absolute Achse passen nicht in dieselbe <svg>). Übersichtsleiste,
+    // Presets und Szenario-Regler bleiben unverändert aktiv (Fensterwahl für
+    // "Als A/B merken" bleibt möglich, unabhängig vom Anzeigemodus).
+    const compareActive = !!(compareSlots.enabled && compareSlots.a && compareSlots.b);
+    if (compareActive) {
+      drawCompareView(svg, { W, H }, rides, compareSlots);
+    } else {
     // Y-Skalen aus dem SICHTBAREN Fenster, nicht aus dem vollen Skelett —
     // Reinzoomen zeigt mehr Y-Detail (erwartete Brush/Zoom-Semantik).
     const windowSlice = (vals) => vals.slice(ws, we + 1).filter((v) => v != null);
@@ -538,7 +697,6 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     // der BASIS-Prognose berechnet (X8) — ein Ein-/Ausschalten des Szenarios
     // darf die Achse nie verschieben, sonst wäre der Vorher-Nachher-Vergleich
     // nicht mehr möglich.
-    const { scenario, scenarioProjection } = getChartViewState();
     if (scenarioProjection) {
       const scenarioRowByDate = new Map(scenarioProjection.days.map((d) => [d.date, d]));
       const scenarioCtl = skeleton.map((s) => scenarioRowByDate.get(s.dateISO)?.ctl ?? null);
@@ -810,6 +968,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       });
       svg.appendChild(c);
     }
+    } // Ende `if (!compareActive)` — Übersichtsleiste/Presets/Szenario-Regler folgen unverändert.
 
     // Note — TSB auf heute fortgeschrieben (s. core/pmc.js::currentPmc), sonst
     // widerspricht dieses "Aktuell" der Belastungsempfehlung nach Ruhetagen.
