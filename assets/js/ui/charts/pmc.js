@@ -462,6 +462,64 @@ function drawCompareView(svg, { W, H }, rides, compareSlots) {
     drawWeekTicks(svg, b.days, scale, CHART_THEME.ss, H - pad.b + 26);
   }
 
+  // Cursor pro Slot (Phase 5, Schritt 4, Teil D — §7.1): beide Serien teilen
+  // sich denselben dayOffset-x-Punkt, deshalb genügt EIN gemeinsamer
+  // Crosshair mit je einem hoverDot() pro Slot — keine neue Struktur nötig,
+  // dasselbe Muster wie paintHover()s geo.series-Liste in der Normalansicht.
+  // Bewusst LOKAL am SVG-Knoten (kein setHovered()/state/chart-view.js):
+  // ein dayOffset trägt zwei echte Daten (Slot A ≠ Slot B), die sich nicht
+  // auf ein einzelnes globales `hoveredDate` abbilden lassen.
+  const hoverLayer = svgEl("g", {});
+  svg.appendChild(hoverLayer);
+
+  const showCompareHover = (e, dayOffset) => {
+    hoverLayer.textContent = "";
+    const x = scale.x(dayOffset);
+    crosshair(hoverLayer, { x, top: pad.t, bottom: pad.t + plotH });
+    const lines = [];
+    if (aCtl[dayOffset] != null) {
+      hoverDot(hoverLayer, x, caY(aCtl[dayOffset]), CHART_THEME.z2);
+      lines.push(
+        `<div class="tv">Zeitraum A: ${fmtDateFull(a.days[dayOffset].dateISO)} · CTL ${fmt(aCtl[dayOffset])}</div>`
+      );
+    }
+    if (bCtl[dayOffset] != null) {
+      hoverDot(hoverLayer, x, caY(bCtl[dayOffset]), CHART_THEME.ss);
+      lines.push(
+        `<div class="tv">Zeitraum B: ${fmtDateFull(b.days[dayOffset].dateISO)} · CTL ${fmt(bCtl[dayOffset])}</div>`
+      );
+    }
+    Tooltip.show(e, lines.join(""));
+  };
+  const clearCompareHover = () => {
+    hoverLayer.textContent = "";
+    Tooltip.hide();
+  };
+
+  // Punkte ausgedünnt wie die CTL-Punkte der Normalansicht (max. ~25 sichtbar).
+  const addPoints = (days, vals, color) => {
+    if (!days.length) return;
+    const step = Math.max(1, Math.floor(days.length / 25));
+    days.forEach((d, i) => {
+      if (i % step !== 0 && i !== days.length - 1) return;
+      if (vals[i] == null) return;
+      const c = svgEl("circle", {
+        cx: scale.x(d.dayOffset),
+        cy: caY(vals[i]),
+        r: "3",
+        fill: color,
+        stroke: CHART_THEME.bg,
+        "stroke-width": "1.5",
+      });
+      c.style.cursor = "pointer";
+      c.addEventListener("mouseenter", (e) => showCompareHover(e, d.dayOffset));
+      c.addEventListener("mouseleave", clearCompareHover);
+      svg.appendChild(c);
+    });
+  };
+  addPoints(a.days, aCtl, CHART_THEME.z2);
+  addPoints(b.days, bCtl, CHART_THEME.ss);
+
   return { a, b };
 }
 
