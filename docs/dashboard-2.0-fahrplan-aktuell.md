@@ -336,6 +336,30 @@
 - [x] Tests **[SO]** — `splitRuns()` in `tests/chart-layout.test.js` (6 neue
   Tests: durchgehender Lauf, einzelne/mehrtägige Lücke, führende/
   nachgestellte Lücken, leere Serie, `0` als gültiger Wert vs. Lücke).
+- [x] **Bugfix-Nachtrag zu Schritt 7** (nach erster Live-Sichtung) **[SO]**.
+  Drei Teile: **(A)** Design-Änderung auf Wunsch: HRV/Ruhepuls/Gewicht/
+  Schlaf-HF/Hydration-Linien verbinden jetzt über Messlücken hinweg statt
+  an jeder Lücke abzureißen (Marker bleiben an echten Messtagen) —
+  `splitRuns()` dadurch ohne verbleibenden Aufrufer, als Dead Code
+  entfernt (inkl. seiner 6 Tests). **(B)** Echter Bug: die Gewichts-Spur in
+  `renderEnergy()` teilte sich das (zu schmale) Energie-Skelett, wodurch 3
+  frühe Gewichtsmessungen unsichtbar waren — Skelett läuft jetzt über die
+  Union aus Energie- und Gewichtsbereich. **(C)** Echter Bug: HRV/Ruhepuls
+  endeten für den Eigenplan-Athleten 1 Tag früher als Sleep/Energie
+  (lasen aus `rides.filter(r => r.hrv != null)` statt direkt aus
+  `Data.wellness`) — behoben über eine neue `_mergedOwnPlanSeries()`
+  (wellness-Wert bevorzugt, ride-Wert als Fallback, NICHT einfach
+  vollständig umgestellt, s. `docs/offene-punkte.md` zur dabei entdeckten
+  Sync-Diskrepanz zwischen `ride.hrv` und `wellness.hrv`).
+  `PLAN2_SCHEDULE`/`getPlan2WeekPhase()` dafür nach `assets/js/core/
+  plan2-schedule.js` verschoben (`scripts/lib/plan2.js` re-exportiert von
+  dort), damit Woche/Plan unabhängig von Ride-Objekten aus dem reinen
+  Datumsraster kommen. Für beide Athleten gegen einen lokalen Dev-Server
+  Playwright-verifiziert (Athlet 1: HRV/Ruhepuls/Sleep/Energie enden jetzt
+  auf demselben Datum, volle Plan-1-Historie erhalten, Segmentfarben/
+  -Divider korrekt; Athlet 2: HRV/Ruhepuls-Chart unverändert, keine
+  fälschliche Plan-2-Segmentierung). 8 neue Tests
+  (`tests/plan2-schedule.test.js`). Vier Commits.
 
 **Entscheidungen Phase 5:**
 - X1: Vergleichsachse = zwei Zeiträume, selber Athlet, relative x-Achse ✅

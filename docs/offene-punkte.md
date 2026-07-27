@@ -202,6 +202,40 @@ mehrere bereits committete Dateien anfassen:
   Februar korrekt als Leerstelle) — als bekannte Eigenheit hier vermerkt,
   falls die Breite bei künftig noch lückenhafteren Daten unhandlich wird.
 
+### Bugfix-Nachtrag zu Schritt 7 (nach erster Live-Sichtung)
+
+- **Sync-Pipeline: `ride.hrv`/`ride.ruhepuls` und `Data.wellness[].hrv`/
+  `.restingHR` weichen an einzelnen Tagen voneinander ab, obwohl beide laut
+  Code aus demselben `wellness[date].hrvSDNN`/`.restingHR` stammen
+  sollten** — bestätigt direkt in `data/rides.json` für Athlet 1: am
+  12.06.2026 trägt der Ride `hrv: 73`, der Wellness-Eintrag desselben
+  Datums `hrv: 45` (6 von 25 Tagen mit Wert in beiden Quellen weichen so
+  ab, nicht nur Rundungsdifferenzen). `scripts/lib/map-activity.js::
+  wellnessFields()` und `scripts/lib/wellness.js::WELLNESS_FIELDS` lesen
+  strukturell identisch `w.hrvSDNN`/`w.restingHR` aus demselben
+  `wellness`-Objekt eines Sync-Laufs — die Diskrepanz deutet daher am
+  ehesten darauf hin, dass `ride.hrv` beim Erst-Sync eingebettet und bei
+  späteren Läufen nicht mehr aufgefrischt wird, während `wellnessList` bei
+  jedem Sync komplett neu aus dem aktuellen intervals.icu-Stand gebaut
+  wird (der rückwirkend Werte korrigieren kann) — unbestätigte Vermutung,
+  keine verifizierte Ursache. Nicht untersucht (außerhalb des Chart-
+  Rendering-Scopes dieses Bugfix-Auftrags), aber worth einer gezielten
+  Prüfung von `scripts/generate-data.js`s Update-Ablauf (Voll- vs.
+  inkrementelle Regenerierung von `rides[]`).
+- **Deshalb bewusst kein reiner Wechsel auf `Data.wellness` für HRV/
+  Ruhepuls (Eigenplan-Athlet), sondern ein Merge** (`_mergedOwnPlanSeries()`
+  in `wellness.js`: wellness-Wert bevorzugt, ride-Wert als Fallback) — ein
+  reiner Wechsel hätte zusätzlich die komplette Plan-1-Ära (vor Mitte Juni)
+  gelöscht, da `Data.wellness` dafür gar keine HRV/Ruhepuls-Werte trägt.
+  Der Merge löst NICHT die obige Werte-Diskrepanz auf (zeigt an den 6
+  betroffenen Tagen konsequent den Wellness-Wert), verschiebt sie nur
+  sichtbar auf die Sync-Pipeline statt sie im Chart zu verstecken.
+- **`PLAN2_SCHEDULE`/`getPlan2WeekPhase()` leben jetzt in `assets/js/core/
+  plan2-schedule.js`**, `scripts/lib/plan2.js` re-exportiert von dort
+  (Präzedenzfall: `core/planning.js::effectiveSessions`, bereits von
+  `scripts/lib/map-activity.js` importiert). Reiner, verhaltensgleicher
+  Umzug — `PLANNED_SESSIONS`/`getPlan2Blocks()` unverändert.
+
 ## Infrastruktur/CI
 
 - **`sync-data.yml` läuft per Cron nur auf dem Default-Branch `main`** —
