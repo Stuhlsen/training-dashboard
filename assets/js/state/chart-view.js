@@ -33,7 +33,19 @@
    state/plan-cards.js::configureProjection als injizierte Provider
    (`configureScenarioSources`), damit dieses Modul state/data.js o.ä. nicht
    am Top-Level importieren muss (sonst zöge tests/chart-view-state.test.js
-   dieselbe esm.sh-Importkette herein wie tests/plan-cards-move.test.js). */
+   dieselbe esm.sh-Importkette herein wie tests/plan-cards-move.test.js).
+
+   Schritt 4 — Vergleichsmodus (docs/phase-5-konzept-explorer.md §5, §7.1):
+   `compareSlots` ist additiv NEBEN `ws`/`we` (nicht dessen Umbau auf eine
+   Liste — `ws`/`we` bleibt der eine Hauptbrush aus Schritt 1 unverändert).
+   Gleiche `enabled`-Konvention wie `scenario`: Slots bleiben gemerkt, auch
+   wenn der Vergleichsmodus ausgeschaltet wird ("Modus aus" heißt nicht
+   "Slots vergessen"). Persistiert im selben localStorage-Objekt wie
+   ws/we/scenario (ein Schlüssel, X9) — core/compare.js selbst wird hier
+   NICHT aufgerufen: kein flüchtiges Ableitungsergebnis wie
+   scenarioProjection zu cachen, die UI-Schicht ruft buildCompare() bei
+   jedem Redraw direkt mit den aktuellen Rides auf (anders als scenario
+   braucht compareSlots keine injizierten Datenquellen). */
 
 import { buildScenario } from "../core/scenario.js";
 import { projectLoad } from "../core/projection.js";
@@ -45,11 +57,15 @@ const SCENARIO_DEFAULT = Object.freeze({
   rampRatePct: 0,
 });
 
+/** Slot-Default (Schritt 4) — `a`/`b` sind `null` oder `{from, to}` (ISO). */
+const COMPARE_DEFAULT = Object.freeze({ enabled: false, a: null, b: null });
+
 let ws = 0; // Fensteranfang (Tagesindex)
 let we = 0; // Fensterende (Tagesindex)
 let hoveredDate = null; // dateISO oder null
 let loadedForAthleteId = null;
 let scenario = { ...SCENARIO_DEFAULT };
+let compareSlots = { ...COMPARE_DEFAULT };
 /** @type {ReturnType<typeof projectLoad> | null} */
 let scenarioProjection = null;
 // Default-Provider: leere Quellen, harmlos, solange configureScenarioSources()
@@ -65,6 +81,16 @@ const listeners = new Set();
 
 function storageKey(athleteId) {
   return `chart_view_${athleteId}`;
+}
+
+/** Nur ein sauberes `{from: string, to: string}` wird übernommen — defektes/
+ *  fremdes localStorage-JSON darf hier nie werfen (wie bei `scenario`s
+ *  typeof-Wache), sondern fällt auf `null` zurück (Slot "nicht gemerkt"). */
+function sanitizeSlot(v) {
+  if (v && typeof v === "object" && typeof v.from === "string" && typeof v.to === "string") {
+    return { from: v.from, to: v.to };
+  }
+  return null;
 }
 
 function notify() {
@@ -111,9 +137,10 @@ function recomputeScenario() {
 }
 
 /** @returns {{ws:number, we:number, hoveredDate:string|null,
- *   scenario: typeof SCENARIO_DEFAULT, scenarioProjection: ReturnType<typeof projectLoad>|null}} */
+ *   scenario: typeof SCENARIO_DEFAULT, scenarioProjection: ReturnType<typeof projectLoad>|null,
+ *   compareSlots: typeof COMPARE_DEFAULT}} */
 export function getState() {
-  return { ws, we, hoveredDate, scenario, scenarioProjection };
+  return { ws, we, hoveredDate, scenario, scenarioProjection, compareSlots };
 }
 
 /** @param {(state: ReturnType<typeof getState>) => void} fn @returns {() => void} */
@@ -151,13 +178,25 @@ export function loadForAthlete(athleteId, defaultWindow) {
     saved?.scenario && typeof saved.scenario === "object" ? saved.scenario : {};
   scenario = { ...SCENARIO_DEFAULT, ...savedScenario };
   recomputeScenario();
+
+  const savedCompare =
+    saved?.compareSlots && typeof saved.compareSlots === "object" ? saved.compareSlots : {};
+  compareSlots = {
+    enabled: !!savedCompare.enabled,
+    a: sanitizeSlot(savedCompare.a),
+    b: sanitizeSlot(savedCompare.b),
+  };
+
   notify();
 }
 
 function persist() {
   if (!loadedForAthleteId) return;
   try {
-    localStorage.setItem(storageKey(loadedForAthleteId), JSON.stringify({ ws, we, scenario }));
+    localStorage.setItem(
+      storageKey(loadedForAthleteId),
+      JSON.stringify({ ws, we, scenario, compareSlots })
+    );
   } catch {
     // localStorage kann fehlschlagen (privater Modus, Speicherlimit) —
     // Zustand bleibt dann In-Memory für die laufende Sitzung gültig.
@@ -191,6 +230,28 @@ export function setScenarioParams(params) {
 export function setScenarioEnabled(enabled) {
   scenario = { ...scenario, enabled };
   recomputeScenario();
+  persist();
+  notify();
+}
+
+/** Übernimmt einen Datumsbereich in Vergleichsslot A oder B (Schritt 4,
+ *  Teil E) — z.B. aus dem "Als A/B merken"-Button in ui/charts/pmc.js, der
+ *  das aktuelle Brush-Fenster (ws/we) über das Skelett in {from, to} (ISO)
+ *  umrechnet. Der jeweils andere Slot bleibt unverändert.
+ *  @param {"a"|"b"} slot
+ *  @param {{from:string, to:string}} range */
+export function setCompareSlot(slot, range) {
+  if (slot !== "a" && slot !== "b") return;
+  compareSlots = { ...compareSlots, [slot]: range };
+  persist();
+  notify();
+}
+
+/** Ein-/Ausschalten des Vergleichsmodus — unabhängig von den gemerkten Slots
+ *  (Muster wie setScenarioEnabled: "Modus aus" löscht die Slots nicht).
+ *  @param {boolean} enabled */
+export function setCompareEnabled(enabled) {
+  compareSlots = { ...compareSlots, enabled };
   persist();
   notify();
 }

@@ -34,9 +34,12 @@ const {
   configureScenarioSources,
   setScenarioParams,
   setScenarioEnabled,
+  setCompareSlot,
+  setCompareEnabled,
 } = await import("../assets/js/state/chart-view.js");
 
 const SCENARIO_DEFAULT = { enabled: false, weekTssPct: 0, restDays: 0, rampRatePct: 0 };
+const COMPARE_DEFAULT = { enabled: false, a: null, b: null };
 
 test("loadForAthlete: legt den übergebenen Default an, wenn nichts gespeichert ist", () => {
   store.clear();
@@ -47,6 +50,7 @@ test("loadForAthlete: legt den übergebenen Default an, wenn nichts gespeichert 
     hoveredDate: null,
     scenario: SCENARIO_DEFAULT,
     scenarioProjection: null,
+    compareSlots: COMPARE_DEFAULT,
   });
 });
 
@@ -59,7 +63,12 @@ test("setWindow: persistiert und ist nach erneutem Laden wieder da (Rundreise)",
 
   const raw = store.get("chart_view_athlete-cv-2");
   assert.ok(raw, "muss unter dem athletenscharfen Schlüssel persistiert sein");
-  assert.deepEqual(JSON.parse(raw), { ws: 3, we: 13, scenario: SCENARIO_DEFAULT });
+  assert.deepEqual(JSON.parse(raw), {
+    ws: 3,
+    we: 13,
+    scenario: SCENARIO_DEFAULT,
+    compareSlots: COMPARE_DEFAULT,
+  });
 });
 
 test("loadForAthlete: Athletenwechsel lädt nicht den fremden Zustand", () => {
@@ -90,6 +99,7 @@ test("loadForAthlete: defektes JSON in localStorage führt zu Default statt Abst
     hoveredDate: null,
     scenario: SCENARIO_DEFAULT,
     scenarioProjection: null,
+    compareSlots: COMPARE_DEFAULT,
   });
 });
 
@@ -246,4 +256,108 @@ test("defektes Szenario-JSON (falsche Form, kein Objekt) führt zu Default statt
     loadForAthlete("athlete-cv-scenario-broken", { ws: 1, we: 91 });
   });
   assert.deepEqual(getState().scenario, SCENARIO_DEFAULT);
+});
+
+/* Vergleichsmodus-Slots — Phase 5, Schritt 4, Teil B
+   (docs/phase-5-konzept-explorer.md §5, §7.1). */
+
+test("setCompareSlot: übernimmt Slot A, Slot B bleibt unverändert (null)", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-compare-1", { ws: 0, we: 10 });
+  assert.deepEqual(getState().compareSlots, COMPARE_DEFAULT);
+
+  setCompareSlot("a", { from: "2026-06-01", to: "2026-06-14" });
+  assert.deepEqual(getState().compareSlots, {
+    enabled: false,
+    a: { from: "2026-06-01", to: "2026-06-14" },
+    b: null,
+  });
+});
+
+test("setCompareSlot: A und B unabhängig setzbar", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-compare-2", { ws: 0, we: 10 });
+  setCompareSlot("a", { from: "2026-06-01", to: "2026-06-14" });
+  setCompareSlot("b", { from: "2026-07-01", to: "2026-07-14" });
+  assert.deepEqual(getState().compareSlots, {
+    enabled: false,
+    a: { from: "2026-06-01", to: "2026-06-14" },
+    b: { from: "2026-07-01", to: "2026-07-14" },
+  });
+});
+
+test("setCompareEnabled: schaltet den Modus unabhängig von den gemerkten Slots", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-compare-3", { ws: 0, we: 10 });
+  setCompareSlot("a", { from: "2026-06-01", to: "2026-06-14" });
+  setCompareEnabled(true);
+  assert.equal(getState().compareSlots.enabled, true);
+
+  setCompareEnabled(false);
+  assert.equal(getState().compareSlots.enabled, false);
+  assert.deepEqual(
+    getState().compareSlots.a,
+    { from: "2026-06-01", to: "2026-06-14" },
+    "Slot A bleibt gemerkt, auch wenn der Modus aus ist"
+  );
+});
+
+test("compareSlots persistiert und wird nach erneutem Laden wiederhergestellt (Rundreise)", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-compare-4", { ws: 0, we: 10 });
+  setCompareSlot("a", { from: "2026-06-01", to: "2026-06-14" });
+  setCompareSlot("b", { from: "2026-07-01", to: "2026-07-14" });
+  setCompareEnabled(true);
+
+  const raw = store.get("chart_view_athlete-cv-compare-4");
+  assert.deepEqual(JSON.parse(raw).compareSlots, {
+    enabled: true,
+    a: { from: "2026-06-01", to: "2026-06-14" },
+    b: { from: "2026-07-01", to: "2026-07-14" },
+  });
+
+  loadForAthlete("athlete-cv-compare-4-reload", { ws: 0, we: 10 }); // anderer Athlet dazwischen
+  loadForAthlete("athlete-cv-compare-4", { ws: 0, we: 10 });
+  assert.deepEqual(getState().compareSlots, {
+    enabled: true,
+    a: { from: "2026-06-01", to: "2026-06-14" },
+    b: { from: "2026-07-01", to: "2026-07-14" },
+  });
+});
+
+test("loadForAthlete: Athletenwechsel lädt nicht die fremden Vergleichsslots", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-compare-a", { ws: 0, we: 10 });
+  setCompareSlot("a", { from: "2026-06-01", to: "2026-06-14" });
+
+  loadForAthlete("athlete-cv-compare-b", { ws: 0, we: 10 });
+  assert.deepEqual(getState().compareSlots, COMPARE_DEFAULT);
+});
+
+test("defektes compareSlots-JSON (String statt Objekt) führt zu Default statt Absturz", () => {
+  store.clear();
+  store.set(
+    "chart_view_athlete-cv-compare-broken",
+    JSON.stringify({ ws: 1, we: 91, compareSlots: "not-an-object" })
+  );
+  assert.doesNotThrow(() => {
+    loadForAthlete("athlete-cv-compare-broken", { ws: 1, we: 91 });
+  });
+  assert.deepEqual(getState().compareSlots, COMPARE_DEFAULT);
+});
+
+test("compareSlots mit falsch geformtem Slot (kein {from,to}) fällt auf null statt zu werfen", () => {
+  store.clear();
+  store.set(
+    "chart_view_athlete-cv-compare-badslot",
+    JSON.stringify({
+      ws: 1,
+      we: 91,
+      compareSlots: { enabled: true, a: "2026-06-01", b: { from: "2026-07-01" } },
+    })
+  );
+  assert.doesNotThrow(() => {
+    loadForAthlete("athlete-cv-compare-badslot", { ws: 1, we: 91 });
+  });
+  assert.deepEqual(getState().compareSlots, { enabled: true, a: null, b: null });
 });
