@@ -26,6 +26,7 @@ import {
   brushOverlay,
   crosshair,
   hoverDot,
+  SERIES_STYLE,
 } from "./base.js";
 import {
   loadForAthlete as loadChartView,
@@ -524,6 +525,75 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
 
     drawLineSeries(ctlVals, CHART_THEME.role.primary, "ctl");
     drawLineSeries(atlVals, CHART_THEME.role.secondary, null);
+
+    // What-if-Szenario (Phase 5, Schritt 3, Teil C — docs/phase-5-konzept-
+    // explorer.md §6): zweite CTL-Kurve über der Basisprognose, erzeugt aus
+    // core/scenario.js über einen zweiten projectLoad()-Aufruf in
+    // state/chart-view.js. Startet immer bei "heute" (projectLoad() rechnet
+    // stets ab today), nicht bei seamIdx/asOf — die Szenario-Kurve hat keine
+    // Vergangenheit. Der Achsenhorizont (skeleton/to) bleibt unverändert aus
+    // der BASIS-Prognose berechnet (X8) — ein Ein-/Ausschalten des Szenarios
+    // darf die Achse nie verschieben, sonst wäre der Vorher-Nachher-Vergleich
+    // nicht mehr möglich.
+    const { scenarioProjection } = getChartViewState();
+    if (scenarioProjection) {
+      const scenarioRowByDate = new Map(scenarioProjection.days.map((d) => [d.date, d]));
+      const scenarioCtl = skeleton.map((s) => scenarioRowByDate.get(s.dateISO)?.ctl ?? null);
+      const scenarioFrom = Math.max(ws, todayIdx >= 0 ? todayIdx : ws);
+
+      for (const seg of segmentsFor(scenarioCtl, scenarioFrom, we, scale, caY)) {
+        svg.appendChild(
+          svgEl("path", {
+            d: pathD(seg),
+            fill: "none",
+            stroke: CHART_THEME.role.primary,
+            "stroke-width": "2.2",
+            "stroke-dasharray": SERIES_STYLE.secondary["stroke-dasharray"],
+            opacity: SERIES_STYLE.secondary.opacity,
+          })
+        );
+      }
+
+      // Eigenes Unsicherheitsband für die Szenario-Kurve (§6.3, Pflicht nicht
+      // Kür) — gleiches Zebra-Vermeidungsmuster wie das Basis-Band oben: EIN
+      // zusammenhängendes Band von erstem bis letztem unsicheren Tag.
+      const scenarioUncertainDates = new Set(
+        scenarioProjection.days.filter((d) => d.uncertain).map((d) => d.date)
+      );
+      let suMin = null,
+        suMax = null;
+      for (let i = scenarioFrom; i <= we; i++) {
+        if (!scenarioUncertainDates.has(skeleton[i].dateISO)) continue;
+        if (suMin === null) suMin = i;
+        suMax = i;
+      }
+      if (suMin !== null) {
+        const halfStep = (scale.x(1) - scale.x(0)) / 2;
+        const x0 = scale.x(suMin) - halfStep;
+        const x1 = scale.x(suMax) + halfStep;
+        svg.appendChild(
+          svgEl("rect", {
+            x: x0,
+            y: pad.t,
+            width: Math.max(1, x1 - x0),
+            fill: CHART_THEME.role.status,
+            opacity: "0.06",
+            height: plotH,
+          })
+        );
+      }
+
+      const scenarioLabelIdx = flattestIndex(scenarioCtl, scenarioFrom, we, caY, 0.3, 1);
+      if (scenarioLabelIdx != null) {
+        haloLabel(
+          svg,
+          scale.x(scenarioLabelIdx),
+          caY(scenarioCtl[scenarioLabelIdx]) - 12,
+          "Szenario",
+          CHART_THEME.role.primary
+        );
+      }
+    }
 
     // TSB — eigene Achse (Punkte statt TSS/Tag), kein Glow (Sekundärserie in
     // diesem Chart, G8: Glow höchstens auf CTL/ATL).

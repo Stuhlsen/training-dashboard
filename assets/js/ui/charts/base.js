@@ -46,6 +46,22 @@ export const CHART_THEME = {
   },
 };
 
+/**
+ * Zweitserien-Konvention (docs/chart-grundlagen.md §2.2, docs/phase-5-
+ * konzept-explorer.md §7.1): eine über die Basisserie gelegte zweite Kurve
+ * (What-if-Szenario, Schritt 3; Vergleichsmodus, Schritt 4) wird gestrichelt
+ * und mit reduzierter Deckkraft gezeichnet — dieselbe Rollenfarbe wie die
+ * Basisserie, keine eigene Farbe. Als SVG-Attributwerte gereicht (nicht als
+ * Klasse — Charts sind reines SVG ohne gemeinsames Stylesheet-Scoping),
+ * damit ein Aufrufer sie direkt in `svgEl("path", {...})` einstreuen kann.
+ */
+export const SERIES_STYLE = {
+  secondary: {
+    "stroke-dasharray": "4,3",
+    opacity: "0.55",
+  },
+};
+
 /** Horizontale Grid-Linien mit Y-Achsen-Labels */
 export function gridLines(svg, W, H, pad, maxV, minV = 0, steps = 4, noLabels = false) {
   for (let i = 0; i <= steps; i++) {
