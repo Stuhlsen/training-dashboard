@@ -15,6 +15,7 @@
 import { fmt, fmtDate, fmtDateFull, wrapText } from "../../core/format.js";
 import { linearTrend } from "../../core/stats.js";
 import { densifyDays, joinSeries } from "../../core/days.js";
+import { getPlan2WeekPhase } from "../../core/plan2-schedule.js";
 import { Data } from "../../state/data.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import {
@@ -666,12 +667,53 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
   }
 }
 
+/**
+ * Merged Eigenplan-Serie (Bugfix-Nachtrag zu Phase 5 Schritt 7): pro Tag
+ * `wellness[wellnessField]`, falls vorhanden, sonst `ride[rideField]` als
+ * Fallback. Grund für den Merge statt eines reinen Wechsels auf
+ * Data.wellness: die beiden Quellen weichen an einigen Tagen tatsächlich
+ * voneinander ab (bestätigt z.B. für HRV am 12.06.2026: ride.hrv=73 vs.
+ * wellness.hrv=45, obwohl beide laut Sync-Code aus demselben
+ * `wellness[date].hrvSDNN` stammen sollten — vermutlich ein Sync-Pipeline-
+ * Thema, s. docs/offene-punkte.md, nicht Teil dieses Fixes) UND
+ * Data.wellness hat für die Plan-1-Ära (vor ca. Mitte Juni) gar keine
+ * HRV/Ruhepuls-Werte — nur rides trägt sie dort. Ein reiner Wechsel hätte
+ * diese Historie gelöscht. Woche/Plan kommen aus dem reinen Datumsraster
+ * (core/plan2-schedule.js), unabhängig davon, welche Quelle den Wert
+ * lieferte — gilt NUR für den Eigenplan-Athleten, PLAN2_SCHEDULE ist
+ * athletenunabhängig nur ein Datumsraster.
+ * @param {import("../../types.js").Ride[]} rides
+ * @param {string} rideField @param {string} wellnessField @param {string} outField
+ */
+function _mergedOwnPlanSeries(rides, rideField, wellnessField, outField) {
+  const byDate = new Map();
+  for (const r of rides) {
+    if (r[rideField] != null) byDate.set(r.dateISO, r[rideField]);
+  }
+  for (const w of Data.wellness || []) {
+    if (w[wellnessField] != null) byDate.set(w.dateISO || w.date, w[wellnessField]);
+  }
+  return [...byDate.entries()]
+    .map(([dateISO, value]) => {
+      const { week } = getPlan2WeekPhase(dateISO);
+      return {
+        dateISO,
+        dateShort: fmtDate(dateISO),
+        week,
+        plan: week ? "Plan 2" : "Plan 1",
+        name: "",
+        [outField]: value,
+      };
+    })
+    .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+}
+
 /* ── HRV Plan Compare ────────────────────────────────────────── */
 export function renderPlanCompareHRV(rides) {
   const ownPlan = rides.some((r) => r.week);
   let data;
   if (ownPlan) {
-    data = rides.filter((r) => r.hrv != null).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    data = _mergedOwnPlanSeries(rides, "hrv", "hrv", "hrv");
   } else {
     // Kein eigener Plan — direkt aus Wellness lesen (alle Tage, nicht nur Fahrtdaten)
     data = (Data.wellness || [])
@@ -704,9 +746,8 @@ export function renderPlanCompareRHF(rides) {
   const ownPlan = rides.some((r) => r.week);
   let data;
   if (ownPlan) {
-    data = rides
-      .filter((r) => r.ruhepuls != null)
-      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    // s. _mergedOwnPlanSeries() / renderPlanCompareHRV — derselbe Merge.
+    data = _mergedOwnPlanSeries(rides, "ruhepuls", "restingHR", "ruhepuls");
   } else {
     // Kein eigener Plan — direkt aus Wellness lesen (alle Tage, nicht nur Fahrtdaten)
     data = (Data.wellness || [])

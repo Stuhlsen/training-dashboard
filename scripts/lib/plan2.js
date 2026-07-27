@@ -17,21 +17,17 @@
    ============================================================ */
 
 // === Plan 2 Woche/Phase-Mapping (datumsbasiert) ===
-export const PLAN2_SCHEDULE = [
-  { week: "P2-W0", phase: "Übergang", start: "2026-06-22", end: "2026-06-28" },
-  { week: "P2-W1", phase: "Sweet Spot", start: "2026-06-29", end: "2026-07-05" },
-  { week: "P2-W2", phase: "Sweet Spot", start: "2026-07-06", end: "2026-07-12" },
-  { week: "P2-W3", phase: "Sweet Spot", start: "2026-07-13", end: "2026-07-19" },
-  { week: "P2-W4", phase: "Erholung", start: "2026-07-20", end: "2026-07-26" },
-  { week: "P2-W5", phase: "Schwelle", start: "2026-07-27", end: "2026-08-02" },
-  { week: "P2-W6", phase: "Schwelle", start: "2026-08-03", end: "2026-08-09" },
-  { week: "P2-W7", phase: "Schwelle", start: "2026-08-10", end: "2026-08-16" },
-  { week: "P2-W8", phase: "Erholung", start: "2026-08-17", end: "2026-08-23" },
-  { week: "P2-W9", phase: "VO2max", start: "2026-08-24", end: "2026-08-30" },
-  { week: "P2-W10", phase: "VO2max", start: "2026-08-31", end: "2026-09-06" },
-  { week: "P2-W11", phase: "VO2max", start: "2026-09-07", end: "2026-09-13" },
-  { week: "P2-W12", phase: "Taper", start: "2026-09-14", end: "2026-09-20" },
-];
+// Lebt in assets/js/core/plan2-schedule.js — geteilt mit ui/charts/
+// wellness.js (Bugfix-Nachtrag zu Phase 5 Schritt 7, s. docs/offene-
+// punkte.md), das denselben Datum→Woche/Phase-Lookup zur Laufzeit direkt
+// aus Data.wellness braucht (unabhängig von Ride-Objekten). Etablierter
+// Präzedenzfall für die Layer-Grenze: scripts/lib/map-activity.js
+// importiert bereits effectiveSessions aus assets/js/core/planning.js.
+// Echter Import (nicht nur `export … from`), weil getPlan2Blocks() weiter
+// unten PLAN2_SCHEDULE lokal referenziert — ein reines Re-Export-Statement
+// würde keine lokale Bindung anlegen.
+import { PLAN2_SCHEDULE, getPlan2WeekPhase } from "../../assets/js/core/plan2-schedule.js";
+export { PLAN2_SCHEDULE, getPlan2WeekPhase };
 
 // === Geplante Einheiten — Datum → Name + Typ ===
 // Ab W2: Mo/Fr = optionale Recovery (bei müden Beinen streichen),
@@ -753,13 +749,6 @@ export const PLANNED_SESSIONS = {
     },
   },
 };
-
-export function getPlan2WeekPhase(dateStr) {
-  for (const s of PLAN2_SCHEDULE) {
-    if (dateStr >= s.start && dateStr <= s.end) return { week: s.week, phase: s.phase };
-  }
-  return { week: null, phase: null };
-}
 
 /**
  * Leitet die Trainingsblöcke für den Power-Curve-Vergleich ab:
