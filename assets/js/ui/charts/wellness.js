@@ -366,9 +366,9 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
 
     const colorW0 = "#c9a84c";
 
-    // Segmente als [von, bis, Farbe, gestrichelt] — jedes Segment wird
-    // zusätzlich per splitRuns() an Messlücken gebrochen (verschachtelte
-    // Aufteilung: erst Plan-Segment, dann Nicht-Null-Lauf innerhalb davon).
+    // Segmente als [von, bis, Farbe, gestrichelt] — jedes Segment verbindet
+    // seine tatsächlich gemessenen Punkte direkt (s. drawSegmentLine unten),
+    // bricht also NICHT an Messlücken innerhalb des Segments.
     const segBounds = hasW0
       ? [
           [0, w0Start, color1, false],
@@ -382,9 +382,18 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
           ]
         : [[0, lastIdx, color1, false]];
 
-    const drawRun = (fromIdx, toIdx, color, dashed) => {
+    // Linie verbindet bewusst über Messlücken hinweg (Alex' Design-Entscheidung,
+    // Phase 5 Bugfix-Nachtrag) — nur die tatsächlich gemessenen Punkte werden
+    // gesammelt und DIREKT verbunden, Lücken-Tage werden einfach übersprungen
+    // statt das Liniensegment zu unterbrechen. Punkte/Marker (s. "Dots" unten)
+    // bleiben ausschließlich an echten Messtagen. Kein `splitRuns()` hier mehr
+    // (anders als z.B. Schlaf-HF/Hydration, die weiter an Lücken abbrechen).
+    const drawSegmentLine = (fromIdx, toIdx, color, dashed) => {
       const segment = [];
-      for (let i = fromIdx; i <= toIdx; i++) segment.push({ x: scale.x(i), y: yOf(vals[i]) });
+      for (let i = fromIdx; i <= toIdx; i++) {
+        if (vals[i] != null) segment.push({ x: scale.x(i), y: yOf(vals[i]) });
+      }
+      if (!segment.length) return;
       if (segment.length === 1) {
         svg.appendChild(
           svgEl("circle", { cx: segment[0].x, cy: segment[0].y, r: "3.5", fill: color })
@@ -410,10 +419,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     };
 
     for (const [segFrom, segTo, color, dashed] of segBounds) {
-      const segVals = vals.slice(segFrom, segTo + 1);
-      for (const run of splitRuns(segVals)) {
-        drawRun(segFrom + run.start, segFrom + run.end, color, dashed);
-      }
+      drawSegmentLine(segFrom, segTo, color, dashed);
     }
 
     // Getrennte Trendlinien je Plan-Segment (W0 zu kurz für eigenen Trend) —
@@ -931,17 +937,22 @@ export function renderEnergy(svgId, ev, wt) {
       svg.appendChild(t);
     });
 
-    for (const run of splitRuns(weightVals)) {
-      const runPts = [];
-      for (let i = run.start; i <= run.end; i++) runPts.push({ x: cx(i), y: wY(weightVals[i]) });
-      if (runPts.length < 2) continue;
+    // Linie verbindet bewusst über Messlücken hinweg (Alex' Design-Entscheidung,
+    // Phase 5 Bugfix-Nachtrag, wie im HRV/Ruhepuls-Chart) — alle tatsächlich
+    // gewogenen Tage direkt verbunden statt an jeder Lücke abzureißen. Punkte
+    // bleiben ausschließlich an echten Wiege-Tagen (s. Dot-Schleife unten).
+    const weightPts = [];
+    for (let i = 0; i < weightVals.length; i++) {
+      if (weightVals[i] != null) weightPts.push({ x: cx(i), y: wY(weightVals[i]) });
+    }
+    if (weightPts.length > 1) {
       svg.appendChild(
         svgEl("polyline", {
           fill: "none",
           stroke: "#d9b64c",
           "stroke-width": "2.2",
           "stroke-linejoin": "round",
-          points: runPts.map((q) => `${q.x},${q.y}`).join(" "),
+          points: weightPts.map((q) => `${q.x},${q.y}`).join(" "),
         })
       );
     }
