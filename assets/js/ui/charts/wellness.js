@@ -752,8 +752,21 @@ export function renderEnergy(svgId, ev, wt) {
   }
   const hasWeight = !!(wt && wt.points && wt.points.length);
 
-  const fromISO = ev.days[0].date;
-  const toISO = ev.days[ev.days.length - 1].date;
+  // Skelett über die UNION aus Energie- und Gewichtsbereich (Bugfix-Nachtrag
+  // zu Phase 5 Schritt 7): Gewicht wird oft unabhängig von Kalorien getrackt
+  // und kann einen früheren/späteren Bereich abdecken. Ein Skelett, das nur
+  // ev.days folgt, machte Gewichtsmessungen außerhalb dieses Bereichs
+  // unsichtbar, obwohl sie vorlagen (echter Bug, nicht nur eine Design-
+  // Entscheidung — s. docs/offene-punkte.md). Ohne Gewichtsdaten bleibt der
+  // Bereich wie bisher exakt ev.days.
+  let fromISO = ev.days[0].date;
+  let toISO = ev.days[ev.days.length - 1].date;
+  if (hasWeight) {
+    const wFrom = wt.points[0].date;
+    const wTo = wt.points[wt.points.length - 1].date;
+    if (wFrom < fromISO) fromISO = wFrom;
+    if (wTo > toISO) toISO = wTo;
+  }
   const skeleton = densifyDays(fromISO, toISO);
   const joinRows = ev.days.map((d) => ({
     dateISO: d.date,
@@ -766,9 +779,6 @@ export function renderEnergy(svgId, ev, wt) {
   const activeVals = joinSeries(skeleton, joinRows, { key: "active", absence: "gap" });
   const burnedVals = joinSeries(skeleton, joinRows, { key: "burned", absence: "gap" });
   const intakeVals = joinSeries(skeleton, joinRows, { key: "intake", absence: "gap" });
-  // Gewichts-Spur teilt sich das Energie-Skelett (kein eigenes, ggf. längeres
-  // Gerüst) — deckt sich mit dem bisherigen Verhalten, das Gewichtspunkte
-  // außerhalb von ev.days ohnehin schon unsichtbar filterte.
   const weightVals = hasWeight
     ? joinSeries(
         skeleton,
