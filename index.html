@@ -146,7 +146,17 @@
               <span class="chart-note" id="pmc-note"></span>
             </div>
             <svg class="chart" id="chart-pmc"></svg>
-            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
+            <div class="chart-brush">
+              <svg class="chart chart-brush-overview" id="chart-pmc-overview"></svg>
+              <div class="chart-brush-presets" id="pmc-brush-presets">
+                <button class="unit-btn" type="button" data-preset="30">30 Tage</button>
+                <button class="unit-btn" type="button" data-preset="90">90 Tage</button>
+                <button class="unit-btn" type="button" data-preset="365">365 Tage</button>
+                <button class="unit-btn" type="button" data-preset="plan2">Plan 2</button>
+                <button class="unit-btn" type="button" data-preset="all">Alles</button>
+              </div>
+            </div>
+            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. Darunter die Übersichtsleiste: Fenster ziehen oder Zeitraum-Button klicken, um die Ansicht einzugrenzen.</p>
           </div>
 
           <div class="chart-box">

@@ -20,6 +20,8 @@ import {
   gradedGrid,
   axisUnit,
   CHART_THEME,
+  presetWindow,
+  brushOverlay,
 } from "./base.js";
 import {
   loadForAthlete as loadChartView,
@@ -214,29 +216,126 @@ function segmentsFor(vals, from, to, scale, yOf) {
   return segments;
 }
 
+/* Zeitraum-Brushing (Phase 5, Schritt 1) — MIN_W deckungsgleich mit
+   docs/chart-grundlagen.md §4.4. */
+const MIN_W = 7;
+const OVERVIEW_H = 64;
+const OVERVIEW_PAD = { l: PMC_PAD.l, r: PMC_PAD.r, t: 8, b: 8 };
+
+/** Übersichtsleiste: zeigt IMMER den vollen Skelett-Bereich (Vergangenheit +
+ *  Prognosehorizont) als schmale CTL-Sparkline und trägt den Brush
+ *  (docs/phase-5-konzept-explorer.md §4, Variante 2B). Eigene Y-Skala über
+ *  die volle Serie — bewusst unabhängig von der Y-Skala des Hauptcharts, die
+ *  sich beim Zoomen auf das sichtbare Fenster anpasst. */
+function drawOverview(svg, { skeleton, ctlVals, seamIdx, todayIdx, totalWs, totalWe, ws, we, onChange }) {
+  svg.innerHTML = "";
+  const W = measuredWidth(svg);
+  const H = OVERVIEW_H,
+    pad = OVERVIEW_PAD;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const plotW = W - pad.l - pad.r,
+    plotH = H - pad.t - pad.b;
+  const fullScale = makeIndexScale({ ws: totalWs, we: totalWe, padLeft: pad.l, width: plotW });
+
+  const known = ctlVals.filter((v) => v != null);
+  const maxCA = known.length ? Math.max(...known) * 1.1 : 10;
+  const caY = (v) => pad.t + plotH - (v / maxCA) * plotH;
+
+  const histTo = Math.min(totalWe, seamIdx >= 0 ? seamIdx : totalWe);
+  for (const seg of segmentsFor(ctlVals, totalWs, histTo, fullScale, caY)) {
+    svg.appendChild(
+      svgEl("path", {
+        d: pathD(seg),
+        fill: "none",
+        stroke: CHART_THEME.role.primary,
+        "stroke-width": "1.4",
+      })
+    );
+  }
+  if (seamIdx >= 0 && seamIdx < totalWe) {
+    const projFrom = Math.max(totalWs, seamIdx);
+    for (const seg of segmentsFor(ctlVals, projFrom, totalWe, fullScale, caY)) {
+      svg.appendChild(
+        svgEl("path", {
+          d: pathD(seg),
+          fill: "none",
+          stroke: CHART_THEME.role.primary,
+          "stroke-width": "1.4",
+          "stroke-dasharray": "4,3",
+        })
+      );
+    }
+  }
+
+  if (todayIdx >= totalWs && todayIdx <= totalWe) {
+    const xt = fullScale.x(todayIdx);
+    svg.appendChild(
+      svgEl("line", {
+        x1: xt,
+        y1: pad.t,
+        x2: xt,
+        y2: H - pad.b,
+        stroke: CHART_THEME.label,
+        "stroke-width": "1",
+        "stroke-dasharray": "2,3",
+      })
+    );
+  }
+
+  brushOverlay(svg, { scale: fullScale, pad, H, plotW, totalWs, totalWe, ws, we, minW: MIN_W, onChange });
+}
+
 export function renderPMC(svgId, rides, projection, events, athleteId) {
   const svg = el(svgId);
   if (!svg) return;
+  const overviewSvg = el("chart-pmc-overview");
+  const presetsWrap = el("pmc-brush-presets");
 
   const sorted = (rides || [])
     .filter((r) => r.ctl != null && r.atl != null)
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 
-  const draw = () => {
+  let rafId = 0;
+  const scheduleFrame = (fn) => {
+    if (rafId) window.cancelAnimationFrame(rafId);
+    rafId = window.requestAnimationFrame(() => {
+      rafId = 0;
+      fn();
+    });
+  };
+
+  const draw = (overrideWindow) => {
     svg.innerHTML = "";
     if (!sorted.length && !projection?.days?.length) return;
 
     const today = localISODate();
-    const from = addDaysISO(today, -90);
+    // Skelett-Start = frühestes bekanntes CTL/ATL-Datum (nicht mehr fix
+    // "heute-90") — deckt die volle Historie ab, sonst hätten die Presets
+    // "365 Tage"/"Alles" keinen Spielraum. Stabil über die Zeit (frühestes
+    // Datum ändert sich nicht rückwirkend), damit bleiben persistierte
+    // Fenster-Indizes über Tage/Reloads hinweg gültig — nur das Skelett-Ende
+    // (Prognosehorizont) wandert mit "heute" mit.
+    const from = sorted.length ? sorted[0].dateISO : addDaysISO(today, -90);
     const lastRideISO = sorted.length ? sorted[sorted.length - 1].dateISO : today;
     const rawTo = projection?.horizonEnd ?? lastRideISO;
     const to = rawTo < from ? from : rawTo;
     const skeleton = densifyDays(from, to);
     if (skeleton.length < 2) return;
 
-    loadChartView(athleteId, { ws: 0, we: skeleton.length - 1 });
-    setWindow(0, skeleton.length - 1); // Schritt 0: kein Brush, immer volle Breite
-    const { ws, we } = getChartViewState();
+    const totalWs = 0;
+    const totalWe = skeleton.length - 1;
+    // Default-Fenster (nur beim allerersten Laden ohne persistierten
+    // Zustand) bleibt visuell wie bisher: letzte 90 Tage + Horizont.
+    const defaultWsIdx = skeleton.findIndex((d) => d.dateISO === addDaysISO(today, -90));
+    const defaultWindow = { ws: defaultWsIdx >= 0 ? defaultWsIdx : totalWs, we: totalWe };
+
+    loadChartView(athleteId, defaultWindow);
+    let { ws, we } = overrideWindow || getChartViewState();
+    // Defensiv an einen ggf. gewachsenen/geschrumpften Skelett-Bereich
+    // klemmen — persistierter Zustand kann älter sein als der aktuelle
+    // Sync-Stand (Systemgrenze: localStorage-Wert kommt von außen).
+    we = Math.min(we, totalWe);
+    ws = Math.max(totalWs, Math.min(ws, we - MIN_W));
 
     const W = measuredWidth(svg);
     const H = PMC_H,
@@ -265,9 +364,12 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
 
     const { ctl: ctlVals, atl: atlVals, tsb: tsbVals } = densifyPmc(skeleton, sorted, projRows, todayIdx);
 
-    const knownVals = [...ctlVals, ...atlVals].filter((v) => v != null);
+    // Y-Skalen aus dem SICHTBAREN Fenster, nicht aus dem vollen Skelett —
+    // Reinzoomen zeigt mehr Y-Detail (erwartete Brush/Zoom-Semantik).
+    const windowSlice = (vals) => vals.slice(ws, we + 1).filter((v) => v != null);
+    const knownVals = [...windowSlice(ctlVals), ...windowSlice(atlVals)];
     const maxCA = knownVals.length ? Math.max(...knownVals) * 1.1 : 10;
-    const knownTsb = tsbVals.filter((v) => v != null);
+    const knownTsb = windowSlice(tsbVals);
     const minTSB = (knownTsb.length ? Math.min(...knownTsb) : -10) - 5;
     const maxTSB = (knownTsb.length ? Math.max(...knownTsb) : 10) + 5;
 
@@ -318,7 +420,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     // zugrunde liegende K3-Typ-Default-TSS ohnehin nicht hergibt.
     let uMin = null,
       uMax = null;
-    for (let i = Math.max(seamIdx, 0); i <= we; i++) {
+    for (let i = Math.max(seamIdx, ws); i <= we; i++) {
       if (!uncertainDates.has(skeleton[i].dateISO)) continue;
       if (uMin === null) uMin = i;
       uMax = i;
@@ -339,6 +441,15 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       );
     }
 
+    // Naht/Fenster geklemmt (nicht bloß seamIdx direkt): ein Fenster kann
+    // vollständig vor oder nach der Naht liegen (z. B. der "Plan 2"-Preset,
+    // lange vor "heute") — ohne diese Klemmung rechnet segmentsFor() für
+    // Indizes weit außerhalb von [ws, we], scale.x() extrapoliert dafür
+    // unklemmt (s. makeIndexScale-Doku), und die Linie reicht sichtbar über
+    // den Plot-Rand hinaus.
+    const histTo = Math.min(we, seamIdx >= 0 ? seamIdx : we);
+    const projFrom = Math.max(ws, seamIdx >= 0 ? seamIdx : we);
+
     // CTL/ATL: durchgezogen bis zur Naht, gestrichelt danach (X7, X5) —
     // das Brückensegment zwischen asOf und "heute" (falls beide auseinander-
     // liegen) läuft bewusst im gestrichelten Teil mit, statt einen dritten
@@ -350,7 +461,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       const filterUrl = roleGlow
         ? glowFilter(defs, `glow-${svgId}-${roleGlow}`, color, 2.5)
         : null;
-      const histSeg = segmentsFor(vals, ws, seamIdx >= 0 ? seamIdx : we, scale, caY);
+      const histSeg = segmentsFor(vals, ws, histTo, scale, caY);
       for (const seg of histSeg) {
         svg.appendChild(
           svgEl("path", {
@@ -363,7 +474,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
         );
       }
       if (seamIdx >= 0 && seamIdx < we) {
-        const projSeg = segmentsFor(vals, seamIdx, we, scale, caY);
+        const projSeg = segmentsFor(vals, projFrom, we, scale, caY);
         for (const seg of projSeg) {
           svg.appendChild(
             svgEl("path", {
@@ -383,7 +494,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
 
     // TSB — eigene Achse (Punkte statt TSS/Tag), kein Glow (Sekundärserie in
     // diesem Chart, G8: Glow höchstens auf CTL/ATL).
-    const tsbHist = segmentsFor(tsbVals, ws, seamIdx >= 0 ? seamIdx : we, scale, tsbY);
+    const tsbHist = segmentsFor(tsbVals, ws, histTo, scale, tsbY);
     for (const seg of tsbHist) {
       svg.appendChild(
         svgEl("path", {
@@ -395,7 +506,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       );
     }
     if (seamIdx >= 0 && seamIdx < we) {
-      const tsbProj = segmentsFor(tsbVals, seamIdx, we, scale, tsbY);
+      const tsbProj = segmentsFor(tsbVals, projFrom, we, scale, tsbY);
       for (const seg of tsbProj) {
         svg.appendChild(
           svgEl("path", {
@@ -424,8 +535,9 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     }
 
     // Direktbeschriftung CTL/ATL/TSB (G5) — flachstes Stück im historischen
-    // Bereich, kein Legende-Fallback.
-    const labelWindow = seamIdx >= 0 ? seamIdx : we;
+    // Bereich, kein Legende-Fallback. Gleiche Klemmung wie histTo, sonst
+    // sucht flattestIndex einen Platz außerhalb des sichtbaren Fensters.
+    const labelWindow = histTo;
     const ctlLabelIdx = flattestIndex(ctlVals, ws, labelWindow, caY, 0.5, 1);
     if (ctlLabelIdx != null) {
       haloLabel(
@@ -457,8 +569,12 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       );
     }
 
-    // Heute-Marke separat gezeichnet (X5) — nicht über pickLabelIndices' mustKeep.
-    if (todayIdx >= 0) {
+    // Heute-Marke separat gezeichnet (X5) — nicht über pickLabelIndices'
+    // mustKeep. Zusätzlicher Sichtbarkeits-Guard: liegt "heute" außerhalb
+    // des gebrushten Fensters (z. B. beim "Plan 2"-Preset), nicht zeichnen —
+    // sonst extrapoliert scale.x() knapp neben den Plot-Rand statt weit
+    // genug weg, um vom SVG-Root-Clipping aufgefangen zu werden.
+    if (todayIdx >= ws && todayIdx <= we) {
       const xt = scale.x(todayIdx);
       svg.appendChild(
         svgEl("line", {
@@ -481,7 +597,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     if (upcomingEvents.length) {
       const ev = upcomingEvents[0];
       const evIdx = skeleton.findIndex((s) => s.dateISO === ev.eventDate);
-      if (evIdx >= 0) {
+      if (evIdx >= ws && evIdx <= we) {
         const xe = scale.x(evIdx);
         svg.appendChild(
           svgEl("line", {
@@ -500,10 +616,15 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
 
     // Kalender-Ticks (Montage/Monatserste), ausgedünnt über pickLabelIndices,
     // Kandidaten zu nah an der Heute-Marke ausgeschlossen (Kollisionsschutz).
+    // Kandidaten auf das sichtbare Fenster beschränkt (Schritt 0 iterierte
+    // hier noch über den GESAMTEN Skelett-Bereich, der bei einem echten
+    // Teilfenster größer als [ws, we] ist — ungeklemmt landen Ticks für
+    // Tage außerhalb des Fensters im Rand statt außerhalb der viewBox).
     const MIN_TICK_PX = 58;
-    const todayX = todayIdx >= 0 ? scale.x(todayIdx) : null;
+    const todayX = todayIdx >= ws && todayIdx <= we ? scale.x(todayIdx) : null;
     const tickIdx = skeleton
       .map((s, i) => i)
+      .filter((i) => i >= ws && i <= we)
       .filter((i) => {
         const d = new Date(`${skeleton[i].dateISO}T00:00:00`);
         return d.getDay() === 1 || d.getDate() === 1;
@@ -567,19 +688,98 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
         pmcNow.daysProjected > 0 ? ` (Stand ${fmtDate(pmcNow.asOfDate)}, fortgeschrieben)` : "";
       noteEl.textContent = `Aktuell: CTL ${fmt(pmcNow.ctl)} · ATL ${fmt(pmcNow.atl)} · TSB ${fmt(pmcNow.tsb)}${asOfNote}`;
     }
+
+    // Übersichtsleiste — zeigt immer den vollen Horizont, trägt den Brush.
+    // onChange(final:false) läuft während eines aktiven Drags (rAF-gebündelt,
+    // NICHT persistiert — setWindow() schriebe sonst bei jedem Pointer-Move
+    // nach localStorage); onChange(final:true) am Drag-Ende persistiert und
+    // rendert final aus dem Store neu (Single Source of Truth danach wieder
+    // state/chart-view.js, nicht die lokale overrideWindow-Variable).
+    if (overviewSvg) {
+      drawOverview(overviewSvg, {
+        skeleton,
+        ctlVals,
+        seamIdx,
+        todayIdx,
+        totalWs,
+        totalWe,
+        ws,
+        we,
+        onChange: (nws, nwe, meta) => {
+          if (meta.final) {
+            setWindow(nws, nwe);
+            draw();
+          } else {
+            scheduleFrame(() => draw({ ws: nws, we: nwe }));
+          }
+        },
+      });
+    }
+
+    // Preset-Kontext für die (einmalig gebundenen) Buttons aktuell halten —
+    // Muster wie svg.__pmcGeometry: der Klick-Handler liest ihn erst beim
+    // nächsten Klick, nie eine veraltete Closure aus einem früheren
+    // renderPMC()-Aufruf (Athletenwechsel).
+    if (presetsWrap) {
+      const plan2Rides = (rides || []).filter((r) => r.plan === "Plan 2" && r.dateISO);
+      let plan2FromIdx = null,
+        plan2ToIdx = null;
+      if (plan2Rides.length) {
+        const p2sorted = [...plan2Rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+        const fromIdx = skeleton.findIndex((s) => s.dateISO === p2sorted[0].dateISO);
+        const toIdx = skeleton.findIndex((s) => s.dateISO === p2sorted[p2sorted.length - 1].dateISO);
+        plan2FromIdx = fromIdx >= 0 ? fromIdx : 0;
+        plan2ToIdx = toIdx >= 0 ? toIdx : totalWe;
+      }
+      const presetCtx = { totalWs, totalWe, todayIdx, plan2FromIdx, plan2ToIdx, minW: MIN_W };
+      presetsWrap.__pmcApi = { presetCtx, draw };
+      presetsWrap.querySelectorAll("[data-preset]").forEach((btn) => {
+        if (btn.dataset.preset === "plan2") btn.hidden = plan2FromIdx == null;
+        const win = presetWindow(btn.dataset.preset, presetCtx);
+        btn.classList.toggle("active", !!win && win.ws === ws && win.we === we);
+      });
+    }
   };
 
   draw();
+
+  // Presets — EINMAL gebunden (Guard wie ui/chart-visibility.js), sonst
+  // stapeln sich Klick-Handler bei jedem renderPMC()-Aufruf (Athletenwechsel/
+  // renderAll). Liest bei Klickzeit `presetsWrap.__pmcApi`, den draw() bei
+  // JEDEM Aufruf aktuell hält — so bekommt der Handler nie eine veraltete
+  // Closure aus dem allerersten renderPMC()-Aufruf zu fassen.
+  if (presetsWrap && !presetsWrap._bound) {
+    presetsWrap._bound = true;
+    presetsWrap.querySelectorAll("[data-preset]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const api = presetsWrap.__pmcApi;
+        if (!api) return;
+        const win = presetWindow(btn.dataset.preset, api.presetCtx);
+        if (!win) return;
+        setWindow(win.ws, win.we);
+        api.draw();
+      });
+    });
+  }
 
   // Gemessene Breite + ResizeObserver statt skaliertem viewBox (G7) — draw()
   // ist idempotent (svg.innerHTML wird am Anfang geleert). Alten Observer
   // trennen, bevor ein neuer registriert wird (renderPMC wird pro Athleten-
   // wechsel/renderAll erneut aufgerufen, sonst stapeln sich Observer auf
-  // demselben Knoten).
+  // demselben Knoten). Zweiter Observer auf der Übersichtsleiste (G7 gilt
+  // für jedes Chart-Element) — beide rufen dieselbe draw(), mehrfaches
+  // Feuern ist harmlos (idempotent).
   if (svg.__pmcResizeObserver) svg.__pmcResizeObserver.disconnect();
   const observer = new ResizeObserver(() => draw());
   observer.observe(svg);
   svg.__pmcResizeObserver = observer;
+
+  if (overviewSvg) {
+    if (overviewSvg.__pmcResizeObserver) overviewSvg.__pmcResizeObserver.disconnect();
+    const overviewObserver = new ResizeObserver(() => draw());
+    overviewObserver.observe(overviewSvg);
+    overviewSvg.__pmcResizeObserver = overviewObserver;
+  }
 }
 
 /* ── Aerobe Entkopplung (Decoupling) ─────────────────────────── */

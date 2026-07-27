@@ -172,6 +172,25 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   cursor: not-allowed;
 }
 
+/* ── Zeitraum-Brushing (Phase 5, Schritt 1) — Übersichtsleiste + Presets
+   unter dem PMC-Chart, docs/phase-5-konzept-explorer.md §4 ───────────── */
+.chart-brush {
+  margin-top: 6px;
+}
+
+.chart-brush-overview {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-brush-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
 /* ── Scrollable chart container ───────────────────────────────── */
 .chart-scroll {
   overflow-x: auto;

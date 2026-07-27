@@ -11,6 +11,9 @@ import {
   makeIndexScale,
   pathD,
   flattestIndex,
+  presetWindow,
+  brushHitTest,
+  nextBrushWindow,
 } from "../assets/js/ui/charts/base.js";
 
 test("pickLabelIndices: hält den Mindestabstand ein und enthält immer den letzten Punkt", () => {
@@ -139,4 +142,97 @@ test("flattestIndex: keine zwei benachbarten bekannten Werte im Fenster → null
   const values = [10, null, null, null, 40];
   const idx = flattestIndex(values, 0, values.length - 1, (v) => v, 0, 1);
   assert.equal(idx, null);
+});
+
+/* presetWindow — Phase 5, Schritt 1 (docs/phase-5-konzept-explorer.md §4):
+   Fenster-Indizes für die Brush-Presets. 30/90/365 enden immer am
+   Zukunftshorizont (totalWe), Plan 2 ist ein exakter Datenbereich. */
+test("presetWindow: 30/90/365 enden am Horizont, beginnen N Tage vor heute, geklemmt an totalWs", () => {
+  const ctx = { totalWs: 0, totalWe: 200, todayIdx: 120 };
+  assert.deepEqual(presetWindow("30", ctx), { ws: 90, we: 200 });
+  assert.deepEqual(presetWindow("90", ctx), { ws: 30, we: 200 });
+  // 365 Tage vor Index 120 liegt vor totalWs=0 → geklemmt
+  assert.deepEqual(presetWindow("365", ctx), { ws: 0, we: 200 });
+});
+
+test("presetWindow: ohne bekannten todayIdx (<0) verankert am Horizontende", () => {
+  const ctx = { totalWs: 0, totalWe: 200, todayIdx: -1 };
+  assert.deepEqual(presetWindow("30", ctx), { ws: 170, we: 200 });
+});
+
+test('presetWindow: "all" liefert das volle Skelett', () => {
+  assert.deepEqual(presetWindow("all", { totalWs: 0, totalWe: 200, todayIdx: 50 }), {
+    ws: 0,
+    we: 200,
+  });
+});
+
+test('presetWindow: "plan2" nutzt den exakten Datenbereich, erweitert auf minW wenn zu schmal', () => {
+  const ctx = { totalWs: 0, totalWe: 300, todayIdx: 250, plan2FromIdx: 40, plan2ToIdx: 43, minW: 7 };
+  assert.deepEqual(presetWindow("plan2", ctx), { ws: 40, we: 47 });
+});
+
+test('presetWindow: "plan2" ohne Daten liefert null (Aufrufer blendet Button aus)', () => {
+  assert.equal(presetWindow("plan2", { totalWs: 0, totalWe: 200, todayIdx: 50 }), null);
+});
+
+test("presetWindow: unbekanntes Preset liefert null", () => {
+  assert.equal(presetWindow("nope", { totalWs: 0, totalWe: 200, todayIdx: 50 }), null);
+});
+
+/* brushHitTest — reine Trefferzuordnung im Indexraum */
+test("brushHitTest: nahe an einem Rand trifft den jeweiligen Griff, sonst pan/outside", () => {
+  assert.equal(brushHitTest(10, 10, 50, 2), "left");
+  assert.equal(brushHitTest(49, 10, 50, 2), "right");
+  assert.equal(brushHitTest(30, 10, 50, 2), "pan");
+  assert.equal(brushHitTest(5, 10, 50, 2), "outside");
+  assert.equal(brushHitTest(60, 10, 50, 2), "outside");
+});
+
+test("brushHitTest: bei sehr schmalem Fenster bleiben beide Griffe einzeln erreichbar", () => {
+  // Fenster [10,12] mit Toleranz 1 — je am eigenen Rand greifbar
+  assert.equal(brushHitTest(10, 10, 12, 1), "left");
+  assert.equal(brushHitTest(12, 10, 12, 1), "right");
+});
+
+/* nextBrushWindow — reine Fensterarithmetik für einen laufenden Drag */
+test("nextBrushWindow: left-Resize verschiebt nur den linken Rand, MIN_W-geklemmt", () => {
+  const args = { idx: 45, startIdx: 30, startWs: 20, startWe: 50, totalWs: 0, totalWe: 100, minW: 7 };
+  assert.deepEqual(nextBrushWindow("left", args), { ws: 35, we: 50 });
+});
+
+test("nextBrushWindow: left-Resize kann den rechten Rand nicht überschreiten (MIN_W)", () => {
+  const args = { idx: 90, startIdx: 30, startWs: 20, startWe: 50, totalWs: 0, totalWe: 100, minW: 7 };
+  assert.deepEqual(nextBrushWindow("left", args), { ws: 43, we: 50 });
+});
+
+test("nextBrushWindow: right-Resize verschiebt nur den rechten Rand, an totalWe geklemmt", () => {
+  const args = { idx: 130, startIdx: 30, startWs: 20, startWe: 50, totalWs: 0, totalWe: 100, minW: 7 };
+  assert.deepEqual(nextBrushWindow("right", args), { ws: 20, we: 100 });
+});
+
+test("nextBrushWindow: pan verschiebt beide Ränder gleich, Breite bleibt konstant", () => {
+  const args = { idx: 40, startIdx: 30, startWs: 20, startWe: 50, totalWs: 0, totalWe: 100, minW: 7 };
+  assert.deepEqual(nextBrushWindow("pan", args), { ws: 30, we: 60 });
+});
+
+test("nextBrushWindow: pan klemmt an den Gesamtgrenzen, ohne die Breite zu ändern", () => {
+  const left = nextBrushWindow("pan", {
+    idx: -50,
+    startIdx: 30,
+    startWs: 20,
+    startWe: 50,
+    totalWs: 0,
+    totalWe: 100,
+  });
+  assert.deepEqual(left, { ws: 0, we: 30 }); // Breite 30 bleibt erhalten
+  const right = nextBrushWindow("pan", {
+    idx: 200,
+    startIdx: 30,
+    startWs: 20,
+    startWe: 50,
+    totalWs: 0,
+    totalWe: 100,
+  });
+  assert.deepEqual(right, { ws: 70, we: 100 });
 });

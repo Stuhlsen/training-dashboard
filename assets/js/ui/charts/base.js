@@ -373,6 +373,273 @@ export function axisUnit(svg, { x, y, text }) {
   svg.appendChild(t);
 }
 
+/* ── Zeitraum-Brushing (Phase 5, Schritt 1 — docs/phase-5-konzept-
+   explorer.md §4, docs/chart-grundlagen.md §4.4) ─────────────────
+   presetWindow()/brushHitTest()/nextBrushWindow() sind reine
+   Indexarithmetik (kein DOM) — getestet in tests/chart-layout.test.js,
+   analog zu makeIndexScale()/pickLabelIndices() im selben File (X3:
+   Konsistenz mit dem etablierten Ort schlägt formale core/-Reinheit).
+   brushOverlay() ist das DOM-Gegenstück (Zeichnen + Pointer-Bindung) und
+   bewusst ungetestet im Unit-Sinn — wie plan-drag.js: die REGELN sind
+   pure+getestet, das ZEICHNEN/BINDEN nicht. */
+
+/**
+ * Fenster-Indizes für die Brush-Presets (30/90/365 Tage, Plan 2, Alles).
+ * "30"/"90"/"365" enden immer am Zukunftshorizont (totalWe) — konsistent
+ * mit dem bisherigen festen Default (heute-90 .. horizonEnd), nur die
+ * Fensterbreite wird wählbar. "plan2" ohne Daten liefert `null`, damit der
+ * Aufrufer den Button datengetrieben ausblenden kann (Athlet 2 hat keine
+ * Plan-2-Rides).
+ * @param {"30"|"90"|"365"|"plan2"|"all"} preset
+ * @param {{totalWs:number, totalWe:number, todayIdx:number,
+ *   plan2FromIdx?:number|null, plan2ToIdx?:number|null, minW?:number}} ctx
+ * @returns {{ws:number, we:number}|null}
+ */
+export function presetWindow(preset, ctx) {
+  const {
+    totalWs,
+    totalWe,
+    todayIdx,
+    plan2FromIdx = null,
+    plan2ToIdx = null,
+    minW = 7,
+  } = ctx;
+  const anchor = todayIdx != null && todayIdx >= 0 ? todayIdx : totalWe;
+  const trailing = (days) => ({ ws: Math.max(totalWs, anchor - days), we: totalWe });
+  switch (preset) {
+    case "30":
+      return trailing(30);
+    case "90":
+      return trailing(90);
+    case "365":
+      return trailing(365);
+    case "all":
+      return { ws: totalWs, we: totalWe };
+    case "plan2": {
+      if (plan2FromIdx == null || plan2ToIdx == null) return null;
+      let ws = Math.max(totalWs, plan2FromIdx);
+      let we = Math.min(totalWe, plan2ToIdx);
+      if (we - ws < minW) we = Math.min(totalWe, ws + minW);
+      return { ws, we };
+    }
+    default:
+      return null;
+  }
+}
+
+/**
+ * Trifft im Indexraum, welcher Teil des Brush-Fensters unter einem
+ * Zeiger-Index liegt. `tolIdx` ist die Grifftoleranz bereits in
+ * Indexeinheiten (Umrechnung aus 11px liegt beim Aufrufer, s. brushOverlay).
+ * @param {number} idx @param {number} ws @param {number} we @param {number} tolIdx
+ * @returns {"left"|"right"|"pan"|"outside"}
+ */
+export function brushHitTest(idx, ws, we, tolIdx) {
+  if (Math.abs(idx - ws) <= tolIdx) return "left";
+  if (Math.abs(idx - we) <= tolIdx) return "right";
+  if (idx > ws && idx < we) return "pan";
+  return "outside";
+}
+
+/**
+ * Nächstes Fenster für einen laufenden Brush-Drag. `mode` "left"/"right"
+ * verschieben nur den jeweiligen Rand (MIN_W-Klemmung gegen den anderen
+ * Rand), "pan" verschiebt beide Ränder gleich (Fensterbreite bleibt
+ * konstant, an den Gesamtgrenzen geklemmt statt abgeschnitten).
+ * @param {"left"|"right"|"pan"} mode
+ * @param {{idx:number, startIdx:number, startWs:number, startWe:number,
+ *   totalWs:number, totalWe:number, minW?:number}} args
+ * @returns {{ws:number, we:number}}
+ */
+export function nextBrushWindow(mode, args) {
+  const { idx, startIdx, startWs, startWe, totalWs, totalWe, minW = 7 } = args;
+  const delta = idx - startIdx;
+  if (mode === "left") {
+    const ws = Math.min(Math.max(totalWs, startWs + delta), startWe - minW);
+    return { ws, we: startWe };
+  }
+  if (mode === "right") {
+    const we = Math.max(Math.min(totalWe, startWe + delta), startWs + minW);
+    return { ws: startWs, we };
+  }
+  const width = startWe - startWs;
+  let ws = startWs + delta;
+  let we = startWe + delta;
+  if (ws < totalWs) {
+    ws = totalWs;
+    we = ws + width;
+  }
+  if (we > totalWe) {
+    we = totalWe;
+    ws = we - width;
+  }
+  return { ws, we };
+}
+
+/**
+ * Übersichtsleiste: zeichnet Griffe, Auswahl-Rechteck und dimmt den
+ * Außenbereich, bindet den Pointer-Handler EINMAL pro <svg>-Knoten
+ * (`svg.__brushBound`-Guard, wie `btn._bound` in ui/chart-visibility.js —
+ * sonst stapeln sich Listener bei jedem Redraw). Der Handler liest bei
+ * jedem Pointer-Event den zuletzt hinterlegten Konfigurationsstand
+ * (`svg.__brushConfig`, hier bei jedem Aufruf aktualisiert) statt eine
+ * veraltete Closure zu behalten — ein Redraw MITTEN in einem aktiven Drag
+ * (z. B. durch den ResizeObserver) ändert dadurch nur die Skala, mit der
+ * der NÄCHSTE Event neu umgerechnet wird. Der Drag-Zustand selbst lebt in
+ * Tagesindizes, nicht in Pixeln, und bleibt darum über einen Skalenwechsel
+ * hinweg konsistent (kein Sprung).
+ * @param {SVGElement} svg
+ * @param {{scale:{x:(i:number)=>number, invert:(px:number)=>number},
+ *   pad:{l:number,t:number}, H:number, plotW:number,
+ *   totalWs:number, totalWe:number, ws:number, we:number, minW?:number,
+ *   onChange:(ws:number, we:number, meta:{final:boolean})=>void}} config
+ */
+export function brushOverlay(svg, config) {
+  const { scale, pad, H, plotW, totalWs, totalWe, ws, we } = config;
+  svg.__brushConfig = config;
+
+  const top = pad.t;
+  const bottom = H - pad.t;
+  const xWs = scale.x(ws);
+  const xWe = scale.x(we);
+  const xLo = pad.l;
+  const xHi = pad.l + plotW;
+
+  // Außenbereich abdunkeln (Sparkline bleibt darunter sichtbar, nur gedimmt)
+  if (xWs > xLo) {
+    svg.appendChild(
+      svgEl("rect", {
+        x: xLo,
+        y: top,
+        width: xWs - xLo,
+        height: bottom - top,
+        fill: "#000",
+        opacity: "0.45",
+        style: "cursor:pointer",
+      })
+    );
+  }
+  if (xHi > xWe) {
+    svg.appendChild(
+      svgEl("rect", {
+        x: xWe,
+        y: top,
+        width: xHi - xWe,
+        height: bottom - top,
+        fill: "#000",
+        opacity: "0.45",
+        style: "cursor:pointer",
+      })
+    );
+  }
+
+  // Auswahlfenster — Rand + Pan-Fläche
+  svg.appendChild(
+    svgEl("rect", {
+      x: xWs,
+      y: top,
+      width: Math.max(0, xWe - xWs),
+      height: bottom - top,
+      fill: CHART_THEME.role.primary,
+      "fill-opacity": "0.08",
+      stroke: CHART_THEME.role.primary,
+      "stroke-width": "1",
+      style: "cursor:grab",
+    })
+  );
+
+  // Griffe: schmaler sichtbarer Balken + breitere unsichtbare Hit-/Cursor-Fläche
+  const GRIP_VISUAL_W = 3;
+  const GRIP_HIT_PX = 11;
+  for (const x of [xWs, xWe]) {
+    svg.appendChild(
+      svgEl("rect", {
+        x: x - GRIP_HIT_PX,
+        y: top,
+        width: GRIP_HIT_PX * 2,
+        height: bottom - top,
+        fill: "transparent",
+        style: "cursor:ew-resize",
+      })
+    );
+    svg.appendChild(
+      svgEl("rect", {
+        x: x - GRIP_VISUAL_W / 2,
+        y: top,
+        width: GRIP_VISUAL_W,
+        height: bottom - top,
+        rx: "1.5",
+        fill: CHART_THEME.role.primary,
+      })
+    );
+  }
+
+  if (!svg.__brushBound) {
+    svg.__brushBound = true;
+    svg.style.touchAction = "none";
+    svg.addEventListener("pointerdown", (event) => _brushPointerDown(svg, event));
+    svg.addEventListener("pointermove", (event) => _brushPointerMove(svg, event));
+    svg.addEventListener("pointerup", (event) => _brushPointerUp(svg, event));
+    svg.addEventListener("pointercancel", (event) => _brushPointerUp(svg, event));
+  }
+}
+
+function _pointerIndex(svg, cfg, event) {
+  const rect = svg.getBoundingClientRect();
+  return cfg.scale.invert(event.clientX - rect.left);
+}
+
+function _brushPointerDown(svg, event) {
+  if (event.button !== 0) return;
+  const cfg = svg.__brushConfig;
+  if (!cfg) return;
+  const idx = _pointerIndex(svg, cfg, event);
+  const tolIdx = Math.max(4, Math.round((11 / cfg.plotW) * (cfg.totalWe - cfg.totalWs)));
+  const hit = brushHitTest(idx, cfg.ws, cfg.we, tolIdx);
+
+  let mode = hit === "outside" ? "pan" : hit;
+  let ws = cfg.ws;
+  let we = cfg.we;
+  if (hit === "outside") {
+    const width = cfg.we - cfg.ws;
+    ws = Math.min(Math.max(cfg.totalWs, idx - width / 2), cfg.totalWe - width);
+    we = ws + width;
+    cfg.onChange(Math.round(ws), Math.round(we), { final: false });
+  }
+
+  svg.__brushDrag = { mode, startIdx: idx, startWs: ws, startWe: we, lastWs: ws, lastWe: we };
+  svg.setPointerCapture(event.pointerId);
+  event.preventDefault();
+}
+
+function _brushPointerMove(svg, event) {
+  const drag = svg.__brushDrag;
+  const cfg = svg.__brushConfig;
+  if (!drag || !cfg) return;
+  const idx = _pointerIndex(svg, cfg, event);
+  const { ws, we } = nextBrushWindow(drag.mode, {
+    idx,
+    startIdx: drag.startIdx,
+    startWs: drag.startWs,
+    startWe: drag.startWe,
+    totalWs: cfg.totalWs,
+    totalWe: cfg.totalWe,
+    minW: cfg.minW,
+  });
+  drag.lastWs = Math.round(ws);
+  drag.lastWe = Math.round(we);
+  cfg.onChange(drag.lastWs, drag.lastWe, { final: false });
+}
+
+function _brushPointerUp(svg, event) {
+  const drag = svg.__brushDrag;
+  svg.__brushDrag = null;
+  if (svg.hasPointerCapture?.(event.pointerId)) svg.releasePointerCapture(event.pointerId);
+  const cfg = svg.__brushConfig;
+  if (!drag || !cfg) return;
+  cfg.onChange(drag.lastWs, drag.lastWe, { final: true });
+}
+
 /** Horizontales Auto-Scroll für breite Charts: Container scrollbar machen
  *  und ganz nach rechts (neueste Daten) scrollen */
 export function autoScrollRight(svg, W, container) {
