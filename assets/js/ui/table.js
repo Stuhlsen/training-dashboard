@@ -12,6 +12,7 @@ import { el, Tooltip } from "./dom.js";
 import { fetchRawJson, writeRepoFile } from "./github-client.js";
 import { activateTab } from "./nav.js";
 import { Planned } from "./planned.js";
+import { onChartViewChange } from "../state/chart-view.js";
 
 // === Befinden GitHub-Sync ===
 export const Subjective = {
@@ -156,6 +157,23 @@ export const Table = {
       row.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => row.classList.remove("row-highlight"), 2500);
     }, 50);
+  },
+
+  /** Leichte Hover-Hervorhebung (Phase 5, Schritt 2, Teil C — PMC-Chart-
+   *  Cursor-Sync, `state/chart-view.js::onChartViewChange`). BEWUSST NICHT
+   *  `highlightByDate()`: das setzt Filter/Suche/Sortierung zurück und
+   *  scrollt — bei jedem Mausmove über den Chart würde das die Fahrtenbuch-
+   *  Ansicht laufend umbauen und die Scroll-Position stehlen. Hier wird nur
+   *  die Zeile markiert, wenn sie unter dem AKTUELLEN Filter/Sort ohnehin
+   *  sichtbar ist; sonst passiert nichts (kein Filter-Umbau, kein Scroll).
+   *  @param {string|null} date */
+  setHoverDate(date) {
+    document
+      .querySelectorAll("#table-body tr.row-hover")
+      .forEach((r) => r.classList.remove("row-hover"));
+    if (!date) return;
+    const row = document.querySelector(`#table-body tr[data-date="${date}"]`);
+    if (row) row.classList.add("row-hover");
   },
 
   /* ── Filter Bar ─────────────────────────────────────────────── */
@@ -388,3 +406,11 @@ export const Table = {
     return r;
   },
 };
+
+// Cursor-Sync (Phase 5, Schritt 2, Teil C) — Table reagiert selbst auf den
+// geteilten Hover-Zustand, statt dass state/chart-view.js (Schichtenregel:
+// state/ darf nicht ui/ importieren) oder ui/charts/pmc.js direkt hineinruft.
+// Modul-Top-Level-Aufruf ist hier unproblematisch (kein Zugriff auf noch
+// nicht existierendes DOM nötig — setHoverDate() quert defensiv und tut bei
+// fehlender Zeile nichts).
+onChartViewChange((s) => Table.setHoverDate(s.hoveredDate));

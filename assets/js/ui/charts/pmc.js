@@ -7,6 +7,8 @@ import { fmt, fmtDate, fmtDateFull, localISODate, addDaysISO } from "../../core/
 import { interpolateCtl, tsbOf, currentPmc, projectPmc } from "../../core/pmc.js";
 import { densifyDays } from "../../core/days.js";
 import { el, svgEl, Tooltip } from "../dom.js";
+import { activateTab } from "../nav.js";
+import { Planned } from "../planned.js";
 import {
   gridLines,
   xLabel,
@@ -721,6 +723,17 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
       c.addEventListener("mouseleave", () => {
         Tooltip.hide();
         clearHovered();
+      });
+      // Planungstab-Sprung bewusst auf KLICK beschränkt, nicht Hover (Teil C
+      // der Aufgabe): Planned.scrollToDate() scrollt den Planungstab-
+      // Viewport — das bei jeder Mausbewegung über den Chart mitlaufen zu
+      // lassen wäre unruhig, zumal der Tab meist gar nicht aktiv ist,
+      // während man den Chart betrachtet. Die Fahrtenbuch-Hervorhebung
+      // bleibt bei Hover (state/chart-view.js → ui/table.js), nur der
+      // Tab-Wechsel + Scroll ist eine bewusste Nutzeraktion.
+      c.addEventListener("click", () => {
+        activateTab("planned");
+        setTimeout(() => Planned.scrollToDate(dateISO), 50);
       });
       svg.appendChild(c);
     }
