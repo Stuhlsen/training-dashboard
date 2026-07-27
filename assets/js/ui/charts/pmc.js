@@ -35,6 +35,8 @@ import {
   setHovered,
   clearHovered,
   onChartViewChange,
+  setScenarioParams,
+  setScenarioEnabled,
 } from "../../state/chart-view.js";
 
 /* ── CTL-Progression mit Interpolation ───────────────────────── */
@@ -324,6 +326,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
   if (!svg) return;
   const overviewSvg = el("chart-pmc-overview");
   const presetsWrap = el("pmc-brush-presets");
+  const scenarioWrap = el("pmc-scenario");
 
   const sorted = (rides || [])
     .filter((r) => r.ctl != null && r.atl != null)
@@ -535,7 +538,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     // der BASIS-Prognose berechnet (X8) — ein Ein-/Ausschalten des Szenarios
     // darf die Achse nie verschieben, sonst wäre der Vorher-Nachher-Vergleich
     // nicht mehr möglich.
-    const { scenarioProjection } = getChartViewState();
+    const { scenario, scenarioProjection } = getChartViewState();
     if (scenarioProjection) {
       const scenarioRowByDate = new Map(scenarioProjection.days.map((d) => [d.date, d]));
       const scenarioCtl = skeleton.map((s) => scenarioRowByDate.get(s.dateISO)?.ctl ?? null);
@@ -868,6 +871,29 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
         btn.classList.toggle("active", !!win && win.ws === ws && win.we === we);
       });
     }
+
+    // Szenario-Bedienelemente (Phase 5, Schritt 3, Teil D) — hält `draw`
+    // aktuell (Muster wie presetsWrap.__pmcApi) UND spiegelt den geladenen
+    // `scenario`-Zustand in die Regler (Toggle-Zustand + Werte), damit ein
+    // Athletenwechsel/Reload die persistierten Parameter sichtbar zeigt statt
+    // stumm nur intern zu halten.
+    if (scenarioWrap) {
+      scenarioWrap.__pmcApi = { draw };
+      const toggle = scenarioWrap.querySelector("#pmc-scenario-toggle");
+      const tssInput = scenarioWrap.querySelector("#pmc-scenario-tss");
+      const tssVal = scenarioWrap.querySelector("#pmc-scenario-tss-val");
+      const restInput = scenarioWrap.querySelector("#pmc-scenario-rest");
+      const restVal = scenarioWrap.querySelector("#pmc-scenario-rest-val");
+      const rampInput = scenarioWrap.querySelector("#pmc-scenario-ramp");
+      const rampVal = scenarioWrap.querySelector("#pmc-scenario-ramp-val");
+      if (toggle) toggle.checked = scenario.enabled;
+      if (tssInput) tssInput.value = String(scenario.weekTssPct);
+      if (tssVal) tssVal.textContent = `${scenario.weekTssPct > 0 ? "+" : ""}${scenario.weekTssPct}%`;
+      if (restInput) restInput.value = String(scenario.restDays);
+      if (restVal) restVal.textContent = String(scenario.restDays);
+      if (rampInput) rampInput.value = String(scenario.rampRatePct);
+      if (rampVal) rampVal.textContent = `${scenario.rampRatePct > 0 ? "+" : ""}${scenario.rampRatePct}%`;
+    }
   };
 
   draw();
@@ -888,6 +914,50 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
         setWindow(win.ws, win.we);
         api.draw();
       });
+    });
+  }
+
+  // Szenario-Bedienelemente — EINMAL gebunden (Guard wie bei den Preset-
+  // Buttons), liest `scenarioWrap.__pmcApi.draw` erst beim jeweiligen Event,
+  // nie eine veraltete Closure. Das Toggle ist die einzige Stelle, die
+  // Szenario-Ein/Aus setzt (X8/§6: "Regler auf 0" bedeutet weiterhin AN,
+  // nur wirkungslos) — die drei Regler ändern nur die Parameter, nie
+  // `enabled`.
+  if (scenarioWrap && !scenarioWrap._bound) {
+    scenarioWrap._bound = true;
+    const redraw = () => scenarioWrap.__pmcApi?.draw();
+
+    const toggle = scenarioWrap.querySelector("#pmc-scenario-toggle");
+    toggle?.addEventListener("change", () => {
+      setScenarioEnabled(toggle.checked);
+      redraw();
+    });
+
+    const tssInput = scenarioWrap.querySelector("#pmc-scenario-tss");
+    const tssVal = scenarioWrap.querySelector("#pmc-scenario-tss-val");
+    tssInput?.addEventListener("input", () => {
+      const v = Number(tssInput.value);
+      if (tssVal) tssVal.textContent = `${v > 0 ? "+" : ""}${v}%`;
+      setScenarioParams({ weekTssPct: v });
+      redraw();
+    });
+
+    const restInput = scenarioWrap.querySelector("#pmc-scenario-rest");
+    const restVal = scenarioWrap.querySelector("#pmc-scenario-rest-val");
+    restInput?.addEventListener("input", () => {
+      const v = Number(restInput.value);
+      if (restVal) restVal.textContent = String(v);
+      setScenarioParams({ restDays: v });
+      redraw();
+    });
+
+    const rampInput = scenarioWrap.querySelector("#pmc-scenario-ramp");
+    const rampVal = scenarioWrap.querySelector("#pmc-scenario-ramp-val");
+    rampInput?.addEventListener("input", () => {
+      const v = Number(rampInput.value);
+      if (rampVal) rampVal.textContent = `${v > 0 ? "+" : ""}${v}%`;
+      setScenarioParams({ rampRatePct: v });
+      redraw();
     });
   }
 

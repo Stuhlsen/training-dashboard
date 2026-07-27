@@ -260,9 +260,14 @@
 }
 
 /* What-if-Slider: Ziel-FTP live erkunden (eigener Block NACH der Skala,
-   bewusst nicht in die Pin-Stacking-CSS verschachtelt) */
+   bewusst nicht in die Pin-Stacking-CSS verschachtelt). Dieselben
+   .wi-label/.wi-readout/input[range]-Regeln bedienen zusätzlich das
+   Trainings-What-if im PMC-Chart (.chart-scenario-controls, Phase 5,
+   Schritt 3 — docs/phase-5-konzept-explorer.md §6.2: nur der visuelle Stil
+   wird geteilt, nicht die Logik — andere Domäne, eigenes Modul). */
 .hero-whatif { margin-top: 18px; }
-.hero-whatif .wi-label {
+.hero-whatif .wi-label,
+.chart-scenario-controls .wi-label {
   display: flex;
   justify-content: space-between;
   font-family: var(--font-mono);
@@ -270,8 +275,10 @@
   color: var(--dim);
   margin-bottom: 6px;
 }
-.hero-whatif .wi-label b { color: var(--accent); font-weight: 600; }
-.hero-whatif input[type="range"] {
+.hero-whatif .wi-label b,
+.chart-scenario-controls .wi-label b { color: var(--accent); font-weight: 600; }
+.hero-whatif input[type="range"],
+.chart-scenario-controls input[type="range"] {
   width: 100%;
   accent-color: var(--ss);
   cursor: pointer;

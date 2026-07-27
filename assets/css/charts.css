@@ -191,6 +191,36 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   margin-top: 8px;
 }
 
+/* ── What-if-Szenario (Phase 5, Schritt 3, Teil D) — docs/phase-5-konzept-
+   explorer.md §6.2: visueller Stil wie der Hero-What-if-Slider (.wi-label/
+   .wi-readout/input[range], s. components.css), eigener Wrapper statt
+   .hero-whatif, weil andere Domäne (Trainings-Last, nicht FTP-Anzeige). ── */
+.chart-scenario {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.chart-scenario-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.chart-scenario-toggle input[type="checkbox"] {
+  accent-color: var(--ss);
+  cursor: pointer;
+}
+.chart-scenario-controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 420px;
+}
+
 /* ── Scrollable chart container ───────────────────────────────── */
 .chart-scroll {
   overflow-x: auto;

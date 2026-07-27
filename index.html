@@ -156,7 +156,30 @@
                 <button class="unit-btn" type="button" data-preset="all">Alles</button>
               </div>
             </div>
-            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. Darunter die Übersichtsleiste: Fenster ziehen oder Zeitraum-Button klicken, um die Ansicht einzugrenzen.</p>
+            <div class="chart-scenario" id="pmc-scenario">
+              <label class="chart-scenario-toggle">
+                <input type="checkbox" id="pmc-scenario-toggle">
+                <span>What-if-Szenario</span>
+              </label>
+              <div class="chart-scenario-controls">
+                <div>
+                  <div class="wi-label"><span>Wochen-TSS</span><b id="pmc-scenario-tss-val">±0%</b></div>
+                  <input type="range" id="pmc-scenario-tss" min="-50" max="50" step="5" value="0"
+                    aria-label="Wochen-TSS-Änderung in Prozent für das What-if-Szenario">
+                </div>
+                <div>
+                  <div class="wi-label"><span>Zusätzliche Ruhetage/Woche</span><b id="pmc-scenario-rest-val">0</b></div>
+                  <input type="range" id="pmc-scenario-rest" min="0" max="3" step="1" value="0"
+                    aria-label="Zusätzliche Ruhetage pro Woche für das What-if-Szenario">
+                </div>
+                <div>
+                  <div class="wi-label"><span>Rampenrate</span><b id="pmc-scenario-ramp-val">±0%</b></div>
+                  <input type="range" id="pmc-scenario-ramp" min="-20" max="30" step="5" value="0"
+                    aria-label="Erzwungener Wochen-Zuwachs in Prozent für das What-if-Szenario">
+                </div>
+              </div>
+            </div>
+            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. Darunter die Übersichtsleiste: Fenster ziehen oder Zeitraum-Button klicken, um die Ansicht einzugrenzen. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert.</p>
           </div>
 
           <div class="chart-box">

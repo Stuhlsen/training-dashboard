@@ -112,7 +112,7 @@ function updateChartExplainers(ownPlan, ftp) {
   if (ownPlan) {
     set(
       "explainer-pmc",
-      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.`
+      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert.`
     );
     set(
       "explainer-trimp",
@@ -153,7 +153,7 @@ function updateChartExplainers(ownPlan, ftp) {
   } else {
     set(
       "explainer-pmc",
-      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`
+      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert.`
     );
     set(
       "explainer-trimp",
