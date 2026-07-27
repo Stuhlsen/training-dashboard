@@ -169,6 +169,38 @@ mehrere bereits committete Dateien anfassen:
   Optik modernisiert, aber ohne Hervorhebung/Brush-Klick. Eine spätere
   Vereinheitlichung bräuchte zunächst eine gemeinsame Monats-Bucket-
   Konvention für beide Charts.
+- **Schritt 7 modernisierte in `wellness.js` ALLE 5 Render-Funktionen**
+  (Familie 2) — anders als Schritt 5/6 gab es hier keine Zurückstellung:
+  die Scope-Rückfrage vor der Umsetzung ergab, dass `renderSleep`,
+  `renderPlanCompareHRV`/`RHF` (→ `renderHrvRhfChart`), `renderEnergy` und
+  `renderHydration` durchgängig Familie 2 sind, keine Familie 3/6-Kandidaten
+  in der Datei.
+- **Schritt 7: PMC-Brush-Fenster (`ws`/`we`) bewusst NICHT übernommen** —
+  `docs/chart-grundlagen.md` §7.2 listet Familie 2 mit „Brush: ✅ Fläche"
+  (voller Windowing wie PMC), `wellness.js` bekam aber nur die
+  Fadenkreuz-Kopplung, keine Fensterung auf `ws`/`we` (analog zu Familie 3
+  in Schritt 6, die ebenfalls nicht am Fenster teilnimmt). Grund:
+  `renderPlanCompareHRV`/`RHF` vergleicht bewusst Plan 1 GANZ gegen Plan 2
+  GANZ (Methodenwechsel RMSSD→SDNN) — ein 90-Tage-Default-Fenster würde
+  genau diesen Vergleich im Normalfall verdecken. Eine spätere volle
+  Familie-2-Teilnahme (Windowing) bräuchte eine eigene Entscheidung, wie der
+  Plan-Vergleich davon ausgenommen bliebe.
+- **Schritt 7: rechte Sekundärachsen behalten die alte Tick-Zahlenreihe**
+  (Schlaf-HF in `renderSleep`, Gewichts-kg-Skala in `renderEnergy`) statt auf
+  `axisUnit()`/Direktbeschriftung umgestellt zu werden — nur die jeweils
+  primäre (linke) Achse wurde nach der Familie-2-Konvention konvertiert
+  (`gradedGrid`/`axisUnit`, plus `haloLabel`/`flattestIndex` für die
+  Hauptserie im HRV/Ruhepuls-Chart). Eine konsistente Umstellung auch der
+  Sekundärachsen wäre ein eigener, kleiner Nachzugsschritt.
+- **Schritt 7: `renderSleep`-Breite wächst jetzt mit dem dichten
+  Tagesgerüst statt der kompakten Anzahl gemessener Nächte** — bei
+  sporadischer Schlafaufzeichnung (z.B. Athlet 2, Apple-Health-Import mit
+  Lücken) kann der Chart entsprechend breit und mit sichtbaren Leerräumen
+  werden. Das ist die beabsichtigte Konsequenz aus dem dichten Tagesgerüst
+  (§5) und wurde gegen `training-dashboard-dev` für beide Athleten
+  Playwright-verifiziert (Athlet 2 zeigt eine mehrtägige Lücke Anfang
+  Februar korrekt als Leerstelle) — als bekannte Eigenheit hier vermerkt,
+  falls die Breite bei künftig noch lückenhafteren Daten unhandlich wird.
 
 ## Infrastruktur/CI
 

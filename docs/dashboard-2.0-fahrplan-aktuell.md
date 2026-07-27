@@ -296,8 +296,46 @@
   Tests (`tests/chart-buckets.test.js`). Für beide Athleten gegen einen
   lokalen Dev-Server per Playwright verifiziert (Hover-Highlight,
   Brush-Klick, `ResizeObserver`-Redraw, keine neuen Konsolenfehler).
-- [ ] Schritt 7 — `wellness.js` modernisieren (Chart-Familien 1/2) **[SO]**
-- [ ] Tests **[SO]**
+- [x] Schritt 7 — `wellness.js` modernisieren (Chart-Familie 2) **[SO]**.
+  Scope-Rückfrage vor der Umsetzung ergab: alle 5 Render-Funktionen
+  (`renderSleep`, `renderPlanCompareHRV`/`renderPlanCompareRHF` — beide über
+  die interne `renderHrvRhfChart` —, `renderEnergy`, `renderHydration`) sind
+  Familie 2, keine Familie 3/6 in dieser Datei — anders als bei Schritt 5/6
+  bleibt deshalb nichts in dieser Datei zurückgestellt. Teil A: Schicht A
+  vollständig übernommen (`gradedGrid`/`axisUnit` statt `gridLines()` mit
+  Y-Achsen-Zahlenreihe, gemessene Breite + `ResizeObserver` für
+  `renderHrvRhfChart`/`renderEnergy`/`renderHydration`, neu responsiv statt
+  festem `viewBox 780`). Teil B: dichtes Tagesgerüst
+  (`core/days.js::densifyDays`/`joinSeries`) statt kompaktem Index, jede
+  Serie mit `absence:"gap"` (reine Messmetriken). Neue reine Funktion
+  `splitRuns()` in `ui/charts/base.js` (+6 Tests in
+  `tests/chart-layout.test.js`) zerlegt eine Werteserie in zusammenhängende
+  Nicht-Null-Läufe — Linien-/Flächenserien brechen jetzt korrekt an
+  Messlücken statt sie unsichtbar zu überbrücken; die bestehende Plan-1/W0/
+  Plan-2-Segmentierung im HRV/Ruhepuls-Chart bleibt erhalten (Breakpoints
+  weiter auf der kompakten Liste ermittelt, dann auf Skelett-Indizes
+  übersetzt); Direktbeschriftung der Hauptserie (`haloLabel`/
+  `flattestIndex`, Familie-2-Konvention). Teil C: tagesgenaue
+  Fadenkreuz-Kopplung an `state/chart-view.js`, analog `pmc.js` — neue
+  lokale, geteilte `paintDayHover(svg, geoKey)` (Muster wie
+  `training.js::paintBucketHover`), `series[].color` darf eine feste Farbe
+  oder eine Funktion `(i)=>color` sein (gebraucht vom HRV/Ruhepuls-Chart,
+  dessen Punktfarbe je nach Plan-Segment wechselt). Bewusst NICHT
+  übernommen: das PMC-Brush-Fenster (`ws`/`we`) — die Charts zeigen weiter
+  ihre volle Historie, analog zu Familie 3 in Schritt 6, weil
+  `renderPlanCompareHRV`/`RHF` bewusst Plan 1 GANZ gegen Plan 2 GANZ
+  vergleicht und ein 90-Tage-Default-Fenster das verdecken würde — s.
+  `docs/offene-punkte.md` (Abweichung von der Familie-2-Tabellenzeile
+  „Brush: ✅ Fläche"). Für beide Athleten gegen einen lokalen Dev-Server per
+  Playwright verifiziert: Fadenkreuz-Sync zwischen HRV/RHF (gemeinsame
+  Messlücken korrekt als reine Crosshair-Linie ohne Punkt dargestellt) und
+  Sleep, korrekter Abbruch außerhalb des jeweils eigenen Datumsbereichs
+  (Energie/Sleep haben einen kürzeren Bereich als HRV/RHF), sichtbare echte
+  Messlücken (z.B. Sleep-Chart Athlet 2: mehrtägige Lücke Anfang Februar als
+  echte Leerstelle statt komprimiert), keine neuen Konsolenfehler.
+- [x] Tests **[SO]** — `splitRuns()` in `tests/chart-layout.test.js` (6 neue
+  Tests: durchgehender Lauf, einzelne/mehrtägige Lücke, führende/
+  nachgestellte Lücken, leere Serie, `0` als gültiger Wert vs. Lücke).
 
 **Entscheidungen Phase 5:**
 - X1: Vergleichsachse = zwei Zeiträume, selber Athlet, relative x-Achse ✅
@@ -417,5 +455,10 @@ Phase-5-Abschnitt oben und `docs/offene-punkte.md`.
 Scope bewusst auf `renderWeeklyVolume()` + `renderWeatherWeekly()` begrenzt,
 s. Phase-5-Abschnitt oben und `docs/offene-punkte.md`.
 
-➡️ **Nächster Schritt: Phase 5, Schritt 7 — `wellness.js` modernisieren**
-(Chart-Familien 1/2, `docs/chart-grundlagen.md` §7.2) — **[SO]**.
+➡️ **Phase 5, Schritt 7 (`wellness.js`, Chart-Familie 2) ist abgeschlossen —
+letzter planmäßiger Baustein von Phase 5 (§2.4).** Scope umfasste alle 5
+Render-Funktionen der Datei (keine Zurückstellung nötig, anders als bei
+Schritt 5/6), s. Phase-5-Abschnitt oben und `docs/offene-punkte.md`.
+
+➡️ **Nächster Schritt: Phase 6 — Feedback & Öffentlichkeit**, s. Abschnitt
+unten.
