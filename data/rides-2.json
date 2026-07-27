@@ -10577,16 +10577,16 @@
       ],
       "eftp": null,
       "weather": {
-        "temp": 18.9,
-        "tempFeel": 17.3,
-        "humidity": 56,
-        "windSpeed": 13.7,
-        "windDir": 303,
-        "precip": 0,
-        "cloudCover": 71,
-        "weatherCode": 3
+        "temp": 19.4,
+        "tempFeel": 17.1,
+        "humidity": 51,
+        "windSpeed": 17.5,
+        "windDir": 296,
+        "precip": 0.3,
+        "cloudCover": 37,
+        "weatherCode": 51
       },
-      "wetter": "18.9°C",
+      "wetter": "19.4°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": null,
@@ -13701,6 +13701,21 @@
       "hydration": null,
       "hydrationVolume": null,
       "eftp": 259
+    },
+    {
+      "date": "2026-07-27",
+      "sleepHours": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
+      "hrv": null,
+      "weight": null,
+      "bodyFat": null,
+      "activeEnergy": null,
+      "restingEnergy": null,
+      "kcalConsumed": null,
+      "hydration": null,
+      "hydrationVolume": null,
+      "eftp": 258
     }
   ],
   "wellnessMeta": {
@@ -13716,8 +13731,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-26T00:00:00",
-        "end_date_local": "2026-07-26T23:59:59",
+        "start_date_local": "2025-07-27T00:00:00",
+        "end_date_local": "2026-07-27T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -16459,7 +16474,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-26T21:37:36.380Z",
+  "updated": "2026-07-27T02:02:50.209Z",
   "source": "intervals.icu",
   "count": 132
 }
