@@ -5,13 +5,16 @@
    core/loadguard.js, core/zones.js, core/consistency.js.
    ============================================================ */
 
-import { fmt, fmtDateFull } from "../../core/format.js";
+import { fmt, fmtDateFull, diffDays } from "../../core/format.js";
 import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js";
 import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
 import { rideWeekKey } from "../../core/aggregate.js";
+import { dateToWeekBucket, weekBucketDateRange } from "../../core/chart-buckets.js";
+import { pmcSkeletonAnchor } from "../../core/days.js";
 import { CONFIG } from "../../state/config.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import { log } from "../log.js";
+import { getState as getChartViewState, onChartViewChange, setWindow } from "../../state/chart-view.js";
 import {
   gridLines,
   xLabel,
@@ -27,11 +30,50 @@ import {
   CHART_THEME,
 } from "./base.js";
 
+/* ── Bucketweise Fadenkreuz-Kopplung (Phase 5, Schritt 6, Teil C —
+   docs/chart-grundlagen.md §7.3, §4.1) ───────────────────────────
+   Familie-3-Balkencharts koppeln nicht tagesgenau: ein gehovertes Datum aus
+   state/chart-view.js (z.B. aus der PMC-Ansicht) hebt den ganzen Wochen-
+   Balken hervor, der dieses Datum enthält (core/chart-buckets.js). Liest die
+   Geometrie aus svg[geoKey], das bei jedem draw() aktualisiert wird — nie
+   eine veraltete Closure (Muster wie ui/charts/pmc.js::paintHover). Nur für
+   period === "week" aktiv: der Monats-Toggle nutzt zwei zueinander
+   inkonsistente Bucket-Konventionen zwischen den beiden Charts (s.
+   Kopfkommentare unten) und wird bewusst nicht unterstützt — s.
+   docs/offene-punkte.md. Die Rückrichtung (Balken-Hover → PMC-Crosshair) ist
+   nicht gefordert: ein Balken repräsentiert mehrere Tage, es gibt keine
+   eindeutige Rückabbildung. */
+function paintBucketHover(svg, geoKey) {
+  const geo = svg[geoKey];
+  if (!geo) return;
+  const { hoverLayer, weeklyData, rides, period, barX, barW, top, bottom } = geo;
+  hoverLayer.textContent = "";
+  if (period !== "week") return;
+  const { hoveredDate } = getChartViewState();
+  if (!hoveredDate) return;
+  const bucket = dateToWeekBucket(hoveredDate, rides);
+  const i = weeklyData.findIndex((d) => d.week === bucket);
+  if (i < 0) return;
+  const x = barX(i);
+  hoverLayer.appendChild(
+    svgEl("rect", {
+      x: x - 2,
+      y: top,
+      width: barW + 4,
+      height: bottom - top,
+      fill: "none",
+      stroke: CHART_THEME.role.primary,
+      "stroke-width": "2",
+      rx: "4",
+    })
+  );
+}
+
 /* ── Wöchentliches Volumen (Balken) ──────────────────────────── */
 /** @param {string} svgId @param {Array} weeklyData @param {Function} [onBarClick]
  *  @param {"week"|"month"} [period] @param {import("../../types.js").Ride[]} [rides]
- *  `rides` ist die Rohliste (Data.rides) — wird ab Teil C/D für die bucketweise
- *  Fadenkreuz-Kopplung/den Brush-Klick gebraucht, in Teil A noch ungenutzt. */
+ *  `rides` ist die Rohliste (Data.rides) — Grundlage für die bucketweise
+ *  Fadenkreuz-Kopplung (Teil C) und den Brush-Klick (Teil D). */
 export function renderWeeklyVolume(svgId, weeklyData, onBarClick, period = "week", rides = []) {
   const svg = el(svgId);
   if (!svg) return;
@@ -186,6 +228,14 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick, period = "week
   const observer = new ResizeObserver(() => draw());
   observer.observe(svg);
   svg.__weeklyVolumeResizeObserver = observer;
+
+  // Bucketweise Fadenkreuz-Kopplung (Teil C) — EINMAL abonniert (Guard wie
+  // ui/charts/pmc.js::svg.__pmcHoverBound), sonst stapeln sich Listener bei
+  // jedem renderWeeklyVolume()-Aufruf (Athletenwechsel/Period-Toggle).
+  if (!svg.__weeklyVolumeHoverBound) {
+    svg.__weeklyVolumeHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__weeklyVolumeGeo"));
+  }
 }
 
 /* ── Belastungswächter: TRIMP/TSS-Wochen + Ramp & Monotonie ──── */
@@ -918,4 +968,10 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
   const observer = new ResizeObserver(() => draw());
   observer.observe(svg);
   svg.__weatherWeeklyResizeObserver = observer;
+
+  // Bucketweise Fadenkreuz-Kopplung (Teil C) — s. renderWeeklyVolume.
+  if (!svg.__weatherWeeklyHoverBound) {
+    svg.__weatherWeeklyHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__weatherWeeklyGeo"));
+  }
 }
