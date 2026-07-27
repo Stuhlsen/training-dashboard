@@ -3,12 +3,13 @@
    Rendering only — Trend-Berechnung in core/stats.js.
 
    Familie 2 (docs/chart-grundlagen.md §7.2, lückige Zeitreihe) — Umbau
-   Phase 5, Schritt 7. Teil B (dieser Commit): dichtes Tagesgerüst
-   (core/days.js::densifyDays/joinSeries) statt kompaktem Index, jede Serie
-   mit absence:"gap" (reine Messmetriken — ein fehlender Tag ist eine echte
-   Lücke, nie 0 oder fortgeschrieben, s. §5). Linien-/Flächenserien brechen
-   an Messlücken (splitRuns()), Balken-Serien überspringen einzelne fehlende
-   Tage. Fadenkreuz-Kopplung an state/chart-view.js folgt in Teil C.
+   Phase 5, Schritt 7. Teil C (dieser Commit): Fadenkreuz-Kopplung an
+   state/chart-view.js (tagesgenau, wie ui/charts/pmc.js) — KEIN Übernehmen
+   des PMC-Brush-Fensters (ws/we): die Charts zeigen weiter ihre volle
+   Historie, analog zu ui/charts/training.js (Familie 3 nimmt am Fenster
+   ebenfalls nicht teil). Grund: renderPlanCompareHRV/RHF vergleicht bewusst
+   Plan 1 GANZ gegen Plan 2 GANZ — ein 90-Tage-Default-Fenster würde genau
+   das verdecken (s. docs/phase-5-konzept-explorer.md, Schritt-7-Auftrag).
    ============================================================ */
 
 import { fmt, fmtDate, fmtDateFull, wrapText } from "../../core/format.js";
@@ -16,6 +17,12 @@ import { linearTrend } from "../../core/stats.js";
 import { densifyDays, joinSeries } from "../../core/days.js";
 import { Data } from "../../state/data.js";
 import { el, svgEl, Tooltip } from "../dom.js";
+import {
+  getState as getChartViewState,
+  onChartViewChange,
+  setHovered,
+  clearHovered,
+} from "../../state/chart-view.js";
 import {
   xLabel,
   autoScrollRight,
@@ -29,7 +36,38 @@ import {
   splitRuns,
   haloLabel,
   flattestIndex,
+  crosshair,
+  hoverDot,
 } from "./base.js";
+
+/* ── Fadenkreuz-Hover (Phase 5, Schritt 7, Teil C — docs/chart-
+   grundlagen.md §7.3, §4.1) ──────────────────────────────────────
+   Eine einzige, lokal geteilte Funktion für alle 5 Familie-2-Charts dieser
+   Datei — analog zu ui/charts/training.js::paintBucketHover(svg, geoKey),
+   das denselben über geoKey parametrisierten Ansatz für seine zwei
+   Familie-3-Charts nutzt. Sucht das gehoverte Datum im EIGENEN Skelett des
+   jeweiligen Charts (jedes hat seinen eigenen Datumsbereich, s. Kopf-
+   kommentar) und bricht sauber ab, wenn das Datum außerhalb liegt — kein
+   Fehler, einfach kein Fadenkreuz. `series[].color` darf eine feste Farbe
+   ODER eine Funktion `(i) => color` sein (gebraucht vom HRV/Ruhepuls-Chart,
+   dessen Punktfarbe je nach Plan-Segment wechselt). */
+function paintDayHover(svg, geoKey) {
+  const geo = svg[geoKey];
+  if (!geo) return;
+  geo.hoverLayer.textContent = "";
+  const { hoveredDate } = getChartViewState();
+  if (!hoveredDate) return;
+  const i = geo.skeleton.findIndex((s) => s.dateISO === hoveredDate);
+  if (i < 0) return;
+  const x = geo.x(i);
+  crosshair(geo.hoverLayer, { x, top: geo.top, bottom: geo.bottom });
+  for (const s of geo.series) {
+    const v = s.vals[i];
+    if (v == null) continue;
+    const color = typeof s.color === "function" ? s.color(i) : s.color;
+    hoverDot(geo.hoverLayer, x, s.yOf(v), color);
+  }
+}
 
 /* ── Schlaf — Dauer & Schlaf-HF ──────────────────────────────── */
 export function renderSleep(svgId, wellness, ownPlan = true) {
@@ -97,6 +135,7 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
     const gap = cw / skeleton.length;
     const bw = Math.min(gap * 0.6, 20);
     const xOf = (i) => pad.l + i * gap + gap / 2;
+    const hrY = (v) => pad.t + ch - ((v - minHR) / (maxHR - minHR)) * ch;
 
     // Balken: Schlafdauer — Tage ohne Messung (null) werden einzeln übersprungen
     skeleton.forEach((day, i) => {
@@ -125,10 +164,12 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
         <div class="tv">${v}h Schlaf${hrVals[i] != null ? ` · ${hrVals[i]} bpm` : ""}</div>
       `
         );
+        setHovered(day.dateISO);
       });
       rect.addEventListener("mouseleave", () => {
         rect.setAttribute("opacity", "0.75");
         Tooltip.hide();
+        clearHovered();
       });
       svg.appendChild(rect);
     });
@@ -161,7 +202,6 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
 
     // Linie: Schlaf-HF (rechte Achse) — bricht an Messlücken (splitRuns)
     if (definedHR.length) {
-      const hrY = (v) => pad.t + ch - ((v - minHR) / (maxHR - minHR)) * ch;
       for (const run of splitRuns(hrVals)) {
         const runPts = [];
         for (let i = run.start; i <= run.end; i++) runPts.push({ x: xOf(i), y: hrY(hrVals[i]) });
@@ -186,16 +226,20 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
           "stroke-width": "1.5",
         });
         c.style.cursor = "pointer";
-        c.addEventListener("mouseenter", (e) =>
+        c.addEventListener("mouseenter", (e) => {
           Tooltip.show(
             e,
             `
         <div class="tt">${fmtDate(day.dateISO)}</div>
         <div class="tv">${hrVals[i]} bpm Schlaf-HF</div>
       `
-          )
-        );
-        c.addEventListener("mouseleave", () => Tooltip.hide());
+          );
+          setHovered(day.dateISO);
+        });
+        c.addEventListener("mouseleave", () => {
+          Tooltip.hide();
+          clearHovered();
+        });
         svg.appendChild(c);
       });
 
@@ -223,6 +267,24 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
     if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
       autoScrollRight(svg, W, scrollContainer);
     }
+
+    // Hover-Ebene (§4.1) — separate <g>, nie neu gezeichnet außerhalb von
+    // draw(). Geometrie am SVG-Knoten hinterlegt, damit paintDayHover() sie
+    // ohne erneutes Zeichnen findet (Muster wie ui/charts/pmc.js).
+    const hoverLayer = svgEl("g", {});
+    svg.appendChild(hoverLayer);
+    svg.__sleepGeometry = {
+      x: xOf,
+      skeleton,
+      hoverLayer,
+      top: pad.t,
+      bottom: pad.t + ch,
+      series: [
+        { vals: sleepVals, yOf, color: "#4a7fa8" },
+        { vals: hrVals, yOf: hrY, color: "#d94f4f" },
+      ],
+    };
+    paintDayHover(svg, "__sleepGeometry");
   };
 
   draw();
@@ -235,6 +297,14 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
   const observer = new ResizeObserver(() => draw());
   observer.observe(svg);
   svg.__sleepResizeObserver = observer;
+
+  // Fadenkreuz-Kopplung — einmalig abonniert (Guard wie svg.__pmcHoverBound
+  // in ui/charts/pmc.js), sonst stapeln sich Listener bei jedem
+  // renderSleep()-Aufruf (Athletenwechsel).
+  if (!svg.__sleepHoverBound) {
+    svg.__sleepHoverBound = true;
+    onChartViewChange(() => paintDayHover(svg, "__sleepGeometry"));
+  }
 }
 
 /* ── HRV / Ruhepuls — durchgehende Linie mit Plan-Divider ────── */
@@ -382,6 +452,10 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     }
 
     // Dots — Farbe je Segment, ausgedünnt (nur an tatsächlich gemessenen Tagen)
+    // segmentColorAt() wird auch von der Fadenkreuz-Geometrie unten wieder-
+    // verwendet, damit der Hover-Punkt dieselbe Segmentfarbe trägt.
+    const segmentColorAt = (i) =>
+      hasW0 && i >= w0Start && i < w1Start ? colorW0 : hasSplit && i >= plan2Start ? color2 : color1;
     const presentIdx = [];
     for (let i = 0; i <= lastIdx; i++) if (vals[i] != null) presentIdx.push(i);
     const step = Math.max(1, Math.floor(presentIdx.length / 24));
@@ -389,22 +463,16 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       if (k % step !== 0 && k !== presentIdx.length - 1) return;
       const day = skeleton[i];
       const row = byDate.get(day.dateISO);
-      const dotColor =
-        hasW0 && i >= w0Start && i < w1Start
-          ? colorW0
-          : hasSplit && i >= plan2Start
-            ? color2
-            : color1;
       const c = svgEl("circle", {
         cx: scale.x(i),
         cy: yOf(vals[i]),
         r: "3.5",
-        fill: dotColor,
+        fill: segmentColorAt(i),
         stroke: "#0b0e13",
         "stroke-width": "1.5",
       });
       c.style.cursor = "pointer";
-      c.addEventListener("mouseenter", (e) =>
+      c.addEventListener("mouseenter", (e) => {
         Tooltip.show(
           e,
           `
@@ -412,9 +480,13 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       <div class="tv">${vals[i]} ${unit}</div>
       <div class="td">${row?.name || ""}</div>
     `
-        )
-      );
-      c.addEventListener("mouseleave", () => Tooltip.hide());
+        );
+        setHovered(day.dateISO);
+      });
+      c.addEventListener("mouseleave", () => {
+        Tooltip.hide();
+        clearHovered();
+      });
       svg.appendChild(c);
     });
 
@@ -555,6 +627,21 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         hasSplit ? color2 : color1
       );
     }
+
+    // Hover-Ebene (§4.1) — s. renderSleep. segmentColorAt() liefert die
+    // Punktfarbe je nach Plan-Segment, deshalb hier als Funktion statt als
+    // fester String.
+    const hoverLayer = svgEl("g", {});
+    svg.appendChild(hoverLayer);
+    svg.__hrvRhfGeometry = {
+      x: scale.x,
+      skeleton,
+      hoverLayer,
+      top: pad.t,
+      bottom: pad.t + ch,
+      series: [{ vals, yOf, color: segmentColorAt }],
+    };
+    paintDayHover(svg, "__hrvRhfGeometry");
   };
 
   draw();
@@ -563,6 +650,11 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
   const observer = new ResizeObserver(() => draw());
   observer.observe(svg);
   svg.__hrvRhfResizeObserver = observer;
+
+  if (!svg.__hrvRhfHoverBound) {
+    svg.__hrvRhfHoverBound = true;
+    onChartViewChange(() => paintDayHover(svg, "__hrvRhfGeometry"));
+  }
 }
 
 /* ── HRV Plan Compare ────────────────────────────────────────── */
@@ -781,13 +873,35 @@ export function renderEnergy(svgId, ev, wt) {
         fill: "transparent",
       });
       hit.style.cursor = "pointer";
-      hit.addEventListener("mouseenter", (e) => Tooltip.show(e, tip(i)));
-      hit.addEventListener("mouseleave", () => Tooltip.hide());
+      hit.addEventListener("mouseenter", (e) => {
+        Tooltip.show(e, tip(i));
+        setHovered(day.dateISO);
+      });
+      hit.addEventListener("mouseleave", () => {
+        Tooltip.hide();
+        clearHovered();
+      });
       svg.appendChild(hit);
     });
 
+    const barSeries = [
+      { vals: burnedVals, yOf: Y, color: "#e08a3c" },
+      { vals: intakeVals, yOf: Y, color: "#4a7fa8" },
+    ];
+
     if (!hasWeight) {
       _bodyDateLabels(svg, skeleton, cx, eBase + 16);
+      const hoverLayer = svgEl("g", {});
+      svg.appendChild(hoverLayer);
+      svg.__energyGeometry = {
+        x: cx,
+        skeleton,
+        hoverLayer,
+        top: eTop,
+        bottom: eBase,
+        series: barSeries,
+      };
+      paintDayHover(svg, "__energyGeometry");
       return;
     }
 
@@ -842,16 +956,32 @@ export function renderEnergy(svgId, ev, wt) {
         "stroke-width": "1.3",
       });
       dot.style.cursor = "pointer";
-      dot.addEventListener("mouseenter", (e) =>
+      dot.addEventListener("mouseenter", (e) => {
         Tooltip.show(
           e,
           `<div class="tt">${fmtDateFull(day.dateISO)}</div><div class="tv">${fmt(weightVals[i])} kg</div>`
-        )
-      );
-      dot.addEventListener("mouseleave", () => Tooltip.hide());
+        );
+        setHovered(day.dateISO);
+      });
+      dot.addEventListener("mouseleave", () => {
+        Tooltip.hide();
+        clearHovered();
+      });
       svg.appendChild(dot);
     });
     _bodyDateLabels(svg, skeleton, cx, wBot + 16);
+
+    const hoverLayer = svgEl("g", {});
+    svg.appendChild(hoverLayer);
+    svg.__energyGeometry = {
+      x: cx,
+      skeleton,
+      hoverLayer,
+      top: eTop,
+      bottom: wBot,
+      series: [...barSeries, { vals: weightVals, yOf: wY, color: "#d9b64c" }],
+    };
+    paintDayHover(svg, "__energyGeometry");
   };
 
   draw();
@@ -860,6 +990,11 @@ export function renderEnergy(svgId, ev, wt) {
   const observer = new ResizeObserver(() => draw());
   observer.observe(svg);
   svg.__energyResizeObserver = observer;
+
+  if (!svg.__energyHoverBound) {
+    svg.__energyHoverBound = true;
+    onChartViewChange(() => paintDayHover(svg, "__energyGeometry"));
+  }
 }
 
 /** Hydration: Fläche + Linie + Ø-Referenz
@@ -938,16 +1073,32 @@ export function renderHydration(svgId, hy) {
       if (vals[i] == null) return;
       const c = svgEl("circle", { cx: scale.x(i), cy: Y(vals[i]), r: "2.4", fill: "#4a7fa8" });
       c.style.cursor = "pointer";
-      c.addEventListener("mouseenter", (e) =>
+      c.addEventListener("mouseenter", (e) => {
         Tooltip.show(
           e,
           `<div class="tt">${fmtDateFull(day.dateISO)}</div><div class="tv">${fmt(vals[i])} ${unit}</div>`
-        )
-      );
-      c.addEventListener("mouseleave", () => Tooltip.hide());
+        );
+        setHovered(day.dateISO);
+      });
+      c.addEventListener("mouseleave", () => {
+        Tooltip.hide();
+        clearHovered();
+      });
       svg.appendChild(c);
     });
     _bodyDateLabels(svg, skeleton, scale.x, H - 12);
+
+    const hoverLayer = svgEl("g", {});
+    svg.appendChild(hoverLayer);
+    svg.__hydrationGeometry = {
+      x: scale.x,
+      skeleton,
+      hoverLayer,
+      top: pad.t,
+      bottom: pad.t + ch,
+      series: [{ vals, yOf: Y, color: "#4a7fa8" }],
+    };
+    paintDayHover(svg, "__hydrationGeometry");
   };
 
   draw();
@@ -956,4 +1107,9 @@ export function renderHydration(svgId, hy) {
   const observer = new ResizeObserver(() => draw());
   observer.observe(svg);
   svg.__hydrationResizeObserver = observer;
+
+  if (!svg.__hydrationHoverBound) {
+    svg.__hydrationHoverBound = true;
+    onChartViewChange(() => paintDayHover(svg, "__hydrationGeometry"));
+  }
 }
