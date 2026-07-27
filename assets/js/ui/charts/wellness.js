@@ -3,15 +3,17 @@
    Rendering only — Trend-Berechnung in core/stats.js.
 
    Familie 2 (docs/chart-grundlagen.md §7.2, lückige Zeitreihe) — Umbau
-   Phase 5, Schritt 7. Teil A (dieser Commit): Chart-Grundlage (abgestuftes
-   Gitter statt Y-Achsen-Zahlenreihe, gemessene Breite + ResizeObserver).
-   Datenmodell bleibt vorerst der kompakte Index (nur Tage mit Wert) —
-   Umstellung auf das dichte Tagesgerüst (core/days.js) + Fadenkreuz folgt
-   in Teil B/C.
+   Phase 5, Schritt 7. Teil B (dieser Commit): dichtes Tagesgerüst
+   (core/days.js::densifyDays/joinSeries) statt kompaktem Index, jede Serie
+   mit absence:"gap" (reine Messmetriken — ein fehlender Tag ist eine echte
+   Lücke, nie 0 oder fortgeschrieben, s. §5). Linien-/Flächenserien brechen
+   an Messlücken (splitRuns()), Balken-Serien überspringen einzelne fehlende
+   Tage. Fadenkreuz-Kopplung an state/chart-view.js folgt in Teil C.
    ============================================================ */
 
 import { fmt, fmtDate, fmtDateFull, wrapText } from "../../core/format.js";
 import { linearTrend } from "../../core/stats.js";
+import { densifyDays, joinSeries } from "../../core/days.js";
 import { Data } from "../../state/data.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import {
@@ -23,14 +25,24 @@ import {
   gradedGrid,
   axisUnit,
   measuredWidth,
+  makeIndexScale,
+  splitRuns,
+  haloLabel,
+  flattestIndex,
 } from "./base.js";
 
 /* ── Schlaf — Dauer & Schlaf-HF ──────────────────────────────── */
 export function renderSleep(svgId, wellness, ownPlan = true) {
-  const data = wellness.filter((w) => w.sleepHours != null || w.avgSleepingHR != null);
+  const rows = wellness
+    .filter((w) => w.sleepHours != null || w.avgSleepingHR != null)
+    .map((w) => ({
+      dateISO: w.dateISO || w.date,
+      sleepHours: w.sleepHours,
+      avgSleepingHR: w.avgSleepingHR,
+    }));
   const svg = el(svgId);
   if (!svg) return;
-  if (!data.length) {
+  if (!rows.length) {
     svg.innerHTML = "";
     const t = svgEl("text", {
       x: 390,
@@ -45,13 +57,22 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
     return;
   }
 
+  // Dichtes Tagesgerüst über den eigenen Datumsbereich dieser Serie (kein
+  // gemeinsamer Anker mit PMC — wellness.js übernimmt das PMC-Brush-Fenster
+  // bewusst nicht, s. docs/phase-5-konzept-explorer.md-Aufgabe Schritt 7).
+  const fromISO = rows.reduce((m, r) => (r.dateISO < m ? r.dateISO : m), rows[0].dateISO);
+  const toISO = rows.reduce((m, r) => (r.dateISO > m ? r.dateISO : m), rows[0].dateISO);
+  const skeleton = densifyDays(fromISO, toISO);
+  const sleepVals = joinSeries(skeleton, rows, { key: "sleepHours", absence: "gap" });
+  const hrVals = joinSeries(skeleton, rows, { key: "avgSleepingHR", absence: "gap" });
+
   const PPT = 18;
   const H = 200,
     pad = { l: 52, r: 52, t: 16, b: 36 };
 
   const draw = () => {
     svg.innerHTML = "";
-    const W = Math.max(measuredWidth(svg, 780), data.length * PPT + 100);
+    const W = Math.max(measuredWidth(svg, 780), skeleton.length * PPT + 100);
     const cw = W - pad.l - pad.r,
       ch = H - pad.t - pad.b;
 
@@ -59,30 +80,32 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
     svg.setAttribute("width", W);
     svg.setAttribute("height", H);
 
-    const sleepVals = data.map((d) => d.sleepHours).filter(Boolean);
-    const hrVals = data.map((d) => d.avgSleepingHR).filter(Boolean);
-    const maxSleep = sleepVals.length ? Math.ceil(Math.max(...sleepVals) * 1.15) : 10;
-    const minHR = hrVals.length ? Math.floor(Math.min(...hrVals) - 3) : 40;
-    const maxHR = hrVals.length ? Math.ceil(Math.max(...hrVals) + 3) : 80;
+    const definedSleep = sleepVals.filter((v) => v != null);
+    const definedHR = hrVals.filter((v) => v != null);
+    const maxSleep = definedSleep.length ? Math.ceil(Math.max(...definedSleep) * 1.15) : 10;
+    const minHR = definedHR.length ? Math.floor(Math.min(...definedHR) - 3) : 40;
+    const maxHR = definedHR.length ? Math.ceil(Math.max(...definedHR) + 3) : 80;
     const yOf = (v) => pad.t + ch - (v / maxSleep) * ch;
 
     gradedGrid(svg, { x0: pad.l, x1: W - pad.r, yOf, lo: 0, hi: maxSleep });
     axisUnit(svg, { x: pad.l - 6, y: pad.t - 6, text: "h" });
     axisTitles(svg, W, H, pad, {
       x: "Datum",
-      yRight: hrVals.length ? "Schlaf-HF (bpm)" : undefined,
+      yRight: definedHR.length ? "Schlaf-HF (bpm)" : undefined,
     });
 
-    const bw = Math.min((cw / data.length) * 0.6, 20);
-    const gap = cw / data.length;
+    const gap = cw / skeleton.length;
+    const bw = Math.min(gap * 0.6, 20);
+    const xOf = (i) => pad.l + i * gap + gap / 2;
 
-    // Balken: Schlafdauer
-    data.forEach((d, i) => {
-      if (!d.sleepHours) return;
-      const x = pad.l + i * gap + (gap - bw) / 2;
-      const bh = Math.max((d.sleepHours / maxSleep) * ch, 1);
+    // Balken: Schlafdauer — Tage ohne Messung (null) werden einzeln übersprungen
+    skeleton.forEach((day, i) => {
+      const v = sleepVals[i];
+      if (v == null) return;
+      const x = xOf(i) - bw / 2;
+      const bh = Math.max((v / maxSleep) * ch, 1);
       const y = pad.t + ch - bh;
-      const color = d.sleepHours >= 7 ? "#4a7fa8" : d.sleepHours >= 6 ? "#c9a84c" : "#d94f4f";
+      const color = v >= 7 ? "#4a7fa8" : v >= 6 ? "#c9a84c" : "#d94f4f";
       const rect = svgEl("rect", {
         x,
         y,
@@ -98,8 +121,8 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
         Tooltip.show(
           e,
           `
-        <div class="tt">${d.dateShort}</div>
-        <div class="tv">${d.sleepHours}h Schlaf${d.avgSleepingHR ? ` · ${d.avgSleepingHR} bpm` : ""}</div>
+        <div class="tt">${fmtDate(day.dateISO)}</div>
+        <div class="tv">${v}h Schlaf${hrVals[i] != null ? ` · ${hrVals[i]} bpm` : ""}</div>
       `
         );
       });
@@ -136,32 +159,27 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
       svg.appendChild(tl);
     }
 
-    // Linie: Schlaf-HF (rechte Achse)
-    if (hrVals.length) {
-      const hrPts = data
-        .filter((d) => d.avgSleepingHR != null)
-        .map((d) => {
-          const i = data.indexOf(d);
-          return {
-            x: pad.l + i * gap + gap / 2,
-            y: pad.t + ch - ((d.avgSleepingHR - minHR) / (maxHR - minHR)) * ch,
-            d,
-          };
-        });
-
-      svg.appendChild(
-        svgEl("polyline", {
-          fill: "none",
-          stroke: "#d94f4f",
-          "stroke-width": "1.8",
-          points: hrPts.map((p) => `${p.x},${p.y}`).join(" "),
-        })
-      );
-
-      hrPts.forEach((p) => {
+    // Linie: Schlaf-HF (rechte Achse) — bricht an Messlücken (splitRuns)
+    if (definedHR.length) {
+      const hrY = (v) => pad.t + ch - ((v - minHR) / (maxHR - minHR)) * ch;
+      for (const run of splitRuns(hrVals)) {
+        const runPts = [];
+        for (let i = run.start; i <= run.end; i++) runPts.push({ x: xOf(i), y: hrY(hrVals[i]) });
+        if (runPts.length < 2) continue;
+        svg.appendChild(
+          svgEl("polyline", {
+            fill: "none",
+            stroke: "#d94f4f",
+            "stroke-width": "1.8",
+            points: runPts.map((p) => `${p.x},${p.y}`).join(" "),
+          })
+        );
+      }
+      skeleton.forEach((day, i) => {
+        if (hrVals[i] == null) return;
         const c = svgEl("circle", {
-          cx: p.x,
-          cy: p.y,
+          cx: xOf(i),
+          cy: hrY(hrVals[i]),
           r: "3",
           fill: "#d94f4f",
           stroke: "#0b0e13",
@@ -172,8 +190,8 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
           Tooltip.show(
             e,
             `
-        <div class="tt">${p.d.dateShort}</div>
-        <div class="tv">${p.d.avgSleepingHR} bpm Schlaf-HF</div>
+        <div class="tt">${fmtDate(day.dateISO)}</div>
+        <div class="tv">${hrVals[i]} bpm Schlaf-HF</div>
       `
           )
         );
@@ -193,11 +211,11 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
 
     // X Labels mit Mindestabstand (letztes Label garantiert kollisionsfrei)
     const sleepLblIdx = pickLabelIndices(
-      data.map((_, i) => pad.l + i * gap + gap / 2),
+      skeleton.map((_, i) => xOf(i)),
       55
     );
-    data.forEach((d, i) => {
-      if (sleepLblIdx.has(i)) xLabel(svg, pad.l + i * gap + gap / 2, H - pad.b + 14, d.dateShort);
+    skeleton.forEach((day, i) => {
+      if (sleepLblIdx.has(i)) xLabel(svg, xOf(i), H - pad.b + 14, fmtDate(day.dateISO));
     });
 
     // Auto-scroll
@@ -229,6 +247,31 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     return;
   }
 
+  // Plan-Segment-Breakpoints auf der KOMPAKTEN Liste ermitteln (unverändert
+  // gegenüber vorher), danach auf Skelett-Indizes des dichten Tagesgerüsts
+  // übersetzen — die Segmentzugehörigkeit ist eine Eigenschaft des DATUMS,
+  // nicht der (jetzt lückigen) Werteserie.
+  const w0StartCompact = data.findIndex((d) => d.week === "P2-W0");
+  const w1StartCompact = data.findIndex(
+    (d) => d.week && d.week.startsWith("P2-") && d.week !== "P2-W0"
+  );
+  const plan2StartCompact =
+    w0StartCompact >= 0 ? w0StartCompact : data.findIndex((d) => d.plan === "Plan 2");
+  const hasW0 = w0StartCompact >= 0 && w1StartCompact > w0StartCompact;
+  const hasSplit = plan2StartCompact > 0;
+
+  const fromISO = data[0].dateISO;
+  const toISO = data[data.length - 1].dateISO;
+  const skeleton = densifyDays(fromISO, toISO);
+  const vals = joinSeries(skeleton, data, { key: field, absence: "gap" });
+  const byDate = new Map(data.map((d) => [d.dateISO, d]));
+  const idxOfDate = (iso) => skeleton.findIndex((s) => s.dateISO === iso);
+  const w0Start = hasW0 ? idxOfDate(data[w0StartCompact].dateISO) : -1;
+  const w1Start = hasW0 ? idxOfDate(data[w1StartCompact].dateISO) : -1;
+  const plan2Start = hasSplit ? idxOfDate(data[plan2StartCompact].dateISO) : -1;
+  const lastIdx = skeleton.length - 1;
+  const showsMethodNote = !!(methodNote && hasSplit);
+
   const H = 250,
     pad = { l: 50, r: 16, t: 28, b: 36 };
 
@@ -239,56 +282,39 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       ch = H - pad.t - pad.b;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
 
-    const allVals = data.map((d) => d[field]);
-    const minV = Math.max(0, Math.min(...allVals) - 5);
-    const maxV = Math.max(...allVals) + 5;
-
-    // Drei Segmente: Plan 1 / Übergang W0 / Plan 2 — vorab ermittelt (statt
-    // erst nach den Achsentiteln), weil der "Datum"-Achsentitel und der
-    // Methodenwechsel-Hinweis sich dieselbe Zeile unter der X-Achse teilen:
-    // bei einem Plan-Split zeigen wir dort den (kompakten) Hinweis statt des
-    // Achsentitels — beide gleichzeitig kollidierten sonst sichtbar.
-    const w0Start = data.findIndex((d) => d.week === "P2-W0");
-    const w1Start = data.findIndex(
-      (d) => d.week && d.week.startsWith("P2-") && d.week !== "P2-W0"
-    );
-    const plan2Start = w0Start >= 0 ? w0Start : data.findIndex((d) => d.plan === "Plan 2");
-    const hasW0 = w0Start >= 0 && w1Start > w0Start;
-    const hasSplit = plan2Start > 0;
-    const showsMethodNote = !!(methodNote && hasSplit);
-
+    const defined = vals.filter((v) => v != null);
+    const minV = Math.max(0, Math.min(...defined) - 5);
+    const maxV = Math.max(...defined) + 5;
     const yOf = (v) => pad.t + ch - ((v - minV) / (maxV - minV)) * ch;
+    const scale = makeIndexScale({ ws: 0, we: lastIdx, padLeft: pad.l, width: cw });
+
     gradedGrid(svg, { x0: pad.l, x1: W - pad.r, yOf, lo: minV, hi: maxV });
     axisUnit(svg, { x: pad.l - 6, y: pad.t - 6, text: unit });
     axisTitles(svg, W, H, pad, {
       x: showsMethodNote ? undefined : "Datum",
     });
 
-    const pts = data.map((d, i) => ({
-      x: pad.l + (i / Math.max(data.length - 1, 1)) * cw,
-      y: yOf(d[field]),
-      d,
-    }));
-
     const colorW0 = "#c9a84c";
 
-    let seg1, segW0, seg2;
-    if (hasW0) {
-      seg1 = pts.slice(0, w0Start + 1);
-      segW0 = pts.slice(w0Start, w1Start + 1);
-      seg2 = pts.slice(w1Start);
-    } else if (hasSplit) {
-      seg1 = pts.slice(0, plan2Start + 1);
-      segW0 = [];
-      seg2 = pts.slice(plan2Start);
-    } else {
-      seg1 = pts;
-      segW0 = [];
-      seg2 = [];
-    }
+    // Segmente als [von, bis, Farbe, gestrichelt] — jedes Segment wird
+    // zusätzlich per splitRuns() an Messlücken gebrochen (verschachtelte
+    // Aufteilung: erst Plan-Segment, dann Nicht-Null-Lauf innerhalb davon).
+    const segBounds = hasW0
+      ? [
+          [0, w0Start, color1, false],
+          [w0Start, w1Start, colorW0, true],
+          [w1Start, lastIdx, color2, false],
+        ]
+      : hasSplit
+        ? [
+            [0, plan2Start, color1, false],
+            [plan2Start, lastIdx, color2, false],
+          ]
+        : [[0, lastIdx, color1, false]];
 
-    const drawSegment = (segment, color, dashed) => {
-      if (segment.length < 1) return;
+    const drawRun = (fromIdx, toIdx, color, dashed) => {
+      const segment = [];
+      for (let i = fromIdx; i <= toIdx; i++) segment.push({ x: scale.x(i), y: yOf(vals[i]) });
       if (segment.length === 1) {
         svg.appendChild(
           svgEl("circle", { cx: segment[0].x, cy: segment[0].y, r: "3.5", fill: color })
@@ -313,22 +339,33 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       );
     };
 
-    drawSegment(seg1, color1, false);
-    if (hasW0) drawSegment(segW0, colorW0, true);
-    if (seg2.length) drawSegment(seg2, color2, false);
+    for (const [segFrom, segTo, color, dashed] of segBounds) {
+      const segVals = vals.slice(segFrom, segTo + 1);
+      for (const run of splitRuns(segVals)) {
+        drawRun(segFrom + run.start, segFrom + run.end, color, dashed);
+      }
+    }
 
-    // Getrennte Trendlinien je Segment (Plan 1 und Plan 2 — W0 zu kurz für eigenen Trend)
-    const drawTrend = (segment) => {
-      const trend = linearTrend(segment);
+    // Getrennte Trendlinien je Plan-Segment (W0 zu kurz für eigenen Trend) —
+    // linearTrend() bekommt nur die tatsächlich gemessenen Punkte (kein null)
+    const trendPts = (fromIdx, toIdx) => {
+      const pts = [];
+      for (let i = fromIdx; i <= toIdx; i++) {
+        if (vals[i] != null) pts.push({ x: scale.x(i), y: yOf(vals[i]) });
+      }
+      return pts;
+    };
+    const drawTrend = (pts) => {
+      const trend = linearTrend(pts);
       if (!trend) return;
       const { slope, intercept } = trend;
-      const n = segment.length;
+      const n = pts.length;
       svg.appendChild(
         svgEl("line", {
-          x1: segment[0].x,
-          y1: slope * segment[0].x + intercept,
-          x2: segment[n - 1].x,
-          y2: slope * segment[n - 1].x + intercept,
+          x1: pts[0].x,
+          y1: slope * pts[0].x + intercept,
+          x2: pts[n - 1].x,
+          y2: slope * pts[n - 1].x + intercept,
           stroke: "#4a9a6e",
           "stroke-width": "1.5",
           "stroke-dasharray": "6,3",
@@ -336,17 +373,31 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         })
       );
     };
-    drawTrend(pts.slice(0, plan2Start > 0 ? plan2Start : pts.length));
-    if (seg2.length >= 3) drawTrend(seg2);
+    const p1EndIdx = hasW0 ? w0Start : hasSplit ? plan2Start : lastIdx;
+    const p2StartIdx = hasW0 ? w1Start : plan2Start;
+    drawTrend(trendPts(0, p1EndIdx));
+    if (hasSplit) {
+      const p2Pts = trendPts(p2StartIdx, lastIdx);
+      if (p2Pts.length >= 3) drawTrend(p2Pts);
+    }
 
-    // Dots — Farbe je Segment
-    const step = Math.max(1, Math.floor(pts.length / 24));
-    pts.forEach((p, i) => {
-      if (i % step !== 0 && i !== pts.length - 1) return;
-      const dotColor = p.d.week === "P2-W0" ? colorW0 : p.d.plan === "Plan 2" ? color2 : color1;
+    // Dots — Farbe je Segment, ausgedünnt (nur an tatsächlich gemessenen Tagen)
+    const presentIdx = [];
+    for (let i = 0; i <= lastIdx; i++) if (vals[i] != null) presentIdx.push(i);
+    const step = Math.max(1, Math.floor(presentIdx.length / 24));
+    presentIdx.forEach((i, k) => {
+      if (k % step !== 0 && k !== presentIdx.length - 1) return;
+      const day = skeleton[i];
+      const row = byDate.get(day.dateISO);
+      const dotColor =
+        hasW0 && i >= w0Start && i < w1Start
+          ? colorW0
+          : hasSplit && i >= plan2Start
+            ? color2
+            : color1;
       const c = svgEl("circle", {
-        cx: p.x,
-        cy: p.y,
+        cx: scale.x(i),
+        cy: yOf(vals[i]),
         r: "3.5",
         fill: dotColor,
         stroke: "#0b0e13",
@@ -357,9 +408,9 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         Tooltip.show(
           e,
           `
-      <div class="tt">${p.d.dateShort} · ${p.d.week ? p.d.week + " · " : ""}${p.d.plan && p.d.plan !== "Vergleich" ? p.d.plan : ""}</div>
-      <div class="tv">${p.d[field]} ${unit}</div>
-      <div class="td">${p.d.name}</div>
+      <div class="tt">${fmtDate(day.dateISO)} · ${row?.week ? row.week + " · " : ""}${row?.plan && row.plan !== "Vergleich" ? row.plan : ""}</div>
+      <div class="tv">${vals[i]} ${unit}</div>
+      <div class="td">${row?.name || ""}</div>
     `
         )
       );
@@ -367,20 +418,21 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       svg.appendChild(c);
     });
 
-    // X labels — Mindestabstand; der Plan-Übergang bekommt immer ein Label
+    // X labels — Mindestabstand über das ganze Skelett; der Plan-Übergang
+    // bekommt immer ein Label
     const lblIdx = pickLabelIndices(
-      pts.map((p) => p.x),
+      skeleton.map((_, i) => scale.x(i)),
       60
     );
     if (plan2Start > 0) lblIdx.add(plan2Start);
-    pts.forEach((p, i) => {
-      if (lblIdx.has(i)) xLabel(svg, p.x, H - pad.b + 14, p.d.dateShort);
+    skeleton.forEach((day, i) => {
+      if (lblIdx.has(i)) xLabel(svg, scale.x(i), H - pad.b + 14, fmtDate(day.dateISO));
     });
 
     // Divider-Linie an einer Segmentgrenze (reine Trennlinie, kein Label —
     // Labels werden separat, zentriert je Segment, gezeichnet, s. u.)
     const divider = (idx) => {
-      const divX = pad.l + ((idx - 0.5) / Math.max(data.length - 1, 1)) * cw;
+      const divX = scale.x(idx - 0.5);
       svg.appendChild(
         svgEl("rect", {
           x: divX - 1,
@@ -446,13 +498,15 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       svg.appendChild(noteLbl);
     }
 
-    // Mean lines getrennt je Segment (Plan 1 / Plan 2, W0 ausgelassen — zu kurz für aussagekräftigen Mittelwert)
+    // Mean lines getrennt je Segment (Plan 1 / Plan 2, W0 ausgelassen — zu
+    // kurz für aussagekräftigen Mittelwert) — nur die tatsächlich gemessenen
+    // Werte im jeweiligen Bereich fließen ein.
     const meanFor = (arr, color, fromIdx, toIdx, labelAbove) => {
       if (!arr.length) return;
       const mean = arr.reduce((s, v) => s + v, 0) / arr.length;
       const meanY = yOf(mean);
-      const x1 = pad.l + (fromIdx / Math.max(data.length - 1, 1)) * cw;
-      const x2 = pad.l + (toIdx / Math.max(data.length - 1, 1)) * cw;
+      const x1 = scale.x(fromIdx);
+      const x2 = scale.x(toIdx);
       svg.appendChild(
         svgEl("line", {
           x1,
@@ -477,17 +531,29 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       svg.appendChild(meanLabel);
     };
 
-    const p1EndIdx = hasW0 ? w0Start : hasSplit ? plan2Start : data.length - 1;
-    const p2StartIdx = hasW0 ? w1Start : plan2Start;
-    const vals1 = data.slice(0, p1EndIdx + 1).map((d) => d[field]);
+    const vals1 = vals.slice(0, p1EndIdx + 1).filter((v) => v != null);
     meanFor(vals1, color1, 0, p1EndIdx, true);
     if (hasSplit) {
-      const vals2 = data.slice(p2StartIdx).map((d) => d[field]);
+      const vals2 = vals.slice(p2StartIdx).filter((v) => v != null);
       // Label-Kollision vermeiden: wenn Plan-1-Mittelwert nah am Plan-2-Mittelwert liegt, Plan-2-Label tiefer setzen
       const mean1 = vals1.reduce((s, v) => s + v, 0) / vals1.length;
       const mean2 = vals2.reduce((s, v) => s + v, 0) / vals2.length;
       const closeMeans = Math.abs(mean1 - mean2) < (maxV - minV) * 0.08;
-      meanFor(vals2, color2, p2StartIdx, data.length - 1, !closeMeans);
+      meanFor(vals2, color2, p2StartIdx, lastIdx, !closeMeans);
+    }
+
+    // Direktbeschriftung der Hauptserie (Familie 2, „direkt an der Kurve") —
+    // an der flachsten Stelle des jüngsten Segments (Plan 2, falls vorhanden).
+    const labelSegFrom = hasSplit ? p2StartIdx : 0;
+    const labelIdx = flattestIndex(vals, labelSegFrom, lastIdx, yOf, 0.4, 1);
+    if (labelIdx != null) {
+      haloLabel(
+        svg,
+        scale.x(labelIdx),
+        yOf(vals[labelIdx]) - 12,
+        field === "hrv" ? "HRV" : "Ruhepuls",
+        hasSplit ? color2 : color1
+      );
     }
   };
 
@@ -559,12 +625,16 @@ export function renderPlanCompareRHF(rides) {
 
 /* ── Körper: Gewicht, Energie, Hydration (Daten: core/body.js) ─── */
 
-/** Gemeinsame X-Achsen-Datumslabels für die Körper-Charts */
-function _bodyDateLabels(svg, points, pad, cw, H) {
-  const xs = points.map((_, i) => pad.l + (i / Math.max(points.length - 1, 1)) * cw);
+/** Gemeinsame, ausgedünnte X-Achsen-Datumslabels für die Körper-Charts —
+ *  arbeitet auf dem dichten Tagesgerüst statt den (kompakten) core/body.js-
+ *  Punktarrays, damit Sprünge über Messlücken hinweg nicht stillschweigend
+ *  Label-Kollisionen verursachen.
+ *  @param {SVGElement} svg @param {Array<{dateISO:string}>} skeleton
+ *  @param {(i:number)=>number} xOf @param {number} y */
+function _bodyDateLabels(svg, skeleton, xOf, y) {
+  const xs = skeleton.map((_, i) => xOf(i));
   pickLabelIndices(xs, 44).forEach((i) => {
-    const iso = points[i].date;
-    xLabel(svg, xs[i], H - 12, iso ? fmtDate(iso) : "");
+    xLabel(svg, xs[i], y, fmtDate(skeleton[i].dateISO));
   });
 }
 
@@ -580,6 +650,32 @@ export function renderEnergy(svgId, ev, wt) {
     return;
   }
   const hasWeight = !!(wt && wt.points && wt.points.length);
+
+  const fromISO = ev.days[0].date;
+  const toISO = ev.days[ev.days.length - 1].date;
+  const skeleton = densifyDays(fromISO, toISO);
+  const joinRows = ev.days.map((d) => ({
+    dateISO: d.date,
+    resting: d.resting,
+    active: d.active,
+    burned: d.burned,
+    intake: d.intake,
+  }));
+  const restingVals = joinSeries(skeleton, joinRows, { key: "resting", absence: "gap" });
+  const activeVals = joinSeries(skeleton, joinRows, { key: "active", absence: "gap" });
+  const burnedVals = joinSeries(skeleton, joinRows, { key: "burned", absence: "gap" });
+  const intakeVals = joinSeries(skeleton, joinRows, { key: "intake", absence: "gap" });
+  // Gewichts-Spur teilt sich das Energie-Skelett (kein eigenes, ggf. längeres
+  // Gerüst) — deckt sich mit dem bisherigen Verhalten, das Gewichtspunkte
+  // außerhalb von ev.days ohnehin schon unsichtbar filterte.
+  const weightVals = hasWeight
+    ? joinSeries(
+        skeleton,
+        wt.points.map((p) => ({ dateISO: p.date, weight: p.weight })),
+        { key: "weight", absence: "gap" }
+      )
+    : [];
+
   const H = 300,
     padL = 50,
     padR = 16;
@@ -593,14 +689,14 @@ export function renderEnergy(svgId, ev, wt) {
     const eTop = 20,
       eBase = hasWeight ? 190 : 250,
       ech = eBase - eTop;
-    const n = ev.days.length,
+    const n = skeleton.length,
       slot = cw / n,
       bw = Math.min(slot * 0.34, 15);
-    const maxV = Math.max(1, ...ev.days.map((d) => Math.max(d.burned, d.intake || 0))) * 1.1;
+    const definedBurned = burnedVals.filter((v) => v != null);
+    const definedIntake = intakeVals.filter((v) => v != null);
+    const maxV = Math.max(1, ...definedBurned, ...definedIntake) * 1.1;
     const Y = (v) => eBase - (v / maxV) * ech;
     const cx = (i) => padL + slot * (i + 0.5);
-    const dateIdx = {};
-    ev.days.forEach((d, i) => (dateIdx[d.date] = i));
 
     const mono = "var(--font-mono)";
     const txt = (x, y, s, fill, anchor) => {
@@ -612,26 +708,36 @@ export function renderEnergy(svgId, ev, wt) {
     gradedGrid(svg, { x0: padL, x1: W - padR, yOf: Y, lo: 0, hi: maxV });
     axisUnit(svg, { x: padL - 6, y: eTop - 6, text: "kcal" });
 
-    const tip = (d) => {
+    const tip = (i) => {
       const parts = [];
-      if (d.burned > 0)
+      const burned = burnedVals[i],
+        resting = restingVals[i],
+        active = activeVals[i],
+        intake = intakeVals[i];
+      if (burned > 0)
         parts.push(
-          d.resting > 0
-            ? `Verbrauch ${d.burned} kcal (Grundumsatz ${d.resting}${ev.restingEstimated ? " gesch." : ""} · aktiv ${d.active})`
-            : `Aktiv verbrannt ${d.active} kcal`
+          resting > 0
+            ? `Verbrauch ${burned} kcal (Grundumsatz ${resting}${ev.restingEstimated ? " gesch." : ""} · aktiv ${active})`
+            : `Aktiv verbrannt ${active} kcal`
         );
-      if (d.intake != null) parts.push(`Zufuhr ${d.intake} kcal`);
-      return `<div class="tt">${fmtDateFull(d.date)}</div><div class="tv">${parts.join(" · ")}</div>`;
+      if (intake != null) parts.push(`Zufuhr ${intake} kcal`);
+      return `<div class="tt">${fmtDateFull(skeleton[i].dateISO)}</div><div class="tv">${
+        parts.length ? parts.join(" · ") : "keine Messung"
+      }</div>`;
     };
 
-    ev.days.forEach((d, i) => {
+    skeleton.forEach((day, i) => {
+      const burned = burnedVals[i],
+        resting = restingVals[i],
+        intake = intakeVals[i];
+      if (burned == null && intake == null) return; // Tag ohne jede Messung: Lücke
       const c = cx(i),
         ex = c - bw - 1.5,
         ix = c + 1.5;
-      if (d.burned > 0) {
-        const rTop = Y(d.resting),
-          aTop = Y(d.burned);
-        if (d.resting > 0)
+      if (burned != null && burned > 0) {
+        const rTop = Y(resting > 0 ? resting : 0),
+          aTop = Y(burned);
+        if (resting > 0)
           svg.appendChild(
             svgEl("rect", {
               x: ex,
@@ -642,7 +748,7 @@ export function renderEnergy(svgId, ev, wt) {
               fill: "#3a4a5c",
             })
           );
-        const orangeFrom = d.resting > 0 ? rTop : eBase;
+        const orangeFrom = resting > 0 ? rTop : eBase;
         svg.appendChild(
           svgEl("rect", {
             x: ex,
@@ -654,8 +760,8 @@ export function renderEnergy(svgId, ev, wt) {
           })
         );
       }
-      if (d.intake != null) {
-        const iTop = Y(d.intake);
+      if (intake != null) {
+        const iTop = Y(intake);
         svg.appendChild(
           svgEl("rect", {
             x: ix,
@@ -675,34 +781,31 @@ export function renderEnergy(svgId, ev, wt) {
         fill: "transparent",
       });
       hit.style.cursor = "pointer";
-      hit.addEventListener("mouseenter", (e) => Tooltip.show(e, tip(d)));
+      hit.addEventListener("mouseenter", (e) => Tooltip.show(e, tip(i)));
       hit.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(hit);
-      if (!hasWeight) {
-        xLabel(svg, c, eBase + 16, fmtDate(d.date));
-      }
     });
 
-    if (!hasWeight) return;
+    if (!hasWeight) {
+      _bodyDateLabels(svg, skeleton, cx, eBase + 16);
+      return;
+    }
 
     // ── Gewichts-Spur (eigene kg-Skala, gleiche Datums-Achse) ──
     const sep = eBase + 18;
     svg.appendChild(
       svgEl("line", { x1: padL, y1: sep, x2: W - padR, y2: sep, stroke: "rgba(255,255,255,0.10)" })
     );
-    const dW =
-      wt.delta30d != null
-        ? `  ·  Δ ${wt.delta30d > 0 ? "+" : ""}${fmt(wt.delta30d)} kg`
-        : "";
+    const dW = wt.delta30d != null ? `  ·  Δ ${wt.delta30d > 0 ? "+" : ""}${fmt(wt.delta30d)} kg` : "";
     const lbl = txt(padL, sep + 14, "10", "#5f6878");
     lbl.textContent = "Gewicht (kg)" + dW;
     svg.appendChild(lbl);
     const wTop = sep + 22,
       wBot = sep + 66,
       wch = wBot - wTop;
-    const ws = wt.points.map((p) => p.weight);
-    const wMin = Math.min(...ws) - 0.4,
-      wMax = Math.max(...ws) + 0.4;
+    const definedWeights = weightVals.filter((v) => v != null);
+    const wMin = Math.min(...definedWeights) - 0.4,
+      wMax = Math.max(...definedWeights) + 0.4;
     const wY = (w) => wBot - ((w - wMin) / (wMax - wMin || 1)) * wch;
     [wMax, wMin].forEach((w) => {
       const y = wY(w);
@@ -713,23 +816,26 @@ export function renderEnergy(svgId, ev, wt) {
       t.textContent = fmt(w);
       svg.appendChild(t);
     });
-    const wp = wt.points
-      .filter((p) => dateIdx[p.date] != null)
-      .map((p) => ({ x: cx(dateIdx[p.date]), y: wY(p.weight), p }));
-    if (wp.length > 1)
+
+    for (const run of splitRuns(weightVals)) {
+      const runPts = [];
+      for (let i = run.start; i <= run.end; i++) runPts.push({ x: cx(i), y: wY(weightVals[i]) });
+      if (runPts.length < 2) continue;
       svg.appendChild(
         svgEl("polyline", {
           fill: "none",
           stroke: "#d9b64c",
           "stroke-width": "2.2",
           "stroke-linejoin": "round",
-          points: wp.map((q) => `${q.x},${q.y}`).join(" "),
+          points: runPts.map((q) => `${q.x},${q.y}`).join(" "),
         })
       );
-    wp.forEach((q) => {
+    }
+    skeleton.forEach((day, i) => {
+      if (weightVals[i] == null) return;
       const dot = svgEl("circle", {
-        cx: q.x,
-        cy: q.y,
+        cx: cx(i),
+        cy: wY(weightVals[i]),
         r: "3.2",
         fill: "#d9b64c",
         stroke: "#0b0e13",
@@ -739,15 +845,13 @@ export function renderEnergy(svgId, ev, wt) {
       dot.addEventListener("mouseenter", (e) =>
         Tooltip.show(
           e,
-          `<div class="tt">${fmtDateFull(q.p.date)}</div><div class="tv">${fmt(q.p.weight)} kg</div>`
+          `<div class="tt">${fmtDateFull(day.dateISO)}</div><div class="tv">${fmt(weightVals[i])} kg</div>`
         )
       );
       dot.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(dot);
     });
-    ev.days.forEach((d, i) => {
-      xLabel(svg, cx(i), wBot + 16, fmtDate(d.date));
-    });
+    _bodyDateLabels(svg, skeleton, cx, wBot + 16);
   };
 
   draw();
@@ -768,9 +872,19 @@ export function renderHydration(svgId, hy) {
     if (svg.__hydrationResizeObserver) svg.__hydrationResizeObserver.disconnect();
     return;
   }
+  const unit = hy.field === "hydrationVolume" ? "L" : "";
+
+  const fromISO = hy.points[0].date;
+  const toISO = hy.points[hy.points.length - 1].date;
+  const skeleton = densifyDays(fromISO, toISO);
+  const vals = joinSeries(
+    skeleton,
+    hy.points.map((p) => ({ dateISO: p.date, value: p.value })),
+    { key: "value", absence: "gap" }
+  );
+
   const H = 200,
     pad = { l: 50, r: 16, t: 24, b: 34 };
-  const unit = hy.field === "hydrationVolume" ? "L" : "";
 
   const draw = () => {
     svg.innerHTML = "";
@@ -779,28 +893,36 @@ export function renderHydration(svgId, hy) {
       ch = H - pad.t - pad.b;
     svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
 
-    const maxV = Math.max(1, ...hy.points.map((p) => p.value)) * 1.1;
-    const X = (i) => pad.l + (i / Math.max(hy.points.length - 1, 1)) * cw;
+    const defined = vals.filter((v) => v != null);
+    const maxV = Math.max(1, ...defined) * 1.1;
+    const scale = makeIndexScale({ ws: 0, we: skeleton.length - 1, padLeft: pad.l, width: cw });
     const Y = (v) => pad.t + ch - (v / maxV) * ch;
-    const pts = hy.points.map((p, i) => ({ x: X(i), y: Y(p.value) }));
 
     gradedGrid(svg, { x0: pad.l, x1: W - pad.r, yOf: Y, lo: 0, hi: maxV });
     axisUnit(svg, { x: pad.l - 6, y: pad.t - 6, text: unit || "Hydration" });
     axisTitles(svg, W, H, pad, { x: "Datum" });
 
-    const area =
-      `M${pts[0].x},${H - pad.b} ` +
-      pts.map((p) => `L${p.x},${p.y}`).join(" ") +
-      ` L${pts[pts.length - 1].x},${H - pad.b} Z`;
-    svg.appendChild(svgEl("path", { d: area, fill: "#4a7fa8", opacity: "0.08" }));
-    svg.appendChild(
-      svgEl("polyline", {
-        fill: "none",
-        stroke: "#4a7fa8",
-        "stroke-width": "2",
-        points: pts.map((p) => `${p.x},${p.y}`).join(" "),
-      })
-    );
+    for (const run of splitRuns(vals)) {
+      const runPts = [];
+      for (let i = run.start; i <= run.end; i++) runPts.push({ x: scale.x(i), y: Y(vals[i]) });
+      // Läufe mit nur einem Punkt brauchen keine Linie/Fläche — der Punkt
+      // selbst wird unten von der pro-Tag-Dot-Schleife gezeichnet (inkl.
+      // Tooltip-Handler, die hier fehlen würden).
+      if (runPts.length < 2) continue;
+      const area =
+        `M${runPts[0].x},${H - pad.b} ` +
+        runPts.map((p) => `L${p.x},${p.y}`).join(" ") +
+        ` L${runPts[runPts.length - 1].x},${H - pad.b} Z`;
+      svg.appendChild(svgEl("path", { d: area, fill: "#4a7fa8", opacity: "0.08" }));
+      svg.appendChild(
+        svgEl("polyline", {
+          fill: "none",
+          stroke: "#4a7fa8",
+          "stroke-width": "2",
+          points: runPts.map((p) => `${p.x},${p.y}`).join(" "),
+        })
+      );
+    }
     svg.appendChild(
       svgEl("line", {
         x1: pad.l,
@@ -812,19 +934,20 @@ export function renderHydration(svgId, hy) {
         "stroke-dasharray": "4,4",
       })
     );
-    hy.points.forEach((p, i) => {
-      const c = svgEl("circle", { cx: X(i), cy: Y(p.value), r: "2.4", fill: "#4a7fa8" });
+    skeleton.forEach((day, i) => {
+      if (vals[i] == null) return;
+      const c = svgEl("circle", { cx: scale.x(i), cy: Y(vals[i]), r: "2.4", fill: "#4a7fa8" });
       c.style.cursor = "pointer";
       c.addEventListener("mouseenter", (e) =>
         Tooltip.show(
           e,
-          `<div class="tt">${fmtDateFull(p.date)}</div><div class="tv">${fmt(p.value)} ${unit}</div>`
+          `<div class="tt">${fmtDateFull(day.dateISO)}</div><div class="tv">${fmt(vals[i])} ${unit}</div>`
         )
       );
       c.addEventListener("mouseleave", () => Tooltip.hide());
       svg.appendChild(c);
     });
-    _bodyDateLabels(svg, hy.points, pad, cw, H);
+    _bodyDateLabels(svg, skeleton, scale.x, H - 12);
   };
 
   draw();
