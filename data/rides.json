@@ -11734,32 +11734,32 @@
   "forecast": {
     "2026-07-28": {
       "temp": 21.1,
-      "tempFeel": 19.6,
-      "humidity": 52,
-      "windSpeed": 11.4,
+      "tempFeel": 19.8,
+      "humidity": 51,
+      "windSpeed": 10.8,
       "windDir": 281,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6
     },
     "2026-07-29": {
-      "temp": 26.2,
-      "tempFeel": 26.2,
-      "humidity": 43,
-      "windSpeed": 7.4,
-      "windDir": 123,
+      "temp": 26.3,
+      "tempFeel": 26.3,
+      "humidity": 42,
+      "windSpeed": 7.9,
+      "windDir": 122,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.5
     },
     "2026-07-30": {
-      "temp": 31.9,
-      "tempFeel": 33.6,
-      "humidity": 40,
+      "temp": 32,
+      "tempFeel": 33.3,
+      "humidity": 38,
       "windSpeed": 6.2,
-      "windDir": 199,
+      "windDir": 203,
       "precipProb": 0,
-      "weatherCode": 1,
+      "weatherCode": 0,
       "uvMax": 6.6
     },
     "2026-07-31": {
@@ -11897,7 +11897,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-28T13:27:12.343Z",
+  "updated": "2026-07-28T13:41:34.281Z",
   "source": "notion+intervals",
   "count": 77
 }

@@ -10659,13 +10659,13 @@
       "eftp": null,
       "weather": {
         "temp": 23.2,
-        "tempFeel": 22.7,
+        "tempFeel": 23,
         "humidity": 46,
-        "windSpeed": 6.4,
+        "windSpeed": 7.4,
         "windDir": 263,
         "precip": 0,
-        "cloudCover": 71,
-        "weatherCode": 3
+        "cloudCover": 56,
+        "weatherCode": 2
       },
       "wetter": "23.2°C",
       "source": "intervals.icu",
@@ -16580,7 +16580,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-28T13:27:13.344Z",
+  "updated": "2026-07-28T13:41:39.702Z",
   "source": "intervals.icu",
   "count": 133
 }
