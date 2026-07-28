@@ -10596,6 +10596,87 @@
       "notizen": null
     },
     {
+      "name": "Ausrollen",
+      "week": null,
+      "phase": null,
+      "typ": "Ausrollen",
+      "plan": "Vergleich",
+      "date": "2026-07-28",
+      "startTime": "2026-07-28T15:26:00",
+      "km": 6.2,
+      "min": 16,
+      "kmh": 22.6,
+      "watt": 96,
+      "maxWatt": null,
+      "np": 99,
+      "hf": 118,
+      "hfMax": 127,
+      "kad": 81,
+      "hoehe": 11.8,
+      "tss": 4,
+      "if": 0.37,
+      "vi": 1.03,
+      "trimp": 14,
+      "ctl": 29.7,
+      "atl": 24.2,
+      "tsb": 5.5,
+      "decoupling": 3.5,
+      "dtl": 4,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 982
+        },
+        {
+          "id": "Z2",
+          "secs": 5
+        },
+        {
+          "id": "Z3",
+          "secs": 0
+        },
+        {
+          "id": "Z4",
+          "secs": 0
+        },
+        {
+          "id": "Z5",
+          "secs": 0
+        },
+        {
+          "id": "Z6",
+          "secs": 0
+        },
+        {
+          "id": "Z7",
+          "secs": 0
+        },
+        {
+          "id": "SS",
+          "secs": 0
+        }
+      ],
+      "eftp": null,
+      "weather": {
+        "temp": 23.2,
+        "tempFeel": 23,
+        "humidity": 46,
+        "windSpeed": 7.4,
+        "windDir": 263,
+        "precip": 0,
+        "cloudCover": 56,
+        "weatherCode": 2
+      },
+      "wetter": "23.2°C",
+      "source": "intervals.icu",
+      "ruhepuls": 49,
+      "hrv": 51,
+      "avgSleepingHR": 51,
+      "sleepHours": 8,
+      "feel": null,
+      "notizen": null
+    },
+    {
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
@@ -10617,9 +10698,9 @@
       "if": 1.03,
       "vi": 1.08,
       "trimp": 62,
-      "ctl": 29.6,
-      "atl": 23.7,
-      "tsb": 5.9,
+      "ctl": 29.7,
+      "atl": 24.2,
+      "tsb": 5.5,
       "decoupling": 4.9,
       "dtl": 40,
       "zoneTimes": [
@@ -10669,10 +10750,10 @@
       },
       "wetter": "23.2°C",
       "source": "intervals.icu",
-      "ruhepuls": 48,
-      "hrv": null,
-      "avgSleepingHR": null,
-      "sleepHours": 7.8,
+      "ruhepuls": 49,
+      "hrv": 51,
+      "avgSleepingHR": 51,
+      "sleepHours": 8,
       "feel": null,
       "notizen": null
     }
@@ -13791,32 +13872,32 @@
       "hrv": 56,
       "weight": 94,
       "bodyFat": null,
-      "activeEnergy": 129,
+      "activeEnergy": 155,
       "restingEnergy": null,
-      "kcalConsumed": 2286,
+      "kcalConsumed": 2467,
       "hydration": null,
       "hydrationVolume": 1.09,
       "eftp": 258
     },
     {
       "date": "2026-07-28",
-      "sleepHours": 7.8,
-      "avgSleepingHR": null,
-      "restingHR": 48,
-      "hrv": null,
-      "weight": 92,
+      "sleepHours": 8,
+      "avgSleepingHR": 51,
+      "restingHR": 49,
+      "hrv": 51,
+      "weight": 92.5,
       "bodyFat": null,
-      "activeEnergy": null,
+      "activeEnergy": 665,
       "restingEnergy": null,
-      "kcalConsumed": null,
+      "kcalConsumed": 2956,
       "hydration": null,
-      "hydrationVolume": null,
+      "hydrationVolume": 0.91,
       "eftp": 258
     }
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-27",
+      "hrv": "2026-07-28",
       "restingHR": "2026-07-28",
       "sleepHours": "2026-07-28"
     }
@@ -13832,7 +13913,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92,
+        "weight": 92.5,
         "secs": [
           1,
           2,
@@ -14584,30 +14665,30 @@
           4.9574466,
           4.925532,
           4.9042554,
-          4.8913045,
-          4.869565,
-          4.869565,
-          4.869565,
-          4.8586955,
-          4.8586955,
-          4.847826,
-          4.8369565,
-          4.826087,
-          4.8152175,
-          4.804348,
-          4.804348,
-          4.7934785,
-          4.7826085,
-          4.7826085,
-          4.7173915,
-          4.5652175,
-          4.4565215,
-          4.380435,
-          4.2826085,
-          4.1847825,
-          4.097826,
-          4.021739,
-          3.9673913,
+          4.87234,
+          4.8510637,
+          4.843243,
+          4.843243,
+          4.8324323,
+          4.8324323,
+          4.8216214,
+          4.810811,
+          4.8,
+          4.7891893,
+          4.7783785,
+          4.7783785,
+          4.7675676,
+          4.756757,
+          4.756757,
+          4.6918917,
+          4.5405407,
+          4.4324327,
+          4.3567567,
+          4.2594595,
+          4.1621623,
+          4.0756755,
+          4,
+          3.945946,
           3.9456522,
           3.9347825,
           3.9347825,
@@ -14819,8 +14900,8 @@
           "i165645449",
           "i165645449",
           "i165645449",
-          "i170057169",
-          "i170057169",
+          "i165645449",
+          "i165645449",
           "i170057169",
           "i170057169",
           "i170057169",
@@ -15526,7 +15607,7 @@
         "distance": 13802.93,
         "moving_time": 1361,
         "training_load": 40,
-        "icu_weight": 92,
+        "icu_weight": 92.5,
         "start_date_local": "2026-07-28T15:01:34",
         "race": false
       },
@@ -15762,7 +15843,7 @@
       }
     }
   },
-  "athleteWeight": 92,
+  "athleteWeight": 92.5,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -16580,7 +16661,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-28T13:41:39.702Z",
+  "updated": "2026-07-28T19:09:20.914Z",
   "source": "intervals.icu",
-  "count": 133
+  "count": 134
 }
