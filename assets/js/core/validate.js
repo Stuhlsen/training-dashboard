@@ -44,7 +44,7 @@ export const RIDE_SCHEMA = {
   date: "string",
   name: "string?",
   typ: "string?",
-  plan: "string?",
+  dataSource: "string?",
   week: "string?",
   km: "number?",
   min: "number?",

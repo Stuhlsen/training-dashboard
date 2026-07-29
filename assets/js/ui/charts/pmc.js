@@ -1072,7 +1072,14 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     // nächsten Klick, nie eine veraltete Closure aus einem früheren
     // renderPMC()-Aufruf (Athletenwechsel).
     if (presetsWrap) {
-      const plan2Rides = (rides || []).filter((r) => r.plan === "Plan 2" && r.dateISO);
+      // Nur sinnvoll, wenn der Datensatz tatsächlich eine Notion-Ära UND eine
+      // intervals.icu-Ära mischt (Athlet 1) — bei Athlet 2 (durchgehend
+      // "intervals") wäre der Preset redundant mit "Alles" und bleibt daher
+      // versteckt (s. plan2FromIdx==null-Guard unten).
+      const hasNotionEra = (rides || []).some((r) => r.dataSource === "notion");
+      const plan2Rides = hasNotionEra
+        ? (rides || []).filter((r) => r.dataSource === "intervals" && r.dateISO)
+        : [];
       let plan2FromIdx = null,
         plan2ToIdx = null;
       if (plan2Rides.length) {

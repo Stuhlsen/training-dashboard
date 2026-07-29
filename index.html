@@ -272,11 +272,11 @@
 
           <div class="chart-box" id="box-ftp-forecast">
             <div class="chart-header">
-              <span class="chart-title heatmap-title" id="title-ftp-forecast">FTP-Projektion · Retest W12</span>
+              <span class="chart-title heatmap-title" id="title-ftp-forecast">FTP-Projektion · Retest Taper-Woche</span>
               <span class="chart-note" id="note-ftp-forecast">eFTP-Verlauf (intervals.icu) · Prognose mit Unsicherheitsband</span>
             </div>
             <svg class="chart" id="chart-ftp-forecast" viewBox="0 0 780 200"></svg>
-            <p class="chart-explainer" id="explainer-ftp-forecast">Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das 210-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt in W11 aus Frust zu viel nachzulegen.</p>
+            <p class="chart-explainer" id="explainer-ftp-forecast">Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das 210-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt kurz davor aus Frust zu viel nachzulegen.</p>
           </div>
 
           <div class="chart-box">
@@ -372,25 +372,25 @@
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">HRV · Heart Rate Variability</span>
-              <span class="chart-note" id="note-hrv">Plan 1 (lila) · W0 (gold) · Plan 2 (orange)</span>
+              <span class="chart-note" id="note-hrv">RMSSD → SDNN (gold = Methodenwechsel)</span>
             </div>
             <svg class="chart" id="chart-hrv-p1" viewBox="0 0 780 250"></svg>
-            <p class="chart-explainer" id="explainer-hrv">Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.</p>
+            <p class="chart-explainer" id="explainer-hrv">Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Markierung zeigt den Wechsel der Messmethode: bis dahin Apple Health RMSSD (lila), danach intervals.icu SDNN Schlafschnitt — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert vor/nach dem Wechsel getrennt berechnet werden statt eine gemeinsame Linie zu bilden.</p>
           </div>
 
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">Ruhepuls · Morgenmessung</span>
-              <span class="chart-note" id="note-rhf">Plan 1 (rot) · W0 (gold) · Plan 2 (orange)</span>
+              <span class="chart-note" id="note-rhf">Verlauf über den erfassten Zeitraum</span>
             </div>
             <svg class="chart" id="chart-rhf-p1" viewBox="0 0 780 220"></svg>
-            <p class="chart-explainer" id="explainer-rhf">Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.</p>
+            <p class="chart-explainer" id="explainer-rhf">Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Markierung zeigt denselben Zeitpunkt wie im HRV-Chart (Wechsel der Datenquelle), ohne dass sich die Ruhepuls-Messmethode hier ändert — beide Mittelwerte bleiben direkt vergleichbar.</p>
           </div>
 
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">Schlaf · Dauer & Schlaf-HF</span>
-              <span class="chart-note" id="note-sleep">Nur Plan 2 · intervals.icu</span>
+              <span class="chart-note" id="note-sleep">Nur ab intervals.icu-Ära verfügbar</span>
             </div>
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sleep" viewBox="0 0 780 200"></svg>
@@ -559,7 +559,7 @@
       <!-- 8 · Periodisierungs-Erfüllung (nur eigener Plan) -->
       <div class="analysis-section" id="asec-periodization">
         <h2 class="section-label">🧭 Periodisierungs-Erfüllung</h2>
-        <p class="analysis-explainer">Ist jeder Plan-2-Block phasengerecht umgesetzt? Reizsignatur pro Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.</p>
+        <p class="analysis-explainer">Ist jeder Trainingsblock phasengerecht umgesetzt? Reizsignatur pro Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.</p>
         <div class="analysis-box" id="analysis-periodization"></div>
       </div>
 

@@ -185,7 +185,7 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
     week,
     phase,
     typ,
-    plan: "Plan 2",
+    dataSource: "intervals",
     ...baseFields(act, weather),
     ...wellnessFields(w),
     feel: s.feel || null,
@@ -197,8 +197,11 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
 // week/phase bleiben bewusst null — der Plan-Bezug läuft ausschließlich
 // über die eigenständigen plannedSessions/adjustments-Felder (siehe
 // generate-data.js), nicht über ride.week/ride.phase. Das hält
-// hasOwnPlan()/Data.weekly() in app.js unangetastet (Athlet-1-exklusive
-// Plan-1/2-Semantik), während der Planungstab trotzdem funktioniert.
+// hasOwnPlan() in app.js unangetastet (steuert weiterhin Athlet-1-exklusive
+// Inhalte wie FTP-Retest-Text/Periodisierungs-Sektion), während der
+// Planungstab trotzdem funktioniert. Data.weekly() selbst hängt seit dem
+// Umbau "Plan 1/2 → Kalenderwoche" nicht mehr an r.week (immer
+// isoWeekKey(r.dateISO)), ist von week:null hier also ohnehin unberührt.
 export function mapActivity2(
   act,
   wellness,
@@ -220,13 +223,9 @@ export function mapActivity2(
     week: null,
     phase: null,
     typ: planned.typ || inferTypFromIF(np, min, estimatedFtp),
-    // "Vergleich" bewusst beibehalten (nicht "GFNY Bremen 2026"): mehrere
-    // UI-Stellen (charts/training.js, charts/wellness.js, core/aggregate.js)
-    // nutzen "Vergleich" als Sentinel, um den Plan-Namen aus Tooltips/
-    // Aggregaten herauszuhalten — mit einem echten Rennnamen würde der auf
-    // JEDEM Datenpunkt erscheinen. Der Rennname steht stattdessen einmalig
-    // im Planungstab-Hero-Titel (ui/planned.js).
-    plan: "Vergleich",
+    // Athlet 2 kommt vollständig aus intervals.icu (kein Notion-Anteil) —
+    // dieselbe Datenherkunfts-Semantik wie Athlet 1s intervals.icu-Ära.
+    dataSource: "intervals",
     ...baseFields(act, weather),
     ...wellnessFields(w),
     feel: null,

@@ -697,7 +697,7 @@ export const Analysis = {
 
     const c = phaseCompliance(this._allRides, (w) => weekSortIndex(w, (x) => CONFIG.weekIndex(x)));
     if (!c) {
-      box.innerHTML = `<p class="analysis-empty">Wird befüllt, sobald Plan-2-Blockwochen Fahrten mit Phasen-Zuordnung haben.</p>`;
+      box.innerHTML = `<p class="analysis-empty">Wird befüllt, sobald Trainingsblock-Wochen Fahrten mit Phasen-Zuordnung haben.</p>`;
       return;
     }
 

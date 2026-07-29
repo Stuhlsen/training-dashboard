@@ -266,14 +266,14 @@ export const Table = {
     const tbody = el("table-body");
     tbody.innerHTML = filtered
       .map((r) => {
-        const isP2 = r.plan === "Plan 2";
-        const subj = isP2 ? Subjective.get(r.dateISO) : null;
+        const isIntervalsEra = r.dataSource === "intervals";
+        const subj = isIntervalsEra ? Subjective.get(r.dateISO) : null;
         const feelVal = subj?.feel || r.feel || "";
         const feel = normalizeFeel(feelVal);
 
         const feelCell = !ownPlan
           ? ""
-          : isP2
+          : isIntervalsEra
             ? `<td>
             <select class="feel-select feel-${feel.cls}" data-date="${r.dateISO}">
               <option value="">– wählen –</option>
@@ -288,7 +288,7 @@ export const Table = {
         <tr data-date="${r.dateISO}">
           <td>${r.dateShort}</td>
           <td><span class="tag ${phaseTagClass(r.phase)}">${r.week || "–"}</span></td>
-          <td class="col-name" title="${r.name || ""}">${r.name || "–"}${r.plan === "Plan 2" ? ` <span class="table-plan-link" data-date="${r.dateISO}" title="Im Planungs-Tab öffnen">📅</span>` : ""}</td>
+          <td class="col-name" title="${r.name || ""}">${r.name || "–"}${isIntervalsEra ? ` <span class="table-plan-link" data-date="${r.dateISO}" title="Im Planungs-Tab öffnen">📅</span>` : ""}</td>
           <td class="col-typ">${r.typ || "–"}</td>
           <td class="col-bold">${fmt(r.km)}</td>
           <td>${fmtInt(r.min)}</td>

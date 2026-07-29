@@ -1,15 +1,25 @@
 /* ============================================================
-   UI/CHARTS/WELLNESS.JS — Schlaf, HRV & Ruhepuls (Plan-Compare)
+   UI/CHARTS/WELLNESS.JS — Schlaf, HRV & Ruhepuls
    Rendering only — Trend-Berechnung in core/stats.js.
 
    Familie 2 (docs/chart-grundlagen.md §7.2, lückige Zeitreihe) — Umbau
-   Phase 5, Schritt 7. Teil C (dieser Commit): Fadenkreuz-Kopplung an
-   state/chart-view.js (tagesgenau, wie ui/charts/pmc.js) — KEIN Übernehmen
-   des PMC-Brush-Fensters (ws/we): die Charts zeigen weiter ihre volle
-   Historie, analog zu ui/charts/training.js (Familie 3 nimmt am Fenster
-   ebenfalls nicht teil). Grund: renderPlanCompareHRV/RHF vergleicht bewusst
-   Plan 1 GANZ gegen Plan 2 GANZ — ein 90-Tage-Default-Fenster würde genau
-   das verdecken (s. docs/phase-5-konzept-explorer.md, Schritt-7-Auftrag).
+   Phase 5, Schritt 7. Teil C: Fadenkreuz-Kopplung an state/chart-view.js
+   (tagesgenau, wie ui/charts/pmc.js) — KEIN Übernehmen des PMC-Brush-
+   Fensters (ws/we): die Charts zeigen weiter ihre volle Historie, analog
+   zu ui/charts/training.js (Familie 3 nimmt am Fenster ebenfalls nicht
+   teil). Grund: renderHrvTrend/RhfTrend zeigen bewusst die GANZE Historie
+   inkl. HRV-Methodenwechsel-Marker (RMSSD → SDNN) — ein 90-Tage-Default-
+   Fenster würde den Wechsel oft aus dem Blick verdrängen (s.
+   docs/phase-5-konzept-explorer.md, Schritt-7-Auftrag).
+
+   Umbau "Plan 1/2 → Kalenderwoche" (dashboard-2.0): die frühere Plan-1/
+   Plan-2-Segmentierung des HRV/RHF-Charts (Farbsegmente, "Plan 1"/
+   "Übergang"/"Plan 2"-Labels) ist entfallen — die Kalenderwochenachse
+   läuft jetzt durchgehend. Der HRV-Methodenwechsel selbst ist real und
+   bleibt als schlankes `hrvMethod`-Flag ("rmssd"|"sdnn") pro Datenpunkt
+   erhalten (s. _mergedOwnPlanSeries), mit dezentem Marker + getrennten
+   Mittelwerten/Trendlinien vor/nach dem Wechsel (weiterhin RMSSD/SDNN
+   nicht direkt vergleichbare Wertebereiche).
    ============================================================ */
 
 import { fmt, fmtDate, fmtDateFull, wrapText } from "../../core/format.js";
@@ -29,7 +39,6 @@ import {
   autoScrollRight,
   pickLabelIndices,
   axisTitles,
-  fitsLabel,
   gradedGrid,
   axisUnit,
   measuredWidth,
@@ -48,9 +57,7 @@ import {
    Familie-3-Charts nutzt. Sucht das gehoverte Datum im EIGENEN Skelett des
    jeweiligen Charts (jedes hat seinen eigenen Datumsbereich, s. Kopf-
    kommentar) und bricht sauber ab, wenn das Datum außerhalb liegt — kein
-   Fehler, einfach kein Fadenkreuz. `series[].color` darf eine feste Farbe
-   ODER eine Funktion `(i) => color` sein (gebraucht vom HRV/Ruhepuls-Chart,
-   dessen Punktfarbe je nach Plan-Segment wechselt). */
+   Fehler, einfach kein Fadenkreuz. */
 function paintDayHover(svg, geoKey) {
   const geo = svg[geoKey];
   if (!geo) return;
@@ -89,7 +96,9 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
       fill: "#5f6878",
       "font-size": "12",
     });
-    t.textContent = ownPlan ? "Schlafdaten ab Plan 2 verfügbar" : "Keine Schlafdaten verfügbar";
+    t.textContent = ownPlan
+      ? "Schlafdaten ab intervals.icu-Ära verfügbar"
+      : "Keine Schlafdaten verfügbar";
     svg.appendChild(t);
     if (svg.__sleepResizeObserver) svg.__sleepResizeObserver.disconnect();
     return;
@@ -311,7 +320,8 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
   }
 }
 
-/* ── HRV / Ruhepuls — durchgehende Linie mit Plan-Divider ────── */
+/* ── HRV / Ruhepuls — durchgehende Kalenderwochen-Linie mit
+   Methodenwechsel-Marker (RMSSD → SDNN) ──────────────────────── */
 function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote) {
   const svg = el(svgId);
   if (!svg) return;
@@ -321,18 +331,15 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
     return;
   }
 
-  // Plan-Segment-Breakpoints auf der KOMPAKTEN Liste ermitteln (unverändert
-  // gegenüber vorher), danach auf Skelett-Indizes des dichten Tagesgerüsts
-  // übersetzen — die Segmentzugehörigkeit ist eine Eigenschaft des DATUMS,
-  // nicht der (jetzt lückigen) Werteserie.
-  const w0StartCompact = data.findIndex((d) => d.week === "P2-W0");
-  const w1StartCompact = data.findIndex(
-    (d) => d.week && d.week.startsWith("P2-") && d.week !== "P2-W0"
-  );
-  const plan2StartCompact =
-    w0StartCompact >= 0 ? w0StartCompact : data.findIndex((d) => d.plan === "Plan 2");
-  const hasW0 = w0StartCompact >= 0 && w1StartCompact > w0StartCompact;
-  const hasSplit = plan2StartCompact > 0;
+  // HRV-Methodenwechsel-Breakpoint auf der KOMPAKTEN Liste ermitteln
+  // (chronologisch sortiert, der Wechsel RMSSD→SDNN passiert genau einmal),
+  // danach auf Skelett-Index des dichten Tagesgerüsts übersetzen — die
+  // Zugehörigkeit ist eine Eigenschaft des DATUMS, nicht der (jetzt
+  // lückigen) Werteserie. KEINE Segmentierung der Kalenderwochenachse mehr
+  // (Umbau "Plan 1/2 → Kalenderwoche") — der Marker ist nur noch eine
+  // dezente Trennlinie + Fußnote, keine Farb-/Flächen-Aufteilung.
+  const splitCompact = data.findIndex((d) => d.hrvMethod === "sdnn");
+  const hasSplit = splitCompact > 0;
 
   const fromISO = data[0].dateISO;
   const toISO = data[data.length - 1].dateISO;
@@ -340,9 +347,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
   const vals = joinSeries(skeleton, data, { key: field, absence: "gap" });
   const byDate = new Map(data.map((d) => [d.dateISO, d]));
   const idxOfDate = (iso) => skeleton.findIndex((s) => s.dateISO === iso);
-  const w0Start = hasW0 ? idxOfDate(data[w0StartCompact].dateISO) : -1;
-  const w1Start = hasW0 ? idxOfDate(data[w1StartCompact].dateISO) : -1;
-  const plan2Start = hasSplit ? idxOfDate(data[plan2StartCompact].dateISO) : -1;
+  const splitIdx = hasSplit ? idxOfDate(data[splitCompact].dateISO) : -1;
   const lastIdx = skeleton.length - 1;
   const showsMethodNote = !!(methodNote && hasSplit);
 
@@ -368,23 +373,11 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       x: showsMethodNote ? undefined : "Datum",
     });
 
-    const colorW0 = "#c9a84c";
-
-    // Segmente als [von, bis, Farbe, gestrichelt] — jedes Segment verbindet
-    // seine tatsächlich gemessenen Punkte direkt (s. drawSegmentLine unten),
-    // bricht also NICHT an Messlücken innerhalb des Segments.
-    const segBounds = hasW0
-      ? [
-          [0, w0Start, color1, false],
-          [w0Start, w1Start, colorW0, true],
-          [w1Start, lastIdx, color2, false],
-        ]
-      : hasSplit
-        ? [
-            [0, plan2Start, color1, false],
-            [plan2Start, lastIdx, color2, false],
-          ]
-        : [[0, lastIdx, color1, false]];
+    // EIN durchgehendes Segment über die volle Kalenderwochenachse (Umbau
+    // "Plan 1/2 → Kalenderwoche") — keine Farb-/Flächen-Aufteilung mehr,
+    // der Methodenwechsel wird unten nur noch als dezente Marker-Linie +
+    // Fußnote markiert, ohne die Linie selbst zu unterbrechen.
+    const segBounds = [[0, lastIdx, color1, false]];
 
     // Linie verbindet bewusst über Messlücken hinweg (Alex' Design-Entscheidung,
     // Phase 5 Bugfix-Nachtrag, gilt für alle vier absence:"gap"-Serien in
@@ -426,8 +419,9 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       drawSegmentLine(segFrom, segTo, color, dashed);
     }
 
-    // Getrennte Trendlinien je Plan-Segment (W0 zu kurz für eigenen Trend) —
-    // linearTrend() bekommt nur die tatsächlich gemessenen Punkte (kein null)
+    // trendPts() liefert die Punkte für drawTrend() (vor/nach dem HRV-
+    // Methodenwechsel getrennt, s. u.) — linearTrend() bekommt nur die
+    // tatsächlich gemessenen Punkte (kein null)
     const trendPts = (fromIdx, toIdx) => {
       const pts = [];
       for (let i = fromIdx; i <= toIdx; i++) {
@@ -453,19 +447,19 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         })
       );
     };
-    const p1EndIdx = hasW0 ? w0Start : hasSplit ? plan2Start : lastIdx;
-    const p2StartIdx = hasW0 ? w1Start : plan2Start;
-    drawTrend(trendPts(0, p1EndIdx));
+    // Getrennte Trendlinien vor/nach dem HRV-Methodenwechsel (unterschiedliche
+    // absolute Wertebereiche RMSSD/SDNN, eine gemeinsame Regressionsgerade
+    // wäre irreführend — Alex' Entscheidung).
+    const rmssdEndIdx = hasSplit ? splitIdx : lastIdx;
+    const sdnnStartIdx = hasSplit ? splitIdx : -1;
+    drawTrend(trendPts(0, rmssdEndIdx));
     if (hasSplit) {
-      const p2Pts = trendPts(p2StartIdx, lastIdx);
-      if (p2Pts.length >= 3) drawTrend(p2Pts);
+      const sdnnPts = trendPts(sdnnStartIdx, lastIdx);
+      if (sdnnPts.length >= 3) drawTrend(sdnnPts);
     }
 
-    // Dots — Farbe je Segment, ausgedünnt (nur an tatsächlich gemessenen Tagen)
-    // segmentColorAt() wird auch von der Fadenkreuz-Geometrie unten wieder-
-    // verwendet, damit der Hover-Punkt dieselbe Segmentfarbe trägt.
-    const segmentColorAt = (i) =>
-      hasW0 && i >= w0Start && i < w1Start ? colorW0 : hasSplit && i >= plan2Start ? color2 : color1;
+    // Dots — einheitliche Farbe (kein Plan-Segment mehr), ausgedünnt (nur an
+    // tatsächlich gemessenen Tagen).
     const presentIdx = [];
     for (let i = 0; i <= lastIdx; i++) if (vals[i] != null) presentIdx.push(i);
     const step = Math.max(1, Math.floor(presentIdx.length / 24));
@@ -477,7 +471,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         cx: scale.x(i),
         cy: yOf(vals[i]),
         r: "3.5",
-        fill: segmentColorAt(i),
+        fill: color1,
         stroke: "#0b0e13",
         "stroke-width": "1.5",
       });
@@ -486,7 +480,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         Tooltip.show(
           e,
           `
-      <div class="tt">${fmtDate(day.dateISO)} · ${row?.week ? row.week + " · " : ""}${row?.plan && row.plan !== "Vergleich" ? row.plan : ""}</div>
+      <div class="tt">${fmtDate(day.dateISO)} · ${row?.week ? row.week + " · " : ""}${row?.hrvMethod ? row.hrvMethod.toUpperCase() : ""}</div>
       <div class="tv">${vals[i]} ${unit}</div>
       <div class="td">${row?.name || ""}</div>
     `
@@ -500,19 +494,19 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       svg.appendChild(c);
     });
 
-    // X labels — Mindestabstand über das ganze Skelett; der Plan-Übergang
+    // X labels — Mindestabstand über das ganze Skelett; der Methodenwechsel
     // bekommt immer ein Label
     const lblIdx = pickLabelIndices(
       skeleton.map((_, i) => scale.x(i)),
       60
     );
-    if (plan2Start > 0) lblIdx.add(plan2Start);
+    if (splitIdx > 0) lblIdx.add(splitIdx);
     skeleton.forEach((day, i) => {
       if (lblIdx.has(i)) xLabel(svg, scale.x(i), H - pad.b + 14, fmtDate(day.dateISO));
     });
 
-    // Divider-Linie an einer Segmentgrenze (reine Trennlinie, kein Label —
-    // Labels werden separat, zentriert je Segment, gezeichnet, s. u.)
+    // Divider-Linie am Methodenwechsel (reine, dezente Marker-Linie — keine
+    // Segment-Labels/-Farben mehr, s. Kopfkommentar der Funktion)
     const divider = (idx) => {
       const divX = scale.x(idx - 0.5);
       svg.appendChild(
@@ -528,37 +522,11 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       return divX;
     };
 
-    // Segment-Label mittig im jeweiligen Segment statt an den Rändern der
-    // Divider-Linie — bei einer kurzen Übergangswoche (schmales Segment)
-    // kollidierten die beiden angrenzenden Labels sonst ("W0 →" / "← W0").
-    // Wird unterdrückt statt überlappend gezeichnet, wenn der Platz nicht reicht.
-    const segmentLabel = (fromX, toX, text, color) => {
-      if (!fitsLabel(toX - fromX, text)) return;
-      const t = svgEl("text", {
-        x: (fromX + toX) / 2,
-        y: pad.t + 12,
-        "text-anchor": "middle",
-        fill: color,
-        "font-size": "9",
-        "font-weight": "600",
-      });
-      t.textContent = text;
-      svg.appendChild(t);
-    };
-
-    const leftEdge = pad.l,
-      rightEdge = W - pad.r;
-    if (hasW0) {
-      const d1 = divider(w0Start);
-      const d2 = divider(w1Start);
-      segmentLabel(leftEdge, d1, "Plan 1", color1);
-      segmentLabel(d1, d2, "Übergang", colorW0);
-      segmentLabel(d2, rightEdge, "Plan 2", color2);
-    } else if (hasSplit) {
-      const d1 = divider(plan2Start);
-      segmentLabel(leftEdge, d1, "Plan 1", color1);
-      segmentLabel(d1, rightEdge, "Plan 2", color2);
-    }
+    // Nur noch die dezente Trennlinie am Methodenwechsel — keine
+    // Segment-Labels/-Farben mehr (Umbau "Plan 1/2 → Kalenderwoche"). Die
+    // Erklärung steht stattdessen im methodNote-Hinweis unter der X-Achse
+    // (s. u.).
+    if (hasSplit) divider(splitIdx);
 
     // Kurzer Hinweis unter der X-Achse (die ausführliche Erklärung steht im
     // chart-explainer-Text unter dem Chart, hier bewusst nur ein kompakter
@@ -580,8 +548,9 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       svg.appendChild(noteLbl);
     }
 
-    // Mean lines getrennt je Segment (Plan 1 / Plan 2, W0 ausgelassen — zu
-    // kurz für aussagekräftigen Mittelwert) — nur die tatsächlich gemessenen
+    // Mean lines getrennt vor/nach dem HRV-Methodenwechsel (unterschiedliche
+    // absolute Wertebereiche RMSSD/SDNN, ein gemeinsamer Mittelwert wäre
+    // irreführend — Alex' Entscheidung) — nur die tatsächlich gemessenen
     // Werte im jeweiligen Bereich fließen ein.
     const meanFor = (arr, color, fromIdx, toIdx, labelAbove) => {
       if (!arr.length) return;
@@ -613,20 +582,21 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       svg.appendChild(meanLabel);
     };
 
-    const vals1 = vals.slice(0, p1EndIdx + 1).filter((v) => v != null);
-    meanFor(vals1, color1, 0, p1EndIdx, true);
+    const valsRmssd = vals.slice(0, rmssdEndIdx + 1).filter((v) => v != null);
+    meanFor(valsRmssd, color1, 0, rmssdEndIdx, true);
     if (hasSplit) {
-      const vals2 = vals.slice(p2StartIdx).filter((v) => v != null);
-      // Label-Kollision vermeiden: wenn Plan-1-Mittelwert nah am Plan-2-Mittelwert liegt, Plan-2-Label tiefer setzen
-      const mean1 = vals1.reduce((s, v) => s + v, 0) / vals1.length;
-      const mean2 = vals2.reduce((s, v) => s + v, 0) / vals2.length;
-      const closeMeans = Math.abs(mean1 - mean2) < (maxV - minV) * 0.08;
-      meanFor(vals2, color2, p2StartIdx, lastIdx, !closeMeans);
+      const valsSdnn = vals.slice(sdnnStartIdx).filter((v) => v != null);
+      // Label-Kollision vermeiden: wenn die beiden Mittelwerte nah beieinander liegen, das zweite Label tiefer setzen
+      const meanRmssd = valsRmssd.reduce((s, v) => s + v, 0) / valsRmssd.length;
+      const meanSdnn = valsSdnn.reduce((s, v) => s + v, 0) / valsSdnn.length;
+      const closeMeans = Math.abs(meanRmssd - meanSdnn) < (maxV - minV) * 0.08;
+      meanFor(valsSdnn, color2, sdnnStartIdx, lastIdx, !closeMeans);
     }
 
     // Direktbeschriftung der Hauptserie (Familie 2, „direkt an der Kurve") —
-    // an der flachsten Stelle des jüngsten Segments (Plan 2, falls vorhanden).
-    const labelSegFrom = hasSplit ? p2StartIdx : 0;
+    // an der flachsten Stelle des jüngsten Abschnitts (nach dem
+    // Methodenwechsel, falls vorhanden).
+    const labelSegFrom = hasSplit ? sdnnStartIdx : 0;
     const labelIdx = flattestIndex(vals, labelSegFrom, lastIdx, yOf, 0.4, 1);
     if (labelIdx != null) {
       haloLabel(
@@ -634,13 +604,12 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
         scale.x(labelIdx),
         yOf(vals[labelIdx]) - 12,
         field === "hrv" ? "HRV" : "Ruhepuls",
-        hasSplit ? color2 : color1
+        color1
       );
     }
 
-    // Hover-Ebene (§4.1) — s. renderSleep. segmentColorAt() liefert die
-    // Punktfarbe je nach Plan-Segment, deshalb hier als Funktion statt als
-    // fester String.
+    // Hover-Ebene (§4.1) — s. renderSleep. Einheitliche Punktfarbe (kein
+    // Plan-Segment mehr), deshalb hier ein fester String statt Funktion.
     const hoverLayer = svgEl("g", {});
     svg.appendChild(hoverLayer);
     svg.__hrvRhfGeometry = {
@@ -649,7 +618,7 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       hoverLayer,
       top: pad.t,
       bottom: pad.t + ch,
-      series: [{ vals, yOf, color: segmentColorAt }],
+      series: [{ vals, yOf, color: color1 }],
     };
     paintDayHover(svg, "__hrvRhfGeometry");
   };
@@ -700,7 +669,12 @@ function _mergedOwnPlanSeries(rides, rideField, wellnessField, outField) {
         dateISO,
         dateShort: fmtDate(dateISO),
         week,
-        plan: week ? "Plan 2" : "Plan 1",
+        // HRV-Methodenwechsel-Flag (Umbau "Plan 1/2 → Kalenderwoche"):
+        // week gesetzt = intervals.icu-Ära (SDNN), sonst Notion-Ära via
+        // Apple Health (RMSSD). Gilt strukturell gleich für HRV UND RHF
+        // (beide Felder wechseln an derselben Stelle die Datenquelle),
+        // auch wenn nur die HRV-Berechnungsmethode sich fachlich ändert.
+        hrvMethod: week ? "sdnn" : "rmssd",
         name: "",
         [outField]: value,
       };
@@ -708,21 +682,23 @@ function _mergedOwnPlanSeries(rides, rideField, wellnessField, outField) {
     .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
 }
 
-/* ── HRV Plan Compare ────────────────────────────────────────── */
-export function renderPlanCompareHRV(rides) {
+/* ── HRV-Trend ────────────────────────────────────────────────── */
+export function renderHrvTrend(rides) {
   const ownPlan = rides.some((r) => r.week);
   let data;
   if (ownPlan) {
     data = _mergedOwnPlanSeries(rides, "hrv", "hrv", "hrv");
   } else {
-    // Kein eigener Plan — direkt aus Wellness lesen (alle Tage, nicht nur Fahrtdaten)
+    // Kein eigener Plan — direkt aus Wellness lesen (alle Tage, nicht nur
+    // Fahrtdaten). Athlet 2 kommt durchgehend aus intervals.icu/Amazfit,
+    // kein Methodenwechsel.
     data = (Data.wellness || [])
       .filter((w) => w.hrv != null)
       .map((w) => ({
         dateISO: w.dateISO || w.date,
         dateShort: w.dateShort || (w.date ? fmtDate(w.date) : ""),
         week: null,
-        plan: "Vergleich",
+        hrvMethod: "sdnn",
         name: "",
         hrv: w.hrv,
       }))
@@ -737,16 +713,16 @@ export function renderPlanCompareHRV(rides) {
     "hrv",
     // Kompakter Pointer — die volle Erklärung (RMSSD vs. SDNN) steht schon
     // im chart-explainer-Text unter dem Chart, hier keine zweite Kopie.
-    ownPlan ? "⚠ Methodenwechsel bei Plan 2 (RMSSD → SDNN) — siehe Beschreibung unten" : null
+    ownPlan ? "⚠ Methodenwechsel RMSSD → SDNN — siehe Beschreibung unten" : null
   );
 }
 
-/* ── RHF Plan Compare ────────────────────────────────────────── */
-export function renderPlanCompareRHF(rides) {
+/* ── Ruhepuls-Trend ───────────────────────────────────────────── */
+export function renderRhfTrend(rides) {
   const ownPlan = rides.some((r) => r.week);
   let data;
   if (ownPlan) {
-    // s. _mergedOwnPlanSeries() / renderPlanCompareHRV — derselbe Merge.
+    // s. _mergedOwnPlanSeries() / renderHrvTrend — derselbe Merge.
     data = _mergedOwnPlanSeries(rides, "ruhepuls", "restingHR", "ruhepuls");
   } else {
     // Kein eigener Plan — direkt aus Wellness lesen (alle Tage, nicht nur Fahrtdaten)
@@ -756,7 +732,7 @@ export function renderPlanCompareRHF(rides) {
         dateISO: w.dateISO || w.date,
         dateShort: w.dateShort || (w.date ? fmtDate(w.date) : ""),
         week: null,
-        plan: "Vergleich",
+        hrvMethod: "sdnn",
         name: "",
         ruhepuls: w.restingHR,
       }))

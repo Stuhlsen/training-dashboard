@@ -420,36 +420,38 @@ export const Planned = {
       }
     }
 
-    // Erledigte Sessions — Plan 1 kompakt, Plan 2 als vollständige Vergleichskarte.
-    // Athlet 2 hat kein Plan-1/2-Unterscheidung (ein einziger, telemetrie-
-    // reicher Plan aus intervals.icu) — dort bekommen alle erledigten
-    // Sessions die volle Vergleichskarte.
-    let doneP2, doneP1;
+    // Erledigte Sessions — Notion-Ära kompakt, intervals.icu-Ära als
+    // vollständige Vergleichskarte (nur die intervals.icu-Ära hat die
+    // Telemetrie für einen Soll/Ist-Vergleich). Athlet 2 kommt komplett aus
+    // intervals.icu — dort bekommen alle erledigten Sessions die volle
+    // Vergleichskarte.
+    let doneWithTelemetry, doneCompact;
     if (editable) {
-      doneP2 = doneSessions.filter(
+      doneWithTelemetry = doneSessions.filter(
         (s) =>
-          s.plan === "Plan 2" || Data.rides.find((r) => r.date === s.date && r.plan === "Plan 2")
+          s.dataSource === "intervals" ||
+          Data.rides.find((r) => r.date === s.date && r.dataSource === "intervals")
       );
-      doneP1 = doneSessions.filter((s) => !doneP2.includes(s));
+      doneCompact = doneSessions.filter((s) => !doneWithTelemetry.includes(s));
     } else {
-      doneP2 = doneSessions;
-      doneP1 = [];
+      doneWithTelemetry = doneSessions;
+      doneCompact = [];
     }
 
     if (doneSessions.length) {
       html += `<div class="planned-section-title planned-done-title">✅ Absolviert — ${doneSessions.length} Sessions</div>`;
 
-      // Plan 2 — vollständige Vergleichskarten
-      if (doneP2.length) {
+      // intervals.icu-Ära — vollständige Vergleichskarten
+      if (doneWithTelemetry.length) {
         html += `<div class="planned-cards">
-          ${doneP2.map((s) => this._renderDoneCard(s, rides)).join("")}
+          ${doneWithTelemetry.map((s) => this._renderDoneCard(s, rides)).join("")}
         </div>`;
       }
 
-      // Plan 1 — kompakte Liste
-      if (doneP1.length) {
+      // Notion-Ära — kompakte Liste
+      if (doneCompact.length) {
         html += `<div class="planned-done-list">
-          ${doneP1
+          ${doneCompact
             .map(
               (s) => `
             <div class="planned-done-item planned-done-item--link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen">
@@ -812,8 +814,8 @@ export const Planned = {
       </div>`;
   },
 
-  /* ── Abgeschlossene Karte mit Geplant vs. Tatsächlich (Plan 2 bei
-     Athlet 1, GFNY Bremen 2026 bei Athlet 2) ── */
+  /* ── Abgeschlossene Karte mit Geplant vs. Tatsächlich (intervals.icu-Ära
+     bei Athlet 1, GFNY Bremen 2026 bei Athlet 2) ── */
   _renderDoneCard(s, rides) {
     const col = this._typColor(s.typ);
     const icon = this._typIcon(s.typ);
@@ -824,11 +826,12 @@ export const Planned = {
     const isGroup = s.typ === "Gruppenfahrt";
 
     // Tatsächliche Fahrt aus rides: bei Athlet 1 (editable) exakt wie zuvor
-    // nach plan==="Plan 2" filtern (schützt vor Fehlzuordnung an Tagen mit
-    // sowohl Plan-1- als auch Plan-2-Fahrt, z.B. in der P2-W0-Übergangswoche).
-    // Athlet 2 hat diese Plan-1/2-Unterscheidung nicht — dort reicht das Datum.
+    // nach dataSource==="intervals" filtern (schützt vor Fehlzuordnung an
+    // Tagen mit sowohl einer Notion- als auch einer intervals.icu-Fahrt,
+    // z.B. in der Übergangswoche vom Umstieg). Athlet 2 hat diese
+    // Datenherkunfts-Unterscheidung nicht — dort reicht das Datum.
     const ride = _canEdit()
-      ? rides.find((r) => r.date === s.date && r.plan === "Plan 2")
+      ? rides.find((r) => r.date === s.date && r.dataSource === "intervals")
       : rides.find((r) => r.date === s.date);
 
     // Vergleichszeilen bauen

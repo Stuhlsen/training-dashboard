@@ -80,11 +80,13 @@ function initAthleteToggle() {
   });
 }
 
-/* ── Hat der aktive Athlet Athlet 1s Plan-1/2-Struktur? ─────────
-   Steuert NUR die Plan-1/2-spezifischen Inhalte (HRV/RHF-Split an
-   der W0-Übergangswoche, "Plan 2"/W12-Retest-Texte, Wochen-Aggregation
-   nach Plan- statt Kalenderwochen) — exklusiv Athlet 1, erkannt an
-   ride.week (Athlet 2 hat das bewusst nicht, s. map-activity.js).
+/* ── Hat der aktive Athlet Athlet 1s eigenen strukturierten Trainingsplan? ──
+   Steuert NUR die Athlet-1-exklusiven Inhalte (HRV-Methodenwechsel-Hinweis,
+   FTP-Retest-Text, Periodisierungs-Sektion, Datenquellen-Text) — exklusiv
+   Athlet 1, erkannt an ride.week (Athlet 2 hat das bewusst nicht, s.
+   map-activity.js). KEINE Kalenderwochen-Frage mehr (Data.weekly() läuft
+   seit dem Umbau "Plan 1/2 → Kalenderwoche" für beide Athleten einheitlich
+   über isoWeekKey(), unabhängig von hasOwnPlan()).
    Für den Planungstab selbst (auch bei Athlet 2 mit eigenem Plan seit
    GFNY Bremen 2026) ist stattdessen `hasPlanningTab` unten zuständig. */
 function hasOwnPlan() {
@@ -124,11 +126,11 @@ function updateChartExplainers(ownPlan, ftp) {
     );
     set(
       "explainer-hrv",
-      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche (W0) markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`
+      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Markierung zeigt den Wechsel der Messmethode: bis dahin Apple Health RMSSD (lila), danach intervals.icu SDNN Schlafschnitt — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert vor/nach dem Wechsel getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`
     );
     set(
       "explainer-rhf",
-      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche (W0) trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`
+      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Markierung zeigt denselben Zeitpunkt wie im HRV-Chart (Wechsel der Datenquelle), ohne dass sich die Ruhepuls-Messmethode hier ändert — beide Mittelwerte bleiben direkt vergleichbar.`
     );
 
     set(
@@ -146,9 +148,9 @@ function updateChartExplainers(ownPlan, ftp) {
     );
 
     set("note-cadence", `RPM pro Fahrt · gestrichelt = Ziel ${CONFIG.cadenceTarget} RPM`);
-    set("note-hrv", `Plan 1 (lila) · Übergang (gold) · Plan 2 (orange)`);
-    set("note-rhf", `Plan 1 (rot) · Übergang (gold) · Plan 2 (orange)`);
-    set("note-sleep", `Nur Plan 2 · intervals.icu`);
+    set("note-hrv", `RMSSD → SDNN (gold = Methodenwechsel)`);
+    set("note-rhf", `Verlauf über den erfassten Zeitraum`);
+    set("note-sleep", `Nur ab intervals.icu-Ära verfügbar`);
     set("efficiency-note", `Nur Powermeter-Fahrten (ab W6)`);
   } else {
     set(
@@ -165,7 +167,7 @@ function updateChartExplainers(ownPlan, ftp) {
     );
     set(
       "explainer-hrv",
-      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Da kein eigener Trainingsplan vorliegt, wird hier ein durchgehender Verlauf ohne Plan-Trennung gezeigt.`
+      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Durchgehende Messmethode (SDNN, intervals.icu) über den gesamten Zeitraum, kein Methodenwechsel-Marker nötig.`
     );
     set(
       "explainer-rhf",
@@ -190,19 +192,20 @@ function updateChartExplainers(ownPlan, ftp) {
 }
 
 /** FTP-Projektion-Titel/Erklärtext: Athlet 1 hat einen festen Retest-Termin
- *  (W12), Athlet 2 keinen eigenen Plan — dort zeigt targetISO das Datum,
- *  an dem der eFTP-Trend das Ziel erreichen würde (core/ftp-forecast.js::
- *  dateForTarget), oder ist null, wenn sich kein Horizont ableiten lässt. */
+ *  (Taper-Woche, CONFIG.retestDate), Athlet 2 keinen eigenen Plan — dort
+ *  zeigt targetISO das Datum, an dem der eFTP-Trend das Ziel erreichen
+ *  würde (core/ftp-forecast.js::dateForTarget), oder ist null, wenn sich
+ *  kein Horizont ableiten lässt. */
 function updateFtpForecastText(ownPlan, goal, targetISO) {
   const set = (id, html) => {
     const e = el(id);
     if (e) e.innerHTML = html;
   };
   if (ownPlan) {
-    set("title-ftp-forecast", "FTP-Projektion · Retest W12");
+    set("title-ftp-forecast", "FTP-Projektion · Retest Taper-Woche");
     set(
       "explainer-ftp-forecast",
-      `Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das ${goal}-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt in W11 aus Frust zu viel nachzulegen.`
+      `Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das ${goal}-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt kurz davor aus Frust zu viel nachzulegen.`
     );
   } else if (targetISO) {
     set("title-ftp-forecast", `FTP-Projektion · Ziel ${goal}W`);
@@ -498,8 +501,8 @@ async function renderAll(athleteId) {
   // Charts — Aerobe Gesundheit
   Charts.renderDecoupling("chart-decoupling", rides);
   Charts.renderSleep("chart-sleep", Data.wellness, ownPlan);
-  Charts.renderPlanCompareHRV(rides);
-  Charts.renderPlanCompareRHF(rides);
+  Charts.renderHrvTrend(rides);
+  Charts.renderRhfTrend(rides);
 
   // Körper: Gewicht/Energie/Hydration (erscheinen nur bei vorhandenen Daten,
   // Sichtbarkeit via ChartVisibility)

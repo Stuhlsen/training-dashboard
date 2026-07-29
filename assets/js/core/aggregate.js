@@ -39,13 +39,12 @@ export function weekSortIndex(week, fallback) {
 
 /** Gemeinsames Aggregat für eine Gruppe von Fahrten
  *  @param {string} week @param {import("../types.js").Ride[]} wr
- *  @param {{phase?: string|null, plan?: string}} meta
+ *  @param {{phase?: string|null}} meta
  *  @returns {import("../types.js").WeekAggregate} */
 function aggregateGroup(week, wr, meta = {}) {
   return {
     week,
     phase: meta.phase !== undefined ? meta.phase : wr[0]?.phase || null,
-    plan: meta.plan !== undefined ? meta.plan : wr[0]?.plan || "Plan 1",
     rides: wr.length,
     km: Math.round(sum(wr, "km") * 10) / 10,
     min: sum(wr, "min"),
@@ -112,10 +111,7 @@ export function monthlyFromRides(rides) {
         year: "2-digit",
       });
       return {
-        ...aggregateGroup(label, mRides, {
-          phase: mRides[0]?.phase || null,
-          plan: mRides[0]?.plan || "Vergleich",
-        }),
+        ...aggregateGroup(label, mRides, { phase: mRides[0]?.phase || null }),
         avgHF:
           Math.round(
             avg(

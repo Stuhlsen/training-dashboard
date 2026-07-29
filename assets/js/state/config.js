@@ -10,13 +10,12 @@
 export const CONFIG = {
   /* ── Plan-Info ─────────────────────────────────────────────── */
   planName: "Trainingsdashboard",
-  planVersion: "Plan 1 + 2",
 
   /* ── FTP & Leistung ────────────────────────────────────────── */
   ftp: 193,
   ftpBase: 166, // Start-FTP der Saison (Ring-Fortschritt ab hier)
-  ftpGoal: 210, // Saisonziel (Plan 2, W12-Retest)
-  retestDate: "2026-09-19", // FTP-Retest in W12 (Taper-Woche 14.–20.09.)
+  ftpGoal: 210, // Saisonziel (Taper-Woche-Retest)
+  retestDate: "2026-09-19", // FTP-Retest in der Taper-Woche (14.–20.09.)
   powerScaleMax: 300, // Skalenende des Zonen-Bands im Hero (Watt)
 
   /* ── Herzfrequenz ──────────────────────────────────────────── */
@@ -46,7 +45,7 @@ export const CONFIG = {
      sortieren dann per String-Vergleich weiter, s. z.B.
      ui/charts/training.js::renderWeatherWeekly). */
   weekOrder: [
-    // Plan 1
+    // Notion-Ära (Athlet 1, historisch)
     "Vor W1",
     "Vor",
     "W1",
@@ -79,25 +78,26 @@ export const CONFIG = {
 
   /* ── Phasen ────────────────────────────────────────────────── */
   phases: {
-    // Plan 1
+    // Notion-Ära (Athlet 1, historisch)
     Vorbereitung: { color: "#c9a84c", label: "Vorbereitung" },
     Vor: { color: "#c9a84c", label: "Vorbereitung" },
     "Phase 1": { color: "#6b7280", label: "Phase 1 — Basisaufbau" },
     "Phase 2": { color: "#4a7fa8", label: "Phase 2 — Volumenaufbau" },
     "Phase 3": { color: "#7c5cbf", label: "Phase 3 — Leistungsaufbau" },
-    // Plan 2
+    // Trainingsblock-Phasen (Athlet 1, intervals.icu-Ära)
     Übergang: { color: "#c9a84c", label: "Übergang" },
     "Sweet Spot": { color: "#e08a3c", label: "Block 1 — Sweet Spot" },
     Schwelle: { color: "#d94f4f", label: "Block 2 — Schwelle" },
     VO2max: { color: "#a24ad0", label: "Block 3 — VO₂max" },
-    // "Taper" wird von Plan 2 (Athlet 1) UND Athlet 2 (GFNY Bremen 2026)
-    // genutzt — bewusst ohne Präfix geteilt: .label wird nirgends gerendert
-    // (nur .color über phaseColor()), und beide Pläne wollen hier ohnehin
-    // dasselbe Grün (Taper = Erholung/Reduktion, s. Zonen-Farbsystem).
+    // "Taper" wird vom Trainingsblock-Schema (Athlet 1) UND Athlet 2 (GFNY
+    // Bremen 2026) genutzt — bewusst ohne Präfix geteilt: .label wird
+    // nirgends gerendert (nur .color über phaseColor()), und beide Athleten
+    // wollen hier ohnehin dasselbe Grün (Taper = Erholung/Reduktion, s.
+    // Zonen-Farbsystem).
     Taper: { color: "#4a9a6e", label: "Taper + Retest" },
     Erholung: { color: "#6b9fa8", label: "Erholungswoche" },
     // Athlet 2 (eigener Plan, GFNY Bremen 2026) — diese drei Namen
-    // existieren bei Plan 1/2 (Athlet 1) nicht, brauchen daher kein Präfix.
+    // existieren bei Athlet 1 nicht, brauchen daher kein Präfix.
     // planned.js zeigt den Phase-Key selbst als Text an (kein Label-Lookup).
     Basis: { color: "#4a7fa8", label: "Block 1 — Basis (KW23–26)" },
     Aufbau: {

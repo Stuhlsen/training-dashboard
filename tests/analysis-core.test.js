@@ -439,7 +439,7 @@ test("matchesSignature: Typ-Match oder IF-Korridor (≥30min)", () => {
 
 test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   const r = (week, phase, typ, tss, extra = {}) => ({
-    plan: "Plan 2",
+    dataSource: "intervals",
     week,
     phase,
     typ,
@@ -475,7 +475,7 @@ test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   assert.equal(rec.reduced, true);
 });
 
-test("phaseCompliance: null ohne Plan-2-Phasen (Athlet 2)", () => {
+test("phaseCompliance: null ohne Block-Phasen (Athlet 2)", () => {
   const rides = [{ dateISO: "2026-06-01", tss: 50 }];
   assert.equal(phaseCompliance(rides, weekIdx), null);
 });

@@ -190,7 +190,7 @@ async function main() {
     }
   });
 
-  const plans = [...new Set(rides.map((r) => r.plan))].filter(Boolean).sort();
+  const dataSources = [...new Set(rides.map((r) => r.dataSource))].filter(Boolean).sort();
 
   // Planungs-Forecast serverseitig laden (Standort bleibt im Secret, nie im Frontend)
   const planningForecast = await getPlanningForecast();
@@ -205,7 +205,7 @@ async function main() {
     plannedSessions: Object.entries(PLANNED_SESSIONS).map(([date, s]) => ({ date, ...s })),
     adjustments: loadAdjustments(),
     forecast: planningForecast || {},
-    plans,
+    dataSources,
     updated: new Date().toISOString(),
     source: ENV.INTERVALS_KEY ? "notion+intervals" : "notion",
     count: rides.length,
@@ -214,7 +214,7 @@ async function main() {
   writeOutput(OUT_FILE, output);
 
   log.info(`\n✅ ${rides.length} Fahrten → ${OUT_FILE}`);
-  log.info(`   Pläne: ${plans.join(", ")}`);
+  log.info(`   Datenquellen: ${dataSources.join(", ")}`);
   log.info(
     `   Zeitraum: ${rides[0]?.dateISO || "?"} bis ${rides[rides.length - 1]?.dateISO || "?"}`
   );

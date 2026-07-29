@@ -141,11 +141,6 @@ export const Data = {
     return this.rides.filter((r) => r.phase === phase);
   },
 
-  /** Fahrten nach Plan filtern @param {string} plan */
-  byPlan(plan) {
-    return this.rides.filter((r) => r.plan === plan);
-  },
-
   /** Letzter FTP-Test @returns {import("../types.js").Ride|null} */
   latestFTP() {
     const tests = this.rides

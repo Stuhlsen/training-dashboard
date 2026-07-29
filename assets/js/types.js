@@ -17,7 +17,9 @@
  *                                  ISO-Kalenderwoche ("2026-KW31", seit dem Umbau
  *                                  "Plan 1/2 → Kalenderwoche") — fehlt bei Vergleichsdaten
  * @property {string|null} [phase]
- * @property {string} [plan]       "Plan 1" | "Plan 2" | "Vergleich"
+ * @property {string} [dataSource]  "notion" | "intervals" — Herkunft der Rohdaten,
+ *                                  athletenunabhängig (Athlet 1 Notion-Ära vs.
+ *                                  intervals.icu-Ära; Athlet 2 immer "intervals")
  * @property {string} [name]
  * @property {string} [typ]
  * @property {number|null} [km]
@@ -85,7 +87,6 @@
  * @typedef {Object} WeekAggregate
  * @property {string} week
  * @property {string|null} phase
- * @property {string} plan
  * @property {number} rides
  * @property {number} km
  * @property {number} min
