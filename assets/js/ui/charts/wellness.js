@@ -505,8 +505,10 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
       if (lblIdx.has(i)) xLabel(svg, scale.x(i), H - pad.b + 14, fmtDate(day.dateISO));
     });
 
-    // Divider-Linie am Methodenwechsel (reine, dezente Marker-Linie — keine
-    // Segment-Labels/-Farben mehr, s. Kopfkommentar der Funktion)
+    // Divider-Linie am Methodenwechsel — Gold wie zuvor bei der Übergangs-
+    // woche, damit der Wechsel trotz durchgehender Linie/Farbe klar als
+    // Zäsur erkennbar bleibt (keine Segment-Labels/-Flächen mehr, s.
+    // Kopfkommentar der Funktion).
     const divider = (idx) => {
       const divX = scale.x(idx - 0.5);
       svg.appendChild(
@@ -515,8 +517,8 @@ function renderHrvRhfChart(svgId, data, color1, color2, unit, field, methodNote)
           y: pad.t,
           width: 2,
           height: ch,
-          fill: "#5f6878",
-          opacity: "0.6",
+          fill: "#c9a84c",
+          opacity: "0.85",
         })
       );
       return divX;
