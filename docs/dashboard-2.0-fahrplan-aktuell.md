@@ -484,5 +484,19 @@ letzter planmäßiger Baustein von Phase 5 (§2.4).** Scope umfasste alle 5
 Render-Funktionen der Datei (keine Zurückstellung nötig, anders als bei
 Schritt 5/6), s. Phase-5-Abschnitt oben und `docs/offene-punkte.md`.
 
+➡️ **Zwischenschritt (29.07.2026, außerhalb der Phasen-Reihenfolge): Umbau
+„Plan 1/2 → Kalenderwoche" abgeschlossen.** Die Plan-1/Plan-2-Unterscheidung
+bei Athlet 1 (Notion→intervals.icu-Migrationsartefakt) ist als Strukturkonzept
+entfernt — beide Athleten laufen jetzt einheitlich auf ISO-Kalenderwochen
+(`core/aggregate.js::isoWeekKey`), `ride.plan` wurde zu `ride.dataSource`
+("notion"|"intervals"), der HRV-Methodenwechsel (RMSSD→SDNN) bleibt als
+schlankes `hrvMethod`-Flag samt Marker+getrennten Mittelwerten im HRV/
+Ruhepuls-Chart erhalten. Block-/Phasenstruktur (Sweet Spot/Schwelle/VO2max/
+Taper) unverändert. Vier Commits, Details in `docs/offene-punkte.md`
+(Abschnitt „Erledigt"). Backfill-Migration `0007_plan_cards_calendar_week.sql`
+für bereits migrierte `plan_cards`-Zeilen liegt bereit, noch nicht gegen
+`dashboard-dev` eingespielt (manueller Schritt, s. Migrations-Workflow in
+AGENTS.md).
+
 ➡️ **Nächster Schritt: Phase 6 — Feedback & Öffentlichkeit**, s. Abschnitt
 unten.

@@ -236,6 +236,18 @@ mehrere bereits committete Dateien anfassen:
   `scripts/lib/map-activity.js` importiert). Reiner, verhaltensgleicher
   Umzug — `PLANNED_SESSIONS`/`getPlan2Blocks()` unverändert.
 
+### Nachtrag: Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)
+
+Die obige Schritt-7-Begründung, warum `wellness.js` das PMC-Brush-Fenster
+NICHT übernimmt („`renderPlanCompareHRV`/`RHF` vergleicht bewusst Plan 1
+GANZ gegen Plan 2 GANZ"), ist mit diesem Umbau in der genannten Form
+überholt — es gibt keine Plan-1/2-Segmentierung mehr. Die Entscheidung
+selbst (volle Historie zeigen, nicht auf 90 Tage windowen) bleibt aber
+gültig, jetzt mit anderer Begründung: der HRV-Methodenwechsel-Marker
+(RMSSD → SDNN) soll weiterhin nicht durch ein Default-Fenster verdeckt
+werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
+`renderRhfTrend`. Details: Commits `398da65`/`bb210e5`/`ce49e24`/`4458a3f`.
+
 ## Infrastruktur/CI
 
 - **`sync-data.yml` läuft per Cron nur auf dem Default-Branch `main`** —
@@ -337,3 +349,24 @@ mehrere bereits committete Dateien anfassen:
   `--force-with-lease=main:<SHA>`-Erwartungswert ergänzt (lebt in der
   lokalen gitconfig, nicht im Repo). Dokumentiert in AGENTS.md „Git-
   Workflow". Commit `00b3efe`.
+- **Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)**: Athlet 1 lief bisher auf
+  einer plan-gebundenen Wochenstruktur (P2-W0…P2-W12), Athlet 2 bereits auf
+  ISO-Kalenderwochen — Migrations-Artefakt aus dem Notion→intervals.icu-
+  Umstieg, kein fachliches Konzept mehr. Vier Commits: (A) `Data.weekly()`/
+  Belastungswächter/Bucket-Helfer einheitlich auf `isoWeekKey()`,
+  `PLAN2_SCHEDULE`-Wochen auf echte Kalenderwochen-Strings, Backfill-Migration
+  `0007_plan_cards_calendar_week.sql` für bereits migrierte `plan_cards`-Zeilen
+  (dev; manuell einzuspielen, dann für prod wiederholen). (B) Plan-1/2-
+  Divider/-Farben aus den Charts entfernt, dabei ein bislang nicht erfasstes
+  Feature gefunden und mit entfernt: Plan-Filter-Toggle + eigene Plan-1-vs-
+  Plan-2-Vergleichstabelle im Analyse-Tab (der generische PMC-Vergleichsmodus
+  deckt dieselbe Funktion bereits ab). (C) `ride.plan` → `ride.dataSource`
+  ("notion"|"intervals"); HRV/Ruhepuls-Chart umgebaut auf durchgehende
+  Kalenderwochen-Linie mit schlankem `hrvMethod`-Flag statt Plan-Segmentierung
+  (Methodenwechsel RMSSD→SDNN bleibt als Marker + getrennte Mittelwerte/
+  Trendlinien sichtbar). (D) Vergleichsmodus war bereits generisch ("Zeitraum
+  A/B", `core/compare.js`), nur zwei Kommentare nachgezogen. Block-/
+  Phasenstruktur (Sweet Spot/Schwelle/VO2max/Taper) und Notion-Ära-Historie
+  (Wochenlabels „W1"…, HRV-Rohwerte) bewusst unverändert. Commits `398da65`/
+  `bb210e5`/`ce49e24`/`4458a3f`. Browser-Verifikation (Playwright, beide
+  Athleten, alle Tabs) nach jedem Commit, keine neuen Konsolenfehler.
