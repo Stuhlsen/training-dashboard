@@ -698,8 +698,8 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
     }
 
     // Naht/Fenster geklemmt (nicht bloß seamIdx direkt): ein Fenster kann
-    // vollständig vor oder nach der Naht liegen (z. B. der "Plan 2"-Preset,
-    // lange vor "heute") — ohne diese Klemmung rechnet segmentsFor() für
+    // vollständig vor oder nach der Naht liegen (z. B. der "Seit intervals.icu"-
+    // Preset, lange vor "heute") — ohne diese Klemmung rechnet segmentsFor() für
     // Indizes weit außerhalb von [ws, we], scale.x() extrapoliert dafür
     // unklemmt (s. makeIndexScale-Doku), und die Linie reicht sichtbar über
     // den Plot-Rand hinaus.
@@ -895,7 +895,7 @@ export function renderPMC(svgId, rides, projection, events, athleteId) {
 
     // Heute-Marke separat gezeichnet (X5) — nicht über pickLabelIndices'
     // mustKeep. Zusätzlicher Sichtbarkeits-Guard: liegt "heute" außerhalb
-    // des gebrushten Fensters (z. B. beim "Plan 2"-Preset), nicht zeichnen —
+    // des gebrushten Fensters (z. B. beim "Seit intervals.icu"-Preset), nicht zeichnen —
     // sonst extrapoliert scale.x() knapp neben den Plot-Rand statt weit
     // genug weg, um vom SVG-Root-Clipping aufgefangen zu werden.
     if (todayIdx >= ws && todayIdx <= we) {
