@@ -335,9 +335,9 @@ export const Planned = {
     const editable = _canEdit();
     const currentWeek = sessions[0]?.week ? weekDisplayLabels([sessions[0].week])[0] : "–";
     const weeksLeft = new Set(sessions.map((s) => s.week)).size;
-    const heroTitle = editable ? "Trainingsplan Plan 2" : "Trainingsplan — GFNY Bremen 2026";
+    const heroTitle = editable ? "Trainingsplan" : "Trainingsplan — GFNY Bremen 2026";
     const heroDesc = editable
-      ? "Alle geplanten Trainingseinheiten bis zum FTP-Retest in W12. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt in intervals.icu erfasst ist. Intervall-Workouts können direkt auf den Wahoo ELEMNT Roam gepusht werden."
+      ? "Alle geplanten Trainingseinheiten bis zum FTP-Retest in der Taper-Woche. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt in intervals.icu erfasst ist. Intervall-Workouts können direkt auf den Wahoo ELEMNT Roam gepusht werden."
       : "Alle geplanten Trainingseinheiten im Überblick. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt erfasst ist.";
 
     // Hero + Fortschrittsanzeige

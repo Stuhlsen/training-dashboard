@@ -199,7 +199,7 @@ test("weeklyConsistency: Wochen-Buckets, Lücken, Serien und Ø Tage/Woche", () 
 
 /* ── Plan-2-Blöcke (Sync) ───────────────────────────────────── */
 
-test("getPlan2Blocks: Plan 1 + begonnene Phasenblöcke, laufender Block gekappt", () => {
+test("getPlan2Blocks: Notion-Ära + begonnene Phasenblöcke, laufender Block gekappt", () => {
   const blocks = getPlan2Blocks("2026-07-04");
   assert.equal(blocks[0].key, "plan1");
   const ss = blocks.find((b) => b.label === "Sweet Spot");
@@ -214,6 +214,6 @@ test("getPlan2Blocks: Plan 1 + begonnene Phasenblöcke, laufender Block gekappt"
 test("getPlan2Blocks: nach Saisonende alle Blöcke mit vollen Zeiträumen", () => {
   const blocks = getPlan2Blocks("2026-10-01");
   const labels = blocks.map((b) => b.label);
-  assert.deepEqual(labels, ["Plan 1", "Sweet Spot", "Schwelle", "VO2max"]);
+  assert.deepEqual(labels, ["Notion-Ära", "Sweet Spot", "Schwelle", "VO2max"]);
   assert.ok(blocks[1].to > blocks[1].from);
 });

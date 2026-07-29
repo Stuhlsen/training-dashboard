@@ -78,9 +78,9 @@ function build() {
 
       <div style="${LABEL_STYLE}">
         Typ
-        <div class="plan-toggle" id="event-form-type-toggle" style="margin-bottom:0;">
-          <button type="button" class="plan-btn" data-type="race">Rennen/Tour</button>
-          <button type="button" class="plan-btn" data-type="other">Sonstiges</button>
+        <div class="pill-toggle" id="event-form-type-toggle" style="margin-bottom:0;">
+          <button type="button" class="pill-toggle-btn" data-type="race">Rennen/Tour</button>
+          <button type="button" class="pill-toggle-btn" data-type="other">Sonstiges</button>
         </div>
       </div>
 

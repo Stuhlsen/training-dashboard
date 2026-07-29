@@ -608,42 +608,6 @@
   flex-shrink: 0;
 }
 
-/* ── Plan Comparison Table ───────────────────────────────────── */
-.comparison-table { display: flex; flex-direction: column; gap: 0; }
-
-.comparison-header,
-.comparison-row {
-  display: grid;
-  grid-template-columns: 160px 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 8px 4px;
-  align-items: center;
-}
-
-.comparison-header {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 10px;
-  margin-bottom: 2px;
-}
-
-.comparison-row {
-  font-size: 0.78rem;
-  border-bottom: 1px solid var(--border);
-  transition: background var(--transition);
-}
-.comparison-row:last-child { border-bottom: none; }
-.comparison-row:hover { background: var(--card-hover); border-radius: var(--radius-sm); }
-
-.comparison-label { color: var(--dim); font-size: 0.75rem; }
-.comparison-plan  { text-align: center; font-weight: 600; }
-.comparison-val   { text-align: center; color: var(--text); }
-.comparison-delta { text-align: center; font-weight: 700; font-size: 0.8rem; }
-
 .analysis-empty { font-size: 0.8rem; color: var(--dim); padding: 12px 0; }
 
 /* ── Strength List ───────────────────────────────────────────── */
@@ -794,8 +758,8 @@
   line-height: 1.5;
 }
 
-/* ═══ Plan Toggle ═══ */
-.plan-toggle {
+/* ═══ Pill Toggle (generisch, z.B. Event-Formular Typ-Auswahl) ═══ */
+.pill-toggle {
   display: flex;
   gap: 0;
   margin-bottom: 1.25rem;
@@ -806,7 +770,7 @@
   width: fit-content;
   padding: 3px;
 }
-.plan-btn {
+.pill-toggle-btn {
   padding: 0.4rem 1.1rem;
   background: transparent;
   border: none;
@@ -817,8 +781,8 @@
   font-weight: 600;
   transition: all var(--transition);
 }
-.plan-btn:hover { color: var(--text); }
-.plan-btn.active {
+.pill-toggle-btn:hover { color: var(--text); }
+.pill-toggle-btn.active {
   background: var(--accent);
   color: #17110a;
 }

@@ -751,15 +751,18 @@ export const PLANNED_SESSIONS = {
 };
 
 /**
- * Leitet die Trainingsblöcke für den Power-Curve-Vergleich ab:
- * Plan 1 als Ganzes plus die zusammenhängenden Plan-2-Phasenblöcke
- * (Sweet Spot / Schwelle / VO2max) aus PLAN2_SCHEDULE. Rein und testbar.
+ * Leitet die Trainingsblöcke für den Power-Curve-Vergleich ab: die
+ * Notion-Ära als Ganzes (vor dem Umstieg auf intervals.icu) plus die
+ * zusammenhängenden Phasenblöcke (Sweet Spot / Schwelle / VO2max) aus
+ * PLAN2_SCHEDULE. Rein und testbar. `key: "plan1"` bleibt als interner
+ * Identifier bestehen (s. CHART_THEME-Farbzuordnung in ui/charts/power.js) —
+ * nur das sichtbare `label` verliert die Plan-1/2-Bezeichnung.
  * @param {string} todayISO Blöcke, die noch nicht begonnen haben, entfallen;
  *                          laufende Blöcke werden auf heute gekappt.
  * @returns {Array<{key: string, label: string, from: string, to: string}>}
  */
 export function getPlan2Blocks(todayISO) {
-  const blocks = [{ key: "plan1", label: "Plan 1", from: "2026-03-24", to: "2026-06-21" }];
+  const blocks = [{ key: "plan1", label: "Notion-Ära", from: "2026-03-24", to: "2026-06-21" }];
 
   const PHASES = ["Sweet Spot", "Schwelle", "VO2max"];
   let current = null;

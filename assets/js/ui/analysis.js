@@ -7,10 +7,12 @@
    Adhärenz · 8 Periodisierungs-Erfüllung (nur eigener Plan)
 
    Berechnung liegt komplett in core/* — hier nur Rendering.
-   Plan-Toggle filtert die verlaufs-/bestandsbezogenen Sektionen
-   (KPIs, Verteilung, Aerob, Bestwerte); zeitpunktbezogene
-   Sektionen (Briefing, Load, Körper, Konsistenz, Periodisierung)
-   nutzen immer den vollen Datensatz.
+   Alle Sektionen nutzen immer den vollen Datensatz — der frühere Plan-1/2-
+   Filter-Toggle (KPIs/Zonen/Typverteilung/Aerob/Plan-Vergleich) ist mit dem
+   Umbau "Plan 1/2 → Kalenderwoche" (dashboard-2.0) entfallen, ebenso die
+   dedizierte Plan-1-vs-Plan-2-Vergleichstabelle (§5b) — ein generischer
+   Zeitraum-Vergleich existiert bereits im PMC-Chart (core/compare.js,
+   "Zeitraum A"/"Zeitraum B").
    ============================================================ */
 
 import { isoWeekKey, weekSortIndex } from "../core/aggregate.js";
@@ -75,56 +77,25 @@ const RISK_COLOR = {
 
 export const Analysis = {
   _allRides: [],
-  _toggleInit: false,
 
   /** @param {boolean} [hasPlanningTab] s. overview.js::render() — separat von
    *  ownPlan, damit nur die Belastungsempfehlung (nextSession) für Athlet 2s
-   *  GFNY-Plan mitzieht, ohne die restlichen Plan-1/2-exklusiven Sektionen unten. */
+   *  GFNY-Plan mitzieht, ohne die restlichen Athlet-1-exklusiven Sektionen unten. */
   render(rides, hasPlanningTab = rides.some((r) => r.week)) {
     this._allRides = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     const ownPlan = rides.some((r) => r.week);
     const today = todayISO();
 
-    const toggle = el("plan-toggle");
-    if (toggle) toggle.classList.toggle("hidden", !ownPlan);
-    if (ownPlan && !this._toggleInit) {
-      this._initToggle();
-      this._toggleInit = true;
-    }
-
-    // Zeitpunkt-/verlaufsbezogene Sektionen: immer voller Datensatz
     this._renderBriefing(ownPlan, today, hasPlanningTab);
     this._renderLoad(ownPlan);
     this._renderBody(today);
     this._renderConsistency(ownPlan, today);
     this._renderPeriodization(ownPlan);
     this._renderPower(ownPlan);
-
-    // Plan-filterbare Sektionen
-    this._renderForPlan(ownPlan ? "all" : "none", ownPlan);
-  },
-
-  _initToggle() {
-    const btns = document.querySelectorAll(".plan-btn");
-    btns.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        btns.forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-        this._renderForPlan(btn.dataset.plan, true);
-      });
-    });
-  },
-
-  _renderForPlan(plan, ownPlan) {
-    const rides =
-      plan === "all" || plan === "none"
-        ? this._allRides
-        : this._allRides.filter((r) => (r.plan || "Plan 1") === plan);
-    this._renderKPIs(rides, plan, ownPlan);
-    this._renderZones(rides, ownPlan);
-    this._renderTypDistribution(rides);
-    this._renderAerobic(rides, ownPlan);
-    this._renderComparison(ownPlan);
+    this._renderKPIs(this._allRides, ownPlan);
+    this._renderZones(this._allRides, ownPlan);
+    this._renderTypDistribution(this._allRides);
+    this._renderAerobic(this._allRides, ownPlan);
   },
 
   /* ── Wochen-Helfer (wie app.js) ─────────────────────────────
@@ -138,7 +109,7 @@ export const Analysis = {
   },
 
   /* ── KPI Hero ─────────────────────────────────────────────── */
-  _renderKPIs(rides, plan, ownPlan) {
+  _renderKPIs(rides, ownPlan) {
     const totalKm = Math.round(sum(rides, "km"));
     const totalMin = Math.round(sum(rides, "min"));
     const totalH = (totalMin / 60).toFixed(0);
@@ -174,15 +145,8 @@ export const Analysis = {
     // empfehlung direkt darüber.
     const lastTSB = currentPmc(this._allRides, todayISO())?.tsb ?? null;
 
-    const plan1Rides = this._allRides.filter((r) => (r.plan || "Plan 1") === "Plan 1");
-    const plan2Rides = this._allRides.filter((r) => r.plan === "Plan 2");
-
     const kpis = [
-      {
-        v: rides.length,
-        l: "Fahrten",
-        sub: plan === "all" && ownPlan ? `${plan1Rides.length} P1 · ${plan2Rides.length} P2` : null,
-      },
+      { v: rides.length, l: "Fahrten", sub: null },
       { v: totalKm.toLocaleString("de") + " km", l: "Distanz", sub: `Ø ${avgKm} km/Fahrt` },
       { v: totalH + " h", l: "Trainingszeit", sub: `${totalMin.toLocaleString("de")} min gesamt` },
       { v: ftpVal ? ftpVal + "W" : "–", l: "FTP (gemessen)", sub: null, color: "var(--accent)" },
@@ -584,133 +548,6 @@ export const Analysis = {
           </div>`
         : `<p class="analysis-empty">Noch keine Bestwerte erfasst.</p>`;
     }
-  },
-
-  /* ── 5b · Plan 1 vs Plan 2 Vergleich (bestehend) ──────────── */
-  _renderComparison(ownPlan) {
-    if (!ownPlan) {
-      el("plan-comparison").innerHTML =
-        `<p class="analysis-empty">Kein Plan-Vergleich für Vergleichsdaten verfügbar.</p>`;
-      return;
-    }
-    const p1 = this._allRides.filter((r) => (r.plan || "Plan 1") === "Plan 1");
-    const p2 = this._allRides.filter((r) => r.plan === "Plan 2");
-
-    if (!p1.length || !p2.length) {
-      el("plan-comparison").innerHTML =
-        `<p class="analysis-empty">Vergleich verfügbar sobald beide Pläne Daten haben.</p>`;
-      return;
-    }
-
-    const metrics = [
-      {
-        label: "Fahrten",
-        p1: p1.length,
-        p2: p2.length,
-        fmt: (v) => v,
-        unit: "",
-        higherIsBetter: true,
-      },
-      {
-        label: "Gesamtdistanz",
-        p1: Math.round(sum(p1, "km")),
-        p2: Math.round(sum(p2, "km")),
-        fmt: (v) => v.toLocaleString("de"),
-        unit: " km",
-        higherIsBetter: true,
-      },
-      {
-        label: "Ø Kadenz",
-        p1: avg(
-          p1.filter((r) => r.kad),
-          "kad"
-        ),
-        p2: avg(
-          p2.filter((r) => r.kad),
-          "kad"
-        ),
-        fmt: (v) => fmtInt(v),
-        unit: " RPM",
-        higherIsBetter: true,
-      },
-      {
-        label: "Ø HF",
-        p1: avg(
-          p1.filter((r) => r.hf),
-          "hf"
-        ),
-        p2: avg(
-          p2.filter((r) => r.hf),
-          "hf"
-        ),
-        fmt: (v) => fmtInt(v),
-        unit: " bpm",
-        higherIsBetter: false,
-      },
-      {
-        label: "Ø NP",
-        p1: avg(
-          p1.filter((r) => r.np),
-          "np"
-        ),
-        p2: avg(
-          p2.filter((r) => r.np),
-          "np"
-        ),
-        fmt: (v) => fmtInt(v),
-        unit: "W",
-        higherIsBetter: true,
-      },
-      {
-        label: "Peak CTL",
-        p1: maxVal(
-          p1.filter((r) => r.ctl),
-          "ctl"
-        ),
-        p2: maxVal(
-          p2.filter((r) => r.ctl),
-          "ctl"
-        ),
-        fmt: (v) => fmt(v),
-        unit: "",
-        higherIsBetter: true,
-      },
-      {
-        label: "Ø TSS/Woche",
-        p1: sum(p1, "tss") / Math.max(1, [...new Set(p1.map((r) => r.week))].length),
-        p2: sum(p2, "tss") / Math.max(1, [...new Set(p2.map((r) => r.week))].length),
-        fmt: (v) => Math.round(v),
-        unit: "",
-        higherIsBetter: true,
-      },
-    ];
-
-    el("plan-comparison").innerHTML = `
-      <div class="comparison-table">
-        <div class="comparison-header">
-          <span></span>
-          <span class="comparison-plan">Plan 1</span>
-          <span class="comparison-plan">Plan 2</span>
-          <span class="comparison-plan">Δ</span>
-        </div>
-        ${metrics
-          .map((m) => {
-            if (m.p1 == null || m.p2 == null) return "";
-            const delta = m.p2 - m.p1;
-            const better = m.higherIsBetter ? delta > 0 : delta < 0;
-            const deltaCol =
-              Math.abs(delta) < 0.5 ? "var(--dim)" : better ? "var(--green)" : "var(--red)";
-            const deltaStr = (delta > 0 ? "+" : "") + m.fmt(delta) + m.unit;
-            return `
-            <div class="comparison-row">
-              <span class="comparison-label">${m.label}</span>
-              <span class="comparison-val">${m.fmt(m.p1)}${m.unit}</span>
-              <span class="comparison-val">${m.fmt(m.p2)}${m.unit}</span>
-              <span class="comparison-delta" style="color:${deltaCol}">${deltaStr}</span>
-            </div>`;
-          })
-          .join("")}
-      </div>`;
   },
 
   /* ── 6 · Regeneration & Körper (datengetrieben) ───────────── */
