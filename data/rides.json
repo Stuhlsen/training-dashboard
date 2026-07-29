@@ -11978,30 +11978,30 @@
   },
   "forecast": {
     "2026-07-29": {
-      "temp": 26.6,
-      "tempFeel": 26,
-      "humidity": 39,
-      "windSpeed": 9.5,
-      "windDir": 119,
+      "temp": 26.4,
+      "tempFeel": 25.8,
+      "humidity": 40,
+      "windSpeed": 9.9,
+      "windDir": 113,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.5
     },
     "2026-07-30": {
-      "temp": 32.5,
-      "tempFeel": 33.5,
-      "humidity": 34,
-      "windSpeed": 6,
-      "windDir": 193,
+      "temp": 32.3,
+      "tempFeel": 33.3,
+      "humidity": 35,
+      "windSpeed": 5.9,
+      "windDir": 204,
       "precipProb": 0,
       "weatherCode": 2,
       "uvMax": 6.5
     },
     "2026-07-31": {
-      "temp": 27.7,
-      "tempFeel": 30.3,
-      "humidity": 56,
-      "windSpeed": 3.6,
+      "temp": 27.8,
+      "tempFeel": 29.9,
+      "humidity": 53,
+      "windSpeed": 3.9,
       "windDir": 159,
       "precipProb": 5,
       "weatherCode": 3,
@@ -12142,7 +12142,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-29T12:58:49.511Z",
+  "updated": "2026-07-29T13:47:05.875Z",
   "source": "notion+intervals",
   "count": 78
 }
