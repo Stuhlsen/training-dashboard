@@ -10,24 +10,24 @@ import assert from "node:assert/strict";
 import { PLAN2_SCHEDULE, getPlan2WeekPhase } from "../assets/js/core/plan2-schedule.js";
 
 test("getPlan2WeekPhase: exakter Start-Tag einer Woche", () => {
-  assert.deepEqual(getPlan2WeekPhase("2026-06-29"), { week: "P2-W1", phase: "Sweet Spot" });
+  assert.deepEqual(getPlan2WeekPhase("2026-06-29"), { week: "2026-KW27", phase: "Sweet Spot" });
 });
 
 test("getPlan2WeekPhase: exakter End-Tag einer Woche", () => {
-  assert.deepEqual(getPlan2WeekPhase("2026-07-05"), { week: "P2-W1", phase: "Sweet Spot" });
+  assert.deepEqual(getPlan2WeekPhase("2026-07-05"), { week: "2026-KW27", phase: "Sweet Spot" });
 });
 
 test("getPlan2WeekPhase: Tag mitten in der Woche, kein Ride nötig", () => {
-  assert.deepEqual(getPlan2WeekPhase("2026-07-02"), { week: "P2-W1", phase: "Sweet Spot" });
+  assert.deepEqual(getPlan2WeekPhase("2026-07-02"), { week: "2026-KW27", phase: "Sweet Spot" });
 });
 
-test("getPlan2WeekPhase: P2-W0 (Übergang) speziell erkannt", () => {
-  assert.deepEqual(getPlan2WeekPhase("2026-06-24"), { week: "P2-W0", phase: "Übergang" });
+test("getPlan2WeekPhase: Übergangswoche (W0) speziell erkannt", () => {
+  assert.deepEqual(getPlan2WeekPhase("2026-06-24"), { week: "2026-KW26", phase: "Übergang" });
 });
 
 test("getPlan2WeekPhase: Wochenübergang lückenlos (Ende W1 / Anfang W2 direkt aufeinanderfolgend)", () => {
-  assert.deepEqual(getPlan2WeekPhase("2026-07-05"), { week: "P2-W1", phase: "Sweet Spot" });
-  assert.deepEqual(getPlan2WeekPhase("2026-07-06"), { week: "P2-W2", phase: "Sweet Spot" });
+  assert.deepEqual(getPlan2WeekPhase("2026-07-05"), { week: "2026-KW27", phase: "Sweet Spot" });
+  assert.deepEqual(getPlan2WeekPhase("2026-07-06"), { week: "2026-KW28", phase: "Sweet Spot" });
 });
 
 test("getPlan2WeekPhase: Tag vor Schedule-Beginn (Plan-1-Ära) → null/null", () => {

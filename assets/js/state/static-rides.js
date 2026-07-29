@@ -1138,7 +1138,7 @@ export const STATIC_RIDES = [
   {
     id: 57,
     date: "2026-06-23",
-    week: "P2-W0",
+    week: "2026-KW26",
     phase: "Übergang",
     name: "Gruppenfahrt W0",
     typ: "Gruppenfahrt",

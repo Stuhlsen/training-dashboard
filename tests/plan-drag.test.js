@@ -86,14 +86,14 @@ test("daySlots: eine komplett zukünftige Woche ist durchgehend droppbar", () =>
 /* ── weekLabelForDate ────────────────────────────────────────── */
 
 const CARDS = [
-  { id: "a", date: "2026-07-14", week: "P2-W3", phase: "Sweet Spot" },
-  { id: "b", date: "2026-07-16", week: "P2-W3", phase: "Sweet Spot" },
-  { id: "c", date: "2026-07-21", week: "P2-W4", phase: "Erholung" },
+  { id: "a", date: "2026-07-14", week: "2026-KW29", phase: "Sweet Spot" },
+  { id: "b", date: "2026-07-16", week: "2026-KW29", phase: "Sweet Spot" },
+  { id: "c", date: "2026-07-21", week: "2026-KW30", phase: "Erholung" },
 ];
 
 test("weekLabelForDate: übernimmt week/phase der Zielwoche", () => {
   assert.deepEqual(weekLabelForDate(CARDS, "2026-07-23", "a"), {
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
   });
 });
@@ -105,7 +105,7 @@ test("weekLabelForDate: schließt die gezogene Karte selbst aus", () => {
   assert.equal(weekLabelForDate(CARDS, "2026-07-22", "c"), null);
   // ohne Ausschluss (anderer Zieher) liefert dieselbe Woche sehr wohl c's Label
   assert.deepEqual(weekLabelForDate(CARDS, "2026-07-22", "a"), {
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
   });
 });

@@ -5,6 +5,7 @@
 
 import { fmt, fmtInt, weatherIcon, windDir, phaseTagClass } from "../core/format.js";
 import { sum } from "../core/stats.js";
+import { weekSortIndex } from "../core/aggregate.js";
 import { normalizeFeel } from "../core/normalize.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
@@ -390,8 +391,8 @@ export const Table = {
     r.sort((a, b) => {
       let va, vb;
       if (col === "week") {
-        va = CONFIG.weekIndex(a.week);
-        vb = CONFIG.weekIndex(b.week);
+        va = weekSortIndex(a.week, (w) => CONFIG.weekIndex(w));
+        vb = weekSortIndex(b.week, (w) => CONFIG.weekIndex(w));
       } else {
         va = a[col];
         vb = b[col];

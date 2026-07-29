@@ -56,9 +56,9 @@ test("weekDisplayLabels: Kalenderwochen kompakt, Jahreswechsel markiert", () => 
   ]);
 });
 
-test("weekDisplayLabels: Monats-Keys kompakt, Plan-Wochen unverändert", () => {
+test("weekDisplayLabels: Monats-Keys kompakt, Notion-Plan-1-Wochenlabels unverändert", () => {
   assert.deepEqual(weekDisplayLabels(["2026-07", "2026-08"]), ["07/26", "08/26"]);
-  assert.deepEqual(weekDisplayLabels(["W1", "P2-W3", "Vorb."]), ["W1", "P2-W3", "Vorb."]);
+  assert.deepEqual(weekDisplayLabels(["W1", "W3", "Vorb."]), ["W1", "W3", "Vorb."]);
   assert.deepEqual(weekDisplayLabels([]), []);
 });
 

@@ -377,11 +377,15 @@ async function renderAll(athleteId) {
   // zurückrutschen und von analysis.js's eigenem lokalen todayISO() abweichen.
   const todayISO = localISODate();
 
-  // Wochen-Zuordnung: Plan-Wochen (Athlet 1) bzw. ISO-Kalenderwochen
-  const weekKeyFn = ownPlan ? (r) => r.week : (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
-  const weekSortFn = ownPlan
-    ? (a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b)
-    : (a, b) => a.localeCompare(b);
+  // Wochen-Zuordnung: ISO-Kalenderwoche, einheitlich für beide Athleten
+  // (dashboard-2.0, Umbau "Plan 1/2 → Kalenderwoche"). Bewusst NICHT r.week
+  // direkt (Athlet 1 trägt dort für die Notion-Plan-1-Ära weiterhin die
+  // historischen "W1".."W12"-Labels, s. state/config.js::weekOrder-Kommentar)
+  // — ein gemischtes Format wäre über CONFIG.weekIndex() nicht mehr
+  // korrekt chronologisch sortierbar (mehrere Kalenderwochen-Strings landen
+  // gleichermaßen im 999-Fallback).
+  const weekKeyFn = (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
+  const weekSortFn = (a, b) => a.localeCompare(b);
   const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn);
 
   togglePlanningTabVisibility(hasPlanningTab);

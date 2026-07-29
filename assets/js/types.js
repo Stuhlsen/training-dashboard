@@ -13,7 +13,9 @@
  * @property {string} [date]       Roh-Datum aus der Quelle (identisch zu dateISO)
  * @property {string} [dateShort]  DD.MM für Anzeige
  * @property {string} [startTime]  start_date_local aus intervals.icu (Tiebreaker)
- * @property {string} [week]       Plan-Woche ("W1", "P2-W3") — fehlt bei Vergleichsdaten
+ * @property {string} [week]       Notion-Plan-Woche ("W1", …, historisch) oder
+ *                                  ISO-Kalenderwoche ("2026-KW31", seit dem Umbau
+ *                                  "Plan 1/2 → Kalenderwoche") — fehlt bei Vergleichsdaten
  * @property {string|null} [phase]
  * @property {string} [plan]       "Plan 1" | "Plan 2" | "Vergleich"
  * @property {string} [name]

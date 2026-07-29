@@ -38,6 +38,7 @@ import { createTrainerProposal } from "../state/proposals.js";
 import { moveProposalArgs, cancelProposalArgs } from "../core/proposal-payload.js";
 import { isCoach } from "../state/session.js";
 import { el, escapeHtml } from "./dom.js";
+import { weekDisplayLabels } from "./charts/base.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
 import { openPlanCardDialog } from "./plan-card-dialog.js";
@@ -332,7 +333,7 @@ export const Planned = {
     const missedCount = missedSessions.length;
     const pct = Math.round((doneCount / totalSessions) * 100);
     const editable = _canEdit();
-    const currentWeek = sessions[0]?.week?.replace("P2-", "") || (editable ? "W12" : "–");
+    const currentWeek = sessions[0]?.week ? weekDisplayLabels([sessions[0].week])[0] : "–";
     const weeksLeft = new Set(sessions.map((s) => s.week)).size;
     const heroTitle = editable ? "Trainingsplan Plan 2" : "Trainingsplan — GFNY Bremen 2026";
     const heroDesc = editable
@@ -409,7 +410,7 @@ export const Planned = {
         html += `
           <div class="planned-week">
             <div class="planned-week-header">
-              <span class="planned-week-badge" style="background:${phaseColor}22; color:${phaseColor}; border-color:${phaseColor}44">${week.replace("P2-", "")}</span>
+              <span class="planned-week-badge" style="background:${phaseColor}22; color:${phaseColor}; border-color:${phaseColor}44">${weekDisplayLabels([week])[0]}</span>
               <span class="planned-week-phase">${phase}</span>
             </div>
             <div class="planned-cards">

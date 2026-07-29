@@ -13,7 +13,7 @@
    nutzen immer den vollen Datensatz.
    ============================================================ */
 
-import { isoWeekKey } from "../core/aggregate.js";
+import { isoWeekKey, weekSortIndex } from "../core/aggregate.js";
 import { buildConsistency } from "../core/adherence.js";
 import {
   availability,
@@ -127,12 +127,13 @@ export const Analysis = {
     this._renderComparison(ownPlan);
   },
 
-  /* ── Wochen-Helfer (wie app.js) ───────────────────────────── */
-  _weekFns(ownPlan) {
-    const weekKeyFn = ownPlan ? (r) => r.week : (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
-    const weekSortFn = ownPlan
-      ? (a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b)
-      : (a, b) => a.localeCompare(b);
+  /* ── Wochen-Helfer (wie app.js) ─────────────────────────────
+     ISO-Kalenderwoche, einheitlich für beide Athleten (dashboard-2.0,
+     Umbau "Plan 1/2 → Kalenderwoche") — bewusst NICHT r.week direkt, s.
+     ausführliche Begründung in app.js an derselben Stelle. */
+  _weekFns() {
+    const weekKeyFn = (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
+    const weekSortFn = (a, b) => a.localeCompare(b);
     return { weekKeyFn, weekSortFn };
   },
 
@@ -857,7 +858,7 @@ export const Analysis = {
       return;
     }
 
-    const c = phaseCompliance(this._allRides, (w) => CONFIG.weekIndex(w));
+    const c = phaseCompliance(this._allRides, (w) => weekSortIndex(w, (x) => CONFIG.weekIndex(x)));
     if (!c) {
       box.innerHTML = `<p class="analysis-empty">Wird befüllt, sobald Plan-2-Blockwochen Fahrten mit Phasen-Zuordnung haben.</p>`;
       return;

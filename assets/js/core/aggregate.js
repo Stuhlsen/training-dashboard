@@ -22,18 +22,19 @@ export function isoWeekKey(dateStr) {
 }
 
 /**
- * Wochen-Schlüssel einer Fahrt — eigene Plan-Woche wenn vorhanden, sonst
- * ISO-Kalenderwoche aus dem Datum. Vergleichsathleten (kein eigener Plan)
- * haben nie r.week gesetzt; Aufrufstellen, die trotzdem direkt nach r.week
- * gruppieren, sammeln sonst ALLE Fahrten in einem falschen "undefined"-
- * Bucket (siehe Bug: Trainingswetter-Wochenansicht bei Athlet 2).
- * @param {import("../types.js").Ride} r
- * @returns {string|null} null wenn weder Plan-Woche noch Datum vorhanden
+ * Numerischer Sortier-Index für einen Wochen-Label-String — für Kontexte,
+ * die eine Zahl statt eines lexikografisch sortierbaren Strings brauchen
+ * (z.B. CONFIG.weekIndex()-kompatible Sortierfunktionen, die per Subtraktion
+ * vergleichen). Erkennt ISO-Kalenderwochen ("2026-KW31" → 202631, sortiert
+ * korrekt über Jahresgrenzen) und delegiert alles andere (historische
+ * Notion-Plan-1-Labels wie "W3") an `fallback`.
+ * @param {string} week
+ * @param {(week: string) => number} fallback z.B. CONFIG.weekIndex
+ * @returns {number}
  */
-export function rideWeekKey(r) {
-  if (r.week) return r.week;
-  if (r.dateISO) return isoWeekKey(r.dateISO);
-  return null;
+export function weekSortIndex(week, fallback) {
+  const m = /^(\d{4})-KW(\d{2})$/.exec(week || "");
+  return m ? Number(m[1]) * 100 + Number(m[2]) : fallback(week);
 }
 
 /** Gemeinsames Aggregat für eine Gruppe von Fahrten
@@ -59,28 +60,12 @@ function aggregateGroup(week, wr, meta = {}) {
 }
 
 /**
- * Wochen-Aggregation entlang der Plan-Wochenstruktur (r.week).
- * @param {import("../types.js").Ride[]} rides
- * @param {(week: string) => number} weekIndexFn Sortier-Index (CONFIG.weekIndex)
- * @returns {import("../types.js").WeekAggregate[]}
- */
-export function weeklyFromPlanWeeks(rides, weekIndexFn) {
-  const weeks = [...new Set(rides.map((r) => r.week))]
-    .filter(Boolean)
-    .sort((a, b) => weekIndexFn(a) - weekIndexFn(b));
-
-  return weeks.map((week) => {
-    const wr = rides.filter((r) => r.week === week);
-    return aggregateGroup(week, wr, {
-      phase: wr[0]?.phase || "Vorbereitung",
-      plan: wr[0]?.plan || "Plan 1",
-    });
-  });
-}
-
-/**
- * Wochen-Aggregation nach ISO-Kalenderwoche — Fallback für Athleten ohne
- * eigene Trainingsplan-Wochenstruktur (z.B. Vergleichsdaten).
+ * Wochen-Aggregation nach ISO-Kalenderwoche — einheitliche Grundlage für
+ * beide Athleten (dashboard-2.0, Umbau "Plan 1/2 → Kalenderwoche"). Phase
+ * wird pro Woche übernommen, falls die Fahrten dort eine gemeinsame Block-
+ * Phase tragen (r.phase, z.B. "Sweet Spot"/"Schwelle" bei Athlet 1) — eine
+ * Kalenderwoche entspricht 1:1 einem PLAN2_SCHEDULE-Block, daher reicht
+ * `wr[0]?.phase` als Mehrheitswert.
  * @param {import("../types.js").Ride[]} rides
  * @returns {import("../types.js").WeekAggregate[]}
  */
@@ -94,7 +79,7 @@ export function weeklyByCalendar(rides) {
 
   return Object.entries(grouped)
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([week, wr]) => aggregateGroup(week, wr, { phase: null, plan: "Vergleich" }));
+    .map(([week, wr]) => aggregateGroup(week, wr, { phase: wr[0]?.phase || null }));
 }
 
 /**

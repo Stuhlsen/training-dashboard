@@ -8,7 +8,7 @@
 import { fmt, fmtDateFull, diffDays } from "../../core/format.js";
 import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js";
 import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
-import { rideWeekKey } from "../../core/aggregate.js";
+import { isoWeekKey } from "../../core/aggregate.js";
 import { dateToWeekBucket, weekBucketDateRange } from "../../core/chart-buckets.js";
 import { pmcSkeletonAnchor } from "../../core/days.js";
 import { CONFIG } from "../../state/config.js";
@@ -679,16 +679,17 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
     return;
   }
 
-  // Wochenweise aggregieren — Plan-Woche wenn vorhanden, sonst ISO-Kalenderwoche
-  // (core/aggregate.js::rideWeekKey). Fahrten ohne verwertbares Datum werden
-  // übersprungen und geloggt statt in einen falschen Sammel-Bucket zu fallen.
+  // Wochenweise aggregieren — ISO-Kalenderwoche, einheitlich für beide
+  // Athleten (core/aggregate.js::isoWeekKey). Fahrten ohne verwertbares
+  // Datum werden übersprungen und geloggt statt in einen falschen
+  // Sammel-Bucket zu fallen.
   const weekMap = {};
   for (const r of withWeather) {
-    const wk = rideWeekKey(r);
-    if (!wk) {
+    if (!r.dateISO) {
       log.warn("Wetter-Chart: Fahrt ohne Woche/Datum übersprungen", r.name || r.dateISO);
       continue;
     }
+    const wk = isoWeekKey(r.dateISO);
     if (!weekMap[wk]) weekMap[wk] = { week: wk, temps: [], winds: [], precips: [], rides: [] };
     weekMap[wk].temps.push(r.weather.temp);
     weekMap[wk].winds.push(r.weather.windSpeed);
@@ -711,13 +712,9 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
     wind: Math.round(mean(w.winds) * 10) / 10,
     precip: Math.round(w.precips.reduce((a, b) => a + b, 0) * 10) / 10,
     rides: w.rides,
-    isP2: w.week.startsWith("P2-"),
   }));
 
-  // Virtuellen Lücken-Slot zwischen Plan 1 und Plan 2 einrechnen
-  const p2Idx = data.findIndex((d) => d.isP2);
-  const GAP_SLOTS = p2Idx > 0 ? 1.5 : 0; // 1.5 extra Slots als Lücke
-  const totalSlots = data.length + GAP_SLOTS;
+  const totalSlots = data.length;
 
   const PPW = 52;
   const H = 240,
@@ -737,9 +734,7 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
     const minT = Math.min(Math.min(...temps) - 3, 0);
     const maxW = Math.max(...winds, 30) * 1.15;
 
-    // Slot-Index berücksichtigt die Gap zwischen Plan 1 und Plan 2
-    const slotIndex = (i) => (p2Idx > 0 && i >= p2Idx ? i + GAP_SLOTS : i);
-    const xMid = (i) => pad.l + (slotIndex(i) + 0.5) * (cw / totalSlots);
+    const xMid = (i) => pad.l + (i + 0.5) * (cw / totalSlots);
     const yTemp = (t) => pad.t + ch - ((t - minT) / (maxT - minT)) * ch;
     const yWind = (w) => pad.t + ch - (w / maxW) * ch;
     const barW = Math.max(10, cw / totalSlots - 6);
@@ -922,45 +917,6 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
         })
       );
     });
-
-    // Plan-Divider: in der Mitte der Lücke zwischen Plan 1 und Plan 2
-    const p2Start = data.findIndex((d) => d.isP2);
-    if (p2Start > 0) {
-      // Divider liegt in der Mitte des Gap-Bereichs
-      const dx = pad.l + (slotIndex(p2Start) - GAP_SLOTS / 2) * (cw / totalSlots);
-      svg.appendChild(
-        svgEl("line", {
-          x1: dx,
-          y1: pad.t,
-          x2: dx,
-          y2: pad.t + ch,
-          stroke: "#e08a3c",
-          "stroke-width": "1.5",
-          "stroke-dasharray": "4,3",
-          opacity: "0.6",
-        })
-      );
-      const lp1 = svgEl("text", {
-        x: dx - 6,
-        y: pad.t + 10,
-        "text-anchor": "end",
-        fill: "#5f6878",
-        "font-size": "8",
-        "font-weight": "600",
-      });
-      lp1.textContent = "← Plan 1";
-      svg.appendChild(lp1);
-      const lp2 = svgEl("text", {
-        x: dx + 6,
-        y: pad.t + 10,
-        "text-anchor": "start",
-        fill: "#e08a3c",
-        "font-size": "8",
-        "font-weight": "600",
-      });
-      lp2.textContent = "Plan 2 →";
-      svg.appendChild(lp2);
-    }
 
     // Auto-scroll ans aktuelle Ende (rechts = neueste Woche)
     const scrollContainer = svg.parentElement;

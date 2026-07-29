@@ -38,7 +38,7 @@ export const PLANNED_SESSIONS = {
   "2026-06-23": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W0",
+    week: "2026-KW26",
     phase: "Übergang",
     km: 70,
     details: "Gruppenfahrt Di · HF frei · Spaß im Vordergrund",
@@ -46,7 +46,7 @@ export const PLANNED_SESSIONS = {
   "2026-06-25": {
     name: "Aktivierung W0",
     typ: "Z1 Recovery",
-    week: "P2-W0",
+    week: "2026-KW26",
     phase: "Übergang",
     km: 30,
     details: "Lockere Aktivierungsfahrt · HF <123 bpm",
@@ -54,7 +54,7 @@ export const PLANNED_SESSIONS = {
   "2026-06-27": {
     name: "Z2 Lang",
     typ: "Z2 Lang",
-    week: "P2-W0",
+    week: "2026-KW26",
     phase: "Übergang",
     km: 70,
     details: "Lange Z2 · HF 123–152 bpm · keine Intervalle",
@@ -64,7 +64,7 @@ export const PLANNED_SESSIONS = {
   "2026-06-29": {
     name: "Z2 Dauer",
     typ: "Z2 Dauer",
-    week: "P2-W1",
+    week: "2026-KW27",
     phase: "Sweet Spot",
     km: 25,
     details: "Kurze Z2 · HF 123–152 bpm · Beine locker halten",
@@ -72,7 +72,7 @@ export const PLANNED_SESSIONS = {
   "2026-06-30": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W1",
+    week: "2026-KW27",
     phase: "Sweet Spot",
     km: 70,
     details: "Gruppenfahrt Di · HF frei",
@@ -80,7 +80,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-02": {
     name: "Sweet Spot 3×10 min",
     typ: "Sweet Spot",
-    week: "P2-W1",
+    week: "2026-KW27",
     phase: "Sweet Spot",
     km: 55,
     workout: {
@@ -98,7 +98,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-03": {
     name: "Z2 Kurz",
     typ: "Z2 Dauer",
-    week: "P2-W1",
+    week: "2026-KW27",
     phase: "Sweet Spot",
     km: 25,
     details: "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen",
@@ -106,7 +106,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-04": {
     name: "Z2 Lang",
     typ: "Z2 Lang",
-    week: "P2-W1",
+    week: "2026-KW27",
     phase: "Sweet Spot",
     km: 80,
     details: "Lange Z2 · HF 123–152 bpm · ≥3h anstreben",
@@ -116,7 +116,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-06": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W2",
+    week: "2026-KW28",
     phase: "Sweet Spot",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -124,7 +124,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-07": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W2",
+    week: "2026-KW28",
     phase: "Sweet Spot",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -132,7 +132,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-09": {
     name: "Sweet Spot 3×12 min",
     typ: "Sweet Spot",
-    week: "P2-W2",
+    week: "2026-KW28",
     phase: "Sweet Spot",
     km: 58,
     workout: {
@@ -150,7 +150,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-10": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W2",
+    week: "2026-KW28",
     phase: "Sweet Spot",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -158,7 +158,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-11": {
     name: "SS-Ausdauer 3×15 min",
     typ: "Sweet Spot",
-    week: "P2-W2",
+    week: "2026-KW28",
     phase: "Sweet Spot",
     km: 80,
     workout: {
@@ -179,7 +179,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-13": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W3",
+    week: "2026-KW29",
     phase: "Sweet Spot",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -187,7 +187,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-14": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W3",
+    week: "2026-KW29",
     phase: "Sweet Spot",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -195,7 +195,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-16": {
     name: "Sweet Spot 2×20 min",
     typ: "Sweet Spot",
-    week: "P2-W3",
+    week: "2026-KW29",
     phase: "Sweet Spot",
     km: 62,
     workout: {
@@ -213,7 +213,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-17": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W3",
+    week: "2026-KW29",
     phase: "Sweet Spot",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -221,7 +221,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-18": {
     name: "SS-Ausdauer 2×25 min",
     typ: "Sweet Spot",
-    week: "P2-W3",
+    week: "2026-KW29",
     phase: "Sweet Spot",
     km: 85,
     workout: {
@@ -242,7 +242,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-20": {
     name: "Z2 Dauer",
     typ: "Z2 Dauer",
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
     km: 20,
     details: "Lockere Z2 · HF 123–145 bpm · optional (Erholungswoche)",
@@ -250,7 +250,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-21": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
     km: 25,
     details: "Recovery · HF <123 bpm · sehr locker",
@@ -258,7 +258,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-23": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
     km: 30,
     details: "Lockere Z2 · kein Druck · −50% Volumen",
@@ -266,7 +266,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-24": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
     km: 20,
     details: "Recovery · HF <123 bpm · optional (Erholungswoche)",
@@ -274,7 +274,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-25": {
     name: "Z2 Lang",
     typ: "Z2 Lang",
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
     km: 60,
     details: "Kurze Z2 Lang · Erholungswoche · −50% Volumen · keine Intervalle",
@@ -284,7 +284,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-27": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W5",
+    week: "2026-KW31",
     phase: "Schwelle",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -292,7 +292,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-28": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W5",
+    week: "2026-KW31",
     phase: "Schwelle",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -300,7 +300,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-30": {
     name: "Schwelle 3×8 min",
     typ: "Schwelle",
-    week: "P2-W5",
+    week: "2026-KW31",
     phase: "Schwelle",
     km: 55,
     workout: {
@@ -318,7 +318,7 @@ export const PLANNED_SESSIONS = {
   "2026-07-31": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W5",
+    week: "2026-KW31",
     phase: "Schwelle",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -326,7 +326,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-01": {
     name: "SS-Durability 3×15 min",
     typ: "Sweet Spot",
-    week: "P2-W5",
+    week: "2026-KW31",
     phase: "Schwelle",
     km: 82,
     workout: {
@@ -348,7 +348,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-03": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W6",
+    week: "2026-KW32",
     phase: "Schwelle",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -356,7 +356,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-04": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W6",
+    week: "2026-KW32",
     phase: "Schwelle",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -364,7 +364,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-06": {
     name: "Schwelle 3×10 min",
     typ: "Schwelle",
-    week: "P2-W6",
+    week: "2026-KW32",
     phase: "Schwelle",
     km: 58,
     workout: {
@@ -382,7 +382,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-07": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W6",
+    week: "2026-KW32",
     phase: "Schwelle",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -390,7 +390,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-08": {
     name: "SS-Durability 2×20 min",
     typ: "Sweet Spot",
-    week: "P2-W6",
+    week: "2026-KW32",
     phase: "Schwelle",
     km: 85,
     workout: {
@@ -411,7 +411,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-10": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W7",
+    week: "2026-KW33",
     phase: "Schwelle",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -419,7 +419,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-11": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W7",
+    week: "2026-KW33",
     phase: "Schwelle",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -427,7 +427,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-13": {
     name: "Schwelle 2×20 min",
     typ: "Schwelle",
-    week: "P2-W7",
+    week: "2026-KW33",
     phase: "Schwelle",
     km: 65,
     workout: {
@@ -445,7 +445,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-14": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W7",
+    week: "2026-KW33",
     phase: "Schwelle",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -453,7 +453,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-15": {
     name: "SS-Durability 3×20 min",
     typ: "Sweet Spot",
-    week: "P2-W7",
+    week: "2026-KW33",
     phase: "Schwelle",
     km: 92,
     workout: {
@@ -475,7 +475,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-17": {
     name: "Z2 Dauer",
     typ: "Z2 Dauer",
-    week: "P2-W8",
+    week: "2026-KW34",
     phase: "Erholung",
     km: 20,
     details: "Lockere Z2 · HF 123–145 bpm · optional (Erholungswoche)",
@@ -483,7 +483,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-18": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W8",
+    week: "2026-KW34",
     phase: "Erholung",
     km: 25,
     details: "Recovery · HF <123 bpm · sehr locker",
@@ -491,7 +491,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-20": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W8",
+    week: "2026-KW34",
     phase: "Erholung",
     km: 30,
     details: "Lockere Z2 · Erholungswoche · −50% Volumen",
@@ -499,7 +499,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-21": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W8",
+    week: "2026-KW34",
     phase: "Erholung",
     km: 20,
     details: "Recovery · HF <123 bpm · optional (Erholungswoche)",
@@ -507,7 +507,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-22": {
     name: "Z2 Lang",
     typ: "Z2 Lang",
-    week: "P2-W8",
+    week: "2026-KW34",
     phase: "Erholung",
     km: 60,
     details: "Kurze Z2 Lang · −50% Volumen · keine Intervalle",
@@ -517,7 +517,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-24": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W9",
+    week: "2026-KW35",
     phase: "VO2max",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -525,7 +525,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-25": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W9",
+    week: "2026-KW35",
     phase: "VO2max",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -533,7 +533,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-27": {
     name: "VO₂max 5×3 min",
     typ: "VO2max",
-    week: "P2-W9",
+    week: "2026-KW35",
     phase: "VO2max",
     km: 50,
     workout: {
@@ -551,7 +551,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-28": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W9",
+    week: "2026-KW35",
     phase: "VO2max",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -559,7 +559,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-29": {
     name: "SS-Erhaltung 2×20 min",
     typ: "Sweet Spot",
-    week: "P2-W9",
+    week: "2026-KW35",
     phase: "VO2max",
     km: 80,
     workout: {
@@ -581,7 +581,7 @@ export const PLANNED_SESSIONS = {
   "2026-08-31": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W10",
+    week: "2026-KW36",
     phase: "VO2max",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -589,7 +589,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-01": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W10",
+    week: "2026-KW36",
     phase: "VO2max",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -597,7 +597,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-03": {
     name: "VO₂max 6×3 min",
     typ: "VO2max",
-    week: "P2-W10",
+    week: "2026-KW36",
     phase: "VO2max",
     km: 52,
     workout: {
@@ -615,7 +615,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-04": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W10",
+    week: "2026-KW36",
     phase: "VO2max",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -623,7 +623,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-05": {
     name: "SS-Erhaltung 3×15 min",
     typ: "Sweet Spot",
-    week: "P2-W10",
+    week: "2026-KW36",
     phase: "VO2max",
     km: 85,
     workout: {
@@ -645,7 +645,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-07": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W11",
+    week: "2026-KW37",
     phase: "VO2max",
     km: 25,
     details: "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)",
@@ -653,7 +653,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-08": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W11",
+    week: "2026-KW37",
     phase: "VO2max",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
@@ -661,7 +661,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-10": {
     name: "VO₂max 4×4 min",
     typ: "VO2max",
-    week: "P2-W11",
+    week: "2026-KW37",
     phase: "VO2max",
     km: 52,
     workout: {
@@ -679,7 +679,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-11": {
     name: "Recovery",
     typ: "Z1 Recovery",
-    week: "P2-W11",
+    week: "2026-KW37",
     phase: "VO2max",
     km: 25,
     details: "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)",
@@ -687,7 +687,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-12": {
     name: "SS-Erhaltung 2×20 min",
     typ: "Sweet Spot",
-    week: "P2-W11",
+    week: "2026-KW37",
     phase: "VO2max",
     km: 82,
     workout: {
@@ -709,7 +709,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-14": {
     name: "Z2 Locker",
     typ: "Z2 Dauer",
-    week: "P2-W12",
+    week: "2026-KW38",
     phase: "Taper",
     km: 20,
     details: "Kurze lockere Z2 · Taper · Beine frisch halten · optional",
@@ -717,7 +717,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-15": {
     name: "Gruppenfahrt",
     typ: "Gruppenfahrt",
-    week: "P2-W12",
+    week: "2026-KW38",
     phase: "Taper",
     km: 55,
     details: "Letzte Gruppenfahrt · locker bleiben",
@@ -725,7 +725,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-17": {
     name: "Aktivierung vor Test",
     typ: "Z1 Recovery",
-    week: "P2-W12",
+    week: "2026-KW38",
     phase: "Taper",
     km: 30,
     details: "Kurze Aktivierung mit 2–3 kurzen Antritten · Beine wecken vor Ramp Test",
@@ -733,7 +733,7 @@ export const PLANNED_SESSIONS = {
   "2026-09-19": {
     name: "FTP Ramp Test",
     typ: "FTP-Test",
-    week: "P2-W12",
+    week: "2026-KW38",
     phase: "Taper",
     km: 25,
     workout: {

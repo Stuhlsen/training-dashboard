@@ -14,6 +14,7 @@ import {
   governLevel,
 } from "../assets/js/core/briefing.js";
 import { currentPmc, tsbTrend } from "../assets/js/core/pmc.js";
+import { weekSortIndex } from "../assets/js/core/aggregate.js";
 import {
   availability,
   weightTrend,
@@ -426,7 +427,7 @@ test("hydrationSeries: bevorzugt Volumen, Fallback Score, null ohne Daten", () =
 
 /* ── Periodisierung ─────────────────────────────────────────── */
 
-const weekIdx = (w) => parseInt(w.replace("P2-W", ""), 10);
+const weekIdx = (w) => weekSortIndex(w, () => 999);
 
 test("matchesSignature: Typ-Match oder IF-Korridor (≥30min)", () => {
   assert.equal(matchesSignature({ typ: "Sweet Spot" }, "Sweet Spot"), true);
@@ -448,16 +449,16 @@ test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   });
   const rides = [
     // SS-Block, 2 Wochen à 2 Quality → voll erfüllt
-    r("P2-W1", "Sweet Spot", "Sweet Spot", 90),
-    r("P2-W1", "Sweet Spot", "Gruppenfahrt", 80, { if: 0.85, min: 90 }),
-    r("P2-W1", "Sweet Spot", "Z2 Lang", 70),
-    r("P2-W2", "Sweet Spot", "Sweet Spot", 95),
-    r("P2-W2", "Sweet Spot", "Sweet Spot", 92),
+    r("2026-KW27", "Sweet Spot", "Sweet Spot", 90),
+    r("2026-KW27", "Sweet Spot", "Gruppenfahrt", 80, { if: 0.85, min: 90 }),
+    r("2026-KW27", "Sweet Spot", "Z2 Lang", 70),
+    r("2026-KW28", "Sweet Spot", "Sweet Spot", 95),
+    r("2026-KW28", "Sweet Spot", "Sweet Spot", 92),
     // Erholungswoche mit klar reduziertem TSS
-    r("P2-W4", "Erholung", "Z1 Recovery", 40),
+    r("2026-KW30", "Erholung", "Z1 Recovery", 40),
     // Schwellen-Woche OHNE Schwellen-Signatur → abweichend
-    r("P2-W5", "Schwelle", "Z2 Lang", 85, { if: 0.65, min: 120 }),
-    r("P2-W5", "Schwelle", "Z2 Dauer", 60, { if: 0.6, min: 70 }),
+    r("2026-KW31", "Schwelle", "Z2 Lang", 85, { if: 0.65, min: 120 }),
+    r("2026-KW31", "Schwelle", "Z2 Dauer", 60, { if: 0.6, min: 70 }),
   ];
   const c = phaseCompliance(rides, weekIdx);
   assert.ok(c);
@@ -468,8 +469,8 @@ test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   const thr = c.blocks.find((b) => b.phase === "Schwelle");
   assert.equal(thr.quality, 0);
   assert.equal(thr.status, "abweichend");
-  // Erholung: 40 TSS vs. Nachbarwoche W5 (145) → 40 ≤ 145×0.6 → reduziert
-  const rec = c.recovery.find((x) => x.week === "P2-W4");
+  // Erholung: 40 TSS vs. Nachbarwoche KW31 (145) → 40 ≤ 145×0.6 → reduziert
+  const rec = c.recovery.find((x) => x.week === "2026-KW30");
   assert.equal(rec.reduced, 40 <= rec.refTss * RECOVERY_MAX_SHARE);
   assert.equal(rec.reduced, true);
 });

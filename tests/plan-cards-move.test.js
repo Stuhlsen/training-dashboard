@@ -55,7 +55,7 @@ const SEED = [
     sortOrder: 0,
     name: "Sweet Spot 3×12",
     typ: "Sweet Spot",
-    week: "P2-W3",
+    week: "2026-KW29",
     phase: "Sweet Spot",
   },
   {
@@ -64,7 +64,7 @@ const SEED = [
     sortOrder: 0,
     name: "Erholung",
     typ: "Z1 Recovery",
-    week: "P2-W4",
+    week: "2026-KW30",
     phase: "Erholung",
   },
 ];
@@ -117,13 +117,13 @@ test("movePlanCard schreibt moved_from_date nur beim ERSTEN Verschieben", async 
 
 test("movePlanCard übernimmt week/phase der Zielwoche", async () => {
   await seed();
-  // card-A (P2-W3) auf die Woche von card-B (P2-W4) ziehen
+  // card-A (2026-KW29) auf die Woche von card-B (2026-KW30) ziehen
   const p = movePlanCard("card-A", "2026-07-29", "");
-  assert.equal(pending[0].patch.week, "P2-W4");
+  assert.equal(pending[0].patch.week, "2026-KW30");
   assert.equal(pending[0].patch.phase, "Erholung");
   pending[0].resolve({ ok: true, card: serverCard(SEED[0], pending[0].patch) });
   await p;
-  assert.equal(cardById("card-A").week, "P2-W4", "hängt unter der richtigen Wochenüberschrift");
+  assert.equal(cardById("card-A").week, "2026-KW30", "hängt unter der richtigen Wochenüberschrift");
 });
 
 test("movePlanCard lässt week/phase unangetastet, wenn die Zielwoche leer ist", async () => {
@@ -133,7 +133,7 @@ test("movePlanCard lässt week/phase unangetastet, wenn die Zielwoche leer ist",
   assert.equal(pending[0].patch.phase, undefined);
   pending[0].resolve({ ok: true, card: serverCard(SEED[0], pending[0].patch) });
   await p;
-  assert.equal(cardById("card-A").week, "P2-W3", "behält v1-gemäß sein altes Label");
+  assert.equal(cardById("card-A").week, "2026-KW29", "behält v1-gemäß sein altes Label");
 });
 
 test("movePlanCard reaktiviert eine ausgefallene Karte als geplant", async () => {

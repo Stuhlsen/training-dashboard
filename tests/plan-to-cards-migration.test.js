@@ -7,7 +7,7 @@ import { buildPlanCardRows } from "../scripts/lib/plan-to-cards.js";
 
 test("buildPlanCardRows: unveränderte Session → geplant, keine Verschiebung", () => {
   const sessions = {
-    "2026-07-10": { name: "Sweet Spot", typ: "Sweet Spot", week: "P2-W3", phase: "Sweet Spot", km: 55 },
+    "2026-07-10": { name: "Sweet Spot", typ: "Sweet Spot", week: "2026-KW29", phase: "Sweet Spot", km: 55 },
   };
   const rows = buildPlanCardRows(sessions, {});
   assert.equal(rows.length, 1);
