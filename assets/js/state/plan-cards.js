@@ -72,7 +72,7 @@ export function recomputeProjection() {
   const events = projectionSources.getEvents() || [];
   const ftp = projectionSources.getFtp?.();
   projection = projectLoad(cards, actuals, { events, ftp });
-  conflicts = detectConflicts(projection, cards, events);
+  conflicts = detectConflicts(projection, cards, events, actuals);
 }
 
 function notify() {

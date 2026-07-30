@@ -41,10 +41,13 @@ function dateRange(dates) {
  * @param {{days: Array<{date: string, tsb: number, tss: number, cardIds: string[]}>}} projection
  * @param {Array<{id: string, date: string, typ?: string|null, cancelled?: boolean}>} cards
  * @param {Array<{eventDate: string, title?: string, type?: string, priority?: string}>} events
+ * @param {import("../types.js").Ride[]} [actuals] Ist-Fahrten — nur für den
+ *   K-RAMPE-Ist-Seed genutzt (letzte tatsächlich gefahrene Woche als
+ *   Vergleichswert für die erste volle Planwoche, s. docs/offene-punkte.md).
  * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>}} [options]
  * @returns {Conflict[]}
  */
-export function detectConflicts(projection, cards, events = [], options = {}) {
+export function detectConflicts(projection, cards, events = [], actuals = [], options = {}) {
   const cfg = options.config ?? CONFLICT_THRESHOLDS;
   const intensityTable = options.intensityTable ?? INTENSITY_CLASS;
   const days = projection?.days ?? [];
@@ -134,7 +137,12 @@ export function detectConflicts(projection, cards, events = [], options = {}) {
   }
 
   // ── K-RAMPE: Wochen-TSS-Sprung > +20 % (nur volle Wochen) ───────
+  // Ist-Seed: die Projektion selbst beginnt erst HEUTE und kennt keine
+  // Vergangenheit — ohne den Seed hätte die erste volle Planwoche nie einen
+  // Vorwert und würde nie geprüft (Schleife startet bei i=1).
   const weeks = weeklyTss(days);
+  const seed = lastRiddenWeekTss(actuals, today);
+  if (seed) weeks.unshift(seed);
   for (let i = 1; i < weeks.length; i++) {
     const prev = weeks[i - 1];
     const cur = weeks[i];
@@ -217,6 +225,26 @@ function runsWhere(days, pred) {
 /** TSS-Summe je ISO-Woche, nur VOLLE 7-Tage-Wochen (partielle Anfangs-/End-
  *  wochen würden den Rampenvergleich verfälschen — eine halbe Startwoche
  *  sähe künstlich niedrig aus). Chronologisch sortiert. */
+/** Wochen-TSS der letzten VOLLSTÄNDIG vergangenen Kalenderwoche aus echten
+ *  Fahrten — Ist-Seed für K-RAMPE (s. Aufrufstelle). Nimmt bewusst die
+ *  jüngste vorhandene Woche, auch wenn eine Lücke zu `beforeDate` liegt:
+ *  genau der Vergleich "Planstart vs. letzte reale Last" ist der Punkt.
+ *  @param {import("../types.js").Ride[]} actuals
+ *  @param {string} beforeDate ISO-Datum, ab dem nicht mehr gezählt wird
+ *  @returns {{tss: number} | null} */
+function lastRiddenWeekTss(actuals, beforeDate) {
+  const byWeek = new Map();
+  for (const r of actuals || []) {
+    const date = r.dateISO || r.date;
+    if (!date || date >= beforeDate || !Number.isFinite(r.tss)) continue;
+    const key = isoWeekKey(date);
+    byWeek.set(key, (byWeek.get(key) || 0) + r.tss);
+  }
+  if (!byWeek.size) return null;
+  const keys = [...byWeek.keys()].sort();
+  return { tss: byWeek.get(keys[keys.length - 1]) };
+}
+
 function weeklyTss(days) {
   const map = new Map();
   for (const d of days) {

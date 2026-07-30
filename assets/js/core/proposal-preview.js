@@ -74,9 +74,9 @@ export function applyProposalToCards(cards, proposal) {
  */
 export function previewProposal(proposal, { cards, actuals, events = [], ftp, today } = {}) {
   const before = projectLoad(cards, actuals, { events, ftp, today });
-  const beforeConflicts = detectConflicts(before, cards, events);
+  const beforeConflicts = detectConflicts(before, cards, events, actuals);
   const afterCards = applyProposalToCards(cards, proposal);
   const after = projectLoad(afterCards, actuals, { events, ftp, today });
-  const afterConflicts = detectConflicts(after, afterCards, events);
+  const afterConflicts = detectConflicts(after, afterCards, events, actuals);
   return { before, after, beforeConflicts, afterConflicts };
 }

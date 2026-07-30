@@ -137,6 +137,38 @@ test("K-RAMPE feuert nicht bei +10 % Wochenlast", () => {
   assert.equal(byRule(detectConflicts(twoWeeks(100, 110), [], []), "K-RAMPE").length, 0);
 });
 
+/* ── K-RAMPE Ist-Seed (letzte gefahrene Woche als Vorwert für die erste
+   volle Planwoche — ohne Seed hätte die Schleife oben für i=0 nie einen
+   Vorwert, s. docs/offene-punkte.md) ── */
+
+const ONE_WEEK_DATES = [
+  "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-25", "2026-07-26",
+];
+function oneWeek(weekTss) {
+  return mkProj(ONE_WEEK_DATES.map((date, i) => ({ date, tss: i === 0 ? weekTss : 0 })));
+}
+
+test("K-RAMPE: Ist-Seed vergleicht die erste volle Planwoche gegen die letzte gefahrene Woche", () => {
+  // Letzte gefahrene Woche (KW29, 13.–19.07.) hatte 100 TSS, die erste volle
+  // Planwoche (KW30, ab heute 2026-07-20) plant 140 → +40 %.
+  const actuals = [{ dateISO: "2026-07-15", tss: 40 }, { dateISO: "2026-07-17", tss: 60 }];
+  const c = byRule(detectConflicts(oneWeek(140), [], [], actuals), "K-RAMPE");
+  assert.equal(c.length, 1);
+  assert.match(c[0].message, /\+40 %/);
+  assert.deepEqual(c[0].dates, ["2026-07-20"]);
+});
+
+test("K-RAMPE: ohne Ist-Daten bleibt die erste Planwoche weiterhin unbewertet", () => {
+  assert.equal(byRule(detectConflicts(oneWeek(140), [], [], []), "K-RAMPE").length, 0);
+});
+
+test("K-RAMPE: Ist-Seed ignoriert Fahrten ab heute (nur Vergangenheit zählt)", () => {
+  // Eine "Ist"-Fahrt exakt am Planstart (heute) darf die Woche selbst nicht
+  // mit sich vergleichen — der Seed muss strikt davor liegen.
+  const actuals = [{ dateISO: "2026-07-20", tss: 140 }];
+  assert.equal(byRule(detectConflicts(oneWeek(140), [], [], actuals), "K-RAMPE").length, 0);
+});
+
 /* ── K-EVENT ─────────────────────────────────────────────────── */
 
 const raceMain = { eventDate: "2026-07-26", title: "GFNY", type: "race", priority: "main" };
