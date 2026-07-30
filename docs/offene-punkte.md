@@ -56,25 +56,9 @@ mehrere bereits committete Dateien anfassen:
   Umsortierung innerhalb eines Tages (`sort_order` wird nach dem Anlegen nie
   neu vergeben); Karte auf einen komplett leeren Wochenblock behält ihr altes
   `week`-Label. → §4/§7 im Konzept.
-- **K3 — Typ-Default-TSS auf dünner Datenbasis** (`core/plan-config.js::TYPE_DEFAULT_TSS`,
-  n=1–4 bei mehreren Typen) — beim K1-Schwellen-Review nach Plan 2 (mehr
-  Historie) zuerst gegenprüfen. → `docs/phase-3-konzept-konfliktlogik-prognose.md` §2/§3.
-- **K-RAMPE vergleicht nur Plan-vs-Plan**, kein Ist-Seed für die erste
-  Planwoche gegen die letzte tatsächlich gefahrene Woche. → ebd. §3.
-- **Push-Warnung/Konflikt-Badges fehlen in der „Verpasst"-Sektion**
-  (`ui/planned.js`, eigenes `.planned-done-item`-Markup ohne Badge-Struktur)
-  — praktisch selten relevant (Konflikte gelten nur ab heute).
 
 ## Phase 4 — Trainer-Dashboard & Export/Import
 
-- **Keine Dedup-Erkennung für doppelten Claude-Import** (bewusste
-  v1-Einschränkung) — zwei Importe derselben Antwort erzeugen zwei offene
-  Vorschläge. → `docs/phase-4-konzept-export-import-workflow.md` §6.
-- **„withdrawn"-Status ohne UI-Pfad** — Schema kennt den Wert, Zurückziehen
-  läuft aktuell nur über harte Löschung (RLS erlaubt `DELETE` bei `status='open'`),
-  ohne eigenen Button.
-- **CTL/ATL-Verlauf-Kachel zeigt nur den Snapshot**, keine Sparkline
-  (`ui/trainer-bar.js::ctlAtlTile`) — Name der Kachel etwas großzügig ausgelegt.
 - **Trainer kann eine Karte nie hart löschen** — bewusst, kein `delete`-Op in
   proposals v1 (Streichen läuft über `cancel`), kein offener Punkt.
 - **Review-Restpunkte, niedrige Priorität** (aus dem Ultra-Review vor dem
@@ -99,16 +83,6 @@ mehrere bereits committete Dateien anfassen:
   [HA]-Vereinheitlichungsschritts (der bleibt auf Datumsformate/Kategorien
   beschränkt). Voraussetzung für Cursor-Sync über den Explorer hinaus.
   → `docs/phase-5-konzept-explorer.md` §1.2/§8, X4.
-- **Rückrichtung Fahrtenbuch-Klick → Chart-Crosshair (Schritt 2) nicht
-  gebaut** — nur Chart→Fahrtenbuch/Planungstab war Auftragsumfang. Kein
-  vernachlässigbarer Zusatzaufwand: eine Zeile in `state/chart-view.js`
-  reicht NICHT, weil "eine Zeile anklicken und dauerhaft im Chart markiert
-  lassen" semantisch ein **Klick-Pin**, kein Hover ist — genau das Feld
-  `selected` aus der ursprünglichen Zustandsskizze (§2.1), das in Schritt 0
-  bewusst noch nicht angelegt wurde. Voraussetzung wäre also ein neuer
-  State-Slot plus die Frage, wie sich `selected` zu `hovered` verhält
-  (welches gewinnt visuell), nicht nur ein zusätzlicher Funktionsaufruf.
-  → `docs/phase-5-konzept-explorer.md` §2.1, §3.
 - **Vergleichsmodus (Schritt 4) vergleicht nur CTL**, nicht ATL/TSB — bewusste
   Scope-Begrenzung, analog zur Szenario-Zweitserie (Schritt 3), die ebenfalls
   nur CTL überlagert. Eine spätere Erweiterung auf ATL/TSB bräuchte eine
@@ -121,16 +95,11 @@ mehrere bereits committete Dateien anfassen:
   Umbau, geringeres Risiko für Schritt 0–3. Falls ein künftiger Baustein
   einen dritten unabhängigen Zeitraum bräuchte, wäre das wieder eine
   Einzelfall-Erweiterung, kein automatischer Fall für die bestehende Form.
-- **Schritt 5 modernisierte in `power.js` bewusst NUR `renderPowerCurve()`
-  (Familie 4)** — `renderEfficiency()` (Familie 2, lückige Zeitreihe),
-  `renderScatter()` und `renderSmallMultiples()` (Familie 5, Small
-  Multiples) blieben unangetastet, obwohl sie in derselben Datei stehen. Der
-  Schritt-5-Auftrag beschrieb ausschließlich die Power-Curve, ohne die drei
-  anderen Charts zu erwähnen (auch nicht als expliziten Ausschluss) —
-  Nutzerentscheidung (Rückfrage vor der Umsetzung): Scope bleibt auf die
-  Power-Curve begrenzt. Brauchen bei Bedarf eigene Schritte (5b/5c oder als
-  Teil von Schritt 6/7), jeweils nach ihrer eigenen Familie aus
-  `docs/chart-grundlagen.md` §7.2. → `docs/phase-5-konzept-explorer.md` §2.4.
+- **Schritt 5 modernisierte in `power.js` zunächst bewusst NUR
+  `renderPowerCurve()` (Familie 4)** — `renderEfficiency()`/`renderScatter()`/
+  `renderSmallMultiples()` blieben damals unangetastet (Nutzerentscheidung,
+  Rückfrage vor der Umsetzung). Inzwischen als eigener Nachzug nachgeholt,
+  s. „Erledigt".
 - **Schritt 6 modernisierte in `training.js` bewusst NUR `renderWeeklyVolume()`
   und `renderWeatherWeekly()`** (Familie 3) — exakt die beiden Charts, die
   `docs/phase-5-konzept-explorer.md` §2.4 wörtlich als „Wochenvolumen/Wetter
@@ -138,24 +107,9 @@ mehrere bereits committete Dateien anfassen:
   derselben Familie sehr ähnlich (wochenweise Balken + Ramp-Linie auf
   zweiter Achse), wurde aber vom Auftrag nicht namentlich genannt — Scope
   bewusst nicht ausgeweitet (Rückfrage vor der Umsetzung, analog zu
-  Schritt 5). `renderConsistency()` gehört laut Familientabelle zu
-  Familie 6 (Kalender/Matrix), nicht 3. `renderZoneWeekly()` bleibt
-  mehrdeutig zwischen Familie 3 (x-Achse = Wochen-Buckets) und der in
-  `docs/chart-grundlagen.md` §7.2 genannten Familie-4-Ausnahme
-  „Zonenverteilung" (dort ist unklar, ob das dieselbe oder eine andere,
-  rein kategoriale Zonenansicht meint) — braucht bei Bedarf eine eigene
-  Klärung, kein automatischer Fall für Familie 3.
-- **Schritt 6: Monats-Periode nicht an der bucketweisen Fadenkreuz-Kopplung/
-  dem Brush-Klick beteiligt** — `renderWeeklyVolume()`/`renderWeatherWeekly()`
-  haben einen Wochen-/Monats-Toggle, dessen Monats-Bucket-Schlüssel sich
-  zwischen beiden Charts unterscheiden (`renderWeeklyVolume` über
-  `monthlyFromRides()` ein bereits lokalisierter Anzeige-String, z.B.
-  „Jul '26"; `renderWeatherWeekly` dagegen der rohe `"YYYY-MM"`-Schlüssel,
-  von `app.js` vor dem Aufruf gesetzt). `core/chart-buckets.js` unterstützt
-  deshalb nur die Wochen-Periode; bei aktivem Monats-Toggle bleibt die
-  Optik modernisiert, aber ohne Hervorhebung/Brush-Klick. Eine spätere
-  Vereinheitlichung bräuchte zunächst eine gemeinsame Monats-Bucket-
-  Konvention für beide Charts.
+  Schritt 5). Fadenkreuz/Brush-Nachzug für `renderTrimp()` inzwischen
+  nachgeholt (Commit `cb24dfc`, s. „Erledigt"). `renderConsistency()`
+  gehört laut Familientabelle zu Familie 6 (Kalender/Matrix), nicht 3.
 - **Schritt 7 modernisierte in `wellness.js` ALLE 5 Render-Funktionen**
   (Familie 2) — anders als Schritt 5/6 gab es hier keine Zurückstellung:
   die Scope-Rückfrage vor der Umsetzung ergab, dass `renderSleep`,
@@ -172,13 +126,6 @@ mehrere bereits committete Dateien anfassen:
   genau diesen Vergleich im Normalfall verdecken. Eine spätere volle
   Familie-2-Teilnahme (Windowing) bräuchte eine eigene Entscheidung, wie der
   Plan-Vergleich davon ausgenommen bliebe.
-- **Schritt 7: rechte Sekundärachsen behalten die alte Tick-Zahlenreihe**
-  (Schlaf-HF in `renderSleep`, Gewichts-kg-Skala in `renderEnergy`) statt auf
-  `axisUnit()`/Direktbeschriftung umgestellt zu werden — nur die jeweils
-  primäre (linke) Achse wurde nach der Familie-2-Konvention konvertiert
-  (`gradedGrid`/`axisUnit`, plus `haloLabel`/`flattestIndex` für die
-  Hauptserie im HRV/Ruhepuls-Chart). Eine konsistente Umstellung auch der
-  Sekundärachsen wäre ein eigener, kleiner Nachzugsschritt.
 - **Schritt 7: `renderSleep`-Breite wächst jetzt mit dem dichten
   Tagesgerüst statt der kompakten Anzahl gemessener Nächte** — bei
   sporadischer Schlafaufzeichnung (z.B. Athlet 2, Apple-Health-Import mit
@@ -352,6 +299,56 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
   würde ein Dispatch auf `dashboard-2.0` den Dev-Stand live auf Pages
   deployen), „Commit data if changed" nutzt `$GITHUB_REF_NAME` statt
   hartkodiertem `origin/main`. Commit folgt.
+- **Dedup-Erkennung für doppelten Claude-Import** —
+  `isDuplicateOpenProposal()` vergleicht op/target_card_id/payload
+  strukturell (ordnungsunabhängig) gegen bereits offene Claude-Vorschläge,
+  läuft über den bestehenden `errors[]`-Mechanismus (Commit `8c75487`).
+- **CTL/ATL-Verlauf-Kachel bekommt eine Sparkline** (`ui/trainer-bar.js::
+  ctlAtlTile`) — reine Funktion, in Node gegen mehrere Fälle geprüft (kein
+  Playwright-Login gegen dashboard-dev, da echte Trainer-Zugangsdaten sonst
+  im Tool-Transkript sichtbar geworden wären). **Noch nicht im echten
+  Browser bestätigt** — bitte bei Gelegenheit kurz gegenprüfen (Commit
+  `1814837`).
+- **„withdrawn"-Status bekommt einen UI-Pfad** — `withdrawProposal()`
+  (derselbe `decideProposal`-Adapter wie accept/reject), Button zeigt
+  „Zurückziehen" statt „Aktuelle behalten" bei eigenen (`source: "claude"`)
+  Vorschlägen (Commit `500eee5`).
+- **Schritt-5-Nachzug: `renderEfficiency`/`renderScatter`/
+  `renderSmallMultiples` voll modernisiert** — jeweils nach eigener Familie
+  (2/4/5), `paintDayHover()` von `wellness.js` nach `ui/charts/base.js`
+  geteilt, tote Plan-1/2-Divider-Logik in `renderSmallMultiples` entfernt
+  (Commits `4e4d30f`/`13387f1`).
+- **Rückrichtung Fahrtenbuch-Klick → PMC-Chart-Crosshair (Pin)** — neuer
+  State-Slot `selectedDate` (getrennt von `hoveredDate`, Hover gewinnt
+  visuell), Zeilen-Klick pinnt/entpinnt, Gold-Linie statt gestrichelter
+  Hover-Linie. Scope bewusst auf den PMC-Chart begrenzt. Playwright-
+  verifiziert (Commit `19dd5d4`).
+- **`renderTrimp()` Fadenkreuz/Brush-Nachzug** (Familie 3, wie
+  renderWeeklyVolume/renderWeatherWeekly) — Commit `cb24dfc`.
+- **Monats-Bucket-Vereinheitlichung + echter Wetter-Monatsbug** —
+  `renderWeatherWeekly()` gruppierte im Monats-Modus bislang IMMER nach
+  echter ISO-Kalenderwoche (hartkodiert), der Monats-Toggle änderte nur den
+  Achsentitel, nie die tatsächliche Gruppierung — kein reines
+  Konventions-Problem wie ursprünglich hier vermutet, sondern ein echter
+  Bug (auf Rückfrage mitgefixt). `monthlyFromRides()` liefert jetzt den
+  rohen `"YYYY-MM"`-Schlüssel, `core/chart-buckets.js` unterstützt beide
+  Perioden, Fadenkreuz + Brush-Klick funktionieren jetzt auch im
+  Monats-Modus (Commit `567a5de`).
+- **Sekundärachsen (`renderSleep`/`renderEnergy`) auf Direktbeschriftung
+  umgestellt** — `haloLabel`/`flattestIndex` statt manueller Tick-Zahlenreihe,
+  wie schon bei der primären Achse (Commit `4b077c4`).
+- **`renderZoneWeekly()` Familie-3-Zuordnung geklärt** — `wk.week` kommt aus
+  `weeklyZoneShares(rides, isoWeekKey)`, strukturell derselbe Bucket wie
+  `renderWeeklyVolume`/`renderWeatherWeekly` → Fadenkreuz-Kopplung +
+  Brush-Klick nachgezogen (Commit `2857dda`).
+- **K3 Typ-Default-TSS-Review** — auf Alex' Wunsch vorgezogen (Plan 2 läuft
+  noch bis 19.09.2026), gut belegte Typen (n≥5) aktualisiert, dünne Typen
+  bleiben ehrlich dünn (Commit `710a43b`).
+- **K-RAMPE verglich nur Plan-vs-Plan, kein Ist-Seed** — `detectConflicts()`
+  bekommt jetzt optional `actuals`, `lastRiddenWeekTss()` seedet die letzte
+  gefahrene Woche als Vorwert für die erste volle Planwoche (Commit `d3a82b3`).
+- **Push-Warnung/Konflikt-Badges fehlten in der „Verpasst"-Sektion** —
+  `_renderCardBadges()` wird jetzt auch dort aufgerufen (Commit `9989ca4`).
 - **`planAdherence()`s „verpasst"-Titel zeigte immer „Einheit"** — las
   `.title`, alte wie neue Sessions tragen aber nur `.name` → Fallback jetzt
   `s.title || s.name || "Einheit"`. Regressionstest in
