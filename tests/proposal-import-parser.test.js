@@ -45,3 +45,22 @@ test("parseProposalImport: beschädigtes JSON im Block → eigener Fehlerzweig",
   assert.equal(result.ok, false);
   assert.match(result.error.message, /beschädigt/);
 });
+
+test("parseProposalImport: reines JSON ohne Fences (Codeblock-Kopieren-Klick)", () => {
+  const result = parseProposalImport(VALID);
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.data, { schema_version: 1, athlete: "abc-123", source: "claude", proposals: [] });
+});
+
+test("parseProposalImport: reines JSON mit umgebendem Whitespace wird getrimmt", () => {
+  const result = parseProposalImport(`\n\n  ${VALID}  \n\n`);
+  assert.equal(result.ok, true);
+  assert.equal(result.data.athlete, "abc-123");
+});
+
+test("parseProposalImport: Codeblock OHNE 'json'-Sprachangabe wird erkannt", () => {
+  const text = `Passt so, keine Änderung.\n\n\`\`\`\n${VALID}\n\`\`\`\n`;
+  const result = parseProposalImport(text);
+  assert.equal(result.ok, true);
+  assert.equal(result.data.athlete, "abc-123");
+});
