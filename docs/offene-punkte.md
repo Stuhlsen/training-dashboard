@@ -15,17 +15,6 @@
   nutzen es noch nicht (kalibrierungssensibler Eingriff in bereits getestete
   Schwellenwerte, bewusst zurückgestellt). → `docs/phase-2-konzept-morgen-checkin.md` §2/5.1.
 
-## Dashboard 2.0 — Cleanup (Code-Review-Funde, bewusst nicht angegangen)
-
-Kleinere Duplizierungen/Stilbrüche, keine Bugs — Extraktion würde jeweils
-mehrere bereits committete Dateien anfassen:
-
-- **"Multiple GoTrueClient instances"-Konsolenwarnung** — harmlos (s.
-  Kommentar in `data-access/supabase/client.js`), aber Hinweis auf echten
-  Mehraufwand (jeder authentifizierte Request baut einen neuen Client statt
-  einen bestehenden wiederzuverwenden). Kandidat für einen späteren
-  Performance-Polish-Schritt.
-
 ## Phase 3 — Planungstab
 
 - **M3 — `external_id`-Upsert weiterhin nicht live gegen intervals.icu
@@ -361,6 +350,15 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
   geteilte `countFieldCoverage()` in neuem `scripts/lib/coverage.js`,
   Logging-Ton je Aufrufstelle bewusst unterschiedlich belassen
   (Commit `463b0f3`).
+- **"Multiple GoTrueClient instances"-Konsolenwarnung** — `getAuthedClient()`
+  baute pro authentifiziertem Request (8 Aufrufstellen) einen neuen Client;
+  wird jetzt gecacht und nur bei geändertem `access_token` (Login/Refresh/
+  Logout) neu gebaut. `client.js` selbst bleibt wie schon dokumentiert
+  außerhalb der node:test-Reichweite (esm.sh-URL-Import) — Verifikation über
+  `node -c` + Codelesen, ein Login-Playwright-Check hätte echte Zugangsdaten
+  im Tool-Transkript sichtbar gemacht (wie beim CTL/ATL-Sparkline-Punkt oben).
+  **Noch nicht im echten Browser bestätigt** — bitte bei Gelegenheit die
+  Konsole nach einem Login kurz gegenprüfen.
 - **Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)**: Athlet 1 lief bisher auf
   einer plan-gebundenen Wochenstruktur (P2-W0…P2-W12), Athlet 2 bereits auf
   ISO-Kalenderwochen — Migrations-Artefakt aus dem Notion→intervals.icu-

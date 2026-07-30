@@ -23,14 +23,28 @@ export const supabase = config
  *  autoRefreshToken sind hier bewusst aus — dieser Client verwaltet keine
  *  eigene Session, er nutzt nur den fest gesetzten Header, und würde sonst
  *  um denselben LocalStorage-Key wie der Singleton konkurrieren.
+ *
+ *  Wird pro Request von 8 data-access/supabase/*-Modulen aufgerufen — ohne
+ *  Cache baut das bei jedem authentifizierten Request einen neuen Client
+ *  (→ "Multiple GoTrueClient instances"-Konsolenwarnung, s.
+ *  docs/offene-punkte.md). Solange sich der access_token nicht ändert
+ *  (Normalfall zwischen zwei Token-Refreshes), wird derselbe Client
+ *  wiederverwendet; ändert er sich (Login/Refresh/Logout), baut der
+ *  nächste Aufruf genau einen neuen.
  *  @returns {Promise<import("https://esm.sh/@supabase/supabase-js@2").SupabaseClient|null>} */
+let cachedAuthedClient = null;
+let cachedToken = null;
+
 export async function getAuthedClient() {
   if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
   const token = data.session?.access_token;
   if (!token) return null;
-  return createClient(config.projectUrl, config.anonKey, {
+  if (token === cachedToken && cachedAuthedClient) return cachedAuthedClient;
+  cachedToken = token;
+  cachedAuthedClient = createClient(config.projectUrl, config.anonKey, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     global: { headers: { Authorization: `Bearer ${token}` } },
   });
+  return cachedAuthedClient;
 }
