@@ -247,7 +247,7 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
       toggleId: "toggle-trimp",
       titleId: "title-trimp",
       chartFn: (data, period) =>
-        Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard, period),
+        Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard, period, rides),
       titleWeek: "Belastungswächter · TRIMP, Ramp & Monotonie",
       titleMonth: "Trainingsbelastung TRIMP pro Monat",
     },

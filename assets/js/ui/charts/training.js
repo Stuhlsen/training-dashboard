@@ -253,7 +253,15 @@ export function renderWeeklyVolume(svgId, weeklyData, onBarClick, period = "week
 }
 
 /* ── Belastungswächter: TRIMP/TSS-Wochen + Ramp & Monotonie ──── */
-export function renderTrimp(svgId, weeklyData, guard, period = "week") {
+/** @param {string} svgId @param {Array} weeklyData @param {Array|null} guard
+ *  @param {"week"|"month"} [period] @param {import("../../types.js").Ride[]} [rides]
+ *  `rides` ist die Rohliste (Data.rides) — Grundlage für die bucketweise
+ *  Fadenkreuz-Kopplung/den Brush-Klick (Schritt-6-Nachzug, s.
+ *  docs/offene-punkte.md — strukturell dieselbe Familie 3 wie
+ *  renderWeeklyVolume/renderWeatherWeekly, war in Schritt 6 aber nicht
+ *  namentlich Auftragsumfang). Kein Umbau auf responsive Breite/
+ *  ResizeObserver, das war nicht Teil dieses Nachzugs. */
+export function renderTrimp(svgId, weeklyData, guard, period = "week", rides = []) {
   const svg = el(svgId);
   if (!svg) return;
   svg.innerHTML = "";
@@ -331,6 +339,7 @@ export function renderTrimp(svgId, weeklyData, guard, period = "week") {
       rect.setAttribute("opacity", "0.82");
       Tooltip.hide();
     });
+    rect.addEventListener("click", () => jumpBrushToWeekBucket(d.week, rides, period));
     svg.appendChild(rect);
 
     // Monotonie-Warnmarker über dem Balken (Foster ≥ 2,0 = zu eintönig)
@@ -437,6 +446,24 @@ export function renderTrimp(svgId, weeklyData, guard, period = "week") {
         svg.appendChild(t);
       });
     }
+  }
+
+  // Hover-Ebene (Teil C) — s. paintBucketHover()/renderWeeklyVolume-Kommentar.
+  const hoverLayer = svgEl("g", {});
+  svg.appendChild(hoverLayer);
+  svg.__trimpGeo = {
+    hoverLayer,
+    weeklyData,
+    rides,
+    period,
+    barX: (i) => pad.l + i * gap + (gap - bw) / 2,
+    barW: bw,
+    top: pad.t,
+    bottom: pad.t + ch,
+  };
+  if (!svg.__trimpHoverBound) {
+    svg.__trimpHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__trimpGeo"));
   }
 }
 
