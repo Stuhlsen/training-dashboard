@@ -453,7 +453,7 @@ async function renderAll(athleteId) {
     document.querySelector('[data-tab="table"]').click();
     Table.filterByWeek(week);
   });
-  Charts.renderZoneWeekly("chart-zones", weeklyZoneShares(rides, weekKeyFn, weekSortFn));
+  Charts.renderZoneWeekly("chart-zones", weeklyZoneShares(rides, weekKeyFn, weekSortFn), rides);
 
   // Charts — Leistung
   Charts.renderPowerCurve(

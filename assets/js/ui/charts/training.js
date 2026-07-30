@@ -535,7 +535,17 @@ export function renderConsistency(svgId, wc) {
 }
 
 /* ── Intensitätsverteilung: Zeit in Zonen pro Woche ──────────── */
-export function renderZoneWeekly(svgId, weeks) {
+/* Familie 3 (Wochen-Buckets, docs/chart-grundlagen.md §7.2) — die x-Achse
+   ist wie bei renderWeeklyVolume/renderWeatherWeekly ein isoWeekKey-Bucket
+   (wk.week kommt aus core/zones.js::weeklyZoneShares(rides, weekKeyFn=
+   isoWeekKey), s. app.js), kein eigenständiges kategoriales Zonen-Layout.
+   War in Schritt 6 wegen dieser Unklarheit unangetastet geblieben, s.
+   docs/offene-punkte.md. Nur die Fadenkreuz-Kopplung/der Brush-Klick sind
+   nachgezogen (Teil C/D, paintBucketHover/jumpBrushToWeekBucket oben) —
+   kein Umbau auf responsive Breite/ResizeObserver, das war nicht Teil
+   dieses Nachzugs und hier auch keine Voraussetzung dafür.
+   @param {string} svgId @param {Array} weeks @param {import("../../types.js").Ride[]} [rides] */
+export function renderZoneWeekly(svgId, weeks, rides = []) {
   const svg = el(svgId);
   if (!svg) return;
   svg.innerHTML = "";
@@ -647,10 +657,29 @@ export function renderZoneWeekly(svgId, weeks) {
       )
     );
     hit.addEventListener("mouseleave", () => Tooltip.hide());
+    hit.addEventListener("click", () => jumpBrushToWeekBucket(wk.week, rides, "week"));
     svg.appendChild(hit);
 
     if (labelIdx.has(i)) xLabel(svg, x + bw / 2, H - pad.b + 14, labels[i]);
   });
+
+  // Hover-Ebene (Teil C) — s. paintBucketHover()/renderWeeklyVolume-Kommentar.
+  const hoverLayer = svgEl("g", {});
+  svg.appendChild(hoverLayer);
+  svg.__zoneWeeklyGeo = {
+    hoverLayer,
+    weeklyData: weeks,
+    rides,
+    period: "week",
+    barX: (i) => pad.l + i * gap + (gap - bw) / 2,
+    barW: bw,
+    top: pad.t,
+    bottom: pad.t + ch,
+  };
+  if (!svg.__zoneWeeklyHoverBound) {
+    svg.__zoneWeeklyHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__zoneWeeklyGeo"));
+  }
 }
 
 /* ── Wöchentliche Wetterbedingungen (Temp-Balken + Wind-Linie) ── */
