@@ -30,6 +30,8 @@ const {
   setWindow,
   setHovered,
   clearHovered,
+  setSelected,
+  clearSelected,
   onChartViewChange,
   configureScenarioSources,
   setScenarioParams,
@@ -48,6 +50,7 @@ test("loadForAthlete: legt den übergebenen Default an, wenn nichts gespeichert 
     ws: 0,
     we: 89,
     hoveredDate: null,
+    selectedDate: null,
     scenario: SCENARIO_DEFAULT,
     scenarioProjection: null,
     compareSlots: COMPARE_DEFAULT,
@@ -97,6 +100,7 @@ test("loadForAthlete: defektes JSON in localStorage führt zu Default statt Abst
     ws: 1,
     we: 91,
     hoveredDate: null,
+    selectedDate: null,
     scenario: SCENARIO_DEFAULT,
     scenarioProjection: null,
     compareSlots: COMPARE_DEFAULT,
@@ -140,6 +144,64 @@ test("loadForAthlete: Athletenwechsel setzt einen aktiven Hover zurück", () => 
 
   loadForAthlete("athlete-cv-hover-b", { ws: 0, we: 10 });
   assert.equal(getState().hoveredDate, null);
+});
+
+/* setSelected/clearSelected — Rückrichtung Fahrtenbuch → Chart-Crosshair
+   (Nachzug zu Schritt 2, s. docs/offene-punkte.md). */
+test("setSelected: pinnt ein Datum und benachrichtigt Listener", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-sel-1", { ws: 0, we: 10 });
+  const seen = [];
+  const unsubscribe = onChartViewChange((s) => seen.push(s.selectedDate));
+
+  setSelected("2026-07-20");
+  assert.equal(getState().selectedDate, "2026-07-20");
+  assert.deepEqual(seen, ["2026-07-20"]);
+
+  unsubscribe();
+});
+
+test("setSelected: erneuter Klick auf dasselbe Datum hebt den Pin wieder auf (Toggle)", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-sel-2", { ws: 0, we: 10 });
+  setSelected("2026-07-20");
+  assert.equal(getState().selectedDate, "2026-07-20");
+
+  setSelected("2026-07-20");
+  assert.equal(getState().selectedDate, null, "gleiche Zeile nochmal klicken = entpinnen");
+});
+
+test("setSelected: ein anderes Datum ersetzt den bisherigen Pin (kein Toggle)", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-sel-3", { ws: 0, we: 10 });
+  setSelected("2026-07-20");
+  setSelected("2026-07-21");
+  assert.equal(getState().selectedDate, "2026-07-21");
+});
+
+test("clearSelected: setzt selectedDate zurück auf null, No-op-Guard verschluckt keinen fälligen Wechsel", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-sel-4", { ws: 0, we: 10 });
+  setSelected("2026-07-20");
+
+  clearSelected();
+  assert.equal(getState().selectedDate, null);
+
+  const seen = [];
+  const unsubscribe = onChartViewChange((s) => seen.push(s.selectedDate));
+  clearSelected(); // bereits null → kein weiterer notify()
+  assert.deepEqual(seen, []);
+  unsubscribe();
+});
+
+test("loadForAthlete: Athletenwechsel setzt einen aktiven Pin zurück", () => {
+  store.clear();
+  loadForAthlete("athlete-cv-sel-a", { ws: 0, we: 10 });
+  setSelected("2026-07-22");
+  assert.equal(getState().selectedDate, "2026-07-22");
+
+  loadForAthlete("athlete-cv-sel-b", { ws: 0, we: 10 });
+  assert.equal(getState().selectedDate, null);
 });
 
 /* Szenario — Phase 5, Schritt 3, Teil B (docs/phase-5-konzept-explorer.md §6). */

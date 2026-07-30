@@ -180,6 +180,15 @@ tr:hover td {
   background: rgba(74, 158, 255, 0.14);
 }
 
+/* ── Row selected (Fahrtenbuch-Klick → Chart-Crosshair, Rückrichtung zu
+   Schritt 2) ── Gold statt .row-hovers Blau: eigener, angepinnter Zustand
+   (bleibt stehen, bis dieselbe Zeile erneut geklickt oder der Athlet
+   gewechselt wird), keine flüchtige Hover-Markierung. */
+.row-selected td {
+  background: var(--gold-dim);
+  border-left: 2px solid var(--gold);
+}
+
 /* ── Table Legend ────────────────────────────────────────────── */
 .table-legend {
   margin-top: 12px;

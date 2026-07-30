@@ -13,7 +13,7 @@ import { el, Tooltip } from "./dom.js";
 import { fetchRawJson, writeRepoFile } from "./github-client.js";
 import { activateTab } from "./nav.js";
 import { Planned } from "./planned.js";
-import { onChartViewChange } from "../state/chart-view.js";
+import { onChartViewChange, setSelected } from "../state/chart-view.js";
 
 // === Befinden GitHub-Sync ===
 export const Subjective = {
@@ -175,6 +175,20 @@ export const Table = {
     if (!date) return;
     const row = document.querySelector(`#table-body tr[data-date="${date}"]`);
     if (row) row.classList.add("row-hover");
+  },
+
+  /** Angepinnte Zeile (Rückrichtung Fahrtenbuch → Chart-Crosshair, Nachzug
+   *  zu Schritt 2, s. docs/offene-punkte.md) — anders als `setHoverDate()`
+   *  kein flüchtiger Hover, sondern ein Klick-Pin, der stehen bleibt, bis er
+   *  explizit entfernt wird (`state/chart-view.js::setSelected` togglet).
+   *  @param {string|null} date */
+  setSelectedDate(date) {
+    document
+      .querySelectorAll("#table-body tr.row-selected")
+      .forEach((r) => r.classList.remove("row-selected"));
+    if (!date) return;
+    const row = document.querySelector(`#table-body tr[data-date="${date}"]`);
+    if (row) row.classList.add("row-selected");
   },
 
   /* ── Filter Bar ─────────────────────────────────────────────── */
@@ -370,6 +384,14 @@ export const Table = {
         setTimeout(() => Planned.scrollToDate(date), 100);
       });
     });
+
+    // Zeile anpinnen (Rückrichtung Fahrtenbuch → Chart-Crosshair) — der
+    // Planungs-Tab-Link stoppt die Propagation oben bereits selbst, ein
+    // Klick darauf pinnt also nicht zusätzlich (kein Doppel-Effekt).
+    tbody.querySelectorAll("tr[data-date]").forEach((row) => {
+      row.style.cursor = "pointer";
+      row.addEventListener("click", () => setSelected(row.dataset.date));
+    });
   },
 
   /* ── Gefilterte + sortierte Daten ───────────────────────────── */
@@ -415,3 +437,6 @@ export const Table = {
 // nicht existierendes DOM nötig — setHoverDate() quert defensiv und tut bei
 // fehlender Zeile nichts).
 onChartViewChange((s) => Table.setHoverDate(s.hoveredDate));
+// Rückrichtung: die eigene Pin-Auswahl genauso als Zeilen-Markierung
+// spiegeln, wie der PMC-Hover oben schon gespiegelt wird.
+onChartViewChange((s) => Table.setSelectedDate(s.selectedDate));

@@ -298,12 +298,19 @@ function drawOverview(svg, { skeleton, ctlVals, seamIdx, todayIdx, totalWs, tota
 }
 
 /** Zeichnet das Fadenkreuz + je Serie einen Doppelkreis für den aktuell
- *  gehoverten Tag (Schritt 2, Teil B) — leert und befüllt ausschließlich
- *  `geo.hoverLayer`, das Chart selbst wird nie neu gezeichnet (§4.1). Liest
- *  `svg.__pmcGeometry` frisch bei jedem Aufruf (wie `svg.__brushConfig` in
- *  base.js), nie eine über einen renderPMC()-Aufruf hinweg festgehaltene
- *  Closure — ein Athletenwechsel ersetzt die Geometrie vor dem nächsten
- *  Hover-Event.
+ *  gehoverten ODER angepinnten Tag (Schritt 2, Teil B + Rückrichtung
+ *  Fahrtenbuch → Chart-Crosshair, s. docs/offene-punkte.md) — leert und
+ *  befüllt ausschließlich `geo.hoverLayer`, das Chart selbst wird nie neu
+ *  gezeichnet (§4.1). Liest `svg.__pmcGeometry` frisch bei jedem Aufruf (wie
+ *  `svg.__brushConfig` in base.js), nie eine über einen renderPMC()-Aufruf
+ *  hinweg festgehaltene Closure — ein Athletenwechsel ersetzt die Geometrie
+ *  vor dem nächsten Hover-Event.
+ *  `hoveredDate` gewinnt visuell gegen einen gepinnten Klick: aktive
+ *  Maus-Interaktion ist wichtiger als ein stehen gebliebener Pin (s.
+ *  state/chart-view.js-Kopfkommentar). Der Pin bekommt eine durchgezogene
+ *  Gold-Linie statt der gestrichelten grauen Hover-Linie, damit "angeklickt
+ *  und stehen gelassen" optisch von "Maus gerade drüber" unterscheidbar
+ *  bleibt.
  * @param {SVGElement} svg */
 function paintHover(svg) {
   const geo = svg.__pmcGeometry;
@@ -313,13 +320,27 @@ function paintHover(svg) {
   // hier auf `geo.skeleton.findIndex` crashen.
   if (!geo || !geo.skeleton) return;
   geo.hoverLayer.textContent = "";
-  const { hoveredDate } = getChartViewState();
-  if (!hoveredDate) return;
-  const i = geo.skeleton.findIndex((s) => s.dateISO === hoveredDate);
+  const { hoveredDate, selectedDate } = getChartViewState();
+  const activeDate = hoveredDate ?? selectedDate;
+  if (!activeDate) return;
+  const i = geo.skeleton.findIndex((s) => s.dateISO === activeDate);
   if (i < 0 || i < geo.ws || i > geo.we) return;
 
   const x = geo.x(i);
-  crosshair(geo.hoverLayer, { x, top: geo.top, bottom: geo.top + geo.plotH });
+  if (hoveredDate) {
+    crosshair(geo.hoverLayer, { x, top: geo.top, bottom: geo.top + geo.plotH });
+  } else {
+    geo.hoverLayer.appendChild(
+      svgEl("line", {
+        x1: x,
+        y1: geo.top,
+        x2: x,
+        y2: geo.top + geo.plotH,
+        stroke: CHART_THEME.role.status,
+        "stroke-width": "1.5",
+      })
+    );
+  }
   for (const s of geo.series) {
     const v = s.vals[i];
     if (v == null) continue;

@@ -35,6 +35,17 @@
    am Top-Level importieren muss (sonst zöge tests/chart-view-state.test.js
    dieselbe esm.sh-Importkette herein wie tests/plan-cards-move.test.js).
 
+   Rückrichtung Fahrtenbuch → Chart-Crosshair (Nachzug zu Schritt 2, s.
+   docs/offene-punkte.md): `selectedDate` ist ein eigener State-Slot, keine
+   Wiederverwendung von `hoveredDate` — ein Klick soll den Marker "anpinnen"
+   (stehen bleiben, bis er explizit gelöscht/erneut geklickt wird), ein Hover
+   dagegen ist rein flüchtig. Verhältnis der beiden: `hoveredDate` gewinnt
+   visuell, solange die Maus aktiv über einem Punkt steht (ui/charts/pmc.js::
+   paintHover) — ein Pin bleibt nur sichtbar, wenn gerade NICHT gehovert wird.
+   Nicht persistiert (wie `hoveredDate`) und wird bei jedem Athletenwechsel
+   zurückgesetzt (loadForAthlete) — ein Pin auf ein Datum des vorherigen
+   Athleten wäre irreführend.
+
    Schritt 4 — Vergleichsmodus (docs/phase-5-konzept-explorer.md §5, §7.1):
    `compareSlots` ist additiv NEBEN `ws`/`we` (nicht dessen Umbau auf eine
    Liste — `ws`/`we` bleibt der eine Hauptbrush aus Schritt 1 unverändert).
@@ -63,6 +74,7 @@ const COMPARE_DEFAULT = Object.freeze({ enabled: false, a: null, b: null });
 let ws = 0; // Fensteranfang (Tagesindex)
 let we = 0; // Fensterende (Tagesindex)
 let hoveredDate = null; // dateISO oder null
+let selectedDate = null; // dateISO oder null — angepinnt per Fahrtenbuch-Klick
 let loadedForAthleteId = null;
 let scenario = { ...SCENARIO_DEFAULT };
 let compareSlots = { ...COMPARE_DEFAULT };
@@ -136,11 +148,11 @@ function recomputeScenario() {
   scenarioProjection = projection;
 }
 
-/** @returns {{ws:number, we:number, hoveredDate:string|null,
+/** @returns {{ws:number, we:number, hoveredDate:string|null, selectedDate:string|null,
  *   scenario: typeof SCENARIO_DEFAULT, scenarioProjection: ReturnType<typeof projectLoad>|null,
  *   compareSlots: typeof COMPARE_DEFAULT}} */
 export function getState() {
-  return { ws, we, hoveredDate, scenario, scenarioProjection, compareSlots };
+  return { ws, we, hoveredDate, selectedDate, scenario, scenarioProjection, compareSlots };
 }
 
 /** @param {(state: ReturnType<typeof getState>) => void} fn @returns {() => void} */
@@ -171,6 +183,7 @@ export function loadForAthlete(athleteId, defaultWindow) {
   ws = saved?.ws ?? defaultWindow.ws;
   we = saved?.we ?? defaultWindow.we;
   hoveredDate = null;
+  selectedDate = null;
   // typeof-Wache: defektes/fremdes JSON kann ein `scenario`-Feld mit falscher
   // Form enthalten (z.B. ein String) — { ...string } würde Zeichen-Indizes
   // als Eigenschaften einstreuen statt sauber auf den Default zurückzufallen.
@@ -272,5 +285,22 @@ export function setHovered(dateISO) {
 export function clearHovered() {
   if (hoveredDate === null) return;
   hoveredDate = null;
+  notify();
+}
+
+/** Setzt/entfernt den Fahrtenbuch-Pin (Rückrichtung zu Schritt 2, s.
+ *  Modul-Kopfkommentar) — togglend: ein Klick auf dieselbe bereits
+ *  angepinnte Zeile hebt den Pin wieder auf, statt ihn erneut zu setzen
+ *  (sonst gäbe es keinen Weg, den Pin außer per Athletenwechsel zu lösen).
+ *  @param {string} dateISO */
+export function setSelected(dateISO) {
+  selectedDate = selectedDate === dateISO ? null : dateISO;
+  notify();
+}
+
+/** Löscht den Fahrtenbuch-Pin explizit (z.B. ein eigener "×"-Button). */
+export function clearSelected() {
+  if (selectedDate === null) return;
+  selectedDate = null;
   notify();
 }
