@@ -10831,10 +10831,10 @@
       },
       "wetter": "25.5°C",
       "source": "intervals.icu",
-      "ruhepuls": 48,
-      "hrv": null,
-      "avgSleepingHR": null,
-      "sleepHours": 8.8,
+      "ruhepuls": 47,
+      "hrv": 61,
+      "avgSleepingHR": 51,
+      "sleepHours": 9,
       "feel": null,
       "notizen": null
     }
@@ -13968,7 +13968,7 @@
       "hrv": 51,
       "weight": 92.5,
       "bodyFat": null,
-      "activeEnergy": 665,
+      "activeEnergy": 681,
       "restingEnergy": null,
       "kcalConsumed": 2956,
       "hydration": null,
@@ -13977,11 +13977,26 @@
     },
     {
       "date": "2026-07-29",
-      "sleepHours": 8.8,
+      "sleepHours": 9,
+      "avgSleepingHR": 51,
+      "restingHR": 47,
+      "hrv": 61,
+      "weight": 93.1,
+      "bodyFat": null,
+      "activeEnergy": 799,
+      "restingEnergy": null,
+      "kcalConsumed": 2980,
+      "hydration": null,
+      "hydrationVolume": 0.91,
+      "eftp": 258
+    },
+    {
+      "date": "2026-07-30",
+      "sleepHours": null,
       "avgSleepingHR": null,
-      "restingHR": 48,
+      "restingHR": null,
       "hrv": null,
-      "weight": 92,
+      "weight": null,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
@@ -13993,7 +14008,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-28",
+      "hrv": "2026-07-29",
       "restingHR": "2026-07-29",
       "sleepHours": "2026-07-29"
     }
@@ -14004,12 +14019,12 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-29T00:00:00",
-        "end_date_local": "2026-07-29T23:59:59",
+        "start_date_local": "2025-07-30T00:00:00",
+        "end_date_local": "2026-07-30T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92,
+        "weight": 93.1,
         "secs": [
           1,
           2,
@@ -15939,7 +15954,7 @@
       }
     }
   },
-  "athleteWeight": 92,
+  "athleteWeight": 93.1,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -16757,7 +16772,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-29T18:59:02.298Z",
+  "updated": "2026-07-30T01:29:33.718Z",
   "source": "intervals.icu",
   "count": 135
 }
