@@ -91,3 +91,33 @@ test("buildClaudeExport: liefert einen fileName im erwarteten Format", async () 
   const result = await buildClaudeExport("athlete1");
   assert.match(result.fileName, /^claude-briefing-athlete1-\d{4}-\d{2}-\d{2}\.md$/);
 });
+
+test("buildClaudeExport: preset 'reduce' setzt den passenden Auftragsblock ein (Default 'general' ohne Options-Objekt)", async () => {
+  await loadPlanCards("athlete1");
+  const defaultResult = await buildClaudeExport("athlete1");
+  assert.match(defaultResult.text, /1\. Analysiere Form, Plan und Events\. Prüfe insbesondere:/);
+  const reduceResult = await buildClaudeExport("athlete1", { preset: "reduce" });
+  assert.match(reduceResult.text, /Fokus auf Entlastung/);
+});
+
+test("buildClaudeExport: eventId löst gegen die geladenen Events auf und setzt Titel/Datum in den Auftragsblock", async () => {
+  await loadPlanCards("athlete1");
+  await loadEvents("athlete1");
+  const result = await buildClaudeExport("athlete1", { preset: "event", eventId: "ev-1" });
+  assert.match(result.text, /mein Event \*\*GFNY Bremen\*\* am\s*\n\s*\*\*2099-02-01\*\*/);
+});
+
+test("buildClaudeExport: preset 'event' mit unbekannter/fehlender eventId fällt sichtbar auf general zurück", async () => {
+  await loadPlanCards("athlete1");
+  await loadEvents("athlete1");
+  const result = await buildClaudeExport("athlete1", { preset: "event", eventId: "unbekannte-id" });
+  assert.match(result.text, /Preset "Auf Event hin" gewählt, aber kein Zielevent hinterlegt/);
+});
+
+test("buildClaudeExport: extraContext landet als eigener Absatz im Text, nie im JSON-Anhang", async () => {
+  await loadPlanCards("athlete1");
+  const result = await buildClaudeExport("athlete1", { extraContext: "  bin diese Woche viel unterwegs  " });
+  assert.match(result.text, /\*\*Zusatzkontext von mir:\*\* bin diese Woche viel unterwegs/);
+  const jsonBlock = result.text.match(/```json\n([\s\S]*?)\n```/)[1];
+  assert.doesNotMatch(jsonBlock, /unterwegs/);
+});

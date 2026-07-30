@@ -392,10 +392,19 @@ export function buildBriefingMarkdown({
  *  (Preset, R4) und Briefing (Konzept §2: "eine Zeichenkette, keine zwei
  *  Teile"). `preset`/`event` optional, Default `general` — bestehende
  *  Aufrufer ohne Options-Objekt verhalten sich unverändert wie vor R4.
- *  @param {object} ctx @param {{preset?:string, event?:{title?:string,eventDate?:string}|null}} [opts] */
-export function buildExportText(ctx, { preset = "general", event = null } = {}) {
+ *  `extraContext` (R2/R7, ungetrimmt erlaubt, wird hier getrimmt) hängt als
+ *  eigener Absatz direkt unter den Auftragsblock — nie in die maschinelle
+ *  JSON-Sektion, nie persistiert (das erledigt der Aufrufer in state/).
+ *  @param {object} ctx
+ *  @param {{preset?:string, event?:{title?:string,eventDate?:string}|null, extraContext?:string}} [opts] */
+export function buildExportText(ctx, { preset = "general", event = null, extraContext = "" } = {}) {
+  let auftrag = buildAuftragBlock(preset, event);
+  const trimmedContext = (extraContext || "").trim();
+  if (trimmedContext) {
+    auftrag += `\n\n**Zusatzkontext von mir:** ${trimmedContext}`;
+  }
   return PROMPT_RUMPF
-    .replace("{{AUFTRAG}}", buildAuftragBlock(preset, event))
+    .replace("{{AUFTRAG}}", auftrag)
     .replace("{{BRIEFING}}", buildBriefingMarkdown(ctx));
 }
 

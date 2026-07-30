@@ -1391,6 +1391,101 @@ body.is-card-dragging { cursor: grabbing; user-select: none; }
   min-height: 320px;
 }
 
+/* ── Export-Richtungsvorgabe (Preset-Kacheln, Zielevent, Zusatzkontext) ── */
+.export-panel-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.export-panel-header-row .planned-card-dialog-title { margin-bottom: 0; }
+.export-panel-athlete-name {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.export-panel-question { font-size: 0.85rem; color: var(--text); margin: 0 0 10px; }
+
+.export-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.export-preset-tile {
+  flex: 1 1 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.export-preset-tile:hover { border-color: var(--border-light); color: var(--text); }
+.export-preset-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.export-preset-tile.active {
+  background: var(--accent-dim);
+  border: 2px solid var(--accent);
+  padding: 9px 7px; /* -1px Ausgleich für den 2px-Rahmen (sonst Sprung ggü. 1px Hairline) */
+  color: var(--text);
+}
+.export-preset-tile-icon { font-size: 1.2rem; }
+.export-preset-tile-label {
+  font-family: var(--font-disp);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.export-preset-explainer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+
+.export-field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  margin-bottom: 5px;
+}
+
+.export-event-block { display: flex; flex-direction: column; margin-bottom: 14px; }
+.export-event-empty {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--gold);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.export-event-empty .ti { margin-top: 2px; }
+.export-event-empty a { color: var(--gold); font-weight: 600; text-decoration: underline; }
+
+#export-panel-context { margin-bottom: 14px; }
+
+.export-dialog-scope-hint { font-size: 0.72rem; color: var(--dim2); }
+.export-panel-footer-right { display: flex; align-items: center; gap: 8px; }
+
 .import-dialog { max-width: 620px; }
 .import-dialog-file { margin-top: 8px; font-size: 0.76rem; color: var(--dim); }
 .import-dialog-preview {

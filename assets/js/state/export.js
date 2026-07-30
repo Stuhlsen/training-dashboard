@@ -32,8 +32,13 @@ const WELLBEING_WEEKS = 4;
  *  @param {string} athleteId interne Kennung ("athlete1"/"athlete2") — nur
  *    für Dateiname/Config-Lookup, die Daten selbst kommen immer vom
  *    eingeloggten Athleten (Session), nie von einem betrachteten Fremdplan.
+ *  @param {{preset?:string, eventId?:string|null, extraContext?:string}} [opts]
+ *    Export-Richtungsvorgabe (R1/R4): `preset` steuert den Auftragsblock,
+ *    `eventId` (Supabase-`events.id`) wird gegen die bereits geladenen
+ *    Events aufgelöst (Titel/Datum fürs Auftrag), `extraContext` (R2) ist
+ *    reiner Laufzeit-Text — wird hier weitergereicht, nie persistiert.
  *  @returns {Promise<{ok:true, text:string, fileName:string}|{ok:false, error:{code:string,message:string}}>} */
-export async function buildClaudeExport(athleteId) {
+export async function buildClaudeExport(athleteId, { preset = "general", eventId = null, extraContext = "" } = {}) {
   const user = getSession();
   if (!user) return { ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } };
 
@@ -49,20 +54,30 @@ export async function buildClaudeExport(athleteId) {
   const wellbeingResult = await loadRangeForAthlete(user.id, wellbeingFrom, today);
   const wellbeing = wellbeingResult.ok ? wellbeingResult.checkins : [];
 
-  const text = buildExportText({
-    athleteId: user.id,
-    displayName: user.displayName,
-    ftp: athleteCfg?.ftpMeasured ?? Data.ftpValue(),
-    ftpGoal: athleteCfg?.ftpGoal ?? null,
-    dataSources: athleteCfg?.dataSources ?? [],
-    events: getEventsState().events,
-    planCards,
-    actuals,
-    wellbeing,
-    projection: planState.projection,
-    conflicts: planState.conflicts,
-    today,
-  });
+  const events = getEventsState().events;
+  const selectedEvent = eventId ? events.find((e) => e.id === eventId) ?? null : null;
+
+  const text = buildExportText(
+    {
+      athleteId: user.id,
+      displayName: user.displayName,
+      ftp: athleteCfg?.ftpMeasured ?? Data.ftpValue(),
+      ftpGoal: athleteCfg?.ftpGoal ?? null,
+      dataSources: athleteCfg?.dataSources ?? [],
+      events,
+      planCards,
+      actuals,
+      wellbeing,
+      projection: planState.projection,
+      conflicts: planState.conflicts,
+      today,
+    },
+    {
+      preset,
+      event: selectedEvent ? { title: selectedEvent.title, eventDate: selectedEvent.eventDate } : null,
+      extraContext,
+    },
+  );
 
   return { ok: true, text, fileName: exportFileName(athleteId, today) };
 }
