@@ -315,11 +315,15 @@ export function buildBriefingMarkdown({
   if (!actuals.length) {
     lines.push("Keine Fahrten im Zeitraum.");
   } else {
-    lines.push("| Datum | Typ | TSS | RPE | Feel |");
+    lines.push("| Datum | Typ (geplant) | TSS | RPE | Feel |");
     lines.push("|---|---|---|---|---|");
     for (const r of actuals) {
       lines.push(`| ${r.dateISO} | ${mdEscapeCell(r.typ)} | ${r.tss ?? "–"} | ${r.rpe ?? "–"} | ${r.feelIcu ?? "–"} |`);
     }
+    lines.push("");
+    lines.push(
+      "_Der Typ stammt aus der Planung, nicht aus der gefahrenen Einheit — er kann vom tatsächlichen Verlauf abweichen._"
+    );
   }
   lines.push("");
 
