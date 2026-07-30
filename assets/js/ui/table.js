@@ -6,7 +6,6 @@
 import { fmt, fmtInt, weatherIcon, windDir, phaseTagClass } from "../core/format.js";
 import { sum } from "../core/stats.js";
 import { weekSortIndex } from "../core/aggregate.js";
-import { normalizeFeel } from "../core/normalize.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { el, Tooltip } from "./dom.js";
@@ -60,7 +59,7 @@ export const Table = {
     search: "",
   },
 
-  COLS_BASE: [
+  COLS: [
     { k: "dateShort", l: "Datum", sk: "dateISO" },
     { k: "week", l: "Woche" },
     { k: "name", l: "Einheit", wide: true },
@@ -75,44 +74,15 @@ export const Table = {
     { k: "np", l: "NP" },
     { k: "trimp", l: "TRIMP" },
     { k: "ctl", l: "CTL" },
-    { k: "feel", l: "Befinden" },
     { k: "weather", l: "Wetter", noSort: true },
   ],
 
-  /** Spalten je nach Athlet — Befinden nur bei eigenem Plan relevant */
-  get COLS() {
-    const ownPlan = Data.rides.some((r) => r.week);
-    return ownPlan ? this.COLS_BASE : this.COLS_BASE.filter((c) => c.k !== "feel");
-  },
-
   /* ── Öffentliche API ─────────────────────────────────────────── */
   async init() {
+    // Subjective bleibt geladen — ui/planned.js liest weiterhin über
+    // Subjective.get() daraus (Befinden-Anzeige dort unverändert), nur die
+    // Fahrtenbuch-Spalte samt Editier-Dropdown ist raus.
     await Subjective.load();
-
-    // Event Delegation einmalig auf stabilem Container setzen
-    const tableWrap = el("table-body").parentElement.parentElement;
-    tableWrap.addEventListener("change", async (e) => {
-      const sel = e.target.closest(".feel-select");
-      if (!sel) return;
-      const date = sel.dataset.date;
-      const feel = sel.value;
-      sel.disabled = true;
-
-      const result = await Subjective.save(date, feel, Subjective.get(date).notizen || "");
-
-      sel.disabled = false;
-      const normalized = normalizeFeel(feel);
-      sel.className = `feel-select feel-${normalized.cls}`;
-
-      if (result.ok) {
-        sel.style.outline = "1px solid var(--green)";
-        setTimeout(() => {
-          sel.style.outline = "";
-        }, 1500);
-      } else {
-        alert(result.error?.message || "Speichern fehlgeschlagen. Ist der GitHub Token korrekt?");
-      }
-    });
 
     this.render();
   },
@@ -121,20 +91,6 @@ export const Table = {
     this._renderFilters();
     this._renderWeekTag();
     this._renderTable();
-    this._toggleLegend();
-  },
-
-  /** Befinden-Legende und Hinweistext je nach Athlet ein-/ausblenden */
-  _toggleLegend() {
-    const ownPlan = Data.rides.some((r) => r.week);
-    const legendGroup = el("feel-legend-group");
-    const note = el("table-note");
-    if (legendGroup) legendGroup.classList.toggle("hidden", !ownPlan);
-    if (note) {
-      note.textContent = ownPlan
-        ? "– = Wert nicht erfasst · Befinden nur bei Plan-2-Fahrten editierbar · Wetter von Open-Meteo"
-        : "– = Wert nicht erfasst · Wetter von Open-Meteo";
-    }
   },
 
   /** Von außen aufrufbar um Wochen-Filter zu setzen */
@@ -276,27 +232,10 @@ export const Table = {
     );
 
     // Body
-    const ownPlan = Data.rides.some((r) => r.week);
     const tbody = el("table-body");
     tbody.innerHTML = filtered
       .map((r) => {
         const isIntervalsEra = r.dataSource === "intervals";
-        const subj = isIntervalsEra ? Subjective.get(r.dateISO) : null;
-        const feelVal = subj?.feel || r.feel || "";
-        const feel = normalizeFeel(feelVal);
-
-        const feelCell = !ownPlan
-          ? ""
-          : isIntervalsEra
-            ? `<td>
-            <select class="feel-select feel-${feel.cls}" data-date="${r.dateISO}">
-              <option value="">– wählen –</option>
-              ${Subjective.FEEL_OPTIONS.map(
-                (f) => `<option value="${f}"${feelVal === f ? " selected" : ""}>${f}</option>`
-              ).join("")}
-            </select>
-           </td>`
-            : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`;
 
         return `
         <tr data-date="${r.dateISO}">
@@ -314,7 +253,6 @@ export const Table = {
           <td>${fmtInt(r.np)}</td>
           <td>${fmtInt(r.trimp)}</td>
           <td>${r.ctl != null ? fmt(r.ctl) : "–"}</td>
-          ${feelCell}
           <td class="col-weather">${
             r.weather
               ? (() => {
