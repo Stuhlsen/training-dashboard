@@ -132,6 +132,27 @@
 - Review-Kern: Vergleichsansicht alte/neue Karte nebeneinander, Direkt-Übernahme ohne Vergleich möglich ✅
 - Kategorien-Auswahl der Trainer-Leiste: **DB-persistiert** pro Trainer-Athlet-Paar (neue Tabelle `trainer_view_prefs`) statt nur Session-Zustand ✅ *(Nutzerentscheidung, erweitert bewusst die bisherige Trainer-Settings-Entscheidung aus Phase 4 §1)*
 
+### Nachzug: Richtungsvorgabe beim Export (R1–R9)
+
+*Konzept: `docs/phase-4-konzept-export-richtungsvorgabe.md`. Vorbedingung:
+Ramp-Test-Event in `training-dashboard-dev` eingetragen (eigener
+Aufräum-Auftrag außerhalb des Repos), sonst ist R3 nur im Leerzustand
+testbar.*
+
+- [ ] Schritt 1 — Migration `export_prefs` (nächste freie Nummer: `0008`) +
+  RLS + Grants, Datenzugriff in `data-access/supabase/`, State-Anbindung
+  **[SO]**
+- [ ] Schritt 2 — Prompt-Vorlage aufteilen (Rumpf + fünf Auftragsvarianten),
+  Doku nachziehen, Konsistenztest neu schreiben (kein bestehender Test zum
+  Erweitern — der Kopfkommentar in `core/export-briefing.js:12–15` behauptet
+  das fälschlich und wird im selben Schritt korrigiert) **[SO]**
+- [ ] Mockup-Runde (Preset-Zeile, Freitextfeld-Position, Leerzustand) — vor
+  Schritt 3, im Chat wie bei Phase 2–5 **[SO]**
+- [ ] Schritt 3 — Export-Panel: Preset-Zeile, Freitextfeld, Event-Auswahl,
+  Leerzustands-Hinweis, Persistenz-Anbindung **[SO]**
+- [ ] Schritt 4 — Tests: Auftragsvariante je Preset, Fallback bei `event`
+  ohne Auswahl, Freitext-Längenbegrenzung, Persistenz pro Profil **[SO]**
+
 ---
 
 ## Phase 5 — Explorative Datenansichten 🔍

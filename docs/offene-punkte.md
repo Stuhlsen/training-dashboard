@@ -43,6 +43,14 @@
   Dialog-Grundgerüst ist jetzt 4× separat implementiert (kein
   `ui/dom.js`-Helper); `payloadToCardData()` liefert unvollständige Payloads
   nicht robust (heute folgenlos, einziger Erzeuger sendet immer vollständig).
+- **Vorgabe an entstandenen Vorschlägen wird nicht mitprotokolliert**
+  (`docs/phase-4-konzept-export-richtungsvorgabe.md` R9, Variante 3C) —
+  zurückgestellt: `proposals` ist öffentlich lesbar (S1), ein sichtbares
+  "wollte Entlastung" würde mehr über die Trainingsabsicht verraten als
+  gewollt.
+- **Keine benannten, wiederverwendbaren Vorgaben-Vorlagen** (dieselbe Quelle,
+  Variante 1C) — Overkill für fünf Presets, mögliche Ausbaustufe falls die
+  Presets später nicht mehr reichen.
 
 ---
 
