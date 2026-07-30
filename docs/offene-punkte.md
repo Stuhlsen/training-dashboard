@@ -51,24 +51,11 @@ mehrere bereits committete Dateien anfassen:
   von API-Doku recherchiert (s. Kopfkommentar `data-access/intervals/
   push.js`). Vor Produktion: pushen → Karte verschieben → erneut pushen →
   weiterhin nur EIN Event. → `docs/phase-3-konzept-planungstab.md` §5/§8.4.
-- **`planAdherence()`s „verpasst"-Titel zeigt immer „Einheit"** — liest
-  `.title`, alte wie neue Sessions tragen nur `.name`. Vorbestehende Lücke,
-  nicht durch die `plan_cards`-Migration verursacht.
 - **Drag & Drop, bewusste v1-Einschränkungen:** kein Tastatur-Verschieben
   (A11y-Fallback über `.planned-move-form` existiert bereits); keine
   Umsortierung innerhalb eines Tages (`sort_order` wird nach dem Anlegen nie
   neu vergeben); Karte auf einen komplett leeren Wochenblock behält ihr altes
   `week`-Label. → §4/§7 im Konzept.
-- **NEU (25.07.2026, per Playwright bei der Nach-Drop-Feedback-Verifikation
-  entdeckt): `undoAdjustment()` (`state/plan-cards.js`) restauriert bei
-  einer verschobenen Karte nur `plannedDate`, ruft aber `weekLabelForDate()`
-  nicht erneut auf** — die Karte behält nach "Rückgängig" das week/phase-
-  Label ihrer zuletzt gezogenen Zielwoche, auch wenn die ursprüngliche
-  Woche nicht leer ist (also unabhängig von der oben genannten, bereits
-  bekannten Einschränkung). Sichtbar als Karte unter der falschen Wochen-
-  überschrift trotz korrektem Datum. Für den Playwright-Testlauf manuell per
-  direktem `data-access`-Patch nachkorrigiert, kein Code-Fix in diesem
-  Durchgang (Scope-Ausschluss "Drag & Drop … Labels").
 - **K3 — Typ-Default-TSS auf dünner Datenbasis** (`core/plan-config.js::TYPE_DEFAULT_TSS`,
   n=1–4 bei mehreren Typen) — beim K1-Schwellen-Review nach Plan 2 (mehr
   Historie) zuerst gegenprüfen. → `docs/phase-3-konzept-konfliktlogik-prognose.md` §2/§3.
@@ -213,15 +200,35 @@ mehrere bereits committete Dateien anfassen:
   ab, nicht nur Rundungsdifferenzen). `scripts/lib/map-activity.js::
   wellnessFields()` und `scripts/lib/wellness.js::WELLNESS_FIELDS` lesen
   strukturell identisch `w.hrvSDNN`/`w.restingHR` aus demselben
-  `wellness`-Objekt eines Sync-Laufs — die Diskrepanz deutet daher am
-  ehesten darauf hin, dass `ride.hrv` beim Erst-Sync eingebettet und bei
-  späteren Läufen nicht mehr aufgefrischt wird, während `wellnessList` bei
-  jedem Sync komplett neu aus dem aktuellen intervals.icu-Stand gebaut
-  wird (der rückwirkend Werte korrigieren kann) — unbestätigte Vermutung,
-  keine verifizierte Ursache. Nicht untersucht (außerhalb des Chart-
-  Rendering-Scopes dieses Bugfix-Auftrags), aber worth einer gezielten
-  Prüfung von `scripts/generate-data.js`s Update-Ablauf (Voll- vs.
-  inkrementelle Regenerierung von `rides[]`).
+  `wellness`-Objekt eines Sync-Laufs.
+  **Aktualisierung (30.07.2026):** Die im ursprünglichen Verdacht genannte
+  Ursache („`ride.hrv` beim Erst-Sync eingebettet, bei späteren Läufen nicht
+  aufgefrischt") passt nicht zum heutigen `scripts/generate-data.js`: der
+  `wellness`-Aufruf ([Zeile 103](../scripts/generate-data.js#L103)) läuft
+  genau EINMAL pro Sync-Lauf, `mapActivity()` (Z.131, → `ride.hrv`) und
+  `mapWellnessList()` (Z.141, → `Data.wellness[].hrv`) lesen danach
+  dieselbe Objekt-Referenz — kein Merge mit einem alten `rides.json`, jeder
+  Lauf regeneriert `rides[]` komplett neu. Beide Werte MÜSSTEN sich bei
+  einem frischen vollständigen Sync-Lauf also decken.
+  Alle 6 betroffenen Tage liegen exakt im Übergangsfenster 12.–20.06.2026
+  (Beginn Plan 2 / `ftpMeasuredDate: "2026-06-12"`, HRV-Methodenwechsel
+  RMSSD→SDNN) — `ride.hrv` zeigt dort durchgängig RMSSD-typische Werte
+  (73/82/107/72/95/95), `Data.wellness[].hrv` durchgängig SDNN-typische
+  (45/53/57/45/47/50). Das spricht dafür, dass die aktuell committete
+  `data/rides.json` ein Snapshot aus einem Lauf VOR der Konsolidierung
+  auf die gemeinsame `wellnessFields()`-Funktion ist, nicht ein bis heute
+  reproduzierbarer Bug.
+  **Nicht abschließend verifizierbar in dieser Runde:** lokales `.env` hat
+  kein `INTERVALS_API_KEY`/`INTERVALS_ATHLETE_ID` (identische Lücke wie
+  M3 oben) — ein lokaler `npm run sync` überspringt Plan 2 komplett und
+  hätte `data/rides.json` sonst auf einen reinen Plan-1-Teilbestand
+  zurückgesetzt (passiert, sofort per `git checkout` rückgängig gemacht,
+  nichts committet). **Nächster Schritt:** nach dem nächsten Sync mit
+  echten intervals.icu-Credentials (z. B. regulärer 6h-Cronlauf oder
+  manueller `workflow_dispatch`) `data/rides.json` für die 6 genannten
+  Tage gegenprüfen — bei Konvergenz war es das, sonst weitere Recherche
+  in `scripts/lib/intervals.js` (evtl. liefert die Wellness-API
+  unterschiedliche Werte je nach Query-Zeitraum).
 - **Deshalb bewusst kein reiner Wechsel auf `Data.wellness` für HRV/
   Ruhepuls (Eigenplan-Athlet), sondern ein Merge** (`_mergedOwnPlanSeries()`
   in `wellness.js`: wellness-Wert bevorzugt, ride-Wert als Fallback) — ein
@@ -345,6 +352,14 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
   würde ein Dispatch auf `dashboard-2.0` den Dev-Stand live auf Pages
   deployen), „Commit data if changed" nutzt `$GITHUB_REF_NAME` statt
   hartkodiertem `origin/main`. Commit folgt.
+- **`planAdherence()`s „verpasst"-Titel zeigte immer „Einheit"** — las
+  `.title`, alte wie neue Sessions tragen aber nur `.name` → Fallback jetzt
+  `s.title || s.name || "Einheit"`. Regressionstest in
+  `tests/analysis-core.test.js`.
+- **`undoAdjustment()` recomputete week/phase nach "Rückgängig" nicht neu**
+  (per Playwright am 25.07.2026 entdeckt) → jetzt derselbe
+  `weekLabelForDate()`-Aufruf wie in `movePlanCard()`. Regressionstest in
+  `tests/plan-cards-move.test.js`.
 - **Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)**: Athlet 1 lief bisher auf
   einer plan-gebundenen Wochenstruktur (P2-W0…P2-W12), Athlet 2 bereits auf
   ISO-Kalenderwochen — Migrations-Artefakt aus dem Notion→intervals.icu-
