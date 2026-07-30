@@ -256,13 +256,13 @@ export function renderSleep(svgId, wellness, ownPlan = true) {
         svg.appendChild(c);
       });
 
-      // Rechte Y-Achse: nur 4 Labels
-      const hrStep = Math.ceil((maxHR - minHR) / 4);
-      for (let v = minHR; v <= maxHR; v += hrStep) {
-        const y = pad.t + ch - ((v - minHR) / (maxHR - minHR)) * ch;
-        const t = svgEl("text", { x: W - pad.r + 6, y: y + 4, fill: "#d94f4f", "font-size": "9" });
-        t.textContent = v;
-        svg.appendChild(t);
+      // Direktbeschriftung statt Tick-Zahlenreihe (Familie-2-Konvention wie
+      // im HRV/Ruhepuls-Chart, s. renderHrvTrend) — Achsentitel oben
+      // ("Schlaf-HF (bpm)") liefert die Einheit, exakte Werte kommen aus dem
+      // Tooltip, dieses Label markiert nur die Serie an ihrer flachsten Stelle.
+      const hrLabelIdx = flattestIndex(hrVals, 0, skeleton.length - 1, hrY, 0.4, 1);
+      if (hrLabelIdx != null) {
+        haloLabel(svg, xOf(hrLabelIdx), hrY(hrVals[hrLabelIdx]) - 12, "Schlaf-HF", "#d94f4f");
       }
     }
 
@@ -959,15 +959,6 @@ export function renderEnergy(svgId, ev, wt) {
     const wMin = Math.min(...definedWeights) - 0.4,
       wMax = Math.max(...definedWeights) + 0.4;
     const wY = (w) => wBot - ((w - wMin) / (wMax - wMin || 1)) * wch;
-    [wMax, wMin].forEach((w) => {
-      const y = wY(w);
-      svg.appendChild(
-        svgEl("line", { x1: padL, y1: y, x2: W - padR, y2: y, stroke: "rgba(255,255,255,0.05)" })
-      );
-      const t = txt(padL - 6, y + 3, "9", "#5f6878", "end");
-      t.textContent = fmt(w);
-      svg.appendChild(t);
-    });
 
     // Linie verbindet bewusst über Messlücken hinweg (Alex' Design-Entscheidung,
     // Phase 5 Bugfix-Nachtrag, wie im HRV/Ruhepuls-Chart) — alle tatsächlich
@@ -987,6 +978,13 @@ export function renderEnergy(svgId, ev, wt) {
           points: weightPts.map((q) => `${q.x},${q.y}`).join(" "),
         })
       );
+    }
+    // Direktbeschriftung statt Tick-Zahlenreihe (Familie-2-Konvention wie im
+    // HRV/Ruhepuls-Chart) — "Gewicht (kg)"-Titel oben liefert die Einheit,
+    // exakte Werte kommen aus dem Tooltip.
+    const wLabelIdx = flattestIndex(weightVals, 0, skeleton.length - 1, wY, 0.4, 1);
+    if (wLabelIdx != null) {
+      haloLabel(svg, cx(wLabelIdx), wY(weightVals[wLabelIdx]) - 10, "Gewicht", "#d9b64c");
     }
     skeleton.forEach((day, i) => {
       if (weightVals[i] == null) return;
