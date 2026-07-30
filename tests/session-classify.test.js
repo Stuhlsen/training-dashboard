@@ -227,3 +227,181 @@ test("classifySession: signals sind menschenlesbar (label/value/note)", () => {
   const durSignal = r.signals.find((s) => s.label === "Dauer");
   assert.equal(durSignal.value, "172 min");
 });
+
+/* ── Blockerkennung (v2, 30.07.2026) ────────────────────────────────
+   longestBlock kommt aus scripts/lib/interval-blocks.js::
+   longestBlockAboveThreshold() — hier als bereits fertiges Objekt
+   übergeben (classifySession prüft nicht, wie es entstanden ist). */
+
+test("classifySession: 10.07.2026 — echter Block (53s) bleibt unter der Mindestdauer, kein Upgrade", () => {
+  const r = classifySession({
+    np: 155,
+    ftp: 193,
+    min: 168,
+    longestBlock: { startSec: 8848, endSec: 8901, totalDurationSec: 53, workDurationSec: 53, avgWatts: 226 },
+  });
+  assert.equal(r.type, "Z2 Dauer");
+  assert.equal(r.rule, "if-z2dauer");
+});
+
+test("classifySession: 21.07.2026 — echter Block (629s), aber nur 6,1% der 172-min-Fahrt → Anteilsschwelle greift, kein Block-Signal nötig", () => {
+  // Anteil = 629s / (172*60s) = 6,1% < blockMinSharePct (8%) — der Block
+  // beeinflusst die Einstufung hier nicht (war ohnehin schon über den
+  // IF-Durchschnitt korrekt "Sweet Spot", braucht die Blockerkennung nicht).
+  const r = classifySession({
+    np: 180,
+    ftp: 193,
+    min: 172,
+    longestBlock: { startSec: 3154, endSec: 3868, totalDurationSec: 714, workDurationSec: 629, avgWatts: 204 },
+  });
+  assert.equal(r.type, "Sweet Spot");
+  assert.equal(r.signals.some((s) => s.label === "Zusammenhängender Block"), false);
+});
+
+test("classifySession: 25.07.2026 — 5-min-Block auf einer 244-min-Fahrt (2,1%) hebt NICHT an", () => {
+  // Regressionstest für den zweiten kalibrierten Fund (30.07.2026): eine
+  // rein absolute Mindestdauer hätte diese lange Fahrt fälschlich auf
+  // "Sweet Spot" gehoben. 5 min sind bei 244 min Fahrzeit kein
+  // charakterisierender Anteil.
+  const r = classifySession({
+    np: 159,
+    ftp: 193,
+    min: 244,
+    longestBlock: { startSec: 0, endSec: 300, totalDurationSec: 300, workDurationSec: 300, avgWatts: 185 },
+  });
+  assert.equal(r.type, "Z2 Lang");
+  assert.equal(r.signals.some((s) => s.label === "Zusammenhängender Block"), false);
+});
+
+test("classifySession: Block erfüllt absolute Dauer, aber nicht den Anteil → keine Anhebung", () => {
+  // 6 min Block (> blockMinDurationSec) auf einer 150-min-Fahrt = 4% (< 8%).
+  const r = classifySession({
+    np: 160, // Z2 Dauer über den Durchschnitt
+    ftp: 193,
+    min: 150,
+    longestBlock: { startSec: 0, endSec: 360, totalDurationSec: 360, workDurationSec: 360, avgWatts: 185 },
+  });
+  assert.equal(r.type, "Z2 Dauer");
+  assert.equal(r.signals.some((s) => s.label === "Zusammenhängender Block"), false);
+});
+
+test("classifySession: Block erfüllt Anteil, aber nicht die absolute Mindestdauer → keine Anhebung", () => {
+  // 4 min Block (< blockMinDurationSec 300s) auf einer 20-min-Fahrt = 20%
+  // Anteil, aber die absolute Schwelle greift trotzdem zuerst.
+  const r = classifySession({
+    np: 160,
+    ftp: 193,
+    min: 20,
+    longestBlock: { startSec: 0, endSec: 240, totalDurationSec: 240, workDurationSec: 240, avgWatts: 185 },
+  });
+  assert.equal(r.signals.some((s) => s.label === "Zusammenhängender Block"), false);
+});
+
+test("classifySession: hoher Block-IF wird nie zu VO2max, auch wenn beide Schwellen erfüllt sind", () => {
+  // Regressionstest für den Bug im ersten Entwurf (s. Kommentar in
+  // session-classify.js): 204W/193W FTP = IF 1,057, würde bei einer feinen
+  // Block-IF-Leiter "VO2max" ergeben — bleibt bei "Sweet Spot".
+  const r = classifySession({
+    np: 140, // Fahrt-Durchschnitt allein: Z2 Dauer
+    ftp: 193,
+    min: 60, // Block macht > 8% der Fahrzeit aus (629/3600 = 17.5%)
+    longestBlock: { startSec: 0, endSec: 629, totalDurationSec: 629, workDurationSec: 629, avgWatts: 204 },
+  });
+  assert.equal(r.type, "Sweet Spot");
+  assert.notEqual(r.type, "VO2max");
+});
+
+test("classifySession: langer Block hebt Z2 Dauer auf Sweet Spot an (der eigentliche Zweck)", () => {
+  const r = classifySession({
+    np: 160, // allein IF 0.829 -> Z2 Dauer
+    ftp: 193,
+    min: 90,
+    longestBlock: { startSec: 0, endSec: 600, totalDurationSec: 600, workDurationSec: 600, avgWatts: 185 },
+  });
+  assert.equal(r.type, "Sweet Spot");
+  assert.equal(r.rule, "block-upgrade-sweet-spot");
+  assert.equal(r.confidence, "hoch");
+  const blockSignal = r.signals.find((s) => s.label === "Zusammenhängender Block");
+  assert.match(blockSignal.note, /hebt Einstufung von Z2 Dauer auf Sweet Spot an/);
+});
+
+test("classifySession: Block unter der Mindestdauer (< 300s) hebt nicht an", () => {
+  const r = classifySession({
+    np: 160,
+    ftp: 193,
+    min: 90,
+    longestBlock: { startSec: 0, endSec: 299, totalDurationSec: 299, workDurationSec: 299, avgWatts: 185 },
+  });
+  assert.equal(r.type, "Z2 Dauer");
+  assert.equal(r.signals.some((s) => s.label === "Zusammenhängender Block"), false);
+});
+
+test("classifySession: Block wertet nie ab — bereits Schwelle bleibt Schwelle", () => {
+  const r = classifySession({
+    np: 200, // IF 1.036 -> Schwelle
+    ftp: 193,
+    min: 60,
+    longestBlock: { startSec: 0, endSec: 400, totalDurationSec: 400, workDurationSec: 400, avgWatts: 185 },
+  });
+  assert.equal(r.type, "Schwelle");
+  const blockSignal = r.signals.find((s) => s.label === "Zusammenhängender Block");
+  assert.match(blockSignal.note, /bestätigt Schwelle/);
+});
+
+test("classifySession: FTP-Test wird nie durch einen Block überschrieben", () => {
+  const r = classifySession({
+    np: 210,
+    ftp: 193,
+    min: 12, // < ftpTestMaxMin, IF > ftpTestMinIF -> FTP-Test
+    longestBlock: { startSec: 0, endSec: 400, totalDurationSec: 400, workDurationSec: 400, avgWatts: 200 },
+  });
+  assert.equal(r.type, "FTP-Test");
+  assert.equal(r.signals.some((s) => s.label === "Zusammenhängender Block"), false);
+});
+
+test("classifySession: Block-Upgrade + widersprechende Zonenverteilung → Konfidenz 'mittel', nicht 'hoch'", () => {
+  // Korrektur 30.07.2026 (auf Hinweis): ein Block-Upgrade darf einen
+  // echten Signal-Widerspruch nicht verdecken — Block sagt "Sweet Spot",
+  // die Zonenverteilung (fast nur Z1/Z2) widerspricht dem. "mittel" ist
+  // hier die ehrlichere Konfidenz als eine erzwungene "hoch".
+  const r = classifySession({
+    np: 160,
+    ftp: 193,
+    min: 90,
+    longestBlock: { startSec: 0, endSec: 600, totalDurationSec: 600, workDurationSec: 600, avgWatts: 185 },
+    // Fast nur Z1/Z2 — bestätigt "Sweet Spot" (mid-Band) NICHT.
+    zoneTimes: [
+      { id: "Z1", secs: 3000 },
+      { id: "Z2", secs: 2000 },
+      { id: "Z3", secs: 200 },
+      { id: "Z4", secs: 100 },
+    ],
+  });
+  assert.equal(r.type, "Sweet Spot");
+  assert.equal(r.confidence, "mittel");
+});
+
+test("classifySession: Block-Upgrade + bestätigende Zonenverteilung → Konfidenz bleibt 'hoch'", () => {
+  const r = classifySession({
+    np: 160,
+    ftp: 193,
+    min: 90,
+    longestBlock: { startSec: 0, endSec: 600, totalDurationSec: 600, workDurationSec: 600, avgWatts: 185 },
+    // Überwiegend Z3/Z4 — bestätigt "Sweet Spot" (mid-Band).
+    zoneTimes: [
+      { id: "Z1", secs: 500 },
+      { id: "Z2", secs: 500 },
+      { id: "Z3", secs: 2500 },
+      { id: "Z4", secs: 1800 },
+    ],
+  });
+  assert.equal(r.type, "Sweet Spot");
+  assert.equal(r.confidence, "hoch");
+});
+
+test("classifySession: kein longestBlock -> Verhalten unverändert (Rückwärtskompatibilität)", () => {
+  const withNull = classifySession({ np: 160, ftp: 193, min: 90, longestBlock: null });
+  const withoutField = classifySession({ np: 160, ftp: 193, min: 90 });
+  assert.deepEqual(withNull, withoutField);
+  assert.equal(withNull.type, "Z2 Dauer");
+});

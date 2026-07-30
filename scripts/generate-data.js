@@ -162,7 +162,7 @@ async function main() {
     // ursprüngliche (unverschobene) Plankarte für ein Datum liefern.
     const effectivePlan = buildEffectivePlanIndex(PLANNED_SESSIONS, adjustments);
     plan2 = activities.map((act) =>
-      mapActivity(act, wellness, subjective, weatherMap, effectivePlan, ftpHistory)
+      mapActivity(act, wellness, subjective, weatherMap, effectivePlan, ftpHistory, intervalBlockCache)
     );
     // Ausrollen nach einem harten Workout (gleicher Tag, kurz, deutlich
     // niedrigere Leistung) erbt sonst dieselbe Tages-Plankarte — analog zum
@@ -332,7 +332,9 @@ async function main() {
     });
 
     const rides2 = activities2
-      .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2))
+      .map((act) =>
+        mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2, intervalBlockCache)
+      )
       .sort((a, b) => a.date.localeCompare(b.date));
     // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
     // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.

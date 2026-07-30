@@ -91,14 +91,17 @@ export function inferTypFromIF(np, min, ftp = DEFAULT_FTP) {
  * @param {Object} act
  * @param {number} min
  * @param {number} ftpWatt am Fahrttag gültige FTP, bereits aufgelöst
+ * @param {Object|null} [longestBlock] aus dem Blockerkennung-Cache
+ *   (scripts/lib/interval-blocks.js), Aufrufer schlägt per Activity-ID nach
  * @returns {ReturnType<typeof classifySession>}
  */
-function detectSession(act, min, ftpWatt) {
+function detectSession(act, min, ftpWatt, longestBlock = null) {
   return classifySession({
     np: act.icu_weighted_avg_watts,
     ftp: ftpWatt,
     min,
     zoneTimes: act.icu_zone_times || null,
+    longestBlock,
   });
 }
 
@@ -195,7 +198,19 @@ function startHourOf(act) {
 // ohne sie (leeres Array, z.B. wenn SUPABASE_*-Secrets fehlen) verhält
 // sich ftpAt() wie zuvor: DEFAULT_FTP für jede Fahrt, unverändertes
 // Verhalten (s. generate-data.js für die Herkunft von ftpHistory).
-export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan = PLANNED_SESSIONS, ftpHistory = []) {
+// `intervalBlockCache` (scripts/lib/interval-blocks.js) ebenso optional —
+// ohne Eintrag für diese Activity-ID (z.B. noch nicht abgerufen) bleibt
+// longestBlock null, detectSession() verhält sich dann wie vor der
+// Blockerkennung.
+export function mapActivity(
+  act,
+  wellness,
+  subjective,
+  weatherMap,
+  effectivePlan = PLANNED_SESSIONS,
+  ftpHistory = [],
+  intervalBlockCache = {}
+) {
   const date = act.start_date_local.split("T")[0];
   const { week, phase } = getPlan2WeekPhase(date);
   const w = wellness[date] || {};
@@ -218,7 +233,8 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
   const typSource = s.typ ? "subjective" : planned.typ ? "plan" : "inferred";
   const name = s.name || planned.name || act.name || "Radfahren";
   const { ftpWatt } = ftpAt(ftpHistory, date, DEFAULT_FTP);
-  const detection = detectSession(act, min, ftpWatt);
+  const longestBlock = intervalBlockCache[String(act.id)]?.longestBlock ?? null;
+  const detection = detectSession(act, min, ftpWatt, longestBlock);
 
   // Wetter: exakte Startzeit aus intervals.icu
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
@@ -260,7 +276,8 @@ export function mapActivity2(
   weatherMap,
   estimatedFtp,
   effectivePlan = PLANNED_SESSIONS_ATHLETE2,
-  ftpHistory = []
+  ftpHistory = [],
+  intervalBlockCache = {}
 ) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
@@ -269,7 +286,8 @@ export function mapActivity2(
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
   const { ftpWatt } = ftpAt(ftpHistory, date, estimatedFtp);
-  const detection = detectSession(act, min, ftpWatt);
+  const longestBlock = intervalBlockCache[String(act.id)]?.longestBlock ?? null;
+  const detection = detectSession(act, min, ftpWatt, longestBlock);
 
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
 

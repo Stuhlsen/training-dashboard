@@ -128,6 +128,26 @@ export const SESSION_CLASSIFY = Object.freeze({
   // mid prüft mid+high zusammen (ein Schwelle/Sweet-Spot-Block hat i.d.R.
   // Warmup/Cooldown in low, das allein darf die Bestätigung nicht kippen).
   bandMinShare: Object.freeze({ low: 0.45, mid: 0.35, high: 0.15 }),
+  // Blockerkennung (scripts/lib/interval-blocks.js::longestBlockAboveThreshold,
+  // Schwelle dort bereits ifTempoMax) — Mindest-Arbeitszeit, ab der ein
+  // gefundener Block die IF-Einstufung anheben darf. An den beiden
+  // ersten Kalibrierungsfahrten vom 30.07.2026 lagen die längsten Blöcke bei
+  // 53s (10.07., zu Recht kein Block) bzw. 629s (21.07., echter Sweet-Spot-
+  // Ritt) — 300s (5 min) liegt sicher zwischen einer kurzen Anstrengung/einem
+  // Ausreißer und einer echten zusammenhängenden Belastungsphase.
+  blockMinDurationSec: 300,
+  // Zusätzlich zur absoluten Dauer: der Block muss auch einen relevanten
+  // ANTEIL der Fahrzeit ausmachen — sonst behandelt eine rein absolute
+  // Schwelle eine kurze und eine sehr lange Fahrt gleich, obwohl 5 Minuten
+  // bei einer 90-Minuten-Fahrt etwas anderes bedeuten als bei einer 4-Stunden-
+  // Fahrt. Beide Bedingungen müssen erfüllt sein (UND, nicht ODER).
+  // Kalibriert an allen 53 Ist-Fahrten 01.05.–30.07.2026 (Athlet 1, Bericht
+  // 30.07.2026): funktionierender Korridor war 3–9 %; darüber (ab 10 %)
+  // reißt bereits der knappste der drei bestätigten Zielfälle (02.07., 8 min
+  // auf 88 min = 9,4 %). 8 % gewählt — sicherer Abstand nach oben zum
+  // 25.07.-Grenzfall (5 min auf 244 min = 2,1 %, soll NICHT anheben) und
+  // spürbarer Sicherheitsabstand nach unten zum knappsten Zielfall.
+  blockMinSharePct: 0.08,
 });
 
 /** Welches Zonen-Band (low/mid/high) ein erkannter Typ erwarten lässt —

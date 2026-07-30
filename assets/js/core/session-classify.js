@@ -93,12 +93,29 @@ function zoneBandShares(zoneTimes) {
 
 const pct = (v) => `${Math.round(v * 100)}%`;
 
+/** Intensitäts-Rang je Typ, nur für den Blockerkennung-Vergleich unten:
+ *  ein gefundener Block darf die Einstufung nur ANHEBEN, nie absenken.
+ *  FTP-Test bewusst nicht enthalten — dieses Muster (kurz + sehr hoher IF)
+ *  wird vom Block nie überschrieben, s. dort. */
+const INTENSITY_RANK = {
+  "Z1 Recovery": 0,
+  "Z2 Dauer": 0,
+  "Z2 Lang": 0,
+  Ausrollen: 0,
+  Tempo: 1,
+  "Sweet Spot": 2,
+  Schwelle: 3,
+  VO2max: 4,
+};
+
 /**
  * Trainingstyp einer Ist-Fahrt aus den erhobenen Daten ableiten (nicht aus
  * dem Plan). Reine Funktion, deterministisch.
  * @param {{np?:number|null, ftp?:number|null, min?:number|null,
  *   tss?:number|null, trimp?:number|null, km?:number|null,
- *   zoneTimes?: unknown}} ride
+ *   zoneTimes?: unknown,
+ *   longestBlock?: {startSec:number, endSec:number, totalDurationSec:number,
+ *     workDurationSec:number, avgWatts:number}|null}} ride
  * @returns {{
  *   type: string|null,
  *   confidence: "hoch"|"mittel"|"niedrig",
@@ -106,7 +123,7 @@ const pct = (v) => `${Math.round(v * 100)}%`;
  *   rule: string,
  * }}
  */
-export function classifySession({ np, ftp, min, zoneTimes } = {}) {
+export function classifySession({ np, ftp, min, zoneTimes, longestBlock } = {}) {
   const C = SESSION_CLASSIFY;
 
   if (!np || !ftp) {
@@ -175,7 +192,59 @@ export function classifySession({ np, ftp, min, zoneTimes } = {}) {
     signals.push({ label: "Dauer", value: `${durMin} min`, note: durNote });
   }
 
-  let confidence = "mittel";
+  // Blockerkennung (v2, 30.07.2026): ein langer zusammenhängender Block
+  // ≥ Sweet-Spot-Schwelle hebt die IF-Durchschnitts-Einstufung an, wenn
+  // Warmup/Cooldown/Pausen sie sonst unterschätzt hätten — nie eine
+  // Abwertung (INTENSITY_RANK-Vergleich), nie bei FTP-Test (eigenes,
+  // bereits konfidentes Muster).
+  //
+  // Zielwert bewusst IMMER "Sweet Spot", nie feiner nach Schwelle/VO2max
+  // differenziert: ein erster Entwurf hat blockIF über dieselbe IF-Leiter
+  // wie oben gemappt (analog zum Fahrt-Durchschnitt) — das kippte die
+  // 21.07.-Kalibrierungsfahrt (bereits verifiziert korrekt "Sweet Spot")
+  // auf "VO2max", weil ihr Block bei 204 W / IF 1,057 lag, hauchdünn über
+  // ifSchwelleMax. Ein sustained Block bei ~105 % FTP über zehn Minuten
+  // ist aber eher Schwelle als VO2max (VO2max-Intervalle sind kürzer und
+  // deutlich härter) — die Fahrt-Durchschnitt-Leiter passt nicht 1:1 auf
+  // Block-Durchschnitte, und mit nur zwei Kalibrierungsfahrten lässt sich
+  // keine eigene, verlässliche Block-Leiter aufstellen. longestBlockAbove-
+  // Threshold() garantiert ohnehin nur "mindestens Sweet-Spot-Niveau"
+  // (Schwelle dort = ftp·ifTempoMax) — das ist der einzige Wert, der sich
+  // aus den Blockdaten tatsächlich sicher ableiten lässt.
+  // Zusätzlich zur absoluten Mindestdauer (blockMinDurationSec) muss der
+  // Block auch einen relevanten ANTEIL der Fahrzeit ausmachen
+  // (blockMinSharePct) — sonst zählt eine 5-Minuten-Anstrengung in einer
+  // 90-Minuten- genauso wie in einer 4-Stunden-Fahrt. Beide Bedingungen
+  // müssen gelten (kalibriert an allen 53 Ist-Fahrten 01.05.–30.07.2026,
+  // s. Kommentar in plan-config.js — ohne die Anteils-Schwelle hätte eine
+  // 244-min-Fahrt mit einem 5-min-Block fälschlich "Sweet Spot" bekommen).
+  const blockShare = longestBlock && durMin ? longestBlock.workDurationSec / (durMin * 60) : 0;
+  let blockUpgraded = false;
+  if (
+    longestBlock &&
+    rule !== "ftp-test" &&
+    longestBlock.workDurationSec >= C.blockMinDurationSec &&
+    blockShare >= C.blockMinSharePct
+  ) {
+    const blockType = "Sweet Spot";
+    const blockMin = Math.round(longestBlock.workDurationSec / 60);
+    const blockSharePct = Math.round(blockShare * 1000) / 10;
+    const blockNote = `${blockMin} min zusammenhängend über Schwelle (${longestBlock.avgWatts} W, ${blockSharePct}% der Fahrzeit)`;
+    if (INTENSITY_RANK[blockType] > (INTENSITY_RANK[type] ?? 0)) {
+      signals.push({
+        label: "Zusammenhängender Block",
+        value: blockNote,
+        note: `hebt Einstufung von ${type} auf ${blockType} an`,
+      });
+      type = blockType;
+      rule = `block-upgrade-${blockType.toLowerCase().replace(/\s+/g, "-")}`;
+      blockUpgraded = true;
+    } else {
+      signals.push({ label: "Zusammenhängender Block", value: blockNote, note: `bestätigt ${type}` });
+    }
+  }
+
+  let confidence = blockUpgraded ? "hoch" : "mittel";
   const bands = zoneBandShares(zoneTimes);
   if (bands) {
     const expected = TYPE_EXPECTED_BAND[type];
@@ -191,6 +260,13 @@ export function classifySession({ np, ftp, min, zoneTimes } = {}) {
             ? `bestätigt ${type} (${BAND_LABEL[expected]}-Anteil ausreichend)`
             : `weicht von der IF-Einstufung ab — ${BAND_LABEL[expected]}-Anteil geringer als erwartet`,
     });
+    // Bewusst UNEINGESCHRÄNKT, auch nach einem Block-Upgrade (Korrektur
+    // 30.07.2026 — ein erster Entwurf hat die Zonenverteilung nach einem
+    // Block-Upgrade übergangen und die Konfidenz fest auf "hoch" belassen;
+    // das hätte einen echten Signal-Widerspruch — Block sagt X, Zonenzeit
+    // widerspricht X — unsichtbar gemacht. Wenn Block UND Zonenverteilung
+    // übereinstimmen, bleibt es "hoch"; widersprechen sie sich, ist "mittel"
+    // die ehrlichere Aussage als eine erzwungene hohe Konfidenz.
     if (expected != null) confidence = passes ? "hoch" : "mittel";
   }
 
