@@ -432,4 +432,84 @@ if (!HAS_CREDS) {
     });
     assert.equal(upsert.ok, false, "Upsert für nicht-gecoachte athlete_id hätte scheitern müssen");
   });
+
+  // --- 5. ftp_history (0009) ----------------------------------------------
+  // Verifikation/Dry-Run der neuen Migration 0009_ftp_history.sql — kein
+  // eigener Bericht nötig, dieser Testlauf IST die Verifikation.
+
+  const FTP_SENTINEL_DATE = "1901-01-01"; // real unbenutztes Datum, kollisionsfrei
+
+  test("ftp_history: Athlet legt eigenen Eintrag an, anon sieht ihn nicht (kein GRANT)", async () => {
+    const insert = await rest("POST", "ftp_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, ftp_watt: 199, valid_from: FTP_SENTINEL_DATE },
+    });
+    assert.equal(insert.ok, true, `Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    assert.equal(insert.data[0].source, "ramp-test", "Default für source sollte 'ramp-test' sein");
+    cleanupTasks.push(async () => {
+      const del = await rest(
+        "DELETE",
+        `ftp_history?profile_id=eq.${athlete.userId}&valid_from=eq.${FTP_SENTINEL_DATE}`,
+        { token: athlete.token }
+      );
+      if (!del.ok) throw new Error(`ftp_history-Testzeile (${FTP_SENTINEL_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`);
+    });
+
+    const anonRead = await rest(
+      "GET",
+      `ftp_history?profile_id=eq.${athlete.userId}&valid_from=eq.${FTP_SENTINEL_DATE}`,
+      { token: null }
+    );
+    assert.equal(anonRead.ok, false, "anon darf ftp_history nicht lesen (kein GRANT)");
+  });
+
+  test("ftp_history: zweiter Eintrag für denselben Tag scheitert am unique-Constraint", async () => {
+    const dup = await rest("POST", "ftp_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, ftp_watt: 200, valid_from: FTP_SENTINEL_DATE },
+    });
+    assert.equal(dup.ok, false, "Doppelter valid_from-Eintrag hätte am unique-Constraint scheitern müssen");
+  });
+
+  test("ftp_history: ftp_watt <= 0 scheitert am Check-Constraint", async () => {
+    const bad = await rest("POST", "ftp_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, ftp_watt: 0, valid_from: "1901-01-02" },
+    });
+    assert.equal(bad.ok, false, "ftp_watt=0 hätte am Check-Constraint scheitern müssen");
+  });
+
+  test("ftp_history: unbekannter source-Wert scheitert am Check-Constraint", async () => {
+    const bad = await rest("POST", "ftp_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, ftp_watt: 199, valid_from: "1901-01-03", source: "geschaetzt" },
+    });
+    assert.equal(bad.ok, false, "source='geschaetzt' (falscher Wert) hätte scheitern müssen — erlaubt ist nur 'schaetzung'");
+  });
+
+  test("ftp_history: Trainer liest mit, kann aber nicht für den Athleten schreiben", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerRead = await rest(
+      "GET",
+      `ftp_history?profile_id=eq.${athlete.userId}&valid_from=eq.${FTP_SENTINEL_DATE}`,
+      { token: trainer.token }
+    );
+    assert.equal(trainerRead.ok, true);
+    assert.equal(trainerRead.data.length, 1, "Trainer sollte den Eintrag seines Athleten lesen können (is_coach_of)");
+    assert.equal(trainerRead.data[0].ftp_watt, 199);
+
+    const trainerWrite = await rest("POST", "ftp_history", {
+      token: trainer.token,
+      body: { profile_id: athlete.userId, ftp_watt: 250, valid_from: "1901-01-04" },
+    });
+    assert.equal(trainerWrite.ok, false, "Trainer konnte für den Athleten schreiben — es gibt bewusst keine Insert-Policy dafür");
+  });
+
+  test("ftp_history: Athlet kann keinen Eintrag für eine fremde profile_id anlegen", async () => {
+    const insert = await rest("POST", "ftp_history", {
+      token: athlete.token,
+      body: { profile_id: trainer.userId, ftp_watt: 199, valid_from: "1901-01-05" },
+    });
+    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+  });
 }
