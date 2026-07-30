@@ -542,6 +542,16 @@ test("planAdherence: Adjustments (Ausfall/Verschiebung) wie im Wochenrückblick"
   assert.equal(a.missed.length, 0);
 });
 
+test("planAdherence: verpasste Session ohne .title fällt auf .name zurück, nicht auf 'Einheit'", () => {
+  // PLANNED_SESSIONS (scripts/lib/plan2.js) trägt nur .name, nie .title —
+  // ohne Fallback zeigte die "verpasst"-Liste hier immer nur "Einheit".
+  const today = "2026-07-05";
+  const planned = [{ date: "2026-07-02", name: "Do Intervalle" }];
+  const a = planAdherence([], planned, {}, today);
+  assert.equal(a.missed.length, 1);
+  assert.equal(a.missed[0].title, "Do Intervalle");
+});
+
 test("buildConsistency: ohne Plan bleiben Streak/Frequenz nutzbar, Adhärenz null", () => {
   const c = buildConsistency([{ dateISO: "2026-07-01" }], null, null, "2026-07-05");
   assert.equal(typeof c.streak, "number");

@@ -96,7 +96,7 @@ export function frequencyTrend(rides, todayISO) {
  * tatsächliche Fahrten am jeweiligen Datum. Identisches Matching wie
  * core/weekreview.js::buildWeekReview, nur über den ganzen Zeitraum.
  * @param {import("../types.js").Ride[]} rides
- * @param {Array<{date: string, title?: string}>} plannedSessions
+ * @param {Array<{date: string, title?: string, name?: string}>} plannedSessions
  * @param {Record<string, {cancelled?: boolean, movedTo?: string}>} adjustments
  * @param {string} todayISO
  * @returns {null | {planned: number, done: number, quote: number, missed: Array<{date: string, title: string}>}}
@@ -113,7 +113,7 @@ export function planAdherence(rides, plannedSessions, adjustments, todayISO) {
   const done = effective.filter((s) => doneDates.has(s.date));
   const missed = effective
     .filter((s) => !doneDates.has(s.date))
-    .map((s) => ({ date: s.date, title: s.title || "Einheit" }));
+    .map((s) => ({ date: s.date, title: s.title || s.name || "Einheit" }));
 
   return {
     planned: effective.length,
