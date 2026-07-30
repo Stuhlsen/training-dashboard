@@ -16,6 +16,7 @@ import {
   exportFileName,
   PROMPT_RUMPF,
   SCHEMA_VERSION,
+  EXTRA_CONTEXT_MAX_LENGTH,
 } from "../assets/js/core/export-briefing.js";
 import { validateImport } from "../assets/js/core/proposal-validator.js";
 
@@ -144,6 +145,29 @@ test("buildExportText: preset 'event' OHNE gewähltes Event fällt sichtbar auf 
 test("buildExportText: unbekanntes/fehlendes Preset fällt auf general zurück", () => {
   const text = buildExportText(CTX, { preset: "unbekannt" });
   assert.match(text, /1\. Analysiere Form, Plan und Events\. Prüfe insbesondere:/);
+});
+
+test("buildExportText: extraContext erscheint als eigener Absatz unter dem Auftragsblock", () => {
+  const text = buildExportText(CTX, { extraContext: "diese Woche wenig Zeit" });
+  assert.match(text, /\*\*Zusatzkontext von mir:\*\* diese Woche wenig Zeit/);
+});
+
+test("buildExportText: ohne extraContext erscheint kein Zusatzkontext-Absatz", () => {
+  const text = buildExportText(CTX);
+  assert.doesNotMatch(text, /Zusatzkontext von mir/);
+});
+
+test("buildExportText: extraContext wird auf EXTRA_CONTEXT_MAX_LENGTH gekappt (Längenbegrenzung R2 greift auch auf Datenebene)", () => {
+  const tooLong = "x".repeat(EXTRA_CONTEXT_MAX_LENGTH + 50);
+  const text = buildExportText(CTX, { extraContext: tooLong });
+  const match = text.match(/\*\*Zusatzkontext von mir:\*\* (x+)/);
+  assert.ok(match, "Zusatzkontext-Absatz muss vorhanden sein");
+  assert.equal(match[1].length, EXTRA_CONTEXT_MAX_LENGTH);
+});
+
+test("buildExportText: extraContext wird getrimmt, bloßer Leerraum zählt als 'kein Zusatzkontext'", () => {
+  const text = buildExportText(CTX, { extraContext: "   \n  " });
+  assert.doesNotMatch(text, /Zusatzkontext von mir/);
 });
 
 test("exportFileName: fester Name aus AthletenId + Datum", () => {

@@ -34,6 +34,7 @@ import { openEventForm } from "./event-form.js";
 import { openImportDialog } from "./import-dialog.js";
 import { localISODate, fmtDateFull } from "../core/format.js";
 import { createRequestGuard } from "../core/request-guard.js";
+import { EXTRA_CONTEXT_MAX_LENGTH } from "../core/export-briefing.js";
 
 let barContainer = null;
 let currentAthleteId = null;
@@ -208,7 +209,7 @@ function buildDialog() {
     </div>
 
     <label class="export-field-label" for="export-panel-context">Zusatzkontext (optional)</label>
-    <textarea class="glass-textarea" id="export-panel-context" rows="2" maxlength="500"
+    <textarea class="glass-textarea" id="export-panel-context" rows="2" maxlength="${EXTRA_CONTEXT_MAX_LENGTH}"
       placeholder="z. B. diese Woche wenig Zeit, fahre nur am Wochenende"></textarea>
 
     <textarea class="planned-card-dialog-textarea export-dialog-textarea" id="export-panel-text" rows="14" readonly></textarea>

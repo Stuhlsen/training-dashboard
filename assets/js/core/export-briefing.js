@@ -27,6 +27,12 @@ import { KNOWN_PLAN_TYPES } from "./plan-config.js";
 
 export const SCHEMA_VERSION = 1;
 
+/** Max. Länge des Zusatzkontext-Freitextfelds (R2). Das Textarea-Element
+ *  (ui/export-panel.js) begrenzt das schon per `maxlength`, dieser Cap hier
+ *  ist der Schutz auf Datenebene — greift auch, falls extraContext einmal
+ *  nicht über dieses eine Feld hereinkommt. */
+export const EXTRA_CONTEXT_MAX_LENGTH = 500;
+
 /** Preset-unabhängiger Rumpf der Prompt-Vorlage (Stand schema_version 1) —
  *  Text 1:1 aus docs/phase-4-prompt-vorlage-claude-trainer.md zwischen den
  *  RUMPF-ANFANG/ENDE-Markern. `{{AUFTRAG}}` wird durch buildAuftragBlock()
@@ -399,7 +405,7 @@ export function buildBriefingMarkdown({
  *  @param {{preset?:string, event?:{title?:string,eventDate?:string}|null, extraContext?:string}} [opts] */
 export function buildExportText(ctx, { preset = "general", event = null, extraContext = "" } = {}) {
   let auftrag = buildAuftragBlock(preset, event);
-  const trimmedContext = (extraContext || "").trim();
+  const trimmedContext = (extraContext || "").trim().slice(0, EXTRA_CONTEXT_MAX_LENGTH);
   if (trimmedContext) {
     auftrag += `\n\n**Zusatzkontext von mir:** ${trimmedContext}`;
   }
