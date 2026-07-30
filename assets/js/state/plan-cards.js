@@ -11,6 +11,7 @@ import { projectLoad } from "../core/projection.js";
 import { detectConflicts } from "../core/conflicts.js";
 import { CONFIG } from "./config.js";
 import { getSession } from "./session.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 let cards = [];
 let loading = false;
@@ -26,7 +27,7 @@ let loadedForAthleteId = null;
 // optimistisch und müsste bei einem Fehler zurückrollen — ein Rollback
 // gegen einen inzwischen geänderten Stand macht die neuere Änderung
 // unsichtbar, obwohl die DB sie führt.
-let requestId = 0;
+const requestGuard = createRequestGuard();
 const listeners = new Set();
 // athleteId ("athlete1"/"athlete2") -> aufgelöste Supabase-Profil-UUID.
 // plan_cards.athlete_id ist eine echte UUID, Data.activeAthleteId aber nur
@@ -63,7 +64,7 @@ export function configureProjection(sources) {
 /** Rechnet Prognose + Konfliktliste aus dem aktuellen `cards`-Stand neu. Rein
  *  synchron aus dem In-Memory-Zustand: eine überholte Server-Antwort kehrt vor
  *  notify() zurück und kann die Prognose daher nicht mit veraltetem Stand
- *  überschreiben (erbt den requestId-/Rollback-Schutz aus Schritt 3). Auch
+ *  überschreiben (erbt den requestGuard-/Rollback-Schutz aus Schritt 3). Auch
  *  extern aufrufbar (app.js triggert nach einem Event-Load, s. onEventsChange),
  *  weil ein Event den Horizont und K-EVENT beeinflusst, aber keine
  *  Karten-Mutation ist. */
@@ -113,13 +114,13 @@ export function getState() {
 /** Lädt alle plan_cards von `athleteId` ("athlete1"/"athlete2") neu —
  *  öffentlich lesbar (E1), kein Login nötig. */
 export async function loadPlanCards(athleteId) {
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   loading = true;
   error = null;
   notify();
 
   const profileId = await resolveAthleteProfileId(athleteId);
-  if (myRequest !== requestId) return { ok: false, error: { code: "UNKNOWN", message: "Überholt" } };
+  if (!requestGuard.isCurrent(myRequest)) return { ok: false, error: { code: "UNKNOWN", message: "Überholt" } };
   if (!profileId) {
     loading = false;
     error = { code: "NO_DATA", message: "Athlet hat (noch) keinen Supabase-Account" };
@@ -130,7 +131,7 @@ export async function loadPlanCards(athleteId) {
   }
 
   const result = await listPlanCardsAdapter(profileId);
-  if (myRequest !== requestId) return result; // durch neueren Aufruf überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf überholt
   loading = false;
   if (result.ok) {
     cards = result.cards;
@@ -165,7 +166,7 @@ function applyCardUpdate(result) {
  *
  *  Gemeinsamer Schreibpfad für BEIDE Eingabearten: den "Verschieben"-
  *  Button (Datumsfeld) und Drag & Drop (ui/planned.js). Optimistik und
- *  requestId-Schutz liegen deshalb hier und nicht im Drag-Handler — sonst
+ *  requestGuard-Schutz liegen deshalb hier und nicht im Drag-Handler — sonst
  *  hätte der Button-Pfad sie nicht.
  *
  *  Die Karte übernimmt das week/phase-Label der Zielwoche (core/plan-drag.js),
@@ -193,7 +194,7 @@ export async function movePlanCard(id, newDate, reason) {
     ...(label ? { week: label.week, phase: label.phase } : {}),
   };
 
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   // Optimistisch: die Karte springt sofort an den Zieltag, ohne auf die
   // Runde zum Server zu warten (Konzept §4).
   replaceCard({
@@ -212,7 +213,7 @@ export async function movePlanCard(id, newDate, reason) {
   // vor allem NICHT zurückrollen. Ein blinder Rollback im Fehlerzweig würde
   // sonst den bereits gesetzten Zustand des NEUEREN Vorgangs überschreiben:
   // A optimistisch → B startet → A schlägt fehl → A's Snapshot klobbert B.
-  if (myRequest !== requestId) return result;
+  if (!requestGuard.isCurrent(myRequest)) return result;
   if (!result.ok) {
     replaceCard(snapshot);
     notify();
@@ -224,7 +225,7 @@ export async function movePlanCard(id, newDate, reason) {
 export async function cancelPlanCard(id, reason) {
   const gate = requireUser();
   if (!gate.ok) return gate;
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   // moved_from_date/move_reason mit löschen (s. movePlanCard-Kommentar) —
   // sonst bliebe eine bereits verschobene Karte nach dem Ausfallen mit
   // stehengebliebenen Verschiebe-Daten zurück, und "Rückgängig" bräuchte
@@ -236,7 +237,7 @@ export async function cancelPlanCard(id, reason) {
     movedFromDate: null,
     moveReason: null,
   });
-  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
 }
 
@@ -251,11 +252,11 @@ export async function undoAdjustment(id) {
   if (!gate.ok) return gate;
   const card = cards.find((c) => c.id === id);
   if (!card) return { ok: true };
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
 
   if (card.cancelled) {
     const result = await updatePlanCardAdapter(id, { status: "geplant", cancelReason: null });
-    if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
+    if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Mutation überholt
     return applyCardUpdate(result);
   }
   if (!card.originalDate) return { ok: true };
@@ -269,7 +270,7 @@ export async function undoAdjustment(id) {
     moveReason: null,
     ...(label ? { week: label.week, phase: label.phase } : {}),
   });
-  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
 }
 
@@ -308,7 +309,7 @@ export async function createPlanCard(athleteId, cardData) {
 export async function updatePlanCard(id, cardData) {
   const gate = requireUser();
   if (!gate.ok) return gate;
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   const result = await updatePlanCardAdapter(id, {
     plannedDate: cardData.date,
     title: cardData.name,
@@ -318,7 +319,7 @@ export async function updatePlanCard(id, cardData) {
     details: cardData.details ?? null,
     workout: cardData.workout ?? null,
   });
-  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
 }
 
@@ -329,9 +330,9 @@ export async function updatePlanCard(id, cardData) {
 export async function deletePlanCard(id) {
   const gate = requireUser();
   if (!gate.ok) return gate;
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   const result = await removePlanCardAdapter(id);
-  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Mutation überholt
   if (result.ok) {
     const before = cards.length;
     cards = cards.filter((c) => c.id !== id);

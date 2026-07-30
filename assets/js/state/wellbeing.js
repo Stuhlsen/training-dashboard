@@ -7,6 +7,7 @@ import { getSession, onSessionChange } from "./session.js";
 import { resolveAthleteProfileId } from "./plan-cards.js";
 import { localISODate, addDaysISO } from "../core/format.js";
 import { getSubjectiveReadiness } from "../core/readiness.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 let checkin = null;
 // Subjektiver Kanal für den Governor (core/briefing.js::buildBriefing) —
@@ -25,7 +26,7 @@ let loadedForUserId = null;
 // weiteren Aufruf überholte Antwort veraltete oder fremde Athletendaten in
 // den geteilten Modul-State schreibt (z. B. Athlet A loggt sich während
 // eines laufenden loadToday() aus, oder B loggt sich unmittelbar danach ein).
-let requestId = 0;
+const requestGuard = createRequestGuard();
 const listeners = new Set();
 
 function notify() {
@@ -40,7 +41,7 @@ export function getState() {
 /** Lädt den heutigen (+gestrigen, für den Governor) Check-in des
  *  eingeloggten Athleten neu */
 export async function loadToday() {
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   const user = getSession();
   if (!user) {
     checkin = null;
@@ -60,7 +61,7 @@ export async function loadToday() {
   // bisherigen { ok, checkin }-Vertrag reshapen (getRangeAdapter liefert
   // { ok, checkins: [...] }, nicht direkt .checkin), damit ein Aufrufer wie
   // ui/checkin-dialog.js weiterhin result.checkin lesen kann.
-  if (myRequest !== requestId) {
+  if (!requestGuard.isCurrent(myRequest)) {
     return result.ok
       ? { ok: true, checkin: result.checkins.find((c) => c.date === today) || null }
       : result;
@@ -88,10 +89,10 @@ export async function loadToday() {
 export async function saveToday({ energy, muscleFeel, mood, note }) {
   const user = getSession();
   if (!user) return { ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } };
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   const today = localISODate();
   const result = await upsertTodayAdapter(user.id, today, { energy, muscleFeel, mood, note });
-  if (myRequest !== requestId) return result; // durch neueren Aufruf/Session-Wechsel überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Session-Wechsel überholt
   if (result.ok) {
     checkin = result.checkin;
     // "Heute" allein reicht für freshness "vorhanden" (getSubjectiveReadiness
@@ -147,7 +148,7 @@ export function onWellbeingChange(fn) {
 // an der auth.uid() des eingeloggten Users, nicht an der Toggle-Auswahl.
 onSessionChange((user) => {
   if (!user) {
-    requestId++; // laufende Requests für den alten User ungültig machen
+    requestGuard.bump(); // laufende Requests für den alten User ungültig machen
     checkin = null;
     subjective = null;
     loadedForUserId = null;

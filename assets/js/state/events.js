@@ -7,6 +7,7 @@ import {
 import { getSession } from "./session.js";
 import { resolveAthleteProfileId } from "./plan-cards.js";
 import { localISODate } from "../core/format.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 let events = [];
 let loading = false;
@@ -18,7 +19,7 @@ let loadedForAthleteId = null;
 // könnte eine langsamere, gleichzeitig laufende loadEvents()-Antwort (Snapshot
 // von VOR der Mutation) eine gerade erfolgreich geschriebene Änderung wieder
 // aus dem lokalen State verschwinden lassen.
-let requestId = 0;
+const requestGuard = createRequestGuard();
 const listeners = new Set();
 
 function notify() {
@@ -54,12 +55,13 @@ export function getState() {
  *  live bestätigt (Browser-Konsole, Juli 2026), vorher nur als Verdacht in
  *  docs/offene-punkte.md vermerkt. */
 export async function loadEvents(athleteId) {
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   loading = true;
   error = null;
   notify();
   const profileId = await resolveAthleteProfileId(athleteId);
-  if (myRequest !== requestId) return { ok: false, error: { code: "UNKNOWN", message: "Überholt" } };
+  if (!requestGuard.isCurrent(myRequest))
+    return { ok: false, error: { code: "UNKNOWN", message: "Überholt" } };
   if (!profileId) {
     loading = false;
     events = [];
@@ -68,7 +70,7 @@ export async function loadEvents(athleteId) {
     return { ok: true, events: [] };
   }
   const result = await listEventsAdapter(profileId);
-  if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Mutation überholt
   loading = false;
   if (result.ok) {
     events = result.events;
@@ -108,14 +110,14 @@ export async function createEvent(athleteId, event) {
   const profileId = await resolveAthleteProfileId(athleteId);
   if (!profileId)
     return { ok: false, error: { code: "NO_DATA", message: "Athlet hat (noch) keinen Supabase-Account" } };
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   // type -> "other" macht priority/ftp_goal ungültig (Check-Constraint
   // events_priority_only_for_race) — hier erzwingen statt jedem Aufrufer
   // (aktuell ui/event-form.js, künftig ggf. Quick-Add/Import) zuzumuten,
   // das selbst zu wissen. Spiegelt updateEvent()s Logik.
   const payload = event.type === "other" ? { ...event, priority: null, ftpGoal: null } : event;
   const result = await createEventAdapter(profileId, payload);
-  if (myRequest !== requestId) return result; // durch neueren Aufruf überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf überholt
   // loadedForAthleteId === null: noch nie geladen (z.B. Quick-Add ohne
   // vorherigen Timeline-Besuch) — Cache trotzdem für athleteId initialisieren,
   // statt den Erfolg lokal stillschweigend zu verwerfen.
@@ -130,9 +132,9 @@ export async function createEvent(athleteId, event) {
 export async function updateEvent(id, patch) {
   const gate = requireUser();
   if (!gate.ok) return gate;
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   const result = await updateEventAdapter(id, patch);
-  if (myRequest !== requestId) return result; // durch neueren Aufruf überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf überholt
   if (result.ok && events.some((e) => e.id === id)) {
     events = events.map((e) => (e.id === id ? result.event : e)).sort(byEventDate);
     notify();
@@ -143,9 +145,9 @@ export async function updateEvent(id, patch) {
 export async function removeEvent(id) {
   const gate = requireUser();
   if (!gate.ok) return gate;
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   const result = await removeEventAdapter(id);
-  if (myRequest !== requestId) return result; // durch neueren Aufruf überholt
+  if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf überholt
   if (result.ok) {
     const before = events.length;
     events = events.filter((e) => e.id !== id);

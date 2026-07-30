@@ -1,4 +1,5 @@
 import { createEvent, updateEvent, loadEvents } from "../state/events.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 let overlay = null;
 let modal = null;
@@ -20,10 +21,10 @@ let noteInput = null;
 let currentType = "race";
 let currentAthleteId = null;
 let currentEventId = null; // null = anlegen, sonst bearbeiten
-// Analog zu ui/checkin-dialog.js::openToken: eine spät eintreffende
+// Analog zu ui/checkin-dialog.js::openGuard: eine spät eintreffende
 // createEvent/updateEvent-Antwort darf einen inzwischen erneut geöffneten
 // (oder geschlossenen) Dialog nicht mehr beeinflussen.
-let openToken = 0;
+const openGuard = createRequestGuard();
 
 const PRIORITY_OPTIONS = [
   { value: "", label: "– keine Priorität –" },
@@ -142,7 +143,7 @@ function build() {
     errorEl.textContent = "";
     saveBtn.disabled = true;
     saveBtn.textContent = "Speichern …";
-    const myToken = openToken;
+    const myToken = openGuard.current();
 
     const fd = new FormData(form);
     // Kein type-abhängiges Nullen hier — state/events.js::createEvent/
@@ -165,7 +166,7 @@ function build() {
     // Dialog wurde währenddessen geschlossen oder erneut geöffnet (Abbrechen,
     // neu für ein anderes Event geöffnet) — Button/Fehlermeldung eines
     // inzwischen verlassenen Dialog-Standes nicht mehr anfassen.
-    if (myToken !== openToken) return;
+    if (!openGuard.isCurrent(myToken)) return;
     saveBtn.disabled = false;
     saveBtn.textContent = "Speichern";
     if (!result.ok) {
@@ -200,7 +201,7 @@ export function openEventForm(athleteId, event = null) {
   if (!overlay) build();
   currentAthleteId = athleteId;
   currentEventId = event?.id ?? null;
-  openToken++;
+  openGuard.bump();
   errorEl.textContent = "";
   modal.querySelector("#event-form-title").textContent = event ? "Event bearbeiten" : "Event anlegen";
   fillForm(event);
@@ -210,7 +211,7 @@ export function openEventForm(athleteId, event = null) {
 
 export function closeEventForm() {
   if (!overlay) return;
-  openToken++; // invalidiert einen noch laufenden Save (Abbrechen währenddessen)
+  openGuard.bump(); // invalidiert einen noch laufenden Save (Abbrechen währenddessen)
   overlay.style.display = "none";
   document.removeEventListener("keydown", onKeydown);
 }

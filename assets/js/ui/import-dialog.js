@@ -13,6 +13,7 @@
 
 import { escapeHtml } from "./dom.js";
 import { previewClaudeImport, importClaudeProposals } from "../state/proposals.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 let overlay = null;
 let modal = null;
@@ -29,7 +30,7 @@ let currentAthleteId = null;
 let currentResults = null;
 // Wie ui/checkin-dialog.js: verhindert, dass eine späte Import-Antwort einen
 // inzwischen erneut geöffneten Dialog beeinflusst.
-let openToken = 0;
+const openGuard = createRequestGuard();
 
 function describeProposal(p) {
   const date = escapeHtml(p.payload?.plan_date || "–");
@@ -141,9 +142,9 @@ function build() {
     const validProposals = currentResults.filter((r) => r.valid).map((r) => r.proposal);
     importBtn.disabled = true;
     importBtn.textContent = "⏳ …";
-    const myToken = openToken;
+    const myToken = openGuard.current();
     const result = await importClaudeProposals(currentAthleteId, validProposals);
-    if (myToken !== openToken) return; // Dialog wurde zwischenzeitlich neu geöffnet
+    if (!openGuard.isCurrent(myToken)) return; // Dialog wurde zwischenzeitlich neu geöffnet
     if (!result.ok) {
       errorEl.textContent = result.error?.message || "Import fehlgeschlagen.";
       drawPreview();
@@ -160,7 +161,7 @@ function onKeydown(e) {
 export function openImportDialog(athleteId) {
   if (!overlay) build();
   currentAthleteId = athleteId;
-  openToken++;
+  openGuard.bump();
   textInput.value = "";
   fileInput.value = "";
   currentResults = null;

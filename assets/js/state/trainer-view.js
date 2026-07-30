@@ -20,6 +20,7 @@ import { getProfileByDisplayName } from "../data-access/supabase/profiles.js";
 import { getViewPrefs, setViewPrefs } from "../data-access/supabase/trainer-view-prefs.js";
 import { getSession, isCoach } from "./session.js";
 import { CONFIG } from "./config.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 export const DEFAULT_CATEGORIES = ["checkin", "governor", "tsb", "proposals"];
 export const OPTIONAL_CATEGORIES = ["wellbeing7d", "lastRides", "conflicts", "ctlAtl"];
@@ -42,7 +43,7 @@ let trainerContext = { isTrainer: false, athleteProfileId: null };
 // während des Ladens) den Kontext eines inzwischen verlassenen Athleten
 // über den des aktuell angezeigten schreibt — analog zu state/plan-cards.js/
 // state/events.js.
-let requestId = 0;
+const requestGuard = createRequestGuard();
 const listeners = new Set();
 
 function notify() {
@@ -59,17 +60,17 @@ export function getState() {
  *  nach, das übernimmt loadCategories() separat (Aufrufer entscheidet die
  *  Reihenfolge, analog zu state/plan-cards.js/state/events.js). */
 export async function loadTrainerContext(athleteId) {
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   const user = getSession();
   if (!user || !isCoach()) {
-    if (myRequest !== requestId) return trainerContext; // überholt
+    if (!requestGuard.isCurrent(myRequest)) return trainerContext; // überholt
     trainerContext = { isTrainer: false, athleteProfileId: null };
     notify();
     return trainerContext;
   }
   const name = CONFIG.athleteConfig(athleteId)?.name;
   const result = name ? await getProfileByDisplayName(name) : { ok: true, profile: null };
-  if (myRequest !== requestId) return trainerContext; // durch neueren Athletenwechsel überholt
+  if (!requestGuard.isCurrent(myRequest)) return trainerContext; // durch neueren Athletenwechsel überholt
   const profile = result.ok ? result.profile : null;
   trainerContext = {
     isTrainer: !!profile && profile.coachId === user.id,

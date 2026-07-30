@@ -24,6 +24,7 @@ import { createTrainerProposal } from "../state/proposals.js";
 import { getState as getTrainerViewState } from "../state/trainer-view.js";
 import { isCoach } from "../state/session.js";
 import { TYP_OPTIONS } from "./planned.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 const TYPE_LABEL = { warmup: "WU", interval: "Intervall", cooldown: "CD" };
 
@@ -53,10 +54,10 @@ let currentCard = null; // null = anlegen, sonst bearbeiten
 let currentProposalMode = false;
 let localBlocks = []; // [{ type, text, isNew }]
 let deleteConfirmTimer = null;
-// Analog zu ui/event-form.js::openToken: eine spät eintreffende
+// Analog zu ui/event-form.js::openGuard: eine spät eintreffende
 // create/update/delete-Antwort darf einen inzwischen erneut geöffneten
 // (oder geschlossenen) Dialog nicht mehr beeinflussen.
-let openToken = 0;
+const openGuard = createRequestGuard();
 
 /** `onSaved(beforeProjection)` — beforeProjection ist der Prognose-Stand
  *  (getState().projection) von UNMITTELBAR VOR dem Speichern, für die
@@ -225,11 +226,11 @@ function build() {
       return;
     }
     clearTimeout(deleteConfirmTimer);
-    const myToken = openToken;
+    const myToken = openGuard.current();
     deleteBtn.disabled = true;
     deleteBtn.textContent = "⏳ Löschen…";
     const result = await deletePlanCard(currentCard.id);
-    if (myToken !== openToken) return;
+    if (!openGuard.isCurrent(myToken)) return;
     if (!result.ok) {
       deleteBtn.disabled = false;
       deleteBtn.dataset.confirming = "0";
@@ -246,7 +247,7 @@ function build() {
     errorEl.textContent = "";
     saveBtn.disabled = true;
     saveBtn.textContent = "Speichern …";
-    const myToken = openToken;
+    const myToken = openGuard.current();
 
     const fd = new FormData(form);
     const finalBlocks = localBlocks.filter((b) => b.text.trim()).map((b) => ({ type: b.type, text: b.text.trim() }));
@@ -309,7 +310,7 @@ function build() {
         : await createPlanCard(currentAthleteId, cardData);
     }
 
-    if (myToken !== openToken) return;
+    if (!openGuard.isCurrent(myToken)) return;
     saveBtn.disabled = false;
     saveBtn.textContent = currentProposalMode ? "Als Vorschlag speichern" : "Speichern";
     if (!result.ok) {
@@ -369,7 +370,7 @@ export function openPlanCardDialog(athleteId, card = null) {
   clearTimeout(deleteConfirmTimer);
   currentAthleteId = athleteId;
   currentCard = card;
-  openToken++;
+  openGuard.bump();
   errorEl.textContent = "";
 
   const { trainerContext, saveMode } = getTrainerViewState();
@@ -405,7 +406,7 @@ export function openPlanCardDialog(athleteId, card = null) {
 export function closePlanCardDialog() {
   if (!overlay) return;
   clearTimeout(deleteConfirmTimer);
-  openToken++; // invalidiert einen noch laufenden Save/Delete
+  openGuard.bump(); // invalidiert einen noch laufenden Save/Delete
   overlay.style.display = "none";
   document.removeEventListener("keydown", onKeydown);
 }

@@ -1,5 +1,6 @@
 import { getState, loadToday, saveToday } from "../state/wellbeing.js";
 import { isAthlete } from "../state/session.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 let overlay = null;
 let modal = null;
@@ -9,11 +10,11 @@ let noteInput = null;
 let errorEl = null;
 let saveBtn = null;
 let touched = false;
-// Erhöht sich bei jedem openDialog()-Aufruf; eine spätere Async-Antwort
+// Bumpt bei jedem openDialog()-Aufruf; eine spätere Async-Antwort
 // (loadToday/saveToday) wirkt auf DOM/State nur, wenn der Dialog seitdem
 // nicht erneut geöffnet wurde — verhindert, dass eine überholte Antwort
 // laufende Eingaben oder einen frisch wiedergeöffneten Dialog überschreibt.
-let openToken = 0;
+const openGuard = createRequestGuard();
 
 const SLIDER_DEFS = [
   { key: "energy", label: "Energie", min: "ausgelaugt", max: "voll da / spritzig" },
@@ -119,7 +120,7 @@ function build() {
     errorEl.textContent = "";
     saveBtn.disabled = true;
     saveBtn.textContent = "Speichern …";
-    const myToken = openToken;
+    const myToken = openGuard.current();
     const result = await saveToday({
       energy: Number(sliders.energy.value),
       muscleFeel: Number(sliders.muscleFeel.value),
@@ -134,7 +135,7 @@ function build() {
     }
     // Dialog wurde während des Speicherns erneut geöffnet (z. B. Escape,
     // dann neue Eingaben) — nicht den frisch wiedergeöffneten Stand schließen.
-    if (myToken !== openToken) return;
+    if (!openGuard.isCurrent(myToken)) return;
     closeDialog();
   });
 }
@@ -165,14 +166,14 @@ function onKeydown(e) {
 export async function openDialog() {
   if (!isAthlete()) return;
   if (!overlay) build();
-  const myToken = ++openToken;
+  const myToken = openGuard.bump();
   touched = false;
   errorEl.textContent = "";
   fillFromCheckin(getState().checkin);
   overlay.style.display = "flex";
   document.addEventListener("keydown", onKeydown);
   const result = await loadToday();
-  if (myToken !== openToken) return;
+  if (!openGuard.isCurrent(myToken)) return;
   if (result.ok) {
     if (!touched) fillFromCheckin(result.checkin);
   } else {

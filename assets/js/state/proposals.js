@@ -29,6 +29,7 @@ import { payloadToCardData } from "../core/proposal-payload.js";
 import { parseProposalImport } from "../core/proposal-import-parser.js";
 import { validateImport } from "../core/proposal-validator.js";
 import { getSession } from "./session.js";
+import { createRequestGuard } from "../core/request-guard.js";
 
 let proposals = [];
 let loading = false;
@@ -38,7 +39,7 @@ let loadedForAthleteId = null;
 // überholte Antwort (Athletenwechsel während des Ladens, oder ein
 // Annehmen/Ablehnen, das schneller zurückkommt als ein zuvor gestarteter
 // loadProposals()) den lokalen Stand überschreibt.
-let requestId = 0;
+const requestGuard = createRequestGuard();
 const listeners = new Set();
 
 function notify() {
@@ -60,13 +61,14 @@ export function getState() {
 
 /** Lädt alle Vorschläge von `athleteId` ("athlete1"/"athlete2") neu. */
 export async function loadProposals(athleteId) {
-  const myRequest = ++requestId;
+  const myRequest = requestGuard.bump();
   loading = true;
   error = null;
   notify();
 
   const profileId = await resolveAthleteProfileId(athleteId);
-  if (myRequest !== requestId) return { ok: false, error: { code: "UNKNOWN", message: "Überholt" } };
+  if (!requestGuard.isCurrent(myRequest))
+    return { ok: false, error: { code: "UNKNOWN", message: "Überholt" } };
   if (!profileId) {
     loading = false;
     error = { code: "NO_DATA", message: "Athlet hat (noch) keinen Supabase-Account" };
@@ -77,7 +79,7 @@ export async function loadProposals(athleteId) {
   }
 
   const result = await listProposalsAdapter(profileId);
-  if (myRequest !== requestId) return result;
+  if (!requestGuard.isCurrent(myRequest)) return result;
   loading = false;
   if (result.ok) {
     proposals = result.proposals;
