@@ -170,7 +170,13 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
   const min = Math.round((act.moving_time || 0) / 60);
 
   // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
+  // `typ` bleibt bewusst unverändert (heutiges Verhalten) — typSource
+  // dokumentiert nur, welcher der drei Fälle gegriffen hat. Die getrennten
+  // Felder (typPlanned/typDetected) sind Vorbereitung für die datenbasierte
+  // Ist-Typerkennung (core/session-classify.js, folgt in einem späteren
+  // Schritt); typDetected bleibt bis dahin null.
   const typ = s.typ || planned.typ || inferTypFromIF(np, min);
+  const typSource = s.typ ? "subjective" : planned.typ ? "plan" : "inferred";
   const name = s.name || planned.name || act.name || "Radfahren";
 
   // Wetter: exakte Startzeit aus intervals.icu
@@ -181,6 +187,9 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
     week,
     phase,
     typ,
+    typPlanned: planned.typ ?? null,
+    typDetected: null,
+    typSource,
     dataSource: "intervals",
     ...baseFields(act, weather),
     ...wellnessFields(w),
@@ -218,7 +227,13 @@ export function mapActivity2(
     name: planned.name || act.name || "Radfahren",
     week: null,
     phase: null,
+    // Kein subjective.json bei Athlet 2 (read-only, keine Befinden-Erfassung)
+    // — nur Plan oder IF-Berechnung, s. Kommentar bei mapActivity() zu
+    // typPlanned/typDetected/typSource.
     typ: planned.typ || inferTypFromIF(np, min, estimatedFtp),
+    typPlanned: planned.typ ?? null,
+    typDetected: null,
+    typSource: planned.typ ? "plan" : "inferred",
     // Athlet 2 kommt vollständig aus intervals.icu (kein Notion-Anteil) —
     // dieselbe Datenherkunfts-Semantik wie Athlet 1s intervals.icu-Ära.
     dataSource: "intervals",
@@ -268,6 +283,10 @@ export function classifyCooldowns(rides, ftp) {
       if (priorWasHard && curIsShortEasy && isShortlyAfter(prior, cur)) {
         cur.typ = "Ausrollen";
         cur.name = "Ausrollen";
+        // Überschreibt ggf. eine schon gesetzte typSource ("plan"/"subjective")
+        // — die Ausrollen-Einstufung kommt aus dieser IF/Dauer-Heuristik, nicht
+        // mehr aus der ursprünglichen Quelle, sonst würde typSource lügen.
+        cur.typSource = "inferred";
       }
     }
   }

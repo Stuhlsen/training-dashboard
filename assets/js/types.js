@@ -21,7 +21,13 @@
  *                                  athletenunabhängig (Athlet 1 Notion-Ära vs.
  *                                  intervals.icu-Ära; Athlet 2 immer "intervals")
  * @property {string} [name]
- * @property {string} [typ]
+ * @property {string} [typ]           Anzeige-Typ (Priorität: subjective > Plan > IF-Ableitung,
+ *                                     s. typSource) — unverändert gegenüber Vor-typSource-Ära
+ * @property {string|null} [typPlanned]   Typ der Plankarte dieses Tages, sonst null
+ * @property {string|null} [typDetected]  Ergebnis der datenbasierten Ist-Typerkennung
+ *                                         (core/session-classify.js, folgt in späterem
+ *                                         Schritt) — bis dahin immer null
+ * @property {"subjective"|"plan"|"inferred"|"detected"} [typSource] Herkunft von `typ`
  * @property {number|null} [km]
  * @property {number|null} [min]
  * @property {number|null} [kmh]
