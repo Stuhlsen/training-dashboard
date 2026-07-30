@@ -488,6 +488,7 @@ export const Planned = {
                   : ""
               }
             </div>
+            ${this._renderCardBadges(s)}
           `
             )
             .join("")}
