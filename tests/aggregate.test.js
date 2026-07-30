@@ -93,6 +93,15 @@ test("monthlyFromRides aggregiert Wetter und badCount", () => {
   assert.equal(months[0].avgHF, 145);
 });
 
+test("monthlyFromRides: week ist der rohe YYYY-MM-Bucket-Schlüssel, keine lokalisierte Anzeige", () => {
+  // Konsistent mit core/chart-buckets.js (Monats-Bucket-Vereinheitlichung,
+  // s. docs/offene-punkte.md) — die Kürzung auf "MM/JJ" passiert erst beim
+  // Rendern über weekDisplayLabels(), nicht in monthlyFromRides() selbst.
+  const rides = [{ dateISO: "2026-07-15", km: 10, min: 30, trimp: 50 }];
+  const months = monthlyFromRides(rides);
+  assert.equal(months[0].week, "2026-07");
+});
+
 test("linearTrend: Steigung einer perfekten Geraden, null bei Degeneration", () => {
   const pts = [
     { x: 0, y: 0 },

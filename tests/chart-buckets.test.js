@@ -1,8 +1,9 @@
-/* Tests: Tag → Wochen-Bucket-Abbildung (core/chart-buckets.js) und der
-   geteilte PMC-Skelett-Anker (core/days.js::pmcSkeletonAnchor) — Phase 5,
-   Schritt 6, Teil B. Seit dem Umbau "Plan 1/2 → Kalenderwoche"
-   (dashboard-2.0) ist der Bucket-Schlüssel immer die reine ISO-
-   Kalenderwoche des Datums, unabhängig von r.week. */
+/* Tests: Tag → Wochen-/Monats-Bucket-Abbildung (core/chart-buckets.js) und
+   der geteilte PMC-Skelett-Anker (core/days.js::pmcSkeletonAnchor) — Phase
+   5, Schritt 6, Teil B + Monats-Bucket-Vereinheitlichung (s. docs/offene-
+   punkte.md). Wochen-Periode: Bucket-Schlüssel ist immer die reine ISO-
+   Kalenderwoche des Datums, unabhängig von r.week. Monats-Periode: roher
+   "YYYY-MM"-Schlüssel, rein arithmetisch, kein Fahrt-Lookup nötig. */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -48,6 +49,31 @@ test("weekBucketDateRange ist die Kehrfunktion zu dateToWeekBucket für dieselbe
   const rides = [ride("2026-12-31")]; // Jahreswechsel-Woche
   const bucket = dateToWeekBucket("2027-01-02", rides);
   assert.deepEqual(weekBucketDateRange(bucket, rides), { from: "2026-12-28", to: "2027-01-03" });
+});
+
+/* ── period: "month" (Monats-Bucket-Vereinheitlichung, s. docs/offene-punkte.md) ── */
+
+test("dateToWeekBucket: period 'month' liefert den rohen YYYY-MM-Schlüssel", () => {
+  assert.equal(dateToWeekBucket("2026-07-28", [], "month"), "2026-07");
+  assert.equal(dateToWeekBucket("2026-07-01", [], "month"), "2026-07");
+  assert.equal(dateToWeekBucket("2026-07-31", [], "month"), "2026-07");
+});
+
+test("weekBucketDateRange: period 'month' liefert den ersten/letzten Tag des Monats, ohne Fahrt-Lookup", () => {
+  assert.deepEqual(weekBucketDateRange("2026-07", [], "month"), {
+    from: "2026-07-01",
+    to: "2026-07-31",
+  });
+  // Schaltjahr-Februar
+  assert.deepEqual(weekBucketDateRange("2028-02", [], "month"), {
+    from: "2028-02-01",
+    to: "2028-02-29",
+  });
+});
+
+test("weekBucketDateRange: period 'month' mit ungültigem Schlüssel → null", () => {
+  assert.equal(weekBucketDateRange("2026-KW31", [], "month"), null);
+  assert.equal(weekBucketDateRange("nicht-valide", [], "month"), null);
 });
 
 test("pmcSkeletonAnchor: leeres Array → null", () => {

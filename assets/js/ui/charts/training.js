@@ -8,7 +8,6 @@
 import { fmt, fmtDateFull, diffDays } from "../../core/format.js";
 import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js";
 import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
-import { isoWeekKey } from "../../core/aggregate.js";
 import { dateToWeekBucket, weekBucketDateRange } from "../../core/chart-buckets.js";
 import { pmcSkeletonAnchor } from "../../core/days.js";
 import { CONFIG } from "../../state/config.js";
@@ -34,24 +33,21 @@ import {
    docs/chart-grundlagen.md §7.3, §4.1) ───────────────────────────
    Familie-3-Balkencharts koppeln nicht tagesgenau: ein gehovertes Datum aus
    state/chart-view.js (z.B. aus der PMC-Ansicht) hebt den ganzen Wochen-
-   Balken hervor, der dieses Datum enthält (core/chart-buckets.js). Liest die
+   oder Monats-Balken hervor, der dieses Datum enthält (core/chart-buckets.js,
+   period-bewusst seit der Monats-Bucket-Vereinheitlichung). Liest die
    Geometrie aus svg[geoKey], das bei jedem draw() aktualisiert wird — nie
-   eine veraltete Closure (Muster wie ui/charts/pmc.js::paintHover). Nur für
-   period === "week" aktiv: der Monats-Toggle nutzt zwei zueinander
-   inkonsistente Bucket-Konventionen zwischen den beiden Charts (s.
-   Kopfkommentare unten) und wird bewusst nicht unterstützt — s.
-   docs/offene-punkte.md. Die Rückrichtung (Balken-Hover → PMC-Crosshair) ist
-   nicht gefordert: ein Balken repräsentiert mehrere Tage, es gibt keine
-   eindeutige Rückabbildung. */
+   eine veraltete Closure (Muster wie ui/charts/pmc.js::paintHover). Die
+   Rückrichtung (Balken-Hover → PMC-Crosshair) ist nicht gefordert: ein
+   Balken repräsentiert mehrere Tage, es gibt keine eindeutige
+   Rückabbildung. */
 function paintBucketHover(svg, geoKey) {
   const geo = svg[geoKey];
   if (!geo) return;
   const { hoverLayer, weeklyData, rides, period, barX, barW, top, bottom } = geo;
   hoverLayer.textContent = "";
-  if (period !== "week") return;
   const { hoveredDate } = getChartViewState();
   if (!hoveredDate) return;
-  const bucket = dateToWeekBucket(hoveredDate, rides);
+  const bucket = dateToWeekBucket(hoveredDate, rides, period);
   const i = weeklyData.findIndex((d) => d.week === bucket);
   if (i < 0) return;
   const x = barX(i);
@@ -72,15 +68,13 @@ function paintBucketHover(svg, geoKey) {
 /* ── Brush-Klick auf Balken (Phase 5, Schritt 6, Teil D —
    docs/chart-grundlagen.md §7.2/§7.3, §4.4) ───────────────────────
    Familie-3-Balkencharts sind Brush-Ziel, nicht Brush-Fläche: ein Klick auf
-   eine Woche setzt das PMC-Zeitfenster (state/chart-view.js::setWindow) auf
-   die Montag–Sonntag-Kalenderwoche dieses Bucket-Schlüssels — kein Ziehen im
+   eine Woche/einen Monat setzt das PMC-Zeitfenster (state/chart-view.js::
+   setWindow) auf die Datumsspanne dieses Bucket-Schlüssels — kein Ziehen im
    Balkenchart selbst. Der Datums→Index-Anker muss derselbe sein wie in
    ui/charts/pmc.js::renderPMC() (core/days.js::pmcSkeletonAnchor), sonst
-   driftet das gesetzte Fenster. Nur für period === "week" aktiv, s.
-   paintBucketHover(). */
+   driftet das gesetzte Fenster. */
 function jumpBrushToWeekBucket(bucketKey, rides, period) {
-  if (period !== "week") return;
-  const range = weekBucketDateRange(bucketKey, rides);
+  const range = weekBucketDateRange(bucketKey, rides, period);
   const anchor = pmcSkeletonAnchor(rides);
   if (!range || !anchor) return;
   setWindow(Math.max(0, diffDays(range.from, anchor)), diffDays(range.to, anchor));
@@ -708,17 +702,20 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
     return;
   }
 
-  // Wochenweise aggregieren — ISO-Kalenderwoche, einheitlich für beide
-  // Athleten (core/aggregate.js::isoWeekKey). Fahrten ohne verwertbares
-  // Datum werden übersprungen und geloggt statt in einen falschen
-  // Sammel-Bucket zu fallen.
+  // Wochen- oder monatsweise aggregieren, je nach Toggle (core/chart-
+  // buckets.js::dateToWeekBucket — Monats-Bucket-Vereinheitlichung, s.
+  // docs/offene-punkte.md; vorher wurde hier IMMER nach ISO-Kalenderwoche
+  // gruppiert, auch im Monats-Modus — echter Bug, nicht nur eine
+  // Konventionsfrage: der Monats-Toggle änderte nur den Achsentitel, nie
+  // die tatsächliche Gruppierung). Fahrten ohne verwertbares Datum werden
+  // übersprungen und geloggt statt in einen falschen Sammel-Bucket zu fallen.
   const weekMap = {};
   for (const r of withWeather) {
     if (!r.dateISO) {
       log.warn("Wetter-Chart: Fahrt ohne Woche/Datum übersprungen", r.name || r.dateISO);
       continue;
     }
-    const wk = isoWeekKey(r.dateISO);
+    const wk = dateToWeekBucket(r.dateISO, null, period);
     if (!weekMap[wk]) weekMap[wk] = { week: wk, temps: [], winds: [], precips: [], rides: [] };
     weekMap[wk].temps.push(r.weather.temp);
     weekMap[wk].winds.push(r.weather.windSpeed);

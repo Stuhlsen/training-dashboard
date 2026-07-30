@@ -84,7 +84,10 @@ export function weeklyByCalendar(rides) {
 /**
  * Aggregiert Rides nach Kalendermonat (YYYY-MM) — analog zur Wochen-
  * Aggregation, plus Wetter-Durchschnitte für den Wetter-Chart.
- * Die Chart-Funktionen erwarten das Monats-Label im Feld "week".
+ * Die Chart-Funktionen erwarten den rohen "YYYY-MM"-Bucket-Schlüssel im Feld
+ * "week" (konsistent mit core/chart-buckets.js — Monats-Vereinheitlichung,
+ * s. docs/offene-punkte.md) — Kürzung auf "MM/JJ" passiert erst beim
+ * Rendern über ui/charts/base.js::weekDisplayLabels(), nicht hier.
  * @param {import("../types.js").Ride[]} rides
  * @returns {Array<import("../types.js").WeekAggregate & {temp: number|null, windSpeed: number|null, precip: number|null, badCount: number}>}
  */
@@ -106,12 +109,8 @@ export function monthlyFromRides(rides) {
   return Object.entries(grouped)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([month, mRides]) => {
-      const label = new Date(month + "-01").toLocaleDateString("de-DE", {
-        month: "short",
-        year: "2-digit",
-      });
       return {
-        ...aggregateGroup(label, mRides, { phase: mRides[0]?.phase || null }),
+        ...aggregateGroup(month, mRides, { phase: mRides[0]?.phase || null }),
         avgHF:
           Math.round(
             avg(

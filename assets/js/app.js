@@ -254,18 +254,10 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
     {
       toggleId: "toggle-weather",
       titleId: "title-weather",
-      chartFn: (data, period) => {
-        if (period === "month") {
-          // Fahrten temporär mit Monat als "week" versehen für die Aggregation in renderWeatherWeekly
-          const ridesWithMonth = Data.rides.map((r) => ({
-            ...r,
-            week: r.dateISO ? r.dateISO.slice(0, 7) : r.week || "?",
-          }));
-          Charts.renderWeatherWeekly("chart-weather-weekly", ridesWithMonth, period);
-        } else {
-          Charts.renderWeatherWeekly("chart-weather-weekly", Data.rides, period);
-        }
-      },
+      // renderWeatherWeekly() bucketet selbst nach core/chart-buckets.js::
+      // dateToWeekBucket(period) — kein Remapping von r.week mehr nötig
+      // (Monats-Bucket-Vereinheitlichung, s. docs/offene-punkte.md).
+      chartFn: (data, period) => Charts.renderWeatherWeekly("chart-weather-weekly", Data.rides, period),
       titleWeek: "Trainingswetter · Temperatur & Wind pro Woche",
       titleMonth: "Trainingswetter · Temperatur & Wind pro Monat",
     },

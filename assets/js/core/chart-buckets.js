@@ -12,11 +12,11 @@
    Bucket-Konvention (konsistent mit core/aggregate.js::weeklyByCalendar):
    die ISO-Kalenderwoche des Datums (core/aggregate.js::isoWeekKey) —
    einheitlich für beide Athleten seit dem Umbau "Plan 1/2 → Kalenderwoche"
-   (dashboard-2.0). Nur die Wochen-Periode wird unterstützt — der
-   Monats-Toggle von renderWeeklyVolume/renderWeatherWeekly nutzt zwei
-   zueinander inkonsistente Konventionen (lokalisierter Anzeige-String bzw.
-   roher "YYYY-MM"-Schlüssel, s. Kopfkommentar ui/charts/training.js) und
-   bleibt bewusst außen vor (docs/offene-punkte.md).
+   (dashboard-2.0). Seit der Monats-Bucket-Vereinheitlichung (s.
+   docs/offene-punkte.md) unterstützen beide Funktionen optional auch
+   period === "month": Bucket-Schlüssel dann der rohe "YYYY-MM"-String
+   (konsistent mit core/aggregate.js::monthlyFromRides), rein arithmetisch
+   berechnet (kein Fahrt-Lookup nötig, anders als bei der Wochen-Periode).
    ============================================================ */
 
 import { addDaysISO } from "./format.js";
@@ -32,31 +32,41 @@ function mondayOf(dateISO) {
 }
 
 /**
- * Wochen-Bucket-Schlüssel für ein beliebiges Kalenderdatum — konsistent mit
- * dem, was renderWeeklyVolume/renderWeatherWeekly als Bucket-Schlüssel
- * verwenden (core/aggregate.js::weeklyByCalendar). Reine ISO-Kalenderwoche,
- * kein Fahrt-Lookup mehr nötig (`rides` bleibt im Signatur-Parameter für
- * API-Stabilität der Aufrufer, wird hier aber nicht mehr gebraucht).
+ * Bucket-Schlüssel für ein beliebiges Kalenderdatum — konsistent mit dem,
+ * was renderWeeklyVolume/renderWeatherWeekly/renderZoneWeekly als Bucket-
+ * Schlüssel verwenden (core/aggregate.js::weeklyByCalendar/monthlyFromRides).
+ * Reine Arithmetik, kein Fahrt-Lookup nötig (`rides` bleibt im Signatur-
+ * Parameter für API-Stabilität der Aufrufer, wird hier nicht gebraucht).
  * @param {string} dateISO
  * @param {import("../types.js").Ride[]} [rides] ungenutzt, s.o.
+ * @param {"week"|"month"} [period]
  * @returns {string}
  */
-export function dateToWeekBucket(dateISO, rides) {
-  return isoWeekKey(dateISO);
+export function dateToWeekBucket(dateISO, rides, period = "week") {
+  return period === "month" ? dateISO.slice(0, 7) : isoWeekKey(dateISO);
 }
 
 /**
- * Kehrfunktion zu dateToWeekBucket(): die Montag–Sonntag-Kalenderwoche zu
- * einem Bucket-Schlüssel, anhand irgendeiner Fahrt mit demselben
- * isoWeekKey(). Für den Brush-Klick (Teil D) — dort ist der Bucket-
- * Schlüssel bereits bekannt (Balken-Datum `d.week`), gebraucht wird die
- * zugehörige Kalenderwoche als Datumsspanne.
- * @param {string} weekKey
+ * Kehrfunktion zu dateToWeekBucket(): die Datumsspanne zu einem Bucket-
+ * Schlüssel. Für den Brush-Klick (Teil D) — dort ist der Bucket-Schlüssel
+ * bereits bekannt (Balken-Datum `d.week`), gebraucht wird die zugehörige
+ * Spanne. Wochen-Periode braucht dafür eine Fahrt mit demselben isoWeekKey()
+ * (der Wochenschlüssel selbst trägt keine Datumsinformation); Monats-Periode
+ * ist rein arithmetisch aus dem "YYYY-MM"-Schlüssel ableitbar.
+ * @param {string} bucketKey
  * @param {import("../types.js").Ride[]} rides
- * @returns {{from: string, to: string}|null} `null`, wenn keine Fahrt passt
+ * @param {"week"|"month"} [period]
+ * @returns {{from: string, to: string}|null} `null` bei unbekanntem/ungültigem Schlüssel
  */
-export function weekBucketDateRange(weekKey, rides) {
-  const match = (rides || []).find((r) => isoWeekKey(r.dateISO) === weekKey);
+export function weekBucketDateRange(bucketKey, rides, period = "week") {
+  if (period === "month") {
+    const m = /^(\d{4})-(\d{2})$/.exec(bucketKey || "");
+    if (!m) return null;
+    const [, y, mo] = m;
+    const lastDay = new Date(Number(y), Number(mo), 0).getDate(); // Tag 0 des Folgemonats
+    return { from: `${y}-${mo}-01`, to: `${y}-${mo}-${String(lastDay).padStart(2, "0")}` };
+  }
+  const match = (rides || []).find((r) => isoWeekKey(r.dateISO) === bucketKey);
   if (!match) return null;
   const monday = mondayOf(match.dateISO);
   return { from: monday, to: addDaysISO(monday, 6) };
