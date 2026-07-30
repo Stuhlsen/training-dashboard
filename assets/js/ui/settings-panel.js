@@ -6,9 +6,10 @@ import {
   updateWellbeingPublic,
 } from "../state/session.js";
 import { getGoals, saveGoal, deactivateGoal } from "../state/goals.js";
+import { getFtpHistory, saveFtpEntry } from "../state/ftp-history.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
-import { fmtDate } from "../core/format.js";
+import { fmtDate, localISODate } from "../core/format.js";
 import { log } from "./log.js";
 import { openDialog as openCheckinDialog } from "./checkin-dialog.js";
 
@@ -207,6 +208,137 @@ async function buildGoalsSection() {
   return section;
 }
 
+const FTP_SOURCE_LABEL = { "ramp-test": "Ramp-Test", schaetzung: "Schätzung" };
+
+/** Eintrag mit dem größten `validFrom` <= heute — rein UI-seitige Markierung
+ *  "aktuell", KEINE Übernahme der scripts/lib/ftp-history.js::ftpAt()-Logik
+ *  (die ist Node-only, importiert env.js/fs). Bei Bedarf (weitere
+ *  Frontend-Konsumenten) verdient sich eine geteilte core/-Variante das
+ *  dann eigenständig — hier reicht die einfache Inline-Fassung.
+ *  @param {Array<{validFrom:string}>} entries aufsteigend sortiert */
+function currentFtpEntry(entries) {
+  const todayISO = localISODate();
+  return entries.filter((e) => e.validFrom <= todayISO).at(-1) ?? null;
+}
+
+/** v1 (Auftrag "FTP als gepflegte, zeitpunktbezogene Historie", Schritt 4):
+ *  nur anlegen, keine Korrektur/Löschung bestehender Einträge — RLS
+ *  (Migration 0009) würde ein Update/Delete durch den Athleten ohnehin
+ *  nicht erlauben, s. dortige Policies. */
+async function buildFtpHistorySection() {
+  const section = document.createElement("div");
+  section.style.cssText = "padding: 18px 16px; border-bottom: 1px solid var(--border);";
+
+  const heading = document.createElement("div");
+  heading.textContent = "FTP-Historie";
+  heading.style.cssText =
+    "font-family: var(--font-mono); font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em; color: var(--dim); margin-bottom:10px;";
+
+  const list = document.createElement("div");
+  list.style.cssText = "display:flex; flex-direction:column; gap:8px; margin-bottom:10px;";
+
+  async function renderList() {
+    list.innerHTML = "";
+    const result = await getFtpHistory();
+    if (!result.ok) {
+      log.warn("FTP-Historie konnte nicht geladen werden:", result.error);
+      const errEl = document.createElement("div");
+      errEl.textContent = "FTP-Historie konnte nicht geladen werden.";
+      errEl.style.cssText = "font-family: var(--font-mono); font-size:0.65rem; color: var(--red);";
+      list.appendChild(errEl);
+      return;
+    }
+    if (!result.entries.length) {
+      const emptyEl = document.createElement("div");
+      emptyEl.textContent = "Noch keine Einträge — bisher gilt die im Profil hinterlegte FTP.";
+      emptyEl.style.cssText = "font-family: var(--font-mono); font-size:0.65rem; color: var(--dim);";
+      list.appendChild(emptyEl);
+      return;
+    }
+    const current = currentFtpEntry(result.entries);
+    // Neueste zuerst — die Liste kommt aufsteigend sortiert aus getFtpHistory().
+    for (const entry of [...result.entries].reverse()) {
+      const item = document.createElement("div");
+      item.style.cssText = "display:flex; align-items:center; justify-content:space-between; padding:6px 8px;";
+      item.innerHTML = `
+        <span style="font-family: var(--font-mono); font-size:0.65rem; color: var(--dim);"></span>
+        <span style="font-family: var(--font-disp); font-weight:600; font-size:0.8rem; color: var(--accent);"></span>
+      `;
+      const sourceLabel = FTP_SOURCE_LABEL[entry.source] || entry.source;
+      item.children[0].textContent =
+        `ab ${fmtDate(entry.validFrom)} · ${sourceLabel}` + (entry.id === current?.id ? " · aktuell" : "");
+      item.children[1].textContent = `${entry.ftpWatt} W`;
+      list.appendChild(item);
+    }
+  }
+
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.textContent = "+ FTP eintragen";
+  addBtn.style.cssText =
+    "background:none; border:none; cursor:pointer; font-family: var(--font-mono); font-size:0.62rem; color: var(--accent); padding:0;";
+
+  const form = document.createElement("form");
+  form.style.cssText = "display:none; flex-direction:column; gap:8px; margin-top:10px;";
+  form.innerHTML = `
+    <input name="ftpWatt" type="number" placeholder="FTP (Watt)" min="1" step="1" required class="glass-input">
+    <input name="validFrom" type="date" required class="glass-input">
+    <select name="source" class="glass-input">
+      <option value="ramp-test">Ramp-Test</option>
+      <option value="schaetzung">Schätzung</option>
+    </select>
+    <input name="note" type="text" placeholder="Notiz (optional)" class="glass-input">
+    <div id="settings-ftp-error" style="font-family: var(--font-mono); font-size:0.62rem; color: var(--red); min-height:1em;"></div>
+    <button type="submit" class="btn-primary" style="align-self:flex-start;">Speichern</button>
+  `;
+  // Zukunftsdaten sind zwar keine RLS-Schranke (Migration 0009 prüft das
+  // nicht serverseitig), aber inhaltlich sinnlos — clientseitige Schranke
+  // reicht für diese private, nur-vom-Athleten-selbst-genutzte Eingabe.
+  form.querySelector('input[name="validFrom"]').max = localISODate();
+  form.querySelector('input[name="validFrom"]').value = localISODate();
+
+  const ftpErrorEl = form.querySelector("#settings-ftp-error");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    ftpErrorEl.textContent = "";
+    const fd = new FormData(form);
+    const result = await saveFtpEntry({
+      ftpWatt: Number(fd.get("ftpWatt")),
+      validFrom: fd.get("validFrom"),
+      source: fd.get("source"),
+      note: fd.get("note") || null,
+    });
+    if (!result.ok) {
+      // Häufigster Fall: unique(profile_id, valid_from) aus Migration 0009 —
+      // zweiter Eintrag für denselben Tag. Postgres' Rohfehler ("duplicate
+      // key value violates unique constraint …") live im Formular gesehen —
+      // zu technisch für den Athleten, deshalb hier gezielt abgefangen statt
+      // 1:1 durchgereicht.
+      ftpErrorEl.textContent = result.error?.message?.includes("ftp_history_profile_id_valid_from_key")
+        ? "Für dieses Datum gibt es bereits einen Eintrag."
+        : result.error?.message || "FTP-Eintrag konnte nicht gespeichert werden.";
+      return;
+    }
+    form.reset();
+    form.querySelector('input[name="validFrom"]').value = localISODate();
+    form.style.display = "none";
+    addBtn.style.display = "";
+    renderList();
+  });
+
+  addBtn.addEventListener("click", () => {
+    form.style.display = "flex";
+    addBtn.style.display = "none";
+  });
+
+  section.appendChild(heading);
+  section.appendChild(list);
+  section.appendChild(addBtn);
+  section.appendChild(form);
+  await renderList();
+  return section;
+}
+
 /** Letztes Datum über alle Fahrten/Wellness-Einträge des aktiven Athleten —
  *  window.__dashboardData aus dem Briefing existiert nicht im Datenmodell,
  *  daher Näherung über den vorhandenen Data-Store statt pro Quelle exakt. */
@@ -261,6 +393,7 @@ async function buildPanelContent(user) {
   content.appendChild(buildProfileSection(user));
   if (isAthlete()) {
     content.appendChild(await buildGoalsSection());
+    content.appendChild(await buildFtpHistorySection());
     content.appendChild(buildDataSourcesSection());
   }
   return content;
