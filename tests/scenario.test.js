@@ -18,12 +18,12 @@ const TODAY = "2026-07-24";
 test("buildScenario: kein Parameter aktiv → Baseline unverändert übernommen, uncertain aus estimateTss", () => {
   const cards = [
     { id: "a", date: "2026-07-25", tssPlanned: 100, typ: "Schwelle" },
-    { id: "b", date: "2026-07-26", typ: "Z2 Lang" }, // Typ-Default 221, unsicher
+    { id: "b", date: "2026-07-26", typ: "Z2 Lang" }, // Typ-Default 228, unsicher
   ];
   const { cards: out, uncertainCardIds } = buildScenario(cards, {}, { today: TODAY });
   const byId = Object.fromEntries(out.map((c) => [c.id, c.tssPlanned]));
   assert.equal(byId.a, 100);
-  assert.equal(byId.b, 221);
+  assert.equal(byId.b, 228);
   assert.deepEqual([...uncertainCardIds], ["b"]);
 });
 

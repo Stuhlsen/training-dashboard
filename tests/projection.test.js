@@ -39,7 +39,7 @@ test("estimateTss Stufe 2: Schätzung aus workout-Blöcken, unsicher", () => {
 
 test("estimateTss Stufe 3: Typ-Default (K3-Median), unsicher", () => {
   const r = estimateTss({ typ: "Z2 Lang" });
-  assert.deepEqual(r, { tss: 221, uncertain: true, source: "type" });
+  assert.deepEqual(r, { tss: 228, uncertain: true, source: "type" });
 });
 
 test("estimateTss: unbekannter Typ → Fallback-TSS", () => {
@@ -50,7 +50,7 @@ test("estimateTss: unbekannter Typ → Fallback-TSS", () => {
 
 test("estimateTss: leeres workout ohne Segmente fällt auf den Typ-Default zurück", () => {
   const r = estimateTss({ workout: {}, typ: "Schwelle" });
-  assert.deepEqual(r, { tss: 97, uncertain: true, source: "type" });
+  assert.deepEqual(r, { tss: 104, uncertain: true, source: "type" });
 });
 
 /* ── projectLoad: bekannte PMC-Kurve ─────────────────────────── */
@@ -103,10 +103,10 @@ test("projectLoad: Verschieben auf den Folgetag verdichtet die Last (Rechenbeisp
 test("projectLoad summiert mehrere Karten am selben Tag und ODER-t uncertain", () => {
   const cards = [
     { id: "a", date: "2026-07-24", tssPlanned: 50, typ: "Z2 Dauer" }, // sicher
-    { id: "b", date: "2026-07-24", typ: "Z2 Lang" }, // Typ-Default 221, unsicher
+    { id: "b", date: "2026-07-24", typ: "Z2 Lang" }, // Typ-Default 228, unsicher
   ];
   const { days } = projectLoad(cards, ACTUALS, { today: TODAY });
-  assert.equal(days[0].tss, 271);
+  assert.equal(days[0].tss, 278);
   assert.equal(days[0].uncertain, true);
   assert.deepEqual(days[0].cardIds.sort(), ["a", "b"]);
 });

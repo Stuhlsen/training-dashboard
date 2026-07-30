@@ -37,9 +37,18 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
  * in scripts/migrate-plan-to-supabase.js (logMedianTssPerType) und hier 1:1
  * übernommen, nicht geschätzt.
  *
- * ⚠ DÜNNE DATENBASIS — beim K1-Schwellen-Review nach Plan 2 ZUERST
- *   gegenprüfen (s. docs/offene-punkte.md). Typen mit n < 5:
- *     NLS n=1 · Gruppenfahrt n=2 · Außerplanmäßig n=2 · Z2 Erholung n=2 ·
+ * **Review (30.07.2026, auf Alex' Wunsch vorgezogen — Plan 2 selbst läuft
+ * noch bis zum Retest 19.09.2026):** gegen den aktuellen Datenstand
+ * (`data/rides.json` + `rides-2.json`) neu berechnet. Die gut belegten Typen
+ * (n≥5) haben sich moderat verschoben (z.B. Schwelle 97→104, Z2 Lang
+ * 221→228, Z1 Recovery 62→67) und wurden aktualisiert — echter Gewinn aus
+ * der inzwischen gefahrenen Plan-2-Historie. Die im ursprünglichen Hinweis
+ * genannten DÜNNEN Typen sind aber weiterhin dünn, die Datenbasis hat sich
+ * dort seit dem letzten Stand kaum bewegt (nur Gruppenfahrt +1). Nächster
+ * sinnvoller Zeitpunkt für DIESEN Teil bleibt nach dem Retest.
+ *
+ * ⚠ DÜNNE DATENBASIS — Typen mit n < 5 (Stand 30.07.2026):
+ *     NLS n=1 · Außerplanmäßig n=2 · Z2 Erholung n=2 · Gruppenfahrt n=3 ·
  *     Tempo n=3 · Etappe n=4 · Z2 Kadenz n=4
  *   Diese Defaults sind daher nur grobe Anhaltspunkte.
  *
@@ -55,19 +64,19 @@ export const TYPE_DEFAULT_TSS = Object.freeze({
   Etappe: 268,
   Freestyle: 131,
   "FTP-Test": 67,
-  Gruppenfahrt: 177,
+  Gruppenfahrt: 185,
   NLS: 97,
   Rennen: 129,
-  Schwelle: 97,
-  "Sweet Spot": 99,
+  Schwelle: 104,
+  "Sweet Spot": 101,
   Tempo: 84,
-  VO2max: 87,
-  "Z1 Recovery": 62,
-  Z2: 66,
-  "Z2 Dauer": 94,
+  VO2max: 84,
+  "Z1 Recovery": 67,
+  Z2: 67,
+  "Z2 Dauer": 93,
   "Z2 Erholung": 101,
   "Z2 Kadenz": 109,
-  "Z2 Lang": 221,
+  "Z2 Lang": 228,
 });
 
 /** Fallback-TSS für einen Typ, der weder in TYPE_DEFAULT_TSS steht noch
