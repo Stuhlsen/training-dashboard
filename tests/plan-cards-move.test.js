@@ -67,6 +67,18 @@ const SEED = [
     week: "2026-KW30",
     phase: "Erholung",
   },
+  // Zweite Karte in card-As Ursprungswoche (2026-KW29) — nötig, um die
+  // undoAdjustment()-Regression unten nachzustellen: weekLabelForDate()
+  // braucht eine verbleibende Karte in der Zielwoche, um ihr Label zu leihen.
+  {
+    id: "card-C",
+    date: "2026-07-21",
+    sortOrder: 1,
+    name: "Z2 Dauer",
+    typ: "Z2 Dauer",
+    week: "2026-KW29",
+    phase: "Sweet Spot",
+  },
 ];
 
 /** Frischer Store vor jedem Test (cards werden von loadPlanCards ersetzt). */
@@ -248,6 +260,26 @@ test("Rückgängig nach einer Verschiebung stellt das Ursprungsdatum wieder her"
 });
 
 /* ── Guards ──────────────────────────────────────────────────── */
+
+test("Rückgängig nach wochenübergreifender Verschiebung stellt auch week/phase wieder her", async () => {
+  await seed();
+  // card-A (2026-KW29, neben card-C) in card-Bs Woche (2026-KW30) ziehen …
+  const pMove = movePlanCard("card-A", "2026-07-29", "");
+  pending[0].resolve({ ok: true, card: serverCard(SEED[0], pending[0].patch) });
+  await pMove;
+  assert.equal(cardById("card-A").week, "2026-KW30", "übernimmt zunächst card-Bs Woche");
+
+  // … und wieder rückgängig machen. card-C steht immer noch in 2026-KW29 —
+  // ohne den Fix bliebe die Karte fälschlich unter "2026-KW30" hängen.
+  const pUndo = undoAdjustment("card-A");
+  assert.equal(pending[1].patch.week, "2026-KW29", "week wird für die Ursprungswoche neu geliehen");
+  assert.equal(pending[1].patch.phase, "Sweet Spot");
+  pending[1].resolve({ ok: true, card: serverCard(SEED[0], pending[1].patch) });
+  await pUndo;
+
+  assert.equal(cardById("card-A").week, "2026-KW29", "hängt nach Rückgängig wieder korrekt");
+  assert.equal(cardById("card-A").phase, "Sweet Spot");
+});
 
 test("movePlanCard schreibt nicht ohne bekannte Karte", async () => {
   await seed();

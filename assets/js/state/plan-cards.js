@@ -259,10 +259,15 @@ export async function undoAdjustment(id) {
     return applyCardUpdate(result);
   }
   if (!card.originalDate) return { ok: true };
+  // Wie movePlanCard(): die Karte übernimmt das week/phase-Label ihrer
+  // (wieder-)aktuellen Woche, sonst hängt sie nach "Rückgängig" weiter unter
+  // der zuletzt gezogenen Zielwoche (s. docs/offene-punkte.md).
+  const label = weekLabelForDate(cards, card.originalDate, id);
   const result = await updatePlanCardAdapter(id, {
     plannedDate: card.originalDate,
     movedFromDate: null,
     moveReason: null,
+    ...(label ? { week: label.week, phase: label.phase } : {}),
   });
   if (myRequest !== requestId) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
