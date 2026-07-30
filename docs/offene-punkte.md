@@ -185,6 +185,56 @@ gültig, jetzt mit anderer Begründung: der HRV-Methodenwechsel-Marker
 werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
 `renderRhfTrend`. Details: Commits `398da65`/`bb210e5`/`ce49e24`/`4458a3f`.
 
+## Ist-Typerkennung / Blockerkennung / FTP-Historie (Code-Review 30.07.2026)
+
+Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
+(FTP-Historie- + Blockerkennungs-Kette, Commits `abc230a`…`c26e44c`),
+4 Blickwinkel, Findings einzeln gegen den aktuellen Code verifiziert.
+
+- **`Subjective.save()` (Befinden pro Fahrt) ist seit Commit `c26e44c`
+  unerreichbar** — die Fahrtenbuch-Spalte samt `.feel-select`-Change-Listener
+  wurde entfernt, `Subjective.save()`/`load()`/`get()` selbst blieben
+  unverändert, aber kein Aufrufer ruft `save()` noch auf
+  (`ui/planned.js` nutzt nur noch lesend `Subjective.get()`). Kein Bezug zum
+  neuen Supabase-Tages-Check-in (`ui/checkin-dialog.js`, Energie/Muskeln/
+  Stimmung) — andere Funktion, kein Ersatz. Echter Funktionsverlust, nicht
+  nur Spalten-Aufräumen; Commit-Message ("bleiben unangetastet") verdeckt das.
+- **`classifyCooldowns()` (`scripts/lib/map-activity.js:328`) rechnet
+  weiterhin mit fester Saison-FTP** (`DEFAULT_FTP`/`estimatedFTP2` in
+  `generate-data.js:170`/`:341`), nicht mit der in derselben Kette
+  eingeführten datumsgenauen `ftpAt()`-Auflösung, die `typDetected`/
+  `typDetection` längst nutzen. Nach einem `ftp_history`-Eintrag, der die FTP
+  mittendrin anhebt, können `typ`/`typSource` (Ausrollen-Erkennung) und
+  `typDetected` für dieselbe Fahrt auseinanderlaufen.
+- **Export-Briefing-Fußnote behauptet pauschal Planungsherkunft** —
+  `core/export-briefing.js:324` schreibt "Der Typ stammt aus der Planung"
+  für die gesamte Ist-Fahrten-Tabelle, obwohl `typ` bei fehlendem Plan-Match
+  datenbasiert ist (`inferTypFromIF`). Das dafür eingeführte Feld
+  `typSource` wird hier nicht ausgewertet.
+- **`longestBlockAboveThreshold()` (`scripts/lib/interval-blocks.js:69`)
+  prüft die Gap-Toleranz nur pro Einzelsegment, nicht kumulativ** — mehrere
+  kurze RECOVERY-Segmente können zusammen eine echte längere Erholungspause
+  überbrücken und zwei getrennte Efforts fälschlich zu einem Block mergen.
+- **`updateIntervalBlockCache()` (`scripts/lib/interval-blocks.js:135`)
+  cacht Aktivitäten ohne `icu_intervals` nie** — `fetchActivityIntervals()`
+  liefert bei echten Fehlern UND bei dauerhaft fehlenden Intervall-Daten
+  gleichermaßen `null`; beide Fälle werden nie unter `cache[key]` abgelegt
+  und deshalb bei jedem 6h-Sync erneut angefragt, entgegen dem eigenen
+  Kopfkommentar ("keine Change-Detection nötig").
+- **`loadFtpHistory()` (`scripts/lib/ftp-history.js:57`) dupliziert
+  `scripts/lib/http.js::fetchJson()` ohne dessen Timeout/Retry-Schutz** —
+  zwei rohe `fetch()`-Aufrufe ohne Timeout. Ist trotz eigenem Kommentar
+  ("NICHT von generate-data.js aufgerufen") bereits aktiv in
+  `generate-data.js:141`/`:317` verdrahtet (Kommentar ist stale) — sobald
+  die in der Infrastruktur/CI-Sektion unten genannten `SUPABASE_*`-Secrets
+  gesetzt sind, kann ein hängender Login/REST-Call den ganzen Sync-Lauf ohne
+  Timeout blockieren.
+- **Sweet-Spot-Schwelle `thresholdIF`/`ifTempoMax` bewusst dupliziert**
+  zwischen `scripts/lib/interval-blocks.js:113` und
+  `assets/js/core/plan-config.js:119` (Kommentar erklärt warum), aber ohne
+  Sync-Schutz — eine künftige Rekalibrierung in `plan-config.js` driftet
+  unbemerkt von der Node-seitigen Kopie ab.
+
 ## Infrastruktur/CI
 
 - **`sync-data.yml` hat noch keine `SUPABASE_*`-Secrets im `env`-Block** —
