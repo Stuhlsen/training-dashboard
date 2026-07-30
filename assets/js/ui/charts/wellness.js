@@ -28,12 +28,7 @@ import { densifyDays, joinSeries } from "../../core/days.js";
 import { getPlan2WeekPhase } from "../../core/plan2-schedule.js";
 import { Data } from "../../state/data.js";
 import { el, svgEl, Tooltip } from "../dom.js";
-import {
-  getState as getChartViewState,
-  onChartViewChange,
-  setHovered,
-  clearHovered,
-} from "../../state/chart-view.js";
+import { onChartViewChange, setHovered, clearHovered } from "../../state/chart-view.js";
 import {
   xLabel,
   autoScrollRight,
@@ -45,36 +40,8 @@ import {
   makeIndexScale,
   haloLabel,
   flattestIndex,
-  crosshair,
-  hoverDot,
+  paintDayHover,
 } from "./base.js";
-
-/* ── Fadenkreuz-Hover (Phase 5, Schritt 7, Teil C — docs/chart-
-   grundlagen.md §7.3, §4.1) ──────────────────────────────────────
-   Eine einzige, lokal geteilte Funktion für alle 5 Familie-2-Charts dieser
-   Datei — analog zu ui/charts/training.js::paintBucketHover(svg, geoKey),
-   das denselben über geoKey parametrisierten Ansatz für seine zwei
-   Familie-3-Charts nutzt. Sucht das gehoverte Datum im EIGENEN Skelett des
-   jeweiligen Charts (jedes hat seinen eigenen Datumsbereich, s. Kopf-
-   kommentar) und bricht sauber ab, wenn das Datum außerhalb liegt — kein
-   Fehler, einfach kein Fadenkreuz. */
-function paintDayHover(svg, geoKey) {
-  const geo = svg[geoKey];
-  if (!geo) return;
-  geo.hoverLayer.textContent = "";
-  const { hoveredDate } = getChartViewState();
-  if (!hoveredDate) return;
-  const i = geo.skeleton.findIndex((s) => s.dateISO === hoveredDate);
-  if (i < 0) return;
-  const x = geo.x(i);
-  crosshair(geo.hoverLayer, { x, top: geo.top, bottom: geo.bottom });
-  for (const s of geo.series) {
-    const v = s.vals[i];
-    if (v == null) continue;
-    const color = typeof s.color === "function" ? s.color(i) : s.color;
-    hoverDot(geo.hoverLayer, x, s.yOf(v), color);
-  }
-}
 
 /* ── Schlaf — Dauer & Schlaf-HF ──────────────────────────────── */
 export function renderSleep(svgId, wellness, ownPlan = true) {

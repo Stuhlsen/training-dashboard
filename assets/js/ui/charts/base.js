@@ -3,6 +3,7 @@
    ============================================================ */
 
 import { svgEl } from "../dom.js";
+import { getState as getChartViewState } from "../../state/chart-view.js";
 
 /* K5-Chart-Palette — zentrale Referenz für alle SVG-Farben.
    Die Chart-Module verwenden diese Werte (teils als Literale in
@@ -453,6 +454,38 @@ export function hoverDot(parent, x, y, color) {
       "stroke-width": "2.4",
     })
   );
+}
+
+/**
+ * Fadenkreuz-Hover für Familie-2-Charts (lückige Zeitreihe, tagesgenau,
+ * docs/chart-grundlagen.md §7.2/§7.3) — eine einzige, geteilte Funktion für
+ * alle Charts mit eigenem Tages-Skelett (ursprünglich lokal in
+ * ui/charts/wellness.js, jetzt geteilt mit ui/charts/power.js::
+ * renderEfficiency, s. docs/offene-punkte.md). Analog zu
+ * ui/charts/training.js::paintBucketHover(svg, geoKey), das denselben über
+ * geoKey parametrisierten Ansatz für Familie-3-Charts nutzt. Sucht das
+ * gehoverte Datum im EIGENEN Skelett des jeweiligen Charts (jedes hat
+ * seinen eigenen Datumsbereich) und bricht sauber ab, wenn das Datum
+ * außerhalb liegt — kein Fehler, einfach kein Fadenkreuz.
+ * @param {SVGElement} svg
+ * @param {string} geoKey z.B. "__sleepGeometry"
+ */
+export function paintDayHover(svg, geoKey) {
+  const geo = svg[geoKey];
+  if (!geo) return;
+  geo.hoverLayer.textContent = "";
+  const { hoveredDate } = getChartViewState();
+  if (!hoveredDate) return;
+  const i = geo.skeleton.findIndex((s) => s.dateISO === hoveredDate);
+  if (i < 0) return;
+  const x = geo.x(i);
+  crosshair(geo.hoverLayer, { x, top: geo.top, bottom: geo.bottom });
+  for (const s of geo.series) {
+    const v = s.vals[i];
+    if (v == null) continue;
+    const color = typeof s.color === "function" ? s.color(i) : s.color;
+    hoverDot(geo.hoverLayer, x, s.yOf(v), color);
+  }
 }
 
 /* ── Zeitraum-Brushing (Phase 5, Schritt 1 — docs/phase-5-konzept-
