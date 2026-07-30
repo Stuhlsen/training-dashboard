@@ -280,13 +280,15 @@ async function buildFtpHistorySection() {
 
   const form = document.createElement("form");
   form.style.cssText = "display:none; flex-direction:column; gap:8px; margin-top:10px;";
+  // Kein source-Auswahlfeld: dieses Formular ist ausschließlich für real
+  // per Ramp-Test gemessene Werte (30.07.2026, auf Wunsch) — eFTP-artige
+  // Schätzungen liefert bereits intervals.icu laufend, eine zweite,
+  // manuell einzutragende "Schätzung" hier würde beide Konzepte vermischen.
+  // DB-Constraint (Migration 0009) erlaubt "schaetzung" weiterhin, falls
+  // später doch gebraucht — das hier ist eine reine UI-Einschränkung.
   form.innerHTML = `
-    <input name="ftpWatt" type="number" placeholder="FTP (Watt)" min="1" step="1" required class="glass-input">
+    <input name="ftpWatt" type="number" placeholder="FTP (Watt), per Ramp-Test gemessen" min="1" step="1" required class="glass-input">
     <input name="validFrom" type="date" required class="glass-input">
-    <select name="source" class="glass-input">
-      <option value="ramp-test">Ramp-Test</option>
-      <option value="schaetzung">Schätzung</option>
-    </select>
     <input name="note" type="text" placeholder="Notiz (optional)" class="glass-input">
     <div id="settings-ftp-error" style="font-family: var(--font-mono); font-size:0.62rem; color: var(--red); min-height:1em;"></div>
     <button type="submit" class="btn-primary" style="align-self:flex-start;">Speichern</button>
@@ -305,7 +307,7 @@ async function buildFtpHistorySection() {
     const result = await saveFtpEntry({
       ftpWatt: Number(fd.get("ftpWatt")),
       validFrom: fd.get("validFrom"),
-      source: fd.get("source"),
+      source: "ramp-test",
       note: fd.get("note") || null,
     });
     if (!result.ok) {
