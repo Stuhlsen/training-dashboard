@@ -6,6 +6,7 @@
 
 import { effectiveSessions } from "../../assets/js/core/planning.js";
 import { classifySession } from "../../assets/js/core/session-classify.js";
+import { ftpAt } from "./ftp-history.js";
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { getWeatherForRide } from "./weather.js";
@@ -73,23 +74,29 @@ export function inferTypFromIF(np, min, ftp = DEFAULT_FTP) {
 
 /**
  * Datenbasierte Ist-Typerkennung (core/session-classify.js) für eine
- * Aktivität aufrufen. `ftp` MUSS die am Fahrttag gültige FTP sein, nicht
- * die heutige — hier bevorzugt `act.icu_eftp` (eFTP zum Fahrtzeitpunkt,
- * intervals.icu), sonst Fallback auf die übergebene Referenz-FTP (Athlet 1:
- * DEFAULT_FTP, Athlet 2: estimatedFtp — dieselbe Referenz, die auch
- * inferTypFromIF() hier schon bekommt). eFTP ist im aktuellen Datenbestand
- * oft null (s. Kommentar bei baseFields()), der Fallback greift dann exakt
- * wie bisher bei inferTypFromIF() — kein neues Verhalten für den Typ,
- * nur eine zusätzliche, unabhängige Einschätzung in typDetected.
+ * Aktivität aufrufen. `ftpWatt` MUSS die am Fahrttag gültige FTP sein,
+ * nicht die heutige — kommt vom Aufrufer bereits fertig aufgelöst
+ * (ftpAt(ftpHistory, date, fallbackFtp), s. mapActivity()/mapActivity2()).
+ *
+ * Nutzt bewusst NICHT mehr `act.icu_eftp` (Stand vor der FTP-Historie,
+ * 30.07.2026): eFTP ist intervals.icus laufend nachgeführte SCHÄTZUNG aus
+ * den jüngsten Aktivitäten — schwankt je nach Tagesform/Anstrengung dieser
+ * einen Fahrt und ist damit kein stabiler Referenzpunkt für "wie hart war
+ * das relativ zu meiner damaligen Schwelle". ftp_history trägt die
+ * bewusst vom Athleten eingetragene, gemessene Ramp-Test-FTP — die
+ * inhaltlich richtige Grundlage für die IF-Berechnung. `act.icu_eftp`
+ * bleibt unverändert in `ride.eftp` erhalten (baseFields()) — dort speist
+ * es weiterhin die eFTP-Trend-Prognose (core/ftp-forecast.js), ein
+ * bewusst anderer Zweck als die Ist-Typerkennung hier.
  * @param {Object} act
  * @param {number} min
- * @param {number} fallbackFtp
+ * @param {number} ftpWatt am Fahrttag gültige FTP, bereits aufgelöst
  * @returns {ReturnType<typeof classifySession>}
  */
-function detectSession(act, min, fallbackFtp) {
+function detectSession(act, min, ftpWatt) {
   return classifySession({
     np: act.icu_weighted_avg_watts,
-    ftp: act.icu_eftp || fallbackFtp,
+    ftp: ftpWatt,
     min,
     zoneTimes: act.icu_zone_times || null,
   });
@@ -184,7 +191,11 @@ function startHourOf(act) {
 }
 
 // === intervals.icu Activity → Ride-Objekt (Athlet 1, Plan 2) ===
-export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan = PLANNED_SESSIONS) {
+// `ftpHistory` (Migration 0009, scripts/lib/ftp-history.js) ist optional —
+// ohne sie (leeres Array, z.B. wenn SUPABASE_*-Secrets fehlen) verhält
+// sich ftpAt() wie zuvor: DEFAULT_FTP für jede Fahrt, unverändertes
+// Verhalten (s. generate-data.js für die Herkunft von ftpHistory).
+export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan = PLANNED_SESSIONS, ftpHistory = []) {
   const date = act.start_date_local.split("T")[0];
   const { week, phase } = getPlan2WeekPhase(date);
   const w = wellness[date] || {};
@@ -196,17 +207,18 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
 
   // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
   // `typ` bleibt bewusst unverändert (heutiges Verhalten, inferTypFromIF()
-  // bleibt der Fallback dafür) — typSource dokumentiert nur, welcher der
-  // drei Fälle gegriffen hat. `typDetected`/`typDetection` kommen
-  // UNABHÄNGIG davon aus core/session-classify.js (Schritt 3 der Ist-
-  // Typerkennung) und verändern typ/typSource hier bewusst NICHT — welche
-  // Konsumenten künftig typDetected statt typ lesen, entscheidet ein
-  // späterer Schritt bewusst einzeln (Schichtenregel/Konservativität wie
-  // in Schritt 2 begründet).
+  // bleibt der Fallback dafür, unverändert auf DEFAULT_FTP statt ftpAt() —
+  // s. "typ bleibt unangetastet"-Konvention) — typSource dokumentiert nur,
+  // welcher der drei Fälle gegriffen hat. `typDetected`/`typDetection`
+  // kommen UNABHÄNGIG davon aus core/session-classify.js und verändern
+  // typ/typSource hier bewusst NICHT — welche Konsumenten künftig
+  // typDetected statt typ lesen, entscheidet ein späterer Schritt bewusst
+  // einzeln (Schichtenregel/Konservativität wie in Schritt 2 begründet).
   const typ = s.typ || planned.typ || inferTypFromIF(np, min);
   const typSource = s.typ ? "subjective" : planned.typ ? "plan" : "inferred";
   const name = s.name || planned.name || act.name || "Radfahren";
-  const detection = detectSession(act, min, DEFAULT_FTP);
+  const { ftpWatt } = ftpAt(ftpHistory, date, DEFAULT_FTP);
+  const detection = detectSession(act, min, ftpWatt);
 
   // Wetter: exakte Startzeit aus intervals.icu
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
@@ -237,12 +249,18 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
 // Planungstab trotzdem funktioniert. Data.weekly() selbst hängt seit dem
 // Umbau "Plan 1/2 → Kalenderwoche" nicht mehr an r.week (immer
 // isoWeekKey(r.dateISO)), ist von week:null hier also ohnehin unberührt.
+// `ftpHistory` optional (leer -> estimatedFtp für jede Fahrt, unverändertes
+// Verhalten) — Athlet 2 hat vermutlich keine eigene ftp_history-Historie
+// gepflegt (kein Ramp-Test-Konzept in derselben Form), das ist hier bewusst
+// KEIN Sonderfall: ftpAt() fällt auf estimatedFtp zurück, wenn die Tabelle
+// für dieses Profil leer ist — exakt wie bisher, ohne eigenen Code-Zweig.
 export function mapActivity2(
   act,
   wellness,
   weatherMap,
   estimatedFtp,
-  effectivePlan = PLANNED_SESSIONS_ATHLETE2
+  effectivePlan = PLANNED_SESSIONS_ATHLETE2,
+  ftpHistory = []
 ) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
@@ -250,7 +268,8 @@ export function mapActivity2(
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
-  const detection = detectSession(act, min, estimatedFtp);
+  const { ftpWatt } = ftpAt(ftpHistory, date, estimatedFtp);
+  const detection = detectSession(act, min, ftpWatt);
 
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
 

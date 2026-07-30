@@ -39,6 +39,7 @@ import {
   logRpeFeelCoverage,
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
+import { loadFtpHistory } from "./lib/ftp-history.js";
 import {
   mapWellnessList,
   latestWeight,
@@ -124,11 +125,28 @@ async function main() {
     log.info(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
     log.info(`📋 adjustments.json: ${Object.keys(adjustments).length} Anpassungen`);
 
+    // Zeitpunktbezogene FTP-Historie (Migration 0009) — einmal für den
+    // ganzen Lauf laden, ftpAt() löst sie pro Fahrt gegen deren Datum auf
+    // (map-activity.js). Ohne SUPABASE_*-Secrets liefert loadFtpHistory()
+    // [] (kein Fehler) -> ftpAt() fällt für jede Fahrt auf DEFAULT_FTP
+    // zurück, exakt das bisherige Verhalten.
+    const ftpHistory = await loadFtpHistory({
+      email: ENV.SUPABASE_ATHLETE1_EMAIL,
+      password: ENV.SUPABASE_ATHLETE1_PASSWORD,
+    });
+    log.info(
+      ftpHistory.length
+        ? `✅ FTP-Historie: ${ftpHistory.length} Einträge (${ftpHistory.map((h) => `${h.ftpWatt}W ab ${h.validFrom}`).join(", ")})`
+        : `ℹ️  FTP-Historie: keine Einträge/Credentials — Fallback auf DEFAULT_FTP (${DEFAULT_FTP}W) für alle Fahrten`
+    );
+
     // Kartentausch/-verschiebung berücksichtigen: ohne effectivePlan würde
     // mapActivity() nach einer Verschiebung im Planungstab weiter die
     // ursprüngliche (unverschobene) Plankarte für ein Datum liefern.
     const effectivePlan = buildEffectivePlanIndex(PLANNED_SESSIONS, adjustments);
-    plan2 = activities.map((act) => mapActivity(act, wellness, subjective, weatherMap, effectivePlan));
+    plan2 = activities.map((act) =>
+      mapActivity(act, wellness, subjective, weatherMap, effectivePlan, ftpHistory)
+    );
     // Ausrollen nach einem harten Workout (gleicher Tag, kurz, deutlich
     // niedrigere Leistung) erbt sonst dieselbe Tages-Plankarte — analog zum
     // Fix für Athlet 2 weiter unten.
@@ -274,8 +292,23 @@ async function main() {
     log.info(`📋 adjustments-2.json: ${Object.keys(adjustments2).length} Anpassungen`);
     const effectivePlan2 = buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2);
 
+    // Kein Sonderfall für Athlet 2: dieselbe generische ftpAt()-Auflösung
+    // wie bei Athlet 1. Pflegt Athlet 2 keine ftp_history (vermutlich der
+    // Fall, kein Ramp-Test-Konzept in derselben Form), liefert
+    // loadFtpHistory() [] und ftpAt() fällt auf estimatedFTP2 zurück —
+    // exakt das bisherige Verhalten, ohne athletenspezifischen Code.
+    const ftpHistory2 = await loadFtpHistory({
+      email: ENV.SUPABASE_ATHLETE2_EMAIL,
+      password: ENV.SUPABASE_ATHLETE2_PASSWORD,
+    });
+    log.info(
+      ftpHistory2.length
+        ? `✅ FTP-Historie (${ATHLETE_2_NAME}): ${ftpHistory2.length} Einträge`
+        : `ℹ️  FTP-Historie (${ATHLETE_2_NAME}): keine Einträge/Credentials — Fallback auf ${estimatedFTP2}W für alle Fahrten`
+    );
+
     const rides2 = activities2
-      .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2))
+      .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2))
       .sort((a, b) => a.date.localeCompare(b.date));
     // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
     // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.
