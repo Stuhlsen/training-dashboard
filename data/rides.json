@@ -4128,7 +4128,7 @@
       "hrv": 43,
       "avgSleepingHR": 57,
       "sleepHours": 6.8,
-      "feel": null,
+      "feel": "Leicht",
       "notizen": null,
       "id": 75,
       "dateShort": "24.07",
@@ -4212,7 +4212,7 @@
       "hrv": 50,
       "avgSleepingHR": 55,
       "sleepHours": 8.3,
-      "feel": null,
+      "feel": "Irgendwie einfach",
       "notizen": null,
       "id": 76,
       "dateShort": "25.07",
@@ -4464,7 +4464,7 @@
       "hrv": 62,
       "avgSleepingHR": 50,
       "sleepHours": 7.3,
-      "feel": null,
+      "feel": "Irgendwie einfach",
       "notizen": null,
       "id": 79,
       "dateShort": "30.07",
@@ -12241,7 +12241,7 @@
     "Plan 1",
     "Plan 2"
   ],
-  "updated": "2026-07-30T15:21:10.263Z",
+  "updated": "2026-07-30T15:28:39.438Z",
   "source": "notion+intervals",
   "count": 79
 }
