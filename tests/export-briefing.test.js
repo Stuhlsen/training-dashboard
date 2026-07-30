@@ -14,7 +14,7 @@ import {
   buildBriefingMarkdown,
   buildExportText,
   exportFileName,
-  PROMPT_TEMPLATE,
+  PROMPT_RUMPF,
   SCHEMA_VERSION,
 } from "../assets/js/core/export-briefing.js";
 import { validateImport } from "../assets/js/core/proposal-validator.js";
@@ -101,7 +101,49 @@ test("buildExportText: setzt das Briefing an der {{BRIEFING}}-Stelle der festen 
   assert.ok(text.startsWith("Du bist mein Radsport-Trainer."));
   assert.match(text, /# Trainings-Briefing — Stuhlsen/);
   assert.doesNotMatch(text, /\{\{BRIEFING\}\}/);
-  assert.ok(!PROMPT_TEMPLATE.includes(text)); // Platzhalter wurde tatsächlich ersetzt
+  assert.doesNotMatch(text, /\{\{AUFTRAG\}\}/);
+  assert.ok(!PROMPT_RUMPF.includes(text)); // Platzhalter wurden tatsächlich ersetzt
+});
+
+test("buildExportText: general (Default, kein Options-Objekt) — bisheriges Verhalten unverändert", () => {
+  const text = buildExportText(CTX);
+  assert.match(text, /1\. Analysiere Form, Plan und Events\. Prüfe insbesondere:/);
+});
+
+test("buildExportText: preset 'check' entfernt die Vorschlagsaufforderung, verlangt aber weiterhin proposals: \\[\\]", () => {
+  const text = buildExportText(CTX, { preset: "check" });
+  assert.match(text, /Schlage in dieser Runde \*\*keine Änderungen\*\* vor/);
+  assert.match(text, /"proposals": \[\]/);
+  assert.doesNotMatch(text, /1\. Analysiere Form, Plan und Events\. Prüfe insbesondere:/);
+});
+
+test("buildExportText: preset 'reduce' und 'build' setzen jeweils ihre eigene Auftragsvariante ein", () => {
+  const reduceText = buildExportText(CTX, { preset: "reduce" });
+  assert.match(reduceText, /Fokus auf Entlastung/);
+  const buildText = buildExportText(CTX, { preset: "build" });
+  assert.match(buildText, /Fokus auf Belastungssteigerung/);
+  assert.notEqual(reduceText, buildText);
+});
+
+test("buildExportText: preset 'event' setzt Titel/Datum des gewählten Events in den Auftragsblock ein", () => {
+  const text = buildExportText(CTX, {
+    preset: "event",
+    event: { title: "GFNY Bremen", eventDate: "2026-08-30" },
+  });
+  assert.match(text, /mein Event \*\*GFNY Bremen\*\* am\s*\n\s*\*\*2026-08-30\*\*/);
+  assert.doesNotMatch(text, /\{\{EVENT_TITLE\}\}/);
+  assert.doesNotMatch(text, /\{\{EVENT_DATE\}\}/);
+});
+
+test("buildExportText: preset 'event' OHNE gewähltes Event fällt sichtbar auf general zurück (kein stiller Fallback)", () => {
+  const text = buildExportText(CTX, { preset: "event", event: null });
+  assert.match(text, /Preset "Auf Event hin" gewählt, aber kein Zielevent hinterlegt/);
+  assert.match(text, /1\. Analysiere Form, Plan und Events\. Prüfe insbesondere:/); // general-Auftrag folgt danach
+});
+
+test("buildExportText: unbekanntes/fehlendes Preset fällt auf general zurück", () => {
+  const text = buildExportText(CTX, { preset: "unbekannt" });
+  assert.match(text, /1\. Analysiere Form, Plan und Events\. Prüfe insbesondere:/);
 });
 
 test("exportFileName: fester Name aus AthletenId + Datum", () => {

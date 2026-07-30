@@ -11,15 +11,24 @@
 > **Grenze der Vorlage:** Claude ist hier Trainings-*Berater*, kein Arzt. Die Vorlage
 > weist Claude an, bei gesundheitlichen Warnsignalen im Briefing keine Einheiten zu
 > verschreiben, sondern Ruhe zu empfehlen und auf ärztliche Abklärung zu verweisen.
+>
+> **Seit dem Export-Richtungsvorgabe-Konzept (R1/R4):** Die Vorlage ist in einen
+> **Rumpf** (preset-unabhängig: JSON-Regeln, Beispiele, Grundsätze) und fünf
+> **Auftragsvarianten** (`general`/`event`/`check`/`reduce`/`build`, je Preset genau
+> ein vollständig ausformulierter Textblock) aufgeteilt. Der Rumpf setzt den
+> gewählten Auftragsblock an der Stelle ein, an der früher immer dieselben Punkte
+> 1–3 standen. `tests/export-briefing-consistency.test.js` prüft Rumpf UND jede der
+> fünf Varianten unten wörtlich gegen `core/export-briefing.js`.
 
 ---
 
-## Die Vorlage (Stand: schema_version 1)
+## Der Rumpf (Stand: schema_version 1, preset-unabhängig)
 
-Alles zwischen den Markern ist die kopierfertige Vorlage; `{{BRIEFING}}` ersetzt der
-Export-Generator automatisch.
+Alles zwischen den Markern ist `PROMPT_RUMPF` aus `core/export-briefing.js` 1:1.
+`{{AUFTRAG}}` ersetzt der Export-Generator durch die gewählte Auftragsvariante
+(unten), `{{BRIEFING}}` durch das zusammengesetzte Briefing.
 
-<!-- VORLAGE-ANFANG -->
+<!-- RUMPF-ANFANG -->
 
 Du bist mein Radsport-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
 Profil (FTP, Zonen, Ziele), anstehende Events mit Priorität, meinen Trainingsplan
@@ -27,17 +36,7 @@ Profil (FTP, Zonen, Ziele), anstehende Events mit Priorität, meinen Trainingspl
 RPE/Feel), meinen Befinden-Verlauf, die aktuelle Form (CTL/ATL/TSB) samt Projektion
 und die offene Konfliktliste des Planers.
 
-**Deine Aufgabe:**
-1. Analysiere Form, Plan und Events. Prüfe insbesondere: Passt die Belastungskurve
-   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
-   Konflikte aus der Liste, die ein Umbau lösen würde? Deckt sich der Plan mit
-   meinem Befinden- und RPE-Verlauf?
-2. Schlage Änderungen nur vor, wo sie einen klaren Zweck haben. Wenige gute
-   Vorschläge sind besser als viele kleine. Wenn der Plan passt, ist „keine
-   Änderung" eine vollwertige Antwort.
-3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum ändern
-   würdest (das lese ich). Gib **danach** deine Vorschläge als JSON-Block (den
-   liest die App).
+{{AUFTRAG}}
 
 **Regeln für den JSON-Block (werden maschinell geprüft — Abweichungen führen zur
 Ablehnung des Imports):**
@@ -126,12 +125,111 @@ Ablehnung des Imports):**
   nachvollziehen können, nicht einen komplett neuen Plan bekommen.
 - Du siehst nur, was im Briefing steht. Wenn dir eine wichtige Information fehlt,
   benenne sie im Text, statt Annahmen ins JSON zu schreiben.
+- Zusatzkontext des Athleten darf deine Entscheidung beeinflussen, aber niemals
+  in `reason` auftauchen — `reason` bleibt lastbasiert (TSS, TSB, Plan, Events).
 
 Hier ist mein Briefing:
 
 {{BRIEFING}}
 
-<!-- VORLAGE-ENDE -->
+<!-- RUMPF-ENDE -->
+
+---
+
+## Die fünf Auftragsvarianten (`AUFTRAG_VARIANTEN`, R1/R4)
+
+Genau eine Variante ersetzt `{{AUFTRAG}}` im Rumpf oben — je nach im Export-Panel
+gewähltem Preset (`docs/phase-4-konzept-export-richtungsvorgabe.md` R1). Jede
+Variante ist vollständig ausformuliert und für sich lesbar; es gibt keine zur
+Laufzeit zusammengeklebten Textbausteine. Einzige Ausnahme: `event` bekommt Titel
+und Datum des gewählten Events eingesetzt (`{{EVENT_TITLE}}`/`{{EVENT_DATE}}`).
+
+### Preset `general` — „Allgemein prüfen" (Default)
+
+<!-- AUFTRAG:general-ANFANG -->
+**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events. Prüfe insbesondere: Passt die Belastungskurve
+   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
+   Konflikte aus der Liste, die ein Umbau lösen würde? Deckt sich der Plan mit
+   meinem Befinden- und RPE-Verlauf?
+2. Schlage Änderungen nur vor, wo sie einen klaren Zweck haben. Wenige gute
+   Vorschläge sind besser als viele kleine. Wenn der Plan passt, ist „keine
+   Änderung" eine vollwertige Antwort.
+3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum ändern
+   würdest (das lese ich). Gib **danach** deine Vorschläge als JSON-Block (den
+   liest die App).
+<!-- AUFTRAG:general-ENDE -->
+
+### Preset `event` — „Auf ein bestimmtes Event optimieren"
+
+<!-- AUFTRAG:event-ANFANG -->
+**Deine Aufgabe:**
+1. Richte deine Analyse gezielt auf mein Event **{{EVENT_TITLE}}** am
+   **{{EVENT_DATE}}** aus. Prüfe, ob die Belastungskurve (CTL/ATL/TSB-Projektion
+   im Briefing) bis zu diesem Termin ins Zielfenster läuft, und ob der
+   bestehende Plan das unterstützt oder eher konterkariert.
+2. Schlage nur Änderungen vor, die die Form gezielt auf dieses Event hin
+   verbessern — andere Baustellen im Plan bleiben außen vor, solange sie
+   dieses Ziel nicht gefährden. Wenn der Plan bereits passt, ist „keine
+   Änderung" eine vollwertige Antwort.
+3. Erkläre zuerst in normaler Sprache, wie der Plan aktuell zu diesem Ziel
+   steht und was du warum ändern würdest (das lese ich). Gib **danach** deine
+   Vorschläge als JSON-Block (den liest die App).
+<!-- AUFTRAG:event-ENDE -->
+
+**Fallback ohne gewähltes Event (R3/R4, kein stiller Fallback):** Wird `event`
+ohne Zielevent exportiert, fällt der Auftrag auf die `general`-Variante zurück,
+davor sichtbar dieser feste Hinweis:
+
+> _Hinweis: Preset "Auf Event hin" gewählt, aber kein Zielevent hinterlegt — diese
+> Runde läuft daher wie folgt:_
+
+### Preset `check` — „Nur Plausibilitätscheck"
+
+<!-- AUFTRAG:check-ANFANG -->
+**Deine Aufgabe:**
+1. Prüfe Form, Plan und Events auf Plausibilität: Passt die Belastungskurve
+   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
+   Konflikte aus der Liste? Deckt sich der Plan mit meinem Befinden- und
+   RPE-Verlauf?
+2. Schlage in dieser Runde **keine Änderungen** vor — ich will nur deine
+   Einschätzung, keinen Umbau. Liefere trotzdem den JSON-Block mit
+   `"proposals": []`, die App braucht die äußere Struktur auch ohne
+   Vorschläge.
+3. Erkläre in normaler Sprache deine Einschätzung: wo siehst du Risiken,
+   Diskrepanzen oder Auffälligkeiten, auch wenn du nichts änderst?
+<!-- AUFTRAG:check-ENDE -->
+
+### Preset `reduce` — „Belastung reduzieren"
+
+<!-- AUFTRAG:reduce-ANFANG -->
+**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events mit Fokus auf Entlastung: Wo ist die
+   Belastung (TSS-Verlauf, TSB-Trend, Belastungswächter-Signale im Briefing)
+   zuletzt zu hoch oder das Muster ungünstig?
+2. Baue gezielt Entlastung ein — reduzierte Intensität oder Volumen,
+   zusätzliche Erholungseinheiten, verschobene harte Blöcke. Wenige gezielte
+   Vorschläge, kein kompletter Neubau des Plans.
+3. Erkläre zuerst in normaler Sprache, wo du Entlastungsbedarf siehst und was
+   du deshalb änderst (das lese ich). Gib **danach** deine Vorschläge als
+   JSON-Block (den liest die App).
+<!-- AUFTRAG:reduce-ENDE -->
+
+### Preset `build` — „Aufbau steigern"
+
+<!-- AUFTRAG:build-ANFANG -->
+**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events mit Fokus auf Belastungssteigerung: Lässt
+   die aktuelle Form (CTL/ATL/TSB-Projektion, Belastungswächter-Signale im
+   Briefing) zusätzlichen Reiz zu, ohne ins Risiko zu laufen?
+2. Wenn ja: baue gezielt mehr Reiz ein (Intensität, Volumen oder eine
+   zusätzliche Qualitätseinheit). Sprechen die Daten dagegen (z. B.
+   TSB-Warnsignal, Ramp-Rate-Alarm), sag das offen und schlage **keine**
+   zusätzliche Belastung vor — Sicherheit geht vor Fortschritt.
+3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum
+   änderst (oder bewusst nicht änderst). Gib **danach** deine Vorschläge als
+   JSON-Block (den liest die App).
+<!-- AUFTRAG:build-ENDE -->
 
 ---
 
@@ -146,9 +244,11 @@ Hier ist mein Briefing:
 - **Warum „maximal ein harter Block pro Runde":** begrenzt den Blast-Radius einer
   einzelnen Vorschlagsrunde und hält den Review klein — passt zum Review-Default V1
   (alles läuft durch den Vorschlag-Flow, nichts wendet sich selbst an).
-- **Test der Vorlage:** Ein Beispiel-Briefing (Fixture) + erwartetes gültiges JSON in
-  `tests/` ablegen; der Validator-Test füttert echte Claude-Antworten aus der Praxis
-  nach und wächst zur Regressionssuite für Format-Drift.
+- **Test der Vorlage:** `tests/export-briefing-consistency.test.js` prüft Rumpf +
+  alle fünf Auftragsvarianten oben wörtlich gegen `core/export-briefing.js`
+  (`PROMPT_RUMPF`/`AUFTRAG_VARIANTEN`); `tests/export-briefing.test.js` deckt
+  zusätzlich das zusammengesetzte Briefing (Regex-Muster) und den echten
+  Validator gegen ein Beispiel-Briefing ab.
 - **Warum die Regeln jetzt ein vollständiges Beispiel pro `op` zeigen:** Eine frühere
   Fassung spezifizierte nur die äußere Hülle (`schema_version`/`athlete`/`proposals`)
   und erwähnte `payload` nur beiläufig bei `workout` — ein reales Import geriet
@@ -156,3 +256,9 @@ Hier ist mein Briefing:
   `payload` (Ablehnung „Unbekannte Felder"/„payload fehlt"). Die vier Beispiele oben
   bilden je einen `op`-Typ vollständig ab, damit ein Modell, das nur diesen Text
   liest, die Verschachtelung nicht erraten muss.
+- **Warum Rumpf + Auftragsvarianten getrennt sind (Export-Richtungsvorgabe-Konzept
+  R4):** Die JSON-Regeln/Beispiele/Grundsätze gelten für jedes Preset identisch —
+  eine einzige feste Vorlage mit Textbausteinen, die je nach Preset zur Laufzeit
+  zusammengeklebt würden, hätte die Regeln unnötig dupliziert oder fragil gemacht.
+  Stattdessen ersetzt genau ein vollständig ausformulierter Auftragsblock die
+  frühere Punkte-1–3-Stelle; der Rumpf bleibt für alle Presets identisch.

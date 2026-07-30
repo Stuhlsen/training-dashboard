@@ -1,7 +1,8 @@
 /* ============================================================
    CORE/EXPORT-BRIEFING.JS — Claude-Trainer-Export: Briefing + Prompt-Vorlage
    (kein DOM)
-   (Phase 4 — Export/Import-Workflow-Konzept §2, Vorschlags-Schema-Konzept §6)
+   (Phase 4 — Export/Import-Workflow-Konzept §2, Vorschlags-Schema-Konzept §6,
+   Export-Richtungsvorgabe-Konzept R1/R4/R7)
 
    Baut aus bereits geladenen Domänenobjekten (state/ zieht sie zusammen,
    ruft nur diese reine Funktion auf) das Markdown-Briefing FÜR DEN MENSCHEN
@@ -9,10 +10,15 @@
    (Schema-Konzept §6), setzt das Ergebnis in die feste Prompt-Vorlage aus
    docs/phase-4-prompt-vorlage-claude-trainer.md ein.
 
-   PROMPT_TEMPLATE ist hier eine Konstante (nicht aus der .md-Datei
-   nachgeladen) — Vorlage und Validator (core/proposal-validator.js) sollen
-   laut eigener Aussage der Vorlage "im selben Commit" geändert werden;
-   `tests/export-briefing.test.js` hält beide über eine Fixture synchron.
+   PROMPT_RUMPF + AUFTRAG_VARIANTEN sind hier Konstanten (nicht aus der
+   .md-Datei nachgeladen) — Vorlage und Validator (core/proposal-validator.js)
+   sollen laut eigener Aussage der Vorlage "im selben Commit" geändert werden.
+   Frühere Fassung dieses Kommentars behauptete, ein Test halte
+   PROMPT_TEMPLATE bytegleich gegen die Doku synchron — das stimmte nie
+   (tests/export-briefing.test.js prüft nur Regex-Muster im zusammengesetzten
+   Output, nie die Vorlage selbst). tests/export-briefing-consistency.test.js
+   übernimmt das jetzt tatsächlich: Rumpf + jede der fünf Auftragsvarianten
+   wörtlich gegen die Doku (Export-Richtungsvorgabe-Konzept R4).
    ============================================================ */
 
 import { localISODate, diffDays } from "./format.js";
@@ -21,27 +27,18 @@ import { KNOWN_PLAN_TYPES } from "./plan-config.js";
 
 export const SCHEMA_VERSION = 1;
 
-/** Feste Prompt-Vorlage (Stand schema_version 1) — Text 1:1 aus
- *  docs/phase-4-prompt-vorlage-claude-trainer.md zwischen den VORLAGE-
- *  ANFANG/ENDE-Markern. `{{BRIEFING}}` wird durch buildBriefingMarkdown()
- *  ersetzt. */
-export const PROMPT_TEMPLATE = `Du bist mein Radsport-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
+/** Preset-unabhängiger Rumpf der Prompt-Vorlage (Stand schema_version 1) —
+ *  Text 1:1 aus docs/phase-4-prompt-vorlage-claude-trainer.md zwischen den
+ *  RUMPF-ANFANG/ENDE-Markern. `{{AUFTRAG}}` wird durch buildAuftragBlock()
+ *  ersetzt (Export-Richtungsvorgabe-Konzept R4), `{{BRIEFING}}` durch
+ *  buildBriefingMarkdown(). */
+export const PROMPT_RUMPF = `Du bist mein Radsport-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
 Profil (FTP, Zonen, Ziele), anstehende Events mit Priorität, meinen Trainingsplan
 (Karten mit \`id\` und \`updated_at\`), die Ist-Fahrten der letzten Wochen (TSS,
 RPE/Feel), meinen Befinden-Verlauf, die aktuelle Form (CTL/ATL/TSB) samt Projektion
 und die offene Konfliktliste des Planers.
 
-**Deine Aufgabe:**
-1. Analysiere Form, Plan und Events. Prüfe insbesondere: Passt die Belastungskurve
-   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
-   Konflikte aus der Liste, die ein Umbau lösen würde? Deckt sich der Plan mit
-   meinem Befinden- und RPE-Verlauf?
-2. Schlage Änderungen nur vor, wo sie einen klaren Zweck haben. Wenige gute
-   Vorschläge sind besser als viele kleine. Wenn der Plan passt, ist „keine
-   Änderung" eine vollwertige Antwort.
-3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum ändern
-   würdest (das lese ich). Gib **danach** deine Vorschläge als JSON-Block (den
-   liest die App).
+{{AUFTRAG}}
 
 **Regeln für den JSON-Block (werden maschinell geprüft — Abweichungen führen zur
 Ablehnung des Imports):**
@@ -130,10 +127,105 @@ Ablehnung des Imports):**
   nachvollziehen können, nicht einen komplett neuen Plan bekommen.
 - Du siehst nur, was im Briefing steht. Wenn dir eine wichtige Information fehlt,
   benenne sie im Text, statt Annahmen ins JSON zu schreiben.
+- Zusatzkontext des Athleten darf deine Entscheidung beeinflussen, aber niemals
+  in \`reason\` auftauchen — \`reason\` bleibt lastbasiert (TSS, TSB, Plan, Events).
 
 Hier ist mein Briefing:
 
 {{BRIEFING}}`;
+
+/** Auftragsblock je Preset (Export-Richtungsvorgabe-Konzept R1/R4) — ersetzt
+ *  die früheren, preset-losen Punkte 1–3 unter "**Deine Aufgabe:**". Jede
+ *  Variante ist ein vollständig ausformulierter, für sich lesbarer
+ *  Textblock — KEINE Textbausteine, die zur Laufzeit zusammengeklebt werden.
+ *  Einzige zur Laufzeit gefüllte Stelle: `event` bekommt Titel/Datum des
+ *  gewählten Events eingesetzt (s. buildAuftragBlock). */
+export const AUFTRAG_VARIANTEN = {
+  general: `**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events. Prüfe insbesondere: Passt die Belastungskurve
+   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
+   Konflikte aus der Liste, die ein Umbau lösen würde? Deckt sich der Plan mit
+   meinem Befinden- und RPE-Verlauf?
+2. Schlage Änderungen nur vor, wo sie einen klaren Zweck haben. Wenige gute
+   Vorschläge sind besser als viele kleine. Wenn der Plan passt, ist „keine
+   Änderung" eine vollwertige Antwort.
+3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum ändern
+   würdest (das lese ich). Gib **danach** deine Vorschläge als JSON-Block (den
+   liest die App).`,
+
+  event: `**Deine Aufgabe:**
+1. Richte deine Analyse gezielt auf mein Event **{{EVENT_TITLE}}** am
+   **{{EVENT_DATE}}** aus. Prüfe, ob die Belastungskurve (CTL/ATL/TSB-Projektion
+   im Briefing) bis zu diesem Termin ins Zielfenster läuft, und ob der
+   bestehende Plan das unterstützt oder eher konterkariert.
+2. Schlage nur Änderungen vor, die die Form gezielt auf dieses Event hin
+   verbessern — andere Baustellen im Plan bleiben außen vor, solange sie
+   dieses Ziel nicht gefährden. Wenn der Plan bereits passt, ist „keine
+   Änderung" eine vollwertige Antwort.
+3. Erkläre zuerst in normaler Sprache, wie der Plan aktuell zu diesem Ziel
+   steht und was du warum ändern würdest (das lese ich). Gib **danach** deine
+   Vorschläge als JSON-Block (den liest die App).`,
+
+  check: `**Deine Aufgabe:**
+1. Prüfe Form, Plan und Events auf Plausibilität: Passt die Belastungskurve
+   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
+   Konflikte aus der Liste? Deckt sich der Plan mit meinem Befinden- und
+   RPE-Verlauf?
+2. Schlage in dieser Runde **keine Änderungen** vor — ich will nur deine
+   Einschätzung, keinen Umbau. Liefere trotzdem den JSON-Block mit
+   \`"proposals": []\`, die App braucht die äußere Struktur auch ohne
+   Vorschläge.
+3. Erkläre in normaler Sprache deine Einschätzung: wo siehst du Risiken,
+   Diskrepanzen oder Auffälligkeiten, auch wenn du nichts änderst?`,
+
+  reduce: `**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events mit Fokus auf Entlastung: Wo ist die
+   Belastung (TSS-Verlauf, TSB-Trend, Belastungswächter-Signale im Briefing)
+   zuletzt zu hoch oder das Muster ungünstig?
+2. Baue gezielt Entlastung ein — reduzierte Intensität oder Volumen,
+   zusätzliche Erholungseinheiten, verschobene harte Blöcke. Wenige gezielte
+   Vorschläge, kein kompletter Neubau des Plans.
+3. Erkläre zuerst in normaler Sprache, wo du Entlastungsbedarf siehst und was
+   du deshalb änderst (das lese ich). Gib **danach** deine Vorschläge als
+   JSON-Block (den liest die App).`,
+
+  build: `**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events mit Fokus auf Belastungssteigerung: Lässt
+   die aktuelle Form (CTL/ATL/TSB-Projektion, Belastungswächter-Signale im
+   Briefing) zusätzlichen Reiz zu, ohne ins Risiko zu laufen?
+2. Wenn ja: baue gezielt mehr Reiz ein (Intensität, Volumen oder eine
+   zusätzliche Qualitätseinheit). Sprechen die Daten dagegen (z. B.
+   TSB-Warnsignal, Ramp-Rate-Alarm), sag das offen und schlage **keine**
+   zusätzliche Belastung vor — Sicherheit geht vor Fortschritt.
+3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum
+   änderst (oder bewusst nicht änderst). Gib **danach** deine Vorschläge als
+   JSON-Block (den liest die App).`,
+};
+
+// Sichtbarer Fallback (R3/R4: "kein stiller Fallback") — wird VOR den
+// general-Auftrag gesetzt, wenn preset "event" ohne gewähltes Event
+// exportiert wird.
+const EVENT_FALLBACK_HINWEIS = `_Hinweis: Preset "Auf Event hin" gewählt, aber kein Zielevent hinterlegt — diese Runde läuft daher wie folgt:_
+
+`;
+
+/** Baut den Auftragsblock für ein Preset. `event` erwartet
+ *  `{ title, eventDate }` — fehlt eines von beidem, fällt der Auftrag
+ *  sichtbar auf `general` zurück (kein stiller Fallback, R3/R4). Ein
+ *  unbekanntes/fehlendes Preset fällt ebenfalls auf `general` zurück.
+ *  @param {string} preset @param {{title?:string, eventDate?:string}|null} [event]
+ *  @returns {string} */
+export function buildAuftragBlock(preset, event = null) {
+  if (preset === "event") {
+    if (event?.title && event?.eventDate) {
+      return AUFTRAG_VARIANTEN.event
+        .replaceAll("{{EVENT_TITLE}}", event.title)
+        .replaceAll("{{EVENT_DATE}}", event.eventDate);
+    }
+    return EVENT_FALLBACK_HINWEIS + AUFTRAG_VARIANTEN.general;
+  }
+  return AUFTRAG_VARIANTEN[preset] ?? AUFTRAG_VARIANTEN.general;
+}
 
 function mdEscapeCell(v) {
   if (v == null) return "–";
@@ -296,10 +388,15 @@ export function buildBriefingMarkdown({
   return lines.join("\n");
 }
 
-/** Fertiger, direkt einfügbarer Text — Prompt-Vorlage mit eingesetztem
- *  Briefing (Konzept §2: "eine Zeichenkette, keine zwei Teile"). */
-export function buildExportText(ctx) {
-  return PROMPT_TEMPLATE.replace("{{BRIEFING}}", buildBriefingMarkdown(ctx));
+/** Fertiger, direkt einfügbarer Text — Rumpf mit eingesetztem Auftragsblock
+ *  (Preset, R4) und Briefing (Konzept §2: "eine Zeichenkette, keine zwei
+ *  Teile"). `preset`/`event` optional, Default `general` — bestehende
+ *  Aufrufer ohne Options-Objekt verhalten sich unverändert wie vor R4.
+ *  @param {object} ctx @param {{preset?:string, event?:{title?:string,eventDate?:string}|null}} [opts] */
+export function buildExportText(ctx, { preset = "general", event = null } = {}) {
+  return PROMPT_RUMPF
+    .replace("{{AUFTRAG}}", buildAuftragBlock(preset, event))
+    .replace("{{BRIEFING}}", buildBriefingMarkdown(ctx));
 }
 
 /** Dateiname für den Download-Weg (Konzept §2). @param {string} athleteId
