@@ -250,19 +250,6 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
 
 ## Infrastruktur/CI
 
-- **`sync-data.yml` läuft per Cron nur auf dem Default-Branch `main`** —
-  `on.schedule` führt GitHub Actions ausschließlich mit der Workflow-Datei
-  vom Default-Branch aus, unabhängig davon, welcher Branch gerade sonst
-  aktiv ist. `dashboard-2.0` bekommt dadurch **keine** automatischen
-  6h-Updates und fällt bei längerer Branch-Lebensdauer zunehmend zurück —
-  zuletzt 12 Tage (`data/rides.json` auf `dashboard-2.0` stand auf 14.07.,
-  während `main` bis 25.07./26.07. aktuell war). Kein Bug in
-  `scripts/generate-data.js`, reines GitHub-Actions-Verhalten. Gefunden
-  beim Playwright-Screenshot-Review der PMC-Naht in Phase 5 (die
-  ungewöhnlich lange asOf→heute-Brücke war ein direktes Symptom davon).
-  Entscheidung zu main→dashboard-2.0-Datensync oder Workflow-Anpassung
-  (z. B. zusätzlicher Trigger für Feature-Branches) steht aus.
-
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
 - **Roadmap-Versionierung**: Fahrplan-Datei liegt jetzt in `docs/`, lag vorher
@@ -349,6 +336,15 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
   `--force-with-lease=main:<SHA>`-Erwartungswert ergänzt (lebt in der
   lokalen gitconfig, nicht im Repo). Dokumentiert in AGENTS.md „Git-
   Workflow". Commit `00b3efe`.
+- **`sync-data.yml` läuft per Cron nur auf `main`** (GitHub wertet
+  `on.schedule` ausschließlich aus dem Default-Branch aus, ein zweites Cron
+  auf `dashboard-2.0` feuert nie) — Entscheidung: kein Automatismus während
+  der aktiven Entwicklungsphase, stattdessen bei Bedarf manuell per
+  `workflow_dispatch` auf `dashboard-2.0` auslösbar. Dafür zwei Fixes
+  vorgezogen: `deploy`-Job jetzt `if: github.ref_name == 'main'` (sonst
+  würde ein Dispatch auf `dashboard-2.0` den Dev-Stand live auf Pages
+  deployen), „Commit data if changed" nutzt `$GITHUB_REF_NAME` statt
+  hartkodiertem `origin/main`. Commit folgt.
 - **Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)**: Athlet 1 lief bisher auf
   einer plan-gebundenen Wochenstruktur (P2-W0…P2-W12), Athlet 2 bereits auf
   ISO-Kalenderwochen — Migrations-Artefakt aus dem Notion→intervals.icu-

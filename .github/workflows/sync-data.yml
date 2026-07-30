@@ -72,19 +72,25 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git fetch origin
-          git checkout origin/main -- data/adjustments.json data/subjective.json
+          # $GITHUB_REF_NAME statt hartkodiertem "main": diese Datei läuft
+          # identisch auch bei einem manuellen workflow_dispatch auf
+          # dashboard-2.0 (s. docs/offene-punkte.md, Infrastruktur/CI) —
+          # ein hartkodiertes "main" würde dort Athlet-1-Produktivstände aus
+          # main in den Dev-Branch ziehen und auf main statt dashboard-2.0
+          # rebasen.
+          git checkout "origin/$GITHUB_REF_NAME" -- data/adjustments.json data/subjective.json
           # adjustments-2.json (Athlet 2) existiert erst, sobald einmal committet —
           # git checkout würde ohne diesen Existenz-Check auf einem frischen Stand
-          # fehlschlagen (Datei noch nicht auf origin/main vorhanden).
-          git cat-file -e origin/main:data/adjustments-2.json 2>/dev/null && \
-            git checkout origin/main -- data/adjustments-2.json
+          # fehlschlagen (Datei noch nicht im Remote-Branch vorhanden).
+          git cat-file -e "origin/$GITHUB_REF_NAME:data/adjustments-2.json" 2>/dev/null && \
+            git checkout "origin/$GITHUB_REF_NAME" -- data/adjustments-2.json
           git add data/rides.json data/adjustments.json data/subjective.json
           [ -f data/rides-2.json ] && git add data/rides-2.json
           [ -f data/adjustments-2.json ] && git add data/adjustments-2.json
           git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
           for i in 1 2 3; do
             git fetch origin
-            git rebase origin/main && git push && break
+            git rebase "origin/$GITHUB_REF_NAME" && git push && break
             echo "Push failed, retrying in 5s..."
             sleep 5
           done
@@ -98,8 +104,12 @@ jobs:
           path: '.'
 
   # 2) Nur Deploy — bei transientem Fehler isoliert re-runnbar (kein Re-Upload)
+  # Nur auf main: "Upload artifact" lädt den kompletten Checkout hoch (path: '.'),
+  # ohne dieses Gate würde ein manueller workflow_dispatch auf dashboard-2.0
+  # den unfertigen Dev-Stand live auf die Produktions-Pages-URL deployen.
   deploy:
     needs: sync
+    if: github.ref_name == 'main'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
