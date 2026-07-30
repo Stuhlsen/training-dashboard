@@ -168,6 +168,73 @@ test("validateProposal: 'cancel' mit reason im payload → gültig", () => {
   assert.equal(result.valid, true);
 });
 
+/* ── Dedup-Erkennung (bisherige v1-Einschränkung, s. docs/offene-punkte.md:
+   "zwei Importe derselben Antwort erzeugen zwei offene Vorschläge") ── */
+
+test("validateProposal: identisches op/target_card_id/payload wie ein offener Vorschlag → Duplikat-Fehler", () => {
+  const p = {
+    op: "replace",
+    target_card_id: "card-1",
+    target_updated_at: "x",
+    payload: { title: "Entschärft", plan_date: "2026-08-01" },
+  };
+  const openProposals = [
+    { op: "replace", targetCardId: "card-1", payload: { title: "Entschärft", plan_date: "2026-08-01" } },
+  ];
+  const result = validateProposal(p, { today: TODAY, knownCardIds: KNOWN_CARDS, openProposals });
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join(), /Duplikat/);
+});
+
+test("validateProposal: Duplikat-Erkennung ist ordnungsunabhängig bei payload-Keys", () => {
+  const p = {
+    op: "add",
+    payload: { plan_date: "2026-08-01", title: "Neu", target_tss: 60 },
+  };
+  const openProposals = [
+    // dieselben Werte, andere Key-Reihenfolge — z.B. weil Claude die
+    // Antwort beim zweiten Mal anders formatiert hat
+    { op: "add", targetCardId: null, payload: { title: "Neu", target_tss: 60, plan_date: "2026-08-01" } },
+  ];
+  const result = validateProposal(p, { today: TODAY, openProposals });
+  assert.equal(result.valid, false);
+  assert.match(result.errors.join(), /Duplikat/);
+});
+
+test("validateProposal: unterschiedliches payload → kein Duplikat", () => {
+  const p = {
+    op: "replace",
+    target_card_id: "card-1",
+    target_updated_at: "x",
+    payload: { title: "Entschärft", plan_date: "2026-08-01" },
+  };
+  const openProposals = [
+    { op: "replace", targetCardId: "card-1", payload: { title: "Anders", plan_date: "2026-08-01" } },
+  ];
+  const result = validateProposal(p, { today: TODAY, knownCardIds: KNOWN_CARDS, openProposals });
+  assert.equal(result.valid, true);
+});
+
+test("validateProposal: gleiches payload, aber anderes target_card_id → kein Duplikat", () => {
+  const p = {
+    op: "replace",
+    target_card_id: "card-1",
+    target_updated_at: "x",
+    payload: { title: "Entschärft", plan_date: "2026-08-01" },
+  };
+  const openProposals = [
+    { op: "replace", targetCardId: "card-2", payload: { title: "Entschärft", plan_date: "2026-08-01" } },
+  ];
+  const result = validateProposal(p, { today: TODAY, knownCardIds: new Set(["card-1", "card-2"]), openProposals });
+  assert.equal(result.valid, true);
+});
+
+test("validateProposal: ohne openProposals (Default) kein Duplikat-Fehler möglich", () => {
+  const p = { op: "add", payload: { plan_date: "2026-08-01", title: "Neu" } };
+  const result = validateProposal(p, { today: TODAY });
+  assert.equal(result.valid, true);
+});
+
 /* ── Struktur: unbekannte Felder, unbekanntes op ────────────────── */
 
 test("validateProposal: unbekanntes Top-Level-Feld → Fehler, kein stilles Ignorieren", () => {

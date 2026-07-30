@@ -38,6 +38,48 @@ function isPlainObject(v) {
   return typeof v === "object" && v !== null && !Array.isArray(v);
 }
 
+/** Strukturvergleich, ordnungsunabhängig bei Objekt-Keys (payload kommt aus
+ *  neu generiertem JSON — dieselbe Bedeutung kann in anderer Key-Reihenfolge
+ *  ankommen, ein `JSON.stringify()`-Vergleich würde solche Duplikate
+ *  übersehen). Reicht für payload/target_card_id/op — durchweg einfache
+ *  JSON-Werte (keine Dates/Functions/Symbols).
+ *  @param {*} a @param {*} b @returns {boolean} */
+function deepEqual(a, b) {
+  if (a === b) return true;
+  if (typeof a !== typeof b || a == null || b == null) return false;
+  if (Array.isArray(a) || Array.isArray(b)) {
+    if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+    return a.every((v, i) => deepEqual(v, b[i]));
+  }
+  if (typeof a === "object") {
+    const keysA = Object.keys(a),
+      keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((k) => Object.prototype.hasOwnProperty.call(b, k) && deepEqual(a[k], b[k]));
+  }
+  return false;
+}
+
+/** Prüft, ob ein Import-Eintrag inhaltlich bereits als offener Claude-
+ *  Vorschlag existiert (Dedup-Erkennung — bisher bewusste v1-Einschränkung,
+ *  s. docs/offene-punkte.md: "zwei Importe derselben Antwort erzeugen zwei
+ *  offene Vorschläge"). Gleich = gleiches `op`, gleiche `target_card_id`
+ *  (bzw. beide null bei `add`) UND strukturell gleiches `payload`.
+ *  `reason`/`target_updated_at` fließen bewusst NICHT ein: ein zweiter
+ *  Import mit nur leicht umformulierter Begründung, aber identischem
+ *  Vorschlag, soll trotzdem als Duplikat erkannt werden.
+ *  @param {any} proposal ein Element aus data.proposals[]
+ *  @param {Array<{op:string, targetCardId:string|null, payload:any}>} openProposals
+ *  @returns {boolean} */
+export function isDuplicateOpenProposal(proposal, openProposals) {
+  return (openProposals || []).some(
+    (p) =>
+      p.op === proposal.op &&
+      (p.targetCardId ?? null) === (proposal.target_card_id ?? null) &&
+      deepEqual(p.payload, proposal.payload)
+  );
+}
+
 /** Datei-Ebene: schema_version bekannt, `athlete` gehört dem importierenden
  *  Athleten, `proposals` ist eine Liste. Harter Abbruch der GESAMTEN Datei
  *  bei Fehler (Konzept §4 Schritt 1/2, §6) — keine Teilprüfung.
@@ -77,12 +119,14 @@ export function validateEnvelope(data, { ownAthleteId } = {}) {
 
 /** Validiert EINEN Vorschlag — Struktur, dann Semantik. Sammelt alle Fehler.
  *  @param {any} proposal ein Element aus data.proposals[]
- *  @param {{knownCardIds?: Set<string>, today?: string}} [ctx]
+ *  @param {{knownCardIds?: Set<string>, today?: string, openProposals?: Array}} [ctx]
  *    `knownCardIds` = IDs der `plan_cards` des Athleten (nur diese dürfen als
  *    `target_card_id` referenziert werden — s. Konzept §4 "target_card_id
  *    existiert und gehört dem Athleten"). `today` fixierbar für Tests.
+ *    `openProposals` = bereits offene Claude-Vorschläge des Athleten
+ *    (Dedup-Erkennung, s. isDuplicateOpenProposal()).
  *  @returns {{valid:boolean, errors:string[]}} */
-export function validateProposal(proposal, { knownCardIds = new Set(), today } = {}) {
+export function validateProposal(proposal, { knownCardIds = new Set(), today, openProposals = [] } = {}) {
   const todayIso = today ?? localISODate();
   const errors = [];
 
@@ -145,6 +189,10 @@ export function validateProposal(proposal, { knownCardIds = new Set(), today } =
     }
   }
 
+  if (isDuplicateOpenProposal(proposal, openProposals)) {
+    errors.push("Bereits als offener Vorschlag vorhanden (Duplikat eines früheren Imports).");
+  }
+
   return { valid: errors.length === 0, errors };
 }
 
@@ -152,7 +200,7 @@ export function validateProposal(proposal, { knownCardIds = new Set(), today } =
  *  der GESAMTEN Datei bei Fehler), danach jeden Vorschlag einzeln
  *  (Teilerfolg möglich — Import-Workflow-Konzept §4).
  *  @param {any} data geparstes Import-JSON
- *  @param {{ownAthleteId?: string, knownCardIds?: Set<string>, today?: string}} [ctx]
+ *  @param {{ownAthleteId?: string, knownCardIds?: Set<string>, today?: string, openProposals?: Array}} [ctx]
  *  @returns {{ok:true, results: Array<{proposal:any, valid:boolean, errors:string[]}>}|{ok:false, error:{code:string,message:string}}} */
 export function validateImport(data, ctx = {}) {
   const envelope = validateEnvelope(data, ctx);

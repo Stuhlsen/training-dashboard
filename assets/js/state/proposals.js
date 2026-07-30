@@ -116,9 +116,13 @@ export async function createTrainerProposal(athleteId, { op, targetCardId, targe
  *  core/proposal-validator.js nicht direkt (Schichtenregel: ui → state →
  *  core). `knownCardIds` kommt aus dem bereits geladenen plan-cards-State
  *  (Planungstab lädt die Karten des Athleten ohnehin vor dem Öffnen des
- *  Dialogs). Rückgabe bei hartem Abbruch (kein JSON-Block, kaputtes JSON,
- *  fremde athlete_id, unbekannte schema_version): `{ ok:false, error }`.
- *  Bei erfolgreicher Struktur: `{ ok:true, results: [{proposal, valid,
+ *  Dialogs), `openProposals` analog aus dem bereits geladenen proposals-
+ *  State (Dedup-Erkennung — s. core/proposal-validator.js::
+ *  isDuplicateOpenProposal, bisherige v1-Einschränkung laut docs/offene-
+ *  punkte.md: zwei Importe derselben Antwort erzeugten zwei offene
+ *  Vorschläge). Rückgabe bei hartem Abbruch (kein JSON-Block, kaputtes
+ *  JSON, fremde athlete_id, unbekannte schema_version): `{ ok:false, error
+ *  }`. Bei erfolgreicher Struktur: `{ ok:true, results: [{proposal, valid,
  *  errors}] }` — ein Eintrag pro Vorschlag, Teilerfolg möglich (Konzept §4). */
 export function previewClaudeImport(text) {
   const gate = requireUser();
@@ -128,7 +132,14 @@ export function previewClaudeImport(text) {
   if (!parsed.ok) return parsed;
 
   const knownCardIds = new Set(getPlanCardsState().cards.map((c) => c.id));
-  return validateImport(parsed.data, { ownAthleteId: gate.user.id, knownCardIds });
+  const openProposals = proposals
+    .filter((p) => p.status === "open" && p.source === "claude")
+    .map((p) => ({ op: p.op, targetCardId: p.targetCardId, payload: p.payload }));
+  return validateImport(parsed.data, {
+    ownAthleteId: gate.user.id,
+    knownCardIds,
+    openProposals,
+  });
 }
 
 /** Legt die validen Einträge eines Claude-Imports als offene Vorschläge an —
