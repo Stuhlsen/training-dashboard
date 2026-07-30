@@ -9,6 +9,7 @@ import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { getWeatherForRide } from "./weather.js";
 import { log } from "./log.js";
+import { countFieldCoverage } from "./coverage.js";
 
 /** Fallback-FTP für die Typ-Ableitung — wird bei neuem Ramp-Test aktualisiert */
 export const DEFAULT_FTP = 193;
@@ -123,12 +124,7 @@ function baseFields(act, weather) {
 /** Non-null-Zählung für rpe/feelIcu über gemappte Rides.
  *  @param {Array<Object>} rides @returns {{rpe: number, feelIcu: number}} */
 export function rpeFeelCoverage(rides) {
-  const counts = { rpe: 0, feelIcu: 0 };
-  for (const r of rides || []) {
-    if (r.rpe != null) counts.rpe++;
-    if (r.feelIcu != null) counts.feelIcu++;
-  }
-  return counts;
+  return /** @type {{rpe: number, feelIcu: number}} */ (countFieldCoverage(rides, ["rpe", "feelIcu"]));
 }
 
 /** Verifikationslog: sind rpe/feelIcu aus intervals.icu real befüllt?

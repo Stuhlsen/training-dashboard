@@ -9,6 +9,7 @@
    ============================================================ */
 
 import { log } from "./log.js";
+import { countFieldCoverage } from "./coverage.js";
 
 /** Positiver, gerundeter Zahlenwert oder null @param {unknown} v */
 function posNum(v) {
@@ -98,14 +99,10 @@ export function latestWeight(wellness) {
  *  @param {Array<Record<string, unknown>>} wellnessList gemappte Liste
  *  @returns {Record<string, number>} */
 export function fieldCoverage(wellnessList) {
-  const counts = {};
-  for (const f of WELLNESS_FIELDS) counts[f.out] = 0;
-  for (const day of wellnessList || []) {
-    for (const f of WELLNESS_FIELDS) {
-      if (day[f.out] != null) counts[f.out]++;
-    }
-  }
-  return counts;
+  return countFieldCoverage(
+    wellnessList,
+    WELLNESS_FIELDS.map((f) => f.out)
+  );
 }
 
 /** Letztes Datum mit einem non-null Wert je Feld, aus der bereits gemappten
