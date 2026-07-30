@@ -82,10 +82,20 @@ export async function loadEvents(athleteId) {
   return result;
 }
 
+/** Ein Event gilt als "anstehend", wenn sein Datum heute oder in der Zukunft
+ *  liegt — geteilte Bedingung für nextRaceEvent() (nur Rennen/Touren) und
+ *  ui/event-timeline.js (alle Typen, die komplette Liste), damit beide
+ *  Stellen nicht unabhängig voneinander denselben Vergleich duplizieren
+ *  (s. docs/offene-punkte.md).
+ *  @param {{eventDate: string}} event @param {string} todayIso @returns {boolean} */
+export function isUpcomingEvent(event, todayIso) {
+  return event.eventDate >= todayIso;
+}
+
 /** Nächstes zukünftige Rennen/Tour-Event aus dem bereits geladenen State —
  *  abgeleiteter Wert, kein zusätzlicher Request (Konzept Abschnitt 6/8). */
 export function nextRaceEvent(todayIso = localISODate()) {
-  const upcoming = events.filter((e) => e.type === "race" && e.eventDate >= todayIso);
+  const upcoming = events.filter((e) => e.type === "race" && isUpcomingEvent(e, todayIso));
   if (upcoming.length === 0) return null;
   return upcoming.reduce((soonest, e) => (e.eventDate < soonest.eventDate ? e : soonest));
 }

@@ -59,7 +59,7 @@ mock.module(u("state/session.js"), {
   exports: { getSession: () => ({ id: "user-1" }) },
 });
 
-const { loadEvents, createEvent } = await import(u("state/events.js"));
+const { loadEvents, createEvent, isUpcomingEvent } = await import(u("state/events.js"));
 
 test("loadEvents: löst 'athlete1' auf die Profil-UUID auf, statt die interne Kennung an die Query zu reichen", async () => {
   listEventsCalls = [];
@@ -75,4 +75,19 @@ test("createEvent: löst 'athlete1' ebenfalls auf die Profil-UUID auf", async ()
   assert.equal(result.ok, true);
   assert.equal(createEventCalls.length, 1);
   assert.equal(createEventCalls[0].athleteId, "profile-uuid-stuhlsen");
+});
+
+/* isUpcomingEvent — geteilte Bedingung für nextRaceEvent() (nur Rennen) und
+   ui/event-timeline.js (alle Typen), s. docs/offene-punkte.md ("upcoming"-
+   Filter duplizierte nextRaceEvent()). */
+test("isUpcomingEvent: heutiges Datum zählt als anstehend", () => {
+  assert.equal(isUpcomingEvent({ eventDate: "2026-07-30" }, "2026-07-30"), true);
+});
+
+test("isUpcomingEvent: zukünftiges Datum zählt als anstehend", () => {
+  assert.equal(isUpcomingEvent({ eventDate: "2026-08-01" }, "2026-07-30"), true);
+});
+
+test("isUpcomingEvent: vergangenes Datum zählt nicht als anstehend", () => {
+  assert.equal(isUpcomingEvent({ eventDate: "2026-07-29" }, "2026-07-30"), false);
 });

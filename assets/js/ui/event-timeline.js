@@ -1,4 +1,11 @@
-import { getState, loadEvents, raceCountdown, onEventsChange, removeEvent } from "../state/events.js";
+import {
+  getState,
+  loadEvents,
+  raceCountdown,
+  onEventsChange,
+  removeEvent,
+  isUpcomingEvent,
+} from "../state/events.js";
 import { getSession, onSessionChange } from "../state/session.js";
 import { fmtDate, localISODate } from "../core/format.js";
 import { el, escapeHtml } from "./dom.js";
@@ -17,9 +24,7 @@ const PRIORITY_LABEL = { main: "Hauptziel", secondary: "Nebenziel" };
 // ändert oder eine Altzeile abweicht.
 
 function badge(label, color) {
-  return `<span style="font-family: var(--font-mono); font-size: 0.6rem; text-transform: uppercase; letter-spacing: 0.04em;
-    padding: 2px 7px; border-radius: var(--pill); background: ${color}22; color: ${color}; border: 1px solid ${color}44;
-    white-space: nowrap;">${escapeHtml(label)}</span>`;
+  return `<span class="event-badge" style="--badge-color: ${color};">${escapeHtml(label)}</span>`;
 }
 
 /** Renn-Countdown als .session-pill-Karte — von overview.js (Hero-"Nächste
@@ -41,14 +46,11 @@ function eventRow(event, canEdit) {
     badges.push(badge(PRIORITY_LABEL[event.priority] ?? event.priority, "var(--accent)"));
   }
   return `
-    <div class="event-timeline-row" data-id="${event.id}" style="
-      display:flex; align-items:center; gap:10px; padding:8px 4px; border-radius:8px; cursor:${canEdit ? "pointer" : "default"};">
-      <span style="font-family: var(--font-mono); font-size:0.7rem; color: var(--dim); flex-shrink:0; width:52px;">${fmtDate(event.eventDate)}</span>
-      <span style="font-family: var(--font-disp); font-weight:600; font-size:0.82rem; color: var(--text); flex:1; min-width:0;
-        overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escapeHtml(event.title)}</span>
-      <span style="display:flex; gap:6px; flex-shrink:0;">${badges.join("")}</span>
-      ${canEdit ? `<button type="button" class="event-timeline-remove" data-id="${event.id}" title="Event löschen"
-        style="background:none; border:none; color: var(--dim2); cursor:pointer; font-size:0.9rem; padding:2px 4px; flex-shrink:0;">×</button>` : ""}
+    <div class="event-timeline-row${canEdit ? " event-timeline-row--editable" : ""}" data-id="${event.id}">
+      <span class="event-timeline-date">${fmtDate(event.eventDate)}</span>
+      <span class="event-timeline-title">${escapeHtml(event.title)}</span>
+      <span class="event-timeline-badges">${badges.join("")}</span>
+      ${canEdit ? `<button type="button" class="event-timeline-remove" data-id="${event.id}" title="Event löschen">×</button>` : ""}
     </div>`;
 }
 
@@ -80,7 +82,7 @@ export const EventTimeline = {
     const canEdit = !!getSession();
 
     // loadEvents() setzt error=null bei jedem Start und respektiert den
-    // requestId-Guard — ist "loading" abgeschlossen und "error" gesetzt,
+    // requestGuard — ist "loading" abgeschlossen und "error" gesetzt,
     // bezieht sich das auf den zuletzt angefragten (= aktuellen) Athleten.
     if (!loading && error) {
       wrap.innerHTML = `<div class="panel-card"><div class="panel-title">Events</div>
@@ -100,7 +102,7 @@ export const EventTimeline = {
     const countdown = raceCountdown(todayIso);
     // Das Countdown-Event separat oben zu zeigen UND nochmal identisch in
     // der Liste wäre eine verwirrende Dopplung derselben Zeile.
-    const upcoming = events.filter((e) => e.eventDate >= todayIso && e.id !== countdown?.event.id);
+    const upcoming = events.filter((e) => isUpcomingEvent(e, todayIso) && e.id !== countdown?.event.id);
 
     wrap.innerHTML = `
       <div class="panel-card">
@@ -115,11 +117,10 @@ export const EventTimeline = {
                 : `<div class="panel-empty">Keine anstehenden Events.</div>`
           }
         </div>
-        <div id="event-timeline-error" style="color: var(--red); font-family: var(--font-mono); font-size: 0.65rem; min-height: 1em; margin-top: 6px;"></div>
+        <div id="event-timeline-error" class="event-timeline-error"></div>
         ${
           canEdit
-            ? `<button type="button" id="event-timeline-add" style="margin-top:10px; background:none; border:none; cursor:pointer;
-                font-family: var(--font-mono); font-size:0.62rem; color: var(--accent); padding:0;">+ Event hinzufügen</button>`
+            ? `<button type="button" id="event-timeline-add" class="event-timeline-add">+ Event hinzufügen</button>`
             : ""
         }
       </div>`;
