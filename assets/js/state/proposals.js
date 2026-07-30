@@ -262,6 +262,27 @@ export async function rejectProposal(id) {
   return result;
 }
 
+/** Zieht einen SELBST erstellten Vorschlag zurück (source "claude" — der
+ *  Athlet hat ihn per Claude-Import angelegt, s. docs/phase-4-konzept-
+ *  export-import-workflow.md). Anders als `rejectProposal()`: "ablehnen"
+ *  passt semantisch nicht auf einen eigenen Vorschlag, den man sich anders
+ *  überlegt hat. Nutzt denselben `decideProposal`-Adapter/dieselbe RLS-
+ *  Spalten-Härtung (status, decided_at) wie accept/reject — nur ein
+ *  anderer erlaubter Statuswert (proposals_status_check kennt "withdrawn"
+ *  seit Migration 0006). Bisher ohne UI-Pfad: Zurückziehen lief nur über
+ *  harte Löschung (RLS erlaubt DELETE bei status='open'), s. docs/offene-
+ *  punkte.md. */
+export async function withdrawProposal(id) {
+  const gate = requireUser();
+  if (!gate.ok) return gate;
+  const result = await decideProposalAdapter(id, "withdrawn");
+  if (result.ok) {
+    replaceLocal([result.proposal]);
+    notify();
+  }
+  return result;
+}
+
 export function onProposalsChange(fn) {
   listeners.add(fn);
   return () => listeners.delete(fn);

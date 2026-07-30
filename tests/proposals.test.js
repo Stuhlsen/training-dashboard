@@ -124,6 +124,7 @@ const {
   acceptProposal,
   acceptGroup,
   rejectProposal,
+  withdrawProposal,
   previewClaudeImport,
   importClaudeProposals,
   getState,
@@ -248,6 +249,16 @@ test("rejectProposal: setzt den Vorschlag auf rejected", async () => {
   assert.equal(result.ok, true);
   assert.deepEqual(decided[0], { id: "prop-1", status: "rejected" });
   assert.equal(getState().proposals.find((x) => x.id === "prop-1").status, "rejected");
+});
+
+/* ── withdrawProposal (bislang ohne UI-Pfad, s. docs/offene-punkte.md) ── */
+
+test("withdrawProposal: setzt den Vorschlag auf withdrawn", async () => {
+  await seed();
+  const result = await withdrawProposal("prop-1");
+  assert.equal(result.ok, true);
+  assert.deepEqual(decided[0], { id: "prop-1", status: "withdrawn" });
+  assert.equal(getState().proposals.find((x) => x.id === "prop-1").status, "withdrawn");
 });
 
 /* ── previewClaudeImport / importClaudeProposals (Export/Import-Workflow) ── */

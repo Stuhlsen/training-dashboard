@@ -11,7 +11,7 @@
    ============================================================ */
 
 import { escapeHtml } from "./dom.js";
-import { acceptProposal, rejectProposal } from "../state/proposals.js";
+import { acceptProposal, rejectProposal, withdrawProposal } from "../state/proposals.js";
 import { getState as getPlanCardsState } from "../state/plan-cards.js";
 import { getState as getEventsState } from "../state/events.js";
 import { isAthlete } from "../state/session.js";
@@ -178,6 +178,13 @@ function draw() {
   const readonly = !isAthlete();
   modal.querySelector("#proposal-compare-footer").style.display = readonly ? "none" : "flex";
   modal.querySelector("#proposal-compare-readonly-note").style.display = readonly ? "block" : "none";
+
+  // Eigener Vorschlag (source "claude" = Claude-Import durch den Athleten
+  // selbst, s. Header-Icon oben) → "Zurückziehen" statt "Aktuelle
+  // behalten": "ablehnen" passt nicht auf eine eigene Idee, die man sich
+  // anders überlegt hat (s. state/proposals.js::withdrawProposal).
+  modal.querySelector("#proposal-compare-reject").textContent =
+    p.source === "claude" ? "Zurückziehen" : "Aktuelle behalten";
 }
 
 function onKeydown(e) {
@@ -216,15 +223,20 @@ export function openProposalCompare(athleteId, proposal) {
   };
 
   rejectBtn.onclick = async () => {
+    const isOwn = currentProposal.source === "claude";
+    const restoreLabel = isOwn ? "Zurückziehen" : "Aktuelle behalten";
     acceptBtn.disabled = true;
     rejectBtn.disabled = true;
     rejectBtn.textContent = "⏳…";
-    const result = await rejectProposal(currentProposal.id);
+    const result = isOwn
+      ? await withdrawProposal(currentProposal.id)
+      : await rejectProposal(currentProposal.id);
     acceptBtn.disabled = false;
     rejectBtn.disabled = false;
-    rejectBtn.textContent = "Aktuelle behalten";
+    rejectBtn.textContent = restoreLabel;
     if (!result.ok) {
-      errorEl.textContent = result.error?.message || "Ablehnen fehlgeschlagen.";
+      errorEl.textContent =
+        result.error?.message || (isOwn ? "Zurückziehen fehlgeschlagen." : "Ablehnen fehlgeschlagen.");
       return;
     }
     closeProposalCompare();
