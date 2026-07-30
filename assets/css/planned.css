@@ -1201,9 +1201,14 @@ body.is-card-dragging { cursor: grabbing; user-select: none; }
 }
 .trainer-tile-row {
   display: flex;
+  align-items: center;
   justify-content: space-between;
   font-size: 0.76rem;
   color: var(--text);
+}
+.trainer-sparkline {
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 .trainer-tile-big { font-family: var(--font-disp); font-size: 1.3rem; font-weight: 700; color: var(--text); }
 .trainer-tile-headline { font-family: var(--font-disp); font-weight: 700; font-size: 0.88rem; }

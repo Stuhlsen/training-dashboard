@@ -114,12 +114,52 @@ function conflictsTile(conflicts) {
   return tile("Offene Konflikte", `<div class="trainer-tile-big">${(conflicts || []).length}</div>`);
 }
 
+/** Winzige inline-SVG-Sparkline (kein Tooltip/keine Interaktion — nur ein
+ *  visueller Trend-Eindruck in einer Trainer-Bar-Kachel, s. docs/offene-
+ *  punkte.md "CTL/ATL-Verlauf-Kachel zeigt nur den Snapshot"). Bewusst kein
+ *  Chart im Sinne von docs/chart-grundlagen.md §7 (keine Achsen, kein
+ *  Fadenkreuz, keine Familie) — dafür ist die Kachel zu klein, das wäre
+ *  reines Rauschen bei ~72×24px.
+ *  @param {number[]} vals @param {string} color @returns {string} */
+function sparkline(vals, color) {
+  const defined = vals.filter((v) => v != null);
+  if (defined.length < 2) return "";
+  const W = 72,
+    H = 22,
+    pad = 2;
+  const min = Math.min(...defined),
+    max = Math.max(...defined);
+  const range = max - min || 1;
+  const stepX = (W - pad * 2) / (vals.length - 1);
+  const pts = vals
+    .map((v, i) =>
+      v == null ? null : `${pad + i * stepX},${H - pad - ((v - min) / range) * (H - pad * 2)}`
+    )
+    .filter(Boolean)
+    .join(" ");
+  return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" class="trainer-sparkline">
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round" />
+  </svg>`;
+}
+
 function ctlAtlTile(projection) {
   if (!projection) return tile("CTL/ATL-Verlauf", `<span class="trainer-tile-empty">–</span>`);
+  // Sparkline über den Prognose-Horizont (core/projection.js::projectLoad
+  // beginnt bei "heute", keine Historie) — zeigt die erwartete Entwicklung
+  // laut aktuellem Plan, nicht den bisherigen Aufbau. Rollenfarben wie im
+  // PMC-Chart (ui/charts/base.js::CHART_THEME.role.primary/secondary).
+  const ctlSpark = sparkline(
+    projection.days.map((d) => d.ctl),
+    "#4a9eff"
+  );
+  const atlSpark = sparkline(
+    projection.days.map((d) => d.atl),
+    "#e0736b"
+  );
   return tile(
     "CTL/ATL-Verlauf",
-    `<div class="trainer-tile-row"><span>CTL</span><b>${Math.round(projection.startCtl)}</b></div>
-     <div class="trainer-tile-row"><span>ATL</span><b>${Math.round(projection.startAtl)}</b></div>`
+    `<div class="trainer-tile-row"><span>CTL</span><b>${Math.round(projection.startCtl)}</b>${ctlSpark}</div>
+     <div class="trainer-tile-row"><span>ATL</span><b>${Math.round(projection.startAtl)}</b>${atlSpark}</div>`
   );
 }
 
