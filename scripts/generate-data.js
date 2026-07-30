@@ -40,6 +40,7 @@ import {
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
 import { loadFtpHistory } from "./lib/ftp-history.js";
+import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
 import {
   mapWellnessList,
   latestWeight,
@@ -54,9 +55,11 @@ import {
   loadSubjective,
   loadAdjustments,
   loadAdjustments2,
+  loadIntervalBlocks,
   writeOutput,
   OUT_FILE,
   OUT_FILE_2,
+  INTERVAL_BLOCKS_FILE,
 } from "./lib/output.js";
 
 requireEnv(["NOTION_KEY", "DB_ID"]);
@@ -65,6 +68,11 @@ const ATHLETE_2_NAME = "hc_diZee"; // Anzeigename (Pseudonym) — keine Klarname
 const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
 
 async function main() {
+  // Blockerkennung-Cache (scripts/lib/interval-blocks.js) — einmal geladen,
+  // von beiden Athleten ergänzt, einmal am Ende geschrieben. Bereits
+  // gecachte Aktivitäten werden nicht erneut abgerufen (unveränderlich).
+  const intervalBlockCache = loadIntervalBlocks();
+
   // 1. Plan 1: komplett aus Notion
   const plan1 = await queryNotionPlan1();
 
@@ -139,6 +147,15 @@ async function main() {
         ? `✅ FTP-Historie: ${ftpHistory.length} Einträge (${ftpHistory.map((h) => `${h.ftpWatt}W ab ${h.validFrom}`).join(", ")})`
         : `ℹ️  FTP-Historie: keine Einträge/Credentials — Fallback auf DEFAULT_FTP (${DEFAULT_FTP}W) für alle Fahrten`
     );
+
+    // Blockerkennung (Fetch/Cache-Zwischenschritt, v2-Ist-Typerkennung) —
+    // ?intervals=true pro (noch nicht gecachter) Aktivität, throttled.
+    // Nutzt dieselbe ftpHistory wie oben für die Schwelle je Fahrtdatum.
+    await updateIntervalBlockCache(activities, intervalBlockCache, {
+      apiKey: ENV.INTERVALS_KEY,
+      ftpHistory,
+      fallbackFtp: DEFAULT_FTP,
+    });
 
     // Kartentausch/-verschiebung berücksichtigen: ohne effectivePlan würde
     // mapActivity() nach einer Verschiebung im Planungstab weiter die
@@ -307,6 +324,13 @@ async function main() {
         : `ℹ️  FTP-Historie (${ATHLETE_2_NAME}): keine Einträge/Credentials — Fallback auf ${estimatedFTP2}W für alle Fahrten`
     );
 
+    // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1 (s. dort).
+    await updateIntervalBlockCache(activities2, intervalBlockCache, {
+      apiKey: ENV.INTERVALS_KEY_2,
+      ftpHistory: ftpHistory2,
+      fallbackFtp: estimatedFTP2,
+    });
+
     const rides2 = activities2
       .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2))
       .sort((a, b) => a.date.localeCompare(b.date));
@@ -344,6 +368,9 @@ async function main() {
   } else {
     log.info(`\n⏭️  Zweiter Athlet: kein API-Key gesetzt, übersprungen`);
   }
+
+  writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);
+  log.info(`✅ ${Object.keys(intervalBlockCache).length} Aktivitäten im Blockerkennung-Cache → ${INTERVAL_BLOCKS_FILE}`);
 
   log.summary();
   if (log.counts.errors > 0) process.exit(1);

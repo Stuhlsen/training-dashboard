@@ -87,6 +87,11 @@ jobs:
           git add data/rides.json data/adjustments.json data/subjective.json
           [ -f data/rides-2.json ] && git add data/rides-2.json
           [ -f data/adjustments-2.json ] && git add data/adjustments-2.json
+          # interval-blocks.json (Blockerkennung-Cache, scripts/lib/interval-blocks.js):
+          # wird von generate-data.js selbst geladen+ergänzt+geschrieben, kein
+          # Browser-Schreibpfad wie bei adjustments/subjective -> kein
+          # Schutz-Checkout nötig, einfaches Commit reicht.
+          [ -f data/interval-blocks.json ] && git add data/interval-blocks.json
           git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
           for i in 1 2 3; do
             git fetch origin
