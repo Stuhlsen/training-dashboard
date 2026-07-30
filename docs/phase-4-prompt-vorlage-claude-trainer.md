@@ -42,18 +42,72 @@ und die offene Konfliktliste des Planers.
 **Regeln für den JSON-Block (werden maschinell geprüft — Abweichungen führen zur
 Ablehnung des Imports):**
 - Exakt ein ```json-Codeblock am Ende deiner Antwort, sonst kein JSON in der Antwort.
-- Struktur: `{ "schema_version": 1, "athlete": "<aus dem Briefing>", "source":
-  "claude", "proposals": [ … ] }`. Keine zusätzlichen Felder, nirgends.
-- Erlaubte `op`-Werte: `add`, `replace`, `move`, `cancel`. Kein Löschen — wenn eine
-  Einheit entfallen soll, nutze `cancel` mit Begründung.
+- Äußere Struktur: `{ "schema_version": 1, "athlete": "<aus dem Briefing>", "source":
+  "claude", "proposals": [ <Vorschlag>, … ] }`. Keine zusätzlichen Felder auf dieser
+  Ebene.
+- **Jeder Eintrag in `proposals` hat GENAU diese fünf Felder auf oberster Ebene —
+  nie mehr, nie weniger:** `op`, `target_card_id`, `target_updated_at`, `reason`,
+  `payload`. **Alle inhaltlichen Kartenfelder (`title`, `type`, `plan_date`,
+  `target_tss`, `km`, `workout`, `note`) gehören AUSSCHLIESSLICH in das
+  verschachtelte `payload`-Objekt — niemals als Geschwister von `op` auf oberster
+  Ebene.** Das ist der häufigste Fehler: ein Vorschlag wie
+  `{ "op": "replace", "title": "…", "plan_date": "…" }` wird abgelehnt, weil
+  `title`/`plan_date` auf dieser Ebene unbekannte Felder sind.
+- Erlaubte `op`-Werte und ihr jeweiliges `payload`:
+  - `add` — neue Karte. `target_card_id`/`target_updated_at` beide `null` (es gibt
+    noch keine Zielkarte). `payload`: `title` (Pflicht), `plan_date` (Pflicht,
+    `YYYY-MM-DD`), dazu optional `type`, `target_tss`, `km`, `workout`, `note`.
+  - `replace` — bestehende Karte inhaltlich ersetzen. `target_card_id` +
+    `target_updated_at` Pflicht, unverändert aus dem Briefing übernommen.
+    `payload`: dieselben Felder wie bei `add`, `title` hier aber optional.
+  - `move` — nur Datumswechsel. `target_card_id` + `target_updated_at` Pflicht.
+    `payload` enthält **ausschließlich** `{ "plan_date": "…" }` — kein `title`,
+    `type` o. ä.
+  - `cancel` — Karte als ausgefallen markieren. `target_card_id` +
+    `target_updated_at` Pflicht. `payload` enthält **höchstens** `{ "reason": "…" }`
+    (derselbe Text wie das äußere `reason`-Feld) — kein weiteres Feld erlaubt.
+  - Kein Löschen — wenn eine Einheit entfallen soll, nutze `cancel` mit Begründung.
+- Vier vollständige Beispiele, je ein Eintrag aus `proposals`:
+
+  ```json
+  { "op": "add", "target_card_id": null, "target_updated_at": null,
+    "reason": "Zusätzliche Erholungseinheit nach zwei harten Tagen",
+    "payload": { "title": "Z2 Recovery 45min", "type": "Z1 Recovery",
+      "plan_date": "2026-08-03", "target_tss": 30, "km": null,
+      "workout": null, "note": null } }
+  ```
+  ```json
+  { "op": "replace", "target_card_id": "eb55a1f9-afb3-4744-be18-52c83b854572",
+    "target_updated_at": "2026-07-29T14:45:36.681223+00:00",
+    "reason": "TSB am Eventtag sonst -6, Ziel +5…+20 — Reduktion schafft Puffer",
+    "payload": { "title": "VO2max Aktivierung 3×2 min", "type": "VO2max",
+      "plan_date": "2026-09-03", "target_tss": 45, "km": null,
+      "workout": { "warmup": 15, "intervals": 3, "duration": 2, "rest": 3,
+        "pct": [106, 120], "cooldown": 10, "label": "3x2min VO2max" },
+      "note": null } }
+  ```
+  ```json
+  { "op": "move", "target_card_id": "…", "target_updated_at": "…",
+    "reason": "Terminkonflikt mit Gruppenfahrt",
+    "payload": { "plan_date": "2026-08-15" } }
+  ```
+  ```json
+  { "op": "cancel", "target_card_id": "…", "target_updated_at": "…",
+    "reason": "Krankheit — Einheit entfällt",
+    "payload": { "reason": "Krankheit — Einheit entfällt" } }
+  ```
+
 - `target_card_id` und `target_updated_at` übernimmst du **unverändert** aus dem
   Briefing der jeweiligen Karte. Erfinde niemals IDs; Karten ohne ID im Briefing
   kannst du nicht ändern (nur `add` neuer Karten ist ohne ID möglich).
 - `plan_date` nie in der Vergangenheit; Datumsformat `YYYY-MM-DD`.
 - `type` nur aus der Typenliste im Briefing; `target_tss` realistisch (0–400).
-- Für pushbare Intervall-Einheiten gib im `payload.workout` die Struktur aus dem
-  Briefing-Beispiel an (inkl. `pct` als [von, bis] in %FTP) — ohne `pct` kann die
-  Einheit nicht auf den Radcomputer geladen werden.
+- Für pushbare Intervall-Einheiten trägt `payload.workout` genau diese Felder:
+  `warmup`/`cooldown` (Minuten), `intervals` (Anzahl Wiederholungen), `duration`
+  (Minuten pro Intervall), `rest` (Pausenminuten), `pct` als `[von, bis]` in %FTP,
+  `label` (kurzer Text) — Beispiel oben bei `replace`. Ohne `pct` kann die Einheit
+  nicht auf den Radcomputer geladen werden. Keine strukturierten Intervalle:
+  `"workout": null`.
 - Jeder Vorschlag trägt einen kurzen `reason` (ein Satz, konkret: „TSB am Eventtag
   sonst −4, Ziel +5…+20", nicht „zur Optimierung").
 - `reason` ist auf der Website **öffentlich sichtbar**. Formuliere ausschließlich
@@ -95,3 +149,10 @@ Hier ist mein Briefing:
 - **Test der Vorlage:** Ein Beispiel-Briefing (Fixture) + erwartetes gültiges JSON in
   `tests/` ablegen; der Validator-Test füttert echte Claude-Antworten aus der Praxis
   nach und wächst zur Regressionssuite für Format-Drift.
+- **Warum die Regeln jetzt ein vollständiges Beispiel pro `op` zeigen:** Eine frühere
+  Fassung spezifizierte nur die äußere Hülle (`schema_version`/`athlete`/`proposals`)
+  und erwähnte `payload` nur beiläufig bei `workout` — ein reales Import geriet
+  dadurch mit `title`/`plan_date`/`type`/`target_tss` auf oberster Ebene statt unter
+  `payload` (Ablehnung „Unbekannte Felder"/„payload fehlt"). Die vier Beispiele oben
+  bilden je einen `op`-Typ vollständig ab, damit ein Modell, das nur diesen Text
+  liest, die Verschachtelung nicht erraten muss.

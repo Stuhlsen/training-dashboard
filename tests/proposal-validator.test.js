@@ -298,3 +298,41 @@ test("validateImport: Teilerfolg — jeder Vorschlag bekommt sein eigenes Ergebn
   assert.equal(result.results[0].valid, true);
   assert.equal(result.results[1].valid, false);
 });
+
+/* ── Regression: Kartenfelder auf oberster Ebene statt unter `payload`
+   (beobachteter Fehlerfall aus einer unvollständig spezifizierten Prompt-
+   Vorlage, s. docs/phase-4-prompt-vorlage-claude-trainer.md) ── */
+
+test("validateProposal: 'replace' mit title/plan_date/type/target_tss auf oberster Ebene → Fehler (beobachteter Prompt-Vorlage-Bug)", () => {
+  const p = {
+    op: "replace",
+    target_card_id: "eb55a1f9-afb3-4744-be18-52c83b854572",
+    target_updated_at: "2026-07-29T14:45:36.681223+00:00",
+    plan_date: "2026-09-03",
+    title: "VO2max Aktivierung 3×2 min",
+    type: "VO2max",
+    target_tss: 45,
+    reason: "TSB am Eventtag (06.09.) sonst -6, Ziel +5…+20",
+  };
+  const result = validateProposal(p, { today: TODAY, knownCardIds: new Set([p.target_card_id]) });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("Unbekannte Felder") && e.includes("plan_date")));
+  assert.ok(result.errors.some((e) => e.includes("payload fehlt")));
+});
+
+test("validateProposal: dieselbe Karte, korrekt unter payload verschachtelt → gültig", () => {
+  const p = {
+    op: "replace",
+    target_card_id: "eb55a1f9-afb3-4744-be18-52c83b854572",
+    target_updated_at: "2026-07-29T14:45:36.681223+00:00",
+    reason: "TSB am Eventtag (06.09.) sonst -6, Ziel +5…+20",
+    payload: {
+      title: "VO2max Aktivierung 3×2 min",
+      type: "VO2max",
+      plan_date: "2026-09-03",
+      target_tss: 45,
+    },
+  };
+  const result = validateProposal(p, { today: TODAY, knownCardIds: new Set([p.target_card_id]) });
+  assert.deepEqual(result, { valid: true, errors: [] });
+});
