@@ -5,6 +5,7 @@
    ============================================================ */
 
 import { effectiveSessions } from "../../assets/js/core/planning.js";
+import { classifySession } from "../../assets/js/core/session-classify.js";
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { getWeatherForRide } from "./weather.js";
@@ -68,6 +69,30 @@ export function inferTypFromIF(np, min, ftp = DEFAULT_FTP) {
   if (ifVal < 0.95) return "Sweet Spot";
   if (ifVal < 1.05) return "Schwelle";
   return "VO2max";
+}
+
+/**
+ * Datenbasierte Ist-Typerkennung (core/session-classify.js) für eine
+ * Aktivität aufrufen. `ftp` MUSS die am Fahrttag gültige FTP sein, nicht
+ * die heutige — hier bevorzugt `act.icu_eftp` (eFTP zum Fahrtzeitpunkt,
+ * intervals.icu), sonst Fallback auf die übergebene Referenz-FTP (Athlet 1:
+ * DEFAULT_FTP, Athlet 2: estimatedFtp — dieselbe Referenz, die auch
+ * inferTypFromIF() hier schon bekommt). eFTP ist im aktuellen Datenbestand
+ * oft null (s. Kommentar bei baseFields()), der Fallback greift dann exakt
+ * wie bisher bei inferTypFromIF() — kein neues Verhalten für den Typ,
+ * nur eine zusätzliche, unabhängige Einschätzung in typDetected.
+ * @param {Object} act
+ * @param {number} min
+ * @param {number} fallbackFtp
+ * @returns {ReturnType<typeof classifySession>}
+ */
+function detectSession(act, min, fallbackFtp) {
+  return classifySession({
+    np: act.icu_weighted_avg_watts,
+    ftp: act.icu_eftp || fallbackFtp,
+    min,
+    zoneTimes: act.icu_zone_times || null,
+  });
 }
 
 /** Gemeinsame Feldmenge beider Mapper */
@@ -170,14 +195,18 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
   const min = Math.round((act.moving_time || 0) / 60);
 
   // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
-  // `typ` bleibt bewusst unverändert (heutiges Verhalten) — typSource
-  // dokumentiert nur, welcher der drei Fälle gegriffen hat. Die getrennten
-  // Felder (typPlanned/typDetected) sind Vorbereitung für die datenbasierte
-  // Ist-Typerkennung (core/session-classify.js, folgt in einem späteren
-  // Schritt); typDetected bleibt bis dahin null.
+  // `typ` bleibt bewusst unverändert (heutiges Verhalten, inferTypFromIF()
+  // bleibt der Fallback dafür) — typSource dokumentiert nur, welcher der
+  // drei Fälle gegriffen hat. `typDetected`/`typDetection` kommen
+  // UNABHÄNGIG davon aus core/session-classify.js (Schritt 3 der Ist-
+  // Typerkennung) und verändern typ/typSource hier bewusst NICHT — welche
+  // Konsumenten künftig typDetected statt typ lesen, entscheidet ein
+  // späterer Schritt bewusst einzeln (Schichtenregel/Konservativität wie
+  // in Schritt 2 begründet).
   const typ = s.typ || planned.typ || inferTypFromIF(np, min);
   const typSource = s.typ ? "subjective" : planned.typ ? "plan" : "inferred";
   const name = s.name || planned.name || act.name || "Radfahren";
+  const detection = detectSession(act, min, DEFAULT_FTP);
 
   // Wetter: exakte Startzeit aus intervals.icu
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
@@ -188,7 +217,8 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
     phase,
     typ,
     typPlanned: planned.typ ?? null,
-    typDetected: null,
+    typDetected: detection.type,
+    typDetection: detection,
     typSource,
     dataSource: "intervals",
     ...baseFields(act, weather),
@@ -220,6 +250,7 @@ export function mapActivity2(
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
+  const detection = detectSession(act, min, estimatedFtp);
 
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
 
@@ -232,7 +263,8 @@ export function mapActivity2(
     // typPlanned/typDetected/typSource.
     typ: planned.typ || inferTypFromIF(np, min, estimatedFtp),
     typPlanned: planned.typ ?? null,
-    typDetected: null,
+    typDetected: detection.type,
+    typDetection: detection,
     typSource: planned.typ ? "plan" : "inferred",
     // Athlet 2 kommt vollständig aus intervals.icu (kein Notion-Anteil) —
     // dieselbe Datenherkunfts-Semantik wie Athlet 1s intervals.icu-Ära.

@@ -102,6 +102,50 @@ export const KNOWN_PLAN_TYPES = [
 ];
 
 /**
+ * Schwellen für die datenbasierte Ist-Typerkennung (core/session-classify.js).
+ * Die IF-Grenzen (ifLowMax…ifSchwelleMax) sind unverändert aus
+ * `scripts/lib/map-activity.js::inferTypFromIF()` übernommen — projekteigene
+ * Setzungen, nicht neu erfunden. longRideMin/dauerMin ebenso (bisheriges
+ * Verhalten von inferTypFromIF im ifLowMax-Zweig). Neu hinzugekommen:
+ * langOverrideMin (erweitert "Z2 Lang" auch ins ifZ2DauerMax-Band, s.
+ * Kommentar in session-classify.js) und die Konfidenz-Schwellen
+ * (shortRideConfidenceMin, bandMinShare).
+ */
+export const SESSION_CLASSIFY = Object.freeze({
+  ftpTestMaxMin: 30, // Fahrten < diese Dauer + hoher IF → FTP-Test
+  ftpTestMinIF: 0.95,
+  ifLowMax: 0.75, // < diese IF-Grenze: Recovery/Dauer/Lang je nach Dauer
+  ifZ2DauerMax: 0.85, // < diese Grenze: Z2 Dauer (oder Z2 Lang, s. langOverrideMin)
+  ifTempoMax: 0.9,
+  ifSweetSpotMax: 0.95,
+  ifSchwelleMax: 1.05, // ≥ diese Grenze: VO2max
+  longRideMin: 120, // Dauer-Schwelle für "Z2 Lang" im ifLowMax-Zweig
+  dauerMin: 60, // Dauer-Schwelle für "Z2 Dauer" (statt Z1 Recovery) im ifLowMax-Zweig
+  langOverrideMin: 180, // NEU: sehr lange Fahrt im ifZ2DauerMax-Band trotzdem "Z2 Lang"
+  shortRideConfidenceMin: 20, // unter dieser Dauer: Konfidenz höchstens "niedrig" (außer FTP-Test)
+  // Mindestanteil der erwarteten Zonen-Bänder (Z1/Z2 low · Z3/Z4 mid · Z5+ high),
+  // damit die Zonenverteilung die IF-Einstufung bestätigt (→ Konfidenz "hoch").
+  // mid prüft mid+high zusammen (ein Schwelle/Sweet-Spot-Block hat i.d.R.
+  // Warmup/Cooldown in low, das allein darf die Bestätigung nicht kippen).
+  bandMinShare: Object.freeze({ low: 0.45, mid: 0.35, high: 0.15 }),
+});
+
+/** Welches Zonen-Band (low/mid/high) ein erkannter Typ erwarten lässt —
+ *  nur für den Konfidenz-Abgleich in session-classify.js, keine neue
+ *  Typenliste. */
+export const TYPE_EXPECTED_BAND = Object.freeze({
+  "Z1 Recovery": "low",
+  "Z2 Dauer": "low",
+  "Z2 Lang": "low",
+  Ausrollen: "low",
+  Tempo: "mid",
+  "Sweet Spot": "mid",
+  Schwelle: "mid",
+  VO2max: "high",
+  "FTP-Test": "high",
+});
+
+/**
  * Intensitätsklassen für K-HART (harte Einheiten an Folgetagen). Deckungs-
  * gleich mit den border-left-Farben aus dem CRUD-Konzept §2:
  *   hart    = Schwelle, VO2max, Sweet Spot, FTP-Test (+ Renn-/Etappen-Efforts)

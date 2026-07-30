@@ -46,6 +46,7 @@ export const RIDE_SCHEMA = {
   typ: "string?",
   typPlanned: "string?",
   typDetected: "string?",
+  typDetection: "object?",
   typSource: "string?",
   dataSource: "string?",
   week: "string?",

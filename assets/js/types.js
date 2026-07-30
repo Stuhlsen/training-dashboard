@@ -25,9 +25,16 @@
  *                                     s. typSource) — unverändert gegenüber Vor-typSource-Ära
  * @property {string|null} [typPlanned]   Typ der Plankarte dieses Tages, sonst null
  * @property {string|null} [typDetected]  Ergebnis der datenbasierten Ist-Typerkennung
- *                                         (core/session-classify.js, folgt in späterem
- *                                         Schritt) — bis dahin immer null
+ *                                         (core/session-classify.js::classifySession),
+ *                                         unabhängig von `typ` — null bei zu dünner
+ *                                         Datenlage (z.B. keine Leistungsdaten)
+ * @property {{type:string|null, confidence:"hoch"|"mittel"|"niedrig",
+ *   signals:Array<{label:string,value:string|number|null,note?:string}>,
+ *   rule:string}} [typDetection]  Volles Klassifikations-Ergebnis (Begründung
+ *                                  für die Anzeige) — `typDetected` ist nur dessen `type`
  * @property {"subjective"|"plan"|"inferred"|"detected"} [typSource] Herkunft von `typ`
+ *                                  (aktuell nie "detected" — Konsumenten stellen
+ *                                  einzeln und bewusst um, s. AGENTS.md/Fahrplan)
  * @property {number|null} [km]
  * @property {number|null} [min]
  * @property {number|null} [kmh]
