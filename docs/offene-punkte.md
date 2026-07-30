@@ -187,6 +187,17 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
 
 ## Infrastruktur/CI
 
+- **`sync-data.yml` hat noch keine `SUPABASE_*`-Secrets im `env`-Block** —
+  `scripts/lib/ftp-history.js::loadFtpHistory()` (Commit `abc230a`, FTP-
+  Historie-Auftrag Schritt 3) ist fertig verdrahtet, aber ohne
+  `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_ATHLETE1_EMAIL`/
+  `SUPABASE_ATHLETE1_PASSWORD` (optional `_ATHLETE2_*`) als GitHub-Actions-
+  Secrets + im Workflow-`env`-Block läuft der 6h-Cron weiterhin mit dem
+  Fallback (`DEFAULT_FTP`/`estimatedFtp`) — kein Fehler, nur kein Effekt.
+  Bewusst zurückgestellt bis nach Schritt 4 (Athleten-Formular zum Eintragen
+  der FTP-Historie) — vorher gibt es ohnehin keine echten Einträge, die
+  nachgeladen werden könnten.
+
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
 - **Roadmap-Versionierung**: Fahrplan-Datei liegt jetzt in `docs/`, lag vorher
