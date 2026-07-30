@@ -3,7 +3,7 @@
    CTL-Interpolation und TSB-Ableitung, getrennt vom Rendering.
    ============================================================ */
 
-import { diffDays, localISODate } from "./format.js";
+import { diffDays, addDaysISO } from "./format.js";
 
 /** Zeitkonstanten der exponentiellen CTL/ATL-Glättung (Coggan-PMC-Modell) —
  *  dieselben Werte, mit denen intervals.icu/TrainingPeaks täglich fortschreiben. */
@@ -105,9 +105,7 @@ export function currentPmc(rides, todayISO) {
 export function tsbTrend(rides, todayISO, windowDays = 3) {
   const now = currentPmc(rides, todayISO);
   if (!now) return null;
-  const past = new Date(`${todayISO}T00:00:00`);
-  past.setDate(past.getDate() - windowDays);
-  const pastPmc = currentPmc(rides, localISODate(past));
+  const pastPmc = currentPmc(rides, addDaysISO(todayISO, -windowDays));
   if (!pastPmc) return null;
   const delta = Math.round((now.tsb - pastPmc.tsb) * 10) / 10;
   const direction =

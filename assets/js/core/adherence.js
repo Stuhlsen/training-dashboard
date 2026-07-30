@@ -10,18 +10,12 @@
    ============================================================ */
 
 import { effectiveSessions } from "./planning.js";
-
-/** Lokales ISO-Datum ohne UTC-Verschiebung @param {Date} d */
-function isoLocal(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import { addDaysISO } from "./format.js";
 
 /** Montag der Woche eines ISO-Datums @param {string} dateISO */
 export function mondayOf(dateISO) {
-  const d = new Date(dateISO + "T00:00:00");
-  const dow = (d.getDay() + 6) % 7; // Mo=0
-  d.setDate(d.getDate() - dow);
-  return isoLocal(d);
+  const dow = (new Date(dateISO + "T00:00:00").getDay() + 6) % 7; // Mo=0
+  return addDaysISO(dateISO, -dow);
 }
 
 /**
@@ -45,9 +39,7 @@ export function weeklyStreak(rides, todayISO) {
   if (weeksWithRide.has(cursor)) streak++;
   // ab letzter abgeschlossener Woche rückwärts
   for (let i = 0; i < 520; i++) {
-    const d = new Date(cursor + "T00:00:00");
-    d.setDate(d.getDate() - 7);
-    cursor = isoLocal(d);
+    cursor = addDaysISO(cursor, -7);
     if (weeksWithRide.has(cursor)) streak++;
     else break;
   }
@@ -66,9 +58,7 @@ export function frequencyTrend(rides, todayISO) {
   const weekStarts = [];
   let cursor = currentMonday;
   for (let i = 0; i < 8; i++) {
-    const d = new Date(cursor + "T00:00:00");
-    d.setDate(d.getDate() - 7);
-    cursor = isoLocal(d);
+    cursor = addDaysISO(cursor, -7);
     weekStarts.push(cursor); // letzte 8 abgeschlossene Wochen, neueste zuerst
   }
 
