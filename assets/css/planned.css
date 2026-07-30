@@ -649,9 +649,18 @@
   color: var(--dim);
 }
 
+/* "Glass"-Formularfelder — geteilte Optik für ALLE Dialoge, nicht nur den
+   Karten-Dialog (war 3x fast identisch als Inline-Style in event-form.js/
+   settings-panel.js/checkin-dialog.js kopiert, s. docs/offene-punkte.md).
+   .glass-* sind die generischen Namen für neue Stellen, .planned-card-
+   dialog-* bleiben als Alias bestehen (keine Aufrufstellen umbenannt, um
+   den Karten-Dialog nicht anzufassen). */
 .planned-card-dialog-input,
 .planned-card-dialog-select,
-.planned-card-dialog-textarea {
+.planned-card-dialog-textarea,
+.glass-input,
+.glass-select,
+.glass-textarea {
   width: 100%;
   box-sizing: border-box;
   background: rgba(255, 255, 255, 0.05);
@@ -662,10 +671,14 @@
   font-size: 0.85rem;
   padding: 8px 10px;
 }
-.planned-card-dialog-textarea { resize: vertical; }
+.planned-card-dialog-textarea,
+.glass-textarea { resize: vertical; }
 .planned-card-dialog-input:focus,
 .planned-card-dialog-select:focus,
-.planned-card-dialog-textarea:focus { outline: none; border-color: var(--accent); }
+.planned-card-dialog-textarea:focus,
+.glass-input:focus,
+.glass-select:focus,
+.glass-textarea:focus { outline: none; border-color: var(--accent); }
 
 .planned-card-dialog-blocks-header {
   display: flex;

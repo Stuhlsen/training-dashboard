@@ -31,8 +31,6 @@ const PRIORITY_OPTIONS = [
   { value: "secondary", label: "Nebenziel" },
 ];
 
-const INPUT_STYLE =
-  "width:100%; background: rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; color: var(--text); font-family: var(--font-body); font-size:0.85rem; padding: 8px 10px;";
 const LABEL_STYLE =
   "display:flex; flex-direction:column; gap:5px; font-family: var(--font-mono); font-size:0.64rem; text-transform:uppercase; letter-spacing:0.06em; color: var(--dim);";
 
@@ -68,12 +66,12 @@ function build() {
     <form id="event-form" style="display:flex; flex-direction:column; gap:12px; margin-top: 16px;">
       <label style="${LABEL_STYLE}">
         Titel
-        <input name="title" type="text" required placeholder="z. B. Gran Fondo Bremen" style="${INPUT_STYLE}">
+        <input name="title" type="text" required placeholder="z. B. Gran Fondo Bremen" class="glass-input">
       </label>
 
       <label style="${LABEL_STYLE}">
         Datum
-        <input name="eventDate" type="date" required style="${INPUT_STYLE}">
+        <input name="eventDate" type="date" required class="glass-input">
       </label>
 
       <div style="${LABEL_STYLE}">
@@ -87,19 +85,19 @@ function build() {
       <div id="event-form-race-fields" style="display:flex; flex-direction:column; gap:12px;">
         <label style="${LABEL_STYLE}">
           Priorität
-          <select name="priority" style="${INPUT_STYLE}">
+          <select name="priority" class="glass-select">
             ${PRIORITY_OPTIONS.map((o) => `<option value="${o.value}">${o.label}</option>`).join("")}
           </select>
         </label>
         <label style="${LABEL_STYLE}">
           Ziel-FTP (Watt, optional)
-          <input name="ftpGoal" type="number" min="0" step="1" placeholder="z. B. 210" style="${INPUT_STYLE}">
+          <input name="ftpGoal" type="number" min="0" step="1" placeholder="z. B. 210" class="glass-input">
         </label>
       </div>
 
       <label style="${LABEL_STYLE}">
         Notiz (optional)
-        <textarea name="note" rows="2" placeholder="z. B. Zielzeit, Strecke" style="${INPUT_STYLE} resize:vertical;"></textarea>
+        <textarea name="note" rows="2" placeholder="z. B. Zielzeit, Strecke" class="glass-textarea"></textarea>
       </label>
 
       <div id="event-form-error" style="color: var(--red); font-family: var(--font-mono); font-size: 0.7rem; min-height: 1em;"></div>

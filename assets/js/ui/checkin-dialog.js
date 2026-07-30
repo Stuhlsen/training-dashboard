@@ -75,8 +75,7 @@ function build() {
       <label style="display: flex; flex-direction: column; gap: 6px; margin-top: 4px;">
         <span style="font-family: var(--font-mono); font-size: 0.64rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--dim);">Notiz (optional)</span>
         <textarea id="checkin-note" rows="2" placeholder="z. B. Kopf dicht, evtl. was im Anflug"
-          style="width: 100%; resize: vertical; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
-          border-radius: 12px; color: var(--text); font-family: var(--font-body); font-size: 0.82rem; padding: 9px 12px;"></textarea>
+          class="glass-textarea"></textarea>
         <span style="font-family: var(--font-mono); font-size: 0.6rem; color: var(--dim2);">Notiz nie öffentlich sichtbar</span>
       </label>
 

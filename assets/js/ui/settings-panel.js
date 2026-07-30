@@ -50,9 +50,7 @@ function buildProfileSection(user) {
         <label style="display:block; font-family: var(--font-mono); font-size:0.62rem;
           text-transform:uppercase; letter-spacing:0.06em; color: var(--dim); margin-bottom:4px;">Name</label>
         <span id="settings-name-feedback" style="display:inline-flex; align-items:center; width:100%;">
-          <input id="settings-name-input" type="text" style="width:100%; background: rgba(255,255,255,0.05);
-            border:1px solid var(--border); border-radius:8px; color: var(--text);
-            font-family: var(--font-body); font-size:0.82rem; padding: 5px 8px;">
+          <input id="settings-name-input" type="text" class="glass-input">
         </span>
       </div>
     </div>
@@ -168,13 +166,11 @@ async function buildGoalsSection() {
 
   const form = document.createElement("form");
   form.style.cssText = "display:none; flex-direction:column; gap:8px; margin-top:10px;";
-  const inputStyle =
-    "width:100%; background: rgba(255,255,255,0.05); border:1px solid var(--border); border-radius:8px; color: var(--text); font-family: var(--font-body); font-size:0.8rem; padding: 5px 8px;";
   form.innerHTML = `
-    <input name="kind" type="text" placeholder="Art (z. B. FTP)" required style="${inputStyle}">
-    <input name="targetValue" type="number" placeholder="Zielwert" step="any" style="${inputStyle}">
-    <input name="targetDate" type="date" style="${inputStyle}">
-    <input name="note" type="text" placeholder="Notiz (optional)" style="${inputStyle}">
+    <input name="kind" type="text" placeholder="Art (z. B. FTP)" required class="glass-input">
+    <input name="targetValue" type="number" placeholder="Zielwert" step="any" class="glass-input">
+    <input name="targetDate" type="date" class="glass-input">
+    <input name="note" type="text" placeholder="Notiz (optional)" class="glass-input">
     <div id="settings-goal-error" style="font-family: var(--font-mono); font-size:0.62rem; color: var(--red); min-height:1em;"></div>
     <button type="submit" class="btn-primary" style="align-self:flex-start;">Speichern</button>
   `;
