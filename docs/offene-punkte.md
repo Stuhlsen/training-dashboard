@@ -20,20 +20,6 @@
 Kleinere Duplizierungen/Stilbrüche, keine Bugs — Extraktion würde jeweils
 mehrere bereits committete Dateien anfassen:
 
-- `addDaysISO()` (`core/format.js`) nicht überall nachgezogen:
-  `core/pmc.js::tsbTrend`, `core/adherence.js` (+ eigene `isoLocal()`-Kopie),
-  `core/consistency.js`.
-- Glass-Input-Style 3× fast identisch kopiert: `settings-panel.js`,
-  `checkin-dialog.js`, `ui/event-form.js::INPUT_STYLE`.
-- `openToken`-Race-Guard-Muster 4× unabhängig kopiert: `checkin-dialog.js`,
-  `state/wellbeing.js`, `state/events.js` (als `requestId`), `ui/event-form.js`.
-- `ui/event-timeline.js`: Inline-Styles statt `components.css`-Klassen (folgt
-  aber der `checkin-dialog.js`-Konvention); `upcoming`-Filter dupliziert
-  `nextRaceEvent()`; rendert bei jeder Änderung komplett neu (kein
-  Perf-Problem bei aktueller Datengröße).
-- `rpeFeelCoverage()`/`logRpeFeelCoverage()` (`scripts/lib/map-activity.js`)
-  dupliziert das deklarative `WELLNESS_FIELDS`-Muster aus
-  `scripts/lib/wellness.js` statt es zu generalisieren.
 - **"Multiple GoTrueClient instances"-Konsolenwarnung** — harmlos (s.
   Kommentar in `data-access/supabase/client.js`), aber Hinweis auf echten
   Mehraufwand (jeder authentifizierte Request baut einen neuen Client statt
@@ -299,6 +285,16 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
   würde ein Dispatch auf `dashboard-2.0` den Dev-Stand live auf Pages
   deployen), „Commit data if changed" nutzt `$GITHUB_REF_NAME` statt
   hartkodiertem `origin/main`. Commit folgt.
+- **`requestId`/`openToken`-Race-Guard extrahiert** — war nicht 4×, sondern
+  9× dupliziert (zusätzlich state/plan-cards.js, state/proposals.js,
+  state/trainer-view.js, ui/import-dialog.js, ui/plan-card-dialog.js). Neue
+  `core/request-guard.js::createRequestGuard()`, alle Race-Tests weiterhin
+  grün, Playwright-verifiziert (Commit `5af4fcb`).
+- **Glass-Input-Style aus 3 Dateien extrahiert** — `.glass-input/-select/
+  -textarea` teilen sich dieselbe Regel wie `.planned-card-dialog-*`
+  (Commit `ae59f52`).
+- **`addDaysISO()`-Nachzug** in `core/pmc.js::tsbTrend`/`core/adherence.js`/
+  `core/consistency.js` — eigene `isoLocal()`-Kopien entfernt (Commit `a1c3c07`).
 - **Dedup-Erkennung für doppelten Claude-Import** —
   `isDuplicateOpenProposal()` vergleicht op/target_card_id/payload
   strukturell (ordnungsunabhängig) gegen bereits offene Claude-Vorschläge,
@@ -357,6 +353,14 @@ werden. `renderPlanCompareHRV`/`RHF` heißen jetzt `renderHrvTrend`/
   (per Playwright am 25.07.2026 entdeckt) → jetzt derselbe
   `weekLabelForDate()`-Aufruf wie in `movePlanCard()`. Regressionstest in
   `tests/plan-cards-move.test.js`.
+- **`ui/event-timeline.js`: Inline-Styles + dupliziertes `upcoming`-Filter** —
+  `.event-badge`/`.event-timeline-*`-Klassen in `components.css`,
+  `isUpcomingEvent()` jetzt geteilt mit `nextRaceEvent()` in
+  `state/events.js` (Commit `0e2fe34`).
+- **`rpeFeelCoverage()` duplizierte das `WELLNESS_FIELDS`-Zählmuster** —
+  geteilte `countFieldCoverage()` in neuem `scripts/lib/coverage.js`,
+  Logging-Ton je Aufrufstelle bewusst unterschiedlich belassen
+  (Commit `463b0f3`).
 - **Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)**: Athlet 1 lief bisher auf
   einer plan-gebundenen Wochenstruktur (P2-W0…P2-W12), Athlet 2 bereits auf
   ISO-Kalenderwochen — Migrations-Artefakt aus dem Notion→intervals.icu-
