@@ -853,14 +853,28 @@
 }
 .event-timeline-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
+  flex-direction: column;
+  gap: 2px;
   padding: 8px 4px;
   border-radius: 8px;
   cursor: default;
 }
 .event-timeline-row--editable { cursor: pointer; }
 .event-timeline-row--editable:hover { background: rgba(255, 255, 255, 0.04); }
+.event-timeline-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.event-timeline-note {
+  font-family: var(--font-body);
+  font-size: 0.7rem;
+  color: var(--dim2);
+  padding-left: 62px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .event-timeline-date {
   font-family: var(--font-mono);
   font-size: 0.7rem;

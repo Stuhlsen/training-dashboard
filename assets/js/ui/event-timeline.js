@@ -1,7 +1,6 @@
 import {
   getState,
   loadEvents,
-  raceCountdown,
   onEventsChange,
   removeEvent,
   isUpcomingEvent,
@@ -46,26 +45,27 @@ export function countdownCard(countdown) {
     </div>`;
 }
 
-/** `countdown` optional: nur das nächste anstehende Rennen/Tour-Event trägt
- *  einen zusätzlichen "Noch X Tage"-Badge (dieselbe Information, die im Hero
- *  als eigene Pille läuft — hier nur als Badge statt als Sonderzeile, damit
- *  die Zeile selbst identisch zu jeder anderen bleibt). */
-function eventRow(event, canEdit, countdown) {
+/** Alle Events identisch (Folgefund 01.08.2026): kein Event bekommt eine
+ *  zusätzliche Sonder-Badge oder -Zeile mehr, auch nicht das zeitlich
+ *  nächste — Badges hängen ausschließlich an event.type/event.priority,
+ *  für jedes Event nach denselben Regeln. event.note (freier Text, z. B.
+ *  Streckenlänge oder Formziel) läuft als eigene, gedämpfte Zeile unter der
+ *  Hauptzeile — bislang erfasst, aber nirgends angezeigt. */
+function eventRow(event, canEdit) {
   const typeColor = event.type === "race" ? "var(--ss)" : "var(--dim)";
-  const badges = [];
-  if (countdown && event.id === countdown.event.id) {
-    badges.push(badge(countdown.label, "var(--ss)"));
-  }
-  badges.push(badge(TYPE_LABEL[event.type] ?? event.type, typeColor));
+  const badges = [badge(TYPE_LABEL[event.type] ?? event.type, typeColor)];
   if (event.type === "race" && event.priority) {
     badges.push(badge(PRIORITY_LABEL[event.priority] ?? event.priority, "var(--accent)"));
   }
   return `
     <div class="event-timeline-row${canEdit ? " event-timeline-row--editable" : ""}" data-id="${event.id}">
-      <span class="event-timeline-date">${fmtDate(event.eventDate)}</span>
-      <span class="event-timeline-title">${escapeHtml(event.title)}</span>
-      <span class="event-timeline-badges">${badges.join("")}</span>
-      ${canEdit ? `<button type="button" class="event-timeline-remove" data-id="${event.id}" title="Event löschen">×</button>` : ""}
+      <div class="event-timeline-main">
+        <span class="event-timeline-date">${fmtDate(event.eventDate)}</span>
+        <span class="event-timeline-title">${escapeHtml(event.title)}</span>
+        <span class="event-timeline-badges">${badges.join("")}</span>
+        ${canEdit ? `<button type="button" class="event-timeline-remove" data-id="${event.id}" title="Event löschen">×</button>` : ""}
+      </div>
+      ${event.note ? `<div class="event-timeline-note">${escapeHtml(event.note)}</div>` : ""}
     </div>`;
 }
 
@@ -134,10 +134,9 @@ export const EventTimeline = {
     }
 
     const todayIso = localISODate();
-    const countdown = raceCountdown(todayIso);
-    // Volle Einheitlichkeit (Folgefund 01.08.2026): das nächste Event steht
-    // wie jedes andere in der Liste, nur mit einem zusätzlichen "Noch X
-    // Tage"-Badge (s. eventRow()) statt einer separaten Sonderzeile.
+    // Volle Einheitlichkeit (Folgefund 01.08.2026): kein Event bekommt hier
+    // eine Sonderbehandlung mehr, auch das zeitlich nächste nicht — der
+    // Countdown lebt ausschließlich im Hero (countdownCard(), s. dort).
     const upcoming = events.filter((e) => isUpcomingEvent(e, todayIso));
 
     wrap.innerHTML = `
@@ -146,7 +145,7 @@ export const EventTimeline = {
         <div id="event-timeline-list">
           ${
             upcoming.length
-              ? upcoming.map((e) => eventRow(e, canEdit, countdown)).join("")
+              ? upcoming.map((e) => eventRow(e, canEdit)).join("")
               : `<div class="panel-empty">Keine anstehenden Events.</div>`
           }
         </div>
