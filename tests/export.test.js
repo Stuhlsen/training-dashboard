@@ -81,7 +81,16 @@ test("buildClaudeExport: FTP-Dreiklang aus CONFIG.athleteConfig, nicht Data.ftpV
 test("buildClaudeExport: 'athlete' im JSON-Anhang ist die Session-UUID, nicht die interne Kennung", async () => {
   await loadPlanCards("athlete1");
   const result = await buildClaudeExport("athlete1");
-  const jsonBlock = result.text.match(/```json\n([\s\S]*?)\n```/)[1];
+  // Nicht /```json\n([\s\S]*?)\n```/ ohne Anker: PROMPT_RUMPF enthält seit
+  // "Vier vollständige Beispiele" (Commit 78db5eb) vier EINGERÜCKTE
+  // ```json-Blöcke vor dem echten JSON-Anhang; deren Schlussmarkierung
+  // "\n  ```" matcht \n``` nie (Einrückung), wohl aber die öffnende
+  // Markierung "\n```json" des unveränderten Anhangs — das nicht-gierige
+  // [\s\S]*? läuft dadurch bis dorthin durch und reißt Beispiele + halbes
+  // Briefing mit rein (SyntaxError beim Parsen). ^-Anker (mit /m) verlangt
+  // Öffnen UND Schließen am Zeilenanfang — nur der echte, uneingerückte
+  // Anhang (core/export-briefing.js::buildBriefingMarkdown) erfüllt das.
+  const jsonBlock = result.text.match(/^```json\n([\s\S]*?)\n^```/m)[1];
   const parsed = JSON.parse(jsonBlock);
   assert.equal(parsed.athlete, "athlete-1-uuid");
 });
