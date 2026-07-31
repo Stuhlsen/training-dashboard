@@ -18,7 +18,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
 
       # Keine Dependencies nötig — node:test ist eingebaut. npm test statt
       # rohem "node --test", damit das --experimental-test-module-mocks-Flag

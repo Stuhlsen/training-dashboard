@@ -7,21 +7,28 @@ Live: stuhlsen.github.io/training-dashboard
 ## Stack
 
 Vanilla HTML/CSS/JS als **native ES-Module** · SVG-Charts (kein Framework, kein Build-Step, kein Bundler)
-Node.js ≥ 22.3 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
+Node.js ≥ 24 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
 `package.json` existiert primär für `"type": "module"` und die npm-Scripts — Dashboard
 und Datensync brauchen kein `npm install`. Einzige Ausnahme: `fallow` als `devDependency`
 (nur für den lokalen/CI-Codebase-Qualitätscheck, siehe Abschnitt „Codebase-Qualität").
 Tests laufen mit dem eingebauten `node:test`.
 
-**Warum 22.3 und nicht 20:** `npm test` läuft als
+**Warum ≥ 24 und nicht nur ≥ 22.3:** `npm test` läuft als
 `node --test --experimental-test-module-mocks`. Das Flag (und `mock.module()`)
-gibt es erst ab Node 22.3 — auf Node 20 bricht `node` bei der unbekannten Option
-ab, es liefe **kein einziger** Test. Alle Workflows (`ci.yml`, `sync-data.yml`)
-pinnen ohnehin schon Node 22. Gebraucht wird das Mocking von
-`tests/plan-cards-move.test.js`: die `state/`-Schicht ist sonst nicht testbar,
-weil `data-access/supabase/client.js` per URL von esm.sh lädt und Node das im
+gibt es zwar bereits ab Node 22.3, aber alle `mock.module()`-Aufrufe im Repo
+nutzen die vereinheitlichte `{ exports: {...} }`-Kurzform (statt der älteren
+`namedExports`/`defaultExport`-Optionen) — die ist in Node 22.23.1 noch nicht
+verlässlich unterstützt: `ci.yml` scheiterte damit am 31.07.2026 beim Merge
+nach `main` reproduzierbar an acht Testdateien
+(`SyntaxError: The requested module … does not provide an export named …`),
+obwohl dieselben Tests lokal unter Node 24.18.0 anstandslos grün liefen.
+`ci.yml` pinnt seitdem `node-version: 24`. Gebraucht wird das Mocking u. a. von
+`tests/plan-cards-move.test.js`/`tests/wellbeing.test.js`: die `state/`- und
+`data-access/`-Schicht ist sonst nicht direkt testbar, weil
+`data-access/supabase/client.js` per URL von esm.sh lädt und Node das im
 Import-Graph nicht auflösen kann. Wenn das Flag stört, ist der Preis der
-Verlust der `state/`-Tests — nicht nur dieser einen Datei.
+Verlust dieser Tests — nicht nur einer einzelnen Datei. `sync-data.yml` läuft
+weiter auf Node 22 (kein Testlauf dort, `mock.module()` wird nicht gebraucht).
 
 ## Befehle
 
