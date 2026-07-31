@@ -10913,9 +10913,9 @@
       "wetter": "33.5°C",
       "source": "intervals.icu",
       "ruhepuls": 48,
-      "hrv": null,
-      "avgSleepingHR": null,
-      "sleepHours": 7.2,
+      "hrv": 54,
+      "avgSleepingHR": 50,
+      "sleepHours": 7.1,
       "feel": null,
       "notizen": null
     }
@@ -14064,7 +14064,7 @@
       "hrv": 61,
       "weight": 93.1,
       "bodyFat": null,
-      "activeEnergy": 799,
+      "activeEnergy": 810,
       "restingEnergy": null,
       "kcalConsumed": 2980,
       "hydration": null,
@@ -14073,23 +14073,38 @@
     },
     {
       "date": "2026-07-30",
-      "sleepHours": 7.2,
-      "avgSleepingHR": null,
+      "sleepHours": 7.1,
+      "avgSleepingHR": 50,
       "restingHR": 48,
+      "hrv": 54,
+      "weight": 92.8,
+      "bodyFat": null,
+      "activeEnergy": 771,
+      "restingEnergy": null,
+      "kcalConsumed": 4904,
+      "hydration": null,
+      "hydrationVolume": 0.59,
+      "eftp": 258
+    },
+    {
+      "date": "2026-07-31",
+      "sleepHours": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
       "hrv": null,
-      "weight": 92,
+      "weight": null,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
-      "eftp": 258
+      "eftp": 257
     }
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-07-29",
+      "hrv": "2026-07-30",
       "restingHR": "2026-07-30",
       "sleepHours": "2026-07-30"
     }
@@ -14100,12 +14115,12 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-07-30T00:00:00",
-        "end_date_local": "2026-07-30T23:59:59",
+        "start_date_local": "2025-07-31T00:00:00",
+        "end_date_local": "2026-07-31T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92,
+        "weight": 92.8,
         "secs": [
           1,
           2,
@@ -16035,7 +16050,7 @@
       }
     }
   },
-  "athleteWeight": 92,
+  "athleteWeight": 92.8,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -16853,7 +16868,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-30T19:10:58.310Z",
+  "updated": "2026-07-31T01:56:26.238Z",
   "source": "intervals.icu",
   "count": 136
 }
