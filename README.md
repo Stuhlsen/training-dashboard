@@ -1,10 +1,8 @@
 # 🚴 Radsport Trainingsdashboard
 
-Persönliches Radsport-Trainingsdashboard — statisch, kostenfrei, vollautomatisch. Leistungs-, HRV-, Schlaf- und Wellness-Daten aus intervals.icu und Apple Health werden per GitHub Action alle 6 Stunden synchronisiert und als statisches JSON ausgeliefert. Kein Backend, kein Framework, keine laufenden Kosten.
+Persönliches Radsport-Trainingsdashboard mit zwei Datenpfaden: **Lesedaten** (Leistungs-, HRV-, Schlaf- und Wellness-Werte aus intervals.icu und Apple Health) werden per GitHub Action alle 6 Stunden synchronisiert und als statisches JSON ausgeliefert — kein Server, keine laufenden Kosten. **Schreibdaten** (Login, Ziele, Events, tägliches Befinden, Trainingskarten, Trainer-Vorschläge) laufen über Supabase (Free Tier, Row Level Security) und machen aus dem ursprünglich rein statischen Dashboard eine interaktive Mehrbenutzer-App mit Athlet-, Trainer- und Besucher-Rolle.
 
-**Zeitraum:** März 2026 – laufend  
-**Plan 1:** Basisaufbau — 12 Wochen, ~1.956 km, CTL 1→59, FTP 166→193 W (März–Juni 2026)  
-**Plan 2:** FTP & Fitness — 12 Wochen, pyramidale Periodisierung, Ziel ≥210 W (Juni–September 2026)
+**Trainingshistorie:** März 2026 – laufend, FTP 166 W → 193 W (Basisaufbau, März–Juni) → laufendes Ziel ≥ 210 W (pyramidale Periodisierung, Retest 19.09.2026). Die frühen Wochen liefen über Notion (manuell erfasst), seit Sommer 2026 automatisch über intervals.icu — beide Ären laufen heute einheitlich auf ISO-Kalenderwochen statt der ursprünglichen Plan-1/Plan-2-Aufteilung.
 
 🔗 **Live:** [stuhlsen.github.io/training-dashboard](https://stuhlsen.github.io/training-dashboard)  
 📁 **QA-Portfolio:** [github.com/Stuhlsen/Portfolio](https://github.com/Stuhlsen/Portfolio)
@@ -14,59 +12,64 @@ Persönliches Radsport-Trainingsdashboard — statisch, kostenfrei, vollautomati
 ## Architektur
 
 ```
-Notion DB (Plan 1) ──────────────────────────────────────────────────┐
-                                                                      │
-intervals.icu API ──→ Ride-Metriken (Power, HR, TSS, Zone-Times, eFTP)│
-                  ──→ Wellness (RHF, HRV, Schlaf, Gewicht, Ernährung)├──→ generate-data.js
-                  ──→ Power Curves (gesamt + je Trainingsblock)      │         │
-                  ──→ Vergleichsathlet (Athlete 2, read-only)     │         ▼
-                                                                      │   data/rides.json
-Open-Meteo API ────→ Historisches Wetter (Archive API)               │   data/rides-2.json
-               ────→ Aktuelles Wetter (Forecast API, letzte 3 Tage) ─┘         │
-               ────→ Planungs-Forecast (16 Tage, serverseitig)                 │
-                                                                                │
-data/subjective.json ──→ Befinden Plan 2 (via Dashboard, GitHub API)           │
-data/adjustments.json ──→ Session-Anpassungen Athlete 1 (Verschiebung, Ausfall)│
-data/adjustments-2.json → Session-Anpassungen Athlete 2 (GFNY Bremen 2026)     │
-                                                                                │
-GitHub Action (alle 6h) ────────────────────────────────────────────────────────┘
-        │
-        └──→ GitHub Pages Deploy (automatisch nach jedem Sync)
+LESEDATEN (alle 6h, GitHub Action)              SCHREIBDATEN (sofort, Supabase)
+──────────────────────────────────              ───────────────────────────────
+Notion DB (Notion-Ära, historisch) ──┐           Login/Session ──→ profiles
+intervals.icu API ────────────────────┼──→        Ziele ──────────→ goals
+  Ride-Metriken, Wellness, Power       │          Events ─────────→ events
+  Curves, Zone-Times, eFTP             │          Morgen-Check-in ─→ wellbeing
+Open-Meteo API ────────────────────────┼──→        Trainingskarten ─→ plan_cards
+  Historisch + Forecast (serverseitig) │          Trainer-Vorschläge → proposals
+                                        │          FTP-Historie ─────→ ftp_history
+                                        ▼          Trainer-Ansicht ──→ trainer_view_prefs
+                                 generate-data.js  Export-Vorgabe ───→ export_prefs
+                                        │                    │
+                                        ▼                    ▼
+                          data/rides.json,          Supabase-Projekt nach Hostname:
+                          rides-2.json               localhost → dev, stuhlsen.github.io → prod
+                                        │                    │
+                                        └────────┬───────────┘
+                                                  ▼
+                                        Dashboard (assets/js/, ES-Module)
+                                                  │
+                                                  ▼
+                                  GitHub Pages Deploy (nach jedem Sync)
 ```
 
-**Tech-Stack:** Vanilla HTML/CSS/JS als native ES-Module · SVG-Charts (kein Framework, kein Build-Step) · Node.js · GitHub Actions (Daten-Sync alle 6 h + CI mit `node:test`-Suite, ESLint und Fallow-Codebase-Qualitätsreport)
+`data/subjective.json` bleibt daneben bestehen für das per-Fahrt-Befinden-Dropdown im Fahrtenbuch (GitHub-API-Write, unabhängig vom täglichen Supabase-Check-in). `data/adjustments.json`/`adjustments-2.json` sind seit der Migration nach `plan_cards` nur noch read-only Archiv der alten Planungsdaten.
 
-**Code-Architektur (Frontend):** strikte Schichtentrennung `core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Belastungsempfehlung, Intensitätsverteilung, EF- und HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierungs-Erfüllung, Konsistenz & Adhärenz, Bestwerte) → `state/` (Konfiguration + Daten-Store) → `ui/` (DOM, SVG-Rendering, Panels). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
+**Tech-Stack:** Vanilla HTML/CSS/JS als native ES-Module · SVG-Charts (kein Framework, kein Build-Step, kein Bundler) · Node.js ≥ 24 lokal (für `npm test`; die Sync-Action läuft weiter auf Node 22, der CI-Testlauf auf Node 24) · GitHub Actions (Daten-Sync alle 6 h + CI mit `node:test`-Suite, ESLint und Fallow-Codebase-Qualitätsreport) · Supabase (Free Tier, Postgres + Auth + RLS, Client per `esm.sh`-CDN-Import, kein npm-Paket)
+
+**Code-Architektur:** strikte Schichtentrennung `core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Belastungsempfehlung, Intensitätsverteilung, EF-/HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierung, Konsistenz & Adhärenz, Bestwerte, Plan-Konflikte/-Prognose, Vorschlags-Validierung) → `data-access/` (I/O-Grenze: JSON-Pipeline + Supabase-Adapter, einzige Schicht mit `await`) → `state/` (Konfiguration, Session, Daten-Store, Orchestrierung) → `ui/` (DOM, SVG-Rendering, Panels, Dialoge). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
 
 ---
 
 ## Features
 
-### Athleten-Toggle
-Das Dashboard unterstützt zwei Athleten (UI-Anzeigenamen sind selbstgewählte Pseudonyme, siehe `state/config.js`): **Athlete 1** ("Stuhlsen", eigener Trainingsplan Plan 1+2) und **Athlete 2** ("hc_diZee", Vergleichsdaten — weiterhin read-only, aber seit GFNY Bremen 2026 mit eigenem Planungstab). Der Toggle oben rechts im Header wechselt die Ansicht — alle Charts, Texte und Erklärtexte passen sich automatisch an den aktiven Athleten an. Die Auswahl bleibt persistent über Reload (localStorage), sodass jeder beim Reload wieder bei seinem eigenen Datensatz landet.
+### Login, Rollen & Athleten-Toggle
 
-Unterschiede bei Athlete 2 (Vergleichsdaten):
-- Kein Befinden-Dropdown, kein Workout-Push
-- Typ-Inferenz über IF-Berechnung (NP ÷ FTP) + Fahrtdauer als Kriterium
-- Eigener Planungs-Tab (GFNY Bremen 2026) — read-only: Sessions können nicht verschoben oder als ausgefallen markiert werden
+Drei Rollen: **Athlet** (eigener Login, schreibt eigene Ziele/Events/Befinden/Trainingskarten), **Trainer** (eigener Login, sieht „seinen" Athleten vollständig, kann direkt ändern oder als Vorschlag markieren — jeder Athlet hat genau einen Trainer) und **Besucher** (kein Login, liest öffentliche Daten). Login läuft über ein Modal mit E-Mail + Passwort (kein Router, kein OAuth). Der Athleten-Toggle oben rechts im Header bleibt **auch eingeloggt frei wählbar** (Portfolio-Charakter) und wechselt Charts, Texte und Erklärtexte auf den jeweils aktiven Athleten — unabhängig davon, wer eingeloggt ist. Die Auswahl bleibt persistent über Reload (`localStorage`).
+
+Athlete 2 ("hc_diZee", Vergleichsdaten) bleibt read-only im Planungstab: kein Anlegen/Verschieben/Ausfallen von Karten, kein Workout-Push, keine Befinden-Spalte im Fahrtenbuch. Typ-Inferenz läuft dort weiter über IF-Berechnung (NP ÷ FTP) + Fahrtdauer statt über Planzuordnung.
 
 ### Tab: Übersicht
-- Hero mit **FTP-Zonen-Band** (Watt-Skala mit Pins für FTP, eFTP und Saisonziel), **FTP-Fortschrittsring** und **Session-Pill** (nächste geplante Einheit, berücksichtigt Verschiebungen/Ausfälle)
-- **Tagesform-Ampel**: HRV (SDNN), Ruhepuls und Schlaf der letzten 7 Tage gegen eine rollierende 42-Tage-Baseline — mit konkreter Trainingsempfehlung (wie geplant / Intensität reduzieren / Erholung). Grundlage: HRV-gesteuertes Training (u. a. Javaloyes 2019)
+- Hero mit **FTP-Zonen-Band** (Watt-Skala mit Pins für FTP, eFTP und Saisonziel), **FTP-Fortschrittsring** und **Session-Pill** (nächste geplante Einheit, berücksichtigt Verschiebungen/Ausfälle, zeigt Renn-Countdown bei anstehenden Events)
+- **Tagesform-Ampel**: HRV (SDNN), Ruhepuls und Schlaf der letzten 7 Tage gegen eine rollierende 42-Tage-Baseline — mit konkreter Trainingsempfehlung (wie geplant / Intensität reduzieren / Erholung), seit Phase 2 zusätzlich durch das tägliche Morgen-Check-in-Befinden geschärft. Grundlage: HRV-gesteuertes Training (u. a. Javaloyes 2019)
 - **Wochenrückblick**: die letzte abgeschlossene Woche als Karte — Umfang, stärkste Einheit, Wetter-Highlight, Plan-Erfüllung
 - KPIs: Gesamtdistanz (nur getrackte Fahrten), FTP, Fahrtenanzahl, Trainingszeit
 - **Konsistenz-Jahreskalender** (GitHub-Stil): jeder Trainingstag als Zelle, gefärbt nach Tageslast; die Zeilenzähler übernehmen die Wochentagsverteilung
 - **Bestwerte-Wand**: automatisch erkannte persönliche Bestleistungen (längste Fahrt/Fahrzeit, beste NP ≥ 20 min, schnellste 40 km+, meiste Höhenmeter, größte Woche) — jeweils mit Ablöse-Historie
+- **Event-Timeline**: anstehende Rennen/Touren mit Datum, Priorität und Countdown (Athlet legt Events selbst über das Einstellungsmenü an)
 
 ### Tab: Charts
 
-Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlängern den Chart automatisch nach rechts. Drei Charts haben einen **Wochen/Monats-Toggle** (oben rechts im Chart-Header) der die Aggregationsebene umschaltet — die Auswahl ist persistent pro Athlet.
+Alle Linien- und Zeit-Charts sind horizontal scrollbar bzw. per **Zeitraum-Brush** (Presets 30/90/365 Tage, Plan 2, Alles) einschränkbar; ein Hover auf einem Chart zeigt ein verknüpftes Fadenkreuz über PMC/Power/Training/Wellness-Charts hinweg und hebt die passende Fahrtenbuch-Zeile hervor. Drei Charts haben zusätzlich einen **Wochen/Monats-Toggle** — persistent pro Athlet.
 
 | Block | Charts |
 |---|---|
-| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, scrollbar), Wöchentliches/Monatliches Volumen (Toggle, phasengefärbt, 200km-Zielzone beim eigenen Plan), **Belastungswächter** (TRIMP-Balken + CTL-Ramp-Linie mit Sicherheitskorridor + Foster-Monotonie-Marker), **Intensitätsverteilung** (Zeit in Zonen pro Woche, 80%-Grundlagen-Richtwert) |
-| ⚡ Leistung | Power Curve (anaerobe Reserve, FTP-Linie, W/kg-Toggle, **Blockvergleich**: Kurven je Trainingsblock übereinander), **FTP-Projektion** (eFTP-Verlauf mit Prognose-Fächer auf den W12-Retest), Aerobe Effizienz mit **EF-Trend** über vergleichbare Z2-Fahrten, Tempo vs. HF Scatter, **Kadenz-Coach** (Statistik-Chips + Verlauf), Tempo / HF Entwicklung (scrollbar, IQR-gefiltert) |
-| ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV (Plan-Compare oder Wellness-Verlauf), Ruhepuls (Plan-Compare oder Wellness-Verlauf), Schlaf (Dauer + Schlaf-HF, täglich, 7h-Ziel beim eigenen Plan) |
+| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, Brush, **What-if-Szenarien**: Wochen-TSS ±%, N Ruhetage, Rampenrate als gestrichelte Vergleichskurve, **Vergleichsmodus**: zwei Zeiträume desselben Athleten relativ übereinandergelegt), Wöchentliches/Monatliches Volumen (Toggle, phasengefärbt, 200km-Zielzone beim eigenen Plan), **Belastungswächter** (TRIMP-Balken + CTL-Ramp-Linie mit Sicherheitskorridor + Foster-Monotonie-Marker), **Intensitätsverteilung** (Zeit in Zonen pro Woche, 80%-Grundlagen-Richtwert) |
+| ⚡ Leistung | Power Curve (anaerobe Reserve, FTP-Linie, W/kg-Toggle, **Blockvergleich**: Kurven je Trainingsblock übereinander), **FTP-Projektion** (eFTP-Verlauf mit Prognose-Fächer auf den Retest-Termin), Aerobe Effizienz mit **EF-Trend** über vergleichbare Z2-Fahrten, Tempo vs. HF Scatter, **Kadenz-Coach** (Statistik-Chips + Verlauf), Tempo / HF Entwicklung (IQR-gefiltert) |
+| ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV, Ruhepuls (durchgehende Kalenderwochen-Linie, Methodenwechsel Apple-Health-RMSSD → intervals.icu-SDNN nur noch als Marker + getrennte Mittelwerte, kein Plan-Divider mehr), Schlaf (Dauer + Schlaf-HF, täglich, 7h-Ziel beim eigenen Plan) |
 | 🌤️ Wetterbedingungen | Temperatur & Wind pro Woche/Monat (Toggle, Balken + Windlinie, Ampel-Farbcodierung) |
 
 **Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus intervals.icu. Roter Bereich über FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt gewichtsnormierte Leistung.
@@ -77,62 +80,91 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar — neue Daten verlänger
 
 **EF-Trend:** Watt pro Herzschlag über ausschließlich vergleichbare Fahrten (Z2, ≥ 60 min, 5–30 °C) mit gleitendem Mittel — der sauberste Feldtest-Nachweis aerober Anpassung zwischen zwei FTP-Tests. Intervall- und Hitzetage bleiben als grauer Kontext sichtbar.
 
-**FTP-Projektion:** lineare Fortschreibung der eFTP-Historie (letzte 8 Wochen) auf den Retest-Termin, mit Unsicherheitsband aus den Residuen statt Punktversprechen — zeigt vor dem Taper, ob das 210-W-Ziel in Reichweite ist.
+**FTP-Projektion:** lineare Fortschreibung der eFTP-Historie (letzte 8 Wochen) auf den Retest-Termin, mit Unsicherheitsband aus den Residuen statt Punktversprechen.
 
-**HRV & Ruhepuls:** Beim eigenen Plan: Plan-Compare mit Segment-Trennung (Plan 1 / W0 / Plan 2) und getrennten Trendlinien — weil Plan 1 Apple Health RMSSD und Plan 2 intervals.icu SDNN nutzt (unterschiedliche Messmethoden). Bei Vergleichsathleten: durchgehender Verlauf direkt aus Wellness-Daten (alle Tage, nicht nur Fahrtdaten).
+**What-if-Szenarien & Vergleichsmodus:** rein clientseitige Prognose-Spielerei im PMC-Chart, nichts wird gespeichert außer den zuletzt gewählten Reglerwerten. Szenarien bauen auf derselben Prognoselogik wie der Planungstab (`core/projection.js`) auf; der Vergleichsmodus richtet zwei Zeitfenster relativ aneinander aus (Tag 1 = Blockstart) und zeigt Σ TSS, Ø CTL, Rampe und harte Tage nebeneinander.
 
-**Wochen/Monats-Toggle:** Volumen, TRIMP und Wetter können zwischen Wochen- und Monatsaggregation umgeschaltet werden. Toggle-Status ist persistent pro Athlet.
-
-**Wetter:** Alle Standortdaten (Koordinaten) liegen ausschließlich als GitHub Secrets — niemals im Code, nie in der JSON, nie im Frontend-JavaScript. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig in der GitHub Action berechnet. Pro Fahrt wird das Wetter für den exakten Fahrt-Zeitraum ermittelt. Beide Athleten nutzen getrennte Standort-Secrets.
+**Wetter:** Alle Standortdaten (Koordinaten) liegen ausschließlich als GitHub Secrets — niemals im Code, nie in der JSON, nie im Frontend-JavaScript. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig in der GitHub Action berechnet. Beide Athleten nutzen getrennte Standort-Secrets.
 
 ### Tab: Fahrtenbuch
-Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Befinden-Dropdown nur bei eigenen Plan-2-Fahrten. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip. Bei Vergleichsdaten: keine Befinden-Spalte, keine Befinden-Legende.
+Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Ein Klick auf eine Zeile pinnt die Auswahl im PMC-Chart-Fadenkreuz. Befinden-Dropdown (per Fahrt, „wie schwer fühlte sich das an") nur bei eigenen Fahrten des eingeloggten Athleten — getrennt vom täglichen Morgen-Check-in. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip.
 
-### Tab: Planung
-Alle geplanten Trainingseinheiten des jeweiligen Athleten. Sessions werden automatisch als „erledigt" markiert sobald eine passende intervals.icu-Fahrt gefunden wird — mit Soll-Ist-Vergleich (Distanz, Watt, HF, Kadenz, Dauer, TRIMP/CTL, Wetter, Befinden). Wetter-Forecast serverseitig (kein Standort im Frontend). Bidirektionale Verlinkung mit dem Fahrtenbuch.
+### Morgen-Check-in, Ziele & Events
 
-- **Athlete 1** (eigener Plan, bis W12): voll editierbar — Sessions verschieben oder als ausgefallen markieren, strukturierte Workouts per Knopfdruck zu intervals.icu pushen.
-- **Athlete 2** (GFNY Bremen 2026, bis KW35/Renntag): read-only — keine Verschiebung/Ausfall-Markierung, kein Workout-Push. Eigene Anpassungsdatei `data/adjustments-2.json`, damit sich Datums-Kollisionen mit Athlete 1s Plan nicht überschneiden.
+- **Morgen-Check-in**: tägliches Dialog mit 3–4 Reglern (Schlaf, Energie, Muskelgefühl, Stimmung) + optionaler Notiz, liefert auch an Ruhetagen einen Datenpunkt. Fließt in die Belastungsempfehlung ein (ein rotes Erholungssignal aus dem Check-in kann einen grünen TSB überstimmen) und ist per `wellbeing_public`-Schalter im Profil optional für den Trainer sichtbar (die Notiz bleibt immer privat, nur der Slider-Wert kann geteilt werden).
+- **Ziele**: frei definierbare, aktive Ziele im Einstellungsmenü, athletenbezogen.
+- **FTP-Historie**: eigene Einträge zusätzlich zur automatisch aus intervals.icu gezogenen eFTP-Kurve, für den FTP-Dreiklang im Analyse-Tab.
+- **Events**: Rennen/Touren mit Datum und Priorität, verknüpft mit der Session-Karte (Countdown) und der FTP-Zielplanung.
+
+### Tab: Planung — interaktiver Wochenplaner
+
+Trainingskarten leben in Supabase (`plan_cards`), nicht mehr in JSON. Sessions werden automatisch als „erledigt" markiert, sobald eine passende intervals.icu-Fahrt gefunden wird — mit Soll-Ist-Vergleich (Distanz, Watt, HF, Kadenz, Dauer, TRIMP/CTL, Wetter, Befinden). Bidirektionale Verlinkung mit dem Fahrtenbuch.
+
+- **Karten-CRUD**: Anlegen/Bearbeiten/Löschen inkl. wiederholbarer Workout-Blöcke über einen Dialog.
+- **Drag & Drop** ohne Framework (reine Pointer Events): Karte auf einen anderen Tag ziehen, mit Kanten-Autoscroll; Verschieben in die Vergangenheit wird abgewiesen.
+- **Prognose & Konflikterkennung**: jede Verschiebung/Änderung rechnet die PMC-Fortschreibung neu und prüft ein festes Regelset (TSB-Einbruch, harte Tage in Folge, Ramp-Rate, Event-Nähe, Terminüberlappung) — warnt, blockiert aber nicht. Nach jeder Aktion zeigt ein Delta-Banner die TSB-Änderung, Konflikt-Badges hängen direkt an der Karte.
+- **Workout-Push zu intervals.icu**: strukturierte Workouts per Knopfdruck pushen, per `external_id`-Upsert dedupliziert (erneutes Pushen derselben Karte überschreibt statt zu duplizieren) — nur für den eigenen Athleten.
+- **Athlete 2** (GFNY Bremen 2026, eigener Namensraum in `scripts/lib/plan-athlete2.js`) bleibt read-only, keine der obigen Schreibaktionen verfügbar.
+
+### Trainer-Dashboard & Claude-Trainer-Workflow
+
+Loggt sich ein Trainer ein, erscheint eine Trainer-Leiste über dem Dashboard „seines" Athleten (frei konfigurierbare Kennzahlen-Kacheln, Auswahl wird pro Trainer-Athlet-Paar in der Datenbank gemerkt). Der Trainer kann Karten direkt ändern/verschieben oder — beim Anlegen/Löschen zwingend — als **Vorschlag** einreichen. Der Athlet sieht offene Vorschläge als Banner, öffnet eine Vergleichsansicht (alte/neue Karte nebeneinander) und nimmt an oder lehnt ab; angenommene Vorschläge landen über denselben Pfad wie eine direkte Trainer-Änderung in `plan_cards`.
+
+**Claude als Trainer** läuft bewusst ohne API-Anbindung aus der App heraus: Export-Panel erzeugt ein Markdown-Briefing (Profil, Events, Plan, Ist-Fahrten, Befinden, Prognose) samt fester Prompt-Vorlage zum Kopieren in einen Claude-Pro-Chat; eine Richtungsvorgabe (Preset + Freitext + Zielevent) lässt sich dabei mitgeben und wird pro Profil gemerkt. Die Antwort (JSON-Vorschlagsblock) wird über den Import-Dialog eingefügt, validiert (Struktur + Semantik, sammelt alle Fehler statt beim ersten abzubrechen) und landet — mit Teilerfolg bei gemischt gültigen/ungültigen Einträgen — als offene Vorschläge im selben Review-Flow wie menschliche Trainer-Vorschläge.
 
 ### Tab: Analyse
-Acht aufeinander aufbauende Sektionen in Trainer-Fragereihenfolge — für **beide Athleten** verfügbar; plan-spezifische Sektionen erscheinen nur beim eigenen Plan, die Körper-Sektion blendet sich datengetrieben ein.
+Acht aufeinander aufbauende Sektionen in Trainer-Fragereihenfolge — für **beide Athleten** verfügbar; alle Sektionen nutzen den vollen Datensatz (der frühere Plan-1/Plan-2-Filter-Toggle ist mit dem Umbau auf Kalenderwochen entfallen, ein generischer Zeitraum-Vergleich existiert stattdessen im PMC-Chart), die Körper-Sektion blendet sich datengetrieben ein.
 
-1. **Belastungsempfehlung** — fusioniert Tagesform (Readiness), Belastungsbilanz (TSB, auf "heute" fortgeschrieben statt am Stand der letzten Fahrt eingefroren) samt 3-Tage-Trend und Wochenlast-Risiko (Belastungswächter) zu einem Ampelstatus mit konkreter Empfehlung; ein rotes Erholungssignal schlägt dabei einen grünen TSB — außer TSB ist die einzige Alert-Quelle und Trend+HRV zeigen bereits aktive Erholung ("Erholung wirkt bereits"). Degradiert sauber, wenn die HRV-Baseline noch fehlt.
+1. **Belastungsempfehlung** — fusioniert Tagesform (Readiness, inkl. Morgen-Check-in), Belastungsbilanz (TSB, auf „heute" fortgeschrieben statt am Stand der letzten Fahrt eingefroren) samt 3-Tage-Trend und Wochenlast-Risiko (Belastungswächter) zu einem Ampelstatus mit konkreter Empfehlung; ein rotes Erholungssignal schlägt dabei einen grünen TSB — außer TSB ist die einzige Alert-Quelle und Trend+HRV zeigen bereits aktive Erholung ("Erholung wirkt bereits"). Degradiert sauber, wenn die HRV-Baseline noch fehlt.
 2. **Belastung & Erholung** — Wochentabelle mit CTL-Ramp, Foster-Monotonie/Strain und benannter Einordnung („Produktiver Aufbau", „Eintönig hart", „Entlastung" …).
 3. **Intensitätsverteilung** — Zeit in niedriger/mittlerer/hoher Intensität mit Formklassifikation (polarisiert / pyramidal / schwellenlastig) gegen den 80%-Richtwert. Ohne Zone-Times greift eine IF-Näherung (aus NP÷FTP), die bei zu geringer Leistungsdaten-Abdeckung ehrlich warnt statt ein Fehlurteil zu zeigen.
 4. **Aerobe Entwicklung** — Effizienzfaktor (W/HF), HF-Decoupling-Trend (<5 % = aerob stabil) und Kadenz-Ökonomie über vergleichbare Grundlagenfahrten.
-5. **Leistungsdiagnostik** — FTP-Dreiklang strikt getrennt: 🔬 gemessen (Ramp-Test) / 〜 geschätzt (eFTP) / 🎯 Ziel, je mit eigenem W/kg-Bezug; dazu Retest-Projektion (eigener Plan) bzw. Ziel-Horizont, Bestwerte-Digest und Plan-1-vs-Plan-2-Vergleich.
+5. **Leistungsdiagnostik** — FTP-Dreiklang strikt getrennt: 🔬 gemessen (Ramp-Test, eigene FTP-Historie-Einträge möglich) / 〜 geschätzt (eFTP) / 🎯 Ziel, je mit eigenem W/kg-Bezug; dazu Retest-Projektion (eigener Plan) bzw. Ziel-Horizont und Bestwerte-Digest.
 6. **Regeneration & Körper** — Gewichtstrend, W/kg-Kopplung, Energiebilanz-Näherung (kJ ≈ kcal) und Hydration; erscheint nur bei ausreichender Datendichte (≥ 5 Punkte / 30 Tage).
 7. **Konsistenz & Adhärenz** — Wochen-Streak, Frequenztrend (letzte 4 vs. 4 Vorwochen) und Plan-Adhärenzquote (nur eigener Plan).
-8. **Periodisierungs-Erfüllung** (nur eigener Plan) — ist jeder Plan-2-Block phasengerecht umgesetzt? Reizsignatur je Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.
-
-Der Plan-Toggle (Gesamt / Plan 1 / Plan 2) filtert die bestandsbezogenen Sektionen; zeitpunktbezogene Sektionen (Briefing, Belastung, Körper, Konsistenz, Periodisierung) nutzen immer den vollen Datensatz.
+8. **Periodisierungs-Erfüllung** (nur eigener Plan) — ist jeder Trainingsblock phasengerecht umgesetzt? Reizsignatur je Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.
 
 ---
 
 ## Datenquellen
 
-| Feld | Plan 1 | Plan 2 | Vergleich (Athlete 2) |
+### Lesedaten (JSON-Pipeline, alle 6h)
+
+| Feld | Notion-Ära (historisch) | intervals.icu-Ära (aktuell) | Vergleich (Athlete 2) |
 |---|---|---|---|
 | Ride-Metriken (Power, HR, TSS …) | Notion (manuell) | intervals.icu API | intervals.icu API |
 | Power Curve | — | intervals.icu `/power-curves` (gesamt + je Trainingsblock) | intervals.icu `/power-curves` |
 | Zone-Times (Zeit in Zonen) | — | intervals.icu (`icu_zone_times`) | intervals.icu (`icu_zone_times`) |
 | eFTP-Historie | — | intervals.icu (`icu_eftp` je Fahrt + Wellness `sportInfo`) | intervals.icu (Wellness `sportInfo`) |
 | CTL / ATL / TSB | Notion (manuell) | intervals.icu (automatisch) | intervals.icu (automatisch) |
-| FTP | 166→193W (historisch) | 193W (Ramp-Test, hardcodiert bis W12) | 265W (Ramp-Test, hardcodiert) |
 | Einheitstyp | Notion | Datum-Mapping → IF-Inferenz | IF-Inferenz (NP ÷ FTP) + Dauer |
 | Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health | intervals.icu + Apple Health |
 | Schlaf | — | intervals.icu (Apple Health Sync) | intervals.icu (Apple Health Sync) |
 | Körper & Regeneration (Gewicht, Kalorien, Hydration, Körperfett) | — | intervals.icu Wellness (Apple Health Sync) | intervals.icu Wellness |
-| Befinden | Notion (manuell) | Dashboard-Dropdown → `subjective.json` | — |
+| Nach-Fahrt-Befinden | Notion (manuell) | Dashboard-Dropdown → `subjective.json` bzw. RPE/Feel aus intervals.icu | — |
 | Wetter | Notion (manuell) | Open-Meteo (automatisch, Secrets) | Open-Meteo (automatisch, eigene Secrets) |
 | Wetter-Forecast | — | Open-Meteo Forecast, serverseitig | — |
-| Geplante Sessions | — | `PLANNED_SESSIONS` in `scripts/lib/plan2.js` | `PLANNED_SESSIONS_ATHLETE2` in `scripts/lib/plan-athlete2.js` (GFNY Bremen 2026) |
-| Plan-Anpassungen | — | `data/adjustments.json` | `data/adjustments-2.json` |
+| Geplante Sessions (Ursprung) | — | ursprünglich `PLANNED_SESSIONS` in `scripts/lib/plan2.js`, seit Phase 3 einmalig nach `plan_cards` migriert | `PLANNED_SESSIONS_ATHLETE2` in `scripts/lib/plan-athlete2.js` (GFNY Bremen 2026) |
 
-**Typ-Inferenz:** NP ÷ FTP = Intensity Factor (IF). Fahrten unter IF 0,75 werden zusätzlich nach Dauer klassifiziert — ≥120 min = Z2 Lang, ≥60 min = Z2 Dauer, <60 min = Z1 Recovery. Priorität: Notion/Planungsfeld > Datum-Mapping > IF-Inferenz.
+**Typ-Inferenz:** NP ÷ FTP = Intensity Factor (IF). Fahrten unter IF 0,75 werden zusätzlich nach Dauer klassifiziert — ≥120 min = Z2 Lang, ≥60 min = Z2 Dauer, <60 min = Z1 Recovery.
 
-**HRV-Diskrepanz:** Plan 1 = Apple Health RMSSD (~60–116 ms). Plan 2 = intervals.icu SDNN Schlaf-Durchschnitt (~40–50 ms). Nicht direkt vergleichbar — deshalb getrennte Darstellung mit Plan-Divider und separaten Trendlinien.
+**HRV-Methodenwechsel:** frühe Notion-Ära = Apple Health RMSSD (~60–116 ms), intervals.icu-Ära = SDNN Schlaf-Durchschnitt (~40–50 ms) — nicht direkt vergleichbar, deshalb im HRV/Ruhepuls-Chart als Marker + getrennte Mittelwerte sichtbar statt als eigener Plan-Divider.
+
+### Schreibdaten (Supabase, sofort)
+
+| Tabelle | Zweck | Wer schreibt |
+|---|---|---|
+| `profiles` | Rolle, Anzeigename, Trainer-Zuordnung, `wellbeing_public`-Schalter | Athlet/Trainer (eigenes Profil) |
+| `goals` | Freie Ziele | Athlet |
+| `events` | Rennen/Touren mit Datum, Priorität | Athlet |
+| `wellbeing` | Morgen-Check-in (Slider + Notiz) | Athlet |
+| `plan_cards` | Trainingskarten (ersetzt die alten `adjustments*.json`) | Athlet, Trainer (direkt oder als Vorschlag) |
+| `proposals` | Trainer-/Claude-Vorschläge zur Übernahme durch den Athleten | Trainer, Claude-Import (menschlich freigegeben) |
+| `trainer_view_prefs` | Kennzahlen-Auswahl der Trainer-Leiste, pro Trainer-Athlet-Paar | Trainer |
+| `ftp_history` | Manuelle FTP-Einträge zusätzlich zur eFTP-Kurve | Athlet |
+| `export_prefs` | Zuletzt gewähltes Export-Preset + Zielevent | Athlet |
+
+Alle Tabellen sind per Row Level Security abgesichert (`supabase/migrations/`, im Repo versioniert); anonyme Leser sehen nur, was pro Tabelle explizit freigegeben ist (z. B. `wellbeing` nur bei aktivem `wellbeing_public`-Toggle, nie die Notiz).
 
 ---
 
@@ -141,23 +173,22 @@ Der Plan-Toggle (Gesamt / Plan 1 / Plan 2) filtert die bestandsbezogenen Sektion
 ### Voraussetzungen
 - GitHub-Account mit aktiviertem GitHub Pages
 - intervals.icu Account (Wahoo / Garmin verbunden)
-- Notion Integration Token (nur für Plan 1 Historik)
-- Node.js ≥ 20 (lokal; die GitHub Actions laufen auf Node 22)
+- Notion Integration Token (nur für die Notion-Ära-Historie)
+- Node.js ≥ 24 lokal — `npm test` nutzt `--experimental-test-module-mocks` mit der `{ exports }`-Kurzform, die erst ab Node 24 zuverlässig läuft (Details in `AGENTS.md`)
+- Ein eigenes Supabase-Projekt (Free Tier) nur nötig, wer die Schreibfunktionen (Login, Planung, Trainer-Flow) selbst betreiben will — die reine Leseansicht funktioniert auch ohne
 
-### GitHub Secrets
+### GitHub Secrets (Lesedaten-Pipeline)
 
 | Secret | Beschreibung |
 |---|---|
-| `NOTION_API_KEY` | Notion Integration Token (nur für Plan 1) |
-| `NOTION_DATABASE_ID` | Plan 1 Trainingsdatenbank-ID |
+| `NOTION_API_KEY` | Notion Integration Token (Notion-Ära) |
+| `NOTION_DATABASE_ID` | Notion-Trainingsdatenbank-ID |
 | `INTERVALS_API_KEY` | intervals.icu API Key (Athlete 1) |
 | `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID (Athlete 1) |
 | `INTERVALS_API_KEY_2` | intervals.icu API Key (Athlete 2, optional) |
 | `INTERVALS_ATHLETE_ID_2` | intervals.icu Athlete ID (Athlete 2, optional) |
-| `WEATHER_LAT` | Breitengrad Athlete 1 (Dezimalgrad mit Punkt — kein Komma, keine ganze Zahl) |
-| `WEATHER_LON` | Längengrad Athlete 1 (Dezimalgrad mit Punkt — kein Komma, keine ganze Zahl) |
-| `WEATHER_LAT_2` | Breitengrad Athlete 2 (optional) |
-| `WEATHER_LON_2` | Längengrad Athlete 2 (optional) |
+| `WEATHER_LAT` / `WEATHER_LON` | Koordinaten Athlete 1 (Dezimalgrad mit Punkt) |
+| `WEATHER_LAT_2` / `WEATHER_LON_2` | Koordinaten Athlete 2 (optional) |
 
 ⚠️ **Standortdaten:** Koordinaten niemals im Code oder in JSON-Dateien eintragen — ausschließlich über GitHub Secrets. Der Wetter-Forecast wird serverseitig in der Action berechnet und nur als aggregierte Wetterwerte in `rides.json` gespeichert.
 
@@ -170,7 +201,7 @@ Die Sync-Action übernimmt den Deploy direkt — kein separater Pages-Workflow n
 ### Lokale Entwicklung
 
 ```bash
-# .env Datei anlegen (wird nicht committet)
+# .env Datei anlegen (wird nicht committet) — für die Lesedaten-Pipeline
 NOTION_API_KEY=...
 NOTION_DATABASE_ID=...
 INTERVALS_API_KEY=...
@@ -181,40 +212,38 @@ WEATHER_LON=...
 # JSON generieren
 node scripts/generate-data.js
 
-# Lokal testen
+# Lokal testen (ES-Module brauchen HTTP, kein file://)
 npx serve .
 ```
 
-### Befinden-Dropdown einrichten
+Für die Schreibfunktionen ist lokal nichts weiter nötig: `assets/js/data-access/supabase/config.js` bindet `localhost` fest an ein Dev-Supabase-Projekt (öffentlicher `anonKey`, per Design — RLS macht ihn ohne Login wirkungslos). Migrationen unter `supabase/migrations/` sind versionierter Quellcode und werden manuell über die Supabase-SQL-Konsole eingespielt (Reihenfolge nach Dateinamen).
+
+### Befinden-Dropdown einrichten (Nach-Fahrt-Feel, Fahrtenbuch)
 
 GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → New token  
 Repository: `training-dashboard` · Permissions: **Contents = Read and write**
 
-Token beim ersten Speichern im Dashboard-Dropdown eingeben — wird im `localStorage` gespeichert.
+Token beim ersten Speichern im Dashboard-Dropdown eingeben — wird im `localStorage` gespeichert. Betrifft nur das per-Fahrt-Feel-Dropdown im Fahrtenbuch (`subjective.json`); das tägliche Morgen-Check-in läuft stattdessen über den normalen Login.
 
 ### Workout-Push zu intervals.icu
 
-Im Planungs-Tab können strukturierte Workouts direkt zu intervals.icu gepusht werden. Beim ersten Klick auf „Workout pushen" werden API-Key und Athlete-ID abgefragt und im `localStorage` gespeichert.
+Im Planungs-Tab können strukturierte Workouts direkt zu intervals.icu gepusht werden. Beim ersten Klick auf „Workout pushen" werden API-Key und Athlete-ID abgefragt und im `localStorage` gespeichert. Ein erneuter Push derselben Karte überschreibt den vorhandenen Kalendereintrag (`external_id`-Upsert) statt einen Duplikat-Eintrag anzulegen.
 
 ### Git-Workflow
 
-Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` und `adjustments.json` werden durch den Action-Workflow vor Überschreiben geschützt:
+Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` und die inzwischen nur noch als Archiv gehaltenen `adjustments*.json` werden vor Überschreiben geschützt — der volle `git sync`-Alias (inkl. Branch-Guard, da er unabhängig vom ausgecheckten Branch immer die lokale `main`-Referenz pusht) ist in `AGENTS.md` dokumentiert:
 
 ```powershell
-# Empfohlener Alias
-git config --global alias.sync "!git fetch origin && git push --force-with-lease origin main"
-
-# Normaler Workflow
 git add <dateien>
 git commit -m "..."
-git sync
+git sync   # nur von main aus — s. AGENTS.md für den vollständigen Alias
 ```
 
 ---
 
-## Trainingsplan Plan 2
+## Trainingsblöcke (aktueller Aufbau, FTP 193 W → Ziel ≥ 210 W)
 
-12-Wochen pyramidale Periodisierung mit Fokus auf Leistungsaufbau, FTP 193 W → Ziel ≥ 210 W (realistischer Korridor ~205–213 W bis zum Retest am 19.09.):
+12-Wochen pyramidale Periodisierung, realistischer Zielkorridor ~205–213 W bis zum Retest am 19.09.:
 
 | Block | Wochen | Do-Intervall (scharf) | Sa-Session (Sweet Spot) |
 |---|---|---|---|
@@ -225,7 +254,7 @@ git sync
 | VO₂max | W9–W11 | VO₂max 5×3 → 6×3 → 4×4 min | SS-Erhaltung 2×20 / 3×15 min |
 | Taper + Test | W12 | Aktivierung | Ramp-Test |
 
-**Wochenstruktur (ab W2):** Mo lockere Z2 · Di Gruppenfahrt ~65 km · Mi Ruhe · Do strukturierte Intervalle · Fr Recovery-Spin · Sa Sweet-Spot-Ausdauerfahrt · So Ruhe. Der Samstag ist von reinem Z2 zu einer produktiven Ausdauerfahrt mit eingebetteten Sweet-Spot-Blöcken geworden — damit von einer strukturierten Qualitätseinheit pro Woche auf zwei (Do scharf, Sa im Ausdauerrahmen). Mo und Fr sind bewusst die Stoßdämpfer: Bei müden Beinen fallen sie zuerst raus, damit die zwei Qualitätstage frisch gefahren werden. W0/W1 stehen als abgeschlossene Historie unverändert — die Umstellung greift ab W2.  
+**Wochenstruktur:** Mo lockere Z2 · Di Gruppenfahrt ~65 km · Mi Ruhe · Do strukturierte Intervalle · Fr Recovery-Spin · Sa Sweet-Spot-Ausdauerfahrt · So Ruhe. Mo und Fr sind bewusst die Stoßdämpfer: Bei müden Beinen fallen sie zuerst raus, damit die zwei Qualitätstage (Do, Sa) frisch gefahren werden.  
 **Equipment:** Favero Assioma PRO MX-1 Power Meter · Wahoo ELEMNT Roam v3 · TRACKR Brustgurt
 
 ---
@@ -243,29 +272,14 @@ git sync
 
 **Wochenstruktur:** Mo Ruhetag · Di MyWhoosh Crit (~30 min) · Mi Z2 Rolle 90 min · Do Intervalle 90 min · Fr Ruhetag · Sa MyWhoosh Rennen 60–75 min · So Z2 outdoor/Rolle 90 min. Zwei Trainingslager ersetzen in ihren Wochen Do–Sa durch Abfahrt/Renntag/Heimfahrt.
 
-Eigenständiger Namensraum zu Plan 1/2 (Athlete 1), definiert in `scripts/lib/plan-athlete2.js` — read-only im Dashboard (siehe [Tab: Planung](#tab-planung)).
-
----
-
-## Roadmap
-
-### ✅ Abgeschlossen
-Alle Kernfunktionen sind live — Details siehe [Features](#features) oben. Größte Meilensteine: Dual-Source-Sync (Notion + intervals.icu), Belastungswächter, Tagesform-Ampel, 8-teiliger Analyse-Tab, FTP-Dreiklang, Zweiter Athlet mit eigenem Vergleichsdatensatz **und** eigenem Trainingsplan (GFNY Bremen 2026, read-only), Standortdaten ausschließlich in GitHub Secrets, Fallow-Codebase-Intelligence in CI, ES-Modul-Architektur mit 193 Unit-Tests. Vollständige Historie: `git log`.
-
-### 🔲 Geplant — Dashboard & Training
-- [ ] Wochennotizen im Fahrtenbuch editierbar
-- [ ] Vergleichsansicht Plan 1 vs. Plan 2 als **CTL-Kurven-Overlay** (Kennzahlen-Vergleich existiert bereits im Analyse-Tab)
-
-### 🔲 Geplant — QA-Portfolio
-- [ ] Manuelles Testen: Testplan, ISTQB-Testfälle, Bug-Reports als GitHub Issues, Testbericht
-- [ ] API-Testing & Mocking: Postman Collection (intervals.icu/Notion), WireMock-Stubs, automatisierte API-Tests in CI
-- [ ] Automatisierung: Selenium-Testfälle für Dashboard-UI, Testautomatisierung in der CI-Pipeline
-- [ ] Docker: `Dockerfile` + `docker-compose.yml` für lokale Entwicklung
+Eigenständiger Namensraum, definiert in `scripts/lib/plan-athlete2.js` — read-only im Dashboard (siehe [Tab: Planung](#tab-planung--interaktiver-wochenplaner)).
 
 ---
 
 ## Projektkontext
 
-Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → GitHub Actions → GitHub Pages) dient gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing mit Postman und Automatisierung mit Selenium/XPath.
+Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → GitHub Actions → GitHub Pages) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
+
+Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) und ein React-Umbau (Dashboard 3.0) sind in Konzeptdokumenten unter `docs/` in Arbeit, aber noch nicht umgesetzt.
 
 📁 QA-Portfolio: [github.com/Stuhlsen/Portfolio](https://github.com/Stuhlsen/Portfolio)
