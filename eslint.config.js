@@ -27,6 +27,8 @@ export default [
         FileReader: "readonly",
         crypto: "readonly",
         ResizeObserver: "readonly",
+        FormData: "readonly",
+        clearTimeout: "readonly",
       },
     },
     rules: {
