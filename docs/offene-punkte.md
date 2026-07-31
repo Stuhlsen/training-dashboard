@@ -248,6 +248,18 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
 
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
+- **Security-Review Etappe B (Prod-Launch, 31.07.2026): zwei RLS-Lücken
+  gefunden und geschlossen** — beide live gegen `training-dashboard-prod`
+  mit echten Accounts (Stuhlsen/hc_diZee/Trainer-ST) empirisch bestätigt,
+  gefixt und erneut verifiziert. (1) `proposals` hatte trotz getroffener
+  S1-Entscheidung ("öffentlich lesbar") nie eine `anon`-Policy — Migration
+  `0010`. (2) `plan_cards` erlaubte einem Trainer per `FOR ALL`-Policy
+  dieselben INSERT/DELETE-Rechte wie dem Athleten, obwohl T2 ("Anlegen/
+  Löschen läuft immer als Vorschlag") das nur im UI durchsetzte — Migration
+  `0011`. Beide Funde betrafen keinen fremden Athleten (keine Cross-Tenant-
+  Leaks), sondern zu weite bzw. zu enge Rechte innerhalb einer bereits
+  legitimen Beziehung. Noch offen: dieselben zwei Migrationen gegen
+  `dashboard-dev` nachziehen.
 - **Export-Briefing-Fußnote behauptete pauschal Planungsherkunft** — Typ-Spalte
   hieß irreführend "Typ (geplant)" und die Fußnote unterschlug, dass `typ` bei
   fehlendem Plan-Match datenbasiert ist (`inferTypFromIF`); jetzt neutrale
