@@ -219,20 +219,17 @@ export function mapActivity(
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
+  const { ftpWatt } = ftpAt(ftpHistory, date, DEFAULT_FTP);
 
   // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
-  // `typ` bleibt bewusst unverändert (heutiges Verhalten, inferTypFromIF()
-  // bleibt der Fallback dafür, unverändert auf DEFAULT_FTP statt ftpAt() —
-  // s. "typ bleibt unangetastet"-Konvention) — typSource dokumentiert nur,
-  // welcher der drei Fälle gegriffen hat. `typDetected`/`typDetection`
-  // kommen UNABHÄNGIG davon aus core/session-classify.js und verändern
-  // typ/typSource hier bewusst NICHT — welche Konsumenten künftig
-  // typDetected statt typ lesen, entscheidet ein späterer Schritt bewusst
-  // einzeln (Schichtenregel/Konservativität wie in Schritt 2 begründet).
-  const typ = s.typ || planned.typ || inferTypFromIF(np, min);
+  // `typ` (Fall "inferred") nutzt seit der FTP-Historie-Konsumenten-
+  // Umstellung dieselbe datumsgenaue ftpWatt wie typDetected/typDetection
+  // (früher: fester DEFAULT_FTP, s. Git-History) — beide Felder bleiben
+  // trotzdem eigenständig, keine Vermischung der beiden Konzepte.
+  // typSource dokumentiert nur, welcher der drei Fälle gegriffen hat.
+  const typ = s.typ || planned.typ || inferTypFromIF(np, min, ftpWatt);
   const typSource = s.typ ? "subjective" : planned.typ ? "plan" : "inferred";
   const name = s.name || planned.name || act.name || "Radfahren";
-  const { ftpWatt } = ftpAt(ftpHistory, date, DEFAULT_FTP);
   const longestBlock = intervalBlockCache[String(act.id)]?.longestBlock ?? null;
   const detection = detectSession(act, min, ftpWatt, longestBlock);
 
@@ -298,7 +295,7 @@ export function mapActivity2(
     // Kein subjective.json bei Athlet 2 (read-only, keine Befinden-Erfassung)
     // — nur Plan oder IF-Berechnung, s. Kommentar bei mapActivity() zu
     // typPlanned/typDetected/typSource.
-    typ: planned.typ || inferTypFromIF(np, min, estimatedFtp),
+    typ: planned.typ || inferTypFromIF(np, min, ftpWatt),
     typPlanned: planned.typ ?? null,
     typDetected: detection.type,
     typDetection: detection,
@@ -322,10 +319,11 @@ export function mapActivity2(
  * sonst beide dieselbe (Renn-)Bezeichnung erben.
  * Rein, testbar — siehe tests/map-activity.test.js.
  * @param {Array<Object>} rides bereits gemappte Ride-Objekte
- * @param {number|null} [ftp]
+ * @param {Array<{ftpWatt:number, validFrom:string, source?:string}>} ftpHistory
+ * @param {number|null} [fallbackFtp]
  * @returns {Array<Object>} rides (in-place korrigiert)
  */
-export function classifyCooldowns(rides, ftp) {
+export function classifyCooldowns(rides, ftpHistory, fallbackFtp) {
   const byDate = new Map();
   for (const r of rides) {
     if (!r.date) continue;
@@ -335,6 +333,9 @@ export function classifyCooldowns(rides, ftp) {
   for (const dayRides of byDate.values()) {
     if (dayRides.length < 2) continue;
     dayRides.sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+    // prior/cur teilen sich immer dasselbe Datum (beide aus derselben
+    // Tagesgruppe) — ein ftpAt()-Aufruf pro Tag reicht, nicht pro Fahrtpaar.
+    const { ftpWatt: ftp } = ftpAt(ftpHistory, dayRides[0].date, fallbackFtp);
     for (let i = 1; i < dayRides.length; i++) {
       const prior = dayRides[i - 1];
       const cur = dayRides[i];

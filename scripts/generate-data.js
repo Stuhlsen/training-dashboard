@@ -167,7 +167,7 @@ async function main() {
     // Ausrollen nach einem harten Workout (gleicher Tag, kurz, deutlich
     // niedrigere Leistung) erbt sonst dieselbe Tages-Plankarte — analog zum
     // Fix für Athlet 2 weiter unten.
-    classifyCooldowns(plan2, DEFAULT_FTP);
+    classifyCooldowns(plan2, ftpHistory, DEFAULT_FTP);
     log.info(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
     logRpeFeelCoverage(plan2, "Athlet 1");
 
@@ -338,7 +338,7 @@ async function main() {
       .sort((a, b) => a.date.localeCompare(b.date));
     // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
     // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.
-    classifyCooldowns(rides2, estimatedFTP2);
+    classifyCooldowns(rides2, ftpHistory2, estimatedFTP2);
     logRpeFeelCoverage(rides2, ATHLETE_2_NAME);
 
     const wellnessList2 = mapWellnessList(wellness2);
