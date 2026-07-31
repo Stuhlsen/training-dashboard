@@ -55,6 +55,7 @@ import { configureScenarioSources } from "./state/chart-view.js";
 import { EventTimeline } from "./ui/event-timeline.js";
 import { WellbeingCard } from "./ui/wellbeing-card.js";
 import "./ui/header.js";
+import "./ui/env-badge.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
 function initAthleteToggle() {

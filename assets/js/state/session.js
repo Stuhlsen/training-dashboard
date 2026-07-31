@@ -10,8 +10,9 @@ import {
   updateWellbeingPublic as updateWellbeingPublicAdapter,
 } from "../data-access/supabase/profiles.js";
 import { isSupabaseConfigured } from "../data-access/supabase/client.js";
+import { getEnvironment } from "../data-access/supabase/config.js";
 
-export { isSupabaseConfigured };
+export { isSupabaseConfigured, getEnvironment };
 
 let currentUser = null;
 const listeners = new Set();

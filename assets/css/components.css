@@ -506,6 +506,13 @@
 .tag-p2  { background: rgba(56,189,248,0.12);  color: var(--blue);  border: 1px solid rgba(56,189,248,0.2); }
 .tag-p3  { background: rgba(167,139,250,0.12); color: #a78bfa;      border: 1px solid rgba(167,139,250,0.2); }
 
+/* Umgebungsmarkierung im Topbar (C5.4) — eigene Farbe statt Wiederverwendung
+   von z.B. .tag-vor: das ist semantisch an Trainingsphasen gekoppelt
+   (core/format.js), eine Wiederverwendung würde zufällige Kopplung zwischen
+   zwei unabhängigen Konzepten schaffen. var(--red) passt zum bestehenden
+   "Achtung"-Ton (dieselbe Farbe wie Formular-Fehlermeldungen). */
+.tag-env { background: rgba(217,79,79,0.12); color: var(--red); border: 1px solid rgba(217,79,79,0.25); }
+
 /* ── Befinden / Feel Colors ──────────────────────────────────── */
 .feel { font-size: 0.78rem; font-weight: 500; }
 .feel-hart,     .feel-schwer { color: var(--red);   }
