@@ -20,9 +20,13 @@ jobs:
         with:
           node-version: 22
 
-      # Keine Dependencies nötig — node:test ist eingebaut
-      - name: Unit-Tests (node --test)
-        run: node --test
+      # Keine Dependencies nötig — node:test ist eingebaut. npm test statt
+      # rohem "node --test", damit das --experimental-test-module-mocks-Flag
+      # (s. package.json) nur an einer Stelle steht — ohne das Flag scheitert
+      # jeder mock.module()-Test (state/-Schicht) mit "mock.module is not a
+      # function", s. docs/offene-punkte.md.
+      - name: Unit-Tests (npm test)
+        run: npm test
 
       # ESLint via npx, ohne package im Repo zu installieren
       - name: Lint (ESLint 9, Flat Config)
