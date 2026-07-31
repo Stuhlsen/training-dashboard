@@ -6,8 +6,8 @@
   },
   'stuhlsen.github.io': {
     env: 'prod',
-    projectUrl: '',
-    anonKey: ''
+    projectUrl: 'https://hznvnkoglomzzjeeheit.supabase.co',
+    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh6bnZua29nbG9tenpqZWVoZWl0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODc5OTUsImV4cCI6MjEwMTA2Mzk5NX0.EmkPYDM4kVFWletJAzRzNClbqrQA1Y0DeTO3ORz4mCA'
   }
 };
 
@@ -32,11 +32,9 @@ export function getConfig() {
 }
 
 /** Umgebungs-Label für die Header-Markierung (C5.4) — bewusst UNABHÄNGIG
- *  von projectUrl/anonKey (anders als getConfig()): liefert für
- *  'stuhlsen.github.io' schon jetzt korrekt 'prod', auch bevor der Prod-
- *  Eintrag beim Merge befüllt wird. 'unknown' für einen nicht gelisteten
- *  Host (z.B. eine Preview-URL) — zählt als "nicht prod", Badge bleibt
- *  sichtbar statt fälschlich zu verschwinden.
+ *  von projectUrl/anonKey (anders als getConfig()). 'unknown' für einen
+ *  nicht gelisteten Host (z.B. eine Preview-URL) — zählt als "nicht prod",
+ *  Badge bleibt sichtbar statt fälschlich zu verschwinden.
  *  @returns {'dev'|'prod'|'unknown'} */
 export function getEnvironment() {
   return resolveEntry()?.env ?? 'unknown';
