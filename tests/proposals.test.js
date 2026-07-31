@@ -263,6 +263,12 @@ test("withdrawProposal: setzt den Vorschlag auf withdrawn", async () => {
 
 /* ── previewClaudeImport / importClaudeProposals (Export/Import-Workflow) ── */
 
+// plan_date-Werte bewusst weit in der Zukunft (2099, wie tests/export.test.js
+// mit "card-future"): previewClaudeImport() reicht kein festes `today` an
+// validateImport() durch, die Regel "plan_date nicht in der Vergangenheit"
+// prüft also gegen das ECHTE Datum des Testlaufs. Ein 2026er Fixdatum war
+// bei Erstellung dieses Tests noch gültig, ist es aber nach dem 28.07.2026
+// nicht mehr — genau das hat diesen Test zeitverzögert rot werden lassen.
 const VALID_IMPORT_TEXT = `Alles passt bis auf eine Einheit, hier mein Vorschlag.
 
 \`\`\`json
@@ -276,11 +282,11 @@ const VALID_IMPORT_TEXT = `Alles passt bis auf eine Einheit, hier mein Vorschlag
       "target_card_id": "card-A",
       "target_updated_at": "2026-07-20T00:00:00Z",
       "reason": "TSB zu tief vor dem Event",
-      "payload": { "title": "Entschärft", "type": "Z2 Dauer", "plan_date": "2026-07-28", "target_tss": 40 }
+      "payload": { "title": "Entschärft", "type": "Z2 Dauer", "plan_date": "2099-07-28", "target_tss": 40 }
     },
     {
       "op": "add",
-      "payload": { "title": "Neue Einheit", "type": "Z2 Dauer", "plan_date": "2026-08-05" }
+      "payload": { "title": "Neue Einheit", "type": "Z2 Dauer", "plan_date": "2099-08-05" }
     }
   ]
 }
