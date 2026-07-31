@@ -14215,16 +14215,16 @@
       "rpe": null,
       "feelIcu": null,
       "weather": {
-        "temp": 23.2,
-        "tempFeel": 23,
-        "humidity": 46,
-        "windSpeed": 7.4,
-        "windDir": 263,
+        "temp": 23.6,
+        "tempFeel": 21.6,
+        "humidity": 40,
+        "windSpeed": 11.6,
+        "windDir": 287,
         "precip": 0,
-        "cloudCover": 56,
-        "weatherCode": 2
+        "cloudCover": 86,
+        "weatherCode": 3
       },
-      "wetter": "23.2°C",
+      "wetter": "23.6°C",
       "source": "intervals.icu",
       "ruhepuls": 49,
       "hrv": 51,
@@ -14322,16 +14322,16 @@
       "rpe": null,
       "feelIcu": null,
       "weather": {
-        "temp": 23.2,
-        "tempFeel": 23,
-        "humidity": 46,
-        "windSpeed": 7.4,
-        "windDir": 263,
+        "temp": 23.6,
+        "tempFeel": 21.6,
+        "humidity": 40,
+        "windSpeed": 11.6,
+        "windDir": 287,
         "precip": 0,
-        "cloudCover": 56,
-        "weatherCode": 2
+        "cloudCover": 86,
+        "weatherCode": 3
       },
-      "wetter": "23.2°C",
+      "wetter": "23.6°C",
       "source": "intervals.icu",
       "ruhepuls": 49,
       "hrv": 51,
@@ -20720,7 +20720,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-07-31T21:58:45.213Z",
+  "updated": "2026-07-31T22:13:36.424Z",
   "source": "intervals.icu",
   "count": 136
 }

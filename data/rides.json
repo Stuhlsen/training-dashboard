@@ -4955,16 +4955,16 @@
       "rpe": null,
       "feelIcu": null,
       "weather": {
-        "temp": 24.3,
-        "tempFeel": 22.8,
-        "humidity": 35,
-        "windSpeed": 11,
-        "windDir": 299,
+        "temp": 23.3,
+        "tempFeel": 21,
+        "humidity": 40,
+        "windSpeed": 13.4,
+        "windDir": 279,
         "precip": 0,
-        "cloudCover": 34,
+        "cloudCover": 49,
         "weatherCode": 3
       },
-      "wetter": "24.3°C",
+      "wetter": "23.3°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 45,
@@ -12908,16 +12908,6 @@
     }
   },
   "forecast": {
-    "2026-07-31": {
-      "temp": 28.6,
-      "tempFeel": 30.3,
-      "humidity": 48,
-      "windSpeed": 5.7,
-      "windDir": 170,
-      "precipProb": 3,
-      "weatherCode": 95,
-      "uvMax": 6.5
-    },
     "2026-08-01": {
       "temp": 20.2,
       "tempFeel": 21.5,
@@ -13067,13 +13057,23 @@
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 5.3
+    },
+    "2026-08-16": {
+      "temp": 18.9,
+      "tempFeel": 17.2,
+      "humidity": 61,
+      "windSpeed": 14.2,
+      "windDir": 291,
+      "precipProb": 0,
+      "weatherCode": 3,
+      "uvMax": 3.6
     }
   },
   "dataSources": [
     "intervals",
     "notion"
   ],
-  "updated": "2026-07-31T21:58:19.937Z",
+  "updated": "2026-07-31T22:13:32.559Z",
   "source": "notion+intervals",
   "count": 80
 }
