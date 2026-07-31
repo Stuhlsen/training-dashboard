@@ -7,7 +7,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.543,
+            "note": "NP 144W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "53 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 98% · Z3/Z4+ 2% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-02",
       "startTime": "2026-01-02T17:19:40",
       "km": 17.5,
@@ -64,6 +88,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 1.3,
         "tempFeel": -5.4,
@@ -88,7 +114,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.547,
+            "note": "NP 145W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "63 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-07",
       "startTime": "2026-01-07T12:24:32",
       "km": 22.6,
@@ -145,6 +195,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -4,
         "tempFeel": -9,
@@ -169,7 +221,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.649,
+            "note": "NP 172W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "96 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 90% · Z3/Z4+ 9% · Z5+ 1%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-08",
       "startTime": "2026-01-08T12:34:37",
       "km": 42.5,
@@ -226,6 +302,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -0.5,
         "tempFeel": -3.9,
@@ -250,7 +328,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.615,
+            "note": "NP 163W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "141 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 89% · Z3/Z4+ 11% · Z5+ 1%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-12",
       "startTime": "2026-01-12T16:13:26",
       "km": 60.7,
@@ -307,6 +410,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 0.8,
         "tempFeel": -3.1,
@@ -331,7 +436,22 @@
       "week": null,
       "phase": null,
       "typ": "Außerplanmäßig",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": null,
+      "typDetection": {
+        "type": null,
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "Leistungsdaten",
+            "value": null,
+            "note": "keine Normalized Power/FTP für diese Fahrt verfügbar — Typ nicht ableitbar"
+          }
+        ],
+        "rule": "keine-leistungsdaten"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-13",
       "startTime": "2026-01-13T12:49:18",
       "km": 0,
@@ -355,6 +475,8 @@
       "dtl": null,
       "zoneTimes": null,
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 2.6,
         "tempFeel": -0.4,
@@ -379,7 +501,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.675,
+            "note": "NP 179W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "57 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 88% · Z3/Z4+ 9% · Z5+ 3%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-14",
       "startTime": "2026-01-14T10:36:27",
       "km": 27.9,
@@ -436,6 +582,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 4.7,
         "tempFeel": 0.7,
@@ -460,7 +608,36 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.819,
+            "note": "NP 217W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "41 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "7 min zusammenhängend über Schwelle (247 W, 17.6% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 47% · Z3/Z4+ 44% · Z5+ 9%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-15",
       "startTime": "2026-01-15T14:31:09",
       "km": 20.1,
@@ -517,6 +694,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 8.4,
         "tempFeel": 6,
@@ -541,7 +720,22 @@
       "week": null,
       "phase": null,
       "typ": "Außerplanmäßig",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": null,
+      "typDetection": {
+        "type": null,
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "Leistungsdaten",
+            "value": null,
+            "note": "keine Normalized Power/FTP für diese Fahrt verfügbar — Typ nicht ableitbar"
+          }
+        ],
+        "rule": "keine-leistungsdaten"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-18",
       "startTime": "2026-01-18T15:24:01",
       "km": 20,
@@ -565,6 +759,8 @@
       "dtl": 35,
       "zoneTimes": null,
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 4.6,
         "tempFeel": 0.4,
@@ -589,7 +785,22 @@
       "week": null,
       "phase": null,
       "typ": "Außerplanmäßig",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": null,
+      "typDetection": {
+        "type": null,
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "Leistungsdaten",
+            "value": null,
+            "note": "keine Normalized Power/FTP für diese Fahrt verfügbar — Typ nicht ableitbar"
+          }
+        ],
+        "rule": "keine-leistungsdaten"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-19",
       "startTime": "2026-01-19T16:03:38",
       "km": 20.2,
@@ -613,6 +824,8 @@
       "dtl": 48,
       "zoneTimes": null,
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 3.8,
         "tempFeel": -1.1,
@@ -637,7 +850,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.634,
+            "note": "NP 168W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "62 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 92% · Z3/Z4+ 8% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-21",
       "startTime": "2026-01-21T12:13:15",
       "km": 26.4,
@@ -694,6 +931,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 0.7,
         "tempFeel": -2.9,
@@ -718,7 +957,31 @@
       "week": null,
       "phase": null,
       "typ": "Tempo",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Tempo",
+      "typDetection": {
+        "type": "Tempo",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.872,
+            "note": "NP 231W ÷ FTP 265W — im Tempo-Band (0.85–0.9)"
+          },
+          {
+            "label": "Dauer",
+            "value": "36 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 37% · Z3/Z4+ 52% · Z5+ 11%",
+            "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-tempo"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-22",
       "startTime": "2026-01-22T16:29:59",
       "km": 17.7,
@@ -775,6 +1038,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 0,
         "tempFeel": -4.1,
@@ -799,7 +1064,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.66,
+            "note": "NP 175W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "124 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 85% · Z3/Z4+ 13% · Z5+ 2%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-25",
       "startTime": "2026-01-25T20:02:24",
       "km": 51.8,
@@ -856,6 +1146,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -2.2,
         "tempFeel": -6.5,
@@ -880,7 +1172,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.604,
+            "note": "NP 160W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "62 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 93% · Z3/Z4+ 6% · Z5+ 1%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-27",
       "startTime": "2026-01-27T15:40:32",
       "km": 20.6,
@@ -937,6 +1253,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -0.8,
         "tempFeel": -4.1,
@@ -961,7 +1279,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.77,
+            "note": "NP 204W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "56 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 43% · Z3/Z4+ 55% · Z5+ 1%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-29",
       "startTime": "2026-01-29T16:30:00",
       "km": 27.1,
@@ -1018,6 +1360,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -1.2,
         "tempFeel": -5.3,
@@ -1042,7 +1386,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.721,
+            "note": "NP 191W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "36 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 54% · Z3/Z4+ 45% · Z5+ 1%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-01-31",
       "startTime": "2026-01-31T17:32:59",
       "km": 18.1,
@@ -1099,6 +1467,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -2.1,
         "tempFeel": -6.5,
@@ -1123,7 +1493,36 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.834,
+            "note": "NP 221W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "68 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "11 min zusammenhängend über Schwelle (243 W, 15.6% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 29% · Z3/Z4+ 66% · Z5+ 5%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-01",
       "startTime": "2026-02-01T15:01:37",
       "km": 34.3,
@@ -1180,6 +1579,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -4.8,
         "tempFeel": -9.7,
@@ -1204,7 +1605,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.683,
+            "note": "NP 181W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "47 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 74% · Z3/Z4+ 26% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-02",
       "startTime": "2026-02-02T12:28:39",
       "km": 16.3,
@@ -1261,6 +1686,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -6.5,
         "tempFeel": -11.4,
@@ -1285,7 +1712,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.785,
+            "note": "NP 208W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "76 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 43% · Z3/Z4+ 54% · Z5+ 3%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-05",
       "startTime": "2026-02-05T16:02:20",
       "km": 40.4,
@@ -1342,6 +1793,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -1.9,
         "tempFeel": -5.5,
@@ -1366,7 +1819,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.438,
+            "note": "NP 116W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "20 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-07",
       "startTime": "2026-02-07T16:33:18",
       "km": 8.3,
@@ -1423,6 +1900,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 1,
         "tempFeel": -1.6,
@@ -1447,7 +1926,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.615,
+            "note": "NP 163W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "329 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 92% · Z3/Z4+ 8% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-07",
       "startTime": "2026-02-07T10:56:54",
       "km": 101.1,
@@ -1504,6 +2008,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 0.5,
         "tempFeel": -2,
@@ -1528,7 +2034,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.691,
+            "note": "NP 183W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "76 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 83% · Z3/Z4+ 16% · Z5+ 1%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-09",
       "startTime": "2026-02-09T14:06:17",
       "km": 30.8,
@@ -1585,6 +2115,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 1,
         "tempFeel": -2.6,
@@ -1609,7 +2141,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.645,
+            "note": "NP 171W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "76 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 89% · Z3/Z4+ 11% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-11",
       "startTime": "2026-02-11T20:30:09",
       "km": 33.6,
@@ -1666,6 +2222,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 4.5,
         "tempFeel": 2.6,
@@ -1690,7 +2248,32 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.423,
+            "note": "NP 112W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "15 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-12",
       "startTime": "2026-02-12T17:03:17",
       "km": 6.3,
@@ -1747,6 +2330,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 7.3,
         "tempFeel": 4.6,
@@ -1771,7 +2356,31 @@
       "week": null,
       "phase": null,
       "typ": "Tempo",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Tempo",
+      "typDetection": {
+        "type": "Tempo",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.864,
+            "note": "NP 229W ÷ FTP 265W — im Tempo-Band (0.85–0.9)"
+          },
+          {
+            "label": "Dauer",
+            "value": "59 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 19% · Z3/Z4+ 74% · Z5+ 8%",
+            "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-tempo"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-12",
       "startTime": "2026-02-12T16:03:26",
       "km": 32.1,
@@ -1828,6 +2437,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 7,
         "tempFeel": 4.2,
@@ -1852,7 +2463,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.615,
+            "note": "NP 163W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "100 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 93% · Z3/Z4+ 7% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-13",
       "startTime": "2026-02-13T18:26:33",
       "km": 36.7,
@@ -1909,6 +2544,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 0.5,
         "tempFeel": -3,
@@ -1933,7 +2570,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.464,
+            "note": "NP 123W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "17 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-14",
       "startTime": "2026-02-14T14:26:57",
       "km": 7,
@@ -1990,6 +2652,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 1,
         "tempFeel": -3.5,
@@ -2014,7 +2678,31 @@
       "week": null,
       "phase": null,
       "typ": "FTP-Test",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.011,
+            "note": "NP 268W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "25 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 8% · Z3/Z4+ 69% · Z5+ 23%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-14",
       "startTime": "2026-02-14T14:00:40",
       "km": 14.4,
@@ -2071,6 +2759,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 1,
         "tempFeel": -3.5,
@@ -2095,7 +2785,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.626,
+            "note": "NP 166W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "78 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 92% · Z3/Z4+ 8% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-15",
       "startTime": "2026-02-15T18:13:49",
       "km": 27,
@@ -2152,6 +2866,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -1.9,
         "tempFeel": -7.1,
@@ -2176,7 +2892,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.743,
+            "note": "NP 197W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "59 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 47% · Z3/Z4+ 53% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-17",
       "startTime": "2026-02-17T18:20:41",
       "km": 24.5,
@@ -2233,6 +2973,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 1.5,
         "tempFeel": -1.8,
@@ -2257,7 +2999,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.762,
+            "note": "NP 202W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "60 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 40% · Z3/Z4+ 60% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-18",
       "startTime": "2026-02-18T18:57:04",
       "km": 19.9,
@@ -2314,6 +3080,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -1.4,
         "tempFeel": -5.3,
@@ -2338,7 +3106,31 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.442,
+            "note": "NP 117W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "21 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-19",
       "startTime": "2026-02-19T18:33:55",
       "km": 8.3,
@@ -2395,6 +3187,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -1.7,
         "tempFeel": -6.7,
@@ -2419,7 +3213,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Schwelle",
+      "typDetection": {
+        "type": "Schwelle",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.981,
+            "note": "NP 260W ÷ FTP 265W — im Schwellenbereich (0.95–1.05)"
+          },
+          {
+            "label": "Dauer",
+            "value": "31 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "30 min zusammenhängend über Schwelle (263 W, 95.5% der Fahrzeit)",
+            "note": "bestätigt Schwelle"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 6% · Z3/Z4+ 77% · Z5+ 17%",
+            "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-schwelle"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-19",
       "startTime": "2026-02-19T18:00:11",
       "km": 19.1,
@@ -2476,6 +3299,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": -1.7,
         "tempFeel": -6.7,
@@ -2500,7 +3325,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.709,
+            "note": "NP 188W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "220 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 85% · Z3/Z4+ 15% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-21",
       "startTime": "2026-02-21T11:10:26",
       "km": 59.2,
@@ -2557,6 +3407,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 8.8,
         "tempFeel": 4.6,
@@ -2581,7 +3433,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.709,
+            "note": "NP 188W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "220 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 85% · Z3/Z4+ 15% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-21",
       "startTime": "2026-02-21T11:09:36",
       "km": 59.2,
@@ -2638,6 +3515,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 8.8,
         "tempFeel": 4.6,
@@ -2662,7 +3541,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.728,
+            "note": "NP 193W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "80 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 38% · Z3/Z4+ 62% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-22",
       "startTime": "2026-02-22T15:13:01",
       "km": 37.7,
@@ -2719,6 +3622,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 10.9,
         "tempFeel": 7.7,
@@ -2743,7 +3648,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.758,
+            "note": "NP 201W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "60 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 41% · Z3/Z4+ 59% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-24",
       "startTime": "2026-02-24T16:08:58",
       "km": 19.8,
@@ -2800,6 +3729,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 9.8,
         "tempFeel": 7.1,
@@ -2824,7 +3755,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.672,
+            "note": "NP 178W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "92 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 98% · Z3/Z4+ 2% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-25",
       "startTime": "2026-02-25T18:36:08",
       "km": 43.5,
@@ -2881,6 +3836,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 10.7,
         "tempFeel": 8.4,
@@ -2905,7 +3862,32 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.408,
+            "note": "NP 108W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "14 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-26",
       "startTime": "2026-02-26T18:36:02",
       "km": 5.4,
@@ -2962,6 +3944,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 13.2,
         "tempFeel": 11.4,
@@ -2986,7 +3970,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Schwelle",
+      "typDetection": {
+        "type": "Schwelle",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1,
+            "note": "NP 265W ÷ FTP 265W — im Schwellenbereich (0.95–1.05)"
+          },
+          {
+            "label": "Dauer",
+            "value": "32 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "28 min zusammenhängend über Schwelle (265 W, 86.2% der Fahrzeit)",
+            "note": "bestätigt Schwelle"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 2% · Z3/Z4+ 73% · Z5+ 26%",
+            "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-schwelle"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-26",
       "startTime": "2026-02-26T18:30:21",
       "km": 19.8,
@@ -3043,6 +4056,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 13.2,
         "tempFeel": 11.4,
@@ -3067,7 +4082,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Schwelle",
+      "typDetection": {
+        "type": "Schwelle",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1,
+            "note": "NP 265W ÷ FTP 265W — im Schwellenbereich (0.95–1.05)"
+          },
+          {
+            "label": "Dauer",
+            "value": "32 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "28 min zusammenhängend über Schwelle (265 W, 86.6% der Fahrzeit)",
+            "note": "bestätigt Schwelle"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 2% · Z3/Z4+ 73% · Z5+ 26%",
+            "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-schwelle"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-26",
       "startTime": "2026-02-26T18:00:50",
       "km": 19.8,
@@ -3124,6 +4168,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 13.2,
         "tempFeel": 11.4,
@@ -3148,7 +4194,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.562,
+            "note": "NP 149W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "279 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 89% · Z3/Z4+ 11% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-02-28",
       "startTime": "2026-02-28T11:30:58",
       "km": 102.5,
@@ -3205,6 +4276,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 16.2,
         "tempFeel": 13.9,
@@ -3229,7 +4302,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.74,
+            "note": "NP 196W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "75 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 34% · Z3/Z4+ 66% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-01",
       "startTime": "2026-03-01T15:13:50",
       "km": 21.7,
@@ -3286,6 +4383,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 11.4,
         "tempFeel": 8,
@@ -3310,7 +4409,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.777,
+            "note": "NP 206W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "69 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 35% · Z3/Z4+ 65% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-03",
       "startTime": "2026-03-03T16:09:33",
       "km": 22.6,
@@ -3367,6 +4490,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 15.1,
         "tempFeel": 13.8,
@@ -3391,7 +4516,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.679,
+            "note": "NP 180W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "77 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 65% · Z3/Z4+ 35% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-04",
       "startTime": "2026-03-04T10:36:36",
       "km": 33.3,
@@ -3448,6 +4597,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 6.1,
         "tempFeel": 3.7,
@@ -3472,7 +4623,32 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.479,
+            "note": "NP 127W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "14 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-05",
       "startTime": "2026-03-05T18:31:24",
       "km": 6.1,
@@ -3529,6 +4705,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 10.1,
         "tempFeel": 6.9,
@@ -3553,7 +4731,31 @@
       "week": null,
       "phase": null,
       "typ": "FTP-Test",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.03,
+            "note": "NP 273W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "28 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 5% · Z3/Z4+ 60% · Z5+ 35%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-05",
       "startTime": "2026-03-05T18:19:09",
       "km": 16.1,
@@ -3610,6 +4812,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 10.1,
         "tempFeel": 6.9,
@@ -3634,7 +4838,31 @@
       "week": null,
       "phase": null,
       "typ": "FTP-Test",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.026,
+            "note": "NP 272W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "28 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 4% · Z3/Z4+ 60% · Z5+ 35%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-05",
       "startTime": "2026-03-05T18:00:53",
       "km": 16.1,
@@ -3691,6 +4919,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 10.1,
         "tempFeel": 6.9,
@@ -3715,7 +4945,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.687,
+            "note": "NP 182W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "256 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 78% · Z3/Z4+ 22% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-07",
       "startTime": "2026-03-07T11:50:28",
       "km": 62.8,
@@ -3772,6 +5027,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 11.3,
         "tempFeel": 9.7,
@@ -3796,7 +5053,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.728,
+            "note": "NP 193W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "41 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 44% · Z3/Z4+ 56% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-08",
       "startTime": "2026-03-08T16:17:35",
       "km": 12.7,
@@ -3853,6 +5134,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 15.2,
         "tempFeel": 12.6,
@@ -3877,7 +5160,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.713,
+            "note": "NP 189W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "38 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 46% · Z3/Z4+ 54% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-08",
       "startTime": "2026-03-08T15:27:53",
       "km": 15.4,
@@ -3934,6 +5241,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 15.2,
         "tempFeel": 12.6,
@@ -3958,7 +5267,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.728,
+            "note": "NP 193W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "42 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 59% · Z3/Z4+ 41% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-10",
       "startTime": "2026-03-10T16:19:10",
       "km": 6.1,
@@ -4015,6 +5348,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 16.7,
         "tempFeel": 15.2,
@@ -4039,7 +5374,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.528,
+            "note": "NP 140W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "72 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 96% · Z3/Z4+ 4% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-23",
       "startTime": "2026-03-23T11:50:49",
       "km": 33.2,
@@ -4096,6 +5455,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 11.3,
         "tempFeel": 9.1,
@@ -4120,7 +5481,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.611,
+            "note": "NP 162W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "91 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-28",
       "startTime": "2026-03-28T12:11:36",
       "km": 35.8,
@@ -4177,6 +5562,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 5.7,
         "tempFeel": 1.8,
@@ -4201,7 +5588,32 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.426,
+            "note": "NP 113W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "1 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-30",
       "startTime": "2026-03-30T18:08:36",
       "km": 0.5,
@@ -4258,6 +5670,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 7.6,
         "tempFeel": 2.7,
@@ -4282,7 +5696,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.615,
+            "note": "NP 163W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "90 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-03-31",
       "startTime": "2026-03-31T18:45:50",
       "km": 29.4,
@@ -4339,6 +5777,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 8.3,
         "tempFeel": 4.2,
@@ -4363,7 +5803,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.698,
+            "note": "NP 185W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "42 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 47% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-01",
       "startTime": "2026-04-01T16:27:07",
       "km": 20.6,
@@ -4420,6 +5884,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 8.6,
         "tempFeel": 6,
@@ -4444,7 +5910,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.585,
+            "note": "NP 155W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "254 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 88% · Z3/Z4+ 11% · Z5+ 1%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-03",
       "startTime": "2026-04-03T11:34:51",
       "km": 105.8,
@@ -4501,6 +5992,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 8.5,
         "tempFeel": 4.5,
@@ -4525,7 +6018,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.506,
+            "note": "NP 134W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "287 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-04",
       "startTime": "2026-04-04T08:00:16",
       "km": 100.7,
@@ -4582,6 +6100,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 12.4,
         "tempFeel": 8.5,
@@ -4606,7 +6126,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.506,
+            "note": "NP 134W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "18 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-07",
       "startTime": "2026-04-07T15:36:01",
       "km": 6.1,
@@ -4663,6 +6208,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 13.6,
         "tempFeel": 9.9,
@@ -4687,7 +6234,36 @@
       "week": null,
       "phase": null,
       "typ": "Sweet Spot",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.947,
+            "note": "NP 251W ÷ FTP 265W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "32 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "21 min zusammenhängend über Schwelle (255 W, 66.3% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 6% · Z3/Z4+ 84% · Z5+ 9%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-07",
       "startTime": "2026-04-07T15:02:57",
       "km": 19.1,
@@ -4744,6 +6320,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 13.6,
         "tempFeel": 9.9,
@@ -4768,7 +6346,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.611,
+            "note": "NP 162W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "90 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-08",
       "startTime": "2026-04-08T10:51:12",
       "km": 35.7,
@@ -4825,6 +6427,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 9.6,
         "tempFeel": 6.4,
@@ -4849,7 +6453,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.37,
+            "note": "NP 98W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "18 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-14",
       "startTime": "2026-04-14T15:37:27",
       "km": 6.7,
@@ -4906,6 +6535,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 12.9,
         "tempFeel": 9.4,
@@ -4930,7 +6561,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Schwelle",
+      "typDetection": {
+        "type": "Schwelle",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.958,
+            "note": "NP 254W ÷ FTP 265W — im Schwellenbereich (0.95–1.05)"
+          },
+          {
+            "label": "Dauer",
+            "value": "33 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "13 min zusammenhängend über Schwelle (268 W, 40.8% der Fahrzeit)",
+            "note": "bestätigt Schwelle"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 10% · Z3/Z4+ 70% · Z5+ 20%",
+            "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-schwelle"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-14",
       "startTime": "2026-04-14T15:02:50",
       "km": 19.8,
@@ -4987,6 +6647,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 12.9,
         "tempFeel": 9.4,
@@ -5011,7 +6673,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.506,
+            "note": "NP 134W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "80 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-15",
       "startTime": "2026-04-15T10:52:19",
       "km": 33.1,
@@ -5068,6 +6754,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 12.4,
         "tempFeel": 10.4,
@@ -5092,7 +6780,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.709,
+            "note": "NP 188W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "45 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 56% · Z3/Z4+ 44% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-16",
       "startTime": "2026-04-16T10:35:26",
       "km": 19.3,
@@ -5149,6 +6861,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 15.5,
         "tempFeel": 14.2,
@@ -5173,7 +6887,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.396,
+            "note": "NP 105W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "16 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-21",
       "startTime": "2026-04-21T15:33:18",
       "km": 6.1,
@@ -5230,6 +6969,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 12.4,
         "tempFeel": 8.9,
@@ -5254,7 +6995,31 @@
       "week": null,
       "phase": null,
       "typ": "FTP-Test",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.977,
+            "note": "NP 259W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "29 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 10% · Z3/Z4+ 68% · Z5+ 22%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-21",
       "startTime": "2026-04-21T15:01:17",
       "km": 16,
@@ -5311,6 +7076,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 12.4,
         "tempFeel": 8.9,
@@ -5335,7 +7102,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.611,
+            "note": "NP 162W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "90 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-22",
       "startTime": "2026-04-22T10:21:34",
       "km": 42.3,
@@ -5392,6 +7183,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 10.5,
         "tempFeel": 8,
@@ -5416,7 +7209,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.706,
+            "note": "NP 187W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "46 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 56% · Z3/Z4+ 44% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-04-23",
       "startTime": "2026-04-23T10:12:33",
       "km": 22.2,
@@ -5473,6 +7290,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 9.1,
         "tempFeel": 5.8,
@@ -5497,7 +7316,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.506,
+            "note": "NP 134W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "292 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 98% · Z3/Z4+ 2% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-01",
       "startTime": "2026-05-01T09:27:37",
       "km": 111.3,
@@ -5554,6 +7398,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 17.8,
         "tempFeel": 16.5,
@@ -5578,7 +7424,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.615,
+            "note": "NP 163W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "68 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 87% · Z3/Z4+ 13% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-03",
       "startTime": "2026-05-03T11:47:39",
       "km": 27.7,
@@ -5635,6 +7505,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 26.2,
         "tempFeel": 23.7,
@@ -5659,7 +7531,32 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.366,
+            "note": "NP 97W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "14 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-05",
       "startTime": "2026-05-05T15:35:19",
       "km": 4.8,
@@ -5716,6 +7613,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 17.7,
         "tempFeel": 17,
@@ -5740,7 +7639,31 @@
       "week": null,
       "phase": null,
       "typ": "Tempo",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Tempo",
+      "typDetection": {
+        "type": "Tempo",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.898,
+            "note": "NP 238W ÷ FTP 265W — im Tempo-Band (0.85–0.9)"
+          },
+          {
+            "label": "Dauer",
+            "value": "32 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 9% · Z3/Z4+ 87% · Z5+ 4%",
+            "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-tempo"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-05",
       "startTime": "2026-05-05T14:43:30",
       "km": 18.4,
@@ -5797,6 +7720,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 18,
         "tempFeel": 17.9,
@@ -5821,7 +7746,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.558,
+            "note": "NP 148W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "78 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-06",
       "startTime": "2026-05-06T21:53:52",
       "km": 21.1,
@@ -5878,6 +7827,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 11.3,
         "tempFeel": 9.1,
@@ -5902,7 +7853,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.706,
+            "note": "NP 187W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "46 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 57% · Z3/Z4+ 43% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-07",
       "startTime": "2026-05-07T11:50:52",
       "km": 20.3,
@@ -5959,6 +7934,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 8,
         "tempFeel": 5.1,
@@ -5983,7 +7960,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.706,
+            "note": "NP 187W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "40 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 56% · Z3/Z4+ 44% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-09",
       "startTime": "2026-05-09T10:43:57",
       "km": 18.5,
@@ -6040,6 +8041,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 13.5,
         "tempFeel": 11.9,
@@ -6064,7 +8067,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.713,
+            "note": "NP 189W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "71 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 64% · Z3/Z4+ 36% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-11",
       "startTime": "2026-05-11T12:51:50",
       "km": 33.3,
@@ -6121,6 +8148,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 11,
         "tempFeel": 7.4,
@@ -6145,7 +8174,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.517,
+            "note": "NP 137W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "18 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-12",
       "startTime": "2026-05-12T15:26:01",
       "km": 7.6,
@@ -6202,6 +8256,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 7.7,
         "tempFeel": 3.2,
@@ -6226,7 +8282,31 @@
       "week": null,
       "phase": null,
       "typ": "FTP-Test",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.962,
+            "note": "NP 255W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "23 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 6% · Z3/Z4+ 78% · Z5+ 15%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-12",
       "startTime": "2026-05-12T15:01:14",
       "km": 13.8,
@@ -6283,6 +8363,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 7.7,
         "tempFeel": 3.2,
@@ -6307,7 +8389,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.558,
+            "note": "NP 148W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "78 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-13",
       "startTime": "2026-05-13T12:09:40",
       "km": 20.9,
@@ -6364,6 +8470,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 11.1,
         "tempFeel": 7.4,
@@ -6388,7 +8496,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.408,
+            "note": "NP 108W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "12 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-19",
       "startTime": "2026-05-19T15:28:01",
       "km": 5,
@@ -6445,6 +8578,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 17.8,
         "tempFeel": 16.3,
@@ -6469,7 +8604,31 @@
       "week": null,
       "phase": null,
       "typ": "FTP-Test",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1,
+            "note": "NP 265W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "26 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 9% · Z3/Z4+ 75% · Z5+ 16%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-19",
       "startTime": "2026-05-19T15:01:07",
       "km": 14.3,
@@ -6526,6 +8685,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 17.8,
         "tempFeel": 16.3,
@@ -6550,7 +8711,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.525,
+            "note": "NP 139W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "70 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-20",
       "startTime": "2026-05-20T11:01:38",
       "km": 30.2,
@@ -6607,6 +8792,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 18.4,
         "tempFeel": 17.2,
@@ -6631,7 +8818,36 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.789,
+            "note": "NP 209W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "32 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "7 min zusammenhängend über Schwelle (288 W, 21.1% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 71% · Z3/Z4+ 16% · Z5+ 13%",
+            "note": "weicht von der IF-Einstufung ab — Z3/Z4+-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-21",
       "startTime": "2026-05-21T15:20:44",
       "km": 14.8,
@@ -6688,6 +8904,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 20,
         "tempFeel": 18.3,
@@ -6712,7 +8930,36 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.743,
+            "note": "NP 197W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "59 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "5 min zusammenhängend über Schwelle (243 W, 8.9% der Fahrzeit)",
+            "note": "hebt Einstufung von Z1 Recovery auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 46% · Z5+ 1%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-24",
       "startTime": "2026-05-24T09:51:26",
       "km": 27.8,
@@ -6769,6 +9016,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.5,
         "tempFeel": 23.2,
@@ -6793,7 +9042,31 @@
       "week": null,
       "phase": null,
       "typ": "Z1 Recovery",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.608,
+            "note": "NP 161W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "49 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 95% · Z3/Z4+ 5% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-26",
       "startTime": "2026-05-26T17:42:39",
       "km": 22.7,
@@ -6850,6 +9123,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 29.6,
         "tempFeel": 28.1,
@@ -6874,7 +9149,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Lang",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.343,
+            "note": "NP 91W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "177 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-28",
       "startTime": "2026-05-28T11:53:17",
       "km": 65,
@@ -6931,6 +9231,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 18.2,
         "tempFeel": 17.2,
@@ -6955,7 +9257,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.811,
+            "note": "NP 215W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "34 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 25% · Z3/Z4+ 74% · Z5+ 1%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-29",
       "startTime": "2026-05-29T14:07:06",
       "km": 16.2,
@@ -7012,6 +9338,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 25.5,
         "tempFeel": 24.9,
@@ -7036,7 +9364,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2 Dauer",
-      "plan": "Vergleich",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.717,
+            "note": "NP 190W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "69 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 73% · Z3/Z4+ 24% · Z5+ 4%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-05-31",
       "startTime": "2026-05-31T09:20:25",
       "km": 32.5,
@@ -7093,6 +9445,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 19.6,
         "tempFeel": 19.8,
@@ -7117,7 +9471,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.472,
+            "note": "NP 125W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "18 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 97% · Z3/Z4+ 3% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-06-02",
       "startTime": "2026-06-02T15:37:27",
       "km": 6.3,
@@ -7174,6 +9553,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 24.2,
         "tempFeel": 22.2,
@@ -7198,7 +9579,36 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.94,
+            "note": "NP 249W ÷ FTP 265W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "34 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "7 min zusammenhängend über Schwelle (263 W, 20.5% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 11% · Z3/Z4+ 75% · Z5+ 13%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-02",
       "startTime": "2026-06-02T15:01:20",
       "km": 20,
@@ -7255,6 +9665,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 24.2,
         "tempFeel": 22.2,
@@ -7279,7 +9691,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.558,
+            "note": "NP 148W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "50 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-03",
       "startTime": "2026-06-03T12:00:06",
       "km": 16.1,
@@ -7336,6 +9772,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 19.4,
         "tempFeel": 18,
@@ -7360,7 +9798,36 @@
       "week": null,
       "phase": null,
       "typ": "Sweet Spot",
-      "plan": "Vergleich",
+      "typPlanned": "Sweet Spot",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.815,
+            "note": "NP 216W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "55 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "15 min zusammenhängend über Schwelle (244 W, 27.2% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 46% · Z3/Z4+ 54% · Z5+ 0%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-04",
       "startTime": "2026-06-04T11:15:33",
       "km": 27.1,
@@ -7417,6 +9884,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 21,
         "tempFeel": 19.3,
@@ -7441,7 +9910,31 @@
       "week": null,
       "phase": null,
       "typ": "Rennen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.325,
+            "note": "NP 86W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "24 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-06",
       "startTime": "2026-06-06T14:06:04",
       "km": 8.3,
@@ -7498,6 +9991,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.6,
         "tempFeel": 21.7,
@@ -7522,7 +10017,36 @@
       "week": null,
       "phase": null,
       "typ": "Rennen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.894,
+            "note": "NP 237W ÷ FTP 265W — im Tempo-Band (0.85–0.9)"
+          },
+          {
+            "label": "Dauer",
+            "value": "60 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "9 min zusammenhängend über Schwelle (239 W, 15.2% der Fahrzeit)",
+            "note": "hebt Einstufung von Tempo auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 21% · Z3/Z4+ 65% · Z5+ 14%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-06",
       "startTime": "2026-06-06T13:01:17",
       "km": 32.1,
@@ -7579,6 +10103,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.1,
         "tempFeel": 21.9,
@@ -7603,7 +10129,32 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.479,
+            "note": "NP 127W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "353 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-09",
       "startTime": "2026-06-09T11:24:09",
       "km": 143.9,
@@ -7660,6 +10211,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 17.9,
         "tempFeel": 14.5,
@@ -7684,7 +10237,31 @@
       "week": null,
       "phase": null,
       "typ": "Sweet Spot",
-      "plan": "Vergleich",
+      "typPlanned": "Sweet Spot",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.781,
+            "note": "NP 207W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "55 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 46% · Z3/Z4+ 54% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-11",
       "startTime": "2026-06-11T08:53:55",
       "km": 28.7,
@@ -7741,6 +10318,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 13.8,
         "tempFeel": 11,
@@ -7765,7 +10344,32 @@
       "week": null,
       "phase": null,
       "typ": "Rennen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.687,
+            "note": "NP 182W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "182 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 72% · Z3/Z4+ 26% · Z5+ 3%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-13",
       "startTime": "2026-06-13T10:20:21",
       "km": 53.1,
@@ -7822,6 +10426,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 19.4,
         "tempFeel": 16.7,
@@ -7846,7 +10452,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.408,
+            "note": "NP 108W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "16 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-06-16",
       "startTime": "2026-06-16T15:32:54",
       "km": 6.2,
@@ -7903,6 +10534,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 21.3,
         "tempFeel": 22.2,
@@ -7927,7 +10560,36 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Schwelle",
+      "typDetection": {
+        "type": "Schwelle",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.966,
+            "note": "NP 256W ÷ FTP 265W — im Schwellenbereich (0.95–1.05)"
+          },
+          {
+            "label": "Dauer",
+            "value": "30 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "7 min zusammenhängend über Schwelle (251 W, 22.1% der Fahrzeit)",
+            "note": "bestätigt Schwelle"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 8% · Z3/Z4+ 75% · Z5+ 17%",
+            "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-schwelle"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-16",
       "startTime": "2026-06-16T15:01:03",
       "km": 16.5,
@@ -7984,6 +10646,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 21.3,
         "tempFeel": 22.2,
@@ -8008,7 +10672,31 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.781,
+            "note": "NP 207W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "55 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 46% · Z3/Z4+ 54% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-16",
       "startTime": "2026-06-16T13:54:53",
       "km": 28.7,
@@ -8065,6 +10753,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 19,
         "tempFeel": 18.2,
@@ -8089,7 +10779,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.528,
+            "note": "NP 140W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "61 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-17",
       "startTime": "2026-06-17T10:19:44",
       "km": 27.7,
@@ -8146,6 +10860,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 21.1,
         "tempFeel": 20.9,
@@ -8170,7 +10886,31 @@
       "week": null,
       "phase": null,
       "typ": "NLS",
-      "plan": "Vergleich",
+      "typPlanned": "NLS",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.751,
+            "note": "NP 199W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "55 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 48% · Z3/Z4+ 52% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-18",
       "startTime": "2026-06-18T10:54:56",
       "km": 27,
@@ -8227,6 +10967,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 25.3,
         "tempFeel": 26.9,
@@ -8251,7 +10993,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.34,
+            "note": "NP 90W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "28 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-24",
       "startTime": "2026-06-24T16:08:10",
       "km": 10.7,
@@ -8308,6 +11074,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 31.6,
         "tempFeel": 32.3,
@@ -8332,7 +11100,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.026,
+            "note": "NP 272W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "20 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 2% · Z3/Z4+ 66% · Z5+ 32%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-24",
       "startTime": "2026-06-24T15:42:46",
       "km": 12.2,
@@ -8389,6 +11181,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 31.5,
         "tempFeel": 33.5,
@@ -8413,7 +11207,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.702,
+            "note": "NP 186W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "11 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 79% · Z3/Z4+ 14% · Z5+ 7%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-24",
       "startTime": "2026-06-24T15:30:45",
       "km": 5,
@@ -8470,6 +11289,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 31.5,
         "tempFeel": 33.5,
@@ -8494,7 +11315,31 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": "Schwelle",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.543,
+            "note": "NP 144W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "61 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-25",
       "startTime": "2026-06-25T07:45:20",
       "km": 27.7,
@@ -8551,6 +11396,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 25,
         "tempFeel": 26.8,
@@ -8575,7 +11422,31 @@
       "week": null,
       "phase": null,
       "typ": "Rennen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.302,
+            "note": "NP 80W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "23 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-27",
       "startTime": "2026-06-27T18:18:34",
       "km": 8.3,
@@ -8632,6 +11503,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 34.3,
         "tempFeel": 35.9,
@@ -8656,7 +11529,31 @@
       "week": null,
       "phase": null,
       "typ": "Rennen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.826,
+            "note": "NP 219W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "71 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 32% · Z3/Z4+ 63% · Z5+ 5%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-27",
       "startTime": "2026-06-27T17:02:39",
       "km": 37.2,
@@ -8713,6 +11610,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 33.7,
         "tempFeel": 34.9,
@@ -8737,7 +11636,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.509,
+            "note": "NP 135W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "60 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-28",
       "startTime": "2026-06-28T19:42:48",
       "km": 27.7,
@@ -8794,6 +11717,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 33.4,
         "tempFeel": 32.8,
@@ -8818,7 +11743,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.328,
+            "note": "NP 87W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "17 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-06-30",
       "startTime": "2026-06-30T15:39:08",
       "km": 6.3,
@@ -8875,6 +11825,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 27.9,
         "tempFeel": 27.4,
@@ -8899,7 +11851,36 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.947,
+            "note": "NP 251W ÷ FTP 265W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "34 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "6 min zusammenhängend über Schwelle (281 W, 18.1% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 12% · Z3/Z4+ 71% · Z5+ 17%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-30",
       "startTime": "2026-06-30T15:01:27",
       "km": 20.1,
@@ -8956,6 +11937,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 27.9,
         "tempFeel": 27.4,
@@ -8980,7 +11963,32 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.362,
+            "note": "NP 96W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "255 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-01",
       "startTime": "2026-07-01T15:40:40",
       "km": 100.9,
@@ -9037,6 +12045,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 22.1,
         "tempFeel": 22.8,
@@ -9061,7 +12071,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": "Schwelle",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.8,
+            "note": "NP 212W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "59 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "8 min zusammenhängend über Schwelle (253 W, 13.6% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 60% · Z3/Z4+ 37% · Z5+ 4%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-02",
       "startTime": "2026-07-02T11:58:00",
       "km": 30.9,
@@ -9118,6 +12157,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.9,
         "tempFeel": 23.5,
@@ -9142,7 +12183,31 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.298,
+            "note": "NP 79W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "23 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-07-04",
       "startTime": "2026-07-04T13:50:35",
       "km": 8.3,
@@ -9199,6 +12264,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 16,
         "tempFeel": 14.8,
@@ -9223,7 +12290,36 @@
       "week": null,
       "phase": null,
       "typ": "Rennen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.932,
+            "note": "NP 247W ÷ FTP 265W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "48 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "11 min zusammenhängend über Schwelle (255 W, 22.3% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 12% · Z3/Z4+ 73% · Z5+ 15%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-04",
       "startTime": "2026-07-04T13:00:28",
       "km": 28.2,
@@ -9280,6 +12376,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 16,
         "tempFeel": 14.8,
@@ -9304,7 +12402,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.574,
+            "note": "NP 152W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "62 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 98% · Z3/Z4+ 2% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-05",
       "startTime": "2026-07-05T11:04:36",
       "km": 27.5,
@@ -9361,6 +12483,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 21,
         "tempFeel": 19.5,
@@ -9385,7 +12509,31 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.589,
+            "note": "NP 156W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "60 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 96% · Z3/Z4+ 4% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-07",
       "startTime": "2026-07-07T16:45:59",
       "km": 27.5,
@@ -9442,6 +12590,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 22.3,
         "tempFeel": 20.9,
@@ -9466,7 +12616,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.351,
+            "note": "NP 93W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "28 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-08",
       "startTime": "2026-07-08T16:11:43",
       "km": 10.7,
@@ -9523,6 +12697,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 22.5,
         "tempFeel": 20.5,
@@ -9547,7 +12723,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.015,
+            "note": "NP 269W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "23 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 6% · Z3/Z4+ 53% · Z5+ 41%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-08",
       "startTime": "2026-07-08T15:45:36",
       "km": 13.7,
@@ -9604,6 +12804,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 22.2,
         "tempFeel": 20.9,
@@ -9628,7 +12830,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": "Schwelle",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.845,
+            "note": "NP 224W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "67 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "11 min zusammenhängend über Schwelle (264 W, 15.7% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 38% · Z5+ 9%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-09",
       "startTime": "2026-07-09T11:10:50",
       "km": 35.5,
@@ -9685,6 +12916,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 18.2,
         "tempFeel": 17,
@@ -9709,7 +12942,31 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.336,
+            "note": "NP 89W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "25 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-07-11",
       "startTime": "2026-07-11T13:58:04",
       "km": 9.2,
@@ -9766,6 +13023,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 26.7,
         "tempFeel": 27.2,
@@ -9790,7 +13049,31 @@
       "week": null,
       "phase": null,
       "typ": "Rennen",
-      "plan": "Vergleich",
+      "typPlanned": "Rennen",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.913,
+            "note": "NP 242W ÷ FTP 265W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "54 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 8% · Z3/Z4+ 83% · Z5+ 9%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-11",
       "startTime": "2026-07-11T13:01:35",
       "km": 32.2,
@@ -9847,6 +13130,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 26.7,
         "tempFeel": 27.2,
@@ -9871,7 +13156,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.577,
+            "note": "NP 153W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "55 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 97% · Z3/Z4+ 3% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-12",
       "startTime": "2026-07-12T20:36:23",
       "km": 27.8,
@@ -9928,6 +13237,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 27.5,
         "tempFeel": 26.9,
@@ -9952,7 +13263,31 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.498,
+            "note": "NP 132W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "20 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-07-14",
       "startTime": "2026-07-14T15:33:44",
       "km": 7.6,
@@ -10009,6 +13344,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 24.4,
         "tempFeel": 25.3,
@@ -10033,7 +13370,31 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.03,
+            "note": "NP 273W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "29 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 11% · Z3/Z4+ 56% · Z5+ 33%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-14",
       "startTime": "2026-07-14T15:01:40",
       "km": 16.7,
@@ -10090,6 +13451,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 24.4,
         "tempFeel": 25.3,
@@ -10114,7 +13477,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.796,
+            "note": "NP 211W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "56 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 33% · Z3/Z4+ 64% · Z5+ 3%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-15",
       "startTime": "2026-07-15T20:50:32",
       "km": 27.9,
@@ -10171,6 +13558,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 24.1,
         "tempFeel": 22,
@@ -10195,7 +13584,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": "Schwelle",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.845,
+            "note": "NP 224W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "67 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "11 min zusammenhängend über Schwelle (257 W, 15.8% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 43% · Z5+ 4%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-16",
       "startTime": "2026-07-16T21:33:23",
       "km": 34,
@@ -10252,6 +13670,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 24.4,
         "tempFeel": 23,
@@ -10276,7 +13696,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.472,
+            "note": "NP 125W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "16 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-07-21",
       "startTime": "2026-07-21T15:33:10",
       "km": 6.8,
@@ -10333,6 +13778,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.5,
         "tempFeel": 20.5,
@@ -10357,7 +13804,31 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.996,
+            "note": "NP 264W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "29 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 7% · Z3/Z4+ 72% · Z5+ 21%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-21",
       "startTime": "2026-07-21T15:01:02",
       "km": 18.3,
@@ -10414,6 +13885,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.5,
         "tempFeel": 20.5,
@@ -10438,7 +13911,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.694,
+            "note": "NP 184W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "60 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 76% · Z3/Z4+ 23% · Z5+ 1%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-22",
       "startTime": "2026-07-22T11:15:45",
       "km": 27.7,
@@ -10495,6 +13992,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 17.7,
         "tempFeel": 15,
@@ -10519,7 +14018,36 @@
       "week": null,
       "phase": null,
       "typ": "Schwelle",
-      "plan": "Vergleich",
+      "typPlanned": "Schwelle",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.804,
+            "note": "NP 213W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "66 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "12 min zusammenhängend über Schwelle (251 W, 18.1% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 47% · Z5+ 0%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-23",
       "startTime": "2026-07-23T13:49:23",
       "km": 29.9,
@@ -10576,6 +14104,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 19.4,
         "tempFeel": 17.1,
@@ -10600,7 +14130,32 @@
       "week": null,
       "phase": null,
       "typ": "Ausrollen",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "niedrig",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.374,
+            "note": "NP 99W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "16 min",
+            "note": "unter 20 min — Einstufung unsicher"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 100% · Z3/Z4+ 0% · Z5+ 0%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-07-28",
       "startTime": "2026-07-28T15:26:00",
       "km": 6.2,
@@ -10657,6 +14212,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.2,
         "tempFeel": 23,
@@ -10681,7 +14238,31 @@
       "week": null,
       "phase": null,
       "typ": "VO2max",
-      "plan": "Vergleich",
+      "typPlanned": "VO2max",
+      "typDetected": "FTP-Test",
+      "typDetection": {
+        "type": "FTP-Test",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.026,
+            "note": "NP 272W ÷ FTP 265W — über 0.95 IF bei unter 30 min — FTP-Test-Muster"
+          },
+          {
+            "label": "Dauer",
+            "value": "23 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 8% · Z3/Z4+ 69% · Z5+ 23%",
+            "note": "bestätigt FTP-Test (Z5+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "ftp-test"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-28",
       "startTime": "2026-07-28T15:01:34",
       "km": 13.8,
@@ -10738,6 +14319,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.2,
         "tempFeel": 23,
@@ -10762,7 +14345,31 @@
       "week": null,
       "phase": null,
       "typ": "Z2",
-      "plan": "Vergleich",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.664,
+            "note": "NP 176W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "61 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 80% · Z3/Z4+ 18% · Z5+ 2%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-29",
       "startTime": "2026-07-29T10:19:17",
       "km": 27.8,
@@ -10819,6 +14426,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 25.5,
         "tempFeel": 24.4,
@@ -10843,7 +14452,31 @@
       "week": null,
       "phase": null,
       "typ": "NLS",
-      "plan": "Vergleich",
+      "typPlanned": "NLS",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.589,
+            "note": "NP 156W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "62 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 93% · Z3/Z4+ 6% · Z5+ 1%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-30",
       "startTime": "2026-07-30T11:05:43",
       "km": 27.8,
@@ -10900,6 +14533,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 33.5,
         "tempFeel": 34.6,
@@ -10924,6 +14559,7 @@
     {
       "date": "2026-01-01",
       "sleepHours": 8.2,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -10939,6 +14575,7 @@
     {
       "date": "2026-01-02",
       "sleepHours": 8.1,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -10954,6 +14591,7 @@
     {
       "date": "2026-01-03",
       "sleepHours": 11.2,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -10969,6 +14607,7 @@
     {
       "date": "2026-01-04",
       "sleepHours": 9.7,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -10984,6 +14623,7 @@
     {
       "date": "2026-01-05",
       "sleepHours": 10,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -10999,6 +14639,7 @@
     {
       "date": "2026-01-06",
       "sleepHours": 7.7,
+      "sleepScore": 87,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11014,6 +14655,7 @@
     {
       "date": "2026-01-07",
       "sleepHours": 8.8,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11029,6 +14671,7 @@
     {
       "date": "2026-01-08",
       "sleepHours": 7.5,
+      "sleepScore": 83,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11044,6 +14687,7 @@
     {
       "date": "2026-01-09",
       "sleepHours": 7.7,
+      "sleepScore": 81,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11059,6 +14703,7 @@
     {
       "date": "2026-01-10",
       "sleepHours": 7.7,
+      "sleepScore": 83,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11074,6 +14719,7 @@
     {
       "date": "2026-01-11",
       "sleepHours": 5.9,
+      "sleepScore": 60,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -11089,6 +14735,7 @@
     {
       "date": "2026-01-12",
       "sleepHours": 8.6,
+      "sleepScore": 86,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11104,6 +14751,7 @@
     {
       "date": "2026-01-13",
       "sleepHours": 7.5,
+      "sleepScore": 66,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -11119,6 +14767,7 @@
     {
       "date": "2026-01-14",
       "sleepHours": 8.5,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11134,6 +14783,7 @@
     {
       "date": "2026-01-15",
       "sleepHours": 8.3,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11149,6 +14799,7 @@
     {
       "date": "2026-01-16",
       "sleepHours": 8.1,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11164,6 +14815,7 @@
     {
       "date": "2026-01-17",
       "sleepHours": 7.4,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -11179,6 +14831,7 @@
     {
       "date": "2026-01-18",
       "sleepHours": 6.8,
+      "sleepScore": 74,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11194,6 +14847,7 @@
     {
       "date": "2026-01-19",
       "sleepHours": 6.7,
+      "sleepScore": 70,
       "avgSleepingHR": null,
       "restingHR": 55,
       "hrv": null,
@@ -11209,6 +14863,7 @@
     {
       "date": "2026-01-20",
       "sleepHours": 9.1,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -11224,6 +14879,7 @@
     {
       "date": "2026-01-21",
       "sleepHours": 9.4,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11239,6 +14895,7 @@
     {
       "date": "2026-01-22",
       "sleepHours": 6.7,
+      "sleepScore": 71,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11254,6 +14911,7 @@
     {
       "date": "2026-01-23",
       "sleepHours": 8.8,
+      "sleepScore": 71,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11269,6 +14927,7 @@
     {
       "date": "2026-01-24",
       "sleepHours": 7.5,
+      "sleepScore": 80,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11284,6 +14943,7 @@
     {
       "date": "2026-01-25",
       "sleepHours": 8.8,
+      "sleepScore": 86,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11299,6 +14959,7 @@
     {
       "date": "2026-01-26",
       "sleepHours": 7.4,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11314,6 +14975,7 @@
     {
       "date": "2026-01-27",
       "sleepHours": 8.8,
+      "sleepScore": 86,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -11329,6 +14991,7 @@
     {
       "date": "2026-01-28",
       "sleepHours": 8.3,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11344,6 +15007,7 @@
     {
       "date": "2026-01-29",
       "sleepHours": 6.9,
+      "sleepScore": 72,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11359,6 +15023,7 @@
     {
       "date": "2026-01-30",
       "sleepHours": 8.3,
+      "sleepScore": 81,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11374,6 +15039,7 @@
     {
       "date": "2026-01-31",
       "sleepHours": 8.2,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11389,6 +15055,7 @@
     {
       "date": "2026-02-01",
       "sleepHours": 9.3,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11404,6 +15071,7 @@
     {
       "date": "2026-02-02",
       "sleepHours": 8.6,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -11419,6 +15087,7 @@
     {
       "date": "2026-02-03",
       "sleepHours": 8.2,
+      "sleepScore": 72,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -11434,6 +15103,7 @@
     {
       "date": "2026-02-04",
       "sleepHours": 8.5,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11449,6 +15119,7 @@
     {
       "date": "2026-02-05",
       "sleepHours": 7.1,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11464,6 +15135,7 @@
     {
       "date": "2026-02-06",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -11479,6 +15151,7 @@
     {
       "date": "2026-02-07",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -11494,6 +15167,7 @@
     {
       "date": "2026-02-08",
       "sleepHours": 8.2,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -11509,6 +15183,7 @@
     {
       "date": "2026-02-09",
       "sleepHours": 6.6,
+      "sleepScore": 69,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11524,6 +15199,7 @@
     {
       "date": "2026-02-10",
       "sleepHours": 8.7,
+      "sleepScore": 88,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11539,6 +15215,7 @@
     {
       "date": "2026-02-11",
       "sleepHours": 8.6,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11554,6 +15231,7 @@
     {
       "date": "2026-02-12",
       "sleepHours": 6.6,
+      "sleepScore": 66,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11569,6 +15247,7 @@
     {
       "date": "2026-02-13",
       "sleepHours": 8.5,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11584,6 +15263,7 @@
     {
       "date": "2026-02-14",
       "sleepHours": 7.1,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11599,6 +15279,7 @@
     {
       "date": "2026-02-15",
       "sleepHours": 8.3,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11614,6 +15295,7 @@
     {
       "date": "2026-02-16",
       "sleepHours": 8,
+      "sleepScore": 81,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -11629,6 +15311,7 @@
     {
       "date": "2026-02-17",
       "sleepHours": 9.2,
+      "sleepScore": 86,
       "avgSleepingHR": null,
       "restingHR": 49,
       "hrv": null,
@@ -11644,6 +15327,7 @@
     {
       "date": "2026-02-18",
       "sleepHours": 7.5,
+      "sleepScore": 83,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11659,6 +15343,7 @@
     {
       "date": "2026-02-19",
       "sleepHours": 8.3,
+      "sleepScore": 80,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11674,6 +15359,7 @@
     {
       "date": "2026-02-20",
       "sleepHours": 6.9,
+      "sleepScore": 68,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11689,6 +15375,7 @@
     {
       "date": "2026-02-21",
       "sleepHours": 6.5,
+      "sleepScore": 72,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11704,6 +15391,7 @@
     {
       "date": "2026-02-22",
       "sleepHours": 8.7,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11719,6 +15407,7 @@
     {
       "date": "2026-02-23",
       "sleepHours": 7.7,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -11734,6 +15423,7 @@
     {
       "date": "2026-02-24",
       "sleepHours": 8.3,
+      "sleepScore": 70,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11749,6 +15439,7 @@
     {
       "date": "2026-02-25",
       "sleepHours": 9.5,
+      "sleepScore": 80,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11764,6 +15455,7 @@
     {
       "date": "2026-02-26",
       "sleepHours": 8.6,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11779,6 +15471,7 @@
     {
       "date": "2026-02-27",
       "sleepHours": 8.4,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11794,6 +15487,7 @@
     {
       "date": "2026-02-28",
       "sleepHours": 7.8,
+      "sleepScore": 88,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11809,6 +15503,7 @@
     {
       "date": "2026-03-01",
       "sleepHours": 4.3,
+      "sleepScore": 47,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -11824,6 +15519,7 @@
     {
       "date": "2026-03-02",
       "sleepHours": 8.1,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11839,6 +15535,7 @@
     {
       "date": "2026-03-03",
       "sleepHours": 8.6,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11854,6 +15551,7 @@
     {
       "date": "2026-03-04",
       "sleepHours": 8.5,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11869,6 +15567,7 @@
     {
       "date": "2026-03-05",
       "sleepHours": 8.4,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11884,6 +15583,7 @@
     {
       "date": "2026-03-06",
       "sleepHours": 6.7,
+      "sleepScore": 64,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11899,6 +15599,7 @@
     {
       "date": "2026-03-07",
       "sleepHours": 9.9,
+      "sleepScore": 70,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -11914,6 +15615,7 @@
     {
       "date": "2026-03-08",
       "sleepHours": 8,
+      "sleepScore": 81,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -11929,6 +15631,7 @@
     {
       "date": "2026-03-09",
       "sleepHours": 7.7,
+      "sleepScore": 72,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -11944,6 +15647,7 @@
     {
       "date": "2026-03-10",
       "sleepHours": 9.2,
+      "sleepScore": 68,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -11959,6 +15663,7 @@
     {
       "date": "2026-03-11",
       "sleepHours": 8.3,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 60,
       "hrv": null,
@@ -11974,6 +15679,7 @@
     {
       "date": "2026-03-12",
       "sleepHours": 8.5,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -11989,6 +15695,7 @@
     {
       "date": "2026-03-13",
       "sleepHours": 7.3,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 61,
       "hrv": null,
@@ -12004,6 +15711,7 @@
     {
       "date": "2026-03-14",
       "sleepHours": 7.5,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -12019,6 +15727,7 @@
     {
       "date": "2026-03-15",
       "sleepHours": 7.4,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -12034,6 +15743,7 @@
     {
       "date": "2026-03-16",
       "sleepHours": 7.5,
+      "sleepScore": 83,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12049,6 +15759,7 @@
     {
       "date": "2026-03-17",
       "sleepHours": 7.7,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12064,6 +15775,7 @@
     {
       "date": "2026-03-18",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -12079,6 +15791,7 @@
     {
       "date": "2026-03-19",
       "sleepHours": 7.4,
+      "sleepScore": 72,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -12094,6 +15807,7 @@
     {
       "date": "2026-03-20",
       "sleepHours": 7.4,
+      "sleepScore": 81,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12109,6 +15823,7 @@
     {
       "date": "2026-03-21",
       "sleepHours": 7.3,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12124,6 +15839,7 @@
     {
       "date": "2026-03-22",
       "sleepHours": 8,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12139,6 +15855,7 @@
     {
       "date": "2026-03-23",
       "sleepHours": 8.5,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -12154,6 +15871,7 @@
     {
       "date": "2026-03-24",
       "sleepHours": 8.4,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -12169,6 +15887,7 @@
     {
       "date": "2026-03-25",
       "sleepHours": 6.4,
+      "sleepScore": 68,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -12184,6 +15903,7 @@
     {
       "date": "2026-03-26",
       "sleepHours": 8.8,
+      "sleepScore": 80,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -12199,6 +15919,7 @@
     {
       "date": "2026-03-27",
       "sleepHours": 7.7,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -12214,6 +15935,7 @@
     {
       "date": "2026-03-28",
       "sleepHours": 7.7,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -12229,6 +15951,7 @@
     {
       "date": "2026-03-29",
       "sleepHours": 7.4,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12244,6 +15967,7 @@
     {
       "date": "2026-03-30",
       "sleepHours": 8.3,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -12259,6 +15983,7 @@
     {
       "date": "2026-03-31",
       "sleepHours": 9,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12274,6 +15999,7 @@
     {
       "date": "2026-04-01",
       "sleepHours": 7.8,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12289,6 +16015,7 @@
     {
       "date": "2026-04-02",
       "sleepHours": 6.4,
+      "sleepScore": 69,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12304,6 +16031,7 @@
     {
       "date": "2026-04-03",
       "sleepHours": 8.1,
+      "sleepScore": 87,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12319,6 +16047,7 @@
     {
       "date": "2026-04-04",
       "sleepHours": 5.8,
+      "sleepScore": 60,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12334,6 +16063,7 @@
     {
       "date": "2026-04-05",
       "sleepHours": 7.9,
+      "sleepScore": 83,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -12349,6 +16079,7 @@
     {
       "date": "2026-04-06",
       "sleepHours": 8.3,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12364,6 +16095,7 @@
     {
       "date": "2026-04-07",
       "sleepHours": 8,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -12379,6 +16111,7 @@
     {
       "date": "2026-04-08",
       "sleepHours": 8.7,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 63,
       "hrv": null,
@@ -12394,6 +16127,7 @@
     {
       "date": "2026-04-09",
       "sleepHours": 8.2,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12409,6 +16143,7 @@
     {
       "date": "2026-04-10",
       "sleepHours": 7.1,
+      "sleepScore": 72,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12424,6 +16159,7 @@
     {
       "date": "2026-04-11",
       "sleepHours": 7.7,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -12439,6 +16175,7 @@
     {
       "date": "2026-04-12",
       "sleepHours": 9.9,
+      "sleepScore": 70,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12454,6 +16191,7 @@
     {
       "date": "2026-04-13",
       "sleepHours": 8,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 63,
       "hrv": null,
@@ -12469,6 +16207,7 @@
     {
       "date": "2026-04-14",
       "sleepHours": 8.5,
+      "sleepScore": 74,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12484,6 +16223,7 @@
     {
       "date": "2026-04-15",
       "sleepHours": 7.8,
+      "sleepScore": 74,
       "avgSleepingHR": null,
       "restingHR": 55,
       "hrv": null,
@@ -12499,6 +16239,7 @@
     {
       "date": "2026-04-16",
       "sleepHours": 8.5,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12514,6 +16255,7 @@
     {
       "date": "2026-04-17",
       "sleepHours": 7.8,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12529,6 +16271,7 @@
     {
       "date": "2026-04-18",
       "sleepHours": 7,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12544,6 +16287,7 @@
     {
       "date": "2026-04-19",
       "sleepHours": 7,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12559,6 +16303,7 @@
     {
       "date": "2026-04-20",
       "sleepHours": 7.8,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12574,6 +16319,7 @@
     {
       "date": "2026-04-21",
       "sleepHours": 8.4,
+      "sleepScore": 80,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12589,6 +16335,7 @@
     {
       "date": "2026-04-22",
       "sleepHours": 8.4,
+      "sleepScore": 87,
       "avgSleepingHR": null,
       "restingHR": 55,
       "hrv": null,
@@ -12604,6 +16351,7 @@
     {
       "date": "2026-04-23",
       "sleepHours": 8.1,
+      "sleepScore": 88,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12619,6 +16367,7 @@
     {
       "date": "2026-04-24",
       "sleepHours": 8.3,
+      "sleepScore": 76,
       "avgSleepingHR": null,
       "restingHR": 55,
       "hrv": null,
@@ -12634,6 +16383,7 @@
     {
       "date": "2026-04-25",
       "sleepHours": 7.6,
+      "sleepScore": 86,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12649,6 +16399,7 @@
     {
       "date": "2026-04-26",
       "sleepHours": 10.1,
+      "sleepScore": 80,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12664,6 +16415,7 @@
     {
       "date": "2026-04-27",
       "sleepHours": 6.7,
+      "sleepScore": 73,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12679,6 +16431,7 @@
     {
       "date": "2026-04-28",
       "sleepHours": 8.1,
+      "sleepScore": 88,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12694,6 +16447,7 @@
     {
       "date": "2026-04-29",
       "sleepHours": 9.6,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12709,6 +16463,7 @@
     {
       "date": "2026-04-30",
       "sleepHours": 9.8,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12724,6 +16479,7 @@
     {
       "date": "2026-05-01",
       "sleepHours": 8.2,
+      "sleepScore": 90,
       "avgSleepingHR": null,
       "restingHR": 49,
       "hrv": null,
@@ -12739,6 +16495,7 @@
     {
       "date": "2026-05-02",
       "sleepHours": 9.4,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12754,6 +16511,7 @@
     {
       "date": "2026-05-03",
       "sleepHours": 6.5,
+      "sleepScore": 68,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12769,6 +16527,7 @@
     {
       "date": "2026-05-04",
       "sleepHours": 8.7,
+      "sleepScore": 86,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12784,6 +16543,7 @@
     {
       "date": "2026-05-05",
       "sleepHours": 10.4,
+      "sleepScore": 71,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12799,6 +16559,7 @@
     {
       "date": "2026-05-06",
       "sleepHours": 9,
+      "sleepScore": 87,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12814,6 +16575,7 @@
     {
       "date": "2026-05-07",
       "sleepHours": 8.4,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 51,
       "hrv": null,
@@ -12829,6 +16591,7 @@
     {
       "date": "2026-05-08",
       "sleepHours": 8.3,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12844,6 +16607,7 @@
     {
       "date": "2026-05-09",
       "sleepHours": 7.5,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12859,6 +16623,7 @@
     {
       "date": "2026-05-10",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -12874,6 +16639,7 @@
     {
       "date": "2026-05-11",
       "sleepHours": 9,
+      "sleepScore": 81,
       "avgSleepingHR": null,
       "restingHR": 48,
       "hrv": null,
@@ -12889,6 +16655,7 @@
     {
       "date": "2026-05-12",
       "sleepHours": 10.1,
+      "sleepScore": 77,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12904,6 +16671,7 @@
     {
       "date": "2026-05-13",
       "sleepHours": 9.5,
+      "sleepScore": 71,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -12919,6 +16687,7 @@
     {
       "date": "2026-05-14",
       "sleepHours": 8.5,
+      "sleepScore": 70,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12934,6 +16703,7 @@
     {
       "date": "2026-05-15",
       "sleepHours": 7,
+      "sleepScore": 70,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -12949,6 +16719,7 @@
     {
       "date": "2026-05-16",
       "sleepHours": 8.9,
+      "sleepScore": 75,
       "avgSleepingHR": null,
       "restingHR": 55,
       "hrv": null,
@@ -12964,6 +16735,7 @@
     {
       "date": "2026-05-17",
       "sleepHours": 6.7,
+      "sleepScore": 67,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -12979,6 +16751,7 @@
     {
       "date": "2026-05-18",
       "sleepHours": 10.5,
+      "sleepScore": 71,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -12994,6 +16767,7 @@
     {
       "date": "2026-05-19",
       "sleepHours": 8.9,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13009,6 +16783,7 @@
     {
       "date": "2026-05-20",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -13024,6 +16799,7 @@
     {
       "date": "2026-05-21",
       "sleepHours": 8.7,
+      "sleepScore": 87,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13039,6 +16815,7 @@
     {
       "date": "2026-05-22",
       "sleepHours": 9,
+      "sleepScore": 80,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13054,6 +16831,7 @@
     {
       "date": "2026-05-23",
       "sleepHours": 7.8,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -13069,6 +16847,7 @@
     {
       "date": "2026-05-24",
       "sleepHours": 10.1,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -13084,6 +16863,7 @@
     {
       "date": "2026-05-25",
       "sleepHours": 6.3,
+      "sleepScore": 62,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13099,6 +16879,7 @@
     {
       "date": "2026-05-26",
       "sleepHours": 8.4,
+      "sleepScore": 89,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13114,6 +16895,7 @@
     {
       "date": "2026-05-27",
       "sleepHours": 8.4,
+      "sleepScore": 84,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13129,6 +16911,7 @@
     {
       "date": "2026-05-28",
       "sleepHours": 7,
+      "sleepScore": 74,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13144,6 +16927,7 @@
     {
       "date": "2026-05-29",
       "sleepHours": 8.4,
+      "sleepScore": 88,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13159,6 +16943,7 @@
     {
       "date": "2026-05-30",
       "sleepHours": 7.8,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -13174,6 +16959,7 @@
     {
       "date": "2026-05-31",
       "sleepHours": 8.5,
+      "sleepScore": 79,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -13189,6 +16975,7 @@
     {
       "date": "2026-06-01",
       "sleepHours": 9.9,
+      "sleepScore": 71,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -13204,6 +16991,7 @@
     {
       "date": "2026-06-02",
       "sleepHours": 7.1,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -13219,6 +17007,7 @@
     {
       "date": "2026-06-03",
       "sleepHours": 9.3,
+      "sleepScore": 73,
       "avgSleepingHR": null,
       "restingHR": 57,
       "hrv": null,
@@ -13234,6 +17023,7 @@
     {
       "date": "2026-06-04",
       "sleepHours": 8,
+      "sleepScore": 78,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13249,6 +17039,7 @@
     {
       "date": "2026-06-05",
       "sleepHours": 8.5,
+      "sleepScore": 87,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13264,6 +17055,7 @@
     {
       "date": "2026-06-06",
       "sleepHours": 8.1,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13279,6 +17071,7 @@
     {
       "date": "2026-06-07",
       "sleepHours": 9.2,
+      "sleepScore": 81,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -13294,6 +17087,7 @@
     {
       "date": "2026-06-08",
       "sleepHours": 8.1,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -13309,6 +17103,7 @@
     {
       "date": "2026-06-09",
       "sleepHours": 8.8,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 48,
       "hrv": null,
@@ -13324,6 +17119,7 @@
     {
       "date": "2026-06-10",
       "sleepHours": 9.3,
+      "sleepScore": 85,
       "avgSleepingHR": null,
       "restingHR": 56,
       "hrv": null,
@@ -13339,6 +17135,7 @@
     {
       "date": "2026-06-11",
       "sleepHours": 8.4,
+      "sleepScore": 92,
       "avgSleepingHR": null,
       "restingHR": 53,
       "hrv": null,
@@ -13354,6 +17151,7 @@
     {
       "date": "2026-06-12",
       "sleepHours": 8.6,
+      "sleepScore": 90,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -13369,6 +17167,7 @@
     {
       "date": "2026-06-13",
       "sleepHours": 8.3,
+      "sleepScore": 93,
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
@@ -13384,6 +17183,7 @@
     {
       "date": "2026-06-14",
       "sleepHours": 7.5,
+      "sleepScore": 82,
       "avgSleepingHR": null,
       "restingHR": 58,
       "hrv": null,
@@ -13399,6 +17199,7 @@
     {
       "date": "2026-06-15",
       "sleepHours": 10.1,
+      "sleepScore": 80,
       "avgSleepingHR": 54,
       "restingHR": 53,
       "hrv": 41,
@@ -13414,6 +17215,7 @@
     {
       "date": "2026-06-16",
       "sleepHours": 8.4,
+      "sleepScore": 89,
       "avgSleepingHR": 54,
       "restingHR": 53,
       "hrv": 38,
@@ -13429,6 +17231,7 @@
     {
       "date": "2026-06-17",
       "sleepHours": 7.7,
+      "sleepScore": 85,
       "avgSleepingHR": 55,
       "restingHR": 53,
       "hrv": 32,
@@ -13444,6 +17247,7 @@
     {
       "date": "2026-06-18",
       "sleepHours": 7.1,
+      "sleepScore": 74,
       "avgSleepingHR": 53,
       "restingHR": 52,
       "hrv": 32,
@@ -13459,6 +17263,7 @@
     {
       "date": "2026-06-19",
       "sleepHours": 7.4,
+      "sleepScore": 83,
       "avgSleepingHR": 60,
       "restingHR": 57,
       "hrv": 29,
@@ -13474,6 +17279,7 @@
     {
       "date": "2026-06-20",
       "sleepHours": 6.8,
+      "sleepScore": 73,
       "avgSleepingHR": 57,
       "restingHR": 53,
       "hrv": 32,
@@ -13489,6 +17295,7 @@
     {
       "date": "2026-06-21",
       "sleepHours": 10.4,
+      "sleepScore": 74,
       "avgSleepingHR": 53,
       "restingHR": 52,
       "hrv": 39,
@@ -13504,6 +17311,7 @@
     {
       "date": "2026-06-22",
       "sleepHours": 8.1,
+      "sleepScore": 88,
       "avgSleepingHR": 52,
       "restingHR": 49,
       "hrv": 40,
@@ -13519,6 +17327,7 @@
     {
       "date": "2026-06-23",
       "sleepHours": 7.4,
+      "sleepScore": 85,
       "avgSleepingHR": 53,
       "restingHR": 51,
       "hrv": 35,
@@ -13534,6 +17343,7 @@
     {
       "date": "2026-06-24",
       "sleepHours": 9.2,
+      "sleepScore": 84,
       "avgSleepingHR": 52,
       "restingHR": 51,
       "hrv": 39,
@@ -13549,6 +17359,7 @@
     {
       "date": "2026-06-25",
       "sleepHours": 6.2,
+      "sleepScore": 72,
       "avgSleepingHR": 54,
       "restingHR": 49,
       "hrv": 39,
@@ -13564,6 +17375,7 @@
     {
       "date": "2026-06-26",
       "sleepHours": 9.6,
+      "sleepScore": 86,
       "avgSleepingHR": 58,
       "restingHR": 51,
       "hrv": 45,
@@ -13579,6 +17391,7 @@
     {
       "date": "2026-06-27",
       "sleepHours": 6.8,
+      "sleepScore": 77,
       "avgSleepingHR": 55,
       "restingHR": 53,
       "hrv": 38,
@@ -13594,6 +17407,7 @@
     {
       "date": "2026-06-28",
       "sleepHours": 8.3,
+      "sleepScore": 87,
       "avgSleepingHR": 58,
       "restingHR": 53,
       "hrv": 46,
@@ -13609,6 +17423,7 @@
     {
       "date": "2026-06-29",
       "sleepHours": 6.6,
+      "sleepScore": 69,
       "avgSleepingHR": 57,
       "restingHR": 53,
       "hrv": 33,
@@ -13624,6 +17439,7 @@
     {
       "date": "2026-06-30",
       "sleepHours": 7.5,
+      "sleepScore": 81,
       "avgSleepingHR": 53,
       "restingHR": 52,
       "hrv": 40,
@@ -13639,6 +17455,7 @@
     {
       "date": "2026-07-01",
       "sleepHours": 7.5,
+      "sleepScore": 84,
       "avgSleepingHR": 54,
       "restingHR": 52,
       "hrv": 35,
@@ -13654,6 +17471,7 @@
     {
       "date": "2026-07-02",
       "sleepHours": 8.7,
+      "sleepScore": 85,
       "avgSleepingHR": 57,
       "restingHR": 53,
       "hrv": 36,
@@ -13669,6 +17487,7 @@
     {
       "date": "2026-07-03",
       "sleepHours": 8.3,
+      "sleepScore": 87,
       "avgSleepingHR": 54,
       "restingHR": 52,
       "hrv": 39,
@@ -13684,6 +17503,7 @@
     {
       "date": "2026-07-04",
       "sleepHours": 7.8,
+      "sleepScore": 78,
       "avgSleepingHR": 53,
       "restingHR": 51,
       "hrv": 41,
@@ -13699,6 +17519,7 @@
     {
       "date": "2026-07-05",
       "sleepHours": 9.3,
+      "sleepScore": 82,
       "avgSleepingHR": 54,
       "restingHR": 53,
       "hrv": 43,
@@ -13714,6 +17535,7 @@
     {
       "date": "2026-07-06",
       "sleepHours": 7.5,
+      "sleepScore": 74,
       "avgSleepingHR": 53,
       "restingHR": 53,
       "hrv": 42,
@@ -13729,6 +17551,7 @@
     {
       "date": "2026-07-07",
       "sleepHours": 9.8,
+      "sleepScore": 84,
       "avgSleepingHR": 51,
       "restingHR": 48,
       "hrv": 35,
@@ -13744,6 +17567,7 @@
     {
       "date": "2026-07-08",
       "sleepHours": 8.2,
+      "sleepScore": 92,
       "avgSleepingHR": 53,
       "restingHR": 57,
       "hrv": 36,
@@ -13759,6 +17583,7 @@
     {
       "date": "2026-07-09",
       "sleepHours": 9.1,
+      "sleepScore": 84,
       "avgSleepingHR": 52,
       "restingHR": 51,
       "hrv": 34,
@@ -13774,6 +17599,7 @@
     {
       "date": "2026-07-10",
       "sleepHours": 9.1,
+      "sleepScore": 84,
       "avgSleepingHR": 52,
       "restingHR": 52,
       "hrv": 53,
@@ -13789,6 +17615,7 @@
     {
       "date": "2026-07-11",
       "sleepHours": 8.2,
+      "sleepScore": 87,
       "avgSleepingHR": 52,
       "restingHR": 52,
       "hrv": 33,
@@ -13804,6 +17631,7 @@
     {
       "date": "2026-07-12",
       "sleepHours": 8.3,
+      "sleepScore": 83,
       "avgSleepingHR": 52,
       "restingHR": 52,
       "hrv": 52,
@@ -13819,6 +17647,7 @@
     {
       "date": "2026-07-13",
       "sleepHours": 8.5,
+      "sleepScore": 86,
       "avgSleepingHR": 52,
       "restingHR": 50,
       "hrv": 34,
@@ -13834,6 +17663,7 @@
     {
       "date": "2026-07-14",
       "sleepHours": 8.8,
+      "sleepScore": 88,
       "avgSleepingHR": 49,
       "restingHR": 48,
       "hrv": 78,
@@ -13849,6 +17679,7 @@
     {
       "date": "2026-07-15",
       "sleepHours": 8.2,
+      "sleepScore": 85,
       "avgSleepingHR": 50,
       "restingHR": 48,
       "hrv": 45,
@@ -13864,6 +17695,7 @@
     {
       "date": "2026-07-16",
       "sleepHours": 8.1,
+      "sleepScore": 86,
       "avgSleepingHR": 51,
       "restingHR": 47,
       "hrv": 52,
@@ -13879,6 +17711,7 @@
     {
       "date": "2026-07-17",
       "sleepHours": 7.2,
+      "sleepScore": 80,
       "avgSleepingHR": 52,
       "restingHR": 49,
       "hrv": 35,
@@ -13894,6 +17727,7 @@
     {
       "date": "2026-07-18",
       "sleepHours": 7.3,
+      "sleepScore": 73,
       "avgSleepingHR": 56,
       "restingHR": 51,
       "hrv": 57,
@@ -13909,6 +17743,7 @@
     {
       "date": "2026-07-19",
       "sleepHours": 9.1,
+      "sleepScore": 84,
       "avgSleepingHR": 54,
       "restingHR": 52,
       "hrv": 72,
@@ -13924,6 +17759,7 @@
     {
       "date": "2026-07-20",
       "sleepHours": 7.5,
+      "sleepScore": 81,
       "avgSleepingHR": 52,
       "restingHR": 48,
       "hrv": 40,
@@ -13939,6 +17775,7 @@
     {
       "date": "2026-07-21",
       "sleepHours": 8.1,
+      "sleepScore": 87,
       "avgSleepingHR": 51,
       "restingHR": 47,
       "hrv": 36,
@@ -13954,6 +17791,7 @@
     {
       "date": "2026-07-22",
       "sleepHours": 9.1,
+      "sleepScore": 84,
       "avgSleepingHR": 53,
       "restingHR": 52,
       "hrv": 40,
@@ -13969,6 +17807,7 @@
     {
       "date": "2026-07-23",
       "sleepHours": 7.7,
+      "sleepScore": 80,
       "avgSleepingHR": 56,
       "restingHR": 53,
       "hrv": 56,
@@ -13984,6 +17823,7 @@
     {
       "date": "2026-07-24",
       "sleepHours": 8.8,
+      "sleepScore": 79,
       "avgSleepingHR": 59,
       "restingHR": 53,
       "hrv": 33,
@@ -13999,6 +17839,7 @@
     {
       "date": "2026-07-25",
       "sleepHours": 7.7,
+      "sleepScore": 80,
       "avgSleepingHR": 62,
       "restingHR": 61,
       "hrv": 37,
@@ -14014,6 +17855,7 @@
     {
       "date": "2026-07-26",
       "sleepHours": 9.3,
+      "sleepScore": 76,
       "avgSleepingHR": 58,
       "restingHR": 53,
       "hrv": 39,
@@ -14029,6 +17871,7 @@
     {
       "date": "2026-07-27",
       "sleepHours": 11,
+      "sleepScore": 72,
       "avgSleepingHR": 50,
       "restingHR": 49,
       "hrv": 56,
@@ -14044,6 +17887,7 @@
     {
       "date": "2026-07-28",
       "sleepHours": 8,
+      "sleepScore": 84,
       "avgSleepingHR": 51,
       "restingHR": 49,
       "hrv": 51,
@@ -14059,6 +17903,7 @@
     {
       "date": "2026-07-29",
       "sleepHours": 9,
+      "sleepScore": 81,
       "avgSleepingHR": 51,
       "restingHR": 47,
       "hrv": 61,
@@ -14074,6 +17919,7 @@
     {
       "date": "2026-07-30",
       "sleepHours": 7.2,
+      "sleepScore": 80,
       "avgSleepingHR": 50,
       "restingHR": 48,
       "hrv": 54,
@@ -14089,6 +17935,7 @@
     {
       "date": "2026-07-31",
       "sleepHours": 5.5,
+      "sleepScore": 64,
       "avgSleepingHR": null,
       "restingHR": 54,
       "hrv": null,
@@ -16867,8 +20714,13 @@
       "details": "Ziel unter 3:00h · Ø 220–235W · 4km neutralisiert, 2× Hauptrunde á ~42km, 500m Kopfsteinpflaster bei km~50, Zielsprint km 95. Runde 1 Peloton/Z3 <152bpm, Runde 2 Tempo hoch, letzte 5km alles."
     }
   ],
-  "adjustments": {},
-  "updated": "2026-07-31T13:43:01.236Z",
+  "adjustments": {
+    "2026-07-18": {
+      "cancelled": true,
+      "reason": "privat"
+    }
+  },
+  "updated": "2026-07-31T18:30:36.603Z",
   "source": "intervals.icu",
   "count": 136
 }

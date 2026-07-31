@@ -6,7 +6,7 @@
       "week": "Vor W1",
       "phase": "Vorbereitung",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.23,
       "min": 48,
       "kmh": 23.9,
@@ -52,7 +52,7 @@
       "week": "Vor W1",
       "phase": "Vorbereitung",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.22,
       "min": 57,
       "kmh": 20.1,
@@ -98,7 +98,7 @@
       "week": "Vor W1",
       "phase": "Vorbereitung",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.11,
       "min": 57,
       "kmh": 20.1,
@@ -144,7 +144,7 @@
       "week": "Vor W1",
       "phase": "Vorbereitung",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.23,
       "min": 57,
       "kmh": 20.2,
@@ -190,7 +190,7 @@
       "week": "Vor W1",
       "phase": "Vorbereitung",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.22,
       "min": 53,
       "kmh": 21.7,
@@ -236,7 +236,7 @@
       "week": "W1",
       "phase": "Phase 1",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.22,
       "min": 58,
       "kmh": 19.9,
@@ -282,7 +282,7 @@
       "week": "W1",
       "phase": "Phase 1",
       "typ": "Z2 Kadenz",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 23.32,
       "min": 66,
       "kmh": 21.1,
@@ -328,7 +328,7 @@
       "week": "W1",
       "phase": "Phase 1",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 23.7,
       "min": 73,
       "kmh": 19.4,
@@ -374,7 +374,7 @@
       "week": "W1",
       "phase": "Phase 1",
       "typ": "Z2 Lang",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 28.52,
       "min": 85,
       "kmh": 20.1,
@@ -420,7 +420,7 @@
       "week": "W1",
       "phase": "Phase 1",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 30,
       "min": 87,
       "kmh": 20.6,
@@ -466,7 +466,7 @@
       "week": "W2",
       "phase": "Phase 1",
       "typ": "Z2 Kadenz",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 23.55,
       "min": 77,
       "kmh": 18.3,
@@ -512,7 +512,7 @@
       "week": "W2",
       "phase": "Phase 1",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 22.58,
       "min": 64,
       "kmh": 21.2,
@@ -558,7 +558,7 @@
       "week": "W2",
       "phase": "Phase 1",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 57.2,
       "min": 158,
       "kmh": 21.7,
@@ -604,7 +604,7 @@
       "week": "W3",
       "phase": "Phase 1",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 21.81,
       "min": 63,
       "kmh": 20.6,
@@ -650,7 +650,7 @@
       "week": "W3",
       "phase": "Phase 1",
       "typ": "Z2 Lang",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 39.02,
       "min": 115,
       "kmh": 20.4,
@@ -696,7 +696,7 @@
       "week": "W3",
       "phase": "Phase 1",
       "typ": "Freestyle",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 21.35,
       "min": 58,
       "kmh": 22,
@@ -742,7 +742,7 @@
       "week": "W3",
       "phase": "Phase 1",
       "typ": "Z2 Lang",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 43.31,
       "min": 115,
       "kmh": 22.6,
@@ -788,7 +788,7 @@
       "week": "W4",
       "phase": "Phase 1",
       "typ": "Z1 Recovery",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 23.68,
       "min": 75,
       "kmh": 19,
@@ -834,7 +834,7 @@
       "week": "W4",
       "phase": "Phase 1",
       "typ": "Z1 Recovery",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 33.03,
       "min": 101,
       "kmh": 19.7,
@@ -880,7 +880,7 @@
       "week": "W4",
       "phase": "Phase 1",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 40.04,
       "min": 121,
       "kmh": 19.9,
@@ -926,7 +926,7 @@
       "week": "W5",
       "phase": "Phase 2",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 23.72,
       "min": 72,
       "kmh": 19.7,
@@ -972,7 +972,7 @@
       "week": "W5",
       "phase": "Phase 2",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 26.32,
       "min": 83,
       "kmh": 19.1,
@@ -1018,7 +1018,7 @@
       "week": "W5",
       "phase": "Phase 2",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 28.2,
       "min": 81,
       "kmh": 20.9,
@@ -1064,7 +1064,7 @@
       "week": "W5",
       "phase": "Phase 2",
       "typ": "Etappe",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 79.77,
       "min": 276,
       "kmh": 17.4,
@@ -1110,7 +1110,7 @@
       "week": "W5",
       "phase": "Phase 2",
       "typ": "Etappe",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 68.63,
       "min": 194,
       "kmh": 21.2,
@@ -1156,7 +1156,7 @@
       "week": "W6",
       "phase": "Phase 2",
       "typ": "Z2 Erholung",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 26.38,
       "min": 76,
       "kmh": 20.8,
@@ -1202,7 +1202,7 @@
       "week": "W6",
       "phase": "Phase 2",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.89,
       "min": 49,
       "kmh": 24.4,
@@ -1248,7 +1248,7 @@
       "week": "W6",
       "phase": "Phase 2",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 51.94,
       "min": 141,
       "kmh": 22,
@@ -1294,7 +1294,7 @@
       "week": "W7",
       "phase": "Phase 2",
       "typ": "Z2 Erholung",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 39.25,
       "min": 91,
       "kmh": 26,
@@ -1340,7 +1340,7 @@
       "week": "W7",
       "phase": "Phase 2",
       "typ": "Z1 Recovery",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 7.47,
       "min": 20,
       "kmh": 22.3,
@@ -1386,7 +1386,7 @@
       "week": "W7",
       "phase": "Phase 2",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 13.94,
       "min": 29,
       "kmh": 29.1,
@@ -1432,7 +1432,7 @@
       "week": "W7",
       "phase": "Phase 2",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 26.11,
       "min": 61,
       "kmh": 25.6,
@@ -1478,7 +1478,7 @@
       "week": "W7",
       "phase": "Phase 2",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 39.38,
       "min": 100,
       "kmh": 23.7,
@@ -1524,7 +1524,7 @@
       "week": "W7",
       "phase": "Phase 2",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 44.58,
       "min": 120,
       "kmh": 22.3,
@@ -1570,7 +1570,7 @@
       "week": "W8",
       "phase": "Phase 2",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 32.72,
       "min": 79,
       "kmh": 24.9,
@@ -1616,7 +1616,7 @@
       "week": "W8",
       "phase": "Phase 2",
       "typ": "Z2 Kadenz",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 28.74,
       "min": 67.5,
       "kmh": 25.6,
@@ -1662,7 +1662,7 @@
       "week": "W8",
       "phase": "Phase 2",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 27.28,
       "min": 71.3,
       "kmh": 22.9,
@@ -1708,7 +1708,7 @@
       "week": "W8",
       "phase": "Phase 2",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 30.29,
       "min": 77.1,
       "kmh": 23.6,
@@ -1754,7 +1754,7 @@
       "week": "W8",
       "phase": "Phase 2",
       "typ": "Z2 Lang",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 52.11,
       "min": 129.8,
       "kmh": 24.1,
@@ -1800,7 +1800,7 @@
       "week": "W8",
       "phase": "Phase 2",
       "typ": "Freestyle",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 43.11,
       "min": 123.2,
       "kmh": 21,
@@ -1846,7 +1846,7 @@
       "week": "W9",
       "phase": "Phase 2",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 22.52,
       "min": 51.9,
       "kmh": 26.1,
@@ -1892,7 +1892,7 @@
       "week": "W9",
       "phase": "Phase 2",
       "typ": "Z2 Kadenz",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 32.22,
       "min": 80.75,
       "kmh": 23.9,
@@ -1938,7 +1938,7 @@
       "week": "W9",
       "phase": "Phase 3",
       "typ": "Etappe",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 60.4,
       "min": 131.5,
       "kmh": 27.6,
@@ -1984,7 +1984,7 @@
       "week": "W9",
       "phase": "Phase 3",
       "typ": "Freestyle",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 23.46,
       "min": 52.4,
       "kmh": 26.9,
@@ -2030,7 +2030,7 @@
       "week": "W10",
       "phase": "Phase 3",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 34.17,
       "min": 87,
       "kmh": 23.6,
@@ -2076,7 +2076,7 @@
       "week": "W10",
       "phase": "Phase 3",
       "typ": "Etappe",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 62.43,
       "min": 147.1,
       "kmh": 25.5,
@@ -2122,7 +2122,7 @@
       "week": "W10",
       "phase": "Phase 3",
       "typ": "Schwelle",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 34.03,
       "min": 84.4,
       "kmh": 24.2,
@@ -2168,7 +2168,7 @@
       "week": "W10",
       "phase": "Phase 3",
       "typ": "Z2 Lang",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 100.4,
       "min": 241.8,
       "kmh": 24.9,
@@ -2214,7 +2214,7 @@
       "week": "W10",
       "phase": "Phase 3",
       "typ": "Z1 Recovery",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 30.38,
       "min": 86,
       "kmh": 21.2,
@@ -2260,7 +2260,7 @@
       "week": "W11",
       "phase": "Phase 3",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 64,
       "min": 159,
       "kmh": 24.2,
@@ -2306,7 +2306,7 @@
       "week": "W11",
       "phase": "Phase 3",
       "typ": "Freestyle",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 71.06,
       "min": 182,
       "kmh": 23.5,
@@ -2352,7 +2352,7 @@
       "week": "W11",
       "phase": "Phase 3",
       "typ": "FTP-Test",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 12.26,
       "min": 29,
       "kmh": null,
@@ -2398,7 +2398,7 @@
       "week": "W11",
       "phase": "Phase 3",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 62.09,
       "min": 136,
       "kmh": null,
@@ -2444,7 +2444,7 @@
       "week": "W12",
       "phase": "Phase 3",
       "typ": "Ausserplanmaessig",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 70.72,
       "min": 167,
       "kmh": 25.1,
@@ -2490,7 +2490,7 @@
       "week": "W12",
       "phase": "Phase 3",
       "typ": "Freestyle",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 19.51,
       "min": 40,
       "kmh": 29.6,
@@ -2536,7 +2536,7 @@
       "week": "W12",
       "phase": "Phase 3",
       "typ": "Z2 Dauer",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 28.79,
       "min": 70,
       "kmh": 24.8,
@@ -2582,7 +2582,7 @@
       "week": "W12",
       "phase": "Phase 3",
       "typ": "Z2 Lang",
-      "plan": "Plan 1",
+      "dataSource": "notion",
       "km": 138.4,
       "min": 373,
       "kmh": 22.2,
@@ -2624,10 +2624,34 @@
     },
     {
       "name": "Gruppenfahrt",
-      "week": "P2-W0",
+      "week": "2026-KW26",
       "phase": "Übergang",
       "typ": "Gruppenfahrt",
-      "plan": "Plan 2",
+      "typPlanned": "Gruppenfahrt",
+      "typDetected": "Tempo",
+      "typDetection": {
+        "type": "Tempo",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.86,
+            "note": "NP 166W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+          },
+          {
+            "label": "Dauer",
+            "value": "161 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 30% · Z5+ 17%",
+            "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-tempo"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-23",
       "startTime": "2026-06-23T17:12:54",
       "km": 70.8,
@@ -2684,6 +2708,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 26.2,
         "tempFeel": 26,
@@ -2708,10 +2734,34 @@
     },
     {
       "name": "Aktivierung W0",
-      "week": "P2-W0",
+      "week": "2026-KW26",
       "phase": "Übergang",
       "typ": "Z1 Recovery",
-      "plan": "Plan 2",
+      "typPlanned": "Z1 Recovery",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.756,
+            "note": "NP 146W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "70 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 55% · Z3/Z4+ 37% · Z5+ 8%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-25",
       "startTime": "2026-06-25T19:06:54",
       "km": 29.2,
@@ -2768,6 +2818,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 30.4,
         "tempFeel": 31.1,
@@ -2792,10 +2844,35 @@
     },
     {
       "name": "Z2 Lang",
-      "week": "P2-W0",
+      "week": "2026-KW26",
       "phase": "Übergang",
       "typ": "Z2 Lang",
-      "plan": "Plan 2",
+      "typPlanned": "Z2 Lang",
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.808,
+            "note": "NP 156W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "194 min",
+            "note": "≥ 180 min → trotz Z2-Dauer-Band als Z2 Lang eingestuft"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 46% · Z3/Z4+ 44% · Z5+ 11%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer-lang-override"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-28",
       "startTime": "2026-06-28T04:55:10",
       "km": 80.4,
@@ -2852,6 +2929,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 28.1,
         "tempFeel": 29.2,
@@ -2876,10 +2955,34 @@
     },
     {
       "name": "Z2 Dauer",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "typ": "Z2 Dauer",
-      "plan": "Plan 2",
+      "typPlanned": "Z2 Dauer",
+      "typDetected": "Tempo",
+      "typDetection": {
+        "type": "Tempo",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.86,
+            "note": "NP 166W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+          },
+          {
+            "label": "Dauer",
+            "value": "97 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 37% · Z3/Z4+ 50% · Z5+ 13%",
+            "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-tempo"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-29",
       "startTime": "2026-06-29T18:15:41",
       "km": 43.1,
@@ -2936,6 +3039,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 26,
         "tempFeel": 27.7,
@@ -2960,10 +3065,34 @@
     },
     {
       "name": "Gruppenfahrt",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "typ": "Gruppenfahrt",
-      "plan": "Plan 2",
+      "typPlanned": "Gruppenfahrt",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.839,
+            "note": "NP 162W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "150 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 48% · Z3/Z4+ 38% · Z5+ 14%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-06-30",
       "startTime": "2026-06-30T16:23:56",
       "km": 66.4,
@@ -3020,6 +3149,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 20.9,
         "tempFeel": 23.6,
@@ -3044,10 +3175,39 @@
     },
     {
       "name": "Sweet Spot 3×10 min",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "typ": "Sweet Spot",
-      "plan": "Plan 2",
+      "typPlanned": "Sweet Spot",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.803,
+            "note": "NP 155W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "88 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "8 min zusammenhängend über Schwelle (176 W, 9.4% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 38% · Z5+ 9%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-02",
       "startTime": "2026-07-02T16:14:28",
       "km": 37.7,
@@ -3104,6 +3264,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 25.8,
         "tempFeel": 23.8,
@@ -3128,10 +3290,34 @@
     },
     {
       "name": "Z2 Kurz",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "typ": "Z2 Dauer",
-      "plan": "Plan 2",
+      "typPlanned": "Z2 Dauer",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.845,
+            "note": "NP 163W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "67 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 43% · Z3/Z4+ 42% · Z5+ 16%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-03",
       "startTime": "2026-07-03T19:53:22",
       "km": 28.6,
@@ -3188,6 +3374,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 20.2,
         "tempFeel": 17.1,
@@ -3212,10 +3400,34 @@
     },
     {
       "name": "Z2 Lang",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "typ": "Z2 Lang",
-      "plan": "Plan 2",
+      "typPlanned": "Z2 Lang",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.72,
+            "note": "NP 139W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "93 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 64% · Z3/Z4+ 35% · Z5+ 1%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-05",
       "startTime": "2026-07-05T16:37:16",
       "km": 35,
@@ -3272,6 +3484,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 22.6,
         "tempFeel": 19.9,
@@ -3296,10 +3510,39 @@
     },
     {
       "name": "Sweet Spot 3×12 min",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "typ": "Sweet Spot",
-      "plan": "Plan 2",
+      "typPlanned": "Sweet Spot",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.798,
+            "note": "NP 154W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "63 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "12 min zusammenhängend über Schwelle (174 W, 18.9% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 43% · Z3/Z4+ 57% · Z5+ 0%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-07",
       "startTime": "2026-07-07T18:32:52",
       "km": 28.3,
@@ -3356,6 +3599,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 21,
         "tempFeel": 19.9,
@@ -3380,10 +3625,39 @@
     },
     {
       "name": "Radfahren",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "typ": "Sweet Spot",
-      "plan": "Plan 2",
+      "typPlanned": null,
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.902,
+            "note": "NP 174W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "115 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "11 min zusammenhängend über Schwelle (191 W, 10% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 41% · Z3/Z4+ 40% · Z5+ 19%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
       "date": "2026-07-09",
       "startTime": "2026-07-09T16:22:42",
       "km": 50.2,
@@ -3440,6 +3714,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 23.5,
         "tempFeel": 21.6,
@@ -3464,10 +3740,34 @@
     },
     {
       "name": "Recovery",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "typ": "Z1 Recovery",
-      "plan": "Plan 2",
+      "typPlanned": "Z1 Recovery",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.803,
+            "note": "NP 155W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "168 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 54% · Z3/Z4+ 35% · Z5+ 11%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-10",
       "startTime": "2026-07-10T13:30:43",
       "km": 68.7,
@@ -3524,6 +3824,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 25.5,
         "tempFeel": 25.2,
@@ -3548,10 +3850,35 @@
     },
     {
       "name": "SS-Ausdauer 3×15 min",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "typ": "Sweet Spot",
-      "plan": "Plan 2",
+      "typPlanned": "Sweet Spot",
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.813,
+            "note": "NP 157W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "182 min",
+            "note": "≥ 180 min → trotz Z2-Dauer-Band als Z2 Lang eingestuft"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 48% · Z3/Z4+ 42% · Z5+ 10%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer-lang-override"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-12",
       "startTime": "2026-07-12T14:54:22",
       "km": 71.1,
@@ -3608,6 +3935,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 27.7,
         "tempFeel": 26.9,
@@ -3632,10 +3961,34 @@
     },
     {
       "name": "Sweet Spot 2×20 min",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "typ": "Sweet Spot",
-      "plan": "Plan 2",
+      "typPlanned": "Sweet Spot",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.803,
+            "note": "NP 155W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "67 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 40% · Z3/Z4+ 60% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-14",
       "startTime": "2026-07-14T18:25:30",
       "km": 30.1,
@@ -3692,6 +4045,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 21.6,
         "tempFeel": 21.7,
@@ -3716,10 +4071,39 @@
     },
     {
       "name": "Gruppenfahrt",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "typ": "Gruppenfahrt",
-      "plan": "Plan 2",
+      "typPlanned": "Gruppenfahrt",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.948,
+            "note": "NP 183W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "117 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "11 min zusammenhängend über Schwelle (201 W, 9.7% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 35% · Z3/Z4+ 41% · Z5+ 24%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-16",
       "startTime": "2026-07-16T16:58:51",
       "km": 55.4,
@@ -3776,6 +4160,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 27.3,
         "tempFeel": 27.9,
@@ -3800,10 +4186,40 @@
     },
     {
       "name": "SS-Ausdauer 2×25 min",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "typ": "Sweet Spot",
-      "plan": "Plan 2",
+      "typPlanned": "Sweet Spot",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.71,
+            "note": "NP 137W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "166 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "25 min zusammenhängend über Schwelle (179 W, 15% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Lang auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 70% · Z3/Z4+ 30% · Z5+ 0%",
+            "note": "weicht von der IF-Einstufung ab — Z3/Z4+-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-19",
       "startTime": "2026-07-19T15:22:05",
       "km": 68.6,
@@ -3860,6 +4276,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 19.7,
         "tempFeel": 17.4,
@@ -3884,10 +4302,34 @@
     },
     {
       "name": "Recovery",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "typ": "Z1 Recovery",
-      "plan": "Plan 2",
+      "typPlanned": "Z1 Recovery",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.933,
+            "note": "NP 180W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "172 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 37% · Z3/Z4+ 35% · Z5+ 28%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-21",
       "startTime": "2026-07-21T16:09:47",
       "km": 76.9,
@@ -3944,6 +4386,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 20.6,
         "tempFeel": 18.5,
@@ -3968,10 +4412,34 @@
     },
     {
       "name": "Z2 Locker",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "typ": "Z2 Dauer",
-      "plan": "Plan 2",
+      "typPlanned": "Z2 Dauer",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "mittel",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.824,
+            "note": "NP 159W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "71 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 12% · Z3/Z4+ 87% · Z5+ 1%",
+            "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-23",
       "startTime": "2026-07-23T18:22:02",
       "km": 13.1,
@@ -4028,6 +4496,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 15.6,
         "tempFeel": 15.7,
@@ -4052,10 +4522,39 @@
     },
     {
       "name": "Recovery",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "typ": "Z1 Recovery",
-      "plan": "Plan 2",
+      "typPlanned": "Z1 Recovery",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.922,
+            "note": "NP 178W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "75 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "33 min zusammenhängend über Schwelle (184 W, 44.6% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 37% · Z3/Z4+ 40% · Z5+ 23%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-24",
       "startTime": "2026-07-24T13:37:39",
       "km": 31.2,
@@ -4112,6 +4611,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 20.7,
         "tempFeel": 19.5,
@@ -4136,10 +4637,35 @@
     },
     {
       "name": "Z2 Lang",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "typ": "Z2 Lang",
-      "plan": "Plan 2",
+      "typPlanned": "Z2 Lang",
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.824,
+            "note": "NP 159W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "244 min",
+            "note": "≥ 180 min → trotz Z2-Dauer-Band als Z2 Lang eingestuft"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 46% · Z3/Z4+ 42% · Z5+ 12%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer-lang-override"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-25",
       "startTime": "2026-07-25T14:56:16",
       "km": 100.9,
@@ -4196,6 +4722,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 27.3,
         "tempFeel": 27.1,
@@ -4220,10 +4748,39 @@
     },
     {
       "name": "Z2 Locker",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "typ": "Z2 Dauer",
-      "plan": "Plan 2",
+      "typPlanned": "Z2 Dauer",
+      "typDetected": "Schwelle",
+      "typDetection": {
+        "type": "Schwelle",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.984,
+            "note": "NP 190W ÷ FTP 193W — im Schwellenbereich (0.95–1.05)"
+          },
+          {
+            "label": "Dauer",
+            "value": "54 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "27 min zusammenhängend über Schwelle (203 W, 50.2% der Fahrzeit)",
+            "note": "bestätigt Schwelle"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 33% · Z3/Z4+ 38% · Z5+ 29%",
+            "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-schwelle"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-27",
       "startTime": "2026-07-27T14:07:46",
       "km": 24.9,
@@ -4280,6 +4837,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 22,
         "tempFeel": 19.7,
@@ -4304,10 +4863,39 @@
     },
     {
       "name": "Gruppenfahrt",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "typ": "Gruppenfahrt",
-      "plan": "Plan 2",
+      "typPlanned": "Gruppenfahrt",
+      "typDetected": "Schwelle",
+      "typDetection": {
+        "type": "Schwelle",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 1.005,
+            "note": "NP 194W ÷ FTP 193W — im Schwellenbereich (0.95–1.05)"
+          },
+          {
+            "label": "Dauer",
+            "value": "116 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "14 min zusammenhängend über Schwelle (195 W, 12.2% der Fahrzeit)",
+            "note": "bestätigt Schwelle"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 34% · Z3/Z4+ 33% · Z5+ 33%",
+            "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-schwelle"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-28",
       "startTime": "2026-07-28T15:54:46",
       "km": 55.4,
@@ -4364,6 +4952,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 24.3,
         "tempFeel": 22.8,
@@ -4388,10 +4978,39 @@
     },
     {
       "name": "Schwelle 3×8 min",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "typ": "Schwelle",
-      "plan": "Plan 2",
+      "typPlanned": "Schwelle",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.834,
+            "note": "NP 161W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "52 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "8 min zusammenhängend über Schwelle (191 W, 15.4% der Fahrzeit)",
+            "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 53% · Z3/Z4+ 47% · Z5+ 0%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
       "date": "2026-07-30",
       "startTime": "2026-07-30T16:22:16",
       "km": 22.6,
@@ -4448,6 +5067,8 @@
         }
       ],
       "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
       "weather": {
         "temp": 37,
         "tempFeel": 36.7,
@@ -4469,12 +5090,123 @@
       "id": 79,
       "dateShort": "30.07",
       "dateISO": "2026-07-30"
+    },
+    {
+      "name": "Recovery",
+      "week": "2026-KW31",
+      "phase": "Schwelle",
+      "typ": "Z1 Recovery",
+      "typPlanned": "Z1 Recovery",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.782,
+            "note": "NP 151W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "88 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 60% · Z3/Z4+ 28% · Z5+ 12%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
+      "date": "2026-07-31",
+      "startTime": "2026-07-31T13:58:06",
+      "km": 33.3,
+      "min": 88,
+      "kmh": 22.4,
+      "watt": 118,
+      "maxWatt": null,
+      "np": 151,
+      "hf": 134,
+      "hfMax": 164,
+      "kad": 85,
+      "hoehe": 9,
+      "tss": 90,
+      "if": 0.78,
+      "vi": 1.28,
+      "trimp": 84,
+      "ctl": 72,
+      "atl": 87.4,
+      "tsb": -15.5,
+      "decoupling": -13.3,
+      "dtl": 90,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 1983
+        },
+        {
+          "id": "Z2",
+          "secs": 1193
+        },
+        {
+          "id": "Z3",
+          "secs": 837
+        },
+        {
+          "id": "Z4",
+          "secs": 644
+        },
+        {
+          "id": "Z5",
+          "secs": 394
+        },
+        {
+          "id": "Z6",
+          "secs": 198
+        },
+        {
+          "id": "Z7",
+          "secs": 41
+        },
+        {
+          "id": "SS",
+          "secs": 644
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 30.8,
+        "tempFeel": 33.7,
+        "humidity": 41,
+        "windSpeed": 3.7,
+        "windDir": 125,
+        "precip": 0,
+        "cloudCover": 56,
+        "weatherCode": 3
+      },
+      "wetter": "30.8°C",
+      "source": "intervals.icu",
+      "ruhepuls": null,
+      "hrv": null,
+      "avgSleepingHR": 51,
+      "sleepHours": 7.3,
+      "feel": null,
+      "notizen": null,
+      "id": 80,
+      "dateShort": "31.07",
+      "dateISO": "2026-07-31"
     }
   ],
   "wellness": [
     {
       "date": "2026-04-30",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": 55,
       "hrv": null,
@@ -4490,6 +5222,7 @@
     {
       "date": "2026-05-08",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4505,6 +5238,7 @@
     {
       "date": "2026-05-09",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4520,6 +5254,7 @@
     {
       "date": "2026-05-10",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4535,6 +5270,7 @@
     {
       "date": "2026-05-11",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4550,6 +5286,7 @@
     {
       "date": "2026-05-12",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4565,6 +5302,7 @@
     {
       "date": "2026-05-13",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4580,6 +5318,7 @@
     {
       "date": "2026-05-14",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4595,6 +5334,7 @@
     {
       "date": "2026-05-15",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4610,6 +5350,7 @@
     {
       "date": "2026-05-16",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4625,6 +5366,7 @@
     {
       "date": "2026-05-17",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4640,6 +5382,7 @@
     {
       "date": "2026-05-18",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4655,6 +5398,7 @@
     {
       "date": "2026-05-19",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4670,6 +5414,7 @@
     {
       "date": "2026-05-20",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4685,6 +5430,7 @@
     {
       "date": "2026-05-21",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4700,6 +5446,7 @@
     {
       "date": "2026-05-22",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4715,6 +5462,7 @@
     {
       "date": "2026-05-23",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4730,6 +5478,7 @@
     {
       "date": "2026-05-24",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4745,6 +5494,7 @@
     {
       "date": "2026-05-25",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4760,6 +5510,7 @@
     {
       "date": "2026-05-26",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4775,6 +5526,7 @@
     {
       "date": "2026-05-27",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4790,6 +5542,7 @@
     {
       "date": "2026-05-28",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4805,6 +5558,7 @@
     {
       "date": "2026-05-29",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4820,6 +5574,7 @@
     {
       "date": "2026-05-30",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4835,6 +5590,7 @@
     {
       "date": "2026-05-31",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4850,6 +5606,7 @@
     {
       "date": "2026-06-01",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4865,6 +5622,7 @@
     {
       "date": "2026-06-02",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4880,6 +5638,7 @@
     {
       "date": "2026-06-03",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4895,6 +5654,7 @@
     {
       "date": "2026-06-04",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4910,6 +5670,7 @@
     {
       "date": "2026-06-05",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4925,6 +5686,7 @@
     {
       "date": "2026-06-06",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4940,6 +5702,7 @@
     {
       "date": "2026-06-07",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4955,6 +5718,7 @@
     {
       "date": "2026-06-08",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4970,6 +5734,7 @@
     {
       "date": "2026-06-09",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -4985,6 +5750,7 @@
     {
       "date": "2026-06-10",
       "sleepHours": null,
+      "sleepScore": null,
       "avgSleepingHR": null,
       "restingHR": null,
       "hrv": null,
@@ -5000,6 +5766,7 @@
     {
       "date": "2026-06-11",
       "sleepHours": 5.9,
+      "sleepScore": null,
       "avgSleepingHR": 54,
       "restingHR": 58,
       "hrv": 52,
@@ -5015,6 +5782,7 @@
     {
       "date": "2026-06-12",
       "sleepHours": 7.9,
+      "sleepScore": null,
       "avgSleepingHR": 53,
       "restingHR": 57,
       "hrv": 45,
@@ -5030,6 +5798,7 @@
     {
       "date": "2026-06-13",
       "sleepHours": 7.6,
+      "sleepScore": null,
       "avgSleepingHR": 54,
       "restingHR": 56,
       "hrv": 53,
@@ -5045,6 +5814,7 @@
     {
       "date": "2026-06-14",
       "sleepHours": 6.8,
+      "sleepScore": null,
       "avgSleepingHR": 51,
       "restingHR": 56,
       "hrv": 64,
@@ -5060,6 +5830,7 @@
     {
       "date": "2026-06-15",
       "sleepHours": 6.5,
+      "sleepScore": null,
       "avgSleepingHR": 50,
       "restingHR": 52,
       "hrv": 61,
@@ -5075,6 +5846,7 @@
     {
       "date": "2026-06-16",
       "sleepHours": 8.6,
+      "sleepScore": null,
       "avgSleepingHR": 50,
       "restingHR": 56,
       "hrv": 57,
@@ -5090,6 +5862,7 @@
     {
       "date": "2026-06-17",
       "sleepHours": 6.6,
+      "sleepScore": null,
       "avgSleepingHR": 52,
       "restingHR": 58,
       "hrv": 45,
@@ -5105,6 +5878,7 @@
     {
       "date": "2026-06-18",
       "sleepHours": 6.4,
+      "sleepScore": null,
       "avgSleepingHR": 52,
       "restingHR": 58,
       "hrv": 47,
@@ -5120,6 +5894,7 @@
     {
       "date": "2026-06-19",
       "sleepHours": 7.8,
+      "sleepScore": null,
       "avgSleepingHR": 53,
       "restingHR": 59,
       "hrv": 54,
@@ -5135,6 +5910,7 @@
     {
       "date": "2026-06-20",
       "sleepHours": 6.9,
+      "sleepScore": null,
       "avgSleepingHR": 53,
       "restingHR": 63,
       "hrv": 50,
@@ -5150,6 +5926,7 @@
     {
       "date": "2026-06-21",
       "sleepHours": 6.5,
+      "sleepScore": null,
       "avgSleepingHR": 60,
       "restingHR": 58,
       "hrv": 45,
@@ -5165,6 +5942,7 @@
     {
       "date": "2026-06-22",
       "sleepHours": 7.8,
+      "sleepScore": null,
       "avgSleepingHR": 51,
       "restingHR": 51,
       "hrv": 57,
@@ -5180,6 +5958,7 @@
     {
       "date": "2026-06-23",
       "sleepHours": 7.7,
+      "sleepScore": null,
       "avgSleepingHR": 52,
       "restingHR": 52,
       "hrv": 47,
@@ -5195,6 +5974,7 @@
     {
       "date": "2026-06-24",
       "sleepHours": 8.6,
+      "sleepScore": 85,
       "avgSleepingHR": 53,
       "restingHR": 55,
       "hrv": 54,
@@ -5210,6 +5990,7 @@
     {
       "date": "2026-06-25",
       "sleepHours": 5.3,
+      "sleepScore": 63,
       "avgSleepingHR": 49,
       "restingHR": 54,
       "hrv": 70,
@@ -5225,6 +6006,7 @@
     {
       "date": "2026-06-26",
       "sleepHours": 8.4,
+      "sleepScore": 89,
       "avgSleepingHR": 54,
       "restingHR": 55,
       "hrv": 60,
@@ -5240,6 +6022,7 @@
     {
       "date": "2026-06-27",
       "sleepHours": 7.1,
+      "sleepScore": 90,
       "avgSleepingHR": 49,
       "restingHR": 53,
       "hrv": 56,
@@ -5255,6 +6038,7 @@
     {
       "date": "2026-06-28",
       "sleepHours": 3.3,
+      "sleepScore": 60,
       "avgSleepingHR": 51,
       "restingHR": 65,
       "hrv": 42,
@@ -5270,6 +6054,7 @@
     {
       "date": "2026-06-29",
       "sleepHours": 5.2,
+      "sleepScore": 61,
       "avgSleepingHR": 50,
       "restingHR": 57,
       "hrv": 56,
@@ -5285,6 +6070,7 @@
     {
       "date": "2026-06-30",
       "sleepHours": 6.7,
+      "sleepScore": 81,
       "avgSleepingHR": 55,
       "restingHR": 56,
       "hrv": 46,
@@ -5300,6 +6086,7 @@
     {
       "date": "2026-07-01",
       "sleepHours": 8,
+      "sleepScore": 83,
       "avgSleepingHR": 55,
       "restingHR": 56,
       "hrv": 52,
@@ -5315,6 +6102,7 @@
     {
       "date": "2026-07-02",
       "sleepHours": 4.6,
+      "sleepScore": 70,
       "avgSleepingHR": 51,
       "restingHR": 55,
       "hrv": 53,
@@ -5330,6 +6118,7 @@
     {
       "date": "2026-07-03",
       "sleepHours": 7.7,
+      "sleepScore": 71,
       "avgSleepingHR": 52,
       "restingHR": 53,
       "hrv": 51,
@@ -5345,6 +6134,7 @@
     {
       "date": "2026-07-04",
       "sleepHours": 8,
+      "sleepScore": 84,
       "avgSleepingHR": 51,
       "restingHR": 54,
       "hrv": 63,
@@ -5360,6 +6150,7 @@
     {
       "date": "2026-07-05",
       "sleepHours": 6,
+      "sleepScore": 89,
       "avgSleepingHR": 50,
       "restingHR": 56,
       "hrv": 53,
@@ -5375,6 +6166,7 @@
     {
       "date": "2026-07-06",
       "sleepHours": 6.2,
+      "sleepScore": 82,
       "avgSleepingHR": 52,
       "restingHR": 58,
       "hrv": 59,
@@ -5390,6 +6182,7 @@
     {
       "date": "2026-07-07",
       "sleepHours": 7.5,
+      "sleepScore": 93,
       "avgSleepingHR": 49,
       "restingHR": 54,
       "hrv": 44,
@@ -5405,6 +6198,7 @@
     {
       "date": "2026-07-08",
       "sleepHours": 7.6,
+      "sleepScore": 82,
       "avgSleepingHR": 55,
       "restingHR": 54,
       "hrv": 53,
@@ -5420,6 +6214,7 @@
     {
       "date": "2026-07-09",
       "sleepHours": 6.7,
+      "sleepScore": 81,
       "avgSleepingHR": 49,
       "restingHR": 57,
       "hrv": 55,
@@ -5435,6 +6230,7 @@
     {
       "date": "2026-07-10",
       "sleepHours": 8.1,
+      "sleepScore": 86,
       "avgSleepingHR": 56,
       "restingHR": 69,
       "hrv": 65,
@@ -5450,6 +6246,7 @@
     {
       "date": "2026-07-11",
       "sleepHours": 3.7,
+      "sleepScore": 50,
       "avgSleepingHR": 72,
       "restingHR": 53,
       "hrv": 48,
@@ -5465,6 +6262,7 @@
     {
       "date": "2026-07-12",
       "sleepHours": 13,
+      "sleepScore": 57,
       "avgSleepingHR": 57,
       "restingHR": 59,
       "hrv": 45,
@@ -5480,6 +6278,7 @@
     {
       "date": "2026-07-13",
       "sleepHours": 6.6,
+      "sleepScore": 80,
       "avgSleepingHR": 53,
       "restingHR": 53,
       "hrv": 50,
@@ -5495,6 +6294,7 @@
     {
       "date": "2026-07-14",
       "sleepHours": 5.4,
+      "sleepScore": 81,
       "avgSleepingHR": 49,
       "restingHR": 52,
       "hrv": 58,
@@ -5510,6 +6310,7 @@
     {
       "date": "2026-07-15",
       "sleepHours": 6.4,
+      "sleepScore": 77,
       "avgSleepingHR": 53,
       "restingHR": 52,
       "hrv": 40,
@@ -5525,6 +6326,7 @@
     {
       "date": "2026-07-16",
       "sleepHours": 6.4,
+      "sleepScore": 79,
       "avgSleepingHR": 51,
       "restingHR": 62,
       "hrv": 51,
@@ -5540,6 +6342,7 @@
     {
       "date": "2026-07-17",
       "sleepHours": 9,
+      "sleepScore": 85,
       "avgSleepingHR": 58,
       "restingHR": 59,
       "hrv": 46,
@@ -5555,6 +6358,7 @@
     {
       "date": "2026-07-18",
       "sleepHours": 9.6,
+      "sleepScore": 71,
       "avgSleepingHR": 71,
       "restingHR": 58,
       "hrv": 46,
@@ -5570,6 +6374,7 @@
     {
       "date": "2026-07-19",
       "sleepHours": 8.4,
+      "sleepScore": 81,
       "avgSleepingHR": 53,
       "restingHR": 53,
       "hrv": 45,
@@ -5585,6 +6390,7 @@
     {
       "date": "2026-07-20",
       "sleepHours": 7.3,
+      "sleepScore": 80,
       "avgSleepingHR": 53,
       "restingHR": 54,
       "hrv": 52,
@@ -5600,6 +6406,7 @@
     {
       "date": "2026-07-21",
       "sleepHours": 7,
+      "sleepScore": 78,
       "avgSleepingHR": 50,
       "restingHR": 53,
       "hrv": 49,
@@ -5615,6 +6422,7 @@
     {
       "date": "2026-07-22",
       "sleepHours": 7.3,
+      "sleepScore": 82,
       "avgSleepingHR": 56,
       "restingHR": 59,
       "hrv": 48,
@@ -5630,6 +6438,7 @@
     {
       "date": "2026-07-23",
       "sleepHours": 7.3,
+      "sleepScore": 85,
       "avgSleepingHR": 50,
       "restingHR": 56,
       "hrv": 44,
@@ -5645,6 +6454,7 @@
     {
       "date": "2026-07-24",
       "sleepHours": 6.8,
+      "sleepScore": 82,
       "avgSleepingHR": 57,
       "restingHR": 60,
       "hrv": 43,
@@ -5660,6 +6470,7 @@
     {
       "date": "2026-07-25",
       "sleepHours": 8.3,
+      "sleepScore": 89,
       "avgSleepingHR": 55,
       "restingHR": 63,
       "hrv": 50,
@@ -5675,6 +6486,7 @@
     {
       "date": "2026-07-26",
       "sleepHours": 8.4,
+      "sleepScore": 88,
       "avgSleepingHR": 55,
       "restingHR": 59,
       "hrv": 45,
@@ -5690,6 +6502,7 @@
     {
       "date": "2026-07-27",
       "sleepHours": 6.9,
+      "sleepScore": 88,
       "avgSleepingHR": 49,
       "restingHR": 57,
       "hrv": 50,
@@ -5705,6 +6518,7 @@
     {
       "date": "2026-07-28",
       "sleepHours": 7.8,
+      "sleepScore": 91,
       "avgSleepingHR": 51,
       "restingHR": 53,
       "hrv": 45,
@@ -5720,6 +6534,7 @@
     {
       "date": "2026-07-29",
       "sleepHours": 6.8,
+      "sleepScore": 84,
       "avgSleepingHR": 56,
       "restingHR": 53,
       "hrv": 45,
@@ -5735,6 +6550,7 @@
     {
       "date": "2026-07-30",
       "sleepHours": 7.3,
+      "sleepScore": 87,
       "avgSleepingHR": 50,
       "restingHR": 57,
       "hrv": 53,
@@ -5750,6 +6566,7 @@
     {
       "date": "2026-07-31",
       "sleepHours": 7.3,
+      "sleepScore": 87,
       "avgSleepingHR": 51,
       "restingHR": null,
       "hrv": null,
@@ -7334,7 +8151,7 @@
   "powerCurveBlocks": [
     {
       "key": "plan1",
-      "label": "Plan 1",
+      "label": "Notion-Ära",
       "from": "2026-03-24",
       "to": "2026-06-21",
       "curve": {
@@ -11188,7 +12005,7 @@
       "date": "2026-06-23",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W0",
+      "week": "2026-KW26",
       "phase": "Übergang",
       "km": 70,
       "details": "Gruppenfahrt Di · HF frei · Spaß im Vordergrund"
@@ -11197,7 +12014,7 @@
       "date": "2026-06-25",
       "name": "Aktivierung W0",
       "typ": "Z1 Recovery",
-      "week": "P2-W0",
+      "week": "2026-KW26",
       "phase": "Übergang",
       "km": 30,
       "details": "Lockere Aktivierungsfahrt · HF <123 bpm"
@@ -11206,7 +12023,7 @@
       "date": "2026-06-27",
       "name": "Z2 Lang",
       "typ": "Z2 Lang",
-      "week": "P2-W0",
+      "week": "2026-KW26",
       "phase": "Übergang",
       "km": 70,
       "details": "Lange Z2 · HF 123–152 bpm · keine Intervalle"
@@ -11215,7 +12032,7 @@
       "date": "2026-06-29",
       "name": "Z2 Dauer",
       "typ": "Z2 Dauer",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "km": 25,
       "details": "Kurze Z2 · HF 123–152 bpm · Beine locker halten"
@@ -11224,7 +12041,7 @@
       "date": "2026-06-30",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "km": 70,
       "details": "Gruppenfahrt Di · HF frei"
@@ -11233,7 +12050,7 @@
       "date": "2026-07-02",
       "name": "Sweet Spot 3×10 min",
       "typ": "Sweet Spot",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "km": 55,
       "workout": {
@@ -11258,7 +12075,7 @@
       "date": "2026-07-03",
       "name": "Z2 Kurz",
       "typ": "Z2 Dauer",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "km": 25,
       "details": "Kurze Z2 · HF 123–152 bpm · Erholung nach Intervallen"
@@ -11267,7 +12084,7 @@
       "date": "2026-07-04",
       "name": "Z2 Lang",
       "typ": "Z2 Lang",
-      "week": "P2-W1",
+      "week": "2026-KW27",
       "phase": "Sweet Spot",
       "km": 80,
       "details": "Lange Z2 · HF 123–152 bpm · ≥3h anstreben"
@@ -11276,7 +12093,7 @@
       "date": "2026-07-06",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11285,7 +12102,7 @@
       "date": "2026-07-07",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11294,7 +12111,7 @@
       "date": "2026-07-09",
       "name": "Sweet Spot 3×12 min",
       "typ": "Sweet Spot",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "km": 58,
       "workout": {
@@ -11319,7 +12136,7 @@
       "date": "2026-07-10",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11328,7 +12145,7 @@
       "date": "2026-07-11",
       "name": "SS-Ausdauer 3×15 min",
       "typ": "Sweet Spot",
-      "week": "P2-W2",
+      "week": "2026-KW28",
       "phase": "Sweet Spot",
       "km": 80,
       "workout": {
@@ -11354,7 +12171,7 @@
       "date": "2026-07-13",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11363,7 +12180,7 @@
       "date": "2026-07-14",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11372,7 +12189,7 @@
       "date": "2026-07-16",
       "name": "Sweet Spot 2×20 min",
       "typ": "Sweet Spot",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "km": 62,
       "workout": {
@@ -11397,7 +12214,7 @@
       "date": "2026-07-17",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11406,7 +12223,7 @@
       "date": "2026-07-18",
       "name": "SS-Ausdauer 2×25 min",
       "typ": "Sweet Spot",
-      "week": "P2-W3",
+      "week": "2026-KW29",
       "phase": "Sweet Spot",
       "km": 85,
       "workout": {
@@ -11432,7 +12249,7 @@
       "date": "2026-07-20",
       "name": "Z2 Dauer",
       "typ": "Z2 Dauer",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "km": 20,
       "details": "Lockere Z2 · HF 123–145 bpm · optional (Erholungswoche)"
@@ -11441,7 +12258,7 @@
       "date": "2026-07-21",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "km": 25,
       "details": "Recovery · HF <123 bpm · sehr locker"
@@ -11450,7 +12267,7 @@
       "date": "2026-07-23",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "km": 30,
       "details": "Lockere Z2 · kein Druck · −50% Volumen"
@@ -11459,7 +12276,7 @@
       "date": "2026-07-24",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "km": 20,
       "details": "Recovery · HF <123 bpm · optional (Erholungswoche)"
@@ -11468,7 +12285,7 @@
       "date": "2026-07-25",
       "name": "Z2 Lang",
       "typ": "Z2 Lang",
-      "week": "P2-W4",
+      "week": "2026-KW30",
       "phase": "Erholung",
       "km": 60,
       "details": "Kurze Z2 Lang · Erholungswoche · −50% Volumen · keine Intervalle"
@@ -11477,7 +12294,7 @@
       "date": "2026-07-27",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11486,7 +12303,7 @@
       "date": "2026-07-28",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11495,7 +12312,7 @@
       "date": "2026-07-30",
       "name": "Schwelle 3×8 min",
       "typ": "Schwelle",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "km": 55,
       "workout": {
@@ -11520,7 +12337,7 @@
       "date": "2026-07-31",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11529,7 +12346,7 @@
       "date": "2026-08-01",
       "name": "SS-Durability 3×15 min",
       "typ": "Sweet Spot",
-      "week": "P2-W5",
+      "week": "2026-KW31",
       "phase": "Schwelle",
       "km": 82,
       "workout": {
@@ -11555,7 +12372,7 @@
       "date": "2026-08-03",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W6",
+      "week": "2026-KW32",
       "phase": "Schwelle",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11564,7 +12381,7 @@
       "date": "2026-08-04",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W6",
+      "week": "2026-KW32",
       "phase": "Schwelle",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11573,7 +12390,7 @@
       "date": "2026-08-06",
       "name": "Schwelle 3×10 min",
       "typ": "Schwelle",
-      "week": "P2-W6",
+      "week": "2026-KW32",
       "phase": "Schwelle",
       "km": 58,
       "workout": {
@@ -11598,7 +12415,7 @@
       "date": "2026-08-07",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W6",
+      "week": "2026-KW32",
       "phase": "Schwelle",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11607,7 +12424,7 @@
       "date": "2026-08-08",
       "name": "SS-Durability 2×20 min",
       "typ": "Sweet Spot",
-      "week": "P2-W6",
+      "week": "2026-KW32",
       "phase": "Schwelle",
       "km": 85,
       "workout": {
@@ -11633,7 +12450,7 @@
       "date": "2026-08-10",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W7",
+      "week": "2026-KW33",
       "phase": "Schwelle",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11642,7 +12459,7 @@
       "date": "2026-08-11",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W7",
+      "week": "2026-KW33",
       "phase": "Schwelle",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11651,7 +12468,7 @@
       "date": "2026-08-13",
       "name": "Schwelle 2×20 min",
       "typ": "Schwelle",
-      "week": "P2-W7",
+      "week": "2026-KW33",
       "phase": "Schwelle",
       "km": 65,
       "workout": {
@@ -11676,7 +12493,7 @@
       "date": "2026-08-14",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W7",
+      "week": "2026-KW33",
       "phase": "Schwelle",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11685,7 +12502,7 @@
       "date": "2026-08-15",
       "name": "SS-Durability 3×20 min",
       "typ": "Sweet Spot",
-      "week": "P2-W7",
+      "week": "2026-KW33",
       "phase": "Schwelle",
       "km": 92,
       "workout": {
@@ -11711,7 +12528,7 @@
       "date": "2026-08-17",
       "name": "Z2 Dauer",
       "typ": "Z2 Dauer",
-      "week": "P2-W8",
+      "week": "2026-KW34",
       "phase": "Erholung",
       "km": 20,
       "details": "Lockere Z2 · HF 123–145 bpm · optional (Erholungswoche)"
@@ -11720,7 +12537,7 @@
       "date": "2026-08-18",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W8",
+      "week": "2026-KW34",
       "phase": "Erholung",
       "km": 25,
       "details": "Recovery · HF <123 bpm · sehr locker"
@@ -11729,7 +12546,7 @@
       "date": "2026-08-20",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W8",
+      "week": "2026-KW34",
       "phase": "Erholung",
       "km": 30,
       "details": "Lockere Z2 · Erholungswoche · −50% Volumen"
@@ -11738,7 +12555,7 @@
       "date": "2026-08-21",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W8",
+      "week": "2026-KW34",
       "phase": "Erholung",
       "km": 20,
       "details": "Recovery · HF <123 bpm · optional (Erholungswoche)"
@@ -11747,7 +12564,7 @@
       "date": "2026-08-22",
       "name": "Z2 Lang",
       "typ": "Z2 Lang",
-      "week": "P2-W8",
+      "week": "2026-KW34",
       "phase": "Erholung",
       "km": 60,
       "details": "Kurze Z2 Lang · −50% Volumen · keine Intervalle"
@@ -11756,7 +12573,7 @@
       "date": "2026-08-24",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W9",
+      "week": "2026-KW35",
       "phase": "VO2max",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11765,7 +12582,7 @@
       "date": "2026-08-25",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W9",
+      "week": "2026-KW35",
       "phase": "VO2max",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11774,7 +12591,7 @@
       "date": "2026-08-27",
       "name": "VO₂max 5×3 min",
       "typ": "VO2max",
-      "week": "P2-W9",
+      "week": "2026-KW35",
       "phase": "VO2max",
       "km": 50,
       "workout": {
@@ -11799,7 +12616,7 @@
       "date": "2026-08-28",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W9",
+      "week": "2026-KW35",
       "phase": "VO2max",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11808,7 +12625,7 @@
       "date": "2026-08-29",
       "name": "SS-Erhaltung 2×20 min",
       "typ": "Sweet Spot",
-      "week": "P2-W9",
+      "week": "2026-KW35",
       "phase": "VO2max",
       "km": 80,
       "workout": {
@@ -11834,7 +12651,7 @@
       "date": "2026-08-31",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W10",
+      "week": "2026-KW36",
       "phase": "VO2max",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11843,7 +12660,7 @@
       "date": "2026-09-01",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W10",
+      "week": "2026-KW36",
       "phase": "VO2max",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11852,7 +12669,7 @@
       "date": "2026-09-03",
       "name": "VO₂max 6×3 min",
       "typ": "VO2max",
-      "week": "P2-W10",
+      "week": "2026-KW36",
       "phase": "VO2max",
       "km": 52,
       "workout": {
@@ -11877,7 +12694,7 @@
       "date": "2026-09-04",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W10",
+      "week": "2026-KW36",
       "phase": "VO2max",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11886,7 +12703,7 @@
       "date": "2026-09-05",
       "name": "SS-Erhaltung 3×15 min",
       "typ": "Sweet Spot",
-      "week": "P2-W10",
+      "week": "2026-KW36",
       "phase": "VO2max",
       "km": 85,
       "workout": {
@@ -11912,7 +12729,7 @@
       "date": "2026-09-07",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W11",
+      "week": "2026-KW37",
       "phase": "VO2max",
       "km": 25,
       "details": "Lockere Z2 · HF <145 bpm · optional (bei müden Beinen streichen)"
@@ -11921,7 +12738,7 @@
       "date": "2026-09-08",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W11",
+      "week": "2026-KW37",
       "phase": "VO2max",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
@@ -11930,7 +12747,7 @@
       "date": "2026-09-10",
       "name": "VO₂max 4×4 min",
       "typ": "VO2max",
-      "week": "P2-W11",
+      "week": "2026-KW37",
       "phase": "VO2max",
       "km": 52,
       "workout": {
@@ -11955,7 +12772,7 @@
       "date": "2026-09-11",
       "name": "Recovery",
       "typ": "Z1 Recovery",
-      "week": "P2-W11",
+      "week": "2026-KW37",
       "phase": "VO2max",
       "km": 25,
       "details": "Recovery-Spin nach Intervallen · HF <123 bpm · optional (bei müden Beinen streichen)"
@@ -11964,7 +12781,7 @@
       "date": "2026-09-12",
       "name": "SS-Erhaltung 2×20 min",
       "typ": "Sweet Spot",
-      "week": "P2-W11",
+      "week": "2026-KW37",
       "phase": "VO2max",
       "km": 82,
       "workout": {
@@ -11990,7 +12807,7 @@
       "date": "2026-09-14",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
-      "week": "P2-W12",
+      "week": "2026-KW38",
       "phase": "Taper",
       "km": 20,
       "details": "Kurze lockere Z2 · Taper · Beine frisch halten · optional"
@@ -11999,7 +12816,7 @@
       "date": "2026-09-15",
       "name": "Gruppenfahrt",
       "typ": "Gruppenfahrt",
-      "week": "P2-W12",
+      "week": "2026-KW38",
       "phase": "Taper",
       "km": 55,
       "details": "Letzte Gruppenfahrt · locker bleiben"
@@ -12008,7 +12825,7 @@
       "date": "2026-09-17",
       "name": "Aktivierung vor Test",
       "typ": "Z1 Recovery",
-      "week": "P2-W12",
+      "week": "2026-KW38",
       "phase": "Taper",
       "km": 30,
       "details": "Kurze Aktivierung mit 2–3 kurzen Antritten · Beine wecken vor Ramp Test"
@@ -12017,7 +12834,7 @@
       "date": "2026-09-19",
       "name": "FTP Ramp Test",
       "typ": "FTP-Test",
-      "week": "P2-W12",
+      "week": "2026-KW38",
       "phase": "Taper",
       "km": 25,
       "workout": {
@@ -12092,84 +12909,84 @@
   },
   "forecast": {
     "2026-07-31": {
-      "temp": 28.4,
-      "tempFeel": 30.2,
-      "humidity": 49,
-      "windSpeed": 5.6,
-      "windDir": 171,
-      "precipProb": 2,
+      "temp": 28.6,
+      "tempFeel": 30.3,
+      "humidity": 48,
+      "windSpeed": 5.7,
+      "windDir": 170,
+      "precipProb": 3,
       "weatherCode": 95,
       "uvMax": 6.5
     },
     "2026-08-01": {
       "temp": 20.5,
-      "tempFeel": 21.7,
+      "tempFeel": 21.6,
       "humidity": 83,
-      "windSpeed": 10.1,
-      "windDir": 304,
-      "precipProb": 51,
+      "windSpeed": 10.9,
+      "windDir": 314,
+      "precipProb": 59,
       "weatherCode": 63,
-      "uvMax": 5.5
+      "uvMax": 5.8
     },
     "2026-08-02": {
-      "temp": 22.9,
-      "tempFeel": 22.5,
-      "humidity": 51,
-      "windSpeed": 9.3,
-      "windDir": 87,
+      "temp": 22.6,
+      "tempFeel": 22.1,
+      "humidity": 50,
+      "windSpeed": 8.6,
+      "windDir": 97,
       "precipProb": 0,
       "weatherCode": 3,
-      "uvMax": 6
+      "uvMax": 5.9
     },
     "2026-08-03": {
-      "temp": 27.1,
-      "tempFeel": 28.3,
+      "temp": 26.2,
+      "tempFeel": 27.3,
       "humidity": 51,
-      "windSpeed": 8.6,
-      "windDir": 74,
+      "windSpeed": 8,
+      "windDir": 71,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.5
     },
     "2026-08-04": {
-      "temp": 30.8,
-      "tempFeel": 34.4,
+      "temp": 30.7,
+      "tempFeel": 34.1,
       "humidity": 56,
-      "windSpeed": 6.7,
-      "windDir": 113,
-      "precipProb": 20,
+      "windSpeed": 6.2,
+      "windDir": 112,
+      "precipProb": 16,
       "weatherCode": 3,
-      "uvMax": 6.4
+      "uvMax": 6.2
     },
     "2026-08-05": {
-      "temp": 29.9,
-      "tempFeel": 33,
-      "humidity": 59,
-      "windSpeed": 8.8,
-      "windDir": 268,
-      "precipProb": 14,
+      "temp": 29.8,
+      "tempFeel": 32.5,
+      "humidity": 55,
+      "windSpeed": 7.8,
+      "windDir": 255,
+      "precipProb": 8,
       "weatherCode": 2,
-      "uvMax": 6.3
+      "uvMax": 6.4
     },
     "2026-08-06": {
-      "temp": 31.2,
-      "tempFeel": 34.6,
-      "humidity": 53,
-      "windSpeed": 4.9,
-      "windDir": 245,
-      "precipProb": 23,
+      "temp": 26.8,
+      "tempFeel": 28.3,
+      "humidity": 58,
+      "windSpeed": 7.6,
+      "windDir": 300,
+      "precipProb": 7,
       "weatherCode": 3,
       "uvMax": 6.3
     },
     "2026-08-07": {
-      "temp": 31.6,
-      "tempFeel": 34.7,
-      "humidity": 47,
-      "windSpeed": 4.7,
-      "windDir": 206,
-      "precipProb": 24,
-      "weatherCode": 3,
-      "uvMax": 5.9
+      "temp": 26.3,
+      "tempFeel": 26.9,
+      "humidity": 48,
+      "windSpeed": 7.8,
+      "windDir": 44,
+      "precipProb": 18,
+      "weatherCode": 2,
+      "uvMax": 6.2
     },
     "2026-08-08": {
       "temp": 29.7,
@@ -12179,7 +12996,7 @@
       "windDir": 216,
       "precipProb": 23,
       "weatherCode": 51,
-      "uvMax": 6.2
+      "uvMax": 5.6
     },
     "2026-08-09": {
       "temp": 18.5,
@@ -12189,7 +13006,7 @@
       "windDir": 289,
       "precipProb": 19,
       "weatherCode": 51,
-      "uvMax": 6.1
+      "uvMax": 2.2
     },
     "2026-08-10": {
       "temp": 17.9,
@@ -12199,7 +13016,7 @@
       "windDir": 292,
       "precipProb": 8,
       "weatherCode": 3,
-      "uvMax": 6.1
+      "uvMax": 4.5
     },
     "2026-08-11": {
       "temp": 19.6,
@@ -12209,7 +13026,7 @@
       "windDir": 299,
       "precipProb": 2,
       "weatherCode": 3,
-      "uvMax": 6
+      "uvMax": 3.6
     },
     "2026-08-12": {
       "temp": 21.8,
@@ -12219,7 +13036,7 @@
       "windDir": 49,
       "precipProb": 6,
       "weatherCode": 3,
-      "uvMax": 6
+      "uvMax": 5.4
     },
     "2026-08-13": {
       "temp": 24.9,
@@ -12229,7 +13046,7 @@
       "windDir": 72,
       "precipProb": 9,
       "weatherCode": 3,
-      "uvMax": 5.3
+      "uvMax": 5.2
     },
     "2026-08-14": {
       "temp": 27.8,
@@ -12239,24 +13056,24 @@
       "windDir": 276,
       "precipProb": 16,
       "weatherCode": 3,
-      "uvMax": 6
+      "uvMax": 5.3
     },
     "2026-08-15": {
-      "temp": 24.8,
-      "tempFeel": 22.4,
-      "humidity": 43,
-      "windSpeed": 18.6,
-      "windDir": 256,
+      "temp": 21.5,
+      "tempFeel": 20.1,
+      "humidity": 51,
+      "windSpeed": 12.3,
+      "windDir": 265,
       "precipProb": 0,
       "weatherCode": 51,
-      "uvMax": 4
+      "uvMax": 5.3
     }
   },
-  "plans": [
-    "Plan 1",
-    "Plan 2"
+  "dataSources": [
+    "intervals",
+    "notion"
   ],
-  "updated": "2026-07-31T13:42:55.047Z",
+  "updated": "2026-07-31T18:29:10.775Z",
   "source": "notion+intervals",
-  "count": 79
+  "count": 80
 }

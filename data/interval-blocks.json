@@ -1,0 +1,1358 @@
+{
+  "i171130239": {
+    "longestBlock": {
+      "startSec": 7683,
+      "endSec": 8029,
+      "totalDurationSec": 346,
+      "workDurationSec": 301,
+      "avgWatts": 205
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:49.518Z"
+  },
+  "i170813912": {
+    "longestBlock": {
+      "startSec": 604,
+      "endSec": 1083,
+      "totalDurationSec": 479,
+      "workDurationSec": 479,
+      "avgWatts": 191
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:49.976Z"
+  },
+  "i170114578": {
+    "longestBlock": {
+      "startSec": 6100,
+      "endSec": 7067,
+      "totalDurationSec": 967,
+      "workDurationSec": 851,
+      "avgWatts": 195
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:50.449Z"
+  },
+  "i169692548": {
+    "longestBlock": {
+      "startSec": 1303,
+      "endSec": 3273,
+      "totalDurationSec": 1970,
+      "workDurationSec": 1628,
+      "avgWatts": 203
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:50.909Z"
+  },
+  "i169160035": {
+    "longestBlock": {
+      "startSec": 15409,
+      "endSec": 15715,
+      "totalDurationSec": 306,
+      "workDurationSec": 306,
+      "avgWatts": 195
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:51.375Z"
+  },
+  "i168788704": {
+    "longestBlock": {
+      "startSec": 839,
+      "endSec": 2889,
+      "totalDurationSec": 2050,
+      "workDurationSec": 2009,
+      "avgWatts": 184
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:51.835Z"
+  },
+  "i168532073": {
+    "longestBlock": {
+      "startSec": 1492,
+      "endSec": 1580,
+      "totalDurationSec": 88,
+      "workDurationSec": 86,
+      "avgWatts": 175
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:52.296Z"
+  },
+  "i167827258": {
+    "longestBlock": {
+      "startSec": 3154,
+      "endSec": 3868,
+      "totalDurationSec": 714,
+      "workDurationSec": 629,
+      "avgWatts": 204
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:52.766Z"
+  },
+  "i167198378": {
+    "longestBlock": {
+      "startSec": 2708,
+      "endSec": 4203,
+      "totalDurationSec": 1495,
+      "workDurationSec": 1495,
+      "avgWatts": 179
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:53.224Z"
+  },
+  "i166361894": {
+    "longestBlock": {
+      "startSec": 5948,
+      "endSec": 6785,
+      "totalDurationSec": 837,
+      "workDurationSec": 679,
+      "avgWatts": 201
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:53.698Z"
+  },
+  "i165713324": {
+    "longestBlock": null,
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:54.153Z"
+  },
+  "i165050962": {
+    "longestBlock": {
+      "startSec": 11949,
+      "endSec": 12236,
+      "totalDurationSec": 287,
+      "workDurationSec": 226,
+      "avgWatts": 209
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:54.617Z"
+  },
+  "i164480043": {
+    "longestBlock": {
+      "startSec": 8848,
+      "endSec": 8901,
+      "totalDurationSec": 53,
+      "workDurationSec": 53,
+      "avgWatts": 226
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:55.082Z"
+  },
+  "i164228485": {
+    "longestBlock": {
+      "startSec": 4816,
+      "endSec": 5505,
+      "totalDurationSec": 689,
+      "workDurationSec": 689,
+      "avgWatts": 191
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:55.544Z"
+  },
+  "i163620562": {
+    "longestBlock": {
+      "startSec": 1590,
+      "endSec": 2306,
+      "totalDurationSec": 716,
+      "workDurationSec": 716,
+      "avgWatts": 174
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:55.998Z"
+  },
+  "i162976289": {
+    "longestBlock": null,
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:56.453Z"
+  },
+  "i162468700": {
+    "longestBlock": {
+      "startSec": 1923,
+      "endSec": 2161,
+      "totalDurationSec": 238,
+      "workDurationSec": 238,
+      "avgWatts": 185
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:56.915Z"
+  },
+  "i162119124": {
+    "longestBlock": {
+      "startSec": 4346,
+      "endSec": 4842,
+      "totalDurationSec": 496,
+      "workDurationSec": 496,
+      "avgWatts": 176
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:57.379Z"
+  },
+  "i161559967": {
+    "longestBlock": {
+      "startSec": 1567,
+      "endSec": 1851,
+      "totalDurationSec": 284,
+      "workDurationSec": 250,
+      "avgWatts": 189
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:57.840Z"
+  },
+  "i161294934": {
+    "longestBlock": {
+      "startSec": 2259,
+      "endSec": 2343,
+      "totalDurationSec": 84,
+      "workDurationSec": 84,
+      "avgWatts": 186
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:58.307Z"
+  },
+  "i160865528": {
+    "longestBlock": {
+      "startSec": 5846,
+      "endSec": 6007,
+      "totalDurationSec": 161,
+      "workDurationSec": 161,
+      "avgWatts": 176
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:58.763Z"
+  },
+  "i160322695": {
+    "longestBlock": null,
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:59.218Z"
+  },
+  "i159753873": {
+    "longestBlock": {
+      "startSec": 7232,
+      "endSec": 7580,
+      "totalDurationSec": 348,
+      "workDurationSec": 326,
+      "avgWatts": 205
+    },
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:28:59.683Z"
+  },
+  "i170724688": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:34.638Z"
+  },
+  "i170367371": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:35.094Z"
+  },
+  "i170063711": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:35.550Z"
+  },
+  "i170057169": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 1362,
+      "totalDurationSec": 1362,
+      "workDurationSec": 1280,
+      "avgWatts": 265
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:36.012Z"
+  },
+  "i168432477": {
+    "longestBlock": {
+      "startSec": 1927,
+      "endSec": 2643,
+      "totalDurationSec": 716,
+      "workDurationSec": 716,
+      "avgWatts": 251
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:36.469Z"
+  },
+  "i168018134": {
+    "longestBlock": {
+      "startSec": 2760,
+      "endSec": 2777,
+      "totalDurationSec": 17,
+      "workDurationSec": 17,
+      "avgWatts": 399
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:36.947Z"
+  },
+  "i167753866": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:37.409Z"
+  },
+  "i167747123": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 1756,
+      "totalDurationSec": 1756,
+      "workDurationSec": 1681,
+      "avgWatts": 259
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:37.878Z"
+  },
+  "i166422992": {
+    "longestBlock": {
+      "startSec": 1828,
+      "endSec": 2465,
+      "totalDurationSec": 637,
+      "workDurationSec": 637,
+      "avgWatts": 257
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:38.338Z"
+  },
+  "i166100850": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:38.799Z"
+  },
+  "i165652840": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:39.266Z"
+  },
+  "i165645449": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 409,
+      "totalDurationSec": 409,
+      "workDurationSec": 409,
+      "avgWatts": 289
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:39.738Z"
+  },
+  "i165099758": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:40.194Z"
+  },
+  "i164730320": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:40.648Z"
+  },
+  "i164724626": {
+    "longestBlock": {
+      "startSec": 2807,
+      "endSec": 3094,
+      "totalDurationSec": 287,
+      "workDurationSec": 287,
+      "avgWatts": 285
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:41.109Z"
+  },
+  "i164136380": {
+    "longestBlock": {
+      "startSec": 903,
+      "endSec": 1535,
+      "totalDurationSec": 632,
+      "workDurationSec": 632,
+      "avgWatts": 264
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:41.573Z"
+  },
+  "i163889940": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:42.028Z"
+  },
+  "i163880063": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 1288,
+      "totalDurationSec": 1288,
+      "workDurationSec": 1288,
+      "avgWatts": 268
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:42.488Z"
+  },
+  "i163581112": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:42.952Z"
+  },
+  "i162857163": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:43.417Z"
+  },
+  "i162618247": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:43.874Z"
+  },
+  "i162612820": {
+    "longestBlock": {
+      "startSec": 1840,
+      "endSec": 2581,
+      "totalDurationSec": 741,
+      "workDurationSec": 642,
+      "avgWatts": 255
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:44.343Z"
+  },
+  "i162022548": {
+    "longestBlock": {
+      "startSec": 2464,
+      "endSec": 2944,
+      "totalDurationSec": 480,
+      "workDurationSec": 480,
+      "avgWatts": 253
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:44.820Z"
+  },
+  "i161858601": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:45.281Z"
+  },
+  "i161501550": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:45.737Z"
+  },
+  "i161494369": {
+    "longestBlock": {
+      "startSec": 1553,
+      "endSec": 1923,
+      "totalDurationSec": 370,
+      "workDurationSec": 370,
+      "avgWatts": 281
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:46.195Z"
+  },
+  "i161076477": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:46.651Z"
+  },
+  "i162700383": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:47.105Z"
+  },
+  "i162700388": {
+    "longestBlock": {
+      "startSec": 507,
+      "endSec": 779,
+      "totalDurationSec": 272,
+      "workDurationSec": 272,
+      "avgWatts": 258
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:47.563Z"
+  },
+  "i161076507": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:48.018Z"
+  },
+  "i162700400": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:48.472Z"
+  },
+  "i162700405": {
+    "longestBlock": {
+      "startSec": 9,
+      "endSec": 1223,
+      "totalDurationSec": 1214,
+      "workDurationSec": 1194,
+      "avgWatts": 274
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:48.926Z"
+  },
+  "i162700417": {
+    "longestBlock": {
+      "startSec": 502,
+      "endSec": 687,
+      "totalDurationSec": 185,
+      "workDurationSec": 105,
+      "avgWatts": 276
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:49.382Z"
+  },
+  "i162700425": {
+    "longestBlock": {
+      "startSec": 2736,
+      "endSec": 3001,
+      "totalDurationSec": 265,
+      "workDurationSec": 265,
+      "avgWatts": 242
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:49.837Z"
+  },
+  "i161076534": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:50.292Z"
+  },
+  "i162700428": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:50.746Z"
+  },
+  "i162700432": {
+    "longestBlock": {
+      "startSec": 394,
+      "endSec": 792,
+      "totalDurationSec": 398,
+      "workDurationSec": 398,
+      "avgWatts": 251
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:51.204Z"
+  },
+  "i162700442": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:51.659Z"
+  },
+  "i161076553": {
+    "longestBlock": {
+      "startSec": 446,
+      "endSec": 498,
+      "totalDurationSec": 52,
+      "workDurationSec": 52,
+      "avgWatts": 279
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:52.116Z"
+  },
+  "i162700447": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:52.574Z"
+  },
+  "i161076580": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:53.028Z"
+  },
+  "i162700455": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:53.480Z"
+  },
+  "i162700470": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 546,
+      "totalDurationSec": 546,
+      "workDurationSec": 546,
+      "avgWatts": 239
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:53.935Z"
+  },
+  "i162700474": {
+    "longestBlock": {
+      "startSec": 604,
+      "endSec": 1503,
+      "totalDurationSec": 899,
+      "workDurationSec": 899,
+      "avgWatts": 244
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:54.391Z"
+  },
+  "i162700478": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:54.846Z"
+  },
+  "i162700489": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:55.305Z"
+  },
+  "i162700492": {
+    "longestBlock": {
+      "startSec": 1536,
+      "endSec": 1955,
+      "totalDurationSec": 419,
+      "workDurationSec": 419,
+      "avgWatts": 263
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:55.767Z"
+  },
+  "i161076615": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:56.222Z"
+  },
+  "i162700498": {
+    "longestBlock": {
+      "startSec": 723,
+      "endSec": 809,
+      "totalDurationSec": 86,
+      "workDurationSec": 86,
+      "avgWatts": 244
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:56.675Z"
+  },
+  "i162700506": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:57.132Z"
+  },
+  "i162700536": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:57.592Z"
+  },
+  "i162700544": {
+    "longestBlock": {
+      "startSec": 3065,
+      "endSec": 3379,
+      "totalDurationSec": 314,
+      "workDurationSec": 314,
+      "avgWatts": 243
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:58.047Z"
+  },
+  "i162700548": {
+    "longestBlock": {
+      "startSec": 798,
+      "endSec": 1204,
+      "totalDurationSec": 406,
+      "workDurationSec": 406,
+      "avgWatts": 288
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:58.501Z"
+  },
+  "i162700551": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:58.957Z"
+  },
+  "i162700561": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:59.411Z"
+  },
+  "i162700565": {
+    "longestBlock": {
+      "startSec": 41,
+      "endSec": 1261,
+      "totalDurationSec": 1220,
+      "workDurationSec": 1104,
+      "avgWatts": 260
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:29:59.869Z"
+  },
+  "i162700571": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:00.331Z"
+  },
+  "i162700580": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:00.788Z"
+  },
+  "i162700587": {
+    "longestBlock": {
+      "startSec": 392,
+      "endSec": 1397,
+      "totalDurationSec": 1005,
+      "workDurationSec": 937,
+      "avgWatts": 260
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:01.247Z"
+  },
+  "i162700592": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:01.707Z"
+  },
+  "i162700597": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:02.164Z"
+  },
+  "i162700601": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:02.622Z"
+  },
+  "i162700608": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:03.075Z"
+  },
+  "i162700613": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:03.530Z"
+  },
+  "i162700618": {
+    "longestBlock": {
+      "startSec": 1516,
+      "endSec": 1670,
+      "totalDurationSec": 154,
+      "workDurationSec": 154,
+      "avgWatts": 259
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:03.986Z"
+  },
+  "i162700626": {
+    "longestBlock": {
+      "startSec": 3706,
+      "endSec": 3786,
+      "totalDurationSec": 80,
+      "workDurationSec": 80,
+      "avgWatts": 246
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:04.442Z"
+  },
+  "i162700632": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:04.898Z"
+  },
+  "i162700640": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:05.354Z"
+  },
+  "i162700643": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:05.807Z"
+  },
+  "i162700645": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:06.264Z"
+  },
+  "i162700647": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 962,
+      "totalDurationSec": 962,
+      "workDurationSec": 849,
+      "avgWatts": 266
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:06.722Z"
+  },
+  "i162700652": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:07.177Z"
+  },
+  "i162700657": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:07.631Z"
+  },
+  "i162700661": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:08.089Z"
+  },
+  "i162700667": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 833,
+      "totalDurationSec": 833,
+      "workDurationSec": 808,
+      "avgWatts": 268
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:08.547Z"
+  },
+  "i162700669": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:09.001Z"
+  },
+  "i162700678": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:09.458Z"
+  },
+  "i162700683": {
+    "longestBlock": {
+      "startSec": 5,
+      "endSec": 1278,
+      "totalDurationSec": 1273,
+      "workDurationSec": 1273,
+      "avgWatts": 255
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:09.914Z"
+  },
+  "i162700686": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:10.367Z"
+  },
+  "i162700694": {
+    "longestBlock": {
+      "startSec": 616,
+      "endSec": 763,
+      "totalDurationSec": 147,
+      "workDurationSec": 147,
+      "avgWatts": 266
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:10.825Z"
+  },
+  "i162700701": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:11.280Z"
+  },
+  "i162700703": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:11.737Z"
+  },
+  "i162700707": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:12.191Z"
+  },
+  "i162700711": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:12.648Z"
+  },
+  "i162700717": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:13.102Z"
+  },
+  "i162700723": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:13.558Z"
+  },
+  "i162700726": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:14.013Z"
+  },
+  "i162700727": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:14.469Z"
+  },
+  "i162700732": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:14.924Z"
+  },
+  "i162700734": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:15.381Z"
+  },
+  "i162700736": {
+    "longestBlock": {
+      "startSec": 1162,
+      "endSec": 2686,
+      "totalDurationSec": 1524,
+      "workDurationSec": 1524,
+      "avgWatts": 270
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:15.838Z"
+  },
+  "i162700739": {
+    "longestBlock": {
+      "startSec": 4,
+      "endSec": 1528,
+      "totalDurationSec": 1524,
+      "workDurationSec": 1524,
+      "avgWatts": 270
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:16.296Z"
+  },
+  "i162700740": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:16.751Z"
+  },
+  "i162700743": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:17.206Z"
+  },
+  "i162700747": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:17.660Z"
+  },
+  "i162700749": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:18.115Z"
+  },
+  "i162700757": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:18.569Z"
+  },
+  "i162700760": {
+    "longestBlock": {
+      "startSec": 541,
+      "endSec": 2283,
+      "totalDurationSec": 1742,
+      "workDurationSec": 1655,
+      "avgWatts": 265
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:19.025Z"
+  },
+  "i162700765": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 1749,
+      "totalDurationSec": 1749,
+      "workDurationSec": 1662,
+      "avgWatts": 265
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:19.484Z"
+  },
+  "i162700775": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:19.936Z"
+  },
+  "i162700779": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:20.392Z"
+  },
+  "i162700783": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:20.848Z"
+  },
+  "i162700787": {
+    "longestBlock": {
+      "startSec": 14882,
+      "endSec": 14976,
+      "totalDurationSec": 94,
+      "workDurationSec": 24,
+      "avgWatts": 451
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:21.302Z"
+  },
+  "i162700791": {
+    "longestBlock": {
+      "startSec": 13162,
+      "endSec": 13223,
+      "totalDurationSec": 61,
+      "workDurationSec": 24,
+      "avgWatts": 451
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:21.756Z"
+  },
+  "i162700796": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:22.212Z"
+  },
+  "i162700800": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 1777,
+      "totalDurationSec": 1777,
+      "workDurationSec": 1777,
+      "avgWatts": 263
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:22.669Z"
+  },
+  "i162700805": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:23.127Z"
+  },
+  "i162700806": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:23.583Z"
+  },
+  "i162700809": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:24.039Z"
+  },
+  "i162700819": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:24.495Z"
+  },
+  "i162700821": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 1426,
+      "totalDurationSec": 1426,
+      "workDurationSec": 1377,
+      "avgWatts": 268
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:24.953Z"
+  },
+  "i162700824": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:25.409Z"
+  },
+  "i162700826": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:25.865Z"
+  },
+  "i162700829": {
+    "longestBlock": {
+      "startSec": 3374,
+      "endSec": 3535,
+      "totalDurationSec": 161,
+      "workDurationSec": 81,
+      "avgWatts": 267
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:26.323Z"
+  },
+  "i162700834": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:26.775Z"
+  },
+  "i162700836": {
+    "longestBlock": {
+      "startSec": 4377,
+      "endSec": 4533,
+      "totalDurationSec": 156,
+      "workDurationSec": 129,
+      "avgWatts": 269
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:27.233Z"
+  },
+  "i162700841": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:27.686Z"
+  },
+  "i162700843": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:28.142Z"
+  },
+  "i162700847": {
+    "longestBlock": {
+      "startSec": 2814,
+      "endSec": 3148,
+      "totalDurationSec": 334,
+      "workDurationSec": 334,
+      "avgWatts": 251
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:28.598Z"
+  },
+  "i162700849": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:29.054Z"
+  },
+  "i162700850": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 635,
+      "totalDurationSec": 635,
+      "workDurationSec": 635,
+      "avgWatts": 243
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:29.510Z"
+  },
+  "i162700852": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:29.966Z"
+  },
+  "i162700853": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:30.424Z"
+  },
+  "i162700857": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:30.879Z"
+  },
+  "i162700860": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:31.333Z"
+  },
+  "i162700863": {
+    "longestBlock": {
+      "startSec": 405,
+      "endSec": 659,
+      "totalDurationSec": 254,
+      "workDurationSec": 254,
+      "avgWatts": 259
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:31.791Z"
+  },
+  "i162700865": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:32.247Z"
+  },
+  "i162700870": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:32.701Z"
+  },
+  "i162700872": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:33.159Z"
+  },
+  "i162700876": {
+    "longestBlock": {
+      "startSec": 464,
+      "endSec": 896,
+      "totalDurationSec": 432,
+      "workDurationSec": 432,
+      "avgWatts": 247
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:33.618Z"
+  },
+  "i162700877": {
+    "longestBlock": {
+      "startSec": 2093,
+      "endSec": 2111,
+      "totalDurationSec": 18,
+      "workDurationSec": 18,
+      "avgWatts": 411
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:34.075Z"
+  },
+  "i162700883": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:34.981Z"
+  },
+  "i162700887": {
+    "longestBlock": {
+      "startSec": 5536,
+      "endSec": 5552,
+      "totalDurationSec": 16,
+      "workDurationSec": 16,
+      "avgWatts": 405
+    },
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:35.438Z"
+  },
+  "i162700890": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:35.890Z"
+  },
+  "i162700891": {
+    "longestBlock": null,
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-07-31T18:30:36.347Z"
+  }
+}
