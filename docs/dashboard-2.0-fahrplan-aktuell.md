@@ -519,5 +519,13 @@ für bereits migrierte `plan_cards`-Zeilen liegt bereit, noch nicht gegen
 `dashboard-dev` eingespielt (manueller Schritt, s. Migrations-Workflow in
 AGENTS.md).
 
+➡️ **`dashboard-2.0` ist nach `main` gemerged und live (31.07.2026).**
+Phasen 0–5 sind produktiv auf `stuhlsen.github.io` — Auth, Befinden/Events,
+interaktiver Planungstab, Trainer-Rolle + Claude-Export/Import-Workflow,
+modernisierte Charts. `config.js` zeigt auf das echte `dashboard-prod`-
+Supabase-Projekt. Details (Konflikt-Auflösung, zwei beim Merge aufgedeckte
+CI-Lücken, Live-Verifikation) in `docs/offene-punkte.md` unter „Erledigt".
+Der `dashboard-2.0`-Branch ist noch nicht gelöscht, s. Etappe E6.
+
 ➡️ **Nächster Schritt: Phase 6 — Feedback & Öffentlichkeit**, s. Abschnitt
 unten.

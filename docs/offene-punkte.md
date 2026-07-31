@@ -252,6 +252,36 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
 
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
+- **Etappe E4 — Merge `dashboard-2.0` → `main` (31.07.2026)**: 218 Commits,
+  Phasen 0–5 vollständig live. `data/rides.json`/`rides-2.json`/
+  `subjective.json`-Konflikte zugunsten `main`s frischerer Sync-Daten
+  aufgelöst (wie in AGENTS.md dokumentiert). `stuhlsen.github.io` in
+  `config.js` auf das echte `dashboard-prod`-Supabase-Projekt verdrahtet.
+  Dabei zwei echte, bis dahin unentdeckte Lücken aufgedeckt — Ursache
+  beider: `ci.yml` triggert nur auf `push: branches: [main]`, lief also in
+  der gesamten `dashboard-2.0`-Historie nie automatisch:
+  1. `ci.yml` rief `node --test` ohne `--experimental-test-module-mocks`
+     auf (`package.json`s `test`-Script hat das Flag). Fiel nie auf, weil
+     `main` vor dem Merge keine `mock.module()`-Tests hatte. Auf
+     `npm test` umgestellt.
+  2. Selbst mit `npm test` scheiterten 8 Testdateien unter Node 22.23.1
+     reproduzierbar an `mock.module()`s vereinheitlichter
+     `{ exports: {...} }`-Kurzform (`SyntaxError: … does not provide an
+     export named …`) — unter lokalem Node 24.18.0 liefen dieselben Tests
+     durchgehend grün. `ci.yml` auf Node 24 gehoben, AGENTS.md-Begründung
+     korrigiert (s. Abschnitt „Stack").
+  3. Nach dem Test-Fix schlug Lint an: `FormData`/`clearTimeout` fehlten
+     in der handgepflegten Browser-Globals-Liste in `eslint.config.js`
+     (gebraucht seit `settings-panel.js`/`plan-card-dialog.js`/
+     `export-panel.js`/`event-form.js`), ebenfalls nie geprüft. Ergänzt,
+     10 `no-undef`-Fehler behoben.
+  Vier bestehende `no-unused-vars`-Warnungen bewusst nicht mitgefixt (kein
+  Blocker): `MIN_POINTS` (`ui/analysis.js:27`), `totalWs`/`totalWe`
+  (`ui/charts/base.js:613`), `estimateBMR` (`tests/analysis-core.test.js:23`).
+  CI danach grün, Sync+Deploy manuell gegen den finalen Stand ausgelöst und
+  verifiziert, Live-Seite (`stuhlsen.github.io`) per Playwright-Snapshot
+  geprüft (kein DEV-Badge, Login-Button, echte Daten — einziger
+  Konsolenfehler ein vorbestehendes, unabhängiges 404 auf `favicon.ico`).
 - **FTP-Historie Schritt 3 (Konsumenten umstellen, 31.07.2026)**: `typ`
   (Fall "inferred") und `classifyCooldowns()` nutzen jetzt dieselbe
   datumsgenaue `ftpAt()`-Auflösung wie `typDetected`/`typDetection` — vorher
