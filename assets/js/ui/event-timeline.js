@@ -6,8 +6,10 @@ import {
   removeEvent,
   isUpcomingEvent,
 } from "../state/events.js";
-import { getSession, onSessionChange } from "../state/session.js";
+import { onSessionChange } from "../state/session.js";
+import { canWriteForAthlete } from "../state/write-authorization.js";
 import { fmtDate, localISODate } from "../core/format.js";
+import { createRequestGuard } from "../core/request-guard.js";
 import { el, escapeHtml } from "./dom.js";
 import { openEventForm } from "./event-form.js";
 
@@ -54,6 +56,24 @@ function eventRow(event, canEdit) {
     </div>`;
 }
 
+// Autorisierungs-Ergebnis für den aktuell angezeigten Athleten (Self/Trainer/
+// Admin, s. state/write-authorization.js) — Default false, damit die
+// Schreib-Buttons nie aufblitzen, bevor die Beziehung geprüft ist. Vor dem
+// Bugfix (31.07.2026) hing canEdit hier nur an `!!getSession()`: JEDER
+// eingeloggte User sah Anlegen/Bearbeiten/Löschen, unabhängig davon, ob er
+// zum gerade per Toggle angezeigten Athleten überhaupt eine Beziehung hatte.
+let _canEdit = false;
+const authGuard = createRequestGuard();
+
+function _resolveAuth(athleteId) {
+  const myRequest = authGuard.bump();
+  canWriteForAthlete(athleteId).then((result) => {
+    if (!authGuard.isCurrent(myRequest)) return; // überholt (Athleten-/Login-Wechsel)
+    _canEdit = result;
+    EventTimeline._draw();
+  });
+}
+
 export const EventTimeline = {
   _athleteId: null,
   _unsubscribe: null,
@@ -69,6 +89,8 @@ export const EventTimeline = {
       this._athleteId = athleteId;
       if (this._unsubscribe) this._unsubscribe();
       this._unsubscribe = onEventsChange(() => this._draw());
+      _canEdit = false; // sofort ausblenden, bis die Beziehung geprüft ist
+      _resolveAuth(athleteId); // nicht awaited — analog zum Events-Load unten
       this._draw(); // sofort "Lädt …" zeigen, nicht erst nach dem await
       await loadEvents(athleteId);
     }
@@ -79,7 +101,7 @@ export const EventTimeline = {
     const wrap = el("event-timeline");
     if (!wrap) return;
     const { events, loading, error, loadedForAthleteId } = getState();
-    const canEdit = !!getSession();
+    const canEdit = _canEdit;
 
     // loadEvents() setzt error=null bei jedem Start und respektiert den
     // requestGuard — ist "loading" abgeschlossen und "error" gesetzt,
@@ -156,6 +178,13 @@ export const EventTimeline = {
 // Login/Logout blendet Edit/Delete-Affordanzen ein/aus (RLS bleibt die
 // eigentliche Durchsetzung, s. state/events.js::createEvent-Kommentar) — nur
 // relevant, nachdem render() mindestens einmal für einen Athleten lief.
+// Ändert nicht nur die Anzeige, sondern auch den Autorisierungsstand selbst
+// (ein neu eingeloggter User kann Trainer/Admin sein) — deshalb Neuauflösung,
+// nicht nur ein Redraw des zuletzt bekannten _canEdit-Werts.
 onSessionChange(() => {
-  if (EventTimeline._athleteId !== null) EventTimeline._draw();
+  if (EventTimeline._athleteId !== null) {
+    _canEdit = false;
+    _resolveAuth(EventTimeline._athleteId);
+    EventTimeline._draw();
+  }
 });

@@ -36,7 +36,8 @@ import { getState as getEventsState } from "../state/events.js";
 import { getState as getTrainerViewState, onTrainerViewChange } from "../state/trainer-view.js";
 import { createTrainerProposal } from "../state/proposals.js";
 import { moveProposalArgs, cancelProposalArgs } from "../core/proposal-payload.js";
-import { isCoach } from "../state/session.js";
+import { isCoach, onSessionChange } from "../state/session.js";
+import { canWriteForAthlete } from "../state/write-authorization.js";
 import { el, escapeHtml } from "./dom.js";
 import { weekDisplayLabels } from "./charts/base.js";
 import { activateTab } from "./nav.js";
@@ -49,11 +50,27 @@ import { initPlanDrag, cancelActiveDrag } from "./plan-drag.js";
  *  und core/ nicht aus ui/ importieren darf (Schichtenregel). */
 export const TYP_OPTIONS = KNOWN_PLAN_TYPES;
 
+// Autorisierungs-Ergebnis für Data.activeAthleteId (Self/Trainer/Admin, s.
+// state/write-authorization.js) — von render() vor jedem Durchlauf aktuell
+// gehalten (s. dort). Vor dem Bugfix (31.07.2026, analoger Fund zum
+// Events-Bug) prüfte _canEdit() nur den Toggle, nie eine echte Beziehung —
+// jeder Betrachter (auch anonym, auch ein nicht zugeordneter Trainer) sah
+// die Schreib-Buttons auf Athlet 1s Plan-Seite.
+let _writeAuthorized = false;
+let _writeAuthorizedFor = null;
+
 /** Nur der primäre Athlet (Athlet 1) darf Verschieben/Ausfallen/Wahoo-Push
  *  auslösen — Athlet 2 hat seit GFNY Bremen 2026 zwar einen eigenen Plan,
- *  bleibt aber laut AGENTS.md ein reiner Vergleichsathlet (read-only). */
+ *  bleibt aber laut AGENTS.md ein reiner Vergleichsathlet (read-only).
+ *  Zusätzlich zur Athlet-1-Bedingung muss der eingeloggte User tatsächlich
+ *  Athlet 1 selbst, dessen Trainer oder Admin sein (RLS erlaubt nicht mehr,
+ *  s. 0001/0011) — reine UI-Sichtbarkeit, RLS bleibt die Durchsetzung. */
 function _canEdit() {
-  return Data.activeAthleteId === CONFIG.primaryAthleteId;
+  return (
+    Data.activeAthleteId === CONFIG.primaryAthleteId &&
+    _writeAuthorizedFor === Data.activeAthleteId &&
+    _writeAuthorized
+  );
 }
 
 /** Ist der eingeloggte User Trainer des angezeigten Athleten UND steht der
@@ -247,6 +264,19 @@ export const Planned = {
     cancelActiveDrag();
 
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
+
+    // Autorisierung für Data.activeAthleteId auflösen, BEVOR die Karten-HTML
+    // gebaut wird (_canEdit() liest das Ergebnis synchron) — nur bei
+    // Athletenwechsel neu anfragen, sonst bleibt der bereits geprüfte Stand
+    // gültig (analog loadedForAthleteId bei plan_cards). Nicht nötig für
+    // Athlet 2 (immer read-only, s. _canEdit()), spart dort den Lookup.
+    if (_writeAuthorizedFor !== Data.activeAthleteId) {
+      _writeAuthorized =
+        Data.activeAthleteId === CONFIG.primaryAthleteId
+          ? await canWriteForAthlete(Data.activeAthleteId)
+          : false;
+      _writeAuthorizedFor = Data.activeAthleteId;
+    }
 
     // Karten + Forecast parallel laden (Karten nur beim ersten Render bzw.
     // erneut nach einem Athletenwechsel — s. loadedForAthleteId; nach einem
@@ -1289,6 +1319,19 @@ export const Planned = {
 // bevor der Planungstab für den aktuellen Athleten überhaupt einmal geladen
 // wurde.
 onTrainerViewChange(() => {
+  if (getPlanCardsState().loadedForAthleteId === Data.activeAthleteId) {
+    Planned.render(Data.byDate());
+  }
+});
+
+// Login/Logout ändert den Autorisierungsstand selbst (s. state/write-
+// authorization.js::canWriteForAthlete), nicht nur die Trainer-Leiste —
+// _writeAuthorizedFor zurücksetzen erzwingt eine Neuauflösung im nächsten
+// render() (Guard dort), statt am Autorisierungsstand von vor dem
+// Login/Logout hängenzubleiben. Gleiche Race-Klasse wie beim
+// onTrainerViewChange-Guard direkt darüber (s. dessen Kommentar).
+onSessionChange(() => {
+  _writeAuthorizedFor = null;
   if (getPlanCardsState().loadedForAthleteId === Data.activeAthleteId) {
     Planned.render(Data.byDate());
   }
