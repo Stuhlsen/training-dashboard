@@ -35,9 +35,27 @@ import { Charts } from "./ui/charts/index.js";
 import { Overview } from "./ui/overview.js";
 import { Table } from "./ui/table.js";
 import { Planned } from "./ui/planned.js";
+import { PlanCardDialog } from "./ui/plan-card-dialog.js";
+import { TrainerBar } from "./ui/trainer-bar.js";
+import { ProposalBanner } from "./ui/proposal-banner.js";
+import { ExportImportBar } from "./ui/export-panel.js";
 import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
+import { initSession, isAthlete } from "./state/session.js";
+import { getState as getWellbeingState } from "./state/wellbeing.js";
+import {
+  configureProjection,
+  recomputeProjection,
+  loadPlanCards,
+  getState as getPlanCardsState,
+} from "./state/plan-cards.js";
+import { getState as getEventsState, onEventsChange } from "./state/events.js";
+import { configureScenarioSources } from "./state/chart-view.js";
+import { EventTimeline } from "./ui/event-timeline.js";
+import { WellbeingCard } from "./ui/wellbeing-card.js";
+import "./ui/header.js";
+import "./ui/env-badge.js";
 
 /* ── Athleten-Toggle ─────────────────────────────────────────── */
 function initAthleteToggle() {
@@ -63,11 +81,13 @@ function initAthleteToggle() {
   });
 }
 
-/* ── Hat der aktive Athlet Athlet 1s Plan-1/2-Struktur? ─────────
-   Steuert NUR die Plan-1/2-spezifischen Inhalte (HRV/RHF-Split an
-   der W0-Übergangswoche, "Plan 2"/W12-Retest-Texte, Wochen-Aggregation
-   nach Plan- statt Kalenderwochen) — exklusiv Athlet 1, erkannt an
-   ride.week (Athlet 2 hat das bewusst nicht, s. map-activity.js).
+/* ── Hat der aktive Athlet Athlet 1s eigenen strukturierten Trainingsplan? ──
+   Steuert NUR die Athlet-1-exklusiven Inhalte (HRV-Methodenwechsel-Hinweis,
+   FTP-Retest-Text, Periodisierungs-Sektion, Datenquellen-Text) — exklusiv
+   Athlet 1, erkannt an ride.week (Athlet 2 hat das bewusst nicht, s.
+   map-activity.js). KEINE Kalenderwochen-Frage mehr (Data.weekly() läuft
+   seit dem Umbau "Plan 1/2 → Kalenderwoche" für beide Athleten einheitlich
+   über isoWeekKey(), unabhängig von hasOwnPlan()).
    Für den Planungstab selbst (auch bei Athlet 2 mit eigenem Plan seit
    GFNY Bremen 2026) ist stattdessen `hasPlanningTab` unten zuständig. */
 function hasOwnPlan() {
@@ -95,7 +115,7 @@ function updateChartExplainers(ownPlan, ftp) {
   if (ownPlan) {
     set(
       "explainer-pmc",
-      `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.`
+      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert. Vergleichsmodus: aktuelles Fenster als Zeitraum A/B merken, um zwei Blöcke überlagert auf einer relativen Tage-Achse zu vergleichen (Tag 1 = Blockstart) — ungleich lange Zeiträume werden nicht gestreckt.`
     );
     set(
       "explainer-trimp",
@@ -107,11 +127,11 @@ function updateChartExplainers(ownPlan, ftp) {
     );
     set(
       "explainer-hrv",
-      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche (W0) markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`
+      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Markierung zeigt den Wechsel der Messmethode: bis dahin Apple Health RMSSD (lila), danach intervals.icu SDNN Schlafschnitt — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert vor/nach dem Wechsel getrennt berechnet werden statt eine gemeinsame Linie zu bilden.`
     );
     set(
       "explainer-rhf",
-      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche (W0) trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.`
+      `Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Markierung zeigt denselben Zeitpunkt wie im HRV-Chart (Wechsel der Datenquelle), ohne dass sich die Ruhepuls-Messmethode hier ändert — beide Mittelwerte bleiben direkt vergleichbar.`
     );
 
     set(
@@ -129,14 +149,14 @@ function updateChartExplainers(ownPlan, ftp) {
     );
 
     set("note-cadence", `RPM pro Fahrt · gestrichelt = Ziel ${CONFIG.cadenceTarget} RPM`);
-    set("note-hrv", `Plan 1 (lila) · Übergang (gold) · Plan 2 (orange)`);
-    set("note-rhf", `Plan 1 (rot) · Übergang (gold) · Plan 2 (orange)`);
-    set("note-sleep", `Nur Plan 2 · intervals.icu`);
+    set("note-hrv", `RMSSD → SDNN (gold = Methodenwechsel)`);
+    set("note-rhf", `Verlauf über den erfassten Zeitraum`);
+    set("note-sleep", `Nur ab intervals.icu-Ära verfügbar`);
     set("efficiency-note", `Nur Powermeter-Fahrten (ab W6)`);
   } else {
     set(
       "explainer-pmc",
-      `CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining.`
+      `CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — produktive Trainingsbelastung ohne Übertraining. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert. Vergleichsmodus: aktuelles Fenster als Zeitraum A/B merken, um zwei Blöcke überlagert auf einer relativen Tage-Achse zu vergleichen (Tag 1 = Blockstart) — ungleich lange Zeiträume werden nicht gestreckt.`
     );
     set(
       "explainer-trimp",
@@ -148,7 +168,7 @@ function updateChartExplainers(ownPlan, ftp) {
     );
     set(
       "explainer-hrv",
-      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Da kein eigener Trainingsplan vorliegt, wird hier ein durchgehender Verlauf ohne Plan-Trennung gezeigt.`
+      `Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Durchgehende Messmethode (SDNN, intervals.icu) über den gesamten Zeitraum, kein Methodenwechsel-Marker nötig.`
     );
     set(
       "explainer-rhf",
@@ -173,19 +193,20 @@ function updateChartExplainers(ownPlan, ftp) {
 }
 
 /** FTP-Projektion-Titel/Erklärtext: Athlet 1 hat einen festen Retest-Termin
- *  (W12), Athlet 2 keinen eigenen Plan — dort zeigt targetISO das Datum,
- *  an dem der eFTP-Trend das Ziel erreichen würde (core/ftp-forecast.js::
- *  dateForTarget), oder ist null, wenn sich kein Horizont ableiten lässt. */
+ *  (Taper-Woche, CONFIG.retestDate), Athlet 2 keinen eigenen Plan — dort
+ *  zeigt targetISO das Datum, an dem der eFTP-Trend das Ziel erreichen
+ *  würde (core/ftp-forecast.js::dateForTarget), oder ist null, wenn sich
+ *  kein Horizont ableiten lässt. */
 function updateFtpForecastText(ownPlan, goal, targetISO) {
   const set = (id, html) => {
     const e = el(id);
     if (e) e.innerHTML = html;
   };
   if (ownPlan) {
-    set("title-ftp-forecast", "FTP-Projektion · Retest W12");
+    set("title-ftp-forecast", "FTP-Projektion · Retest Taper-Woche");
     set(
       "explainer-ftp-forecast",
-      `Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das ${goal}-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt in W11 aus Frust zu viel nachzulegen.`
+      `Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das ${goal}-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt kurz davor aus Frust zu viel nachzulegen.`
     );
   } else if (targetISO) {
     set("title-ftp-forecast", `FTP-Projektion · Ziel ${goal}W`);
@@ -218,7 +239,8 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
     {
       toggleId: "toggle-weekly",
       titleId: "title-weekly",
-      chartFn: (data, period) => Charts.renderWeeklyVolume("chart-weekly", data, onBarClick, period),
+      chartFn: (data, period) =>
+        Charts.renderWeeklyVolume("chart-weekly", data, onBarClick, period, rides),
       titleWeek: "Wöchentliches Volumen (km)",
       titleMonth: "Monatliches Volumen (km)",
     },
@@ -226,25 +248,17 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
       toggleId: "toggle-trimp",
       titleId: "title-trimp",
       chartFn: (data, period) =>
-        Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard, period),
+        Charts.renderTrimp("chart-trimp", data, period === "month" ? null : guard, period, rides),
       titleWeek: "Belastungswächter · TRIMP, Ramp & Monotonie",
       titleMonth: "Trainingsbelastung TRIMP pro Monat",
     },
     {
       toggleId: "toggle-weather",
       titleId: "title-weather",
-      chartFn: (data, period) => {
-        if (period === "month") {
-          // Fahrten temporär mit Monat als "week" versehen für die Aggregation in renderWeatherWeekly
-          const ridesWithMonth = Data.rides.map((r) => ({
-            ...r,
-            week: r.dateISO ? r.dateISO.slice(0, 7) : r.week || "?",
-          }));
-          Charts.renderWeatherWeekly("chart-weather-weekly", ridesWithMonth, period);
-        } else {
-          Charts.renderWeatherWeekly("chart-weather-weekly", Data.rides, period);
-        }
-      },
+      // renderWeatherWeekly() bucketet selbst nach core/chart-buckets.js::
+      // dateToWeekBucket(period) — kein Remapping von r.week mehr nötig
+      // (Monats-Bucket-Vereinheitlichung, s. docs/offene-punkte.md).
+      chartFn: (data, period) => Charts.renderWeatherWeekly("chart-weather-weekly", Data.rides, period),
       titleWeek: "Trainingswetter · Temperatur & Wind pro Woche",
       titleMonth: "Trainingswetter · Temperatur & Wind pro Monat",
     },
@@ -283,22 +297,35 @@ function initPeriodToggles(rides, weekly, guard, onBarClick) {
 }
 
 /* ── Nach einer Adjustment-Änderung (verschoben/ausgefallen) im
-   Planungs-Tab: Panels, die plannedSessions+adjustments lesen, ohne
-   vollständigen Reload aktualisieren (Hero-Session-Pill, Wochenrückblick,
-   Analyse-Briefing/Konsistenz). Planned.render() selbst übernimmt
-   ui/planned.js. ── */
+   Planungs-Tab: Panels, die den Plan lesen, ohne vollständigen Reload
+   aktualisieren (Hero-Session-Pill, Wochenrückblick, Analyse-Briefing/
+   Konsistenz). Quelle ist plan_cards (state/plan-cards.js), nicht mehr
+   Data.plannedSessions/Data.adjustments — die JSON-Pipeline bekommt seit
+   der plan_cards-Migration keine neuen Schreibvorgänge mehr und wäre hier
+   dauerhaft eingefroren (docs/offene-punkte.md "Dualität"). plan_cards ist
+   an dieser Stelle garantiert schon geladen: dieser Callback feuert immer
+   NACH einer Karten-Mutation, die ihrerseits einen bereits gerenderten
+   Planungstab voraussetzt. Planned.render() selbst übernimmt ui/planned.js. ── */
 function refreshAfterAdjustment() {
-  if (!Data.plannedSessions.length) return;
+  if (!getPlanCardsState().cards.length) return;
   const rides = Data.byDate();
-  const todayISO = new Date().toISOString().split("T")[0];
+  const todayISO = localISODate();
   Overview.render(rides, true);
   renderWeekReview(
     "weekreview-card",
-    buildWeekReview(rides, Data.plannedSessions, Data.adjustments, todayISO)
+    buildWeekReview(rides, getPlanCardsState().cards, {}, todayISO)
   );
   Analysis.render(rides, true);
 }
 Planned.onAdjustmentChange = refreshAfterAdjustment;
+// Karten-Dialog (Anlegen/Bearbeiten/Löschen) kennt planned.js nicht direkt
+// (kein Zirkelimport dort) — meldet Erfolg über diesen Callback zurück,
+// analog zu Planned.onAdjustmentChange oben.
+PlanCardDialog.onSaved = (beforeProjection) => {
+  Planned._recordDelta(beforeProjection);
+  Planned.render(Data.byDate());
+  refreshAfterAdjustment();
+};
 
 /* ── Gesamtes Dashboard rendern (initial + bei Athletenwechsel) ─ */
 async function renderAll(athleteId) {
@@ -327,6 +354,14 @@ async function renderAll(athleteId) {
   // die Athlet-1-exklusiven Plan-1/2-Inhalte zu berühren, die weiter an
   // ownPlan hängen (s. Kommentar bei hasOwnPlan()).
   const hasPlanningTab = Data.plannedSessions.length > 0;
+  // plan_cards früh laden (nicht erst später in Planned.render()) — Hero-
+  // Session-Pill/Wochenrückblick/Analyse-Briefing weiter unten brauchen den
+  // aktuellen Kartenstand VOR Planned.render(); ohne diesen Vorzug-Load
+  // läsen sie noch die eingefrorene Data.plannedSessions/Data.adjustments-
+  // JSON-Pipeline (docs/offene-punkte.md "Dualität"). Planned.render()
+  // erkennt den bereits geladenen Stand (loadedForAthleteId) und lädt dann
+  // nicht doppelt.
+  if (hasPlanningTab) await loadPlanCards(Data.activeAthleteId);
   const ftp = ownPlan
     ? CONFIG.ftp
     : CONFIG.athleteConfig(Data.activeAthleteId)?.ftpMeasured ||
@@ -338,15 +373,32 @@ async function renderAll(athleteId) {
   // zurückrutschen und von analysis.js's eigenem lokalen todayISO() abweichen.
   const todayISO = localISODate();
 
-  // Wochen-Zuordnung: Plan-Wochen (Athlet 1) bzw. ISO-Kalenderwochen
-  const weekKeyFn = ownPlan ? (r) => r.week : (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
-  const weekSortFn = ownPlan
-    ? (a, b) => CONFIG.weekIndex(a) - CONFIG.weekIndex(b)
-    : (a, b) => a.localeCompare(b);
+  // Wochen-Zuordnung: ISO-Kalenderwoche, einheitlich für beide Athleten
+  // (dashboard-2.0, Umbau "Plan 1/2 → Kalenderwoche"). Bewusst NICHT r.week
+  // direkt (Athlet 1 trägt dort für die Notion-Plan-1-Ära weiterhin die
+  // historischen "W1".."W12"-Labels, s. state/config.js::weekOrder-Kommentar)
+  // — ein gemischtes Format wäre über CONFIG.weekIndex() nicht mehr
+  // korrekt chronologisch sortierbar (mehrere Kalenderwochen-Strings landen
+  // gleichermaßen im 999-Fallback).
+  const weekKeyFn = (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
+  const weekSortFn = (a, b) => a.localeCompare(b);
   const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn);
 
   togglePlanningTabVisibility(hasPlanningTab);
   updateChartExplainers(ownPlan, ftp);
+
+  // Events-Timeline + Renn-Countdown: bewusst NICHT awaited — beide Panels
+  // (ui/event-timeline.js, Overview._renderSessionPill) hängen an
+  // onEventsChange (state/events.js) und zeichnen sich selbst neu, sobald
+  // der Ladevorgang durchkommt. Ein await hier würde die komplette restliche
+  // Render-Pipeline (Charts, Panels) auf einen Supabase-Roundtrip warten
+  // lassen, ohne dass irgendetwas davon Event-Daten braucht.
+  EventTimeline.render(Data.activeAthleteId);
+  // "Befinden heute"-Karte: eigener Editor beim eingeloggten Athleten
+  // (unabhängig vom Toggle), sonst wellbeing_shared des per Toggle gerade
+  // betrachteten Athleten für Besucher/fremde Coaches (Konzept Abschnitt
+  // 10) — bewusst NICHT awaited, aus demselben Grund wie EventTimeline oben.
+  WellbeingCard.render(Data.activeAthleteId);
 
   // Overview
   Overview.render(rides, hasPlanningTab);
@@ -364,23 +416,37 @@ async function renderAll(athleteId) {
   let nextSession = null;
   if (hasPlanningTab) {
     const doneDates = new Set(rides.map((r) => r.dateISO));
-    nextSession = nextPlannedSession(Data.plannedSessions, Data.adjustments, doneDates, todayISO);
+    nextSession = nextPlannedSession(getPlanCardsState().cards, {}, doneDates, todayISO);
   }
-  const briefing = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend });
+  // Subjektiver Kanal (Morgen-Check-in) nur beim eingeloggten Athleten selbst
+  // — unabhängig von Data.activeAthleteId (state/wellbeing.js hängt am
+  // Supabase-Login, nicht am Athleten-Toggle; dieselbe bereits bestehende
+  // Lücke wie bei Goals/Events, s. ui/settings-panel.js-Kommentar). Greift
+  // erst beim nächsten vollen renderAll() (Athleten-Toggle/Reload), nicht
+  // reaktiv auf einen späteren Check-in — konsistent zu TSB/LoadGuard, die
+  // ebenfalls nicht live nachziehen.
+  const subjective = isAthlete() ? getWellbeingState().subjective : null;
+  const briefing = buildBriefing({ readiness, tsb, loadRisk, nextSession, trend, subjective });
   renderReadiness("readiness-panel", readiness, briefing);
   renderWeekReview(
     "weekreview-card",
-    buildWeekReview(rides, hasPlanningTab ? Data.plannedSessions : [], Data.adjustments, todayISO)
+    buildWeekReview(rides, hasPlanningTab ? getPlanCardsState().cards : [], {}, todayISO)
   );
   renderRecords("records-wall", recordProgression(rides));
 
   // Charts — Fitness & Belastung (Belastungswächter: Ramp + Foster-Monotonie)
-  Charts.renderPMC("chart-pmc", rides);
+  Charts.renderPMC(
+    "chart-pmc",
+    rides,
+    getPlanCardsState().projection,
+    getEventsState().events,
+    Data.activeAthleteId
+  );
   initPeriodToggles(rides, weekly, guard, (week) => {
     document.querySelector('[data-tab="table"]').click();
     Table.filterByWeek(week);
   });
-  Charts.renderZoneWeekly("chart-zones", weeklyZoneShares(rides, weekKeyFn, weekSortFn));
+  Charts.renderZoneWeekly("chart-zones", weeklyZoneShares(rides, weekKeyFn, weekSortFn), rides);
 
   // Charts — Leistung
   Charts.renderPowerCurve(
@@ -428,8 +494,8 @@ async function renderAll(athleteId) {
   // Charts — Aerobe Gesundheit
   Charts.renderDecoupling("chart-decoupling", rides);
   Charts.renderSleep("chart-sleep", Data.wellness, ownPlan);
-  Charts.renderPlanCompareHRV(rides);
-  Charts.renderPlanCompareRHF(rides);
+  Charts.renderHrvTrend(rides);
+  Charts.renderRhfTrend(rides);
 
   // Körper: Gewicht/Energie/Hydration (erscheinen nur bei vorhandenen Daten,
   // Sichtbarkeit via ChartVisibility)
@@ -456,6 +522,34 @@ async function renderAll(athleteId) {
   // Athlet 2 seit GFNY Bremen 2026 ebenfalls — dort read-only, s. planned.js)
   if (hasPlanningTab) {
     await Planned.render(rides);
+    // Trainer-Leiste NACH Planned.render(), damit plan_cards/Projektion/
+    // Konflikte (state/plan-cards.js) bereits geladen sind, wenn die
+    // Trainer-Leiste ihre Konflikt-/CTL-ATL-Kachel zeichnet. briefing/tsb
+    // kommen unverändert aus derselben Rechnung wie die Tagesform-Kachel
+    // (Wiederverwendung statt Neubau, Trainer-Sicht-Konzept §5). Rendert
+    // selbst leer, wenn der eingeloggte User nicht Trainer dieses Athleten
+    // ist (state/trainer-view.js::loadTrainerContext).
+    await TrainerBar.render(Data.activeAthleteId, { briefing, tsb, rides });
+    // Athleten-Banner: eigener Ladepfad/Einstieg, da nur der Athlet selbst
+    // (RLS "proposals: Athlet entscheidet") einen Vorschlag annehmen/ablehnen
+    // darf — die Trainer-Leiste zeigt den Zähler nur zur Information.
+    await ProposalBanner.render(Data.activeAthleteId);
+    // Export/Import-Leiste: eigenes, synchrones Gate (nur der eingeloggte
+    // Athlet auf seinem EIGENEN Plan, Export/Import-Workflow-Konzept §1) —
+    // kein weiterer Ladepfad nötig, deshalb kein await.
+    ExportImportBar.render(Data.activeAthleteId);
+    // Zweiter, gezielter Redraw: Planned.render() lief OBEN bereits, bevor
+    // TrainerBar.render() den Trainer-Kontext geladen hat — die draggable-
+    // Flags der gerade gezeichneten Karten (ui/planned.js::_isTrainerProposalMode())
+    // spiegeln also noch den alten/Default-Kontext (Bugreport: Drag & Drop
+    // umging den Vorschlag-Modus vollständig, weil der Grip nie tatsächlich
+    // ausgeblendet wurde). Ein zweiter Render danach ist billig (plan_cards/
+    // Forecast liegen schon im State, kein erneuter Request) und macht die
+    // Karten mit dem jetzt korrekten Kontext konsistent — gezielt EIN
+    // zusätzlicher Aufruf hier statt eines onTrainerViewChange-Abos in
+    // planned.js, das bei jeder Kategorien-/Vorschläge-Ladephase erneut
+    // feuern würde.
+    await Planned.render(rides);
   }
 
   // Analysis
@@ -479,6 +573,39 @@ async function renderAll(athleteId) {
   ChartVisibility.init();
   Tooltip.init();
 
+  // Prognose-Quellen verdrahten (Phase 3, Schritt 4): state/plan-cards.js rechnet
+  // TSS/CTL-Prognose + Konflikte nach jeder Karten-Mutation neu, braucht dafür die
+  // Ist-Fahrten (für den PMC-Startpunkt), die Events (Horizont + K-EVENT) und die
+  // aktive FTP (Workout-TSS-Schätzung). Bewusst als Provider statt Import, damit
+  // plan-cards.js state/data.js/state/events.js nicht am Top-Level ziehen muss.
+  configureProjection({
+    getActuals: () => Data.byDate(),
+    getEvents: () => getEventsState().events,
+    getFtp: () => Data.ftpValue(),
+  });
+  // Ein Event-Load ist keine Karten-Mutation, verändert aber Horizont/K-EVENT —
+  // deshalb die Prognose auch dann neu rechnen, wenn nur Events sich ändern.
+  // recomputeProjection() ruft bewusst kein notify() (sonst Rekursion), daher
+  // hier zusätzlich den Planungstab selbst neu zeichnen — sonst zeigte er nach
+  // einer reinen Event-Änderung (neues A-Event, Prioritätswechsel) eine
+  // veraltete Prognose bis zur nächsten Karten-Mutation (s. docs/offene-punkte.md).
+  onEventsChange(() => {
+    recomputeProjection();
+    if (Data.plannedSessions.length) Planned.render(Data.byDate());
+  });
+
+  // What-if-Szenario-Quellen verdrahten (Phase 5, Schritt 3): state/chart-view.js
+  // ruft core/projection.js::projectLoad() ein zweites Mal mit einem synthetischen
+  // Kartensatz auf (core/scenario.js), braucht dafür dieselben Ist-Fahrten/Events/FTP
+  // wie configureProjection oben, zusätzlich die echten Plan-Karten als Ausgangsbasis
+  // für den synthetischen Satz. Gleiches Provider-Muster wie configureProjection.
+  configureScenarioSources({
+    getCards: () => getPlanCardsState().cards,
+    getActuals: () => Data.byDate(),
+    getEvents: () => getEventsState().events,
+    getFtp: () => Data.ftpValue(),
+  });
+
   // Gespeicherten Athleten aus localStorage übernehmen, bevor initial gerendert wird.
   // Alte/unbekannte IDs (aus früheren Versionen) fallen auf den Primär-Athleten
   // zurück — der Toggle setzt sich dabei einmalig zurück.
@@ -489,6 +616,8 @@ async function renderAll(athleteId) {
 
   initAthleteToggle();
   await renderAll(validAthlete ? savedAthlete : null);
+
+  initSession();
 
   // Tab aus URL-Hash aktivieren — NACH allem Rendering damit nichts überschrieben wird
   const hash = location.hash.replace("#", "");

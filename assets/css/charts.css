@@ -18,6 +18,22 @@
   border-color: var(--border-light);
 }
 
+/* Rahmenlose Karte (docs/chart-grundlagen.md §2.2) — Verlauf + Innenlicht statt
+   1px-Rahmen, große Radien. Bewusst eine ZUSÄTZLICHE Klasse statt .chart-box
+   selbst zu ändern: die Grundlage gilt vorerst nur für renderPMC() (Phase 5,
+   Schritt 0), der übrige Charts-Tab bleibt unverändert (chart-grundlagen.md §8,
+   G12 — Vereinheitlichung ist ein eigener, späterer Schritt). */
+.chart-box--modern {
+  background: linear-gradient(180deg, #1a1d23 0%, #141619 46%);
+  border: none;
+  border-radius: 24px;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.055) inset;
+}
+
+.chart-box--modern:hover {
+  border-color: transparent;
+}
+
 .chart-header {
   display: flex;
   align-items: baseline;
@@ -80,30 +96,6 @@ svg.chart.chart-wide { width: auto; max-width: none; }
   padding: 8px 0;
 }
 
-/* ── Befinden Dropdown ───────────────────────────────────────── */
-.feel-select {
-  background: var(--card-alt);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  color: var(--text);
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  cursor: pointer;
-  max-width: 140px;
-  transition: border-color 0.15s;
-}
-.feel-select:hover  { border-color: var(--accent); }
-.feel-select:focus  { outline: none; border-color: var(--accent); }
-.feel-select:disabled { opacity: 0.5; cursor: wait; }
-
-.feel-select.feel-sehr-leicht { color: #4ade80; }
-.feel-select.feel-leicht      { color: #86efac; }
-.feel-select.feel-ok          { color: var(--dim); }
-.feel-select.feel-moderat     { color: var(--gold); }
-.feel-select.feel-schwer      { color: #fb923c; }
-.feel-select.feel-sehr-schwer { color: var(--red); }
-.feel-select.feel-hart        { color: var(--red); }
-
 .chart-empty {
   display: flex;
   align-items: center;
@@ -154,6 +146,121 @@ svg.chart.chart-wide { width: auto; max-width: none; }
 .unit-btn:disabled {
   opacity: 0.35;
   cursor: not-allowed;
+}
+
+/* ── Zeitraum-Brushing (Phase 5, Schritt 1) — Übersichtsleiste + Presets
+   unter dem PMC-Chart, docs/phase-5-konzept-explorer.md §4 ───────────── */
+.chart-brush {
+  margin-top: 6px;
+}
+
+.chart-brush-overview {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart-brush-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* ── What-if-Szenario (Phase 5, Schritt 3, Teil D) — docs/phase-5-konzept-
+   explorer.md §6.2: visueller Stil wie der Hero-What-if-Slider (.wi-label/
+   .wi-readout/input[range], s. components.css), eigener Wrapper statt
+   .hero-whatif, weil andere Domäne (Trainings-Last, nicht FTP-Anzeige). ── */
+.chart-scenario {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.chart-scenario-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.chart-scenario-toggle input[type="checkbox"] {
+  accent-color: var(--ss);
+  cursor: pointer;
+}
+.chart-scenario-controls {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 420px;
+}
+
+/* ── Vergleichsmodus (Phase 5, Schritt 4, Teil E) — docs/phase-5-konzept-
+   explorer.md §5: gleicher Wrapper-Stil wie .chart-scenario (eigene Domäne,
+   kein Wiederverwenden derselben Klasse — Szenario ist Prognose, Vergleich
+   ist Ist-Vergangenheit). Slot-Farben spiegeln die Serienfarben im Chart
+   (A = --z2, B = --ss). ── */
+.chart-compare {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.chart-compare-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+}
+.chart-compare-toggle input[type="checkbox"] {
+  accent-color: var(--z2);
+  cursor: pointer;
+}
+.chart-compare-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.chart-compare-slots .unit-btn[data-compare-slot="a"] {
+  border-color: var(--z2);
+}
+.chart-compare-slots .unit-btn[data-compare-slot="b"] {
+  border-color: var(--ss);
+}
+.chart-compare-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+  max-width: 480px;
+}
+.chart-compare-metrics dl {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dim);
+  border-left: 2px solid transparent;
+  padding-left: 8px;
+}
+.chart-compare-metrics dl[data-slot="a"] {
+  border-left-color: var(--z2);
+}
+.chart-compare-metrics dl[data-slot="b"] {
+  border-left-color: var(--ss);
+}
+.chart-compare-metrics dt {
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.chart-compare-metrics dd {
+  margin: 0 0 2px 0;
 }
 
 /* ── Scrollable chart container ───────────────────────────────── */

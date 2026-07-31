@@ -1,0 +1,107 @@
+import {
+  onAuthChange,
+  signIn as signInAdapter,
+  signOut as signOutAdapter,
+  updatePassword as updatePasswordAdapter,
+} from "../data-access/supabase/auth.js";
+import {
+  getProfile,
+  updateDisplayName as updateDisplayNameAdapter,
+  updateWellbeingPublic as updateWellbeingPublicAdapter,
+} from "../data-access/supabase/profiles.js";
+import { isSupabaseConfigured } from "../data-access/supabase/client.js";
+import { getEnvironment } from "../data-access/supabase/config.js";
+
+export { isSupabaseConfigured, getEnvironment };
+
+let currentUser = null;
+const listeners = new Set();
+
+function notify() {
+  for (const fn of listeners) fn(currentUser);
+}
+
+/** Registriert onAuthChange, lädt bei Login das Profil, hält currentUser aktuell.
+ *  No-op wenn der Host keine Supabase-Config hat (z.B. dashboard-prod vor
+ *  Phase-1-Merge) — Auth-UI bleibt dann inaktiv, Rest des Dashboards läuft normal. */
+export function initSession() {
+  if (!isSupabaseConfigured) return;
+  onAuthChange(async (session) => {
+    if (!session?.user) {
+      currentUser = null;
+      notify();
+      return;
+    }
+    let result = await getProfile(session.user.id);
+    if (!result.ok) {
+      // Möglicher Trigger-Race direkt nach Signup: die profiles-Zeile aus
+      // handle_new_user() ist evtl. noch nicht committed, wenn onAuthChange
+      // zuerst feuert. Ein Retry reicht — kein Endlos-Polling.
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      result = await getProfile(session.user.id);
+    }
+    currentUser = result.ok ? result.profile : null;
+    notify();
+  });
+}
+
+/** Reicht signIn/signOut aus data-access/ durch, damit ui/ nie direkt
+ *  gegen data-access/ importiert (Schichtenregel). currentUser wird
+ *  jeweils via onAuthChange aktualisiert, nicht hier. */
+export async function signIn(email, password) {
+  return signInAdapter(email, password);
+}
+
+export async function signOut() {
+  return signOutAdapter();
+}
+
+/** Reicht updatePassword aus data-access/ durch (C5.1) — kein currentUser-
+ *  Sync nötig, das Passwort ist kein Profilfeld. Gilt für alle Rollen. */
+export async function updatePassword(currentPassword, newPassword) {
+  return updatePasswordAdapter(currentPassword, newPassword);
+}
+
+/** Speichert den Display-Namen des eingeloggten Users und hält currentUser
+ *  synchron, damit Header/Settings-Panel ohne Reload den neuen Wert zeigen. */
+export async function updateDisplayName(name) {
+  if (!currentUser) return { ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } };
+  const result = await updateDisplayNameAdapter(currentUser.id, name);
+  if (result.ok) {
+    currentUser = { ...currentUser, displayName: name };
+    notify();
+  }
+  return result;
+}
+
+/** Speichert wellbeing_public des eingeloggten Users, currentUser synchron */
+export async function updateWellbeingPublic(value) {
+  if (!currentUser) return { ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } };
+  const result = await updateWellbeingPublicAdapter(currentUser.id, value);
+  if (result.ok) {
+    currentUser = { ...currentUser, wellbeingPublic: value };
+    notify();
+  }
+  return result;
+}
+
+export function getSession() {
+  return currentUser;
+}
+
+export function isAthlete() {
+  return currentUser?.role === "athlete";
+}
+
+export function isCoach() {
+  return currentUser?.role === "coach";
+}
+
+export function isAdmin() {
+  return !!currentUser?.isAdmin;
+}
+
+export function onSessionChange(fn) {
+  listeners.add(fn);
+  return () => listeners.delete(fn);
+}

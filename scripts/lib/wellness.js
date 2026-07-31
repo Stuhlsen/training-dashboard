@@ -9,6 +9,7 @@
    ============================================================ */
 
 import { log } from "./log.js";
+import { countFieldCoverage } from "./coverage.js";
 
 /** Positiver, gerundeter Zahlenwert oder null @param {unknown} v */
 function posNum(v) {
@@ -19,6 +20,13 @@ function posNum(v) {
  *  Reihenfolge = Reihenfolge im Coverage-Log. */
 export const WELLNESS_FIELDS = [
   { out: "sleepHours", pick: (w) => (w.sleepSecs ? Math.round(w.sleepSecs / 360) / 10 : null) },
+  // Gemessener Schlafqualitäts-Score (intervals.icu `sleepScore`, laut
+  // API-Schema ein float) — NICHT `sleepQuality` (kleine Integer-Skala,
+  // gehört zur selben self-reported Feldfamilie wie soreness/fatigue/
+  // stress/mood/motivation, kein gemessener Wert). Bewusst kein Slider im
+  // Morgen-Check-in (docs/phase-2-konzept-morgen-checkin.md Abschnitt 2) —
+  // kommt stattdessen hier, objektiv, wie RHR/HRV.
+  { out: "sleepScore", pick: (w) => (typeof w.sleepScore === "number" ? Math.round(w.sleepScore) : null) },
   { out: "avgSleepingHR", pick: (w) => w.avgSleepingHR || null },
   { out: "restingHR", pick: (w) => w.restingHR || null },
   { out: "hrv", pick: (w) => w.hrvSDNN || null },
@@ -91,14 +99,10 @@ export function latestWeight(wellness) {
  *  @param {Array<Record<string, unknown>>} wellnessList gemappte Liste
  *  @returns {Record<string, number>} */
 export function fieldCoverage(wellnessList) {
-  const counts = {};
-  for (const f of WELLNESS_FIELDS) counts[f.out] = 0;
-  for (const day of wellnessList || []) {
-    for (const f of WELLNESS_FIELDS) {
-      if (day[f.out] != null) counts[f.out]++;
-    }
-  }
-  return counts;
+  return countFieldCoverage(
+    wellnessList,
+    WELLNESS_FIELDS.map((f) => f.out)
+  );
 }
 
 /** Letztes Datum mit einem non-null Wert je Feld, aus der bereits gemappten

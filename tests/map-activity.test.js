@@ -13,6 +13,7 @@ import {
   mapActivity,
   mapActivity2,
   classifyCooldowns,
+  rpeFeelCoverage,
 } from "../scripts/lib/map-activity.js";
 
 function baseAct(overrides = {}) {
@@ -100,6 +101,35 @@ test("mapActivity: ohne effectivePlan (Default-Fallback) bleibt Altverhalten mö
   assert.equal(typeof ride.typ, "string");
 });
 
+test("mapActivity: rpe/feelIcu aus intervals.icu-Feldern übernommen", () => {
+  const ride = mapActivity(
+    baseAct({ perceived_exertion: 7, feel: 3 }),
+    {},
+    {},
+    {}
+  );
+  assert.equal(ride.rpe, 7);
+  assert.equal(ride.feelIcu, 3);
+});
+
+test("mapActivity: rpe/feelIcu fehlen → null statt Fehler", () => {
+  const ride = mapActivity(baseAct(), {}, {}, {});
+  assert.equal(ride.rpe, null);
+  assert.equal(ride.feelIcu, null);
+});
+
+test("mapActivity2: rpe/feelIcu aus intervals.icu-Feldern übernommen", () => {
+  const ride = mapActivity2(baseAct({ perceived_exertion: 4, feel: 5 }), {}, {}, 265);
+  assert.equal(ride.rpe, 4);
+  assert.equal(ride.feelIcu, 5);
+});
+
+test("rpeFeelCoverage: zählt non-null rpe/feelIcu über Rides", () => {
+  const rides = [{ rpe: 5, feelIcu: null }, { rpe: null, feelIcu: 2 }, { rpe: 6, feelIcu: 4 }];
+  assert.deepEqual(rpeFeelCoverage(rides), { rpe: 2, feelIcu: 2 });
+  assert.deepEqual(rpeFeelCoverage([]), { rpe: 0, feelIcu: 0 });
+});
+
 test("mapActivity2: Ride am getauschten Datum bekommt die verschobene Karte", () => {
   const sessions = {
     "2026-07-14": { name: "Ruhetag", typ: "Ruhetag" },
@@ -139,7 +169,7 @@ test("classifyCooldowns: kurzes niedrig-intensives Workout nach Rennen wird zu A
       watt: 121,
     },
   ];
-  classifyCooldowns(rides, 265);
+  classifyCooldowns(rides, [], 265);
 
   assert.equal(rides[0].typ, "VO2max");
   assert.equal(rides[0].name, "MyWhoosh Crit");
@@ -152,7 +182,7 @@ test("classifyCooldowns: normaler Doppel-Fahrt-Tag (ähnliche Intensität) bleib
     { date: "2026-06-01", startTime: "2026-06-01T08:00:00", name: "Z2", typ: "Z2", min: 60, np: 150 },
     { date: "2026-06-01", startTime: "2026-06-01T17:00:00", name: "Z2", typ: "Z2", min: 55, np: 145 },
   ];
-  classifyCooldowns(rides, 265);
+  classifyCooldowns(rides, [], 265);
 
   assert.equal(rides[0].typ, "Z2");
   assert.equal(rides[1].typ, "Z2");
@@ -162,7 +192,7 @@ test("classifyCooldowns: einzelne Fahrt am Tag bleibt unangetastet", () => {
   const rides = [
     { date: "2026-06-02", startTime: "2026-06-02T08:00:00", name: "Rennen", typ: "Rennen", min: 90, np: 240 },
   ];
-  classifyCooldowns(rides, 265);
+  classifyCooldowns(rides, [], 265);
   assert.equal(rides[0].typ, "Rennen");
 });
 
@@ -189,7 +219,7 @@ test("classifyCooldowns: selbst noch harter zweiter Effort bleibt unverändert (
       np: Math.round(ftp * 1.1),
     },
   ];
-  classifyCooldowns(rides, ftp);
+  classifyCooldowns(rides, [], ftp);
 
   assert.equal(rides[1].typ, "Schwelle");
   assert.equal(rides[1].name, "Schwelle-Intervall");
@@ -218,8 +248,106 @@ test("classifyCooldowns: großer zeitlicher Abstand verhindert Reklassifizierung
       np: Math.round(ftp * 0.4),
     },
   ];
-  classifyCooldowns(rides, ftp);
+  classifyCooldowns(rides, [], ftp);
 
   assert.equal(rides[1].typ, "Pendeln");
   assert.equal(rides[1].name, "Pendel-Fahrt");
+});
+
+// Regressionstest FTP-Historie-Konsumenten-Umstellung: classifyCooldowns()
+// löst die FTP jetzt pro Tagesgruppe über ftpAt() auf statt einen festen
+// Skalar zu nehmen — an zwei Tagen mit identischen Rohleistungswerten, aber
+// unterschiedlicher zum jeweiligen Datum gültiger FTP, muss die Ausrollen-
+// Erkennung entsprechend unterschiedlich ausfallen.
+test("classifyCooldowns: nutzt die zum jeweiligen Fahrtdatum gültige FTP aus ftpHistory", () => {
+  const ftpHistory = [
+    { ftpWatt: 200, validFrom: "2026-01-01" },
+    { ftpWatt: 260, validFrom: "2026-06-15" },
+  ];
+  const rides = [
+    // Vor dem FTP-Wechsel (200W gültig): priorIF 190/200=0.95 → hart genug
+    {
+      date: "2026-06-01",
+      startTime: "2026-06-01T09:00:00",
+      name: "Hart",
+      typ: "Schwelle",
+      min: 60,
+      np: 190,
+    },
+    {
+      date: "2026-06-01",
+      startTime: "2026-06-01T10:20:00",
+      name: "Locker",
+      typ: "Z2",
+      min: 15,
+      np: 90,
+    },
+    // Nach dem FTP-Wechsel (260W gültig), identische Rohleistung: priorIF
+    // 190/260=0.73 → NICHT mehr hart genug, keine Reklassifizierung
+    {
+      date: "2026-07-01",
+      startTime: "2026-07-01T09:00:00",
+      name: "Hart",
+      typ: "Schwelle",
+      min: 60,
+      np: 190,
+    },
+    {
+      date: "2026-07-01",
+      startTime: "2026-07-01T10:20:00",
+      name: "Locker",
+      typ: "Z2",
+      min: 15,
+      np: 90,
+    },
+  ];
+  classifyCooldowns(rides, ftpHistory, 200);
+
+  assert.equal(rides[1].typ, "Ausrollen", "vor dem FTP-Wechsel: priorIF hoch genug für Ausrollen-Erkennung");
+  assert.equal(rides[3].typ, "Z2", "nach dem FTP-Wechsel: dieselbe Rohleistung ist jetzt relativ zu schwach für 'hart'");
+});
+
+// Regressionstest FTP-Historie-Konsumenten-Umstellung: der Fallback-Fall
+// "inferred" von typ (mapActivity/mapActivity2) nutzt jetzt dieselbe
+// datumsgenaue ftpAt()-Auflösung wie typDetected, statt fest DEFAULT_FTP/
+// estimatedFtp — bei identischem NP muss ein ftpHistory-Eintrag die
+// abgeleitete Kategorie tatsächlich verschieben.
+test("mapActivity: typ (Fall 'inferred') wechselt die Kategorie je nach ftpHistory-Eintrag", () => {
+  const act = baseAct({ icu_weighted_avg_watts: 190 });
+
+  const withoutHistory = mapActivity(act, {}, {}, {}, {}, [], {});
+  // DEFAULT_FTP=193 → IF≈0.984 → Band [0.95,1.05) → "Schwelle"
+  assert.equal(withoutHistory.typ, "Schwelle");
+  assert.equal(withoutHistory.typSource, "inferred");
+
+  const withHistory = mapActivity(
+    act,
+    {},
+    {},
+    {},
+    {},
+    [{ ftpWatt: 230, validFrom: "2020-01-01" }],
+    {}
+  );
+  // 230W gültig → IF≈0.826 → Band [0.75,0.85) → "Z2 Dauer"
+  assert.equal(withHistory.typ, "Z2 Dauer");
+  assert.equal(withHistory.typSource, "inferred");
+});
+
+test("mapActivity2: typ (Fall 'inferred') wechselt die Kategorie je nach ftpHistory-Eintrag", () => {
+  const act = baseAct({ icu_weighted_avg_watts: 190 });
+
+  const withoutHistory = mapActivity2(act, {}, {}, 193, {}, [], {});
+  assert.equal(withoutHistory.typ, "Schwelle");
+
+  const withHistory = mapActivity2(
+    act,
+    {},
+    {},
+    193,
+    {},
+    [{ ftpWatt: 230, validFrom: "2020-01-01" }],
+    {}
+  );
+  assert.equal(withHistory.typ, "Z2 Dauer");
 });

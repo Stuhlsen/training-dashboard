@@ -7,11 +7,21 @@ Live: stuhlsen.github.io/training-dashboard
 ## Stack
 
 Vanilla HTML/CSS/JS als **native ES-Module** · SVG-Charts (kein Framework, kein Build-Step, kein Bundler)
-Node.js ≥ 20 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
+Node.js ≥ 22.3 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
 `package.json` existiert primär für `"type": "module"` und die npm-Scripts — Dashboard
 und Datensync brauchen kein `npm install`. Einzige Ausnahme: `fallow` als `devDependency`
 (nur für den lokalen/CI-Codebase-Qualitätscheck, siehe Abschnitt „Codebase-Qualität").
 Tests laufen mit dem eingebauten `node:test`.
+
+**Warum 22.3 und nicht 20:** `npm test` läuft als
+`node --test --experimental-test-module-mocks`. Das Flag (und `mock.module()`)
+gibt es erst ab Node 22.3 — auf Node 20 bricht `node` bei der unbekannten Option
+ab, es liefe **kein einziger** Test. Alle Workflows (`ci.yml`, `sync-data.yml`)
+pinnen ohnehin schon Node 22. Gebraucht wird das Mocking von
+`tests/plan-cards-move.test.js`: die `state/`-Schicht ist sonst nicht testbar,
+weil `data-access/supabase/client.js` per URL von esm.sh lädt und Node das im
+Import-Graph nicht auflösen kann. Wenn das Flag stört, ist der Preis der
+Verlust der `state/`-Tests — nicht nur dieser einen Datei.
 
 ## Befehle
 
@@ -177,14 +187,32 @@ SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migr
 3. Migration wird commits — Versionshistorie, Portfolio-Dokumentation, reproduzierbar.
 
 ### Test-Sicherheit
-`tests/supabase-rls.test.js` (neu mit Phase 1) prüft:
-- anon + no login → nichts schreibbar
-- Athlet A + session → nur eigene Daten lesbar/änderbar
-- Trainer A + session → nur zugeordnete Athleten sichtbar
-- Admin-Only-Operationen (`is_admin` Flag) prüfen
+`tests/supabase-rls.test.js` läuft echt (kein Mock) gegen das `dashboard-dev`-Projekt und prüft:
+- `wellbeing_shared`: anon sieht nur bei aktivem `wellbeing_public`-Toggle, nie `note`
+- `proposals`: nur der zugehörige Trainer/Athlet liest/schreibt, keine fremde `athlete_id`
+- `trainer_view_prefs`: nur der jeweilige Trainer liest/ändert seine eigene Zeile
+- anon ohne Login: `proposals`/`trainer_view_prefs` komplett zu (kein GRANT)
 
-Das ist der "Sicherheits-Review"-Prüfpunkt aus Phase 0. Tests laufen gegen `dashboard-dev`-Projekt
-und müssen vor jedem Merge grün sein.
+Das ist der "Sicherheits-Review"-Prüfpunkt aus Phase 0. Läuft nur mit Live-Credentials in `.env`,
+sonst überspringt sich die Datei selbst (kein Fehlschlag in CI, wo diese Secrets nicht existieren):
+
+```
+SUPABASE_URL                              SUPABASE_ANON_KEY
+SUPABASE_ATHLETE1_EMAIL / _PASSWORD       (Account "Stuhlsen")
+SUPABASE_TRAINER_EMAIL / _PASSWORD        (Account "Trainer-ST", coacht Stuhlsen)
+```
+
+Diese beiden Accounts sind die einzige in `dashboard-dev` bereits real verknüpfte Coach-Athlet-
+Beziehung (`profiles.coach_id`) — dashboard-dev spiegelt zwei Paare (Trainer-ST↔Stuhlsen,
+Trainer-DZ↔hc_diZee), keine generischen "athlet-test"/"trainer-test"-Accounts wie ursprünglich
+in Phase 0 skizziert. `SUPABASE_ATHLETE2_EMAIL`/`_PASSWORD` (hc_diZee, für
+`scripts/migrate-plan-to-supabase.js`) bleibt unabhängig davon bestehen.
+
+Jede Testzeile räumt sich selbst wieder auf (`cleanupTasks` im `after()`-Hook, inkl. Wieder-
+herstellen von `wellbeing_public`/`trainer_view_prefs` auf den vorgefundenen Ausgangszustand) —
+schlägt ein Aufräumschritt fehl, wirft der Hook mit einer Liste der Reste, statt es zu verschlucken.
+Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder gezielt
+`node --test --experimental-test-module-mocks tests/supabase-rls.test.js`.
 
 ### Datenquellen-Mix (lesen/schreiben)
 - **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline wie heute
@@ -306,7 +334,9 @@ scripts/
     output.js         → subjective/adjustments (Athlet 1) + adjustments-2 (Athlet 2)
                         laden, rides.json/rides-2.json schreiben
 
-tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test)
+tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test);
+                        plan-cards-move.test.js testet zusätzlich state/ —
+                        data-access per mock.module() gestubbt (s. Stack-Abschnitt)
 
 .github/workflows/
   sync-data.yml       → Cron alle 6h; Jobs: sync (JSON generieren + committen + Artefakt-Upload) → deploy (Pages, needs: sync)
@@ -411,11 +441,38 @@ Tokens in `assets/css/main.css` (Namen stabil halten — Chart-JS spiegelt sie):
 ```powershell
 git add <dateien>
 git commit -m "..."
-git sync   # Alias für: git fetch origin && git push --force-with-lease origin main
+git sync   # nur von main aus laufen lassen — s. Warnung unten
 ```
 - PowerShell: KEIN `&&` zwischen Befehlen — jeweils eigene Zeile
 - Bei Konflikten mit Action-Auto-Commits: `git fetch origin` dann `git push --force-with-lease origin main`
 - Zeilenenden: `.gitattributes` erzwingt LF im Repo (`* text=auto eol=lf`)
+
+**`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
+```
+git fetch origin
+git checkout origin/main -- data/adjustments.json
+git checkout origin/main -- data/subjective.json
+git add data/adjustments.json data/subjective.json
+git diff --staged --quiet || git commit -m 'chore: preserve browser-written data'
+git push --force-with-lease=main:<lokaler main-HEAD vor dem Fetch> origin main
+```
+Holt zuerst die beiden Dateien, die die Action bewusst vor Überschreiben schützt
+(s. „Bekannte Eigenheiten"), aus `origin/main` in den aktuellen Arbeitsbaum, committet
+sie bei Bedarf mit der festen Message „chore: preserve browser-written data", und
+pusht danach die lokale `main`-Branch-Referenz — **unabhängig davon, welcher Branch
+gerade ausgecheckt ist**.
+
+**Zwingend nur von `main` aus laufen lassen.** Der Alias weigert sich (Branch-Guard),
+wenn `HEAD` nicht `main` ist — das ist kein Stilhinweis, sondern eine echte Sicherung:
+am 25.07.2026 lag lokales `main` wochenlang veraltet herum (seit Einführung des
+`dashboard-2.0`-Branches nie wieder ausgecheckt/aktualisiert), `git sync` wurde versehentlich
+von `dashboard-2.0` aus aufgerufen und hätte damit `origin/main` um ~70 Commits (u. a. echte
+Befinden-/Plan-Einträge) zurückgesetzt. `--force-with-lease=main:<erwarteter Wert>` (statt
+dem bloßen `--force-with-lease` ohne Erwartungswert) lässt den Push zusätzlich hart fehlschlagen,
+wenn lokales `main` seinerseits hinter `origin/main` zurückliegt — bloßes `--force-with-lease`
+prüft nur gegen den `origin/main`-Tracking-Stand direkt nach dem vorangegangenen Fetch-Schritt
+im selben Alias-Lauf, das schützt gerade NICHT vor einem seit längerem veralteten lokalen `main`.
+Vorfall + Wiederherstellung: s. Commit-Historie um den 25.07.2026, kein separates Dokument.
 
 **JavaScript:**
 - `Data.activeAthleteId` — aktuell aktiver Athlet (ID aus state/config.js)
@@ -426,8 +483,11 @@ git sync   # Alias für: git fetch origin && git push --force-with-lease origin 
   getrennt, damit Athlet-1-exklusive Inhalte nicht in Athlet 2s Ansicht durchschlagen
 - `Data.ftpValue()` — liest aus athleteFtp (Athlet 2) oder CONFIG.ftp (Athlet 1)
 - `Data.forecast` — 16-Tage-Forecast, serverseitig befüllt, kein API-Call im Frontend
-- `Data.weekly()` — Plan-Wochen bei Athlet 1, Kalenderwochen-Fallback bei Athlet 2
-  (Athlet 2s Rides tragen bewusst kein `week`/`phase`, s. "Bekannte Eigenheiten")
+- `Data.weekly()` — ISO-Kalenderwochen-Aggregation für beide Athleten
+  (seit dem Umbau „Plan 1/2 → Kalenderwoche", s. u.); Athlet 2s Rides tragen
+  weiterhin bewusst kein `week`/`phase` (s. "Bekannte Eigenheiten") — das
+  betrifft nur den Plan-Bezug einzelner Ride-Objekte, nicht die
+  Wochen-Aggregation selbst
 - `updateChartExplainers(ownPlan, ftp)` — alle Chart-Texte/Legenden athletenabhängig
 - Berechnung gehört nach `core/` (mit Test), Rendering nach `ui/` — nicht mischen
 
@@ -544,7 +604,11 @@ Athleten-Varianten!) gesetzt.
 - `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
   `icu_eftp`) — Feldnamen beim ersten echten Sync-Lauf verifizieren; das
   Frontend normalisiert beide bekannten Formate und degradiert mit
-  Hinweistext, wenn die Felder fehlen.
+  Hinweistext, wenn die Felder fehlen. Blockiert am selben fehlenden
+  Live-Sync wie der M3-Punkt in `docs/offene-punkte.md` (kein
+  `INTERVALS_API_KEY`/`INTERVALS_ATHLETE_ID` lokal verfügbar) — beide
+  Verifikationen können beim nächsten echten Sync-Lauf gemeinsam erledigt
+  werden.
 - eFTP-Historie mergt `icu_eftp` (je Fahrt) mit dem Wellness-Tageswert aus `sportInfo`
   (`scripts/lib/wellness.js`). Wellness trägt seit dem Analyse-Umbau zusätzlich
   Gewicht/Kalorien/Hydration/Körperfett; welche Felder real befüllt sind, zeigt
@@ -580,3 +644,48 @@ Athleten-Varianten!) gesetzt.
   erwarten). Reine Anzeigefilterung in `ui/planned.js::render()`
   (`allSessions`), `Data.plannedSessions` bleibt vollständig für andere
   Konsumenten (z.B. `nextPlannedSession` in der Recovery-Detailkarte).
+
+## Playwright-MCP — Nutzungskonvention
+
+> **Hintergrund:** Playwright-MCP wurde in Phase 3 projektlokal eingerichtet (`.mcp.json`)
+> für echte Browser-Verifikationen, die sich nicht durch Unit-Tests abdecken lassen
+> (Pointer-Gesten, Timing-Races, CSS-Rendering). Diese Regel schreibt fest, was seitdem
+> nur als Absicht existierte, aber nie dokumentiert wurde.
+
+### Grundsatz: Unit-Test vor Browser
+
+Playwright ist das **letzte Mittel**, nicht der Standard-Reflex beim Prüfen einer
+Änderung. Vor jedem Playwright-Einsatz gilt die Frage: *Lässt sich das auch als reine
+Funktion in `tests/*.test.js` prüfen?* Fast immer lautet die Antwort ja — dieses Projekt
+hat für genau diesen Zweck eine große, schnelle Testsuite in `core/` und `state/`.
+
+**Playwright ist gerechtfertigt für:**
+- echte mehrstufige Pointer-Gesten (Drag & Drop, Brush-Ziehen) — nicht als Ein-Schritt-Kurzschluss simulierbar
+- Race Conditions, die nur im echten Browser-Timing auftreten
+- CSS-/Layout-Rendering, das sich nicht durch eine reine Funktion abbilden lässt
+- End-zu-Ende-Verifikation eines abgeschlossenen Features gegen `dashboard-dev`, **einmalig am Ende**, nicht iterativ währenddessen
+
+**Playwright ist NICHT gerechtfertigt für:**
+- "mal schauen ob es geklappt hat" nach jeder kleinen Code-Änderung
+- Dinge, die ein Unit-Test genauso beweist (Berechnungen, Zustandsübergänge, Datenformate)
+- wiederholtes Nachprüfen während des Bauens — ein Playwright-Lauf am Ende eines
+  abgeschlossenen Schritts ersetzt zehn während des Schritts
+
+### Snapshot statt Screenshot
+
+**`browser_snapshot` verwenden, nicht `browser_screenshot`**, wo immer die Aufgabe es
+zulässt. Der Accessibility-Snapshot ist ein Text-/Baum-Artefakt und typischerweise eine
+Größenordnung kleiner im Kontext als ein gerendertes Bild. Screenshot nur, wenn es
+tatsächlich um visuelles Aussehen geht (Farben, Layout-Politur), das der Snapshot nicht
+abbilden kann — nicht standardmäßig für Funktionsprüfungen.
+
+### Session-Disziplin
+
+Eine Playwright-Session pro Verifikationsschritt, danach schließen. Nicht über viele
+Chat-Turns hinweg offen halten und wiederholt abfragen — jeder zusätzliche Turn in einer
+offenen Session trägt den bisherigen Seitenzustand im Kontext mit.
+
+### Bei Unklarheit: fragen
+
+Wenn nicht klar ist, ob eine Prüfung Playwright braucht oder ein Unit-Test reicht: fragen,
+nicht vorsichtshalber beides machen.

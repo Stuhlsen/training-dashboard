@@ -9,6 +9,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Icons erst nach dem First Paint laden (nur Login/Settings/Logout im Topbar, -->
+  <!-- kein First-Paint-Inhalt) — media="print" laedt non-blocking, onload schaltet auf "all" -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" media="print" onload="this.media='all'">
+  <noscript><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"></noscript>
   <link rel="stylesheet" href="assets/css/main.css">
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/charts.css">
@@ -19,6 +23,7 @@
     .topbar {
       display: flex;
       align-items: center;
+      justify-content: space-between;
       gap: 12px;
       padding: 20px 0 14px;
     }
@@ -54,7 +59,11 @@
 
     <!-- Kopfzeile: nur noch die Marke -->
     <div class="topbar">
-      <div class="brand">Training<span>·</span>Dashboard</div>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <div class="brand">Training<span>·</span>Dashboard</div>
+        <div id="topbar-env-badge"></div>
+      </div>
+      <div id="topbar-auth"></div>
     </div>
 
     <!-- Hero: Wochenstatus + Zonen-Band + FTP-Ring (K5-Signaturen) -->
@@ -98,6 +107,10 @@
       <div class="insight-row">
         <div id="readiness-panel"></div>
         <div id="weekreview-card"></div>
+        <!-- Nur für eingeloggte Athleten befüllt (ui/wellbeing-card.js) -->
+        <div id="wellbeing-card"></div>
+        <!-- Kommende Events + Countdown (ui/event-timeline.js) -->
+        <div id="event-timeline"></div>
       </div>
       <div class="grid grid-auto" id="metrics-grid"></div>
       <div class="chart-box" style="margin-top:1.2rem">
@@ -130,20 +143,66 @@
           <span class="toggle-icon" style="transform:rotate(180deg)">▾</span>
         </div>
         <div class="chart-group-body">
-          <div class="chart-box">
+          <div class="chart-box chart-box--modern">
             <div class="chart-header">
               <span class="chart-title heatmap-title">PMC · Performance Management Chart</span>
               <span class="chart-note" id="pmc-note"></span>
             </div>
-            <div class="chart-scroll" id="pmc-scroll">
-              <svg class="chart chart-wide" id="chart-pmc" viewBox="0 0 780 250"></svg>
+            <svg class="chart" id="chart-pmc"></svg>
+            <div class="chart-brush">
+              <svg class="chart chart-brush-overview" id="chart-pmc-overview"></svg>
+              <div class="chart-brush-presets" id="pmc-brush-presets">
+                <button class="unit-btn" type="button" data-preset="30">30 Tage</button>
+                <button class="unit-btn" type="button" data-preset="90">90 Tage</button>
+                <button class="unit-btn" type="button" data-preset="365">365 Tage</button>
+                <button class="unit-btn" type="button" data-preset="plan2">Seit intervals.icu</button>
+                <button class="unit-btn" type="button" data-preset="all">Alles</button>
+              </div>
             </div>
-            <div class="chart-legend">
-              <div class="legend-item"><div class="legend-dot" style="background:#4a7fa8"></div> CTL (Fitness)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#d94f4f"></div> ATL (Ermüdung)</div>
-              <div class="legend-item"><div class="legend-dot" style="background:#4a9a6e"></div> TSB (Form)</div>
+            <div class="chart-scenario" id="pmc-scenario">
+              <label class="chart-scenario-toggle">
+                <input type="checkbox" id="pmc-scenario-toggle">
+                <span>What-if-Szenario</span>
+              </label>
+              <div class="chart-scenario-controls">
+                <div>
+                  <div class="wi-label"><span>Wochen-TSS</span><b id="pmc-scenario-tss-val">±0%</b></div>
+                  <input type="range" id="pmc-scenario-tss" min="-50" max="50" step="5" value="0"
+                    aria-label="Wochen-TSS-Änderung in Prozent für das What-if-Szenario">
+                </div>
+                <div>
+                  <div class="wi-label"><span>Zusätzliche Ruhetage/Woche</span><b id="pmc-scenario-rest-val">0</b></div>
+                  <input type="range" id="pmc-scenario-rest" min="0" max="3" step="1" value="0"
+                    aria-label="Zusätzliche Ruhetage pro Woche für das What-if-Szenario">
+                </div>
+                <div>
+                  <div class="wi-label"><span>Rampenrate</span><b id="pmc-scenario-ramp-val">±0%</b></div>
+                  <input type="range" id="pmc-scenario-ramp" min="-20" max="30" step="5" value="0"
+                    aria-label="Erzwungener Wochen-Zuwachs in Prozent für das What-if-Szenario">
+                </div>
+              </div>
             </div>
-            <p class="chart-explainer" id="explainer-pmc">CTL (blau, Fläche) = aufgebaute Fitness über Wochen. ATL (rot, gestrichelt) = aktuelle Ermüdung der letzten Tage. TSB (grün, rechte Achse) = Form: positiv/grün = frisch, negativ/rot = müde. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining.</p>
+            <div class="chart-compare" id="pmc-compare">
+              <label class="chart-compare-toggle">
+                <input type="checkbox" id="pmc-compare-toggle">
+                <span>Vergleichsmodus</span>
+              </label>
+              <div class="chart-compare-slots">
+                <button class="unit-btn" type="button" data-compare-slot="a">Als A merken</button>
+                <button class="unit-btn" type="button" data-compare-slot="b">Als B merken</button>
+              </div>
+              <div class="chart-compare-metrics">
+                <dl data-slot="a" id="pmc-compare-metrics-a">
+                  <dt>Zeitraum A</dt>
+                  <dd>noch nicht gemerkt</dd>
+                </dl>
+                <dl data-slot="b" id="pmc-compare-metrics-b">
+                  <dt>Zeitraum B</dt>
+                  <dd>noch nicht gemerkt</dd>
+                </dl>
+              </div>
+            </div>
+            <p class="chart-explainer" id="explainer-pmc">CTL (blau) = aufgebaute Fitness über Wochen. ATL (rot) = aktuelle Ermüdung der letzten Tage. TSB (grün) = Form: positiv = frisch, negativ = müde. Durchgezogen = Ist, gestrichelt = Prognose; gestricheltes Band = unsichere Prognosetage. Die grüne Zone markiert den Sweet Spot (TSB -10 bis -30) — hier trainierst du produktiv ohne Übertraining. Darunter die Übersichtsleiste: Fenster ziehen oder Zeitraum-Button klicken, um die Ansicht einzugrenzen. What-if-Szenario: Wochen-TSS ± %, zusätzliche Ruhetage und Rampenrate simulieren eine alternative Prognose (gestrichelte zweite Kurve) — flüchtig, wird nie gespeichert. Vergleichsmodus: aktuelles Fenster als Zeitraum A/B merken, um zwei Blöcke überlagert auf einer relativen Tage-Achse zu vergleichen (Tag 1 = Blockstart) — ungleich lange Zeiträume werden nicht gestreckt.</p>
           </div>
 
           <div class="chart-box">
@@ -157,7 +216,7 @@
                 <span class="chart-note">Klick auf Balken → Fahrtenbuch-Filter</span>
               </div>
             </div>
-            <svg class="chart" id="chart-weekly" viewBox="0 0 780 270"></svg>
+            <svg class="chart" id="chart-weekly"></svg>
             <p class="chart-explainer">Balkenhöhe = gefahrene Kilometer pro Woche, eingefärbt nach Trainingsphase (nur eigener Plan, sonst durchgehend blau). Die gestrichelte grüne Linie markiert das 200-km-Wochenziel mit akzeptablem Korridor als grüne Zone. Klick auf einen Balken öffnet die Woche im Fahrtenbuch.</p>
           </div>
 
@@ -216,11 +275,11 @@
 
           <div class="chart-box" id="box-ftp-forecast">
             <div class="chart-header">
-              <span class="chart-title heatmap-title" id="title-ftp-forecast">FTP-Projektion · Retest W12</span>
+              <span class="chart-title heatmap-title" id="title-ftp-forecast">FTP-Projektion · Retest Taper-Woche</span>
               <span class="chart-note" id="note-ftp-forecast">eFTP-Verlauf (intervals.icu) · Prognose mit Unsicherheitsband</span>
             </div>
             <svg class="chart" id="chart-ftp-forecast" viewBox="0 0 780 200"></svg>
-            <p class="chart-explainer" id="explainer-ftp-forecast">Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das 210-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt in W11 aus Frust zu viel nachzulegen.</p>
+            <p class="chart-explainer" id="explainer-ftp-forecast">Lineare Fortschreibung der eFTP-Entwicklung der letzten 8 Wochen auf den Retest-Termin — der Fächer zeigt die realistische Spannweite, keine Punktversprechen. Gold: das 210-W-Ziel. Zweck: vor dem Taper wissen, ob das Ziel in Reichweite ist, statt kurz davor aus Frust zu viel nachzulegen.</p>
           </div>
 
           <div class="chart-box">
@@ -316,25 +375,25 @@
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">HRV · Heart Rate Variability</span>
-              <span class="chart-note" id="note-hrv">Plan 1 (lila) · W0 (gold) · Plan 2 (orange)</span>
+              <span class="chart-note" id="note-hrv">RMSSD → SDNN (gold = Methodenwechsel)</span>
             </div>
             <svg class="chart" id="chart-hrv-p1" viewBox="0 0 780 250"></svg>
-            <p class="chart-explainer" id="explainer-hrv">Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Übergangswoche W0 markiert den Wechsel der Messmethode: Plan 1 nutzt Apple Health RMSSD (lila), Plan 2 intervals.icu SDNN Schlafschnitt (orange) — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert pro Plan getrennt berechnet werden statt eine gemeinsame Linie zu bilden.</p>
+            <p class="chart-explainer" id="explainer-hrv">Höhere HRV-Werte deuten auf bessere Erholung und geringeren Stress hin. Die goldene Markierung zeigt den Wechsel der Messmethode: bis dahin Apple Health RMSSD (lila), danach intervals.icu SDNN Schlafschnitt — beide Methoden liefern grundsätzlich unterschiedliche absolute Werte, weshalb Trend und Mittelwert vor/nach dem Wechsel getrennt berechnet werden statt eine gemeinsame Linie zu bilden.</p>
           </div>
 
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">Ruhepuls · Morgenmessung</span>
-              <span class="chart-note" id="note-rhf">Plan 1 (rot) · W0 (gold) · Plan 2 (orange)</span>
+              <span class="chart-note" id="note-rhf">Verlauf über den erfassten Zeitraum</span>
             </div>
             <svg class="chart" id="chart-rhf-p1" viewBox="0 0 780 220"></svg>
-            <p class="chart-explainer" id="explainer-rhf">Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Übergangswoche W0 trennt Plan 1 (rot) und Plan 2 (orange) visuell, ohne dass die Messmethode hier wechselt — beide Mittelwerte sind direkt vergleichbar.</p>
+            <p class="chart-explainer" id="explainer-rhf">Ein sinkender Ruhepuls über mehrere Wochen ist ein verlässliches Zeichen kardiovaskulärer Anpassung an das Training. Die goldene Markierung zeigt denselben Zeitpunkt wie im HRV-Chart (Wechsel der Datenquelle), ohne dass sich die Ruhepuls-Messmethode hier ändert — beide Mittelwerte bleiben direkt vergleichbar.</p>
           </div>
 
           <div class="chart-box">
             <div class="chart-header">
               <span class="chart-title heatmap-title">Schlaf · Dauer & Schlaf-HF</span>
-              <span class="chart-note" id="note-sleep">Nur Plan 2 · intervals.icu</span>
+              <span class="chart-note" id="note-sleep">Nur ab intervals.icu-Ära verfügbar</span>
             </div>
             <div class="chart-scroll">
               <svg class="chart chart-wide" id="chart-sleep" viewBox="0 0 780 200"></svg>
@@ -390,7 +449,7 @@
               </div>
             </div>
             <div class="chart-scroll">
-              <svg class="chart chart-wide" id="chart-weather-weekly" viewBox="0 0 780 240"></svg>
+              <svg class="chart chart-wide" id="chart-weather-weekly"></svg>
             </div>
             <div class="chart-legend">
               <div class="legend-item"><div class="legend-dot" style="background:#4a9a6e"></div> Gute Bedingungen (5–32°C · Wind &lt;30 km/h · kein Regen)</div>
@@ -418,39 +477,26 @@
         </table>
       </div>
       <div class="table-legend">
-        <div class="table-legend-group" id="feel-legend-group">
-          <span class="table-legend-title">Befinden</span>
-          <span class="feel feel-sleicht">Sehr leicht</span>
-          <span class="feel feel-leicht">Leicht</span>
-          <span class="feel feel-ieinfach">Irgendwie einfach</span>
-          <span class="feel feel-moderat">Moderat</span>
-          <span class="feel feel-ischwer">Irgendwie schwer</span>
-          <span class="feel feel-schwer">Schwer</span>
-          <span class="feel feel-hart">Hart</span>
-        </div>
         <div class="table-legend-group">
           <span class="table-legend-title">Wetter</span>
           <span class="weather-cell" style="color:var(--green)">🟢 Ideale Bedingungen</span>
           <span class="weather-cell" style="color:var(--gold)">🟡 Suboptimal</span>
           <span class="weather-cell" style="color:var(--red)">🔴 Schwierig</span>
         </div>
-        <p class="table-note" id="table-note">– = Wert nicht erfasst · Befinden nur bei Plan-2-Fahrten editierbar · Wetter von Open-Meteo</p>
+        <p class="table-note" id="table-note">– = Wert nicht erfasst · Wetter von Open-Meteo</p>
       </div>
     </section>
 
     <!-- ── Tab: Planung ──────────────────────────────────────── -->
     <section id="tab-planned" class="tab-content hidden">
+      <div id="trainer-bar-container"></div>
+      <div id="proposal-banner-container"></div>
+      <div id="export-import-bar-container"></div>
       <div id="planned-container"></div>
     </section>
 
     <!-- ── Tab: Analyse ────────────────────────────────────────── -->
     <section id="tab-analysis" class="tab-content hidden">
-      <div class="plan-toggle" id="plan-toggle">
-        <button class="plan-btn active" data-plan="all">Gesamt</button>
-        <button class="plan-btn" data-plan="Plan 1">Plan 1</button>
-        <button class="plan-btn" data-plan="Plan 2">Plan 2</button>
-      </div>
-
       <!-- KPI Hero -->
       <div class="analysis-kpi-grid" id="analysis-kpis"></div>
 
@@ -487,7 +533,6 @@
         <h2 class="section-label">⚡ Leistungsdiagnostik</h2>
         <div class="analysis-box" id="analysis-ftp"></div>
         <div class="analysis-box" id="analysis-records" style="margin-top:10px"></div>
-        <div class="analysis-box" id="plan-comparison" style="margin-top:10px"></div>
       </div>
 
       <!-- 6 · Regeneration & Körper (datengetrieben ein-/ausgeblendet) -->
@@ -507,7 +552,7 @@
       <!-- 8 · Periodisierungs-Erfüllung (nur eigener Plan) -->
       <div class="analysis-section" id="asec-periodization">
         <h2 class="section-label">🧭 Periodisierungs-Erfüllung</h2>
-        <p class="analysis-explainer">Ist jeder Plan-2-Block phasengerecht umgesetzt? Reizsignatur pro Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.</p>
+        <p class="analysis-explainer">Ist jeder Trainingsblock phasengerecht umgesetzt? Reizsignatur pro Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.</p>
         <div class="analysis-box" id="analysis-periodization"></div>
       </div>
 

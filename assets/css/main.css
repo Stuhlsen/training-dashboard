@@ -42,6 +42,25 @@
      Endurance-Blau und Schwelle-Rot ein, ohne mit --vo2 (Lila) zu kollidieren. */
   --z3:  color-mix(in oklch, var(--ss) 75%, black 25%);
 
+  /* Chart-Rollenfarben (docs/chart-grundlagen.md §2.1, G2) — zusätzlich zu
+     den Zonenfarben oben, ersetzt sie nicht. Zonenfarben bleiben für
+     Plankarten-Rahmen und Leistungsskala; Rollenfarben benennen die
+     FUNKTION einer Serie im jeweiligen Chart, gespiegelt in
+     assets/js/ui/charts/base.js::CHART_THEME.role. */
+  --chart-primary:   #4a9eff;
+  --chart-secondary: #e0736b;
+  --chart-positive:  #6fc48c;
+  --chart-status:    #e8b73f;
+
+  /* Chart-Flächen/Textleiter (chart-grundlagen.md §2.2/§2.3) —
+     gespiegelt in CHART_THEME.surface/.ink. */
+  --chart-plate:   #141619;
+  --chart-tooltip: rgba(24, 27, 33, 0.96);
+  --chart-ink:     #f0f2f5;
+  --chart-soft:    #9aa0a8;
+  --chart-label:   #6b7178;
+  --chart-faint:   #565b62;
+
   /* Semantische Aliasse — bestehende Komponenten nutzen diese Namen */
   --accent:       var(--ss);
   --accent-dim:   rgba(224, 138, 60, 0.14);

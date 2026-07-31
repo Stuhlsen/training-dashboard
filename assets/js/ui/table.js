@@ -5,13 +5,14 @@
 
 import { fmt, fmtInt, weatherIcon, windDir, phaseTagClass } from "../core/format.js";
 import { sum } from "../core/stats.js";
-import { normalizeFeel } from "../core/normalize.js";
+import { weekSortIndex } from "../core/aggregate.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { el, Tooltip } from "./dom.js";
 import { fetchRawJson, writeRepoFile } from "./github-client.js";
 import { activateTab } from "./nav.js";
 import { Planned } from "./planned.js";
+import { onChartViewChange, setSelected } from "../state/chart-view.js";
 
 // === Befinden GitHub-Sync ===
 export const Subjective = {
@@ -58,7 +59,7 @@ export const Table = {
     search: "",
   },
 
-  COLS_BASE: [
+  COLS: [
     { k: "dateShort", l: "Datum", sk: "dateISO" },
     { k: "week", l: "Woche" },
     { k: "name", l: "Einheit", wide: true },
@@ -73,44 +74,15 @@ export const Table = {
     { k: "np", l: "NP" },
     { k: "trimp", l: "TRIMP" },
     { k: "ctl", l: "CTL" },
-    { k: "feel", l: "Befinden" },
     { k: "weather", l: "Wetter", noSort: true },
   ],
 
-  /** Spalten je nach Athlet — Befinden nur bei eigenem Plan relevant */
-  get COLS() {
-    const ownPlan = Data.rides.some((r) => r.week);
-    return ownPlan ? this.COLS_BASE : this.COLS_BASE.filter((c) => c.k !== "feel");
-  },
-
   /* ── Öffentliche API ─────────────────────────────────────────── */
   async init() {
+    // Subjective bleibt geladen — ui/planned.js liest weiterhin über
+    // Subjective.get() daraus (Befinden-Anzeige dort unverändert), nur die
+    // Fahrtenbuch-Spalte samt Editier-Dropdown ist raus.
     await Subjective.load();
-
-    // Event Delegation einmalig auf stabilem Container setzen
-    const tableWrap = el("table-body").parentElement.parentElement;
-    tableWrap.addEventListener("change", async (e) => {
-      const sel = e.target.closest(".feel-select");
-      if (!sel) return;
-      const date = sel.dataset.date;
-      const feel = sel.value;
-      sel.disabled = true;
-
-      const result = await Subjective.save(date, feel, Subjective.get(date).notizen || "");
-
-      sel.disabled = false;
-      const normalized = normalizeFeel(feel);
-      sel.className = `feel-select feel-${normalized.cls}`;
-
-      if (result.ok) {
-        sel.style.outline = "1px solid var(--green)";
-        setTimeout(() => {
-          sel.style.outline = "";
-        }, 1500);
-      } else {
-        alert(result.error?.message || "Speichern fehlgeschlagen. Ist der GitHub Token korrekt?");
-      }
-    });
 
     this.render();
   },
@@ -119,20 +91,6 @@ export const Table = {
     this._renderFilters();
     this._renderWeekTag();
     this._renderTable();
-    this._toggleLegend();
-  },
-
-  /** Befinden-Legende und Hinweistext je nach Athlet ein-/ausblenden */
-  _toggleLegend() {
-    const ownPlan = Data.rides.some((r) => r.week);
-    const legendGroup = el("feel-legend-group");
-    const note = el("table-note");
-    if (legendGroup) legendGroup.classList.toggle("hidden", !ownPlan);
-    if (note) {
-      note.textContent = ownPlan
-        ? "– = Wert nicht erfasst · Befinden nur bei Plan-2-Fahrten editierbar · Wetter von Open-Meteo"
-        : "– = Wert nicht erfasst · Wetter von Open-Meteo";
-    }
   },
 
   /** Von außen aufrufbar um Wochen-Filter zu setzen */
@@ -156,6 +114,37 @@ export const Table = {
       row.scrollIntoView({ behavior: "smooth", block: "center" });
       setTimeout(() => row.classList.remove("row-highlight"), 2500);
     }, 50);
+  },
+
+  /** Leichte Hover-Hervorhebung (Phase 5, Schritt 2, Teil C — PMC-Chart-
+   *  Cursor-Sync, `state/chart-view.js::onChartViewChange`). BEWUSST NICHT
+   *  `highlightByDate()`: das setzt Filter/Suche/Sortierung zurück und
+   *  scrollt — bei jedem Mausmove über den Chart würde das die Fahrtenbuch-
+   *  Ansicht laufend umbauen und die Scroll-Position stehlen. Hier wird nur
+   *  die Zeile markiert, wenn sie unter dem AKTUELLEN Filter/Sort ohnehin
+   *  sichtbar ist; sonst passiert nichts (kein Filter-Umbau, kein Scroll).
+   *  @param {string|null} date */
+  setHoverDate(date) {
+    document
+      .querySelectorAll("#table-body tr.row-hover")
+      .forEach((r) => r.classList.remove("row-hover"));
+    if (!date) return;
+    const row = document.querySelector(`#table-body tr[data-date="${date}"]`);
+    if (row) row.classList.add("row-hover");
+  },
+
+  /** Angepinnte Zeile (Rückrichtung Fahrtenbuch → Chart-Crosshair, Nachzug
+   *  zu Schritt 2, s. docs/offene-punkte.md) — anders als `setHoverDate()`
+   *  kein flüchtiger Hover, sondern ein Klick-Pin, der stehen bleibt, bis er
+   *  explizit entfernt wird (`state/chart-view.js::setSelected` togglet).
+   *  @param {string|null} date */
+  setSelectedDate(date) {
+    document
+      .querySelectorAll("#table-body tr.row-selected")
+      .forEach((r) => r.classList.remove("row-selected"));
+    if (!date) return;
+    const row = document.querySelector(`#table-body tr[data-date="${date}"]`);
+    if (row) row.classList.add("row-selected");
   },
 
   /* ── Filter Bar ─────────────────────────────────────────────── */
@@ -243,33 +232,16 @@ export const Table = {
     );
 
     // Body
-    const ownPlan = Data.rides.some((r) => r.week);
     const tbody = el("table-body");
     tbody.innerHTML = filtered
       .map((r) => {
-        const isP2 = r.plan === "Plan 2";
-        const subj = isP2 ? Subjective.get(r.dateISO) : null;
-        const feelVal = subj?.feel || r.feel || "";
-        const feel = normalizeFeel(feelVal);
-
-        const feelCell = !ownPlan
-          ? ""
-          : isP2
-            ? `<td>
-            <select class="feel-select feel-${feel.cls}" data-date="${r.dateISO}">
-              <option value="">– wählen –</option>
-              ${Subjective.FEEL_OPTIONS.map(
-                (f) => `<option value="${f}"${feelVal === f ? " selected" : ""}>${f}</option>`
-              ).join("")}
-            </select>
-           </td>`
-            : `<td><span class="feel feel-${feel.cls}">${feel.label || "–"}</span></td>`;
+        const isIntervalsEra = r.dataSource === "intervals";
 
         return `
         <tr data-date="${r.dateISO}">
           <td>${r.dateShort}</td>
           <td><span class="tag ${phaseTagClass(r.phase)}">${r.week || "–"}</span></td>
-          <td class="col-name" title="${r.name || ""}">${r.name || "–"}${r.plan === "Plan 2" ? ` <span class="table-plan-link" data-date="${r.dateISO}" title="Im Planungs-Tab öffnen">📅</span>` : ""}</td>
+          <td class="col-name" title="${r.name || ""}">${r.name || "–"}${isIntervalsEra ? ` <span class="table-plan-link" data-date="${r.dateISO}" title="Im Planungs-Tab öffnen">📅</span>` : ""}</td>
           <td class="col-typ">${r.typ || "–"}</td>
           <td class="col-bold">${fmt(r.km)}</td>
           <td>${fmtInt(r.min)}</td>
@@ -281,7 +253,6 @@ export const Table = {
           <td>${fmtInt(r.np)}</td>
           <td>${fmtInt(r.trimp)}</td>
           <td>${r.ctl != null ? fmt(r.ctl) : "–"}</td>
-          ${feelCell}
           <td class="col-weather">${
             r.weather
               ? (() => {
@@ -351,6 +322,14 @@ export const Table = {
         setTimeout(() => Planned.scrollToDate(date), 100);
       });
     });
+
+    // Zeile anpinnen (Rückrichtung Fahrtenbuch → Chart-Crosshair) — der
+    // Planungs-Tab-Link stoppt die Propagation oben bereits selbst, ein
+    // Klick darauf pinnt also nicht zusätzlich (kein Doppel-Effekt).
+    tbody.querySelectorAll("tr[data-date]").forEach((row) => {
+      row.style.cursor = "pointer";
+      row.addEventListener("click", () => setSelected(row.dataset.date));
+    });
   },
 
   /* ── Gefilterte + sortierte Daten ───────────────────────────── */
@@ -372,8 +351,8 @@ export const Table = {
     r.sort((a, b) => {
       let va, vb;
       if (col === "week") {
-        va = CONFIG.weekIndex(a.week);
-        vb = CONFIG.weekIndex(b.week);
+        va = weekSortIndex(a.week, (w) => CONFIG.weekIndex(w));
+        vb = weekSortIndex(b.week, (w) => CONFIG.weekIndex(w));
       } else {
         va = a[col];
         vb = b[col];
@@ -388,3 +367,14 @@ export const Table = {
     return r;
   },
 };
+
+// Cursor-Sync (Phase 5, Schritt 2, Teil C) — Table reagiert selbst auf den
+// geteilten Hover-Zustand, statt dass state/chart-view.js (Schichtenregel:
+// state/ darf nicht ui/ importieren) oder ui/charts/pmc.js direkt hineinruft.
+// Modul-Top-Level-Aufruf ist hier unproblematisch (kein Zugriff auf noch
+// nicht existierendes DOM nötig — setHoverDate() quert defensiv und tut bei
+// fehlender Zeile nichts).
+onChartViewChange((s) => Table.setHoverDate(s.hoveredDate));
+// Rückrichtung: die eigene Pin-Auswahl genauso als Zeilen-Markierung
+// spiegeln, wie der PMC-Hover oben schon gespiegelt wird.
+onChartViewChange((s) => Table.setSelectedDate(s.selectedDate));

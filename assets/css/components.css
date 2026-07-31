@@ -260,9 +260,14 @@
 }
 
 /* What-if-Slider: Ziel-FTP live erkunden (eigener Block NACH der Skala,
-   bewusst nicht in die Pin-Stacking-CSS verschachtelt) */
+   bewusst nicht in die Pin-Stacking-CSS verschachtelt). Dieselben
+   .wi-label/.wi-readout/input[range]-Regeln bedienen zusätzlich das
+   Trainings-What-if im PMC-Chart (.chart-scenario-controls, Phase 5,
+   Schritt 3 — docs/phase-5-konzept-explorer.md §6.2: nur der visuelle Stil
+   wird geteilt, nicht die Logik — andere Domäne, eigenes Modul). */
 .hero-whatif { margin-top: 18px; }
-.hero-whatif .wi-label {
+.hero-whatif .wi-label,
+.chart-scenario-controls .wi-label {
   display: flex;
   justify-content: space-between;
   font-family: var(--font-mono);
@@ -270,8 +275,10 @@
   color: var(--dim);
   margin-bottom: 6px;
 }
-.hero-whatif .wi-label b { color: var(--accent); font-weight: 600; }
-.hero-whatif input[type="range"] {
+.hero-whatif .wi-label b,
+.chart-scenario-controls .wi-label b { color: var(--accent); font-weight: 600; }
+.hero-whatif input[type="range"],
+.chart-scenario-controls input[type="range"] {
   width: 100%;
   accent-color: var(--ss);
   cursor: pointer;
@@ -499,6 +506,13 @@
 .tag-p2  { background: rgba(56,189,248,0.12);  color: var(--blue);  border: 1px solid rgba(56,189,248,0.2); }
 .tag-p3  { background: rgba(167,139,250,0.12); color: #a78bfa;      border: 1px solid rgba(167,139,250,0.2); }
 
+/* Umgebungsmarkierung im Topbar (C5.4) — eigene Farbe statt Wiederverwendung
+   von z.B. .tag-vor: das ist semantisch an Trainingsphasen gekoppelt
+   (core/format.js), eine Wiederverwendung würde zufällige Kopplung zwischen
+   zwei unabhängigen Konzepten schaffen. var(--red) passt zum bestehenden
+   "Achtung"-Ton (dieselbe Farbe wie Formular-Fehlermeldungen). */
+.tag-env { background: rgba(217,79,79,0.12); color: var(--red); border: 1px solid rgba(217,79,79,0.25); }
+
 /* ── Befinden / Feel Colors ──────────────────────────────────── */
 .feel { font-size: 0.78rem; font-weight: 500; }
 .feel-hart,     .feel-schwer { color: var(--red);   }
@@ -600,42 +614,6 @@
   min-width: 120px;
   flex-shrink: 0;
 }
-
-/* ── Plan Comparison Table ───────────────────────────────────── */
-.comparison-table { display: flex; flex-direction: column; gap: 0; }
-
-.comparison-header,
-.comparison-row {
-  display: grid;
-  grid-template-columns: 160px 1fr 1fr 1fr;
-  gap: 8px;
-  padding: 8px 4px;
-  align-items: center;
-}
-
-.comparison-header {
-  font-size: 0.68rem;
-  font-weight: 700;
-  color: var(--dim);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  border-bottom: 1px solid var(--border);
-  padding-bottom: 10px;
-  margin-bottom: 2px;
-}
-
-.comparison-row {
-  font-size: 0.78rem;
-  border-bottom: 1px solid var(--border);
-  transition: background var(--transition);
-}
-.comparison-row:last-child { border-bottom: none; }
-.comparison-row:hover { background: var(--card-hover); border-radius: var(--radius-sm); }
-
-.comparison-label { color: var(--dim); font-size: 0.75rem; }
-.comparison-plan  { text-align: center; font-weight: 600; }
-.comparison-val   { text-align: center; color: var(--text); }
-.comparison-delta { text-align: center; font-weight: 700; font-size: 0.8rem; }
 
 .analysis-empty { font-size: 0.8rem; color: var(--dim); padding: 12px 0; }
 
@@ -787,8 +765,8 @@
   line-height: 1.5;
 }
 
-/* ═══ Plan Toggle ═══ */
-.plan-toggle {
+/* ═══ Pill Toggle (generisch, z.B. Event-Formular Typ-Auswahl) ═══ */
+.pill-toggle {
   display: flex;
   gap: 0;
   margin-bottom: 1.25rem;
@@ -799,7 +777,7 @@
   width: fit-content;
   padding: 3px;
 }
-.plan-btn {
+.pill-toggle-btn {
   padding: 0.4rem 1.1rem;
   background: transparent;
   border: none;
@@ -810,8 +788,8 @@
   font-weight: 600;
   transition: all var(--transition);
 }
-.plan-btn:hover { color: var(--text); }
-.plan-btn.active {
+.pill-toggle-btn:hover { color: var(--text); }
+.pill-toggle-btn.active {
   background: var(--accent);
   color: #17110a;
 }
@@ -856,6 +834,78 @@
   margin-left: 8px;
 }
 .panel-empty { font-size: 0.78rem; color: var(--dim); line-height: 1.55; }
+
+/* Event-Timeline (ui/event-timeline.js) — war komplett Inline-Style ohne
+   eigene Klassen, s. docs/offene-punkte.md. `--badge-color` bleibt als
+   Custom Property injiziert (Badge-Farbe ist pro Event dynamisch, analog
+   zu .session-pill/--sp-color), alles Statische ist jetzt hier. */
+.event-badge {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 7px;
+  border-radius: var(--pill);
+  background: color-mix(in oklch, var(--badge-color) 13%, transparent);
+  color: var(--badge-color);
+  border: 1px solid color-mix(in oklch, var(--badge-color) 27%, transparent);
+  white-space: nowrap;
+}
+.event-timeline-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 4px;
+  border-radius: 8px;
+  cursor: default;
+}
+.event-timeline-row--editable { cursor: pointer; }
+.event-timeline-row--editable:hover { background: rgba(255, 255, 255, 0.04); }
+.event-timeline-date {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--dim);
+  flex-shrink: 0;
+  width: 52px;
+}
+.event-timeline-title {
+  font-family: var(--font-disp);
+  font-weight: 600;
+  font-size: 0.82rem;
+  color: var(--text);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event-timeline-badges { display: flex; gap: 6px; flex-shrink: 0; }
+.event-timeline-remove {
+  background: none;
+  border: none;
+  color: var(--dim2);
+  cursor: pointer;
+  font-size: 0.9rem;
+  padding: 2px 4px;
+  flex-shrink: 0;
+}
+.event-timeline-add {
+  margin-top: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--accent);
+  padding: 0;
+}
+.event-timeline-error {
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  min-height: 1em;
+  margin-top: 6px;
+}
 
 /* Tagesform */
 .readiness-head { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }

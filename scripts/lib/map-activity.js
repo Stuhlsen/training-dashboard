@@ -5,9 +5,13 @@
    ============================================================ */
 
 import { effectiveSessions } from "../../assets/js/core/planning.js";
+import { classifySession } from "../../assets/js/core/session-classify.js";
+import { ftpAt } from "./ftp-history.js";
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { getWeatherForRide } from "./weather.js";
+import { log } from "./log.js";
+import { countFieldCoverage } from "./coverage.js";
 
 /** Fallback-FTP für die Typ-Ableitung — wird bei neuem Ramp-Test aktualisiert */
 export const DEFAULT_FTP = 193;
@@ -68,6 +72,39 @@ export function inferTypFromIF(np, min, ftp = DEFAULT_FTP) {
   return "VO2max";
 }
 
+/**
+ * Datenbasierte Ist-Typerkennung (core/session-classify.js) für eine
+ * Aktivität aufrufen. `ftpWatt` MUSS die am Fahrttag gültige FTP sein,
+ * nicht die heutige — kommt vom Aufrufer bereits fertig aufgelöst
+ * (ftpAt(ftpHistory, date, fallbackFtp), s. mapActivity()/mapActivity2()).
+ *
+ * Nutzt bewusst NICHT mehr `act.icu_eftp` (Stand vor der FTP-Historie,
+ * 30.07.2026): eFTP ist intervals.icus laufend nachgeführte SCHÄTZUNG aus
+ * den jüngsten Aktivitäten — schwankt je nach Tagesform/Anstrengung dieser
+ * einen Fahrt und ist damit kein stabiler Referenzpunkt für "wie hart war
+ * das relativ zu meiner damaligen Schwelle". ftp_history trägt die
+ * bewusst vom Athleten eingetragene, gemessene Ramp-Test-FTP — die
+ * inhaltlich richtige Grundlage für die IF-Berechnung. `act.icu_eftp`
+ * bleibt unverändert in `ride.eftp` erhalten (baseFields()) — dort speist
+ * es weiterhin die eFTP-Trend-Prognose (core/ftp-forecast.js), ein
+ * bewusst anderer Zweck als die Ist-Typerkennung hier.
+ * @param {Object} act
+ * @param {number} min
+ * @param {number} ftpWatt am Fahrttag gültige FTP, bereits aufgelöst
+ * @param {Object|null} [longestBlock] aus dem Blockerkennung-Cache
+ *   (scripts/lib/interval-blocks.js), Aufrufer schlägt per Activity-ID nach
+ * @returns {ReturnType<typeof classifySession>}
+ */
+function detectSession(act, min, ftpWatt, longestBlock = null) {
+  return classifySession({
+    np: act.icu_weighted_avg_watts,
+    ftp: ftpWatt,
+    min,
+    zoneTimes: act.icu_zone_times || null,
+    longestBlock,
+  });
+}
+
 /** Gemeinsame Feldmenge beider Mapper */
 function baseFields(act, weather) {
   const min = Math.round((act.moving_time || 0) / 60);
@@ -102,6 +139,13 @@ function baseFields(act, weather) {
     // (core/zones.js). Fehlende Felder bleiben null (ältere Aktivitäten).
     zoneTimes: act.icu_zone_times || null,
     eftp: act.icu_eftp || null,
+    // Nach-Fahrt-Befinden, vom Athleten direkt in intervals.icu eingetragen
+    // (nicht zu verwechseln mit `feel` unten — dem manuellen Dropdown-Wert
+    // aus subjective.json/Fahrtenbuch, s. baseFields-Aufrufer). Feldnamen
+    // laut intervals.icu-API (perceived_exertion/feel); Ist-Befüllung wird
+    // pro Sync-Lauf via logRpeFeelCoverage() verifiziert statt angenommen.
+    rpe: act.perceived_exertion ?? null,
+    feelIcu: act.feel ?? null,
     weather,
     wetter: weather
       ? `${weather.temp}°C`
@@ -110,6 +154,28 @@ function baseFields(act, weather) {
         : null,
     source: "intervals.icu",
   };
+}
+
+/** Non-null-Zählung für rpe/feelIcu über gemappte Rides.
+ *  @param {Array<Object>} rides @returns {{rpe: number, feelIcu: number}} */
+export function rpeFeelCoverage(rides) {
+  return /** @type {{rpe: number, feelIcu: number}} */ (countFieldCoverage(rides, ["rpe", "feelIcu"]));
+}
+
+/** Verifikationslog: sind rpe/feelIcu aus intervals.icu real befüllt?
+ *  Grundlage, um die angenommenen API-Feldnamen (perceived_exertion/feel)
+ *  gegen einen echten Sync-Lauf zu bestätigen (s. Kommentar in baseFields()).
+ *  @param {Array<Object>} rides @param {string} label z.B. "Athlet 1" */
+export function logRpeFeelCoverage(rides, label) {
+  const { rpe, feelIcu } = rpeFeelCoverage(rides);
+  const total = (rides || []).length;
+  log.info(`   📊 RPE/Feel-Abdeckung (intervals.icu) ${label}: rpe ${rpe}/${total} · feelIcu ${feelIcu}/${total}`);
+  const empty = [];
+  if (total > 0 && rpe === 0) empty.push("rpe (perceived_exertion)");
+  if (total > 0 && feelIcu === 0) empty.push("feelIcu (feel)");
+  if (empty.length) {
+    log.warn(`   Nicht befüllt (${label}): ${empty.join(", ")} — Feldnamen prüfen`);
+  }
 }
 
 /** Wellness-Felder eines Tages @param {Object} w */
@@ -128,7 +194,23 @@ function startHourOf(act) {
 }
 
 // === intervals.icu Activity → Ride-Objekt (Athlet 1, Plan 2) ===
-export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan = PLANNED_SESSIONS) {
+// `ftpHistory` (Migration 0009, scripts/lib/ftp-history.js) ist optional —
+// ohne sie (leeres Array, z.B. wenn SUPABASE_*-Secrets fehlen) verhält
+// sich ftpAt() wie zuvor: DEFAULT_FTP für jede Fahrt, unverändertes
+// Verhalten (s. generate-data.js für die Herkunft von ftpHistory).
+// `intervalBlockCache` (scripts/lib/interval-blocks.js) ebenso optional —
+// ohne Eintrag für diese Activity-ID (z.B. noch nicht abgerufen) bleibt
+// longestBlock null, detectSession() verhält sich dann wie vor der
+// Blockerkennung.
+export function mapActivity(
+  act,
+  wellness,
+  subjective,
+  weatherMap,
+  effectivePlan = PLANNED_SESSIONS,
+  ftpHistory = [],
+  intervalBlockCache = {}
+) {
   const date = act.start_date_local.split("T")[0];
   const { week, phase } = getPlan2WeekPhase(date);
   const w = wellness[date] || {};
@@ -137,10 +219,19 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
+  const { ftpWatt } = ftpAt(ftpHistory, date, DEFAULT_FTP);
 
   // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
-  const typ = s.typ || planned.typ || inferTypFromIF(np, min);
+  // `typ` (Fall "inferred") nutzt seit der FTP-Historie-Konsumenten-
+  // Umstellung dieselbe datumsgenaue ftpWatt wie typDetected/typDetection
+  // (früher: fester DEFAULT_FTP, s. Git-History) — beide Felder bleiben
+  // trotzdem eigenständig, keine Vermischung der beiden Konzepte.
+  // typSource dokumentiert nur, welcher der drei Fälle gegriffen hat.
+  const typ = s.typ || planned.typ || inferTypFromIF(np, min, ftpWatt);
+  const typSource = s.typ ? "subjective" : planned.typ ? "plan" : "inferred";
   const name = s.name || planned.name || act.name || "Radfahren";
+  const longestBlock = intervalBlockCache[String(act.id)]?.longestBlock ?? null;
+  const detection = detectSession(act, min, ftpWatt, longestBlock);
 
   // Wetter: exakte Startzeit aus intervals.icu
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
@@ -150,7 +241,11 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
     week,
     phase,
     typ,
-    plan: "Plan 2",
+    typPlanned: planned.typ ?? null,
+    typDetected: detection.type,
+    typDetection: detection,
+    typSource,
+    dataSource: "intervals",
     ...baseFields(act, weather),
     ...wellnessFields(w),
     feel: s.feel || null,
@@ -162,14 +257,24 @@ export function mapActivity(act, wellness, subjective, weatherMap, effectivePlan
 // week/phase bleiben bewusst null — der Plan-Bezug läuft ausschließlich
 // über die eigenständigen plannedSessions/adjustments-Felder (siehe
 // generate-data.js), nicht über ride.week/ride.phase. Das hält
-// hasOwnPlan()/Data.weekly() in app.js unangetastet (Athlet-1-exklusive
-// Plan-1/2-Semantik), während der Planungstab trotzdem funktioniert.
+// hasOwnPlan() in app.js unangetastet (steuert weiterhin Athlet-1-exklusive
+// Inhalte wie FTP-Retest-Text/Periodisierungs-Sektion), während der
+// Planungstab trotzdem funktioniert. Data.weekly() selbst hängt seit dem
+// Umbau "Plan 1/2 → Kalenderwoche" nicht mehr an r.week (immer
+// isoWeekKey(r.dateISO)), ist von week:null hier also ohnehin unberührt.
+// `ftpHistory` optional (leer -> estimatedFtp für jede Fahrt, unverändertes
+// Verhalten) — Athlet 2 hat vermutlich keine eigene ftp_history-Historie
+// gepflegt (kein Ramp-Test-Konzept in derselben Form), das ist hier bewusst
+// KEIN Sonderfall: ftpAt() fällt auf estimatedFtp zurück, wenn die Tabelle
+// für dieses Profil leer ist — exakt wie bisher, ohne eigenen Code-Zweig.
 export function mapActivity2(
   act,
   wellness,
   weatherMap,
   estimatedFtp,
-  effectivePlan = PLANNED_SESSIONS_ATHLETE2
+  effectivePlan = PLANNED_SESSIONS_ATHLETE2,
+  ftpHistory = [],
+  intervalBlockCache = {}
 ) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
@@ -177,6 +282,9 @@ export function mapActivity2(
 
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
+  const { ftpWatt } = ftpAt(ftpHistory, date, estimatedFtp);
+  const longestBlock = intervalBlockCache[String(act.id)]?.longestBlock ?? null;
+  const detection = detectSession(act, min, ftpWatt, longestBlock);
 
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
 
@@ -184,14 +292,17 @@ export function mapActivity2(
     name: planned.name || act.name || "Radfahren",
     week: null,
     phase: null,
-    typ: planned.typ || inferTypFromIF(np, min, estimatedFtp),
-    // "Vergleich" bewusst beibehalten (nicht "GFNY Bremen 2026"): mehrere
-    // UI-Stellen (charts/training.js, charts/wellness.js, core/aggregate.js)
-    // nutzen "Vergleich" als Sentinel, um den Plan-Namen aus Tooltips/
-    // Aggregaten herauszuhalten — mit einem echten Rennnamen würde der auf
-    // JEDEM Datenpunkt erscheinen. Der Rennname steht stattdessen einmalig
-    // im Planungstab-Hero-Titel (ui/planned.js).
-    plan: "Vergleich",
+    // Kein subjective.json bei Athlet 2 (read-only, keine Befinden-Erfassung)
+    // — nur Plan oder IF-Berechnung, s. Kommentar bei mapActivity() zu
+    // typPlanned/typDetected/typSource.
+    typ: planned.typ || inferTypFromIF(np, min, ftpWatt),
+    typPlanned: planned.typ ?? null,
+    typDetected: detection.type,
+    typDetection: detection,
+    typSource: planned.typ ? "plan" : "inferred",
+    // Athlet 2 kommt vollständig aus intervals.icu (kein Notion-Anteil) —
+    // dieselbe Datenherkunfts-Semantik wie Athlet 1s intervals.icu-Ära.
+    dataSource: "intervals",
     ...baseFields(act, weather),
     ...wellnessFields(w),
     feel: null,
@@ -208,10 +319,11 @@ export function mapActivity2(
  * sonst beide dieselbe (Renn-)Bezeichnung erben.
  * Rein, testbar — siehe tests/map-activity.test.js.
  * @param {Array<Object>} rides bereits gemappte Ride-Objekte
- * @param {number|null} [ftp]
+ * @param {Array<{ftpWatt:number, validFrom:string, source?:string}>} ftpHistory
+ * @param {number|null} [fallbackFtp]
  * @returns {Array<Object>} rides (in-place korrigiert)
  */
-export function classifyCooldowns(rides, ftp) {
+export function classifyCooldowns(rides, ftpHistory, fallbackFtp) {
   const byDate = new Map();
   for (const r of rides) {
     if (!r.date) continue;
@@ -221,6 +333,9 @@ export function classifyCooldowns(rides, ftp) {
   for (const dayRides of byDate.values()) {
     if (dayRides.length < 2) continue;
     dayRides.sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+    // prior/cur teilen sich immer dasselbe Datum (beide aus derselben
+    // Tagesgruppe) — ein ftpAt()-Aufruf pro Tag reicht, nicht pro Fahrtpaar.
+    const { ftpWatt: ftp } = ftpAt(ftpHistory, dayRides[0].date, fallbackFtp);
     for (let i = 1; i < dayRides.length; i++) {
       const prior = dayRides[i - 1];
       const cur = dayRides[i];
@@ -238,6 +353,10 @@ export function classifyCooldowns(rides, ftp) {
       if (priorWasHard && curIsShortEasy && isShortlyAfter(prior, cur)) {
         cur.typ = "Ausrollen";
         cur.name = "Ausrollen";
+        // Überschreibt ggf. eine schon gesetzte typSource ("plan"/"subjective")
+        // — die Ausrollen-Einstufung kommt aus dieser IF/Dauer-Heuristik, nicht
+        // mehr aus der ursprünglichen Quelle, sonst würde typSource lügen.
+        cur.typSource = "inferred";
       }
     }
   }

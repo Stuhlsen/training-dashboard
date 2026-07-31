@@ -28,3 +28,7 @@ Thumbs.db
 
 # Backup-Dateien
 *.bak
+
+# Playwright MCP — Snapshot-/Konsolen-Dumps aus Live-Diagnose-Sessions,
+# kein Quellcode (s. .mcp.json für den Server selbst, der bleibt versioniert)
+.playwright-mcp/

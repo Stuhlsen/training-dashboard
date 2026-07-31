@@ -381,6 +381,70 @@
   color: var(--dim);
 }
 
+/* ── Nach-Drop-Feedback: Delta-Banner (Phase 3, Schritt 5) ──────
+   Persistent bis manuell geschlossen (kein Auto-Dismiss), border in
+   gold — oberhalb der Kartenliste, unterhalb des Hero. */
+.planned-delta-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card);
+  border: 1px solid var(--gold);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+.planned-delta-banner-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+.planned-delta-old { color: var(--dim2); opacity: 0.75; }
+.planned-delta-new { font-weight: 700; }
+.planned-delta-hint { font-size: 0.68rem; color: var(--dim2); }
+.planned-delta-close {
+  flex-shrink: 0;
+  background: transparent;
+  border: none;
+  color: var(--dim);
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 4px;
+  transition: color var(--transition);
+}
+.planned-delta-close:hover { color: var(--red); }
+
+/* ── Konflikt-Badges + Push-Warnung an einer Karte ───────────────
+   Eigene Pill-Zeile unter .planned-card-header (Konzept §4): jede
+   passende Regel aus getState().conflicts eine eigene Zeile, warning
+   vor info (s. core/plan-feedback.js::conflictsForCard). */
+.planned-conflict-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.planned-conflict-badge {
+  font-size: 0.7rem;
+  border-radius: 20px;
+  padding: 4px 12px;
+  border: 1px solid;
+  line-height: 1.4;
+}
+.planned-conflict-badge--warning {
+  color: var(--red);
+  background: var(--red-dim);
+  border-color: rgba(217,79,79,0.3);
+}
+.planned-conflict-badge--info {
+  color: var(--gold);
+  background: rgba(251,191,36,0.08);
+  border-color: rgba(251,191,36,0.2);
+}
+
 /* ── Verschieben-Badge ───────────────────────────────────────── */
 .planned-moved-badge {
   font-size: 0.72rem;
@@ -501,6 +565,267 @@
 .planned-push-status { font-size: 0.72rem; font-weight: 600; }
 
 .planned-cancelled-title { margin-top: 32px; }
+
+.planned-edit-btn {
+  font-size: 0.72rem;
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.planned-edit-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+/* ── "+ Karte"-Button im Hero ───────────────────────────────── */
+.planned-add-card-btn {
+  margin-top: 12px;
+  padding: 5px 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.planned-add-card-btn:hover { opacity: 0.85; }
+
+/* ── Karten-Dialog (Anlegen/Bearbeiten) ─────────────────────────
+   Overlay/Modal-Aufbau analog ui/event-form.js/checkin-dialog.js,
+   aber mit dedizierten CSS-Klassen statt Inline-Styles (Karten-CRUD,
+   Schritt 2) — Footer-Buttons im .planned-move-confirm/-cancel-Stil. */
+.planned-card-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(7, 9, 14, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.planned-card-dialog {
+  background: var(--card-solid, #141924);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 22px;
+  padding: 26px 24px;
+  width: 100%;
+  max-width: 460px;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.planned-card-dialog-title {
+  font-family: var(--font-disp);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.planned-card-dialog-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.planned-card-dialog-row {
+  display: flex;
+  gap: 10px;
+}
+.planned-card-dialog-row > label { flex: 1; min-width: 0; }
+
+.planned-card-dialog-label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+/* "Glass"-Formularfelder — geteilte Optik für ALLE Dialoge, nicht nur den
+   Karten-Dialog (war 3x fast identisch als Inline-Style in event-form.js/
+   settings-panel.js/checkin-dialog.js kopiert, s. docs/offene-punkte.md).
+   .glass-* sind die generischen Namen für neue Stellen, .planned-card-
+   dialog-* bleiben als Alias bestehen (keine Aufrufstellen umbenannt, um
+   den Karten-Dialog nicht anzufassen). */
+.planned-card-dialog-input,
+.planned-card-dialog-select,
+.planned-card-dialog-textarea,
+.glass-input,
+.glass-select,
+.glass-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  padding: 8px 10px;
+}
+.planned-card-dialog-textarea,
+.glass-textarea { resize: vertical; }
+.planned-card-dialog-input:focus,
+.planned-card-dialog-select:focus,
+.planned-card-dialog-textarea:focus,
+.glass-input:focus,
+.glass-select:focus,
+.glass-textarea:focus { outline: none; border-color: var(--accent); }
+
+.planned-card-dialog-blocks-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.planned-card-dialog-blocks-title {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+.planned-card-dialog-add-block {
+  font-size: 0.7rem;
+  padding: 3px 10px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.planned-card-dialog-add-block:hover { border-color: var(--accent); color: var(--accent); }
+
+.planned-card-dialog-block-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.planned-card-dialog-block-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.planned-card-dialog-block-row--new {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+.planned-card-dialog-block-text {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--text);
+}
+.planned-card-dialog-block-input {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.78rem;
+  padding: 5px 8px;
+}
+.planned-card-dialog-block-type {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  padding: 5px 6px;
+}
+.planned-card-dialog-block-remove {
+  background: transparent;
+  border: none;
+  color: var(--dim2);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.planned-card-dialog-block-remove:hover { color: var(--red); }
+
+.planned-card-dialog-error {
+  color: var(--red);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  min-height: 1em;
+}
+
+.planned-card-dialog-pushed-note {
+  font-size: 0.72rem;
+  color: var(--gold);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+
+.planned-card-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.planned-card-dialog-footer-left {
+  margin-right: auto;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.card-dialog-save {
+  padding: 5px 16px;
+  background: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: 20px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition);
+}
+.card-dialog-save:hover { opacity: 0.85; }
+.card-dialog-save:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.card-dialog-cancel {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.card-dialog-cancel:hover { border-color: var(--red); color: var(--red); }
+
+.card-dialog-delete {
+  padding: 5px 14px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  color: var(--dim);
+  font-size: 0.78rem;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.card-dialog-delete:hover { border-color: var(--red); color: var(--red); background: var(--red-dim); }
 
 .planned-cancelled-item {
   opacity: 0.7;
@@ -682,4 +1007,514 @@
   margin-left: auto !important;
   white-space: nowrap;
   flex-shrink: 0;
+}
+
+/* ── Drag & Drop (Phase 3) ───────────────────────────────────── */
+/* Griff an der Karte: startet den Verschiebe-Modus (Konzept §2/§4).
+   touch-action:none ist Pflicht — sonst scrollt Touch die Seite,
+   statt die Karte zu ziehen. */
+.planned-card-grip {
+  color: var(--dim);
+  cursor: grab;
+  touch-action: none;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 2px;
+  margin-left: -4px;
+  border-radius: 4px;
+  transition: color var(--transition), background var(--transition);
+}
+.planned-card-grip:hover {
+  color: var(--accent);
+  background: rgba(255, 255, 255, 0.06);
+}
+.planned-card-grip:active { cursor: grabbing; }
+
+/* Originalkarte während des Ziehens — reduziert, bleibt aber als
+   Platzhalter sichtbar. */
+.planned-card--dragging {
+  opacity: 0.4;
+  border-style: dashed;
+}
+
+/* Der Ghost hängt am Zeiger. pointer-events:none hält ihn aus
+   elementFromPoint() raus, sonst träfe der Treffertest immer ihn
+   selbst statt den Slot darunter. */
+.planned-card--ghost {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.9;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  transform: translate(0, 0);
+  cursor: grabbing;
+}
+/* Abgewiesener Drop: Ghost schnappt sichtbar zurück (§6) */
+.planned-card--ghost-snapback {
+  transition: transform 0.18s ease-out;
+}
+
+body.is-card-dragging { cursor: grabbing; user-select: none; }
+
+/* Tages-Slots — existieren nur während eines Drags (ui/plan-drag.js) */
+.planned-day-slots {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.planned-day-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 62px;
+  padding: 6px 4px;
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.02);
+  transition: background var(--transition), border-color var(--transition);
+}
+
+.planned-day-slot-day {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text);
+}
+.planned-day-slot-hint {
+  font-size: 0.62rem;
+  color: var(--dim);
+}
+
+/* Zieltag unter dem Zeiger */
+.planned-day-slot--over {
+  border-color: var(--accent);
+  border-style: dashed;
+  background: rgba(224, 138, 60, 0.12);
+}
+.planned-day-slot--over .planned-day-slot-day { color: var(--accent); }
+
+/* Vergangener Tag: gedimmt, nimmt keine Karte an (§6) */
+.planned-day-slot--blocked {
+  opacity: 0.35;
+  border-style: solid;
+  border-color: var(--border);
+  background: none;
+}
+
+@media (max-width: 640px) {
+  /* 7 Spalten sind auf dem Telefon unbedienbar schmal */
+  .planned-day-slots { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* ============================================================
+   TRAINER-LEISTE (Phase 4 — Trainer-Sicht-Konzept §5, Mockup 1)
+   ============================================================ */
+.trainer-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.trainer-bar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.trainer-bar-title {
+  font-family: var(--font-disp);
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.trainer-bar-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.trainer-bar-adjust-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.72rem;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.trainer-bar-adjust-btn:hover { color: var(--text); border-color: var(--accent); }
+
+.trainer-bar-mode-toggle {
+  display: flex;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--pill);
+  padding: 2px;
+}
+.trainer-bar-mode-btn {
+  background: transparent;
+  border: none;
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.trainer-bar-mode-btn.active { background: var(--ss); color: #17110a; }
+
+.trainer-bar-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.trainer-bar-panel-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--dim);
+  cursor: pointer;
+}
+
+.trainer-bar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+.trainer-tile {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+}
+.trainer-tile--clickable { cursor: pointer; transition: border-color var(--transition); }
+.trainer-tile--clickable:hover { border-color: var(--accent); }
+.trainer-tile-title {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim2);
+  margin-bottom: 6px;
+}
+.trainer-tile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  color: var(--text);
+}
+.trainer-sparkline {
+  flex-shrink: 0;
+  opacity: 0.9;
+}
+.trainer-tile-big { font-family: var(--font-disp); font-size: 1.3rem; font-weight: 700; color: var(--text); }
+.trainer-tile-headline { font-family: var(--font-disp); font-weight: 700; font-size: 0.88rem; }
+.trainer-tile-sub { font-size: 0.7rem; color: var(--dim); margin-top: 2px; }
+.trainer-tile-empty { font-size: 0.76rem; color: var(--dim2); }
+
+/* ============================================================
+   VORSCHLAGSLISTE (Vorschlags-Schema-Konzept §5, Mockup 2)
+   ============================================================ */
+.proposal-list-dialog { max-width: 560px; }
+.proposal-list-body { display: flex; flex-direction: column; gap: 10px; max-height: 60vh; overflow-y: auto; }
+.proposal-list-empty { font-size: 0.82rem; color: var(--dim); text-align: center; padding: 20px 0; }
+
+.proposal-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.proposal-group-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.74rem;
+  color: var(--dim);
+}
+.proposal-group-header-text { flex: 1; }
+.proposal-group-accept-all,
+.proposal-row-compare,
+.proposal-row-accept {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.7rem;
+  padding: 4px 12px;
+  cursor: pointer;
+  transition: all var(--transition);
+  white-space: nowrap;
+}
+.proposal-group-accept-all:hover,
+.proposal-row-accept:hover { border-color: var(--accent); color: var(--text); }
+.proposal-row-compare:hover { border-color: var(--dim); color: var(--text); }
+
+.proposal-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.proposal-group .proposal-row { border: none; border-top: 1px solid var(--border); border-radius: 0; }
+.proposal-row-main { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.proposal-row-icon { font-size: 1rem; flex-shrink: 0; }
+.proposal-row-text { min-width: 0; }
+.proposal-row-desc { font-size: 0.82rem; color: var(--text); }
+.proposal-row-sub { font-size: 0.68rem; color: var(--dim2); margin-top: 2px; }
+.proposal-row-actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+/* ============================================================
+   VERGLEICHSANSICHT (Vorschlags-Schema-Konzept §5, Mockup 3)
+   ============================================================ */
+.proposal-compare-dialog { max-width: 680px; }
+.proposal-compare-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+.proposal-compare-group-hint {
+  margin-left: auto;
+  font-size: 0.68rem;
+  color: var(--dim2);
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  padding: 2px 10px;
+}
+.proposal-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.proposal-compare-col-label {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim2);
+  margin-bottom: 6px;
+}
+.proposal-compare-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  min-height: 90px;
+}
+.proposal-compare-card--accent { border-color: var(--accent); }
+.proposal-compare-card--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dim2);
+}
+.proposal-compare-card-title { font-weight: 600; font-size: 0.86rem; color: var(--text); }
+.proposal-compare-card-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--dim);
+  margin-top: 4px;
+}
+.proposal-compare-card-tss { font-size: 0.74rem; color: var(--text); margin-top: 4px; }
+.proposal-compare-card-cancelled { font-size: 0.74rem; color: var(--red); margin-top: 6px; }
+.proposal-compare-field--changed { color: var(--accent); font-weight: 700; }
+
+.proposal-compare-impact {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.proposal-compare-reason { font-size: 0.78rem; color: var(--text); font-style: italic; }
+.proposal-compare-impact-line { font-size: 0.8rem; color: var(--text); }
+.proposal-compare-readonly-note {
+  margin-top: 12px;
+  font-size: 0.74rem;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+}
+.proposal-banner { border-color: var(--accent); cursor: pointer; }
+
+/* ============================================================
+   EXPORT/IMPORT-LEISTE (Export/Import-Workflow-Konzept §1–§4)
+   ============================================================ */
+.export-import-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+.export-import-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--pill);
+  color: var(--dim);
+  font-size: 0.76rem;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.export-import-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.export-dialog { max-width: 620px; }
+.export-dialog-hint { font-size: 0.76rem; color: var(--dim); margin: -6px 0 12px; }
+.export-dialog-textarea {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  line-height: 1.4;
+  min-height: 320px;
+}
+
+/* ── Export-Richtungsvorgabe (Preset-Kacheln, Zielevent, Zusatzkontext) ── */
+.export-panel-header-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.export-panel-header-row .planned-card-dialog-title { margin-bottom: 0; }
+.export-panel-athlete-name {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--dim);
+  white-space: nowrap;
+}
+
+.export-panel-question { font-size: 0.85rem; color: var(--text); margin: 0 0 10px; }
+
+.export-preset-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.export-preset-tile {
+  flex: 1 1 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--dim);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.export-preset-tile:hover { border-color: var(--border-light); color: var(--text); }
+.export-preset-tile:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.export-preset-tile.active {
+  background: var(--accent-dim);
+  border: 2px solid var(--accent);
+  padding: 9px 7px; /* -1px Ausgleich für den 2px-Rahmen (sonst Sprung ggü. 1px Hairline) */
+  color: var(--text);
+}
+.export-preset-tile-icon { font-size: 1.2rem; }
+.export-preset-tile-label {
+  font-family: var(--font-disp);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.export-preset-explainer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.76rem;
+  color: var(--dim);
+  margin-bottom: 14px;
+}
+
+.export-field-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+  margin-bottom: 5px;
+}
+
+.export-event-block { display: flex; flex-direction: column; margin-bottom: 14px; }
+.export-event-empty {
+  display: none;
+  align-items: flex-start;
+  gap: 8px;
+  color: var(--gold);
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+.export-event-empty .ti { margin-top: 2px; }
+.export-event-empty a { color: var(--gold); font-weight: 600; text-decoration: underline; }
+
+#export-panel-context { margin-bottom: 14px; }
+
+.export-dialog-scope-hint { font-size: 0.72rem; color: var(--dim2); }
+.export-panel-footer-right { display: flex; align-items: center; gap: 8px; }
+
+.import-dialog { max-width: 620px; }
+.import-dialog-file { margin-top: 8px; font-size: 0.76rem; color: var(--dim); }
+.import-dialog-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 40vh;
+  overflow-y: auto;
+  margin-top: 12px;
+}
+.import-row {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.import-row--valid { border-color: rgba(74, 154, 110, 0.35); }
+.import-row--invalid { border-color: rgba(217, 79, 79, 0.35); }
+.import-row-status { font-size: 1rem; flex-shrink: 0; }
+.import-row-text { min-width: 0; }
+.import-row-desc { font-size: 0.82rem; color: var(--text); }
+.import-row-reason { font-size: 0.74rem; color: var(--dim); font-style: italic; margin-top: 2px; }
+.import-row-errors { margin: 4px 0 0; padding-left: 18px; font-size: 0.72rem; color: var(--red); }
+
+@media (max-width: 560px) {
+  .proposal-compare-grid { grid-template-columns: 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .planned-card--ghost-snapback { transition: none; }
 }

@@ -1,0 +1,199 @@
+# Konzept: Morgen-Check-in (Phase 2, Punkt 1)
+
+> **Ziel:** Ein kurzes tägliches Selbst-Check-in (3 Slider + optionale Notiz), das ein subjektives Bereitschaftssignal liefert — gekoppelt an die **Belastungsempfehlung** und auch an **Ruhetagen** verwertbar.
+>
+> **Scope-Abgrenzung:** Dieses Konzept definiert das Feature selbst (Datenmodell, UI, Sichtbarkeit) **und den Vertrag** zur Belastungsempfehlung. Die *tiefe* Verrechnung war der eigene spätere Phase-2-Punkt „Belastungsempfehlungs-Logik um Befinden erweitern" **[OP]** — ✅ **erledigt**, implementiert als Governor in `core/briefing.js` (nicht in `core/readiness.js`, s. Abschnitt 9). Hier wurde das Zusammenspiel entworfen, dort umgesetzt.
+
+---
+
+## 1 — Warum ein Morgen-Check-in
+
+Drei Nutzen, die die objektiven Daten (TSB, RHR, HRV) **nicht** abdecken:
+
+1. **Subjektive Bereitschaft** — RHR/HRV/TSB erklären, was der Körper *messbar* tut; sie erfassen nicht, wie sich der Athlet *fühlt*. Beides zusammen ist aussagekräftiger als jedes für sich.
+2. **Ruhetag-Datenpunkt** — an Ruhetagen gibt es keine neue Fahrtdaten und der TSB steigt ohnehin. Genau hier lieferte die alte, rein TSB-basierte Logik das unpassende „Erholung priorisieren", obwohl schon Ruhetag ist. Der Check-in gibt an solchen Tagen das *primäre* Tagessignal.
+3. **Längsschnitt** — auch ohne Kopplung entsteht eine tägliche Zeitreihe (Energie/Muskel/Stimmung), die sich später im Charts-Tab gegen Leistung/Belastung plotten lässt (Trend über einen Block, Frühwarnung vor Formeinbrüchen).
+
+---
+
+## 2 — Die drei Slider
+
+Skala **1–5**, durchgängig „**höher = besser**" (vermeidet Vorzeichen-Verwirrung in der Verrechnung), neutraler Default **3**.
+
+| Slider | 1 | 3 (Default) | 5 |
+|---|---|---|---|
+| **Energie** | ausgelaugt | normal | voll da / spritzig |
+| **Muskelgefühl** | schwer / platt / Muskelkater | neutral | frisch & locker |
+| **Stimmung** | mies / gereizt | ausgeglichen | top / motiviert |
+
++ **Notiz** (optional, Freitext) — z. B. „Kopf dicht, evtl. was im Anflug".
+
+> **Schlaf bewusst kein Slider:** Schlaf ist bereits als Chart vorhanden und lässt sich als **gemessener Schlafscore über die intervals.icu-API** ziehen. Er gehört damit in den **objektiven** Kanal (wie RHR/HRV/TSB), nicht in die subjektive Selbstauskunft — so wird nichts doppelt erfasst. Das gefühlte Morgen-Ausgeruhtsein deckt der **Energie**-Slider ab; die gemessene Schlafqualität kommt aus den Daten.
+>
+> **Warum diese drei:** Energie und Muskelgefühl sind am direktesten trainingsrelevant, Stimmung liefert den Motivations-/Stress-Kontext. Ein optionaler 4. Slider (Stress oder Motivation, wie in intervals.icu) bleibt als **Entscheidung D2** offen — v1 startet schlank mit dreien.
+
+---
+
+## 3 — Datenmodell (`wellbeing`)
+
+Tabelle existiert aus Phase 0; hier die konkrete Spalten-/Constraint-Festlegung:
+
+```
+wellbeing
+  id           uuid  pk  default gen_random_uuid()
+  athlete_id   uuid  fk → profiles.id   not null
+  date         date  not null                     -- lokales Datum des Check-ins
+  energy       smallint  check (1..5)
+  muscle_feel  smallint  check (1..5)
+  mood         smallint  check (1..5)
+  note         text  null
+  created_at   timestamptz default now()
+  updated_at   timestamptz default now()
+
+  unique (athlete_id, date)                        -- genau ein Eintrag pro Tag
+```
+
+- **Upsert** auf `(athlete_id, date)` — der Check-in ist über den Tag hinweg **editierbar** (Slider nachziehen, Notiz ergänzen), es entsteht keine zweite Zeile.
+- `updated_at` per Trigger oder im Client mitschreiben.
+
+---
+
+## 4 — Sichtbarkeit & RLS (setzt E2 um)
+
+E2 aus Phase 0: **Slider öffentlich nur, wenn der Athlet es erlaubt — Notiz nie öffentlich.**
+
+- `profiles.wellbeing_public boolean default false` — Toggle pro Athlet (im Settings-Panel).
+- **Zeilen-Policy (RLS):**
+  - Athlet: voller Zugriff (r/w) auf **eigene** Zeilen.
+  - Coach: **lesend** auf die Zeilen *seines* Athleten (inkl. Notiz) — über die bestehende Athlet↔Trainer-Zuordnung.
+  - `anon`/öffentlich: lesend nur, wenn `wellbeing_public = true` beim Athleten.
+- **Notiz nie öffentlich — an der Wurzel absichern (nicht nur im Client filtern):**
+  Spalten-GRANT für `anon` *ohne* `note`:
+  ```sql
+  grant select (date, energy, muscle_feel, mood) on wellbeing to anon;
+  -- KEIN select-Recht auf note für anon
+  ```
+  So kann selbst ein manuell gebauter Request die Notiz öffentlich nicht ziehen. Athlet und Coach lesen `note` regulär.
+
+> ⚠️ **Phase-1-Lehre mitführen:** GRANTs waren die Root Cause der 403er. In der Migration die GRANTs (inkl. der **spaltengenauen** anon-Rechte) explizit mitschreiben — nicht nur RLS-Policies.
+
+---
+
+## 5 — Kopplung an die Belastungsempfehlung (Kernstück)
+
+### 5.1 Zwei Kanäle
+- **Objektiv** — TSB, Schlafscore (intervals.icu) (+ nach readiness-Refactor: RHR, HRV, Datenaktualität).
+- **Subjektiv** — der Check-in.
+
+Jeder Kanal erzeugt ein Level: **grün / gelb / rot**.
+
+Subjektiv-Level (v1 gleichgewichtetes Mittel der drei Slider, Schwellen in geteilter Config, damit tunbar):
+- Mittel **≥ 4,0** → grün
+- **2,75 – 3,99** → gelb
+- **< 2,75** → rot
+
+### 5.2 Governor-Prinzip (die entscheidende Design-Regel)
+
+Subjektiv wird **nicht gleichgewichtet gemittelt**, sondern wirkt **asymmetrisch als Sicherheits-Regler**:
+
+> **Subjektiv darf jederzeit frei nach unten ziehen (Selbstschutz), aber höchstens um eine Stufe nach oben — und nie in Grün, wenn Objektiv rot ist.**
+
+Begründung: „Ich fühl mich matt" ist ein starkes, schützendes Signal und soll auch bei frischem TSB Vorsicht auslösen. „Ich fühl mich super" darf angesammelte Ermüdung (tief negativer TSB, erhöhter RHR, gedrückte HRV) **nicht** wegwischen.
+
+| Objektiv ↓ / Subjektiv → | **grün** | **gelb** | **rot** |
+|---|---|---|---|
+| **grün** | grün | gelb | gelb *(Warnhinweis; rot, wenn Notiz + klar rot)* |
+| **gelb** | gelb | gelb | rot |
+| **rot** | rot *(nie grün)* | rot | rot *(starkes Signal, ggf. Infekt-Frühwarnung)* |
+
+### 5.3 Ruhetag-Fall
+An Ruhetagen ist Objektiv oft „grün/erholt" ohne neue Fahrtdaten. Dann führt der Check-in:
+- **subjektiv grün** → „bereit — morgen kann Belastung folgen" (statt redundantem „Erholung priorisieren").
+- **subjektiv rot bei objektiv erholt** → Frühwarnung (möglicher Infekt / non-funktionelles Overreaching) → „Ruhe verlängern / beobachten", **nicht** „trainieren".
+
+### 5.4 Aktualität (fügt sich ins geplante Confidence-Modell)
+Der Check-in-Kanal hat einen eigenen Freshness-State — deckungsgleich mit dem für readiness.js geplanten `vorhanden / ausstehend / veraltet`:
+- heutiger Eintrag → **vorhanden**
+- nur gestriger → **veraltet** (fließt abgeschwächt/gar nicht ein)
+- keiner → **ausstehend** → Fallback auf rein objektiv + UI-Hinweis „Befinden ausstehend".
+
+### 5.5 Vertrag zu `core/readiness.js`
+Der Check-in exponiert eine reine Funktion; die Governor-Verrechnung passiert in readiness.js (= der spätere [OP]-Punkt):
+
+```js
+getSubjectiveReadiness(athleteId, date) → {
+  score:      number | null,          // Mittel 1..5, null ohne Eintrag
+  level:      'green' | 'yellow' | 'red' | null,
+  freshness:  'vorhanden' | 'veraltet' | 'ausstehend',
+  components: { energy, muscleFeel, mood }
+}
+```
+
+> Level-Vokabular bewusst **englisch** (`green`/`yellow`/`red`), nicht `gruen`/`gelb`/`rot`
+> wie in einer früheren Fassung dieses Dokuments — konsistent zu `assessReadiness`
+> (objektiver Kanal, dieselbe Datei), `core/briefing.js` und der `LEVEL`-Map in
+> `ui/panels.js`. Der spätere Governor (Abschnitt 5.2) kombiniert beide Kanäle und
+> braucht ein gemeinsames Vokabular statt einer Übersetzung zwischen zweien.
+
+readiness.js kombiniert `level` mit dem objektiven Level per Governor-Tabelle (5.2) und respektiert `freshness`.
+
+---
+
+## 6 — UI / UX
+
+- **Einstiegspunkt (immer sichtbar):** kleine **Befinden-Karte** im Übersichts-Tab mit Tagesstatus — „heute erfasst ✓" bzw. „Check-in offen". Klick öffnet den Dialog.
+- **Sanfter Auto-Prompt (Entscheidung D4):** beim ersten Laden am Tag, wenn noch kein Eintrag existiert, optional einmalig ein Dialog — **dismissbar, blockiert nie, kein Zwang**. „Überspringen" ist immer erlaubt (ein ausgelassener Tag ist ein gültiger Zustand, kein Fehler).
+- **Nur eingeloggt & nur für den Athleten:** Besucher (Portfolio-Charakter, Athleten-Toggle bleibt frei) werden **nie** zum Check-in aufgefordert.
+- **Editierbar:** Dialog jederzeit wieder öffenbar (Übersichts-Karte oder Settings-Panel „Befinden anpassen"), Upsert auf dieselbe Zeile.
+- **Dialog:** Modal (konsistent mit Phase-1-Entscheidung „kein Router"), Konzept-5-Look (`#0b0e13`, Akzent `#e08a3c`, Sora/IBM Plex Mono/Inter). Drei Slider, ein Notizfeld, Speichern/Überspringen.
+
+---
+
+## 7 — Schichten & Dateien
+
+| Schicht | Datei | Inhalt |
+|---|---|---|
+| Migration | `supabase/migrations/0003_wellbeing.sql` | Spalten/Constraints, RLS-Policies, **GRANTs inkl. spaltengenauer anon-Rechte** |
+| data-access | `data-access/supabase/wellbeing.js` | `upsertToday`, `getRange` (`getToday` entfernt — `state/wellbeing.js` lädt seit dem Governor eine 2-Tage-Range statt eines Einzeltags, s. Abschnitt 9), `getSharedRange` (öffentliche `wellbeing_shared`-View, s. Abschnitt 10) |
+| state | `state/wellbeing.js` | heutiger Check-in + `subjective` (Governor-Input) als State, Subscribe; `loadSharedToday` (Betrachter, s. Abschnitt 10) |
+| ui | `ui/checkin-dialog.js` | Modal (3 Slider + Notiz) |
+| ui | `ui/wellbeing-card.js` | Befinden-Statuskarte (Editor beim Athleten selbst, `wellbeing_shared`-Anzeige für andere Betrachter) |
+| ui | `ui/settings-panel.js` | „Befinden anpassen" + `wellbeing_public`-Toggle |
+| core | `core/readiness.js` | subjektiver Kanal (reine Vertragsfunktion) |
+| core | `core/briefing.js` | Governor (`governLevel`/`subjectiveSignal`) — s. Abschnitt 9 |
+| pipeline | `scripts/lib/wellness.js` | `sleepScore` aus intervals.icu ziehen → objektiver Kanal ✅ erledigt (25.07.2026, Commit `c8c7975`); Verrechnung in Governor/UI bewusst offen, s. `docs/offene-punkte.md` |
+
+Schichtregel bleibt: `core/` → `data-access/` → `state/` → `ui/`. readiness.js (core) konsumiert nur die reine Vertragsfunktion, kennt kein Supabase.
+
+---
+
+## 8 — Entscheidungen (getroffen)
+
+- **D1** ✅ — Skala **1–5** („höher = besser", Default 3).
+- **D-Schlaf** ✅ — Schlaf **kein** Slider; als gemessener Schlafscore über intervals.icu in den objektiven Kanal (siehe Abschnitt 2).
+- **D2** ✅ — Start mit **drei** Slidern (Energie, Muskelgefühl, Stimmung); optionaler 4. (Stress/Motivation) später nachrüstbar.
+- **D3** ✅ — **Governor-Asymmetrie** aus 5.2 (subjektiv frei runter, max. 1 Stufe hoch, nie Grün bei Objektiv-Rot).
+- **D4** ✅ — Übersichts-Karte immer sichtbar **plus** sanfter, dismissbarer Auto-Prompt (kein Zwang).
+- **D5** ✅ — Notiz-Schutz über **spaltengenaue anon-GRANTs** (nicht nur Client-Filter).
+- **D6** ✅ — Slider-Gewichtung v1 **gleichgewichtet**; Gewichte als Config-Werte offen.
+
+---
+
+## 9 — Danach in Phase 2
+
+Nach diesem Konzept: Mockup Check-in-Dialog **[SO]** → Umsetzung `wellbeing` + Dialog **[SO]** → dann der separate **[OP]**-Punkt „Belastungsempfehlungs-Logik um Befinden erweitern". ✅ **Erledigt** — Governor ist in `core/briefing.js` implementiert (`governLevel()`/`subjectiveSignal()`, nicht in `readiness.js` selbst, s. dortigen Kommentar), verdrahtet über `state/wellbeing.js` (holt jetzt gestern+heute für die Freshness-Ableitung) in `app.js`/`ui/analysis.js`. Nur beim eingeloggten Athleten selbst wirksam (`isAthlete()`-Gate), greift erst beim nächsten vollen Render (kein Live-Nachziehen bei neuem Check-in, konsistent zu TSB/LoadGuard). Die Notiz-Eskalationsfußnote aus Abschnitt 5.2 ("Notiz + klar rot" → hochstufen) bleibt bewusst nicht umgesetzt — bräuchte Sentiment-Analyse der Freitext-Notiz, außerhalb des v1-Scopes. Tests: `tests/analysis-core.test.js`.
+
+---
+
+## 10 — Öffentliche Anzeige (`wellbeing_public`) ✅ erledigt
+
+`profiles.wellbeing_public` und die `wellbeing_shared`-View (Phase 1 bzw. Migration 0003) sind DB-seitig fertig und getestet — `anon` kann `date/energy/muscle_feel/mood` lesen, wenn der Athlet den Toggle aktiviert hat, `note` nie. **Frontend-Konsument ergänzt** (25.07.2026, Commit `73f1190`): `data-access/supabase/wellbeing.js::getSharedRange()` liest die View, `state/wellbeing.js::loadSharedToday()` löst die Athleten-ID auf. UI-Entscheidung (statt zu raten, wie am Ende dieses Abschnitts ursprünglich vorgemerkt): die bestehende „Befinden heute"-Karte (Abschnitt 6, `ui/wellbeing-card.js`) wurde erweitert — der eingeloggte Athlet behält seine eigene, vom Athleten-Toggle unabhängige Editor-Karte, alle anderen Betrachter (Besucher, fremder Coach) sehen bei aktivem Toggle stattdessen die freigegebenen Werte des per Toggle betrachteten Athleten (nur „heute", kein Verlauf — passt zur bestehenden Kachel). Live gegen `training-dashboard-dev` per Playwright MCP verifiziert: Toggle an + Eintrag → sichtbar; kein Eintrag heute → Karte verschwindet; Toggle aus → View liefert leer, RLS greift.
+
+---
+
+## 11 — Testlücken aus Schritt G ✅ erledigt (bis auf RLS-Suite)
+
+Schritt G ist mit den `getSubjectiveReadiness`-Tests (Level-/Freshness-Ableitung inkl. Grenzfälle 2,75/4,0 und „kein Eintrag" → ausstehend, `tests/readiness-confidence.test.js`) abgeschlossen. Von den zwei ursprünglich offen gelassenen Punkten:
+
+- **Upsert-Logik (`data-access/supabase/wellbeing.js`)** ✅ erledigt (25.07.2026, Commits `73f1190`/`0afe075`): neuer, wiederverwendbarer Fake-Supabase-Client-Seam (`tests/helpers/fake-supabase-client.js`, ersetzt `client.js` per `mock.module()`), `tests/wellbeing.test.js` deckt `upsertToday`/`getRange`/`getSharedRange` ab. Bewusst nur an diesem einen Modul eingeführt — `goals.js`/`profiles.js`/… bleiben vorerst ungetestet, eigener größerer Schritt.
+- **RLS-Grundannahmen (`tests/supabase-rls.test.js`)**: weiterhin offen — braucht Live-Credentials, die in normalen Sessions nicht vorliegen.

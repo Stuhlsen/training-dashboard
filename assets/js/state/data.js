@@ -9,7 +9,7 @@
 import { CONFIG } from "./config.js";
 import { STATIC_RIDES } from "./static-rides.js";
 import { normalizeRide, normalizeWellness } from "../core/normalize.js";
-import { weeklyFromPlanWeeks, weeklyByCalendar } from "../core/aggregate.js";
+import { weeklyByCalendar } from "../core/aggregate.js";
 import { validateRidesPayload } from "../core/validate.js";
 import { log } from "../ui/log.js";
 
@@ -141,11 +141,6 @@ export const Data = {
     return this.rides.filter((r) => r.phase === phase);
   },
 
-  /** Fahrten nach Plan filtern @param {string} plan */
-  byPlan(plan) {
-    return this.rides.filter((r) => r.plan === plan);
-  },
-
   /** Letzter FTP-Test @returns {import("../types.js").Ride|null} */
   latestFTP() {
     const tests = this.rides
@@ -171,12 +166,10 @@ export const Data = {
     return CONFIG.ftp;
   },
 
-  /** Wöchentliche Aggregation — Plan-Wochen wenn vorhanden,
-   *  sonst ISO-Kalenderwochen (Vergleichsdaten).
+  /** Wöchentliche Aggregation — ISO-Kalenderwochen, einheitlich für beide
+   *  Athleten (dashboard-2.0, Umbau "Plan 1/2 → Kalenderwoche").
    *  @returns {import("../types.js").WeekAggregate[]} */
   weekly() {
-    const hasOwnPlan = this.rides.some((r) => r.week);
-    if (!hasOwnPlan) return weeklyByCalendar(this.rides);
-    return weeklyFromPlanWeeks(this.rides, (w) => CONFIG.weekIndex(w));
+    return weeklyByCalendar(this.rides);
   },
 };

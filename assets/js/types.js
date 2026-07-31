@@ -13,11 +13,28 @@
  * @property {string} [date]       Roh-Datum aus der Quelle (identisch zu dateISO)
  * @property {string} [dateShort]  DD.MM für Anzeige
  * @property {string} [startTime]  start_date_local aus intervals.icu (Tiebreaker)
- * @property {string} [week]       Plan-Woche ("W1", "P2-W3") — fehlt bei Vergleichsdaten
+ * @property {string} [week]       Notion-Plan-Woche ("W1", …, historisch) oder
+ *                                  ISO-Kalenderwoche ("2026-KW31", seit dem Umbau
+ *                                  "Plan 1/2 → Kalenderwoche") — fehlt bei Vergleichsdaten
  * @property {string|null} [phase]
- * @property {string} [plan]       "Plan 1" | "Plan 2" | "Vergleich"
+ * @property {string} [dataSource]  "notion" | "intervals" — Herkunft der Rohdaten,
+ *                                  athletenunabhängig (Athlet 1 Notion-Ära vs.
+ *                                  intervals.icu-Ära; Athlet 2 immer "intervals")
  * @property {string} [name]
- * @property {string} [typ]
+ * @property {string} [typ]           Anzeige-Typ (Priorität: subjective > Plan > IF-Ableitung,
+ *                                     s. typSource) — unverändert gegenüber Vor-typSource-Ära
+ * @property {string|null} [typPlanned]   Typ der Plankarte dieses Tages, sonst null
+ * @property {string|null} [typDetected]  Ergebnis der datenbasierten Ist-Typerkennung
+ *                                         (core/session-classify.js::classifySession),
+ *                                         unabhängig von `typ` — null bei zu dünner
+ *                                         Datenlage (z.B. keine Leistungsdaten)
+ * @property {{type:string|null, confidence:"hoch"|"mittel"|"niedrig",
+ *   signals:Array<{label:string,value:string|number|null,note?:string}>,
+ *   rule:string}} [typDetection]  Volles Klassifikations-Ergebnis (Begründung
+ *                                  für die Anzeige) — `typDetected` ist nur dessen `type`
+ * @property {"subjective"|"plan"|"inferred"|"detected"} [typSource] Herkunft von `typ`
+ *                                  (aktuell nie "detected" — Konsumenten stellen
+ *                                  einzeln und bewusst um, s. AGENTS.md/Fahrplan)
  * @property {number|null} [km]
  * @property {number|null} [min]
  * @property {number|null} [kmh]
@@ -35,8 +52,10 @@
  * @property {number|null} [decoupling]
  * @property {number|null} [ruhepuls]
  * @property {number|null} [hrv]
- * @property {string|null} [feel]
+ * @property {string|null} [feel]        Manuelles Befinden (Fahrtenbuch-Dropdown, subjective.json)
  * @property {string} [feelCls]
+ * @property {number|null} [rpe]         Perceived Exertion, vom Athleten in intervals.icu eingetragen
+ * @property {number|null} [feelIcu]     Feel-Skala aus intervals.icu (nicht zu verwechseln mit `feel`)
  * @property {number|null} [efficiency]  Watt pro Herzschlag (berechnet)
  * @property {Object|null} [weather]
  * @property {string|null} [wetter]
@@ -51,6 +70,7 @@
  * @property {string} [dateISO]
  * @property {string} [dateShort]
  * @property {number|null} [sleepHours]
+ * @property {number|null} [sleepScore]      gemessener Schlafqualitäts-Score (intervals.icu `sleepScore`), nicht die Dauer
  * @property {number|null} [avgSleepingHR]
  * @property {number|null} [restingHR]
  * @property {number|null} [hrv]
@@ -80,7 +100,6 @@
  * @typedef {Object} WeekAggregate
  * @property {string} week
  * @property {string|null} phase
- * @property {string} plan
  * @property {number} rides
  * @property {number} km
  * @property {number} min

@@ -6,9 +6,8 @@ import { avg, sum, maxVal, minVal, linearTrend } from "../assets/js/core/stats.j
 import {
   isoWeekKey,
   weeklyByCalendar,
-  weeklyFromPlanWeeks,
   monthlyFromRides,
-  rideWeekKey,
+  weekSortIndex,
 } from "../assets/js/core/aggregate.js";
 
 test("sum ignoriert null, avg ignoriert null/NaN", () => {
@@ -41,52 +40,28 @@ test("weeklyByCalendar gruppiert nach ISO-Woche und sortiert", () => {
   assert.equal(weeks[0].km, 50);
   assert.equal(weeks[0].rides, 2);
   assert.equal(weeks[1].week, "2026-KW28");
-  assert.equal(weeks[1].plan, "Vergleich");
 });
 
-test("weeklyFromPlanWeeks nutzt die übergebene Wochen-Reihenfolge", () => {
-  const order = ["W1", "W2", "P2-W1"];
-  const weekIndexFn = (w) => {
-    const i = order.indexOf(w);
-    return i === -1 ? 999 : i;
-  };
+test("weeklyByCalendar übernimmt die Block-Phase der Woche (einheitliche Kalenderwoche, dashboard-2.0)", () => {
   const rides = [
-    {
-      dateISO: "2026-07-10",
-      week: "P2-W1",
-      phase: "Sweet Spot",
-      plan: "Plan 2",
-      km: 40,
-      min: 90,
-      trimp: 150,
-    },
-    {
-      dateISO: "2026-04-01",
-      week: "W1",
-      phase: "Phase 1",
-      plan: "Plan 1",
-      km: 20,
-      min: 50,
-      trimp: 90,
-    },
-    {
-      dateISO: "2026-04-03",
-      week: "W1",
-      phase: "Phase 1",
-      plan: "Plan 1",
-      km: 25,
-      min: 60,
-      trimp: 110,
-    },
+    { dateISO: "2026-07-27", week: "2026-KW31", phase: "Schwelle", km: 40, min: 90, trimp: 150 },
+    { dateISO: "2026-07-28", week: "2026-KW31", phase: "Schwelle", km: 20, min: 50, trimp: 90 },
+    { dateISO: "2026-08-03", km: 25, min: 60, trimp: 110 }, // Athlet-2-ähnlich: kein week/phase
   ];
-  const weeks = weeklyFromPlanWeeks(rides, weekIndexFn);
-  assert.deepEqual(
-    weeks.map((w) => w.week),
-    ["W1", "P2-W1"]
+  const weeks = weeklyByCalendar(rides);
+  assert.equal(weeks[0].week, "2026-KW31");
+  assert.equal(weeks[0].phase, "Schwelle");
+  assert.equal(weeks[1].phase, null);
+});
+
+test("weekSortIndex: Kalenderwochen numerisch über Jahresgrenzen, Fallback für andere Labels", () => {
+  assert.equal(weekSortIndex("2026-KW31", () => 999), 202631);
+  assert.equal(weekSortIndex("2027-KW01", () => 999), 202701);
+  assert.ok(weekSortIndex("2027-KW01", () => 999) > weekSortIndex("2026-KW52", () => 999));
+  assert.equal(
+    weekSortIndex("W3", (w) => ({ W1: 0, W2: 1, W3: 2 })[w] ?? 999),
+    2
   );
-  assert.equal(weeks[0].km, 45);
-  assert.equal(weeks[0].phase, "Phase 1");
-  assert.equal(weeks[1].plan, "Plan 2");
 });
 
 test("monthlyFromRides aggregiert Wetter und badCount", () => {
@@ -118,23 +93,13 @@ test("monthlyFromRides aggregiert Wetter und badCount", () => {
   assert.equal(months[0].avgHF, 145);
 });
 
-test("rideWeekKey: Plan-Woche vor ISO-Fallback, null wenn beides fehlt", () => {
-  assert.equal(rideWeekKey({ week: "W3", dateISO: "2026-07-01" }), "W3");
-  assert.equal(rideWeekKey({ dateISO: "2026-07-01" }), "2026-KW27");
-  assert.equal(rideWeekKey({}), null);
-});
-
-test("rideWeekKey: Athlet-2-ähnliche Fahrten (kein r.week) gruppieren pro echter ISO-Woche statt in einem Sammel-Bucket", () => {
-  // Regression: Trainingswetter-Wochenansicht gruppierte bei Athlet 2 zuvor
-  // alles unter "?", weil r.week bei Vergleichsathleten nie gesetzt ist.
-  const rides = [
-    { dateISO: "2026-07-01" }, // KW27
-    { dateISO: "2026-07-03" }, // KW27
-    { dateISO: "2026-07-08" }, // KW28
-  ];
-  const keys = rides.map(rideWeekKey);
-  assert.deepEqual(keys, ["2026-KW27", "2026-KW27", "2026-KW28"]);
-  assert.equal(new Set(keys).size, 2); // zwei echte Wochen, kein gemeinsamer "?"-Bucket
+test("monthlyFromRides: week ist der rohe YYYY-MM-Bucket-Schlüssel, keine lokalisierte Anzeige", () => {
+  // Konsistent mit core/chart-buckets.js (Monats-Bucket-Vereinheitlichung,
+  // s. docs/offene-punkte.md) — die Kürzung auf "MM/JJ" passiert erst beim
+  // Rendern über weekDisplayLabels(), nicht in monthlyFromRides() selbst.
+  const rides = [{ dateISO: "2026-07-15", km: 10, min: 30, trimp: 50 }];
+  const months = monthlyFromRides(rides);
+  assert.equal(months[0].week, "2026-07");
 });
 
 test("linearTrend: Steigung einer perfekten Geraden, null bei Degeneration", () => {

@@ -167,6 +167,7 @@ test("mapWellnessList: erweiterte Felder, Tage ohne Werte entfallen, sortiert", 
   const raw = {
     "2026-07-02": {
       sleepSecs: 27000,
+      sleepScore: 84.3,
       restingHR: 52,
       weight: 92.9,
       restingEnergy: 1755.6,
@@ -182,12 +183,26 @@ test("mapWellnessList: erweiterte Felder, Tage ohne Werte entfallen, sortiert", 
   assert.equal(list[0].date, "2026-07-01");
   const d2 = list[1];
   assert.equal(d2.sleepHours, 7.5);
+  assert.equal(d2.sleepScore, 84);
   assert.equal(d2.weight, 92.9);
   assert.equal(d2.restingEnergy, 1756);
   assert.equal(d2.activeEnergy, 640);
   assert.equal(d2.hydrationVolume, 1.65); // Liter, 2 Nachkommastellen
   assert.equal(d2.eftp, 262);
   assert.equal(d2.hrv, null);
+});
+
+test("mapWellnessList: sleepScore (gemessen) wird NICHT mit sleepQuality (self-reported) verwechselt", () => {
+  // sleepQuality (kleine Integer-Skala, self-reported — analog soreness/
+  // fatigue/stress/mood/motivation) ist absichtlich NICHT Teil des
+  // objektiven Kanals, s. Kommentar in scripts/lib/wellness.js.
+  const raw = { "2026-07-10": { sleepQuality: 3 } };
+  const list = mapWellnessList(raw);
+  assert.equal(list.length, 0, "sleepQuality allein macht den Tag nicht verwertbar");
+
+  const raw2 = { "2026-07-11": { sleepScore: 91, sleepQuality: 2 } };
+  const d = mapWellnessList(raw2)[0];
+  assert.equal(d.sleepScore, 91, "liest sleepScore, nicht sleepQuality");
 });
 
 test("eftpFromSportInfo: nur Ride-Eintrag mit eftp > 0", () => {

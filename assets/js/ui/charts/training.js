@@ -5,13 +5,15 @@
    core/loadguard.js, core/zones.js, core/consistency.js.
    ============================================================ */
 
-import { fmt, fmtDateFull } from "../../core/format.js";
+import { fmt, fmtDateFull, diffDays } from "../../core/format.js";
 import { RAMP_OK_MIN, RAMP_OK_MAX, MONOTONY_WARN } from "../../core/loadguard.js";
 import { LOW_INTENSITY_TARGET } from "../../core/zones.js";
-import { rideWeekKey } from "../../core/aggregate.js";
+import { dateToWeekBucket, weekBucketDateRange } from "../../core/chart-buckets.js";
+import { pmcSkeletonAnchor } from "../../core/days.js";
 import { CONFIG } from "../../state/config.js";
 import { el, svgEl, Tooltip } from "../dom.js";
 import { log } from "../log.js";
+import { getState as getChartViewState, onChartViewChange, setWindow } from "../../state/chart-view.js";
 import {
   gridLines,
   xLabel,
@@ -20,130 +22,246 @@ import {
   autoScrollRight,
   cardContentWidth,
   axisTitles,
+  gradedGrid,
+  axisUnit,
+  measuredWidth,
+  pathD,
+  CHART_THEME,
 } from "./base.js";
 
+/* ── Bucketweise Fadenkreuz-Kopplung (Phase 5, Schritt 6, Teil C —
+   docs/chart-grundlagen.md §7.3, §4.1) ───────────────────────────
+   Familie-3-Balkencharts koppeln nicht tagesgenau: ein gehovertes Datum aus
+   state/chart-view.js (z.B. aus der PMC-Ansicht) hebt den ganzen Wochen-
+   oder Monats-Balken hervor, der dieses Datum enthält (core/chart-buckets.js,
+   period-bewusst seit der Monats-Bucket-Vereinheitlichung). Liest die
+   Geometrie aus svg[geoKey], das bei jedem draw() aktualisiert wird — nie
+   eine veraltete Closure (Muster wie ui/charts/pmc.js::paintHover). Die
+   Rückrichtung (Balken-Hover → PMC-Crosshair) ist nicht gefordert: ein
+   Balken repräsentiert mehrere Tage, es gibt keine eindeutige
+   Rückabbildung. */
+function paintBucketHover(svg, geoKey) {
+  const geo = svg[geoKey];
+  if (!geo) return;
+  const { hoverLayer, weeklyData, rides, period, barX, barW, top, bottom } = geo;
+  hoverLayer.textContent = "";
+  const { hoveredDate } = getChartViewState();
+  if (!hoveredDate) return;
+  const bucket = dateToWeekBucket(hoveredDate, rides, period);
+  const i = weeklyData.findIndex((d) => d.week === bucket);
+  if (i < 0) return;
+  const x = barX(i);
+  hoverLayer.appendChild(
+    svgEl("rect", {
+      x: x - 2,
+      y: top,
+      width: barW + 4,
+      height: bottom - top,
+      fill: "none",
+      stroke: CHART_THEME.role.primary,
+      "stroke-width": "2",
+      rx: "4",
+    })
+  );
+}
+
+/* ── Brush-Klick auf Balken (Phase 5, Schritt 6, Teil D —
+   docs/chart-grundlagen.md §7.2/§7.3, §4.4) ───────────────────────
+   Familie-3-Balkencharts sind Brush-Ziel, nicht Brush-Fläche: ein Klick auf
+   eine Woche/einen Monat setzt das PMC-Zeitfenster (state/chart-view.js::
+   setWindow) auf die Datumsspanne dieses Bucket-Schlüssels — kein Ziehen im
+   Balkenchart selbst. Der Datums→Index-Anker muss derselbe sein wie in
+   ui/charts/pmc.js::renderPMC() (core/days.js::pmcSkeletonAnchor), sonst
+   driftet das gesetzte Fenster. */
+function jumpBrushToWeekBucket(bucketKey, rides, period) {
+  const range = weekBucketDateRange(bucketKey, rides, period);
+  const anchor = pmcSkeletonAnchor(rides);
+  if (!range || !anchor) return;
+  setWindow(Math.max(0, diffDays(range.from, anchor)), diffDays(range.to, anchor));
+}
+
 /* ── Wöchentliches Volumen (Balken) ──────────────────────────── */
-export function renderWeeklyVolume(svgId, weeklyData, onBarClick, period = "week") {
+/** @param {string} svgId @param {Array} weeklyData @param {Function} [onBarClick]
+ *  @param {"week"|"month"} [period] @param {import("../../types.js").Ride[]} [rides]
+ *  `rides` ist die Rohliste (Data.rides) — Grundlage für die bucketweise
+ *  Fadenkreuz-Kopplung (Teil C) und den Brush-Klick (Teil D). */
+export function renderWeeklyVolume(svgId, weeklyData, onBarClick, period = "week", rides = []) {
   const svg = el(svgId);
   if (!svg) return;
-  svg.innerHTML = "";
+  const H = 270,
+    pad = { l: 50, r: 16, t: 16, b: 40 };
   if (!weeklyData.length) {
+    svg.innerHTML = "";
+    svg.setAttribute("viewBox", "0 0 780 270");
     svg.innerHTML = `<text x="390" y="135" text-anchor="middle" fill="#5f6878" font-size="11">Keine Wochendaten verfügbar</text>`;
+    if (svg.__weeklyVolumeResizeObserver) svg.__weeklyVolumeResizeObserver.disconnect();
     return;
   }
-  const W = 780,
-    H = 270,
-    pad = { l: 50, r: 16, t: 16, b: 40 };
-  const cw = W - pad.l - pad.r,
-    ch = H - pad.t - pad.b;
-  const ownPlan = weeklyData.some((d) => d.phase != null);
-  const TARGET_KM = 200;
-  const maxKm =
-    Math.max(...weeklyData.map((d) => d.km || 0), ownPlan ? TARGET_KM * 1.1 : 0) * 1.15 || 1;
-  const bw = Math.min((cw / weeklyData.length) * 0.62, 52);
-  const gap = cw / weeklyData.length;
-  const labels = weekDisplayLabels(weeklyData.map((d) => d.week));
-  const labelIdx = pickLabelIndices(
-    weeklyData.map((_, i) => pad.l + i * gap + gap / 2),
-    40
-  );
-  const denseValues = gap < 22; // Wert-Labels ausdünnen, sobald es eng wird
 
-  gridLines(svg, W, H, pad, maxKm);
-  axisTitles(svg, W, H, pad, { x: period === "month" ? "Monat" : "Woche", yLeft: "Distanz (km)" });
+  const draw = () => {
+    svg.innerHTML = "";
+    const W = measuredWidth(svg, 780);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    const cw = W - pad.l - pad.r,
+      ch = H - pad.t - pad.b;
+    const ownPlan = weeklyData.some((d) => d.phase != null);
+    const TARGET_KM = 200;
+    const maxKm =
+      Math.max(...weeklyData.map((d) => d.km || 0), ownPlan ? TARGET_KM * 1.1 : 0) * 1.15 || 1;
+    const bw = Math.min((cw / weeklyData.length) * 0.62, 52);
+    const gap = cw / weeklyData.length;
+    const labels = weekDisplayLabels(weeklyData.map((d) => d.week));
+    const labelIdx = pickLabelIndices(
+      weeklyData.map((_, i) => pad.l + i * gap + gap / 2),
+      40
+    );
+    const denseValues = gap < 22; // Wert-Labels ausdünnen, sobald es eng wird
+    const yOf = (v) => pad.t + ch - (v / maxKm) * ch;
 
-  // Zielzone nur sinnvoll für den eigenen Trainingsplan
-  if (ownPlan) {
-    const zoneTopY = pad.t + ch - (220 / maxKm) * ch;
-    const zoneBotY = pad.t + ch - (180 / maxKm) * ch;
-    svg.appendChild(
-      svgEl("rect", {
-        x: pad.l,
-        y: zoneTopY,
-        width: cw,
-        height: zoneBotY - zoneTopY,
+    gradedGrid(svg, { x0: pad.l, x1: W - pad.r, yOf, lo: 0, hi: maxKm });
+    axisUnit(svg, { x: pad.l - 6, y: pad.t - 6, text: "km" });
+    axisTitles(svg, W, H, pad, { x: period === "month" ? "Monat" : "Woche" });
+
+    // Zielzone nur sinnvoll für den eigenen Trainingsplan
+    if (ownPlan) {
+      const zoneTopY = yOf(220);
+      const zoneBotY = yOf(180);
+      svg.appendChild(
+        svgEl("rect", {
+          x: pad.l,
+          y: zoneTopY,
+          width: cw,
+          height: zoneBotY - zoneTopY,
+          fill: "#4a9a6e",
+          opacity: "0.08",
+        })
+      );
+
+      const targetY = yOf(TARGET_KM);
+      svg.appendChild(
+        svgEl("line", {
+          x1: pad.l,
+          y1: targetY,
+          x2: W - pad.r,
+          y2: targetY,
+          stroke: "#4a9a6e",
+          "stroke-width": "1",
+          "stroke-dasharray": "5,3",
+          opacity: "0.5",
+        })
+      );
+      const tl = svgEl("text", {
+        x: W - pad.r - 4,
+        y: targetY - 4,
+        "text-anchor": "end",
         fill: "#4a9a6e",
-        opacity: "0.08",
-      })
-    );
+        "font-size": "9",
+        opacity: "0.8",
+      });
+      tl.textContent = "Ziel 200 km";
+      svg.appendChild(tl);
+    }
 
-    const targetY = pad.t + ch - (TARGET_KM / maxKm) * ch;
-    svg.appendChild(
-      svgEl("line", {
-        x1: pad.l,
-        y1: targetY,
-        x2: W - pad.r,
-        y2: targetY,
-        stroke: "#4a9a6e",
-        "stroke-width": "1",
-        "stroke-dasharray": "5,3",
-        opacity: "0.5",
-      })
-    );
-    const tl = svgEl("text", {
-      x: W - pad.r - 4,
-      y: targetY - 4,
-      "text-anchor": "end",
-      fill: "#4a9a6e",
-      "font-size": "9",
-      opacity: "0.8",
-    });
-    tl.textContent = "Ziel 200 km";
-    svg.appendChild(tl);
-  }
+    weeklyData.forEach((d, i) => {
+      const x = pad.l + i * gap + (gap - bw) / 2;
+      const bh = Math.max(((d.km || 0) / maxKm) * ch, 1);
+      const y = pad.t + ch - bh;
+      const color = ownPlan ? CONFIG.phaseColor(d.phase) : "#4a7fa8";
 
-  weeklyData.forEach((d, i) => {
-    const x = pad.l + i * gap + (gap - bw) / 2;
-    const bh = Math.max(((d.km || 0) / maxKm) * ch, 1);
-    const y = pad.t + ch - bh;
-    const color = ownPlan ? CONFIG.phaseColor(d.phase) : "#4a7fa8";
-
-    const rect = svgEl("rect", {
-      x,
-      y,
-      width: bw,
-      height: bh,
-      rx: "3",
-      fill: color,
-      opacity: "0.75",
-    });
-    rect.style.cursor = "pointer";
-    rect.style.transition = "opacity 0.12s";
-    rect.addEventListener("mouseenter", (e) => {
-      rect.setAttribute("opacity", "1");
-      Tooltip.show(
-        e,
-        `
+      const rect = svgEl("rect", {
+        x,
+        y,
+        width: bw,
+        height: bh,
+        rx: "3",
+        fill: color,
+        opacity: "0.75",
+      });
+      rect.style.cursor = "pointer";
+      rect.style.transition = "opacity 0.12s";
+      rect.addEventListener("mouseenter", (e) => {
+        rect.setAttribute("opacity", "1");
+        Tooltip.show(
+          e,
+          `
         <div class="tt">${d.week || ""}</div>
         <div class="tv">${d.km} km</div>
         <div class="td">${d.rides} Fahrten · ${Math.round(d.min / 60)}h</div>
       `
-      );
-    });
-    rect.addEventListener("mouseleave", () => {
-      rect.setAttribute("opacity", "0.75");
-      Tooltip.hide();
-    });
-    if (onBarClick) rect.addEventListener("click", () => onBarClick(d.week));
-    svg.appendChild(rect);
-
-    if (bh > 16 && (!denseValues || labelIdx.has(i))) {
-      const vt = svgEl("text", {
-        x: x + bw / 2,
-        y: y - 4,
-        "text-anchor": "middle",
-        fill: "#97a1b3",
-        "font-size": "9",
+        );
       });
-      vt.textContent = Math.round(d.km);
-      svg.appendChild(vt);
-    }
-    if (labelIdx.has(i)) xLabel(svg, x + bw / 2, H - pad.b + 14, labels[i]);
-  });
+      rect.addEventListener("mouseleave", () => {
+        rect.setAttribute("opacity", "0.75");
+        Tooltip.hide();
+      });
+      rect.addEventListener("click", () => {
+        if (onBarClick) onBarClick(d.week);
+        jumpBrushToWeekBucket(d.week, rides, period);
+      });
+      svg.appendChild(rect);
+
+      if (bh > 16 && (!denseValues || labelIdx.has(i))) {
+        const vt = svgEl("text", {
+          x: x + bw / 2,
+          y: y - 4,
+          "text-anchor": "middle",
+          fill: "#97a1b3",
+          "font-size": "9",
+        });
+        vt.textContent = Math.round(d.km);
+        svg.appendChild(vt);
+      }
+      if (labelIdx.has(i)) xLabel(svg, x + bw / 2, H - pad.b + 14, labels[i]);
+    });
+
+    // Hover-Ebene (§4.1) — separate <g>, nie neu gezeichnet außerhalb von
+    // draw(). Ab Teil C: bucketweise Fadenkreuz-Kopplung liest/befüllt diese
+    // Gruppe über svg.__weeklyVolumeGeo (bei jedem draw() aktualisiert).
+    const hoverLayer = svgEl("g", {});
+    svg.appendChild(hoverLayer);
+    svg.__weeklyVolumeGeo = {
+      hoverLayer,
+      weeklyData,
+      rides,
+      period,
+      barX: (i) => pad.l + i * gap + (gap - bw) / 2,
+      barW: bw,
+      top: pad.t,
+      bottom: pad.t + ch,
+    };
+  };
+
+  draw();
+
+  // Gemessene Breite + ResizeObserver statt skaliertem viewBox (G7) — draw()
+  // ist idempotent (svg.innerHTML wird am Anfang geleert). Alten Observer
+  // trennen, bevor ein neuer registriert wird (renderWeeklyVolume wird pro
+  // Athletenwechsel/Period-Toggle erneut aufgerufen, sonst stapeln sich
+  // Observer auf demselben Knoten — Muster wie ui/charts/pmc.js).
+  if (svg.__weeklyVolumeResizeObserver) svg.__weeklyVolumeResizeObserver.disconnect();
+  const observer = new ResizeObserver(() => draw());
+  observer.observe(svg);
+  svg.__weeklyVolumeResizeObserver = observer;
+
+  // Bucketweise Fadenkreuz-Kopplung (Teil C) — EINMAL abonniert (Guard wie
+  // ui/charts/pmc.js::svg.__pmcHoverBound), sonst stapeln sich Listener bei
+  // jedem renderWeeklyVolume()-Aufruf (Athletenwechsel/Period-Toggle).
+  if (!svg.__weeklyVolumeHoverBound) {
+    svg.__weeklyVolumeHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__weeklyVolumeGeo"));
+  }
 }
 
 /* ── Belastungswächter: TRIMP/TSS-Wochen + Ramp & Monotonie ──── */
-export function renderTrimp(svgId, weeklyData, guard, period = "week") {
+/** @param {string} svgId @param {Array} weeklyData @param {Array|null} guard
+ *  @param {"week"|"month"} [period] @param {import("../../types.js").Ride[]} [rides]
+ *  `rides` ist die Rohliste (Data.rides) — Grundlage für die bucketweise
+ *  Fadenkreuz-Kopplung/den Brush-Klick (Schritt-6-Nachzug, s.
+ *  docs/offene-punkte.md — strukturell dieselbe Familie 3 wie
+ *  renderWeeklyVolume/renderWeatherWeekly, war in Schritt 6 aber nicht
+ *  namentlich Auftragsumfang). Kein Umbau auf responsive Breite/
+ *  ResizeObserver, das war nicht Teil dieses Nachzugs. */
+export function renderTrimp(svgId, weeklyData, guard, period = "week", rides = []) {
   const svg = el(svgId);
   if (!svg) return;
   svg.innerHTML = "";
@@ -221,6 +339,7 @@ export function renderTrimp(svgId, weeklyData, guard, period = "week") {
       rect.setAttribute("opacity", "0.82");
       Tooltip.hide();
     });
+    rect.addEventListener("click", () => jumpBrushToWeekBucket(d.week, rides, period));
     svg.appendChild(rect);
 
     // Monotonie-Warnmarker über dem Balken (Foster ≥ 2,0 = zu eintönig)
@@ -328,6 +447,24 @@ export function renderTrimp(svgId, weeklyData, guard, period = "week") {
       });
     }
   }
+
+  // Hover-Ebene (Teil C) — s. paintBucketHover()/renderWeeklyVolume-Kommentar.
+  const hoverLayer = svgEl("g", {});
+  svg.appendChild(hoverLayer);
+  svg.__trimpGeo = {
+    hoverLayer,
+    weeklyData,
+    rides,
+    period,
+    barX: (i) => pad.l + i * gap + (gap - bw) / 2,
+    barW: bw,
+    top: pad.t,
+    bottom: pad.t + ch,
+  };
+  if (!svg.__trimpHoverBound) {
+    svg.__trimpHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__trimpGeo"));
+  }
 }
 
 /* ── Konsistenz-Wochenstreifen (Trainingstage pro Woche) ─────── */
@@ -419,7 +556,17 @@ export function renderConsistency(svgId, wc) {
 }
 
 /* ── Intensitätsverteilung: Zeit in Zonen pro Woche ──────────── */
-export function renderZoneWeekly(svgId, weeks) {
+/* Familie 3 (Wochen-Buckets, docs/chart-grundlagen.md §7.2) — die x-Achse
+   ist wie bei renderWeeklyVolume/renderWeatherWeekly ein isoWeekKey-Bucket
+   (wk.week kommt aus core/zones.js::weeklyZoneShares(rides, weekKeyFn=
+   isoWeekKey), s. app.js), kein eigenständiges kategoriales Zonen-Layout.
+   War in Schritt 6 wegen dieser Unklarheit unangetastet geblieben, s.
+   docs/offene-punkte.md. Nur die Fadenkreuz-Kopplung/der Brush-Klick sind
+   nachgezogen (Teil C/D, paintBucketHover/jumpBrushToWeekBucket oben) —
+   kein Umbau auf responsive Breite/ResizeObserver, das war nicht Teil
+   dieses Nachzugs und hier auch keine Voraussetzung dafür.
+   @param {string} svgId @param {Array} weeks @param {import("../../types.js").Ride[]} [rides] */
+export function renderZoneWeekly(svgId, weeks, rides = []) {
   const svg = el(svgId);
   if (!svg) return;
   svg.innerHTML = "";
@@ -531,20 +678,44 @@ export function renderZoneWeekly(svgId, weeks) {
       )
     );
     hit.addEventListener("mouseleave", () => Tooltip.hide());
+    hit.addEventListener("click", () => jumpBrushToWeekBucket(wk.week, rides, "week"));
     svg.appendChild(hit);
 
     if (labelIdx.has(i)) xLabel(svg, x + bw / 2, H - pad.b + 14, labels[i]);
   });
+
+  // Hover-Ebene (Teil C) — s. paintBucketHover()/renderWeeklyVolume-Kommentar.
+  const hoverLayer = svgEl("g", {});
+  svg.appendChild(hoverLayer);
+  svg.__zoneWeeklyGeo = {
+    hoverLayer,
+    weeklyData: weeks,
+    rides,
+    period: "week",
+    barX: (i) => pad.l + i * gap + (gap - bw) / 2,
+    barW: bw,
+    top: pad.t,
+    bottom: pad.t + ch,
+  };
+  if (!svg.__zoneWeeklyHoverBound) {
+    svg.__zoneWeeklyHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__zoneWeeklyGeo"));
+  }
 }
 
 /* ── Wöchentliche Wetterbedingungen (Temp-Balken + Wind-Linie) ── */
+/** @param {string} svgId @param {import("../../types.js").Ride[]} rides
+ *  @param {"week"|"month"} [period] `rides` dient in Teil C/D zusätzlich als
+ *  Grundlage für die bucketweise Fadenkreuz-Kopplung/den Brush-Klick. */
 export function renderWeatherWeekly(svgId, rides, period = "week") {
+  const svg = el(svgId);
+  if (!svg) return;
+
   // Nur Fahrten mit Wetterdaten, nach Woche gruppieren
   const withWeather = rides.filter((r) => r.weather?.temp != null);
   if (!withWeather.length) {
-    const svg = el(svgId);
-    if (!svg) return;
     svg.innerHTML = "";
+    svg.setAttribute("viewBox", "0 0 780 240");
     const t = svgEl("text", {
       x: 390,
       y: 100,
@@ -554,19 +725,24 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
     });
     t.textContent = "Noch keine Wetterdaten verfügbar";
     svg.appendChild(t);
+    if (svg.__weatherWeeklyResizeObserver) svg.__weatherWeeklyResizeObserver.disconnect();
     return;
   }
 
-  // Wochenweise aggregieren — Plan-Woche wenn vorhanden, sonst ISO-Kalenderwoche
-  // (core/aggregate.js::rideWeekKey). Fahrten ohne verwertbares Datum werden
+  // Wochen- oder monatsweise aggregieren, je nach Toggle (core/chart-
+  // buckets.js::dateToWeekBucket — Monats-Bucket-Vereinheitlichung, s.
+  // docs/offene-punkte.md; vorher wurde hier IMMER nach ISO-Kalenderwoche
+  // gruppiert, auch im Monats-Modus — echter Bug, nicht nur eine
+  // Konventionsfrage: der Monats-Toggle änderte nur den Achsentitel, nie
+  // die tatsächliche Gruppierung). Fahrten ohne verwertbares Datum werden
   // übersprungen und geloggt statt in einen falschen Sammel-Bucket zu fallen.
   const weekMap = {};
   for (const r of withWeather) {
-    const wk = rideWeekKey(r);
-    if (!wk) {
+    if (!r.dateISO) {
       log.warn("Wetter-Chart: Fahrt ohne Woche/Datum übersprungen", r.name || r.dateISO);
       continue;
     }
+    const wk = dateToWeekBucket(r.dateISO, null, period);
     if (!weekMap[wk]) weekMap[wk] = { week: wk, temps: [], winds: [], precips: [], rides: [] };
     weekMap[wk].temps.push(r.weather.temp);
     weekMap[wk].winds.push(r.weather.windSpeed);
@@ -589,291 +765,243 @@ export function renderWeatherWeekly(svgId, rides, period = "week") {
     wind: Math.round(mean(w.winds) * 10) / 10,
     precip: Math.round(w.precips.reduce((a, b) => a + b, 0) * 10) / 10,
     rides: w.rides,
-    isP2: w.week.startsWith("P2-"),
   }));
 
-  // Virtuellen Lücken-Slot zwischen Plan 1 und Plan 2 einrechnen
-  const p2Idx = data.findIndex((d) => d.isP2);
-  const GAP_SLOTS = p2Idx > 0 ? 1.5 : 0; // 1.5 extra Slots als Lücke
-  const totalSlots = data.length + GAP_SLOTS;
+  const totalSlots = data.length;
 
   const PPW = 52;
-  const W = Math.max(cardContentWidth(), totalSlots * PPW + 80);
   const H = 240,
     pad = { l: 50, r: 50, t: 20, b: 40 };
-  const cw = W - pad.l - pad.r,
-    ch = H - pad.t - pad.b;
 
-  const svg = el(svgId);
-  if (!svg) return;
-  svg.innerHTML = "";
-  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
-  svg.setAttribute("width", W);
+  const draw = () => {
+    svg.innerHTML = "";
+    const W = Math.max(cardContentWidth(), totalSlots * PPW + 80);
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+    svg.setAttribute("width", W);
+    const cw = W - pad.l - pad.r,
+      ch = H - pad.t - pad.b;
 
-  const temps = data.map((d) => d.temp);
-  const winds = data.map((d) => d.wind);
-  const maxT = Math.max(...temps, 25);
-  const minT = Math.min(Math.min(...temps) - 3, 0);
-  const maxW = Math.max(...winds, 30) * 1.15;
+    const temps = data.map((d) => d.temp);
+    const winds = data.map((d) => d.wind);
+    const maxT = Math.max(...temps, 25);
+    const minT = Math.min(Math.min(...temps) - 3, 0);
+    const maxW = Math.max(...winds, 30) * 1.15;
 
-  // Slot-Index berücksichtigt die Gap zwischen Plan 1 und Plan 2
-  const slotIndex = (i) => (p2Idx > 0 && i >= p2Idx ? i + GAP_SLOTS : i);
-  const xMid = (i) => pad.l + (slotIndex(i) + 0.5) * (cw / totalSlots);
-  const yTemp = (t) => pad.t + ch - ((t - minT) / (maxT - minT)) * ch;
-  const yWind = (w) => pad.t + ch - (w / maxW) * ch;
-  const barW = Math.max(10, cw / totalSlots - 6);
+    const xMid = (i) => pad.l + (i + 0.5) * (cw / totalSlots);
+    const yTemp = (t) => pad.t + ch - ((t - minT) / (maxT - minT)) * ch;
+    const yWind = (w) => pad.t + ch - (w / maxW) * ch;
+    const barW = Math.max(10, cw / totalSlots - 6);
 
-  // Ampel-Farbe: grün/gelb/rot nach Bedingung
-  const condColor = (d) => {
-    const hot = d.temp > 32; // angehoben: 28→32°C
-    const cold = d.temp < 5;
-    const windy = d.wind > 30;
-    const rainy = d.precip > 0.5;
-    const bad = (hot ? 1 : 0) + (cold ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
-    if (bad >= 2 || hot || (windy && rainy)) return "#d94f4f";
-    if (bad === 1) return "#c9a84c";
-    return "#4a9a6e";
-  };
+    // Ampel-Farbe: grün/gelb/rot nach Bedingung
+    const condColor = (d) => {
+      const hot = d.temp > 32; // angehoben: 28→32°C
+      const cold = d.temp < 5;
+      const windy = d.wind > 30;
+      const rainy = d.precip > 0.5;
+      const bad = (hot ? 1 : 0) + (cold ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
+      if (bad >= 2 || hot || (windy && rainy)) return "#d94f4f";
+      if (bad === 1) return "#c9a84c";
+      return "#4a9a6e";
+    };
 
-  // Grid Y Temp (links)
-  const tStep = Math.ceil((maxT - minT) / 5 / 5) * 5;
-  for (let t = Math.ceil(minT / 5) * 5; t <= maxT; t += tStep) {
-    const y = yTemp(t);
+    // Abgestuftes Gitter (§2.4) auf der Temperatur-Achse (links) — Zahlen an
+    // der Achse entfallen wie bei allen Familie-3-Chart (Wert steht am
+    // Balken, s. G4/§7.2). Windachse rechts bekommt nur die Einheit.
+    gradedGrid(svg, { x0: pad.l, x1: W - pad.r, yOf: yTemp, lo: minT, hi: maxT });
+    axisUnit(svg, { x: pad.l - 6, y: pad.t - 6, text: "°C" });
     svg.appendChild(
-      svgEl("line", {
-        x1: pad.l,
-        y1: y,
-        x2: W - pad.r,
-        y2: y,
-        stroke: "#232a37",
-        "stroke-width": "1",
+      svgEl("text", {
+        x: W - pad.r + 6,
+        y: pad.t - 6,
+        "text-anchor": "start",
+        fill: CHART_THEME.ink.faint,
+        "font-size": "9",
       })
-    );
-    const lbl = svgEl("text", {
-      x: pad.l - 5,
-      y: y + 4,
-      "text-anchor": "end",
-      fill: "#5f6878",
-      "font-size": "9",
-    });
-    lbl.textContent = t + "°C";
-    svg.appendChild(lbl);
-  }
+    ).textContent = "km/h";
+    axisTitles(svg, W, H, pad, { x: period === "month" ? "Monat" : "Woche" });
 
-  // Grid Y Wind (rechts)
-  const wStep = 10;
-  for (let w = 0; w <= maxW; w += wStep) {
-    const y = yWind(w);
-    if (y < pad.t) break;
-    const lbl = svgEl("text", {
-      x: W - pad.r + 5,
-      y: y + 4,
-      "text-anchor": "start",
-      fill: "#4a7fa8",
-      "font-size": "9",
-    });
-    lbl.textContent = w + " km/h";
-    svg.appendChild(lbl);
-  }
-  axisTitles(svg, W, H, pad, {
-    x: period === "month" ? "Monat" : "Woche",
-    yLeft: "Temperatur (°C)",
-    yRight: "Wind (km/h)",
-  });
-
-  // 0°C-Linie wenn sichtbar
-  if (minT < 0 && maxT > 0) {
-    const y0 = yTemp(0);
-    svg.appendChild(
-      svgEl("line", {
-        x1: pad.l,
-        y1: y0,
-        x2: W - pad.r,
-        y2: y0,
-        stroke: "#4a7fa8",
-        "stroke-width": "1",
-        "stroke-dasharray": "4,3",
-        opacity: "0.4",
-      })
-    );
-  }
-
-  // Balken (Temperatur)
-  const wLabels = weekDisplayLabels(data.map((d) => d.week));
-  const wLabelIdx = pickLabelIndices(
-    data.map((_, i) => xMid(i)),
-    34
-  );
-  data.forEach((d, i) => {
-    const x = xMid(i) - barW / 2;
-    const y = yTemp(Math.max(d.temp, minT));
-    const bh = Math.abs(yTemp(minT) - y);
-    const col = condColor(d);
-
-    svg.appendChild(
-      svgEl("rect", {
-        x,
-        y,
-        width: barW,
-        height: Math.max(2, bh),
-        fill: col,
-        opacity: "0.75",
-        rx: "2",
-      })
-    );
-
-    // Regen-Markierung oben auf Balken
-    if (d.precip > 0.5) {
-      const rain = svgEl("text", {
-        x: xMid(i),
-        y: y - 3,
-        "text-anchor": "middle",
-        "font-size": "8",
-      });
-      rain.textContent = "🌧";
-      svg.appendChild(rain);
+    // 0°C-Linie wenn sichtbar
+    if (minT < 0 && maxT > 0) {
+      const y0 = yTemp(0);
+      svg.appendChild(
+        svgEl("line", {
+          x1: pad.l,
+          y1: y0,
+          x2: W - pad.r,
+          y2: y0,
+          stroke: "#4a7fa8",
+          "stroke-width": "1",
+          "stroke-dasharray": "4,3",
+          opacity: "0.4",
+        })
+      );
     }
 
-    // Temp-Label: mittig im Balken, aber Windpunkt ausweichen —
-    // nur wenn der Balken breit genug für "xx.x°" ist (Überlappungsschutz)
-    if (bh > 16 && barW >= 24) {
-      const windY = yWind(d.wind);
-      let labelY = y + bh / 2 + 4;
-      // Wenn Label zu nah am Windpunkt — nach unten verschieben
-      if (Math.abs(labelY - windY) < 10) labelY = windY + 12;
-      // Nicht aus dem Balken rauslaufen
-      labelY = Math.min(labelY, y + bh - 4);
-      const tl = svgEl("text", {
-        x: xMid(i),
-        y: labelY,
-        "text-anchor": "middle",
-        fill: "#0b0e13",
-        "font-size": "8",
-        "font-weight": "600",
-      });
-      tl.textContent = d.temp + "°";
-      svg.appendChild(tl);
-    }
+    // Balken (Temperatur)
+    const wLabels = weekDisplayLabels(data.map((d) => d.week));
+    const wLabelIdx = pickLabelIndices(
+      data.map((_, i) => xMid(i)),
+      34
+    );
+    data.forEach((d, i) => {
+      const x = xMid(i) - barW / 2;
+      const y = yTemp(Math.max(d.temp, minT));
+      const bh = Math.abs(yTemp(minT) - y);
+      const col = condColor(d);
 
-    // X-Label (Woche) — ausgedünnt, kompakte KW-Schreibweise
-    if (wLabelIdx.has(i)) {
-      const xl = svgEl("text", {
-        x: xMid(i),
-        y: H - pad.b + 14,
-        "text-anchor": "middle",
-        fill: "#5f6878",
-        "font-size": "8",
-      });
-      xl.textContent = wLabels[i].replace("P2-", "");
-      svg.appendChild(xl);
-    }
+      svg.appendChild(
+        svgEl("rect", {
+          x,
+          y,
+          width: barW,
+          height: Math.max(2, bh),
+          fill: col,
+          opacity: "0.75",
+          rx: "2",
+        })
+      );
 
-    // Unsichtbare Hit-Fläche für Tooltip
-    const hit = svgEl("rect", {
-      x: xMid(i) - barW / 2 - 2,
-      y: pad.t,
-      width: barW + 4,
-      height: ch,
-      fill: "transparent",
-    });
-    hit.style.cursor = "pointer";
-    const icons = [
-      d.temp < 5 ? "🥶" : d.temp > 32 ? "🔥" : "🌡️",
-      d.precip > 0.5 ? `🌧 ${d.precip}mm` : "",
-      d.wind > 30 ? `💨 ${d.wind} km/h` : `🌬 ${d.wind} km/h`,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-    const condLabel =
-      condColor(d) === "#4a9a6e"
-        ? "✅ Gute Bedingungen"
-        : condColor(d) === "#c9a84c"
-          ? "⚠️ Suboptimal"
-          : "❌ Schwierige Bedingungen";
-    hit.addEventListener("mouseenter", (e) =>
-      Tooltip.show(
-        e,
-        `
+      // Regen-Markierung oben auf Balken
+      if (d.precip > 0.5) {
+        const rain = svgEl("text", {
+          x: xMid(i),
+          y: y - 3,
+          "text-anchor": "middle",
+          "font-size": "8",
+        });
+        rain.textContent = "🌧";
+        svg.appendChild(rain);
+      }
+
+      // Temp-Label: mittig im Balken, aber Windpunkt ausweichen —
+      // nur wenn der Balken breit genug für "xx.x°" ist (Überlappungsschutz)
+      if (bh > 16 && barW >= 24) {
+        const windY = yWind(d.wind);
+        let labelY = y + bh / 2 + 4;
+        // Wenn Label zu nah am Windpunkt — nach unten verschieben
+        if (Math.abs(labelY - windY) < 10) labelY = windY + 12;
+        // Nicht aus dem Balken rauslaufen
+        labelY = Math.min(labelY, y + bh - 4);
+        const tl = svgEl("text", {
+          x: xMid(i),
+          y: labelY,
+          "text-anchor": "middle",
+          fill: "#0b0e13",
+          "font-size": "8",
+          "font-weight": "600",
+        });
+        tl.textContent = d.temp + "°";
+        svg.appendChild(tl);
+      }
+
+      // X-Label (Woche) — ausgedünnt, kompakte KW-Schreibweise
+      if (wLabelIdx.has(i)) {
+        const xl = svgEl("text", {
+          x: xMid(i),
+          y: H - pad.b + 14,
+          "text-anchor": "middle",
+          fill: "#5f6878",
+          "font-size": "8",
+        });
+        xl.textContent = wLabels[i].replace("P2-", "");
+        svg.appendChild(xl);
+      }
+
+      // Unsichtbare Hit-Fläche für Tooltip + Brush-Klick (Teil D)
+      const hit = svgEl("rect", {
+        x: xMid(i) - barW / 2 - 2,
+        y: pad.t,
+        width: barW + 4,
+        height: ch,
+        fill: "transparent",
+      });
+      hit.style.cursor = "pointer";
+      const icons = [
+        d.temp < 5 ? "🥶" : d.temp > 32 ? "🔥" : "🌡️",
+        d.precip > 0.5 ? `🌧 ${d.precip}mm` : "",
+        d.wind > 30 ? `💨 ${d.wind} km/h` : `🌬 ${d.wind} km/h`,
+      ]
+        .filter(Boolean)
+        .join(" · ");
+      const condLabel =
+        condColor(d) === "#4a9a6e"
+          ? "✅ Gute Bedingungen"
+          : condColor(d) === "#c9a84c"
+            ? "⚠️ Suboptimal"
+            : "❌ Schwierige Bedingungen";
+      hit.addEventListener("mouseenter", (e) =>
+        Tooltip.show(
+          e,
+          `
       <div class="tt">${d.week} · ${d.rides.length} Fahrt${d.rides.length > 1 ? "en" : ""}</div>
       <div class="tv">${icons}</div>
       <div class="td">${condLabel}</div>
     `
-      )
-    );
-    hit.addEventListener("mouseleave", () => Tooltip.hide());
-    svg.appendChild(hit);
-  });
+        )
+      );
+      hit.addEventListener("mouseleave", () => Tooltip.hide());
+      hit.addEventListener("click", () => jumpBrushToWeekBucket(d.week, rides, period));
+      svg.appendChild(hit);
+    });
 
-  // Wind-Linie (blau, zweite Y-Achse)
-  const windPoints = data.map((d, i) => `${xMid(i)},${yWind(d.wind)}`).join(" ");
-  svg.appendChild(
-    svgEl("polyline", {
-      fill: "none",
-      stroke: "#4a7fa8",
-      "stroke-width": "2",
-      "stroke-linejoin": "round",
-      "stroke-linecap": "round",
-      points: windPoints,
-      opacity: "0.85",
-    })
-  );
-
-  // Wind-Punkte
-  data.forEach((d, i) => {
+    // Wind-Linie (blau, zweite Y-Achse) — path() statt polyline/points (§3.1)
     svg.appendChild(
-      svgEl("circle", {
-        cx: xMid(i),
-        cy: yWind(d.wind),
-        r: "3",
-        fill: "#4a7fa8",
-        stroke: "#0b0e13",
-        "stroke-width": "1",
+      svgEl("path", {
+        d: pathD(data.map((d, i) => [xMid(i), yWind(d.wind)])),
+        fill: "none",
+        stroke: "#4a7fa8",
+        "stroke-width": "2",
+        "stroke-linejoin": "round",
+        "stroke-linecap": "round",
+        opacity: "0.85",
       })
     );
-  });
 
-  // Plan-Divider: in der Mitte der Lücke zwischen Plan 1 und Plan 2
-  const p2Start = data.findIndex((d) => d.isP2);
-  if (p2Start > 0) {
-    // Divider liegt in der Mitte des Gap-Bereichs
-    const dx = pad.l + (slotIndex(p2Start) - GAP_SLOTS / 2) * (cw / totalSlots);
-    svg.appendChild(
-      svgEl("line", {
-        x1: dx,
-        y1: pad.t,
-        x2: dx,
-        y2: pad.t + ch,
-        stroke: "#e08a3c",
-        "stroke-width": "1.5",
-        "stroke-dasharray": "4,3",
-        opacity: "0.6",
-      })
-    );
-    const lp1 = svgEl("text", {
-      x: dx - 6,
-      y: pad.t + 10,
-      "text-anchor": "end",
-      fill: "#5f6878",
-      "font-size": "8",
-      "font-weight": "600",
+    // Wind-Punkte
+    data.forEach((d, i) => {
+      svg.appendChild(
+        svgEl("circle", {
+          cx: xMid(i),
+          cy: yWind(d.wind),
+          r: "3",
+          fill: "#4a7fa8",
+          stroke: "#0b0e13",
+          "stroke-width": "1",
+        })
+      );
     });
-    lp1.textContent = "← Plan 1";
-    svg.appendChild(lp1);
-    const lp2 = svgEl("text", {
-      x: dx + 6,
-      y: pad.t + 10,
-      "text-anchor": "start",
-      fill: "#e08a3c",
-      "font-size": "8",
-      "font-weight": "600",
-    });
-    lp2.textContent = "Plan 2 →";
-    svg.appendChild(lp2);
-  }
 
-  // Auto-scroll ans aktuelle Ende (rechts = neueste Woche)
-  const scrollContainer = svg.parentElement;
-  if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
-    autoScrollRight(svg, W, scrollContainer);
+    // Auto-scroll ans aktuelle Ende (rechts = neueste Woche)
+    const scrollContainer = svg.parentElement;
+    if (scrollContainer && scrollContainer.classList.contains("chart-scroll")) {
+      autoScrollRight(svg, W, scrollContainer);
+    }
+
+    // Hover-Ebene (§4.1) — s. renderWeeklyVolume. Ab Teil C befüllt.
+    const hoverLayer = svgEl("g", {});
+    svg.appendChild(hoverLayer);
+    svg.__weatherWeeklyGeo = {
+      hoverLayer,
+      weeklyData: data,
+      rides,
+      period,
+      barX: (i) => xMid(i) - barW / 2,
+      barW,
+      top: pad.t,
+      bottom: pad.t + ch,
+    };
+  };
+
+  draw();
+
+  if (svg.__weatherWeeklyResizeObserver) svg.__weatherWeeklyResizeObserver.disconnect();
+  const observer = new ResizeObserver(() => draw());
+  observer.observe(svg);
+  svg.__weatherWeeklyResizeObserver = observer;
+
+  // Bucketweise Fadenkreuz-Kopplung (Teil C) — s. renderWeeklyVolume.
+  if (!svg.__weatherWeeklyHoverBound) {
+    svg.__weatherWeeklyHoverBound = true;
+    onChartViewChange(() => paintBucketHover(svg, "__weatherWeeklyGeo"));
   }
 }

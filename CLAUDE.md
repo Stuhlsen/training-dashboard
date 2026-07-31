@@ -8,6 +8,33 @@
 - Vor neuer Datei in `assets/js/core|state|ui/…` prüfen, ob ein Skill oder
   bestehendes Modul die Aufgabe schon abdeckt — nicht parallel neu erfinden.
 
+## MCP-Tools
+
+- **Playwright MCP** (`.mcp.json`, projektlokal, `npx @playwright/mcp@latest`,
+  bereits eingerichtet und committet) — aktiv nutzen für UI-nahe Bugs, Race
+  Conditions und alles, was sich nicht zuverlässig durch reines Code-Lesen
+  klären lässt. Nicht erst als letztes Mittel nach mehreren erfolglosen
+  Theorien greifen (so verlief der Drag-Grip-Bug im Trainer-Modus, Juli 2026:
+  zwei rein code-lesebasierte Fixversuche waren beide in sich logisch
+  schlüssig und beide wirkungslos — die Ursache war eine Race Condition
+  zwischen zwei Event-Listenern, deren relative Reihenfolge keine im
+  Quelltext sichtbare Eigenschaft ist. Erst die Live-Diagnose mit Playwright
+  MCP machte sie eindeutig, s. `docs/offene-punkte.md`).
+  - **Kann:** echten Browser steuern (Navigation, Klicks, Formulare,
+    Drag-Gesten über Pointer-Events), Accessibility-Snapshot statt
+    Screenshot bevorzugen (`browser_snapshot`), Konsole und Netzwerk-Requests
+    einsehen, Laufzeit-Zustand direkt inspizieren via `browser_evaluate` mit
+    dynamischem `import()` der laufenden App-Module (liefert echten
+    In-Memory-State aus `state/*.js`, nicht nur den DOM-Ausschnitt).
+  - **Bleibt manuell bei Alex:** die finale Bestätigung im echten Browser vor
+    jedem `git sync`; echte Multi-Step-Zeigergesten, falls synthetische
+    Pointer-Events einen Unterschied machen könnten — beim Drag-Freeze-Bug
+    (Juli 2026) ließ sich das Symptom mit einer einfachen Zwei-Schritt-
+    Pointer-Simulation nicht reproduzieren, blieb aber ein offener Punkt bis
+    zur manuellen Bestätigung.
+  - `.playwright-mcp/` (Snapshot-/Konsolen-Dumps aus Diagnose-Sessions) ist
+    gitignored — kein Quellcode, nicht committen.
+
 ## Vor jeder Aufgabe
 
 Kurz benennen, wie das Ergebnis verifiziert wird, bevor losgeschrieben wird:

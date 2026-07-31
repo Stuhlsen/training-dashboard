@@ -87,7 +87,7 @@ export async function queryNotionPlan1() {
         week: getSelect(pr["Woche"]),
         phase: getSelect(pr["Phase"]),
         typ: getSelect(pr["Typ"]),
-        plan: "Plan 1",
+        dataSource: "notion",
         km: getNum(pr["Distanz (km)"]),
         min: getNum(pr["Dauer (min)"]),
         kmh: getNum(pr["Avg-Tempo (km/h)"]),

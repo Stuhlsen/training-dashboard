@@ -10,8 +10,11 @@ import {
   loadSignal,
   readinessSignal,
   tsbTrendSignal,
+  subjectiveSignal,
+  governLevel,
 } from "../assets/js/core/briefing.js";
 import { currentPmc, tsbTrend } from "../assets/js/core/pmc.js";
+import { weekSortIndex } from "../assets/js/core/aggregate.js";
 import {
   availability,
   weightTrend,
@@ -232,6 +235,111 @@ test("buildBriefing: Regression — Ruhetage nach hartem Block liefern konsisten
   assert.match(b.recommendation, /Erholung wirkt bereits/);
 });
 
+/* ── Governor: subjektiver Kanal (Morgen-Check-in) ──────────────
+   Konzept docs/phase-2-konzept-morgen-checkin.md Abschnitt 5.2/5.4. */
+
+test("subjectiveSignal: null (nicht eingeloggt/kein Athlet) → keine Zeile", () => {
+  assert.equal(subjectiveSignal(null), null);
+});
+
+test("subjectiveSignal: ausstehend oder ohne Werte → nodata, kein Level-Text", () => {
+  assert.equal(subjectiveSignal({ level: null, freshness: "ausstehend" }).status, "nodata");
+  assert.equal(subjectiveSignal({ level: null, freshness: "vorhanden" }).status, "nodata");
+});
+
+test("subjectiveSignal: alle drei Level korrekt gemappt, 'veraltet' mit Zusatz", () => {
+  assert.equal(subjectiveSignal({ level: "green", freshness: "vorhanden" }).status, "ok");
+  assert.equal(subjectiveSignal({ level: "yellow", freshness: "vorhanden" }).status, "caution");
+  assert.equal(subjectiveSignal({ level: "red", freshness: "vorhanden" }).status, "alert");
+  assert.match(subjectiveSignal({ level: "red", freshness: "veraltet" }).text, /gestern/);
+});
+
+test("governLevel: alle 9 Zellen der Konzept-Tabelle 5.2", () => {
+  const table = {
+    "green|green": "green",
+    "green|yellow": "yellow",
+    "green|red": "yellow",
+    "yellow|green": "yellow",
+    "yellow|yellow": "yellow",
+    "yellow|red": "red",
+    "red|green": "red",
+    "red|yellow": "red",
+    "red|red": "red",
+  };
+  for (const [key, expected] of Object.entries(table)) {
+    const [obj, subj] = key.split("|");
+    assert.equal(governLevel(obj, subj), expected, `${obj}+${subj} → ${expected}`);
+  }
+});
+
+test("buildBriefing: subjective weggelassen/ausstehend → level unverändert, subjectiveApplied false (Rückwärtskompatibilität)", () => {
+  const withoutSubjective = buildBriefing({ readiness: { level: "green" }, tsb: 2, loadRisk: "ok" });
+  assert.equal(withoutSubjective.subjectiveApplied, false);
+
+  const ausstehend = buildBriefing({
+    readiness: { level: "green" },
+    tsb: 2,
+    loadRisk: "ok",
+    subjective: { level: null, freshness: "ausstehend" },
+  });
+  assert.equal(ausstehend.level, withoutSubjective.level);
+  assert.equal(ausstehend.subjectiveApplied, false);
+});
+
+test("buildBriefing: grün (objektiv) + rot (subjektiv) → gelb, subjectiveWarning true, eigener Empfehlungstext", () => {
+  const b = buildBriefing({
+    readiness: { level: "green" },
+    tsb: 2,
+    loadRisk: "ok",
+    subjective: { level: "red", freshness: "vorhanden" },
+  });
+  assert.equal(b.level, "yellow");
+  assert.equal(b.subjectiveApplied, true);
+  assert.equal(b.subjectiveWarning, true);
+  assert.equal(b.subjectiveIllnessWarning, false);
+  assert.match(b.recommendation, /Overreaching|Infekt/);
+});
+
+test("buildBriefing: rot (objektiv) + rot (subjektiv) → bleibt rot, subjectiveIllnessWarning true", () => {
+  const b = buildBriefing({
+    readiness: { level: "red" },
+    tsb: -25,
+    loadRisk: "ok",
+    subjective: { level: "red", freshness: "vorhanden" },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.subjectiveIllnessWarning, true);
+  assert.match(b.recommendation, /Infekt|ärztlich/);
+});
+
+test("buildBriefing: rot (objektiv) + grün (subjektiv) → bleibt rot (nie grün bei objektiv rot)", () => {
+  const b = buildBriefing({
+    readiness: { level: "red" },
+    tsb: -25,
+    loadRisk: "ok",
+    subjective: { level: "green", freshness: "vorhanden" },
+  });
+  assert.equal(b.level, "red");
+  assert.equal(b.subjectiveWarning, false);
+  assert.equal(b.subjectiveIllnessWarning, false);
+});
+
+test("buildBriefing: Governor wirkt NACH der 'Erholung wirkt bereits'-Ausnahme, nicht auf dem rohen TSB-Alert", () => {
+  // Objektiv allein: TSB-Alert + steigender Trend + unauffällige HRV → bereits
+  // von rot auf gelb entschärft (bestehende Logik). Subjektiv gelb darf das
+  // Ergebnis dann nicht nochmal verschlechtern (gelb+gelb → gelb).
+  const b = buildBriefing({
+    readiness: { level: "green", metrics: [{ key: "hrv", z: 0.1 }] },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+    subjective: { level: "yellow", freshness: "vorhanden" },
+  });
+  assert.equal(b.recovering, true);
+  assert.equal(b.level, "yellow");
+  assert.equal(b.subjectiveApplied, true);
+});
+
 /* ── Body / Regeneration ────────────────────────────────────── */
 
 const day = (date, extra) => ({ date, dateISO: date, ...extra });
@@ -319,7 +427,7 @@ test("hydrationSeries: bevorzugt Volumen, Fallback Score, null ohne Daten", () =
 
 /* ── Periodisierung ─────────────────────────────────────────── */
 
-const weekIdx = (w) => parseInt(w.replace("P2-W", ""), 10);
+const weekIdx = (w) => weekSortIndex(w, () => 999);
 
 test("matchesSignature: Typ-Match oder IF-Korridor (≥30min)", () => {
   assert.equal(matchesSignature({ typ: "Sweet Spot" }, "Sweet Spot"), true);
@@ -331,7 +439,7 @@ test("matchesSignature: Typ-Match oder IF-Korridor (≥30min)", () => {
 
 test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   const r = (week, phase, typ, tss, extra = {}) => ({
-    plan: "Plan 2",
+    dataSource: "intervals",
     week,
     phase,
     typ,
@@ -341,16 +449,16 @@ test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   });
   const rides = [
     // SS-Block, 2 Wochen à 2 Quality → voll erfüllt
-    r("P2-W1", "Sweet Spot", "Sweet Spot", 90),
-    r("P2-W1", "Sweet Spot", "Gruppenfahrt", 80, { if: 0.85, min: 90 }),
-    r("P2-W1", "Sweet Spot", "Z2 Lang", 70),
-    r("P2-W2", "Sweet Spot", "Sweet Spot", 95),
-    r("P2-W2", "Sweet Spot", "Sweet Spot", 92),
+    r("2026-KW27", "Sweet Spot", "Sweet Spot", 90),
+    r("2026-KW27", "Sweet Spot", "Gruppenfahrt", 80, { if: 0.85, min: 90 }),
+    r("2026-KW27", "Sweet Spot", "Z2 Lang", 70),
+    r("2026-KW28", "Sweet Spot", "Sweet Spot", 95),
+    r("2026-KW28", "Sweet Spot", "Sweet Spot", 92),
     // Erholungswoche mit klar reduziertem TSS
-    r("P2-W4", "Erholung", "Z1 Recovery", 40),
+    r("2026-KW30", "Erholung", "Z1 Recovery", 40),
     // Schwellen-Woche OHNE Schwellen-Signatur → abweichend
-    r("P2-W5", "Schwelle", "Z2 Lang", 85, { if: 0.65, min: 120 }),
-    r("P2-W5", "Schwelle", "Z2 Dauer", 60, { if: 0.6, min: 70 }),
+    r("2026-KW31", "Schwelle", "Z2 Lang", 85, { if: 0.65, min: 120 }),
+    r("2026-KW31", "Schwelle", "Z2 Dauer", 60, { if: 0.6, min: 70 }),
   ];
   const c = phaseCompliance(rides, weekIdx);
   assert.ok(c);
@@ -361,13 +469,13 @@ test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
   const thr = c.blocks.find((b) => b.phase === "Schwelle");
   assert.equal(thr.quality, 0);
   assert.equal(thr.status, "abweichend");
-  // Erholung: 40 TSS vs. Nachbarwoche W5 (145) → 40 ≤ 145×0.6 → reduziert
-  const rec = c.recovery.find((x) => x.week === "P2-W4");
+  // Erholung: 40 TSS vs. Nachbarwoche KW31 (145) → 40 ≤ 145×0.6 → reduziert
+  const rec = c.recovery.find((x) => x.week === "2026-KW30");
   assert.equal(rec.reduced, 40 <= rec.refTss * RECOVERY_MAX_SHARE);
   assert.equal(rec.reduced, true);
 });
 
-test("phaseCompliance: null ohne Plan-2-Phasen (Athlet 2)", () => {
+test("phaseCompliance: null ohne Block-Phasen (Athlet 2)", () => {
   const rides = [{ dateISO: "2026-06-01", tss: 50 }];
   assert.equal(phaseCompliance(rides, weekIdx), null);
 });
@@ -432,6 +540,16 @@ test("planAdherence: Adjustments (Ausfall/Verschiebung) wie im Wochenrückblick"
   assert.equal(a.done, 2); // Di direkt + Do auf verschobenem Datum
   assert.equal(a.quote, 100);
   assert.equal(a.missed.length, 0);
+});
+
+test("planAdherence: verpasste Session ohne .title fällt auf .name zurück, nicht auf 'Einheit'", () => {
+  // PLANNED_SESSIONS (scripts/lib/plan2.js) trägt nur .name, nie .title —
+  // ohne Fallback zeigte die "verpasst"-Liste hier immer nur "Einheit".
+  const today = "2026-07-05";
+  const planned = [{ date: "2026-07-02", name: "Do Intervalle" }];
+  const a = planAdherence([], planned, {}, today);
+  assert.equal(a.missed.length, 1);
+  assert.equal(a.missed[0].title, "Do Intervalle");
 });
 
 test("buildConsistency: ohne Plan bleiben Streak/Frequenz nutzbar, Adhärenz null", () => {

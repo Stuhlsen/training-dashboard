@@ -1,7 +1,7 @@
 /* ============================================================
    CORE/PERIODIZATION.JS — Periodisierungs-Erfüllung (kein DOM)
-   Nur für den eigenen Plan (Athlet 1, Plan 2): Ist jeder Block
-   phasengerecht umgesetzt worden?
+   Nur für den eigenen Trainingsblock (Athlet 1, intervals.icu-Ära):
+   Ist jeder Block phasengerecht umgesetzt worden?
 
    Prüft pro Phase drei Dinge:
    1. Reizsignatur — enthält der Block Einheiten seiner spezifischen
@@ -46,19 +46,19 @@ function weekTss(rides) {
 }
 
 /**
- * Periodisierungs-Erfüllung über die Plan-2-Fahrten.
- * Gruppiert nach week (nur "P2-*"-Wochen), ordnet Wochen ihren Phasen zu
- * und bewertet Blöcke + Erholungswochen.
+ * Periodisierungs-Erfüllung über die Fahrten der intervals.icu-Ära.
+ * Gruppiert nach week (nur Wochen mit Block-Phase), ordnet Wochen ihren
+ * Phasen zu und bewertet Blöcke + Erholungswochen.
  * @param {import("../types.js").Ride[]} rides alle Fahrten (wird intern gefiltert)
  * @param {(week: string) => number} weekIndexFn CONFIG.weekIndex für die Sortierung
  * @returns {null | {
  *   blocks: Array<{phase: string, weeks: string[], rides: number, quality: number, expectedQuality: number, share: number, status: "ok"|"teilweise"|"abweichend", note: string}>,
  *   recovery: Array<{week: string, tss: number, refTss: number|null, reduced: boolean|null}>,
  *   totalWeeks: number
- * }} null wenn keine Plan-2-Wochen mit Phase vorhanden
+ * }} null wenn keine Wochen mit Block-Phase vorhanden
  */
 export function phaseCompliance(rides, weekIndexFn) {
-  const p2 = (rides || []).filter((r) => r.plan === "Plan 2" && r.week && r.phase);
+  const p2 = (rides || []).filter((r) => r.dataSource === "intervals" && r.week && r.phase);
   if (!p2.length) return null;
 
   // Wochen → Fahrten + Phase (Phase der Woche = Phase der Mehrheit der Fahrten)

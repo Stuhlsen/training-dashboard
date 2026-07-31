@@ -12,6 +12,18 @@ export const LOW_INTENSITY_TARGET = 0.8;
  * intervals.icu liefert Zone-Times je nach API-Version als Array von
  * Sekunden ODER als Array von {id, secs}-Objekten — hier normalisiert
  * auf ein reines Sekunden-Array (Index = Zone).
+ *
+ * Das Objektformat trägt bei diesem Projekt zusätzlich zu Z1..Z7 einen
+ * "SS"-Eintrag (Sweet-Spot-Overlay, 88–94% FTP laut SWEET_SPOT_PCT unten —
+ * liegt vollständig innerhalb Z3+Z4, s. COGGAN_ZONE_UPPER_PCT). SS ist
+ * KEINE eigene, zusätzliche Zone, sondern eine Teilmenge von Z3/Z4-Zeit,
+ * die intervals.icu separat mitliefert. An mehreren Ist-Fahrten verifiziert:
+ * die Summe aller Segmente INKLUSIVE SS liegt spürbar über der gemeldeten
+ * Fahrtdauer, OHNE SS stimmt sie fast exakt. Wird hier vor der Positions-
+ * bildung herausgefiltert — sonst rutscht SS als "achtes" Element in
+ * bandZoneTimes() in den Z5+/"high"-Bucket und zählt Zeit doppelt (Bug,
+ * gefixt am 30.07.2026, betraf overallZoneShares/weeklyZoneShares/
+ * last7DayZoneTimes gleichermaßen, da alle drei hierüber laufen).
  * @param {unknown} zt
  * @returns {number[]|null}
  */
@@ -19,7 +31,7 @@ export function normalizeZoneTimes(zt) {
   if (!Array.isArray(zt) || !zt.length) return null;
   if (typeof zt[0] === "number") return zt.map((v) => v || 0);
   if (typeof zt[0] === "object" && zt[0] !== null) {
-    return zt.map((z) => z.secs || z.seconds || 0);
+    return zt.filter((z) => z?.id !== "SS").map((z) => z.secs || z.seconds || 0);
   }
   return null;
 }

@@ -13,5 +13,5 @@ export const Charts = {
   ...training, // renderWeeklyVolume, renderTrimp (Belastungswächter), renderConsistency, renderZoneWeekly, renderWeatherWeekly
   ...pmc, // renderCTL, renderPMC, renderDecoupling, renderFtpForecast
   ...power, // renderPowerCurve (+Blöcke), renderEfficiency (+EF-Trend), renderScatter, renderSmallMultiples, renderCadenceCoach
-  ...wellness, // renderSleep, renderPlanCompareHRV, renderPlanCompareRHF
+  ...wellness, // renderSleep, renderHrvTrend, renderRhfTrend
 };

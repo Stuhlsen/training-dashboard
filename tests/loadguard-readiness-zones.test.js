@@ -133,6 +133,56 @@ test("bandZoneTimes: Z1+Z2 → low, Z3+Z4 → mid, Rest → high", () => {
   assert.equal(b.total, 3960);
 });
 
+// Regressionstest für den SS-Overlay-Doppelzähl-Bug (gefixt 30.07.2026):
+// intervals.icu liefert bei diesem Projekt zusätzlich zu Z1..Z7 einen
+// "SS"-Eintrag (Sweet-Spot-Overlay), der Zeit mit Z3/Z4 doppelt zählt.
+// Vor dem Fix landete SS positionsbasiert als "achtes Element" im
+// high-Bucket von bandZoneTimes() — normalizeZoneTimes() muss ihn jetzt
+// vorher herausfiltern.
+test("normalizeZoneTimes: SS-Overlay-Eintrag wird herausgefiltert", () => {
+  const withSS = normalizeZoneTimes([
+    { id: "Z1", secs: 100 },
+    { id: "Z2", secs: 200 },
+    { id: "Z3", secs: 50 },
+    { id: "SS", secs: 30 },
+  ]);
+  assert.deepEqual(withSS, [100, 200, 50]);
+});
+
+test("normalizeZoneTimes: ohne SS-Eintrag unverändert (Regression gegen Übergriffigkeit)", () => {
+  assert.deepEqual(
+    normalizeZoneTimes([
+      { id: "Z1", secs: 100 },
+      { id: "Z5", secs: 900 },
+    ]),
+    [100, 900]
+  );
+});
+
+// Reale Werte vom 25.07.2026 (Athlet 1, Diagnosebericht 30.07.2026) — Summe
+// aller Segmente INKLUSIVE SS (17734s) übersteigt die gemeldete Fahrtdauer
+// (244 min = 14640s) deutlich; ohne SS ergeben sich 14660s (~244.3 min,
+// stimmt bis auf Rundung). Vor dem Fix zählte bandZoneTimes() SS mit in
+// "high", wodurch der High-Anteil dieser Fahrt künstlich von 11.7% auf
+// 27.0% aufgebläht war (s. Bericht vom 30.07.2026).
+test("bandZoneTimes über normalizeZoneTimes: 25.07.2026 — Summe exkl. SS entspricht der Fahrtdauer", () => {
+  const raw = [
+    { id: "Z1", secs: 3578 },
+    { id: "Z2", secs: 3151 },
+    { id: "Z3", secs: 3609 },
+    { id: "Z4", secs: 2613 },
+    { id: "Z5", secs: 965 },
+    { id: "Z6", secs: 533 },
+    { id: "Z7", secs: 211 },
+    { id: "SS", secs: 3074 },
+  ];
+  const secs = normalizeZoneTimes(raw);
+  const band = bandZoneTimes(secs);
+  assert.equal(band.total, 14660); // ≈ 244 min Fahrtdauer, nicht 296 min
+  const highShare = band.high / band.total;
+  assert.ok(highShare < 0.15, `high-Anteil sollte klein sein, war ${highShare}`);
+});
+
 test("weeklyZoneShares: Anteile + Zielprüfung (80% low)", () => {
   const rides = [
     { week: "W1", dateISO: "2026-06-30", zoneTimes: [3600, 3600, 900, 0, 0] }, // 88.9% low

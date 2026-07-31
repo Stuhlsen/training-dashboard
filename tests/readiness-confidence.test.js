@@ -10,6 +10,8 @@ import {
   RECENT_DAYS,
   metricConfidence,
   assessReadiness,
+  SUBJECTIVE_READINESS_CONFIG,
+  getSubjectiveReadiness,
 } from "../assets/js/core/readiness.js";
 import { readinessSignal } from "../assets/js/core/briefing.js";
 
@@ -170,4 +172,129 @@ test("readinessSignal: liest ausschließlich .level, keine eigene Kopie der Read
   assert.equal(readinessSignal({ level: "yellow" }).status, "caution");
   assert.equal(readinessSignal({ level: "red" }).status, "alert");
   assert.equal(readinessSignal({ level: "green" }).status, "ok");
+});
+
+/* ── getSubjectiveReadiness: subjektiver Kanal (Morgen-Check-in) ─
+   Konzept docs/phase-2-konzept-morgen-checkin.md Abschnitt 5.1/5.4.
+   Score ist der gewichtete Mittelwert dreier 1..5-Ganzzahlen (v1 gleich-
+   gewichtet) — bei drei gleichgewichteten Ganzzahlen sind nur Vielfache
+   von 1/3 erreichbar (1.00, 1.33, …, 5.00). 2.75 (yellowMin) liegt
+   NICHT auf diesem Raster und ist mit echten Eingaben nicht exakt
+   erreichbar — die Grenzfall-Tests prüfen deshalb den Konstantenwert
+   direkt (wie READINESS_CONFIG oben) plus die beiden nächstgelegenen
+   erreichbaren Werte, die die Schwelle einschließen (2.67 knapp
+   darunter, 3.00 darüber). 4.00 (greenMin) ist dagegen exakt erreichbar
+   (12/3) und wird direkt an der Grenze getestet. */
+
+const TODAY_SUBJ = "2026-07-13";
+const YESTERDAY_SUBJ = "2026-07-12";
+const OLDER_SUBJ = "2026-07-10"; // 3 Tage alt — fachlich wie "kein Eintrag"
+
+test("SUBJECTIVE_READINESS_CONFIG: Schwellen/Gewichte wie im Konzept (5.1/D6)", () => {
+  assert.equal(SUBJECTIVE_READINESS_CONFIG.greenMin, 4.0);
+  assert.equal(SUBJECTIVE_READINESS_CONFIG.yellowMin, 2.75);
+  assert.deepEqual(SUBJECTIVE_READINESS_CONFIG.weights, { energy: 1, muscleFeel: 1, mood: 1 });
+});
+
+test("getSubjectiveReadiness: kein Eintrag → ausstehend, score/level/components null", () => {
+  const r = getSubjectiveReadiness([], TODAY_SUBJ);
+  assert.equal(r.freshness, "ausstehend");
+  assert.equal(r.score, null);
+  assert.equal(r.level, null);
+  assert.deepEqual(r.components, { energy: null, muscleFeel: null, mood: null });
+});
+
+test("getSubjectiveReadiness: nur ein Eintrag älter als gestern → gleichwertig zu 'kein Eintrag'", () => {
+  const r = getSubjectiveReadiness(
+    [{ date: OLDER_SUBJ, energy: 5, muscleFeel: 5, mood: 5 }],
+    TODAY_SUBJ
+  );
+  assert.equal(r.freshness, "ausstehend");
+  assert.equal(r.score, null);
+  assert.equal(r.level, null);
+});
+
+test("getSubjectiveReadiness: heutiger Eintrag → vorhanden, Score/Components aus heute", () => {
+  const r = getSubjectiveReadiness(
+    [{ date: TODAY_SUBJ, energy: 4, muscleFeel: 4, mood: 4 }],
+    TODAY_SUBJ
+  );
+  assert.equal(r.freshness, "vorhanden");
+  assert.equal(r.score, 4.0);
+  assert.equal(r.level, "green");
+  assert.deepEqual(r.components, { energy: 4, muscleFeel: 4, mood: 4 });
+});
+
+test("getSubjectiveReadiness: nur gestriger Eintrag (exakt 1 Tag) → veraltet, Score trotzdem berechnet", () => {
+  const r = getSubjectiveReadiness(
+    [{ date: YESTERDAY_SUBJ, energy: 2, muscleFeel: 2, mood: 2 }],
+    TODAY_SUBJ
+  );
+  assert.equal(r.freshness, "veraltet");
+  assert.equal(r.score, 2.0);
+  assert.equal(r.level, "red");
+});
+
+test("getSubjectiveReadiness: heutiger Eintrag hat Vorrang vor gestrigem, auch wenn beide vorhanden sind", () => {
+  const r = getSubjectiveReadiness(
+    [
+      { date: YESTERDAY_SUBJ, energy: 1, muscleFeel: 1, mood: 1 },
+      { date: TODAY_SUBJ, energy: 5, muscleFeel: 5, mood: 5 },
+    ],
+    TODAY_SUBJ
+  );
+  assert.equal(r.freshness, "vorhanden");
+  assert.equal(r.score, 5.0);
+});
+
+test("getSubjectiveReadiness: Grenzfall greenMin (4.0) exakt erreichbar → green ab 4.0, darunter yellow", () => {
+  const atGreen = getSubjectiveReadiness(
+    [{ date: TODAY_SUBJ, energy: 3, muscleFeel: 4, mood: 5 }], // (3+4+5)/3 = 4.00
+    TODAY_SUBJ
+  );
+  assert.equal(atGreen.score, 4.0);
+  assert.equal(atGreen.level, "green");
+
+  const belowGreen = getSubjectiveReadiness(
+    [{ date: TODAY_SUBJ, energy: 3, muscleFeel: 4, mood: 4 }], // (3+4+4)/3 = 3.67
+    TODAY_SUBJ
+  );
+  assert.equal(belowGreen.score, 3.67);
+  assert.equal(belowGreen.level, "yellow");
+});
+
+test("getSubjectiveReadiness: Grenzfall yellowMin (2.75) — nächstgelegene erreichbare Werte beidseits der Schwelle", () => {
+  const aboveYellow = getSubjectiveReadiness(
+    [{ date: TODAY_SUBJ, energy: 3, muscleFeel: 3, mood: 3 }], // 3.00 ≥ 2.75
+    TODAY_SUBJ
+  );
+  assert.equal(aboveYellow.score, 3.0);
+  assert.equal(aboveYellow.level, "yellow");
+
+  const belowYellow = getSubjectiveReadiness(
+    [{ date: TODAY_SUBJ, energy: 3, muscleFeel: 3, mood: 2 }], // 2.67 < 2.75
+    TODAY_SUBJ
+  );
+  assert.equal(belowYellow.score, 2.67);
+  assert.equal(belowYellow.level, "red");
+});
+
+test("getSubjectiveReadiness: fehlende Components werden aus dem gewichteten Mittel ausgeschlossen, nicht als 0 gewertet", () => {
+  const r = getSubjectiveReadiness(
+    [{ date: TODAY_SUBJ, energy: 5, muscleFeel: null, mood: 5 }],
+    TODAY_SUBJ
+  );
+  assert.equal(r.score, 5.0); // Mittel aus energy+mood allein, nicht (5+0+5)/3
+  assert.equal(r.level, "green");
+  assert.deepEqual(r.components, { energy: 5, muscleFeel: null, mood: 5 });
+});
+
+test("getSubjectiveReadiness: Eintrag ganz ohne Werte (alle Components null) → score/level null trotz 'vorhanden'", () => {
+  const r = getSubjectiveReadiness(
+    [{ date: TODAY_SUBJ, energy: null, muscleFeel: null, mood: null }],
+    TODAY_SUBJ
+  );
+  assert.equal(r.freshness, "vorhanden"); // Zeile existiert für heute
+  assert.equal(r.score, null);
+  assert.equal(r.level, null);
 });

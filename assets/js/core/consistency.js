@@ -10,11 +10,7 @@
 
 import { rideLoad } from "./loadguard.js";
 import { mondayOf, weeklyStreak } from "./adherence.js";
-
-/** Lokales ISO-Datum ohne UTC-Verschiebung @param {Date} d */
-function isoLocal(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
+import { addDaysISO } from "./format.js";
 
 /**
  * Wochenweise Trainingskonsistenz ab der ersten aktiven Woche bis heute.
@@ -64,9 +60,7 @@ export function weeklyConsistency(rides, todayISO) {
       load: Math.round(b.load),
       km: Math.round(b.km * 10) / 10,
     });
-    const dt = new Date(cursor + "T00:00:00");
-    dt.setDate(dt.getDate() + 7);
-    cursor = isoLocal(dt);
+    cursor = addDaysISO(cursor, 7);
     guard++;
   }
 

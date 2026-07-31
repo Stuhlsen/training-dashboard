@@ -36,8 +36,11 @@ import {
   mapActivity2,
   buildEffectivePlanIndex,
   classifyCooldowns,
+  logRpeFeelCoverage,
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
+import { loadFtpHistory } from "./lib/ftp-history.js";
+import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
 import {
   mapWellnessList,
   latestWeight,
@@ -52,9 +55,11 @@ import {
   loadSubjective,
   loadAdjustments,
   loadAdjustments2,
+  loadIntervalBlocks,
   writeOutput,
   OUT_FILE,
   OUT_FILE_2,
+  INTERVAL_BLOCKS_FILE,
 } from "./lib/output.js";
 
 requireEnv(["NOTION_KEY", "DB_ID"]);
@@ -63,6 +68,11 @@ const ATHLETE_2_NAME = "hc_diZee"; // Anzeigename (Pseudonym) — keine Klarname
 const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
 
 async function main() {
+  // Blockerkennung-Cache (scripts/lib/interval-blocks.js) — einmal geladen,
+  // von beiden Athleten ergänzt, einmal am Ende geschrieben. Bereits
+  // gecachte Aktivitäten werden nicht erneut abgerufen (unveränderlich).
+  const intervalBlockCache = loadIntervalBlocks();
+
   // 1. Plan 1: komplett aus Notion
   const plan1 = await queryNotionPlan1();
 
@@ -123,16 +133,43 @@ async function main() {
     log.info(`📋 subjective.json: ${Object.keys(subjective).length} Einträge`);
     log.info(`📋 adjustments.json: ${Object.keys(adjustments).length} Anpassungen`);
 
+    // Zeitpunktbezogene FTP-Historie (Migration 0009) — einmal für den
+    // ganzen Lauf laden, ftpAt() löst sie pro Fahrt gegen deren Datum auf
+    // (map-activity.js). Ohne SUPABASE_*-Secrets liefert loadFtpHistory()
+    // [] (kein Fehler) -> ftpAt() fällt für jede Fahrt auf DEFAULT_FTP
+    // zurück, exakt das bisherige Verhalten.
+    const ftpHistory = await loadFtpHistory({
+      email: ENV.SUPABASE_ATHLETE1_EMAIL,
+      password: ENV.SUPABASE_ATHLETE1_PASSWORD,
+    });
+    log.info(
+      ftpHistory.length
+        ? `✅ FTP-Historie: ${ftpHistory.length} Einträge (${ftpHistory.map((h) => `${h.ftpWatt}W ab ${h.validFrom}`).join(", ")})`
+        : `ℹ️  FTP-Historie: keine Einträge/Credentials — Fallback auf DEFAULT_FTP (${DEFAULT_FTP}W) für alle Fahrten`
+    );
+
+    // Blockerkennung (Fetch/Cache-Zwischenschritt, v2-Ist-Typerkennung) —
+    // ?intervals=true pro (noch nicht gecachter) Aktivität, throttled.
+    // Nutzt dieselbe ftpHistory wie oben für die Schwelle je Fahrtdatum.
+    await updateIntervalBlockCache(activities, intervalBlockCache, {
+      apiKey: ENV.INTERVALS_KEY,
+      ftpHistory,
+      fallbackFtp: DEFAULT_FTP,
+    });
+
     // Kartentausch/-verschiebung berücksichtigen: ohne effectivePlan würde
     // mapActivity() nach einer Verschiebung im Planungstab weiter die
     // ursprüngliche (unverschobene) Plankarte für ein Datum liefern.
     const effectivePlan = buildEffectivePlanIndex(PLANNED_SESSIONS, adjustments);
-    plan2 = activities.map((act) => mapActivity(act, wellness, subjective, weatherMap, effectivePlan));
+    plan2 = activities.map((act) =>
+      mapActivity(act, wellness, subjective, weatherMap, effectivePlan, ftpHistory, intervalBlockCache)
+    );
     // Ausrollen nach einem harten Workout (gleicher Tag, kurz, deutlich
     // niedrigere Leistung) erbt sonst dieselbe Tages-Plankarte — analog zum
     // Fix für Athlet 2 weiter unten.
-    classifyCooldowns(plan2, DEFAULT_FTP);
+    classifyCooldowns(plan2, ftpHistory, DEFAULT_FTP);
     log.info(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
+    logRpeFeelCoverage(plan2, "Athlet 1");
 
     // Wellness-Einträge als eigenständige Liste (Schlaf-Chart, Readiness,
     // Regeneration & Körper) — Mapping zentral in lib/wellness.js
@@ -188,7 +225,7 @@ async function main() {
     }
   });
 
-  const plans = [...new Set(rides.map((r) => r.plan))].filter(Boolean).sort();
+  const dataSources = [...new Set(rides.map((r) => r.dataSource))].filter(Boolean).sort();
 
   // Planungs-Forecast serverseitig laden (Standort bleibt im Secret, nie im Frontend)
   const planningForecast = await getPlanningForecast();
@@ -203,7 +240,7 @@ async function main() {
     plannedSessions: Object.entries(PLANNED_SESSIONS).map(([date, s]) => ({ date, ...s })),
     adjustments: loadAdjustments(),
     forecast: planningForecast || {},
-    plans,
+    dataSources,
     updated: new Date().toISOString(),
     source: ENV.INTERVALS_KEY ? "notion+intervals" : "notion",
     count: rides.length,
@@ -212,7 +249,7 @@ async function main() {
   writeOutput(OUT_FILE, output);
 
   log.info(`\n✅ ${rides.length} Fahrten → ${OUT_FILE}`);
-  log.info(`   Pläne: ${plans.join(", ")}`);
+  log.info(`   Datenquellen: ${dataSources.join(", ")}`);
   log.info(
     `   Zeitraum: ${rides[0]?.dateISO || "?"} bis ${rides[rides.length - 1]?.dateISO || "?"}`
   );
@@ -272,12 +309,37 @@ async function main() {
     log.info(`📋 adjustments-2.json: ${Object.keys(adjustments2).length} Anpassungen`);
     const effectivePlan2 = buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2);
 
+    // Kein Sonderfall für Athlet 2: dieselbe generische ftpAt()-Auflösung
+    // wie bei Athlet 1. Pflegt Athlet 2 keine ftp_history (vermutlich der
+    // Fall, kein Ramp-Test-Konzept in derselben Form), liefert
+    // loadFtpHistory() [] und ftpAt() fällt auf estimatedFTP2 zurück —
+    // exakt das bisherige Verhalten, ohne athletenspezifischen Code.
+    const ftpHistory2 = await loadFtpHistory({
+      email: ENV.SUPABASE_ATHLETE2_EMAIL,
+      password: ENV.SUPABASE_ATHLETE2_PASSWORD,
+    });
+    log.info(
+      ftpHistory2.length
+        ? `✅ FTP-Historie (${ATHLETE_2_NAME}): ${ftpHistory2.length} Einträge`
+        : `ℹ️  FTP-Historie (${ATHLETE_2_NAME}): keine Einträge/Credentials — Fallback auf ${estimatedFTP2}W für alle Fahrten`
+    );
+
+    // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1 (s. dort).
+    await updateIntervalBlockCache(activities2, intervalBlockCache, {
+      apiKey: ENV.INTERVALS_KEY_2,
+      ftpHistory: ftpHistory2,
+      fallbackFtp: estimatedFTP2,
+    });
+
     const rides2 = activities2
-      .map((act) => mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2))
+      .map((act) =>
+        mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2, intervalBlockCache)
+      )
       .sort((a, b) => a.date.localeCompare(b.date));
     // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
     // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.
-    classifyCooldowns(rides2, estimatedFTP2);
+    classifyCooldowns(rides2, ftpHistory2, estimatedFTP2);
+    logRpeFeelCoverage(rides2, ATHLETE_2_NAME);
 
     const wellnessList2 = mapWellnessList(wellness2);
     logWellnessCoverage(wellnessList2, ATHLETE_2_NAME);
@@ -308,6 +370,9 @@ async function main() {
   } else {
     log.info(`\n⏭️  Zweiter Athlet: kein API-Key gesetzt, übersprungen`);
   }
+
+  writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);
+  log.info(`✅ ${Object.keys(intervalBlockCache).length} Aktivitäten im Blockerkennung-Cache → ${INTERVAL_BLOCKS_FILE}`);
 
   log.summary();
   if (log.counts.errors > 0) process.exit(1);

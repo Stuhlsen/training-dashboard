@@ -39,6 +39,16 @@ export const diffDays = (aISO, bISO) => {
   return Math.round((a.getTime() - b.getTime()) / 86400000);
 };
 
+/** Verschiebt ein ISO-Datum um n Tage (lokal, kein UTC-Versatz) — Gegenstück
+ *  zu diffDays. Kalendertag-basiert (setDate), nicht Millisekunden-Subtraktion
+ *  — robust gegen DST-Umstellungstage.
+ *  @param {string} iso @param {number} n @returns {string} */
+export const addDaysISO = (iso, n) => {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return localISODate(d);
+};
+
 /** ISO-Datum (2026-03-24) → DD.MM — kompaktes Format für Achsenbeschriftungen
  *  (Jahr weggelassen, da im Chart-Kontext meist eindeutig).
  *  @param {string|null|undefined} iso @returns {string} */

@@ -1,11 +1,15 @@
 /* ============================================================
    UI/PLANNED.JS — Geplante Fahrten Tab
-   - Zeigt alle geplanten Sessions aus plannedSessions
+   - Zeigt alle Trainingskarten aus state/plan-cards.js (Supabase
+     plan_cards, migriert per scripts/migrate-plan-to-supabase.js —
+     s. docs/phase-3-konzept-planungstab.md §8.4)
    - Abgleich mit tatsächlichen Fahrten (erledigt/ausstehend)
    - Wetter-Forecast serverseitig berechnet (Data.forecast)
-   - Push strukturierter Workouts zu intervals.icu
-   - Session-Verschiebung via adjustments.json
-   GitHub-Zugriff läuft über ui/github-client.js (Result-Typ).
+   - Push strukturierter Workouts zu intervals.icu (Result-Typ)
+   - Verschieben/Ausfallen/Rückgängig schreiben direkt gegen plan_cards
+     (state/plan-cards.js) — verlangt einen eingeloggten Supabase-User
+     (Athlet oder Trainer, RLS), anders als der frühere GitHub-Commit-
+     Schreibpfad über adjustments.json (archiviert, s. docs/offene-punkte.md)
 
    Athlet 2 (eigener Plan seit GFNY Bremen 2026) nutzt denselben Tab
    read-only: _canEdit() gated Verschieben/Ausfallen/Wahoo-Push auf
@@ -13,16 +17,37 @@
    Schreibaktionen, keine Wahoo-Erwähnung im Hero-Text.
    ============================================================ */
 
-import { fmt, weatherIcon, windDir } from "../core/format.js";
+import { fmt, weatherIcon, windDir, localISODate } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
-import { applyAdjustment } from "../core/planning.js";
+import { conflictsForCard, horizonRaceEvent, tsbOnDate } from "../core/plan-feedback.js";
+import { canDragCard } from "../core/plan-drag.js";
+import { KNOWN_PLAN_TYPES } from "../core/plan-config.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
-import { el } from "./dom.js";
-import { fetchRawJson, writeRepoFile } from "./github-client.js";
-import { log } from "./log.js";
+import {
+  loadPlanCards,
+  getState as getPlanCardsState,
+  movePlanCard,
+  cancelPlanCard,
+  undoAdjustment,
+  pushPlanCard,
+} from "../state/plan-cards.js";
+import { getState as getEventsState } from "../state/events.js";
+import { getState as getTrainerViewState, onTrainerViewChange } from "../state/trainer-view.js";
+import { createTrainerProposal } from "../state/proposals.js";
+import { moveProposalArgs, cancelProposalArgs } from "../core/proposal-payload.js";
+import { isCoach } from "../state/session.js";
+import { el, escapeHtml } from "./dom.js";
+import { weekDisplayLabels } from "./charts/base.js";
 import { activateTab } from "./nav.js";
 import { Table, Subjective } from "./table.js";
+import { openPlanCardDialog } from "./plan-card-dialog.js";
+import { initPlanDrag, cancelActiveDrag } from "./plan-drag.js";
+
+/** Re-export für ui/plan-card-dialog.js (Typ-Select) — Liste selbst lebt in
+ *  core/plan-config.js, weil core/proposal-validator.js sie ebenfalls braucht
+ *  und core/ nicht aus ui/ importieren darf (Schichtenregel). */
+export const TYP_OPTIONS = KNOWN_PLAN_TYPES;
 
 /** Nur der primäre Athlet (Athlet 1) darf Verschieben/Ausfallen/Wahoo-Push
  *  auslösen — Athlet 2 hat seit GFNY Bremen 2026 zwar einen eigenen Plan,
@@ -31,66 +56,29 @@ function _canEdit() {
   return Data.activeAthleteId === CONFIG.primaryAthleteId;
 }
 
-/** adjustments.json-Pfad je aktivem Athleten — sonst würde der Cache-
- *  Bypass-Fetch in Adjustments.load() immer Athlet 1s Datei laden, auch
- *  wenn Athlet 2 aktiv ist. */
-function _adjustmentsPath() {
-  return _canEdit() ? "data/adjustments.json" : "data/adjustments-2.json";
+/** Ist der eingeloggte User Trainer des angezeigten Athleten UND steht der
+ *  Speichern-Modus auf "Vorschlag"? Steuert, ob Verschieben/Ausfallen einen
+ *  proposals-Eintrag erzeugen statt plan_cards direkt zu ändern — derselbe
+ *  Umschalter, den ui/plan-card-dialog.js für Anlegen/Bearbeiten bereits
+ *  respektiert (Trainer-Sicht-Konzept §3/T2: "ändern/verschieben" ist
+ *  toggle-gesteuert, nur Anlegen/Löschen ist immer Vorschlag — Streichen/
+ *  Ausfallen zählt hier zu "ändern", nicht zu "Löschen", s. Bugfix-Notiz
+ *  docs/offene-punkte.md). Für den Athleten selbst (isCoach() === false)
+ *  immer false — der Umschalter betrifft ausschließlich Trainer-Aktionen. */
+function _isTrainerProposalMode() {
+  const { trainerContext, saveMode } = getTrainerViewState();
+  return isCoach() && trainerContext.isTrainer && saveMode === "proposal";
 }
 
-// === Adjustments GitHub-Sync ===
-export const Adjustments = {
-  _data: null,
-  // Athlet, für den _data zuletzt geladen wurde — ohne diesen Tracker
-  // bliebe nach einem Athletenwechsel die alte Datei im Speicher (siehe
-  // render(): _data === null entscheidet sonst allein über einen Reload).
-  _loadedFor: null,
-
-  async load() {
-    // raw.githubusercontent.com umgeht den GitHub Pages CDN-Cache
-    const remote = await fetchRawJson(_adjustmentsPath());
-    this._data = { ...(Data.adjustments || {}), ...remote };
-    this._loadedFor = Data.activeAthleteId;
-    return this._data;
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async cancel(origDate, reason) {
-    if (!this._data) this._data = {};
-    this._data[origDate] = {
-      cancelled: true,
-      reason: reason || "",
-      savedAt: new Date().toISOString(),
-    };
-    Data.adjustments = this._data;
-    return await this._write(`plan: ${origDate} ausgefallen${reason ? " (" + reason + ")" : ""}`);
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async save(origDate, movedTo, reason) {
-    if (!this._data) this._data = {};
-    this._data[origDate] = { movedTo, reason: reason || "", savedAt: new Date().toISOString() };
-    Data.adjustments = this._data;
-    return await this._write(`plan: ${origDate} → ${movedTo}${reason ? " (" + reason + ")" : ""}`);
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async remove(origDate) {
-    if (!this._data?.[origDate]) return { ok: true };
-    delete this._data[origDate];
-    Data.adjustments = this._data;
-    return await this._write(`plan: Verschiebung ${origDate} rückgängig`);
-  },
-
-  /** @returns {Promise<import("../types.js").Result>} */
-  async _write(message) {
-    // Athletenabhängig wie load() (_adjustmentsPath()) — auch wenn die
-    // Schreibaktionen aktuell nur über per _canEdit() ausgeblendete Buttons
-    // erreichbar sind: kein hartcodierter Pfad, der Athlet 2s Daten in
-    // Athlet 1s adjustments.json schreiben könnte.
-    return await writeRepoFile(_adjustmentsPath(), message, this._data);
-  },
-};
+/* Nach-Drop-Feedback (Phase 3, Schritt 5): Delta-Zeile oberhalb der
+   Kartenliste, persistent bis manuell geschlossen (kein Auto-Dismiss).
+   Modul-State statt Teil von state/plan-cards.js, weil sie NUR eine
+   Wirkung der zuletzt in DIESEM Tab ausgelösten Aktion zeigt (Vorher/
+   Nachher-Vergleich), nicht den laufend aktuellen Prognose-Stand — s.
+   Planned._recordDelta(). Wird bei einem Athletenwechsel verworfen
+   (an einen fremden Athleten/Event gebundene Werte wären dort irreführend). */
+let deltaBanner = null;
+let deltaBannerAthleteId = null;
 
 export const Planned = {
   /* Wird von app.js gesetzt: refresht Hero/Wochenrückblick/Analyse
@@ -179,120 +167,72 @@ export const Planned = {
     return Data.forecast || {};
   },
 
-  /* ── Basic-Auth-Header fürs intervals.icu-API (Events GET + POST) ──── */
-  _intervalsAuthHeader(token) {
-    return { Authorization: "Basic " + btoa("API_KEY:" + token) };
+  /* ── Nach-Drop-Feedback: Delta-Zeile ─────────────────────────
+     Vergleicht die Projektion VOR einer Aktion mit dem Stand danach
+     und merkt sich das Ergebnis für den Banner — nur wenn ein
+     A/B/C-Rennen im Prognosehorizont liegt (Konzept §4). Ohne
+     passendes Event wird ein evtl. vorhandener Banner verworfen: er
+     bezöge sich sonst auf die VORHERIGE Aktion, nicht auf die gerade
+     abgeschlossene. Aufgerufen NACH einer erfolgreichen Karten-
+     Mutation (Move/Drop/Cancel/Anlegen/Bearbeiten), mit der
+     `getPlanCardsState().projection` von UNMITTELBAR VOR der Mutation. */
+  _recordDelta(beforeProjection) {
+    const afterProjection = getPlanCardsState().projection;
+    const events = getEventsState().events;
+    const todayLocal = localISODate();
+    const event = horizonRaceEvent(events, afterProjection, todayLocal);
+    const before = event ? tsbOnDate(beforeProjection, event.eventDate) : null;
+    const after = event ? tsbOnDate(afterProjection, event.eventDate) : null;
+    deltaBanner = event && before != null && after != null ? { event, before, after } : null;
   },
 
-  /* ── Prüfen, ob für dieses Datum bereits ein Workout-Event existiert ──
-     Idempotenz-Guard vor dem POST: verhindert Duplikate bei erneutem Push
-     (Retry nach Timeout, mehrfacher Klick). intervals.icu kennt keine
-     externe Referenz-ID im Event-Payload — daher Name+Datum+Beschreibung
-     als Match (nicht nur Name: sonst würde ein Push mit geändertem
-     Workout-Inhalt am selben Datum fälschlich als "bereits vorhanden"
-     übersprungen, statt den aktualisierten Inhalt zu pushen). */
-  async _findExistingEvent(date, name, description, token, athleteId) {
-    const res = await fetch(
-      `https://intervals.icu/api/v1/athlete/${athleteId}/events?oldest=${date}&newest=${date}&category=WORKOUT`,
-      { headers: this._intervalsAuthHeader(token) }
-    );
-    if (!res.ok) {
-      const err = new Error(`intervals.icu Fehler ${res.status} beim Duplikat-Check`);
-      err.code = "HTTP";
-      throw err;
-    }
-    const events = await res.json();
-    return Array.isArray(events)
-      ? events.some((e) => e.name === name && e.description === description)
-      : false;
+  /* ── Nach-Drop-Feedback: Delta-Banner rendern ────────────────
+     Persistent bis manuell geschlossen (kein Auto-Dismiss/Toast) —
+     Schließen setzt deltaBanner zurück (Klick-Handler in render()). */
+  _renderDeltaBanner() {
+    if (!deltaBanner) return "";
+    const { event, before, after } = deltaBanner;
+    const worse = after < before;
+    const label = event.title
+      ? `${escapeHtml(event.title)}, ${this._fmtDate(event.eventDate)}`
+      : this._fmtDate(event.eventDate);
+    return `
+      <div class="planned-delta-banner">
+        <div class="planned-delta-banner-text">
+          <span>TSB am Eventtag (${label}): <span class="planned-delta-old">${Math.round(before)}</span> → <span class="planned-delta-new" style="color:${worse ? "var(--gold)" : "var(--text)"}">${Math.round(after)}</span></span>
+          <span class="planned-delta-hint">nur Information, keine Blockade</span>
+        </div>
+        <button class="planned-delta-close" title="Schließen">✕</button>
+      </div>`;
   },
 
-  /* ── Workout zu intervals.icu pushen ───────────────────────── */
-  /** @returns {Promise<import("../types.js").Result>} */
-  async _pushWorkout(session, token, athleteId) {
-    const w = session.workout;
-    if (!w)
-      return {
-        ok: false,
-        error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" },
-      };
-    // intervals.icu-Workout-Text braucht %FTP (w.pct) — nicht alle Workout-
-    // Objekte tragen das (z.B. Athlet 2s watts-only Sessions in
-    // plan-athlete2.js; Push ist dort aber ohnehin über _canEdit() versteckt).
-    if (w.intervals && w.duration && !w.pct)
-      return {
-        ok: false,
-        error: { code: "NO_DATA", message: "Workout ohne %FTP-Angabe (pct) — Push nicht möglich" },
-      };
-
-    // intervals.icu erwartet KEIN steps-JSON im Event-Payload, sondern
-    // parst die Workout-Struktur selbst aus einer Klartext-Syntax im
-    // description-Feld (Format: "Xm Y% Zrpm", Blöcke mit Leerzeile getrennt,
-    // "Main Set Nx" für Wiederholungen). Siehe intervals.icu Workout-Builder-Doku.
-    const lines = [];
-    lines.push("Warmup");
-    lines.push(`- ${w.warmup}m 60% 85rpm`);
-    lines.push("");
-
-    if (w.intervals && w.duration) {
-      lines.push(`Main Set ${w.intervals}x`);
-      lines.push(`- ${w.duration}m ${w.pct[0]}-${w.pct[1]}% 90rpm`);
-      if (w.rest) lines.push(`- ${w.rest}m 50% 80rpm`);
-      lines.push("");
-    }
-
-    lines.push("Cooldown");
-    lines.push(`- ${w.cooldown}m 50%-40% 80rpm`);
-
-    const workoutText = lines.join("\n");
-    const label = w.label + (session.details ? `\n${session.details}` : "");
-
-    // Workout-Objekt für intervals.icu
-    const workout = {
-      category: "WORKOUT",
-      name: session.name,
-      description: `${label}\n\n${workoutText}`,
-      type: "Ride",
-      start_date_local: session.date + "T07:00:00",
-    };
-
-    try {
-      // Idempotenz-Guard: ohne diese Prüfung legt ein Retry (Timeout, Doppel-
-      // klick) ein zusätzliches Duplikat-Event an, weil intervals.icu selbst
-      // keine Dedup-Prüfung übers Event-API macht.
-      const alreadyExists = await this._findExistingEvent(
-        session.date,
-        session.name,
-        workout.description,
-        token,
-        athleteId
-      );
-      if (alreadyExists) {
-        log.warn("Wahoo-Push übersprungen (existiert bereits):", session.date, session.name);
-        return { ok: true, skipped: true };
-      }
-
-      const res = await fetch(`https://intervals.icu/api/v1/athlete/${athleteId}/events`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...this._intervalsAuthHeader(token),
-        },
-        body: JSON.stringify(workout),
+  /* ── Konflikt-Badges + Push-Warnung an einer Karte ───────────
+     Eigene Pill-Zeile unter .planned-card-header (nicht in der
+     Actions-Leiste, nicht im border-left) — pro Karte alle passenden
+     Konflikte aus getState().conflicts (warning vor info, s.
+     core/plan-feedback.js::conflictsForCard) plus, ans Ende gehängt,
+     der Push-Hinweis, solange pushed_external_id gesetzt ist (Konzept
+     §5 — kein Blocker, bleibt bis zum nächsten Push stehen). */
+  _renderCardBadges(session) {
+    const items = conflictsForCard(getPlanCardsState().conflicts, session.id).map((c) => ({
+      severity: c.severity,
+      text: c.message,
+    }));
+    if (session.pushedExternalId) {
+      items.push({
+        severity: "info",
+        text: "📤 Bereits auf Wahoo gepusht — wird beim nächsten Push aktualisiert.",
       });
-      if (!res.ok) {
-        const txt = await res.text();
-        log.error("Wahoo-Push fehlgeschlagen:", session.date, session.name, res.status, txt);
-        return {
-          ok: false,
-          error: { code: "HTTP", message: `intervals.icu Fehler ${res.status}: ${txt}` },
-        };
-      }
-      return { ok: true };
-    } catch (e) {
-      log.error("Wahoo-Push fehlgeschlagen:", session.date, session.name, e.message);
-      return { ok: false, error: { code: e.code || "NETWORK", message: e.message, cause: e } };
     }
+    if (!items.length) return "";
+    return `<div class="planned-conflict-badges">
+      ${items
+        .map(
+          (i) =>
+            `<div class="planned-conflict-badge planned-conflict-badge--${i.severity}">${escapeHtml(i.text)}</div>`
+        )
+        .join("")}
+    </div>`;
   },
 
   /* ── Render ────────────────────────────────────────────────── */
@@ -300,33 +240,57 @@ export const Planned = {
     const container = el("planned-container");
     if (!container) return;
 
+    // Ein laufender Drag überlebt den innerHTML-Austausch nicht (die
+    // gezogene Karte wird unter dem Ghost weggerissen). Betrifft u.a. den
+    // Athletenwechsel mitten im Drag — Konzept §7: abbrechen, keine
+    // Fremd-Karte schreiben.
+    cancelActiveDrag();
+
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
 
-    // Adjustments + Forecast parallel laden (Adjustments nur beim ersten Render
-    // bzw. erneut nach einem Athletenwechsel — s. Adjustments._loadedFor)
+    // Karten + Forecast parallel laden (Karten nur beim ersten Render bzw.
+    // erneut nach einem Athletenwechsel — s. loadedForAthleteId; nach einem
+    // Move/Cancel/Undo ist der lokale State schon aktuell, kein Reload nötig).
+    const cardsBefore = getPlanCardsState();
     const [forecast] = await Promise.all([
       this._loadForecast(),
-      Adjustments._data === null || Adjustments._loadedFor !== Data.activeAthleteId
-        ? Adjustments.load()
-        : Promise.resolve(Adjustments._data),
+      cardsBefore.loadedForAthleteId === Data.activeAthleteId && !cardsBefore.loading
+        ? Promise.resolve(cardsBefore)
+        : loadPlanCards(Data.activeAthleteId),
     ]);
+
+    // Delta-Banner gehört zur zuletzt in DIESEM Tab ausgelösten Aktion —
+    // bei einem Athletenwechsel bezöge er sich sonst auf einen fremden
+    // Athleten/Event, deshalb verwerfen statt stehen lassen.
+    if (deltaBannerAthleteId !== Data.activeAthleteId) {
+      deltaBanner = null;
+      deltaBannerAthleteId = Data.activeAthleteId;
+    }
 
     // Bereits absolvierte Daten
     const doneDates = new Set(rides.map((r) => r.date));
-    const today = new Date().toISOString().split("T")[0];
+    // localISODate() (core/format.js) statt new Date().toISOString() — UTC
+    // zeigt in deutscher Sommerzeit zwischen 00:00–02:00 Uhr lokal noch den
+    // Vortag, was eine Karte von gestern fälschlich unter "Ausstehend" statt
+    // "Verpasst" einsortiert hätte (s. docs/offene-punkte.md). Dieselbe
+    // Variable steuert jetzt sowohl die Abschnitts-Filterung unten als auch
+    // die Drag-Regeln (_renderCard/plan-drag.js), die bereits vorher korrekt
+    // localISODate() nutzten.
+    const todayLocal = localISODate();
 
-    // Sessions mit Adjustments anwenden — Ruhetage (Athlet 2) werden im
-    // Planungstab nicht angezeigt, weder als anstehend noch als "verpasst"
-    // (kein Ride zu erwarten) — reine Anzeigefilterung, Data.plannedSessions
-    // bleibt vollständig für andere Konsumenten (z.B. Gesamtzahl-Sessions
-    // an anderer Stelle, "nächste Belastungseinheit" in der Recovery-Karte).
-    const allSessions = Data.plannedSessions
-      .filter((s) => s.typ !== "Ruhetag")
-      .map((s) => applyAdjustment(s, Adjustments._data));
+    // plan_cards sind bereits im "aufgelösten" Zustand (Verschiebung/Ausfall
+    // schon eingerechnet, s. state/plan-cards.js). Ruhetage (Athlet 2) werden
+    // im Planungstab nicht angezeigt, weder als anstehend noch als "verpasst"
+    // (kein Ride zu erwarten) — reine Anzeigefilterung, getPlanCardsState()
+    // bleibt vollständig für andere Konsumenten (z.B. "nächste Belastungs-
+    // einheit" in der Recovery-Karte).
+    const allSessions = getPlanCardsState().cards.filter((s) => s.typ !== "Ruhetag");
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
-      .filter((s) => (s.date >= today || s.originalDate) && !doneDates.has(s.date) && !s.cancelled)
+      .filter(
+        (s) => (s.date >= todayLocal || s.originalDate) && !doneDates.has(s.date) && !s.cancelled
+      )
       .sort((a, b) => a.date.localeCompare(b.date));
 
     // Bereits absolvierte Sessions (Ride mit passendem Datum vorhanden)
@@ -336,13 +300,24 @@ export const Planned = {
 
     // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben
     const missedSessions = allSessions
-      .filter((s) => s.date < today && !doneDates.has(s.date) && !s.cancelled && !s.originalDate)
+      .filter(
+        (s) => s.date < todayLocal && !doneDates.has(s.date) && !s.cancelled && !s.originalDate
+      )
       .sort((a, b) => b.date.localeCompare(a.date));
 
     // Ausgefallene Sessions
     const cancelledSessions = allSessions
       .filter((s) => s.cancelled)
       .sort((a, b) => b.date.localeCompare(a.date));
+
+    // Ladefehler explizit von "alles erledigt" unterscheiden — sonst sieht
+    // ein fehlgeschlagenes Laden (Supabase nicht erreichbar, Athlet ohne
+    // Account) optisch identisch zu einem vollständig abgeschlossenen Plan aus.
+    const cardsError = getPlanCardsState().error;
+    if (cardsError && !allSessions.length) {
+      container.innerHTML = `<p class="planned-empty">⚠️ Trainingsplan konnte nicht geladen werden: ${cardsError.message}</p>`;
+      return;
+    }
 
     if (!sessions.length && !doneSessions.length) {
       container.innerHTML = `<p class="planned-empty">Alle geplanten Sessions sind abgeschlossen 🎉</p>`;
@@ -358,11 +333,11 @@ export const Planned = {
     const missedCount = missedSessions.length;
     const pct = Math.round((doneCount / totalSessions) * 100);
     const editable = _canEdit();
-    const currentWeek = sessions[0]?.week?.replace("P2-", "") || (editable ? "W12" : "–");
+    const currentWeek = sessions[0]?.week ? weekDisplayLabels([sessions[0].week])[0] : "–";
     const weeksLeft = new Set(sessions.map((s) => s.week)).size;
-    const heroTitle = editable ? "Trainingsplan Plan 2" : "Trainingsplan — GFNY Bremen 2026";
+    const heroTitle = editable ? "Trainingsplan" : "Trainingsplan — GFNY Bremen 2026";
     const heroDesc = editable
-      ? "Alle geplanten Trainingseinheiten bis zum FTP-Retest in W12. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt in intervals.icu erfasst ist. Intervall-Workouts können direkt auf den Wahoo ELEMNT Roam gepusht werden."
+      ? "Alle geplanten Trainingseinheiten bis zum FTP-Retest in der Taper-Woche. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt in intervals.icu erfasst ist. Intervall-Workouts können direkt auf den Wahoo ELEMNT Roam gepusht werden."
       : "Alle geplanten Trainingseinheiten im Überblick. Absolvierte Sessions werden automatisch erkannt sobald die Fahrt erfasst ist.";
 
     // Hero + Fortschrittsanzeige
@@ -371,6 +346,7 @@ export const Planned = {
         <div class="planned-hero-text">
           <h2 class="planned-hero-title">${heroTitle}</h2>
           <p class="planned-hero-desc">${heroDesc}</p>
+          ${editable ? `<button class="planned-add-card-btn">➕ Karte</button>` : ""}
         </div>
         <div class="planned-progress">
           <div class="planned-progress-stats">
@@ -416,6 +392,8 @@ export const Planned = {
         </div>
       </div>`;
 
+    html += this._renderDeltaBanner();
+
     // Nach Wochen gruppieren
     const weekMap = {};
     for (const s of sessions) {
@@ -432,46 +410,48 @@ export const Planned = {
         html += `
           <div class="planned-week">
             <div class="planned-week-header">
-              <span class="planned-week-badge" style="background:${phaseColor}22; color:${phaseColor}; border-color:${phaseColor}44">${week.replace("P2-", "")}</span>
+              <span class="planned-week-badge" style="background:${phaseColor}22; color:${phaseColor}; border-color:${phaseColor}44">${weekDisplayLabels([week])[0]}</span>
               <span class="planned-week-phase">${phase}</span>
             </div>
             <div class="planned-cards">
-              ${wSessions.map((s) => this._renderCard(s, forecast, false)).join("")}
+              ${wSessions.map((s) => this._renderCard(s, forecast, false, todayLocal)).join("")}
             </div>
           </div>`;
       }
     }
 
-    // Erledigte Sessions — Plan 1 kompakt, Plan 2 als vollständige Vergleichskarte.
-    // Athlet 2 hat kein Plan-1/2-Unterscheidung (ein einziger, telemetrie-
-    // reicher Plan aus intervals.icu) — dort bekommen alle erledigten
-    // Sessions die volle Vergleichskarte.
-    let doneP2, doneP1;
+    // Erledigte Sessions — Notion-Ära kompakt, intervals.icu-Ära als
+    // vollständige Vergleichskarte (nur die intervals.icu-Ära hat die
+    // Telemetrie für einen Soll/Ist-Vergleich). Athlet 2 kommt komplett aus
+    // intervals.icu — dort bekommen alle erledigten Sessions die volle
+    // Vergleichskarte.
+    let doneWithTelemetry, doneCompact;
     if (editable) {
-      doneP2 = doneSessions.filter(
+      doneWithTelemetry = doneSessions.filter(
         (s) =>
-          s.plan === "Plan 2" || Data.rides.find((r) => r.date === s.date && r.plan === "Plan 2")
+          s.dataSource === "intervals" ||
+          Data.rides.find((r) => r.date === s.date && r.dataSource === "intervals")
       );
-      doneP1 = doneSessions.filter((s) => !doneP2.includes(s));
+      doneCompact = doneSessions.filter((s) => !doneWithTelemetry.includes(s));
     } else {
-      doneP2 = doneSessions;
-      doneP1 = [];
+      doneWithTelemetry = doneSessions;
+      doneCompact = [];
     }
 
     if (doneSessions.length) {
       html += `<div class="planned-section-title planned-done-title">✅ Absolviert — ${doneSessions.length} Sessions</div>`;
 
-      // Plan 2 — vollständige Vergleichskarten
-      if (doneP2.length) {
+      // intervals.icu-Ära — vollständige Vergleichskarten
+      if (doneWithTelemetry.length) {
         html += `<div class="planned-cards">
-          ${doneP2.map((s) => this._renderDoneCard(s, rides)).join("")}
+          ${doneWithTelemetry.map((s) => this._renderDoneCard(s, rides)).join("")}
         </div>`;
       }
 
-      // Plan 1 — kompakte Liste
-      if (doneP1.length) {
+      // Notion-Ära — kompakte Liste
+      if (doneCompact.length) {
         html += `<div class="planned-done-list">
-          ${doneP1
+          ${doneCompact
             .map(
               (s) => `
             <div class="planned-done-item planned-done-item--link" data-ride-date="${s.date}" title="Im Fahrtenbuch öffnen">
@@ -503,11 +483,12 @@ export const Planned = {
               <span style="font-size:0.7rem;color:var(--gold);margin-left:auto">kein Ride erfasst</span>
               ${
                 editable
-                  ? `<button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
-              <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>`
+                  ? `<button class="planned-cancel-btn" data-id="${s.id}" data-name="${s.name}" style="font-size:0.68rem;padding:2px 8px">❌ Ausgefallen</button>
+              <button class="planned-move-btn" data-id="${s.id}" data-current="${s.date}" style="font-size:0.68rem;padding:2px 8px">📅 Verschieben</button>`
                   : ""
               }
             </div>
+            ${this._renderCardBadges(s)}
           `
             )
             .join("")}
@@ -525,7 +506,7 @@ export const Planned = {
               <span class="planned-done-date">${this._fmtDate(s.date)}</span>
               <span class="planned-done-name">${s.name}</span>
               ${s.cancelReason ? `<span class="planned-cancelled-reason">${s.cancelReason}</span>` : ""}
-              ${editable ? `<button class="planned-undo-btn planned-undo-cancel-btn" data-orig="${s.date}" style="margin-left:auto">↩ Wiederherstellen</button>` : ""}
+              ${editable ? `<button class="planned-undo-btn planned-undo-cancel-btn" data-id="${s.id}" style="margin-left:auto">↩ Wiederherstellen</button>` : ""}
             </div>
           `
             )
@@ -543,17 +524,27 @@ export const Planned = {
     // Wahoo-Push-Duplikate).
     if (!container.dataset.plannedBound) {
       container.dataset.plannedBound = "1";
+      initPlanDrag(container, (cardId, date) => Planned._handleDrop(cardId, date));
       container.addEventListener("click", (e) => {
         const moveBtn = e.target.closest(".planned-move-btn");
         const cancelBtn = e.target.closest(".planned-cancel-btn");
         const pushBtn = e.target.closest(".planned-push-btn");
         const undoBtn = e.target.closest(".planned-undo-btn");
+        const editBtn = e.target.closest(".planned-edit-btn");
+        const addBtn = e.target.closest(".planned-add-card-btn");
+        const deltaCloseBtn = e.target.closest(".planned-delta-close");
         const doneItem = e.target.closest(".planned-done-item--link");
 
         if (moveBtn) Planned._handleMove(moveBtn);
         if (cancelBtn) Planned._handleCancel(cancelBtn);
         if (pushBtn) Planned._handlePush(pushBtn);
         if (undoBtn) Planned._handleUndo(undoBtn);
+        if (editBtn) Planned._handleEdit(editBtn);
+        if (addBtn) openPlanCardDialog(Data.activeAthleteId);
+        if (deltaCloseBtn) {
+          deltaBanner = null;
+          Planned.render(Data.byDate());
+        }
         if (doneItem && !moveBtn && !cancelBtn && !pushBtn && !undoBtn) {
           const date = doneItem.dataset.rideDate;
           if (date) Planned._openInTable(date);
@@ -563,7 +554,10 @@ export const Planned = {
   },
 
   /* ── Einzel-Karte ──────────────────────────────────────────── */
-  _renderCard(s, forecast, done) {
+  /** `todayLocal` kommt aus render() (localISODate) — bewusst durchgereicht
+   *  statt pro Karte neu aus der Uhr gelesen: sonst hätte jede Karte ihre
+   *  eigene Wahrheit darüber, was "heute" ist. */
+  _renderCard(s, forecast, done, todayLocal) {
     const col = this._typColor(s.typ);
     const icon = this._typIcon(s.typ);
     const wd = this._weekday(s.date);
@@ -623,7 +617,25 @@ export const Planned = {
 
     // Workout-Details
     let workoutHtml = "";
-    if (s.workout) {
+    if (s.workout?.blocks) {
+      // Neue, dialog-erzeugte Workout-Form (Karten-CRUD, Schritt 2): frei
+      // getippte Blöcke statt numerischer Struktur — keine Timeline
+      // möglich (kein duration/pct pro Block), stattdessen eine Pill-Reihe
+      // über das bisher ungenutzte .pwb-Pill-Set (planned.css, "Stufe 5").
+      // WU/CD bekommen ein Kurz-Präfix, Intervall-Pills zeigen den Freitext
+      // direkt (z.B. "4x8' SS 84–97%") ohne Präfix.
+      const PREFIX = { warmup: "WU · ", cooldown: "CD · ", interval: "" };
+      workoutHtml = `<div class="planned-workout-detail">
+        <div class="planned-workout-blocks">
+          ${s.workout.blocks
+            .map(
+              (b) =>
+                `<span class="pwb pwb-${b.type === "interval" ? "interval" : b.type}">${PREFIX[b.type] || ""}${escapeHtml(b.text)}</span>`
+            )
+            .join("")}
+        </div>
+      </div>`;
+    } else if (s.workout) {
       const w = s.workout;
       workoutHtml = `<div class="planned-workout-detail">
           <span class="planned-workout-label">🏋 ${w.label}</span>`;
@@ -708,7 +720,10 @@ export const Planned = {
           ? `<div class="planned-rec-row"><span class="planned-rec-label">❤️ Ruhepuls</span><span class="planned-rec-val">${lastW.restingHR} bpm</span><span class="planned-rec-date">(${lastW.dateShort})</span></div>`
           : `<div class="planned-rec-row"><span class="planned-rec-label">❤️ Ruhepuls</span><span class="planned-rec-na">– nicht erfasst</span></div>`;
 
-        // Nächste Belastungseinheit finden
+        // Nächste Belastungseinheit finden — bewusst noch aus dem
+        // unmigrierten Data.plannedSessions (JSON-Pipeline), nicht aus
+        // plan_cards: reiner Hinweistext, kein Schreibpfad, Migration auf
+        // plan_cards ist hier kein separater Schritt wert (s. docs/offene-punkte.md).
         const nextLoad = Data.plannedSessions
           .filter((ps) => ps.date > s.date && ps.workout)
           .sort((a, b) => a.date.localeCompare(b.date))[0];
@@ -741,10 +756,28 @@ export const Planned = {
     const daysLabel =
       daysUntil === 0 ? "Heute!" : daysUntil === 1 ? "Morgen" : `in ${daysUntil} Tagen`;
 
+    // Per Drag verschiebbar nur, was auch verschoben werden DARF: keine
+    // read-only-Ansicht (Athlet 2) und keine vergangene Einheit. Eine
+    // vergangene Karte behält den "Verschieben"-Button — abgewiesen wird
+    // sie als Drag-QUELLE, während ein vergangener Tag als Drop-ZIEL
+    // abgewiesen wird (Konzept §6); das sind zwei verschiedene Regeln.
+    // Drag & Drop bleibt Trainern im Vorschlag-Modus verwehrt: der Grip hat
+    // kein Begründungs-Feld und plan-drag.js bewegt die Karte optimistisch
+    // VOR jeder Bestätigung — beides passt nicht zu "erzeugt nur einen
+    // Vorschlag, ändert den echten Plan nicht". Das Verschieben-Formular
+    // (mit Grund-Feld) bleibt der Weg für einen Trainer im Vorschlag-Modus.
+    const draggable = canDragCard({
+      canEdit: _canEdit(),
+      cardDate: s.date,
+      today: todayLocal,
+      trainerProposalMode: _isTrainerProposalMode(),
+    });
+
     return `
-      <div class="planned-card" style="border-left-color:${col}">
+      <div class="planned-card" style="border-left-color:${col}" data-card-id="${s.id}" data-date="${s.date}">
         <div class="planned-card-header">
           <div class="planned-card-title">
+            ${draggable ? `<span class="planned-card-grip ti ti-grip-vertical" title="Auf einen anderen Tag ziehen"></span>` : ""}
             <span class="planned-card-icon">${icon}</span>
             <span class="planned-card-name">${s.name}</span>
           </div>
@@ -754,13 +787,14 @@ export const Planned = {
             ${s.km ? `<span class="planned-card-km">${s.workout ? "~" + s.km + " km Ausfahrt" : "~" + s.km + " km"}</span>` : ""}
           </div>
         </div>
+        ${this._renderCardBadges(s)}
         ${
           s.originalDate
             ? `
           <div class="planned-moved-badge">
             📅 Verschoben von ${this._fmtDate(s.originalDate)}
             ${s.movedReason ? `· ${s.movedReason}` : ""}
-            ${_canEdit() ? `<button class="planned-undo-btn" data-orig="${s.originalDate}">↩ Rückgängig</button>` : ""}
+            ${_canEdit() ? `<button class="planned-undo-btn" data-id="${s.id}">↩ Rückgängig</button>` : ""}
           </div>`
             : ""
         }
@@ -770,18 +804,19 @@ export const Planned = {
           _canEdit()
             ? `
         <div class="planned-card-actions">
-          ${hasWorkout ? `<button class="planned-push-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
-          <button class="planned-move-btn" data-orig="${s.originalDate || s.date}" data-current="${s.date}">📅 Verschieben</button>
-          <button class="planned-cancel-btn" data-orig="${s.originalDate || s.date}" data-name="${s.name}">❌ Ausgefallen</button>
-          <span class="planned-push-status" id="push-status-${s.originalDate || s.date}"></span>
+          <button class="planned-edit-btn" data-id="${s.id}">✏️ Bearbeiten</button>
+          ${hasWorkout ? `<button class="planned-push-btn" data-id="${s.id}" data-name="${s.name}">📤 Auf Wahoo pushen</button>` : ""}
+          <button class="planned-move-btn" data-id="${s.id}" data-current="${s.date}">📅 Verschieben</button>
+          <button class="planned-cancel-btn" data-id="${s.id}" data-name="${s.name}">❌ Ausgefallen</button>
+          <span class="planned-push-status" id="push-status-${s.id}"></span>
         </div>`
             : ""
         }
       </div>`;
   },
 
-  /* ── Abgeschlossene Karte mit Geplant vs. Tatsächlich (Plan 2 bei
-     Athlet 1, GFNY Bremen 2026 bei Athlet 2) ── */
+  /* ── Abgeschlossene Karte mit Geplant vs. Tatsächlich (intervals.icu-Ära
+     bei Athlet 1, GFNY Bremen 2026 bei Athlet 2) ── */
   _renderDoneCard(s, rides) {
     const col = this._typColor(s.typ);
     const icon = this._typIcon(s.typ);
@@ -792,11 +827,12 @@ export const Planned = {
     const isGroup = s.typ === "Gruppenfahrt";
 
     // Tatsächliche Fahrt aus rides: bei Athlet 1 (editable) exakt wie zuvor
-    // nach plan==="Plan 2" filtern (schützt vor Fehlzuordnung an Tagen mit
-    // sowohl Plan-1- als auch Plan-2-Fahrt, z.B. in der P2-W0-Übergangswoche).
-    // Athlet 2 hat diese Plan-1/2-Unterscheidung nicht — dort reicht das Datum.
+    // nach dataSource==="intervals" filtern (schützt vor Fehlzuordnung an
+    // Tagen mit sowohl einer Notion- als auch einer intervals.icu-Fahrt,
+    // z.B. in der Übergangswoche vom Umstieg). Athlet 2 hat diese
+    // Datenherkunfts-Unterscheidung nicht — dort reicht das Datum.
     const ride = _canEdit()
-      ? rides.find((r) => r.date === s.date && r.plan === "Plan 2")
+      ? rides.find((r) => r.date === s.date && r.dataSource === "intervals")
       : rides.find((r) => r.date === s.date);
 
     // Vergleichszeilen bauen
@@ -893,7 +929,10 @@ export const Planned = {
       // Dauer — Schätzung aus km/Tempo für Z2
       if (ride.min) {
         let durPlan = "–";
-        if (isInterval && s.workout) {
+        // Nur die alte, numerische Workout-Form (warmup/intervals/duration/
+        // rest/cooldown) trägt genug Angaben für eine Summen-Dauer — die neue
+        // Blockform (Karten-Dialog) hat nur Freitext, keine Minutenwerte.
+        if (isInterval && s.workout && !Array.isArray(s.workout.blocks)) {
           const w = s.workout;
           const total =
             w.warmup + w.duration * w.intervals + w.rest * (w.intervals - 1) + w.cooldown;
@@ -983,7 +1022,7 @@ export const Planned = {
 
   /* ── Ausgefallen-Handler ───────────────────────────────────── */
   async _handleCancel(btn) {
-    const origDate = btn.dataset.orig;
+    const id = btn.dataset.id;
 
     const existing = document.querySelector(".planned-cancel-form");
     if (existing) {
@@ -991,6 +1030,7 @@ export const Planned = {
       return;
     }
 
+    const proposalMode = _isTrainerProposalMode();
     const form = document.createElement("div");
     form.className = "planned-move-form planned-cancel-form";
     form.innerHTML = `
@@ -998,7 +1038,7 @@ export const Planned = {
         <label class="planned-move-label">❌ Session als ausgefallen markieren</label>
         <input type="text" class="planned-move-reason" placeholder="Grund (z.B. Krank, Erschöpfung, Regen…)" maxlength="60">
         <div class="planned-move-actions">
-          <button class="planned-cancel-confirm" style="border-color:var(--red); color:var(--red)">❌ Als ausgefallen markieren</button>
+          <button class="planned-cancel-confirm" style="border-color:var(--red); color:var(--red)">❌ ${proposalMode ? "Als Vorschlag speichern" : "Als ausgefallen markieren"}</button>
           <button class="planned-move-cancel">✕ Abbrechen</button>
         </div>
         <div class="planned-move-status"></div>
@@ -1012,22 +1052,42 @@ export const Planned = {
     form.querySelector(".planned-cancel-confirm").addEventListener("click", async () => {
       const reason = form.querySelector(".planned-move-reason").value.trim();
       const statusEl = form.querySelector(".planned-move-status");
-
       statusEl.textContent = "⏳ Speichern…";
-      const result = await Adjustments.cancel(origDate, reason);
+
+      if (proposalMode) {
+        const result = await Planned._proposeCancel(id, reason);
+        if (result.ok) {
+          statusEl.textContent = "✅ Als Vorschlag gespeichert";
+          Planned.render(Data.byDate());
+        } else {
+          statusEl.textContent = `❌ ${result.error?.message || "Fehler"}`;
+        }
+        return;
+      }
+
+      const before = getPlanCardsState().projection;
+      const result = await cancelPlanCard(id, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
+        Planned._recordDelta(before);
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
       } else {
-        statusEl.textContent = `❌ ${result.error?.message || "Fehler — Token korrekt?"}`;
+        statusEl.textContent = `❌ ${result.error?.message || "Fehler — eingeloggt?"}`;
       }
     });
   },
 
+  /** Erzeugt einen `cancel`-Vorschlag statt die Karte direkt auszufallen —
+   *  Trainer-Sicht-Konzept §3/T2 (s. _isTrainerProposalMode()-Kommentar). */
+  async _proposeCancel(id, reason) {
+    const card = getPlanCardsState().cards.find((c) => c.id === id);
+    return createTrainerProposal(Data.activeAthleteId, cancelProposalArgs(card, reason));
+  },
+
   /* ── Verschieben-Handler ───────────────────────────────────── */
   async _handleMove(btn) {
-    const origDate = btn.dataset.orig;
+    const id = btn.dataset.id;
     const currentDate = btn.dataset.current;
 
     // Existierendes Formular schließen wenn offen
@@ -1037,6 +1097,7 @@ export const Planned = {
       return;
     }
 
+    const proposalMode = _isTrainerProposalMode();
     const form = document.createElement("div");
     form.className = "planned-move-form";
     form.innerHTML = `
@@ -1046,7 +1107,7 @@ export const Planned = {
         <label class="planned-move-label">Grund (optional)</label>
         <input type="text" class="planned-move-reason" placeholder="z.B. Hitze, Regen, Erschöpfung…" maxlength="60">
         <div class="planned-move-actions">
-          <button class="planned-move-confirm">✓ Speichern</button>
+          <button class="planned-move-confirm">✓ ${proposalMode ? "Als Vorschlag speichern" : "Speichern"}</button>
           <button class="planned-move-cancel">✕ Abbrechen</button>
         </div>
         <div class="planned-move-status"></div>
@@ -1068,10 +1129,24 @@ export const Planned = {
       }
 
       statusEl.textContent = "⏳ Speichern…";
-      const result = await Adjustments.save(origDate, newDate, reason);
+
+      if (proposalMode) {
+        const result = await Planned._proposeMove(id, newDate, reason);
+        if (result.ok) {
+          statusEl.textContent = "✅ Als Vorschlag gespeichert";
+          Planned.render(Data.byDate());
+        } else {
+          statusEl.textContent = `❌ ${result.error?.message || "Fehler beim Speichern"}`;
+        }
+        return;
+      }
+
+      const before = getPlanCardsState().projection;
+      const result = await movePlanCard(id, newDate, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
-        // Nicht neu laden — _data ist bereits aktuell im Speicher
+        Planned._recordDelta(before);
+        // Nicht neu laden — der State ist bereits aktuell im Speicher
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
       } else {
@@ -1080,12 +1155,63 @@ export const Planned = {
     });
   },
 
+  /** Erzeugt einen `move`-Vorschlag statt die Karte direkt zu verschieben —
+   *  Trainer-Sicht-Konzept §3/T2 (s. _isTrainerProposalMode()-Kommentar). */
+  async _proposeMove(id, newDate, reason) {
+    const card = getPlanCardsState().cards.find((c) => c.id === id);
+    return createTrainerProposal(Data.activeAthleteId, moveProposalArgs(card, newDate, reason));
+  },
+
+  /* ── Drop-Handler (Drag & Drop) ────────────────────────────── */
+  /** Gültiger Drop auf einen Tag — zweite Eingabeart für denselben
+   *  Verschiebe-Vorgang wie _handleMove(), deshalb derselbe Aufruf:
+   *  movePlanCard(). Ohne Grund (das Drag-Raster hat kein Textfeld) und
+   *  ohne Wahoo-Push: der bleibt die bewusste Pro-Karte-Aktion (§5).
+   *  Die Regeln (Vergangenheit/selber Tag) hat ui/plan-drag.js schon
+   *  angewandt — hier kommen nur noch echte Verschiebungen an. */
+  async _handleDrop(cardId, date) {
+    const before = getPlanCardsState().projection;
+    // movePlanCard setzt den State optimistisch, BEVOR es auf den Server
+    // wartet — dieses render() zeigt die Karte deshalb sofort am Zieltag.
+    const pending = movePlanCard(cardId, date, "");
+    await Planned.render(Data.byDate());
+    Planned.onAdjustmentChange?.();
+
+    const result = await pending;
+    if (result.ok) {
+      // Delta erst nach bestätigtem Erfolg berechnen (nicht am optimistischen
+      // Zwischenstand) — sonst zeigte ein fehlgeschlagener, zurückgerollter
+      // Drop einen Delta-Banner für eine Änderung, die gar nicht stattfand.
+      Planned._recordDelta(before);
+      Planned.render(Data.byDate());
+      return;
+    }
+
+    // Fehlgeschlagen: state/plan-cards.js hat bereits zurückgerollt —
+    // sichtbar machen und den Fehler an der Karte anzeigen (dieselbe
+    // Pro-Karte-Statuszeile wie der Push).
+    await Planned.render(Data.byDate());
+    Planned.onAdjustmentChange?.();
+    const statusEl = el(`push-status-${cardId}`);
+    if (statusEl) {
+      statusEl.textContent = `❌ ${result.error?.message || "Verschieben fehlgeschlagen"}`;
+      statusEl.style.color = "var(--red)";
+    }
+  },
+
+  /* ── Bearbeiten-Handler ────────────────────────────────────── */
+  _handleEdit(btn) {
+    const id = btn.dataset.id;
+    const card = getPlanCardsState().cards.find((c) => c.id === id);
+    if (card) openPlanCardDialog(Data.activeAthleteId, card);
+  },
+
   /* ── Rückgängig-Handler ────────────────────────────────────── */
   async _handleUndo(btn) {
-    const origDate = btn.dataset.orig;
+    const id = btn.dataset.id;
     btn.textContent = "⏳…";
     btn.disabled = true;
-    const result = await Adjustments.remove(origDate);
+    const result = await undoAdjustment(id);
     if (result.ok) {
       Planned.render(Data.byDate());
       Planned.onAdjustmentChange?.();
@@ -1097,12 +1223,12 @@ export const Planned = {
 
   /* ── Push-Handler ──────────────────────────────────────────── */
   async _handlePush(btn) {
-    const origDate = btn.dataset.orig;
-    const statusEl = el(`push-status-${origDate}`);
-    // Adjustment erneut auflösen statt der rohen plannedSessions-Liste zu
+    const id = btn.dataset.id;
+    const statusEl = el(`push-status-${id}`);
+    // Karte aus dem bereits geladenen State holen (trägt das aufgelöste
+    // Datum inkl. Verschiebung) statt der rohen Plan-Definition zu
     // vertrauen — sonst pusht ein verschobenes Workout auf das alte Datum.
-    const raw = Data.plannedSessions.find((s) => s.date === origDate);
-    const session = raw ? applyAdjustment(raw, Adjustments._data) : null;
+    const session = getPlanCardsState().cards.find((c) => c.id === id);
     if (!session?.workout) return;
 
     // Token aus localStorage (gleicher Mechanismus wie Befinden)
@@ -1124,17 +1250,12 @@ export const Planned = {
     btn.textContent = "⏳ Wird gepusht…";
     if (statusEl) statusEl.textContent = "";
 
-    const result = await this._pushWorkout(session, token, athleteId);
+    const result = await pushPlanCard(id, token, athleteId);
 
     btn.disabled = false;
     btn.textContent = "📤 Auf Wahoo pushen";
 
-    if (result.ok && result.skipped) {
-      if (statusEl) {
-        statusEl.textContent = "ℹ️ Bereits vorhanden — kein Duplikat angelegt";
-        statusEl.style.color = "var(--gold)";
-      }
-    } else if (result.ok) {
+    if (result.ok) {
       if (statusEl) {
         statusEl.textContent = "✅ Gepusht!";
         statusEl.style.color = "var(--green)";
@@ -1151,3 +1272,24 @@ export const Planned = {
     }
   },
 };
+
+// Live per Playwright bestätigt (Juli 2026), zwei Runden: ein Athlet lädt die
+// Seite zuerst ANONYM oder mit noch nicht wiederhergestellter Session,
+// renderAll() zeichnet die Karten also zunächst ohne (oder mit veraltetem)
+// Trainer-Kontext. Ein Abo auf state/session.js::onSessionChange allein
+// (erster Versuch) reicht NICHT: es feuert, sobald sich irgendetwas an der
+// Session ändert, aber BEVOR ui/trainer-bar.js's loadTrainerContext() (ein
+// echter Supabase-Request) fertig ist — plan_cards ist an der Stelle oft
+// schon aus dem Cache bedient (schneller), Planned.render() liefe dann mit
+// demselben veralteten trainerContext neu. state/trainer-view.js::
+// onTrainerViewChange() feuert dagegen erst NACH dem eigentlichen
+// loadTrainerContext()-Abschluss (notify() steht dort hinter der Zuweisung) —
+// race-frei. Guard über loadedForAthleteId statt Data.plannedSessions.length
+// (wie app.js's onEventsChange-Listener): verhindert einen Render-Versuch,
+// bevor der Planungstab für den aktuellen Athleten überhaupt einmal geladen
+// wurde.
+onTrainerViewChange(() => {
+  if (getPlanCardsState().loadedForAthleteId === Data.activeAthleteId) {
+    Planned.render(Data.byDate());
+  }
+});
