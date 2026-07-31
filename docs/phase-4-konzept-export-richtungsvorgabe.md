@@ -177,6 +177,54 @@ einmal gewollt ist (dann als eigener Fahrplanschritt, nicht rückwirkend hier).
   Richtungsvorgabe verändert nur, **was** Claude vorschlägt, nicht **wie** es
   formatiert zurückkommt.
 
+### R10 — Nachtrag: Datenbedarf je Preset (Befund aus dem Code-Review 30.07.2026)
+
+Die Auftragsvarianten (R4) verlangen von Claude Prüfungen, für die das
+Briefing (`buildBriefingMarkdown`) heute nicht durchgängig die nötigen Werte
+mitliefert:
+
+- **Preset `event`:** verlangt "ob die Belastungskurve … bis zu diesem Termin
+  ins Zielfenster läuft" — das Briefing zeigt die Projektion aber nur für
+  **heute** und das **Horizont-Ende**, nicht für den konkreten Eventtag.
+  Tagesgenaue Werte liegen in `getState().projection.days` bereits vor, sie
+  werden im Briefing nur nicht bis zum Eventtag durchgereicht. Ebenso fehlt
+  das **Zielfenster** selbst (`CONFLICT_THRESHOLDS.eventWindowMain`/
+  `eventWindowSecondary`, `core/plan-config.js`) — es taucht aktuell nur
+  implizit auf, wenn K-EVENT bereits eine Verletzung meldet (s. R11-Fund
+  unten).
+- **Preset `check`:** verlangt eine Plausibilitätsprüfung "auf Basis der
+  Schwellen" — die Schwellen selbst (`CONFLICT_THRESHOLDS`,
+  `core/plan-config.js`) stehen nirgends im Briefing, Claude kennt sie nur,
+  wenn ein Konflikt bereits gegen sie ausgelöst hat.
+- **Preset `reduce`/`build`:** verlangt eine Einschätzung von Belastungsmuster
+  und -trend — TSS je Karte (Ziel-TSS-Spalte), Wochensummen und CTL-Rampe
+  sind zwar rechenbar, die Ziel-TSS-Spalte im Trainingsplan-Abschnitt steht
+  aber durchgehend auf "–", weil nur `tssPlanned` gelesen wird, nicht der
+  K3-Typ-Default (`TYPE_DEFAULT_TSS`, `core/plan-config.js`) für Karten ohne
+  expliziten Zielwert.
+
+### R11 — Nachtrag: fachliche Bezugsgrößen einmal im Rumpf statt in fünf Varianten
+
+Mehrere Auftragsvarianten verlangen dieselbe fachliche Prüfung wörtlich fast
+identisch (`general` und `check`: "Passt die Belastungskurve zum nächsten
+priorisierten Event (TSB-Zielfenster laut Briefing)?"). Kennzahlen, die
+mehrere Presets gemeinsam brauchen, gehören einmal in `PROMPT_RUMPF`
+beschrieben, nicht in jeder Auftragsvariante separat wiederholt — sonst
+driftet die Formulierung zwischen den Varianten auseinander, ohne dass ein
+Test das auffängt (`tests/export-briefing-consistency.test.js` prüft nur
+Rumpf und Varianten je für sich gegen die Doku, keine Redundanz zwischen
+Varianten). Kein Umsetzungsschritt in dieser Runde — der Rumpf-Text selbst
+bleibt vorerst unangetastet; R11 hält nur fest, woran sich künftige
+Prompt-Vorlage-Änderungen messen lassen sollen.
+
+**Umsetzung vor dem Merge (nicht als späterer Auftrag):** Nur die beiden
+konkreten Datenlücken aus R10 werden geschlossen — TSB-Zielfenster +
+Eventtag-Projektion unabhängig vom Konfliktstatus zeigen (bei den
+"Anstehenden Events"), Ziel-TSS-Spalte über den K3-Typ-Default befüllen
+(`core/projection.js::estimateTss`, bereits vorhanden und getestet, hier nur
+wiederverwendet). Die Rumpf/Varianten-Dedupe aus R11 selbst ist bewusst kein
+Teil dieser Runde.
+
 ---
 
 ## 3. Abhängigkeiten und Reihenfolge
