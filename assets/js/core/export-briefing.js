@@ -23,7 +23,17 @@
 
 import { localISODate, diffDays } from "./format.js";
 import { computeZones } from "./zones.js";
-import { KNOWN_PLAN_TYPES } from "./plan-config.js";
+import { KNOWN_PLAN_TYPES, CONFLICT_THRESHOLDS } from "./plan-config.js";
+import { estimateTss } from "./projection.js";
+
+// TSB-Zielfenster je Event-Priorität (K-EVENT, core/conflicts.js) — hier
+// eigenständig statt importiert, weil core/conflicts.js dieselbe Konstante
+// modulprivat hält (nur 2 Einträge, kein Re-Export-Aufwand wert).
+const EVENT_PRIORITY_LABEL = { main: "Hauptziel", secondary: "Nebenziel" };
+const EVENT_TSB_WINDOW = {
+  main: CONFLICT_THRESHOLDS.eventWindowMain,
+  secondary: CONFLICT_THRESHOLDS.eventWindowSecondary,
+};
 
 export const SCHEMA_VERSION = 1;
 
@@ -283,12 +293,26 @@ export function buildBriefingMarkdown({
 
   lines.push("## Anstehende Events");
   const upcoming = events.filter((e) => e.eventDate >= todayIso).sort((a, b) => a.eventDate.localeCompare(b.eventDate));
+  const projectionByDate = new Map((projection?.days ?? []).map((d) => [d.date, d]));
   if (!upcoming.length) {
     lines.push("Keine Events erfasst.");
   } else {
     for (const e of upcoming) {
       const days = diffDays(e.eventDate, todayIso);
       lines.push(`- ${e.eventDate} ${e.title || "(ohne Titel)"}${e.priority ? ` (${e.priority})` : ""} — noch ${days} Tage`);
+      // R10: Zielfenster + Eventtag-Projektion unabhängig vom Konfliktstatus
+      // zeigen — bisher tauchte das nur auf, wenn K-EVENT (core/conflicts.js)
+      // bereits eine Verletzung meldete, nie beim regulären "passt"-Fall.
+      const window = e.type === "race" ? EVENT_TSB_WINDOW[e.priority] : null;
+      if (window) {
+        const [lo, hi] = window;
+        const windowText = `${lo > 0 ? "+" : ""}${lo}…${hi > 0 ? "+" : ""}${hi}`;
+        const day = projectionByDate.get(e.eventDate);
+        const tsbText = day ? `${Math.round(day.tsb)}` : "außerhalb der Projektion";
+        lines.push(
+          `  TSB-Zielfenster ${EVENT_PRIORITY_LABEL[e.priority] ?? e.priority}: ${windowText} — projizierter TSB am Eventtag: ${tsbText}`
+        );
+      }
     }
   }
   lines.push("");
@@ -303,9 +327,22 @@ export function buildBriefingMarkdown({
   } else {
     lines.push("| Datum | Titel | Typ | Ziel-TSS | Karten-ID | Zuletzt geändert |");
     lines.push("|---|---|---|---|---|---|");
+    let anyUncertainTss = false;
     for (const c of planCards) {
+      // R10: K3-Typ-Default (core/projection.js::estimateTss, dieselbe
+      // Prioritätskette wie die PMC-Prognose) statt nur tssPlanned zu lesen —
+      // die Spalte stand vorher bei jeder Karte ohne expliziten Zielwert auf
+      // "–", obwohl ein Median-TSS-Wert für den Typ vorliegt.
+      const { tss, uncertain } = estimateTss(c, { ftp });
+      if (uncertain) anyUncertainTss = true;
       lines.push(
-        `| ${c.date} | ${mdEscapeCell(c.name)} | ${mdEscapeCell(c.typ)} | ${c.tssPlanned ?? "–"} | ${c.id} | ${mdEscapeCell(c.updatedAt)} |`
+        `| ${c.date} | ${mdEscapeCell(c.name)} | ${mdEscapeCell(c.typ)} | ${uncertain ? `~${tss}` : tss} | ${c.id} | ${mdEscapeCell(c.updatedAt)} |`
+      );
+    }
+    if (anyUncertainTss) {
+      lines.push("");
+      lines.push(
+        "_Ziel-TSS mit „~“ ist kein von mir gesetztes Ziel, sondern aus Workout-Blöcken oder dem Typ-Durchschnitt geschätzt._"
       );
     }
   }
