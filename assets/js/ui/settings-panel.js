@@ -4,6 +4,7 @@ import {
   isAthlete,
   updateDisplayName,
   updateWellbeingPublic,
+  updatePassword,
 } from "../state/session.js";
 import { getGoals, saveGoal, deactivateGoal } from "../state/goals.js";
 import { getFtpHistory, saveFtpEntry } from "../state/ftp-history.js";
@@ -380,9 +381,75 @@ function buildDataSourcesSection() {
   return section;
 }
 
+/** Passwortänderung — für ALLE Rollen (C5.3), kein isAthlete()-Gate wie bei
+ *  Goals/FTP-Historie/Datenquellen unten. Ein Login-Passwort ist kein
+ *  Anzeige-Setting wie der bisherige Trainer-Beschränkungs-Präzedenzfall
+ *  ("nur Display-Name"). Re-Authentifizierung passiert serverseitig in
+ *  data-access/supabase/auth.js::updatePassword() (C5.2) — hier nur die
+ *  Formularfelder/Fehleranzeige. */
+function buildPasswordSection() {
+  const section = document.createElement("div");
+  section.style.cssText = "padding: 18px 16px; border-bottom: 1px solid var(--border);";
+
+  const heading = document.createElement("div");
+  heading.textContent = "Passwort";
+  heading.style.cssText =
+    "font-family: var(--font-mono); font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em; color: var(--dim); margin-bottom:10px;";
+
+  const toggleBtn = document.createElement("button");
+  toggleBtn.type = "button";
+  toggleBtn.textContent = "Passwort ändern";
+  toggleBtn.style.cssText =
+    "background:none; border:none; cursor:pointer; font-family: var(--font-mono); font-size:0.62rem; color: var(--accent); padding:0;";
+
+  const form = document.createElement("form");
+  form.style.cssText = "display:none; flex-direction:column; gap:8px; margin-top:10px;";
+  form.innerHTML = `
+    <input name="currentPassword" type="password" autocomplete="current-password" placeholder="Aktuelles Passwort" required class="glass-input">
+    <input name="newPassword" type="password" autocomplete="new-password" placeholder="Neues Passwort" minlength="6" required class="glass-input">
+    <input name="confirmPassword" type="password" autocomplete="new-password" placeholder="Neues Passwort wiederholen" minlength="6" required class="glass-input">
+    <div id="settings-password-error" style="font-family: var(--font-mono); font-size:0.62rem; color: var(--red); min-height:1em;"></div>
+    <button type="submit" class="btn-primary" style="align-self:flex-start;">Speichern</button>
+  `;
+
+  const errorEl = form.querySelector("#settings-password-error");
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    errorEl.textContent = "";
+    const fd = new FormData(form);
+    const newPassword = fd.get("newPassword");
+    // Vor dem Netzwerk-Roundtrip prüfen (spart einen unnötigen Re-Auth-
+    // Versuch bei einem simplen Tippfehler im zweiten Feld).
+    if (newPassword !== fd.get("confirmPassword")) {
+      errorEl.textContent = "Neue Passwörter stimmen nicht überein.";
+      return;
+    }
+    const result = await updatePassword(fd.get("currentPassword"), newPassword);
+    if (!result.ok) {
+      errorEl.textContent = result.error?.message || "Passwort konnte nicht geändert werden.";
+      return;
+    }
+    form.reset();
+    form.style.display = "none";
+    toggleBtn.style.display = "";
+    flashSaved(toggleBtn);
+  });
+
+  toggleBtn.addEventListener("click", () => {
+    form.style.display = "flex";
+    toggleBtn.style.display = "none";
+  });
+
+  section.appendChild(heading);
+  section.appendChild(toggleBtn);
+  section.appendChild(form);
+  return section;
+}
+
 async function buildPanelContent(user) {
   const content = document.createElement("div");
   content.appendChild(buildProfileSection(user));
+  content.appendChild(buildPasswordSection());
   if (isAthlete()) {
     content.appendChild(await buildGoalsSection());
     content.appendChild(await buildFtpHistorySection());
