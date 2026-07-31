@@ -10915,7 +10915,7 @@
       "ruhepuls": 48,
       "hrv": 54,
       "avgSleepingHR": 50,
-      "sleepHours": 7.1,
+      "sleepHours": 7.2,
       "feel": null,
       "notizen": null
     }
@@ -14073,7 +14073,7 @@
     },
     {
       "date": "2026-07-30",
-      "sleepHours": 7.1,
+      "sleepHours": 7.2,
       "avgSleepingHR": 50,
       "restingHR": 48,
       "hrv": 54,
@@ -14088,9 +14088,9 @@
     },
     {
       "date": "2026-07-31",
-      "sleepHours": null,
+      "sleepHours": 5.5,
       "avgSleepingHR": null,
-      "restingHR": null,
+      "restingHR": 54,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -14105,8 +14105,8 @@
   "wellnessMeta": {
     "lastUpdated": {
       "hrv": "2026-07-30",
-      "restingHR": "2026-07-30",
-      "sleepHours": "2026-07-30"
+      "restingHR": "2026-07-31",
+      "sleepHours": "2026-07-31"
     }
   },
   "powerCurves": {
@@ -16868,7 +16868,7 @@
     }
   ],
   "adjustments": {},
-  "updated": "2026-07-31T01:56:26.238Z",
+  "updated": "2026-07-31T08:35:53.632Z",
   "source": "intervals.icu",
   "count": 136
 }
