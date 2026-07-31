@@ -202,13 +202,6 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   neuen Supabase-Tages-Check-in (`ui/checkin-dialog.js`, Energie/Muskeln/
   Stimmung) — andere Funktion, kein Ersatz. Echter Funktionsverlust, nicht
   nur Spalten-Aufräumen; Commit-Message ("bleiben unangetastet") verdeckt das.
-- **`classifyCooldowns()` (`scripts/lib/map-activity.js:328`) rechnet
-  weiterhin mit fester Saison-FTP** (`DEFAULT_FTP`/`estimatedFTP2` in
-  `generate-data.js:170`/`:341`), nicht mit der in derselben Kette
-  eingeführten datumsgenauen `ftpAt()`-Auflösung, die `typDetected`/
-  `typDetection` längst nutzen. Nach einem `ftp_history`-Eintrag, der die FTP
-  mittendrin anhebt, können `typ`/`typSource` (Ausrollen-Erkennung) und
-  `typDetected` für dieselbe Fahrt auseinanderlaufen.
 - **`longestBlockAboveThreshold()` (`scripts/lib/interval-blocks.js:69`)
   prüft die Gap-Toleranz nur pro Einzelsegment, nicht kumulativ** — mehrere
   kurze RECOVERY-Segmente können zusammen eine echte längere Erholungspause
@@ -245,9 +238,33 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   Bewusst zurückgestellt bis nach Schritt 4 (Athleten-Formular zum Eintragen
   der FTP-Historie) — vorher gibt es ohnehin keine echten Einträge, die
   nachgeladen werden könnten.
+- **K3-Typ-Defaults (`TYPE_DEFAULT_TSS`, `core/plan-config.js`) noch nicht
+  auf Basis der FTP-Historie neu abgeleitet** — die letzte Neuberechnung
+  (Commit `710a43b`) lag vor der ftp_history-Einführung, basiert also auf
+  der alten, fix-FTP-basierten `typ`-Zuordnung. Neuableitung erst sinnvoll,
+  wenn beides zutrifft: (a) mindestens ein echter Ramp-Test-Eintrag pro
+  Athlet in `ftp_history`, (b) der Punkt direkt oben (SUPABASE-Secrets in
+  `sync-data.yml`) ist erledigt — sonst produzieren lokaler `npm run sync`
+  und der reguläre 6h-Cron unterschiedliche `typ`-Zuordnungen für dieselben
+  Fahrten. Prozess dann: `npm run sync` → `node
+  scripts/migrate-plan-to-supabase.js` (ohne `--apply`, reine Log-Ausgabe)
+  → Werte manuell in `TYPE_DEFAULT_TSS` übernehmen, analog `710a43b`.
 
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
+- **FTP-Historie Schritt 3 (Konsumenten umstellen, 31.07.2026)**: `typ`
+  (Fall "inferred") und `classifyCooldowns()` nutzen jetzt dieselbe
+  datumsgenaue `ftpAt()`-Auflösung wie `typDetected`/`typDetection` — vorher
+  ein im Code selbst als bewusst vorläufig dokumentierter Zustand.
+  `classifyCooldowns()` hat dafür eine neue Signatur (`ftpHistory` statt
+  festem `ftp`-Skalar). Neue geteilte `core/ftp-history.js::currentFtpEntry()`
+  (aus `ui/settings-panel.js` gezogen), zweiter Konsument
+  `state/export.js` — das Export-Briefing zeigt jetzt die aktuelle
+  `ftp_history`-FTP statt nur der statischen Athleten-Config, Fallback-Kette
+  bleibt für den (aktuellen) Fall leerer Historie bestehen. K3-Typ-Defaults
+  bewusst nicht mit neu abgeleitet, s. eigener Punkt oben unter
+  Infrastruktur/CI. Praktische Datenauswirkung aktuell null (`ftp_history`
+  ist in dev/prod noch leer). Commits `cb98bff`/`d78afb9`/`1de4170`.
 - **Security-Review Etappe B (Prod-Launch, 31.07.2026): zwei RLS-Lücken
   gefunden und geschlossen** — beide live gegen `training-dashboard-prod`
   mit echten Accounts (Stuhlsen/hc_diZee/Trainer-ST) empirisch bestätigt,
