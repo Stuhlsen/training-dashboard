@@ -12939,31 +12939,31 @@
       "uvMax": 5.9
     },
     "2026-08-03": {
-      "temp": 26.2,
-      "tempFeel": 27.3,
-      "humidity": 51,
-      "windSpeed": 8,
-      "windDir": 71,
+      "temp": 27.2,
+      "tempFeel": 28,
+      "humidity": 49,
+      "windSpeed": 9.5,
+      "windDir": 81,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.5
     },
     "2026-08-04": {
-      "temp": 30.7,
-      "tempFeel": 34.1,
-      "humidity": 56,
-      "windSpeed": 6.2,
-      "windDir": 112,
+      "temp": 32.3,
+      "tempFeel": 35.9,
+      "humidity": 49,
+      "windSpeed": 3.3,
+      "windDir": 135,
       "precipProb": 15,
       "weatherCode": 3,
       "uvMax": 6.2
     },
     "2026-08-05": {
-      "temp": 30.1,
-      "tempFeel": 32,
-      "humidity": 52,
-      "windSpeed": 10,
-      "windDir": 253,
+      "temp": 30.8,
+      "tempFeel": 32.1,
+      "humidity": 47,
+      "windSpeed": 11.8,
+      "windDir": 248,
       "precipProb": 4,
       "weatherCode": 2,
       "uvMax": 6.4
@@ -13073,7 +13073,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-07-31T21:35:49.086Z",
+  "updated": "2026-07-31T21:58:19.937Z",
   "source": "notion+intervals",
   "count": 80
 }
