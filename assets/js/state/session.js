@@ -1,4 +1,9 @@
-import { onAuthChange, signIn as signInAdapter, signOut as signOutAdapter } from "../data-access/supabase/auth.js";
+import {
+  onAuthChange,
+  signIn as signInAdapter,
+  signOut as signOutAdapter,
+  updatePassword as updatePasswordAdapter,
+} from "../data-access/supabase/auth.js";
 import {
   getProfile,
   updateDisplayName as updateDisplayNameAdapter,
@@ -48,6 +53,12 @@ export async function signIn(email, password) {
 
 export async function signOut() {
   return signOutAdapter();
+}
+
+/** Reicht updatePassword aus data-access/ durch (C5.1) — kein currentUser-
+ *  Sync nötig, das Passwort ist kein Profilfeld. Gilt für alle Rollen. */
+export async function updatePassword(currentPassword, newPassword) {
+  return updatePasswordAdapter(currentPassword, newPassword);
 }
 
 /** Speichert den Display-Namen des eingeloggten Users und hält currentUser
