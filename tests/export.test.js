@@ -47,6 +47,16 @@ mock.module(u("data-access/supabase/wellbeing.js"), {
     upsertToday: async () => ({ ok: true, checkin: {} }),
   },
 });
+// Standardmäßig leer (Normalfall aktuell: ftp_history hat noch keine echten
+// Einträge) — Tests, die den ftp_history-Pfad prüfen wollen, setzen
+// ftpHistoryEntries vor dem Aufruf um (s. "FTP: aus ftp_history..."-Test).
+let ftpHistoryEntries = [];
+mock.module(u("data-access/supabase/ftp-history.js"), {
+  exports: {
+    getFtpHistory: async () => ({ ok: true, entries: ftpHistoryEntries }),
+    saveFtpEntry: async () => ({ ok: true, id: "ftp-1" }),
+  },
+});
 mock.module(u("state/session.js"), {
   exports: {
     getSession: () => ({ id: "athlete-1-uuid", displayName: "Stuhlsen" }),
@@ -73,9 +83,29 @@ test("buildClaudeExport: zieht Plan (nur ab heute), Events, Wellbeing zusammen u
 });
 
 test("buildClaudeExport: FTP-Dreiklang aus CONFIG.athleteConfig, nicht Data.ftpValue()", async () => {
+  ftpHistoryEntries = []; // ftp_history leer → Fallback-Kette greift
   await loadPlanCards("athlete1");
   const result = await buildClaudeExport("athlete1");
   assert.match(result.text, /FTP: 193 W \(Ziel: 210 W\)/);
+});
+
+test("buildClaudeExport: FTP aus ftp_history (aktueller Ramp-Test-Eintrag) schlägt CONFIG.athleteConfig", async () => {
+  ftpHistoryEntries = [
+    { id: "ftp-old", ftpWatt: 190, validFrom: "2020-01-01", source: "ramp-test" },
+    { id: "ftp-new", ftpWatt: 205, validFrom: "2020-06-01", source: "ramp-test" },
+  ];
+  await loadPlanCards("athlete1");
+  const result = await buildClaudeExport("athlete1");
+  assert.match(result.text, /FTP: 205 W \(Ziel: 210 W\)/);
+  ftpHistoryEntries = []; // Zustand für nachfolgende Tests zurücksetzen
+});
+
+test("buildClaudeExport: 'schaetzung'-Einträge in ftp_history zählen nicht als aktuelle FTP", async () => {
+  ftpHistoryEntries = [{ id: "ftp-est", ftpWatt: 220, validFrom: "2020-01-01", source: "schaetzung" }];
+  await loadPlanCards("athlete1");
+  const result = await buildClaudeExport("athlete1");
+  assert.match(result.text, /FTP: 193 W \(Ziel: 210 W\)/);
+  ftpHistoryEntries = [];
 });
 
 test("buildClaudeExport: 'athlete' im JSON-Anhang ist die Session-UUID, nicht die interne Kennung", async () => {

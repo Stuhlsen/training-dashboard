@@ -12,11 +12,13 @@
 
 import { buildExportText, exportFileName } from "../core/export-briefing.js";
 import { localISODate, addDaysISO } from "../core/format.js";
+import { currentFtpEntry } from "../core/ftp-history.js";
 import { CONFIG } from "./config.js";
 import { Data } from "./data.js";
 import { getState as getEventsState } from "./events.js";
 import { getState as getPlanCardsState } from "./plan-cards.js";
 import { loadRangeForAthlete } from "./wellbeing.js";
+import { getFtpHistory } from "./ftp-history.js";
 import { getSession } from "./session.js";
 
 // Fester Umfang, kein Zeitraum-Regler (Konzept §2, Entscheidung): Plan-
@@ -57,11 +59,23 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
   const events = getEventsState().events;
   const selectedEvent = eventId ? events.find((e) => e.id === eventId) ?? null : null;
 
+  // Aktuelle FTP bevorzugt aus ftp_history (Migration 0009, laufend vom
+  // Athleten gepflegt über ui/settings-panel.js), Fallback auf die
+  // statische Athleten-Config für den (aktuell durchgängigen) Fall einer
+  // leeren Historie. Nur "ramp-test"-Quellen zählen — hält den FTP-
+  // Dreiklang (gemessen/geschätzt/Ziel, nie vermischen) auch ein, falls
+  // später ein "schaetzung"-Eintrag hinzukommt (DB erlaubt es, das
+  // Formular bietet es aktuell bewusst nicht an).
+  const ftpHistoryResult = await getFtpHistory();
+  const currentEntry = ftpHistoryResult.ok
+    ? currentFtpEntry(ftpHistoryResult.entries.filter((e) => e.source === "ramp-test"))
+    : null;
+
   const text = buildExportText(
     {
       athleteId: user.id,
       displayName: user.displayName,
-      ftp: athleteCfg?.ftpMeasured ?? Data.ftpValue(),
+      ftp: currentEntry?.ftpWatt ?? athleteCfg?.ftpMeasured ?? Data.ftpValue(),
       ftpGoal: athleteCfg?.ftpGoal ?? null,
       dataSources: athleteCfg?.dataSources ?? [],
       events,
