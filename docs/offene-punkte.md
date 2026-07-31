@@ -209,11 +209,6 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   `typDetection` längst nutzen. Nach einem `ftp_history`-Eintrag, der die FTP
   mittendrin anhebt, können `typ`/`typSource` (Ausrollen-Erkennung) und
   `typDetected` für dieselbe Fahrt auseinanderlaufen.
-- **Export-Briefing-Fußnote behauptet pauschal Planungsherkunft** —
-  `core/export-briefing.js:324` schreibt "Der Typ stammt aus der Planung"
-  für die gesamte Ist-Fahrten-Tabelle, obwohl `typ` bei fehlendem Plan-Match
-  datenbasiert ist (`inferTypFromIF`). Das dafür eingeführte Feld
-  `typSource` wird hier nicht ausgewertet.
 - **`longestBlockAboveThreshold()` (`scripts/lib/interval-blocks.js:69`)
   prüft die Gap-Toleranz nur pro Einzelsegment, nicht kumulativ** — mehrere
   kurze RECOVERY-Segmente können zusammen eine echte längere Erholungspause
@@ -253,6 +248,11 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
 
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
+- **Export-Briefing-Fußnote behauptete pauschal Planungsherkunft** — Typ-Spalte
+  hieß irreführend "Typ (geplant)" und die Fußnote unterschlug, dass `typ` bei
+  fehlendem Plan-Match datenbasiert ist (`inferTypFromIF`); jetzt neutrale
+  Spaltenüberschrift + Fußnote, die die drei `typSource`-Fälle
+  (datenbasiert/Plankarte/manuell) korrekt unterscheidet.
 - **Roadmap-Versionierung**: Fahrplan-Datei liegt jetzt in `docs/`, lag vorher
   nur lokal in Downloads/.
 - **`state/events.js` filterte mit der internen Athleten-ID gegen eine
