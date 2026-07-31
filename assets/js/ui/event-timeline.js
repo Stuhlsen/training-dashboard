@@ -29,47 +29,34 @@ function badge(label, color) {
   return `<span class="event-badge" style="--badge-color: ${color};">${escapeHtml(label)}</span>`;
 }
 
-function countdownContent(countdown) {
-  return `<span class="zdot"></span>
-      <span>${countdown.label} · <b>${escapeHtml(countdown.event.title)}</b> · ${fmtDate(countdown.event.eventDate)}</span>`;
-}
-
-/** Renn-Countdown als .session-pill-Karte — von overview.js (Hero-"Nächste
- *  Einheit"-Karte) mitgenutzt, damit es nur eine Formatierung für "nächstes
- *  Rennen" gibt statt zweier unabhängig driftender Kopien. Bewusst NICHT
- *  interaktiv (kein data-id, kein Klick-/Löschen-Handler) — im Hero ist das
- *  reine Anzeige, keine Verwaltung. */
+/** Renn-Countdown als .session-pill-Karte — ausschließlich für overview.js
+ *  (Hero-"Nächste Einheit"-Karte). Bewusst NICHT interaktiv (kein data-id,
+ *  kein Klick-/Löschen-Handler) — im Hero ist das reine Anzeige, keine
+ *  Verwaltung. Im Events-Tab selbst wird das Countdown-Event dagegen als
+ *  ganz normale eventRow() gerendert (s. dort) — zwei Folgefunde vom
+ *  31.07./01.08.2026 zeigten, dass eine Sonderdarstellung innerhalb der
+ *  Verwaltungsliste selbst bei identischer Interaktivität noch wie ein
+ *  unbegründetes Sonderrecht für genau dieses Event aussieht. */
 export function countdownCard(countdown) {
   if (!countdown) return "";
   return `
     <div class="session-pill" style="--sp-color: var(--ss); margin-bottom: 12px;">
-      ${countdownContent(countdown)}
+      <span class="zdot"></span>
+      <span>${countdown.label} · <b>${escapeHtml(countdown.event.title)}</b> · ${fmtDate(countdown.event.eventDate)}</span>
     </div>`;
 }
 
-/** Dasselbe Countdown-Event, aber INNERHALB des Events-Tabs — dort ist es
- *  bloß die Kompaktdarstellung des nächsten Events, kein separates Objekt.
- *  Bugreport 31.07.2026 (Folgefund): das Countdown-Event war die einzige
- *  Zeile im Events-Panel ohne Bearbeiten/Löschen, obwohl jede andere Zeile
- *  (eventRow) beides hat — für den Betrachter sah das wie ein zufälliges
- *  Sonderrecht für genau dieses Event aus. Wiederverwendet dieselben Klassen
- *  wie eventRow() (.event-timeline-row/--editable, .event-timeline-remove),
- *  damit die bestehende Klick-/Löschen-Verdrahtung in _draw() unverändert
- *  greift, ohne eigenen Listener-Code. */
-function countdownRow(countdown, canEdit) {
-  if (!countdown) return "";
-  return `
-    <div class="event-timeline-row${canEdit ? " event-timeline-row--editable" : ""}" data-id="${countdown.event.id}">
-      <div class="session-pill" style="--sp-color: var(--ss); margin: 0; flex: 1; min-width: 0;">
-        ${countdownContent(countdown)}
-      </div>
-      ${canEdit ? `<button type="button" class="event-timeline-remove" data-id="${countdown.event.id}" title="Event löschen">×</button>` : ""}
-    </div>`;
-}
-
-function eventRow(event, canEdit) {
+/** `countdown` optional: nur das nächste anstehende Rennen/Tour-Event trägt
+ *  einen zusätzlichen "Noch X Tage"-Badge (dieselbe Information, die im Hero
+ *  als eigene Pille läuft — hier nur als Badge statt als Sonderzeile, damit
+ *  die Zeile selbst identisch zu jeder anderen bleibt). */
+function eventRow(event, canEdit, countdown) {
   const typeColor = event.type === "race" ? "var(--ss)" : "var(--dim)";
-  const badges = [badge(TYPE_LABEL[event.type] ?? event.type, typeColor)];
+  const badges = [];
+  if (countdown && event.id === countdown.event.id) {
+    badges.push(badge(countdown.label, "var(--ss)"));
+  }
+  badges.push(badge(TYPE_LABEL[event.type] ?? event.type, typeColor));
   if (event.type === "race" && event.priority) {
     badges.push(badge(PRIORITY_LABEL[event.priority] ?? event.priority, "var(--accent)"));
   }
@@ -148,21 +135,19 @@ export const EventTimeline = {
 
     const todayIso = localISODate();
     const countdown = raceCountdown(todayIso);
-    // Das Countdown-Event separat oben zu zeigen UND nochmal identisch in
-    // der Liste wäre eine verwirrende Dopplung derselben Zeile.
-    const upcoming = events.filter((e) => isUpcomingEvent(e, todayIso) && e.id !== countdown?.event.id);
+    // Volle Einheitlichkeit (Folgefund 01.08.2026): das nächste Event steht
+    // wie jedes andere in der Liste, nur mit einem zusätzlichen "Noch X
+    // Tage"-Badge (s. eventRow()) statt einer separaten Sonderzeile.
+    const upcoming = events.filter((e) => isUpcomingEvent(e, todayIso));
 
     wrap.innerHTML = `
       <div class="panel-card">
         <div class="panel-title">Events</div>
-        ${countdownRow(countdown, canEdit)}
         <div id="event-timeline-list">
           ${
             upcoming.length
-              ? upcoming.map((e) => eventRow(e, canEdit)).join("")
-              : countdown
-                ? ""
-                : `<div class="panel-empty">Keine anstehenden Events.</div>`
+              ? upcoming.map((e) => eventRow(e, canEdit, countdown)).join("")
+              : `<div class="panel-empty">Keine anstehenden Events.</div>`
           }
         </div>
         <div id="event-timeline-error" class="event-timeline-error"></div>
