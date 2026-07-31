@@ -40,3 +40,17 @@ export async function canWriteForAthlete(athleteId) {
   await loadTrainerContext(athleteId);
   return getTrainerViewState().trainerContext.isTrainer;
 }
+
+/** Ist `athleteId` das Profil des eingeloggten Users selbst? Getrennt von
+ *  canWriteForAthlete() (das auch bei Trainer/Admin true liefert) — für
+ *  UI-Stellen, die einen Schreibvorgang für einen ANDEREN Athleten sichtbar
+ *  machen wollen (Bugreport 31.07.2026: Admin/Trainer können absichtlich für
+ *  fremde Athleten schreiben, ein unbeschrifteter Dialog verschleiert dann
+ *  aber leicht, für wen gerade gespeichert wird — genau das hat den Vorfall
+ *  ausgelöst, obwohl der Zugriff selbst laut RLS/Konzept korrekt war). */
+export async function isSelfAthlete(athleteId) {
+  const session = getSession();
+  if (!session) return false;
+  const profileId = await resolveAthleteProfileId(athleteId);
+  return !!profileId && profileId === session.id;
+}

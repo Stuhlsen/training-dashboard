@@ -74,7 +74,7 @@ mock.module(u("data-access/intervals/push.js"), {
   exports: { pushCardWorkout: async () => ({ ok: true }) },
 });
 
-const { canWriteForAthlete } = await import(u("state/write-authorization.js"));
+const { canWriteForAthlete, isSelfAthlete } = await import(u("state/write-authorization.js"));
 
 test("canWriteForAthlete: nicht eingeloggt -> false", async () => {
   mockSessionUser = null;
@@ -107,4 +107,30 @@ test("canWriteForAthlete: Admin -> true unabhaengig vom angezeigten Athleten", a
   mockSessionUser = { id: "irgendein-admin-uuid", role: "athlete", isAdmin: true };
   assert.equal(await canWriteForAthlete("athlete1"), true);
   assert.equal(await canWriteForAthlete("athlete2"), true);
+});
+
+// isSelfAthlete: fuer ui/event-form.js -- unterscheidet "ich schreibe fuer
+// mich" von "ich darf hier schreiben" (canWriteForAthlete liefert bei
+// Trainer/Admin ebenfalls true, obwohl der Athlet ein anderer ist). Bugreport
+// 31.07.2026: genau dieser Unterschied fehlte im Dialog-Titel.
+test("isSelfAthlete: nicht eingeloggt -> false", async () => {
+  mockSessionUser = null;
+  assert.equal(await isSelfAthlete("athlete1"), false);
+});
+
+test("isSelfAthlete: Athlet betrachtet die eigene Seite -> true", async () => {
+  mockSessionUser = { id: "profile-uuid-stuhlsen", role: "athlete" };
+  assert.equal(await isSelfAthlete("athlete1"), true);
+});
+
+test("isSelfAthlete: Admin schreibt fuer einen ANDEREN Athleten -> false, obwohl canWriteForAthlete true liefert", async () => {
+  mockSessionUser = { id: "irgendein-admin-uuid", role: "athlete", isAdmin: true };
+  assert.equal(await canWriteForAthlete("athlete2"), true);
+  assert.equal(await isSelfAthlete("athlete2"), false);
+});
+
+test("isSelfAthlete: Trainer schreibt fuer seinen Athleten -> false, obwohl canWriteForAthlete true liefert", async () => {
+  mockSessionUser = { id: "coach-uuid-dz", role: "coach" };
+  assert.equal(await canWriteForAthlete("athlete2"), true);
+  assert.equal(await isSelfAthlete("athlete2"), false);
 });

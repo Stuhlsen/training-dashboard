@@ -1,4 +1,6 @@
 import { createEvent, updateEvent, loadEvents } from "../state/events.js";
+import { isSelfAthlete } from "../state/write-authorization.js";
+import { CONFIG } from "../state/config.js";
 import { createRequestGuard } from "../core/request-guard.js";
 
 let overlay = null;
@@ -197,16 +199,33 @@ function onKeydown(e) {
  *  keine athlete_id trägt (data-access/supabase/events.js selektiert sie
  *  nicht, da der Aufrufer sie ohnehin schon kennt — Athlet der gerade
  *  betrachteten Liste). */
+function baseTitle(event) {
+  return event ? "Event bearbeiten" : "Event anlegen";
+}
+
 export function openEventForm(athleteId, event = null) {
   if (!overlay) build();
   currentAthleteId = athleteId;
   currentEventId = event?.id ?? null;
-  openGuard.bump();
+  const myToken = openGuard.bump();
   errorEl.textContent = "";
-  modal.querySelector("#event-form-title").textContent = event ? "Event bearbeiten" : "Event anlegen";
+  modal.querySelector("#event-form-title").textContent = baseTitle(event);
   fillForm(event);
   overlay.style.display = "flex";
   document.addEventListener("keydown", onKeydown);
+
+  // Schreibt hier gerade der Athlet selbst, oder (als Trainer/Admin) für
+  // einen ANDEREN Athleten? Beides ist laut RLS/Konzept erlaubt — ein
+  // unbeschrifteter Dialog verschleiert dabei aber leicht, für wen gerade
+  // gespeichert wird (genau das hat den Vorfall vom 31.07.2026 ausgelöst,
+  // obwohl der Zugriff selbst korrekt war). Titel erst nach der Auflösung
+  // ergänzen, nicht awaited (Dialog steht schon), openGuard-Token schützt
+  // gegen einen inzwischen geschlossenen/neu geöffneten Dialog.
+  isSelfAthlete(athleteId).then((isSelf) => {
+    if (isSelf || !openGuard.isCurrent(myToken)) return;
+    const name = CONFIG.athleteConfig(athleteId)?.name;
+    if (name) modal.querySelector("#event-form-title").textContent = `${baseTitle(event)} (für ${name})`;
+  });
 }
 
 export function closeEventForm() {
