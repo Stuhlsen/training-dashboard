@@ -10,6 +10,7 @@ import { getFtpHistory, saveFtpEntry } from "../state/ftp-history.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { fmtDate, localISODate } from "../core/format.js";
+import { currentFtpEntry } from "../core/ftp-history.js";
 import { log } from "./log.js";
 import { openDialog as openCheckinDialog } from "./checkin-dialog.js";
 
@@ -209,17 +210,6 @@ async function buildGoalsSection() {
 }
 
 const FTP_SOURCE_LABEL = { "ramp-test": "Ramp-Test", schaetzung: "Schätzung" };
-
-/** Eintrag mit dem größten `validFrom` <= heute — rein UI-seitige Markierung
- *  "aktuell", KEINE Übernahme der scripts/lib/ftp-history.js::ftpAt()-Logik
- *  (die ist Node-only, importiert env.js/fs). Bei Bedarf (weitere
- *  Frontend-Konsumenten) verdient sich eine geteilte core/-Variante das
- *  dann eigenständig — hier reicht die einfache Inline-Fassung.
- *  @param {Array<{validFrom:string}>} entries aufsteigend sortiert */
-function currentFtpEntry(entries) {
-  const todayISO = localISODate();
-  return entries.filter((e) => e.validFrom <= todayISO).at(-1) ?? null;
-}
 
 /** v1 (Auftrag "FTP als gepflegte, zeitpunktbezogene Historie", Schritt 4):
  *  nur anlegen, keine Korrektur/Löschung bestehender Einträge — RLS
