@@ -26,6 +26,9 @@
   von API-Doku recherchiert (s. Kopfkommentar `data-access/intervals/
   push.js`). Vor Produktion: pushen → Karte verschieben → erneut pushen →
   weiterhin nur EIN Event. → `docs/phase-3-konzept-planungstab.md` §5/§8.4.
+  Derselbe fehlende Live-Sync blockiert auch die `zoneTimes`/`icu_eftp`-
+  Feldnamen-Verifikation in `AGENTS.md` ("Bekannte Eigenheiten") — beide
+  können beim nächsten echten Sync-Lauf gemeinsam abgehakt werden.
 - **Drag & Drop, bewusste v1-Einschränkungen:** kein Tastatur-Verschieben
   (A11y-Fallback über `.planned-move-form` existiert bereits); keine
   Umsortierung innerhalb eines Tages (`sort_order` wird nach dem Anlegen nie

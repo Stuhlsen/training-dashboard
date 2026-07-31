@@ -483,8 +483,11 @@ Vorfall + Wiederherstellung: s. Commit-Historie um den 25.07.2026, kein separate
   getrennt, damit Athlet-1-exklusive Inhalte nicht in Athlet 2s Ansicht durchschlagen
 - `Data.ftpValue()` — liest aus athleteFtp (Athlet 2) oder CONFIG.ftp (Athlet 1)
 - `Data.forecast` — 16-Tage-Forecast, serverseitig befüllt, kein API-Call im Frontend
-- `Data.weekly()` — Plan-Wochen bei Athlet 1, Kalenderwochen-Fallback bei Athlet 2
-  (Athlet 2s Rides tragen bewusst kein `week`/`phase`, s. "Bekannte Eigenheiten")
+- `Data.weekly()` — ISO-Kalenderwochen-Aggregation für beide Athleten
+  (seit dem Umbau „Plan 1/2 → Kalenderwoche", s. u.); Athlet 2s Rides tragen
+  weiterhin bewusst kein `week`/`phase` (s. "Bekannte Eigenheiten") — das
+  betrifft nur den Plan-Bezug einzelner Ride-Objekte, nicht die
+  Wochen-Aggregation selbst
 - `updateChartExplainers(ownPlan, ftp)` — alle Chart-Texte/Legenden athletenabhängig
 - Berechnung gehört nach `core/` (mit Test), Rendering nach `ui/` — nicht mischen
 
@@ -601,7 +604,11 @@ Athleten-Varianten!) gesetzt.
 - `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
   `icu_eftp`) — Feldnamen beim ersten echten Sync-Lauf verifizieren; das
   Frontend normalisiert beide bekannten Formate und degradiert mit
-  Hinweistext, wenn die Felder fehlen.
+  Hinweistext, wenn die Felder fehlen. Blockiert am selben fehlenden
+  Live-Sync wie der M3-Punkt in `docs/offene-punkte.md` (kein
+  `INTERVALS_API_KEY`/`INTERVALS_ATHLETE_ID` lokal verfügbar) — beide
+  Verifikationen können beim nächsten echten Sync-Lauf gemeinsam erledigt
+  werden.
 - eFTP-Historie mergt `icu_eftp` (je Fahrt) mit dem Wellness-Tageswert aus `sportInfo`
   (`scripts/lib/wellness.js`). Wellness trägt seit dem Analyse-Umbau zusätzlich
   Gewicht/Kalorien/Hydration/Körperfett; welche Felder real befüllt sind, zeigt
