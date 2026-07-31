@@ -390,11 +390,13 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   strukturell (ordnungsunabhängig) gegen bereits offene Claude-Vorschläge,
   läuft über den bestehenden `errors[]`-Mechanismus (Commit `8c75487`).
 - **CTL/ATL-Verlauf-Kachel bekommt eine Sparkline** (`ui/trainer-bar.js::
-  ctlAtlTile`) — reine Funktion, in Node gegen mehrere Fälle geprüft (kein
-  Playwright-Login gegen dashboard-dev, da echte Trainer-Zugangsdaten sonst
-  im Tool-Transkript sichtbar geworden wären). **Noch nicht im echten
-  Browser bestätigt** — bitte bei Gelegenheit kurz gegenprüfen (Commit
-  `1814837`).
+  ctlAtlTile`) — reine Funktion, in Node gegen mehrere Fälle geprüft (Commit
+  `1814837`). **Im echten Browser bestätigt** (31.07.2026, Playwright gegen
+  dashboard-dev, Login Trainer-ST → Stuhlsen, Planungstab → "Ansicht
+  anpassen" → Kategorie "CTL/ATL-Verlauf" aktiviert): Kachel zeigt reale
+  CTL/ATL-Werte, Sparkline zeichnet zwei erkennbare Trendlinien
+  (Screenshot-Check, da eine SVG-Linienform im Accessibility-Snapshot nicht
+  sichtbar ist).
 - **„withdrawn"-Status bekommt einen UI-Pfad** — `withdrawProposal()`
   (derselbe `decideProposal`-Adapter wie accept/reject), Button zeigt
   „Zurückziehen" statt „Aktuelle behalten" bei eigenen (`source: "claude"`)
@@ -456,10 +458,15 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   wird jetzt gecacht und nur bei geändertem `access_token` (Login/Refresh/
   Logout) neu gebaut. `client.js` selbst bleibt wie schon dokumentiert
   außerhalb der node:test-Reichweite (esm.sh-URL-Import) — Verifikation über
-  `node -c` + Codelesen, ein Login-Playwright-Check hätte echte Zugangsdaten
-  im Tool-Transkript sichtbar gemacht (wie beim CTL/ATL-Sparkline-Punkt oben).
-  **Noch nicht im echten Browser bestätigt** — bitte bei Gelegenheit die
-  Konsole nach einem Login kurz gegenprüfen.
+  `node -c` + Codelesen. **Im echten Browser bestätigt** (31.07.2026,
+  Playwright gegen dashboard-dev): die Warnung feuert weiterhin (Supabase
+  selbst warnt bei jedem zusätzlichen `createClient()`, unabhängig vom
+  Caching — das ist architektonisch nicht vermeidbar, Singleton- und
+  Authed-Client sind zwangsläufig zwei Instanzen), aber wie beabsichtigt nur
+  einmal pro tatsächlichem Token-Wechsel (Erst-Login, dann erneut bei einem
+  Login als anderer Nutzer), nicht mehr pro einzelnem authentifizierten
+  Request. Das war das eigentliche Ziel des Caching-Fixes und ist damit
+  erreicht — kein Fehlerzustand, keine weitere Aktion nötig.
 - **Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)**: Athlet 1 lief bisher auf
   einer plan-gebundenen Wochenstruktur (P2-W0…P2-W12), Athlet 2 bereits auf
   ISO-Kalenderwochen — Migrations-Artefakt aus dem Notion→intervals.icu-
