@@ -29,15 +29,41 @@ function badge(label, color) {
   return `<span class="event-badge" style="--badge-color: ${color};">${escapeHtml(label)}</span>`;
 }
 
+function countdownContent(countdown) {
+  return `<span class="zdot"></span>
+      <span>${countdown.label} · <b>${escapeHtml(countdown.event.title)}</b> · ${fmtDate(countdown.event.eventDate)}</span>`;
+}
+
 /** Renn-Countdown als .session-pill-Karte — von overview.js (Hero-"Nächste
  *  Einheit"-Karte) mitgenutzt, damit es nur eine Formatierung für "nächstes
- *  Rennen" gibt statt zweier unabhängig driftender Kopien. */
+ *  Rennen" gibt statt zweier unabhängig driftender Kopien. Bewusst NICHT
+ *  interaktiv (kein data-id, kein Klick-/Löschen-Handler) — im Hero ist das
+ *  reine Anzeige, keine Verwaltung. */
 export function countdownCard(countdown) {
   if (!countdown) return "";
   return `
     <div class="session-pill" style="--sp-color: var(--ss); margin-bottom: 12px;">
-      <span class="zdot"></span>
-      <span>${countdown.label} · <b>${escapeHtml(countdown.event.title)}</b> · ${fmtDate(countdown.event.eventDate)}</span>
+      ${countdownContent(countdown)}
+    </div>`;
+}
+
+/** Dasselbe Countdown-Event, aber INNERHALB des Events-Tabs — dort ist es
+ *  bloß die Kompaktdarstellung des nächsten Events, kein separates Objekt.
+ *  Bugreport 31.07.2026 (Folgefund): das Countdown-Event war die einzige
+ *  Zeile im Events-Panel ohne Bearbeiten/Löschen, obwohl jede andere Zeile
+ *  (eventRow) beides hat — für den Betrachter sah das wie ein zufälliges
+ *  Sonderrecht für genau dieses Event aus. Wiederverwendet dieselben Klassen
+ *  wie eventRow() (.event-timeline-row/--editable, .event-timeline-remove),
+ *  damit die bestehende Klick-/Löschen-Verdrahtung in _draw() unverändert
+ *  greift, ohne eigenen Listener-Code. */
+function countdownRow(countdown, canEdit) {
+  if (!countdown) return "";
+  return `
+    <div class="event-timeline-row${canEdit ? " event-timeline-row--editable" : ""}" data-id="${countdown.event.id}">
+      <div class="session-pill" style="--sp-color: var(--ss); margin: 0; flex: 1; min-width: 0;">
+        ${countdownContent(countdown)}
+      </div>
+      ${canEdit ? `<button type="button" class="event-timeline-remove" data-id="${countdown.event.id}" title="Event löschen">×</button>` : ""}
     </div>`;
 }
 
@@ -129,7 +155,7 @@ export const EventTimeline = {
     wrap.innerHTML = `
       <div class="panel-card">
         <div class="panel-title">Events</div>
-        ${countdownCard(countdown)}
+        ${countdownRow(countdown, canEdit)}
         <div id="event-timeline-list">
           ${
             upcoming.length
