@@ -257,7 +257,7 @@ if (!HAS_CREDS) {
 
   // --- 3. proposals -------------------------------------------------------
 
-  test("proposals: Athlet legt eigenen Vorschlag an (Claude-Import-Pfad), anon sieht ihn nicht", async () => {
+  test("proposals: Athlet legt eigenen Vorschlag an (Claude-Import-Pfad), anon sieht ihn (S1, seit Migration 0010)", async () => {
     const insert = await rest("POST", "proposals", {
       token: athlete.token,
       body: { athlete_id: athlete.userId, created_by: athlete.userId, source: "claude", op: "cancel", payload: {} },
@@ -269,8 +269,14 @@ if (!HAS_CREDS) {
       if (!del.ok || del.data.length !== 1) throw new Error(`proposals-Testzeile ${id} nicht gelöscht`);
     });
 
+    // S1 (docs/phase-6-konzept-sichtbarkeit.md): proposals sind öffentlich
+    // lesbar, "Portfolio-Kern" — Migration 0010 (Security-Review Etappe B,
+    // Fund 1, 31.07.2026) hat die dafür fehlende anon-Policy nachgezogen.
+    // Vorher lief dieser Test genau umgekehrt (anon durfte NICHT lesen) —
+    // das war ein Bug (S1 unimplementiert), keine gewollte Sperre.
     const anonRead = await rest("GET", `proposals?id=eq.${id}`, { token: null });
-    assert.equal(anonRead.ok, false, "anon darf proposals nicht lesen (kein GRANT)");
+    assert.equal(anonRead.ok, true, `anon soll proposals lesen dürfen (S1): ${JSON.stringify(anonRead.data)}`);
+    assert.equal(anonRead.data.length, 1);
   });
 
   test(
