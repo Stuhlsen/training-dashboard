@@ -89,10 +89,32 @@ export async function fetchActivityIntervals(activityId, apiKey) {
 }
 
 /**
+ * Rohe icu_intervals-Segmente auf die für Cache/Matching gebrauchten Felder
+ * reduzieren (Progressionssteuerung C1, docs/konzept-progressionssteuerung.md)
+ * — kein Grund, das komplette API-Objekt je Segment zu cachen.
+ * @param {Array<Object>} segments @returns {Array<{start_time:number, end_time:number, average_watts:number, type:string|null}>}
+ */
+function slimSegments(segments) {
+  return segments.map((s) => ({
+    start_time: s.start_time,
+    end_time: s.end_time,
+    average_watts: s.average_watts,
+    type: s.type ?? null,
+  }));
+}
+
+/**
  * Cache (in-place ergänzt) mit Blockerkennung für alle übergebenen
- * Aktivitäten füllen — bereits gecachte Aktivitäten werden übersprungen
- * (historische Aktivitäten sind unveränderlich, keine Change-Detection
- * nötig). Throttlet neue Abrufe: Sicherheitsmarge unter dem vom
+ * Aktivitäten füllen — bereits vollständig gecachte Aktivitäten werden
+ * übersprungen (historische Aktivitäten sind unveränderlich, keine
+ * Change-Detection nötig). "Vollständig" heißt seit C1
+ * (docs/konzept-progressionssteuerung.md, Soll-Ist-Matching): der Eintrag
+ * trägt bereits `segments` (rohe icu_intervals, s. slimSegments()) — ältere
+ * Cache-Einträge (nur `longestBlock`, Stand v2-Ist-Typerkennung) gelten als
+ * unvollständig und werden hier einmalig nachgeladen, derselbe throttled
+ * Loop wie für neue Aktivitäten. `longestBlock` bleibt danach unverändert
+ * aus denselben Segmenten berechnet — keine Regression für die bestehende
+ * Typerkennung. Throttlet neue Abrufe: Sicherheitsmarge unter dem vom
  * intervals.icu-Maintainer genannten Limit (30/s Burst, 132/10s,
  * empfohlen 10/s — s. Bericht 30.07.2026), hier per Default 4/s.
  * @param {Array<{id:string|number, start_date_local:string}>} activities
@@ -123,7 +145,7 @@ export async function updateIntervalBlockCache(activities, cache, opts) {
 
   for (const act of activities) {
     const key = String(act.id);
-    if (cache[key]) {
+    if (cache[key]?.segments) {
       cachedCount++;
       continue;
     }
@@ -140,6 +162,7 @@ export async function updateIntervalBlockCache(activities, cache, opts) {
 
     cache[key] = {
       longestBlock: longestBlockAboveThreshold(segments, thresholdWatts, gapToleranceSec),
+      segments: slimSegments(segments),
       thresholdWatts,
       gapToleranceSec,
       fetchedAt: new Date().toISOString(),
