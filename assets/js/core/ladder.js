@@ -29,6 +29,27 @@ function isPlainObject(v) {
 }
 
 /**
+ * "Aktuell gültige" Stufe eines Formats aus der ladder_history (D2,
+ * Migration 0015) — Eintrag mit dem größten `validFrom <= todayISO` für
+ * dieses `formatId`, oder `null`, wenn keiner zutrifft (noch keine
+ * Fortschreibung/Ersteinstufung). Gegenstück zu
+ * core/ftp-history.js::currentFtpEntry, nur zusätzlich nach `formatId`
+ * gefiltert, weil ein Athlet mehrere Formate parallel führt (L1.1).
+ * @param {Array<{formatId:string, step:number, validFrom:string}>} history
+ * @param {string} formatId
+ * @param {string} todayISO ISO-Datum (bewusst kein Default hier — anders
+ *  als currentFtpEntry importiert core/ladder.js nicht core/format.js, um
+ *  bei künftigen Diff-Läufen des Generators keine unnötige Abhängigkeit zu
+ *  tragen; Aufrufer aus state/ übergeben `localISODate()` explizit)
+ * @returns {{formatId:string, step:number, validFrom:string}|null}
+ */
+export function currentLadderStep(history, formatId, todayISO) {
+  const applicable = (history || []).filter((e) => e.formatId === formatId && e.validFrom <= todayISO);
+  if (!applicable.length) return null;
+  return applicable.reduce((a, b) => (b.validFrom > a.validFrom ? b : a));
+}
+
+/**
  * Kreuzprodukt aus axes.primary × axes.secondary (primäre Achse äußere
  * Schleife — D4.2: "primäre und sekundäre Achse zuerst"). axes.tertiary
  * (falls vorhanden) wird NUR an die letzte (voll-volumige) Kombination

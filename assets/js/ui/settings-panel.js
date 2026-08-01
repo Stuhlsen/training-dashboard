@@ -8,6 +8,7 @@ import {
 } from "../state/session.js";
 import { getGoals, saveGoal, deactivateGoal } from "../state/goals.js";
 import { getFtpHistory, saveFtpEntry } from "../state/ftp-history.js";
+import { getSessionFormats, getAthleteFormats, setAthleteFormatActive } from "../state/formats.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import { fmtDate, localISODate } from "../core/format.js";
@@ -332,6 +333,113 @@ async function buildFtpHistorySection() {
   return section;
 }
 
+const EVIDENCE_GRADE_LABEL = { studienlage: "Studienlage", "coaching-konsens": "Coaching-Konsens" };
+
+/** Familienauswahl (D2, docs/konzept-progressionssteuerung.md L1.1/L7):
+ *  welche Formatfamilien für den Athleten aktiv sind. Max. zwei aktive
+ *  Familien pro Blockziel (L1.1) — clientseitig geprüft, weil session_
+ *  formats.block_targets die Zuordnung Format→Blockziel trägt und die
+ *  RLS-Ebene keine Kreuzprüfung über mehrere Zeilen kennt. Kein Seed in
+ *  Migration 0014 (Architekturentscheidung Fenster D) — Alex setzt die
+ *  L7-Startbelegung hier selbst, nach Freigabe im Abschlussbericht. */
+async function buildFormatsSection() {
+  const section = document.createElement("div");
+  section.style.cssText = "padding: 18px 16px; border-bottom: 1px solid var(--border);";
+
+  const heading = document.createElement("div");
+  heading.textContent = "Trainingsformate";
+  heading.style.cssText =
+    "font-family: var(--font-mono); font-size:0.62rem; text-transform:uppercase; letter-spacing:0.06em; color: var(--dim); margin-bottom:10px;";
+
+  const list = document.createElement("div");
+  list.style.cssText = "display:flex; flex-direction:column; gap:10px;";
+
+  const errorEl = document.createElement("div");
+  errorEl.style.cssText = "font-family: var(--font-mono); font-size:0.62rem; color: var(--red); min-height:1em; margin-top:8px;";
+
+  const [catalogResult, athleteFormatsResult] = await Promise.all([getSessionFormats(), getAthleteFormats()]);
+  if (!catalogResult.ok || !athleteFormatsResult.ok) {
+    const errEl = document.createElement("div");
+    errEl.textContent = "Trainingsformate konnten nicht geladen werden.";
+    errEl.style.cssText = "font-family: var(--font-mono); font-size:0.65rem; color: var(--red);";
+    section.appendChild(heading);
+    section.appendChild(errEl);
+    return section;
+  }
+
+  const formats = catalogResult.formats;
+  // active-Status als Map(id -> boolean), Default false für Formate ohne
+  // athlete_formats-Zeile (noch nie gewählt).
+  const activeById = new Map(formats.map((f) => [f.id, false]));
+  for (const af of athleteFormatsResult.athleteFormats) activeById.set(af.formatId, af.active);
+
+  /** Zählt aktive Familien, die sich mind. ein Blockziel mit `format` teilen
+   *  (ohne `format` selbst) — L1.1: max. zwei pro Blockziel. */
+  function activeSiblingCount(format) {
+    let count = 0;
+    for (const other of formats) {
+      if (other.id === format.id || !activeById.get(other.id)) continue;
+      if (other.blockTargets.some((bt) => format.blockTargets.includes(bt))) count++;
+    }
+    return count;
+  }
+
+  for (const format of formats) {
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex; align-items:center; justify-content:space-between; gap:8px;";
+    row.innerHTML = `
+      <span style="min-width:0;">
+        <span style="display:block; font-family: var(--font-body); font-size:0.8rem; color: var(--text);"></span>
+        <span style="display:block; font-family: var(--font-mono); font-size:0.6rem; color: var(--dim2);"></span>
+      </span>
+      <button type="button" style="width:36px; height:20px; border-radius:999px; flex-shrink:0;
+        border:none; cursor:pointer; position:relative; background: rgba(255,255,255,0.10); transition: background 0.15s;">
+        <span style="position:absolute; top:2px; left:2px; width:16px; height:16px; border-radius:50%;
+          background:#fff; transition: transform 0.15s;"></span>
+      </button>
+    `;
+    row.children[0].children[0].textContent = format.label;
+    row.children[0].children[1].textContent = EVIDENCE_GRADE_LABEL[format.evidenceGrade] ?? format.evidenceGrade;
+
+    const toggle = row.children[1];
+    const knob = toggle.querySelector("span");
+    const applyToggleState = () => {
+      const on = activeById.get(format.id);
+      toggle.style.background = on ? "var(--accent)" : "rgba(255,255,255,0.10)";
+      knob.style.transform = on ? "translateX(16px)" : "translateX(0)";
+    };
+    applyToggleState();
+
+    toggle.addEventListener("click", async () => {
+      errorEl.textContent = "";
+      const turningOn = !activeById.get(format.id);
+      // L1.1: max. zwei aktive Familien pro Blockziel — nur beim Einschalten
+      // relevant, Ausschalten ist immer erlaubt.
+      if (turningOn && format.blockTargets.length && activeSiblingCount(format) >= 2) {
+        errorEl.textContent = `Für "${format.blockTargets.join(", ")}" sind bereits zwei Familien aktiv — zuerst eine deaktivieren.`;
+        return;
+      }
+      activeById.set(format.id, turningOn);
+      applyToggleState();
+      const result = await setAthleteFormatActive(format.id, turningOn);
+      if (!result.ok) {
+        // Rollback bei Schreibfehler — sonst zeigt der Toggle einen Zustand,
+        // der serverseitig nicht ankam.
+        activeById.set(format.id, !turningOn);
+        applyToggleState();
+        errorEl.textContent = "Änderung konnte nicht gespeichert werden.";
+      }
+    });
+
+    list.appendChild(row);
+  }
+
+  section.appendChild(heading);
+  section.appendChild(list);
+  section.appendChild(errorEl);
+  return section;
+}
+
 /** Letztes Datum über alle Fahrten/Wellness-Einträge des aktiven Athleten —
  *  window.__dashboardData aus dem Briefing existiert nicht im Datenmodell,
  *  daher Näherung über den vorhandenen Data-Store statt pro Quelle exakt. */
@@ -453,6 +561,7 @@ async function buildPanelContent(user) {
   if (isAthlete()) {
     content.appendChild(await buildGoalsSection());
     content.appendChild(await buildFtpHistorySection());
+    content.appendChild(await buildFormatsSection());
     content.appendChild(buildDataSourcesSection());
   }
   return content;
