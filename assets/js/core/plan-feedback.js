@@ -11,6 +11,11 @@
    ============================================================ */
 
 import { isoWeekKey } from "./aggregate.js";
+import { estimateTss } from "./projection.js";
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
 
 /** Konfliktbefunde, die eine bestimmte Karte betreffen — sortiert
  *  warning vor info (Konzept §4: "gold für Hinweis, rot für Warnung").
@@ -44,6 +49,82 @@ export function horizonRaceEvent(events, projection, todayIso) {
 export function tsbOnDate(projection, dateIso) {
   const day = projection?.days?.find((d) => d.date === dateIso);
   return day ? day.tsb : null;
+}
+
+/** Modellierte Wirkung EINES Tages aus der PMC-Fortschreibung (W1, docs/
+ *  konzept-progressionssteuerung.md Schritt 3b/9C) — der Einzeltagesschritt
+ *  für `dateIso`: Fitness (CTL) bewegt sich langsam (Zweiundvierzigstel),
+ *  Ermüdung (ATL) schnell (Siebtel), Form (TSB) ist die Differenz zwischen
+ *  Vorher- und Nachher-Stand desselben Tages (core/projection.js::
+ *  projectLoad rechnet TSB[t] bereits als CTL[t-1]−ATL[t-1], "vorher").
+ *  Nutzt AUSSCHLIESSLICH bereits in `projection` vorhandene, gerundete
+ *  Werte — keine neue Rechenschicht, nur eine Differenzbildung auf dem
+ *  bereits Sichtbaren (dieselben Zahlen, die die Charts zeigen).
+ *  Bei mehreren Karten am selben Tag ist das die GEMEINSAME Tageswirkung
+ *  (projection.days aggregiert TSS bereits pro Datum, s. estimateTss-
+ *  Aufrufer in projection.js) — keine Aufteilung pro Karte.
+ *  `null` außerhalb der Projektion (vergangene/ausgefallene Karten —
+ *  projectLoad() überspringt diese Tage, kein Fehler).
+ *  @param {ReturnType<typeof import("./projection.js").projectLoad>} projection
+ *  @param {string} dateIso
+ *  @returns {{deltaFitness: number, deltaFatigue: number, deltaForm: number, uncertain: boolean}|null} */
+export function dayImpact(projection, dateIso) {
+  const days = projection?.days;
+  if (!days?.length) return null;
+  const idx = days.findIndex((d) => d.date === dateIso);
+  if (idx === -1) return null;
+  const day = days[idx];
+  const ctlBefore = idx === 0 ? projection.startCtl : days[idx - 1].ctl;
+  const atlBefore = idx === 0 ? projection.startAtl : days[idx - 1].atl;
+  return {
+    deltaFitness: round2(day.ctl - ctlBefore),
+    deltaFatigue: round2(day.atl - atlBefore),
+    deltaForm: round2(day.ctl - day.atl - day.tsb),
+    uncertain: day.uncertain,
+  };
+}
+
+/** Vorzeichen-Zahl mit einer Nachkommastelle, deutsches Format (Komma,
+ *  Unicode-Minus) — Konzept-Beispiel W1: "Ermüdung −8,6". Exportiert, damit
+ *  ui/planned.js dieselbe Formatierung für den Vorher/Nachher-Vergleich im
+ *  Drop-Feedback-Banner nutzt (kein zweites, abweichendes Zahlenformat). */
+export function formatSignedDelta(n) {
+  const rounded = Math.round(n * 10) / 10;
+  if (rounded === 0) return "±0"; // deckt auch −0 ab (−0 === 0 in JS)
+  const sign = rounded > 0 ? "+" : "−";
+  return `${sign}${Math.abs(rounded).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`;
+}
+
+/** Beschriftung für die Wirkungsanzeige (W1.1, Entscheidung zur Abnahme):
+ *  ausgeschrieben und neutral, KEINE prominente TSB-Einzelzahl — eine
+ *  hervorgehobene Formzahl pro Karte lädt dazu ein, auf TSB hin zu
+ *  optimieren (Konzept P2-Begründung). `scale` (aus estimateTss(), B0/
+ *  Schritt 3) muss durchschlagen (W1.2): sitzt der Wert auf der TRIMP-
+ *  Näherung statt echtem/berechnetem TSS, reicht der Zusatz "modelliert"
+ *  allein nicht — braucht eine erkennbar schwächere Formulierung.
+ *  @param {{deltaFitness:number, deltaFatigue:number, deltaForm:number}} impact
+ *  @param {"tss"|"tss-approx"} scale
+ *  @returns {string} */
+export function formatCardImpact(impact, scale) {
+  const qualifier = scale === "tss-approx" ? "grob geschätzt" : "modelliert";
+  return `Ermüdung ${formatSignedDelta(impact.deltaFatigue)} · Fitness ${formatSignedDelta(impact.deltaFitness)} · Form ${formatSignedDelta(impact.deltaForm)} — ${qualifier}`;
+}
+
+/** Wirkungsanzeige EINER Karte (W1/9C) — kombiniert dayImpact() mit der
+ *  `scale` aus estimateTss() (dieselbe Funktion, die core/projection.js
+ *  intern für die Prognose selbst nutzt) und liefert die fertige
+ *  Beschriftung. `null`, wenn die Karte außerhalb der Projektion liegt
+ *  (kein Tag mit `card.date` vorhanden — vergangene/ausgefallene Karten).
+ *  @param {{date?:string, tssPlanned?:number|null, workout?:Object|null, workoutStructure?:Object|null, typ?:string|null}} card
+ *  @param {ReturnType<typeof import("./projection.js").projectLoad>} projection
+ *  @param {{ftp?:number}} [opts]
+ *  @returns {{deltaFitness:number, deltaFatigue:number, deltaForm:number, uncertain:boolean, scale:"tss"|"tss-approx", label:string}|null} */
+export function cardImpact(card, projection, opts = {}) {
+  if (!card?.date) return null;
+  const impact = dayImpact(projection, card.date);
+  if (!impact) return null;
+  const { scale } = estimateTss(card, opts);
+  return { ...impact, scale, label: formatCardImpact(impact, scale) };
 }
 
 /** D6 (docs/konzept-progressionssteuerung.md D6.1): eine `Ruhetag`-Karte,

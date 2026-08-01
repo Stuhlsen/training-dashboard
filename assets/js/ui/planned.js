@@ -23,6 +23,9 @@ import {
   conflictsForCard,
   horizonRaceEvent,
   tsbOnDate,
+  dayImpact,
+  cardImpact,
+  formatSignedDelta,
   restDayRiddenSignal,
   plannedRecoveryWeeks,
 } from "../core/plan-feedback.js";
@@ -200,15 +203,29 @@ export const Planned = {
      bezöge sich sonst auf die VORHERIGE Aktion, nicht auf die gerade
      abgeschlossene. Aufgerufen NACH einer erfolgreichen Karten-
      Mutation (Move/Drop/Cancel/Anlegen/Bearbeiten), mit der
-     `getPlanCardsState().projection` von UNMITTELBAR VOR der Mutation. */
-  _recordDelta(beforeProjection) {
+     `getPlanCardsState().projection` von UNMITTELBAR VOR der Mutation.
+     `cardDateIso` (W1, Schritt 3b) ist das Datum der Karte selbst — bei
+     Verschieben das NEUE Zieldatum, bei Ausfallen das bisherige Datum —
+     und liefert zusätzlich die eigene Tageswirkung (Ermüdung/Fitness/
+     Form) Vorher/Nachher an genau diesem Tag, unabhängig vom Eventdatum
+     oben. Optional: ohne Datum (z.B. Anlegen/Bearbeiten-Pfade, die
+     _recordDelta bisher schon ohne zweiten Parameter aufrufen) bleibt
+     dieser Teil des Banners einfach leer. */
+  _recordDelta(beforeProjection, cardDateIso) {
     const afterProjection = getPlanCardsState().projection;
     const events = getEventsState().events;
     const todayLocal = localISODate();
     const event = horizonRaceEvent(events, afterProjection, todayLocal);
     const before = event ? tsbOnDate(beforeProjection, event.eventDate) : null;
     const after = event ? tsbOnDate(afterProjection, event.eventDate) : null;
-    deltaBanner = event && before != null && after != null ? { event, before, after } : null;
+    const eventPart = event && before != null && after != null ? { event, before, after } : null;
+
+    const impactBefore = cardDateIso ? dayImpact(beforeProjection, cardDateIso) : null;
+    const impactAfter = cardDateIso ? dayImpact(afterProjection, cardDateIso) : null;
+    const impactPart =
+      impactBefore && impactAfter ? { date: cardDateIso, before: impactBefore, after: impactAfter } : null;
+
+    deltaBanner = eventPart || impactPart ? { ...eventPart, impact: impactPart } : null;
   },
 
   /* ── Nach-Drop-Feedback: Delta-Banner rendern ────────────────
@@ -216,19 +233,52 @@ export const Planned = {
      Schließen setzt deltaBanner zurück (Klick-Handler in render()). */
   _renderDeltaBanner() {
     if (!deltaBanner) return "";
-    const { event, before, after } = deltaBanner;
-    const worse = after < before;
-    const label = event.title
-      ? `${escapeHtml(event.title)}, ${this._fmtDate(event.eventDate)}`
-      : this._fmtDate(event.eventDate);
+    const { event, before, after, impact } = deltaBanner;
+
+    let eventHtml = "";
+    if (event) {
+      const worse = after < before;
+      const label = event.title
+        ? `${escapeHtml(event.title)}, ${this._fmtDate(event.eventDate)}`
+        : this._fmtDate(event.eventDate);
+      eventHtml = `<span>TSB am Eventtag (${label}): <span class="planned-delta-old">${Math.round(before)}</span> → <span class="planned-delta-new" style="color:${worse ? "var(--gold)" : "var(--text)"}">${Math.round(after)}</span></span>`;
+    }
+
+    // W1, Schritt 3b: eigene Tageswirkung der Karte, unabhängig vom
+    // Eventdatum oben — Vorher/Nachher derselben drei Größen wie die
+    // Wirkungsanzeige auf der Karte selbst (_renderCardImpact), hier als
+    // Vergleich der Tageswirkung VOR/NACH genau dieser Aktion (dieselbe
+    // Formatierung wie core/plan-feedback.js::formatCardImpact, W1.1: keine
+    // prominente TSB-Einzelzahl, ausgeschriebene neutrale Beschriftung).
+    let impactHtml = "";
+    if (impact) {
+      const { before: b, after: a } = impact;
+      impactHtml = `<span>Wirkung am ${this._fmtDate(impact.date)} (vorher → nachher): Ermüdung ${formatSignedDelta(b.deltaFatigue)} → ${formatSignedDelta(a.deltaFatigue)} · Fitness ${formatSignedDelta(b.deltaFitness)} → ${formatSignedDelta(a.deltaFitness)} · Form ${formatSignedDelta(b.deltaForm)} → ${formatSignedDelta(a.deltaForm)} — modelliert</span>`;
+    }
+
     return `
       <div class="planned-delta-banner">
         <div class="planned-delta-banner-text">
-          <span>TSB am Eventtag (${label}): <span class="planned-delta-old">${Math.round(before)}</span> → <span class="planned-delta-new" style="color:${worse ? "var(--gold)" : "var(--text)"}">${Math.round(after)}</span></span>
+          ${eventHtml}
+          ${impactHtml}
           <span class="planned-delta-hint">nur Information, keine Blockade</span>
         </div>
         <button class="planned-delta-close" title="Schließen">✕</button>
       </div>`;
+  },
+
+  /* ── Wirkungsanzeige auf der Karte selbst (W1/9C) ────────────
+     Rein informativ, keine Sichtbarkeitsentscheidung — dieselbe Karte,
+     die ohnehin gerendert wird, zeigt zusätzlich ihre modellierte
+     Wirkung. Kein eigenes canWriteForAthlete()/_canEdit()-Gate: die
+     Anzeige folgt der Sichtbarkeit der Karte selbst (wie die Konflikt-
+     Badges aus _renderCardBadges), nicht den Schreibrechten — sonst
+     bekäme ein Trainer im Nur-Lese-Modus eine andere Zahl zu sehen als
+     der Athlet, obwohl beide dieselbe Projektion betrachten. */
+  _renderCardImpact(s) {
+    const impact = cardImpact(s, getPlanCardsState().projection, { ftp: Data.ftpValue() });
+    if (!impact) return "";
+    return `<div class="planned-card-impact">${escapeHtml(impact.label)}</div>`;
   },
 
   /* ── Konflikt-Badges + Push-Warnung an einer Karte ───────────
@@ -865,6 +915,7 @@ export const Planned = {
           </div>
         </div>
         ${this._renderCardBadges(s)}
+        ${this._renderCardImpact(s)}
         ${
           s.originalDate
             ? `
@@ -1148,10 +1199,11 @@ export const Planned = {
       }
 
       const before = getPlanCardsState().projection;
+      const cardDate = getPlanCardsState().cards.find((c) => c.id === id)?.date;
       const result = await cancelPlanCard(id, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
-        Planned._recordDelta(before);
+        Planned._recordDelta(before, cardDate);
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
       } else {
@@ -1227,7 +1279,7 @@ export const Planned = {
       const result = await movePlanCard(id, newDate, reason);
       if (result.ok) {
         statusEl.textContent = "✅ Gespeichert";
-        Planned._recordDelta(before);
+        Planned._recordDelta(before, newDate);
         // Nicht neu laden — der State ist bereits aktuell im Speicher
         Planned.render(Data.byDate());
         Planned.onAdjustmentChange?.();
@@ -1264,7 +1316,7 @@ export const Planned = {
       // Delta erst nach bestätigtem Erfolg berechnen (nicht am optimistischen
       // Zwischenstand) — sonst zeigte ein fehlgeschlagener, zurückgerollter
       // Drop einen Delta-Banner für eine Änderung, die gar nicht stattfand.
-      Planned._recordDelta(before);
+      Planned._recordDelta(before, date);
       Planned.render(Data.byDate());
       return;
     }

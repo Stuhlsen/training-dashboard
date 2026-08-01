@@ -7,10 +7,14 @@ import {
   conflictsForCard,
   horizonRaceEvent,
   tsbOnDate,
+  dayImpact,
+  formatCardImpact,
+  cardImpact,
   restDayRiddenSignal,
   plannedRecoveryWeeks,
   PLANNED_RECOVERY_WEEK_MIN_SHARE,
 } from "../assets/js/core/plan-feedback.js";
+import { projectLoad } from "../assets/js/core/projection.js";
 
 /* ── conflictsForCard ────────────────────────────────────────── */
 
@@ -97,6 +101,89 @@ test("tsbOnDate: null wenn das Datum nicht in der Projektion liegt", () => {
 
 test("tsbOnDate: null bei fehlender Projektion", () => {
   assert.equal(tsbOnDate(null, "2026-07-24"), null);
+});
+
+/* ── dayImpact/formatCardImpact/cardImpact (W1, Schritt 3b/9C) ──
+   Konzept-Beispiel: Start CTL 55 / ATL 60, ein Ruhetag (0 TSS) →
+   CTL 53,7 / ATL 51,4 / TSB +2,3 (docs/konzept-progressionssteuerung.md §4). */
+
+test("dayImpact: reproduziert das Konzept-Beispiel (CTL 55/ATL 60, ein Ruhetag)", () => {
+  // Startpunkt über eine Ist-Fahrt exakt "heute" fixiert, wie in
+  // tests/projection.test.js (ACTUALS-Fixierung, s. dortiger Kopfkommentar).
+  const actuals = [{ dateISO: "2026-07-24", ctl: 55, atl: 60 }];
+  const projection = projectLoad(
+    [{ id: "rest", date: "2026-07-24", tssPlanned: 0, typ: "Ruhetag" }],
+    actuals,
+    { today: "2026-07-24" }
+  );
+  const impact = dayImpact(projection, "2026-07-24");
+  // Konzept-Tabelle (§4): TSB −5,0 → +2,3, also ein Delta von ~7,3 (hier
+  // 7.26 vor der 1-Nachkommastellen-Rundung der Anzeige, s. formatCardImpact).
+  assert.deepEqual(impact, { deltaFitness: -1.31, deltaFatigue: -8.57, deltaForm: 7.26, uncertain: false });
+});
+
+test("dayImpact: zweiter Tag nutzt den Vortag als Vorher-Stand, nicht startCtl/startAtl", () => {
+  const actuals = [{ dateISO: "2026-07-24", ctl: 55, atl: 60 }];
+  const projection = projectLoad(
+    [
+      { id: "rest1", date: "2026-07-24", tssPlanned: 0, typ: "Ruhetag" },
+      { id: "rest2", date: "2026-07-25", tssPlanned: 0, typ: "Ruhetag" },
+    ],
+    actuals,
+    { today: "2026-07-24" }
+  );
+  const day2 = dayImpact(projection, "2026-07-25");
+  // Vorher-Stand von Tag 2 = Nachher-Stand von Tag 1 (53.7/51.4 gerundet).
+  // Math.round statt direktem Float-Vergleich — Differenz zweier bereits
+  // gerundeter Werte kann Fließkomma-Rauschen im letzten Bit erzeugen.
+  assert.equal(day2.deltaFitness, Math.round((projection.days[1].ctl - projection.days[0].ctl) * 100) / 100);
+  assert.equal(day2.deltaFatigue, Math.round((projection.days[1].atl - projection.days[0].atl) * 100) / 100);
+});
+
+test("dayImpact: null außerhalb der Projektion (Datum nicht enthalten)", () => {
+  assert.equal(dayImpact({ days: [{ date: "2026-07-24", ctl: 50, atl: 50, tsb: 0 }] }, "2026-08-01"), null);
+  assert.equal(dayImpact(null, "2026-07-24"), null);
+  assert.equal(dayImpact({ days: [] }, "2026-07-24"), null);
+});
+
+test("formatCardImpact: W1.1-Format, deutsches Vorzeichen/Komma, Qualifier je scale", () => {
+  const impact = { deltaFitness: -1.3, deltaFatigue: -8.6, deltaForm: 7.3 };
+  assert.equal(formatCardImpact(impact, "tss"), "Ermüdung −8,6 · Fitness −1,3 · Form +7,3 — modelliert");
+  assert.equal(
+    formatCardImpact(impact, "tss-approx"),
+    "Ermüdung −8,6 · Fitness −1,3 · Form +7,3 — grob geschätzt"
+  );
+});
+
+test("formatCardImpact: Null-Delta zeigt ±0 statt −0", () => {
+  const impact = { deltaFitness: 0, deltaFatigue: -0.04, deltaForm: 0.04 };
+  assert.match(formatCardImpact(impact, "tss"), /Fitness ±0/);
+  assert.match(formatCardImpact(impact, "tss"), /Ermüdung ±0/);
+});
+
+test("cardImpact: kombiniert dayImpact + estimateTss-scale zu einer fertigen Beschriftung", () => {
+  const actuals = [{ dateISO: "2026-07-24", ctl: 55, atl: 60 }];
+  const card = { id: "a", date: "2026-07-24", typ: "Z2 Lang" }; // Typ-Default MIT echtem TSS-Beleg → scale "tss"
+  const projection = projectLoad([card], actuals, { today: "2026-07-24" });
+  const result = cardImpact(card, projection);
+  assert.equal(result.scale, "tss");
+  assert.match(result.label, /modelliert$/);
+  assert.equal(result.deltaFitness, dayImpact(projection, "2026-07-24").deltaFitness);
+});
+
+test("cardImpact: Typ ohne echten TSS-Beleg → scale 'tss-approx', schwächere Formulierung", () => {
+  const actuals = [{ dateISO: "2026-07-24", ctl: 55, atl: 60 }];
+  const card = { id: "a", date: "2026-07-24", typ: "Etappe" }; // TYPE_DEFAULT_TSS_APPROX_TYPES
+  const projection = projectLoad([card], actuals, { today: "2026-07-24" });
+  const result = cardImpact(card, projection);
+  assert.equal(result.scale, "tss-approx");
+  assert.match(result.label, /grob geschätzt$/);
+});
+
+test("cardImpact: null ohne Kartendatum oder außerhalb der Projektion", () => {
+  const projection = projectLoad([], [{ dateISO: "2026-07-24", ctl: 55, atl: 60 }], { today: "2026-07-24" });
+  assert.equal(cardImpact({ typ: "Sweet Spot" }, projection), null);
+  assert.equal(cardImpact({ date: "2020-01-01", typ: "Sweet Spot" }, projection), null);
 });
 
 /* ── restDayRiddenSignal (D6) ────────────────────────────────── */

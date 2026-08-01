@@ -453,6 +453,15 @@
   border-color: rgba(251,191,36,0.2);
 }
 
+/* ── Wirkungsanzeige (W1/9C) — rein informativ, deshalb neutral statt
+   gold/rot wie die Konflikt-Badges (keine Warnung, kein Hinweis). ── */
+.planned-card-impact {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dim);
+  padding: 2px 2px 0;
+}
+
 /* ── Verschieben-Badge ───────────────────────────────────────── */
 .planned-moved-badge {
   font-size: 0.72rem;
