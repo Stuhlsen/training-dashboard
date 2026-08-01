@@ -1,0 +1,42 @@
+-- ============================================================
+-- Dashboard 2.0 — Migration 0013: Workout-Schema (plan_cards.workout_structure)
+-- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
+--             danach dashboard-prod
+-- Referenz: docs/konzept-progressionssteuerung.md D1
+--
+-- Neue Spalte, ersetzt das Freitextfeld `workout` NICHT — das bleibt
+-- vorerst führend für die Anzeige (s. Konzept D1, Schritt 2). Struktur wird
+-- clientseitig geprüft (core/workout-validator.js), hier nur der
+-- Container. Schema (version + steps[], flach, keine Verschachtelung —
+-- Entscheidung D1.1):
+--
+-- {
+--   "version": 1,
+--   "steps": [
+--     { "kind": "warmup", "duration_s": 600, "target_pct_ftp": 55 },
+--     { "kind": "set", "reps": 3,
+--       "work":     { "duration_s": 900, "target_pct_ftp": 90 },
+--       "recovery": { "duration_s": 300, "target_pct_ftp": 50 } },
+--     { "kind": "cooldown", "duration_s": 600, "target_pct_ftp": 50 }
+--   ]
+-- }
+--
+-- GRANT-Check (Präzedenz 0002_grants.sql): plan_cards ist dort bereits
+-- vollständig für anon (SELECT) und authenticated (SELECT/INSERT/UPDATE/
+-- DELETE) gegrantet, ohne spaltenrestriktives Grant (anders als
+-- profiles/proposals). Eine neue nullable Spalte braucht deshalb KEIN
+-- neues GRANT — identischer Fall wie die `workout`-Spalte in
+-- 0005_plan_cards.sql, die aus demselben Grund ohne eigenes GRANT auskam.
+-- ============================================================
+
+alter table public.plan_cards add column if not exists workout_structure jsonb;
+
+-- ============================================================
+-- PRÜFLISTE nach dem Einspielen (dev, dann prod):
+-- Spalten-Check: select workout_structure from plan_cards limit 1;
+--                -> Spalte vorhanden, NULL für alle Bestandskarten
+-- als Athlet A:  eigene Karte mit workout_structure anlegen/patchen ✓
+--                (RLS/GRANT aus 0001/0002 decken die Zeile als Ganzes ab)
+-- als anon:      plan_cards weiterhin lesbar (inkl. workout_structure) ✓
+--                · schreiben ✗
+-- ============================================================

@@ -320,6 +320,64 @@ test("validateProposal: 'replace' mit title/plan_date/type/target_tss auf oberst
   assert.ok(result.errors.some((e) => e.includes("payload fehlt")));
 });
 
+/* ── workout_structure (D1) — Import-Pfad muss das Feld kennen, sonst
+   scheitert jeder strukturierte Vorschlag an "Unbekannte payload-Felder"
+   (derselbe Fehlermodus wie der Prompt-Vorlage-Bug oben). ── */
+
+test("validateProposal: 'add' mit gültiger workout_structure ✓", () => {
+  const p = {
+    op: "add",
+    payload: {
+      title: "Sweet Spot 3×15",
+      type: "Sweet Spot",
+      plan_date: "2026-08-01",
+      workout_structure: {
+        version: 1,
+        steps: [
+          { kind: "warmup", duration_s: 600, target_pct_ftp: 55 },
+          {
+            kind: "set",
+            reps: 3,
+            work: { duration_s: 900, target_pct_ftp: 90 },
+            recovery: { duration_s: 300, target_pct_ftp: 50 },
+          },
+          { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+        ],
+      },
+    },
+  };
+  const result = validateProposal(p, { today: TODAY });
+  assert.deepEqual(result, { valid: true, errors: [] });
+});
+
+test("validateProposal: 'add' mit ungültiger workout_structure → Fehler, mit payload.workout_structure-Präfix", () => {
+  const p = {
+    op: "add",
+    payload: {
+      title: "Kaputt",
+      plan_date: "2026-08-01",
+      workout_structure: { version: 1, steps: [{ kind: "erfunden" }] },
+    },
+  };
+  const result = validateProposal(p, { today: TODAY });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.startsWith("payload.workout_structure:")));
+});
+
+test("validateProposal: 'move' mit workout_structure im payload → unbekanntes Feld (nur add/replace erlauben es)", () => {
+  const result = validateProposal(
+    {
+      op: "move",
+      target_card_id: "card-1",
+      target_updated_at: "x",
+      payload: { plan_date: "2026-08-01", workout_structure: { version: 1, steps: [] } },
+    },
+    { today: TODAY, knownCardIds: KNOWN_CARDS }
+  );
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("workout_structure")));
+});
+
 test("validateProposal: dieselbe Karte, korrekt unter payload verschachtelt → gültig", () => {
   const p = {
     op: "replace",

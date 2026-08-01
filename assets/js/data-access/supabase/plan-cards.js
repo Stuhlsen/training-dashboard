@@ -3,7 +3,7 @@ import { supabase, getAuthedClient } from "./client.js";
 const NOT_CONFIGURED = { code: "UNKNOWN", message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
   "id, planned_date, sort_order, title, workout_type, km, duration_min, tss_planned, " +
-  "status, note, workout, cancel_reason, moved_from_date, move_reason, week, phase, " +
+  "status, note, workout, workout_structure, cancel_reason, moved_from_date, move_reason, week, phase, " +
   "pushed_external_id, created_at, updated_at";
 
 /** Mapped eine plan_cards-Zeile auf exakt die Session-Shape, die bisher
@@ -26,6 +26,7 @@ function toSession(row) {
     phase: row.phase,
     details: row.note,
     workout: row.workout,
+    workoutStructure: row.workout_structure,
     originalDate: row.moved_from_date || undefined,
     movedReason: row.move_reason || undefined,
     cancelled: row.status === "ausgefallen" || undefined,
@@ -67,6 +68,7 @@ export async function updatePlanCard(id, patch) {
   if (patch.km !== undefined) updates.km = patch.km;
   if (patch.details !== undefined) updates.note = patch.details;
   if (patch.workout !== undefined) updates.workout = patch.workout;
+  if (patch.workoutStructure !== undefined) updates.workout_structure = patch.workoutStructure;
   if (patch.pushedExternalId !== undefined) updates.pushed_external_id = patch.pushedExternalId;
   if (patch.week !== undefined) updates.week = patch.week;
   if (patch.phase !== undefined) updates.phase = patch.phase;
@@ -99,6 +101,7 @@ export async function createPlanCard(athleteId, card) {
       km: card.km ?? null,
       note: card.details ?? null,
       workout: card.workout ?? null,
+      workout_structure: card.workoutStructure ?? null,
     })
     .select(SELECT_COLS)
     .single();

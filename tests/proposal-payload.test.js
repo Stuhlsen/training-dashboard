@@ -36,7 +36,14 @@ test("payloadToCardData: mappt alle Schema-Felder auf die Session-Shape", () => 
     km: 40,
     details: "Entschärft wegen TSB",
     workout: { blocks: [{ type: "interval", text: "2×15" }] },
+    workoutStructure: null,
   });
+});
+
+test("payloadToCardData: workout_structure wird auf workoutStructure gemappt (D1)", () => {
+  const structure = { version: 1, steps: [{ kind: "steady", duration_s: 60, target_pct_ftp: 50 }] };
+  const result = payloadToCardData({ title: "X", plan_date: "2026-07-28", workout_structure: structure });
+  assert.deepEqual(result.workoutStructure, structure);
 });
 
 test("payloadToCardData: fehlende optionale Felder werden null, nicht undefined", () => {

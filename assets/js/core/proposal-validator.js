@@ -18,6 +18,7 @@
 
 import { localISODate } from "./format.js";
 import { KNOWN_PLAN_TYPES } from "./plan-config.js";
+import { validateWorkoutStructure } from "./workout-validator.js";
 
 export const SCHEMA_VERSION = 1;
 export const KNOWN_OPS = ["add", "replace", "move", "cancel"];
@@ -27,9 +28,14 @@ const TSS_MAX = 400;
 
 const ENVELOPE_FIELDS = ["schema_version", "athlete", "source", "proposals"];
 const PROPOSAL_FIELDS = ["op", "target_card_id", "target_updated_at", "reason", "payload"];
+// workout_structure (D1, docs/konzept-progressionssteuerung.md) — Prompt-
+// Vorlage selbst wird erst in Fenster E (Schritt 12) angepasst, das Feld
+// muss aber schon jetzt bekannt sein, sonst scheitert jeder Vorschlag mit
+// Struktur an "Unbekannte payload-Felder" (derselbe Fehler wie beim
+// bisherigen Payload-Schema-Bug, s. Konzept Schrittfolge Fußnote).
 const PAYLOAD_FIELDS_BY_OP = {
-  add: ["title", "type", "plan_date", "target_tss", "km", "workout", "note"],
-  replace: ["title", "type", "plan_date", "target_tss", "km", "workout", "note"],
+  add: ["title", "type", "plan_date", "target_tss", "km", "workout", "workout_structure", "note"],
+  replace: ["title", "type", "plan_date", "target_tss", "km", "workout", "workout_structure", "note"],
   move: ["plan_date"],
   cancel: ["reason"],
 };
@@ -186,6 +192,12 @@ export function validateProposal(proposal, { knownCardIds = new Set(), today, op
   if ((proposal.op === "add" || proposal.op === "replace") && payload.target_tss != null) {
     if (!(Number.isFinite(payload.target_tss) && payload.target_tss >= TSS_MIN && payload.target_tss <= TSS_MAX)) {
       errors.push(`payload.target_tss außerhalb ${TSS_MIN}–${TSS_MAX}.`);
+    }
+  }
+  if ((proposal.op === "add" || proposal.op === "replace") && payload.workout_structure != null) {
+    const wsResult = validateWorkoutStructure(payload.workout_structure);
+    if (!wsResult.valid) {
+      errors.push(...wsResult.errors.map((e) => `payload.workout_structure: ${e}`));
     }
   }
 

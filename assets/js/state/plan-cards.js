@@ -318,6 +318,7 @@ export async function updatePlanCard(id, cardData) {
     km: cardData.km ?? null,
     details: cardData.details ?? null,
     workout: cardData.workout ?? null,
+    workoutStructure: cardData.workoutStructure ?? null,
   });
   if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf/Mutation überholt
   return applyCardUpdate(result);
