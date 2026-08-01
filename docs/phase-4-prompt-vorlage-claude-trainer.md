@@ -33,8 +33,9 @@ Alles zwischen den Markern ist `PROMPT_RUMPF` aus `core/export-briefing.js` 1:1.
 Du bist mein Radsport-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
 Profil (FTP, Zonen, Ziele), anstehende Events mit Priorität, meinen Trainingsplan
 (Karten mit `id` und `updated_at`), die Ist-Fahrten der letzten Wochen (TSS,
-RPE/Feel), meinen Befinden-Verlauf, die aktuelle Form (CTL/ATL/TSB) samt Projektion
-und die offene Konfliktliste des Planers.
+RPE/Feel), meinen Befinden-Verlauf, die aktuelle Form (CTL/ATL/TSB) samt Projektion,
+die offene Konfliktliste des Planers und meine letzten Entscheidungen (welche
+Vorschläge ich angenommen oder abgelehnt habe).
 
 {{AUFTRAG}}
 
@@ -262,3 +263,19 @@ davor sichtbar dieser feste Hinweis:
   zusammengeklebt würden, hätte die Regeln unnötig dupliziert oder fragil gemacht.
   Stattdessen ersetzt genau ein vollständig ausformulierter Auftragsblock die
   frühere Punkte-1–3-Stelle; der Rumpf bleibt für alle Presets identisch.
+- **Entscheidungsgedächtnis (6A, docs/konzept-progressionssteuerung.md, ab
+  Schritt 4 von Fenster A):** Das Briefing bekommt zwischen "Offene Konflikte"
+  und dem maschinenlesbaren Anhang eine neue Sektion "Entscheidungsgedächtnis
+  (letzte Vorschläge)" — die letzten (max. 10, neueste zuerst) tatsächlich
+  entschiedenen Vorschläge mit Datum, Operation (`op`), Status und der
+  Begründung aus dem ursprünglichen Vorschlag. Grund: jeder Export war bisher
+  ein frischer Chat ohne Kontinuität — "Steigern" bedeutete, dass Claude sich
+  etwas Plausibles ausdachte, unabhängig davon, was beim letzten Mal schon als
+  Ansatz verworfen wurde. Status-Mapping: nur `accepted`/`rejected`/`withdrawn`
+  zählen als Entscheidung (DB-Enum seit Migration `0006_proposals_v1.sql`),
+  `open`/`stale` filtert `state/export.js` vor der Übergabe heraus. Baut in
+  `core/export-briefing.js::buildMemorySection()` bewusst eine additive
+  Erweiterungsstelle für den künftigen Leiterstand je Sessiontyp (Fenster D,
+  `ladder_history` existiert noch nicht — der optionale zweite Parameter
+  `ladderState` bleibt bis dahin `null`/ungenutzt, ohne dass die Sektion dann
+  umgeschrieben werden muss).

@@ -51,8 +51,9 @@ export const EXTRA_CONTEXT_MAX_LENGTH = 500;
 export const PROMPT_RUMPF = `Du bist mein Radsport-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
 Profil (FTP, Zonen, Ziele), anstehende Events mit Priorität, meinen Trainingsplan
 (Karten mit \`id\` und \`updated_at\`), die Ist-Fahrten der letzten Wochen (TSS,
-RPE/Feel), meinen Befinden-Verlauf, die aktuelle Form (CTL/ATL/TSB) samt Projektion
-und die offene Konfliktliste des Planers.
+RPE/Feel), meinen Befinden-Verlauf, die aktuelle Form (CTL/ATL/TSB) samt Projektion,
+die offene Konfliktliste des Planers und meine letzten Entscheidungen (welche
+Vorschläge ich angenommen oder abgelehnt habe).
 
 {{AUFTRAG}}
 
@@ -259,6 +260,50 @@ function mdEscapeCell(v) {
   return String(v).replace(/\|/g, "/");
 }
 
+/** Anzeige-Label je Proposal-Status (DB-Enum seit Migration 0006:
+ *  open/accepted/rejected/stale/withdrawn). Nur echte Entscheidungen landen
+ *  hier (s. buildMemorySection) — "open"/"stale" filtert der Aufrufer
+ *  (state/export.js) bereits vor Übergabe heraus. */
+const PROPOSAL_STATUS_LABEL = {
+  accepted: "angenommen",
+  rejected: "abgelehnt",
+  withdrawn: "zurückgezogen",
+};
+
+/** Entscheidungsgedächtnis-Sektion (6A, docs/konzept-progressionssteuerung.md):
+ *  die letzten (max. 10, neueste zuerst) ENTSCHIEDENEN Vorschläge, damit der
+ *  Trainer-Chat nicht zwischen Ansätzen oszilliert, die beim letzten Export
+ *  schon verworfen wurden — jeder Export ist sonst ein frischer Chat ohne
+ *  Kontinuität.
+ *
+ *  `ladderState` ist eine bewusst additive Erweiterungsstelle für den
+ *  künftigen Leiterstand je Sessiontyp (Fenster D, `ladder_history`
+ *  existiert noch nicht) — bei `null` (heutiger Stand) bleibt nur der
+ *  Vorschlags-Teil sichtbar, die Sektion muss dafür später nicht
+ *  umgeschrieben werden, nur der `if (ladderState)`-Zweig unten befüllt.
+ *
+ *  @param {Array<{date?:string|null, op:string, status:string, reason?:string|null}>} recentProposals
+ *  @param {unknown} [ladderState] Platzhalter für Fenster D, noch ungenutzt.
+ *  @returns {string[]} Markdown-Zeilen */
+function buildMemorySection(recentProposals, ladderState = null) {
+  const lines = [];
+  lines.push("## Entscheidungsgedächtnis (letzte Vorschläge)");
+  if (!recentProposals?.length) {
+    lines.push("Keine bisherigen Vorschläge.");
+  } else {
+    for (const p of recentProposals.slice(0, 10)) {
+      const statusLabel = PROPOSAL_STATUS_LABEL[p.status] ?? p.status;
+      lines.push(`- ${p.date ?? "–"} ${p.op} → ${statusLabel}: "${mdEscapeCell(p.reason)}"`);
+    }
+  }
+  if (ladderState) {
+    // Fenster D (ladder_history, noch nicht gebaut): Leiterstand je
+    // Sessiontyp + zwei Nachbarstufen hier als zweiter Block ergänzen.
+  }
+  lines.push("");
+  return lines;
+}
+
 /** Markdown-Briefing für den Menschen + maschinenlesbarer JSON-Anhang mit
  *  Karten-IDs (Schema-Konzept §6). Reine Funktion — nimmt fertig geladene
  *  Domänenobjekte entgegen, kein fetch/document.
@@ -271,6 +316,7 @@ function mdEscapeCell(v) {
  *    wellbeing?: Array<{date:string, energy?:number, muscleFeel?:number, mood?:number, note?:string|null}>,
  *    projection?: {asOf:string, startCtl:number, startAtl:number, days:Array<{date:string,ctl:number,atl:number,tsb:number}>}|null,
  *    conflicts?: Array<{rule:string, severity:string, message:string}>,
+ *    recentProposals?: Array<{date?:string|null, op:string, status:string, reason?:string|null}>,
  *    today?: string,
  *  }} ctx
  *  @returns {string} */
@@ -286,6 +332,7 @@ export function buildBriefingMarkdown({
   wellbeing = [],
   projection = null,
   conflicts = [],
+  recentProposals = [],
   today,
 } = {}) {
   const todayIso = today ?? localISODate();
@@ -418,6 +465,8 @@ export function buildBriefingMarkdown({
     for (const c of conflicts) lines.push(`- ${c.rule} (${c.severity}): ${c.message}`);
   }
   lines.push("");
+
+  lines.push(...buildMemorySection(recentProposals));
 
   lines.push("## Maschinenlesbarer Anhang");
   lines.push("```json");

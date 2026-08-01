@@ -17,6 +17,14 @@ const PLAN_CARDS_SEED = [
 ];
 const EVENTS_SEED = [{ id: "ev-1", title: "GFNY Bremen", eventDate: "2099-02-01", type: "race", priority: "A" }];
 const WELLBEING_SEED = [{ id: "w-1", date: "2026-07-23", energy: 4, muscleFeel: 3, mood: 4, note: "Kopf dicht" }];
+// 6A (docs/konzept-progressionssteuerung.md): Mischung aus entschiedenen
+// (accepted/rejected) und nicht-entschiedenen (open) Vorschlägen — nur die
+// entschiedenen dürfen im Entscheidungsgedächtnis landen, neueste zuerst.
+let proposalsSeed = [
+  { id: "p-old", op: "replace", payload: {}, reason: "Ältere Begründung", status: "accepted", createdAt: "2026-07-01T00:00:00Z", decidedAt: "2026-07-02T00:00:00Z" },
+  { id: "p-new", op: "move", payload: {}, reason: "Neuere Begründung", status: "rejected", createdAt: "2026-07-20T00:00:00Z", decidedAt: "2026-07-21T00:00:00Z" },
+  { id: "p-open", op: "add", payload: {}, reason: "Noch offen", status: "open", createdAt: "2026-07-25T00:00:00Z", decidedAt: null },
+];
 
 mock.module(u("data-access/supabase/plan-cards.js"), {
   exports: {
@@ -45,6 +53,14 @@ mock.module(u("data-access/supabase/wellbeing.js"), {
     getRange: async () => ({ ok: true, checkins: WELLBEING_SEED.map((w) => ({ ...w })) }),
     getSharedRange: async () => ({ ok: true, checkins: [] }),
     upsertToday: async () => ({ ok: true, checkin: {} }),
+  },
+});
+mock.module(u("data-access/supabase/proposals.js"), {
+  exports: {
+    listProposals: async () => ({ ok: true, proposals: proposalsSeed.map((p) => ({ ...p })) }),
+    insertProposals: async () => ({ ok: true, proposals: [] }),
+    decideProposal: async () => ({ ok: true, proposal: {} }),
+    markProposalsStale: async () => ({ ok: true }),
   },
 });
 // Standardmäßig leer (Normalfall aktuell: ftp_history hat noch keine echten
@@ -151,6 +167,28 @@ test("buildClaudeExport: preset 'event' mit unbekannter/fehlender eventId fällt
   await loadEvents("athlete1");
   const result = await buildClaudeExport("athlete1", { preset: "event", eventId: "unbekannte-id" });
   assert.match(result.text, /Preset "Auf Event hin" gewählt, aber kein Zielevent hinterlegt/);
+});
+
+test("buildClaudeExport: Entscheidungsgedächtnis zeigt nur entschiedene Vorschläge, neueste zuerst", async () => {
+  await loadPlanCards("athlete1");
+  const result = await buildClaudeExport("athlete1");
+  assert.match(result.text, /## Entscheidungsgedächtnis \(letzte Vorschläge\)/);
+  assert.match(result.text, /- 2026-07-21 move → abgelehnt: "Neuere Begründung"/);
+  assert.match(result.text, /- 2026-07-02 replace → angenommen: "Ältere Begründung"/);
+  assert.doesNotMatch(result.text, /Noch offen/, "offene (nicht entschiedene) Vorschläge gehören nicht ins Gedächtnis");
+  // neueste zuerst: der abgelehnte (21.07.) muss vor dem angenommenen (02.07.) stehen
+  const idxNew = result.text.indexOf("2026-07-21 move");
+  const idxOld = result.text.indexOf("2026-07-02 replace");
+  assert.ok(idxNew < idxOld, "neuester Vorschlag muss zuerst erscheinen");
+});
+
+test("buildClaudeExport: Entscheidungsgedächtnis zeigt den Leer-Hinweis ohne entschiedene Vorschläge", async () => {
+  const before = proposalsSeed;
+  proposalsSeed = [{ id: "p-open-only", op: "add", payload: {}, reason: "x", status: "open", createdAt: "2026-07-25T00:00:00Z", decidedAt: null }];
+  await loadPlanCards("athlete1");
+  const result = await buildClaudeExport("athlete1");
+  assert.match(result.text, /## Entscheidungsgedächtnis \(letzte Vorschläge\)\nKeine bisherigen Vorschläge\./);
+  proposalsSeed = before;
 });
 
 test("buildClaudeExport: extraContext landet als eigener Absatz im Text, nie im JSON-Anhang", async () => {

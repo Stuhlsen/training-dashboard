@@ -204,6 +204,36 @@ test("buildBriefingMarkdown: Ruhetag-Karte (D6) erscheint mit TSS 0, ohne '~'-Sc
   assert.match(md, /\| 2026-07-29 \| Ruhetag \| Ruhetag \| 0 \| card-rest \|/);
 });
 
+test("buildBriefingMarkdown: Entscheidungsgedächtnis zeigt Datum/Operation/Status/Begründung je Vorschlag", () => {
+  const md = buildBriefingMarkdown({
+    ...CTX,
+    recentProposals: [
+      { date: "2026-07-21", op: "move", status: "rejected", reason: "Terminkonflikt" },
+      { date: "2026-07-02", op: "replace", status: "accepted", reason: "TSB-Reduktion" },
+    ],
+  });
+  assert.match(md, /## Entscheidungsgedächtnis \(letzte Vorschläge\)/);
+  assert.match(md, /- 2026-07-21 move → abgelehnt: "Terminkonflikt"/);
+  assert.match(md, /- 2026-07-02 replace → angenommen: "TSB-Reduktion"/);
+});
+
+test("buildBriefingMarkdown: Entscheidungsgedächtnis zeigt Leer-Hinweis ohne recentProposals", () => {
+  const md = buildBriefingMarkdown(CTX); // CTX trägt kein recentProposals
+  assert.match(md, /## Entscheidungsgedächtnis \(letzte Vorschläge\)\nKeine bisherigen Vorschläge\./);
+});
+
+test("buildBriefingMarkdown: Entscheidungsgedächtnis kappt auf 10 Einträge", () => {
+  const recentProposals = Array.from({ length: 15 }, (_, i) => ({
+    date: `2026-07-${String(i + 1).padStart(2, "0")}`,
+    op: "move",
+    status: "accepted",
+    reason: `Eintrag ${i + 1}`,
+  }));
+  const md = buildBriefingMarkdown({ ...CTX, recentProposals });
+  const matches = md.match(/- 2026-07-\d{2} move/g);
+  assert.equal(matches.length, 10);
+});
+
 test("exportFileName: fester Name aus AthletenId + Datum", () => {
   assert.equal(exportFileName("athlete1", "2026-07-24"), "claude-briefing-athlete1-2026-07-24.md");
 });

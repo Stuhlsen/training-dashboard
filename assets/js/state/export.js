@@ -20,11 +20,19 @@ import { getState as getPlanCardsState } from "./plan-cards.js";
 import { loadRangeForAthlete } from "./wellbeing.js";
 import { getFtpHistory } from "./ftp-history.js";
 import { getSession } from "./session.js";
+import { loadProposals, getState as getProposalsState } from "./proposals.js";
 
 // Fester Umfang, kein Zeitraum-Regler (Konzept §2, Entscheidung): Plan-
 // Fenster ohne Enddatum-Cutoff, Ist-Daten/Wellbeing je 4 Wochen zurück.
 const ACTUALS_WEEKS = 4;
 const WELLBEING_WEEKS = 4;
+
+// 6A (docs/konzept-progressionssteuerung.md): nur echte Entscheidungen
+// zählen als Gedächtnis — "open" (noch nicht entschieden) und "stale"
+// (durch eine andere Kartenänderung überholt, nie selbst entschieden)
+// sind keine Aussage über eine frühere Entscheidung.
+const DECIDED_PROPOSAL_STATUSES = new Set(["accepted", "rejected", "withdrawn"]);
+const RECENT_PROPOSALS_LIMIT = 10;
 
 /** Baut den fertigen Export-Text (Prompt-Vorlage mit eingesetztem Briefing,
  *  eine Zeichenkette — Konzept §2) für den eingeloggten Athleten. Nur für
@@ -71,6 +79,23 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
     ? currentFtpEntry(ftpHistoryResult.entries.filter((e) => e.source === "ramp-test"))
     : null;
 
+  // 6A (docs/konzept-progressionssteuerung.md): letzte ENTSCHIEDENE
+  // Vorschläge fürs Entscheidungsgedächtnis — nur echte Entscheidungen
+  // (s. DECIDED_PROPOSAL_STATUSES), neueste zuerst, auf RECENT_PROPOSALS_LIMIT
+  // gekappt (buildMemorySection kappt zwar selbst auch noch einmal, aber
+  // erst NACH dem Sortieren braucht es überhaupt nur die neuesten hier).
+  await loadProposals(athleteId);
+  const recentProposals = getProposalsState()
+    .proposals.filter((p) => DECIDED_PROPOSAL_STATUSES.has(p.status))
+    .sort((a, b) => (b.decidedAt ?? b.createdAt ?? "").localeCompare(a.decidedAt ?? a.createdAt ?? ""))
+    .slice(0, RECENT_PROPOSALS_LIMIT)
+    .map((p) => ({
+      date: (p.decidedAt ?? p.createdAt ?? "").slice(0, 10) || null,
+      op: p.op,
+      status: p.status,
+      reason: p.reason,
+    }));
+
   const text = buildExportText(
     {
       athleteId: user.id,
@@ -84,6 +109,7 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
       wellbeing,
       projection: planState.projection,
       conflicts: planState.conflicts,
+      recentProposals,
       today,
     },
     {
