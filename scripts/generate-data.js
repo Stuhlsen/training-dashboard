@@ -41,6 +41,8 @@ import {
 } from "./lib/map-activity.js";
 import { loadFtpHistory } from "./lib/ftp-history.js";
 import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
+import { loadPlanCards } from "./lib/plan-cards-fetch.js";
+import { attachCompliance } from "./lib/compliance.js";
 import {
   mapWellnessList,
   latestWeight,
@@ -170,6 +172,21 @@ async function main() {
     classifyCooldowns(plan2, ftpHistory, DEFAULT_FTP);
     log.info(`✅ Plan 2: ${plan2.length} Rides aus intervals.icu`);
     logRpeFeelCoverage(plan2, "Athlet 1");
+
+    // Soll-Ist-Matching + Compliance-Ampel (Progressionssteuerung C1/C2) —
+    // ohne SUPABASE_*-Credentials liefert loadPlanCards() [] und es gibt
+    // schlicht keine Compliance-Objekte (gleiches Degradationsmuster wie
+    // ftpHistory oben), kein Fehler.
+    const planCards = await loadPlanCards(
+      { email: ENV.SUPABASE_ATHLETE1_EMAIL, password: ENV.SUPABASE_ATHLETE1_PASSWORD },
+      { fromDate: oldest }
+    );
+    const complianceCounts = attachCompliance(plan2, activities, planCards, intervalBlockCache, ftpHistory, DEFAULT_FTP);
+    log.info(
+      `✅ Compliance (Athlet 1): ${complianceCounts.evaluated} Fahrten ausgewertet ` +
+        `(🟢 ${complianceCounts.green} · 🟡 ${complianceCounts.yellow} · 🔴 ${complianceCounts.red}, ` +
+        `${planCards.length} plan_cards geladen)`
+    );
 
     // Wellness-Einträge als eigenständige Liste (Schlaf-Chart, Readiness,
     // Regeneration & Körper) — Mapping zentral in lib/wellness.js
@@ -331,15 +348,40 @@ async function main() {
       fallbackFtp: estimatedFTP2,
     });
 
-    const rides2 = activities2
-      .map((act) =>
-        mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2, intervalBlockCache)
-      )
-      .sort((a, b) => a.date.localeCompare(b.date));
+    // Reihenfolge bewusst identisch zu activities2 (noch NICHT nach Datum
+    // sortiert) — attachCompliance() unten braucht den Gleichlauf
+    // rides2[i] <-> activities2[i], um die intervals.icu-Activity-ID je
+    // Fahrt aufzulösen (die im gemappten Ride-Objekt selbst nicht mehr
+    // vorkommt). Die Datumssortierung fürs Frontend passiert erst danach.
+    const rides2 = activities2.map((act) =>
+      mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2, intervalBlockCache)
+    );
     // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
     // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.
     classifyCooldowns(rides2, ftpHistory2, estimatedFTP2);
     logRpeFeelCoverage(rides2, ATHLETE_2_NAME);
+
+    // Soll-Ist-Matching + Compliance-Ampel (s. Athlet 1 oben) — MUSS vor der
+    // folgenden Datumssortierung laufen (Gleichlauf rides2[i] <-> activities2[i]).
+    const planCards2 = await loadPlanCards(
+      { email: ENV.SUPABASE_ATHLETE2_EMAIL, password: ENV.SUPABASE_ATHLETE2_PASSWORD },
+      { fromDate: oldest2 }
+    );
+    const complianceCounts2 = attachCompliance(
+      rides2,
+      activities2,
+      planCards2,
+      intervalBlockCache,
+      ftpHistory2,
+      estimatedFTP2
+    );
+    log.info(
+      `✅ Compliance (${ATHLETE_2_NAME}): ${complianceCounts2.evaluated} Fahrten ausgewertet ` +
+        `(🟢 ${complianceCounts2.green} · 🟡 ${complianceCounts2.yellow} · 🔴 ${complianceCounts2.red}, ` +
+        `${planCards2.length} plan_cards geladen)`
+    );
+
+    rides2.sort((a, b) => a.date.localeCompare(b.date));
 
     const wellnessList2 = mapWellnessList(wellness2);
     logWellnessCoverage(wellnessList2, ATHLETE_2_NAME);

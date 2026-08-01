@@ -35,6 +35,9 @@
  * @property {"subjective"|"plan"|"inferred"|"detected"} [typSource] Herkunft von `typ`
  *                                  (aktuell nie "detected" — Konsumenten stellen
  *                                  einzeln und bewusst um, s. AGENTS.md/Fahrplan)
+ * @property {RideCompliance} [compliance] Soll-Ist-Matching gegen die zugehörige
+ *                                  Plankarte (core/compliance-match.js), nur bei
+ *                                  echtem Match gesetzt — sonst kein Feld (s. dort)
  * @property {number|null} [km]
  * @property {number|null} [min]
  * @property {number|null} [kmh]
@@ -61,6 +64,23 @@
  * @property {string|null} [wetter]
  * @property {Array<number|{id: string, secs: number}>|null} [zoneTimes] Zeit je Leistungszone (intervals.icu)
  * @property {number|null} [eftp] eFTP zum Fahrtzeitpunkt (intervals.icu)
+ */
+
+/**
+ * Ergebnis des Soll-Ist-Matchings gegen die zugehörige Plankarte
+ * (core/compliance-match.js::computeCompliance, D3 in
+ * docs/konzept-progressionssteuerung.md). Nur vorhanden, wenn eine
+ * matchbare Karte (workout_structure, nicht ausgefallen, kein rest) UND
+ * bereits gecachte Segmente für die Fahrt existierten.
+ * @typedef {Object} RideCompliance
+ * @property {string} matchedCardId          plan_cards.id der gematchten Karte
+ * @property {number} plannedZoneTime_s      Soll-Zeit in Zone (set) bzw. Soll-Over-Zeit (alternating), Sekunden
+ * @property {number} actualZoneTime_s       tatsächliche Zeit/Over-Zeit, Sekunden
+ * @property {number} intervalsPlanned       Anzahl geplanter matchbarer Einheiten (set-Reps + alternating-Reps)
+ * @property {number} intervalsCompleted     davon als erfüllt gewertet
+ * @property {number} fadePct                mittlere Leistung letztes vs. erstes beobachtetes Intervall, in %
+ * @property {"green"|"yellow"|"red"} rating
+ * @property {string} rule                   auslösende Bedingung im Klartext (Regelcode)
  */
 
 /**

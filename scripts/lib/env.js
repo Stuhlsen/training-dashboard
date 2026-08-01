@@ -36,8 +36,11 @@ export const ENV = {
   WEATHER_LON: process.env.WEATHER_LON || null,
   WEATHER_LAT_2: process.env.WEATHER_LAT_2 || null,
   WEATHER_LON_2: process.env.WEATHER_LON_2 || null,
-  // Nur für scripts/migrate-plan-to-supabase.js (Einmal-Migration) —
-  // generate-data.js/npm run sync braucht diese nicht.
+  // Für scripts/migrate-plan-to-supabase.js (Einmal-Migration) UND seit
+  // Progressionssteuerung C1 auch für generate-data.js/npm run sync
+  // (scripts/lib/plan-cards-fetch.js, scripts/lib/ftp-history.js) — ohne
+  // diese Werte degradieren beide geräuschlos (keine plan_cards/keine
+  // FTP-Historie, s. dortige Kommentare), kein Fehler.
   SUPABASE_URL: process.env.SUPABASE_URL || "",
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
   SUPABASE_ATHLETE1_EMAIL: process.env.SUPABASE_ATHLETE1_EMAIL || "",
