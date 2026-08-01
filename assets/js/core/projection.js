@@ -19,6 +19,7 @@
 
 import { currentPmc, CTL_DAYS, ATL_DAYS } from "./pmc.js";
 import { estimateSessionTSS } from "./ftp-progress.js";
+import { computeWorkoutSummary } from "./workout-math.js";
 import { localISODate, addDaysISO } from "./format.js";
 import { TYPE_DEFAULT_TSS, FALLBACK_TSS, TYPE_DEFAULT_TSS_APPROX_TYPES } from "./plan-config.js";
 
@@ -29,47 +30,63 @@ function round2(n) {
 }
 
 /**
- * Geplanter TSS einer Karte nach der Prioritätskette (Konzept §2):
- *   1. `tssPlanned` explizit gesetzt          → sicher   (source "target")
- *   2. aus `workout`-Blöcken geschätzt        → unsicher (source "workout")
- *   3. Typ-Default (Median-TSS je Typ, K3)    → unsicher (source "type")
+ * Geplanter TSS einer Karte nach der Prioritätskette (Konzept §2, D1
+ * Schritt 3 für den neuen ersten Fall):
+ *   1. `workoutStructure` vorhanden       → berechnet (source "structure")
+ *   2. `tssPlanned` explizit gesetzt      → sicher   (source "target")
+ *   3. aus `workout`-Blöcken geschätzt    → unsicher (source "workout")
+ *   4. Typ-Default (Median-TSS je Typ, K3) → unsicher (source "type")
+ * `workoutStructure` geht bewusst VOR dem expliziten `tssPlanned`: sobald
+ * eine Karte eine tatsächliche Struktur trägt, ist die daraus berechnete
+ * Last die verlässlichere Quelle als ein separat gepflegter Zielwert
+ * (Konzept-Abnahmekriterium 1 — TSS ohne Freitext-Interpretation). Liefert
+ * die Struktur keinen positiven Wert (leer/unplausibel), fällt die Kette
+ * unverändert auf die bisherigen Stufen zurück.
  * Karten mit geschätztem TSS werden als `uncertain` markiert, damit die
- * Prognose (bzw. Schritt 5) nicht präziser aussieht als die Datenlage ist.
+ * Prognose (bzw. Schritt 5) nicht präziser aussieht als die Datenlage ist —
+ * `structure` ist wie `target` ein echter Wert, deshalb `uncertain: false`.
  * Ausgefallene Karten behandelt der Aufrufer (projectLoad überspringt sie) —
  * diese Funktion beschreibt nur, WAS die Karte an Last brächte.
  *
  * `scale` (docs/konzept-progressionssteuerung.md B0, Schritt 1): auf welcher
- * Skala der Wert beruht. "tss" für `target`/`workout` (beide genuin
- * TSS-skaliert — `tssPlanned` per Konvention, `estimateSessionTSS` über die
- * Coggan-Formel) sowie für Typ-Defaults mit echten TSS-Belegen; "tss-approx"
- * nur für die Typ-Defaults ohne eigene TSS-Belege (TRIMP-Median × gepoolter
- * Faktor, s. plan-config.js::TYPE_DEFAULT_TSS_APPROX_TYPES) — damit ein
- * späterer Leser der Projektion nicht erneut raten muss, welche Werte eine
- * echte Messgröße und welche eine Näherung sind.
+ * Skala der Wert beruht. "tss" für `structure`/`target`/`workout` (alle
+ * genuin TSS-skaliert) sowie für Typ-Defaults mit echten TSS-Belegen;
+ * "tss-approx" nur für die Typ-Defaults ohne eigene TSS-Belege (TRIMP-Median
+ * × gepoolter Faktor, s. plan-config.js::TYPE_DEFAULT_TSS_APPROX_TYPES) —
+ * damit ein späterer Leser der Projektion nicht erneut raten muss, welche
+ * Werte eine echte Messgröße und welche eine Näherung sind.
  *
- * @param {{tssPlanned?: number|null, workout?: Object|null, typ?: string|null}} card
+ * @param {{tssPlanned?: number|null, workout?: Object|null, workoutStructure?: Object|null, typ?: string|null}} card
  * @param {{typeDefaults?: Record<string,number>, fallbackTss?: number, ftp?: number, approxTypes?: Set<string>}} [opts]
- * @returns {{tss: number, uncertain: boolean, source: "target"|"workout"|"type", scale: "tss"|"tss-approx"}}
+ * @returns {{tss: number, uncertain: boolean, source: "structure"|"target"|"workout"|"type", scale: "tss"|"tss-approx"}}
  */
 export function estimateTss(card, opts = {}) {
   const typeDefaults = opts.typeDefaults ?? TYPE_DEFAULT_TSS;
   const fallbackTss = opts.fallbackTss ?? FALLBACK_TSS;
   const approxTypes = opts.approxTypes ?? TYPE_DEFAULT_TSS_APPROX_TYPES;
 
-  // 1. explizit gesetzter Zielwert (Number.isFinite statt typeof: ein
+  // 1. berechneter Wert aus der Workout-Struktur (echter TSS, kein Freitext)
+  if (card?.workoutStructure) {
+    const { computedTss } = computeWorkoutSummary(card.workoutStructure, opts.ftp);
+    if (computedTss > 0) {
+      return { tss: computedTss, uncertain: false, source: "structure", scale: "tss" };
+    }
+  }
+
+  // 2. explizit gesetzter Zielwert (Number.isFinite statt typeof: ein
   //    NaN würde sonst als "gesetzt" durchgehen und die gesamte Kurve mit
   //    NaN vergiften — 0 bleibt ein gültiger expliziter Wert)
   if (Number.isFinite(card?.tssPlanned)) {
     return { tss: card.tssPlanned, uncertain: false, source: "target", scale: "tss" };
   }
 
-  // 2. Schätzung aus den Workout-Blöcken (nur wenn sie etwas ergibt)
+  // 3. Schätzung aus den Workout-Blöcken (nur wenn sie etwas ergibt)
   if (card?.workout) {
     const est = estimateSessionTSS(card.workout, opts.ftp);
     if (est > 0) return { tss: est, uncertain: true, source: "workout", scale: "tss" };
   }
 
-  // 3. Typ-Default (Median-TSS je Typ, wo belegt — sonst TRIMP-Näherung)
+  // 4. Typ-Default (Median-TSS je Typ, wo belegt — sonst TRIMP-Näherung)
   const tss = typeDefaults[card?.typ] ?? fallbackTss;
   const scale = approxTypes.has(card?.typ) ? "tss-approx" : "tss";
   return { tss, uncertain: true, source: "type", scale };

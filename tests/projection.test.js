@@ -15,6 +15,37 @@ const ACTUALS = [{ dateISO: TODAY, ctl: 48, atl: 40 }];
 
 /* ── estimateTss: Prioritätskette ────────────────────────────── */
 
+test("estimateTss Stufe 0: workout_structure schlägt sogar einen expliziten tssPlanned (Schritt 3, D1)", () => {
+  const structure = {
+    version: 1,
+    steps: [{ kind: "steady", duration_s: 3600, target_pct_ftp: 100 }], // IF=1 → 3600×1/36 = 100
+  };
+  const r = estimateTss({ tssPlanned: 999, workoutStructure: structure, typ: "Schwelle" });
+  assert.deepEqual(r, { tss: 100, uncertain: false, source: "structure", scale: "tss" });
+});
+
+test("estimateTss: workoutStructure vorhanden, aber ohne verwertbaren Inhalt → fällt auf die nächste Stufe zurück", () => {
+  const r = estimateTss({ tssPlanned: 55, workoutStructure: { version: 1, steps: [] }, typ: "Schwelle" });
+  assert.deepEqual(r, { tss: 55, uncertain: false, source: "target", scale: "tss" });
+});
+
+test("estimateTss Regression: Karten OHNE workoutStructure verhalten sich exakt wie vor Schritt 3 (B2)", () => {
+  const cardsOhneStruktur = [
+    { tssPlanned: 120, typ: "Sweet Spot" },
+    { workout: { warmup: 15, intervals: 4, duration: 8, rest: 4, cooldown: 10, pct: [88, 94] }, typ: "Schwelle" },
+    { typ: "Z2 Lang" },
+    { typ: "Etappe" },
+    { typ: "Gibt-es-nicht" },
+    { workout: {}, typ: "Schwelle" },
+  ];
+  for (const card of cardsOhneStruktur) {
+    const withoutField = estimateTss(card);
+    const withNullField = estimateTss({ ...card, workoutStructure: null });
+    assert.deepEqual(withNullField, withoutField, `unverändert für ${JSON.stringify(card)}`);
+    assert.notEqual(withoutField.source, "structure");
+  }
+});
+
 test("estimateTss Stufe 1: expliziter tssPlanned gewinnt, sicher", () => {
   const r = estimateTss({ tssPlanned: 120, typ: "Sweet Spot" });
   assert.deepEqual(r, { tss: 120, uncertain: false, source: "target", scale: "tss" });
