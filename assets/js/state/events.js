@@ -121,11 +121,12 @@ export async function createEvent(athleteId, event) {
   if (!profileId)
     return { ok: false, error: { code: "NO_DATA", message: "Athlet hat (noch) keinen Supabase-Account" } };
   const myRequest = requestGuard.bump();
-  // type -> "other" macht priority/ftp_goal ungültig (Check-Constraint
-  // events_priority_only_for_race) — hier erzwingen statt jedem Aufrufer
-  // (aktuell ui/event-form.js, künftig ggf. Quick-Add/Import) zuzumuten,
-  // das selbst zu wissen. Spiegelt updateEvent()s Logik.
-  const payload = event.type === "other" ? { ...event, priority: null, ftpGoal: null } : event;
+  // type -> "other" macht priority/ftp_goal/isTest ungültig (Check-
+  // Constraint events_priority_only_for_race) — hier erzwingen statt jedem
+  // Aufrufer (aktuell ui/event-form.js, künftig ggf. Quick-Add/Import)
+  // zuzumuten, das selbst zu wissen. Spiegelt updateEvent()s Logik.
+  const payload =
+    event.type === "other" ? { ...event, priority: null, ftpGoal: null, isTest: false } : event;
   const result = await createEventAdapter(profileId, payload);
   if (!requestGuard.isCurrent(myRequest)) return result; // durch neueren Aufruf überholt
   // loadedForAthleteId === null: noch nie geladen (z.B. Quick-Add ohne

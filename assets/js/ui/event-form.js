@@ -19,6 +19,7 @@ let titleInput = null;
 let dateInput = null;
 let priorityInput = null;
 let ftpGoalInput = null;
+let isTestInput = null;
 let noteInput = null;
 let currentType = "race";
 let currentAthleteId = null;
@@ -96,6 +97,10 @@ function build() {
           Ziel-FTP (Watt, optional)
           <input name="ftpGoal" type="number" min="0" step="1" placeholder="z. B. 210" class="glass-input">
         </label>
+        <label style="display:flex; align-items:center; gap:8px; font-family: var(--font-body); font-size:0.82rem; color: var(--dim);">
+          <input name="isTest" type="checkbox">
+          Ist ein Testtermin (z. B. Ramp-Test) — kein Wettkampf
+        </label>
       </div>
 
       <label style="${LABEL_STYLE}">
@@ -126,6 +131,7 @@ function build() {
   dateInput = form.querySelector('[name="eventDate"]');
   priorityInput = form.querySelector('[name="priority"]');
   ftpGoalInput = form.querySelector('[name="ftpGoal"]');
+  isTestInput = form.querySelector('[name="isTest"]');
   noteInput = form.querySelector('[name="note"]');
   typeBtns = {
     race: modal.querySelector('[data-type="race"]'),
@@ -158,6 +164,7 @@ function build() {
       type: currentType,
       priority: fd.get("priority") || null,
       ftpGoal: fd.get("ftpGoal") ? Number(fd.get("ftpGoal")) : null,
+      isTest: isTestInput.checked,
       note: fd.get("note").trim() || null,
     };
 
@@ -185,6 +192,7 @@ function fillForm(event) {
   dateInput.value = event?.eventDate || "";
   priorityInput.value = event?.priority || "";
   ftpGoalInput.value = event?.ftpGoal ?? "";
+  isTestInput.checked = !!event?.isTest;
   noteInput.value = event?.note || "";
   setType(event?.type || "race");
 }

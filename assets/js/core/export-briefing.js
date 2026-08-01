@@ -225,18 +225,29 @@ const EVENT_FALLBACK_HINWEIS = `_Hinweis: Preset "Auf Event hin" gewählt, aber 
 
 `;
 
+// D5 (docs/konzept-progressionssteuerung.md): ein Testtermin (is_test) ist
+// kein Wettkampf — Familienwahl/Leiter sollen NICHT auf ihn hin umgebaut
+// werden (beides existiert als Konzept aber erst in Fenster B/D, hier nur
+// der Hinweis). Bewusst als eigener, ans Ende des event-Auftragsblocks
+// angehängter Satz statt in AUFTRAG_VARIANTEN.event eingebettet — der
+// Block wird wörtlich gegen die Doku geprüft (tests/export-briefing-
+// consistency.test.js), ein bedingter Laufzeit-Zusatz gehört nicht in
+// diese literal geprüfte Konstante (Muster wie EVENT_FALLBACK_HINWEIS).
+const EVENT_IS_TEST_HINWEIS = `\n\n_Hinweis: Das ist ein Testtermin (kein Wettkampf) — der Plan wird nicht auf die Testform hin umgebaut, nur das TSB-Zielfenster und ein kurzer Taper greifen._`;
+
 /** Baut den Auftragsblock für ein Preset. `event` erwartet
- *  `{ title, eventDate }` — fehlt eines von beidem, fällt der Auftrag
- *  sichtbar auf `general` zurück (kein stiller Fallback, R3/R4). Ein
- *  unbekanntes/fehlendes Preset fällt ebenfalls auf `general` zurück.
- *  @param {string} preset @param {{title?:string, eventDate?:string}|null} [event]
+ *  `{ title, eventDate, isTest? }` — fehlt title/eventDate, fällt der
+ *  Auftrag sichtbar auf `general` zurück (kein stiller Fallback, R3/R4).
+ *  Ein unbekanntes/fehlendes Preset fällt ebenfalls auf `general` zurück.
+ *  @param {string} preset @param {{title?:string, eventDate?:string, isTest?:boolean}|null} [event]
  *  @returns {string} */
 export function buildAuftragBlock(preset, event = null) {
   if (preset === "event") {
     if (event?.title && event?.eventDate) {
-      return AUFTRAG_VARIANTEN.event
+      const block = AUFTRAG_VARIANTEN.event
         .replaceAll("{{EVENT_TITLE}}", event.title)
         .replaceAll("{{EVENT_DATE}}", event.eventDate);
+      return event.isTest ? block + EVENT_IS_TEST_HINWEIS : block;
     }
     return EVENT_FALLBACK_HINWEIS + AUFTRAG_VARIANTEN.general;
   }

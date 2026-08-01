@@ -136,6 +136,25 @@ test("buildExportText: preset 'event' setzt Titel/Datum des gewählten Events in
   assert.doesNotMatch(text, /\{\{EVENT_DATE\}\}/);
 });
 
+test("buildExportText: preset 'event' mit isTest zeigt den Testtermin-Hinweis (D5)", () => {
+  const text = buildExportText(CTX, {
+    preset: "event",
+    event: { title: "FTP Ramp Test", eventDate: "2026-09-19", isTest: true },
+  });
+  assert.match(
+    text,
+    /Testtermin \(kein Wettkampf\) — der Plan wird nicht auf die Testform hin umgebaut/
+  );
+});
+
+test("buildExportText: preset 'event' ohne isTest (bzw. isTest:false) zeigt KEINEN Testtermin-Hinweis", () => {
+  const text = buildExportText(CTX, {
+    preset: "event",
+    event: { title: "GFNY Bremen", eventDate: "2026-08-30" },
+  });
+  assert.doesNotMatch(text, /Testtermin \(kein Wettkampf\)/);
+});
+
 test("buildExportText: preset 'event' OHNE gewähltes Event fällt sichtbar auf general zurück (kein stiller Fallback)", () => {
   const text = buildExportText(CTX, { preset: "event", event: null });
   assert.match(text, /Preset "Auf Event hin" gewählt, aber kein Zielevent hinterlegt/);

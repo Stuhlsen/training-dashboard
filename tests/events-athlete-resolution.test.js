@@ -77,6 +77,31 @@ test("createEvent: löst 'athlete1' ebenfalls auf die Profil-UUID auf", async ()
   assert.equal(createEventCalls[0].athleteId, "profile-uuid-stuhlsen");
 });
 
+// D5 (docs/konzept-progressionssteuerung.md): type "other" macht priority/
+// ftpGoal/isTest ungültig (Check-Constraint events_priority_only_for_race,
+// Migration 0012) — createEvent() erzwingt das clientseitig, damit ein
+// stehen gebliebener (nur ausgeblendeter) Formularwert nicht am Constraint
+// scheitert, statt jedem Aufrufer das selbst zumuten zu müssen.
+test("createEvent: type 'other' nullt priority/ftpGoal/isTest, auch wenn im Payload gesetzt", async () => {
+  createEventCalls = [];
+  await createEvent("athlete1", {
+    title: "Trainingslager",
+    eventDate: "2026-08-30",
+    type: "other",
+    priority: "main",
+    ftpGoal: 210,
+    isTest: true,
+  });
+  assert.deepEqual(createEventCalls[0].event, {
+    title: "Trainingslager",
+    eventDate: "2026-08-30",
+    type: "other",
+    priority: null,
+    ftpGoal: null,
+    isTest: false,
+  });
+});
+
 /* isUpcomingEvent — geteilte Bedingung für nextRaceEvent() (nur Rennen) und
    ui/event-timeline.js (alle Typen), s. docs/offene-punkte.md ("upcoming"-
    Filter duplizierte nextRaceEvent()). */

@@ -88,7 +88,9 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
     },
     {
       preset,
-      event: selectedEvent ? { title: selectedEvent.title, eventDate: selectedEvent.eventDate } : null,
+      event: selectedEvent
+        ? { title: selectedEvent.title, eventDate: selectedEvent.eventDate, isTest: selectedEvent.isTest }
+        : null,
       extraContext,
     },
   );

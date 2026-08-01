@@ -1,7 +1,8 @@
 import { supabase, getAuthedClient } from "./client.js";
 
 const NOT_CONFIGURED = { code: "UNKNOWN", message: "Supabase nicht konfiguriert" };
-const SELECT_COLS = "id, title, event_date, type, priority, ftp_goal, note, created_at, updated_at";
+const SELECT_COLS =
+  "id, title, event_date, type, priority, ftp_goal, is_test, note, created_at, updated_at";
 
 function toEvent(row) {
   return {
@@ -11,6 +12,7 @@ function toEvent(row) {
     type: row.type,
     priority: row.priority,
     ftpGoal: row.ftp_goal,
+    isTest: row.is_test,
     note: row.note,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -65,6 +67,7 @@ export async function createEvent(athleteId, event) {
       type: event.type,
       priority: event.priority ?? null,
       ftp_goal: event.ftpGoal ?? null,
+      is_test: event.isTest ?? false,
       note: event.note ?? null,
     })
     .select(SELECT_COLS)
@@ -82,16 +85,18 @@ export async function updateEvent(id, patch) {
   if (patch.type !== undefined) updates.type = patch.type;
   if (patch.priority !== undefined) updates.priority = patch.priority;
   if (patch.ftpGoal !== undefined) updates.ftp_goal = patch.ftpGoal;
+  if (patch.isTest !== undefined) updates.is_test = patch.isTest;
   if (patch.note !== undefined) updates.note = patch.note;
 
-  // type -> "other" macht priority/ftp_goal ungültig (Check-Constraint
-  // events_priority_only_for_race) — hier erzwingen statt dem Aufrufer
-  // zu überlassen, sonst schlägt ein Patch wie { type: "other" } ohne
-  // explizites priority/ftpGoal:null am Constraint mit einem generischen
-  // Fehler fehl.
+  // type -> "other" macht priority/ftp_goal/is_test ungültig (Check-
+  // Constraint events_priority_only_for_race) — hier erzwingen statt dem
+  // Aufrufer zu überlassen, sonst schlägt ein Patch wie { type: "other" }
+  // ohne explizites priority/ftpGoal/isTest:null am Constraint mit einem
+  // generischen Fehler fehl.
   if (updates.type === "other") {
     updates.priority = null;
     updates.ftp_goal = null;
+    updates.is_test = false;
   }
 
   const { data, error } = await client
