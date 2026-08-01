@@ -255,6 +255,19 @@ export function buildAuftragBlock(preset, event = null) {
   return AUFTRAG_VARIANTEN[preset] ?? AUFTRAG_VARIANTEN.general;
 }
 
+/** Kurze Compliance-Zelle für die Ist-Fahrten-Tabelle (C2,
+ *  docs/konzept-progressionssteuerung.md) — eine Zeile je Fahrt, nicht die
+ *  volle Intervalltabelle (die kommt erst in der UI, Schritt 6b). `–` ohne
+ *  Match (keine Karte/Struktur, noch nicht gecachte Segmente, s.
+ *  scripts/lib/compliance.js). @param {import("../types.js").Ride} r */
+function complianceCell(r) {
+  const c = r.compliance;
+  if (!c) return "–";
+  const emoji = { green: "🟢", yellow: "🟡", red: "🔴" }[c.rating] ?? "";
+  const ratio = `${c.intervalsCompleted}/${c.intervalsPlanned}`;
+  return c.rating === "green" ? `${emoji} ${ratio}` : `${emoji} ${ratio} (${c.rule})`;
+}
+
 function mdEscapeCell(v) {
   if (v == null) return "–";
   return String(v).replace(/\|/g, "/");
@@ -410,14 +423,19 @@ export function buildBriefingMarkdown({
   if (!actuals.length) {
     lines.push("Keine Fahrten im Zeitraum.");
   } else {
-    lines.push("| Datum | Typ | TSS | RPE | Feel |");
-    lines.push("|---|---|---|---|---|");
+    lines.push("| Datum | Typ | TSS | RPE | Feel | Compliance |");
+    lines.push("|---|---|---|---|---|---|");
     for (const r of actuals) {
-      lines.push(`| ${r.dateISO} | ${mdEscapeCell(r.typ)} | ${r.tss ?? "–"} | ${r.rpe ?? "–"} | ${r.feelIcu ?? "–"} |`);
+      lines.push(
+        `| ${r.dateISO} | ${mdEscapeCell(r.typ)} | ${r.tss ?? "–"} | ${r.rpe ?? "–"} | ${r.feelIcu ?? "–"} | ${complianceCell(r)} |`
+      );
     }
     lines.push("");
     lines.push(
       "_Der Typ stammt je nach Fahrt aus unterschiedlicher Quelle: bei fehlendem Plan-Match datenbasiert aus der gefahrenen Leistung abgeleitet, sonst aus der Plankarte übernommen oder manuell eingetragen — nur im Plankarten-Fall kann er vom tatsächlichen Verlauf abweichen._"
+    );
+    lines.push(
+      "_Compliance (Soll-Ist-Matching gegen die Plankarte, sofern vorhanden): erfüllte/geplante Intervalle, bei gelb/rot die auslösende Regel in Klammern._"
     );
   }
   lines.push("");
