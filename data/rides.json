@@ -12935,21 +12935,21 @@
       "uvMax": 1.1
     },
     "2026-08-02": {
-      "temp": 21.3,
-      "tempFeel": 21.4,
+      "temp": 21,
+      "tempFeel": 21,
       "humidity": 59,
-      "windSpeed": 8.7,
-      "windDir": 85,
+      "windSpeed": 9,
+      "windDir": 82,
       "precipProb": 0,
       "weatherCode": 45,
       "uvMax": 6.4
     },
     "2026-08-03": {
-      "temp": 25.6,
+      "temp": 25.5,
       "tempFeel": 26.4,
-      "humidity": 54,
-      "windSpeed": 10.5,
-      "windDir": 82,
+      "humidity": 55,
+      "windSpeed": 10.4,
+      "windDir": 81,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.4
@@ -13089,7 +13089,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-01T18:55:38.474Z",
+  "updated": "2026-08-01T21:10:11.459Z",
   "source": "notion+intervals",
   "count": 80
 }
