@@ -57,6 +57,16 @@
 
 ---
 
+## Progressionssteuerung (ab 01.08.2026)
+
+- **Eigenes Konzeptdokument mit eigener Schrittfolge** —
+  `docs/konzept-progressionssteuerung.md` (Workout-Schema, Leiter,
+  Compliance-Ampel, Formatkatalog, Ruhetage als Karten, Test-Events,
+  Entscheidungsgedächtnis, Leitplanken). Schritte 0/1/1b/1c (Fenster A:
+  Skalenmischung TSS/TRIMP, Ruhetage, Test-Events, Gedächtnis) laufen auf
+  `main`, unabhängig vom React-Umbau (Dashboard 3.0, s. G1 im Konzept).
+  Weitere Schritte/Fenster folgen laut der dortigen Reihenfolge (Abschnitt 7).
+
 ## Phase 5 — Explorer
 
 - **Skalen-Migration der Bestandscharts bewusst zurückgestellt** — `pmc/power/
