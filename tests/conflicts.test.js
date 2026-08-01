@@ -112,6 +112,42 @@ test("K-LEER feuert nicht bei nur 2 Ruhetagen davor", () => {
   assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 0);
 });
 
+// D6 (docs/konzept-progressionssteuerung.md): eine bewusst geplante
+// Ruhetag-Karte ist keine Planungslücke — nur eine wirklich fehlende Karte
+// löst K-LEER aus.
+const rest = (id, date) => ({ id, date, typ: "Ruhetag", tssPlanned: 0 });
+
+test("K-LEER feuert NICHT, wenn die 3 Tage davor Ruhetag-Karten tragen (bewusst geplant)", () => {
+  const proj = mkProj([
+    { date: "2026-07-20" },
+    { date: "2026-07-21" },
+    { date: "2026-07-22" },
+    { date: "2026-07-23" },
+    { date: "2026-07-24" },
+  ]);
+  const cards = [
+    rest("r1", "2026-07-21"),
+    rest("r2", "2026-07-22"),
+    rest("r3", "2026-07-23"),
+    hard("a", "2026-07-24"),
+  ];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 0);
+});
+
+test("K-LEER feuert weiterhin bei echten Lücken, auch wenn irgendwo eine Ruhetag-Karte dazwischenliegt", () => {
+  // Ruhetag-Karte am 21.07. bricht die Zählung (wie ein aktiver Tag) — die
+  // beiden Lücken am 22./23. reichen allein nicht für die Schwelle von 3.
+  const proj = mkProj([
+    { date: "2026-07-20" },
+    { date: "2026-07-21" },
+    { date: "2026-07-22" },
+    { date: "2026-07-23" },
+    { date: "2026-07-24" },
+  ]);
+  const cards = [rest("r1", "2026-07-21"), hard("a", "2026-07-24")];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 0);
+});
+
 /* ── K-RAMPE (zwei volle ISO-Wochen: KW30 20.–26.07., KW31 27.07.–02.08.) ── */
 
 // KW30 = 20.–26.07., KW31 = 27.07.–02.08. — beide volle 7-Tage-Wochen.

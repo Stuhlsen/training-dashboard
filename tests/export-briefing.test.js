@@ -170,6 +170,21 @@ test("buildExportText: extraContext wird getrimmt, bloßer Leerraum zählt als '
   assert.doesNotMatch(text, /Zusatzkontext von mir/);
 });
 
+test("buildBriefingMarkdown: Ruhetag-Karte (D6) erscheint mit TSS 0, ohne '~'-Schätz-Markierung", () => {
+  // Ruhetag-Karten tragen in der Praxis immer ein explizites tssPlanned:0
+  // (Prioritätsstufe 1 in estimateTss) — kein geschätzter Wert, deshalb
+  // keine "~"-Markierung wie bei Typ-Default-Karten.
+  const ctxWithRest = {
+    ...CTX,
+    planCards: [
+      ...CTX.planCards,
+      { id: "card-rest", date: "2026-07-29", name: "Ruhetag", typ: "Ruhetag", tssPlanned: 0, updatedAt: "2026-07-20T00:00:00Z" },
+    ],
+  };
+  const md = buildBriefingMarkdown(ctxWithRest);
+  assert.match(md, /\| 2026-07-29 \| Ruhetag \| Ruhetag \| 0 \| card-rest \|/);
+});
+
 test("exportFileName: fester Name aus AthletenId + Datum", () => {
   assert.equal(exportFileName("athlete1", "2026-07-24"), "claude-briefing-athlete1-2026-07-24.md");
 });

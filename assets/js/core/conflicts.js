@@ -64,10 +64,14 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
     cardsByDate.get(c.date).push(c);
   }
 
-  /** Lastklasse eines Tages: "hart" (≥1 harte Karte), "aktiv" (moderat/locker)
-   *  oder "ruhe" (keine Karte oder nur Ruhetage). */
+  /** Lastklasse eines Tages: "hart" (≥1 harte Karte), "aktiv" (moderat/locker),
+   *  "ruhe" (nur Ruhetag-Karte(n), bewusst geplant) oder "leer" (keine Karte
+   *  — echte Planungslücke). Vor D6 (docs/konzept-progressionssteuerung.md)
+   *  fielen "keine Karte" und "Ruhetag-Karte" beide auf "ruhe" — K-LEER
+   *  unten unterscheidet das jetzt bewusst (nur "leer" löst aus). */
   const classOf = (date) => {
     const dc = cardsByDate.get(date) || [];
+    if (!dc.length) return "leer";
     const classes = dc.map((c) => intensityClass(c.typ, intensityTable));
     if (classes.includes("hart")) return "hart";
     if (classes.some((k) => k === "moderat" || k === "locker")) return "aktiv";
@@ -120,18 +124,21 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
     });
   }
 
-  // ── K-LEER: harte Einheit direkt nach einem Ruheblock ≥ 3 Tagen ─
+  // ── K-LEER: harte Einheit direkt nach einem Block ≥ 3 echten Planungs-
+  //    lücken ("leer" — keine Karte). Eine bewusst geplante Ruhetag-Karte
+  //    ("ruhe") bricht die Zählung wie ein aktiver Tag — ein bewusst freier
+  //    Tag ist keine Planungslücke (D6, docs/konzept-progressionssteuerung.md).
   for (let i = 0; i < days.length; i++) {
     if (classOf(days[i].date) !== "hart") continue;
     let rest = 0;
-    for (let j = i - 1; j >= 0 && classOf(days[j].date) === "ruhe"; j--) rest++;
+    for (let j = i - 1; j >= 0 && classOf(days[j].date) === "leer"; j--) rest++;
     if (rest >= cfg.restBlockDays) {
       conflicts.push({
         rule: "K-LEER",
         severity: "info",
         dates: [days[i].date],
         cardIds: hardCardIds(days[i].date),
-        message: `Harte Einheit am ${fmtDate(days[i].date)} direkt nach ${rest} Ruhetagen`,
+        message: `Harte Einheit am ${fmtDate(days[i].date)} direkt nach ${rest} ungeplanten Tagen`,
       });
     }
   }

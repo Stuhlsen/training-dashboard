@@ -132,6 +132,14 @@ export const KNOWN_PLAN_TYPES = [
   "Z1 Recovery",
   "Gruppenfahrt",
   "FTP-Test",
+  // Ruhetag (docs/konzept-progressionssteuerung.md D6, Schritt 2): bewusst
+  // komplett freier Tag, target_tss=0. Reuse eines bereits bestehenden Typ-
+  // Strings — INTENSITY_CLASS.Ruhetag/Planned._typColor/_typIcon kannten ihn
+  // schon (bisher nur für Athlet 2s statisches, read-only Schedule genutzt,
+  // dort in ui/planned.js weiterhin athletenscoped ausgeblendet). D6s
+  // "recovery"-Rolle (Z1-Ausfahrt, echter TSS-Wert) deckt das bereits
+  // vorhandene "Z1 Recovery" ab — kein zweiter neuer Typ nötig.
+  "Ruhetag",
 ];
 
 /**
@@ -206,6 +214,16 @@ export const TYPE_EXPECTED_BAND = Object.freeze({
  *   locker  = Z2-Varianten, Recovery, Ausrollen, NLS (Nachtlangstrecke = locker)
  *   ruhe    = Ruhetag
  * Nicht gelistete Typen gelten als "moderat" (s. intensityClass()).
+ *
+ * D6.2 (docs/konzept-progressionssteuerung.md): `Ruhetag` zählt bewusst
+ * weder als "hart" noch als "leicht" (locker), sondern als eigene Kategorie
+ * "ruhe" — für die künftige K-HARTFOLGE-Regel (Fenster E, noch nicht gebaut)
+ * erfüllen sowohl `Ruhetag` als auch `Z1 Recovery` die Trennbedingung
+ * zwischen zwei harten Tagen, sind hier aber bewusst unterschiedlich
+ * klassifiziert ("ruhe" vs. "locker"), weil nur `Ruhetag` ein echter
+ * Null-Reiz-Tag ist. Für K-LEER (core/conflicts.js) zählt zusätzlich NUR
+ * eine wirklich fehlende Karte als Planungslücke, keine `Ruhetag`-Karte
+ * (s. dortiger Kommentar).
  */
 export const INTENSITY_CLASS = Object.freeze({
   "Sweet Spot": "hart",

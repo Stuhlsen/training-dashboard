@@ -7,6 +7,9 @@ import {
   conflictsForCard,
   horizonRaceEvent,
   tsbOnDate,
+  restDayRiddenSignal,
+  plannedRecoveryWeeks,
+  PLANNED_RECOVERY_WEEK_MIN_SHARE,
 } from "../assets/js/core/plan-feedback.js";
 
 /* ── conflictsForCard ────────────────────────────────────────── */
@@ -94,4 +97,59 @@ test("tsbOnDate: null wenn das Datum nicht in der Projektion liegt", () => {
 
 test("tsbOnDate: null bei fehlender Projektion", () => {
   assert.equal(tsbOnDate(null, "2026-07-24"), null);
+});
+
+/* ── restDayRiddenSignal (D6) ────────────────────────────────── */
+
+test("restDayRiddenSignal: Ruhetag-Karte + gefahren → Info-Signal", () => {
+  const signal = restDayRiddenSignal({ typ: "Ruhetag" }, true);
+  assert.deepEqual(signal, {
+    severity: "info",
+    message: "Ruhetag gefahren — bewusst freier Tag wurde trotzdem trainiert.",
+  });
+});
+
+test("restDayRiddenSignal: Ruhetag-Karte, aber nicht gefahren → null", () => {
+  assert.equal(restDayRiddenSignal({ typ: "Ruhetag" }, false), null);
+});
+
+test("restDayRiddenSignal: andere Kartentypen lösen nie aus, auch wenn gefahren", () => {
+  assert.equal(restDayRiddenSignal({ typ: "Z1 Recovery" }, true), null);
+  assert.equal(restDayRiddenSignal(null, true), null);
+});
+
+/* ── plannedRecoveryWeeks (D6) ───────────────────────────────── */
+
+test("plannedRecoveryWeeks: Woche mit Mehrheit Ruhetag/Z1-Recovery-Karten wird erkannt", () => {
+  const cards = [
+    { date: "2026-07-20", typ: "Ruhetag" }, // Mo, KW30
+    { date: "2026-07-21", typ: "Z1 Recovery" },
+    { date: "2026-07-22", typ: "Sweet Spot" },
+  ];
+  const weeks = plannedRecoveryWeeks(cards);
+  assert.equal(weeks.size, 1);
+  assert.ok(PLANNED_RECOVERY_WEEK_MIN_SHARE <= 2 / 3);
+});
+
+test("plannedRecoveryWeeks: normale Blockwoche (Minderheit Ruhetag) wird NICHT erkannt", () => {
+  const cards = [
+    { date: "2026-07-20", typ: "Sweet Spot" },
+    { date: "2026-07-21", typ: "Schwelle" },
+    { date: "2026-07-22", typ: "Ruhetag" },
+  ];
+  assert.equal(plannedRecoveryWeeks(cards).size, 0);
+});
+
+test("plannedRecoveryWeeks: ausgefallene Karten zählen nicht mit", () => {
+  const cards = [
+    { date: "2026-07-20", typ: "Sweet Spot", cancelled: true },
+    { date: "2026-07-21", typ: "Ruhetag" },
+  ];
+  // Ohne die ausgefallene Karte bleibt nur die Ruhetag-Karte → 100% Anteil.
+  assert.equal(plannedRecoveryWeeks(cards).size, 1);
+});
+
+test("plannedRecoveryWeeks: leere Eingabe → leeres Set", () => {
+  assert.equal(plannedRecoveryWeeks([]).size, 0);
+  assert.equal(plannedRecoveryWeeks(undefined).size, 0);
 });

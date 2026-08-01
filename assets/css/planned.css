@@ -179,6 +179,14 @@
   color: var(--text);
 }
 
+/* Erholungswoche aus den Plankarten erkannt (D6) — dezenter Hinweis, keine
+   eigene Pill-Form wie .planned-week-badge, nur ein Marker im Header. */
+.planned-week-recovery {
+  font-size: 0.74rem;
+  color: var(--dim);
+  margin-left: auto;
+}
+
 /* ── Cards Grid ──────────────────────────────────────────────── */
 .planned-cards {
   display: grid;

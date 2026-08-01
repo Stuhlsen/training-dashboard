@@ -19,7 +19,13 @@
 
 import { fmt, weatherIcon, windDir, localISODate } from "../core/format.js";
 import { normalizeFeel } from "../core/normalize.js";
-import { conflictsForCard, horizonRaceEvent, tsbOnDate } from "../core/plan-feedback.js";
+import {
+  conflictsForCard,
+  horizonRaceEvent,
+  tsbOnDate,
+  restDayRiddenSignal,
+  plannedRecoveryWeeks,
+} from "../core/plan-feedback.js";
 import { canDragCard } from "../core/plan-drag.js";
 import { KNOWN_PLAN_TYPES } from "../core/plan-config.js";
 import { CONFIG } from "../state/config.js";
@@ -136,8 +142,10 @@ export const Planned = {
       "Z1 Recovery": "🌿",
       Gruppenfahrt: "👥",
       "FTP-Test": "🎯",
-      // Athlet 2 (GFNY Bremen 2026)
-      Ruhetag: "🔴",
+      // Ruhetag: war bisher nur bei Athlet 2 (GFNY Bremen 2026, ausgeblendet)
+      // genutzt, jetzt auch aktiv für Athlet 1 sichtbar (D6) — 😴 statt des
+      // bisherigen 🔴 (wirkte wie eine Warnung, nicht wie ein bewusst freier Tag).
+      Ruhetag: "😴",
       NLS: "🏁",
       Z1: "🌿",
       Z2: "🚴",
@@ -241,6 +249,16 @@ export const Planned = {
         text: "📤 Bereits auf Wahoo gepusht — wird beim nächsten Push aktualisiert.",
       });
     }
+    return this._renderBadgeItems(items);
+  },
+
+  /** Kleine gemeinsame Render-Hilfe für _renderCardBadges + das D6-
+   *  "Ruhetag gefahren"-Signal (_renderDoneCard) — dieselbe Pill-Optik,
+   *  ohne dass eine erledigte Karte die Konflikt-/Push-Badges aus
+   *  _renderCardBadges mitbekommt (die wären dort irreführend: Konflikte
+   *  beziehen sich nur auf die zukünftige Projektion, der Push-Hinweis
+   *  gehört zur Planung, nicht zum Rückblick). */
+  _renderBadgeItems(items) {
     if (!items.length) return "";
     return `<div class="planned-conflict-badges">
       ${items
@@ -309,12 +327,19 @@ export const Planned = {
     const todayLocal = localISODate();
 
     // plan_cards sind bereits im "aufgelösten" Zustand (Verschiebung/Ausfall
-    // schon eingerechnet, s. state/plan-cards.js). Ruhetage (Athlet 2) werden
-    // im Planungstab nicht angezeigt, weder als anstehend noch als "verpasst"
-    // (kein Ride zu erwarten) — reine Anzeigefilterung, getPlanCardsState()
-    // bleibt vollständig für andere Konsumenten (z.B. "nächste Belastungs-
-    // einheit" in der Recovery-Karte).
-    const allSessions = getPlanCardsState().cards.filter((s) => s.typ !== "Ruhetag");
+    // schon eingerechnet, s. state/plan-cards.js). Ruhetage bei Athlet 2
+    // (statisches, read-only GFNY-Schedule) bleiben wie bisher komplett
+    // ausgeblendet — kein interaktiver Kartentyp dort. Athlet 1 (D6, docs/
+    // konzept-progressionssteuerung.md) zeigt Ruhetage jetzt aktiv an: eigener
+    // Kartentyp statt unsichtbarer Planungslücke. getPlanCardsState() bleibt
+    // in jedem Fall vollständig für andere Konsumenten (z.B. "nächste
+    // Belastungseinheit" in der Recovery-Karte).
+    const isRuhetag = (s) => s.typ === "Ruhetag";
+    const rawCards = getPlanCardsState().cards;
+    const allSessions =
+      Data.activeAthleteId === CONFIG.primaryAthleteId
+        ? rawCards
+        : rawCards.filter((s) => !isRuhetag(s));
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
@@ -323,15 +348,25 @@ export const Planned = {
       )
       .sort((a, b) => a.date.localeCompare(b.date));
 
-    // Bereits absolvierte Sessions (Ride mit passendem Datum vorhanden)
+    // Bereits absolvierte Sessions (Ride mit passendem Datum vorhanden) —
+    // schließt eine GEFAHRENE Ruhetag-Karte bewusst mit ein (D6.1-Signal
+    // "Ruhetag gefahren", s. _renderDoneCard), zählt aber unten NICHT zur
+    // Fortschritts-Basis.
     const doneSessions = allSessions
       .filter((s) => doneDates.has(s.date) && !s.cancelled)
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben
+    // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben.
+    // Ruhetag-Karten NIE als "verpasst" — ein nicht gefahrener Ruhetag ist
+    // Erfüllung, kein Ausfall (D6.1).
     const missedSessions = allSessions
       .filter(
-        (s) => s.date < todayLocal && !doneDates.has(s.date) && !s.cancelled && !s.originalDate
+        (s) =>
+          s.date < todayLocal &&
+          !doneDates.has(s.date) &&
+          !s.cancelled &&
+          !s.originalDate &&
+          !isRuhetag(s)
       )
       .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -354,11 +389,15 @@ export const Planned = {
       return;
     }
 
-    // Fortschritt berechnen — Basis ist allSessions (ohne Ruhetage), nicht
-    // Data.plannedSessions.length, sonst wäre der Nenner künstlich hoch
-    // (Ruhetage zählen nie als "absolviert", da nie ein Ride erwartet wird).
-    const totalSessions = allSessions.length;
-    const doneCount = doneSessions.length;
+    // Fortschritt berechnen — Basis sind NICHT-Ruhetag-Karten (weder bei
+    // Athlet 1 noch Athlet 2), nicht Data.plannedSessions.length, sonst wäre
+    // der Nenner künstlich hoch (Ruhetage zählen nie als "absolviert", da
+    // nie ein Ride erwartet wird — eine gefahrene Ruhetag-Karte ist eine
+    // Anomalie, kein erfüllter Trainingsreiz, und zählt deshalb auch nicht
+    // im Zähler mit).
+    const countableSessions = allSessions.filter((s) => !isRuhetag(s));
+    const totalSessions = countableSessions.length;
+    const doneCount = doneSessions.filter((s) => !isRuhetag(s)).length;
     const cancelledCount = cancelledSessions.length;
     const missedCount = missedSessions.length;
     const pct = Math.round((doneCount / totalSessions) * 100);
@@ -431,6 +470,13 @@ export const Planned = {
       weekMap[s.week].push(s);
     }
 
+    // Erholungswochen aus der Häufung von Ruhetag-/Z1-Recovery-Karten
+    // erkennen (D6, docs/konzept-progressionssteuerung.md) — über ALLE
+    // Karten des Athleten (nicht nur die anstehenden), damit eine bereits
+    // teilweise gefahrene Erholungswoche nicht durch die Bucket-Aufteilung
+    // (sessions/doneSessions) verzerrt wird.
+    const recoveryWeeks = plannedRecoveryWeeks(allSessions);
+
     // Anstehende Sessions
     if (sessions.length) {
       html += `<div class="planned-section-title">📅 Ausstehend — ${sessions.length} Sessions</div>`;
@@ -442,6 +488,7 @@ export const Planned = {
             <div class="planned-week-header">
               <span class="planned-week-badge" style="background:${phaseColor}22; color:${phaseColor}; border-color:${phaseColor}44">${weekDisplayLabels([week])[0]}</span>
               <span class="planned-week-phase">${phase}</span>
+              ${recoveryWeeks.has(week) ? `<span class="planned-week-recovery" title="Erholungswoche (aus den Plankarten erkannt)">🌙 Erholungswoche</span>` : ""}
             </div>
             <div class="planned-cards">
               ${wSessions.map((s) => this._renderCard(s, forecast, false, todayLocal)).join("")}
@@ -1047,7 +1094,12 @@ export const Planned = {
           </div>
         </div>
         ${compareHtml}
-      </div>`;
+      </div>
+      ${this._renderBadgeItems(
+        [restDayRiddenSignal(s, !!ride)]
+          .filter(Boolean)
+          .map((sig) => ({ severity: sig.severity, text: sig.message }))
+      )}`;
   },
 
   /* ── Ausgefallen-Handler ───────────────────────────────────── */
