@@ -191,6 +191,44 @@ export const SESSION_CLASSIFY = Object.freeze({
   blockMinSharePct: 0.08,
 });
 
+/**
+ * Schwellen für das Soll-Ist-Matching und die Compliance-Ampel
+ * (core/compliance-match.js, docs/konzept-progressionssteuerung.md C1/C2).
+ * Alle Werte 1:1 aus dem Konzept übernommen (C1/C2), nicht neu hergeleitet —
+ * die Kalibrierungstabelle im Auftragsbericht ist die erste echte Prüfung
+ * dieser Zahlen gegen reale Fahrten, nicht diese Datei.
+ */
+export const COMPLIANCE = Object.freeze({
+  // C1 — ein Intervall gilt als erfüllt, wenn BEIDE Bedingungen zutreffen.
+  durationFulfillMinRatio: 0.9, // Ist-Dauer ≥ 90% der geplanten Dauer
+  powerFulfillTolerancePct: 0.03, // mittlere Leistung ≥ Zielwatt − 3%
+
+  // Blockerkennung (mergeActiveSegments): Schwelle je Workout wird aus der
+  // niedrigsten "aktiven" Zielintensität der Struktur (set.work/
+  // alternating.under) abgeleitet, minus dieser Marge (Prozentpunkte von
+  // FTP) — trennt Warmup/Cooldown/volle Erholung von echten Arbeitsblöcken,
+  // ohne pro Fahrt/Fahrttyp neu raten zu müssen. Bewusst großzügiger als
+  // powerFulfillTolerancePct (3%): hier geht es nur um Blockgrenzen finden,
+  // nicht um die Erfüllungsprüfung selbst.
+  mergeMarginPct: 8,
+  // Toleriert kurze Ampeln/Pausen zwischen Wiederholungen beim Zusammenführen
+  // von Segmenten zu Blöcken — identischer Wert wie
+  // scripts/lib/interval-blocks.js::updateIntervalBlockCache() Default,
+  // bewusst hier dupliziert (core/ importiert nicht aus scripts/lib/, s.
+  // Schichtenregel; derselbe Kompromiss wie die thresholdIF-Dopplung dort).
+  defaultGapToleranceSec: 90,
+
+  // C2 — Ampel. `fadePct` = mittlere Leistung des letzten Arbeitsintervalls
+  // gegenüber dem ersten (negativ = Leistungsabfall).
+  zoneTimeGreenMinRatio: 0.95, // Zeit in Zone ≥ 95% des Solls → grün-Kriterium
+  zoneTimeYellowMinRatio: 0.85, // ≥ 85% → gelb-Kriterium, sonst rot
+  fadeGreenMinPct: -0.03, // Fade ≥ −3% → grün-Kriterium
+  fadeYellowMinPct: -0.08, // Fade ≥ −8% → gelb-Kriterium, sonst rot
+  // C2.1: RPE ≥ 8 wertet eine sonst grüne Einheit NICHT ab bis rot, setzt sie
+  // aber auf gelb (verhindert später in C3 das Hochstufen — Fenster D).
+  rpeYellowMin: 8,
+});
+
 /** Welches Zonen-Band (low/mid/high) ein erkannter Typ erwarten lässt —
  *  nur für den Konfidenz-Abgleich in session-classify.js, keine neue
  *  Typenliste. */
