@@ -32,55 +32,88 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
 /**
  * K3 — Typ-Default-TSS (Prioritätsstufe 3 der TSS-Herkunft, s. Konzept §2):
  * greift nur, wenn eine Karte WEDER `tssPlanned` NOCH ein `workout` trägt.
- * Werte = Median-TRIMP je Session-Typ aus den Ist-Fahrten (TRIMP dient in
- * diesem Projekt als TSS-Proxy, s. ride.trimp) — berechnet als Nebenprodukt
- * in scripts/migrate-plan-to-supabase.js (logMedianTssPerType) und hier 1:1
- * übernommen, nicht geschätzt.
  *
- * **Review (30.07.2026, auf Alex' Wunsch vorgezogen — Plan 2 selbst läuft
- * noch bis zum Retest 19.09.2026):** gegen den aktuellen Datenstand
- * (`data/rides.json` + `rides-2.json`) neu berechnet. Die gut belegten Typen
- * (n≥5) haben sich moderat verschoben (z.B. Schwelle 97→104, Z2 Lang
- * 221→228, Z1 Recovery 62→67) und wurden aktualisiert — echter Gewinn aus
- * der inzwischen gefahrenen Plan-2-Historie. Die im ursprünglichen Hinweis
- * genannten DÜNNEN Typen sind aber weiterhin dünn, die Datenbasis hat sich
- * dort seit dem letzten Stand kaum bewegt (nur Gruppenfahrt +1). Nächster
- * sinnvoller Zeitpunkt für DIESEN Teil bleibt nach dem Retest.
+ * **Neuberechnung (01.08.2026, docs/konzept-progressionssteuerung.md B0):**
+ * Die frühere Behauptung, TRIMP sei ein verifizierter TSS-Proxy, war nie
+ * geprüft worden. Gegenprobe auf allen 158 Ist-Fahrten mit BEIDEN Feldern
+ * (`data/rides.json` + `rides-2.json`, `ride.tss` = `icu_training_load`
+ * leistungsbasiert, `ride.trimp` = `act.trimp` herzfrequenzbasiert) zeigt:
+ * TRIMP liegt nicht 10–20 % unter TSS (frühere n=4-Vermutung), sondern
+ * durchgängig 30–70 % ÜBER TSS (Median-Verhältnis TSS/TRIMP je Typ 0.31–1.06,
+ * gepoolter Median ≈0.58) — die beiden Metriken sind schlicht unterschiedlich
+ * skaliert, kein fixer Faktor gilt für alle Typen gleich gut.
  *
- * ⚠ DÜNNE DATENBASIS — Typen mit n < 5 (Stand 30.07.2026):
- *     NLS n=1 · Außerplanmäßig n=2 · Z2 Erholung n=2 · Gruppenfahrt n=3 ·
- *     Tempo n=3 · Etappe n=4 · Z2 Kadenz n=4
- *   Diese Defaults sind daher nur grobe Anhaltspunkte.
+ * Werte sind jetzt, wo vorhanden, ECHTE Median-TSS je Typ (nicht mehr TRIMP).
+ * Alle 8 über den Dialog/Validator wählbaren Typen (KNOWN_PLAN_TYPES) haben
+ * reale TSS-Belege (n=4–37):
+ *   Sweet Spot n=9 (72) · Schwelle n=10 (57) · VO2max n=9 (50) ·
+ *   Z2 Lang n=14 (146) · Z2 Dauer n=37 (57) · Z1 Recovery n=26 (37) ·
+ *   Gruppenfahrt n=4 (186, dünn) · FTP-Test n=6 (45)
+ * sowie außerhalb der Dialog-Liste (defensive Altlasten, z.B. migrierte
+ * Karten): Ausrollen n=15 (5) · Rennen n=7 (75) · Tempo n=3 (46, dünn) ·
+ * Außerplanmäßig n=2 (42, dünn) · NLS n=2 (44, dünn).
+ *
+ * Fünf Typen haben KEINE einzige Fahrt mit leistungsbasiertem TSS (reine
+ * TRIMP/HF-Fahrten ohne Powermeter-Match) — für sie bleibt nur eine
+ * Näherung: Median-TRIMP × gepoolter Faktor 0.58 (s.
+ * TYPE_DEFAULT_TSS_APPROX_TYPES, core/projection.js::estimateTss markiert
+ * diese Werte zusätzlich mit `scale: "tss-approx"`):
+ *   Ausserplanmaessig 96→55 · Etappe 268→155 · Freestyle 131→76 ·
+ *   Z2 Erholung 101→58 · Z2 Kadenz 109→63.
+ *
+ * `Ruhetag: 0` neu (docs/konzept-progressionssteuerung.md D6, Schritt 2)
+ * — bewusst komplett freier Tag, kein geschätzter Wert nötig, Karten dieses
+ * Typs tragen in der Praxis ohnehin immer ein explizites `tssPlanned: 0`
+ * (Prioritätsstufe 1 in estimateTss, dieser Default greift nur als
+ * Rückfallebene). D6.1: `Ruhetag`-Karten werden künftig (Fenster B/C1,
+ * `workout_structure`) von der Compliance-Auswertung ausgenommen — hier nur
+ * dokumentiert, noch nicht implementiert (kein `workout_structure`-Feld in
+ * diesem Fenster).
  *
  * Doppelte Schreibweise aus den Rohdaten bewusst BEIDE behalten, damit eine
  * Karte unabhängig von der Schreibweise ihres Typs auflöst:
- *   "Ausserplanmaessig" (ASCII, n=18, Median 96) vs
- *   "Außerplanmäßig"   (Umlaut, n=2,  Median 70).
+ *   "Ausserplanmaessig" (ASCII) vs "Außerplanmäßig" (Umlaut) — unterschiedliche
+ *   Belegstärke (s.o.), deshalb unterschiedliche Werte.
  */
 export const TYPE_DEFAULT_TSS = Object.freeze({
-  Ausrollen: 16,
-  Ausserplanmaessig: 96,
-  Außerplanmäßig: 70,
-  Etappe: 268,
-  Freestyle: 131,
-  "FTP-Test": 67,
-  Gruppenfahrt: 185,
-  NLS: 97,
-  Rennen: 129,
-  Schwelle: 104,
-  "Sweet Spot": 101,
-  Tempo: 84,
-  VO2max: 84,
-  "Z1 Recovery": 67,
-  Z2: 67,
-  "Z2 Dauer": 93,
-  "Z2 Erholung": 101,
-  "Z2 Kadenz": 109,
-  "Z2 Lang": 228,
+  Ausrollen: 5,
+  Ausserplanmaessig: 55,
+  Außerplanmäßig: 42,
+  Etappe: 155,
+  Freestyle: 76,
+  "FTP-Test": 45,
+  Gruppenfahrt: 186,
+  NLS: 44,
+  Rennen: 75,
+  Ruhetag: 0,
+  Schwelle: 57,
+  "Sweet Spot": 72,
+  Tempo: 46,
+  VO2max: 50,
+  "Z1 Recovery": 37,
+  Z2: 33,
+  "Z2 Dauer": 57,
+  "Z2 Erholung": 58,
+  "Z2 Kadenz": 63,
+  "Z2 Lang": 146,
 });
 
+/** Typen ohne einzige Ist-Fahrt mit leistungsbasiertem TSS (Stand 01.08.2026,
+ *  s. Kommentar bei TYPE_DEFAULT_TSS) — ihr Default ist eine TRIMP-Näherung,
+ *  keine echte TSS-Median. core/projection.js::estimateTss markiert Karten
+ *  dieser Typen zusätzlich mit `scale: "tss-approx"`. */
+export const TYPE_DEFAULT_TSS_APPROX_TYPES = new Set([
+  "Ausserplanmaessig",
+  "Etappe",
+  "Freestyle",
+  "Z2 Erholung",
+  "Z2 Kadenz",
+]);
+
 /** Fallback-TSS für einen Typ, der weder in TYPE_DEFAULT_TSS steht noch
- *  tssPlanned/workout trägt — grober Mittelwert einer moderaten Einheit. */
+ *  tssPlanned/workout trägt — grober Mittelwert einer moderaten Einheit.
+ *  Unverändert seit der TSS/TRIMP-Neuberechnung (01.08.2026) — 70 bleibt
+ *  ein plausibler genereller Wert auf der jetzt einheitlichen TSS-Skala. */
 export const FALLBACK_TSS = 70;
 
 /** Athlet-1-Zonen-Vokabular für den Karten-Dialog (Typ-Select) — hier statt

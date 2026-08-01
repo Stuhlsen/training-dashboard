@@ -17,7 +17,7 @@ const ACTUALS = [{ dateISO: TODAY, ctl: 48, atl: 40 }];
 
 test("estimateTss Stufe 1: expliziter tssPlanned gewinnt, sicher", () => {
   const r = estimateTss({ tssPlanned: 120, typ: "Sweet Spot" });
-  assert.deepEqual(r, { tss: 120, uncertain: false, source: "target" });
+  assert.deepEqual(r, { tss: 120, uncertain: false, source: "target", scale: "tss" });
 });
 
 test("estimateTss respektiert einen expliziten tssPlanned von 0", () => {
@@ -25,32 +25,40 @@ test("estimateTss respektiert einen expliziten tssPlanned von 0", () => {
   assert.equal(r.tss, 0);
   assert.equal(r.source, "target");
   assert.equal(r.uncertain, false);
+  assert.equal(r.scale, "tss");
 });
 
-test("estimateTss Stufe 2: Schätzung aus workout-Blöcken, unsicher", () => {
+test("estimateTss Stufe 2: Schätzung aus workout-Blöcken, unsicher, Skala 'tss'", () => {
   const r = estimateTss({
     workout: { warmup: 15, intervals: 4, duration: 8, rest: 4, cooldown: 10, pct: [88, 94] },
     typ: "Schwelle",
   });
   assert.equal(r.source, "workout");
   assert.equal(r.uncertain, true);
+  assert.equal(r.scale, "tss");
   assert.ok(r.tss > 0, "geschätzter TSS > 0");
 });
 
-test("estimateTss Stufe 3: Typ-Default (K3-Median), unsicher", () => {
+test("estimateTss Stufe 3: Typ-Default (K3-Median, echter TSS-Beleg), unsicher", () => {
   const r = estimateTss({ typ: "Z2 Lang" });
-  assert.deepEqual(r, { tss: 228, uncertain: true, source: "type" });
+  assert.deepEqual(r, { tss: 146, uncertain: true, source: "type", scale: "tss" });
 });
 
-test("estimateTss: unbekannter Typ → Fallback-TSS", () => {
+test("estimateTss Stufe 3: Typ-Default ohne eigene TSS-Belege → scale 'tss-approx'", () => {
+  const r = estimateTss({ typ: "Etappe" });
+  assert.deepEqual(r, { tss: 155, uncertain: true, source: "type", scale: "tss-approx" });
+});
+
+test("estimateTss: unbekannter Typ → Fallback-TSS, Skala 'tss'", () => {
   const r = estimateTss({ typ: "Gibt-es-nicht" });
   assert.equal(r.tss, 70);
   assert.equal(r.source, "type");
+  assert.equal(r.scale, "tss");
 });
 
 test("estimateTss: leeres workout ohne Segmente fällt auf den Typ-Default zurück", () => {
   const r = estimateTss({ workout: {}, typ: "Schwelle" });
-  assert.deepEqual(r, { tss: 104, uncertain: true, source: "type" });
+  assert.deepEqual(r, { tss: 57, uncertain: true, source: "type", scale: "tss" });
 });
 
 /* ── projectLoad: bekannte PMC-Kurve ─────────────────────────── */
@@ -103,10 +111,10 @@ test("projectLoad: Verschieben auf den Folgetag verdichtet die Last (Rechenbeisp
 test("projectLoad summiert mehrere Karten am selben Tag und ODER-t uncertain", () => {
   const cards = [
     { id: "a", date: "2026-07-24", tssPlanned: 50, typ: "Z2 Dauer" }, // sicher
-    { id: "b", date: "2026-07-24", typ: "Z2 Lang" }, // Typ-Default 228, unsicher
+    { id: "b", date: "2026-07-24", typ: "Z2 Lang" }, // Typ-Default 146, unsicher
   ];
   const { days } = projectLoad(cards, ACTUALS, { today: TODAY });
-  assert.equal(days[0].tss, 278);
+  assert.equal(days[0].tss, 196);
   assert.equal(days[0].uncertain, true);
   assert.deepEqual(days[0].cardIds.sort(), ["a", "b"]);
 });
