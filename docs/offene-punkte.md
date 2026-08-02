@@ -139,6 +139,20 @@
   und der Gate-Check sind fertig und getestet, zeigen den Vorschlag aber
   bisher nur über `scripts/preset-suggestion-check.js`, nicht im
   Export-Panel. → `docs/konzept-progressionssteuerung.md` C3/C4.
+- **vo2-short/vo2-long-Tie-Break über Katalog-`label` statt eines
+  strukturierten Feldes (02.08.2026, Nebenfund aus dem Auftrag
+  "Taper-Erkennung für 'Auf Event hin'")** — `core/session-format-
+  match.js::inferFormatId()` trennt die überlappenden Pct-FTP-Bänder von
+  vo2-short/vo2-long über `work.duration_s` (≤90s vs. länger) und
+  disambiguiert einen verbleibenden Mehrfachtreffer über einen Regex
+  (`/kurz/i`) auf `session_formats.label`. Funktioniert für den aktuellen
+  6-Zeilen-Katalog, ist aber implizit an den deutschen Wortlaut des Labels
+  gekoppelt — ein künftiges, umbenanntes oder englischsprachiges Format
+  würde den Tie-Break stillschweigend auf `null` fallen lassen (kein
+  Crash, aber ein stiller Klassifikationsausfall). Bekannt, unkritisch
+  beim aktuellen Bestand, keine Umsetzung hier — bei einer künftigen
+  Katalogerweiterung mit einem strukturierten Feld (z. B. `axes.repKind:
+  "short"|"long"`) ablösen. → `core/session-format-match.js`.
 - **Vokabular-Nebenfund aus Fenster BR (02.08.2026, bei D4b
   mitgeprüft):** Athlet 2s GFNY-Karte (`scripts/lib/plan-athlete2.js:545`)
   trägt `typ: "Race"` statt der sonst durchgängigen deutschen Konvention
