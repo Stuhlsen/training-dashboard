@@ -121,6 +121,33 @@
   — der Trockenlauf hat dafür lokal einen erweiterten Select genutzt,
   nicht committet. → `docs/konzept-progressionssteuerung.md` P2,
   `core/conflicts.js`.
+- **D4b — scharfe Leiter-Fortschreibung (C3/C4) bewusst nur für Athlet 1
+  freigebbar, Athlet 2 bleibt im Beobachtungsmodus (02.08.2026)** —
+  `profiles.ladder_progression_enabled` (Migration 0016, noch nicht gegen
+  `dashboard-dev`/`prod` angewendet) ist die athletenweite Sperre;
+  `state/ladder.js::getPresetSuggestion()` prüft sie vor jedem
+  Stufenvorschlag. Athlet 2 bleibt davon unabhängig unten: dünne/fehlende
+  Compliance-Basis (0 echte, nur abgeleitete Compliance-Zeilen mit
+  Oszillation bei 2 Datenpunkten) und dieselbe fehlende Ride↔Format-Brücke
+  wie im Punkt „Fehlende ride↔activityId-Brücke..." oben — zusätzlich kein
+  `alternating`-Parser für seine Hauptfamilie `over-under` (separates
+  Thema, nicht Teil von D4b). **Zusätzlich bewusst zurückgestellt:** die
+  Live-Verdrahtung des Vorschlags in den Export-Text (Presets „Allgemein
+  prüfen"/„Auf Event hin" brauchen dafür die zuletzt gefahrene
+  Compliance-Rating je Format — genau die Ride↔Format-Brücke, die oben als
+  fehlend dokumentiert ist). `core/ladder-progression.js::presetAction()`
+  und der Gate-Check sind fertig und getestet, zeigen den Vorschlag aber
+  bisher nur über `scripts/preset-suggestion-check.js`, nicht im
+  Export-Panel. → `docs/konzept-progressionssteuerung.md` C3/C4.
+- **Vokabular-Nebenfund aus Fenster BR (02.08.2026, bei D4b
+  mitgeprüft):** Athlet 2s GFNY-Karte (`scripts/lib/plan-athlete2.js:545`)
+  trägt `typ: "Race"` statt der sonst durchgängigen deutschen Konvention
+  `"Rennen"` (`KNOWN_PLAN_TYPES`, Farb-/Icon-Mapping in `ui/planned.js`,
+  `TYPE_DEFAULT_TSS` in `core/plan-config.js` — alle nur auf `"Rennen"`
+  geschlüsselt). Die Karte bekommt dadurch keine Rennen-Farbe/kein Icon/
+  keinen Typ-Default-TSS. Da Athlet 2s Planungstab read-only ist, greift
+  keine Proposal-Validierung — reiner Anzeige-Nebeneffekt, kein Crash,
+  aber ein echter Datenkonsistenz-Fehler, kein Stilproblem.
 
 ## Phase 5 — Explorer
 
