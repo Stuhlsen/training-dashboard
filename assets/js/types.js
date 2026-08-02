@@ -95,6 +95,13 @@
  *                                  derive.js, scripts/lib/compliance.js::
  *                                  resolveEvaluableCard) — fehlt bei einer
  *                                  regulären Karte komplett, nie `false`
+ * @property {string} [matchedFormatId]  session_formats.id, aus derselben
+ *                                  workout_structure abgeleitet (Ride↔Format-
+ *                                  Brücke, core/session-format-match.js::
+ *                                  inferFormatId, scripts/lib/compliance.js) —
+ *                                  fehlt, wenn die Struktur nicht eindeutig
+ *                                  einem Katalogformat zuzuordnen ist (kein
+ *                                  Rateverfahren, s. dortiger Kopfkommentar)
  */
 
 /**

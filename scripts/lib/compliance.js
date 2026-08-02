@@ -25,11 +25,23 @@
    berechnet, NIE nach plan_cards zurückgeschrieben. Die entstehende
    Compliance trägt dann `derived: true` als Begleitfeld (nicht innerhalb
    der Struktur selbst, s. dortiger Kopfkommentar).
+
+   Ride↔Format-Brücke (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte
+   Sperre", Schritt 1): direkt nach computeCompliance() zusätzlich
+   core/session-format-match.js::inferFormatId() gegen dieselbe (echte oder
+   abgeleitete) Struktur aufrufen und, falls eindeutig, als
+   `compliance.matchedFormatId` ergänzen — der fehlende Katalogbezug, den
+   state/ladder.js::getPresetSuggestion() für einen echten Stufenvorschlag
+   braucht. `formatCatalog` ist ein optionaler letzter Parameter (leeres
+   Array/undefined -> matchedFormatId bleibt unbesetzt, kein Fehler) —
+   bestehende Aufrufer ohne dieses Argument (scripts/backtest-ladder.js)
+   bleiben unverändert gültig.
    ============================================================ */
 
 import { ftpAt } from "./ftp-history.js";
 import { pickPrimaryRide, shouldEvaluateCard, computeCompliance } from "../../assets/js/core/compliance-match.js";
 import { deriveWorkoutStructure } from "../../assets/js/core/workout-structure-derive.js";
+import { inferFormatId } from "../../assets/js/core/session-format-match.js";
 
 /**
  * Welche Karte eines Tages ausgewertet wird, und mit welcher Struktur:
@@ -65,9 +77,10 @@ function resolveEvaluableCard(cardsOfDay) {
  * @param {Record<string, Object>} intervalBlockCache
  * @param {Array<{ftpWatt:number, validFrom:string}>} ftpHistory
  * @param {number} fallbackFtp
+ * @param {Array<{id:string, label?:string, currency:string, axes?:Object}>} [formatCatalog] session_formats (Ride↔Format-Brücke)
  * @returns {{green:number, yellow:number, red:number, evaluated:number}}
  */
-export function attachCompliance(rides, activities, cards, intervalBlockCache, ftpHistory, fallbackFtp) {
+export function attachCompliance(rides, activities, cards, intervalBlockCache, ftpHistory, fallbackFtp, formatCatalog = []) {
   const counts = { green: 0, yellow: 0, red: 0, evaluated: 0 };
 
   const byDate = new Map();
@@ -103,6 +116,9 @@ export function attachCompliance(rides, activities, cards, intervalBlockCache, f
     });
     if (!compliance) continue; // keine matchbaren Einheiten in der Struktur
     if (resolved.derived) compliance.derived = true;
+
+    const formatId = inferFormatId(resolved.structure, formatCatalog);
+    if (formatId) compliance.matchedFormatId = formatId;
 
     primary.compliance = compliance;
     counts.evaluated++;

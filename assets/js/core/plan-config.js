@@ -263,6 +263,21 @@ export const LADDER_PROGRESSION = Object.freeze({
   rpeUpgradeBlockMin: COMPLIANCE.rpeYellowMin,
 });
 
+/**
+ * Ride↔Format-Brücke (D4b Schritt 1, core/session-format-match.js).
+ * vo2-short (30/15-Bauart) und vo2-long überlappen sich im Pct-FTP-Band
+ * (106-112 vs. 110-112, s. session_formats-Seed Migration 0014) — die
+ * Sekunden-Schwelle je Wiederholung der dominanten Arbeitsphase trennt
+ * die "kurz"-Bauart (30/15, deutlich unter einer Minute je Wiederholung)
+ * von der "lang"-Bauart (3-5 min je Wiederholung). Aus der
+ * workout_structure selbst hergeleitet, NICHT aus rohen Ist-Segmenten —
+ * anders als die in docs/offene-punkte.md als blockiert dokumentierte
+ * Blockdauern-Klassifikation (die galt für Fahrten ohne jede Struktur).
+ */
+export const FORMAT_MATCH = Object.freeze({
+  vo2ShortMaxWorkS: 90,
+});
+
 /** Welches Zonen-Band (low/mid/high) ein erkannter Typ erwarten lässt —
  *  nur für den Konfidenz-Abgleich in session-classify.js, keine neue
  *  Typenliste. */

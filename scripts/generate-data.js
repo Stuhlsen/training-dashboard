@@ -43,6 +43,7 @@ import { loadFtpHistory } from "./lib/ftp-history.js";
 import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
 import { loadPlanCards } from "./lib/plan-cards-fetch.js";
 import { attachCompliance } from "./lib/compliance.js";
+import { loadSessionFormats } from "./lib/formats-fetch.js";
 import {
   mapWellnessList,
   latestWeight,
@@ -74,6 +75,17 @@ async function main() {
   // von beiden Athleten ergänzt, einmal am Ende geschrieben. Bereits
   // gecachte Aktivitäten werden nicht erneut abgerufen (unveränderlich).
   const intervalBlockCache = loadIntervalBlocks();
+
+  // Ride↔Format-Brücke (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte
+  // Sperre" Schritt 1) — athletenunabhängiger Katalog, öffentlich lesbar,
+  // einmal für beide Athleten geladen (beide attachCompliance()-Aufrufe
+  // unten liegen in getrennten if-Blöcken, s. dort).
+  const formatCatalog = await loadSessionFormats();
+  log.info(
+    formatCatalog.length
+      ? `✅ Formatkatalog (session_formats): ${formatCatalog.length} Einträge`
+      : `ℹ️  Formatkatalog (session_formats): keine Einträge/Credentials — Ride↔Format-Brücke bleibt für diesen Lauf unbesetzt`
+  );
 
   // 1. Plan 1: komplett aus Notion
   const plan1 = await queryNotionPlan1();
@@ -196,7 +208,7 @@ async function main() {
       { email: ENV.SUPABASE_ATHLETE1_EMAIL, password: ENV.SUPABASE_ATHLETE1_PASSWORD },
       { fromDate: oldest }
     );
-    const complianceCounts = attachCompliance(plan2, activities, planCards, intervalBlockCache, ftpHistory, DEFAULT_FTP);
+    const complianceCounts = attachCompliance(plan2, activities, planCards, intervalBlockCache, ftpHistory, DEFAULT_FTP, formatCatalog);
     log.info(
       `✅ Compliance (Athlet 1): ${complianceCounts.evaluated} Fahrten ausgewertet ` +
         `(🟢 ${complianceCounts.green} · 🟡 ${complianceCounts.yellow} · 🔴 ${complianceCounts.red}, ` +
@@ -388,7 +400,8 @@ async function main() {
       planCards2,
       intervalBlockCache,
       ftpHistory2,
-      estimatedFTP2
+      estimatedFTP2,
+      formatCatalog
     );
     log.info(
       `✅ Compliance (${ATHLETE_2_NAME}): ${complianceCounts2.evaluated} Fahrten ausgewertet ` +
