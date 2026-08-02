@@ -229,6 +229,24 @@ export const COMPLIANCE = Object.freeze({
   rpeYellowMin: 8,
 });
 
+/**
+ * Fortschreibungslogik (C3, docs/konzept-progressionssteuerung.md, D4a —
+ * NUR als Trockenlauf, s. core/ladder-progression.js/scripts/
+ * backtest-ladder.js, nicht scharf geschaltet). `rpeUpgradeBlockMin`
+ * dupliziert bewusst NICHT COMPLIANCE.rpeYellowMin als Wert, sondern
+ * referenziert es direkt — beide Zahlen müssen laut C2.1 identisch bleiben
+ * (derselbe RPE-Schwellwert, der eine Einheit auf gelb setzt, verhindert in
+ * C3 auch das Hochstufen), ein zweiter, unabhängig änderbarer Wert wäre
+ * eine stille Divergenzquelle.
+ */
+export const LADDER_PROGRESSION = Object.freeze({
+  // C3 — Sperre, wenn die projizierte CTL-Rampe der Folgewoche diesen Wert
+  // überschreitet. Auf der TSS/TRIMP-Skalenmischung (vor B0) formuliert —
+  // Häufigkeit auf der seit B0 korrigierten Skala ist Teil des D4a-Berichts.
+  ctlRampLockThreshold: 8,
+  rpeUpgradeBlockMin: COMPLIANCE.rpeYellowMin,
+});
+
 /** Welches Zonen-Band (low/mid/high) ein erkannter Typ erwarten lässt —
  *  nur für den Konfidenz-Abgleich in session-classify.js, keine neue
  *  Typenliste. */
