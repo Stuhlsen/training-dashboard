@@ -8,6 +8,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { detectConflicts } from "../assets/js/core/conflicts.js";
+import { projectLoad } from "../assets/js/core/projection.js";
+import { addDaysISO } from "../assets/js/core/format.js";
 
 /** Projektion aus einer Tagesliste; tsb/tss/cardIds default 0/0/[]. */
 const mkProj = (days) => ({
@@ -242,6 +244,51 @@ test("K-RAMPE feuert nicht bei Rampe ≤ 6/Woche", () => {
 test("K-RAMPE feuert nicht ohne startCtl (ältere Fixtures ohne Baseline)", () => {
   const proj = { days: mkProjCtl(59, 50).days }; // kein startCtl-Feld
   assert.equal(byRule(detectConflicts(proj, [], []), "K-RAMPE").length, 0);
+});
+
+/** 7 aufeinanderfolgende ISO-Daten ab `start` — addDaysISO() statt
+ *  toISOString() (kein UTC-Tagesversatz, s. core/format.js-Kommentar). */
+function weekDates(start) {
+  return Array.from({ length: 7 }, (_, i) => addDaysISO(start, i));
+}
+
+// Alle bisherigen K-RAMPE-Tests bauen die Projektion per mkProjCtl direkt
+// (feste ctl-Werte je Tag) und prüfen damit NUR die Schwellenlogik isoliert
+// — nicht, ob eine über core/projection.js::projectLoad tatsächlich
+// BERECHNETE (statt vorgegebene) steigende CTL-Kurve denselben Pfad
+// auslöst. Ein Trockenlauf gegen den echten Plan (02.08.2026) hatte hier
+// zufällig 0 Treffer, weil die reale Projektion im Testzeitraum durchgehend
+// FÄLLT — das prüft den Feuer-Pfad selbst nicht. Diese drei Tests schließen
+// die Lücke End-zu-Ende (projectLoad → weeklyCtlRamp → detectConflicts).
+test("K-RAMPE über die echte projectLoad-Pipeline: steigende CTL knapp unter der Info-Schwelle bleibt still", () => {
+  const actuals = [{ dateISO: "2026-08-03", ctl: 50, atl: 50 }];
+  const cards = weekDates("2026-08-03").map((date, i) => ({ id: `c${i}`, date, tssPlanned: 83, typ: "Sweet Spot" }));
+  const projection = projectLoad(cards, actuals, { today: "2026-08-03", ftp: 193 });
+  const week1Ramp = projection.days[6].ctl - projection.startCtl;
+  assert.ok(week1Ramp < 6, `Testannahme verletzt: Rampe ${week1Ramp} sollte < 6 sein`);
+  assert.equal(byRule(detectConflicts(projection, cards, [], actuals), "K-RAMPE").length, 0);
+});
+
+test("K-RAMPE über die echte projectLoad-Pipeline: steigende CTL zwischen 6 und 8 → Hinweis", () => {
+  const actuals = [{ dateISO: "2026-08-03", ctl: 50, atl: 50 }];
+  const cards = weekDates("2026-08-03").map((date, i) => ({ id: `c${i}`, date, tssPlanned: 96, typ: "Sweet Spot" }));
+  const projection = projectLoad(cards, actuals, { today: "2026-08-03", ftp: 193 });
+  const week1Ramp = projection.days[6].ctl - projection.startCtl;
+  assert.ok(week1Ramp > 6 && week1Ramp <= 8, `Testannahme verletzt: Rampe ${week1Ramp} sollte in (6,8] liegen`);
+  const c = byRule(detectConflicts(projection, cards, [], actuals), "K-RAMPE");
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "info");
+});
+
+test("K-RAMPE über die echte projectLoad-Pipeline: steigende CTL über 8 → Warnung", () => {
+  const actuals = [{ dateISO: "2026-08-03", ctl: 50, atl: 50 }];
+  const cards = weekDates("2026-08-03").map((date, i) => ({ id: `c${i}`, date, tssPlanned: 130, typ: "Sweet Spot" }));
+  const projection = projectLoad(cards, actuals, { today: "2026-08-03", ftp: 193 });
+  const week1Ramp = projection.days[6].ctl - projection.startCtl;
+  assert.ok(week1Ramp > 8, `Testannahme verletzt: Rampe ${week1Ramp} sollte > 8 sein`);
+  const c = byRule(detectConflicts(projection, cards, [], actuals), "K-RAMPE");
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "warning");
 });
 
 /* ── K-HARTFOLGE (neu, P2): zwei harte Tage ohne rest-/recovery- ────────
