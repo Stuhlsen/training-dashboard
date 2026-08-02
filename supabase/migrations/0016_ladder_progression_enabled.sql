@@ -1,0 +1,76 @@
+-- ============================================================
+-- Dashboard 2.0 — Migration 0016: profiles.ladder_progression_enabled (D4b)
+-- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
+--             danach dashboard-prod
+-- Referenz: docs/konzept-progressionssteuerung.md C3/C4 (Schritt 8),
+--           Auftrag "D4b — Preset-Umstellung, scharf geschaltet nur für
+--           Athlet 1"
+--
+-- Freigabe-Flag für die scharfe Leiter-Fortschreibung (C3/C4). D4b ist
+-- athletenunabhängiger Code (Presets/Konfliktregeln/Fortschreibung wirken
+-- gleich auf ladder_history, egal für wen) — trotzdem soll die scharfe
+-- Fortschreibung vorerst NUR für einen Athleten greifen. Deshalb eine
+-- explizite Sperre statt einer stillen Umgehung über "hat halt noch keine
+-- Daten": eine solche Umgehung wäre fragil, sobald sich der Datenstand
+-- ändert (Athlet 2 fährt laut L7 u.a. `over-under`/`threshold-long` — sobald
+-- dort eine Karte mit echter Compliance auftaucht, würde eine global scharfe
+-- Fortschreibung sonst ungeprüft greifen).
+--
+-- Modellierung: ATHLETENWEIT auf `profiles`, NICHT pro Format auf
+-- `athlete_formats`. Begründung: das Risiko, das diese Sperre abfängt, ist
+-- die Reife der Datenpipeline für einen Athleten INSGESAMT (dünne
+-- Compliance-Basis, fehlende Ride↔Format-Brücke — beides athletenweite
+-- Eigenschaften, keine Eigenschaft eines einzelnen Formats).
+-- `athlete_formats.active` beantwortet eine andere Frage ("welche Familien
+-- trainiert er") als dieses Flag ("ist die scharfe Fortschreibung für ihn
+-- überhaupt vertrauenswürdig") — ein Format-scharfes Flag würde beide Fragen
+-- vermischen und könnte z.B. bei Athlet 2 einzelne Formate scharf schalten,
+-- während die zugrunde liegende Ride↔Format-Brücke für ALLE seine Formate
+-- gleichermaßen fehlt.
+--
+-- Bewusst analog zu `profiles.is_admin`/`profiles.wellbeing_public`
+-- modelliert (0001_initial_schema.sql): athletenweites Boolean, KEIN
+-- Self-Service — wird manuell per SQL gesetzt, nicht über einen
+-- Update-Pfad im Frontend (s. data-access/supabase/profiles.js: kein
+-- `updateLadderProgressionEnabled()`, genau wie es kein `updateIsAdmin()`
+-- gibt).
+--
+-- Kein RLS-/Grant-Update nötig, exakt aus demselben Grund wie bei `is_admin`
+-- (0001, Abschnitt "Spalten-Härtung"): `profiles: öffentlich lesbar` ist eine
+-- zeilenbasierte Policy — der neue Wert ist automatisch mitlesbar, sobald
+-- ihn eine Select-Liste nennt. Schreiben ist dagegen per Spalten-Grant
+-- gehärtet (`revoke update on public.profiles from authenticated; grant
+-- update (display_name, wellbeing_public) on public.profiles to
+-- authenticated;`, 0001) — `ladder_progression_enabled` steht wie
+-- `is_admin`/`coach_id` NICHT in dieser Grant-Liste, ein authentifizierter
+-- Client kann die Spalte also unabhängig von jeder RLS-Policy gar nicht
+-- schreiben. Kein zusätzlicher Härtungsschritt in dieser Migration nötig.
+-- ============================================================
+
+alter table public.profiles
+  add column if not exists ladder_progression_enabled boolean not null default false;
+
+-- ============================================================
+-- PRÜFLISTE nach dem Einspielen (dev, dann prod) — NICHT Teil dieser
+-- Migration, absichtlich nicht automatisch ausgeführt (STOPP, s. Auftrag):
+--
+-- Spalten-Check: select display_name, ladder_progression_enabled
+--                from profiles order by display_name;
+--                -> beide Athleten `false` (Default)
+--
+-- Freigabe für Athlet 1 setzen (NUR nach expliziter Rücksprache/Freigabe,
+-- nicht automatisch aus dieser Migration heraus):
+--   update public.profiles set ladder_progression_enabled = true
+--     where display_name = 'Stuhlsen';
+--
+-- Athlet 2 bleibt EXPLIZIT false (kein Verlass auf den bloßen Default):
+--   update public.profiles set ladder_progression_enabled = false
+--     where display_name = 'hc_diZee';
+--
+-- als anon:      profiles lesen (öffentliche Policy) -> ladder_progression_enabled
+--                sichtbar wie is_admin/wellbeing_public
+-- als Athlet:    eigenes ladder_progression_enabled per API ändern -> Fehler
+--                (Spalten-Grant erlaubt nur display_name/wellbeing_public,
+--                s. Kommentar oben) — kein Update-Pfad im Frontend, da profiles
+--                bereits kein offenes Update auf beliebige Spalten erlaubt)
+-- ============================================================
