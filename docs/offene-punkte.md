@@ -69,6 +69,31 @@
 
 ## Progressionssteuerung (ab 01.08.2026)
 
+- **Konzept vollständig implementiert (Fenster E, 02.08.2026)** — alle
+  Schritte aus `docs/konzept-progressionssteuerung.md` Abschnitt 7 (0 bis
+  12) sind umgesetzt, zuletzt Schritt 12 (Prompt-Vorlage +
+  Konsistenztest-Erweiterung für `workout_structure`/Leiterstand/
+  Stufenvorschlag). Gesamtstand:
+  - **Athlet 1:** vollständig implementiert (Workout-Schema, Compliance-
+    Ampel, Formatkatalog, Leiter-Fortschreibung, Leitplanken,
+    Entscheidungsgedächtnis, Prompt-Vorlage) — aber **`profiles.
+    ladder_progression_enabled` ist noch für niemanden gesetzt**, die
+    scharfe Stufenempfehlung im Export also noch nicht live scharf
+    geschaltet (s. D4b-Punkt unten). Bis zur Freigabe bleibt es beim reinen
+    Beobachtungsmodus: Leiterstand/Ampel stehen im Briefing, der
+    „Stufenvorschlag"-Abschnitt erscheint aber nicht.
+  - **Athlet 2:** strukturell ebenfalls implementiert, aber praktisch
+    wirkungslos für seine Hauptfamilie `over-under` — ohne
+    `alternating`-Parser (core/session-format-match.js) matcht keine
+    einzige seiner Ist-Fahrten gegen diese Familie, macht also 0 echte
+    Compliance-Zeilen für die Leiter-Fortschreibung verfügbar (s.
+    D4b-Punkt unten).
+  - **Bekannte kleinere Lücken:** der `vo2-short`/`vo2-long`-Tie-Break
+    läuft über einen Label-Regex statt eines strukturierten Feldes (eigener
+    Punkt unten); `CONFLICT_THRESHOLDS.eventTaperDays: 7`
+    (`core/plan-config.js`) ist eine eigene Annahme ohne externe
+    (sportwissenschaftliche) Bestätigung — plausibel, aber nie gegen eine
+    Quelle geprüft.
 - **Eigenes Konzeptdokument mit eigener Schrittfolge** —
   `docs/konzept-progressionssteuerung.md` (Workout-Schema, Leiter,
   Compliance-Ampel, Formatkatalog, Ruhetage als Karten, Test-Events,
@@ -122,7 +147,8 @@
   nicht committet. → `docs/konzept-progressionssteuerung.md` P2,
   `core/conflicts.js`.
 - **D4b — scharfe Leiter-Fortschreibung (C3/C4) bewusst nur für Athlet 1
-  freigebbar, Athlet 2 bleibt im Beobachtungsmodus (02.08.2026)** —
+  freigebbar, Athlet 2 bleibt im Beobachtungsmodus (02.08.2026, Live-
+  Verdrahtung seit D4b Schritt 3 erledigt)** —
   `profiles.ladder_progression_enabled` (Migration 0016, noch nicht gegen
   `dashboard-dev`/`prod` angewendet) ist die athletenweite Sperre;
   `state/ladder.js::getPresetSuggestion()` prüft sie vor jedem
@@ -131,14 +157,15 @@
   Oszillation bei 2 Datenpunkten) und dieselbe fehlende Ride↔Format-Brücke
   wie im Punkt „Fehlende ride↔activityId-Brücke..." oben — zusätzlich kein
   `alternating`-Parser für seine Hauptfamilie `over-under` (separates
-  Thema, nicht Teil von D4b). **Zusätzlich bewusst zurückgestellt:** die
-  Live-Verdrahtung des Vorschlags in den Export-Text (Presets „Allgemein
-  prüfen"/„Auf Event hin" brauchen dafür die zuletzt gefahrene
-  Compliance-Rating je Format — genau die Ride↔Format-Brücke, die oben als
-  fehlend dokumentiert ist). `core/ladder-progression.js::presetAction()`
-  und der Gate-Check sind fertig und getestet, zeigen den Vorschlag aber
-  bisher nur über `scripts/preset-suggestion-check.js`, nicht im
-  Export-Panel. → `docs/konzept-progressionssteuerung.md` C3/C4.
+  Thema, nicht Teil von D4b). Die Live-Verdrahtung des Vorschlags in den
+  Export-Text (`state/export.js` → `## Stufenvorschlag`-Abschnitt im
+  Briefing) ist inzwischen erledigt (D4b Schritt 3) — der frühere Hinweis
+  hier, sie sei zurückgestellt und liefe nur über
+  `scripts/preset-suggestion-check.js`, ist überholt. Offen bleibt nur
+  noch die Freigabe selbst: `core/ladder-progression.js::presetAction()`
+  und der Gate-Check sind fertig und getestet, aber `ladder_progression_
+  enabled` ist für keinen Athleten gesetzt, der Vorschlag also live noch
+  nirgends scharf. → `docs/konzept-progressionssteuerung.md` C3/C4.
 - **vo2-short/vo2-long-Tie-Break über Katalog-`label` statt eines
   strukturierten Feldes (02.08.2026, Nebenfund aus dem Auftrag
   "Taper-Erkennung für 'Auf Event hin'")** — `core/session-format-
