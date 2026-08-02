@@ -32,6 +32,7 @@ import { getSession } from "./session.js";
 import { loadProposals, getState as getProposalsState } from "./proposals.js";
 import { getLadderState, getPresetSuggestion } from "./ladder.js";
 import { lastComplianceForFormat } from "../core/ladder.js";
+import { isInEventTaper } from "../core/event-taper.js";
 
 // Fester Umfang, kein Zeitraum-Regler (Konzept §2, Entscheidung): Plan-
 // Fenster ohne Enddatum-Cutoff, Ist-Daten/Wellbeing je 4 Wochen zurück.
@@ -124,20 +125,22 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
   // Briefing, kein Schreibpfad (C3.1 bleibt in Kraft). Bleibt ohne Freigabe
   // (profiles.ladder_progression_enabled, aktuell BEIDE Athleten) und ohne
   // aktive Formate leer, kein Effekt auf den restlichen Export.
-  // `inTaper` wird hier bewusst NICHT hergeleitet (kein bestehendes State-
-  // Signal dafür verfügbar) — das "event"-Preset friert die Leiter in
-  // diesem Fenster nie automatisch beim Taper-Beginn ein, nur
-  // `isTestEvent` greift (Vereinfachung, s. Auftragsbericht).
+  // `inTaper` (Auftrag "Taper-Erkennung für 'Auf Event hin'") bezieht sich
+  // auf DASSELBE im Dialog gewählte Event wie `isTestEvent` — core/event-
+  // taper.js::isInEventTaper() liefert `false`, wenn kein Event gewählt ist
+  // oder es kein priorisiertes Renn-Event ist.
   const presetSuggestions = [];
+  const inTaper = isInEventTaper(selectedEvent, today);
   for (const f of ladderState) {
     const last = lastComplianceForFormat(Data.byDate(), f.formatId);
     const suggestionResult = await getPresetSuggestion(preset, f.formatId, {
       rating: last?.rating ?? null,
       rpe: last?.rpe ?? null,
       isTestEvent: selectedEvent?.isTest ?? false,
+      inTaper,
     });
     if (suggestionResult.ok && suggestionResult.enabled && suggestionResult.suggestion) {
-      presetSuggestions.push({ formatId: f.formatId, label: f.label, ...suggestionResult.suggestion });
+      presetSuggestions.push({ formatId: f.formatId, label: f.label, inTaper, ...suggestionResult.suggestion });
     }
   }
 

@@ -448,14 +448,18 @@ function buildMemorySection(recentProposals, ladderState = []) {
  *  (C3.1 bleibt in Kraft). Leere Liste (kein aktives Format oder
  *  profiles.ladder_progression_enabled nicht gesetzt, aktuell BEIDE
  *  Athleten) → kein Abschnitt, kein Rauschen im Briefing.
- *  @param {Array<{label?:string, formatId:string, step:number, action:string, lockedUntil?:string}>} presetSuggestions
+ *  @param {Array<{label?:string, formatId:string, step:number, action:string, lockedUntil?:string, inTaper?:boolean}>} presetSuggestions
  *  @returns {string[]} Markdown-Zeilen */
 function buildPresetSuggestionSection(presetSuggestions) {
   if (!presetSuggestions?.length) return [];
   const actionLabel = { up: "hochstufen", down: "zurückstufen", hold: "halten" };
   const lines = ["## Stufenvorschlag", ""];
   for (const s of presetSuggestions) {
-    const label = actionLabel[s.action] ?? s.action;
+    // Taper-Erkennung (Auftrag "Taper-Erkennung für 'Auf Event hin'"): ein
+    // "hold" während des Taper-Fensters ist kein normales Halten (Ampel/
+    // Sperre), sondern C4s "eingefroren" — eigener Text, damit der Trainer-
+    // Chat den Unterschied nicht erst aus dem Kontext erschließen muss.
+    const label = s.action === "hold" && s.inTaper ? "eingefroren (Taper)" : (actionLabel[s.action] ?? s.action);
     const lockNote = s.lockedUntil ? ` (gesperrt bis ${s.lockedUntil})` : "";
     lines.push(`- ${s.label ?? s.formatId}: Stufe ${s.step} → ${label}${lockNote}`);
   }

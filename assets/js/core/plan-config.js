@@ -43,6 +43,16 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
   eventWindowMain: [5, 20], // K-EVENT  Hauptziel-Event Ziel-TSB-Fenster (außerhalb → Warnung)
   eventWindowSecondary: [-5, 15], //          Nebenziel-Event Ziel-TSB-Fenster (außerhalb → Hinweis)
   restBlockDays: 3, // K-LEER   harte Einheit direkt nach ≥ 3 Ruhetagen → Hinweis
+  // core/event-taper.js::isInEventTaper() — Auftrag "Taper-Erkennung für
+  // 'Auf Event hin'". KEIN Bestandswert im Repo für den allgemeinen Fall
+  // (nur Prosa "3-4 Tage" für is_test-Events in
+  // docs/konzept-progressionssteuerung.md D5, bereits separat über
+  // presetAction()s isTestEvent-Zweig abgedeckt, und ein hartkodiertes
+  // 7-Tage-Kalenderfenster für Athlet 1s Retest-Taper in
+  // core/plan2-schedule.js::PLAN2_SCHEDULE, keine Formel) — selbst
+  // gewählter Standardwert, lose an der Größenordnung dieser einzigen
+  // realen Taper-Woche orientiert, aber eine neue, unabhängige Annahme.
+  eventTaperDays: 7,
 });
 
 /**
