@@ -18,17 +18,27 @@
 ## Phase 3 — Planungstab
 
 - **M3 — `external_id`-Upsert weiterhin nicht live gegen intervals.icu
-  verifiziert** — am 25.07.2026 bewusst gestoppt statt ausgeführt: keine
-  Live-intervals.icu-Credentials verfügbar (`INTERVALS_API_KEY`/
-  `INTERVALS_ATHLETE_ID` in `.env` auskommentiert), ein Push würde gegen den
-  echten Trainingskalender von Athlet 1/2 schreiben — kein Sandbox-Account
-  vorhanden. Push nutzt weiterhin `external_id = plan_cards.id`, nur anhand
-  von API-Doku recherchiert (s. Kopfkommentar `data-access/intervals/
-  push.js`). Vor Produktion: pushen → Karte verschieben → erneut pushen →
-  weiterhin nur EIN Event. → `docs/phase-3-konzept-planungstab.md` §5/§8.4.
-  Derselbe fehlende Live-Sync blockiert auch die `zoneTimes`/`icu_eftp`-
-  Feldnamen-Verifikation in `AGENTS.md` ("Bekannte Eigenheiten") — beide
-  können beim nächsten echten Sync-Lauf gemeinsam abgehakt werden.
+  verifiziert** — am 25.07.2026 bewusst gestoppt statt ausgeführt, damals
+  mit der Begründung: keine Live-intervals.icu-Credentials verfügbar
+  (`INTERVALS_API_KEY`/`INTERVALS_ATHLETE_ID` in `.env` auskommentiert).
+  **Korrektur 02.08.2026:** diese Prämisse stimmt nicht mehr (oder war
+  schon am 25.07. nicht mehr aktuell, nie erneut geprüft) — beide Werte
+  sind in der lokalen `.env` tatsächlich gesetzt, nicht auskommentiert.
+  Der eigentliche Blocker bleibt davon unabhängig bestehen: ein Push würde
+  gegen den echten Trainingskalender von Athlet 1/2 schreiben — kein
+  Sandbox-Account vorhanden, deshalb weiterhin nicht ohne Rücksprache
+  ausführen (CLAUDE.md: echter Push/Sync zu intervals.icu nur nach
+  expliziter Freigabe). Push nutzt weiterhin `external_id = plan_cards.id`,
+  nur anhand von API-Doku recherchiert (s. Kopfkommentar
+  `data-access/intervals/push.js`). Vor Produktion: pushen → Karte
+  verschieben → erneut pushen → weiterhin nur EIN Event. →
+  `docs/phase-3-konzept-planungstab.md` §5/§8.4.
+  Die `zoneTimes`/`icu_eftp`-Feldnamen-Verifikation in `AGENTS.md`
+  ("Bekannte Eigenheiten") braucht keinen Push, nur einen echten
+  Sync-Lesevorgang — mit den jetzt vorhandenen Credentials grundsätzlich
+  möglich, ein echter `npm run sync`-Lauf überschreibt aber `data/*.json`
+  und braucht deshalb ebenfalls vorherige Rücksprache, nicht einfach
+  nebenbei mitlaufen lassen.
 - **Drag & Drop, bewusste v1-Einschränkungen:** kein Tastatur-Verschieben
   (A11y-Fallback über `.planned-move-form` existiert bereits); keine
   Umsortierung innerhalb eines Tages (`sort_order` wird nach dem Anlegen nie
@@ -89,6 +99,28 @@
   rückwirkend. Eigene Entscheidung wert, ob sich das lohnt, sobald mehr
   Karten `workout_structure` tragen und Compliance-Auswertung häufiger
   gebraucht wird.
+- **Trockenlauf der vier neuen P2-Konfliktregeln gegen echte `plan_cards`
+  nachgeholt (02.08.2026)** — der erste Trockenlauf in Fenster E1 lief
+  fälschlich nur gegen eine synthetische Kartenquelle
+  (`plannedSessions`+`adjustments.json`), weil die Zugangslage
+  (`scripts/lib/plan-cards-fetch.js::loadPlanCards()`, read-only) falsch
+  eingeschätzt wurde, statt sie zu prüfen (derselbe Fehler wie beim
+  M3-Punkt oben — beide korrigiert). Zweiter Lauf gegen 62 echte
+  `plan_cards` (Athlet 1, ab 04.04.2026) + echte Ist-Fahrten:
+  **K-HARTFOLGE 3 Treffer** (harte Tage ohne Ruhetag-/Recovery-Karte
+  dazwischen, z. B. 08.08.→13.08.), **K-RAMPE/K-WOCHENTSS/K-TID je 0
+  Treffer** — für K-TID nachvollziehbar geprüft (aktuelle Blockphase
+  „Schwelle", Korridor-IF bis 1,05, alle 16 Ist-Fahrten der letzten 4
+  Wochen liegen mit IF ≤ 1,01 darunter — echter Nulltreffer, kein
+  Datenlücken-Artefakt). Für K-RAMPE/K-WOCHENTSS nicht einzeln
+  nachgeprüft, ob 0 Treffer an echter Ruhe oder an zu konservativen
+  Schwellen liegt — nach mehr Plan-2-Historie mit stärkerer Belastung
+  erneut beobachten (dieselbe Kalibrierungsvorbehalt-Logik wie K1,
+  `core/plan-config.js`). `select` in `loadPlanCards()` liest bewusst kein
+  `phase`/`week`/`tss_planned` (für Compliance-Matching nicht gebraucht)
+  — der Trockenlauf hat dafür lokal einen erweiterten Select genutzt,
+  nicht committet. → `docs/konzept-progressionssteuerung.md` P2,
+  `core/conflicts.js`.
 
 ## Phase 5 — Explorer
 
