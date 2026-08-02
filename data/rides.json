@@ -5270,7 +5270,7 @@
       "tss": 320,
       "if": 0.95,
       "vi": 1.18,
-      "trimp": 307,
+      "trimp": 299,
       "ctl": 76.2,
       "atl": 108.3,
       "tsb": -32.1,
@@ -5325,8 +5325,8 @@
       },
       "wetter": "23.9°C",
       "source": "intervals.icu",
-      "ruhepuls": null,
-      "hrv": null,
+      "ruhepuls": 58,
+      "hrv": 46,
       "avgSleepingHR": 50,
       "sleepHours": 8.6,
       "feel": null,
@@ -6734,12 +6734,12 @@
       "sleepHours": 8.6,
       "sleepScore": 82,
       "avgSleepingHR": 50,
-      "restingHR": null,
-      "hrv": null,
+      "restingHR": 58,
+      "hrv": 46,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": null,
-      "restingEnergy": null,
+      "activeEnergy": 1004,
+      "restingEnergy": 1886,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -6748,8 +6748,8 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-01",
-      "restingHR": "2026-08-01",
+      "hrv": "2026-08-02",
+      "restingHR": "2026-08-02",
       "sleepHours": "2026-08-02"
     }
   },
@@ -16147,7 +16147,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-02T21:23:09.601Z",
+  "updated": "2026-08-02T21:31:00.504Z",
   "source": "notion+intervals",
   "count": 81
 }
