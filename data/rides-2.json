@@ -14553,6 +14553,113 @@
       "sleepHours": 7.2,
       "feel": null,
       "notizen": null
+    },
+    {
+      "name": "Afternoon Ride",
+      "week": null,
+      "phase": null,
+      "typ": "Z2 Dauer",
+      "typPlanned": null,
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.675,
+            "note": "NP 179W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "60 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 80% · Z3/Z4+ 18% · Z5+ 2%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "inferred",
+      "dataSource": "intervals",
+      "date": "2026-08-02",
+      "startTime": "2026-08-02T12:15:27",
+      "km": 27.8,
+      "min": 60,
+      "kmh": 27.9,
+      "watt": 171,
+      "maxWatt": null,
+      "np": 179,
+      "hf": 136,
+      "hfMax": 153,
+      "kad": 89,
+      "hoehe": 34,
+      "tss": 46,
+      "if": 0.68,
+      "vi": 1.05,
+      "trimp": 77,
+      "ctl": 29.2,
+      "atl": 24.5,
+      "tsb": 4.7,
+      "decoupling": 3.6,
+      "dtl": 46,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 644
+        },
+        {
+          "id": "Z2",
+          "secs": 2229
+        },
+        {
+          "id": "Z3",
+          "secs": 556
+        },
+        {
+          "id": "Z4",
+          "secs": 101
+        },
+        {
+          "id": "Z5",
+          "secs": 33
+        },
+        {
+          "id": "Z6",
+          "secs": 23
+        },
+        {
+          "id": "Z7",
+          "secs": 10
+        },
+        {
+          "id": "SS",
+          "secs": 195
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 23.4,
+        "tempFeel": 23.3,
+        "humidity": 39,
+        "windSpeed": 7.6,
+        "windDir": 124,
+        "precip": 0,
+        "cloudCover": 42,
+        "weatherCode": 3
+      },
+      "wetter": "23.4°C",
+      "source": "intervals.icu",
+      "ruhepuls": 53,
+      "hrv": null,
+      "avgSleepingHR": null,
+      "sleepHours": 8.5,
+      "feel": null,
+      "notizen": null
     }
   ],
   "wellness": [
@@ -17966,12 +18073,12 @@
     },
     {
       "date": "2026-08-02",
-      "sleepHours": null,
-      "sleepScore": null,
+      "sleepHours": 8.5,
+      "sleepScore": 81,
       "avgSleepingHR": null,
-      "restingHR": null,
+      "restingHR": 53,
       "hrv": null,
-      "weight": null,
+      "weight": 92,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
@@ -17984,8 +18091,8 @@
   "wellnessMeta": {
     "lastUpdated": {
       "hrv": "2026-07-30",
-      "restingHR": "2026-08-01",
-      "sleepHours": "2026-08-01"
+      "restingHR": "2026-08-02",
+      "sleepHours": "2026-08-02"
     }
   },
   "powerCurves": {
@@ -17999,7 +18106,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92.8,
+        "weight": 92,
         "secs": [
           1,
           2,
@@ -19929,7 +20036,7 @@
       }
     }
   },
-  "athleteWeight": 92.8,
+  "athleteWeight": 92,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -20752,7 +20859,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-02T08:06:47.616Z",
+  "updated": "2026-08-02T13:00:54.190Z",
   "source": "intervals.icu",
-  "count": 136
+  "count": 137
 }
