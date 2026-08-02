@@ -260,7 +260,14 @@ export function matchWorkoutToSegments(structure, segments, ftp, opts = {}) {
         avgWatts >= unit.targetWatts * (1 - COMPLIANCE.powerFulfillTolerancePct);
       actualZoneTime_s += actualDurationS;
       if (fulfilled) intervalsCompleted++;
-      matched.push({ kind: "set", fulfilled, plannedDurationS: unit.plannedDurationS, actualDurationS, avgWatts });
+      matched.push({
+        kind: "set",
+        fulfilled,
+        plannedDurationS: unit.plannedDurationS,
+        actualDurationS,
+        plannedWatts: unit.targetWatts,
+        avgWatts,
+      });
       return;
     }
 
@@ -284,6 +291,11 @@ export function matchWorkoutToSegments(structure, segments, ftp, opts = {}) {
       fulfilled,
       plannedDurationS: unit.plannedOverTimeS,
       actualDurationS: actualOverTimeS,
+      // Over-Zeit ist die Währung dieser Familie (s. Kopfkommentar) — die
+      // Under-Zielwatt bleiben nur in expandPlannedIntervals(), hier nicht
+      // gebraucht, weil Soll-Watt sich auf denselben Anteil bezieht wie
+      // Soll-/Ist-Dauer (Over), sonst wären beide Spalten inkonsistent.
+      plannedWatts: unit.overTargetWatts,
       avgWatts,
     });
   });
@@ -321,7 +333,9 @@ function computeFade(matched) {
  * @param {{rpe?:number|null, cardId:string, gapToleranceSec?:number}} opts
  * @returns {{matchedCardId:string, plannedZoneTime_s:number,
  *   actualZoneTime_s:number, intervalsPlanned:number, intervalsCompleted:number,
- *   fadePct:number, rating:"green"|"yellow"|"red", rule:string}|null}
+ *   fadePct:number, rating:"green"|"yellow"|"red", rule:string,
+ *   matched: Array<{kind:string, fulfilled:boolean, plannedDurationS:number,
+ *     actualDurationS:number, plannedWatts:number, avgWatts:number|null}>}|null}
  */
 export function computeCompliance(structure, segments, ftp, opts) {
   const { rpe = null, cardId, gapToleranceSec } = opts;
@@ -366,5 +380,9 @@ export function computeCompliance(structure, segments, ftp, opts) {
     fadePct: Math.round(fadeFraction * 1000) / 10,
     rating,
     rule,
+    // UI-Intervalltabelle (Schritt 6b, docs/konzept-progressionssteuerung.md)
+    // braucht die Soll-/Ist-Werte je Intervall — bereits oben berechnet,
+    // hier nur zusätzlich zurückgegeben statt verworfen. Keine neue Rechnung.
+    matched,
   };
 }

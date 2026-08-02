@@ -59,6 +59,20 @@ import { initPlanDrag, cancelActiveDrag } from "./plan-drag.js";
  *  und core/ nicht aus ui/ importieren darf (Schichtenregel). */
 export const TYP_OPTIONS = KNOWN_PLAN_TYPES;
 
+/** Regelcodes aus core/compliance-match.js::computeCompliance() im Klartext
+ *  (Auftragsvorgabe Schritt 6b: "rot: ein Intervall abgebrochen", nicht nur
+ *  ein roter Punkt). Fallback ist der Rohcode selbst, falls ein neuer Code
+ *  hier vergessen wird. */
+const COMPLIANCE_RULE_TEXT = {
+  "alle-intervalle-erfuellt": "alle Intervalle erfüllt",
+  "intervall-abgebrochen": "ein Intervall abgebrochen",
+  "zeit-in-zone-niedrig": "Zeit in Zone zu niedrig",
+  "zeit-in-zone-mittel": "Zeit in Zone im mittleren Bereich",
+  "fade-stark": "starker Leistungsabfall (Fade)",
+  "fade-mittel": "mittlerer Leistungsabfall (Fade)",
+  "rpe-hoch": "hohe empfundene Anstrengung (RPE)",
+};
+
 // Autorisierungs-Ergebnis für Data.activeAthleteId (Self/Trainer/Admin, s.
 // state/write-authorization.js) — von render() vor jedem Durchlauf aktuell
 // gehalten (s. dort). Vor dem Bugfix (31.07.2026, analoger Fund zum
@@ -1130,6 +1144,8 @@ export const Planned = {
         : "";
     }
 
+    const complianceHtml = this._renderComplianceTable(s, ride);
+
     return `
       <div class="planned-card planned-card--done" style="border-left-color:${col}">
         <div class="planned-card-header done-card-header">
@@ -1145,12 +1161,94 @@ export const Planned = {
           </div>
         </div>
         ${compareHtml}
+        ${complianceHtml}
       </div>
       ${this._renderBadgeItems(
         [restDayRiddenSignal(s, !!ride)]
           .filter(Boolean)
           .map((sig) => ({ severity: sig.severity, text: sig.message }))
       )}`;
+  },
+
+  /* ── Intervalltabelle Soll-Ist (Progressionssteuerung C1-C3, Schritt 6b,
+     docs/konzept-progressionssteuerung.md) ───────────────────────────
+     Nur sichtbar, wenn die Ist-Fahrt tatsächlich gegen GENAU diese Karte
+     gematcht wurde (ride.compliance.matchedCardId === s.id) UND das
+     Matching mindestens ein Intervall geliefert hat — sonst unauffällig
+     weggelassen (Schritt 2: kein Match, keine Struktur/Altbestand,
+     ausgefallene oder rest-Karte laufen alle über computeCompliance() →
+     null bzw. shouldEvaluateCard() → kein compliance-Feld). Eine rest-
+     Karte, an der doch gefahren wurde, bekommt stattdessen das bestehende
+     restDayRiddenSignal-Badge unten an _renderDoneCard — keine doppelte
+     Anzeige. Kein eigenes canWriteForAthlete()/_canEdit()-Gate: dieselbe
+     Begründung wie _renderCardImpact — folgt der Sichtbarkeit der Karte,
+     nicht den Schreibrechten (sonst sähen Athlet und Trainer im Nur-Lese-
+     Modus unterschiedliche Ampeln für dieselbe Fahrt). */
+  _renderComplianceTable(s, ride) {
+    const c = ride?.compliance;
+    if (!c || c.matchedCardId !== s.id || !Array.isArray(c.matched) || !c.matched.length) return "";
+
+    const rows = c.matched
+      .map(
+        (m, i) => `
+        <div class="compliance-row">
+          <span class="compliance-cell compliance-nr">${i + 1}</span>
+          <span class="compliance-cell">${this._fmtMinSec(m.plannedDurationS)} → ${this._fmtMinSec(m.actualDurationS)}</span>
+          <span class="compliance-cell">${Math.round(m.plannedWatts)} W → ${m.avgWatts != null ? Math.round(m.avgWatts) + " W" : "–"}</span>
+          <span class="compliance-cell compliance-ok" style="color:${m.fulfilled ? "var(--green)" : "var(--red)"}">${m.fulfilled ? "✓" : "✗"}</span>
+        </div>`
+      )
+      .join("");
+
+    const ratingLabel = { green: "grün", yellow: "gelb", red: "rot" }[c.rating] || c.rating;
+    const ratingIcon = { green: "🟢", yellow: "🟡", red: "🔴" }[c.rating] || "";
+    const ratingCol = { green: "var(--green)", yellow: "var(--gold)", red: "var(--red)" }[c.rating] || "var(--text)";
+    const ruleText = COMPLIANCE_RULE_TEXT[c.rule] || c.rule;
+
+    // accessory-Schritte (Sprints, D1.3/L6.1) sind hier reine Planinformation
+    // — sie werden nicht gematcht (core/compliance-match.js, expandPlannedIntervals
+    // überspringt sie strukturell) und tragen deshalb keine Ist-Werte/Ampel.
+    const accessorySteps = (s.workoutStructure?.steps || []).filter((step) => step?.kind === "accessory");
+    const accessoryHtml = accessorySteps.length
+      ? `
+      <div class="compliance-accessory">
+        <div class="compliance-accessory-title">➕ Zusatz — zählt nicht in die Ampel oben (L6.1)</div>
+        ${accessorySteps
+          .map((step) => {
+            const reps = Number.isInteger(step.reps) ? step.reps : "?";
+            const workS = step.work?.duration_s;
+            const target = step.work?.target;
+            return `<div class="compliance-accessory-row">${reps} × ${workS ? workS + "s" : "–"}${target ? " " + escapeHtml(String(target)) : ""}</div>`;
+          })
+          .join("")}
+      </div>`
+      : "";
+
+    return `
+      <div class="compliance-block">
+        <div class="compliance-title">Intervalle — Soll → Ist</div>
+        <div class="compliance-row compliance-header">
+          <span class="compliance-cell compliance-nr">Nr.</span>
+          <span class="compliance-cell">Dauer</span>
+          <span class="compliance-cell">Watt</span>
+          <span class="compliance-cell">✓</span>
+        </div>
+        ${rows}
+        <div class="compliance-summary">
+          <span>Fade: ${formatSignedDelta(c.fadePct)}%</span>
+          <span class="compliance-rating" style="color:${ratingCol}">${ratingIcon} ${ratingLabel}: ${ruleText}</span>
+        </div>
+        ${accessoryHtml}
+      </div>`;
+  },
+
+  /** Sekunden → "m:ss" (kompakter als fmtDuration, das auf Stunden zielt —
+   *  hier bleiben Intervalldauern durchgehend im Minutenbereich). */
+  _fmtMinSec(sec) {
+    if (sec == null || !Number.isFinite(sec)) return "–";
+    const m = Math.floor(sec / 60);
+    const rem = Math.round(sec % 60);
+    return `${m}:${String(rem).padStart(2, "0")}`;
   },
 
   /* ── Ausgefallen-Handler ───────────────────────────────────── */

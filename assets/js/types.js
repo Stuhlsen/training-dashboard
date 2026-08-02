@@ -85,6 +85,20 @@
  * @property {number} fadePct                mittlere Leistung letztes vs. erstes beobachtetes Intervall, in %
  * @property {"green"|"yellow"|"red"} rating
  * @property {string} rule                   auslösende Bedingung im Klartext (Regelcode)
+ * @property {Array<ComplianceInterval>} matched  Soll-Ist je matchbarem Intervall,
+ *                                  zeitlich geordnet (core/compliance-match.js,
+ *                                  UI-Intervalltabelle ui/planned.js)
+ */
+
+/**
+ * Ein einzelnes gematchtes Intervall innerhalb einer RideCompliance.
+ * @typedef {Object} ComplianceInterval
+ * @property {"set"|"alternating"} kind
+ * @property {boolean} fulfilled
+ * @property {number} plannedDurationS   Soll-Dauer (set) bzw. Soll-Over-Zeit (alternating), Sekunden
+ * @property {number} actualDurationS    Ist-Dauer bzw. Ist-Over-Zeit, Sekunden
+ * @property {number} plannedWatts       Zielwatt (set) bzw. Over-Zielwatt (alternating)
+ * @property {number|null} avgWatts      gemessene mittlere Leistung, null ohne Ist-Block
  */
 
 /**

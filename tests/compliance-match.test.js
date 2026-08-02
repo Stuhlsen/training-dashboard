@@ -180,6 +180,51 @@ test("computeCompliance: alternating (Over/Under) wird gegen overTime_s bewertet
   assert.equal(result.rating, "green");
 });
 
+test("computeCompliance: matched-Array enthält Soll-/Ist-Werte je Intervall (UI-Intervalltabelle, Schritt 6b)", () => {
+  const segments = threeCleanBlocks([185, 183, 181]);
+  const result = computeCompliance(SWEETSPOT_3X10, segments, FTP, { cardId: "card-9" });
+  assert.equal(result.matched.length, 3);
+  result.matched.forEach((m, i) => {
+    assert.equal(m.kind, "set");
+    assert.equal(m.fulfilled, true);
+    assert.equal(m.plannedDurationS, 600);
+    assert.equal(m.actualDurationS, 600);
+    assert.equal(m.plannedWatts, 180);
+    assert.equal(m.avgWatts, [185, 183, 181][i]);
+  });
+});
+
+test("computeCompliance: matched-Array bei alternating trägt Over-Zielwatt als plannedWatts (Over-Zeit ist die Währung)", () => {
+  const structure = {
+    version: 1,
+    steps: [
+      {
+        kind: "alternating",
+        reps: 1,
+        cycles: 3,
+        duration_s: 720,
+        over: { duration_s: 120, target_pct_ftp: 105 },
+        under: { duration_s: 120, target_pct_ftp: 88 },
+        recovery: { duration_s: 300, target_pct_ftp: 50 },
+      },
+    ],
+  };
+  const segments = [
+    { start_time: 0, end_time: 120, average_watts: 215, type: "WORK" },
+    { start_time: 120, end_time: 240, average_watts: 180, type: "WORK" },
+    { start_time: 240, end_time: 360, average_watts: 215, type: "WORK" },
+    { start_time: 360, end_time: 480, average_watts: 180, type: "WORK" },
+    { start_time: 480, end_time: 600, average_watts: 215, type: "WORK" },
+    { start_time: 600, end_time: 720, average_watts: 180, type: "WORK" },
+  ];
+  const result = computeCompliance(structure, segments, FTP, { cardId: "card-10" });
+  assert.equal(result.matched.length, 1);
+  assert.equal(result.matched[0].kind, "alternating");
+  assert.equal(result.matched[0].plannedWatts, 210); // 105% von 200W (over)
+  assert.equal(result.matched[0].plannedDurationS, 360);
+  assert.equal(result.matched[0].actualDurationS, 360);
+});
+
 test("computeCompliance: workout_structure ohne matchbare Einheiten (nur warmup/cooldown) → null", () => {
   const structure = { version: 1, steps: [{ kind: "warmup", duration_s: 600, target_pct_ftp: 55 }] };
   const result = computeCompliance(structure, [], FTP, { cardId: "card-8" });

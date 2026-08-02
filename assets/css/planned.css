@@ -952,6 +952,75 @@
 
 .done-compare-diff { font-size: 0.7rem; margin-left: auto; }
 
+/* ── Intervalltabelle Soll-Ist (Progressionssteuerung, Schritt 6b) ──── */
+.compliance-block {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 12px;
+  margin-top: 8px;
+  background: var(--bg2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.compliance-title {
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: var(--dim2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 2px;
+}
+
+.compliance-row {
+  display: grid;
+  grid-template-columns: 22px 1fr 1fr 20px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.76rem;
+}
+
+.compliance-header {
+  color: var(--dim2);
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.compliance-nr { color: var(--dim); font-family: var(--font-mono); }
+
+.compliance-ok { text-align: center; font-weight: 700; }
+
+.compliance-summary {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-size: 0.73rem;
+  color: var(--dim);
+  padding-top: 6px;
+  margin-top: 2px;
+  border-top: 1px solid var(--border);
+}
+
+.compliance-rating { font-weight: 600; }
+
+.compliance-accessory {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border);
+  font-size: 0.72rem;
+  color: var(--dim);
+}
+
+.compliance-accessory-title {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dim2);
+  margin-bottom: 3px;
+}
+
 /* ── row-highlight ───────────────────────────────────────────── */
 .row-highlight {
   animation: row-flash 2.5s ease-out forwards;
