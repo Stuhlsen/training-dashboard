@@ -1005,6 +1005,19 @@
 
 .compliance-rating { font-weight: 600; }
 
+/* Auftrag "Rückwirkende Strukturableitung": Kennzeichnung, wenn die
+   zugrunde liegende workout_structure aus dem Freitext-Titel abgeleitet
+   wurde (core/workout-structure-derive.js), nicht aus der Plankarte. */
+.compliance-derived {
+  font-size: 0.64rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--dim);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
 .compliance-accessory {
   margin-top: 4px;
   padding-top: 6px;

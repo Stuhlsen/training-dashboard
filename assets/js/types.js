@@ -88,6 +88,13 @@
  * @property {Array<ComplianceInterval>} matched  Soll-Ist je matchbarem Intervall,
  *                                  zeitlich geordnet (core/compliance-match.js,
  *                                  UI-Intervalltabelle ui/planned.js)
+ * @property {true} [derived]        nur vorhanden (immer `true`), wenn die zugrunde
+ *                                  liegende workout_structure NICHT aus der
+ *                                  Plankarte stammt, sondern aus deren Freitext-
+ *                                  Titel abgeleitet wurde (core/workout-structure-
+ *                                  derive.js, scripts/lib/compliance.js::
+ *                                  resolveEvaluableCard) — fehlt bei einer
+ *                                  regulären Karte komplett, nie `false`
  */
 
 /**

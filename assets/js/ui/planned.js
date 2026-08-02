@@ -1204,6 +1204,12 @@ export const Planned = {
     const ratingIcon = { green: "🟢", yellow: "🟡", red: "🔴" }[c.rating] || "";
     const ratingCol = { green: "var(--green)", yellow: "var(--gold)", red: "var(--red)" }[c.rating] || "var(--text)";
     const ruleText = COMPLIANCE_RULE_TEXT[c.rule] || c.rule;
+    // Auftrag "Rückwirkende Strukturableitung": Struktur stammt aus dem
+    // Freitext-Titel (core/workout-structure-derive.js), nicht aus der
+    // Plankarte — muss auch hier erkennbar bleiben, nicht nur im Rohfeld.
+    const derivedBadge = c.derived
+      ? `<span class="compliance-derived" title="Struktur aus dem Freitext-Titel abgeleitet, keine reguläre Plankarten-Struktur">abgeleitet</span>`
+      : "";
 
     // accessory-Schritte (Sprints, D1.3/L6.1) sind hier reine Planinformation
     // — sie werden nicht gematcht (core/compliance-match.js, expandPlannedIntervals
@@ -1237,6 +1243,7 @@ export const Planned = {
         <div class="compliance-summary">
           <span>Fade: ${formatSignedDelta(c.fadePct)}%</span>
           <span class="compliance-rating" style="color:${ratingCol}">${ratingIcon} ${ratingLabel}: ${ruleText}</span>
+          ${derivedBadge}
         </div>
         ${accessoryHtml}
       </div>`;

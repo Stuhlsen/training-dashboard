@@ -17,10 +17,43 @@
    die intervals.icu-Activity-ID indiziert, die im gemappten Ride-Objekt
    selbst nicht mehr vorkommt (dessen `id` wird erst später in
    generate-data.js sequentiell neu vergeben).
+
+   Rückwirkende Strukturableitung (Auftrag "Rückwirkende Strukturableitung
+   für den Altbestand"): trägt eine Karte KEINE echte workout_structure,
+   versucht resolveEvaluableCard() ersatzweise core/workout-structure-
+   derive.js gegen ihren Freitext-Titel — rein in-memory, bei jedem Lauf neu
+   berechnet, NIE nach plan_cards zurückgeschrieben. Die entstehende
+   Compliance trägt dann `derived: true` als Begleitfeld (nicht innerhalb
+   der Struktur selbst, s. dortiger Kopfkommentar).
    ============================================================ */
 
 import { ftpAt } from "./ftp-history.js";
 import { pickPrimaryRide, shouldEvaluateCard, computeCompliance } from "../../assets/js/core/compliance-match.js";
+import { deriveWorkoutStructure } from "../../assets/js/core/workout-structure-derive.js";
+
+/**
+ * Welche Karte eines Tages ausgewertet wird, und mit welcher Struktur:
+ * zuerst wie bisher eine Karte mit echter, gültiger workout_structure
+ * (shouldEvaluateCard), sonst — für Karten, die NICHT ausgefallen/rest sind
+ * und (noch) keine Struktur tragen — ein Ableitungsversuch aus dem Titel.
+ * Eine Karte mit bereits vorhandenem (auch ungültigem/leerem)
+ * workoutStructure wird nie zur Ableitung herangezogen, um eine absichtlich
+ * unvollständige echte Karte nicht stillschweigend zu überschreiben.
+ * @param {Array<{name?:string, status?:string, typ?:string, workoutStructure?:any}>} cardsOfDay
+ * @returns {{card:Object, structure:Object, derived:boolean}|null}
+ */
+function resolveEvaluableCard(cardsOfDay) {
+  const list = cardsOfDay || [];
+  const real = list.find(shouldEvaluateCard);
+  if (real) return { card: real, structure: real.workoutStructure, derived: false };
+
+  for (const card of list) {
+    if (!card || card.status === "ausgefallen" || card.typ === "rest" || card.workoutStructure) continue;
+    const derivedResult = deriveWorkoutStructure(card.name);
+    if (derivedResult) return { card, structure: derivedResult.structure, derived: true };
+  }
+  return null;
+}
 
 /**
  * Fahrten nach Datum gruppiert der jeweiligen Plankarte gegenüberstellen
@@ -57,18 +90,19 @@ export function attachCompliance(rides, activities, cards, intervalBlockCache, f
     const entry = entries.find((e) => e.ride === primary);
     if (!entry?.activityId) continue;
 
-    const card = (cardsByDate.get(date) || []).find(shouldEvaluateCard);
-    if (!card) continue; // keine Karte, Karte ohne Struktur, ausgefallen, oder rest (D6.1)
+    const resolved = resolveEvaluableCard(cardsByDate.get(date));
+    if (!resolved) continue; // keine Karte, keine (echte oder ableitbare) Struktur, ausgefallen, oder rest (D6.1)
 
     const segments = intervalBlockCache[String(entry.activityId)]?.segments;
     if (!segments) continue; // noch nicht im Cache — nächster Sync holt es nach
 
     const { ftpWatt } = ftpAt(ftpHistory, date, fallbackFtp);
-    const compliance = computeCompliance(card.workoutStructure, segments, ftpWatt, {
+    const compliance = computeCompliance(resolved.structure, segments, ftpWatt, {
       rpe: primary.rpe ?? null,
-      cardId: card.id,
+      cardId: resolved.card.id,
     });
     if (!compliance) continue; // keine matchbaren Einheiten in der Struktur
+    if (resolved.derived) compliance.derived = true;
 
     primary.compliance = compliance;
     counts.evaluated++;
