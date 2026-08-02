@@ -37,6 +37,20 @@
      bereits in data/rides*.json enthalten), nachgebaut analog zum
      Merge-Muster in ui/planned.js — nicht 1:1 derselbe Code (der ist
      UI-Schicht), aber dieselbe Grundlogik (movedTo/cancelled anwenden).
+
+   Erweiterung (Auftrag "Rückwirkende Strukturableitung für den Altbestand",
+   Schritt 4): vor der bisherigen `evaluable`-Filterung wird `ride.compliance`
+   jetzt in-memory NEU berechnet — `plan_cards`/`ftp_history` live laden
+   (read-only, wie scripts/report-derived-workout-structure.js) und
+   attachCompliance() auf der frisch aus der Datei gelesenen `rides`-Kopie
+   aufrufen. Das deckt reale UND aus dem Freitext-Titel abgeleitete
+   Strukturen ab (core/workout-structure-derive.js) — die bisherige
+   Simulationslogik bleibt unverändert, nur ihre Eingabe wird reichhaltiger.
+   Ohne gesetzte SUPABASE_*-Credentials bleibt das Verhalten wie zuvor:
+   loadPlanCards()/loadFtpHistory() liefern `[]`, attachCompliance() findet
+   dann keine Karte und überschreibt nichts — ein eventuell bereits aus einem
+   früheren Sync-Lauf vorhandenes `ride.compliance` bleibt die einzige
+   Quelle, genau wie vor dieser Erweiterung. Schreibt weiterhin NICHTS.
    ============================================================ */
 
 import { readFileSync } from "node:fs";
@@ -49,6 +63,10 @@ import { assessReadiness } from "../assets/js/core/readiness.js";
 import { readinessSignal } from "../assets/js/core/briefing.js";
 import { evaluateLocks, nextStep } from "../assets/js/core/ladder-progression.js";
 import { addDaysISO } from "../assets/js/core/format.js";
+import { ENV } from "./lib/env.js";
+import { loadPlanCards } from "./lib/plan-cards-fetch.js";
+import { loadFtpHistory } from "./lib/ftp-history.js";
+import { attachCompliance } from "./lib/compliance.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -56,9 +74,23 @@ const weeksArg = process.argv.find((a) => a.startsWith("--weeks="));
 const LOOKBACK_WEEKS = weeksArg ? Number(weeksArg.split("=")[1]) : 12;
 
 const ATHLETES = [
-  { id: "athlete1", file: "data/rides.json" },
-  { id: "athlete2", file: "data/rides-2.json" },
+  {
+    id: "athlete1",
+    file: "data/rides.json",
+    email: ENV.SUPABASE_ATHLETE1_EMAIL,
+    password: ENV.SUPABASE_ATHLETE1_PASSWORD,
+    fallbackFtp: 193, // CONFIG.ftp, s. AGENTS.md "Athleten"
+  },
+  {
+    id: "athlete2",
+    file: "data/rides-2.json",
+    email: ENV.SUPABASE_ATHLETE2_EMAIL,
+    password: ENV.SUPABASE_ATHLETE2_PASSWORD,
+    fallbackFtp: 265, // ATHLETE_2_FTP, s. AGENTS.md "Athleten"
+  },
 ];
+
+const intervalBlockCache = JSON.parse(readFileSync(path.join(ROOT, "data/interval-blocks.json"), "utf8"));
 
 // Heuristische Zuordnung Ist-Typ → Startformat (D1). Nur die vier über
 // ride.typ unterscheidbaren Zielsysteme — over-under/sprint-accessory
@@ -101,13 +133,20 @@ function actualNextWeekRamp(rides, dateIso) {
   return Math.round((end - start) * 10) / 10;
 }
 
-function runAthlete(athleteId, file) {
+async function runAthlete({ id: athleteId, file, email, password, fallbackFtp }) {
   const raw = JSON.parse(readFileSync(path.join(ROOT, file), "utf8"));
   // dateISO fehlt bei Athlet 2 im Rohformat (nur athlete1s Ausgabepfad
   // schreibt es bereits mit) — derselbe Fallback wie
   // core/normalize.js::normalizeRide ("const dateISO = r.dateISO || r.date").
   const rides = (raw.rides || []).map((r) => ({ ...r, dateISO: r.dateISO || r.date }));
   const wellness = raw.wellness || [];
+
+  // Schritt 4 (Auftrag "Rückwirkende Strukturableitung"): ride.compliance
+  // in-memory neu berechnen, inkl. Ableitungs-Fallback — s. Kopfkommentar.
+  const planCards = await loadPlanCards({ email, password }, { fromDate: "2026-01-01" });
+  const ftpHistory = await loadFtpHistory({ email, password });
+  const activities = rides.map((r) => ({ id: r.activityId }));
+  attachCompliance(rides, activities, planCards, intervalBlockCache, ftpHistory, fallbackFtp);
   const cards = mergePlannedCards(raw.plannedSessions, raw.adjustments);
   const recoveryWeeks = plannedRecoveryWeeks(cards);
 
@@ -134,6 +173,7 @@ function runAthlete(athleteId, file) {
         stepAfter: "–",
         locked: "–",
         lockReasons: "",
+        derived: ride.compliance.derived === true,
       });
       continue;
     }
@@ -169,6 +209,7 @@ function runAthlete(athleteId, file) {
       stepAfter,
       locked: locks.locked ? "ja" : "nein",
       lockReasons: locks.reasons.join(", "),
+      derived: ride.compliance.derived === true,
     });
   }
 
@@ -196,20 +237,25 @@ function printReport(result) {
     console.log("Keine Fahrt mit ride.compliance im Betrachtungsfenster — nichts zu simulieren.");
     return;
   }
-  console.log("\nDatum       | Format           | Ampel  | Regel                     | Stufe      | Sperre | Gründe");
-  console.log("-".repeat(110));
+  console.log("\nDatum       | Format           | Ampel  | Regel                     | Stufe      | Sperre | Herkunft   | Gründe");
+  console.log("-".repeat(125));
   for (const r of result.rows) {
     const stepCol = r.stepBefore === r.stepAfter ? `${r.stepBefore} → ${r.stepAfter} (halten)` : `${r.stepBefore} → ${r.stepAfter}`;
+    const herkunft = r.derived ? "abgeleitet" : "echt";
     console.log(
-      `${r.date}  | ${r.format.padEnd(16)} | ${r.rating.padEnd(6)} | ${(r.rule ?? "–").padEnd(25)} | ${stepCol.padEnd(10)} | ${r.locked.padEnd(6)} | ${r.lockReasons}`,
+      `${r.date}  | ${r.format.padEnd(16)} | ${r.rating.padEnd(6)} | ${(r.rule ?? "–").padEnd(25)} | ${stepCol.padEnd(10)} | ${r.locked.padEnd(6)} | ${herkunft.padEnd(10)} | ${r.lockReasons}`,
     );
   }
   const up = result.rows.filter((r) => r.stepAfter > r.stepBefore).length;
   const down = result.rows.filter((r) => r.stepAfter < r.stepBefore).length;
   const hold = result.rows.length - up - down;
   console.log(`\nHochgestuft: ${up} · gehalten: ${hold} · zurückgestuft: ${down}`);
+  // Schritt 4: echte vs. abgeleitete Zeilen getrennt ausweisen.
+  const derivedRows = result.rows.filter((r) => r.derived);
+  const realRows = result.rows.length - derivedRows.length;
+  console.log(`Echte Zeilen: ${realRows} · abgeleitete Zeilen: ${derivedRows.length}`);
 }
 
 for (const athlete of ATHLETES) {
-  printReport(runAthlete(athlete.id, athlete.file));
+  printReport(await runAthlete(athlete));
 }
