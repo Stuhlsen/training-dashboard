@@ -85,3 +85,31 @@ test("getPresetSuggestion: isTestEvent friert unabhängig von der Freigabe ein",
   const result = await getPresetSuggestion("build", "sweetspot-long", { isTestEvent: true });
   assert.deepEqual(result, { ok: true, enabled: true, suggestion: { step: 3, action: "hold" } });
 });
+
+/* D4b Schritt 2 — "lockWeeks" aus presetAction() "reduce" tatsächlich
+   durchsetzen: eine aktive Sperre (aus einer vorherigen "Entlasten"-
+   Abstufung) verhindert eine sofort folgende Hochstufung. */
+
+test("getPresetSuggestion: aktive Sperre (lockedUntil in der Zukunft) verhindert 'Aufbau steigern' -> hold statt Hochstufung", async () => {
+  profileSeed = { id: "user-1", ladderProgressionEnabled: true };
+  historySeed = [
+    { formatId: "sweetspot-long", step: 3, validFrom: today, reason: "compliance-green" },
+    { formatId: "sweetspot-long", step: 2, validFrom: today, reason: "manual", lockedUntil: "2099-01-01" },
+  ];
+  const result = await getPresetSuggestion("build", "sweetspot-long");
+  assert.deepEqual(result, { ok: true, enabled: true, suggestion: { step: 3, action: "hold", lockedUntil: "2099-01-01" } });
+});
+
+test("getPresetSuggestion: aktive Sperre hält auch 'general' unabhängig von einer grünen Ampel", async () => {
+  profileSeed = { id: "user-1", ladderProgressionEnabled: true };
+  historySeed = [{ formatId: "sweetspot-long", step: 2, validFrom: today, reason: "manual", lockedUntil: "2099-01-01" }];
+  const result = await getPresetSuggestion("general", "sweetspot-long", { rating: "green" });
+  assert.deepEqual(result, { ok: true, enabled: true, suggestion: { step: 2, action: "hold", lockedUntil: "2099-01-01" } });
+});
+
+test("getPresetSuggestion: verstrichene Sperre (lockedUntil in der Vergangenheit) blockiert nicht mehr", async () => {
+  profileSeed = { id: "user-1", ladderProgressionEnabled: true };
+  historySeed = [{ formatId: "sweetspot-long", step: 3, validFrom: today, reason: "manual", lockedUntil: "2020-01-01" }];
+  const result = await getPresetSuggestion("build", "sweetspot-long");
+  assert.deepEqual(result, { ok: true, enabled: true, suggestion: { step: 4, action: "up" } });
+});

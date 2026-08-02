@@ -7,7 +7,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { generateLadderSteps, resolveSteps, stepAt, neighborSteps, formatSummary } from "../assets/js/core/ladder.js";
+import { generateLadderSteps, resolveSteps, stepAt, neighborSteps, formatSummary, activeLockUntil } from "../assets/js/core/ladder.js";
 
 test("generateLadderSteps: primary×secondary als Kreuzprodukt, primäre Achse äußere Schleife", () => {
   const axes = {
@@ -91,4 +91,44 @@ test("formatSummary: E1-Textform 'Label · Stufe ID (Struktur)'", () => {
 
 test("formatSummary: unbekannte Stufe (außerhalb der Leiter) fällt auf Platzhaltertext zurück", () => {
   assert.equal(formatSummary(SWEETSPOT_LONG, null, 9), "Sweet Spot lang · Stufe 9 (unbekannt)");
+});
+
+/* activeLockUntil (D4b Schritt 2, "lockWeeks" aus presetAction() "reduce"
+   tatsächlich durchsetzen) */
+
+test("activeLockUntil: kein Eintrag mit lockedUntil -> null", () => {
+  const history = [{ formatId: "sweetspot-long", step: 3, validFrom: "2026-08-01", lockedUntil: null }];
+  assert.equal(activeLockUntil(history, "sweetspot-long", "2026-08-02"), null);
+});
+
+test("activeLockUntil: lockedUntil in der Zukunft -> aktiv", () => {
+  const history = [{ formatId: "sweetspot-long", step: 2, validFrom: "2026-08-01", lockedUntil: "2026-08-15" }];
+  assert.equal(activeLockUntil(history, "sweetspot-long", "2026-08-02"), "2026-08-15");
+});
+
+test("activeLockUntil: lockedUntil == heute -> noch aktiv (Grenzfall inklusiv)", () => {
+  const history = [{ formatId: "sweetspot-long", step: 2, validFrom: "2026-08-01", lockedUntil: "2026-08-02" }];
+  assert.equal(activeLockUntil(history, "sweetspot-long", "2026-08-02"), "2026-08-02");
+});
+
+test("activeLockUntil: lockedUntil in der Vergangenheit -> nicht mehr aktiv", () => {
+  const history = [{ formatId: "sweetspot-long", step: 2, validFrom: "2026-07-01", lockedUntil: "2026-07-15" }];
+  assert.equal(activeLockUntil(history, "sweetspot-long", "2026-08-02"), null);
+});
+
+test("activeLockUntil: nur das eigene formatId zählt", () => {
+  const history = [{ formatId: "threshold-long", step: 2, validFrom: "2026-08-01", lockedUntil: "2026-08-15" }];
+  assert.equal(activeLockUntil(history, "sweetspot-long", "2026-08-02"), null);
+});
+
+test("activeLockUntil: mehrere aktive Sperren -> das späteste Datum gewinnt", () => {
+  const history = [
+    { formatId: "sweetspot-long", step: 2, validFrom: "2026-07-01", lockedUntil: "2026-08-10" },
+    { formatId: "sweetspot-long", step: 1, validFrom: "2026-08-01", lockedUntil: "2026-08-20" },
+  ];
+  assert.equal(activeLockUntil(history, "sweetspot-long", "2026-08-02"), "2026-08-20");
+});
+
+test("activeLockUntil: leere Historie -> null", () => {
+  assert.equal(activeLockUntil([], "sweetspot-long", "2026-08-02"), null);
 });

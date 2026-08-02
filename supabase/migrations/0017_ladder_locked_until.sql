@@ -1,0 +1,37 @@
+-- ============================================================
+-- Dashboard 2.0 — Migration 0017: ladder_history.locked_until
+-- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
+--             danach dashboard-prod
+-- Referenz: docs/konzept-progressionssteuerung.md C4, Auftrag
+--           "Ride↔Format-Brücke, Verdrahtung, echte Sperre" Schritt 2
+--
+-- C4: "Entlasten" liefert laut core/ladder-progression.js::presetAction()
+-- bereits `lockWeeks: 2` im Rückgabewert — bisher reine Metadaten ohne
+-- Wirkung. `locked_until` macht daraus eine tatsächlich durchsetzbare
+-- Sperre: ein Eintrag, der eine Abstufung dokumentiert, kann zusätzlich
+-- das Datum tragen, bis zu dem KEINE Hochstufung vorgeschlagen werden
+-- soll (core/ladder.js::activeLockUntil, state/ladder.js::
+-- getPresetSuggestion()). Nullable — nur Abstufungs-Einträge setzen es,
+-- 'manual'/'block-start'-Einträge lassen es leer.
+--
+-- Kein automatischer Schreibpfad in diesem Fenster (C3.1/Schritt 3 dieses
+-- Auftrags: getPresetSuggestion() schreibt selbst nichts nach
+-- ladder_history) — diese Spalte ist vorbereitendes Plumbing für einen
+-- künftigen, über den Import-Pfad bestätigten Schreibvorgang.
+--
+-- GRANT-Check (Präzedenz 0002_grants.sql-Muster, wie bereits
+-- 0013_plan_cards_workout_structure.sql): ladder_history ist bereits
+-- vollständig für authenticated gegrantet (0015, kein spaltenrestriktives
+-- Grant) — eine neue nullable Spalte braucht deshalb KEIN neues GRANT.
+-- ============================================================
+
+alter table public.ladder_history add column if not exists locked_until date;
+
+-- ============================================================
+-- PRÜFLISTE nach dem Einspielen (dev, dann prod):
+-- Spalten-Check: select locked_until from ladder_history limit 1;
+--                -> Spalte vorhanden, NULL für alle Bestandszeilen
+-- als Athlet A:  eigenen Eintrag mit locked_until anlegen/patchen ✓
+--                (RLS/GRANT aus 0015 decken die Zeile als Ganzes ab)
+-- als anon:      ladder_history weiterhin nicht lesbar (kein GRANT, s. 0015) ✓
+-- ============================================================

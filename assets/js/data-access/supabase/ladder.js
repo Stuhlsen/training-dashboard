@@ -10,6 +10,7 @@ function toEntry(row) {
     validFrom: row.valid_from,
     reason: row.reason,
     sourceRideId: row.source_ride_id,
+    lockedUntil: row.locked_until,
   };
 }
 
@@ -20,7 +21,7 @@ export async function getLadderHistory(profileId) {
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("ladder_history")
-    .select("id, format_id, step, valid_from, reason, source_ride_id")
+    .select("id, format_id, step, valid_from, reason, source_ride_id, locked_until")
     .eq("profile_id", profileId)
     .order("valid_from", { ascending: true });
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
@@ -34,10 +35,14 @@ export async function getLadderHistory(profileId) {
  *  der NICHT über diesen Adapter schreibt (C3.1: kein Live-Schreibweg an
  *  plan_cards vorbei).
  *  @param {string} profileId
- *  @param {{formatId:string, step:number, reason:string, sourceRideId?:string|null, validFrom:string}} entry
+ *  @param {{formatId:string, step:number, reason:string, sourceRideId?:string|null, validFrom:string, lockedUntil?:string|null}} entry
  *  `validFrom` ist Pflicht (kein Default hier — data-access/ importiert nur
  *  Typen aus core/, s. Schichtenregel; das "heute"-Datum liefert der
  *  Aufrufer in state/ladder.js über core/format.js::localISODate()).
+ *  `lockedUntil` (D4b Schritt 2, "lockWeeks" aus presetAction() "reduce")
+ *  ist reines Plumbing — kein aktueller Aufrufer setzt es, ein künftiger,
+ *  über den Import-Pfad bestätigter Abstufungs-Schreibvorgang kann es
+ *  mitgeben.
  *  @returns {Promise<import("../../types.js").Result & {id?:string}>} */
 export async function recordLadderStep(profileId, entry) {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
@@ -51,6 +56,7 @@ export async function recordLadderStep(profileId, entry) {
       valid_from: entry.validFrom,
       reason: entry.reason,
       source_ride_id: entry.sourceRideId || null,
+      locked_until: entry.lockedUntil || null,
     })
     .select("id")
     .single();

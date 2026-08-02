@@ -62,6 +62,28 @@ export function currentLadderStep(history, formatId, todayISO) {
 }
 
 /**
+ * Aktive Sperre eines Formats (D4b Schritt 2, "lockWeeks" aus
+ * core/ladder-progression.js::presetAction() "reduce" tatsächlich
+ * durchsetzen) — das späteste `lockedUntil` unter den Einträgen dieses
+ * Formats, das noch nicht verstrichen ist (`>= todayISO`), sonst `null`.
+ * Mehrere Einträge mit aktiver Sperre sind möglich (z. B. zwei
+ * aufeinanderfolgende Abstufungen) — das späteste Datum gewinnt, nicht das
+ * neueste `validFrom` (anders als currentLadderStep: hier zählt, wie lange
+ * die Sperre nachwirkt, nicht welcher Eintrag zuletzt geschrieben wurde).
+ * @param {Array<{formatId:string, lockedUntil?:string|null}>} history
+ * @param {string} formatId
+ * @param {string} todayISO
+ * @returns {string|null}
+ */
+export function activeLockUntil(history, formatId, todayISO) {
+  const locks = (history || [])
+    .filter((e) => e.formatId === formatId && e.lockedUntil && e.lockedUntil >= todayISO)
+    .map((e) => e.lockedUntil);
+  if (!locks.length) return null;
+  return locks.reduce((a, b) => (b > a ? b : a));
+}
+
+/**
  * UNERPROBT (s. Kopfkommentar) — reproduziert keines der sechs L2–L6-
  * Startformate, alle laufen als `explicitSteps`. Nur für hypothetische
  * künftige Formate mit sauberem primary×secondary-Gitter gedacht, noch an

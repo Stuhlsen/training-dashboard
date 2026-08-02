@@ -26,7 +26,7 @@ import {
 import { getProfile as getProfileAdapter } from "../data-access/supabase/profiles.js";
 import { getSession } from "./session.js";
 import { localISODate } from "../core/format.js";
-import { currentLadderStep, stepAt, neighborSteps, formatSummary } from "../core/ladder.js";
+import { currentLadderStep, stepAt, neighborSteps, formatSummary, activeLockUntil } from "../core/ladder.js";
 import { presetAction } from "../core/ladder-progression.js";
 
 /** Rohe Leiterhistorie des eingeloggten Athleten. */
@@ -103,13 +103,23 @@ export async function getLadderState() {
  * bereits vorhandene Ampel-/Leiterstand-Information (getLadderState())
  * bleibt unverändert verfügbar. Mit Freigabe wird presetAction() (C4) auf
  * die aktuelle Stufe dieses Formats angewendet.
+ *
+ * D4b Schritt 2 ("lockWeeks" durchsetzen): vor presetAction() zusätzlich
+ * core/ladder.js::activeLockUntil() gegen die Historie prüfen — eine aktive
+ * Sperre (aus einer vorherigen "Entlasten"-Abstufung, s. dortiger
+ * Kopfkommentar) wird als `locked: true` an presetAction() durchgereicht
+ * und blockiert damit dieselbe Hochstufung, die die Sperre verhindern soll
+ * ("build" → hold, "general"/"event" → hold statt einer aus der Ampel
+ * berechneten Hoch-/Zurückstufung). `ctx.locked` (falls vom Aufrufer
+ * gesetzt) bleibt zusätzlich wirksam (ODER-Verknüpfung), verdrängt die
+ * eigene Sperrprüfung nicht.
  * @param {"general"|"event"|"check"|"reduce"|"build"} preset
  * @param {string} formatId
  * @param {{rating?:string|null, rpe?:number|null, locked?:boolean,
  *   isTestEvent?:boolean, inTaper?:boolean}} [ctx]
  * @returns {Promise<import("../types.js").Result & {
  *   enabled?: boolean,
- *   suggestion?: {step:number, action:string, lockWeeks?:number}|null,
+ *   suggestion?: {step:number, action:string, lockWeeks?:number, lockedUntil?:string}|null,
  * }>}
  */
 export async function getPresetSuggestion(preset, formatId, ctx = {}) {
@@ -128,7 +138,10 @@ export async function getPresetSuggestion(preset, formatId, ctx = {}) {
   const today = localISODate();
   const current = currentLadderStep(historyResult.history, formatId, today);
   const currentStep = current?.step ?? 1;
-  const suggestion = presetAction(preset, { currentStep, ...ctx });
+  const lockedUntil = activeLockUntil(historyResult.history, formatId, today);
+  const locked = ctx.locked || !!lockedUntil;
+  const suggestion = presetAction(preset, { currentStep, ...ctx, locked });
+  if (lockedUntil) suggestion.lockedUntil = lockedUntil;
 
   return { ok: true, enabled: true, suggestion };
 }
