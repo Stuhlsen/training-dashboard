@@ -14,14 +14,26 @@
    reproduziert sich aus einem reinen primary×secondary-Kreuzprodukt —
    sweetspot-long nutzt bei S5/S8 reps=2/duration=30min (außerhalb der in
    D4.2 vorgegebenen Achsenwerte primary:[3,4]/secondary:[600..1200]),
-   threshold-long ist nicht volumen-monoton (T2 > T3), vo2-short/vo2-long/
+   threshold-long enthält mit T2→T3 denselben bewussten Achsenwechsel wie
+   S5 bei sweetspot-long (4×8 [32min] → 2×15 [30min]: Gesamtvolumen sinkt
+   leicht, Einzelintervalllänge UND Intensität steigen — kein
+   Generierungsfehler, sondern dieselbe Bauart, nur in der ursprünglichen
+   Konzepttabelle nicht als solche kommentiert), vo2-short/vo2-long/
    sprint-accessory folgen einer "Zickzack"-Progression zwischen den Achsen
    (mal primär, mal sekundär erhöht), die ein Kreuzprodukt nicht abbildet,
    over-under hat laut Konzept ohnehin eine abweichende Achsenrangfolge.
    Alle sechs Startformate sind deshalb `explicitSteps` (Migration 0014) —
-   der Generator bleibt für künftige, neu angelegte Formate nutzbar (D4.2:
-   "eine neue Bauform braucht keine Code-Änderung mehr, nur einen
+   der Generator bleibt für künftige, neu angelegte Formate VORGESEHEN
+   (D4.2: "eine neue Bauform braucht keine Code-Änderung mehr, nur einen
    Katalogeintrag").
+
+   **generateLadderSteps() ist UNERPROBT** — er reproduziert null von
+   sechs realen Formaten (s. oben) und hat bisher keinen einzigen echten
+   Anwendungsfall bestanden. Das B7-Ziel ("neue Bauform ohne Code-
+   Änderung") ist über `explicitSteps` bereits vollständig erfüllt; der
+   Generator ist Spekulation für ein hypothetisches künftiges Format mit
+   sauberem Gitter, keine erprobte Alternative. Nicht als validierten Pfad
+   behandeln, ohne ihn an einem echten neuen Format zu prüfen.
    ============================================================ */
 
 function isPlainObject(v) {
@@ -50,6 +62,11 @@ export function currentLadderStep(history, formatId, todayISO) {
 }
 
 /**
+ * UNERPROBT (s. Kopfkommentar) — reproduziert keines der sechs L2–L6-
+ * Startformate, alle laufen als `explicitSteps`. Nur für hypothetische
+ * künftige Formate mit sauberem primary×secondary-Gitter gedacht, noch an
+ * keinem realen Fall geprüft.
+ *
  * Kreuzprodukt aus axes.primary × axes.secondary (primäre Achse äußere
  * Schleife — D4.2: "primäre und sekundäre Achse zuerst"). axes.tertiary
  * (falls vorhanden) wird NUR an die letzte (voll-volumige) Kombination
