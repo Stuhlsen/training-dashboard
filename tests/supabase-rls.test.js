@@ -83,7 +83,23 @@ if (!HAS_CREDS) {
   }
 
   /** `token: null` => anon (apikey UND Authorization tragen den anon-Key,
-   *  genau wie supabase-js es ohne Session tut). */
+   *  genau wie supabase-js es ohne Session tut).
+   *
+   *  ACHTUNG bei PATCH/DELETE-Negativtests (Nacharbeiten-Auftrag, Schritt 1):
+   *  PostgREST/Postgres-RLS blenden bei UPDATE/DELETE nicht sichtbare Zeilen
+   *  einfach aus der WHERE-Trefferliste aus — ein RLS-blockierter PATCH/DELETE
+   *  liefert HTTP 200 mit `data: []`, KEINEN Fehlerstatus. `result.ok` bleibt
+   *  also `true`, selbst wenn die RLS-Policy die Änderung verhindert hat. Ein
+   *  "sollte scheitern"-Test MUSS deshalb `result.data?.length` prüfen, nicht
+   *  `result.ok` — genau der Fehler, der in den ersten Fassungen der
+   *  session_formats/athlete_formats-Blöcke steckte (s. Commit-Historie).
+   *  Für POST (INSERT) gilt das NICHT: eine verletzte WITH-CHECK-Policy wirft
+   *  dort einen echten Fehler (42501), `.ok` ist hier ein verlässlicher Test.
+   *  Vollständige Durchsicht (Nacharbeiten-Auftrag Schritt 1): alle
+   *  PATCH/DELETE-Aufrufe in dieser Datei durchgesehen — außerhalb der beiden
+   *  bereits gefixten Stellen prüft keine weitere Negativ-Assertion `.ok`
+   *  nach PATCH/DELETE (die übrigen sind Cleanup/Setup auf eigenen Zeilen,
+   *  wo `.ok===true` das korrekte, positive Ergebnis ist). */
   async function rest(method, tablePath, { token = null, body, prefer = "return=representation" } = {}) {
     const headers = {
       apikey: SUPABASE_ANON_KEY,
