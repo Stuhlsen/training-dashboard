@@ -66,6 +66,29 @@
   Skalenmischung TSS/TRIMP, Ruhetage, Test-Events, Gedächtnis) laufen auf
   `main`, unabhängig vom React-Umbau (Dashboard 3.0, s. G1 im Konzept).
   Weitere Schritte/Fenster folgen laut der dortigen Reihenfolge (Abschnitt 7).
+- **Fehlende ride↔activityId-Brücke blockiert jede retroaktive
+  Segment-Auswertung** (Nacharbeiten zu Fenster D, Schritt 4/5,
+  02.08.2026) — `scripts/lib/compliance.js` korreliert eine Fahrt nur
+  TRANSIENT über `activities[i].id` mit ihren Segmenten in
+  `interval-blocks.json` (index-gleiche Arrays innerhalb EINES
+  Sync-Laufs); die Activity-ID landet nie auf dem `ride`-Objekt in
+  `rides.json`. Für bereits generierte historische Fahrten lässt sich
+  deshalb im Nachhinein NICHT mehr auf die rohen Segmente zugreifen —
+  weder für eine VO2max-Kurz/Lang-Klassifikation aus Blockdauern noch für
+  eine nachträgliche Compliance-Berechnung neu abgeleiteter
+  `workout_structure`-Daten. Live-Nachladen ist ebenfalls keine Option:
+  `INTERVALS_API_KEY`/`INTERVALS_ATHLETE_ID` sind lokal nicht gesetzt
+  (identische Lücke wie beim M3-Punkt oben). Deshalb hier ABGEBROCHEN,
+  nicht mit einer Ersatzheuristik überbrückt (Entscheidung
+  02.08.2026) — ein Trockenlauf, der auf geratenen Compliance-Werten
+  aufbaut, würde eine Kalibrierungsaussage vortäuschen, die die Daten
+  nicht hergeben.
+  **Vorschlag (unimplementiert):** `scripts/lib/compliance.js` könnte die
+  Activity-ID zusätzlich aufs `ride`-Objekt schreiben (`activityId` o. ä.)
+  — behebt die Lücke nur für ab dann NEU synchronisierte Fahrten, nicht
+  rückwirkend. Eigene Entscheidung wert, ob sich das lohnt, sobald mehr
+  Karten `workout_structure` tragen und Compliance-Auswertung häufiger
+  gebraucht wird.
 
 ## Phase 5 — Explorer
 
