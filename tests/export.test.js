@@ -34,13 +34,16 @@ mock.module(u("data-access/supabase/plan-cards.js"), {
     removePlanCard: async () => ({ ok: true }),
   },
 });
+// D4b: state/ladder.js::getPresetSuggestion() liest die Freigabe vor jedem
+// Stufenvorschlag — standardmäßig aus (Default-Zustand, aktuell BEIDE
+// Athleten), dieselbe Konvention wie der leere ftp-history/ladder-Mock unten.
+// Schritt 3 (Verdrahtung ins Export-Panel): einzelne Tests setzen dies
+// vorübergehend auf true, um den neuen "## Stufenvorschlag"-Abschnitt zu prüfen.
+let profileSeed = { id: "profile-uuid-1", ladderProgressionEnabled: false };
 mock.module(u("data-access/supabase/profiles.js"), {
   exports: {
     findProfileIdByDisplayName: async () => ({ ok: true, id: "profile-uuid-1" }),
-    // D4b: state/ladder.js::getPresetSuggestion() liest die Freigabe vor
-    // jedem Stufenvorschlag — hier standardmäßig aus (Default-Zustand),
-    // dieselbe Konvention wie der leere ftp-history/ladder-Mock oben.
-    getProfile: async () => ({ ok: true, profile: { id: "profile-uuid-1", ladderProgressionEnabled: false } }),
+    getProfile: async () => ({ ok: true, profile: profileSeed }),
   },
 });
 mock.module(u("data-access/intervals/push.js"), {
@@ -81,17 +84,21 @@ mock.module(u("data-access/supabase/ftp-history.js"), {
 });
 // D3/E1 (docs/konzept-progressionssteuerung.md): state/ladder.js::getLadderState()
 // lädt Katalog + Zuordnung + Historie — standardmäßig leer (kein aktives
-// Format), analog zum ftp-history-Mock oben.
+// Format), analog zum ftp-history-Mock oben. D4b Schritt 3: einzelne Tests
+// seeden hier ein aktives Format, um die Export-Panel-Verdrahtung zu prüfen.
+let sessionFormatsSeed = [];
+let athleteFormatsSeed = [];
 mock.module(u("data-access/supabase/formats.js"), {
   exports: {
-    getSessionFormats: async () => ({ ok: true, formats: [] }),
-    getAthleteFormats: async () => ({ ok: true, athleteFormats: [] }),
+    getSessionFormats: async () => ({ ok: true, formats: sessionFormatsSeed }),
+    getAthleteFormats: async () => ({ ok: true, athleteFormats: athleteFormatsSeed }),
     setAthleteFormatActive: async () => ({ ok: true }),
   },
 });
+let ladderHistorySeed = [];
 mock.module(u("data-access/supabase/ladder.js"), {
   exports: {
-    getLadderHistory: async () => ({ ok: true, history: [] }),
+    getLadderHistory: async () => ({ ok: true, history: ladderHistorySeed }),
     recordLadderStep: async () => ({ ok: true, id: "ladder-1" }),
   },
 });
@@ -219,4 +226,43 @@ test("buildClaudeExport: extraContext landet als eigener Absatz im Text, nie im 
   assert.match(result.text, /\*\*Zusatzkontext von mir:\*\* bin diese Woche viel unterwegs/);
   const jsonBlock = result.text.match(/```json\n([\s\S]*?)\n```/)[1];
   assert.doesNotMatch(jsonBlock, /unterwegs/);
+});
+
+/* D4b Schritt 3 (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte Sperre"):
+   state/ladder.js::getPresetSuggestion() ins Export-Briefing verdrahtet —
+   reine Information, kein Schreibpfad (C3.1 bleibt in Kraft). */
+
+test("buildClaudeExport: '## Stufenvorschlag' erscheint mit Freigabe + aktivem Format, preset 'build' -> Hochstufung", async () => {
+  const profileBefore = profileSeed;
+  const formatsBefore = sessionFormatsSeed;
+  const athleteFormatsBefore = athleteFormatsSeed;
+  const historyBefore = ladderHistorySeed;
+  profileSeed = { id: "profile-uuid-1", ladderProgressionEnabled: true };
+  sessionFormatsSeed = [{ id: "sweetspot-long", label: "Sweet Spot lang", targetSystem: "aerob-ermuedungsresistenz", currency: "zone-time", evidenceGrade: "coaching-konsens", blockTargets: ["Sweet Spot"], axes: { explicitSteps: [{ id: "S1" }, { id: "S2" }, { id: "S3" }] } }];
+  athleteFormatsSeed = [{ id: "af-1", formatId: "sweetspot-long", active: true }];
+  ladderHistorySeed = [{ id: "lh-1", formatId: "sweetspot-long", step: 2, validFrom: "2020-01-01", reason: "manual", sourceRideId: null, lockedUntil: null }];
+
+  await loadPlanCards("athlete1");
+  const result = await buildClaudeExport("athlete1", { preset: "build" });
+  assert.match(result.text, /## Stufenvorschlag/);
+  assert.match(result.text, /- Sweet Spot lang: Stufe 3 → hochstufen/);
+
+  profileSeed = profileBefore;
+  sessionFormatsSeed = formatsBefore;
+  athleteFormatsSeed = athleteFormatsBefore;
+  ladderHistorySeed = historyBefore;
+});
+
+test("buildClaudeExport: ohne Freigabe (Default, aktueller Ist-Zustand BEIDER Athleten) kein '## Stufenvorschlag'-Abschnitt, auch mit aktivem Format", async () => {
+  const formatsBefore = sessionFormatsSeed;
+  const athleteFormatsBefore = athleteFormatsSeed;
+  sessionFormatsSeed = [{ id: "sweetspot-long", label: "Sweet Spot lang", currency: "zone-time", evidenceGrade: "coaching-konsens", axes: { explicitSteps: [{ id: "S1" }] } }];
+  athleteFormatsSeed = [{ id: "af-1", formatId: "sweetspot-long", active: true }];
+
+  await loadPlanCards("athlete1");
+  const result = await buildClaudeExport("athlete1");
+  assert.doesNotMatch(result.text, /## Stufenvorschlag/);
+
+  sessionFormatsSeed = formatsBefore;
+  athleteFormatsSeed = athleteFormatsBefore;
 });

@@ -30,7 +30,8 @@ import { loadRangeForAthlete } from "./wellbeing.js";
 import { getFtpHistory } from "./ftp-history.js";
 import { getSession } from "./session.js";
 import { loadProposals, getState as getProposalsState } from "./proposals.js";
-import { getLadderState } from "./ladder.js";
+import { getLadderState, getPresetSuggestion } from "./ladder.js";
+import { lastComplianceForFormat } from "../core/ladder.js";
 
 // Fester Umfang, kein Zeitraum-Regler (Konzept §2, Entscheidung): Plan-
 // Fenster ohne Enddatum-Cutoff, Ist-Daten/Wellbeing je 4 Wochen zurück.
@@ -118,6 +119,28 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
   const ladderStateResult = await getLadderState();
   const ladderState = ladderStateResult.ok ? ladderStateResult.formats : [];
 
+  // D4b Schritt 3 (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte Sperre"):
+  // je aktivem Format den Stufenvorschlag holen — reine Information fürs
+  // Briefing, kein Schreibpfad (C3.1 bleibt in Kraft). Bleibt ohne Freigabe
+  // (profiles.ladder_progression_enabled, aktuell BEIDE Athleten) und ohne
+  // aktive Formate leer, kein Effekt auf den restlichen Export.
+  // `inTaper` wird hier bewusst NICHT hergeleitet (kein bestehendes State-
+  // Signal dafür verfügbar) — das "event"-Preset friert die Leiter in
+  // diesem Fenster nie automatisch beim Taper-Beginn ein, nur
+  // `isTestEvent` greift (Vereinfachung, s. Auftragsbericht).
+  const presetSuggestions = [];
+  for (const f of ladderState) {
+    const last = lastComplianceForFormat(Data.byDate(), f.formatId);
+    const suggestionResult = await getPresetSuggestion(preset, f.formatId, {
+      rating: last?.rating ?? null,
+      rpe: last?.rpe ?? null,
+      isTestEvent: selectedEvent?.isTest ?? false,
+    });
+    if (suggestionResult.ok && suggestionResult.enabled && suggestionResult.suggestion) {
+      presetSuggestions.push({ formatId: f.formatId, label: f.label, ...suggestionResult.suggestion });
+    }
+  }
+
   // F1 (docs/konzept-progressionssteuerung.md): eFTP-/EF-/Decoupling-Trend
   // über PROGRESS_WEEKS (länger als die ACTUALS_WEEKS-Tabelle oben, s.
   // Kommentar dort) + Bestwerte-Vergleich aus den zwei rollierenden
@@ -165,6 +188,7 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
       conflicts: planState.conflicts,
       recentProposals,
       ladderState,
+      presetSuggestions,
       progress,
       guardrails,
       today,

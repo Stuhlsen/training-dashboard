@@ -84,6 +84,25 @@ export function activeLockUntil(history, formatId, todayISO) {
 }
 
 /**
+ * Jüngste Fahrt mit einer Compliance-Ampel für ein Format (D4b Schritt 3,
+ * Verdrahtung ins Export-Panel) — die Ride↔Format-Brücke
+ * (`ride.compliance.matchedFormatId`, core/session-format-match.js/
+ * scripts/lib/compliance.js) macht das erst möglich. Liefert `{rating, rpe}`
+ * für state/export.js::buildClaudeExport(), das daraus den `ctx` für
+ * state/ladder.js::getPresetSuggestion() baut — reine Funktion auf bereits
+ * geladenen Ride-Objekten, kein I/O.
+ * @param {Array<{dateISO?:string, date?:string, rpe?:number|null, compliance?:{matchedFormatId?:string, rating?:string}}>} rides
+ * @param {string} formatId
+ * @returns {{rating:string|null, rpe:number|null}|null}
+ */
+export function lastComplianceForFormat(rides, formatId) {
+  const matches = (rides || []).filter((r) => r.compliance?.matchedFormatId === formatId);
+  if (!matches.length) return null;
+  const latest = matches.reduce((a, b) => ((b.dateISO || b.date) > (a.dateISO || a.date) ? b : a));
+  return { rating: latest.compliance.rating ?? null, rpe: latest.rpe ?? null };
+}
+
+/**
  * UNERPROBT (s. Kopfkommentar) — reproduziert keines der sechs L2–L6-
  * Startformate, alle laufen als `explicitSteps`. Nur für hypothetische
  * künftige Formate mit sauberem primary×secondary-Gitter gedacht, noch an

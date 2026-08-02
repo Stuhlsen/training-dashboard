@@ -441,6 +441,28 @@ function buildMemorySection(recentProposals, ladderState = []) {
   return lines;
 }
 
+/** Stufenvorschlag-Sektion (D4b Schritt 3, Auftrag "Ride↔Format-Brücke,
+ *  Verdrahtung, echte Sperre"): je aktivem Format der aus
+ *  state/ladder.js::getPresetSuggestion() geholte Vorschlag — reine
+ *  Information für den Trainer-Chat, KEINE automatische Kartenänderung
+ *  (C3.1 bleibt in Kraft). Leere Liste (kein aktives Format oder
+ *  profiles.ladder_progression_enabled nicht gesetzt, aktuell BEIDE
+ *  Athleten) → kein Abschnitt, kein Rauschen im Briefing.
+ *  @param {Array<{label?:string, formatId:string, step:number, action:string, lockedUntil?:string}>} presetSuggestions
+ *  @returns {string[]} Markdown-Zeilen */
+function buildPresetSuggestionSection(presetSuggestions) {
+  if (!presetSuggestions?.length) return [];
+  const actionLabel = { up: "hochstufen", down: "zurückstufen", hold: "halten" };
+  const lines = ["## Stufenvorschlag", ""];
+  for (const s of presetSuggestions) {
+    const label = actionLabel[s.action] ?? s.action;
+    const lockNote = s.lockedUntil ? ` (gesperrt bis ${s.lockedUntil})` : "";
+    lines.push(`- ${s.label ?? s.formatId}: Stufe ${s.step} → ${label}${lockNote}`);
+  }
+  lines.push("");
+  return lines;
+}
+
 /** Markdown-Briefing für den Menschen + maschinenlesbarer JSON-Anhang mit
  *  Karten-IDs (Schema-Konzept §6). Reine Funktion — nimmt fertig geladene
  *  Domänenobjekte entgegen, kein fetch/document.
@@ -455,6 +477,7 @@ function buildMemorySection(recentProposals, ladderState = []) {
  *    conflicts?: Array<{rule:string, severity:string, message:string}>,
  *    recentProposals?: Array<{date?:string|null, op:string, status:string, reason?:string|null}>,
  *    ladderState?: Array<{summary:string, evidenceGrade:string, neighbors:{prev:Object|null,next:Object|null}}>,
+ *    presetSuggestions?: Array<{label?:string, formatId:string, step:number, action:string, lockedUntil?:string}>,
  *    progress?: Object|null,     F1 — s. buildProgressSection für die genaue Form
  *    guardrails?: Object|null,   P1 — s. buildGuardrailsSection für die genaue Form
  *    today?: string,
@@ -474,6 +497,7 @@ export function buildBriefingMarkdown({
   conflicts = [],
   recentProposals = [],
   ladderState = [],
+  presetSuggestions = [],
   progress = null,
   guardrails = null,
   today,
@@ -618,6 +642,7 @@ export function buildBriefingMarkdown({
   lines.push("");
 
   lines.push(...buildMemorySection(recentProposals, ladderState));
+  lines.push(...buildPresetSuggestionSection(presetSuggestions));
 
   lines.push("## Maschinenlesbarer Anhang");
   lines.push("```json");
