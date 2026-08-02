@@ -22,6 +22,7 @@ import { el, els, escapeHtml } from "./dom.js";
 import { isAthlete, getSession, onSessionChange } from "../state/session.js";
 import { CONFIG } from "../state/config.js";
 import { buildClaudeExport } from "../state/export.js";
+import { getLadderState } from "../state/ladder.js";
 import {
   getState as getEventsState,
   loadEvents,
@@ -48,6 +49,7 @@ let eventBlockEl = null;
 let eventSelectEl = null;
 let eventEmptyEl = null;
 let contextTextarea = null;
+let ladderStateEl = null;
 let textarea = null;
 let errorEl = null;
 let copyBtn = null;
@@ -196,6 +198,7 @@ function buildDialog() {
       <i class="ti ti-info-circle"></i>
       <span id="export-preset-explainer-text"></span>
     </div>
+    <div class="export-ladder-state" id="export-panel-ladder-state" style="display:none;"></div>
 
     <div class="export-event-block" id="export-event-block">
       <label class="export-field-label" for="export-event-select">Zielevent</label>
@@ -235,6 +238,7 @@ function buildDialog() {
   eventSelectEl = modal.querySelector("#export-event-select");
   eventEmptyEl = modal.querySelector("#export-event-empty");
   contextTextarea = modal.querySelector("#export-panel-context");
+  ladderStateEl = modal.querySelector("#export-panel-ladder-state");
   textarea = modal.querySelector("#export-panel-text");
   errorEl = modal.querySelector("#export-panel-error");
   copyBtn = modal.querySelector("#export-panel-copy");
@@ -289,6 +293,21 @@ function buildDialog() {
   });
 }
 
+/** D3/E1: schreibgeschützte Leiterstand-Zeile befüllen — unabhängig vom
+ *  gewählten Preset (die Familie wird nicht pro Export gewählt, s. L9),
+ *  deshalb einmalig beim Öffnen und nicht Teil von regenerateText(). Keine
+ *  aktiven Formate → Zeile bleibt versteckt statt einen leeren Satz zu zeigen. */
+async function refreshLadderStateLine() {
+  const result = await getLadderState();
+  if (!result.ok || !result.formats.length) {
+    ladderStateEl.style.display = "none";
+    ladderStateEl.textContent = "";
+    return;
+  }
+  ladderStateEl.textContent = `Aktuell: ${result.formats.map((f) => f.summary).join(" — ")}`;
+  ladderStateEl.style.display = "";
+}
+
 function onKeydown(e) {
   if (e.key === "Escape") closeExportDialog();
 }
@@ -322,7 +341,7 @@ export async function openExportDialog(athleteId) {
   selectedEventId = prefsResult.ok ? prefsResult.eventId : null;
 
   updatePresetUI();
-  await regenerateText();
+  await Promise.all([regenerateText(), refreshLadderStateLine()]);
 }
 
 export function closeExportDialog() {

@@ -289,16 +289,16 @@ const PROPOSAL_STATUS_LABEL = {
  *  schon verworfen wurden — jeder Export ist sonst ein frischer Chat ohne
  *  Kontinuität.
  *
- *  `ladderState` ist eine bewusst additive Erweiterungsstelle für den
- *  künftigen Leiterstand je Sessiontyp (Fenster D, `ladder_history`
- *  existiert noch nicht) — bei `null` (heutiger Stand) bleibt nur der
- *  Vorschlags-Teil sichtbar, die Sektion muss dafür später nicht
- *  umgeschrieben werden, nur der `if (ladderState)`-Zweig unten befüllt.
+ *  `ladderState` (Fenster D, s. state/ladder.js::getLadderState) ergänzt
+ *  den ursprünglich additiven Platzhalter: aktive Formate × aktuelle Stufe
+ *  × zwei Nachbarstufen × evidence_grade — NIE der volle Katalog (L8), das
+ *  ist "wo im Aufbau" der Athlet steht, nicht wie die ganze Leiter aussieht.
  *
  *  @param {Array<{date?:string|null, op:string, status:string, reason?:string|null}>} recentProposals
- *  @param {unknown} [ladderState] Platzhalter für Fenster D, noch ungenutzt.
+ *  @param {Array<{summary:string, evidenceGrade:string,
+ *    neighbors:{prev:{id?:string}|null, next:{id?:string}|null}}>} [ladderState]
  *  @returns {string[]} Markdown-Zeilen */
-function buildMemorySection(recentProposals, ladderState = null) {
+function buildMemorySection(recentProposals, ladderState = []) {
   const lines = [];
   lines.push("## Entscheidungsgedächtnis (letzte Vorschläge)");
   if (!recentProposals?.length) {
@@ -309,9 +309,14 @@ function buildMemorySection(recentProposals, ladderState = null) {
       lines.push(`- ${p.date ?? "–"} ${p.op} → ${statusLabel}: "${mdEscapeCell(p.reason)}"`);
     }
   }
-  if (ladderState) {
-    // Fenster D (ladder_history, noch nicht gebaut): Leiterstand je
-    // Sessiontyp + zwei Nachbarstufen hier als zweiter Block ergänzen.
+  if (ladderState?.length) {
+    lines.push("");
+    lines.push("Leiterstand:");
+    for (const f of ladderState) {
+      const prevLabel = f.neighbors?.prev?.id ?? "–";
+      const nextLabel = f.neighbors?.next?.id ?? "–";
+      lines.push(`- ${f.summary} (${f.evidenceGrade}) · Nachbarstufen: ${prevLabel} / ${nextLabel}`);
+    }
   }
   lines.push("");
   return lines;
@@ -330,6 +335,7 @@ function buildMemorySection(recentProposals, ladderState = null) {
  *    projection?: {asOf:string, startCtl:number, startAtl:number, days:Array<{date:string,ctl:number,atl:number,tsb:number}>}|null,
  *    conflicts?: Array<{rule:string, severity:string, message:string}>,
  *    recentProposals?: Array<{date?:string|null, op:string, status:string, reason?:string|null}>,
+ *    ladderState?: Array<{summary:string, evidenceGrade:string, neighbors:{prev:Object|null,next:Object|null}}>,
  *    today?: string,
  *  }} ctx
  *  @returns {string} */
@@ -346,6 +352,7 @@ export function buildBriefingMarkdown({
   projection = null,
   conflicts = [],
   recentProposals = [],
+  ladderState = [],
   today,
 } = {}) {
   const todayIso = today ?? localISODate();
@@ -484,7 +491,7 @@ export function buildBriefingMarkdown({
   }
   lines.push("");
 
-  lines.push(...buildMemorySection(recentProposals));
+  lines.push(...buildMemorySection(recentProposals, ladderState));
 
   lines.push("## Maschinenlesbarer Anhang");
   lines.push("```json");

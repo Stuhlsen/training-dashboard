@@ -21,6 +21,7 @@ import { loadRangeForAthlete } from "./wellbeing.js";
 import { getFtpHistory } from "./ftp-history.js";
 import { getSession } from "./session.js";
 import { loadProposals, getState as getProposalsState } from "./proposals.js";
+import { getLadderState } from "./ladder.js";
 
 // Fester Umfang, kein Zeitraum-Regler (Konzept §2, Entscheidung): Plan-
 // Fenster ohne Enddatum-Cutoff, Ist-Daten/Wellbeing je 4 Wochen zurück.
@@ -96,6 +97,12 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
       reason: p.reason,
     }));
 
+  // D3/E1 (docs/konzept-progressionssteuerung.md): Leiterstand ins
+  // Entscheidungsgedächtnis — degradiert bei Fehler geräuschlos auf leer,
+  // ein Ladder-Ladefehler soll den restlichen Export nicht blockieren.
+  const ladderStateResult = await getLadderState();
+  const ladderState = ladderStateResult.ok ? ladderStateResult.formats : [];
+
   const text = buildExportText(
     {
       athleteId: user.id,
@@ -110,6 +117,7 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
       projection: planState.projection,
       conflicts: planState.conflicts,
       recentProposals,
+      ladderState,
       today,
     },
     {

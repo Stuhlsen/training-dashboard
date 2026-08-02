@@ -12,7 +12,20 @@
    3. Erholungswochen — real reduziert? (Wochen-TSS ≤ 60% des Mittels
       der angrenzenden Blockwochen — "Erholungswochen, die keine sind"
       sind der häufigste Grund für stagnierende Blöcke)
+
+   currentBlockTarget()/blockStartDate() (D3/E2, Architekturentscheidung
+   Fenster D) sind die VORWÄRTSGEWANDTE Ergänzung: phaseCompliance() oben
+   bewertet vergangene Ist-Fahrten, aber L1.1 ("Das Blockziel aus
+   periodization.js bestimmt, welche Familien überhaupt zulässig sind")
+   braucht das Blockziel AM PLANDATUM, aus plan_cards.phase — diese
+   Funktion existierte im Konzept nur als Verweis, nicht als Code. Nutzt
+   dieselben Phase-Strings wie PHASE_SIGNATURES/CONFIG.phases ("Sweet
+   Spot"/"Schwelle"/"VO2max"), keine zweite Vokabular-Übersetzung nötig,
+   weil session_formats.block_targets (Migration 0014) bewusst genau diese
+   Strings trägt statt des `target_system`-Vokabulars derselben Zeile.
    ============================================================ */
+
+import { addDaysISO } from "./format.js";
 
 /** Reizsignaturen der Plan-2-Blöcke (Ganzfahrt-IF-Korridore).
  *  Untergrenzen bewusst leicht unter Intervall-Zielbereich, weil
@@ -130,4 +143,54 @@ export function phaseCompliance(rides, weekIndexFn) {
 
   if (!blocks.length && !recovery.length) return null;
   return { blocks, recovery, totalWeeks: weeks.length };
+}
+
+/**
+ * Blockziel am angegebenen Datum (D3/E2, L1.1) — die Phase der nächsten
+ * anstehenden Plankarte mit gesetztem `phase`-Feld (`date >= dateIso`),
+ * sonst die der zuletzt vergangenen. `null`, wenn keine Karte ein Blockziel
+ * trägt (z. B. Athlet 2s GFNY-Plan, der `phase` bewusst NICHT auf
+ * einzelnen Ride-Objekten setzt — hier geht es aber um plan_cards, die bei
+ * Athlet 2 durchaus `phase` tragen können, s. `plan-athlete2.js`-Blöcke
+ * Basis/Aufbau/Rennhärte/Taper).
+ * @param {Array<{date:string, phase?:string|null, cancelled?:boolean}>} cards
+ * @param {string} dateIso
+ * @returns {string|null}
+ */
+export function currentBlockTarget(cards, dateIso) {
+  const withPhase = (cards || []).filter((c) => c.phase && !c.cancelled);
+  if (!withPhase.length) return null;
+
+  const upcoming = withPhase.filter((c) => c.date >= dateIso).sort((a, b) => a.date.localeCompare(b.date));
+  if (upcoming.length) return upcoming[0].phase;
+
+  const past = withPhase.filter((c) => c.date < dateIso).sort((a, b) => b.date.localeCompare(a.date));
+  return past.length ? past[0].phase : null;
+}
+
+/**
+ * Frühestes Datum (innerhalb `lookbackDays`), an dem `currentBlockTarget()`
+ * noch dasselbe Ergebnis wie an `dateIso` liefert — eine Annäherung an den
+ * Blockbeginn, für die Blockstart-Dialog-Erkennung (E2, state/
+ * block-transition.js): "hat sich das Blockziel geändert" lässt sich so an
+ * einem konkreten Datum festmachen statt nur "vor n Tagen" zu vermuten.
+ * Läuft an der `lookbackDays`-Grenze aus, statt unbegrenzt zurückzusuchen
+ * (ein durchgehend gleiches Blockziel über Monate ist kein Blockstart mehr).
+ * @param {Array<{date:string, phase?:string|null, cancelled?:boolean}>} cards
+ * @param {string} dateIso
+ * @param {number} [lookbackDays]
+ * @returns {string|null} null, wenn an dateIso selbst kein Blockziel vorliegt
+ */
+export function blockStartDate(cards, dateIso, lookbackDays = 120) {
+  const target = currentBlockTarget(cards, dateIso);
+  if (!target) return null;
+
+  let start = dateIso;
+  let cursor = dateIso;
+  for (let i = 0; i < lookbackDays; i++) {
+    cursor = addDaysISO(cursor, -1);
+    if (currentBlockTarget(cards, cursor) !== target) break;
+    start = cursor;
+  }
+  return start;
 }

@@ -39,6 +39,7 @@ import { PlanCardDialog } from "./ui/plan-card-dialog.js";
 import { TrainerBar } from "./ui/trainer-bar.js";
 import { ProposalBanner } from "./ui/proposal-banner.js";
 import { ExportImportBar } from "./ui/export-panel.js";
+import { maybeOpenBlockDialog } from "./ui/block-dialog.js";
 import { Analysis } from "./ui/analysis.js";
 import { ChartVisibility } from "./ui/chart-visibility.js";
 import { renderReadiness, renderWeekReview, renderRecords } from "./ui/panels.js";
@@ -538,6 +539,10 @@ async function renderAll(athleteId) {
     // Athlet auf seinem EIGENEN Plan, Export/Import-Workflow-Konzept §1) —
     // kein weiterer Ladepfad nötig, deshalb kein await.
     ExportImportBar.render(Data.activeAthleteId);
+    // Blockstart-Dialog (D3/E2): eigener, geräuschloser Check — meldet sich
+    // nur bei echtem Blockübergang UND mehr als einer zulässigen+aktiven
+    // Familie (state/block-transition.js), sonst passiert nichts sichtbares.
+    maybeOpenBlockDialog(Data.activeAthleteId);
     // Zweiter, gezielter Redraw: Planned.render() lief OBEN bereits, bevor
     // TrainerBar.render() den Trainer-Kontext geladen hat — die draggable-
     // Flags der gerade gezeichneten Karten (ui/planned.js::_isTrainerProposalMode())

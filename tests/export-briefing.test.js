@@ -234,6 +234,36 @@ test("buildBriefingMarkdown: Entscheidungsgedächtnis kappt auf 10 Einträge", (
   assert.equal(matches.length, 10);
 });
 
+test("buildBriefingMarkdown: Leiterstand (D3/E1) erscheint mit Nachbarstufen, wenn ladderState gesetzt ist", () => {
+  const md = buildBriefingMarkdown({
+    ...CTX,
+    ladderState: [
+      {
+        summary: "Sweet Spot lang · Stufe S3 (3×15)",
+        evidenceGrade: "coaching-konsens",
+        neighbors: { prev: { id: "S2" }, next: { id: "S4" } },
+      },
+    ],
+  });
+  assert.match(md, /Leiterstand:/);
+  assert.match(md, /- Sweet Spot lang · Stufe S3 \(3×15\) \(coaching-konsens\) · Nachbarstufen: S2 \/ S4/);
+});
+
+test("buildBriefingMarkdown: kein Leiterstand-Block ohne ladderState (Rückwärtskompatibilität)", () => {
+  const md = buildBriefingMarkdown(CTX); // CTX trägt kein ladderState
+  assert.doesNotMatch(md, /Leiterstand:/);
+});
+
+test("buildBriefingMarkdown: Leiterstand an den Rändern der Leiter zeigt '–' statt Nachbar-ID", () => {
+  const md = buildBriefingMarkdown({
+    ...CTX,
+    ladderState: [
+      { summary: "VO2max kurz · Stufe V-K1", evidenceGrade: "studienlage", neighbors: { prev: null, next: { id: "V-K2" } } },
+    ],
+  });
+  assert.match(md, /- VO2max kurz · Stufe V-K1 \(studienlage\) · Nachbarstufen: – \/ V-K2/);
+});
+
 test("exportFileName: fester Name aus AthletenId + Datum", () => {
   assert.equal(exportFileName("athlete1", "2026-07-24"), "claude-briefing-athlete1-2026-07-24.md");
 });

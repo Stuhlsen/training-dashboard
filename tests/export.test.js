@@ -73,6 +73,22 @@ mock.module(u("data-access/supabase/ftp-history.js"), {
     saveFtpEntry: async () => ({ ok: true, id: "ftp-1" }),
   },
 });
+// D3/E1 (docs/konzept-progressionssteuerung.md): state/ladder.js::getLadderState()
+// lädt Katalog + Zuordnung + Historie — standardmäßig leer (kein aktives
+// Format), analog zum ftp-history-Mock oben.
+mock.module(u("data-access/supabase/formats.js"), {
+  exports: {
+    getSessionFormats: async () => ({ ok: true, formats: [] }),
+    getAthleteFormats: async () => ({ ok: true, athleteFormats: [] }),
+    setAthleteFormatActive: async () => ({ ok: true }),
+  },
+});
+mock.module(u("data-access/supabase/ladder.js"), {
+  exports: {
+    getLadderHistory: async () => ({ ok: true, history: [] }),
+    recordLadderStep: async () => ({ ok: true, id: "ladder-1" }),
+  },
+});
 mock.module(u("state/session.js"), {
   exports: {
     getSession: () => ({ id: "athlete-1-uuid", displayName: "Stuhlsen" }),

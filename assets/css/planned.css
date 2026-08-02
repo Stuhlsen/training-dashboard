@@ -1472,6 +1472,15 @@ body.is-card-dragging { cursor: grabbing; user-select: none; }
   margin-bottom: 14px;
 }
 
+/* D3/E1 (docs/konzept-progressionssteuerung.md): schreibgeschützte
+   Leiterstand-Zeile, gleiche Fläche wie die Preset-Erklärung darüber —
+   Transparenz ohne eigenes Bedienelement (L9). */
+.export-ladder-state {
+  font-size: 0.72rem;
+  color: var(--dim2);
+  margin-bottom: 14px;
+}
+
 .export-field-label {
   display: block;
   font-family: var(--font-mono);
@@ -1502,6 +1511,42 @@ body.is-card-dragging { cursor: grabbing; user-select: none; }
 
 .export-dialog-scope-hint { font-size: 0.72rem; color: var(--dim2); }
 .export-panel-footer-right { display: flex; align-items: center; gap: 8px; }
+
+/* D3/E2 (docs/konzept-progressionssteuerung.md L9): Blockstart-Dialog —
+   breitere, textlastigere Options-Kacheln als export-preset-tile (Zielsystem,
+   evidence_grade, Beispieleinheit statt nur Icon+Label). */
+.block-dialog { max-width: 560px; }
+.block-dialog-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.block-dialog-option {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  padding: 10px 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.block-dialog-option:hover { border-color: var(--border-light); }
+.block-dialog-option:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.block-dialog-option.active {
+  background: var(--accent-dim);
+  border: 2px solid var(--accent);
+  padding: 9px 13px; /* -1px Ausgleich für den 2px-Rahmen */
+}
+.block-dialog-option-label { font-family: var(--font-disp); font-weight: 700; font-size: 0.88rem; }
+.block-dialog-option-system { font-family: var(--font-mono); font-size: 0.68rem; color: var(--dim); }
+.block-dialog-option-evidence { font-family: var(--font-mono); font-size: 0.62rem; color: var(--dim2); text-transform: uppercase; letter-spacing: 0.04em; }
+.block-dialog-option-sample { font-size: 0.78rem; color: var(--dim); margin-top: 2px; }
 
 .import-dialog { max-width: 620px; }
 .import-dialog-file { margin-top: 8px; font-size: 0.76rem; color: var(--dim); }

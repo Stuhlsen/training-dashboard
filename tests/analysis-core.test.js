@@ -29,6 +29,8 @@ import {
   phaseCompliance,
   matchesSignature,
   RECOVERY_MAX_SHARE,
+  currentBlockTarget,
+  blockStartDate,
 } from "../assets/js/core/periodization.js";
 import {
   weeklyStreak,
@@ -478,6 +480,54 @@ test("phaseCompliance: Block-Status + Erholungswochen-Reduktion", () => {
 test("phaseCompliance: null ohne Block-Phasen (Athlet 2)", () => {
   const rides = [{ dateISO: "2026-06-01", tss: 50 }];
   assert.equal(phaseCompliance(rides, weekIdx), null);
+});
+
+// D3/E2 (docs/konzept-progressionssteuerung.md L1.1): vorwärtsgewandtes
+// Blockziel aus plan_cards.phase, für die Blockstart-Dialog-Erkennung.
+const card = (date, phase, extra = {}) => ({ date, phase, ...extra });
+
+test("currentBlockTarget: nächste anstehende Karte mit Blockziel schlägt eine weiter entfernte", () => {
+  const cards = [card("2026-08-10", "Schwelle"), card("2026-08-03", "Sweet Spot")];
+  assert.equal(currentBlockTarget(cards, "2026-08-01"), "Sweet Spot");
+});
+
+test("currentBlockTarget: ohne anstehende Karte fällt es auf die zuletzt vergangene zurück", () => {
+  const cards = [card("2026-07-20", "Sweet Spot"), card("2026-07-25", "Schwelle")];
+  assert.equal(currentBlockTarget(cards, "2026-08-01"), "Schwelle");
+});
+
+test("currentBlockTarget: ignoriert Karten ohne phase oder mit cancelled:true", () => {
+  const cards = [
+    card("2026-08-05", null),
+    card("2026-08-06", "VO2max", { cancelled: true }),
+    card("2026-08-10", "Schwelle"),
+  ];
+  assert.equal(currentBlockTarget(cards, "2026-08-01"), "Schwelle");
+});
+
+test("currentBlockTarget: null ohne jede Karte mit Blockziel (z.B. Athlet 2 ohne phase-Feld)", () => {
+  assert.equal(currentBlockTarget([card("2026-08-05", null)], "2026-08-01"), null);
+  assert.equal(currentBlockTarget([], "2026-08-01"), null);
+});
+
+test("blockStartDate: läuft rückwärts bis der nächstliegende Blockziel-Treffer auf die alte Phase kippt", () => {
+  // Letzte Sweet-Spot-Karte am 03.08., erste Schwelle-Karte am 05.08. — ab
+  // dem 04.08. "sieht" currentBlockTarget() bereits die Schwelle-Karte als
+  // nächste anstehende voraus (keine Karte am 04.08. selbst), erst am 03.08.
+  // kippt die Auflösung auf die noch anstehende Sweet-Spot-Karte zurück.
+  const cards = [card("2026-08-03", "Sweet Spot"), card("2026-08-05", "Schwelle"), card("2026-08-12", "Schwelle")];
+  assert.equal(blockStartDate(cards, "2026-08-06"), "2026-08-04");
+});
+
+test("blockStartDate: null, wenn am Datum selbst kein Blockziel vorliegt", () => {
+  assert.equal(blockStartDate([], "2026-08-06"), null);
+});
+
+test("blockStartDate: bricht an der lookbackDays-Grenze ab statt unbegrenzt zurückzusuchen", () => {
+  const cards = [card("2026-01-01", "Sweet Spot")];
+  const start = blockStartDate(cards, "2026-08-06", 10);
+  // 10 Tage zurück ab 06.08. → 27.07., nicht das tatsächliche Kartendatum
+  assert.equal(start, "2026-07-27");
 });
 
 /* ── Konsistenz & Adhärenz ──────────────────────────────────── */
