@@ -29,6 +29,12 @@
 import { PLAN2_SCHEDULE, getPlan2WeekPhase } from "../../assets/js/core/plan2-schedule.js";
 export { PLAN2_SCHEDULE, getPlan2WeekPhase };
 
+// getRecentComparisonBlocks() (weiter unten) braucht Kalenderarithmetik +
+// die geteilten Block-Keys — beide bereits in core/ definiert, gleiches
+// Layer-Grenze-Präzedenzmuster wie oben (core/ → scripts/lib/, nie umgekehrt).
+import { addDaysISO } from "../../assets/js/core/format.js";
+import { RECENT_BLOCK_KEY, PREVIOUS_BLOCK_KEY } from "../../assets/js/core/progress-indicators.js";
+
 // === Geplante Einheiten — Datum → Name + Typ ===
 // Ab W2: Mo/Fr = optionale Recovery (bei müden Beinen streichen),
 // Di = Gruppenfahrt ~65 km, Do = Intervalle, Sa = Sweet-Spot-Ausdauerfahrt.
@@ -789,4 +795,29 @@ export function getPlan2Blocks(todayISO) {
   return blocks
     .filter((b) => b.from <= todayISO)
     .map((b) => ({ ...b, to: b.to > todayISO ? todayISO : b.to }));
+}
+
+/**
+ * Zwei rollierende 6-Wochen-Blöcke für den F1-Bestwerte-Vergleich
+ * (docs/konzept-progressionssteuerung.md, "Bestwerte bei 5 min und 20 min
+ * der letzten 6 Wochen gegen die 6 Wochen davor") — im Gegensatz zu
+ * getPlan2Blocks() nicht an Plan-Phasen gebunden, sondern reine
+ * Kalenderarithmetik ab `todayISO`. `key`-Werte kommen bewusst aus
+ * assets/js/core/progress-indicators.js (RECENT_BLOCK_KEY/PREVIOUS_BLOCK_KEY)
+ * statt hier neu vergeben zu werden — state/export.js (Browser) sucht die
+ * Blöcke in `powerCurveBlocks` genau über diese Strings, einzige Quelle
+ * vermeidet ein stilles Auseinanderlaufen der beiden Seiten.
+ * @param {string} todayISO
+ * @returns {Array<{key: string, label: string, from: string, to: string}>}
+ */
+export function getRecentComparisonBlocks(todayISO) {
+  return [
+    { key: RECENT_BLOCK_KEY, label: "Letzte 6 Wochen", from: addDaysISO(todayISO, -42), to: todayISO },
+    {
+      key: PREVIOUS_BLOCK_KEY,
+      label: "6 Wochen davor",
+      from: addDaysISO(todayISO, -84),
+      to: addDaysISO(todayISO, -43),
+    },
+  ];
 }

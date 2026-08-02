@@ -13,6 +13,15 @@
 import { buildExportText, exportFileName } from "../core/export-briefing.js";
 import { localISODate, addDaysISO } from "../core/format.js";
 import { currentFtpEntry } from "../core/ftp-history.js";
+import { efficiencyTrend, decouplingTrend } from "../core/efficiency.js";
+import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../core/ftp-forecast.js";
+import {
+  eftpProgressSummary,
+  bestEffortComparison,
+  RECENT_BLOCK_KEY,
+  PREVIOUS_BLOCK_KEY,
+} from "../core/progress-indicators.js";
+import { buildGuardrailSummary } from "../core/guardrails.js";
 import { CONFIG } from "./config.js";
 import { Data } from "./data.js";
 import { getState as getEventsState } from "./events.js";
@@ -27,6 +36,12 @@ import { getLadderState } from "./ladder.js";
 // Fenster ohne Enddatum-Cutoff, Ist-Daten/Wellbeing je 4 Wochen zurück.
 const ACTUALS_WEEKS = 4;
 const WELLBEING_WEEKS = 4;
+// F1 (docs/konzept-progressionssteuerung.md): eFTP-/EF-/Decoupling-Trend
+// brauchen einen längeren Rückblick als die 4-Wochen-Tabelle oben — eigenes
+// Fenster, unabhängig von ACTUALS_WEEKS (die Ist-Fahrten-Tabelle im Briefing
+// soll nicht auf 8 Wochen anwachsen, nur weil der Fortschrittsblock mehr
+// Historie braucht).
+const PROGRESS_WEEKS = 8;
 
 // 6A (docs/konzept-progressionssteuerung.md): nur echte Entscheidungen
 // zählen als Gedächtnis — "open" (noch nicht entschieden) und "stale"
@@ -103,6 +118,38 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
   const ladderStateResult = await getLadderState();
   const ladderState = ladderStateResult.ok ? ladderStateResult.formats : [];
 
+  // F1 (docs/konzept-progressionssteuerung.md): eFTP-/EF-/Decoupling-Trend
+  // über PROGRESS_WEEKS (länger als die ACTUALS_WEEKS-Tabelle oben, s.
+  // Kommentar dort) + Bestwerte-Vergleich aus den zwei rollierenden
+  // Power-Curve-Blöcken (scripts/lib/plan2.js::getRecentComparisonBlocks —
+  // fehlen sie, z.B. vor dem ersten Sync-Lauf mit den neuen Blöcken,
+  // liefert bestEffortComparison eine leere Liste, kein Fehler).
+  const progressFrom = addDaysISO(today, -7 * PROGRESS_WEEKS);
+  const rides8w = Data.byDate().filter((r) => r.dateISO >= progressFrom);
+  const wellness8w = (Data.wellness || []).filter((w) => (w.dateISO || w.date) >= progressFrom);
+  const eftpHistory8w = mergeEftpHistories(eftpHistory(rides8w), eftpHistoryFromWellness(wellness8w));
+  const lastRampTest = currentEntry ? { date: currentEntry.validFrom, ftpWatt: currentEntry.ftpWatt } : null;
+  const recentBlock = (Data.powerCurveBlocks || []).find((b) => b.key === RECENT_BLOCK_KEY) ?? null;
+  const previousBlock = (Data.powerCurveBlocks || []).find((b) => b.key === PREVIOUS_BLOCK_KEY) ?? null;
+  const progress = {
+    eftp: eftpProgressSummary(eftpHistory8w, lastRampTest),
+    ef: efficiencyTrend(rides8w),
+    decoupling: decouplingTrend(rides8w),
+    bestEfforts: bestEffortComparison(recentBlock, previousBlock),
+  };
+
+  // P1 (docs/konzept-progressionssteuerung.md): Leitplanken — bekommt bewusst
+  // die VOLLE Ist-Historie (Data.byDate(), nicht die 4-Wochen-`actuals` von
+  // oben), weil rampHistoricalHitRate über die gesamte Historie zählt, wie
+  // core/guardrails.js im Detail beschreibt; die anderen Felder fenstern
+  // sich intern selbst (letzte 4 Wochen bzw. Planungshorizont).
+  const guardrails = buildGuardrailSummary({
+    actuals: Data.byDate(),
+    cards: planState.cards,
+    projection: planState.projection,
+    today,
+  });
+
   const text = buildExportText(
     {
       athleteId: user.id,
@@ -118,6 +165,8 @@ export async function buildClaudeExport(athleteId, { preset = "general", eventId
       conflicts: planState.conflicts,
       recentProposals,
       ladderState,
+      progress,
+      guardrails,
       today,
     },
     {

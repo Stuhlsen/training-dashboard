@@ -283,6 +283,125 @@ const PROPOSAL_STATUS_LABEL = {
   withdrawn: "zurückgezogen",
 };
 
+/** Fortschritt-Sektion (F1, docs/konzept-progressionssteuerung.md Abschnitt 4):
+ *  eFTP-Trend, Effizienzfaktor-Trend, Decoupling-Trend, Bestwerte-Vergleich —
+ *  alle bereits fertig berechnet vom Aufrufer (core/progress-indicators.js
+ *  bzw. core/efficiency.js direkt, s. state/export.js). Diese Funktion baut
+ *  nur noch den Anzeigetext, dieselbe Aufgabenteilung wie buildMemorySection.
+ *  `progress` fehlt komplett bei zu dünner Datenlage → ein Hinweis statt
+ *  eines leeren Abschnitts (kein stiller Fallback).
+ *  @param {{
+ *    eftp?: {first:number, last:number, slopePerWeek:number|null, nPoints:number,
+ *      lastRampTest:{date:string,ftpWatt:number}|null}|null,
+ *    ef?: {first:number|null, last:number|null, slopePer30d:number|null, comparable:Array}|null,
+ *    decoupling?: {median:number, stableShare:number, slopePer30d:number|null, n:number}|null,
+ *    bestEfforts?: Array<{label:string, recentW:number, previousW:number, deltaW:number}>,
+ *  }|null} [progress]
+ *  @returns {string[]} Markdown-Zeilen */
+function buildProgressSection(progress) {
+  const lines = [];
+  lines.push("## Fortschritt (letzte Wochen)");
+  // core/efficiency.js::efficiencyTrend liefert IMMER ein Objekt (nie null),
+  // auch ohne eine einzige vergleichbare Fahrt (first/last dann null) — ein
+  // bloßes `progress.ef`-Truthy-Check würde "hasAny" fälschlich auf true
+  // setzen und die Sektion auf eine Überschrift ohne jede Zeile reduzieren
+  // (kein Hinweistext, keine Ef-Zeile). Deshalb hier explizit auf `first`
+  // prüfen, dieselbe Bedingung wie beim eigentlichen Rendern unten.
+  const hasEf = progress?.ef?.first != null && progress.ef?.last != null;
+  const hasAny = progress && (progress.eftp || hasEf || progress.decoupling || progress.bestEfforts?.length);
+  if (!hasAny) {
+    lines.push("Noch keine Fortschrittsdaten.");
+    lines.push("");
+    return lines;
+  }
+
+  if (progress.eftp) {
+    const { first, last, slopePerWeek, lastRampTest } = progress.eftp;
+    const trendText = slopePerWeek != null ? `${slopePerWeek > 0 ? "+" : ""}${slopePerWeek} W/Woche` : "kein Trend (zu wenig Punkte)";
+    const rampText = lastRampTest
+      ? `, letzter Ramp-Test ${lastRampTest.date} (${lastRampTest.ftpWatt} W)`
+      : "";
+    lines.push(`- eFTP: ${first} W → ${last} W, Trend ${trendText}${rampText}`);
+  }
+  if (hasEf) {
+    const { first, last, slopePer30d, comparable } = progress.ef;
+    lines.push(
+      `- Effizienzfaktor (NP/HF, Z1/Z2 ≥60min): ${first} → ${last}, Trend ${slopePer30d != null ? `${slopePer30d > 0 ? "+" : ""}${slopePer30d}/30 Tage` : "kein Trend"} (n=${comparable?.length ?? 0})`
+    );
+  }
+  if (progress.decoupling) {
+    const { median, stableShare, n } = progress.decoupling;
+    lines.push(
+      `- Decoupling (Pw:HR, dieselben Fahrten): Median ${median}%, ${stableShare}% der Fahrten unter 5% (aerob stabil), n=${n}`
+    );
+  }
+  if (progress.bestEfforts?.length) {
+    for (const b of progress.bestEfforts) {
+      lines.push(
+        `- Bestwert ${b.label} (letzte 6 vs. vorherige 6 Wochen): ${b.previousW} W → ${b.recentW} W (${b.deltaW > 0 ? "+" : ""}${b.deltaW} W)`
+      );
+    }
+  }
+  lines.push("");
+  return lines;
+}
+
+/** Leitplanken-Sektion (P1, docs/konzept-progressionssteuerung.md Abschnitt 5):
+ *  Grenzen VOR der Planung sichtbar machen — bereits fertig berechnet vom
+ *  Aufrufer (core/guardrails.js::buildGuardrailSummary, s. state/export.js).
+ *  Reine Anzeige, keine Konfliktregel (die kommt separat aus `conflicts`,
+ *  core/conflicts.js) — absichtlich getrennt, s. Konzept P1 vs. P2.
+ *  @param {{
+ *    rampActual4w: number|null, rampProjectedHorizon: number|null,
+ *    rampHistoricalHitRate: number|null,
+ *    hardDaysPerWeek: Array<{week:string, count:number}>,
+ *    shortestHardGap: number|null,
+ *    tidVsCorridor: {phase:string, shareAboveCorridor:number}|null,
+ *    weeklyTssVsCeiling: Array<{week:string, tss:number, ceiling:number, overCeiling:boolean}>,
+ *  }|null} [guardrails]
+ *  @returns {string[]} Markdown-Zeilen */
+function buildGuardrailsSection(guardrails) {
+  const lines = [];
+  lines.push("## Leitplanken");
+  if (!guardrails) {
+    lines.push("Noch keine Leitplanken-Daten.");
+    lines.push("");
+    return lines;
+  }
+
+  const rampText =
+    guardrails.rampActual4w != null || guardrails.rampProjectedHorizon != null
+      ? `Ist (letzte 4 Wochen) ${guardrails.rampActual4w ?? "–"} CTL/Woche · Projiziert (Planungshorizont) ${guardrails.rampProjectedHorizon ?? "–"} CTL/Woche`
+      : "keine Daten";
+  const hitRateText =
+    guardrails.rampHistoricalHitRate != null
+      ? ` — Schwelle (8) wurde in ${Math.round(guardrails.rampHistoricalHitRate * 100)}% der bisherigen Wochen real erreicht`
+      : "";
+  lines.push(`- CTL-Rampe: ${rampText}${hitRateText}`);
+
+  if (guardrails.hardDaysPerWeek?.length) {
+    const list = guardrails.hardDaysPerWeek.map((w) => `${w.week}: ${w.count}`).join(" · ");
+    lines.push(`- Harte Tage/Woche (Sweet Spot/Schwelle/VO2max) im Plan: ${list}`);
+  }
+  if (guardrails.shortestHardGap != null) {
+    lines.push(`- Kürzester Abstand zwischen zwei harten Tagen im Plan: ${guardrails.shortestHardGap} Tag(e)`);
+  }
+  if (guardrails.tidVsCorridor) {
+    const { phase, shareAboveCorridor } = guardrails.tidVsCorridor;
+    lines.push(
+      `- Intensitätsverteilung (letzte 4 Wochen) vs. Zielkorridor „${phase}": ${Math.round(shareAboveCorridor * 100)}% oberhalb des Korridors`
+    );
+  }
+  if (guardrails.weeklyTssVsCeiling?.length) {
+    const list = guardrails.weeklyTssVsCeiling
+      .map((w) => `${w.week}: ${w.tss}/${w.ceiling}${w.overCeiling ? " ⚠" : ""}`)
+      .join(" · ");
+    lines.push(`- Wochen-TSS vs. Obergrenze (CTL×8): ${list}`);
+  }
+  lines.push("");
+  return lines;
+}
+
 /** Entscheidungsgedächtnis-Sektion (6A, docs/konzept-progressionssteuerung.md):
  *  die letzten (max. 10, neueste zuerst) ENTSCHIEDENEN Vorschläge, damit der
  *  Trainer-Chat nicht zwischen Ansätzen oszilliert, die beim letzten Export
@@ -336,6 +455,8 @@ function buildMemorySection(recentProposals, ladderState = []) {
  *    conflicts?: Array<{rule:string, severity:string, message:string}>,
  *    recentProposals?: Array<{date?:string|null, op:string, status:string, reason?:string|null}>,
  *    ladderState?: Array<{summary:string, evidenceGrade:string, neighbors:{prev:Object|null,next:Object|null}}>,
+ *    progress?: Object|null,     F1 — s. buildProgressSection für die genaue Form
+ *    guardrails?: Object|null,   P1 — s. buildGuardrailsSection für die genaue Form
  *    today?: string,
  *  }} ctx
  *  @returns {string} */
@@ -353,6 +474,8 @@ export function buildBriefingMarkdown({
   conflicts = [],
   recentProposals = [],
   ladderState = [],
+  progress = null,
+  guardrails = null,
   today,
 } = {}) {
   const todayIso = today ?? localISODate();
@@ -482,6 +605,9 @@ export function buildBriefingMarkdown({
     lines.push("Keine Projektion verfügbar.");
   }
   lines.push("");
+
+  lines.push(...buildProgressSection(progress));
+  lines.push(...buildGuardrailsSection(guardrails));
 
   lines.push("## Offene Konflikte");
   if (!conflicts.length) {

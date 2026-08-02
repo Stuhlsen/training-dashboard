@@ -264,6 +264,68 @@ test("buildBriefingMarkdown: Leiterstand an den Rändern der Leiter zeigt '–' 
   assert.match(md, /- VO2max kurz · Stufe V-K1 \(studienlage\) · Nachbarstufen: – \/ V-K2/);
 });
 
+/* ── Fortschritt-Sektion (F1, Fenster E1a) ───────────────────── */
+
+test("buildBriefingMarkdown: Fortschritt-Sektion zeigt Leer-Hinweis ohne progress", () => {
+  const md = buildBriefingMarkdown(CTX);
+  assert.match(md, /## Fortschritt \(letzte Wochen\)\nNoch keine Fortschrittsdaten\./);
+});
+
+test("buildBriefingMarkdown: Fortschritt-Sektion zeigt Leer-Hinweis, wenn progress.ef ein leeres efficiencyTrend()-Objekt ist (Regression)", () => {
+  // core/efficiency.js::efficiencyTrend() liefert IMMER ein Objekt (nie
+  // null), auch ohne vergleichbare Fahrten — first/last sind dann null.
+  // Ein reiner Truthy-Check auf progress.ef hätte das übersehen und eine
+  // Überschrift ohne jede Zeile darunter gerendert statt des Leer-Hinweises.
+  const md = buildBriefingMarkdown({
+    ...CTX,
+    progress: { eftp: null, ef: { first: null, last: null, slopePer30d: null, comparable: [] }, decoupling: null, bestEfforts: [] },
+  });
+  assert.match(md, /## Fortschritt \(letzte Wochen\)\nNoch keine Fortschrittsdaten\./);
+});
+
+test("buildBriefingMarkdown: Fortschritt-Sektion zeigt eFTP/EF/Decoupling/Bestwerte", () => {
+  const md = buildBriefingMarkdown({
+    ...CTX,
+    progress: {
+      eftp: { first: 185, last: 193, slopePerWeek: 1.2, nPoints: 6, lastRampTest: { date: "2026-05-01", ftpWatt: 193 } },
+      ef: { first: 1.4, last: 1.48, slopePer30d: 0.02, comparable: [1, 2, 3] },
+      decoupling: { median: 4.2, stableShare: 80, slopePer30d: -0.1, n: 6 },
+      bestEfforts: [{ label: "5min", secs: 300, recentW: 230, previousW: 220, deltaW: 10 }],
+    },
+  });
+  assert.match(md, /eFTP: 185 W → 193 W, Trend \+1\.2 W\/Woche, letzter Ramp-Test 2026-05-01 \(193 W\)/);
+  assert.match(md, /Effizienzfaktor.*1\.4 → 1\.48.*n=3/);
+  assert.match(md, /Decoupling.*Median 4\.2%.*80% der Fahrten unter 5%.*n=6/);
+  assert.match(md, /Bestwert 5min.*220 W → 230 W \(\+10 W\)/);
+});
+
+/* ── Leitplanken-Sektion (P1, Fenster E1c) ───────────────────── */
+
+test("buildBriefingMarkdown: Leitplanken-Sektion zeigt Leer-Hinweis ohne guardrails", () => {
+  const md = buildBriefingMarkdown(CTX);
+  assert.match(md, /## Leitplanken\nNoch keine Leitplanken-Daten\./);
+});
+
+test("buildBriefingMarkdown: Leitplanken-Sektion zeigt Rampe, harte Tage, TID, Wochen-TSS", () => {
+  const md = buildBriefingMarkdown({
+    ...CTX,
+    guardrails: {
+      rampActual4w: 4.2,
+      rampProjectedHorizon: 6.5,
+      rampHistoricalHitRate: 0.04,
+      hardDaysPerWeek: [{ week: "2026-KW31", count: 2 }],
+      shortestHardGap: 1,
+      tidVsCorridor: { phase: "Sweet Spot", shareAboveCorridor: 0.15 },
+      weeklyTssVsCeiling: [{ week: "2026-KW31", tss: 420, ceiling: 440, overCeiling: false }],
+    },
+  });
+  assert.match(md, /CTL-Rampe: Ist \(letzte 4 Wochen\) 4\.2 CTL\/Woche · Projiziert \(Planungshorizont\) 6\.5 CTL\/Woche — Schwelle \(8\) wurde in 4% der bisherigen Wochen real erreicht/);
+  assert.match(md, /Harte Tage\/Woche.*2026-KW31: 2/);
+  assert.match(md, /Kürzester Abstand zwischen zwei harten Tagen im Plan: 1 Tag\(e\)/);
+  assert.match(md, /Intensitätsverteilung.*Sweet Spot.*15% oberhalb des Korridors/);
+  assert.match(md, /Wochen-TSS vs\. Obergrenze \(CTL×8\): 2026-KW31: 420\/440/);
+});
+
 test("exportFileName: fester Name aus AthletenId + Datum", () => {
   assert.equal(exportFileName("athlete1", "2026-07-24"), "claude-briefing-athlete1-2026-07-24.md");
 });

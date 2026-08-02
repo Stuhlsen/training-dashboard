@@ -15,7 +15,7 @@
 
 import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
-import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks } from "./lib/plan2.js";
+import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBlocks } from "./lib/plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
 import {
@@ -120,6 +120,21 @@ async function main() {
     // ignoriert intervals.icu `oldest` und liefert das "1y"-Preset ab
     // `newest` — dann wäre jeder Block praktisch identisch zur Gesamtkurve.
     for (const block of getPlan2Blocks(today)) {
+      const curve = await getIntervalsPowerCurves(
+        block.from,
+        block.to,
+        ENV.INTERVALS_KEY,
+        ENV.INTERVALS_ATHLETE,
+        `r.${block.from}.${block.to}`
+      );
+      if (curve) powerCurveBlocks.push({ ...block, curve });
+    }
+
+    // F1 (docs/konzept-progressionssteuerung.md): zwei zusätzliche,
+    // rollierende 6-Wochen-Blöcke für den Bestwerte-Vergleich (5min/20min)
+    // im Trainer-Briefing, unabhängig von den Plan-Phasenblöcken oben —
+    // gleiches `curves=r.<von>.<bis>`-Erfordernis, gleiche Fetch-Logik.
+    for (const block of getRecentComparisonBlocks(today)) {
       const curve = await getIntervalsPowerCurves(
         block.from,
         block.to,

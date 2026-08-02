@@ -21,6 +21,7 @@ import { currentPmc, CTL_DAYS, ATL_DAYS } from "./pmc.js";
 import { estimateSessionTSS } from "./ftp-progress.js";
 import { computeWorkoutSummary } from "./workout-math.js";
 import { localISODate, addDaysISO } from "./format.js";
+import { isoWeekKey } from "./aggregate.js";
 import { TYPE_DEFAULT_TSS, FALLBACK_TSS, TYPE_DEFAULT_TSS_APPROX_TYPES } from "./plan-config.js";
 
 /** Auf 2 Nachkommastellen runden (nur für die Ausgabe — die Fortschreibung
@@ -188,4 +189,49 @@ export function projectLoad(cards, actuals, options = {}) {
     asOf,
     horizonEnd,
   };
+}
+
+/**
+ * 7-Tage-CTL-Delta je VOLLER ISO-Woche aus einer PMC-Fortschreibung
+ * (projectLoad()-Ergebnis) — "Punkte/Woche", dieselbe Größe wie
+ * core/loadguard.js's `ramp`, hier aber auf die PROJEKTION (Zukunft)
+ * angewendet statt auf Ist-Fahrten. Gemeinsam genutzt von
+ * core/conflicts.js (K-RAMPE, docs/konzept-progressionssteuerung.md P2)
+ * und core/guardrails.js (P1, "projizierte Rampe des Planungshorizonts") —
+ * keine Zweitimplementierung derselben Rechnung.
+ *
+ * Nur VOLLE Wochen zählen (wie schon bei der bestehenden K-RAMPE-alt-
+ * Wochenaggregation) — eine partielle Anfangs-/Endwoche würde den
+ * Rampenvergleich verfälschen. Baseline für eine Woche ist der CTL-Wert
+ * 7 Tage vor ihrem letzten Tag — `startCtl` (Stand "heute", vor dem ersten
+ * Tag der Projektion) füllt das, wenn diese 7 Tage vor den Projektions-
+ * beginn zurückreichen würden (frühestens die allererste volle Woche).
+ *
+ * @param {Array<{date: string, ctl: number}>} days projection.days
+ * @param {number} startCtl projection.startCtl
+ * @returns {Array<{firstDate: string, ramp: number}>}
+ */
+export function weeklyCtlRamp(days, startCtl) {
+  if (!days?.length) return [];
+
+  const weeks = [];
+  let cur = null;
+  for (let i = 0; i < days.length; i++) {
+    const key = isoWeekKey(days[i].date);
+    if (!cur || cur.key !== key) {
+      if (cur) weeks.push(cur);
+      cur = { key, firstDate: days[i].date, count: 0, lastIdx: i };
+    }
+    cur.count += 1;
+    cur.lastIdx = i;
+  }
+  if (cur) weeks.push(cur);
+
+  return weeks
+    .filter((w) => w.count === 7)
+    .map((w) => {
+      const baselineIdx = w.lastIdx - 7;
+      const baseline = baselineIdx >= 0 ? days[baselineIdx].ctl : startCtl;
+      return { firstDate: w.firstDate, ramp: round2(days[w.lastIdx].ctl - baseline) };
+    });
 }

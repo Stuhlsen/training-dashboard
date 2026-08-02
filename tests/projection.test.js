@@ -6,7 +6,7 @@
 
 import test from "node:test";
 import assert from "node:assert/strict";
-import { estimateTss, projectLoad } from "../assets/js/core/projection.js";
+import { estimateTss, projectLoad, weeklyCtlRamp } from "../assets/js/core/projection.js";
 
 const TODAY = "2026-07-24";
 /** Ist-Fahrt exakt auf heute mit bekanntem CTL/ATL → currentPmc liefert
@@ -197,4 +197,50 @@ test("projectLoad: Horizont reicht mindestens bis zum nächsten Event + 7 Tage",
   assert.equal(horizonEnd, "2026-09-08");
   assert.equal(days[days.length - 1].date, "2026-09-08");
   assert.ok(days.length > 40, "langer Horizont bis zum Event");
+});
+
+/* ── weeklyCtlRamp (P1/K-RAMPE, Fenster E1) ──────────────────────
+   2026-07-27 ist ein Montag (KW31) — 21 Tage ab dort ergeben genau
+   3 volle ISO-Wochen. ctl steigt linear um 1/Tag, also +7 CTL/Woche
+   bei jeder der drei Wochen (konstante Rampe, leicht nachrechenbar). */
+function buildDays(count, startDate, ctlStart) {
+  const days = [];
+  let d = new Date(startDate);
+  for (let i = 0; i < count; i++) {
+    const iso = d.toISOString().slice(0, 10);
+    days.push({ date: iso, ctl: ctlStart + i });
+    d.setDate(d.getDate() + 1);
+  }
+  return days;
+}
+
+test("weeklyCtlRamp: konstante +1/Tag-Steigung ergibt +7 CTL/Woche in jeder vollen Woche", () => {
+  const days = buildDays(21, "2026-07-27", 50); // ctl[0]=50 … ctl[20]=70
+  const weeks = weeklyCtlRamp(days, 49); // startCtl passt zur Fortsetzung rückwärts (ctl[-1]=49)
+  assert.equal(weeks.length, 3);
+  assert.deepEqual(
+    weeks.map((w) => w.ramp),
+    [7, 7, 7]
+  );
+  assert.equal(weeks[0].firstDate, "2026-07-27");
+});
+
+test("weeklyCtlRamp: partielle Rand-Wochen werden nicht mitgezählt", () => {
+  const days = buildDays(24, "2026-07-27", 50); // 3 volle Wochen + 3 Tage Rest
+  const weeks = weeklyCtlRamp(days, 49);
+  assert.equal(weeks.length, 3, "die angehängten 3 Tage bilden keine volle Woche");
+});
+
+test("weeklyCtlRamp: leere Eingabe liefert leere Liste", () => {
+  assert.deepEqual(weeklyCtlRamp([], 50), []);
+  assert.deepEqual(weeklyCtlRamp(null, 50), []);
+});
+
+test("weeklyCtlRamp: erste volle Woche beginnt nicht am Projektionsstart (partielle Startwoche davor)", () => {
+  // Projektion beginnt an einem Mittwoch (2026-07-22) — die erste ISO-Woche
+  // ist dadurch nur 5 Tage lang und fällt raus, erst die zweite ist voll.
+  const days = buildDays(12, "2026-07-22", 50); // Mi 22.07. … So 02.08.
+  const weeks = weeklyCtlRamp(days, 49);
+  assert.equal(weeks.length, 1);
+  assert.equal(weeks[0].firstDate, "2026-07-27");
 });
