@@ -111,6 +111,10 @@ function baseFields(act, weather) {
   return {
     date: act.start_date_local.split("T")[0],
     startTime: act.start_date_local || null,
+    // intervals.icu Activity-ID als String (Cache-Schlüssel in
+    // intervalBlockCache ist ebenfalls String(act.id)) — Brücke für D4a/D4b,
+    // s. docs/konzept-progressionssteuerung.md.
+    activityId: act.id != null ? String(act.id) : null,
     km: Math.round((act.distance || 0) / 100) / 10,
     min,
     kmh: Math.round((act.average_speed || 0) * 3.6 * 10) / 10,

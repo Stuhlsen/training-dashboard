@@ -42,6 +42,7 @@ export function checkObject(obj, schema, label) {
 
 export const RIDE_SCHEMA = {
   date: "string",
+  activityId: "string?",
   name: "string?",
   typ: "string?",
   typPlanned: "string?",

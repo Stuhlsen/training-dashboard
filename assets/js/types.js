@@ -13,6 +13,10 @@
  * @property {string} [date]       Roh-Datum aus der Quelle (identisch zu dateISO)
  * @property {string} [dateShort]  DD.MM für Anzeige
  * @property {string} [startTime]  start_date_local aus intervals.icu (Tiebreaker)
+ * @property {string|null} [activityId]  intervals.icu Activity-ID als String
+ *                                  (Cache-Schlüssel in intervalBlockCache ist
+ *                                  ebenfalls String(act.id)) — fehlt/null bei
+ *                                  Notion-Fahrten (Plan 1, keine intervals.icu-Quelle)
  * @property {string} [week]       Notion-Plan-Woche ("W1", …, historisch) oder
  *                                  ISO-Kalenderwoche ("2026-KW31", seit dem Umbau
  *                                  "Plan 1/2 → Kalenderwoche") — fehlt bei Vergleichsdaten
