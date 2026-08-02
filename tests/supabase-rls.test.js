@@ -518,4 +518,189 @@ if (!HAS_CREDS) {
     });
     assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
   });
+
+  // --- 6. session_formats + athlete_formats (0014, D1/D2) -----------------
+  // Verifikation/Dry-Run der neuen Migration 0014_session_formats.sql.
+  // athlete_formats hat KEIN date-artiges Feld für einen kollisionssicheren
+  // Sentinel-Wert wie FTP_SENTINEL_DATE (unique ist nur (profile_id,
+  // format_id)) — die destruktiven Insert/Delete-Tests prüfen deshalb
+  // zuerst, ob für (athlete, 'sprint-accessory') bereits eine echte Zeile
+  // existiert (z. B. weil die L7-Startbelegung inzwischen über die
+  // Familienauswahl gesetzt wurde), und überspringen sich einzeln statt
+  // eine echte Athleten-Entscheidung zu überschreiben/zu löschen.
+
+  test("session_formats: von allen Rollen lesbar (öffentlicher Katalog, E1)", async () => {
+    for (const [label, token] of [["anon", null], ["Athlet", athlete.token], ["Trainer", trainer.token]]) {
+      const read = await rest("GET", "session_formats?select=id,label,target_system,currency,evidence_grade,block_targets", { token });
+      assert.equal(read.ok, true, `${label} sollte session_formats lesen können`);
+      assert.ok(read.data.length >= 6, `${label}: erwartet mind. 6 Startformate (L2-L6), erhalten ${read.data.length}`);
+    }
+  });
+
+  test("session_formats: weder Athlet noch Trainer dürfen schreiben (nur Admin)", async () => {
+    const athleteWrite = await rest("POST", "session_formats", {
+      token: athlete.token,
+      body: { id: "rls-test-format", label: "RLS-Test", target_system: "schwelle", currency: "zone-time", evidence_grade: "coaching-konsens", axes: {} },
+    });
+    assert.equal(athleteWrite.ok, false, "Athlet konnte session_formats schreiben — sollte nur Admin dürfen");
+
+    // PATCH ohne RLS-Match liefert HTTP 200 mit 0 Zeilen, keinen harten
+    // Fehler (s. proposals-Block oben) — deshalb data.length prüfen, nicht .ok.
+    const trainerWrite = await rest("PATCH", "session_formats?id=eq.sweetspot-long", {
+      token: trainer.token,
+      body: { label: "Manipuliert" },
+    });
+    assert.equal(trainerWrite.data?.length ?? 0, 0, "Trainer konnte session_formats ändern — sollte nur Admin dürfen");
+  });
+
+  test("athlete_formats: unbekannte format_id scheitert am FK-Constraint (kollisionsfrei, keine echten Daten betroffen)", async () => {
+    const bad = await rest("POST", "athlete_formats", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, format_id: "nicht-vorhanden-rls-test" },
+    });
+    assert.equal(bad.ok, false, "format_id ohne Katalogeintrag hätte am FK-Constraint scheitern müssen");
+  });
+
+  test("athlete_formats: anon sieht nichts (kein GRANT), Athlet+Trainer je nach RLS", async (t) => {
+    const existing = await rest(
+      "GET",
+      `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`,
+      { token: athlete.token }
+    );
+    if (!existing.ok) return t.skip("athlete_formats nicht lesbar — Migration 0014 vermutlich noch nicht eingespielt");
+    if (existing.data.length) {
+      return t.skip("bereits eine echte athlete_formats-Zeile für sprint-accessory vorhanden — destruktiver Test übersprungen, um echte Athletenentscheidung nicht anzufassen");
+    }
+
+    const insert = await rest("POST", "athlete_formats", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, format_id: "sprint-accessory", active: true },
+    });
+    assert.equal(insert.ok, true, `Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, { token: athlete.token });
+      if (!del.ok) throw new Error(`athlete_formats-Testzeile (sprint-accessory) nicht gelöscht: ${JSON.stringify(del.data)}`);
+    });
+
+    const anonRead = await rest("GET", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf athlete_formats nicht lesen (kein GRANT)");
+
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerRead = await rest("GET", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, { token: trainer.token });
+    assert.equal(trainerRead.ok, true);
+    assert.equal(trainerRead.data.length, 1, "Trainer sollte die Formatzuordnung seines Athleten lesen können (is_coach_of)");
+
+    // PATCH ohne RLS-Match liefert HTTP 200 mit 0 Zeilen (s. Kommentar beim
+    // session_formats-Admin-Test oben) — data.length prüfen, nicht .ok.
+    const trainerWrite = await rest("PATCH", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, {
+      token: trainer.token,
+      body: { active: false },
+    });
+    assert.equal(
+      trainerWrite.data?.length ?? 0,
+      0,
+      "Trainer konnte athlete_formats für den Athleten ändern — es gibt bewusst keine Update-Policy dafür"
+    );
+  });
+
+  test("athlete_formats: Athlet kann keine Zeile für eine fremde profile_id anlegen", async () => {
+    const insert = await rest("POST", "athlete_formats", {
+      token: athlete.token,
+      body: { profile_id: trainer.userId, format_id: "sprint-accessory" },
+    });
+    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+  });
+
+  // --- 7. ladder_history (0015, D2) ----------------------------------------
+  // Verifikation/Dry-Run der neuen Migration 0015_ladder_history.sql —
+  // wie ftp_history: valid_from als kollisionsfreier Sentinel, hier
+  // zusätzlich mit format_id in den unique-Constraint einbezogen.
+
+  const LADDER_SENTINEL_DATE = "1901-02-01";
+
+  test("ladder_history: Athlet legt eigenen Eintrag an, anon sieht ihn nicht (kein GRANT)", async () => {
+    const insert = await rest("POST", "ladder_history", {
+      token: athlete.token,
+      body: {
+        profile_id: athlete.userId,
+        format_id: "sweetspot-long",
+        step: 1,
+        valid_from: LADDER_SENTINEL_DATE,
+        reason: "manual",
+      },
+    });
+    assert.equal(insert.ok, true, `Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    cleanupTasks.push(async () => {
+      const del = await rest(
+        "DELETE",
+        `ladder_history?profile_id=eq.${athlete.userId}&format_id=eq.sweetspot-long&valid_from=eq.${LADDER_SENTINEL_DATE}`,
+        { token: athlete.token }
+      );
+      if (!del.ok) throw new Error(`ladder_history-Testzeile (${LADDER_SENTINEL_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`);
+    });
+
+    const anonRead = await rest(
+      "GET",
+      `ladder_history?profile_id=eq.${athlete.userId}&format_id=eq.sweetspot-long&valid_from=eq.${LADDER_SENTINEL_DATE}`,
+      { token: null }
+    );
+    assert.equal(anonRead.ok, false, "anon darf ladder_history nicht lesen (kein GRANT)");
+  });
+
+  test("ladder_history: zweiter Eintrag für dasselbe Format+Datum scheitert am unique-Constraint", async () => {
+    const dup = await rest("POST", "ladder_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 2, valid_from: LADDER_SENTINEL_DATE, reason: "manual" },
+    });
+    assert.equal(dup.ok, false, "Doppelter (format_id,valid_from)-Eintrag hätte am unique-Constraint scheitern müssen");
+  });
+
+  test("ladder_history: step <= 0 scheitert am Check-Constraint", async () => {
+    const bad = await rest("POST", "ladder_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 0, valid_from: "1901-02-02", reason: "manual" },
+    });
+    assert.equal(bad.ok, false, "step=0 hätte am Check-Constraint scheitern müssen");
+  });
+
+  test("ladder_history: unbekannter reason-Wert scheitert am Check-Constraint", async () => {
+    const bad = await rest("POST", "ladder_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 1, valid_from: "1901-02-03", reason: "sonstwas" },
+    });
+    assert.equal(bad.ok, false, "reason='sonstwas' (falscher Wert) hätte scheitern müssen");
+  });
+
+  test("ladder_history: unbekannte format_id scheitert am FK-Constraint", async () => {
+    const bad = await rest("POST", "ladder_history", {
+      token: athlete.token,
+      body: { profile_id: athlete.userId, format_id: "nicht-vorhanden-rls-test", step: 1, valid_from: "1901-02-04", reason: "manual" },
+    });
+    assert.equal(bad.ok, false, "format_id ohne Katalogeintrag hätte am FK-Constraint scheitern müssen");
+  });
+
+  test("ladder_history: Trainer liest mit, kann aber nicht für den Athleten schreiben", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerRead = await rest(
+      "GET",
+      `ladder_history?profile_id=eq.${athlete.userId}&format_id=eq.sweetspot-long&valid_from=eq.${LADDER_SENTINEL_DATE}`,
+      { token: trainer.token }
+    );
+    assert.equal(trainerRead.ok, true);
+    assert.equal(trainerRead.data.length, 1, "Trainer sollte den Eintrag seines Athleten lesen können (is_coach_of)");
+
+    const trainerWrite = await rest("POST", "ladder_history", {
+      token: trainer.token,
+      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 3, valid_from: "1901-02-05", reason: "manual" },
+    });
+    assert.equal(trainerWrite.ok, false, "Trainer konnte für den Athleten schreiben — es gibt bewusst keine Insert-Policy dafür");
+  });
+
+  test("ladder_history: Athlet kann keinen Eintrag für eine fremde profile_id anlegen", async () => {
+    const insert = await rest("POST", "ladder_history", {
+      token: athlete.token,
+      body: { profile_id: trainer.userId, format_id: "sweetspot-long", step: 1, valid_from: "1901-02-06", reason: "manual" },
+    });
+    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+  });
 }
