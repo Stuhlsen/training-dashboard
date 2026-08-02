@@ -121,7 +121,7 @@ Jede wird erst grob geplant, wenn Etappe 4 abgenommen ist — Detailplanung folg
 
 | Etappe | Bereich | Modell | Besonderheit |
 |---|---|---|---|
-| 5 | Planungstab | `[OP]` | Drag&Drop: Neubewertung, ob die bestehende Pointer-Events-Logik übernommen oder React-nativ gelöst wird |
+| 5 | Planungstab | `[OP]` | Drag&Drop: Neubewertung, ob die bestehende Pointer-Events-Logik übernommen oder React-nativ gelöst wird. **Portierungsposten aus der Progressionssteuerung** (`docs/konzept-progressionssteuerung.md`, G1): Intervalltabelle Soll-Ist (Schritt 6b, in Vanilla vorgezogen gebaut — s. dort), Leiterstand-Anzeige im Export-Panel (E1/E2), Compliance-Ampel an der Ist-Fahrt. Alle drei entstehen in der Vanilla-Version VOR diesem Umbau und werden hier nur neu geschrieben, nicht neu konzipiert |
 | 6 | Trainer-Dashboard + Export/Import | `[SO]` | Proposal-Schema und Validator wandern unverändert mit |
 | 7 | Explorer + Charts | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
 | 8 | Events | `[SO]` | `write-authorization.js`-Muster ist schon in Etappe 2 mitgekommen, hier nur die UI |
