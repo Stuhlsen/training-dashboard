@@ -43,6 +43,21 @@ let currentCandidates = [];
 let selectedFormatId = null;
 const openGuard = createRequestGuard();
 
+/** Session-Guard (Nacharbeiten-Auftrag Schritt 3) — verhindert, dass der
+ *  Dialog bei JEDEM `maybeOpenBlockDialog()`-Aufruf (Athleten-Toggle,
+ *  jeder `renderAll()`) erneut aufploppt, solange keine Entscheidung
+ *  getroffen wurde. `detectBlockTransition()` liefert `shouldPrompt: true`
+ *  so lange, bis ein `reason: 'block-start'`-Eintrag in `ladder_history`
+ *  existiert — bei einem Athleten OHNE JEDE Historie (Erstlauf) gibt es
+ *  diesen Eintrag erst NACH der ersten Entscheidung, der Dialog würde ohne
+ *  diesen Guard also bei jedem Render erneut erscheinen, nicht nur einmal
+ *  pro Block (Bestätigt gegen L9: "Erscheint alle vier bis sechs Wochen").
+ *  Bewusst NUR In-Memory (kein DB-Schreiben vor einer echten Entscheidung
+ *  — ein "block-start"-Eintrag ohne echte Wahl wäre falsche Historie):
+ *  ein Seiten-Reload zeigt den Dialog erneut, bis tatsächlich entschieden
+ *  wurde — das ist gewollt, kein dauerhaft unterdrücktes Signal. */
+const promptedThisSession = new Set();
+
 /** Vorauswahl (E2: "eine vom System begründet vorausgewählte Option") —
  *  bevorzugt die besser belegte Familie (`studienlage` vor
  *  `coaching-konsens`), sonst die erste Kandidatin. Einfache, im Bericht
@@ -163,5 +178,9 @@ export async function maybeOpenBlockDialog(athleteId) {
   if (!ownsPlan) return;
   if (overlay?.style.display === "flex") return; // schon offen, nicht doppelt anstoßen
   const transition = await detectBlockTransition();
-  if (transition.shouldPrompt) openBlockDialog(transition);
+  if (!transition.shouldPrompt) return;
+  const sessionKey = `${athleteId}:${transition.blockTarget}`;
+  if (promptedThisSession.has(sessionKey)) return; // diese Session schon gezeigt (Schritt 3)
+  promptedThisSession.add(sessionKey);
+  openBlockDialog(transition);
 }
