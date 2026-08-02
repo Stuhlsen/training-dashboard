@@ -35,7 +35,13 @@ mock.module(u("data-access/supabase/plan-cards.js"), {
   },
 });
 mock.module(u("data-access/supabase/profiles.js"), {
-  exports: { findProfileIdByDisplayName: async () => ({ ok: true, id: "profile-uuid-1" }) },
+  exports: {
+    findProfileIdByDisplayName: async () => ({ ok: true, id: "profile-uuid-1" }),
+    // D4b: state/ladder.js::getPresetSuggestion() liest die Freigabe vor
+    // jedem Stufenvorschlag — hier standardmäßig aus (Default-Zustand),
+    // dieselbe Konvention wie der leere ftp-history/ladder-Mock oben.
+    getProfile: async () => ({ ok: true, profile: { id: "profile-uuid-1", ladderProgressionEnabled: false } }),
+  },
 });
 mock.module(u("data-access/intervals/push.js"), {
   exports: { pushCardWorkout: async () => ({ ok: true }) },

@@ -1,8 +1,8 @@
-/* Tests: core/ladder-progression.js (Progressionssteuerung C3, D4a-Trockenlauf) */
+/* Tests: core/ladder-progression.js (Progressionssteuerung C3/C4, D4a-Trockenlauf + D4b) */
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { evaluateLocks, nextStep } from "../assets/js/core/ladder-progression.js";
+import { evaluateLocks, nextStep, presetAction } from "../assets/js/core/ladder-progression.js";
 import { LADDER_PROGRESSION } from "../assets/js/core/plan-config.js";
 
 test("evaluateLocks: keine Sperre ohne Bedingungen", () => {
@@ -58,4 +58,42 @@ test("nextStep: C2.1 -- grün mit RPE >= rpeUpgradeBlockMin -> hold statt up (ke
 test("nextStep: eine Sperre erzwingt hold, auch bei grün oder rot ('unabhängig von der Ampel')", () => {
   assert.equal(nextStep({ rating: "green", locked: true }), "hold");
   assert.equal(nextStep({ rating: "red", locked: true }), "hold");
+});
+
+/* presetAction — C4 ("Bedeutung der Presets nach dem Umbau"), D4b */
+
+test("presetAction: isTestEvent friert die Leiter ein, unabhängig vom Preset (D5)", () => {
+  for (const preset of ["general", "event", "check", "reduce", "build"]) {
+    assert.deepEqual(presetAction(preset, { currentStep: 3, isTestEvent: true }), { step: 3, action: "hold" });
+  }
+});
+
+test("presetAction 'build' (Aufbau steigern): +1 ohne Sperre, hold gesperrt", () => {
+  assert.deepEqual(presetAction("build", { currentStep: 2 }), { step: 3, action: "up" });
+  assert.deepEqual(presetAction("build", { currentStep: 2, locked: true }), { step: 2, action: "hold" });
+});
+
+test("presetAction 'reduce' (Entlasten): -1 mit lockWeeks, auf Stufe 1 nicht unter 1", () => {
+  assert.deepEqual(presetAction("reduce", { currentStep: 3 }), { step: 2, action: "down", lockWeeks: 2 });
+  assert.deepEqual(presetAction("reduce", { currentStep: 1 }), { step: 1, action: "down", lockWeeks: 2 });
+});
+
+test("presetAction 'check' (Nur prüfen): nie eine Stufenänderung, auch bei rot", () => {
+  assert.deepEqual(presetAction("check", { currentStep: 4, rating: "red" }), { step: 4, action: "hold" });
+  assert.deepEqual(presetAction("check", { currentStep: 4, rating: "green" }), { step: 4, action: "hold" });
+});
+
+test("presetAction 'general' (Allgemein prüfen): folgt C3 aus der letzten Ampel", () => {
+  assert.deepEqual(presetAction("general", { currentStep: 2, rating: "green" }), { step: 3, action: "up" });
+  assert.deepEqual(presetAction("general", { currentStep: 2, rating: "yellow" }), { step: 2, action: "hold" });
+  assert.deepEqual(presetAction("general", { currentStep: 2, rating: "red" }), { step: 1, action: "down" });
+});
+
+test("presetAction 'event' (Auf Event hin): folgt C3 außerhalb des Tapers, eingefroren im Taper", () => {
+  assert.deepEqual(presetAction("event", { currentStep: 2, rating: "green", inTaper: false }), { step: 3, action: "up" });
+  assert.deepEqual(presetAction("event", { currentStep: 2, rating: "green", inTaper: true }), { step: 2, action: "hold" });
+});
+
+test("presetAction: unbekanntes Preset fällt auf 'general' zurück (analog buildAuftragBlock)", () => {
+  assert.deepEqual(presetAction("unbekannt", { currentStep: 2, rating: "green" }), { step: 3, action: "up" });
 });

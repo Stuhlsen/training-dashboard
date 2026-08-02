@@ -10,6 +10,9 @@ function toProfile(row) {
     coachId: row.coach_id,
     wellbeingPublic: row.wellbeing_public,
     isAdmin: row.is_admin,
+    // D4b (Migration 0016) — Freigabe der scharfen Leiter-Fortschreibung
+    // (C3/C4), athletenweit wie is_admin, kein Self-Service.
+    ladderProgressionEnabled: row.ladder_progression_enabled,
   };
 }
 
@@ -40,7 +43,7 @@ export async function getProfileByDisplayName(displayName) {
   if (!supabase) return { ok: true, profile: null };
   const { data, error } = await supabase
     .from("profiles")
-    .select("id, display_name, role, coach_id, wellbeing_public, is_admin")
+    .select("id, display_name, role, coach_id, wellbeing_public, is_admin, ladder_progression_enabled")
     .eq("display_name", displayName)
     .maybeSingle();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
@@ -52,7 +55,7 @@ export async function getProfile(userId) {
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("profiles")
-    .select("id, display_name, role, coach_id, wellbeing_public, is_admin")
+    .select("id, display_name, role, coach_id, wellbeing_public, is_admin, ladder_progression_enabled")
     .eq("id", userId)
     .single();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };

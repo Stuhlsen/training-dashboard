@@ -1,13 +1,24 @@
 /* ============================================================
-   CORE/LADDER-PROGRESSION.JS — Fortschreibungsregel (C3), NUR Trockenlauf
-   (Progressionssteuerung — docs/konzept-progressionssteuerung.md D4a)
+   CORE/LADDER-PROGRESSION.JS — Fortschreibungsregel (C3), D4a-Trockenlauf
+   + D4b-Preset-Logik (C4)
+   (Progressionssteuerung — docs/konzept-progressionssteuerung.md)
 
-   NICHT scharf geschaltet: wird ausschließlich vom lokalen Backtest
-   (scripts/backtest-ladder.js) aufgerufen, nicht aus generate-data.js,
-   state/export.js oder sonst einem Live-Pfad. Reine Entscheidungsfunktion
-   (Ampel + Sperren → "up"/"hold"/"down") — schreibt selbst nichts, der
-   Aufrufer entscheidet, was mit dem Ergebnis passiert (C3.1: im Trockenlauf
-   gar nichts, produktiv erst nach Freigabe direkt in ladder_history).
+   evaluateLocks()/nextStep(): reine Entscheidungsfunktion (Ampel + Sperren
+   → "up"/"hold"/"down"), NICHT scharf geschaltet — wird vom lokalen
+   Backtest (scripts/backtest-ladder.js) und von presetAction() (unten)
+   aufgerufen, schreibt selbst nichts.
+
+   presetAction() (D4b, Auftrag "Preset-Umstellung, scharf geschaltet nur
+   für Athlet 1"): bildet C4 ("Bedeutung der Presets nach dem Umbau") auf
+   evaluateLocks/nextStep ab. Bleibt wie die beiden anderen Funktionen eine
+   reine Entscheidungsfunktion, die selbst nichts schreibt — der
+   Freigabe-Check ("gilt das für diesen Athleten scharf oder nur
+   beobachtend?", profiles.ladder_progression_enabled, Migration 0016)
+   passiert eine Ebene höher in state/ladder.js::getPresetSuggestion(), weil
+   core/ niemals auf eine Datenquelle zugreift (Schichtenregel). Ein
+   automatischer Schreibpfad, der bei "up"/"down" selbst recordLadderStep()
+   aufruft, ist bewusst NICHT Teil dieses Fensters (s. Bericht zum
+   D4b-Auftrag) — presetAction() liefert nur den Vorschlag.
    ============================================================ */
 
 import { LADDER_PROGRESSION } from "./plan-config.js";
@@ -55,4 +66,61 @@ export function nextStep({ rating, rpe = null, locked = false }) {
   if (rating === "yellow") return "hold";
   if (rpe != null && rpe >= LADDER_PROGRESSION.rpeUpgradeBlockMin) return "hold";
   return "up";
+}
+
+/** C3-Vorschlag aus der zuletzt gematchten Einheit dieses Formats, in
+ *  `{step, action}` übersetzt — der gemeinsame Rechenweg für die Presets
+ *  "Allgemein prüfen"/"Auf Event hin" (außerhalb des Tapers), s. C4. */
+function fromRating(currentStep, { rating, rpe, locked }) {
+  const action = nextStep({ rating, rpe, locked });
+  const step = action === "up" ? currentStep + 1 : action === "down" ? Math.max(1, currentStep - 1) : currentStep;
+  return { step, action };
+}
+
+/**
+ * C4 — "Bedeutung der Presets nach dem Umbau": derselbe Stufenvorschlag wie
+ * evaluateLocks/nextStep, jetzt danach unterschieden, welches Export-Preset
+ * gewählt ist (`ui/export-panel.js::PRESETS`-Keys: general/event/check/
+ * reduce/build). D5: ein Testtermin (`isTestEvent`) friert die Leiter
+ * IMMER ein, unabhängig vom Preset — Familienwahl/Leiter sollen laut D5
+ * nicht auf einen reinen Messtermin hin umgebaut werden.
+ *
+ * `lockWeeks` bei "reduce" ist in diesem Fenster (D4b) reine Metadaten für
+ * den Aufrufer — eine tatsächlich über zwei Kalenderwochen wirksame Sperre
+ * bräuchte entweder einen neuen `ladder_history.reason`-Wert oder ein
+ * eigenes Tracking-Feld und ist bewusst nicht Teil dieses Auftrags (s.
+ * Abschlussbericht).
+ *
+ * @param {"general"|"event"|"check"|"reduce"|"build"} preset
+ * @param {{
+ *   currentStep: number,
+ *   rating?: "green"|"yellow"|"red"|null,
+ *   rpe?: number|null,
+ *   locked?: boolean,
+ *   isTestEvent?: boolean,
+ *   inTaper?: boolean,
+ * }} ctx
+ * @returns {{step: number, action: "up"|"hold"|"down", lockWeeks?: number}}
+ */
+export function presetAction(preset, { currentStep, rating = null, rpe = null, locked = false, isTestEvent = false, inTaper = false } = {}) {
+  if (isTestEvent) return { step: currentStep, action: "hold" };
+  switch (preset) {
+    case "build":
+      // Aufbau steigern: Stufe +1, sofern keine Sperre greift.
+      return locked ? { step: currentStep, action: "hold" } : { step: currentStep + 1, action: "up" };
+    case "reduce":
+      // Entlasten: Stufe −1 UND Sperre für zwei Wochen (s. Kopfkommentar).
+      return { step: Math.max(1, currentStep - 1), action: "down", lockWeeks: 2 };
+    case "check":
+      // Nur prüfen: keine Stufenänderung, nur Plausibilität (Guardrails,
+      // nicht Teil dieser Funktion).
+      return { step: currentStep, action: "hold" };
+    case "event":
+      // Auf Event hin: Leiter läuft normal bis Taper-Beginn, danach eingefroren.
+      return inTaper ? { step: currentStep, action: "hold" } : fromRating(currentStep, { rating, rpe, locked });
+    case "general":
+    default:
+      // Allgemein prüfen: Stufe aus C3 vorschlagen.
+      return fromRating(currentStep, { rating, rpe, locked });
+  }
 }
