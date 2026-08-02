@@ -148,7 +148,8 @@ test("K-LEER feuert weiterhin bei echten Lücken, auch wenn irgendwo eine Ruheta
   assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 0);
 });
 
-/* ── K-RAMPE (zwei volle ISO-Wochen: KW30 20.–26.07., KW31 27.07.–02.08.) ── */
+/* ── K-WOCHENSPRUNG (bis Fenster E1: K-RAMPE) — zwei volle ISO-Wochen:
+   KW30 20.–26.07., KW31 27.07.–02.08. ── */
 
 // KW30 = 20.–26.07., KW31 = 27.07.–02.08. — beide volle 7-Tage-Wochen.
 // Datumsliste explizit (kein toISOString → kein UTC-Tagesversatz).
@@ -162,20 +163,20 @@ function twoWeeks(week1Tss, week2Tss) {
   );
 }
 
-test("K-RAMPE: Wochenlast-Sprung > +20 % → Hinweis", () => {
-  const c = byRule(detectConflicts(twoWeeks(100, 130), [], []), "K-RAMPE");
+test("K-WOCHENSPRUNG: Wochenlast-Sprung > +20 % → Hinweis", () => {
+  const c = byRule(detectConflicts(twoWeeks(100, 130), [], []), "K-WOCHENSPRUNG");
   assert.equal(c.length, 1);
   assert.equal(c[0].severity, "info");
   assert.match(c[0].message, /\+30 %/);
 });
 
-test("K-RAMPE feuert nicht bei +10 % Wochenlast", () => {
-  assert.equal(byRule(detectConflicts(twoWeeks(100, 110), [], []), "K-RAMPE").length, 0);
+test("K-WOCHENSPRUNG feuert nicht bei +10 % Wochenlast", () => {
+  assert.equal(byRule(detectConflicts(twoWeeks(100, 110), [], []), "K-WOCHENSPRUNG").length, 0);
 });
 
-/* ── K-RAMPE Ist-Seed (letzte gefahrene Woche als Vorwert für die erste
-   volle Planwoche — ohne Seed hätte die Schleife oben für i=0 nie einen
-   Vorwert, s. docs/offene-punkte.md) ── */
+/* ── K-WOCHENSPRUNG Ist-Seed (letzte gefahrene Woche als Vorwert für die
+   erste volle Planwoche — ohne Seed hätte die Schleife oben für i=0 nie
+   einen Vorwert, s. docs/offene-punkte.md) ── */
 
 const ONE_WEEK_DATES = [
   "2026-07-20", "2026-07-21", "2026-07-22", "2026-07-23", "2026-07-24", "2026-07-25", "2026-07-26",
@@ -184,25 +185,155 @@ function oneWeek(weekTss) {
   return mkProj(ONE_WEEK_DATES.map((date, i) => ({ date, tss: i === 0 ? weekTss : 0 })));
 }
 
-test("K-RAMPE: Ist-Seed vergleicht die erste volle Planwoche gegen die letzte gefahrene Woche", () => {
+test("K-WOCHENSPRUNG: Ist-Seed vergleicht die erste volle Planwoche gegen die letzte gefahrene Woche", () => {
   // Letzte gefahrene Woche (KW29, 13.–19.07.) hatte 100 TSS, die erste volle
   // Planwoche (KW30, ab heute 2026-07-20) plant 140 → +40 %.
   const actuals = [{ dateISO: "2026-07-15", tss: 40 }, { dateISO: "2026-07-17", tss: 60 }];
-  const c = byRule(detectConflicts(oneWeek(140), [], [], actuals), "K-RAMPE");
+  const c = byRule(detectConflicts(oneWeek(140), [], [], actuals), "K-WOCHENSPRUNG");
   assert.equal(c.length, 1);
   assert.match(c[0].message, /\+40 %/);
   assert.deepEqual(c[0].dates, ["2026-07-20"]);
 });
 
-test("K-RAMPE: ohne Ist-Daten bleibt die erste Planwoche weiterhin unbewertet", () => {
-  assert.equal(byRule(detectConflicts(oneWeek(140), [], [], []), "K-RAMPE").length, 0);
+test("K-WOCHENSPRUNG: ohne Ist-Daten bleibt die erste Planwoche weiterhin unbewertet", () => {
+  assert.equal(byRule(detectConflicts(oneWeek(140), [], [], []), "K-WOCHENSPRUNG").length, 0);
 });
 
-test("K-RAMPE: Ist-Seed ignoriert Fahrten ab heute (nur Vergangenheit zählt)", () => {
+test("K-WOCHENSPRUNG: Ist-Seed ignoriert Fahrten ab heute (nur Vergangenheit zählt)", () => {
   // Eine "Ist"-Fahrt exakt am Planstart (heute) darf die Woche selbst nicht
   // mit sich vergleichen — der Seed muss strikt davor liegen.
   const actuals = [{ dateISO: "2026-07-20", tss: 140 }];
-  assert.equal(byRule(detectConflicts(oneWeek(140), [], [], actuals), "K-RAMPE").length, 0);
+  assert.equal(byRule(detectConflicts(oneWeek(140), [], [], actuals), "K-WOCHENSPRUNG").length, 0);
+});
+
+/* ── K-RAMPE (neu, P2): projizierte CTL-Rampe — Info ab 6, Warnung ab 8 ──
+   Ein-Wochen-Projektionen (ONE_WEEK_DATES, KW30) mit fixem ctl am letzten
+   Tag; die Baseline ist `startCtl` (Woche beginnt am Projektionsstart, kein
+   Tag 7 davor verfügbar). */
+function mkProjCtl(lastDayCtl, startCtl) {
+  return {
+    days: ONE_WEEK_DATES.map((date, i) => ({
+      tsb: 0,
+      tss: 0,
+      cardIds: [],
+      ctl: i === ONE_WEEK_DATES.length - 1 ? lastDayCtl : 0,
+    })),
+    startCtl,
+  };
+}
+
+test("K-RAMPE: projizierte Rampe > 8/Woche → Warnung", () => {
+  const c = byRule(detectConflicts(mkProjCtl(59, 50), [], []), "K-RAMPE"); // +9
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "warning");
+  assert.match(c[0].message, /\+9\/Woche/);
+});
+
+test("K-RAMPE: projizierte Rampe zwischen 6 und 8 → Hinweis", () => {
+  const c = byRule(detectConflicts(mkProjCtl(57, 50), [], []), "K-RAMPE"); // +7
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "info");
+});
+
+test("K-RAMPE feuert nicht bei Rampe ≤ 6/Woche", () => {
+  assert.equal(byRule(detectConflicts(mkProjCtl(55, 50), [], []), "K-RAMPE").length, 0); // +5
+});
+
+test("K-RAMPE feuert nicht ohne startCtl (ältere Fixtures ohne Baseline)", () => {
+  const proj = { days: mkProjCtl(59, 50).days }; // kein startCtl-Feld
+  assert.equal(byRule(detectConflicts(proj, [], []), "K-RAMPE").length, 0);
+});
+
+/* ── K-HARTFOLGE (neu, P2): zwei harte Tage ohne rest-/recovery- ────────
+   Karte dazwischen (D6.2) ── */
+
+const z1recovery = (id, date) => ({ id, date, typ: "Z1 Recovery" });
+
+test("K-HARTFOLGE: harter Tag, dazwischen ein NICHT-Recovery-Tag, harter Tag → Warnung", () => {
+  const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }, { date: "2026-07-26" }]);
+  const cards = [hard("a", "2026-07-24"), easy("b", "2026-07-25"), hard("c", "2026-07-26")];
+  const c = byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE");
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "warning");
+  assert.deepEqual(c[0].dates, ["2026-07-24", "2026-07-26"]);
+  assert.deepEqual(c[0].cardIds.sort(), ["a", "c"]);
+});
+
+test("K-HARTFOLGE feuert NICHT, wenn ein Z1-Recovery-Tag dazwischenliegt", () => {
+  const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }, { date: "2026-07-26" }]);
+  const cards = [hard("a", "2026-07-24"), z1recovery("b", "2026-07-25"), hard("c", "2026-07-26")];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE").length, 0);
+});
+
+test("K-HARTFOLGE feuert NICHT, wenn eine Ruhetag-Karte dazwischenliegt", () => {
+  const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }, { date: "2026-07-26" }]);
+  const cards = [hard("a", "2026-07-24"), rest("b", "2026-07-25"), hard("c", "2026-07-26")];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE").length, 0);
+});
+
+test("K-HARTFOLGE feuert NICHT bei unmittelbar aufeinanderfolgenden harten Tagen (Lücke 0, deckt K-HART ab)", () => {
+  const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }]);
+  const cards = [hard("a", "2026-07-24"), hard("b", "2026-07-25")];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE").length, 0);
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-HART").length, 1, "K-HART deckt den Lücke-0-Fall ab");
+});
+
+/* ── K-WOCHENTSS (neu, P2): Wochen-TSS > CTL(Wochenstart) × 8 ───────── */
+
+function mkProjWeekTss(dailyTss, startCtl) {
+  return {
+    days: ONE_WEEK_DATES.map((date) => ({ tsb: 0, cardIds: [], tss: dailyTss, ctl: startCtl })),
+    startCtl,
+  };
+}
+
+test("K-WOCHENTSS: Wochen-TSS über CTL × 8 → Warnung", () => {
+  const c = byRule(detectConflicts(mkProjWeekTss(70, 50), [], []), "K-WOCHENTSS"); // 490 > 400
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "warning");
+  assert.match(c[0].message, /490 über Obergrenze 400/);
+});
+
+test("K-WOCHENTSS feuert nicht innerhalb der Obergrenze", () => {
+  assert.equal(byRule(detectConflicts(mkProjWeekTss(50, 50), [], []), "K-WOCHENTSS").length, 0); // 350 < 400
+});
+
+/* ── K-TID (neu, P2): Anteil hoher Intensität außerhalb des Block- ──────
+   korridors über die letzten 4 Ist-Wochen ── */
+
+const sweetSpotCard = (id, date) => ({ id, date, typ: "Sweet Spot", phase: "Sweet Spot" });
+
+test("K-TID: über 20% der letzten 4 Ist-Wochen oberhalb des Korridors → Hinweis", () => {
+  const proj = mkProj([{ date: "2026-07-20" }]);
+  const cards = [sweetSpotCard("a", "2026-07-20")];
+  const actuals = [
+    { dateISO: "2026-06-25", if: 0.85 },
+    { dateISO: "2026-07-01", if: 0.99 }, // über ifMax 0.97
+    { dateISO: "2026-07-10", if: 0.9 },
+    { dateISO: "2026-07-15", if: 1.0 }, // über ifMax 0.97
+  ];
+  const c = byRule(detectConflicts(proj, cards, [], actuals), "K-TID");
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "info");
+  assert.match(c[0].message, /50 %/);
+  assert.match(c[0].message, /Sweet Spot/);
+});
+
+test("K-TID feuert nicht, wenn alle Fahrten im Korridor liegen", () => {
+  const proj = mkProj([{ date: "2026-07-20" }]);
+  const cards = [sweetSpotCard("a", "2026-07-20")];
+  const actuals = [
+    { dateISO: "2026-06-25", if: 0.85 },
+    { dateISO: "2026-07-10", if: 0.9 },
+  ];
+  assert.equal(byRule(detectConflicts(proj, cards, [], actuals), "K-TID").length, 0);
+});
+
+test("K-TID feuert nicht ohne Korridor für die aktuelle Blockphase (z.B. Taper)", () => {
+  const proj = mkProj([{ date: "2026-07-20" }]);
+  const cards = [{ id: "a", date: "2026-07-20", typ: "Ausrollen", phase: "Taper" }];
+  const actuals = [{ dateISO: "2026-07-01", if: 1.2 }];
+  assert.equal(byRule(detectConflicts(proj, cards, [], actuals), "K-TID").length, 0);
 });
 
 /* ── K-EVENT ─────────────────────────────────────────────────── */

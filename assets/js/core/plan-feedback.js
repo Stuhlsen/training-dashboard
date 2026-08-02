@@ -147,7 +147,7 @@ export function restDayRiddenSignal(card, wasRidden) {
 /** Kartentypen, die für eine geplante Erholungswoche zählen (D6, docs/
  *  konzept-progressionssteuerung.md) — `Ruhetag` (bewusst frei) UND
  *  `Z1 Recovery` (Z1-Ausfahrt, D6s "recovery"-Rolle). */
-const RECOVERY_CARD_TYPES = new Set(["Ruhetag", "Z1 Recovery"]);
+export const RECOVERY_CARD_TYPES = new Set(["Ruhetag", "Z1 Recovery"]);
 
 /** Ab welchem Anteil Ruhetag-/Z1-Recovery-Karten an den Kartentagen einer
  *  ISO-Woche die Woche als geplante Erholungswoche gilt. */

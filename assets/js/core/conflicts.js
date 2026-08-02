@@ -11,9 +11,12 @@
    Numbers hier — nach Plan 2 gegen die Ist-Daten reviewen.
    ============================================================ */
 
-import { fmtDate } from "./format.js";
+import { fmtDate, addDaysISO } from "./format.js";
 import { isoWeekKey } from "./aggregate.js";
 import { CONFLICT_THRESHOLDS, INTENSITY_CLASS, intensityClass } from "./plan-config.js";
+import { weeklyCtlRamp } from "./projection.js";
+import { RECOVERY_CARD_TYPES } from "./plan-feedback.js";
+import { currentBlockTarget, PHASE_SIGNATURES } from "./periodization.js";
 
 /** Ein Konfliktbefund.
  *  @typedef {Object} Conflict
@@ -38,12 +41,17 @@ function dateRange(dates) {
 
 /**
  * Erzeugt die Konfliktliste zu einer Projektion.
- * @param {{days: Array<{date: string, tsb: number, tss: number, cardIds: string[]}>}} projection
- * @param {Array<{id: string, date: string, typ?: string|null, cancelled?: boolean}>} cards
+ * @param {{days: Array<{date: string, tsb: number, tss: number, cardIds: string[]}>, startCtl?: number}} projection
+ *   `startCtl` wird für K-RAMPE (neu)/K-WOCHENTSS gebraucht (Baseline der
+ *   jeweils ersten vollen Woche) — fehlt es (z.B. in älteren Test-Fixtures,
+ *   die nur `days` konstruieren), feuern diese beiden Regeln für die
+ *   betroffene(n) erste(n) Woche(n) einfach nicht, statt zu crashen.
+ * @param {Array<{id: string, date: string, typ?: string|null, phase?: string|null, cancelled?: boolean}>} cards
  * @param {Array<{eventDate: string, title?: string, type?: string, priority?: string}>} events
- * @param {import("../types.js").Ride[]} [actuals] Ist-Fahrten — nur für den
- *   K-RAMPE-Ist-Seed genutzt (letzte tatsächlich gefahrene Woche als
- *   Vergleichswert für die erste volle Planwoche, s. docs/offene-punkte.md).
+ * @param {import("../types.js").Ride[]} [actuals] Ist-Fahrten — für den
+ *   K-WOCHENSPRUNG-Ist-Seed (letzte tatsächlich gefahrene Woche als
+ *   Vergleichswert für die erste volle Planwoche, s. docs/offene-punkte.md)
+ *   UND für K-TID (Intensitätsverteilung der letzten 4 Wochen).
  * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>}} [options]
  * @returns {Conflict[]}
  */
@@ -143,7 +151,10 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
     }
   }
 
-  // ── K-RAMPE: Wochen-TSS-Sprung > +20 % (nur volle Wochen) ───────
+  // ── K-WOCHENSPRUNG: Wochen-TSS-Sprung > +20 % (nur volle Wochen) ─
+  // Bis Fenster E1 hieß diese Regel "K-RAMPE" — umbenannt, weil dieser
+  // Bezeichner jetzt die CTL-Rampe unten meint (P2, docs/konzept-
+  // progressionssteuerung.md). Logik/Schwelle unverändert.
   // Ist-Seed: die Projektion selbst beginnt erst HEUTE und kennt keine
   // Vergangenheit — ohne den Seed hätte die erste volle Planwoche nie einen
   // Vorwert und würde nie geprüft (Schleife startet bei i=1).
@@ -155,9 +166,9 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
     const cur = weeks[i];
     if (prev.tss <= 0) continue;
     const jump = (cur.tss - prev.tss) / prev.tss;
-    if (jump > cfg.weekRampPct / 100) {
+    if (jump > cfg.weekJumpPct / 100) {
       conflicts.push({
-        rule: "K-RAMPE",
+        rule: "K-WOCHENSPRUNG",
         severity: "info",
         dates: [cur.firstDate],
         cardIds: cur.cardIds,
@@ -165,6 +176,112 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
           cur.firstDate
         )})`,
       });
+    }
+  }
+
+  // ── K-RAMPE (P2, neu): projizierte CTL-Rampe über der Schwelle ──
+  // core/projection.js::weeklyCtlRamp — dieselbe Rechnung wie P1s
+  // "projizierte Rampe des Planungshorizonts" (core/guardrails.js), hier
+  // nur als Schwellenprüfung statt erzählender Übersicht.
+  for (const w of weeklyCtlRamp(days, projection?.startCtl)) {
+    if (!Number.isFinite(w.ramp)) continue;
+    if (w.ramp > cfg.ctlRampWarn) {
+      conflicts.push({
+        rule: "K-RAMPE",
+        severity: "warning",
+        dates: [w.firstDate],
+        cardIds: [],
+        message: `Projizierte CTL-Rampe +${w.ramp}/Woche über der Warnschwelle (${cfg.ctlRampWarn}, ab ${fmtDate(w.firstDate)})`,
+      });
+    } else if (w.ramp > cfg.ctlRampInfo) {
+      conflicts.push({
+        rule: "K-RAMPE",
+        severity: "info",
+        dates: [w.firstDate],
+        cardIds: [],
+        message: `Projizierte CTL-Rampe +${w.ramp}/Woche über dem Hinweiswert (${cfg.ctlRampInfo}, ab ${fmtDate(w.firstDate)})`,
+      });
+    }
+  }
+
+  // ── K-HARTFOLGE (P2, neu): zwei harte Tage ohne rest-/recovery- ─
+  //    Karte dazwischen (D6.2). Nur die NÄCHSTE vorangehende harte Karte
+  //    zählt (kein O(n²) über alle Paare) — echte Rückenlücke = 0
+  //    (unmittelbar aufeinanderfolgende harte Tage) deckt bereits K-HART
+  //    ab, hier also bewusst nur gap ≥ 1.
+  for (let i = 0; i < days.length; i++) {
+    if (classOf(days[i].date) !== "hart") continue;
+    for (let j = i - 1; j >= 0; j--) {
+      if (classOf(days[j].date) !== "hart") continue;
+      const gap = i - j - 1;
+      if (gap >= 1) {
+        let hasRecovery = false;
+        for (let k = j + 1; k < i; k++) {
+          const dc = cardsByDate.get(days[k].date) || [];
+          if (dc.some((c) => RECOVERY_CARD_TYPES.has(c.typ))) {
+            hasRecovery = true;
+            break;
+          }
+        }
+        if (!hasRecovery) {
+          conflicts.push({
+            rule: "K-HARTFOLGE",
+            severity: "warning",
+            dates: [days[j].date, days[i].date],
+            cardIds: [...hardCardIds(days[j].date), ...hardCardIds(days[i].date)],
+            message: `Harte Tage am ${fmtDate(days[j].date)} und ${fmtDate(days[i].date)} ohne Ruhetag-/Recovery-Karte dazwischen`,
+          });
+        }
+      }
+      break; // nur die nächste vorangehende harte Karte prüfen
+    }
+  }
+
+  // ── K-WOCHENTSS (P2, neu): Wochen-TSS > CTL(Wochenstart) × Faktor ─
+  for (const w of weeks.filter((w) => w !== seed)) {
+    const idx = days.findIndex((d) => d.date === w.firstDate);
+    const ctlAtStart = idx > 0 ? days[idx - 1].ctl : projection?.startCtl;
+    if (!Number.isFinite(ctlAtStart)) continue;
+    const ceiling = ctlAtStart * cfg.weekTssCeilingFactor;
+    if (w.tss > ceiling) {
+      conflicts.push({
+        rule: "K-WOCHENTSS",
+        severity: "warning",
+        dates: [w.firstDate],
+        cardIds: w.cardIds,
+        message: `Wochen-TSS ${Math.round(w.tss)} über Obergrenze ${Math.round(ceiling)} (CTL ${Math.round(
+          ctlAtStart
+        )} × ${cfg.weekTssCeilingFactor}, ab ${fmtDate(w.firstDate)})`,
+      });
+    }
+  }
+
+  // ── K-TID (P2, neu): Anteil hoher Intensität außerhalb des Block- ─
+  //    korridors über die letzten 4 Ist-Wochen (`r.if`, bereits vorhanden).
+  //    Kein Korridor für die aktuelle Blockphase (Taper/Übergang/kein
+  //    Blockziel) → keine Regel, keine Aussage.
+  const tidPhase = currentBlockTarget(cards, today);
+  const tidCorridor = tidPhase ? PHASE_SIGNATURES[tidPhase] : null;
+  if (tidCorridor) {
+    const tidFrom = addDaysISO(today, -28);
+    const tidWindow = (actuals || []).filter((r) => {
+      const d = r.dateISO || r.date;
+      return d && d >= tidFrom && d < today && r.if != null;
+    });
+    if (tidWindow.length) {
+      const above = tidWindow.filter((r) => r.if > tidCorridor.ifMax).length;
+      const share = above / tidWindow.length;
+      if (share > cfg.highIntensityShareInfo) {
+        conflicts.push({
+          rule: "K-TID",
+          severity: "info",
+          dates: [today],
+          cardIds: [],
+          message: `Intensitätsverteilung (letzte 4 Wochen): ${Math.round(
+            share * 100
+          )} % oberhalb des Zielkorridors „${tidPhase}" (IF > ${tidCorridor.ifMax})`,
+        });
+      }
     }
   }
 

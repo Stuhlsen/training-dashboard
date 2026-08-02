@@ -23,7 +23,23 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
   tsbSustainedDays: 3, //          … an ≥ 3 Folgetagen unterschritten
   hardStreakInfo: 2, // K-HART   Hinweis ab 2 harten Tagen in Folge
   hardStreakWarn: 3, //          Warnung ab 3 harten Tagen in Folge
-  weekRampPct: 20, // K-RAMPE  Wochen-TSS-Sprung > +20 % → Hinweis
+  // K-WOCHENSPRUNG (bis Fenster E1: K-RAMPE) — Wochen-TSS-Sprung > +20 % →
+  // Hinweis. Umbenannt (docs/konzept-progressionssteuerung.md P2), weil
+  // "K-RAMPE" seither die CTL-Rampe unten meint — andere Größe, anderer Name.
+  weekJumpPct: 20,
+  // K-RAMPE (neu, P2) — projizierte CTL-Rampe. ctlRampWarn dupliziert
+  // bewusst LADDER_PROGRESSION.ctlRampLockThreshold (nicht referenziert:
+  // CONFLICT_THRESHOLDS steht vor LADDER_PROGRESSION im Modul, ein Vorgriff
+  // wäre eine TDZ-Falle) — gleiche Zahl, gleiche Begründung (C3-Sperrschwelle).
+  ctlRampInfo: 6,
+  ctlRampWarn: 8,
+  // K-WOCHENTSS (neu, P2) — Wochen-TSS über CTL(Wochenstart) × Faktor → Warnung.
+  weekTssCeilingFactor: 8,
+  // K-TID (neu, P2) — Anteil Ist-Fahrten über dem Blockkorridor-ifMax
+  // (core/periodization.js::PHASE_SIGNATURES) in den letzten 4 Wochen →
+  // Hinweis. Kein Wert im Konzept vorgegeben — selbst gewählt (20 %),
+  // wie K1 nach mehr echter Plan-2-Historie zu kalibrieren.
+  highIntensityShareInfo: 0.2,
   eventWindowMain: [5, 20], // K-EVENT  Hauptziel-Event Ziel-TSB-Fenster (außerhalb → Warnung)
   eventWindowSecondary: [-5, 15], //          Nebenziel-Event Ziel-TSB-Fenster (außerhalb → Hinweis)
   restBlockDays: 3, // K-LEER   harte Einheit direkt nach ≥ 3 Ruhetagen → Hinweis
@@ -273,7 +289,7 @@ export const TYPE_EXPECTED_BAND = Object.freeze({
  *
  * D6.2 (docs/konzept-progressionssteuerung.md): `Ruhetag` zählt bewusst
  * weder als "hart" noch als "leicht" (locker), sondern als eigene Kategorie
- * "ruhe" — für die künftige K-HARTFOLGE-Regel (Fenster E, noch nicht gebaut)
+ * "ruhe" — für die K-HARTFOLGE-Regel (core/conflicts.js, Fenster E1d)
  * erfüllen sowohl `Ruhetag` als auch `Z1 Recovery` die Trennbedingung
  * zwischen zwei harten Tagen, sind hier aber bewusst unterschiedlich
  * klassifiziert ("ruhe" vs. "locker"), weil nur `Ruhetag` ein echter
