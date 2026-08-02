@@ -7,6 +7,7 @@ import test, { mock } from "node:test";
 import assert from "node:assert/strict";
 import { pathToFileURL, fileURLToPath } from "node:url";
 import path from "node:path";
+import { localISODate, addDaysISO } from "../assets/js/core/format.js";
 
 const JS = path.resolve(fileURLToPath(new URL("../assets/js", import.meta.url)));
 const u = (p) => pathToFileURL(path.join(JS, p)).href;
@@ -16,6 +17,10 @@ const PLAN_CARDS_SEED = [
   { id: "card-future", date: "2099-01-01", sortOrder: 0, name: "Zukunft", typ: "Sweet Spot", tssPlanned: 65, updatedAt: "2026-07-20T00:00:00Z" },
 ];
 const EVENTS_SEED = [{ id: "ev-1", title: "GFNY Bremen", eventDate: "2099-02-01", type: "race", priority: "A" }];
+// Auftrag "Taper-Erkennung für 'Auf Event hin'": zusätzliche, dynamisch
+// datierte Events für die neuen Taper-Tests, ohne EVENTS_SEED selbst
+// anzufassen (die anderen Tests verlassen sich auf genau dessen Inhalt).
+let extraEventsSeed = [];
 const WELLBEING_SEED = [{ id: "w-1", date: "2026-07-23", energy: 4, muscleFeel: 3, mood: 4, note: "Kopf dicht" }];
 // 6A (docs/konzept-progressionssteuerung.md): Mischung aus entschiedenen
 // (accepted/rejected) und nicht-entschiedenen (open) Vorschlägen — nur die
@@ -51,7 +56,7 @@ mock.module(u("data-access/intervals/push.js"), {
 });
 mock.module(u("data-access/supabase/events.js"), {
   exports: {
-    listEvents: async () => ({ ok: true, events: EVENTS_SEED.map((e) => ({ ...e })) }),
+    listEvents: async () => ({ ok: true, events: [...EVENTS_SEED, ...extraEventsSeed].map((e) => ({ ...e })) }),
     createEvent: async () => ({ ok: true, event: {} }),
     updateEvent: async () => ({ ok: true, event: {} }),
     removeEvent: async () => ({ ok: true }),
@@ -265,4 +270,96 @@ test("buildClaudeExport: ohne Freigabe (Default, aktueller Ist-Zustand BEIDER At
 
   sessionFormatsSeed = formatsBefore;
   athleteFormatsSeed = athleteFormatsBefore;
+});
+
+/* Auftrag "Taper-Erkennung für 'Auf Event hin'" (Schritt 4): eigener,
+   nicht-realer formatId ("taper-test-format"), damit lastComplianceForFormat
+   garantiert null liefert (keine reale Fahrt trägt je dieses matchedFormatId)
+   — die Ampel bleibt damit unabhängig vom tatsächlichen Inhalt von
+   data/rides.json deterministisch "up" außerhalb des Tapers (core/ladder-
+   progression.js::nextStep: rating=null fällt durch auf "up"). */
+
+test("buildClaudeExport: preset 'event' + priority-Event INNERHALB des Taper-Fensters -> 'eingefroren (Taper)' statt Stufenänderung", async () => {
+  const profileBefore = profileSeed;
+  const formatsBefore = sessionFormatsSeed;
+  const athleteFormatsBefore = athleteFormatsSeed;
+  const historyBefore = ladderHistorySeed;
+  const eventsBefore = extraEventsSeed;
+
+  profileSeed = { id: "profile-uuid-1", ladderProgressionEnabled: true };
+  sessionFormatsSeed = [{ id: "taper-test-format", label: "Taper-Testformat", currency: "zone-time", evidenceGrade: "coaching-konsens", axes: { explicitSteps: [{ id: "S1" }, { id: "S2" }] } }];
+  athleteFormatsSeed = [{ id: "af-taper", formatId: "taper-test-format", active: true }];
+  ladderHistorySeed = [{ id: "lh-taper", formatId: "taper-test-format", step: 2, validFrom: "2020-01-01", reason: "manual", sourceRideId: null, lockedUntil: null }];
+  const today = localISODate();
+  extraEventsSeed = [{ id: "ev-taper-near", title: "Zieletappe", eventDate: addDaysISO(today, 3), type: "race", priority: "main" }];
+
+  await loadPlanCards("athlete1");
+  await loadEvents("athlete1");
+  const result = await buildClaudeExport("athlete1", { preset: "event", eventId: "ev-taper-near" });
+  assert.match(result.text, /- Taper-Testformat: Stufe 2 → eingefroren \(Taper\)/);
+
+  profileSeed = profileBefore;
+  sessionFormatsSeed = formatsBefore;
+  athleteFormatsSeed = athleteFormatsBefore;
+  ladderHistorySeed = historyBefore;
+  extraEventsSeed = eventsBefore;
+  await loadEvents("athlete1");
+});
+
+test("buildClaudeExport: preset 'event' + priority-Event AUSSERHALB des Taper-Fensters -> normaler Ampel-Vorschlag, kein 'eingefroren'", async () => {
+  const profileBefore = profileSeed;
+  const formatsBefore = sessionFormatsSeed;
+  const athleteFormatsBefore = athleteFormatsSeed;
+  const historyBefore = ladderHistorySeed;
+  const eventsBefore = extraEventsSeed;
+
+  profileSeed = { id: "profile-uuid-1", ladderProgressionEnabled: true };
+  sessionFormatsSeed = [{ id: "taper-test-format", label: "Taper-Testformat", currency: "zone-time", evidenceGrade: "coaching-konsens", axes: { explicitSteps: [{ id: "S1" }, { id: "S2" }, { id: "S3" }] } }];
+  athleteFormatsSeed = [{ id: "af-taper", formatId: "taper-test-format", active: true }];
+  ladderHistorySeed = [{ id: "lh-taper", formatId: "taper-test-format", step: 2, validFrom: "2020-01-01", reason: "manual", sourceRideId: null, lockedUntil: null }];
+  const today = localISODate();
+  extraEventsSeed = [{ id: "ev-taper-far", title: "Zieletappe", eventDate: addDaysISO(today, 20), type: "race", priority: "main" }];
+
+  await loadPlanCards("athlete1");
+  await loadEvents("athlete1");
+  const result = await buildClaudeExport("athlete1", { preset: "event", eventId: "ev-taper-far" });
+  assert.doesNotMatch(result.text, /eingefroren \(Taper\)/);
+  assert.match(result.text, /- Taper-Testformat: Stufe 3 → hochstufen/);
+
+  profileSeed = profileBefore;
+  sessionFormatsSeed = formatsBefore;
+  athleteFormatsSeed = athleteFormatsBefore;
+  ladderHistorySeed = historyBefore;
+  extraEventsSeed = eventsBefore;
+  await loadEvents("athlete1");
+});
+
+test("buildClaudeExport: bestehender is_test-Pfad bleibt unverändert (Regression) — preset 'event' + isTest friert unabhängig von der Taper-Distanz ein", async () => {
+  const profileBefore = profileSeed;
+  const formatsBefore = sessionFormatsSeed;
+  const athleteFormatsBefore = athleteFormatsSeed;
+  const historyBefore = ladderHistorySeed;
+  const eventsBefore = extraEventsSeed;
+
+  profileSeed = { id: "profile-uuid-1", ladderProgressionEnabled: true };
+  sessionFormatsSeed = [{ id: "taper-test-format", label: "Taper-Testformat", currency: "zone-time", evidenceGrade: "coaching-konsens", axes: { explicitSteps: [{ id: "S1" }, { id: "S2" }] } }];
+  athleteFormatsSeed = [{ id: "af-taper", formatId: "taper-test-format", active: true }];
+  ladderHistorySeed = [{ id: "lh-taper", formatId: "taper-test-format", step: 2, validFrom: "2020-01-01", reason: "manual", sourceRideId: null, lockedUntil: null }];
+  const today = localISODate();
+  // weit außerhalb jedes Taper-Fensters, aber isTest:true -> presetAction()s
+  // isTestEvent-Zweig friert trotzdem ein (greift VOR inTaper, unverändert).
+  extraEventsSeed = [{ id: "ev-taper-test", title: "Formtest", eventDate: addDaysISO(today, 60), type: "race", priority: "main", isTest: true }];
+
+  await loadPlanCards("athlete1");
+  await loadEvents("athlete1");
+  const result = await buildClaudeExport("athlete1", { preset: "event", eventId: "ev-taper-test" });
+  assert.match(result.text, /- Taper-Testformat: Stufe 2 → halten/);
+  assert.doesNotMatch(result.text, /eingefroren \(Taper\)/, "isTest friert über 'halten', nicht über den Taper-Text ein — eigener, unveränderter Pfad");
+
+  profileSeed = profileBefore;
+  sessionFormatsSeed = formatsBefore;
+  athleteFormatsSeed = athleteFormatsBefore;
+  ladderHistorySeed = historyBefore;
+  extraEventsSeed = eventsBefore;
+  await loadEvents("athlete1");
 });
