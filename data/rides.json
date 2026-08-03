@@ -16014,7 +16014,7 @@
       "humidity": 49,
       "windSpeed": 8.7,
       "windDir": 95,
-      "precipProb": 11,
+      "precipProb": 13,
       "weatherCode": 3,
       "uvMax": 6.4
     },
@@ -16024,7 +16024,7 @@
       "humidity": 56,
       "windSpeed": 8.8,
       "windDir": 265,
-      "precipProb": 8,
+      "precipProb": 7,
       "weatherCode": 3,
       "uvMax": 6.4
     },
@@ -16044,7 +16044,7 @@
       "humidity": 56,
       "windSpeed": 9.4,
       "windDir": 293,
-      "precipProb": 7,
+      "precipProb": 2,
       "weatherCode": 2,
       "uvMax": 6.3
     },
@@ -16054,7 +16054,7 @@
       "humidity": 46,
       "windSpeed": 5.6,
       "windDir": 223,
-      "precipProb": 8,
+      "precipProb": 7,
       "weatherCode": 3,
       "uvMax": 6.1
     },
@@ -16163,7 +16163,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-03T08:14:04.047Z",
+  "updated": "2026-08-03T09:24:19.983Z",
   "source": "notion+intervals",
   "count": 81
 }
