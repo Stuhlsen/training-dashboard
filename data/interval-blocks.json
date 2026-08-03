@@ -9960,5 +9960,19 @@
     "thresholdWatts": 174,
     "gapToleranceSec": 90,
     "fetchedAt": "2026-08-02T21:21:20.010Z"
+  },
+  "i172030064": {
+    "longestBlock": null,
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 361,
+        "average_watts": 113,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-03T14:17:41.406Z"
   }
 }
