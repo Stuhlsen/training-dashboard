@@ -14797,6 +14797,114 @@
       "sleepHours": 8.5,
       "feel": null,
       "notizen": null
+    },
+    {
+      "name": "Ruhetag",
+      "week": null,
+      "phase": null,
+      "typ": "Ruhetag",
+      "typPlanned": "Ruhetag",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.257,
+            "note": "NP 68W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "90 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 99% · Z3/Z4+ 1% · Z5+ 0%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
+      "date": "2026-08-03",
+      "startTime": "2026-08-03T17:49:22",
+      "activityId": "i172120317",
+      "km": 26.6,
+      "min": 90,
+      "kmh": 17.7,
+      "watt": 58,
+      "maxWatt": null,
+      "np": 68,
+      "hf": 91,
+      "hfMax": 107,
+      "kad": 65,
+      "hoehe": 21,
+      "tss": 10,
+      "if": 0.26,
+      "vi": 1.17,
+      "trimp": 29,
+      "ctl": 28.8,
+      "atl": 22.6,
+      "tsb": 6.2,
+      "decoupling": 12.8,
+      "dtl": 10,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 5289
+        },
+        {
+          "id": "Z2",
+          "secs": 76
+        },
+        {
+          "id": "Z3",
+          "secs": 22
+        },
+        {
+          "id": "Z4",
+          "secs": 15
+        },
+        {
+          "id": "Z5",
+          "secs": 6
+        },
+        {
+          "id": "Z6",
+          "secs": 2
+        },
+        {
+          "id": "Z7",
+          "secs": 4
+        },
+        {
+          "id": "SS",
+          "secs": 11
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 30.7,
+        "tempFeel": 30.9,
+        "humidity": 35,
+        "windSpeed": 6.9,
+        "windDir": 65,
+        "precip": 0,
+        "cloudCover": 66,
+        "weatherCode": 3
+      },
+      "wetter": "30.7°C",
+      "source": "intervals.icu",
+      "ruhepuls": 52,
+      "hrv": null,
+      "avgSleepingHR": null,
+      "sleepHours": 8.2,
+      "feel": null,
+      "notizen": null
     }
   ],
   "wellness": [
@@ -18231,7 +18339,7 @@
       "avgSleepingHR": null,
       "restingHR": 52,
       "hrv": null,
-      "weight": null,
+      "weight": 92,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
@@ -18259,7 +18367,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 93.9,
+        "weight": 92,
         "secs": [
           1,
           2,
@@ -18496,8 +18604,8 @@
           28500
         ],
         "values": [
-          819,
-          806,
+          1065,
+          1028,
           801,
           797,
           756,
@@ -18731,8 +18839,8 @@
           69
         ],
         "activity_id": [
-          "i162700876",
-          "i162700876",
+          "i172120317",
+          "i172120317",
           "i162700876",
           "i162700876",
           "i162700876",
@@ -18966,8 +19074,8 @@
           "i162700632"
         ],
         "watts_per_kg": [
-          8.815931,
-          8.675996,
+          11.576087,
+          11.173913,
           8.622174,
           8.579117,
           8.137782,
@@ -19201,8 +19309,8 @@
           0.7379679
         ],
         "wkg_activity_id": [
-          "i162700876",
-          "i162700876",
+          "i172120317",
+          "i172120317",
           "i162700876",
           "i162700876",
           "i162700876",
@@ -19449,8 +19557,8 @@
           {
             "type": "MORTON_3P",
             "criticalPower": 262,
-            "wPrime": 13820,
-            "pMax": 819,
+            "wPrime": 13449,
+            "pMax": 1065,
             "inputPointIndexes": [
               73,
               77,
@@ -19466,7 +19574,7 @@
             "type": "FFT_CURVES",
             "criticalPower": 259,
             "wPrime": 14750,
-            "pMax": 819,
+            "pMax": 1065,
             "inputPointIndexes": [
               84,
               115
@@ -19477,7 +19585,7 @@
             "type": "ECP",
             "criticalPower": 259,
             "wPrime": 20280,
-            "pMax": 819,
+            "pMax": 1065,
             "inputPointIndexes": [
               115
             ],
@@ -19498,8 +19606,8 @@
           "mapWatts": 0
         },
         "watts": [
-          819,
-          806,
+          1065,
+          1028,
           801,
           797,
           756,
@@ -19897,6 +20005,16 @@
         "start_date_local": "2026-01-22T16:29:59",
         "race": false
       },
+      "i172120317": {
+        "id": "i172120317",
+        "name": "Evening Ride",
+        "distance": 26621.12,
+        "moving_time": 5414,
+        "training_load": 10,
+        "icu_weight": 92,
+        "start_date_local": "2026-08-03T17:49:22",
+        "race": false
+      },
       "i162700829": {
         "id": "i162700829",
         "name": "MyWhoosh Road Race",
@@ -20189,7 +20307,7 @@
       }
     }
   },
-  "athleteWeight": 93.9,
+  "athleteWeight": 92,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -21012,7 +21130,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-03T14:17:49.872Z",
+  "updated": "2026-08-03T19:20:20.471Z",
   "source": "intervals.icu",
-  "count": 137
+  "count": 138
 }

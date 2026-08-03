@@ -9974,5 +9974,99 @@
     "thresholdWatts": 174,
     "gapToleranceSec": 90,
     "fetchedAt": "2026-08-03T14:17:41.406Z"
+  },
+  "i172088958": {
+    "longestBlock": {
+      "startSec": 2270,
+      "endSec": 2618,
+      "totalDurationSec": 348,
+      "workDurationSec": 348,
+      "avgWatts": 209
+    },
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 1254,
+        "average_watts": 103,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 1254,
+        "end_time": 1424,
+        "average_watts": 146,
+        "type": "WORK"
+      },
+      {
+        "start_time": 1424,
+        "end_time": 2270,
+        "average_watts": 142,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 2270,
+        "end_time": 2280,
+        "average_watts": 376,
+        "type": "WORK"
+      },
+      {
+        "start_time": 2280,
+        "end_time": 2283,
+        "average_watts": 274,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 2283,
+        "end_time": 2301,
+        "average_watts": 293,
+        "type": "WORK"
+      },
+      {
+        "start_time": 2301,
+        "end_time": 2599,
+        "average_watts": 190,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 2599,
+        "end_time": 2618,
+        "average_watts": 336,
+        "type": "WORK"
+      },
+      {
+        "start_time": 2618,
+        "end_time": 2888,
+        "average_watts": 145,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 2888,
+        "end_time": 3007,
+        "average_watts": 190,
+        "type": "WORK"
+      },
+      {
+        "start_time": 3007,
+        "end_time": 5611,
+        "average_watts": 83,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-03T19:20:15.215Z"
+  },
+  "i172120317": {
+    "longestBlock": null,
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 5448,
+        "average_watts": 58,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-03T19:20:19.850Z"
   }
 }
