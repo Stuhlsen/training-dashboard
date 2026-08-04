@@ -14900,8 +14900,8 @@
       "wetter": "30.7°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
-      "hrv": null,
-      "avgSleepingHR": null,
+      "hrv": 35,
+      "avgSleepingHR": 55,
       "sleepHours": 8.2,
       "feel": null,
       "notizen": null
@@ -18325,7 +18325,7 @@
       "hrv": 31,
       "weight": 93.9,
       "bodyFat": null,
-      "activeEnergy": 788,
+      "activeEnergy": 801,
       "restingEnergy": null,
       "kcalConsumed": 3887,
       "hydration": null,
@@ -18336,22 +18336,38 @@
       "date": "2026-08-03",
       "sleepHours": 8.2,
       "sleepScore": 82,
-      "avgSleepingHR": null,
+      "avgSleepingHR": 55,
       "restingHR": 52,
-      "hrv": null,
+      "hrv": 35,
       "weight": 92,
+      "bodyFat": null,
+      "activeEnergy": 507,
+      "restingEnergy": null,
+      "kcalConsumed": 2854,
+      "hydration": null,
+      "hydrationVolume": 0.76,
+      "eftp": 257
+    },
+    {
+      "date": "2026-08-04",
+      "sleepHours": null,
+      "sleepScore": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
+      "hrv": null,
+      "weight": null,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
-      "eftp": 257
+      "eftp": 256
     }
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-02",
+      "hrv": "2026-08-03",
       "restingHR": "2026-08-03",
       "sleepHours": "2026-08-03"
     }
@@ -18362,8 +18378,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-08-03T00:00:00",
-        "end_date_local": "2026-08-03T23:59:59",
+        "start_date_local": "2025-08-04T00:00:00",
+        "end_date_local": "2026-08-04T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -21130,7 +21146,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-03T19:20:20.471Z",
+  "updated": "2026-08-04T01:43:01.822Z",
   "source": "intervals.icu",
   "count": 138
 }

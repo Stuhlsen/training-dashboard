@@ -5203,16 +5203,16 @@
       "rpe": null,
       "feelIcu": null,
       "weather": {
-        "temp": 30.8,
-        "tempFeel": 33.7,
-        "humidity": 41,
-        "windSpeed": 3.7,
-        "windDir": 125,
+        "temp": 29.3,
+        "tempFeel": 32.4,
+        "humidity": 48,
+        "windSpeed": 5.9,
+        "windDir": 55,
         "precip": 0,
-        "cloudCover": 56,
-        "weatherCode": 3
+        "cloudCover": 31,
+        "weatherCode": 1
       },
-      "wetter": "30.8°C",
+      "wetter": "29.3°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": 50,
@@ -6988,6 +6988,22 @@
       "hydration": null,
       "hydrationVolume": null,
       "eftp": 201
+    },
+    {
+      "date": "2026-08-04",
+      "sleepHours": null,
+      "sleepScore": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
+      "hrv": null,
+      "weight": null,
+      "bodyFat": null,
+      "activeEnergy": null,
+      "restingEnergy": null,
+      "kcalConsumed": null,
+      "hydration": null,
+      "hydrationVolume": null,
+      "eftp": 201
     }
   ],
   "wellnessMeta": {
@@ -7003,8 +7019,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-08-03T00:00:00",
-        "end_date_local": "2026-08-03T23:59:59",
+        "start_date_local": "2025-08-04T00:00:00",
+        "end_date_local": "2026-08-04T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -11326,16 +11342,16 @@
       "key": "schwelle",
       "label": "Schwelle",
       "from": "2026-07-27",
-      "to": "2026-08-03",
+      "to": "2026-08-04",
       "curve": {
         "list": [
           {
-            "id": "r.2026-07-27.2026-08-03",
+            "id": "r.2026-07-27.2026-08-04",
             "after_kj": 0,
-            "label": "27-Jul 3-Aug-2026",
+            "label": "27-Jul 4-Aug-2026",
             "start_date_local": "2026-07-27",
-            "end_date_local": "2026-08-03T23:59:59",
-            "days": 8,
+            "end_date_local": "2026-08-04T23:59:59",
+            "days": 9,
             "moving_time": 0,
             "training_load": 0,
             "weight": 80.15,
@@ -12466,16 +12482,16 @@
     {
       "key": "letzte-6-wochen",
       "label": "Letzte 6 Wochen",
-      "from": "2026-06-22",
-      "to": "2026-08-03",
+      "from": "2026-06-23",
+      "to": "2026-08-04",
       "curve": {
         "list": [
           {
-            "id": "r.2026-06-22.2026-08-03",
+            "id": "r.2026-06-23.2026-08-04",
             "after_kj": 0,
-            "label": "22-Jun 3-Aug-2026",
-            "start_date_local": "2026-06-22",
-            "end_date_local": "2026-08-03T23:59:59",
+            "label": "23-Jun 4-Aug-2026",
+            "start_date_local": "2026-06-23",
+            "end_date_local": "2026-08-04T23:59:59",
             "days": 43,
             "moving_time": 0,
             "training_load": 0,
@@ -13850,16 +13866,16 @@
     {
       "key": "6-wochen-davor",
       "label": "6 Wochen davor",
-      "from": "2026-05-11",
-      "to": "2026-06-21",
+      "from": "2026-05-12",
+      "to": "2026-06-22",
       "curve": {
         "list": [
           {
-            "id": "r.2026-05-11.2026-06-21",
+            "id": "r.2026-05-12.2026-06-22",
             "after_kj": 0,
-            "label": "11-May 21-Jun-2026",
-            "start_date_local": "2026-05-11",
-            "end_date_local": "2026-06-21T23:59:59",
+            "label": "12-May 22-Jun-2026",
+            "start_date_local": "2026-05-12",
+            "end_date_local": "2026-06-22T23:59:59",
             "days": 42,
             "moving_time": 0,
             "training_load": 0,
@@ -15213,16 +15229,6 @@
             "start_date_local": "2026-06-16T16:25:51",
             "race": false
           },
-          "i147229864": {
-            "id": "i147229864",
-            "name": "MyWhoosh - Brussels Town Square",
-            "distance": 1836.52,
-            "moving_time": 364,
-            "training_load": 1,
-            "icu_weight": 84,
-            "start_date_local": "2026-05-11T15:08:50",
-            "race": false
-          },
           "i147522071": {
             "id": "i147522071",
             "name": "MyWhoosh Crit Racing",
@@ -15241,16 +15247,6 @@
             "training_load": 146,
             "icu_weight": 82,
             "start_date_local": "2026-06-09T16:20:59",
-            "race": false
-          },
-          "i147254919": {
-            "id": "i147254919",
-            "name": "MyWhoosh - Bruges",
-            "distance": 39257.57,
-            "moving_time": 5461,
-            "training_load": 45,
-            "icu_weight": 84,
-            "start_date_local": "2026-05-11T15:31:38",
             "race": false
           },
           "i151445202": {
@@ -16226,64 +16222,54 @@
     }
   },
   "forecast": {
-    "2026-08-03": {
-      "temp": 26.2,
-      "tempFeel": 27.3,
-      "humidity": 52,
-      "windSpeed": 8.1,
-      "windDir": 81,
-      "precipProb": 0,
-      "weatherCode": 1,
-      "uvMax": 6.4
-    },
     "2026-08-04": {
-      "temp": 28.6,
-      "tempFeel": 32,
-      "humidity": 64,
-      "windSpeed": 7,
-      "windDir": 104,
-      "precipProb": 12,
-      "weatherCode": 95,
+      "temp": 29.9,
+      "tempFeel": 32.5,
+      "humidity": 54,
+      "windSpeed": 5.8,
+      "windDir": 147,
+      "precipProb": 10,
+      "weatherCode": 3,
       "uvMax": 6.4
     },
     "2026-08-05": {
-      "temp": 28.6,
-      "tempFeel": 30.8,
-      "humidity": 57,
-      "windSpeed": 8.8,
-      "windDir": 253,
+      "temp": 30.2,
+      "tempFeel": 32.1,
+      "humidity": 52,
+      "windSpeed": 10.4,
+      "windDir": 258,
+      "precipProb": 10,
+      "weatherCode": 80,
+      "uvMax": 6.4
+    },
+    "2026-08-06": {
+      "temp": 27.1,
+      "tempFeel": 27.7,
+      "humidity": 51,
+      "windSpeed": 10.1,
+      "windDir": 275,
       "precipProb": 7,
       "weatherCode": 3,
       "uvMax": 6.2
     },
-    "2026-08-06": {
-      "temp": 26.9,
-      "tempFeel": 27.5,
-      "humidity": 52,
-      "windSpeed": 10.7,
-      "windDir": 272,
-      "precipProb": 8,
-      "weatherCode": 3,
-      "uvMax": 6.4
-    },
     "2026-08-07": {
-      "temp": 19.9,
-      "tempFeel": 19.2,
-      "humidity": 61,
-      "windSpeed": 8.7,
-      "windDir": 299,
-      "precipProb": 5,
-      "weatherCode": 3,
-      "uvMax": 5.6
+      "temp": 20.8,
+      "tempFeel": 19.8,
+      "humidity": 56,
+      "windSpeed": 9.7,
+      "windDir": 300,
+      "precipProb": 3,
+      "weatherCode": 2,
+      "uvMax": 6.2
     },
     "2026-08-08": {
-      "temp": 21.3,
-      "tempFeel": 21.2,
-      "humidity": 47,
-      "windSpeed": 3.1,
-      "windDir": 91,
+      "temp": 22.4,
+      "tempFeel": 21.9,
+      "humidity": 45,
+      "windSpeed": 3.9,
+      "windDir": 240,
       "precipProb": 0,
-      "weatherCode": 1,
+      "weatherCode": 2,
       "uvMax": 6.2
     },
     "2026-08-09": {
@@ -16304,7 +16290,7 @@
       "windDir": 253,
       "precipProb": 18,
       "weatherCode": 3,
-      "uvMax": 6.1
+      "uvMax": 6
     },
     "2026-08-11": {
       "temp": 24.8,
@@ -16312,9 +16298,9 @@
       "humidity": 48,
       "windSpeed": 7.2,
       "windDir": 12,
-      "precipProb": 11,
+      "precipProb": 9,
       "weatherCode": 0,
-      "uvMax": 6.1
+      "uvMax": 5.3
     },
     "2026-08-12": {
       "temp": 25.2,
@@ -16322,7 +16308,7 @@
       "humidity": 45,
       "windSpeed": 6.7,
       "windDir": 36,
-      "precipProb": 11,
+      "precipProb": 2,
       "weatherCode": 0,
       "uvMax": 6
     },
@@ -16332,9 +16318,9 @@
       "humidity": 37,
       "windSpeed": 6,
       "windDir": 43,
-      "precipProb": 7,
+      "precipProb": 4,
       "weatherCode": 1,
-      "uvMax": 5.8
+      "uvMax": 6
     },
     "2026-08-14": {
       "temp": 30,
@@ -16342,9 +16328,9 @@
       "humidity": 34,
       "windSpeed": 6.9,
       "windDir": 263,
-      "precipProb": 12,
+      "precipProb": 15,
       "weatherCode": 0,
-      "uvMax": 4.9
+      "uvMax": 4.3
     },
     "2026-08-15": {
       "temp": 31.5,
@@ -16352,9 +16338,9 @@
       "humidity": 30,
       "windSpeed": 5.6,
       "windDir": 172,
-      "precipProb": 21,
+      "precipProb": 12,
       "weatherCode": 3,
-      "uvMax": 1.4
+      "uvMax": 4.5
     },
     "2026-08-16": {
       "temp": 27.5,
@@ -16362,9 +16348,9 @@
       "humidity": 53,
       "windSpeed": 4.4,
       "windDir": 33,
-      "precipProb": 18,
+      "precipProb": 22,
       "weatherCode": 53,
-      "uvMax": 3.8
+      "uvMax": 4.2
     },
     "2026-08-17": {
       "temp": 26.1,
@@ -16372,26 +16358,36 @@
       "humidity": 62,
       "windSpeed": 4.6,
       "windDir": 91,
-      "precipProb": 20,
+      "precipProb": 14,
       "weatherCode": 3,
-      "uvMax": 5
+      "uvMax": 5.7
     },
     "2026-08-18": {
-      "temp": 25.3,
-      "tempFeel": 25.4,
-      "humidity": 50,
-      "windSpeed": 9.2,
-      "windDir": 290,
-      "precipProb": 0,
+      "temp": 26.5,
+      "tempFeel": 26.4,
+      "humidity": 46,
+      "windSpeed": 9,
+      "windDir": 206,
+      "precipProb": 18,
       "weatherCode": 51,
       "uvMax": 5.9
+    },
+    "2026-08-19": {
+      "temp": 18.7,
+      "tempFeel": 18.3,
+      "humidity": 75,
+      "windSpeed": 12.1,
+      "windDir": 264,
+      "precipProb": 0,
+      "weatherCode": 51,
+      "uvMax": 1.9
     }
   },
   "dataSources": [
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-03T19:20:15.722Z",
+  "updated": "2026-08-04T01:42:54.894Z",
   "source": "notion+intervals",
   "count": 83
 }
