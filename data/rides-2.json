@@ -14905,6 +14905,119 @@
       "sleepHours": 8.2,
       "feel": null,
       "notizen": null
+    },
+    {
+      "name": "MyWhoosh Crit",
+      "week": null,
+      "phase": null,
+      "typ": "VO2max",
+      "typPlanned": "VO2max",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.902,
+            "note": "NP 239W ÷ FTP 265W — im Sweet-Spot-Band (0.9–0.95)"
+          },
+          {
+            "label": "Dauer",
+            "value": "36 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "9 min zusammenhängend über Schwelle (259 W, 25.4% der Fahrzeit)",
+            "note": "bestätigt Sweet Spot"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 22% · Z3/Z4+ 63% · Z5+ 15%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
+      "date": "2026-08-04",
+      "startTime": "2026-08-04T15:01:41",
+      "activityId": "i172376101",
+      "km": 19.1,
+      "min": 36,
+      "kmh": 32.1,
+      "watt": 229,
+      "maxWatt": null,
+      "np": 239,
+      "hf": 164,
+      "hfMax": 177,
+      "kad": 91,
+      "hoehe": 137,
+      "tss": 49,
+      "if": 0.9,
+      "vi": 1.04,
+      "trimp": 92,
+      "ctl": 29.2,
+      "atl": 26.1,
+      "tsb": 3.2,
+      "decoupling": 10.7,
+      "dtl": 49,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 90
+        },
+        {
+          "id": "Z2",
+          "secs": 383
+        },
+        {
+          "id": "Z3",
+          "secs": 800
+        },
+        {
+          "id": "Z4",
+          "secs": 550
+        },
+        {
+          "id": "Z5",
+          "secs": 249
+        },
+        {
+          "id": "Z6",
+          "secs": 76
+        },
+        {
+          "id": "Z7",
+          "secs": 0
+        },
+        {
+          "id": "SS",
+          "secs": 691
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 31,
+        "tempFeel": 33.8,
+        "humidity": 46,
+        "windSpeed": 5.6,
+        "windDir": 145,
+        "precip": 0,
+        "cloudCover": 49,
+        "weatherCode": 2
+      },
+      "wetter": "31°C",
+      "source": "intervals.icu",
+      "ruhepuls": null,
+      "hrv": null,
+      "avgSleepingHR": null,
+      "sleepHours": null,
+      "feel": null,
+      "notizen": null
     }
   ],
   "wellness": [
@@ -21146,7 +21259,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-04T08:22:37.399Z",
+  "updated": "2026-08-04T13:49:11.944Z",
   "source": "intervals.icu",
-  "count": 138
+  "count": 139
 }
