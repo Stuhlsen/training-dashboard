@@ -144,6 +144,35 @@ export function restDayRiddenSignal(card, wasRidden) {
   return { severity: "info", message: "Ruhetag gefahren — bewusst freier Tag wurde trotzdem trainiert." };
 }
 
+/** Anzahl sichtbarer Meldungstexte im Tooltip, bevor auf eine Sammelzeile
+ *  "+{n} weitere" gekürzt wird — sonst wiederholt sich im Tooltip dasselbe
+ *  Stapelproblem, das der Chip auf der Karte gerade auflöst. */
+export const CARD_HINT_CHIP_MAX_VISIBLE = 3;
+
+/** Fasst die Konflikt-/Hinweis-Badges EINER Karte zu einem einzelnen Chip
+ *  zusammen (UI-Umbau: gestapelte Boxen → ein Chip + Tooltip). Reine
+ *  Sortierung/Auswahl auf bereits vorhandenen Meldungen (dieselbe Form wie
+ *  `_renderCardBadges`/`_renderBadgeItems` in ui/planned.js bisher gebaut
+ *  haben: `{severity, text}`), kein neuer Meldungstyp.
+ *  @param {Array<{severity: "info"|"warning", text: string}>} items
+ *  @returns {{count: number, severity: "info"|"warning", label: string,
+ *    visible: Array<{severity: "info"|"warning", text: string}>,
+ *    moreCount: number} | null} `null` bei leerer Liste — kein Chip. */
+export function summarizeCardHints(items) {
+  if (!items?.length) return null;
+  const sorted = items
+    .slice()
+    .sort((a, b) => (a.severity === b.severity ? 0 : a.severity === "warning" ? -1 : 1));
+  const count = sorted.length;
+  return {
+    count,
+    severity: sorted[0].severity,
+    label: count === 1 ? "1 Hinweis" : `${count} Hinweise`,
+    visible: sorted.slice(0, CARD_HINT_CHIP_MAX_VISIBLE),
+    moreCount: Math.max(0, count - CARD_HINT_CHIP_MAX_VISIBLE),
+  };
+}
+
 /** Kartentypen, die für eine geplante Erholungswoche zählen (D6, docs/
  *  konzept-progressionssteuerung.md) — `Ruhetag` (bewusst frei) UND
  *  `Z1 Recovery` (Z1-Ausfahrt, D6s "recovery"-Rolle). */
