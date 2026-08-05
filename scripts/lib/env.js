@@ -52,6 +52,15 @@ export const ENV = {
   // "Stuhlsen") — s. AGENTS.md "Test-Sicherheit".
   SUPABASE_TRAINER_EMAIL: process.env.SUPABASE_TRAINER_EMAIL || "",
   SUPABASE_TRAINER_PASSWORD: process.env.SUPABASE_TRAINER_PASSWORD || "",
+  // Optionale Prod-Gegenstücke — nur für gezielte, manuell mit --env=prod
+  // gestartete Einmal-Skripte (z.B. scripts/add-rest-day-cards.js), NIE von
+  // npm test/npm run sync gelesen. Bewusst eigene Variablen statt die
+  // Dev-Werte oben zu überschreiben, damit ein versehentlicher npm-test-Lauf
+  // weiterhin gegen dashboard-dev läuft, nicht gegen echte Athletendaten.
+  SUPABASE_URL_PROD: process.env.SUPABASE_URL_PROD || "",
+  SUPABASE_ANON_KEY_PROD: process.env.SUPABASE_ANON_KEY_PROD || "",
+  SUPABASE_ATHLETE1_EMAIL_PROD: process.env.SUPABASE_ATHLETE1_EMAIL_PROD || "",
+  SUPABASE_ATHLETE1_PASSWORD_PROD: process.env.SUPABASE_ATHLETE1_PASSWORD_PROD || "",
 };
 
 /**
