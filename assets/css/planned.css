@@ -426,10 +426,13 @@
 }
 .planned-delta-close:hover { color: var(--red); }
 
-/* ── Konflikt-Badges + Push-Warnung an einer Karte ───────────────
-   Eigene Pill-Zeile unter .planned-card-header (Konzept §4): jede
-   passende Regel aus getState().conflicts eine eigene Zeile, warning
-   vor info (s. core/plan-feedback.js::conflictsForCard). */
+/* ── Konflikt-Badges (Vorschlags-Vergleichsdialog) ───────────────
+   Weiterhin von ui/proposal-compare.js genutzt (gelöste/neu eingeführte
+   Konflikte beim Prüfen eines Trainer-Vorschlags) — eigener Modal-Kontext
+   ohne Stapelproblem (kein Kartenkörper, den die Boxen verdrängen könnten),
+   deshalb bewusst NICHT auf den Hinweis-Chip umgestellt (s. Auftrag
+   "Hinweise auf Plankarten als Tooltip-Chip" — betrifft nur .planned-card
+   im Planungstab-Raster, nicht diesen Vergleichsdialog). */
 .planned-conflict-badges {
   display: flex;
   flex-direction: column;
@@ -451,6 +454,76 @@
   color: var(--gold);
   background: rgba(251,191,36,0.08);
   border-color: rgba(251,191,36,0.2);
+}
+
+/* ── Hinweis-Chip an einer Karte ──────────────────────────────────
+   Ersetzt die frühere gestapelte Boxen-Liste (eine Box pro Konflikt) durch
+   EINEN Chip unter .planned-card-header — Farbe nach höchstem Schweregrad
+   (core/plan-feedback.js::summarizeCardHints), Meldungstexte im Tooltip
+   bei Hover/Fokus/Tap (ui/planned.js). Farbwerte unverändert von der
+   vorherigen Box-Darstellung übernommen (kein neues Farbpaar). */
+.planned-hint-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  align-self: flex-start;
+  font-family: inherit;
+  font-size: 0.7rem;
+  border-radius: 20px;
+  padding: 4px 12px;
+  border: 1px solid;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background var(--transition), border-color var(--transition);
+}
+.planned-hint-chip--warning {
+  color: var(--red);
+  background: var(--red-dim);
+  border-color: rgba(217,79,79,0.3);
+}
+.planned-hint-chip--warning:hover, .planned-hint-chip--warning.planned-hint-chip--open {
+  background: rgba(217,79,79,0.22);
+}
+.planned-hint-chip--info {
+  color: var(--gold);
+  background: rgba(251,191,36,0.08);
+  border-color: rgba(251,191,36,0.2);
+}
+.planned-hint-chip--info:hover, .planned-hint-chip--info.planned-hint-chip--open {
+  background: rgba(251,191,36,0.18);
+}
+.planned-hint-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Fixed statt absolute: umgeht Overflow-/Stacking-Fallstricke des
+   Karten-Grids vollständig (Positionierung berechnet in ui/planned.js::
+   _positionHintTooltip) — dieselbe Optik wie der bestehende #tooltip
+   (main.css), eigenständig statt geteilt, weil dieser hier Klick/Fokus-
+   getrieben ist statt reiner Maus-Verfolgung. */
+.planned-hint-tooltip {
+  position: fixed;
+  z-index: 1000;
+  max-width: 280px;
+  background: var(--card-solid);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius);
+  padding: 8px 10px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.planned-hint-tooltip[hidden] { display: none; }
+.planned-hint-tooltip-item {
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+.planned-hint-tooltip-item--warning { color: var(--red); }
+.planned-hint-tooltip-item--info { color: var(--gold); }
+.planned-hint-tooltip-more {
+  font-size: 0.7rem;
+  color: var(--dim);
+  border-top: 1px solid var(--border);
+  padding-top: 4px;
 }
 
 /* ── Wirkungsanzeige (W1/9C) — rein informativ, deshalb neutral statt

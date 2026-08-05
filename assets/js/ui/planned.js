@@ -28,6 +28,7 @@ import {
   formatSignedDelta,
   restDayRiddenSignal,
   plannedRecoveryWeeks,
+  summarizeCardHints,
 } from "../core/plan-feedback.js";
 import { canDragCard } from "../core/plan-drag.js";
 import { KNOWN_PLAN_TYPES } from "../core/plan-config.js";
@@ -119,6 +120,69 @@ function _isTrainerProposalMode() {
    (an einen fremden Athleten/Event gebundene Werte wären dort irreführend). */
 let deltaBanner = null;
 let deltaBannerAthleteId = null;
+
+/* ── Hinweis-Chip (kollabierte Konflikt-/Warnmeldungen) ──────────
+   Vorher: eine Pill-Box pro Meldung, gestapelt im Kartenkörper (verdrängt
+   bei 2-3 Meldungen das Workout nach unten). Jetzt: EIN Chip pro Karte
+   ("1 Hinweis"/"N Hinweise", core/plan-feedback.js::summarizeCardHints
+   liefert Anzahl + höchsten Schweregrad + gekürzte Liste), Meldungstexte
+   im Tooltip bei Hover/Fokus/Tap. Höchstens ein Tooltip gleichzeitig offen
+   — Modul-State statt pro-Karte, weil ein neu geöffneter Chip jeden
+   anderen schließt. Überlebt keinen Re-Render (container.innerHTML reißt
+   die Elemente weg) — render() räumt daher vor jedem Durchlauf ab, analog
+   zu cancelActiveDrag(). */
+let openHintChip = null;
+
+function _hoverCapable() {
+  return window.matchMedia?.("(hover: hover)")?.matches ?? true;
+}
+
+function _closeHintTooltip() {
+  if (!openHintChip) return;
+  const { button, tooltip } = openHintChip;
+  button.setAttribute("aria-expanded", "false");
+  button.classList.remove("planned-hint-chip--open");
+  tooltip.hidden = true;
+  openHintChip = null;
+}
+
+/** Positioniert den Tooltip fixed relativ zum Viewport (umgeht jedes
+ *  `overflow`/Stacking-Problem der Karten-Grid-Ahnen) — unterhalb und
+ *  linksbündig zum Chip, an der jeweiligen Kante ausgerichtet statt
+ *  abgeschnitten, wenn er rechts oder unten aus dem sichtbaren Bereich
+ *  liefe (Kippen nach oben, wenn unten kein Platz ist). */
+function _positionHintTooltip(button, tooltip) {
+  const margin = 8;
+  const rect = button.getBoundingClientRect();
+  const tw = tooltip.offsetWidth;
+  const th = tooltip.offsetHeight;
+
+  let left = rect.left;
+  if (left + tw > window.innerWidth - margin) left = Math.max(margin, window.innerWidth - margin - tw);
+
+  let top = rect.bottom + 6;
+  if (top + th > window.innerHeight - margin) top = Math.max(margin, rect.top - th - 6);
+
+  tooltip.style.left = `${left}px`;
+  tooltip.style.top = `${top}px`;
+}
+
+function _openHintTooltipFor(button) {
+  if (openHintChip?.button === button) return;
+  const tooltip = document.getElementById(button.getAttribute("aria-controls"));
+  if (!tooltip) return;
+  _closeHintTooltip();
+  button.setAttribute("aria-expanded", "true");
+  button.classList.add("planned-hint-chip--open");
+  tooltip.hidden = false;
+  _positionHintTooltip(button, tooltip);
+  openHintChip = { button, tooltip };
+}
+
+function _toggleHintTooltip(button) {
+  if (openHintChip?.button === button) _closeHintTooltip();
+  else _openHintTooltipFor(button);
+}
 
 export const Planned = {
   /* Wird von app.js gesetzt: refresht Hero/Wochenrückblick/Analyse
@@ -295,13 +359,14 @@ export const Planned = {
     return `<div class="planned-card-impact">${escapeHtml(impact.label)}</div>`;
   },
 
-  /* ── Konflikt-Badges + Push-Warnung an einer Karte ───────────
-     Eigene Pill-Zeile unter .planned-card-header (nicht in der
-     Actions-Leiste, nicht im border-left) — pro Karte alle passenden
-     Konflikte aus getState().conflicts (warning vor info, s.
-     core/plan-feedback.js::conflictsForCard) plus, ans Ende gehängt,
-     der Push-Hinweis, solange pushed_external_id gesetzt ist (Konzept
-     §5 — kein Blocker, bleibt bis zum nächsten Push stehen). */
+  /* ── Konflikt-/Hinweis-Chip + Push-Warnung an einer Karte ────
+     Direkt unter .planned-card-header (nicht in der Actions-Leiste,
+     nicht im border-left) — alle passenden Konflikte aus
+     getState().conflicts (warning vor info, s. core/plan-feedback.js::
+     conflictsForCard) plus, ans Ende gehängt, der Push-Hinweis, solange
+     pushed_external_id gesetzt ist (Konzept §5 — kein Blocker, bleibt bis
+     zum nächsten Push stehen). Kollabiert zu einem Chip statt gestapelter
+     Boxen — s. _renderHintChip. */
   _renderCardBadges(session) {
     const items = conflictsForCard(getPlanCardsState().conflicts, session.id).map((c) => ({
       severity: c.severity,
@@ -313,25 +378,34 @@ export const Planned = {
         text: "📤 Bereits auf Wahoo gepusht — wird beim nächsten Push aktualisiert.",
       });
     }
-    return this._renderBadgeItems(items);
+    return this._renderHintChip(items, session.id);
   },
 
-  /** Kleine gemeinsame Render-Hilfe für _renderCardBadges + das D6-
-   *  "Ruhetag gefahren"-Signal (_renderDoneCard) — dieselbe Pill-Optik,
-   *  ohne dass eine erledigte Karte die Konflikt-/Push-Badges aus
-   *  _renderCardBadges mitbekommt (die wären dort irreführend: Konflikte
-   *  beziehen sich nur auf die zukünftige Projektion, der Push-Hinweis
-   *  gehört zur Planung, nicht zum Rückblick). */
-  _renderBadgeItems(items) {
-    if (!items.length) return "";
-    return `<div class="planned-conflict-badges">
-      ${items
-        .map(
-          (i) =>
-            `<div class="planned-conflict-badge planned-conflict-badge--${i.severity}">${escapeHtml(i.text)}</div>`
-        )
-        .join("")}
-    </div>`;
+  /** Gemeinsame Render-Hilfe für _renderCardBadges + das D6-"Ruhetag
+   *  gefahren"-Signal (_renderDoneCard) — ein Chip ("N Hinweise") statt
+   *  gestapelter Boxen, Meldungstexte im Tooltip (Hover/Fokus/Tap).
+   *  `idSeed` (Karten-ID) macht die Tooltip-DOM-Id über alle Karten einer
+   *  Renderung eindeutig — Pflicht für aria-controls/getElementById.
+   *  @param {Array<{severity: "info"|"warning", text: string}>} items
+   *  @param {string} idSeed */
+  _renderHintChip(items, idSeed) {
+    const hint = summarizeCardHints(items);
+    if (!hint) return "";
+    const tooltipId = `planned-hint-tip-${escapeHtml(idSeed)}`;
+    return `
+      <button type="button" class="planned-hint-chip planned-hint-chip--${hint.severity}"
+              aria-expanded="false" aria-controls="${tooltipId}">
+        <span aria-hidden="true">⚠️</span> ${escapeHtml(hint.label)}
+      </button>
+      <div class="planned-hint-tooltip" id="${tooltipId}" role="tooltip" hidden>
+        ${hint.visible
+          .map(
+            (i) =>
+              `<div class="planned-hint-tooltip-item planned-hint-tooltip-item--${i.severity}">${escapeHtml(i.text)}</div>`
+          )
+          .join("")}
+        ${hint.moreCount > 0 ? `<div class="planned-hint-tooltip-more">+${hint.moreCount} weitere</div>` : ""}
+      </div>`;
   },
 
   /* ── Render ────────────────────────────────────────────────── */
@@ -344,6 +418,7 @@ export const Planned = {
     // Athletenwechsel mitten im Drag — Konzept §7: abbrechen, keine
     // Fremd-Karte schreiben.
     cancelActiveDrag();
+    _closeHintTooltip();
 
     container.innerHTML = `<div class="planned-loading">🗓️ Lade Trainingsplan und Wetter-Forecast…</div>`;
 
@@ -664,6 +739,12 @@ export const Planned = {
       container.dataset.plannedBound = "1";
       initPlanDrag(container, (cardId, date) => Planned._handleDrop(cardId, date));
       container.addEventListener("click", (e) => {
+        const hintChip = e.target.closest(".planned-hint-chip");
+        if (hintChip) {
+          _toggleHintTooltip(hintChip);
+          return;
+        }
+
         const moveBtn = e.target.closest(".planned-move-btn");
         const cancelBtn = e.target.closest(".planned-cancel-btn");
         const pushBtn = e.target.closest(".planned-push-btn");
@@ -687,6 +768,42 @@ export const Planned = {
           const date = doneItem.dataset.rideDate;
           if (date) Planned._openInTable(date);
         }
+      });
+
+      // Hover/Fokus öffnen den Hinweis-Tooltip — mouseover/mouseout statt
+      // mouseenter/mouseleave, weil nur Erstere bubbeln (Delegation auf dem
+      // Container, wie der Click-Handler oben). Auf reinen Touch-Geräten
+      // (hover:none) bleibt mouseover wirkungslos: der emulierte
+      // mouseover→click-Ablauf eines Taps würde sonst den Chip öffnen UND
+      // im selben Tap per Klick-Toggle sofort wieder schließen.
+      container.addEventListener("mouseover", (e) => {
+        if (!_hoverCapable()) return;
+        const chip = e.target.closest(".planned-hint-chip");
+        if (chip) _openHintTooltipFor(chip);
+      });
+      container.addEventListener("mouseout", (e) => {
+        if (!_hoverCapable()) return;
+        const leaving = e.target.closest(".planned-hint-chip, .planned-hint-tooltip");
+        if (!leaving) return;
+        const entering = e.relatedTarget?.closest?.(".planned-hint-chip, .planned-hint-tooltip");
+        if (!entering) _closeHintTooltip();
+      });
+      container.addEventListener("focusin", (e) => {
+        const chip = e.target.closest(".planned-hint-chip");
+        if (chip) _openHintTooltipFor(chip);
+      });
+      container.addEventListener("focusout", (e) => {
+        if (e.target.closest(".planned-hint-chip")) _closeHintTooltip();
+      });
+
+      // Tap/Klick außerhalb schließt einen offenen Tooltip — muss auf
+      // document sitzen, ein Klick auf Tab-Leiste/Athleten-Toggle o.Ä.
+      // liegt außerhalb von container.
+      document.addEventListener("click", (e) => {
+        if (!e.target.closest(".planned-hint-chip, .planned-hint-tooltip")) _closeHintTooltip();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") _closeHintTooltip();
       });
     }
   },
@@ -1160,10 +1277,11 @@ export const Planned = {
         ${compareHtml}
         ${complianceHtml}
       </div>
-      ${this._renderBadgeItems(
+      ${this._renderHintChip(
         [restDayRiddenSignal(s, !!ride)]
           .filter(Boolean)
-          .map((sig) => ({ severity: sig.severity, text: sig.message }))
+          .map((sig) => ({ severity: sig.severity, text: sig.message })),
+        s.id
       )}`;
   },
 

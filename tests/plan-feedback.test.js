@@ -13,6 +13,8 @@ import {
   restDayRiddenSignal,
   plannedRecoveryWeeks,
   PLANNED_RECOVERY_WEEK_MIN_SHARE,
+  summarizeCardHints,
+  CARD_HINT_CHIP_MAX_VISIBLE,
 } from "../assets/js/core/plan-feedback.js";
 import { projectLoad } from "../assets/js/core/projection.js";
 
@@ -47,6 +49,84 @@ test("conflictsForCard: verändert das Original-Array nicht", () => {
   conflictsForCard(conflicts, "x");
   assert.deepEqual(
     conflicts.map((c) => c.rule),
+    before
+  );
+});
+
+/* ── summarizeCardHints ──────────────────────────────────────── */
+
+test("summarizeCardHints: leere Liste ergibt keinen Chip", () => {
+  assert.equal(summarizeCardHints([]), null);
+  assert.equal(summarizeCardHints(undefined), null);
+});
+
+test("summarizeCardHints: Singular bei genau einer Meldung", () => {
+  const result = summarizeCardHints([{ severity: "info", text: "Eine Sache" }]);
+  assert.equal(result.count, 1);
+  assert.equal(result.label, "1 Hinweis");
+  assert.equal(result.severity, "info");
+  assert.equal(result.moreCount, 0);
+});
+
+test("summarizeCardHints: Plural ab zwei Meldungen", () => {
+  const result = summarizeCardHints([
+    { severity: "info", text: "A" },
+    { severity: "info", text: "B" },
+  ]);
+  assert.equal(result.label, "2 Hinweise");
+});
+
+test("summarizeCardHints: höchster Schweregrad bei gemischten Meldungen", () => {
+  const result = summarizeCardHints([
+    { severity: "info", text: "A" },
+    { severity: "warning", text: "B" },
+    { severity: "info", text: "C" },
+  ]);
+  assert.equal(result.severity, "warning");
+  assert.deepEqual(
+    result.visible.map((i) => i.text),
+    ["B", "A", "C"]
+  );
+});
+
+test("summarizeCardHints: Kürzung ab vier Meldungen inkl. korrektem Restzähler", () => {
+  const items = [
+    { severity: "info", text: "1" },
+    { severity: "info", text: "2" },
+    { severity: "info", text: "3" },
+    { severity: "info", text: "4" },
+    { severity: "info", text: "5" },
+  ];
+  const result = summarizeCardHints(items);
+  assert.equal(result.count, 5);
+  assert.equal(result.visible.length, CARD_HINT_CHIP_MAX_VISIBLE);
+  assert.deepEqual(
+    result.visible.map((i) => i.text),
+    ["1", "2", "3"]
+  );
+  assert.equal(result.moreCount, 2);
+});
+
+test("summarizeCardHints: genau drei Meldungen ohne Restzähler", () => {
+  const items = [
+    { severity: "warning", text: "1" },
+    { severity: "info", text: "2" },
+    { severity: "info", text: "3" },
+  ];
+  const result = summarizeCardHints(items);
+  assert.equal(result.moreCount, 0);
+  assert.equal(result.visible.length, 3);
+});
+
+test("summarizeCardHints: verändert das Original-Array nicht", () => {
+  const items = [
+    { severity: "info", text: "A" },
+    { severity: "warning", text: "B" },
+  ];
+  const before = items.map((i) => i.text);
+  summarizeCardHints(items);
+  assert.deepEqual(
+    items.map((i) => i.text),
     before
   );
 });
