@@ -391,19 +391,16 @@ export const Planned = {
     const todayLocal = localISODate();
 
     // plan_cards sind bereits im "aufgelösten" Zustand (Verschiebung/Ausfall
-    // schon eingerechnet, s. state/plan-cards.js). Ruhetage bei Athlet 2
-    // (statisches, read-only GFNY-Schedule) bleiben wie bisher komplett
-    // ausgeblendet — kein interaktiver Kartentyp dort. Athlet 1 (D6, docs/
-    // konzept-progressionssteuerung.md) zeigt Ruhetage jetzt aktiv an: eigener
-    // Kartentyp statt unsichtbarer Planungslücke. getPlanCardsState() bleibt
-    // in jedem Fall vollständig für andere Konsumenten (z.B. "nächste
-    // Belastungseinheit" in der Recovery-Karte).
+    // schon eingerechnet, s. state/plan-cards.js). Ruhetage zeigen sich für
+    // BEIDE Athleten aktiv (D6, docs/konzept-progressionssteuerung.md) —
+    // eigener Kartentyp statt unsichtbarer Planungslücke, athletenunabhängig
+    // (Nachtrag 05.08.2026: die vorherige Sonderbehandlung "Athlet 2 blendet
+    // Ruhetage komplett aus" war eine Alt-Konvention aus der Zeit vor D6,
+    // keine bewusste Athlet-2-spezifische Entscheidung). Athlet 2s
+    // Planungstab bleibt trotzdem read-only, s. _canEdit() weiter unten —
+    // das betrifft nur Verschieben/Ausfallen/Wahoo-Push, nicht die Anzeige.
     const isRuhetag = (s) => s.typ === "Ruhetag";
-    const rawCards = getPlanCardsState().cards;
-    const allSessions =
-      Data.activeAthleteId === CONFIG.primaryAthleteId
-        ? rawCards
-        : rawCards.filter((s) => !isRuhetag(s));
+    const allSessions = getPlanCardsState().cards;
 
     // Sessions filtern: ausstehend = zukünftig/heute ODER verschoben (auch wenn neues Datum vergangen)
     const sessions = allSessions
