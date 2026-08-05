@@ -14780,16 +14780,16 @@
       "rpe": null,
       "feelIcu": null,
       "weather": {
-        "temp": 23.4,
-        "tempFeel": 23.3,
-        "humidity": 39,
-        "windSpeed": 7.6,
-        "windDir": 124,
+        "temp": 22.8,
+        "tempFeel": 22.8,
+        "humidity": 42,
+        "windSpeed": 7.3,
+        "windDir": 122,
         "precip": 0,
-        "cloudCover": 42,
+        "cloudCover": 84,
         "weatherCode": 3
       },
-      "wetter": "23.4°C",
+      "wetter": "22.8°C",
       "source": "intervals.icu",
       "ruhepuls": 53,
       "hrv": 31,
@@ -21384,7 +21384,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-05T21:28:07.280Z",
+  "updated": "2026-08-05T22:29:34.788Z",
   "source": "intervals.icu",
   "count": 140
 }
