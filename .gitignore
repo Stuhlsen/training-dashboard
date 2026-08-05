@@ -32,3 +32,13 @@ Thumbs.db
 # Playwright MCP — Snapshot-/Konsolen-Dumps aus Live-Diagnose-Sessions,
 # kein Quellcode (s. .mcp.json für den Server selbst, der bleibt versioniert)
 .playwright-mcp/
+
+# Impeccable — Laufzeit-/Session-State (Server-Token, absolute Pfade, Dedup-Cache),
+# kein Quellcode. Config bleibt versioniert: .impeccable/config.json,
+# .impeccable/design.json, .impeccable/live/config.json
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/live/roots.json
+.impeccable/live/server.json
+.impeccable/live/inject-journal.json
+.impeccable/live/sessions/

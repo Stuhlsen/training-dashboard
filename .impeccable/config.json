@@ -1,0 +1,59 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "assets/css/main.css"
+        ],
+        "createdAt": "2026-08-05T09:31:54.457Z",
+        "reason": "Vererbte Vanilla-Typo-Skala (gewachsen, kein sauberer Ramp); Redesign folgt in Etappe 4 (React), kein Nachdokumentieren vorher"
+      },
+      {
+        "rule": "design-system-font-size",
+        "value": "*",
+        "files": [
+          "assets/css/components.css"
+        ],
+        "createdAt": "2026-08-05T09:31:54.520Z",
+        "reason": "Vererbte Vanilla-Typo-Skala (gewachsen, kein sauberer Ramp); Redesign folgt in Etappe 4 (React), kein Nachdokumentieren vorher"
+      },
+      {
+        "rule": "overused-font",
+        "value": "inter",
+        "createdAt": "2026-08-05T09:32:28.083Z",
+        "reason": "Inter ist bewusst die Fliesstext-Schrift im Drei-Font-System (Sora/IBM Plex Mono/Inter), dominiert naturgemaess nach Zeichenzahl"
+      },
+      {
+        "rule": "side-tab",
+        "value": "*",
+        "files": [
+          "assets/css/components.css"
+        ],
+        "createdAt": "2026-08-05T09:32:28.146Z",
+        "reason": "Metric-Card-Akzentkante ist dokumentiertes Signature-Detail in DESIGN.md"
+      },
+      {
+        "rule": "dark-glow",
+        "value": "*",
+        "files": [
+          "assets/css/components.css"
+        ],
+        "createdAt": "2026-08-05T09:32:28.213Z",
+        "reason": "Aktiver Athleten-Toggle-Glow ist dokumentierte Named Rule (Active Glow) in DESIGN.md"
+      },
+      {
+        "rule": "repeating-stripes-gradient",
+        "value": "*",
+        "files": [
+          "assets/css/components.css"
+        ],
+        "createdAt": "2026-08-05T09:32:28.278Z",
+        "reason": "Z6-Diagonalstreifen-Andeutung ist bewusstes Detail (s. Kopfkommentar .z6-edge), kein Deko-Zufall"
+      }
+    ]
+  }
+}
