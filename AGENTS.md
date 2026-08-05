@@ -646,11 +646,14 @@ Athleten-Varianten!) gesetzt.
 - Athlet-2-Workout-Objekte (`scripts/lib/plan-athlete2.js`) tragen nur `watts`,
   kein `pct` (% FTP) wie bei Athlet 1 — `_renderCard()` in ui/planned.js
   fällt für die Intervall-Beschriftung auf `watts` zurück, wenn `pct` fehlt.
-- Ruhetage (Athlet 2, `typ: "Ruhetag"`) werden im Planungstab bewusst nicht
-  angezeigt — weder als anstehend noch als "verpasst" (kein Ride zu
-  erwarten). Reine Anzeigefilterung in `ui/planned.js::render()`
-  (`allSessions`), `Data.plannedSessions` bleibt vollständig für andere
-  Konsumenten (z.B. `nextPlannedSession` in der Recovery-Detailkarte).
+- Ruhetage werden seit dem 05.08.2026 für BEIDE Athleten im Planungstab
+  angezeigt (`ui/planned.js::render()`, `allSessions = getPlanCardsState().
+  cards`, kein athletenscoped Filter mehr) — die vorherige Ausblendung für
+  Athlet 2 war eine Alt-Konvention aus der Zeit vor D6 (docs/konzept-
+  progressionssteuerung.md), keine bewusste, weiterhin gewollte Athlet-2-
+  Sonderregel. Ruhetag-Karten zählen für beide Athleten weiterhin nie als
+  "verpasst" (`isRuhetag`-Ausnahme in `missedSessions`) — ein nicht
+  gefahrener Ruhetag ist Erfüllung, kein Ausfall.
 
 ## Playwright-MCP — Nutzungskonvention
 
