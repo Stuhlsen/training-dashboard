@@ -7123,11 +7123,11 @@
       "sleepScore": 71,
       "avgSleepingHR": 57,
       "restingHR": null,
-      "hrv": null,
+      "hrv": 63,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": null,
-      "restingEnergy": null,
+      "activeEnergy": 32,
+      "restingEnergy": 742,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -7136,7 +7136,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-04",
+      "hrv": "2026-08-05",
       "restingHR": "2026-08-04",
       "sleepHours": "2026-08-05"
     }
@@ -16565,7 +16565,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-05T08:18:59.348Z",
+  "updated": "2026-08-05T08:37:58.689Z",
   "source": "notion+intervals",
   "count": 84
 }
