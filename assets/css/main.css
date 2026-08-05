@@ -27,7 +27,7 @@
   /* Text */
   --text:  #e2e7ef;
   --dim:   #97a1b3;
-  --dim2:  #5f6878;
+  --dim2:  #747c8a;   /* WCAG AA (4.5:1) auf --bg — war #5f6878 (3.4:1) */
 
   /* Zonen-Skala als Farbsystem (K1) — Farbe trägt Bedeutung */
   --z1:  #4a9a6e;   /* Recovery / positiv */
