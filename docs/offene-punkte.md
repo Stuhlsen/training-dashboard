@@ -382,6 +382,32 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   Fahrten. Prozess dann: `npm run sync` → `node
   scripts/migrate-plan-to-supabase.js` (ohne `--apply`, reine Log-Ausgabe)
   → Werte manuell in `TYPE_DEFAULT_TSS` übernehmen, analog `710a43b`.
+- **`git sync`s gepinnter `--force-with-lease`-Wert schützt nicht, wenn `main`
+  VOR dem Alias-Lauf manuell vorbereitet wurde (05.08.2026, Zwischenfall +
+  sofort behoben, kein Datenverlust)** — beim Verteilen zweier Commits von
+  `dashboard-3.0` nach `main` (Ruhetag-Nachtrag D6 + K-LEER/K-HARTFOLGE-Fix
+  für ausgefallene Karten) wurde `main` lokal per `git merge --ff-only
+  origin/main` + `git cherry-pick` vorbereitet, BEVOR `git sync` lief. Der
+  Alias pinnt `--force-with-lease=main:<lokaler main-HEAD vor dem
+  alias-internen Fetch>` (s. AGENTS.md „Git-Workflow", eingeführt nach dem
+  Vorfall vom 25.07.2026) — dieser Erwartungswert war durch die manuelle
+  Vorbereitung bereits der eigene neue Stand, nicht mehr der zuletzt bekannte
+  Remote-Stand. Zwischen dem letzten eigenen Fetch und dem `git sync`-Lauf
+  war auf `origin/main` real ein neuer automatischer Datensync-Commit
+  gelandet (`942515e`, GitHub Action, `rides.json`/`rides-2.json`) — die
+  Lease griff nicht, der Force-Push überschrieb ihn. Sofort bemerkt (Push-
+  Ausgabe zeigte „forced update" statt Fast-Forward), Commit war noch im
+  lokalen Objekt-Store erreichbar, per `git cherry-pick 942515e` +
+  normalem (nicht-erzwungenem) `git push` wiederhergestellt — kein Datenverlust.
+  **Offene Lücke:** der 25.07.-Fix deckt genau EIN Szenario ab (`main`
+  wochenlang unangetastet, Alias von einem anderen Branch aus aufgerufen),
+  nicht das allgemeinere Muster „`main` wird außerhalb des Alias'
+  eigener Fetch→Commit→Push-Sequenz verändert, dann läuft der Alias".
+  Unimplementiert: entweder `git sync` grundsätzlich nur unmittelbar nach
+  einem frischen `git checkout main` (kein Zwischenschritt) erlauben, oder
+  den Alias selbst um einen zusätzlichen `git fetch`-Vorab-Check erweitern,
+  der vor jeder lokalen `main`-Vorbereitung (Merge/Cherry-Pick) warnt, wenn
+  `origin/main` sich seit dem letzten bekannten Stand bewegt hat.
 
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
