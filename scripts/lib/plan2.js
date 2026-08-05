@@ -34,12 +34,18 @@ export { PLAN2_SCHEDULE, getPlan2WeekPhase };
 // Layer-Grenze-Präzedenzmuster wie oben (core/ → scripts/lib/, nie umgekehrt).
 import { addDaysISO } from "../../assets/js/core/format.js";
 import { RECENT_BLOCK_KEY, PREVIOUS_BLOCK_KEY } from "../../assets/js/core/progress-indicators.js";
+import { fillRestDays } from "../../assets/js/core/plan-rest-days.js";
 
 // === Geplante Einheiten — Datum → Name + Typ ===
 // Ab W2: Mo/Fr = optionale Recovery (bei müden Beinen streichen),
 // Di = Gruppenfahrt ~65 km, Do = Intervalle, Sa = Sweet-Spot-Ausdauerfahrt.
-// SS-Watts bei FTP 193: 84–97 % = 162–187 W.
-export const PLANNED_SESSIONS = {
+// SS-Watts bei FTP 193: 84–97 % = 162–187 W. Mi/So (und jeder sonst freie
+// Tag) werden NICHT einzeln getippt — fillRestDays() unten ergänzt sie
+// automatisch aus der Wochenstruktur (Nachtrag 05.08.2026, docs/
+// konzept-progressionssteuerung.md D6: eine Woche hat immer 7 Tage, ein Tag
+// ohne aktive Session ist innerhalb eines definierten Plan-Zeitraums ein
+// Ruhetag, kein Rateverfahren nötig).
+const ACTIVE_SESSIONS = {
   // ── W0 Übergang (Historie, unverändert) ─────────────────────────
   "2026-06-23": {
     name: "Gruppenfahrt",
@@ -135,14 +141,6 @@ export const PLANNED_SESSIONS = {
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
   },
-  "2026-07-08": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW28",
-    phase: "Sweet Spot",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
   "2026-07-09": {
     name: "Sweet Spot 3×12 min",
     typ: "Sweet Spot",
@@ -189,15 +187,6 @@ export const PLANNED_SESSIONS = {
     details: "Lange Z2-Ausfahrt mit 3×15 min Sweet Spot · zweite Qualitätseinheit der Woche",
   },
 
-  "2026-07-12": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW28",
-    phase: "Sweet Spot",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W3 Sweet Spot ───────────────────────────────────────────────
   "2026-07-13": {
     name: "Z2 Locker",
@@ -214,14 +203,6 @@ export const PLANNED_SESSIONS = {
     phase: "Sweet Spot",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
-  },
-  "2026-07-15": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW29",
-    phase: "Sweet Spot",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-07-16": {
     name: "Sweet Spot 2×20 min",
@@ -269,15 +250,6 @@ export const PLANNED_SESSIONS = {
     details: "Lange Z2-Ausfahrt mit 2×25 min Sweet Spot · zweite Qualitätseinheit der Woche",
   },
 
-  "2026-07-19": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW29",
-    phase: "Sweet Spot",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W4 Erholung ─────────────────────────────────────────────────
   "2026-07-20": {
     name: "Z2 Dauer",
@@ -294,14 +266,6 @@ export const PLANNED_SESSIONS = {
     phase: "Erholung",
     km: 25,
     details: "Recovery · HF <123 bpm · sehr locker",
-  },
-  "2026-07-22": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW30",
-    phase: "Erholung",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-07-23": {
     name: "Z2 Locker",
@@ -328,15 +292,6 @@ export const PLANNED_SESSIONS = {
     details: "Kurze Z2 Lang · Erholungswoche · −50% Volumen · keine Intervalle",
   },
 
-  "2026-07-26": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW30",
-    phase: "Erholung",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W5 Schwelle ─────────────────────────────────────────────────
   "2026-07-27": {
     name: "Z2 Locker",
@@ -353,14 +308,6 @@ export const PLANNED_SESSIONS = {
     phase: "Schwelle",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
-  },
-  "2026-07-29": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW31",
-    phase: "Schwelle",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-07-30": {
     name: "Schwelle 3×8 min",
@@ -409,15 +356,6 @@ export const PLANNED_SESSIONS = {
       "Lange Z2-Ausfahrt · SS-Blöcke im hinteren Drittel (Durability/Ermüdungsresistenz) · unter Do-Intensität",
   },
 
-  "2026-08-02": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW31",
-    phase: "Schwelle",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W6 Schwelle ─────────────────────────────────────────────────
   "2026-08-03": {
     name: "Z2 Locker",
@@ -434,14 +372,6 @@ export const PLANNED_SESSIONS = {
     phase: "Schwelle",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
-  },
-  "2026-08-05": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW32",
-    phase: "Schwelle",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-08-06": {
     name: "Schwelle 3×10 min",
@@ -489,15 +419,6 @@ export const PLANNED_SESSIONS = {
     details: "Lange Z2-Ausfahrt · SS-Blöcke im hinteren Drittel (Durability) · unter Do-Intensität",
   },
 
-  "2026-08-09": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW32",
-    phase: "Schwelle",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W7 Schwelle ─────────────────────────────────────────────────
   "2026-08-10": {
     name: "Z2 Locker",
@@ -514,14 +435,6 @@ export const PLANNED_SESSIONS = {
     phase: "Schwelle",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
-  },
-  "2026-08-12": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW33",
-    phase: "Schwelle",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-08-13": {
     name: "Schwelle 2×20 min",
@@ -570,15 +483,6 @@ export const PLANNED_SESSIONS = {
       "Längste Ausfahrt des Blocks · 60 min SS im hinteren Drittel (Durability-Peak) · unter Do-Intensität",
   },
 
-  "2026-08-16": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW33",
-    phase: "Schwelle",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W8 Erholung ─────────────────────────────────────────────────
   "2026-08-17": {
     name: "Z2 Dauer",
@@ -595,14 +499,6 @@ export const PLANNED_SESSIONS = {
     phase: "Erholung",
     km: 25,
     details: "Recovery · HF <123 bpm · sehr locker",
-  },
-  "2026-08-19": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW34",
-    phase: "Erholung",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-08-20": {
     name: "Z2 Locker",
@@ -629,15 +525,6 @@ export const PLANNED_SESSIONS = {
     details: "Kurze Z2 Lang · −50% Volumen · keine Intervalle",
   },
 
-  "2026-08-23": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW34",
-    phase: "Erholung",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W9 VO2max ───────────────────────────────────────────────────
   "2026-08-24": {
     name: "Z2 Locker",
@@ -654,14 +541,6 @@ export const PLANNED_SESSIONS = {
     phase: "VO2max",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
-  },
-  "2026-08-26": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW35",
-    phase: "VO2max",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-08-27": {
     name: "VO₂max 5×3 min",
@@ -710,15 +589,6 @@ export const PLANNED_SESSIONS = {
       "Lange Z2-Ausfahrt · hält die FTP-Basis warm, während Do den VO₂max-Reiz setzt · kein zweiter Top-End-Tag",
   },
 
-  "2026-08-30": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW35",
-    phase: "VO2max",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W10 VO2max ──────────────────────────────────────────────────
   "2026-08-31": {
     name: "Z2 Locker",
@@ -735,14 +605,6 @@ export const PLANNED_SESSIONS = {
     phase: "VO2max",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
-  },
-  "2026-09-02": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW36",
-    phase: "VO2max",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-09-03": {
     name: "VO₂max 6×3 min",
@@ -791,15 +653,6 @@ export const PLANNED_SESSIONS = {
       "Lange Z2-Ausfahrt · hält die FTP-Basis warm, während Do den VO₂max-Reiz setzt · kein zweiter Top-End-Tag",
   },
 
-  "2026-09-06": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW36",
-    phase: "VO2max",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W11 VO2max ──────────────────────────────────────────────────
   "2026-09-07": {
     name: "Z2 Locker",
@@ -816,14 +669,6 @@ export const PLANNED_SESSIONS = {
     phase: "VO2max",
     km: 65,
     details: "Gruppenfahrt Di · ~60–70 km · HF frei",
-  },
-  "2026-09-09": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW37",
-    phase: "VO2max",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-09-10": {
     name: "VO₂max 4×4 min",
@@ -872,15 +717,6 @@ export const PLANNED_SESSIONS = {
       "Letzte Ausdauer-Qualität vor dem Taper · hält die FTP-Basis warm · kein zweiter Top-End-Tag",
   },
 
-  "2026-09-13": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW37",
-    phase: "VO2max",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
-  },
-
   // ── W12 Taper ───────────────────────────────────────────────────
   "2026-09-14": {
     name: "Z2 Locker",
@@ -897,14 +733,6 @@ export const PLANNED_SESSIONS = {
     phase: "Taper",
     km: 55,
     details: "Letzte Gruppenfahrt · locker bleiben",
-  },
-  "2026-09-16": {
-    name: "Ruhetag",
-    typ: "Ruhetag",
-    week: "2026-KW38",
-    phase: "Taper",
-    km: 0,
-    details: "Bewusst frei · kein Training geplant",
   },
   "2026-09-17": {
     name: "Aktivierung vor Test",
@@ -932,6 +760,17 @@ export const PLANNED_SESSIONS = {
       label: "FTP Ramp Test · alle 1 min +20W bis zum Abbruch",
     },
   },
+};
+
+// Ab W2 (06.07., erste Nicht-Historie-Woche) bis zum Ende der Taper-Woche
+// (20.09., Sonntag nach dem Ramp Test): jeder Tag ohne aktive Session wird
+// automatisch als Ruhetag-Karte ergänzt — deckt auch den bisher genauso
+// lückenhaften Freitag der Taper-Woche (18.09.) und den Sonntag danach
+// (20.09.) mit ab, die beim ersten manuellen Nachtrag (05.08.2026) noch
+// übersehen wurden. W0/W1 (23.06.–04.07., Historie) bleiben unangetastet.
+export const PLANNED_SESSIONS = {
+  ...ACTIVE_SESSIONS,
+  ...fillRestDays(ACTIVE_SESSIONS, "2026-07-06", "2026-09-20", getPlan2WeekPhase),
 };
 
 /**
