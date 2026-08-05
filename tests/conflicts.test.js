@@ -119,6 +119,11 @@ test("K-LEER feuert nicht bei nur 2 Ruhetagen davor", () => {
 // löst K-LEER aus.
 const rest = (id, date) => ({ id, date, typ: "Ruhetag", tssPlanned: 0 });
 
+// Eine ausgefallene Karte macht den Tag ebenso bewusst frei wie ein
+// geplanter Ruhetag (Nachtrag: "ausgefallen" zählt für K-LEER/K-HARTFOLGE
+// wie ein Ruhetag, egal welchen Typs die Karte ursprünglich war).
+const cancelledCard = (id, date, typ = "Schwelle") => ({ id, date, typ, cancelled: true });
+
 test("K-LEER feuert NICHT, wenn die 3 Tage davor Ruhetag-Karten tragen (bewusst geplant)", () => {
   const proj = mkProj([
     { date: "2026-07-20" },
@@ -148,6 +153,34 @@ test("K-LEER feuert weiterhin bei echten Lücken, auch wenn irgendwo eine Ruheta
   ]);
   const cards = [rest("r1", "2026-07-21"), hard("a", "2026-07-24")];
   assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 0);
+});
+
+test("K-LEER feuert NICHT, wenn einer der 3 Tage davor eine ausgefallene statt fehlende Karte trägt", () => {
+  const proj = mkProj([
+    { date: "2026-07-20" },
+    { date: "2026-07-21" },
+    { date: "2026-07-22" },
+    { date: "2026-07-23" },
+    { date: "2026-07-24" },
+  ]);
+  // 22.07. ausgefallen statt einfach leer — bricht die Lücken-Zählung
+  const cards = [cancelledCard("x", "2026-07-22"), hard("a", "2026-07-24")];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 0);
+});
+
+test("K-LEER feuert weiterhin, wenn die ausgefallene Karte außerhalb der 3-Tage-Lücke liegt", () => {
+  // 19.07. ausgefallen, aber 20.–23. bleiben drei echte Lücken vor dem
+  // harten Tag — cancelledDates ist datumsspezifisch, kein globaler Freifahrtschein.
+  const proj = mkProj([
+    { date: "2026-07-19" },
+    { date: "2026-07-20" },
+    { date: "2026-07-21" },
+    { date: "2026-07-22" },
+    { date: "2026-07-23" },
+    { date: "2026-07-24" },
+  ]);
+  const cards = [cancelledCard("x", "2026-07-19"), hard("a", "2026-07-24")];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 1);
 });
 
 /* ── K-WOCHENSPRUNG (bis Fenster E1: K-RAMPE) — zwei volle ISO-Wochen:
@@ -316,6 +349,26 @@ test("K-HARTFOLGE feuert NICHT, wenn eine Ruhetag-Karte dazwischenliegt", () => 
   const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }, { date: "2026-07-26" }]);
   const cards = [hard("a", "2026-07-24"), rest("b", "2026-07-25"), hard("c", "2026-07-26")];
   assert.equal(byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE").length, 0);
+});
+
+test("K-HARTFOLGE feuert NICHT, wenn die Karte dazwischen ausgefallen statt gefahren wurde", () => {
+  // Ausgefallene HARTE Karte am 25.07. — der Tag ist trotzdem bewusst frei,
+  // unabhängig vom ursprünglich geplanten Typ.
+  const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }, { date: "2026-07-26" }]);
+  const cards = [hard("a", "2026-07-24"), cancelledCard("b", "2026-07-25"), hard("c", "2026-07-26")];
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE").length, 0);
+});
+
+test("Ein Tag mit aktiver harter Karte UND einer zusätzlichen ausgefallenen Karte bleibt 'hart' (K-HART feuert weiterhin)", () => {
+  const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }]);
+  const cards = [
+    hard("a", "2026-07-24"),
+    hard("b", "2026-07-25"),
+    { ...easy("x", "2026-07-25"), cancelled: true },
+  ];
+  const c = byRule(detectConflicts(proj, cards, []), "K-HART");
+  assert.equal(c.length, 1);
+  assert.deepEqual(c[0].cardIds.sort(), ["a", "b"]);
 });
 
 test("K-HARTFOLGE feuert NICHT bei unmittelbar aufeinanderfolgenden harten Tagen (Lücke 0, deckt K-HART ab)", () => {

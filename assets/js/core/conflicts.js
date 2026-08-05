@@ -66,20 +66,35 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   // Karten je Datum (nur aktive, nur ab heute — Vergangenheit ist nicht mehr
   // planbar und die Projektion beginnt ohnehin heute).
   const cardsByDate = new Map();
+  // Tage mit mindestens einer AUSGEFALLENEN Karte — bewusst getrennt von
+  // cardsByDate (das bleibt "nur aktive Karten" für K-OVERLAP/hardCardIds/
+  // cardIds). Wer eine Karte ausfallen lässt, hat den Tag bewusst frei
+  // gemacht — die Konfliktlogik soll das wie einen Ruhetag werten, nicht wie
+  // eine echte Planungslücke (s. isRestEquivalent unten).
+  const cancelledDates = new Set();
   for (const c of cards || []) {
+    if (c.cancelled && c.date && c.date >= today) cancelledDates.add(c.date);
     if (c.cancelled || !c.date || c.date < today) continue;
     if (!cardsByDate.has(c.date)) cardsByDate.set(c.date, []);
     cardsByDate.get(c.date).push(c);
   }
 
+  /** Tag ohne aktive Karte, aber mit mindestens einer ausgefallenen — die
+   *  ausgefallene Karte macht den Tag bewusst frei, kein Unterschied zu einem
+   *  geplanten Ruhetag. Ein Tag mit einer AKTIVEN Karte (egal welchen Typs)
+   *  bleibt davon unberührt, auch wenn zusätzlich etwas anderes an diesem Tag
+   *  ausgefallen ist — cardsByDate.has(date) sticht. */
+  const isRestEquivalent = (date) => !cardsByDate.has(date) && cancelledDates.has(date);
+
   /** Lastklasse eines Tages: "hart" (≥1 harte Karte), "aktiv" (moderat/locker),
-   *  "ruhe" (nur Ruhetag-Karte(n), bewusst geplant) oder "leer" (keine Karte
-   *  — echte Planungslücke). Vor D6 (docs/konzept-progressionssteuerung.md)
-   *  fielen "keine Karte" und "Ruhetag-Karte" beide auf "ruhe" — K-LEER
-   *  unten unterscheidet das jetzt bewusst (nur "leer" löst aus). */
+   *  "ruhe" (nur Ruhetag-Karte(n) bzw. nur ausgefallene Karte(n), bewusst
+   *  frei) oder "leer" (keine Karte — echte Planungslücke). Vor D6 (docs/
+   *  konzept-progressionssteuerung.md) fielen "keine Karte" und "Ruhetag-
+   *  Karte" beide auf "ruhe" — K-LEER unten unterscheidet das jetzt bewusst
+   *  (nur "leer" löst aus). */
   const classOf = (date) => {
     const dc = cardsByDate.get(date) || [];
-    if (!dc.length) return "leer";
+    if (!dc.length) return isRestEquivalent(date) ? "ruhe" : "leer";
     const classes = dc.map((c) => intensityClass(c.typ, intensityTable));
     if (classes.includes("hart")) return "hart";
     if (classes.some((k) => k === "moderat" || k === "locker")) return "aktiv";
@@ -218,7 +233,7 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
         let hasRecovery = false;
         for (let k = j + 1; k < i; k++) {
           const dc = cardsByDate.get(days[k].date) || [];
-          if (dc.some((c) => RECOVERY_CARD_TYPES.has(c.typ))) {
+          if (dc.some((c) => RECOVERY_CARD_TYPES.has(c.typ)) || isRestEquivalent(days[k].date)) {
             hasRecovery = true;
             break;
           }
