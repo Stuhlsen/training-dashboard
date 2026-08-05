@@ -15600,15 +15600,6 @@
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
     },
     {
-      "date": "2026-07-08",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW28",
-      "phase": "Sweet Spot",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-07-09",
       "name": "Sweet Spot 3×12 min",
       "typ": "Sweet Spot",
@@ -15669,15 +15660,6 @@
       "details": "Lange Z2-Ausfahrt mit 3×15 min Sweet Spot · zweite Qualitätseinheit der Woche"
     },
     {
-      "date": "2026-07-12",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW28",
-      "phase": "Sweet Spot",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-07-13",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -15694,15 +15676,6 @@
       "phase": "Sweet Spot",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
-    },
-    {
-      "date": "2026-07-15",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW29",
-      "phase": "Sweet Spot",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-07-16",
@@ -15765,15 +15738,6 @@
       "details": "Lange Z2-Ausfahrt mit 2×25 min Sweet Spot · zweite Qualitätseinheit der Woche"
     },
     {
-      "date": "2026-07-19",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW29",
-      "phase": "Sweet Spot",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-07-20",
       "name": "Z2 Dauer",
       "typ": "Z2 Dauer",
@@ -15790,15 +15754,6 @@
       "phase": "Erholung",
       "km": 25,
       "details": "Recovery · HF <123 bpm · sehr locker"
-    },
-    {
-      "date": "2026-07-22",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW30",
-      "phase": "Erholung",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-07-23",
@@ -15828,15 +15783,6 @@
       "details": "Kurze Z2 Lang · Erholungswoche · −50% Volumen · keine Intervalle"
     },
     {
-      "date": "2026-07-26",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW30",
-      "phase": "Erholung",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-07-27",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -15853,15 +15799,6 @@
       "phase": "Schwelle",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
-    },
-    {
-      "date": "2026-07-29",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW31",
-      "phase": "Schwelle",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-07-30",
@@ -15924,15 +15861,6 @@
       "details": "Lange Z2-Ausfahrt · SS-Blöcke im hinteren Drittel (Durability/Ermüdungsresistenz) · unter Do-Intensität"
     },
     {
-      "date": "2026-08-02",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW31",
-      "phase": "Schwelle",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-08-03",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -15949,15 +15877,6 @@
       "phase": "Schwelle",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
-    },
-    {
-      "date": "2026-08-05",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW32",
-      "phase": "Schwelle",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-08-06",
@@ -16020,15 +15939,6 @@
       "details": "Lange Z2-Ausfahrt · SS-Blöcke im hinteren Drittel (Durability) · unter Do-Intensität"
     },
     {
-      "date": "2026-08-09",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW32",
-      "phase": "Schwelle",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-08-10",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -16045,15 +15955,6 @@
       "phase": "Schwelle",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
-    },
-    {
-      "date": "2026-08-12",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW33",
-      "phase": "Schwelle",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-08-13",
@@ -16116,15 +16017,6 @@
       "details": "Längste Ausfahrt des Blocks · 60 min SS im hinteren Drittel (Durability-Peak) · unter Do-Intensität"
     },
     {
-      "date": "2026-08-16",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW33",
-      "phase": "Schwelle",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-08-17",
       "name": "Z2 Dauer",
       "typ": "Z2 Dauer",
@@ -16141,15 +16033,6 @@
       "phase": "Erholung",
       "km": 25,
       "details": "Recovery · HF <123 bpm · sehr locker"
-    },
-    {
-      "date": "2026-08-19",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW34",
-      "phase": "Erholung",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-08-20",
@@ -16179,15 +16062,6 @@
       "details": "Kurze Z2 Lang · −50% Volumen · keine Intervalle"
     },
     {
-      "date": "2026-08-23",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW34",
-      "phase": "Erholung",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-08-24",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -16204,15 +16078,6 @@
       "phase": "VO2max",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
-    },
-    {
-      "date": "2026-08-26",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW35",
-      "phase": "VO2max",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-08-27",
@@ -16275,15 +16140,6 @@
       "details": "Lange Z2-Ausfahrt · hält die FTP-Basis warm, während Do den VO₂max-Reiz setzt · kein zweiter Top-End-Tag"
     },
     {
-      "date": "2026-08-30",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW35",
-      "phase": "VO2max",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-08-31",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -16300,15 +16156,6 @@
       "phase": "VO2max",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
-    },
-    {
-      "date": "2026-09-02",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW36",
-      "phase": "VO2max",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-09-03",
@@ -16371,15 +16218,6 @@
       "details": "Lange Z2-Ausfahrt · hält die FTP-Basis warm, während Do den VO₂max-Reiz setzt · kein zweiter Top-End-Tag"
     },
     {
-      "date": "2026-09-06",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW36",
-      "phase": "VO2max",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-09-07",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -16396,15 +16234,6 @@
       "phase": "VO2max",
       "km": 65,
       "details": "Gruppenfahrt Di · ~60–70 km · HF frei"
-    },
-    {
-      "date": "2026-09-09",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW37",
-      "phase": "VO2max",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-09-10",
@@ -16467,15 +16296,6 @@
       "details": "Letzte Ausdauer-Qualität vor dem Taper · hält die FTP-Basis warm · kein zweiter Top-End-Tag"
     },
     {
-      "date": "2026-09-13",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW37",
-      "phase": "VO2max",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
-    },
-    {
       "date": "2026-09-14",
       "name": "Z2 Locker",
       "typ": "Z2 Dauer",
@@ -16492,15 +16312,6 @@
       "phase": "Taper",
       "km": 55,
       "details": "Letzte Gruppenfahrt · locker bleiben"
-    },
-    {
-      "date": "2026-09-16",
-      "name": "Ruhetag",
-      "typ": "Ruhetag",
-      "week": "2026-KW38",
-      "phase": "Taper",
-      "km": 0,
-      "details": "Bewusst frei · kein Training geplant"
     },
     {
       "date": "2026-09-17",
@@ -16529,6 +16340,213 @@
         "watts": null,
         "label": "FTP Ramp Test · alle 1 min +20W bis zum Abbruch"
       }
+    },
+    {
+      "date": "2026-07-08",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW28",
+      "phase": "Sweet Spot",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-07-12",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW28",
+      "phase": "Sweet Spot",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-07-15",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW29",
+      "phase": "Sweet Spot",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-07-19",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW29",
+      "phase": "Sweet Spot",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-07-22",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW30",
+      "phase": "Erholung",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-07-26",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW30",
+      "phase": "Erholung",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-07-29",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW31",
+      "phase": "Schwelle",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-02",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW31",
+      "phase": "Schwelle",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-05",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW32",
+      "phase": "Schwelle",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-09",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW32",
+      "phase": "Schwelle",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-12",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW33",
+      "phase": "Schwelle",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-16",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW33",
+      "phase": "Schwelle",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-19",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW34",
+      "phase": "Erholung",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-23",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW34",
+      "phase": "Erholung",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-26",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW35",
+      "phase": "VO2max",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-08-30",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW35",
+      "phase": "VO2max",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-09-02",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW36",
+      "phase": "VO2max",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-09-06",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW36",
+      "phase": "VO2max",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-09-09",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW37",
+      "phase": "VO2max",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-09-13",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW37",
+      "phase": "VO2max",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-09-16",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW38",
+      "phase": "Taper",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-09-18",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW38",
+      "phase": "Taper",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
+    },
+    {
+      "date": "2026-09-20",
+      "name": "Ruhetag",
+      "typ": "Ruhetag",
+      "week": "2026-KW38",
+      "phase": "Taper",
+      "km": 0,
+      "details": "Bewusst frei · kein Training geplant"
     }
   ],
   "adjustments": {
@@ -16645,7 +16663,7 @@
       "humidity": 43,
       "windSpeed": 9,
       "windDir": 250,
-      "precipProb": 8,
+      "precipProb": 18,
       "weatherCode": 3,
       "uvMax": 6.2
     },
@@ -16754,7 +16772,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-05T21:06:57.196Z",
+  "updated": "2026-08-05T21:28:01.036Z",
   "source": "notion+intervals",
   "count": 84
 }
