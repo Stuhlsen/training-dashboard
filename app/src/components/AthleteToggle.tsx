@@ -1,12 +1,13 @@
-import { ATHLETES } from "../../config";
+import { ATHLETES } from "../config";
 
 interface AthleteToggleProps {
   activeAthleteId: string;
   onChange: (id: string) => void;
 }
 
-/** Pill-Toggle im Hero-Header — Athletennamen kommen aus `config.ts`
- *  (ATHLETES), keine hartkodierten Namen (Datenschutz-Konvention). */
+/** Geteilter Pill-Toggle (Hero-Header, Etappe 4; wiederverwendet ab Etappe 5)
+ *  — Athletennamen kommen aus `config.ts` (ATHLETES), keine hartkodierten
+ *  Namen (Datenschutz-Konvention). */
 export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps) {
   const activeIndex = Math.max(
     0,

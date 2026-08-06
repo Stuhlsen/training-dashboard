@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3 und 4 sind umgesetzt (06.08.2026), nächste Etappe ist 5
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4 und 5 sind umgesetzt (06.08.2026), nächste Etappe ist 6
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,57 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 5 (06.08.2026)
+
+- **Erster echter CRUD-Bereich in React-UI** — ersetzt den Platzhalter
+  `EventsPage.tsx` (`<h1>Events</h1>`) durch Liste, Formular-Dialog und
+  Löschen, verdrahtet gegen die bereits fertige Datenschicht aus Etappe 2b
+  (`api/hooks/useEvents.ts` + `api/supabase/events.ts`, unverändert). Neue
+  Dateien in `app/src/features/events/`: `EventsPage.tsx`, `EventForm.tsx`
+  (Modal, ersetzt `ui/event-form.js`), `EventRow.tsx`/`EventBadge.tsx`
+  (ersetzen `ui/event-timeline.js`), `events-view-model.ts` (reine
+  Ableitungen: `groupEvents()`, Badge-Label/-Farben, mit Vitest-Tests).
+- **Kein Claude-Design-Import** — für Events existiert kein Design-Projekt.
+  Gebaut direkt gegen `styles/tokens.css` und `GlassCard`, UX an der
+  Vanilla-Referenz orientiert (Formularfelder, Typ-abhängige Sichtbarkeit,
+  Badges).
+- **Event-Historie zeigt bewusst auch Vergangenes** — abweichend von der
+  Vanilla-Timeline (die nur anstehende Events listet) folgt die
+  React-Seite dem ursprünglichen Konzept
+  (`docs/phase-2-konzept-event-verwaltung.md` Abschnitt 6+7): zwei
+  Abschnitte „Anstehend"/„Vergangen", auf Nachfrage entschieden.
+- **`AthleteToggle` nach `app/src/components/` gehoben** (aus
+  `features/hero/`) — war bereits generisch, jetzt von Hero UND Events
+  gemeinsam genutzt statt eines zweiten Widgets.
+- **Renn-Countdown-Chip im Hero nachgezogen** (von Etappe 4 bewusst
+  zurückgestellt) — neue `features/hero/RaceCountdownPill.tsx`, nutzt die
+  bereits getestete `raceCountdown()` aus `useEvents.ts` direkt (kein neuer
+  Testfall nötig). Rendert immer zusätzlich zur Session-Karte, nie an ihrer
+  Stelle (Muster wie `assets/js/ui/overview.js::_renderSessionPill`).
+- **Sichtbarkeits-Matrix-Zeile `events` geprüft** (Playwright gegen
+  `dashboard-dev`, Accounts Stuhlsen/Trainer-ST/hc_diZee): Athlet selbst
+  voller CRUD (anlegen/bearbeiten/löschen, inkl. `is_test`), Trainer
+  voller CRUD für seinen Athleten mit „(für Stuhlsen)"-Hinweis im
+  Formulartitel, Trainer ohne Beziehung (hc_diZee) read-only ohne
+  „+ hinzufügen". **Anon/Besucher-Zeile nicht prüfbar** — s. echter Fund
+  unten.
+- **Echter Fund, bewusst nicht in dieser Etappe behoben:**
+  `app/src/components/ProtectedRoute.tsx` (Etappe 1) sperrt ALLE Routen
+  komplett hinter Login, `/events` ist für Besucher aktuell unerreichbar —
+  widerspricht der Sichtbarkeits-Matrix (E1: `events` öffentlich lesbar).
+  Die restliche Events-UI ist bereits korrekt auf Anon-Lesen vorbereitet
+  (nur `canWrite`-gated Buttons), nur die Route selbst blockt. Auf
+  Rückfrage zurückgestellt: App-weite Routing-Änderung, gehört eher zu
+  Etappe 10 (Umschaltung/Regressionsdurchlauf) als in eine einzelne
+  Bereichs-Etappe. Dokumentiert in `docs/offene-punkte.md`.
+- **Abnahme:** in `/app/` (`cd app`, PowerShell ohne `&&`): `npx tsc -b`
+  sauber, `npx vitest run` 784/784 grün (779 + 5 neue
+  `events-view-model.test.ts`-Tests), `npx eslint .` ohne neue Errors.
+  Manuell gegen `dashboard-dev` per Playwright: Anlegen/Bearbeiten/Löschen
+  (Rennen + Sonstiges, Priorität, Ziel-FTP, `is_test`, Notiz), Escape
+  schließt den Dialog, Countdown-Chip im Hero zeigt ein echtes
+  Renn-Event korrekt.
 
 ## Design-Revision Hero: Hero-Weitwinkel (06.08.2026, nach Etappe 4)
 
@@ -303,13 +354,13 @@ Drei Entscheidungen, die beim Umsetzen anfielen:
 
 **Ergebnis:** s. "Änderungen durch Etappe 4" oben. Kein `claude_design`-MCP nötig (5.7-Korrektur bereits vor dieser Etappe geklärt) — Zugriff lief über `DesignSync.get_project`/`list_files`/`get_file` direkt mit der Projekt-ID.
 
-### Etappen 5–9 — Restliche Bereiche, je eine eigene Etappe
+### Etappen 6–9 — Restliche Bereiche, je eine eigene Etappe
 
-Jede wird erst grob geplant, wenn Etappe 4 abgenommen ist — Detailplanung folgt dem Muster der bisherigen Phasenkonzepte. Jede übernimmt ihre Sichtbarkeits-Matrix-Zeilen ins Abnahmekriterium (s.o.).
+Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detailplanung folgt dem Muster der bisherigen Phasenkonzepte. Jede übernimmt ihre Sichtbarkeits-Matrix-Zeilen ins Abnahmekriterium (s.o.).
 
 | Etappe | Bereich | Modell | Besonderheit |
 |---|---|---|---|
-| 5 | **Events** | `[SO]` | Erster CRUD-Bereich: Formular-Komponenten, Mutations-Hooks und `write-authorization`-Gates werden hier erstmals in echter React-UI gebaut und gehärtet (Muster-Etappe für alles Folgende). Inkl. `is_test`-Feld-UI |
+| 5 | **Events** | `[SO]` | ✅ umgesetzt (06.08.2026) — s. "Änderungen durch Etappe 5" oben. Erster CRUD-Bereich: Formular-Komponenten, Mutations-Hooks und `write-authorization`-Gates erstmals in echter React-UI gebaut und gehärtet (Muster-Etappe für alles Folgende), inkl. `is_test`-Feld-UI |
 | 6 | **Planungstab** | `[OP]` | Drag&Drop: Neubewertung, ob die bestehende Pointer-Events-Logik übernommen oder React-nativ gelöst wird. **Karten-Portierungsposten** (alle in Vanilla bereits gebaut, hier nur neu geschrieben, nicht neu konzipiert): Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel an der Ist-Fahrt, Wirkungsanzeige (ΔFitness/ΔErmüdung/ΔForm) auf allen Kartentypen inkl. Vorher-Nachher beim Verschieben, Ruhetag-/Recovery-Karten (rest/recovery-Dreiteilung, Erholungswochen-Erkennung, angepasste K-LEER-Logik; seit 05.08. athletenagnostisch aus der Wochenstruktur abgeleitet statt einzeln getippt — `core/plan-rest-days.js::fillRestDays` — und für BEIDE Athleten sichtbar, nicht mehr athlete1-exklusiv), Kartenhinweise als Tooltip-Chip (seit 06.08., `core/plan-feedback.js` erweitert + `planned.css`/`planned.js`) statt einzeln ausgeschriebener Hinweistexte |
 | 7 | **Trainer-Dashboard + Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. **Briefing-/Export-Portierungsposten** (in Vanilla bereits gebaut): Leiterstand-Anzeige im Export-Panel, Blockstart-Dialog zur Familienwahl, Stufenvorschlag im Briefing inkl. Sonderfälle ("kein Vorschlag ableitbar", "eingefroren (Taper)"), Leitplanken-Sektion (K-RAMPE/K-HARTFOLGE/K-WOCHENTSS/K-TID), Fortschrittsindikatoren, Preset-Kachelreihe |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |

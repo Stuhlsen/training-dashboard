@@ -4,14 +4,16 @@ import { useRides } from "../../api/hooks/useRides";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useTodayCheckin } from "../../api/hooks/useWellbeing";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useEvents, raceCountdown } from "../../api/hooks/useEvents";
 import { useMouseParallax } from "../../hooks/useMouseParallax";
 import { athleteConfig } from "../../config";
 import { localISODate } from "../../core/format.js";
 import { GlassCard } from "../../components/GlassCard";
-import { AthleteToggle } from "./AthleteToggle";
+import { AthleteToggle } from "../../components/AthleteToggle";
 import { BriefingCard, LEVEL_COLOR } from "./BriefingCard";
 import { FtpRings } from "./FtpRings";
 import { PowerScale } from "./PowerScale";
+import { RaceCountdownPill } from "./RaceCountdownPill";
 import { WeatherCard } from "./WeatherCard";
 import { buildHeroCore, buildPowerScale, type HeroCoreInput } from "./hero-view-model";
 
@@ -32,6 +34,11 @@ export function HeroPage() {
   const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
   const { data: checkin } = useTodayCheckin();
+  // Eigene, von der Session-Karte unabhängige Datenquelle (Events statt
+  // Plankarten) — auch ein Athlet ohne eigenen Trainingsplan kann Events
+  // haben (Muster wie overview.js::_renderSessionPill).
+  const { data: events } = useEvents(activeAthleteId);
+  const countdown = raceCountdown(events ?? [], TODAY);
   // Der Morgen-Check-in hängt an auth.uid(), nicht am Athleten-Toggle
   // (useWellbeing.ts) — nur anwenden, wenn der angezeigte Athlet auch der
   // eingeloggte Selbst ist, sonst bekäme ein Toggle auf den anderen
@@ -179,6 +186,7 @@ export function HeroPage() {
             )}
 
             {vm.weatherToday && <WeatherCard weather={vm.weatherToday} />}
+            <RaceCountdownPill countdown={countdown} />
           </div>
 
           <div style={{ transform: "translateZ(88px)" }}>
