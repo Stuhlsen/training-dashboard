@@ -1,9 +1,32 @@
 /* Design-Tokens — abgeglichen mit docs/chart-grundlagen.md §2 und den
    Basistoken aus assets/css/main.css (Namen stabil halten, spätere
-   Chart-Portierung spiegelt sie). Nur deklariert, noch nicht auf
-   Komponenten angewendet — Etappe 4 übernimmt den echten Abgleich mit den
-   Claude-Design-Export-Tokens. */
+   Chart-Portierung spiegelt sie). Der Block unten (--ink…--e3) ist der
+   Abgleich mit den echten Werten aus dem Claude-Design-Export (Projekt
+   "Rad-Dashboard Hero-Redesign") — eigenes Namensschema, ergänzt statt die
+   Chart-Tokens oben umzubenennen (die sind für die spätere Chart-Portierung
+   reserviert und werden von noch keiner Komponente gelesen, s.
+   docs/vorlage-design-import.md).
+
+   Quelle seit der Design-Revision: Hero-Weitwinkel.dc.html (löst
+   Hero-Ebenen.dc.html aus Etappe 4 als Design-Quelle für den Hero-Bereich
+   ab — echte Revision derselben Design-Linie, kein Parallel-Set). */
 :root {
+  /* Aus dem Hero-Redesign-Export (helles Blau als Primärakzent, Glass-
+     Flächen, Ampelfarben für die Belastungsempfehlung) */
+  --ink: oklch(0.98 0.005 260);
+  --ink-2: oklch(0.86 0.008 260);
+  --ink-3: oklch(0.68 0.012 260);
+  --accent: oklch(0.72 0.12 250);
+  --accent-2: oklch(0.85 0.08 250);
+  --ok: oklch(0.75 0.13 155);
+  --warn: oklch(0.84 0.13 90);
+  --danger: oklch(0.66 0.18 25);
+  --glass: rgba(14, 17, 25, 0.62);
+  --glass-2: rgba(20, 24, 34, 0.52);
+  --hair: rgba(255, 255, 255, 0.09);
+  --e2: 0 18px 44px -14px rgba(0, 0, 0, 0.62), 0 2px 8px rgba(0, 0, 0, 0.35);
+  --e3: 0 46px 90px -24px rgba(0, 0, 0, 0.72), 0 10px 28px rgba(0, 0, 0, 0.45);
+
   /* Rollenfarben (Charts) */
   --role-primary: #4a9eff;
   --role-secondary: #e0736b;
@@ -36,6 +59,10 @@
   --radius-sm: 8px;
   --radius-lg: 22px;
   --radius-xl: 28px;
+  /* Pill-Radius (bestehend, assets/css/main.css) — bisher nicht nach
+     tokens.css portiert; Hero-Athletentoggle/-Slider sind die ersten
+     app/-Konsumenten. */
+  --pill: 999px;
 
   /* Fonts */
   --font-disp: "Sora", system-ui, -apple-system, sans-serif;

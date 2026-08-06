@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b und 3 sind umgesetzt (06.08.2026), nächste Etappe ist 4
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3 und 4 sind umgesetzt (06.08.2026), nächste Etappe ist 5
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,102 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Design-Revision Hero: Hero-Weitwinkel (06.08.2026, nach Etappe 4)
+
+Alex reichte im selben Design-Projekt eine neue Hero-Version nach:
+`Hero-Weitwinkel.dc.html` löst `Hero-Ebenen.dc.html` als Design-Quelle für
+den Hero-Bereich ab. Geht über den ursprünglichen Etappe-4-Rahmen hinaus —
+auf Nachfrage bestätigt, kein eigenmächtiger Scope-Sprung:
+
+- **Viewport-weiter App-Hintergrund** (Foto + zwei Gradient-Overlays,
+  `position:fixed`) statt eines auf die Hero-Karte begrenzten Hintergrunds.
+  **Korrektur der Etappe-4-Korrektur weiter unten:** "kein Foto" traf auf
+  `Hero-Ebenen.dc.html` zu, nicht mehr auf diese Revision. Neu:
+  `app/src/components/AppBackground.tsx`, einmal in `App.tsx` gemountet
+  (Geschwister von `<Routes>`) — deckt **auch die Login-Seite** ab (Alex'
+  ausdrücklicher Wunsch), ohne den Hintergrund doppelt in `LoginPage.tsx`
+  und `Layout.tsx` einzubauen.
+  - **Einschränkung beim Übernehmen:** Das Foto lag im Design-Projekt nur als
+    Base64-Data-URI in `.image-slots.state.json` (via `image-slot.js`, dem
+    "omelette"-Bildplatzhalter-Mechanismus). `DesignSync.get_file` deckelt
+    bei 256 KiB — die Datei kam mit `"truncated":true` zurück, ein
+    vollständiges Bild ließ sich daraus nicht rekonstruieren. Alex hat die
+    Datei direkt geliefert (`app/public/background.png`, 1376×768, per
+    Playwright-Screenshot gegengeprüft — rendert korrekt).
+  - **Stacking-Falle gefixt:** `position:fixed`-Hintergrund + unstyled
+    Login/Layout-Inhalte (kein eigenes `position`) hätten sich nach
+    CSS2.1-Stapelreihenfolge sonst verschluckt — nicht-positionierte
+    In-Flow-Inhalte malen VOR positionierten Nachfahren, auch bei
+    `z-index:0`/`auto`. Fix: `<Routes>` in App.tsx steckt in einem
+    `position:relative;z-index:1`-Wrapper, macht jede Route unabhängig von
+    ihrer eigenen Positionierung zum "positionierten" Nachfahren.
+  - Nebeneffekt behoben: die zuvor rein weiße Login-Fläche (kein globaler
+    Seitenhintergrund) — `index.css` setzt jetzt `body { background:
+    var(--surface-page) }`.
+- **Mousemove-Parallax/3D-Tilt** reimplementiert (Alex' Wunsch): neuer
+  geteilter Hook `app/src/hooks/useMouseParallax.ts` (NEUES Verzeichnis,
+  bisher gab es nur `api/hooks/` für Datenzugriffs-Hooks) — schreibt das
+  Transform imperativ über eine Ref, kein `setState` pro Mausbewegung.
+  Zwei Instanzen: Hintergrund-Pan (`AppBackground`) und Content-"Plate"-Tilt
+  (`HeroPage`). Respektiert `prefers-reduced-motion` (der Export selbst
+  prüft das nicht, ist aber Hauskonvention).
+- **Neue Wetter-Kachel** ("Wetter · heute", `WeatherCard.tsx`) — bisher gab
+  es Wetter nur inline in der Session-Pille, gebunden ans Datum der
+  nächsten Plankarte. Neu: immer HEUTE, eigene Kachel,
+  `hero-view-model.ts::buildWeatherToday()` aus `forecast[todayISO]`.
+  `HeroSession.weather` entfällt ersatzlos (wäre totes Feld geworden).
+  Genutzte Felder (`tempFeel`/`windSpeed`/`windDir`/`precipProb`) liefert
+  `scripts/lib/weather.js` bereits vollständig — keine neue Datenquelle.
+  Eine `note`-Zeile aus dem Export ("Gutes Fenster 16–19 Uhr") ist
+  Fantasietext ohne reale Datenbasis und entfällt.
+- **Bug beim Re-Sync gefunden und gefixt:** die Leistungsskala-Pins
+  (Ramp/eFTP/Ziel) hatten in der Etappe-4-Fassung ein reines `isGoal`-Flag
+  statt eines `kind`-Diskriminanten — der Höher-mit-Glow-Stil war dabei
+  fälschlich dem Ziel- statt dem eFTP-Pin zugeordnet (`HeroPin.kind:
+  "ramp"|"eftp"|"goal"` in `hero-view-model.ts`, korrigiert + Regressionstest
+  in `hero-view-model.test.ts`).
+- Neues Grid-Layout (3 Zellen: Identität+Workout+Wetter / Belastungsempfehlung
+  / FTP-Ringe) statt des bisherigen Flex-Layouts; `PowerScale` intern jetzt
+  2-spaltig (Leistungsskala/What-if nebeneinander statt gestapelt).
+- `tokens.css`s `--ink…--e3`-Block auf die neuen Export-Werte überschrieben
+  (echte Revision derselben Design-Linie, kein Parallel-Set).
+- **Abnahme:** in `/app/` (`cd app`, PowerShell ohne `&&`): `npx tsc -b`
+  sauber, `npx vitest run` 779/779 grün, `npx eslint .` ohne neue Errors.
+
+## Änderungen durch Etappe 4 (06.08.2026)
+
+- Erster echter Durchlauf des Design-Übernahme-Workflows (5.7) abgeschlossen:
+  Hero-Projekt (`fed5c129-1eb1-4ea8-a950-ad70fa39ddad`, `Hero-Ebenen.dc.html`)
+  gelesen und als `app/src/features/hero/` umgesetzt.
+- `docs/vorlage-design-import.md` neu, als Ergebnis dieses Durchlaufs — feste
+  Vorlage für Etappe 5–9.
+- **Belastungsempfehlung-Kachel neu im Hero** (gab es vorher nur im
+  Vanilla-Analyse-Tab): voll verdrahtet über `core/briefing.js::buildBriefing()`
+  + `assessReadiness()` + `tsbTrend()` + `useTodayCheckin()`-Subjective-Signal,
+  zusammengesetzt in `app/src/features/hero/hero-view-model.ts`.
+- Neuer geteilter Hook `app/src/api/hooks/useActiveAthlete.ts` (Athlet-Toggle +
+  `localStorage`-Persistenz) — spart Etappe 5 das Nachbauen; noch pro
+  Komponenten-Instanz eigener State (kein Context), da bislang nur eine Stelle
+  (Hero) ihn braucht.
+- Zwei geteilte Bausteine nach `app/src/components/`: `GlassCard` (Glass/Blur-
+  Card-Hülle), `ProgressRing` (SVG-Fortschrittsring, `pathLength`-Muster aus
+  dem Export statt Umfangs-Berechnung).
+- `tokens.css` um den Export-Token-Abschnitt ergänzt (`--ink`/`--accent`/
+  `--ok`/`--warn`/`--danger`/`--glass`/`--hair`/`--e2`/`--e3`) — bestehende
+  Chart-Tokens (für Etappe 8 reserviert) unangetastet, wie in 5.7 (unten)
+  vorgesehen.
+- **Korrektur ggü. der ursprünglichen Kurzbeschreibung dieser Etappe**
+  ("generiertes Hintergrundfoto"): der tatsächliche Export hat kein Foto —
+  der Hero-Hintergrund ist ein reiner CSS-Gradient (kühles Navy, warmer Glow
+  bei 63%/60%). Keine Bildintegration nötig.
+- Bewusst nicht Teil dieser Etappe: der Renn-Countdown-Chip aus der Vanilla-
+  Session-Pill (`state/events.js::raceCountdown`) — das ist Events-Fachlogik
+  und wandert mit Etappe 5 (Events) als React-Hook.
+- **Abnahme:** in `/app/` (`cd app`, PowerShell ohne `&&`): `npx tsc -b`
+  sauber, `npx vitest run` 776/776 grün
+  (769 + 7 neue `hero-view-model.test.ts`-Tests, Regressionsnachweis wie in
+  Etappe 2a/2b/3), `npx eslint .` ohne neue Errors.
 
 ## Vor Etappe 4 geklärt (06.08.2026)
 
@@ -198,12 +294,14 @@ Drei Entscheidungen, die beim Umsetzen anfielen:
 
 **Nebenbefund:** `getSport()` gab für `"constructor"`/`"toString"` die geerbte Object-Funktion statt `null` zurück — beim Schreiben von `registry.test.ts` aufgefallen, mit `Object.hasOwn` gefixt. Ebenfalls aufgefallen: `CONFIG.powerScaleMax` (300 W) in `assets/js/state/config.js` wird von keiner Stelle gelesen (über `assets/`, `scripts/`, `tests/` gegengeprüft) — der tote Wert ist bewusst nicht mit umgezogen, im Vanilla-Baum aber unangetastet gelassen.
 
-### Etappe 4 — Erste echte Komponente: Hero-Bereich `[SO]`
+### Etappe 4 — Erste echte Komponente: Hero-Bereich `[SO]` — ✅ umgesetzt (06.08.2026)
 - Erster echter Durchlauf des Design-Übernahme-Workflows (5.7): `claude_design`-MCP einrichten (`/design-login`), Hero-Projekt importieren, nach Rezept konvertieren
 - `tokens.css` aus den CSS-Variablen des Exports befüllen/abgleichen (dunkler warmer Hintergrund mit Glow, große Radien, helles Blau als Primärakzent, zwei FTP-Ringe, generiertes Hintergrundfoto)
 - `docs/vorlage-design-import.md` entsteht hier als Ergebnis des ersten Durchlaufs — was sich bewährt, wird die feste Vorlage für alle weiteren Bereiche
 - Erste Komponenten in `components/` entstehen als Nebenprodukt
 - **Abnahmekriterium:** Hero-Bereich zeigt echte Daten aus den Etappe-2b-Hooks, visuell nach Vorgabe; Vorlage dokumentiert
+
+**Ergebnis:** s. "Änderungen durch Etappe 4" oben. Kein `claude_design`-MCP nötig (5.7-Korrektur bereits vor dieser Etappe geklärt) — Zugriff lief über `DesignSync.get_project`/`list_files`/`get_file` direkt mit der Projekt-ID.
 
 ### Etappen 5–9 — Restliche Bereiche, je eine eigene Etappe
 
