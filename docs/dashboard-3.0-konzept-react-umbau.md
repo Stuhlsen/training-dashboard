@@ -10,6 +10,11 @@
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
 
+## Vor Etappe 4 geklärt (06.08.2026)
+
+- **5.6 entschieden:** Vorschau bleibt vorerst rein lokal (`npm run dev`), zweiter Pages-Deploy zurückgestellt statt verworfen — Auslöser für ein Umschwenken benannt
+- **5.7 korrigiert:** kein `claude_design`-MCP nötig, das eingebaute `DesignSync` liest das Design-Projekt über die Projekt-ID; Hero-Projekt-ID und Dateiliste dort festgehalten
+
 ## Änderungen durch Etappe 3 (06.08.2026)
 
 - Etappe-3-Ergebnis eingetragen, inkl. der Abgrenzung „was ist sportartspezifisch und was ist ausdauersportübergreifend"
@@ -240,14 +245,22 @@ Umsetzung: `app/src/api/pipeline.ts` + `useRides()`. Zwei Punkte, die dabei zu k
 - **Dev-Server.** Der Vite-Dev-Server wurzelt in `/app/`, `data/` liegt im Repo-Root daneben. `serveRepoData()` in `app/vite.config.ts` liefert es unter `/data` aus (`apply: "serve"`, ~25 Zeilen, keine neue Dependency, kein Kopieren in den Build — eine Kopie wäre ein zweiter, sofort veraltender Stand). Verifiziert: `GET /data/rides.json` → 200, `application/json`, 387.249 Bytes.
 - **Pfadbildung.** Über `import.meta.env.BASE_URL`. Ein absoluter `/data/…`-Pfad wäre auf GitHub Pages falsch (Projektseite unter `/training-dashboard/`), ein relativer `./data/…` bräche bei tiefen Client-Routen wie `/planning`. In Produktion (Etappe 10) liegt `/data/` neben der gebauten App.
 
-### 5.6 Wie die React-Version während des Parallelbetriebs sichtbar ist (Empfehlung steht)
-G2 sagt, die alte Seite bleibt live — GitHub Pages liefert aber von `main`. Drei Wege: (a) nur lokal per `npm run dev` ansehen bis zur Umschaltung, (b) zweiter Pages-Deploy aus dem `dashboard-3.0`-Branch unter eigenem Pfad, (c) externer Preview-Dienst. **Empfehlung: (a) für Etappe 1–3** (da gibt es ohnehin nichts Anzusehendes), **ab Etappe 4 dann (b)**, damit Design-Iterationen im echten Browser auf echten Geräten beurteilbar sind. Entscheidung fällt spätestens zu Etappe 4.
+### 5.6 Wie die React-Version während des Parallelbetriebs sichtbar ist (**entschieden**, 06.08.2026)
+G2 sagt, die alte Seite bleibt live — GitHub Pages liefert aber von `main`. Drei Wege: (a) nur lokal per `npm run dev` ansehen bis zur Umschaltung, (b) zweiter Pages-Deploy aus dem `dashboard-3.0`-Branch unter eigenem Pfad, (c) externer Preview-Dienst. Die frühere Empfehlung war (a) für Etappe 1–3 und ab Etappe 4 dann (b).
+
+**Entschieden: bleibt vorerst bei (a)** — nur lokal per `npm run dev`. Der zweite Pages-Deploy ist damit nicht verworfen, sondern zurückgestellt; er kostet Workflow-Pflege, und ob Design-Iterationen ihn wirklich brauchen, zeigt sich erst am ersten echten Bereich. **Auslöser für ein Umschwenken auf (b):** sobald eine Beurteilung auf einem echten Gerät (Telefon/Tablet) nötig wird, die der Desktop-Browser nicht ersetzt.
 
 ### 5.7 Design-Übernahme-Workflow (festgelegt, 04.08.2026)
 
 **Befund aus dem echten Export (Rad-Dashboard_Hero-Redesign):** Kein Tailwind, kein JSX, keine Module. Statische Varianten (`*.dc.html`) sind pures HTML mit Inline-Styles plus CSS-Variablen-Tokens (oklch: `--ink`, `--accent`, `--glass`, `--hair` …). Interaktive Varianten sind React-**Klassenkomponenten** auf proprietärer Runtime: `DCLogic`-Basisklasse aus `support.js`, UI über `h(...)`-Aufrufe, Mount via `x-dc`-Custom-Element, Props als `data-props`-JSON.
 
-**Festgelegter Weg:** Übernahme per `claude_design`-MCP (Claude Design generiert den Import-Prompt mit Projekt-URL und Fokus-Dateien; Claude Code liest das Design-Projekt direkt, Auth via `/design-login`) — kein Zip-Umweg. Der von Claude Design generierte Prompt wird in die feste Vorlage **`docs/vorlage-design-import.md`** eingesetzt, die die Projektregeln ergänzt:
+**Festgelegter Weg:** Claude Design generiert per „Send to Claude Code" den Import-Prompt mit Projekt-URL und Fokus-Dateien, Claude Code liest das Design-Projekt direkt — kein Zip-Umweg. Der Prompt wird in die feste Vorlage **`docs/vorlage-design-import.md`** eingesetzt, die die Projektregeln ergänzt:
+
+> **Korrektur (06.08.2026, geprüft):** Der generierte Prompt nennt einen `claude_design`-MCP-Server (`https://api.anthropic.com/v1/design/mcp`, Auth via `/design-login`). **Der wird nicht gebraucht** — das eingebaute `DesignSync`-Tool kommt mit der Projekt-ID direkt an dieselben Dateien, die Freigabe hängt bereits am claude.ai-Login. Kein `.mcp.json`-Eintrag, kein OAuth-Setup. Gegengeprüft am Hero-Projekt: `get_project` und `list_files` liefern beide.
+>
+> Eine Stolperstelle: `DesignSync.list_projects` filtert auf **beschreibbare Design-System-Projekte** und gibt für ein reguläres Design-Projekt eine leere Liste zurück — das ist kein Fehler und kein fehlender Zugriff. Der Weg führt immer über die Projekt-ID aus der URL, nie über die Liste.
+>
+> Hero-Projekt: `fed5c129-1eb1-4ea8-a950-ad70fa39ddad` („Rad-Dashboard Hero-Redesign", `type: PROJECT_TYPE_PROJECT`). Enthält neben `Hero-Ebenen.dc.html` + `support.js` auch vier Explorer-Entwürfe — die gehören zu Etappe 8, nicht zum Hero-Import.
 
 1. **Tokens:** Farben/Radien/Schatten ausschließlich über `styles/tokens.css`; Werte aus dem Export dorthin abgleichen, keine zweite Wahrheit im Komponenten-Code
 2. **Runtime:** `DCLogic`/`support.js` **nicht** übernehmen — Logik als Function Components mit Hooks neu, `data-props` werden echte Component-Props
