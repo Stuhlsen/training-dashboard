@@ -1,0 +1,44 @@
+/* Design-Tokens — abgeglichen mit docs/chart-grundlagen.md §2 und den
+   Basistoken aus assets/css/main.css (Namen stabil halten, spätere
+   Chart-Portierung spiegelt sie). Nur deklariert, noch nicht auf
+   Komponenten angewendet — Etappe 4 übernimmt den echten Abgleich mit den
+   Claude-Design-Export-Tokens. */
+:root {
+  /* Rollenfarben (Charts) */
+  --role-primary: #4a9eff;
+  --role-secondary: #e0736b;
+  --role-positive: #6fc48c;
+  --role-status: #e8b73f;
+
+  /* Flächen */
+  --surface-page: #08090c;
+  --surface-card: linear-gradient(180deg, #1a1d23 0%, #141619 46%);
+  --surface-tile: #181b21;
+  --surface-tile-hover: #1d2027;
+  --surface-tooltip: rgba(24, 27, 33, 0.96);
+
+  /* Textleiter */
+  --text-ink: #f0f2f5;
+  --text-soft: #9aa0a8;
+  --text-label: #6b7178;
+  --text-faint: #565b62;
+
+  /* Zonenfarben (bestehend, assets/css/main.css) */
+  --z1: #4a9a6e;
+  --z2: #4a7fa8;
+  --z3: color-mix(in oklch, var(--ss) 75%, black 25%);
+  --ss: #e08a3c;
+  --thr: #d94f4f;
+  --vo2: #a24ad0;
+
+  /* Radien */
+  --radius: 12px;
+  --radius-sm: 8px;
+  --radius-lg: 22px;
+  --radius-xl: 28px;
+
+  /* Fonts */
+  --font-disp: "Sora", system-ui, -apple-system, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --font-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+}

@@ -29,6 +29,10 @@ Thumbs.db
 # Backup-Dateien
 *.bak
 
+# /app/ (Vite+React, Dashboard 3.0 — Etappe 1)
+app/dist/
+app/*.local
+
 # Playwright MCP — Snapshot-/Konsolen-Dumps aus Live-Diagnose-Sessions,
 # kein Quellcode (s. .mcp.json für den Server selbst, der bleibt versioniert)
 .playwright-mcp/
