@@ -15127,6 +15127,115 @@
       "sleepHours": 8.1,
       "feel": null,
       "notizen": null
+    },
+    {
+      "name": "Threshold 3×12 Min + Sprint",
+      "week": null,
+      "phase": null,
+      "typ": "Schwelle",
+      "typPlanned": "Schwelle",
+      "typDetected": "Z2 Lang",
+      "typDetection": {
+        "type": "Z2 Lang",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.596,
+            "note": "NP 158W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "227 min",
+            "note": "≥ 120 min → Einstufung als Z2 Lang"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 85% · Z3/Z4+ 14% · Z5+ 1%",
+            "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-lang"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
+      "date": "2026-08-06",
+      "startTime": "2026-08-06T09:01:36",
+      "activityId": "i173040906",
+      "km": 86.6,
+      "min": 227,
+      "kmh": 22.8,
+      "watt": 137,
+      "maxWatt": null,
+      "np": 158,
+      "hf": 117,
+      "hfMax": 147,
+      "kad": 79,
+      "hoehe": 255,
+      "tss": 135,
+      "if": 0.6,
+      "vi": 1.15,
+      "trimp": 161,
+      "ctl": 31.2,
+      "atl": 38.1,
+      "tsb": -6.9,
+      "decoupling": 15,
+      "dtl": 135,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 6109
+        },
+        {
+          "id": "Z2",
+          "secs": 5495
+        },
+        {
+          "id": "Z3",
+          "secs": 1540
+        },
+        {
+          "id": "Z4",
+          "secs": 340
+        },
+        {
+          "id": "Z5",
+          "secs": 110
+        },
+        {
+          "id": "Z6",
+          "secs": 42
+        },
+        {
+          "id": "Z7",
+          "secs": 4
+        },
+        {
+          "id": "SS",
+          "secs": 608
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 24.1,
+        "tempFeel": 23.1,
+        "humidity": 46,
+        "windSpeed": 12.6,
+        "windDir": 282,
+        "precip": 0,
+        "cloudCover": 43,
+        "weatherCode": 2
+      },
+      "wetter": "24.1°C",
+      "source": "intervals.icu",
+      "ruhepuls": 57,
+      "hrv": null,
+      "avgSleepingHR": null,
+      "sleepHours": 8.3,
+      "feel": null,
+      "notizen": null
     }
   ],
   "wellness": [
@@ -21400,7 +21509,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-06T08:16:16.992Z",
+  "updated": "2026-08-06T11:45:47.714Z",
   "source": "intervals.icu",
-  "count": 140
+  "count": 141
 }
