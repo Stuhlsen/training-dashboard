@@ -4,10 +4,9 @@
 **Status:** Konzept, noch nicht umgesetzt — dieses Dokument ist die Grundlage für den ersten Umsetzungs-Chat
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
-> **Vorbedingung vor Etappe 1 (aktualisiert):**
-> 1. Das Push-Vorhaben (Rebase der lokalen Commits aus dem Progressionssteuerungs-Konzept gegen die Auto-Sync-Commits) muss abgeschlossen und `main` sauber gepusht sein. Der Branch zweigt vom vollständigen Stand ab — sonst fehlen dem neuen Projekt ganze Featurestränge und werden später doppelt gebaut.
->    **Status 06.08.: weiterhin offen.** `dashboard-3.0` liegt (Merge-Base `e95edd5`) hinter `main` zurück um drei inhaltliche Commits: `865c709` (Ruhetage aus Wochenstruktur ableiten, neues `core/plan-rest-days.js`), `8e5f47f` (Ruhetag-Karten auch für Athlet 2 sichtbar), `75c8047` (Kartenhinweise als Tooltip-Chip). Zwei ältere Feature-Commits (`add5da2`/`f16c6fd`, Ruhetag-Ausfallzählung + fehlende Mi/So-Einträge) wurden bereits per manuellem `merge --ff-only` + Cherry-Pick nach `dashboard-3.0` verteilt (dort als `f7b3614`/`80f1131`, andere Hashes, gleicher Inhalt — s. `docs/offene-punkte.md` zum dabei aufgetretenen Force-Lease-Zwischenfall). Die drei neuen Commits fehlen noch. Vor Etappe 1: dieselbe Verteilung für `865c709`/`8e5f47f`/`75c8047` nachholen (Cherry-Pick reicht, kein vollständiger Rebase nötig).
-> 2. Der Anwendungsstatus der Migrationen 0012–0017 muss im Supabase-SQL-Editor geprüft und dokumentiert sein (dev und prod getrennt). Von unklarem DB-Stand abzuzweigen erzeugt in Etappe 2 (Hooks) nicht diagnostizierbare Fehler.
+> **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
+> 1. Die drei zuvor fehlenden Commits (`865c709`/`8e5f47f`/`75c8047` auf `main`) sind per Cherry-Pick auf `dashboard-3.0` verteilt (dort als `ce11eef`/`425875f`/`eb3093f`, andere Hashes, inhaltlich dateiweise diff-geprüft identisch).
+> 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
 

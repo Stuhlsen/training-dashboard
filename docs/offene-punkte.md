@@ -149,8 +149,8 @@
 - **D4b — scharfe Leiter-Fortschreibung (C3/C4) bewusst nur für Athlet 1
   freigebbar, Athlet 2 bleibt im Beobachtungsmodus (02.08.2026, Live-
   Verdrahtung seit D4b Schritt 3 erledigt)** —
-  `profiles.ladder_progression_enabled` (Migration 0016, noch nicht gegen
-  `dashboard-dev`/`prod` angewendet) ist die athletenweite Sperre;
+  `profiles.ladder_progression_enabled` (Migration 0016, gegen `dashboard-dev`
+  und `prod` angewendet, Stand 06.08.2026) ist die athletenweite Sperre;
   `state/ladder.js::getPresetSuggestion()` prüft sie vor jedem
   Stufenvorschlag. Athlet 2 bleibt davon unabhängig unten: dünne/fehlende
   Compliance-Basis (0 echte, nur abgeleitete Compliance-Zeilen mit
