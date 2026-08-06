@@ -11,9 +11,18 @@ Umschaltung (Etappe 10) unverändert live.
 npm install
 npm run dev      # Dev-Server, http://localhost:5173
 npm run build    # Typecheck (tsc -b) + Produktions-Build nach dist/
-npm test         # Vitest
+npm test         # Vitest (beide Projekte)
+npm test -- --project core   # nur die portierte core-Schicht
 npm run lint     # ESLint
 ```
+
+Die Vitest-Läufe sind in zwei Projekte geteilt (`vite.config.ts`): `core`
+läuft unter `node` (reine Rechenlogik ohne DOM), `app` unter `jsdom`. Siehe
+`src/core/README.md` für Umfang und Abgrenzung der Portierung.
+
+**Zwei getrennte Testsuiten im Repo:** dieses `npm test` (Vitest, nur `/app/`)
+und das Root-`npm test` (`node --test`, nur `tests/`). Sie überschneiden sich
+nicht und müssen beide grün sein, solange die alte Seite live ist.
 
 ## Konventionen
 

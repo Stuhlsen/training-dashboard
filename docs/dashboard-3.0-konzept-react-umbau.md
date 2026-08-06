@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** Konzept, noch nicht umgesetzt — dieses Dokument ist die Grundlage für den ersten Umsetzungs-Chat
+**Status:** in Umsetzung — Etappen 1 und 2a sind umgesetzt (06.08.2026), nächste Etappe ist 2b
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -118,7 +118,7 @@ Jede Etappe ist als eigener, in sich abgeschlossener Claude-Code-Chat gedacht. R
 
 **Sichtbarkeits-Matrix verteilt:** Jede Bereichs-Etappe übernimmt die für ihre Datentypen relevanten Zeilen aus `docs/phase-6-konzept-sichtbarkeit.md` als Teil des Abnahmekriteriums (ausgeloggt / eingeloggt-fremd / eingeloggt-eigen / Trainer / Admin, soweit zutreffend). Etappe 10 macht dann nur noch den Regressions-Gesamtdurchlauf, keine Erstprüfung.
 
-### Etappe 1 — Grundgerüst `[SO]`, Tooling-Entscheidungen `[F5]`
+### Etappe 1 — Grundgerüst `[SO]`, Tooling-Entscheidungen `[F5]` — ✅ umgesetzt (06.08.2026, `231552f`)
 - Vite+React-Projekt in `/app/` aufsetzen, auf Branch `dashboard-3.0`
 - Grundlegende Tooling-Entscheidungen: Test-Runner (Vitest naheliegend wegen Vite), Linting, TypeScript ja/nein (siehe 5.1)
 - Supabase-Client-Anbindung als erste Hook-Schicht (Auth, Session) — funktional äquivalent zu `data-access/supabase/client.js` + `auth.js`
@@ -128,10 +128,21 @@ Jede Etappe ist als eigener, in sich abgeschlossener Claude-Code-Chat gedacht. R
 - Kein sichtbares Design — nur dass die Seite lädt, sich einloggen lässt, und zwischen leeren Platzhalter-Bereichen navigiert
 - **Abnahmekriterium:** `npm run dev` in `/app/` zeigt eine navigierbare, eingeloggte Session gegen `dashboard-dev`, mit korrekt greifender Umgebungsmarkierung
 
-### Etappe 2a — Core-Portierung `[OP]`
+### Etappe 2a — Core-Portierung `[OP]` — ✅ umgesetzt (06.08.2026)
 - `core/*.js` inhaltlich unverändert übernehmen (inkl. der gesamten Progressionssteuerungs-Logik: `ladder.js`, `compliance-match.js`, `workout-structure-derive.js`, Leitplanken-Regeln etc.)
 - Mockfreie core-Tests nach Vitest — nahezu mechanisch (3.2 Fall 1)
 - **Abnahmekriterium:** Alle portierten core-Tests grün unter Vitest
+
+**Ergebnis:** 53 Module + `types.js` nach `app/src/core/` bzw. `app/src/types.js` kopiert (byte-identisch, per `diff -r` geprüft); 42 Tests portiert, 655 Tests grün unter Vitest. Details und Abgrenzung in `app/src/core/README.md`.
+
+Vier Entscheidungen, die beim Umsetzen anfielen und im Konzept noch nicht festgelegt waren:
+
+1. **`checkJs` bleibt aus** (`allowJs` an). Die JSDoc-Annotationen in `core/` erzeugen 40 `tsc`-Fehler — sämtlich vorbestehend, weil die Root-`jsconfig.json` zwar `checkJs: true` setzt, `tsc` dort aber nie in CI läuft. Sie zu schärfen wäre eine Änderung an `core/` und damit außerhalb der 1:1-Portierung. Aufräumkandidat für Etappe 10.
+2. **`node:assert` bleibt**, statt auf `expect()` umzuschreiben. Vitest läuft unter Node; ein Assertion-Rewrite über ~650 Zusicherungen wäre kein Port, sondern ein Neuschreiben mit Regressionsrisiko.
+3. **Vitest-Projekte getrennt** (`core` → `node`, `app` → `jsdom`). `core/` hat per Schichtenregel keinen DOM-Zugriff; jsdom für 43 Dateien hochzufahren kostete 115s Setup, die Trennung drückt den Lauf von 9,9s auf 2,4s.
+4. **`no-useless-assignment` für `src/core/**` aus.** `/app/` nutzt ESLint 10 (Regel in `recommended`), das Root-Repo ESLint 9 (Regel dort nicht vorhanden). Einziger Treffer ist `session-classify.js:70-72` — tote `= 0`-Initialisierer, rein stilistisch. Bewusst nicht gefixt, damit die Kopie nicht vom Original abweicht, solange beide parallel laufen.
+
+**Nebenbefund (behoben):** Das Root-`npm test` lief als `node --test` ohne Pfadargument und durchsuchte damit das gesamte Repo — es zog die neuen `app/src/core/*.test.js` mit und scheiterte an deren `vitest`-Import. Jetzt auf `"tests/**/*.test.js"` eingegrenzt; verlustfrei geprüft (936 Tests über Glob wie über explizite Dateiliste aller 69 Dateien).
 
 ### Etappe 2b — Datenzugriffsschicht `[OP]`
 - Hooks für die Kernentitäten (Profile, Events, Plan Cards, Wellbeing, Proposals) — 1:1 funktionale Entsprechung zu den heutigen `state/*.js`-Modulen
