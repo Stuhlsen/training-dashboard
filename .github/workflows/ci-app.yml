@@ -1,0 +1,58 @@
+# CI für die React-App unter /app/ (Dashboard 3.0).
+#
+# Bewusst ein EIGENER Workflow statt eines Jobs in ci.yml: /app/ existiert auf
+# `main` noch nicht (die Vanilla-Seite bleibt bis zur Umschaltung in Etappe 10
+# live, s. docs/dashboard-3.0-konzept-react-umbau.md G2). Ein Job in ci.yml
+# müsste deshalb gegen das fehlende Verzeichnis abgesichert werden — getrennt
+# bleibt ci.yml unangetastet und dieser Workflow läuft nur, wo es /app/ gibt.
+#
+# Committet nichts, wie ci.yml.
+name: CI (App)
+
+on:
+  push:
+    branches: [dashboard-3.0]
+    paths:
+      - "app/**"
+      - ".github/workflows/ci-app.yml"
+  pull_request:
+    paths:
+      - "app/**"
+      - ".github/workflows/ci-app.yml"
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+
+      # Anders als im Repo-Root braucht /app/ echte Dependencies (Vite, React,
+      # Vitest) — deshalb npm ci gegen das versionierte package-lock.json.
+      - name: Dependencies (npm ci)
+        run: npm ci
+
+      # vitest run über beide Projekte: "core" (node) und "app" (jsdom),
+      # s. Kommentar in app/vite.config.ts.
+      - name: Unit-Tests (Vitest)
+        run: npm test
+
+      - name: Lint (ESLint)
+        run: npm run lint
+
+      # Enthält den Typecheck (tsc -b) — deckt u.a. ab, dass die portierte
+      # core-Schicht per allowJs für die TS-Seite auflösbar bleibt.
+      - name: Build (tsc -b + vite build)
+        run: npm run build
