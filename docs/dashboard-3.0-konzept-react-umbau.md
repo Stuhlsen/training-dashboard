@@ -1,14 +1,21 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
-**Stand:** 04.08.2026 (überarbeitete Fassung, ersetzt Stand 31.07.2026)
+**Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
 **Status:** Konzept, noch nicht umgesetzt — dieses Dokument ist die Grundlage für den ersten Umsetzungs-Chat
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1 (aktualisiert):**
 > 1. Das Push-Vorhaben (Rebase der lokalen Commits aus dem Progressionssteuerungs-Konzept gegen die Auto-Sync-Commits) muss abgeschlossen und `main` sauber gepusht sein. Der Branch zweigt vom vollständigen Stand ab — sonst fehlen dem neuen Projekt ganze Featurestränge und werden später doppelt gebaut.
+>    **Status 06.08.: weiterhin offen.** `dashboard-3.0` liegt (Merge-Base `e95edd5`) hinter `main` zurück um drei inhaltliche Commits: `865c709` (Ruhetage aus Wochenstruktur ableiten, neues `core/plan-rest-days.js`), `8e5f47f` (Ruhetag-Karten auch für Athlet 2 sichtbar), `75c8047` (Kartenhinweise als Tooltip-Chip). Zwei ältere Feature-Commits (`add5da2`/`f16c6fd`, Ruhetag-Ausfallzählung + fehlende Mi/So-Einträge) wurden bereits per manuellem `merge --ff-only` + Cherry-Pick nach `dashboard-3.0` verteilt (dort als `f7b3614`/`80f1131`, andere Hashes, gleicher Inhalt — s. `docs/offene-punkte.md` zum dabei aufgetretenen Force-Lease-Zwischenfall). Die drei neuen Commits fehlen noch. Vor Etappe 1: dieselbe Verteilung für `865c709`/`8e5f47f`/`75c8047` nachholen (Cherry-Pick reicht, kein vollständiger Rebase nötig).
 > 2. Der Anwendungsstatus der Migrationen 0012–0017 muss im Supabase-SQL-Editor geprüft und dokumentiert sein (dev und prod getrennt). Von unklarem DB-Stand abzuzweigen erzeugt in Etappe 2 (Hooks) nicht diagnostizierbare Fehler.
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen gegenüber Stand 04.08.
+
+- Vorbedingung 1 neu geprüft: konkrete fehlende Commits benannt (s.o.), Status weiterhin offen statt nur allgemein gefordert
+- Core-Portierungsliste (3.1) um `plan-rest-days.js` ergänzt (neu seit 05.08., löst die bisher einzeln getippten Ruhetag-Einträge ab)
+- Etappe-6-Portierungsposten aktualisiert: Ruhetage jetzt athletenagnostisch aus der Wochenstruktur abgeleitet statt einzeln getippt, für beide Athleten sichtbar (nicht mehr athlete1-exklusiv), Kartenhinweise als Tooltip-Chip statt Einzeltexte
 
 ## Änderungen gegenüber Stand 31.07.
 
@@ -67,7 +74,8 @@ Damit ist dies kein Design-Umbau mehr, sondern ein **Frontend-Neuaufbau**, bei d
   src/
     core/             (Portierung der reinen Rechenlogik: projection.js, conflicts.js,
                         plan-config.js, briefing.js, ladder.js, compliance-match.js,
-                        workout-structure-derive.js etc. — UNVERÄNDERTE Logik, nur Modulform)
+                        workout-structure-derive.js, plan-rest-days.js, plan-feedback.js
+                        etc. — UNVERÄNDERTE Logik, nur Modulform)
     api/              (Zugriffsschicht: React-Query-Hooks statt state/*.js,
                         kapseln dieselben Supabase-Calls. Bewusst NICHT "data/"
                         genannt, um Verwechslung mit /data/*.json zu vermeiden)
@@ -154,7 +162,7 @@ Jede wird erst grob geplant, wenn Etappe 4 abgenommen ist — Detailplanung folg
 | Etappe | Bereich | Modell | Besonderheit |
 |---|---|---|---|
 | 5 | **Events** | `[SO]` | Erster CRUD-Bereich: Formular-Komponenten, Mutations-Hooks und `write-authorization`-Gates werden hier erstmals in echter React-UI gebaut und gehärtet (Muster-Etappe für alles Folgende). Inkl. `is_test`-Feld-UI |
-| 6 | **Planungstab** | `[OP]` | Drag&Drop: Neubewertung, ob die bestehende Pointer-Events-Logik übernommen oder React-nativ gelöst wird. **Karten-Portierungsposten** (alle in Vanilla bereits gebaut, hier nur neu geschrieben, nicht neu konzipiert): Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel an der Ist-Fahrt, Wirkungsanzeige (ΔFitness/ΔErmüdung/ΔForm) auf allen Kartentypen inkl. Vorher-Nachher beim Verschieben, Ruhetag-/Recovery-Karten (rest/recovery-Dreiteilung, Erholungswochen-Erkennung, angepasste K-LEER-Logik) |
+| 6 | **Planungstab** | `[OP]` | Drag&Drop: Neubewertung, ob die bestehende Pointer-Events-Logik übernommen oder React-nativ gelöst wird. **Karten-Portierungsposten** (alle in Vanilla bereits gebaut, hier nur neu geschrieben, nicht neu konzipiert): Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel an der Ist-Fahrt, Wirkungsanzeige (ΔFitness/ΔErmüdung/ΔForm) auf allen Kartentypen inkl. Vorher-Nachher beim Verschieben, Ruhetag-/Recovery-Karten (rest/recovery-Dreiteilung, Erholungswochen-Erkennung, angepasste K-LEER-Logik; seit 05.08. athletenagnostisch aus der Wochenstruktur abgeleitet statt einzeln getippt — `core/plan-rest-days.js::fillRestDays` — und für BEIDE Athleten sichtbar, nicht mehr athlete1-exklusiv), Kartenhinweise als Tooltip-Chip (seit 06.08., `core/plan-feedback.js` erweitert + `planned.css`/`planned.js`) statt einzeln ausgeschriebener Hinweistexte |
 | 7 | **Trainer-Dashboard + Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. **Briefing-/Export-Portierungsposten** (in Vanilla bereits gebaut): Leiterstand-Anzeige im Export-Panel, Blockstart-Dialog zur Familienwahl, Stufenvorschlag im Briefing inkl. Sonderfälle ("kein Vorschlag ableitbar", "eingefroren (Taper)"), Leitplanken-Sektion (K-RAMPE/K-HARTFOLGE/K-WOCHENTSS/K-TID), Fortschrittsindikatoren, Preset-Kachelreihe |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
