@@ -14888,16 +14888,16 @@
       "rpe": null,
       "feelIcu": null,
       "weather": {
-        "temp": 30.7,
-        "tempFeel": 30.9,
-        "humidity": 35,
-        "windSpeed": 6.9,
-        "windDir": 65,
+        "temp": 30.3,
+        "tempFeel": 30.7,
+        "humidity": 39,
+        "windSpeed": 8.3,
+        "windDir": 45,
         "precip": 0,
-        "cloudCover": 66,
+        "cloudCover": 59,
         "weatherCode": 3
       },
-      "wetter": "30.7°C",
+      "wetter": "30.3°C",
       "source": "intervals.icu",
       "ruhepuls": 52,
       "hrv": 35,
@@ -15231,9 +15231,9 @@
       "wetter": "24.1°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
-      "hrv": null,
-      "avgSleepingHR": null,
-      "sleepHours": 8.3,
+      "hrv": 32,
+      "avgSleepingHR": 59,
+      "sleepHours": 8.5,
       "feel": null,
       "notizen": null
     }
@@ -18699,30 +18699,30 @@
       "date": "2026-08-05",
       "sleepHours": 8.5,
       "sleepScore": 82,
-      "avgSleepingHR": null,
+      "avgSleepingHR": 56,
       "restingHR": 52,
-      "hrv": null,
-      "weight": null,
+      "hrv": 33,
+      "weight": 93.6,
       "bodyFat": null,
-      "activeEnergy": null,
+      "activeEnergy": 169,
       "restingEnergy": null,
-      "kcalConsumed": null,
+      "kcalConsumed": 1008,
       "hydration": null,
-      "hydrationVolume": null,
+      "hydrationVolume": 0.26,
       "eftp": 256
     },
     {
       "date": "2026-08-06",
-      "sleepHours": 8.3,
+      "sleepHours": 8.5,
       "sleepScore": 88,
-      "avgSleepingHR": null,
+      "avgSleepingHR": 59,
       "restingHR": 57,
-      "hrv": null,
+      "hrv": 32,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": null,
+      "activeEnergy": 2194,
       "restingEnergy": null,
-      "kcalConsumed": null,
+      "kcalConsumed": 2775,
       "hydration": null,
       "hydrationVolume": null,
       "eftp": 256
@@ -18730,7 +18730,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-04",
+      "hrv": "2026-08-06",
       "restingHR": "2026-08-06",
       "sleepHours": "2026-08-06"
     }
@@ -18746,7 +18746,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92,
+        "weight": 93.6,
         "secs": [
           1,
           2,
@@ -20686,7 +20686,7 @@
       }
     }
   },
-  "athleteWeight": 92,
+  "athleteWeight": 93.6,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -21509,7 +21509,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-06T13:42:57.620Z",
+  "updated": "2026-08-06T23:50:41.411Z",
   "source": "intervals.icu",
   "count": 141
 }
