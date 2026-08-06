@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1 und 2a sind umgesetzt (06.08.2026), nächste Etappe ist 2b
+**Status:** in Umsetzung — Etappen 1, 2a und 2b sind umgesetzt (06.08.2026), nächste Etappe ist 3
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,12 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 2b (06.08.2026)
+
+- G4 konkretisiert: Hook-Basis ist `@tanstack/react-query`
+- 5.5 von „offen" auf **bestätigt** — JSON-Pipeline bleibt unangetastet, Umsetzung + Verifikation dokumentiert
+- Etappe-2b-Ergebnis eingetragen, inkl. der beiden beim Umsetzen gefallenen Entscheidungen und der Abgrenzung „was React Query ersetzt und was nicht"
 
 ## Änderungen gegenüber Stand 04.08.
 
@@ -46,7 +52,7 @@ Damit ist dies kein Design-Umbau mehr, sondern ein **Frontend-Neuaufbau**, bei d
 | G1 | **React + Vite**, kompletter Umstieg von Vanilla JS | Claude-Design-Projekte werden per `claude_design`-MCP direkt von Claude Code gelesen und mit festem Konvertierungsrezept (5.7) als React-Komponenten implementiert. Der Export selbst ist HTML mit Inline-Styles bzw. eine React-Klassenkomponente auf proprietärer Runtime — die Umformung nach JSX/Hooks ist weitgehend mechanisch, die Umformung in imperativen Vanilla-DOM-Code wäre es nicht. Es gibt keinen wörtlich übersetzungsfreien Weg; React minimiert und standardisiert den Schritt |
 | G2 | **Paralleler Aufbau** auf neuem Branch, alte Vanilla-Seite bleibt live bis zum Umschalten | Kein Risiko für den produktiven Betrieb während des Umbaus |
 | G3 | **Backend/Datenmodell bleiben inhaltlich unangetastet** — Supabase-Migrationen, RLS-Policies, Tabellenstruktur werden nicht neu entworfen | Der abgeschlossene Security-Review (Merge-Vorhaben) bleibt gültig; kein zweites großes Vorhaben parallel zum ersten |
-| G4 | **Zugriffsschicht wird neu geschrieben** — heutige `state/*.js`-Module werden durch React-Query-artige Hooks ersetzt, die dieselben Supabase-Calls kapseln | Architekturwechsel im Code, kein Wechsel an dem, was in der DB passiert |
+| G4 | **Zugriffsschicht wird neu geschrieben** — heutige `state/*.js`-Module werden durch React-Query-artige Hooks ersetzt, die dieselben Supabase-Calls kapseln. Seit Etappe 2b konkret: **`@tanstack/react-query`** | Architekturwechsel im Code, kein Wechsel an dem, was in der DB passiert |
 | G5 | **Multi-Sport wird vorbereitet, nicht vorgebaut** — Komponentenstruktur und Typmodell sehen ein `sport`-Konzept von Anfang an vor (austauschbare Zonen-/Metrik-Logik statt hart codiert), aber es wird kein Jogging-Feature gebaut | Tür offen lassen statt Zimmer einrichten — verhindert späteren Zwangsumbau, ohne den Umfang jetzt zu sprengen |
 | G6 | **Umsetzung in viele kleine, in sich abgeschlossene Etappen**, jede als eigener Claude-Code-Chat nutzbar, geschnitten an fachlichen Bruchkanten (gemeinsam angefasste Dateien, Kontrollpunkte, Schichtgrenzen) | Tokensparen, Nachvollziehbarkeit, Möglichkeit zwischendurch zu pausieren |
 | G7 | Bisherige Test-/Architektur-Prinzipien (PowerShell, deutsche Commit-Präfixe, Node ≥22.3, `data/*.json` nie stagen) gelten unverändert weiter | Konsistenz mit dem Rest des Projekts |
@@ -144,12 +150,23 @@ Vier Entscheidungen, die beim Umsetzen anfielen und im Konzept noch nicht festge
 
 **Nebenbefund (behoben):** Das Root-`npm test` lief als `node --test` ohne Pfadargument und durchsuchte damit das gesamte Repo — es zog die neuen `app/src/core/*.test.js` mit und scheiterte an deren `vitest`-Import. Jetzt auf `"tests/**/*.test.js"` eingegrenzt; verlustfrei geprüft (936 Tests über Glob wie über explizite Dateiliste aller 69 Dateien).
 
-### Etappe 2b — Datenzugriffsschicht `[OP]`
+### Etappe 2b — Datenzugriffsschicht `[OP]` — ✅ umgesetzt (06.08.2026)
 - Hooks für die Kernentitäten (Profile, Events, Plan Cards, Wellbeing, Proposals) — 1:1 funktionale Entsprechung zu den heutigen `state/*.js`-Modulen
 - `write-authorization.js`-Logik (`canWriteForAthlete()`) mit übernehmen
 - Neue Hook-Tests, geschrieben gegen die alten `state/`-Tests als Verhaltens-Spezifikation (3.2 Fall 2) — **eingeplanter Aufwandsposten**, Neubau nach Spec
 - JSON-Pipeline-Bestätigung aus 5.5 fällt hier
 - **Abnahmekriterium:** Hook-Testsuite grün; ein Hook liest nachweislich Daten (noch keine UI)
+
+**Ergebnis:** `@tanstack/react-query` als Hook-Basis (G4 „React-Query-artig" damit konkretisiert). Sechs Adapter nach `app/src/api/supabase/*.ts` portiert, Hooks in `app/src/api/hooks/`, 92 neue Tests im `app`-Projekt (742 gesamt inkl. der 650 core-Tests aus 2a). Umfang, Abweichungsliste gegenüber der Spec und die Abgrenzung „was React Query ersetzt und was nicht" stehen in `app/src/api/README.md`.
+
+Der inhaltliche Kern der Etappe: die alten `state/*.js` trugen **zwei** Schutzmechanismen, die im Code gleich aussahen. Der eine (`loadedForAthleteId`, `onSessionChange`-Handler, `profileIdCache`) löst sich mit keyed Queries strukturell auf. Der andere — der `requestGuard` bei nebenläufigen **Mutationen** — bleibt nötig: React Querys Standard-Rollback (`onError` spielt den `onMutate`-Snapshot zurück) setzt blind auf einen Stand zurück, der eine inzwischen erfolgreiche zweite Mutation noch nicht kannte. Er lebt jetzt in `app/src/api/write-guard.ts` und hängt an React Querys Lebenszyklus; ohne ihn fallen exakt die drei Race-Tests in `usePlanCards.test.tsx` um (gegengeprüft, nicht nur behauptet).
+
+Zwei Entscheidungen, die beim Umsetzen anfielen:
+
+1. **Patch-Regeln aus dem Async-Pfad herausgelöst.** `movedFromDate` nur beim ersten Verschieben, week/phase der Zielwoche leihen, Ausfall-Reset, sort_order — reine Funktionen in `api/plan-cards/patch.ts`, mockfrei geprüft. Damit teilen sich Move/Cancel/Undo/Vollbearbeitung EINE Mutation; was sie unterscheidet, ist allein der Patch.
+2. **Login-Gate hängt am Auth-User, nicht am Profil.** Fiel beim Testen auf: `state/session.js` hielt das Profil als Session-Objekt, ein Schreibversuch während des Profil-Ladens wurde dort mit „Nicht eingeloggt" abgewiesen. Das Profil wird jetzt nur noch für Rollenfragen (Trainer? Admin?) gebraucht.
+
+**5.5 bestätigt** (s.u.). **Nicht portiert** und bewusst den späteren Etappen zugeschlagen: `chart-view`/`export*`/`ladder`/`block-transition`/`formats`/`goals`/`ftp-history` (Etappen 7/8), der intervals.icu-Push (Etappe 6), die Trainer-Leisten-Kategorien (Etappe 7).
 
 ### Etappe 3 — Multi-Sport-Grundstruktur `[F5]`
 - `sports/`-Modulstruktur anlegen, `cycling/` als einzige befüllte Implementierung
@@ -198,8 +215,12 @@ Die bestehenden Charts sind handgeschriebenes SVG ohne Framework-Bindung (`docum
 ### 5.4 Branch- und Ordner-Name (festgelegt)
 Branch `dashboard-3.0` (Muster wie `dashboard-2.0`), Ordner `/app/`.
 
-### 5.5 JSON-Pipeline (`generate-data.js` / Cron) (offen, Etappe 2b zu bestätigen)
-Der GitHub-Actions-Cron erzeugt `data/*.json`, die die Vanilla-App liest. **Offen:** Liest die React-App dieselben Dateien unverändert weiter (einfachster Weg, Pipeline bleibt komplett unangetastet), oder wandern diese Daten perspektivisch nach Supabase? Für den Umbau selbst ist der einfache Weg richtig — die Dateien bleiben, die React-App liest sie genauso. Eine spätere Ablösung wäre ein eigenes Vorhaben. **In Etappe 2b zu bestätigen, nicht vorher zu ändern.**
+### 5.5 JSON-Pipeline (`generate-data.js` / Cron) (**bestätigt**, Etappe 2b, 06.08.2026)
+Der GitHub-Actions-Cron erzeugt `data/*.json`, die die Vanilla-App liest. **Entscheidung: die Dateien bleiben, die React-App liest sie unverändert weiter.** Weder `scripts/generate-data.js` noch das Dateiformat werden angefasst; eine spätere Ablösung nach Supabase wäre ein eigenes Vorhaben.
+
+Umsetzung: `app/src/api/pipeline.ts` + `useRides()`. Zwei Punkte, die dabei zu klären waren:
+- **Dev-Server.** Der Vite-Dev-Server wurzelt in `/app/`, `data/` liegt im Repo-Root daneben. `serveRepoData()` in `app/vite.config.ts` liefert es unter `/data` aus (`apply: "serve"`, ~25 Zeilen, keine neue Dependency, kein Kopieren in den Build — eine Kopie wäre ein zweiter, sofort veraltender Stand). Verifiziert: `GET /data/rides.json` → 200, `application/json`, 387.249 Bytes.
+- **Pfadbildung.** Über `import.meta.env.BASE_URL`. Ein absoluter `/data/…`-Pfad wäre auf GitHub Pages falsch (Projektseite unter `/training-dashboard/`), ein relativer `./data/…` bräche bei tiefen Client-Routen wie `/planning`. In Produktion (Etappe 10) liegt `/data/` neben der gebauten App.
 
 ### 5.6 Wie die React-Version während des Parallelbetriebs sichtbar ist (Empfehlung steht)
 G2 sagt, die alte Seite bleibt live — GitHub Pages liefert aber von `main`. Drei Wege: (a) nur lokal per `npm run dev` ansehen bis zur Umschaltung, (b) zweiter Pages-Deploy aus dem `dashboard-3.0`-Branch unter eigenem Pfad, (c) externer Preview-Dienst. **Empfehlung: (a) für Etappe 1–3** (da gibt es ohnehin nichts Anzusehendes), **ab Etappe 4 dann (b)**, damit Design-Iterationen im echten Browser auf echten Geräten beurteilbar sind. Entscheidung fällt spätestens zu Etappe 4.

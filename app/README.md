@@ -18,7 +18,12 @@ npm run lint     # ESLint
 
 Die Vitest-Läufe sind in zwei Projekte geteilt (`vite.config.ts`): `core`
 läuft unter `node` (reine Rechenlogik ohne DOM), `app` unter `jsdom`. Siehe
-`src/core/README.md` für Umfang und Abgrenzung der Portierung.
+`src/core/README.md` für Umfang und Abgrenzung der core-Portierung und
+`src/api/README.md` für die Zugriffsschicht (Etappe 2b).
+
+Der Dev-Server liefert zusätzlich die per Cron erzeugten `/data/*.json` aus
+dem Repo-Root aus (`serveRepoData()` in `vite.config.ts`) — die JSON-Pipeline
+bleibt unangetastet, siehe Konzept 5.5.
 
 **Zwei getrennte Testsuiten im Repo:** dieses `npm test` (Vitest, nur `/app/`)
 und das Root-`npm test` (`node --test`, nur `tests/`). Sie überschneiden sich
