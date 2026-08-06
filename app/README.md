@@ -18,8 +18,11 @@ npm run lint     # ESLint
 
 Die Vitest-Läufe sind in zwei Projekte geteilt (`vite.config.ts`): `core`
 läuft unter `node` (reine Rechenlogik ohne DOM), `app` unter `jsdom`. Siehe
-`src/core/README.md` für Umfang und Abgrenzung der core-Portierung und
-`src/api/README.md` für die Zugriffsschicht (Etappe 2b).
+`src/core/README.md` für Umfang und Abgrenzung der core-Portierung,
+`src/api/README.md` für die Zugriffsschicht (Etappe 2b) und
+`src/sports/README.md` für die Multi-Sport-Grundstruktur (Etappe 3) —
+dort stehen auch die radsportspezifischen Werte, die vorher in `core/`
+fest verdrahtet waren.
 
 Der Dev-Server liefert zusätzlich die per Cron erzeugten `/data/*.json` aus
 dem Repo-Root aus (`serveRepoData()` in `vite.config.ts`) — die JSON-Pipeline

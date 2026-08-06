@@ -26,15 +26,14 @@
    ============================================================ */
 
 import { addDaysISO } from "./format.js";
+import { PHASE_SIGNATURES } from "../sports/cycling/session-types.js";
 
-/** Reizsignaturen der Plan-2-Blöcke (Ganzfahrt-IF-Korridore).
- *  Untergrenzen bewusst leicht unter Intervall-Zielbereich, weil
- *  Ein-/Ausrollen den Ganzfahrt-IF nach unten zieht. */
-export const PHASE_SIGNATURES = {
-  "Sweet Spot": { ifMin: 0.8, ifMax: 0.97, types: ["Sweet Spot"] },
-  Schwelle: { ifMin: 0.9, ifMax: 1.05, types: ["Schwelle"] },
-  VO2max: { ifMin: 1.0, ifMax: 1.4, types: ["VO2max"] },
-};
+/** Reizsignaturen der Plan-2-Blöcke (Ganzfahrt-IF-Korridore) — radsport-
+ *  spezifisch, seit Etappe 3 in sports/cycling/session-types.ts, hier
+ *  unter unverändertem Namen re-exportiert. RECOVERY_MAX_SHARE und
+ *  QUALITY_PER_WEEK bleiben dagegen hier: das sind Periodisierungs-
+ *  Regeln des Plans, keine Eigenschaft der Sportart. */
+export { PHASE_SIGNATURES };
 
 /** Erholungswoche gilt als erfüllt, wenn Wochen-TSS ≤ RECOVERY_MAX_SHARE
  *  des Mittels der angrenzenden Blockwochen (Plan: Volumen −50%) */

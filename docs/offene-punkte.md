@@ -359,6 +359,33 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   Sync-Schutz — eine künftige Rekalibrierung in `plan-config.js` driftet
   unbemerkt von der Node-seitigen Kopie ab.
 
+## Dashboard 3.0 — React-Umbau
+
+- **`sport`-Spalte in der Datenbank: bewusst NICHT angelegt (Etappe 3,
+  06.08.2026)** — der STOPP-Punkt aus dem Etappenplan
+  (`docs/dashboard-3.0-konzept-react-umbau.md`, Etappe 3) ist geprüft und
+  verneint: keine der 17 Migrationen kennt eine, `plan_cards`/`events`/
+  `proposals` sind implizit Radsport. Das Sportprofil (`app/src/sports/`) ist
+  reine Client-Konfiguration; solange es genau eins gibt, trüge die Spalte in
+  jeder Zeile denselben Wert. **Auslöser für die Nachrüstung:** sobald echte
+  Daten einer zweiten Sportart entstehen — dann additiv und RLS-neutral
+  (`ADD COLUMN sport text NOT NULL DEFAULT 'cycling'`), plus die Frage, woher
+  die Zuordnung Athlet↔Sportart kommt.
+- **`app/src/core/` ist seit Etappe 3 nicht mehr byte-gleich mit
+  `assets/js/core/`** — vier Dateien (`zones.js`, `plan-config.js`,
+  `periodization.js`, `efficiency.js`) re-exportieren ihre radsport-
+  spezifischen Konstanten aus `app/src/sports/cycling/`. Die Werte sind in
+  beiden Bäumen identisch, nur ihr Ort unterscheidet sich. Für die
+  Übergangszeit bis Etappe 10 gilt: inhaltliche Fixes am Vanilla-Baum müssen
+  weiterhin nachgezogen werden, bei diesen vier Dateien landet ein geänderter
+  Wert dann in `sports/cycling/`. Umgekehrt wandert nichts zurück. Tabelle
+  der Divergenzen in `app/src/core/README.md`.
+- **`CONFIG.powerScaleMax` (300 W) ist toter Code** (aufgefallen bei Etappe 3)
+  — steht in `assets/js/state/config.js`, wird von keiner Stelle in `assets/`,
+  `scripts/` oder `tests/` gelesen; die Hero-Skala wächst dynamisch aus der FTP
+  (`core/zones.js::scaleMaxWatts`). Nicht nach `app/src/sports/` mitgezogen,
+  im Vanilla-Baum aber unangetastet gelassen — Aufräumkandidat, kein Fehler.
+
 ## Infrastruktur/CI
 
 - **`sync-data.yml` hat noch keine `SUPABASE_*`-Secrets im `env`-Block** —

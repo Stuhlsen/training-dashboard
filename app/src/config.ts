@@ -6,12 +6,17 @@
    Schlüssel, über den athlete1/athlete2 auf die Supabase-Profil-UUID
    aufgelöst wird) plus die JSON-Endpoints der Pipeline (5.5).
 
-   `phases`, `weekOrder`, `hrZones`, `cadenceTarget` und die globalen
-   FTP-Singletons wandern erst mit ihren Konsumenten mit — die Zonen-/
-   Metrikwerte laut Konzept G5 nach `sports/cycling/` (Etappe 3), die
-   Phasenfarben in den Planungstab (Etappe 6). Sie hier vorsorglich
-   mitzuschleppen hieße, sie zweimal pflegen zu müssen, solange die
-   Vanilla-Seite live ist.
+   `hrZones` und `cadenceTarget` sind mit Etappe 3 nach `sports/cycling/
+   metrics.ts` gewandert (Konzept G5). `phases`, `weekOrder` und die
+   globalen FTP-Singletons wandern weiterhin erst mit ihren Konsumenten
+   mit — die Phasenfarben in den Planungstab (Etappe 6). Sie hier
+   vorsorglich mitzuschleppen hieße, sie zweimal pflegen zu müssen,
+   solange die Vanilla-Seite live ist.
+
+   `hrMax` ist bewusst NICHT nach `sports/` gegangen: der Wert gehört zum
+   Athleten, nicht zur Sportart (die HF-Zonen dort sind reine Anteile
+   davon). Er kommt als Feld in `AthleteConfig` dazu, sobald ein Konsument
+   ihn braucht — s. `sports/README.md`.
 
    Datenschutz: keine echten Namen — intern athlete1/athlete2, in der UI
    die selbstgewählten Pseudonyme (GitHub-Handles).

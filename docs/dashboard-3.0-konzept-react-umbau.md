@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a und 2b sind umgesetzt (06.08.2026), nächste Etappe ist 3
+**Status:** in Umsetzung — Etappen 1, 2a, 2b und 3 sind umgesetzt (06.08.2026), nächste Etappe ist 4
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,12 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 3 (06.08.2026)
+
+- Etappe-3-Ergebnis eingetragen, inkl. der Abgrenzung „was ist sportartspezifisch und was ist ausdauersportübergreifend"
+- **STOPP-Punkt `sport`-Spalte beantwortet:** wird nicht gebraucht, nichts migriert (Begründung bei der Etappe, Eintrag in `docs/offene-punkte.md`)
+- Neue Randbedingung für die Übergangszeit: `app/src/core/` ist ab jetzt nicht mehr byte-gleich mit `assets/js/core/`, der Abgleich läuft einseitig (Details in `app/src/core/README.md`)
 
 ## Änderungen durch Etappe 2b (06.08.2026)
 
@@ -168,12 +174,24 @@ Zwei Entscheidungen, die beim Umsetzen anfielen:
 
 **5.5 bestätigt** (s.u.). **Nicht portiert** und bewusst den späteren Etappen zugeschlagen: `chart-view`/`export*`/`ladder`/`block-transition`/`formats`/`goals`/`ftp-history` (Etappen 7/8), der intervals.icu-Push (Etappe 6), die Trainer-Leisten-Kategorien (Etappe 7).
 
-### Etappe 3 — Multi-Sport-Grundstruktur `[F5]`
+### Etappe 3 — Multi-Sport-Grundstruktur `[F5]` — ✅ umgesetzt (06.08.2026)
 - `sports/`-Modulstruktur anlegen, `cycling/` als einzige befüllte Implementierung
 - Sportartspezifische Werte (Zonen-Grenzen, Metrik-Namen wie FTP/TSS) aus fest verdrahtetem Code in das `cycling/`-Modul ziehen
 - **Kein zweites Sport-Modul bauen** — nur sicherstellen, dass eins prinzipiell danebenstehen könnte
 - **Erwarteter STOPP-Punkt:** Hier wird sich vermutlich zeigen, ob eine `sport`-Spalte in der Datenbank gebraucht wird. Falls ja: **nicht eigenmächtig migrieren** — vorlegen. Das ist die eine Stelle, an der G3 und G5 aneinanderstoßen.
 - **Abnahmekriterium:** Alle Radsport-Berechnungen laufen weiterhin korrekt, jetzt über die `sports/cycling/`-Indirektion statt direkt
+
+**Ergebnis:** `SportProfile`-Vertrag (`app/src/sports/types.ts`) + Registry, `cycling/` in vier Wertemodulen (`zones`/`metrics`/`session-types`/`classify`). Die vier betroffenen core-Module (`zones.js`, `plan-config.js`, `periodization.js`, `efficiency.js`) re-exportieren die Werte unter unverändertem Namen — **keine Aufrufstelle hat sich geändert, die 742 bestehenden Tests liefen unverändert durch**, und genau das ist der Regressionsbeweis. 27 neue Tests (769 gesamt). Umfang, Abgrenzung und die nicht angefassten Grenzfälle stehen in `app/src/sports/README.md`.
+
+Drei Entscheidungen, die beim Umsetzen anfielen:
+
+1. **Re-Export statt Parameter-Durchreichung.** Die Alternative wäre gewesen, ~15 core-Signaturen um ein optionales `sport`-Profil zu erweitern (Muster wie das bestehende `intensityClass(typ, table)`). Das hätte echte Laufzeit-Umschaltbarkeit gebracht, die niemand nutzt, und die Tests der geänderten Signaturen mitgezogen — womit der Regressionsbeweis „bestehende Tests unverändert grün" verloren gegangen wäre. Die Austauschbarkeit steckt jetzt im Vertrag, nicht in verdrahteten Aufrufen.
+2. **`sports/` in TypeScript**, obwohl `core/` reines JS ist. Vorab empirisch geprüft: eine `core/*.js`-Datei kann per `.js`-Spezifizierer ein `.ts`-Modul importieren, Vite/Vitest und `tsc -b` lösen das auf. Der Sport-Vertrag ist genau die Stelle, an der ein Interface Arbeit leistet — er ist der einzige Grund, warum ein zweites Profil überhaupt „passen" kann.
+3. **Das zweite Sportprofil ist ein Test-Fixture, kein Modul.** „Kein zweites Sport-Modul bauen" und „sicherstellen, dass eins danebenstehen könnte" schließen sich sonst aus: ein halbfertiges Laufsport-Modul auszuliefern wäre toter Code, die Behauptung ungeprüft zu lassen wertlos. Das Fixture in `registry.test.ts` erfüllt den Vertrag vollständig und hat dabei zwei Annahmen korrigiert — `overlayBandPct` (Sweet Spot) muss nullable sein, und `hrMax` gehört gar nicht zur Sportart, sondern zum Athleten.
+
+**STOPP-Punkt beantwortet — keine `sport`-Spalte, nichts migriert.** Keine der 17 Migrationen kennt heute eine; `plan_cards`/`events`/`proposals` sind implizit Radsport. Das Sportprofil ist reine Client-Konfiguration, und solange es genau eins gibt, trüge die Spalte in jeder Zeile denselben Wert. Nötig wird sie erst, wenn echte Daten einer zweiten Sportart entstehen — dann additiv und RLS-neutral nachrüstbar (`ADD COLUMN sport text NOT NULL DEFAULT 'cycling'`). Als Punkt vermerkt in `docs/offene-punkte.md`.
+
+**Nebenbefund:** `getSport()` gab für `"constructor"`/`"toString"` die geerbte Object-Funktion statt `null` zurück — beim Schreiben von `registry.test.ts` aufgefallen, mit `Object.hasOwn` gefixt. Ebenfalls aufgefallen: `CONFIG.powerScaleMax` (300 W) in `assets/js/state/config.js` wird von keiner Stelle gelesen (über `assets/`, `scripts/`, `tests/` gegengeprüft) — der tote Wert ist bewusst nicht mit umgezogen, im Vanilla-Baum aber unangetastet gelassen.
 
 ### Etappe 4 — Erste echte Komponente: Hero-Bereich `[SO]`
 - Erster echter Durchlauf des Design-Übernahme-Workflows (5.7): `claude_design`-MCP einrichten (`/design-login`), Hero-Projekt importieren, nach Rezept konvertieren

@@ -3,10 +3,30 @@
    Grundlage: Intensitätsverteilungs-Forschung (Seiler) — für
    Ausdauersportler haben sich pyramidale/polarisierte Verteilungen
    mit ≥ ~80% Zeit im niedrigintensiven Bereich bewährt.
+
+   Etappe 3: Die Zonengrenzen selbst leben in sports/cycling/zones.ts
+   (Multi-Sport-Grundstruktur, Konzept G5) und werden hier unter
+   unverändertem Namen re-exportiert — die Rechenlogik unten bleibt,
+   nur ihre Konstanten kommen jetzt von außen. Aufrufstellen importieren
+   weiterhin aus dieser Datei.
    ============================================================ */
 
-/** Ziel-Anteil niedrigintensiver Zeit (Z1+Z2) als Richtwert */
-export const LOW_INTENSITY_TARGET = 0.8;
+import {
+  LOW_INTENSITY_TARGET,
+  IF_BANDS,
+  COGGAN_ZONE_UPPER_PCT,
+  COGGAN_ZONE_META,
+  SWEET_SPOT_PCT,
+} from "../sports/cycling/zones.js";
+import { WHATIF_SCALE_HEADROOM_W } from "../sports/cycling/metrics.js";
+
+export {
+  LOW_INTENSITY_TARGET,
+  IF_BANDS,
+  COGGAN_ZONE_UPPER_PCT,
+  SWEET_SPOT_PCT,
+  WHATIF_SCALE_HEADROOM_W,
+};
 
 /**
  * intervals.icu liefert Zone-Times je nach API-Version als Array von
@@ -14,7 +34,7 @@ export const LOW_INTENSITY_TARGET = 0.8;
  * auf ein reines Sekunden-Array (Index = Zone).
  *
  * Das Objektformat trägt bei diesem Projekt zusätzlich zu Z1..Z7 einen
- * "SS"-Eintrag (Sweet-Spot-Overlay, 88–94% FTP laut SWEET_SPOT_PCT unten —
+ * "SS"-Eintrag (Sweet-Spot-Overlay, 88–94% FTP laut SWEET_SPOT_PCT —
  * liegt vollständig innerhalb Z3+Z4, s. COGGAN_ZONE_UPPER_PCT). SS ist
  * KEINE eigene, zusätzliche Zone, sondern eine Teilmenge von Z3/Z4-Zeit,
  * die intervals.icu separat mitliefert. An mehreren Ist-Fahrten verifiziert:
@@ -126,10 +146,6 @@ export function overallZoneShares(rides) {
   };
 }
 
-/** IF-Grenzen für die Fallback-Bänderung (Ganzfahrt-IF, grob):
- *  low < 0.75 · mid 0.75–1.05 · high > 1.05 */
-export const IF_BANDS = { lowMax: 0.75, midMax: 1.05 };
-
 /**
  * Ganzfahrt-Intensitätsfaktor einer Fahrt. Bevorzugt das gelieferte
  * r.if, leitet es sonst aus NP/FTP ab (IF = NP ÷ FTP) — im aktuellen
@@ -211,27 +227,6 @@ export function distributionShape(shares) {
    die Auswertung geloggter zoneTimes.
    ============================================================ */
 
-/** Obergrenzen der Coggan-Zonen in % FTP (Z1 <55% · Z2 55–75% ·
- *  Z3 76–90% · Z4 91–105% · Z5 106–120%). Die Zonen werden lückenlos
- *  verkettet (Zone n.bisW === Zone n+1.vonW) — die minimalen
- *  1%-Textlücken der Spec ("75%" vs. "76%") verschwinden ohnehin bei
- *  gerundeten Wattgrenzen und würden sonst eine Lücke in der Skala
- *  reißen. Z6+ (>120%) ist bewusst NICHT Teil des Arrays — auf der
- *  Skala nur als offener Rand angedeutet, kein volles Segment. */
-export const COGGAN_ZONE_UPPER_PCT = [0.55, 0.75, 0.9, 1.05, 1.2];
-
-const COGGAN_ZONE_META = [
-  { id: "z1", label: "Z1 Recovery", farbe: "var(--z1)" },
-  { id: "z2", label: "Z2 Endurance", farbe: "var(--z2)" },
-  { id: "z3", label: "Z3 Tempo", farbe: "var(--z3)" },
-  { id: "z4", label: "Z4 Threshold", farbe: "var(--thr)" },
-  { id: "z5", label: "Z5 VO2max", farbe: "var(--vo2)" },
-];
-
-/** Sweet-Spot-Overlay-Band in % FTP (88–94%) — KEINE eigene Zone,
- *  sondern ein Band, das über der Z3/Z4-Grenze liegt. */
-export const SWEET_SPOT_PCT = [0.88, 0.94];
-
 /**
  * Coggan-Trainingszonen für einen FTP-Wert, als lückenlose Kette.
  * @param {number} ftp FTP in Watt (> 0)
@@ -273,9 +268,6 @@ export function scaleMaxWatts(ftp) {
   const zones = computeZones(ftp);
   return zones.length ? zones[zones.length - 1].bisW : 0;
 }
-
-/** Fester Watt-Puffer für whatIfScaleMax() — siehe dort. */
-export const WHATIF_SCALE_HEADROOM_W = 80;
 
 /**
  * Referenzskala für die INTERAKTIVE Leistungsskala im Hero-Header (What-if-

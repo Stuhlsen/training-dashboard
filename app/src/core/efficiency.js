@@ -7,12 +7,12 @@
    ============================================================ */
 
 import { linearTrend } from "./stats.js";
+import { COMPARABLE } from "../sports/cycling/session-types.js";
 
-export const COMPARABLE = {
-  types: ["Z2 Lang", "Z2 Dauer"],
-  minDurationMin: 60,
-  tempRange: [5, 30], // °C; Fahrten ohne Wetterdaten werden nicht ausgeschlossen
-};
+/** Vergleichbarkeitskriterien — radsportspezifisch (Z2-Typnamen,
+ *  Watt/Herzschlag), seit Etappe 3 in sports/cycling/session-types.ts,
+ *  hier unter unverändertem Namen re-exportiert. */
+export { COMPARABLE };
 
 /** Ist eine Fahrt für den EF-Trend vergleichbar?
  *  @param {import("../types.js").Ride} r @returns {boolean} */
