@@ -37,7 +37,9 @@ export function payloadToCardData(payload) {
  *  ruft nur noch createTrainerProposal(athleteId, moveProposalArgs(...)) auf.
  *  @param {{id: string, updatedAt?: string}|null|undefined} card
  *  @param {string} newDate
- *  @param {string} [reason] */
+ *  @param {string} [reason]
+ *  @returns {{op: "move", targetCardId: string|null, targetUpdatedAt: string|null,
+ *             payload: {plan_date: string}, reason: string|null}} */
 export function moveProposalArgs(card, newDate, reason) {
   return {
     op: "move",
@@ -50,13 +52,71 @@ export function moveProposalArgs(card, newDate, reason) {
 
 /** Dasselbe für "cancel" (Ausfallen-Formular in ui/planned.js).
  *  @param {{id: string, updatedAt?: string}|null|undefined} card
- *  @param {string} [reason] */
+ *  @param {string} [reason]
+ *  @returns {{op: "cancel", targetCardId: string|null, targetUpdatedAt: string|null,
+ *             payload: {reason: string|null}, reason: string|null}} */
 export function cancelProposalArgs(card, reason) {
   return {
     op: "cancel",
     targetCardId: card?.id ?? null,
     targetUpdatedAt: card?.updatedAt ?? null,
     payload: { reason: reason || null },
+    reason: reason || null,
+  };
+}
+
+/** Spiegelbild von payloadToCardData() — Session-Shape (wie ui/plan-card-dialog.js
+ *  sie fürs Anlegen/Bearbeiten baut) → Vorschlags-payload. Genutzt für Etappe-7a
+ *  T2 (Trainer-Sicht-Konzept §3): Neuanlage ist für den Trainer IMMER Vorschlag,
+ *  unabhängig vom Direkt/Vorschlag-Umschalter.
+ *  @param {{date?: string, name?: string|null, typ?: string|null, tssPlanned?: number|null,
+ *           km?: number|null, details?: string|null, workout?: unknown}} cardData
+ *  @param {string} [reason]
+ *  @returns {{op: "add", targetCardId: null, targetUpdatedAt: null, payload: {
+ *             plan_date: string|undefined, title: string|null|undefined, type: string|null|undefined,
+ *             target_tss: number|null, km: number|null, note: string|null, workout: unknown},
+ *             reason: string|null}} */
+export function addProposalArgs(cardData, reason) {
+  return {
+    op: "add",
+    targetCardId: null,
+    targetUpdatedAt: null,
+    payload: {
+      plan_date: cardData?.date,
+      title: cardData?.name,
+      type: cardData?.typ,
+      target_tss: cardData?.tssPlanned ?? null,
+      km: cardData?.km ?? null,
+      note: cardData?.details ?? null,
+      workout: cardData?.workout ?? null,
+    },
+    reason: reason || null,
+  };
+}
+
+/** Dasselbe für "replace" (Bearbeiten einer bestehenden Karte).
+ *  @param {{id: string, updatedAt?: string}|null|undefined} card
+ *  @param {{date?: string, name?: string|null, typ?: string|null, tssPlanned?: number|null,
+ *           km?: number|null, details?: string|null, workout?: unknown}} cardData
+ *  @param {string} [reason]
+ *  @returns {{op: "replace", targetCardId: string|null, targetUpdatedAt: string|null, payload: {
+ *             plan_date: string|undefined, title: string|null|undefined, type: string|null|undefined,
+ *             target_tss: number|null, km: number|null, note: string|null, workout: unknown},
+ *             reason: string|null}} */
+export function replaceProposalArgs(card, cardData, reason) {
+  return {
+    op: "replace",
+    targetCardId: card?.id ?? null,
+    targetUpdatedAt: card?.updatedAt ?? null,
+    payload: {
+      plan_date: cardData?.date,
+      title: cardData?.name,
+      type: cardData?.typ,
+      target_tss: cardData?.tssPlanned ?? null,
+      km: cardData?.km ?? null,
+      note: cardData?.details ?? null,
+      workout: cardData?.workout ?? null,
+    },
     reason: reason || null,
   };
 }

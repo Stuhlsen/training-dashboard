@@ -83,7 +83,7 @@ function findNextSession(planCards: PlanCard[], doneDates: Set<string>, todayISO
 /** Termine, für die eine "erledigt"-Prüfung nötig ist (Session-Karte +
  *  Briefing-nextSession) — einmal pro buildHeroCore()-Aufruf gebaut statt
  *  zweimal dieselbe Menge aus `rides`. */
-function doneDatesOf(rides: Ride[]): Set<string> {
+export function doneDatesOf(rides: Ride[]): Set<string> {
   return new Set(rides.map((r) => r.date ?? r.dateISO));
 }
 
@@ -230,7 +230,10 @@ function buildWeatherToday(forecast: HeroCoreInput["forecast"], todayISO: string
   };
 }
 
-function buildBriefingInfo(
+/** Athletenagnostisch — Etappe 7a nutzt sie für die Trainer-Leiste mit
+ *  einem athletenscoped `subjective` (aus useCheckinRange) statt dem
+ *  eingeloggten-User-gebundenen useTodayCheckin(). */
+export function buildBriefingInfo(
   rides: Ride[],
   wellness: WellnessDay[],
   planCards: PlanCard[],

@@ -25,6 +25,7 @@ import type { QueryClient } from "@tanstack/react-query";
 import { getProfileByDisplayName } from "./supabase/profiles";
 import { fetchAthleteProfileId } from "./hooks/useAthleteProfileId";
 import { athleteConfig } from "../config";
+import { qk } from "./keys";
 import type { Profile } from "./types";
 
 /** Darf `user` für den gerade angezeigten Athleten direkt schreiben?
@@ -44,12 +45,36 @@ export async function canWriteForAthlete(
   const profileId = await fetchAthleteProfileId(queryClient, athleteId);
   if (profileId && profileId === user.id) return true;
 
-  if (user.role !== "coach") return false;
+  // fetchQuery statt direktem Aufruf: teilt sich Cache/Deduplizierung mit
+  // useTrainerContext() (identischer qk.trainerContext-Key, Muster wie
+  // fetchAthleteProfileId oben) — ein Coach, der eine Athletenseite
+  // betrachtet, löst sonst denselben getProfileByDisplayName()-Lookup
+  // zweimal aus (einmal hier, einmal in der Trainer-Leiste).
+  const { isTrainer } = await queryClient.fetchQuery({
+    queryKey: qk.trainerContext(user.id, athleteId),
+    queryFn: () => resolveTrainerContext(user, athleteId),
+    staleTime: 5 * 60_000,
+  });
+  return isTrainer;
+}
+
+/** Ist `user` (Coach-Rolle vorausgesetzt) der Trainer DIESES Athleten —
+ *  und falls ja, was ist die Supabase-Profil-UUID des Athleten? Extrahiert
+ *  aus canWriteForAthlete()s bisherigem Coach-Zweig (Etappe 7a): die
+ *  Trainer-Leiste (`useTrainerContext`) braucht denselben Lookup, zusätzlich
+ *  aber `athleteProfileId` für `trainer_view_prefs` — canWriteForAthlete
+ *  selbst braucht nur das Bool-Ergebnis. Ein Nicht-Coach löst keinen
+ *  Lookup aus, exakt wie vorher. */
+export async function resolveTrainerContext(
+  user: Profile | null,
+  athleteId: string,
+): Promise<{ isTrainer: boolean; athleteProfileId: string | null }> {
+  if (!user || user.role !== "coach") return { isTrainer: false, athleteProfileId: null };
   const name = athleteConfig(athleteId)?.name;
-  if (!name) return false;
+  if (!name) return { isTrainer: false, athleteProfileId: null };
   const result = await getProfileByDisplayName(name);
-  if (!result.ok) return false;
-  return result.profile?.coachId === user.id;
+  if (!result.ok || !result.profile) return { isTrainer: false, athleteProfileId: null };
+  return { isTrainer: result.profile.coachId === user.id, athleteProfileId: result.profile.id };
 }
 
 /** Ist der angezeigte Athlet der eingeloggte User selbst?

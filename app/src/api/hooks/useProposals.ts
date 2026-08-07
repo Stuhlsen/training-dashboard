@@ -43,11 +43,16 @@ const STALE = {
 };
 
 /** Alle Vorschläge des Athleten, neueste zuerst — JEDER Status. Konsumenten
- *  filtern selbst (s. core/proposal-groups.js für die offene Review-Liste). */
-export function useProposals(athleteId: string) {
+ *  filtern selbst (s. core/proposal-groups.js für die offene Review-Liste).
+ *  @param options.enabled Standard `true`. `false` unterdrückt den Request
+ *    ganz — für Aufrufer, die den Zähler nur bedingt brauchen (z.B. die
+ *    Trainer-Leiste: kein Vorschläge-Request für JEDEN Planungstab-Besuch,
+ *    nur wenn der Betrachter tatsächlich Trainer des Athleten ist). */
+export function useProposals(athleteId: string, options?: { enabled?: boolean }) {
   const queryClient = useQueryClient();
   return useQuery({
     queryKey: qk.proposals(athleteId),
+    enabled: options?.enabled ?? true,
     queryFn: async (): Promise<Proposal[]> => {
       const profileId = await fetchAthleteProfileId(queryClient, athleteId);
       if (!profileId) throw new ResultError_(NO_ACCOUNT);

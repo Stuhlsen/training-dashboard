@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
+import { addProposalArgs, replaceProposalArgs } from "../../core/proposal-payload.js";
 import { useCreatePlanCard, useDeletePlanCard, useUpdatePlanCard } from "../../api/hooks/usePlanCards";
+import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
 import type { PlanCard, PlanCardInput } from "../../api/types";
 import type { WorkoutBlock, WorkoutBlockType } from "./planning-view-model";
 import { asWorkoutBlocks } from "./planning-view-model";
+import { isTrainerCardProposalMode, type SaveMode } from "./trainer-bar-view-model";
 
 const TYP_OPTIONS: readonly string[] = KNOWN_PLAN_TYPES;
 
@@ -19,6 +22,13 @@ interface PlanCardFormProps {
   /** `null` = neue Karte anlegen, sonst bearbeiten. */
   editingCard: PlanCard | null;
   onClose: () => void;
+  /** Etappe 7a: eingeloggter User ist Trainer DIESES Athleten (aus
+   *  useTrainerContext) — zusammen mit `saveMode` bestimmt das, ob
+   *  Anlegen/Bearbeiten einen `proposals`-Eintrag statt einer direkten
+   *  Kartenänderung erzeugt (isTrainerCardProposalMode, T2: Neuanlage ist
+   *  für den Trainer IMMER Vorschlag). */
+  isTrainerSaving?: boolean;
+  saveMode?: SaveMode;
 }
 
 const LABEL_STYLE: React.CSSProperties = {
@@ -53,7 +63,13 @@ interface EditableBlock extends WorkoutBlock {
  *  Zahlenformat bleibt beim Speichern unangetastet, solange kein Block
  *  hinzugefügt/entfernt wird (sonst würde ein reiner Titel-Fix eine
  *  bestehende, pushbare Workout-Struktur stillschweigend löschen). */
-export function PlanCardForm({ athleteId, editingCard, onClose }: PlanCardFormProps) {
+export function PlanCardForm({
+  athleteId,
+  editingCard,
+  onClose,
+  isTrainerSaving = false,
+  saveMode = "proposal",
+}: PlanCardFormProps) {
   const [title, setTitle] = useState(editingCard?.name ?? "");
   const [date, setDate] = useState(editingCard?.date ?? "");
   const [typ, setTyp] = useState(editingCard?.typ ?? TYP_OPTIONS[0]);
@@ -66,11 +82,18 @@ export function PlanCardForm({ athleteId, editingCard, onClose }: PlanCardFormPr
   });
   const [error, setError] = useState("");
   const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [proposalReason, setProposalReason] = useState("");
 
   const { create, isPending: creating } = useCreatePlanCard(athleteId);
   const { update, isPending: updating } = useUpdatePlanCard(athleteId);
   const { remove, isPending: deleting } = useDeletePlanCard(athleteId);
-  const pending = creating || updating;
+  const { create: createProposal, isPending: creatingProposal } = useCreateTrainerProposal(athleteId);
+  const pending = creating || updating || creatingProposal;
+
+  // T2 (Trainer-Sicht-Konzept §3): Neuanlage ist für den Trainer IMMER
+  // Vorschlag, unabhängig von saveMode — nur bei einer bestehenden Karte
+  // entscheidet der Umschalter.
+  const proposalMode = isTrainerCardProposalMode(isTrainerSaving, !!editingCard, saveMode);
 
   const hasLegacyWorkout = !!(editingCard?.workout && !asWorkoutBlocks(editingCard.workout));
 
@@ -114,7 +137,15 @@ export function PlanCardForm({ athleteId, editingCard, onClose }: PlanCardFormPr
       workout,
     };
 
-    const result = editingCard ? await update(editingCard.id, cardData) : await create(cardData);
+    const result = proposalMode
+      ? await createProposal(
+          editingCard
+            ? replaceProposalArgs(editingCard, cardData, proposalReason.trim() || undefined)
+            : addProposalArgs(cardData, proposalReason.trim() || undefined),
+        )
+      : editingCard
+        ? await update(editingCard.id, cardData)
+        : await create(cardData);
     if (!result.ok) {
       setError(result.error?.message || "Karte konnte nicht gespeichert werden.");
       return;
@@ -160,6 +191,7 @@ export function PlanCardForm({ athleteId, editingCard, onClose }: PlanCardFormPr
       >
         <div style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: "1rem", color: "var(--ink)" }}>
           {editingCard ? "Karte bearbeiten" : "Karte anlegen"}
+          {proposalMode && " (als Vorschlag)"}
         </div>
 
         <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 16 }}>
@@ -262,6 +294,18 @@ export function PlanCardForm({ athleteId, editingCard, onClose }: PlanCardFormPr
             )}
           </div>
 
+          {proposalMode && (
+            <label style={LABEL_STYLE}>
+              Begründung (optional)
+              <input
+                type="text"
+                value={proposalReason}
+                onChange={(e) => setProposalReason(e.target.value)}
+                style={INPUT_STYLE}
+              />
+            </label>
+          )}
+
           {editingCard?.pushedExternalId && (
             <div style={{ fontSize: ".76rem", color: "var(--gold)" }}>
               ⚠️ Bereits auf Wahoo gepusht — dort bleibt das Event bestehen, ggf. manuell entfernen.
@@ -271,7 +315,7 @@ export function PlanCardForm({ athleteId, editingCard, onClose }: PlanCardFormPr
           {error && <div style={{ color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: ".7rem" }}>{error}</div>}
 
           <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            {editingCard && (
+            {editingCard && !isTrainerSaving && (
               <button
                 type="button"
                 disabled={deleting}
@@ -304,7 +348,7 @@ export function PlanCardForm({ athleteId, editingCard, onClose }: PlanCardFormPr
                 opacity: pending ? 0.7 : 1,
               }}
             >
-              {pending ? "Speichern …" : "Speichern"}
+              {pending ? "Speichern …" : proposalMode ? "Als Vorschlag speichern" : "Speichern"}
             </button>
             <button
               type="button"

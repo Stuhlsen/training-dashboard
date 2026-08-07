@@ -27,7 +27,7 @@ vi.mock("./supabase/profiles", () => ({
 }));
 
 const { createQueryClient } = await import("./queryClient");
-const { canWriteForAthlete, isSelfAthlete } = await import("./write-authorization");
+const { canWriteForAthlete, isSelfAthlete, resolveTrainerContext } = await import("./write-authorization");
 
 /** Nur die Felder, die der Check tatsächlich liest. */
 const profile = (over: Partial<Profile> & { id: string }): Profile =>
@@ -108,5 +108,35 @@ describe("isSelfAthlete", () => {
   it("Trainer schreibt für seinen Athleten → false, obwohl er darf", async () => {
     expect(await canWriteForAthlete(qc, COACH_DZ, "athlete2")).toBe(true);
     expect(await isSelfAthlete(qc, COACH_DZ, "athlete2")).toBe(false);
+  });
+});
+
+/* resolveTrainerContext ist der aus canWriteForAthlete() extrahierte
+   Coach-Zweig (Etappe 7a) — liefert zusätzlich die Supabase-Profil-UUID
+   des Athleten, die die Trainer-Leiste für trainer_view_prefs braucht. */
+
+describe("resolveTrainerContext", () => {
+  it("nicht eingeloggt → isTrainer:false, kein Lookup", async () => {
+    expect(await resolveTrainerContext(null, "athlete1")).toEqual({ isTrainer: false, athleteProfileId: null });
+    expect(getProfileByDisplayNameCalls).toBe(0);
+  });
+
+  it("ein Nicht-Coach löst keinen Lookup aus", async () => {
+    expect(await resolveTrainerContext(STUHLSEN, "athlete2")).toEqual({ isTrainer: false, athleteProfileId: null });
+    expect(getProfileByDisplayNameCalls).toBe(0);
+  });
+
+  it("Trainer des angezeigten Athleten → isTrainer:true + korrekte athleteProfileId", async () => {
+    expect(await resolveTrainerContext(COACH_DZ, "athlete2")).toEqual({
+      isTrainer: true,
+      athleteProfileId: "profile-uuid-dizee",
+    });
+  });
+
+  it("Trainer eines ANDEREN Athleten → isTrainer:false, athleteProfileId trotzdem gefüllt", async () => {
+    expect(await resolveTrainerContext(COACH_ST, "athlete2")).toEqual({
+      isTrainer: false,
+      athleteProfileId: "profile-uuid-dizee",
+    });
   });
 });

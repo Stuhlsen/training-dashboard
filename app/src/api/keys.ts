@@ -36,6 +36,14 @@ export const qk = {
   writeAuthorization: (userId: string | null, athleteId: string) =>
     ["write-authorization", userId, athleteId] as const,
 
+  /** Ist der eingeloggte User der Trainer DIESES Athleten (+ dessen
+   *  Supabase-Profil-UUID für trainer_view_prefs)? Etappe 7a. */
+  trainerContext: (userId: string | null, athleteId: string) =>
+    ["trainer-context", userId, athleteId] as const,
+  /** Kacheln-Auswahl der Trainer-Leiste, pro Trainer-Athlet-Paar. */
+  trainerViewPrefs: (trainerId: string, athleteProfileId: string) =>
+    ["trainer-view-prefs", trainerId, athleteProfileId] as const,
+
   /** JSON-Pipeline (5.5): die per Cron erzeugten data/*.json */
   rides: (athleteId: string) => ["rides", athleteId] as const,
 } as const;

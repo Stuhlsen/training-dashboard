@@ -14,6 +14,8 @@ import {
   payloadToCardData,
   moveProposalArgs,
   cancelProposalArgs,
+  addProposalArgs,
+  replaceProposalArgs,
 } from "./proposal-payload.js";
 
 /* ── payloadToCardData ───────────────────────────────────────── */
@@ -104,4 +106,75 @@ test("cancelProposalArgs: kein Grund → null an beiden Stellen", () => {
   const result = cancelProposalArgs(card, "");
   assert.equal(result.payload.reason, null);
   assert.equal(result.reason, null);
+});
+
+/* ── addProposalArgs ─────────────────────────────────────────── */
+
+test("addProposalArgs: op=add, targetCardId/targetUpdatedAt null, cardData → Schema-Payload", () => {
+  const cardData = {
+    date: "2026-08-10",
+    name: "Sweet-Spot 2×15",
+    typ: "Sweet Spot",
+    tssPlanned: 65,
+    km: 40,
+    details: "Neu vorgeschlagen",
+    workout: { blocks: [{ type: "interval", text: "2×15" }] },
+  };
+  const result = addProposalArgs(cardData, "Wochenumbau");
+  assert.deepEqual(result, {
+    op: "add",
+    targetCardId: null,
+    targetUpdatedAt: null,
+    payload: {
+      plan_date: "2026-08-10",
+      title: "Sweet-Spot 2×15",
+      type: "Sweet Spot",
+      target_tss: 65,
+      km: 40,
+      note: "Neu vorgeschlagen",
+      workout: { blocks: [{ type: "interval", text: "2×15" }] },
+    },
+    reason: "Wochenumbau",
+  });
+});
+
+test("addProposalArgs: fehlende optionale Felder werden null, leerer Grund wird null", () => {
+  const result = addProposalArgs({ date: "2026-08-10", name: "Neu", typ: "Z2 Dauer" }, "");
+  assert.equal(result.payload.target_tss, null);
+  assert.equal(result.payload.km, null);
+  assert.equal(result.payload.note, null);
+  assert.equal(result.payload.workout, null);
+  assert.equal(result.reason, null);
+});
+
+test("addProposalArgs: ist die exakte Umkehrung von payloadToCardData (Rundreise)", () => {
+  const cardData = { date: "2026-08-10", name: "X", typ: "Z2 Dauer", tssPlanned: 50, km: 30, details: "N", workout: null };
+  const roundtrip = payloadToCardData(addProposalArgs(cardData, "R").payload);
+  assert.deepEqual(roundtrip, { ...cardData, workoutStructure: null });
+});
+
+/* ── replaceProposalArgs ─────────────────────────────────────── */
+
+test("replaceProposalArgs: op=replace, targetCardId/targetUpdatedAt aus der Karte", () => {
+  const card = { id: "card-C", updatedAt: "2026-08-01T00:00:00Z" };
+  const cardData = { date: "2026-08-10", name: "Bearbeitet", typ: "Schwelle", tssPlanned: 80, km: null, details: null, workout: null };
+  const result = replaceProposalArgs(card, cardData, "Angepasst");
+  assert.equal(result.op, "replace");
+  assert.equal(result.targetCardId, "card-C");
+  assert.equal(result.targetUpdatedAt, "2026-08-01T00:00:00Z");
+  assert.deepEqual(result.payload, {
+    plan_date: "2026-08-10",
+    title: "Bearbeitet",
+    type: "Schwelle",
+    target_tss: 80,
+    km: null,
+    note: null,
+    workout: null,
+  });
+});
+
+test("replaceProposalArgs: fehlende Karte liefert null-IDs statt zu crashen", () => {
+  const result = replaceProposalArgs(null, { date: "2026-08-10", name: "X", typ: "Z2 Dauer" }, "");
+  assert.equal(result.targetCardId, null);
+  assert.equal(result.targetUpdatedAt, null);
 });

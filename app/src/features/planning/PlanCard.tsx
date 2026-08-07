@@ -80,6 +80,11 @@ interface PlanCardProps {
    *  canDragCard() — dort ist die per-Wochenblock eingeblendete
    *  Tages-Slot-Zeile das einzige gültige Drop-Ziel, s. PlanningPage). */
   draggable?: boolean;
+  /** Etappe 7a: Trainer im Vorschlagsmodus — Verschieben/Ausfallen erzeugen
+   *  über onMove/onCancel einen `proposals`-Eintrag statt die Karte direkt
+   *  zu ändern. Rein kosmetisch hier (Button-Beschriftung); die eigentliche
+   *  Verzweigung sitzt in PlanningPage.tsx::handleMove/handleCancel. */
+  trainerProposalMode?: boolean;
   /** Nur bei `isDone` gesetzt (Ride-Matching läuft in PlanningPage.tsx über
    *  matchRideForCard) — Grundlage der Compliance-Tabelle. */
   ride?: Ride | null;
@@ -93,8 +98,11 @@ interface PlanCardProps {
   wellness: WellnessDay[];
   plannedSessions: PlannedSessionRef[];
   onEdit: () => void;
-  onMove: (id: string, date: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
-  onCancel: (id: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
+  // Result statt Result<{card}> — im Vorschlagsmodus (Etappe 7a) liefert
+  // PlanningPage.tsx::handleMove/handleCancel stattdessen Result<{proposal}>
+  // (createTrainerProposal). Nur `.ok`/`.error` werden hier gelesen.
+  onMove: (id: string, date: string, reason?: string) => Promise<Result>;
+  onCancel: (id: string, reason?: string) => Promise<Result>;
   onUndo: (id: string) => Promise<Result<{ card?: PlanCardT }>>;
 }
 
@@ -110,6 +118,7 @@ export function PlanCard({
   canEdit,
   isDone,
   draggable,
+  trainerProposalMode,
   ride,
   conflicts,
   projection,
@@ -417,7 +426,7 @@ export function PlanCard({
             <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} style={INPUT_STYLE} />
           </label>
           <button type="submit" disabled={submitting} style={{ ...ACTION_BTN_STYLE, background: "var(--ss)", color: "#17110a", border: "none" }}>
-            {submitting ? "Speichern …" : "Verschieben"}
+            {submitting ? "Speichern …" : trainerProposalMode ? "Als Vorschlag speichern" : "Verschieben"}
           </button>
           <button type="button" style={ACTION_BTN_STYLE} onClick={closeForms}>
             Abbrechen
@@ -435,7 +444,7 @@ export function PlanCard({
             <input type="text" value={reason} onChange={(e) => setReason(e.target.value)} style={INPUT_STYLE} />
           </label>
           <button type="submit" disabled={submitting} style={{ ...ACTION_BTN_STYLE, background: "var(--danger)", color: "#fff", border: "none" }}>
-            {submitting ? "Speichern …" : "Ausfallen"}
+            {submitting ? "Speichern …" : trainerProposalMode ? "Als Vorschlag speichern" : "Ausfallen"}
           </button>
           <button type="button" style={ACTION_BTN_STYLE} onClick={closeForms}>
             Abbrechen

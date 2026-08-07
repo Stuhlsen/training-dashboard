@@ -15,6 +15,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { PRIMARY_ATHLETE_ID, phaseColor } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useTrainerContext } from "../../api/hooks/useTrainerContext";
 import { useEvents } from "../../api/hooks/useEvents";
 import { useRides } from "../../api/hooks/useRides";
 import {
@@ -24,17 +25,21 @@ import {
   usePushPlanCard,
   useUndoAdjustment,
 } from "../../api/hooks/usePlanCards";
+import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
 import { qk } from "../../api/keys";
 import { fmtDate, localISODate } from "../../core/format.js";
 import { canDragCard, resolveDrop } from "../../core/plan-drag.js";
 import { detectConflicts } from "../../core/conflicts.js";
 import { projectLoad } from "../../core/projection.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
+import { moveProposalArgs, cancelProposalArgs } from "../../core/proposal-payload.js";
 import { DaySlotRow } from "./DaySlotRow";
 import { DeltaBanner } from "./DeltaBanner";
 import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCard } from "./PlanCard";
 import { PlanCardForm } from "./PlanCardForm";
+import { TrainerBar } from "./TrainerBar";
+import { isTrainerProposalMode, type SaveMode } from "./trainer-bar-view-model";
 import {
   buildPlanningSections,
   matchRideForCard,
@@ -89,14 +94,21 @@ export function PlanningPage() {
   const { data: rideData } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
   const { canWrite } = useCanWriteForAthlete(activeAthleteId);
+  const { isTrainer } = useTrainerContext(activeAthleteId);
 
   const { move } = useMovePlanCard(activeAthleteId);
   const { cancel } = useCancelPlanCard(activeAthleteId);
   const { undo } = useUndoAdjustment(activeAthleteId);
   const { push } = usePushPlanCard(activeAthleteId);
+  const { create: createTrainerProposal } = useCreateTrainerProposal(activeAthleteId);
 
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Etappe 7a: Default "proposal" (Trainer-Sicht-Konzept §5, konservative
+  // Vorgabe) — reiner Session-State, kein Reset bei Athletenwechsel, keine
+  // Persistenz (spiegelt Vanillas modul-globale state/trainer-view.js::saveMode).
+  const [saveMode, setSaveMode] = useState<SaveMode>("proposal");
+  const trainerProposalMode = isTrainerProposalMode(isTrainer, saveMode);
 
   // useMemo, weil buildPlanningSections() mehrere Filter-/Sort-Durchläufe +
   // Set/Map-Aufbau macht — ohne das liefe die Berechnung bei jedem
@@ -136,6 +148,10 @@ export function PlanningPage() {
   const forecast = (rideData?.forecast as Record<string, unknown> | undefined) ?? {};
   const wellness = (rideData?.wellness as WellnessDay[] | undefined) ?? [];
   const plannedSessions = (rideData?.plannedSessions as PlannedSessionRef[] | undefined) ?? [];
+  // Für TrainerBar (Etappe 7a) — die beiden useMemo-Blöcke oben halten ihr
+  // eigenes, lokal geshadowtes `rides` bewusst unverändert, daher hier ein
+  // eigener Name statt einer dritten Ableitung derselben Quelle.
+  const allRides = (rideData?.rides as Ride[] | undefined) ?? [];
 
   // Etappe 6c: Vorher/Nachher-Vergleich nach Verschieben/Ausfallen/Drag,
   // Port von ui/planned.js::_recordDelta (dort Modul-State `deltaBanner` +
@@ -165,14 +181,26 @@ export function PlanningPage() {
     setDeltaBanner(computeDeltaBanner(projection, afterProjection, events ?? [], TODAY, cardDateIso));
   }
 
-  async function handleMove(id: string, date: string, reason?: string): Promise<Result<{ card: PlanCardT }>> {
+  // Etappe 7a: im Vorschlagsmodus erzeugt ein Trainer über
+  // createTrainerProposal(moveProposalArgs/cancelProposalArgs(...)) einen
+  // proposals-Eintrag statt die Karte direkt zu ändern — kein Delta-Banner,
+  // weil sich der tatsächliche Planzustand dabei nicht ändert.
+  async function handleMove(id: string, date: string, reason?: string): Promise<Result> {
+    if (trainerProposalMode) {
+      const card = (cards ?? []).find((c) => c.id === id) ?? null;
+      return createTrainerProposal(moveProposalArgs(card, date, reason));
+    }
     const result = await move(id, date, reason);
     if (result.ok) recordDelta(date);
     return result;
   }
 
-  async function handleCancel(id: string, reason?: string): Promise<Result<{ card: PlanCardT }>> {
+  async function handleCancel(id: string, reason?: string): Promise<Result> {
     const cardDate = (cards ?? []).find((c) => c.id === id)?.date;
+    if (trainerProposalMode) {
+      const card = (cards ?? []).find((c) => c.id === id) ?? null;
+      return createTrainerProposal(cancelProposalArgs(card, reason));
+    }
     const result = await cancel(id, reason);
     if (result.ok) recordDelta(cardDate);
     return result;
@@ -223,6 +251,18 @@ export function PlanningPage() {
         </h1>
         <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
       </div>
+
+      <TrainerBar
+        athleteId={activeAthleteId}
+        saveMode={saveMode}
+        onSaveModeChange={setSaveMode}
+        cards={cards ?? []}
+        rides={allRides}
+        wellness={wellness}
+        events={events ?? []}
+        projection={projection}
+        conflicts={conflicts}
+      />
 
       {deltaBanner && <DeltaBanner state={deltaBanner} onClose={() => setDeltaBanner(null)} />}
 
@@ -333,10 +373,9 @@ export function PlanningPage() {
                             canEdit: editable,
                             cardDate: card.date,
                             today: TODAY,
-                            // Trainer-Vorschlagsmodus existiert erst ab Etappe 7 —
-                            // bis dahin ist Drag & Drop nie im Vorschlag-Pfad.
-                            trainerProposalMode: false,
+                            trainerProposalMode,
                           })}
+                          trainerProposalMode={trainerProposalMode}
                           conflicts={conflicts}
                           projection={projection}
                           ftp={ftp}
@@ -374,6 +413,7 @@ export function PlanningPage() {
             move={handleMove}
             cancel={handleCancel}
             undo={undo}
+            trainerProposalMode={trainerProposalMode}
           />
           <CardSection
             title={`⚠️ Verpasst — ${sections.missed.length}`}
@@ -390,6 +430,7 @@ export function PlanningPage() {
             move={handleMove}
             cancel={handleCancel}
             undo={undo}
+            trainerProposalMode={trainerProposalMode}
           />
           <CardSection
             title={`🚫 Ausgefallen — ${sections.cancelled.length}`}
@@ -406,6 +447,7 @@ export function PlanningPage() {
             move={handleMove}
             cancel={handleCancel}
             undo={undo}
+            trainerProposalMode={trainerProposalMode}
           />
         </>
       )}
@@ -415,6 +457,8 @@ export function PlanningPage() {
           athleteId={activeAthleteId}
           editingCard={dialog === "new" ? null : dialog}
           onClose={() => setDialog("closed")}
+          isTrainerSaving={isTrainer}
+          saveMode={saveMode}
         />
       )}
     </div>
@@ -477,6 +521,7 @@ function CardSection({
   move,
   cancel,
   undo,
+  trainerProposalMode,
 }: {
   title: string;
   cards: PlanCardT[];
@@ -493,9 +538,15 @@ function CardSection({
   wellness: WellnessDay[];
   plannedSessions: PlannedSessionRef[];
   onEdit: (card: PlanCardT) => void;
-  move: (id: string, date: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
-  cancel: (id: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
+  move: (id: string, date: string, reason?: string) => Promise<Result>;
+  cancel: (id: string, reason?: string) => Promise<Result>;
   undo: ReturnType<typeof useUndoAdjustment>["undo"];
+  /** Etappe 7a: nur die Button-Beschriftung ("Als Vorschlag speichern");
+   *  move/cancel selbst verzweigen bereits in PlanningPage::handleMove/
+   *  handleCancel, unabhängig davon, aus welcher Sektion sie aufgerufen
+   *  werden — Move/Cancel sind hier nicht auf die Ausstehend-Sektion
+   *  beschränkt (canEdit gilt sektionsübergreifend). */
+  trainerProposalMode?: boolean;
 }) {
   if (!cards.length && !emptyLabel) return null;
   return (
@@ -518,6 +569,7 @@ function CardSection({
               forecast={forecast}
               wellness={wellness}
               plannedSessions={plannedSessions}
+              trainerProposalMode={trainerProposalMode}
               onEdit={() => onEdit(card)}
               onMove={move}
               onCancel={cancel}

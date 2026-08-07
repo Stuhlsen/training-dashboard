@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c und 6d sind umgesetzt (07.08.2026), nächste Etappe ist 7
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d und 7a sind umgesetzt (07.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — nächste Etappe ist 7b
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,69 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 7a (07.08.2026)
+
+Etappe 7 (Trainer-Dashboard + Export/Import) ist wegen ihres Umfangs — wie zuvor
+Etappe 6 (Planungstab) — auf Nutzerentscheidung in vier Sub-Etappen geschnitten:
+**7a Trainer-Leiste** (dieser Abschnitt), 7b Proposal-Review (Banner/Liste/
+Vergleich), 7c Export/Import (inkl. `export_prefs`-Migration), 7d Blockstart-
+Dialog. Reihenfolge 7a→7b→7c→7d wegen Datenabhängigkeit (7b braucht Vorschläge
+aus 7a, 7c braucht 7b für seine Review-UI der importierten Vorschläge) — 7d ist
+unabhängig. Recherche vorab ergab: Stufenvorschlag/Leitplanken-Sektion/
+Fortschrittsindikatoren/Entscheidungsgedächtnis (`docs/konzept-progressions-
+steuerung.md`) sind kein eigenständiges UI, sondern reine Textbausteine im
+Export-Briefing (`state/export.js::buildClaudeExport()`, Vanilla) — die laufen
+komplett in 7c mit, nur E2 (Blockstart-Dialog) bleibt als eigenes UI-Stück 7d.
+
+- **Trainer-Leiste** (`TrainerBar.tsx`, Port von `ui/trainer-bar.js`) — 8
+  Kacheln (checkin/governor/tsb/proposals/wellbeing7d/lastRides/conflicts/
+  ctlAtl), davon 4 Default + 4 über "⚙ Ansicht anpassen" abwählbar
+  (`trainer_view_prefs`, DB-persistiert pro Trainer-Athlet-Paar). Neue Hooks
+  `useTrainerContext` (Port von `state/trainer-view.js::loadTrainerContext`,
+  fail-closed während des Ladens — Bugfix-Pattern aus dem Vanilla-Original
+  1:1 übernommen, s. dortiger Kommentar zum Playwright-Fund vom 25.07.2026)
+  und `useTrainerViewPrefs` (optimistisch, bewusst kein Rollback bei
+  Speicherfehler, wie im Vanilla-Vorbild).
+- **Direkt/Vorschlag-Umschalter** — Default "Vorschlag" (konservative
+  Vorgabe, Trainer-Sicht-Konzept §5), reiner Session-State (kein
+  `localStorage`, kein Reset bei Athletenwechsel). Verdrahtet in
+  `PlanningPage.tsx::handleMove/handleCancel` und `PlanCardForm.tsx`
+  (Anlegen/Bearbeiten) — im Vorschlagsmodus entsteht ein `proposals`-Eintrag
+  über `createTrainerProposal()` statt eines Direktschreibens. **T2** (Trainer-
+  Sicht-Konzept §3): Neuanlage ist für den Trainer IMMER Vorschlag,
+  unabhängig vom Umschalter (`isTrainerCardProposalMode()`); Löschen bleibt
+  für Trainer grundsätzlich gesperrt. Drag & Drop wird im Vorschlagsmodus
+  deaktiviert (`core/plan-drag.js::canDragCard`s `trainerProposalMode`-
+  Parameter, seit 6b vorbereitet, jetzt erstmals mit echtem Wert befüllt).
+- **Einzige core-Änderung:** `core/proposal-payload.js` bekommt
+  `addProposalArgs`/`replaceProposalArgs` (Spiegelbild von
+  `payloadToCardData`) — Vanilla baute diese Payload bisher nur inline in
+  `ui/plan-card-dialog.js`, es gab dafür keine core-Funktion.
+- **`/code-review` (8 Finder-Agenten) — zwei konvergent gemeldete Befunde
+  gefixt:** (1) `canWriteForAthlete` und `useTrainerContext` lösten für
+  einen Coach denselben `resolveTrainerContext()`-Lookup doppelt aus, jetzt
+  teilen sie sich einen Query-Cache-Eintrag (`queryClient.fetchQuery`,
+  Muster wie das bestehende `fetchAthleteProfileId`). (2) `TrainerBar`s
+  Hooks (`useProposals`/`useCheckinRange`/`useTrainerViewPrefs`) feuerten
+  bei jedem Planungstab-Besuch, auch für Nicht-Trainer — jetzt an
+  `isTrainer` gegated (`useProposals` bekam dafür einen neuen optionalen
+  `enabled`-Parameter). Eine dritte gemeldete Sorge (Vorschlags-„replace"
+  nullt `workoutStructure`) gegen den bestehenden Direkt-Pfad geprüft
+  (`usePlanCards.ts` Zeile ~272): identisches Verhalten dort bereits — keine
+  neue Regression, sondern die aus Etappe 6b bekannte, dort schon
+  dokumentierte Lücke ("`workoutStructure` geht beim Bearbeiten verloren").
+- **Kein separater Component-Test** für `TrainerBar.tsx` — geprüft: kein
+  einziges hook-verdrahtetes Feature (`HeroPage`/`EventsPage`/
+  `PlanningPage`/`PlanCardForm`) hat im Repo einen `.test.tsx`, nur reine
+  Props-Komponenten (`WeatherBadge`/`HintChip`/…) haben RTL-Tests. Abdeckung
+  stattdessen über `useTrainerContext.test.tsx`/`useTrainerViewPrefs.test.tsx`
+  (Hooks) + `trainer-bar-view-model.test.ts` (reine Kachel-/Gate-Logik);
+  die verdrahtete Komponente verifiziert Alex per Playwright.
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx vitest run` 901/901 grün (860 + 41 neue Tests), `npx eslint .` ohne
+  neue Errors. Manuelle Playwright-Verifikation gegen `dashboard-dev` steht
+  noch aus (macht Alex einmalig am Ende der Sub-Etappe, wie Konvention).
 
 ## Änderungen durch Etappe 6d (07.08.2026)
 
@@ -652,7 +715,7 @@ Drei Entscheidungen, die beim Umsetzen anfielen:
 
 ### Etappen 6a–9 — Restliche Bereiche, je eine eigene Etappe
 
-Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detailplanung folgt dem Muster der bisherigen Phasenkonzepte. Jede übernimmt ihre Sichtbarkeits-Matrix-Zeilen ins Abnahmekriterium (s.o.). Etappe 6 (Planungstab) ist wegen ihres Umfangs zusätzlich in Sub-Etappen 6a–6d geschnitten (wie 2a/2b) — jede Sub-Etappe ist einzeln abnehmbar und einen eigenen Chat wert, s. "Änderungen durch Etappe 6a" oben für die Begründung.
+Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detailplanung folgt dem Muster der bisherigen Phasenkonzepte. Jede übernimmt ihre Sichtbarkeits-Matrix-Zeilen ins Abnahmekriterium (s.o.). Etappe 6 (Planungstab) und Etappe 7 (Trainer-Dashboard + Export/Import) sind wegen ihres Umfangs zusätzlich in Sub-Etappen geschnitten (wie 2a/2b) — jede Sub-Etappe ist einzeln abnehmbar und einen eigenen Chat wert, s. "Änderungen durch Etappe 6a" bzw. "Änderungen durch Etappe 7a" oben für die jeweilige Begründung.
 
 | Etappe | Bereich | Modell | Besonderheit |
 |---|---|---|---|
@@ -661,7 +724,10 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 6b | **Planungstab — Drag & Drop** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6b" oben. **dnd-kit** statt 1:1-Port der handgebauten Pointer-Events-Mechanik aus `ui/plan-drag.js` — reduziert die Race-Condition-Klasse, die dort laut CLAUDE.md schon einmal einen zähen Bug verursacht hat (Drag-Grip-Bug, Juli 2026). `core/plan-drag.js` (reine Regeln: `isDropAllowed`/`canDragCard`/`resolveDrop`) bleibt unverändert, an dnd-kit-Events angebunden. Nutzt denselben Schreibpfad wie der "Verschieben"-Button (`useMovePlanCard`, s. 6a). `collisionDetection={pointerWithin}` war ein nötiger Nachtrag (s. Doku oben) |
 | 6c | **Planungstab — Wirkungsanzeige & Compliance** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6c" oben. Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel, Wirkungsanzeige inkl. Delta-Banner, Konflikt-/Hinweis-Chip, Wetter-Badges, Legacy-Segmentbalken, Z2/Recovery-Detailblöcke. Echte Lücke geschlossen: `projection`/`conflicts` gab es auf React-Seite noch gar nicht (Vanilla-Äquivalent war Modul-State in `state/plan-cards.js`) |
 | 6d | **Planungstab — Wahoo-Push** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6d" oben. Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) weiterhin nie live verifiziert |
-| 7 | **Trainer-Dashboard + Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. **Briefing-/Export-Portierungsposten** (in Vanilla bereits gebaut): Leiterstand-Anzeige im Export-Panel, Blockstart-Dialog zur Familienwahl, Stufenvorschlag im Briefing inkl. Sonderfälle ("kein Vorschlag ableitbar", "eingefroren (Taper)"), Leitplanken-Sektion (K-RAMPE/K-HARTFOLGE/K-WOCHENTSS/K-TID), Fortschrittsindikatoren, Preset-Kachelreihe |
+| 7a | **Trainer-Dashboard — Trainer-Leiste** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7a" oben. `TrainerBar` (8 Kacheln, `trainer_view_prefs`-Panel), Direkt/Vorschlag-Umschalter (Default "Vorschlag") verdrahtet in Move/Cancel/Anlegen/Bearbeiten, T2 (Neuanlage immer Vorschlag), Drag&Drop im Vorschlagsmodus deaktiviert |
+| 7b | **Trainer-Dashboard — Proposal-Review** | `[SO]` | Proposal-Banner (Athlet), Liste mit Gruppierung/"Alle übernehmen", Vergleichsansicht (TSB-Delta + Konflikt-Badges). Baut auf 7a auf (braucht Vorschläge zum Reviewen) |
+| 7c | **Trainer-Dashboard — Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. Export-Panel (Preset-Kachelreihe, Freitext, Event-Auswahl, Leiterstand-Zeile E1), neue Tabelle+Migration `export_prefs`, Import-Dialog (Preview+Teilerfolg). Stufenvorschlag/Leitplanken-Sektion/Fortschrittsindikatoren/Entscheidungsgedächtnis (`docs/konzept-progressionssteuerung.md`) laufen hier mit — reine Textbausteine im Export-Briefing, kein eigenes UI. Nutzt 7b für die Review-UI der importierten Vorschläge |
+| 7d | **Trainer-Dashboard — Blockstart-Dialog** | `[SO]` | Blockstart-Dialog zur Familienwahl (E2, `docs/konzept-progressionssteuerung.md`) — eigenständiges Modal, ausgelöst beim Planungstab-Laden (`maybeOpenBlockDialog`), strukturell unabhängig vom Export-Panel |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
 
