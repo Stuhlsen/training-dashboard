@@ -38,6 +38,9 @@ import { DeltaBanner } from "./DeltaBanner";
 import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCard } from "./PlanCard";
 import { PlanCardForm } from "./PlanCardForm";
+import { ProposalBanner } from "./ProposalBanner";
+import { ProposalList } from "./ProposalList";
+import { ProposalCompare } from "./ProposalCompare";
 import { TrainerBar } from "./TrainerBar";
 import { isTrainerProposalMode, type SaveMode } from "./trainer-bar-view-model";
 import {
@@ -48,7 +51,7 @@ import {
   typeIcon,
   type PlannedSessionRef,
 } from "./planning-view-model";
-import type { EventItem, PlanCard as PlanCardT, Result } from "../../api/types";
+import type { EventItem, PlanCard as PlanCardT, Proposal, Result } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -104,6 +107,12 @@ export function PlanningPage() {
 
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Etappe 7b: Liste unabhängig von der Vergleichsansicht offen halten —
+  // "Vergleichen…" öffnet die Vergleichsansicht ÜBER der weiterhin
+  // sichtbaren Liste (höherer z-index), wie ui/proposal-compare.js über
+  // ui/proposal-list.js.
+  const [proposalListOpen, setProposalListOpen] = useState(false);
+  const [compareProposal, setCompareProposal] = useState<Proposal | null>(null);
   // Etappe 7a: Default "proposal" (Trainer-Sicht-Konzept §5, konservative
   // Vorgabe) — reiner Session-State, kein Reset bei Athletenwechsel, keine
   // Persistenz (spiegelt Vanillas modul-globale state/trainer-view.js::saveMode).
@@ -262,7 +271,10 @@ export function PlanningPage() {
         events={events ?? []}
         projection={projection}
         conflicts={conflicts}
+        onOpenProposals={() => setProposalListOpen(true)}
       />
+
+      <ProposalBanner athleteId={activeAthleteId} onOpen={() => setProposalListOpen(true)} />
 
       {deltaBanner && <DeltaBanner state={deltaBanner} onClose={() => setDeltaBanner(null)} />}
 
@@ -459,6 +471,21 @@ export function PlanningPage() {
           onClose={() => setDialog("closed")}
           isTrainerSaving={isTrainer}
           saveMode={saveMode}
+        />
+      )}
+
+      {proposalListOpen && (
+        <ProposalList
+          athleteId={activeAthleteId}
+          onClose={() => setProposalListOpen(false)}
+          onCompare={setCompareProposal}
+        />
+      )}
+      {compareProposal && (
+        <ProposalCompare
+          athleteId={activeAthleteId}
+          proposal={compareProposal}
+          onClose={() => setCompareProposal(null)}
         />
       )}
     </div>

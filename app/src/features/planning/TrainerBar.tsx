@@ -14,8 +14,11 @@
    mit den Check-ins DES ATHLETEN (useCheckinRange) statt des eingeloggten
    Trainers (useTodayCheckin wäre hier falsch).
 
-   "Vorschläge"-Kachel zeigt in 7a nur den Zähler — der Review-Dialog
-   (Annehmen/Ablehnen/Vergleichen) kommt erst mit Etappe 7b.
+   "Vorschläge"-Kachel öffnet seit Etappe 7b den Review-Dialog
+   (ProposalList, in PlanningPage.tsx gerendert) — Annehmen/Ablehnen/
+   Vergleichen darf laut RLS ("proposals: Athlet entscheidet") nur der
+   Athlet selbst, der Trainer sieht dort nur zur Kontrolle (Port von
+   ui/trainer-bar.js::proposalsTile()s Klick-Handler).
    ============================================================ */
 
 import { useState } from "react";
@@ -60,6 +63,7 @@ interface TrainerBarProps {
   events: EventItem[];
   projection: ReturnType<typeof projectLoad>;
   conflicts: ReturnType<typeof detectConflicts>;
+  onOpenProposals: () => void;
 }
 
 const TODAY = localISODate();
@@ -91,6 +95,7 @@ export function TrainerBar({
   events,
   projection,
   conflicts,
+  onOpenProposals,
 }: TrainerBarProps) {
   const { isTrainer, athleteProfileId } = useTrainerContext(athleteId);
   const trainerId = useAuthUserId();
@@ -188,10 +193,17 @@ export function TrainerBar({
               );
             case "proposals":
               return (
-                <Tile key={key} title={CATEGORY_LABELS.proposals}>
-                  <TileBig>{openCount}</TileBig>
-                  <div style={{ fontSize: ".78rem", color: "var(--ink-3)", marginTop: 4 }}>offen</div>
-                </Tile>
+                <button
+                  key={key}
+                  type="button"
+                  onClick={onOpenProposals}
+                  style={{ all: "unset", display: "block", width: "100%", cursor: "pointer" }}
+                >
+                  <Tile title={CATEGORY_LABELS.proposals}>
+                    <TileBig>{openCount}</TileBig>
+                    <div style={{ fontSize: ".78rem", color: "var(--ink-3)", marginTop: 4 }}>offen</div>
+                  </Tile>
+                </button>
               );
             case "wellbeing7d": {
               const avg = wellbeing7dAverages(weekCheckins);

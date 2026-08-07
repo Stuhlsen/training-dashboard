@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d und 7a sind umgesetzt (07.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — nächste Etappe ist 7b
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a und 7b sind umgesetzt (07.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — nächste Etappe ist 7c
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,64 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 7b (07.08.2026)
+
+Proposal-Review — der athletenseitige Gegenpart zu Etappe 7a: die dort
+verdrahtete Erzeugung von `proposals`-Einträgen (Trainer-Vorschlag) bekommt
+jetzt eine Annehmen/Ablehnen-UI. Reine Portierung — Gruppierung
+(`core/proposal-groups.js`), Vorschau-Simulation (`core/proposal-preview.js`)
+und Kurzfassung (`core/proposal-summary.js`) waren bereits seit Etappe 2a
+portiert und getestet, ebenso alle Mutations-Hooks
+(`useAcceptProposal`/`useAcceptGroup`/`useRejectProposal`/
+`useWithdrawProposal` in `api/hooks/useProposals.ts`) — 7b liefert nur die
+React-UI-Schicht.
+
+- **`proposal-review-view-model.ts`** (neu, reine Funktionen) — Port von
+  `ui/proposal-list.js::describeProposal()` und
+  `ui/proposal-compare.js::sidesFor()`/`drawImpact()`s Datenanteil.
+  `impactSummary()`/`impactDetail()` kapseln denselben schmalen
+  `toProjectionCard`/`toProjectionEvent`-Adapter wie `PlanningPage.tsx`
+  (bewusst erneut lokal, keine geteilte Abstraktion — Konvention aus
+  `PlanCard.tsx`, s. dortiger Kommentar). 12 neue Tests.
+- **`ProposalBanner.tsx`** — athletenseitiger Einstieg ("N Vorschläge
+  offen"), Port von `ui/proposal-banner.js`. Einziger Weg, über den der
+  Athlet selbst tatsächlich entscheiden kann (RLS "proposals: Athlet
+  entscheidet" erlaubt Annehmen/Ablehnen nur `athlete_id = auth.uid()`) —
+  gated über den neuen `useIsSelfAthlete()`-Hook (bereits seit
+  `write-authorization.ts` vorhanden, hier erstmals verdrahtet).
+- **`ProposalList.tsx`** — Port von `ui/proposal-list.js`: Gruppen
+  (`group_id`, z. B. ein Claude-Import) mit "Alle übernehmen", ungruppierte
+  Vorschläge einzeln. Athlet: "Vergleichen…"/"Übernehmen"; Trainer (nur zur
+  Kontrolle): read-only "Ansehen…", kein Übernehmen-Button.
+- **`ProposalCompare.tsx`** — Port von `ui/proposal-compare.js`: Aktuell/
+  Vorgeschlagen nebeneinander, geänderte Felder akzentuiert, TSB-Delta am
+  Eventtag + gelöste/neu eingeführte Konflikt-Badges. Eigener (per Claude
+  importierter) Vorschlag: "Zurückziehen" statt "Aktuelle behalten" — wie im
+  Vanilla-Original. Badge-Farben: `var(--ok)` für gelöste Konflikte (Vanilla
+  nutzte hierfür Gold/`--gold`, hier bewusst auf Grün umgestellt — passt zur
+  sonst im React-Umbau durchgängigen Ampel-Semantik `--ok`/`--warn`/
+  `--danger`, s. `governorColor()`/`ComplianceTable.tsx`).
+- **Trainer-Leiste "Vorschläge"-Kachel** (`TrainerBar.tsx`) jetzt klickbar
+  (in 7a nur Zähler) — öffnet dieselbe `ProposalList` wie der Athleten-
+  Banner, Port von `ui/trainer-bar.js::proposalsTile()`s Klick-Handler.
+- **Kein separater Component-Test** für `ProposalBanner`/`ProposalList`/
+  `ProposalCompare` — dieselbe Begründung wie bei `TrainerBar.tsx` in 7a
+  (kein hook-verdrahtetes Planungstab-Feature hat ein `.test.tsx`, nur reine
+  Props-Komponenten). Abdeckung über `proposal-review-view-model.test.ts`
+  + die bereits bestehenden `useProposals.test.tsx`/core-Tests; die
+  verdrahteten Komponenten verifiziert Alex per Playwright.
+- **`/code-review` (medium) — ein Fund, gefixt:** `sidesFor()`s "replace"-
+  Zweig baute die rechte Vergleichsseite aus einer expliziten Feldliste statt
+  `current` zu spreaden — beim Bearbeiten einer bereits ausgefallenen Karte
+  verschwand das `cancelled`-Flag stillschweigend auf der Vorschau-Seite.
+  Jetzt wie im Vanilla-Original `{...current, ...payloadToCardData(...)}`,
+  Regressionstest ergänzt.
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx vitest run` 914/914 grün (901 + 13 neue Tests), `npx eslint .` ohne
+  neue Errors (3 unveränderte Alt-Warnungen). Manuelle Playwright-
+  Verifikation gegen `dashboard-dev` steht noch aus (macht Alex einmalig am
+  Ende der Sub-Etappe, wie Konvention).
 
 ## Änderungen durch Etappe 7a (07.08.2026)
 
@@ -725,7 +783,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 6c | **Planungstab — Wirkungsanzeige & Compliance** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6c" oben. Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel, Wirkungsanzeige inkl. Delta-Banner, Konflikt-/Hinweis-Chip, Wetter-Badges, Legacy-Segmentbalken, Z2/Recovery-Detailblöcke. Echte Lücke geschlossen: `projection`/`conflicts` gab es auf React-Seite noch gar nicht (Vanilla-Äquivalent war Modul-State in `state/plan-cards.js`) |
 | 6d | **Planungstab — Wahoo-Push** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6d" oben. Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) weiterhin nie live verifiziert |
 | 7a | **Trainer-Dashboard — Trainer-Leiste** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7a" oben. `TrainerBar` (8 Kacheln, `trainer_view_prefs`-Panel), Direkt/Vorschlag-Umschalter (Default "Vorschlag") verdrahtet in Move/Cancel/Anlegen/Bearbeiten, T2 (Neuanlage immer Vorschlag), Drag&Drop im Vorschlagsmodus deaktiviert |
-| 7b | **Trainer-Dashboard — Proposal-Review** | `[SO]` | Proposal-Banner (Athlet), Liste mit Gruppierung/"Alle übernehmen", Vergleichsansicht (TSB-Delta + Konflikt-Badges). Baut auf 7a auf (braucht Vorschläge zum Reviewen) |
+| 7b | **Trainer-Dashboard — Proposal-Review** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7b" oben. `ProposalBanner` (Athlet), `ProposalList` mit Gruppierung/"Alle übernehmen", `ProposalCompare` (TSB-Delta + Konflikt-Badges). "Vorschläge"-Kachel in `TrainerBar` jetzt klickbar (Trainer: read-only) |
 | 7c | **Trainer-Dashboard — Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. Export-Panel (Preset-Kachelreihe, Freitext, Event-Auswahl, Leiterstand-Zeile E1), neue Tabelle+Migration `export_prefs`, Import-Dialog (Preview+Teilerfolg). Stufenvorschlag/Leitplanken-Sektion/Fortschrittsindikatoren/Entscheidungsgedächtnis (`docs/konzept-progressionssteuerung.md`) laufen hier mit — reine Textbausteine im Export-Briefing, kein eigenes UI. Nutzt 7b für die Review-UI der importierten Vorschläge |
 | 7d | **Trainer-Dashboard — Blockstart-Dialog** | `[SO]` | Blockstart-Dialog zur Familienwahl (E2, `docs/konzept-progressionssteuerung.md`) — eigenständiges Modal, ausgelöst beim Planungstab-Laden (`maybeOpenBlockDialog`), strukturell unabhängig vom Export-Panel |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
