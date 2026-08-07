@@ -7264,6 +7264,22 @@
       "hydration": null,
       "hydrationVolume": null,
       "eftp": 201
+    },
+    {
+      "date": "2026-08-07",
+      "sleepHours": null,
+      "sleepScore": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
+      "hrv": null,
+      "weight": null,
+      "bodyFat": null,
+      "activeEnergy": null,
+      "restingEnergy": null,
+      "kcalConsumed": null,
+      "hydration": null,
+      "hydrationVolume": null,
+      "eftp": 201
     }
   ],
   "wellnessMeta": {
@@ -7279,8 +7295,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-08-06T00:00:00",
-        "end_date_local": "2026-08-06T23:59:59",
+        "start_date_local": "2025-08-07T00:00:00",
+        "end_date_local": "2026-08-07T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -11602,16 +11618,16 @@
       "key": "schwelle",
       "label": "Schwelle",
       "from": "2026-07-27",
-      "to": "2026-08-06",
+      "to": "2026-08-07",
       "curve": {
         "list": [
           {
-            "id": "r.2026-07-27.2026-08-06",
+            "id": "r.2026-07-27.2026-08-07",
             "after_kj": 0,
-            "label": "27-Jul 6-Aug-2026",
+            "label": "27-Jul 7-Aug-2026",
             "start_date_local": "2026-07-27",
-            "end_date_local": "2026-08-06T23:59:59",
-            "days": 11,
+            "end_date_local": "2026-08-07T23:59:59",
+            "days": 12,
             "moving_time": 0,
             "training_load": 0,
             "weight": 80.95,
@@ -12752,16 +12768,16 @@
     {
       "key": "letzte-6-wochen",
       "label": "Letzte 6 Wochen",
-      "from": "2026-06-25",
-      "to": "2026-08-06",
+      "from": "2026-06-26",
+      "to": "2026-08-07",
       "curve": {
         "list": [
           {
-            "id": "r.2026-06-25.2026-08-06",
+            "id": "r.2026-06-26.2026-08-07",
             "after_kj": 0,
-            "label": "25-Jun 6-Aug-2026",
-            "start_date_local": "2026-06-25",
-            "end_date_local": "2026-08-06T23:59:59",
+            "label": "26-Jun 7-Aug-2026",
+            "start_date_local": "2026-06-26",
+            "end_date_local": "2026-08-07T23:59:59",
             "days": 43,
             "moving_time": 0,
             "training_load": 0,
@@ -14020,16 +14036,6 @@
             "start_date_local": "2026-06-28T04:55:10",
             "race": false
           },
-          "i160322695": {
-            "id": "i160322695",
-            "name": "Radfahren",
-            "distance": 29214.76,
-            "moving_time": 4224,
-            "training_load": 67,
-            "icu_weight": 82.35,
-            "start_date_local": "2026-06-25T19:06:54",
-            "race": false
-          },
           "i162119124": {
             "id": "i162119124",
             "name": "Sweet Spot 3x10",
@@ -14176,20 +14182,20 @@
     {
       "key": "6-wochen-davor",
       "label": "6 Wochen davor",
-      "from": "2026-05-14",
-      "to": "2026-06-24",
+      "from": "2026-05-15",
+      "to": "2026-06-25",
       "curve": {
         "list": [
           {
-            "id": "r.2026-05-14.2026-06-24",
+            "id": "r.2026-05-15.2026-06-25",
             "after_kj": 0,
-            "label": "14-May 24-Jun-2026",
-            "start_date_local": "2026-05-14",
-            "end_date_local": "2026-06-24T23:59:59",
+            "label": "15-May 25-Jun-2026",
+            "start_date_local": "2026-05-15",
+            "end_date_local": "2026-06-25T23:59:59",
             "days": 42,
             "moving_time": 0,
             "training_load": 0,
-            "weight": 82.5,
+            "weight": 82.35,
             "secs": [
               1,
               2,
@@ -15519,16 +15525,6 @@
             "start_date_local": "2026-06-17T17:13:22",
             "race": false
           },
-          "i148293891": {
-            "id": "i148293891",
-            "name": "MyWhoosh - Heart of Switzerland",
-            "distance": 26110.24,
-            "moving_time": 3669,
-            "training_load": 44,
-            "icu_weight": 84,
-            "start_date_local": "2026-05-14T21:12:13",
-            "race": false
-          },
           "i157820220": {
             "id": "i157820220",
             "name": "Radfahren",
@@ -16740,21 +16736,21 @@
   },
   "forecast": {
     "2026-08-07": {
-      "temp": 22.1,
-      "tempFeel": 20.8,
+      "temp": 22,
+      "tempFeel": 20.6,
       "humidity": 44,
-      "windSpeed": 9.5,
-      "windDir": 298,
+      "windSpeed": 9.9,
+      "windDir": 300,
       "precipProb": 0,
       "weatherCode": 2,
       "uvMax": 6.3
     },
     "2026-08-08": {
-      "temp": 22.4,
-      "tempFeel": 21.7,
-      "humidity": 43,
-      "windSpeed": 5,
-      "windDir": 42,
+      "temp": 22.1,
+      "tempFeel": 21.2,
+      "humidity": 45,
+      "windSpeed": 5.7,
+      "windDir": 77,
       "precipProb": 0,
       "weatherCode": 2,
       "uvMax": 6.2
@@ -16904,7 +16900,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-06T23:50:38.639Z",
+  "updated": "2026-08-07T02:09:29.156Z",
   "source": "notion+intervals",
   "count": 85
 }

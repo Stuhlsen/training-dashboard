@@ -18726,6 +18726,22 @@
       "hydration": null,
       "hydrationVolume": null,
       "eftp": 256
+    },
+    {
+      "date": "2026-08-07",
+      "sleepHours": null,
+      "sleepScore": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
+      "hrv": null,
+      "weight": null,
+      "bodyFat": null,
+      "activeEnergy": null,
+      "restingEnergy": null,
+      "kcalConsumed": null,
+      "hydration": null,
+      "hydrationVolume": null,
+      "eftp": 256
     }
   ],
   "wellnessMeta": {
@@ -18741,8 +18757,8 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-08-06T00:00:00",
-        "end_date_local": "2026-08-06T23:59:59",
+        "start_date_local": "2025-08-07T00:00:00",
+        "end_date_local": "2026-08-07T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
@@ -21509,7 +21525,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-06T23:50:41.411Z",
+  "updated": "2026-08-07T02:09:33.433Z",
   "source": "intervals.icu",
   "count": 141
 }
