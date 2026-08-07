@@ -46,4 +46,13 @@ export const qk = {
 
   /** JSON-Pipeline (5.5): die per Cron erzeugten data/*.json */
   rides: (athleteId: string) => ["rides", athleteId] as const,
+
+  /** Export-Richtungsvorgabe (Etappe 7c) — Preset+Zielevent, ein Eintrag pro
+   *  eingeloggtem Profil. */
+  exportPrefs: (profileId: string) => ["export-prefs", profileId] as const,
+  /** Leiterzustand (aktive Formate × Stufe × Nachbarn) des eingeloggten
+   *  Profils, für die Export-Panel-Zeile und das Briefing-Gedächtnis. */
+  ladderState: (profileId: string) => ["ladder-state", profileId] as const,
+  /** FTP-Historie des eingeloggten Profils. */
+  ftpHistory: (profileId: string) => ["ftp-history", profileId] as const,
 } as const;

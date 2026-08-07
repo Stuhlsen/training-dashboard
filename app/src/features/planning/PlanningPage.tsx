@@ -38,6 +38,7 @@ import { DeltaBanner } from "./DeltaBanner";
 import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCard } from "./PlanCard";
 import { PlanCardForm } from "./PlanCardForm";
+import { ExportImportBar } from "./ExportImportBar";
 import { ProposalBanner } from "./ProposalBanner";
 import { ProposalList } from "./ProposalList";
 import { ProposalCompare } from "./ProposalCompare";
@@ -161,6 +162,10 @@ export function PlanningPage() {
   // eigenes, lokal geshadowtes `rides` bewusst unverändert, daher hier ein
   // eigener Name statt einer dritten Ableitung derselben Quelle.
   const allRides = (rideData?.rides as Ride[] | undefined) ?? [];
+  // Für ExportImportBar (Etappe 7c) — Bestwerte-Vergleich im Briefing
+  // (core/progress-indicators.js::bestEffortComparison).
+  const powerCurveBlocks =
+    (rideData?.powerCurveBlocks as Array<{ key: string; curve?: object | null }> | undefined) ?? [];
 
   // Etappe 6c: Vorher/Nachher-Vergleich nach Verschieben/Ausfallen/Drag,
   // Port von ui/planned.js::_recordDelta (dort Modul-State `deltaBanner` +
@@ -275,6 +280,18 @@ export function PlanningPage() {
       />
 
       <ProposalBanner athleteId={activeAthleteId} onOpen={() => setProposalListOpen(true)} />
+
+      <ExportImportBar
+        athleteId={activeAthleteId}
+        ftp={ftp ?? null}
+        cards={cards ?? []}
+        rides={allRides}
+        wellness={wellness}
+        powerCurveBlocks={powerCurveBlocks}
+        events={events ?? []}
+        projection={projection}
+        conflicts={conflicts}
+      />
 
       {deltaBanner && <DeltaBanner state={deltaBanner} onClose={() => setDeltaBanner(null)} />}
 

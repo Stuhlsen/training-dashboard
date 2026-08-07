@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a und 7b sind umgesetzt (07.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — nächste Etappe ist 7c
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b und 7c sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — nächste Etappe ist 7d
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,57 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 7c (08.08.2026)
+
+Export/Import-Workflow — der athletenseitige Weg, Claude als Trainer zu
+konsultieren (`docs/phase-4-konzept-export-import-workflow.md`,
+`docs/phase-4-konzept-export-richtungsvorgabe.md`). Recherche vorab ergab:
+der Großteil der Grundlage war bereits vorhanden — `core/export-briefing.js`,
+`core/proposal-import-parser.js` und die vier `core/proposal-*.js`-Module
+liefen schon byte-identisch als Port (Etappe 2a), `usePreviewClaudeImport`/
+`useImportClaudeProposals` existierten bereits in `useProposals.ts` (Etappe
+7b), und Migration `0008_export_prefs.sql` lag bereits vor. Fehlend waren
+nur die Datenzugriffsschicht für drei bisher nicht portierte Vanilla-Module
+(`export-prefs`, `ladder`/`formats`, `ftp-history` — zusammen < 400 Zeilen,
+reine CRUD-Adapter nach dem `trainer-view-prefs.ts`-Muster), eine
+Assemblierungs-Funktion und die beiden Dialog-Komponenten.
+
+- **Daten-Zugriffsschicht** (`app/src/api/supabase/`): `export-prefs.ts`,
+  `ladder.ts`, `formats.ts`, `ftp-history.ts` — TS-Port der jeweiligen
+  Vanilla-Datei, Result<T>-Pattern.
+- **Hooks** (`app/src/api/hooks/`): `useExportPrefs.ts` (Preset+Zielevent
+  laden/speichern), `useLadderState.ts` (`useLadderState`/
+  `useLadderPresetSuggestion`, Port von `state/ladder.js`+`state/formats.js`),
+  `useFtpHistory.ts` (nur Lesepfad — der Schreibpfad aus
+  `ui/settings-panel.js` ist bewusst nicht Teil dieser Etappe).
+- **Assemblierung** (`app/src/features/planning/export-briefing-view-model.ts`):
+  reine Funktion `buildExportBriefingCtx()`, baut die `ctx`-Struktur für
+  `core/export-briefing.js::buildExportText()` aus bereits geladenen Daten
+  zusammen (Port von `state/export.js::buildClaudeExport()`, aber ohne I/O —
+  das laden die Hooks bereits vorher).
+- **UI** (`app/src/features/planning/`): `ExportImportBar.tsx` (Leiste,
+  Gate `useIsSelfAthlete()` — analog Vanillas `ownsPlan()`), `ExportPanel.tsx`
+  (5 Preset-Kacheln, Zielevent-Auswahl mit Leerzustand, Freitextfeld, Textarea
+  readonly + Kopieren/Download), `ImportDialog.tsx` (Textarea+Datei-Upload,
+  Prüfen→Vorschau→Importieren, nutzt die bereits vorhandenen 7b-Hooks). Alle
+  drei nach dem bestehenden Inline-Overlay-Muster (`PlanCardForm.tsx`/
+  `EventForm.tsx`), keine neue Dialog-Abstraktion.
+- Die "Progressionssteuerung"-Textbausteine (Leiterstand/Stufenvorschlag,
+  Leitplanken, Fortschrittsindikatoren, Entscheidungsgedächtnis) laufen volle
+  Parität zur Vanilla-Version mit — alle dafür nötigen `core/`-Module
+  (`guardrails.js`, `progress-indicators.js`, `ftp-forecast.js`,
+  `efficiency.js`, `ladder.js`, `ladder-progression.js`, `event-taper.js`,
+  `ftp-history.js`) waren bereits als Port vorhanden, nur ihre
+  Datenzugriffsschicht fehlte (s.o.).
+- **Abnahme:** in `/app/` (`cd app`, PowerShell ohne `&&`): `npx tsc -b`
+  sauber, `npx eslint .` ohne neue Fehler (3 vorbestehende Warnings
+  unverändert), `npx vitest run` grün bis auf 4 vorbestehende, nicht von
+  dieser Etappe berührte Fehlschläge in `useWellbeing.test.tsx`
+  (datumsabhängige Testliterale, durch den Tagwechsel 07.08.→08.08.2026
+  während der Session ausgelöst — unabhängig vom hier beschriebenen Umbau).
+  Verifikation gegen `dashboard-dev` steht noch aus (macht Alex einmalig am
+  Ende der Sub-Etappe, wie Konvention).
 
 ## Änderungen durch Etappe 7b (07.08.2026)
 
@@ -784,7 +835,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 6d | **Planungstab — Wahoo-Push** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6d" oben. Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) weiterhin nie live verifiziert |
 | 7a | **Trainer-Dashboard — Trainer-Leiste** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7a" oben. `TrainerBar` (8 Kacheln, `trainer_view_prefs`-Panel), Direkt/Vorschlag-Umschalter (Default "Vorschlag") verdrahtet in Move/Cancel/Anlegen/Bearbeiten, T2 (Neuanlage immer Vorschlag), Drag&Drop im Vorschlagsmodus deaktiviert |
 | 7b | **Trainer-Dashboard — Proposal-Review** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7b" oben. `ProposalBanner` (Athlet), `ProposalList` mit Gruppierung/"Alle übernehmen", `ProposalCompare` (TSB-Delta + Konflikt-Badges). "Vorschläge"-Kachel in `TrainerBar` jetzt klickbar (Trainer: read-only) |
-| 7c | **Trainer-Dashboard — Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. Export-Panel (Preset-Kachelreihe, Freitext, Event-Auswahl, Leiterstand-Zeile E1), neue Tabelle+Migration `export_prefs`, Import-Dialog (Preview+Teilerfolg). Stufenvorschlag/Leitplanken-Sektion/Fortschrittsindikatoren/Entscheidungsgedächtnis (`docs/konzept-progressionssteuerung.md`) laufen hier mit — reine Textbausteine im Export-Briefing, kein eigenes UI. Nutzt 7b für die Review-UI der importierten Vorschläge |
+| 7c | **Trainer-Dashboard — Export/Import** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 7c" oben. Export-Panel (Preset-Kachelreihe, Freitext, Event-Auswahl, Leiterstand-Zeile E1), Import-Dialog (Preview+Teilerfolg, nutzt 7bs Review-UI für die importierten Vorschläge). Stufenvorschlag/Leitplanken-Sektion/Fortschrittsindikatoren/Entscheidungsgedächtnis (`docs/konzept-progressionssteuerung.md`) laufen mit — reine Textbausteine im Export-Briefing, kein eigenes UI. Migration `0008_export_prefs.sql` lag bereits vor (nicht Teil dieser Etappe) |
 | 7d | **Trainer-Dashboard — Blockstart-Dialog** | `[SO]` | Blockstart-Dialog zur Familienwahl (E2, `docs/konzept-progressionssteuerung.md`) — eigenständiges Modal, ausgelöst beim Planungstab-Laden (`maybeOpenBlockDialog`), strukturell unabhängig vom Export-Panel |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |

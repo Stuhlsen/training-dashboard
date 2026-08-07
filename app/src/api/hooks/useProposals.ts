@@ -163,7 +163,7 @@ export function usePreviewClaudeImport(athleteId: string) {
 
 /** Rohes Vorschlags-Element aus einem Claude-Import — im JSON-Schema-Format
  *  (snake_case), noch nicht in der Domänen-Shape. */
-interface RawImportProposal {
+export interface RawImportProposal {
   op: Proposal["op"];
   target_card_id?: string | null;
   target_updated_at?: string | null;
