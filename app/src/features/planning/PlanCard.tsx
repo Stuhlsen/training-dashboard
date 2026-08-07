@@ -1,10 +1,33 @@
 import { useState } from "react";
 import { useDraggable } from "@dnd-kit/core";
 import { fmt, fmtDate } from "../../core/format.js";
-import { restDayRiddenSignal } from "../../core/plan-feedback.js";
+import { cardImpact, conflictsForCard, restDayRiddenSignal } from "../../core/plan-feedback.js";
+import { projectLoad } from "../../core/projection.js";
+import { detectConflicts } from "../../core/conflicts.js";
 import { EventBadge } from "../events/EventBadge";
-import { asWorkoutBlocks, isRestDay, typeColor, typeIcon } from "./planning-view-model";
+import { ComplianceTable } from "./ComplianceTable";
+import { HintChip, type HintItem } from "./HintChip";
+import { LegacyWorkoutTimeline } from "./LegacyWorkoutTimeline";
+import { RecoveryBlock } from "./RecoveryBlock";
+import { WeatherBadge } from "./WeatherBadge";
+import { Z2Block } from "./Z2Block";
+import {
+  asWorkoutBlocks,
+  isRecoveryType,
+  isRestDay,
+  isZ2Type,
+  legacyWorkoutSegments,
+  typeColor,
+  typeIcon,
+  type DayForecast,
+  type PlannedSessionRef,
+} from "./planning-view-model";
 import type { PlanCard as PlanCardT, Result } from "../../api/types";
+
+type Ride = import("../../types.js").Ride;
+type WellnessDay = import("../../types.js").WellnessDay;
+type Projection = ReturnType<typeof projectLoad>;
+type Conflict = ReturnType<typeof detectConflicts>[number];
 
 const LABEL_STYLE: React.CSSProperties = {
   display: "flex",
@@ -41,13 +64,28 @@ const ACTION_BTN_STYLE: React.CSSProperties = {
 interface PlanCardProps {
   card: PlanCardT;
   canEdit: boolean;
-  /** Steuert, ob das "Ruhetag gefahren"-Hinweisbadge geprüft wird — nur
-   *  relevant für Karten aus dem Absolviert-Abschnitt. */
+  /** Steuert, ob das "Ruhetag gefahren"-Hinweisbadge geprüft wird UND ob die
+   *  Compliance-Tabelle (statt Konflikt-Chip/Wirkungsanzeige/Wetter/Workout-
+   *  Detailblöcken) gerendert wird — nur für Karten aus dem
+   *  Absolviert-Abschnitt (spiegelt die Vanilla-Aufteilung `_renderCard`
+   *  vs. `_renderDoneCard`, s. ui/planned.js). */
   isDone?: boolean;
   /** Zeigt den Drag-Griff (nur die "Ausstehend"-Sektion setzt das über
    *  canDragCard() — dort ist die per-Wochenblock eingeblendete
    *  Tages-Slot-Zeile das einzige gültige Drop-Ziel, s. PlanningPage). */
   draggable?: boolean;
+  /** Nur bei `isDone` gesetzt (Ride-Matching läuft in PlanningPage.tsx über
+   *  matchRideForCard) — Grundlage der Compliance-Tabelle. */
+  ride?: Ride | null;
+  /** Vollständige Konfliktliste der Projektion (wie Vanillas
+   *  `getPlanCardsState().conflicts`) — wird intern über `conflictsForCard`
+   *  auf diese Karte gefiltert. Nur bei `!isDone` relevant. */
+  conflicts: Conflict[];
+  projection: Projection;
+  ftp: number | undefined;
+  forecast: Record<string, unknown>;
+  wellness: WellnessDay[];
+  plannedSessions: PlannedSessionRef[];
   onEdit: () => void;
   onMove: (id: string, date: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
   onCancel: (id: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
@@ -57,10 +95,27 @@ interface PlanCardProps {
 type OpenForm = "move" | "cancel" | null;
 
 /** Eine Plankarte — ersetzt den Karten-Teil von ui/planned.js::render()
- *  (Etappe 6a: nur Grundgerüst, ohne Wirkungsanzeige/Compliance-Tabelle/
- *  Wetter-Badge/Hinweis-Chip — s. Etappe-6a-Plan). Verschieben/Ausfallen als
- *  eingeklapptes Inline-Formular statt Dialog, wie in Vanilla. */
-export function PlanCard({ card, canEdit, isDone, draggable, onEdit, onMove, onCancel, onUndo }: PlanCardProps) {
+ *  (Etappe 6a: Grundgerüst; Etappe 6c: Wirkungsanzeige, Konflikt-/Hinweis-
+ *  Chip, Wetter-Badge, Legacy-Segmentbalken, Z2/Recovery-Detailblöcke,
+ *  Compliance-Tabelle). Verschieben/Ausfallen als eingeklapptes
+ *  Inline-Formular statt Dialog, wie in Vanilla. */
+export function PlanCard({
+  card,
+  canEdit,
+  isDone,
+  draggable,
+  ride,
+  conflicts,
+  projection,
+  ftp,
+  forecast,
+  wellness,
+  plannedSessions,
+  onEdit,
+  onMove,
+  onCancel,
+  onUndo,
+}: PlanCardProps) {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
   const [moveDate, setMoveDate] = useState(card.date);
   const [reason, setReason] = useState("");
@@ -118,20 +173,55 @@ export function PlanCard({ card, canEdit, isDone, draggable, onEdit, onMove, onC
   const workoutBlocks = asWorkoutBlocks(card.workout);
   const riddenRestDayInfo = isDone && isRestDay(card) ? restDayRiddenSignal(card, true) : null;
 
+  // Etappe 6c: Konflikt-/Push-Hinweise, Wirkungsanzeige, Wetter-Badge und
+  // die Workout-Detailblöcke (Legacy-Segmentbalken/Z2/Recovery/Freitext)
+  // sind Vanillas `_renderCard` vorbehalten — `_renderDoneCard` zeigt
+  // stattdessen nur die Compliance-Tabelle + den separaten Ruhetag-Chip
+  // (unten, außerhalb der Karte).
+  const hintItems: HintItem[] = !isDone
+    ? conflictsForCard(conflicts, card.id).map((c: Conflict) => ({ severity: c.severity, text: c.message }))
+    : [];
+  if (!isDone && card.pushedExternalId) {
+    hintItems.push({
+      severity: "info",
+      text: "📤 Bereits auf Wahoo gepusht — wird beim nächsten Push aktualisiert.",
+    });
+  }
+  // cardImpact()s JSDoc-Parametertyp erwartet workout/workoutStructure als
+  // Object|null (core/plan-feedback.js) — PlanCard.workout/workoutStructure
+  // sind unknown (api/types.ts), daher derselbe schmale Adapter wie
+  // toProjectionCard() in PlanningPage.tsx.
+  const impact = !isDone
+    ? cardImpact(
+        {
+          date: card.date,
+          tssPlanned: card.tssPlanned,
+          workout: card.workout as object | null,
+          workoutStructure: card.workoutStructure as object | null,
+          typ: card.typ,
+        },
+        projection,
+        { ftp },
+      )
+    : null;
+  const dayForecast = !isDone ? (forecast[card.date] as DayForecast | undefined) : undefined;
+  const hasLegacyTimeline = !isDone && !!legacyWorkoutSegments(card.workout);
+
   return (
-    <div
-      ref={setNodeRef}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-        padding: "12px 14px",
-        borderRadius: "var(--radius-sm)",
-        background: "rgba(255,255,255,.03)",
-        border: `1px ${isDragging ? "dashed" : "solid"} var(--hair)`,
-        opacity: isDragging ? 0.4 : 1,
-      }}
-    >
+    <>
+      <div
+        ref={setNodeRef}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          padding: "12px 14px",
+          borderRadius: "var(--radius-sm)",
+          background: "rgba(255,255,255,.03)",
+          border: `1px ${isDragging ? "dashed" : "solid"} var(--hair)`,
+          opacity: isDragging ? 0.4 : 1,
+        }}
+      >
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
         {draggable && (
           <span
@@ -200,6 +290,11 @@ export function PlanCard({ card, canEdit, isDone, draggable, onEdit, onMove, onC
         )}
       </div>
 
+      {!isDone && hintItems.length > 0 && <HintChip items={hintItems} idSeed={card.id} />}
+      {!isDone && impact && (
+        <div style={{ fontSize: ".76rem", color: "var(--ink-3)" }}>{impact.label}</div>
+      )}
+
       {(card.km || card.tssPlanned) && (
         <div style={{ display: "flex", gap: 14, fontSize: ".76rem", color: "var(--ink-3)" }}>
           {card.km ? <span>{fmt(card.km, 0)} km</span> : null}
@@ -207,11 +302,7 @@ export function PlanCard({ card, canEdit, isDone, draggable, onEdit, onMove, onC
         </div>
       )}
 
-      {card.details && <div style={{ fontSize: ".8rem", color: "var(--ink-2)" }}>{card.details}</div>}
-
-      {riddenRestDayInfo && (
-        <div style={{ fontSize: ".74rem", color: "var(--accent)" }}>ℹ️ {riddenRestDayInfo.message}</div>
-      )}
+      {!isDone && dayForecast && <WeatherBadge forecast={dayForecast} />}
 
       {workoutBlocks && workoutBlocks.blocks.length > 0 && (
         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -232,6 +323,33 @@ export function PlanCard({ card, canEdit, isDone, draggable, onEdit, onMove, onC
           ))}
         </div>
       )}
+
+      {!isDone && !workoutBlocks && hasLegacyTimeline && (
+        <LegacyWorkoutTimeline workout={card.workout} accentColor={color} />
+      )}
+
+      {!isDone && !workoutBlocks && !hasLegacyTimeline && card.details && isZ2Type(card.typ) && card.km && (
+        <Z2Block typ={card.typ} km={card.km} details={card.details} />
+      )}
+
+      {!isDone && !workoutBlocks && !hasLegacyTimeline && card.details && !(isZ2Type(card.typ) && card.km) && isRecoveryType(card.typ) && (
+        <RecoveryBlock
+          typ={card.typ}
+          date={card.date}
+          details={card.details}
+          wellness={wellness}
+          plannedSessions={plannedSessions}
+        />
+      )}
+
+      {!isDone &&
+        !workoutBlocks &&
+        !hasLegacyTimeline &&
+        card.details &&
+        !(isZ2Type(card.typ) && card.km) &&
+        !isRecoveryType(card.typ) && <div style={{ fontSize: ".8rem", color: "var(--ink-2)" }}>{card.details}</div>}
+
+      {isDone && <ComplianceTable ride={ride} cardId={card.id} workoutStructure={card.workoutStructure} />}
 
       {openForm === "move" && (
         <form
@@ -274,6 +392,13 @@ export function PlanCard({ card, canEdit, isDone, draggable, onEdit, onMove, onC
       )}
 
       {error && <div style={{ color: "var(--danger)", fontSize: ".74rem" }}>{error}</div>}
-    </div>
+      </div>
+      {riddenRestDayInfo && (
+        <HintChip
+          items={[{ severity: riddenRestDayInfo.severity, text: riddenRestDayInfo.message }]}
+          idSeed={`${card.id}-rest`}
+        />
+      )}
+    </>
   );
 }

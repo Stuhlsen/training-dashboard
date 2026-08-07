@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a und 6b sind umgesetzt (07.08.2026), nächste Etappe ist 6c
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b und 6c sind umgesetzt (07.08.2026), nächste Etappe ist 6d
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,114 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 6c (07.08.2026)
+
+Reine UI-Portierung der sieben Punkte aus dem Etappenplan (Zeile ~504) —
+alle core-Bausteine (`core/plan-feedback.js`, `core/projection.js`,
+`core/conflicts.js`, `core/compliance-match.js`) waren bereits seit
+Etappe 2a 1:1 portiert und getestet, 6c hat nur die React-UI gebaut.
+
+- **Echte Lücke statt reinem Port:** Vanilla berechnet `projection`/
+  `conflicts` als Modul-State in `state/plan-cards.js::recomputeProjection()`.
+  Dafür gab es auf React-Seite noch KEINE Entsprechung — `PlanningPage.tsx`
+  ruft `projectLoad()`/`detectConflicts()` jetzt selbst per `useMemo` auf
+  (Cards/Rides/Events kommen bereits aus dem React-Query-Cache, kein neuer
+  Request). Zwei schmale, lokale Adapter (`toProjectionCard`/
+  `toProjectionEvent`) gleichen `PlanCard.workout: unknown` bzw.
+  `EventItem.priority: string|null` gegen die aus JSDoc inferrierten
+  Parametertypen dieser ungecheckten core-Module aus.
+- **Neue Dateien** in `app/src/features/planning/`: `HintChip.tsx`
+  (Konflikt-/Ruhetag-Hinweis-Chip + Tooltip, Exklusivität "nur ein Tooltip
+  offen" über einen modul-lokalen Store + `useSyncExternalStore` statt
+  Context/Prop-Drilling), `WeatherBadge.tsx`, `ComplianceTable.tsx`
+  (Intervalltabelle Soll-Ist inkl. `derived`-Badge + Compliance-Ampel),
+  `LegacyWorkoutTimeline.tsx` (Segmentbalken altes Zahlenformat),
+  `Z2Block.tsx`/`RecoveryBlock.tsx` (Detailblöcke), `planning-delta.ts`
+  (`computeDeltaBanner`, reiner 1:1-Port von `_recordDelta`) + `DeltaBanner.tsx`.
+  Zugehörige reine Ableitungen (`resolvePlanningFtp`, `matchRideForCard`,
+  `visibleCompliance`, `weatherBadgeColor`, `uvLabel`,
+  `legacyWorkoutSegments`, `z2Estimate`, `nextLoadAfter`, `latestWellness`,
+  `fmtMinSec`, `complianceRuleText`, `accessorySteps`) in
+  `planning-view-model.ts`, alle mit Vitest-Tests.
+- **`PlanCard.tsx`/`PlanningPage.tsx` erweitert:** neue Props für
+  `conflicts`/`projection`/`ftp`/`forecast`/`wellness`/`plannedSessions`/
+  `ride`. Die Vanilla-Aufteilung `_renderCard` (ausstehend/verpasst/
+  ausgefallen: Konflikt-Chip, Wirkungsanzeige, Wetter-Badge, Workout-Ketten-
+  Rendering Blöcke→Legacy-Timeline→Z2/Recovery→Freitext) vs. `_renderDoneCard`
+  (nur Compliance-Tabelle + eigener, außerhalb der Karte sitzender
+  Ruhetag-Hinweis-Chip) wird 1:1 gespiegelt, statt beides zu vermischen.
+  Ride-Matching für die Compliance-Tabelle (`matchRideForCard`) läuft in
+  `PlanningPage.tsx` als `doneRides`-Map, nur für die Absolviert-Sektion.
+- **Delta-Banner ohne Modul-State:** React-State (`deltaBanner`) statt
+  Vanillas `let deltaBanner`/`deltaBannerAthleteId`. Der Athletenwechsel-
+  Reset läuft NICHT über `useEffect` (React-Compiler-Lint
+  `react-hooks/set-state-in-effect` blockt synchrones `setState` im Effekt),
+  sondern als "State während des Renderns anpassen"
+  (`if (activeAthleteId !== deltaBannerAthleteId) { … }`) — spiegelt
+  strukturell exakt Vanillas Doppel-Variable. `move`/`cancel`/Drag laufen
+  über lokale Wrapper (`handleMove`/`handleCancel`), die den Projektions-
+  stand VOR der Mutation merken und danach den frischen Kartenstand direkt
+  aus dem React-Query-Cache lesen (`queryClient.getQueryData`, Muster wie
+  `useCardsSnapshot` in `usePlanCards.ts`) statt der u.U. noch alten
+  `cards`-Closure-Variable zu vertrauen. `undo` löst wie in Vanilla keinen
+  Delta-Banner aus.
+- **Echter Bug per Playwright gefunden und gefixt:** der Hinweis-Chip öffnete
+  sich bei einem echten Maus-Klick nicht sichtbar. Ursache: ein Maus-Klick
+  löst `mouseenter → mousedown → focus → click` aus — `onMouseEnter` öffnete
+  den Chip bereits vor dem `click`-Event, dessen Toggle-Logik sah dann
+  "schon offen" und schloss sofort wieder zu, während die Maus noch auf dem
+  Chip stand. Reine `fireEvent.click`-Unit-Tests (kein vorheriges
+  Hover-/Focus-Event) deckten das nicht auf — erst die Playwright-
+  Verifikation gegen `dashboard-dev` mit einem echten Klick zeigte
+  `aria-expanded="false"` nach dem Klick. Fix: auf hover-fähigen Geräten
+  (`hoverCapable()`) öffnet ein Klick nur noch (idempotent), schließt aber
+  nie mehr per Klick — das übernimmt `mouseleave`/`blur`/Escape. Auf
+  Touch-Geräten (kein Hover-Event) bleibt Klick der alleinige Umschalter.
+  Zusätzlich ein `mousedown`-Guard, der ein doppeltes Öffnen durch
+  `focus` unmittelbar vor `click` unterdrückt. Vier Regressionstests
+  (`HintChip.test.tsx`) bilden die reale Event-Reihenfolge nach
+  (mousedown→focus→click bzw. reiner Tab-Fokus), den Touch-Pfad
+  (`window.matchMedia` gemockt auf `hover: no`) sowie einen zweiten,
+  von `/code-review` gefundenen Fund am selben Guard: ein zweiter Klick auf
+  ein bereits fokussiertes Element löst kein erneutes `focus`-Event aus
+  (Browser feuern das nicht auf ein schon fokussiertes Element) — ohne einen
+  zusätzlichen Reset in `onMouseUp` wäre die Guard "hängen geblieben" und
+  hätte einen späteren, unabhängigen Tab-Fokus fälschlich unterdrückt.
+- **Design-Token-Korrektur:** `assets/css/main.css` kennt `--green`/`--gold`/
+  `--red`, `app/src/styles/tokens.css` (noch) nicht — alle neuen Ampel-
+  Darstellungen (Compliance-Rating, Wetter-Warnfarben) nutzen stattdessen
+  die dort bereits vorhandenen `--ok`/`--warn`/`--danger`. Zwei
+  vorbestehende Fälle mit undefiniertem `var(--gold)` aus Etappe 6a
+  (`PlanningPage.tsx`, `PlanCardForm.tsx`) bewusst nicht mit-repariert —
+  außerhalb des 6c-Auftrags.
+- **Bewusst NICHT Teil von 6c** (Nutzerentscheidung, vor Beginn geklärt):
+  der breitere "Geplant → Tatsächlich"-Vergleichsblock bei einer Ist-Fahrt
+  (Distanz/HF/Watt/Kadenz/Dauer/TRIMP/Wetter/Befinden,
+  `ui/planned.js::_renderDoneCard` `compareHtml`) — steht nicht auf der
+  offiziellen 6c-Liste, offener Punkt für eine spätere Etappe.
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx vitest run` 860/860 grün (856 + 4 neue Regressions-/Pfad-Tests, die
+  während der Verifikation nachgezogen wurden), `npx eslint .` ohne neue
+  Errors (2 `react-hooks/set-state-in-effect`-Fehler beim ersten Durchlauf
+  behoben, s.o.). Manuell gegen `dashboard-dev` per Playwright (Account
+  Stuhlsen/Athlet 1): Konflikt-Chip + Tooltip (Hover/Klick/Wegbewegen) mit
+  echten K-WOCHENTSS/K-WOCHENSPRUNG/K-OVERLAP-Meldungen, Wirkungsanzeige auf
+  allen ausstehenden Karten, Delta-Banner nach Verschieben (Event-Teil +
+  Tageswirkung-Teil, beide mit echten Zahlen), Wetter-Badge mit UV-Label,
+  Legacy-Segmentbalken (WU/Intervalle/CD) auf migrierten Plan-2-Karten,
+  Z2-Block (Ziel-HF/Distanz/Kalorien) und Recovery-Block (HRV/Ruhepuls/
+  nächste Belastung) je mindestens einmal live gesehen. Compliance-Tabelle
+  aktuell an keiner der 23 Absolviert-Karten sichtbar (kein Intervall-Match
+  im aktuellen Datenstand) — Sichtbarkeits-Gate (`visibleCompliance`)
+  dadurch nur negativ, nicht positiv bestätigt; unit-getestet mit einem
+  synthetischen Match. Athlet 2 (hc_diZee, read-only): Wirkungsanzeige/
+  Hinweis-Chips sichtbar wie vorgesehen (folgen der Kartensichtbarkeit,
+  nicht den Schreibrechten), keine Bearbeiten-/Verschieben-/Ausfallen-
+  Buttons. Verschobene Testkarte nach Prüfung per "Rückgängig" wieder
+  hergestellt, Datenstand in `dashboard-dev` unverändert. 0 Konsolenfehler
+  über die gesamte Session (die anfängliche 401 beim allerersten Laden kam
+  von einer abgelaufenen Alt-Session vor dem Reload, kein neuer Befund).
 
 ## Änderungen durch Etappe 6b (07.08.2026)
 
@@ -501,7 +609,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 5 | **Events** | `[SO]` | ✅ umgesetzt (06.08.2026) — s. "Änderungen durch Etappe 5" oben. Erster CRUD-Bereich: Formular-Komponenten, Mutations-Hooks und `write-authorization`-Gates erstmals in echter React-UI gebaut und gehärtet (Muster-Etappe für alles Folgende), inkl. `is_test`-Feld-UI |
 | 6a | **Planungstab — Grundgerüst** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6a" oben. Liste, Ruhetag-Karten, CRUD-Dialog (inkl. Workout-Blöcke-Editor), Verschieben/Ausfallen/Rückgängig per Inline-Formular, write-authorization-Gate. `PHASES`/`phaseColor()` (`config.ts`) und `week-labels.js` (`core/`) als Nachträge ergänzt |
 | 6b | **Planungstab — Drag & Drop** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6b" oben. **dnd-kit** statt 1:1-Port der handgebauten Pointer-Events-Mechanik aus `ui/plan-drag.js` — reduziert die Race-Condition-Klasse, die dort laut CLAUDE.md schon einmal einen zähen Bug verursacht hat (Drag-Grip-Bug, Juli 2026). `core/plan-drag.js` (reine Regeln: `isDropAllowed`/`canDragCard`/`resolveDrop`) bleibt unverändert, an dnd-kit-Events angebunden. Nutzt denselben Schreibpfad wie der "Verschieben"-Button (`useMovePlanCard`, s. 6a). `collisionDetection={pointerWithin}` war ein nötiger Nachtrag (s. Doku oben) |
-| 6c | **Planungstab — Wirkungsanzeige & Compliance** | `[OP]` | **Karten-Portierungsposten** (alle in Vanilla bereits gebaut, hier nur neu geschrieben, nicht neu konzipiert): Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel an der Ist-Fahrt, Wirkungsanzeige (ΔFitness/ΔErmüdung/ΔForm) auf allen Kartentypen inkl. Vorher-Nachher beim Verschieben (Delta-Banner), Kartenhinweise als Tooltip-Chip (`core/plan-feedback.js`: `conflictsForCard`/`cardImpact`/`dayImpact`/`horizonRaceEvent`/`tsbOnDate`/`summarizeCardHints` — in 6a bewusst noch nicht angefasst), Wetter-Badges (Datenquelle bereits vorhanden: `forecast` ist Teil von `AthleteData` aus `useRides()`), Legacy-Workout-Segmentbalken (altes Zahlenformat), Z2/Recovery-Detailblöcke |
+| 6c | **Planungstab — Wirkungsanzeige & Compliance** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6c" oben. Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel, Wirkungsanzeige inkl. Delta-Banner, Konflikt-/Hinweis-Chip, Wetter-Badges, Legacy-Segmentbalken, Z2/Recovery-Detailblöcke. Echte Lücke geschlossen: `projection`/`conflicts` gab es auf React-Seite noch gar nicht (Vanilla-Äquivalent war Modul-State in `state/plan-cards.js`) |
 | 6d | **Planungstab — Wahoo-Push** | `[OP]` | Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) bislang nie live verifiziert |
 | 7 | **Trainer-Dashboard + Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. **Briefing-/Export-Portierungsposten** (in Vanilla bereits gebaut): Leiterstand-Anzeige im Export-Panel, Blockstart-Dialog zur Familienwahl, Stufenvorschlag im Briefing inkl. Sonderfälle ("kein Vorschlag ableitbar", "eingefroren (Taper)"), Leitplanken-Sektion (K-RAMPE/K-HARTFOLGE/K-WOCHENTSS/K-TID), Fortschrittsindikatoren, Preset-Kachelreihe |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |

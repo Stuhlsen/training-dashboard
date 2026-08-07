@@ -9,11 +9,13 @@ import {
   type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
+import { useQueryClient } from "@tanstack/react-query";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PRIMARY_ATHLETE_ID, phaseColor } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useEvents } from "../../api/hooks/useEvents";
 import { useRides } from "../../api/hooks/useRides";
 import {
   useCancelPlanCard,
@@ -21,20 +23,55 @@ import {
   usePlanCards,
   useUndoAdjustment,
 } from "../../api/hooks/usePlanCards";
+import { qk } from "../../api/keys";
 import { fmtDate, localISODate } from "../../core/format.js";
 import { canDragCard, resolveDrop } from "../../core/plan-drag.js";
+import { detectConflicts } from "../../core/conflicts.js";
+import { projectLoad } from "../../core/projection.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
 import { DaySlotRow } from "./DaySlotRow";
+import { DeltaBanner } from "./DeltaBanner";
+import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCard } from "./PlanCard";
 import { PlanCardForm } from "./PlanCardForm";
-import { buildPlanningSections, typeColor, typeIcon } from "./planning-view-model";
-import type { PlanCard as PlanCardT } from "../../api/types";
+import {
+  buildPlanningSections,
+  matchRideForCard,
+  resolvePlanningFtp,
+  typeColor,
+  typeIcon,
+  type PlannedSessionRef,
+} from "./planning-view-model";
+import type { EventItem, PlanCard as PlanCardT, Result } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
+type WellnessDay = import("../../types.js").WellnessDay;
 
 const TODAY = localISODate();
 
 type DialogState = "closed" | "new" | PlanCardT;
+
+/** core/projection.js::projectLoad + core/conflicts.js::detectConflicts sind
+ *  reine JS-Module mit JSDoc-Typen (`checkJs` bleibt repoweit aus, s.
+ *  app/src/core/README.md) — beim Aufruf aus TS passen `PlanCard.workout`
+ *  (`unknown`) und `EventItem.priority` (`string | null`) nicht exakt auf die
+ *  inferrierten Parametertypen. Schmale, lokale Adapter statt eines
+ *  pauschalen `as any` am Call-Standort. */
+function toProjectionCard(c: PlanCardT) {
+  return {
+    id: c.id,
+    date: c.date,
+    typ: c.typ,
+    phase: c.phase,
+    cancelled: c.cancelled,
+    tssPlanned: c.tssPlanned,
+    workout: c.workout as object | null,
+  };
+}
+
+function toProjectionEvent(e: EventItem) {
+  return { eventDate: e.eventDate, title: e.title, type: e.type, priority: e.priority ?? undefined };
+}
 
 const SECTION_TITLE_STYLE: React.CSSProperties = {
   fontSize: ".7rem",
@@ -45,9 +82,11 @@ const SECTION_TITLE_STYLE: React.CSSProperties = {
 };
 
 export function PlanningPage() {
+  const queryClient = useQueryClient();
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
   const { data: rideData } = useRides(activeAthleteId);
+  const { data: events } = useEvents(activeAthleteId);
   const { canWrite } = useCanWriteForAthlete(activeAthleteId);
 
   const { move } = useMovePlanCard(activeAthleteId);
@@ -71,6 +110,72 @@ export function PlanningPage() {
   const editable = canWrite && activeAthleteId === PRIMARY_ATHLETE_ID;
   const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
 
+  const ftp = resolvePlanningFtp(activeAthleteId, rideData?.athleteFtp ?? null);
+
+  // Etappe 6c: entspricht Vanillas state/plan-cards.js::recomputeProjection()
+  // (dort Modul-State, hier reine Ableitung aus dem React-Query-Cache).
+  // Grundlage für Wirkungsanzeige (cardImpact), Delta-Banner und
+  // Konflikt-Badges — core/projection.js/core/conflicts.js sind bereits
+  // seit Etappe 2a portiert und getestet, hier nur verdrahtet.
+  const { projection, conflicts } = useMemo(() => {
+    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
+    const projectionCards = (cards ?? []).map(toProjectionCard);
+    const projectionEvents = (events ?? []).map(toProjectionEvent);
+    const projection = projectLoad(projectionCards, rides, { today: TODAY, events: projectionEvents, ftp });
+    const conflicts = detectConflicts(projection, projectionCards, projectionEvents, rides);
+    return { projection, conflicts };
+  }, [cards, rideData, events, ftp]);
+
+  const doneRides = useMemo(
+    () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),
+    [sections.done, rideData, editable],
+  );
+
+  const forecast = (rideData?.forecast as Record<string, unknown> | undefined) ?? {};
+  const wellness = (rideData?.wellness as WellnessDay[] | undefined) ?? [];
+  const plannedSessions = (rideData?.plannedSessions as PlannedSessionRef[] | undefined) ?? [];
+
+  // Etappe 6c: Vorher/Nachher-Vergleich nach Verschieben/Ausfallen/Drag,
+  // Port von ui/planned.js::_recordDelta (dort Modul-State `deltaBanner` +
+  // `deltaBannerAthleteId`). Persistent bis manuell geschlossen, verworfen
+  // bei Athletenwechsel — als "State während des Renderns anpassen" statt
+  // Effekt (kein separater Rendertakt nötig, React verwirft den
+  // Zwischenstand selbst: https://react.dev/learn/you-might-not-need-an-effect).
+  const [deltaBanner, setDeltaBanner] = useState<DeltaBannerState | null>(null);
+  const [deltaBannerAthleteId, setDeltaBannerAthleteId] = useState(activeAthleteId);
+  if (activeAthleteId !== deltaBannerAthleteId) {
+    setDeltaBannerAthleteId(activeAthleteId);
+    setDeltaBanner(null);
+  }
+
+  /** Nach einer erfolgreichen Mutation ist der React-Query-Cache bereits
+   *  aktualisiert (onSuccess läuft vor dem mutateAsync-Resolve) — der frische
+   *  Kartenstand kommt deshalb direkt aus dem Cache (wie useCardsSnapshot in
+   *  usePlanCards.ts), nicht aus der u.U. noch alten `cards`-Closure-Variable. */
+  function recordDelta(cardDateIso?: string) {
+    const freshCards = queryClient.getQueryData<PlanCardT[]>(qk.planCards(activeAthleteId)) ?? [];
+    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
+    const afterProjection = projectLoad(freshCards.map(toProjectionCard), rides, {
+      today: TODAY,
+      events: (events ?? []).map(toProjectionEvent),
+      ftp,
+    });
+    setDeltaBanner(computeDeltaBanner(projection, afterProjection, events ?? [], TODAY, cardDateIso));
+  }
+
+  async function handleMove(id: string, date: string, reason?: string): Promise<Result<{ card: PlanCardT }>> {
+    const result = await move(id, date, reason);
+    if (result.ok) recordDelta(date);
+    return result;
+  }
+
+  async function handleCancel(id: string, reason?: string): Promise<Result<{ card: PlanCardT }>> {
+    const cardDate = (cards ?? []).find((c) => c.id === id)?.date;
+    const result = await cancel(id, reason);
+    if (result.ok) recordDelta(cardDate);
+    return result;
+  }
+
   // distance:5 entspricht Vanilla DRAG_THRESHOLD_PX (ui/plan-drag.js) — erst
   // ab dieser Zeigerbewegung wird aus einem Klick auf den Griff ein Drag.
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -83,7 +188,7 @@ export function PlanningPage() {
     const targetDate = event.over?.id ? String(event.over.id) : "";
     if (activeCard) {
       const { action } = resolveDrop({ id: activeCard.id, date: activeCard.date }, targetDate, TODAY);
-      if (action === "move") void move(activeCard.id, targetDate);
+      if (action === "move") void handleMove(activeCard.id, targetDate);
     }
     setActiveId(null);
   }
@@ -116,6 +221,8 @@ export function PlanningPage() {
         </h1>
         <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
       </div>
+
+      {deltaBanner && <DeltaBanner state={deltaBanner} onClose={() => setDeltaBanner(null)} />}
 
       {isLoading && <p style={{ color: "var(--ink-3)" }}>Lädt …</p>}
 
@@ -226,9 +333,15 @@ export function PlanningPage() {
                             // bis dahin ist Drag & Drop nie im Vorschlag-Pfad.
                             trainerProposalMode: false,
                           })}
+                          conflicts={conflicts}
+                          projection={projection}
+                          ftp={ftp}
+                          forecast={forecast}
+                          wellness={wellness}
+                          plannedSessions={plannedSessions}
                           onEdit={() => setDialog(card)}
-                          onMove={move}
-                          onCancel={cancel}
+                          onMove={handleMove}
+                          onCancel={handleCancel}
                           onUndo={undo}
                         />
                       ))}
@@ -246,9 +359,16 @@ export function PlanningPage() {
             emptyLabel={null}
             editable={editable}
             isDone
+            doneRides={doneRides}
+            conflicts={conflicts}
+            projection={projection}
+            ftp={ftp}
+            forecast={forecast}
+            wellness={wellness}
+            plannedSessions={plannedSessions}
             onEdit={setDialog}
-            move={move}
-            cancel={cancel}
+            move={handleMove}
+            cancel={handleCancel}
             undo={undo}
           />
           <CardSection
@@ -256,9 +376,15 @@ export function PlanningPage() {
             cards={sections.missed}
             emptyLabel={null}
             editable={editable}
+            conflicts={conflicts}
+            projection={projection}
+            ftp={ftp}
+            forecast={forecast}
+            wellness={wellness}
+            plannedSessions={plannedSessions}
             onEdit={setDialog}
-            move={move}
-            cancel={cancel}
+            move={handleMove}
+            cancel={handleCancel}
             undo={undo}
           />
           <CardSection
@@ -266,9 +392,15 @@ export function PlanningPage() {
             cards={sections.cancelled}
             emptyLabel={null}
             editable={editable}
+            conflicts={conflicts}
+            projection={projection}
+            ftp={ftp}
+            forecast={forecast}
+            wellness={wellness}
+            plannedSessions={plannedSessions}
             onEdit={setDialog}
-            move={move}
-            cancel={cancel}
+            move={handleMove}
+            cancel={handleCancel}
             undo={undo}
           />
         </>
@@ -330,6 +462,13 @@ function CardSection({
   emptyLabel,
   editable,
   isDone,
+  doneRides,
+  conflicts,
+  projection,
+  ftp,
+  forecast,
+  wellness,
+  plannedSessions,
   onEdit,
   move,
   cancel,
@@ -340,9 +479,18 @@ function CardSection({
   emptyLabel: string | null;
   editable: boolean;
   isDone?: boolean;
+  /** Nur bei `isDone` befüllt (s. PlanningPage `doneRides`) — Grundlage der
+   *  Compliance-Tabelle je Karte. */
+  doneRides?: Map<string, Ride | null>;
+  conflicts: ReturnType<typeof detectConflicts>;
+  projection: ReturnType<typeof projectLoad>;
+  ftp: number | undefined;
+  forecast: Record<string, unknown>;
+  wellness: WellnessDay[];
+  plannedSessions: PlannedSessionRef[];
   onEdit: (card: PlanCardT) => void;
-  move: ReturnType<typeof useMovePlanCard>["move"];
-  cancel: ReturnType<typeof useCancelPlanCard>["cancel"];
+  move: (id: string, date: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
+  cancel: (id: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
   undo: ReturnType<typeof useUndoAdjustment>["undo"];
 }) {
   if (!cards.length && !emptyLabel) return null;
@@ -359,6 +507,13 @@ function CardSection({
               card={card}
               canEdit={editable}
               isDone={isDone}
+              ride={isDone ? (doneRides?.get(card.id) ?? null) : undefined}
+              conflicts={conflicts}
+              projection={projection}
+              ftp={ftp}
+              forecast={forecast}
+              wellness={wellness}
+              plannedSessions={plannedSessions}
               onEdit={() => onEdit(card)}
               onMove={move}
               onCancel={cancel}
