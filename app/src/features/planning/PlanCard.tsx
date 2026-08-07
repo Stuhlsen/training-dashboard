@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useDraggable } from "@dnd-kit/core";
 import { fmt, fmtDate } from "../../core/format.js";
 import { restDayRiddenSignal } from "../../core/plan-feedback.js";
 import { EventBadge } from "../events/EventBadge";
@@ -43,6 +44,10 @@ interface PlanCardProps {
   /** Steuert, ob das "Ruhetag gefahren"-Hinweisbadge geprüft wird — nur
    *  relevant für Karten aus dem Absolviert-Abschnitt. */
   isDone?: boolean;
+  /** Zeigt den Drag-Griff (nur die "Ausstehend"-Sektion setzt das über
+   *  canDragCard() — dort ist die per-Wochenblock eingeblendete
+   *  Tages-Slot-Zeile das einzige gültige Drop-Ziel, s. PlanningPage). */
+  draggable?: boolean;
   onEdit: () => void;
   onMove: (id: string, date: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
   onCancel: (id: string, reason?: string) => Promise<Result<{ card: PlanCardT }>>;
@@ -55,12 +60,19 @@ type OpenForm = "move" | "cancel" | null;
  *  (Etappe 6a: nur Grundgerüst, ohne Wirkungsanzeige/Compliance-Tabelle/
  *  Wetter-Badge/Hinweis-Chip — s. Etappe-6a-Plan). Verschieben/Ausfallen als
  *  eingeklapptes Inline-Formular statt Dialog, wie in Vanilla. */
-export function PlanCard({ card, canEdit, isDone, onEdit, onMove, onCancel, onUndo }: PlanCardProps) {
+export function PlanCard({ card, canEdit, isDone, draggable, onEdit, onMove, onCancel, onUndo }: PlanCardProps) {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
   const [moveDate, setMoveDate] = useState(card.date);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  // useDraggable() unbedingt aufgerufen (Hook-Regel) — `disabled` steuert
+  // die Wirkung, nicht ein bedingter Hook-Aufruf.
+  const { setNodeRef, listeners, attributes, isDragging } = useDraggable({
+    id: card.id,
+    disabled: !draggable,
+  });
 
   function closeForms() {
     setOpenForm(null);
@@ -108,6 +120,7 @@ export function PlanCard({ card, canEdit, isDone, onEdit, onMove, onCancel, onUn
 
   return (
     <div
+      ref={setNodeRef}
       style={{
         display: "flex",
         flexDirection: "column",
@@ -115,10 +128,22 @@ export function PlanCard({ card, canEdit, isDone, onEdit, onMove, onCancel, onUn
         padding: "12px 14px",
         borderRadius: "var(--radius-sm)",
         background: "rgba(255,255,255,.03)",
-        border: "1px solid var(--hair)",
+        border: `1px ${isDragging ? "dashed" : "solid"} var(--hair)`,
+        opacity: isDragging ? 0.4 : 1,
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        {draggable && (
+          <span
+            {...listeners}
+            {...attributes}
+            aria-hidden="true"
+            title="Auf einen anderen Tag ziehen"
+            style={{ cursor: "grab", color: "var(--ink-3)", touchAction: "none" }}
+          >
+            ⠿
+          </span>
+        )}
         <span style={{ fontFamily: "var(--font-mono)", fontSize: ".76rem", color: "var(--ink-3)", minWidth: 44 }}>
           {fmtDate(card.date)}
         </span>
@@ -147,7 +172,18 @@ export function PlanCard({ card, canEdit, isDone, onEdit, onMove, onCancel, onUn
                 <button
                   type="button"
                   style={ACTION_BTN_STYLE}
-                  onClick={() => setOpenForm(openForm === "move" ? null : "move")}
+                  onClick={() => {
+                    if (openForm === "move") {
+                      setOpenForm(null);
+                      return;
+                    }
+                    // moveDate wurde nur beim ersten Mount aus card.date
+                    // initialisiert — eine Karte, die inzwischen per Drag
+                    // (gleiche React-Instanz, gleiche card.id) verschoben
+                    // wurde, zeigt beim Öffnen sonst noch das alte Datum.
+                    setMoveDate(card.date);
+                    setOpenForm("move");
+                  }}
                 >
                   Verschieben
                 </button>

@@ -1,4 +1,14 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  pointerWithin,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from "@dnd-kit/core";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PRIMARY_ATHLETE_ID, phaseColor } from "../../config";
@@ -11,11 +21,13 @@ import {
   usePlanCards,
   useUndoAdjustment,
 } from "../../api/hooks/usePlanCards";
-import { localISODate } from "../../core/format.js";
+import { fmtDate, localISODate } from "../../core/format.js";
+import { canDragCard, resolveDrop } from "../../core/plan-drag.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
+import { DaySlotRow } from "./DaySlotRow";
 import { PlanCard } from "./PlanCard";
 import { PlanCardForm } from "./PlanCardForm";
-import { buildPlanningSections } from "./planning-view-model";
+import { buildPlanningSections, typeColor, typeIcon } from "./planning-view-model";
 import type { PlanCard as PlanCardT } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -43,10 +55,38 @@ export function PlanningPage() {
   const { undo } = useUndoAdjustment(activeAthleteId);
 
   const [dialog, setDialog] = useState<DialogState>("closed");
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-  const sections = buildPlanningSections(cards ?? [], rides, TODAY);
+  // useMemo, weil buildPlanningSections() mehrere Filter-/Sort-Durchläufe +
+  // Set/Map-Aufbau macht — ohne das liefe die Berechnung bei jedem
+  // Drag-Start/-Ende (setActiveId) und Dialog-Öffnen/-Schließen (setDialog)
+  // unnötig neu, obwohl cards/rideData dabei unverändert bleiben. `rides`
+  // steckt bewusst MIT im Callback (nicht als eigene Variable davor) — der
+  // `?? []`-Fallback erzeugt sonst bei jedem Render ein neues Array und
+  // würde die Memoisierung selbst wieder aushebeln.
+  const sections = useMemo(() => {
+    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
+    return buildPlanningSections(cards ?? [], rides, TODAY);
+  }, [cards, rideData]);
   const editable = canWrite && activeAthleteId === PRIMARY_ATHLETE_ID;
+  const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
+
+  // distance:5 entspricht Vanilla DRAG_THRESHOLD_PX (ui/plan-drag.js) — erst
+  // ab dieser Zeigerbewegung wird aus einem Klick auf den Griff ein Drag.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id));
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const targetDate = event.over?.id ? String(event.over.id) : "";
+    if (activeCard) {
+      const { action } = resolveDrop({ id: activeCard.id, date: activeCard.date }, targetDate, TODAY);
+      if (action === "move") void move(activeCard.id, targetDate);
+    }
+    setActiveId(null);
+  }
 
   const heroTitle = editable ? "Trainingsplan" : "Trainingsplan — Übersicht";
   const heroDesc = editable
@@ -54,6 +94,21 @@ export function PlanningPage() {
     : "Alle geplanten Trainingseinheiten im Überblick. Absolvierte Sessions werden automatisch erkannt, sobald die Fahrt erfasst ist.";
 
   return (
+    <DndContext
+      sensors={sensors}
+      // pointerWithin statt der Default-Kollisionsberechnung
+      // (rectIntersection): die misst gegen das ÜBERSETZTE Rechteck des
+      // Kartenknotens (setNodeRef sitzt auf der ganzen Karte, nicht auf
+      // dem Griff) — bei zeilenbreiten Karten über einer 7-Spalten-
+      // Tages-Slot-Zeile überlappt das translatierte Rechteck mehrere
+      // Slots gleichzeitig, das Zieltag-Feststellen wird uneindeutig.
+      // pointerWithin prüft stattdessen die reine Zeigerposition, wie
+      // Vanillas elementFromPoint(pointer.x, pointer.y).
+      collisionDetection={pointerWithin}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveId(null)}
+    >
     <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
@@ -134,7 +189,7 @@ export function PlanningPage() {
               {sections.weeks.map((week) => {
                 const color = phaseColor(week.phase);
                 return (
-                  <div key={week.week} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                  <div key={week.week} data-week={week.week} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                       <span
                         style={{
@@ -163,6 +218,14 @@ export function PlanningPage() {
                           key={card.id}
                           card={card}
                           canEdit={editable}
+                          draggable={canDragCard({
+                            canEdit: editable,
+                            cardDate: card.date,
+                            today: TODAY,
+                            // Trainer-Vorschlagsmodus existiert erst ab Etappe 7 —
+                            // bis dahin ist Drag & Drop nie im Vorschlag-Pfad.
+                            trainerProposalMode: false,
+                          })}
                           onEdit={() => setDialog(card)}
                           onMove={move}
                           onCancel={cancel}
@@ -170,6 +233,7 @@ export function PlanningPage() {
                         />
                       ))}
                     </div>
+                    {activeId && <DaySlotRow anchorDate={week.cards[0].date} today={TODAY} />}
                   </div>
                 );
               })}
@@ -217,6 +281,34 @@ export function PlanningPage() {
           onClose={() => setDialog("closed")}
         />
       )}
+    </div>
+    <DragOverlay>{activeCard && <DragPreview card={activeCard} />}</DragOverlay>
+    </DndContext>
+  );
+}
+
+/** Kompakte Zieh-Vorschau im DragOverlay-Portal — bewusst ohne Buttons/
+ *  Inputs (kein verschachteltes interaktives Element in einem Overlay). */
+function DragPreview({ card }: { card: PlanCardT }) {
+  const color = typeColor(card.typ);
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "12px 14px",
+        borderRadius: "var(--radius-sm)",
+        background: "var(--glass-2)",
+        border: `1px solid ${color}`,
+        boxShadow: "var(--e3)",
+        cursor: "grabbing",
+        maxWidth: 320,
+      }}
+    >
+      <span aria-hidden="true">{typeIcon(card.typ)}</span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".76rem", color: "var(--ink-3)" }}>{fmtDate(card.date)}</span>
+      <span style={{ fontSize: ".9rem", fontWeight: 500, color: "var(--ink)" }}>{card.name}</span>
     </div>
   );
 }

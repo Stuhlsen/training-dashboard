@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5 und 6a sind umgesetzt (07.08.2026), nächste Etappe ist 6b
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a und 6b sind umgesetzt (07.08.2026), nächste Etappe ist 6c
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,82 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 6b (07.08.2026)
+
+- **Drag & Drop im Planungstab** — Karte per Griff (⠿, `PlanCard.tsx`) auf
+  einen anderen Tag ziehen, als schnellerer Weg neben dem bestehenden
+  "Verschieben"-Button. Neue Datei `app/src/features/planning/
+  DaySlotRow.tsx` (Port von `ui/plan-drag.js::showDaySlots()` als
+  React-Komponente, mit `DaySlotRow.test.tsx`). `PlanningPage.tsx` bindet
+  `@dnd-kit/core` (`DndContext`/`DragOverlay`/`PointerSensor`) ein — neue
+  Abhängigkeit, kein `@dnd-kit/sortable`/`-utilities` nötig.
+  `app/src/core/plan-drag.js` (Regeln: `canDragCard`/`daySlots`/
+  `resolveDrop`/`weekLabelForDate`) **unverändert** — Drag schreibt über
+  denselben Pfad wie der Button (`useMovePlanCard` → `move()`).
+- **`collisionDetection={pointerWithin}` statt der dnd-kit-Vorgabe
+  (`rectIntersection`)** — beim manuellen Verifikationsdurchlauf (s.
+  Abnahme) fiel auf, dass die Standard-Kollisionsprüfung gegen das
+  ÜBERSETZTE Rechteck des `useDraggable`-Knotens misst. Der sitzt auf der
+  ganzen Karte (nicht auf dem schmalen Griff, s.u.), und eine zeilenbreite
+  Karte über einer 7-spaltigen Tages-Slot-Zeile überlappt so mehrere Slots
+  gleichzeitig — das Zieltag-Feststellen wurde uneindeutig.
+  `pointerWithin` prüft stattdessen die reine Zeigerposition, wie Vanillas
+  `elementFromPoint(pointer.x, pointer.y)`. Ohne echten Drag im Browser
+  wäre das nicht aufgefallen (reine Unit-Tests auf `core/plan-drag.js`
+  sehen kein DOM-Layout).
+- **`useDraggable`-Knoten = ganze Karte, `listeners`/`attributes` nur am
+  Griff** — analog zur Vanilla-Grenze (Griff startet den Drag, Klicks auf
+  Bearbeiten/Verschieben/Ausfallen/Inputs lösen keinen aus). Bewirkt aber
+  die oben beschriebene Kollisions-Eigenheit, die `pointerWithin` behebt.
+- **Nur die "Ausstehend"-Sektion ist Drag/Drop-fähig** — bewusste
+  Abweichung von Vanilla, wo `canDragCard()` technisch auch für
+  Absolviert/Verpasst/Ausgefallen-Karten einen Griff zeigt, obwohl dort nie
+  eine Tages-Slot-Zeile existiert (Drag würde dort immer mit "rejected"
+  zurückschnappen — ein wirkungsloser Griff). In der React-Portierung
+  bekommen nur `sections.weeks`-Karten die `draggable`-Prop.
+- **`/code-review` auf den Diff** (mehrere Agenten, deckte mangels
+  eigenem 6a-Commit zum Zeitpunkt des Laufs das komplette damals noch
+  unkommittierte 6a mit ab, danach nachträglich sauber in Etappe-6a-/
+  6b-Commits getrennt) — zwei Funde direkt im 6b-Umfang gefixt:
+  `buildPlanningSections()` lief unmemoisiert bei jedem Render, also auch
+  bei jedem `setActiveId` (Drag-Start/-Ende) und `setDialog`
+  (`PlanningPage.tsx`) → `useMemo`. `PlanCard.tsx`s `moveDate`-State wurde
+  nur beim ersten Mount aus `card.date` initialisiert — eine per Drag
+  verschobene Karte (gleiche React-Instanz, gleiche `card.id`) zeigte beim
+  anschließenden Öffnen von "Verschieben" noch das alte Datum → wird beim
+  Öffnen jetzt aus `card.date` neu gesetzt. Weitere Funde betreffen
+  ausschließlich bereits vor 6b bestehenden 6a-Code (u.a. `workoutStructure`
+  geht beim Bearbeiten verloren, `weekDisplayLabels()` wird pro Karte statt
+  einmal über die Liste aufgerufen und verschluckt dadurch den
+  Jahreswechsel-Marker) — bewusst nicht mit-gefixt, da außerhalb des
+  6b-Auftrags; Alex informiert, Priorisierung offen.
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx vitest run` 800/800 grün (784 + 14 aus 6a + 2 neue
+  `DaySlotRow.test.tsx`-Tests), `npx eslint .` ohne neue Errors. Manuell
+  gegen `dashboard-dev` per Playwright (Account Stuhlsen/Athlet 1): Griff
+  erscheint exakt auf allen 43 anstehenden Karten (Griffzahl == Stat
+  "ausstehend"), auf keiner Absolviert/Verpasst/Ausgefallen-Karte. Echter
+  mehrstufiger Pointer-Drag (synthetische `PointerEvent`s mit
+  Schwellwert-Bewegung, `pointerdown`→`pointermove`×n→`pointerup`, da
+  Playwright-MCPs `browser_drag` das dynamisch erst beim Drag-Start
+  entstehende Slot-Ziel nicht vorab auflösen kann) auf einer eigens
+  angelegten Testkarte: Tages-Slot-Zeile erscheint in allen sichtbaren
+  Wochenblöcken samt Kalenderwochen-übergreifendem eigenen Wochenblock (der
+  Test deckte damit ungeplant auch den v1-Sonderfall aus
+  `weekLabelForDate()`s Doku ab: Zielwoche komplett leer → Label bleibt,
+  hier aber sofort korrigiert, weil die Zielwoche nach dem Drop echte
+  Nachbarn hatte), Hover-Highlight (`--ss`-Akzent) korrekt, Drop auf
+  gültigen Tag → "verschoben von …"-Badge + Wochenlabel-Übernahme von der
+  Zielwoche (identisch zum Button-Pfad), Drop auf vergangenen Tag →
+  abgewiesen, keine Änderung. Athlet 2 (hc_diZee, read-only): 0 Griffe.
+  0 Konsolenfehler über die gesamte Session (eine Supabase-
+  `GoTrueClient`-Mehrfachinstanz-Warnung ist vorbestehend/Dev-Hot-Reload-
+  bedingt, kein neuer Befund). Testkarte nach Prüfung wieder gelöscht,
+  Datenstand in `dashboard-dev` unverändert. Ein zu Sessionbeginn
+  verwaister Playwright-Chrome-Prozess (aus einer nicht sauber
+  geschlossenen früheren Session) blockierte das Profil und wurde beendet,
+  bevor die eigentliche Verifikation startete.
 
 ## Änderungen durch Etappe 6a (07.08.2026)
 
@@ -424,7 +500,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 |---|---|---|---|
 | 5 | **Events** | `[SO]` | ✅ umgesetzt (06.08.2026) — s. "Änderungen durch Etappe 5" oben. Erster CRUD-Bereich: Formular-Komponenten, Mutations-Hooks und `write-authorization`-Gates erstmals in echter React-UI gebaut und gehärtet (Muster-Etappe für alles Folgende), inkl. `is_test`-Feld-UI |
 | 6a | **Planungstab — Grundgerüst** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6a" oben. Liste, Ruhetag-Karten, CRUD-Dialog (inkl. Workout-Blöcke-Editor), Verschieben/Ausfallen/Rückgängig per Inline-Formular, write-authorization-Gate. `PHASES`/`phaseColor()` (`config.ts`) und `week-labels.js` (`core/`) als Nachträge ergänzt |
-| 6b | **Planungstab — Drag & Drop** | `[OP]` | Auf Nutzerentscheidung **dnd-kit** statt 1:1-Port der handgebauten Pointer-Events-Mechanik aus `ui/plan-drag.js` — reduziert die Race-Condition-Klasse, die dort laut CLAUDE.md schon einmal einen zähen Bug verursacht hat (Drag-Grip-Bug, Juli 2026). `core/plan-drag.js` (reine Regeln: `isDropAllowed`/`canDragCard`/`resolveDrop`) bleibt unverändert, wird nur an dnd-kit-Events statt rohe Pointer-Events angebunden. Nutzt denselben Schreibpfad wie der "Verschieben"-Button (`useMovePlanCard`, s. 6a) |
+| 6b | **Planungstab — Drag & Drop** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6b" oben. **dnd-kit** statt 1:1-Port der handgebauten Pointer-Events-Mechanik aus `ui/plan-drag.js` — reduziert die Race-Condition-Klasse, die dort laut CLAUDE.md schon einmal einen zähen Bug verursacht hat (Drag-Grip-Bug, Juli 2026). `core/plan-drag.js` (reine Regeln: `isDropAllowed`/`canDragCard`/`resolveDrop`) bleibt unverändert, an dnd-kit-Events angebunden. Nutzt denselben Schreibpfad wie der "Verschieben"-Button (`useMovePlanCard`, s. 6a). `collisionDetection={pointerWithin}` war ein nötiger Nachtrag (s. Doku oben) |
 | 6c | **Planungstab — Wirkungsanzeige & Compliance** | `[OP]` | **Karten-Portierungsposten** (alle in Vanilla bereits gebaut, hier nur neu geschrieben, nicht neu konzipiert): Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel an der Ist-Fahrt, Wirkungsanzeige (ΔFitness/ΔErmüdung/ΔForm) auf allen Kartentypen inkl. Vorher-Nachher beim Verschieben (Delta-Banner), Kartenhinweise als Tooltip-Chip (`core/plan-feedback.js`: `conflictsForCard`/`cardImpact`/`dayImpact`/`horizonRaceEvent`/`tsbOnDate`/`summarizeCardHints` — in 6a bewusst noch nicht angefasst), Wetter-Badges (Datenquelle bereits vorhanden: `forecast` ist Teil von `AthleteData` aus `useRides()`), Legacy-Workout-Segmentbalken (altes Zahlenformat), Z2/Recovery-Detailblöcke |
 | 6d | **Planungstab — Wahoo-Push** | `[OP]` | Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) bislang nie live verifiziert |
 | 7 | **Trainer-Dashboard + Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. **Briefing-/Export-Portierungsposten** (in Vanilla bereits gebaut): Leiterstand-Anzeige im Export-Panel, Blockstart-Dialog zur Familienwahl, Stufenvorschlag im Briefing inkl. Sonderfälle ("kein Vorschlag ableitbar", "eingefroren (Taper)"), Leitplanken-Sektion (K-RAMPE/K-HARTFOLGE/K-WOCHENTSS/K-TID), Fortschrittsindikatoren, Preset-Kachelreihe |
@@ -443,8 +519,8 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 ### 5.1 TypeScript ja/nein (offen, Etappe 1)
 Spricht dafür: Typsicherheit gerade bei der Multi-Sport-Abstraktion (G5) und beim Proposal-Schema; die Claude-Design-Exporte deklarieren Prop-Typen bereits als `tsType`-Hinweise, die Schnittstellen ließen sich also sauber typisieren. Spricht dagegen: zusätzliche Lernkurve/Setup. Die Exporte selbst erzeugen keinen TSX-Zwang (sie sind kein JSX/TSX, siehe 5.7). Empfehlung wird in Etappe 1 mit Begründung vorgelegt.
 
-### 5.2 State-Management über React Query hinaus (Formulare: entschieden — reiner React-State; Drag&Drop: entschieden, Etappe 6b)
-Für Formulare (Etappe 5/6a) reicht React-eigener `useState`, keine zusätzliche Bibliothek nötig — so umgesetzt. Für den Drag&Drop-Zustand (Etappe 6b) fiel die Entscheidung auf **dnd-kit** statt eines rein React-eigenen Ansatzes (s. Etappenplan-Tabelle, Zeile 6b) — Begründung dort.
+### 5.2 State-Management über React Query hinaus (Formulare: entschieden — reiner React-State; Drag&Drop: entschieden + umgesetzt, Etappe 6b)
+Für Formulare (Etappe 5/6a) reicht React-eigener `useState`, keine zusätzliche Bibliothek nötig — so umgesetzt. Für den Drag&Drop-Zustand (Etappe 6b) fiel die Entscheidung auf **dnd-kit** statt eines rein React-eigenen Ansatzes (s. Etappenplan-Tabelle, Zeile 6b) — Begründung dort, Ergebnis s. "Änderungen durch Etappe 6b".
 
 ### 5.3 Charts: React-nativ oder Portierung der SVG-Logik (offen, Etappe 8)
 Die bestehenden Charts sind handgeschriebenes SVG ohne Framework-Bindung (`document.createElementNS`). Zwei Wege: (a) 1:1 als React-Komponenten mit `ref`-basiertem direktem DOM-Zugriff portieren (wenig Risiko, wenig "React-typisch"), (b) auf eine React-Chart-Bibliothek umstellen (mehr Aufwand, potenziell schlechter zur bestehenden Design-Sprache aus `chart-grundlagen.md` passend). Wird erst in Etappe 8 (Explorer) entschieden, nicht in Etappe 1.
