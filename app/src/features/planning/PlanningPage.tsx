@@ -21,6 +21,7 @@ import {
   useCancelPlanCard,
   useMovePlanCard,
   usePlanCards,
+  usePushPlanCard,
   useUndoAdjustment,
 } from "../../api/hooks/usePlanCards";
 import { qk } from "../../api/keys";
@@ -92,6 +93,7 @@ export function PlanningPage() {
   const { move } = useMovePlanCard(activeAthleteId);
   const { cancel } = useCancelPlanCard(activeAthleteId);
   const { undo } = useUndoAdjustment(activeAthleteId);
+  const { push } = usePushPlanCard(activeAthleteId);
 
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -325,6 +327,8 @@ export function PlanningPage() {
                           key={card.id}
                           card={card}
                           canEdit={editable}
+                          canPush={editable}
+                          onPush={push}
                           draggable={canDragCard({
                             canEdit: editable,
                             cardDate: card.date,

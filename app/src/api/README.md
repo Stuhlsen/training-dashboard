@@ -14,6 +14,8 @@ api/
   pipeline.ts           JSON-Pipeline (data/*.json), Konzept 5.5
   write-authorization.ts canWriteForAthlete / isSelfAthlete (UI-Gates)
   supabase/             Adapter: eine Datei je Tabelle, Row-Mapping + Result
+  intervals/push.ts     intervals.icu-Push (Etappe 6d) — kein Supabase-Bezug,
+                         deshalb eigenes Verzeichnis statt supabase/
   plan-cards/patch.ts   Reine Regeln der Karten-Anpassungen (mockfrei getestet)
   hooks/                Die eigentliche Hook-Oberfläche
 ```
@@ -78,9 +80,10 @@ alle Testfunktionen — hier die Stellen, an denen die Zahl bewusst abweicht:
 - `state/trainer-view.js` nur so weit, wie `canWriteForAthlete()` es
   braucht (Kategorien/`saveMode` folgen in Etappe 7). Der Adapter
   `supabase/trainer-view-prefs.ts` liegt deshalb schon hier.
-- `pushPlanCard()` / `data-access/intervals/push.js` — der intervals.icu-Push
-  hängt an einem localStorage-Token und einer externen API, nicht an
-  Supabase. Gehört in die Planungstab-Etappe (6).
+- ~~`pushPlanCard()` / `data-access/intervals/push.js`~~ — inzwischen als
+  `api/intervals/push.ts` + `usePushPlanCard()` in Etappe 6d portiert (der
+  Grund für die Zurückstellung galt unverändert: hängt an einem
+  localStorage-Token und einer externen API, nicht an Supabase).
 - Der `STATIC_RIDES`-Fallback aus `state/data.js`. Er existierte, weil
   `file://` keine Fetches erlaubt; der Vite-Dev-Server liefert `/data/`
   direkt aus. Ein Ladefehler ist jetzt sichtbar, statt hinter

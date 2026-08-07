@@ -39,6 +39,7 @@ import { useAuthUserId } from "./useSession";
 import { qk } from "../keys";
 import { catchResult, ResultError_, unwrap } from "../result";
 import { beginWrite, isCurrentWrite } from "../write-guard";
+import { pushCardWorkout } from "../intervals/push";
 import type { PlanCard, PlanCardInput, PlanCardPatch, Result } from "../types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
@@ -210,6 +211,41 @@ export function useUndoAdjustment(athleteId: string) {
   );
 
   return { undo, isPending: mutation.isPending };
+}
+
+/** Pusht das Workout einer Karte zu intervals.icu (Etappe 6d). Holt die
+ *  Karte aus dem bereits geladenen State (trägt das aufgelöste Datum
+ *  inkl. Verschiebung), ruft api/intervals/push.ts und persistiert bei
+ *  Erfolg `pushedExternalId`, damit ein erneuter Push (nach einem
+ *  Verschieben) über external_id aktualisiert statt dupliziert. Kein
+ *  useAuthUserId()-Gate — der Push braucht den intervals.icu-API-Key aus
+ *  localStorage, keine Supabase-Session (PlanningPage blendet den Button
+ *  ohnehin athletenscharf aus, s. `canPush`). */
+export function usePushPlanCard(athleteId: string) {
+  const mutation = usePatchCard(athleteId);
+  const snapshot = useCardsSnapshot(athleteId);
+
+  const push = useCallback(
+    async (id: string, token: string, intervalsAthleteId: string): Promise<Result> => {
+      const card = snapshot().find((c) => c.id === id);
+      if (!card) return { ok: false, error: CARD_NOT_FOUND };
+
+      const result = await pushCardWorkout(card, token, intervalsAthleteId);
+      if (!result.ok) return result;
+
+      try {
+        await mutation.mutateAsync({ id, patch: { pushedExternalId: card.id } });
+      } catch {
+        // Push zu intervals.icu war erfolgreich, nur die pushed_external_id-
+        // Rückschreibung schlug fehl — nächster Push bleibt möglich, die
+        // "Gepusht!"-Rückmeldung unten bleibt davon unberührt (wie Vanilla).
+      }
+      return result;
+    },
+    [mutation, snapshot],
+  );
+
+  return { push, isPending: mutation.isPending };
 }
 
 /** Vollbearbeitung einer bestehenden Karte — anders als Move/Cancel, die

@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b und 6c sind umgesetzt (07.08.2026), nächste Etappe ist 6d
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c und 6d sind umgesetzt (07.08.2026), nächste Etappe ist 7
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,56 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 6d (07.08.2026)
+
+Letzte Planungstab-Sub-Etappe: der intervals.icu-Push (Wahoo ELEMNT Roam),
+in Etappe 2b bewusst zurückgestellt (s. `app/src/api/README.md` §"Bewusst
+NICHT in Etappe 2b portiert"). 1:1-Port von
+`assets/js/data-access/intervals/push.js`, jetzt als `app/src/api/
+intervals/push.ts` typisiert gegen `PlanCard`/`Result` (`api/types.ts`) —
+das Feld `workout: WorkoutJson` (`unknown`) ist dort seit Etappe 2b bewusst
+ungetypt, mit dem Kommentar, es werde "in Etappe 6 getypt, wenn die
+Karten-UI sie tatsächlich liest"; `push.ts` bringt dafür ein lokales
+`LegacyWorkout`/`BlockWorkout`-Interface + Type-Guard mit, ohne den
+gemeinsamen `WorkoutJson`-Typ selbst aufzuweichen.
+
+`usePushPlanCard()` (`api/hooks/usePlanCards.ts`) reiht sich neben
+`useMovePlanCard`/`useCancelPlanCard`/`useUndoAdjustment` ein, nutzt aber
+bewusst **kein** `useAuthUserId()`-Gate — der Push hängt am
+intervals.icu-Token aus `localStorage`, nicht an der Supabase-Session
+(Kommentar dazu wörtlich aus der Vanilla-Version übernommen). Der
+Rückgabewert ist das Ergebnis des externen Pushs, nicht das der
+Nachbereitungs-Patch (`pushed_external_id` zurückschreiben) — schlägt nur
+Letzteres fehl, bleibt die "Gepusht!"-Rückmeldung trotzdem erfolgreich
+(identisches Verhalten wie `state/plan-cards.js::pushPlanCard()`).
+
+Der Button "📤 Auf Wahoo pushen" erscheint exakt dort, wo ihn Vanillas
+`_renderCard()` zeigt: nur in der Ausstehend-Sektion, nicht bei Absolviert/
+Verpasst/Ausgefallen (die dort in Vanilla ohnehin über eigene, schlankere
+Render-Pfade laufen, `ui/planned.js` Zeilen 684–728 vs. 1064). In React gibt
+es diese Pfad-Trennung nicht mehr (alle vier Abschnitte teilen sich
+`<PlanCard>`) — die Parität wird stattdessen strukturell erzwungen: die
+neuen Props `canPush`/`onPush` werden ausschließlich im
+`week.cards.map(...)`-Zweig von `PlanningPage.tsx` gesetzt, die drei
+`CardSection`-Aufrufe (Absolviert/Verpasst/Ausgefallen) bleiben unverändert.
+
+Credential-Eingabe bleibt `window.prompt()` (mit Alex abgestimmt) statt
+eines neuen Inline-Formulars — für den seltenen Erstkontakt-Fall (Token/
+Athlete-ID werden danach in `localStorage` gehalten) lohnt sich keine neue
+UI-Konvention.
+
+**Kein neuer Test** für die reinen Beschreibungs-Baufunktionen
+(`legacyDescription`/`blockDescription`/`buildDescription` in `push.ts`)
+oder für `usePushPlanCard` — Vanilla hat dafür ebenfalls keine dedizierten
+Tests (`tests/plan-cards-move.test.js` mockt `pushCardWorkout` nur als
+Fremdkörper weg, prüft ihn nicht). Benannte, nicht gefüllte Testlücke.
+
+**Nicht ausgeführt:** ein echter Push gegen einen echten intervals.icu-
+Account (CLAUDE.md: kein Push ohne vorherige Freigabe, kein
+Sandbox-Account vorhanden). Verifiziert wurde nur Rendern/Gating des
+Buttons; das `external_id`/Upsert-Verhalten bleibt der offene Punkt aus
+`docs/offene-punkte.md` (M3).
 
 ## Änderungen durch Etappe 6c (07.08.2026)
 
@@ -610,7 +660,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 6a | **Planungstab — Grundgerüst** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6a" oben. Liste, Ruhetag-Karten, CRUD-Dialog (inkl. Workout-Blöcke-Editor), Verschieben/Ausfallen/Rückgängig per Inline-Formular, write-authorization-Gate. `PHASES`/`phaseColor()` (`config.ts`) und `week-labels.js` (`core/`) als Nachträge ergänzt |
 | 6b | **Planungstab — Drag & Drop** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6b" oben. **dnd-kit** statt 1:1-Port der handgebauten Pointer-Events-Mechanik aus `ui/plan-drag.js` — reduziert die Race-Condition-Klasse, die dort laut CLAUDE.md schon einmal einen zähen Bug verursacht hat (Drag-Grip-Bug, Juli 2026). `core/plan-drag.js` (reine Regeln: `isDropAllowed`/`canDragCard`/`resolveDrop`) bleibt unverändert, an dnd-kit-Events angebunden. Nutzt denselben Schreibpfad wie der "Verschieben"-Button (`useMovePlanCard`, s. 6a). `collisionDetection={pointerWithin}` war ein nötiger Nachtrag (s. Doku oben) |
 | 6c | **Planungstab — Wirkungsanzeige & Compliance** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6c" oben. Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel, Wirkungsanzeige inkl. Delta-Banner, Konflikt-/Hinweis-Chip, Wetter-Badges, Legacy-Segmentbalken, Z2/Recovery-Detailblöcke. Echte Lücke geschlossen: `projection`/`conflicts` gab es auf React-Seite noch gar nicht (Vanilla-Äquivalent war Modul-State in `state/plan-cards.js`) |
-| 6d | **Planungstab — Wahoo-Push** | `[OP]` | Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) bislang nie live verifiziert |
+| 6d | **Planungstab — Wahoo-Push** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6d" oben. Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) weiterhin nie live verifiziert |
 | 7 | **Trainer-Dashboard + Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. **Briefing-/Export-Portierungsposten** (in Vanilla bereits gebaut): Leiterstand-Anzeige im Export-Panel, Blockstart-Dialog zur Familienwahl, Stufenvorschlag im Briefing inkl. Sonderfälle ("kein Vorschlag ableitbar", "eingefroren (Taper)"), Leitplanken-Sektion (K-RAMPE/K-HARTFOLGE/K-WOCHENTSS/K-TID), Fortschrittsindikatoren, Preset-Kachelreihe |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |

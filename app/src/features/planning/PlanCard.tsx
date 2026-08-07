@@ -70,6 +70,12 @@ interface PlanCardProps {
    *  Absolviert-Abschnitt (spiegelt die Vanilla-Aufteilung `_renderCard`
    *  vs. `_renderDoneCard`, s. ui/planned.js). */
   isDone?: boolean;
+  /** Nur von PlanningPage im Ausstehend-Zweig (`week.cards.map`) gesetzt —
+   *  Vanillas `_renderCard` zeigt den Push-Button nie in Absolviert/
+   *  Verpasst/Ausgefallen (eigene Render-Pfade dort, s. ui/planned.js
+   *  Zeilen 684–728 vs. 1064). `onPush` fehlt konsequent überall sonst. */
+  canPush?: boolean;
+  onPush?: (id: string, token: string, athleteId: string) => Promise<Result>;
   /** Zeigt den Drag-Griff (nur die "Ausstehend"-Sektion setzt das über
    *  canDragCard() — dort ist die per-Wochenblock eingeblendete
    *  Tages-Slot-Zeile das einzige gültige Drop-Ziel, s. PlanningPage). */
@@ -111,6 +117,8 @@ export function PlanCard({
   forecast,
   wellness,
   plannedSessions,
+  canPush,
+  onPush,
   onEdit,
   onMove,
   onCancel,
@@ -121,6 +129,11 @@ export function PlanCard({
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // Getrennt von submitting/error (Verschieben/Ausfallen-Formulare) — der
+  // Push-Status bleibt sichtbar stehen, auch wenn kein Formular offen ist
+  // (spiegelt Vanillas eigenes #push-status-<id>-Element).
+  const [pushing, setPushing] = useState(false);
+  const [pushResult, setPushResult] = useState<{ ok: boolean; message: string } | null>(null);
 
   // useDraggable() unbedingt aufgerufen (Hook-Regel) — `disabled` steuert
   // die Wirkung, nicht ein bedingter Hook-Aufruf.
@@ -167,6 +180,35 @@ export function PlanCard({
     const result = await onUndo(card.id);
     setSubmitting(false);
     if (!result.ok) setError(result.error?.message || "Rückgängig fehlgeschlagen.");
+  }
+
+  /** Token/Athlete-ID aus localStorage, sonst einmalig per prompt() abfragen
+   *  und persistieren — 1:1 wie ui/planned.js::_handlePush (Etappe 6d). */
+  async function handlePush() {
+    if (!onPush) return;
+    let token = localStorage.getItem("intervals_api_key");
+    let intervalsAthleteId = localStorage.getItem("intervals_athlete_id");
+
+    if (!token) {
+      token = window.prompt("intervals.icu API Key eingeben:");
+      if (!token) return;
+      localStorage.setItem("intervals_api_key", token);
+    }
+    if (!intervalsAthleteId) {
+      intervalsAthleteId = window.prompt("intervals.icu Athlete ID eingeben (z.B. i12345):");
+      if (!intervalsAthleteId) return;
+      localStorage.setItem("intervals_athlete_id", intervalsAthleteId);
+    }
+
+    setPushing(true);
+    setPushResult(null);
+    const result = await onPush(card.id, token, intervalsAthleteId);
+    setPushing(false);
+    setPushResult(
+      result.ok
+        ? { ok: true, message: "✅ Gepusht!" }
+        : { ok: false, message: "❌ " + (result.error?.message || "Fehler") },
+    );
   }
 
   const color = typeColor(card.typ);
@@ -253,6 +295,16 @@ export function PlanCard({
             <button type="button" style={ACTION_BTN_STYLE} onClick={onEdit}>
               Bearbeiten
             </button>
+            {canPush && card.workout != null && onPush && (
+              <button type="button" style={ACTION_BTN_STYLE} disabled={pushing} onClick={() => void handlePush()}>
+                {pushing ? "⏳ Wird gepusht…" : "📤 Auf Wahoo pushen"}
+              </button>
+            )}
+            {pushResult && (
+              <span style={{ fontSize: ".7rem", color: pushResult.ok ? "var(--z1)" : "var(--danger)" }}>
+                {pushResult.message}
+              </span>
+            )}
             {card.cancelled || card.originalDate ? (
               <button type="button" style={ACTION_BTN_STYLE} disabled={submitting} onClick={() => void handleUndo()}>
                 ↩ Rückgängig
