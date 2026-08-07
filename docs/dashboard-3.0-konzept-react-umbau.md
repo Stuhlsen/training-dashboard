@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4 und 5 sind umgesetzt (06.08.2026), nächste Etappe ist 6
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5 und 6a sind umgesetzt (07.08.2026), nächste Etappe ist 6b
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,68 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 6a (07.08.2026)
+
+Etappe 6 (Planungstab) ist wegen ihres Umfangs auf Nutzerentscheidung in
+Sub-Etappen geschnitten (wie 2a/2b) — 6a = Grundgerüst, **6b = Drag & Drop
+(dnd-kit, offene Frage aus 5.2 damit beantwortet)**, 6c = Wirkungsanzeige/
+Delta-Banner/Compliance-Tabelle/Wetter-Badges, 6d = Wahoo-Push. Die
+Etappenplan-Tabelle unten spiegelt den Split. Detailplan (Recherche +
+Scope-Abgrenzung) liegt als Plan-Mode-Artefakt vor, nicht im Repo — diese
+Sektion ist die verbindliche Doku für Folge-Etappen.
+
+- **Grundgerüst des Planungstabs** — ersetzt den Platzhalter
+  `PlanningPage.tsx` (`<h1>Planungstab</h1>`). Neue Dateien in
+  `app/src/features/planning/`: `PlanningPage.tsx`, `PlanCard.tsx`
+  (Kartendarstellung + Inline-Formulare Verschieben/Ausfallen/Rückgängig),
+  `PlanCardForm.tsx` (Anlegen/Bearbeiten-Dialog inkl. Workout-Blöcke-Editor,
+  ersetzt `ui/plan-card-dialog.js`), `planning-view-model.ts` (reine
+  Ableitungen: Filterung Ausstehend/Absolviert/Verpasst/Ausgefallen,
+  Wochen-Gruppierung, Fortschrittsquote, Typ-Farben/-Icons — mit
+  Vitest-Tests). Datenzugriff war bereits vollständig vorhanden
+  (`api/hooks/usePlanCards.ts`, `api/plan-cards/patch.ts`, Etappe 2b/3) —
+  6a hat NUR die UI-Schicht gebaut.
+- **Zwei kleine Nachträge in `core`/`config`, die als Lücke auffielen:**
+  `PHASES`/`phaseColor()` in `app/src/config.ts` ergänzt (war laut
+  Dateikopf explizit für Etappe 6 vorgesehen); `app/src/core/week-labels.js`
+  neu (Port von `ui/charts/base.js::weekDisplayLabels()`, wird auch von
+  Etappe 8 gebraucht).
+- **Ruhetag-Karten brauchen KEIN client-seitiges `fillRestDays()`** —
+  Rechercheergebnis: die Ruhetag-Synthese läuft ausschließlich serverseitig
+  (`scripts/lib/plan2.js`) und wurde einmalig per
+  `scripts/migrate-plan-to-supabase.js` nach Supabase materialisiert (M-A,
+  `docs/phase-3-konzept-planungstab.md` §8). `usePlanCards()` liefert jeden
+  Tag bereits als eigene Zeile. Der bereits nach `app/src/core/
+  plan-rest-days.js` portierte Code bleibt bis auf Weiteres ungenutzt.
+- **Bewusst NICHT Teil von 6a** (bei Bedarf zurück zu diesem Abschnitt):
+  Drag & Drop (6b), Delta-Banner/Wirkungsanzeige (ΔFitness/ΔErmüdung/
+  ΔForm)/Hinweis-Chip/Compliance-Tabelle/Soll-Ist-Vergleich/Wetter-Badges/
+  Legacy-Workout-Segmentbalken (6c), Wahoo-Push (6d) — kein echter Push
+  ohne vorherige Freigabe, sobald der Adapter kommt. **Trainer-
+  Vorschlagsmodus** (Umschalter Direkt/Vorschlag, `createTrainerProposal()`
+  in Move/Cancel/Create/Edit) ist explizit Etappe-7-Scope
+  (Trainer-Dashboard) — in 6a schreibt ein Coach mit Schreibrecht direkt,
+  ohne Review-Gate. Befristete Produktverhalten-Lücke ggü. Vanilla, kein
+  RLS-/Sicherheitsproblem (RLS erlaubt Coach-Schreibzugriff unabhängig vom
+  Proposal-Umweg) — Etappe 7 baut den Umschalter wieder ein.
+- **Abnahme:** in `/app/` (`cd app`, PowerShell ohne `&&`): `npx tsc -b`
+  sauber, `npx vitest run` 798/798 grün (784 + 14 neue Tests für
+  `week-labels.test.js`/`planning-view-model.test.ts`), `npx eslint .` ohne
+  neue Errors. Manuell gegen `dashboard-dev` per Playwright (Account
+  Stuhlsen/Athlet 1): Karte anlegen (inkl. Workout-Block) → erscheint
+  korrekt, Bearbeiten-Dialog-Prefill stimmt, Löschen mit
+  Doppelklick-Bestätigung, Verschieben → „verschoben von …"-Badge →
+  Rückgängig stellt exakt den Ursprungszustand wieder her, ebenso
+  Ausfallen → „Grund: …" → Rückgängig. Athlet 2 (hc_diZee, read-only):
+  keine Bearbeiten-/„+ Karte"-Buttons irgendwo, Ruhetag-Karten sichtbar
+  (D6-Regel bestätigt), „Ruhetag gefahren"-Hinweisbadge
+  (`restDayRiddenSignal`) rendert live korrekt bei einer gefahrenen
+  Ruhetag-Karte. 0 Konsolenfehler über die gesamte Session. Testkarte nach
+  Prüfung wieder gelöscht, Datenstand in `dashboard-dev` unverändert.
+  Sichtbarkeits-Matrix-Zeile `plan_cards` nicht separat neu geprüft (deckt
+  sich mit dem bereits geprüften `canWrite`-Mechanismus aus Etappe 5) —
+  volle Prüfung inkl. Trainer-Zeile folgt mit 6c/6d, wenn mehr UI steht.
 
 ## Änderungen durch Etappe 5 (06.08.2026)
 
@@ -324,7 +386,7 @@ Zwei Entscheidungen, die beim Umsetzen anfielen:
 1. **Patch-Regeln aus dem Async-Pfad herausgelöst.** `movedFromDate` nur beim ersten Verschieben, week/phase der Zielwoche leihen, Ausfall-Reset, sort_order — reine Funktionen in `api/plan-cards/patch.ts`, mockfrei geprüft. Damit teilen sich Move/Cancel/Undo/Vollbearbeitung EINE Mutation; was sie unterscheidet, ist allein der Patch.
 2. **Login-Gate hängt am Auth-User, nicht am Profil.** Fiel beim Testen auf: `state/session.js` hielt das Profil als Session-Objekt, ein Schreibversuch während des Profil-Ladens wurde dort mit „Nicht eingeloggt" abgewiesen. Das Profil wird jetzt nur noch für Rollenfragen (Trainer? Admin?) gebraucht.
 
-**5.5 bestätigt** (s.u.). **Nicht portiert** und bewusst den späteren Etappen zugeschlagen: `chart-view`/`export*`/`ladder`/`block-transition`/`formats`/`goals`/`ftp-history` (Etappen 7/8), der intervals.icu-Push (Etappe 6), die Trainer-Leisten-Kategorien (Etappe 7).
+**5.5 bestätigt** (s.u.). **Nicht portiert** und bewusst den späteren Etappen zugeschlagen: `chart-view`/`export*`/`ladder`/`block-transition`/`formats`/`goals`/`ftp-history` (Etappen 7/8), der intervals.icu-Push (Etappe 6d), die Trainer-Leisten-Kategorien (Etappe 7).
 
 ### Etappe 3 — Multi-Sport-Grundstruktur `[F5]` — ✅ umgesetzt (06.08.2026)
 - `sports/`-Modulstruktur anlegen, `cycling/` als einzige befüllte Implementierung
@@ -354,14 +416,17 @@ Drei Entscheidungen, die beim Umsetzen anfielen:
 
 **Ergebnis:** s. "Änderungen durch Etappe 4" oben. Kein `claude_design`-MCP nötig (5.7-Korrektur bereits vor dieser Etappe geklärt) — Zugriff lief über `DesignSync.get_project`/`list_files`/`get_file` direkt mit der Projekt-ID.
 
-### Etappen 6–9 — Restliche Bereiche, je eine eigene Etappe
+### Etappen 6a–9 — Restliche Bereiche, je eine eigene Etappe
 
-Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detailplanung folgt dem Muster der bisherigen Phasenkonzepte. Jede übernimmt ihre Sichtbarkeits-Matrix-Zeilen ins Abnahmekriterium (s.o.).
+Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detailplanung folgt dem Muster der bisherigen Phasenkonzepte. Jede übernimmt ihre Sichtbarkeits-Matrix-Zeilen ins Abnahmekriterium (s.o.). Etappe 6 (Planungstab) ist wegen ihres Umfangs zusätzlich in Sub-Etappen 6a–6d geschnitten (wie 2a/2b) — jede Sub-Etappe ist einzeln abnehmbar und einen eigenen Chat wert, s. "Änderungen durch Etappe 6a" oben für die Begründung.
 
 | Etappe | Bereich | Modell | Besonderheit |
 |---|---|---|---|
 | 5 | **Events** | `[SO]` | ✅ umgesetzt (06.08.2026) — s. "Änderungen durch Etappe 5" oben. Erster CRUD-Bereich: Formular-Komponenten, Mutations-Hooks und `write-authorization`-Gates erstmals in echter React-UI gebaut und gehärtet (Muster-Etappe für alles Folgende), inkl. `is_test`-Feld-UI |
-| 6 | **Planungstab** | `[OP]` | Drag&Drop: Neubewertung, ob die bestehende Pointer-Events-Logik übernommen oder React-nativ gelöst wird. **Karten-Portierungsposten** (alle in Vanilla bereits gebaut, hier nur neu geschrieben, nicht neu konzipiert): Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel an der Ist-Fahrt, Wirkungsanzeige (ΔFitness/ΔErmüdung/ΔForm) auf allen Kartentypen inkl. Vorher-Nachher beim Verschieben, Ruhetag-/Recovery-Karten (rest/recovery-Dreiteilung, Erholungswochen-Erkennung, angepasste K-LEER-Logik; seit 05.08. athletenagnostisch aus der Wochenstruktur abgeleitet statt einzeln getippt — `core/plan-rest-days.js::fillRestDays` — und für BEIDE Athleten sichtbar, nicht mehr athlete1-exklusiv), Kartenhinweise als Tooltip-Chip (seit 06.08., `core/plan-feedback.js` erweitert + `planned.css`/`planned.js`) statt einzeln ausgeschriebener Hinweistexte |
+| 6a | **Planungstab — Grundgerüst** | `[OP]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 6a" oben. Liste, Ruhetag-Karten, CRUD-Dialog (inkl. Workout-Blöcke-Editor), Verschieben/Ausfallen/Rückgängig per Inline-Formular, write-authorization-Gate. `PHASES`/`phaseColor()` (`config.ts`) und `week-labels.js` (`core/`) als Nachträge ergänzt |
+| 6b | **Planungstab — Drag & Drop** | `[OP]` | Auf Nutzerentscheidung **dnd-kit** statt 1:1-Port der handgebauten Pointer-Events-Mechanik aus `ui/plan-drag.js` — reduziert die Race-Condition-Klasse, die dort laut CLAUDE.md schon einmal einen zähen Bug verursacht hat (Drag-Grip-Bug, Juli 2026). `core/plan-drag.js` (reine Regeln: `isDropAllowed`/`canDragCard`/`resolveDrop`) bleibt unverändert, wird nur an dnd-kit-Events statt rohe Pointer-Events angebunden. Nutzt denselben Schreibpfad wie der "Verschieben"-Button (`useMovePlanCard`, s. 6a) |
+| 6c | **Planungstab — Wirkungsanzeige & Compliance** | `[OP]` | **Karten-Portierungsposten** (alle in Vanilla bereits gebaut, hier nur neu geschrieben, nicht neu konzipiert): Intervalltabelle Soll-Ist inkl. `derived`-Badge, Compliance-Ampel an der Ist-Fahrt, Wirkungsanzeige (ΔFitness/ΔErmüdung/ΔForm) auf allen Kartentypen inkl. Vorher-Nachher beim Verschieben (Delta-Banner), Kartenhinweise als Tooltip-Chip (`core/plan-feedback.js`: `conflictsForCard`/`cardImpact`/`dayImpact`/`horizonRaceEvent`/`tsbOnDate`/`summarizeCardHints` — in 6a bewusst noch nicht angefasst), Wetter-Badges (Datenquelle bereits vorhanden: `forecast` ist Teil von `AthleteData` aus `useRides()`), Legacy-Workout-Segmentbalken (altes Zahlenformat), Z2/Recovery-Detailblöcke |
+| 6d | **Planungstab — Wahoo-Push** | `[OP]` | Port von `data-access/intervals/push.js` (Bulk-Upsert über `external_id = plan_cards.id`, verhindert den historischen Duplicate-Event-Bug). **Kein echter Push ohne vorherige Freigabe** (CLAUDE.md) — `external_id`-Upsert-Verhalten gegen echtes Wahoo-Gerät laut `docs/offene-punkte.md` (Phase 3, M3) bislang nie live verifiziert |
 | 7 | **Trainer-Dashboard + Export/Import** | `[SO]` | Proposal-Schema und Validator wandern unverändert mit. **Briefing-/Export-Portierungsposten** (in Vanilla bereits gebaut): Leiterstand-Anzeige im Export-Panel, Blockstart-Dialog zur Familienwahl, Stufenvorschlag im Briefing inkl. Sonderfälle ("kein Vorschlag ableitbar", "eingefroren (Taper)"), Leitplanken-Sektion (K-RAMPE/K-HARTFOLGE/K-WOCHENTSS/K-TID), Fortschrittsindikatoren, Preset-Kachelreihe |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
@@ -378,8 +443,8 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 ### 5.1 TypeScript ja/nein (offen, Etappe 1)
 Spricht dafür: Typsicherheit gerade bei der Multi-Sport-Abstraktion (G5) und beim Proposal-Schema; die Claude-Design-Exporte deklarieren Prop-Typen bereits als `tsType`-Hinweise, die Schnittstellen ließen sich also sauber typisieren. Spricht dagegen: zusätzliche Lernkurve/Setup. Die Exporte selbst erzeugen keinen TSX-Zwang (sie sind kein JSX/TSX, siehe 5.7). Empfehlung wird in Etappe 1 mit Begründung vorgelegt.
 
-### 5.2 State-Management über React Query hinaus (offen)
-Für lokalen UI-Zustand (z.B. Drag&Drop-Zustand, Formulare) — reicht React-eigener State, oder wird eine zusätzliche Bibliothek gebraucht? Vermutlich nicht nötig, wird aber nicht vorab festgelegt.
+### 5.2 State-Management über React Query hinaus (Formulare: entschieden — reiner React-State; Drag&Drop: entschieden, Etappe 6b)
+Für Formulare (Etappe 5/6a) reicht React-eigener `useState`, keine zusätzliche Bibliothek nötig — so umgesetzt. Für den Drag&Drop-Zustand (Etappe 6b) fiel die Entscheidung auf **dnd-kit** statt eines rein React-eigenen Ansatzes (s. Etappenplan-Tabelle, Zeile 6b) — Begründung dort.
 
 ### 5.3 Charts: React-nativ oder Portierung der SVG-Logik (offen, Etappe 8)
 Die bestehenden Charts sind handgeschriebenes SVG ohne Framework-Bindung (`document.createElementNS`). Zwei Wege: (a) 1:1 als React-Komponenten mit `ref`-basiertem direktem DOM-Zugriff portieren (wenig Risiko, wenig "React-typisch"), (b) auf eine React-Chart-Bibliothek umstellen (mehr Aufwand, potenziell schlechter zur bestehenden Design-Sprache aus `chart-grundlagen.md` passend). Wird erst in Etappe 8 (Explorer) entschieden, nicht in Etappe 1.

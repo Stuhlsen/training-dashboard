@@ -7,11 +7,12 @@
    aufgelöst wird) plus die JSON-Endpoints der Pipeline (5.5).
 
    `hrZones` und `cadenceTarget` sind mit Etappe 3 nach `sports/cycling/
-   metrics.ts` gewandert (Konzept G5). `phases`, `weekOrder` und die
-   globalen FTP-Singletons wandern weiterhin erst mit ihren Konsumenten
-   mit — die Phasenfarben in den Planungstab (Etappe 6). Sie hier
-   vorsorglich mitzuschleppen hieße, sie zweimal pflegen zu müssen,
-   solange die Vanilla-Seite live ist.
+   metrics.ts` gewandert (Konzept G5). Die globalen FTP-Singletons wandern
+   weiterhin erst mit ihren Konsumenten mit. `PHASES`/`phaseColor()` sind
+   jetzt da (Etappe 6a, Planungstab-Wochenbadges) — `weekOrder`/`weekIndex`
+   bewusst NICHT: der Planungstab braucht sie nicht (Wochen-Reihenfolge
+   ergibt sich dort schon aus der Datums-Sortierung der Karten), sie
+   wandern erst mit, wenn ein Chart (Etappe 8) sie tatsächlich braucht.
 
    `hrMax` ist bewusst NICHT nach `sports/` gegangen: der Wert gehört zum
    Athleten, nicht zur Sportart (die HF-Zonen dort sind reine Anteile
@@ -74,4 +75,42 @@ export const ATHLETES: readonly AthleteConfig[] = [
 
 export function athleteConfig(id: string): AthleteConfig | null {
   return ATHLETES.find((a) => a.id === id) ?? null;
+}
+
+interface PhaseInfo {
+  color: string;
+  label: string;
+}
+
+/** 1:1 aus `assets/js/state/config.js::phases`. `"Taper"` ist bewusst ohne
+ *  Präfix geteilt zwischen Athlet 1 (Trainingsblock-Schema) und Athlet 2
+ *  (GFNY Bremen 2026) — `.label` wird nirgends gerendert (nur `.color` über
+ *  `phaseColor()`), beide Athleten wollen hier ohnehin dasselbe Grün. */
+export const PHASES: Record<string, PhaseInfo> = {
+  // Notion-Ära (Athlet 1, historisch)
+  Vorbereitung: { color: "#c9a84c", label: "Vorbereitung" },
+  Vor: { color: "#c9a84c", label: "Vorbereitung" },
+  "Phase 1": { color: "#6b7280", label: "Phase 1 — Basisaufbau" },
+  "Phase 2": { color: "#4a7fa8", label: "Phase 2 — Volumenaufbau" },
+  "Phase 3": { color: "#7c5cbf", label: "Phase 3 — Leistungsaufbau" },
+  // Trainingsblock-Phasen (Athlet 1, intervals.icu-Ära)
+  Übergang: { color: "#c9a84c", label: "Übergang" },
+  "Sweet Spot": { color: "#e08a3c", label: "Block 1 — Sweet Spot" },
+  Schwelle: { color: "#d94f4f", label: "Block 2 — Schwelle" },
+  VO2max: { color: "#a24ad0", label: "Block 3 — VO₂max" },
+  Taper: { color: "#4a9a6e", label: "Taper + Retest" },
+  Erholung: { color: "#6b9fa8", label: "Erholungswoche" },
+  // Athlet 2 (eigener Plan, GFNY Bremen 2026) — diese drei Namen existieren
+  // bei Athlet 1 nicht, brauchen daher kein Präfix. Der Planungstab zeigt
+  // den Phase-Key selbst als Text (kein Label-Lookup).
+  Basis: { color: "#4a7fa8", label: "Block 1 — Basis (KW23–26)" },
+  Aufbau: {
+    color: "#e08a3c",
+    label: "Block 2 — Aufbau: Threshold + Over-Under (KW27–30)",
+  },
+  Rennhärte: { color: "#d94f4f", label: "Block 3 — Rennhärte + Sprint (KW31–34)" },
+};
+
+export function phaseColor(phase: string | null | undefined): string {
+  return (phase ? PHASES[phase] : undefined)?.color ?? "#6b7280";
 }
