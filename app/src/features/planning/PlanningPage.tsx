@@ -39,6 +39,7 @@ import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCard } from "./PlanCard";
 import { PlanCardForm } from "./PlanCardForm";
 import { ExportImportBar } from "./ExportImportBar";
+import { BlockDialogGate } from "./BlockDialog";
 import { ProposalBanner } from "./ProposalBanner";
 import { ProposalList } from "./ProposalList";
 import { ProposalCompare } from "./ProposalCompare";
@@ -280,6 +281,7 @@ export function PlanningPage() {
       />
 
       <ProposalBanner athleteId={activeAthleteId} onOpen={() => setProposalListOpen(true)} />
+      <BlockDialogGate athleteId={activeAthleteId} cards={cards ?? []} />
 
       <ExportImportBar
         athleteId={activeAthleteId}

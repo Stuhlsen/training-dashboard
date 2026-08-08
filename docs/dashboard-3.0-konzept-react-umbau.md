@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b und 7c sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — nächste Etappe ist 7d
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c und 7d sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig, nächste Etappe ist 8
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,54 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 7d (08.08.2026)
+
+Blockstart-Dialog (E2, `docs/konzept-progressionssteuerung.md` L9) — der
+letzte Baustein von Etappe 7, strukturell unabhängig von 7a–7c (kein
+Datenbezug, deshalb zuletzt umgesetzt statt zuerst trotz Unabhängigkeit).
+
+- **`useBlockTransition(athleteId, cards)`** (`api/hooks/useBlockTransition.ts`,
+  Port von `state/block-transition.js`) — erkennt einen Blockwechsel (Blockziel
+  heute ≠ Blockziel vor 7 Tagen, `core/periodization.js::currentBlockTarget`)
+  und liefert die Kandidatenfamilien (mehr als eine für das Blockziel
+  zulässig+aktiv), sofern seit Blockbeginn (`blockStartDate`) noch kein
+  `reason:'block-start'`-Eintrag existiert. `cards` kommt vom Aufrufer
+  (PlanningPage hat sie ohnehin schon über `usePlanCards`) statt eines
+  zweiten Ladevorgangs. Query-Key hängt zusätzlich an einem Cards-
+  Fingerprint (`qk.blockTransition`), weil ein Kartenwechsel das Blockziel
+  verschieben kann, ohne dass sich profileId/athleteId ändern.
+- **`useRecordBlockStart(athleteId)`** — schreibt die Wahl
+  (`recordLadderStep`, immer `step:1, reason:'block-start'`) und invalidiert
+  danach `useLadderState` (Export-Panel-Zeile) + die Blockstart-Query selbst.
+- **`BlockDialogGate`/`BlockDialog`** (`features/planning/BlockDialog.tsx`,
+  Port von `ui/block-dialog.js`) — Options-Kacheln (Zielsystem,
+  `evidence_grade`, Beispieleinheit der Startstufe via `core/ladder.js::
+  stepAt`/`formatSummary`), Vorauswahl über `defaultCandidate()`
+  (`block-dialog-view-model.ts`: bevorzugt `studienlage` vor
+  `coaching-konsens`). `BlockDialogGate` ist der Einstieg (Muster wie
+  `ProposalBanner`: immer gemountet, entscheidet selbst über Sichtbarkeit),
+  in `PlanningPage` neben `ProposalBanner` verdrahtet.
+- **Session-Guard ohne Modul-State:** Vanillas modulweites
+  `promptedThisSession`-`Set` wird hier zu zwei `useState`s
+  (`dismissedKeys`/`openKey`) in `BlockDialogGate`, per Render-Phase-
+  State-Anpassung gesetzt (Muster wie `PlanningPage::deltaBanner`) statt
+  Effekt — sobald ein neuer Blockwechsel erkannt wird, in einem Zug als
+  "gesehen" markiert und geöffnet, damit kein Zwischenrender den Dialog
+  offen ohne Dismiss-Eintrag zeigt. Wie in Vanilla: kein DB-Schreiben vor
+  einer echten Entscheidung, ein Seiten-Reload zeigt den Dialog erneut.
+- **Nicht portiert, weil in 7c bereits miterledigt:** die Leiterstand-Zeile
+  im Export-Panel (E1) — das lief vollständig über `useLadderState`
+  (Etappe 7c, s. dortiger Abschnitt), 7d war ausschließlich E2.
+- Browser-Smoke-Test (dev-Server, Playwright MCP, gegen `dashboard-dev`):
+  Planungstab lädt für beide Athleten fehlerfrei, Athletenwechsel zu
+  Stuhlsen (self-Pfad, löst die echten `useBlockTransition`/
+  `useIsSelfAthlete`-Queries aus) ohne Konsolenfehler. Ein echter
+  Blockwechsel mit >1 aktiver Familie lag im aktuellen Datenstand nicht
+  vor (laut L9 auch nur alle vier bis sechs Wochen erwartet) — die Logik
+  selbst ist über `useBlockTransition.test.tsx` (5 Fälle: Wechsel erkannt,
+  nur eine aktive Familie, schon entschieden, kein Wechsel, fremder Athlet)
+  und `block-dialog-view-model.test.ts` abgedeckt.
 
 ## Änderungen durch Etappe 7c (08.08.2026)
 
@@ -836,7 +884,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 7a | **Trainer-Dashboard — Trainer-Leiste** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7a" oben. `TrainerBar` (8 Kacheln, `trainer_view_prefs`-Panel), Direkt/Vorschlag-Umschalter (Default "Vorschlag") verdrahtet in Move/Cancel/Anlegen/Bearbeiten, T2 (Neuanlage immer Vorschlag), Drag&Drop im Vorschlagsmodus deaktiviert |
 | 7b | **Trainer-Dashboard — Proposal-Review** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7b" oben. `ProposalBanner` (Athlet), `ProposalList` mit Gruppierung/"Alle übernehmen", `ProposalCompare` (TSB-Delta + Konflikt-Badges). "Vorschläge"-Kachel in `TrainerBar` jetzt klickbar (Trainer: read-only) |
 | 7c | **Trainer-Dashboard — Export/Import** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 7c" oben. Export-Panel (Preset-Kachelreihe, Freitext, Event-Auswahl, Leiterstand-Zeile E1), Import-Dialog (Preview+Teilerfolg, nutzt 7bs Review-UI für die importierten Vorschläge). Stufenvorschlag/Leitplanken-Sektion/Fortschrittsindikatoren/Entscheidungsgedächtnis (`docs/konzept-progressionssteuerung.md`) laufen mit — reine Textbausteine im Export-Briefing, kein eigenes UI. Migration `0008_export_prefs.sql` lag bereits vor (nicht Teil dieser Etappe) |
-| 7d | **Trainer-Dashboard — Blockstart-Dialog** | `[SO]` | Blockstart-Dialog zur Familienwahl (E2, `docs/konzept-progressionssteuerung.md`) — eigenständiges Modal, ausgelöst beim Planungstab-Laden (`maybeOpenBlockDialog`), strukturell unabhängig vom Export-Panel |
+| 7d | **Trainer-Dashboard — Blockstart-Dialog** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 7d" oben. `BlockDialogGate`/`BlockDialog`, `useBlockTransition`/`useRecordBlockStart` (Port von state/block-transition.js + state/ladder.js::recordLadderStep) — eigenständiges Modal, ausgelöst beim Planungstab-Laden, strukturell unabhängig vom Export-Panel |
 | 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
 
