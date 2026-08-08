@@ -1362,12 +1362,13 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 8f | **Explorer + Charts — Power/Wochenvolumen/Wellness auf die Engine** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8f" oben. Nachtrag außerhalb der §7.2-Nummerierung (von `charts/README.md` schon vor 8e angekündigt). `PowerCurveChart.tsx` (Familie 4), `WeeklyVolumeChart.tsx` (Familie 3), `WellnessChart.tsx` + `core/wellness-series.js` (Familie 2) — je ein repräsentativer Chart pro Familie, ohne die PMC-Cross-Cutting-Features aus 8b-8e. Damit sind alle vier Chart-Familien aus `docs/chart-grundlagen.md` §7.2 mit mindestens einem React-Chart vertreten |
 | 9 | **Settings** | `[HA]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 9" oben. Name/Passwort (alle Rollen) + Ziele/FTP-Historie/Formate/Datenquellen (athletengated), inkl. `CheckinDialog.tsx` als Nachtrag über den Vanilla-Port hinaus (fehlende Befinden-Check-in-UI). `ladder_progression_enabled` bewusst nicht angefasst (DB-Grant sperrt Self-Service, Migration 0016) |
 | 10 | **Umschaltung** (Teil A+B+C) | `[F5]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 10, Teil A+B" und "...Teil C" oben. Sichtbarkeits-Matrix als App-weites Routing-Gate, Security-Regressionsdurchlauf, Live-Merge `dashboard-3.0` → `main`, Deploy-Pipeline auf `app/dist`. Offen (auf Alex' Wunsch zurückgestellt): alte Vanilla-Dateien aus `main` entfernen |
-| 11a | **Nacharbeiten — Menü-Design + Seitenbreite** | `[OP]` | ⏳ offen. `Layout.tsx` unstyled → Design-Sprache; Hero-Breitenlayout als geteilter `PageShell` auf alle Seiten |
+| 11a | **Nacharbeiten — Menü-Design + Seitenbreite** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Pill-Nav + `PageShell` auf allen Seiten, live verifiziert |
 | 11b | **Nacharbeiten — Fahrtenbuch** | `[OP]` | ⏳ offen. Neue Seite, Port von `ui/table.js` — fehlte auf der gesamten Etappe-1–10-Roadmap komplett |
 | 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ⏳ offen. Port von `ui/overview.js::_renderMetrics()` in `HeroPage.tsx` |
 | 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ⏳ offen. Neue Route + Shell, Sektionen Belastung/Intensität (Kern-Module bereits portiert) |
 | 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
 | 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
+| 11g | **Nacharbeiten — Login-Seite stylen** | `[OP]` | ⏳ offen. `LoginPage.tsx` unstyled, bei 11a-Live-Check aufgefallen (sitzt außerhalb `Layout`/`PageShell`) |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1404,18 +1405,19 @@ etappe-11x-...`) — kein gemeinsamer Zwischenbranch, um Merge-Reibung zwischen
 den parallelen Fenstern zu vermeiden. Jedes Häppchen einzeln gegen `main`
 mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
 
-- **11a — Menü-Design + einheitliche Seitenbreite.** Kleinster, sofort auf
-  jeder Seite sichtbarer Schritt — deshalb zuerst. `components/Layout.tsx`
-  ist aktuell unstyled HTML (nackte `<nav>`/`<NavLink>`, kein CSS) — auf
-  Design-Sprache aus `tokens.css`/`GlassCard`-Optik bringen (Pills wie im
-  alten Nav, aktiver Zustand markiert). Zweiter Teil: `HeroPage.tsx`s breites
-  Layout (`maxWidth: 2040`, `padding: "0 clamp(28px,4vw,80px)"`) als
-  gemeinsamer Wrapper (z. B. `components/PageShell.tsx`) auf Planning/
-  Explorer/Events/Settings übertragen, damit alle Seiten dieselbe
-  Breiten-/Rand-Logik teilen statt jede ihr eigenes Layout zu stricken.
-  Kein Abhängigkeits-Konflikt mit den anderen Häppchen (eigene neue/kleine
-  Dateien), außer dass 11b–11f von der neuen `PageShell` profitieren, sobald
-  sie existiert — kein Blocker, nur ein späterer Nachzieh-Schritt für sie.
+- **11a — Menü-Design + einheitliche Seitenbreite.** ✅ umgesetzt
+  (08.08.2026). `components/Layout.tsx` war unstyled HTML (nackte
+  `<nav>`/`<NavLink>`, kein CSS) — jetzt sticky Glass-Bar mit Pill-Nav
+  (aktiver Zustand wie `AthleteToggle`/`WellnessChart`-Metrik-Umschalter:
+  heller Overlay-Fill statt der alten vollflächigen `--accent`-Farbe, um
+  keine zweite Pill-Konvention einzuführen). `EnvBadge` bekam eine kleine
+  Pill statt nacktem Text. Neuer `components/PageShell.tsx` (Breite/Rand
+  1:1 aus `HeroPage.tsx`s Plate, ohne deren 3D-Tilt) auf Planning/Explorer/
+  Events/Settings angewendet — Inhalt, der von Natur aus schmal ist
+  (Settings' Formular-Karte u. a.), behält seine eigene engere Innenbreite
+  innerhalb des breiten Rahmens (Rückfrage mit Alex). `tsc -b` sauber,
+  `vitest` 1065/1065, Playwright-Snapshot lokal + live gegen
+  `stuhlsen.github.io/training-dashboard/` bestätigt, 0 Konsolenfehler.
 - **11b — Fahrtenbuch (neue Seite).** Fehlt laut Konzept komplett ("keine
   Roadmap-Zeile dafür", s. §7.1). Port von `ui/table.js`: sortierbare/
   filterbare Fahrtenliste, Subjective-Spalte (RPE/Feel) nur für den
@@ -1452,6 +1454,13 @@ mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
   wie im Original beibehalten), Konsistenz (`_renderConsistency`, Kern in
   `core/consistency.js` + `core/adherence.js`), Periodisierung
   (`_renderPeriodization`, Kern in `core/periodization.js`).
+- **11g — Login-Seite stylen.** Bei der 11a-Live-Verifikation aufgefallen:
+  `LoginPage.tsx` ist komplett unstyled HTML (nackte `<input>`/`<button>`,
+  kein CSS) — sitzt außerhalb von `Layout`/`PageShell` (eigene Route ohne
+  Kopfzeile, s. `App.tsx`), war deshalb von 11a nicht mitgedeckt. Auf
+  Design-Sprache bringen (`GlassCard`, `AppBackground` bleibt bereits
+  gemountet, s. dortigen Kommentar zu Login+eingeloggten Seiten). Kleines,
+  unabhängiges Häppchen — eigene Datei, kein Überschneidungsrisiko.
 
 **Bewusst nicht in Etappe 11:** Wochenrückblick (`core/weekreview.js` ist
 zwar bereits portiert, aber `ui/weekreview.js`-Äquivalent hat noch keine

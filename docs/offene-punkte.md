@@ -403,9 +403,13 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   Leistungsdiagnostik/Regeneration & Körper/Konsistenz/Periodisierung)
   standen auf keiner der Etappen 1–10 — keine Bugs, sondern eine
   Roadmap-Lücke. Plus zwei Design-Baustellen (unstyled Nav, uneinheitliche
-  Seitenbreite). In sechs unabhängige Häppchen für parallele Fenster
-  geschnitten → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt
-  "Etappe 11".
+  Seitenbreite). In unabhängige Häppchen für parallele Fenster geschnitten
+  → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt "Etappe 11".
+  **11a ✅ umgesetzt (08.08.2026)** — Pill-Nav + `PageShell` auf allen
+  Seiten, live verifiziert. Dabei ein siebtes Häppchen gefunden: **11g,
+  `LoginPage.tsx` ist komplett unstyled** — sitzt außerhalb `Layout`/
+  `PageShell` (eigene Route ohne Kopfzeile), daher nicht von 11a
+  mitgedeckt. Offen wie 11b–11f.
 
 ## Infrastruktur/CI
 
