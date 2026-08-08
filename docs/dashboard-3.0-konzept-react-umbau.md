@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d, 8e, 8f und 9 sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus), 8e schloss §7.2 selbst formal ab (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt) — **8f ist ein Nachtrag außerhalb dieser Nummerierung** (`charts/README.md` hatte ihn schon vor 8e als Fortsetzung angekündigt): bringt Power-Curve/Wochenvolumen/Wellness (je ein Chart pro verbleibender Familie aus `docs/chart-grundlagen.md` §7.2) auf dieselbe React-Engine wie die PMC-Kurve, ohne deren Brush/Cursor-Sync/What-if/Vergleich-Erweiterungen zu übernehmen. **Etappe 9 (Settings)** ist damit die letzte reguläre Bereichs-Etappe. **Etappe 10 (Umschaltung)** ist in drei Teile geschnitten (Teil A Routing/Gates, Teil B Security-Regressionsdurchlauf, Teil C echte Live-Umschaltung) — Teil A+B sind umgesetzt (08.08.2026, s. "Änderungen durch Etappe 10" unten), Teil C ist production-facing und wartet auf eine separate Freigabe von Alex.
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d, 8e, 8f und 9 sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus), 8e schloss §7.2 selbst formal ab (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt) — **8f ist ein Nachtrag außerhalb dieser Nummerierung** (`charts/README.md` hatte ihn schon vor 8e als Fortsetzung angekündigt): bringt Power-Curve/Wochenvolumen/Wellness (je ein Chart pro verbleibender Familie aus `docs/chart-grundlagen.md` §7.2) auf dieselbe React-Engine wie die PMC-Kurve, ohne deren Brush/Cursor-Sync/What-if/Vergleich-Erweiterungen zu übernehmen. **Etappe 9 (Settings)** ist damit die letzte reguläre Bereichs-Etappe. **Etappe 10 (Umschaltung)** ist in drei Teile geschnitten (Teil A Routing/Gates, Teil B Security-Regressionsdurchlauf, Teil C echte Live-Umschaltung) — Teil A+B+C sind umgesetzt (08.08.2026, s. "Änderungen durch Etappe 10, Teil C" unten); der einzige noch offene Teil-C-Punkt (alte Vanilla-Dateien aus `main` entfernen) ist auf Alex' Wunsch zurückgestellt. Der Live-Check direkt nach dem Merge deckte auf, dass mehrere große Vanilla-Bereiche nie auf der Etappen-Roadmap standen (Fahrtenbuch, Gesamtstatistiken-Kacheln, kompletter Analyse-Tab) plus zwei Design-Baustellen (Nav-Styling, Seitenbreite) — als **Etappe 11** eingeplant, s. dortigen Abschnitt.
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,43 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 10, Teil C (08.08.2026)
+
+Live-Umschaltung durchgeführt: `main` fast-forward auf `origin/main`,
+`dashboard-3.0` per `git merge --no-ff` reingemergt (`09b2269`, Muster wie
+der `dashboard-2.0`-Merge `6ccca9c`), gepusht. `sync-data.yml` baut jetzt
+`app/` (`npm ci && npm run build`), legt `data/*.json` + einen
+`404.html`-SPA-Fallback ins Deploy-Artefakt und lädt `app/dist` statt des
+kompletten Checkouts hoch. `vite.config.ts` setzt `base` nur im Build auf
+`/training-dashboard/`, `main.tsx` bekam den passenden Router-`basename`.
+
+**Vor dem Merge, aus dem erneuten vollen Review (632 Dateien, `dashboard-3.0`
+vs. `main`) direkt gefixt:** Wahoo-Push war für Trainer mit Schreibrecht
+erreichbar, unabhängig vom Direkt/Vorschlag-Umschalter — widerspricht
+`docs/phase-4-konzept-trainer-sicht.md` ("Kein Wahoo-Push durch den
+Trainer", der Token gehört dem Athleten). Bestand identisch schon im
+Vanilla-Original, dort jetzt gegenstandslos (Datei entfernt). `canPush`
+prüft jetzt zusätzlich `!isTrainer` (`PlanningPage.tsx`).
+
+**Nach dem Merge, in der Live-Verifikation gefunden und direkt gefixt:**
+- `background.png` war hart auf `/` verdrahtet statt über `BASE_URL` —
+  404 auf der echten `/training-dashboard/`-Pages-URL (`AppBackground.tsx`).
+- HRV/Ruhepuls-Chart riss die Linie an jeder Messlücke ab (`segmentsFor()`,
+  für PMC/CTL mit lückenlos-täglicher Reihe gebaut) statt wie im Original
+  (`assets/js/ui/charts/wellness.js::renderHrvRhfChart`, Alex' Design-
+  Entscheidung) nur die echten Messpunkte direkt zu verbinden
+  (`WellnessChart.tsx`).
+
+Alle drei Fixes: `tsc -b` sauber, `npx vitest run` 1065/1065, `npm test`
+(Root) 936/936, jeweils vor dem Push verifiziert; die zwei Live-Funde
+zusätzlich per Playwright-Snapshot direkt gegen `stuhlsen.github.io/
+training-dashboard/` bestätigt (0 Konsolenfehler nach dem zweiten Fix).
+
+**Zurückgestellt auf Alex' ausdrücklichen Wunsch:** alte Vanilla-Dateien
+(`index.html`, `assets/js/`, `assets/css/`) sind auf `main` noch nicht
+entfernt — `scripts/`/`tests/`/`data/` bleiben ohnehin (JSON-Pipeline
+unverändert, s. 5.5). Nächster Schritt, sobald freigegeben.
 
 ## Änderungen durch Etappe 10, Teil A+B (08.08.2026)
 
@@ -1324,6 +1361,13 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 8e | **Explorer + Charts — Vergleichsmodus** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8e" oben. `CompareChart.tsx` (relative Tag-1-=-Blockstart-Achse, Slot A/B) + `ComparePanel.tsx` + `useExplorerCompare`-Hook, ersetzt `PmcChart` bei aktivem Vergleich. `core/compare.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu. §7.2 damit formal abgeschlossen (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener späterer Fahrplan-Schritt) |
 | 8f | **Explorer + Charts — Power/Wochenvolumen/Wellness auf die Engine** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8f" oben. Nachtrag außerhalb der §7.2-Nummerierung (von `charts/README.md` schon vor 8e angekündigt). `PowerCurveChart.tsx` (Familie 4), `WeeklyVolumeChart.tsx` (Familie 3), `WellnessChart.tsx` + `core/wellness-series.js` (Familie 2) — je ein repräsentativer Chart pro Familie, ohne die PMC-Cross-Cutting-Features aus 8b-8e. Damit sind alle vier Chart-Familien aus `docs/chart-grundlagen.md` §7.2 mit mindestens einem React-Chart vertreten |
 | 9 | **Settings** | `[HA]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 9" oben. Name/Passwort (alle Rollen) + Ziele/FTP-Historie/Formate/Datenquellen (athletengated), inkl. `CheckinDialog.tsx` als Nachtrag über den Vanilla-Port hinaus (fehlende Befinden-Check-in-UI). `ladder_progression_enabled` bewusst nicht angefasst (DB-Grant sperrt Self-Service, Migration 0016) |
+| 10 | **Umschaltung** (Teil A+B+C) | `[F5]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 10, Teil A+B" und "...Teil C" oben. Sichtbarkeits-Matrix als App-weites Routing-Gate, Security-Regressionsdurchlauf, Live-Merge `dashboard-3.0` → `main`, Deploy-Pipeline auf `app/dist`. Offen (auf Alex' Wunsch zurückgestellt): alte Vanilla-Dateien aus `main` entfernen |
+| 11a | **Nacharbeiten — Menü-Design + Seitenbreite** | `[OP]` | ⏳ offen. `Layout.tsx` unstyled → Design-Sprache; Hero-Breitenlayout als geteilter `PageShell` auf alle Seiten |
+| 11b | **Nacharbeiten — Fahrtenbuch** | `[OP]` | ⏳ offen. Neue Seite, Port von `ui/table.js` — fehlte auf der gesamten Etappe-1–10-Roadmap komplett |
+| 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ⏳ offen. Port von `ui/overview.js::_renderMetrics()` in `HeroPage.tsx` |
+| 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ⏳ offen. Neue Route + Shell, Sektionen Belastung/Intensität (Kern-Module bereits portiert) |
+| 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
+| 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1339,15 +1383,80 @@ In drei Teile geschnitten (Rückfrage vor der Umsetzung, 08.08.2026):
   Sichtbarkeits-Matrix wurde bislang pro Bereichs-Etappe einzeln geprüft).
   Echter Fund: Belastungsempfehlung-Kachel war für Besucher sichtbar,
   direkt gefixt und erneut verifiziert.
-- **Teil C — echte Live-Umschaltung.** ⏳ offen, wartet auf Freigabe von
-  Alex (production-facing, nicht trivial rückgängig zu machen):
-  - CI/Deploy-Pipeline auf `/app/` als neue Live-Version umstellen
-  - `vite.config.ts`: `base` für den GitHub-Pages-Projektpfad
-    (`/training-dashboard/`) setzen — aktuell nicht gesetzt (Default `/`)
-  - Merge `dashboard-3.0` → `main` (Muster wie `dashboard-2.0`: alte
-    Vanilla-Seite bleibt als Branch-Historie erhalten)
-  - Alte Vanilla-Dateien (`index.html`, `assets/js/ui|state|...`) aus `main`
-    entfernen, sobald `/app/` live ist
+- **Teil C — echte Live-Umschaltung.** ✅ umgesetzt (08.08.2026) — s.
+  "Änderungen durch Etappe 10, Teil C" oben. CI/Deploy auf `app/dist`
+  umgestellt, `vite.config.ts`-`base` gesetzt, `dashboard-3.0` → `main`
+  gemergt und live. **Offen, auf Alex' Wunsch zurückgestellt:** alte
+  Vanilla-Dateien (`index.html`, `assets/js/`) aus `main` entfernen.
+
+### Etappe 11 — Nacharbeiten (Fahrtenbuch, Analyse-Tab, Design-Polish) `[OP]`
+
+Beim Live-Check direkt nach dem Teil-C-Merge (08.08.2026) aufgefallen: die
+Etappenplanung 1–10 hatte mehrere große Vanilla-Bereiche schlicht nie auf der
+Roadmap — kein Bug, sondern eine Lücke im ursprünglichen Zuschnitt. Von Alex
+als Etappe 11 eingeplant, **bewusst in unabhängige Häppchen für mehrere
+parallele Fenster/Sessions geschnitten** (anders als 6a-6d/7a-7d/8a-8f, die
+bewusst sequenziell aufeinander aufbauten). Reihenfolge-Wunsch: 11a zuerst.
+
+Gemeinsame Startbedingung für alle Häppchen: `git checkout main`,
+`git pull`, davon einen eigenen Feature-Branch pro Häppchen (`git checkout -b
+etappe-11x-...`) — kein gemeinsamer Zwischenbranch, um Merge-Reibung zwischen
+den parallelen Fenstern zu vermeiden. Jedes Häppchen einzeln gegen `main`
+mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
+
+- **11a — Menü-Design + einheitliche Seitenbreite.** Kleinster, sofort auf
+  jeder Seite sichtbarer Schritt — deshalb zuerst. `components/Layout.tsx`
+  ist aktuell unstyled HTML (nackte `<nav>`/`<NavLink>`, kein CSS) — auf
+  Design-Sprache aus `tokens.css`/`GlassCard`-Optik bringen (Pills wie im
+  alten Nav, aktiver Zustand markiert). Zweiter Teil: `HeroPage.tsx`s breites
+  Layout (`maxWidth: 2040`, `padding: "0 clamp(28px,4vw,80px)"`) als
+  gemeinsamer Wrapper (z. B. `components/PageShell.tsx`) auf Planning/
+  Explorer/Events/Settings übertragen, damit alle Seiten dieselbe
+  Breiten-/Rand-Logik teilen statt jede ihr eigenes Layout zu stricken.
+  Kein Abhängigkeits-Konflikt mit den anderen Häppchen (eigene neue/kleine
+  Dateien), außer dass 11b–11f von der neuen `PageShell` profitieren, sobald
+  sie existiert — kein Blocker, nur ein späterer Nachzieh-Schritt für sie.
+- **11b — Fahrtenbuch (neue Seite).** Fehlt laut Konzept komplett ("keine
+  Roadmap-Zeile dafür", s. §7.1). Port von `ui/table.js`: sortierbare/
+  filterbare Fahrtenliste, Subjective-Spalte (RPE/Feel) nur für den
+  eigenen Athleten schreibbar (`write-authorization`-Gate wie Planungstab).
+  Neue Route `/log` (o. ä.) + Nav-Eintrag. Eigene neue Dateien
+  (`features/logbook/`), kein Überschneidungsrisiko mit anderen Häppchen.
+- **11c — Hero: Gesamtstatistiken-Kacheln.** Port von
+  `ui/overview.js::_renderMetrics()` (Gesamtdistanz, Fahrten, Trainingszeit,
+  Ø Tempo, FTP/eFTP, CTL Peak, längste Fahrt, Ø Herzfrequenz, Ø Kadenz) als
+  neue Kachelreihe unten in `HeroPage.tsx`. Reine Anzeige, alle Werte aus
+  bereits geladenen `rides`/`Data`-Äquivalenten (`useRides()`) ableitbar,
+  kein neuer Hook nötig. Additive Änderung an einer bestehenden Datei —
+  kleines Konfliktrisiko mit 11a, falls beide `HeroPage.tsx` gleichzeitig
+  anfassen; sonst unabhängig.
+- **11d — Analyse-Tab: Grundgerüst + Belastung + Intensität.** Neue Route
+  `/analysis` (o. ä.) + Nav-Eintrag + `features/analysis/AnalysisPage.tsx`
+  als Shell (wer zuerst startet, legt sie an — bei echter Parallelität mit
+  11e/11f kurz abstimmen, wer die Shell baut, sonst entsteht sie doppelt).
+  Erste zwei Sektionen: Belastung (Port von `ui/analysis.js::_renderLoad`,
+  Kern liegt fertig in `core/loadguard.js`) und Intensität (`_renderZones`
+  + `_renderTypDistribution`, Kern in `core/zones.js`). Alle Kern-Module
+  sind bereits nach `app/src/core/` portiert — dieses Häppchen ist reine
+  UI-Arbeit, kein Logik-Port.
+- **11e — Analyse-Tab: Aerob + Leistungsdiagnostik.** Baut auf der Shell aus
+  11d auf (kleiner Koordinationspunkt, s. o.) — bei echt paralleler
+  Bearbeitung notfalls mit einer minimalen eigenen Shell-Kopie starten und
+  beim Mergen zusammenführen. Sektionen: Aerob (`_renderAerobic`, Kern in
+  `core/efficiency.js`, inkl. Kadenz-Coach-Chips aus `core/cadence.js`
+  laut Chart-Merge-Konvention) und Leistungsdiagnostik (`_renderPower`,
+  Kern in `core/records.js` + `core/ftp-forecast.js`).
+- **11f — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung.**
+  Gleicher Shell-Koordinationspunkt wie 11e. Sektionen: Regeneration & Körper
+  (`_renderBody`, Kern in `core/body.js`, datengetriebenes Ein-/Ausblenden
+  wie im Original beibehalten), Konsistenz (`_renderConsistency`, Kern in
+  `core/consistency.js` + `core/adherence.js`), Periodisierung
+  (`_renderPeriodization`, Kern in `core/periodization.js`).
+
+**Bewusst nicht in Etappe 11:** Wochenrückblick (`core/weekreview.js` ist
+zwar bereits portiert, aber `ui/weekreview.js`-Äquivalent hat noch keine
+zugeordnete Stelle im React-Port — Rückfrage vor Zuschnitt, statt es
+ungefragt einem der sechs Häppchen zuzuschlagen).
 
 ---
 

@@ -391,8 +391,21 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   Bereiche betrifft. Details der Umsetzung + eines dabei gefundenen zweiten
   Lecks (Belastungsempfehlung-Kachel für Besucher sichtbar, ebenfalls
   behoben) → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt
-  "Änderungen durch Etappe 10, Teil A+B". Teil C (echte Live-Umschaltung)
-  bleibt offen, wartet auf Freigabe von Alex.
+  "Änderungen durch Etappe 10, Teil A+B". Teil C (echte Live-Umschaltung) ist
+  seit 08.08.2026 live (`main`, `dashboard-3.0` gemergt) — Details inkl. der
+  drei dabei/danach gefundenen Fixes (Trainer-Push-Gate, `background.png`-
+  Pfad, HRV/Ruhepuls-Chart-Lücken) → Abschnitt "Änderungen durch Etappe 10,
+  Teil C". Ein Teil-C-Punkt bleibt auf Alex' Wunsch offen: alte Vanilla-
+  Dateien (`index.html`, `assets/js/`) noch nicht aus `main` entfernt.
+- **Etappe 11 (Nacharbeiten) neu angelegt (08.08.2026).** Beim Live-Check
+  nach dem Teil-C-Merge aufgefallen: Fahrtenbuch, Hero-Gesamtstatistiken und
+  der komplette Vanilla-Analyse-Tab (Belastung/Intensität/Aerob/
+  Leistungsdiagnostik/Regeneration & Körper/Konsistenz/Periodisierung)
+  standen auf keiner der Etappen 1–10 — keine Bugs, sondern eine
+  Roadmap-Lücke. Plus zwei Design-Baustellen (unstyled Nav, uneinheitliche
+  Seitenbreite). In sechs unabhängige Häppchen für parallele Fenster
+  geschnitten → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt
+  "Etappe 11".
 
 ## Infrastruktur/CI
 
