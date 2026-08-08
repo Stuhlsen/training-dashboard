@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d, 8e und 8f sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus), 8e schloss §7.2 selbst formal ab (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt) — **8f ist ein Nachtrag außerhalb dieser Nummerierung** (`charts/README.md` hatte ihn schon vor 8e als Fortsetzung angekündigt): bringt Power-Curve/Wochenvolumen/Wellness (je ein Chart pro verbleibender Familie aus `docs/chart-grundlagen.md` §7.2) auf dieselbe React-Engine wie die PMC-Kurve, ohne deren Brush/Cursor-Sync/What-if/Vergleich-Erweiterungen zu übernehmen
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d, 8e, 8f und 9 sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus), 8e schloss §7.2 selbst formal ab (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt) — **8f ist ein Nachtrag außerhalb dieser Nummerierung** (`charts/README.md` hatte ihn schon vor 8e als Fortsetzung angekündigt): bringt Power-Curve/Wochenvolumen/Wellness (je ein Chart pro verbleibender Familie aus `docs/chart-grundlagen.md` §7.2) auf dieselbe React-Engine wie die PMC-Kurve, ohne deren Brush/Cursor-Sync/What-if/Vergleich-Erweiterungen zu übernehmen. **Etappe 9 (Settings)** ist damit die letzte reguläre Bereichs-Etappe — es bleibt nur noch Etappe 10 (Umschaltung).
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,61 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 9 (08.08.2026)
+
+Settings — letzte reguläre Bereichs-Etappe vor Etappe 10 (Umschaltung).
+Zuschnitt vorab mit Alex abgestimmt (zwei Punkte, die über den reinen
+1:1-Port hinausgehen bzw. bewusst NICHT angefasst wurden, s. u.), Rest ist
+Port von `ui/settings-panel.js`.
+
+- **Ziele/FTP-Historie/Formate/Datenquellen** (athletengated,
+  `profile.role === "athlete"`) und **Name/Passwort** (alle Rollen, C5.3)
+  — sechs Sektionen wie im Vanilla-Original. Der Großteil der
+  Datenzugriffsschicht existierte bereits aus früheren Etappen, nur
+  ungenutzt: `updateDisplayName`/`updateWellbeingPublic` (Etappe 1/2b,
+  `api/supabase/profiles.ts`), `updatePassword` (Etappe 1, `auth.ts`),
+  `saveFtpEntry` (Etappe 7c, dort bewusst nur der Lesepfad verdrahtet),
+  `getSessionFormats`/`getAthleteFormats`/`setAthleteFormatActive`
+  (Etappe 7c, dort nur die aktiven Formate für die Export-Panel-Zeile über
+  `useLadderState`). Neu war ausschließlich die **Ziele**-Datenzugriffsschicht
+  (`api/supabase/goals.ts`) — `state/goals.js` hatte in Dashboard 2.0 nie
+  eine TS-Entsprechung, anders als die übrigen Adapter.
+- **`api/hooks/useAthleteFormats.ts`** (neu) — liefert den VOLLEN
+  Formatkatalog + Aktiv-Status des eingeloggten Profils, anders als
+  `useLadderState()` (nur aktive Formate). Die L1.1-Regel (max. zwei aktive
+  Familien pro Blockziel) ist eine reine, getestete Funktion in
+  `features/settings/formats-view-model.ts` — wie im Vanilla-Original sitzt
+  die Prüfung im UI-Klick-Handler, nicht im Hook/Adapter.
+- **`features/settings/CheckinDialog.tsx`** (neu, ÜBER den Vanilla-Port
+  hinaus) — Port von `ui/checkin-dialog.js`. Der tägliche Befinden-Check-in
+  hatte im React-Dashboard bislang GAR KEINE UI: `useSaveCheckin()` (Etappe
+  2b) existierte unbenutzt, `useTodayCheckin()` wurde nur lesend im Hero
+  gebraucht. Ohne diesen Dialog hätte ein Athlet im React-Dashboard keine
+  Möglichkeit gehabt, sein Befinden einzutragen. Erreichbar wie im Original
+  über "Befinden anpassen" in der Profil-Sektion, drei Slider (Energie/
+  Muskelgefühl/Stimmung) + Notiz.
+- **`profiles.ladder_progression_enabled` bewusst NICHT angefasst** — kurz
+  erwogen (ein Toggle neben den Formaten läge nahe), dann verworfen: Migration
+  0016 sperrt die Spalte per Spalten-Grant explizit gegen Self-Service
+  (athletenweite Freigabe wie `is_admin`, keine Athleten-Präferenz — bewertet
+  Datenqualität für die scharfe Leiter-Fortschreibung, wird manuell per SQL
+  gesetzt). Ein Settings-Toggle hätte entweder serverseitig scheitern oder
+  die Sperre per neuer Migration aufheben müssen — beides außerhalb dieser
+  Etappe, mit Alex geklärt.
+- **Fünf Commits** (Adapter/Hooks getrennt von der UI-Zusammensetzung, analog
+  zum Zuschnitt in 8b-8f): Ziele-Adapter+Hook, FTP-Historie-Schreibpfad,
+  Formate-Hook+L1.1-Regel, Profil-Hooks (Name/Wellbeing/Passwort),
+  Settings-Seite (alle Sektionen + Check-in-Dialog + Seiten-Zusammenbau,
+  ersetzt den Etappe-1-Platzhalter `SettingsPage.tsx`).
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx eslint .` ohne neue Warnungen/Fehler (3 vorbestehende, unveränderte
+  Warnings), `npx vitest run` 1065/1065 grün (1042 + 23 neue Testfälle:
+  `goals.test.ts` (3), `useGoals.test.tsx` (5), zwei neue Fälle in
+  `useFtpHistory.test.tsx`, `useAthleteFormats.test.tsx` (3),
+  `formats-view-model.test.ts` (5), `useProfile.test.tsx` (5)). Manuelle
+  Playwright-Verifikation gegen `dashboard-dev` steht noch aus (macht Alex
+  einmalig am Ende der Etappe, wie Konvention).
 
 ## Änderungen durch Etappe 8f (08.08.2026)
 
@@ -1216,7 +1271,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 8d | **Explorer + Charts — What-if-Regler** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8d" oben. `WhatIfPanel.tsx` + `useExplorerScenario`-Hook, zweite gestrichelte CTL-Kurve in `PmcChart` (eigenes, schwächeres Unsicherheitsband). `core/scenario.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu |
 | 8e | **Explorer + Charts — Vergleichsmodus** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8e" oben. `CompareChart.tsx` (relative Tag-1-=-Blockstart-Achse, Slot A/B) + `ComparePanel.tsx` + `useExplorerCompare`-Hook, ersetzt `PmcChart` bei aktivem Vergleich. `core/compare.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu. §7.2 damit formal abgeschlossen (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener späterer Fahrplan-Schritt) |
 | 8f | **Explorer + Charts — Power/Wochenvolumen/Wellness auf die Engine** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8f" oben. Nachtrag außerhalb der §7.2-Nummerierung (von `charts/README.md` schon vor 8e angekündigt). `PowerCurveChart.tsx` (Familie 4), `WeeklyVolumeChart.tsx` (Familie 3), `WellnessChart.tsx` + `core/wellness-series.js` (Familie 2) — je ein repräsentativer Chart pro Familie, ohne die PMC-Cross-Cutting-Features aus 8b-8e. Damit sind alle vier Chart-Familien aus `docs/chart-grundlagen.md` §7.2 mit mindestens einem React-Chart vertreten |
-| 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
+| 9 | **Settings** | `[HA]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 9" oben. Name/Passwort (alle Rollen) + Ziele/FTP-Historie/Formate/Datenquellen (athletengated), inkl. `CheckinDialog.tsx` als Nachtrag über den Vanilla-Port hinaus (fehlende Befinden-Check-in-UI). `ladder_progression_enabled` bewusst nicht angefasst (DB-Grant sperrt Self-Service, Migration 0016) |
 
 ### Etappe 10 — Umschaltung `[F5]`
 - CI/Deploy-Pipeline auf `/app/` als neue Live-Version umstellen
