@@ -1,6 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { densifyDays, joinSeries } from "../core/days.js";
-import { segmentsFor } from "../core/pmc-series.js";
 import { makeIndexScale, pathD, pickLabelIndices } from "../core/chart-scale.js";
 import { linearTrend } from "../core/stats.js";
 import { mergedOwnPlanSeries } from "../core/wellness-series.js";
@@ -113,7 +112,16 @@ export function WellnessChart({ rides, wellness, metric, onMetricChange }: Welln
   const yHi = vMax + headroom;
   const yOf = (v: number) => PAD.t + (1 - (v - yLo) / (yHi - yLo)) * plotH;
 
-  const segments = segmentsFor(vals, 0, we);
+  // Linie verbindet bewusst über Messlücken hinweg (Alex' Design-Entscheidung,
+  // 1:1 aus assets/js/ui/charts/wellness.js::renderHrvRhfChart übernommen) —
+  // anders als PMC/CTL (segmentsFor(), lückenlos-täglich) ist HRV/Ruhepuls
+  // eine ECHTE Messreihe mit Lücken; nur die tatsächlich gemessenen Punkte
+  // werden gesammelt und direkt verbunden, statt bei jeder Lücke ein neues
+  // Segment zu beginnen.
+  const connectedPoints: { index: number; value: number }[] = [];
+  for (let i = 0; i <= we; i++) {
+    if (vals[i] != null) connectedPoints.push({ index: i, value: vals[i] as number });
+  }
 
   // Methodenwechsel-Marker: erster "sdnn"-Punkt, nur relevant, wenn ihm
   // tatsächlich mindestens ein "rmssd"-Punkt vorausgeht (sonst gibt es
@@ -222,15 +230,17 @@ export function WellnessChart({ rides, wellness, metric, onMetricChange }: Welln
         {trendBefore && <path d={trendBefore} fill="none" stroke="var(--text-faint)" strokeWidth={1} strokeDasharray="3,3" />}
         {trendAfter && <path d={trendAfter} fill="none" stroke="var(--text-faint)" strokeWidth={1} strokeDasharray="3,3" />}
 
-        {segments.map((seg, i) => (
+        {connectedPoints.length > 1 && (
           <path
-            key={i}
-            d={pathD(seg.map((p) => [scale.x(p.index), yOf(p.value as number)]))}
+            d={pathD(connectedPoints.map((p) => [scale.x(p.index), yOf(p.value)]))}
             fill="none"
             stroke="var(--role-primary)"
             strokeWidth={2}
           />
-        ))}
+        )}
+        {connectedPoints.length === 1 && (
+          <circle cx={scale.x(connectedPoints[0].index)} cy={yOf(connectedPoints[0].value)} r={3.5} fill="var(--role-primary)" />
+        )}
 
         {pickedTicks.map((i) => (
           <text key={i} x={scale.x(i)} y={H - 4} textAnchor="middle" fontSize={10} fill="var(--text-label)">
