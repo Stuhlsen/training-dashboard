@@ -43,7 +43,11 @@ function serveRepoData(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  // GitHub Pages liefert die Projektseite unter /training-dashboard/ (Etappe
+  // 10c). Nur im Build setzen, nicht im Dev-Server, sonst müsste lokal unter
+  // /training-dashboard/ statt / entwickelt werden.
+  base: command === "build" ? "/training-dashboard/" : "/",
   plugins: [react(), serveRepoData()],
   test: {
     // Zwei Projekte, damit die portierte core-Schicht (Etappe 2a) nicht
@@ -70,4 +74,4 @@ export default defineConfig({
       },
     ],
   },
-});
+}));

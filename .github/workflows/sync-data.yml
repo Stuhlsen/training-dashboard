@@ -51,7 +51,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
 
       - name: Generate rides.json
         env:
@@ -100,16 +100,33 @@ jobs:
             sleep 5
           done
 
+      - name: Build React-App (/app/)
+        working-directory: app
+        run: |
+          npm ci
+          npm run build
+
+      - name: Deploy-Artefakt zusammenstellen
+        run: |
+          # data/*.json frisch (s. Schritt oben) neben app/dist/ legen — Kopie
+          # nur auf dem Runner, landet nicht in Git (s. Kommentar in
+          # app/vite.config.ts, warum das nicht Teil des Vite-Builds ist).
+          cp -r data app/dist/data
+          # GitHub-Pages-SPA-Fallback: ohne Server-Rewrite braucht React
+          # Router diesen Standard-Trick für Deep-Links/Hard-Refresh auf
+          # Nicht-Root-Routen.
+          cp app/dist/index.html app/dist/404.html
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: '.'
+          path: 'app/dist'
 
   # 2) Nur Deploy — bei transientem Fehler isoliert re-runnbar (kein Re-Upload)
-  # Nur auf main: "Upload artifact" lädt den kompletten Checkout hoch (path: '.'),
+  # Nur auf main: "Upload artifact" lädt den gebauten app/dist hoch,
   # ohne dieses Gate würde ein manueller workflow_dispatch auf dashboard-2.0
   # den unfertigen Dev-Stand live auf die Produktions-Pages-URL deployen.
   deploy:
