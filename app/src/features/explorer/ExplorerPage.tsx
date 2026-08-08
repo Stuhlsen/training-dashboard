@@ -23,6 +23,7 @@ import { WhatIfPanel } from "../../charts/WhatIfPanel";
 import { CompareChart } from "../../charts/CompareChart";
 import { ComparePanel } from "../../charts/ComparePanel";
 import { PowerCurveChart } from "../../charts/PowerCurveChart";
+import { WeeklyVolumeChart } from "../../charts/WeeklyVolumeChart";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -212,6 +213,22 @@ export function ExplorerPage() {
           Power-Curve
         </div>
         <PowerCurveChart powerCurves={rideData?.powerCurves} ftp={ftp} />
+      </GlassCard>
+
+      <GlassCard style={{ padding: 20 }}>
+        <div
+          style={{
+            fontSize: ".7rem",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
+        >
+          Wochenvolumen
+        </div>
+        <WeeklyVolumeChart rides={rides} />
       </GlassCard>
     </div>
   );
