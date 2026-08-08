@@ -422,7 +422,13 @@ export function PlanningPage() {
                           key={card.id}
                           card={card}
                           canEdit={editable}
-                          canPush={editable}
+                          // Push bleibt athletenexklusiv (docs/phase-4-konzept-
+                          // trainer-sicht.md: "Kein Wahoo-Push durch den
+                          // Trainer") — anders als Verschieben/Ausfallen gibt
+                          // es dafür keinen Vorschlag-Ersatz, der Token gehört
+                          // dem Athleten. editable allein reicht nicht, weil
+                          // es auch für den Trainer true ist (RLS T2).
+                          canPush={editable && !isTrainer}
                           onPush={push}
                           draggable={canDragCard({
                             canEdit: editable,
