@@ -33,6 +33,26 @@ function buildProjection() {
   };
 }
 
+/** Szenario-Prognose (Etappe 8d) — startet wie `projectLoad()` immer bei
+ *  "heute" (hier 06-10, wie `buildProjection().days[0].date`), eigene
+ *  uncertain-Tage auf 06-12/06-13 (deckungsgleich mit der Basis, damit der
+ *  Test beide Bänder gleichzeitig sehen kann). */
+function buildScenarioProjection() {
+  return {
+    days: [
+      { date: "2026-06-10", ctl: 40, atl: 20, tsb: 20, tss: 0, uncertain: false, cardIds: [] },
+      { date: "2026-06-11", ctl: 41, atl: 19, tsb: 22, tss: 30, uncertain: false, cardIds: ["s1"] },
+      { date: "2026-06-12", ctl: 42, atl: 25, tsb: 17, tss: 90, uncertain: true, cardIds: ["s2"] },
+      { date: "2026-06-13", ctl: 43, atl: 28, tsb: 15, tss: 95, uncertain: true, cardIds: ["s3"] },
+    ],
+    startCtl: 40,
+    startAtl: 20,
+    hasBaseline: true,
+    asOf: "2026-06-10",
+    horizonEnd: "2026-06-13",
+  };
+}
+
 describe("PmcChart", () => {
   it("rendert ein SVG mit Achsenbeschriftung, wenn Fahrten + Projektion vorliegen", () => {
     render(<PmcChart rides={buildRides() as never} projection={buildProjection() as never} />);
@@ -101,5 +121,37 @@ describe("PmcChart", () => {
       <PmcChart rides={buildRides() as never} projection={buildProjection() as never} hoveredDate="2099-01-01" />,
     );
     expect(container.querySelector('line[stroke="var(--role-status)"]')).toBeNull();
+  });
+
+  it("zeichnet keine Szenario-Linie ohne scenarioProjection", () => {
+    const { container } = render(<PmcChart rides={buildRides() as never} projection={buildProjection() as never} />);
+    expect(container.querySelector('path[stroke-dasharray="4,3"]')).toBeNull();
+  });
+
+  it("zeichnet eine gestrichelte zweite CTL-Linie, wenn scenarioProjection gesetzt ist (Etappe 8d)", () => {
+    const { container } = render(
+      <PmcChart
+        rides={buildRides() as never}
+        projection={buildProjection() as never}
+        scenarioProjection={buildScenarioProjection() as never}
+      />,
+    );
+    const scenarioPaths = [...container.querySelectorAll('path[stroke-dasharray="4,3"]')];
+    expect(scenarioPaths.length).toBeGreaterThan(0);
+    expect(scenarioPaths[0].getAttribute("stroke")).toBe("var(--role-primary)");
+  });
+
+  it("zeichnet ein eigenes Unsicherheitsband für die Szenario-Kurve, zusätzlich zum Basis-Band", () => {
+    const { container } = render(
+      <PmcChart
+        rides={buildRides() as never}
+        projection={buildProjection() as never}
+        scenarioProjection={buildScenarioProjection() as never}
+      />,
+    );
+    const bands = [...container.querySelectorAll('rect[fill="var(--role-status)"]')];
+    expect(bands.length).toBe(2);
+    expect(bands.some((b) => b.getAttribute("opacity") === "0.06")).toBe(true);
+    expect(bands.some((b) => b.getAttribute("opacity") === "0.12")).toBe(true);
   });
 });

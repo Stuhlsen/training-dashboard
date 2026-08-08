@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b und 8c sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts), nächste Sub-Etappe ist 8d (What-if-Regler)
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c und 8d sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler), nächste Sub-Etappe ist 8e (Vergleichsmodus)
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,77 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 8d (08.08.2026)
+
+What-if-Szenarien (docs/phase-5-konzept-explorer.md §6, Variante 4A) —
+Schritt 3 aus §7.2. Anders als 8a-8c hatte diese Sub-Etappe bereits ein
+vollständiges Vanilla-Vorbild (`assets/js/state/chart-view.js` + der
+Szenario-Teil von `assets/js/ui/charts/pmc.js`), core/scenario.js selbst
+war schon byte-identisch seit Etappe 2a portiert (core/scenario.test.js
+lief bereits grün) — 8d hat nur die React-UI- und Persistenzschicht
+gebaut.
+
+- **`api/hooks/explorer-storage.ts`** (neu) — gemeinsame, gemergte
+  localStorage-Hülle für `explorer_<athleteId>` (§10.3). Ersetzt die
+  bisherige, lokale `readStoredRange`/`writeStoredRange` in
+  `useExplorerRange.ts`: die alte `writeStoredRange()` schrieb das GANZE
+  Objekt als `{ range }` — ein zweiter Hook, der unabhängig in denselben
+  Schlüssel schreibt (hier: Szenario), hätte das jeweils andere Feld
+  stillschweigend gelöscht. `readExplorerStorage`/`writeExplorerStorage`
+  lesen/schreiben jetzt gemergt; `useExplorerRange.ts` liest/schreibt nur
+  noch sein `range`-Feld darüber, unverändertes Verhalten. Regressionstest
+  in `explorer-storage.test.ts`.
+- **`api/hooks/useExplorerScenario.ts`** (neu, Port von
+  `state/chart-view.js`s `scenario`-Teil) — persistiert `{enabled,
+  weekTssPct, restDays, rampRatePct}` je Athlet über obige Hülle, Reset bei
+  Athletenwechsel über dasselbe "Zustand während des Renderns anpassen"-
+  Muster wie `useExplorerRange.ts` (kein Effekt). Bewusst OHNE injizierten
+  `scenarioSources`-Provider (den vanilla braucht, weil `state/chart-view.js`
+  ein Modul-Singleton außerhalb des Komponentenbaums ist) — die zweite
+  Prognosekurve wird stattdessen direkt in `ExplorerPage.tsx` als reine
+  `useMemo`-Ableitung berechnet (Cards/Rides/Events/FTP sind dort ohnehin
+  schon aus dem React-Query-Cache im Scope), Port von
+  `state/chart-view.js::recomputeScenario()` 1:1 in Logik, nicht in Struktur.
+- **`charts/WhatIfPanel.tsx`** (neu) — Toggle + drei Regler (Wochen-TSS
+  ±50%/5er-Schritte, zusätzliche Ruhetage/Woche 0-3, Rampenrate
+  -20…+30%/5er-Schritte), Min/Max/Step 1:1 aus `index.html`s
+  `#pmc-scenario`-Markup übernommen. Regler bleiben wie im Vanilla-Original
+  IMMER interaktiv, unabhängig vom Toggle-Zustand (X8/§6: "Regler auf 0"
+  heißt weiterhin AN, nur eben mit neutralen Werten) — ein Wert lässt sich
+  vorbereiten, bevor das Szenario eingeschaltet wird.
+- **`charts/PmcChart.tsx`**: neue optionale Prop `scenarioProjection`.
+  Zweite CTL-Linie (gestrichelt `4,3`, Deckkraft `.55`, dieselbe Rollenfarbe
+  wie die Basis-CTL-Linie — Zweitserien-Konvention aus
+  `assets/js/ui/charts/base.js::SERIES_STYLE.secondary`) plus ein eigenes,
+  schwächeres Unsicherheitsband (Deckkraft `.06` ggü. `.12` beim
+  Basis-Band) für die `uncertain`-Tage der Szenario-Kurve — Pflicht laut
+  §6.3, nicht Kür: eine aus dünner K3-Typ-Default-Datenbasis geschätzte
+  Szenario-Kurve darf nicht präziser aussehen, als sie ist. Die Szenario-
+  Linie startet immer bei "heute" (`projectLoad()` rechnet stets ab today)
+  und wird nur gezeichnet, wenn "heute" auch im sichtbaren Brush-Fenster
+  liegt — ein rein historischer Brush zeigt keine Zukunftsprognose. Bewusst
+  KEIN Direktbeschriftungs-Label ("Szenario", vanilla nutzt dafür
+  `flattestIndex`/`haloLabel`) — diese Direktbeschriftungs-Maschinerie ist
+  im React-Port bisher an keiner Stelle portiert (auch CTL/ATL/TSB selbst
+  haben keine In-Chart-Labels, nur Farbcodierung + Kartentitel), ein
+  Alleingang nur für die Szenario-Linie wäre inkonsistent — Nachzug erst mit
+  der "Vereinheitlichung" aus `docs/chart-grundlagen.md` §8 (G12, nach
+  Phase 5, s. dortiger Eintrag in Etappe 8a-8c).
+- **`features/explorer/ExplorerPage.tsx`**: `useExplorerScenario` +
+  `scenarioProjection`-`useMemo` (Port von `recomputeScenario()`, s.o.)
+  verdrahtet, `WhatIfPanel` unter einem Trenner in dieselbe `GlassCard` wie
+  `BrushBar`/`PmcChart` gehängt (Chart-Merge-Konvention statt neuer Box).
+- **Kein neuer Test für `core/scenario.js`** — bereits seit Etappe 2a
+  byte-identisch portiert und getestet (`scenario.test.js`), keine Änderung
+  in dieser Etappe.
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx eslint .` ohne neue Warnungen/Fehler (3 vorbestehende, unveränderte
+  Warnings), `npx vitest run` 1009/1009 grün (1009 = alter Stand + 3 neue
+  Testdateien: `explorer-storage.test.ts`, `WhatIfPanel.test.tsx`, plus
+  3 neue Fälle in `PmcChart.test.tsx`). Manuelle Playwright-Verifikation
+  gegen `dashboard-dev` steht noch aus (macht Alex einmalig am Ende der
+  Sub-Etappe, wie Konvention).
 
 ## Änderungen durch Etappe 8c (08.08.2026)
 

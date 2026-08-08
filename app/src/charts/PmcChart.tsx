@@ -27,6 +27,11 @@ interface PmcChartProps {
   /** Klick auf einen Datenpunkt — Sprung zum Planungstab (ExplorerPage
    *  verdrahtet das auf `navigate("/planning", {state:{highlightDate}})`). */
   onSelectDate?: (dateISO: string) => void;
+  /** What-if-Szenario (Etappe 8d, §6) — zweite CTL-Kurve aus einem
+   *  synthetischen Kartensatz (`core/scenario.js::buildScenario` +
+   *  `projectLoad()`, von ExplorerPage berechnet). `null`/`undefined`
+   *  zeichnet keine Szenario-Linie (Toggle aus oder standalone-Nutzung). */
+  scenarioProjection?: ReturnType<typeof projectLoad> | null;
 }
 
 const W_FALLBACK = 780;
@@ -50,9 +55,19 @@ interface Tooltip {
  *  `range`-Prop (BrushBar). Seit Etappe 8c optional Cursor-Sync (`hoveredDate`/
  *  `onHoverChange`, kontrollierte Props wie `range` — ExplorerPage hält den
  *  State und reicht ihn zusätzlich an BrushBar durch) plus Klick-Sprung
- *  (`onSelectDate`) — bewusst weiterhin OHNE Szenario/Compare, die kommen in
- *  Etappe 8d–8e (docs/phase-5-konzept-explorer.md §7.2). */
-export function PmcChart({ rides, projection, range, hoveredDate, onHoverChange, onSelectDate }: PmcChartProps) {
+ *  (`onSelectDate`). Seit Etappe 8d optional `scenarioProjection`
+ *  (What-if-Szenario, §6) — zweite gestrichelte CTL-Kurve, weiterhin OHNE
+ *  Vergleichsmodus, der kommt in Etappe 8e (docs/phase-5-konzept-
+ *  explorer.md §7.2). */
+export function PmcChart({
+  rides,
+  projection,
+  range,
+  hoveredDate,
+  onHoverChange,
+  onSelectDate,
+  scenarioProjection,
+}: PmcChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -152,6 +167,32 @@ export function PmcChart({ rides, projection, range, hoveredDate, onHoverChange,
     ? { from: Math.min(...uncertainIndices), to: Math.max(...uncertainIndices) }
     : null;
 
+  // What-if-Szenario (Etappe 8d, §6, Port von assets/js/ui/charts/pmc.js
+  // Zeilen 772-838): zweite CTL-Kurve, startet immer bei "heute"
+  // (projectLoad() rechnet stets ab today), nicht bei seamIdx/asOf — die
+  // Szenario-Kurve hat keine Vergangenheit. Kein Rendering, wenn "heute"
+  // außerhalb des sichtbaren Fensters liegt (z.B. ein rein historischer
+  // Brush) — eine Zukunftsprognose vor dem Fensterbeginn wäre bedeutungslos.
+  const scenarioFrom = todayIdx >= 0 ? todayIdx : -1;
+  const scenarioCtlVals: Array<number | null> = [];
+  const scenarioUncertainDates = new Set<string>();
+  if (scenarioProjection && scenarioFrom >= 0 && scenarioFrom <= we) {
+    const scenarioRowByDate = new Map(scenarioProjection.days.map((d) => [d.date, d]));
+    for (const s of skeleton) scenarioCtlVals.push(scenarioRowByDate.get(s.dateISO)?.ctl ?? null);
+    for (const d of scenarioProjection.days) if (d.uncertain) scenarioUncertainDates.add(d.date);
+  }
+  const scenarioSegments =
+    scenarioFrom >= 0 ? segmentsFor(scenarioCtlVals, scenarioFrom, we) : [];
+  const scenarioUncertainIndices = scenarioSegments.length
+    ? skeleton
+        .map((s, i) => ({ i, u: scenarioUncertainDates.has(s.dateISO) }))
+        .filter((d) => d.i >= scenarioFrom && d.u)
+        .map((d) => d.i)
+    : [];
+  const scenarioUncertainBand = scenarioUncertainIndices.length
+    ? { from: Math.min(...scenarioUncertainIndices), to: Math.max(...scenarioUncertainIndices) }
+    : null;
+
   // Montags-Ticks, per pickLabelIndices auf Mindestabstand ausgedünnt
   // (AGENTS.md: 55-60px bei Datums-Labels).
   const mondayIndices = skeleton
@@ -227,6 +268,29 @@ export function PmcChart({ rides, projection, range, hoveredDate, onHoverChange,
             </g>
           );
         })}
+
+        {scenarioUncertainBand && (
+          <rect
+            x={scale.x(scenarioUncertainBand.from)}
+            y={PAD.t}
+            width={Math.max(scale.x(scenarioUncertainBand.to) - scale.x(scenarioUncertainBand.from), 0)}
+            height={plotH}
+            fill="var(--role-status)"
+            opacity={0.06}
+          />
+        )}
+
+        {scenarioSegments.map((seg, i) => (
+          <path
+            key={`scenario${i}`}
+            d={pathD(seg.map((p) => [scale.x(p.index), caY(p.value)]))}
+            fill="none"
+            stroke="var(--role-primary)"
+            strokeWidth={2.2}
+            strokeDasharray="4,3"
+            opacity={0.55}
+          />
+        ))}
 
         {todayIdx >= 0 && todayIdx <= we && (
           <g>

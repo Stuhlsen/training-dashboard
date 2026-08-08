@@ -12,10 +12,14 @@
    (https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes),
    nicht über einen Effekt mit synchronem setState (löste `react-hooks/set-
    state-in-effect` aus).
+
+   Lesen/Schreiben läuft seit Etappe 8d über explorer-storage.ts (gemergtes
+   Objekt statt `{ range }` allein) — s. dortiger Kopfkommentar.
    ============================================================ */
 
 import { useCallback, useMemo, useState } from "react";
 import { clampWindow, presetWindow } from "../../core/brush.js";
+import { readExplorerStorage, writeExplorerStorage } from "./explorer-storage";
 
 export interface ExplorerRange {
   fromISO: string;
@@ -28,23 +32,14 @@ export interface ExplorerRangeBounds {
   horizonEndISO: string | null;
 }
 
-const storageKey = (athleteId: string) => `explorer_${athleteId}`;
-
 function readStoredRange(athleteId: string): ExplorerRange | null {
-  try {
-    const raw = localStorage.getItem(storageKey(athleteId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as { range?: ExplorerRange };
-    const range = parsed?.range;
-    if (typeof range?.fromISO === "string" && typeof range?.toISO === "string") return range;
-    return null;
-  } catch {
-    return null;
-  }
+  const range = readExplorerStorage(athleteId).range;
+  if (typeof range?.fromISO === "string" && typeof range?.toISO === "string") return range;
+  return null;
 }
 
 function writeStoredRange(athleteId: string, range: ExplorerRange) {
-  localStorage.setItem(storageKey(athleteId), JSON.stringify({ range }));
+  writeExplorerStorage(athleteId, { range });
 }
 
 /** Brush-Zeitfenster für den Explorer — lädt/klemmt den zuletzt gewählten

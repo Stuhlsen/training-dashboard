@@ -4,17 +4,20 @@ import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useExplorerRange } from "../../api/hooks/useExplorerRange";
+import { useExplorerScenario } from "../../api/hooks/useExplorerScenario";
 import { useRides } from "../../api/hooks/useRides";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useEvents } from "../../api/hooks/useEvents";
 import { localISODate } from "../../core/format.js";
 import { projectLoad } from "../../core/projection.js";
+import { buildScenario } from "../../core/scenario.js";
 import { pmcSkeletonAnchor } from "../../core/days.js";
 import { PLAN2_SCHEDULE } from "../../core/plan2-schedule.js";
 import { PRIMARY_ATHLETE_ID } from "../../config";
 import { resolvePlanningFtp } from "../planning/planning-view-model";
 import { PmcChart } from "../../charts/PmcChart";
 import { BrushBar } from "../../charts/BrushBar";
+import { WhatIfPanel } from "../../charts/WhatIfPanel";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -82,6 +85,27 @@ export function ExplorerPage() {
   // Hover ist flüchtig, wie `hoveredDate` in assets/js/state/chart-view.js.
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
 
+  // What-if-Szenario (Etappe 8d, §6) — Port von assets/js/state/chart-view.js
+  // ::recomputeScenario(), hier als reine Ableitung statt injizierter
+  // Provider (Begründung: useExplorerScenario.ts-Kopfkommentar). Läuft nur,
+  // wenn `scenario.enabled` — kein Recompute-Overhead für "aus" (gleiche
+  // Kurzschluss-Logik wie im Vanilla-Original).
+  const { scenario, setScenarioParams, setScenarioEnabled } = useExplorerScenario(activeAthleteId);
+  const scenarioProjection = useMemo(() => {
+    if (!scenario.enabled) return null;
+    const projectionCards = (cards ?? []).map(toProjectionCard);
+    const projectionEvents = (events ?? []).map(toProjectionEvent);
+    const scenarioRides = (rideData?.rides as Ride[] | undefined) ?? [];
+    const { cards: syntheticCards, uncertainCardIds } = buildScenario(projectionCards, scenario, { ftp });
+    const proj = projectLoad(syntheticCards, scenarioRides, { events: projectionEvents, ftp });
+    return {
+      ...proj,
+      days: proj.days.map((d) =>
+        !d.uncertain && d.cardIds.some((id: string) => uncertainCardIds.has(id)) ? { ...d, uncertain: true } : d,
+      ),
+    };
+  }, [scenario, cards, events, rideData, ftp]);
+
   function handleSelectDate(dateISO: string) {
     navigate("/planning", { state: { highlightDate: dateISO } });
   }
@@ -124,7 +148,10 @@ export function ExplorerPage() {
           hoveredDate={hoveredDate}
           onHoverChange={setHoveredDate}
           onSelectDate={handleSelectDate}
+          scenarioProjection={scenarioProjection}
         />
+        <div style={{ height: 1, background: "var(--hair)", margin: "20px 0" }} />
+        <WhatIfPanel scenario={scenario} onParamsChange={setScenarioParams} onEnabledChange={setScenarioEnabled} />
       </GlassCard>
     </div>
   );
