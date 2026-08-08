@@ -16,6 +16,17 @@ interface PmcChartProps {
    *  Angabe (standalone-Nutzung außerhalb des Explorers, oder bestehende
    *  Tests) fällt der Chart auf den bisherigen Fixdefault zurück. */
   range?: { fromISO: string; toISO: string } | null;
+  /** Cursor-Sync (Etappe 8c, §3) — kontrollierte Prop wie `range`: der
+   *  Aufrufer (ExplorerPage) hält den State, dieser Chart meldet Hover nur
+   *  über `onHoverChange` und liest ihn über `hoveredDate` zurück, damit
+   *  eine zweite Chart-Komponente (BrushBar) mit derselben Quelle
+   *  synchronisieren kann. Ohne beide Props verhält sich der Chart wie 8a/8b
+   *  (kein Crosshair, keine Klick-Aktion). */
+  hoveredDate?: string | null;
+  onHoverChange?: (dateISO: string | null) => void;
+  /** Klick auf einen Datenpunkt — Sprung zum Planungstab (ExplorerPage
+   *  verdrahtet das auf `navigate("/planning", {state:{highlightDate}})`). */
+  onSelectDate?: (dateISO: string) => void;
 }
 
 const W_FALLBACK = 780;
@@ -36,10 +47,12 @@ interface Tooltip {
  *  `renderFtpForecast`-Muster aus assets/js/ui/charts/pmc.js: durchgezogene
  *  Historie, gestrichelte Prognose ab `projection.asOf`, Unsicherheitsband,
  *  Punkt-Tooltip. Zeitfenster kommt seit Etappe 8b optional über die
- *  `range`-Prop (BrushBar) — bewusst weiterhin OHNE Szenario/Compare/
- *  Cursor-Sync, die kommen in Etappe 8c–8e (docs/phase-5-konzept-explorer.md
- *  §7.2). */
-export function PmcChart({ rides, projection, range }: PmcChartProps) {
+ *  `range`-Prop (BrushBar). Seit Etappe 8c optional Cursor-Sync (`hoveredDate`/
+ *  `onHoverChange`, kontrollierte Props wie `range` — ExplorerPage hält den
+ *  State und reicht ihn zusätzlich an BrushBar durch) plus Klick-Sprung
+ *  (`onSelectDate`) — bewusst weiterhin OHNE Szenario/Compare, die kommen in
+ *  Etappe 8d–8e (docs/phase-5-konzept-explorer.md §7.2). */
+export function PmcChart({ rides, projection, range, hoveredDate, onHoverChange, onSelectDate }: PmcChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -156,6 +169,12 @@ export function PmcChart({ rides, projection, range }: PmcChartProps) {
     if (ctlVals[i] != null) hoverIndices.push(i);
   }
 
+  // Crosshair (Etappe 8c, §3, Port von assets/js/ui/charts/pmc.js::paintHover)
+  // — `hoveredDate` ist eine kontrollierte Prop, deshalb hier nur Lesen +
+  // Zeichnen, kein eigener State/keine eigene Quelle der Wahrheit.
+  const hoveredIdx = hoveredDate ? (indexByDate.get(hoveredDate) ?? -1) : -1;
+  const showCrosshair = hoveredIdx >= 0 && hoveredIdx <= we;
+
   return (
     <div style={{ position: "relative" }}>
       <svg
@@ -231,6 +250,37 @@ export function PmcChart({ rides, projection, range }: PmcChartProps) {
           </text>
         ))}
 
+        {showCrosshair && (
+          <g>
+            <line
+              x1={scale.x(hoveredIdx)}
+              x2={scale.x(hoveredIdx)}
+              y1={PAD.t}
+              y2={H - PAD.b}
+              stroke="var(--role-status)"
+              strokeWidth={1}
+              strokeDasharray="2,3"
+              pointerEvents="none"
+            />
+            {seriesDefs.map((s) => {
+              const v = s.vals[hoveredIdx];
+              if (v == null) return null;
+              return (
+                <circle
+                  key={s.key}
+                  cx={scale.x(hoveredIdx)}
+                  cy={s.yOf(v)}
+                  r={4}
+                  fill={s.color}
+                  stroke="var(--role-status)"
+                  strokeWidth={1.5}
+                  pointerEvents="none"
+                />
+              );
+            })}
+          </g>
+        )}
+
         {hoverIndices.map((i) => (
           <circle
             key={i}
@@ -238,14 +288,20 @@ export function PmcChart({ rides, projection, range }: PmcChartProps) {
             cy={caY(ctlVals[i] as number)}
             r={4}
             fill="var(--role-primary)"
-            onMouseEnter={(e) =>
+            style={{ cursor: onSelectDate ? "pointer" : undefined }}
+            onMouseEnter={(e) => {
               setTooltip({
                 x: e.clientX,
                 y: e.clientY,
                 content: `${fmtDateFull(skeleton[i].dateISO)} · CTL ${Math.round(ctlVals[i] as number)}`,
-              })
-            }
-            onMouseLeave={() => setTooltip(null)}
+              });
+              onHoverChange?.(skeleton[i].dateISO);
+            }}
+            onMouseLeave={() => {
+              setTooltip(null);
+              onHoverChange?.(null);
+            }}
+            onClick={() => onSelectDate?.(skeleton[i].dateISO)}
           />
         ))}
       </svg>

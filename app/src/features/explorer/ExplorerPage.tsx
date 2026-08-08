@@ -1,4 +1,5 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
@@ -42,6 +43,7 @@ function toProjectionEvent(e: EventItem) {
 }
 
 export function ExplorerPage() {
+  const navigate = useNavigate();
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const { data: rideData } = useRides(activeAthleteId);
   const { data: cards } = usePlanCards(activeAthleteId);
@@ -74,6 +76,16 @@ export function ExplorerPage() {
 
   const { range, setRange } = useExplorerRange(activeAthleteId, { todayISO: TODAY, anchorISO, horizonEndISO });
 
+  // Cursor-Sync + Klick-Sprung (Etappe 8c, docs/phase-5-konzept-explorer.md
+  // §3) — `hoveredDate` lebt hier (Lift-State-Up wie `range`/`setRange`),
+  // damit PmcChart und BrushBar dieselbe Quelle teilen. Kein localStorage:
+  // Hover ist flüchtig, wie `hoveredDate` in assets/js/state/chart-view.js.
+  const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
+  function handleSelectDate(dateISO: string) {
+    navigate("/planning", { state: { highlightDate: dateISO } });
+  }
+
   return (
     <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
@@ -96,9 +108,23 @@ export function ExplorerPage() {
         >
           Belastung — CTL / ATL / TSB
         </div>
-        <BrushBar rides={rides} projection={projection} range={range} onRangeChange={setRange} plan2StartISO={plan2StartISO} />
+        <BrushBar
+          rides={rides}
+          projection={projection}
+          range={range}
+          onRangeChange={setRange}
+          plan2StartISO={plan2StartISO}
+          hoveredDate={hoveredDate}
+        />
         <div style={{ height: 20 }} />
-        <PmcChart rides={rides} projection={projection} range={range} />
+        <PmcChart
+          rides={rides}
+          projection={projection}
+          range={range}
+          hoveredDate={hoveredDate}
+          onHoverChange={setHoveredDate}
+          onSelectDate={handleSelectDate}
+        />
       </GlassCard>
     </div>
   );

@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a und 8b sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing), nächste Sub-Etappe ist 8c (Verknüpfte Charts)
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b und 8c sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts), nächste Sub-Etappe ist 8d (What-if-Regler)
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,57 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 8c (08.08.2026)
+
+Verknüpfte Charts (docs/phase-5-konzept-explorer.md §3) — v1-Scope laut
+Konzept ist "Selektion & Hervorhebung (1B) plus Cursor-Sync (1A) innerhalb
+des Explorers". Zwei architektonische Fakten haben den Zuschnitt gegenüber
+der Vanilla-Vorlage (`state/chart-view.js` + `ui/table.js`/`ui/planned.js`)
+verändert: Das Fahrtenbuch existiert im React-Port noch nicht (keine
+Roadmap-Zeile dafür), und der Port nutzt echtes Routing statt Vanillas
+Ein-DOM-Baum — Live-Cursor-Sync kann deshalb nur innerhalb einer Seite
+funktionieren. Mit Alex abgestimmter Zuschnitt: Cursor-Sync bleibt auf
+PmcChart↔BrushBar innerhalb des Explorers beschränkt; die
+Fahrtenbuch-Verknüpfung entfällt (kann es nicht geben, solange es kein
+Fahrtenbuch gibt), stattdessen ein Klick-Sprung zum Planungstab.
+
+- **`charts/PmcChart.tsx`**: neue optionale Props `hoveredDate`/
+  `onHoverChange` (kontrolliert wie `range` aus 8b) und `onSelectDate`. Die
+  bereits vorhandenen, ausgedünnten Hover-Kreise lösen jetzt zusätzlich
+  Hover-Callbacks aus und sind klickbar; ein neuer Crosshair-Block
+  (gestrichelte Linie + ein Punkt je Serie CTL/ATL/TSB) zeichnet sich bei
+  passendem `hoveredDate` — Port der Bildsprache aus
+  `assets/js/ui/charts/pmc.js::paintHover`, aber als reines
+  Render-Fragment ohne eigenes State-Modul, weil `hoveredDate` bereits als
+  kontrollierte Prop hereinkommt.
+- **`charts/BrushBar.tsx`**: neue optionale Prop `hoveredDate` — zeichnet bei
+  Auflösbarkeit eine dünne, nicht-interaktive Markerlinie
+  (`pointerEvents="none"`) über der Übersichtslinie. Rein darstellend: die
+  BrushBar hat keinen eigenen Datenpunkt-Hover, nur PmcChart löst
+  `hoveredDate` aus (einseitiges Detail-Chart→Übersicht-Sync, kein
+  ungenutzter Rückkanal).
+- **`ExplorerPage.tsx`**: `hoveredDate`-State gehoben (Lift-State-Up wie
+  `range`/`setRange`), an beide Charts durchgereicht; `useNavigate()` +
+  `handleSelectDate()` navigiert bei Klick zu `/planning` mit
+  `state:{highlightDate}`.
+- **`features/planning/PlanCard.tsx`**: `data-plan-card-date={card.date}`
+  auf dem Root-Element — gleiches leichtes Attribut-Muster wie `data-week`
+  in PlanningPage.tsx, deckt alle vier Kartensektionen über eine
+  Änderungsstelle ab.
+- **`features/planning/PlanningPage.tsx`**: liest `useLocation().state.
+  highlightDate`, ein ref-gewachter `useEffect` scrollt zur passenden Karte
+  und togglet `.row-highlight` für ~2,5s, danach wird der Router-State
+  geräumt — Port von `assets/js/ui/planned.js::scrollToDate` inkl. dessen
+  leisem No-op, wenn keine Karte zum Datum existiert.
+- **`index.css`**: neue globale `.row-highlight`-Utility-Klasse (Puls mit
+  `var(--role-status)`, demselben Gold-Ton, den Vanilla für die gepinnte
+  Crosshair-Linie nutzt) — einzige globale CSS-Klasse im Projekt, weil
+  PlanCard/PlanningPage sonst ausschließlich Inline-Styles verwenden.
+
+**Aus 8c ausgeklammert** (kommt in 8d/8e bzw. entfällt dauerhaft, s.o.):
+What-if-Szenarien, Vergleichsmodus, Fahrtenbuch-Verknüpfung, Rückrichtung
+Planungstab→Chart-Pin, `selectedDate`/Pin-Persistenz.
 
 ## Änderungen durch Etappe 8b (08.08.2026)
 
@@ -933,6 +984,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 7d | **Trainer-Dashboard — Blockstart-Dialog** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 7d" oben. `BlockDialogGate`/`BlockDialog`, `useBlockTransition`/`useRecordBlockStart` (Port von state/block-transition.js + state/ladder.js::recordLadderStep) — eigenständiges Modal, ausgelöst beim Planungstab-Laden, strukturell unabhängig vom Export-Panel |
 | 8a | **Explorer + Charts — Chart-Engine + PMC-Basis-Chart** | `[OP]` | ✅ umgesetzt (08.08.2026, `274d665`). Chart-Grundsatzentscheidung aus 5.3 fällt hier: React-Komponenten mit echtem JSX-SVG, kein Chart-Framework (s. `app/src/charts/README.md`). Erster Chart `PmcChart.tsx` (CTL/ATL/TSB), bewusst ohne Brush/Szenario/Compare/Cursor-Sync |
 | 8b | **Explorer + Charts — Zeitraum-Brushing** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8b" unten. `BrushBar.tsx` (§4, Variante 2B) + `useExplorerRange`-Hook (`localStorage`), `PmcChart` folgt dem Fenster |
+| 8c | **Explorer + Charts — Verknüpfte Charts** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8c" oben. Cursor-Sync PmcChart↔BrushBar innerhalb des Explorers + Klick-Sprung zum Planungstab (Scroll+Highlight). Scope gegenüber der Vanilla-Vorlage verkleinert: keine Fahrtenbuch-Verknüpfung (React-Port hat noch kein Fahrtenbuch), kein Rückkanal (echtes Routing statt Vanillas Ein-DOM-Tabs) |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
 
 ### Etappe 10 — Umschaltung `[F5]`

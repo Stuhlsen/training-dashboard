@@ -262,6 +262,7 @@ export function PlanCard({
     <>
       <div
         ref={setNodeRef}
+        data-plan-card-date={card.date}
         style={{
           display: "flex",
           flexDirection: "column",

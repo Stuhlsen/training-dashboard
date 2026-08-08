@@ -98,6 +98,32 @@ describe("BrushBar", () => {
     expect(allButton?.getAttribute("aria-pressed")).toBe("true");
   });
 
+  it("zeichnet eine Markerlinie, wenn hoveredDate im Horizont auflösbar ist (Etappe 8c, Cursor-Sync)", () => {
+    const { container } = render(
+      <BrushBar
+        rides={buildRides() as never}
+        projection={buildProjection() as never}
+        range={{ fromISO: "2026-06-01", toISO: "2026-06-11" }}
+        onRangeChange={() => {}}
+        hoveredDate="2026-06-08"
+      />,
+    );
+    expect(container.querySelector('line[stroke="var(--role-status)"]')).not.toBeNull();
+  });
+
+  it("zeichnet keine Markerlinie, wenn hoveredDate außerhalb des Horizonts liegt", () => {
+    const { container } = render(
+      <BrushBar
+        rides={buildRides() as never}
+        projection={buildProjection() as never}
+        range={{ fromISO: "2026-06-01", toISO: "2026-06-11" }}
+        onRangeChange={() => {}}
+        hoveredDate="2099-01-01"
+      />,
+    );
+    expect(container.querySelector('line[stroke="var(--role-status)"]')).toBeNull();
+  });
+
   it("rendert nichts, wenn kein Skelett aufgebaut werden kann (keine Fahrten/Horizont)", () => {
     const emptyProjection = { days: [], startCtl: 0, startAtl: 0, hasBaseline: false, asOf: null, horizonEnd: null };
     const { container } = render(

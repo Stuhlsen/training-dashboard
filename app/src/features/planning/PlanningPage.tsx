@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import {
   DndContext,
   DragOverlay,
@@ -94,6 +95,8 @@ const SECTION_TITLE_STYLE: React.CSSProperties = {
 
 export function PlanningPage() {
   const queryClient = useQueryClient();
+  const location = useLocation();
+  const navigate = useNavigate();
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
   const { data: rideData } = useRides(activeAthleteId);
@@ -180,6 +183,27 @@ export function PlanningPage() {
     setDeltaBannerAthleteId(activeAthleteId);
     setDeltaBanner(null);
   }
+
+  // Klick-Sprung aus dem Explorer (Etappe 8c, docs/phase-5-konzept-explorer.md
+  // §3) — Port von assets/js/ui/planned.js::scrollToDate. `highlightedRef`
+  // sorgt dafür, dass derselbe Sprung nicht bei jedem Re-Render erneut
+  // ausgeführt wird; der Router-State wird danach geräumt, damit ein
+  // Zurück-Navigieren auf diese Seite den Sprung nicht wiederholt. Kein
+  // Fehlerfall, wenn keine Karte zum Datum existiert (stiller No-op, wie im
+  // Vanilla-Vorbild).
+  const highlightDate = (location.state as { highlightDate?: string } | null)?.highlightDate ?? null;
+  const highlightedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!highlightDate || isLoading || highlightedRef.current === highlightDate) return;
+    highlightedRef.current = highlightDate;
+    const target = document.querySelector<HTMLElement>(`[data-plan-card-date="${highlightDate}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      target.classList.add("row-highlight");
+      setTimeout(() => target.classList.remove("row-highlight"), 2500);
+    }
+    navigate(location.pathname, { replace: true, state: null });
+  }, [highlightDate, isLoading, location.pathname, navigate]);
 
   /** Nach einer erfolgreichen Mutation ist der React-Query-Cache bereits
    *  aktualisiert (onSuccess läuft vor dem mutateAsync-Resolve) — der frische

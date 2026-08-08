@@ -15,3 +15,21 @@ body {
   background: var(--surface-page);
   color: var(--ink);
 }
+
+/* Klick-Sprung Explorer → Planungstab (Etappe 8c) — kurzer Puls auf der
+   Zielkarte, Port von assets/js/ui/planned.js's `.row-highlight`. Einzige
+   globale Utility-Klasse in diesem Projekt, weil PlanCard/PlanningPage sonst
+   ausschließlich Inline-Styles nutzen und CSS-Keyframes das nicht können. */
+@keyframes row-highlight-pulse {
+  0%,
+  100% {
+    box-shadow: none;
+  }
+  30% {
+    box-shadow: 0 0 0 2px var(--role-status);
+  }
+}
+
+.row-highlight {
+  animation: row-highlight-pulse 2.5s ease-out;
+}

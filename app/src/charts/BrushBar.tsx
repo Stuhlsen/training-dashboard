@@ -22,6 +22,11 @@ interface BrushBarProps {
    *  "Plan 2"-Preset aus, wenn `null`/`undefined` (docs/phase-5-konzept-
    *  explorer.md §4, "Plan 2" ist nicht für jeden Athleten sinnvoll). */
   plan2StartISO?: string | null;
+  /** Cursor-Sync (Etappe 8c, §3) — vom PmcChart-Hover gesetzt (ExplorerPage
+   *  reicht dieselbe Prop an beide Charts durch). Rein darstellend: die
+   *  BrushBar hat keinen eigenen Datenpunkt-Hover, nur PmcChart löst
+   *  `hoveredDate` aus. */
+  hoveredDate?: string | null;
 }
 
 const W_FALLBACK = 780;
@@ -48,8 +53,10 @@ const PRESETS: Array<{ key: "30" | "90" | "365" | "plan2" | "all"; label: string
  *  Pointer Events mit `setPointerCapture` (kein `document`-Listener nötig,
  *  anders als das Autoscroll-Muster in ui/plan-drag.js — hier gibt es
  *  keinen scrollenden Container). Live-Updates werden auf einen
- *  `requestAnimationFrame` pro Frame gebatcht. */
-export function BrushBar({ rides, projection, range, onRangeChange, plan2StartISO }: BrushBarProps) {
+ *  `requestAnimationFrame` pro Frame gebatcht. Seit Etappe 8c optional
+ *  `hoveredDate` (Cursor-Sync, §3) — rein darstellend, ausgelöst vom
+ *  PmcChart-Hover, kein eigener Hover auf dieser Leiste. */
+export function BrushBar({ rides, projection, range, onRangeChange, plan2StartISO, hoveredDate }: BrushBarProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
 
@@ -95,6 +102,12 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
   const toIdx = range && indexByDate.has(range.toISO) ? (indexByDate.get(range.toISO) as number) : we;
   const fromX = scale.x(fromIdx);
   const toX = scale.x(toIdx);
+
+  // Cursor-Sync-Marker (Etappe 8c) — nur zeichnen, wenn der Hover-Tag auch
+  // im vollen Horizont dieser Übersichtsleiste liegt (er kann außerhalb des
+  // aktuell gebrushten Fensters liegen, das ist kein Fehlerfall).
+  const hoveredIdx = hoveredDate ? (indexByDate.get(hoveredDate) ?? -1) : -1;
+  const showHoverMarker = hoveredIdx >= 0 && hoveredIdx <= we;
 
   const dragRef = useRef<null | { mode: "from" | "to" | "pan"; startClientX: number; startFromIdx: number; startToIdx: number }>(
     null,
@@ -284,6 +297,18 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
           onPointerUp={onDragEnd}
           onPointerCancel={onDragEnd}
         />
+
+        {showHoverMarker && (
+          <line
+            x1={scale.x(hoveredIdx)}
+            x2={scale.x(hoveredIdx)}
+            y1={PAD.t}
+            y2={H - PAD.b}
+            stroke="var(--role-status)"
+            strokeWidth={1.5}
+            pointerEvents="none"
+          />
+        )}
       </svg>
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
