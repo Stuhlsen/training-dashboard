@@ -5,12 +5,14 @@ import { GlassCard } from "../../components/GlassCard";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useExplorerRange } from "../../api/hooks/useExplorerRange";
 import { useExplorerScenario } from "../../api/hooks/useExplorerScenario";
+import { useExplorerCompare } from "../../api/hooks/useExplorerCompare";
 import { useRides } from "../../api/hooks/useRides";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useEvents } from "../../api/hooks/useEvents";
 import { localISODate } from "../../core/format.js";
 import { projectLoad } from "../../core/projection.js";
 import { buildScenario } from "../../core/scenario.js";
+import { buildCompare } from "../../core/compare.js";
 import { pmcSkeletonAnchor } from "../../core/days.js";
 import { PLAN2_SCHEDULE } from "../../core/plan2-schedule.js";
 import { PRIMARY_ATHLETE_ID } from "../../config";
@@ -18,6 +20,8 @@ import { resolvePlanningFtp } from "../planning/planning-view-model";
 import { PmcChart } from "../../charts/PmcChart";
 import { BrushBar } from "../../charts/BrushBar";
 import { WhatIfPanel } from "../../charts/WhatIfPanel";
+import { CompareChart } from "../../charts/CompareChart";
+import { ComparePanel } from "../../charts/ComparePanel";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -67,7 +71,12 @@ export function ExplorerPage() {
     return projectLoad(projectionCards, rides, { today: TODAY, events: projectionEvents, ftp });
   }, [cards, events, rideData, ftp]);
 
-  const rides = (rideData?.rides as Ride[] | undefined) ?? [];
+  // Gememoized (nicht wie zuvor ein frischer `?? []`-Fallback pro Render) —
+  // Etappe 8e braucht `rides` erstmals als useMemo-Abhängigkeit
+  // (`compareResult` unten); ohne stabile Referenz würde das bei jedem
+  // Render neu rechnen, solange `rideData?.rides` undefined ist
+  // (react-hooks/exhaustive-deps-Warnung).
+  const rides = useMemo(() => (rideData?.rides as Ride[] | undefined) ?? [], [rideData]);
 
   // Bounds für Brush + Presets (Etappe 8b, docs/phase-5-konzept-explorer.md
   // §4): "Plan 2" ergibt nur für Athlet 1 Sinn (Athlet 2 hat GFNY Bremen als
@@ -106,6 +115,24 @@ export function ExplorerPage() {
     };
   }, [scenario, cards, events, rideData, ftp]);
 
+  // Vergleichsmodus (Etappe 8e, §5) — Port von assets/js/state/chart-view.js
+  // ::compareSlots + ui/charts/pmc.js::drawCompareView. `buildCompare()`
+  // (core/compare.js) wird wie im Vanilla-Original NICHT im Hook, sondern
+  // hier bei jedem Render mit den aktuellen Rides neu aufgerufen (kein
+  // gecachtes Ableitungsergebnis wie `scenarioProjection`) — buildCompare
+  // ist billig (kein projectLoad()) und braucht keine injizierten Quellen.
+  // "Als A/B merken" übernimmt das aktuelle Brush-Fenster direkt als ISO-
+  // Bereich — anders als vanilla (das ws/we-Tagesindizes über das zuletzt
+  // gezeichnete PMC-Skelett zurückrechnet) ist `range` hier bereits ISO.
+  const { compareSlots, setCompareSlot, setCompareEnabled } = useExplorerCompare(activeAthleteId);
+  const compareResult = useMemo(() => buildCompare(rides, compareSlots.a, compareSlots.b), [rides, compareSlots]);
+  const compareActive = compareSlots.enabled && !!compareSlots.a && !!compareSlots.b;
+
+  function handleSaveCompareSlot(slot: "a" | "b") {
+    if (!range) return;
+    setCompareSlot(slot, { from: range.fromISO, to: range.toISO });
+  }
+
   function handleSelectDate(dateISO: string) {
     navigate("/planning", { state: { highlightDate: dateISO } });
   }
@@ -141,17 +168,33 @@ export function ExplorerPage() {
           hoveredDate={hoveredDate}
         />
         <div style={{ height: 20 }} />
-        <PmcChart
-          rides={rides}
-          projection={projection}
-          range={range}
-          hoveredDate={hoveredDate}
-          onHoverChange={setHoveredDate}
-          onSelectDate={handleSelectDate}
-          scenarioProjection={scenarioProjection}
-        />
+        {compareActive ? (
+          <CompareChart result={compareResult} />
+        ) : (
+          <PmcChart
+            rides={rides}
+            projection={projection}
+            range={range}
+            hoveredDate={hoveredDate}
+            onHoverChange={setHoveredDate}
+            onSelectDate={handleSelectDate}
+            scenarioProjection={scenarioProjection}
+          />
+        )}
         <div style={{ height: 1, background: "var(--hair)", margin: "20px 0" }} />
         <WhatIfPanel scenario={scenario} onParamsChange={setScenarioParams} onEnabledChange={setScenarioEnabled} />
+        <div style={{ height: 1, background: "var(--hair)", margin: "20px 0" }} />
+        <ComparePanel
+          enabled={compareSlots.enabled}
+          onEnabledChange={setCompareEnabled}
+          slotA={compareSlots.a}
+          slotB={compareSlots.b}
+          metricsA={compareResult.a.metrics}
+          metricsB={compareResult.b.metrics}
+          compareActive={compareActive}
+          onSaveSlot={handleSaveCompareSlot}
+          canSave={!!range}
+        />
       </GlassCard>
     </div>
   );

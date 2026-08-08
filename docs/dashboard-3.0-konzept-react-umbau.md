@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c und 8d sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler), nächste Sub-Etappe ist 8e (Vergleichsmodus)
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d und 8e sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus) — Etappe 8 ist damit ebenfalls vollständig (§7.2 endet bei Schritt 4; Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt, kein 8f)
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,83 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 8e (08.08.2026)
+
+Vergleichsmodus (docs/phase-5-konzept-explorer.md §5, Baustein 3A) —
+Schritt 4 aus §7.2, letzte Sub-Etappe von Etappe 8. Wie bei 8d war
+`core/compare.js` bereits seit Etappe 2a byte-identisch portiert und
+getestet (`compare.test.js` lief bereits grün) — 8e hat nur die
+React-UI- und Persistenzschicht gebaut.
+
+- **`api/hooks/explorer-storage.ts`**: `ExplorerStorage`-Interface um das
+  optionale Feld `compareSlots` erweitert (`{enabled, a, b}`, `a`/`b` je
+  `{from, to}` oder `null`) — dieselbe gemergte Hülle wie `range`/
+  `scenario` seit 8d, keine Struktur­änderung an `read`/`write`.
+- **`api/hooks/useExplorerCompare.ts`** (neu, Port von `state/chart-view.js`s
+  `compareSlots`-Teil) — persistiert `{enabled, a, b}` je Athlet über obige
+  Hülle, gleiches "Zustand während des Renderns anpassen"-Muster wie
+  `useExplorerScenario.ts` (Reset bei Athletenwechsel, kein Effekt).
+  Gleiche `enabled`-Konvention: Slots bleiben gemerkt, auch wenn der Modus
+  ausgeschaltet wird. `buildCompare()` wird bewusst NICHT im Hook
+  aufgerufen (kein zu cachendes Ableitungsergebnis wie
+  `scenarioProjection`) — die UI-Schicht (`ExplorerPage.tsx`) ruft es bei
+  jedem Render mit den aktuellen Rides direkt auf, exakt wie im
+  Vanilla-Original.
+- **`charts/CompareChart.tsx`** (neu) — zweite CTL-Kurve pro Slot auf
+  RELATIVER `dayOffset`-Achse (Tag 1 = Blockstart), Slot A durchgezogen
+  (`var(--z2)`), Slot B gestrichelt/reduzierte Deckkraft (`var(--ss)`,
+  `5,4`/`.75` — dieselben Werte wie die Szenario-Zweitserie aus 8d).
+  Ungleich lange Slots werden nicht gestreckt (X1): `maxLen` bestimmt nur
+  die Achsenbreite, der kürzere Slot endet einfach früher. Ersetzt
+  `PmcChart` in `ExplorerPage.tsx` komplett, wenn der Vergleich aktiv ist
+  (eine relative und eine absolute Achse passen nicht in dieselbe `<svg>`)
+  — Übersichtsleiste, Presets und Szenario-Regler bleiben daneben
+  unverändert aktiv, wie im Original.
+  **Scope-Kürzung ggü. dem Vanilla-Original** (`ui/charts/pmc.js::
+  drawCompareView`): kein Umschalten auf Wochen-Ticks bei sehr
+  langen/schmalen Slots (`drawWeekTicks`/`isoWeekKey`/
+  `weekDisplayLabels` sind im React-Port bislang nirgends portiert, auch
+  nicht für andere Charts) und keine `fitsLabel()`-Direktbeschriftung
+  mitten in der Kurve (dieselbe Auslassung wie bei der Szenario-Linie aus
+  8d, s. dortiger Eintrag) — stattdessen eine feste Legende
+  (Farbpunkt + Label) über dem Chart, die erste ihrer Art im React-Port.
+  Cursor ist bewusst LOKAL (`useState` in der Komponente, kein
+  `hoveredDate`-Prop-Sync wie bei PmcChart/BrushBar) — ein `dayOffset`
+  trägt zwei echte Daten (Slot A ≠ Slot B), die sich nicht auf ein
+  einzelnes globales Hover-Datum abbilden lassen (gleiche Begründung wie
+  im Original).
+- **`charts/ComparePanel.tsx`** (neu) — Toggle + "Als A/B merken"-Buttons +
+  Kennzahlen (Σ TSS, ⌀ CTL, Rampe, harte Tage), Port von `index.html`s
+  `#pmc-compare`-Markup. Drei Anzeigezustände je Slot wie im
+  Vanilla-Original (`renderMetrics()`): nicht gemerkt / gemerkt aber Modus
+  aus / aktive Kennzahlen. **Vereinfachung ggü. vanilla:** "Als A/B merken"
+  übernimmt das aktuelle Brush-Fenster direkt als ISO-Bereich
+  (`{fromISO, toISO}` aus `useExplorerRange`) — vanilla rechnet dafür
+  Tagesindizes (`ws`/`we`) über das zuletzt gezeichnete PMC-Skelett in
+  `{from, to}` um, weil dort kein ISO-Fenster als State existiert; der
+  React-Port hat dieses ISO-Fenster seit 8b bereits als eigenen State
+  (`range`), die Skelett-Konvertierung entfällt ersatzlos.
+- **`features/explorer/ExplorerPage.tsx`**: `useExplorerCompare` +
+  `compareResult`-`useMemo` (`buildCompare(rides, compareSlots.a,
+  compareSlots.b)`) verdrahtet, `compareActive` (`enabled && a && b`)
+  schaltet zwischen `PmcChart` und `CompareChart` um, `ComparePanel` unter
+  einem zweiten Trenner in dieselbe `GlassCard` gehängt. Nebenbei behoben:
+  `rides` (bis dahin ein `?? []`-Fallback ohne `useMemo`) ist jetzt selbst
+  gememoized — `compareResult`s Abhängigkeit darauf hätte sonst bei jedem
+  Render neu gerechnet, solange `rideData?.rides` noch `undefined` ist
+  (ESLint `react-hooks/exhaustive-deps`, keine Verhaltensänderung, nur
+  ein vermiedener unnötiger Recompute).
+- **Kein neuer Test für `core/compare.js`** — bereits seit Etappe 2a
+  byte-identisch portiert und getestet (`compare.test.js`), keine
+  Änderung in dieser Etappe.
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx eslint .` ohne neue Warnungen/Fehler (3 vorbestehende, unveränderte
+  Warnings), `npx vitest run` 1021/1021 grün (1021 = alter Stand 1009 + 12
+  neue Testfälle: `explorer-storage.test.ts` (+1), `ComparePanel.test.tsx`
+  (neu, 6), `CompareChart.test.tsx` (neu, 5)). Manuelle
+  Playwright-Verifikation gegen `dashboard-dev` steht noch aus (macht Alex
+  einmalig am Ende der Sub-Etappe, wie Konvention).
 
 ## Änderungen durch Etappe 8d (08.08.2026)
 
@@ -1056,6 +1133,8 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 8a | **Explorer + Charts — Chart-Engine + PMC-Basis-Chart** | `[OP]` | ✅ umgesetzt (08.08.2026, `274d665`). Chart-Grundsatzentscheidung aus 5.3 fällt hier: React-Komponenten mit echtem JSX-SVG, kein Chart-Framework (s. `app/src/charts/README.md`). Erster Chart `PmcChart.tsx` (CTL/ATL/TSB), bewusst ohne Brush/Szenario/Compare/Cursor-Sync |
 | 8b | **Explorer + Charts — Zeitraum-Brushing** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8b" unten. `BrushBar.tsx` (§4, Variante 2B) + `useExplorerRange`-Hook (`localStorage`), `PmcChart` folgt dem Fenster |
 | 8c | **Explorer + Charts — Verknüpfte Charts** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8c" oben. Cursor-Sync PmcChart↔BrushBar innerhalb des Explorers + Klick-Sprung zum Planungstab (Scroll+Highlight). Scope gegenüber der Vanilla-Vorlage verkleinert: keine Fahrtenbuch-Verknüpfung (React-Port hat noch kein Fahrtenbuch), kein Rückkanal (echtes Routing statt Vanillas Ein-DOM-Tabs) |
+| 8d | **Explorer + Charts — What-if-Regler** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8d" oben. `WhatIfPanel.tsx` + `useExplorerScenario`-Hook, zweite gestrichelte CTL-Kurve in `PmcChart` (eigenes, schwächeres Unsicherheitsband). `core/scenario.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu |
+| 8e | **Explorer + Charts — Vergleichsmodus** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8e" oben. `CompareChart.tsx` (relative Tag-1-=-Blockstart-Achse, Slot A/B) + `ComparePanel.tsx` + `useExplorerCompare`-Hook, ersetzt `PmcChart` bei aktivem Vergleich. `core/compare.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu. Etappe 8 damit vollständig (§7.2-Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener späterer Fahrplan-Schritt) |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
 
 ### Etappe 10 — Umschaltung `[F5]`
