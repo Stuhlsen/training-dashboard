@@ -124,6 +124,25 @@ export interface EventInput {
 
 export type EventPatch = Partial<EventInput>;
 
+/** Ziel des eingeloggten Athleten (Settings, Etappe 9). Nur aktive Ziele
+ *  werden je gelesen — ein Ziel wird nie gelöscht, nur deaktiviert
+ *  (`goals.is_active`, s. Adapter). */
+export interface Goal {
+  id: string;
+  kind: string;
+  targetValue: number | null;
+  targetDate: string | null;
+  note: string | null;
+  isActive: boolean;
+}
+
+export interface GoalInput {
+  kind: string;
+  targetValue?: number | null;
+  targetDate?: string | null;
+  note?: string | null;
+}
+
 export interface Checkin {
   id: string;
   date: string;

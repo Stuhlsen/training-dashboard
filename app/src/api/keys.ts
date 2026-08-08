@@ -55,6 +55,12 @@ export const qk = {
   ladderState: (profileId: string) => ["ladder-state", profileId] as const,
   /** FTP-Historie des eingeloggten Profils. */
   ftpHistory: (profileId: string) => ["ftp-history", profileId] as const,
+  /** Aktive Ziele des eingeloggten Profils (Settings, Etappe 9). */
+  goals: (profileId: string) => ["goals", profileId] as const,
+  /** Formatkatalog + Aktiv-Status des eingeloggten Profils (Settings,
+   *  Etappe 9) — anders als qk.ladderState() der VOLLE Katalog, nicht nur
+   *  die aktiven Formate. */
+  athleteFormats: (profileId: string) => ["athlete-formats", profileId] as const,
   /** Blockstart-Dialog-Erkennung (E2) — hängt zusätzlich an einem
    *  Cards-Fingerprint, weil ein Kartenwechsel (Verschieben/Anlegen) das
    *  Blockziel verschieben kann, ohne dass sich profileId/athleteId ändern. */
