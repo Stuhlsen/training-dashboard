@@ -1,4 +1,30 @@
 # charts/
 
-Portierung der SVG-Chart-Logik. Grundsatzentscheidung React-nativ vs.
-`document.createElementNS`-Weiterverwendung fällt erst in Etappe 8 (Explorer).
+Portierung der SVG-Chart-Logik. Grundsatzentscheidung (Etappe 8a,
+festgelegt): **React-Komponenten mit echtem JSX-SVG**, kein
+`document.createElementNS`-Weiterverwendung, keine Chart-Bibliothek
+(kein `d3-scale`/`d3-shape` o.ä.) — react-graph-gallery.com dient nur als
+optisches Vorbild, nicht als Code-Quelle.
+
+Farben werden direkt über `style={{ stroke: "var(--role-primary)" }}` auf
+den SVG-Elementen gesetzt und lesen die in `styles/tokens.css` reservierten
+`--role-*`-Tokens. Das löst das vanilla-Problem, Farben zusätzlich in einem
+JS-Objekt (`CHART_THEME`) spiegeln zu müssen ("SVG-Farben können keine
+CSS-Variablen nutzen", AGENTS.md) — die Einschränkung gilt nur für rohe
+Presentation-Attribute (`stroke="..."`), nicht für den `style`-Attribut-Weg.
+
+Pure, DOM-freie Chart-Mathematik (Skalen, Label-Ausdünnung, Serien-Ableitung)
+liegt in `core/` (`chart-scale.js`, `pmc-series.js`), NICHT hier — anders als
+vanilla (`ui/charts/base.js`), wo dieselben Funktionen aus Konsistenzgründen
+mit einer bestehenden Testdatei im DOM-Layer bleiben (docs/phase-5-konzept-
+explorer.md §1.4, X3). In React gibt es diesen Präzedenzfall nicht, dafür
+bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
+`chart-buckets.js`) — deshalb hier die strengere Trennung.
+
+`charts/` selbst enthält nur die eigentlichen React/SVG-Komponenten:
+
+- `ChartTooltip.tsx` — wiederverwendbare Punkt-Tooltip-Box.
+- `PmcChart.tsx` — erster Chart (CTL/ATL/TSB), Etappe 8a. Bewusst ohne
+  Brush/Szenario/Compare/Cursor-Sync — die kommen in 8b–8e
+  (docs/phase-5-konzept-explorer.md §7.2), `power`/`training`/`wellness`
+  folgen nach demselben Muster in 8f.
