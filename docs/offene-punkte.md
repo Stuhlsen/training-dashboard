@@ -385,18 +385,14 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   `scripts/` oder `tests/` gelesen; die Hero-Skala wächst dynamisch aus der FTP
   (`core/zones.js::scaleMaxWatts`). Nicht nach `app/src/sports/` mitgezogen,
   im Vanilla-Baum aber unangetastet gelassen — Aufräumkandidat, kein Fehler.
-- **`ProtectedRoute` (`app/src/components/ProtectedRoute.tsx`, Etappe 1) sperrt
-  aktuell ALLE Routen komplett hinter Login** — ausgeloggt landet jeder
-  Besucher sofort auf `/login`, egal welche Route angefragt wurde. Widerspricht
-  strukturell der Sichtbarkeits-Matrix (`docs/phase-6-konzept-sichtbarkeit.md`):
-  `events`/`goals`/`plan_cards`/Lesedaten sollen laut E1 öffentlich lesbar sein,
-  sind es in der React-App aber für keinen Bereich, auch nicht für Events
-  (Etappe 5, 06.08.2026) — dort ist die restliche UI (Liste, Formular,
-  `canWrite`-Gating) bereits korrekt auf Anon-Lesen vorbereitet, nur unerreichbar.
-  Bewusst NICHT in Etappe 5 gefixt (Rückfrage vor der Umsetzung): eine App-weite
-  Routing-Änderung betrifft alle Bereiche, nicht nur Events, und gehört eher zu
-  Etappe 10 (Umschaltung/Regressionsdurchlauf) als in eine einzelne
-  Bereichs-Etappe. → `docs/dashboard-3.0-konzept-react-umbau.md` Etappe 10.
+- **`ProtectedRoute` sperrte alle Routen hinter Login — behoben (Etappe 10 Teil
+  A, 08.08.2026).** War seit Etappe 1 offen (s. Git-History dieser Datei),
+  bewusst auf Etappe 10 verschoben, da eine App-weite Routing-Änderung alle
+  Bereiche betrifft. Details der Umsetzung + eines dabei gefundenen zweiten
+  Lecks (Belastungsempfehlung-Kachel für Besucher sichtbar, ebenfalls
+  behoben) → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt
+  "Änderungen durch Etappe 10, Teil A+B". Teil C (echte Live-Umschaltung)
+  bleibt offen, wartet auf Freigabe von Alex.
 
 ## Infrastruktur/CI
 

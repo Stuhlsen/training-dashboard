@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d, 8e, 8f und 9 sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus), 8e schloss §7.2 selbst formal ab (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt) — **8f ist ein Nachtrag außerhalb dieser Nummerierung** (`charts/README.md` hatte ihn schon vor 8e als Fortsetzung angekündigt): bringt Power-Curve/Wochenvolumen/Wellness (je ein Chart pro verbleibender Familie aus `docs/chart-grundlagen.md` §7.2) auf dieselbe React-Engine wie die PMC-Kurve, ohne deren Brush/Cursor-Sync/What-if/Vergleich-Erweiterungen zu übernehmen. **Etappe 9 (Settings)** ist damit die letzte reguläre Bereichs-Etappe — es bleibt nur noch Etappe 10 (Umschaltung).
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d, 8e, 8f und 9 sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus), 8e schloss §7.2 selbst formal ab (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt) — **8f ist ein Nachtrag außerhalb dieser Nummerierung** (`charts/README.md` hatte ihn schon vor 8e als Fortsetzung angekündigt): bringt Power-Curve/Wochenvolumen/Wellness (je ein Chart pro verbleibender Familie aus `docs/chart-grundlagen.md` §7.2) auf dieselbe React-Engine wie die PMC-Kurve, ohne deren Brush/Cursor-Sync/What-if/Vergleich-Erweiterungen zu übernehmen. **Etappe 9 (Settings)** ist damit die letzte reguläre Bereichs-Etappe. **Etappe 10 (Umschaltung)** ist in drei Teile geschnitten (Teil A Routing/Gates, Teil B Security-Regressionsdurchlauf, Teil C echte Live-Umschaltung) — Teil A+B sind umgesetzt (08.08.2026, s. "Änderungen durch Etappe 10" unten), Teil C ist production-facing und wartet auf eine separate Freigabe von Alex.
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,58 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 10, Teil A+B (08.08.2026)
+
+Etappe 10 ist in drei Teile geschnitten (Rückfrage vor der Umsetzung, s.
+`docs/offene-punkte.md`): Teil A (Routing/Gates), Teil B (Security-
+Regressionsdurchlauf), Teil C (echte Live-Umschaltung main = React-App,
+GitHub Pages umbiegen). Teil C ist production-facing und nicht trivial
+rückgängig zu machen — bewusst zurückgestellt, Alex gibt den Startschuss
+separat frei. Teil A+B sind umgesetzt.
+
+**Teil A — Routing/Gates:**
+- `ProtectedRoute` (Etappe 1) sperrte seit Projektbeginn ALLE Routen hinter
+  Login — widersprach der Sichtbarkeits-Matrix (`docs/phase-6-konzept-
+  sichtbarkeit.md`, E1: Lesedaten/`goals`/`events`/`plan_cards`/`proposals`
+  sind öffentlich lesbar). Bereits bei Etappe 5 als echter Fund erkannt und
+  auf Etappe 10 verschoben. Jetzt gefixt: `App.tsx` wrappt Hero/Planning/
+  Explorer/Events direkt in `Layout`, `ProtectedRoute` gated nur noch die
+  Settings-Unterroute (rein persönlich: Passwort, Profil, athletengated
+  Ziele/FTP/Formate/Datenquellen). Die bestehenden Schreib-Gates
+  (`canWriteForAthlete()` in `api/write-authorization.ts`) bleiben
+  unverändert — sie sind der eigentliche Schutz für Buttons/Mutationen,
+  nicht die Route.
+- `Layout.tsx`: "Abmelden"-Button nur bei aktiver Session, sonst ein
+  "Anmelden"-Link — ein Besucher hat nichts zum Abmelden.
+- **Echter Fund während der Recherche:** `TrainerPage.tsx` war noch der
+  Etappe-1-Platzhalter (`<h1>Trainer</h1>`), nie befüllt — die komplette
+  Trainer-Funktionalität (TrainerBar, ProposalList/-Compare/-Banner) sitzt
+  seit 7a-7d in `PlanningPage.tsx`, nicht in einer eigenen Route. Der
+  `/trainer`-Nav-Eintrag führte ins Leere. Entfernt (Datei, Route, Nav-
+  Eintrag) statt nur dokumentiert — Muster "Entfernter Alt-Code" (AGENTS.md).
+
+**Teil B — Security-Regressionsdurchlauf:** Playwright MCP gegen
+`dashboard-dev`, einmalig nach Teil A (Accounts: Stuhlsen/Trainer-ST/
+hc_diZee, plus explizit ausgeloggt). 0 Konsolenfehler über die gesamte
+Session.
+
+- **Echter Fund, direkt gefixt:** die Belastungsempfehlung-Kachel im Hero
+  (`BriefingCard`, Puls/HRV/Form/Ampel) war für Besucher sichtbar. Die
+  Matrix ordnet die "Governor-Empfehlung" explizit als für Besucher
+  gesperrt ein — abgeleitete Daten erben die Sichtbarkeit ihrer
+  sensibelsten Quelle (Befinden), unabhängig davon, ob für die konkrete
+  Anfrage gerade private Daten einflossen. Fix: `HeroPage.tsx` rendert die
+  Kachel nur noch bei aktiver Session (`useAuth().session`).
+- Verifiziert: Besucher sieht Hero/Planning/Explorer/Events ohne Redirect,
+  ohne Schreib-Buttons, ohne Governor-Kachel; Settings leitet auf `/login`
+  um. Stuhlsen (Athlet) hat weiterhin volles CRUD. Trainer-ST (Trainer von
+  Stuhlsen) sieht die TrainerBar korrekt. hc_diZee (fremder Account) sieht
+  bei Stuhlsens Plan weder TrainerBar noch Schreib-Buttons.
+- `npx tsc -b` sauber, `npx vitest run` 1065/1065 grün, `npx eslint .` ohne
+  neue Errors (3 vorbestehende Warnings, unverändert).
+
+**Commit:** `2aff78f`.
 
 ## Änderungen durch Etappe 9 (08.08.2026)
 
@@ -1274,9 +1326,28 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 9 | **Settings** | `[HA]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 9" oben. Name/Passwort (alle Rollen) + Ziele/FTP-Historie/Formate/Datenquellen (athletengated), inkl. `CheckinDialog.tsx` als Nachtrag über den Vanilla-Port hinaus (fehlende Befinden-Check-in-UI). `ladder_progression_enabled` bewusst nicht angefasst (DB-Grant sperrt Self-Service, Migration 0016) |
 
 ### Etappe 10 — Umschaltung `[F5]`
-- CI/Deploy-Pipeline auf `/app/` als neue Live-Version umstellen
-- Security-**Regressionsdurchlauf** gegen die neue UI: die Sichtbarkeits-Matrix wurde bereits pro Bereichs-Etappe abgearbeitet, hier folgt der Gesamtdurchlauf am Stück — die RLS ist unverändert, aber die **UI-Gates sind komplett neu gebaut**, und genau dort lag der letzte echte Fund (`event-timeline.js`/`planned.js`)
-- Alte Vanilla-Seite wird abgelöst (Branch bleibt stehen, kein Löschen — Muster wie `dashboard-2.0`)
+
+In drei Teile geschnitten (Rückfrage vor der Umsetzung, 08.08.2026):
+
+- **Teil A — Routing/Gates.** ✅ umgesetzt (08.08.2026) — s. "Änderungen durch
+  Etappe 10, Teil A+B" oben. `ProtectedRoute` gated nur noch `/settings`,
+  Hero/Planning/Explorer/Events sind laut Matrix-Zeile E1 öffentlich lesbar.
+  Tote `/trainer`-Platzhalter-Route entfernt.
+- **Teil B — Security-Regressionsdurchlauf.** ✅ umgesetzt (08.08.2026) — s.
+  "Änderungen durch Etappe 10, Teil A+B" oben. Playwright gegen
+  `dashboard-dev`, Gesamtdurchlauf über alle Bereichs-Etappen hinweg (die
+  Sichtbarkeits-Matrix wurde bislang pro Bereichs-Etappe einzeln geprüft).
+  Echter Fund: Belastungsempfehlung-Kachel war für Besucher sichtbar,
+  direkt gefixt und erneut verifiziert.
+- **Teil C — echte Live-Umschaltung.** ⏳ offen, wartet auf Freigabe von
+  Alex (production-facing, nicht trivial rückgängig zu machen):
+  - CI/Deploy-Pipeline auf `/app/` als neue Live-Version umstellen
+  - `vite.config.ts`: `base` für den GitHub-Pages-Projektpfad
+    (`/training-dashboard/`) setzen — aktuell nicht gesetzt (Default `/`)
+  - Merge `dashboard-3.0` → `main` (Muster wie `dashboard-2.0`: alte
+    Vanilla-Seite bleibt als Branch-Historie erhalten)
+  - Alte Vanilla-Dateien (`index.html`, `assets/js/ui|state|...`) aus `main`
+    entfernen, sobald `/app/` live ist
 
 ---
 
