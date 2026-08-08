@@ -36,3 +36,13 @@ bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
   `api/hooks/useExplorerRange.ts` (`localStorage("explorer_<athleteId>")`).
   Weiterhin ohne Szenario/Compare/Cursor-Sync — die kommen in 8c–8e,
   `power`/`training`/`wellness` folgen nach demselben Muster in 8f.
+- `PowerCurveChart.tsx` — Power-Curve (Etappe 8f, Familie 4). Index-basierte
+  x-Achse über die 11 Standard-Zeitintervalle (`core/powercurve.js`),
+  FTP-Referenzlinie. Ohne W/kg-Toggle, ohne Block-Overlay-Vergleich.
+- `WeeklyVolumeChart.tsx` — Wochenvolumen (Etappe 8f, Familie 3). Slot-
+  basierte x-Achse über `core/aggregate.js::weeklyByCalendar`, Zielzone bei
+  eigenem Plan. Ohne Bucket-Hover-Kopplung/Brush-Klick.
+- `WellnessChart.tsx` — HRV/Ruhepuls-Trend (Etappe 8f, Familie 2), Metrik-
+  Umschalter statt zwei separater Komponenten. `core/days.js::densifyDays`/
+  `joinSeries("gap")` + `core/wellness-series.js` für den Notion/intervals.icu-
+  Merge des Eigenplan-Athleten.

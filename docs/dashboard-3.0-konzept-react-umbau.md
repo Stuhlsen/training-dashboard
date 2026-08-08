@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d und 8e sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus) — Etappe 8 ist damit ebenfalls vollständig (§7.2 endet bei Schritt 4; Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt, kein 8f)
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a, 8b, 8c, 8d, 8e und 8f sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing, 8c Verknüpfte Charts, 8d What-if-Regler, 8e Vergleichsmodus), 8e schloss §7.2 selbst formal ab (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener, späterer Fahrplan-Schritt) — **8f ist ein Nachtrag außerhalb dieser Nummerierung** (`charts/README.md` hatte ihn schon vor 8e als Fortsetzung angekündigt): bringt Power-Curve/Wochenvolumen/Wellness (je ein Chart pro verbleibender Familie aus `docs/chart-grundlagen.md` §7.2) auf dieselbe React-Engine wie die PMC-Kurve, ohne deren Brush/Cursor-Sync/What-if/Vergleich-Erweiterungen zu übernehmen
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,86 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 8f (08.08.2026)
+
+Drei weitere Charts auf die in 8a gebaute React-Engine gebracht — je einer
+für die drei bislang unbearbeiteten Familien aus `docs/chart-grundlagen.md`
+§7.2 (Power = Familie 4, Wochenvolumen = Familie 3, Wellness = Familie 2).
+`charts/README.md` hatte das schon vor 8e angekündigt ("power/training/
+wellness folgen nach demselben Muster in 8f"). Bewusst eng gehalten wie
+8a: je EIN repräsentativer Chart pro Familie, ohne die für PMC in 8b-8e
+gebauten Cross-Cutting-Features (Brush-Fenster, Cursor-Sync, What-if,
+Vergleich) — die bleiben eigenständige, potenzielle spätere Schritte.
+Drei eigene Commits, je eigener `node -c`/`npm test`-Lauf; Playwright/
+`/code-review` einmalig am Ende (Etappen-Konvention).
+
+- **`charts/PowerCurveChart.tsx`** (neu) — Port von `assets/js/ui/charts/
+  power.js::renderPowerCurve()`. Familie 4 (nicht-Datums-Achse): x-Achse
+  ist wie im Vanilla-Original index-basiert über die 11 festen
+  Standard-Zeitintervalle (`core/powercurve.js::buildCurveData`, bereits
+  seit dashboard-2.0 portiert, hier zum ersten Mal von einer React-
+  Komponente konsumiert) — `core/chart-scale.js::makeIndexScale` ist dafür
+  direkt wiederverwendbar, KEINE neue Log-Skalen-Funktion nötig (die
+  Standard-Buckets sind bereits annähernd logarithmisch gestaffelt, das
+  reicht für die visuelle Wirkung; ein erster Entwurf mit einer echten
+  `makeLogScale({minSecs,maxSecs,...})` wurde verworfen, nachdem der
+  Vanilla-Quellcode geprüft war und sich als index-basiert herausstellte —
+  Konsistenz mit dem Original wog hier schwerer als eine technisch
+  "richtigere" Skala ohne Vorbild). FTP-Referenzlinie (`ftp`-Prop, dieselbe
+  `resolvePlanningFtp`-Ableitung wie die PMC-Kurve), Fläche unter der
+  Kurve + Fläche über FTP ("anaerobe Reserve"). Bewusst NICHT portiert:
+  W/kg-Unit-Toggle, Block-Overlay-Vergleich (Scope-Entscheidung).
+- **`charts/WeeklyVolumeChart.tsx`** (neu) — Port von `assets/js/ui/
+  charts/training.js::renderWeeklyVolume()`. Familie 3 (Aggregat-Balken):
+  slot-basierte x-Achse (kein `makeIndexScale`, keine Datumsachse) über
+  `core/aggregate.js::weeklyByCalendar` (bereits portiert), Label-Kürzung
+  über `core/week-labels.js::weekDisplayLabels` + Ausdünnung über
+  `core/chart-scale.js::pickLabelIndices` (beide bereits portiert, hier
+  zum ersten Mal von einer React-Komponente konsumiert). Zielzone
+  180-220km + Ziel-Linie nur bei eigenem Plan (`weeklyData.some(d =>
+  d.phase != null)`), phasengefärbte Balken über `config.ts::phaseColor()`.
+  Bewusst NICHT verdrahtet: die in `core/chart-buckets.js` bereits seit
+  dashboard-2.0 vorbereitete, aber bislang von keiner React-Komponente
+  konsumierte Bucket-Hover-Kopplung ans PMC-Fadenkreuz und der
+  Brush-Klick-auf-Balken (Familie 3 ist "Brush-Ziel, nicht Brush-Fläche",
+  §7.3) — bleibt für einen späteren Schritt liegen.
+- **`core/wellness-series.js`** (neu) — Port von `assets/js/ui/charts/
+  wellness.js::_mergedOwnPlanSeries()`. Notwendig, nicht optional: vor
+  Mitte Juni tragen nur `rides` HRV/Ruhepuls-Werte (Notion-Ära, RMSSD via
+  Apple Health), erst danach `wellness` (intervals.icu, SDNN) — ohne den
+  Merge fehlt die komplette Frühgeschichte des Eigenplan-Athleten.
+  `mergedOwnPlanSeries(rides, wellness, rideField, wellnessField)` deckt
+  beide Metriken (HRV/Ruhepuls) über dieselbe Funktion ab, exakt wie das
+  Vanilla-Original.
+- **`charts/WellnessChart.tsx`** (neu) — Familie 2 (lückige Zeitreihe):
+  `core/days.js::densifyDays`/`joinSeries("gap")` (bereits seit Phase 5
+  portiert, hier zum ersten Mal von einer React-Komponente konsumiert),
+  `core/pmc-series.js::segmentsFor` generisch wiederverwendet (war bislang
+  nur PMC-intern genutzt, nimmt aber jedes `(number|null)[]` entgegen).
+  EIN Chart mit `metric`-Prop-Umschalter ("hrv"/"ruhepuls") statt der zwei
+  separaten vanilla-Funktionen `renderHrvTrend`/`renderRhfTrend`, die sich
+  ohnehin dieselbe Engine (`renderHrvRhfChart`) teilten — passt besser zur
+  React-Idiomatik als ein Duplicate-Komponenten-Paar. Zeigt bewusst die
+  GANZE Historie, kein Brush-Fenster (wie vanilla begründet: ein
+  90-Tage-Default würde den HRV-Methodenwechsel-Marker oft aus dem Blick
+  verdrängen). Methodenwechsel-Marker (RMSSD→SDNN) + zwei getrennte
+  Trendlinien (`core/stats.js::linearTrend`, bereits portiert) davor/
+  danach. **Reduziert ggü. vanilla:** keine zusätzlichen
+  Mittelwert-Referenzlinien (Scope-Kürzung).
+- **`features/explorer/ExplorerPage.tsx`**: drei weitere `GlassCard`-
+  Abschnitte nach dem PMC-Abschnitt angehängt (Power-Curve, Wochenvolumen,
+  Wellness), gleiches Titel-Zeile-plus-Chart-Muster. `wellness`/
+  `powerCurves` kommen unverändert aus dem bereits geladenen `rideData`
+  (`api/hooks/useRides.ts` → `AthleteData`, keine neue Datenquelle/kein
+  neuer Hook). `wellnessMetric`-State lokal (`useState`, kein
+  `localStorage` — flüchtiger UI-Zustand wie `hoveredDate`).
+- **Abnahme:** in `/app/` (PowerShell ohne `&&`): `npx tsc -b` sauber,
+  `npx eslint .` ohne neue Warnungen/Fehler, `npx vitest run` 1042/1042
+  grün (1042 = alter Stand 1021 + 21 neue Testfälle über die drei neuen
+  Chart-Komponenten + `core/wellness-series.test.js`). Manuelle
+  Playwright-Verifikation gegen `dashboard-dev` steht noch aus (macht Alex
+  einmalig am Ende der Sub-Etappe, wie Konvention).
 
 ## Änderungen durch Etappe 8e (08.08.2026)
 
@@ -1134,7 +1214,8 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 8b | **Explorer + Charts — Zeitraum-Brushing** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8b" unten. `BrushBar.tsx` (§4, Variante 2B) + `useExplorerRange`-Hook (`localStorage`), `PmcChart` folgt dem Fenster |
 | 8c | **Explorer + Charts — Verknüpfte Charts** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8c" oben. Cursor-Sync PmcChart↔BrushBar innerhalb des Explorers + Klick-Sprung zum Planungstab (Scroll+Highlight). Scope gegenüber der Vanilla-Vorlage verkleinert: keine Fahrtenbuch-Verknüpfung (React-Port hat noch kein Fahrtenbuch), kein Rückkanal (echtes Routing statt Vanillas Ein-DOM-Tabs) |
 | 8d | **Explorer + Charts — What-if-Regler** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8d" oben. `WhatIfPanel.tsx` + `useExplorerScenario`-Hook, zweite gestrichelte CTL-Kurve in `PmcChart` (eigenes, schwächeres Unsicherheitsband). `core/scenario.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu |
-| 8e | **Explorer + Charts — Vergleichsmodus** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8e" oben. `CompareChart.tsx` (relative Tag-1-=-Blockstart-Achse, Slot A/B) + `ComparePanel.tsx` + `useExplorerCompare`-Hook, ersetzt `PmcChart` bei aktivem Vergleich. `core/compare.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu. Etappe 8 damit vollständig (§7.2-Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener späterer Fahrplan-Schritt) |
+| 8e | **Explorer + Charts — Vergleichsmodus** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8e" oben. `CompareChart.tsx` (relative Tag-1-=-Blockstart-Achse, Slot A/B) + `ComparePanel.tsx` + `useExplorerCompare`-Hook, ersetzt `PmcChart` bei aktivem Vergleich. `core/compare.js` bereits seit 2a portiert, nur UI-/Persistenzschicht neu. §7.2 damit formal abgeschlossen (Schritt 5 "Charts-Tab nachziehen" ist laut §8 ein eigener späterer Fahrplan-Schritt) |
+| 8f | **Explorer + Charts — Power/Wochenvolumen/Wellness auf die Engine** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8f" oben. Nachtrag außerhalb der §7.2-Nummerierung (von `charts/README.md` schon vor 8e angekündigt). `PowerCurveChart.tsx` (Familie 4), `WeeklyVolumeChart.tsx` (Familie 3), `WellnessChart.tsx` + `core/wellness-series.js` (Familie 2) — je ein repräsentativer Chart pro Familie, ohne die PMC-Cross-Cutting-Features aus 8b-8e. Damit sind alle vier Chart-Familien aus `docs/chart-grundlagen.md` §7.2 mit mindestens einem React-Chart vertreten |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
 
 ### Etappe 10 — Umschaltung `[F5]`
