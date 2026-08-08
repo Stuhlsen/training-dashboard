@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { useAuth } from "../../api/auth/useAuth";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useRides } from "../../api/hooks/useRides";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
@@ -45,6 +46,11 @@ export function HeroPage() {
   // Athleten dessen Briefing mit dem eigenen Befinden vermischt (Muster
   // wie isSelfAthlete() in api/write-authorization.ts).
   const { isSelf } = useIsSelfAthlete(activeAthleteId);
+  // Sichtbarkeits-Matrix (docs/phase-6-konzept-sichtbarkeit.md): die
+  // Governor-/Belastungsempfehlung erbt die Sichtbarkeit ihrer sensibelsten
+  // Quelle (Befinden) und ist für Besucher grundsätzlich ❌ — unabhängig
+  // davon, ob für DIESE Ansicht gerade `subjective` null ist (s. isSelf oben).
+  const { session } = useAuth();
   const [whatIfFtp, setWhatIfFtp] = useState(athleteCfg?.ftpGoal ?? 210);
 
   // Athletenwechsel muss den Slider auf den NEUEN Athleten zurücksetzen —
@@ -189,9 +195,11 @@ export function HeroPage() {
             <RaceCountdownPill countdown={countdown} />
           </div>
 
-          <div style={{ transform: "translateZ(88px)" }}>
-            <BriefingCard briefing={vm.briefing} />
-          </div>
+          {session && (
+            <div style={{ transform: "translateZ(88px)" }}>
+              <BriefingCard briefing={vm.briefing} />
+            </div>
+          )}
 
           <div style={{ transform: "translateZ(30px)" }}>
             <FtpRings eftp={vm.eftp} ramp={vm.ramp} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />

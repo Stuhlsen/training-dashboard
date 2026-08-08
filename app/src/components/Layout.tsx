@@ -5,14 +5,13 @@ import { useAuth } from "../api/auth/useAuth";
 const NAV_ITEMS = [
   { to: "/", label: "Hero", end: true },
   { to: "/planning", label: "Planungstab" },
-  { to: "/trainer", label: "Trainer" },
   { to: "/explorer", label: "Explorer" },
   { to: "/events", label: "Events" },
   { to: "/settings", label: "Settings" },
 ];
 
 export function Layout() {
-  const { signOut } = useAuth();
+  const { session, signOut } = useAuth();
 
   return (
     <div>
@@ -25,9 +24,13 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <button type="button" onClick={() => void signOut()}>
-          Abmelden
-        </button>
+        {session ? (
+          <button type="button" onClick={() => void signOut()}>
+            Abmelden
+          </button>
+        ) : (
+          <NavLink to="/login">Anmelden</NavLink>
+        )}
       </header>
       <main>
         <Outlet />

@@ -5,7 +5,6 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import { LoginPage } from "./features/auth/LoginPage";
 import { HeroPage } from "./features/hero/HeroPage";
 import { PlanningPage } from "./features/planning/PlanningPage";
-import { TrainerPage } from "./features/trainer/TrainerPage";
 import { ExplorerPage } from "./features/explorer/ExplorerPage";
 import { EventsPage } from "./features/events/EventsPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
@@ -25,13 +24,19 @@ export default function App() {
       <div style={{ position: "relative", zIndex: 1 }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
-          <Route element={<ProtectedRoute />}>
-            <Route element={<Layout />}>
-              <Route index element={<HeroPage />} />
-              <Route path="planning" element={<PlanningPage />} />
-              <Route path="trainer" element={<TrainerPage />} />
-              <Route path="explorer" element={<ExplorerPage />} />
-              <Route path="events" element={<EventsPage />} />
+          {/* Sichtbarkeits-Matrix E1 (docs/phase-6-konzept-sichtbarkeit.md):
+              Lesedaten/goals/events/plan_cards/proposals sind öffentlich lesbar
+              — Login gilt nur fürs Schreiben (bestehende canWrite-Gates) und
+              für Settings (rein persönlich: Passwort, Profil, athletengated
+              Ziele/FTP/Formate/Datenquellen). Layout wrappt beide Gruppen,
+              ProtectedRoute gated deshalb nur noch die Settings-Unterroute,
+              nicht mehr den ganzen Baum. */}
+          <Route element={<Layout />}>
+            <Route index element={<HeroPage />} />
+            <Route path="planning" element={<PlanningPage />} />
+            <Route path="explorer" element={<ExplorerPage />} />
+            <Route path="events" element={<EventsPage />} />
+            <Route element={<ProtectedRoute />}>
               <Route path="settings" element={<SettingsPage />} />
             </Route>
           </Route>
