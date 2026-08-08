@@ -12,15 +12,18 @@ interface PmcChartProps {
   /** Roh, ungefiltert — die ctl/atl-Filterung übernimmt core/pmc-series.js::densifyPmc(). */
   rides: Ride[];
   projection: ReturnType<typeof projectLoad>;
+  /** Brush-Fenster (Etappe 8b, docs/phase-5-konzept-explorer.md §4). Ohne
+   *  Angabe (standalone-Nutzung außerhalb des Explorers, oder bestehende
+   *  Tests) fällt der Chart auf den bisherigen Fixdefault zurück. */
+  range?: { fromISO: string; toISO: string } | null;
 }
 
 const W_FALLBACK = 780;
 const H = 260;
 const PAD = { l: 54, r: 56, t: 30, b: 40 };
-/* Letzte 90 Tage + Prognosehorizont als fester Default — kein Brush in 8a
-   (docs/phase-5-konzept-explorer.md §7.2 Schritt 1, hier bewusst noch
-   ausgeklammert). Kein persistierter chart-view-Zustand nötig, solange
-   sich das Fenster nicht verschieben lässt. */
+/* Letzte 90 Tage + Prognosehorizont als Fallback-Default, wenn keine `range`-
+   Prop übergeben wird (kein Brush verdrahtet). Mit `range` (Etappe 8b,
+   BrushBar) bestimmt der Aufrufer das Fenster. */
 const DEFAULT_WINDOW_DAYS = 90;
 
 interface Tooltip {
@@ -32,9 +35,11 @@ interface Tooltip {
 /** CTL/ATL/TSB-Basis-Chart (Etappe 8a) — Port nach dem
  *  `renderFtpForecast`-Muster aus assets/js/ui/charts/pmc.js: durchgezogene
  *  Historie, gestrichelte Prognose ab `projection.asOf`, Unsicherheitsband,
- *  Punkt-Tooltip. Bewusst OHNE Brush/Szenario/Compare/Cursor-Sync — die
- *  kommen in Etappe 8b–8e (docs/phase-5-konzept-explorer.md §7.2). */
-export function PmcChart({ rides, projection }: PmcChartProps) {
+ *  Punkt-Tooltip. Zeitfenster kommt seit Etappe 8b optional über die
+ *  `range`-Prop (BrushBar) — bewusst weiterhin OHNE Szenario/Compare/
+ *  Cursor-Sync, die kommen in Etappe 8c–8e (docs/phase-5-konzept-explorer.md
+ *  §7.2). */
+export function PmcChart({ rides, projection, range }: PmcChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -59,11 +64,17 @@ export function PmcChart({ rides, projection }: PmcChartProps) {
   const skeleton = useMemo(() => {
     if (!todayISO || !horizonEndISO) return [];
     const anchor = pmcSkeletonAnchor(rides);
+    if (range) {
+      const windowStart = anchor && anchor > range.fromISO ? anchor : range.fromISO;
+      const windowEnd = range.toISO < horizonEndISO ? range.toISO : horizonEndISO;
+      if (windowStart > windowEnd) return [];
+      return densifyDays(windowStart, windowEnd);
+    }
     const ninetyAgo = addDaysISO(todayISO, -DEFAULT_WINDOW_DAYS);
     const windowStart = anchor && anchor > ninetyAgo ? anchor : ninetyAgo;
     if (windowStart > horizonEndISO) return [];
     return densifyDays(windowStart, horizonEndISO);
-  }, [rides, todayISO, horizonEndISO]);
+  }, [rides, todayISO, horizonEndISO, range]);
 
   const indexByDate = useMemo(() => new Map(skeleton.map((d, i) => [d.dateISO, i])), [skeleton]);
   const todayIdx = useMemo(
@@ -99,7 +110,11 @@ export function PmcChart({ rides, projection }: PmcChartProps) {
   const scale = makeIndexScale({ ws: 0, we, padLeft: PAD.l, width: plotW });
 
   const caVals = ([] as Array<number | null>).concat(ctlVals, atlVals).filter((v): v is number => v != null);
-  const caMax = caVals.length ? Math.max(...caVals) * 1.1 : 10;
+  // `|| 10` fängt eine reine Null-Baseline ab (z.B. beim allerersten Render,
+  // solange `rides` noch lädt und projectLoad() ohne Ist-Werte hasBaseline:
+  // false liefert — CTL/ATL sind dann durchgehend 0, Math.max(...)*1.1 wäre
+  // ebenfalls 0 und caY() würde durch 0 teilen, NaN in y1/y2/cy).
+  const caMax = caVals.length ? Math.max(...caVals) * 1.1 || 10 : 10;
   const caY = (v: number) => PAD.t + (1 - v / caMax) * plotH;
 
   const tsbVisible = tsbVals.filter((v): v is number => v != null);

@@ -1,7 +1,7 @@
 # Konzept: React-Umbau (Dashboard 3.0)
 
 **Stand:** 06.08.2026 (überarbeitete Fassung, ersetzt Stand 04.08.2026)
-**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c und 7d sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig, nächste Etappe ist 8
+**Status:** in Umsetzung — Etappen 1, 2a, 2b, 3, 4, 5, 6a, 6b, 6c, 6d, 7a, 7b, 7c, 7d, 8a und 8b sind umgesetzt (08.08.2026). Etappe 7 (Trainer-Dashboard + Export/Import) ist wie Etappe 6 in Sub-Etappen geschnitten (7a Trainer-Leiste, 7b Proposal-Review, 7c Export/Import, 7d Blockstart-Dialog) — Etappe 7 ist damit vollständig. Etappe 8 (Explorer + Charts) folgt der Reihenfolge aus `docs/phase-5-konzept-explorer.md` §7.2 (8a Chart-Engine + PMC-Basis-Chart, 8b Zeitraum-Brushing), nächste Sub-Etappe ist 8c (Verknüpfte Charts)
 **Vorgänger:** Dashboard 2.0 (Vanilla JS, live auf `main`/`stuhlsen.github.io`)
 
 > **Vorbedingung vor Etappe 1:** ✅ erfüllt (Stand 06.08.2026).
@@ -9,6 +9,52 @@
 > 2. Migrationen 0012–0017 sind gegen `dashboard-dev` und `prod` angewendet (bestätigt 06.08.2026).
 >
 > Die frühere Vorbedingung (`event-athlete-crud`-Bugfix auf `main`) ist erfüllt und damit gegenstandslos.
+
+## Änderungen durch Etappe 8b (08.08.2026)
+
+Zeitraum-Brushing (docs/phase-5-konzept-explorer.md §4, §7.2 Schritt 1) —
+erste Sub-Etappe nach 8a, die dessen "bewusst ohne Brush"-Auslassung
+schließt.
+
+- **`core/brush.js`** (neu, rein, getestet) — `clampWindow()` klemmt ein
+  Fenster auf `[anchorISO, horizonEndISO]` und erzwingt eine Mindestlänge;
+  `presetWindow()` liefert die fünf Presets (30/90/365 Tage/Plan 2/alles).
+  `"plan2"` liefert `null` ohne `plan2StartISO` — Aufrufer blenden den
+  Button dann aus, statt eine leere Auswahl anzubieten (Athlet 2 hat keinen
+  "Plan 2", s. AGENTS.md "Bekannte Eigenheiten").
+- **`charts/BrushBar.tsx`** (neu) — schmale Übersichtsleiste, die *immer*
+  den vollen Horizont zeigt (Anker-Fahrt bis `projection.horizonEnd`, via
+  `pmcSkeletonAnchor()`), mit einer dünnen CTL-Linie im Hintergrund
+  (`core/pmc-series.js::densifyPmc`, wie in `PmcChart`). Zwei Handles + ein
+  Fenster-Rect, gezogen über native Pointer Events mit
+  `setPointerCapture()` — anders als das Autoscroll-Muster in
+  `assets/js/ui/plan-drag.js` reicht das hier ohne `document`-Listener,
+  weil es keinen scrollenden Container gibt. Live-Updates werden auf einen
+  `requestAnimationFrame` pro Frame gebatcht. Rechnet während des Ziehens
+  in Index- statt ISO-Raum (der Skelett-Index deckt sich 1:1 mit dem
+  Domänen-Bounds `[0, we]`), `clampWindow` kommt nur beim Laden/bei
+  Presets zum Einsatz, nicht bei jedem `pointermove`.
+- **`PmcChart.tsx`**: neue optionale `range`-Prop. Ohne sie bleibt exakt
+  das bisherige Verhalten aus Etappe 8a (Fixdefault: letzte 90 Tage +
+  Horizont) — bewusst optional statt Pflichtprop, damit `PmcChart.test.tsx`
+  (8a) unverändert bleibt und der Chart auch standalone nutzbar ist.
+- **`api/hooks/useExplorerRange.ts`** (neu) — lädt/klemmt den zuletzt
+  gewählten Bereich aus `localStorage("explorer_<athleteId>")` (§10.3,
+  Objekt-Hülle `{ range }`, für 8c–8e um `compareSlots`/`scenario`/`linked`
+  erweiterbar). Bewusst **kein** `useEffect` mit synchronem `setState` (löst
+  die ESLint-Regel `react-hooks/set-state-in-effect` aus) — der
+  Default/gespeicherte Bereich ist eine reine Ableitung aus
+  `athleteId`+Bounds (`useMemo`), ein aktiver Nutzer-Eingriff lebt separat
+  als `override`-State und wird beim Athleten-/Bounds-Wechsel über Reacts
+  "Zustand während des Renderns anpassen"-Muster zurückgesetzt (kein Ref,
+  kein Effekt).
+- **`ExplorerPage.tsx`**: `BrushBar` in dieselbe `GlassCard` wie `PmcChart`
+  gehängt (Chart-Merge-Konvention statt neuer Box), `plan2StartISO` nur für
+  Athlet 1 (`PRIMARY_ATHLETE_ID`) aus `PLAN2_SCHEDULE[0].start` abgeleitet.
+
+**Aus 8b ausgeklammert** (kommt in 8c–8e, `docs/phase-5-konzept-explorer.md`
+§7.2 Schritt 2–4): Cursor-Sync/Selektion über Charts hinweg,
+What-if-Szenarien, Vergleichsmodus.
 
 ## Änderungen durch Etappe 7d (08.08.2026)
 
@@ -885,7 +931,8 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 7b | **Trainer-Dashboard — Proposal-Review** | `[SO]` | ✅ umgesetzt (07.08.2026) — s. "Änderungen durch Etappe 7b" oben. `ProposalBanner` (Athlet), `ProposalList` mit Gruppierung/"Alle übernehmen", `ProposalCompare` (TSB-Delta + Konflikt-Badges). "Vorschläge"-Kachel in `TrainerBar` jetzt klickbar (Trainer: read-only) |
 | 7c | **Trainer-Dashboard — Export/Import** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 7c" oben. Export-Panel (Preset-Kachelreihe, Freitext, Event-Auswahl, Leiterstand-Zeile E1), Import-Dialog (Preview+Teilerfolg, nutzt 7bs Review-UI für die importierten Vorschläge). Stufenvorschlag/Leitplanken-Sektion/Fortschrittsindikatoren/Entscheidungsgedächtnis (`docs/konzept-progressionssteuerung.md`) laufen mit — reine Textbausteine im Export-Briefing, kein eigenes UI. Migration `0008_export_prefs.sql` lag bereits vor (nicht Teil dieser Etappe) |
 | 7d | **Trainer-Dashboard — Blockstart-Dialog** | `[SO]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 7d" oben. `BlockDialogGate`/`BlockDialog`, `useBlockTransition`/`useRecordBlockStart` (Port von state/block-transition.js + state/ladder.js::recordLadderStep) — eigenständiges Modal, ausgelöst beim Planungstab-Laden, strukturell unabhängig vom Export-Panel |
-| 8 | **Explorer + Charts** | `[OP]` | Chart-Grundsatzentscheidung aus 5.3 fällt hier |
+| 8a | **Explorer + Charts — Chart-Engine + PMC-Basis-Chart** | `[OP]` | ✅ umgesetzt (08.08.2026, `274d665`). Chart-Grundsatzentscheidung aus 5.3 fällt hier: React-Komponenten mit echtem JSX-SVG, kein Chart-Framework (s. `app/src/charts/README.md`). Erster Chart `PmcChart.tsx` (CTL/ATL/TSB), bewusst ohne Brush/Szenario/Compare/Cursor-Sync |
+| 8b | **Explorer + Charts — Zeitraum-Brushing** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 8b" unten. `BrushBar.tsx` (§4, Variante 2B) + `useExplorerRange`-Hook (`localStorage`), `PmcChart` folgt dem Fenster |
 | 9 | **Settings** | `[HA]` | inkl. Passwortänderung |
 
 ### Etappe 10 — Umschaltung `[F5]`

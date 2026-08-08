@@ -24,7 +24,15 @@ bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
 `charts/` selbst enthält nur die eigentlichen React/SVG-Komponenten:
 
 - `ChartTooltip.tsx` — wiederverwendbare Punkt-Tooltip-Box.
-- `PmcChart.tsx` — erster Chart (CTL/ATL/TSB), Etappe 8a. Bewusst ohne
-  Brush/Szenario/Compare/Cursor-Sync — die kommen in 8b–8e
-  (docs/phase-5-konzept-explorer.md §7.2), `power`/`training`/`wellness`
-  folgen nach demselben Muster in 8f.
+- `PmcChart.tsx` — erster Chart (CTL/ATL/TSB), Etappe 8a. Nimmt seit Etappe
+  8b optional eine `range`-Prop (das Brush-Fenster) entgegen, ohne Prop
+  bleibt der bisherige 90-Tage-Fixdefault erhalten.
+- `BrushBar.tsx` — Zeitraum-Brushing (Etappe 8b, docs/phase-5-konzept-
+  explorer.md §4): schmale Übersichtsleiste über dem vollen Horizont
+  (Anker-Fahrt bis `projection.horizonEnd`), zwei Handles + Fenster-Rect
+  per Pointer Events (`setPointerCapture`, kein `document`-Listener nötig),
+  Presets (30/90/365 Tage/Plan 2/alles). Zustand kommt von außen
+  (`range`/`onRangeChange`) — die Persistenz übernimmt
+  `api/hooks/useExplorerRange.ts` (`localStorage("explorer_<athleteId>")`).
+  Weiterhin ohne Szenario/Compare/Cursor-Sync — die kommen in 8c–8e,
+  `power`/`training`/`wellness` folgen nach demselben Muster in 8f.
