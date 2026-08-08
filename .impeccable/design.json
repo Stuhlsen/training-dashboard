@@ -1,0 +1,179 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-05T00:00:00.000Z",
+  "title": "Design System: Training Dashboard",
+  "extensions": {
+    "colorMeta": {
+      "zone-sweetspot": {
+        "role": "primary",
+        "displayName": "Sweet Spot Ember",
+        "canonical": "#e08a3c",
+        "tonalRamp": [
+          "oklch(15% 0.10 55)",
+          "oklch(25% 0.12 55)",
+          "oklch(35% 0.14 55)",
+          "oklch(45% 0.15 55)",
+          "oklch(55% 0.16 55)",
+          "oklch(65% 0.16 55)",
+          "oklch(80% 0.13 55)",
+          "oklch(95% 0.05 55)"
+        ]
+      },
+      "zone-endurance": {
+        "role": "secondary",
+        "displayName": "Endurance Steel Blue",
+        "canonical": "#4a7fa8",
+        "tonalRamp": [
+          "oklch(15% 0.05 250)",
+          "oklch(25% 0.06 250)",
+          "oklch(35% 0.07 250)",
+          "oklch(45% 0.08 250)",
+          "oklch(55% 0.09 250)",
+          "oklch(65% 0.08 250)",
+          "oklch(80% 0.05 250)",
+          "oklch(95% 0.02 250)"
+        ]
+      },
+      "records-gold": {
+        "role": "tertiary",
+        "displayName": "Records Gold",
+        "canonical": "#c9a84c",
+        "tonalRamp": [
+          "oklch(15% 0.06 85)",
+          "oklch(25% 0.08 85)",
+          "oklch(35% 0.09 85)",
+          "oklch(45% 0.10 85)",
+          "oklch(55% 0.11 85)",
+          "oklch(65% 0.11 85)",
+          "oklch(80% 0.08 85)",
+          "oklch(95% 0.03 85)"
+        ]
+      },
+      "bg": {
+        "role": "neutral",
+        "displayName": "Void Anthracite",
+        "canonical": "#0b0e13",
+        "tonalRamp": [
+          "oklch(10% 0.015 250)",
+          "oklch(20% 0.018 250)",
+          "oklch(30% 0.02 250)",
+          "oklch(40% 0.02 250)",
+          "oklch(55% 0.015 250)",
+          "oklch(70% 0.012 250)",
+          "oklch(85% 0.008 250)",
+          "oklch(95% 0.005 250)"
+        ]
+      },
+      "text": {
+        "role": "neutral",
+        "displayName": "Frost White",
+        "canonical": "#e2e7ef",
+        "tonalRamp": [
+          "oklch(20% 0.01 250)",
+          "oklch(35% 0.01 250)",
+          "oklch(50% 0.01 250)",
+          "oklch(65% 0.01 250)",
+          "oklch(75% 0.01 250)",
+          "oklch(85% 0.01 250)",
+          "oklch(92% 0.01 250)",
+          "oklch(97% 0.005 250)"
+        ]
+      },
+      "zone-recovery": { "role": "neutral", "displayName": "Moss Recovery Green", "canonical": "#4a9a6e" },
+      "zone-threshold": { "role": "neutral", "displayName": "Threshold Alarm Red", "canonical": "#d94f4f" },
+      "zone-vo2max": { "role": "neutral", "displayName": "VO2 Violet", "canonical": "#a24ad0" },
+      "zone-tempo": { "role": "neutral", "displayName": "Tempo Ember Dusk", "canonical": "color-mix(in oklch, #e08a3c 75%, black 25%)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Hero-Headline, große Zahlenwerte (FTP-Ring, Metric-Card-Value)." },
+      "body": { "displayName": "Body", "purpose": "Fließtext, Beschreibungen, Analyse-Absätze." },
+      "label": { "displayName": "Label / Mono", "purpose": "Meta-Zeilen, Section-Labels, Tab-/Chip-Beschriftung, tabellarische Readouts." }
+    },
+    "shadows": [
+      { "name": "overlay", "value": "0 8px 28px rgba(0,0,0,0.55)", "purpose": "Tooltip, Dropdown — deckende Elemente über Chart-Inhalt." },
+      { "name": "active-glow", "value": "0 4px 14px rgba(74,127,168,0.35)", "purpose": "Aktiver Athleten-Toggle; Schattenfarbe spiegelt die Akzentfarbe des aktiven Zustands." }
+    ],
+    "breakpoints": [
+      { "name": "mobile", "value": "640px" },
+      { "name": "hero-stack", "value": "840px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Einzelner Marken-/Aktionsakzent, hoher Kontrast, pillenförmig.",
+      "html": "<button class=\"ds-btn-primary\">Speichern</button>",
+      "css": ".ds-btn-primary { padding: 9px 22px; background: var(--accent); color: #17110a; border: none; border-radius: var(--pill); font-family: var(--font-disp); font-weight: 600; font-size: 0.85rem; cursor: pointer; transition: opacity 0.15s ease, transform 0.15s ease; } .ds-btn-primary:hover { opacity: 0.88; } .ds-btn-primary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Tab Button",
+      "kind": "nav",
+      "refersTo": "tab-btn",
+      "description": "Pill-Tab im Ruhezustand, transluzent mit Haarlinien-Rand.",
+      "html": "<button class=\"ds-tab-btn\">Übersicht</button>",
+      "css": ".ds-tab-btn { padding: 11px 22px; border: 1px solid var(--border); background: var(--card); color: var(--dim); font-family: var(--font-disp); font-weight: 600; font-size: 0.92rem; white-space: nowrap; border-radius: var(--pill); transition: all 0.15s ease; } .ds-tab-btn:hover { color: var(--text); border-color: var(--border-light); } .ds-tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }"
+    },
+    {
+      "name": "Tab Button — Active",
+      "kind": "nav",
+      "refersTo": "tab-btn-active",
+      "description": "Aktiver Tab, voll mit dem Primärakzent gefüllt, dunkler Text für Kontrast.",
+      "html": "<button class=\"ds-tab-btn-active\">Analyse</button>",
+      "css": ".ds-tab-btn-active { padding: 11px 22px; border: 1px solid transparent; background: var(--accent); color: #17110a; font-family: var(--font-disp); font-weight: 600; font-size: 0.92rem; white-space: nowrap; border-radius: var(--pill); }"
+    },
+    {
+      "name": "Metric Card",
+      "kind": "card",
+      "refersTo": "metric-card",
+      "description": "Signature-Kachel: transluzentes Glas, keine Schatten, farbige Akzentkante links statt Vollfarbe.",
+      "html": "<div class=\"ds-metric-card\" style=\"--mc-color: var(--z2)\"><div class=\"ds-mc-value\">193W</div><div class=\"ds-mc-label\">FTP Gemessen</div><div class=\"ds-mc-desc\">Ramp-Test, letzter Stand</div></div>",
+      "css": ".ds-metric-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px 14px 19px; position: relative; overflow: hidden; transition: border-color 0.15s ease, transform 0.15s ease; } .ds-metric-card::before { content: ''; position: absolute; left: 0; top: 12px; bottom: 12px; width: 3px; border-radius: 3px; background: var(--mc-color, var(--accent)); } .ds-metric-card:hover { border-color: var(--border-light); transform: translateY(-2px); } .ds-mc-value { font-family: var(--font-disp); font-size: 1.5rem; font-weight: 700; color: var(--mc-color, var(--accent)); letter-spacing: -0.02em; line-height: 1.1; font-variant-numeric: tabular-nums; } .ds-mc-label { font-family: var(--font-mono); font-size: 0.62rem; color: var(--dim2); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 6px; font-weight: 500; } .ds-mc-desc { font-size: 0.72rem; color: var(--dim); margin-top: 6px; line-height: 1.4; }"
+    },
+    {
+      "name": "Status Tag",
+      "kind": "chip",
+      "refersTo": "tag",
+      "description": "Statisches, klein gerundetes Status-/Phasen-Label; Farbe 1:1 an Bedeutung gekoppelt.",
+      "html": "<span class=\"ds-tag ds-tag-p2\">Plan 2</span>",
+      "css": ".ds-tag { display: inline-block; padding: 2px 7px; border-radius: var(--radius-sm); font-size: 0.68rem; font-weight: 600; letter-spacing: 0.03em; line-height: 1.4; } .ds-tag-p2 { background: rgba(56,189,248,0.12); color: var(--blue); border: 1px solid rgba(56,189,248,0.2); }"
+    },
+    {
+      "name": "Pill Toggle",
+      "kind": "chip",
+      "refersTo": "pill-toggle",
+      "description": "Segmentierter Umschalter (z.B. Woche/Monat), aktives Segment voll gefüllt.",
+      "html": "<div class=\"ds-pill-toggle\"><button class=\"ds-pill-toggle-btn ds-active\">Woche</button><button class=\"ds-pill-toggle-btn\">Monat</button></div>",
+      "css": ".ds-pill-toggle { display: flex; gap: 0; border: 1px solid var(--border); background: var(--card); border-radius: var(--pill); overflow: hidden; width: fit-content; padding: 3px; } .ds-pill-toggle-btn { padding: 0.4rem 1.1rem; background: transparent; border: none; border-radius: var(--pill); color: var(--dim); font-family: var(--font-disp); font-size: 0.8rem; font-weight: 600; transition: all 0.15s ease; } .ds-pill-toggle-btn:hover { color: var(--text); } .ds-pill-toggle-btn.ds-active { background: var(--accent); color: #17110a; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "Der Glas-Belastungsmesser",
+    "overview": "Das System ist ein Instrument, kein Ornament. Weiche, transluzente Glaskacheln liegen auf einem tiefen Anthrazit-Blau-Grund; alles ist standardmäßig ruhig und zurückhaltend, damit Farbe genau dort auffällt, wo sie tatsächlich Bedeutung trägt — die Trainingszonen-Skala (Recovery-Grün bis VO2max-Violett), die durchgängig als Farbsystem funktioniert, nicht als Dekoration. Der Bildschirm liest sich wie ein präzises Cockpit-Readout: IBM Plex Mono für nüchterne, tabellarische Meta-Daten und Labels, Sora für die großen, selbstbewussten Zahlen und Überschriften, Inter für alles, was tatsächlich gelesen werden soll statt nur abgelesen. Dichte ist mittel-hoch (Dashboard-Charakter, viele Kacheln pro Screen), aber jede Kachel bleibt großzügig gerundet und atmet durch großen Innenabstand statt durch harte Linien. Interaktive Steuerelemente (Tabs, Toggles, Chips) sind fast durchgängig Pill-förmig; Ränder sind Haarlinien (1px, 10–18% Weiß-Deckkraft), nie schwere Umrandungen.",
+    "keyCharacteristics": [
+      "Dunkler, ruhiger Grund; Farbe ist Bedeutung, nicht Deko",
+      "Fünfstufiges Zonen-Farbsystem als durchgängige Klammer (Band, Charts, Kartenkanten)",
+      "Glas-Kacheln: transluzent, großer Radius, Haarlinien-Rand, kaum Schatten",
+      "Pill-Form für alles Interaktive; kleine radius-sm-Tags für statische Status-Labels",
+      "Dreiklang-Typografie: Sora (Zahlen/Headlines) · IBM Plex Mono (Labels/Meta) · Inter (Fließtext)"
+    ],
+    "rules": [
+      { "name": "The Zone-Coded Rule", "body": "Die fünf Zonenfarben sind ein einziges, überall wiederverwendetes Bedeutungssystem — Leistungsskala im Hero, Kartenakzentkante, Chart-Serien, Tag-Farben. Dieselbe Zone bekommt überall dieselbe Farbe; die Zuordnung wird nie für ein unverwandtes Konzept zweckentfremdet.", "section": "colors" },
+      { "name": "The Separate-Namespace Rule", "body": "Die vier Chart-Rollenfarben benennen die Funktion einer Datenserie innerhalb eines Charts, nicht die physiologische Zone. Beide Systeme koexistieren, dürfen aber nicht verwechselt oder ineinander aufgelöst werden.", "section": "colors" },
+      { "name": "The Mono-for-Meta Rule", "body": "Jede Meta-, Label- oder Readout-Zeile läuft in IBM Plex Mono, oft in Versalien mit breitem Letter-Spacing — das visuelle Signal 'das hier ist eine Messung', nie ein Stilzufall.", "section": "typography" },
+      { "name": "The Flat-by-Default Rule", "body": "Kacheln sind im Ruhezustand immer schattenlos. Ein box-shadow erscheint ausschließlich als Reaktion auf echtes Überlagern (Tooltip/Dropdown) oder einen aktiven, farblich bedeutungstragenden Zustand.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do den Akzent (Sweet-Spot-Orange) auf höchstens ein aktives/primäres Element pro Ansicht konzentrieren.",
+      "Do Zonenfarben überall identisch zuordnen — nie fürs selbe Konzept eine andere Farbe.",
+      "Do Meta-/Label-Text in IBM Plex Mono setzen; Sora für Headlines/große Zahlen; Inter für Fließtext.",
+      "Do Kacheln im Ruhezustand flach und transluzent halten; Schatten nur für echte Overlays oder aktiv-hervorgehobene Zustände."
+    ],
+    "donts": [
+      "Don't einen box-shadow auf eine ruhende Kachel legen.",
+      "Don't Chart-Rollenfarben und Zonenfarben austauschbar verwenden.",
+      "Don't dicke/deckende Ränder statt Haarlinien einsetzen."
+    ]
+  }
+}

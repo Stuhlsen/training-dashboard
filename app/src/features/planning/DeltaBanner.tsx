@@ -1,0 +1,59 @@
+import { formatSignedDelta } from "../../core/plan-feedback.js";
+import { fmtDate } from "../../core/format.js";
+import type { DeltaBannerState } from "./planning-delta";
+
+const CLOSE_BTN_STYLE: React.CSSProperties = {
+  border: "none",
+  background: "transparent",
+  color: "var(--ink-3)",
+  cursor: "pointer",
+  fontSize: "1rem",
+  lineHeight: 1,
+  padding: 4,
+};
+
+/** Persistenter Vorher/Nachher-Vergleich nach Verschieben/Ausfallen/Drag —
+ *  Port von ui/planned.js::_renderDeltaBanner (Z. 312-346). Kein
+ *  Auto-Dismiss, nur manuelles Schließen (`onClose`). */
+export function DeltaBanner({ state, onClose }: { state: DeltaBannerState; onClose: () => void }) {
+  const { event, impact } = state;
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "flex-start",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "12px 16px",
+        borderRadius: "var(--radius-sm)",
+        background: "rgba(255,255,255,.04)",
+        border: "1px solid var(--hair)",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: ".82rem", color: "var(--ink-2)" }}>
+        {event && (
+          <span>
+            TSB am Eventtag ({event.event.title ? `${event.event.title}, ` : ""}
+            {fmtDate(event.event.eventDate)}): <span style={{ color: "var(--ink-3)" }}>{Math.round(event.before)}</span> →{" "}
+            <span style={{ color: event.after < event.before ? "var(--warn)" : "var(--ink)" }}>
+              {Math.round(event.after)}
+            </span>
+          </span>
+        )}
+        {impact && (
+          <span>
+            Wirkung am {fmtDate(impact.date)} (vorher → nachher): Ermüdung{" "}
+            {formatSignedDelta(impact.before.deltaFatigue)} → {formatSignedDelta(impact.after.deltaFatigue)} · Fitness{" "}
+            {formatSignedDelta(impact.before.deltaFitness)} → {formatSignedDelta(impact.after.deltaFitness)} · Form{" "}
+            {formatSignedDelta(impact.before.deltaForm)} → {formatSignedDelta(impact.after.deltaForm)} — modelliert
+          </span>
+        )}
+        <span style={{ fontSize: ".7rem", color: "var(--ink-3)" }}>nur Information, keine Blockade</span>
+      </div>
+      <button type="button" title="Schließen" onClick={onClose} style={CLOSE_BTN_STYLE}>
+        ✕
+      </button>
+    </div>
+  );
+}

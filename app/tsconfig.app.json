@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "esnext",
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+
+    /* core/ ist portiertes Vanilla-JS (Etappe 2a), inhaltlich unverändert.
+       allowJs: damit React-Komponenten ab Etappe 4 daraus importieren können.
+       checkJs bewusst AUS: die JSDoc-Annotationen in core/ sind historisch
+       lose (40 tsc-Fehler, alle vorbestehend — die Root-jsconfig.json setzt
+       checkJs zwar, führt tsc aber nie in CI aus). Sie zu schärfen wäre eine
+       Änderung an core/ und damit außerhalb der 1:1-Portierung. */
+    "allowJs": true,
+    "checkJs": false,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "jsx": "react-jsx",
+
+    /* Linting */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["src"]
+}

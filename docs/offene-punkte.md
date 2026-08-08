@@ -149,8 +149,8 @@
 - **D4b — scharfe Leiter-Fortschreibung (C3/C4) bewusst nur für Athlet 1
   freigebbar, Athlet 2 bleibt im Beobachtungsmodus (02.08.2026, Live-
   Verdrahtung seit D4b Schritt 3 erledigt)** —
-  `profiles.ladder_progression_enabled` (Migration 0016, noch nicht gegen
-  `dashboard-dev`/`prod` angewendet) ist die athletenweite Sperre;
+  `profiles.ladder_progression_enabled` (Migration 0016, gegen `dashboard-dev`
+  und `prod` angewendet, Stand 06.08.2026) ist die athletenweite Sperre;
   `state/ladder.js::getPresetSuggestion()` prüft sie vor jedem
   Stufenvorschlag. Athlet 2 bleibt davon unabhängig unten: dünne/fehlende
   Compliance-Basis (0 echte, nur abgeleitete Compliance-Zeilen mit
@@ -358,6 +358,41 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   `assets/js/core/plan-config.js:119` (Kommentar erklärt warum), aber ohne
   Sync-Schutz — eine künftige Rekalibrierung in `plan-config.js` driftet
   unbemerkt von der Node-seitigen Kopie ab.
+
+## Dashboard 3.0 — React-Umbau
+
+- **`sport`-Spalte in der Datenbank: bewusst NICHT angelegt (Etappe 3,
+  06.08.2026)** — der STOPP-Punkt aus dem Etappenplan
+  (`docs/dashboard-3.0-konzept-react-umbau.md`, Etappe 3) ist geprüft und
+  verneint: keine der 17 Migrationen kennt eine, `plan_cards`/`events`/
+  `proposals` sind implizit Radsport. Das Sportprofil (`app/src/sports/`) ist
+  reine Client-Konfiguration; solange es genau eins gibt, trüge die Spalte in
+  jeder Zeile denselben Wert. **Auslöser für die Nachrüstung:** sobald echte
+  Daten einer zweiten Sportart entstehen — dann additiv und RLS-neutral
+  (`ADD COLUMN sport text NOT NULL DEFAULT 'cycling'`), plus die Frage, woher
+  die Zuordnung Athlet↔Sportart kommt.
+- **`app/src/core/` ist seit Etappe 3 nicht mehr byte-gleich mit
+  `assets/js/core/`** — vier Dateien (`zones.js`, `plan-config.js`,
+  `periodization.js`, `efficiency.js`) re-exportieren ihre radsport-
+  spezifischen Konstanten aus `app/src/sports/cycling/`. Die Werte sind in
+  beiden Bäumen identisch, nur ihr Ort unterscheidet sich. Für die
+  Übergangszeit bis Etappe 10 gilt: inhaltliche Fixes am Vanilla-Baum müssen
+  weiterhin nachgezogen werden, bei diesen vier Dateien landet ein geänderter
+  Wert dann in `sports/cycling/`. Umgekehrt wandert nichts zurück. Tabelle
+  der Divergenzen in `app/src/core/README.md`.
+- **`CONFIG.powerScaleMax` (300 W) ist toter Code** (aufgefallen bei Etappe 3)
+  — steht in `assets/js/state/config.js`, wird von keiner Stelle in `assets/`,
+  `scripts/` oder `tests/` gelesen; die Hero-Skala wächst dynamisch aus der FTP
+  (`core/zones.js::scaleMaxWatts`). Nicht nach `app/src/sports/` mitgezogen,
+  im Vanilla-Baum aber unangetastet gelassen — Aufräumkandidat, kein Fehler.
+- **`ProtectedRoute` sperrte alle Routen hinter Login — behoben (Etappe 10 Teil
+  A, 08.08.2026).** War seit Etappe 1 offen (s. Git-History dieser Datei),
+  bewusst auf Etappe 10 verschoben, da eine App-weite Routing-Änderung alle
+  Bereiche betrifft. Details der Umsetzung + eines dabei gefundenen zweiten
+  Lecks (Belastungsempfehlung-Kachel für Besucher sichtbar, ebenfalls
+  behoben) → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt
+  "Änderungen durch Etappe 10, Teil A+B". Teil C (echte Live-Umschaltung)
+  bleibt offen, wartet auf Freigabe von Alex.
 
 ## Infrastruktur/CI
 
