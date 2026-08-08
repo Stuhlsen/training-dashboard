@@ -24,9 +24,11 @@ import { CompareChart } from "../../charts/CompareChart";
 import { ComparePanel } from "../../charts/ComparePanel";
 import { PowerCurveChart } from "../../charts/PowerCurveChart";
 import { WeeklyVolumeChart } from "../../charts/WeeklyVolumeChart";
+import { WellnessChart, type WellnessMetric } from "../../charts/WellnessChart";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
+type WellnessDay = import("../../types.js").WellnessDay;
 
 const TODAY = localISODate();
 
@@ -95,6 +97,10 @@ export function ExplorerPage() {
   // damit PmcChart und BrushBar dieselbe Quelle teilen. Kein localStorage:
   // Hover ist flüchtig, wie `hoveredDate` in assets/js/state/chart-view.js.
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
+  // Wellness-Metrik-Umschalter (Etappe 8f, §3 im Plan) — flüchtiger UI-
+  // Zustand wie `hoveredDate`, kein localStorage.
+  const [wellnessMetric, setWellnessMetric] = useState<WellnessMetric>("hrv");
 
   // What-if-Szenario (Etappe 8d, §6) — Port von assets/js/state/chart-view.js
   // ::recomputeScenario(), hier als reine Ableitung statt injizierter
@@ -229,6 +235,27 @@ export function ExplorerPage() {
           Wochenvolumen
         </div>
         <WeeklyVolumeChart rides={rides} />
+      </GlassCard>
+
+      <GlassCard style={{ padding: 20 }}>
+        <div
+          style={{
+            fontSize: ".7rem",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
+        >
+          Wellness
+        </div>
+        <WellnessChart
+          rides={rides}
+          wellness={(rideData?.wellness as WellnessDay[] | undefined) ?? []}
+          metric={wellnessMetric}
+          onMetricChange={setWellnessMetric}
+        />
       </GlassCard>
     </div>
   );
