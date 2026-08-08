@@ -5,8 +5,9 @@ import { useMouseParallax } from "../hooks/useMouseParallax";
  *  `.image-slots.state.json` eingebettete Bild-Data-URI nur `truncated`
  *  lieferte (s. docs/vorlage-design-import.md §2). Alles unter
  *  `app/public/` liefert Vite unverändert unter `/`, kein Import/Bundling
- *  nötig. */
-const BACKGROUND_IMAGE_URL = "/background.png";
+ *  nötig. Pfad über `BASE_URL` (nicht hart "/"), sonst 404 auf GitHub
+ *  Pages unter `/training-dashboard/` (Etappe 10c, Live-Verifikation). */
+const BACKGROUND_IMAGE_URL = `${import.meta.env.BASE_URL}background.png`;
 
 const PAN_AMOUNT_X = 14;
 const PAN_AMOUNT_Y = 10;
