@@ -13,6 +13,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
+import { PageShell } from "../../components/PageShell";
 import { PRIMARY_ATHLETE_ID, phaseColor } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
@@ -283,7 +284,8 @@ export function PlanningPage() {
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveId(null)}
     >
-    <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
+    <PageShell>
+    <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Planungstab
@@ -538,6 +540,7 @@ export function PlanningPage() {
         />
       )}
     </div>
+    </PageShell>
     <DragOverlay>{activeCard && <DragPreview card={activeCard} />}</DragOverlay>
     </DndContext>
   );

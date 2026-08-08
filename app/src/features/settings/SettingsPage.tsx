@@ -13,6 +13,7 @@
 
 import { useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
+import { PageShell } from "../../components/PageShell";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { ProfileSection } from "./ProfileSection";
 import { PasswordSection } from "./PasswordSection";
@@ -28,7 +29,8 @@ export function SettingsPage() {
   const isAthlete = profile?.role === "athlete";
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "48px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
+    <PageShell>
+    <div style={{ maxWidth: 560, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
       <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
         Settings
       </h1>
@@ -53,5 +55,6 @@ export function SettingsPage() {
 
       {checkinOpen && <CheckinDialog onClose={() => setCheckinOpen(false)} />}
     </div>
+    </PageShell>
   );
 }

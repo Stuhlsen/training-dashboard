@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
+import { PageShell } from "../../components/PageShell";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useExplorerRange } from "../../api/hooks/useExplorerRange";
 import { useExplorerScenario } from "../../api/hooks/useExplorerScenario";
@@ -146,7 +147,8 @@ export function ExplorerPage() {
   }
 
   return (
-    <div style={{ maxWidth: 880, margin: "0 auto", padding: "48px 24px", display: "flex", flexDirection: "column", gap: 24 }}>
+    <PageShell>
+    <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Explorer
@@ -258,5 +260,6 @@ export function ExplorerPage() {
         />
       </GlassCard>
     </div>
+    </PageShell>
   );
 }
