@@ -8,6 +8,7 @@ import { PlanningPage } from "./features/planning/PlanningPage";
 import { ExplorerPage } from "./features/explorer/ExplorerPage";
 import { EventsPage } from "./features/events/EventsPage";
 import { LogbookPage } from "./features/logbook/LogbookPage";
+import { AnalysisPage } from "./features/analysis/AnalysisPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 
 export default function App() {
@@ -37,6 +38,7 @@ export default function App() {
             <Route path="planning" element={<PlanningPage />} />
             <Route path="explorer" element={<ExplorerPage />} />
             <Route path="log" element={<LogbookPage />} />
+            <Route path="analysis" element={<AnalysisPage />} />
             <Route path="events" element={<EventsPage />} />
             <Route element={<ProtectedRoute />}>
               <Route path="settings" element={<SettingsPage />} />

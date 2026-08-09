@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { to: "/planning", label: "Planungstab" },
   { to: "/explorer", label: "Explorer" },
   { to: "/log", label: "Fahrtenbuch" },
+  { to: "/analysis", label: "Analyse" },
   { to: "/events", label: "Events" },
   { to: "/settings", label: "Settings" },
 ];
