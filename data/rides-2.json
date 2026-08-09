@@ -15236,6 +15236,114 @@
       "sleepHours": 8.5,
       "feel": null,
       "notizen": null
+    },
+    {
+      "name": "Rennsimulation mit Schlusssprint",
+      "week": null,
+      "phase": null,
+      "typ": "Rennen",
+      "typPlanned": "Rennen",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.758,
+            "note": "NP 201W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "50 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 49% · Z3/Z4+ 46% · Z5+ 4%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
+      "date": "2026-08-08",
+      "startTime": "2026-08-08T20:13:56",
+      "activityId": "i173839339",
+      "km": 24.5,
+      "min": 50,
+      "kmh": 29.5,
+      "watt": 192,
+      "maxWatt": null,
+      "np": 201,
+      "hf": 131,
+      "hfMax": 149,
+      "kad": 88,
+      "hoehe": 20,
+      "tss": 48,
+      "if": 0.76,
+      "vi": 1.05,
+      "trimp": 59,
+      "ctl": 30.9,
+      "atl": 35,
+      "tsb": -4.1,
+      "decoupling": 6.9,
+      "dtl": 48,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 342
+        },
+        {
+          "id": "Z2",
+          "secs": 1134
+        },
+        {
+          "id": "Z3",
+          "secs": 1264
+        },
+        {
+          "id": "Z4",
+          "secs": 121
+        },
+        {
+          "id": "Z5",
+          "secs": 68
+        },
+        {
+          "id": "Z6",
+          "secs": 42
+        },
+        {
+          "id": "Z7",
+          "secs": 12
+        },
+        {
+          "id": "SS",
+          "secs": 343
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 23,
+        "tempFeel": 21,
+        "humidity": 38,
+        "windSpeed": 9.7,
+        "windDir": 81,
+        "precip": 0,
+        "cloudCover": 0,
+        "weatherCode": 0
+      },
+      "wetter": "23°C",
+      "source": "intervals.icu",
+      "ruhepuls": 48,
+      "hrv": 38,
+      "avgSleepingHR": 51,
+      "sleepHours": 8.5,
+      "feel": null,
+      "notizen": null
     }
   ],
   "wellness": [
@@ -18731,20 +18839,36 @@
       "date": "2026-08-07",
       "sleepHours": 8.2,
       "sleepScore": 90,
-      "avgSleepingHR": null,
+      "avgSleepingHR": 55,
       "restingHR": 52,
-      "hrv": null,
-      "weight": null,
+      "hrv": 44,
+      "weight": 94.4,
       "bodyFat": null,
-      "activeEnergy": null,
+      "activeEnergy": 257,
       "restingEnergy": null,
-      "kcalConsumed": null,
+      "kcalConsumed": 2818,
       "hydration": null,
-      "hydrationVolume": null,
+      "hydrationVolume": 1.06,
       "eftp": 256
     },
     {
       "date": "2026-08-08",
+      "sleepHours": 8.5,
+      "sleepScore": 87,
+      "avgSleepingHR": 51,
+      "restingHR": 48,
+      "hrv": 38,
+      "weight": 92.6,
+      "bodyFat": null,
+      "activeEnergy": 836,
+      "restingEnergy": null,
+      "kcalConsumed": 2567,
+      "hydration": null,
+      "hydrationVolume": 1,
+      "eftp": 256
+    },
+    {
+      "date": "2026-08-09",
       "sleepHours": null,
       "sleepScore": null,
       "avgSleepingHR": null,
@@ -18762,9 +18886,9 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-06",
-      "restingHR": "2026-08-07",
-      "sleepHours": "2026-08-07"
+      "hrv": "2026-08-08",
+      "restingHR": "2026-08-08",
+      "sleepHours": "2026-08-08"
     }
   },
   "powerCurves": {
@@ -18773,12 +18897,12 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-08-08T00:00:00",
-        "end_date_local": "2026-08-08T23:59:59",
+        "start_date_local": "2025-08-09T00:00:00",
+        "end_date_local": "2026-08-09T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 93.6,
+        "weight": 92.6,
         "secs": [
           1,
           2,
@@ -20718,7 +20842,7 @@
       }
     }
   },
-  "athleteWeight": 93.6,
+  "athleteWeight": 92.6,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -21541,7 +21665,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-08T18:55:03.591Z",
+  "updated": "2026-08-09T01:00:10.889Z",
   "source": "intervals.icu",
-  "count": 141
+  "count": 142
 }
