@@ -13,10 +13,11 @@ import { GlassCard } from "../../components/GlassCard";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { BriefingCard, LEVEL_COLOR } from "./BriefingCard";
 import { FtpRings } from "./FtpRings";
+import { MetricsGrid } from "./MetricsGrid";
 import { PowerScale } from "./PowerScale";
 import { RaceCountdownPill } from "./RaceCountdownPill";
 import { WeatherCard } from "./WeatherCard";
-import { buildHeroCore, buildPowerScale, type HeroCoreInput } from "./hero-view-model";
+import { buildHeroCore, buildHeroMetrics, buildPowerScale, type HeroCoreInput } from "./hero-view-model";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -89,6 +90,15 @@ export function HeroPage() {
   }, [activeAthleteId, athleteData, planCards, isSelf, checkin]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
+
+  // Gesamtstatistiken-Kachelreihe (Etappe 11c) — nutzt core.ramp/core.eftp
+  // statt FTP/eFTP ein zweites Mal herzuleiten (s. buildHeroMetrics()-
+  // Kommentar), läuft daher nicht mit durch buildHeroCore()s teure Memo,
+  // sondern bekommt ihre eigene, billigere.
+  const metrics = useMemo(() => {
+    const rides = (athleteData?.rides as Ride[] | undefined) ?? [];
+    return buildHeroMetrics(rides, core.ramp, core.eftp);
+  }, [athleteData, core.ramp, core.eftp]);
 
   // 3D-Tilt der gesamten Karten-"Plate" mit der Mausposition — der
   // Hintergrund-Pan läuft unabhängig in AppBackground.tsx (eigene
@@ -214,6 +224,10 @@ export function HeroPage() {
             onWhatIfChange={setWhatIfFtp}
             eftpVal={vm.eftp.value || null}
           />
+        </div>
+
+        <div style={{ transform: "translateZ(14px)" }}>
+          <MetricsGrid metrics={metrics} />
         </div>
       </div>
     </div>

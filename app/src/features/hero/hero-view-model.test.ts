@@ -3,7 +3,7 @@
    Berechnungen dahinter sind bereits in core/*.test.js abgedeckt. */
 
 import { describe, expect, it } from "vitest";
-import { buildHeroViewModel, type HeroViewModelInput } from "./hero-view-model";
+import { buildHeroMetrics, buildHeroViewModel, type HeroViewModelInput } from "./hero-view-model";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -130,5 +130,59 @@ describe("buildHeroViewModel", () => {
       rides: [...BASE_INPUT.rides, { dateISO: "2026-07-22", date: "2026-07-22", eftp: 205 } as Ride],
     });
     expect(vm.powerScale.pins.map((p) => p.kind).sort()).toEqual(["eftp", "goal", "ramp"]);
+  });
+});
+
+describe("buildHeroMetrics", () => {
+  const metricRides = [
+    { dateISO: "2026-07-20", date: "2026-07-20", km: 40, min: 90, kmh: 26.7, ctl: 40, hf: 140, kad: 85 },
+    { dateISO: "2026-07-22", date: "2026-07-22", km: 60, min: 130, kmh: 27.7, ctl: 42, hf: 150, kad: 88, week: "2026-KW30" },
+  ] as Ride[];
+  const ramp = { value: 193, progress: 0.6, date: "2026-06-12" };
+  const eftp = { value: 199, progress: 0.7 };
+
+  it("Grundwerte: Gesamtdistanz, Fahrten, Trainingszeit, Ø Tempo aus den Ist-Fahrten", () => {
+    const metrics = buildHeroMetrics(metricRides, ramp, eftp);
+    const byLabel = Object.fromEntries(metrics.map((m) => [m.label, m.value]));
+    expect(byLabel["Gesamtdistanz"]).toBe("100 km");
+    expect(byLabel["Fahrten"]).toBe(2);
+    expect(byLabel["Trainingszeit"]).toBe("3:40h");
+    expect(byLabel["Ø Tempo"]).toBe("27,2 km/h");
+  });
+
+  it("FTP-Kachel übernimmt ramp.value/ramp.date 1:1 (kein zweiter ftpValue()-Aufruf)", () => {
+    const metrics = buildHeroMetrics(metricRides, ramp, eftp);
+    const ftpTile = metrics.find((m) => m.label === "FTP (Ramp Test)");
+    expect(ftpTile?.value).toBe("193W");
+    expect(ftpTile?.desc).toContain("12.06.2026");
+  });
+
+  it("FTP-Kachel ohne ramp.value: '–' statt '0W'", () => {
+    const metrics = buildHeroMetrics(metricRides, { value: 0, progress: 0, date: null }, eftp);
+    expect(metrics.find((m) => m.label === "FTP (Ramp Test)")?.value).toBe("–");
+  });
+
+  it("eFTP-Kachel nur bei truthy eftp.value, Beschreibung athletenabhängig (ownPlan aus rides.week)", () => {
+    const withPlan = buildHeroMetrics(metricRides, ramp, eftp);
+    expect(withPlan.find((m) => m.label === "eFTP (Intervals.icu)")?.desc).toContain("besten Leistungen");
+
+    const withoutPlan = buildHeroMetrics(
+      metricRides.map((r) => ({ ...r, week: undefined })) as Ride[],
+      ramp,
+      eftp,
+    );
+    expect(withoutPlan.find((m) => m.label === "eFTP (Intervals.icu)")?.desc).toContain("Vergleichsdaten");
+
+    const noEftp = buildHeroMetrics(metricRides, ramp, { value: 0, progress: 0 });
+    expect(noEftp.find((m) => m.label === "eFTP (Intervals.icu)")).toBeUndefined();
+  });
+
+  it("CTL Peak / Längste Fahrt / Ø HF / Ø Kadenz aus den passenden Feldern", () => {
+    const metrics = buildHeroMetrics(metricRides, ramp, eftp);
+    const byLabel = Object.fromEntries(metrics.map((m) => [m.label, m.value]));
+    expect(byLabel["CTL Peak"]).toBe("42");
+    expect(byLabel["Längste Fahrt"]).toBe("60,0 km");
+    expect(byLabel["Ø Herzfrequenz"]).toBe("145 bpm");
+    expect(byLabel["Ø Kadenz"]).toBe("87 RPM");
   });
 });
