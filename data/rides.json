@@ -5902,6 +5902,122 @@
       "id": 86,
       "dateShort": "08.08",
       "dateISO": "2026-08-08"
+    },
+    {
+      "name": "Ruhetag",
+      "week": "2026-KW32",
+      "phase": "Schwelle",
+      "typ": "Ruhetag",
+      "typPlanned": "Ruhetag",
+      "typDetected": "Sweet Spot",
+      "typDetection": {
+        "type": "Sweet Spot",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.876,
+            "note": "NP 169W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+          },
+          {
+            "label": "Dauer",
+            "value": "112 min"
+          },
+          {
+            "label": "Zusammenhängender Block",
+            "value": "25 min zusammenhängend über Schwelle (183 W, 22.6% der Fahrzeit)",
+            "note": "hebt Einstufung von Tempo auf Sweet Spot an"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 49% · Z3/Z4+ 34% · Z5+ 17%",
+            "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+          }
+        ],
+        "rule": "block-upgrade-sweet-spot"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
+      "date": "2026-08-09",
+      "startTime": "2026-08-09T13:30:33",
+      "activityId": "i174051238",
+      "km": 45.1,
+      "min": 112,
+      "kmh": 24.4,
+      "watt": 139,
+      "maxWatt": null,
+      "np": 169,
+      "hf": 149,
+      "hfMax": 183,
+      "kad": 89,
+      "hoehe": 25,
+      "tss": 143,
+      "if": 0.88,
+      "vi": 1.22,
+      "trimp": 161,
+      "ctl": 76.1,
+      "atl": 90.2,
+      "tsb": -14.1,
+      "decoupling": -3.4,
+      "dtl": 143,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 2016
+        },
+        {
+          "id": "Z2",
+          "secs": 1267
+        },
+        {
+          "id": "Z3",
+          "secs": 1262
+        },
+        {
+          "id": "Z4",
+          "secs": 999
+        },
+        {
+          "id": "Z5",
+          "secs": 590
+        },
+        {
+          "id": "Z6",
+          "secs": 389
+        },
+        {
+          "id": "Z7",
+          "secs": 182
+        },
+        {
+          "id": "SS",
+          "secs": 1036
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 30.6,
+        "tempFeel": 30.4,
+        "humidity": 29,
+        "windSpeed": 11.3,
+        "windDir": 157,
+        "precip": 0,
+        "cloudCover": 2,
+        "weatherCode": 1
+      },
+      "wetter": "30.6°C",
+      "source": "intervals.icu",
+      "ruhepuls": 53,
+      "hrv": 56,
+      "avgSleepingHR": 54,
+      "sleepHours": 7.8,
+      "feel": null,
+      "notizen": null,
+      "id": 87,
+      "dateShort": "09.08",
+      "dateISO": "2026-08-09"
     }
   ],
   "wellness": [
@@ -7444,7 +7560,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 80.95,
+        "weight": 79.35,
         "secs": [
           1,
           2,
@@ -11774,7 +11890,7 @@
             "days": 14,
             "moving_time": 0,
             "training_load": 0,
-            "weight": 80.95,
+            "weight": 79.35,
             "secs": [
               1,
               2,
@@ -11948,7 +12064,7 @@
               9600
             ],
             "values": [
-              748,
+              777,
               744,
               735,
               721,
@@ -12120,7 +12236,7 @@
               115
             ],
             "activity_id": [
-              "i171814551",
+              "i174051238",
               "i171814551",
               "i171814551",
               "i171814551",
@@ -12292,7 +12408,7 @@
               "i173816005"
             ],
             "watts_per_kg": [
-              9.443038,
+              9.792061,
               9.329114,
               9.202532,
               9.07595,
@@ -12464,7 +12580,7 @@
               1.4206301
             ],
             "wkg_activity_id": [
-              "i170114578",
+              "i174051238",
               "i170114578",
               "i170114578",
               "i170114578",
@@ -12649,8 +12765,8 @@
               {
                 "type": "MORTON_3P",
                 "criticalPower": 192,
-                "wPrime": 9709,
-                "pMax": 748,
+                "wPrime": 9685,
+                "pMax": 777,
                 "inputPointIndexes": [
                   88,
                   97,
@@ -12664,7 +12780,7 @@
                 "type": "FFT_CURVES",
                 "criticalPower": 191,
                 "wPrime": 12000,
-                "pMax": 748,
+                "pMax": 777,
                 "inputPointIndexes": [
                   89,
                   117
@@ -12675,7 +12791,7 @@
                 "type": "ECP",
                 "criticalPower": 191,
                 "wPrime": 13440,
-                "pMax": 748,
+                "pMax": 777,
                 "inputPointIndexes": [
                   117
                 ],
@@ -12696,7 +12812,7 @@
               "mapWatts": 0
             },
             "watts": [
-              748,
+              777,
               744,
               735,
               721,
@@ -12882,6 +12998,16 @@
             "start_date_local": "2026-08-04T16:44:44",
             "race": false
           },
+          "i174051238": {
+            "id": "i174051238",
+            "name": "Radfahren",
+            "distance": 45106.88,
+            "moving_time": 6705,
+            "training_load": 143,
+            "icu_weight": 79.35,
+            "start_date_local": "2026-08-09T13:30:33",
+            "race": false
+          },
           "i171814551": {
             "id": "i171814551",
             "name": "Radfahren",
@@ -12941,7 +13067,7 @@
             "days": 43,
             "moving_time": 0,
             "training_load": 0,
-            "weight": 80.95,
+            "weight": 79.35,
             "secs": [
               1,
               2,
@@ -13140,7 +13266,7 @@
               17100
             ],
             "values": [
-              771,
+              777,
               767,
               735,
               721,
@@ -13337,7 +13463,7 @@
               117
             ],
             "activity_id": [
-              "i166361894",
+              "i174051238",
               "i161294934",
               "i171814551",
               "i171814551",
@@ -13534,7 +13660,7 @@
               "i169160035"
             ],
             "watts_per_kg": [
-              9.710327,
+              9.792061,
               9.546599,
               9.202532,
               9.07595,
@@ -13731,7 +13857,7 @@
               1.4543195
             ],
             "wkg_activity_id": [
-              "i166361894",
+              "i174051238",
               "i166361894",
               "i170114578",
               "i170114578",
@@ -13941,8 +14067,8 @@
               {
                 "type": "MORTON_3P",
                 "criticalPower": 179,
-                "wPrime": 26365,
-                "pMax": 771,
+                "wPrime": 26329,
+                "pMax": 777,
                 "inputPointIndexes": [
                   91,
                   98,
@@ -13954,7 +14080,7 @@
                 "type": "FFT_CURVES",
                 "criticalPower": 196,
                 "wPrime": 15960,
-                "pMax": 771,
+                "pMax": 777,
                 "inputPointIndexes": [
                   98
                 ],
@@ -13964,7 +14090,7 @@
                 "type": "ECP",
                 "criticalPower": 196,
                 "wPrime": 18810,
-                "pMax": 771,
+                "pMax": 777,
                 "inputPointIndexes": [
                   98
                 ],
@@ -13985,7 +14111,7 @@
               "mapWatts": 0
             },
             "watts": [
-              771,
+              777,
               767,
               735,
               721,
@@ -14274,6 +14400,16 @@
             "training_load": 156,
             "icu_weight": 80,
             "start_date_local": "2026-07-09T16:22:42",
+            "race": false
+          },
+          "i174051238": {
+            "id": "i174051238",
+            "name": "Radfahren",
+            "distance": 45106.88,
+            "moving_time": 6705,
+            "training_load": 143,
+            "icu_weight": 79.35,
+            "start_date_local": "2026-08-09T13:30:33",
             "race": false
           },
           "i167827258": {
@@ -16886,31 +17022,31 @@
   },
   "forecast": {
     "2026-08-09": {
-      "temp": 27.4,
-      "tempFeel": 26.7,
-      "humidity": 38,
-      "windSpeed": 9.4,
-      "windDir": 144,
+      "temp": 27.2,
+      "tempFeel": 26.5,
+      "humidity": 39,
+      "windSpeed": 10.2,
+      "windDir": 145,
       "precipProb": 0,
       "weatherCode": 3,
       "uvMax": 6.2
     },
     "2026-08-10": {
       "temp": 27.9,
-      "tempFeel": 26.8,
-      "humidity": 35,
-      "windSpeed": 11.4,
-      "windDir": 254,
+      "tempFeel": 26.7,
+      "humidity": 36,
+      "windSpeed": 12.3,
+      "windDir": 262,
       "precipProb": 2,
       "weatherCode": 3,
       "uvMax": 6.2
     },
     "2026-08-11": {
-      "temp": 20.2,
-      "tempFeel": 18.9,
-      "humidity": 49,
-      "windSpeed": 9.6,
-      "windDir": 314,
+      "temp": 20.3,
+      "tempFeel": 19,
+      "humidity": 46,
+      "windSpeed": 9.4,
+      "windDir": 321,
       "precipProb": 0,
       "weatherCode": 2,
       "uvMax": 6.2
@@ -17050,7 +17186,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-09T12:30:21.563Z",
+  "updated": "2026-08-09T13:55:13.461Z",
   "source": "notion+intervals",
-  "count": 86
+  "count": 87
 }
