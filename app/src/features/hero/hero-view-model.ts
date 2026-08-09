@@ -20,7 +20,8 @@
    ============================================================ */
 
 import { athleteConfig, type AthleteConfig } from "../../config";
-import { fmtDate, weatherIcon, windDir, fmt, fmtInt } from "../../core/format.js";
+import { fmtDate, weatherIcon, windDir, fmt, fmtInt, fmtDuration } from "../../core/format.js";
+import { sum, avg, maxVal } from "../../core/stats.js";
 import { currentPmc, tsbTrend } from "../../core/pmc.js";
 import { assessReadiness, getSubjectiveReadiness } from "../../core/readiness.js";
 import { buildLoadGuard } from "../../core/loadguard.js";
@@ -373,4 +374,91 @@ export function buildHeroViewModel(input: HeroViewModelInput): HeroViewModel {
   const core = buildHeroCore(input);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, input.whatIfFtp);
   return { ...core, powerScale };
+}
+
+export interface HeroMetric {
+  value: string | number;
+  label: string;
+  desc: string;
+  color: string;
+}
+
+/** Port von `ui/overview.js::_renderMetrics()` (Gesamtstatistiken-Kachelreihe,
+ *  Etappe 11c). Nimmt `ramp`/`eftp` aus dem bereits gebauten `HeroCore`
+ *  entgegen statt eFTP/FTP ein zweites Mal selbst herzuleiten — Ring und
+ *  Kachel zeigen dadurch garantiert denselben Wert (die Vanilla-Version
+ *  berechnete beides getrennt, mit identischer Formel, aber zwei
+ *  Aufrufstellen). Ebenso entfällt der NP-Fallback aus `Data.ftpValue()`:
+ *  `HeroCore.ramp.value` kommt ausschließlich aus `athleteCfg.ftpMeasured`
+ *  (Pflichtfeld in `AthleteConfig`, s. config.ts) — der Vanilla-Zweig
+ *  "kein ftpMeasured → höchstes NP" ist damit hier unerreichbar. */
+export function buildHeroMetrics(rides: Ride[], ramp: HeroCore["ramp"], eftp: HeroCore["eftp"]): HeroMetric[] {
+  const ownPlan = rides.some((r) => r.week);
+  const totalKm = sum(rides, "km");
+  const totalMin = sum(rides, "min");
+  const avgKmh = avg(
+    rides.filter((r) => r.kmh),
+    "kmh",
+  );
+  const maxCTL = maxVal(
+    rides.filter((r) => r.ctl != null),
+    "ctl",
+  );
+  const maxKm = maxVal(rides, "km");
+  const avgHF = avg(
+    rides.filter((r) => r.hf),
+    "hf",
+  );
+  const avgKad = avg(
+    rides.filter((r) => r.kad),
+    "kad",
+  );
+
+  const metrics: HeroMetric[] = [
+    {
+      value: `${Math.round(totalKm).toLocaleString("de")} km`,
+      label: "Gesamtdistanz",
+      desc: "Summierte Streckenlänge aller Fahrten",
+      color: "var(--accent)",
+    },
+    { value: rides.length, label: "Fahrten", desc: "Anzahl absolvierter Trainingseinheiten", color: "var(--ink)" },
+    { value: fmtDuration(totalMin), label: "Trainingszeit", desc: "Gesamte Fahrtdauer ohne Pausen", color: "var(--role-primary)" },
+    {
+      value: `${fmt(avgKmh)} km/h`,
+      label: "Ø Tempo",
+      desc: "Durchschnittliche Geschwindigkeit aller Fahrten",
+      color: "var(--role-status)",
+    },
+    {
+      value: ramp.value ? `${ramp.value}W` : "–",
+      label: "FTP (Ramp Test)",
+      desc: `Gemessene FTP aus dem Ramp-Test${ramp.date ? " vom " + ramp.date.split("-").reverse().join(".") : ""}`,
+      color: "var(--role-status)",
+    },
+  ];
+
+  if (eftp.value) {
+    metrics.push({
+      value: `${eftp.value}W`,
+      label: "eFTP (Intervals.icu)",
+      desc: ownPlan
+        ? "Geschätzte FTP aus den besten Leistungen über verschiedene Zeitfenster"
+        : "Geschätzte FTP aus intervals.icu (Vergleichsdaten)",
+      color: "var(--role-positive)",
+    });
+  }
+
+  metrics.push(
+    { value: fmtInt(maxCTL), label: "CTL Peak", desc: "Höchster Chronic Training Load — erreichte Fitnessstufe", color: "var(--role-positive)" },
+    { value: `${fmt(maxKm)} km`, label: "Längste Fahrt", desc: "Die längste einzelne Ausfahrt", color: "var(--role-primary)" },
+    {
+      value: `${fmtInt(avgHF)} bpm`,
+      label: "Ø Herzfrequenz",
+      desc: "Durchschnittliche HF über alle Fahrten mit HF-Daten",
+      color: "var(--role-secondary)",
+    },
+    { value: `${fmtInt(avgKad)} RPM`, label: "Ø Kadenz", desc: "Durchschnittliche Trittfrequenz über alle Fahrten", color: "var(--role-status)" },
+  );
+
+  return metrics;
 }

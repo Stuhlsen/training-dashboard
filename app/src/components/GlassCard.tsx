@@ -1,4 +1,4 @@
-import type { CSSProperties, ReactNode } from "react";
+import type { CSSProperties, MouseEvent, ReactNode } from "react";
 
 interface GlassCardProps {
   children: ReactNode;
@@ -8,15 +8,21 @@ interface GlassCardProps {
   radius?: string;
   style?: CSSProperties;
   className?: string;
+  /** Optional — direkte `style`-Mutation am Hover-Ziel (Muster aus
+   *  LogbookPage.tsx), da diese App keine CSS-Datei für `:hover` hat. */
+  onMouseEnter?: (e: MouseEvent<HTMLDivElement>) => void;
+  onMouseLeave?: (e: MouseEvent<HTMLDivElement>) => void;
 }
 
 /** Geteilte Glass/Blur-Card-Hülle — Design-Grundbaustein aus dem
  *  Hero-Redesign-Export (`--glass`/`--glass-2`, `--e2`/`--e3`), von allen
  *  drei Hero-Tiers genutzt und für spätere Bereiche wiederverwendbar. */
-export function GlassCard({ children, variant = "soft", radius = "var(--radius-lg)", style, className }: GlassCardProps) {
+export function GlassCard({ children, variant = "soft", radius = "var(--radius-lg)", style, className, onMouseEnter, onMouseLeave }: GlassCardProps) {
   return (
     <div
       className={className}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       style={{
         background: variant === "strong" ? "var(--glass)" : "var(--glass-2)",
         backdropFilter: "blur(var(--blur, 16px))",
