@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
@@ -56,6 +56,7 @@ function toProjectionEvent(e: EventItem) {
 
 export function ExplorerPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const { data: rideData } = useRides(activeAthleteId);
   const { data: cards } = usePlanCards(activeAthleteId);
@@ -98,6 +99,35 @@ export function ExplorerPage() {
   // damit PmcChart und BrushBar dieselbe Quelle teilen. Kein localStorage:
   // Hover ist flüchtig, wie `hoveredDate` in assets/js/state/chart-view.js.
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
+
+  // Rückrichtung Fahrtenbuch → PMC-Crosshair (Etappe 11b) — Port von
+  // assets/js/state/chart-view.js::setSelected() (dort ein persistenter
+  // Cross-Tab-Pin). In der Routing-Welt hier stattdessen dasselbe
+  // `location.state.highlightDate`-Sprungmuster wie handleSelectDate oben
+  // (→ PlanningPage): ein einmaliges Setzen von `hoveredDate` beim Landen
+  // auf dieser Seite, kein dauerhafter Pin über einen globalen Store — der
+  // nächste eigene Hover überschreibt es ganz normal. Liegt das Datum
+  // außerhalb des aktuell sichtbaren Brush-Fensters, passiert nichts
+  // (stiller No-op, wie beim Planungstab-Sprung bei fehlender Karte).
+  //
+  // "Zustand während des Renderns anpassen"-Muster (wie deltaBanner-
+  // Reset in PlanningPage.tsx) statt setHoveredDate() in einem Effekt —
+  // vermeidet den kaskadierenden Re-Render, den react-hooks/set-state-
+  // in-effect zurecht verbietet. Nur das Räumen des Router-State (echter
+  // externer Seiteneffekt, kein lokales setState) bleibt im Effekt.
+  const highlightDate = (location.state as { highlightDate?: string } | null)?.highlightDate ?? null;
+  const [handledHighlight, setHandledHighlight] = useState<string | null>(null);
+  if (highlightDate !== handledHighlight && range) {
+    setHandledHighlight(highlightDate);
+    if (highlightDate && highlightDate >= range.fromISO && highlightDate <= range.toISO) {
+      setHoveredDate(highlightDate);
+    }
+  }
+  useEffect(() => {
+    if (highlightDate && handledHighlight === highlightDate) {
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [highlightDate, handledHighlight, location.pathname, navigate]);
 
   // Wellness-Metrik-Umschalter (Etappe 8f, §3 im Plan) — flüchtiger UI-
   // Zustand wie `hoveredDate`, kein localStorage.

@@ -1363,7 +1363,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 9 | **Settings** | `[HA]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 9" oben. Name/Passwort (alle Rollen) + Ziele/FTP-Historie/Formate/Datenquellen (athletengated), inkl. `CheckinDialog.tsx` als Nachtrag über den Vanilla-Port hinaus (fehlende Befinden-Check-in-UI). `ladder_progression_enabled` bewusst nicht angefasst (DB-Grant sperrt Self-Service, Migration 0016) |
 | 10 | **Umschaltung** (Teil A+B+C) | `[F5]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 10, Teil A+B" und "...Teil C" oben. Sichtbarkeits-Matrix als App-weites Routing-Gate, Security-Regressionsdurchlauf, Live-Merge `dashboard-3.0` → `main`, Deploy-Pipeline auf `app/dist`. Offen (auf Alex' Wunsch zurückgestellt): alte Vanilla-Dateien aus `main` entfernen |
 | 11a | **Nacharbeiten — Menü-Design + Seitenbreite** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Pill-Nav + `PageShell` auf allen Seiten, live verifiziert |
-| 11b | **Nacharbeiten — Fahrtenbuch** | `[OP]` | ⏳ offen. Neue Seite, Port von `ui/table.js` — fehlte auf der gesamten Etappe-1–10-Roadmap komplett |
+| 11b | **Nacharbeiten — Fahrtenbuch** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Neue Route `/log` (`LogbookPage.tsx`), Filter/Suche/Sort + Wetter-Tooltip aus `ui/table.js` portiert, `📅`-Link → Planungstab und Zeilen-Klick → Explorer-Crosshair verkabelt |
 | 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ⏳ offen. Port von `ui/overview.js::_renderMetrics()` in `HeroPage.tsx` |
 | 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ⏳ offen. Neue Route + Shell, Sektionen Belastung/Intensität (Kern-Module bereits portiert) |
 | 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
@@ -1418,12 +1418,36 @@ mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
   innerhalb des breiten Rahmens (Rückfrage mit Alex). `tsc -b` sauber,
   `vitest` 1065/1065, Playwright-Snapshot lokal + live gegen
   `stuhlsen.github.io/training-dashboard/` bestätigt, 0 Konsolenfehler.
-- **11b — Fahrtenbuch (neue Seite).** Fehlt laut Konzept komplett ("keine
-  Roadmap-Zeile dafür", s. §7.1). Port von `ui/table.js`: sortierbare/
-  filterbare Fahrtenliste, Subjective-Spalte (RPE/Feel) nur für den
-  eigenen Athleten schreibbar (`write-authorization`-Gate wie Planungstab).
-  Neue Route `/log` (o. ä.) + Nav-Eintrag. Eigene neue Dateien
-  (`features/logbook/`), kein Überschneidungsrisiko mit anderen Häppchen.
+- **11b — Fahrtenbuch (neue Seite).** ✅ umgesetzt (08.08.2026). Zwei
+  Rückfragen mit Alex vor dem Bau (Konzept-Text wich vom tatsächlichen
+  Vanilla-Stand ab): (1) die hier ursprünglich genannte schreibbare
+  Befinden-Spalte (RPE/Feel) existiert im aktuellen `ui/table.js` selbst
+  nicht mehr — in Commit `c26e44c` entfernt, dokumentierter, bisher
+  unbehobener Feature-Verlust (s. `docs/offene-punkte.md`). Entscheidung:
+  11b portiert den AKTUELLEN Vanilla-Stand 1:1 (keine Befinden-Spalte),
+  der Feature-Verlust wird hier nicht nebenbei mitgefixt. (2) zwei
+  Cross-Feature-Verkabelungen aus dem Vanilla-Fahrtenbuch (`📅`-Link zur
+  Planungstab-Fahrt, Hover/Klick-Sync mit dem PMC-Chart-Crosshair) hatten
+  im React-Teil noch keine Gegenstelle (kein globaler Hover-Status wie
+  `state/chart-view.js`, nur lokale Props je Seite) — Alex entschied
+  "beides bauen". Umgesetzt über das bereits etablierte
+  `location.state.highlightDate`-Sprungmuster (Etappe 8c,
+  `ExplorerPage::handleSelectDate` → `PlanningPage`), kein neuer globaler
+  Store nötig: Fahrtenbuch-Zeilenklick → Sprung zu `/explorer`, das dort
+  ankommende `highlightDate` setzt (sofern im sichtbaren Brush-Fenster,
+  sonst stiller No-op) den PMC-Crosshair via "Zustand während des
+  Renderns anpassen" statt eines setState-in-Effekt (vermeidet den von
+  `react-hooks/set-state-in-effect` zu Recht verbotenen kaskadierenden
+  Re-Render). `📅`-Icon (nur intervals.icu-Ära-Fahrten) → Sprung zu
+  `/planning`, nutzt den dortigen Mechanismus unverändert. Kein
+  Wochen-Filter-Tag portiert: der einzige Vanilla-Aufrufer (Klick auf
+  einen Wochen-Balken im Trainings-Chart) existiert im React-Port noch
+  nicht, ein Tag ohne Weg ihn zu setzen wäre tote UI. `weekOrder`/
+  `weekIndex()` (Sortier-Fallback für Notion-Ära-Wochenlabels) dafür neu
+  nach `config.ts` portiert — in Etappe 2b bewusst ausgelassen (Planungstab
+  brauchte es nicht), das Fahrtenbuch braucht es für `weekSortIndex()`.
+  `tsc -b` sauber, `vitest` 1079/1079 (+14 neue Tests in
+  `logbook-view-model.test.ts`), ESLint sauber.
 - **11c — Hero: Gesamtstatistiken-Kacheln.** Port von
   `ui/overview.js::_renderMetrics()` (Gesamtdistanz, Fahrten, Trainingszeit,
   Ø Tempo, FTP/eFTP, CTL Peak, längste Fahrt, Ø Herzfrequenz, Ø Kadenz) als
