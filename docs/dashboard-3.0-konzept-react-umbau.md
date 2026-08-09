@@ -1364,7 +1364,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 10 | **Umschaltung** (Teil A+B+C) | `[F5]` | ✅ umgesetzt (08.08.2026) — s. "Änderungen durch Etappe 10, Teil A+B" und "...Teil C" oben. Sichtbarkeits-Matrix als App-weites Routing-Gate, Security-Regressionsdurchlauf, Live-Merge `dashboard-3.0` → `main`, Deploy-Pipeline auf `app/dist`. Offen (auf Alex' Wunsch zurückgestellt): alte Vanilla-Dateien aus `main` entfernen |
 | 11a | **Nacharbeiten — Menü-Design + Seitenbreite** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Pill-Nav + `PageShell` auf allen Seiten, live verifiziert |
 | 11b | **Nacharbeiten — Fahrtenbuch** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Neue Route `/log` (`LogbookPage.tsx`), Filter/Suche/Sort + Wetter-Tooltip aus `ui/table.js` portiert, `📅`-Link → Planungstab und Zeilen-Klick → Explorer-Crosshair verkabelt |
-| 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ⏳ offen. Port von `ui/overview.js::_renderMetrics()` in `HeroPage.tsx` |
+| 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `MetricsGrid.tsx` (Port von `ui/overview.js::_renderMetrics()`) unten in `HeroPage.tsx`, nutzt `core.ramp`/`core.eftp` statt FTP/eFTP ein zweites Mal herzuleiten |
 | 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ⏳ offen. Neue Route + Shell, Sektionen Belastung/Intensität (Kern-Module bereits portiert) |
 | 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
 | 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
@@ -1448,14 +1448,23 @@ mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
   brauchte es nicht), das Fahrtenbuch braucht es für `weekSortIndex()`.
   `tsc -b` sauber, `vitest` 1079/1079 (+14 neue Tests in
   `logbook-view-model.test.ts`), ESLint sauber.
-- **11c — Hero: Gesamtstatistiken-Kacheln.** Port von
+- **11c — Hero: Gesamtstatistiken-Kacheln.** ✅ umgesetzt (09.08.2026). Port von
   `ui/overview.js::_renderMetrics()` (Gesamtdistanz, Fahrten, Trainingszeit,
   Ø Tempo, FTP/eFTP, CTL Peak, längste Fahrt, Ø Herzfrequenz, Ø Kadenz) als
-  neue Kachelreihe unten in `HeroPage.tsx`. Reine Anzeige, alle Werte aus
-  bereits geladenen `rides`/`Data`-Äquivalenten (`useRides()`) ableitbar,
-  kein neuer Hook nötig. Additive Änderung an einer bestehenden Datei —
-  kleines Konfliktrisiko mit 11a, falls beide `HeroPage.tsx` gleichzeitig
-  anfassen; sonst unabhängig.
+  neue `MetricsGrid.tsx`-Kachelreihe unten in `HeroPage.tsx`. Neue Funktion
+  `buildHeroMetrics()` in `hero-view-model.ts` nimmt bewusst `core.ramp`/
+  `core.eftp` aus dem bereits gebauten `HeroCore` entgegen statt FTP/eFTP
+  ein zweites Mal herzuleiten — Ring und Kachel zeigen dadurch garantiert
+  denselben Wert. Der NP-Fallback aus Vanillas `Data.ftpValue()` entfällt
+  dabei bewusst: `HeroCore.ramp.value` kommt ausschließlich aus
+  `athleteCfg.ftpMeasured` (Pflichtfeld in `AthleteConfig`), der Vanilla-
+  Zweig "kein ftpMeasured → höchstes NP" ist im React-Port unerreichbar.
+  `GlassCard` um optionale `onMouseEnter`/`onMouseLeave` erweitert (Hover-
+  Transform der Kacheln, Muster aus `LogbookPage.tsx` — diese App stylt
+  ausschließlich inline, keine `:hover`-Regel in einer CSS-Datei). `tsc -b`
+  sauber, `vitest` 1084/1084 (+5 neue Tests in `hero-view-model.test.ts`).
+  Live-Playwright-Check ausgelassen (Browser-Lock durch eine parallele
+  Session) — auf Alex' Wunsch nur per `tsc`/`vitest` verifiziert.
 - **11d — Analyse-Tab: Grundgerüst + Belastung + Intensität.** Neue Route
   `/analysis` (o. ä.) + Nav-Eintrag + `features/analysis/AnalysisPage.tsx`
   als Shell (wer zuerst startet, legt sie an — bei echter Parallelität mit
