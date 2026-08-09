@@ -1365,7 +1365,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 11a | **Nacharbeiten — Menü-Design + Seitenbreite** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Pill-Nav + `PageShell` auf allen Seiten, live verifiziert |
 | 11b | **Nacharbeiten — Fahrtenbuch** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Neue Route `/log` (`LogbookPage.tsx`), Filter/Suche/Sort + Wetter-Tooltip aus `ui/table.js` portiert, `📅`-Link → Planungstab und Zeilen-Klick → Explorer-Crosshair verkabelt |
 | 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `MetricsGrid.tsx` (Port von `ui/overview.js::_renderMetrics()`) unten in `HeroPage.tsx`, nutzt `core.ramp`/`core.eftp` statt FTP/eFTP ein zweites Mal herzuleiten |
-| 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ⏳ offen. Neue Route + Shell, Sektionen Belastung/Intensität (Kern-Module bereits portiert) |
+| 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `/analysis` + `AnalysisPage.tsx`-Shell + `AnalysisSection.tsx` (Baustein für 11e/11f) + KPI-Hero + Belastung/Intensität |
 | 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
 | 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
 | 11g | **Nacharbeiten — Login-Seite stylen** | `[OP]` | ⏳ offen. `LoginPage.tsx` unstyled, bei 11a-Live-Check aufgefallen (sitzt außerhalb `Layout`/`PageShell`) |
@@ -1465,15 +1465,37 @@ mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
   sauber, `vitest` 1084/1084 (+5 neue Tests in `hero-view-model.test.ts`).
   Live-Playwright-Check ausgelassen (Browser-Lock durch eine parallele
   Session) — auf Alex' Wunsch nur per `tsc`/`vitest` verifiziert.
-- **11d — Analyse-Tab: Grundgerüst + Belastung + Intensität.** Neue Route
-  `/analysis` (o. ä.) + Nav-Eintrag + `features/analysis/AnalysisPage.tsx`
-  als Shell (wer zuerst startet, legt sie an — bei echter Parallelität mit
-  11e/11f kurz abstimmen, wer die Shell baut, sonst entsteht sie doppelt).
-  Erste zwei Sektionen: Belastung (Port von `ui/analysis.js::_renderLoad`,
-  Kern liegt fertig in `core/loadguard.js`) und Intensität (`_renderZones`
-  + `_renderTypDistribution`, Kern in `core/zones.js`). Alle Kern-Module
-  sind bereits nach `app/src/core/` portiert — dieses Häppchen ist reine
-  UI-Arbeit, kein Logik-Port.
+- **11d — Analyse-Tab: Grundgerüst + Belastung + Intensität.** ✅ umgesetzt
+  (09.08.2026). Neue Route `/analysis` + Nav-Eintrag (`Layout.tsx`, nach
+  „Fahrtenbuch"), `features/analysis/AnalysisPage.tsx` als Shell. Reine
+  UI-Arbeit, kein Logik-Port — alle Kern-Module lagen bereits fertig in
+  `app/src/core/`.
+  - **Grundgerüst:** `AnalysisSection.tsx` (+ `AnalysisBox`/`AnalysisEmpty`/
+    `AnalysisNote`) als gemeinsamer Sektions-Baustein für 11e/11f — Icon +
+    Titel + optionaler Erklärtext + beliebiger Inhalt, 1:1 aus
+    `.analysis-section`/`.section-label`/`.analysis-explainer`/
+    `.analysis-box` (assets/css/components.css + main.css) portiert.
+  - **KPI-Hero** (`_renderKPIs`) mit in dieses Häppchen gepackt, obwohl in
+    der Etappenplanung nicht explizit 11d/e/f zugeordnet — sie ist
+    Seiten-weit (kein Bezug zu einer einzelnen späteren Sektion), gehört
+    also ins „Grundgerüst" statt offenzubleiben.
+  - **Belastung** (Port von `_renderLoad`, Kern `core/loadguard.js`) und
+    **Intensität** (`_renderZones` + `_renderTypDistribution`, Kern
+    `core/zones.js`) als erste zwei Sektionen.
+  - Eine bewusste Abweichung vom Original: der Intensitäts-Hinweistext
+    verweist NICHT mehr auf „siehe Periodisierungs-Erfüllung" (die
+    Sektion existiert im React-Port noch nicht, kommt erst mit 11f) — ein
+    Verweis auf eine nicht vorhandene Stelle wäre irreführend. Bei 11f
+    wieder ergänzen, falls gewünscht.
+  - `app/src/features/analysis/analysis-view-model.ts` (+ `.test.ts`,
+    11 neue Tests) trennt die reinen Ableitungen von der JSX-Ebene, Muster
+    wie `logbook-view-model.ts`.
+  - `tsc -b` sauber, `npx vitest run` 1095/1095 (Root `npm test`
+    unverändert, keine `core/`-Änderung). Live-Playwright-Check gegen den
+    lokalen Vite-Dev-Server (beide Athleten durchgeklickt, Datensätze real
+    aus `data/rides.json`/`data/rides-2.json`) — keine neuen
+    Konsolenfehler, nur der vorbestehende Supabase-Refresh-Token-400 ohne
+    aktive Session.
 - **11e — Analyse-Tab: Aerob + Leistungsdiagnostik.** Baut auf der Shell aus
   11d auf (kleiner Koordinationspunkt, s. o.) — bei echt paralleler
   Bearbeitung notfalls mit einer minimalen eigenen Shell-Kopie starten und
