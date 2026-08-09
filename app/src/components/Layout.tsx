@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: "/", label: "Hero", end: true },
   { to: "/planning", label: "Planungstab" },
   { to: "/explorer", label: "Explorer" },
+  { to: "/log", label: "Fahrtenbuch" },
   { to: "/events", label: "Events" },
   { to: "/settings", label: "Settings" },
 ];

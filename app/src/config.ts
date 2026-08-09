@@ -114,3 +114,48 @@ export const PHASES: Record<string, PhaseInfo> = {
 export function phaseColor(phase: string | null | undefined): string {
   return (phase ? PHASES[phase] : undefined)?.color ?? "#6b7280";
 }
+
+/** 1:1 aus `assets/js/state/config.js::weekOrder` — Sortier-Fallback für
+ *  Wochen-Label-Strings, die keine ISO-Kalenderwoche sind (Plan-1-Historie
+ *  "W1".."W12", Athlet-2-Planungstab "KW23".."KW35"). Bewusst erst hier
+ *  ergänzt (Etappe 11b, Fahrtenbuch) statt schon in Etappe 2b — der
+ *  Planungstab brauchte es nicht (Wochen-Reihenfolge dort über
+ *  Datums-Sortierung der Karten), das Fahrtenbuch sortiert dagegen über
+ *  `weekSortIndex()` (core/aggregate.js) mit genau diesem Fallback. */
+export const WEEK_ORDER: readonly string[] = [
+  // Notion-Ära (Athlet 1, historisch)
+  "Vor W1",
+  "Vor",
+  "W1",
+  "W2",
+  "W3",
+  "W4",
+  "W5",
+  "W6",
+  "W7",
+  "W8",
+  "W9",
+  "W10",
+  "W11",
+  "W12",
+  // Athlet 2 (eigener Plan, GFNY Bremen 2026, KW23–KW35)
+  "KW23",
+  "KW24",
+  "KW25",
+  "KW26",
+  "KW27",
+  "KW28",
+  "KW29",
+  "KW30",
+  "KW31",
+  "KW32",
+  "KW33",
+  "KW34",
+  "KW35",
+];
+
+export function weekIndex(week: string | null | undefined): number {
+  if (!week) return 999;
+  const i = WEEK_ORDER.indexOf(week);
+  return i === -1 ? 999 : i;
+}
