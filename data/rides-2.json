@@ -15219,16 +15219,16 @@
       "rpe": null,
       "feelIcu": null,
       "weather": {
-        "temp": 24.1,
-        "tempFeel": 23.1,
-        "humidity": 46,
-        "windSpeed": 12.6,
-        "windDir": 282,
+        "temp": 25.3,
+        "tempFeel": 23.4,
+        "humidity": 39,
+        "windSpeed": 16,
+        "windDir": 272,
         "precip": 0,
-        "cloudCover": 43,
-        "weatherCode": 2
+        "cloudCover": 10,
+        "weatherCode": 1
       },
-      "wetter": "24.1°C",
+      "wetter": "25.3°C",
       "source": "intervals.icu",
       "ruhepuls": 57,
       "hrv": 32,
@@ -15342,6 +15342,114 @@
       "hrv": 38,
       "avgSleepingHR": 51,
       "sleepHours": 8.5,
+      "feel": null,
+      "notizen": null
+    },
+    {
+      "name": "Z2 outdoor",
+      "week": null,
+      "phase": null,
+      "typ": "Z2",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.766,
+            "note": "NP 203W ÷ FTP 265W — im Z2-Dauer-Band (0.75–0.85)"
+          },
+          {
+            "label": "Dauer",
+            "value": "97 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 47% · Z3/Z4+ 49% · Z5+ 4%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-z2dauer"
+      },
+      "typSource": "plan",
+      "dataSource": "intervals",
+      "date": "2026-08-09",
+      "startTime": "2026-08-09T19:29:36",
+      "activityId": "i174153127",
+      "km": 48.3,
+      "min": 97,
+      "kmh": 29.9,
+      "watt": 187,
+      "maxWatt": null,
+      "np": 203,
+      "hf": 151,
+      "hfMax": 173,
+      "kad": 87,
+      "hoehe": 30,
+      "tss": 95,
+      "if": 0.77,
+      "vi": 1.09,
+      "trimp": 181,
+      "ctl": 32.4,
+      "atl": 43,
+      "tsb": -10.6,
+      "decoupling": -0.3,
+      "dtl": 95,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 1157
+        },
+        {
+          "id": "Z2",
+          "secs": 1567
+        },
+        {
+          "id": "Z3",
+          "secs": 2411
+        },
+        {
+          "id": "Z4",
+          "secs": 429
+        },
+        {
+          "id": "Z5",
+          "secs": 185
+        },
+        {
+          "id": "Z6",
+          "secs": 55
+        },
+        {
+          "id": "Z7",
+          "secs": 5
+        },
+        {
+          "id": "SS",
+          "secs": 816
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 31.7,
+        "tempFeel": 31.1,
+        "humidity": 29,
+        "windSpeed": 5.3,
+        "windDir": 209,
+        "precip": 0,
+        "cloudCover": 100,
+        "weatherCode": 3
+      },
+      "wetter": "31.7°C",
+      "source": "intervals.icu",
+      "ruhepuls": 53,
+      "hrv": 31,
+      "avgSleepingHR": 53,
+      "sleepHours": 7.7,
       "feel": null,
       "notizen": null
     }
@@ -18860,9 +18968,9 @@
       "hrv": 38,
       "weight": 92.6,
       "bodyFat": null,
-      "activeEnergy": 836,
+      "activeEnergy": 846,
       "restingEnergy": null,
-      "kcalConsumed": 2567,
+      "kcalConsumed": 2767,
       "hydration": null,
       "hydrationVolume": 1,
       "eftp": 256
@@ -18870,9 +18978,25 @@
     {
       "date": "2026-08-09",
       "sleepHours": 7.7,
-      "sleepScore": 84,
-      "avgSleepingHR": null,
+      "sleepScore": 85,
+      "avgSleepingHR": 53,
       "restingHR": 53,
+      "hrv": 31,
+      "weight": 92.3,
+      "bodyFat": null,
+      "activeEnergy": 1373,
+      "restingEnergy": null,
+      "kcalConsumed": 2842,
+      "hydration": null,
+      "hydrationVolume": 0.64,
+      "eftp": 256
+    },
+    {
+      "date": "2026-08-10",
+      "sleepHours": null,
+      "sleepScore": null,
+      "avgSleepingHR": null,
+      "restingHR": null,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -18886,7 +19010,7 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-08",
+      "hrv": "2026-08-09",
       "restingHR": "2026-08-09",
       "sleepHours": "2026-08-09"
     }
@@ -18897,12 +19021,12 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-08-09T00:00:00",
-        "end_date_local": "2026-08-09T23:59:59",
+        "start_date_local": "2025-08-10T00:00:00",
+        "end_date_local": "2026-08-10T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92.6,
+        "weight": 92.3,
         "secs": [
           1,
           2,
@@ -19291,10 +19415,10 @@
           223,
           215,
           213,
-          194,
+          206,
+          203,
+          198,
           193,
-          192,
-          192,
           191,
           191,
           191,
@@ -19526,10 +19650,10 @@
           "i162700850",
           "i162700388",
           "i162700388",
-          "i162700791",
-          "i162700791",
-          "i162700791",
-          "i162700791",
+          "i174153127",
+          "i174153127",
+          "i174153127",
+          "i174153127",
           "i162700791",
           "i162700791",
           "i162700791",
@@ -19761,10 +19885,10 @@
           2.4004304,
           2.2994652,
           2.278075,
-          2.0882668,
-          2.0775027,
-          2.0667384,
-          2.0667384,
+          2.2318525,
+          2.1993499,
+          2.1451788,
+          2.0910075,
           2.0559742,
           2.0559742,
           2.0559742,
@@ -19996,10 +20120,10 @@
           "i162700850",
           "i162700388",
           "i162700388",
-          "i162700791",
-          "i162700791",
-          "i162700791",
-          "i162700791",
+          "i174153127",
+          "i174153127",
+          "i174153127",
+          "i174153127",
           "i162700791",
           "i162700791",
           "i162700791",
@@ -20132,10 +20256,10 @@
           "startIndex": 71,
           "poStartIndex": 99,
           "poEndIndex": 185,
-          "poIntercept": 5.955928150814248,
-          "poSlope": -0.42912933457157404,
-          "poR2": 0.947905739451276,
-          "po95Confidence": 0.02182782528299365,
+          "poIntercept": 5.945166295091316,
+          "poSlope": -0.42728410830410724,
+          "poR2": 0.9582011834823273,
+          "po95Confidence": 0.019363340618827454,
           "map": 0,
           "mapSecs": 0,
           "mapWatts": 0
@@ -20293,10 +20417,10 @@
           223,
           215,
           213,
-          194,
+          206,
+          203,
+          198,
           193,
-          192,
-          192,
           191,
           191,
           191,
@@ -20780,6 +20904,16 @@
         "start_date_local": "2026-05-05T14:43:30",
         "race": false
       },
+      "i174153127": {
+        "id": "i174153127",
+        "name": "Rennsimultion",
+        "distance": 48286.61,
+        "moving_time": 5808,
+        "training_load": 95,
+        "icu_weight": 92.3,
+        "start_date_local": "2026-08-09T19:29:36",
+        "race": false
+      },
       "i163880063": {
         "id": "i163880063",
         "name": "MyWhoosh Crit Racing",
@@ -20842,7 +20976,7 @@
       }
     }
   },
-  "athleteWeight": 92.6,
+  "athleteWeight": 92.3,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -21665,7 +21799,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-09T18:25:54.181Z",
+  "updated": "2026-08-10T01:02:07.093Z",
   "source": "intervals.icu",
-  "count": 142
+  "count": 143
 }
