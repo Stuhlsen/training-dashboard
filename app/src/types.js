@@ -25,20 +25,21 @@
  *                                  athletenunabhängig (Athlet 1 Notion-Ära vs.
  *                                  intervals.icu-Ära; Athlet 2 immer "intervals")
  * @property {string} [name]
- * @property {string} [typ]           Anzeige-Typ (Priorität: subjective > Plan > IF-Ableitung,
- *                                     s. typSource) — unverändert gegenüber Vor-typSource-Ära
+ * @property {string} [typ]           Anzeige-Typ (Priorität: subjective > Ist-Typerkennung >
+ *                                     Plan > IF-Ableitung, s. typSource)
  * @property {string|null} [typPlanned]   Typ der Plankarte dieses Tages, sonst null
  * @property {string|null} [typDetected]  Ergebnis der datenbasierten Ist-Typerkennung
- *                                         (core/session-classify.js::classifySession),
- *                                         unabhängig von `typ` — null bei zu dünner
- *                                         Datenlage (z.B. keine Leistungsdaten)
+ *                                         (core/session-classify.js::classifySession) —
+ *                                         null bei zu dünner Datenlage (z.B. keine
+ *                                         Leistungsdaten); ist in diesem Fall auch der
+ *                                         Wert, der (nach subjective) in `typ` landet
  * @property {{type:string|null, confidence:"hoch"|"mittel"|"niedrig",
  *   signals:Array<{label:string,value:string|number|null,note?:string}>,
  *   rule:string}} [typDetection]  Volles Klassifikations-Ergebnis (Begründung
  *                                  für die Anzeige) — `typDetected` ist nur dessen `type`
- * @property {"subjective"|"plan"|"inferred"|"detected"} [typSource] Herkunft von `typ`
- *                                  (aktuell nie "detected" — Konsumenten stellen
- *                                  einzeln und bewusst um, s. AGENTS.md/Fahrplan)
+ * @property {"subjective"|"detected"|"plan"|"inferred"} [typSource] Herkunft von `typ`
+ *                                  ("inferred" nur noch erreichbar ohne Leistungsdaten
+ *                                  UND ohne Plankarte — sonst gewinnt "detected")
  * @property {RideCompliance} [compliance] Soll-Ist-Matching gegen die zugehörige
  *                                  Plankarte (core/compliance-match.js), nur bei
  *                                  echtem Match gesetzt — sonst kein Feld (s. dort)

@@ -224,18 +224,26 @@ export function mapActivity(
   const np = act.icu_weighted_avg_watts;
   const min = Math.round((act.moving_time || 0) / 60);
   const { ftpWatt } = ftpAt(ftpHistory, date, DEFAULT_FTP);
-
-  // Priorität: 1) subjective.json  2) Trainingsplan  3) IF-Berechnung
-  // `typ` (Fall "inferred") nutzt seit der FTP-Historie-Konsumenten-
-  // Umstellung dieselbe datumsgenaue ftpWatt wie typDetected/typDetection
-  // (früher: fester DEFAULT_FTP, s. Git-History) — beide Felder bleiben
-  // trotzdem eigenständig, keine Vermischung der beiden Konzepte.
-  // typSource dokumentiert nur, welcher der drei Fälle gegriffen hat.
-  const typ = s.typ || planned.typ || inferTypFromIF(np, min, ftpWatt);
-  const typSource = s.typ ? "subjective" : planned.typ ? "plan" : "inferred";
-  const name = s.name || planned.name || act.name || "Radfahren";
   const longestBlock = intervalBlockCache[String(act.id)]?.longestBlock ?? null;
   const detection = detectSession(act, min, ftpWatt, longestBlock);
+
+  // Priorität: 1) subjective.json  2) Ist-Typerkennung (classifySession —
+  // dieselben IF-Bänder wie die vorherige inferTypFromIF-Fallback-Stufe,
+  // zusätzlich Block-/Zonensignale, s. core/session-classify.js) 3)
+  // Trainingsplan  4) IF-Berechnung (nur erreichbar ohne Leistungsdaten,
+  // dann liefert die Ist-Typerkennung ebenfalls null). Vor der Umstellung
+  // gewann die Plankarte vor der Ist-Erkennung — das ließ z.B. einen
+  // "Ruhetag" anzeigen, obwohl real gefahren wurde (typDetected wich ab).
+  // typSource dokumentiert, welcher der vier Fälle gegriffen hat.
+  const typ = s.typ || detection.type || planned.typ || inferTypFromIF(np, min, ftpWatt);
+  const typSource = s.typ
+    ? "subjective"
+    : detection.type
+      ? "detected"
+      : planned.typ
+        ? "plan"
+        : "inferred";
+  const name = s.name || planned.name || act.name || "Radfahren";
 
   // Wetter: exakte Startzeit aus intervals.icu
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
@@ -297,13 +305,13 @@ export function mapActivity2(
     week: null,
     phase: null,
     // Kein subjective.json bei Athlet 2 (read-only, keine Befinden-Erfassung)
-    // — nur Plan oder IF-Berechnung, s. Kommentar bei mapActivity() zu
-    // typPlanned/typDetected/typSource.
-    typ: planned.typ || inferTypFromIF(np, min, ftpWatt),
+    // — Priorität: Ist-Typerkennung vor Plankarte vor IF-Berechnung, s.
+    // Kommentar bei mapActivity() zu typPlanned/typDetected/typSource.
+    typ: detection.type || planned.typ || inferTypFromIF(np, min, ftpWatt),
     typPlanned: planned.typ ?? null,
     typDetected: detection.type,
     typDetection: detection,
-    typSource: planned.typ ? "plan" : "inferred",
+    typSource: detection.type ? "detected" : planned.typ ? "plan" : "inferred",
     // Athlet 2 kommt vollständig aus intervals.icu (kein Notion-Anteil) —
     // dieselbe Datenherkunfts-Semantik wie Athlet 1s intervals.icu-Ära.
     dataSource: "intervals",

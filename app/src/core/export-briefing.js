@@ -664,7 +664,7 @@ export function buildBriefingMarkdown({
     }
     lines.push("");
     lines.push(
-      "_Der Typ stammt je nach Fahrt aus unterschiedlicher Quelle: bei fehlendem Plan-Match datenbasiert aus der gefahrenen Leistung abgeleitet, sonst aus der Plankarte übernommen oder manuell eingetragen — nur im Plankarten-Fall kann er vom tatsächlichen Verlauf abweichen._"
+      "_Der Typ stammt je nach Fahrt aus unterschiedlicher Quelle: bei vorhandenen Leistungsdaten datenbasiert aus der gefahrenen Leistung abgeleitet (kann von der Plankarte abweichen), sonst aus der Plankarte übernommen oder manuell eingetragen — nur ohne Leistungsdaten entspricht er also zwingend der Plankarte._"
     );
     lines.push(
       "_Compliance (Soll-Ist-Matching gegen die Plankarte, sofern vorhanden): erfüllte/geplante Intervalle, bei gelb/rot die auslösende Regel in Klammern._"

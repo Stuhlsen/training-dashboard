@@ -90,7 +90,11 @@ test("mapActivity: Ride am getauschten Datum bekommt die verschobene Karte, nich
   const ride = mapActivity(baseAct(), {}, {}, {}, effectivePlan);
 
   assert.equal(ride.name, "Sweet Spot 2×20 min");
-  assert.equal(ride.typ, "Sweet Spot");
+  // typPlanned beweist, dass die getauschte Karte die Zuordnung erreicht;
+  // typ selbst kommt jetzt von der Ist-Typerkennung (NP 155W/FTP 193W ≈
+  // IF 0.80 → "Z2 Dauer"), nicht mehr von der Plankarte.
+  assert.equal(ride.typPlanned, "Sweet Spot");
+  assert.equal(ride.typ, "Z2 Dauer");
 });
 
 test("mapActivity: ohne effectivePlan (Default-Fallback) bleibt Altverhalten möglich", () => {
@@ -144,7 +148,11 @@ test("mapActivity2: Ride am getauschten Datum bekommt die verschobene Karte", ()
   const ride = mapActivity2(baseAct(), {}, {}, 265, effectivePlan);
 
   assert.equal(ride.name, "Z2 Rolle");
-  assert.equal(ride.typ, "Z2");
+  // typPlanned beweist, dass die getauschte Karte die Zuordnung erreicht;
+  // typ selbst kommt jetzt von der Ist-Typerkennung (NP 155W/FTP 265W ≈
+  // IF 0.58, 67 min → "Z2 Dauer").
+  assert.equal(ride.typPlanned, "Z2");
+  assert.equal(ride.typ, "Z2 Dauer");
 });
 
 test("classifyCooldowns: kurzes niedrig-intensives Workout nach Rennen wird zu Ausrollen", () => {
@@ -307,18 +315,20 @@ test("classifyCooldowns: nutzt die zum jeweiligen Fahrtdatum gültige FTP aus ft
   assert.equal(rides[3].typ, "Z2", "nach dem FTP-Wechsel: dieselbe Rohleistung ist jetzt relativ zu schwach für 'hart'");
 });
 
-// Regressionstest FTP-Historie-Konsumenten-Umstellung: der Fallback-Fall
-// "inferred" von typ (mapActivity/mapActivity2) nutzt jetzt dieselbe
-// datumsgenaue ftpAt()-Auflösung wie typDetected, statt fest DEFAULT_FTP/
-// estimatedFtp — bei identischem NP muss ein ftpHistory-Eintrag die
-// abgeleitete Kategorie tatsächlich verschieben.
-test("mapActivity: typ (Fall 'inferred') wechselt die Kategorie je nach ftpHistory-Eintrag", () => {
+// Regressionstest FTP-Historie-Konsumenten-Umstellung: die Ist-Typerkennung
+// (jetzt Fall "detected" statt vormals "inferred" — seit der typ-Prioritäts-
+// Umstellung übernimmt classifySession() diesen Fall immer, sobald NP/FTP
+// vorhanden sind, s. map-activity.js) nutzt dieselbe datumsgenaue
+// ftpAt()-Auflösung wie typDetected, statt fest DEFAULT_FTP/estimatedFtp —
+// bei identischem NP muss ein ftpHistory-Eintrag die abgeleitete Kategorie
+// tatsächlich verschieben.
+test("mapActivity: typ (Fall 'detected') wechselt die Kategorie je nach ftpHistory-Eintrag", () => {
   const act = baseAct({ icu_weighted_avg_watts: 190 });
 
   const withoutHistory = mapActivity(act, {}, {}, {}, {}, [], {});
   // DEFAULT_FTP=193 → IF≈0.984 → Band [0.95,1.05) → "Schwelle"
   assert.equal(withoutHistory.typ, "Schwelle");
-  assert.equal(withoutHistory.typSource, "inferred");
+  assert.equal(withoutHistory.typSource, "detected");
 
   const withHistory = mapActivity(
     act,
@@ -331,14 +341,15 @@ test("mapActivity: typ (Fall 'inferred') wechselt die Kategorie je nach ftpHisto
   );
   // 230W gültig → IF≈0.826 → Band [0.75,0.85) → "Z2 Dauer"
   assert.equal(withHistory.typ, "Z2 Dauer");
-  assert.equal(withHistory.typSource, "inferred");
+  assert.equal(withHistory.typSource, "detected");
 });
 
-test("mapActivity2: typ (Fall 'inferred') wechselt die Kategorie je nach ftpHistory-Eintrag", () => {
+test("mapActivity2: typ (Fall 'detected') wechselt die Kategorie je nach ftpHistory-Eintrag", () => {
   const act = baseAct({ icu_weighted_avg_watts: 190 });
 
   const withoutHistory = mapActivity2(act, {}, {}, 193, {}, [], {});
   assert.equal(withoutHistory.typ, "Schwelle");
+  assert.equal(withoutHistory.typSource, "detected");
 
   const withHistory = mapActivity2(
     act,
@@ -350,4 +361,5 @@ test("mapActivity2: typ (Fall 'inferred') wechselt die Kategorie je nach ftpHist
     {}
   );
   assert.equal(withHistory.typ, "Z2 Dauer");
+  assert.equal(withHistory.typSource, "detected");
 });
