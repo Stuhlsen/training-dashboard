@@ -30,7 +30,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-02",
       "startTime": "2026-01-02T17:19:40",
@@ -138,7 +138,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-07",
       "startTime": "2026-01-07T12:24:32",
@@ -246,7 +246,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-08",
       "startTime": "2026-01-08T12:34:37",
@@ -355,7 +355,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-12",
       "startTime": "2026-01-12T16:13:26",
@@ -529,7 +529,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-14",
       "startTime": "2026-01-14T10:36:27",
@@ -613,7 +613,7 @@
       "name": "MyWhoosh Crit Racing",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Sweet Spot",
       "typPlanned": null,
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -642,7 +642,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-15",
       "startTime": "2026-01-15T14:31:09",
@@ -882,7 +882,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-21",
       "startTime": "2026-01-21T12:13:15",
@@ -990,7 +990,7 @@
         ],
         "rule": "if-tempo"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-22",
       "startTime": "2026-01-22T16:29:59",
@@ -1099,7 +1099,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-25",
       "startTime": "2026-01-25T20:02:24",
@@ -1207,7 +1207,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-27",
       "startTime": "2026-01-27T15:40:32",
@@ -1315,7 +1315,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-29",
       "startTime": "2026-01-29T16:30:00",
@@ -1423,7 +1423,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-01-31",
       "startTime": "2026-01-31T17:32:59",
@@ -1507,7 +1507,7 @@
       "name": "MyWhoosh Road Race",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Sweet Spot",
       "typPlanned": null,
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -1536,7 +1536,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-01",
       "startTime": "2026-02-01T15:01:37",
@@ -1644,7 +1644,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-02",
       "startTime": "2026-02-02T12:28:39",
@@ -1752,7 +1752,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-05",
       "startTime": "2026-02-05T16:02:20",
@@ -1860,7 +1860,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-07",
       "startTime": "2026-02-07T16:33:18",
@@ -1969,7 +1969,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-07",
       "startTime": "2026-02-07T10:56:54",
@@ -2077,7 +2077,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-09",
       "startTime": "2026-02-09T14:06:17",
@@ -2185,7 +2185,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-11",
       "startTime": "2026-02-11T20:30:09",
@@ -2294,7 +2294,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-12",
       "startTime": "2026-02-12T17:03:17",
@@ -2402,7 +2402,7 @@
         ],
         "rule": "if-tempo"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-12",
       "startTime": "2026-02-12T16:03:26",
@@ -2510,7 +2510,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-13",
       "startTime": "2026-02-13T18:26:33",
@@ -2727,7 +2727,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-14",
       "startTime": "2026-02-14T14:00:40",
@@ -2835,7 +2835,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-15",
       "startTime": "2026-02-15T18:13:49",
@@ -2943,7 +2943,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-17",
       "startTime": "2026-02-17T18:20:41",
@@ -3051,7 +3051,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-18",
       "startTime": "2026-02-18T18:57:04",
@@ -3272,7 +3272,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-19",
       "startTime": "2026-02-19T18:00:11",
@@ -3381,7 +3381,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-21",
       "startTime": "2026-02-21T11:10:26",
@@ -3490,7 +3490,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-21",
       "startTime": "2026-02-21T11:09:36",
@@ -3598,7 +3598,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-22",
       "startTime": "2026-02-22T15:13:01",
@@ -3706,7 +3706,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-24",
       "startTime": "2026-02-24T16:08:58",
@@ -3814,7 +3814,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-25",
       "startTime": "2026-02-25T18:36:08",
@@ -3923,7 +3923,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-26",
       "startTime": "2026-02-26T18:36:02",
@@ -4036,7 +4036,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-26",
       "startTime": "2026-02-26T18:30:21",
@@ -4149,7 +4149,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-26",
       "startTime": "2026-02-26T18:00:50",
@@ -4258,7 +4258,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-02-28",
       "startTime": "2026-02-28T11:30:58",
@@ -4366,7 +4366,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-01",
       "startTime": "2026-03-01T15:13:50",
@@ -4474,7 +4474,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-03",
       "startTime": "2026-03-03T16:09:33",
@@ -4582,7 +4582,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-04",
       "startTime": "2026-03-04T10:36:36",
@@ -4691,7 +4691,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-05",
       "startTime": "2026-03-05T18:31:24",
@@ -4799,7 +4799,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-05",
       "startTime": "2026-03-05T18:19:09",
@@ -4907,7 +4907,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-05",
       "startTime": "2026-03-05T18:00:53",
@@ -5016,7 +5016,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-07",
       "startTime": "2026-03-07T11:50:28",
@@ -5124,7 +5124,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-08",
       "startTime": "2026-03-08T16:17:35",
@@ -5232,7 +5232,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-08",
       "startTime": "2026-03-08T15:27:53",
@@ -5340,7 +5340,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-10",
       "startTime": "2026-03-10T16:19:10",
@@ -5448,7 +5448,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-23",
       "startTime": "2026-03-23T11:50:49",
@@ -5556,7 +5556,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-28",
       "startTime": "2026-03-28T12:11:36",
@@ -5665,7 +5665,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-30",
       "startTime": "2026-03-30T18:08:36",
@@ -5773,7 +5773,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-03-31",
       "startTime": "2026-03-31T18:45:50",
@@ -5881,7 +5881,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-01",
       "startTime": "2026-04-01T16:27:07",
@@ -5990,7 +5990,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-03",
       "startTime": "2026-04-03T11:34:51",
@@ -6099,7 +6099,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-04",
       "startTime": "2026-04-04T08:00:16",
@@ -6321,7 +6321,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-07",
       "startTime": "2026-04-07T15:02:57",
@@ -6429,7 +6429,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-08",
       "startTime": "2026-04-08T10:51:12",
@@ -6651,7 +6651,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-14",
       "startTime": "2026-04-14T15:02:50",
@@ -6759,7 +6759,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-15",
       "startTime": "2026-04-15T10:52:19",
@@ -6867,7 +6867,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-16",
       "startTime": "2026-04-16T10:35:26",
@@ -7084,7 +7084,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-21",
       "startTime": "2026-04-21T15:01:17",
@@ -7192,7 +7192,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-22",
       "startTime": "2026-04-22T10:21:34",
@@ -7300,7 +7300,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-04-23",
       "startTime": "2026-04-23T10:12:33",
@@ -7409,7 +7409,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-01",
       "startTime": "2026-05-01T09:27:37",
@@ -7517,7 +7517,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-03",
       "startTime": "2026-05-03T11:47:39",
@@ -7626,7 +7626,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-05",
       "startTime": "2026-05-05T15:35:19",
@@ -7734,7 +7734,7 @@
         ],
         "rule": "if-tempo"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-05",
       "startTime": "2026-05-05T14:43:30",
@@ -7842,7 +7842,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-06",
       "startTime": "2026-05-06T21:53:52",
@@ -7950,7 +7950,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-07",
       "startTime": "2026-05-07T11:50:52",
@@ -8058,7 +8058,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-09",
       "startTime": "2026-05-09T10:43:57",
@@ -8166,7 +8166,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-11",
       "startTime": "2026-05-11T12:51:50",
@@ -8383,7 +8383,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-12",
       "startTime": "2026-05-12T15:01:14",
@@ -8491,7 +8491,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-13",
       "startTime": "2026-05-13T12:09:40",
@@ -8708,7 +8708,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-19",
       "startTime": "2026-05-19T15:01:07",
@@ -8816,7 +8816,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-20",
       "startTime": "2026-05-20T11:01:38",
@@ -8900,7 +8900,7 @@
       "name": "MyWhoosh - Ramp Test - MyWhoosh",
       "week": null,
       "phase": null,
-      "typ": "Z2 Dauer",
+      "typ": "Sweet Spot",
       "typPlanned": null,
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -8929,7 +8929,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-21",
       "startTime": "2026-05-21T15:20:44",
@@ -9013,7 +9013,7 @@
       "name": "Morning Ride",
       "week": null,
       "phase": null,
-      "typ": "Z1 Recovery",
+      "typ": "Sweet Spot",
       "typPlanned": null,
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -9042,7 +9042,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-24",
       "startTime": "2026-05-24T09:51:26",
@@ -9150,7 +9150,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-26",
       "startTime": "2026-05-26T17:42:39",
@@ -9259,7 +9259,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-28",
       "startTime": "2026-05-28T11:53:17",
@@ -9367,7 +9367,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-29",
       "startTime": "2026-05-29T14:07:06",
@@ -9475,7 +9475,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-05-31",
       "startTime": "2026-05-31T09:20:25",
@@ -9668,7 +9668,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Sweet Spot",
       "typPlanned": "VO2max",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -9697,7 +9697,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-02",
       "startTime": "2026-06-02T15:01:20",
@@ -9781,7 +9781,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z1 Recovery",
       "typPlanned": "Z2",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -9805,7 +9805,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-03",
       "startTime": "2026-06-03T12:00:06",
@@ -9918,7 +9918,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-04",
       "startTime": "2026-06-04T11:15:33",
@@ -10002,7 +10002,7 @@
       "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Z1 Recovery",
       "typPlanned": "Rennen",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -10026,7 +10026,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-06",
       "startTime": "2026-06-06T14:06:04",
@@ -10110,7 +10110,7 @@
       "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Sweet Spot",
       "typPlanned": "Rennen",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -10139,7 +10139,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-06",
       "startTime": "2026-06-06T13:01:17",
@@ -10223,7 +10223,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Z2 Lang",
       "typPlanned": "VO2max",
       "typDetected": "Z2 Lang",
       "typDetection": {
@@ -10248,7 +10248,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-09",
       "startTime": "2026-06-09T11:24:09",
@@ -10332,7 +10332,7 @@
       "name": "Sweetspot 3×12 Min",
       "week": null,
       "phase": null,
-      "typ": "Sweet Spot",
+      "typ": "Z2 Dauer",
       "typPlanned": "Sweet Spot",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -10356,7 +10356,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-11",
       "startTime": "2026-06-11T08:53:55",
@@ -10440,7 +10440,7 @@
       "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Z2 Lang",
       "typPlanned": "Rennen",
       "typDetected": "Z2 Lang",
       "typDetection": {
@@ -10465,7 +10465,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-13",
       "startTime": "2026-06-13T10:20:21",
@@ -10658,7 +10658,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Schwelle",
       "typPlanned": "VO2max",
       "typDetected": "Schwelle",
       "typDetection": {
@@ -10687,7 +10687,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-16",
       "startTime": "2026-06-16T15:01:03",
@@ -10771,7 +10771,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Z2 Dauer",
       "typPlanned": "VO2max",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -10795,7 +10795,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-16",
       "startTime": "2026-06-16T13:54:53",
@@ -10879,7 +10879,7 @@
       "name": "Z2 Rolle (vor Abfahrt)",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -10903,7 +10903,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-17",
       "startTime": "2026-06-17T10:19:44",
@@ -10987,7 +10987,7 @@
       "name": "NLS6 Renntag",
       "week": null,
       "phase": null,
-      "typ": "NLS",
+      "typ": "Z2 Dauer",
       "typPlanned": "NLS",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -11011,7 +11011,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-18",
       "startTime": "2026-06-18T10:54:56",
@@ -11095,7 +11095,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z1 Recovery",
       "typPlanned": "Z2",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -11119,7 +11119,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-24",
       "startTime": "2026-06-24T16:08:10",
@@ -11203,7 +11203,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "FTP-Test",
       "typPlanned": "Z2",
       "typDetected": "FTP-Test",
       "typDetection": {
@@ -11227,7 +11227,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-24",
       "startTime": "2026-06-24T15:42:46",
@@ -11311,7 +11311,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z1 Recovery",
       "typPlanned": "Z2",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -11336,7 +11336,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-24",
       "startTime": "2026-06-24T15:30:45",
@@ -11420,7 +11420,7 @@
       "name": "Threshold 2×10 Min",
       "week": null,
       "phase": null,
-      "typ": "Schwelle",
+      "typ": "Z2 Dauer",
       "typPlanned": "Schwelle",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -11444,7 +11444,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-25",
       "startTime": "2026-06-25T07:45:20",
@@ -11528,7 +11528,7 @@
       "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Z1 Recovery",
       "typPlanned": "Rennen",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -11552,7 +11552,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-27",
       "startTime": "2026-06-27T18:18:34",
@@ -11636,7 +11636,7 @@
       "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Z2 Dauer",
       "typPlanned": "Rennen",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -11660,7 +11660,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-27",
       "startTime": "2026-06-27T17:02:39",
@@ -11744,7 +11744,7 @@
       "name": "Z2 outdoor",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -11768,7 +11768,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-28",
       "startTime": "2026-06-28T19:42:48",
@@ -11961,7 +11961,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Sweet Spot",
       "typPlanned": "VO2max",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -11990,7 +11990,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-30",
       "startTime": "2026-06-30T15:01:27",
@@ -12074,7 +12074,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Lang",
       "typPlanned": "Z2",
       "typDetected": "Z2 Lang",
       "typDetection": {
@@ -12099,7 +12099,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-01",
       "startTime": "2026-07-01T15:40:40",
@@ -12183,7 +12183,7 @@
       "name": "Over-Under 3×8 Min",
       "week": null,
       "phase": null,
-      "typ": "Schwelle",
+      "typ": "Sweet Spot",
       "typPlanned": "Schwelle",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -12212,7 +12212,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-02",
       "startTime": "2026-07-02T11:58:00",
@@ -12404,7 +12404,7 @@
       "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Sweet Spot",
       "typPlanned": "Rennen",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -12433,7 +12433,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-04",
       "startTime": "2026-07-04T13:00:28",
@@ -12517,7 +12517,7 @@
       "name": "Z2 outdoor",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -12541,7 +12541,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-05",
       "startTime": "2026-07-05T11:04:36",
@@ -12625,7 +12625,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Z2 Dauer",
       "typPlanned": "VO2max",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -12649,7 +12649,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-07",
       "startTime": "2026-07-07T16:45:59",
@@ -12733,7 +12733,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z1 Recovery",
       "typPlanned": "Z2",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -12757,7 +12757,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-08",
       "startTime": "2026-07-08T16:11:43",
@@ -12841,7 +12841,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "FTP-Test",
       "typPlanned": "Z2",
       "typDetected": "FTP-Test",
       "typDetection": {
@@ -12865,7 +12865,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-08",
       "startTime": "2026-07-08T15:45:36",
@@ -12949,7 +12949,7 @@
       "name": "Over-Under 3×10 Min",
       "week": null,
       "phase": null,
-      "typ": "Schwelle",
+      "typ": "Sweet Spot",
       "typPlanned": "Schwelle",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -12978,7 +12978,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-09",
       "startTime": "2026-07-09T11:10:50",
@@ -13170,7 +13170,7 @@
       "name": "MyWhoosh längeres Rennen",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Sweet Spot",
       "typPlanned": "Rennen",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -13194,7 +13194,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-11",
       "startTime": "2026-07-11T13:01:35",
@@ -13278,7 +13278,7 @@
       "name": "Z2 outdoor",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z1 Recovery",
       "typPlanned": "Z2",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -13302,7 +13302,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-12",
       "startTime": "2026-07-12T20:36:23",
@@ -13494,7 +13494,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "FTP-Test",
       "typPlanned": "VO2max",
       "typDetected": "FTP-Test",
       "typDetection": {
@@ -13518,7 +13518,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-14",
       "startTime": "2026-07-14T15:01:40",
@@ -13602,7 +13602,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -13626,7 +13626,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-15",
       "startTime": "2026-07-15T20:50:32",
@@ -13710,7 +13710,7 @@
       "name": "Over-Under 3×12 Min",
       "week": null,
       "phase": null,
-      "typ": "Schwelle",
+      "typ": "Sweet Spot",
       "typPlanned": "Schwelle",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -13739,7 +13739,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-16",
       "startTime": "2026-07-16T21:33:23",
@@ -13932,7 +13932,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "FTP-Test",
       "typPlanned": "VO2max",
       "typDetected": "FTP-Test",
       "typDetection": {
@@ -13956,7 +13956,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-21",
       "startTime": "2026-07-21T15:01:02",
@@ -14040,7 +14040,7 @@
       "name": "Z2 Rolle",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -14064,7 +14064,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-22",
       "startTime": "2026-07-22T11:15:45",
@@ -14148,7 +14148,7 @@
       "name": "Threshold 3×12 Min @95%",
       "week": null,
       "phase": null,
-      "typ": "Schwelle",
+      "typ": "Sweet Spot",
       "typPlanned": "Schwelle",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -14177,7 +14177,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-23",
       "startTime": "2026-07-23T13:49:23",
@@ -14370,7 +14370,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "FTP-Test",
       "typPlanned": "VO2max",
       "typDetected": "FTP-Test",
       "typDetection": {
@@ -14394,7 +14394,7 @@
         ],
         "rule": "ftp-test"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-28",
       "startTime": "2026-07-28T15:01:34",
@@ -14478,7 +14478,7 @@
       "name": "Z2 Rolle (vor Abfahrt)",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -14502,7 +14502,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-29",
       "startTime": "2026-07-29T10:19:17",
@@ -14586,7 +14586,7 @@
       "name": "NLS7 Renntag",
       "week": null,
       "phase": null,
-      "typ": "NLS",
+      "typ": "Z2 Dauer",
       "typPlanned": "NLS",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -14610,7 +14610,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-30",
       "startTime": "2026-07-30T11:05:43",
@@ -14718,7 +14718,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-02",
       "startTime": "2026-08-02T12:15:27",
@@ -14802,7 +14802,7 @@
       "name": "Ruhetag",
       "week": null,
       "phase": null,
-      "typ": "Ruhetag",
+      "typ": "Z2 Dauer",
       "typPlanned": "Ruhetag",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -14826,7 +14826,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-03",
       "startTime": "2026-08-03T17:49:22",
@@ -15019,7 +15019,7 @@
       "name": "MyWhoosh Crit",
       "week": null,
       "phase": null,
-      "typ": "VO2max",
+      "typ": "Sweet Spot",
       "typPlanned": "VO2max",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -15048,7 +15048,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-04",
       "startTime": "2026-08-04T15:01:41",
@@ -15132,7 +15132,7 @@
       "name": "Threshold 3×12 Min + Sprint",
       "week": null,
       "phase": null,
-      "typ": "Schwelle",
+      "typ": "Z2 Lang",
       "typPlanned": "Schwelle",
       "typDetected": "Z2 Lang",
       "typDetection": {
@@ -15157,7 +15157,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-06",
       "startTime": "2026-08-06T09:01:36",
@@ -15241,7 +15241,7 @@
       "name": "Rennsimulation mit Schlusssprint",
       "week": null,
       "phase": null,
-      "typ": "Rennen",
+      "typ": "Z2 Dauer",
       "typPlanned": "Rennen",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -15265,7 +15265,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-08",
       "startTime": "2026-08-08T20:13:56",
@@ -15349,7 +15349,7 @@
       "name": "Z2 outdoor",
       "week": null,
       "phase": null,
-      "typ": "Z2",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -15373,7 +15373,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-09",
       "startTime": "2026-08-09T19:29:36",
@@ -21799,7 +21799,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-10T07:12:31.865Z",
+  "updated": "2026-08-10T07:55:52.222Z",
   "source": "intervals.icu",
   "count": 143
 }

@@ -2626,7 +2626,7 @@
       "name": "Gruppenfahrt",
       "week": "2026-KW26",
       "phase": "Übergang",
-      "typ": "Gruppenfahrt",
+      "typ": "Tempo",
       "typPlanned": "Gruppenfahrt",
       "typDetected": "Tempo",
       "typDetection": {
@@ -2650,7 +2650,7 @@
         ],
         "rule": "if-tempo"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-23",
       "startTime": "2026-06-23T17:12:54",
@@ -2737,7 +2737,7 @@
       "name": "Aktivierung W0",
       "week": "2026-KW26",
       "phase": "Übergang",
-      "typ": "Z1 Recovery",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z1 Recovery",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -2761,7 +2761,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-25",
       "startTime": "2026-06-25T19:06:54",
@@ -2873,7 +2873,7 @@
         ],
         "rule": "if-z2dauer-lang-override"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-28",
       "startTime": "2026-06-28T04:55:10",
@@ -2960,7 +2960,7 @@
       "name": "Z2 Dauer",
       "week": "2026-KW27",
       "phase": "Sweet Spot",
-      "typ": "Z2 Dauer",
+      "typ": "Tempo",
       "typPlanned": "Z2 Dauer",
       "typDetected": "Tempo",
       "typDetection": {
@@ -2984,7 +2984,7 @@
         ],
         "rule": "if-tempo"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-29",
       "startTime": "2026-06-29T18:15:41",
@@ -3071,7 +3071,7 @@
       "name": "Gruppenfahrt",
       "week": "2026-KW27",
       "phase": "Sweet Spot",
-      "typ": "Gruppenfahrt",
+      "typ": "Z2 Dauer",
       "typPlanned": "Gruppenfahrt",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -3095,7 +3095,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-06-30",
       "startTime": "2026-06-30T16:23:56",
@@ -3211,7 +3211,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-02",
       "startTime": "2026-07-02T16:14:28",
@@ -3322,7 +3322,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-03",
       "startTime": "2026-07-03T19:53:22",
@@ -3409,7 +3409,7 @@
       "name": "Z2 Lang",
       "week": "2026-KW27",
       "phase": "Sweet Spot",
-      "typ": "Z2 Lang",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z2 Lang",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -3433,7 +3433,7 @@
         ],
         "rule": "if-niedrig-dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-05",
       "startTime": "2026-07-05T16:37:16",
@@ -3549,7 +3549,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-07",
       "startTime": "2026-07-07T18:32:52",
@@ -3665,7 +3665,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "inferred",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-09",
       "startTime": "2026-07-09T16:22:42",
@@ -3752,7 +3752,7 @@
       "name": "Recovery",
       "week": "2026-KW28",
       "phase": "Sweet Spot",
-      "typ": "Z1 Recovery",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z1 Recovery",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -3776,7 +3776,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-10",
       "startTime": "2026-07-10T13:30:43",
@@ -3863,7 +3863,7 @@
       "name": "SS-Ausdauer 3×15 min",
       "week": "2026-KW28",
       "phase": "Sweet Spot",
-      "typ": "Sweet Spot",
+      "typ": "Z2 Lang",
       "typPlanned": "Sweet Spot",
       "typDetected": "Z2 Lang",
       "typDetection": {
@@ -3888,7 +3888,7 @@
         ],
         "rule": "if-z2dauer-lang-override"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-12",
       "startTime": "2026-07-12T14:54:22",
@@ -3975,7 +3975,7 @@
       "name": "Sweet Spot 2×20 min",
       "week": "2026-KW29",
       "phase": "Sweet Spot",
-      "typ": "Sweet Spot",
+      "typ": "Z2 Dauer",
       "typPlanned": "Sweet Spot",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -3999,7 +3999,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-14",
       "startTime": "2026-07-14T18:25:30",
@@ -4086,7 +4086,7 @@
       "name": "Gruppenfahrt",
       "week": "2026-KW29",
       "phase": "Sweet Spot",
-      "typ": "Gruppenfahrt",
+      "typ": "Sweet Spot",
       "typPlanned": "Gruppenfahrt",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -4115,7 +4115,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-16",
       "startTime": "2026-07-16T16:58:51",
@@ -4232,7 +4232,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-19",
       "startTime": "2026-07-19T15:22:05",
@@ -4319,7 +4319,7 @@
       "name": "Recovery",
       "week": "2026-KW30",
       "phase": "Erholung",
-      "typ": "Z1 Recovery",
+      "typ": "Sweet Spot",
       "typPlanned": "Z1 Recovery",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -4343,7 +4343,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-21",
       "startTime": "2026-07-21T16:09:47",
@@ -4454,7 +4454,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-23",
       "startTime": "2026-07-23T18:22:02",
@@ -4541,7 +4541,7 @@
       "name": "Recovery",
       "week": "2026-KW30",
       "phase": "Erholung",
-      "typ": "Z1 Recovery",
+      "typ": "Sweet Spot",
       "typPlanned": "Z1 Recovery",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -4570,7 +4570,7 @@
         ],
         "rule": "if-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-24",
       "startTime": "2026-07-24T13:37:39",
@@ -4682,7 +4682,7 @@
         ],
         "rule": "if-z2dauer-lang-override"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-25",
       "startTime": "2026-07-25T14:56:16",
@@ -4769,7 +4769,7 @@
       "name": "Z2 Locker",
       "week": "2026-KW31",
       "phase": "Schwelle",
-      "typ": "Z2 Dauer",
+      "typ": "Schwelle",
       "typPlanned": "Z2 Dauer",
       "typDetected": "Schwelle",
       "typDetection": {
@@ -4798,7 +4798,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-27",
       "startTime": "2026-07-27T14:07:46",
@@ -4885,7 +4885,7 @@
       "name": "Gruppenfahrt",
       "week": "2026-KW31",
       "phase": "Schwelle",
-      "typ": "Gruppenfahrt",
+      "typ": "Schwelle",
       "typPlanned": "Gruppenfahrt",
       "typDetected": "Schwelle",
       "typDetection": {
@@ -4914,7 +4914,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-28",
       "startTime": "2026-07-28T15:54:46",
@@ -5001,7 +5001,7 @@
       "name": "Schwelle 3×8 min",
       "week": "2026-KW31",
       "phase": "Schwelle",
-      "typ": "Schwelle",
+      "typ": "Sweet Spot",
       "typPlanned": "Schwelle",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -5030,7 +5030,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-30",
       "startTime": "2026-07-30T16:22:16",
@@ -5117,7 +5117,7 @@
       "name": "Recovery",
       "week": "2026-KW31",
       "phase": "Schwelle",
-      "typ": "Z1 Recovery",
+      "typ": "Z2 Dauer",
       "typPlanned": "Z1 Recovery",
       "typDetected": "Z2 Dauer",
       "typDetection": {
@@ -5141,7 +5141,7 @@
         ],
         "rule": "if-z2dauer"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-07-31",
       "startTime": "2026-07-31T13:58:06",
@@ -5228,7 +5228,7 @@
       "name": "Ruhetag",
       "week": "2026-KW31",
       "phase": "Schwelle",
-      "typ": "Ruhetag",
+      "typ": "Schwelle",
       "typPlanned": "Ruhetag",
       "typDetected": "Schwelle",
       "typDetection": {
@@ -5252,7 +5252,7 @@
         ],
         "rule": "if-schwelle"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-02",
       "startTime": "2026-08-02T14:32:50",
@@ -5339,7 +5339,7 @@
       "name": "Z2 Locker",
       "week": "2026-KW32",
       "phase": "Schwelle",
-      "typ": "Z2 Dauer",
+      "typ": "Sweet Spot",
       "typPlanned": "Z2 Dauer",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -5368,7 +5368,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-03",
       "startTime": "2026-08-03T16:29:54",
@@ -5455,7 +5455,7 @@
       "name": "Z2 Locker",
       "week": "2026-KW32",
       "phase": "Schwelle",
-      "typ": "Z2 Dauer",
+      "typ": "Z1 Recovery",
       "typPlanned": "Z2 Dauer",
       "typDetected": "Z1 Recovery",
       "typDetection": {
@@ -5480,7 +5480,7 @@
         ],
         "rule": "if-niedrig-kurz"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-03",
       "startTime": "2026-08-03T14:55:28",
@@ -5567,7 +5567,7 @@
       "name": "Gruppenfahrt",
       "week": "2026-KW32",
       "phase": "Schwelle",
-      "typ": "Gruppenfahrt",
+      "typ": "Z2 Lang",
       "typPlanned": "Gruppenfahrt",
       "typDetected": "Z2 Lang",
       "typDetection": {
@@ -5592,7 +5592,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-04",
       "startTime": "2026-08-04T16:44:44",
@@ -5679,7 +5679,7 @@
       "name": "Schwelle 3×10 min",
       "week": "2026-KW32",
       "phase": "Schwelle",
-      "typ": "Schwelle",
+      "typ": "Sweet Spot",
       "typPlanned": "Schwelle",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -5708,7 +5708,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-06",
       "startTime": "2026-08-06T17:29:22",
@@ -5795,7 +5795,7 @@
       "name": "SS-Durability 2×20 min",
       "week": "2026-KW32",
       "phase": "Schwelle",
-      "typ": "Sweet Spot",
+      "typ": "Z2 Lang",
       "typPlanned": "Sweet Spot",
       "typDetected": "Z2 Lang",
       "typDetection": {
@@ -5820,7 +5820,7 @@
         ],
         "rule": "if-niedrig-lang"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-08",
       "startTime": "2026-08-08T16:52:19",
@@ -5907,7 +5907,7 @@
       "name": "Ruhetag",
       "week": "2026-KW32",
       "phase": "Schwelle",
-      "typ": "Ruhetag",
+      "typ": "Sweet Spot",
       "typPlanned": "Ruhetag",
       "typDetected": "Sweet Spot",
       "typDetection": {
@@ -5936,7 +5936,7 @@
         ],
         "rule": "block-upgrade-sweet-spot"
       },
-      "typSource": "plan",
+      "typSource": "detected",
       "dataSource": "intervals",
       "date": "2026-08-09",
       "startTime": "2026-08-09T13:30:33",
@@ -7543,15 +7543,15 @@
     },
     {
       "date": "2026-08-10",
-      "sleepHours": null,
-      "sleepScore": null,
-      "avgSleepingHR": null,
-      "restingHR": null,
-      "hrv": null,
-      "weight": null,
-      "bodyFat": null,
-      "activeEnergy": null,
-      "restingEnergy": null,
+      "sleepHours": 7.1,
+      "sleepScore": 85,
+      "avgSleepingHR": 54,
+      "restingHR": 52,
+      "hrv": 59,
+      "weight": 80.4,
+      "bodyFat": 23.6,
+      "activeEnergy": 38,
+      "restingEnergy": 711,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -7560,9 +7560,9 @@
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-09",
-      "restingHR": "2026-08-09",
-      "sleepHours": "2026-08-09"
+      "hrv": "2026-08-10",
+      "restingHR": "2026-08-10",
+      "sleepHours": "2026-08-10"
     }
   },
   "powerCurves": {
@@ -15931,7 +15931,7 @@
       }
     }
   ],
-  "athleteWeight": 79.4,
+  "athleteWeight": 80.4,
   "plannedSessions": [
     {
       "date": "2026-06-23",
@@ -17048,31 +17048,31 @@
   },
   "forecast": {
     "2026-08-10": {
-      "temp": 28.5,
-      "tempFeel": 27.9,
-      "humidity": 35,
-      "windSpeed": 8.6,
-      "windDir": 256,
+      "temp": 28.9,
+      "tempFeel": 27.8,
+      "humidity": 33,
+      "windSpeed": 10.9,
+      "windDir": 259,
       "precipProb": 1,
-      "weatherCode": 80,
+      "weatherCode": 3,
       "uvMax": 6.2
     },
     "2026-08-11": {
       "temp": 20.6,
-      "tempFeel": 18.6,
-      "humidity": 42,
-      "windSpeed": 11.7,
-      "windDir": 315,
+      "tempFeel": 18.2,
+      "humidity": 41,
+      "windSpeed": 12.8,
+      "windDir": 302,
       "precipProb": 0,
       "weatherCode": 2,
       "uvMax": 6.2
     },
     "2026-08-12": {
-      "temp": 22,
-      "tempFeel": 21.6,
+      "temp": 22.1,
+      "tempFeel": 21.5,
       "humidity": 42,
       "windSpeed": 4.2,
-      "windDir": 64,
+      "windDir": 63,
       "precipProb": 0,
       "weatherCode": 1,
       "uvMax": 6.1
@@ -17212,7 +17212,7 @@
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-10T07:12:26.015Z",
+  "updated": "2026-08-10T07:55:46.840Z",
   "source": "notion+intervals",
   "count": 87
 }
