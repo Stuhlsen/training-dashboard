@@ -10668,5 +10668,49 @@
     "thresholdWatts": 239,
     "gapToleranceSec": 90,
     "fetchedAt": "2026-08-10T01:02:06.451Z"
+  },
+  "i174776504": {
+    "longestBlock": {
+      "startSec": 2335,
+      "endSec": 3534,
+      "totalDurationSec": 1199,
+      "workDurationSec": 1199,
+      "avgWatts": 194
+    },
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 604,
+        "average_watts": 114,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 604,
+        "end_time": 1800,
+        "average_watts": 194,
+        "type": "WORK"
+      },
+      {
+        "start_time": 1800,
+        "end_time": 2335,
+        "average_watts": 92,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 2335,
+        "end_time": 3534,
+        "average_watts": 194,
+        "type": "WORK"
+      },
+      {
+        "start_time": 3534,
+        "end_time": 4359,
+        "average_watts": 82,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 174,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-11T18:48:15.334Z"
   }
 }
