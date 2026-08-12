@@ -15555,9 +15555,117 @@
       "wetter": "20.6°C",
       "source": "intervals.icu",
       "ruhepuls": 47,
-      "hrv": null,
+      "hrv": 47,
       "avgSleepingHR": 50,
       "sleepHours": 7.5,
+      "feel": null,
+      "notizen": null
+    },
+    {
+      "name": "Z2 Rolle",
+      "week": null,
+      "phase": null,
+      "typ": "Z1 Recovery",
+      "typPlanned": "Z2",
+      "typDetected": "Z1 Recovery",
+      "typDetection": {
+        "type": "Z1 Recovery",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.713,
+            "note": "NP 189W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "50 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 67% · Z3/Z4+ 31% · Z5+ 2%",
+            "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-kurz"
+      },
+      "typSource": "detected",
+      "dataSource": "intervals",
+      "date": "2026-08-12",
+      "startTime": "2026-08-12T19:41:23",
+      "activityId": "i175243906",
+      "km": 23.9,
+      "min": 50,
+      "kmh": 28.9,
+      "watt": 182,
+      "maxWatt": null,
+      "np": 189,
+      "hf": 132,
+      "hfMax": 144,
+      "kad": 90,
+      "hoehe": 17,
+      "tss": 42,
+      "if": 0.71,
+      "vi": 1.04,
+      "trimp": 58,
+      "ctl": 31.9,
+      "atl": 37.3,
+      "tsb": -5.4,
+      "decoupling": 4.1,
+      "dtl": 42,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 297
+        },
+        {
+          "id": "Z2",
+          "secs": 1716
+        },
+        {
+          "id": "Z3",
+          "secs": 857
+        },
+        {
+          "id": "Z4",
+          "secs": 67
+        },
+        {
+          "id": "Z5",
+          "secs": 31
+        },
+        {
+          "id": "Z6",
+          "secs": 19
+        },
+        {
+          "id": "Z7",
+          "secs": 0
+        },
+        {
+          "id": "SS",
+          "secs": 227
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 25.2,
+        "tempFeel": 22.5,
+        "humidity": 26,
+        "windSpeed": 8.6,
+        "windDir": 61,
+        "precip": 0,
+        "cloudCover": 1,
+        "weatherCode": 0
+      },
+      "wetter": "25.2°C",
+      "source": "intervals.icu",
+      "ruhepuls": 52,
+      "hrv": 40,
+      "avgSleepingHR": 53,
+      "sleepHours": 8.3,
       "feel": null,
       "notizen": null
     }
@@ -19121,38 +19229,38 @@
       "sleepScore": 84,
       "avgSleepingHR": 50,
       "restingHR": 47,
-      "hrv": null,
-      "weight": 92,
+      "hrv": 47,
+      "weight": 93.8,
       "bodyFat": null,
-      "activeEnergy": null,
+      "activeEnergy": 661,
       "restingEnergy": null,
-      "kcalConsumed": null,
+      "kcalConsumed": 3224,
       "hydration": null,
-      "hydrationVolume": null,
+      "hydrationVolume": 0.58,
       "eftp": 256
     },
     {
       "date": "2026-08-12",
-      "sleepHours": null,
-      "sleepScore": null,
-      "avgSleepingHR": null,
-      "restingHR": null,
-      "hrv": null,
-      "weight": null,
+      "sleepHours": 8.3,
+      "sleepScore": 86,
+      "avgSleepingHR": 53,
+      "restingHR": 52,
+      "hrv": 40,
+      "weight": 92.4,
       "bodyFat": null,
-      "activeEnergy": null,
+      "activeEnergy": 681,
       "restingEnergy": null,
-      "kcalConsumed": null,
+      "kcalConsumed": 2764,
       "hydration": null,
-      "hydrationVolume": null,
+      "hydrationVolume": 0.34,
       "eftp": 256
     }
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-10",
-      "restingHR": "2026-08-11",
-      "sleepHours": "2026-08-11"
+      "hrv": "2026-08-12",
+      "restingHR": "2026-08-12",
+      "sleepHours": "2026-08-12"
     }
   },
   "powerCurves": {
@@ -19166,7 +19274,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 92,
+        "weight": 92.4,
         "secs": [
           1,
           2,
@@ -21116,7 +21224,7 @@
       }
     }
   },
-  "athleteWeight": 92,
+  "athleteWeight": 92.4,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -21939,7 +22047,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-12T12:45:57.406Z",
+  "updated": "2026-08-12T18:49:42.155Z",
   "source": "intervals.icu",
-  "count": 144
+  "count": 145
 }
