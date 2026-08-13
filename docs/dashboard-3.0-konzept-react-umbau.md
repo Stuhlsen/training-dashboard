@@ -1375,6 +1375,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 12d | **Fehlende Charts — Explorer: Kadenz-Coach** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `CadenceChart.tsx`, `core/cadence.js` |
 | 12e | **Fehlende Charts — Explorer: Zeit-in-Zonen (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `ZoneWeeklyChart.tsx` (Familie 3, gestapelte Balken), `core/zones.js::weeklyZoneShares`. Farben (`--z2`/`--ss`/`--vo2`) übernommen von `IntensityBand.tsx` statt der Vanilla-Palette, für eine einheitliche low/mid/high-Farbwahrheit über beide Seiten |
 | 12f | **Fehlende Charts — Explorer: Wetter (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `WeatherWeeklyChart.tsx` (Familie 3, Temp-Balken + Wind-Linie + Regen-Marker), `core/weather.js::weeklyWeatherAverages`. Ampel-Grenzwerte dupliziert statt aus `logbook-view-model.ts::classifyWeather` importiert, um `core/` frei von einer `features/`-Abhängigkeit zu halten |
+| 12g | **Fehlende Charts — Explorer: Schlaf** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `SleepChart.tsx` (Familie 2, Schlafdauer-Balken + Schlaf-HF-Linie auf zweiter y-Achse), kein neues `core/`-Modul (direkt aus `WellnessDay.sleepHours`/`avgSleepingHR`). `/code-review` fand zwei Edge-Case-Bugs vor dem Commit (Balken am linken Rand fixiert bei genau einer Nacht Daten statt Leerzustand; Division durch Null, wenn alle Nächte 0h melden) — beide gefixt, Regressionstests ergänzt |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1702,8 +1703,15 @@ mit den Hero-Lücken zuerst (höchste Sichtbarkeit, wie „11a zuerst"):
   dupliziert statt aus `app/src/features/logbook/logbook-view-model.ts
   ::classifyWeather` importiert (identische Werte) — ein `core/`-Import aus
   `features/` wäre ein Schichtenbruch.
-- **12g — Explorer: Schlaf.** Neue `SleepChart.tsx` (Familie 2), direkt aus
-  `WellnessDay.sleepHours`/`avgSleepingHR`.
+- **12g — Explorer: Schlaf.** ✅ umgesetzt (13.08.2026). Neue `SleepChart.tsx`
+  (Familie 2, Port von `assets/js/ui/charts/wellness.js::renderSleep()` nach
+  dem WellnessChart/EfficiencyChart-Baumuster — densifyDays/joinSeries("gap"),
+  makeIndexScale statt vanillas eigener gap/xOf-Rechnung), direkt aus
+  `WellnessDay.sleepHours`/`avgSleepingHR`, kein neues `core/`-Modul. Balken =
+  Schlafdauer (Ampelfarbe `--z2`/`--warn`/`--danger` bei ≥7h/≥6h/darunter,
+  bewusst blau statt grün für "gut" wie im vanilla-Original, um keine
+  Kollision mit `--z1`/Recovery zu erzeugen), Linie = Ø-Schlaf-HF (zweite
+  y-Achse rechts), 7h-Ziellinie nur bei eigenem Plan.
 - **12h — Explorer: Energie & Gewicht.** Neue `EnergyWeightChart.tsx`
   (Familie 2), `core/body.js`.
 - **12i — Explorer: Tempo vs. Herzfrequenz (Scatter) + Ø-HF-Entwicklung.**
