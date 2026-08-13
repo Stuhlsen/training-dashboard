@@ -1367,7 +1367,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `MetricsGrid.tsx` (Port von `ui/overview.js::_renderMetrics()`) unten in `HeroPage.tsx`, nutzt `core.ramp`/`core.eftp` statt FTP/eFTP ein zweites Mal herzuleiten |
 | 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `/analysis` + `AnalysisPage.tsx`-Shell + `AnalysisSection.tsx` (Baustein für 11e/11f) + KPI-Hero + Belastung/Intensität |
 | 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `AerobicCards.tsx`/`FtpTriad.tsx`/`RecordChips.tsx`, `RETEST_DATE` neu in `config.ts` |
-| 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
+| 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `buildBodyCards()` (wiederverwendet `AerobicCards.tsx`), `buildConsistencySummary()` (wiederverwendet `KpiGrid.tsx`), neue `PeriodizationBlocks.tsx` |
 | 11g | **Nacharbeiten — Login-Seite stylen** | `[OP]` | ⏳ offen. `LoginPage.tsx` unstyled, bei 11a-Live-Check aufgefallen (sitzt außerhalb `Layout`/`PageShell`) |
 
 ### Etappe 10 — Umschaltung `[F5]`
@@ -1530,11 +1530,66 @@ mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
     Athlet 2, keine neuen Konsolenfehler (nur der vorbestehende Supabase-
     Refresh-Token-400 ohne aktive Session, s. 11d).
 - **11f — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung.**
-  Gleicher Shell-Koordinationspunkt wie 11e. Sektionen: Regeneration & Körper
-  (`_renderBody`, Kern in `core/body.js`, datengetriebenes Ein-/Ausblenden
-  wie im Original beibehalten), Konsistenz (`_renderConsistency`, Kern in
-  `core/consistency.js` + `core/adherence.js`), Periodisierung
-  (`_renderPeriodization`, Kern in `core/periodization.js`).
+  ✅ umgesetzt (13.08.2026). Baute auf der Shell aus 11d auf, reine UI-Arbeit,
+  kein Logik-Port — `core/body.js`, `core/adherence.js`, `core/periodization.js`
+  lagen bereits fertig in `app/src/core/`. Der Doku-Verweis auf
+  `core/consistency.js` in der ursprünglichen Zeile oben war ungenau: die
+  Vanilla-Sektion `_renderConsistency` nutzt tatsächlich nur
+  `core/adherence.js::buildConsistency` — `core/consistency.js` gehört zum
+  Jahreskalender-Chart (`ui/charts/training.js`), nicht zum Analyse-Tab.
+  - **Regeneration & Körper** (Port von `_renderBody`): `buildBodyCards()`
+    nutzt bewusst denselben `AerobicCard`-Rückgabetyp und dieselbe
+    `AerobicCards.tsx`-Komponente wie die Aerobe-Entwicklung-Sektion (11e) —
+    das Original zeichnet Gewicht/Energie/Hydration mit derselben
+    `.aerobic-card`-CSS-Klasse, hier also Komponente wiederverwendet statt
+    eine Kopie zu bauen. Sektion blendet sich komplett aus (kein
+    `AnalysisSection`-Aufruf), wenn `buildBodyCards()` ein leeres Array
+    liefert — 1:1 `section.classList.toggle("hidden", !avail.any)` aus dem
+    Original. `AthleteConfig.bmr` (nur Athlet 2) neu in `config.ts` ergänzt,
+    1:1 aus `state/config.js::athletes[].bmr` — Fallback-Grundlage für die
+    Energie-Karte, wenn Wellness keine `restingEnergy` trägt.
+  - **Konsistenz & Adhärenz** (Port von `_renderConsistency`):
+    `buildConsistencySummary()` reicht `PlanCard[]` aus `usePlanCards()`
+    direkt (roh, ungemappt) an `core/adherence.js::buildConsistency()`
+    durch — dieselbe Übergabe-Konvention wie bereits `hero-view-model.ts::
+    findNextSession()` (Etappe 6/9) für `core/ftp-progress.js::
+    nextPlannedSession()`: die Vanilla-Session-Shape erwartet `.title`,
+    core/planning.js::applyAdjustment() fällt beim Fehlen intern auf `.name`
+    zurück (PlanCards Feldname) — keine Remapping-Schicht nötig. `null` statt
+    Plankarten bei Athlet 2 (kein `ownPlan` im Sinne von
+    `rides.some(r => r.week)`, s. AGENTS.md "Bekannte Eigenheiten" zu
+    `mapActivity2()`) — Adhärenz-Chip entfällt dort, Streak/Frequenz bleiben.
+    Rendert die Chips über das bereits bestehende `KpiGrid.tsx` (identische
+    `.analysis-kpi-grid`-Klasse im Original) statt einer eigenen Komponente.
+  - **Periodisierungs-Erfüllung** (Port von `_renderPeriodization`, nur
+    Athlet 1): neue `PeriodizationBlocks.tsx` (Port von `.phase-comp-row`,
+    CSS-Grid-Spalten 1:1 aus `assets/css/components.css` übernommen).
+    `buildPeriodization()` nimmt `weekIndexFn` vom Aufrufer entgegen
+    (`weekSortIndex` aus `core/aggregate.js` + `weekIndex` aus `config.ts`)
+    statt selbst zu importieren, wie im Original `weekSortIndex(w, (x) =>
+    CONFIG.weekIndex(x))`. Sektion komplett `ownPlan`-gated (kein Rendern
+    für Athlet 2), Farben über das bestehende `phaseColor()` aus `config.ts`.
+  - Beim Fixen des `tsc -b`-Laufs zwei vorbestehende, bislang unbemerkte
+    JSDoc-Lücken in `core/body.js::energyView()` aufgefallen (fehlende
+    `hasResting`/`restingEstimated` im `@returns`, fehlender `@param` für
+    `estBMR` — dadurch inferierte TS den Parametertyp nur als `null` statt
+    `number|null`) und in BEIDEN Kopien (vanilla `assets/js/core/body.js`
+    UND `app/src/core/body.js`) korrigiert, reine Typannotation, kein
+    Verhaltensunterschied.
+  - `analysis-view-model.ts` (+13 neue Tests: `buildBodyCards`,
+    `buildConsistencySummary`, `buildPeriodization`) hält weiter die reinen
+    Ableitungen von der JSX-Ebene getrennt, Muster wie 11d/11e.
+  - `tsc -b` sauber, `npx vitest run` 1111/1111 (app/), Root `npm test`
+    936/936 unverändert grün (Doc-only-Änderung in `core/body.js` betrifft
+    keine Vanilla-Laufzeitlogik), ESLint (Root + `app/`) sauber. Live-
+    Playwright-Check gegen den lokalen Vite-Dev-Server (beide Athleten, echte
+    Daten aus `data/rides.json`/`data/rides-2.json`): Athlet 2 (hc_diZee)
+    zeigt Regeneration & Körper (alle drei Karten) + Konsistenz (ohne
+    Adhärenz-Chip, kein `ownPlan`) und blendet Periodisierung korrekt aus;
+    Athlet 1 (Stuhlsen) zeigt zusätzlich die Adhärenz-Chip mit
+    "Zuletzt verpasst"-Hinweis sowie zwei Periodisierungs-Blöcke (Sweet
+    Spot phasengerecht, Schwelle teilweise) + eine Erholungswoche ("zu hart
+    für Erholung"). 0 Konsolenfehler.
 - **11g — Login-Seite stylen.** Bei der 11a-Live-Verifikation aufgefallen:
   `LoginPage.tsx` ist komplett unstyled HTML (nackte `<input>`/`<button>`,
   kein CSS) — sitzt außerhalb von `Layout`/`PageShell` (eigene Route ohne

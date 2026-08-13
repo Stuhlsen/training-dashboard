@@ -99,7 +99,8 @@ export function wattsPerKg(watts, weightKg) {
  * und/oder Zufuhr (kcalConsumed) — je nachdem, was getrackt wird. Quelle
  * Apple Health / intervals.icu. Bei beidem ergibt sich eine Bilanz-Ansicht.
  * @param {import("../types.js").WellnessDay[]} wellness
- * @returns {null | {days: Array<{date: string, resting: number, active: number, burned: number, intake: number|null}>, hasExpenditure: boolean, hasIntake: boolean, avgBurned: number|null, avgResting: number|null, avgActive: number|null, avgIntake: number|null, n: number}}
+ * @param {number|null} [estBMR]
+ * @returns {null | {days: Array<{date: string, resting: number, active: number, burned: number, intake: number|null}>, hasExpenditure: boolean, hasResting: boolean, restingEstimated: boolean, hasIntake: boolean, avgBurned: number|null, avgResting: number|null, avgActive: number|null, avgIntake: number|null, n: number}}
  */
 export function energyView(wellness, estBMR = null) {
   const rows = (wellness || []).filter(

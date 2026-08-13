@@ -44,6 +44,11 @@ export interface AthleteConfig {
    *  keine eigene Saison-Basis, der Meilenstein entfällt dort. */
   seasonStartFtp: number | null;
   dataSources: string[];
+  /** Grundumsatz-Schätzgrundlage (Mifflin-St-Jeor), Analyse-Tab "Regeneration
+   *  & Körper" — nur Fallback, wenn Wellness keine `restingEnergy` trägt.
+   *  1:1 aus `assets/js/state/config.js::athletes[].bmr`, nur bei Athlet 2
+   *  gesetzt. */
+  bmr?: { heightCm: number; age: number; sex: string; weightKg: number };
 }
 
 export const PRIMARY_ATHLETE_ID = "athlete1";
@@ -70,6 +75,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     ftpGoal: 280,
     seasonStartFtp: null,
     dataSources: ["intervals.icu", "Amazfit"],
+    bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92.5 },
   },
 ];
 

@@ -14,7 +14,15 @@
    ============================================================ */
 
 import { cadenceCoach } from "../../core/cadence.js";
-import { wattsPerKg } from "../../core/body.js";
+import {
+  availability,
+  energyView,
+  estimateBMR,
+  hydrationSeries,
+  wattsPerKg,
+  weightTrend,
+} from "../../core/body.js";
+import { buildConsistency as buildConsistencyCore } from "../../core/adherence.js";
 import {
   DECOUPLING_MIN_POINTS,
   DECOUPLING_STABLE,
@@ -31,11 +39,13 @@ import {
 import { buildLoadGuard, describeWeek } from "../../core/loadguard.js";
 import { isoWeekKey } from "../../core/aggregate.js";
 import { fmt, fmtDate, fmtInt } from "../../core/format.js";
+import { phaseCompliance } from "../../core/periodization.js";
 import { currentPmc } from "../../core/pmc.js";
 import { recordProgression } from "../../core/records.js";
 import { avg, maxVal, sum } from "../../core/stats.js";
 import { distributionShape, overallBandsFromIF, overallZoneShares } from "../../core/zones.js";
 import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics.js";
+import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -455,4 +465,173 @@ export function buildRecordChips(rides: Ride[]): RecordChip[] {
     date: fmtDate(r.date),
     historyCount: r.history.length,
   }));
+}
+
+/* ── Regeneration & Körper ─────────────────────────────────── */
+
+/** Port von analysis.js::_renderBody. Nutzt bewusst dasselbe `AerobicCard`-
+ *  Ergebnistyp wie buildAerobicCards() — das Original zeichnet Gewicht/
+ *  Energie/Hydration mit derselben `.aerobic-card`-Klasse, hier also
+ *  dieselbe Komponente (AerobicCards.tsx) wiederverwenden statt eine
+ *  Kopie zu bauen. Leeres Array = Sektion komplett ausblenden (Aufrufer),
+ *  1:1 wie `section.classList.toggle("hidden", !avail.any)` im Original. */
+export function buildBodyCards(
+  wellness: WellnessDay[],
+  todayISO: string,
+  ftpMeasured: number | null,
+  bmr: { heightCm: number; age: number; sex?: string; weightKg: number } | undefined
+): AerobicCard[] {
+  const avail = availability(wellness, todayISO);
+  if (!avail.any) return [];
+
+  const cards: AerobicCard[] = [];
+
+  if (avail.weight) {
+    const t = weightTrend(wellness);
+    if (t) {
+      const wkgMeasured = wattsPerKg(ftpMeasured, t.current);
+      const deltaColor =
+        t.delta30d == null || Math.abs(t.delta30d) < 0.3
+          ? "var(--dim)"
+          : t.delta30d < 0
+            ? "var(--z1, #4a9a6e)"
+            : "var(--ss, #e08a3c)";
+      const subs: AerobicSub[] = [
+        {
+          text: `${t.delta30d != null ? `${t.delta30d > 0 ? "+" : ""}${t.delta30d} kg / 30 Tage` : ""} · ${t.n} Messungen`,
+          color: deltaColor,
+        },
+      ];
+      if (wkgMeasured != null) {
+        subs.push({ text: `${fmt(wkgMeasured)} W/kg (bezogen auf gemessene FTP ${ftpMeasured} W)` });
+      }
+      cards.push({ title: "Gewicht", value: `${fmt(t.current)}`, unit: "kg", subs });
+    }
+  }
+
+  if (avail.energy) {
+    let estBMR: number | null = null;
+    if (bmr) {
+      const wt = weightTrend(wellness);
+      const recentWeight = wt?.points.length ? wt.points[wt.points.length - 1].weight : bmr.weightKg;
+      estBMR = estimateBMR({ weightKg: recentWeight, heightCm: bmr.heightCm, age: bmr.age, sex: bmr.sex });
+    }
+    const e = energyView(wellness, estBMR);
+    if (e) {
+      const gu = e.restingEstimated ? "Grundumsatz gesch." : "Grundumsatz";
+      const parts: string[] = [];
+      if (e.hasExpenditure) {
+        parts.push(
+          e.hasResting
+            ? `Verbrauch Ø ${(e.avgBurned ?? 0).toLocaleString("de")} kcal/Tag (${gu} ${e.avgResting} + aktiv ${e.avgActive})`
+            : `Aktiv verbrannt Ø ${(e.avgActive ?? 0).toLocaleString("de")} kcal/Tag`
+        );
+      }
+      if (e.hasIntake) parts.push(`Zufuhr Ø ${(e.avgIntake ?? 0).toLocaleString("de")} kcal/Tag`);
+      const headVal = e.hasExpenditure ? (e.hasResting ? e.avgBurned : e.avgActive) : e.avgIntake;
+      const headUnit = e.hasExpenditure ? (e.hasResting ? "kcal/Tag Ø Verbrauch" : "kcal/Tag Ø aktiv") : "kcal/Tag Ø Zufuhr";
+      cards.push({
+        title: "Energie",
+        value: headVal != null ? headVal.toLocaleString("de") : "–",
+        unit: headUnit,
+        subs: [
+          { text: `${parts.join(" · ")} · ${e.n} Tage` },
+          {
+            text:
+              e.hasExpenditure && e.hasIntake
+                ? "Zufuhr unter dem Verbrauch = negatives Energiedefizit — bei hoher Last die Regeneration im Blick behalten."
+                : "Quelle: intervals.icu (Apple Health / Amazfit).",
+          },
+        ],
+      });
+    }
+  }
+
+  if (avail.hydration) {
+    const h = hydrationSeries(wellness);
+    if (h) {
+      cards.push({
+        title: "Hydration",
+        value: h.field === "hydrationVolume" ? h.avg.toLocaleString("de") : fmt(h.avg),
+        unit: h.field === "hydrationVolume" ? "ml/Tag Ø" : "Score Ø",
+        subs: [{ text: `${h.n} Tage erfasst · Dehydration treibt HF-Drift und verfälscht EF/Decoupling` }],
+      });
+    }
+  }
+
+  return cards;
+}
+
+/* ── Konsistenz & Adhärenz ─────────────────────────────────── */
+
+export interface ConsistencySummary {
+  chips: AnalysisKpi[];
+  missedText: string | null;
+}
+
+/** Port von analysis.js::_renderConsistency. `planCards` kommt roh von
+ *  usePlanCards() rein (Session-Shape, `date`/`cancelled`/`name` bereits
+ *  aufgelöst) — core/adherence.js::planAdherence fällt intern auf `.name`
+ *  zurück, wenn `.title` fehlt, exakt wie im Vanilla-Original mit
+ *  plan_cards-Objekten. `null` bei Athlet 2 (kein eigener Plan im Sinne
+ *  von ownPlan, s. AGENTS.md "Bekannte Eigenheiten" zu mapActivity2()). */
+export function buildConsistencySummary(rides: Ride[], planCards: PlanCard[] | null, todayISO: string): ConsistencySummary {
+  const c = buildConsistencyCore(rides, planCards, {}, todayISO);
+
+  const freq = c.frequency;
+  const freqStr = freq
+    ? `${fmt(freq.recent)} Fahrten/Woche${freq.delta != null ? ` (${freq.delta > 0 ? "+" : ""}${freq.delta} vs. Vormonat)` : ""}`
+    : "–";
+
+  const chips: AnalysisKpi[] = [
+    { value: `${c.streak}`, label: "Wochen-Streak", sub: "aufeinanderfolgende Trainingswochen" },
+    { value: freqStr, label: "Frequenz (4 Wochen)" },
+  ];
+  if (c.adherence) {
+    chips.push({
+      value: `${c.adherence.quote}%`,
+      label: "Plan-Adhärenz",
+      sub: `${c.adherence.done}/${c.adherence.planned} geplante Einheiten absolviert`,
+    });
+  }
+
+  const missedText = c.adherence?.missed?.length
+    ? `Zuletzt verpasst: ${c.adherence.missed.map((m: { title: string; date: string }) => `${m.title} (${fmtDate(m.date)})`).join(" · ")}`
+    : null;
+
+  return { chips, missedText };
+}
+
+/* ── Periodisierungs-Erfüllung ────────────────────────────── */
+
+export interface PeriodizationBlock {
+  phase: string;
+  weeks: string[];
+  status: "ok" | "teilweise" | "abweichend";
+  note: string;
+}
+
+export interface PeriodizationRecoveryWeek {
+  week: string;
+  tss: number;
+  refTss: number | null;
+  reduced: boolean | null;
+}
+
+export interface PeriodizationSummary {
+  blocks: PeriodizationBlock[];
+  recovery: PeriodizationRecoveryWeek[];
+}
+
+/** Port von analysis.js::_renderPeriodization (nur eigener Plan, vom
+ *  Aufrufer über `ownPlan` gegated). `weekIndexFn` kommt vom Aufrufer
+ *  (`weekSortIndex` + `weekIndex` aus config.ts), wie im Original
+ *  `weekSortIndex(w, (x) => CONFIG.weekIndex(x))`. */
+export function buildPeriodization(rides: Ride[], weekIndexFn: (week: string) => number): PeriodizationSummary | null {
+  const c = phaseCompliance(rides, weekIndexFn);
+  if (!c) return null;
+  return {
+    blocks: c.blocks.map((b: PeriodizationBlock) => ({ phase: b.phase, weeks: b.weeks, status: b.status, note: b.note })),
+    recovery: c.recovery,
+  };
 }

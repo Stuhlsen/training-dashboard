@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 import {
   buildAerobicCards,
   buildAnalysisKpis,
+  buildBodyCards,
+  buildConsistencySummary,
   buildIntensityDistribution,
   buildLoadRows,
+  buildPeriodization,
   buildPowerDiagnostics,
   buildRecordChips,
   buildTypDistribution,
 } from "./analysis-view-model";
+import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
+type WellnessDay = import("../../types.js").WellnessDay;
 
 function ride(overrides: Partial<Ride>): Ride {
   return {
@@ -21,6 +26,32 @@ function ride(overrides: Partial<Ride>): Ride {
     min: 120,
     ...overrides,
   } as Ride;
+}
+
+function wellnessDay(overrides: Partial<WellnessDay>): WellnessDay {
+  return { dateISO: "2026-06-01", ...overrides } as WellnessDay;
+}
+
+function planCard(overrides: Partial<PlanCard>): PlanCard {
+  return {
+    id: "card-1",
+    date: "2026-06-01",
+    sortOrder: 0,
+    name: "Sweet Spot",
+    typ: "Sweet Spot",
+    km: 35,
+    durationMin: 60,
+    tssPlanned: 70,
+    week: "2026-KW22",
+    phase: "Sweet Spot",
+    details: null,
+    workout: null,
+    workoutStructure: null,
+    pushedExternalId: null,
+    createdAt: "2026-05-01T00:00:00Z",
+    updatedAt: "2026-05-01T00:00:00Z",
+    ...overrides,
+  };
 }
 
 describe("buildAnalysisKpis", () => {
@@ -250,5 +281,68 @@ describe("buildRecordChips", () => {
 
   it("liefert leere Liste ohne Fahrten", () => {
     expect(buildRecordChips([])).toEqual([]);
+  });
+});
+
+describe("buildBodyCards", () => {
+  it("liefert leere Liste ohne Wellness-Datenbasis", () => {
+    expect(buildBodyCards([], "2026-06-06", 193, undefined)).toEqual([]);
+  });
+
+  it("baut die Gewichts-Karte inkl. W/kg bei gemessener FTP", () => {
+    const wellness = [
+      wellnessDay({ dateISO: "2026-06-01", weight: 70 }),
+      wellnessDay({ dateISO: "2026-06-02", weight: 70.2 }),
+      wellnessDay({ dateISO: "2026-06-03", weight: 70.5 }),
+      wellnessDay({ dateISO: "2026-06-04", weight: 70.1 }),
+      wellnessDay({ dateISO: "2026-06-05", weight: 69.8 }),
+    ];
+    const cards = buildBodyCards(wellness, "2026-06-06", 193, undefined);
+    const weightCard = cards.find((c) => c.title === "Gewicht");
+    expect(weightCard?.unit).toBe("kg");
+    expect(weightCard?.subs?.some((s) => s.text.includes("W/kg"))).toBe(true);
+  });
+
+  it("baut die Energie-Karte über Zufuhr, wenn nur kcalConsumed erfasst ist", () => {
+    const wellness = Array.from({ length: 5 }, (_, i) =>
+      wellnessDay({ dateISO: `2026-06-0${i + 1}`, kcalConsumed: 2200 + i * 10 })
+    );
+    const cards = buildBodyCards(wellness, "2026-06-06", null, undefined);
+    const energyCard = cards.find((c) => c.title === "Energie");
+    expect(energyCard?.unit).toBe("kcal/Tag Ø Zufuhr");
+  });
+});
+
+describe("buildConsistencySummary", () => {
+  it("liefert Streak/Frequenz ohne Adhärenz-Chip, wenn kein Plan übergeben wird", () => {
+    const rides = [ride({ dateISO: "2026-06-01" })];
+    const { chips, missedText } = buildConsistencySummary(rides, null, "2026-06-05");
+    expect(chips.map((c) => c.label)).toEqual(["Wochen-Streak", "Frequenz (4 Wochen)"]);
+    expect(missedText).toBeNull();
+  });
+
+  it("ergänzt die Plan-Adhärenz-Chip, wenn Plankarten übergeben werden", () => {
+    const rides = [ride({ dateISO: "2026-06-01" })];
+    const planCards = [planCard({ date: "2026-06-01" }), planCard({ id: "card-2", date: "2026-06-03" })];
+    const { chips } = buildConsistencySummary(rides, planCards, "2026-06-05");
+    const adherence = chips.find((c) => c.label === "Plan-Adhärenz");
+    expect(adherence?.value).toBe("50%");
+    expect(adherence?.sub).toBe("1/2 geplante Einheiten absolviert");
+  });
+});
+
+describe("buildPeriodization", () => {
+  it("liefert null ohne Fahrten mit Block-Phase", () => {
+    expect(buildPeriodization([ride({})], () => 0)).toBeNull();
+  });
+
+  it("bewertet einen Block als phasengerecht bei Signatur-Match", () => {
+    const rides = [
+      ride({ dateISO: "2026-06-01", dataSource: "intervals", week: "2026-KW22", phase: "Sweet Spot", typ: "Sweet Spot" }),
+      ride({ dateISO: "2026-06-03", dataSource: "intervals", week: "2026-KW22", phase: "Sweet Spot", typ: "Sweet Spot" }),
+    ];
+    const summary = buildPeriodization(rides, () => 0);
+    expect(summary?.blocks[0]?.phase).toBe("Sweet Spot");
+    expect(summary?.blocks[0]?.status).toBe("ok");
   });
 });
