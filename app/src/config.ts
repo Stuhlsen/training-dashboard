@@ -77,6 +77,12 @@ export function athleteConfig(id: string): AthleteConfig | null {
   return ATHLETES.find((a) => a.id === id) ?? null;
 }
 
+/** 1:1 aus `assets/js/state/config.js::retestDate` — FTP-Retest in der
+ *  Taper-Woche (14.–20.09.2026). Athletenweiter Termin, nicht Teil von
+ *  `AthleteConfig`: nur bei Athlet 1 relevant (Leistungsdiagnostik,
+ *  Etappe 11e prüft `ownPlan` selbst, wie das Original CONFIG.retestDate). */
+export const RETEST_DATE = "2026-09-19";
+
 interface PhaseInfo {
   color: string;
   label: string;

@@ -2,24 +2,43 @@
    FEATURES/ANALYSIS/ANALYSIS-VIEW-MODEL.TS — reine Ableitungen für den
    Analyse-Tab (kein DOM — Muster wie logbook-view-model.ts).
 
-   Etappe 11d portiert nur die ersten zwei Sektionen aus
-   assets/js/ui/analysis.js: Belastung (_renderLoad) und Intensität
-   (_renderZones + _renderTypDistribution), plus die KPI-Hero-Reihe
-   (_renderKPIs) — die gehört zu keiner einzelnen späteren Sektion (11e/
-   11f), sondern ist Seiten-weit, deshalb hier im "Grundgerüst" mit
-   gebaut statt offen zu bleiben. Alle Kern-Berechnungen kommen
-   unverändert aus core/* (loadguard.js, zones.js, pmc.js, stats.js).
+   Etappe 11d portierte die ersten zwei Sektionen aus assets/js/ui/analysis.js:
+   Belastung (_renderLoad) und Intensität (_renderZones + _renderTypDistribution),
+   plus die KPI-Hero-Reihe (_renderKPIs) — die gehört zu keiner einzelnen
+   späteren Sektion (11e/11f), sondern ist Seiten-weit, deshalb hier im
+   "Grundgerüst" mit gebaut statt offen zu bleiben. Etappe 11e ergänzt Aerobe
+   Entwicklung (_renderAerobic) und Leistungsdiagnostik (_renderPower).
+   Alle Kern-Berechnungen kommen unverändert aus core/* (loadguard.js,
+   zones.js, pmc.js, stats.js, efficiency.js, cadence.js, ftp-forecast.js,
+   records.js, body.js).
    ============================================================ */
 
+import { cadenceCoach } from "../../core/cadence.js";
+import { wattsPerKg } from "../../core/body.js";
+import {
+  DECOUPLING_MIN_POINTS,
+  DECOUPLING_STABLE,
+  decouplingTrend,
+  efficiencyTrend,
+} from "../../core/efficiency.js";
+import {
+  dateForTarget,
+  eftpHistory,
+  eftpHistoryFromWellness,
+  forecastFtp,
+  mergeEftpHistories,
+} from "../../core/ftp-forecast.js";
 import { buildLoadGuard, describeWeek } from "../../core/loadguard.js";
 import { isoWeekKey } from "../../core/aggregate.js";
-import { fmt, fmtInt } from "../../core/format.js";
+import { fmt, fmtDate, fmtInt } from "../../core/format.js";
 import { currentPmc } from "../../core/pmc.js";
+import { recordProgression } from "../../core/records.js";
 import { avg, maxVal, sum } from "../../core/stats.js";
 import { distributionShape, overallBandsFromIF, overallZoneShares } from "../../core/zones.js";
 import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics.js";
 
 type Ride = import("../../types.js").Ride;
+type WellnessDay = import("../../types.js").WellnessDay;
 
 /* ── KPI-Hero ─────────────────────────────────────────────── */
 
@@ -187,4 +206,253 @@ export function buildTypDistribution(rides: Ride[]): TypDistributionRow[] {
       pct: totalKm > 0 ? (d.km / totalKm) * 100 : 0,
       color: TYP_COLORS[typ] || "#6b7280",
     }));
+}
+
+/* ── Aerobe Entwicklung ───────────────────────────────────── */
+
+export interface AerobicSub {
+  text: string;
+  color?: string;
+}
+
+export interface AerobicCard {
+  title: string;
+  value?: string;
+  unit?: string;
+  valueColor?: string;
+  subs?: AerobicSub[];
+  empty?: string;
+}
+
+/** Port von analysis.js::_renderAerobic — Effizienzfaktor, HF-Decoupling,
+ *  Kadenz-Ökonomie, immer in dieser Reihenfolge (auch je eine leere Karte,
+ *  wenn die Datenbasis fehlt — 1:1 wie im Original, keine Karte entfällt). */
+export function buildAerobicCards(rides: Ride[], ownPlan: boolean): AerobicCard[] {
+  const cards: AerobicCard[] = [];
+
+  const ef = efficiencyTrend(rides);
+  if (ef && ef.first != null && ef.last != null) {
+    const delta = Math.round((ef.last - ef.first) * 100) / 100;
+    const up = delta > 0;
+    const subs: AerobicSub[] = [
+      {
+        text: `${delta > 0 ? "+" : ""}${delta} seit Beginn · ${ef.comparable.length} vergleichbare Z2-Fahrten`,
+        color: up ? "var(--z1, #4a9a6e)" : "var(--dim)",
+      },
+    ];
+    if (ef.slopePer30d != null) {
+      subs.push({ text: `Trend: ${ef.slopePer30d > 0 ? "+" : ""}${ef.slopePer30d} / 30 Tage` });
+    }
+    cards.push({ title: "Effizienzfaktor", value: `${ef.last}`, unit: "W/bpm", subs });
+  } else {
+    cards.push({ title: "Effizienzfaktor", empty: "Zu wenig vergleichbare Z2-Fahrten (≥60 min)." });
+  }
+
+  const dc = decouplingTrend(rides);
+  if (dc) {
+    const stable = dc.median < DECOUPLING_STABLE;
+    const subs: AerobicSub[] = [
+      { text: `${dc.stableShare}% der Fahrten aerob stabil (<${DECOUPLING_STABLE}%) · n=${dc.n}` },
+    ];
+    if (dc.slopePer30d != null) {
+      subs.push({ text: `Trend: ${dc.slopePer30d > 0 ? "+" : ""}${dc.slopePer30d} %-Pkt. / 30 Tage` });
+    }
+    cards.push({
+      title: "HF-Decoupling",
+      value: `${dc.median}`,
+      unit: "% Median",
+      valueColor: stable ? "var(--z1, #4a9a6e)" : "var(--ss, #e08a3c)",
+      subs,
+    });
+  } else {
+    const nNow = rides.filter((r) => r.decoupling != null).length;
+    cards.push({
+      title: "HF-Decoupling",
+      empty: `Datenbasis wächst noch (${Math.min(nNow, DECOUPLING_MIN_POINTS)}/${DECOUPLING_MIN_POINTS} geeignete Steady-State-Fahrten).`,
+    });
+  }
+
+  const kad = cadenceCoach(rides, CADENCE_TARGET_RPM);
+  if (kad) {
+    const deltaText = kad.delta != null ? `${kad.delta > 0 ? "+" : ""}${kad.delta} RPM seit Beginn · ` : "";
+    const targetText = ownPlan ? `≥ Ziel ${CADENCE_TARGET_RPM}` : "≥ 90";
+    cards.push({
+      title: "Kadenz-Ökonomie",
+      value: `${kad.recentAvg}`,
+      unit: "RPM zuletzt",
+      subs: [{ text: `${deltaText}${kad.shareAbove}% der Fahrten ${targetText} RPM` }],
+    });
+  } else {
+    cards.push({ title: "Kadenz-Ökonomie", empty: "Zu wenig Fahrten mit Kadenzdaten." });
+  }
+
+  return cards;
+}
+
+/* ── Leistungsdiagnostik ──────────────────────────────────── */
+
+export interface FtpTriadRow {
+  icon: string;
+  label: string;
+  value: number | null;
+  wkgLabel: string;
+  meta: string;
+}
+
+export interface ForecastSegment {
+  text: string;
+  strong?: boolean;
+}
+
+export interface PowerForecast {
+  /** "line" = ftp-forecast-line (Retest-/Zielhorizont-Prognose vorhanden),
+   *  "note" = analysis-note (eFTP-Historie noch zu jung für eine Prognose). */
+  kind: "line" | "note";
+  segments: ForecastSegment[];
+}
+
+export interface PowerDiagnosticsInput {
+  rides: Ride[];
+  wellness: WellnessDay[];
+  weight: number | null;
+  ftpMeasured: number | null;
+  ftpMeasuredDate: string | null;
+  ftpGoal: number | null;
+  ownPlan: boolean;
+  retestDateISO: string | null;
+}
+
+export interface PowerDiagnostics {
+  rows: FtpTriadRow[];
+  weightNote: string | null;
+  forecast: PowerForecast | null;
+}
+
+/** Port von analysis.js::_renderPower (ohne den Bestwerte-Digest, s.
+ *  buildRecordChips). FTP-Dreiklang gemessen/geschätzt/Ziel nie vermischen
+ *  (s. AGENTS.md) — die drei Zeilen bleiben strikt getrennte Quellen. */
+export function buildPowerDiagnostics(input: PowerDiagnosticsInput): PowerDiagnostics {
+  const { rides, wellness, weight, ftpMeasured, ftpMeasuredDate, ftpGoal, ownPlan, retestDateISO } = input;
+
+  const history = mergeEftpHistories(eftpHistory(rides), eftpHistoryFromWellness(wellness));
+  const lastEftp = history.length ? history[history.length - 1] : null;
+  const wkgLabel = (w: number | null) => {
+    const v = wattsPerKg(w, weight);
+    return v != null ? `${fmt(v)} W/kg` : "–";
+  };
+
+  const rows: FtpTriadRow[] = [
+    {
+      icon: "🔬",
+      label: "gemessen",
+      value: ftpMeasured,
+      wkgLabel: ftpMeasured != null ? wkgLabel(ftpMeasured) : "",
+      meta: ftpMeasuredDate ? `Ramp-Test · ${fmtDate(ftpMeasuredDate)}` : "Ramp-Test (letzter)",
+    },
+    {
+      icon: "〜",
+      label: "geschätzt",
+      value: lastEftp?.eftp ?? null,
+      wkgLabel: lastEftp ? wkgLabel(lastEftp.eftp) : "",
+      meta: lastEftp ? `eFTP intervals.icu · Stand ${fmtDate(lastEftp.date)} · ≠ Ramp-Test-Wert` : "eFTP intervals.icu",
+    },
+    {
+      icon: "🎯",
+      label: "Ziel",
+      value: ftpGoal,
+      wkgLabel: ftpGoal != null ? wkgLabel(ftpGoal) : "",
+      meta: ownPlan && retestDateISO ? `Retest ${fmtDate(retestDateISO)}` : "ohne Termin",
+    },
+  ];
+
+  const weightNote = weight
+    ? `W/kg bezogen auf ${fmt(weight)} kg (letzter Wellness-Wert) — Bezugsgröße pro Zeile beachten (gemessen ≠ geschätzt ≠ Ziel).`
+    : null;
+
+  let forecast: PowerForecast | null = null;
+  if (history.length >= 3) {
+    if (ownPlan && retestDateISO) {
+      const fc = forecastFtp(history, retestDateISO);
+      if (fc) {
+        const hit = fc.projected >= (ftpGoal || 0);
+        forecast = {
+          kind: "line",
+          segments: [
+            { text: `Retest-Erwartung (${fmtDate(retestDateISO)}): ` },
+            { text: `${fc.low}–${fc.high} W`, strong: true },
+            {
+              text: ` (Projektion ${fc.projected} W, Trend ${fc.slopePerWeek > 0 ? "+" : ""}${fc.slopePerWeek} W/Woche) — Ziel ${ftpGoal} W ${hit ? "in Reichweite" : "aktuell außerhalb der Projektion"}.`,
+            },
+          ],
+        };
+      }
+    } else if (ftpGoal) {
+      const t = dateForTarget(history, ftpGoal);
+      if (t?.reached && t.days === 0) {
+        forecast = {
+          kind: "line",
+          segments: [
+            {
+              text: `Der eFTP-Trend hat das Ziel ${ftpGoal} W bereits erreicht — Zeit für einen bestätigenden Ramp-Test.`,
+            },
+          ],
+        };
+      } else if (t?.reached) {
+        forecast = {
+          kind: "line",
+          segments: [
+            { text: `Bei aktuellem eFTP-Trend (${t.slopePerWeek > 0 ? "+" : ""}${t.slopePerWeek} W/Woche) wird das Ziel ${ftpGoal} W ca. ` },
+            { text: fmtDate(t.date), strong: true },
+            { text: " erreicht." },
+          ],
+        };
+      } else if (t) {
+        forecast = {
+          kind: "line",
+          segments: [
+            {
+              text:
+                t.reason === "flat"
+                  ? "Der eFTP-Trend ist aktuell flach — kein belastbarer Zielhorizont für " + ftpGoal + " W ableitbar."
+                  : `Ziel ${ftpGoal} W liegt beim aktuellen Trend mehr als 12 Monate entfernt.`,
+            },
+          ],
+        };
+      }
+    }
+  } else {
+    forecast = {
+      kind: "note",
+      segments: [{ text: "eFTP-Historie noch leer — wird nach dem nächsten Daten-Sync befüllt (Wellness-sportInfo / icu_eftp)." }],
+    };
+  }
+
+  return { rows, weightNote, forecast };
+}
+
+/* ── Bestwerte-Digest ─────────────────────────────────────── */
+
+export interface RecordChip {
+  key: string;
+  icon: string;
+  value: string;
+  unit: string;
+  label: string;
+  name: string;
+  date: string;
+  historyCount: number;
+}
+
+/** Port von analysis.js::_renderPower's Bestwerte-Digest (`recBox`). */
+export function buildRecordChips(rides: Ride[]): RecordChip[] {
+  return recordProgression(rides).map((r) => ({
+    key: r.key,
+    icon: r.icon,
+    value: r.unit === "min" ? fmtInt(r.value) : fmt(r.value),
+    unit: r.unit,
+    label: r.label,
+    name: r.name || "",
+    date: fmtDate(r.date),
+    historyCount: r.history.length,
+  }));
 }

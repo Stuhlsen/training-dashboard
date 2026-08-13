@@ -1366,7 +1366,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 11b | **Nacharbeiten — Fahrtenbuch** | `[OP]` | ✅ umgesetzt (08.08.2026) — s. "Etappe 11"-Abschnitt oben. Neue Route `/log` (`LogbookPage.tsx`), Filter/Suche/Sort + Wetter-Tooltip aus `ui/table.js` portiert, `📅`-Link → Planungstab und Zeilen-Klick → Explorer-Crosshair verkabelt |
 | 11c | **Nacharbeiten — Hero: Gesamtstatistiken-Kacheln** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `MetricsGrid.tsx` (Port von `ui/overview.js::_renderMetrics()`) unten in `HeroPage.tsx`, nutzt `core.ramp`/`core.eftp` statt FTP/eFTP ein zweites Mal herzuleiten |
 | 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `/analysis` + `AnalysisPage.tsx`-Shell + `AnalysisSection.tsx` (Baustein für 11e/11f) + KPI-Hero + Belastung/Intensität |
-| 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
+| 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `AerobicCards.tsx`/`FtpTriad.tsx`/`RecordChips.tsx`, `RETEST_DATE` neu in `config.ts` |
 | 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ⏳ offen. Baut auf 11ds Shell auf |
 | 11g | **Nacharbeiten — Login-Seite stylen** | `[OP]` | ⏳ offen. `LoginPage.tsx` unstyled, bei 11a-Live-Check aufgefallen (sitzt außerhalb `Layout`/`PageShell`) |
 
@@ -1496,13 +1496,39 @@ mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
     aus `data/rides.json`/`data/rides-2.json`) — keine neuen
     Konsolenfehler, nur der vorbestehende Supabase-Refresh-Token-400 ohne
     aktive Session.
-- **11e — Analyse-Tab: Aerob + Leistungsdiagnostik.** Baut auf der Shell aus
-  11d auf (kleiner Koordinationspunkt, s. o.) — bei echt paralleler
-  Bearbeitung notfalls mit einer minimalen eigenen Shell-Kopie starten und
-  beim Mergen zusammenführen. Sektionen: Aerob (`_renderAerobic`, Kern in
-  `core/efficiency.js`, inkl. Kadenz-Coach-Chips aus `core/cadence.js`
-  laut Chart-Merge-Konvention) und Leistungsdiagnostik (`_renderPower`,
-  Kern in `core/records.js` + `core/ftp-forecast.js`).
+- **11e — Analyse-Tab: Aerob + Leistungsdiagnostik.** ✅ umgesetzt
+  (13.08.2026). Baute auf der Shell aus 11d auf, reine UI-Arbeit, kein
+  Logik-Port — `core/efficiency.js`, `core/cadence.js`, `core/records.js`,
+  `core/ftp-forecast.js`, `core/body.js` lagen bereits fertig in
+  `app/src/core/`.
+  - **Aerobe Entwicklung** (Port von `_renderAerobic`): neue
+    `AerobicCards.tsx` (Port von `.analysis-grid-3`/`.aerobic-card`) zeigt
+    Effizienzfaktor, HF-Decoupling, Kadenz-Ökonomie — je Karte entweder
+    Wert+Subzeilen oder ein `empty`-Text, wenn die Datenbasis fehlt (1:1
+    wie im Original, keine Karte entfällt ersatzlos).
+  - **Leistungsdiagnostik** (Port von `_renderPower`): neue `FtpTriad.tsx`
+    (Port von `.ftp-triad`/`.ftp-forecast-line`) und `RecordChips.tsx`
+    (Port von `.records-digest`). Die Retest-/Zielhorizont-Prognose enthält
+    einen fett gesetzten Teilsatz (`<strong>`) — dafür liefert
+    `buildPowerDiagnostics()` statt eines fertigen Strings ein
+    `segments`-Array (`{text, strong?}[]`), das `FtpTriad.tsx` in
+    `<strong>`/`<span>` abbildet, statt HTML-String-Interpolation
+    nachzubauen.
+  - `CONFIG.retestDate` (Vanilla-Singleton, nur bei `ownPlan` genutzt) neu
+    als `RETEST_DATE`-Konstante in `config.ts` ergänzt — kein Feld auf
+    `AthleteConfig`, weil er athletenweit und nicht Teil der Athleten-
+    Stammdaten ist (Athlet 2 nutzt stattdessen den Ziel-Horizont-Zweig,
+    `ownPlan` gated das in `buildPowerDiagnostics()` genau wie im Original).
+  - `analysis-view-model.ts` (+11 neue Tests: `buildAerobicCards`,
+    `buildPowerDiagnostics`, `buildRecordChips`) hält weiter die reinen
+    Ableitungen von der JSX-Ebene getrennt, Muster wie 11d.
+  - `tsc -b` sauber, `npx vitest run` 1104/1104 (Root `npm test`
+    unverändert, keine `core/`-Änderung), ESLint sauber. Live-Playwright-
+    Check gegen den lokalen Vite-Dev-Server (beide Athleten, echte Daten
+    aus `data/rides.json`/`data/rides-2.json`) — Retest-Prognose mit
+    Fettung bei Athlet 1, Ziel-Horizont-Prognose („ohne Termin") bei
+    Athlet 2, keine neuen Konsolenfehler (nur der vorbestehende Supabase-
+    Refresh-Token-400 ohne aktive Session, s. 11d).
 - **11f — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung.**
   Gleicher Shell-Koordinationspunkt wie 11e. Sektionen: Regeneration & Körper
   (`_renderBody`, Kern in `core/body.js`, datengetriebenes Ein-/Ausblenden

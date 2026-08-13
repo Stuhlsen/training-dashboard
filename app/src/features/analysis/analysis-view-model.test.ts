@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildAerobicCards,
   buildAnalysisKpis,
   buildIntensityDistribution,
   buildLoadRows,
+  buildPowerDiagnostics,
+  buildRecordChips,
   buildTypDistribution,
 } from "./analysis-view-model";
 
@@ -117,5 +120,135 @@ describe("buildTypDistribution", () => {
     const missing = rows.find((r) => r.typ === "Sonstige");
     expect(unknown?.color).toBe("#6b7280");
     expect(missing).toBeDefined();
+  });
+});
+
+describe("buildAerobicCards", () => {
+  it("liefert 'empty'-Text je Karte ohne ausreichende Datenbasis", () => {
+    const cards = buildAerobicCards([ride({ typ: "Sweet Spot", min: 30 })], true);
+    expect(cards).toHaveLength(3);
+    expect(cards.map((c) => c.title)).toEqual(["Effizienzfaktor", "HF-Decoupling", "Kadenz-Ökonomie"]);
+    for (const c of cards) {
+      expect(c.empty).toBeTruthy();
+      expect(c.value).toBeUndefined();
+    }
+  });
+
+  it("Effizienzfaktor: Wert + Delta-Farbe aus vergleichbaren Z2-Fahrten", () => {
+    const rides = [
+      ride({ dateISO: "2026-06-01", typ: "Z2 Dauer", min: 90, efficiency: 1.4 }),
+      ride({ dateISO: "2026-06-08", typ: "Z2 Dauer", min: 90, efficiency: 1.5 }),
+      ride({ dateISO: "2026-06-15", typ: "Z2 Dauer", min: 90, efficiency: 1.6 }),
+    ];
+    const [ef] = buildAerobicCards(rides, true);
+    expect(ef.unit).toBe("W/bpm");
+    expect(ef.value).toBeDefined();
+    expect(ef.subs?.[0].text).toMatch(/vergleichbare Z2-Fahrten/);
+  });
+
+  it("HF-Decoupling: stabil (<5%) grün, sonst orange", () => {
+    const rides = Array.from({ length: 5 }, (_, i) =>
+      ride({ dateISO: `2026-06-${String(1 + i).padStart(2, "0")}`, typ: "Z2 Dauer", min: 90, decoupling: 3 })
+    );
+    const [, dc] = buildAerobicCards(rides, true);
+    expect(dc.valueColor).toBe("var(--z1, #4a9a6e)");
+  });
+
+  it("Kadenz-Ökonomie: Zielformulierung hängt von ownPlan ab", () => {
+    const rides = [ride({ kad: 92 }), ride({ kad: 88 }), ride({ kad: 95 })];
+    const withPlan = buildAerobicCards(rides, true)[2];
+    const withoutPlan = buildAerobicCards(rides, false)[2];
+    expect(withPlan.subs?.[0].text).toMatch(/Ziel 90/);
+    expect(withoutPlan.subs?.[0].text).toMatch(/≥ 90 RPM/);
+    expect(withoutPlan.subs?.[0].text).not.toMatch(/Ziel/);
+  });
+});
+
+describe("buildPowerDiagnostics", () => {
+  it("FTP-Dreiklang bleibt strikt getrennt: gemessen ≠ geschätzt ≠ Ziel", () => {
+    const rides = [ride({ dateISO: "2026-06-01", eftp: 195 })];
+    const d = buildPowerDiagnostics({
+      rides,
+      wellness: [],
+      weight: 80,
+      ftpMeasured: 193,
+      ftpMeasuredDate: "2026-06-12",
+      ftpGoal: 210,
+      ownPlan: true,
+      retestDateISO: "2026-09-19",
+    });
+    expect(d.rows.map((r) => r.value)).toEqual([193, 195, 210]);
+    expect(d.rows[0].wkgLabel).toMatch(/W\/kg/);
+    expect(d.weightNote).toMatch(/80/);
+  });
+
+  it("Retest-Prognose (ownPlan) nur ab 3 eFTP-Punkten, sonst 'note'", () => {
+    const oneRide = [ride({ dateISO: "2026-06-01", eftp: 195 })];
+    const early = buildPowerDiagnostics({
+      rides: oneRide,
+      wellness: [],
+      weight: null,
+      ftpMeasured: 193,
+      ftpMeasuredDate: null,
+      ftpGoal: 210,
+      ownPlan: true,
+      retestDateISO: "2026-09-19",
+    });
+    expect(early.forecast?.kind).toBe("note");
+
+    const threeRides = [
+      ride({ dateISO: "2026-06-01", eftp: 195 }),
+      ride({ dateISO: "2026-06-08", eftp: 197 }),
+      ride({ dateISO: "2026-06-15", eftp: 199 }),
+    ];
+    const withHistory = buildPowerDiagnostics({
+      rides: threeRides,
+      wellness: [],
+      weight: null,
+      ftpMeasured: 193,
+      ftpMeasuredDate: null,
+      ftpGoal: 210,
+      ownPlan: true,
+      retestDateISO: "2026-09-19",
+    });
+    expect(withHistory.forecast?.kind).toBe("line");
+    expect(withHistory.forecast?.segments.some((s) => s.strong)).toBe(true);
+  });
+
+  it("ohne ownPlan: Ziel-Horizont-Prognose statt Retest-Termin", () => {
+    const rides = [
+      ride({ dateISO: "2026-06-01", eftp: 250 }),
+      ride({ dateISO: "2026-06-08", eftp: 255 }),
+      ride({ dateISO: "2026-06-15", eftp: 260 }),
+    ];
+    const d = buildPowerDiagnostics({
+      rides,
+      wellness: [],
+      weight: null,
+      ftpMeasured: 265,
+      ftpMeasuredDate: "2026-06-24",
+      ftpGoal: 280,
+      ownPlan: false,
+      retestDateISO: "2026-09-19",
+    });
+    expect(d.rows[2].meta).toBe("ohne Termin");
+    expect(d.forecast?.kind).toBe("line");
+  });
+});
+
+describe("buildRecordChips", () => {
+  it("liefert Bestwerte inkl. Ablöse-Historie-Zähler", () => {
+    const rides = [
+      ride({ dateISO: "2026-06-01", km: 60 }),
+      ride({ dateISO: "2026-06-08", km: 90 }),
+    ];
+    const chips = buildRecordChips(rides);
+    const longest = chips.find((c) => c.key === "km");
+    expect(longest?.value).toBe("90,0");
+    expect(longest?.historyCount).toBe(1);
+  });
+
+  it("liefert leere Liste ohne Fahrten", () => {
+    expect(buildRecordChips([])).toEqual([]);
   });
 });

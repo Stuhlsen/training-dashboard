@@ -2,12 +2,11 @@
    FEATURES/ANALYSIS/ANALYSISPAGE.TSX — Analyse-Tab, Grundgerüst (Etappe 11d)
 
    Route `/analysis`. Baut die Seiten-Shell (KPI-Hero + Sektions-Liste) und
-   portiert die ersten zwei Sektionen aus assets/js/ui/analysis.js:
-   Belastung & Erholung, Intensitätsverteilung. Weitere Sektionen (Aerob,
-   Leistungsdiagnostik, Regeneration & Körper, Konsistenz, Periodisierung)
-   folgen in 11e/11f — s. dortigen Koordinationspunkt in
-   docs/dashboard-3.0-konzept-react-umbau.md, AnalysisSection.tsx ist der
-   dafür vorgesehene gemeinsame Baustein.
+   portiert Sektionen aus assets/js/ui/analysis.js: Belastung & Erholung,
+   Intensitätsverteilung (11d), Aerobe Entwicklung + Leistungsdiagnostik
+   (11e). Regeneration & Körper, Konsistenz, Periodisierung folgen in 11f —
+   s. dortigen Koordinationspunkt in docs/dashboard-3.0-konzept-react-umbau.md,
+   AnalysisSection.tsx ist der dafür vorgesehene gemeinsame Baustein.
    ============================================================ */
 
 import { useMemo } from "react";
@@ -16,15 +15,27 @@ import { PageShell } from "../../components/PageShell";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useRides } from "../../api/hooks/useRides";
 import { localISODate } from "../../core/format.js";
-import { athleteConfig } from "../../config";
+import { athleteConfig, RETEST_DATE } from "../../config";
+import { AerobicCards } from "./AerobicCards";
 import { AnalysisSection } from "./AnalysisSection";
+import { FtpTriad } from "./FtpTriad";
 import { IntensityBand } from "./IntensityBand";
 import { KpiGrid } from "./KpiGrid";
 import { LoadTable } from "./LoadTable";
+import { RecordChips } from "./RecordChips";
 import { TypDistribution } from "./TypDistribution";
-import { buildAnalysisKpis, buildIntensityDistribution, buildLoadRows, buildTypDistribution } from "./analysis-view-model";
+import {
+  buildAerobicCards,
+  buildAnalysisKpis,
+  buildIntensityDistribution,
+  buildLoadRows,
+  buildPowerDiagnostics,
+  buildRecordChips,
+  buildTypDistribution,
+} from "./analysis-view-model";
 
 type Ride = import("../../types.js").Ride;
+type WellnessDay = import("../../types.js").WellnessDay;
 
 const TODAY = localISODate();
 
@@ -34,10 +45,28 @@ export function AnalysisPage() {
   const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
 
   const rides = useMemo(() => (athleteData?.rides as Ride[] | undefined) ?? [], [athleteData]);
+  const wellness = useMemo(() => (athleteData?.wellness as WellnessDay[] | undefined) ?? [], [athleteData]);
+  const ownPlan = useMemo(() => rides.some((r) => r.week), [rides]);
   const kpis = useMemo(() => buildAnalysisKpis(rides, athleteCfg?.ftpMeasured ?? null, TODAY), [rides, athleteCfg]);
   const loadRows = useMemo(() => buildLoadRows(rides), [rides]);
   const intensity = useMemo(() => buildIntensityDistribution(rides), [rides]);
   const typDist = useMemo(() => buildTypDistribution(rides), [rides]);
+  const aerobicCards = useMemo(() => buildAerobicCards(rides, ownPlan), [rides, ownPlan]);
+  const powerDiagnostics = useMemo(
+    () =>
+      buildPowerDiagnostics({
+        rides,
+        wellness,
+        weight: (athleteData?.athleteWeight as number | null | undefined) ?? null,
+        ftpMeasured: athleteCfg?.ftpMeasured ?? null,
+        ftpMeasuredDate: athleteCfg?.ftpMeasuredDate ?? null,
+        ftpGoal: athleteCfg?.ftpGoal ?? null,
+        ownPlan,
+        retestDateISO: RETEST_DATE,
+      }),
+    [rides, wellness, athleteData, athleteCfg, ownPlan]
+  );
+  const records = useMemo(() => buildRecordChips(rides), [rides]);
 
   if (isLoading || !athleteData) {
     return <p style={{ color: "var(--ink-3)", padding: 40 }}>{error ? "Fehler beim Laden der Trainingsdaten." : "Lädt…"}</p>;
@@ -70,6 +99,19 @@ export function AnalysisPage() {
         >
           <IntensityBand dist={intensity} />
           <TypDistribution rows={typDist} />
+        </AnalysisSection>
+
+        <AnalysisSection
+          icon="🫀"
+          title="Aerobe Entwicklung"
+          explainer="Effizienzfaktor (Watt/Herzschlag), HF-Decoupling (<5 % = aerob stabil) und Kadenz-Ökonomie über vergleichbare Grundlagenfahrten."
+        >
+          <AerobicCards cards={aerobicCards} />
+        </AnalysisSection>
+
+        <AnalysisSection icon="⚡" title="Leistungsdiagnostik">
+          <FtpTriad diagnostics={powerDiagnostics} />
+          <RecordChips records={records} />
         </AnalysisSection>
       </div>
     </PageShell>
