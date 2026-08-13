@@ -41,7 +41,7 @@ import {
 } from "./lib/map-activity.js";
 import { loadFtpHistory } from "./lib/ftp-history.js";
 import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
-import { loadPlanCards } from "./lib/plan-cards-fetch.js";
+import { loadPlanCards, buildPlanCardTypeIndex } from "./lib/plan-cards-fetch.js";
 import { attachCompliance } from "./lib/compliance.js";
 import { loadSessionFormats } from "./lib/formats-fetch.js";
 import {
@@ -186,10 +186,26 @@ async function main() {
       fallbackFtp: DEFAULT_FTP,
     });
 
-    // Kartentausch/-verschiebung berücksichtigen: ohne effectivePlan würde
-    // mapActivity() nach einer Verschiebung im Planungstab weiter die
-    // ursprüngliche (unverschobene) Plankarte für ein Datum liefern.
-    const effectivePlan = buildEffectivePlanIndex(PLANNED_SESSIONS, adjustments);
+    // plan_cards (Supabase) sind seit der Migration weg von adjustments.json
+    // (scripts/migrate-plan-to-supabase.js) die einzige Stelle, die einen
+    // Kartentausch/eine Verschiebung im Planungstab kennt — adjustments.json
+    // wird von keinem Schreibpfad mehr aktualisiert. Ohne SUPABASE_*-
+    // Credentials liefert loadPlanCards() [] (kein Fehler, s. dort).
+    // Zusammenführung PRO DATUM (nicht alles-oder-nichts): die alte
+    // statische Plan+adjustments.json-Kombination bleibt die Basis, echte
+    // plan_cards überschreiben sie Datum für Datum. Ohne diesen Merge würde
+    // ein Datum, das (noch) keine Zeile in plan_cards hat — z. B. weil
+    // plan2.js nach der einmaligen Migration weiterentwickelt wurde, ohne
+    // dass die neuen Tage manuell nachgetragen wurden — komplett ohne
+    // Plan-Typ dastehen, statt auf den statischen Fallback auszuweichen.
+    const planCards = await loadPlanCards(
+      { email: ENV.SUPABASE_ATHLETE1_EMAIL, password: ENV.SUPABASE_ATHLETE1_PASSWORD },
+      { fromDate: oldest }
+    );
+    const effectivePlan = {
+      ...buildEffectivePlanIndex(PLANNED_SESSIONS, adjustments),
+      ...buildPlanCardTypeIndex(planCards),
+    };
     plan2 = activities.map((act) =>
       mapActivity(act, wellness, subjective, weatherMap, effectivePlan, ftpHistory, intervalBlockCache)
     );
@@ -201,13 +217,7 @@ async function main() {
     logRpeFeelCoverage(plan2, "Athlet 1");
 
     // Soll-Ist-Matching + Compliance-Ampel (Progressionssteuerung C1/C2) —
-    // ohne SUPABASE_*-Credentials liefert loadPlanCards() [] und es gibt
-    // schlicht keine Compliance-Objekte (gleiches Degradationsmuster wie
-    // ftpHistory oben), kein Fehler.
-    const planCards = await loadPlanCards(
-      { email: ENV.SUPABASE_ATHLETE1_EMAIL, password: ENV.SUPABASE_ATHLETE1_PASSWORD },
-      { fromDate: oldest }
-    );
+    // nutzt dieselben planCards wie effectivePlan oben (kein zweiter Fetch).
     const complianceCounts = attachCompliance(plan2, activities, planCards, intervalBlockCache, ftpHistory, DEFAULT_FTP, formatCatalog);
     log.info(
       `✅ Compliance (Athlet 1): ${complianceCounts.evaluated} Fahrten ausgewertet ` +
@@ -351,7 +361,19 @@ async function main() {
 
     const adjustments2 = loadAdjustments2();
     log.info(`📋 adjustments-2.json: ${Object.keys(adjustments2).length} Anpassungen`);
-    const effectivePlan2 = buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2);
+    // planCards2 hier laden (statt erst bei der Compliance weiter unten) —
+    // effectivePlan2 braucht den echten, aktuellen Kartenstand für einen
+    // Tausch/eine Verschiebung im (read-only) Planungstab von Athlet 2,
+    // analog zu planCards/effectivePlan bei Athlet 1 oben (Merge pro Datum,
+    // s. dortiger Kommentar — kein alles-oder-nichts-Fallback).
+    const planCards2 = await loadPlanCards(
+      { email: ENV.SUPABASE_ATHLETE2_EMAIL, password: ENV.SUPABASE_ATHLETE2_PASSWORD },
+      { fromDate: oldest2 }
+    );
+    const effectivePlan2 = {
+      ...buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2),
+      ...buildPlanCardTypeIndex(planCards2),
+    };
 
     // Kein Sonderfall für Athlet 2: dieselbe generische ftpAt()-Auflösung
     // wie bei Athlet 1. Pflegt Athlet 2 keine ftp_history (vermutlich der
@@ -390,10 +412,7 @@ async function main() {
 
     // Soll-Ist-Matching + Compliance-Ampel (s. Athlet 1 oben) — MUSS vor der
     // folgenden Datumssortierung laufen (Gleichlauf rides2[i] <-> activities2[i]).
-    const planCards2 = await loadPlanCards(
-      { email: ENV.SUPABASE_ATHLETE2_EMAIL, password: ENV.SUPABASE_ATHLETE2_PASSWORD },
-      { fromDate: oldest2 }
-    );
+    // Nutzt dieselben planCards2 wie effectivePlan2 oben (kein zweiter Fetch).
     const complianceCounts2 = attachCompliance(
       rides2,
       activities2,
