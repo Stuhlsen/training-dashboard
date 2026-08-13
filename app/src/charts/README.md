@@ -50,3 +50,10 @@ bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
   Familie 6 — eigene Layout-Logik, kein Zeitreihen-Baumuster). Eine Zelle pro
   Woche ab der ersten aktiven Woche, Farbintensität = Trainingstage (0–7) via
   `core/consistency.js::weeklyConsistency`, kein Fadenkreuz.
+- `FtpForecastChart.tsx` — FTP-Retest-Prognose (Etappe 12b, Familie 1 — echte
+  Kalenderdatums-x-Achse statt Tages-Skelett, kein `makeIndexScale`). Port von
+  `assets/js/ui/charts/pmc.js::renderFtpForecast()`. eFTP-Verlauf +
+  Ziel-Linie + Projektions-Fächer bis zum Retest-Termin (nur bei eigenem
+  Plan) über `core/ftp-forecast.js` — dieselben Funktionen, die
+  `analysis-view-model.ts::buildPowerDiagnostics()` für die Text-Sektion
+  (FtpTriad) nutzt.
