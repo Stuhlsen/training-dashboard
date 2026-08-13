@@ -1372,6 +1372,8 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 12a | **Fehlende Charts — Hero: Bestleistungen + Trainingskonsistenz-Kalender** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `ConsistencyCalendar.tsx` (Familie 6) + `RecordChips.tsx` zusätzlich in `HeroPage.tsx` |
 | 12b | **Fehlende Charts — Explorer: FTP-Prognose** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `FtpForecastChart.tsx` (Familie 1), `core/ftp-forecast.js` |
 | 12c | **Fehlende Charts — Explorer: Aerobe Effizienz + Aerobe Entkopplung** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `EfficiencyChart.tsx`/`DecouplingChart.tsx` (Familie 2), `core/efficiency.js` |
+| 12d | **Fehlende Charts — Explorer: Kadenz-Coach** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `CadenceChart.tsx`, `core/cadence.js` |
+| 12e | **Fehlende Charts — Explorer: Zeit-in-Zonen (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `ZoneWeeklyChart.tsx` (Familie 3, gestapelte Balken), `core/zones.js::weeklyZoneShares`. Farben (`--z2`/`--ss`/`--vo2`) übernommen von `IntensityBand.tsx` statt der Vanilla-Palette, für eine einheitliche low/mid/high-Farbwahrheit über beide Seiten |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1676,10 +1678,17 @@ mit den Hero-Lücken zuerst (höchste Sichtbarkeit, wie „11a zuerst"):
   `densifyDays`/`joinSeries("gap")`/`makeIndexScale` umgestellt (vanilla
   `pmc.js::renderDecoupling()` nutzte noch eine reine Ride-Index-x-Achse)
   — Angleichung an die Familie-2-Konvention der übrigen React-Charts.
-- **12d — Explorer: Kadenz-Coach.** Neue `CadenceChart.tsx` + Chip-Reihe
-  (Port von `power.js::renderCadenceCoach`), `core/cadence.js`.
-- **12e — Explorer: Zeit-in-Zonen (wöchentlich).** Neue
-  `ZoneWeeklyChart.tsx` (Familie 3), `core/zones.js::weeklyZoneShares`.
+- **12d — Explorer: Kadenz-Coach.** ✅ umgesetzt (13.08.2026). Neue
+  `CadenceChart.tsx` + Chip-Reihe (Port von
+  `power.js::renderCadenceCoach`), `core/cadence.js`.
+- **12e — Explorer: Zeit-in-Zonen (wöchentlich).** ✅ umgesetzt
+  (13.08.2026). Neue `ZoneWeeklyChart.tsx` (Familie 3, Port von
+  `training.js::renderZoneWeekly`), `core/zones.js::weeklyZoneShares`.
+  Gestapelte low/mid/high-Balken statt Einzelserie (Unterschied zum
+  WeeklyVolumeChart-Baumuster); Farben `--z2`/`--ss`/`--vo2` übernommen
+  von `IntensityBand.tsx` (Analyse-Tab) statt der Vanilla-Palette
+  (dort noch `--thr` für "hoch") — dieselbe Bänderung soll nicht zwei
+  verschiedene Farbwahrheiten im selben Port haben.
 - **12f — Explorer: Wetter (wöchentlich).** Neue `WeatherWeeklyChart.tsx`
   (Familie 3), Wochenaggregation direkt aus `Ride.weather` (kein neues
   Core-Modul nötig, ggf. kleine reine Aggregat-Funktion in `core/`
