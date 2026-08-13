@@ -1376,6 +1376,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 12e | **Fehlende Charts — Explorer: Zeit-in-Zonen (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `ZoneWeeklyChart.tsx` (Familie 3, gestapelte Balken), `core/zones.js::weeklyZoneShares`. Farben (`--z2`/`--ss`/`--vo2`) übernommen von `IntensityBand.tsx` statt der Vanilla-Palette, für eine einheitliche low/mid/high-Farbwahrheit über beide Seiten |
 | 12f | **Fehlende Charts — Explorer: Wetter (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `WeatherWeeklyChart.tsx` (Familie 3, Temp-Balken + Wind-Linie + Regen-Marker), `core/weather.js::weeklyWeatherAverages`. Ampel-Grenzwerte dupliziert statt aus `logbook-view-model.ts::classifyWeather` importiert, um `core/` frei von einer `features/`-Abhängigkeit zu halten |
 | 12g | **Fehlende Charts — Explorer: Schlaf** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `SleepChart.tsx` (Familie 2, Schlafdauer-Balken + Schlaf-HF-Linie auf zweiter y-Achse), kein neues `core/`-Modul (direkt aus `WellnessDay.sleepHours`/`avgSleepingHR`). `/code-review` fand zwei Edge-Case-Bugs vor dem Commit (Balken am linken Rand fixiert bei genau einer Nacht Daten statt Leerzustand; Division durch Null, wenn alle Nächte 0h melden) — beide gefixt, Regressionstests ergänzt |
+| 12h | **Fehlende Charts — Explorer: Energie & Gewicht** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `EnergyWeightChart.tsx` (Familie 2, Verbrauchs-/Zufuhr-Balken + Gewichtslinie auf zweiter y-Achse), verkabelt `core/body.js`. `/code-review` fand einen Edge-Case-Bug vor dem Commit (Verbrauchs-Balken auch bei `burned = 0` gezeichnet) — gefixt, Regressionstest ergänzt |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1712,8 +1713,21 @@ mit den Hero-Lücken zuerst (höchste Sichtbarkeit, wie „11a zuerst"):
   bewusst blau statt grün für "gut" wie im vanilla-Original, um keine
   Kollision mit `--z1`/Recovery zu erzeugen), Linie = Ø-Schlaf-HF (zweite
   y-Achse rechts), 7h-Ziellinie nur bei eigenem Plan.
-- **12h — Explorer: Energie & Gewicht.** Neue `EnergyWeightChart.tsx`
-  (Familie 2), `core/body.js`.
+- **12h — Explorer: Energie & Gewicht.** ✅ umgesetzt (13.08.2026). Neue
+  `EnergyWeightChart.tsx` (Familie 2), verkabelt `core/body.js::energyView`/
+  `weightTrend`/`estimateBMR` — dual-axis-Baumuster wie SleepChart (Balken
+  auf Primärachse kcal, Gewichtslinie auf zweiter Achse kg) statt vanillas
+  eigenem Split-Panel-Layout. `estBMR` lokal aus dem aktuellsten Gewicht
+  hergeleitet (wie `analysis-view-model.ts::buildBodyCards`), bewusst
+  dupliziert statt aus `features/analysis` importiert (Feature-Ordner-
+  Entkopplung, wie im ExplorerPage.tsx-Kopfkommentar zu
+  toProjectionCard/toProjectionEvent). Tagesgerüst deckt die UNION aus
+  Energie- und Gewichtsbereich ab (derselbe Bugfix, den vanillas
+  `renderEnergy()`-Kopfkommentar dokumentiert). `/code-review` fand vor dem
+  Commit einen Edge-Case-Bug (Verbrauchs-Balken wurde auch bei `burned = 0`
+  gezeichnet, z.B. an Tagen mit nur Zufuhr-Tracking ohne BMR-Schätzung) —
+  gefixt (`burned > 0`-Guard wie im vanilla-Original), Regressionstest
+  ergänzt.
 - **12i — Explorer: Tempo vs. Herzfrequenz (Scatter) + Ø-HF-Entwicklung.**
   Zwei kleine, verwandte Charts in einem Häppchen: `SpeedHrScatterChart.tsx`
   (Familie 4, Port von `power.js::renderScatter`) + Ø-HF-Trend-Panel
