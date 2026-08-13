@@ -46,3 +46,7 @@ bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
   Umschalter statt zwei separater Komponenten. `core/days.js::densifyDays`/
   `joinSeries("gap")` + `core/wellness-series.js` für den Notion/intervals.icu-
   Merge des Eigenplan-Athleten.
+- `ConsistencyCalendar.tsx` — Trainingskonsistenz-Wochenstreifen (Etappe 12a,
+  Familie 6 — eigene Layout-Logik, kein Zeitreihen-Baumuster). Eine Zelle pro
+  Woche ab der ersten aktiven Woche, Farbintensität = Trainingstage (0–7) via
+  `core/consistency.js::weeklyConsistency`, kein Fadenkreuz.
