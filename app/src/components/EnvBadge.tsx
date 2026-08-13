@@ -1,10 +1,12 @@
 import { getEnvironment } from "../api/supabase/config";
 
-/** Kleine Pill statt nacktem Text (Etappe 11a) — dev bekommt eine warme
- *  Akzentfarbe, damit ein Dev-Stand im Header sofort auffällt, prod/unknown
- *  bleiben neutral. */
+/** Kleine Pill statt nacktem Text (Etappe 11a) — nur sichtbar, wenn NICHT
+ *  Prod: ein Dev-Stand soll im Header sofort auffallen, auf der echten
+ *  Live-Seite hat die Markierung nichts zu suchen. "unknown" (z.B. eine
+ *  Preview-URL) bleibt sichtbar, weil das gerade dann relevant ist. */
 export function EnvBadge() {
   const env = getEnvironment();
+  if (env === "prod") return null;
   const isDev = env === "dev";
   return (
     <span
