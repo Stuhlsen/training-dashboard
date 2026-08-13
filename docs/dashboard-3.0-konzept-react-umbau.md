@@ -1374,6 +1374,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 12c | **Fehlende Charts — Explorer: Aerobe Effizienz + Aerobe Entkopplung** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `EfficiencyChart.tsx`/`DecouplingChart.tsx` (Familie 2), `core/efficiency.js` |
 | 12d | **Fehlende Charts — Explorer: Kadenz-Coach** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `CadenceChart.tsx`, `core/cadence.js` |
 | 12e | **Fehlende Charts — Explorer: Zeit-in-Zonen (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `ZoneWeeklyChart.tsx` (Familie 3, gestapelte Balken), `core/zones.js::weeklyZoneShares`. Farben (`--z2`/`--ss`/`--vo2`) übernommen von `IntensityBand.tsx` statt der Vanilla-Palette, für eine einheitliche low/mid/high-Farbwahrheit über beide Seiten |
+| 12f | **Fehlende Charts — Explorer: Wetter (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `WeatherWeeklyChart.tsx` (Familie 3, Temp-Balken + Wind-Linie + Regen-Marker), `core/weather.js::weeklyWeatherAverages`. Ampel-Grenzwerte dupliziert statt aus `logbook-view-model.ts::classifyWeather` importiert, um `core/` frei von einer `features/`-Abhängigkeit zu halten |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1689,10 +1690,18 @@ mit den Hero-Lücken zuerst (höchste Sichtbarkeit, wie „11a zuerst"):
   von `IntensityBand.tsx` (Analyse-Tab) statt der Vanilla-Palette
   (dort noch `--thr` für "hoch") — dieselbe Bänderung soll nicht zwei
   verschiedene Farbwahrheiten im selben Port haben.
-- **12f — Explorer: Wetter (wöchentlich).** Neue `WeatherWeeklyChart.tsx`
-  (Familie 3), Wochenaggregation direkt aus `Ride.weather` (kein neues
-  Core-Modul nötig, ggf. kleine reine Aggregat-Funktion in `core/`
-  ergänzen, Muster wie `weeklyZoneShares`).
+- **12f — Explorer: Wetter (wöchentlich).** ✅ umgesetzt (13.08.2026). Neue
+  `WeatherWeeklyChart.tsx` (Familie 3, Port von `assets/js/ui/charts/
+  training.js::renderWeatherWeekly()`), `core/weather.js::weeklyWeatherAverages`
+  — neue reine Aggregat-Funktion nach dem `weeklyZoneShares`-Muster
+  (Wochenschlüssel per injiziertem `weekKeyFn`/`weekSortFn`), Temp/Wind je
+  Feld unabhängig gemittelt wie `core/aggregate.js::monthlyFromRides`,
+  Niederschlag als Wochensumme statt Mittelwert. Balken = Ø-Temperatur in
+  Ampelfarbe (`ok`/`warn`/`danger`), Linie = Ø-Wind (zweite y-Achse rechts),
+  🌧-Marker bei Wochenregen > 0.5mm. Ampel-Grenzwerte bewusst in `core/weather.js`
+  dupliziert statt aus `app/src/features/logbook/logbook-view-model.ts
+  ::classifyWeather` importiert (identische Werte) — ein `core/`-Import aus
+  `features/` wäre ein Schichtenbruch.
 - **12g — Explorer: Schlaf.** Neue `SleepChart.tsx` (Familie 2), direkt aus
   `WellnessDay.sleepHours`/`avgSleepingHR`.
 - **12h — Explorer: Energie & Gewicht.** Neue `EnergyWeightChart.tsx`

@@ -30,6 +30,7 @@ import { EfficiencyChart } from "../../charts/EfficiencyChart";
 import { DecouplingChart } from "../../charts/DecouplingChart";
 import { CadenceChart } from "../../charts/CadenceChart";
 import { ZoneWeeklyChart } from "../../charts/ZoneWeeklyChart";
+import { WeatherWeeklyChart } from "../../charts/WeatherWeeklyChart";
 import { WellnessChart, type WellnessMetric } from "../../charts/WellnessChart";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
@@ -326,6 +327,22 @@ export function ExplorerPage() {
           Zeit in Zonen
         </div>
         <ZoneWeeklyChart rides={rides} />
+      </GlassCard>
+
+      <GlassCard style={{ padding: 20 }}>
+        <div
+          style={{
+            fontSize: ".7rem",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
+        >
+          Wetter
+        </div>
+        <WeatherWeeklyChart rides={rides} />
       </GlassCard>
 
       <GlassCard style={{ padding: 20 }}>
