@@ -60,6 +60,17 @@ jobs:
           INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
           INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
           INTERVALS_API_KEY_2: ${{ secrets.INTERVALS_API_KEY_2 }}
+          # Prod-Supabase (plan_cards, ftp_history) — ohne diese vier fehlt
+          # der Sync-Umgebung jeder Zugriff auf die echte Datenbank, und
+          # effectivePlan/ftpAt() fallen unbemerkt auf die eingefrorene
+          # statische Plan+adjustments.json-Kombination bzw. DEFAULT_FTP
+          # zurück (Degradationspfad, kein Fehler — deshalb lief das lange
+          # unbemerkt, s. docs/offene-punkte.md). Nur Athlet 1 (eigener
+          # Account) — für Athlet 2 existiert noch kein Prod-Zugang.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          SUPABASE_ATHLETE1_EMAIL: ${{ secrets.SUPABASE_ATHLETE1_EMAIL }}
+          SUPABASE_ATHLETE1_PASSWORD: ${{ secrets.SUPABASE_ATHLETE1_PASSWORD }}
           INTERVALS_ATHLETE_ID_2: ${{ secrets.INTERVALS_ATHLETE_ID_2 }}
           WEATHER_LAT: ${{ secrets.WEATHER_LAT }}
           WEATHER_LON: ${{ secrets.WEATHER_LON }}
