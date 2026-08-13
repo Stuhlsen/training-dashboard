@@ -16,7 +16,7 @@ import { buildScenario } from "../../core/scenario.js";
 import { buildCompare } from "../../core/compare.js";
 import { pmcSkeletonAnchor } from "../../core/days.js";
 import { PLAN2_SCHEDULE } from "../../core/plan2-schedule.js";
-import { PRIMARY_ATHLETE_ID } from "../../config";
+import { athleteConfig, PRIMARY_ATHLETE_ID, RETEST_DATE } from "../../config";
 import { resolvePlanningFtp } from "../planning/planning-view-model";
 import { PmcChart } from "../../charts/PmcChart";
 import { BrushBar } from "../../charts/BrushBar";
@@ -25,6 +25,7 @@ import { CompareChart } from "../../charts/CompareChart";
 import { ComparePanel } from "../../charts/ComparePanel";
 import { PowerCurveChart } from "../../charts/PowerCurveChart";
 import { WeeklyVolumeChart } from "../../charts/WeeklyVolumeChart";
+import { FtpForecastChart } from "../../charts/FtpForecastChart";
 import { WellnessChart, type WellnessMetric } from "../../charts/WellnessChart";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
@@ -61,6 +62,7 @@ export function ExplorerPage() {
   const { data: rideData } = useRides(activeAthleteId);
   const { data: cards } = usePlanCards(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
+  const athleteCfg = athleteConfig(activeAthleteId);
 
   // resolvePlanningFtp vereinfacht bewusst ggü. Data.ftpValue() (Begründung:
   // planning-view-model.ts:227-231, "keine kritische Anzeigezahl" — dort
@@ -83,6 +85,11 @@ export function ExplorerPage() {
   // Render neu rechnen, solange `rideData?.rides` undefined ist
   // (react-hooks/exhaustive-deps-Warnung).
   const rides = useMemo(() => (rideData?.rides as Ride[] | undefined) ?? [], [rideData]);
+  const wellness = useMemo(() => (rideData?.wellness as WellnessDay[] | undefined) ?? [], [rideData]);
+  // Wie AnalysisPage.tsx::ownPlan — Athlet 2s Fahrten tragen bewusst kein
+  // `week` (AGENTS.md "Bekannte Eigenheiten"), deshalb kein belastbarer
+  // Retest-Termin für die Prognose-Fächer im FTP-Chart.
+  const ownPlan = useMemo(() => rides.some((r) => r.week), [rides]);
 
   // Bounds für Brush + Presets (Etappe 8b, docs/phase-5-konzept-explorer.md
   // §4): "Plan 2" ergibt nur für Athlet 1 Sinn (Athlet 2 hat GFNY Bremen als
@@ -235,6 +242,22 @@ export function ExplorerPage() {
           onSaveSlot={handleSaveCompareSlot}
           canSave={!!range}
         />
+      </GlassCard>
+
+      <GlassCard style={{ padding: 20 }}>
+        <div
+          style={{
+            fontSize: ".7rem",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
+        >
+          FTP-Prognose
+        </div>
+        <FtpForecastChart rides={rides} wellness={wellness} ftpGoal={athleteCfg?.ftpGoal ?? null} ownPlan={ownPlan} retestDateISO={RETEST_DATE} />
       </GlassCard>
 
       <GlassCard style={{ padding: 20 }}>
