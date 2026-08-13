@@ -1369,6 +1369,9 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `AerobicCards.tsx`/`FtpTriad.tsx`/`RecordChips.tsx`, `RETEST_DATE` neu in `config.ts` |
 | 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `buildBodyCards()` (wiederverwendet `AerobicCards.tsx`), `buildConsistencySummary()` (wiederverwendet `KpiGrid.tsx`), neue `PeriodizationBlocks.tsx` |
 | 11g | **Nacharbeiten — Login-Seite stylen** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `LoginPage.tsx` auf `GlassCard` umgestellt, Label/Input/Error-Stil aus dem etablierten Feature-lokalen Muster (section-styles.ts/EventForm.tsx) |
+| 12a | **Fehlende Charts — Hero: Bestleistungen + Trainingskonsistenz-Kalender** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `ConsistencyCalendar.tsx` (Familie 6) + `RecordChips.tsx` zusätzlich in `HeroPage.tsx` |
+| 12b | **Fehlende Charts — Explorer: FTP-Prognose** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `FtpForecastChart.tsx` (Familie 1), `core/ftp-forecast.js` |
+| 12c | **Fehlende Charts — Explorer: Aerobe Effizienz + Aerobe Entkopplung** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `EfficiencyChart.tsx`/`DecouplingChart.tsx` (Familie 2), `core/efficiency.js` |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1652,19 +1655,27 @@ Gleiches Schnittmuster wie Etappe 11: unabhängige Häppchen, je eigener
 Feature-Branch (`etappe-12x-...`), je eigener Commit. Reihenfolge-Vorschlag
 mit den Hero-Lücken zuerst (höchste Sichtbarkeit, wie „11a zuerst"):
 
-- **12a — Hero: Bestleistungen + Trainingskonsistenz-Kalender.** Neue
-  `ConsistencyCalendar.tsx` (Familie 6, Wochenraster — eigene
-  Layout-Logik, keine bestehende Zeitreihen-Chart-Komponente
-  wiederverwendbar), verkabelt `core/consistency.js`. `RecordChips.tsx`
-  (bereits vorhanden) zusätzlich in `HeroPage.tsx` einbinden — vanilla
-  zeigt Records sowohl auf Übersicht als auch sekundär im Analyse-Tab,
-  hier also ergänzen statt aus `AnalysisPage.tsx` zu entfernen (1:1-Port-
-  Konvention).
-- **12b — Explorer: FTP-Prognose.** Neue `FtpForecastChart.tsx`
-  (Familie 1, wie `PmcChart.tsx`), `core/ftp-forecast.js`.
-- **12c — Explorer: Aerobe Effizienz + Aerobe Entkopplung.** Zwei neue
-  Komponenten `EfficiencyChart.tsx`/`DecouplingChart.tsx` (Familie 2),
-  `core/efficiency.js`.
+- **12a — Hero: Bestleistungen + Trainingskonsistenz-Kalender.** ✅
+  umgesetzt (13.08.2026). Neue `ConsistencyCalendar.tsx` (Familie 6,
+  Wochenraster — eigene Layout-Logik, keine bestehende Zeitreihen-Chart-
+  Komponente wiederverwendbar), verkabelt `core/consistency.js`.
+  `RecordChips.tsx` (bereits vorhanden) zusätzlich in `HeroPage.tsx`
+  eingebunden — vanilla zeigt Records sowohl auf Übersicht als auch
+  sekundär im Analyse-Tab, hier also ergänzt statt aus `AnalysisPage.tsx`
+  entfernt (1:1-Port-Konvention).
+- **12b — Explorer: FTP-Prognose.** ✅ umgesetzt (13.08.2026). Neue
+  `FtpForecastChart.tsx` (Familie 1, wie `PmcChart.tsx`, echte
+  Kalenderdatums-x-Achse), `core/ftp-forecast.js` — eFTP-Verlauf +
+  Ziel-Linie + Projektions-Fächer bis zum Retest-Termin (nur bei
+  eigenem Plan).
+- **12c — Explorer: Aerobe Effizienz + Aerobe Entkopplung.** ✅
+  umgesetzt (13.08.2026). Zwei neue Komponenten
+  `EfficiencyChart.tsx`/`DecouplingChart.tsx` (Familie 2), verkabelt
+  `core/efficiency.js` (`efficiencyTrend`/`decouplingTrend`, unverändert
+  aus dem Analyse-Tab wiederverwendet). `DecouplingChart.tsx` dabei auf
+  `densifyDays`/`joinSeries("gap")`/`makeIndexScale` umgestellt (vanilla
+  `pmc.js::renderDecoupling()` nutzte noch eine reine Ride-Index-x-Achse)
+  — Angleichung an die Familie-2-Konvention der übrigen React-Charts.
 - **12d — Explorer: Kadenz-Coach.** Neue `CadenceChart.tsx` + Chip-Reihe
   (Port von `power.js::renderCadenceCoach`), `core/cadence.js`.
 - **12e — Explorer: Zeit-in-Zonen (wöchentlich).** Neue
