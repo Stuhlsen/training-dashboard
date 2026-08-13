@@ -57,3 +57,16 @@ bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
   Plan) über `core/ftp-forecast.js` — dieselben Funktionen, die
   `analysis-view-model.ts::buildPowerDiagnostics()` für die Text-Sektion
   (FtpTriad) nutzt.
+- `EfficiencyChart.tsx` — Aerobe Effizienz Watt/HF (Etappe 12c, Familie 2).
+  Port von `assets/js/ui/charts/power.js::renderEfficiency()` nach dem
+  WellnessChart-Baumuster. `core/efficiency.js::efficiencyTrend` liefert
+  Rolling-Mean + Vergleichbarkeits-Set. Einzelpunkte bleiben unverbunden
+  (jede Fahrt ein eigener Messpunkt), nur die Rolling-Mean-Linie über den
+  vergleichbaren Z2-Fahrten wird gezeichnet.
+- `DecouplingChart.tsx` — Aerobe Entkopplung/HF-Decoupling (Etappe 12c,
+  Familie 2). Port von `assets/js/ui/charts/pmc.js::renderDecoupling()`, dabei
+  auf densifyDays/joinSeries("gap")/makeIndexScale umgestellt (vanilla nutzte
+  noch eine reine Ride-Index-x-Achse) — Angleichung an die Familie-2-
+  Konvention der übrigen React-Charts. `core/efficiency.js::decouplingTrend`
+  liefert Median/stabilen Anteil/Trend, `null` bei < 5 geeigneten Fahrten
+  (Leerzustand "Datenbasis wächst noch").
