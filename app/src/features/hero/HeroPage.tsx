@@ -11,6 +11,9 @@ import { athleteConfig } from "../../config";
 import { localISODate } from "../../core/format.js";
 import { GlassCard } from "../../components/GlassCard";
 import { AthleteToggle } from "../../components/AthleteToggle";
+import { ConsistencyCalendar } from "../../charts/ConsistencyCalendar";
+import { buildRecordChips } from "../analysis/analysis-view-model";
+import { RecordChips } from "../analysis/RecordChips";
 import { BriefingCard, LEVEL_COLOR } from "./BriefingCard";
 import { FtpRings } from "./FtpRings";
 import { MetricsGrid } from "./MetricsGrid";
@@ -99,6 +102,15 @@ export function HeroPage() {
     const rides = (athleteData?.rides as Ride[] | undefined) ?? [];
     return buildHeroMetrics(rides, core.ramp, core.eftp);
   }, [athleteData, core.ramp, core.eftp]);
+
+  // Bestleistungen + Trainingskonsistenz (Etappe 12a) — vanilla zeigt beides
+  // auf tab-overview (= Hero-Tab hier); Records zusätzlich auch im
+  // Analyse-Tab (RecordChips dort unverändert, 1:1-Port-Konvention). `rides`
+  // selbst memoisiert, sonst würde die logische `??`-Ausdrucksweise bei
+  // jedem Render ein neues Array liefern und records/ConsistencyCalendar
+  // unnötig neu rechnen (react-hooks/exhaustive-deps).
+  const rides = useMemo(() => (athleteData?.rides as Ride[] | undefined) ?? [], [athleteData]);
+  const records = useMemo(() => buildRecordChips(rides), [rides]);
 
   // 3D-Tilt der gesamten Karten-"Plate" mit der Mausposition — der
   // Hintergrund-Pan läuft unabhängig in AppBackground.tsx (eigene
@@ -228,6 +240,21 @@ export function HeroPage() {
 
         <div style={{ transform: "translateZ(14px)" }}>
           <MetricsGrid metrics={metrics} />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: "clamp(20px,2vw,34px)", transform: "translateZ(10px)" }}>
+          <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
+            <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+              Trainingskonsistenz
+            </span>
+            <ConsistencyCalendar rides={rides} todayISO={TODAY} />
+          </GlassCard>
+          <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
+            <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+              Bestleistungen
+            </span>
+            <RecordChips records={records} />
+          </GlassCard>
         </div>
       </div>
     </div>
