@@ -28,6 +28,7 @@ import { WeeklyVolumeChart } from "../../charts/WeeklyVolumeChart";
 import { FtpForecastChart } from "../../charts/FtpForecastChart";
 import { EfficiencyChart } from "../../charts/EfficiencyChart";
 import { DecouplingChart } from "../../charts/DecouplingChart";
+import { CadenceChart } from "../../charts/CadenceChart";
 import { WellnessChart, type WellnessMetric } from "../../charts/WellnessChart";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
@@ -292,6 +293,22 @@ export function ExplorerPage() {
           Aerobe Entkopplung
         </div>
         <DecouplingChart rides={rides} />
+      </GlassCard>
+
+      <GlassCard style={{ padding: 20 }}>
+        <div
+          style={{
+            fontSize: ".7rem",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
+        >
+          Kadenz-Coach
+        </div>
+        <CadenceChart rides={rides} ownPlan={ownPlan} />
       </GlassCard>
 
       <GlassCard style={{ padding: 20 }}>
