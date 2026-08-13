@@ -1368,7 +1368,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 11d | **Nacharbeiten — Analyse-Tab: Grundgerüst + Belastung + Intensität** | `[OP]` | ✅ umgesetzt (09.08.2026) — s. "Etappe 11"-Abschnitt oben. `/analysis` + `AnalysisPage.tsx`-Shell + `AnalysisSection.tsx` (Baustein für 11e/11f) + KPI-Hero + Belastung/Intensität |
 | 11e | **Nacharbeiten — Analyse-Tab: Aerob + Leistungsdiagnostik** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `AerobicCards.tsx`/`FtpTriad.tsx`/`RecordChips.tsx`, `RETEST_DATE` neu in `config.ts` |
 | 11f | **Nacharbeiten — Analyse-Tab: Regeneration & Körper + Konsistenz + Periodisierung** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `buildBodyCards()` (wiederverwendet `AerobicCards.tsx`), `buildConsistencySummary()` (wiederverwendet `KpiGrid.tsx`), neue `PeriodizationBlocks.tsx` |
-| 11g | **Nacharbeiten — Login-Seite stylen** | `[OP]` | ⏳ offen. `LoginPage.tsx` unstyled, bei 11a-Live-Check aufgefallen (sitzt außerhalb `Layout`/`PageShell`) |
+| 11g | **Nacharbeiten — Login-Seite stylen** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 11"-Abschnitt oben. `LoginPage.tsx` auf `GlassCard` umgestellt, Label/Input/Error-Stil aus dem etablierten Feature-lokalen Muster (section-styles.ts/EventForm.tsx) |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1590,13 +1590,27 @@ mergen, sobald `tsc -b`/`vitest`/Playwright-Kurzcheck grün sind.
     "Zuletzt verpasst"-Hinweis sowie zwei Periodisierungs-Blöcke (Sweet
     Spot phasengerecht, Schwelle teilweise) + eine Erholungswoche ("zu hart
     für Erholung"). 0 Konsolenfehler.
-- **11g — Login-Seite stylen.** Bei der 11a-Live-Verifikation aufgefallen:
-  `LoginPage.tsx` ist komplett unstyled HTML (nackte `<input>`/`<button>`,
-  kein CSS) — sitzt außerhalb von `Layout`/`PageShell` (eigene Route ohne
-  Kopfzeile, s. `App.tsx`), war deshalb von 11a nicht mitgedeckt. Auf
-  Design-Sprache bringen (`GlassCard`, `AppBackground` bleibt bereits
-  gemountet, s. dortigen Kommentar zu Login+eingeloggten Seiten). Kleines,
-  unabhängiges Häppchen — eigene Datei, kein Überschneidungsrisiko.
+- **11g — Login-Seite stylen.** ✅ umgesetzt (13.08.2026). Bei der
+  11a-Live-Verifikation aufgefallen: `LoginPage.tsx` war komplett unstyled
+  HTML (nackte `<input>`/`<button>`, kein CSS) — sitzt außerhalb von
+  `Layout`/`PageShell` (eigene Route ohne Kopfzeile, s. `App.tsx`), war
+  deshalb von 11a nicht mitgedeckt. Formular jetzt in eine zentrierte
+  `GlassCard` (`variant="strong"`) gepackt, `AppBackground` bleibt
+  unverändert bereits in `App.tsx` gemountet. Label/Input/Error-Stil sind
+  lokale Konstanten in `LoginPage.tsx` selbst (kein neues geteiltes Modul
+  quer über Features) — Werte 1:1 aus dem bereits etablierten Muster
+  übernommen (`section-styles.ts`: `.62rem` für Label/Error, `SettingsPage.tsx`:
+  `1.6rem` für die Überschrift, `Layout.tsx`s `PILL_BUTTON_STYLE`: `.86rem`
+  für den Button), keine neuen Schriftgrößen erfunden. Kein Logik-Änderung
+  — `useAuth`/`signIn`-Verhalten unangetastet. `tsc -b` sauber, `npx vitest
+  run` weiterhin 1111/1111 (reine Optik, keine neuen Tests nötig).
+  Live-Playwright-Check gegen den lokalen Vite-Dev-Server: Karte korrekt
+  zentriert/gestylt, 0 Konsolenfehler durch die Änderung selbst. Die
+  Fehlermeldungs-Darstellung (`role="alert"`) konnte nicht per echtem
+  Fehlversuch gegengeprüft werden — der Playwright-Browser-Kontext hatte
+  bereits eine aktive echte Supabase-Session aus einer früheren Sitzung
+  gespeichert, `LoginPage`s `session`-Redirect griff dadurch sofort;
+  bewusst nicht angefasst, um keine echte Session/Zugangsdaten zu berühren.
 
 **Bewusst nicht in Etappe 11:** Wochenrückblick (`core/weekreview.js` ist
 zwar bereits portiert, aber `ui/weekreview.js`-Äquivalent hat noch keine
