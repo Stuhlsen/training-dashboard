@@ -1619,6 +1619,78 @@ ungefragt einem der sechs Häppchen zuzuschlagen).
 
 ---
 
+### Etappe 12 — Fehlende Charts + Hero-Ergänzungen `[OP]`
+
+Anlass (13.08.2026): Alex meldete beim Live-Check eine lange Liste
+fehlender Charts (Belastungswächter, Zeit-in-Zonen, FTP-Projektion,
+Kadenz-Coach, Aerobe Effizienz/Entkopplung, Tempo vs. HF,
+HF-Entwicklung, Schlaf, Energie/Gewicht, Wetter) sowie fehlende
+Trainingskonsistenz + Bestleistungen im Hero-Tab. Recherche (zwei
+Explore-Agenten gegen `app/src/**` und `assets/js/**`) bestätigte: kein
+Bug, sondern dieselbe Art Lücke wie vor Etappe 11 — Etappe 8 („Explorer"-
+Tab) hat nur 4 der 6 Chart-Familien aus `docs/chart-grundlagen.md` §7.2
+gebaut (PMC, Power-Curve, Wochenvolumen, HRV/Ruhepuls); Etappe 11
+(Analyse-Tab) war von Anfang an als reiner Text-/Karten-Port geplant,
+nie als Chart-Ersatz gedacht. Records + Konsistenz-Kalender sitzen in
+vanilla auf `tab-overview` (= Hero-Tab im React-Port), nicht im
+Analyse-Tab — auch das ist ein echter Rückstand, kein Missverständnis.
+
+Die komplette Berechnungslogik ist bereits nach `app/src/core/` portiert
+und bei Analysis/Hero im Einsatz (`efficiency.js`, `cadence.js`,
+`ftp-forecast.js`, `zones.js`, `records.js`, `body.js`; `consistency.js`
+ist portiert, aber bislang nirgends importiert). `useRides()` liefert
+bereits alle nötigen Rohdaten (`rides`, `wellness`, `forecast`). Es
+fehlen ausschließlich die React-Chart-Komponenten (`app/src/charts/*.tsx`)
+und ihre Verkabelung — kein neuer Core-Code, keine neuen Datenfelder.
+
+„Belastungswächter" und „Intensitätsverteilung" existieren bereits als
+Sektion im Analyse-Tab (Text/Tabelle, `LoadTable`/`IntensityBand`, 11d) —
+fehlend ist dort nur die zugehörige **grafische** Zeitreihe, nicht die
+Sektion selbst.
+
+Gleiches Schnittmuster wie Etappe 11: unabhängige Häppchen, je eigener
+Feature-Branch (`etappe-12x-...`), je eigener Commit. Reihenfolge-Vorschlag
+mit den Hero-Lücken zuerst (höchste Sichtbarkeit, wie „11a zuerst"):
+
+- **12a — Hero: Bestleistungen + Trainingskonsistenz-Kalender.** Neue
+  `ConsistencyCalendar.tsx` (Familie 6, Wochenraster — eigene
+  Layout-Logik, keine bestehende Zeitreihen-Chart-Komponente
+  wiederverwendbar), verkabelt `core/consistency.js`. `RecordChips.tsx`
+  (bereits vorhanden) zusätzlich in `HeroPage.tsx` einbinden — vanilla
+  zeigt Records sowohl auf Übersicht als auch sekundär im Analyse-Tab,
+  hier also ergänzen statt aus `AnalysisPage.tsx` zu entfernen (1:1-Port-
+  Konvention).
+- **12b — Explorer: FTP-Prognose.** Neue `FtpForecastChart.tsx`
+  (Familie 1, wie `PmcChart.tsx`), `core/ftp-forecast.js`.
+- **12c — Explorer: Aerobe Effizienz + Aerobe Entkopplung.** Zwei neue
+  Komponenten `EfficiencyChart.tsx`/`DecouplingChart.tsx` (Familie 2),
+  `core/efficiency.js`.
+- **12d — Explorer: Kadenz-Coach.** Neue `CadenceChart.tsx` + Chip-Reihe
+  (Port von `power.js::renderCadenceCoach`), `core/cadence.js`.
+- **12e — Explorer: Zeit-in-Zonen (wöchentlich).** Neue
+  `ZoneWeeklyChart.tsx` (Familie 3), `core/zones.js::weeklyZoneShares`.
+- **12f — Explorer: Wetter (wöchentlich).** Neue `WeatherWeeklyChart.tsx`
+  (Familie 3), Wochenaggregation direkt aus `Ride.weather` (kein neues
+  Core-Modul nötig, ggf. kleine reine Aggregat-Funktion in `core/`
+  ergänzen, Muster wie `weeklyZoneShares`).
+- **12g — Explorer: Schlaf.** Neue `SleepChart.tsx` (Familie 2), direkt aus
+  `WellnessDay.sleepHours`/`avgSleepingHR`.
+- **12h — Explorer: Energie & Gewicht.** Neue `EnergyWeightChart.tsx`
+  (Familie 2), `core/body.js`.
+- **12i — Explorer: Tempo vs. Herzfrequenz (Scatter) + Ø-HF-Entwicklung.**
+  Zwei kleine, verwandte Charts in einem Häppchen: `SpeedHrScatterChart.tsx`
+  (Familie 4, Port von `power.js::renderScatter`) + Ø-HF-Trend-Panel
+  (Familie 5, Port des HF-Panels aus `power.js::renderSmallMultiples`).
+
+**Bewusst nicht in Etappe 12:** vollständige Fadenkreuz-/Brush-Kopplung
+über alle neuen Charts hinweg — jedes Häppchen nutzt nur so viel vom
+bestehenden `hoveredDate`/`onHoverChange`-Mechanismus (`PmcChart.tsx`/
+`WellnessChart.tsx`), wie ohne zusätzlichen Umbau erreichbar ist; eine
+vollständige Cross-Chart-Synchronisation wäre ein eigener, größerer
+Schnitt.
+
+---
+
 ## 5. Offene und festgelegte Punkte
 
 ### 5.1 TypeScript ja/nein (offen, Etappe 1)
