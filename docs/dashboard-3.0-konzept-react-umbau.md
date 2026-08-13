@@ -1377,6 +1377,7 @@ Jede wird erst grob geplant, wenn die vorherige Etappe abgenommen ist — Detail
 | 12f | **Fehlende Charts — Explorer: Wetter (wöchentlich)** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `WeatherWeeklyChart.tsx` (Familie 3, Temp-Balken + Wind-Linie + Regen-Marker), `core/weather.js::weeklyWeatherAverages`. Ampel-Grenzwerte dupliziert statt aus `logbook-view-model.ts::classifyWeather` importiert, um `core/` frei von einer `features/`-Abhängigkeit zu halten |
 | 12g | **Fehlende Charts — Explorer: Schlaf** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `SleepChart.tsx` (Familie 2, Schlafdauer-Balken + Schlaf-HF-Linie auf zweiter y-Achse), kein neues `core/`-Modul (direkt aus `WellnessDay.sleepHours`/`avgSleepingHR`). `/code-review` fand zwei Edge-Case-Bugs vor dem Commit (Balken am linken Rand fixiert bei genau einer Nacht Daten statt Leerzustand; Division durch Null, wenn alle Nächte 0h melden) — beide gefixt, Regressionstests ergänzt |
 | 12h | **Fehlende Charts — Explorer: Energie & Gewicht** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `EnergyWeightChart.tsx` (Familie 2, Verbrauchs-/Zufuhr-Balken + Gewichtslinie auf zweiter y-Achse), verkabelt `core/body.js`. `/code-review` fand einen Edge-Case-Bug vor dem Commit (Verbrauchs-Balken auch bei `burned = 0` gezeichnet) — gefixt, Regressionstest ergänzt |
+| 12i | **Fehlende Charts — Explorer: Tempo vs. Herzfrequenz + Ø-HF-Entwicklung** | `[OP]` | ✅ umgesetzt (13.08.2026) — s. "Etappe 12"-Abschnitt oben. `SpeedHrScatterChart.tsx` (Familie 4) + `HrTrendChart.tsx` (Familie 5), beide Ports aus `power.js` (`renderScatter`/`renderSmallMultiples`-HF-Panel), kein neues `core/`-Modul |
 
 ### Etappe 10 — Umschaltung `[F5]`
 
@@ -1728,10 +1729,15 @@ mit den Hero-Lücken zuerst (höchste Sichtbarkeit, wie „11a zuerst"):
   gezeichnet, z.B. an Tagen mit nur Zufuhr-Tracking ohne BMR-Schätzung) —
   gefixt (`burned > 0`-Guard wie im vanilla-Original), Regressionstest
   ergänzt.
-- **12i — Explorer: Tempo vs. Herzfrequenz (Scatter) + Ø-HF-Entwicklung.**
-  Zwei kleine, verwandte Charts in einem Häppchen: `SpeedHrScatterChart.tsx`
-  (Familie 4, Port von `power.js::renderScatter`) + Ø-HF-Trend-Panel
-  (Familie 5, Port des HF-Panels aus `power.js::renderSmallMultiples`).
+- **12i — Explorer: Tempo vs. Herzfrequenz (Scatter) + Ø-HF-Entwicklung.** ✅
+  umgesetzt (13.08.2026). Zwei kleine, verwandte Charts in einem Häppchen:
+  `SpeedHrScatterChart.tsx` (Familie 4, Port von `power.js::renderScatter`,
+  echte numerische Tempo-/HF-Achsen statt Ride-Index, Punktfarbe nach
+  Trainingsphase via `config.ts::phaseColor`) + `HrTrendChart.tsx`
+  (Familie 5, Port des HF-Panels aus `power.js::renderSmallMultiples` nach
+  dem CadenceChart-Baumuster — Ride-Index-x-Achse, IQR-Ausreißerfilter,
+  `linearTrend`-Trendlinie, bewusst ohne Ziellinie wie im vanilla-Original,
+  einziges der drei Small-Multiples-Panels ohne `targetLine`).
 
 **Bewusst nicht in Etappe 12:** vollständige Fadenkreuz-/Brush-Kopplung
 über alle neuen Charts hinweg — jedes Häppchen nutzt nur so viel vom

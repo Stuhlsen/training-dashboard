@@ -29,6 +29,8 @@ import { FtpForecastChart } from "../../charts/FtpForecastChart";
 import { EfficiencyChart } from "../../charts/EfficiencyChart";
 import { DecouplingChart } from "../../charts/DecouplingChart";
 import { CadenceChart } from "../../charts/CadenceChart";
+import { SpeedHrScatterChart } from "../../charts/SpeedHrScatterChart";
+import { HrTrendChart } from "../../charts/HrTrendChart";
 import { ZoneWeeklyChart } from "../../charts/ZoneWeeklyChart";
 import { WeatherWeeklyChart } from "../../charts/WeatherWeeklyChart";
 import { SleepChart } from "../../charts/SleepChart";
@@ -313,6 +315,38 @@ export function ExplorerPage() {
           Kadenz-Coach
         </div>
         <CadenceChart rides={rides} ownPlan={ownPlan} />
+      </GlassCard>
+
+      <GlassCard style={{ padding: 20 }}>
+        <div
+          style={{
+            fontSize: ".7rem",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
+        >
+          Tempo vs. Herzfrequenz
+        </div>
+        <SpeedHrScatterChart rides={rides} />
+      </GlassCard>
+
+      <GlassCard style={{ padding: 20 }}>
+        <div
+          style={{
+            fontSize: ".7rem",
+            letterSpacing: ".14em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            marginBottom: 12,
+          }}
+        >
+          Ø-Herzfrequenz
+        </div>
+        <HrTrendChart rides={rides} />
       </GlassCard>
 
       <GlassCard style={{ padding: 20 }}>
