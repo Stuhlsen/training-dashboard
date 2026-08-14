@@ -19463,7 +19463,7 @@
     {
       "date": "2026-08-12",
       "sleepHours": 8.5,
-      "sleepScore": 88,
+      "sleepScore": 86,
       "avgSleepingHR": 53,
       "restingHR": 52,
       "hrv": 37,
@@ -19479,7 +19479,7 @@
     {
       "date": "2026-08-13",
       "sleepHours": 8,
-      "sleepScore": 97,
+      "sleepScore": 92,
       "avgSleepingHR": 53,
       "restingHR": 52,
       "hrv": 44,
@@ -22300,7 +22300,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-14T01:09:32.379Z",
+  "updated": "2026-08-14T07:10:19.680Z",
   "source": "intervals.icu",
   "count": 147
 }
