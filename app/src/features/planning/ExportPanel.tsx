@@ -379,6 +379,12 @@ export function ExportPanel({
             <span>{activeExplainer}</span>
           </div>
 
+          {ladderFormats.length > 0 && (
+            <div style={{ marginTop: 8, fontSize: ".72rem", color: "var(--ink-3)" }}>
+              Aktuell: {ladderFormats.map((f) => f.summary).join(" — ")}
+            </div>
+          )}
+
           {selectedPreset === "event" && (
             <div style={{ marginTop: 14, display: "flex", flexDirection: "column", gap: 6 }}>
               <label style={FIELD_LABEL_STYLE} htmlFor="export-event-select">Zielevent</label>
