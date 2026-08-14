@@ -32,7 +32,12 @@ export function lastCompletedWeekRange(todayISO) {
  * @param {Array<{date: string}>} plannedSessions
  * @param {Record<string, {cancelled?: boolean, movedTo?: string}>} adjustments
  * @param {string} todayISO
- * @returns {null | Object} null wenn die Woche keine Fahrten hatte
+ * @returns {null | {
+ *   from: string, to: string, rides: number, km: number, min: number, tss: number,
+ *   best: null | { name: string, np: number|null, km: number|null, date: string },
+ *   weatherNote: string|null,
+ *   plan: null | { planned: number, done: number },
+ * }} null wenn die Woche keine Fahrten hatte
  */
 export function buildWeekReview(rides, plannedSessions, adjustments, todayISO) {
   const { from, to } = lastCompletedWeekRange(todayISO);

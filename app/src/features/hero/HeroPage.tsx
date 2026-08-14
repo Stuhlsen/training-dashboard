@@ -9,6 +9,7 @@ import { useEvents, raceCountdown } from "../../api/hooks/useEvents";
 import { useMouseParallax } from "../../hooks/useMouseParallax";
 import { athleteConfig } from "../../config";
 import { localISODate } from "../../core/format.js";
+import { buildWeekReview } from "../../core/weekreview.js";
 import { GlassCard } from "../../components/GlassCard";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { ConsistencyCalendar } from "../../charts/ConsistencyCalendar";
@@ -20,6 +21,7 @@ import { MetricsGrid } from "./MetricsGrid";
 import { PowerScale } from "./PowerScale";
 import { RaceCountdownPill } from "./RaceCountdownPill";
 import { WeatherCard } from "./WeatherCard";
+import { WeekReviewCard } from "./WeekReviewCard";
 import { buildHeroCore, buildHeroMetrics, buildPowerScale, type HeroCoreInput } from "./hero-view-model";
 
 type Ride = import("../../types.js").Ride;
@@ -111,6 +113,15 @@ export function HeroPage() {
   // unnötig neu rechnen (react-hooks/exhaustive-deps).
   const rides = useMemo(() => (athleteData?.rides as Ride[] | undefined) ?? [], [athleteData]);
   const records = useMemo(() => buildRecordChips(rides), [rides]);
+
+  // Wochenrückblick (Fahrplan 1, V1) — Port von ui/panels.js::renderWeekReview().
+  // Adjustments bewusst leer wie im Vanilla-Original (app.js ruft buildWeekReview
+  // an beiden Stellen mit `{}` auf, s. docs/v0-funktionsabgleich-bericht.md §3) —
+  // keine Verbesserung hier, nur Parität.
+  const weekReview = useMemo(
+    () => buildWeekReview(rides, planCards ?? [], {}, TODAY),
+    [rides, planCards],
+  );
 
   // 3D-Tilt der gesamten Karten-"Plate" mit der Mausposition — der
   // Hintergrund-Pan läuft unabhängig in AppBackground.tsx (eigene
@@ -255,6 +266,7 @@ export function HeroPage() {
             </span>
             <RecordChips records={records} />
           </GlassCard>
+          <WeekReviewCard review={weekReview} />
         </div>
       </div>
     </div>
