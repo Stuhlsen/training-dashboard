@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
@@ -16,6 +16,21 @@ import { buildScenario } from "../../core/scenario.js";
 import { buildCompare } from "../../core/compare.js";
 import { pmcSkeletonAnchor } from "../../core/days.js";
 import { PLAN2_SCHEDULE } from "../../core/plan2-schedule.js";
+import {
+  weeklyVolumeAvailable,
+  zoneWeeklyAvailable,
+  powerCurveAvailable,
+  efficiencyAvailable,
+  speedHrScatterAvailable,
+  cadenceAvailable,
+  hrTrendAvailable,
+  decouplingAvailable,
+  wellnessChartAvailable,
+  sleepAvailable,
+  weatherWeeklyAvailable,
+  energyWeightAvailable,
+  countEmpty,
+} from "../../core/chart-availability.js";
 import { athleteConfig, PRIMARY_ATHLETE_ID, RETEST_DATE } from "../../config";
 import { resolvePlanningFtp } from "../planning/planning-view-model";
 import { PmcChart } from "../../charts/PmcChart";
@@ -62,6 +77,31 @@ function toProjectionCard(c: PlanCardT) {
 
 function toProjectionEvent(e: EventItem) {
   return { eventDate: e.eventDate, title: e.title, type: e.type, priority: e.priority ?? undefined };
+}
+
+const SECTION_HEADER_STYLE = {
+  fontSize: ".7rem",
+  letterSpacing: ".14em",
+  textTransform: "uppercase" as const,
+  color: "var(--ink-3)",
+  fontWeight: 600,
+  marginBottom: 12,
+};
+
+/** Port von ui/chart-visibility.js::apply() — blendet eine Chart-Karte aus,
+ *  wenn der aktive Athlet keine Daten für sie hat, außer der Umschalter
+ *  (`showEmpty`) ist an. Kein separater Platzhaltertext nötig (anders als
+ *  Vanillas `_placeholder()`): jede React-Chart-Komponente zeigt bereits
+ *  selbst einen "nicht genug Daten"-Empty-State, wenn sie mit leeren/
+ *  unzureichenden Daten gerendert wird. */
+function ChartSection({ title, available, showEmpty, children }: { title: string; available: boolean; showEmpty: boolean; children: ReactNode }) {
+  if (!available && !showEmpty) return null;
+  return (
+    <GlassCard style={{ padding: 20 }}>
+      <div style={SECTION_HEADER_STYLE}>{title}</div>
+      {children}
+    </GlassCard>
+  );
 }
 
 export function ExplorerPage() {
@@ -192,6 +232,28 @@ export function ExplorerPage() {
     navigate("/planning", { state: { highlightDate: dateISO } });
   }
 
+  // Chart-Sichtbarkeit (Fahrplan 1 V1, Port von ui/chart-visibility.js) —
+  // flüchtiger Seitenzustand wie Vanillas ChartVisibility.showEmpty, kein
+  // localStorage. Belastung-Karte und FTP-Prognose sind bewusst NICHT Teil
+  // dieser Prüfung, s. core/chart-availability.js-Kopfkommentar.
+  const [showEmpty, setShowEmpty] = useState(false);
+  const powerCurves = rideData?.powerCurves;
+  const availability = {
+    weeklyVolume: weeklyVolumeAvailable(rides),
+    zoneWeekly: zoneWeeklyAvailable(rides),
+    powerCurve: powerCurveAvailable(powerCurves),
+    efficiency: efficiencyAvailable(rides),
+    speedHrScatter: speedHrScatterAvailable(rides),
+    cadence: cadenceAvailable(rides),
+    hrTrend: hrTrendAvailable(rides),
+    decoupling: decouplingAvailable(rides),
+    wellnessChart: wellnessChartAvailable(wellness),
+    sleep: sleepAvailable(wellness),
+    weatherWeekly: weatherWeeklyAvailable(rides),
+    energyWeight: energyWeightAvailable(wellness),
+  };
+  const emptyChartCount = countEmpty(Object.values(availability));
+
   return (
     <PageShell>
     <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
@@ -199,7 +261,31 @@ export function ExplorerPage() {
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Explorer
         </h1>
-        <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            type="button"
+            aria-pressed={showEmpty}
+            onClick={() => setShowEmpty((v) => !v)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              padding: "6px 14px",
+              borderRadius: "var(--pill)",
+              border: "1px solid var(--hair)",
+              background: showEmpty ? "var(--glass-2)" : "transparent",
+              color: "var(--ink-2)",
+              fontSize: ".78rem",
+              cursor: "pointer",
+            }}
+          >
+            {showEmpty ? "Leere Charts ausblenden" : "Leere Charts einblenden"}
+            <span style={{ fontSize: ".7rem", fontWeight: 600, color: emptyChartCount > 0 ? "var(--ink)" : "var(--ink-3)" }}>
+              {emptyChartCount}
+            </span>
+          </button>
+          <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
+        </div>
       </div>
 
       <GlassCard style={{ padding: 20 }}>
@@ -269,202 +355,58 @@ export function ExplorerPage() {
         <FtpForecastChart rides={rides} wellness={wellness} ftpGoal={athleteCfg?.ftpGoal ?? null} ownPlan={ownPlan} retestDateISO={RETEST_DATE} />
       </GlassCard>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Aerobe Effizienz
-        </div>
+      <ChartSection title="Aerobe Effizienz" available={availability.efficiency} showEmpty={showEmpty}>
         <EfficiencyChart rides={rides} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Aerobe Entkopplung
-        </div>
+      <ChartSection title="Aerobe Entkopplung" available={availability.decoupling} showEmpty={showEmpty}>
         <DecouplingChart rides={rides} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Kadenz-Coach
-        </div>
+      <ChartSection title="Kadenz-Coach" available={availability.cadence} showEmpty={showEmpty}>
         <CadenceChart rides={rides} ownPlan={ownPlan} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Tempo vs. Herzfrequenz
-        </div>
+      <ChartSection title="Tempo vs. Herzfrequenz" available={availability.speedHrScatter} showEmpty={showEmpty}>
         <SpeedHrScatterChart rides={rides} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Ø-Herzfrequenz
-        </div>
+      <ChartSection title="Ø-Herzfrequenz" available={availability.hrTrend} showEmpty={showEmpty}>
         <HrTrendChart rides={rides} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Zeit in Zonen
-        </div>
+      <ChartSection title="Zeit in Zonen" available={availability.zoneWeekly} showEmpty={showEmpty}>
         <ZoneWeeklyChart rides={rides} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Wetter
-        </div>
+      <ChartSection title="Wetter" available={availability.weatherWeekly} showEmpty={showEmpty}>
         <WeatherWeeklyChart rides={rides} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Schlaf
-        </div>
+      <ChartSection title="Schlaf" available={availability.sleep} showEmpty={showEmpty}>
         <SleepChart wellness={wellness} ownPlan={ownPlan} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Energie & Gewicht
-        </div>
+      <ChartSection title="Energie & Gewicht" available={availability.energyWeight} showEmpty={showEmpty}>
         <EnergyWeightChart wellness={wellness} bmr={athleteCfg?.bmr} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Power-Curve
-        </div>
+      <ChartSection title="Power-Curve" available={availability.powerCurve} showEmpty={showEmpty}>
         <PowerCurveChart powerCurves={rideData?.powerCurves} ftp={ftp} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Wochenvolumen
-        </div>
+      <ChartSection title="Wochenvolumen" available={availability.weeklyVolume} showEmpty={showEmpty}>
         <WeeklyVolumeChart rides={rides} />
-      </GlassCard>
+      </ChartSection>
 
-      <GlassCard style={{ padding: 20 }}>
-        <div
-          style={{
-            fontSize: ".7rem",
-            letterSpacing: ".14em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            fontWeight: 600,
-            marginBottom: 12,
-          }}
-        >
-          Wellness
-        </div>
+      <ChartSection title="Wellness" available={availability.wellnessChart} showEmpty={showEmpty}>
         <WellnessChart
           rides={rides}
           wellness={(rideData?.wellness as WellnessDay[] | undefined) ?? []}
           metric={wellnessMetric}
           onMetricChange={setWellnessMetric}
         />
-      </GlassCard>
+      </ChartSection>
     </div>
     </PageShell>
   );
