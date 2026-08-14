@@ -328,6 +328,7 @@ export const INTENSITY_CLASS = Object.freeze({
   VO2max: "hart",
   "FTP-Test": "hart",
   Rennen: "hart",
+  Race: "hart", // Athlet 2 GFNY-Bremen-Renntag, eigenes Typ-Wort neben "Rennen" (Rennsimulation)
   Etappe: "hart",
   Tempo: "moderat",
   Gruppenfahrt: "moderat",
@@ -340,6 +341,7 @@ export const INTENSITY_CLASS = Object.freeze({
   "Z2 Kadenz": "locker",
   "Z2 Erholung": "locker",
   "Z1 Recovery": "locker",
+  Z1: "locker", // Athlet 2 Kurzform von "Z1 Recovery"
   Ausrollen: "locker",
   NLS: "locker",
   Ruhetag: "ruhe",

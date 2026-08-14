@@ -31,7 +31,7 @@ import {
   summarizeCardHints,
 } from "../core/plan-feedback.js";
 import { canDragCard } from "../core/plan-drag.js";
-import { KNOWN_PLAN_TYPES } from "../core/plan-config.js";
+import { KNOWN_PLAN_TYPES, intensityClass } from "../core/plan-config.js";
 import { CONFIG } from "../state/config.js";
 import { Data } from "../state/data.js";
 import {
@@ -1095,6 +1095,27 @@ export const Planned = {
     let compareHtml = "";
     if (ride) {
       const rows = [];
+
+      // Typ — geplant vs. tatsächlich erkannt. Die Ist-Typerkennung
+      // (core/session-classify.js) schlägt in ride.typ immer den reinen
+      // Plan-Text (s. scripts/lib/map-activity.js::mapActivity/mapActivity2)
+      // — eine Abweichung hier ist also kein Fehler, sondern genau das
+      // Signal, das diese Zeile zeigen soll. Nur bei tatsächlich
+      // unterschiedlichem Text gerendert (sonst reine Redundanz zum
+      // Karten-Icon/-Titel oben) und nie bei Ruhetag-Karten — dafür gibt es
+      // bereits restDayRiddenSignal weiter unten. Farbe nach
+      // intensityClass()-Vergleich: gleiche Klasse (z.B. Plan "Z2" vs.
+      // erkannt "Z2 Lang") ist nur eine Label-Nuance, keine echte Abweichung.
+      if (ride.typ && s.typ && s.typ !== "Ruhetag" && ride.typ !== s.typ) {
+        const sameClass = intensityClass(s.typ) === intensityClass(ride.typ);
+        rows.push(`
+          <div class="done-compare-row">
+            <span class="done-compare-label">🏷️ Typ</span>
+            <span class="done-compare-plan">${s.typ}</span>
+            <span class="done-compare-arrow">→</span>
+            <span class="done-compare-actual" style="color:${sameClass ? "var(--text)" : "var(--gold)"}">${ride.typ}</span>
+          </div>`);
+      }
 
       // Distanz
       if (ride.km) {
