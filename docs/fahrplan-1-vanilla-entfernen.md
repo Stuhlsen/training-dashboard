@@ -88,8 +88,8 @@ Bericht abwarten.
 
 ### Abnahme
 
-- [ ] Jede Zeile der V0-Tabelle steht auf „vollständig"
-- [ ] Testsuite grün
+- [x] Jede Zeile der V0-Tabelle steht auf „vollständig" (14.08.2026: scripts/-Blockade, Wochenrückblick, Befinden-Kachel, Tagesform-Detailkarte, Leiterstand-Zeile, Chart-Sichtbarkeit — je ein eigener Commit auf `main`)
+- [x] Testsuite grün (1210/1210 in `app/`)
 
 ---
 
