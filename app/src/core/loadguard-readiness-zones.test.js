@@ -3,9 +3,18 @@
 
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { fosterWeek, riskLevel, buildLoadGuard, rideLoad } from "./loadguard.js";
+import { fosterWeek, riskLevel, buildLoadGuard, rideLoad, describeWeek } from "./loadguard.js";
 import { baselineStats, metricStatus, assessReadiness } from "./readiness.js";
-import { normalizeZoneTimes, bandZoneTimes, weeklyZoneShares } from "./zones.js";
+import {
+  normalizeZoneTimes,
+  bandZoneTimes,
+  weeklyZoneShares,
+  overallZoneShares,
+  rideIF,
+  overallBandsFromIF,
+  distributionShape,
+  LOW_INTENSITY_TARGET,
+} from "./zones.js";
 
 /* ── Foster / Ramp ──────────────────────────────────────────── */
 
@@ -198,4 +207,62 @@ test("weeklyZoneShares: Anteile + Zielprüfung (80% low)", () => {
   assert.equal(weeks[0].onTarget, true);
   assert.equal(weeks[1].onTarget, false);
   assert.ok(Math.abs(weeks[1].lowShare - 0.5) < 1e-9);
+});
+
+test("overallZoneShares: aggregiert über Fahrten, null ohne zoneTimes", () => {
+  const rides = [
+    { zoneTimes: [3600, 3600, 0, 0, 0] }, // 2h low
+    { zoneTimes: [0, 0, 1800, 0, 0] }, // 0.5h mid
+    { zoneTimes: [{ id: "Z5", secs: 900 }] }, // Objektformat: Index bestimmt die Zone — [900] ist Z1 (low)
+  ];
+  const s = overallZoneShares(rides);
+  assert.ok(s);
+  assert.equal(s.low, 3600 + 3600 + 900);
+  assert.equal(s.mid, 1800);
+  assert.equal(s.nRides, 3);
+  assert.equal(overallZoneShares([{ km: 50 }]), null);
+});
+
+test("rideIF: bevorzugt r.if, leitet sonst aus NP/FTP ab", () => {
+  assert.equal(rideIF({ if: 0.84 }), 0.84);
+  assert.equal(rideIF({ np: 163, ftpWatt: 193 }), 163 / 193);
+  assert.equal(rideIF({ np: 163 }), null); // ohne FTP keine Ableitung
+  assert.equal(rideIF({ km: 10 }), null);
+});
+
+test("overallBandsFromIF: Dauer-gewichtete Näherung, IF aus NP/FTP abgeleitet", () => {
+  const rides = [
+    { if: 0.6, min: 120 }, // low: 7200s (direktes IF)
+    { np: 175, ftpWatt: 193, min: 60 }, // IF≈0.91 → mid: 3600s (abgeleitet)
+    { if: 1.1, min: 30 }, // high: 1800s
+    { min: 60 }, // kein IF ableitbar → fällt raus
+  ];
+  const b = overallBandsFromIF(rides);
+  assert.equal(b.low, 7200);
+  assert.equal(b.mid, 3600);
+  assert.equal(b.high, 1800);
+  assert.equal(b.source, "if");
+  assert.equal(b.nRides, 3);
+  assert.equal(overallBandsFromIF([{ km: 10 }]), null);
+});
+
+test("distributionShape: polarisiert / pyramidal / schwellenlastig", () => {
+  assert.equal(distributionShape({ low: 0.85, mid: 0.05, high: 0.1 }).shape, "polarisiert");
+  assert.equal(distributionShape({ low: 0.82, mid: 0.13, high: 0.05 }).shape, "pyramidal");
+  assert.equal(distributionShape({ low: 0.45, mid: 0.5, high: 0.05 }).shape, "schwellenlastig");
+  assert.equal(
+    distributionShape({ low: 0.85, mid: 0.05, high: 0.1 }).onTarget,
+    0.85 >= LOW_INTENSITY_TARGET
+  );
+  assert.equal(distributionShape({ low: 0.6, mid: 0.3, high: 0.1 }).onTarget, false);
+});
+
+test("describeWeek: benennt das treibende Signal", () => {
+  assert.equal(describeWeek({ ramp: 9, monotony: 1.2, risk: "high" }).label, "Übersteuert");
+  assert.equal(describeWeek({ ramp: 4, monotony: 2.6, risk: "high" }).label, "Eintönig hart");
+  assert.equal(describeWeek({ ramp: 7, monotony: 1.2, risk: "caution" }).label, "Zügiger Aufbau");
+  assert.equal(describeWeek({ ramp: 4, monotony: 2.1, risk: "caution" }).label, "Wenig Rhythmus");
+  assert.equal(describeWeek({ ramp: -3, monotony: 1.0, risk: "ok" }).label, "Entlastung");
+  assert.equal(describeWeek({ ramp: 4, monotony: 1.0, risk: "ok" }).label, "Produktiver Aufbau");
+  assert.equal(describeWeek({ ramp: 1, monotony: 1.0, risk: "ok" }).label, "Stabil");
 });
