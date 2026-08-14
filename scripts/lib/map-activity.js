@@ -4,8 +4,8 @@
    die beiden Mapper für Athlet 1 (Plan 2) und Athlet 2.
    ============================================================ */
 
-import { effectiveSessions } from "../../assets/js/core/planning.js";
-import { classifySession } from "../../assets/js/core/session-classify.js";
+import { effectiveSessions } from "./core/planning.js";
+import { classifySession } from "./core/session-classify.js";
 import { ftpAt } from "./ftp-history.js";
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";

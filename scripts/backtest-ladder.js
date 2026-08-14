@@ -57,12 +57,12 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { isoWeekKey } from "../assets/js/core/aggregate.js";
-import { plannedRecoveryWeeks } from "../assets/js/core/plan-feedback.js";
-import { assessReadiness } from "../assets/js/core/readiness.js";
-import { readinessSignal } from "../assets/js/core/briefing.js";
-import { evaluateLocks, nextStep } from "../assets/js/core/ladder-progression.js";
-import { addDaysISO } from "../assets/js/core/format.js";
+import { isoWeekKey } from "./lib/core/aggregate.js";
+import { plannedRecoveryWeeks } from "./lib/core/plan-feedback.js";
+import { assessReadiness } from "./lib/core/readiness.js";
+import { readinessSignal } from "./lib/core/briefing.js";
+import { evaluateLocks, nextStep } from "./lib/core/ladder-progression.js";
+import { addDaysISO } from "./lib/core/format.js";
 import { ENV } from "./lib/env.js";
 import { loadPlanCards } from "./lib/plan-cards-fetch.js";
 import { loadFtpHistory } from "./lib/ftp-history.js";

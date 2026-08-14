@@ -30,7 +30,7 @@
 import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
 import { PLANNED_SESSIONS } from "./lib/plan2.js";
-import { localISODate } from "../assets/js/core/format.js";
+import { localISODate } from "./lib/core/format.js";
 
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");

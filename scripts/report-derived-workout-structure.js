@@ -35,7 +35,7 @@ import { ENV } from "./lib/env.js";
 import { loadPlanCards } from "./lib/plan-cards-fetch.js";
 import { loadFtpHistory } from "./lib/ftp-history.js";
 import { attachCompliance } from "./lib/compliance.js";
-import { deriveWorkoutStructure } from "../assets/js/core/workout-structure-derive.js";
+import { deriveWorkoutStructure } from "./lib/core/workout-structure-derive.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 

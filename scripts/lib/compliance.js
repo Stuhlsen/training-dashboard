@@ -39,9 +39,9 @@
    ============================================================ */
 
 import { ftpAt } from "./ftp-history.js";
-import { pickPrimaryRide, shouldEvaluateCard, computeCompliance } from "../../assets/js/core/compliance-match.js";
-import { deriveWorkoutStructure } from "../../assets/js/core/workout-structure-derive.js";
-import { inferFormatId } from "../../assets/js/core/session-format-match.js";
+import { pickPrimaryRide, shouldEvaluateCard, computeCompliance } from "./core/compliance-match.js";
+import { deriveWorkoutStructure } from "./core/workout-structure-derive.js";
+import { inferFormatId } from "./core/session-format-match.js";
 
 /**
  * Welche Karte eines Tages ausgewertet wird, und mit welcher Struktur:

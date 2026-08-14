@@ -22,19 +22,19 @@
 // punkte.md), das denselben Datum→Woche/Phase-Lookup zur Laufzeit direkt
 // aus Data.wellness braucht (unabhängig von Ride-Objekten). Etablierter
 // Präzedenzfall für die Layer-Grenze: scripts/lib/map-activity.js
-// importiert bereits effectiveSessions aus assets/js/core/planning.js.
+// importiert bereits effectiveSessions aus scripts/lib/core/planning.js.
 // Echter Import (nicht nur `export … from`), weil getPlan2Blocks() weiter
 // unten PLAN2_SCHEDULE lokal referenziert — ein reines Re-Export-Statement
 // würde keine lokale Bindung anlegen.
-import { PLAN2_SCHEDULE, getPlan2WeekPhase } from "../../assets/js/core/plan2-schedule.js";
+import { PLAN2_SCHEDULE, getPlan2WeekPhase } from "./core/plan2-schedule.js";
 export { PLAN2_SCHEDULE, getPlan2WeekPhase };
 
 // getRecentComparisonBlocks() (weiter unten) braucht Kalenderarithmetik +
-// die geteilten Block-Keys — beide bereits in core/ definiert, gleiches
-// Layer-Grenze-Präzedenzmuster wie oben (core/ → scripts/lib/, nie umgekehrt).
-import { addDaysISO } from "../../assets/js/core/format.js";
-import { RECENT_BLOCK_KEY, PREVIOUS_BLOCK_KEY } from "../../assets/js/core/progress-indicators.js";
-import { fillRestDays } from "../../assets/js/core/plan-rest-days.js";
+// die geteilten Block-Keys — beide bereits in scripts/lib/core/ definiert
+// (eigene Kopie für scripts/, s. docs/fahrplan-1-vanilla-entfernen.md V1).
+import { addDaysISO } from "./core/format.js";
+import { RECENT_BLOCK_KEY, PREVIOUS_BLOCK_KEY } from "./core/progress-indicators.js";
+import { fillRestDays } from "./core/plan-rest-days.js";
 
 // === Geplante Einheiten — Datum → Name + Typ ===
 // Ab W2: Mo/Fr = optionale Recovery (bei müden Beinen streichen),

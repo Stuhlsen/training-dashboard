@@ -5,8 +5,8 @@
    aus core/planning.js statt die Merge-Logik zu duplizieren.
    ============================================================ */
 
-import { applyAdjustment } from "../../assets/js/core/planning.js";
-import { workoutDurationMinutes } from "../../assets/js/core/ftp-progress.js";
+import { applyAdjustment } from "./core/planning.js";
+import { workoutDurationMinutes } from "./core/ftp-progress.js";
 
 /** Gesamtdauer eines strukturierten Workouts in Minuten — wiederverwendet
  *  core/ftp-progress.js::workoutDurationMinutes() statt die WU+Intervalle×

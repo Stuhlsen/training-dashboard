@@ -28,8 +28,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
-import { evaluateLocks, nextStep, presetAction } from "../assets/js/core/ladder-progression.js";
-import { localISODate } from "../assets/js/core/format.js";
+import { evaluateLocks, nextStep, presetAction } from "./lib/core/ladder-progression.js";
+import { localISODate } from "./lib/core/format.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const today = localISODate();
