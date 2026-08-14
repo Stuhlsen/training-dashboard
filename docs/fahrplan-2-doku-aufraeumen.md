@@ -46,7 +46,7 @@ DOK3   Runbook                        (nach Fahrplan 3, Fenster DKR6)
 2. **Jedes verbleibende Dokument in einen von drei Töpfen einordnen:**
 
    **Lebend** — bleibt in `docs/`:
-   - `AGENTS.md` (Architekturkonventionen)
+   - `AGENTS.md` (Architekturkonventionen) — **Achtung: Inhalt ist veraltet, siehe Punkt 3.**
    - `offene-punkte.md` (zentrale Sammelstelle)
    - `dashboard-3.0-konzept-react-umbau.md`
    - `konzept-progressionssteuerung.md`
@@ -65,14 +65,21 @@ DOK3   Runbook                        (nach Fahrplan 3, Fenster DKR6)
    - Zwischenstände, die durch eine spätere Fassung desselben Dokuments ersetzt wurden
    - Notizen ohne erkennbaren Adressaten
 
-3. **Vor jeder Verschiebung prüfen, ob ein Test oder Code auf den Pfad zeigt.** Der Fall aus Punkt 2 ist nicht der einzige — eine Volltextsuche über `tests/`, `core/` und `app/` nach dem Dateinamen kostet Sekunden.
-4. **`docs/README.md` anlegen:** ein Absatz je lebendem Dokument — was drinsteht und wann man es liest. Ein Satz zum Archiv und dazu, dass Archiviertes nicht mehr gilt.
-5. **`docs/offene-punkte.md` durchgehen** und alles streichen, was durch Fahrplan 1 erledigt ist. Punkte, die nur verschoben wurden, mit dem neuen Ort versehen statt löschen.
-6. **Bewusst nicht anfassen:** `scripts/backtest-ladder.js` bleibt versioniert. Der Punkt hatte über mehrere Sitzungen fälschlich als „unbezogen" gegolten und ist tatsächlich fertige Arbeit am Progressionsthema.
+3. **`AGENTS.md` auf den tatsächlichen Stand bringen.** Laut Prüfung vom 14.08.2026 beschreibt das Dokument durchgehend noch den vor-3.0-Zustand (Vanilla-Dateistruktur unter `assets/js/`, den `dashboard-2.0`-Branch/Migrationsplan als offen) und erwähnt „Dashboard 3.0", „Etappe" oder `/app/` kein einziges Mal — obwohl die React-App zu diesem Zeitpunkt (nach Fahrplan 1) die einzige verbliebene ist. Mindestens zu aktualisieren:
+   - Dateistruktur-Abschnitt: `assets/js/**` raus, `app/src/**` (inkl. `sports/cycling/`, aktuell die einzige befüllte Sportart) rein
+   - Migrationsstand: `supabase/migrations/` ist inzwischen bei `0017`, nicht bei der im Dokument beschriebenen Anfangsphase
+   - Deployment-Abschnitt: GitHub Pages liefert `app/dist` (React-Build), nicht mehr die Vanilla-`index.html`
+   - Branch-Modell-Abschnitt („dashboard-2.0 als langlebiger Feature-Branch") — prüfen, ob das nach dem 3.0-Merge noch zutrifft oder gestrichen gehört
+   - Kein Abschnitt zu `app/src/core/` vs. der (nach V2 gelöschten) `assets/js/core/`-Kopie mehr nötig — falls dort noch was zur Divergenz zwischen den beiden Bäumen steht, entfällt das ersatzlos
+4. **Vor jeder Verschiebung prüfen, ob ein Test oder Code auf den Pfad zeigt.** Der Fall aus Punkt 2 ist nicht der einzige — eine Volltextsuche über `tests/`, `core/` und `app/` nach dem Dateinamen kostet Sekunden.
+5. **`docs/README.md` anlegen:** ein Absatz je lebendem Dokument — was drinsteht und wann man es liest. Ein Satz zum Archiv und dazu, dass Archiviertes nicht mehr gilt.
+6. **`docs/offene-punkte.md` durchgehen** und alles streichen, was durch Fahrplan 1 erledigt ist. Punkte, die nur verschoben wurden, mit dem neuen Ort versehen statt löschen.
+7. **Bewusst nicht anfassen:** `scripts/backtest-ladder.js` bleibt versioniert. Der Punkt hatte über mehrere Sitzungen fälschlich als „unbezogen" gegolten und ist tatsächlich fertige Arbeit am Progressionsthema.
 
 ### Abnahme
 
 - [ ] Kein Dokument in `docs/` beschreibt gelöschten Code
+- [ ] `AGENTS.md` beschreibt die React-/`app/`-Architektur, keine Vanilla-Struktur mehr
 - [ ] Kein Test bricht durch eine Verschiebung
 - [ ] `docs/README.md` deckt jedes lebende Dokument ab
 - [ ] Archiv ist als „gilt nicht mehr" gekennzeichnet
