@@ -12,6 +12,8 @@
 
 import { plannedRecoveryWeeks } from "../../core/plan-feedback.js";
 import { athleteConfig } from "../../config";
+import { fmt, weatherIcon } from "../../core/format.js";
+import { intensityClass } from "../../core/plan-config.js";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -469,4 +471,207 @@ export function accessorySteps(workoutStructure: unknown): AccessoryStep[] {
   return steps.filter(
     (s): s is AccessoryStep => !!s && typeof s === "object" && (s as { kind?: unknown }).kind === "accessory",
   );
+}
+
+/* ============================================================
+   "GEPLANT → TATSÄCHLICH"-VERGLEICHSBLOCK — Port von ui/planned.js::
+   _renderDoneCard Z. 1094-1259 (Distanz/Puls/Watt/Kadenz/Dauer/TRIMP/
+   Wetter/Befinden), plus eine neue Typ-Zeile: die Ist-Typerkennung
+   schlägt in ride.typ immer den reinen Plan-Text (core/session-classify.js
+   via scripts/lib/map-activity.js), eine Abweichung ist also ein echtes
+   Signal (z.B. Plan "Schwelle" vs. tatsächlich gefahren "Z2 Lang"), kein
+   Fehler. ============================================================ */
+
+export interface DoneCompareRow {
+  label: string;
+  icon: string;
+  plan: string;
+  actual: string;
+  /** Token wie "var(--ok)"/"var(--warn)"/"var(--danger)" — undefined = neutral. */
+  color?: string;
+  extra?: string;
+}
+
+interface ActualWeather {
+  temp: number;
+  windSpeed?: number | null;
+  precip?: number | null;
+  weatherCode: number;
+}
+
+/** Farbschwelle für die Wetter-Vergleichszeile — eigene Funktion, NICHT
+ *  weatherBadgeColor() (die arbeitet auf der Forecast-Form mit precipProb
+ *  in %, hier ist ride.weather.precip in mm — andere Einheit/Schwelle) und
+ *  auch NICHT logbook-view-model.ts::classifyWeather() (gleiche Einheiten,
+ *  aber ein zusätzlicher "cold"-Faktor und eine windy&&rainy-Kombination,
+ *  die die vanilla Vergleichszeile — anders als die Fahrtenbuch-Zelle, ihre
+ *  eigene 1:1-Quelle — nie hatte; Wiederverwendung hätte das Mismatch-
+ *  Verhalten dieser Zeile stillschweigend verändert). 1:1 aus
+ *  ui/planned.js::_renderDoneCard Z. 1222-1228. */
+export function actualWeatherColor(weather: ActualWeather): string {
+  const hot = weather.temp > 32;
+  const windy = (weather.windSpeed ?? 0) > 30;
+  const rainy = (weather.precip ?? 0) > 0.5;
+  const bad = (hot ? 1 : 0) + (windy ? 1 : 0) + (rainy ? 1 : 0);
+  return bad >= 2 || hot ? "var(--danger)" : bad === 1 ? "var(--warn)" : "var(--ok)";
+}
+
+/** "Geplant → Tatsächlich"-Vergleichszeilen für eine absolvierte Plankarte.
+ *  Reine Funktion — jede Zeile fehlt einzeln, wenn ihr Ist-Wert fehlt (wie
+ *  in der Vanilla-Vorlage). `canEdit` steuert nur die Puls-Zielbänder
+ *  (Athlet 1s feste HF-Zonen — Athlet 2 hat keine konfiguriert, s.
+ *  ui/planned.js Z. 1120-1124). */
+export function buildDoneCompareRows(card: PlanCard, ride: Ride, canEdit: boolean): DoneCompareRow[] {
+  const rows: DoneCompareRow[] = [];
+  const isZ2 = isZ2Type(card.typ);
+  const isInterval = !!card.workout;
+  const isGroup = card.typ === "Gruppenfahrt";
+
+  // Typ — nur bei tatsächlich unterschiedlichem Text (sonst Redundanz zum
+  // Karten-Titel) und nie bei Ruhetag (dafür gibt es restDayRiddenSignal).
+  // Farbe nur bei echter Klassenabweichung (intensityClass), nicht bei
+  // reiner Label-Nuance (Plan "Z2" vs. erkannt "Z2 Lang").
+  if (ride.typ && card.typ && card.typ !== "Ruhetag" && ride.typ !== card.typ) {
+    const sameClass = intensityClass(card.typ) === intensityClass(ride.typ);
+    rows.push({
+      label: "Typ",
+      icon: "🏷️",
+      plan: card.typ,
+      actual: ride.typ,
+      color: sameClass ? undefined : "var(--warn)",
+    });
+  }
+
+  // Distanz
+  if (ride.km) {
+    const planned = card.km ?? null;
+    let diff: number | null = null;
+    let color: string | undefined;
+    if (planned) {
+      diff = Math.round((ride.km - planned) * 10) / 10;
+      color = Math.abs(diff) <= planned * 0.15 || diff > 0 ? "var(--ok)" : "var(--warn)";
+    }
+    rows.push({
+      label: "Distanz",
+      icon: "📍",
+      plan: planned ? `${planned} km` : "–",
+      actual: `${fmt(ride.km)} km`,
+      color,
+      extra: diff != null ? `${diff > 0 ? "+" : ""}${diff} km` : undefined,
+    });
+  }
+
+  // Puls — echte Zielbänder nur für Athlet 1 (canEdit), sonst nur der Ist-Wert.
+  if (ride.hf) {
+    let plan = "–";
+    let color: string | undefined;
+    if (canEdit && isZ2) {
+      plan = "123–152 bpm";
+      color = ride.hf >= 123 && ride.hf <= 152 ? "var(--ok)" : "var(--warn)";
+    } else if (canEdit && isInterval) {
+      plan = "167–181 bpm";
+      color = ride.hf >= 160 ? "var(--ok)" : "var(--warn)";
+    } else if (isGroup) {
+      plan = "Gruppenfahrt";
+    }
+    rows.push({
+      label: "Puls",
+      icon: "❤️",
+      plan,
+      actual: `${ride.hf} bpm`,
+      color,
+      extra: ride.hfMax ? `max ${ride.hfMax}` : undefined,
+    });
+  }
+
+  // Ø Watt — liest card.workout.watts direkt (wie Vanilla Z. 1172: `s.workout?.watts`,
+  // OHNE Ausschluss der Blockform — anders als bei der Dauer-Schätzung unten
+  // ist das hier keine reine Zahlenform-Eigenschaft, ein Workout könnte
+  // theoretisch beides tragen).
+  if (ride.watt) {
+    const watts = (card.workout as { watts?: [number, number] } | null)?.watts;
+    let plan = "–";
+    let color: string | undefined;
+    if (watts) {
+      const [wLow, wHigh] = watts;
+      plan = `${wLow}–${wHigh} W`;
+      color =
+        ride.watt >= wLow && ride.watt <= wHigh
+          ? "var(--ok)"
+          : ride.watt > wHigh
+            ? "var(--warn)"
+            : "var(--danger)";
+    }
+    rows.push({
+      label: "Ø Watt",
+      icon: "⚡",
+      plan,
+      actual: `${ride.watt} W`,
+      color,
+      extra: ride.np ? `NP ${ride.np} W` : undefined,
+    });
+  }
+
+  // Kadenz — für alle Typen (kein canEdit-Gate).
+  if (ride.kad) {
+    const target = isZ2 ? 80 : 85;
+    rows.push({
+      label: "Kadenz",
+      icon: "🔄",
+      plan: `≥${target} RPM`,
+      actual: `${ride.kad} RPM`,
+      color: ride.kad >= target ? "var(--ok)" : "var(--warn)",
+    });
+  }
+
+  // Dauer — card.durationMin zuerst (React-Modell hat das Feld direkt), sonst
+  // Schätzung wie Vanilla Z. 1188-1199: Intervall-Summe NUR bei numerischer
+  // Alt-Workout-Form (nicht bei der neuen Blockform — `!asWorkoutBlocks(...)`
+  // spiegelt Vanillas `!Array.isArray(s.workout.blocks)`), sonst Pace aus km.
+  // Wichtig als echtes either/or: ein Blockform-Workout mit isInterval=true
+  // darf NICHT den km-Zweig blockieren, nur weil card.workout truthy ist.
+  if (ride.min) {
+    let plan = "–";
+    if (card.durationMin) {
+      plan = `${card.durationMin} min`;
+    } else if (isInterval && !asWorkoutBlocks(card.workout)) {
+      const totalMin = legacyWorkoutSegments(card.workout)?.totalMin;
+      if (totalMin) plan = `${totalMin} min`;
+    } else if (card.km) {
+      const avgKmh = isZ2 ? 22 : isGroup ? 26 : 23;
+      plan = `~${Math.round((card.km / avgKmh) * 60)} min`;
+    }
+    rows.push({ label: "Dauer", icon: "⏱", plan, actual: `${ride.min} min` });
+  }
+
+  // TRIMP
+  if (ride.trimp) {
+    rows.push({
+      label: "TRIMP",
+      icon: "📊",
+      plan: "–",
+      actual: `${ride.trimp}`,
+      extra: ride.ctl != null ? `CTL ${fmt(ride.ctl)}` : undefined,
+    });
+  }
+
+  // Wetter
+  if (ride.weather) {
+    const w = ride.weather as ActualWeather;
+    rows.push({
+      label: "Wetter",
+      icon: "🌤️",
+      plan: "–",
+      actual: `${weatherIcon(w.weatherCode)} ${w.temp}°C · ${Math.round(w.windSpeed ?? 0)} km/h`,
+      color: actualWeatherColor(w),
+    });
+  }
+
+  // Befinden — ride.feel ist bereits das normalisierte Label
+  // (normalizeRide() setzt es aus subjective.json, s. core/normalize.js).
+  if (ride.feel) {
+    rows.push({ label: "Befinden", icon: "😌", plan: "–", actual: ride.feel });
+  }
+
+  return rows;
 }

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   accessorySteps,
+  actualWeatherColor,
+  buildDoneCompareRows,
   buildPlanningSections,
   complianceRuleText,
   fmtMinSec,
@@ -334,5 +336,123 @@ describe("accessorySteps", () => {
   it("leeres Array ohne workoutStructure/steps", () => {
     expect(accessorySteps(null)).toEqual([]);
     expect(accessorySteps({})).toEqual([]);
+  });
+});
+
+describe("actualWeatherColor", () => {
+  it("grün ohne auffällige Werte", () => {
+    expect(actualWeatherColor({ temp: 20, windSpeed: 10, precip: 0, weatherCode: 1 })).toBe("var(--ok)");
+  });
+
+  it("gold bei genau einem auffälligen Faktor (z.B. Regen)", () => {
+    expect(actualWeatherColor({ temp: 20, windSpeed: 10, precip: 1, weatherCode: 61 })).toBe("var(--warn)");
+  });
+
+  it("rot bei Hitze allein oder zwei auffälligen Faktoren", () => {
+    expect(actualWeatherColor({ temp: 33, windSpeed: 10, precip: 0, weatherCode: 1 })).toBe("var(--danger)");
+    expect(actualWeatherColor({ temp: 20, windSpeed: 35, precip: 1, weatherCode: 61 })).toBe("var(--danger)");
+  });
+});
+
+describe("buildDoneCompareRows", () => {
+  function doneRide(overrides: Partial<Ride> = {}): Ride {
+    return { dateISO: "2026-08-06", ...overrides } as Ride;
+  }
+
+  it("06.08.-Fall: Plan Schwelle, tatsächlich Z2 Lang gefahren → Typ-Zeile mit Warnfarbe", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Schwelle", km: 60 });
+    const r = doneRide({ typ: "Z2 Lang", km: 86 });
+    const rows = buildDoneCompareRows(c, r, false);
+    const typRow = rows.find((row) => row.label === "Typ");
+    expect(typRow).toEqual({
+      label: "Typ",
+      icon: "🏷️",
+      plan: "Schwelle",
+      actual: "Z2 Lang",
+      color: "var(--warn)",
+    });
+  });
+
+  it("keine Typ-Zeile bei identischem Text", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
+    const r = doneRide({ typ: "Z2 Dauer" });
+    expect(buildDoneCompareRows(c, r, false).find((row) => row.label === "Typ")).toBeUndefined();
+  });
+
+  it("keine Typ-Zeile bei Ruhetag (restDayRiddenSignal übernimmt das)", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Ruhetag" });
+    const r = doneRide({ typ: "Z2 Dauer" });
+    expect(buildDoneCompareRows(c, r, false).find((row) => row.label === "Typ")).toBeUndefined();
+  });
+
+  it("Typ-Zeile ohne Farbe bei reiner Label-Nuance (gleiche Intensitätsklasse)", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Z2" });
+    const r = doneRide({ typ: "Z2 Dauer" });
+    const typRow = buildDoneCompareRows(c, r, false).find((row) => row.label === "Typ");
+    expect(typRow?.color).toBeUndefined();
+  });
+
+  it("Distanz: grün bei Übererfüllung, gold bei >15% Unterschreitung", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer", km: 60 });
+    const over = buildDoneCompareRows(c, doneRide({ km: 65 }), false).find((row) => row.label === "Distanz");
+    expect(over?.color).toBe("var(--ok)");
+    const under = buildDoneCompareRows(c, doneRide({ km: 40 }), false).find((row) => row.label === "Distanz");
+    expect(under?.color).toBe("var(--warn)");
+  });
+
+  it("Ø Watt: rot unterhalb, gold oberhalb, grün innerhalb der Plan-Range", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", workout: { watts: [200, 220] } });
+    const below = buildDoneCompareRows(c, doneRide({ watt: 190 }), false).find((row) => row.label === "Ø Watt");
+    expect(below?.color).toBe("var(--danger)");
+    const above = buildDoneCompareRows(c, doneRide({ watt: 230 }), false).find((row) => row.label === "Ø Watt");
+    expect(above?.color).toBe("var(--warn)");
+    const within = buildDoneCompareRows(c, doneRide({ watt: 210 }), false).find((row) => row.label === "Ø Watt");
+    expect(within?.color).toBe("var(--ok)");
+  });
+
+  it("Dauer nutzt card.durationMin, bevor auf Workout-Summe/km-Schätzung zurückgefallen wird", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", durationMin: 75 });
+    const row = buildDoneCompareRows(c, doneRide({ min: 80 }), false).find((row) => row.label === "Dauer");
+    expect(row?.plan).toBe("75 min");
+  });
+
+  it("Dauer fällt bei Blockform-Workout (kein durationMin) auf die km-Schätzung zurück, nicht auf '–'", () => {
+    // isInterval ist hier true (card.workout ist gesetzt), aber es ist die neue
+    // Blockform ohne Zahlenfelder — legacyWorkoutSegments() liefert null dafür.
+    // Vanilla fällt in diesem Fall auf die km-Pace-Schätzung zurück (s.
+    // ui/planned.js Z. 1206-1220), nicht auf "–".
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", km: 60, workout: { blocks: [{ type: "interval", text: "3x12min" }] } });
+    const row = buildDoneCompareRows(c, doneRide({ min: 90 }), false).find((row) => row.label === "Dauer");
+    expect(row?.plan).toBe("~157 min");
+  });
+
+  it("Ø Watt liest card.workout.watts auch bei einem Workout mit zusätzlichem blocks-Array", () => {
+    const c = card({
+      id: "a",
+      date: "2026-08-06",
+      typ: "Sweet Spot",
+      workout: { blocks: [{ type: "interval", text: "x" }], watts: [200, 220] },
+    });
+    const row = buildDoneCompareRows(c, doneRide({ watt: 210 }), false).find((row) => row.label === "Ø Watt");
+    expect(row?.plan).toBe("200–220 W");
+    expect(row?.color).toBe("var(--ok)");
+  });
+
+  it("Puls-Zielband nur bei canEdit=true (Athlet 1), sonst nur Ist-Wert ohne Farbe", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
+    const r = doneRide({ hf: 140 });
+    expect(buildDoneCompareRows(c, r, false).find((row) => row.label === "Puls")).toMatchObject({
+      plan: "–",
+      color: undefined,
+    });
+    expect(buildDoneCompareRows(c, r, true).find((row) => row.label === "Puls")).toMatchObject({
+      plan: "123–152 bpm",
+      color: "var(--ok)",
+    });
+  });
+
+  it("leere Liste ohne jegliche Ist-Werte", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
+    expect(buildDoneCompareRows(c, doneRide(), false)).toEqual([]);
   });
 });

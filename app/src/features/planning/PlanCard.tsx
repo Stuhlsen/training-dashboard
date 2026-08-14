@@ -6,6 +6,7 @@ import { projectLoad } from "../../core/projection.js";
 import { detectConflicts } from "../../core/conflicts.js";
 import { EventBadge } from "../events/EventBadge";
 import { ComplianceTable } from "./ComplianceTable";
+import { DoneCompareBlock } from "./DoneCompareBlock";
 import { HintChip, type HintItem } from "./HintChip";
 import { LegacyWorkoutTimeline } from "./LegacyWorkoutTimeline";
 import { RecoveryBlock } from "./RecoveryBlock";
@@ -411,6 +412,7 @@ export function PlanCard({
         !(isZ2Type(card.typ) && card.km) &&
         !isRecoveryType(card.typ) && <div style={{ fontSize: ".8rem", color: "var(--ink-2)" }}>{card.details}</div>}
 
+      {isDone && ride && <DoneCompareBlock card={card} ride={ride} canEdit={canEdit} />}
       {isDone && <ComplianceTable ride={ride} cardId={card.id} workoutStructure={card.workoutStructure} />}
 
       {openForm === "move" && (

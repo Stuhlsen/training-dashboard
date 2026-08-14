@@ -148,7 +148,14 @@ describe("cycling/session-types — Typvokabular vollständig", () => {
     expect(INTENSITY_CLASS["NLS"]).toBe("locker");
     // D6.2: Ruhetag ist weder hart noch locker.
     expect(INTENSITY_CLASS["Ruhetag"]).toBe("ruhe");
-    expect(Object.keys(INTENSITY_CLASS).length).toBe(20);
+    // Athlet 2 (GFNY Bremen 2026) nutzt zusätzlich die Kurzform "Z1" und
+    // "Race" (Renntag, eigenes Wort neben "Rennen" für Rennsimulationen) —
+    // ohne diese zwei Einträge fällt intensityClass() für sie auf den
+    // Default "moderat" zurück (falsches Signal für den Soll/Ist-
+    // Typvergleich im Planungstab, s. DoneCompareBlock.tsx).
+    expect(INTENSITY_CLASS["Z1"]).toBe("locker");
+    expect(INTENSITY_CLASS["Race"]).toBe("hart");
+    expect(Object.keys(INTENSITY_CLASS).length).toBe(22);
   });
 
   it("erwartete Zonen-Bänder", () => {
