@@ -22,6 +22,7 @@ import { PowerScale } from "./PowerScale";
 import { RaceCountdownPill } from "./RaceCountdownPill";
 import { WeatherCard } from "./WeatherCard";
 import { WeekReviewCard } from "./WeekReviewCard";
+import { WellbeingCard } from "./WellbeingCard";
 import { buildHeroCore, buildHeroMetrics, buildPowerScale, type HeroCoreInput } from "./hero-view-model";
 
 type Ride = import("../../types.js").Ride;
@@ -267,6 +268,7 @@ export function HeroPage() {
             <RecordChips records={records} />
           </GlassCard>
           <WeekReviewCard review={weekReview} />
+          <WellbeingCard activeAthleteId={activeAthleteId} />
         </div>
       </div>
     </div>
