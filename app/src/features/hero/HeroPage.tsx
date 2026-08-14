@@ -20,6 +20,7 @@ import { FtpRings } from "./FtpRings";
 import { MetricsGrid } from "./MetricsGrid";
 import { PowerScale } from "./PowerScale";
 import { RaceCountdownPill } from "./RaceCountdownPill";
+import { ReadinessCard } from "./ReadinessCard";
 import { WeatherCard } from "./WeatherCard";
 import { WeekReviewCard } from "./WeekReviewCard";
 import { WellbeingCard } from "./WellbeingCard";
@@ -269,6 +270,7 @@ export function HeroPage() {
           </GlassCard>
           <WeekReviewCard review={weekReview} />
           <WellbeingCard activeAthleteId={activeAthleteId} />
+          <ReadinessCard readiness={vm.readiness} briefing={vm.briefing} />
         </div>
       </div>
     </div>

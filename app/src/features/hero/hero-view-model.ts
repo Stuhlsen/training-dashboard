@@ -183,6 +183,16 @@ export interface HeroCore {
   session: HeroSession | null;
   weatherToday: HeroWeather | null;
   briefing: HeroBriefing;
+  /** Tagesform-Rohsignal (Objektiv-Kanal) für die Tagesform-Detailkarte —
+   *  eigenständig neben `briefing`, das dasselbe assessReadiness()-Ergebnis
+   *  bereits MIT TSB/LoadGuard/Subjektiv-Kanal zur Belastungsempfehlung
+   *  verrechnet (buildBriefingInfo() ruft assessReadiness() intern nochmal
+   *  auf — zwei Aufrufe statt eines geteilten Parameters, um
+   *  buildBriefingInfo()s Signatur nicht anzufassen, die auch
+   *  TrainerBar.tsx direkt nutzt). Beide können divergieren (Konzept:
+   *  rotes Tagesform-Signal kann grünen TSB überstimmen oder umgekehrt
+   *  abgemildert werden), s. ui/panels.js::renderReadiness vs. renderBriefing. */
+  readiness: ReturnType<typeof assessReadiness>;
   eftp: HeroRing;
   ramp: HeroRing & { date: string | null };
   milestones: ReturnType<typeof buildMilestones>;
@@ -319,6 +329,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const session = buildSession(planCards, doneDates, ftpVal, todayISO);
   const weatherToday = buildWeatherToday(forecast, todayISO);
   const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO);
+  const readiness = assessReadiness(wellness, todayISO);
   const milestones = athleteCfg ? buildMilestones(athleteCfg, eftpVal) : [];
 
   return {
@@ -329,6 +340,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
     session,
     weatherToday,
     briefing,
+    readiness,
     eftp: { value: eftpVal ?? 0, progress: ringProgress(eftpVal, base, goal) },
     ramp: { value: ftpVal ?? 0, progress: ringProgress(ftpVal, base, goal), date: athleteCfg?.ftpMeasuredDate ?? null },
     milestones,
