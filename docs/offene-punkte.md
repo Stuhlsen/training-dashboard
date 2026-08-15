@@ -303,11 +303,6 @@
   Der Merge löst NICHT die obige Werte-Diskrepanz auf (zeigt an den 6
   betroffenen Tagen konsequent den Wellness-Wert), verschiebt sie nur
   sichtbar auf die Sync-Pipeline statt sie im Chart zu verstecken.
-- **`PLAN2_SCHEDULE`/`getPlan2WeekPhase()` leben jetzt in `assets/js/core/
-  plan2-schedule.js`**, `scripts/lib/plan2.js` re-exportiert von dort
-  (Präzedenzfall: `core/planning.js::effectiveSessions`, bereits von
-  `scripts/lib/map-activity.js` importiert). Reiner, verhaltensgleicher
-  Umzug — `PLANNED_SESSIONS`/`getPlan2Blocks()` unverändert.
 
 ### Nachtrag: Umbau „Plan 1/2 → Kalenderwoche" (29.07.2026)
 
@@ -327,14 +322,6 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
 (FTP-Historie- + Blockerkennungs-Kette, Commits `abc230a`…`c26e44c`),
 4 Blickwinkel, Findings einzeln gegen den aktuellen Code verifiziert.
 
-- **`Subjective.save()` (Befinden pro Fahrt) ist seit Commit `c26e44c`
-  unerreichbar** — die Fahrtenbuch-Spalte samt `.feel-select`-Change-Listener
-  wurde entfernt, `Subjective.save()`/`load()`/`get()` selbst blieben
-  unverändert, aber kein Aufrufer ruft `save()` noch auf
-  (`ui/planned.js` nutzt nur noch lesend `Subjective.get()`). Kein Bezug zum
-  neuen Supabase-Tages-Check-in (`ui/checkin-dialog.js`, Energie/Muskeln/
-  Stimmung) — andere Funktion, kein Ersatz. Echter Funktionsverlust, nicht
-  nur Spalten-Aufräumen; Commit-Message ("bleiben unangetastet") verdeckt das.
 - **`longestBlockAboveThreshold()` (`scripts/lib/interval-blocks.js:69`)
   prüft die Gap-Toleranz nur pro Einzelsegment, nicht kumulativ** — mehrere
   kurze RECOVERY-Segmente können zusammen eine echte längere Erholungspause
@@ -353,11 +340,6 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   die in der Infrastruktur/CI-Sektion unten genannten `SUPABASE_*`-Secrets
   gesetzt sind, kann ein hängender Login/REST-Call den ganzen Sync-Lauf ohne
   Timeout blockieren.
-- **Sweet-Spot-Schwelle `thresholdIF`/`ifTempoMax` bewusst dupliziert**
-  zwischen `scripts/lib/interval-blocks.js:113` und
-  `assets/js/core/plan-config.js:119` (Kommentar erklärt warum), aber ohne
-  Sync-Schutz — eine künftige Rekalibrierung in `plan-config.js` driftet
-  unbemerkt von der Node-seitigen Kopie ab.
 
 ## Dashboard 3.0 — React-Umbau
 
@@ -371,20 +353,6 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   Daten einer zweiten Sportart entstehen — dann additiv und RLS-neutral
   (`ADD COLUMN sport text NOT NULL DEFAULT 'cycling'`), plus die Frage, woher
   die Zuordnung Athlet↔Sportart kommt.
-- **`app/src/core/` ist seit Etappe 3 nicht mehr byte-gleich mit
-  `assets/js/core/`** — vier Dateien (`zones.js`, `plan-config.js`,
-  `periodization.js`, `efficiency.js`) re-exportieren ihre radsport-
-  spezifischen Konstanten aus `app/src/sports/cycling/`. Die Werte sind in
-  beiden Bäumen identisch, nur ihr Ort unterscheidet sich. Für die
-  Übergangszeit bis Etappe 10 gilt: inhaltliche Fixes am Vanilla-Baum müssen
-  weiterhin nachgezogen werden, bei diesen vier Dateien landet ein geänderter
-  Wert dann in `sports/cycling/`. Umgekehrt wandert nichts zurück. Tabelle
-  der Divergenzen in `app/src/core/README.md`.
-- **`CONFIG.powerScaleMax` (300 W) ist toter Code** (aufgefallen bei Etappe 3)
-  — steht in `assets/js/state/config.js`, wird von keiner Stelle in `assets/`,
-  `scripts/` oder `tests/` gelesen; die Hero-Skala wächst dynamisch aus der FTP
-  (`core/zones.js::scaleMaxWatts`). Nicht nach `app/src/sports/` mitgezogen,
-  im Vanilla-Baum aber unangetastet gelassen — Aufräumkandidat, kein Fehler.
 - **`ProtectedRoute` sperrte alle Routen hinter Login — behoben (Etappe 10 Teil
   A, 08.08.2026).** War seit Etappe 1 offen (s. Git-History dieser Datei),
   bewusst auf Etappe 10 verschoben, da eine App-weite Routing-Änderung alle
@@ -395,8 +363,9 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   seit 08.08.2026 live (`main`, `dashboard-3.0` gemergt) — Details inkl. der
   drei dabei/danach gefundenen Fixes (Trainer-Push-Gate, `background.png`-
   Pfad, HRV/Ruhepuls-Chart-Lücken) → Abschnitt "Änderungen durch Etappe 10,
-  Teil C". Ein Teil-C-Punkt bleibt auf Alex' Wunsch offen: alte Vanilla-
-  Dateien (`index.html`, `assets/js/`) noch nicht aus `main` entfernt.
+  Teil C". Der zurückgestellte Teil-C-Punkt (alte Vanilla-Dateien noch nicht
+  aus `main` entfernt) ist mit Fahrplan 1, Fenster V2 (15.08.2026) erledigt —
+  s. `docs/fahrplan-1-vanilla-entfernen.md`.
 - **Etappe 11 (Nacharbeiten) neu angelegt (08.08.2026).** Beim Live-Check
   nach dem Teil-C-Merge aufgefallen: Fahrtenbuch, Hero-Gesamtstatistiken und
   der komplette Vanilla-Analyse-Tab (Belastung/Intensität/Aerob/

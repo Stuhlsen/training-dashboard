@@ -110,12 +110,12 @@ Bericht abwarten.
 
 ### Abnahme
 
-- [ ] Keine Datei unter `assets/js/` mehr vorhanden, auch `assets/js/core/` nicht
-- [ ] Testsuite grün, keine übersprungenen Tests
-- [ ] Öffentliche Seite lädt im Browser und zeigt den React-Build
-- [ ] `app/src/core/` unverändert (Diff gegengeprüft)
-- [ ] Kein verbliebener Workflow-Schritt verweist auf `assets/js/`
-- [ ] Tag `vanilla-final` existiert auf dem Remote
+- [x] Keine Datei unter `assets/js/` mehr vorhanden, auch `assets/js/core/` nicht (15.08.2026)
+- [x] Testsuite grün, keine übersprungenen Tests (96/96, `npm test`)
+- [x] Öffentliche Seite lädt im Browser und zeigt den React-Build
+- [x] `app/src/core/` unverändert (nicht angefasst)
+- [x] Kein verbliebener Workflow-Schritt verweist auf `assets/js/` (`ci.yml`-Lint-Step angepasst; `sync-data.yml` baute bereits `app/dist`)
+- [x] Tag `vanilla-final` existiert auf dem Remote
 
 ---
 
