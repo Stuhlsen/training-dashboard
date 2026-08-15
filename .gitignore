@@ -1,9 +1,20 @@
 # Secrets — NIEMALS committen
 .env
 *.env.local
+.env.*
+!.env.example
 
 # Temporäre Hilfsdateien
 replacements.txt
+*.log
+
+# Arbeitsaufträge (falls je wieder welche entstehen, s. docs/fahrplan-2-doku-aufraeumen.md)
+claude-code-prompt-*.md
+claude-code-freigabe-*.md
+
+# Testartefakte (Playwright)
+test-results/
+playwright-report/
 
 # Node
 node_modules/

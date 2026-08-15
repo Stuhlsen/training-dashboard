@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Konzept: Richtungsvorgabe beim Export für Claude
 
 **Status:** Entwurf zur Abnahme · **Phase:** 4-Nachzug (Export/Import-Workflow)

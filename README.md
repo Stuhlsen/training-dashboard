@@ -30,17 +30,17 @@ Open-Meteo API ─────────────────────�
                                         │                    │
                                         └────────┬───────────┘
                                                   ▼
-                                        Dashboard (assets/js/, ES-Module)
+                                    Dashboard (React + TypeScript, /app/)
                                                   │
                                                   ▼
                                   GitHub Pages Deploy (nach jedem Sync)
 ```
 
-`data/subjective.json` bleibt daneben bestehen für das per-Fahrt-Befinden-Dropdown im Fahrtenbuch (GitHub-API-Write, unabhängig vom täglichen Supabase-Check-in). `data/adjustments.json`/`adjustments-2.json` sind seit der Migration nach `plan_cards` nur noch read-only Archiv der alten Planungsdaten.
+`data/subjective.json` und `data/adjustments.json`/`adjustments-2.json` sind seit der Migration nach `plan_cards` bzw. dem täglichen Supabase-Check-in nur noch read-only Archiv älterer Daten, kein aktiver Schreibpfad mehr.
 
-**Tech-Stack:** Vanilla HTML/CSS/JS als native ES-Module · SVG-Charts (kein Framework, kein Build-Step, kein Bundler) · Node.js ≥ 24 lokal (für `npm test`; die Sync-Action läuft weiter auf Node 22, der CI-Testlauf auf Node 24) · GitHub Actions (Daten-Sync alle 6 h + CI mit `node:test`-Suite, ESLint und Fallow-Codebase-Qualitätsreport) · Supabase (Free Tier, Postgres + Auth + RLS, Client per `esm.sh`-CDN-Import, kein npm-Paket)
+**Tech-Stack:** React + TypeScript + Vite (`/app/`, SVG-Charts als React-Komponenten) · Node.js ≥ 24 lokal (Details/Begründung in `AGENTS.md`) · GitHub Actions (Daten-Sync alle 6 h + getrennte CI-Jobs für Root und `/app/`: Tests, ESLint, Fallow-Codebase-Qualitätsreport) · Supabase (Free Tier, Postgres + Auth + RLS, offizielles `@supabase/supabase-js`-npm-Paket)
 
-**Code-Architektur:** strikte Schichtentrennung `core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Belastungsempfehlung, Intensitätsverteilung, EF-/HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierung, Konsistenz & Adhärenz, Bestwerte, Plan-Konflikte/-Prognose, Vorschlags-Validierung) → `data-access/` (I/O-Grenze: JSON-Pipeline + Supabase-Adapter, einzige Schicht mit `await`) → `state/` (Konfiguration, Session, Daten-Store, Orchestrierung) → `ui/` (DOM, SVG-Rendering, Panels, Dialoge). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
+**Code-Architektur:** strikte Schichtentrennung `app/src/core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Belastungsempfehlung, Intensitätsverteilung, EF-/HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierung, Konsistenz & Adhärenz, Bestwerte, Plan-Konflikte/-Prognose, Vorschlags-Validierung) → `app/src/api/` (I/O-Grenze: JSON-Pipeline + Supabase-Adapter) → `app/src/hooks/`/`features/` (Orchestrierung, React Query) → `app/src/components/`/`charts/`/`features/*` (Rendering). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
 
 ---
 
@@ -87,7 +87,7 @@ Alle Linien- und Zeit-Charts sind horizontal scrollbar bzw. per **Zeitraum-Brush
 **Wetter:** Alle Standortdaten (Koordinaten) liegen ausschließlich als GitHub Secrets — niemals im Code, nie in der JSON, nie im Frontend-JavaScript. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig in der GitHub Action berechnet. Beide Athleten nutzen getrennte Standort-Secrets.
 
 ### Tab: Fahrtenbuch
-Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Ein Klick auf eine Zeile pinnt die Auswahl im PMC-Chart-Fadenkreuz. Befinden-Dropdown (per Fahrt, „wie schwer fühlte sich das an") nur bei eigenen Fahrten des eingeloggten Athleten — getrennt vom täglichen Morgen-Check-in. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip.
+Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Ein Klick auf eine Zeile pinnt die Auswahl im PMC-Chart-Fadenkreuz, ein 📅-Icon bei intervals.icu-Ära-Fahrten springt zur zugehörigen Plankarte im Planungstab. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip.
 
 ### Morgen-Check-in, Ziele & Events
 
@@ -141,7 +141,7 @@ Acht aufeinander aufbauende Sektionen in Trainer-Fragereihenfolge — für **bei
 | Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health | intervals.icu + Apple Health |
 | Schlaf | — | intervals.icu (Apple Health Sync) | intervals.icu (Apple Health Sync) |
 | Körper & Regeneration (Gewicht, Kalorien, Hydration, Körperfett) | — | intervals.icu Wellness (Apple Health Sync) | intervals.icu Wellness |
-| Nach-Fahrt-Befinden | Notion (manuell) | Dashboard-Dropdown → `subjective.json` bzw. RPE/Feel aus intervals.icu | — |
+| Nach-Fahrt-Befinden | Notion (manuell) | RPE/Feel aus intervals.icu (kein editierbares Dropdown mehr im Dashboard) | — |
 | Wetter | Notion (manuell) | Open-Meteo (automatisch, Secrets) | Open-Meteo (automatisch, eigene Secrets) |
 | Wetter-Forecast | — | Open-Meteo Forecast, serverseitig | — |
 | Geplante Sessions (Ursprung) | — | ursprünglich `PLANNED_SESSIONS` in `scripts/lib/plan2.js`, seit Phase 3 einmalig nach `plan_cards` migriert | `PLANNED_SESSIONS_ATHLETE2` in `scripts/lib/plan-athlete2.js` (GFNY Bremen 2026) |
@@ -212,18 +212,13 @@ WEATHER_LON=...
 # JSON generieren
 node scripts/generate-data.js
 
-# Lokal testen (ES-Module brauchen HTTP, kein file://)
-npx serve .
+# Dashboard lokal starten (Vite Dev-Server, http://localhost:5173)
+cd app
+npm install
+npm run dev
 ```
 
-Für die Schreibfunktionen ist lokal nichts weiter nötig: `assets/js/data-access/supabase/config.js` bindet `localhost` fest an ein Dev-Supabase-Projekt (öffentlicher `anonKey`, per Design — RLS macht ihn ohne Login wirkungslos). Migrationen unter `supabase/migrations/` sind versionierter Quellcode und werden manuell über die Supabase-SQL-Konsole eingespielt (Reihenfolge nach Dateinamen).
-
-### Befinden-Dropdown einrichten (Nach-Fahrt-Feel, Fahrtenbuch)
-
-GitHub → Settings → Developer settings → Personal access tokens → Fine-grained tokens → New token  
-Repository: `training-dashboard` · Permissions: **Contents = Read and write**
-
-Token beim ersten Speichern im Dashboard-Dropdown eingeben — wird im `localStorage` gespeichert. Betrifft nur das per-Fahrt-Feel-Dropdown im Fahrtenbuch (`subjective.json`); das tägliche Morgen-Check-in läuft stattdessen über den normalen Login.
+Für die Schreibfunktionen ist lokal nichts weiter nötig: `app/src/api/supabase/config.ts` bindet `localhost` fest an ein Dev-Supabase-Projekt (öffentlicher `anonKey`, per Design — RLS macht ihn ohne Login wirkungslos). Migrationen unter `supabase/migrations/` sind versionierter Quellcode und werden manuell über die Supabase-SQL-Konsole eingespielt (Reihenfolge nach Dateinamen).
 
 ### Workout-Push zu intervals.icu
 
@@ -280,6 +275,6 @@ Eigenständiger Namensraum, definiert in `scripts/lib/plan-athlete2.js` — read
 
 Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → GitHub Actions → GitHub Pages) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
 
-Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) und ein React-Umbau (Dashboard 3.0) sind in Konzeptdokumenten unter `docs/` in Arbeit, aber noch nicht umgesetzt.
+Der React-Umbau (Dashboard 3.0) ist abgeschlossen und live — `/app/` ist seit dem 15.08.2026 die einzige Oberfläche, der frühere Vanilla-JS-Zweig wurde entfernt. Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) ist als Konzeptdokument unter `docs/` vorbereitet, aber noch nicht umgesetzt; ein Self-Hosting-Umbau (Docker, Ablösung der Supabase-Cloud) ist ebenfalls in Planung.
 
 📁 QA-Portfolio: [github.com/Stuhlsen/Portfolio](https://github.com/Stuhlsen/Portfolio)

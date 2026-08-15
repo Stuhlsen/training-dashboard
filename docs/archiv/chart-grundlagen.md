@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Chart-Grundlagen — abgeleitet aus dem Claude-Design-Entwurf „Explorer · Raum" [OP]
 
 > **Zweck:** Verbindliche Grundlage für **alle** Charts der App, gewonnen aus dem

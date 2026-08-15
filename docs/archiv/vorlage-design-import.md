@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Vorlage: Design-Übernahme-Workflow
 
 **Entstanden:** Etappe 4 (Hero-Bereich, 06.08.2026) — erster echter Durchlauf.

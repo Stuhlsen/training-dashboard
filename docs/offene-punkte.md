@@ -353,33 +353,6 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   Daten einer zweiten Sportart entstehen — dann additiv und RLS-neutral
   (`ADD COLUMN sport text NOT NULL DEFAULT 'cycling'`), plus die Frage, woher
   die Zuordnung Athlet↔Sportart kommt.
-- **`ProtectedRoute` sperrte alle Routen hinter Login — behoben (Etappe 10 Teil
-  A, 08.08.2026).** War seit Etappe 1 offen (s. Git-History dieser Datei),
-  bewusst auf Etappe 10 verschoben, da eine App-weite Routing-Änderung alle
-  Bereiche betrifft. Details der Umsetzung + eines dabei gefundenen zweiten
-  Lecks (Belastungsempfehlung-Kachel für Besucher sichtbar, ebenfalls
-  behoben) → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt
-  "Änderungen durch Etappe 10, Teil A+B". Teil C (echte Live-Umschaltung) ist
-  seit 08.08.2026 live (`main`, `dashboard-3.0` gemergt) — Details inkl. der
-  drei dabei/danach gefundenen Fixes (Trainer-Push-Gate, `background.png`-
-  Pfad, HRV/Ruhepuls-Chart-Lücken) → Abschnitt "Änderungen durch Etappe 10,
-  Teil C". Der zurückgestellte Teil-C-Punkt (alte Vanilla-Dateien noch nicht
-  aus `main` entfernt) ist mit Fahrplan 1, Fenster V2 (15.08.2026) erledigt —
-  s. `docs/fahrplan-1-vanilla-entfernen.md`.
-- **Etappe 11 (Nacharbeiten) neu angelegt (08.08.2026).** Beim Live-Check
-  nach dem Teil-C-Merge aufgefallen: Fahrtenbuch, Hero-Gesamtstatistiken und
-  der komplette Vanilla-Analyse-Tab (Belastung/Intensität/Aerob/
-  Leistungsdiagnostik/Regeneration & Körper/Konsistenz/Periodisierung)
-  standen auf keiner der Etappen 1–10 — keine Bugs, sondern eine
-  Roadmap-Lücke. Plus zwei Design-Baustellen (unstyled Nav, uneinheitliche
-  Seitenbreite). In unabhängige Häppchen für parallele Fenster geschnitten
-  → `docs/dashboard-3.0-konzept-react-umbau.md`, Abschnitt "Etappe 11".
-  **11a ✅ umgesetzt (08.08.2026)** — Pill-Nav + `PageShell` auf allen
-  Seiten, live verifiziert. Dabei ein siebtes Häppchen gefunden: **11g,
-  `LoginPage.tsx` ist komplett unstyled** — sitzt außerhalb `Layout`/
-  `PageShell` (eigene Route ohne Kopfzeile), daher nicht von 11a
-  mitgedeckt. Offen wie 11b–11f.
-
 ## Infrastruktur/CI
 
 - **`sync-data.yml` hat noch keine `SUPABASE_*`-Secrets im `env`-Block** —
@@ -432,6 +405,19 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
 
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
+- **Fahrplan 1 — Vanilla-JS-Zweig entfernt (15.08.2026)**: `assets/js/**`
+  (inkl. eigener `core/`-Kopie) komplett gelöscht, React unter `/app/` ist
+  die einzige verbliebene Oberfläche. V0-Funktionsabgleich fand 3 fehlende
+  Charts (nachgebaut), V3 kennzeichnet Notion-Altfahrten weiterhin über das
+  bereits bestehende `dataSource`-Feld. → `docs/fahrplan-1-vanilla-entfernen.md`.
+- **`ProtectedRoute` sperrte alle Routen nicht (Etappe 10 Teil A, 08.08.2026)**
+  — behoben, inkl. eines zweiten Lecks (Belastungsempfehlung-Kachel für
+  Besucher sichtbar). → `docs/dashboard-3.0-konzept-react-umbau.md`,
+  "Änderungen durch Etappe 10".
+- **Etappe 11 (Nacharbeiten: Fahrtenbuch, Hero-Kacheln, kompletter
+  Analyse-Tab, Design-Polish) — alle 7 Häppchen 11a–11g umgesetzt
+  (08.–13.08.2026)**. → `docs/dashboard-3.0-konzept-react-umbau.md`,
+  Abschnitt "Etappe 11".
 - **Etappe E4 — Merge `dashboard-2.0` → `main` (31.07.2026)**: 218 Commits,
   Phasen 0–5 vollständig live. `data/rides.json`/`rides-2.json`/
   `subjective.json`-Konflikte zugunsten `main`s frischerer Sync-Daten

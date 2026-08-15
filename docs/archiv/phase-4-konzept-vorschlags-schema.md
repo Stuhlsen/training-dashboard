@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Phase 4 — Konzept: Vorschlags-Schema (JSON) — einheitlich für Mensch & Claude [F5]
 
 > **Ziel:** Ein Datenvertrag für Plan-Vorschläge, den beide Trainer-Arten identisch

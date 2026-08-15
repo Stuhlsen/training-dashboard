@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Konzept: Morgen-Check-in (Phase 2, Punkt 1)
 
 > **Ziel:** Ein kurzes tägliches Selbst-Check-in (3 Slider + optionale Notiz), das ein subjektives Bereitschaftssignal liefert — gekoppelt an die **Belastungsempfehlung** und auch an **Ruhetagen** verwertbar.

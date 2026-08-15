@@ -6,51 +6,72 @@ Live: stuhlsen.github.io/training-dashboard
 
 ## Stack
 
-Vanilla HTML/CSS/JS als **native ES-Module** · SVG-Charts (kein Framework, kein Build-Step, kein Bundler)
-Node.js ≥ 24 für Datensync und Tests · GitHub Actions (Sync alle 6h, CI bei jedem Push)
-`package.json` existiert primär für `"type": "module"` und die npm-Scripts — Dashboard
-und Datensync brauchen kein `npm install`. Einzige Ausnahme: `fallow` als `devDependency`
-(nur für den lokalen/CI-Codebase-Qualitätscheck, siehe Abschnitt „Codebase-Qualität").
-Tests laufen mit dem eingebauten `node:test`.
+Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
 
-**Warum ≥ 24 und nicht nur ≥ 22.3:** `npm test` läuft als
+- **Repo-Root** (`scripts/`, `tests/`) — reines Node.js, kein Framework. Liest
+  Notion/intervals.icu/Open-Meteo und schreibt `data/*.json` (die Lesedaten-
+  Pipeline). `package.json` existiert primär für `"type": "module"` und die
+  npm-Scripts — braucht kein `npm install`. Einzige Ausnahme: `fallow` als
+  `devDependency` (nur für den lokalen/CI-Codebase-Qualitätscheck, siehe
+  „Codebase-Qualität"). Tests laufen mit dem eingebauten `node:test`.
+- **`/app/`** — Vite + React + TypeScript. **Die einzige verbliebene
+  Oberfläche** (der frühere Vanilla-JS-Zweig unter `assets/js/` wurde mit
+  Fahrplan 1 entfernt, s. `docs/fahrplan-1-vanilla-entfernen.md`). Eigenes
+  `npm install` gegen `app/package-lock.json`, unabhängig vom Root. Tests mit
+  Vitest, zwei Projekte (`core` unter Node, `app` unter jsdom — s.
+  `app/vite.config.ts`). Details/Konventionen: `app/README.md`.
+
+Beide Teile teilen sich GitHub Actions (Sync alle 6h, je ein CI-Job pro
+Teil — `ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer nur bei
+Änderungen unter `app/**`).
+
+**Warum Node ≥ 24 für den Root-Teil:** `npm test` läuft als
 `node --test --experimental-test-module-mocks`. Das Flag (und `mock.module()`)
-gibt es zwar bereits ab Node 22.3, aber alle `mock.module()`-Aufrufe im Repo
-nutzen die vereinheitlichte `{ exports: {...} }`-Kurzform (statt der älteren
-`namedExports`/`defaultExport`-Optionen) — die ist in Node 22.23.1 noch nicht
-verlässlich unterstützt: `ci.yml` scheiterte damit am 31.07.2026 beim Merge
-nach `main` reproduzierbar an acht Testdateien
+gibt es zwar bereits ab Node 22.3, aber `mock.module()`-Aufrufe im Repo
+nutzten die vereinheitlichte `{ exports: {...} }`-Kurzform — die ist in Node
+22.23.1 noch nicht verlässlich unterstützt: `ci.yml` scheiterte damit am
+31.07.2026 beim Merge nach `main` reproduzierbar an acht Testdateien
 (`SyntaxError: The requested module … does not provide an export named …`),
 obwohl dieselben Tests lokal unter Node 24.18.0 anstandslos grün liefen.
-`ci.yml` pinnt seitdem `node-version: 24`. Gebraucht wird das Mocking u. a. von
-`tests/plan-cards-move.test.js`/`tests/wellbeing.test.js`: die `state/`- und
-`data-access/`-Schicht ist sonst nicht direkt testbar, weil
-`data-access/supabase/client.js` per URL von esm.sh lädt und Node das im
-Import-Graph nicht auflösen kann. Wenn das Flag stört, ist der Preis der
-Verlust dieser Tests — nicht nur einer einzelnen Datei. `sync-data.yml` läuft
-weiter auf Node 22 (kein Testlauf dort, `mock.module()` wird nicht gebraucht).
+`ci.yml`/`ci-app.yml` pinnen seitdem `node-version: 24`. Die damaligen
+`mock.module()`-Konsumenten (`state/`-Schicht) sind mit dem Vanilla-Zweig
+entfernt worden — Stand 15.08.2026 nutzt keine Datei mehr unter `tests/`
+`mock.module()`; das Flag steht trotzdem weiter im Skript. `sync-data.yml`
+läuft weiter auf Node 22 (kein Testlauf dort).
 
 ## Befehle
 
 ```powershell
-# Lokaler Dev-Server (Dashboard im Browser testen — ES-Module brauchen HTTP, kein file://)
-npx serve .
-
-# Unit-Tests (eingebauter Node-Test-Runner, kein Install nötig)
+# Repo-Root: Unit-Tests (eingebauter Node-Test-Runner, kein Install nötig)
 npm test
 
-# Datensync lokal ausführen (braucht .env mit Secrets, siehe unten)
+# Repo-Root: Datensync lokal ausführen (braucht .env mit Secrets, siehe unten)
 npm run sync
 
-# Syntax-Check einer JS-Datei — PFLICHT vor jedem Commit
-node -c assets/js/<pfad>/<datei>.js
+# Repo-Root: Syntax-Check einer JS-Datei — PFLICHT vor jedem Commit
+node -c scripts/<pfad>/<datei>.js
 
-# Lint + Formatierung (lädt eslint/prettier on-the-fly via npx, nichts wird installiert)
+# Repo-Root: Lint + Formatierung (lädt eslint/prettier on-the-fly via npx)
 npm run lint
 npm run format
 
-# Codebase-Intelligence-Report (Fallow): Health Score, Circular Deps, Duplication,
-# Dead Code, Complexity Hotspots — läuft auch automatisch non-blocking in CI
+# /app/: Dev-Server (http://localhost:5173), liefert auch data/*.json aus dem Repo-Root aus
+cd app
+npm install
+npm run dev
+
+# /app/: Tests (Vitest, beide Projekte) · nur core: --project core
+npm test
+npm test -- --project core
+
+# /app/: Typecheck + Produktions-Build nach app/dist/
+npm run build
+
+# /app/: Lint
+npm run lint
+
+# Codebase-Intelligence-Report (Fallow, Repo-Root): Health Score, Circular Deps,
+# Duplication, Dead Code, Complexity Hotspots — läuft auch automatisch non-blocking in CI
 npx fallow health --score --hotspots --circular-deps
 npx fallow dead-code
 npx fallow dupes
@@ -58,15 +79,19 @@ npx fallow dupes
 
 Lokale `.env` (nicht committen, steht in .gitignore) für `npm run sync`:
 `NOTION_API_KEY`, `NOTION_DATABASE_ID`, `INTERVALS_API_KEY`, `INTERVALS_ATHLETE_ID`,
-`WEATHER_LAT`, `WEATHER_LON` (+ optional die `_2`-Varianten).
+`WEATHER_LAT`, `WEATHER_LON` (+ optional die `_2`-Varianten). `/app/` braucht
+keine eigene `.env` — die Supabase-Projekt-URLs/anon-Keys stehen (bewusst,
+RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
 
 ## Workflow vor jedem Commit
 
-1. Bei JS-Änderung: `node -c <datei>` — muss ohne Fehler durchlaufen
-2. `npm test` — alle Tests müssen grün sein (CI prüft das ebenfalls)
-3. Betroffene Seite lokal prüfen (`npx serve .`, Browser-Hard-Refresh bei CSS)
-4. Commit mit Konvention (siehe unten)
-5. `git sync`
+1. Bei Root-JS-Änderung: `node -c <datei>` — muss ohne Fehler durchlaufen
+2. Bei `/app/`-Änderung: `npm run build` (enthält `tsc -b`, deckt Typfehler ab)
+3. `npm test` im jeweils betroffenen Teil (Root und/oder `/app/`) — alle Tests
+   müssen grün sein (CI prüft beides getrennt)
+4. Betroffene Ansicht lokal prüfen (`npm run dev` in `/app/`, Browser-Hard-Refresh bei CSS)
+5. Commit mit Konvention (siehe unten)
+6. `git sync`
 
 `data/*.json` NICHT manuell committen — die werden von der Action regeneriert;
 manuelle Commits erzeugen Konflikte mit dem Auto-Commit.
@@ -83,47 +108,60 @@ Prefix + knappe deutsche Beschreibung:
 
 ## Boot / Modul-Architektur
 
-- **Ein einziges** `<script type="module" src="assets/js/app.js">` in `index.html`.
-  Die Ladereihenfolge ergibt sich aus dem Import-Graph — kein Script-Tag-Management.
-- **Neue JS-Datei anlegen → per `import` einbinden**, NICHT in index.html eintragen.
-- Keine Inline-`onclick`-Handler in index.html (mit Modulen nicht mehr erreichbar) —
-  Event-Handler werden in `ui/nav.js` bzw. den jeweiligen UI-Modulen registriert.
-  Einzige Ausnahme: der Reload-Button im Error-Screen (`location.reload()`).
-- **Schichtenregel (Dashboard 1.x + 2.0):**
-  - `core/` — reine Berechnung. Greift NIEMALS auf `document`, `window`,
-    `localStorage` oder `fetch` zu. Alles hier ist mit `node:test` testbar.
-  - `data-access/` — I/O-Grenze (Dashboard 2.0). Kapselt JSON-Pipeline (`pipeline.js`)
-    und Supabase-Adapter (`supabase/`), gibt schlichte Domänenobjekte zurück, nie rohe
-    API-Responses. EINZIGE Schicht mit `await`. Importiert nur `core/`.
-  - `state/` — Orchestrierung + Daten-Store. Lädt aus `data-access/`, hält Session
-    (currentUser, Athleten-Zuordnung) und Trainings-Zustand.
-  - `ui/` — DOM, SVG-Rendering, Event-Handler. Ruft `state/` auf, kennt `data-access/` nicht.
+`/app/` ist eine normale Vite-App: **ein** Einstiegspunkt (`app/src/main.tsx`
+→ `App.tsx`), React-Routing/Gates statt Tab-Umschaltung per Hand. Neue
+Datei anlegen → per `import` einbinden, kein Script-Tag-Management.
+
+- **Schichtenregel** — gilt unverändert seit der Vanilla-Zeit, nur die Namen
+  der I/O-/Orchestrierungs-Schicht haben sich mit dem React-Umbau geändert:
+  - `app/src/core/` — reine Berechnung, portiert aus dem früheren `core/`
+    (**inhaltlich unverändert**, keine Logikänderung). Greift NIEMALS auf
+    `document`, `window`, `localStorage` oder `fetch` zu. Details/Umfang der
+    Portierung: `app/src/core/README.md`.
+  - `app/src/api/` — I/O-Grenze, ersetzt die frühere `state/*.js`-Schicht
+    (bewusst nicht `data/` genannt, um Verwechslung mit `/data/*.json` zu
+    vermeiden). Kapselt JSON-Pipeline (`api/pipeline.ts`) und Supabase-Adapter
+    (`api/supabase/`, eine Datei je Tabelle), gibt schlichte Domänenobjekte
+    zurück. Details: `app/src/api/README.md`.
+  - `app/src/hooks/`, `app/src/features/*` — Orchestrierung + Zustand. Lädt
+    über `app/src/api/` (React Query), hält Session/Athleten-Zuordnung.
+  - `app/src/components/`, `app/src/charts/`, `app/src/features/*` (UI-Teil) —
+    DOM/SVG-Rendering, Event-Handler. Ruft `api/`/`hooks/` auf.
   - **Abhängigkeitstabelle** (Default: importiere nie höher):
     | Schicht | darf importieren | darf NICHT |
     |---------|---|---|
-    | `core/` | — | alles |
-    | `data-access/` | `core/` (nur Typen) | `state/`, `ui/` |
-    | `state/` | `core/`, `data-access/` | `ui/` |
-    | `ui/` | `core/`, `state/` | `data-access/` |
-- Typen via **JSDoc + jsconfig.json (`checkJs`)** — kein TypeScript, keine Kompilierung.
-  Zentrale Typdefinitionen in `assets/js/types.js` (Ride, WellnessDay, Result, …).
+    | `core/` | `sports/` (Werte, s. u.) | sonst nichts |
+    | `api/` | `core/` (nur Typen) | `features/`, `components/` |
+    | `hooks/`, `features/*` (Orchestrierung) | `core/`, `api/` | — |
+    | `components/`, `charts/`, `features/*` (UI-Teil) | `core/`, `hooks/`, `features/*` | `api/` direkt (`config`/`auth` als schmale, bewusste Ausnahme — s. `EnvBadge.tsx`/`Layout.tsx`/`ProtectedRoute.tsx`) |
+  - `app/src/sports/` — Multi-Sport-Vorbereitung (G5, bisher nur `cycling/`
+    befüllt): austauschbare Zonen-/Metrik-Logik statt hart codiert. Details:
+    `app/src/sports/README.md`.
+- Typen: **TypeScript** in `app/` (kein `checkJs`/JSDoc mehr nötig, `app/src/core/`
+  bleibt JS + JSDoc und wird per `allowJs` eingebunden — s. `app/src/core/README.md`).
+  Zentrale Domänentypen in `app/src/api/types.ts` bzw. `app/src/types.js` (die
+  reinen JSDoc-Typen aus `core/`).
 
 ## Fehlerbehandlung / Result-Konvention
 
-Fehlbare Operationen (Laden, GitHub-Write, intervals.icu-Push) geben einheitlich
+Fehlbare Operationen (Laden, Supabase-Write, intervals.icu-Push) geben einheitlich
 `{ ok: true, ... }` oder `{ ok: false, error: { code, message } }` zurück
-(Typ `Result` in types.js; Codes: HTTP, NETWORK, TOKEN_INVALID, SCHEMA, NO_DATA, UNKNOWN).
-Aufrufstellen prüfen `result.ok` und zeigen `result.error?.message`.
-Logging läuft über `ui/log.js` (Frontend, Prefix `[dashboard]`) bzw.
-`scripts/lib/log.js` (Sync — zählt Warnungen/Fehler, bestimmt den Exit-Code).
-Keine rohen `console.*`-Aufrufe in neuen Dateien.
+(Typ `Result`; Codes: HTTP, NETWORK, TOKEN_INVALID, SCHEMA, NO_DATA, UNKNOWN).
+In `app/src/api/` gilt die Konvention nach außen weiter, `api/result.ts` ist die
+Umschaltstelle zu React Querys wurf-basiertem Fehlerkanal (`unwrap()`/`catchResult()`
+— s. Kommentar in der Datei). UI-Aufrufstellen prüfen `result.ok`/`isError` und
+zeigen `result.error?.message`. `scripts/lib/log.js` übernimmt das Logging auf der
+Sync-Seite (zählt Warnungen/Fehler, bestimmt den Exit-Code). Keine rohen
+`console.*`-Aufrufe in neuen Dateien — Stand 15.08.2026 nutzt `app/src/**`
+durchgängig keine.
 
 ## Schema-Validierung
 
-`core/validate.js` prüft geladene `rides.json`-Payloads zur Laufzeit (Stichprobe).
-**Neues Feld im Datenformat → an DREI Stellen ergänzen:**
-1. `scripts/` (Erzeugung), 2. `core/validate.js` (Schema), 3. `types.js` (JSDoc-Typ).
-Abweichungen werden als Warnung geloggt; fehlende/leere `rides` sind fatal.
+`app/src/core/validate.js` prüft geladene `rides.json`-Payloads zur Laufzeit
+(Stichprobe). **Neues Feld im Datenformat → an DREI Stellen ergänzen:**
+1. `scripts/` (Erzeugung), 2. `app/src/core/validate.js` (Schema),
+3. `app/src/types.js` (JSDoc-Typ). Abweichungen werden als Warnung geloggt;
+fehlende/leere `rides` sind fatal.
 
 ## Codebase-Qualität (Fallow)
 
@@ -139,58 +177,53 @@ die Zeit; `package-lock.json` ist dafür bewusst versioniert.
   stabilisiert hat: `continue-on-error` entfernen + `--threshold` setzen für hartes Gate.
 - **Lokal**: `npx fallow health --score` für den schnellen Check, `--hotspots
   --circular-deps` für Details. Circular Deps ist hier besonders relevant, weil es
-  direkt die Schichtenregel (`ui → state → core`) verletzen kann.
+  direkt die Schichtenregel (`features/components → hooks/api → core`) verletzen kann.
 - **Skill**: unter `.claude/skills/fallow` (repo) und optional global unter
   `~/.claude/skills/fallow` — erlaubt Anfragen wie "check code health" oder
   "find circular dependencies" direkt in Claude Code.
 - Baseline-Score (09.07.2026, vor erstem gezielten Cleanup): 79 (B).
   Größte Deductions: Unit Size (−10.0), Circular Deps (−7.0).
 
-## Dashboard 2.0 — Branch + Dev/Prod-Trennung
+## Supabase — Dev/Prod-Trennung
 
-**Ziel:** Neubau läuft auf `dashboard-2.0`-Branch, unterbricht `main` nicht. Zwei Supabase-Projekte (Free Tier) halten Entwicklung und Produktion getrennt.
-
-### Branch-Modell
-- **`main`** — das aktuell live gebaute Dashboard (GitHub Pages). Live-Leser sehen das.
-- **`dashboard-2.0`** — langlebiger Feature-Branch für alle 7 Phase-2.0-Phasen.
-  Lokal: `git checkout dashboard-2.0` vor Dashboard-2.0-Arbeit.
-- **Merge-Strategie:** Phasenweise nach `main`, sobald die Phase gegen `dashboard-dev` getestet ist.
-  Phase 1 kann live gehen, während Phase 3 noch auf dem Branch lebt. Jede Phase ist für sich
-  lauffähig — das ist genau die Architektur-Aufteilung: Auth → Befinden → Planungstab → usw.
-- **Vor jedem Commit auf `dashboard-2.0`:** `node -c`, `npm test`, und lokal im Browser prüfen.
-  Standard-Workflow (Abschnitt „Workflow vor jedem Commit") ändert sich nicht.
+**Historie:** Der Umbau lief auf einem langlebigen `dashboard-2.0`-Branch
+(Auth → Befinden → Planungstab → … in Phasen), danach auf `dashboard-3.0`
+(React-Neubau). Beide sind inzwischen nach `main` gemerged — Fahrplan 1 hat
+den Vanilla-Zweig entfernt, `main` ist seither die einzige aktive Linie.
+Die alten Branches bleiben remote als Historie stehen, sind aber nicht mehr
+in Arbeit. Was aus dieser Zeit **weiter aktiv gilt**, steht unten.
 
 ### Supabase-Projekte
-**Free Tier:** max. 2 Projekte, perfekt für dev/prod. `dashboard-2.0` auf dem `dashboard-2.0`-Branch
-hat unterschiedliche `.env`-Einträge als `main`.
+**Free Tier:** max. 2 Projekte — dev/prod-Trennung bleibt bestehen.
 
-| Projekt | Zweck | Status | Keep-Alive |
-|---------|---|---|---|
-| `dashboard-dev` | Entwicklung, Tests, Testaccounts (athlet-test, trainer-test) | Wird jetzt angelegt (Phase 0 Punkt 3) | nein (pausiert nach 1 Woche is ok) |
-| `dashboard-prod` | echte Daten, echte Accounts | Wird beim Merge von Phase 1 angelegt | ja (in `sync-data.yml`, 6h-Ping wie die Datensync-Action) |
+| Projekt | Zweck | Keep-Alive |
+|---------|---|---|
+| `dashboard-dev` | Entwicklung, Tests, RLS-Testaccounts | nein (pausiert nach 1 Woche ist ok) |
+| `dashboard-prod` | echte Daten, echte Accounts | ja (in `sync-data.yml`, 6h-Ping wie die Datensync-Action) |
 
-**Hostname-basierte Config** (Phase 0, Punkt 2):
-```javascript
-// assets/js/data-access/supabase/config.js
-const PROJECT_CONFIG = {
-  'localhost': { url: 'https://[dev-id].supabase.co', anonKey: 'dev-anon-key' },
-  'localhost:3000': { url: 'https://[dev-id].supabase.co', anonKey: 'dev-anon-key' },
-  'stuhlsen.github.io': { url: 'https://[prod-id].supabase.co', anonKey: 'prod-anon-key' }
+**Hostname-basierte Config:**
+```typescript
+// app/src/api/supabase/config.ts
+const PROJECT_CONFIG: Record<string, ProjectEntry> = {
+  localhost: { env: "dev", projectUrl: "https://<dev-id>.supabase.co", anonKey: "…" },
+  "stuhlsen.github.io": { env: "prod", projectUrl: "https://<prod-id>.supabase.co", anonKey: "…" },
 };
-// beide Keys sind öffentlich (per Design, RLS schützt — siehe Migration)
+// beide anon-Keys sind öffentlich (per Design, RLS schützt), Ports (5173, 3000)
+// fallen unter den bare-Hostname-Eintrag — s. app/src/api/supabase/config.test.ts
 ```
 Das ist die einzige Stelle, die env-abhängig konfiguriert wird. Kein Build-Schritt, kein Secret-Management — Prod-Key ist sichtbar, ist aber per RLS wirkungslos ohne Login.
 
 ### Migrations-Workflow
-SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/` (wie zeitstempel-nummeriert):
-- `0001_initial_schema.sql` — Tabellen, RLS, Trigger für User-Onboarding
-- Weitere Migrations pro Phase, wenn das Schema sich erweitert (Phase 1, 2, etc.)
+SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/`
+(zeitstempel-/laufnummeriert, `0001_initial_schema.sql` — Tabellen, RLS, Trigger für
+User-Onboarding — bis Stand 15.08.2026 `0017_ladder_locked_until.sql`; neue Migration
+bei jeder Schema-Erweiterung anhängen, nie eine bestehende nachträglich ändern).
 
 **Einspielen (Sequence):**
 1. Lokal gegen `dashboard-dev`: `supabase db push` (wenn supabase-cli installiert ist)
    oder manuell: Supabase-UI → SQL-Editor → Migration kopieren + ausführen.
-2. Nach jedem Merge auf `main` (Phase 1, 2, etc.): dieselbe Migration in `dashboard-prod`
-   einspielen (oder später: CI-Job, der das automatisiert).
+2. Nach jedem Merge nach `main`, der das Schema erweitert: dieselbe Migration in
+   `dashboard-prod` einspielen (oder später: CI-Job, der das automatisiert).
 3. Migration wird commits — Versionshistorie, Portfolio-Dokumentation, reproduzierbar.
 
 ### Test-Sicherheit
@@ -200,7 +233,7 @@ SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migr
 - `trainer_view_prefs`: nur der jeweilige Trainer liest/ändert seine eigene Zeile
 - anon ohne Login: `proposals`/`trainer_view_prefs` komplett zu (kein GRANT)
 
-Das ist der "Sicherheits-Review"-Prüfpunkt aus Phase 0. Läuft nur mit Live-Credentials in `.env`,
+Das ist der laufende Sicherheits-Review-Prüfpunkt für RLS. Läuft nur mit Live-Credentials in `.env`,
 sonst überspringt sich die Datei selbst (kein Fehlschlag in CI, wo diese Secrets nicht existieren):
 
 ```
@@ -226,164 +259,103 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
   (Action alle 6h, `scripts/generate-data.js`). Kein Change.
 - **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
   → Supabase (RLS, Session-basiert).
-- **Die Linie ist scharf:** JSON-Loader zieht in `data-access/pipeline.js` um, sein Code bleibt
-  unverändert. `state/` fragt abstrakt "gib mir Athletendaten", bekommt sie woher auch immer.
+- **Die Linie ist scharf:** JSON-Loader lebt in `app/src/api/pipeline.ts`, sein Code bleibt
+  fachlich unverändert gegenüber der Vanilla-Fassung. `app/src/hooks/`/`features/` fragen
+  abstrakt "gib mir Athletendaten", bekommen sie woher auch immer.
 
 ## Dateistruktur
 
-supabase/
-  migrations/
-    0001_initial_schema.sql   → Tabellen, RLS, Auth-Trigger (Phase 0)
-    [weitere Migrations pro Phase, wenn Schema-Änderungen nötig sind]
+Tiefe Details stehen bewusst NICHT hier, sondern in READMEs direkt im
+jeweiligen Verzeichnis (bleiben so beim Ändern des Codes automatisch näher
+dran als eine Kopie in AGENTS.md). Diese Übersicht zeigt nur die Form.
 
 ```
+app/                       → Vite + React + TypeScript, s. app/README.md
+  src/
+    main.tsx, App.tsx      → Einstiegspunkt + Routing/Gates
+    config.ts              → Athleten-Stammdaten, Phasen/Farben (phaseColor)
+    types.js                → Reine JSDoc-Typen, aus der Vanilla-core-Schicht portiert
+    core/                   → Reine Berechnung, aus dem früheren `core/` portiert
+                              (PMC, Belastungswächter, Readiness, Briefing,
+                              Intensitätsverteilung, EF-/Decoupling-Trend,
+                              FTP-Prognose, Body, Periodisierung, Konsistenz,
+                              Records, Validate, Konflikte/Vorschlags-Validierung, …)
+                              — Details/Umfang: src/core/README.md
+    api/                    → I/O-Grenze (ersetzt frühere `state/*.js`)
+      pipeline.ts             JSON-Loader (data/*.json)
+      supabase/                Adapter, eine Datei je Tabelle (auth, goals,
+                                events, wellbeing, plan-cards, proposals, …)
+      intervals/                intervals.icu-Push (Workout → Wahoo)
+      hooks/                    React-Query-Hooks — die eigentliche Aufrufstelle
+                              — Details: src/api/README.md
+    sports/cycling/         → Multi-Sport-Vorbereitung: austauschbare Zonen-/
+                              Metrik-/Session-Typ-/Klassifikations-Logik
+                              — Details: src/sports/README.md
+    charts/                 → Chart-Engine + alle Einzel-Charts (SVG/Canvas),
+                              Details: src/charts/README.md
+    components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
+    hooks/                  → generische UI-Hooks (nicht datenbezogen)
+    features/               → ein Verzeichnis je Tab/Bereich: hero, logbook,
+                              planning, analysis, explorer, events, auth, settings
+    styles/tokens.css       → Design-Tokens (abgeglichen mit docs/chart-grundlagen.md,
+                              archiviert — Werte selbst bleiben aktuell)
 
-index.html            → Einstiegs-HTML. Hält ALLE Element-IDs, die das JS ansteuert,
-                        und das eine Module-Script-Tag. Neue IDs/Charts hier eintragen.
+data/                     → generierte JSON-Dateien (rides*.json, wellbeing*.json, …),
+                            von scripts/generate-data.js geschrieben, NICHT manuell committen
 
-assets/css/           → main / components / charts / table / planned (unverändert)
-
-assets/js/
-  app.js              → Einstiegspunkt: Init, Athleten-Toggle, renderAll(),
-                        updateChartExplainers(), Period-Toggles
-  types.js            → Zentrale JSDoc-Typdefinitionen (kein Laufzeit-Code)
-  core/               → REINE Berechnung, kein DOM — vollständig testbar
-  data-access/        → I/O-Grenze (Dashboard 2.0)
-    pipeline.js       → JSON-Loader (bisheriger Code zieht hierher um)
-    supabase/
-      config.js       → Hostname → dev/prod Project-URL + anon-Key
-      client.js       → Supabase-Client-Singleton
-      auth.js         → signIn/signOut/onAuthChange
-      goals.js        → CRUD-Wrapper für goals-Tabelle
-      events.js       → CRUD-Wrapper für events-Tabelle
-      wellbeing.js    → Befinden-Check-ins (upsert, nur Athlet schreibt)
-      plan-cards.js   → Trainingskarten (Drag & Drop, Status)
-      proposals.js    → Trainer-Vorschläge (human + Claude)
-      feedback.js     → Besucher-Feedback (anonym, gated auf is_approved)
-  state/              → Orchestrierung + Session + Zustand
-    format.js         → fmt/fmtInt/fmtDate/fmtDuration, weatherIcon, windDir, …
-    stats.js          → sum/avg/max/min, linearTrend (Regression)
-    aggregate.js      → isoWeekKey, weeklyFromPlanWeeks, weeklyByCalendar, monthlyFromRides
-    pmc.js            → interpolateCtl, tsbOf; currentPmc()/projectPmc() schreiben
-                        CTL/ATL/TSB lastfrei auf "heute" fort (Ruhetage seit der
-                        letzten Fahrt), tsbTrend() liefert den 3-Tage-Trend darauf
-    loadguard.js      → Foster-Monotonie/Strain, CTL-Ramp (Belastungswächter);
-                        describeWeek() für die Analyse-Wocheneinordnung
-    readiness.js      → Tagesform: 7d vs. 42d-Baseline (nur intervals.icu-SDNN!)
-    briefing.js       → Belastungsempfehlung (UI-Name; Datei/Funktion heißen
-                        weiter briefing.js/buildBriefing): fusioniert readiness+
-                        TSB(+Trend)+LoadGuard zu einem Tagesstatus (rotes
-                        Erholungssignal schlägt grünen TSB) — Ausnahme: ist TSB
-                        die einzige Alert-Quelle UND Trend+HRV zeigen aktive
-                        Erholung, kippt rot auf gelb ("Erholung wirkt bereits")
-    body.js           → Regeneration & Körper: Gewichtstrend, W/kg, Energie-
-                        Näherung (kJ≈kcal), Hydration; availability() blendet
-                        Kacheln datengetrieben ein (≥5 Punkte / 30 Tage)
-    periodization.js  → Periodisierungs-Erfüllung Plan 2: Reizsignatur je Block
-                        (Typ ODER IF-Korridor), Quality-Dichte, Erholungswochen
-    adherence.js      → Konsistenz: Wochen-Streak, Frequenztrend, Plan-Adhärenz
-                        (Adjustments-Matching wie weekreview, über den Zeitraum)
-    zones.js          → Time-in-Zone-Normalisierung + Wochenverteilung; Gesamt-
-                        verteilung (overallZoneShares), IF-Fallback (overallBandsFromIF
-                        mit rideIF-Ableitung NP/FTP), distributionShape
-    efficiency.js     → EF-Trend über vergleichbare Z2-Fahrten; decouplingTrend
-    cadence.js        → Kadenz-Coach-Kennzahlen
-    ftp-forecast.js   → eFTP-Historie (+ aus Wellness-sportInfo) + Retest-Projektion;
-                        dateForTarget() = invertierte Prognose (Ziel-Horizont)
-    records.js        → Bestwerte mit Ablöse-Historie
-    weekreview.js     → Wochenrückblick (letzte abgeschlossene Woche)
-    consistency.js    → Jahreskalender-Daten (ersetzt Wochentags-Heatmap)
-    powercurve.js     → extractPowerCurve (beide intervals.icu-Formate), buildCurveData
-    normalize.js      → normalizeRide/normalizeFeel/normalizeWellness
-    validate.js       → Laufzeit-Schema-Prüfung für rides.json
-  state/
-    config.js         → CONFIG: Athleten, Phasen, FTP-Werte/Ziele, weekIndex()
-    static-rides.js   → Fallback-Daten für lokale Entwicklung
-    data.js           → Data-Store: load()/switchAthlete()/byDate()/weekly()/ftpValue()
-  ui/
-    log.js            → Frontend-Logger
-    dom.js            → el/els/svgEl, Tooltip
-    nav.js            → Tab-Navigation, Chart-Gruppen-Toggle (ersetzt Inline-onclick)
-    github-client.js  → Token-Handling + GET-SHA/PUT (Contents-API), fetchRawJson
-    charts/           → base (Grid/Labels/Scroll) · training · pmc · power · wellness
-                        index.js bündelt alles als Charts.renderXxx-Fassade
-    overview.js       → Übersicht-Tab, Hero, KPIs
-    table.js          → Fahrtenbuch + Subjective (Befinden-Write via github-client)
-    planned.js        → Planungs-Tab + Adjustments (Verschieben/Ausfall) + Workout-Push
-    analysis.js       → Analyse-Tab: 8 Sektionen (Briefing · Belastung ·
-                        Intensität · Aerob · Leistungsdiagnostik · Regeneration
-                        & Körper · Konsistenz · Periodisierung). Plan-Toggle
-                        filtert nur bestandsbezogene Sektionen; FTP-Dreiklang
-                        (gemessen/geschätzt/Ziel) strikt getrennt. Sektionen
-                        Körper + Periodisierung blenden sich datengetrieben aus
+supabase/
+  migrations/             → SQL-Migrationen, laufnummeriert (Stand 15.08.2026: 0001–0017)
 
 scripts/
-  generate-data.js    → Dünner Orchestrator (läuft in der Action + `npm run sync`)
-  lib/
-    env.js            → .env-Loader, ENV-Objekt, requireEnv()
-    log.js            → Logger mit Zählern + summary() → Exit-Code
-    http.js           → fetchJson mit Timeout (20s) und einem Retry
-    plan2.js          → PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2WeekPhase (Athlet 1)
-    plan-athlete2.js  → PLANNED_SESSIONS_ATHLETE2 (Athlet 2, GFNY Bremen 2026 —
-                        eigener Namensraum, kein Bezug zu plan2.js/Plan 1+2; kein
-                        separates Schedule-Array, week/phase stehen pro Session)
-    notion.js         → Plan-1-Abfrage + Property-Getter + parseFtpFromNotes
-    intervals.js      → Activities/Wellness/PowerCurves (Athlet 1 + 2)
-    weather.js        → Open-Meteo: Archiv, Forecast, 16-Tage-Planungs-Forecast
-    map-activity.js   → inferTypFromIF, mapActivity (Plan 2, Athlet 1),
-                        mapActivity2 (Athlet 2 — Plan-Priorität aus
-                        PLANNED_SESSIONS_ATHLETE2, week/phase bleiben bewusst null,
-                        s. "Bekannte Eigenheiten")
-    wellness.js       → Wellness-Mapping (beide Athleten): erweiterte Felder
-                        (Gewicht/Kalorien/Hydration/Körperfett/eFTP aus sportInfo),
-                        mapWellnessList/latestWeight + logWellnessCoverage
-                        (Verifikationslog: welche Felder real befüllt sind)
-    output.js         → subjective/adjustments (Athlet 1) + adjustments-2 (Athlet 2)
-                        laden, rides.json/rides-2.json schreiben
+  generate-data.js         → Dünner Orchestrator (läuft in der Action + `npm run sync`)
+  add-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
+  preset-suggestion-check.js, report-derived-workout-structure.js
+                           → einzelne Betriebs-/Migrations-/Analyse-Skripte
+  lib/                     → von generate-data.js verwendete Module: env, log, http,
+                             plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
+                             notion, intervals, weather, map-activity, wellness,
+                             compliance, coverage, ftp-history, interval-blocks,
+                             formats-fetch, plan-cards-fetch, plan-to-cards, output
 
-tests/                → node:test-Suiten für core/* und scripts/lib/* (npm test);
-                        plan-cards-move.test.js testet zusätzlich state/ —
-                        data-access per mock.module() gestubbt (s. Stack-Abschnitt)
+tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls.test.js
+                             (npm test, Repo-Root — s. Stack-Abschnitt)
 
 .github/workflows/
-  sync-data.yml       → Cron alle 6h; Jobs: sync (JSON generieren + committen + Artefakt-Upload) → deploy (Pages, needs: sync)
-  ci.yml              → Push/PR: npm test + ESLint + Fallow code-quality (committet nichts)
+  sync-data.yml            → Cron alle 6h; Jobs: sync (JSON generieren, app/dist
+                             bauen, committen, Artefakt-Upload) → deploy (Pages)
+  ci.yml                   → Push/PR (Repo-Root): npm test + ESLint + Fallow code-quality
+  ci-app.yml                → Push/PR (nur bei Änderungen unter app/**): Vitest,
+                             ESLint, Build (tsc -b + vite build) für /app/
 
 .claude/skills/
-  fallow/             → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
-                        — übersetzt Anfragen wie "check code health" in fallow-Befehle
+  fallow/                  → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
+                             — übersetzt Anfragen wie "check code health" in fallow-Befehle
 ```
 
 ## Athleten
 
 - **Athlet 1** (`athlete1`) — eigener Trainingsplan (Plan 1 + Plan 2), Primärnutzer
-  FTP: 193W (CONFIG.ftp; DEFAULT_FTP in scripts/lib/map-activity.js)
+  FTP: 193W (`ftpMeasured` in `app/src/config.ts`; `DEFAULT_FTP` in `scripts/lib/map-activity.js`)
 - **Athlet 2** (`athlete2`) — Vergleichsathlet, weiterhin read-only (kein Befinden,
   keine Schreibaktionen), hat aber seit GFNY Bremen 2026 einen eigenen Planungstab
   (`scripts/lib/plan-athlete2.js`) — Anzeige-only, s. "Bekannte Eigenheiten"
   FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test),
   FTP-Ziel 280W (Notion-Korridor 275–285W)
 
-FTP-Dreiklang pro Athlet in `state/config.js` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
+FTP-Dreiklang pro Athlet in `app/src/config.ts` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
 (Ramp-Test) und `ftpGoal` (Ziel) — im Analyse-Tab strikt getrennt von der laufend
-geschätzten eFTP. Helper: `CONFIG.athleteConfig(id)`.
-Zusätzlich für den Hero-Header: `seasonStartFtp` (Saison-Start-FTP für den
-Fortschrittsring/die Meilensteinliste — nur bei Athlet 1 gesetzt, Athlet 2 hat
-keine Saison-Basis → `null`, Meilenstein entfällt statt Platzhalter) und
-`dataSources` (Anzeige im Untertitel, z.B. `["intervals.icu", "Apple Health"]`).
-Diese beiden Felder sind unabhängig von den globalen Singletons `CONFIG.ftpBase`/
-`ftpGoal`/`retestDate` (weiterhin von `app.js`/`ui/analysis.js` für FTP-Forecast-
-Chart bzw. Leistungsdiagnostik genutzt) — bewusst nicht zusammengeführt, um diese
-bestehenden Features nicht anzufassen.
+geschätzten eFTP. `seasonStartFtp` (Saison-Start-FTP für Fortschrittsring/Meilenstein
+— nur bei Athlet 1 gesetzt, Athlet 2 → `null`) und `dataSources` (Untertitel-Anzeige,
+z.B. `["intervals.icu", "Apple Health"]`) leben ebenfalls dort.
 
 Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen sind die selbstgewählten
-Pseudonyme (GitHub-Handles) "Stuhlsen"/"hc_diZee" (einzige Quelle: `state/config.js`
-→ `athletes[].name`, von dort lesen alle UI-Komponenten — nicht hartkodiert
-duplizieren). Athleten-Toggle persistent via
-`localStorage("active_athlete")`; unbekannte/alte IDs werden beim Start verworfen
-(Fallback auf `CONFIG.primaryAthleteId`).
-Bei Athlet 2: Planungs-Tab read-only sichtbar (kein Verschieben/Ausfallen/Wahoo-
-Push, s. `_canEdit()` in ui/planned.js), keine Befinden-Spalte, keine Ziellinien.
+Pseudonyme (GitHub-Handles) "Stuhlsen"/"hc_diZee" (einzige Quelle: `app/src/config.ts`
+→ `athletes[].name` — nicht hartkodiert duplizieren). Athleten-Toggle persistent via
+`localStorage("active_athlete")` (`app/src/api/hooks/useActiveAthlete.ts`); unbekannte/
+alte IDs werden beim Start verworfen.
+Bei Athlet 2: Planungs-Tab read-only sichtbar (kein Verschieben/Ausfallen/Wahoo-Push),
+keine Befinden-Spalte, keine Ziellinien — Gate über `canWriteForAthlete()`/
+`isSelfAthlete()` in `app/src/api/write-authorization.ts`.
 
 ## Trainingspläne
 
@@ -414,8 +386,9 @@ korrigiert — der Renntag selbst ist ein fester externer Termin und blieb
 unverändert (29.08. bleibt bewusst frei, s. Kopfkommentar in
 plan-athlete2.js). Definiert in
 `scripts/lib/plan-athlete2.js` (PLANNED_SESSIONS_ATHLETE2), Blöcke
-Basis→Aufbau→Rennhärte→Taper. Ruhetage werden im Planungstab nicht angezeigt
-(s. "Bekannte Eigenheiten"). Read-only im Frontend, FTP-Ziel 280W.
+Basis→Aufbau→Rennhärte→Taper. Ruhetage werden seit dem 05.08.2026 für beide
+Athleten im Planungstab angezeigt (s. "Bekannte Eigenheiten"). Read-only im
+Frontend, FTP-Ziel 280W.
 
 ## Equipment (Athlet 1)
 
@@ -423,16 +396,18 @@ Cube Nuroad Race Gravel · Favero Assioma PRO MX-1 Power Meter · Wahoo ELEMNT R
 
 ## Design — Konzept 5 (Kachel-Anatomie × Zonen-Farbsystem)
 
-Tokens in `assets/css/main.css` (Namen stabil halten — Chart-JS spiegelt sie):
+Tokens in `app/src/styles/tokens.css` (Namen stabil halten):
 - Hintergrund: `#0b0e13` Anthrazit-Blau mit fixierten Zonen-Gradienten (Z2-Schimmer oben rechts, Sweet-Spot-Glut unten links)
 - Kacheln: Glas — `rgba(255,255,255,0.045)` + 1px-Hauchrand, Radius 22/28px; Tooltip/Dropdowns deckend via `--card-solid`
 - **Zonen-Skala als Farbsystem** (Farbe = Bedeutung, nie Deko):
   `--z1 #4a9a6e` (Recovery/positiv) · `--z2 #4a7fa8` (Grundlage/Plan 1) · `--z3 color-mix(in oklch, var(--ss) 75%, black 25%)` (Tempo, Hero-Leistungsskala — abgeleitetes Token, keine neue Basisfarbe; ein Mix aus `--z2`+`--ss` kippt in sRGB/OKLab auf Grau/Taupe, weil Blau/Orange nahezu komplementär sind, deshalb stattdessen ein abgedunkelter `--ss`-Ton) · `--ss #e08a3c` (Sweet Spot/Akzent/Plan 2) · `--thr #d94f4f` (Schwelle/Warnung) · `--vo2 #a24ad0`
-- Typografie: **Sora** (Display/Zahlen, `--font-disp`) · **IBM Plex Mono** (Labels/Meta, `--font-mono`) · **Inter** (Fließtext, `--font-body`); Google-Fonts-Link in index.html mit System-Fallbacks
+- Typografie: **Sora** (Display/Zahlen, `--font-disp`) · **IBM Plex Mono** (Labels/Meta, `--font-mono`) · **Inter** (Fließtext, `--font-body`) — Tokens in `tokens.css` benennen diese Fonts, `app/index.html` lädt sie aber (Stand 15.08.2026) nicht per Font-Link; die App läuft faktisch auf den System-Fallbacks. Vor einer Änderung an diesen Tokens prüfen, ob das Fehlen des Font-Links Absicht oder eine offene Lücke ist.
 - Pills überall interaktiv (`--pill`): Tabs (aktiv = SS-Fill mit dunklem Text `#17110a`), Athleten-Toggle (aktiv = Z2), Unit-/Plan-Toggle
-- Hero-Signaturen: **interaktive Leistungsskala** (Coggan-Zonen Z1–Z5 aus `core/zones.js::computeZones`, Sweet-Spot-Overlay `sweetSpotBand` statt eigenem Segment, Skalenmax `scaleMaxWatts` = Z5-Ende, What-if-Slider für die Ziel-FTP-Vorschau, Pins FTP/eFTP/Ziel via `core/ftp-progress.js::pinPercent`), **FTP-Fortschrittsring** (Z2→SS-Gradient, Fortschritt `ringProgress(eFTP, athleteCfg.seasonStartFtp ?? ftpMeasured, athleteCfg.ftpGoal)` — athletenagnostisch aus `CONFIG.athleteConfig(id)`), **Meilensteinliste** (`buildMilestones`, nur vorhandene Werte) und **Session-Karte** (nächste Einheit via `nextPlannedSession`, Watt-Ziel/Dauer/TSS-Schätzung nur bei strukturiertem `workout` via `workoutWattRange`/`workoutDurationMinutes`/`estimateSessionTSS`)
-- SVG-Chart-Farben können keine CSS-Variablen nutzen → Palette ist als `CHART_THEME` in `assets/js/ui/charts/base.js` gespiegelt. Bei Palettenwechsel: main.css-Tokens UND CHART_THEME UND die Hex-Literale in `ui/charts/*` per Suchen/Ersetzen anpassen (Mapping-Kommentar in base.js).
-- `prefers-reduced-motion` wird respektiert (main.css global + Ring-Transition)
+- Hero-Signaturen: **interaktive Leistungsskala** (Coggan-Zonen Z1–Z5 aus `app/src/core/zones.js::computeZones`, Sweet-Spot-Overlay `sweetSpotBand` statt eigenem Segment, Skalenmax `scaleMaxWatts` = Z5-Ende, What-if-Slider für die Ziel-FTP-Vorschau, Pins FTP/eFTP/Ziel via `app/src/core/ftp-progress.js::pinPercent`), **FTP-Fortschrittsring** (Z2→SS-Gradient, Fortschritt `ringProgress(eFTP, athleteCfg.seasonStartFtp ?? ftpMeasured, athleteCfg.ftpGoal)` — athletenagnostisch aus `athleteConfig(id)` in `app/src/config.ts`), **Meilensteinliste** (`buildMilestones`, nur vorhandene Werte) und **Session-Karte** (nächste Einheit via `nextPlannedSession`, Watt-Ziel/Dauer/TSS-Schätzung nur bei strukturiertem `workout` via `workoutWattRange`/`workoutDurationMinutes`/`estimateSessionTSS`)
+- Anders als in der Vanilla-Fassung ist keine JS-gespiegelte Farbpalette mehr nötig:
+  React rendert echtes DOM-SVG, `var(--token)` funktioniert dort direkt in `stroke`/`fill`
+  (s. `app/src/charts/*.tsx`) — ein Palettenwechsel ändert nur noch `tokens.css`.
+- `prefers-reduced-motion` wird respektiert (globale CSS-Regel + Ring-Transition)
 
 ## Wichtige Konventionen
 
@@ -442,7 +417,7 @@ Tokens in `assets/css/main.css` (Namen stabil halten — Chart-JS spiegelt sie):
 - Wetter-Forecast wird serverseitig in der Action berechnet → nur Wetterwerte in rides.json
 - Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder Commit-Messages —
   intern `athlete1`/`athlete2`, in der UI die selbstgewählten Pseudonyme
-  (GitHub-Handles) "Stuhlsen"/"hc_diZee" (`state/config.js` → `athletes[].name`)
+  (GitHub-Handles) "Stuhlsen"/"hc_diZee" (`app/src/config.ts` → `athletes[].name`)
 
 **Git-Workflow:**
 ```powershell
@@ -481,22 +456,20 @@ prüft nur gegen den `origin/main`-Tracking-Stand direkt nach dem vorangegangene
 im selben Alias-Lauf, das schützt gerade NICHT vor einem seit längerem veralteten lokalen `main`.
 Vorfall + Wiederherstellung: s. Commit-Historie um den 25.07.2026, kein separates Dokument.
 
-**JavaScript:**
-- `Data.activeAthleteId` — aktuell aktiver Athlet (ID aus state/config.js)
-- `hasOwnPlan()` — true wenn Athlet 1 aktiv (prüft ob rides eine week haben); steuert
-  NUR die Plan-1/2-spezifischen Inhalte (HRV/RHF-Split an W0, "Plan 2"/W12-Retest-Text,
-  Wochen-Aggregation). Für den Planungstab selbst (auch Athlet 2s GFNY-Plan) gilt
-  stattdessen `hasPlanningTab = Data.plannedSessions.length > 0` in app.js — bewusst
-  getrennt, damit Athlet-1-exklusive Inhalte nicht in Athlet 2s Ansicht durchschlagen
-- `Data.ftpValue()` — liest aus athleteFtp (Athlet 2) oder CONFIG.ftp (Athlet 1)
-- `Data.forecast` — 16-Tage-Forecast, serverseitig befüllt, kein API-Call im Frontend
-- `Data.weekly()` — ISO-Kalenderwochen-Aggregation für beide Athleten
-  (seit dem Umbau „Plan 1/2 → Kalenderwoche", s. u.); Athlet 2s Rides tragen
+**JavaScript/TypeScript:**
+- Es gibt kein globales `Data`-Singleton mehr (Vanilla-Ära). Zustand lebt in
+  React-Query-Caches, Aufrufstellen sind die Hooks unter `app/src/api/hooks/`
+  (z. B. `useActiveAthlete`, `useRides`, `usePlanCards`) statt eines
+  gemeinsamen Objekts, das jedes Modul direkt liest.
+- ISO-Kalenderwochen-Aggregation für beide Athleten läuft weiter über
+  `app/src/core/aggregate.js` (portiert, unverändert). Athlet 2s Rides tragen
   weiterhin bewusst kein `week`/`phase` (s. "Bekannte Eigenheiten") — das
-  betrifft nur den Plan-Bezug einzelner Ride-Objekte, nicht die
-  Wochen-Aggregation selbst
-- `updateChartExplainers(ownPlan, ftp)` — alle Chart-Texte/Legenden athletenabhängig
-- Berechnung gehört nach `core/` (mit Test), Rendering nach `ui/` — nicht mischen
+  betrifft nur den Plan-Bezug einzelner Ride-Objekte, nicht die Wochen-Aggregation selbst.
+- Chart-Erklärtexte sind athletenabhängig, leben jetzt als Teil der jeweiligen
+  Feature-Komponente statt einer zentralen `updateChartExplainers()`-Funktion.
+- Berechnung gehört nach `app/src/core/` (mit Test), Rendering nach
+  `app/src/charts/`, `app/src/components/` bzw. dem UI-Teil von `app/src/features/*`
+  — nicht mischen.
 
 **Typ-Inferenz (scripts/lib/map-activity.js):**
 `inferTypFromIF(np, min, ftp)` — NP÷FTP = IF, dann Dauer als zweites Kriterium:
@@ -518,25 +491,26 @@ WEATHER_LAT_2           WEATHER_LON_2
 X-Achsen- und Wert-Labels NIEMALS pro Datenpunkt/Balken ohne Ausdünnung
 zeichnen — bei Athlet 2 (30+ Kalenderwochen) überlappt sonst die Achse.
 Pflicht für jedes Chart mit variabler Datenmenge:
-- `pickLabelIndices(xs, minPx)` aus ui/charts/base.js (pure, getestet in
-  tests/chart-layout.test.js): Mindestabstand, letzter Punkt garantiert und
-  kollisionsfrei. Richtwerte: 40px für Wochen-Balken, 55–60px für Datums-Labels.
-- Wochen-Keys über `weekDisplayLabels()` kürzen ("2026-KW27" → "KW27",
-  Jahreswechsel wird markiert, Monate → "MM/JJ").
+- `pickLabelIndices(xs, minPx)` aus `app/src/core/chart-scale.js` (pure,
+  getestet in `chart-scale.test.js`): Mindestabstand, letzter Punkt garantiert
+  und kollisionsfrei. Richtwerte: 40px für Wochen-Balken, 55–60px für Datums-Labels.
+- Wochen-Keys über `weekDisplayLabels()` (`app/src/core/week-labels.js` bzw.
+  `aggregate.js`) kürzen ("2026-KW27" → "KW27", Jahreswechsel wird markiert,
+  Monate → "MM/JJ").
 - Wert-Labels auf Balken bei Pitch < ~22px nur auf den Label-Indizes zeichnen;
   In-Balken-Labels zusätzlich per Balkenbreite gaten (siehe Wetter-Chart).
 - Keine "Modulo-Step + letzter immer"-Guards mehr — die erzeugen End-Kollisionen.
-- Segment-/Phasen-Labels an Divider-Linien (z. B. "Plan 1"/"Übergang"/
-  "Plan 2" im HRV/RHF-Chart) zentriert im eigenen Segment zeichnen, nie an
-  den Rändern der Divider-Linie (zwei benachbarte Rand-Labels kollidieren,
-  sobald ein Segment schmal wird — z. B. eine kurze Übergangswoche). Vor
-  dem Zeichnen mit `fitsLabel(spanPx, text)` aus ui/charts/base.js prüfen
-  (pure, getestet in tests/chart-layout.test.js) und das Label bei zu
-  wenig Platz weglassen statt überlappend zu zeichnen. Bisher nur im HRV/
-  RHF-Chart (wellness.js) umgesetzt — power.js/pmc.js/training.js zeichnen
-  ihre "Plan 1"/"Plan 2"-Divider-Labels noch nach dem alten Rand-Muster;
-  bei Berührung dieser Charts auf dasselbe schmale-Segment-Risiko prüfen
-  und ggf. auf `fitsLabel`/das segmentLabel-Muster umstellen.
+- Segment-/Phasen-Labels an Divider-Linien zentriert im eigenen Segment
+  zeichnen, nie an den Rändern der Divider-Linie (zwei benachbarte Rand-Labels
+  kollidieren, sobald ein Segment schmal wird — z. B. eine kurze Übergangswoche).
+  Die Vanilla-Fassung hatte dafür ein `fitsLabel(spanPx, text)` in `ui/charts/base.js`
+  — **nicht mit nach `app/src/core/chart-scale.js` portiert** (`CompareChart.tsx`
+  verzichtet laut eigenem Kommentar bewusst auf eine `fitsLabel()`-Segment-
+  beschriftung mitten in der Kurve). Vor einer Änderung an Divider-Labels im
+  React-Code prüfen, ob das Kollisionsproblem dort überhaupt noch auftreten kann
+  (z. B. weil die Divider selbst mit dem Umbau „Plan 1/2 → Kalenderwoche"
+  entfallen sind) und ggf. neu entscheiden, statt eine nicht vorhandene Funktion
+  vorauszusetzen.
 - Mehrzeilige SVG-Texte (z. B. per `wrapText()`) grundsätzlich gegen die
   viewBox-Höhe absichern — der SVG-Root clippt Inhalt außerhalb der
   viewBox standardmäßig, eine zu tief platzierte zweite Zeile ist dann
@@ -551,36 +525,38 @@ Pflicht für jedes Chart mit variabler Datenmenge:
 
 ## Datumsformat (Charts)
 
-Einheitlich **DD.MM** für Achsen-/Label-Text (`fmtDate(iso)`, core/format.js)
+Einheitlich **DD.MM** für Achsen-/Label-Text (`fmtDate(iso)`, `app/src/core/format.js`)
 und **DD.MM.JJJJ** für Tooltips, wo das Jahr zur Eindeutigkeit gebraucht wird
-(`fmtDateFull(iso)`, core/format.js) — DD.MM ist die Mehrheitskonvention im
+(`fmtDateFull(iso)`, `app/src/core/format.js`) — DD.MM ist die Mehrheitskonvention im
 restlichen Dashboard (Fahrtenbuch, `normalizeRide`/`normalizeWellness`).
-Datums-Achsenlabels ausschließlich über `xLabel()` aus ui/charts/base.js
-zeichnen (font-size 10, zentriert) statt eigener `<text>`-Elemente — das
-hält Schriftgröße/-schnitt über alle Chart-Komponenten konsistent. Kein
-Chart-Modul soll `iso.split("-")`/`iso.slice(5)` selbst zusammensetzen.
+Achsenlabels über `fmtDate()` erzeugen, nicht `iso.split("-")`/`iso.slice(5)`
+selbst zusammensetzen — das bleibt gültig, auch wenn die einzelnen Charts
+seit dem React-Umbau eigene `<text>`-Elemente statt einer gemeinsamen
+`xLabel()`-Zeichenfunktion verwenden (Font-Größe/-Ausrichtung über gemeinsame
+Konstanten in `app/src/charts/`, nicht mehr über einen einzigen Helper).
 
 ## Chart-Merge-Konvention
 
 Neue Auswertungen möglichst in bestehende Charts integrieren statt neue Boxen
 anzulegen (Chart-Masse begrenzen): Belastungswächter lebt IM TRIMP-Chart
-(Ramp-Linie + ⚠), EF-Trend IM Effizienz-Chart, Blockvergleich IM Power-Curve-
-Chart (Toggle), Kadenz-Coach als Chips ÜBER dem Kadenz-Chart. Der Konsistenz-
-kalender hat die Wochentags-Heatmap ERSETZT (Wochentagszähler in den Zeilen-
-labels). Explainer-Texte bei Chart-Änderungen immer mitziehen — sie werden
-teils statisch in index.html, teils via updateChartExplainers (app.js, BEIDE
-Athleten-Varianten!) gesetzt.
+(`TrimpLoadChart.tsx`, Ramp-Linie + ⚠), EF-Trend IM Effizienz-Chart
+(`EfficiencyChart.tsx`), Blockvergleich IM Power-Curve-Chart (`PowerCurveChart.tsx`,
+Toggle), Kadenz-Coach als Chips ÜBER dem Kadenz-Chart (`CadenceChart.tsx`). Der
+Konsistenzkalender (`ConsistencyCalendar.tsx`) hat die Wochentags-Heatmap ERSETZT
+(Wochentagszähler in den Zeilenlabels). Explainer-Texte bei Chart-Änderungen immer
+mitziehen — sie leben jetzt als Teil der jeweiligen Feature-Komponente
+(`app/src/features/*`, für beide Athleten-Varianten prüfen), nicht mehr zentral
+in `index.html`/`app.js`.
 
 ## Bekannte Eigenheiten
 
+**Gilt weiter unverändert (Datensync, `scripts/`/`.github/workflows/` — vom
+React-Umbau nicht berührt):**
+
 - `subjective.json` und `adjustments.json` werden vom Action-Workflow vor
   Überschreiben geschützt (immer Remote-Stand holen vor Commit)
-- Wochenvolumen/TRIMP/Wetter haben Wochen/Monats-Toggle, persistent per Athlet
-  in `localStorage("period_<athleteId>_<chartId>")`
 - Fahrten am selben Datum werden nach `startTime` (start_date_local) sortiert;
   Plan-1-Fahrten (Notion) haben kein startTime → dort kein Tiebreaker
-- HRV/Ruhepuls bei Athlet 2 direkt aus `Data.wellness` (alle Tage),
-  nicht aus Ride-Objekten (nur wenige Fahrten mit Distanz erfasst)
 - Athlet 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
   distanzlose/unklassifizierte Aktivitäten werden bewusst ausgeschlossen
 - intervals.icu `/power-curves`: `oldest`/`newest` allein grenzen die
@@ -589,71 +565,71 @@ Athleten-Varianten!) gesetzt.
   `oldest` wird ignoriert). Für eine zeitraumgebundene Kurve (Power-Curve-
   Blockvergleich, `getPlan2Blocks()`) ist `curves=r.<von>.<bis>` (intervals.icu-
   Range-Spezifizierer) zwingend, s. `powerCurveQuery()` in
-  scripts/lib/intervals.js. Ohne diesen Parameter sind alle Blockkurven
+  `scripts/lib/intervals.js`. Ohne diesen Parameter sind alle Blockkurven
   praktisch identisch zur Gesamtkurve (nur der Anker-Zeitpunkt unterscheidet
   sich) — der Blöcke-Toggle im Power-Curve-Chart zeigt dann keine sinnvoll
   unterscheidbaren Kurven.
-- Race Condition möglich: Frontend committed direkt (Befinden-Speichern in
-  ui/table.js) während der Sync-Workflow läuft → Push kann mit
-  `non-fast-forward` fehlschlagen. sync-data.yml pusht daher mit
-  Rebase-Retry-Schleife (3 Versuche, siehe Schritt "Commit data if changed").
-- `ui/table.js` ↔ `ui/planned.js` importieren sich gegenseitig (Table.highlightByDate
-  bzw. Planned.scrollToDate/Subjective). Das ist mit ES-Modulen unproblematisch,
-  solange die Nutzung in Funktionen/Handlern bleibt — nichts davon auf Modul-Top-Level
-  aufrufen.
-- Entfernter Alt-Code (bewusst, bei Bedarf via Git-History): `Tabs`-Objekt (utils.js),
-  `renderHRV`/`renderRHF`-Legacy-Stubs (charts.js), `queryNotionPlan1_compat`
-  (generate-data.js), `renderHeatmap` (durch renderConsistency ersetzt).
-- Pages-Deploy: `sync-data.yml` hat GETRENNTE Jobs `sync` (Daten + Artefakt-Upload) und
-  `deploy` (`deploy-pages`, `needs: sync`). NICHT wieder zusammenlegen — Upload + Deploy im
-  selben Job dupliziert bei einem Re-Run das `github-pages`-Artefakt („Multiple artifacts…
-  count is 2"). Getrennt re-runnt „Re-run failed jobs" nur den Deploy, kein zweiter Upload.
+- Pages-Deploy: `sync-data.yml` hat GETRENNTE Jobs `sync` (Daten generieren,
+  `app/dist` bauen, Artefakt-Upload) und `deploy` (`deploy-pages`, `needs: sync`).
+  NICHT wieder zusammenlegen — Upload + Deploy im selben Job dupliziert bei
+  einem Re-Run das `github-pages`-Artefakt („Multiple artifacts… count is 2").
+  Getrennt re-runnt „Re-run failed jobs" nur den Deploy, kein zweiter Upload.
 - `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
-  `icu_eftp`) — Feldnamen beim ersten echten Sync-Lauf verifizieren; das
-  Frontend normalisiert beide bekannten Formate und degradiert mit
-  Hinweistext, wenn die Felder fehlen. Blockiert am selben fehlenden
-  Live-Sync wie der M3-Punkt in `docs/offene-punkte.md` (kein
-  `INTERVALS_API_KEY`/`INTERVALS_ATHLETE_ID` lokal verfügbar) — beide
-  Verifikationen können beim nächsten echten Sync-Lauf gemeinsam erledigt
-  werden.
+  `icu_eftp`) — beide Formate werden normalisiert, mit Degradation samt
+  Hinweistext, falls sie in der API-Antwort fehlen. Aktuellen Verifikationsstand
+  in `docs/offene-punkte.md` prüfen, nicht hier — der ändert sich mit jedem
+  echten Sync-Lauf.
 - eFTP-Historie mergt `icu_eftp` (je Fahrt) mit dem Wellness-Tageswert aus `sportInfo`
-  (`scripts/lib/wellness.js`). Wellness trägt seit dem Analyse-Umbau zusätzlich
-  Gewicht/Kalorien/Hydration/Körperfett; welche Felder real befüllt sind, zeigt
-  `logWellnessCoverage` im Sync-Log — die „Regeneration & Körper"-Sektion blendet sich
-  datengetrieben danach ein (≥5 Punkte / 30 Tage).
+  (`scripts/lib/wellness.js`). Wellness trägt zusätzlich Gewicht/Kalorien/Hydration/
+  Körperfett; welche Felder real befüllt sind, zeigt `logWellnessCoverage` im
+  Sync-Log — die „Regeneration & Körper"-Sektion (`app/src/core/body.js::availability()`)
+  blendet sich datengetrieben ein (≥5 Punkte / 30 Tage).
+- `mapActivity2()` (`scripts/lib/map-activity.js`) setzt für Athlet-2-Fahrten
+  bewusst `week: null, phase: null` — der Plan-Bezug läuft ausschließlich über
+  die eigenständigen `plannedSessions`/`adjustments`-Felder in rides-2.json,
+  NICHT über `ride.week`.
 - `npm install` (für Fallow) bzw. der Skills-Installer legen `.agents/`, `agent/`,
   `data/skills/` und `skills-lock.json` an — generierte Tooling-Artefakte, kein
   Quellcode, bewusst in `.gitignore` (nicht committen, auch nicht bei `git add -A`).
-- Athlet 2s Planungstab (GFNY Bremen 2026) ist read-only: `ui/planned.js` hat
-  einen `_canEdit()`-Gate (`Data.activeAthleteId === CONFIG.primaryAthleteId`),
-  der Verschieben/Ausfallen/Wahoo-Push-Buttons nur für Athlet 1 rendert. Eigene
-  `data/adjustments-2.json` (analog `adjustments.json`) verhindert Datums-
-  Kollisionen zwischen den beiden Plänen; `Adjustments._loadedFor` in
-  ui/planned.js merkt sich, für welchen Athleten zuletzt geladen wurde, damit
-  ein Athletenwechsel nicht die falsche Datei im Cache behält.
-- `mapActivity2()` (scripts/lib/map-activity.js) setzt für Athlet-2-Fahrten
-  bewusst `week: null, phase: null` — der Plan-Bezug läuft ausschließlich über
-  die eigenständigen `plannedSessions`/`adjustments`-Felder in rides-2.json,
-  NICHT über `ride.week`. Würde man das setzen, kippt `hasOwnPlan()` in app.js
-  global auf `true` für Athlet 2 und reißt Athlet-1-exklusive Inhalte (Plan-1/2-
-  HRV-Split, "Plan 2"/W12-Retest-Text) mit rein.
-- Phase-Key `"Taper"` wird zwischen Plan 2 (Athlet 1) und Athlet 2s Plan
-  geteilt (identische Farbe in `CONFIG.phases`) — `phaseColor()` ist die
-  einzige Stelle, die `CONFIG.phases[phase]` liest (`.color`), `.label` wird
-  im UI nirgends gerendert (`ui/planned.js` zeigt den rohen Phase-Key als
-  Text). Deshalb brauchen "Basis"/"Aufbau"/"Rennhärte" (Athlet 2, keine
-  Namensüberschneidung mit Plan 1/2) auch kein Präfix.
+
+**Ported/angepasst mit dem React-Umbau (Pfad hat sich geändert, Konzept meist gleich):**
+
+- Die frühere Race Condition (Frontend committed per-Fahrt-Befinden direkt via
+  GitHub-API in `subjective.json`, parallel zum Sync-Workflow) betrifft
+  `app/src` nicht mehr: das editierbare Befinden-/Feel-Dropdown im Fahrtenbuch
+  gab es laut Kopfkommentar in `app/src/features/logbook/LogbookPage.tsx`
+  schon im letzten Vanilla-Stand nicht mehr (bewusst nicht portiert, kein
+  GitHub-API-Code irgendwo unter `app/src`). `sync-data.yml` schützt
+  `subjective.json`/`adjustments*.json` trotzdem weiter vor Überschreiben
+  (Rebase-Retry-Schleife, 3 Versuche) — harmlose Vorsichtsmaßnahme für reinen
+  Archivbestand, kein aktiver Schreibpfad mehr dahinter.
+- Phase-Key `"Taper"` wird zwischen Plan 2 (Athlet 1) und Athlet 2s Plan geteilt
+  (identische Farbe) — `phaseColor()` in `app/src/config.ts` ist die einzige
+  Stelle, die `PHASES[phase].color` liest; verwendet u. a. in
+  `app/src/features/planning/PlanningPage.tsx`. Deshalb brauchen "Basis"/
+  "Aufbau"/"Rennhärte" (Athlet 2, keine Namensüberschneidung mit Plan 1/2)
+  auch kein Präfix.
 - Athlet-2-Workout-Objekte (`scripts/lib/plan-athlete2.js`) tragen nur `watts`,
-  kein `pct` (% FTP) wie bei Athlet 1 — `_renderCard()` in ui/planned.js
-  fällt für die Intervall-Beschriftung auf `watts` zurück, wenn `pct` fehlt.
+  kein `pct` (% FTP) wie bei Athlet 1 — die Planungstab-Kartenkomponente in
+  `app/src/features/planning/PlanningPage.tsx` fällt für die
+  Intervall-Beschriftung auf `watts` zurück, wenn `pct` fehlt.
+- Athlet 2s Planungstab (GFNY Bremen 2026) ist read-only: Gate über
+  `canWriteForAthlete()`/`isSelfAthlete()` in `app/src/api/write-authorization.ts`
+  statt eines lokalen `_canEdit()` in einem UI-Modul. Die Trainingskarten selbst
+  leben inzwischen in der Supabase-Tabelle `plan_cards` (RLS-geschützt) —
+  `data/adjustments.json`/`adjustments-2.json` sind seit dieser Migration nur
+  noch read-only Archiv der alten Planungsdaten, keine aktive Datenquelle mehr.
 - Ruhetage werden seit dem 05.08.2026 für BEIDE Athleten im Planungstab
-  angezeigt (`ui/planned.js::render()`, `allSessions = getPlanCardsState().
-  cards`, kein athletenscoped Filter mehr) — die vorherige Ausblendung für
-  Athlet 2 war eine Alt-Konvention aus der Zeit vor D6 (docs/konzept-
-  progressionssteuerung.md), keine bewusste, weiterhin gewollte Athlet-2-
-  Sonderregel. Ruhetag-Karten zählen für beide Athleten weiterhin nie als
-  "verpasst" (`isRuhetag`-Ausnahme in `missedSessions`) — ein nicht
-  gefahrener Ruhetag ist Erfüllung, kein Ausfall.
+  angezeigt, kein athletenscoped Filter mehr — die vorherige Ausblendung für
+  Athlet 2 war eine Alt-Konvention aus der Zeit vor D6 (`docs/konzept-
+  progressionssteuerung.md`), keine bewusste, weiterhin gewollte Athlet-2-
+  Sonderregel. Ruhetag-Karten sollen für beide Athleten nie als "verpasst"
+  zählen (ein nicht gefahrener Ruhetag ist Erfüllung, kein Ausfall) — genauen
+  Ort dieser Regel im portierten `app/src/core/` bei Bedarf verifizieren.
+
+**Nicht mehr zutreffend, ersatzlos entfallen mit dem React-Umbau:** die frühere
+gegenseitige Import-Beziehung zwischen `ui/table.js` und `ui/planned.js` sowie
+alle Verweise auf das globale `Data`-Objekt (s. „Wichtige Konventionen").
 
 ## Playwright-MCP — Nutzungskonvention
 
@@ -666,8 +642,9 @@ Athleten-Varianten!) gesetzt.
 
 Playwright ist das **letzte Mittel**, nicht der Standard-Reflex beim Prüfen einer
 Änderung. Vor jedem Playwright-Einsatz gilt die Frage: *Lässt sich das auch als reine
-Funktion in `tests/*.test.js` prüfen?* Fast immer lautet die Antwort ja — dieses Projekt
-hat für genau diesen Zweck eine große, schnelle Testsuite in `core/` und `state/`.
+Funktion in Vitest (`app/src/**/*.test.ts(x)`) oder `tests/*.test.js` (Repo-Root) prüfen?*
+Fast immer lautet die Antwort ja — dieses Projekt hat für genau diesen Zweck eine große,
+schnelle Testsuite in `app/src/core/` und `app/src/api/`.
 
 **Playwright ist gerechtfertigt für:**
 - echte mehrstufige Pointer-Gesten (Drag & Drop, Brush-Ziehen) — nicht als Ein-Schritt-Kurzschluss simulierbar

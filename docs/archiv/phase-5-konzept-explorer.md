@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Phase 5 — Konzept: Explorative Datenansichten [OP]
 
 > **Nachtrag:** Titel und Fahrplan-Phasenname bleiben aus Historiengründen erhalten;

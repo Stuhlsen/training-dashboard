@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Konzept: Event-Verwaltung (Phase 2, Punkt 2)
 
 > **Ziel:** Rennen/Touren und sonstige Kalendereinträge mit Datum, Priorität und Countdown verwalten — verknüpft mit der "Nächste Einheit"-Karte im Header und den FTP-Zielen.

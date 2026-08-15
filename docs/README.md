@@ -1,0 +1,66 @@
+# docs/ — Wegweiser
+
+Diese Übersicht zeigt, was in `docs/` liegt, was jedes Dokument enthält und
+wann man es liest. Ein Absatz je lebendem Dokument, sortiert nach Themen.
+
+## Repo-weite Konventionen
+
+**`../AGENTS.md`** (Repo-Root, nicht hier in `docs/`) — die zentrale
+Referenz für Architektur, Befehle, Commit-Konvention, Datenschutzregeln und
+bekannte Eigenheiten. Bei jeder Aufgabe zuerst hier nachsehen.
+
+## Laufender Fahrplan (aktuelle Umbauten)
+
+- **`fahrplan-0-uebersicht.md`** — Einstiegsdokument für die laufende
+  Aufräum-/Umbaurunde nach Fertigstellung von Dashboard 3.0: Zielbild,
+  Entscheidungen, Reihenfolge der vier Fahrpläne. Keine Schrittdetails.
+- **`fahrplan-1-vanilla-entfernen.md`** — Entfernung des alten Vanilla-JS-Zweigs
+  (`assets/js/`) aus `main`. **Abgeschlossen.**
+- **`fahrplan-2-doku-aufraeumen.md`** — dieser Aufräumdurchgang selbst: Docs
+  einordnen (dieses Dokument ist ein Ergebnis davon), `.gitignore`/`.env.example`,
+  später ein Betriebs-Runbook.
+- **`fahrplan-3-docker-umbau.md`** — Ablösung der Supabase-Cloud durch einen
+  selbst gehosteten Docker-Verbund.
+- **`fahrplan-4-athlet-3.md`** — dritter Athlet und Multi-Sport-Ausbau.
+
+Vor dem Start einer Aufgabe in diesem Themenbereich das jeweilige
+Fahrplan-Fenster lesen (Ziel, Vorbedingung, Abnahme) statt nur den Titel.
+
+## Laufende Konzepte
+
+- **`dashboard-3.0-konzept-react-umbau.md`** — Gesamtkonzept + Etappenplan des
+  React-Neubaus unter `/app/`. Sehr groß, gewachsen über den gesamten Umbau;
+  zeigt pro Etappe Entscheidung, Ergebnis und offene Punkte. Bei Fragen "warum
+  ist das so gebaut" in `app/src/**` meist die erste Anlaufstelle nach den
+  modul-lokalen READMEs.
+- **`konzept-progressionssteuerung.md`** — wie der Claude-Trainer-Export
+  Trainingsplan-Anpassungen (Formatkatalog, Ruhetage-als-Karten, Wirkungsanzeige)
+  vorschlägt und validiert. Bezug zu `core/plan-config.js`, `core/projection.js`,
+  `core/export-briefing.js` (Pfade im Dokument selbst noch mit Vanilla-Präfix,
+  gemeint ist die jeweils portierte Datei unter `app/src/core/`).
+- **`phase-4-prompt-vorlage-claude-trainer.md`** — die wörtliche Prompt-Vorlage
+  für den Claude-Trainer-Export. **Nicht verschieben oder umbenennen** — ein
+  Konsistenztest (`app/src/core/export-briefing-consistency.test.js`) prüft
+  `PROMPT_TEMPLATE` byteweise gegen den Inhalt dieser Datei.
+- **`phase-6-konzept-besucher-feedback.md`** — Konzept für anonymes
+  Besucher-Feedback (einziger Schreibzugriff ohne Login), Moderation über
+  `is_admin`.
+- **`phase-6-konzept-sichtbarkeit.md`** — verbindliche Matrix, welcher Datentyp
+  öffentlich sichtbar ist und welcher Login/Rolle braucht.
+
+## Zentrale Sammelstelle
+
+- **`offene-punkte.md`** — laufend gepflegte Liste offener/bekannter Punkte
+  über alle Bereiche (Verifikationen, bewusst zurückgestellte Entscheidungen,
+  bekannte Lücken). Vor größeren Änderungen kurz gegenprüfen, ob der Bereich
+  dort schon einen offenen Punkt hat.
+
+## Archiv
+
+**`archiv/`** — abgeschlossene Phasen-Konzepte, überholte Fahrpläne und
+Vanilla-Ära-Grundlagendokumente. Jede Datei trägt einen Archiv-Hinweis am
+Kopf. **Nichts darin gilt noch für den aktuellen Code** — nützlich nur als
+historischer Kontext (warum wurde etwas so entschieden), nicht als
+Anleitung für neue Arbeit. Bei Unsicherheit: aktueller Code + `AGENTS.md` +
+die modul-lokalen READMEs unter `app/src/**` sind immer die Quelle der
+Wahrheit, nicht das Archiv.

@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Phase 0 — Schichtenarchitektur: Wo lebt Supabase?
 
 > Frage aus dem Fahrplan: neue `api/`- oder `supabase/`-Schicht neben `core/` → `state/` → `ui/`?

@@ -1,3 +1,5 @@
+> **Archiviert (Fahrplan 2, DOK1, 15.08.2026).** Beschreibt einen überholten Stand. Gilt nicht mehr für den aktuellen Code — nur als historischer Kontext.
+
 # Phase 3 — Konzept: Konfliktlogik & TSS/CTL-Prognose bei Verschiebung [F5]
 
 > **Ziel:** Wenn eine Trainingskarte verschoben, angelegt, geändert oder gelöscht wird,
