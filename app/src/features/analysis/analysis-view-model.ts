@@ -197,16 +197,20 @@ const TYP_COLORS: Record<string, string> = {
   "FTP-Test": "#c9a84c",
 };
 
+// Klassifikator-Vergleichstabelle: nur intervals.icu-Ära (Notion-Fahrten aus
+// Plan 1 haben keine typDetected/Segmentstruktur und würden die Verteilung
+// verfälschen, s. Fahrplan 1, Fenster V3, docs/fahrplan-1-vanilla-entfernen.md).
 export function buildTypDistribution(rides: Ride[]): TypDistributionRow[] {
+  const p2 = rides.filter((r) => r.dataSource === "intervals");
   const typMap: Record<string, { count: number; km: number }> = {};
-  for (const r of rides) {
+  for (const r of p2) {
     const t = r.typ || "Sonstige";
     if (!typMap[t]) typMap[t] = { count: 0, km: 0 };
     typMap[t].count++;
     typMap[t].km += r.km || 0;
   }
 
-  const totalKm = sum(rides, "km");
+  const totalKm = sum(p2, "km");
   return Object.entries(typMap)
     .sort((a, b) => b[1].km - a[1].km)
     .map(([typ, d]) => ({

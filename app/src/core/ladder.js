@@ -95,6 +95,10 @@ export function activeLockUntil(history, formatId, todayISO) {
  * @param {string} formatId
  * @returns {{rating:string|null, rpe:number|null}|null}
  */
+// Notion-Fahrten (Plan 1) bekommen serverseitig nie ein `compliance`-Feld
+// (keine Segmentstruktur) — der matchedFormatId-Filter unten schließt sie
+// dadurch bereits de facto aus, kein zusätzlicher dataSource-Filter nötig
+// (Fahrplan 1, Fenster V3).
 export function lastComplianceForFormat(rides, formatId) {
   const matches = (rides || []).filter((r) => r.compliance?.matchedFormatId === formatId);
   if (!matches.length) return null;

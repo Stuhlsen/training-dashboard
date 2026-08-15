@@ -145,12 +145,46 @@ Fahrten ohne `activityId` stammen aus der Notion-Ära (Plan 1) und sind struktur
 4. **Vorher/Nachher-Nachweis:** Für beide Athleten ausgeben, welche Kennzahlen sich durch die Filterung ändern und welche nicht. Erwartung: Kalibrierungszahlen ändern sich, PMC und FTP-Verlauf nicht.
 5. HRV-Methodenwechsel RMSSD→SDNN bleibt als eigenes Metadaten-Flag bestehen und wird **nicht** mit `era` vermischt.
 
+### Umsetzung (15.08.2026)
+
+Recherche ergab: `dataSource: "notion"|"intervals"` existiert bereits (gesetzt in
+`scripts/lib/notion.js`/`scripts/lib/map-activity.js`, dokumentiert in
+`app/src/types.js` und `app/src/core/validate.js`) — kein neues `era`-Feld
+nötig, Schritt 2 der Empfehlung war bereits erfüllt. Von den vier Ausschluss-
+kategorien hatte nur eine eine echte, ungefilterte Laufzeit-Aufrufstelle in
+`app/src/**`:
+
+- **Klassifikator-Vergleichstabelle** (`buildTypDistribution()`,
+  `app/src/features/analysis/analysis-view-model.ts`) — jetzt gefiltert auf
+  `dataSource === "intervals"`, analog zum bereits bestehenden Filter in
+  `periodization.js::phaseCompliance()`.
+- **Leiterlogik** (`ladder.js::lastComplianceForFormat()`) — kein Code-Change:
+  Notion-Fahrten bekommen serverseitig nie ein `compliance`-Feld, sind über
+  den bestehenden `matchedFormatId`-Filter bereits de facto ausgeschlossen.
+  Nur ein erklärender Kommentar ergänzt.
+- **Kalibrierung** / **Compliance-Matching** (`compliance-match.js`,
+  `session-classify.js`) — keine Laufzeit-Aufrufstelle unter
+  `app/src/features/**`; Kalibrierung war ein einmaliger historischer
+  Vorgang (Konstanten in `plan-config.js`/`classify.ts`), Compliance wird
+  serverseitig vorberechnet und nur gelesen. Nichts zu ändern.
+
+**Vorher/Nachher (Athlet 1, Stand 15.08.2026):** `data/rides.json` enthält 57
+`"dataSource": "notion"`- und 33 `"dataSource": "intervals"`-Einträge (90
+gesamt). Vorher floss in die Typ-Verteilungstabelle die volle Summe (90) ein,
+nachher nur noch 33. PMC/FTP-Historie/Gesamtstatistiken (`buildAnalysisKpis`,
+`pmc.js`, `ftp-forecast.js`, Explorer-Charts) bleiben unverändert bei 90 —
+sie filtern nicht und sollen es auch nicht. Athlet 2 (`data/rides-2.json`,
+147 Einträge) hat 0 Notion-Fahrten, ist von der Filterung nie betroffen.
+
 ### Abnahme
 
-- [ ] Genau ein Feld kennzeichnet die Altdaten
-- [ ] Vorher/Nachher-Vergleich dokumentiert
-- [ ] Langzeit-Charts zeigen die Altfahrten weiterhin
-- [ ] Testsuite grün
+- [x] Genau ein Feld kennzeichnet die Altdaten (`dataSource`, bereits
+      vorhanden — kein neues Feld eingeführt)
+- [x] Vorher/Nachher-Vergleich dokumentiert (s. oben: 90 → 33 in der
+      Typ-Verteilungstabelle, Langzeit-Metriken unverändert)
+- [x] Langzeit-Charts zeigen die Altfahrten weiterhin (ungefiltert, keine
+      Änderung an `buildAnalysisKpis`/`pmc.js`/`ftp-forecast.js`/Explorer)
+- [x] Testsuite grün
 
 ---
 

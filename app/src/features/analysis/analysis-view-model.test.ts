@@ -24,6 +24,7 @@ function ride(overrides: Partial<Ride>): Ride {
     typ: "Z2 Dauer",
     km: 50,
     min: 120,
+    dataSource: "intervals",
     ...overrides,
   } as Ride;
 }
@@ -151,6 +152,16 @@ describe("buildTypDistribution", () => {
     const missing = rows.find((r) => r.typ === "Sonstige");
     expect(unknown?.color).toBe("#6b7280");
     expect(missing).toBeDefined();
+  });
+
+  it("schließt Notion-Ära-Fahrten aus (Fahrplan 1, V3)", () => {
+    const rows = buildTypDistribution([
+      ride({ typ: "Sweet Spot", km: 60, dataSource: "intervals" }),
+      ride({ typ: "Z2 Dauer", km: 40, dataSource: "notion" }),
+    ]);
+    const total = rows.reduce((sum, r) => sum + r.count, 0);
+    expect(total).toBe(1);
+    expect(rows.find((r) => r.typ === "Z2 Dauer")).toBeUndefined();
   });
 });
 
