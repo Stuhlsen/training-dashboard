@@ -4,6 +4,8 @@
 **Herkunft:** Fenster V0 aus `docs/fahrplan-1-vanilla-entfernen.md`
 **Wichtig:** Dieses Fenster hat keine einzige Datei verändert — reiner Bericht.
 
+**Korrektur (Stand 14.08.2026, unmittelbar vor V2 durch `/code-review` gefunden):** Zeile "Charts / Explorer" unten war zu optimistisch. Ein Abgleich der einzelnen Vanilla-Chart-IDs (nicht nur der Komponentenzahl) gegen `app/src/charts/*` zeigte drei fehlende Charts: **Ø Tempo · Entwicklung** (`chart-sm-tempo`, komplett fehlend), **Belastungswächter** (`chart-trimp`, TRIMP-Wochenlast + CTL-Ramp-Linie + Monotonie-⚠ — die Daten waren über `LoadTable.tsx` erreichbar, aber nicht als Chart), **Hydration** (`chart-hydration`, nur noch eine Durchschnittszahl statt Tagesverlauf). Alle drei sind mit `TempoTrendChart.tsx`/`TrimpLoadChart.tsx`/`HydrationChart.tsx` nachgezogen (V1-Nachtrag, je ein Commit). Lehre für künftige V0-artige Abgleiche: bei Chart-Listen die Einzel-IDs zählen, nicht nur "Komponente X existiert".
+
 ---
 
 ## 1. Kurzfassung
@@ -34,7 +36,7 @@ Die React-App unter `app/` ist bei der **Oberfläche nahezu vollständig** — a
 | **Vorschläge** (`proposal-banner/list/compare.js`) | ja — `ProposalBanner/List/Compare.tsx` | ja | — | `proposal-review-view-model.test.ts` ✅ |
 | **Trainer-Leiste** (`assets/js/ui/trainer-bar.js`) | ja — `TrainerBar.tsx` | ja | — | `trainer-bar-view-model.test.ts` ✅ |
 | **Analyse-Tab** (`assets/js/ui/analysis.js`) | ja — `app/src/features/analysis/*` | ja | Sektion 1 (Belastungsempfehlung) bewusst auf den Hero verlagert, Sektionen 2–8 vollständig | `analysis-view-model.test.ts`, `analysis-core.test.js` ✅ |
-| **Charts / Explorer** (`assets/js/ui/charts/*`) | ja — `app/src/charts/*` (20 Komponenten) | ja | Etappe 8 + 12a–12i abgeschlossen | 20 Chart-Tests ✅ |
+| **Charts / Explorer** (`assets/js/ui/charts/*`) | ja — `app/src/charts/*` (23 Komponenten) | ja | Etappe 8 + 12a–12i abgeschlossen; 3 einzelne Chart-IDs fehlten (Tempo/TRIMP/Hydration, s. Korrektur oben) — mit V1-Nachtrag geschlossen | 23 Chart-Tests ✅ |
 | **Chart-Sichtbarkeit** (`assets/js/ui/chart-visibility.js`) | **nein** | **nein** | Kein datengetriebenes Aus-/Einblenden leerer Charts, kein Kategorie-Kollaps, kein „leere trotzdem zeigen"-Umschalter. 5 von 20 React-Charts haben einen eigenen Leerzustand | ❌ `chart-visibility.test.js` verwaist |
 | **Events** (`event-form.js`, `event-timeline.js`) | ja — `app/src/features/events/*` | ja | — | `events-view-model.test.ts`, `useEvents.test.tsx` ✅ |
 | **Settings** (`assets/js/ui/settings-panel.js`) | ja — `app/src/features/settings/*` | ja | Profil/Passwort/Ziele/FTP-Historie/Formate/Datenquellen alle vorhanden | `formats-view-model.test.ts` ✅ |

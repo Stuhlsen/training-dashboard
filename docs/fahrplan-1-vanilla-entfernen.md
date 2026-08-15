@@ -89,7 +89,8 @@ Bericht abwarten.
 ### Abnahme
 
 - [x] Jede Zeile der V0-Tabelle steht auf „vollständig" (14.08.2026: scripts/-Blockade, Wochenrückblick, Befinden-Kachel, Tagesform-Detailkarte, Leiterstand-Zeile, Chart-Sichtbarkeit — je ein eigener Commit auf `main`)
-- [x] Testsuite grün (1210/1210 in `app/`)
+- [x] Nachtrag (14.08.2026, unmittelbar vor V2 durch `/code-review` gefunden): 3 einzelne Chart-IDs fehlten trotz „Charts/Explorer vollständig" in der V0-Tabelle — Ø Tempo · Entwicklung, Belastungswächter (TRIMP+Ramp+Monotonie), Hydration-Verlauf. Nachgebaut als `TempoTrendChart.tsx`/`TrimpLoadChart.tsx`/`HydrationChart.tsx`, s. `docs/v0-funktionsabgleich-bericht.md`-Korrektur
+- [x] Testsuite grün (1222/1222 in `app/`)
 
 ---
 
