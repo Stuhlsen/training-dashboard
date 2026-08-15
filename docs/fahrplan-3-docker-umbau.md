@@ -12,6 +12,8 @@ Anwendung, Datenbank, Authentifizierung und Datensynchronisierung laufen als Con
 
 **Gewählter Umfang: schlanker Stack.** Vier Dienste statt der zehn des offiziellen Referenz-Setups — Postgres, GoTrue, PostgREST, Reverse Proxy. Alles, was die Anwendung nachweislich nicht benutzt, wird nicht betrieben.
 
+**Zwei getrennte Umgebungen, nicht eine.** Entwicklung und Test finden vollständig auf dem eigenen Rechner statt. Erst ein fertig geprüfter Stand wird an die Hosting-Infrastruktur weitergegeben — nicht der Server als Testumgebung. Konkret: DKR1 bis DKR3 laufen ausschließlich lokal, nichts davon berührt den Zielserver. Erst DKR4 überträgt etwas dorthin, und zwar in Form eines fertig gebauten, versionierten Images — nie als Quellcode, der auf dem Server erst noch gebaut oder verändert wird. Der Übergabepunkt dazwischen (Ende DKR3 / Anfang DKR4) ist unten als eigener Kontrollpunkt beschrieben.
+
 ## Konstruktionsziele
 
 1. **Portabilität vor Bequemlichkeit.** Keine hostspezifischen Pfade, keine von Hand angelegten Dateien außer `.env`.
@@ -19,6 +21,7 @@ Anwendung, Datenbank, Authentifizierung und Datensynchronisierung laufen als Con
 3. **Nichts Unversioniertes auf dem Server.** Was nicht im Repo steht, existiert nach einem Neuaufbau nicht.
 4. **Jede Migration hat einen abfragbaren Anwendungsstatus.**
 5. **Ein Backup ohne durchgeführten Restore zählt nicht als Backup.**
+6. **Lokal geprüft, dann erst übergeben.** Kein Schritt verändert den Server, bevor sein lokales Gegenstück nachweislich funktioniert. Die Hosting-Infrastruktur bekommt ausschließlich fertige, geprüfte Artefakte — nie einen Zwischenstand zum Weiterentwickeln.
 
 Der Umzug auf einen beliebigen anderen Host soll am Ende aus `docker compose up`, einer `.env` und einem Datenbank-Dump bestehen.
 
@@ -33,10 +36,15 @@ Der Umzug auf einen beliebigen anderen Host soll am Ende aus `docker compose up`
 ## Fensterübersicht
 
 ```
+─── Ausschließlich lokal, Server bleibt unberührt ───
 DKR0   Backend-Nutzungsinventar (read-only)      ◆  bestimmt den Stack-Umfang
 DKR1   Frontend-Image und Compose lokal          ◆
 DKR2   Sync-Container
 DKR3   Self-Host-Stack lokal                     ◆◆ härtester Kontrollpunkt
+
+═══ ÜBERGABE — hier wechselt zum ersten Mal etwas auf fremde Infrastruktur ═══
+
+─── Ab hier auf dem Zielserver ───
 DKR4   Server und Auslieferungskette
 DKR5   Datenmigration und Backup                 ◆
 DKR6   Cutover
@@ -194,14 +202,29 @@ Ohne grüne RLS-Suite geht es nicht weiter.
 
 ---
 
+## ═══ Übergabepunkt — hier verlässt zum ersten Mal etwas den eigenen Rechner ═══
+
+**Bis hierhin war ausschließlich der eigene Rechner betroffen.** Alles, was jetzt weitergeht, ist ein fertig gebautes, geprüftes Artefakt — kein Quellcode, an dem anderswo weitergearbeitet wird, und kein „wir schauen mal, ob es dort auch läuft".
+
+Diese vier Punkte müssen erfüllt sein, **bevor** DKR4 beginnt:
+
+1. **DKR1 bis DKR3 sind vollständig abgenommen**, mit allen dortigen Haken abgehakt — insbesondere die grüne RLS-Suite aus DKR3.
+2. **Das Frontend-Image aus DKR1 wird geprüft, nicht neu gebaut.** Genau das Image, das lokal getestet wurde, ist dasjenige, das später auf den Server kommt — dieselbe Image-ID, kein zweiter Build „für den Server". Ein zweiter Build, und sei er aus demselben Code, wäre wieder ein ungeprüftes Artefakt.
+3. **Ein einziges Übergabepaket** wird definiert: die Compose-Datei für den Server (`docker-compose.prod.yml`, folgt in DKR4), das geprüfte Image-Tag, `.env.example` mit allen benötigten Variablen. Nichts davon enthält Zugangsdaten — Secrets werden getrennt und ausschließlich direkt auf dem Zielserver eingetragen, nie mitgeschickt.
+4. **Es wird nichts vor Ort auf dem Server gebaut, kompiliert oder aus Quellcode zusammengesetzt.** Der Server zieht ein fertiges Image und startet Container — mehr nicht. Jeder Schritt, der auf dem Server mehr täte als das, gehört zurück in ein lokales Fenster.
+
+> Das ist keine reine Formalität: Es ist die Antwort auf die Frage, wie „erst bei mir lokal fertig testen, dann weitergeben zum Hosten" tatsächlich technisch umgesetzt wird. Ohne Punkt 2 könnte ein Unterschied zwischen dem lokal geprüften Image und einem später auf fremder Infrastruktur gebauten Image entstehen — genau die Art Fehler, die sich sonst erst im Betrieb zeigt, wenn sie am schwersten zuzuordnen ist.
+
+---
+
 ## Fenster DKR4 — Server und Auslieferungskette
 
 **Ziel:** Der Stack läuft auf dem Zielserver — noch mit leerer Datenbank.
-**Vorbedingung:** DKR3 vollständig abgenommen.
+**Vorbedingung:** DKR3 vollständig abgenommen, Übergabepunkt oben vollständig erfüllt.
 **Modell:** `[SO]`
 **Warum getrennt von der Datenmigration:** Infrastrukturfehler und Datenfehler sollen nicht gleichzeitig auftreten können.
 
-1. **Image in CI bauen, nicht auf dem Server.** GitHub Actions baut und pusht nach GHCR. Der Server zieht ein **versioniertes Tag**. Kein `:latest` — sonst ist nicht rekonstruierbar, was gerade läuft.
+1. **Image in CI bauen, nicht auf dem Server.** GitHub Actions baut aus demselben Dockerfile, das in DKR1 lokal geprüft wurde, und pusht nach GHCR. Der Server zieht ein **versioniertes Tag**. Kein `:latest` — sonst ist nicht rekonstruierbar, was gerade läuft.
 2. **`docker-compose.prod.yml`** getrennt von der Dev-Fassung: gepinnte Image-Tags, keine offenen Ports außer dem Frontend, Healthchecks, `restart: unless-stopped`, benannte Volumes.
 3. **Einbindung in die vorhandene Infrastruktur:**
    - Anbindung an ein bestehendes externes Docker-Netzwerk
