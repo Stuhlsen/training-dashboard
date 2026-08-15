@@ -29,6 +29,9 @@ import {
   sleepAvailable,
   weatherWeeklyAvailable,
   energyWeightAvailable,
+  tempoAvailable,
+  trimpAvailable,
+  hydrationAvailable,
   countEmpty,
 } from "../../core/chart-availability.js";
 import { athleteConfig, PRIMARY_ATHLETE_ID, RETEST_DATE } from "../../config";
@@ -51,6 +54,9 @@ import { WeatherWeeklyChart } from "../../charts/WeatherWeeklyChart";
 import { SleepChart } from "../../charts/SleepChart";
 import { EnergyWeightChart } from "../../charts/EnergyWeightChart";
 import { WellnessChart, type WellnessMetric } from "../../charts/WellnessChart";
+import { TempoTrendChart } from "../../charts/TempoTrendChart";
+import { TrimpLoadChart } from "../../charts/TrimpLoadChart";
+import { HydrationChart } from "../../charts/HydrationChart";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -251,6 +257,9 @@ export function ExplorerPage() {
     sleep: sleepAvailable(wellness),
     weatherWeekly: weatherWeeklyAvailable(rides),
     energyWeight: energyWeightAvailable(wellness),
+    tempo: tempoAvailable(rides),
+    trimp: trimpAvailable(rides),
+    hydration: hydrationAvailable(wellness),
   };
   const emptyChartCount = countEmpty(Object.values(availability));
 
@@ -371,12 +380,20 @@ export function ExplorerPage() {
         <SpeedHrScatterChart rides={rides} />
       </ChartSection>
 
+      <ChartSection title="Ø Tempo · Entwicklung" available={availability.tempo} showEmpty={showEmpty}>
+        <TempoTrendChart rides={rides} />
+      </ChartSection>
+
       <ChartSection title="Ø-Herzfrequenz" available={availability.hrTrend} showEmpty={showEmpty}>
         <HrTrendChart rides={rides} />
       </ChartSection>
 
       <ChartSection title="Zeit in Zonen" available={availability.zoneWeekly} showEmpty={showEmpty}>
         <ZoneWeeklyChart rides={rides} />
+      </ChartSection>
+
+      <ChartSection title="Belastungswächter" available={availability.trimp} showEmpty={showEmpty}>
+        <TrimpLoadChart rides={rides} />
       </ChartSection>
 
       <ChartSection title="Wetter" available={availability.weatherWeekly} showEmpty={showEmpty}>
@@ -389,6 +406,10 @@ export function ExplorerPage() {
 
       <ChartSection title="Energie & Gewicht" available={availability.energyWeight} showEmpty={showEmpty}>
         <EnergyWeightChart wellness={wellness} bmr={athleteCfg?.bmr} />
+      </ChartSection>
+
+      <ChartSection title="Hydration" available={availability.hydration} showEmpty={showEmpty}>
+        <HydrationChart wellness={wellness} />
       </ChartSection>
 
       <ChartSection title="Power-Curve" available={availability.powerCurve} showEmpty={showEmpty}>

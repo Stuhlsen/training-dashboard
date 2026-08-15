@@ -11,7 +11,7 @@
    im Aufrufer (unbekannt/kein Prädikat → sichtbar), nicht hier.
    ============================================================ */
 
-import { energyView } from "./body.js";
+import { energyView, hydrationSeries } from "./body.js";
 
 /** @param {import("../types.js").Ride[]} rides */
 export function weeklyVolumeAvailable(rides) {
@@ -71,6 +71,21 @@ export function weatherWeeklyAvailable(rides) {
 /** @param {import("../types.js").WellnessDay[]} wellness */
 export function energyWeightAvailable(wellness) {
   return energyView(wellness) !== null;
+}
+
+/** @param {import("../types.js").Ride[]} rides */
+export function tempoAvailable(rides) {
+  return rides.some((r) => r.kmh);
+}
+
+/** @param {import("../types.js").Ride[]} rides */
+export function trimpAvailable(rides) {
+  return rides.some((r) => r.trimp || r.tss);
+}
+
+/** @param {import("../types.js").WellnessDay[]} wellness */
+export function hydrationAvailable(wellness) {
+  return hydrationSeries(wellness) !== null;
 }
 
 /** Zählt leere Charts aus denselben Verfügbarkeits-Flags, die der
