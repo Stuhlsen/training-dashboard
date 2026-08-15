@@ -2,13 +2,13 @@
   "name": "training-dashboard",
   "private": true,
   "version": "1.0.0",
-  "description": "Radsport-Trainingsdashboard — Vanilla JS auf GitHub Pages, Datensync via GitHub Actions",
+  "description": "Radsport-Trainingsdashboard — React (app/) auf GitHub Pages, Datensync via GitHub Actions",
   "type": "module",
   "scripts": {
     "test": "node --test --experimental-test-module-mocks \"tests/**/*.test.js\"",
     "sync": "node scripts/generate-data.js",
-    "lint": "npx --yes eslint@9 assets/js scripts tests",
-    "format": "npx --yes prettier@3 --write \"assets/js/**/*.js\" \"scripts/**/*.js\" \"tests/**/*.js\""
+    "lint": "npx --yes eslint@9 scripts tests",
+    "format": "npx --yes prettier@3 --write \"scripts/**/*.js\" \"tests/**/*.js\""
   },
   "devDependencies": {
     "fallow": "^3.2.0"

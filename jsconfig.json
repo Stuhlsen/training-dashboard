@@ -8,5 +8,5 @@
     "strict": false,
     "lib": ["es2022", "dom", "dom.iterable"]
   },
-  "include": ["assets/js/**/*.js", "scripts/**/*.js", "tests/**/*.js"]
+  "include": ["scripts/**/*.js", "tests/**/*.js"]
 }

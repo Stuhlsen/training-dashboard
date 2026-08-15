@@ -30,7 +30,7 @@ jobs:
 
       # ESLint via npx, ohne package im Repo zu installieren
       - name: Lint (ESLint 9, Flat Config)
-        run: npx --yes eslint@9 assets/js scripts tests
+        run: npx --yes eslint@9 scripts tests
 
   # Codebase-Intelligence-Report (Fallow): Health Score, Circular Deps,
   # Duplication, Dead Code, Complexity Hotspots. Läuft parallel zu "test"

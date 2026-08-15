@@ -1,17 +1,16 @@
 # CI für die React-App unter /app/ (Dashboard 3.0).
 #
-# Bewusst ein EIGENER Workflow statt eines Jobs in ci.yml: /app/ existiert auf
-# `main` noch nicht (die Vanilla-Seite bleibt bis zur Umschaltung in Etappe 10
-# live, s. docs/dashboard-3.0-konzept-react-umbau.md G2). Ein Job in ci.yml
-# müsste deshalb gegen das fehlende Verzeichnis abgesichert werden — getrennt
-# bleibt ci.yml unangetastet und dieser Workflow läuft nur, wo es /app/ gibt.
+# Bewusst ein EIGENER Workflow statt eines Jobs in ci.yml: ci.yml testet/lintet
+# den Node-Teil (scripts/, tests/) ohne npm install, /app/ braucht dagegen
+# echte Dependencies (npm ci gegen app/package-lock.json) — getrennt bleibt
+# ci.yml unangetastet.
 #
 # Committet nichts, wie ci.yml.
 name: CI (App)
 
 on:
   push:
-    branches: [dashboard-3.0]
+    branches: [main]
     paths:
       - "app/**"
       - ".github/workflows/ci-app.yml"
