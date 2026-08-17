@@ -8,6 +8,31 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      // Läuft vor dem App-Bundle (klassisches Script, kein type="module" —
+      // die Ausführungsreihenfolge relativ zum Modul-Script unten ist damit
+      // garantiert). Liest eine vom Docker-Entrypoint zur Laufzeit
+      // geschriebene config.json (Fahrplan 3, DKR1) und legt sie unter
+      // window.__RUNTIME_CONFIG__ ab, damit api/supabase/config.ts sie beim
+      // Modul-Import synchron sieht — kein Umbau des Bootstraps auf async
+      // nötig. Bewusst synchrone XHR statt fetch(), weil config.json vom
+      // selben nginx ausgeliefert wird (keine spürbare Blockierzeit) und
+      // der restliche Bootstrap synchron bleibt. Kein Status-Check nötig:
+      // auf GitHub Pages liefert eine 404-Seite kein gültiges JSON, im
+      // Vite-Dev-Server liefert der SPA-Fallback stattdessen index.html —
+      // beides lässt JSON.parse() scheitern und landet im selben catch,
+      // App nutzt dann wie bisher die Hostname-Tabelle in config.ts.
+      (function () {
+        try {
+          var xhr = new XMLHttpRequest();
+          xhr.open("GET", "/config.json", false);
+          xhr.send(null);
+          window.__RUNTIME_CONFIG__ = JSON.parse(xhr.responseText);
+        } catch (e) {
+          // kein config.json vorhanden oder kein gültiges JSON — Fallback greift
+        }
+      })();
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

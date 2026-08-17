@@ -19,6 +19,10 @@
 
 ## Abschnitt 1 — DKR1: Frontend-Image
 
+**Stand 17.08.2026: alle Dateien in diesem Abschnitt sind bereits im Repo
+angelegt** — dieser Abschnitt ist ab jetzt Dokumentation des tatsächlichen
+Stands, nicht mehr nur Kopiervorlage.
+
 ### Verzeichnisstruktur
 
 ```
@@ -29,8 +33,31 @@ app/
   docker-entrypoint.sh
 docker-compose.dev.yml       ← im Repo-Wurzelverzeichnis
 .env                         ← nicht versioniert
-.env.example                 ← versioniert
+.env.example                 ← versioniert, dieselbe Datei wie für `npm run sync`
+                                (SUPABASE_URL/SUPABASE_ANON_KEY werden doppelt genutzt)
 ```
+
+### Vorab nötige Code-Änderung: Laufzeit-Konfiguration
+
+Der DKR0-Bericht (`docs/offene-punkte.md`) hatte eine Lücke aufgedeckt:
+`app/src/api/supabase/config.ts` wählte Supabase-URL/Key bislang
+ausschließlich über eine feste Hostname-Tabelle — ohne jeden Mechanismus,
+zur Laufzeit etwas anderes einzuspeisen. Der Abnahmenachweis "ein Image,
+zwei Konfigurationen" wäre damit nicht erbringbar gewesen. Das genaue
+Warum (Container läuft selbst auf `localhost`) und Wie (synchrone
+`XMLHttpRequest` in `index.html`, `window.__RUNTIME_CONFIG__`,
+Vorrang-Reihenfolge in `resolveEntry()`) steht nicht hier doppelt, sondern
+ausschließlich als Kommentar direkt in `app/index.html` und
+`app/src/api/supabase/config.ts` — das ist die eine Stelle, die bei einer
+künftigen Änderung der Logik gepflegt werden muss.
+
+**Sicherheitsnetz für DKR4:** `RUNTIME_ENV` wird nicht 1:1 durchgereicht.
+Fehlt der Wert, gilt "dev" (der einzige Fall, den DKR1 selbst braucht); ist
+er exakt `"prod"`, gilt "prod"; jeder andere Wert (Tippfehler wie
+`"production"`) ergibt "unknown" — sichtbar im `EnvBadge`, statt
+stillschweigend als "dev" durchzugehen. `docker-compose.prod.yml` (DKR4)
+muss `RUNTIME_ENV=prod` trotzdem explizit setzen, sonst zeigt der Header
+"unknown" statt "prod" auf einer echten Produktivinstanz.
 
 ### `app/Dockerfile`
 
@@ -107,10 +134,22 @@ server {
 #!/bin/sh
 set -e
 
+# Fail fast statt leise leeres config.json zu schreiben: sonst faellt die App
+# unbemerkt auf die hart eingetragene dev-Hostname-Tabelle zurueck (config.ts
+# verwirft leere Werte), und ein fehlendes .env sieht dann aus wie ein
+# funktionierender Container.
+if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+  echo "docker-entrypoint: SUPABASE_URL/SUPABASE_ANON_KEY nicht gesetzt — .env pruefen" >&2
+  exit 1
+fi
+
+# RUNTIME_ENV bewusst ohne Shell-seitigen Default: der einzige Default
+# ("fehlt env -> dev") lebt in config.ts::resolveEntry(), nicht hier UND dort.
 cat > /usr/share/nginx/html/config.json <<EOF
 {
   "supabaseUrl": "${SUPABASE_URL}",
-  "supabaseAnonKey": "${SUPABASE_ANON_KEY}"
+  "supabaseAnonKey": "${SUPABASE_ANON_KEY}",
+  "env": "${RUNTIME_ENV}"
 }
 EOF
 ```
@@ -139,13 +178,19 @@ services:
 
 ### `.env.example`
 
-```
-# Gegen dashboard-dev testen, niemals gegen prod
-SUPABASE_URL=https://<dein-dev-projekt>.supabase.co
-SUPABASE_ANON_KEY=<dev-anon-key>
-```
+Keine eigene Datei — `docker-compose.dev.yml` liest `SUPABASE_URL`/
+`SUPABASE_ANON_KEY` aus derselben Repo-Wurzel-`.env`, die auch
+`npm run sync` und `npm test` nutzen (s. `.env.example`, Abschnitt
+"Supabase, dev-Projekt"). Mit den echten Werten aus `dashboard-dev` füllen,
+niemals aus `dashboard-prod`. `.env` steht in `.gitignore` (siehe
+Fahrplan 2, DOK2).
 
-Kopieren nach `.env` und mit den echten Werten aus `dashboard-dev` füllen. `.env` steht in `.gitignore` (siehe Fahrplan 2, DOK2).
+**Werte ohne Anführungszeichen eintragen** (`SUPABASE_URL=https://...`,
+nicht `SUPABASE_URL="https://..."`) — Docker Compose entfernt Anführungszeichen
+bei der `${VAR}`-Ersetzung in der Compose-Datei nicht, sie würden sonst
+wörtlich Teil des Werts und die vom Entrypoint erzeugte `config.json` wäre
+kein gültiges JSON mehr (landet dann im `catch` in `index.html`, App fällt
+still auf die Hostname-Tabelle zurück).
 
 ### Testablauf
 

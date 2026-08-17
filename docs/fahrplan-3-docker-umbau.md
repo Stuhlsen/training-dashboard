@@ -306,7 +306,7 @@ Diese vier Punkte müssen erfüllt sein, **bevor** DKR4 beginnt:
    - Eigene Subdomain, TLS über den vorhandenen Reverse Proxy
    - **Dienst- und Netzwerknamen mit Präfix versehen**, damit sie mit anderen Anwendungen auf dem Host nicht kollidieren
    - Vor dem Start prüfen, welche Ports und Netzwerknamen bereits belegt sind
-4. **`.env` auf dem Server** ist die einzige unversionierte Datei. Rechte `600`, Inhalt gegen `.env.example` gegengeprüft.
+4. **`.env` auf dem Server** ist die einzige unversionierte Datei. Rechte `600`, Inhalt gegen `.env.example` gegengeprüft. **`RUNTIME_ENV=prod` explizit setzen** — fehlt der Wert, zeigt der Header laut dem in DKR1 gebauten Sicherheitsnetz "unknown" statt "prod" an (nicht fälschlich "dev", aber eben auch nicht korrekt beschriftet), s. `docs/docker-lokal-einrichten.md` Abschnitt 1.
 5. **Erster Start mit leerer Datenbank:** Migrationen laufen durch, Anwendung erreichbar, Anmeldung schlägt mangels Benutzer fehl — das ist an dieser Stelle das erwartete Verhalten.
 6. **Ressourcengrenzen setzen** (`mem_limit`, `cpus`), damit der Stack einen geteilten Host nicht verdrängt.
 

@@ -403,6 +403,133 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   der vor jeder lokalen `main`-Vorbereitung (Merge/Cherry-Pick) warnt, wenn
   `origin/main` sich seit dem letzten bekannten Stand bewegt hat.
 
+## Fahrplan 3 — Docker-Umbau: DKR0-Bericht (17.08.2026)
+
+Read-only-Inventur laut `docs/fahrplan-3-docker-umbau.md`, Fenster DKR0.
+Keine andere Datei verändert. Grundlage: Grep über `app/src`
+(Frontend-Nutzung) und `scripts/` (Sync-Nutzung), Sichtung
+`supabase/migrations/0001`–`0017`.
+
+**Auth/GoTrue — genutzt.** `app/src/api/supabase/auth.ts`:
+`signInWithPassword` (Login + Re-Auth vor Passwortänderung),
+`signOut`, `onAuthStateChange`, `getSession`, `updateUser` (Passwort).
+Kein `signUp` (Registrierung bleibt laut Konzept dauerhaft geschlossen,
+`GOTRUE_DISABLE_SIGNUP=true` in DKR3 ist damit korrekt), kein
+`resetPasswordForEmail` — "Passwort vergessen" ist wie in DKR3 vermerkt
+noch nicht gebaut.
+
+**PostgREST — genutzt, keine RPCs, keine embedded relations.** 13 Tabellen
+über `.from()`: `events`, `ftp_history`, `goals`, `athlete_formats`,
+`plan_cards`, `ladder_history`, `profiles`, `export_prefs`, `proposals`,
+`session_formats`, `trainer_view_prefs`, `wellbeing`, plus die
+Security-Definer-View `wellbeing_shared` (0001/0003, kein `.rpc()`-Aufruf
+im gesamten Frontend). Alle `.select()`-Aufrufe nutzen flache
+Spaltenlisten, keine verschachtelten `foo(bar(*))`-Selects — PostgREST-
+Konfig kann sich auf `PGRST_DB_SCHEMAS=public` beschränken, ohne
+Embedding-Sonderfälle. **Nebenfund:** Tabelle `feedback` existiert im
+Schema (0001), wird aber von keiner Stelle unter `app/src` angesprochen —
+ungenutzt, unklar ob totes Feature oder vorbereitet für später; nicht Teil
+dieses Fahrplans, nur hier vermerkt.
+
+**Realtime — nicht genutzt.** Kein Treffer für `.channel(` oder
+`postgres_changes` in `app/src`.
+
+**Storage — nicht genutzt.** Kein Treffer für `.storage.from(`. Der
+Hero-Hintergrund ist reines CSS (`tokens.css`-Gradient, s. AGENTS.md
+Design-Abschnitt), kein Bild-Asset.
+
+**Edge Functions — nicht genutzt.** Kein Treffer für `.functions.invoke(`.
+
+→ **Entscheidungspunkt DKR0 damit beantwortet:** keiner der vier
+optionalen Bausteine ist belegt. Der schlanke Vier-Dienste-Stack (Postgres,
+GoTrue, PostgREST, Reverse Proxy) bleibt Feststellung, keine Annahme mehr.
+
+**Supabase-URL/anon-Key im Frontend:** hartkodiert in
+`app/src/api/supabase/config.ts`, ausgewählt nach
+`window.location.hostname` (`localhost` → dev-Projekt,
+`stuhlsen.github.io` → prod-Projekt) — **kein** Build- oder
+Laufzeit-Konfigurationsmechanismus vorhanden. Für DKR1 Punkt 2
+(Laufzeitkonfiguration statt Bauzeitkonfiguration über `config.json`)
+heißt das: `config.ts` muss zusätzlich einen Fall "Werte aus geladener
+`config.json`" bekommen — die reine Vite-`VITE_*`-Annahme aus dem
+Fahrplan-Text greift hier nicht 1:1, weil aktuell noch nicht mal `VITE_*`
+verwendet wird, sondern eine feste Hostname-Tabelle im Quellcode.
+
+**Env-Variablen/Secrets, vollständig:**
+- Sync (`scripts/lib/env.js`): `NOTION_API_KEY`, `NOTION_DATABASE_ID`,
+  `INTERVALS_API_KEY(_2)`, `INTERVALS_ATHLETE_ID(_2)`,
+  `WEATHER_LAT/LON(_2)`, `SUPABASE_URL`, `SUPABASE_ANON_KEY`,
+  `SUPABASE_ATHLETE1_EMAIL/_PASSWORD`, `SUPABASE_ATHLETE2_EMAIL/_PASSWORD`,
+  `SUPABASE_TRAINER_EMAIL/_PASSWORD`, sowie `_PROD`-Varianten für
+  `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_ATHLETE1_EMAIL`/`_PASSWORD`.
+- Frontend: keine `.env` (s. AGENTS.md Stack-Abschnitt) — Config kommt
+  komplett aus `config.ts`.
+- **Kein `service_role`-Key irgendwo im Repo verwendet** — auch
+  `scripts/migrate-plan-to-supabase.js` läuft über normalen
+  Athleten-Login, nicht über `service_role`. Für DKR3 Punkt 5
+  (Schlüsselerzeugung) heißt das: ein service-role-JWT muss zwar erzeugt
+  werden können (Supabase-Standard, evtl. künftig für Admin-Skripte
+  gebraucht), aber aktuell hängt kein bestehender Code-Pfad daran.
+
+**Migrationsliste `0001`–`0017`** (Zweck, aus Kopfkommentar/Inhalt):
+1. `0001_initial_schema` — Grundschema + RLS: `profiles`, `goals`,
+   `events`, `wellbeing`, `plan_cards`, `proposals`, `feedback`, View
+   `wellbeing_shared`, Trigger `on_auth_user_created` auf `auth.users`,
+   Funktionen `is_coach_of`/`is_admin`/`wellbeing_is_public`.
+2. `0002_grants` — fehlende Tabellen-Grants nachgezogen (RLS filtert nur
+   welche Zeilen, Grants regeln ob überhaupt Zugriff).
+3. `0003_wellbeing` — Morgen-Check-in-Schema verfeinert, `wellbeing_shared`
+   neu definiert.
+4. `0004_events` — Event-Verwaltung.
+5. `0005_plan_cards` — Planungstab-Karten.
+6. `0006_proposals_v1` — `proposals` auf Schema v1 + `trainer_view_prefs`.
+7. `0007_plan_cards_calendar_week` — `plan_cards.week` von Plan-Woche auf
+   ISO-Kalenderwoche umgestellt.
+8. `0008_export_prefs` — Export-Richtungsvorgabe je Profil.
+9. `0009_ftp_history` — zeitpunktbezogene FTP-Historie.
+10. `0010_proposals_public_select` — `proposals` öffentlich lesbar (S1).
+11. `0011_plan_cards_trainer_update_only` — Trainer darf `plan_cards` nur
+    UPDATEn, nicht INSERT/DELETE (T2).
+12. `0012_events_is_test` — `events.is_test`-Flag.
+13. `0013_plan_cards_workout_structure` — strukturiertes Workout-Schema
+    auf `plan_cards`.
+14. `0014_session_formats` — Formatkatalog (`session_formats`,
+    `athlete_formats`).
+15. `0015_ladder_history` — Leiterzustand je Format.
+16. `0016_ladder_progression_enabled` — Opt-in-Flag auf `profiles`.
+17. `0017_ladder_locked_until` — Sperrfrist-Feld auf `ladder_history`.
+
+**Postgres-Erweiterungen:** Keine einzige `CREATE EXTENSION` in den
+Migrationen — sie verlassen sich auf das, was das gehostete
+Supabase-Projekt bereits mitbringt. Einziger extensionsrelevanter Fund:
+`gen_random_uuid()` (Default für praktisch jede `id`-Spalte, acht
+Tabellen). Seit PostgreSQL 13 ist das eine Core-Funktion, keine
+`pgcrypto`-Extension mehr nötig — bestätigt zusätzlich DKR3 Punkt 1:
+`supabase/postgres`-Image verwenden (bringt es ohnehin mit), kein
+manuelles `CREATE EXTENSION` erforderlich, aber die Migrationen sind auch
+nicht explizit dagegen abgesichert, falls doch mal ein blankes
+Postgres-Image getestet würde.
+
+**Bekannter Kompromiss aus DKR1 (nicht behoben, bewusst zurückgestellt):**
+Die neue Laufzeit-Config (`app/index.html`, synchrone `XMLHttpRequest` auf
+`/config.json` vor dem App-Bundle) läuft ungated in allen drei Umgebungen —
+Docker, GitHub Pages, Vite-Dev-Server —, obwohl sie nur in Docker etwas
+liefert. Auf GitHub Pages (echte Nutzer, `sync-data.yml` baut dasselbe
+`index.html`) bedeutet das einen zusätzlichen, blockierenden Same-Origin-
+Request auf jeder Seitenaufruf, der dort garantiert nur eine 404 zurückgibt.
+Größenordnung: eine einzelne kleine same-origin-Anfrage gegen GitHub Pages'
+CDN, kein spürbarer Effekt zu erwarten, aber ungemessen. Sauberer wäre eine
+Build-Zeit-Unterscheidung (Docker-Build vs. `sync-data.yml`-Build erzeugen
+ohnehin schon zwei getrennte `npm run build`-Läufe), die das Script nur ins
+Docker-`index.html` einbaut — bewusst nicht in DKR1 umgesetzt, weil das über
+"Verpacken üben" hinausginge. Aufgreifen, falls es je auffällig wird oder
+DKR4 ansteht.
+
+### Abnahme DKR0
+- [x] Für jeden Baustein aus Punkt 1 steht „genutzt"/„nicht genutzt" mit Fundstelle
+- [x] Erweiterungsliste vollständig
+- [x] Keine Datei verändert (bis auf diesen Bericht)
+
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
 - **Fahrplan 1 — Vanilla-JS-Zweig entfernt (15.08.2026)**: `assets/js/**`
