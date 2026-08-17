@@ -108,6 +108,32 @@ Ergibt der Bericht Realtime- oder Storage-Nutzung, kommt der jeweilige Container
 - [ ] Image-Größe dokumentiert
 - [ ] Container läuft nicht als root (gegengeprüft)
 
+### So testest du es lokal
+
+Vollständige Dateien (Dockerfile, `.dockerignore`, `docker-compose.dev.yml`, Entrypoint-Skript, nginx-Konfiguration) zum Kopieren stehen in `docs/docker-lokal-einrichten.md`, Abschnitt 1. Hier nur die Befehle, die du nach dem Anlegen der Dateien ausführst:
+
+```powershell
+# Bauen
+docker compose -f docker-compose.dev.yml build
+
+# Starten (im Hintergrund)
+docker compose -f docker-compose.dev.yml up -d
+
+# Läuft er? Healthcheck-Status ansehen
+docker compose -f docker-compose.dev.yml ps
+
+# Logs live mitlesen
+docker compose -f docker-compose.dev.yml logs -f
+
+# Im Browser prüfen
+start http://localhost:8080
+
+# Stoppen, Container und Netzwerk entfernen (Daten bleiben, da kein Volume hier)
+docker compose -f docker-compose.dev.yml down
+```
+
+Der Nachweis aus der Abnahme — ein Image, zwei Konfigurationen — testest du so: `config.json`-Werte in der `.env` ändern, **nur** `up -d` erneut ausführen (kein `build` dazwischen), im Browser prüfen, dass sich die neue Konfiguration zeigt.
+
 ---
 
 ## Fenster DKR2 — Sync-Container
@@ -134,6 +160,28 @@ Ergibt der Bericht Realtime- oder Storage-Nutzung, kommt der jeweilige Container
 - [ ] Frontend zeigt die Daten aus dem Volume
 - [ ] Abgebrochener Sync lässt die alten Dateien intakt (aktiv getestet)
 - [ ] GitHub-Actions-Workflow deaktiviert, **nicht gelöscht** — Rückfahrkarte bis zum Cutover
+
+### So testest du es lokal
+
+Vollständige Dateien in `docs/docker-lokal-einrichten.md`, Abschnitt 2.
+
+```powershell
+# In die bestehende docker-compose.dev.yml aufnehmen (sync-Dienst + benanntes Volume),
+# dann einmal manuell auslösen statt auf die 6-Stunden-Zeitsteuerung zu warten
+docker compose -f docker-compose.dev.yml run --rm sync
+
+# Volume-Inhalt ansehen, ohne den Container-Umweg
+docker compose -f docker-compose.dev.yml exec frontend ls -la /usr/share/nginx/html/data
+
+# Abbruchtest: Lauf mitten im Sync unterbrechen und danach prüfen, dass die alten
+# Dateien noch da sind
+docker compose -f docker-compose.dev.yml run --rm sync &
+# kurz warten, dann:
+docker compose -f docker-compose.dev.yml kill sync
+
+# Logs des letzten Sync-Laufs
+docker compose -f docker-compose.dev.yml logs sync
+```
 
 ---
 
@@ -195,6 +243,32 @@ Ergibt der Bericht Realtime- oder Storage-Nutzung, kommt der jeweilige Container
 - [ ] RLS-Suite 28/28 gegen den lokalen Stack
 - [ ] Punkt 6 empirisch belegt, nicht angenommen
 - [ ] Postgres von außen nicht erreichbar (aktiv gegengeprüft)
+
+### So testest du es lokal
+
+Das ist der aufwendigste Teil — vollständige `docker-compose.selfhost.yml` mit allen vier Diensten, Umgebungsvariablen und dem Skript zur JWT-Erzeugung stehen in `docs/docker-lokal-einrichten.md`, Abschnitt 3. Dort auch der Ablauf für den Verifikationsschritt aus Punkt 6 (die vier Testfälle) als fertige `curl`-Befehle.
+
+```powershell
+# Kompletten Stack starten (Postgres, GoTrue, PostgREST, Proxy, Migrations-Runner)
+docker compose -f docker-compose.selfhost.yml up -d
+
+# Reihenfolge prüfen: Migrations-Runner muss durchgelaufen und beendet sein,
+# bevor die anderen Dienste als "healthy" gelten
+docker compose -f docker-compose.selfhost.yml ps
+
+# Postgres ist NICHT von außen erreichbar — das muss fehlschlagen:
+docker compose -f docker-compose.selfhost.yml exec postgres pg_isready
+# (dieser Befehl funktioniert, weil er INNERHALB des Containers läuft — von
+#  außen darf derselbe Port nicht erreichbar sein, siehe docs/docker-lokal-einrichten.md
+#  Abschnitt 3 für den externen Gegentest)
+
+# RLS-Suite gegen den lokalen Stack statt gegen die Cloud
+$env:SUPABASE_URL = "http://localhost/rest/v1"
+npm test -- tests/supabase-rls.test.js
+
+# Alles stoppen, inklusive Datenbank-Volume löschen (für einen sauberen Neustart)
+docker compose -f docker-compose.selfhost.yml down -v
+```
 
 ### ◆◆ STOPP
 
