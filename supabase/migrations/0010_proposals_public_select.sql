@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0010: proposals öffentlich lesbar (S1)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -48,3 +50,7 @@ grant select on public.proposals to anon;
 --                decided_at) entscheiden ✓ — Spaltenhärtung aus 0001
 --                unverändert, von dieser Migration nicht berührt
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

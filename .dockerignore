@@ -1,0 +1,17 @@
+app
+node_modules
+.git
+.github
+.claude
+.vscode
+docs
+tests
+data
+supabase
+.agents
+agent
+skills-lock.json
+*.md
+.env
+.env.example
+docker-compose*.yml

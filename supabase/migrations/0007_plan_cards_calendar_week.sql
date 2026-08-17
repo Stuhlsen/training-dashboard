@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0007: plan_cards.week auf Kalenderwoche
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -51,3 +53,7 @@ update public.plan_cards set week = '2026-KW38' where week = 'P2-W12';
 --   select week, count(*) from plan_cards where week like '2026-KW%'
 --   group by week order by week;
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

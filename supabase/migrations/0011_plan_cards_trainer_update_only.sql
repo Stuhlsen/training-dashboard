@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0011: plan_cards — Trainer nur UPDATE (T2)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -71,3 +73,7 @@ create policy "plan_cards: Trainer ändert direkt"
 -- als anon:      plan_cards weiterhin lesbar ✓ — unverändert (eigene
 --                Policy aus 0001, hier nicht angefasst)
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

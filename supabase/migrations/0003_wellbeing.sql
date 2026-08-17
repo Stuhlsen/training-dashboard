@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0003: Morgen-Check-in (wellbeing)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev)
@@ -87,3 +89,7 @@ grant select, insert, update, delete on public.wellbeing to authenticated;
 -- Spalten-Check: select sleep from wellbeing -> Fehler (Spalte weg)
 --                · select muscle_feel from wellbeing -> ok
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

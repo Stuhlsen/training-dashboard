@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0005: Planungstab-Karten (plan_cards)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev)
@@ -61,3 +63,7 @@ create trigger plan_cards_set_updated_at
 --                eigene auth.uid()) · Karte von Athlet B anlegen ✗
 -- Update-Trigger: Karte ändern -> updated_at aktualisiert sich automatisch
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

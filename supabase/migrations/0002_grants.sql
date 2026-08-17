@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0002: fehlende Tabellen-Grants
 -- Einspielen: Supabase SQL-Editor (dev zuerst, prod beim Merge von Phase 1)
@@ -49,3 +51,7 @@ grant select, insert, delete on public.proposals to authenticated;
 -- dort zusätzlich auf is_admin().
 grant select, insert on public.feedback to anon, authenticated;
 grant update, delete on public.feedback to authenticated;
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

@@ -1,0 +1,13 @@
+:80 {
+    handle /auth/v1/* {
+        uri strip_prefix /auth/v1
+        reverse_proxy gotrue:8081
+    }
+    handle /rest/v1/* {
+        uri strip_prefix /rest/v1
+        reverse_proxy postgrest:3000
+    }
+    handle {
+        respond "DKR3 self-host stack: nur /auth/v1 und /rest/v1 sind geroutet, das Frontend laeuft separat (DKR1)." 404
+    }
+}

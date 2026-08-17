@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0013: Workout-Schema (plan_cards.workout_structure)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -40,3 +42,7 @@ alter table public.plan_cards add column if not exists workout_structure jsonb;
 -- als anon:      plan_cards weiterhin lesbar (inkl. workout_structure) ✓
 --                · schreiben ✗
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

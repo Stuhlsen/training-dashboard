@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0006: proposals auf Schema v1 + trainer_view_prefs
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev)
@@ -179,3 +181,7 @@ grant select, insert, update, delete on public.trainer_view_prefs to authenticat
 --                Athlet B (nicht sein Athlet) ✗; Athlet A selbst kann die
 --                Zeile weder lesen noch schreiben (keine Policy für ihn)
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

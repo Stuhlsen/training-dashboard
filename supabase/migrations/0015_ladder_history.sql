@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0015: ladder_history (Leiterzustand je Format)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -81,3 +83,7 @@ grant select, insert, update, delete on public.ladder_history to authenticated;
 -- als Trainer A: Einträge von Athlet A lesen ✓ (is_coach_of) · schreiben ✗
 -- als anon:      ladder_history lesen ✗ (kein GRANT)
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

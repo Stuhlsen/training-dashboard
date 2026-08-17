@@ -142,6 +142,16 @@ Der Nachweis aus der Abnahme — ein Image, zwei Konfigurationen — testest du 
 **Vorbedingung:** DKR1 abgeschlossen.
 **Modell:** `[SO]`
 
+**Stand 17.08.2026:** Code + lokale Verdrahtung stehen und sind gegen
+Fake-/leere Werte geprüft (Image-Build, Fail-Fast-Pfad ohne echten
+API-Aufruf, atomare Schreiblogik, Volume-Verdrahtung frontend↔sync).
+Details und der aktuelle Verifikationsstand je Abnahme-Punkt stehen in
+`docs/docker-lokal-einrichten.md`, Abschnitt 2. Offen: ein echter Sync-Lauf
+mit echten Daten (braucht deine `.env`, macht echte API-Aufrufe — bitte
+selbst auslösen) sowie die beiden produktionsrelevanten Schritte (Punkt 5
+unten, GitHub-Actions-Abschaltung) — beide bewusst nicht ohne Rücksprache
+umgesetzt, da die Live-Seite bis zum Cutover von genau diesen Quellen lebt.
+
 1. **Sync-Dockerfile** auf `node:22-alpine` mit `scripts/` und `core/`, Einstiegspunkt `generate-data.js`.
 2. **Zeitsteuerung im Container**, nicht als System-Cron auf dem Host — sonst wandert Betriebslogik an eine unversionierte Stelle. Intervall über Umgebungsvariable, Vorgabe 6 Stunden wie bisher. Zusätzlich ein manueller Auslöser über `docker compose run`, weil der Cron-Fix vom Juli bewusst auf manuelles Triggern ausgelegt war.
 3. **Gemeinsames Volume:** Sync schreibt `data/*.json` in ein benanntes Volume, nginx liest daraus. Kein Bind-Mount, kein Pfad auf dem Host.
@@ -238,11 +248,18 @@ docker compose -f docker-compose.dev.yml logs sync
 
 ### Abnahme
 
-- [ ] Vier Dienste plus Migrations-Runner starten sauber
-- [ ] Migrationsstatus per Abfrage sichtbar, `0001`–`0017` eingespielt
-- [ ] RLS-Suite 28/28 gegen den lokalen Stack
-- [ ] Punkt 6 empirisch belegt, nicht angenommen
-- [ ] Postgres von außen nicht erreichbar (aktiv gegengeprüft)
+**Stand 17.08.2026: vollständig abgenommen**, lokal gegen einen frischen
+Stack verifiziert (`docker compose down -v` + `up -d`, nicht nur einmalig
+hochgezogen) — Details, empirisch gefundene Lücken und der genaue Testablauf
+stehen in `docs/docker-lokal-einrichten.md` Abschnitt 3.
+
+- [x] Vier Dienste plus Migrations-Runner starten sauber (real: fünf Dienste
+      inkl. `db-init`, s. dortige Begründung)
+- [x] Migrationsstatus per Abfrage sichtbar, `0001`–`0017` eingespielt
+- [x] RLS-Suite 28/28 gegen den lokalen Stack
+- [x] Punkt 6 empirisch belegt, nicht angenommen (alle vier Fälle einzeln
+      per curl durchgespielt)
+- [x] Postgres von außen nicht erreichbar (aktiv gegengeprüft)
 
 ### So testest du es lokal
 

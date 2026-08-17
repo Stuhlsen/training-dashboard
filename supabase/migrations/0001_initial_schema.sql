@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0001: Schema + RLS
 -- Einspielen: Supabase SQL-Editor (dev zuerst, prod beim Merge von Phase 1)
@@ -268,3 +270,7 @@ create policy "feedback: Admin löscht"
 -- als Trainer A: plan_cards von Athlet A schreiben ✓ · von Athlet B ✗
 --                proposals für fremden Athleten anlegen ✗
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

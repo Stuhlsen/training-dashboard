@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0009: ftp_history (zeitpunktbezogene FTP)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev)
@@ -90,3 +92,7 @@ grant select, insert, update, delete on public.ftp_history to authenticated;
 --                (keine Insert/Update/Delete-Policy für Trainer)
 -- als Athlet B:  Einträge von Athlet A weder lesen noch schreiben ✗
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

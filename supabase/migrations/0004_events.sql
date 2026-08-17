@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0004: Event-Verwaltung (events)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev)
@@ -123,3 +125,7 @@ create policy "events: Admin schreibt alle"
 -- als Admin:     event für beliebigen Athleten anlegen/ändern ✓ (neu)
 -- Update-Trigger: event ändern -> updated_at aktualisiert sich automatisch
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

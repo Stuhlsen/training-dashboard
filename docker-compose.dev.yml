@@ -7,9 +7,29 @@ services:
     environment:
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_ANON_KEY: ${SUPABASE_ANON_KEY}
+    volumes:
+      - data:/usr/share/nginx/html/data:ro
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080"]
       interval: 30s
       timeout: 5s
       retries: 3
+
+  sync:
+    build:
+      context: .
+      dockerfile: scripts/Dockerfile
+    env_file: .env
+    environment:
+      SYNC_INTERVAL_HOURS: ${SYNC_INTERVAL_HOURS:-6}
+    volumes:
+      - data:/sync/data
+    restart: unless-stopped
+    # profiles: startet nicht automatisch bei einem normalen "up" — nur
+    # gezielt via "up -d sync" (Dauerbetrieb/Zeitsteuerung) oder
+    # "run --rm -e SYNC_ONESHOT=true sync" (manueller Einmal-Lauf).
+    profiles: ["sync"]
+
+volumes:
+  data:

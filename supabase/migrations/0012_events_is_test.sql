@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0012: Test-Events (events.is_test)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -65,3 +67,7 @@ update public.events
 --                (Admin-Policy aus 0004 unverändert)
 -- als anon:      events weiterhin lesbar (inkl. is_test) ✓ · schreiben ✗
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0017: ladder_history.locked_until
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -35,3 +37,7 @@ alter table public.ladder_history add column if not exists locked_until date;
 --                (RLS/GRANT aus 0015 decken die Zeile als Ganzes ab)
 -- als anon:      ladder_history weiterhin nicht lesbar (kein GRANT, s. 0015) ✓
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

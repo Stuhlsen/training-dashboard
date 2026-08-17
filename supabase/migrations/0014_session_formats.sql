@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0014: Formatkatalog (session_formats, athlete_formats)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -197,3 +199,7 @@ on conflict (id) do nothing;
 --                · schreiben ✗ (keine Insert/Update/Delete-Policy für Trainer)
 -- als anon:      athlete_formats lesen ✗ (kein GRANT)
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

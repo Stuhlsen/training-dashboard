@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0016: profiles.ladder_progression_enabled (D4b)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev),
@@ -74,3 +76,7 @@ alter table public.profiles
 --                s. Kommentar oben) — kein Update-Pfad im Frontend, da profiles
 --                bereits kein offenes Update auf beliebige Spalten erlaubt)
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.

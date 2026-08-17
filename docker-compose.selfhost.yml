@@ -1,0 +1,131 @@
+# Fahrplan 3, DKR3 — Self-Host-Stack lokal (Postgres, GoTrue, PostgREST, Proxy).
+# Gilt ausschliesslich fuer den eigenen Rechner, s. docs/docker-lokal-einrichten.md
+# Abschnitt 3. Die Server-Fassung (docker-compose.prod.yml) entsteht erst in DKR4.
+
+services:
+  postgres:
+    image: supabase/postgres:15.1.0.147
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # KEIN "ports:" hier — von aussen absichtlich nicht erreichbar
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # supabase/postgres legt "authenticator"/"supabase_auth_admin" mit einem
+  # eigenen, von POSTGRES_PASSWORD unabhaengigen Passwort an — PostgREST/
+  # GoTrue koennen sich damit nicht verbinden (empirisch ermittelt: erst
+  # "password authentication failed for user authenticator", dann nach
+  # Korrektur "relation identities does not exist" fuer den GoTrue-Connect
+  # ueber den falschen Postgres-User statt supabase_auth_admin). Dieser
+  # Schritt setzt beide Passwoerter auf POSTGRES_PASSWORD, bevor
+  # gotrue/postgrest starten.
+  #
+  # Zusaetzlich: das Image setzt eigene ALTER-DEFAULT-PRIVILEGES fuer
+  # anon/authenticated/service_role, die neu angelegten Tabellen im
+  # public-Schema automatisch ALLE Rechte geben — das hebelt die
+  # feingranularen GRANTs aus supabase/migrations/0002_grants.sql aus
+  # (empirisch ermittelt: tests/supabase-rls.test.js zeigte "anon darf X
+  # nicht lesen (kein GRANT)" als false, obwohl 0002 kein SELECT fuer anon
+  # auf diese Tabellen vorsieht). Deshalb REVOKE, bevor "migrate" die
+  # Tabellen anlegt — die anschliessenden Migrationen vergeben die Rechte
+  # dann exklusiv selbst.
+  db-init:
+    image: supabase/postgres:15.1.0.147
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+    entrypoint: ["bash", "-c"]
+    command:
+      - >
+        psql -h postgres -U supabase_admin -d postgres -c
+        "ALTER ROLE authenticator WITH PASSWORD '$$PGPASSWORD' LOGIN;" &&
+        psql -h postgres -U supabase_admin -d postgres -c
+        "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$PGPASSWORD';" &&
+        psql -h postgres -U supabase_admin -d postgres -c
+        "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;"
+
+  migrate:
+    image: ghcr.io/amacneil/dbmate
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+    volumes:
+      - ./supabase/migrations:/db/migrations
+    command: ["--wait", "up"]
+
+  gotrue:
+    image: supabase/gotrue:v2.151.0
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      # supabase_auth_admin, nicht postgres — dessen search_path ist auf das
+      # auth-Schema vorkonfiguriert (Owner von auth.users/identities/…).
+      # Mit dem postgres-User loeste GoTrue unqualifizierte Tabellennamen
+      # (z.B. "identities") nicht auf ("relation does not exist"), empirisch
+      # ermittelt beim ersten lokalen DKR3-Testlauf.
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+      GOTRUE_SITE_URL: http://localhost:8080
+      GOTRUE_URI_ALLOW_LIST: http://localhost:8080
+      GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      API_EXTERNAL_URL: http://localhost/auth/v1
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+    healthcheck:
+      # Port 8081, nicht das oft dokumentierte 9999 — empirisch aus dem
+      # Log dieses Images ermittelt ("GoTrue API started on: :8081").
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgrest:
+    image: postgrest/postgrest:v12.0.2
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@postgres:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+    # Kein Healthcheck moeglich: das Image hat weder Shell noch wget/curl
+    # (nur die statische postgrest-Binary), ein exec-basierter Check
+    # scheitert daran ("executable file not found in $PATH"), empirisch
+    # geprueft. PostgREST verbindet sich laut Log aber binnen ~1-2s nach
+    # dem Start mit Postgres — die verbleibende Race gegen "proxy" ist klein
+    # und aeussert sich hoechstens als einzelner transienter 502 direkt
+    # nach "up -d", nicht als dauerhafter Fehlzustand.
+
+  proxy:
+    image: caddy:2-alpine
+    depends_on:
+      gotrue:
+        condition: service_healthy
+      postgrest:
+        condition: service_started
+    ports:
+      - "80:80"
+    volumes:
+      - ./Caddyfile.local:/etc/caddy/Caddyfile
+
+volumes:
+  pgdata:

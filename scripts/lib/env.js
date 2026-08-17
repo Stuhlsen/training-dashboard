@@ -12,13 +12,23 @@ import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // === .env laden (nur lokal — in der Action kommen die Werte als env vars) ===
+// Ein vorab in der Shell gesetzter, NICHT-LEERER Wert (z. B.
+// "$env:SUPABASE_URL = ..." vor npm test, s. docs/docker-lokal-einrichten.md
+// Abschnitt 3) gewinnt gegen die .env-Datei — ohne dieses "nur wenn noch
+// unset" wuerde .env den bewussten Override still ueberschreiben, empirisch
+// beim DKR3-Testlauf aufgefallen. Ein leerer String zaehlt bewusst als
+// "nicht gesetzt" (nicht nur undefined) — sonst wuerde z. B. ein Docker-
+// Dry-Run mit "-e NOTION_API_KEY=" (s. Abschnitt 2, gezielt fuer
+// requireEnv()-Fail-Fast-Tests) einen spaeteren echten .env-Wert im selben
+// Prozess blockieren.
 const envPath = path.join(__dirname, "..", "..", ".env");
 if (fs.existsSync(envPath)) {
   for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
     const t = line.trim();
     if (t && !t.startsWith("#")) {
       const [key, ...rest] = t.split("=");
-      process.env[key.trim()] = rest.join("=").trim();
+      const k = key.trim();
+      if (!process.env[k]) process.env[k] = rest.join("=").trim();
     }
   }
 }

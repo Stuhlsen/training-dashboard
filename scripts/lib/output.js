@@ -54,9 +54,15 @@ export function loadIntervalBlocks() {
   return loadJsonFile(INTERVAL_BLOCKS_FILE, "interval-blocks.json");
 }
 
-/** Output-Objekt als JSON schreiben (Verzeichnis wird angelegt)
+/** Output-Objekt als JSON schreiben (Verzeichnis wird angelegt).
+ *  Schreibt zuerst in eine Temp-Datei und benennt dann atomar um (Fahrplan 3,
+ *  DKR2 Punkt 6) — ein mitten im Schreiben abgebrochener Lauf darf die
+ *  zuletzt guten Daten nicht durch eine leere/halbe Datei ersetzen.
  *  @param {string} file @param {Object} output */
 export function writeOutput(file, output) {
-  fs.mkdirSync(path.dirname(file), { recursive: true });
-  fs.writeFileSync(file, JSON.stringify(output, null, 2), "utf-8");
+  const dir = path.dirname(file);
+  fs.mkdirSync(dir, { recursive: true });
+  const tmpFile = path.join(dir, `.${path.basename(file)}.tmp-${process.pid}`);
+  fs.writeFileSync(tmpFile, JSON.stringify(output, null, 2), "utf-8");
+  fs.renameSync(tmpFile, file);
 }

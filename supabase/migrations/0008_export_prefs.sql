@@ -1,3 +1,5 @@
+-- migrate:up
+
 -- ============================================================
 -- Dashboard 2.0 — Migration 0008: export_prefs (Export-Richtungsvorgabe)
 -- Einspielen: Supabase SQL-Editor, dev-Projekt zuerst (dashboard-dev)
@@ -54,3 +56,7 @@ grant select, insert, update, delete on public.export_prefs to authenticated;
 --                event_id wird null (kein Fehler, keine gelöschte Zeile)
 -- Update-Trigger: preset ändern -> updated_at aktualisiert sich automatisch
 -- ============================================================
+
+-- migrate:down
+-- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
+-- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.
