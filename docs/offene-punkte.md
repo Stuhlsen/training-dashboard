@@ -530,6 +530,47 @@ DKR4 ansteht.
 - [x] Erweiterungsliste vollständig
 - [x] Keine Datei verändert (bis auf diesen Bericht)
 
+## Fahrplan 3 — Docker-Umbau: DKR1 abgeschlossen (17.08.2026)
+
+Alle 4 Abnahme-Punkte gegen den lokalen Stack geprüft (`docker compose -f
+docker-compose.dev.yml build && up -d`, gegen `dashboard-dev`). Dabei zwei
+Bugs gefunden und gefixt:
+
+- **Weiße Seite im Container** — `index.html` referenzierte Assets unter dem
+  GitHub-Pages-Präfixpfad (`/training-dashboard/assets/...`), obwohl der
+  Container unter `/` ausliefert. Ursache: Vite-`base` war fix auf den
+  Pages-Wert gesetzt, auch für den Docker-Build. Fix: neues Skript
+  `npm run build:docker` (`vite build --base=/`) nur für die Docker-
+  Build-Stufe, `npm run build` (GitHub Pages) bleibt unverändert — beide
+  Wege einzeln nachgeprüft.
+- **Healthcheck dauerhaft „unhealthy" trotz laufender App** —
+  `wget http://localhost:8080` im Container schlug mit „Connection
+  refused" fehl. Ursache: `/etc/hosts` löst `localhost` zuerst auf `::1`
+  auf, nginx hört aber nur auf `0.0.0.0:8080` (IPv4). Fix:
+  `docker-compose.dev.yml` Healthcheck auf `http://127.0.0.1:8080`
+  umgestellt.
+
+**Nachweis „ein Image, zwei Umgebungen"** (Abnahme-Kernpunkt): zwei
+`docker run` desselben Image-Tags mit unterschiedlichen
+`SUPABASE_URL`/`SUPABASE_ANON_KEY`/`RUNTIME_ENV` parallel gestartet (Ports
+8091/8092) — `config.json` beider Container zeigt die jeweils eigenen
+Werte, `docker inspect` bestätigt identische Image-ID auf beiden
+Containern.
+
+Image-Größe: 103 MB. Läuft als `uid=1001(appuser)`, nicht root.
+
+**Bekannter Kompromiss aus DKR1 (nicht behoben, bewusst zurückgestellt):**
+Die neue Laufzeit-Config (`app/index.html`, synchrone `XMLHttpRequest` auf
+`/config.json` vor dem App-Bundle) läuft ungated in allen drei Umgebungen —
+Docker, GitHub Pages, Vite-Dev-Server —, obwohl sie nur in Docker etwas
+liefert. Details s. DKR0-Bericht oben.
+
+### Abnahme DKR1
+- [x] `docker compose -f docker-compose.dev.yml up` liefert eine voll funktionsfähige App
+- [x] Dasselbe Image funktioniert mit zwei verschiedenen `config.json`-Werten ohne Neubau
+- [x] Image-Größe dokumentiert: 103 MB
+- [x] Container läuft nicht als root (gegengeprüft)
+
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
 - **Fahrplan 1 — Vanilla-JS-Zweig entfernt (15.08.2026)**: `assets/js/**`

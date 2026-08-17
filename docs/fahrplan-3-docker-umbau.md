@@ -103,10 +103,10 @@ Ergibt der Bericht Realtime- oder Storage-Nutzung, kommt der jeweilige Container
 
 ### Abnahme
 
-- [ ] `docker compose -f docker-compose.dev.yml up` liefert eine voll funktionsfähige App
-- [ ] **Dasselbe Image funktioniert mit zwei verschiedenen `config.json`-Werten ohne Neubau** — das ist der eigentliche Nachweis dieses Fensters
-- [ ] Image-Größe dokumentiert
-- [ ] Container läuft nicht als root (gegengeprüft)
+- [x] `docker compose -f docker-compose.dev.yml up` liefert eine voll funktionsfähige App
+- [x] **Dasselbe Image funktioniert mit zwei verschiedenen `config.json`-Werten ohne Neubau** — das ist der eigentliche Nachweis dieses Fensters
+- [x] Image-Größe dokumentiert: 103 MB (`training-dashboard-frontend:latest`)
+- [x] Container läuft nicht als root (gegengeprüft: `uid=1001(appuser)`)
 
 ### So testest du es lokal
 
