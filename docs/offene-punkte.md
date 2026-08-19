@@ -63,8 +63,3 @@
 - **`sport`-Spalte bewusst noch nicht in der Datenbank** — additiv
   nachrüstbar, sobald eine zweite Sportart echte Daten hat (Fahrplan 4).
   Bis dahin sind `plan_cards`/`events`/`proposals` implizit Radsport.
-- **`git sync`s `--force-with-lease` schützt nicht, wenn `main` vor dem
-  Alias-Lauf manuell vorbereitet wurde** — deckt nur das ursprüngliche
-  Vorfall-Szenario ab, nicht das allgemeinere Muster. Unimplementiert:
-  entweder `git sync` nur direkt nach frischem `git checkout main`
-  erlauben, oder ein `git fetch`-Vorab-Check im Alias.
