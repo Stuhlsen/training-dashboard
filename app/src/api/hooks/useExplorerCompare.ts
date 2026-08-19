@@ -11,11 +11,11 @@
    assets/js/ui/charts/pmc.js Zeile 1259-1264) braucht "Als A/B merken"
    hier keine Skelett-Konvertierung: `useExplorerRange` hält das aktuelle
    Brush-Fenster bereits als ISO-Daten (`{fromISO, toISO}`), der Aufrufer
-   (ExplorerPage) reicht sie direkt als `{from, to}` durch.
+   (ExplorerSection) reicht sie direkt als `{from, to}` durch.
 
    `buildCompare()` (core/compare.js) wird hier NICHT aufgerufen — wie im
    Vanilla-Original ist das ein flüchtiges Ableitungsergebnis, das die
-   UI-Schicht (ExplorerPage) bei jedem Render mit den aktuellen Rides neu
+   UI-Schicht (ExplorerSection) bei jedem Render mit den aktuellen Rides neu
    berechnet, kein Hook-State. */
 
 import { useCallback, useMemo, useState } from "react";

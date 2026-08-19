@@ -17,19 +17,19 @@ interface PmcChartProps {
    *  Tests) fällt der Chart auf den bisherigen Fixdefault zurück. */
   range?: { fromISO: string; toISO: string } | null;
   /** Cursor-Sync (Etappe 8c, §3) — kontrollierte Prop wie `range`: der
-   *  Aufrufer (ExplorerPage) hält den State, dieser Chart meldet Hover nur
+   *  Aufrufer (ExplorerSection) hält den State, dieser Chart meldet Hover nur
    *  über `onHoverChange` und liest ihn über `hoveredDate` zurück, damit
    *  eine zweite Chart-Komponente (BrushBar) mit derselben Quelle
    *  synchronisieren kann. Ohne beide Props verhält sich der Chart wie 8a/8b
    *  (kein Crosshair, keine Klick-Aktion). */
   hoveredDate?: string | null;
   onHoverChange?: (dateISO: string | null) => void;
-  /** Klick auf einen Datenpunkt — Sprung zum Planungstab (ExplorerPage
+  /** Klick auf einen Datenpunkt — Sprung zum Planungstab (ExplorerSection
    *  verdrahtet das auf `navigate("/planning", {state:{highlightDate}})`). */
   onSelectDate?: (dateISO: string) => void;
   /** What-if-Szenario (Etappe 8d, §6) — zweite CTL-Kurve aus einem
    *  synthetischen Kartensatz (`core/scenario.js::buildScenario` +
-   *  `projectLoad()`, von ExplorerPage berechnet). `null`/`undefined`
+   *  `projectLoad()`, von ExplorerSection berechnet). `null`/`undefined`
    *  zeichnet keine Szenario-Linie (Toggle aus oder standalone-Nutzung). */
   scenarioProjection?: ReturnType<typeof projectLoad> | null;
 }
@@ -53,7 +53,7 @@ interface Tooltip {
  *  Historie, gestrichelte Prognose ab `projection.asOf`, Unsicherheitsband,
  *  Punkt-Tooltip. Zeitfenster kommt seit Etappe 8b optional über die
  *  `range`-Prop (BrushBar). Seit Etappe 8c optional Cursor-Sync (`hoveredDate`/
- *  `onHoverChange`, kontrollierte Props wie `range` — ExplorerPage hält den
+ *  `onHoverChange`, kontrollierte Props wie `range` — ExplorerSection hält den
  *  State und reicht ihn zusätzlich an BrushBar durch) plus Klick-Sprung
  *  (`onSelectDate`). Seit Etappe 8d optional `scenarioProjection`
  *  (What-if-Szenario, §6) — zweite gestrichelte CTL-Kurve, weiterhin OHNE

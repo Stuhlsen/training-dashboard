@@ -41,7 +41,7 @@ interface Row {
  *  analysis-view-model.ts::buildBodyCards lokal aus dem aktuellsten Gewicht
  *  hergeleitet und bewusst hier dupliziert statt aus features/analysis
  *  importiert — Feature-Ordner sollen nicht aneinander koppeln (s.
- *  ExplorerPage.tsx-Kopfkommentar zu toProjectionCard/toProjectionEvent).
+ *  ExplorerSection.tsx-Kopfkommentar zu toProjectionCard/toProjectionEvent).
  *  Balken: Verbrauch (`--ss`) + Zufuhr (`--z2`, 1:1 aus dem vanilla-Blau
  *  #4a7fa8), Linie: Gewicht (`--role-status`, Gold-Ton wie vanillas
  *  #d9b64c). Beide Serien sind unabhängig verfügbar (core/body.js::

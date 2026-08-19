@@ -15,7 +15,7 @@
    Die Berechnung der zweiten (synthetischen) Prognosekurve
    (buildScenario()+projectLoad(), vanilla state/chart-view.js::
    recomputeScenario) läuft NICHT in diesem Hook, sondern als reine
-   Ableitung direkt in ExplorerPage.tsx — die dortigen Cards/Rides/
+   Ableitung direkt in ExplorerSection.tsx — die dortigen Cards/Rides/
    Events/FTP sind bereits im React-Query-Cache, ein injizierter
    `scenarioSources`-Provider wie in vanilla (dort nötig, weil
    state/chart-view.js ein Modul-Singleton außerhalb des Komponentenbaums

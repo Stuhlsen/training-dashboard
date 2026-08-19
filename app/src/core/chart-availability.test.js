@@ -1,7 +1,7 @@
 /* Tests: core/chart-availability.js::countEmpty — Port von
    tests/chart-visibility.test.js (Vanilla, identische Fälle). Regression:
    der Umschalter-Badge zeigte bisher gar keine Anzahl an; countEmpty muss
-   dieselben Verfügbarkeits-Flags zählen, die ExplorerPage.tsx auch für das
+   dieselben Verfügbarkeits-Flags zählen, die ExplorerSection.tsx auch für das
    Aus-/Einblenden verwendet (keine zweite, abweichende Zählung). */
 
 import { test } from "vitest";

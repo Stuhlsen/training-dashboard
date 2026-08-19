@@ -11,7 +11,7 @@
 
    Zwei Cross-Feature-Verkabelungen SIND mit gebaut, beide über den bereits
    etablierten `location.state.highlightDate`-Sprung (Muster aus
-   ExplorerPage::handleSelectDate → PlanningPage, Etappe 8c):
+   ExplorerSection::handleSelectDate → PlanningPage, Etappe 8c):
    - 📅-Icon (nur bei intervals.icu-Ära-Fahrten) → Sprung zur Plankarte im
      Planungstab.
    - Zeilen-Klick (überall sonst in der Zeile) → Sprung zum PMC-Chart im
@@ -92,7 +92,10 @@ export function LogbookPage() {
   }
 
   function handleRowClick(dateISO: string) {
-    navigate("/explorer", { state: { highlightDate: dateISO } });
+    // Ziel war bis Etappe Layout-Merge 2026-08-20 "/explorer" (eigene
+    // Route) — jetzt der "Verläufe"-Tab in AnalysisPage.tsx, der
+    // highlightDate liest, um dorthin statt auf "Kennzahlen" zu starten.
+    navigate("/analysis", { state: { highlightDate: dateISO } });
   }
 
   function handlePlanLinkClick(e: React.MouseEvent, dateISO: string) {

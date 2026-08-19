@@ -24,7 +24,7 @@ const SLIDER: React.CSSProperties = { width: "100%", accentColor: "var(--role-pr
  *  explorer.md §6, Variante 4A) — Port von index.html's `#pmc-scenario`-
  *  Markup (Toggle + 3 Range-Inputs). Min/Max/Step 1:1 aus dem Vanilla-
  *  Original übernommen. Reine Props-Komponente: hält keinen eigenen
- *  Zustand, der Aufrufer (ExplorerPage) verdrahtet `useExplorerScenario`. */
+ *  Zustand, der Aufrufer (ExplorerSection) verdrahtet `useExplorerScenario`. */
 export function WhatIfPanel({ scenario, onParamsChange, onEnabledChange }: WhatIfPanelProps) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>

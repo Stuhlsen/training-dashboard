@@ -5,7 +5,7 @@
    Vanilla-IDs sind im React-Redesign zusammengelegt (chart-hrv-p1 +
    chart-rhf-p1 → WellnessChart mit Metrik-Umschalter). FtpForecastChart
    und die Belastung-Karte (Brush/PmcChart/WhatIfPanel/ComparePanel)
-   haben bewusst kein Prädikat, s. features/explorer/ExplorerPage.tsx.
+   haben bewusst kein Prädikat, s. features/explorer/ExplorerSection.tsx.
 
    Reine Prädikate über die Rohdaten, die ein Chart braucht — fail-open
    im Aufrufer (unbekannt/kein Prädikat → sichtbar), nicht hier.

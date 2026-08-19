@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
-import { PageShell } from "../../components/PageShell";
-import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useExplorerRange } from "../../api/hooks/useExplorerRange";
 import { useExplorerScenario } from "../../api/hooks/useExplorerScenario";
 import { useExplorerCompare } from "../../api/hooks/useExplorerCompare";
@@ -110,10 +107,27 @@ function ChartSection({ title, available, showEmpty, children }: { title: string
   );
 }
 
-export function ExplorerPage() {
+interface ExplorerSectionProps {
+  /** Von AnalysisPage.tsx durchgereicht (dieselbe useActiveAthlete()-Instanz,
+   *  die auch den dortigen AthleteToggle treibt) statt hier einen zweiten,
+   *  unabhängigen Hook-Aufruf zu machen — zwei getrennte useActiveAthlete()-
+   *  Instanzen lesen `localStorage` nur beim eigenen Mount, es gibt keinen
+   *  Storage-Event-Listener, der sie synchron hält (useActiveAthlete.ts-
+   *  Kopfkommentar: "kein Context"). Ohne diese Prop zeigte "Verläufe" beim
+   *  Athletenwechsel über den gemeinsamen Toggle bis zum nächsten Tab-
+   *  Wechsel (Unmount/Remount) weiter Daten des vorherigen Athleten. */
+  activeAthleteId: string;
+}
+
+/** Vormals eigene Route `/explorer` (Etappe 8) — seit dem Analyse/Explorer-
+ *  Merge (Critique-Fund P1: "Analyse" hatte keine Charts, alle Trend-Charts
+ *  steckten unauffindbar hier) ist dies der "Verläufe"-Tab-Inhalt innerhalb
+ *  von AnalysisPage.tsx, kein eigener Seiten-Rahmen mehr (kein PageShell/h1/
+ *  AthleteToggle — die kommen jetzt vom gemeinsamen Analyse-Seitenkopf).
+ *  Interne Logik (Brush/What-if/Compare/Chart-Sichtbarkeit) unverändert. */
+export function ExplorerSection({ activeAthleteId }: ExplorerSectionProps) {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const { data: rideData } = useRides(activeAthleteId);
   const { data: cards } = usePlanCards(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
@@ -264,37 +278,35 @@ export function ExplorerPage() {
   const emptyChartCount = countEmpty(Object.values(availability));
 
   return (
-    <PageShell>
+    // maxWidth 880 unveraendert aus der frueheren eigenen Route uebernommen:
+    // Brush/PMC/Compare-Charts sind auf diese Spaltenbreite abgestimmt
+    // (Label-Abstaende etc.) - PageShell (jetzt der aeussere Rahmen via
+    // AnalysisPage.tsx) liesse bis 2040px zu, ohne diese eigene Begrenzung
+    // wuerden die Charts auf breiten Bildschirmen ungetestet weit auseinandergezogen.
     <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-        <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
-          Explorer
-        </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button
-            type="button"
-            aria-pressed={showEmpty}
-            onClick={() => setShowEmpty((v) => !v)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              padding: "6px 14px",
-              borderRadius: "var(--pill)",
-              border: "1px solid var(--hair)",
-              background: showEmpty ? "var(--glass-2)" : "transparent",
-              color: "var(--ink-2)",
-              fontSize: ".78rem",
-              cursor: "pointer",
-            }}
-          >
-            {showEmpty ? "Leere Charts ausblenden" : "Leere Charts einblenden"}
-            <span style={{ fontSize: ".7rem", fontWeight: 600, color: emptyChartCount > 0 ? "var(--ink)" : "var(--ink-3)" }}>
-              {emptyChartCount}
-            </span>
-          </button>
-          <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
-        </div>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          aria-pressed={showEmpty}
+          onClick={() => setShowEmpty((v) => !v)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "6px 14px",
+            borderRadius: "var(--pill)",
+            border: "1px solid var(--hair)",
+            background: showEmpty ? "var(--glass-2)" : "transparent",
+            color: "var(--ink-2)",
+            fontSize: "var(--fs-label)",
+            cursor: "pointer",
+          }}
+        >
+          {showEmpty ? "Leere Charts ausblenden" : "Leere Charts einblenden"}
+          <span style={{ fontSize: "var(--fs-label)", fontWeight: 600, color: emptyChartCount > 0 ? "var(--ink)" : "var(--ink-3)" }}>
+            {emptyChartCount}
+          </span>
+        </button>
       </div>
 
       <GlassCard style={{ padding: 20 }}>
@@ -429,6 +441,5 @@ export function ExplorerPage() {
         />
       </ChartSection>
     </div>
-    </PageShell>
   );
 }

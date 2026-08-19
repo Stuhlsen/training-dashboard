@@ -73,7 +73,7 @@ function SlotMetrics({ label, color, slot, metrics, compareActive }: {
 /** Bedienelemente für den Vergleichsmodus (Etappe 8e, docs/phase-5-konzept-
  *  explorer.md §5) — Port von index.html's `#pmc-compare`-Markup (Toggle +
  *  zwei "Als A/B merken"-Buttons + Kennzahlen). Reine Props-Komponente wie
- *  WhatIfPanel: hält keinen eigenen Zustand, der Aufrufer (ExplorerPage)
+ *  WhatIfPanel: hält keinen eigenen Zustand, der Aufrufer (ExplorerSection)
  *  verdrahtet `useExplorerCompare` + `useExplorerRange`. */
 export function ComparePanel({ enabled, onEnabledChange, slotA, slotB, metricsA, metricsB, compareActive, onSaveSlot, canSave }: ComparePanelProps) {
   return (

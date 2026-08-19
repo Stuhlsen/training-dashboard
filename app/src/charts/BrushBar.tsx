@@ -22,7 +22,7 @@ interface BrushBarProps {
    *  "Plan 2"-Preset aus, wenn `null`/`undefined` (docs/phase-5-konzept-
    *  explorer.md §4, "Plan 2" ist nicht für jeden Athleten sinnvoll). */
   plan2StartISO?: string | null;
-  /** Cursor-Sync (Etappe 8c, §3) — vom PmcChart-Hover gesetzt (ExplorerPage
+  /** Cursor-Sync (Etappe 8c, §3) — vom PmcChart-Hover gesetzt (ExplorerSection
    *  reicht dieselbe Prop an beide Charts durch). Rein darstellend: die
    *  BrushBar hat keinen eigenen Datenpunkt-Hover, nur PmcChart löst
    *  `hoveredDate` aus. */
