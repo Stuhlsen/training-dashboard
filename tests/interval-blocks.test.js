@@ -181,6 +181,23 @@ test("longestBlockAboveThreshold: unsortierte Segmente werden trotzdem korrekt z
   assert.equal(block.workDurationSec, 600);
 });
 
+test("longestBlockAboveThreshold: mehrere kurze Lücken werden kumulativ gegen die Toleranz geprüft, nicht einzeln", () => {
+  const segs = [
+    { start_time: 0, end_time: 300, average_watts: 220 }, // 5min hart
+    { start_time: 300, end_time: 340, average_watts: 100 }, // 40s Pause
+    { start_time: 340, end_time: 380, average_watts: 100 }, // 40s Pause
+    { start_time: 380, end_time: 420, average_watts: 100 }, // 40s Pause — kumuliert 120s > Toleranz 90s
+    { start_time: 420, end_time: 720, average_watts: 220 }, // 5min hart
+  ];
+  const block = longestBlockAboveThreshold(segs, 200, 90);
+  // Ohne Kumulierung würde jede 40s-Lücke einzeln toleriert (< 90s) und
+  // alles zu einem 720s-Block mergen. Mit Kumulierung reißt die dritte
+  // Lücke (Summe 120s > 90s) den Block ab — zwei getrennte 300s-Efforts,
+  // der erste gefundene gewinnt (gleich lang).
+  assert.equal(block.workDurationSec, 300);
+  assert.equal(block.totalDurationSec, 380);
+});
+
 test("longestBlockAboveThreshold: avgWatts ist über die Arbeits-Segmente gewichtet, ignoriert tolerierte Lücken", () => {
   const segs = [
     { start_time: 0, end_time: 100, average_watts: 300 }, // 100s @ 300W

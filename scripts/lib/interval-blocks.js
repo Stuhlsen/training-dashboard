@@ -42,7 +42,7 @@ export function longestBlockAboveThreshold(segments, thresholdWatts, gapToleranc
   const sorted = [...segments].sort((a, b) => a.start_time - b.start_time);
 
   let best = null;
-  let run = null; // { startSec, endSec, workDurationSec, weightedWattSecs }
+  let run = null; // { startSec, endSec, workDurationSec, weightedWattSecs, gapAccumSec }
 
   const finalizeRun = () => {
     if (!run || run.workDurationSec <= 0) return;
@@ -62,13 +62,19 @@ export function longestBlockAboveThreshold(segments, thresholdWatts, gapToleranc
     const qualifies = seg.average_watts >= thresholdWatts;
 
     if (qualifies) {
-      if (!run) run = { startSec: seg.start_time, endSec: seg.end_time, workDurationSec: 0, weightedWattSecs: 0 };
+      if (!run) run = { startSec: seg.start_time, endSec: seg.end_time, workDurationSec: 0, weightedWattSecs: 0, gapAccumSec: 0 };
       run.endSec = seg.end_time;
       run.workDurationSec += dur;
       run.weightedWattSecs += seg.average_watts * dur;
-    } else if (run && dur <= gapToleranceSec) {
+      run.gapAccumSec = 0;
+    } else if (run && run.gapAccumSec + dur <= gapToleranceSec) {
       // Toleriert: Block läuft weiter, die Lücke zählt weder zur
-      // Arbeitszeit noch zur gewichteten Leistung.
+      // Arbeitszeit noch zur gewichteten Leistung. Kumulativ über
+      // aufeinanderfolgende kurze Lücken (nicht pro Segment einzeln geprüft) —
+      // sonst würden z. B. drei 40s-Erholungen bei 90s Toleranz zusammen
+      // (120s) trotzdem toleriert und zwei getrennte Efforts fälschlich zu
+      // einem Block gemergt.
+      run.gapAccumSec += dur;
       run.endSec = seg.end_time;
     } else {
       finalizeRun();
