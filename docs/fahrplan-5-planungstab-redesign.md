@@ -591,10 +591,25 @@ Chat-Verlauf dieser Runde.
    noch aktuell ist oder um den Planungstab-Teil ergänzt werden sollte
    (dieser Fahrplan behandelt nur den Planungstab, nicht den Hero-Bereich).
 
+### Stand
+
+**Umgesetzt** (19.08.2026): Eintrag in `docs/offene-punkte.md`, Abschnitt
+„Planungstab / Progressionssteuerung", wortgleich zum Fensterplan ergänzt.
+
+Prüfung des Anhang-C-Eintrags „Design-Überarbeitung mit Claude Design
+(Hero-Bereich, zwei FTP-Ringe)" in `fahrplan-0-uebersicht.md`: **bleibt
+unverändert korrekt**, keine Ergänzung nötig — der Eintrag bezieht sich
+explizit auf den Hero-Bereich, den dieser Fahrplan nicht anfasst (s. „Ziel"
+oben). Keine Überschneidung, also kein Anpassungsbedarf.
+
+`docs/README.md` verweist bereits seit Fahrplan-Start (Abschnitt „Weitere
+laufende Fahrpläne") auf `fahrplan-5-planungstab-redesign.md` — Abnahme
+war bereits erfüllt, keine Änderung nötig.
+
 ### Abnahme
 
-- [ ] Eintrag steht in `docs/offene-punkte.md`
-- [ ] `docs/README.md` verweist auf `fahrplan-5-planungstab-redesign.md`
+- [x] Eintrag steht in `docs/offene-punkte.md`
+- [x] `docs/README.md` verweist auf `fahrplan-5-planungstab-redesign.md`
       (kurzer Absatz analog den anderen Fahrplänen)
 
 ---

@@ -24,6 +24,13 @@
 - **K-RAMPE/K-WOCHENTSS nie einzeln verifiziert**, ob 0 Treffer an echter
   Ruhe oder an zu konservativen Schwellen liegt (K-TID ist geprüft: echter
   Nulltreffer). `app/src/core/conflicts.js`.
+- **Kein Streams-Pipeline für den Planungstab-Detail-Chart** — der reiche
+  Leistungs-/Puls-Verlauf (Rauschen, HR-Linie) aus dem Redesign-Mockup
+  braucht Rohdaten (Sekunden-Samples), die nirgends in der Pipeline
+  existieren. Etappe 13e liefert stattdessen einen vereinfachten
+  Stufenchart aus `core/compliance-match.js`-Intervallen (kein HR — kein
+  Feld dafür in `RideCompliance`). → `app/src/features/planning/
+  DoneDetailChart.tsx`.
 
 ## Sync-Pipeline (`scripts/`)
 
