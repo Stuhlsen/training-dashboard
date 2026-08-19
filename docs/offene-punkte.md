@@ -13,10 +13,6 @@
   (`app/src/core/ladder-progression.js::presetAction()`), aber nirgends live
   scharf. Reine Freigabe-Entscheidung, kein Code. →
   `docs/konzept-progressionssteuerung.md` C3/C4.
-- **Fehlende ride↔activityId-Brücke** — `scripts/lib/compliance.js`
-  korreliert nur transient über Array-Index, Activity-ID landet nie auf dem
-  `ride`-Objekt. Blockiert retroaktive Segment-Auswertung für bereits
-  synchronisierte Fahrten.
 - **`CONFLICT_THRESHOLDS.eventTaperDays: 7`** (`app/src/core/plan-config.js`)
   — eigene Annahme, nie extern (sportwissenschaftlich) bestätigt.
 - **M3 — `external_id`-Upsert nie live gegen intervals.icu verifiziert** —
