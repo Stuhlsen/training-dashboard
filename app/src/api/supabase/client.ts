@@ -23,7 +23,14 @@ export const supabase: SupabaseClient | null = config
  *  gesetzten Header, und würde sonst um denselben LocalStorage-Key wie der
  *  Singleton konkurrieren. Solange sich der access_token nicht ändert, wird
  *  derselbe Client wiederverwendet; ändert er sich (Login/Refresh/Logout),
- *  baut der nächste Aufruf genau einen neuen. */
+ *  baut der nächste Aufruf genau einen neuen.
+ *
+ *  Erwartete Nebenwirkung: die Supabase-SDK warnt in der Browser-Konsole
+ *  ("Multiple GoTrueClient instances detected") sobald ein eingeloggter
+ *  Aufruf den zweiten Client erstellt — harmlos hier, da `persistSession:
+ *  false` genau die LocalStorage-Kollision verhindert, vor der die Warnung
+ *  eigentlich schützen will. Nicht durch einen dritten Workaround
+ *  wegzudesignen — das würde den oben dokumentierten 403-Bug riskieren. */
 let cachedAuthedClient: SupabaseClient | null = null;
 let cachedToken: string | null = null;
 

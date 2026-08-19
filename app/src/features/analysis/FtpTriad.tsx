@@ -29,14 +29,14 @@ export function FtpTriad({ diagnostics }: { diagnostics: PowerDiagnostics }) {
               {r.value != null ? `${r.value} W` : "–"}
             </span>
             <span style={{ fontSize: ".74rem", color: "var(--accent)", fontVariantNumeric: "tabular-nums" }}>{r.wkgLabel}</span>
-            <span style={{ fontSize: ".68rem", color: "var(--ink-3)", lineHeight: 1.4 }}>{r.meta}</span>
+            <span style={{ fontSize: ".68rem", color: "var(--ink-3)", lineHeight: 1.4, maxWidth: "60ch" }}>{r.meta}</span>
           </div>
         ))}
       </div>
       {weightNote && <AnalysisNote>{weightNote}</AnalysisNote>}
       {forecast &&
         (forecast.kind === "line" ? (
-          <p style={{ fontSize: ".78rem", color: "var(--ink)", lineHeight: 1.5, margin: "12px 0 0", paddingTop: 12, borderTop: "1px solid var(--hair)" }}>
+          <p style={{ fontSize: ".78rem", color: "var(--ink)", lineHeight: 1.5, margin: "12px 0 0", paddingTop: 12, borderTop: "1px solid var(--hair)", maxWidth: "70ch" }}>
             {forecast.segments.map((s, i) =>
               s.strong ? (
                 <strong key={i} style={{ color: "var(--accent)" }}>

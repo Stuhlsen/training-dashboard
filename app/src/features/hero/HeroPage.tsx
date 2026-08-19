@@ -144,7 +144,21 @@ export function HeroPage() {
   }
 
   return (
-    <div style={{ position: "relative", zIndex: 1, perspective: 2100, perspectiveOrigin: "50% 34%", padding: "56px 0 96px" }}>
+    <div
+      style={{
+        position: "relative",
+        zIndex: 1,
+        perspective: 2100,
+        perspectiveOrigin: "50% 34%",
+        padding: "56px 0 96px",
+        // Die permanente rotateX(BASE_ROTATE_X)-Kippung der Plate (auch im
+        // Ruhezustand, nicht nur beim Hover) projiziert geometrisch minimal
+        // über die Viewport-Breite hinaus und erzeugte dadurch einen
+        // dauerhaften horizontalen Scrollbalken (Critique-Fund) — die
+        // Kippung selbst bleibt, nur ihr unsichtbarer Rand wird geclippt.
+        overflowX: "hidden",
+      }}
+    >
       <div
         ref={plateRef}
         style={{

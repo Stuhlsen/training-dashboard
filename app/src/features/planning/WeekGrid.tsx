@@ -111,8 +111,11 @@ function WeekHeader({ week }: { week: GridWeekRow }) {
         <div style={{ width: 60, height: 4, borderRadius: 2, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${week.loadPct}%`, background: "var(--ss)" }} />
         </div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>
-          {Math.round(week.tssSum)} TSS
+        <span
+          style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--ink-3)" }}
+          title={week.tssIsPlanned ? "Geplante TSS (noch keine Fahrten diese Woche)" : "Tatsächlich gefahrene TSS"}
+        >
+          {Math.round(week.tssSum)} TSS{week.tssIsPlanned ? " (geplant)" : ""}
         </span>
       </div>
     </div>

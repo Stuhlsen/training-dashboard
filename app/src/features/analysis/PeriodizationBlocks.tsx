@@ -38,7 +38,7 @@ export function PeriodizationBlocks({ summary }: { summary: PeriodizationSummary
             <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", fontWeight: 600, letterSpacing: ".02em", color: STATUS_COLOR[b.status] }}>
               {b.status === "ok" ? "phasengerecht" : b.status}
             </span>
-            <span style={{ fontSize: ".7rem", color: "var(--ink-3)", lineHeight: 1.4 }}>{b.note}</span>
+            <span style={{ fontSize: ".7rem", color: "var(--ink-3)", lineHeight: 1.4, maxWidth: "60ch" }}>{b.note}</span>
           </div>
         ))
       ) : (

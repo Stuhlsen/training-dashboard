@@ -60,7 +60,7 @@ export function LoadTable({ rows }: { rows: LoadRow[] }) {
               <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", fontWeight: 600, letterSpacing: ".02em", color: RISK_COLOR[r.risk] }}>
                 {r.label}
               </span>
-              <span style={{ fontSize: ".68rem", color: "var(--ink-3)", lineHeight: 1.4 }}>{r.detail}</span>
+              <span style={{ fontSize: ".68rem", color: "var(--ink-3)", lineHeight: 1.4, maxWidth: "60ch" }}>{r.detail}</span>
             </span>
           </div>
         ))}

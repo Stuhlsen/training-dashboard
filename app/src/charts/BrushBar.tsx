@@ -319,15 +319,22 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
             onClick={() => handlePreset(p.key)}
             aria-pressed={activePreset === p.key}
             style={{
-              border: 0,
+              // War zuvor die einzige Pill im Projekt mit vollflächigem
+              // `--role-primary`-Blau statt des sonst durchgängigen hellen
+              // Overlay-Fills (Layout.tsx-Nav/AthleteToggle/AnalysisPage-
+              // Tabs) — --role-primary ist eigentlich eine Chart-Rollenfarbe
+              // (Serien-Kennzeichnung), keine UI-Toggle-Farbe (Critique-Fund:
+              // "3 verschiedene aktiv-Pill-Farben"). Auf die etablierte
+              // Konvention angeglichen.
+              border: "1px solid var(--hair)",
               borderRadius: "var(--pill)",
               padding: "5px 12px",
               fontSize: ".76rem",
               fontWeight: 500,
               fontFamily: "inherit",
               cursor: "pointer",
-              background: activePreset === p.key ? "var(--role-primary)" : "var(--hair)",
-              color: activePreset === p.key ? "var(--surface-page)" : "var(--text-label)",
+              background: activePreset === p.key ? "rgba(255,255,255,0.14)" : "transparent",
+              color: activePreset === p.key ? "var(--ink)" : "var(--ink-3)",
             }}
           >
             {p.label}

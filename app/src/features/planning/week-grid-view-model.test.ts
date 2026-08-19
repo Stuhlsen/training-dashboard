@@ -125,6 +125,31 @@ describe("buildWeekGrid — Wochenstruktur", () => {
     expect(grid[0].tssSum).toBe(180);
   });
 
+  it("zeigt die tatsächlich gefahrene TSS-Summe statt der geplanten, sobald die Woche Fahrten hat", () => {
+    // Regression: tssSum zeigte vorher "0 TSS", wenn Karten kein tssPlanned
+    // trugen (die meisten nicht) — obwohl real gefahren wurde.
+    const cards = [card({ id: "a", date: "2026-08-10", tssPlanned: null })];
+    const rides = [
+      { ...ride("2026-08-10"), tss: 65 },
+      { ...ride("2026-08-12"), tss: 90 },
+    ];
+    const grid = buildWeekGrid(cards, rides, TODAY);
+    expect(grid[0].tssSum).toBe(155);
+  });
+
+  it("fällt auf die geplante TSS-Summe zurück, solange die Woche keine Fahrten hat", () => {
+    const cards = [card({ id: "a", date: "2026-08-10", tssPlanned: 80 })];
+    const grid = buildWeekGrid(cards, [], TODAY);
+    expect(grid[0].tssSum).toBe(80);
+  });
+
+  it("zeigt 0, nicht die geplante Summe, wenn die Woche Fahrten ohne TSS-Wert hat (Plan-1/Notion ohne Leistungsdaten)", () => {
+    const cards = [card({ id: "a", date: "2026-08-10", tssPlanned: 80 })];
+    const rides = [{ ...ride("2026-08-10"), tss: null }];
+    const grid = buildWeekGrid(cards, rides, TODAY);
+    expect(grid[0].tssSum).toBe(0);
+  });
+
   it("gibt loadPct relativ zur höchsten Wochenlast zurück (Maximum = 100)", () => {
     const cards = [
       card({ id: "a", date: "2026-08-10", tssPlanned: 200 }), // Woche 1

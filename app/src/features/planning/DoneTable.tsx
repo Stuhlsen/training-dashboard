@@ -36,6 +36,13 @@ export interface DoneTableProps {
  *  wiederverwendet) + den DoneDetailChart-Slot darunter auf. */
 export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTableProps) {
   const [openId, setOpenId] = useState<string | null>(null);
+  // Soll/Ist und Compliance brauchen tssPlanned bzw. eine erkannte
+  // Workout-Struktur auf der Karte — die meisten Karten (unstrukturierte
+  // Z2/Gruppenfahrt-Einheiten) haben beides nicht. Statt einer Spalte, die
+  // in fast jeder Zeile nur "–" zeigt (Critique-Fund: "100% leere Dashes"),
+  // blenden wir sie ganz aus, sobald wirklich KEINE Zeile einen Wert hat.
+  const showSollIst = rows.some((r) => r.tssRatioPct != null);
+  const showCompliance = rows.some((r) => r.compliance != null);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -60,11 +67,11 @@ export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTa
               <tr style={{ borderBottom: "1px solid var(--hair)" }}>
                 <th style={HEADER_CELL_STYLE}>Tag</th>
                 <th style={HEADER_CELL_STYLE}>Einheit</th>
-                <th style={HEADER_CELL_STYLE}>Soll/Ist</th>
+                {showSollIst && <th style={HEADER_CELL_STYLE}>Soll/Ist</th>}
                 <th style={HEADER_CELL_STYLE}>Dauer</th>
                 <th style={HEADER_CELL_STYLE}>TSS</th>
                 <th style={HEADER_CELL_STYLE}>Ø Watt</th>
-                <th style={HEADER_CELL_STYLE}>Compliance</th>
+                {showCompliance && <th style={HEADER_CELL_STYLE}>Compliance</th>}
                 <th style={{ ...HEADER_CELL_STYLE, textAlign: "right" }} aria-hidden="true" />
               </tr>
             </thead>
@@ -93,9 +100,11 @@ export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTa
                           </span>
                         </span>
                       </td>
-                      <td style={CELL_STYLE}>
-                        <SollIstBar ratioPct={row.tssRatioPct} />
-                      </td>
+                      {showSollIst && (
+                        <td style={CELL_STYLE}>
+                          <SollIstBar ratioPct={row.tssRatioPct} />
+                        </td>
+                      )}
                       <td style={{ ...CELL_STYLE, color: "var(--ink-2)", whiteSpace: "nowrap" }}>
                         {row.durationActual}
                         {row.durationPlan !== "–" && (
@@ -109,22 +118,27 @@ export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTa
                       <td style={{ ...CELL_STYLE, color: row.wattColor ?? "var(--ink-2)", whiteSpace: "nowrap" }}>
                         {row.wattActual}
                       </td>
-                      <td style={CELL_STYLE}>
-                        {row.compliance ? (
-                          <span style={{ color: RATING_COLOR[row.compliance.rating] ?? "var(--ink)" }}>
-                            {RATING_ICON[row.compliance.rating] ?? ""}
-                          </span>
-                        ) : (
-                          <span style={{ color: "var(--ink-3)" }}>–</span>
-                        )}
-                      </td>
+                      {showCompliance && (
+                        <td style={CELL_STYLE}>
+                          {row.compliance ? (
+                            <span style={{ color: RATING_COLOR[row.compliance.rating] ?? "var(--ink)" }}>
+                              {RATING_ICON[row.compliance.rating] ?? ""}
+                            </span>
+                          ) : (
+                            <span style={{ color: "var(--ink-3)" }}>–</span>
+                          )}
+                        </td>
+                      )}
                       <td style={{ ...CELL_STYLE, textAlign: "right", color: "var(--ink-3)" }}>
                         {row.expandable ? (isOpen ? "▾" : "▸") : ""}
                       </td>
                     </tr>
                     {isOpen && row.ride && (
                       <tr>
-                        <td colSpan={8} style={{ padding: "10px 8px 16px", borderBottom: "1px solid var(--hair)" }}>
+                        <td
+                          colSpan={6 + (showSollIst ? 1 : 0) + (showCompliance ? 1 : 0)}
+                          style={{ padding: "10px 8px 16px", borderBottom: "1px solid var(--hair)" }}
+                        >
                           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                             <div style={{ flex: "1 1 260px", minWidth: 220 }}>
                               <DoneCompareBlock card={row.card} ride={row.ride} canEdit={canEdit} />

@@ -78,7 +78,13 @@ export interface GridWeekRow {
   isRecoveryWeek: boolean;
   rangeStart: string;
   rangeEnd: string;
+  /** Tatsächlich gefahrene TSS-Summe der Woche, sobald mindestens eine Fahrt
+   *  vorliegt — sonst die geplante Summe (`tssPlanned`) als Schätzung für
+   *  reine Zukunftswochen. Nie eine Mischung aus beidem — `tssIsPlanned`
+   *  sagt, welcher Fall gerade gilt (Anzeige braucht sonst ununterscheidbar
+   *  aussehende "Ist"- und "Soll"-Zahlen nebeneinander im Raster). */
   tssSum: number;
+  tssIsPlanned: boolean;
   /** 0–100, relativ zur höchsten `tssSum` unter den zurückgegebenen Wochen
    *  (kein externes Zielvolumen verfügbar — s. Etappe-13-Plan). */
   loadPct: number;
@@ -145,7 +151,22 @@ export function buildWeekGrid(
     const weekCards = days.flatMap((d) => (d.card ? [d.card, ...d.otherCards] : d.otherCards));
     const activeCards = weekCards.filter((c) => !c.cancelled);
     const phase = activeCards.find((c) => c.phase)?.phase ?? null;
-    const tssSum = activeCards.reduce((sum, c) => sum + (c.tssPlanned ?? 0), 0);
+    const plannedTssSum = activeCards.reduce((sum, c) => sum + (c.tssPlanned ?? 0), 0);
+    // `tssPlanned` fehlt bei den meisten Karten (nur strukturierte Plan-2-
+    // Workouts haben es) — eine Woche mit real fahrenen Einheiten zeigte
+    // dadurch "0 TSS" direkt neben der Hero-Seite, die für dieselbe Woche
+    // die echte, aus den Fahrten berechnete Summe zeigt (Critique-Fund).
+    // Fallback auf tatsächlich gefahrene TSS, sobald mindestens eine Fahrt
+    // in der Woche liegt — nur eine reine Zukunftswoche ohne Fahrten zeigt
+    // weiterhin die geplante Summe (die einzig verfügbare Schätzung dort).
+    const weekRides = rides.filter((r) => r.dateISO >= days[0].date && r.dateISO <= days[6].date);
+    // Auf Fahrten-PRÄSENZ prüfen, nicht auf Summe > 0 — eine Woche mit
+    // echten Fahrten, die zufällig alle `tss: null` haben (z. B. Plan-1/
+    // Notion-Ära ohne Leistungsdaten), soll 0 zeigen, nicht auf die geplante
+    // Schätzung zurückfallen (Code-Review-Fund).
+    const actualTssSum = weekRides.reduce((sum, r) => sum + (r.tss ?? 0), 0);
+    const tssIsPlanned = weekRides.length === 0;
+    const tssSum = tssIsPlanned ? plannedTssSum : actualTssSum;
 
     return {
       weekKey,
@@ -153,6 +174,7 @@ export function buildWeekGrid(
       isRecoveryWeek: recoveryWeeks.has(weekKey),
       rangeStart: days[0].date,
       rangeEnd: days[6].date,
+      tssIsPlanned,
       tssSum,
       loadPct: 0, // unten relativ zur Wochen-Maximallast nachgetragen
       days,
