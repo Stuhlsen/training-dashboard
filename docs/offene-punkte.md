@@ -11,9 +11,11 @@
 ## Phase 2 — Befinden & Events
 
 - **Schlafscore fließt noch nicht in Governor/UI** — `sleepScore` wird seit
-  Commit `c8c7975` gezogen, aber `core/readiness.js`/`core/briefing.js`
-  nutzen es noch nicht (kalibrierungssensibler Eingriff in bereits getestete
-  Schwellenwerte, bewusst zurückgestellt). → `docs/phase-2-konzept-morgen-checkin.md` §2/5.1.
+  Commit `c8c7975` gezogen, aber `app/src/core/readiness.js`/
+  `app/src/core/export-briefing.js` nutzen es noch nicht (kalibrierungssensibler
+  Eingriff in bereits getestete Schwellenwerte, bewusst zurückgestellt;
+  Pfad 19.08.2026 aktualisiert — inhaltlich unverändert seit dem React-Umbau
+  portiert). → `docs/phase-2-konzept-morgen-checkin.md` §2/5.1.
 
 ## Phase 3 — Planungstab
 
@@ -30,7 +32,7 @@
   ausführen (CLAUDE.md: echter Push/Sync zu intervals.icu nur nach
   expliziter Freigabe). Push nutzt weiterhin `external_id = plan_cards.id`,
   nur anhand von API-Doku recherchiert (s. Kopfkommentar
-  `data-access/intervals/push.js`). Vor Produktion: pushen → Karte
+  `app/src/api/intervals/push.ts`, Pfad 19.08.2026 aktualisiert). Vor Produktion: pushen → Karte
   verschieben → erneut pushen → weiterhin nur EIN Event. →
   `docs/phase-3-konzept-planungstab.md` §5/§8.4.
   Die `zoneTimes`/`icu_eftp`-Feldnamen-Verifikation in `AGENTS.md`
@@ -41,21 +43,25 @@
   nebenbei mitlaufen lassen.
 - **Drag & Drop, bewusste v1-Einschränkungen:** kein Tastatur-Verschieben
   (A11y-Fallback über `.planned-move-form` existiert bereits); keine
-  Umsortierung innerhalb eines Tages (`sort_order` wird nach dem Anlegen nie
-  neu vergeben); Karte auf einen komplett leeren Wochenblock behält ihr altes
-  `week`-Label. → §4/§7 im Konzept.
+  Umsortierung innerhalb eines Tages (`sort_order` wird in
+  `app/src/api/plan-cards/patch.ts` nach dem Anlegen nie neu vergeben, s.
+  `app/src/api/hooks/usePlanCards.ts`); Karte auf einen komplett leeren
+  Wochenblock behält ihr altes `week`-Label. Alle drei bestehen unverändert
+  im React-Port (19.08.2026 geprüft). → §4/§7 im Konzept.
 
 ## Phase 4 — Trainer-Dashboard & Export/Import
 
-- **Trainer kann eine Karte nie hart löschen** — bewusst, kein `delete`-Op in
-  proposals v1 (Streichen läuft über `cancel`), kein offener Punkt.
 - **Review-Restpunkte, niedrige Priorität** (aus dem Ultra-Review vor dem
-  ersten proposals-Commit): `previewProposal()` rechnet die „Vorher"-Projektion
-  pro Vorschlag neu statt einmal gemeinsam; `TrainerBar.render()` lädt
-  Kontext/Kategorien/Vorschläge/Check-ins sequentiell statt per `Promise.all`;
-  Dialog-Grundgerüst ist jetzt 4× separat implementiert (kein
-  `ui/dom.js`-Helper); `payloadToCardData()` liefert unvollständige Payloads
-  nicht robust (heute folgenlos, einziger Erzeuger sendet immer vollständig).
+  ersten proposals-Commit, 19.08.2026 gegen den React-Port geprüft):
+  `app/src/core/proposal-preview.js::previewProposal()` rechnet die
+  „Vorher"-Projektion pro Vorschlag neu statt einmal gemeinsam;
+  `app/src/core/proposal-payload.js::payloadToCardData()` liefert
+  unvollständige Payloads nicht robust (heute folgenlos, einziger Erzeuger
+  sendet immer vollständig). Die zwei anderen Punkte der ursprünglichen
+  Vanilla-Liste (`TrainerBar.render()`-Sequenzialität, 4× dupliziertes
+  Dialog-Grundgerüst) sind mit dem React-Umbau gegenstandslos geworden
+  (Hooks statt imperativer `render()`-Sequenz, Komponenten statt
+  DOM-String-Buildern) — hier entfernt.
 - **Vorgabe an entstandenen Vorschlägen wird nicht mitprotokolliert**
   (`docs/phase-4-konzept-export-richtungsvorgabe.md` R9, Variante 3C) —
   zurückgestellt: `proposals` ist öffentlich lesbar (S1), ein sichtbares
@@ -84,14 +90,16 @@
     „Stufenvorschlag"-Abschnitt erscheint aber nicht.
   - **Athlet 2:** strukturell ebenfalls implementiert, aber praktisch
     wirkungslos für seine Hauptfamilie `over-under` — ohne
-    `alternating`-Parser (core/session-format-match.js) matcht keine
-    einzige seiner Ist-Fahrten gegen diese Familie, macht also 0 echte
-    Compliance-Zeilen für die Leiter-Fortschreibung verfügbar (s.
-    D4b-Punkt unten).
+    `alternating`-Parser (`app/src/core/workout-structure-derive.js`, sagt
+    das explizit im Kommentar) matcht keine einzige seiner Ist-Fahrten gegen
+    diese Familie, macht also 0 echte Compliance-Zeilen für die
+    Leiter-Fortschreibung verfügbar (s. D4b-Punkt unten). Stand 19.08.2026
+    unverändert.
   - **Bekannte kleinere Lücken:** der `vo2-short`/`vo2-long`-Tie-Break
-    läuft über einen Label-Regex statt eines strukturierten Feldes (eigener
-    Punkt unten); `CONFLICT_THRESHOLDS.eventTaperDays: 7`
-    (`core/plan-config.js`) ist eine eigene Annahme ohne externe
+    läuft in `app/src/core/session-format-match.js::inferFormatId()` über
+    einen Label-Regex statt eines strukturierten Feldes (eigener Punkt
+    unten); `CONFLICT_THRESHOLDS.eventTaperDays: 7`
+    (`app/src/core/plan-config.js`) ist eine eigene Annahme ohne externe
     (sportwissenschaftliche) Bestätigung — plausibel, aber nie gegen eine
     Quelle geprüft.
 - **Eigenes Konzeptdokument mit eigener Schrittfolge** —
@@ -141,74 +149,81 @@
   nachgeprüft, ob 0 Treffer an echter Ruhe oder an zu konservativen
   Schwellen liegt — nach mehr Plan-2-Historie mit stärkerer Belastung
   erneut beobachten (dieselbe Kalibrierungsvorbehalt-Logik wie K1,
-  `core/plan-config.js`). `select` in `loadPlanCards()` liest bewusst kein
-  `phase`/`week`/`tss_planned` (für Compliance-Matching nicht gebraucht)
-  — der Trockenlauf hat dafür lokal einen erweiterten Select genutzt,
-  nicht committet. → `docs/konzept-progressionssteuerung.md` P2,
-  `core/conflicts.js`.
+  `app/src/core/plan-config.js`). `select` in `loadPlanCards()` liest
+  bewusst kein `phase`/`week`/`tss_planned` (für Compliance-Matching nicht
+  gebraucht) — der Trockenlauf hat dafür lokal einen erweiterten Select
+  genutzt, nicht committet. → `docs/konzept-progressionssteuerung.md` P2,
+  `app/src/core/conflicts.js`.
 - **D4b — scharfe Leiter-Fortschreibung (C3/C4) bewusst nur für Athlet 1
   freigebbar, Athlet 2 bleibt im Beobachtungsmodus (02.08.2026, Live-
-  Verdrahtung seit D4b Schritt 3 erledigt)** —
+  Verdrahtung seit D4b Schritt 3 erledigt, Pfade 19.08.2026 aktualisiert)** —
   `profiles.ladder_progression_enabled` (Migration 0016, gegen `dashboard-dev`
   und `prod` angewendet, Stand 06.08.2026) ist die athletenweite Sperre;
-  `state/ladder.js::getPresetSuggestion()` prüft sie vor jedem
-  Stufenvorschlag. Athlet 2 bleibt davon unabhängig unten: dünne/fehlende
-  Compliance-Basis (0 echte, nur abgeleitete Compliance-Zeilen mit
-  Oszillation bei 2 Datenpunkten) und dieselbe fehlende Ride↔Format-Brücke
-  wie im Punkt „Fehlende ride↔activityId-Brücke..." oben — zusätzlich kein
+  `app/src/api/hooks/useLadderState.ts` prüft sie vor jedem Stufenvorschlag.
+  Athlet 2 bleibt davon unabhängig unten: dünne/fehlende Compliance-Basis
+  (0 echte, nur abgeleitete Compliance-Zeilen mit Oszillation bei 2
+  Datenpunkten) und dieselbe fehlende Ride↔Format-Brücke wie im Punkt
+  „Fehlende ride↔activityId-Brücke..." oben — zusätzlich kein
   `alternating`-Parser für seine Hauptfamilie `over-under` (separates
   Thema, nicht Teil von D4b). Die Live-Verdrahtung des Vorschlags in den
-  Export-Text (`state/export.js` → `## Stufenvorschlag`-Abschnitt im
-  Briefing) ist inzwischen erledigt (D4b Schritt 3) — der frühere Hinweis
-  hier, sie sei zurückgestellt und liefe nur über
-  `scripts/preset-suggestion-check.js`, ist überholt. Offen bleibt nur
-  noch die Freigabe selbst: `core/ladder-progression.js::presetAction()`
+  Export-Text (`app/src/core/export-briefing.js` → `## Stufenvorschlag`-
+  Abschnitt im Briefing, Kommentar dort bestätigt den Zustand weiterhin)
+  ist inzwischen erledigt (D4b Schritt 3). Offen bleibt nur noch die
+  Freigabe selbst: `app/src/core/ladder-progression.js::presetAction()`
   und der Gate-Check sind fertig und getestet, aber `ladder_progression_
   enabled` ist für keinen Athleten gesetzt, der Vorschlag also live noch
   nirgends scharf. → `docs/konzept-progressionssteuerung.md` C3/C4.
 - **vo2-short/vo2-long-Tie-Break über Katalog-`label` statt eines
   strukturierten Feldes (02.08.2026, Nebenfund aus dem Auftrag
-  "Taper-Erkennung für 'Auf Event hin'")** — `core/session-format-
-  match.js::inferFormatId()` trennt die überlappenden Pct-FTP-Bänder von
-  vo2-short/vo2-long über `work.duration_s` (≤90s vs. länger) und
-  disambiguiert einen verbleibenden Mehrfachtreffer über einen Regex
-  (`/kurz/i`) auf `session_formats.label`. Funktioniert für den aktuellen
-  6-Zeilen-Katalog, ist aber implizit an den deutschen Wortlaut des Labels
-  gekoppelt — ein künftiges, umbenanntes oder englischsprachiges Format
-  würde den Tie-Break stillschweigend auf `null` fallen lassen (kein
-  Crash, aber ein stiller Klassifikationsausfall). Bekannt, unkritisch
-  beim aktuellen Bestand, keine Umsetzung hier — bei einer künftigen
-  Katalogerweiterung mit einem strukturierten Feld (z. B. `axes.repKind:
-  "short"|"long"`) ablösen. → `core/session-format-match.js`.
-- **Vokabular-Nebenfund aus Fenster BR (02.08.2026, bei D4b
-  mitgeprüft):** Athlet 2s GFNY-Karte (`scripts/lib/plan-athlete2.js:545`)
-  trägt `typ: "Race"` statt der sonst durchgängigen deutschen Konvention
-  `"Rennen"` (`KNOWN_PLAN_TYPES`, Farb-/Icon-Mapping in `ui/planned.js`,
-  `TYPE_DEFAULT_TSS` in `core/plan-config.js` — alle nur auf `"Rennen"`
-  geschlüsselt). Die Karte bekommt dadurch keine Rennen-Farbe/kein Icon/
-  keinen Typ-Default-TSS. Da Athlet 2s Planungstab read-only ist, greift
-  keine Proposal-Validierung — reiner Anzeige-Nebeneffekt, kein Crash,
-  aber ein echter Datenkonsistenz-Fehler, kein Stilproblem.
+  "Taper-Erkennung für 'Auf Event hin'", Pfad 19.08.2026 aktualisiert)** —
+  `app/src/core/session-format-match.js::inferFormatId()` trennt die
+  überlappenden Pct-FTP-Bänder von vo2-short/vo2-long über
+  `work.duration_s` (≤90s vs. länger) und disambiguiert einen
+  verbleibenden Mehrfachtreffer über einen Regex (`/kurz/i`) auf
+  `session_formats.label`. Funktioniert für den aktuellen 6-Zeilen-Katalog,
+  ist aber implizit an den deutschen Wortlaut des Labels gekoppelt — ein
+  künftiges, umbenanntes oder englischsprachiges Format würde den
+  Tie-Break stillschweigend auf `null` fallen lassen (kein Crash, aber ein
+  stiller Klassifikationsausfall). Bekannt, unkritisch beim aktuellen
+  Bestand, keine Umsetzung hier — bei einer künftigen Katalogerweiterung
+  mit einem strukturierten Feld (z. B. `axes.repKind: "short"|"long"`)
+  ablösen. → `app/src/core/session-format-match.js`.
+- **Vokabular-Nebenfund aus Fenster BR (02.08.2026, bei D4b mitgeprüft;
+  19.08.2026: Farbe/Icon inzwischen gefixt, Rest weiterhin offen):**
+  Athlet 2s GFNY-Karte (`scripts/lib/plan-athlete2.js:545`) trägt
+  `typ: "Race"` statt der sonst durchgängigen deutschen Konvention
+  `"Rennen"`. Farb-/Icon-Mapping sind beim React-Port bereits auf `"Race"`
+  erweitert worden (`app/src/features/planning/planning-view-model.ts`:
+  `PLAN_TYPE_COLOR.Race`/`PLAN_TYPE_ICON.Race`; `app/src/sports/cycling/
+  session-types.ts`: `INTENSITY_CLASS.Race`, mit explizitem GFNY-Kommentar).
+  Weiterhin offen: `TYPE_DEFAULT_TSS` (`app/src/sports/cycling/
+  session-types.ts`) kennt `"Race"` nicht, fällt auf den generischen
+  `FALLBACK_TSS` zurück. Da Athlet 2s Planungstab read-only ist, greift
+  keine Proposal-Validierung — reiner Anzeige-/Schätzwert-Nebeneffekt, kein
+  Crash. `scripts/lib/plan-athlete2.js:545` selbst (Ursache des
+  Vokabular-Mismatch) wurde nicht angefasst.
 
 ## Phase 5 — Explorer
 
-- **Skalen-Migration der Bestandscharts bewusst zurückgestellt** — `pmc/power/
-  training/wellness.js` rechnen ihr x indexbasiert (`pad.l + (i / (n-1)) * cw`
-  bzw. slotbasiert), nicht als Zeitachse. Eine Umstellung auf die in Phase 5
-  eingeführte kontinuierliche `makeDateScale()` würde Tage ohne Daten als
-  Lücken sichtbar machen, wo die Achse sie heute zusammenschiebt — bei
-  Athlet 2 (dünne Datenlage) eine optische Regression an öffentlich
-  sichtbarer Stelle. Expliziter Nicht-Zielpunkt von Phase 5, nicht Teil des
-  [HA]-Vereinheitlichungsschritts (der bleibt auf Datumsformate/Kategorien
-  beschränkt). Voraussetzung für Cursor-Sync über den Explorer hinaus.
+- **Skalen-Migration der Bestandscharts bewusst zurückgestellt (Pfad
+  19.08.2026 aktualisiert, Scope beim React-Port größer geworden)** — alle
+  19 Chart-Komponenten unter `app/src/charts/*.tsx` importieren weiterhin
+  `makeIndexScale` aus `app/src/core/chart-scale.js`, keine nutzt eine
+  kontinuierliche Datumsachse (vorher waren nur 4 Vanilla-Dateien
+  betroffen — die ursprüngliche Sorge gilt jetzt für praktisch alle
+  Charts). Eine Umstellung auf eine kontinuierliche Zeitachse würde Tage
+  ohne Daten als Lücken sichtbar machen, wo die Achse sie heute
+  zusammenschiebt — bei Athlet 2 (dünne Datenlage) eine optische
+  Regression an öffentlich sichtbarer Stelle. Expliziter Nicht-Zielpunkt,
+  Voraussetzung für Cursor-Sync über den Explorer hinaus.
   → `docs/phase-5-konzept-explorer.md` §1.2/§8, X4.
-- **Vergleichsmodus (Schritt 4) vergleicht nur CTL**, nicht ATL/TSB — bewusste
-  Scope-Begrenzung, analog zur Szenario-Zweitserie (Schritt 3), die ebenfalls
-  nur CTL überlagert. Eine spätere Erweiterung auf ATL/TSB bräuchte eine
-  eigene Entscheidung, wie zwei zusätzliche Serienpaare (4 Kurven auf einer
-  Achse) ohne Überladung darstellbar sind.
-- **`compareSlots` in `state/chart-view.js` ist ein eigenständiges Feld,
-  keine Verallgemeinerung von `ws`/`we` auf eine Liste** — das Konzept (§7.1)
+- **Vergleichsmodus vergleicht nur CTL** (`app/src/charts/CompareChart.tsx`),
+  nicht ATL/TSB — bewusste Scope-Begrenzung. Eine spätere Erweiterung auf
+  ATL/TSB bräuchte eine eigene Entscheidung, wie zwei zusätzliche
+  Serienpaare (4 Kurven auf einer Achse) ohne Überladung darstellbar sind.
+- **`compareSlots` in `app/src/api/hooks/useExplorerCompare.ts` ist ein
+  eigenständiges Feld, keine Verallgemeinerung von `ws`/`we` auf eine
+  Liste** — das Konzept (§7.1)
   hatte den Zeitraumzustand ab Schritt 0 als Liste vorausgesehen, tatsächlich
   blieb der Hauptbrush ein Einzelwert. Nutzerentscheidung: additiv statt
   Umbau, geringeres Risiko für Schritt 0–3. Falls ein künftiger Baustein
@@ -295,11 +310,13 @@
   Tage gegenprüfen — bei Konvergenz war es das, sonst weitere Recherche
   in `scripts/lib/intervals.js` (evtl. liefert die Wellness-API
   unterschiedliche Werte je nach Query-Zeitraum).
-- **Deshalb bewusst kein reiner Wechsel auf `Data.wellness` für HRV/
-  Ruhepuls (Eigenplan-Athlet), sondern ein Merge** (`_mergedOwnPlanSeries()`
-  in `wellness.js`: wellness-Wert bevorzugt, ride-Wert als Fallback) — ein
-  reiner Wechsel hätte zusätzlich die komplette Plan-1-Ära (vor Mitte Juni)
-  gelöscht, da `Data.wellness` dafür gar keine HRV/Ruhepuls-Werte trägt.
+- **Deshalb bewusst kein reiner Wechsel auf den Wellness-Bestand für HRV/
+  Ruhepuls (Eigenplan-Athlet), sondern ein Merge** (`mergedOwnPlanSeries()`
+  in `app/src/core/wellness-series.js`, konsumiert von
+  `app/src/charts/WellnessChart.tsx`, Pfad 19.08.2026 aktualisiert:
+  wellness-Wert bevorzugt, ride-Wert als Fallback) — ein reiner Wechsel
+  hätte zusätzlich die komplette Plan-1-Ära (vor Mitte Juni) gelöscht, da
+  der Wellness-Bestand dafür gar keine HRV/Ruhepuls-Werte trägt.
   Der Merge löst NICHT die obige Werte-Diskrepanz auf (zeigt an den 6
   betroffenen Tagen konsequent den Wellness-Wert), verschiebt sie nur
   sichtbar auf die Sync-Pipeline statt sie im Chart zu verstecken.
@@ -336,10 +353,12 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   `scripts/lib/http.js::fetchJson()` ohne dessen Timeout/Retry-Schutz** —
   zwei rohe `fetch()`-Aufrufe ohne Timeout. Ist trotz eigenem Kommentar
   ("NICHT von generate-data.js aufgerufen") bereits aktiv in
-  `generate-data.js:141`/`:317` verdrahtet (Kommentar ist stale) — sobald
-  die in der Infrastruktur/CI-Sektion unten genannten `SUPABASE_*`-Secrets
-  gesetzt sind, kann ein hängender Login/REST-Call den ganzen Sync-Lauf ohne
-  Timeout blockieren.
+  `generate-data.js:141`/`:317` verdrahtet (Kommentar ist stale). **Stand
+  19.08.2026: nicht mehr nur theoretisch** — die `SUPABASE_*`-Secrets in
+  `sync-data.yml` sind längst gesetzt (s. „Erledigt"), ein hängender
+  Login/REST-Call kann also bei jedem regulären 6h-Cron den ganzen
+  Sync-Lauf ohne Timeout blockieren. Priorität entsprechend höher als beim
+  ursprünglichen Fund.
 
 ## Dashboard 3.0 — React-Umbau
 
@@ -355,27 +374,20 @@ Aus einem `/code-review`-Durchlauf gegen `origin/dashboard-2.0..HEAD`
   die Zuordnung Athlet↔Sportart kommt.
 ## Infrastruktur/CI
 
-- **`sync-data.yml` hat noch keine `SUPABASE_*`-Secrets im `env`-Block** —
-  `scripts/lib/ftp-history.js::loadFtpHistory()` (Commit `abc230a`, FTP-
-  Historie-Auftrag Schritt 3) ist fertig verdrahtet, aber ohne
-  `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_ATHLETE1_EMAIL`/
-  `SUPABASE_ATHLETE1_PASSWORD` (optional `_ATHLETE2_*`) als GitHub-Actions-
-  Secrets + im Workflow-`env`-Block läuft der 6h-Cron weiterhin mit dem
-  Fallback (`DEFAULT_FTP`/`estimatedFtp`) — kein Fehler, nur kein Effekt.
-  Bewusst zurückgestellt bis nach Schritt 4 (Athleten-Formular zum Eintragen
-  der FTP-Historie) — vorher gibt es ohnehin keine echten Einträge, die
-  nachgeladen werden könnten.
-- **K3-Typ-Defaults (`TYPE_DEFAULT_TSS`, `core/plan-config.js`) noch nicht
-  auf Basis der FTP-Historie neu abgeleitet** — die letzte Neuberechnung
-  (Commit `710a43b`) lag vor der ftp_history-Einführung, basiert also auf
-  der alten, fix-FTP-basierten `typ`-Zuordnung. Neuableitung erst sinnvoll,
-  wenn beides zutrifft: (a) mindestens ein echter Ramp-Test-Eintrag pro
-  Athlet in `ftp_history`, (b) der Punkt direkt oben (SUPABASE-Secrets in
-  `sync-data.yml`) ist erledigt — sonst produzieren lokaler `npm run sync`
-  und der reguläre 6h-Cron unterschiedliche `typ`-Zuordnungen für dieselben
-  Fahrten. Prozess dann: `npm run sync` → `node
-  scripts/migrate-plan-to-supabase.js` (ohne `--apply`, reine Log-Ausgabe)
-  → Werte manuell in `TYPE_DEFAULT_TSS` übernehmen, analog `710a43b`.
+- **K3-Typ-Defaults (`TYPE_DEFAULT_TSS`, jetzt `app/src/sports/cycling/
+  session-types.ts`, Pfad 19.08.2026 aktualisiert) noch nicht auf Basis der
+  FTP-Historie neu abgeleitet** — die letzte Neuberechnung (Commit
+  `710a43b`) lag vor der ftp_history-Einführung, basiert also auf der
+  alten, fix-FTP-basierten `typ`-Zuordnung. Vorbedingung (b) — `SUPABASE_*`-
+  Secrets in `sync-data.yml` — ist seit dem darunter unter „Erledigt"
+  vermerkten Fix erfüllt; Vorbedingung (a) — mindestens ein echter
+  Ramp-Test-Eintrag pro Athlet in `ftp_history` — nicht statisch prüfbar,
+  vermutlich weiterhin offen. Neuableitung erst sinnvoll, wenn auch (a)
+  zutrifft, sonst produzieren lokaler `npm run sync` und der reguläre
+  6h-Cron unterschiedliche `typ`-Zuordnungen für dieselben Fahrten. Prozess
+  dann: `npm run sync` → `node scripts/migrate-plan-to-supabase.js` (ohne
+  `--apply`, reine Log-Ausgabe) → Werte manuell in `TYPE_DEFAULT_TSS`
+  übernehmen, analog `710a43b`.
 - **`git sync`s gepinnter `--force-with-lease`-Wert schützt nicht, wenn `main`
   VOR dem Alias-Lauf manuell vorbereitet wurde (05.08.2026, Zwischenfall +
   sofort behoben, kein Datenverlust)** — beim Verteilen zweier Commits von
@@ -573,6 +585,14 @@ liefert. Details s. DKR0-Bericht oben.
 
 ## Erledigt (Kurzform — Details in Commit-Messages/Konzeptdokumenten)
 
+- **`sync-data.yml`: `SUPABASE_*`-Secrets im `env`-Block ergänzt** (Datum
+  nicht mehr rekonstruierbar, beim 19.08.2026-Review gegen den aktuellen
+  Workflow bestätigt) — `.github/workflows/sync-data.yml` setzt
+  `SUPABASE_URL`/`SUPABASE_ANON_KEY`/`SUPABASE_ATHLETE1_EMAIL`/`_PASSWORD`
+  inzwischen im `env`-Block, der 6h-Cron läuft also nicht mehr nur mit
+  Fallback (`DEFAULT_FTP`/`estimatedFtp`). Nebeneffekt: der
+  `loadFtpHistory()`-Timeout-Fund in „Ist-Typerkennung / Blockerkennung /
+  FTP-Historie" ist dadurch jetzt live scharf statt nur theoretisch.
 - **Fahrplan 1 — Vanilla-JS-Zweig entfernt (15.08.2026)**: `assets/js/**`
   (inkl. eigener `core/`-Kopie) komplett gelöscht, React unter `/app/` ist
   die einzige verbliebene Oberfläche. V0-Funktionsabgleich fand 3 fehlende
