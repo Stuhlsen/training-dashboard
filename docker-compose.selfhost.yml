@@ -4,7 +4,7 @@
 
 services:
   postgres:
-    image: supabase/postgres:15.1.0.147
+    image: supabase/postgres:15.14.1.165
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -36,7 +36,7 @@ services:
   # Tabellen anlegt — die anschliessenden Migrationen vergeben die Rechte
   # dann exklusiv selbst.
   db-init:
-    image: supabase/postgres:15.1.0.147
+    image: supabase/postgres:15.14.1.165
     depends_on:
       postgres:
         condition: service_healthy
@@ -52,19 +52,20 @@ services:
         psql -h postgres -U supabase_admin -d postgres -c
         "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;"
 
+  # Fahrplan 3, DKR4: eigenes Image (supabase/Dockerfile) statt Bind-Mount —
+  # das ist das Artefakt, das zusammen mit dem Frontend versioniert nach
+  # GHCR geht (Tonys Vorgabe: kein Host-Pfad auf apps01, s. docs/docker-lokal-einrichten.md).
   migrate:
-    image: ghcr.io/amacneil/dbmate
+    build:
+      context: ./supabase
     depends_on:
       db-init:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
-    volumes:
-      - ./supabase/migrations:/db/migrations
-    command: ["--wait", "up"]
 
   gotrue:
-    image: supabase/gotrue:v2.151.0
+    image: supabase/gotrue:v2.196.0
     depends_on:
       migrate:
         condition: service_completed_successfully

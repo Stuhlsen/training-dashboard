@@ -406,6 +406,20 @@ die zusammen die Supabase-Cloud ersetzen. Das Frontend (DKR1) läuft separat,
 nicht Teil dieser Compose-Datei — hier wird ausschließlich das Backend
 geprüft.
 
+**Stand 19.08.2026 (Fahrplan 3, DKR4-Vorbereitung): Versions-Pins gebumpt,
+erneut voll verifiziert.** Tony (Zielserver apps01) bat um aktuellere Pins
+vor der Übergabe — `supabase/postgres` `15.1.0.147` → `15.14.1.165`
+(gleiche Hauptversion, kein Postgres-Major-Bump), `supabase/gotrue`
+`v2.151.0` → `v2.196.0`. Alle unten dokumentierten, versionsspezifischen
+Eigenheiten (Port 8081 statt 9999, `supabase_auth_admin`-Search-Path,
+Default-Privileges-Leck) wurden gegen einen **frischen** Stack (`down -v` +
+`up -d --build`) mit den neuen Pins erneut geprüft, nicht nur angenommen:
+alle 17 Migrationen liefen durch, `gotrue` wurde `healthy`, `npm test`
+lief **96/96 grün** (davon 28/28 die RLS-Suite, inkl. des Login-Tests, der
+GoTrue/PostgREST tatsächlich durchläuft). Zusätzlich: der `migrate`-Dienst
+läuft seitdem als eigenes gebautes Image (`supabase/Dockerfile`) statt
+Bind-Mount — s. Hinweis direkt im Codeblock unten und "Typische Fehler".
+
 ### Vier empirisch gefundene Lücken gegenüber dem ursprünglichen Entwurf
 
 Der erste Testlauf deckte vier Stellen auf, an denen sich das
@@ -459,7 +473,7 @@ dazu:
 ```yaml
 services:
   postgres:
-    image: supabase/postgres:15.1.0.147
+    image: supabase/postgres:15.14.1.165
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -475,7 +489,7 @@ services:
   # s. Lücken 1 und 4 oben — setzt Passwörter und widerruft die vom Image
   # automatisch vergebenen Default-Privileges, bevor "migrate" läuft.
   db-init:
-    image: supabase/postgres:15.1.0.147
+    image: supabase/postgres:15.14.1.165
     depends_on:
       postgres:
         condition: service_healthy
@@ -491,19 +505,26 @@ services:
         psql -h postgres -U supabase_admin -d postgres -c
         "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;"
 
+  # Fahrplan 3, DKR4: eigenes Image (supabase/Dockerfile) statt Bind-Mount —
+  # baeckt supabase/migrations/*.sql zur Bauzeit ein (Tonys Vorgabe: kein
+  # Host-Pfad auf apps01). WICHTIG: dadurch baut "up -d" nach einer neuen/
+  # geaenderten Migrationsdatei NICHT automatisch neu — Compose erkennt keine
+  # Aenderung am Build-Kontext. Nach jeder Migrationsdatei-Aenderung zwingend
+  # "docker compose -f docker-compose.selfhost.yml build migrate" (oder
+  # "up -d --build") VOR dem naechsten Testlauf, sonst laeuft "migrate"
+  # unbemerkt mit dem alten, bereits gebauten Migrationsstand weiter — dbmate
+  # meldet trotzdem Erfolg, s. "Typische Fehler" unten.
   migrate:
-    image: ghcr.io/amacneil/dbmate
+    build:
+      context: ./supabase
     depends_on:
       db-init:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
-    volumes:
-      - ./supabase/migrations:/db/migrations
-    command: ["--wait", "up"]
 
   gotrue:
-    image: supabase/gotrue:v2.151.0
+    image: supabase/gotrue:v2.196.0
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -712,6 +733,7 @@ docker compose -f docker-compose.selfhost.yml down -v
 | RLS-Test schlägt fehl, obwohl die Anfrage 200 zurückgibt | Bekannte Falle: ein PATCH ohne RLS-Treffer liefert HTTP 200 mit null Zeilen — Test muss auf `data.length` prüfen, nicht auf `.ok` |
 | `gotrue` kommt nicht hoch | `GOTRUE_JWT_SECRET` und `PGRST_JWT_SECRET` weichen voneinander ab — müssen identisch sein |
 | Port 80 schon belegt | Anderer lokaler Dienst (z. B. IIS, Skype, ein anderer Container) — `proxy`-Port in `docker-compose.selfhost.yml` testweise auf `8081:80` ändern |
+| Neue/geänderte Migration wird nicht eingespielt, kein Fehler sichtbar | Seit DKR4 baut `migrate` aus `supabase/Dockerfile` statt Bind-Mount — `up -d` allein baut nicht neu. Erst `docker compose -f docker-compose.selfhost.yml build migrate`, dann `up -d` |
 
 ---
 

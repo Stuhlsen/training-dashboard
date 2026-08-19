@@ -1,0 +1,101 @@
+# Fahrplan 3, DKR4 — baut die drei eigenen Images (frontend, sync, migrate)
+# und pusht sie versioniert nach GHCR. Postgres/GoTrue/PostgREST/Caddy werden
+# NICHT hier veroeffentlicht — Tonys Infra (apps01) zieht diese direkt aus
+# den offiziellen Registries, sein Update-Tooling (Renovate) verfolgt sie
+# dort. s. docs/docker-lokal-einrichten.md.
+#
+# Trigger: Push nach main (aktualisiert den "latest"-Tag) und "v*"-Tags
+# (versionierte Releases, s. Uebergabepunkt in fahrplan-3-docker-umbau.md).
+# Nach dem ersten erfolgreichen Lauf je Image muss die Sichtbarkeit einmalig
+# manuell auf "Public" gestellt werden (GitHub-Profil -> Packages) — private
+# Pakete sind vom Server aus sonst nicht ziehbar.
+name: publish-images
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/stuhlsen/training-dashboard-frontend
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./app
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/stuhlsen/training-dashboard-sync
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: scripts/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/stuhlsen/training-dashboard-migrate
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ./supabase
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

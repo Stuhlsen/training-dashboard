@@ -8,6 +8,7 @@ RUN npm run build:docker
 
 # Stufe 2: Ausliefern
 FROM nginx:alpine
+LABEL org.opencontainers.image.source="https://github.com/Stuhlsen/training-dashboard"
 RUN addgroup -g 1001 appgroup && adduser -D -u 1001 -G appgroup appuser
 COPY --from=build /build/dist /usr/share/nginx/html
 COPY nginx.conf /etc/nginx/conf.d/default.conf
