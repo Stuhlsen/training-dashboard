@@ -322,10 +322,41 @@ Segmentdaten statt des im Mockup gezeigten (nicht baubaren) Rausch-Traces.
 4. Tests: beide Zweige, beide `zoneTimes`-Formate (numerisch/`{id,secs}`,
    wie bereits in `zones-coggan.test.js` abgedeckt), `null`-Fallback.
 
+### Stand
+
+**Umgesetzt** (19.08.2026): `done-detail-chart-view-model.ts` —
+`buildStepChart(compliance)` baut einen Balken je `compliance.matched[i]`
+(Breite ∝ `plannedDurationS`-Anteil an der Summe, Höhe ∝ Watt relativ zum
+höchsten Soll-ODER-Ist-Wert unter allen Balken, gemeinsame Skala für
+Vergleichbarkeit), `actualHeightPct` ist `null` ohne `avgWatts` (erfundene
+Null vermieden). Liest ausschließlich `compliance.matched` — keine
+Nicht-Arbeits-Segmente aus `workoutStructure` nachgezogen, keine HR-Linie
+(kein Feld dafür in `RideCompliance`). `zoneMixFromRide(ride)` nutzt
+`normalizeZoneTimes()` (`core/zones.js`, deckt beide intervals.icu-Formate
+ab) und bündelt Index ≥4 nach demselben Muster wie
+`last7DayZoneTimes()` in Z5+, gemappt auf die vollen 5
+`COGGAN_ZONE_META`-Zonen (`app/src/sports/cycling/zones.ts`) statt der
+groben 3-Band-Verdichtung aus `bandZoneTimes()` — näher am Mockup. `null`
+bei fehlenden `zoneTimes` oder Summe 0.
+
+`DoneDetailChart.tsx` — Zweigwahl über `visibleCompliance()`: sichtbare
+Ampel → Stufenchart (Soll gestrichelt/Ist gefüllt je Balken, ✓/✗-Farbe über
+`fulfilled`, Fade/Ampel-Fußzeile mit `RATING_ICON`/`RATING_COLOR`/
+`RATING_LABEL` aus `ComplianceTable.tsx`, dort für diesen Zweck bereits in
+13d exportiert); sonst Zonen-Mix-Leiste. `ride == null` → `null` (kein
+Crash, kein Chart). Eigenständige Komponente, noch nicht an
+`DoneTable.tsx`s `renderChart`-Slot angeschlossen — diese Verdrahtung ist
+trivial (`renderChart={(row) => <DoneDetailChart {...row} />}`) und folgt
+zusammen mit dem Rest von `PlanningPage.tsx` erst in Etappe 13f.
+
+`done-detail-chart-view-model.test.ts` (10 Tests) + `DoneDetailChart.test.tsx`
+(5 Tests) grün, bestehende Suite weiterhin grün (577/577 im `app`-Projekt),
+`npx tsc -b --noEmit` fehlerfrei, `npm run build` fehlerfrei.
+
 ### Abnahme
 
-- [ ] Helper-Tests grün (beide Zweige + Fallback)
-- [ ] Komponente rendert ohne Crash bei fehlenden Daten (kein Chart statt
+- [x] Helper-Tests grün (beide Zweige + Fallback)
+- [x] Komponente rendert ohne Crash bei fehlenden Daten (kein Chart statt
       Fehler)
 
 ---
