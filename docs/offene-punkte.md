@@ -13,9 +13,6 @@
   (`app/src/core/ladder-progression.js::presetAction()`), aber nirgends live
   scharf. Reine Freigabe-Entscheidung, kein Code. →
   `docs/konzept-progressionssteuerung.md` C3/C4.
-- **Athlet 2: kein `alternating`-Parser** — seine Hauptfamilie `over-under`
-  matcht nie, macht 0 Compliance-Zeilen für die Leiter.
-  `app/src/core/workout-structure-derive.js`.
 - **`vo2-short`/`vo2-long`-Tie-Break über Label-Regex statt strukturiertem
   Feld** — bricht bei umbenanntem/englischem Katalog-Label.
   `app/src/core/session-format-match.js::inferFormatId()`.
