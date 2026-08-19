@@ -61,20 +61,6 @@ export function canDragCard({ canEdit, cardDate, today, trainerProposalMode }) {
 }
 
 /**
- * Tages-Slots für den Wochenblock, der `weekCards` enthält — die Zeile
- * gestrichelter Drop-Zonen, die ui/planned.js beim Drag-Start einblendet.
- * Vergangene Tage kommen mit `allowed: false` zurück (gedimmt, nicht
- * droppbar) statt zu fehlen: der Wochenblock behält so seine Form, und
- * "hier geht es nicht" ist sichtbar statt unsichtbar.
- * @param {string} anchorDate ISO-Datum irgendeiner Karte der Woche
- * @param {string} today ISO-Datum
- * @returns {{date: string, allowed: boolean}[]} 7 Einträge, Mo–So
- */
-export function daySlots(anchorDate, today) {
-  return weekDays(anchorDate).map((date) => ({ date, allowed: isDropAllowed(date, today) }));
-}
-
-/**
  * Entscheidet, was ein Drop auf `targetDate` auslöst.
  * @param {{id: string, date: string}} card die gezogene Karte
  * @param {string} targetDate ISO-Datum des Zieltags

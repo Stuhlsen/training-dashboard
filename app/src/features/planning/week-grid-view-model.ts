@@ -16,8 +16,7 @@
 
 import { isoWeekKey } from "../../core/aggregate.js";
 import { weekDays } from "../../core/plan-drag.js";
-import { plannedRecoveryWeeks } from "../../core/plan-feedback.js";
-import { doneDatesOf, isRestDay } from "./planning-view-model";
+import { computePlanningDerivedSets, isMissedCard, isRestDay, type PlanningDerivedSets } from "./planning-view-model";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -87,28 +86,38 @@ function statusForDate(
   if (isRestDay(primary)) return date <= todayIso ? "done" : "open";
   if (doneDates.has(date)) return "done";
   if (date === todayIso) return "today";
-  // Verschobene Karten (originalDate gesetzt) zählen nie als "verpasst",
-  // spiegelt buildPlanningSections' missed-Filter.
-  if (date < todayIso && !primary.originalDate) return "missed";
+  // isMissedCard() ist dieselbe Regel wie buildPlanningSections()' missed-
+  // Filter (planning-view-model.ts) — geteilt, damit Raster-Status und
+  // Fortschritts-Statistik für dieselbe Karte nie auseinanderlaufen.
+  if (isMissedCard(primary, doneDates, todayIso)) return "missed";
   return "open";
 }
 
-export function buildWeekGrid(cards: PlanCard[], rides: Ride[], todayIso: string): GridWeekRow[] {
-  const doneDates = doneDatesOf(rides);
-  const recoveryWeeks = plannedRecoveryWeeks(cards) as Set<string>;
+export function buildWeekGrid(
+  cards: PlanCard[],
+  rides: Ride[],
+  todayIso: string,
+  derived: PlanningDerivedSets = computePlanningDerivedSets(cards, rides),
+): GridWeekRow[] {
+  const { doneDates, recoveryWeeks } = derived;
 
   const byDate = new Map<string, PlanCard[]>();
+  // Anker-Datum je Wochenschlüssel im selben Durchlauf mitgeführt — spart
+  // die sonst nötige `cards.find(...)`-Suche pro Woche (O(Wochen×Karten)).
+  const anchorByWeek = new Map<string, string>();
   for (const c of cards) {
     const bucket = byDate.get(c.date);
     if (bucket) bucket.push(c);
     else byDate.set(c.date, [c]);
+    const weekKey = isoWeekKey(c.date);
+    if (!anchorByWeek.has(weekKey)) anchorByWeek.set(weekKey, c.date);
   }
 
-  const weekKeys = [...new Set(cards.map((c) => isoWeekKey(c.date)))].sort();
+  const weekKeys = [...anchorByWeek.keys()].sort();
 
   const rows = weekKeys.map((weekKey): GridWeekRow => {
-    const anchorCard = cards.find((c) => isoWeekKey(c.date) === weekKey)!;
-    const days: GridDayCell[] = weekDays(anchorCard.date).map((date) => {
+    const anchorDate = anchorByWeek.get(weekKey)!;
+    const days: GridDayCell[] = weekDays(anchorDate).map((date) => {
       const dateCards = byDate.get(date) ?? [];
       const primary = dateCards.find((c) => !c.cancelled) ?? dateCards[0] ?? null;
       const otherCards = dateCards.filter((c) => c !== primary);

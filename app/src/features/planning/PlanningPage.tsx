@@ -53,6 +53,7 @@ import { DoneDetailChart } from "./DoneDetailChart";
 import { buildDoneRows, gapsChips, planFidelitySummary } from "./done-table-view-model";
 import {
   buildPlanningSections,
+  computePlanningDerivedSets,
   matchRideForCard,
   resolvePlanningFtp,
   typeColor,
@@ -136,10 +137,18 @@ export function PlanningPage() {
   // steckt bewusst MIT im Callback (nicht als eigene Variable davor) — der
   // `?? []`-Fallback erzeugt sonst bei jedem Render ein neues Array und
   // würde die Memoisierung selbst wieder aushebeln.
+  //
+  // computePlanningDerivedSets() (doneDates/recoveryWeeks) EINMAL geteilt
+  // zwischen sections UND weekGrid unten — beide bräuchten sonst dieselbe
+  // Set-/Gruppierungs-Berechnung doppelt pro Render-Zyklus.
+  const derivedSets = useMemo(() => {
+    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
+    return computePlanningDerivedSets(cards ?? [], rides);
+  }, [cards, rideData]);
   const sections = useMemo(() => {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return buildPlanningSections(cards ?? [], rides, TODAY);
-  }, [cards, rideData]);
+    return buildPlanningSections(cards ?? [], rides, TODAY, derivedSets);
+  }, [cards, rideData, derivedSets]);
   const editable = canWrite && activeAthleteId === PRIMARY_ATHLETE_ID;
   const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
 
@@ -170,8 +179,8 @@ export function PlanningPage() {
   // Grundlage der Fortschritts-Statistik/Done-Liste oben.
   const weekGrid = useMemo(() => {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return buildWeekGrid(cards ?? [], rides, TODAY);
-  }, [cards, rideData]);
+    return buildWeekGrid(cards ?? [], rides, TODAY, derivedSets);
+  }, [cards, rideData, derivedSets]);
 
   // Etappe 13d: Soll/Ist-Tabellen-Projektion über sections.done — berechnet
   // nichts neu, reicht nur Zahlen aus buildDoneCompareRows()/visibleCompliance()
@@ -428,6 +437,7 @@ export function PlanningPage() {
                   const card = cell.card;
                   return (
                     <WeekGridDetailRow
+                      key={card.id}
                       card={card}
                       canEdit={editable}
                       // Push bleibt athletenexklusiv (docs/phase-4-konzept-

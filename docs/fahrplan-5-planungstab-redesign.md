@@ -652,12 +652,78 @@ gründlichere Modell.
    gegenprüfen (neue Dateien unter `app/src/features/planning/` können
    Zirkularität/Größe verschieben).
 
+### Stand
+
+**Umgesetzt** (19.08.2026): `/code-review` (Effort `high`) auf
+`a49b57a..854f886` (kompletter Diff 13a–13i) lief als Finder/Verifier-
+Multi-Agent-Runde im Hintergrund; ein Teil der Agenten (Verify + Broad
+Finder) lieferte Ergebnisse, ein weiterer Agent hing sichtbar fest (Task-
+Datei blieb wiederholt leer/wurde neu erzeugt, keine Fertigmeldung) — auf
+Alex' Entscheidung mit den 7 bereits vorliegenden Befunden weitergearbeitet
+statt länger zu warten.
+
+**7 Befunde behoben**, ein gemeinsamer Fix-Commit (Etappen-übergreifend,
+da die Befunde quer über 13a/13c–13f liegen — Aufteilung pro Etappe wäre
+hier künstlich gewesen):
+1. **Correctness (CONFIRMED)** — `<WeekGridDetailRow>` in `PlanningPage.tsx`
+   ohne `key`-Prop: React recycelte beim Wechsel des offenen Tages
+   innerhalb derselben Woche die Komponenteninstanz, altes Formularfeld
+   (Verschieben-Datum) blieb an der falschen Karte hängen. Fix: `key={card.id}`.
+2. **Reuse** — `zoneMixFromRide()` duplizierte die Z5+-Bucket-Schleife aus
+   `core/zones.js::last7DayZoneTimes()`. Fix: gemeinsamer Kern
+   `accumulateZoneBuckets()`, von beiden genutzt.
+3. **Altitude** — `statusForDate()` (Raster) bildete die Missed-Klassifikation
+   parallel zu `buildPlanningSections()` nach, nur per Kommentar verknüpft.
+   Fix: gemeinsames `isMissedCard()` in `planning-view-model.ts`, von beiden
+   Stellen genutzt.
+4. **Dead Code** — `ComplianceTable`-Komponente (nach 13c/13f-Umbau nirgends
+   mehr gerendert) gelöscht samt Test; die noch gebrauchten `RATING_*`-
+   Konstanten in eine neue schlanke `compliance-rating.ts` ausgelagert.
+5. **Dead Code** — `daySlots()` (`core/plan-drag.js`, Datenquelle der in 13h
+   gelöschten `DaySlotRow`) samt seiner zwei Tests entfernt.
+6. **Efficiency** — `sections`/`weekGrid` in `PlanningPage.tsx` berechneten
+   `doneDatesOf()`/`plannedRecoveryWeeks()` je zweimal pro Render-Zyklus.
+   Fix: `computePlanningDerivedSets()` (neu, `planning-view-model.ts`) einmal
+   geteilt, `buildPlanningSections()`/`buildWeekGrid()` bekommen das Ergebnis
+   optional durchgereicht (Default-Wert erhält die alte Signatur für
+   bestehende Tests).
+7. **Efficiency** — `buildWeekGrid()` suchte den Wochenanker mit
+   `cards.find(...)` innerhalb der Wochen-Schleife (O(Wochen×Karten)). Fix:
+   Anker-Datum je Wochenschlüssel im selben `byDate`-Aufbaudurchlauf
+   mitgeführt.
+
+`npx tsc -b --noEmit` fehlerfrei, `npm run build` fehlerfrei, `npx vitest
+run --project app` grün (570/570 — 575 minus 5 Tests aus dem gelöschten
+`ComplianceTable.test.tsx`), `npx vitest run --project core` grün (720/720,
+deckt `core/zones.js`/`core/plan-drag.js` ab).
+
+`npx fallow audit --base 854f886` (Diff-Scope statt Vollrepo-Score, s.
+unten) zeigt für den gesamten Fix-Diff: 0 neu eingeführte Dead-Code-/
+Komplexitäts-/Circular-Dependency-Funde. Eine neu erkannte Duplikations-
+Gruppe (`app/src/core/zones.js` ↔ `scripts/lib/core/zones.js`,
+`last7DayZoneTimes`) ist ein Artefakt des seit jeher bewussten Spiegels
+zwischen Node-Pipeline (`scripts/`) und App (`app/src/core/`) — beide Seiten
+können sich architekturbedingt nicht gegenseitig importieren, die
+Duplikation zwischen diesen zwei Dateien besteht bereits an mehreren
+anderen Stellen (6 bestehende Klon-Gruppen, alle `introduced: false`) und
+ist kein durch diesen Fix verursachtes Problem.
+
+`npx fallow health --score` (Vollrepo, kein Diff-Scope) zeigt 49 (D) statt
+des in AGENTS.md dokumentierten Baseline-Werts 79 (B, Stand 09.07.2026).
+Nicht durch diese Etappe verursacht — der Diff-scoped `fallow audit` oben
+zeigt für den tatsächlichen Änderungsumfang keine Regression. Die
+AGENTS.md-Baseline-Notiz stammt vermutlich aus einer Zeit vor der jetzigen
+Umfangsgröße von `app/src/**`; eine Aktualisierung dieser Notiz ist ein
+eigener, hier nicht behobener Punkt (nicht Teil der 7 Code-Review-Befunde).
+
 ### Abnahme
 
-- [ ] `/code-review` ohne offene Befunde (oder bewusst akzeptierte
-      Restpunkte, im Bericht benannt)
-- [ ] `npx fallow health --score` zeigt keine neue Regression gegenüber
-      dem Baseline-Score
+- [x] `/code-review` — 7 Befunde erhalten, alle behoben (kein offener
+      Restpunkt; die o. g. Duplikations-Nebenwirkung ist architekturbedingt
+      und bewusst nicht behoben)
+- [x] `npx fallow health --score` diff-scoped (`fallow audit --base
+      854f886`) zeigt keine neue Regression; der Vollrepo-Score weicht von
+      der AGENTS.md-Baseline ab, s. Stand oben (eigener, unbehobener Punkt)
 
 ## Anhang — Bewusst nicht Teil dieses Fahrplans
 

@@ -106,6 +106,37 @@ export function doneDatesOf(rides: Ride[]): Set<string> {
   return new Set(rides.map((r) => r.date ?? r.dateISO));
 }
 
+/** Ob eine Karte als "verpasst" zählt — geteilte Regel zwischen
+ *  buildPlanningSections()' missed-Filter (unten) und
+ *  week-grid-view-model.ts::statusForDate() (Raster-Status), damit beide
+ *  Ansichten für dieselbe Karte nie stillschweigend auseinanderlaufen. */
+export function isMissedCard(card: PlanCard, doneDates: Set<string>, todayIso: string): boolean {
+  return (
+    card.date < todayIso &&
+    !doneDates.has(card.date) &&
+    !card.cancelled &&
+    !card.originalDate &&
+    !isRestDay(card)
+  );
+}
+
+export interface PlanningDerivedSets {
+  doneDates: Set<string>;
+  recoveryWeeks: Set<string>;
+}
+
+/** Einmalige Ableitung von `doneDates`/`recoveryWeeks` aus `cards`/`rides` —
+ *  sowohl buildPlanningSections() als auch week-grid-view-model.ts::
+ *  buildWeekGrid() brauchen beide Sets, PlanningPage.tsx berechnet sie
+ *  gemeinsam einmal statt zweimal pro Render-Zyklus (s. jeweiliger
+ *  optionaler `derived`-Parameter dort). */
+export function computePlanningDerivedSets(cards: PlanCard[], rides: Ride[]): PlanningDerivedSets {
+  return {
+    doneDates: doneDatesOf(rides),
+    recoveryWeeks: plannedRecoveryWeeks(cards) as Set<string>,
+  };
+}
+
 export interface WeekGroup {
   week: string;
   phase: string | null;
@@ -142,8 +173,9 @@ export function buildPlanningSections(
   cards: PlanCard[],
   rides: Ride[],
   todayIso: string,
+  derived: PlanningDerivedSets = computePlanningDerivedSets(cards, rides),
 ): PlanningSections {
-  const doneDates = doneDatesOf(rides);
+  const { doneDates, recoveryWeeks } = derived;
 
   // Ausstehend: zukünftig/heute ODER verschoben (auch wenn neues Datum
   // vergangen), noch kein passender Ride, nicht ausgefallen.
@@ -159,16 +191,10 @@ export function buildPlanningSections(
     .sort((a, b) => b.date.localeCompare(a.date));
 
   // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben,
-  // kein Ruhetag.
+  // kein Ruhetag — isMissedCard() ist dieselbe Regel wie
+  // week-grid-view-model.ts::statusForDate() nutzt (geteilt, s. dort).
   const missed = cards
-    .filter(
-      (c) =>
-        c.date < todayIso &&
-        !doneDates.has(c.date) &&
-        !c.cancelled &&
-        !c.originalDate &&
-        !isRestDay(c),
-    )
+    .filter((c) => isMissedCard(c, doneDates, todayIso))
     .sort((a, b) => b.date.localeCompare(a.date));
 
   const cancelled = cards.filter((c) => c.cancelled).sort((a, b) => b.date.localeCompare(a.date));
@@ -185,11 +211,10 @@ export function buildPlanningSections(
   const weeksLeft = new Set(upcoming.map((c) => c.week).filter((w): w is string => !!w)).size;
   const currentWeekLabel = upcoming[0]?.week ?? null;
 
-  // Erholungswochen über ALLE Karten des Athleten (nicht nur die
-  // anstehenden), damit eine bereits teilweise gefahrene Erholungswoche
-  // nicht durch die Bucket-Aufteilung verzerrt wird.
-  const recoveryWeeks = plannedRecoveryWeeks(cards) as Set<string>;
-
+  // recoveryWeeks kommt aus `derived` (computePlanningDerivedSets) — über
+  // ALLE Karten des Athleten (nicht nur die anstehenden), damit eine bereits
+  // teilweise gefahrene Erholungswoche nicht durch die Bucket-Aufteilung
+  // verzerrt wird.
   const weekMap = new Map<string, PlanCard[]>();
   for (const c of upcoming) {
     const key = c.week ?? "–";

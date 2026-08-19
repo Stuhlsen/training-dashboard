@@ -1,4 +1,4 @@
-import { RATING_COLOR, RATING_ICON, RATING_LABEL } from "./ComplianceTable";
+import { RATING_COLOR, RATING_ICON, RATING_LABEL } from "./compliance-rating";
 import { complianceRuleText, fmtMinSec, visibleCompliance } from "./planning-view-model";
 import { buildStepChart, zoneMixFromRide, type StepChartBar, type ZoneMixSegment } from "./done-detail-chart-view-model";
 import { formatSignedDelta } from "../../core/plan-feedback.js";

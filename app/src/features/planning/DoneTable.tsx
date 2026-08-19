@@ -1,6 +1,6 @@
 import { Fragment, useState } from "react";
 import { fmt, fmtDate, fmtInt } from "../../core/format.js";
-import { RATING_COLOR, RATING_ICON } from "./ComplianceTable";
+import { RATING_COLOR, RATING_ICON } from "./compliance-rating";
 import { DoneCompareBlock } from "./DoneCompareBlock";
 import type { DoneTableRow, GapChip, PlanFidelitySummary } from "./done-table-view-model";
 

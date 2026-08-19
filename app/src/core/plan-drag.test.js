@@ -4,7 +4,6 @@ import {
   isDropAllowed,
   resolveDrop,
   weekDays,
-  daySlots,
   weekLabelForDate,
   canDragCard,
 } from "./plan-drag.js";
@@ -48,7 +47,7 @@ test("resolveDrop: Drop ohne Ziel wird abgewiesen (Ghost neben dem Raster losgel
   assert.equal(resolveDrop(null, "2026-07-20", TODAY).action, "rejected");
 });
 
-/* ── weekDays / daySlots ─────────────────────────────────────── */
+/* ── weekDays ────────────────────────────────────────────────── */
 
 test("weekDays: Montag zuerst, 7 Tage, unabhängig vom Anker-Wochentag", () => {
   const fromFriday = weekDays("2026-07-17");
@@ -67,20 +66,6 @@ test("weekDays: kein UTC-Tagesversatz (lokales Datum, nicht toISOString)", () =>
     assert.match(iso, /^\d{4}-\d{2}-\d{2}$/);
   }
   assert.equal(weekDays("2026-01-01")[0], "2025-12-29", "Mo der Jahreswechselwoche");
-});
-
-test("daySlots: vergangene Tage der laufenden Woche sind nicht droppbar", () => {
-  const slots = daySlots(TODAY, TODAY);
-  assert.equal(slots.length, 7);
-  assert.deepEqual(
-    slots.map((s) => s.allowed),
-    [false, false, false, false, true, true, true],
-    "Mo–Do vergangen, Fr (heute) bis So erlaubt"
-  );
-});
-
-test("daySlots: eine komplett zukünftige Woche ist durchgehend droppbar", () => {
-  assert.ok(daySlots("2026-07-22", TODAY).every((s) => s.allowed));
 });
 
 /* ── weekLabelForDate ────────────────────────────────────────── */

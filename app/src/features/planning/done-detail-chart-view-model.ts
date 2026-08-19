@@ -18,7 +18,7 @@
      bandZoneTimes (die App zeigt an dieser Stelle die volle 5-Zonen-
      Auflösung, näher am Mockup). ============================== */
 
-import { normalizeZoneTimes } from "../../core/zones.js";
+import { accumulateZoneBuckets, normalizeZoneTimes } from "../../core/zones.js";
 import { COGGAN_ZONE_META } from "../../sports/cycling/zones.js";
 
 type Ride = import("../../types.js").Ride;
@@ -86,21 +86,17 @@ export interface ZoneMixSegment {
 }
 
 /** Echte Zonenzeiten der Fahrt (normalizeZoneTimes()) auf die 5
- *  COGGAN_ZONE_META-Bänder gemappt — Index ≥4 wird wie in
- *  core/zones.js::last7DayZoneTimes zu Z5+ zusammengefasst (mehr Zonen als
- *  Meta-Einträge liefert intervals.icu z.B. bei Z6/Z7). `null` bei
- *  fehlenden/leeren `zoneTimes` ODER wenn die Summe 0 ist (keine
- *  sinnvollen Anteile berechenbar) — Komponente rendert dann keinen
- *  Zonen-Mix statt einer leeren Leiste. */
+ *  COGGAN_ZONE_META-Bänder gemappt — nutzt denselben Bucket-Kern wie
+ *  core/zones.js::last7DayZoneTimes (accumulateZoneBuckets(), Index ≥4 wird
+ *  zu Z5+ zusammengefasst — mehr Zonen als Meta-Einträge liefert
+ *  intervals.icu z.B. bei Z6/Z7). `null` bei fehlenden/leeren `zoneTimes`
+ *  ODER wenn die Summe 0 ist (keine sinnvollen Anteile berechenbar) —
+ *  Komponente rendert dann keinen Zonen-Mix statt einer leeren Leiste. */
 export function zoneMixFromRide(ride: Ride): ZoneMixSegment[] | null {
   const secs = normalizeZoneTimes(ride.zoneTimes);
   if (!secs) return null;
 
-  const bucketed = [0, 0, 0, 0, 0];
-  for (let i = 0; i < secs.length; i++) {
-    const idx = Math.min(i, 4);
-    bucketed[idx] += secs[i] || 0;
-  }
+  const bucketed = accumulateZoneBuckets(secs, [0, 0, 0, 0, 0]);
   const total = bucketed.reduce((sum, v) => sum + v, 0);
   if (!total) return null;
 

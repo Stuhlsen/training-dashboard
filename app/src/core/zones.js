@@ -294,6 +294,25 @@ export function whatIfScaleMax(ftp, headroomWatts = WHATIF_SCALE_HEADROOM_W) {
 }
 
 /**
+ * Addiert normalisierte Zonensekunden EINER Fahrt in ein 5er-Bucket-Array
+ * (Index 0=Z1..4=Z5+) — Index ≥4 wird zu Z5+ zusammengefasst (mehr
+ * Quellzonen als Bucket-Plätze, z.B. Z6/Z7 von intervals.icu). Mutiert
+ * `result` und gibt es zurück. Geteilter Kern von last7DayZoneTimes()
+ * (unten, über mehrere Rides + Datumsfenster) und
+ * features/planning/done-detail-chart-view-model.ts::zoneMixFromRide()
+ * (eine einzelne Fahrt) — nicht duplizieren.
+ * @param {number[]} secs @param {number[]} result Länge 5
+ * @returns {number[]} `result`
+ */
+export function accumulateZoneBuckets(secs, result) {
+  for (let i = 0; i < secs.length; i++) {
+    const idx = Math.min(i, result.length - 1);
+    result[idx] += secs[i] || 0;
+  }
+  return result;
+}
+
+/**
  * Zeit-in-Zone (Sekunden) über alle Rides der letzten 7 Tage
  * (inkl. todayISO), für die Hover-Tooltips der Leistungsskala. Nutzt
  * die bestehende normalizeZoneTimes()-Normalisierung — Ride-Zonen
@@ -317,10 +336,7 @@ export function last7DayZoneTimes(rides, todayISO) {
     if (!d || d < startISO || d > todayISO) continue;
     const secs = normalizeZoneTimes(r.zoneTimes);
     if (!secs) continue;
-    for (let i = 0; i < secs.length; i++) {
-      const idx = Math.min(i, 4);
-      result[idx] += secs[i] || 0;
-    }
+    accumulateZoneBuckets(secs, result);
   }
   return result;
 }
