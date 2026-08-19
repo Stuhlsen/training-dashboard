@@ -1,0 +1,420 @@
+# Fahrplan 5: Planungstab-Redesign ("Planungstab Live"-Mockup)
+
+**Stand:** 19.08.2026
+**Zielablage:** `docs/fahrplan-5-planungstab-redesign.md`
+**Herkunft:** Mockup `Planungstab Live.dc.html` aus dem claude.ai-Design-Tool
+(Projekt „Rad-Dashboard Hero-Redesign"), in Plan Mode gegen den echten
+Code-Stand geprüft und mit Alex abgestimmt (19.08.2026). Eigenständige
+Initiative, unabhängig von den vier Fahrplänen aus `fahrplan-0-uebersicht.md`
+— braucht keinen davon als Vorbedingung und blockiert keinen.
+
+---
+
+## Ziel
+
+Der Planungstab (`app/src/features/planning/`) bekommt zwei neu gebaute
+Kernbereiche statt der heutigen einspaltigen Karten-Listen:
+
+1. Ein kompaktes **Mo–So-Raster** für den Wochenplan (statt Karten-Liste pro
+   Woche), mit Klick-Detail je Tag.
+2. Eine **Soll/Ist-Vergleichstabelle** „Absolviert" (statt Karten-Liste),
+   mit aufklappbarem Detail-Chart je Zeile.
+
+Alles andere am Planungstab (TrainerBar, ProposalBanner, Export/Import,
+BlockDialog, DeltaBanner, Header) existiert bereits nahezu deckungsgleich
+mit dem Mockup und bekommt nur einen kleinen Politur-Pass.
+
+## Warum das kein reines Re-Styling ist
+
+Die zwei Kernbereiche oben sind **strukturell neue UI**, keine Farb-/
+Abstands-Anpassung — die Datengrundlage (Plankarten, Compliance-Matching,
+Projektion/Konflikte, Zonenzeiten) existiert bereits vollständig und wird
+nur neu zusammengesetzt. Der einzige Punkt mit echtem Neuland ist der
+aufklappbare Leistungs-Chart der Soll/Ist-Tabelle (s. Entscheidungen unten).
+
+## Getroffene Entscheidungen (nicht neu verhandeln)
+
+| Thema | Entscheidung | Begründung |
+|---|---|---|
+| Umfang | Ein Gesamtplan, Umsetzung in Etappen-Commits | wie bei dashboard-3.0 üblich, ein Commit pro Etappe |
+| Drag & Drop | bleibt erhalten, ins Raster integriert | aktive Kernfunktion, erst kürzlich Race-Condition-Fix (Drag-Grip, Juli 2026) |
+| Trace-Chart (Leistung+Puls) | **kein** Streams-Pipeline-Umbau jetzt; vereinfachter Stufenchart aus vorhandenen Segmentdaten | echte Sekunden-Rohdaten existieren nirgends in der Pipeline (bestätigt: keine Treffer für stream/samples/icu_streams in `app/src`) |
+| Streams-Idee | als offener Punkt nach `docs/offene-punkte.md` (Etappe 13i) | eigenes, größeres Datenpipeline-Vorhaben — API-Rate-Limits, Speichergröße, Sync-Zeit |
+| Schmale Ansicht | horizontal scrollbares Raster | am wenigsten neue Sonderfälle, kein eigenes Stack-Layout |
+| Plantreue-Quote | zählt nur Karten mit vorhandener Compliance-Ampel (Intervall-Workouts) | keine neue Grobregel für Nicht-Intervall-Fahrten erfinden |
+| Wochen-Fenster | kein künstliches 3-Wochen-Limit | Raster braucht pro Woche weniger Platz als die heutige Karten-Liste — alle Wochen mit ≥1 Karte werden gezeigt |
+
+Bestehende Etappen-Nummerierung im Code (Kommentare wie „Etappe 6a/7a/11a")
+geht bis `12i` → diese Runde läuft als **Etappe 13a–13i**.
+
+## Bereits vorhanden, nur Politur nötig (Etappe 13g)
+
+- `TrainerBar.tsx` — 8 Kacheln (Check-in/Belastungswächter/TSB/Vorschläge/
+  Befinden 7 Tage/Letzte Fahrten/Konflikte/CTL-ATL), Kategorien und Texte
+  stimmen bereits überein.
+- `ExportPanel.tsx`/`export-briefing-view-model.ts` — Presets
+  (Allgemein/Event/Prüfen/Entlasten/Aufbau) identisch.
+- `ProposalList.tsx`/`ProposalCompare.tsx`, `BlockDialog.tsx` — Struktur
+  stimmt bereits weitgehend.
+- `Layout.tsx` (Header-Nav, Athleten-Toggle, Abmelden) — **nicht anfassen**,
+  1:1 identisch mit dem Mockup.
+- Tokens (`app/src/styles/tokens.css`) — exakte Mockup-Palette bereits als
+  `--z1/--z2/--ss/--thr/--vo2` etc. vorhanden. Überall Tokens statt Hex
+  verwenden.
+
+## Fensterübersicht
+
+```
+13a   week-grid-view-model.ts        (reine Ableitung, keine Vorbedingung)
+13b   WeekGrid.tsx                   (nach 13a)
+13c   WeekGridDetailRow.tsx          (nach 13a, parallel zu 13b möglich)
+13d   DoneTable.tsx + view-model     (keine Vorbedingung, parallel zu 13a–13c möglich)
+13e   DoneDetailChart.tsx            (nach 13d)
+13f   PlanningPage.tsx verdrahten    (nach 13b, 13c, 13d, 13e)
+13g   Politur bestehender Komponenten (unabhängig, jederzeit)
+13h   Aufräumen (DaySlotRow löschen) (nach 13f)
+13i   docs/offene-punkte.md ergänzen (unabhängig, jederzeit)
+Abschluss  Gesamt-Review (/code-review)  (nach 13a–13h)
+```
+
+**Sofort parallel startbar (eigene Chat-Fenster):** 13a, 13d, 13g, 13i teilen
+sich keine Datei mit den anderen zum Startzeitpunkt.
+
+---
+
+## Fenster 13a — `week-grid-view-model.ts` (reine Ableitung)
+
+**Ziel:** `buildWeekGrid(cards, rides, todayIso)` liefert für jede Woche mit
+mindestens einer Karte ein `GridWeekRow` mit 7 `GridDayCell` (Status
+`done|today|open|missed|cancelled|empty`), ohne künstliches Wochenlimit.
+**Vorbedingung:** keine.
+**Modell:** `[SO]`
+
+1. Neue Datei `app/src/features/planning/week-grid-view-model.ts`.
+2. `doneDatesOf()` aus `planning-view-model.ts` exportieren (statt
+   modul-privat) und hier wiederverwenden — nicht duplizieren.
+3. Status-Prädikat je Tag: `cancelled` (card.cancelled) → Ruhetag-Sonderfall
+   (`isRestDay`: vergangen = `done`, künftig = `open`, nie `missed`) → `done`
+   (`doneDatesOf(rides).has(date)`) → `today` → `missed` (vergangen, kein
+   `originalDate`) → `open` → `empty`.
+4. Mehrere Karten am selben Datum (ausgefallene Original- + verschobene
+   Ersatzkarte): Zelle zeigt die nicht-ausgefallene Karte primär, die
+   ausgefallene landet in `otherCards` (Grundlage für die Lücken-Chips aus
+   13d).
+5. `weekDays()` aus `core/plan-drag.js` für die 7-Tage-Spanne,
+   `isoWeekKey()` aus `core/aggregate.js` für den Wochenschlüssel,
+   `plannedRecoveryWeeks()` aus `core/plan-feedback.js` für das
+   Erholungswochen-Flag.
+6. `loadPct` relativ zur höchsten `tssSum` unter den zurückgegebenen Wochen
+   (kein externes Zielvolumen verfügbar).
+7. Tests: `week-grid-view-model.test.ts` — ein Fall je Status,
+   Mehrfachkarten-Tag, Wochengrenze (Montag-Start), `tssSum`/`loadPct`,
+   Erholungswochen-Flag, leeres Karten-Array.
+
+### Stand
+
+**Umgesetzt und verifiziert** (19.08.2026): `week-grid-view-model.ts` +
+`week-grid-view-model.test.ts` (14 Tests) geschrieben, `doneDatesOf()` in
+`planning-view-model.ts` exportiert statt modul-privat. `npx vitest run
+--project app src/features/planning/week-grid-view-model.test.ts` grün
+(14/14 — Datei liegt unter `features/planning/`, läuft im `app`-Projekt,
+nicht im `core`-Projekt, das nur `src/core/**` abdeckt), bestehende
+`planning-view-model.test.ts` weiterhin grün (52/52), `npx tsc -b --noEmit`
+fehlerfrei.
+
+### Abnahme
+
+- [x] Tests grün (`npx vitest run --project app
+      src/features/planning/week-grid-view-model.test.ts`)
+- [x] `npx tsc -b --noEmit` fehlerfrei
+- [ ] Keine Logikduplikation zu `buildPlanningSections()` — geteilte
+      Prädikate kommen aus `planning-view-model.ts`
+
+---
+
+## Fenster 13b — `WeekGrid.tsx` (Darstellung + Drag & Drop)
+
+**Ziel:** Das Mo–So-Raster ersetzt den `sections.weeks.map(...)`-Block +
+`DaySlotRow`-Einbindung in `PlanningPage.tsx`.
+**Vorbedingung:** 13a abgeschlossen.
+**Modell:** `[SO]`, bei der DnD-Kollisionslogik ggf. `[OP]`
+
+1. Neue Datei `app/src/features/planning/WeekGrid.tsx`.
+2. Jede Tageszelle ist zugleich `useDraggable`-Quelle (wenn `canDragCard()`
+   erlaubt, `core/plan-drag.js`) und `useDroppable`-Ziel (wenn
+   `isDropAllowed()` erlaubt) — ersetzt die heutige separate `DaySlotRow`,
+   die nur während eines aktiven Drags eingeblendet wird.
+3. Klick auf eine nicht-leere Zelle klappt eine Detailzeile (13c) unter der
+   jeweiligen Wochenzeile auf (`openDate`-State, ein offenes Datum je Woche).
+4. Horizontal scrollbar bei schmaler Breite (kein eigenes Stack-Layout,
+   Entscheidung s. o.).
+5. Tests: `WeekGrid.test.tsx` — Klick öffnet/schließt genau ein Datum je
+   Woche, Drag auf vergangene/ausgefallene Zellen deaktiviert, Drop löst
+   denselben `resolveDrop()`/`handleMove`-Pfad wie heute aus.
+
+### Abnahme
+
+- [ ] `npm run build` (app/) fehlerfrei
+- [ ] `npm test` (app/, jsdom-Projekt) grün
+- [ ] Drag-Verhalten manuell im Dev-Server geprüft (Verschieben funktioniert
+      wie vor dem Umbau)
+
+---
+
+## Fenster 13c — `WeekGridDetailRow.tsx` (Tages-Detail)
+
+**Ziel:** Übernimmt aus `PlanCard.tsx` (nicht-`isDone`-Zweig) 1:1 die
+bestehende Logik, nur neu layoutet als aufklappbare Detailzeile.
+**Vorbedingung:** 13a abgeschlossen (kann parallel zu 13b laufen, beide
+importieren nur aus 13a und bestehenden Modulen).
+**Modell:** `[SO]`
+
+1. Neue Datei `app/src/features/planning/WeekGridDetailRow.tsx`.
+2. Detail-Text-Priorität unverändert aus `PlanCard.tsx` übernehmen:
+   `asWorkoutBlocks` → `LegacyWorkoutTimeline` → `Z2Block` → `RecoveryBlock`
+   → Freitext.
+3. „Wirkung"-Kachel über `cardImpact()` (`core/plan-feedback.js`), volle
+   `WeatherBadge` (reicher als das Mockup — bewusste Beibehaltung).
+4. Aktionsknöpfe: Bearbeiten → `onEdit()`/`PlanCardForm` unverändert;
+   Verschieben/Ausfallen → gleiche Inline-Formulare wie heute in
+   `PlanCard.tsx`, hierher verschoben; Wahoo-Push → `handlePush()`
+   unverändert.
+5. `HintChip`/`restDayRiddenSignal` bleiben unter dem Detailtext (im
+   Mockup ohne Entsprechung, aber unverzichtbar).
+6. Tests: `WeekGridDetailRow.test.tsx` — je ein Fall pro Detail-Quelle-Zweig,
+   Move/Cancel/Push-Handler-Verdrahtung (Callbacks mocken, Aufrufargumente
+   prüfen).
+
+### Abnahme
+
+- [ ] `npm run build` (app/) fehlerfrei
+- [ ] `npm test` (app/) grün, inkl. neuer `WeekGridDetailRow.test.tsx`
+
+---
+
+## Fenster 13d — `DoneTable.tsx` + `done-table-view-model.ts`
+
+**Ziel:** Die „Absolviert"-Sektion wird eine Soll/Ist-Tabelle mit
+Spaltenkopf (Tag/Einheit/Soll-Ist-Balken/Dauer/TSS/Ø Watt/Compliance/Caret)
+statt einer Karten-Liste.
+**Vorbedingung:** keine (nutzt nur bestehende `buildDoneCompareRows()`/
+`visibleCompliance()` aus `planning-view-model.ts` und
+`buildPlanningSections()`s `done`/`missed`/`cancelled`-Arrays).
+**Modell:** `[SO]`
+
+1. Neue Dateien `app/src/features/planning/DoneTable.tsx` und
+   `done-table-view-model.ts`.
+2. `buildDoneRows(done, doneRides, canEdit)` — dünne Tabellen-Projektion,
+   **wiederverwendet** `buildDoneCompareRows()` für die Zahlen statt sie
+   parallel neu zu berechnen.
+3. `planFidelitySummary(done, doneRides, todayIso, windowDays=28)` — Quote
+   nur über Karten mit `visibleCompliance()`-Ampel (Entscheidung s. o.).
+4. `gapsChips(missed, cancelled)` — aus den bereits vorhandenen
+   `sections.missed`/`sections.cancelled` (`buildPlanningSections()`).
+   Notiztext für Verpasst: fester generischer String (kein neues
+   Datenfeld).
+5. Aufklapp-Inhalt: links `DoneCompareBlock` unverändert wiederverwendet
+   (nur Zeilen-Styling ändert sich); rechts `DoneDetailChart` (13e) +
+   Ampel/Fade-Fußzeile. Kein erfundenes „Notiz"-Feld — ohne passende Quelle
+   wird dort nichts gerendert.
+6. Tests: `done-table-view-model.test.ts` — `buildDoneRows`,
+   `planFidelitySummary` (Fensterrand, nur Compliance-Karten), `gapsChips`.
+
+### Abnahme
+
+- [ ] `npm test` (app/, view-model + Komponente — liegt unter
+      `features/planning/`, nicht unter `core/`, läuft also im
+      `app`-Projekt) grün
+
+---
+
+## Fenster 13e — `DoneDetailChart.tsx` (vereinfachter Stufenchart)
+
+**Ziel:** Aufklappbarer Detail-Chart der Done-Tabelle — Stufenchart aus
+Segmentdaten statt des im Mockup gezeigten (nicht baubaren) Rausch-Traces.
+**Vorbedingung:** 13d abgeschlossen.
+**Modell:** `[SO]`
+
+1. Neue Datei `app/src/features/planning/DoneDetailChart.tsx`, Helper in
+   `done-table-view-model.ts` oder eigener
+   `done-detail-chart-view-model.ts` bei Bedarf.
+2. **Intervall-Workouts:** `buildStepChart(compliance)` — ein Balken je
+   `compliance.matched[i]`, Soll gestrichelt vs. Ist gefüllt, ✓/✗ per
+   `fulfilled`. **Keine HR-Linie** — `RideCompliance` hat kein
+   Puls-Feld je Intervall, nicht erfinden. Nicht-Arbeits-Segmente
+   (Ein-/Ausfahren/Pause) ohne gematchte Ist-Werte im Ist-Stufenchart
+   **weglassen**.
+3. **Ohne Intervallstruktur:** `zoneMixFromRide(ride)` — echte Zonenzeiten
+   (`normalizeZoneTimes()` aus `core/zones.js`) gemappt auf
+   `COGGAN_ZONE_META` (`app/src/sports/cycling/zones.ts`). `null` bei
+   fehlenden `zoneTimes` → nichts rendern.
+4. Tests: beide Zweige, beide `zoneTimes`-Formate (numerisch/`{id,secs}`,
+   wie bereits in `zones-coggan.test.js` abgedeckt), `null`-Fallback.
+
+### Abnahme
+
+- [ ] Helper-Tests grün (beide Zweige + Fallback)
+- [ ] Komponente rendert ohne Crash bei fehlenden Daten (kein Chart statt
+      Fehler)
+
+---
+
+## Fenster 13f — `PlanningPage.tsx` verdrahten
+
+**Ziel:** Die neuen Bausteine ersetzen die alten Listen in der Seite.
+**Vorbedingung:** 13b, 13c, 13d, 13e abgeschlossen.
+**Modell:** `[OP]` (Verdrahtung mehrerer bestehender Hooks/State)
+
+1. `sections.weeks.map(...)` + `DaySlotRow`-Mount → `<WeekGrid>` (gespeist
+   aus `buildWeekGrid()`, nicht mehr aus `sections.weeks`).
+2. `CardSection("✅ Absolviert…")` → `<DoneTable>`.
+3. `CardSection("⚠️ Verpasst…")`/`("🚫 Ausgefallen…")` entfallen — abgedeckt
+   durch Status-Symbole im Raster + Lücken-Chips der Done-Tabelle.
+   `CardSection` selbst nur entfernen, wenn danach nachweislich kein
+   Aufrufer mehr existiert (vorher grep prüfen).
+4. `DndContext`/`sensors`/Handler bleiben, `event.over?.id` kommt jetzt von
+   einer Grid-Zelle statt `DaySlotRow` — Signaturen von `resolveDrop()`/
+   `canDragCard()` bleiben unverändert.
+5. Innerer `maxWidth: 880` per visueller Prüfung erweitern (nicht blind den
+   Mockup-Wert 1280 übernehmen, gegen `PageShell`s 2040-Deckel abgleichen).
+6. „+ Karte"/„Karte anlegen" wandert vom Hero-Card-Header in den Kopf des
+   Raster-Bereichs.
+
+### Abnahme
+
+- [ ] `npm run build` (app/) fehlerfrei
+- [ ] `npm test` (app/) grün
+- [ ] Manuelle Prüfung im Dev-Server: Athlet 1 (Schreibrechte) UND Athlet 2
+      (read-only) — Raster rendern, Zelle aufklappen, Drag verschieben,
+      Done-Tabelle aufklappen, Export/Import/Block-Dialoge weiter
+      funktionsfähig
+
+---
+
+## Fenster 13g — Politur bestehender Komponenten
+
+**Ziel:** Feinabgleich von TrainerBar/ExportPanel/ImportDialog/
+ProposalList/ProposalCompare/BlockDialog/DeltaBanner gegen das Mockup —
+nur echte Abweichungen, keine Strukturänderung.
+**Vorbedingung:** keine, unabhängig von 13a–13f startbar.
+**Modell:** `[HA]`
+
+1. `TrainerBar.tsx`: Kachel-Grid ggf. auf `repeat(4, minmax(0,1fr))` fix —
+   **vorher prüfen**, ob `auto-fill` bewusst für schmale Ansichten gewählt
+   wurde (Git-Historie/Kommentar), bevor es entfernt wird.
+2. `DeltaBanner.tsx`/`ProposalBanner.tsx`/`BlockDialog.tsx`/
+   `ImportDialog.tsx`: Radius/Abstand/Typografie stichprobenartig gegen das
+   Mockup prüfen, nur bei echter Abweichung anpassen.
+3. Keine neuen Tests — bestehende `*.test.tsx` müssen unverändert grün
+   bleiben.
+
+### Abnahme
+
+- [ ] Bestehende Tests weiterhin grün
+- [ ] Visueller Abgleich gegen Mockup-Screenshots (falls vorhanden) oder
+      gegen die im Mockup notierten Maße
+
+---
+
+## Fenster 13h — Aufräumen
+
+**Ziel:** Toter Code nach dem Umbau verschwindet.
+**Vorbedingung:** 13f abgeschlossen.
+**Modell:** `[HA]`
+
+1. `DaySlotRow.tsx` + `DaySlotRow.test.tsx` löschen (durch 13b ersetzt,
+   vorher grep auf weitere Importeure).
+2. `PlanCard.tsx`s `!isDone`-Zweig nur entfernen, wenn nach 13c/13f
+   nachweislich kein Aufrufer mehr übrig ist — sonst als eigenen
+   Folgepunkt in `docs/offene-punkte.md` vormerken statt hier blind zu
+   löschen.
+
+### Abnahme
+
+- [ ] `grep` bestätigt: keine verbleibenden Importe von `DaySlotRow`
+- [ ] `npm run build` + `npm test` (app/) weiterhin grün
+
+---
+
+## Fenster 13i — `docs/offene-punkte.md` ergänzen
+
+**Ziel:** Die vertagte Streams-Pipeline-Idee ist dokumentiert, nicht nur im
+Chat-Verlauf dieser Runde.
+**Vorbedingung:** keine, unabhängig startbar.
+**Modell:** `[HA]`
+
+1. Neuer Punkt im passenden Abschnitt von `docs/offene-punkte.md`
+   (bestehendes Bullet-Format), sinngemäß:
+   > **Kein Streams-Pipeline für den Planungstab-Detail-Chart** — der reiche
+   > Leistungs-/Puls-Verlauf (Rauschen, HR-Linie) aus dem Redesign-Mockup
+   > braucht Rohdaten (Sekunden-Samples), die nirgends in der Pipeline
+   > existieren. Etappe 13e liefert stattdessen einen vereinfachten
+   > Stufenchart aus `core/compliance-match.js`-Intervallen (kein HR — kein
+   > Feld dafür in `RideCompliance`). → `app/src/features/planning/
+   > DoneDetailChart.tsx`.
+2. Prüfen, ob der Eintrag „Design-Überarbeitung mit Claude Design
+   (Hero-Bereich, zwei FTP-Ringe)" in `fahrplan-0-uebersicht.md` Anhang C
+   noch aktuell ist oder um den Planungstab-Teil ergänzt werden sollte
+   (dieser Fahrplan behandelt nur den Planungstab, nicht den Hero-Bereich).
+
+### Abnahme
+
+- [ ] Eintrag steht in `docs/offene-punkte.md`
+- [ ] `docs/README.md` verweist auf `fahrplan-5-planungstab-redesign.md`
+      (kurzer Absatz analog den anderen Fahrplänen)
+
+---
+
+## Arbeitsweise
+
+- **Pro Fenster ein frischer Claude-Code-Chat möglich** (13a/13d/13g/13i
+  sofort parallel, Rest nach Vorbedingung). Nur den Fenster-Auftrag rein,
+  nur den Abschlussbericht raus — spiegelt die Arbeitsweise aus
+  `fahrplan-0-uebersicht.md` §7.
+- Nach jedem Fenster: nur Build/Test (s. jeweilige Abnahme) — **kein**
+  `/code-review` pro Fenster. Committet wird trotzdem pro Etappe (13a,
+  13b, …), damit die Historie entlang der Fenstergrenzen bleibt.
+- `/code-review` läuft **einmal gesammelt am Ende**, nach 13h (s. Fenster
+  „Abschluss" unten) — auf den kompletten Diff aller Etappen.
+- Playwright MCP nur, falls beim manuellen Check (13f) etwas nicht durch
+  reines Lesen/Unit-Tests zu klären ist (Timing/Drag-Race) — nicht
+  routinemäßig pro Fenster.
+
+---
+
+## Fenster Abschluss — Gesamt-Review
+
+**Ziel:** Ein einziger `/code-review`-Durchgang über den gesamten
+Planungstab-Redesign-Diff (13a–13h zusammen), statt vieler kleiner
+Einzel-Reviews pro Fenster.
+**Vorbedingung:** 13a–13h abgeschlossen (13g/13i können vorher oder danach
+laufen, sind unabhängig).
+**Modell:** `[F5]` oder `[OP]` — Gesamtdiff ist groß, verdient das
+gründlichere Modell.
+
+1. `/code-review` auf den vollständigen Diff aller Etappen-Commits dieses
+   Fahrplans (Schichtenregel `ui → state → core`, Result-Konvention,
+   Testlücken über alle neuen Dateien hinweg — Querbezüge zwischen
+   Etappen, z. B. Datenfluss `WeekGrid` → `WeekGridDetailRow` → bestehende
+   `PlanCard`-Hilfsfunktionen, sind hier leichter zu sehen als pro Fenster).
+2. Befunde beheben, betroffene Etappen-Commits ggf. mit Fix-Commits
+   ergänzen (keine bestehenden Commits nachträglich amenden).
+3. Danach `npx fallow health --score --hotspots --circular-deps`
+   gegenprüfen (neue Dateien unter `app/src/features/planning/` können
+   Zirkularität/Größe verschieben).
+
+### Abnahme
+
+- [ ] `/code-review` ohne offene Befunde (oder bewusst akzeptierte
+      Restpunkte, im Bericht benannt)
+- [ ] `npx fallow health --score` zeigt keine neue Regression gegenüber
+      dem Baseline-Score
+
+## Anhang — Bewusst nicht Teil dieses Fahrplans
+
+- Streams-Pipeline für echte Leistungs-/Puls-Kurven (→ `docs/offene-punkte.md`,
+  Etappe 13i)
+- Hero-Bereich-Redesign (separates Mockup-Thema, nicht Teil der
+  „Planungstab Live"-Vorlage)
+- Mobile-natives Layout (Entscheidung: horizontales Scrollen statt
+  eigenem Stack-Layout)

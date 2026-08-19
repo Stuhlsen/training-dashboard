@@ -26,6 +26,13 @@ bekannte Eigenheiten. Bei jeder Aufgabe zuerst hier nachsehen.
 Vor dem Start einer Aufgabe in diesem Themenbereich das jeweilige
 Fahrplan-Fenster lesen (Ziel, Vorbedingung, Abnahme) statt nur den Titel.
 
+## Weitere laufende Fahrpläne (eigenständig, nicht Teil der vier oben)
+
+- **`fahrplan-5-planungstab-redesign.md`** — Umbau des Planungstabs
+  (Mo–So-Raster statt Karten-Liste, Soll/Ist-Tabelle statt Karten-Liste)
+  nach dem „Planungstab Live"-Mockup aus Claude Design. Etappen 13a–13i,
+  mehrere davon parallel in getrennten Chats startbar.
+
 ## Laufende Konzepte
 
 - **`dashboard-3.0-konzept-react-umbau.md`** — Gesamtkonzept + Etappenplan des
