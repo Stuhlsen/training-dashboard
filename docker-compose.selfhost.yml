@@ -117,7 +117,7 @@ services:
     # nach "up -d", nicht als dauerhafter Fehlzustand.
 
   proxy:
-    image: caddy:2-alpine
+    image: caddy:2.11-alpine
     depends_on:
       gotrue:
         condition: service_healthy
