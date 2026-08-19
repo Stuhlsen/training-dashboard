@@ -1,0 +1,143 @@
+/* ============================================================
+   FEATURES/PLANNING/WEEK-GRID-VIEW-MODEL.TS — reine Ableitung für das
+   Mo–So-Raster des Planungstabs (Etappe 13a, Redesign nach "Planungstab
+   Live"-Mockup). Ersetzt NICHT buildPlanningSections() (die liefert weiter
+   die Fortschritts-Statistik und die reinen Done/Missed/Cancelled-Listen
+   für die neue "Absolviert"-Tabelle, s. done-table-view-model.ts) — dieses
+   Modul liefert stattdessen eine EINHEITLICHE Kalenderstruktur über ALLE
+   Status (done/today/open/missed/cancelled/empty) hinweg, weil das Raster
+   anders als die bisherige Karten-Liste jede Woche komplett zeigt statt nur
+   die anstehende.
+
+   Kein künstliches Wochenlimit (Entscheidung mit Alex, Etappe-13-Plan): das
+   Raster braucht pro Woche deutlich weniger Platz als die bisherige
+   Karten-Liste, deshalb werden alle Wochen gezeigt, die mindestens eine
+   Karte enthalten (Vergangenheit UND Zukunft). ============================ */
+
+import { isoWeekKey } from "../../core/aggregate.js";
+import { weekDays } from "../../core/plan-drag.js";
+import { plannedRecoveryWeeks } from "../../core/plan-feedback.js";
+import { doneDatesOf, isRestDay } from "./planning-view-model";
+import type { PlanCard } from "../../api/types";
+
+type Ride = import("../../types.js").Ride;
+
+export type DayStatus = "done" | "today" | "open" | "missed" | "cancelled" | "empty";
+
+/** Statusglyphen — 1:1 an das Mockup angelehnt (STATUS-Objekt), hier als
+ *  reine Konstante statt in der Komponente, analog PLAN_TYPE_COLOR/ICON in
+ *  planning-view-model.ts. */
+export const DAY_STATUS_GLYPH: Record<DayStatus, string> = {
+  done: "✓",
+  today: "●",
+  open: "",
+  missed: "!",
+  cancelled: "×",
+  empty: "",
+};
+
+/** Token-Namen (tokens.css), keine Hex-Werte — Politur-Vorgabe aus dem
+ *  Etappe-13-Plan ("überall Tokens statt Hex"). */
+export const DAY_STATUS_COLOR_TOKEN: Record<DayStatus, string> = {
+  done: "var(--ok)",
+  today: "var(--accent)",
+  open: "var(--ink-3)",
+  missed: "var(--warn)",
+  cancelled: "var(--danger)",
+  empty: "var(--ink-3)",
+};
+
+export interface GridDayCell {
+  date: string;
+  isToday: boolean;
+  status: DayStatus;
+  /** Die für diesen Tag primär angezeigte Karte — bei mehreren Karten am
+   *  selben Datum (z. B. ausgefallene Original- + verschobene Ersatzkarte)
+   *  die nicht-ausgefallene; `null` nur bei wirklich leerem Tag. */
+  card: PlanCard | null;
+  /** Weitere Karten desselben Datums (z. B. die ausgefallene Original-
+   *  karte, wenn `card` bereits die Ersatzkarte zeigt) — für die
+   *  Lücken-Chips der Done-Tabelle (Etappe 13d), hier nur durchgereicht. */
+  otherCards: PlanCard[];
+}
+
+export interface GridWeekRow {
+  weekKey: string;
+  phase: string | null;
+  isRecoveryWeek: boolean;
+  rangeStart: string;
+  rangeEnd: string;
+  tssSum: number;
+  /** 0–100, relativ zur höchsten `tssSum` unter den zurückgegebenen Wochen
+   *  (kein externes Zielvolumen verfügbar — s. Etappe-13-Plan). */
+  loadPct: number;
+  days: GridDayCell[];
+}
+
+function statusForDate(
+  date: string,
+  primary: PlanCard | null,
+  todayIso: string,
+  doneDates: Set<string>,
+): DayStatus {
+  if (!primary) return "empty";
+  if (primary.cancelled) return "cancelled";
+  // Ruhetag: nie "verpasst" (isRestDay-Konvention aus buildPlanningSections)
+  // — ein nicht gefahrener Ruhetag ist Erfüllung, sobald der Tag vorbei ist.
+  if (isRestDay(primary)) return date <= todayIso ? "done" : "open";
+  if (doneDates.has(date)) return "done";
+  if (date === todayIso) return "today";
+  // Verschobene Karten (originalDate gesetzt) zählen nie als "verpasst",
+  // spiegelt buildPlanningSections' missed-Filter.
+  if (date < todayIso && !primary.originalDate) return "missed";
+  return "open";
+}
+
+export function buildWeekGrid(cards: PlanCard[], rides: Ride[], todayIso: string): GridWeekRow[] {
+  const doneDates = doneDatesOf(rides);
+  const recoveryWeeks = plannedRecoveryWeeks(cards) as Set<string>;
+
+  const byDate = new Map<string, PlanCard[]>();
+  for (const c of cards) {
+    const bucket = byDate.get(c.date);
+    if (bucket) bucket.push(c);
+    else byDate.set(c.date, [c]);
+  }
+
+  const weekKeys = [...new Set(cards.map((c) => isoWeekKey(c.date)))].sort();
+
+  const rows = weekKeys.map((weekKey): GridWeekRow => {
+    const anchorCard = cards.find((c) => isoWeekKey(c.date) === weekKey)!;
+    const days: GridDayCell[] = weekDays(anchorCard.date).map((date) => {
+      const dateCards = byDate.get(date) ?? [];
+      const primary = dateCards.find((c) => !c.cancelled) ?? dateCards[0] ?? null;
+      const otherCards = dateCards.filter((c) => c !== primary);
+      return {
+        date,
+        isToday: date === todayIso,
+        status: statusForDate(date, primary, todayIso, doneDates),
+        card: primary,
+        otherCards,
+      };
+    });
+
+    const weekCards = days.flatMap((d) => (d.card ? [d.card, ...d.otherCards] : d.otherCards));
+    const activeCards = weekCards.filter((c) => !c.cancelled);
+    const phase = activeCards.find((c) => c.phase)?.phase ?? null;
+    const tssSum = activeCards.reduce((sum, c) => sum + (c.tssPlanned ?? 0), 0);
+
+    return {
+      weekKey,
+      phase,
+      isRecoveryWeek: recoveryWeeks.has(weekKey),
+      rangeStart: days[0].date,
+      rangeEnd: days[6].date,
+      tssSum,
+      loadPct: 0, // unten relativ zur Wochen-Maximallast nachgetragen
+      days,
+    };
+  });
+
+  const maxTss = Math.max(1, ...rows.map((r) => r.tssSum));
+  return rows.map((r) => ({ ...r, loadPct: Math.round((r.tssSum / maxTss) * 100) }));
+}

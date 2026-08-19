@@ -99,7 +99,10 @@ export function asWorkoutBlocks(workout: unknown): WorkoutBlocks | null {
   return null;
 }
 
-function doneDatesOf(rides: Ride[]): Set<string> {
+/** Exportiert (statt modul-privat), weil week-grid-view-model.ts::buildWeekGrid
+ *  (Etappe 13a) denselben "hat dieses Datum eine Ist-Fahrt?"-Test pro
+ *  Kalendertag braucht — nicht duplizieren. */
+export function doneDatesOf(rides: Ride[]): Set<string> {
   return new Set(rides.map((r) => r.date ?? r.dateISO));
 }
 
