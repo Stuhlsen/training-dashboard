@@ -7,7 +7,7 @@ import type { PlanCard } from "../../api/types";
 
 // Kein globaler afterEach(cleanup) im Projekt-Setup (vite.config.ts hat
 // weder `globals: true` noch setupFiles) — RTLs Auto-Cleanup greift daher
-// nicht, jeder Test räumt hier explizit ab (s. DaySlotRow.test.tsx).
+// nicht, jeder Test räumt hier explizit ab.
 afterEach(cleanup);
 
 const TODAY = "2026-08-12"; // Mittwoch, KW33 (Mo 10.08–So 16.08)
@@ -33,7 +33,7 @@ function card(overrides: Partial<PlanCard> & { id: string; date: string }): Plan
 }
 
 /** useDraggable()/useDroppable() brauchen einen DndContext-Provider — ohne
- *  den wirft dnd-kit beim Rendern (s. DaySlotRow.test.tsx). */
+ *  den wirft dnd-kit beim Rendern. */
 function renderGrid(
   cards: PlanCard[],
   opts: Partial<{ canEdit: boolean; trainerProposalMode: boolean; renderDetail: (cell: unknown, week: unknown) => React.ReactNode }> = {},

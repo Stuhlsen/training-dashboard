@@ -535,10 +535,38 @@ run --project app` grün (577/577, keine Testdatei geändert).
    Folgepunkt in `docs/offene-punkte.md` vormerken statt hier blind zu
    löschen.
 
+### Stand
+
+**Umgesetzt** (19.08.2026): `grep` über `app/src` bestätigt vor dem Löschen:
+kein Importeur von `DaySlotRow` außerhalb ihrer eigenen Testdatei (zwei
+Treffer in `WeekGrid.tsx`/`WeekGrid.test.tsx` waren nur Kommentare, kein
+Import). `DaySlotRow.tsx` + `DaySlotRow.test.tsx` gelöscht.
+
+Für `PlanCard.tsx`s `!isDone`-Zweig ging die Prüfung weiter als der
+Fensterplan vorsah: `grep` nach `<PlanCard` bzw. `from ["']\./PlanCard["']`
+(auch mit Pfadpräfix `planning/PlanCard`) findet **keinen einzigen
+Aufrufer mehr im ganzen Repo** — nicht nur der `!isDone`-Zweig ist tot,
+die komplette Komponente ist es (13d/13e/13f haben beide Rollen, Absolviert
+UND Ausstehend, durch `WeekGridDetailRow`/`DoneTable`/`DoneCompareBlock`
+ersetzt). Alle `PlanCard`-Treffer im übrigen Code sind der gleichnamige
+Domäntyp aus `api/types.ts`, keine Komponentenreferenz. Damit die ganze
+Datei gelöscht statt nur den Zweig auszubauen — kein Folgepunkt in
+`docs/offene-punkte.md` nötig, da die Vorbedingung „nachweislich kein
+Aufrufer mehr" erfüllt war. Eine eigene `PlanCard.test.tsx` existierte
+nicht (gab keine zu löschen).
+
+Zwei Kommentare in `WeekGrid.test.tsx` verwiesen noch auf
+`DaySlotRow.test.tsx` als Beleg-Stelle („s. DaySlotRow.test.tsx") — auf
+reinen Fließtext ohne Dateiverweis angepasst, da die Zieldatei jetzt fehlt.
+
+`npm run build` (`tsc -b` + `vite build`) fehlerfrei, `npx vitest run
+--project app` grün (575/575 — 577 minus der 2 Tests aus der gelöschten
+`DaySlotRow.test.tsx`).
+
 ### Abnahme
 
-- [ ] `grep` bestätigt: keine verbleibenden Importe von `DaySlotRow`
-- [ ] `npm run build` + `npm test` (app/) weiterhin grün
+- [x] `grep` bestätigt: keine verbleibenden Importe von `DaySlotRow`
+- [x] `npm run build` + `npm test` (app/) weiterhin grün
 
 ---
 
