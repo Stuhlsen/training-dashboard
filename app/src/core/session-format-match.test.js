@@ -76,6 +76,16 @@ test("inferFormatId: vo2-long bei pct außerhalb des vo2-short-Bands ist bereits
   assert.equal(inferFormatId(structure, CATALOG), "vo2-long");
 });
 
+test("inferFormatId: Tie-Break funktioniert auch bei umbenanntem/englischem Katalog-Label (routet über id, nicht label)", () => {
+  const renamed = CATALOG.map((f) =>
+    f.id === "vo2-short" ? { ...f, label: "VO2max short intervals" } : f.id === "vo2-long" ? { ...f, label: "VO2max long intervals" } : f,
+  );
+  const shortStructure = { version: 1, steps: [setStep({ reps: 10, targetPct: 110, workDurationS: 30 })] };
+  const longStructure = { version: 1, steps: [setStep({ reps: 4, targetPct: 112, workDurationS: 180 })] };
+  assert.equal(inferFormatId(shortStructure, renamed), "vo2-short");
+  assert.equal(inferFormatId(longStructure, renamed), "vo2-long");
+});
+
 test("inferFormatId: alternating -> over-under, unabhängig von pct-Werten", () => {
   const structure = {
     version: 1,

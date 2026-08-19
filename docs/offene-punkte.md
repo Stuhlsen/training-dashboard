@@ -13,9 +13,6 @@
   (`app/src/core/ladder-progression.js::presetAction()`), aber nirgends live
   scharf. Reine Freigabe-Entscheidung, kein Code. →
   `docs/konzept-progressionssteuerung.md` C3/C4.
-- **`vo2-short`/`vo2-long`-Tie-Break über Label-Regex statt strukturiertem
-  Feld** — bricht bei umbenanntem/englischem Katalog-Label.
-  `app/src/core/session-format-match.js::inferFormatId()`.
 - **Fehlende ride↔activityId-Brücke** — `scripts/lib/compliance.js`
   korreliert nur transient über Array-Index, Activity-ID landet nie auf dem
   `ride`-Objekt. Blockiert retroaktive Segment-Auswertung für bereits

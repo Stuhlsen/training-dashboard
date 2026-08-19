@@ -20,10 +20,13 @@
    vo2-short/vo2-long überlappen im Pct-Band (106-112 vs. 110-112, s.
    Migration 0014) — FORMAT_MATCH.vo2ShortMaxWorkS (core/plan-config.js)
    entscheidet dann über die Sekunden je Wiederholung der dominanten
-   Arbeitsphase (30/15-Bauart vs. 3-5-min-Reps), Tie-Break über das
-   Katalog-`label` (Muster /kurz/i) — liest nur bereits vorhandene,
-   strukturierte Katalogdaten, kein Rateverfahren aus einem Kartentitel
-   (anders als core/workout-structure-derive.js).
+   Arbeitsphase (30/15-Bauart vs. 3-5-min-Reps), Tie-Break über die
+   `-short`/`-long`-Endung des Katalog-`id` (Primärschlüssel, stabil) statt
+   über das frei editierbare `label` (19.08.2026, docs/offene-punkte.md:
+   ein umbenanntes/englisches Label hätte den vorherigen /kurz/i-Regex-
+   Tie-Break stillschweigend auf null fallen lassen) — liest weiterhin nur
+   bereits vorhandene, strukturierte Katalogdaten, kein Rateverfahren aus
+   einem Kartentitel (anders als core/workout-structure-derive.js).
 
    Kein eindeutiger Kandidat (leere/unmatchbare Struktur, kein Katalog,
    weiterhin mehrdeutig nach dem Tie-Break) → null. Der Aufrufer
@@ -99,7 +102,8 @@ export function inferFormatId(structure, catalog) {
     if (inBand.length === 1) return inBand[0].id;
     if (inBand.length > 1) {
       const wantShort = unit.workDurationS <= FORMAT_MATCH.vo2ShortMaxWorkS;
-      const tieBroken = inBand.filter((f) => /kurz/i.test(f.label ?? "") === wantShort);
+      const suffix = wantShort ? "-short" : "-long";
+      const tieBroken = inBand.filter((f) => typeof f.id === "string" && f.id.endsWith(suffix));
       return tieBroken.length === 1 ? tieBroken[0].id : null;
     }
     return null;
