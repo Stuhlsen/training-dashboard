@@ -219,6 +219,14 @@ docker compose -f docker-compose.dev.yml logs sync
    /*          →  frontend
    ```
    **Postgres wird niemals nach außen veröffentlicht.**
+   > Für den lokalen DKR3-Testaufbau bewusst enger geschnitten: Backend und
+   > Frontend (DKR1) laufen als getrennte Compose-Dateien, damit ein Fehler
+   > eindeutig zuzuordnen ist. `Caddyfile.local` routet deshalb nur
+   > `/auth/v1/*` und `/rest/v1/*`, der Fallback liefert dort einen 404 mit
+   > Erklärtext statt `frontend` — s. `docs/docker-lokal-einrichten.md`
+   > Abschnitt 3. Die volle Drei-Routen-Tabelle oben gilt für den späteren
+   > Server-Stand (DKR4), wo Backend und Frontend zusammen hinter einem
+   > Proxy laufen.
 5. **Schlüssel erzeugen:** anon- und service-role-JWT aus dem `JWT_SECRET` signieren, Claim `role` entsprechend, langes Ablaufdatum. Das Erzeugungsskript kommt ins Repo, die erzeugten Werte niemals.
 
 ### Verifikationsschritt — vor dem Weiterbauen

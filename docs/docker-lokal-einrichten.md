@@ -615,11 +615,15 @@ Datei überhaupt akzeptiert.
 ### JWT-Secret und Schlüssel erzeugen
 
 ```powershell
-# Einmalig ein zufälliges Secret erzeugen und in .env eintragen
+# Einmalig ein zufälliges Secret erzeugen und in .env eintragen. Hex statt
+# Base64: POSTGRES_PASSWORD landet unescaped in postgres://user:pass@host-URIs
+# (DATABASE_URL, GOTRUE_DB_DATABASE_URL, PGRST_DB_URI) — Base64 kann "+"/"/"/"="
+# enthalten, das bricht dort die URI-Syntax. Hex ist immer URI-sicher.
 $bytes = New-Object byte[] 32
 [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
-[Convert]::ToBase64String($bytes)
-# → JWT_SECRET in .env eintragen (POSTGRES_PASSWORD analog)
+[BitConverter]::ToString($bytes) -replace '-', ''
+# → JWT_SECRET in .env eintragen, dann NOCHMAL ausführen für ein zweites,
+# eigenes POSTGRES_PASSWORD (nicht denselben Wert für beide verwenden)
 ```
 
 `scripts/generate-jwt-keys.js` (abhängigkeitsfreier HS256-Signer, Node-

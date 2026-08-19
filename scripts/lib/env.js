@@ -21,14 +21,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Dry-Run mit "-e NOTION_API_KEY=" (s. Abschnitt 2, gezielt fuer
 // requireEnv()-Fail-Fast-Tests) einen spaeteren echten .env-Wert im selben
 // Prozess blockieren.
+// "preset" wird VOR dem Einlesen von .env erfasst — nur diese Schluessel
+// werden beim Parsen uebersprungen. Ohne diese Trennung wuerde ein
+// doppelter Schluessel INNERHALB von .env selbst zum Bug: nach der ersten
+// Zeile waere process.env[k] schon gesetzt, die zweite (untere, eigentlich
+// neuere) Zeile wuerde dann faelschlich ignoriert statt wie erwartet zu
+// gewinnen.
 const envPath = path.join(__dirname, "..", "..", ".env");
 if (fs.existsSync(envPath)) {
+  const preset = new Set(Object.keys(process.env).filter((k) => process.env[k]));
   for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
     const t = line.trim();
     if (t && !t.startsWith("#")) {
       const [key, ...rest] = t.split("=");
       const k = key.trim();
-      if (!process.env[k]) process.env[k] = rest.join("=").trim();
+      if (!preset.has(k)) process.env[k] = rest.join("=").trim();
     }
   }
 }
