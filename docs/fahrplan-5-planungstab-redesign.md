@@ -199,10 +199,32 @@ importieren nur aus 13a und bestehenden Modulen).
    Move/Cancel/Push-Handler-Verdrahtung (Callbacks mocken, Aufrufargumente
    prüfen).
 
+### Stand
+
+**Umgesetzt** (19.08.2026): `WeekGridDetailRow.tsx` geschrieben — 1:1 Port
+des bisherigen `!isDone`-Zweigs aus `PlanCard.tsx` (Header, Konflikt-/
+Push-Hinweis-Chip, Wirkungsanzeige, Wetter-Badge, Workout-Detailblöcke in
+der bestehenden Priorität `asWorkoutBlocks → LegacyWorkoutTimeline →
+Z2Block → RecoveryBlock → Freitext`, Verschieben-/Ausfallen-Inline-
+Formulare, Push-Button), ohne Drag-Griff (Ziehen bleibt exklusiv Sache der
+Zelle in `WeekGrid.tsx`) und ohne Compliance-Tabelle/`DoneCompareBlock`
+(bleibt der neuen "Absolviert"-Tabelle aus 13d/13e vorbehalten).
+`restDayRiddenSignal` bleibt erhalten, aber verallgemeinert: statt des
+bisherigen hartkodierten `true` (nur im `isDone`-Zweig aufrufbar) berechnet
+die Komponente `doneDatesOf(rides).has(card.date)` selbst — die Zelle kennt
+nur den Status `"done"`, nicht ob dieser Tag speziell ein trotzdem
+gefahrener Ruhetag war. Passt sich damit an, dass das Raster (anders als
+die bisherige Karten-Liste) Zellen aller Status zeigt, nicht nur
+anstehende. `WeekGridDetailRow.test.tsx` (12 Tests: 5× Detail-Zweig-
+Priorität, 3× Verschieben/Ausfallen/Rückgängig, 2× Push, 2× Ruhetag-
+gefahren-Hinweis) grün, bestehende Suite weiterhin grün (541/541 im
+`app`-Projekt), `npm run build` (`tsc -b` + `vite build`) fehlerfrei.
+Verdrahtung in `WeekGrid.tsx`s `renderDetail`-Slot folgt erst in Etappe 13f.
+
 ### Abnahme
 
-- [ ] `npm run build` (app/) fehlerfrei
-- [ ] `npm test` (app/) grün, inkl. neuer `WeekGridDetailRow.test.tsx`
+- [x] `npm run build` (app/) fehlerfrei
+- [x] `npm test` (app/) grün, inkl. neuer `WeekGridDetailRow.test.tsx`
 
 ---
 
