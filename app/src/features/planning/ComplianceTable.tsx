@@ -3,9 +3,12 @@ import { accessorySteps, complianceRuleText, fmtMinSec, visibleCompliance } from
 
 type Ride = import("../../types.js").Ride;
 
-const RATING_LABEL: Record<string, string> = { green: "grün", yellow: "gelb", red: "rot" };
-const RATING_ICON: Record<string, string> = { green: "🟢", yellow: "🟡", red: "🔴" };
-const RATING_COLOR: Record<string, string> = { green: "var(--ok)", yellow: "var(--warn)", red: "var(--danger)" };
+// Exportiert (statt modul-privat), weil DoneTable.tsx (Etappe 13d) dieselbe
+// Ampel-Kompaktdarstellung in der "Absolviert"-Tabelle braucht — nicht
+// duplizieren.
+export const RATING_LABEL: Record<string, string> = { green: "grün", yellow: "gelb", red: "rot" };
+export const RATING_ICON: Record<string, string> = { green: "🟢", yellow: "🟡", red: "🔴" };
+export const RATING_COLOR: Record<string, string> = { green: "var(--ok)", yellow: "var(--warn)", red: "var(--danger)" };
 
 const CELL_STYLE: React.CSSProperties = { flex: 1, fontSize: ".78rem" };
 const ROW_STYLE: React.CSSProperties = { display: "flex", gap: 8, padding: "3px 0" };

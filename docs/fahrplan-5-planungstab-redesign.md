@@ -256,9 +256,44 @@ statt einer Karten-Liste.
 6. Tests: `done-table-view-model.test.ts` — `buildDoneRows`,
    `planFidelitySummary` (Fensterrand, nur Compliance-Karten), `gapsChips`.
 
+### Stand
+
+**Umgesetzt** (19.08.2026): `done-table-view-model.ts` — `buildDoneRows()`
+liest Dauer/Ø-Watt-Zellen direkt aus `buildDoneCompareRows()` (per
+Label-Suche "Dauer"/"Ø Watt", keine Parallelberechnung), TSS/Compliance sind
+rohe Felder (`card.tssPlanned`/`ride.tss`, `visibleCompliance()`) und werden
+nur durchgereicht. `doneRides` ist bewusst als vorab gematchte
+`Map<cardId, Ride|null>` typisiert (`DoneRideMap`) statt eines rohen
+`Ride[]` — spiegelt genau die Map, die `PlanningPage.tsx` bereits per
+`matchRideForCard()` baut (Etappe 13f verdrahtet sie hierher durch, statt
+sie ein zweites Mal aufzubauen). `planFidelitySummary()` zählt nur Karten
+mit sichtbarer Compliance-Ampel im `[today-windowDays, today]`-Fenster,
+`pct` bezieht sich auf den Anteil `rating==="green"` an allen bewerteten
+Karten. `gapsChips()` nutzt für Verpasst immer denselben festen Text, für
+Ausgefallen `card.cancelReason`, wenn vorhanden, sonst ebenfalls einen
+festen Fallback-Text — kein neues Datenfeld.
+
+`DoneTable.tsx` — Tabellenkopf exakt wie im Fensterplan (Tag/Einheit/
+Soll-Ist-Balken/Dauer/TSS/Ø Watt/Compliance/Caret), Klick auf eine Zeile mit
+gematchter Ist-Fahrt klappt `DoneCompareBlock` (unverändert wiederverwendet)
++ einen `renderChart`-Prop-Slot auf (gleiches Muster wie `WeekGrid.tsx`s
+`renderDetail` — Inhalt folgt erst in 13e, Interface bewusst so geschnitten,
+dass beide parallel entwickelbar bleiben). Zeilen ohne gematchte Ist-Fahrt
+zeigen Dash-Werte und sind nicht aufklappbar (kein Caret, kein Klick-
+Handler). `RATING_ICON`/`RATING_COLOR` aus `ComplianceTable.tsx` exportiert
+(statt modul-privat) für die kompakte Compliance-Ampel in der
+Tabellenzelle — nicht dupliziert. Plantreue-Zeile und Lücken-Chips
+(`gapsChips()`) sitzen oberhalb bzw. unterhalb der Tabelle.
+
+`done-table-view-model.test.ts` (15 Tests) + `DoneTable.test.tsx` (6 Tests)
+grün, bestehende Suite weiterhin grün (562/562 im `app`-Projekt), `npx tsc -b
+--noEmit` fehlerfrei, `npm run build` fehlerfrei. Verdrahtung in
+`PlanningPage.tsx` (Ersetzen von `CardSection("✅ Absolviert…")`) folgt erst
+in Etappe 13f.
+
 ### Abnahme
 
-- [ ] `npm test` (app/, view-model + Komponente — liegt unter
+- [x] `npm test` (app/, view-model + Komponente — liegt unter
       `features/planning/`, nicht unter `core/`, läuft also im
       `app`-Projekt) grün
 
