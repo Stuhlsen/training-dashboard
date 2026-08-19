@@ -17,7 +17,7 @@ export function KpiGrid({ kpis }: { kpis: AnalysisKpi[] }) {
           }}
         >
           <div style={{ fontSize: "1.3rem", fontWeight: 700, color: k.color ?? "var(--ink)", lineHeight: 1.1 }}>{k.value}</div>
-          <div style={{ fontSize: ".65rem", color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".05em", marginTop: 4 }}>
+          <div style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: ".05em", marginTop: 4 }}>
             {k.label}
           </div>
           {k.sub && <div style={{ fontSize: ".65rem", color: "var(--ink-3)", marginTop: 3 }}>{k.sub}</div>}

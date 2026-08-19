@@ -30,7 +30,7 @@ function MetricTile({ metric }: { metric: HeroMetric }) {
       <div
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: ".62rem",
+          fontSize: "var(--fs-label)",
           color: "var(--ink-3)",
           textTransform: "uppercase",
           letterSpacing: ".1em",

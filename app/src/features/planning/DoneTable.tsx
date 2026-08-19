@@ -7,7 +7,7 @@ import type { DoneTableRow, GapChip, PlanFidelitySummary } from "./done-table-vi
 
 const HEADER_CELL_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
-  fontSize: ".64rem",
+  fontSize: "var(--fs-label)",
   fontWeight: 600,
   textTransform: "uppercase",
   letterSpacing: ".04em",
@@ -155,7 +155,7 @@ function SollIstBar({ ratioPct }: { ratioPct: number | null }) {
       <span style={{ width: 48, height: 4, borderRadius: 2, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
         <span style={{ display: "block", height: "100%", width: `${Math.min(100, ratioPct)}%`, background: color }} />
       </span>
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", color: "var(--ink-3)" }}>{fmt(ratioPct, 0)}%</span>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>{fmt(ratioPct, 0)}%</span>
     </span>
   );
 }

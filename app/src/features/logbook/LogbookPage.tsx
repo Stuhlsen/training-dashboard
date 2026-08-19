@@ -52,7 +52,7 @@ const TH_STYLE: React.CSSProperties = {
   color: "var(--ink-3)",
   borderBottom: "1px solid var(--hair)",
   whiteSpace: "nowrap",
-  fontSize: ".68rem",
+  fontSize: "var(--fs-label)",
   textTransform: "uppercase",
   letterSpacing: ".06em",
   userSelect: "none",
@@ -213,7 +213,7 @@ export function LogbookPage() {
                               <span
                                 style={{
                                   fontFamily: "var(--font-mono)",
-                                  fontSize: ".68rem",
+                                  fontSize: "var(--fs-label)",
                                   fontWeight: 600,
                                   padding: "2px 8px",
                                   borderRadius: "var(--pill)",

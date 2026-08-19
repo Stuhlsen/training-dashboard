@@ -43,7 +43,7 @@ typography:
     letterSpacing: "normal"
   label:
     fontFamily: "IBM Plex Mono, ui-monospace, Cascadia Mono, monospace"
-    fontSize: "0.68rem"
+    fontSize: "0.72rem"
     fontWeight: 500
     lineHeight: 1.4
     letterSpacing: "0.14em"
@@ -183,11 +183,16 @@ braucht feine Abstufung, keine plakative Handvoll Größen). Reale Stufen zwisch
   (`.section-label-prominent`), Kartenüberschriften (`h3`).
 - **Body** (400, 0.79rem–0.9rem/≈11–13px, 1.5–1.7): Fließtext, Beschreibungen, Analyse-Absätze,
   Zusammenfassungen.
-- **Label** (500–600, 0.6rem–0.76rem, letter-spacing 0.02–0.14em, oft Großbuchstaben): Meta-Zeilen,
+- **Label** (500–600, 0.68rem–0.78rem, letter-spacing 0.02–0.14em, oft Großbuchstaben): Meta-Zeilen,
   Section-Labels, Tab-/Chip-Beschriftungen, tabellarische Werte (`font-variant-numeric:
-  tabular-nums`). Die unterste Stufe dieser Bandbreite (0.6–0.68rem, bei `body{font-size:14px}`
-  ≈ 8.4–9.5px) ist die kleinste im System — bewusst reserviert für Sekundär-Meta, die nie die
-  einzige Informationsquelle für einen Wert ist (Einheit neben Zahl, Datum neben Titel).
+  tabular-nums`). Die kleine Mono-Uppercase-Label-Familie (Tages-/Wochen-Label, Tabellenkopf,
+  Tile-Titel) läuft einheitlich über `--fs-label` (0.72rem) bzw. `--fs-section-label` (0.78rem,
+  echte Abschnittsüberschriften) in `app/src/styles/tokens.css` — vor der Typeset-Etappe
+  2026-08-19 lag dieselbe Rolle bei 0.6–0.68rem (≈8.4–9.5px bei `body{font-size:14px}`) und war
+  laut Live-Browser-Audit die kleinste im System, obwohl sie an vielen Stellen (Tabellenkopf,
+  Tages-Label) die alleinige Informationsquelle war statt echter Sekundär-Meta; die Erhöhung
+  behebt genau diesen Widerspruch. Echte Sekundär-Meta (Einheit neben Zahl, Datum neben Titel)
+  darf weiterhin am unteren Rand der Spanne bleiben.
 
 ### Named Rules
 **The Mono-for-Meta Rule.** Jede Meta-, Label- oder Readout-Zeile (Datum, Einheit, Sub-Wert,

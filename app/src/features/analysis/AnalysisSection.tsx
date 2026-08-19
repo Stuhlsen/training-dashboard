@@ -19,7 +19,7 @@ export function AnalysisSection({ icon, title, explainer, children }: AnalysisSe
       <h2
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: ".68rem",
+          fontSize: "var(--fs-section-label)",
           fontWeight: 500,
           color: "var(--ink-3)",
           textTransform: "uppercase",

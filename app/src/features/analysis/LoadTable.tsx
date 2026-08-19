@@ -10,7 +10,10 @@ const RISK_COLOR: Record<LoadRow["risk"], string> = {
 
 const ROW_STYLE: React.CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "66px 52px 52px 56px 56px 1fr",
+  // 4 links → +6px, damit "Monot."/"Strain" im echten IBM Plex Mono bei
+  // .72rem nicht mehr an den Track-Rand stossen (waren zuvor auf System-
+  // Mono-Fallback abgestimmt, s. Etappe Typeset 2026-08-19).
+  gridTemplateColumns: "66px 52px 52px 62px 62px 1fr",
   gap: 8,
   alignItems: "center",
   padding: "9px 4px",
@@ -30,7 +33,7 @@ export function LoadTable({ rows }: { rows: LoadRow[] }) {
           style={{
             ...ROW_STYLE,
             fontFamily: "var(--font-mono)",
-            fontSize: ".62rem",
+            fontSize: "var(--fs-label)",
             textTransform: "uppercase",
             letterSpacing: ".05em",
             color: "var(--ink-3)",

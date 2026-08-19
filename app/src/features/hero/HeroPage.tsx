@@ -186,6 +186,7 @@ export function HeroPage() {
             <h1
               style={{
                 margin: 0,
+                fontFamily: "var(--font-disp)",
                 fontSize: "clamp(2.6rem,3.4vw,4.1rem)",
                 lineHeight: 1,
                 fontWeight: 600,

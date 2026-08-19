@@ -33,7 +33,7 @@ const LABEL_STYLE: React.CSSProperties = {
   flexDirection: "column",
   gap: 4,
   fontFamily: "var(--font-mono)",
-  fontSize: ".64rem",
+  fontSize: "var(--fs-label)",
   textTransform: "uppercase",
   letterSpacing: ".06em",
   color: "var(--ink-3)",

@@ -90,7 +90,7 @@ function WeekHeader({ week }: { week: GridWeekRow }) {
       <span
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: ".72rem",
+          fontSize: "var(--fs-label)",
           fontWeight: 600,
           padding: "3px 10px",
           borderRadius: "var(--pill)",
@@ -111,7 +111,7 @@ function WeekHeader({ week }: { week: GridWeekRow }) {
         <div style={{ width: 60, height: 4, borderRadius: 2, background: "rgba(255,255,255,.08)", overflow: "hidden" }}>
           <div style={{ height: "100%", width: `${week.loadPct}%`, background: "var(--ss)" }} />
         </div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", color: "var(--ink-3)" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>
           {Math.round(week.tssSum)} TSS
         </span>
       </div>
@@ -203,7 +203,7 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
       }}
     >
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 4 }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", color: "var(--ink-3)" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>
           {weekdayLabel} {fmtDate(cell.date)}
         </span>
         {DAY_STATUS_GLYPH[cell.status] && (
@@ -229,7 +229,7 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
         </div>
       )}
       {cell.otherCards.length > 0 && (
-        <span style={{ fontSize: ".64rem", color: "var(--ink-3)" }}>+{cell.otherCards.length}</span>
+        <span style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>+{cell.otherCards.length}</span>
       )}
     </div>
   );

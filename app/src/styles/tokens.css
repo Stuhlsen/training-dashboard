@@ -68,4 +68,11 @@
   --font-disp: "Sora", system-ui, -apple-system, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
   --font-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+  /* Label-Groessen (Etappe Typeset 2026-08-19) — ein Wert je Rolle statt
+     pro Stelle einzeln nachjustierter rem-Literale, damit gleichartige
+     Mono-Uppercase-Labels nebeneinander/uebereinander (z. B. Tages-Label und
+     Wochen-TSS im selben Wochenraster) konsistent gross bleiben. */
+  --fs-label: 0.72rem;
+  --fs-section-label: 0.78rem;
 }

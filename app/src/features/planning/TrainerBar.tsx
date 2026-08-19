@@ -287,7 +287,7 @@ function Tile({ title, children }: { title: string; children: React.ReactNode })
         padding: "12px 14px",
       }}
     >
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-3)", marginBottom: 8 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", textTransform: "uppercase", letterSpacing: ".05em", color: "var(--ink-3)", marginBottom: 8 }}>
         {title}
       </div>
       {children}
