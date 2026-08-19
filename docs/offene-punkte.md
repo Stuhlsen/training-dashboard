@@ -41,10 +41,6 @@
 
 ## Sync-Pipeline (`scripts/`)
 
-- **`loadFtpHistory()` ohne Timeout/Retry** — dupliziert `fetchJson()`,
-  aber ohne dessen Schutz. Läuft seit die `SUPABASE_*`-Secrets in
-  `sync-data.yml` gesetzt sind bei jedem 6h-Cron scharf mit.
-  `scripts/lib/ftp-history.js:57`.
 - **`longestBlockAboveThreshold()` prüft Gap-Toleranz nicht kumulativ** —
   mehrere kurze RECOVERY-Segmente können zwei getrennte Efforts fälschlich
   zu einem Block mergen. `scripts/lib/interval-blocks.js:69`.

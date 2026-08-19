@@ -13,7 +13,7 @@
    ============================================================ */
 
 import { ENV } from "./env.js";
-import { log } from "./log.js";
+import { fetchJson } from "./http.js";
 
 /**
  * Zu einem Fahrtdatum gültige FTP aus einer Historie ermitteln: der
@@ -51,6 +51,8 @@ export function ftpAt(history, dateISO, fallbackFtp) {
  * keine SUPABASE_*-Secrets im sync-data.yml-Workflow hinterlegt, s.
  * ENV.js-Kommentar "generate-data.js/npm run sync braucht diese nicht")
  * — das Verdrahten ist bewusst Schritt 3 vorbehalten (Bericht folgt).
+ * Nutzt fetchJson() (scripts/lib/http.js, Timeout + ein Retry) statt
+ * rohem fetch() — Fehler/Timeout werden dort bereits geloggt.
  * @param {{email:string, password:string}} credentials
  * @returns {Promise<Array<{ftpWatt:number, validFrom:string, source:string}>>}
  */
@@ -58,30 +60,23 @@ export async function loadFtpHistory({ email, password } = {}) {
   if (!ENV.SUPABASE_URL || !ENV.SUPABASE_ANON_KEY || !email || !password) {
     return [];
   }
-  try {
-    const signIn = await fetch(`${ENV.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+  const signIn = await fetchJson(
+    `${ENV.SUPABASE_URL}/auth/v1/token?grant_type=password`,
+    {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: ENV.SUPABASE_ANON_KEY },
       body: JSON.stringify({ email, password }),
-    });
-    if (!signIn.ok) {
-      log.warn(`ftp_history: Supabase-Login fehlgeschlagen (HTTP ${signIn.status}) — Fallback auf feste FTP`);
-      return [];
-    }
-    const { access_token: token, user } = await signIn.json();
+    },
+    { label: "ftp_history: Supabase-Login" }
+  );
+  if (!signIn) return [];
 
-    const res = await fetch(
-      `${ENV.SUPABASE_URL}/rest/v1/ftp_history?profile_id=eq.${user.id}&select=ftp_watt,valid_from,source&order=valid_from.asc`,
-      { headers: { apikey: ENV.SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` } }
-    );
-    if (!res.ok) {
-      log.warn(`ftp_history: Abruf fehlgeschlagen (HTTP ${res.status}) — Fallback auf feste FTP`);
-      return [];
-    }
-    const rows = await res.json();
-    return rows.map((r) => ({ ftpWatt: r.ftp_watt, validFrom: r.valid_from, source: r.source }));
-  } catch (e) {
-    log.warn(`ftp_history: Netzwerkfehler beim Abruf (${e.message}) — Fallback auf feste FTP`);
-    return [];
-  }
+  const rows = await fetchJson(
+    `${ENV.SUPABASE_URL}/rest/v1/ftp_history?profile_id=eq.${signIn.user.id}&select=ftp_watt,valid_from,source&order=valid_from.asc`,
+    { headers: { apikey: ENV.SUPABASE_ANON_KEY, Authorization: `Bearer ${signIn.access_token}` } },
+    { label: "ftp_history: Abruf" }
+  );
+  if (!rows) return [];
+
+  return rows.map((r) => ({ ftpWatt: r.ftp_watt, validFrom: r.valid_from, source: r.source }));
 }
