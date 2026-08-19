@@ -857,43 +857,20 @@ liefert. Details s. DKR0-Bericht oben.
 
 Beim `/code-review` vor dem DKR4-Vorbereitungs-Commit (Versions-Bump,
 `migrate` als eigenes Image, `publish-images.yml`) kamen mehrere Funde aus
-bereits abgenommenem DKR2/DKR3-Code hoch — nicht Teil dieses Diffs, deshalb
-nicht im selben Commit behoben, hier als Merkposten:
+bereits abgenommenem DKR2/DKR3-Code hoch. Alle fünf noch am selben Tag
+behoben (Commit `4e0943f`):
 
-- **Sync-Container: SIGTERM evtl. nicht sauber durchgereicht** —
-  `scripts/docker-entrypoint.sh` läuft als PID 1 in einer `/bin/sh`-Schleife
-  ohne `trap`/`exec` in den `node`-Prozess. `docker compose stop sync`
-  müsste dadurch die volle Grace-Period (Default 10s) bis zum SIGKILL
-  abwarten statt sauber zu beenden. Der dokumentierte Abbruchtest
-  (`docs/docker-lokal-einrichten.md` Abschnitt 2) prüft nur `docker compose
-  kill` (SIGKILL, sofort) — deckt dieses Verhalten nicht ab.
-- **`SYNC_INTERVAL_HOURS` ungeprüft** — `scripts/docker-entrypoint.sh`
-  übernimmt jeden Wert ungeprüft in eine `sh`-Arithmetik-Expansion
-  (`$(( INTERVAL_HOURS * 3600 ))`). Ein nicht-numerischer Wert (Tippfehler,
-  Einheit wie „6h") lässt das Skript dort mit einem Syntaxfehler abbrechen —
-  der Container beendet sich, obwohl das Skript bewusst kein `set -e` nutzt,
-  damit ein einzelner fehlgeschlagener Sync-Lauf den Dauerbetrieb nicht
-  killt.
-- **`scripts/lib/env.js`: doppelter Schlüssel in `.env` — erster statt
-  letzter gewinnt** — die Änderung „vorab gesetzter Wert gewinnt gegen
-  `.env`" (s. `docs/docker-lokal-einrichten.md` Abschnitt 3, Lücke 6) hat
-  als Nebenwirkung auch die Reihenfolge *innerhalb* von `.env` gedreht: bei
-  zwei Zeilen mit demselben Schlüssel gewinnt jetzt die erste (nicht-leere),
-  vorher immer die letzte. Eine handgepflegte `.env` mit einer alten
-  Karteileiche oberhalb eines neu eingefügten Werts würde damit
-  stillschweigend den alten Wert behalten.
-- **`POSTGRES_PASSWORD`-Erzeugung nutzt Standard-Base64** —
-  `docs/docker-lokal-einrichten.md` Abschnitt 3 erzeugt `JWT_SECRET` (und
-  laut Kommentar analog `POSTGRES_PASSWORD`) über
-  `[Convert]::ToBase64String()`. Das Alphabet enthält `+`, `/`, `=` —
-  unescaped in einer `postgres://user:passwort@host/db`-URI potenziell
-  bruchgefährlich (grob jeder zweite generierte Wert enthält mindestens ein
-  `/`). Betrifft `DATABASE_URL`, `GOTRUE_DB_DATABASE_URL`, `PGRST_DB_URI`.
-  Fix wäre ein URL-sicheres Alphabet oder eine dokumentierte
-  Escape-Anleitung.
-- **`docs/fahrplan-3-docker-umbau.md` DKR3-„Aufbau"-Tabelle veraltet** —
-  zeigt noch `/* → frontend` als Proxy-Fallback-Route. Tatsächlich (s.
-  `Caddyfile.local` und `docs/docker-lokal-einrichten.md` Abschnitt 3) ist
-  DKR3 bewusst backend-only, der Fallback liefert einen 404 mit Erklärtext.
-  Nur die Detail-Doku ist aktuell, der Haupt-Fahrplan wurde nicht
-  nachgezogen.
+### Erledigt
+- **Sync-Container SIGTERM** — `trap`/`kill` statt PID-1-Hülle ohne
+  Signalbehandlung; live getestet (Stop während der Sleep-Phase: 423ms statt
+  volle 10s Grace-Period).
+- **`SYNC_INTERVAL_HOURS` ungeprüft** — validiert, plus dabei eine zweite,
+  beim Fixen selbst gefundene Lücke geschlossen: `10#`-Präfix gegen die
+  Oktal-Falle bei führender Null (`"08"` schlug vorher fehl, `"010"` rechnete
+  still mit 8 statt 10 Stunden) — live reproduziert und verifiziert.
+- **`scripts/lib/env.js` doppelter `.env`-Schlüssel** — letzte Zeile gewinnt
+  wieder, isoliert mit synthetischen Daten verifiziert.
+- **`POSTGRES_PASSWORD`-Erzeugung** — Hex statt Base64 in
+  `docs/docker-lokal-einrichten.md` Abschnitt 3.
+- **`docs/fahrplan-3-docker-umbau.md` DKR3-Routing-Tabelle** — Hinweis auf
+  den tatsächlichen (backend-only, 404-Fallback) DKR3-Lokalstand ergänzt.
