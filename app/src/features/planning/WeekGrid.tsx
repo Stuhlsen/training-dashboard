@@ -156,6 +156,11 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
   const weekdayLabel = WEEKDAY_LABELS[(new Date(cell.date).getDay() + 6) % 7];
   const accent = cell.card ? typeColor(cell.card.typ) : undefined;
   const dropActive = isOver && dropEnabled;
+  // Longhand statt border-Shorthand + borderLeft gemischt: React warnt beim
+  // Rerender vor genau dieser Kombination ("conflicting property"), weil die
+  // Anwendungsreihenfolge der beiden Style-Keys nicht garantiert ist.
+  const borderRule = `1px ${isDragging ? "dashed" : "solid"} ${dropActive ? "var(--ss)" : isOpen ? statusColor : "var(--hair)"}`;
+  const borderLeftRule = accent ? `3px solid ${accent}` : borderRule;
 
   return (
     <div
@@ -183,8 +188,10 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
         minHeight: 64,
         padding: "8px 10px",
         borderRadius: "var(--radius-sm)",
-        border: `1px ${isDragging ? "dashed" : "solid"} ${dropActive ? "var(--ss)" : isOpen ? statusColor : "var(--hair)"}`,
-        borderLeft: accent ? `3px solid ${accent}` : undefined,
+        borderTop: borderRule,
+        borderRight: borderRule,
+        borderBottom: borderRule,
+        borderLeft: borderLeftRule,
         background: dropActive ? "rgba(224,138,60,.12)" : cell.isToday ? "rgba(255,255,255,.05)" : "rgba(255,255,255,.02)",
         opacity: isDragging ? 0.4 : cell.status === "cancelled" ? 0.55 : 1,
         cursor: hasCard ? (dragEnabled ? "grab" : "pointer") : "default",

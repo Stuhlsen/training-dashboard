@@ -14,7 +14,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
-import { PRIMARY_ATHLETE_ID, phaseColor } from "../../config";
+import { PRIMARY_ATHLETE_ID } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useTrainerContext } from "../../api/hooks/useTrainerContext";
@@ -30,15 +30,13 @@ import {
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
 import { qk } from "../../api/keys";
 import { fmtDate, localISODate } from "../../core/format.js";
-import { canDragCard, resolveDrop } from "../../core/plan-drag.js";
+import { resolveDrop } from "../../core/plan-drag.js";
 import { detectConflicts } from "../../core/conflicts.js";
 import { projectLoad } from "../../core/projection.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
 import { moveProposalArgs, cancelProposalArgs } from "../../core/proposal-payload.js";
-import { DaySlotRow } from "./DaySlotRow";
 import { DeltaBanner } from "./DeltaBanner";
 import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
-import { PlanCard } from "./PlanCard";
 import { PlanCardForm } from "./PlanCardForm";
 import { ExportImportBar } from "./ExportImportBar";
 import { BlockDialogGate } from "./BlockDialog";
@@ -47,6 +45,12 @@ import { ProposalList } from "./ProposalList";
 import { ProposalCompare } from "./ProposalCompare";
 import { TrainerBar } from "./TrainerBar";
 import { isTrainerProposalMode, type SaveMode } from "./trainer-bar-view-model";
+import { WeekGrid } from "./WeekGrid";
+import { WeekGridDetailRow } from "./WeekGridDetailRow";
+import { buildWeekGrid } from "./week-grid-view-model";
+import { DoneTable } from "./DoneTable";
+import { DoneDetailChart } from "./DoneDetailChart";
+import { buildDoneRows, gapsChips, planFidelitySummary } from "./done-table-view-model";
 import {
   buildPlanningSections,
   matchRideForCard,
@@ -159,6 +163,28 @@ export function PlanningPage() {
     () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),
     [sections.done, rideData, editable],
   );
+
+  // Etappe 13a: einheitliche Kalenderstruktur (alle Wochen mit ≥1 Karte,
+  // Vergangenheit UND Zukunft) fürs Mo–So-Raster — ersetzt sections.weeks
+  // als Datenquelle des Rasters, buildPlanningSections() bleibt weiter
+  // Grundlage der Fortschritts-Statistik/Done-Liste oben.
+  const weekGrid = useMemo(() => {
+    const rides = (rideData?.rides as Ride[] | undefined) ?? [];
+    return buildWeekGrid(cards ?? [], rides, TODAY);
+  }, [cards, rideData]);
+
+  // Etappe 13d: Soll/Ist-Tabellen-Projektion über sections.done — berechnet
+  // nichts neu, reicht nur Zahlen aus buildDoneCompareRows()/visibleCompliance()
+  // durch (s. done-table-view-model.ts Kopfkommentar).
+  const doneTableRows = useMemo(
+    () => buildDoneRows(sections.done, doneRides, editable),
+    [sections.done, doneRides, editable],
+  );
+  const fidelity = useMemo(
+    () => planFidelitySummary(sections.done, doneRides, TODAY),
+    [sections.done, doneRides],
+  );
+  const gaps = useMemo(() => gapsChips(sections.missed, sections.cancelled), [sections.missed, sections.cancelled]);
 
   const forecast = (rideData?.forecast as Record<string, unknown> | undefined) ?? {};
   const wellness = (rideData?.wellness as WellnessDay[] | undefined) ?? [];
@@ -285,7 +311,7 @@ export function PlanningPage() {
       onDragCancel={() => setActiveId(null)}
     >
     <PageShell>
-    <div style={{ maxWidth: 880, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Planungstab
@@ -329,11 +355,11 @@ export function PlanningPage() {
         <p style={{ color: "var(--danger)" }}>⚠️ Trainingsplan konnte nicht geladen werden.</p>
       )}
 
-      {!isLoading && !error && !sections.weeks.length && !sections.done.length && (
+      {!isLoading && !error && !weekGrid.length && !sections.done.length && (
         <p style={{ color: "var(--ink-3)" }}>Alle geplanten Sessions sind abgeschlossen 🎉</p>
       )}
 
-      {!isLoading && !error && (sections.weeks.length > 0 || sections.done.length > 0) && (
+      {!isLoading && !error && (weekGrid.length > 0 || sections.done.length > 0) && (
         <>
           <GlassCard variant="soft" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 16 }}>
             <div>
@@ -367,151 +393,80 @@ export function PlanningPage() {
                 {sections.stats.pct}% abgeschlossen · {sections.stats.totalSessions} Sessions gesamt
               </div>
             </div>
-
-            {editable && (
-              <button
-                type="button"
-                onClick={() => setDialog("new")}
-                style={{
-                  alignSelf: "flex-start",
-                  padding: "9px 18px",
-                  borderRadius: "var(--pill)",
-                  border: "1px solid var(--hair)",
-                  background: "transparent",
-                  color: "var(--ink)",
-                  fontSize: ".84rem",
-                  fontWeight: 600,
-                  cursor: "pointer",
-                }}
-              >
-                + Karte
-              </button>
-            )}
           </GlassCard>
 
-          {sections.weeks.length > 0 && (
+          {weekGrid.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-              <span style={SECTION_TITLE_STYLE}>📅 Ausstehend — {sections.stats.upcomingCount} Sessions</span>
-              {sections.weeks.map((week) => {
-                const color = phaseColor(week.phase);
-                return (
-                  <div key={week.week} data-week={week.week} style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: ".72rem",
-                          fontWeight: 600,
-                          padding: "3px 10px",
-                          borderRadius: "var(--pill)",
-                          background: `${color}22`,
-                          color,
-                          boxShadow: `inset 0 0 0 1px ${color}44`,
-                        }}
-                      >
-                        {weekDisplayLabels([week.week])[0]}
-                      </span>
-                      <span style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>{week.phase}</span>
-                      {week.isRecoveryWeek && (
-                        <span style={{ fontSize: ".78rem", color: "var(--accent)" }} title="Erholungswoche (aus den Plankarten erkannt)">
-                          🌙 Erholungswoche
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {week.cards.map((card) => (
-                        <PlanCard
-                          key={card.id}
-                          card={card}
-                          canEdit={editable}
-                          // Push bleibt athletenexklusiv (docs/phase-4-konzept-
-                          // trainer-sicht.md: "Kein Wahoo-Push durch den
-                          // Trainer") — anders als Verschieben/Ausfallen gibt
-                          // es dafür keinen Vorschlag-Ersatz, der Token gehört
-                          // dem Athleten. editable allein reicht nicht, weil
-                          // es auch für den Trainer true ist (RLS T2).
-                          canPush={editable && !isTrainer}
-                          onPush={push}
-                          draggable={canDragCard({
-                            canEdit: editable,
-                            cardDate: card.date,
-                            today: TODAY,
-                            trainerProposalMode,
-                          })}
-                          trainerProposalMode={trainerProposalMode}
-                          conflicts={conflicts}
-                          projection={projection}
-                          ftp={ftp}
-                          forecast={forecast}
-                          wellness={wellness}
-                          plannedSessions={plannedSessions}
-                          onEdit={() => setDialog(card)}
-                          onMove={handleMove}
-                          onCancel={handleCancel}
-                          onUndo={undo}
-                        />
-                      ))}
-                    </div>
-                    {activeId && <DaySlotRow anchorDate={week.cards[0].date} today={TODAY} />}
-                  </div>
-                );
-              })}
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+                <span style={SECTION_TITLE_STYLE}>📅 Ausstehend — {sections.stats.upcomingCount} Sessions</span>
+                {editable && (
+                  <button
+                    type="button"
+                    onClick={() => setDialog("new")}
+                    style={{
+                      padding: "9px 18px",
+                      borderRadius: "var(--pill)",
+                      border: "1px solid var(--hair)",
+                      background: "transparent",
+                      color: "var(--ink)",
+                      fontSize: ".84rem",
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    + Karte
+                  </button>
+                )}
+              </div>
+              <WeekGrid
+                weeks={weekGrid}
+                today={TODAY}
+                canEdit={editable}
+                trainerProposalMode={trainerProposalMode}
+                renderDetail={(cell) => {
+                  if (!cell.card) return null;
+                  const card = cell.card;
+                  return (
+                    <WeekGridDetailRow
+                      card={card}
+                      canEdit={editable}
+                      // Push bleibt athletenexklusiv (docs/phase-4-konzept-
+                      // trainer-sicht.md: "Kein Wahoo-Push durch den
+                      // Trainer") — anders als Verschieben/Ausfallen gibt
+                      // es dafür keinen Vorschlag-Ersatz, der Token gehört
+                      // dem Athleten. editable allein reicht nicht, weil
+                      // es auch für den Trainer true ist (RLS T2).
+                      canPush={editable && !isTrainer}
+                      onPush={push}
+                      trainerProposalMode={trainerProposalMode}
+                      rides={allRides}
+                      conflicts={conflicts}
+                      projection={projection}
+                      ftp={ftp}
+                      forecast={forecast}
+                      wellness={wellness}
+                      plannedSessions={plannedSessions}
+                      onEdit={() => setDialog(card)}
+                      onMove={handleMove}
+                      onCancel={handleCancel}
+                      onUndo={undo}
+                    />
+                  );
+                }}
+              />
             </div>
           )}
 
-          <CardSection
-            title={`✅ Absolviert — ${sections.done.length}`}
-            cards={sections.done}
-            emptyLabel={null}
-            editable={editable}
-            isDone
-            doneRides={doneRides}
-            conflicts={conflicts}
-            projection={projection}
-            ftp={ftp}
-            forecast={forecast}
-            wellness={wellness}
-            plannedSessions={plannedSessions}
-            onEdit={setDialog}
-            move={handleMove}
-            cancel={handleCancel}
-            undo={undo}
-            trainerProposalMode={trainerProposalMode}
-          />
-          <CardSection
-            title={`⚠️ Verpasst — ${sections.missed.length}`}
-            cards={sections.missed}
-            emptyLabel={null}
-            editable={editable}
-            conflicts={conflicts}
-            projection={projection}
-            ftp={ftp}
-            forecast={forecast}
-            wellness={wellness}
-            plannedSessions={plannedSessions}
-            onEdit={setDialog}
-            move={handleMove}
-            cancel={handleCancel}
-            undo={undo}
-            trainerProposalMode={trainerProposalMode}
-          />
-          <CardSection
-            title={`🚫 Ausgefallen — ${sections.cancelled.length}`}
-            cards={sections.cancelled}
-            emptyLabel={null}
-            editable={editable}
-            conflicts={conflicts}
-            projection={projection}
-            ftp={ftp}
-            forecast={forecast}
-            wellness={wellness}
-            plannedSessions={plannedSessions}
-            onEdit={setDialog}
-            move={handleMove}
-            cancel={handleCancel}
-            undo={undo}
-            trainerProposalMode={trainerProposalMode}
-          />
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={SECTION_TITLE_STYLE}>✅ Absolviert — {sections.done.length}</span>
+            <DoneTable
+              rows={doneTableRows}
+              fidelity={fidelity}
+              gaps={gaps}
+              canEdit={editable}
+              renderChart={(row) => <DoneDetailChart {...row} />}
+            />
+          </div>
         </>
       )}
 
@@ -579,84 +534,6 @@ function Stat({ value, label, color }: { value: number | string; label: string; 
         {value}
       </span>
       <span style={{ fontSize: ".68rem", color: "var(--ink-3)" }}>{label}</span>
-    </div>
-  );
-}
-
-function CardSection({
-  title,
-  cards,
-  emptyLabel,
-  editable,
-  isDone,
-  doneRides,
-  conflicts,
-  projection,
-  ftp,
-  forecast,
-  wellness,
-  plannedSessions,
-  onEdit,
-  move,
-  cancel,
-  undo,
-  trainerProposalMode,
-}: {
-  title: string;
-  cards: PlanCardT[];
-  emptyLabel: string | null;
-  editable: boolean;
-  isDone?: boolean;
-  /** Nur bei `isDone` befüllt (s. PlanningPage `doneRides`) — Grundlage der
-   *  Compliance-Tabelle je Karte. */
-  doneRides?: Map<string, Ride | null>;
-  conflicts: ReturnType<typeof detectConflicts>;
-  projection: ReturnType<typeof projectLoad>;
-  ftp: number | undefined;
-  forecast: Record<string, unknown>;
-  wellness: WellnessDay[];
-  plannedSessions: PlannedSessionRef[];
-  onEdit: (card: PlanCardT) => void;
-  move: (id: string, date: string, reason?: string) => Promise<Result>;
-  cancel: (id: string, reason?: string) => Promise<Result>;
-  undo: ReturnType<typeof useUndoAdjustment>["undo"];
-  /** Etappe 7a: nur die Button-Beschriftung ("Als Vorschlag speichern");
-   *  move/cancel selbst verzweigen bereits in PlanningPage::handleMove/
-   *  handleCancel, unabhängig davon, aus welcher Sektion sie aufgerufen
-   *  werden — Move/Cancel sind hier nicht auf die Ausstehend-Sektion
-   *  beschränkt (canEdit gilt sektionsübergreifend). */
-  trainerProposalMode?: boolean;
-}) {
-  if (!cards.length && !emptyLabel) return null;
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-      <span style={SECTION_TITLE_STYLE}>{title}</span>
-      {!cards.length ? (
-        <p style={{ color: "var(--ink-3)", fontSize: ".84rem", margin: 0 }}>{emptyLabel}</p>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {cards.map((card) => (
-            <PlanCard
-              key={card.id}
-              card={card}
-              canEdit={editable}
-              isDone={isDone}
-              ride={isDone ? (doneRides?.get(card.id) ?? null) : undefined}
-              conflicts={conflicts}
-              projection={projection}
-              ftp={ftp}
-              forecast={forecast}
-              wellness={wellness}
-              plannedSessions={plannedSessions}
-              trainerProposalMode={trainerProposalMode}
-              onEdit={() => onEdit(card)}
-              onMove={move}
-              onCancel={cancel}
-              onUndo={undo}
-            />
-          ))}
-        </div>
-      )}
     </div>
   );
 }

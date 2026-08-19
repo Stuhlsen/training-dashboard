@@ -382,14 +382,68 @@ zusammen mit dem Rest von `PlanningPage.tsx` erst in Etappe 13f.
 6. „+ Karte"/„Karte anlegen" wandert vom Hero-Card-Header in den Kopf des
    Raster-Bereichs.
 
+### Stand
+
+**Umgesetzt** (19.08.2026): `PlanningPage.tsx` verdrahtet — `sections.weeks.map(...)`
++ `DaySlotRow`-Mount durch `<WeekGrid weeks={buildWeekGrid(cards, rides, TODAY)}>`
+ersetzt (eigener `weekGrid`-`useMemo`, unabhängig von `buildPlanningSections()`s
+`sections.weeks`, das weiter nur die Fortschritts-Statistik liefert),
+`renderDetail`-Slot an `<WeekGridDetailRow>` durchgereicht. `CardSection("✅
+Absolviert…")` durch `<DoneTable>` ersetzt (`buildDoneRows`/`planFidelitySummary`/
+`gapsChips` aus 13d, `renderChart`-Slot an `<DoneDetailChart>`).
+`CardSection("⚠️ Verpasst…")`/`("🚫 Ausgefallen…")` entfernt (Status-Symbole im
+Raster + Lücken-Chips der Done-Tabelle decken das jetzt ab) — `CardSection()`
+selbst hatte danach nachweislich keinen Aufrufer mehr (grep bestätigt) und wurde
+mit gelöscht, ebenso die zugehörigen jetzt ungenutzten Imports (`PlanCard`-
+Komponente, `phaseColor`, `canDragCard` — `DaySlotRow`-Import bereits entfernt,
+Datei selbst bleibt bis 13h stehen). Leerzustands-Meldung ("Alle geplanten
+Sessions sind abgeschlossen 🎉") prüft jetzt `weekGrid.length`/`sections.done.length`
+statt `sections.weeks.length` — nötig, weil `weekGrid` (anders als `sections.weeks`)
+bewusst auch reine Vergangenheits-Wochen zeigt (kein künstliches Wochenlimit,
+Etappe-13-Plan). „+ Karte" sitzt jetzt im Kopf des Ausstehend-Bereichs statt im
+Hero-Card. Innerer `maxWidth` 880 → 1100 (visuell im Dev-Server geprüft, s. u.
+— Mockup-Wert 1280 bewusst nicht blind übernommen, `PageShell`s 2040-Deckel
+bleibt weit drüber). `DndContext`/Sensoren/`handleDragEnd` unverändert —
+`event.over?.id` kommt jetzt von einer `WeekGrid`-Zelle statt `DaySlotRow`,
+Signaturen von `resolveDrop()`/`canDragCard()` unangetastet (`canDragCard()`
+wird nur noch innerhalb von `WeekGrid.tsx`/`WeekGridDetailRow.tsx` aufgerufen,
+nicht mehr direkt in `PlanningPage.tsx`).
+
+`npx tsc -b --noEmit` fehlerfrei, `npm run build` fehlerfrei, `npx vitest run
+--project app` grün (577/577, keine Testdatei geändert — reine Verdrahtung ohne
+neue Logik). Manuell im Dev-Server geprüft (Playwright MCP, `browser_snapshot`/
+`browser_take_screenshot`, je einmal am Ende dieses Fensters, nicht iterativ):
+Athlet 1 (Schreibrechte, lokaler Dev-Bypass) UND Athlet 2 (read-only) — Raster
+rendert für beide korrekt (bei Athlet 2 kein „+ Karte", keine Drag-Attribute
+aktiv), Tageszelle aufklappen zeigt `WeekGridDetailRow` mit Bearbeiten/
+Verschieben/Ausfallen, Done-Tabellen-Zeile aufklappen zeigt `DoneCompareBlock` +
+`DoneDetailChart` (Zonen-Mix-Zweig getestet), Export/Import/Block-Dialoge
+weiterhin an ihrer bisherigen Stelle sichtbar. **Nicht** geprüft: echte
+Drag-Geste (Playwright-Klick auf eine Zelle mit aktiver `useDraggable`-
+Bindung wird von Playwrights Aktionierbarkeits-Check als „nicht enabled"
+abgelehnt, weil dnd-kit `aria-disabled` auf nicht-ziehbaren Zellen setzt —
+laut `docs/AGENTS.md`/CLAUDE.md-Konvention bleibt die finale Drag-Bestätigung
+ohnehin bei Alex im echten Browser).
+
+**Beiläufig gefunden und mit Alex' Ok direkt mitbehoben:** beim Aufklappen
+einer Rastertageszelle meldete die Konsole einmalig eine React-DOM-Warnung
+(„Updating border borderLeft" — Shorthand/Longhand-Konflikt) aus
+`WeekGrid.tsx`s `DayCell`-Styleobjekt (`border`-Shorthand + `borderLeft`
+gemischt, Etappe 13b, bereits committet). Fix: `border` durch explizites
+`borderTop`/`borderRight`/`borderBottom` ersetzt, `borderLeft` bekommt den
+Akzent-Wert oder denselben `borderRule`-String als Fallback statt `undefined`
+— keine Shorthand/Longhand-Mischung mehr. Erneut im Dev-Server geprüft:
+Konsole meldet nach dem Fix 0 Fehler beim selben Aufklapp-Klick (vorher 1).
+
 ### Abnahme
 
-- [ ] `npm run build` (app/) fehlerfrei
-- [ ] `npm test` (app/) grün
-- [ ] Manuelle Prüfung im Dev-Server: Athlet 1 (Schreibrechte) UND Athlet 2
+- [x] `npm run build` (app/) fehlerfrei
+- [x] `npm test` (app/) grün
+- [x] Manuelle Prüfung im Dev-Server: Athlet 1 (Schreibrechte) UND Athlet 2
       (read-only) — Raster rendern, Zelle aufklappen, Drag verschieben,
       Done-Tabelle aufklappen, Export/Import/Block-Dialoge weiter
-      funktionsfähig
+      funktionsfähig — **außer** der echten Drag-Geste selbst (s. Stand oben,
+      bleibt laut Projektkonvention Alex' finale manuelle Bestätigung)
 
 ---
 
