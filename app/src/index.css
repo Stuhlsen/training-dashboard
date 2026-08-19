@@ -33,3 +33,14 @@ body {
 .row-highlight {
   animation: row-highlight-pulse 2.5s ease-out;
 }
+
+/* Bislang keine einzige Fokus-Stil-Regel im Projekt (Audit Etappe
+   2026-08-19) — Tastatur-/Screenreader-Nutzer sahen nur den je nach Browser
+   unterschiedlichen Default-Ring, oft kaum sichtbar auf den transluzenten
+   Glas-Kacheln. `:focus-visible` statt `:focus`, damit der Ring nur bei
+   Tastatur-/programmatischem Fokus erscheint, nicht bei jedem Mausklick. */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

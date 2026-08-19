@@ -6,7 +6,7 @@ import { fmtDate } from "../../core/format.js";
 import { canDragCard, isDropAllowed } from "../../core/plan-drag.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
 import { typeColor, typeIcon } from "./planning-view-model";
-import { DAY_STATUS_COLOR_TOKEN, DAY_STATUS_GLYPH, type GridDayCell, type GridWeekRow } from "./week-grid-view-model";
+import { DAY_STATUS_COLOR_TOKEN, DAY_STATUS_GLYPH, DAY_STATUS_LABEL, type GridDayCell, type GridWeekRow } from "./week-grid-view-model";
 
 const WEEKDAY_LABELS = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
 const CELL_MIN_WIDTH = 104;
@@ -165,6 +165,16 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
   // Anwendungsreihenfolge der beiden Style-Keys nicht garantiert ist.
   const borderRule = `1px ${isDragging ? "dashed" : "solid"} ${dropActive ? "var(--ss)" : isOpen ? statusColor : "var(--hair)"}`;
   const borderLeftRule = accent ? `3px solid ${accent}` : borderRule;
+  const statusLabel = DAY_STATUS_LABEL[cell.status];
+  // Eigene role/tabIndex statt blind `attributes` zu uebernehmen: dnd-kit
+  // setzt darin `aria-disabled` auf den `disabled`-Wert von useDraggable
+  // (hier `!dragEnabled`) — das ist bei Tages-Karten, die nur nicht ziehbar
+  // (z. B. vergangen/erledigt) aber weiterhin per Klick/Enter aufklappbar
+  // sind, fachlich falsch: Screenreader meldeten die Zelle faelschlich als
+  // deaktiviert, obwohl onClick/onKeyDown unten unveraendert aktiv bleiben.
+  const cellAriaLabel = hasCard
+    ? `${weekdayLabel} ${fmtDate(cell.date)}, ${cell.card?.name ?? ""}${statusLabel ? `, ${statusLabel}` : ""}`
+    : undefined;
 
   return (
     <div
@@ -172,8 +182,10 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
       data-grid-cell-date={cell.date}
       data-status={cell.status}
       data-drop-allowed={dropEnabled}
-      {...(hasCard ? attributes : undefined)}
-      {...(hasCard ? listeners : undefined)}
+      data-drag-enabled={dragEnabled}
+      {...(dragEnabled ? attributes : hasCard ? { role: "button" as const, tabIndex: 0 } : undefined)}
+      {...(dragEnabled ? listeners : undefined)}
+      aria-label={cellAriaLabel}
       onClick={hasCard ? onToggle : undefined}
       onKeyDown={
         hasCard

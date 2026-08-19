@@ -98,7 +98,7 @@ describe("WeekGrid — Drag-Deaktivierung", () => {
     renderGrid(cards);
     const cell = document.querySelector('[data-grid-cell-date="2026-08-10"]');
     expect(cell?.getAttribute("data-status")).toBe("missed");
-    expect(cell?.getAttribute("aria-disabled")).toBe("true");
+    expect(cell?.getAttribute("data-drag-enabled")).toBe("false");
   });
 
   it("deaktiviert Drag auf einer ausgefallenen Zelle, auch wenn das Datum in der Zukunft liegt", () => {
@@ -106,7 +106,7 @@ describe("WeekGrid — Drag-Deaktivierung", () => {
     renderGrid(cards);
     const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]');
     expect(cell?.getAttribute("data-status")).toBe("cancelled");
-    expect(cell?.getAttribute("aria-disabled")).toBe("true");
+    expect(cell?.getAttribute("data-drag-enabled")).toBe("false");
   });
 
   it("erlaubt Drag auf einer offenen zukünftigen Zelle mit Bearbeitungsrecht", () => {
@@ -114,21 +114,32 @@ describe("WeekGrid — Drag-Deaktivierung", () => {
     renderGrid(cards, { canEdit: true });
     const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]');
     expect(cell?.getAttribute("data-status")).toBe("open");
-    expect(cell?.getAttribute("aria-disabled")).toBe("false");
+    expect(cell?.getAttribute("data-drag-enabled")).toBe("true");
   });
 
   it("deaktiviert Drag ohne Bearbeitungsrecht (read-only Athlet)", () => {
     const cards = [card({ id: "a", date: "2026-08-14" })];
     renderGrid(cards, { canEdit: false });
     const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]');
-    expect(cell?.getAttribute("aria-disabled")).toBe("true");
+    expect(cell?.getAttribute("data-drag-enabled")).toBe("false");
   });
 
   it("deaktiviert Drag im Trainer-Vorschlagsmodus", () => {
     const cards = [card({ id: "a", date: "2026-08-14" })];
     renderGrid(cards, { canEdit: true, trainerProposalMode: true });
     const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]');
-    expect(cell?.getAttribute("aria-disabled")).toBe("true");
+    expect(cell?.getAttribute("data-drag-enabled")).toBe("false");
+  });
+
+  it("meldet eine drag-deaktivierte, aber weiterhin klickbare Zelle NICHT als aria-disabled (A11y-Fix Etappe Audit 2026-08-19: Screenreader hielten sie sonst faelschlich fuer unbedienbar)", () => {
+    const cards = [card({ id: "a", date: "2026-08-10" })]; // vergangen → missed, dragEnabled=false, aber weiterhin per Klick aufklappbar
+    renderGrid(cards);
+    const cell = document.querySelector('[data-grid-cell-date="2026-08-10"]');
+    expect(cell?.getAttribute("data-drag-enabled")).toBe("false");
+    expect(cell?.hasAttribute("aria-disabled")).toBe(false);
+    expect(cell?.getAttribute("role")).toBe("button");
+    expect(cell?.getAttribute("tabindex")).toBe("0");
+    expect(cell?.getAttribute("aria-label")).toContain("verpasst");
   });
 });
 

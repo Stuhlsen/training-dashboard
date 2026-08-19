@@ -35,6 +35,18 @@ export const DAY_STATUS_GLYPH: Record<DayStatus, string> = {
   empty: "",
 };
 
+/** Textform des Status fuer Screenreader — DAY_STATUS_GLYPH allein ist
+ *  `aria-hidden` (Symbol ohne Wortbedeutung), diese Map liefert das
+ *  gesprochene Gegenstueck fuer den `aria-label` der Tageszelle. */
+export const DAY_STATUS_LABEL: Record<DayStatus, string> = {
+  done: "absolviert",
+  today: "heute",
+  open: "offen",
+  missed: "verpasst",
+  cancelled: "ausgefallen",
+  empty: "",
+};
+
 /** Token-Namen (tokens.css), keine Hex-Werte — Politur-Vorgabe aus dem
  *  Etappe-13-Plan ("überall Tokens statt Hex"). */
 export const DAY_STATUS_COLOR_TOKEN: Record<DayStatus, string> = {
