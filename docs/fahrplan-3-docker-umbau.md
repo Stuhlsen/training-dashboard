@@ -306,6 +306,35 @@ Diese vier Punkte müssen erfüllt sein, **bevor** DKR4 beginnt:
 
 > Das ist keine reine Formalität: Es ist die Antwort auf die Frage, wie „erst bei mir lokal fertig testen, dann weitergeben zum Hosten" tatsächlich technisch umgesetzt wird. Ohne Punkt 2 könnte ein Unterschied zwischen dem lokal geprüften Image und einem später auf fremder Infrastruktur gebauten Image entstehen — genau die Art Fehler, die sich sonst erst im Betrieb zeigt, wenn sie am schwersten zuzuordnen ist.
 
+### Stand 19.08.2026 — Vorbereitung abgeschlossen, `docker-compose.prod.yml` bewusst noch offen
+
+Auf Alex' Entscheidung hin deckt dieser Durchlauf nur die **Vorbereitung** ab,
+nicht die vier Punkte vollständig — `docker-compose.prod.yml` bleibt bewusst
+DKR4 vorbehalten (Punkt 3 nennt es selbst als „folgt in DKR4"), wird hier
+also nicht vorgezogen.
+
+1. **DKR1–DKR3 abgenommen** — ✅, s. jeweilige Abnahme-Abschnitte oben.
+2. **Frontend-Image geprüft, nicht neu gebaut** — das zuvor lokal getestete
+   DKR1-Image war 5,5 Stunden älter als der letzte Commit (der u. a.
+   `app/nginx.conf` änderte, s. DKR2), entsprach also nicht mehr sicher dem
+   committeten Stand. Deshalb einmalig frisch aus dem aktuellen Commit
+   gebaut — **das** ist jetzt die Referenz, kein zweiter Build "für den
+   Server" später. Fest getaggt (kein `:latest`):
+   - `training-dashboard-frontend:4841630` (Commit `4841630`)
+   - Image-ID `sha256:47afa9dfa34a…`
+   - Smoke-Test bestanden: `/` → 200, `/config.json` → 200,
+     `/data/<fehlende-datei>` → 404 (nicht die SPA-Fallback-Falle)
+3. **Übergabepaket-Bestandteile geprüft:**
+   - `docker-compose.prod.yml` — **bewusst noch nicht angelegt**, folgt in DKR4
+   - geprüftes Image-Tag — s. Punkt 2 oben
+   - `.env.example` — durchgesehen, keine Lücke gefunden: `RUNTIME_ENV`
+     (einziger server-spezifischer Wert ohne Cloud-Gegenstück) ist laut
+     `docs/docker-lokal-einrichten.md` Abschnitt 1 bewusst kein `.env`-Wert,
+     sondern wird direkt und fest in `docker-compose.prod.yml` gesetzt
+     (`RUNTIME_ENV=prod`) — gehört deshalb nicht in diese Datei
+4. **Nichts auf dem Server gebaut** — reine Verfahrensregel, greift erst,
+   sobald DKR4 tatsächlich einen Server anfasst; aktuell nichts zu prüfen.
+
 ---
 
 ## Fenster DKR4 — Server und Auslieferungskette
