@@ -134,6 +134,7 @@ function BlockDialog({
         position: "fixed",
         inset: 0,
         background: "rgba(7,9,14,.75)",
+        backdropFilter: "blur(3px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

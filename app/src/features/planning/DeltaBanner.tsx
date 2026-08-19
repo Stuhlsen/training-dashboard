@@ -3,13 +3,16 @@ import { fmtDate } from "../../core/format.js";
 import type { DeltaBannerState } from "./planning-delta";
 
 const CLOSE_BTN_STYLE: React.CSSProperties = {
-  border: "none",
+  width: 26,
+  height: 26,
+  flex: "none",
+  border: "1px solid var(--hair)",
+  borderRadius: "var(--pill)",
   background: "transparent",
   color: "var(--ink-3)",
   cursor: "pointer",
-  fontSize: "1rem",
+  fontSize: ".74rem",
   lineHeight: 1,
-  padding: 4,
 };
 
 /** Persistenter Vorher/Nachher-Vergleich nach Verschieben/Ausfallen/Drag —
@@ -25,10 +28,11 @@ export function DeltaBanner({ state, onClose }: { state: DeltaBannerState; onClo
         alignItems: "flex-start",
         justifyContent: "space-between",
         gap: 12,
-        padding: "12px 16px",
-        borderRadius: "var(--radius-sm)",
-        background: "rgba(255,255,255,.04)",
+        padding: "13px 16px",
+        borderRadius: "16px",
+        background: "rgba(20,24,34,.6)",
         border: "1px solid var(--hair)",
+        backdropFilter: "blur(14px)",
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: ".82rem", color: "var(--ink-2)" }}>

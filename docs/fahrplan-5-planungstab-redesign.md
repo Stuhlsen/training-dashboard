@@ -464,10 +464,60 @@ nur echte Abweichungen, keine Strukturänderung.
 3. Keine neuen Tests — bestehende `*.test.tsx` müssen unverändert grün
    bleiben.
 
+### Stand
+
+**Umgesetzt** (19.08.2026): Mockup-Quelldatei (`Planungstab Live.dc.html`,
+Projekt „Rad-Dashboard Hero-Redesign") war lokal nicht vorhanden — über den
+von Alex geteilten claude.ai-Design-Link per `DesignSync` (`get_project` +
+`get_file`) geladen und für den Soll-Ist-Vergleich ausgewertet.
+
+1. `TrainerBar.tsx`-Kachel-Grid **bewusst nicht geändert**: Mockup nutzt
+   festes `repeat(4, minmax(0, 1fr))`, Code nutzt seit Etappe 7a
+   `repeat(auto-fill, minmax(170px, 1fr))`. Git-Historie zeigt keinen
+   Kommentar, der auto-fill explizit für schmale Ansichten begründet — aber
+   das Mockup selbst enthält (geprüft: keine `@media`-Regel im ganzen
+   Dokument) keinerlei Vorkehrung für schmale Breiten. Ein fester
+   4-Spalten-Fix ohne Media-Query würde die 8 Kacheln auf schmalen
+   Viewports auf ~4 sehr schmale Spalten pressen; `auto-fill` degradiert
+   dagegen sauber auf weniger Spalten/mehr Zeilen. Beibehalten.
+2. `DeltaBanner.tsx` + `ProposalBanner.tsx`: echte, systematische Abweichung
+   gefunden — Mockup nutzt für beide Banner-Typen durchgängig
+   `border-radius: 16px` + `backdrop-filter: blur(14px)`, Code nutzte
+   `var(--radius-sm)` (8px) und keinen Blur. `blur(14px)` ist im Code kein
+   Einzelfall — `Layout.tsx`s Header nutzt denselben Wert bereits, stützt
+   die Vermutung einer echten Lücke statt eines bewussten Unterschieds.
+   Beide Dateien angepasst: Radius → `16px`, `backdropFilter: "blur(14px)"`
+   ergänzt; `ProposalBanner.tsx`-Padding an `13px 18px` angeglichen.
+   `DeltaBanner.tsx`s Schließen-Button war reiner Text ohne Kreisform —
+   Mockup zeigt einen runden, umrandeten 26×26-Button — Style ergänzt
+   (`getByTitle("Schließen")`-Testselektor bleibt unberührt).
+3. `ExportPanel.tsx`/`ImportDialog.tsx`/`BlockDialog.tsx`/`ProposalList.tsx`/
+   `ProposalCompare.tsx`: alle 5 Dialog-Overlays im Mockup tragen
+   `backdrop-filter: blur(3px)` zusätzlich zum bereits identischen
+   `background: rgba(7,9,14,.75)` — im Code fehlte der Blur überall. In
+   allen 5 Dateien ergänzt (nur das Overlay-`div`, nicht `GlassCard`
+   selbst).
+4. **Bewusst nicht angefasst:** Dialogkarten-Hintergrund/-Blur/-Rahmen
+   (Mockup `rgba(20,24,34,.94)` + `blur(26px)` + `1px solid
+   rgba(255,255,255,.12)` vs. `GlassCard`s geteiltes `--glass`-Token
+   `rgba(14,17,25,.62)` + `blur(16px)`, kein Rahmen) und die
+   Dialog-Titel-Typografie (Mockup Sora 1.15rem/600 vs. Codes
+   `1rem`/700) — beides sind app-weite, geteilte Konventionen
+   (`GlassCard`-Komponente bzw. dasselbe `fontFamily:
+   var(--font-disp), fontWeight: 700, fontSize: "1rem"`-Muster in
+   8 Dateien, u. a. `EventForm.tsx`, `CheckinDialog.tsx`,
+   `FtpTriad.tsx` — außerhalb dieses Fahrplans). Eine Änderung nur in den
+   Planungstab-Dialogen hätte Inkonsistenz zu diesen anderen Dialogen
+   erzeugt statt sie zu beheben — Entscheidung: keine Strukturänderung an
+   geteilten Bausteinen im Rahmen von 13g.
+
+`npx tsc -b --noEmit` fehlerfrei, `npm run build` fehlerfrei, `npx vitest
+run --project app` grün (577/577, keine Testdatei geändert).
+
 ### Abnahme
 
-- [ ] Bestehende Tests weiterhin grün
-- [ ] Visueller Abgleich gegen Mockup-Screenshots (falls vorhanden) oder
+- [x] Bestehende Tests weiterhin grün
+- [x] Visueller Abgleich gegen Mockup-Screenshots (falls vorhanden) oder
       gegen die im Mockup notierten Maße
 
 ---
