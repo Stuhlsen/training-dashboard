@@ -145,7 +145,7 @@ export async function updateIntervalBlockCache(activities, cache, opts) {
 
   for (const act of activities) {
     const key = String(act.id);
-    if (cache[key]?.segments) {
+    if (cache[key]?.segments || cache[key]?.noData) {
       cachedCount++;
       continue;
     }
@@ -155,6 +155,7 @@ export async function updateIntervalBlockCache(activities, cache, opts) {
 
     const segments = await fetchActivityIntervals(act.id, apiKey);
     if (!segments) {
+      cache[key] = { noData: true, fetchedAt: new Date().toISOString() };
       failed++;
       if (minDelayMs > 0) await sleep(minDelayMs);
       continue;

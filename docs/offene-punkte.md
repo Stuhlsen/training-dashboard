@@ -48,9 +48,6 @@
 - **`longestBlockAboveThreshold()` prüft Gap-Toleranz nicht kumulativ** —
   mehrere kurze RECOVERY-Segmente können zwei getrennte Efforts fälschlich
   zu einem Block mergen. `scripts/lib/interval-blocks.js:69`.
-- **`updateIntervalBlockCache()` cacht `null`-Fälle nie** — Aktivitäten
-  ohne Intervalldaten werden bei jedem 6h-Sync erneut angefragt.
-  `scripts/lib/interval-blocks.js:135`.
 - **HRV/Ruhepuls: 6 von 25 Tagen weichen zwischen `ride.hrv` und dem
   Wellness-Wert ab** (Athlet 1, Übergangsfenster Plan1→Plan2) — vermutlich
   ein Snapshot von vor der `wellnessFields()`-Konsolidierung, nicht
