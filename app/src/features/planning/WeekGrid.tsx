@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
+import { GlassCard } from "../../components/GlassCard";
 import { phaseColor } from "../../config";
 import { fmtDate } from "../../core/format.js";
 import { canDragCard, isDropAllowed } from "../../core/plan-drag.js";
@@ -50,12 +51,15 @@ export function WeekGrid({ weeks, today, canEdit, trainerProposalMode, renderDet
           <div key={week.weekKey} data-week={week.weekKey} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <WeekHeader week={week} />
             <div style={{ overflowX: "auto" }}>
-              <div
+              <GlassCard
+                variant="soft"
+                radius="var(--radius)"
                 style={{
                   display: "grid",
                   gridTemplateColumns: `repeat(7, minmax(${CELL_MIN_WIDTH}px, 1fr))`,
                   gap: 6,
                   minWidth: 7 * CELL_MIN_WIDTH,
+                  padding: 6,
                 }}
               >
                 {week.days.map((cell) => (
@@ -69,7 +73,7 @@ export function WeekGrid({ weeks, today, canEdit, trainerProposalMode, renderDet
                     onToggle={() => toggle(week.weekKey, cell.date)}
                   />
                 ))}
-              </div>
+              </GlassCard>
             </div>
             {openCell && renderDetail?.(openCell, week)}
           </div>

@@ -1,4 +1,5 @@
 import { Fragment, useState } from "react";
+import { GlassCard } from "../../components/GlassCard";
 import { fmt, fmtDate, fmtInt } from "../../core/format.js";
 import { RATING_COLOR, RATING_ICON } from "./compliance-rating";
 import { DoneCompareBlock } from "./DoneCompareBlock";
@@ -53,7 +54,7 @@ export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTa
       {rows.length === 0 ? (
         <div style={{ fontSize: ".8rem", color: "var(--ink-3)" }}>Noch keine absolvierten Einheiten.</div>
       ) : (
-        <div style={{ overflowX: "auto" }}>
+        <GlassCard variant="soft" radius="var(--radius)" style={{ overflowX: "auto", padding: "8px 4px" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 720 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--hair)" }}>
@@ -138,7 +139,7 @@ export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTa
               })}
             </tbody>
           </table>
-        </div>
+        </GlassCard>
       )}
 
       {gaps.length > 0 && <GapsChips gaps={gaps} />}
