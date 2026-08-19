@@ -28,10 +28,6 @@
 - **Drag & Drop v1**: kein Tastatur-Verschieben, keine Umsortierung
   innerhalb eines Tages, Karte behält altes `week`-Label bei leerem
   Wochenblock. → §4/§7 im Konzept.
-- **Athlet 2s GFNY-Karte trägt `typ: "Race"`** statt der sonst
-  durchgängigen Konvention `"Rennen"` — Farbe/Icon sind gefixt,
-  `TYPE_DEFAULT_TSS` (`app/src/sports/cycling/session-types.ts`) kennt
-  `"Race"` weiterhin nicht, fällt auf `FALLBACK_TSS` zurück.
 - **K-RAMPE/K-WOCHENTSS nie einzeln verifiziert**, ob 0 Treffer an echter
   Ruhe oder an zu konservativen Schwellen liegt (K-TID ist geprüft: echter
   Nulltreffer). `app/src/core/conflicts.js`.

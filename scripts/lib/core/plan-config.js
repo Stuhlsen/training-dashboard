@@ -98,6 +98,15 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
  *   Ausserplanmaessig 96→55 · Etappe 268→155 · Freestyle 131→76 ·
  *   Z2 Erholung 101→58 · Z2 Kadenz 109→63.
  *
+ * `Race` (19.08.2026, docs/offene-punkte.md): Athlet 2s GFNY-Bremen-Renntag
+ * (scripts/lib/plan-athlete2.js, "2026-08-30"), eigenes Typ-Wort neben
+ * "Rennen" (Rennsimulation), noch nicht gefahren — kein Ist-TSS möglich.
+ * Ebenfalls Näherung, aber aus der Standard-Coggan-Formel statt TRIMP-
+ * Faktor, weil die Karte selbst schon eine Watt-/Dauer-Zielangabe trägt
+ * ("Ziel unter 3:00h · Ø 220–235W"): IF = Ø227.5W / FTP 265W ≈ 0.86,
+ * TSS = 3h × IF² × 100 ≈ 221. Nach dem Renntag (30.08.) durch den echten
+ * Ist-Wert ersetzen, sobald die Fahrt synchronisiert ist.
+ *
  * `Ruhetag: 0` neu (docs/konzept-progressionssteuerung.md D6, Schritt 2)
  * — bewusst komplett freier Tag, kein geschätzter Wert nötig, Karten dieses
  * Typs tragen in der Praxis ohnehin immer ein explizites `tssPlanned: 0`
@@ -121,6 +130,7 @@ export const TYPE_DEFAULT_TSS = Object.freeze({
   "FTP-Test": 45,
   Gruppenfahrt: 186,
   NLS: 44,
+  Race: 221,
   Rennen: 75,
   Ruhetag: 0,
   Schwelle: 57,
@@ -143,6 +153,7 @@ export const TYPE_DEFAULT_TSS_APPROX_TYPES = new Set([
   "Ausserplanmaessig",
   "Etappe",
   "Freestyle",
+  "Race",
   "Z2 Erholung",
   "Z2 Kadenz",
 ]);

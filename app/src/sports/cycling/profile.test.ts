@@ -81,7 +81,7 @@ describe("cycling/metrics", () => {
 });
 
 describe("cycling/session-types — Typvokabular vollständig", () => {
-  it("TYPE_DEFAULT_TSS, alle 20 Einträge", () => {
+  it("TYPE_DEFAULT_TSS, alle 21 Einträge", () => {
     expect(TYPE_DEFAULT_TSS).toEqual({
       Ausrollen: 5,
       Ausserplanmaessig: 55,
@@ -91,6 +91,7 @@ describe("cycling/session-types — Typvokabular vollständig", () => {
       "FTP-Test": 45,
       Gruppenfahrt: 186,
       NLS: 44,
+      Race: 221,
       Rennen: 75,
       Ruhetag: 0,
       Schwelle: 57,
@@ -106,8 +107,8 @@ describe("cycling/session-types — Typvokabular vollständig", () => {
     });
   });
 
-  it("Näherungstypen — genau die fünf ohne leistungsbasierten Beleg", () => {
-    expect([...TYPE_DEFAULT_TSS_APPROX_TYPES].sort()).toEqual(["Ausserplanmaessig", "Etappe", "Freestyle", "Z2 Erholung", "Z2 Kadenz"]);
+  it("Näherungstypen — genau die sechs ohne leistungsbasierten Beleg", () => {
+    expect([...TYPE_DEFAULT_TSS_APPROX_TYPES].sort()).toEqual(["Ausserplanmaessig", "Etappe", "Freestyle", "Race", "Z2 Erholung", "Z2 Kadenz"]);
     // Jeder Näherungstyp muss auch einen Default haben, sonst zeigt die
     // Markierung "tss-approx" auf einen Wert, den es gar nicht gibt.
     for (const t of TYPE_DEFAULT_TSS_APPROX_TYPES) {
