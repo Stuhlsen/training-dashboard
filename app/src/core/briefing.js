@@ -29,6 +29,8 @@
    verhält sich buildBriefing exakt wie zuvor (reiner Drei-Signale-Fall).
    ============================================================ */
 
+import { fmtDate } from "./format.js";
+
 /** TSB-Schwellen für die Interpretation */
 export const TSB_FRESH = 5; // darüber: frisch/erholt
 export const TSB_DEEP_FATIGUE = -20; // darunter: tiefe Ermüdung
@@ -235,14 +237,21 @@ export function buildBriefing({
 
   if (nextSession) {
     const label = nextSession.title || nextSession.typ || "geplante Einheit";
-    if (level === "green") {
-      recommendation = `Nächste Einheit („${label}", ${nextSession.date}) wie geplant fahren.`;
+    const dateLabel = fmtDate(nextSession.date);
+    if (nextSession.typ === "Ruhetag") {
+      // Ein Ruhetag lässt sich nicht "entschärfen" oder "verschieben" — er
+      // ist bereits die maximale Erholungsoption und passt zu jedem
+      // Belastungsstatus. Ohne diesen Zweig widersprach sich das Briefing
+      // (z. B. „Heute: Ruhetag" direkt neben „nächste Einheit verschieben").
+      recommendation = `Nächste Einheit ist ein Ruhetag (${dateLabel}) — passt zur aktuellen Belastung, keine Anpassung nötig.`;
+    } else if (level === "green") {
+      recommendation = `Nächste Einheit („${label}", ${dateLabel}) wie geplant fahren.`;
     } else if (recovering) {
-      recommendation = `Erholung wirkt bereits — nächste Einheit („${label}", ${nextSession.date}) vorsichtig wie geplant angehen, bei Bedarf entschärfen.`;
+      recommendation = `Erholung wirkt bereits — nächste Einheit („${label}", ${dateLabel}) vorsichtig wie geplant angehen, bei Bedarf entschärfen.`;
     } else if (level === "yellow") {
-      recommendation = `Nächste Einheit („${label}", ${nextSession.date}) entschärfen oder verschieben — Umfang ist okay.`;
+      recommendation = `Nächste Einheit („${label}", ${dateLabel}) entschärfen oder verschieben — Umfang ist okay.`;
     } else {
-      recommendation = `Nächste Einheit („${label}", ${nextSession.date}) verschieben — Erholung geht vor.`;
+      recommendation = `Nächste Einheit („${label}", ${dateLabel}) verschieben — Erholung geht vor.`;
     }
   }
 
