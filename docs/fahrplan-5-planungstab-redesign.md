@@ -152,10 +152,24 @@ fehlerfrei.
    Woche, Drag auf vergangene/ausgefallene Zellen deaktiviert, Drop löst
    denselben `resolveDrop()`/`handleMove`-Pfad wie heute aus.
 
+### Stand
+
+**Umgesetzt** (19.08.2026): `WeekGrid.tsx` geschrieben — jede Tageszelle
+zugleich `useDraggable`-Quelle (nur bei `canDragCard()` UND Status
+`open`/`today`, s. Kommentar dort zur expliziten Statuseingrenzung) und
+`useDroppable`-Ziel (nur bei `isDropAllowed()`), Klick auf nicht-leere
+Zelle klappt Detailzeile über einen `renderDetail`-Prop-Slot auf (Inhalt
+folgt erst in 13c — Interface bewusst so geschnitten, dass beide parallel
+entwickelbar bleiben), je Woche höchstens ein offenes Datum.
+`WeekGrid.test.tsx` (9 Tests) grün, bestehende Suite weiterhin grün
+(1251/1251 im `app`-Teil), `npx tsc -b --noEmit` fehlerfrei, `npm run
+build` fehlerfrei. Noch offen: Drag manuell im Dev-Server geprüft,
+Verdrahtung in `PlanningPage.tsx` (Etappe 13f).
+
 ### Abnahme
 
-- [ ] `npm run build` (app/) fehlerfrei
-- [ ] `npm test` (app/, jsdom-Projekt) grün
+- [x] `npm run build` (app/) fehlerfrei
+- [x] `npm test` (app/, jsdom-Projekt) grün
 - [ ] Drag-Verhalten manuell im Dev-Server geprüft (Verschieben funktioniert
       wie vor dem Umbau)
 
