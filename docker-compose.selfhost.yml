@@ -23,8 +23,11 @@ services:
   # "password authentication failed for user authenticator", dann nach
   # Korrektur "relation identities does not exist" fuer den GoTrue-Connect
   # ueber den falschen Postgres-User statt supabase_auth_admin). Dieser
-  # Schritt setzt beide Passwoerter auf POSTGRES_PASSWORD, bevor
-  # gotrue/postgrest starten.
+  # Schritt setzt fuer beide Rollen eigene Passwoerter
+  # (AUTHENTICATOR_PASSWORD / AUTH_ADMIN_PASSWORD), bevor gotrue/postgrest
+  # starten - bewusst NICHT POSTGRES_PASSWORD: die Superuser-Credentials
+  # haben in den Verbindungs-URIs von gotrue/postgrest nichts verloren,
+  # ein Leak dort soll nicht die ganze DB aufmachen.
   #
   # Zusaetzlich: das Image setzt eigene ALTER-DEFAULT-PRIVILEGES fuer
   # anon/authenticated/service_role, die neu angelegten Tabellen im
@@ -42,13 +45,15 @@ services:
         condition: service_healthy
     environment:
       PGPASSWORD: ${POSTGRES_PASSWORD}
+      AUTHENTICATOR_PASSWORD: ${AUTHENTICATOR_PASSWORD}
+      AUTH_ADMIN_PASSWORD: ${AUTH_ADMIN_PASSWORD}
     entrypoint: ["bash", "-c"]
     command:
       - >
         psql -h postgres -U supabase_admin -d postgres -c
-        "ALTER ROLE authenticator WITH PASSWORD '$$PGPASSWORD' LOGIN;" &&
+        "ALTER ROLE authenticator WITH PASSWORD '$$AUTHENTICATOR_PASSWORD' LOGIN;" &&
         psql -h postgres -U supabase_admin -d postgres -c
-        "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$PGPASSWORD';" &&
+        "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$AUTH_ADMIN_PASSWORD';" &&
         psql -h postgres -U supabase_admin -d postgres -c
         "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;"
 
@@ -78,7 +83,7 @@ services:
       # Mit dem postgres-User loeste GoTrue unqualifizierte Tabellennamen
       # (z.B. "identities") nicht auf ("relation does not exist"), empirisch
       # ermittelt beim ersten lokalen DKR3-Testlauf.
-      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${AUTH_ADMIN_PASSWORD}@postgres:5432/postgres?sslmode=disable
       GOTRUE_SITE_URL: http://localhost:8080
       GOTRUE_URI_ALLOW_LIST: http://localhost:8080
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
@@ -104,7 +109,7 @@ services:
       db-init:
         condition: service_completed_successfully
     environment:
-      PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@postgres:5432/postgres
+      PGRST_DB_URI: postgres://authenticator:${AUTHENTICATOR_PASSWORD}@postgres:5432/postgres
       PGRST_DB_SCHEMAS: public
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET}
@@ -117,7 +122,7 @@ services:
     # nach "up -d", nicht als dauerhafter Fehlzustand.
 
   proxy:
-    image: caddy:2-alpine
+    image: caddy:2.11-alpine
     depends_on:
       gotrue:
         condition: service_healthy
