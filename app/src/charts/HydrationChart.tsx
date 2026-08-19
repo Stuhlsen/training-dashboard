@@ -125,17 +125,23 @@ export function HydrationChart({ wellness }: HydrationChartProps) {
           const v = vals[i];
           if (v == null) return null;
           return (
-            <circle
-              key={day.dateISO}
-              cx={scale.x(i)}
-              cy={yOf(v)}
-              r={2.4}
-              fill="var(--role-primary)"
-              onMouseEnter={(e) =>
-                setTooltip({ x: e.clientX, y: e.clientY, content: `${fmtDateFull(day.dateISO)} · ${fmt(v)} ${unit}`.trim() })
-              }
-              onMouseLeave={() => setTooltip(null)}
-            />
+            <g key={day.dateISO}>
+              {/* Unsichtbare, größere Trefferfläche zuerst im DOM
+                  (19.08.2026, Bugfix) — s. PmcChart.tsx für die
+                  ausführliche Begründung. */}
+              <circle
+                cx={scale.x(i)}
+                cy={yOf(v)}
+                r={10}
+                fill="transparent"
+                pointerEvents="all"
+                onMouseEnter={(e) =>
+                  setTooltip({ x: e.clientX, y: e.clientY, content: `${fmtDateFull(day.dateISO)} · ${fmt(v)} ${unit}`.trim() })
+                }
+                onMouseLeave={() => setTooltip(null)}
+              />
+              <circle cx={scale.x(i)} cy={yOf(v)} r={2.4} fill="var(--role-primary)" pointerEvents="none" />
+            </g>
           );
         })}
 

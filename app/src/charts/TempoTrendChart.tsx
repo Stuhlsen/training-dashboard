@@ -114,21 +114,26 @@ export function TempoTrendChart({ rides }: TempoTrendChartProps) {
         {trendPath && <path d={trendPath} fill="none" stroke="var(--role-positive)" strokeWidth={1.5} strokeDasharray="6,3" opacity={0.7} />}
 
         {data.map((r, i) => (
-          <circle
-            key={r.dateISO + i}
-            cx={points[i].x}
-            cy={points[i].y}
-            r={3}
-            fill="var(--role-primary)"
-            onMouseEnter={(e) =>
-              setTooltip({
-                x: e.clientX,
-                y: e.clientY,
-                content: `${fmtDateFull(r.dateISO)} · ${Math.round((r.kmh as number) * 10) / 10} km/h${r.name ? " · " + r.name : ""}`,
-              })
-            }
-            onMouseLeave={() => setTooltip(null)}
-          />
+          <g key={r.dateISO + i}>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — s. PmcChart.tsx für die ausführliche Begründung. */}
+            <circle
+              cx={points[i].x}
+              cy={points[i].y}
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
+              onMouseEnter={(e) =>
+                setTooltip({
+                  x: e.clientX,
+                  y: e.clientY,
+                  content: `${fmtDateFull(r.dateISO)} · ${Math.round((r.kmh as number) * 10) / 10} km/h${r.name ? " · " + r.name : ""}`,
+                })
+              }
+              onMouseLeave={() => setTooltip(null)}
+            />
+            <circle cx={points[i].x} cy={points[i].y} r={3} fill="var(--role-primary)" pointerEvents="none" />
+          </g>
         ))}
 
         {[...labelIdx].map((i) => (

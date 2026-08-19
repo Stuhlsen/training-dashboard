@@ -158,24 +158,28 @@ export function DecouplingChart({ rides }: DecouplingChartProps) {
           const x = scale.x(i);
           const y = yOf(v);
           return (
-            <circle
-              key={day.dateISO}
-              cx={x}
-              cy={y}
-              r={4}
-              fill={dotColor(v)}
-              stroke="var(--surface-page)"
-              strokeWidth={1.5}
-              style={{ cursor: "pointer" }}
-              onMouseEnter={(e) =>
-                setTooltip({
-                  x: e.clientX,
-                  y: e.clientY,
-                  content: `${fmtDateFull(d.dateISO)} · ${fmt(v, 1)}%${d.name ? ` · ${d.name}` : ""}`,
-                })
-              }
-              onMouseLeave={() => setTooltip(null)}
-            />
+            <g key={day.dateISO}>
+              {/* Unsichtbare, größere Trefferfläche zuerst im DOM
+                  (19.08.2026, Bugfix) — s. PmcChart.tsx für die
+                  ausführliche Begründung. */}
+              <circle
+                cx={x}
+                cy={y}
+                r={10}
+                fill="transparent"
+                pointerEvents="all"
+                style={{ cursor: "pointer" }}
+                onMouseEnter={(e) =>
+                  setTooltip({
+                    x: e.clientX,
+                    y: e.clientY,
+                    content: `${fmtDateFull(d.dateISO)} · ${fmt(v, 1)}%${d.name ? ` · ${d.name}` : ""}`,
+                  })
+                }
+                onMouseLeave={() => setTooltip(null)}
+              />
+              <circle cx={x} cy={y} r={4} fill={dotColor(v)} stroke="var(--surface-page)" strokeWidth={1.5} pointerEvents="none" />
+            </g>
           );
         })}
 

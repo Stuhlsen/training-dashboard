@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 interface ChartTooltipProps {
   /** Cursor-Position (`clientX`/`clientY`), nicht die Tooltip-eigene Ecke. */
@@ -14,17 +15,27 @@ interface ChartTooltipProps {
    den ersten Chart nötig). */
 const ESTIMATED_WIDTH = 220;
 const ESTIMATED_HEIGHT = 60;
+const EDGE_MARGIN = 8;
 
 /** Positionierte Tooltip-Box für Chart-Punkt-Hover, wiederverwendbar für
  *  spätere Charts (Etappe 8f) — Ersatz für vanillas globalen
  *  `ui/dom.js::Tooltip`-Singleton, hier bewusst pro Chart lokal
  *  (`useState` in der aufrufenden Komponente), weil es in 8a noch keinen
- *  zweiten Chart gibt, mit dem ein globaler Zustand synchronisieren müsste. */
+ *  zweiten Chart gibt, mit dem ein globaler Zustand synchronisieren müsste.
+ *
+ *  Per `createPortal` direkt unter `document.body` gerendert (19.08.2026,
+ *  Bugfix): jeder Chart steckt in einer `GlassCard`
+ *  (`backdrop-filter: blur(...)`, components/GlassCard.tsx) — das erzeugt
+ *  einen neuen Containing Block für `position: fixed`-Nachfahren (dieselbe
+ *  Spec-Regel wie bei `transform`/`filter`). Ohne Portal positioniert sich
+ *  der Tooltip also relativ zur Kachel statt zum Viewport, die
+ *  Rand-Klemmung unten rechnet dann mit falschen Bezugswerten und der
+ *  Tooltip kann über den sichtbaren Bildschirmrand hinausragen. */
 export function ChartTooltip({ x, y, children }: ChartTooltipProps) {
-  const left = Math.min(x + 14, window.innerWidth - ESTIMATED_WIDTH - 8);
-  const top = Math.max(y - ESTIMATED_HEIGHT - 10, 8);
+  const left = Math.max(EDGE_MARGIN, Math.min(x + 14, window.innerWidth - ESTIMATED_WIDTH - EDGE_MARGIN));
+  const top = Math.max(EDGE_MARGIN, Math.min(y - ESTIMATED_HEIGHT - 10, window.innerHeight - ESTIMATED_HEIGHT - EDGE_MARGIN));
 
-  return (
+  return createPortal(
     <div
       role="tooltip"
       style={{
@@ -46,6 +57,7 @@ export function ChartTooltip({ x, y, children }: ChartTooltipProps) {
       }}
     >
       {children}
-    </div>
+    </div>,
+    document.body,
   );
 }

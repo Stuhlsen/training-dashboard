@@ -132,16 +132,20 @@ export function PowerCurveChart({ powerCurves, ftp }: PowerCurveChartProps) {
             <text x={scale.x(i)} y={H - 4} textAnchor="middle" fontSize={10} fill="var(--text-label)">
               {d.label}
             </text>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — s. PmcChart.tsx für die ausführliche Begründung. */}
             <circle
               cx={scale.x(i)}
               cy={yOf(d.watts)}
-              r={4}
-              fill="var(--role-primary)"
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
               onMouseEnter={(e) =>
                 setTooltip({ x: e.clientX, y: e.clientY, content: `${d.label} · ${Math.round(d.watts)}W` })
               }
               onMouseLeave={() => setTooltip(null)}
             />
+            <circle cx={scale.x(i)} cy={yOf(d.watts)} r={4} fill="var(--role-primary)" pointerEvents="none" />
           </g>
         ))}
       </svg>

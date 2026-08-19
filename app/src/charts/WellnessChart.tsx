@@ -249,21 +249,26 @@ export function WellnessChart({ rides, wellness, metric, onMetricChange }: Welln
         ))}
 
         {hoverIndices.map((i) => (
-          <circle
-            key={i}
-            cx={scale.x(i)}
-            cy={yOf(vals[i] as number)}
-            r={4}
-            fill="var(--role-primary)"
-            onMouseEnter={(e) =>
-              setTooltip({
-                x: e.clientX,
-                y: e.clientY,
-                content: `${fmtDateFull(skeleton[i].dateISO)} · ${vals[i]} ${unit}`,
-              })
-            }
-            onMouseLeave={() => setTooltip(null)}
-          />
+          <g key={i}>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — s. PmcChart.tsx für die ausführliche Begründung. */}
+            <circle
+              cx={scale.x(i)}
+              cy={yOf(vals[i] as number)}
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
+              onMouseEnter={(e) =>
+                setTooltip({
+                  x: e.clientX,
+                  y: e.clientY,
+                  content: `${fmtDateFull(skeleton[i].dateISO)} · ${vals[i]} ${unit}`,
+                })
+              }
+              onMouseLeave={() => setTooltip(null)}
+            />
+            <circle cx={scale.x(i)} cy={yOf(vals[i] as number)} r={4} fill="var(--role-primary)" pointerEvents="none" />
+          </g>
         ))}
       </svg>
       {tooltip && (

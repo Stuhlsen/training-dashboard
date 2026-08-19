@@ -36,9 +36,13 @@ describe("HrTrendChart", () => {
 
   it("zeigt bei Hover auf einen Datenpunkt einen Tooltip mit bpm-Wert", () => {
     const { container } = render(<HrTrendChart rides={buildRides() as never} />);
-    const point = container.querySelector('circle[fill="var(--thr)"]');
-    expect(point).not.toBeNull();
-    fireEvent.mouseEnter(point as Element, { clientX: 50, clientY: 50 });
+    const dot = container.querySelector('circle[fill="var(--thr)"]');
+    expect(dot).not.toBeNull();
+    // Die sichtbare Punktgröße ist unverändert klein (19.08.2026, Bugfix) —
+    // die größere, unsichtbare Trefferfläche liegt als vorheriges Geschwister
+    // im DOM (s. HrTrendChart.tsx-Kommentar) und trägt die Hover-Handler.
+    const point = dot!.previousElementSibling as Element;
+    fireEvent.mouseEnter(point, { clientX: 50, clientY: 50 });
     screen.getByRole("tooltip", { name: /bpm/ });
     fireEvent.mouseLeave(point as Element);
     expect(screen.queryByRole("tooltip")).toBeNull();

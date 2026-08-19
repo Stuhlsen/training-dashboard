@@ -190,21 +190,27 @@ export function TrimpLoadChart({ rides }: TrimpLoadChartProps) {
               const v = ramps[i];
               if (v == null) return null;
               return (
-                <circle
-                  key={d.week}
-                  cx={barCenterXs[i]}
-                  cy={rY(v)}
-                  r={3}
-                  fill={rampColor(v)}
-                  onMouseEnter={(e) =>
-                    setTooltip({
-                      x: e.clientX,
-                      y: e.clientY,
-                      content: `${d.week} · Ramp ${v > 0 ? "+" : ""}${v} CTL/Woche · Korridor +${RAMP_OK_MIN} bis +${RAMP_OK_MAX}`,
-                    })
-                  }
-                  onMouseLeave={() => setTooltip(null)}
-                />
+                <g key={d.week}>
+                  {/* Unsichtbare, größere Trefferfläche zuerst im DOM
+                      (19.08.2026, Bugfix) — s. PmcChart.tsx für die
+                      ausführliche Begründung. */}
+                  <circle
+                    cx={barCenterXs[i]}
+                    cy={rY(v)}
+                    r={10}
+                    fill="transparent"
+                    pointerEvents="all"
+                    onMouseEnter={(e) =>
+                      setTooltip({
+                        x: e.clientX,
+                        y: e.clientY,
+                        content: `${d.week} · Ramp ${v > 0 ? "+" : ""}${v} CTL/Woche · Korridor +${RAMP_OK_MIN} bis +${RAMP_OK_MAX}`,
+                      })
+                    }
+                    onMouseLeave={() => setTooltip(null)}
+                  />
+                  <circle cx={barCenterXs[i]} cy={rY(v)} r={3} fill={rampColor(v)} pointerEvents="none" />
+                </g>
               );
             })}
             {[rMin, 0, RAMP_OK_MAX, rMax].map((v) => (

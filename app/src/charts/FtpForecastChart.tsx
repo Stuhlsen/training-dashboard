@@ -151,18 +151,22 @@ export function FtpForecastChart({ rides, wellness, ftpGoal, ownPlan, retestDate
         {histPts.map((p, i) => {
           if (i % pointStep !== 0 && i !== histPts.length - 1) return null;
           return (
-            <circle
-              key={p.h.date}
-              cx={p.x}
-              cy={p.y}
-              r={3}
-              fill="var(--ss)"
-              stroke="var(--surface-page)"
-              strokeWidth={1.5}
-              style={{ cursor: "pointer" }}
-              onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: `${fmtDateFull(p.h.date)} · eFTP ${p.h.eftp} W` })}
-              onMouseLeave={() => setTooltip(null)}
-            />
+            <g key={p.h.date}>
+              {/* Unsichtbare, größere Trefferfläche zuerst im DOM
+                  (19.08.2026, Bugfix) — s. PmcChart.tsx für die
+                  ausführliche Begründung. */}
+              <circle
+                cx={p.x}
+                cy={p.y}
+                r={10}
+                fill="transparent"
+                pointerEvents="all"
+                style={{ cursor: "pointer" }}
+                onMouseEnter={(e) => setTooltip({ x: e.clientX, y: e.clientY, content: `${fmtDateFull(p.h.date)} · eFTP ${p.h.eftp} W` })}
+                onMouseLeave={() => setTooltip(null)}
+              />
+              <circle cx={p.x} cy={p.y} r={3} fill="var(--ss)" stroke="var(--surface-page)" strokeWidth={1.5} pointerEvents="none" />
+            </g>
           );
         })}
 

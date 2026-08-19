@@ -346,27 +346,38 @@ export function PmcChart({
         )}
 
         {hoverIndices.map((i) => (
-          <circle
-            key={i}
-            cx={scale.x(i)}
-            cy={caY(ctlVals[i] as number)}
-            r={4}
-            fill="var(--role-primary)"
-            style={{ cursor: onSelectDate ? "pointer" : undefined }}
-            onMouseEnter={(e) => {
-              setTooltip({
-                x: e.clientX,
-                y: e.clientY,
-                content: `${fmtDateFull(skeleton[i].dateISO)} · CTL ${Math.round(ctlVals[i] as number)}`,
-              });
-              onHoverChange?.(skeleton[i].dateISO);
-            }}
-            onMouseLeave={() => {
-              setTooltip(null);
-              onHoverChange?.(null);
-            }}
-            onClick={() => onSelectDate?.(skeleton[i].dateISO)}
-          />
+          <g key={i}>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — die sichtbare r=4-Punktgröße allein war ein zu
+                kleines Hover-Ziel (8px Durchmesser), sie einfach zu
+                vergrößern sah auf dem Chart unruhig aus (Feedback Alex).
+                Trefferfläche getrennt vom Aussehen: zuerst gerendert (unten
+                in der Stapelreihenfolge), sichtbarer Punkt bleibt optisch
+                unverändert obenauf — pointerEvents:"none" auf dem Punkt
+                lässt Klicks/Hover trotzdem durchgreifen. */}
+            <circle
+              cx={scale.x(i)}
+              cy={caY(ctlVals[i] as number)}
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: onSelectDate ? "pointer" : undefined }}
+              onMouseEnter={(e) => {
+                setTooltip({
+                  x: e.clientX,
+                  y: e.clientY,
+                  content: `${fmtDateFull(skeleton[i].dateISO)} · CTL ${Math.round(ctlVals[i] as number)}`,
+                });
+                onHoverChange?.(skeleton[i].dateISO);
+              }}
+              onMouseLeave={() => {
+                setTooltip(null);
+                onHoverChange?.(null);
+              }}
+              onClick={() => onSelectDate?.(skeleton[i].dateISO)}
+            />
+            <circle cx={scale.x(i)} cy={caY(ctlVals[i] as number)} r={4} fill="var(--role-primary)" pointerEvents="none" />
+          </g>
         ))}
       </svg>
       {tooltip && (

@@ -47,9 +47,13 @@ describe("EfficiencyChart", () => {
 
   it("zeigt bei Hover auf einen Datenpunkt einen Tooltip mit Effizienzwert", () => {
     const { container } = render(<EfficiencyChart rides={buildComparableRides() as never} />);
-    const point = container.querySelector('circle[fill="var(--z2)"]');
-    expect(point).not.toBeNull();
-    fireEvent.mouseEnter(point as Element, { clientX: 50, clientY: 50 });
+    const dot = container.querySelector('circle[fill="var(--z2)"]');
+    expect(dot).not.toBeNull();
+    // Die sichtbare Punktgröße ist unverändert klein (19.08.2026, Bugfix) —
+    // die größere, unsichtbare Trefferfläche liegt als vorheriges Geschwister
+    // im DOM (s. EfficiencyChart.tsx-Kommentar) und trägt die Hover-Handler.
+    const point = dot!.previousElementSibling as Element;
+    fireEvent.mouseEnter(point, { clientX: 50, clientY: 50 });
     screen.getByRole("tooltip", { name: /W\/bpm/ });
     fireEvent.mouseLeave(point as Element);
     expect(screen.queryByRole("tooltip")).toBeNull();

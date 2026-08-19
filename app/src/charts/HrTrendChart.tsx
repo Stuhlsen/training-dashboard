@@ -123,24 +123,27 @@ export function HrTrendChart({ rides }: HrTrendChartProps) {
         {trendPath && <path d={trendPath} fill="none" stroke="var(--z1)" strokeWidth={1.5} strokeDasharray="6,3" opacity={0.6} />}
 
         {points.map((p, i) => (
-          <circle
-            key={`${p.d.dateISO}-${i}`}
-            cx={p.x}
-            cy={p.y}
-            r={3}
-            fill="var(--thr)"
-            stroke="var(--surface-page)"
-            strokeWidth={1.5}
-            style={{ cursor: "pointer" }}
-            onMouseEnter={(e) =>
-              setTooltip({
-                x: e.clientX,
-                y: e.clientY,
-                content: `${fmtDateFull(p.d.dateISO)} · ${Math.round((p.d.hf as number) * 10) / 10} bpm${p.d.name ? ` · ${p.d.name}` : ""}`,
-              })
-            }
-            onMouseLeave={() => setTooltip(null)}
-          />
+          <g key={`${p.d.dateISO}-${i}`}>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — s. PmcChart.tsx für die ausführliche Begründung. */}
+            <circle
+              cx={p.x}
+              cy={p.y}
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: "pointer" }}
+              onMouseEnter={(e) =>
+                setTooltip({
+                  x: e.clientX,
+                  y: e.clientY,
+                  content: `${fmtDateFull(p.d.dateISO)} · ${Math.round((p.d.hf as number) * 10) / 10} bpm${p.d.name ? ` · ${p.d.name}` : ""}`,
+                })
+              }
+              onMouseLeave={() => setTooltip(null)}
+            />
+            <circle cx={p.x} cy={p.y} r={3} fill="var(--thr)" stroke="var(--surface-page)" strokeWidth={1.5} pointerEvents="none" />
+          </g>
         ))}
 
         {pickedTicks.map((i) => (

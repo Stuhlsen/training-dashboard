@@ -111,25 +111,36 @@ export function SpeedHrScatterChart({ rides }: SpeedHrScatterChartProps) {
         </text>
 
         {data.map((d, i) => (
-          <circle
-            key={`${d.dateISO}-${i}`}
-            cx={xOf(d.kmh as number)}
-            cy={yOf(d.hf as number)}
-            r={5}
-            fill={phaseColor(d.phase)}
-            opacity={0.75}
-            stroke="var(--surface-page)"
-            strokeWidth={1}
-            style={{ cursor: "pointer" }}
-            onMouseEnter={(e) =>
-              setTooltip({
-                x: e.clientX,
-                y: e.clientY,
-                content: `${fmtDateFull(d.dateISO)}${d.week ? " · " + d.week : ""} · ${(d.kmh as number).toFixed(1)} km/h · ${Math.round(d.hf as number)} bpm${d.name ? " · " + d.name : ""}`,
-              })
-            }
-            onMouseLeave={() => setTooltip(null)}
-          />
+          <g key={`${d.dateISO}-${i}`}>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — s. PmcChart.tsx für die ausführliche Begründung. */}
+            <circle
+              cx={xOf(d.kmh as number)}
+              cy={yOf(d.hf as number)}
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: "pointer" }}
+              onMouseEnter={(e) =>
+                setTooltip({
+                  x: e.clientX,
+                  y: e.clientY,
+                  content: `${fmtDateFull(d.dateISO)}${d.week ? " · " + d.week : ""} · ${(d.kmh as number).toFixed(1)} km/h · ${Math.round(d.hf as number)} bpm${d.name ? " · " + d.name : ""}`,
+                })
+              }
+              onMouseLeave={() => setTooltip(null)}
+            />
+            <circle
+              cx={xOf(d.kmh as number)}
+              cy={yOf(d.hf as number)}
+              r={5}
+              fill={phaseColor(d.phase)}
+              opacity={0.75}
+              stroke="var(--surface-page)"
+              strokeWidth={1}
+              pointerEvents="none"
+            />
+          </g>
         ))}
       </svg>
       {tooltip && (

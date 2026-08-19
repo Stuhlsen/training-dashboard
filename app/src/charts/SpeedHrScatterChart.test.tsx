@@ -17,7 +17,10 @@ describe("SpeedHrScatterChart", () => {
     const { container } = render(<SpeedHrScatterChart rides={buildRides() as never} />);
     const svg = screen.getByRole("img", { name: /Tempo vs\. Herzfrequenz/ });
     expect(svg.tagName).toBe("svg");
-    expect(container.querySelectorAll("circle").length).toBe(3);
+    // Je Punkt zwei <circle>-Elemente (19.08.2026, Bugfix) — unsichtbare,
+    // größere Trefferfläche + unverändert kleiner sichtbarer Punkt, s.
+    // SpeedHrScatterChart.tsx-Kommentar.
+    expect(container.querySelectorAll("circle").length).toBe(3 * 2);
   });
 
   it("zeigt einen Leerzustand ohne Tempo-/HF-Daten", () => {
@@ -28,7 +31,8 @@ describe("SpeedHrScatterChart", () => {
   it("lässt Fahrten ohne Tempo oder ohne HF aus", () => {
     const rides = [...buildRides(), { dateISO: "2026-06-15", kmh: 25, hf: null }, { dateISO: "2026-06-16", kmh: null, hf: 140 }];
     const { container } = render(<SpeedHrScatterChart rides={rides as never} />);
-    expect(container.querySelectorAll("circle").length).toBe(3);
+    // Je Punkt zwei <circle>-Elemente (19.08.2026, Bugfix) — s. Test oben.
+    expect(container.querySelectorAll("circle").length).toBe(3 * 2);
   });
 
   it("zeigt bei Hover auf einen Punkt einen Tooltip mit Tempo und HF", () => {

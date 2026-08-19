@@ -93,16 +93,20 @@ describe("PmcChart", () => {
         onSelectDate={onSelectDate}
       />,
     );
-    const point = container.querySelector('circle[fill="var(--role-primary)"]');
-    expect(point).not.toBeNull();
+    const dot = container.querySelector('circle[fill="var(--role-primary)"]');
+    expect(dot).not.toBeNull();
+    // Die sichtbare Punktgröße ist unverändert klein (19.08.2026, Bugfix) —
+    // die größere, unsichtbare Trefferfläche liegt als vorheriges Geschwister
+    // im DOM (s. PmcChart.tsx-Kommentar) und trägt die Hover-Handler.
+    const point = dot!.previousElementSibling as Element;
 
-    fireEvent.mouseEnter(point as Element);
+    fireEvent.mouseEnter(point);
     expect(onHoverChange).toHaveBeenCalledWith(expect.any(String));
 
-    fireEvent.mouseLeave(point as Element);
+    fireEvent.mouseLeave(point);
     expect(onHoverChange).toHaveBeenLastCalledWith(null);
 
-    fireEvent.click(point as Element);
+    fireEvent.click(point);
     expect(onSelectDate).toHaveBeenCalledWith(expect.any(String));
   });
 

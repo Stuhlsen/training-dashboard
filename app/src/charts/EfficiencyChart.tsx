@@ -151,25 +151,37 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
           const x = scale.x(i);
           const y = yOf(v);
           return (
-            <circle
-              key={day.dateISO}
-              cx={x}
-              cy={y}
-              r={comparable ? 4.5 : 3}
-              fill={comparable ? "var(--z2)" : "var(--text-label)"}
-              opacity={comparable ? 0.9 : 0.4}
-              stroke="var(--surface-page)"
-              strokeWidth={1}
-              style={{ cursor: "pointer" }}
-              onMouseEnter={(e) =>
-                setTooltip({
-                  x: e.clientX,
-                  y: e.clientY,
-                  content: `${fmtDateFull(d.dateISO)} · Effizienz ${fmt(d.efficiency ?? null, 2)} W/bpm · ${fmtInt(d.watt ?? null)}W · ${fmtInt(d.hf ?? null)} bpm${trend.comparable.length >= 3 ? (comparable ? " · vergleichbar (Z2)" : " · Kontext") : ""}`,
-                })
-              }
-              onMouseLeave={() => setTooltip(null)}
-            />
+            <g key={day.dateISO}>
+              {/* Unsichtbare, größere Trefferfläche zuerst im DOM
+                  (19.08.2026, Bugfix) — s. PmcChart.tsx für die
+                  ausführliche Begründung. */}
+              <circle
+                cx={x}
+                cy={y}
+                r={10}
+                fill="transparent"
+                pointerEvents="all"
+                style={{ cursor: "pointer" }}
+                onMouseEnter={(e) =>
+                  setTooltip({
+                    x: e.clientX,
+                    y: e.clientY,
+                    content: `${fmtDateFull(d.dateISO)} · Effizienz ${fmt(d.efficiency ?? null, 2)} W/bpm · ${fmtInt(d.watt ?? null)}W · ${fmtInt(d.hf ?? null)} bpm${trend.comparable.length >= 3 ? (comparable ? " · vergleichbar (Z2)" : " · Kontext") : ""}`,
+                  })
+                }
+                onMouseLeave={() => setTooltip(null)}
+              />
+              <circle
+                cx={x}
+                cy={y}
+                r={comparable ? 4.5 : 3}
+                fill={comparable ? "var(--z2)" : "var(--text-label)"}
+                opacity={comparable ? 0.9 : 0.4}
+                stroke="var(--surface-page)"
+                strokeWidth={1}
+                pointerEvents="none"
+              />
+            </g>
           );
         })}
 

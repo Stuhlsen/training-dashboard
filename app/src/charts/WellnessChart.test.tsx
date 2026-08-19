@@ -69,9 +69,13 @@ describe("WellnessChart", () => {
   it("zeigt bei Hover auf einen Datenpunkt einen Tooltip mit Datum und Wert", () => {
     const { rides, wellness } = buildOwnPlanRidesAndWellness();
     const { container } = render(<WellnessChart rides={rides as never} wellness={wellness as never} metric="hrv" />);
-    const point = container.querySelector('circle[fill="var(--role-primary)"]');
-    expect(point).not.toBeNull();
-    fireEvent.mouseEnter(point as Element, { clientX: 50, clientY: 50 });
+    const dot = container.querySelector('circle[fill="var(--role-primary)"]');
+    expect(dot).not.toBeNull();
+    // Die sichtbare Punktgröße ist unverändert klein (19.08.2026, Bugfix) —
+    // die größere, unsichtbare Trefferfläche liegt als vorheriges Geschwister
+    // im DOM (s. WellnessChart.tsx-Kommentar) und trägt die Hover-Handler.
+    const point = dot!.previousElementSibling as Element;
+    fireEvent.mouseEnter(point, { clientX: 50, clientY: 50 });
     screen.getByRole("tooltip", { name: /ms/ });
     fireEvent.mouseLeave(point as Element);
     expect(screen.queryByRole("tooltip")).toBeNull();

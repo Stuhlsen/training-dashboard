@@ -87,8 +87,12 @@ describe("EnergyWeightChart", () => {
     const { container } = render(<EnergyWeightChart wellness={buildEnergyAndWeight() as never} />);
     const dot = container.querySelector('circle[fill="var(--role-status)"]');
     expect(dot).not.toBeNull();
-    fireEvent.mouseEnter(dot as Element, { clientX: 40, clientY: 40 });
+    // Die sichtbare Punktgröße ist unverändert klein (19.08.2026, Bugfix) —
+    // die größere, unsichtbare Trefferfläche liegt als vorheriges Geschwister
+    // im DOM (s. EnergyWeightChart.tsx-Kommentar) und trägt die Hover-Handler.
+    const point = dot!.previousElementSibling as Element;
+    fireEvent.mouseEnter(point, { clientX: 40, clientY: 40 });
     screen.getByRole("tooltip", { name: /kg/ });
-    fireEvent.mouseLeave(dot as Element);
+    fireEvent.mouseLeave(point);
   });
 });

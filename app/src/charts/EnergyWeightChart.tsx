@@ -251,20 +251,24 @@ export function EnergyWeightChart({ wellness, bmr }: EnergyWeightChartProps) {
             const v = weightVals[i];
             if (v == null) return null;
             return (
-              <circle
-                key={`w-${day.dateISO}`}
-                cx={scale.x(i)}
-                cy={wY(v)}
-                r={3}
-                fill="var(--role-status)"
-                stroke="var(--surface-page)"
-                strokeWidth={1.5}
-                style={{ cursor: "pointer" }}
-                onMouseEnter={(e) =>
-                  setTooltip({ x: e.clientX, y: e.clientY, content: `${fmtDateFull(day.dateISO)} · ${v} kg` })
-                }
-                onMouseLeave={() => setTooltip(null)}
-              />
+              <g key={`w-${day.dateISO}`}>
+                {/* Unsichtbare, größere Trefferfläche zuerst im DOM
+                    (19.08.2026, Bugfix) — s. PmcChart.tsx für die
+                    ausführliche Begründung. */}
+                <circle
+                  cx={scale.x(i)}
+                  cy={wY(v)}
+                  r={10}
+                  fill="transparent"
+                  pointerEvents="all"
+                  style={{ cursor: "pointer" }}
+                  onMouseEnter={(e) =>
+                    setTooltip({ x: e.clientX, y: e.clientY, content: `${fmtDateFull(day.dateISO)} · ${v} kg` })
+                  }
+                  onMouseLeave={() => setTooltip(null)}
+                />
+                <circle cx={scale.x(i)} cy={wY(v)} r={3} fill="var(--role-status)" stroke="var(--surface-page)" strokeWidth={1.5} pointerEvents="none" />
+              </g>
             );
           })}
 

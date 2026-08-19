@@ -29,7 +29,10 @@ describe("TempoTrendChart", () => {
   it("blendet Fahrten ohne kmh-Feld aus", () => {
     const rides = [...buildRides(), { dateISO: "2026-07-01", kmh: null, name: "Ohne GPS" }];
     const { container } = render(<TempoTrendChart rides={rides as never} />);
-    expect(container.querySelectorAll("circle").length).toBe(5);
+    // Je Punkt zwei <circle>-Elemente (19.08.2026, Bugfix) — unsichtbare,
+    // größere Trefferfläche + unverändert kleiner sichtbarer Punkt, s.
+    // TempoTrendChart.tsx-Kommentar.
+    expect(container.querySelectorAll("circle").length).toBe(5 * 2);
   });
 
   it("zeigt bei Hover auf einen Datenpunkt einen Tooltip mit Datum und km/h", () => {

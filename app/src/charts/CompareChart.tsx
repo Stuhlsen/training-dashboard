@@ -180,28 +180,38 @@ export function CompareChart({ result }: CompareChartProps) {
         )}
 
         {aPoints.map((i) => (
-          <circle
-            key={`a${i}`}
-            cx={scale.x(i)}
-            cy={caY(aCtl[i] as number)}
-            r={4}
-            fill={COLOR_A}
-            style={{ cursor: "pointer" }}
-            onMouseEnter={(e) => showHover(e, i)}
-            onMouseLeave={clearHover}
-          />
+          <g key={`a${i}`}>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — s. PmcChart.tsx für die ausführliche Begründung. */}
+            <circle
+              cx={scale.x(i)}
+              cy={caY(aCtl[i] as number)}
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: "pointer" }}
+              onMouseEnter={(e) => showHover(e, i)}
+              onMouseLeave={clearHover}
+            />
+            <circle cx={scale.x(i)} cy={caY(aCtl[i] as number)} r={4} fill={COLOR_A} pointerEvents="none" />
+          </g>
         ))}
         {bPoints.map((i) => (
-          <circle
-            key={`b${i}`}
-            cx={scale.x(i)}
-            cy={caY(bCtl[i] as number)}
-            r={4}
-            fill={COLOR_B}
-            style={{ cursor: "pointer" }}
-            onMouseEnter={(e) => showHover(e, i)}
-            onMouseLeave={clearHover}
-          />
+          <g key={`b${i}`}>
+            {/* Unsichtbare, größere Trefferfläche zuerst im DOM (19.08.2026,
+                Bugfix) — s. PmcChart.tsx für die ausführliche Begründung. */}
+            <circle
+              cx={scale.x(i)}
+              cy={caY(bCtl[i] as number)}
+              r={10}
+              fill="transparent"
+              pointerEvents="all"
+              style={{ cursor: "pointer" }}
+              onMouseEnter={(e) => showHover(e, i)}
+              onMouseLeave={clearHover}
+            />
+            <circle cx={scale.x(i)} cy={caY(bCtl[i] as number)} r={4} fill={COLOR_B} pointerEvents="none" />
+          </g>
         ))}
       </svg>
       {tooltip && (
