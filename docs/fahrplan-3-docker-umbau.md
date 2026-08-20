@@ -321,6 +321,11 @@ nicht die vier Punkte vollständig — `docker-compose.prod.yml` bleibt bewusst
 DKR4 vorbehalten (Punkt 3 nennt es selbst als „folgt in DKR4"), wird hier
 also nicht vorgezogen.
 
+> **Nachtrag, noch am selben Tag:** Es wird nie ein `docker-compose.prod.yml`
+> geben — der reale Zielserver läuft mit Podman/Quadlet, nicht
+> docker-compose. Details und Begründung im „⚠ Stand 19.08.2026"-Hinweis
+> zu Beginn von Fenster DKR4 unten.
+
 1. **DKR1–DKR3 abgenommen** — ✅, s. jeweilige Abnahme-Abschnitte oben.
 2. **Frontend-Image geprüft, nicht neu gebaut** — das zuvor lokal getestete
    DKR1-Image war 5,5 Stunden älter als der letzte Commit (der u. a.
@@ -352,24 +357,61 @@ also nicht vorgezogen.
 **Modell:** `[SO]`
 **Warum getrennt von der Datenmigration:** Infrastrukturfehler und Datenfehler sollen nicht gleichzeitig auftreten können.
 
-1. **Image in CI bauen, nicht auf dem Server.** GitHub Actions baut aus demselben Dockerfile, das in DKR1 lokal geprüft wurde, und pusht nach GHCR. Der Server zieht ein **versioniertes Tag**. Kein `:latest` — sonst ist nicht rekonstruierbar, was gerade läuft.
-2. **`docker-compose.prod.yml`** getrennt von der Dev-Fassung: gepinnte Image-Tags, keine offenen Ports außer dem Frontend, Healthchecks, `restart: unless-stopped`, benannte Volumes.
-3. **Einbindung in die vorhandene Infrastruktur:**
+### ⚠ Stand 19.08.2026 — reale Zielinfrastruktur weicht von den Punkten 2/3 unten ab
+
+Die ursprüngliche Planung unten (`docker-compose.prod.yml`, Punkt 2) ging
+von einem generischen eigenen Server aus. Der tatsächliche Zielserver
+steht fest und sieht anders aus — **apps01**, betrieben von Tony
+(externer Infra-Betreiber), **rootless Podman + systemd Quadlet-Units,
+kein docker-compose in Produktion**. Das ist keine Abkürzung, sondern
+Tonys eigene, vorher bestehende Infrastruktur-Konvention.
+
+Konkret geändert gegenüber der Planung unten:
+
+- **Kein `docker-compose.prod.yml` wird es geben.** Statt Punkt 2 gilt:
+  wir veröffentlichen nur versionierte Images nach GHCR (`frontend`,
+  `sync`, `migrate` — s. `.github/workflows/publish-images.yml`), Tony
+  übersetzt sie selbst in Quadlet-Units auf seiner Seite. Wir liefern kein
+  Compose-Artefakt für den Server.
+- **Self-Host-Stack-Umfang mit Tony abgestimmt:** Postgres, GoTrue,
+  PostgREST, Caddy, `migrate` — 5 Dienste (nicht die von ihm zunächst
+  geschätzten ~8), passt in seine Infra. Postgres/GoTrue/PostgREST/Caddy
+  zieht er direkt aus den offiziellen Registries (sein Renovate-Tooling
+  verfolgt sie dort), **nicht** von unserem GHCR.
+- **Backup (DKR5 Punkt 5 unten) baut Tony selbst**, in seinem eigenen
+  Quadlet/systemd-Stil — kein docker-compose-Backup-Service von uns.
+- Punkt 3 (Netzwerk-Einbindung, Subdomain/TLS, Namenspräfixe,
+  Portkollisions-Check) bleibt inhaltlich richtig, nur die Umsetzung
+  liegt komplett bei Tony statt in einer von uns geschriebenen Compose-
+  Datei.
+- **Live bestätigt:** `https://training-dashboard.clear-solutions-it.com`
+  ist erreichbar (HTTP 200, TLS-Zertifikat gültig geprüft), `/rest/v1/*`
+  antwortet korrekt (Migrationen sind durchgelaufen, Datenbank ist wie
+  erwartet leer an Nutzerdaten). Von außen extern verifiziert, nicht nur
+  behauptet — s. Abnahme unten für was davon noch fehlt.
+
+**Für jedes neue Chat-Fenster zu DKR4/DKR5/DKR6:** diesen Abschnitt zuerst
+lesen, bevor irgendetwas mit `docker-compose.prod.yml` als Annahme geplant
+wird.
+
+1. **Image in CI bauen, nicht auf dem Server.** GitHub Actions baut aus demselben Dockerfile, das in DKR1 lokal geprüft wurde, und pusht nach GHCR. Der Server zieht ein **versioniertes Tag**. Kein `:latest` — sonst ist nicht rekonstruierbar, was gerade läuft. **Umgesetzt** (`publish-images.yml`, Tags `v1.0.0`+).
+2. ~~`docker-compose.prod.yml` getrennt von der Dev-Fassung~~ — **entfällt**, s. Stand-Hinweis oben. Gepinnte Image-Tags, Healthchecks, `restart`-Verhalten, benannte Volumes sind Tonys Quadlet-Äquivalente dazu, nicht unser Artefakt.
+3. **Einbindung in die vorhandene Infrastruktur** (liegt bei Tony, s. Stand-Hinweis oben):
    - Anbindung an ein bestehendes externes Docker-Netzwerk
    - Der Stack veröffentlicht selbst keine Ports
    - Eigene Subdomain, TLS über den vorhandenen Reverse Proxy
    - **Dienst- und Netzwerknamen mit Präfix versehen**, damit sie mit anderen Anwendungen auf dem Host nicht kollidieren
    - Vor dem Start prüfen, welche Ports und Netzwerknamen bereits belegt sind
-4. **`.env` auf dem Server** ist die einzige unversionierte Datei. Rechte `600`, Inhalt gegen `.env.example` gegengeprüft. **`RUNTIME_ENV=prod` explizit setzen** — fehlt der Wert, zeigt der Header laut dem in DKR1 gebauten Sicherheitsnetz "unknown" statt "prod" an (nicht fälschlich "dev", aber eben auch nicht korrekt beschriftet), s. `docs/docker-lokal-einrichten.md` Abschnitt 1.
-5. **Erster Start mit leerer Datenbank:** Migrationen laufen durch, Anwendung erreichbar, Anmeldung schlägt mangels Benutzer fehl — das ist an dieser Stelle das erwartete Verhalten.
+4. **`.env` auf dem Server** ist die einzige unversionierte Datei (bzw. das Quadlet-Äquivalent — z. B. eine `.env`-Datei, die die Quadlet-Unit referenziert). Rechte `600`, Inhalt gegen `.env.example` gegengeprüft. **`RUNTIME_ENV=prod` explizit setzen** — fehlt der Wert, zeigt der Header laut dem in DKR1 gebauten Sicherheitsnetz "unknown" statt "prod" an (nicht fälschlich "dev", aber eben auch nicht korrekt beschriftet), s. `docs/docker-lokal-einrichten.md` Abschnitt 1.
+5. **Erster Start mit leerer Datenbank:** Migrationen laufen durch, Anwendung erreichbar, Anmeldung schlägt mangels Benutzer fehl — das ist an dieser Stelle das erwartete Verhalten. **Bestätigt** (s. Stand-Hinweis oben).
 6. **Ressourcengrenzen setzen** (`mem_limit`, `cpus`), damit der Stack einen geteilten Host nicht verdrängt.
 
 ### Abnahme
 
-- [ ] Anwendung über die eigene Domain mit gültigem Zertifikat erreichbar
-- [ ] Migrationsstatus auf dem Server abfragbar
-- [ ] Keine Portkollision, keine Namenskollision
-- [ ] Neustart des Hosts bringt den Stack selbstständig zurück (aktiv getestet)
+- [x] Anwendung über die eigene Domain mit gültigem Zertifikat erreichbar — von außen verifiziert (19.08.2026)
+- [ ] Migrationsstatus auf dem Server abfragbar — Migrationen laufen nachweislich (Tabellen antworten korrekt), aber nicht direkt auf dem Server abgefragt/protokolliert
+- [ ] Keine Portkollision, keine Namenskollision — nicht von außen prüfbar, Tonys Bestätigung ausstehend
+- [ ] Neustart des Hosts bringt den Stack selbstständig zurück (aktiv getestet) — nicht von außen prüfbar, aktiver Test ausstehend
 
 ---
 
