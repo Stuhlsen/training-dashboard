@@ -38,8 +38,12 @@ export function normalizeRide(r) {
     dateShort: fmtDate(dateISO),
     feel: feel.label,
     feelCls: feel.cls,
-    // Effizienz: Watt pro Herzschlag
-    efficiency: r.watt && r.hf ? Math.round((r.watt / r.hf) * 100) / 100 : null,
+    // Effizienz: Normalized Power pro Herzschlag (nicht Ø-Watt — NP gewichtet
+    // variable Belastung wie Intervalle/Bergetappen angemessen, Ø-Watt
+    // verzerrt dort bis zu ~25-30%, s. docs/offene-punkte.md). Ohne NP
+    // (z.B. Notion-Altbestand Plan 1) bewusst kein Fallback auf Ø-Watt —
+    // sonst wäre das derselbe Bug unter anderem Namen.
+    efficiency: r.np && r.hf ? Math.round((r.np / r.hf) * 100) / 100 : null,
   };
 }
 
