@@ -421,6 +421,12 @@ wird.
 **Vorbedingung:** DKR4 abgeschlossen.
 **Modell:** `[F5]`
 
+Fertige Befehle zum Kopieren (Datenmigration-Pipeline inkl. Trigger-Falle,
+Abgleich-Skript, Backup-Abnahmeliste, Restore-Probe-Vorlage) stehen in
+`docs/docker-server-einrichten.md` — dort auch der aktuelle Stand-Hinweis
+zu Tonys Podman/Quadlet-Infrastruktur (s. „⚠ Stand 19.08.2026" oben unter
+DKR4: kein `docker-compose.prod.yml`, Backup baut Tony selbst).
+
 ### Datenmigration
 
 1. **Public-Schema übernehmen:** `pg_dump` der Cloud-Datenbank. Reihenfolge: Migrationen zuerst (Struktur), dann **nur Daten** einspielen.
