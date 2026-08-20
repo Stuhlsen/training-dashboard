@@ -1,14 +1,16 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
-import { densifyDays, joinSeries } from "../core/days.js";
-import { makeIndexScale, pickLabelIndices } from "../core/chart-scale.js";
+import { makeIndexScale, pathD, pickLabelIndices } from "../core/chart-scale.js";
 import { efficiencyTrend } from "../core/efficiency.js";
 import { fmt, fmtInt, fmtDate, fmtDateFull } from "../core/format.js";
 import { ChartTooltip } from "./ChartTooltip";
+import { EfficiencyDetailScatter } from "./EfficiencyDetailScatter";
 
 type Ride = import("../types.js").Ride;
+type WellnessDay = import("../types.js").WellnessDay;
 
 interface EfficiencyChartProps {
   rides: Ride[];
+  wellness?: WellnessDay[];
 }
 
 const W_FALLBACK = 780;
@@ -21,21 +23,33 @@ interface Tooltip {
   content: string;
 }
 
-/** Aerobe Effizienz (Watt/HF) — Etappe 12c, Familie 2 (docs/chart-grundlagen.md
- *  §7.2, lückige Zeitreihe). Port von assets/js/ui/charts/power.js
- *  ::renderEfficiency() nach dem WellnessChart-Baumuster (densifyDays/
- *  joinSeries("gap"), makeIndexScale). `core/efficiency.js::efficiencyTrend`
- *  liefert Rolling-Mean + Vergleichbarkeits-Set unverändert — dieselbe
- *  Funktion, die die Analyse-Tab-Sektion "Aerob" nutzt, hier zusätzlich
- *  grafisch. Einzelpunkte bleiben bewusst UNVERBUNDEN (anders als
- *  WellnessChart) — ein Punkt ist eine einzelne Fahrt, EF-Werte
- *  unterschiedlicher Fahrten sind nicht sinnvoll linear interpolierbar
- *  (1:1-Begründung aus dem vanilla-Kopfkommentar). Nur die Rolling-Mean-
- *  Linie über den vergleichbaren Z2-Fahrten wird gezeichnet. */
-export function EfficiencyChart({ rides }: EfficiencyChartProps) {
+/** Aerobe Effizienz (Watt/HF) — Etappe 12c, erweitert um eine durchgehende,
+ *  bei EF-Lücken sichtbar unterbrochene Rohlinie + Klick-Scatter (Etappe
+ *  "EF-Trendlinie + Scatter", 20.08.2026). Ersetzt damit auch den früheren
+ *  TempoTrendChart ("Ø Tempo · Entwicklung", km/h-Trend) — Bergetappen mit
+ *  hoher Leistung, aber niedriger Ø-Geschwindigkeit verfälschten dessen
+ *  Trend, EF ist streckenunabhängig.
+ *
+ *  Achse ist bewusst der FAHRT-Index (chronologisch, ein Punkt = eine
+ *  Fahrt), NICHT das Tagesgerüst von WellnessChart/SleepChart (Familie 2).
+ *  Deren Lücken-Linie verbindet laut eigenem Kopfkommentar bewusst ÜBER
+ *  Messlücken hinweg — genau das Gegenteil dessen, was hier gewollt ist
+ *  (Fahrten ohne EF sollen eine SICHTBARE Lücke erzeugen, kein Verbinden).
+ *  Über ein Tagesgerüst wäre das nicht sinnvoll ausdrückbar: Fahrten liegen
+ *  selten an aufeinanderfolgenden Kalendertagen, fast jeder Punkt bliebe
+ *  isoliert. Auf der Fahrt-Index-Achse dagegen bedeutet "Lücke" exakt "diese
+ *  Fahrt hat kein EF" — die Rohlinie bricht dort, das nächste Segment
+ *  beginnt bei der nächsten Fahrt mit EF-Wert.
+ *
+ *  Die bestehende Rolling-Mean-Linie über vergleichbare Z2-Fahrten
+ *  (core/efficiency.js::efficiencyTrend) bleibt als zweite, geglättete
+ *  Overlay-Linie erhalten — analog zu TempoTrendChart, das ebenfalls
+ *  Rohlinie + geglättete Trendlinie gleichzeitig zeigte. */
+export function EfficiencyChart({ rides, wellness }: EfficiencyChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
+  const [selectedRide, setSelectedRide] = useState<Ride | null>(null);
 
   useLayoutEffect(() => {
     const node = svgRef.current;
@@ -48,8 +62,8 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
     return () => ro.disconnect();
   }, []);
 
-  const data = useMemo(
-    () => (rides ?? []).filter((r) => r.efficiency != null).sort((a, b) => a.dateISO.localeCompare(b.dateISO)),
+  const allRides = useMemo(
+    () => (rides ?? []).slice().sort((a, b) => a.dateISO.localeCompare(b.dateISO)),
     [rides],
   );
   const trend = useMemo(() => efficiencyTrend(rides ?? []), [rides]);
@@ -57,33 +71,18 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
     () => new Set(trend.comparable.map((r) => r.dateISO + (r.name || ""))),
     [trend],
   );
+  // Objekt-Referenz als Map-Schlüssel statt eines abgeleiteten Strings:
+  // `allRides` ist dieselbe `rides`-Prop nur sortiert (kein .map()/Kopie
+  // der Elemente), `trend.comparable` filtert ebenfalls direkt aus `rides`
+  // — Fahrt-Objekte bleiben also identisch referenzierbar. Vermeidet die
+  // Kollisionsgefahr eines "Datum+Name"-Strings bei zwei gleichnamigen
+  // Fahrten am selben Tag (v.a. Notion-Altbestand ohne activityId).
+  const indexByRide = useMemo(() => new Map<Ride, number>(allRides.map((r, i) => [r, i])), [allRides]);
 
-  const skeleton = useMemo(() => {
-    if (data.length < 2) return [];
-    return densifyDays(data[0].dateISO, data[data.length - 1].dateISO);
-  }, [data]);
+  const efCount = allRides.filter((r) => r.efficiency != null).length;
+  const we = Math.max(allRides.length - 1, 0);
 
-  const byDate = useMemo(() => new Map(data.map((d) => [d.dateISO, d])), [data]);
-  const we = Math.max(skeleton.length - 1, 0);
-
-  const effVals = useMemo(
-    () => joinSeries(skeleton, data, { key: "efficiency", absence: "gap" }),
-    [skeleton, data],
-  );
-
-  const rollBySkeletonIndex = useMemo(() => {
-    if (trend.comparable.length < 3) return new Map<number, number>();
-    const indexByDate = new Map(skeleton.map((d, i) => [d.dateISO, i]));
-    const out = new Map<number, number>();
-    trend.comparable.forEach((r, ci) => {
-      const i = indexByDate.get(r.dateISO);
-      const rv = trend.rolling[ci];
-      if (i != null && rv != null) out.set(i, rv);
-    });
-    return out;
-  }, [trend, skeleton]);
-
-  if (skeleton.length < 2) {
+  if (efCount < 2) {
     return (
       <div role="img" aria-label="Aerobe Effizienz" style={{ padding: 24, color: "var(--text-soft)", fontSize: ".85rem" }}>
         Noch nicht genug Powermeter-Fahrten für einen EF-Trend.
@@ -95,28 +94,47 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
   const plotW = Math.max(width - PAD.l - PAD.r, 10);
   const scale = makeIndexScale({ ws: 0, we, padLeft: PAD.l, width: plotW });
 
-  const visible = effVals.filter((v): v is number => v != null);
-  const vMin = Math.max(0, (visible.length ? Math.min(...visible) : 0) - 0.1);
-  const vMax = (visible.length ? Math.max(...visible) : 1) + 0.1;
+  const visible = allRides.map((r) => r.efficiency).filter((v): v is number => v != null);
+  const vMin = Math.max(0, Math.min(...visible) - 0.1);
+  const vMax = Math.max(...visible) + 0.1;
   const yOf = (v: number) => PAD.t + (1 - (v - vMin) / (vMax - vMin)) * plotH;
 
-  const rollPoints = [...rollBySkeletonIndex.entries()]
-    .sort((a, b) => a[0] - b[0])
-    .map(([i, v]) => ({ x: scale.x(i), y: yOf(v) }));
-  const rollPath = rollPoints.length >= 2 ? rollPoints.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ") : null;
+  // Rohlinie in Segmente zerlegt: ein <path> je zusammenhängendem Lauf von
+  // Fahrten mit EF-Wert, keine Verbindung über eine Lücke hinweg.
+  const rawSegments: string[] = [];
+  let run: [number, number][] = [];
+  for (let i = 0; i < allRides.length; i++) {
+    const v = allRides[i].efficiency;
+    if (v != null) {
+      run.push([scale.x(i), yOf(v)]);
+    } else if (run.length) {
+      if (run.length >= 2) rawSegments.push(pathD(run));
+      run = [];
+    }
+  }
+  if (run.length >= 2) rawSegments.push(pathD(run));
 
-  const dateIndices = skeleton
-    .map((d, i) => ({ i, isMonday: new Date(`${d.dateISO}T00:00:00`).getDay() === 1 }))
-    .filter((d) => d.isMonday)
-    .map((d) => d.i);
-  const dateXs = dateIndices.map((i) => scale.x(i));
-  const pickedTickPositions = pickLabelIndices(dateXs, 60);
-  const pickedTicks = [...pickedTickPositions].map((pos) => dateIndices[pos]);
+  const rollPoints = trend.comparable
+    .map((r, idx) => {
+      const i = indexByRide.get(r);
+      const rv = trend.rolling[idx];
+      return i != null && rv != null ? { i, x: scale.x(i), y: yOf(rv) } : null;
+    })
+    .filter((p): p is { i: number; x: number; y: number } => p != null)
+    .sort((a, b) => a.i - b.i);
+  const rollPath = rollPoints.length >= 2 ? pathD(rollPoints.map((p) => [p.x, p.y])) : null;
+
+  const dateXs = allRides.map((_, i) => scale.x(i));
+  const pickedTicks = [...pickLabelIndices(dateXs, 55)];
 
   const noteText =
     trend.comparable.length >= 3
       ? `EF-Trend: ${trend.comparable.length} vergleichbare Z2-Fahrten${trend.slopePer30d != null ? ` · ${trend.slopePer30d > 0 ? "+" : ""}${trend.slopePer30d} W/bpm je 30 Tage` : ""}`
       : "Nur Powermeter-Fahrten";
+
+  function handleSelect(r: Ride) {
+    setSelectedRide((prev) => (prev === r ? null : r));
+  }
 
   return (
     <div style={{ position: "relative" }}>
@@ -141,17 +159,20 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
           );
         })}
 
+        {rawSegments.map((d, i) => (
+          <path key={i} d={d} fill="none" stroke="var(--role-primary)" strokeWidth={1.8} opacity={0.55} />
+        ))}
         {rollPath && <path d={rollPath} fill="none" stroke="var(--z1)" strokeWidth={2} strokeLinejoin="round" opacity={0.9} />}
 
-        {skeleton.map((day, i) => {
-          const v = effVals[i];
+        {allRides.map((d, i) => {
+          const v = d.efficiency;
           if (v == null) return null;
-          const d = byDate.get(day.dateISO)!;
           const comparable = trend.comparable.length < 3 || comparableSet.has(d.dateISO + (d.name || ""));
           const x = scale.x(i);
           const y = yOf(v);
+          const selected = selectedRide === d;
           return (
-            <g key={day.dateISO}>
+            <g key={d.activityId ?? `${d.dateISO}-${i}`}>
               {/* Unsichtbare, größere Trefferfläche zuerst im DOM
                   (19.08.2026, Bugfix) — s. PmcChart.tsx für die
                   ausführliche Begründung. */}
@@ -166,19 +187,20 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
                   setTooltip({
                     x: e.clientX,
                     y: e.clientY,
-                    content: `${fmtDateFull(d.dateISO)} · Effizienz ${fmt(d.efficiency ?? null, 2)} W/bpm · ${fmtInt(d.watt ?? null)}W · ${fmtInt(d.hf ?? null)} bpm${trend.comparable.length >= 3 ? (comparable ? " · vergleichbar (Z2)" : " · Kontext") : ""}`,
+                    content: `${fmtDateFull(d.dateISO)} · Effizienz ${fmt(d.efficiency ?? null, 2)} W/bpm · ${fmtInt(d.watt ?? null)}W · ${fmtInt(d.hf ?? null)} bpm${trend.comparable.length >= 3 ? (comparable ? " · vergleichbar (Z2)" : " · Kontext") : ""} · Klick für Detailansicht`,
                   })
                 }
                 onMouseLeave={() => setTooltip(null)}
+                onClick={() => handleSelect(d)}
               />
               <circle
                 cx={x}
                 cy={y}
-                r={comparable ? 4.5 : 3}
-                fill={comparable ? "var(--z2)" : "var(--text-label)"}
-                opacity={comparable ? 0.9 : 0.4}
+                r={selected ? 6 : comparable ? 4.5 : 3}
+                fill={selected ? "var(--ss)" : comparable ? "var(--z2)" : "var(--text-label)"}
+                opacity={selected ? 1 : comparable ? 0.9 : 0.4}
                 stroke="var(--surface-page)"
-                strokeWidth={1}
+                strokeWidth={selected ? 1.5 : 1}
                 pointerEvents="none"
               />
             </g>
@@ -187,7 +209,7 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
 
         {pickedTicks.map((i) => (
           <text key={i} x={scale.x(i)} y={H - 4} textAnchor="middle" fontSize={10} fill="var(--text-label)">
-            {fmtDate(skeleton[i].dateISO)}
+            {fmtDate(allRides[i].dateISO)}
           </text>
         ))}
       </svg>
@@ -195,6 +217,14 @@ export function EfficiencyChart({ rides }: EfficiencyChartProps) {
         <ChartTooltip x={tooltip.x} y={tooltip.y}>
           {tooltip.content}
         </ChartTooltip>
+      )}
+      {selectedRide && (
+        <EfficiencyDetailScatter
+          rides={allRides}
+          wellness={wellness ?? []}
+          selectedRide={selectedRide}
+          onClose={() => setSelectedRide(null)}
+        />
       )}
     </div>
   );

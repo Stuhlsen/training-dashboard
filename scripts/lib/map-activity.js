@@ -108,6 +108,7 @@ function detectSession(act, min, ftpWatt, longestBlock = null) {
 /** Gemeinsame Feldmenge beider Mapper */
 function baseFields(act, weather) {
   const min = Math.round((act.moving_time || 0) / 60);
+  const km = Math.round((act.distance || 0) / 100) / 10;
   return {
     date: act.start_date_local.split("T")[0],
     startTime: act.start_date_local || null,
@@ -115,7 +116,7 @@ function baseFields(act, weather) {
     // intervalBlockCache ist ebenfalls String(act.id)) — Brücke für D4a/D4b,
     // s. docs/konzept-progressionssteuerung.md.
     activityId: act.id != null ? String(act.id) : null,
-    km: Math.round((act.distance || 0) / 100) / 10,
+    km,
     min,
     kmh: Math.round((act.average_speed || 0) * 3.6 * 10) / 10,
     watt: act.icu_average_watts,
@@ -125,6 +126,9 @@ function baseFields(act, weather) {
     hfMax: act.max_heartrate,
     kad: act.average_cadence ? Math.round(act.average_cadence) : null,
     hoehe: act.total_elevation_gain,
+    // Höhenmeter pro km — streckenunabhängiges Steigungsmaß, Basis für die
+    // Scatter-Farbkodierung im EF-Klick-Detail (EfficiencyDetailScatter.tsx).
+    hmProKm: km > 0 && act.total_elevation_gain != null ? Math.round((act.total_elevation_gain / km) * 10) / 10 : null,
     tss: act.icu_training_load,
     if: act.icu_intensity ? Math.round(act.icu_intensity) / 100 : null,
     vi: act.icu_variability_index ? Math.round(act.icu_variability_index * 100) / 100 : null,

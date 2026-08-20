@@ -363,3 +363,28 @@ test("mapActivity2: typ (Fall 'detected') wechselt die Kategorie je nach ftpHist
   assert.equal(withHistory.typ, "Z2 Dauer");
   assert.equal(withHistory.typSource, "detected");
 });
+
+// hmProKm — Steigungsmaß für die EF-Klick-Scatter-Farbkodierung
+// (EfficiencyDetailScatter.tsx), Etappe "EF-Trendlinie + Scatter".
+test("mapActivity: hmProKm aus hoehe/km berechnet", () => {
+  const ride = mapActivity(
+    baseAct({ distance: 25000, total_elevation_gain: 375 }),
+    {},
+    {},
+    {}
+  );
+  // km = 25000m / 1000, 375 / 25 = 15
+  assert.equal(ride.km, 25);
+  assert.equal(ride.hmProKm, 15);
+});
+
+test("mapActivity: hmProKm ist null ohne Distanz (Division durch 0)", () => {
+  const ride = mapActivity(baseAct({ distance: 0, total_elevation_gain: 100 }), {}, {}, {});
+  assert.equal(ride.km, 0);
+  assert.equal(ride.hmProKm, null);
+});
+
+test("mapActivity: hmProKm ist null ohne total_elevation_gain", () => {
+  const ride = mapActivity(baseAct({ distance: 25000, total_elevation_gain: undefined }), {}, {}, {});
+  assert.equal(ride.hmProKm, null);
+});

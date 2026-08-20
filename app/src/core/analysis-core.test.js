@@ -19,6 +19,7 @@ import {
   availability,
   weightTrend,
   wattsPerKg,
+  nearestWeightKg,
   energyView,
   estimateBMR,
   hydrationSeries,
@@ -387,6 +388,21 @@ test("wattsPerKg + rideKJ: Grundrechnungen", () => {
   // 200W × 60min → 720 kJ
   assert.equal(rideKJ({ watt: 200, min: 60 }), 720);
   assert.equal(rideKJ({ min: 60 }), null);
+});
+
+test("nearestWeightKg: Treffer innerhalb Fenster, kein Treffer sonst null", () => {
+  const wellness = [
+    day("2026-06-01", { weight: 79.5 }),
+    day("2026-06-20", { weight: 80.0 }),
+    day("2026-07-15", { weight: 80.4 }),
+  ];
+  // 2026-06-22 liegt näher an 06-20 (2 Tage) als an 07-15 (23 Tage)
+  assert.equal(nearestWeightKg(wellness, "2026-06-22"), 80.0);
+  // 2026-03-01 liegt > 21 Tage von jedem bekannten Gewicht entfernt
+  assert.equal(nearestWeightKg(wellness, "2026-03-01"), null);
+  // eigenes maxGapDays übersteuert den Default
+  assert.equal(nearestWeightKg(wellness, "2026-06-22", 1), null);
+  assert.equal(nearestWeightKg([], "2026-06-22"), null);
 });
 
 test("energyView: Verbrauch (Grundumsatz+aktiv) und Zufuhr, datengetrieben", () => {

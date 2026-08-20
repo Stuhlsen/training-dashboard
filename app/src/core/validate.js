@@ -53,6 +53,7 @@ export const RIDE_SCHEMA = {
   dataSource: "string?",
   week: "string?",
   km: "number?",
+  hmProKm: "number?",
   min: "number?",
   kmh: "number?",
   hf: "number?",

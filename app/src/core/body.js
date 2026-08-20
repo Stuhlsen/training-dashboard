@@ -94,6 +94,35 @@ export function wattsPerKg(watts, weightKg) {
   return Math.round((watts / weightKg) * 100) / 100;
 }
 
+/** Nächstgelegenes bekanntes Gewicht zu einem Fahrt-Datum — Rides tragen
+ *  selbst kein Gewicht (nur WellnessDay, s. Dateikopf), für Watt/kg
+ *  (EfficiencyDetailScatter.tsx) muss also über das Datum gejoint werden.
+ *  Fahrten ohne Treffer innerhalb maxGapDays bleiben ohne Watt/kg (kein
+ *  Fallback-Wert) — vor allem alte Notion-Fahrten ohne Wellness-Sync.
+ *  @param {import("../types.js").WellnessDay[]} wellness
+ *  @param {string} dateISO @param {number} [maxGapDays]
+ *  @returns {number|null} kg, oder null ohne Treffer im Fenster */
+export function nearestWeightKg(wellness, dateISO, maxGapDays = 21) {
+  const target = new Date(dateISO + "T00:00:00").getTime();
+  if (Number.isNaN(target)) return null;
+
+  let best = null;
+  let bestGapDays = Infinity;
+  for (const w of wellness || []) {
+    if (w.weight == null) continue;
+    const d = w.dateISO || w.date;
+    if (!d) continue;
+    const t = new Date(d + "T00:00:00").getTime();
+    if (Number.isNaN(t)) continue;
+    const gapDays = Math.abs(t - target) / 86400000;
+    if (gapDays < bestGapDays) {
+      bestGapDays = gapDays;
+      best = w.weight;
+    }
+  }
+  return bestGapDays <= maxGapDays ? best : null;
+}
+
 /**
  * Energie je Tag: Verbrauch (Grundumsatz RestingEnergy + aktiv ActiveEnergy)
  * und/oder Zufuhr (kcalConsumed) — je nachdem, was getrackt wird. Quelle

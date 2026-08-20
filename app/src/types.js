@@ -44,6 +44,8 @@
  *                                  Plankarte (core/compliance-match.js), nur bei
  *                                  echtem Match gesetzt — sonst kein Feld (s. dort)
  * @property {number|null} [km]
+ * @property {number|null} [hmProKm]  Höhenmeter pro km (hoehe ÷ km, gerundet) —
+ *                                  Steigungsmaß für die EF-Klick-Scatter-Farbkodierung
  * @property {number|null} [min]
  * @property {number|null} [kmh]
  * @property {number|null} [hf]

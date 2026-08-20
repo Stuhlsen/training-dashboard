@@ -26,7 +26,6 @@ import {
   sleepAvailable,
   weatherWeeklyAvailable,
   energyWeightAvailable,
-  tempoAvailable,
   trimpAvailable,
   hydrationAvailable,
   countEmpty,
@@ -51,7 +50,6 @@ import { WeatherWeeklyChart } from "../../charts/WeatherWeeklyChart";
 import { SleepChart } from "../../charts/SleepChart";
 import { EnergyWeightChart } from "../../charts/EnergyWeightChart";
 import { WellnessChart, type WellnessMetric } from "../../charts/WellnessChart";
-import { TempoTrendChart } from "../../charts/TempoTrendChart";
 import { TrimpLoadChart } from "../../charts/TrimpLoadChart";
 import { HydrationChart } from "../../charts/HydrationChart";
 import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
@@ -271,7 +269,6 @@ export function ExplorerSection({ activeAthleteId }: ExplorerSectionProps) {
     sleep: sleepAvailable(wellness),
     weatherWeekly: weatherWeeklyAvailable(rides),
     energyWeight: energyWeightAvailable(wellness),
-    tempo: tempoAvailable(rides),
     trimp: trimpAvailable(rides),
     hydration: hydrationAvailable(wellness),
   };
@@ -377,7 +374,7 @@ export function ExplorerSection({ activeAthleteId }: ExplorerSectionProps) {
       </GlassCard>
 
       <ChartSection title="Aerobe Effizienz" available={availability.efficiency} showEmpty={showEmpty}>
-        <EfficiencyChart rides={rides} />
+        <EfficiencyChart rides={rides} wellness={wellness} />
       </ChartSection>
 
       <ChartSection title="Aerobe Entkopplung" available={availability.decoupling} showEmpty={showEmpty}>
@@ -390,10 +387,6 @@ export function ExplorerSection({ activeAthleteId }: ExplorerSectionProps) {
 
       <ChartSection title="Tempo vs. Herzfrequenz" available={availability.speedHrScatter} showEmpty={showEmpty}>
         <SpeedHrScatterChart rides={rides} />
-      </ChartSection>
-
-      <ChartSection title="Ø Tempo · Entwicklung" available={availability.tempo} showEmpty={showEmpty}>
-        <TempoTrendChart rides={rides} />
       </ChartSection>
 
       <ChartSection title="Ø-Herzfrequenz" available={availability.hrTrend} showEmpty={showEmpty}>

@@ -57,12 +57,19 @@ bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
   Plan) über `core/ftp-forecast.js` — dieselben Funktionen, die
   `analysis-view-model.ts::buildPowerDiagnostics()` für die Text-Sektion
   (FtpTriad) nutzt.
-- `EfficiencyChart.tsx` — Aerobe Effizienz Watt/HF (Etappe 12c, Familie 2).
-  Port von `assets/js/ui/charts/power.js::renderEfficiency()` nach dem
-  WellnessChart-Baumuster. `core/efficiency.js::efficiencyTrend` liefert
-  Rolling-Mean + Vergleichbarkeits-Set. Einzelpunkte bleiben unverbunden
-  (jede Fahrt ein eigener Messpunkt), nur die Rolling-Mean-Linie über den
-  vergleichbaren Z2-Fahrten wird gezeichnet.
+- `EfficiencyChart.tsx` — Aerobe Effizienz Watt/HF (Etappe 12c, erweitert um
+  Rohlinie + Klick-Scatter in der Etappe "EF-Trendlinie + Scatter",
+  20.08.2026 — ersetzt seitdem auch den früheren `TempoTrendChart`). Achse
+  ist der FAHRT-Index (chronologisch), NICHT das Tagesgerüst/`joinSeries`-
+  Muster von WellnessChart/SleepChart (Familie 2) — deren Lücken-Linie
+  verbindet bewusst über Messlücken hinweg, hier soll eine Fahrt ohne EF
+  genau umgekehrt eine sichtbare Lücke erzeugen. Die Rohlinie ist deshalb in
+  Segmente zerlegt (ein `<path>` je zusammenhängendem Lauf mit EF-Wert).
+  `core/efficiency.js::efficiencyTrend` liefert zusätzlich Rolling-Mean +
+  Vergleichbarkeits-Set als zweite, geglättete Overlay-Linie. Klick auf
+  einen Punkt öffnet `EfficiencyDetailScatter.tsx` (Watt/kg vs. km/h,
+  gefärbt nach Höhenmeter/km) — kein eigener `ChartSection`-Eintrag, reine
+  Unterkomponente.
 - `DecouplingChart.tsx` — Aerobe Entkopplung/HF-Decoupling (Etappe 12c,
   Familie 2). Port von `assets/js/ui/charts/pmc.js::renderDecoupling()`, dabei
   auf densifyDays/joinSeries("gap")/makeIndexScale umgestellt (vanilla nutzte

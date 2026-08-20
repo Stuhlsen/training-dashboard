@@ -30,7 +30,12 @@ export function powerCurveAvailable(powerCurves) {
 
 /** @param {import("../types.js").Ride[]} rides */
 export function efficiencyAvailable(rides) {
-  return rides.filter((r) => r.watt && r.hf && (r.min || 0) >= 60).length >= 2;
+  // r.np (nicht r.watt) prüfen — core/normalize.js::efficiency leitet EF
+  // ausschließlich aus NP ab, bewusst ohne Ø-Watt-Fallback (Verzerrung bis
+  // ~25-30% bei Intervall-/Bergfahrten, s. Kopfkommentar dort). Rides mit
+  // watt+hf, aber ohne np (Notion-Altbestand) hätten sonst als "verfügbar"
+  // gegolten, obwohl EfficiencyChart für sie nie einen Punkt zeichnet.
+  return rides.filter((r) => r.np && r.hf && (r.min || 0) >= 60).length >= 2;
 }
 
 /** @param {import("../types.js").Ride[]} rides */
@@ -71,11 +76,6 @@ export function weatherWeeklyAvailable(rides) {
 /** @param {import("../types.js").WellnessDay[]} wellness */
 export function energyWeightAvailable(wellness) {
   return energyView(wellness) !== null;
-}
-
-/** @param {import("../types.js").Ride[]} rides */
-export function tempoAvailable(rides) {
-  return rides.some((r) => r.kmh);
 }
 
 /** @param {import("../types.js").Ride[]} rides */
