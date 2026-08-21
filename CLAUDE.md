@@ -38,8 +38,11 @@
 ## Vor jeder Aufgabe
 
 Kurz benennen, wie das Ergebnis verifiziert wird, bevor losgeschrieben wird:
-`core/`-Logik → welcher Test in `tests/`; `ui/`-Änderung → `node -c` +
-`npx serve .` + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
+`core/`-Logik → welcher Test in `tests/`; UI-Änderung → `npm run build` +
+`npm run dev` für schnelle Zwischenstände, **vor dem Commit-Vorschlag
+zusätzlich einmal gegen den lokalen Docker-Container** (`docker compose
+-f docker-compose.dev.yml up -d`, `http://localhost:8080` — s. „Arbeitsweise"
+unten) + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
 (scripts/, core/validate.js, types.js) einzeln nennen; Standort/Athletennamen
 → explizit gegenprüfen, dass nichts davon in Code/JSON/Commit landet.
 
@@ -51,7 +54,14 @@ Kurz benennen, wie das Ergebnis verifiziert wird, bevor losgeschrieben wird:
 - Nach jeder `.js`-Änderung selbst `node -c <datei>` laufen lassen.
 - Vor jedem Commit-Vorschlag: `node -c` → `npm test` → `/code-review` auf den
   Diff (prüft dabei auch gegen Schichtenregel, Result-Konvention und fehlende
-  Tests in `core/`) → ggf. `npx serve .`. Erst danach Commit-Befehl vorschlagen.
+  Tests in `core/`) → bei UI-Änderungen zwingend einmal gegen den lokalen
+  Docker-Container prüfen (`docker compose -f docker-compose.dev.yml up -d`,
+  `http://localhost:8080`) — **nicht nur `npm run dev`**: nur der Container
+  läuft durch den echten Produktions-Build (Vite-Build + nginx +
+  `window.__RUNTIME_CONFIG__`-Laufzeitpfad), der Vite-Dev-Server mit HMR kann
+  Fehler verdecken, die erst im gebauten Static-Bundle auftreten. `npm run dev`
+  bleibt für schnelle Zwischenstände während der Arbeit erlaubt, ersetzt aber
+  nicht diesen finalen Check. Erst danach Commit-Befehl vorschlagen.
   Testlücken nur benennen, nicht ungefragt auffüllen.
 - `data/*.json`, `.agents/`, `agent/`, `data/skills/`, `skills-lock.json`
   **nie** selbst stagen/committen, auch nicht mit `git add -A`.

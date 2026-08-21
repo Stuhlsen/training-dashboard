@@ -89,7 +89,15 @@ RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
 2. Bei `/app/`-Änderung: `npm run build` (enthält `tsc -b`, deckt Typfehler ab)
 3. `npm test` im jeweils betroffenen Teil (Root und/oder `/app/`) — alle Tests
    müssen grün sein (CI prüft beides getrennt)
-4. Betroffene Ansicht lokal prüfen (`npm run dev` in `/app/`, Browser-Hard-Refresh bei CSS)
+4. Betroffene Ansicht lokal prüfen — `npm run dev` (`/app/`) für schnelle
+   Zwischenstände während der Arbeit, aber als **letzter Check vor dem
+   Commit-Vorschlag zwingend zusätzlich gegen den lokalen Docker-Container**
+   (`docker compose -f docker-compose.dev.yml up -d`, Frontend auf
+   `http://localhost:8080` — Details `docs/docker-lokal-einrichten.md`).
+   Grund: nur der Container durchläuft den echten Produktions-Build
+   (Vite-Build + nginx + `window.__RUNTIME_CONFIG__`-Laufzeitpfad) — der
+   Vite-Dev-Server mit HMR kann Fehler verdecken, die erst im gebauten
+   Static-Bundle auftreten.
 5. Commit mit Konvention (siehe unten)
 6. `git sync`
 
