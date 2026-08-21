@@ -32,6 +32,12 @@
   --role-secondary: #e0736b;
   --role-positive: #6fc48c;
   --role-status: #e8b73f;
+  /* Event/Frische-Gold — eingeführt mit dem Analyse-Tab-Redesign „Antworten
+     & Spuren" (Eventtag-Marker im Brush, Wind-Marker in der Wetter-Spur).
+     Kein Ersatz für --role-status: das ist die "Sonderfall"-Farbe für einen
+     festen externen Termin, --role-status bleibt die generische Status-/
+     Zielwert-Farbe. */
+  --event: #c9a84c;
 
   /* Flächen */
   --surface-page: #08090c;

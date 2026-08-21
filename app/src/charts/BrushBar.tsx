@@ -27,6 +27,17 @@ interface BrushBarProps {
    *  BrushBar hat keinen eigenen Datenpunkt-Hover, nur PmcChart löst
    *  `hoveredDate` aus. */
   hoveredDate?: string | null;
+  /** Zielevent-Datum (gestrichelte Gold-Linie) — Analyse-Tab-Redesign
+   *  „Antworten & Spuren" (Handoff: Brush zeigt Eventtag zusätzlich zu
+   *  „heute"). `null`/`undefined` blendet die Linie aus (kein Event). */
+  eventDate?: string | null;
+  /** Eigene Preset-Beschriftung/-Auswahl (z. B. nur 30/90/„Mit Prognose"
+   *  im Hero-Brush statt der vollen 5er-Liste) — nutzt dieselben
+   *  `core/brush.js::presetWindow`-Keys, nur eine andere Teilmenge/Labels. */
+  presets?: Array<{ key: (typeof PRESETS)[number]["key"]; label: string }>;
+  /** Optik-Variante fürs Hero-Redesign: schmalere Höhe, hellere Akzentfarbe,
+   *  6px statt 10px Griffe (Handoff-Maße), ansonsten identische Drag-Logik. */
+  variant?: "default" | "hero";
 }
 
 const W_FALLBACK = 780;
@@ -56,9 +67,15 @@ const PRESETS: Array<{ key: "30" | "90" | "365" | "plan2" | "all"; label: string
  *  `requestAnimationFrame` pro Frame gebatcht. Seit Etappe 8c optional
  *  `hoveredDate` (Cursor-Sync, §3) — rein darstellend, ausgelöst vom
  *  PmcChart-Hover, kein eigener Hover auf dieser Leiste. */
-export function BrushBar({ rides, projection, range, onRangeChange, plan2StartISO, hoveredDate }: BrushBarProps) {
+export function BrushBar({ rides, projection, range, onRangeChange, plan2StartISO, hoveredDate, eventDate, presets, variant = "default" }: BrushBarProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
+  const isHero = variant === "hero";
+  const barHeight = isHero ? 56 : H;
+  const handleW = isHero ? 6 : HANDLE_W;
+  const accent = isHero ? "rgba(74,158,255,.9)" : "var(--role-primary)";
+  const dimFill = isHero ? "rgba(6,8,13,.55)" : "rgba(0,0,0,.5)";
+  const activePresets = presets ?? PRESETS;
 
   useLayoutEffect(() => {
     const node = svgRef.current;
@@ -89,7 +106,7 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
     [skeleton, rides, projection, todayIdx],
   );
 
-  const plotH = H - PAD.t - PAD.b;
+  const plotH = barHeight - PAD.t - PAD.b;
   const plotW = Math.max(width - PAD.l - PAD.r, 10);
   const scale = makeIndexScale({ ws: 0, we, padLeft: PAD.l, width: plotW });
 
@@ -108,6 +125,8 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
   // aktuell gebrushten Fensters liegen, das ist kein Fehlerfall).
   const hoveredIdx = hoveredDate ? (indexByDate.get(hoveredDate) ?? -1) : -1;
   const showHoverMarker = hoveredIdx >= 0 && hoveredIdx <= we;
+  const eventIdx = eventDate ? (indexByDate.get(eventDate) ?? -1) : -1;
+  const showEventMarker = eventIdx >= 0 && eventIdx <= we;
 
   const dragRef = useRef<null | { mode: "from" | "to" | "pan"; startClientX: number; startFromIdx: number; startToIdx: number }>(
     null,
@@ -229,26 +248,26 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
     <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${width} ${H}`}
-        style={{ width: "100%", height: H, display: "block", touchAction: "none" }}
+        viewBox={`0 0 ${width} ${barHeight}`}
+        style={{ width: "100%", height: barHeight, display: "block", touchAction: "none" }}
         role="img"
         aria-label="Zeitraum wählen: Übersicht über den vollen Belastungsverlauf"
       >
-        <line x1={PAD.l} x2={width - PAD.r} y1={H - PAD.b} y2={H - PAD.b} stroke="var(--hair)" strokeWidth={1} />
+        <line x1={PAD.l} x2={width - PAD.r} y1={barHeight - PAD.b} y2={barHeight - PAD.b} stroke="var(--hair)" strokeWidth={1} />
 
         {ctlSegments.map((seg, i) => (
           <path
             key={i}
             d={pathD(seg.map((p) => [scale.x(p.index), caY(p.value)]))}
             fill="none"
-            stroke="var(--role-primary)"
+            stroke={accent}
             strokeWidth={1.5}
             opacity={0.55}
           />
         ))}
 
-        <rect x={PAD.l} y={PAD.t} width={Math.max(fromX - PAD.l, 0)} height={plotH} fill="rgba(0,0,0,.5)" pointerEvents="none" />
-        <rect x={toX} y={PAD.t} width={Math.max(width - PAD.r - toX, 0)} height={plotH} fill="rgba(0,0,0,.5)" pointerEvents="none" />
+        <rect x={PAD.l} y={PAD.t} width={Math.max(fromX - PAD.l, 0)} height={plotH} fill={dimFill} pointerEvents="none" />
+        <rect x={toX} y={PAD.t} width={Math.max(width - PAD.r - toX, 0)} height={plotH} fill={dimFill} pointerEvents="none" />
 
         <rect
           x={fromX}
@@ -256,7 +275,7 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
           width={Math.max(toX - fromX, 0)}
           height={plotH}
           fill="rgba(255,255,255,.07)"
-          stroke="var(--role-primary)"
+          stroke={accent}
           strokeWidth={1}
           style={{ cursor: "grab", touchAction: "none" }}
           role="slider"
@@ -268,12 +287,12 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
         />
 
         <rect
-          x={fromX - HANDLE_W / 2}
+          x={fromX - handleW / 2}
           y={PAD.t}
-          width={HANDLE_W}
+          width={handleW}
           height={plotH}
           rx={2}
-          fill="var(--role-primary)"
+          fill={accent}
           style={{ cursor: "ew-resize", touchAction: "none" }}
           role="slider"
           aria-label="Fensteranfang ziehen"
@@ -283,12 +302,12 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
           onPointerCancel={onDragEnd}
         />
         <rect
-          x={toX - HANDLE_W / 2}
+          x={toX - handleW / 2}
           y={PAD.t}
-          width={HANDLE_W}
+          width={handleW}
           height={plotH}
           rx={2}
-          fill="var(--role-primary)"
+          fill={accent}
           style={{ cursor: "ew-resize", touchAction: "none" }}
           role="slider"
           aria-label="Fensterende ziehen"
@@ -303,16 +322,28 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
             x1={scale.x(hoveredIdx)}
             x2={scale.x(hoveredIdx)}
             y1={PAD.t}
-            y2={H - PAD.b}
+            y2={barHeight - PAD.b}
             stroke="var(--role-status)"
             strokeWidth={1.5}
+            pointerEvents="none"
+          />
+        )}
+        {showEventMarker && (
+          <line
+            x1={scale.x(eventIdx)}
+            x2={scale.x(eventIdx)}
+            y1={PAD.t}
+            y2={barHeight - PAD.b}
+            stroke="var(--event)"
+            strokeWidth={1}
+            strokeDasharray="3 3"
             pointerEvents="none"
           />
         )}
       </svg>
 
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {PRESETS.filter((p) => p.key !== "plan2" || plan2StartISO).map((p) => (
+        {activePresets.filter((p) => p.key !== "plan2" || plan2StartISO).map((p) => (
           <button
             key={p.key}
             type="button"

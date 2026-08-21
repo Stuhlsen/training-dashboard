@@ -95,6 +95,7 @@ function frame(r0, r1, h) {
       bars: /** @type {Array<{x:number,y:number,w:number,h:number,kind:string}>} */ ([]),
       zones: /** @type {Array<{y:number,h:number,band:string}>} */ ([]),
       hlines: /** @type {Array<{y:number,kind:string}>} */ ([]),
+      labels: /** @type {Array<{x:number,y:number,text:string,role:string,align:"start"|"end"}>} */ ([]),
       hasCursorDot: false,
       cursorY: 0,
       readValue: /** @type {number|null} */ (null),
@@ -190,6 +191,12 @@ export function buildFitnessLane(series, r0, r1, h, cursor) {
   pushSeries(ctlVals, todayIdx);
 
   const lastI = Math.min(r1, ctlVals.length - 1);
+  if (ctlVals[lastI] != null && atlVals[lastI] != null) {
+    const cy1 = y(ctlVals[lastI]), ay1 = y(atlVals[lastI]);
+    const apart = Math.abs(cy1 - ay1) < 14;
+    out.labels.push({ x: x(lastI), y: cy1 - 9, text: "CTL", role: "primary", align: "end" });
+    out.labels.push({ x: x(lastI), y: apart ? ay1 + 12 : ay1 - 9, text: "ATL", role: "secondary", align: "end" });
+  }
   if (cursor != null && ctlVals[cursor] != null) {
     out.hasCursorDot = true;
     out.cursorY = y(ctlVals[cursor]);
@@ -219,6 +226,13 @@ export function buildTsbLane(series, r0, r1, h, cursor) {
   out.zones.push(band(TSB_BUILD_LOW, TSB_BUILD_HIGH, "build"));
   out.zones.push(band(TSB_FRESH_LOW, TSB_FRESH_HIGH, "fresh"));
   out.hlines.push({ y: ty(0), kind: "zero" });
+  for (const { v, text, role } of [
+    { v: (TSB_FRESH_LOW + TSB_FRESH_HIGH) / 2, text: `Frische +${TSB_FRESH_LOW} … +${TSB_FRESH_HIGH}`, role: "fresh" },
+    { v: (TSB_BUILD_LOW + TSB_BUILD_HIGH) / 2, text: `Aufbau ${TSB_BUILD_HIGH} … ${TSB_BUILD_LOW}`, role: "build" },
+    { v: TSB_OVERLOAD - 3, text: "Überlast", role: "overload" },
+  ]) {
+    if (v <= tmax - 3 && v >= tmin + 3) out.labels.push({ x: LANE_WIDTH - 4, y: ty(v), text, role, align: "end" });
+  }
 
   for (const pts of segmentPoints(tsbVals, r0, Math.min(todayIdx, r1), x, ty)) {
     out.lines.push({ d: pathFrom(pts), width: 1.6, dash: "0", opacity: 0.95, role: "positive" });

@@ -77,6 +77,28 @@ test("buildTsbLane: liefert die drei Korridorbänder in der Handoff-Reihenfolge"
   );
 });
 
+test("buildFitnessLane: beschriftet CTL/ATL am rechten Kurvenende", () => {
+  const ctlVals = [40, 41, 42];
+  const atlVals = [30, 31, 45];
+  const geo = buildFitnessLane({ ctlVals, atlVals, todayIdx: 2 }, 0, 2, 80, null);
+  assert.deepEqual(
+    geo.labels.map((l) => l.text),
+    ["CTL", "ATL"]
+  );
+});
+
+test("buildTsbLane: unterdrückt das Überlast-Label, wenn es zu nah am unteren Skalenrand liegt", () => {
+  const tsbVals = [0, 1, 2];
+  const geo = buildTsbLane({ tsbVals, todayIdx: 2 }, 0, 2, 82, null);
+  // Werte liegen nahe 0 -> tmin bleibt beim Default (-30), das Überlast-Label
+  // (nahe TSB_OVERLOAD=-25) liegt dann zu nah am Rand und wird gefiltert —
+  // Aufbau- und Frische-Label bleiben.
+  assert.deepEqual(
+    geo.labels.map((l) => l.role),
+    ["fresh", "build"]
+  );
+});
+
 test("buildTsbLane: readKind klassifiziert den Cursor-Wert korrekt in den Korridor", () => {
   const tsbVals = [TSB_OVERLOAD - 5, TSB_BUILD_HIGH - 1, 0, TSB_FRESH_LOW + 1, TSB_FRESH_HIGH + 5];
   const geo = buildTsbLane({ tsbVals, todayIdx: 4 }, 0, 4, 82, 0);
