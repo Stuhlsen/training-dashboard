@@ -175,6 +175,28 @@ test("buildAnswersViewModel: eFTP-Spur ist über die volle Skelettlänge dicht (
   expect((eftpLane!.lane.vals as unknown[]).length).toBe(vm!.N);
 });
 
+test("buildAnswersViewModel: eFTP-Spur formatValue teilt im W/kg-Modus wirklich durch das Gewicht (Regression: zeigte zuvor den rohen Watt-Wert mit 'W/kg'-Einheit)", () => {
+  const vm = buildAnswersViewModel({
+    rides: buildFixtureRides(),
+    wellness: buildFixtureWellness(),
+    planCards: NO_CARDS,
+    events: NO_EVENTS,
+    athleteCfg: athleteConfig("athlete1"),
+    athleteFtp: null,
+    athleteWeightKg: 75,
+    powerCurves: null,
+    unit: "W/kg" as const,
+    todayISO: TODAY,
+  });
+  expect(vm).toBeTruthy();
+  const eftpLane = vm!.groups[0].lanes.find((l) => l.display.key === "eftp");
+  expect(eftpLane).toBeTruthy();
+  const raw = 200;
+  const formatted = eftpLane!.formatValue(raw);
+  expect(formatted).not.toContain("200,00");
+  expect(formatted).toBe("2,67 W/kg");
+});
+
 test("buildAnswersViewModel: ohne Events bleibt der Hero-Countdown '–', keine erfundene Zahl", () => {
   const vm = buildAnswersViewModel({
     rides: buildFixtureRides(),

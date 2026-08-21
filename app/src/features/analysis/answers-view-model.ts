@@ -181,8 +181,12 @@ const VERDICT_COLOR: Record<string, string> = {
   neutral: "var(--text-soft)",
 };
 
-function fmtW(raw: number, unit: PowerUnit): string {
-  return unit === "W/kg" ? `${fmt(raw, 2)} W/kg` : `${fmtInt(raw)} W`;
+function fmtW(raw: number, unit: PowerUnit, weightKg: number | null): string {
+  if (unit === "W/kg") {
+    const perKg = wattsPerKg(raw, weightKg);
+    return perKg != null ? `${fmt(perKg, 2)} W/kg` : "–";
+  }
+  return `${fmtInt(raw)} W`;
 }
 
 /** Baut das komplette View-Model, oder `null` ohne belastbare PMC-Basis
@@ -363,7 +367,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
     { kind: "power", vals: eftpVals },
     { title: "Leistung", sub: "eFTP geschätzt", colorVar: "var(--ss)", legend: [{ label: "eFTP", colorVar: "var(--ss)", shape: "line" }], note: eftpForecast ? `eFTP-Trend ${fmtSigned(eftpForecast.slopePerWeek, 1)} W/Woche.` : "Noch nicht genug eFTP-Historie für einen Trend." },
     56,
-    (v) => fmtW(v, unit),
+    (v) => fmtW(v, unit, weightKg),
     staticUnit(unit),
   );
 
