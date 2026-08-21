@@ -436,6 +436,17 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
 - PowerShell: KEIN `&&` zwischen Befehlen — jeweils eigene Zeile
 - Bei Konflikten mit Action-Auto-Commits: `git fetch origin` dann `git push --force-with-lease origin main`
 - Zeilenenden: `.gitattributes` erzwingt LF im Repo (`* text=auto eol=lf`)
+- **Versions-Tag für Docker-Images:** Nach einem Push nach `main`, der
+  `app/`, `scripts/` oder `supabase/` ändert (löst `publish-images.yml`
+  aus), zusätzlich einen `vX.Y.Z`-Tag setzen und pushen
+  (`git tag vX.Y.Z` / `git push origin vX.Y.Z`) — Patch bei Bugfixes, Minor
+  bei neuen Features, Major bei Breaking Changes. Grund: Der Produktivserver
+  zieht bewusst nie `:latest` (`docs/fahrplan-3-docker-umbau.md`, Fenster
+  DKR4), sondern eine feste Version — ohne neuen Tag bleibt ein Fix dort
+  unsichtbar, auch wenn `main` längst aktualisiert ist. Bleibt ein manueller
+  Schritt mit Rückfrage bei Alex (welche Versionsstufe) — kein automatisches
+  Taggen ohne Bestätigung, ein neuer Tag ist ein sichtbarer, kaum
+  rückholbarer Schritt (löst einen echten Image-Build/-Push aus).
 
 **`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
 ```
