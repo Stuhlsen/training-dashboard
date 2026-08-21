@@ -9,6 +9,18 @@ export const fmt = (v, d = 1) => {
   return Number(v).toFixed(d).replace(".", ",");
 };
 
+/** Zahl auf d Dezimalstellen, deutsches Komma, ECHTES Minus (U+2212 statt
+ *  Bindestrich) — Typografie-Regel aus dem Analyse-Tab-Redesign „Antworten
+ *  & Spuren" (Handoff: „Minus als − (U+2212), nicht Bindestrich"). Bewusst
+ *  eine eigene Funktion statt `fmt()` zu ändern — `fmt()` wird an vielen
+ *  Stellen mit Bindestrich-Erwartung (Tests, CSS `white-space`) genutzt.
+ *  @param {number|null|undefined} v @param {number} [d] @returns {string} */
+export const fmtSigned = (v, d = 1) => {
+  if (v == null || isNaN(v)) return "–";
+  const s = Number(v).toFixed(d).replace(".", ",");
+  return s.replace("-", "−");
+};
+
 /** Ganzzahl oder "–" wenn null
  *  @param {number|null|undefined} v @returns {string} */
 export const fmtInt = (v) => {
