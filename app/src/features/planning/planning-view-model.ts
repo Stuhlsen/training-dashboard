@@ -109,14 +109,17 @@ export function doneDatesOf(rides: Ride[]): Set<string> {
 /** Ob eine Karte als "verpasst" zählt — geteilte Regel zwischen
  *  buildPlanningSections()' missed-Filter (unten) und
  *  week-grid-view-model.ts::statusForDate() (Raster-Status), damit beide
- *  Ansichten für dieselbe Karte nie stillschweigend auseinanderlaufen. */
+ *  Ansichten für dieselbe Karte nie stillschweigend auseinanderlaufen.
+ *
+ *  Eine verschobene Karte zählt genauso wie eine nicht-verschobene: liegt
+ *  ihr (neues) Datum in der Vergangenheit und es gibt keine passende Fahrt,
+ *  ist sie verpasst — unabhängig davon, ob/wie oft sie vorher verschoben
+ *  wurde. Vorherige Sonderregel (verschoben = nie verpasst) ließ verschobene
+ *  Karten mit inzwischen ebenfalls vergangenem Zieldatum unbegrenzt unter
+ *  "Ausstehend" stehen, sobald `originalDate` einmal gesetzt war. */
 export function isMissedCard(card: PlanCard, doneDates: Set<string>, todayIso: string): boolean {
   return (
-    card.date < todayIso &&
-    !doneDates.has(card.date) &&
-    !card.cancelled &&
-    !card.originalDate &&
-    !isRestDay(card)
+    card.date < todayIso && !doneDates.has(card.date) && !card.cancelled && !isRestDay(card)
   );
 }
 
@@ -177,10 +180,12 @@ export function buildPlanningSections(
 ): PlanningSections {
   const { doneDates, recoveryWeeks } = derived;
 
-  // Ausstehend: zukünftig/heute ODER verschoben (auch wenn neues Datum
-  // vergangen), noch kein passender Ride, nicht ausgefallen.
+  // Ausstehend: (neues) Datum liegt noch nicht in der Vergangenheit, noch
+  // kein passender Ride, nicht ausgefallen. Eine verschobene Karte, deren
+  // neues Datum ebenfalls vergangen ist, zählt NICHT mehr automatisch als
+  // ausstehend — sie fällt stattdessen unter "Verpasst" (isMissedCard()).
   const upcoming = cards
-    .filter((c) => (c.date >= todayIso || c.originalDate) && !doneDates.has(c.date) && !c.cancelled)
+    .filter((c) => c.date >= todayIso && !doneDates.has(c.date) && !c.cancelled)
     .sort((a, b) => a.date.localeCompare(b.date));
 
   // Absolviert: Ride mit passendem Datum vorhanden — schließt eine
@@ -190,9 +195,10 @@ export function buildPlanningSections(
     .filter((c) => doneDates.has(c.date) && !c.cancelled)
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  // Verpasst: vergangen, kein Ride, nicht ausgefallen, nicht verschoben,
-  // kein Ruhetag — isMissedCard() ist dieselbe Regel wie
-  // week-grid-view-model.ts::statusForDate() nutzt (geteilt, s. dort).
+  // Verpasst: vergangen, kein Ride, nicht ausgefallen, kein Ruhetag — auch
+  // verschobene Karten, wenn ihr neues Datum ebenfalls vergangen ist.
+  // isMissedCard() ist dieselbe Regel wie week-grid-view-model.ts::
+  // statusForDate() nutzt (geteilt, s. dort).
   const missed = cards
     .filter((c) => isMissedCard(c, doneDates, todayIso))
     .sort((a, b) => b.date.localeCompare(a.date));

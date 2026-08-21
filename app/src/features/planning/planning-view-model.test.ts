@@ -92,10 +92,17 @@ describe("buildPlanningSections", () => {
     expect(buildPlanningSections(cards, [], TODAY).missed).toEqual([]);
   });
 
-  it("hält eine verschobene Karte ausstehend, auch wenn originalDate < heute", () => {
+  it("hält eine verschobene Karte ausstehend, wenn ihr neues Datum noch in der Zukunft liegt", () => {
     const cards = [card({ id: "moved", date: "2026-07-30", originalDate: "2026-07-10" })];
     const sections = buildPlanningSections(cards, [], TODAY);
     expect(sections.weeks.flatMap((w) => w.cards.map((c) => c.id))).toEqual(["moved"]);
+  });
+
+  it("zählt eine verschobene Karte als 'verpasst', wenn auch ihr neues Datum vergangen ist", () => {
+    const cards = [card({ id: "moved-past", date: "2026-07-18", originalDate: "2026-07-10" })];
+    const sections = buildPlanningSections(cards, [], TODAY);
+    expect(sections.missed.map((c) => c.id)).toEqual(["moved-past"]);
+    expect(sections.weeks.flatMap((w) => w.cards.map((c) => c.id))).toEqual([]);
   });
 
   it("zählt Ruhetage weder im Zähler noch im Nenner der Fortschrittsquote", () => {
