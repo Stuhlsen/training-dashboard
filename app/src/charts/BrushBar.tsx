@@ -38,6 +38,10 @@ interface BrushBarProps {
   /** Optik-Variante fürs Hero-Redesign: schmalere Höhe, hellere Akzentfarbe,
    *  6px statt 10px Griffe (Handoff-Maße), ansonsten identische Drag-Logik. */
   variant?: "default" | "hero";
+  /** Blendet die eingebaute Preset-Zeile aus — Hero-Redesign zeigt die
+   *  Presets stattdessen in der Steuerzeile oberhalb der Hero-Karte
+   *  (eigene Buttons dort, gleiche `core/brush.js::presetWindow`-Quelle). */
+  hidePresets?: boolean;
 }
 
 const W_FALLBACK = 780;
@@ -67,7 +71,7 @@ const PRESETS: Array<{ key: "30" | "90" | "365" | "plan2" | "all"; label: string
  *  `requestAnimationFrame` pro Frame gebatcht. Seit Etappe 8c optional
  *  `hoveredDate` (Cursor-Sync, §3) — rein darstellend, ausgelöst vom
  *  PmcChart-Hover, kein eigener Hover auf dieser Leiste. */
-export function BrushBar({ rides, projection, range, onRangeChange, plan2StartISO, hoveredDate, eventDate, presets, variant = "default" }: BrushBarProps) {
+export function BrushBar({ rides, projection, range, onRangeChange, plan2StartISO, hoveredDate, eventDate, presets, variant = "default", hidePresets = false }: BrushBarProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
   const isHero = variant === "hero";
@@ -342,6 +346,7 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
         )}
       </svg>
 
+      {!hidePresets && (
       <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
         {activePresets.filter((p) => p.key !== "plan2" || plan2StartISO).map((p) => (
           <button
@@ -372,6 +377,7 @@ export function BrushBar({ rides, projection, range, onRangeChange, plan2StartIS
           </button>
         ))}
       </div>
+      )}
     </div>
   );
 }

@@ -30,6 +30,21 @@ export const TSB_BUILD_HIGH = -5;
 export const TSB_FRESH_LOW = 5;
 export const TSB_FRESH_HIGH = 20;
 
+/** TSB-Korridor-Einordnung eines einzelnen Werts — geteilte Klassifikation
+ *  zwischen buildTsbLane() (Chart-Ruhewert) und der Hero-/Leitfragen-
+ *  Verdikt-Bildung in features/analysis/answers-view-model.ts, damit beide
+ *  Stellen exakt dieselbe Korridor-Einteilung verwenden.
+ *  @param {number|null|undefined} tsb
+ *  @returns {"overload"|"build"|"neutral"|"fresh"|"too-fresh"|null} */
+export function tsbBandOf(tsb) {
+  if (tsb == null) return null;
+  if (tsb < TSB_OVERLOAD) return "overload";
+  if (tsb <= TSB_BUILD_HIGH) return "build";
+  if (tsb < TSB_FRESH_LOW) return "neutral";
+  if (tsb <= TSB_FRESH_HIGH) return "fresh";
+  return "too-fresh";
+}
+
 /** @param {(number|null)[]} vals @returns {number[]} */
 function nonNull(vals) {
   return vals.filter((v) => v != null);
@@ -248,8 +263,7 @@ export function buildTsbLane(series, r0, r1, h, cursor) {
   out.hasCursorDot = cursor != null && t != null;
   out.cursorY = t != null ? ty(t) : 0;
   out.readValue = t ?? null;
-  out.readKind =
-    t == null ? null : t < TSB_OVERLOAD ? "overload" : t <= TSB_BUILD_HIGH ? "build" : t < TSB_FRESH_LOW ? "neutral" : t <= TSB_FRESH_HIGH ? "fresh" : "too-fresh";
+  out.readKind = tsbBandOf(t);
   return out;
 }
 
