@@ -429,7 +429,11 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneEnergy = lane("energy", { kind: "diverge", vals: ebalVals }, { title: "Energiebilanz", sub: "Zufuhr − Verbrauch", colorVar: "var(--ss)", legend: [{ label: "Überschuss", colorVar: "var(--z1)", shape: "block" }, { label: "Defizit", colorVar: "var(--ss)", shape: "block" }], note: energyDeficitAvgKcal != null ? `Ø ${fmtSigned(energyDeficitAvgKcal, 0)} kcal/Tag über 30 Tage.` : "Noch keine Zufuhr-Daten." }, 52, (v) => fmtSigned(v, 0), (rk) => (rk === "avg30" ? "kcal Ø 30 Tage" : "kcal"));
   const laneHydration = lane("hydration", { kind: "dots", vals: hydrVals }, { title: "Trinkrate", sub: hydration?.field === "hydrationVolume" ? "Tageswert" : "Score", colorVar: "var(--z2)", legend: [{ label: hydration?.field === "hydrationVolume" ? "ml/Tag" : "Score", colorVar: "var(--z2)", shape: "block" }] }, 46, (v) => fmt(v, 0), staticUnit(hydration?.field === "hydrationVolume" ? "ml" : "Score"));
   const laneWeather = lane("weather", { kind: "weather", tempVals, windVals, rainVals }, { title: "Wetter", sub: "Temp · Wind · Regen", colorVar: "var(--text-soft)", legend: [{ label: "Temperatur", colorVar: "var(--text-soft)", shape: "line" }, { label: "über 24 °C", colorVar: "var(--ss)", shape: "block" }, { label: "Regen", colorVar: "var(--z2)", shape: "block" }] }, 50, (v) => fmt(v, 0), (rk) => (rk === "hot-days" ? "Tage über 24 °C" : "°C"));
-  const laneWeight = lane("weight", { kind: "line", vals: weightVals }, { title: "Gewicht", sub: "Trend", colorVar: "var(--role-status)", legend: [{ label: "Gewicht", colorVar: "var(--role-status)", shape: "line" }] }, 44, (v) => fmt(v, 1), staticUnit("kg"));
+  // "dots" statt "line": Gewicht wird unregelmäßig gemessen (oft einzelne Tage
+  // ohne direkten Vorgänger/Nachfolger) — "line" verbindet nur ≥2 aufeinander-
+  // folgende Messtage und lässt isolierte Werte komplett unsichtbar verschwinden
+  // (core/trace-lanes.js::segmentPoints verwirft Ein-Punkt-Segmente).
+  const laneWeight = lane("weight", { kind: "dots", vals: weightVals }, { title: "Gewicht", sub: "Trend", colorVar: "var(--role-status)", legend: [{ label: "Gewicht", colorVar: "var(--role-status)", shape: "block" }] }, 44, (v) => fmt(v, 1), staticUnit("kg"));
 
   void HYDRATION_TARGET_MLH; // Zielwert bewusst nicht als Lane-Target verwendet, s. Kopfkommentar
 

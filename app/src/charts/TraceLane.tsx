@@ -6,6 +6,15 @@
    für horizontales Strecken, Ruhewert-Spalte rechtsbündig).
    ============================================================ */
 
+/** Grid-Spaltenbreiten (Label-Spalte | Chart-Spalte | Ruhewert-Spalte),
+ *  geteilt mit TraceCard.tsx — die Fadenkreuz-Positionsberechnung dort
+ *  muss exakt dieselben Werte kennen wie das Grid hier, sonst läuft der
+ *  Mauszeiger nicht mit der gezeichneten Linie mit (Versatz proportional
+ *  zur Entfernung von der Kartenmitte, s. Kopfkommentar TraceCard.tsx). */
+export const LANE_LABEL_COL = 148;
+export const LANE_VALUE_COL = 116;
+const LANE_GRID_TEMPLATE = `${LANE_LABEL_COL}px minmax(0, 1fr) ${LANE_VALUE_COL}px`;
+
 export interface LaneLine {
   d: string;
   width: number;
@@ -150,7 +159,7 @@ export function TraceLane({ display, geometry: g, height, expanded, onToggle, cu
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "grid", gridTemplateColumns: "148px minmax(0, 1fr) 116px", alignItems: "stretch", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: LANE_GRID_TEMPLATE, alignItems: "stretch", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
         <button
           type="button"
           onClick={onToggle}

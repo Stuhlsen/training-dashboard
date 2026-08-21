@@ -11,7 +11,9 @@
 import { useCallback, useRef, useState, type MouseEvent } from "react";
 import { GlassCard } from "../components/GlassCard";
 import { buildLaneGeometry } from "../core/trace-lanes.js";
-import { TraceLane, type LaneDisplay } from "./TraceLane";
+import { TraceLane, LANE_LABEL_COL, LANE_VALUE_COL, type LaneDisplay } from "./TraceLane";
+
+const GRID_TEMPLATE = `${LANE_LABEL_COL}px minmax(0, 1fr) ${LANE_VALUE_COL}px`;
 
 type LaneKind = "line" | "power" | "dots" | "bars" | "tssBars" | "zoneStack" | "fitness" | "tsb" | "diverge" | "weather";
 
@@ -76,8 +78,14 @@ export function TraceCard({ lanes, r0, r1, todayIdx, eventIdx, formatDay, dense 
   const handleMove = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
       const rect = wrapRef.current?.getBoundingClientRect();
-      if (!rect || rect.width <= 0) return;
-      const frac = (e.clientX - rect.left) / rect.width;
+      if (!rect) return;
+      // Fadenkreuz lebt nur in der mittleren Chart-Spalte (s. LANE_GRID_TEMPLATE-
+      // Kommentar in TraceLane.tsx) — Label-/Ruhewert-Spalte links/rechts müssen
+      // aus der Mausposition rausgerechnet werden, sonst läuft die Linie nicht am
+      // Zeiger mit (Versatz wächst mit dem Abstand von der Kartenmitte).
+      const chartWidth = rect.width - LANE_LABEL_COL - LANE_VALUE_COL;
+      if (chartWidth <= 0) return;
+      const frac = (e.clientX - rect.left - LANE_LABEL_COL) / chartWidth;
       if (frac < 0 || frac > 1) return;
       const idx = Math.max(r0, Math.min(r1, Math.round(r0 + frac * span)));
       setCursor((prev) => (prev === idx ? prev : idx));
@@ -121,7 +129,7 @@ export function TraceCard({ lanes, r0, r1, todayIdx, eventIdx, formatDay, dense 
           );
         })}
 
-        <div style={{ display: "grid", gridTemplateColumns: "148px minmax(0, 1fr) 116px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: GRID_TEMPLATE }}>
           <span />
           <div style={{ position: "relative", height: 22 }}>
             {ticks.map((t) => (
