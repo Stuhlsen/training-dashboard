@@ -6,13 +6,20 @@
    für die neue "Absolviert"-Tabelle, s. done-table-view-model.ts) — dieses
    Modul liefert stattdessen eine EINHEITLICHE Kalenderstruktur über ALLE
    Status (done/today/open/missed/cancelled/empty) hinweg, weil das Raster
-   anders als die bisherige Karten-Liste jede Woche komplett zeigt statt nur
-   die anstehende.
+   anders als die bisherige Karten-Liste jede Tageszelle einer Woche zeigt,
+   nicht nur die anstehenden Karten.
 
-   Kein künstliches Wochenlimit (Entscheidung mit Alex, Etappe-13-Plan): das
-   Raster braucht pro Woche deutlich weniger Platz als die bisherige
-   Karten-Liste, deshalb werden alle Wochen gezeigt, die mindestens eine
-   Karte enthalten (Vergangenheit UND Zukunft). ============================ */
+   Nur aktuelle + zukünftige Wochen (Korrektur nach Etappe 13c, 21.08.2026):
+   Der Bereich im Planungstab heißt "Ausstehend" — vollständig vergangene
+   Wochen gehören dort nicht rein, die absolvierten/verpassten/ausgefallenen
+   Karten stehen bereits in der "Absolviert"-Tabelle bzw. deren Lücken-Chips
+   (done-table-view-model.ts::gapsChips). Frühere Fassung zeigte hier bewusst
+   ALLE Wochen inkl. reiner Vergangenheit ("kein künstliches Wochenlimit") —
+   das führte dazu, dass Karten bis zum allerersten Plantag unter "Ausstehend"
+   auftauchten, obwohl sie längst anderswo (Absolviert-Tabelle) sichtbar
+   waren. Die aktuelle, noch laufende Woche bleibt trotzdem komplett sichtbar
+   (auch ihre bereits vergangenen Tage) — nur ganze Wochen VOR der aktuellen
+   werden rausgefiltert. ============================ */
 
 import { isoWeekKey } from "../../core/aggregate.js";
 import { weekDays } from "../../core/plan-drag.js";
@@ -181,6 +188,10 @@ export function buildWeekGrid(
     };
   });
 
-  const maxTss = Math.max(1, ...rows.map((r) => r.tssSum));
-  return rows.map((r) => ({ ...r, loadPct: Math.round((r.tssSum / maxTss) * 100) }));
+  // Ganze Wochen vor der aktuellen raus — die laufende Woche (rangeEnd >=
+  // todayIso) bleibt trotz teilweise vergangener Tage komplett erhalten.
+  const currentAndFuture = rows.filter((r) => r.rangeEnd >= todayIso);
+
+  const maxTss = Math.max(1, ...currentAndFuture.map((r) => r.tssSum));
+  return currentAndFuture.map((r) => ({ ...r, loadPct: Math.round((r.tssSum / maxTss) * 100) }));
 }

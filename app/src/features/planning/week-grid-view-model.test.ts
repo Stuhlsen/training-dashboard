@@ -63,10 +63,10 @@ describe("buildWeekGrid — Status je Tag", () => {
     expect(cellFor(grid, "2026-08-10").status).toBe("missed");
   });
 
-  it("markiert eine verschobene vergangene Karte NICHT als 'missed'", () => {
+  it("markiert eine verschobene Karte als 'missed', wenn auch ihr neues Datum vergangen ist", () => {
     const cards = [card({ id: "a", date: "2026-08-10", originalDate: "2026-08-09" })];
     const grid = buildWeekGrid(cards, [], TODAY);
-    expect(cellFor(grid, "2026-08-10").status).toBe("open");
+    expect(cellFor(grid, "2026-08-10").status).toBe("missed");
   });
 
   it("markiert eine ausgefallene Karte als 'cancelled'", () => {
@@ -176,5 +176,18 @@ describe("buildWeekGrid — Wochenstruktur", () => {
 
   it("liefert für ein leeres Karten-Array ein leeres Raster", () => {
     expect(buildWeekGrid([], [], TODAY)).toEqual([]);
+  });
+
+  it("lässt ganze Wochen vor der aktuellen weg, behält die laufende Woche trotz vergangener Tage komplett", () => {
+    const cards = [
+      card({ id: "past-week", date: "2026-08-03" }), // KW32, ganz vergangen
+      card({ id: "current-week-past-day", date: "2026-08-10" }), // KW33, Montag (vergangen)
+      card({ id: "current-week-future-day", date: "2026-08-14" }), // KW33, Freitag (zukünftig)
+      card({ id: "future-week", date: "2026-08-19" }), // KW34, ganz zukünftig
+    ];
+    const grid = buildWeekGrid(cards, [], TODAY);
+    expect(grid.map((w) => w.weekKey)).toEqual(["2026-KW33", "2026-KW34"]);
+    expect(cellFor(grid, "2026-08-10").status).toBe("missed");
+    expect(cellFor(grid, "2026-08-14").status).toBe("open");
   });
 });
