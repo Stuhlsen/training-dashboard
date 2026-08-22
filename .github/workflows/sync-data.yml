@@ -52,9 +52,26 @@ jobs:
       # für den Versions-Footer (vite.config.ts::resolveVersion, Issue #6),
       # ein Shallow-Checkout hat keine Tags dabei und "git describe" liefe dort
       # ins Leere.
+      #
+      # token: SYNC_PUSH_TOKEN statt des Standard-GITHUB_TOKEN (22.08.2026) —
+      # main hat seit Kurzem Branch Protection (PR + Review + Status-Checks
+      # Pflicht). Der Standard-Actions-Bot-Push scheiterte seitdem bei jedem
+      # Lauf mit "GH006: Protected branch update failed... Changes must be
+      # made through a pull request" — 3 stille Retries, dann lief der Schritt
+      # trotzdem als "Erfolg" durch (kein `exit 1` nach der Retry-Schleife),
+      # dadurch unbemerkt: data/*.json fror auf dem letzten erfolgreichen
+      # Stand (19.08.2026) ein, s. docs/offene-punkte.md. Ein Bot-Bypass in
+      # der Branch-Protection-Regel selbst (bypass_pull_request_allowances)
+      # ist für persönliche (Nicht-Organisations-)Repos nicht verfügbar
+      # (GitHub liefert dafür einen 500 statt einer sauberen Ablehnung).
+      # SYNC_PUSH_TOKEN ist ein Fine-grained PAT von Alex (Repo-Owner) mit
+      # "Contents: Read and write" — Owner-Pushes umgehen die PR-Pflicht
+      # bereits (enforce_admins: false), also reicht dieser Identitätswechsel
+      # ohne weitere Protection-Änderung.
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          token: ${{ secrets.SYNC_PUSH_TOKEN }}
 
       - uses: actions/setup-node@v4
         with:
@@ -111,12 +128,23 @@ jobs:
           # Schutz-Checkout nötig, einfaches Commit reicht.
           [ -f data/interval-blocks.json ] && git add data/interval-blocks.json
           git diff --staged --quiet || git commit -m "chore: update training data [skip ci]"
+          # `exit 1` nach der Schleife, wenn kein Versuch durchkam (22.08.2026)
+          # — zuvor lief dieser Schritt auch nach 3 gescheiterten Push-
+          # Versuchen als "Erfolg" durch: die Schleife endete einfach, ohne
+          # den Job fehlschlagen zu lassen. Genau das ließ die Branch-
+          # Protection-Blockade (GH006, s. SYNC_PUSH_TOKEN-Kommentar oben)
+          # tagelang unbemerkt — data/*.json fror auf altem Stand ein, ohne
+          # dass ein einziger Sync-Lauf rot wurde. `pushed` als Wächter
+          # macht einen künftigen Fehlschlag (abgelaufener Token, Netzwerk,
+          # Rebase-Konflikt) wieder sichtbar, statt still zu verpuffen.
+          pushed=false
           for i in 1 2 3; do
             git fetch origin
-            git rebase "origin/$GITHUB_REF_NAME" && git push && break
+            git rebase "origin/$GITHUB_REF_NAME" && git push && { pushed=true; break; }
             echo "Push failed, retrying in 5s..."
             sleep 5
           done
+          $pushed || { echo "::error::Push nach $GITHUB_REF_NAME fehlgeschlagen (3 Versuche) — data/*.json NICHT aktualisiert."; exit 1; }
 
       - name: Build React-App (/app/)
         working-directory: app
