@@ -25,6 +25,21 @@ Beide Teile teilen sich GitHub Actions (Sync alle 6h, je ein CI-Job pro
 Teil — `ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer nur bei
 Änderungen unter `app/**`).
 
+**Versions-Aktualität (seit 22.08.2026):** `.github/dependabot.yml` prüft
+wöchentlich npm-Pakete (Root + `/app/`), Docker-Images (Root,
+`/app/`, `/scripts/`, `/supabase/` — je eigener Dockerfile-/Compose-Ort)
+und GitHub-Actions-Versionen, öffnet bei Veraltung automatisch PRs. Löst
+nicht automatisch — jeder PR wird wie jeder andere geprüft/gemergt.
+Deckt nur ab, was im Repo selbst gepinnt ist: Tonys eigene Pulls auf
+apps01 (Postgres/GoTrue/PostgREST/Caddy laufen dort über sein eigenes
+Renovate-Tooling, s. `docs/fahrplan-3-docker-umbau.md`) bleiben davon
+unberührt — die `supabase/postgres`-Pins hier in `docker-compose.selfhost.yml`
+sind nur die lokale Referenz, kein Deploy an apps01. Anlass: Tony wies
+Alex am 22.08.2026 darauf hin, dass der lokale `supabase/postgres`-Pin auf
+Version 15 stehengeblieben war, obwohl Supabase seit Juni 2026
+standardmäßig auf 17 wechselte — bis dahin gab es keinen Mechanismus, der
+das automatisch aufgefallen wäre.
+
 **Warum Node ≥ 24 für den Root-Teil:** `npm test` läuft als
 `node --test --experimental-test-module-mocks`. Das Flag (und `mock.module()`)
 gibt es zwar bereits ab Node 22.3, aber `mock.module()`-Aufrufe im Repo
