@@ -471,12 +471,31 @@ dazu:
    `-e NOTION_API_KEY=` aus Abschnitt 2 einen späteren echten `.env`-Wert im
    selben Prozess blockieren) — Details im Kommentar dort.
 
+**Stand 22.08.2026: `supabase/postgres` von 15 auf 17 gehoben.** Tony wies
+darauf hin, dass Supabase im offiziellen Self-Host-Compose seit Juni 2026
+standardmäßig Postgres 17 statt 15 verwendet. `15.14.1.165` → `17.6.1.165`
+(gleiche Build-Nummer, paralleles Release-Schema, kein Zufall), an beiden
+Stellen (`postgres` UND `db-init`, s. Codeblock unten). Kein `pg_upgrade`
+nötig: das lokale `pgdata`-Volume enthält nur Testdaten (`down -v` vor dem
+Neustart), und die apps01-Server-DB war laut Stand 19.08.2026 ohnehin noch
+leer an echten Nutzerdaten. Frischer Stack (`down -v` + `up -d --build`)
+erneut voll verifiziert: `db-init` und `migrate` liefen mit Exit-Code 0,
+`gotrue` wurde `healthy` (weiterhin auf Port 8081), `npm test` lief
+**100/100 grün** (davon 28 RLS-Tests). Alle vier unten dokumentierten
+versionsspezifischen Eigenheiten (Passwörter, Search-Path, Port 8081,
+Default-Privileges-Leck) verhalten sich unter 17 identisch zu 15 — nichts
+davon musste angepasst werden. `supabase/Dockerfile` (der `migrate`-Dienst,
+dbmate-basiert) ist Postgres-Version-agnostisch, keine Änderung nötig.
+Keine Migration nutzt `CREATE EXTENSION` — verlässt sich auf die im Image
+vorinstallierten `pgcrypto`/`pgjwt`/`uuid-ossp`, die auch in den 17er-Images
+enthalten sind.
+
 ### `docker-compose.selfhost.yml`
 
 ```yaml
 services:
   postgres:
-    image: supabase/postgres:15.14.1.165
+    image: supabase/postgres:17.6.1.165
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -492,7 +511,7 @@ services:
   # s. Lücken 1 und 4 oben — setzt Passwörter und widerruft die vom Image
   # automatisch vergebenen Default-Privileges, bevor "migrate" läuft.
   db-init:
-    image: supabase/postgres:15.14.1.165
+    image: supabase/postgres:17.6.1.165
     depends_on:
       postgres:
         condition: service_healthy
