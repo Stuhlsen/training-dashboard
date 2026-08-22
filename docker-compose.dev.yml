@@ -2,6 +2,12 @@ services:
   frontend:
     build:
       context: ./app
+      args:
+        # Docker-Build-Context ist nur ./app (kein .git) — vite.config.ts kann
+        # die Version hier nicht per "git describe" ermitteln (Issue #6).
+        # Ohne gesetzte Shell-Variable bleibt der generische "dev"-Fallback,
+        # s. docs/docker-lokal-einrichten.md, Testablauf.
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-dev}
     ports:
       - "8080:8080"
     environment:

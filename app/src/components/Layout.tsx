@@ -1,6 +1,7 @@
 import type { CSSProperties } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { EnvBadge } from "./EnvBadge";
+import { Footer } from "./Footer";
 import { useAuth } from "../api/auth/useAuth";
 
 const NAV_ITEMS = [
@@ -92,6 +93,7 @@ export function Layout() {
       <main>
         <Outlet />
       </main>
+      <Footer />
     </div>
   );
 }

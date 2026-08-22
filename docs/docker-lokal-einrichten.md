@@ -195,6 +195,9 @@ still auf die Hostname-Tabelle zurück).
 ### Testablauf
 
 ```powershell
+# $env:VITE_APP_VERSION setzen, sonst zeigt der Footer nur "dev" (Issue #6,
+# Grund s. Kommentar in docker-compose.dev.yml) statt der echten Version
+$env:VITE_APP_VERSION = git describe --tags --always --dirty
 docker compose -f docker-compose.dev.yml build
 docker compose -f docker-compose.dev.yml up -d
 docker compose -f docker-compose.dev.yml ps

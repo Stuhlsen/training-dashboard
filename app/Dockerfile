@@ -4,6 +4,11 @@ WORKDIR /build
 COPY package*.json ./
 RUN npm ci
 COPY . .
+# Build-Context ist nur ./app (kein .git) — vite.config.ts kann die Version
+# hier nicht per "git describe" ermitteln, ARG/ENV liefert sie stattdessen
+# (aus dem Tag-Namen, s. publish-images.yml). Issue #6.
+ARG VITE_APP_VERSION
+ENV VITE_APP_VERSION=$VITE_APP_VERSION
 RUN npm run build:docker
 
 # Stufe 2: Ausliefern

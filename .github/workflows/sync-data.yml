@@ -47,7 +47,14 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 (voller Verlauf inkl. Tags) statt des Default-Shallow-
+      # Checkouts — "npm run build" (Schritt unten) braucht die Tag-Historie
+      # für den Versions-Footer (vite.config.ts::resolveVersion, Issue #6),
+      # ein Shallow-Checkout hat keine Tags dabei und "git describe" liefe dort
+      # ins Leere.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:

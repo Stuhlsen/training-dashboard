@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { execSync } from "node:child_process";
 import { createReadStream, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -6,6 +7,32 @@ import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+/** Versions-Footer (Issue #6). `git describe` braucht den echten Repo-Verlauf
+ *  (Tags) — vorhanden bei lokalem Dev/Build und im GH-Pages-Workflow (Checkout
+ *  des ganzen Repos), NICHT im Docker-Build: dort ist der Build-Context nur
+ *  `./app` (s. publish-images.yml), `.git` liegt außerhalb und ist gar nicht
+ *  erst kopiert — `execSync` wirft dort, `VITE_APP_VERSION` (vom Dockerfile
+ *  per ARG aus dem Tag-Namen gesetzt) greift als Fallback.
+ *
+ *  GH Pages baut `main` bei JEDEM Push neu, nicht nur beim Taggen — dort wäre
+ *  die volle "-N-gHASH[-dirty]"-Beschreibung fast immer der Normalfall statt
+ *  der Ausnahme. `GITHUB_ACTIONS=true` (von jedem GH-Actions-Runner automatisch
+ *  gesetzt, kein eigenes Plumbing nötig) schaltet dort auf "nur der letzte
+ *  Tag" um — lokal (Dev-Server/-Build) bleibt der volle Debug-Stand, der ist
+ *  dort hilfreich. */
+function resolveVersion(): string {
+  if (process.env.VITE_APP_VERSION) return process.env.VITE_APP_VERSION;
+  try {
+    const cmd =
+      process.env.GITHUB_ACTIONS === "true"
+        ? "git describe --tags --abbrev=0"
+        : "git describe --tags --always --dirty";
+    return execSync(cmd, { cwd: REPO_ROOT }).toString().trim();
+  } catch {
+    return "dev";
+  }
+}
 
 /** Liefert die per Cron erzeugten `/data/*.json` im DEV-Server aus
  *  (Konzept 5.5, in Etappe 2b bestätigt: die JSON-Pipeline bleibt
@@ -49,6 +76,10 @@ export default defineConfig(({ command }) => ({
   // /training-dashboard/ statt / entwickelt werden.
   base: command === "build" ? "/training-dashboard/" : "/",
   plugins: [react(), serveRepoData()],
+  define: {
+    __APP_VERSION__: JSON.stringify(resolveVersion()),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+  },
   test: {
     // Zwei Projekte, damit die portierte core-Schicht (Etappe 2a) nicht
     // unnötig jsdom hochfährt: core/ ist reine Rechenlogik ohne DOM-Zugriff
