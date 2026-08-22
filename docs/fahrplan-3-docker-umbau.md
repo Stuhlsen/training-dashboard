@@ -421,6 +421,26 @@ wird.
 **Vorbedingung:** DKR4 abgeschlossen.
 **Modell:** `[F5]`
 
+### Stand 22.08.2026 — Nutzer-Migration bestätigt, Rest weiter ungeprüft
+
+Live-Check gegen `clear-solutions-it.com` (Playwright, kein Login nötig,
+kein Klartext-Feld abgefragt):
+
+- **`public.profiles`: 4 Zeilen, alle mit `created_at` vom 31.07.2026**
+  (innerhalb einer Minute) — das ist ein echter, einmaliger Migrationslauf,
+  keine zufällig durch den `on_auth_user_created`-Trigger entstandenen
+  Leerprofile. Nutzer-Übertragung (Abschnitt 3 unten) hat demnach bereits
+  stattgefunden, auch wenn hier nirgends ein Häkchen dafür gesetzt war.
+- **`data/rides.json` auf dem Server ist aktuell**, nicht der eingefrorene
+  Snapshot, den ein früherer automatischer Check fälschlich vermutet hatte:
+  `updated` 22.08.2026 18:15 UTC, 95 Fahrten bis 22.08. — s. korrigierter
+  Eintrag in `docs/offene-punkte.md`.
+
+**Weiterhin ungeprüft**, deshalb bleiben die Abnahme-Kästchen unten offen:
+RLS-Suite gegen die Produktivinstanz, Zeilenabgleich je Tabelle gegen die
+Cloud, Backup-Lauf, Restore-Probe. Die beiden obigen Punkte sind Beleg für
+„Daten sind da und aktuell", nicht für „DKR5 vollständig abgenommen".
+
 Fertige Befehle zum Kopieren (Datenmigration-Pipeline inkl. Trigger-Falle,
 Abgleich-Skript, Backup-Abnahmeliste, Restore-Probe-Vorlage) stehen in
 `docs/docker-server-einrichten.md` — dort auch der aktuelle Stand-Hinweis

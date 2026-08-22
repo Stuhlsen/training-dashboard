@@ -43,6 +43,16 @@
   braucht mindestens einen echten Ramp-Test-Eintrag pro Athlet in
   `ftp_history` (aktuell leer). `app/src/sports/cycling/session-types.ts`.
 
+- **Lesedaten (`rides.json`/`adjustments*.json`) noch als statische Dateien,
+  nicht in Supabase** — Sofort-Fix aus Tonys Diagnose (22.08.2026,
+  Sync-Container ohne Zugangsdaten) ist umgesetzt und bestätigt: Live-Check
+  gegen `clear-solutions-it.com` am 22.08.2026 (Playwright, `fetch()` im
+  echten Browser) zeigt `rides.json` aktuell — `updated` 22.08.2026 18:15 UTC,
+  95 Fahrten bis 22.08. Langfristig sauberer bleibt trotzdem: eigene Tabelle + RLS für diese Daten,
+  Sync schreibt via API statt JSON-Datei, Frontend fragt wie die übrigen
+  Supabase-Daten ab — würde den ganzen Datei-Umweg entfallen lassen. Größere
+  Architektur-Entscheidung, nicht nebenbei. → Datenquellen-Mix in `AGENTS.md`.
+
 ## Explorer / Charts
 
 - **Alle Chart-Komponenten rechnen indexbasiert** (`makeIndexScale`), nicht
