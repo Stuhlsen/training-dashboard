@@ -60,6 +60,41 @@ describe("buildHeroViewModel", () => {
     expect(vm.eftp.progress).toBeCloseTo((199 - 166) / (210 - 166));
     expect(vm.ramp.value).toBe(193);
     expect(vm.ramp.progress).toBeCloseTo((193 - 166) / (210 - 166));
+    // eFTP (199) > ramp (193) → eFTP bleibt der große, akzentuierte Ring.
+    expect(vm.ftpPrimary).toBe("eftp");
+  });
+
+  it("ftp_history: ein gültiger ramp-test-Eintrag überschreibt athleteCfg.ftpMeasured (22.08.2026-Bug — Hero ignorierte ftp_history komplett)", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      ftpHistoryEntries: [
+        { id: "1", ftpWatt: 205, validFrom: "2026-07-01", source: "ramp-test", note: null },
+      ],
+    });
+    expect(vm.ramp.value).toBe(205);
+    expect(vm.ramp.date).toBe("2026-07-01");
+    // 205 (ramp) > 199 (eFTP-Fallback) → jetzt der Ramp-Ring vorn.
+    expect(vm.ftpPrimary).toBe("ramp");
+  });
+
+  it("ftp_history: Eintrag NACH todayISO gilt noch nicht → Fallback auf athleteCfg.ftpMeasured", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      ftpHistoryEntries: [
+        { id: "1", ftpWatt: 205, validFrom: "2026-08-01", source: "ramp-test", note: null },
+      ],
+    });
+    expect(vm.ramp.value).toBe(193);
+  });
+
+  it("ftp_history: nur source \"ramp-test\" zählt, \"schaetzung\" wird ignoriert (analog export-briefing-view-model.ts)", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      ftpHistoryEntries: [
+        { id: "1", ftpWatt: 250, validFrom: "2026-07-01", source: "schaetzung", note: null },
+      ],
+    });
+    expect(vm.ramp.value).toBe(193);
   });
 
   it("Ring-Prozente Athlet 2: keine eigene Saisonbasis → Ringbasis fällt auf ftpMeasured zurück", () => {

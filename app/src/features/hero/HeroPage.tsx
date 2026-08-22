@@ -6,7 +6,7 @@ import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useTodayCheckin } from "../../api/hooks/useWellbeing";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useEvents, raceCountdown } from "../../api/hooks/useEvents";
-import { useMouseParallax } from "../../hooks/useMouseParallax";
+import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { athleteConfig } from "../../config";
 import { localISODate } from "../../core/format.js";
 import { buildWeekReview } from "../../core/weekreview.js";
@@ -31,10 +31,9 @@ type WellnessDay = import("../../types.js").WellnessDay;
 
 const TODAY = localISODate();
 
-/** Tilt-Amplitude in Grad (`Hero-Weitwinkel.dc.html`s `tiltAmount`-Prop,
- *  dortiger Default 3.4°) — hier fest statt als Design-Editor-Prop, da diese
- *  Seite kein Editor-UI hat. */
-const TILT_AMOUNT = 3.4;
+/** Feste Basis-Kippung der Plate in Grad (`Hero-Weitwinkel.dc.html`s
+ *  `tiltAmount`-Prop) — statisch, keine Mausverfolgung mehr (bis 22.08.2026
+ *  vorhanden, auf Wunsch entfernt, s. AppBackground.tsx). */
 const BASE_ROTATE_X = 1.6;
 
 export function HeroPage() {
@@ -54,6 +53,10 @@ export function HeroPage() {
   // Athleten dessen Briefing mit dem eigenen Befinden vermischt (Muster
   // wie isSelfAthlete() in api/write-authorization.ts).
   const { isSelf } = useIsSelfAthlete(activeAthleteId);
+  // ftp_history hängt wie der Check-in an auth.uid(), nicht am
+  // Athleten-Toggle — nur bei isSelf anwenden, sonst würde ein Toggle auf
+  // den anderen Athleten dessen Ring mit der eigenen FTP-Historie zeigen.
+  const { entries: ftpHistoryEntries } = useFtpHistory();
   // Sichtbarkeits-Matrix (docs/phase-6-konzept-sichtbarkeit.md): die
   // Governor-/Belastungsempfehlung erbt die Sichtbarkeit ihrer sensibelsten
   // Quelle (Befinden) und ist für Besucher grundsätzlich ❌ — unabhängig
@@ -93,8 +96,16 @@ export function HeroPage() {
       planCards: planCards ?? [],
       subjective: isSelf ? (checkin?.subjective ?? null) : null,
       todayISO: TODAY,
+      // ftp_history hängt wie der Check-in an auth.uid(), nicht am
+      // Athleten-Toggle — nur bei isSelf anwenden, sonst würde ein Toggle
+      // auf den anderen Athleten dessen Ring mit der eigenen FTP-Historie
+      // zeigen. Ternary bewusst HIER (im Memo-Callback), nicht in einer
+      // eigenen Variable davor — sonst erzeugt `isSelf ? entries : []` bei
+      // jedem Render ein neues Array und triggert das Memo unabhängig von
+      // echten Datenänderungen (react-hooks/exhaustive-deps).
+      ftpHistoryEntries: isSelf ? ftpHistoryEntries : [],
     });
-  }, [activeAthleteId, athleteData, planCards, isSelf, checkin]);
+  }, [activeAthleteId, athleteData, planCards, isSelf, checkin, ftpHistoryEntries]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
 
@@ -125,19 +136,6 @@ export function HeroPage() {
     [rides, planCards],
   );
 
-  // 3D-Tilt der gesamten Karten-"Plate" mit der Mausposition — der
-  // Hintergrund-Pan läuft unabhängig in AppBackground.tsx (eigene
-  // useMouseParallax-Instanz, s. dortigen Kommentar).
-  const plateRef = useMouseParallax<HTMLDivElement>(
-    (el, nx, ny) => {
-      el.style.transition = "transform .18s linear";
-      el.style.transform = `rotateX(${(BASE_ROTATE_X - ny * TILT_AMOUNT * 0.55).toFixed(2)}deg) rotateY(${(nx * TILT_AMOUNT).toFixed(2)}deg)`;
-    },
-    (el) => {
-      el.style.transition = "transform .6s cubic-bezier(.2,.7,.2,1)";
-      el.style.transform = `rotateX(${BASE_ROTATE_X}deg)`;
-    },
-  );
 
   if (isLoading || !athleteData) {
     return <p style={{ color: "var(--ink-3)", padding: 40 }}>{error ? "Fehler beim Laden der Trainingsdaten." : "Lädt…"}</p>;
@@ -160,7 +158,6 @@ export function HeroPage() {
       }}
     >
       <div
-        ref={plateRef}
         style={{
           width: "100%",
           maxWidth: 2040,
@@ -171,8 +168,6 @@ export function HeroPage() {
           gap: 34,
           transformStyle: "preserve-3d",
           transform: `rotateX(${BASE_ROTATE_X}deg)`,
-          transition: "transform .5s cubic-bezier(.2,.7,.2,1)",
-          willChange: "transform",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap", transform: "translateZ(70px)" }}>
@@ -252,7 +247,7 @@ export function HeroPage() {
           )}
 
           <div style={{ transform: "translateZ(30px)" }}>
-            <FtpRings eftp={vm.eftp} ramp={vm.ramp} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />
+            <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />
           </div>
         </div>
 

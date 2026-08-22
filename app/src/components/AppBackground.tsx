@@ -1,5 +1,3 @@
-import { useMouseParallax } from "../hooks/useMouseParallax";
-
 /** `app/public/background.png` (1376×768) — von Alex geliefert, da
  *  `DesignSync.get_file` bei 256 KiB deckelt und die in
  *  `.image-slots.state.json` eingebettete Bild-Data-URI nur `truncated`
@@ -9,8 +7,6 @@ import { useMouseParallax } from "../hooks/useMouseParallax";
  *  Pages unter `/training-dashboard/` (Etappe 10c, Live-Verifikation). */
 const BACKGROUND_IMAGE_URL = `${import.meta.env.BASE_URL}background.png`;
 
-const PAN_AMOUNT_X = 14;
-const PAN_AMOUNT_Y = 10;
 const BASE_SCALE = "scale(1.06)";
 
 /** Viewport-weiter Hintergrund (Foto + zwei Gradient-Overlays), einmal in
@@ -18,20 +14,13 @@ const BASE_SCALE = "scale(1.06)";
  *  ab (Alex' Vorgabe), ohne den Hintergrund in `LoginPage.tsx` UND `Layout.tsx`
  *  zu duplizieren. `position:fixed` macht die Platzierung im Elementbaum
  *  irrelevant für die Optik. Quelle: `Hero-Weitwinkel.dc.html`
- *  (Design-Projekt `fed5c129-1eb1-4ea8-a950-ad70fa39ddad`). */
+ *  (Design-Projekt `fed5c129-1eb1-4ea8-a950-ad70fa39ddad`). Bewusst OHNE
+ *  Maus-Parallax (bis 22.08.2026 vorhanden, auf Wunsch entfernt — störte
+ *  beim normalen Hovern über die Seite). */
 export function AppBackground() {
-  const bgRef = useMouseParallax<HTMLDivElement>(
-    (el, nx, ny) => {
-      el.style.transform = `${BASE_SCALE} translate(${(-nx * PAN_AMOUNT_X).toFixed(1)}px, ${(-ny * PAN_AMOUNT_Y).toFixed(1)}px)`;
-    },
-    (el) => {
-      el.style.transform = BASE_SCALE;
-    },
-  );
-
   return (
     <div style={{ position: "fixed", inset: "-6% -4%", zIndex: 0 }} aria-hidden="true">
-      <div ref={bgRef} style={{ position: "absolute", inset: 0, transform: BASE_SCALE, willChange: "transform" }}>
+      <div style={{ position: "absolute", inset: 0, transform: BASE_SCALE }}>
         <div
           style={{
             position: "absolute",

@@ -38,7 +38,9 @@ import {
   buildMilestones,
 } from "../../core/ftp-progress.js";
 import { computeZones, sweetSpotBand, whatIfScaleMax } from "../../core/zones.js";
+import { currentFtpEntry } from "../../core/ftp-history.js";
 import type { PlanCard } from "../../api/types";
+import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -106,6 +108,13 @@ export interface HeroCoreInput {
   planCards: PlanCard[];
   subjective: Subjective | null;
   todayISO: string;
+  /** FTP-Historie des eingeloggten Athleten (Settings → "FTP-Historie") —
+   *  nur bei isSelf befüllt (s. HeroPage.tsx), sonst leer, damit ein
+   *  Athleten-Toggle nicht die eigene Historie über einen fremden Athleten
+   *  legt. Nur "ramp-test"-Quellen zählen als gemessene FTP (analog
+   *  export-briefing-view-model.ts), ohne Eintrag Fallback auf
+   *  `athleteCfg.ftpMeasured`. */
+  ftpHistoryEntries?: FtpHistoryEntry[];
 }
 
 export interface HeroViewModelInput extends HeroCoreInput {
@@ -195,6 +204,14 @@ export interface HeroCore {
   readiness: ReturnType<typeof assessReadiness>;
   eftp: HeroRing;
   ramp: HeroRing & { date: string | null };
+  /** Welcher der beiden Ringe (eFTP/Ramp-Test) den großen, akzentuierten
+   *  Ring bekommt — Alex' Vorgabe: immer der HÖHERE Wert, nicht fest eFTP
+   *  (z.B. direkt nach einem neuen, höheren Ramp-Test-Eintrag). Hier statt
+   *  in FtpRings.tsx berechnet, damit der Vergleich denselben Testschutz
+   *  wie der Rest von buildHeroCore() hat (s. hero-view-model.test.ts) —
+   *  die Render-Komponente liest den Wert nur noch. Gleichstand → eFTP
+   *  (bestehendes Verhalten vor dieser Regel). */
+  ftpPrimary: "eftp" | "ramp";
   milestones: ReturnType<typeof buildMilestones>;
   whatIf: { min: number; max: number };
 }
@@ -312,7 +329,7 @@ function ringBase(athleteCfg: AthleteConfig): number {
  *  gegen [athleteId, rides, wellness, planCards, subjective, todayISO]
  *  memoisiert werden. */
 export function buildHeroCore(input: HeroCoreInput): HeroCore {
-  const { athleteId, rides, wellness, forecast, planCards, subjective, todayISO } = input;
+  const { athleteId, rides, wellness, forecast, planCards, subjective, todayISO, ftpHistoryEntries } = input;
   const athleteCfg = athleteConfig(athleteId);
   const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   const first = sorted[0];
@@ -320,7 +337,18 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const ownPlan = rides.some((r) => r.week);
   const lastWithWeek = ownPlan ? sorted.findLast((r) => r.week) : null;
 
-  const ftpVal = athleteCfg?.ftpMeasured ?? null;
+  // Gemessene FTP bevorzugt aus ftp_history (nur "ramp-test"-Quellen — hält
+  // den Dreiklang gemessen/geschätzt/Ziel auseinander, s. Kommentar bei
+  // HeroCoreInput.ftpHistoryEntries), sonst Fallback auf den fest in
+  // config.ts hinterlegten Wert. Ohne diesen Vorrang blieb ein neuer, in
+  // Settings eingetragener Ramp-Test-Wert im Hero unsichtbar (nur die
+  // Settings-Seite selbst las ftp_history).
+  const currentFtpEntryVal = currentFtpEntry(
+    (ftpHistoryEntries ?? []).filter((e) => e.source === "ramp-test"),
+    todayISO,
+  ) as FtpHistoryEntry | null;
+  const ftpVal = currentFtpEntryVal?.ftpWatt ?? athleteCfg?.ftpMeasured ?? null;
+  const ftpMeasuredDate = currentFtpEntryVal?.validFrom ?? athleteCfg?.ftpMeasuredDate ?? null;
   const eftpVal = eftpValue(rides, wellness, athleteCfg);
   const base = athleteCfg ? ringBase(athleteCfg) : 0;
   const goal = athleteCfg?.ftpGoal ?? 0;
@@ -330,7 +358,9 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const weatherToday = buildWeatherToday(forecast, todayISO);
   const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO);
   const readiness = assessReadiness(wellness, todayISO);
-  const milestones = athleteCfg ? buildMilestones(athleteCfg, eftpVal) : [];
+  const milestones = athleteCfg
+    ? buildMilestones({ ...athleteCfg, ftpMeasured: ftpVal ?? athleteCfg.ftpMeasured, ftpMeasuredDate }, eftpVal)
+    : [];
 
   return {
     athleteName: athleteCfg?.name ?? "",
@@ -342,7 +372,8 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
     briefing,
     readiness,
     eftp: { value: eftpVal ?? 0, progress: ringProgress(eftpVal, base, goal) },
-    ramp: { value: ftpVal ?? 0, progress: ringProgress(ftpVal, base, goal), date: athleteCfg?.ftpMeasuredDate ?? null },
+    ramp: { value: ftpVal ?? 0, progress: ringProgress(ftpVal, base, goal), date: ftpMeasuredDate },
+    ftpPrimary: (ftpVal ?? 0) > (eftpVal ?? 0) ? "ramp" : "eftp",
     milestones,
     whatIf: { min: Math.max(50, Math.round((eftpVal ?? ftpVal ?? goal) - 20)), max: 430 },
   };
