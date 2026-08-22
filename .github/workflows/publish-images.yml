@@ -114,3 +114,19 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  # Erstellt bei einem "v*"-Tag ein GitHub Release mit automatisch aus den
+  # Commits generierten Notizen — sonst sieht Renovate bei MRs nur nackte
+  # Vergleichs-Links statt einer Changelog (Issue #7).
+  release:
+    needs: [frontend, sync, migrate]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: gh release create "$GITHUB_REF_NAME" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
