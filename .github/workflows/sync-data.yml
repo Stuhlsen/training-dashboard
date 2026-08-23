@@ -1,12 +1,8 @@
 # .github/workflows/sync-data.yml
-# Generiert rides.json aus Notion (Plan 1) und intervals.icu (Plan 2),
-# committed die Daten und deployt GitHub Pages.
-#
-# Struktur: getrennte Jobs "sync" (Daten erzeugen + committen + Artefakt
-# hochladen) und "deploy" (nur deploy-pages). Grund: Upload und Deploy im
-# selben Job dupliziert bei einem Re-Run das "github-pages"-Artefakt
-# ("Multiple artifacts named github-pages... count is 2"). Getrennt re-runnt
-# "Re-run failed jobs" nur den Deploy — kein zweiter Upload.
+# Generiert rides.json aus Notion (Plan 1) und intervals.icu (Plan 2) und
+# committed die Daten. Kein GitHub-Pages-Deploy mehr (Issue #30) — das
+# Frontend läuft seit 2026-08-20 selbst-gehostet über Docker
+# (ghcr.io/stuhlsen/training-dashboard-frontend, Build in publish-images.yml).
 #
 # Benötigte Secrets (Settings → Secrets → Actions):
 #   NOTION_API_KEY        — Notion Integration Token
@@ -35,24 +31,11 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
 
 jobs:
-  # 1) Daten erzeugen, committen und das Pages-Artefakt hochladen
   sync:
     runs-on: ubuntu-latest
     steps:
-      # fetch-depth: 0 (voller Verlauf inkl. Tags) statt des Default-Shallow-
-      # Checkouts — "npm run build" (Schritt unten) braucht die Tag-Historie
-      # für den Versions-Footer (vite.config.ts::resolveVersion, Issue #6),
-      # ein Shallow-Checkout hat keine Tags dabei und "git describe" liefe dort
-      # ins Leere.
-      #
       # token: SYNC_PUSH_TOKEN statt des Standard-GITHUB_TOKEN (22.08.2026) —
       # main hat seit Kurzem Branch Protection (PR + Review + Status-Checks
       # Pflicht). Der Standard-Actions-Bot-Push scheiterte seitdem bei jedem
@@ -145,44 +128,3 @@ jobs:
             sleep 5
           done
           $pushed || { echo "::error::Push nach $GITHUB_REF_NAME fehlgeschlagen (3 Versuche) — data/*.json NICHT aktualisiert."; exit 1; }
-
-      - name: Build React-App (/app/)
-        working-directory: app
-        run: |
-          npm ci
-          npm run build
-
-      - name: Deploy-Artefakt zusammenstellen
-        run: |
-          # data/*.json frisch (s. Schritt oben) neben app/dist/ legen — Kopie
-          # nur auf dem Runner, landet nicht in Git (s. Kommentar in
-          # app/vite.config.ts, warum das nicht Teil des Vite-Builds ist).
-          cp -r data app/dist/data
-          # GitHub-Pages-SPA-Fallback: ohne Server-Rewrite braucht React
-          # Router diesen Standard-Trick für Deep-Links/Hard-Refresh auf
-          # Nicht-Root-Routen.
-          cp app/dist/index.html app/dist/404.html
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v6
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: 'app/dist'
-
-  # 2) Nur Deploy — bei transientem Fehler isoliert re-runnbar (kein Re-Upload)
-  # Nur auf main: "Upload artifact" lädt den gebauten app/dist hoch,
-  # ohne dieses Gate würde ein manueller workflow_dispatch auf dashboard-2.0
-  # den unfertigen Dev-Stand live auf die Produktions-Pages-URL deployen.
-  deploy:
-    needs: sync
-    if: github.ref_name == 'main'
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5

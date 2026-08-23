@@ -4,7 +4,7 @@ Persönliches Radsport-Trainingsdashboard mit zwei Datenpfaden: **Lesedaten** (L
 
 **Trainingshistorie:** März 2026 – laufend, FTP 166 W → 193 W (Basisaufbau, März–Juni) → laufendes Ziel ≥ 210 W (pyramidale Periodisierung, Retest 19.09.2026). Die frühen Wochen liefen über Notion (manuell erfasst), seit Sommer 2026 automatisch über intervals.icu — beide Ären laufen heute einheitlich auf ISO-Kalenderwochen statt der ursprünglichen Plan-1/Plan-2-Aufteilung.
 
-🔗 **Live:** [stuhlsen.github.io/training-dashboard](https://stuhlsen.github.io/training-dashboard)  
+🔗 **Live:** [training-dashboard.clear-solutions-it.com](https://training-dashboard.clear-solutions-it.com)  
 📁 **QA-Portfolio:** [github.com/Stuhlsen/Portfolio](https://github.com/Stuhlsen/Portfolio)
 
 ---
@@ -33,7 +33,7 @@ Open-Meteo API ─────────────────────�
                                     Dashboard (React + TypeScript, /app/)
                                                   │
                                                   ▼
-                                  GitHub Pages Deploy (nach jedem Sync)
+                          Docker-Image (GHCR) → Self-Host (Tonys Server)
 ```
 
 `data/subjective.json` und `data/adjustments.json`/`adjustments-2.json` sind seit der Migration nach `plan_cards` bzw. dem täglichen Supabase-Check-in nur noch read-only Archiv älterer Daten, kein aktiver Schreibpfad mehr.
@@ -150,7 +150,7 @@ Alle Tabellen sind per Row Level Security abgesichert (`supabase/migrations/`, i
 ## Setup
 
 ### Voraussetzungen
-- GitHub-Account mit aktiviertem GitHub Pages
+- GitHub-Account (für Actions/Secrets — kein GitHub Pages mehr nötig, das Frontend läuft selbst-gehostet über Docker)
 - intervals.icu Account (Wahoo / Garmin verbunden)
 - Notion Integration Token (nur für die Notion-Ära-Historie)
 - Node.js ≥ 24 lokal — `npm test` nutzt `--experimental-test-module-mocks` mit der `{ exports }`-Kurzform, die erst ab Node 24 zuverlässig läuft (Details in `AGENTS.md`)
@@ -173,12 +173,6 @@ Alle Tabellen sind per Row Level Security abgesichert (`supabase/migrations/`, i
 | `SUPABASE_ATHLETE1_EMAIL` / `SUPABASE_ATHLETE1_PASSWORD` | Login für den Sync-Job gegen Prod-Supabase (nur Athlete 1) |
 
 ⚠️ **Standortdaten:** Koordinaten niemals im Code oder in JSON-Dateien eintragen — ausschließlich über GitHub Secrets. Der Wetter-Forecast wird serverseitig in der Action berechnet und nur als aggregierte Wetterwerte in `rides.json` gespeichert.
-
-### GitHub Pages einrichten
-
-Settings → Pages → Build and deployment → Source: **GitHub Actions**
-
-Die Sync-Action übernimmt den Deploy direkt — kein separater Pages-Workflow nötig. Upload und Deploy laufen in getrennten Jobs (`sync` → `deploy`), damit ein Re-Run des Deploys nicht das Pages-Artefakt dupliziert.
 
 ### Lokale Entwicklung
 
@@ -255,8 +249,8 @@ Eigenständiger Namensraum, definiert in `scripts/lib/plan-athlete2.js` — read
 
 ## Projektkontext
 
-Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → GitHub Actions → GitHub Pages) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
+Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → GitHub Actions → Self-Host via Docker) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
 
-Der React-Umbau (Dashboard 3.0) ist abgeschlossen und live — `/app/` ist seit dem 15.08.2026 die einzige Oberfläche, der frühere Vanilla-JS-Zweig wurde entfernt. Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) ist als Konzeptdokument unter `docs/` vorbereitet, aber noch nicht umgesetzt; ein Self-Hosting-Umbau (Docker, Ablösung der Supabase-Cloud) ist ebenfalls in Planung.
+Der React-Umbau (Dashboard 3.0) ist abgeschlossen und live — `/app/` ist seit dem 15.08.2026 die einzige Oberfläche, der frühere Vanilla-JS-Zweig wurde entfernt. Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) ist als Konzeptdokument unter `docs/` vorbereitet, aber noch nicht umgesetzt; ein Self-Hosting-Umbau (Docker) läuft bereits — das Frontend ist seit 20.08.2026 live selbst-gehostet, die Ablösung der Supabase-Cloud (eigenes Postgres/GoTrue/PostgREST auf dem Zielserver) ist deployt und in der Abnahmephase (Details `docs/fahrplan-3-docker-umbau.md`).
 
 📁 QA-Portfolio: [github.com/Stuhlsen/Portfolio](https://github.com/Stuhlsen/Portfolio)
