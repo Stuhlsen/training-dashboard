@@ -20376,7 +20376,7 @@
     {
       "date": "2026-08-21",
       "sleepHours": 7.9,
-      "sleepScore": 94,
+      "sleepScore": 81,
       "avgSleepingHR": 53,
       "restingHR": 53,
       "hrv": 44,
@@ -20392,7 +20392,7 @@
     {
       "date": "2026-08-22",
       "sleepHours": 9.2,
-      "sleepScore": 89,
+      "sleepScore": 82,
       "avgSleepingHR": 52,
       "restingHR": 49,
       "hrv": 36,
@@ -20407,10 +20407,10 @@
     },
     {
       "date": "2026-08-23",
-      "sleepHours": null,
-      "sleepScore": null,
+      "sleepHours": 3.4,
+      "sleepScore": 44,
       "avgSleepingHR": null,
-      "restingHR": null,
+      "restingHR": 55,
       "hrv": null,
       "weight": null,
       "bodyFat": null,
@@ -20425,8 +20425,8 @@
   "wellnessMeta": {
     "lastUpdated": {
       "hrv": "2026-08-22",
-      "restingHR": "2026-08-22",
-      "sleepHours": "2026-08-22"
+      "restingHR": "2026-08-23",
+      "sleepHours": "2026-08-23"
     }
   },
   "powerCurves": {
@@ -23243,7 +23243,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-23T06:24:48.835Z",
+  "updated": "2026-08-23T11:10:15.791Z",
   "source": "intervals.icu",
   "count": 153
 }
