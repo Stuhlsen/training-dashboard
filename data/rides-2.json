@@ -16658,6 +16658,115 @@
       "sleepHours": 9.2,
       "feel": null,
       "notizen": null
+    },
+    {
+      "name": "Z2 leicht",
+      "week": null,
+      "phase": null,
+      "typ": "Z2 Dauer",
+      "typPlanned": "Z2",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.679,
+            "note": "NP 180W ÷ FTP 265W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "64 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 78% · Z3/Z4+ 20% · Z5+ 2%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "detected",
+      "dataSource": "intervals",
+      "date": "2026-08-23",
+      "startTime": "2026-08-23T12:52:55",
+      "activityId": "i178880537",
+      "km": 27.3,
+      "min": 64,
+      "kmh": 25.5,
+      "watt": 162,
+      "maxWatt": null,
+      "np": 180,
+      "hf": 127,
+      "hfMax": 144,
+      "kad": 87,
+      "hoehe": 43,
+      "hmProKm": 1.6,
+      "tss": 49,
+      "if": 0.68,
+      "vi": 1.11,
+      "trimp": 63,
+      "ctl": 31.7,
+      "atl": 34.7,
+      "tsb": -2.9,
+      "decoupling": -37,
+      "dtl": 49,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 972
+        },
+        {
+          "id": "Z2",
+          "secs": 2023
+        },
+        {
+          "id": "Z3",
+          "secs": 657
+        },
+        {
+          "id": "Z4",
+          "secs": 120
+        },
+        {
+          "id": "Z5",
+          "secs": 20
+        },
+        {
+          "id": "Z6",
+          "secs": 35
+        },
+        {
+          "id": "Z7",
+          "secs": 20
+        },
+        {
+          "id": "SS",
+          "secs": 275
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 18.1,
+        "tempFeel": 15.5,
+        "humidity": 53,
+        "windSpeed": 14.7,
+        "windDir": 282,
+        "precip": 0,
+        "cloudCover": 92,
+        "weatherCode": 3
+      },
+      "wetter": "18.1°C",
+      "source": "intervals.icu",
+      "ruhepuls": 55,
+      "hrv": null,
+      "avgSleepingHR": null,
+      "sleepHours": 3.4,
+      "feel": null,
+      "notizen": null
     }
   ],
   "wellness": [
@@ -20376,7 +20485,7 @@
     {
       "date": "2026-08-21",
       "sleepHours": 7.9,
-      "sleepScore": 94,
+      "sleepScore": 81,
       "avgSleepingHR": 53,
       "restingHR": 53,
       "hrv": 44,
@@ -20392,7 +20501,7 @@
     {
       "date": "2026-08-22",
       "sleepHours": 9.2,
-      "sleepScore": 89,
+      "sleepScore": 82,
       "avgSleepingHR": 52,
       "restingHR": 49,
       "hrv": 36,
@@ -20407,12 +20516,12 @@
     },
     {
       "date": "2026-08-23",
-      "sleepHours": null,
-      "sleepScore": null,
+      "sleepHours": 3.4,
+      "sleepScore": 44,
       "avgSleepingHR": null,
-      "restingHR": null,
+      "restingHR": 55,
       "hrv": null,
-      "weight": null,
+      "weight": 92,
       "bodyFat": null,
       "activeEnergy": null,
       "restingEnergy": null,
@@ -20425,8 +20534,8 @@
   "wellnessMeta": {
     "lastUpdated": {
       "hrv": "2026-08-22",
-      "restingHR": "2026-08-22",
-      "sleepHours": "2026-08-22"
+      "restingHR": "2026-08-23",
+      "sleepHours": "2026-08-23"
     }
   },
   "powerCurves": {
@@ -20440,7 +20549,7 @@
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 91.2,
+        "weight": 92,
         "secs": [
           1,
           2,
@@ -22420,7 +22529,7 @@
       }
     }
   },
-  "athleteWeight": 91.2,
+  "athleteWeight": 92,
   "plannedSessions": [
     {
       "date": "2026-06-01",
@@ -23243,7 +23352,7 @@
       "reason": "privat"
     }
   },
-  "updated": "2026-08-23T06:24:48.835Z",
+  "updated": "2026-08-23T12:20:39.379Z",
   "source": "intervals.icu",
-  "count": 153
+  "count": 154
 }

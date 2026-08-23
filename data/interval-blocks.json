@@ -12666,5 +12666,37 @@
   "i162700880": {
     "noData": true,
     "fetchedAt": "2026-08-22T16:26:30.311Z"
+  },
+  "i178880537": {
+    "longestBlock": {
+      "startSec": 2165,
+      "endSec": 2175,
+      "totalDurationSec": 10,
+      "workDurationSec": 10,
+      "avgWatts": 402
+    },
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 2165,
+        "average_watts": 147,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 2165,
+        "end_time": 2175,
+        "average_watts": 402,
+        "type": "WORK"
+      },
+      {
+        "start_time": 2175,
+        "end_time": 4390,
+        "average_watts": 177,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-23T12:20:39.121Z"
   }
 }
