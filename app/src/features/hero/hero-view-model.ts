@@ -36,9 +36,17 @@ import {
   workoutDurationMinutes,
   estimateSessionTSS,
   buildMilestones,
+  TSS_ASSUMED_IF,
 } from "../../core/ftp-progress.js";
 import { computeZones, sweetSpotBand, whatIfScaleMax } from "../../core/zones.js";
 import { currentFtpEntry } from "../../core/ftp-history.js";
+// Wiederverwendung statt Neubau (CLAUDE.md: bestehendes Modul prüfen) — die
+// Segment-Balken-Zerlegung für Intervall-Workouts existiert schon für die
+// Planungstab-Kachel (`LegacyWorkoutTimeline`). Hero nutzt hier nur die
+// GEOMETRIE (Segmente/Breiten) daraus; die Watt-Range kommt weiterhin aus
+// `workoutWattRange()` (auf die AKTUELLE FTP umgerechnet), nicht aus
+// `legacyWorkoutSegments()`s eigenem %FTP-/Autorenzeit-Text.
+import { legacyWorkoutSegments, typeColor, type LegacySegment } from "../planning/planning-view-model";
 import type { PlanCard } from "../../api/types";
 import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
@@ -122,10 +130,35 @@ export interface HeroViewModelInput extends HeroCoreInput {
   whatIfFtp: number;
 }
 
+/** Segment-Balken-Daten für ein strukturiertes Intervall-Workout (nur
+ *  vorhanden, wenn `legacyWorkoutSegments()` welche liefert, d.h. workout
+ *  trägt `intervals`+`duration`). `warmupLabel`/`cooldownLabel` sind
+ *  Watt-SCHÄTZUNGEN (60/50 % der aktuellen FTP, dieselbe Annahme wie
+ *  `estimateSessionTSS()`), nicht im Plan hinterlegt — SessionCard.tsx
+ *  markiert das entsprechend. */
+export interface HeroSessionInterval {
+  segments: LegacySegment[];
+  wattRange: [number, number];
+  warmupLabel: string | null;
+  cooldownLabel: string | null;
+}
+
 export interface HeroSession {
   when: string;
   label: string;
   km: number | null;
+  /** Für die Akzentfarbe von Balken/Watt-Zahl in SessionCard.tsx
+   *  (`typeColor()`, dieselbe Farbtabelle wie im Planungstab) — der
+   *  Status-Punkt daneben bleibt unabhängig davon an die Belastungsampel
+   *  gekoppelt (LEVEL_COLOR in HeroPage.tsx), nicht an diese Farbe. */
+  color: string;
+  /** Nur bei strukturierten Intervall-Workouts gesetzt; sonst rendert
+   *  SessionCard.tsx den einfacheren Chip-/Text-Zweig. */
+  interval: HeroSessionInterval | null;
+  /** Kleine Kennzahlen-Chips (Dauer/TSS/Pause bei Intervallen; Dauer/TSS
+   *  aus den Plankarten-Feldern sonst) — bewusst NICHT aus `details`
+   *  geparst, das bleibt Freitext in `detailParts`. */
+  chips: string[];
   detailParts: string[];
 }
 
@@ -228,21 +261,83 @@ function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: num
   const when = next.isToday
     ? "Heute"
     : new Date(next.date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
+  const color = typeColor(next.typ);
+
+  // Ruhetag: die Session-Karte bliebe sonst leer außer einem statischen
+  // Textbaustein (plan-rest-days.js::"Bewusst frei · kein Training
+  // geplant") — stattdessen die nächste ECHTE Einheit vorschauen (Alex'
+  // Vorgabe 23.08.2026: "auch bei einem Ruhetag etwas mit Informationen
+  // gefüllt"). Ruhetag-Karten aus planCards herausfiltern und denselben
+  // findNextSession()-Lauf noch einmal starten, statt eigene Datumslogik
+  // zu bauen — landet automatisch auf dem nächsten Nicht-Ruhetag-Termin.
+  if (next.typ === "Ruhetag") {
+    const upcoming = findNextSession(
+      planCards.filter((c) => c.typ !== "Ruhetag"),
+      doneDates,
+      todayISO,
+    );
+    const detailParts: string[] = [];
+    if (upcoming) {
+      const upcomingWhen = new Date(upcoming.date).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit" });
+      detailParts.push(`Nächste Einheit: ${upcomingWhen} · ${upcoming.name || upcoming.typ || "Einheit"}`);
+    } else if (next.details) {
+      detailParts.push(next.details);
+    }
+    return { when, label: next.name || next.typ || "Ruhetag", km: next.km, color, interval: null, chips: [], detailParts };
+  }
 
   const workout = next.workout as WorkoutStructure | null;
+  const chips: string[] = [];
   const detailParts: string[] = [];
+  let interval: HeroSessionInterval | null = null;
+
   if (workout && ftpVal) {
     const wattRange = workoutWattRange(workout, ftpVal);
     const minutes = workoutDurationMinutes(workout);
     const tss = estimateSessionTSS(workout, ftpVal);
-    if (wattRange) detailParts.push(`aktuell ${wattRange[0]}–${wattRange[1]} W`);
-    if (minutes) detailParts.push(`~${minutes} min gesamt`);
-    if (tss) detailParts.push(`TSS ~${tss}`);
-  } else if (next.details) {
-    detailParts.push(next.details);
+    // Nur die SEGMENT-GEOMETRIE (Breiten/Reihenfolge) aus der bestehenden
+    // Planungstab-Logik übernehmen — Watt-Werte kommen weiter aus
+    // workoutWattRange()/TSS_ASSUMED_IF oben, nicht aus dem %FTP-/
+    // Autorenzeit-Text, den legacyWorkoutSegments() selbst mitliefert.
+    const segments = legacyWorkoutSegments(workout)?.segments ?? null;
+
+    if (segments && wattRange) {
+      interval = {
+        segments,
+        wattRange,
+        warmupLabel: workout.warmup ? `${workout.warmup}' · ~${Math.round(ftpVal * TSS_ASSUMED_IF.warmup)} W` : null,
+        cooldownLabel: workout.cooldown ? `${workout.cooldown}' · ~${Math.round(ftpVal * TSS_ASSUMED_IF.cooldown)} W` : null,
+      };
+      if (minutes) chips.push(`~${minutes} min gesamt`);
+      if (tss) chips.push(`TSS ~${tss}`);
+      let hasPause = false;
+      if (workout.intervals && workout.intervals > 1 && workout.rest) {
+        const restW = Math.round(ftpVal * TSS_ASSUMED_IF.rest);
+        chips.push(`Pause ${workout.intervals - 1}× ${workout.rest} min · ~${restW} W`);
+        hasPause = true;
+      }
+      if (interval.warmupLabel || interval.cooldownLabel || hasPause) {
+        detailParts.push("Watt bei Warmup/Pause/Cooldown geschätzt (60/50 % FTP) — im Plan nicht einzeln hinterlegt.");
+      }
+    } else {
+      // workout ohne intervals/duration (z. B. reine Z2-Dauerfahrt mit nur
+      // pct/watts) — kein sinnvoller Segment-Balken baubar, Watt-Range
+      // bleibt als Chip erhalten statt als Fließtext-Satz.
+      if (wattRange) chips.push(`${wattRange[0]}–${wattRange[1]} W`);
+      if (minutes) chips.push(`~${minutes} min gesamt`);
+      if (tss) chips.push(`TSS ~${tss}`);
+      if (next.details) detailParts.push(next.details);
+    }
+  } else {
+    // Kein workout-Objekt (Gruppenfahrten, lange Z2-Fahrten ohne
+    // Intervall-Struktur, …) — echte Plankarten-Felder statt aus dem
+    // details-Freitext geparster Kennzahlen.
+    if (next.durationMin) chips.push(`~${next.durationMin} min`);
+    if (next.tssPlanned) chips.push(`TSS ${next.tssPlanned}`);
+    if (next.details) detailParts.push(next.details);
   }
 
-  return { when, label: next.name || next.typ || "Einheit", km: next.km, detailParts };
+  return { when, label: next.name || next.typ || "Einheit", km: next.km, color, interval, chips, detailParts };
 }
 
 function buildWeatherToday(forecast: HeroCoreInput["forecast"], todayISO: string): HeroWeather | null {

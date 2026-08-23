@@ -129,6 +129,88 @@ describe("buildHeroViewModel", () => {
     expect(vm.session?.label).toBe("Sweet Spot");
   });
 
+  it("Session: Ruhetag heute → Vorschau der nächsten echten Einheit statt Leertext", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [
+        planCard({ date: "2026-07-23", typ: "Ruhetag", name: "Ruhetag", details: "Bewusst frei · kein Training geplant" }),
+        planCard({ date: "2026-07-25", typ: "Schwelle", name: "Schwelle 2×20" }),
+      ],
+    });
+    expect(vm.session?.label).toBe("Ruhetag");
+    expect(vm.session?.detailParts[0]).toContain("Nächste Einheit:");
+    expect(vm.session?.detailParts[0]).toContain("Schwelle 2×20");
+  });
+
+  it("Session: Ruhetag ohne weitere geplante Einheit → Fallback auf details-Text", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [planCard({ date: "2026-07-23", typ: "Ruhetag", name: "Ruhetag", details: "Bewusst frei · kein Training geplant" })],
+    });
+    expect(vm.session?.detailParts).toEqual(["Bewusst frei · kein Training geplant"]);
+  });
+
+  it("Session: strukturiertes Intervall-Workout liefert Segment-Balken + Warmup/Cooldown-Watt-Schätzung", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [
+        planCard({
+          date: "2026-07-24",
+          typ: "Schwelle",
+          name: "Schwelle 3×10",
+          workout: { pct: [95, 105], warmup: 10, intervals: 3, duration: 10, rest: 5, cooldown: 10 },
+        }),
+      ],
+    });
+    // ftpMeasured (Athlet 1) = 193 W → 95/105 % davon gerundet
+    expect(vm.session?.interval?.wattRange).toEqual([183, 203]);
+    // Warmup/Cooldown-Watt sind Schätzungen (60/50 % FTP, TSS_ASSUMED_IF) —
+    // im Plan nicht einzeln hinterlegt.
+    expect(vm.session?.interval?.warmupLabel).toBe("10' · ~116 W");
+    expect(vm.session?.interval?.cooldownLabel).toBe("10' · ~97 W");
+    expect(vm.session?.interval?.segments.length).toBeGreaterThan(0);
+    expect(vm.session?.chips).toEqual(["~60 min gesamt", "TSS ~64", "Pause 2× 5 min · ~97 W"]);
+    expect(vm.session?.detailParts[0]).toBe("Watt bei Warmup/Pause/Cooldown geschätzt (60/50 % FTP) — im Plan nicht einzeln hinterlegt.");
+  });
+
+  it("Session: workout ohne intervals/duration (reine Z2-Fahrt) → Watt-Range als Chip, kein Segment-Balken", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [
+        planCard({
+          date: "2026-07-24",
+          typ: "Z2 Lang",
+          name: "Z2 Lang",
+          workout: { pct: [70, 80] },
+          details: "Lange Z2 · HF 123–152 bpm · ≥3h anstreben",
+        }),
+      ],
+    });
+    expect(vm.session?.interval).toBe(null);
+    expect(vm.session?.chips[0]).toBe("135–154 W");
+    expect(vm.session?.detailParts).toEqual(["Lange Z2 · HF 123–152 bpm · ≥3h anstreben"]);
+  });
+
+  it("Session: kein workout-Objekt → Dauer/TSS-Chips aus den Plankarten-Feldern statt geparstem Freitext", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [
+        planCard({
+          date: "2026-07-24",
+          typ: "Gruppenfahrt",
+          name: "Gruppenfahrt",
+          workout: null,
+          durationMin: 150,
+          tssPlanned: 95,
+          details: "Gruppenfahrt Di · HF frei",
+        }),
+      ],
+    });
+    expect(vm.session?.interval).toBe(null);
+    expect(vm.session?.chips).toEqual(["~150 min", "TSS 95"]);
+    expect(vm.session?.detailParts).toEqual(["Gruppenfahrt Di · HF frei"]);
+  });
+
   it("Wetter heute: kommt aus forecast[todayISO], nicht aus dem Session-Datum", () => {
     const vm = buildHeroViewModel({
       ...BASE_INPUT,

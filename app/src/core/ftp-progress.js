@@ -109,8 +109,12 @@ export function workoutDurationMinutes(workout) {
 }
 
 /** Pauschale Intensitätsfaktor-Annahmen für Warmup/Pausen/Cooldown —
- *  dokumentierte Schätzwerte, keine Messwerte (siehe estimateSessionTSS). */
-const TSS_ASSUMED_IF = { warmup: 0.6, rest: 0.5, cooldown: 0.5 };
+ *  dokumentierte Schätzwerte, keine Messwerte (siehe estimateSessionTSS).
+ *  Exportiert seit 23.08.2026 — die Hero-Session-Karte zeigt dieselben
+ *  Annahmen jetzt auch als geschätzte Watt-Werte für Warmup/Pause/Cooldown
+ *  an (hero-view-model.ts::buildSession), statt sie nur intern für die
+ *  TSS-Schätzung zu verwenden. Eine Quelle für beide Verwendungen. */
+export const TSS_ASSUMED_IF = { warmup: 0.6, rest: 0.5, cooldown: 0.5 };
 
 /**
  * Geschätzter TSS einer strukturierten Einheit: Σ_segment IF²×(min/60)×100.

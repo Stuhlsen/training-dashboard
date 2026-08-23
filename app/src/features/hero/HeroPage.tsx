@@ -20,6 +20,7 @@ import { MetricsGrid } from "./MetricsGrid";
 import { PowerScale } from "./PowerScale";
 import { RaceCountdownPill } from "./RaceCountdownPill";
 import { ReadinessCard } from "./ReadinessCard";
+import { SessionCard } from "./SessionCard";
 import { WeatherCard } from "./WeatherCard";
 import { WeekReviewCard } from "./WeekReviewCard";
 import { WellbeingCard } from "./WellbeingCard";
@@ -207,32 +208,7 @@ export function HeroPage() {
               Trainingsdashboard
             </h1>
 
-            {vm.session && (
-              <GlassCard
-                variant="strong"
-                radius="20px"
-                style={{ display: "flex", flexDirection: "column", gap: 11, alignItems: "flex-start", padding: "18px 22px" }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span
-                    style={{
-                      width: 9,
-                      height: 9,
-                      borderRadius: "50%",
-                      background: LEVEL_COLOR[vm.briefing.level],
-                      boxShadow: `0 0 0 5px color-mix(in oklab, ${LEVEL_COLOR[vm.briefing.level]} 18%, transparent)`,
-                    }}
-                  />
-                  <span style={{ fontSize: "1.04rem", fontWeight: 600, color: "var(--ink)" }}>
-                    {vm.session.when} · {vm.session.label}
-                    {vm.session.km ? ` · ~${vm.session.km} km` : ""}
-                  </span>
-                </div>
-                {vm.session.detailParts.length > 0 && (
-                  <span style={{ fontSize: ".86rem", color: "var(--ink-2)" }}>{vm.session.detailParts.join(" · ")}</span>
-                )}
-              </GlassCard>
-            )}
+            {vm.session && <SessionCard session={vm.session} statusColor={LEVEL_COLOR[vm.briefing.level]} />}
 
             {vm.weatherToday && <WeatherCard weather={vm.weatherToday} />}
           </div>
