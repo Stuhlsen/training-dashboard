@@ -1,7 +1,8 @@
 import { useState, type CSSProperties, type FormEvent } from "react";
-import { Navigate } from "react-router-dom";
+import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../api/auth/useAuth";
 import { GlassCard } from "../../components/GlassCard";
+import type { Location } from "react-router-dom";
 
 /* ============================================================
    FEATURES/AUTH/LOGINPAGE.TSX — Etappe 11g
@@ -44,12 +45,20 @@ const ERROR_STYLE: CSSProperties = {
 
 export function LoginPage() {
   const { session, loading, signIn } = useAuth();
+  const location = useLocation();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  if (!loading && session) return <Navigate to="/" replace />;
+  // ProtectedRoute.tsx reicht die ursprünglich angefragte Route über
+  // location.state.from durch — nach erfolgreichem Login dorthin zurück
+  // statt immer fest auf die Hero-Seite (Bug-Report: kein Weg zurück aus
+  // /login außer dem Browser-Zurück-Button).
+  const from = (location.state as { from?: Location } | null)?.from;
+  const redirectTo = from ? `${from.pathname}${from.search}${from.hash}` : "/";
+
+  if (!loading && session) return <Navigate to={redirectTo} replace />;
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -71,6 +80,19 @@ export function LoginPage() {
       }}
     >
       <GlassCard variant="strong" radius="var(--radius-xl)" style={{ width: "100%", maxWidth: 380, padding: "36px 32px" }}>
+        <Link
+          to="/"
+          style={{
+            display: "inline-block",
+            marginBottom: 16,
+            fontFamily: "var(--font-mono)",
+            fontSize: ".72rem",
+            color: "var(--ink-3)",
+            textDecoration: "none",
+          }}
+        >
+          ← Zurück zum Dashboard
+        </Link>
         <h1
           style={{
             margin: "0 0 24px",
