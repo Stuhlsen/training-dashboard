@@ -1,6 +1,8 @@
 import { useLayoutEffect, useMemo, useRef, useState } from "react";
 import { weeklyConsistency } from "../core/consistency.js";
-import { ChartTooltip } from "./ChartTooltip";
+import { pickLabelIndices } from "../core/chart-scale.js";
+import { fmtDate } from "../core/format.js";
+import { ChartTooltip, TooltipSessionRow } from "./ChartTooltip";
 
 type Ride = import("../types.js").Ride;
 
@@ -15,25 +17,38 @@ const Y_TOP = 30;
 const PAD_L = 6;
 const PAD_R = 6;
 const MONTHS = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"];
-const LEGEND_LEVELS = [1, 2, 4, 5, 7];
+// Ein Repräsentant je Ampel-Band (0/1/3/5, s. LEVEL_FILL) statt 5 Stufen
+// eines früheren Gradienten — vier klar unterscheidbare Farben statt
+// mehrerer Legenden-Kästchen im selben Farbton.
+const LEGEND_LEVELS = [0, 1, 3, 5];
 
-/** 0 (kein Trainingstag) … 7 (jeden Tag) — Index = Trainingstage der Woche. */
+/** 0 (kein Trainingstag) … 7 (jeden Tag) — Index = Trainingstage der Woche.
+ *  Ampel-Bänder statt Ein-Hue-Rampe (Review-Kommentar 23.08.2026: sieben
+ *  Grüntöne blieben trotz Kontrast-Tuning kaum auseinanderzuhalten). Nutzt
+ *  dieselben Statusfarben wie die Belastungsempfehlung (--danger/--warn/--ok,
+ *  BriefingCard.tsx) statt neuer Werte — bewusst weiter reine Tagesanzahl,
+ *  nicht an die Plankarten gekoppelt (Alex' Entscheidung: das Thema der
+ *  Kachel ist Konsistenz, nicht Plan-Erfüllung). */
 const LEVEL_FILL = [
   "var(--hair)",
-  "color-mix(in oklch, var(--role-positive) 30%, transparent)",
-  "color-mix(in oklch, var(--role-positive) 42%, transparent)",
-  "color-mix(in oklch, var(--role-positive) 54%, transparent)",
-  "color-mix(in oklch, var(--role-positive) 66%, transparent)",
-  "color-mix(in oklch, var(--role-positive) 78%, transparent)",
-  "color-mix(in oklch, var(--role-positive) 90%, transparent)",
-  "var(--role-positive)",
+  "var(--danger)",
+  "var(--danger)",
+  "var(--warn)",
+  "var(--warn)",
+  "var(--ok)",
+  "var(--ok)",
+  "var(--ok)",
 ];
+
+type ConsistencyWeek = NonNullable<ReturnType<typeof weeklyConsistency>>["weeks"][number];
 
 interface Tooltip {
   x: number;
   y: number;
-  content: string;
+  week: ConsistencyWeek;
 }
+
+const TOOLTIP_WIDTH = 260;
 
 /** Trainingskonsistenz-Wochenstreifen (Etappe 12a, Familie 6 — eigene
  *  Layout-Logik, docs/dashboard-3.0-konzept-react-umbau.md Etappe 12).
@@ -73,12 +88,29 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
   const cellW = Math.min((width - PAD_L - PAD_R - (n - 1) * gap) / n, 60);
   const stepX = cellW + gap;
   const showNum = cellW >= 20;
-  const H = Y_TOP + CELL_H + 54;
+  // +72 statt +54: Fußzeile (Wochen-/Tage-Summe) und Legende stehen auf
+  // zwei Zeilen statt einer gemeinsamen — bei schmaler Kachel liefen beide
+  // sonst horizontal ineinander (Review-Kommentar 23.08.2026, Screenshot:
+  // "22 von 22 Wochen trainiert · 93 aktive Tage" überlappte "wenig → viel
+  // Tage"). Eigene Zeilen sind robust gegen jede Textlänge, ohne
+  // Pixel-Breiten schätzen zu müssen.
+  const H = Y_TOP + CELL_H + 72;
 
   // Monatswechsel pro Woche vorab bestimmen (kein Mutieren einer Closure-
   // Variable innerhalb des JSX-`.map()` unten, s. react-hooks/immutability).
+  // Bei vielen Wochen (schmale Zellen) liegen Monatswechsel enger als ihre
+  // Labelbreite zusammen und überlappen sich — Ausdünnung nach der
+  // Chart-Label-Konvention (AGENTS.md), analog zu den anderen Charts, statt
+  // jeden Wechsel ungeachtet des verfügbaren Platzes zu zeichnen (Review-
+  // Kommentar 23.08.2026: "wird unübersichtlich, Text überlagert").
   const monthOf = wc.weeks.map((w) => new Date(`${w.monday}T00:00:00`).getMonth());
-  const showMonthAt = monthOf.map((m, i) => i === 0 || m !== monthOf[i - 1]);
+  const monthChangeIndices = wc.weeks.map((_, i) => i).filter((i) => i === 0 || monthOf[i] !== monthOf[i - 1]);
+  const monthChangeX = monthChangeIndices.map((i) => PAD_L + i * stepX);
+  const keptMonthChangeIdx = pickLabelIndices(monthChangeX, 40);
+  const showMonthAt = wc.weeks.map(() => false);
+  monthChangeIndices.forEach((weekIdx, j) => {
+    if (keptMonthChangeIdx.has(j)) showMonthAt[weekIdx] = true;
+  });
 
   return (
     <div style={{ position: "relative" }}>
@@ -121,11 +153,7 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
                 style={{ cursor: w.days > 0 ? "pointer" : "default" }}
                 onMouseEnter={(e) => {
                   if (!w.days) return;
-                  setTooltip({
-                    x: e.clientX,
-                    y: e.clientY,
-                    content: `Woche ab ${w.monday} · ${w.days} Trainingstag${w.days === 1 ? "" : "e"} · ${w.km} km`,
-                  });
+                  setTooltip({ x: e.clientX, y: e.clientY, week: w });
                 }}
                 onMouseLeave={() => setTooltip(null)}
               />
@@ -136,7 +164,11 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
                   textAnchor="middle"
                   fontSize={13}
                   fontWeight={500}
-                  fill={days >= 6 ? "var(--surface-page)" : "var(--text-ink)"}
+                  // Alle sichtbaren Zahlen (Tage > 0) sitzen jetzt auf einer
+                  // der drei Ampelfarben (--danger/--warn/--ok) — Kontrast
+                  // gegen alle drei geprüft, dunkler Text gewinnt überall
+                  // klar (5.9–12.2:1 vs. 1.5–3.0:1 mit hellem Text).
+                  fill="var(--surface-page)"
                 >
                   {w.days}
                 </text>
@@ -150,7 +182,7 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
           );
         })}
 
-        <text x={PAD_L} y={H - 6} fontSize={11} fontFamily="var(--font-mono)" fill="var(--text-soft)">
+        <text x={PAD_L} y={H - 26} fontSize={11} fontFamily="var(--font-mono)" fill="var(--text-soft)">
           {wc.activeWeeks} von {wc.totalWeeks} Wochen trainiert · {wc.activeDays} aktive Tage
         </text>
         {LEGEND_LEVELS.map((lvl, i) => (
@@ -176,8 +208,34 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
         </text>
       </svg>
       {tooltip && (
-        <ChartTooltip x={tooltip.x} y={tooltip.y}>
-          {tooltip.content}
+        // Strukturierte Mini-Tabelle statt eines langen, umbrechenden
+        // Text-Strings (Review-Kommentar 23.08.2026: mit reinem
+        // Zeilenumbruch blieb es "sehr unübersichtlich") — Datum/Name/km je
+        // eigene Spalte, Name-Spalte mit eigenem Ellipsis statt Umbruch.
+        <ChartTooltip x={tooltip.x} y={tooltip.y} width={TOOLTIP_WIDTH}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div>
+              <div style={{ fontWeight: 600 }}>
+                {tooltip.week.days} Trainingstag{tooltip.week.days === 1 ? "" : "e"} · {tooltip.week.km} km
+              </div>
+              <div style={{ fontSize: "var(--fs-label)", color: "var(--text-soft)" }}>Woche ab {fmtDate(tooltip.week.monday)}</div>
+            </div>
+            {tooltip.week.sessions.length > 0 && (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 3,
+                  paddingTop: 6,
+                  borderTop: "1px solid var(--hair)",
+                }}
+              >
+                {tooltip.week.sessions.map((s, i) => (
+                  <TooltipSessionRow key={i} date={fmtDate(s.dateISO)} label={s.label} km={s.km} />
+                ))}
+              </div>
+            )}
+          </div>
         </ChartTooltip>
       )}
     </div>

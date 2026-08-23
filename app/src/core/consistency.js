@@ -10,7 +10,7 @@
 
 import { rideLoad } from "./loadguard.js";
 import { mondayOf, weeklyStreak } from "./adherence.js";
-import { addDaysISO } from "./format.js";
+import { addDaysISO, rideLabel } from "./format.js";
 
 /**
  * Wochenweise Trainingskonsistenz ab der ersten aktiven Woche bis heute.
@@ -19,32 +19,48 @@ import { addDaysISO } from "./format.js";
  * @param {import("../types.js").Ride[]} rides
  * @param {string} todayISO
  * @returns {null | {
- *   weeks: Array<{monday: string, days: number, load: number, km: number}>,
+ *   weeks: Array<{monday: string, days: number, load: number, km: number,
+ *     sessions: Array<{dateISO: string, label: string, km: number}>}>,
  *   streakCurrent: number, streakLongest: number,
  *   activeWeeks: number, totalWeeks: number, activeDays: number, avgDays: number
  * }} null wenn keine aktiven Tage
  */
 export function weeklyConsistency(rides, todayISO) {
-  // Tageslast/-km pro Kalendertag mit Aktivität
+  // Tageslast/-km pro Kalendertag mit Aktivität + Fahrten-Namen für den
+  // Tooltip (Review-Kommentar 23.08.2026: "was genau wurde dort gefahren"),
+  // in einem Durchlauf statt zwei getrennten (Code-Review-Fund: eine zweite
+  // Schleife über `rides` nur für die Sessions war unnötig — jede Fahrt
+  // kennt ihre Woche unabhängig von der Tages-Aggregation unten). Eine
+  // Session-Zeile je FAHRT, nicht je Tag, damit zwei Einheiten am selben
+  // Tag beide auftauchen.
   const perDate = {};
+  const byWeek = {};
   for (const r of rides || []) {
     const d = r.dateISO || r.date;
     if (!d) continue;
     if (!perDate[d]) perDate[d] = { load: 0, km: 0 };
     perDate[d].load += rideLoad(r);
     perDate[d].km += r.km || 0;
+
+    const wk = mondayOf(d);
+    if (!byWeek[wk]) byWeek[wk] = { days: 0, load: 0, km: 0, sessions: [] };
+    const km = Math.round((r.km || 0) * 10) / 10;
+    byWeek[wk].sessions.push({ dateISO: d, label: rideLabel(r, km), km });
   }
   const activeDates = Object.keys(perDate).sort();
   if (!activeDates.length) return null;
 
-  // Wochen-Buckets (Montag-Schlüssel)
-  const byWeek = {};
+  // days/load/km je Woche aus den bereits aggregierten Tageswerten (erst
+  // jetzt möglich — mehrere Fahrten am selben Tag müssen zuerst in perDate
+  // zusammengeführt sein, bevor sie als EIN Trainingstag zählen).
   for (const d of activeDates) {
     const wk = mondayOf(d);
-    if (!byWeek[wk]) byWeek[wk] = { days: 0, load: 0, km: 0 };
     byWeek[wk].days += 1;
     byWeek[wk].load += perDate[d].load;
     byWeek[wk].km += perDate[d].km;
+  }
+  for (const wk of Object.keys(byWeek)) {
+    byWeek[wk].sessions.sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   }
 
   // Lückenlose Wochenliste: erste aktive Woche → aktuelle Woche
@@ -53,12 +69,13 @@ export function weeklyConsistency(rides, todayISO) {
   const weeks = [];
   let cursor = firstMonday, guard = 0;
   while (cursor <= currentMonday && guard < 400) {
-    const b = byWeek[cursor] || { days: 0, load: 0, km: 0 };
+    const b = byWeek[cursor] || { days: 0, load: 0, km: 0, sessions: [] };
     weeks.push({
       monday: cursor,
       days: b.days,
       load: Math.round(b.load),
       km: Math.round(b.km * 10) / 10,
+      sessions: b.sessions,
     });
     cursor = addDaysISO(cursor, 7);
     guard++;

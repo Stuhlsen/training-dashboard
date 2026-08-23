@@ -6,6 +6,10 @@ interface ChartTooltipProps {
   x: number;
   y: number;
   children: ReactNode;
+  /** Breitere Box für strukturierten Inhalt (z. B. ConsistencyCalendar.tsx'
+   *  Fahrten-Liste) — Default deckt weiterhin die kurzen Ein-Zeiler der
+   *  übrigen Charts ab. */
+  width?: number;
 }
 
 /* Geschätzte Maße statt Ref-Messung (Vereinfachung ggü. vanilla
@@ -31,8 +35,8 @@ const EDGE_MARGIN = 8;
  *  der Tooltip also relativ zur Kachel statt zum Viewport, die
  *  Rand-Klemmung unten rechnet dann mit falschen Bezugswerten und der
  *  Tooltip kann über den sichtbaren Bildschirmrand hinausragen. */
-export function ChartTooltip({ x, y, children }: ChartTooltipProps) {
-  const left = Math.max(EDGE_MARGIN, Math.min(x + 14, window.innerWidth - ESTIMATED_WIDTH - EDGE_MARGIN));
+export function ChartTooltip({ x, y, children, width = ESTIMATED_WIDTH }: ChartTooltipProps) {
+  const left = Math.max(EDGE_MARGIN, Math.min(x + 14, window.innerWidth - width - EDGE_MARGIN));
   const top = Math.max(EDGE_MARGIN, Math.min(y - ESTIMATED_HEIGHT - 10, window.innerHeight - ESTIMATED_HEIGHT - EDGE_MARGIN));
 
   return createPortal(
@@ -52,12 +56,34 @@ export function ChartTooltip({ x, y, children }: ChartTooltipProps) {
         fontSize: ".78rem",
         lineHeight: 1.4,
         boxShadow: "var(--e2)",
-        maxWidth: ESTIMATED_WIDTH,
-        whiteSpace: "nowrap",
+        maxWidth: width,
+        // "pre-line" statt "nowrap" (Bug-Report 23.08.2026: Text lief über
+        // die Tooltip-Kachel hinaus) — bricht lange Zeilen innerhalb von
+        // maxWidth um. Strukturierter Inhalt (Tabellen-Zeilen mit eigenem
+        // whiteSpace/Ellipsis, z. B. ConsistencyCalendar.tsx) steuert sein
+        // Umbruchverhalten selbst und überschreibt das lokal.
+        whiteSpace: "pre-line",
       }}
     >
       {children}
     </div>,
     document.body,
+  );
+}
+
+/** Eine Zeile "Datum | Bezeichnung | km" für Tooltips, die eine Fahrt/einen
+ *  Tag beschreiben — geteilt zwischen ConsistencyCalendar.tsx (mehrere
+ *  Zeilen je Woche) und WeekReviewCard.tsx (eine Zeile je Tag), damit beide
+ *  optisch identisch bleiben statt zweier separat gepflegter Kopien
+ *  (Review-Kommentar 23.08.2026: "sollte alles einheitlich sein"). */
+export function TooltipSessionRow({ date, label, km }: { date: string; label: string; km?: number }) {
+  return (
+    <div style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: ".72rem" }}>
+      <span style={{ color: "var(--text-soft)", flexShrink: 0 }}>{date}</span>
+      <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</span>
+      {km != null && km > 0 && (
+        <span style={{ color: "var(--text-soft)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{km} km</span>
+      )}
+    </div>
   );
 }

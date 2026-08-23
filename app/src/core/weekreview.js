@@ -7,6 +7,7 @@
    ============================================================ */
 
 import { effectiveSessions } from "./planning.js";
+import { addDaysISO, rideLabel } from "./format.js";
 
 /** Mo–So-Bereich der letzten abgeschlossenen Woche vor todayISO
  *  @param {string} todayISO @returns {{from: string, to: string}} */
@@ -37,6 +38,7 @@ export function lastCompletedWeekRange(todayISO) {
  *   best: null | { name: string, np: number|null, km: number|null, date: string },
  *   weatherNote: string|null,
  *   plan: null | { planned: number, done: number },
+ *   days: Array<{dateISO: string, label: string|null, km: number}>,
  * }} null wenn die Woche keine Fahrten hatte
  */
 export function buildWeekReview(rides, plannedSessions, adjustments, todayISO) {
@@ -81,6 +83,25 @@ export function buildWeekReview(rides, plannedSessions, adjustments, todayISO) {
     }
   }
 
+  // Tages-Streifen Mo–So (Review-Kommentar 23.08.2026: die Kachel wirkte
+  // "groß mit wenig Information" — ein Tag-für-Tag-Überblick der bereits
+  // vorhandenen Wochendaten füllt den Platz sinnvoll statt nur die
+  // Summen-Chips zu wiederholen). Ein Rest-/kein-Trainingstag hat `label:
+  // null`; bei mehreren Fahrten am selben Tag zählt die erste (Name) und
+  // die Summe der Kilometer.
+  const days = [];
+  for (let i = 0; i < 7; i++) {
+    const dateISO = addDaysISO(from, i);
+    const dayRides = wr.filter((r) => r.dateISO === dateISO);
+    const dayKm = Math.round(dayRides.reduce((s, r) => s + (r.km || 0), 0) * 10) / 10;
+    // rideLabel() (format.js) fängt den "Ruhetag" trotz echter Distanz"-Fall
+    // ab (geerbter Plan-Typ, s. dortiger Kommentar) — gemeinsam mit
+    // consistency.js, damit beide Tooltips/Kacheln denselben Sonderfall
+    // gleich behandeln (Code-Review 23.08.2026).
+    const label = dayRides.length ? rideLabel(dayRides[0], dayKm) : null;
+    days.push({ dateISO, label, km: dayKm });
+  }
+
   return {
     from,
     to,
@@ -98,5 +119,6 @@ export function buildWeekReview(rides, plannedSessions, adjustments, todayISO) {
       : null,
     weatherNote,
     plan,
+    days,
   };
 }

@@ -9,6 +9,22 @@ export const fmt = (v, d = 1) => {
   return Number(v).toFixed(d).replace(".", ",");
 };
 
+/** Anzeige-Name einer Fahrt (`name`/`typ`, Fallback "Fahrt") — geteilt
+ *  zwischen weekreview.js und consistency.js (Code-Review 23.08.2026:
+ *  beide bauten dieselbe Fallback-Kette separat, eine blieb ohne den
+ *  Sonderfall unten). `typ` kann per Prioritätskette (types.js::Ride.
+ *  typSource) von der PLANKARTE geerbt sein, nicht vom tatsächlichen Ritt
+ *  — ein an diesem Tag als "Ruhetag" geplanter, aber trotzdem gefahrener
+ *  Tag trägt dann weiter den Namen "Ruhetag" trotz echter Distanz (live
+ *  beobachtet: 12.3 km am 12.08.2026). Fällt in dem Fall auf "Fahrt"
+ *  zurück, statt die km in den Label-String zu mischen — km bleibt ein
+ *  eigenes Feld, das der Aufrufer separat anzeigt (sonst Duplikat).
+ *  @param {{name?: string|null, typ?: string|null}} ride @param {number} km @returns {string} */
+export function rideLabel(ride, km) {
+  const raw = ride.name || ride.typ || "Fahrt";
+  return raw === "Ruhetag" && km > 0 ? "Fahrt" : raw;
+}
+
 /** Zahl auf d Dezimalstellen, deutsches Komma, ECHTES Minus (U+2212 statt
  *  Bindestrich) — Typografie-Regel aus dem Analyse-Tab-Redesign „Antworten
  *  & Spuren" (Handoff: „Minus als − (U+2212), nicht Bindestrich"). Bewusst
