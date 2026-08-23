@@ -55,7 +55,7 @@ export function BriefingCard({ briefing }: { briefing: HeroBriefing }) {
         })}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-        <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
           Belastungsempfehlung
         </span>
         <h2 style={{ margin: 0, fontSize: "clamp(1.9rem,2.3vw,2.6rem)", lineHeight: 1.04, fontWeight: 600, letterSpacing: "-.022em", color: "var(--ink)" }}>

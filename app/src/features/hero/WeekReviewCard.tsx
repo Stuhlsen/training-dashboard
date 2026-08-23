@@ -87,7 +87,7 @@ export function WeekReviewCard({ review }: { review: WeekReview | null }) {
   return (
     <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
           Wochenrückblick
         </span>
         {review && (

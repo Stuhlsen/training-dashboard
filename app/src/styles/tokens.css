@@ -81,4 +81,8 @@
      Wochen-TSS im selben Wochenraster) konsistent gross bleiben. */
   --fs-label: 0.72rem;
   --fs-section-label: 0.78rem;
+  /* Kachel-Haupttitel (Hero-Tab-Redesign 23.08.2026) — deutlich abgesetzt
+     von --fs-section-label, damit auf einen Blick klar ist, was in der
+     jeweiligen Kachel steht (DESIGN.md-Title-Stufe 0.88-1.1rem/700). */
+  --fs-tile-title: 0.92rem;
 }

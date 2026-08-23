@@ -54,7 +54,7 @@ function SelfCard() {
 
   return (
     <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-      <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+      <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
         Befinden heute
       </span>
       <button
@@ -96,7 +96,7 @@ function SharedCard({ athleteId }: { athleteId: string }) {
   if (isLoading) {
     return (
       <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-        <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
           Befinden heute — {athleteName}
         </span>
         <p style={{ margin: "10px 0 0", fontSize: ".85rem", color: "var(--ink-3)" }}>Lädt …</p>
@@ -108,7 +108,7 @@ function SharedCard({ athleteId }: { athleteId: string }) {
 
   return (
     <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-      <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+      <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
         Befinden heute — {athleteName}
       </span>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 14, marginTop: 12, fontSize: ".85rem", color: "var(--ink-2)" }}>

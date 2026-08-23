@@ -39,7 +39,7 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
-        <span style={{ fontSize: ".72rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
           Leistungsskala · Watt
         </span>
 

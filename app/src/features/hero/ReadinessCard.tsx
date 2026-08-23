@@ -63,7 +63,7 @@ export function ReadinessCard({ readiness, briefing }: { readiness: Readiness | 
   if (!readiness) {
     return (
       <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-        <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
           Tagesform
         </span>
         <p style={{ margin: "10px 0 0", fontSize: ".85rem", color: "var(--ink-3)" }}>
@@ -79,7 +79,7 @@ export function ReadinessCard({ readiness, briefing }: { readiness: Readiness | 
   return (
     <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, flexWrap: "wrap" }}>
-        <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
           Tagesform
         </span>
         <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>7 Tage vs. 42-Tage-Baseline</span>

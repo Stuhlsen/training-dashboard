@@ -269,13 +269,13 @@ export function HeroPage() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: "clamp(20px,2vw,34px)", transform: "translateZ(10px)" }}>
           <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-            <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+            <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
               Trainingskonsistenz
             </span>
             <ConsistencyCalendar rides={rides} todayISO={TODAY} />
           </GlassCard>
           <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-            <span style={{ fontSize: ".7rem", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+            <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
               Bestleistungen
             </span>
             <RecordChips records={records} />

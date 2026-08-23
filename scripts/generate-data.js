@@ -436,6 +436,10 @@ async function main() {
     const latest2 = latestWeight(wellness2);
     const athleteWeight2 = latest2 ? latest2.weight : null;
 
+    // Eigener Standort für Athlet 2 (separates Secret, s. weatherData2 oben)
+    // — kein Rückfall auf den Forecast von Athlet 1.
+    const planningForecast2 = await getPlanningForecast(ENV.WEATHER_LAT_2, ENV.WEATHER_LON_2);
+
     const output2 = {
       athleteName: ATHLETE_2_NAME,
       ftp: estimatedFTP2,
@@ -449,6 +453,7 @@ async function main() {
         ...s,
       })),
       adjustments: adjustments2,
+      forecast: planningForecast2 || {},
       updated: new Date().toISOString(),
       source: "intervals.icu",
       count: rides2.length,
