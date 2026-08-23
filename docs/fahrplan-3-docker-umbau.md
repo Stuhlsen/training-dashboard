@@ -152,6 +152,12 @@ selbst auslösen) sowie die beiden produktionsrelevanten Schritte (Punkt 5
 unten, GitHub-Actions-Abschaltung) — beide bewusst nicht ohne Rücksprache
 umgesetzt, da die Live-Seite bis zum Cutover von genau diesen Quellen lebt.
 
+**Stand 23.08.2026:** GitHub Issue #31 (Tony) fragt genau nach diesem
+Produktivrollout — die Kondition „Punkt 5 nur falls Pages-Seite entfällt"
+ist mit #30 (Pages-Deploy entfernt, 20.08.2026) inzwischen erfüllt. Der
+verbleibende Rollout ist in eigene, abschließbare Fenster heruntergebrochen:
+`docs/fahrplan-3-sync-produktivbetrieb.md`.
+
 1. **Sync-Dockerfile** auf `node:22-alpine` mit `scripts/` und `core/`, Einstiegspunkt `generate-data.js`.
 2. **Zeitsteuerung im Container**, nicht als System-Cron auf dem Host — sonst wandert Betriebslogik an eine unversionierte Stelle. Intervall über Umgebungsvariable, Vorgabe 6 Stunden wie bisher. Zusätzlich ein manueller Auslöser über `docker compose run`, weil der Cron-Fix vom Juli bewusst auf manuelles Triggern ausgelegt war.
 3. **Gemeinsames Volume:** Sync schreibt `data/*.json` in ein benanntes Volume, nginx liest daraus. Kein Bind-Mount, kein Pfad auf dem Host.
