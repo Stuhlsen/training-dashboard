@@ -77,3 +77,25 @@ bereits andere pure Chart-Stützlogik in `core/` (`days.js`,
   Konvention der übrigen React-Charts. `core/efficiency.js::decouplingTrend`
   liefert Median/stabilen Anteil/Trend, `null` bei < 5 geeigneten Fahrten
   (Leerzustand "Datenbasis wächst noch").
+
+Seit den späteren Etappen zusätzlich hinzugekommen (nicht mehr einzeln nach
+Etappe dokumentiert, gleiche Grundsätze wie oben — reine SVG/JSX-Komponenten,
+DOM-freie Mathematik bleibt in `core/`):
+
+- `CadenceChart.tsx` — Kadenz-Verlauf + Statistik-Chips ("Kadenz-Coach").
+- `CompareChart.tsx` / `ComparePanel.tsx` — Vergleichsmodus im PMC-Chart:
+  zwei Zeitfenster relativ übereinandergelegt (Tag 1 = Blockstart).
+- `EfficiencyDetailScatter.tsx` — Klick-Scatter aus `EfficiencyChart.tsx`
+  (Watt/kg vs. km/h, gefärbt nach Höhenmeter/km), keine eigene Chart-Route.
+- `EnergyWeightChart.tsx` — Gewichtstrend + Energiebilanz-Näherung
+  ("Regeneration & Körper").
+- `HrTrendChart.tsx` — Tempo/HF-Entwicklung (IQR-gefiltert).
+- `HydrationChart.tsx` — Hydration aus der Wellness-Sektion.
+- `PowerCurveTraceCard.tsx` / `TraceCard.tsx` / `TraceLane.tsx` — Spurenkarten
+  des Analyse-Tab-Redesigns "Antworten & Spuren" (`features/analysis/`).
+- `SleepChart.tsx` — Schlaf (Dauer + Schlaf-HF).
+- `SpeedHrScatterChart.tsx` — Tempo vs. HF Scatter.
+- `TrimpLoadChart.tsx` — Belastungswächter (TRIMP-Balken + CTL-Ramp-Linie).
+- `WeatherWeeklyChart.tsx` — Temperatur & Wind pro Woche/Monat.
+- `WhatIfPanel.tsx` — What-if-Szenario-Regler im PMC-Chart.
+- `ZoneWeeklyChart.tsx` — Intensitätsverteilung (Zeit in Zonen pro Woche).

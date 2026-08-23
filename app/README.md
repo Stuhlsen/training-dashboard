@@ -1,9 +1,9 @@
 # Dashboard 3.0 — `/app/`
 
-Vite + React + TypeScript. Neubau des Trainingsdashboards, siehe
-`../docs/dashboard-3.0-konzept-react-umbau.md` für das Gesamtkonzept und den
-Etappenplan. Die bestehende Vanilla-JS-Seite (Repo-Root) bleibt bis zur
-Umschaltung (Etappe 10) unverändert live.
+Vite + React + TypeScript. **Die einzige Oberfläche** des Trainingsdashboards
+seit dem 15.08.2026 — der frühere Vanilla-JS-Zweig (`assets/js/`) wurde mit
+Fahrplan 1 entfernt (siehe `../docs/fahrplan-1-vanilla-entfernen.md`).
+Konzept/Etappenplan des React-Umbaus: `../docs/dashboard-3.0-konzept-react-umbau.md`.
 
 ## Befehle
 
@@ -28,9 +28,14 @@ Der Dev-Server liefert zusätzlich die per Cron erzeugten `/data/*.json` aus
 dem Repo-Root aus (`serveRepoData()` in `vite.config.ts`) — die JSON-Pipeline
 bleibt unangetastet, siehe Konzept 5.5.
 
+`vite.config.ts::resolveVersion()` schreibt `__APP_VERSION__`/`__BUILD_DATE__`
+zur Build-Zeit ein (per `git describe`, Fallback `VITE_APP_VERSION`-Env) —
+Grundlage für den Versions-Footer in der App. Braucht im CI einen Checkout
+mit voller Tag-Historie (`fetch-depth: 0`), sonst läuft `git describe` ins Leere.
+
 **Zwei getrennte Testsuiten im Repo:** dieses `npm test` (Vitest, nur `/app/`)
-und das Root-`npm test` (`node --test`, nur `tests/`). Sie überschneiden sich
-nicht und müssen beide grün sein, solange die alte Seite live ist.
+und das Root-`npm test` (`node --test`, nur `tests/`, prüft die Datensync-
+Pipeline in `scripts/`). Sie überschneiden sich nicht und müssen beide grün sein.
 
 ## Konventionen
 

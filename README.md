@@ -61,33 +61,8 @@ Athlete 2 ("hc_diZee", Vergleichsdaten) bleibt read-only im Planungstab: kein An
 - **Bestwerte-Wand**: automatisch erkannte persönliche Bestleistungen (längste Fahrt/Fahrzeit, beste NP ≥ 20 min, schnellste 40 km+, meiste Höhenmeter, größte Woche) — jeweils mit Ablöse-Historie
 - **Event-Timeline**: anstehende Rennen/Touren mit Datum, Priorität und Countdown (Athlet legt Events selbst über das Einstellungsmenü an)
 
-### Tab: Charts
-
-Alle Linien- und Zeit-Charts sind horizontal scrollbar bzw. per **Zeitraum-Brush** (Presets 30/90/365 Tage, Plan 2, Alles) einschränkbar; ein Hover auf einem Chart zeigt ein verknüpftes Fadenkreuz über PMC/Power/Training/Wellness-Charts hinweg und hebt die passende Fahrtenbuch-Zeile hervor. Drei Charts haben zusätzlich einen **Wochen/Monats-Toggle** — persistent pro Athlet.
-
-| Block | Charts |
-|---|---|
-| 💪 Fitness & Belastung | PMC (CTL/ATL/TSB, Sweet-Spot-Zone, Brush, **What-if-Szenarien**: Wochen-TSS ±%, N Ruhetage, Rampenrate als gestrichelte Vergleichskurve, **Vergleichsmodus**: zwei Zeiträume desselben Athleten relativ übereinandergelegt), Wöchentliches/Monatliches Volumen (Toggle, phasengefärbt, 200km-Zielzone beim eigenen Plan), **Belastungswächter** (TRIMP-Balken + CTL-Ramp-Linie mit Sicherheitskorridor + Foster-Monotonie-Marker), **Intensitätsverteilung** (Zeit in Zonen pro Woche, 80%-Grundlagen-Richtwert) |
-| ⚡ Leistung | Power Curve (anaerobe Reserve, FTP-Linie, W/kg-Toggle, **Blockvergleich**: Kurven je Trainingsblock übereinander), **FTP-Projektion** (eFTP-Verlauf mit Prognose-Fächer auf den Retest-Termin), Aerobe Effizienz mit **EF-Trend** über vergleichbare Z2-Fahrten, Tempo vs. HF Scatter, **Kadenz-Coach** (Statistik-Chips + Verlauf), Tempo / HF Entwicklung (IQR-gefiltert) |
-| ❤️ Aerobe Gesundheit | Aerobe Entkopplung (Pw:Hr), HRV, Ruhepuls (durchgehende Kalenderwochen-Linie, Methodenwechsel Apple-Health-RMSSD → intervals.icu-SDNN nur noch als Marker + getrennte Mittelwerte, kein Plan-Divider mehr), Schlaf (Dauer + Schlaf-HF, täglich, 7h-Ziel beim eigenen Plan) |
-| 🌤️ Wetterbedingungen | Temperatur & Wind pro Woche/Monat (Toggle, Balken + Windlinie, Ampel-Farbcodierung) |
-
-**Power Curve:** Bestleistungen von 1s (Sprintkraft) bis 60min (Ausdauer) aus intervals.icu. Roter Bereich über FTP-Linie = anaerobe Reserve. W/kg-Toggle zeigt gewichtsnormierte Leistung.
-
-**Belastungswächter:** kombiniert zwei Überlastungs-Frühindikatoren. Die CTL-Ramp-Rate (Fitness-Anstieg pro Woche) mit sicherem Korridor +3 bis +6 — ab +8 steigt das Risiko deutlich. Dazu Foster-Monotonie (Ø Tageslast ÷ Standardabweichung, inkl. Ruhetage): ⚠ ab 2,0 — gleiche Last jeden Tag ist riskanter als gemischte Tage. TRIMP-Farbskala der Balken: grün = <400 (Erholung) · gelb · orange · rot = >900.
-
-**Intensitätsverteilung:** wöchentliche Zeit in den Leistungszonen aus den Powermeter-Daten (Zone-Times aus intervals.icu), verdichtet auf Grundlage (Z1–Z2) / Mitte (Z3–Z4) / Hoch (Z5+). Richtwert nach Seiler: ≥ 80 % Grundlage — deckt den klassischen Fehler „Z2-Fahrten, die eigentlich Tempo waren" auf.
-
-**EF-Trend:** Watt pro Herzschlag über ausschließlich vergleichbare Fahrten (Z2, ≥ 60 min, 5–30 °C) mit gleitendem Mittel — der sauberste Feldtest-Nachweis aerober Anpassung zwischen zwei FTP-Tests. Intervall- und Hitzetage bleiben als grauer Kontext sichtbar.
-
-**FTP-Projektion:** lineare Fortschreibung der eFTP-Historie (letzte 8 Wochen) auf den Retest-Termin, mit Unsicherheitsband aus den Residuen statt Punktversprechen.
-
-**What-if-Szenarien & Vergleichsmodus:** rein clientseitige Prognose-Spielerei im PMC-Chart, nichts wird gespeichert außer den zuletzt gewählten Reglerwerten. Szenarien bauen auf derselben Prognoselogik wie der Planungstab (`core/projection.js`) auf; der Vergleichsmodus richtet zwei Zeitfenster relativ aneinander aus (Tag 1 = Blockstart) und zeigt Σ TSS, Ø CTL, Rampe und harte Tage nebeneinander.
-
-**Wetter:** Alle Standortdaten (Koordinaten) liegen ausschließlich als GitHub Secrets — niemals im Code, nie in der JSON, nie im Frontend-JavaScript. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig in der GitHub Action berechnet. Beide Athleten nutzen getrennte Standort-Secrets.
-
 ### Tab: Fahrtenbuch
-Sortier- und filterbare Tabelle aller Fahrten mit Klick-Filter aus dem Volumen-Chart. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Ein Klick auf eine Zeile pinnt die Auswahl im PMC-Chart-Fadenkreuz, ein 📅-Icon bei intervals.icu-Ära-Fahrten springt zur zugehörigen Plankarte im Planungstab. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip.
+Sortier- und filterbare Tabelle aller Fahrten. Fahrten am selben Tag werden nach Startzeitpunkt sortiert. Ein 📅-Icon bei intervals.icu-Ära-Fahrten springt zur zugehörigen Plankarte im Planungstab. Wetter-Spalte mit Ampel-Farbcodierung und Hover-Tooltip.
 
 ### Morgen-Check-in, Ziele & Events
 
@@ -112,17 +87,21 @@ Loggt sich ein Trainer ein, erscheint eine Trainer-Leiste über dem Dashboard �
 
 **Claude als Trainer** läuft bewusst ohne API-Anbindung aus der App heraus: Export-Panel erzeugt ein Markdown-Briefing (Profil, Events, Plan, Ist-Fahrten, Befinden, Prognose) samt fester Prompt-Vorlage zum Kopieren in einen Claude-Pro-Chat; eine Richtungsvorgabe (Preset + Freitext + Zielevent) lässt sich dabei mitgeben und wird pro Profil gemerkt. Die Antwort (JSON-Vorschlagsblock) wird über den Import-Dialog eingefügt, validiert (Struktur + Semantik, sammelt alle Fehler statt beim ersten abzubrechen) und landet — mit Teilerfolg bei gemischt gültigen/ungültigen Einträgen — als offene Vorschläge im selben Review-Flow wie menschliche Trainer-Vorschläge.
 
-### Tab: Analyse
-Acht aufeinander aufbauende Sektionen in Trainer-Fragereihenfolge — für **beide Athleten** verfügbar; alle Sektionen nutzen den vollen Datensatz (der frühere Plan-1/Plan-2-Filter-Toggle ist mit dem Umbau auf Kalenderwochen entfallen, ein generischer Zeitraum-Vergleich existiert stattdessen im PMC-Chart), die Körper-Sektion blendet sich datengetrieben ein.
+### Tab: Analyse — „Antworten & Spuren"
 
-1. **Belastungsempfehlung** — fusioniert Tagesform (Readiness, inkl. Morgen-Check-in), Belastungsbilanz (TSB, auf „heute" fortgeschrieben statt am Stand der letzten Fahrt eingefroren) samt 3-Tage-Trend und Wochenlast-Risiko (Belastungswächter) zu einem Ampelstatus mit konkreter Empfehlung; ein rotes Erholungssignal schlägt dabei einen grünen TSB — außer TSB ist die einzige Alert-Quelle und Trend+HRV zeigen bereits aktive Erholung ("Erholung wirkt bereits"). Degradiert sauber, wenn die HRV-Baseline noch fehlt.
-2. **Belastung & Erholung** — Wochentabelle mit CTL-Ramp, Foster-Monotonie/Strain und benannter Einordnung („Produktiver Aufbau", „Eintönig hart", „Entlastung" …).
-3. **Intensitätsverteilung** — Zeit in niedriger/mittlerer/hoher Intensität mit Formklassifikation (polarisiert / pyramidal / schwellenlastig) gegen den 80%-Richtwert. Ohne Zone-Times greift eine IF-Näherung (aus NP÷FTP), die bei zu geringer Leistungsdaten-Abdeckung ehrlich warnt statt ein Fehlurteil zu zeigen.
-4. **Aerobe Entwicklung** — Effizienzfaktor (W/HF), HF-Decoupling-Trend (<5 % = aerob stabil) und Kadenz-Ökonomie über vergleichbare Grundlagenfahrten.
-5. **Leistungsdiagnostik** — FTP-Dreiklang strikt getrennt: 🔬 gemessen (Ramp-Test, eigene FTP-Historie-Einträge möglich) / 〜 geschätzt (eFTP) / 🎯 Ziel, je mit eigenem W/kg-Bezug; dazu Retest-Projektion (eigener Plan) bzw. Ziel-Horizont und Bestwerte-Digest.
-6. **Regeneration & Körper** — Gewichtstrend, W/kg-Kopplung, Energiebilanz-Näherung (kJ ≈ kcal) und Hydration; erscheint nur bei ausreichender Datendichte (≥ 5 Punkte / 30 Tage).
-7. **Konsistenz & Adhärenz** — Wochen-Streak, Frequenztrend (letzte 4 vs. 4 Vorwochen) und Plan-Adhärenzquote (nur eigener Plan).
-8. **Periodisierungs-Erfüllung** (nur eigener Plan) — ist jeder Trainingsblock phasengerecht umgesetzt? Reizsignatur je Block, Quality-Dichte und ob Erholungswochen wirklich reduziert waren.
+Ersetzt seit dem Redesign vom 20.08.2026 den früheren Kennzahlen/Verläufe-Tab-Umschalter (`app/src/features/analysis/AnalysisPage.tsx`) — für **beide Athleten** verfügbar, per Zeitraum-Brush (Presets 30/90 Tage, „Mit Prognose") einschränkbar:
+
+- **Hero-Urteil**: Tagesform-Kurzfassung mit Kennzahlen-Stats für den gewählten Zeitraum, darunter die Brush-Leiste zum Zeitfenster-Ziehen.
+- **„Das läuft"**: Kacheln mit dem, was gerade positiv läuft (nur wenn vorhanden).
+- **Vier Leitfragen**, je mit Ampel-Urteil, Kurztext und **Spurenkarte** (mehrere Kennzahlen-„Spuren" synchron über denselben Zeitraum, W/kg-Toggle):
+  1. *Werde ich stärker?* — eFTP-Verlauf, Effizienzfaktor
+  2. *Verkrafte ich die Last?* — Fitness/CTL, TSB, TSS Ist/Plan, Zonenverteilung
+  3. *Wie erhole ich mich?* — HRV, Ruhepuls, Schlaf
+  4. *Was bremst mich?* — HF-Decoupling, Kadenz, Energiebilanz, Hydration, Wetter, Gewicht
+  Frage 1 zeigt zusätzlich die Power-Curve als eigene Spurenkarte.
+- **Kennzahlen (eingeklappt)**: der bisherige Kennzahlen-Tab-Inhalt lebt aufklappbar als Anhang weiter (`LegacyKpiAppendix.tsx`) — Belastung & Erholung (CTL-Ramp, Foster-Monotonie), Intensitätsverteilung (polarisiert/pyramidal/schwellenlastig, 80%-Richtwert), Aerobe Entwicklung (EF, HF-Decoupling, Kadenz), Leistungsdiagnostik (FTP-Dreiklang 🔬 gemessen / 〜 geschätzt / 🎯 Ziel, Bestwerte), Regeneration & Körper (Gewicht, Energiebilanz, Hydration — nur bei ≥ 5 Punkten/30 Tagen), Konsistenz & Adhärenz, Periodisierungs-Erfüllung (nur eigener Plan).
+
+**Wetter:** Alle Standortdaten (Koordinaten) liegen ausschließlich als GitHub Secrets — niemals im Code, nie in der JSON, nie im Frontend-JavaScript. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig in der GitHub Action berechnet. Beide Athleten nutzen getrennte Standort-Secrets.
 
 ---
 
@@ -189,6 +168,9 @@ Alle Tabellen sind per Row Level Security abgesichert (`supabase/migrations/`, i
 | `INTERVALS_ATHLETE_ID_2` | intervals.icu Athlete ID (Athlete 2, optional) |
 | `WEATHER_LAT` / `WEATHER_LON` | Koordinaten Athlete 1 (Dezimalgrad mit Punkt) |
 | `WEATHER_LAT_2` / `WEATHER_LON_2` | Koordinaten Athlete 2 (optional) |
+| `SYNC_PUSH_TOKEN` | Fine-grained PAT (Repo-Owner) für den Auto-Commit — nötig, weil `main` Branch Protection hat und der Standard-`GITHUB_TOKEN` dort nicht mehr pushen darf |
+| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Prod-Supabase-Projekt — der Sync-Job liest damit `plan_cards`/`ftp_history` zurück in die JSON-Pipeline |
+| `SUPABASE_ATHLETE1_EMAIL` / `SUPABASE_ATHLETE1_PASSWORD` | Login für den Sync-Job gegen Prod-Supabase (nur Athlete 1) |
 
 ⚠️ **Standortdaten:** Koordinaten niemals im Code oder in JSON-Dateien eintragen — ausschließlich über GitHub Secrets. Der Wetter-Forecast wird serverseitig in der Action berechnet und nur als aggregierte Wetterwerte in `rides.json` gespeichert.
 

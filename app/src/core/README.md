@@ -23,6 +23,11 @@ Einzige inhaltliche Anpassung: `export-briefing-consistency.test.js` löst den
 Pfad zur Prompt-Vorlage in `docs/` jetzt über `process.cwd()` auf. Begründung
 steht im Kommentar in der Datei.
 
+Die Zahlen oben sind der Stand der Etappe-2a-Portierung, kein laufend
+gepflegter Zähler — seither kamen weitere, direkt in `app/src/core/`
+neu geschriebene Module dazu (u. a. `ladder*.js`, `proposal-*.js`,
+`plan-drag.js`, `scenario.js`, `workout-*.js`), jeweils mit eigenem Test.
+
 ## Was bewusst NICHT hier ist
 
 - **`state/`-Tests** — sie testen Module, die es in 3.0 nicht mehr gibt

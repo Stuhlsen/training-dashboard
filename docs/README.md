@@ -26,6 +26,15 @@ bekannte Eigenheiten. Bei jeder Aufgabe zuerst hier nachsehen.
 Vor dem Start einer Aufgabe in diesem Themenbereich das jeweilige
 Fahrplan-Fenster lesen (Ziel, Vorbedingung, Abnahme) statt nur den Titel.
 
+## Anleitungen
+
+- **`docker-lokal-einrichten.md`** — lokaler Docker-Container
+  (`docker-compose.dev.yml`, `http://localhost:8080`) für den finalen
+  Produktions-Build-Check vor jedem Commit-Vorschlag (s. „Arbeitsweise" in
+  `../CLAUDE.md`).
+- **`docker-server-einrichten.md`** — Betrieb auf dem Produktivserver
+  (Fahrplan 3, Docker-Umbau/Self-Hosting).
+
 ## Weitere laufende Fahrpläne (eigenständig, nicht Teil der vier oben)
 
 - **`fahrplan-5-planungstab-redesign.md`** — Umbau des Planungstabs

@@ -55,6 +55,9 @@
 
 ## Explorer / Charts
 
+- **`ExplorerSection.tsx` toter Code seit dem Analyse-Redesign** (20.08.2026)
+  — nirgends mehr eingebunden, Entfernen noch nicht freigegeben. →
+  `app/src/features/explorer/ExplorerSection.tsx`.
 - **Alle Chart-Komponenten rechnen indexbasiert** (`makeIndexScale`), nicht
   als kontinuierliche Zeitachse — bei Athlet 2 (dünne Datenlage) würden
   Datenlücken sonst sichtbar. Bewusster Nicht-Zielpunkt, Voraussetzung für

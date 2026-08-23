@@ -52,7 +52,9 @@ obwohl dieselben Tests lokal unter Node 24.18.0 anstandslos grün liefen.
 `mock.module()`-Konsumenten (`state/`-Schicht) sind mit dem Vanilla-Zweig
 entfernt worden — Stand 15.08.2026 nutzt keine Datei mehr unter `tests/`
 `mock.module()`; das Flag steht trotzdem weiter im Skript. `sync-data.yml`
-läuft weiter auf Node 22 (kein Testlauf dort).
+pinnt seit demselben Anlass ebenfalls `node-version: "24"` (kein Testlauf
+dort, aber derselbe `generate-data.js`-Code läuft dort produktiv). Node 22
+kommt nur noch im `code-quality`/Fallow-Job in `ci.yml` zum Einsatz.
 
 ## Befehle
 
@@ -279,12 +281,17 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
 
 ### Datenquellen-Mix (lesen/schreiben)
 - **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline wie heute
-  (Action alle 6h, `scripts/generate-data.js`). Kein Change.
+  (Action alle 6h, `scripts/generate-data.js`).
 - **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
   → Supabase (RLS, Session-basiert).
-- **Die Linie ist scharf:** JSON-Loader lebt in `app/src/api/pipeline.ts`, sein Code bleibt
-  fachlich unverändert gegenüber der Vanilla-Fassung. `app/src/hooks/`/`features/` fragen
-  abstrakt "gib mir Athletendaten", bekommen sie woher auch immer.
+- **Die Linie ist NICHT mehr scharf** (seit `effectivePlan`/`ftpAt()` in `scripts/generate-data.js`):
+  der Sync-Job selbst liest inzwischen lesend aus Supabase (`plan_cards`, `ftp_history`, nur
+  Athlet 1) zurück in die JSON-Pipeline, damit `rides.json` den echten Plan-Stand statt der
+  eingefrorenen `adjustments.json` widerspiegelt. Ohne die vier `SUPABASE_*`-Sync-Secrets (s.
+  „GitHub Secrets" unten) degradiert das unbemerkt auf den alten JSON-Stand bzw. `DEFAULT_FTP` —
+  kein Fehler, nur ein stiller Fallback (s. `docs/offene-punkte.md`). `app/src/api/pipeline.ts`
+  bleibt trotzdem der alleinige JSON-Loader im Frontend; `app/src/hooks/`/`features/` fragen
+  weiterhin nur abstrakt "gib mir Athletendaten".
 
 ## Dateistruktur
 
@@ -332,13 +339,18 @@ supabase/
 scripts/
   generate-data.js         → Dünner Orchestrator (läuft in der Action + `npm run sync`)
   add-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
-  preset-suggestion-check.js, report-derived-workout-structure.js
-                           → einzelne Betriebs-/Migrations-/Analyse-Skripte
+  preset-suggestion-check.js, report-derived-workout-structure.js,
+  generate-jwt-keys.js    → einzelne Betriebs-/Migrations-/Analyse-Skripte
+  Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
                              notion, intervals, weather, map-activity, wellness,
                              compliance, coverage, ftp-history, interval-blocks,
                              formats-fetch, plan-cards-fetch, plan-to-cards, output
+    core/                  → zur app/src/core/-Schicht parallele Portierung auf der
+                             Sync-Seite (aggregate, briefing, plan2-schedule, projection,
+                             readiness, workout-math/-validator/-structure-derive,
+                             zones, ladder-progression u.a.)
 
 tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls.test.js
                              (npm test, Repo-Root — s. Stack-Abschnitt)
@@ -461,7 +473,10 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
   unsichtbar, auch wenn `main` längst aktualisiert ist. Bleibt ein manueller
   Schritt mit Rückfrage bei Alex (welche Versionsstufe) — kein automatisches
   Taggen ohne Bestätigung, ein neuer Tag ist ein sichtbarer, kaum
-  rückholbarer Schritt (löst einen echten Image-Build/-Push aus).
+  rückholbarer Schritt (löst einen echten Image-Build/-Push aus). Derselbe
+  `v*`-Tag löst in `publish-images.yml` zusätzlich einen `release`-Job aus,
+  der per `gh release create --generate-notes` automatisch ein GitHub
+  Release mit Auto-Notes anlegt — kein separater manueller Schritt nötig.
 
 **`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
 ```
@@ -518,7 +533,19 @@ INTERVALS_API_KEY       INTERVALS_ATHLETE_ID
 INTERVALS_API_KEY_2     INTERVALS_ATHLETE_ID_2
 WEATHER_LAT             WEATHER_LON
 WEATHER_LAT_2           WEATHER_LON_2
+SYNC_PUSH_TOKEN
+SUPABASE_URL                       SUPABASE_ANON_KEY
+SUPABASE_ATHLETE1_EMAIL            SUPABASE_ATHLETE1_PASSWORD
 ```
+
+`SYNC_PUSH_TOKEN` (seit 22.08.2026): Fine-grained PAT von Alex statt des
+Standard-`GITHUB_TOKEN` — `main` hat Branch Protection, der Bot-Token allein
+kann seitdem nicht mehr pushen. Die vier `SUPABASE_*`-Einträge sind für den
+Sync-Job selbst (Prod-Supabase, nur Athlet 1, s. „Datenquellen-Mix" oben) —
+nicht zu verwechseln mit den athletengebundenen `SUPABASE_ATHLETE1/2_*` bzw.
+`SUPABASE_TRAINER_*`-Testvars aus dem RLS-Testabschnitt weiter oben, die nur
+lokal in `.env` für `tests/supabase-rls.test.js` gebraucht werden. Details zu
+allen dreien: `.github/workflows/sync-data.yml` (Kopfkommentar).
 
 ## Chart-Label-Konvention (Überlappungsschutz)
 
@@ -664,6 +691,14 @@ React-Umbau nicht berührt):**
 **Nicht mehr zutreffend, ersatzlos entfallen mit dem React-Umbau:** die frühere
 gegenseitige Import-Beziehung zwischen `ui/table.js` und `ui/planned.js` sowie
 alle Verweise auf das globale `Data`-Objekt (s. „Wichtige Konventionen").
+
+**Bekannter toter Code (Stand 23.08.2026):** `app/src/features/explorer/ExplorerSection.tsx`
+(der frühere eigenständige "Verläufe"-Tab, 17 Karten) wird seit dem Analyse-
+Tab-Redesign „Antworten & Spuren" (20.08.2026) nirgends mehr eingebunden —
+bewusst noch nicht entfernt (Aufräumen ist laut Kopfkommentar in
+`AnalysisPage.tsx` ein separater, noch nicht freigegebener Schritt). Vor
+einer `fallow dead-code`-Bereinigung in diesem Bereich erst mit Alex
+klären, ob der Schritt jetzt freigegeben ist.
 
 ## Playwright-MCP — Nutzungskonvention
 
