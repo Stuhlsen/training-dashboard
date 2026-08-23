@@ -117,9 +117,14 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  # Erstellt bei einem "v*"-Tag ein GitHub Release mit automatisch aus den
-  # Commits generierten Notizen — sonst sieht Renovate bei MRs nur nackte
-  # Vergleichs-Links statt einer Changelog (Issue #7).
+  # Erstellt bei einem "v*"-Tag ein GitHub Release mit nach Commit-Typ
+  # gruppierten Notizen (fix:/feat:/design:/docs:/chore:/test: — s.
+  # Commit-Konvention in AGENTS.md) statt der nackten Vergleichs-Links von
+  # "gh release create --generate-notes" (das gruppiert nur nach PR-Labels,
+  # dieses Repo nutzt aber keine PRs). Vorbild: netbird-Releases
+  # (github.com/netbirdio/netbird/releases) — dort nach Bereich gruppiert
+  # mit einem lesbaren Satz je Änderung; hier nach Commit-Typ, da es
+  # thematische Bereiche wie dort nicht gibt.
   release:
     needs: [frontend, sync, migrate]
     if: startsWith(github.ref, 'refs/tags/v')
@@ -128,7 +133,37 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
-      - run: gh release create "$GITHUB_REF_NAME" --generate-notes
+      - name: Release Notes generieren
+        run: |
+          declare -A SECTION_TITLES=(
+            [feat]="Features" [fix]="Fixes" [design]="Design"
+            [docs]="Docs" [chore]="Chores" [test]="Tests"
+          )
+          PREV_TAG=$(git tag --sort=-v:refname | grep -A1 -x "$GITHUB_REF_NAME" | tail -n1)
+          if [ "$PREV_TAG" = "$GITHUB_REF_NAME" ]; then PREV_TAG=""; fi
+          RANGE="${PREV_TAG:+$PREV_TAG..}$GITHUB_REF_NAME"
+
+          {
+            for type in feat fix design docs chore test; do
+              LINES=$(git log "$RANGE" --pretty=format:"%s" \
+                | grep -v '^Merge ' \
+                | grep -v '^chore: update training data' \
+                | grep "^${type}: " || true)
+              if [ -n "$LINES" ]; then
+                echo "### ${SECTION_TITLES[$type]}"
+                echo ""
+                echo "$LINES" | sed -E "s/^${type}: (.*)/- \1/"
+                echo ""
+              fi
+            done
+            if [ -n "$PREV_TAG" ]; then
+              echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${PREV_TAG}...${GITHUB_REF_NAME}"
+            fi
+          } > release-notes.md
+
+      - run: gh release create "$GITHUB_REF_NAME" --notes-file release-notes.md
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
