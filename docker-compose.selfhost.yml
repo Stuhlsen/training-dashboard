@@ -102,7 +102,7 @@ services:
       retries: 10
 
   postgrest:
-    image: postgrest/postgrest:v12.0.2
+    image: postgrest/postgrest:v16.2
     depends_on:
       migrate:
         condition: service_completed_successfully
