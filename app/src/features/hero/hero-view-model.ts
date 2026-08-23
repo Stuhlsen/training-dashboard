@@ -186,7 +186,6 @@ export interface HeroPowerScale {
 
 export interface HeroCore {
   athleteName: string;
-  sources: string;
   eyebrow: string;
   dateRangeLabel: string;
   session: HeroSession | null;
@@ -364,7 +363,9 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
 
   return {
     athleteName: athleteCfg?.name ?? "",
-    sources: (athleteCfg?.dataSources ?? []).join(" + "),
+    // Datenquelle steht seit dem Hero-Tab-Redesign (Review-Kommentar
+    // 23.08.2026) im Footer (Footer.tsx, athletenbezogen dort selbst
+    // berechnet) statt hier — kein Konsument mehr für dieses Feld.
     eyebrow: lastWithWeek?.phase ? `${lastWithWeek.week} · ${lastWithWeek.phase}` : "",
     dateRangeLabel: first && last ? `${fmtDate(first.dateISO)} – ${fmtDate(last.dateISO)}` : "",
     session,

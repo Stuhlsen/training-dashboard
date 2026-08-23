@@ -11,7 +11,6 @@ import { athleteConfig } from "../../config";
 import { localISODate } from "../../core/format.js";
 import { buildWeekReview } from "../../core/weekreview.js";
 import { GlassCard } from "../../components/GlassCard";
-import { AthleteToggle } from "../../components/AthleteToggle";
 import { ConsistencyCalendar } from "../../charts/ConsistencyCalendar";
 import { buildRecordChips } from "../analysis/analysis-view-model";
 import { RecordChips } from "../analysis/RecordChips";
@@ -37,7 +36,7 @@ const TODAY = localISODate();
 const BASE_ROTATE_X = 1.6;
 
 export function HeroPage() {
-  const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
+  const { activeAthleteId } = useActiveAthlete();
   const athleteCfg = athleteConfig(activeAthleteId);
   const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
@@ -180,8 +179,7 @@ export function HeroPage() {
             </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
-            <span style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>{vm.sources}</span>
-            <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
+            <RaceCountdownPill countdown={countdown} />
           </div>
         </div>
 
@@ -237,16 +235,20 @@ export function HeroPage() {
             )}
 
             {vm.weatherToday && <WeatherCard weather={vm.weatherToday} />}
-            <RaceCountdownPill countdown={countdown} />
           </div>
 
           {session && (
-            <div style={{ transform: "translateZ(88px)" }}>
+            // Unterkante bündig mit der linken Spalte (Wetter-Karte) statt
+            // oben an der Überschrift klebend (Review-Kommentar 23.08.2026)
+            // — `alignSelf: "end"` statt eines geschätzten Pixel-Werts, damit
+            // es bei jeder Inhaltslänge der linken Spalte stimmt. Gilt
+            // unabhängig vom Login-Status auch für die FTP-Ringe daneben.
+            <div style={{ alignSelf: "end", transform: "translateZ(88px)" }}>
               <BriefingCard briefing={vm.briefing} />
             </div>
           )}
 
-          <div style={{ transform: "translateZ(30px)" }}>
+          <div style={{ alignSelf: "end", transform: "translateZ(30px)" }}>
             <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />
           </div>
         </div>
