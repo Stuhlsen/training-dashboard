@@ -92,3 +92,17 @@ export async function updateWellbeingPublic(userId: string, value: boolean): Pro
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };
 }
+
+/** Seit Migration 0018 selbstbedienbar (vorher nur per SQL, s. 0016) — Grant
+ *  ist spaltenrestriktiv wie display_name/wellbeing_public, RLS lässt nur
+ *  die eigene Zeile zu. */
+export async function updateLadderProgressionEnabled(userId: string, value: boolean): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client
+    .from("profiles")
+    .update({ ladder_progression_enabled: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}

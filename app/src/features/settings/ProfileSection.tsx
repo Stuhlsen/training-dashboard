@@ -6,7 +6,11 @@
 
 import { useState } from "react";
 import { useSessionProfile } from "../../api/hooks/useSession";
-import { useUpdateDisplayName, useUpdateWellbeingPublic } from "../../api/hooks/useProfile";
+import {
+  useUpdateDisplayName,
+  useUpdateWellbeingPublic,
+  useUpdateLadderProgressionEnabled,
+} from "../../api/hooks/useProfile";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { SavedCheck } from "./SavedCheck";
 import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE } from "./section-styles";
@@ -29,6 +33,7 @@ export function ProfileSection({ onOpenCheckin }: ProfileSectionProps) {
   const profile = useSessionProfile();
   const { update: updateName, isPending: savingName } = useUpdateDisplayName();
   const { update: updateWellbeing } = useUpdateWellbeingPublic();
+  const { update: updateLadderProgression } = useUpdateLadderProgressionEnabled();
 
   const [name, setName] = useState(profile?.displayName ?? "");
   const [nameSaved, setNameSaved] = useState(false);
@@ -130,6 +135,16 @@ export function ProfileSection({ onOpenCheckin }: ProfileSectionProps) {
               on={profile.wellbeingPublic}
               onChange={() => void updateWellbeing(!profile.wellbeingPublic)}
               label="Befinden öffentlich sichtbar"
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>
+              Stufenvorschlag (Auto-Progression)
+            </span>
+            <ToggleSwitch
+              on={profile.ladderProgressionEnabled}
+              onChange={() => void updateLadderProgression(!profile.ladderProgressionEnabled)}
+              label="Stufenvorschlag aktiv"
             />
           </div>
         </div>

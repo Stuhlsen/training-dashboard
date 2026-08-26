@@ -11,7 +11,11 @@
 
 import { useCallback } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { updateDisplayName as updateDisplayNameAdapter, updateWellbeingPublic as updateWellbeingPublicAdapter } from "../supabase/profiles";
+import {
+  updateDisplayName as updateDisplayNameAdapter,
+  updateWellbeingPublic as updateWellbeingPublicAdapter,
+  updateLadderProgressionEnabled as updateLadderProgressionEnabledAdapter,
+} from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter } from "../supabase/auth";
 import { useAuthUserId } from "./useSession";
 import { qk } from "../keys";
@@ -58,6 +62,34 @@ export function useUpdateWellbeingPublic() {
     },
     onSuccess: ({ value }) => {
       queryClient.setQueryData<Profile>(key, (profile) => (profile ? { ...profile, wellbeingPublic: value } : profile));
+    },
+  });
+
+  const update = useCallback(
+    async (value: boolean): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateLadderProgressionEnabled() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profile(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: boolean) => {
+      unwrap(await updateLadderProgressionEnabledAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<Profile>(key, (profile) =>
+        profile ? { ...profile, ladderProgressionEnabled: value } : profile,
+      );
     },
   });
 
