@@ -8,15 +8,6 @@
 
 ## Planungstab / Progressionssteuerung
 
-- **`ladder_progression_enabled` jetzt Self-Service statt SQL-Freigabe**
-  (26.08.2026) — Migration `0018_ladder_progression_self_service.sql`
-  erlaubt Athleten das Schreiben ihrer eigenen Spalte, Schalter
-  "Stufenvorschlag (Auto-Progression)" in `ProfileSection.tsx`. Migration
-  0018 noch NICHT eingespielt (weder dev noch prod) — vor dem nächsten
-  Docker-Check tun, dann Schalter einmal live gegen dashboard-dev
-  ausprobieren. Datenreife pro Athlet (Grund für die ursprüngliche Sperre,
-  0016) bleibt unverändert unklar — jetzt aber bewusst athletenseitig
-  entschieden statt zentral. → `docs/konzept-progressionssteuerung.md` C3/C4.
 - **Drag & Drop v1** (geprüft 26.08.2026, drei separate Punkte):
   - Kein Tastatur-Verschieben per Drag-Geste — Ersatzweg existiert bereits
     (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld → Speichern, voll
