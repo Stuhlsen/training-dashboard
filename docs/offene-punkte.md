@@ -34,9 +34,6 @@
     Nachbarkarten. Nur lösbar mit einer echten Kalenderwoche→Plan-Phase-
     Zuordnung unabhängig von `plan_cards` — größerer Umbau, kein Fix
     nebenbei.
-- **K-RAMPE/K-WOCHENTSS nie einzeln verifiziert**, ob 0 Treffer an echter
-  Ruhe oder an zu konservativen Schwellen liegt (K-TID ist geprüft: echter
-  Nulltreffer). `app/src/core/conflicts.js`.
 - **Kein Streams-Pipeline für den Planungstab-Detail-Chart** — der reiche
   Leistungs-/Puls-Verlauf (Rauschen, HR-Linie) aus dem Redesign-Mockup
   braucht Rohdaten (Sekunden-Samples), die nirgends in der Pipeline
