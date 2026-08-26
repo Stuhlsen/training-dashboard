@@ -34,11 +34,6 @@
 
 ## Sync-Pipeline (`scripts/`)
 
-- **HRV/Ruhepuls: 6 von 25 Tagen weichen zwischen `ride.hrv` und dem
-  Wellness-Wert ab** (Athlet 1, Übergangsfenster Plan1→Plan2) — vermutlich
-  ein Snapshot von vor der `wellnessFields()`-Konsolidierung, nicht
-  abschließend reproduzierbar bestätigt. Nächster Schritt: nach einem
-  echten Sync-Lauf `data/rides.json` für die betroffenen Tage gegenprüfen.
 - **K3-Typ-Defaults nicht auf Basis der FTP-Historie neu abgeleitet** —
   braucht mindestens einen echten Ramp-Test-Eintrag pro Athlet in
   `ftp_history` (aktuell leer). `app/src/sports/cycling/session-types.ts`.
