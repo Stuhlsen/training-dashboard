@@ -21,7 +21,7 @@ import {
   type DayForecast,
   type PlannedSessionRef,
 } from "./planning-view-model";
-import type { PlanCard as PlanCardT, Result } from "../../api/types";
+import type { IntervalsCredentials, PlanCard as PlanCardT, Result } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -67,6 +67,10 @@ export interface WeekGridDetailRowProps {
    *  Button nicht (canPush wird an der Aufrufstelle entsprechend gesetzt). */
   canPush?: boolean;
   onPush?: (id: string, token: string, athleteId: string) => Promise<Result>;
+  /** intervals.icu-Zugangsdaten des eingeloggten Users (Settings,
+   *  Migration 0019) — `null` ohne hinterlegte Werte. Ersetzt das frühere
+   *  localStorage/window.prompt()-Muster. */
+  intervalsCredentials?: IntervalsCredentials | null;
   trainerProposalMode?: boolean;
   /** Für `restDayRiddenSignal` — die Zelle selbst kennt nur den Status
    *  ("done"), nicht ob dieser done-Tag ein Ruhetag war, der trotzdem
@@ -101,6 +105,7 @@ export function WeekGridDetailRow({
   canEdit,
   canPush,
   onPush,
+  intervalsCredentials,
   trainerProposalMode,
   rides,
   conflicts,
@@ -162,27 +167,20 @@ export function WeekGridDetailRow({
     if (!result.ok) setError(result.error?.message || "Rückgängig fehlgeschlagen.");
   }
 
-  /** Token/Athlete-ID aus localStorage, sonst einmalig per prompt() abfragen
-   *  und persistieren — identisch zu PlanCard.tsx::handlePush. */
+  /** Token/Athlete-ID kommen aus den Settings (Migration 0019) statt aus
+   *  localStorage/window.prompt() — fehlen sie, gibt es einen Hinweistext
+   *  statt eines Blocker-Popups (kein Blocker-Dialog für eine optionale
+   *  Aktion). */
   async function handlePush() {
     if (!onPush) return;
-    let token = localStorage.getItem("intervals_api_key");
-    let intervalsAthleteId = localStorage.getItem("intervals_athlete_id");
-
-    if (!token) {
-      token = window.prompt("intervals.icu API Key eingeben:");
-      if (!token) return;
-      localStorage.setItem("intervals_api_key", token);
-    }
-    if (!intervalsAthleteId) {
-      intervalsAthleteId = window.prompt("intervals.icu Athlete ID eingeben (z.B. i12345):");
-      if (!intervalsAthleteId) return;
-      localStorage.setItem("intervals_athlete_id", intervalsAthleteId);
+    if (!intervalsCredentials) {
+      setPushResult({ ok: false, message: "intervals.icu-Key fehlt — in den Einstellungen eintragen." });
+      return;
     }
 
     setPushing(true);
     setPushResult(null);
-    const result = await onPush(card.id, token, intervalsAthleteId);
+    const result = await onPush(card.id, intervalsCredentials.apiKey, intervalsCredentials.athleteId);
     setPushing(false);
     setPushResult(
       result.ok

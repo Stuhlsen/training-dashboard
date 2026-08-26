@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { WeekGridDetailRow } from "./WeekGridDetailRow";
 import type { PlanCard } from "../../api/types";
@@ -120,22 +120,39 @@ describe("WeekGridDetailRow — Verschieben/Ausfallen/Push-Verdrahtung", () => {
   });
 
   describe("Push", () => {
-    beforeEach(() => {
-      localStorage.setItem("intervals_api_key", "token-abc");
-      localStorage.setItem("intervals_athlete_id", "i123");
-    });
+    const CREDENTIALS = { apiKey: "token-abc", athleteId: "i123" };
 
-    it("ruft onPush mit gespeicherten Zugangsdaten auf, wenn canPush + workout gesetzt sind", async () => {
+    it("ruft onPush mit den hinterlegten Zugangsdaten auf, wenn canPush + workout gesetzt sind", async () => {
       const onPush = vi.fn().mockResolvedValue({ ok: true });
-      renderRow(card({ id: "d", workout: { blocks: [] } }), { canPush: true, onPush });
+      renderRow(card({ id: "d", workout: { blocks: [] } }), {
+        canPush: true,
+        onPush,
+        intervalsCredentials: CREDENTIALS,
+      });
       fireEvent.click(screen.getByText("📤 Auf Wahoo pushen"));
       await vi.waitFor(() => expect(onPush).toHaveBeenCalledWith("d", "token-abc", "i123"));
       await screen.findByText("✅ Gepusht!");
     });
 
     it("zeigt den Push-Button nicht ohne canPush", () => {
-      renderRow(card({ id: "e", workout: { blocks: [] } }), { canPush: false, onPush: vi.fn() });
+      renderRow(card({ id: "e", workout: { blocks: [] } }), {
+        canPush: false,
+        onPush: vi.fn(),
+        intervalsCredentials: CREDENTIALS,
+      });
       expect(screen.queryByText(/Auf Wahoo pushen/)).toBeNull();
+    });
+
+    it("zeigt einen Hinweis statt zu pushen, wenn keine Zugangsdaten hinterlegt sind", async () => {
+      const onPush = vi.fn();
+      renderRow(card({ id: "f", workout: { blocks: [] } }), {
+        canPush: true,
+        onPush,
+        intervalsCredentials: null,
+      });
+      fireEvent.click(screen.getByText("📤 Auf Wahoo pushen"));
+      await screen.findByText(/intervals\.icu-Key fehlt/);
+      expect(onPush).not.toHaveBeenCalled();
     });
   });
 });

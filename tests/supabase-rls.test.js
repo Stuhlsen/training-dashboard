@@ -127,6 +127,7 @@ if (!HAS_CREDS) {
   let coachLinkOk = false;
   let originalWellbeingPublic = null;
   let originalViewPrefs; // undefined = noch nicht geprüft, null = existierte nicht
+  let originalIntervalsCredentials; // undefined = noch nicht geprüft, null = existierte nicht
 
   /** Aufräum-Funktionen, LIFO im after()-Hook ausgeführt. Jede fängt ihre
    *  eigenen Fehler NICHT selbst — after() sammelt sie, damit ein einzelner
@@ -152,6 +153,13 @@ if (!HAS_CREDS) {
       { token: trainer.token }
     );
     originalViewPrefs = prefsCheck.data?.[0]?.categories ?? null;
+
+    const credsCheck = await rest(
+      "GET",
+      `intervals_credentials?profile_id=eq.${athlete.userId}&select=api_key,intervals_athlete_id`,
+      { token: athlete.token }
+    );
+    originalIntervalsCredentials = credsCheck.data?.[0] ?? null;
   });
 
   after(async () => {
@@ -716,6 +724,60 @@ if (!HAS_CREDS) {
     const insert = await rest("POST", "ladder_history", {
       token: athlete.token,
       body: { profile_id: trainer.userId, format_id: "sweetspot-long", step: 1, valid_from: "1901-02-06", reason: "manual" },
+    });
+    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+  });
+
+  // --- 8. intervals_credentials (0019) -------------------------------------
+  // Verifikation der neuen Migration 0019_intervals_credentials.sql. Anders
+  // als ftp_history/ladder_history KEIN Coach-Lesezugriff (der Key gehört
+  // niemandem außer dem Athleten selbst) — genau das ist hier der wichtige
+  // Negativtest, nicht nur "Trainer schreibt nicht". profile_id ist
+  // Primärschlüssel (eine Zeile je Athlet, kein Sentinel-Datum möglich) —
+  // Original wird deshalb wie bei trainer_view_prefs gesichert/wiederhergestellt,
+  // um eine ggf. bereits real hinterlegte Zeile nicht zu zerstören.
+
+  test("intervals_credentials: Athlet legt eigene Zeile an, anon sieht sie nicht (kein GRANT)", async () => {
+    const upsert = await rest("POST", "intervals_credentials", {
+      token: athlete.token,
+      prefer: "return=representation,resolution=merge-duplicates",
+      body: { profile_id: athlete.userId, api_key: "rls-test-key", intervals_athlete_id: "i-rls-test" },
+    });
+    assert.equal(upsert.ok, true, `Upsert fehlgeschlagen: ${JSON.stringify(upsert.data)}`);
+    cleanupTasks.push(async () => {
+      if (originalIntervalsCredentials) {
+        const restore = await rest("PATCH", `intervals_credentials?profile_id=eq.${athlete.userId}`, {
+          token: athlete.token,
+          body: {
+            api_key: originalIntervalsCredentials.api_key,
+            intervals_athlete_id: originalIntervalsCredentials.intervals_athlete_id,
+          },
+        });
+        if (!restore.ok) throw new Error("intervals_credentials: Originalwert nicht wiederhergestellt");
+      } else {
+        const del = await rest("DELETE", `intervals_credentials?profile_id=eq.${athlete.userId}`, {
+          token: athlete.token,
+        });
+        if (!del.ok) throw new Error("intervals_credentials-Testzeile nicht gelöscht");
+      }
+    });
+
+    const anonRead = await rest("GET", `intervals_credentials?profile_id=eq.${athlete.userId}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf intervals_credentials nicht lesen (kein GRANT)");
+  });
+
+  test("intervals_credentials: Trainer darf die Zeile seines Athleten NICHT lesen (kein Coach-Zugriff, anders als ftp_history)", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerRead = await rest("GET", `intervals_credentials?profile_id=eq.${athlete.userId}`, {
+      token: trainer.token,
+    });
+    assert.deepEqual(trainerRead.data, [], "Trainer sieht die intervals_credentials-Zeile seines Athleten — RLS zu weit gefasst");
+  });
+
+  test("intervals_credentials: Athlet kann keine Zeile für eine fremde profile_id anlegen", async () => {
+    const insert = await rest("POST", "intervals_credentials", {
+      token: athlete.token,
+      body: { profile_id: trainer.userId, api_key: "rls-test-key", intervals_athlete_id: "i-rls-test" },
     });
     assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
   });

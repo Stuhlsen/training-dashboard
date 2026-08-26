@@ -50,6 +50,7 @@ import { WeekGridDetailRow } from "./WeekGridDetailRow";
 import { buildWeekGrid } from "./week-grid-view-model";
 import { DoneTable } from "./DoneTable";
 import { DoneDetailChart } from "./DoneDetailChart";
+import { useIntervalsCredentials } from "../../api/hooks/useIntervalsCredentials";
 import { buildDoneRows, gapsChips, planFidelitySummary } from "./done-table-view-model";
 import {
   buildPlanningSections,
@@ -115,6 +116,11 @@ export function PlanningPage() {
   const { undo } = useUndoAdjustment(activeAthleteId);
   const { push } = usePushPlanCard(activeAthleteId);
   const { create: createTrainerProposal } = useCreateTrainerProposal(activeAthleteId);
+  // Trainer sehen weder den Push-Button (s. canPush unten) noch den
+  // Rausch-Chart — die eigenen intervals.icu-Zugangsdaten des Trainers
+  // (falls vorhanden) gehören nicht zum gerade angezeigten Athleten.
+  const { credentials: intervalsCredentialsRaw } = useIntervalsCredentials();
+  const intervalsCredentials = isTrainer ? null : intervalsCredentialsRaw;
 
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -448,6 +454,7 @@ export function PlanningPage() {
                       // es auch für den Trainer true ist (RLS T2).
                       canPush={editable && !isTrainer}
                       onPush={push}
+                      intervalsCredentials={intervalsCredentials}
                       trainerProposalMode={trainerProposalMode}
                       rides={allRides}
                       conflicts={conflicts}
@@ -474,7 +481,7 @@ export function PlanningPage() {
               fidelity={fidelity}
               gaps={gaps}
               canEdit={editable}
-              renderChart={(row) => <DoneDetailChart {...row} />}
+              renderChart={(row) => <DoneDetailChart {...row} intervalsCredentials={intervalsCredentials} />}
             />
           </div>
         </>

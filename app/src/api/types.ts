@@ -169,6 +169,17 @@ export interface CheckinInput {
   note?: string | null;
 }
 
+/** intervals.icu-Zugangsdaten des eingeloggten Users (Settings) — ersetzt
+ *  das frühere localStorage-Popup-Muster (`intervals_api_key`/
+ *  `intervals_athlete_id`) für Wahoo-Push UND den Streams-Abruf des
+ *  Planungstab-Detail-Charts. `athleteId` ist intervals.icus eigene
+ *  Athleten-Kennung (z.B. "i12345"), NICHT die interne "athlete1"/
+ *  "athlete2"-ID. */
+export interface IntervalsCredentials {
+  apiKey: string;
+  athleteId: string;
+}
+
 export type ProposalOp = "add" | "replace" | "move" | "cancel";
 export type ProposalSource = "trainer" | "claude";
 export type ProposalStatus = "open" | "accepted" | "rejected" | "stale" | "withdrawn";

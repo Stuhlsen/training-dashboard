@@ -66,4 +66,11 @@ export const qk = {
    *  Blockziel verschieben kann, ohne dass sich profileId/athleteId ändern. */
   blockTransition: (profileId: string, cardsFingerprint: string) =>
     ["block-transition", profileId, cardsFingerprint] as const,
+
+  /** intervals.icu-Zugangsdaten des eingeloggten Users (Wahoo-Push +
+   *  Streams-Abruf, Migration 0019). */
+  intervalsCredentials: (userId: string) => ["intervals-credentials", userId] as const,
+  /** Sekunden-Rohdaten (Watt/Puls) einer einzelnen intervals.icu-Aktivität —
+   *  ändert sich nach Abschluss der Fahrt nie mehr (s. useActivityStreams). */
+  activityStreams: (activityId: string) => ["activity-streams", activityId] as const,
 } as const;

@@ -21,6 +21,7 @@ import { GoalsSection } from "./GoalsSection";
 import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
 import { DataSourcesSection } from "./DataSourcesSection";
+import { IntervalsSection } from "./IntervalsSection";
 import { CheckinDialog } from "./CheckinDialog";
 
 export function SettingsPage() {
@@ -47,6 +48,7 @@ export function SettingsPage() {
                 <FtpHistorySection />
                 <FormatsSection />
                 <DataSourcesSection />
+                <IntervalsSection />
               </>
             )}
           </>

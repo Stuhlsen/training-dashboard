@@ -1,12 +1,26 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { DoneDetailChart } from "./DoneDetailChart";
 import { buildDoneRows, type DoneRideMap } from "./done-table-view-model";
+import { createHarness } from "../../test/harness";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 type RideCompliance = import("../../types.js").RideCompliance;
 type ComplianceInterval = import("../../types.js").ComplianceInterval;
+
+// Streams-Adapter gemockt (echter fetch()-Aufruf gegen intervals.icu) —
+// die Mock-Grenze liegt hier genau wie bei den api/supabase/*-Mocks in
+// usePlanCards.test.tsx: alles ab api/intervals/* ist gestubbt, die
+// Hook-/Komponenten-Logik darüber läuft echt.
+vi.mock("../../api/intervals/streams", () => ({
+  getActivityStreams: async () => ({
+    ok: true,
+    time: [0, 1, 2, 3],
+    watts: [100, 200, 300, 250],
+    heartrate: [120, 130, 140, 135],
+  }),
+}));
 
 // Kein globaler afterEach(cleanup) im Projekt-Setup (s. WeekGrid.test.tsx).
 afterEach(cleanup);
@@ -105,5 +119,28 @@ describe("DoneDetailChart — Zweigwahl", () => {
     screen.getByText("Zonen-Mix");
     screen.getByText(/Z1 Recovery 50%/);
     screen.getByText(/Z2 Endurance 50%/);
+  });
+});
+
+describe("DoneDetailChart — Rausch-Chart (Streams)", () => {
+  it("rendert den Rausch-Chart zusätzlich zum Stufenchart, wenn activityId + Credentials vorliegen", async () => {
+    const c = card({ id: "a", date: "2026-08-18" });
+    const row = rowFor(
+      c,
+      ride({ activityId: "act1", compliance: compliance("a", [interval()]) }),
+    );
+    const { wrapper } = createHarness();
+    render(<DoneDetailChart {...row} intervalsCredentials={{ apiKey: "k", athleteId: "i1" }} />, { wrapper });
+    screen.getByText("Leistung — Soll vs. Ist");
+    await screen.findByText("Verlauf — Watt/Puls");
+    screen.getByText(/Ø 213 W · max 300 W/);
+  });
+
+  it("zeigt keinen Rausch-Chart ohne Credentials, auch mit activityId", () => {
+    const c = card({ id: "a", date: "2026-08-18" });
+    const row = rowFor(c, ride({ activityId: "act1", compliance: compliance("a", [interval()]) }));
+    render(<DoneDetailChart {...row} />);
+    screen.getByText("Leistung — Soll vs. Ist");
+    expect(screen.queryByText("Verlauf — Watt/Puls")).toBeNull();
   });
 });

@@ -16,6 +16,10 @@ api/
   supabase/             Adapter: eine Datei je Tabelle, Row-Mapping + Result
   intervals/push.ts     intervals.icu-Push (Etappe 6d) — kein Supabase-Bezug,
                          deshalb eigenes Verzeichnis statt supabase/
+  intervals/streams.ts  intervals.icu-Sekunden-Rohdaten (Watt/Puls) für den
+                         Planungstab-Rausch-Chart, on-demand — Zugangsdaten
+                         kommen aus supabase/intervals-credentials.ts (eigene
+                         Tabelle, NICHT profiles — das ist öffentlich lesbar)
   plan-cards/patch.ts   Reine Regeln der Karten-Anpassungen (mockfrei getestet)
   hooks/                Die eigentliche Hook-Oberfläche
 ```
