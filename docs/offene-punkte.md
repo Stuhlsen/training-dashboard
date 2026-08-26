@@ -17,8 +17,6 @@
   ausprobieren. Datenreife pro Athlet (Grund für die ursprüngliche Sperre,
   0016) bleibt unverändert unklar — jetzt aber bewusst athletenseitig
   entschieden statt zentral. → `docs/konzept-progressionssteuerung.md` C3/C4.
-- **`CONFLICT_THRESHOLDS.eventTaperDays: 7`** (`app/src/core/plan-config.js`)
-  — eigene Annahme, nie extern (sportwissenschaftlich) bestätigt.
 - **Drag & Drop v1** (geprüft 26.08.2026, drei separate Punkte):
   - Kein Tastatur-Verschieben per Drag-Geste — Ersatzweg existiert bereits
     (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld → Speichern, voll
