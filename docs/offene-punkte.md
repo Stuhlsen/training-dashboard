@@ -72,10 +72,6 @@
 - **Schlafscore fließt nicht in Governor/UI** — kalibrierungssensibler
   Eingriff in bereits getestete Schwellenwerte, bewusst zurückgestellt.
   `app/src/core/readiness.js`/`app/src/core/export-briefing.js`.
-- **`config.json`-Bootstrap läuft ungated auch auf GitHub Pages/Vite-Dev**
-  — nur in Docker liefert er etwas, auf Pages ein zusätzlicher blockierender
-  Same-Origin-404-Request pro Seitenaufruf. Ungemessen, kein spürbarer
-  Effekt erwartet. `app/index.html`.
 - **`sport`-Spalte bewusst noch nicht in der Datenbank** — additiv
   nachrüstbar, sobald eine zweite Sportart echte Daten hat (Fahrplan 4).
   Bis dahin sind `plan_cards`/`events`/`proposals` implizit Radsport.

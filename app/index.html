@@ -22,7 +22,17 @@
       // Vite-Dev-Server liefert der SPA-Fallback stattdessen index.html —
       // beides lässt JSON.parse() scheitern und landet im selben catch,
       // App nutzt dann wie bisher die Hostname-Tabelle in config.ts.
+      //
+      // Übersprungen wird der Request nur dort, wo config.json NIE existieren
+      // kann (GitHub Pages, Vite-Dev-Server 5173) — s. docs/offene-punkte.md.
+      // Jeder andere Host (Docker auf 8080, ein künftiger echter Server hinter
+      // Caddy) versucht weiterhin ganz normal zu laden, inkl. desselben
+      // Fallbacks im catch, falls dort doch nichts liegt.
       (function () {
+        var host = window.location.hostname;
+        var port = window.location.port;
+        var knownNoConfig = host === "stuhlsen.github.io" || port === "5173";
+        if (knownNoConfig) return;
         try {
           var xhr = new XMLHttpRequest();
           xhr.open("GET", "/config.json", false);
