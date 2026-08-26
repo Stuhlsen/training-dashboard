@@ -41,6 +41,15 @@
   Stufenchart aus `core/compliance-match.js`-Intervallen (kein HR — kein
   Feld dafür in `RideCompliance`). → `app/src/features/planning/
   DoneDetailChart.tsx`.
+  Grobe Skizze für später (26.08.2026, noch nicht begonnen, eigenes
+  Vorhaben): Abruf NICHT über die Sync-Pipeline/`data/rides.json` (zu groß
+  auf Vorrat für alle Fahrten), sondern client-seitig on-demand beim
+  Aufklappen einer Karte — über denselben intervals.icu-API-Key, der schon
+  für den Wahoo-Push in `localStorage` liegt, nur im Speicher gehalten,
+  nicht persistiert. Größte offene Unbekannte: ob/wie intervals.icu einen
+  Streams-Endpunkt (`/activity/{id}/streams` o.ä.) pro API-Key freigibt —
+  das müsste zuerst einmalig live verifiziert werden, analog zum
+  M3-external_id-Nachweis oben.
 
 ## Sync-Pipeline (`scripts/`)
 
