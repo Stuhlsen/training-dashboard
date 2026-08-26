@@ -7,10 +7,9 @@
    Seite. Der bisherige Kennzahlen-Inhalt (Last-Tabelle, Periodisierung,
    Rekorde, Typverteilung, Konsistenz, FTP-Dreiklang) ist nicht verloren,
    sondern lebt eingeklappt in LegacyKpiAppendix.tsx weiter (Absprache mit
-   Alex, s. Umsetzungsplan). ExplorerSection.tsx (bisheriger Verläufe-Tab,
-   17 Karten) wird hier nicht mehr eingebunden — bleibt vorerst unangetastet
-   im Repo, Aufräumen ist ein bewusst separater, noch nicht freigegebener
-   Schritt (s. Umsetzungsplan Etappe 3).
+   Alex, s. Umsetzungsplan). Der frühere Verläufe-Tab (ExplorerSection.tsx,
+   17 Karten) wurde nach diesem Redesign nirgends mehr eingebunden und
+   inzwischen entfernt (26.08.2026).
    ============================================================ */
 
 import { useMemo, useState } from "react";

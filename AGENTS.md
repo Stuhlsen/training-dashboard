@@ -692,14 +692,6 @@ React-Umbau nicht berührt):**
 gegenseitige Import-Beziehung zwischen `ui/table.js` und `ui/planned.js` sowie
 alle Verweise auf das globale `Data`-Objekt (s. „Wichtige Konventionen").
 
-**Bekannter toter Code (Stand 23.08.2026):** `app/src/features/explorer/ExplorerSection.tsx`
-(der frühere eigenständige "Verläufe"-Tab, 17 Karten) wird seit dem Analyse-
-Tab-Redesign „Antworten & Spuren" (20.08.2026) nirgends mehr eingebunden —
-bewusst noch nicht entfernt (Aufräumen ist laut Kopfkommentar in
-`AnalysisPage.tsx` ein separater, noch nicht freigegebener Schritt). Vor
-einer `fallow dead-code`-Bereinigung in diesem Bereich erst mit Alex
-klären, ob der Schritt jetzt freigegeben ist.
-
 ## Playwright-MCP — Nutzungskonvention
 
 > **Hintergrund:** Playwright-MCP wurde in Phase 3 projektlokal eingerichtet (`.mcp.json`)
