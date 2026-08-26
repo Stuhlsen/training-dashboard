@@ -2,16 +2,11 @@ import { useNavigate } from "react-router-dom";
 import { GlassCard } from "../../components/GlassCard";
 import { LEVEL_COLOR } from "./BriefingCard";
 import type { HeroBriefing } from "./hero-view-model";
+import { LEVEL_LABEL, SLEEP_SCORE_DEVICE_NOTE } from "../../core/readiness.js";
 import type { assessReadiness } from "../../core/readiness.js";
 
 type Readiness = NonNullable<ReturnType<typeof assessReadiness>>;
 type Metric = Readiness["metrics"][number];
-
-const LEVEL_LABEL: Record<Readiness["level"], string> = {
-  green: "Bereit",
-  yellow: "Angeschlagen",
-  red: "Erholung nötig",
-};
 
 const STATUS_COLOR: Record<Metric["status"], string> = {
   ok: "var(--ok)",
@@ -111,6 +106,9 @@ export function ReadinessCard({ readiness, briefing }: { readiness: Readiness | 
         ))}
       </div>
 
+      {readiness.metrics.some((m) => m.key === "sleepScore" && m.recent != null) && (
+        <p style={{ margin: "10px 0 0", fontSize: ".72rem", color: "var(--ink-3)" }}>{SLEEP_SCORE_DEVICE_NOTE}</p>
+      )}
       {readiness.basisNote && (
         <p style={{ margin: "10px 0 0", fontSize: ".72rem", color: "var(--ink-3)" }}>{readiness.basisNote}</p>
       )}

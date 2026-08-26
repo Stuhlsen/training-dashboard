@@ -61,9 +61,6 @@
 
 ## Sonstiges
 
-- **Schlafscore fließt nicht in Governor/UI** — kalibrierungssensibler
-  Eingriff in bereits getestete Schwellenwerte, bewusst zurückgestellt.
-  `app/src/core/readiness.js`/`app/src/core/export-briefing.js`.
 - **`sport`-Spalte bewusst noch nicht in der Datenbank** — additiv
   nachrüstbar, sobald eine zweite Sportart echte Daten hat (Fahrplan 4).
   Bis dahin sind `plan_cards`/`events`/`proposals` implizit Radsport.

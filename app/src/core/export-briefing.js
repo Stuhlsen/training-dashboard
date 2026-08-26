@@ -25,6 +25,7 @@ import { localISODate, diffDays } from "./format.js";
 import { computeZones } from "./zones.js";
 import { KNOWN_PLAN_TYPES, CONFLICT_THRESHOLDS } from "./plan-config.js";
 import { estimateTss } from "./projection.js";
+import { LEVEL_LABEL, SLEEP_SCORE_DEVICE_NOTE } from "./readiness.js";
 
 // TSB-Zielfenster je Event-Priorität (K-EVENT, core/conflicts.js) — hier
 // eigenständig statt importiert, weil core/conflicts.js dieselbe Konstante
@@ -541,6 +542,40 @@ function buildPresetSuggestionSection(presetSuggestions) {
   return lines;
 }
 
+/** Erholungs-Sektion (HRV/Ruhepuls/Schlafdauer/Schlafqualität) — dasselbe
+ *  assessReadiness()-Ergebnis, das auch die Tagesform-Ampel im Hero-Tab
+ *  speist (core/readiness.js, ReadinessCard.tsx), hier nur als Markdown
+ *  gerendert. Reine Anzeige, keine eigene Schwellenlogik — bewusst kein
+ *  eigener assessReadiness()-Aufruf hier (core/export-briefing.js bleibt
+ *  fertig-geladene-Domänenobjekte-rein wie der Rest der Datei, s.
+ *  Modul-Kopfkommentar). `null` (zu wenig Historie) → Hinweistext statt
+ *  leerer Sektion, identischer Wortlaut wie ReadinessCard.tsx.
+ *  @param {ReturnType<import("./readiness.js").assessReadiness>} readiness
+ *  @returns {string[]} Markdown-Zeilen */
+function buildReadinessSection(readiness) {
+  const lines = [];
+  lines.push("## Erholung (HRV/Ruhepuls/Schlaf)");
+  if (!readiness) {
+    lines.push(
+      "Noch zu wenig Wellness-Historie für eine belastbare Baseline (braucht ~6 Wochen intervals.icu-Daten)."
+    );
+    lines.push("");
+    return lines;
+  }
+  lines.push(`- Status: ${LEVEL_LABEL[readiness.level]} — ${readiness.recommendation}`);
+  for (const m of readiness.metrics) {
+    const confNote = m.confidence !== "vorhanden" ? ` (${m.confidence})` : "";
+    lines.push(`- ${m.label}: ${m.recent ?? "–"} (Ø ${m.baseline ?? "–"})${confNote}`);
+  }
+  if (readiness.metrics.some((m) => m.key === "sleepScore" && m.recent != null)) {
+    lines.push(`- ${SLEEP_SCORE_DEVICE_NOTE}`);
+  }
+  lines.push(`- ${readiness.basisNote}`);
+  if (readiness.staleWarning) lines.push(`- ⚠ ${readiness.staleWarning}`);
+  lines.push("");
+  return lines;
+}
+
 /** Markdown-Briefing für den Menschen + maschinenlesbarer JSON-Anhang mit
  *  Karten-IDs (Schema-Konzept §6). Reine Funktion — nimmt fertig geladene
  *  Domänenobjekte entgegen, kein fetch/document.
@@ -551,6 +586,7 @@ function buildPresetSuggestionSection(presetSuggestions) {
  *    planCards?: Array<{id:string, date:string, name?:string, typ?:string, tssPlanned?:number|null, updatedAt?:string}>,
  *    actuals?: import("../types.js").Ride[],
  *    wellbeing?: Array<{date:string, energy?:number, muscleFeel?:number, mood?:number, note?:string|null}>,
+ *    readiness?: ReturnType<import("./readiness.js").assessReadiness>,  objektive HRV/Ruhepuls/Schlaf-Ampel — s. buildReadinessSection
  *    projection?: {asOf:string, startCtl:number, startAtl:number, days:Array<{date:string,ctl:number,atl:number,tsb:number}>}|null,
  *    conflicts?: Array<{rule:string, severity:string, message:string}>,
  *    recentProposals?: Array<{date?:string|null, op:string, status:string, reason?:string|null}>,
@@ -571,6 +607,7 @@ export function buildBriefingMarkdown({
   planCards = [],
   actuals = [],
   wellbeing = [],
+  readiness = null,
   projection = null,
   conflicts = [],
   recentProposals = [],
@@ -683,6 +720,8 @@ export function buildBriefingMarkdown({
     }
   }
   lines.push("");
+
+  lines.push(...buildReadinessSection(readiness));
 
   lines.push("## Form (CTL/ATL/TSB)");
   if (projection) {

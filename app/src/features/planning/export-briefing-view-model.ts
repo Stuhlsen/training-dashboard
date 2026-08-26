@@ -13,6 +13,7 @@
 
 import { addDaysISO, localISODate } from "../../core/format.js";
 import { currentFtpEntry } from "../../core/ftp-history.js";
+import { assessReadiness } from "../../core/readiness.js";
 import { efficiencyTrend, decouplingTrend } from "../../core/efficiency.js";
 import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../../core/ftp-forecast.js";
 import {
@@ -158,6 +159,13 @@ export function buildExportBriefingCtx(athleteId: string, input: ExportBriefingI
     today,
   });
 
+  // Objektive Erholungs-Ampel (HRV/Ruhepuls/Schlaf) — dasselbe Muster wie
+  // hero-view-model.ts::buildBriefingInfo (volle Wellness-Historie, die
+  // Funktion filtert/sortiert selbst). Bisher fehlte dieser Kanal im
+  // Claude-Trainer-Briefing komplett, nur der subjektive Morgen-Check-in
+  // (`wellbeing` oben) tauchte auf.
+  const readiness = assessReadiness(input.wellness, today);
+
   return {
     athleteId,
     displayName: input.displayName ?? "Athlet",
@@ -168,6 +176,7 @@ export function buildExportBriefingCtx(athleteId: string, input: ExportBriefingI
     planCards,
     actuals,
     wellbeing: input.wellbeing,
+    readiness,
     projection: input.projection,
     conflicts: input.conflicts,
     recentProposals,

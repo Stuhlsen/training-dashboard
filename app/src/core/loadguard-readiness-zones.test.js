@@ -84,7 +84,7 @@ test("metricStatus: Richtung wird berücksichtigt", () => {
   assert.equal(metricStatus(null, true), "nodata");
 });
 
-function makeWellness(n, hrv, rhr, sleep) {
+function makeWellness(n, hrv, rhr, sleep, sleepScore = 82) {
   // n Tage rückwärts ab 2026-07-03. Lokales Datum (kein UTC-Versatz) —
   // toISOString() würde in UTC+-Zeitzonen einen Tag zurückrollen und die
   // Konfidenz-Berechnung in core/readiness.js (Tagesgenau) verfälschen.
@@ -93,7 +93,7 @@ function makeWellness(n, hrv, rhr, sleep) {
     const d = new Date("2026-07-03T00:00:00");
     d.setDate(d.getDate() - i);
     const dateISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-    out.push({ date: dateISO, hrv, restingHR: rhr, sleepHours: sleep });
+    out.push({ date: dateISO, hrv, restingHR: rhr, sleepHours: sleep, sleepScore });
   }
   return out;
 }

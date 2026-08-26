@@ -3,6 +3,7 @@
 
 import { describe, expect, it } from "vitest";
 import { buildExportBriefingCtx, wellbeingWindow, ACTUALS_WEEKS, WELLBEING_WEEKS } from "./export-briefing-view-model";
+import { assessReadiness } from "../../core/readiness.js";
 
 const TODAY = "2026-08-15";
 
@@ -107,5 +108,22 @@ describe("buildExportBriefingCtx", () => {
       bestEfforts: [],
     });
     expect(ctx.guardrails).toBeTruthy();
+  });
+
+  it("readiness: null bei leerem wellness (zu wenig Historie für eine Baseline)", () => {
+    const ctx = buildExportBriefingCtx("athlete1", baseInput());
+    expect(ctx.readiness).toBe(null);
+  });
+
+  it("readiness: bei ausreichender Historie identisch zum direkten assessReadiness()-Ergebnis", () => {
+    const wellness = Array.from({ length: 49 }, (_, i) => {
+      const d = new Date(`${TODAY}T00:00:00`);
+      d.setDate(d.getDate() - (i + 1));
+      const dateISO = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      return { date: dateISO, hrv: 62 + (i % 3) - 1, restingHR: 52 + (i % 2), sleepHours: 7.2, sleepScore: 82 };
+    }) as never;
+    const ctx = buildExportBriefingCtx("athlete1", baseInput({ wellness }));
+    expect(ctx.readiness).toEqual(assessReadiness(wellness, TODAY));
+    expect(ctx.readiness?.level).toBeTruthy();
   });
 });

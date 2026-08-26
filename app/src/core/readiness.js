@@ -24,6 +24,27 @@ export const RECENT_DAYS = READINESS_CONFIG.recentDays;
 const Z_CAUTION = READINESS_CONFIG.zCaution;
 const Z_ALERT = READINESS_CONFIG.zAlert;
 
+/** Anzeige-Label je Ampel-Level — einzige Quelle für diesen Wortlaut.
+ *  features/hero/ReadinessCard.tsx und core/export-briefing.js importieren
+ *  von hier statt eigener Kopien (sonst driften UI-Karte und Claude-
+ *  Briefing bei einer Wortlaut-Änderung unbemerkt auseinander). */
+export const LEVEL_LABEL = { green: "Bereit", yellow: "Angeschlagen", red: "Erholung nötig" };
+
+/** Hinweistext für die Schlafqualitäts-Metrik (sleepScore) — Athlet 1 und
+ *  Athlet 2 liefern diesen Wert über unterschiedliche Ökosysteme (Apple
+ *  Health bzw. Amazfit, s. `dataSources` in config.ts), die jeweils ihren
+ *  eigenen, nicht offengelegten Score-Algorithmus verwenden. Die Ampel
+ *  selbst ist davon NICHT betroffen — jeder Athlet wird ausschließlich
+ *  gegen seine eigene 42-Tage-Baseline verglichen (nie athletenübergreifend,
+ *  s. assessReadiness oben) — dieser Text ist reine Lese-Vorsicht für
+ *  Menschen (und Claude im Trainer-Briefing), die die rohen Zahlen zweier
+ *  Athleten nebeneinander sehen und für vergleichbar halten könnten. Anders
+ *  als HRV (ms) oder Ruhepuls (bpm) ist "Schlafqualität" keine physikalische
+ *  Einheit, sondern ein herstellereigener Index — deshalb nur bei dieser
+ *  einen Metrik nötig, nicht bei den übrigen dreien. */
+export const SLEEP_SCORE_DEVICE_NOTE =
+  "Schlafqualität ist geräteabhängig (App-eigener Score) — nicht athletenübergreifend vergleichbar.";
+
 /** Tage zwischen zwei ISO-Datumsangaben (lokal, kein UTC-Versatz), a − b.
  *  @param {string} aISO @param {string} bISO @returns {number} */
 function diffDays(aISO, bISO) {
@@ -64,13 +85,17 @@ export function metricStatus(z, higherIsBetter) {
   return "ok";
 }
 
+/** Rang eines Metrik-Status für die Domain-Bündelung unten — höher = schlechter.
+ *  "nodata" zählt wie "ok" (keine Eskalation), s. Kommentar bei `domains`. */
+const STATUS_RANK = { ok: 0, nodata: 0, caution: 1, alert: 2 };
+
 /**
  * Tagesform aus der Wellness-Reihe bestimmen.
  * @param {import("../types.js").WellnessDay[]} wellness (beliebig sortiert)
  * @param {string} todayISO
  * @returns {null | {
  *   level: "green"|"yellow"|"red",
- *   metrics: Array<{key: string, label: string, recent: number|null, baseline: number|null, z: number|null, status: string, higherIsBetter: boolean, confidence: "vorhanden"|"ausstehend"|"veraltet", daysSinceLastValue: number|null}>,
+ *   metrics: Array<{key: string, label: string, domain: string, recent: number|null, baseline: number|null, z: number|null, status: string, higherIsBetter: boolean, confidence: "vorhanden"|"ausstehend"|"veraltet", daysSinceLastValue: number|null}>,
  *   recommendation: string,
  *   basisNote: string,
  *   staleWarning: string|null
@@ -86,10 +111,18 @@ export function assessReadiness(wellness, todayISO) {
   const base = sorted.slice(-(BASELINE_DAYS + RECENT_DAYS), -RECENT_DAYS);
   if (base.length < 10) return null;
 
+  // "domain" bündelt Metriken, die inhaltlich dasselbe Thema abdecken —
+  // aktuell nur "sleep" (Dauer + Score aus 2 verschiedenen intervals.icu-
+  // Feldern). Zählt in der Ampel-Kombination unten als EINE Stimme (s.
+  // dortiger Kommentar), damit "Schlaf" nicht doppeltes Gewicht gegenüber
+  // HRV/Ruhepuls bekommt, nur weil er zwei Rohwerte hat. Beide Metriken
+  // bleiben trotzdem einzeln sichtbar (eigene Zeile in ReadinessCard.tsx /
+  // core/export-briefing.js).
   const defs = [
-    { key: "hrv", label: "HRV (SDNN)", get: (w) => w.hrv, higherIsBetter: true },
-    { key: "restingHR", label: "Ruhepuls", get: (w) => w.restingHR, higherIsBetter: false },
-    { key: "sleep", label: "Schlaf", get: (w) => w.sleepHours, higherIsBetter: true },
+    { key: "hrv", label: "HRV (SDNN)", get: (w) => w.hrv, higherIsBetter: true, domain: "hrv" },
+    { key: "restingHR", label: "Ruhepuls", get: (w) => w.restingHR, higherIsBetter: false, domain: "restingHR" },
+    { key: "sleep", label: "Schlafdauer", get: (w) => w.sleepHours, higherIsBetter: true, domain: "sleep" },
+    { key: "sleepScore", label: "Schlafqualität", get: (w) => w.sleepScore, higherIsBetter: true, domain: "sleep" },
   ];
 
   const metrics = defs.map((d) => {
@@ -113,6 +146,7 @@ export function assessReadiness(wellness, todayISO) {
     return {
       key: d.key,
       label: d.label,
+      domain: d.domain,
       recent: rMean != null ? Math.round(rMean * 10) / 10 : null,
       baseline: b ? Math.round(b.mean * 10) / 10 : null,
       z: z != null ? Math.round(z * 100) / 100 : null,
@@ -130,8 +164,18 @@ export function assessReadiness(wellness, todayISO) {
   const { vorhanden: usable, ausstehend: pending, veraltet: stale } = byConfidence;
 
   // Ampel nur aus tatsächlich vorhandenen Metriken kombinieren — ausstehende
-  // Metriken bleiben stumm ausgeschlossen (normaler Sync-Lag).
-  const statuses = usable.map((m) => m.status);
+  // Metriken bleiben stumm ausgeschlossen (normaler Sync-Lag). Vor der
+  // grün/gelb/rot-Kombination erst pro `domain` bündeln (schlechtester
+  // Status gewinnt) — sonst würde "sleep" (2 Metriken: Dauer + Score)
+  // doppelt so viel Gewicht wie "hrv"/"restingHR" (je 1 Metrik) bekommen.
+  const domainStatus = {};
+  for (const m of usable) {
+    const rank = STATUS_RANK[m.status] ?? 0;
+    if (!(m.domain in domainStatus) || rank > STATUS_RANK[domainStatus[m.domain]]) {
+      domainStatus[m.domain] = m.status;
+    }
+  }
+  const statuses = Object.values(domainStatus);
   let level = "green";
   if (statuses.includes("alert")) level = "red";
   else if (statuses.filter((s) => s === "caution").length >= 2) level = "yellow";
@@ -139,7 +183,14 @@ export function assessReadiness(wellness, todayISO) {
 
   // Veraltete Daten (oder gar keine vorhandene Metrik) dürfen nie ein falsches
   // "Bereit" erzeugen — anders als "ausstehend" wird das explizit eskaliert.
-  if (level === "green" && (stale.length > 0 || usable.length === 0)) level = "yellow";
+  // Auch hier gilt "eine Domain, eine Stimme": eine veraltete Einzelmetrik
+  // (z. B. Schlafqualität) eskaliert nur, wenn KEINE andere Metrik derselben
+  // Domain noch vorhanden ist (z. B. Schlafdauer) — sonst würde eine neue,
+  // noch nicht überall befüllte Metrik dieselbe Domain-Bündelung umgehen,
+  // die oben bei der caution/alert-Kombination bewusst eingebaut wurde.
+  const usableDomains = new Set(usable.map((m) => m.domain));
+  const staleDomains = [...new Set(stale.map((m) => m.domain))].filter((d) => !usableDomains.has(d));
+  if (level === "green" && (staleDomains.length > 0 || usable.length === 0)) level = "yellow";
 
   const recommendation =
     level === "green"

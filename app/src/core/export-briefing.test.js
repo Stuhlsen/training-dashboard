@@ -97,6 +97,57 @@ test("buildBriefingMarkdown: leere Eingaben crashen nicht, zeigen Leer-Hinweise"
   assert.match(md, /Keine\./); // Konflikte
 });
 
+/* ── Erholung (HRV/Ruhepuls/Schlaf) — objektive Ampel im Briefing ─────── */
+
+test("buildBriefingMarkdown: ohne readiness → Hinweistext statt Sektion (identisch zu ReadinessCard.tsx)", () => {
+  const md = buildBriefingMarkdown(CTX); // CTX enthält bewusst kein readiness
+  assert.match(md, /## Erholung \(HRV\/Ruhepuls\/Schlaf\)/);
+  assert.match(md, /Noch zu wenig Wellness-Historie für eine belastbare Baseline/);
+});
+
+test("buildBriefingMarkdown: mit readiness → Status, Empfehlung und jede Metrik als Zeile", () => {
+  const readiness = {
+    level: "yellow",
+    recommendation: "Intensität heute eine Stufe reduzieren — Umfang ist okay.",
+    metrics: [
+      { key: "hrv", label: "HRV (SDNN)", domain: "hrv", recent: 58.1, baseline: 62, z: -1.1, status: "caution", confidence: "vorhanden" },
+      { key: "sleepScore", label: "Schlafqualität", domain: "sleep", recent: 70, baseline: 82, z: -1.3, status: "caution", confidence: "ausstehend" },
+    ],
+    basisNote: "Basiert auf 2/4 Metriken",
+    staleWarning: "Ruhepuls: seit 6 Tagen keine neuen Werte",
+  };
+  const md = buildBriefingMarkdown({ ...CTX, readiness });
+  assert.match(md, /Status: Angeschlagen — Intensität heute eine Stufe reduzieren/);
+  assert.match(md, /HRV \(SDNN\): 58\.1 \(Ø 62\)/);
+  assert.match(md, /Schlafqualität: 70 \(Ø 82\) \(ausstehend\)/);
+  assert.match(md, /Basiert auf 2\/4 Metriken/);
+  assert.match(md, /Ruhepuls: seit 6 Tagen keine neuen Werte/);
+});
+
+test("buildBriefingMarkdown: Schlafqualität hat einen Wert → Geräte-Hinweis (Apple Health/Amazfit nicht athletenübergreifend vergleichbar)", () => {
+  const readiness = {
+    level: "green",
+    recommendation: "Einheit wie geplant fahren.",
+    metrics: [{ key: "sleepScore", label: "Schlafqualität", domain: "sleep", recent: 82, baseline: 80.9, z: 0.1, status: "ok", confidence: "vorhanden" }],
+    basisNote: "Basiert auf 1/1 Metriken",
+    staleWarning: null,
+  };
+  const md = buildBriefingMarkdown({ ...CTX, readiness });
+  assert.match(md, /Schlafqualität ist geräteabhängig \(App-eigener Score\) — nicht athletenübergreifend vergleichbar\./);
+});
+
+test("buildBriefingMarkdown: Schlafqualität ohne Wert (noch nie erfasst) → kein Geräte-Hinweis", () => {
+  const readiness = {
+    level: "green",
+    recommendation: "Einheit wie geplant fahren.",
+    metrics: [{ key: "sleepScore", label: "Schlafqualität", domain: "sleep", recent: null, baseline: null, z: null, status: "nodata", confidence: "veraltet" }],
+    basisNote: "Basiert auf 0/1 Metriken — Schlafqualität veraltet",
+    staleWarning: "Schlafqualität: nie erfasst",
+  };
+  const md = buildBriefingMarkdown({ ...CTX, readiness });
+  assert.doesNotMatch(md, /geräteabhängig/);
+});
+
 test("buildExportText: setzt das Briefing an der {{BRIEFING}}-Stelle der festen Vorlage ein", () => {
   const text = buildExportText(CTX);
   assert.ok(text.startsWith("Du bist mein Radsport-Trainer."));

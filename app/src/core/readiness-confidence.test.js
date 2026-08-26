@@ -84,31 +84,32 @@ function makeWellnessWithRecentSpike(todayISO, n, baseValues, key, gapDays, spik
 }
 
 const TODAY = "2026-07-13";
-const STABLE = { hrv: 62, restingHR: 52, sleepHours: 7.2 };
+const STABLE = { hrv: 62, restingHR: 52, sleepHours: 7.2, sleepScore: 82 };
 
-test("assessReadiness: alle drei Metriken frisch → vorhanden, Basis 3/3, keine Warnung", () => {
+test("assessReadiness: alle vier Metriken frisch → vorhanden, Basis 4/4, keine Warnung", () => {
   const wellness = makeWellness(TODAY, 50, STABLE);
   const r = assessReadiness(wellness, TODAY);
   assert.ok(r);
   assert.ok(r.metrics.every((m) => m.confidence === "vorhanden"));
-  assert.equal(r.basisNote, "Basiert auf 3/3 Metriken");
+  assert.equal(r.basisNote, "Basiert auf 4/4 Metriken");
   assert.equal(r.staleWarning, null);
   assert.equal(r.level, "green");
 });
 
-test("assessReadiness: eine Metrik ausstehend (Sync-Lücke 3 Tage) → ausgeschlossen, Level aus den übrigen zwei", () => {
-  // Schlaf fehlt seit 3 Tagen, die letzten sichtbaren Werte davor sind stark
-  // verkürzt (wären für sich "alert"-würdig) — muss trotzdem komplett von der
-  // Ampel-Kombination ausgeschlossen sein, weil die Metrik "ausstehend" ist.
+test("assessReadiness: eine Metrik ausstehend (Sync-Lücke 3 Tage) → ausgeschlossen, Level aus den übrigen drei", () => {
+  // Schlafdauer fehlt seit 3 Tagen, die letzten sichtbaren Werte davor sind
+  // stark verkürzt (wären für sich "alert"-würdig) — muss trotzdem komplett
+  // von der Ampel-Kombination ausgeschlossen sein, weil die Metrik
+  // "ausstehend" ist.
   const wellness = makeWellnessWithRecentSpike(TODAY, 50, STABLE, "sleepHours", 3, 4);
   const r = assessReadiness(wellness, TODAY);
   assert.ok(r);
   const sleep = r.metrics.find((m) => m.key === "sleep");
   assert.equal(sleep.confidence, "ausstehend");
   assert.equal(sleep.status, "alert"); // wäre für sich eskaliert
-  assert.equal(r.level, "green"); // trotzdem ausgeschlossen → HRV/Ruhepuls entscheiden
-  assert.match(r.basisNote, /Basiert auf 2\/3 Metriken/);
-  assert.match(r.basisNote, /Schlaf ausstehend/);
+  assert.equal(r.level, "green"); // trotzdem ausgeschlossen → sleepScore/HRV/Ruhepuls entscheiden
+  assert.match(r.basisNote, /Basiert auf 3\/4 Metriken/);
+  assert.match(r.basisNote, /Schlafdauer ausstehend/);
   assert.equal(r.staleWarning, null); // ausstehend bleibt stumm, keine Warnung
 });
 
@@ -118,13 +119,90 @@ test("assessReadiness: eine Metrik veraltet (≥5 Tage) → ausgeschlossen UND e
   assert.ok(r);
   const rhr = r.metrics.find((m) => m.key === "restingHR");
   assert.equal(rhr.confidence, "veraltet");
-  assert.match(r.basisNote, /Basiert auf 2\/3 Metriken/);
+  assert.match(r.basisNote, /Basiert auf 3\/4 Metriken/);
   assert.match(r.basisNote, /Ruhepuls veraltet/);
   assert.ok(r.staleWarning);
   assert.match(r.staleWarning, /Ruhepuls/);
   assert.match(r.staleWarning, /seit 6 Tagen/);
-  // Kernunterschied zu "ausstehend": HRV+Schlaf wären für sich grün, trotzdem
-  // wird wegen der veralteten Metrik nicht auf "green" degradiert.
+  // Kernunterschied zu "ausstehend": die übrigen drei wären für sich grün,
+  // trotzdem wird wegen der veralteten Metrik nicht auf "green" degradiert.
+  assert.equal(r.level, "yellow");
+});
+
+/* ── Domain-Bündelung: Schlafdauer + Schlafqualität zählen zusammen als
+   EINE Ampel-Stimme (Alex' Entscheidung, s. docs/offene-punkte.md-Historie —
+   sonst hätte "Schlaf" doppeltes Gewicht ggü. HRV/Ruhepuls). ────────────── */
+
+// Baseline-Jitter für sleepHours/sleepScore analog zu hrv/restingHR oben —
+// ohne Jitter wären alle 42 Baseline-Tage bitidentisch, was durch
+// Float-Rundung (Summe/Mittelwert über 42 gleiche Werte landet nicht exakt
+// wieder auf demselben Wert) eine winzige Scheinstreuung statt sd=0 erzeugt
+// und dadurch absurd große z-Werte — derselbe Grund, warum die
+// HRV/Ruhepuls-Fixtures oben nie komplett konstant sind.
+function makeSleepJitteredBase() {
+  return makeWellness(TODAY, 49, STABLE).map((w, i) => ({
+    ...w,
+    hrv: 62 + (i % 3) - 1,
+    restingHR: 52 + (i % 2),
+    sleepHours: 7.2 + ((i % 3) - 1) * 0.3,
+    sleepScore: 82 + ((i % 3) - 1) * 3,
+  }));
+}
+
+test("assessReadiness: Schlafdauer UND Schlafqualität gleichzeitig 'caution' → zählt als EINE Caution-Stimme, nicht zwei", () => {
+  // Baseline stabil (leicht gejittert), in den letzten 7 Tagen beide
+  // Schlafmetriken exakt im caution-Bereich (z=-1) — HRV/Ruhepuls bleiben
+  // ok. Wäre "sleep" zwei unabhängige Stimmen, würde das an der
+  // Yellow-Schwelle nichts ändern (schon 1 caution → yellow) — der
+  // eigentliche Beweis ist der nächste Test (sleepScore allein "alert"
+  // trotz unauffälliger Dauer, Ampel bleibt trotzdem nur EINE Sleep-Stimme).
+  const base = makeSleepJitteredBase();
+  const cautious = base.map((w) =>
+    w.date >= "2026-07-06" ? { ...w, sleepHours: 7.2 - 0.245, sleepScore: 82 - 2.45 } : w
+  );
+  const r = assessReadiness(cautious, TODAY);
+  assert.ok(r);
+  assert.equal(r.metrics.find((m) => m.key === "sleep").status, "caution");
+  assert.equal(r.metrics.find((m) => m.key === "sleepScore").status, "caution");
+  assert.equal(r.level, "yellow"); // nicht "red" — eine Domain kann nie allein auf rot eskalieren
+});
+
+test("assessReadiness: nur Schlafqualität 'alert', Schlafdauer unauffällig → Domain-Vote nimmt den schlechteren, Ampel rot", () => {
+  const base = makeSleepJitteredBase();
+  const stressed = base.map((w) => (w.date >= "2026-07-06" ? { ...w, sleepScore: 82 - 5 } : w));
+  const r = assessReadiness(stressed, TODAY);
+  assert.ok(r);
+  assert.equal(r.metrics.find((m) => m.key === "sleep").status, "ok");
+  assert.equal(r.metrics.find((m) => m.key === "sleepScore").status, "alert");
+  assert.equal(r.level, "red");
+});
+
+test("assessReadiness: sleepScore fehlt komplett (alte Daten vor Rollout) → 'veraltet', aber Ampel bleibt grün (Schlafdauer trägt die Domain)", () => {
+  // Die veraltete-Metrik-eskaliert-Regel ist selbst domain-gebündelt (wie die
+  // caution/alert-Kombination oben): eine fehlende Schlafqualität darf die
+  // Ampel nicht allein auf Gelb ziehen, solange Schlafdauer (dieselbe
+  // Domain "sleep") noch vorhanden ist — sonst würde ein Athlet ohne
+  // sleepScore-fähiges Gerät (oder alte Daten vor dem Rollout) dauerhaft auf
+  // Gelb hängen bleiben, obwohl objektiv nichts dagegen spricht.
+  const { sleepScore, ...withoutScore } = STABLE;
+  const wellness = makeWellness(TODAY, 50, withoutScore);
+  const r = assessReadiness(wellness, TODAY);
+  assert.ok(r);
+  const score = r.metrics.find((m) => m.key === "sleepScore");
+  assert.equal(score.confidence, "veraltet"); // "nie erfasst" (metricConfidence-Konvention)
+  assert.equal(score.status, "nodata");
+  assert.match(r.basisNote, /Basiert auf 3\/4 Metriken/);
+  assert.match(r.basisNote, /Schlafqualität veraltet/);
+  assert.equal(r.level, "green");
+});
+
+test("assessReadiness: BEIDE Schlafmetriken fehlen → Domain 'sleep' hat keine vorhandene Metrik mehr, eskaliert wie eine normale veraltete Domain", () => {
+  const { sleepHours: _h, sleepScore: _s, ...withoutSleep } = STABLE;
+  const wellness = makeWellness(TODAY, 50, withoutSleep);
+  const r = assessReadiness(wellness, TODAY);
+  assert.ok(r);
+  assert.equal(r.metrics.find((m) => m.key === "sleep").confidence, "veraltet");
+  assert.equal(r.metrics.find((m) => m.key === "sleepScore").confidence, "veraltet");
   assert.equal(r.level, "yellow");
 });
 
@@ -144,17 +222,18 @@ test("assessReadiness: Werte deutlich außerhalb der 42-Tage-Baseline → weiter
   assert.equal(r.metrics.find((m) => m.key === "hrv").confidence, "vorhanden");
 });
 
-test("assessReadiness: alle drei Metriken ohne aktuelle Daten → Level erzwungen yellow, Basis 0/3", () => {
+test("assessReadiness: alle vier Metriken ohne aktuelle Daten → Level erzwungen yellow, Basis 0/4", () => {
   const wellness = makeWellness(TODAY, 50, STABLE, {
     hrv: 6,
     restingHR: 6,
     sleepHours: 6,
+    sleepScore: 6,
   });
   const r = assessReadiness(wellness, TODAY);
   assert.ok(r);
   assert.ok(r.metrics.every((m) => m.confidence === "veraltet"));
   assert.equal(r.level, "yellow");
-  assert.match(r.basisNote, /Basiert auf 0\/3 Metriken/);
+  assert.match(r.basisNote, /Basiert auf 0\/4 Metriken/);
   assert.ok(r.staleWarning);
 });
 
