@@ -25,7 +25,7 @@ test("isInEventTaper: type 'other' zählt nicht, auch mit priority -> false", ()
 });
 
 test("isInEventTaper: innerhalb des Taper-Fensters -> true", () => {
-  // eventDate - 5 Tage, Default-Fenster 7 Tage
+  // eventDate - 5 Tage, Default-Fenster 10 Tage
   assert.equal(isInEventTaper(raceMain, "2026-08-04"), true);
 });
 

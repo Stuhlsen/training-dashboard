@@ -73,12 +73,11 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
   // 'Auf Event hin'". KEIN Bestandswert im Repo für den allgemeinen Fall
   // (nur Prosa "3-4 Tage" für is_test-Events in
   // docs/konzept-progressionssteuerung.md D5, bereits separat über
-  // presetAction()s isTestEvent-Zweig abgedeckt, und ein hartkodiertes
-  // 7-Tage-Kalenderfenster für Athlet 1s Retest-Taper in
-  // core/plan2-schedule.js::PLAN2_SCHEDULE, keine Formel) — selbst
-  // gewählter Standardwert, lose an der Größenordnung dieser einzigen
-  // realen Taper-Woche orientiert, aber eine neue, unabhängige Annahme.
-  eventTaperDays: 7,
+  // presetAction()s isTestEvent-Zweig abgedeckt). Sportwissenschaftliche
+  // Empfehlung (26.08.2026 recherchiert): 7-14 Tage üblich, 7-10 Tage
+  // als unteres Ende für Amateure — 10 liegt näher an der Mitte dieses
+  // Korridors als der vorherige Wert (7, am unteren Rand).
+  eventTaperDays: 10,
 });
 
 /**
