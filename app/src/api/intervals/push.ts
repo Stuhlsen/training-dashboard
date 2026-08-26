@@ -8,13 +8,12 @@
    erneutem Push nach einem Verschieben (der historische 4×-Duplikat-Bug,
    s. Vanilla-Kopfkommentar).
 
-   ACHTUNG: external_id/upsert-Verhalten ist anhand von Forum-/API-Hinweisen
-   recherchiert (intervals.icu-Events tragen ein external_id-Feld, der
-   events/bulk-Endpoint unterstützt upsert darüber), aber noch NICHT live
-   gegen einen echten Account verifiziert. Vor Vertrauen in Produktion:
-   Karte mit Workout pushen → auf intervals.icu ein Event prüfen → Karte
-   verschieben → erneut pushen → weiterhin nur EIN Event (aktualisiert,
-   kein Duplikat). S. docs/offene-punkte.md (M3).
+   external_id/upsert-Verhalten live gegen einen echten Account verifiziert
+   (26.08.2026, Alex, dashboard-dev-Build im lokalen Docker-Container):
+   Karte mit Workout gepusht → ein Event auf intervals.icu → Karte
+   verschoben → erneut gepusht → weiterhin nur EIN Event (aktualisiert,
+   kein Duplikat). Frühere Unsicherheit (nur aus Forum-/API-Hinweisen
+   recherchiert, s. Git-Historie) damit ausgeräumt.
    ============================================================ */
 
 import type { PlanCard, Result } from "../types";

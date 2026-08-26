@@ -19,9 +19,6 @@
   entschieden statt zentral. → `docs/konzept-progressionssteuerung.md` C3/C4.
 - **`CONFLICT_THRESHOLDS.eventTaperDays: 7`** (`app/src/core/plan-config.js`)
   — eigene Annahme, nie extern (sportwissenschaftlich) bestätigt.
-- **M3 — `external_id`-Upsert nie live gegen intervals.icu verifiziert** —
-  kein Sandbox-Account, ein Push würde den echten Trainingskalender
-  treffen. Nicht ohne Rücksprache ausführen. `app/src/api/intervals/push.ts`.
 - **Drag & Drop v1**: kein Tastatur-Verschieben, keine Umsortierung
   innerhalb eines Tages, Karte behält altes `week`-Label bei leerem
   Wochenblock. → §4/§7 im Konzept.
