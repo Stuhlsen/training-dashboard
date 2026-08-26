@@ -123,7 +123,15 @@ manuelle Commits erzeugen Konflikte mit dem Auto-Commit.
 
 ## Commit-Konvention
 
-Prefix + knappe deutsche Beschreibung:
+Prefix + knappe Beschreibung — **seit 26.08.2026 auf Englisch** (davor
+deutsch, s. Git-Historie, keine rückwirkende Umbenennung). Grund:
+`.github/workflows/publish-images.yml` generiert bei jedem `v*`-Tag den
+GitHub-Release-Changelog automatisch aus den Commit-Subjects (`git log
+--pretty=format:"%s"`, nach Typ gruppiert, Text 1:1 übernommen) — der
+Changelog soll für GitHub-/Portfolio-Besucher ohne Übersetzung lesbar sein.
+Betrifft NUR Commit-Nachrichten — Code-Kommentare, Doku (README, AGENTS.md,
+CLAUDE.md, docs/) und UI-Texte bleiben deutsch, keine Konventionsänderung
+dort.
 - `fix:`    — Bugfix
 - `feat:`   — neues Feature
 - `design:` — reine CSS-/Styling-Änderung
