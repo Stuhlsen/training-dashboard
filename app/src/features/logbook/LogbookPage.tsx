@@ -21,7 +21,6 @@
 
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { ChartTooltip } from "../../charts/ChartTooltip";
@@ -72,7 +71,7 @@ interface WeatherHover {
 }
 
 export function LogbookPage() {
-  const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
+  const { activeAthleteId } = useActiveAthlete();
   const { data: rideData, isLoading, error } = useRides(activeAthleteId);
   const navigate = useNavigate();
 
@@ -106,11 +105,10 @@ export function LogbookPage() {
   return (
     <PageShell>
       <div style={{ maxWidth: 1400, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
           <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
             Fahrtenbuch
           </h1>
-          <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
         </div>
 
         <GlassCard variant="soft" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 14 }}>

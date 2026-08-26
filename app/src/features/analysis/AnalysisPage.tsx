@@ -13,7 +13,6 @@
    ============================================================ */
 
 import { useMemo, useState } from "react";
-import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
@@ -21,12 +20,16 @@ import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useRides } from "../../api/hooks/useRides";
 import { useEvents } from "../../api/hooks/useEvents";
 import { useExplorerRange } from "../../api/hooks/useExplorerRange";
+import { useTodayCheckin } from "../../api/hooks/useWellbeing";
+import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { weekSortIndex } from "../../core/aggregate.js";
 import { fmt, fmtInt, localISODate } from "../../core/format.js";
 import { presetWindow } from "../../core/brush.js";
 import { projectLoad } from "../../core/projection.js";
 import { athleteConfig, RETEST_DATE, weekIndex } from "../../config";
 import { resolvePlanningFtp } from "../planning/planning-view-model";
+import { buildBriefingInfo, doneDatesOf, type HeroBriefing, type HeroBriefingSignal } from "../hero/hero-view-model";
+import { LEVEL_COLOR } from "../hero/BriefingCard";
 import { TraceCard } from "../../charts/TraceCard";
 import { PowerCurveTraceCard } from "../../charts/PowerCurveTraceCard";
 import { LegacyKpiAppendix } from "./LegacyKpiAppendix";
@@ -66,11 +69,17 @@ function toProjectionEvent(e: EventItem) {
 const PILL_ROW_STYLE = { display: "flex", gap: 3, padding: 3, borderRadius: "var(--pill)", background: "rgba(20,24,34,.62)", backdropFilter: "blur(18px)", border: "1px solid var(--hair)" } as const;
 
 export function AnalysisPage() {
-  const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
+  const { activeAthleteId } = useActiveAthlete();
   const athleteCfg = athleteConfig(activeAthleteId);
   const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
+  const { data: checkin } = useTodayCheckin();
+  // Wie HeroPage.tsx: der Morgen-Check-in hängt an auth.uid(), nicht am
+  // Athleten-Toggle — nur bei isSelf anwenden, sonst bekäme ein Toggle auf
+  // einen anderen Athleten dessen Belastungsempfehlung mit dem eigenen
+  // Befinden vermischt.
+  const { isSelf } = useIsSelfAthlete(activeAthleteId);
 
   const [unit, setUnit] = useState<PowerUnit>("W");
   const [dense, setDense] = useState(false);
@@ -97,6 +106,16 @@ export function AnalysisPage() {
         todayISO: TODAY,
       }),
     [rides, wellness, cards, eventList, athleteCfg, athleteData, unit],
+  );
+
+  // Dieselbe Belastungsempfehlung wie auf der Hero-Seite (buildBriefingInfo()
+  // ist athletenagnostisch, TrainerBar.tsx nutzt sie ebenso) — Grundlage für
+  // die "Warum {headline}"-Erklärung bei der "Verkrafte ich die Last?"-Frage
+  // unten (der frühere Verläufe-Tab/TrimpLoadChart, der das bisher erklärt
+  // hat, ist mit dem Redesign weggefallen, s. Kopfkommentar).
+  const briefing = useMemo(
+    () => buildBriefingInfo(rides, wellness, cards, doneDatesOf(rides), isSelf ? (checkin?.subjective ?? null) : null, TODAY),
+    [rides, wellness, cards, isSelf, checkin],
   );
 
   const projection = useMemo(() => {
@@ -154,12 +173,9 @@ export function AnalysisPage() {
   return (
     <PageShell>
       <div style={{ display: "flex", flexDirection: "column", gap: 26 }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 14 }}>
-            <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--text-ink)" }}>Analyse</h1>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".66rem", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--text-label)" }}>Antworten &amp; Spuren</span>
-          </div>
-          <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
+        <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
+          <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--text-ink)" }}>Analyse</h1>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: ".66rem", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--text-label)" }}>Antworten &amp; Spuren</span>
         </div>
 
         {!vm ? (
@@ -254,6 +270,8 @@ export function AnalysisPage() {
                 </div>
                 <p style={{ margin: 0, fontSize: ".92rem", color: "var(--text-soft)", lineHeight: 1.6, maxWidth: "84ch" }}>{g.answer}</p>
 
+                {g.key === "load" && <BriefingSignals briefing={briefing} />}
+
                 <TraceCard lanes={g.lanes} r0={r0} r1={r1} todayIdx={vm.todayIdx} eventIdx={vm.eventIdx} formatDay={vm.formatDay} dense={dense} />
 
                 {g.hasPowerCurve && (
@@ -290,5 +308,35 @@ export function AnalysisPage() {
         )}
       </div>
     </PageShell>
+  );
+}
+
+const SIGNAL_STATUS_COLOR: Record<HeroBriefingSignal["status"], string> = {
+  ok: "var(--ok)",
+  caution: "var(--warn)",
+  alert: "var(--danger)",
+  nodata: "var(--text-label)",
+};
+
+/** Kompakte "Warum {headline}"-Erklärung der Hero-Belastungsempfehlung —
+ *  ersetzt den mit dem Verläufe-Tab entfernten Belastungswächter-Chart als
+ *  Sprungziel von ReadinessCard.tsx::BriefingLink (Hero, "Belastungsempfehlung:
+ *  {headline} →"). Liest dieselbe `buildBriefingInfo()`-Zusammensetzung wie
+ *  die Hero-Seite, zeigt hier zusätzlich die einzelnen Signale. */
+function BriefingSignals({ briefing }: { briefing: HeroBriefing }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 8, padding: "12px 16px", borderRadius: 14, background: "rgba(20,24,34,.5)", border: "1px solid var(--hair)" }}>
+      <span style={{ fontSize: ".78rem", fontWeight: 600, color: LEVEL_COLOR[briefing.level] }}>
+        Belastungsempfehlung: {briefing.headline}
+      </span>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {briefing.signals.map((s, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "baseline", gap: 8, fontSize: ".8rem" }}>
+            <span style={{ color: SIGNAL_STATUS_COLOR[s.status] }}>●</span>
+            <span style={{ color: "var(--text-soft)" }}>{s.text}</span>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }

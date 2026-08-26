@@ -11,7 +11,6 @@ import {
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { useQueryClient } from "@tanstack/react-query";
-import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { PRIMARY_ATHLETE_ID } from "../../config";
@@ -104,7 +103,7 @@ export function PlanningPage() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
-  const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
+  const { activeAthleteId } = useActiveAthlete();
   const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
   const { data: rideData } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
@@ -327,11 +326,10 @@ export function PlanningPage() {
     >
     <PageShell>
     <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Planungstab
         </h1>
-        <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
       </div>
 
       <TrainerBar

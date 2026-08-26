@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { AthleteToggle } from "../../components/AthleteToggle";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
@@ -16,7 +15,7 @@ const TODAY = localISODate();
 type DialogState = "closed" | "new" | EventItem;
 
 export function EventsPage() {
-  const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
+  const { activeAthleteId } = useActiveAthlete();
   const { data: events, isLoading, error } = useEvents(activeAthleteId);
   const { canWrite } = useCanWriteForAthlete(activeAthleteId);
   const { remove } = useRemoveEvent(activeAthleteId);
@@ -40,11 +39,10 @@ export function EventsPage() {
   return (
     <PageShell>
     <div style={{ maxWidth: 720, margin: "0 auto", display: "flex", flexDirection: "column", gap: 24 }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Events
         </h1>
-        <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
       </div>
 
       <GlassCard variant="soft" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 18 }}>

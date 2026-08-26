@@ -176,6 +176,11 @@ export interface HeroWeather {
   windLabel: string;
 }
 
+export interface HeroBriefingSignal {
+  status: "ok" | "caution" | "alert" | "nodata";
+  text: string;
+}
+
 export interface HeroBriefing {
   level: "green" | "yellow" | "red";
   headline: string;
@@ -183,6 +188,13 @@ export interface HeroBriefing {
   tsbFmt: string;
   rhr: string;
   hrv: string;
+  /** Die einzelnen Signale (Tagesform/TSB/Belastungswächter/Trend/Befinden),
+   *  aus denen `headline` zusammengesetzt ist — core/briefing.js::
+   *  buildBriefing()s `signals`, unverändert durchgereicht. Bisher nirgends
+   *  gerendert; die Analyse-Seite nutzt es seit dem Verläufe-Tab-Wegfall
+   *  (26.08.2026) für eine kompakte "Warum {headline}"-Erklärung, s.
+   *  AnalysisPage.tsx. */
+  signals: HeroBriefingSignal[];
 }
 
 export interface HeroRing {
@@ -403,6 +415,13 @@ export function buildBriefingInfo(
     tsbFmt: pmc?.tsb != null ? fmtSigned(Math.round(pmc.tsb)) : "–",
     rhr: rhr?.recent != null ? `${fmtInt(rhr.recent)} bpm` : "–",
     hrv: hrv?.recent != null ? `${fmtInt(hrv.recent)} ms` : "–",
+    // core/briefing.js ist JSDoc-typisiert — die einzelnen Signal-Builder
+    // (tsbSignal()/loadSignal()/…) tragen dort die konkrete status-Union
+    // korrekt, aber buildBriefing()s zusammengesetztes `signals`-Array wird
+    // über allowJs auf `{status: string, ...}[]` verbreitert. Cast statt
+    // core/briefing.js JSDoc anzufassen — die einzelnen Rückgabetypen dort
+    // bleiben die Quelle der Wahrheit.
+    signals: briefing.signals as HeroBriefingSignal[],
   };
 }
 
