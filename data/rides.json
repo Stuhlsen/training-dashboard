@@ -6701,11 +6701,11 @@
       "dateISO": "2026-08-13"
     },
     {
-      "name": "Ruhetag",
+      "name": "SS-Durability 3×20 min",
       "week": "2026-KW33",
       "phase": "Schwelle",
       "typ": "Tempo",
-      "typPlanned": "Ruhetag",
+      "typPlanned": "Sweet Spot",
       "typDetected": "Tempo",
       "typDetection": {
         "type": "Tempo",
@@ -7414,6 +7414,118 @@
       "id": 96,
       "dateShort": "24.08",
       "dateISO": "2026-08-24"
+    },
+    {
+      "name": "Ruhetag",
+      "week": "2026-KW35",
+      "phase": "VO2max",
+      "typ": "Z2 Dauer",
+      "typPlanned": "Ruhetag",
+      "typDetected": "Z2 Dauer",
+      "typDetection": {
+        "type": "Z2 Dauer",
+        "confidence": "hoch",
+        "signals": [
+          {
+            "label": "IF",
+            "value": 0.478,
+            "note": "NP 98W ÷ FTP 205W — unter der Z2-Schwelle 0.75"
+          },
+          {
+            "label": "Dauer",
+            "value": "68 min"
+          },
+          {
+            "label": "Zonenverteilung",
+            "value": "Z1/Z2 96% · Z3/Z4+ 2% · Z5+ 2%",
+            "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+          }
+        ],
+        "rule": "if-niedrig-dauer"
+      },
+      "typSource": "detected",
+      "dataSource": "intervals",
+      "date": "2026-08-26",
+      "startTime": "2026-08-26T17:21:27",
+      "activityId": "i180137933",
+      "km": 18.5,
+      "min": 68,
+      "kmh": 16.2,
+      "watt": 59,
+      "maxWatt": null,
+      "np": 98,
+      "hf": 103,
+      "hfMax": 158,
+      "kad": 68,
+      "hoehe": 19,
+      "hmProKm": 1,
+      "tss": 29,
+      "if": 0.51,
+      "vi": 1.66,
+      "trimp": 22,
+      "ctl": 76.9,
+      "atl": 73.8,
+      "tsb": 3.2,
+      "decoupling": 28.7,
+      "dtl": 29,
+      "zoneTimes": [
+        {
+          "id": "Z1",
+          "secs": 3554
+        },
+        {
+          "id": "Z2",
+          "secs": 355
+        },
+        {
+          "id": "Z3",
+          "secs": 63
+        },
+        {
+          "id": "Z4",
+          "secs": 23
+        },
+        {
+          "id": "Z5",
+          "secs": 15
+        },
+        {
+          "id": "Z6",
+          "secs": 12
+        },
+        {
+          "id": "Z7",
+          "secs": 51
+        },
+        {
+          "id": "SS",
+          "secs": 25
+        }
+      ],
+      "eftp": null,
+      "rpe": null,
+      "feelIcu": null,
+      "weather": {
+        "temp": 20,
+        "tempFeel": 19.1,
+        "humidity": 61,
+        "windSpeed": 10.3,
+        "windDir": 87,
+        "precip": 0,
+        "cloudCover": 99,
+        "weatherCode": 3
+      },
+      "wetter": "20°C",
+      "source": "intervals.icu",
+      "ruhepuls": 63,
+      "hrv": 47,
+      "avgSleepingHR": 49,
+      "sleepHours": 7.2,
+      "feel": null,
+      "notizen": null,
+      "id": 97,
+      "dateShort": "26.08",
+      "dateISO": "2026-08-26"
     }
   ],
   "wellness": [
@@ -9170,8 +9282,8 @@
       "hrv": 47,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": 984,
-      "restingEnergy": 1913,
+      "activeEnergy": 985,
+      "restingEnergy": 1932,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -9179,15 +9291,15 @@
     },
     {
       "date": "2026-08-25",
-      "sleepHours": null,
-      "sleepScore": null,
-      "avgSleepingHR": null,
-      "restingHR": null,
-      "hrv": null,
+      "sleepHours": 5.6,
+      "sleepScore": 77,
+      "avgSleepingHR": 54,
+      "restingHR": 58,
+      "hrv": 60,
       "weight": null,
       "bodyFat": null,
-      "activeEnergy": null,
-      "restingEnergy": null,
+      "activeEnergy": 242,
+      "restingEnergy": 1899,
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
@@ -9195,6 +9307,22 @@
     },
     {
       "date": "2026-08-26",
+      "sleepHours": 7.2,
+      "sleepScore": 85,
+      "avgSleepingHR": 49,
+      "restingHR": 63,
+      "hrv": 47,
+      "weight": 78.2,
+      "bodyFat": 22.4,
+      "activeEnergy": 607,
+      "restingEnergy": 1952,
+      "kcalConsumed": null,
+      "hydration": null,
+      "hydrationVolume": null,
+      "eftp": 204
+    },
+    {
+      "date": "2026-08-27",
       "sleepHours": null,
       "sleepScore": null,
       "avgSleepingHR": null,
@@ -9207,14 +9335,14 @@
       "kcalConsumed": null,
       "hydration": null,
       "hydrationVolume": null,
-      "eftp": 204
+      "eftp": 203
     }
   ],
   "wellnessMeta": {
     "lastUpdated": {
-      "hrv": "2026-08-24",
-      "restingHR": "2026-08-24",
-      "sleepHours": "2026-08-24"
+      "hrv": "2026-08-26",
+      "restingHR": "2026-08-26",
+      "sleepHours": "2026-08-26"
     }
   },
   "powerCurves": {
@@ -9223,12 +9351,12 @@
         "id": "1y",
         "after_kj": 0,
         "label": "1 year",
-        "start_date_local": "2025-08-26T00:00:00",
-        "end_date_local": "2026-08-26T23:59:59",
+        "start_date_local": "2025-08-27T00:00:00",
+        "end_date_local": "2026-08-27T23:59:59",
         "days": 366,
         "moving_time": 0,
         "training_load": 0,
-        "weight": 80.25,
+        "weight": 78.15,
         "secs": [
           1,
           2,
@@ -14862,19 +14990,19 @@
       "key": "vo2max",
       "label": "VO2max",
       "from": "2026-08-24",
-      "to": "2026-08-26",
+      "to": "2026-08-27",
       "curve": {
         "list": [
           {
-            "id": "r.2026-08-24.2026-08-26",
+            "id": "r.2026-08-24.2026-08-27",
             "after_kj": 0,
-            "label": "24-26-Aug-2026",
+            "label": "24-27-Aug-2026",
             "start_date_local": "2026-08-24",
-            "end_date_local": "2026-08-26T23:59:59",
-            "days": 3,
+            "end_date_local": "2026-08-27T23:59:59",
+            "days": 4,
             "moving_time": 0,
             "training_load": 0,
-            "weight": 80.25,
+            "weight": 78.15,
             "secs": [
               1,
               2,
@@ -15049,17 +15177,17 @@
               9900
             ],
             "values": [
-              633,
-              628,
-              613,
-              605,
-              595,
-              585,
-              575,
-              565,
-              556,
-              549,
-              542,
+              727,
+              705,
+              668,
+              614,
+              608,
+              608,
+              608,
+              608,
+              608,
+              593,
+              552,
               536,
               529,
               524,
@@ -15222,17 +15350,17 @@
               131
             ],
             "activity_id": [
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
               "i179322004",
               "i179322004",
               "i179322004",
@@ -15395,17 +15523,17 @@
               "i179322004"
             ],
             "watts_per_kg": [
-              7.8878503,
-              7.8255453,
-              7.6386294,
-              7.538941,
-              7.41433,
-              7.2897196,
-              7.165109,
-              7.0404983,
-              6.928349,
-              6.8411217,
-              6.753894,
+              9.302623,
+              9.021113,
+              8.547665,
+              7.8566856,
+              7.77991,
+              7.77991,
+              7.77991,
+              7.77991,
+              7.77991,
+              7.5879717,
+              7.0633397,
               6.6791277,
               6.5919003,
               6.529595,
@@ -15568,17 +15696,17 @@
               1.6323987
             ],
             "wkg_activity_id": [
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
-              "i179322004",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
+              "i180137933",
               "i179322004",
               "i179322004",
               "i179322004",
@@ -15753,21 +15881,21 @@
               },
               {
                 "type": "MORTON_3P",
-                "criticalPower": 194,
-                "wPrime": 23001,
-                "pMax": 633,
+                "criticalPower": 195,
+                "wPrime": 22310,
+                "pMax": 727,
                 "inputPointIndexes": [
                   74,
                   106,
                   110
                 ],
-                "ftp": 194
+                "ftp": 195
               },
               {
                 "type": "FFT_CURVES",
                 "criticalPower": 199,
                 "wPrime": 14280,
-                "pMax": 633,
+                "pMax": 727,
                 "inputPointIndexes": [
                   106,
                   108
@@ -15778,7 +15906,7 @@
                 "type": "ECP",
                 "criticalPower": 199,
                 "wPrime": 19380,
-                "pMax": 633,
+                "pMax": 727,
                 "inputPointIndexes": [
                   106,
                   108
@@ -15800,17 +15928,17 @@
               "mapWatts": 0
             },
             "watts": [
-              633,
-              628,
-              613,
-              605,
-              595,
-              585,
-              575,
-              565,
-              556,
-              549,
-              542,
+              727,
+              705,
+              668,
+              614,
+              608,
+              608,
+              608,
+              608,
+              608,
+              593,
+              552,
               536,
               529,
               524,
@@ -15986,6 +16114,16 @@
             "icu_weight": 80.25,
             "start_date_local": "2026-08-24T16:24:31",
             "race": false
+          },
+          "i180137933": {
+            "id": "i180137933",
+            "name": "Gemütliche Runde mit paar halbe Liter",
+            "distance": 18453.29,
+            "moving_time": 4073,
+            "training_load": 29,
+            "icu_weight": 78.15,
+            "start_date_local": "2026-08-26T17:21:27",
+            "race": false
           }
         }
       }
@@ -15993,20 +16131,20 @@
     {
       "key": "letzte-6-wochen",
       "label": "Letzte 6 Wochen",
-      "from": "2026-07-15",
-      "to": "2026-08-26",
+      "from": "2026-07-16",
+      "to": "2026-08-27",
       "curve": {
         "list": [
           {
-            "id": "r.2026-07-15.2026-08-26",
+            "id": "r.2026-07-16.2026-08-27",
             "after_kj": 0,
-            "label": "15-Jul 26-Aug-2026",
-            "start_date_local": "2026-07-15",
-            "end_date_local": "2026-08-26T23:59:59",
+            "label": "16-Jul 27-Aug-2026",
+            "start_date_local": "2026-07-16",
+            "end_date_local": "2026-08-27T23:59:59",
             "days": 43,
             "moving_time": 0,
             "training_load": 0,
-            "weight": 80.25,
+            "weight": 78.15,
             "secs": [
               1,
               2,
@@ -17411,16 +17549,16 @@
     {
       "key": "6-wochen-davor",
       "label": "6 Wochen davor",
-      "from": "2026-06-03",
-      "to": "2026-07-14",
+      "from": "2026-06-04",
+      "to": "2026-07-15",
       "curve": {
         "list": [
           {
-            "id": "r.2026-06-03.2026-07-14",
+            "id": "r.2026-06-04.2026-07-15",
             "after_kj": 0,
-            "label": "3-Jun 14-Jul-2026",
-            "start_date_local": "2026-06-03",
-            "end_date_local": "2026-07-14T23:59:59",
+            "label": "4-Jun 15-Jul-2026",
+            "start_date_local": "2026-06-04",
+            "end_date_local": "2026-07-15T23:59:59",
             "days": 42,
             "moving_time": 0,
             "training_load": 0,
@@ -18745,16 +18883,6 @@
             "start_date_local": "2026-07-09T16:22:42",
             "race": false
           },
-          "i153979865": {
-            "id": "i153979865",
-            "name": "Sweet Spot 3x 10 min",
-            "distance": 34027.33,
-            "moving_time": 5065,
-            "training_load": 61,
-            "icu_weight": 84,
-            "start_date_local": "2026-06-03T15:58:45",
-            "race": false
-          },
           "i159753873": {
             "id": "i159753873",
             "name": "Radfahren",
@@ -18809,7 +18937,7 @@
       }
     }
   ],
-  "athleteWeight": 80.3,
+  "athleteWeight": 78.2,
   "plannedSessions": [
     {
       "date": "2026-06-23",
@@ -19925,172 +20053,172 @@
     }
   },
   "forecast": {
-    "2026-08-26": {
-      "temp": 16.5,
-      "tempFeel": 16.1,
-      "humidity": 80,
-      "windSpeed": 9.2,
-      "windDir": 87,
-      "precipProb": 50,
-      "weatherCode": 61,
-      "uvMax": 1.1
-    },
     "2026-08-27": {
-      "temp": 22.3,
-      "tempFeel": 22.1,
-      "humidity": 61,
-      "windSpeed": 12.1,
-      "windDir": 102,
+      "temp": 22.9,
+      "tempFeel": 22.4,
+      "humidity": 56,
+      "windSpeed": 11.9,
+      "windDir": 101,
       "precipProb": 0,
-      "weatherCode": 2,
-      "uvMax": 5.5
+      "weatherCode": 3,
+      "uvMax": 5.6
     },
     "2026-08-28": {
-      "temp": 24.3,
-      "tempFeel": 25.3,
-      "humidity": 63,
-      "windSpeed": 9.2,
-      "windDir": 194,
-      "precipProb": 17,
-      "weatherCode": 3,
-      "uvMax": 5.5
+      "temp": 24.7,
+      "tempFeel": 25,
+      "humidity": 59,
+      "windSpeed": 10.6,
+      "windDir": 174,
+      "precipProb": 8,
+      "weatherCode": 95,
+      "uvMax": 5.4
     },
     "2026-08-29": {
       "temp": 22.4,
-      "tempFeel": 21.3,
-      "humidity": 59,
-      "windSpeed": 15.1,
-      "windDir": 246,
-      "precipProb": 7,
-      "weatherCode": 3,
-      "uvMax": 5.4
+      "tempFeel": 21.4,
+      "humidity": 55,
+      "windSpeed": 11.8,
+      "windDir": 252,
+      "precipProb": 6,
+      "weatherCode": 80,
+      "uvMax": 5.2
     },
     "2026-08-30": {
-      "temp": 23.9,
-      "tempFeel": 23.6,
-      "humidity": 56,
-      "windSpeed": 12,
-      "windDir": 236,
+      "temp": 24.1,
+      "tempFeel": 22.8,
+      "humidity": 50,
+      "windSpeed": 15.3,
+      "windDir": 238,
       "precipProb": 8,
       "weatherCode": 3,
       "uvMax": 5.4
     },
     "2026-08-31": {
-      "temp": 23,
-      "tempFeel": 22.5,
-      "humidity": 61,
-      "windSpeed": 13.9,
-      "windDir": 231,
-      "precipProb": 36,
+      "temp": 21.3,
+      "tempFeel": 20.7,
+      "humidity": 67,
+      "windSpeed": 14.4,
+      "windDir": 237,
+      "precipProb": 22,
       "weatherCode": 61,
-      "uvMax": 5.4
+      "uvMax": 5.3
     },
     "2026-09-01": {
-      "temp": 19.1,
-      "tempFeel": 17.3,
-      "humidity": 61,
-      "windSpeed": 15.2,
-      "windDir": 264,
-      "precipProb": 12,
+      "temp": 20.3,
+      "tempFeel": 18.4,
+      "humidity": 54,
+      "windSpeed": 14.3,
+      "windDir": 265,
+      "precipProb": 2,
       "weatherCode": 3,
-      "uvMax": 5.2
+      "uvMax": 3.8
     },
     "2026-09-02": {
-      "temp": 20,
-      "tempFeel": 18,
-      "humidity": 54,
-      "windSpeed": 14.5,
-      "windDir": 246,
-      "precipProb": 8,
+      "temp": 22.4,
+      "tempFeel": 21.1,
+      "humidity": 47,
+      "windSpeed": 9.6,
+      "windDir": 221,
+      "precipProb": 7,
       "weatherCode": 3,
-      "uvMax": 3.6
+      "uvMax": 4.2
     },
     "2026-09-03": {
-      "temp": 18.6,
-      "tempFeel": 17,
-      "humidity": 61,
-      "windSpeed": 12.5,
-      "windDir": 260,
-      "precipProb": 13,
-      "weatherCode": 3,
-      "uvMax": 3
-    },
-    "2026-09-04": {
-      "temp": 22.9,
-      "tempFeel": 22.7,
-      "humidity": 60,
-      "windSpeed": 12.1,
-      "windDir": 242,
-      "precipProb": 29,
-      "weatherCode": 51,
+      "temp": 20.3,
+      "tempFeel": 18.8,
+      "humidity": 69,
+      "windSpeed": 19.6,
+      "windDir": 244,
+      "precipProb": 32,
+      "weatherCode": 80,
       "uvMax": 4.9
     },
+    "2026-09-04": {
+      "temp": 17.8,
+      "tempFeel": 16.3,
+      "humidity": 72,
+      "windSpeed": 16.3,
+      "windDir": 279,
+      "precipProb": 28,
+      "weatherCode": 51,
+      "uvMax": 0.9
+    },
     "2026-09-05": {
-      "temp": 24.8,
-      "tempFeel": 25.7,
-      "humidity": 59,
-      "windSpeed": 8.6,
-      "windDir": 241,
-      "precipProb": 16,
-      "weatherCode": 0,
+      "temp": 20.5,
+      "tempFeel": 20.5,
+      "humidity": 73,
+      "windSpeed": 11.7,
+      "windDir": 264,
+      "precipProb": 19,
+      "weatherCode": 80,
       "uvMax": 4.9
     },
     "2026-09-06": {
-      "temp": 19,
-      "tempFeel": 18.8,
-      "humidity": 70,
-      "windSpeed": 8.5,
-      "windDir": 343,
-      "precipProb": 10,
-      "weatherCode": 3,
-      "uvMax": 4.5
+      "temp": 26.9,
+      "tempFeel": 27.6,
+      "humidity": 56,
+      "windSpeed": 13,
+      "windDir": 199,
+      "precipProb": 19,
+      "weatherCode": 1,
+      "uvMax": 2.4
     },
     "2026-09-07": {
-      "temp": 18.4,
-      "tempFeel": 16.9,
-      "humidity": 54,
-      "windSpeed": 9,
-      "windDir": 314,
-      "precipProb": 13,
+      "temp": 19.9,
+      "tempFeel": 18.3,
+      "humidity": 56,
+      "windSpeed": 13.6,
+      "windDir": 266,
+      "precipProb": 22,
       "weatherCode": 2,
-      "uvMax": 2.7
+      "uvMax": 1.7
     },
     "2026-09-08": {
-      "temp": 17.6,
-      "tempFeel": 16,
-      "humidity": 55,
-      "windSpeed": 7.8,
-      "windDir": 317,
-      "precipProb": 13,
-      "weatherCode": 3,
-      "uvMax": 0.4
+      "temp": 19.2,
+      "tempFeel": 19.2,
+      "humidity": 66,
+      "windSpeed": 5.8,
+      "windDir": 218,
+      "precipProb": 19,
+      "weatherCode": 81,
+      "uvMax": 0.6
     },
     "2026-09-09": {
-      "temp": 17.7,
-      "tempFeel": 16.8,
-      "humidity": 56,
-      "windSpeed": 2.8,
-      "windDir": 97,
-      "precipProb": 10,
-      "weatherCode": 3,
-      "uvMax": 2.6
+      "temp": 15.3,
+      "tempFeel": 11.2,
+      "humidity": 62,
+      "windSpeed": 23.7,
+      "windDir": 254,
+      "precipProb": 13,
+      "weatherCode": 51,
+      "uvMax": 3
     },
     "2026-09-10": {
-      "temp": 14.1,
-      "tempFeel": 12.5,
-      "humidity": 73,
-      "windSpeed": 10.7,
-      "windDir": 324,
+      "temp": 15.7,
+      "tempFeel": 12.3,
+      "humidity": 60,
+      "windSpeed": 19.8,
+      "windDir": 256,
+      "precipProb": 14,
+      "weatherCode": 3,
+      "uvMax": 4.7
+    },
+    "2026-09-11": {
+      "temp": 26.9,
+      "tempFeel": 25.2,
+      "humidity": 43,
+      "windSpeed": 18.6,
+      "windDir": 211,
       "precipProb": 0,
-      "weatherCode": 53,
-      "uvMax": 4.4
+      "weatherCode": 3,
+      "uvMax": 4.1
     }
   },
   "dataSources": [
     "intervals",
     "notion"
   ],
-  "updated": "2026-08-26T12:32:21.743Z",
+  "updated": "2026-08-27T17:07:42.319Z",
   "source": "notion+intervals",
-  "count": 96
+  "count": 97
 }

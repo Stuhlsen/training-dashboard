@@ -13340,5 +13340,149 @@
     "thresholdWatts": 239,
     "gapToleranceSec": 90,
     "fetchedAt": "2026-08-26T12:32:22.851Z"
+  },
+  "i180137933": {
+    "longestBlock": {
+      "startSec": 3594,
+      "endSec": 3605,
+      "totalDurationSec": 11,
+      "workDurationSec": 11,
+      "avgWatts": 353
+    },
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 3594,
+        "average_watts": 73,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 3594,
+        "end_time": 3605,
+        "average_watts": 353,
+        "type": "WORK"
+      },
+      {
+        "start_time": 3605,
+        "end_time": 8260,
+        "average_watts": 45,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 185,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-26T19:38:37.147Z"
+  },
+  "i180380515": {
+    "longestBlock": null,
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 1267,
+        "average_watts": 96,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-27T17:07:44.522Z"
+  },
+  "i180371119": {
+    "longestBlock": {
+      "startSec": 0,
+      "endSec": 2125,
+      "totalDurationSec": 2125,
+      "workDurationSec": 2057,
+      "avgWatts": 254
+    },
+    "segments": [
+      {
+        "start_time": 0,
+        "end_time": 106,
+        "average_watts": 244,
+        "type": "WORK"
+      },
+      {
+        "start_time": 106,
+        "end_time": 288,
+        "average_watts": 261,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 288,
+        "end_time": 630,
+        "average_watts": 244,
+        "type": "WORK"
+      },
+      {
+        "start_time": 630,
+        "end_time": 824,
+        "average_watts": 266,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 824,
+        "end_time": 1114,
+        "average_watts": 240,
+        "type": "WORK"
+      },
+      {
+        "start_time": 1114,
+        "end_time": 1213,
+        "average_watts": 255,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 1213,
+        "end_time": 1341,
+        "average_watts": 249,
+        "type": "WORK"
+      },
+      {
+        "start_time": 1341,
+        "end_time": 1845,
+        "average_watts": 239,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 1845,
+        "end_time": 1971,
+        "average_watts": 248,
+        "type": "WORK"
+      },
+      {
+        "start_time": 1971,
+        "end_time": 1995,
+        "average_watts": 270,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 1995,
+        "end_time": 2024,
+        "average_watts": 518,
+        "type": "WORK"
+      },
+      {
+        "start_time": 2024,
+        "end_time": 2026,
+        "average_watts": 372,
+        "type": "RECOVERY"
+      },
+      {
+        "start_time": 2026,
+        "end_time": 2057,
+        "average_watts": 457,
+        "type": "WORK"
+      },
+      {
+        "start_time": 2057,
+        "end_time": 2125,
+        "average_watts": 8,
+        "type": "RECOVERY"
+      }
+    ],
+    "thresholdWatts": 239,
+    "gapToleranceSec": 90,
+    "fetchedAt": "2026-08-27T17:07:44.956Z"
   }
 }
