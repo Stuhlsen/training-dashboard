@@ -73,4 +73,14 @@ export const qk = {
   /** Sekunden-Rohdaten (Watt/Puls) einer einzelnen intervals.icu-Aktivität —
    *  ändert sich nach Abschluss der Fahrt nie mehr (s. useActivityStreams). */
   activityStreams: (activityId: string) => ["activity-streams", activityId] as const,
+
+  /** Anzeigename des verknüpften Trainers (Settings, Bereich "Daten") —
+   *  gehört NICHT an qk.profile(), weil coachId ein anderes Profil betrifft
+   *  als das gerade geladene. */
+  coachName: (coachId: string) => ["coach-name", coachId] as const,
+  /** Account-Löschantrag des eingeloggten Profils (Settings, Bereich
+   *  "Datenschutz & Account"), Migration 0021. */
+  accountDeletionRequest: (userId: string) => ["account-deletion-request", userId] as const,
+  /** Zwei-Faktor-Faktoren (Supabase Auth MFA) des eingeloggten Users. */
+  mfaFactors: (userId: string) => ["mfa-factors", userId] as const,
 } as const;

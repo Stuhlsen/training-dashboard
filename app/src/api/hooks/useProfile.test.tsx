@@ -57,6 +57,7 @@ describe("useUpdateDisplayName", () => {
       wellbeingPublic: false,
       isAdmin: false,
       ladderProgressionEnabled: false,
+      unitsPreference: "km",
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -93,6 +94,7 @@ describe("useUpdateWellbeingPublic", () => {
       wellbeingPublic: false,
       isAdmin: false,
       ladderProgressionEnabled: false,
+      unitsPreference: "km",
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -116,6 +118,7 @@ describe("useUpdateLadderProgressionEnabled", () => {
       wellbeingPublic: false,
       isAdmin: false,
       ladderProgressionEnabled: false,
+      unitsPreference: "km",
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 

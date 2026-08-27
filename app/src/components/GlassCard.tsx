@@ -8,6 +8,8 @@ interface GlassCardProps {
   radius?: string;
   style?: CSSProperties;
   className?: string;
+  /** Optional — für Anker-Sprungnavigation (Settings-Redesign, Sprung-Nav). */
+  id?: string;
   /** Optional — direkte `style`-Mutation am Hover-Ziel (Muster aus
    *  LogbookPage.tsx), da diese App keine CSS-Datei für `:hover` hat. */
   onMouseEnter?: (e: MouseEvent<HTMLDivElement>) => void;
@@ -17,9 +19,10 @@ interface GlassCardProps {
 /** Geteilte Glass/Blur-Card-Hülle — Design-Grundbaustein aus dem
  *  Hero-Redesign-Export (`--glass`/`--glass-2`, `--e2`/`--e3`), von allen
  *  drei Hero-Tiers genutzt und für spätere Bereiche wiederverwendbar. */
-export function GlassCard({ children, variant = "soft", radius = "var(--radius-lg)", style, className, onMouseEnter, onMouseLeave }: GlassCardProps) {
+export function GlassCard({ children, variant = "soft", radius = "var(--radius-lg)", style, className, id, onMouseEnter, onMouseLeave }: GlassCardProps) {
   return (
     <div
+      id={id}
       className={className}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}

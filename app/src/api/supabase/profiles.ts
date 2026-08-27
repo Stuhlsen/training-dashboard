@@ -2,7 +2,8 @@ import { supabase, getAuthedClient } from "./client";
 import type { Profile, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
-const SELECT_COLS = "id, display_name, role, coach_id, wellbeing_public, is_admin, ladder_progression_enabled";
+const SELECT_COLS =
+  "id, display_name, role, coach_id, wellbeing_public, is_admin, ladder_progression_enabled, units_preference";
 
 interface ProfileRow {
   id: string;
@@ -12,6 +13,7 @@ interface ProfileRow {
   wellbeing_public: boolean;
   is_admin: boolean;
   ladder_progression_enabled: boolean;
+  units_preference: Profile["unitsPreference"];
 }
 
 function toProfile(row: ProfileRow): Profile {
@@ -23,6 +25,7 @@ function toProfile(row: ProfileRow): Profile {
     wellbeingPublic: row.wellbeing_public,
     isAdmin: row.is_admin,
     ladderProgressionEnabled: row.ladder_progression_enabled,
+    unitsPreference: row.units_preference,
   };
 }
 
@@ -105,4 +108,31 @@ export async function updateLadderProgressionEnabled(userId: string, value: bool
     .eq("id", userId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };
+}
+
+/** Migration 0020 — eigenes Grant wie ladderProgressionEnabled (0018), s.
+ *  Kopfkommentar dort: profiles' UPDATE-Grant ist spaltenrestriktiv. */
+export async function updateUnitsPreference(userId: string, value: "km" | "mi"): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client
+    .from("profiles")
+    .update({ units_preference: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+/** Anzeigename eines beliebigen Profils (Trainer-Verknüpfung, Settings/Daten)
+ *  — öffentlicher Read wie findProfileIdByDisplayName(), kein
+ *  getAuthedClient() nötig (profiles: "öffentlich lesbar", 0001/0002). */
+export async function getCoachDisplayName(coachId: string): Promise<Result<{ name: string | null }>> {
+  if (!supabase) return { ok: true, name: null };
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", coachId)
+    .maybeSingle<{ display_name: string | null }>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, name: data?.display_name ?? null };
 }

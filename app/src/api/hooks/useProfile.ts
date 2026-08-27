@@ -15,6 +15,7 @@ import {
   updateDisplayName as updateDisplayNameAdapter,
   updateWellbeingPublic as updateWellbeingPublicAdapter,
   updateLadderProgressionEnabled as updateLadderProgressionEnabledAdapter,
+  updateUnitsPreference as updateUnitsPreferenceAdapter,
 } from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter } from "../supabase/auth";
 import { useAuthUserId } from "./useSession";
@@ -95,6 +96,32 @@ export function useUpdateLadderProgressionEnabled() {
 
   const update = useCallback(
     async (value: boolean): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateUnitsPreference() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profile(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: "km" | "mi") => {
+      unwrap(await updateUnitsPreferenceAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<Profile>(key, (profile) => (profile ? { ...profile, unitsPreference: value } : profile));
+    },
+  });
+
+  const update = useCallback(
+    async (value: "km" | "mi"): Promise<Result> => {
       if (!userId) return { ok: false, error: NOT_LOGGED_IN };
       return catchResult(() => mutation.mutateAsync(value));
     },

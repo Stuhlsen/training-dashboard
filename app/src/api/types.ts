@@ -29,6 +29,9 @@ export interface Profile {
   /** D4b (Migration 0016) — Freigabe der scharfen Leiter-Fortschreibung,
    *  athletenweit wie is_admin, kein Self-Service. */
   ladderProgressionEnabled: boolean;
+  /** Migration 0020 — Anzeigepräferenz für Distanz-/Temperatureinheiten,
+   *  Self-Service wie wellbeing_public. */
+  unitsPreference: "km" | "mi";
 }
 
 /** Strukturiertes Workout einer Plankarte. Bewusst `unknown`-durchgereicht:

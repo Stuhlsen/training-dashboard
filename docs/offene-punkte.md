@@ -51,6 +51,25 @@
 - **`compareSlots` ein Einzelwert, keine Liste** — additiv statt Umbau,
   bewusste Entscheidung. `app/src/api/hooks/useExplorerCompare.ts`.
 
+## Settings
+
+- **Zwei-Faktor-Login noch nicht scharf geschaltet** — der TOTP-Faktor wird
+  in `TwoFactorSection.tsx` echt bei Supabase eingerichtet/verwaltet, aber
+  `LoginPage.tsx`/`ProtectedRoute.tsx`/`AuthContext.tsx` fragen ihn beim
+  Login noch nicht ab (kein AAL-Check). Bewusste Entscheidung Alex
+  (Settings-Redesign) gegen das Risiko, sich selbst auszusperren — ein
+  späterer Schritt für sich.
+- **"Aktive Sitzungen" ist Platzhalter** — eine Liste eigener Geräte
+  bräuchte die Supabase Admin-API (service_role), die nie clientseitig
+  laufen darf. `SessionsSection.tsx`.
+- **Echte E-Mail-Benachrichtigungen sind Platzhalter** — es gibt im Projekt
+  keine E-Mail-Versand-Infrastruktur (kein SMTP/Provider, kein
+  Edge-Function-Cron außer dem 6h-Datensync). `NotificationsSection.tsx`.
+- **Trainer-Verknüpfung nur read-only** — `CoachLinkSection.tsx` zeigt den
+  verknüpften Trainer an, ein Self-Service-"Verknüpfen" bräuchte einen
+  eigenen Einladungs-/Bestätigungsablauf (Coach muss zustimmen), noch nicht
+  gebaut.
+
 ## Sonstiges
 
 - **`sport`-Spalte bewusst noch nicht in der Datenbank** — additiv
