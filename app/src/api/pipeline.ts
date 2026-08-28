@@ -101,10 +101,15 @@ export async function loadAthleteData(athleteId: string): Promise<Result<{ data:
     };
   }
 
-  // Schema-Prüfung wie bisher: fehlende/leere `rides` sind fatal, alles
-  // andere nur eine Abweichung, die den Datensatz nicht unbrauchbar macht.
+  // Schema-Prüfung: ein FEHLENDES/kaputtes `rides`-Feld (kein Array) ist
+  // fatal, alles andere nur eine Abweichung. Ein LEERES `rides`-Array ist
+  // seit Athlet 4 (Einsteiger, Plan-only bis der erste intervals.icu-Sync
+  // läuft) ein gültiger Zustand — der Planungstab lebt von `plannedSessions`,
+  // nicht von `rides`. Bleibt als Warnung sichtbar, blockiert aber nicht.
   const problems: string[] = validateRidesPayload(json);
-  const fatal = problems.filter((p) => p.startsWith("payload.rides"));
+  const fatal = problems.filter(
+    (p) => p.startsWith("payload.rides") && !p.includes("leeres Array"),
+  );
   if (fatal.length) {
     return { ok: false, error: { code: "SCHEMA", message: fatal.join(" · ") } };
   }

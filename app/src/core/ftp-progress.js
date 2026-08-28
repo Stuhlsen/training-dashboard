@@ -149,7 +149,7 @@ export function estimateSessionTSS(workout, ftp) {
  * Geordnete Meilensteine aus der Athleten-Config + aktuellem eFTP. Jeder
  * Eintrag erscheint nur, wenn sein WERT vorhanden ist (Datum ist optionale
  * Deko, kein Gate) — kein Platzhalter für fehlende Werte.
- * @param {{seasonStartFtp?: number|null, ftpMeasured?: number, ftpMeasuredDate?: string|null, ftpGoal?: number}} athleteCfg
+ * @param {{seasonStartFtp?: number|null, ftpMeasured?: number|null, ftpMeasuredDate?: string|null, ftpGoal?: number|null}} athleteCfg
  * @param {number|null} currentEftp
  * @returns {Array<{label: string, value: number, date?: string}>}
  */

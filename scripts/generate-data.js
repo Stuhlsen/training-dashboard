@@ -17,6 +17,8 @@ import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
 import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBlocks } from "./lib/plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
+import { PLANNED_SESSIONS_ATHLETE4 } from "./lib/plan-athlete4.js";
+import { loadIntervalsCredentials } from "./lib/intervals-credentials-fetch.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
 import {
   RIDE_TYPES,
@@ -62,6 +64,7 @@ import {
   writeOutput,
   OUT_FILE,
   OUT_FILE_2,
+  OUT_FILE_4,
   INTERVAL_BLOCKS_FILE,
 } from "./lib/output.js";
 
@@ -69,6 +72,7 @@ requireEnv(["NOTION_KEY", "DB_ID"]);
 
 const ATHLETE_2_NAME = "hc_diZee"; // Anzeigename (Pseudonym) — keine Klarnamen (Datenschutz)
 const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
+const ATHLETE_4_NAME = "bentastiic"; // Anzeigename (Pseudonym) — muss exakt profiles.display_name entsprechen
 
 async function main() {
   // Blockerkennung-Cache (scripts/lib/interval-blocks.js) — einmal geladen,
@@ -463,6 +467,144 @@ async function main() {
     log.info(`✅ ${rides2.length} Fahrten (${ATHLETE_2_NAME}) → ${OUT_FILE_2}`);
   } else {
     log.info(`\n⏭️  Zweiter Athlet: kein API-Key gesetzt, übersprungen`);
+  }
+
+  // 6. Vierter Athlet (Bentastiic, Einsteiger — volles Modell wie Athlet 1
+  //    [Login, Befinden, editierbare plan_cards], aber Lesedaten-Pipeline
+  //    wie Athlet 2 [intervals.icu + Supabase, kein Notion]).
+  //    Besonderheit: der intervals.icu-Key/-Athlete-ID kommt NICHT aus einem
+  //    GitHub Secret, sondern aus der Supabase-Tabelle intervals_credentials
+  //    (vom Athleten selbst in Settings eingetragen). Ohne diese Zeile wird
+  //    rides-4.json trotzdem geschrieben — nur der Plan, keine Fahrten.
+  //    WATTLOS: kein Ramp-Test → output4.ftp = null; DEFAULT_FTP dient hier
+  //    nur als reiner Rechen-Fallback für die Ist-Typerkennung.
+  const plannedSessions4 = Object.entries(PLANNED_SESSIONS_ATHLETE4).map(([date, s]) => ({
+    date,
+    ...s,
+  }));
+  if (ENV.SUPABASE_ATHLETE4_EMAIL && ENV.SUPABASE_ATHLETE4_PASSWORD) {
+    log.info(`\n🔄 Vierter Athlet (${ATHLETE_4_NAME})...`);
+    const supaCreds4 = {
+      email: ENV.SUPABASE_ATHLETE4_EMAIL,
+      password: ENV.SUPABASE_ATHLETE4_PASSWORD,
+    };
+    const oldest4 = "2026-08-01"; // kurz vor Planstart (KW36, 2026-08-31)
+    const today4 = new Date().toISOString().split("T")[0];
+
+    const creds4 = await loadIntervalsCredentials(supaCreds4);
+
+    // plan_cards + ftp_history hängen am Supabase-Login, nicht an creds4 —
+    // auch ohne eingetragenen intervals.icu-Key stehen sie schon bereit.
+    const planCards4 = await loadPlanCards(supaCreds4, { fromDate: oldest4 });
+    const ftpHistory4 = await loadFtpHistory(supaCreds4);
+    const effectivePlan4 = {
+      ...buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE4, {}),
+      ...buildPlanCardTypeIndex(planCards4),
+    };
+    log.info(
+      `📋 Athlet 4: ${planCards4.length} plan_cards · ${ftpHistory4.length} FTP-Historie-Einträge`
+    );
+
+    let rides4 = [];
+    let wellnessList4 = [];
+    let athleteWeight4 = null;
+    let powerCurves4 = null;
+    let planningForecast4 = {};
+
+    if (creds4) {
+      const activities4 = await getIntervalsActivities(
+        oldest4,
+        today4,
+        creds4.apiKey,
+        creds4.athleteId,
+        RIDE_TYPES
+      );
+      const wellness4 = await getIntervalsWellness(
+        oldest4,
+        today4,
+        creds4.apiKey,
+        creds4.athleteId
+      );
+      powerCurves4 = await getIntervalsPowerCurves(
+        oldest4,
+        today4,
+        creds4.apiKey,
+        creds4.athleteId
+      );
+
+      // Eigener Standort (separates Secret) — kein Rückfall auf Athlet 1/2
+      const weatherData4 = await getHistoricalWeather(
+        oldest4,
+        weatherEnd,
+        ENV.WEATHER_LAT_4,
+        ENV.WEATHER_LON_4
+      );
+      const weatherMap4 = buildWeatherMap(weatherData4);
+      const recentData4 = await getRecentWeather(ENV.WEATHER_LAT_4, ENV.WEATHER_LON_4);
+      Object.assign(weatherMap4, buildWeatherMap(recentData4));
+      planningForecast4 = (await getPlanningForecast(ENV.WEATHER_LAT_4, ENV.WEATHER_LON_4)) || {};
+
+      // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1/2.
+      await updateIntervalBlockCache(activities4, intervalBlockCache, {
+        apiKey: creds4.apiKey,
+        ftpHistory: ftpHistory4,
+        fallbackFtp: DEFAULT_FTP,
+      });
+
+      // Reihenfolge bewusst wie activities4 (attachCompliance braucht den
+      // Gleichlauf rides4[i] <-> activities4[i]) — Datumssortierung danach.
+      rides4 = activities4.map((act) =>
+        mapActivity2(act, wellness4, weatherMap4, DEFAULT_FTP, effectivePlan4, ftpHistory4, intervalBlockCache)
+      );
+      classifyCooldowns(rides4, ftpHistory4, DEFAULT_FTP);
+      logRpeFeelCoverage(rides4, ATHLETE_4_NAME);
+
+      const complianceCounts4 = attachCompliance(
+        rides4,
+        activities4,
+        planCards4,
+        intervalBlockCache,
+        ftpHistory4,
+        DEFAULT_FTP,
+        formatCatalog
+      );
+      log.info(
+        `✅ Compliance (${ATHLETE_4_NAME}): ${complianceCounts4.evaluated} Fahrten ausgewertet ` +
+          `(🟢 ${complianceCounts4.green} · 🟡 ${complianceCounts4.yellow} · 🔴 ${complianceCounts4.red})`
+      );
+
+      rides4.sort((a, b) => a.date.localeCompare(b.date));
+
+      wellnessList4 = mapWellnessList(wellness4);
+      logWellnessCoverage(wellnessList4, ATHLETE_4_NAME);
+      const latest4 = latestWeight(wellness4);
+      athleteWeight4 = latest4 ? latest4.weight : null;
+    } else {
+      log.info(
+        `ℹ️  ${ATHLETE_4_NAME}: intervals.icu-Key noch nicht in Settings — nur Plan, keine Fahrten`
+      );
+    }
+
+    const output4 = {
+      athleteName: ATHLETE_4_NAME,
+      ftp: null, // wattlos bis zum ersten Test (plan-athlete4.js KW47)
+      rides: rides4,
+      wellness: wellnessList4,
+      wellnessMeta: { lastUpdated: lastFieldDates(wellnessList4, READINESS_FIELDS) },
+      powerCurves: powerCurves4 || null,
+      athleteWeight: athleteWeight4,
+      plannedSessions: plannedSessions4,
+      adjustments: {}, // volles Modell: Verschiebungen leben in plan_cards
+      forecast: planningForecast4,
+      updated: new Date().toISOString(),
+      source: creds4 ? "intervals.icu" : "plan-only",
+      count: rides4.length,
+    };
+
+    writeOutput(OUT_FILE_4, output4);
+    log.info(`✅ ${rides4.length} Fahrten (${ATHLETE_4_NAME}) → ${OUT_FILE_4}`);
+  } else {
+    log.info(`\n⏭️  Vierter Athlet: keine Supabase-Credentials, übersprungen`);
   }
 
   writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);

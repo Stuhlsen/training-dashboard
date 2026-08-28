@@ -13,6 +13,11 @@
 #   INTERVALS_ATHLETE_ID_2 — intervals.icu Athlete ID (Athlet 2, optional)
 #   WEATHER_LAT / WEATHER_LON     — Standort Athlet 1 (Breitengrad/Längengrad, privat)
 #   WEATHER_LAT_2 / WEATHER_LON_2 — Standort Athlet 2 (optional, privat)
+#   SUPABASE_ATHLETE4_EMAIL / _PASSWORD — Prod-Supabase-Login Athlet 4
+#     ("Bentastiic", Einsteiger, volles Modell). Kein INTERVALS_API_KEY_4:
+#     der intervals.icu-Key trägt der Athlet selbst in Settings ein
+#     (Tabelle intervals_credentials), der Sync liest ihn darüber.
+#   WEATHER_LAT_4 / WEATHER_LON_4 — Standort Athlet 4 (optional, privat)
 
 name: Sync Training Data
 
@@ -78,11 +83,20 @@ jobs:
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           SUPABASE_ATHLETE1_EMAIL: ${{ secrets.SUPABASE_ATHLETE1_EMAIL }}
           SUPABASE_ATHLETE1_PASSWORD: ${{ secrets.SUPABASE_ATHLETE1_PASSWORD }}
+          # Athlet 4 ("Bentastiic"): volles Modell. Der Sync liest den
+          # intervals.icu-Key aus der Supabase-Tabelle intervals_credentials
+          # (vom Athleten in Settings eingetragen) — deshalb hier NUR der
+          # Supabase-Login, kein INTERVALS_API_KEY_4. Fehlen diese beiden,
+          # wird der Athlet-4-Block komplett übersprungen (kein Fehler).
+          SUPABASE_ATHLETE4_EMAIL: ${{ secrets.SUPABASE_ATHLETE4_EMAIL }}
+          SUPABASE_ATHLETE4_PASSWORD: ${{ secrets.SUPABASE_ATHLETE4_PASSWORD }}
           INTERVALS_ATHLETE_ID_2: ${{ secrets.INTERVALS_ATHLETE_ID_2 }}
           WEATHER_LAT: ${{ secrets.WEATHER_LAT }}
           WEATHER_LON: ${{ secrets.WEATHER_LON }}
           WEATHER_LAT_2: ${{ secrets.WEATHER_LAT_2 }}
           WEATHER_LON_2: ${{ secrets.WEATHER_LON_2 }}
+          WEATHER_LAT_4: ${{ secrets.WEATHER_LAT_4 }}
+          WEATHER_LON_4: ${{ secrets.WEATHER_LON_4 }}
         run: node scripts/generate-data.js
 
       - name: Commit data if changed

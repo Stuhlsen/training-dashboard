@@ -1,7 +1,14 @@
 /* ============================================================
    SCRIPTS/MIGRATE-PLAN-TO-SUPABASE.JS — Einmal-Migration
-   Basisplan (scripts/lib/plan2.js + plan-athlete2.js) + Adjustments
-   (data/adjustments.json + -2.json) → plan_cards (Supabase).
+   Basisplan (scripts/lib/plan2.js + plan-athlete2.js + plan-athlete4.js)
+   + Adjustments (data/adjustments.json + -2.json; Athlet 4 hat keine —
+   volles Modell) → plan_cards (Supabase).
+
+   Athlet 4 ("bentastiic", Einsteiger) wird nur mitmigriert, wenn
+   SUPABASE_ATHLETE4_EMAIL/PASSWORD in .env stehen (kein requireEnv-
+   Pflichtfeld). Für ihn die 12-Wochen-Einsteigervorlage nach dem Merge
+   einmal gegen dev UND prod einspielen — der Planungstab baut sein
+   Wochenraster ausschließlich aus plan_cards, nicht aus rides-4.json.
 
    Referenz: docs/phase-3-konzept-planungstab.md §8.4,
    docs/dashboard-2.0-fahrplan-aktuell.md Phase 3.
@@ -27,6 +34,12 @@
    Flags:
      (kein Flag)  Dry-Run — loggt nur, schreibt nichts
      --apply      schreibt wirklich
+     --env=prod   Ziel dashboard-prod statt dashboard-dev (nutzt die
+                  *_PROD-Variablen aus .env, s. env.js). Athlet 2 hat kein
+                  Prod-Konto → in prod nur Athlet 1 + 4. Default: dev.
+     --only=X     Nur Athlet X (Label, z.B. --only="Athlet 4"). Ohne Flag
+                  alle. Nötig, damit --force beim gezielten Re-Seed eines
+                  Athleten die Karten der übrigen nicht mit anfasst.
      --force      löscht vorher alle plan_cards des Athleten (nur mit
                   --apply relevant) — nötig für einen echten Re-Lauf,
                   sonst bricht das Skript kontrolliert ab (Lehre aus
@@ -45,6 +58,7 @@ import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
 import { PLANNED_SESSIONS } from "./lib/plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
+import { PLANNED_SESSIONS_ATHLETE4 } from "./lib/plan-athlete4.js";
 import { loadAdjustments, loadAdjustments2 } from "./lib/output.js";
 import { buildPlanCardRows } from "./lib/plan-to-cards.js";
 
@@ -54,39 +68,77 @@ const DATA_DIR = path.join(__dirname, "..", "data");
 const args = process.argv.slice(2);
 const APPLY = args.includes("--apply");
 const FORCE = args.includes("--force");
+// --only=<label> grenzt den Lauf auf EINEN Athleten ein (z.B.
+// --only="Athlet 4" für ein gezieltes Re-Seed, ohne dass --force die
+// Karten der übrigen Athleten mit anfasst). Ohne Flag: alle.
+const ONLY = (args.find((a) => a.startsWith("--only=")) || "").slice(7) || null;
+// --env=prod schaltet URL/AnonKey/Credentials auf die *_PROD-Variablen um
+// (s. env.js). Default dev — ein versehentlicher Lauf trifft nie Prod.
+const TARGET_ENV = (args.find((a) => a.startsWith("--env=")) || "--env=dev").slice(6);
+if (!["dev", "prod"].includes(TARGET_ENV)) {
+  log.error(`Unbekanntes --env=${TARGET_ENV} (erlaubt: dev, prod)`);
+  process.exit(1);
+}
+const PROD = TARGET_ENV === "prod";
 
-requireEnv([
-  "SUPABASE_URL",
-  "SUPABASE_ANON_KEY",
-  "SUPABASE_ATHLETE1_EMAIL",
-  "SUPABASE_ATHLETE1_PASSWORD",
-  "SUPABASE_ATHLETE2_EMAIL",
-  "SUPABASE_ATHLETE2_PASSWORD",
-]);
+const SUPABASE_URL = PROD ? ENV.SUPABASE_URL_PROD : ENV.SUPABASE_URL;
+const SUPABASE_ANON_KEY = PROD ? ENV.SUPABASE_ANON_KEY_PROD : ENV.SUPABASE_ANON_KEY;
+
+// Pflichtfelder je Ziel. Athlet 2 hat KEINE *_PROD-Credentials (reiner
+// Vergleichsathlet, nie ein Prod-Schreibziel) — in prod nur Athlet 1 + 4.
+requireEnv(
+  PROD
+    ? ["SUPABASE_URL_PROD", "SUPABASE_ANON_KEY_PROD", "SUPABASE_ATHLETE1_EMAIL_PROD", "SUPABASE_ATHLETE1_PASSWORD_PROD"]
+    : ["SUPABASE_URL", "SUPABASE_ANON_KEY", "SUPABASE_ATHLETE1_EMAIL", "SUPABASE_ATHLETE1_PASSWORD", "SUPABASE_ATHLETE2_EMAIL", "SUPABASE_ATHLETE2_PASSWORD"]
+);
+log.info(`🌐 Ziel-Umgebung: ${TARGET_ENV} (${SUPABASE_URL})`);
 
 const ATHLETES = [
   {
     label: "Athlet 1",
     sessions: PLANNED_SESSIONS,
     adjustments: loadAdjustments(),
-    email: ENV.SUPABASE_ATHLETE1_EMAIL,
-    password: ENV.SUPABASE_ATHLETE1_PASSWORD,
+    email: PROD ? ENV.SUPABASE_ATHLETE1_EMAIL_PROD : ENV.SUPABASE_ATHLETE1_EMAIL,
+    password: PROD ? ENV.SUPABASE_ATHLETE1_PASSWORD_PROD : ENV.SUPABASE_ATHLETE1_PASSWORD,
   },
-  {
+];
+
+// Athlet 2 nur in dev (kein Prod-Account).
+if (!PROD) {
+  ATHLETES.push({
     label: "Athlet 2",
     sessions: PLANNED_SESSIONS_ATHLETE2,
     adjustments: loadAdjustments2(),
     email: ENV.SUPABASE_ATHLETE2_EMAIL,
     password: ENV.SUPABASE_ATHLETE2_PASSWORD,
-  },
-];
+  });
+}
+
+// Athlet 4 ("bentastiic", Einsteiger) nur mitmigrieren, wenn seine
+// Credentials für die Ziel-Umgebung in .env stehen — anders als Athlet 1
+// kein requireEnv-Pflichtfeld, damit ein reiner Athlet-1-Re-Lauf ohne
+// Athlet-4-Zugang nicht blockiert. Keine adjustments-Datei (volles Modell:
+// Verschiebungen leben direkt in plan_cards), daher `{}`.
+const a4Email = PROD ? ENV.SUPABASE_ATHLETE4_EMAIL_PROD : ENV.SUPABASE_ATHLETE4_EMAIL;
+const a4Password = PROD ? ENV.SUPABASE_ATHLETE4_PASSWORD_PROD : ENV.SUPABASE_ATHLETE4_PASSWORD;
+if (a4Email && a4Password) {
+  ATHLETES.push({
+    label: "Athlet 4",
+    sessions: PLANNED_SESSIONS_ATHLETE4,
+    adjustments: {},
+    email: a4Email,
+    password: a4Password,
+  });
+} else {
+  log.info(`ℹ️  Athlet 4: keine ${PROD ? "SUPABASE_ATHLETE4_*_PROD" : "SUPABASE_ATHLETE4_*"}-Credentials in .env — übersprungen`);
+}
 
 /** Signiert als Athlet ein, liefert {accessToken, userId}. Wirft bei Fehler
  *  (falsches Passwort, unbekannter Account) — das ist fatal fürs Skript. */
 async function signIn(email, password) {
-  const res = await fetch(`${ENV.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+  const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", apikey: ENV.SUPABASE_ANON_KEY },
+    headers: { "Content-Type": "application/json", apikey: SUPABASE_ANON_KEY },
     body: JSON.stringify({ email, password }),
   });
   if (!res.ok) {
@@ -98,7 +150,7 @@ async function signIn(email, password) {
 
 function restHeaders(accessToken, extra) {
   return {
-    apikey: ENV.SUPABASE_ANON_KEY,
+    apikey: SUPABASE_ANON_KEY,
     Authorization: `Bearer ${accessToken}`,
     "Content-Type": "application/json",
     ...extra,
@@ -108,7 +160,7 @@ function restHeaders(accessToken, extra) {
 /** Zählt bestehende plan_cards des Athleten (Idempotenz-Guard). */
 async function countExistingCards(userId, accessToken) {
   const res = await fetch(
-    `${ENV.SUPABASE_URL}/rest/v1/plan_cards?athlete_id=eq.${userId}&select=id`,
+    `${SUPABASE_URL}/rest/v1/plan_cards?athlete_id=eq.${userId}&select=id`,
     { headers: restHeaders(accessToken) }
   );
   if (!res.ok) {
@@ -118,7 +170,7 @@ async function countExistingCards(userId, accessToken) {
 }
 
 async function deleteExistingCards(userId, accessToken) {
-  const res = await fetch(`${ENV.SUPABASE_URL}/rest/v1/plan_cards?athlete_id=eq.${userId}`, {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/plan_cards?athlete_id=eq.${userId}`, {
     method: "DELETE",
     headers: restHeaders(accessToken),
   });
@@ -133,7 +185,7 @@ async function insertCards(userId, accessToken, rows) {
   const BATCH = 100;
   for (let i = 0; i < rows.length; i += BATCH) {
     const batch = rows.slice(i, i + BATCH).map((r) => ({ ...r, athlete_id: userId }));
-    const res = await fetch(`${ENV.SUPABASE_URL}/rest/v1/plan_cards`, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/plan_cards`, {
       method: "POST",
       headers: restHeaders(accessToken, { Prefer: "return=minimal" }),
       body: JSON.stringify(batch),
@@ -222,7 +274,12 @@ async function main() {
   // Bewusst sequenziell statt Promise.all: bei einem Einmal-Skript zählt
   // lesbare, athletenweise geordnete Log-Ausgabe mehr als der kleine
   // Zeitgewinn aus Parallelisierung (ein paar HTTP-Roundtrips pro Athlet).
-  for (const athlete of ATHLETES) {
+  const targets = ONLY ? ATHLETES.filter((a) => a.label === ONLY) : ATHLETES;
+  if (ONLY && targets.length === 0) {
+    log.error(`--only=${ONLY} passt auf keinen Athleten (verfügbar: ${ATHLETES.map((a) => a.label).join(", ")})`);
+    process.exit(1);
+  }
+  for (const athlete of targets) {
     await migrateAthlete(athlete);
   }
   logMedianTssPerType();

@@ -13,7 +13,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
-import { PRIMARY_ATHLETE_ID } from "../../config";
+import { isReadOnlyAthlete } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useTrainerContext } from "../../api/hooks/useTrainerContext";
@@ -154,7 +154,12 @@ export function PlanningPage() {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
     return buildPlanningSections(cards ?? [], rides, TODAY, derivedSets);
   }, [cards, rideData, derivedSets]);
-  const editable = canWrite && activeAthleteId === PRIMARY_ATHLETE_ID;
+  // Athlet 2 bleibt bewusst read-only (reiner Vergleichsathlet, s. AGENTS.md).
+  // Sonst entscheidet allein die Autorisierung: `canWrite` deckt Self +
+  // Trainer + Admin ab, Trainer speichern über den Vorschlagspfad
+  // (trainerProposalMode). Athlet 4 ("Bentastiic") ist damit editierbar,
+  // wenn als er selbst eingeloggt.
+  const editable = canWrite && !isReadOnlyAthlete(activeAthleteId);
   const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
 
   const ftp = resolvePlanningFtp(activeAthleteId, rideData?.athleteFtp ?? null);

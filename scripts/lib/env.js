@@ -48,11 +48,19 @@ export const ENV = {
   // Zweiter Athlet (read-only Vergleich, kein eigener Trainingsplan)
   INTERVALS_KEY_2: process.env.INTERVALS_API_KEY_2 || "",
   INTERVALS_ATHLETE_2: process.env.INTERVALS_ATHLETE_ID_2 || "",
+  // Vierter Athlet ("Bentastiic", Einsteiger, volles Modell): KEIN eigener
+  // INTERVALS_API_KEY_4 — der intervals.icu-Key + die Athlete-ID trägt der
+  // Athlet selbst in Settings ein (Supabase-Tabelle intervals_credentials,
+  // Migration 0019), der Sync liest sie über die SUPABASE_ATHLETE4_*-Zeile
+  // (scripts/lib/intervals-credentials-fetch.js). Ohne diese Zeile schreibt
+  // generate-data.js rides-4.json trotzdem (nur Plan, keine Fahrten).
   // Standorte ausschließlich über Secrets — keine Koordinaten im Code
   WEATHER_LAT: process.env.WEATHER_LAT || null,
   WEATHER_LON: process.env.WEATHER_LON || null,
   WEATHER_LAT_2: process.env.WEATHER_LAT_2 || null,
   WEATHER_LON_2: process.env.WEATHER_LON_2 || null,
+  WEATHER_LAT_4: process.env.WEATHER_LAT_4 || null,
+  WEATHER_LON_4: process.env.WEATHER_LON_4 || null,
   // Für scripts/migrate-plan-to-supabase.js (Einmal-Migration) UND seit
   // Progressionssteuerung C1 auch für generate-data.js/npm run sync
   // (scripts/lib/plan-cards-fetch.js, scripts/lib/ftp-history.js) — ohne
@@ -64,6 +72,11 @@ export const ENV = {
   SUPABASE_ATHLETE1_PASSWORD: process.env.SUPABASE_ATHLETE1_PASSWORD || "",
   SUPABASE_ATHLETE2_EMAIL: process.env.SUPABASE_ATHLETE2_EMAIL || "",
   SUPABASE_ATHLETE2_PASSWORD: process.env.SUPABASE_ATHLETE2_PASSWORD || "",
+  // Vierter Athlet ("Bentastiic"): volles Modell (plan_cards, ftp_history,
+  // intervals_credentials) — der Sync loggt sich mit dieser Zeile bei
+  // dashboard-prod ein. Fehlt sie, wird der ganze Athlet-4-Block übersprungen.
+  SUPABASE_ATHLETE4_EMAIL: process.env.SUPABASE_ATHLETE4_EMAIL || "",
+  SUPABASE_ATHLETE4_PASSWORD: process.env.SUPABASE_ATHLETE4_PASSWORD || "",
   // Nur für tests/supabase-rls.test.js (Live-RLS-Check gegen dashboard-dev,
   // Account "Trainer-ST", coacht dort den SUPABASE_ATHLETE1_EMAIL-Account
   // "Stuhlsen") — s. AGENTS.md "Test-Sicherheit".
@@ -78,6 +91,8 @@ export const ENV = {
   SUPABASE_ANON_KEY_PROD: process.env.SUPABASE_ANON_KEY_PROD || "",
   SUPABASE_ATHLETE1_EMAIL_PROD: process.env.SUPABASE_ATHLETE1_EMAIL_PROD || "",
   SUPABASE_ATHLETE1_PASSWORD_PROD: process.env.SUPABASE_ATHLETE1_PASSWORD_PROD || "",
+  SUPABASE_ATHLETE4_EMAIL_PROD: process.env.SUPABASE_ATHLETE4_EMAIL_PROD || "",
+  SUPABASE_ATHLETE4_PASSWORD_PROD: process.env.SUPABASE_ATHLETE4_PASSWORD_PROD || "",
 };
 
 /**

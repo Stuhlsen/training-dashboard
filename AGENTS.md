@@ -300,6 +300,12 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
   kein Fehler, nur ein stiller Fallback (s. `docs/offene-punkte.md`). `app/src/api/pipeline.ts`
   bleibt trotzdem der alleinige JSON-Loader im Frontend; `app/src/hooks/`/`features/` fragen
   weiterhin nur abstrakt "gib mir Athletendaten".
+- **Athlet 4 geht noch einen Schritt weiter:** der Sync liest für ihn auch die
+  **intervals.icu-Zugangsdaten** aus Supabase (`intervals_credentials`,
+  `scripts/lib/intervals-credentials-fetch.js`) statt aus einem GitHub Secret —
+  der Athlet trägt Key + Athlete-ID selbst in Settings ein. Ohne diese Zeile
+  schreibt `generate-data.js` `rides-4.json` trotzdem (nur die Plan-Baseline aus
+  `scripts/lib/plan-athlete4.js`, keine Fahrten), `source: "plan-only"`.
 
 ## Dateistruktur
 
@@ -381,9 +387,32 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
   FTP: 193W (`ftpMeasured` in `app/src/config.ts`; `DEFAULT_FTP` in `scripts/lib/map-activity.js`)
 - **Athlet 2** (`athlete2`) — Vergleichsathlet, weiterhin read-only (kein Befinden,
   keine Schreibaktionen), hat aber seit GFNY Bremen 2026 einen eigenen Planungstab
-  (`scripts/lib/plan-athlete2.js`) — Anzeige-only, s. "Bekannte Eigenheiten"
+  (`scripts/lib/plan-athlete2.js`) — Anzeige-only, s. "Bekannte Eigenheiten".
+  Read-only-Gate seit dem Athlet-4-Umbau über `readOnly: true` in
+  `app/src/config.ts` (`isReadOnlyAthlete()`), nicht mehr über einen
+  hartkodierten `=== PRIMARY_ATHLETE_ID`-Vergleich im Planungstab.
   FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test),
   FTP-Ziel 280W (Notion-Korridor 275–285W)
+- **Athlet 4** (`athlete4`, „bentastiic") — Renn-/Trainings-Einsteiger. Volles
+  Modell wie Athlet 1 (eigener Login, Befinden, editierbare `plan_cards`,
+  Wahoo-Push), aber Lesedaten-Pipeline wie Athlet 2 (intervals.icu + Supabase,
+  **kein Notion**). Der intervals.icu-Key/-Athlete-ID trägt der Athlet selbst
+  in **Settings → intervals.icu** ein (Tabelle `intervals_credentials`), der
+  Sync liest ihn über `scripts/lib/intervals-credentials-fetch.js` — es gibt
+  **kein** `INTERVALS_API_KEY_4`-Secret. Fehlt die Zeile, schreibt der Sync
+  `rides-4.json` trotzdem (nur Plan, keine Fahrten). **Fährt vorerst
+  überwiegend in Zwift:** Die 12-Wochen-Einsteigervorlage
+  (`scripts/lib/plan-athlete4.js`, KW36–KW47 ab 2026-08-31, 4 Einheiten/Woche,
+  generiert) trägt für jede Fahr-Einheit ein vollständiges `workout`-Objekt
+  mit **`pct` (% FTP)** wie Athlet 1 (kein `watts` — es gibt noch keine echte
+  FTP), damit die Karten per `.zwo` nach Zwift/MyWhoosh exportierbar sind
+  (`app/src/core/zwo-export.js`). `ftpMeasured`/`eFTP`/`ftpGoal` in `config.ts`
+  bleiben trotzdem `null` (die %FTP-Ziele rechnet Zwift gegen die im
+  Zwift-Profil hinterlegte FTP) → `output4.ftp = null`, die Hero-FTP-Widgets
+  (Leistungsskala, Ringe) blenden sich datengetrieben aus. Nach dem 20-Min-Test
+  (Vorlage-KW47) kann eine erste FTP gesetzt und die Vorlage um `watts` ergänzt
+  werden. Die interne ID `athlete3` ist reserviert, aber bewusst noch nicht
+  verdrahtet — daher die Lücke in der Nummerierung.
 
 FTP-Dreiklang pro Athlet in `app/src/config.ts` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
 (Ramp-Test) und `ftpGoal` (Ziel) — im Analyse-Tab strikt getrennt von der laufend
@@ -391,9 +420,10 @@ geschätzten eFTP. `seasonStartFtp` (Saison-Start-FTP für Fortschrittsring/Meil
 — nur bei Athlet 1 gesetzt, Athlet 2 → `null`) und `dataSources` (Untertitel-Anzeige,
 z.B. `["intervals.icu", "Apple Health"]`) leben ebenfalls dort.
 
-Interne IDs sind `athlete1`/`athlete2`, Anzeigenamen sind die selbstgewählten
-Pseudonyme (GitHub-Handles) "Stuhlsen"/"hc_diZee" (einzige Quelle: `app/src/config.ts`
-→ `athletes[].name` — nicht hartkodiert duplizieren). Athleten-Toggle persistent via
+Interne IDs sind `athlete1`/`athlete2`/`athlete4`, Anzeigenamen sind die
+selbstgewählten Pseudonyme (GitHub-Handles) "Stuhlsen"/"hc_diZee"/"bentastiic"
+(einzige Quelle: `app/src/config.ts` → `athletes[].name` — nicht hartkodiert
+duplizieren). Athleten-Toggle persistent via
 `localStorage("active_athlete")` (`app/src/api/hooks/useActiveAthlete.ts`); unbekannte/
 alte IDs werden beim Start verworfen.
 Bei Athlet 2: Planungs-Tab read-only sichtbar (kein Verschieben/Ausfallen/Wahoo-Push),
@@ -541,10 +571,17 @@ INTERVALS_API_KEY       INTERVALS_ATHLETE_ID
 INTERVALS_API_KEY_2     INTERVALS_ATHLETE_ID_2
 WEATHER_LAT             WEATHER_LON
 WEATHER_LAT_2           WEATHER_LON_2
+WEATHER_LAT_4           WEATHER_LON_4
 SYNC_PUSH_TOKEN
 SUPABASE_URL                       SUPABASE_ANON_KEY
 SUPABASE_ATHLETE1_EMAIL            SUPABASE_ATHLETE1_PASSWORD
+SUPABASE_ATHLETE4_EMAIL            SUPABASE_ATHLETE4_PASSWORD
 ```
+
+Athlet 4 („bentastiic"): **kein** `INTERVALS_API_KEY_4` — der intervals.icu-Key
+kommt aus der Supabase-Tabelle `intervals_credentials` (vom Athleten in Settings
+eingetragen), der Sync liest ihn über den `SUPABASE_ATHLETE4_*`-Login. Fehlen
+`SUPABASE_ATHLETE4_EMAIL/PASSWORD`, wird der Athlet-4-Block komplett übersprungen.
 
 `SYNC_PUSH_TOKEN` (seit 22.08.2026): Fine-grained PAT von Alex statt des
 Standard-`GITHUB_TOKEN` — `main` hat Branch Protection, der Bot-Token allein

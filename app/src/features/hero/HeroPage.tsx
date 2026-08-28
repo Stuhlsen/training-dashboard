@@ -109,6 +109,15 @@ export function HeroPage() {
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
 
+  // Athlet 4 ("Bentastiic", Einsteiger) hat noch keine FTP (kein Test,
+  // config-Felder null) und anfangs keine Fahrten — Leistungsskala und
+  // FTP-Ringe hätten dann keine Basis. Erst einblenden, sobald irgendein
+  // FTP-Wert vorliegt (config, ftp_history-Ringwert oder eFTP aus Fahrten).
+  const hasFtpData =
+    (athleteCfg?.ftpMeasured ?? athleteCfg?.eFTP ?? athleteCfg?.ftpGoal ?? null) != null ||
+    core.ramp.value > 0 ||
+    core.eftp.value > 0;
+
   // Gesamtstatistiken-Kachelreihe (Etappe 11c) — nutzt core.ramp/core.eftp
   // statt FTP/eFTP ein zweites Mal herzuleiten (s. buildHeroMetrics()-
   // Kommentar), läuft daher nicht mit durch buildHeroCore()s teure Memo,
@@ -224,20 +233,24 @@ export function HeroPage() {
             </div>
           )}
 
-          <div style={{ alignSelf: "end", transform: "translateZ(30px)" }}>
-            <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />
-          </div>
+          {hasFtpData && (
+            <div style={{ alignSelf: "end", transform: "translateZ(30px)" }}>
+              <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />
+            </div>
+          )}
         </div>
 
-        <div style={{ transform: "translateZ(22px)" }}>
-          <PowerScale
-            powerScale={vm.powerScale}
-            whatIf={vm.whatIf}
-            whatIfFtp={whatIfFtp}
-            onWhatIfChange={setWhatIfFtp}
-            eftpVal={vm.eftp.value || null}
-          />
-        </div>
+        {hasFtpData && (
+          <div style={{ transform: "translateZ(22px)" }}>
+            <PowerScale
+              powerScale={vm.powerScale}
+              whatIf={vm.whatIf}
+              whatIfFtp={whatIfFtp}
+              onWhatIfChange={setWhatIfFtp}
+              eftpVal={vm.eftp.value || null}
+            />
+          </div>
+        )}
 
         <div style={{ transform: "translateZ(14px)" }}>
           <MetricsGrid metrics={metrics} />

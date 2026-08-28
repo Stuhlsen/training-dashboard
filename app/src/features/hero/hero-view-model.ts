@@ -432,9 +432,11 @@ function eftpValue(rides: Ride[], wellness: WellnessDay[], athleteCfg: AthleteCo
 }
 
 /** Fortschrittsbasis für beide Ringe: Saison-Start-FTP, sonst der letzte
- *  Ramp-Test-Wert (Athlet 2 hat keine eigene Saisonbasis, s. config.ts). */
+ *  Ramp-Test-Wert (Athlet 2 hat keine eigene Saisonbasis, s. config.ts).
+ *  `0`, wenn beides fehlt (Athlet 4, Einsteiger ohne Test) — ringProgress()
+ *  liefert dann 0, die FTP-Widgets werden ohnehin ausgeblendet (HeroPage). */
 function ringBase(athleteCfg: AthleteConfig): number {
-  return athleteCfg.seasonStartFtp ?? athleteCfg.ftpMeasured;
+  return athleteCfg.seasonStartFtp ?? athleteCfg.ftpMeasured ?? 0;
 }
 
 /** Alles außer der Leistungsskala — vom What-if-Slider unabhängig, teuer
@@ -472,7 +474,10 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO);
   const readiness = assessReadiness(wellness, todayISO);
   const milestones = athleteCfg
-    ? buildMilestones({ ...athleteCfg, ftpMeasured: ftpVal ?? athleteCfg.ftpMeasured, ftpMeasuredDate }, eftpVal)
+    ? buildMilestones(
+        { ...athleteCfg, ftpMeasured: ftpVal ?? athleteCfg.ftpMeasured ?? undefined, ftpMeasuredDate },
+        eftpVal,
+      )
     : [];
 
   return {

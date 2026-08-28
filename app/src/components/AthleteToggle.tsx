@@ -22,7 +22,9 @@ export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps)
         background: "var(--hair)",
         borderRadius: "var(--pill)",
         padding: 4,
-        width: 248,
+        // Breite skaliert mit der Athletenzahl (2 → 248 wie bisher, 3 → 372),
+        // damit längere Pseudonyme bei drei Pills nicht clippen.
+        width: ATHLETES.length * 124,
         backdropFilter: "blur(10px)",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)",
       }}

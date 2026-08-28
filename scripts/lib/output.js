@@ -14,6 +14,9 @@ const DATA_DIR = path.join(__dirname, "..", "..", "data");
 
 export const OUT_FILE = path.join(DATA_DIR, "rides.json");
 export const OUT_FILE_2 = path.join(DATA_DIR, "rides-2.json");
+// Vierter Athlet ("Bentastiic", Einsteiger). Kein OUT_FILE_3 — die interne
+// ID athlete3 ist in Supabase reserviert, aber bewusst noch nicht verdrahtet.
+export const OUT_FILE_4 = path.join(DATA_DIR, "rides-4.json");
 const SUBJECTIVE_FILE = path.join(DATA_DIR, "subjective.json");
 const ADJUSTMENTS_FILE = path.join(DATA_DIR, "adjustments.json");
 // Athlet 2 hat kein Befinden (kein subjective-2), aber einen eigenen Plan
