@@ -195,6 +195,10 @@ export const INTENSITY_CLASS: Readonly<Record<string, string>> = Object.freeze({
   Ausrollen: "locker",
   NLS: "locker",
   Ruhetag: "ruhe",
+  // Reine Erinnerungskarte ohne Trainingsreiz (z.B. Athlet 2 "Ausrüstung
+  // checken" vor dem Renntag) — für K-HART/K-HARTFOLGE/K-LEER wie ein
+  // Ruhetag: kein harter Tag, keine Planungslücke, trennt zwei harte Tage.
+  Notiz: "ruhe",
 });
 
 /** Reizsignaturen der Plan-2-Blöcke (Ganzfahrt-IF-Korridore).

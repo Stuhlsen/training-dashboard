@@ -156,7 +156,10 @@ describe("cycling/session-types — Typvokabular vollständig", () => {
     // Typvergleich im Planungstab, s. DoneCompareBlock.tsx).
     expect(INTENSITY_CLASS["Z1"]).toBe("locker");
     expect(INTENSITY_CLASS["Race"]).toBe("hart");
-    expect(Object.keys(INTENSITY_CLASS).length).toBe(22);
+    // Fahrplan 6 (RUH3): reine Notiz-Karte (Athlet 2 "Ausrüstung checken")
+    // zählt wie ein Ruhetag — kein harter Tag, keine Planungslücke.
+    expect(INTENSITY_CLASS["Notiz"]).toBe("ruhe");
+    expect(Object.keys(INTENSITY_CLASS).length).toBe(23);
   });
 
   it("erwartete Zonen-Bänder", () => {

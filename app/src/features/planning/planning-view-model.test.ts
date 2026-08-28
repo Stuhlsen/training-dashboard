@@ -6,6 +6,7 @@ import {
   buildPlanningSections,
   complianceRuleText,
   fmtMinSec,
+  isNonTrainingCard,
   isRestDay,
   isRecoveryType,
   isZ2Type,
@@ -71,6 +72,14 @@ describe("isRestDay", () => {
   });
 });
 
+describe("isNonTrainingCard", () => {
+  it("umfasst Ruhetag UND Notiz, sonst nichts", () => {
+    expect(isNonTrainingCard(card({ id: "a", date: "2026-07-22", typ: "Ruhetag" }))).toBe(true);
+    expect(isNonTrainingCard(card({ id: "b", date: "2026-07-22", typ: "Notiz" }))).toBe(true);
+    expect(isNonTrainingCard(card({ id: "c", date: "2026-07-22", typ: "Z2 Dauer" }))).toBe(false);
+  });
+});
+
 describe("buildPlanningSections", () => {
   it("teilt Karten in ausstehend/absolviert/verpasst/ausgefallen", () => {
     const cards = [
@@ -90,6 +99,16 @@ describe("buildPlanningSections", () => {
   it("zählt eine verpasste Ruhetag-Karte nie als 'verpasst'", () => {
     const cards = [card({ id: "rest", date: "2026-07-18", typ: "Ruhetag" })];
     expect(buildPlanningSections(cards, [], TODAY).missed).toEqual([]);
+  });
+
+  it("eine vergangene Notiz-Karte ist weder 'verpasst' noch Teil der Fortschrittsquote", () => {
+    const cards = [
+      card({ id: "sess", date: "2026-07-18" }), // vergangene echte Einheit ohne Ride → verpasst
+      card({ id: "notiz", date: "2026-07-18", typ: "Notiz", name: "Ausrüstung checken" }),
+    ];
+    const { missed, stats } = buildPlanningSections(cards, [], TODAY);
+    expect(missed.map((c) => c.id)).toEqual(["sess"]);
+    expect(stats.totalSessions).toBe(1); // nur "sess", die Notiz-Karte zählt nicht mit
   });
 
   it("hält eine verschobene Karte ausstehend, wenn ihr neues Datum noch in der Zukunft liegt", () => {

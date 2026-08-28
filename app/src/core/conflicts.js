@@ -250,7 +250,10 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
         let hasRecovery = false;
         for (let k = j + 1; k < i; k++) {
           const dc = cardsByDate.get(days[k].date) || [];
-          if (dc.some((c) => RECOVERY_CARD_TYPES.has(c.typ)) || isRestEquivalent(days[k].date)) {
+          // Trennt zwei harte Tage: eine Z1-Recovery-Karte ODER ein "ruhe"-Tag
+          // (Ruhetag-/Notiz-Karte, nur ausgefallene Karte, oder — mit
+          // athleteId — abgeleiteter Ruhe-Slot; classOf deckt alle drei ab).
+          if (dc.some((c) => RECOVERY_CARD_TYPES.has(c.typ)) || classOf(days[k].date) === "ruhe") {
             hasRecovery = true;
             break;
           }

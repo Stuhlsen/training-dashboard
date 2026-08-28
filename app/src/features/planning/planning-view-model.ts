@@ -32,6 +32,7 @@ export const PLAN_TYPE_COLOR: Record<string, string> = {
   Gruppenfahrt: "#c9a84c",
   "FTP-Test": "#c9a84c",
   Ruhetag: "#6b7280",
+  Notiz: "#6b7280",
   NLS: "#6b7280",
   Z1: "#4a9a6e",
   Z2: "#4a7fa8",
@@ -50,6 +51,7 @@ export const PLAN_TYPE_ICON: Record<string, string> = {
   Gruppenfahrt: "👥",
   "FTP-Test": "🎯",
   Ruhetag: "😴",
+  Notiz: "📝",
   NLS: "🏁",
   Z1: "🌿",
   Z2: "🚴",
@@ -67,9 +69,22 @@ export function typeIcon(typ: string | null): string {
 
 /** Ruhetag-Karten zählen nie als "verpasst" (ein nicht gefahrener Ruhetag
  *  ist Erfüllung, kein Ausfall) und nicht als Basis der Fortschrittsquote —
- *  s. buildPlanningSections(). */
+ *  s. buildPlanningSections(). Seit Fahrplan 6 (RUH2) werden Ruhetage
+ *  abgeleitet, aber migrierte Supabase-Karten können den Typ noch tragen. */
 export function isRestDay(card: PlanCard): boolean {
   return card.typ === "Ruhetag";
+}
+
+/** Karten-Typen ohne zu erfüllenden Trainingsreiz — für "verpasst"/Quote wie
+ *  ein Ruhetag behandelt, aber im Raster ganz normal gerendert:
+ *  - "Ruhetag": abgeleitet/migriert (s. isRestDay)
+ *  - "Notiz":  reine Erinnerungskarte (z.B. Athlet 2 "Ausrüstung checken" vor
+ *    dem Renntag, scripts/lib/plan-athlete2.js) — keine Session, darf die
+ *    Fortschrittsquote nicht drücken und nie als "verpasst" erscheinen. */
+const NON_TRAINING_TYPES = new Set(["Ruhetag", "Notiz"]);
+
+export function isNonTrainingCard(card: PlanCard): boolean {
+  return card.typ != null && NON_TRAINING_TYPES.has(card.typ);
 }
 
 export type WorkoutBlockType = "warmup" | "interval" | "cooldown";
@@ -119,7 +134,7 @@ export function doneDatesOf(rides: Ride[]): Set<string> {
  *  "Ausstehend" stehen, sobald `originalDate` einmal gesetzt war. */
 export function isMissedCard(card: PlanCard, doneDates: Set<string>, todayIso: string): boolean {
   return (
-    card.date < todayIso && !doneDates.has(card.date) && !card.cancelled && !isRestDay(card)
+    card.date < todayIso && !doneDates.has(card.date) && !card.cancelled && !isNonTrainingCard(card)
   );
 }
 
@@ -205,12 +220,12 @@ export function buildPlanningSections(
 
   const cancelled = cards.filter((c) => c.cancelled).sort((a, b) => b.date.localeCompare(a.date));
 
-  // Fortschritt: Basis sind Nicht-Ruhetag-Karten — eine gefahrene
-  // Ruhetag-Karte ist eine Anomalie, kein erfüllter Trainingsreiz, und
-  // zählt deshalb weder im Zähler noch im Nenner.
-  const countable = cards.filter((c) => !isRestDay(c));
+  // Fortschritt: Basis sind Karten mit echtem Trainingsreiz — eine gefahrene
+  // Ruhetag-Karte ist eine Anomalie und eine "Notiz"-Karte gar keine Session;
+  // beide zählen deshalb weder im Zähler noch im Nenner.
+  const countable = cards.filter((c) => !isNonTrainingCard(c));
   const totalSessions = countable.length;
-  const doneCount = done.filter((c) => !isRestDay(c)).length;
+  const doneCount = done.filter((c) => !isNonTrainingCard(c)).length;
   const cancelledCount = cancelled.length;
   const missedCount = missed.length;
   const pct = totalSessions ? Math.round((doneCount / totalSessions) * 100) : 0;

@@ -23,7 +23,12 @@
 
 import { isoWeekKey } from "../../core/aggregate.js";
 import { weekDays } from "../../core/plan-drag.js";
-import { computePlanningDerivedSets, isMissedCard, isRestDay, type PlanningDerivedSets } from "./planning-view-model";
+import {
+  computePlanningDerivedSets,
+  isMissedCard,
+  isNonTrainingCard,
+  type PlanningDerivedSets,
+} from "./planning-view-model";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -106,9 +111,10 @@ function statusForDate(
 ): DayStatus {
   if (!primary) return "empty";
   if (primary.cancelled) return "cancelled";
-  // Ruhetag: nie "verpasst" (isRestDay-Konvention aus buildPlanningSections)
-  // — ein nicht gefahrener Ruhetag ist Erfüllung, sobald der Tag vorbei ist.
-  if (isRestDay(primary)) return date <= todayIso ? "done" : "open";
+  // Ruhetag / reine Notiz-Karte: nie "verpasst" (isNonTrainingCard-Konvention
+  // aus buildPlanningSections) — ein nicht gefahrener Ruhetag bzw. eine
+  // erledigte Erinnerung ist Erfüllung, sobald der Tag vorbei ist.
+  if (isNonTrainingCard(primary)) return date <= todayIso ? "done" : "open";
   if (doneDates.has(date)) return "done";
   if (date === todayIso) return "today";
   // isMissedCard() ist dieselbe Regel wie buildPlanningSections()' missed-
