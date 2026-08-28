@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { fmt, fmtDate } from "../../core/format.js";
 import { cardImpact, conflictsForCard, restDayRiddenSignal } from "../../core/plan-feedback.js";
 import { projectLoad } from "../../core/projection.js";
 import { detectConflicts } from "../../core/conflicts.js";
+import { buildZwoWorkout, canExportZwo } from "../../core/zwo-export.js";
 import { EventBadge } from "../events/EventBadge";
 import { HintChip, type HintItem } from "./HintChip";
 import { LegacyWorkoutTimeline } from "./LegacyWorkoutTimeline";
@@ -58,6 +60,22 @@ const ACTION_BTN_STYLE: React.CSSProperties = {
   fontSize: ".72rem",
   fontWeight: 600,
   cursor: "pointer",
+};
+
+/** Eigenes Dropdown statt <select> — ein natives <select>-Popup lässt sich
+ *  auf Windows/Chromium per CSS nicht zuverlässig auf das dunkle Theme
+ *  umfärben (bestätigt: bleibt teilweise hell, auch mit `color-scheme: dark`
+ *  auf :root UND dunklem Windows-App-Design, s. index.css-Kommentar). */
+const MENU_ITEM_STYLE: React.CSSProperties = {
+  padding: "7px 10px",
+  borderRadius: "var(--radius-sm)",
+  border: "none",
+  background: "transparent",
+  color: "var(--ink-2)",
+  fontSize: ".76rem",
+  textAlign: "left",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
 };
 
 export interface WeekGridDetailRowProps {
@@ -126,6 +144,23 @@ export function WeekGridDetailRow({
   const [error, setError] = useState("");
   const [pushing, setPushing] = useState(false);
   const [pushResult, setPushResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [exportResult, setExportResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [exportMenuOpen, setExportMenuOpen] = useState(false);
+  const exportMenuRef = useRef<HTMLDivElement>(null);
+
+  const closeExportMenu = useCallback(() => setExportMenuOpen(false), []);
+  useEscapeToClose(closeExportMenu);
+
+  useEffect(() => {
+    if (!exportMenuOpen) return;
+    function onClickOutside(e: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
+        closeExportMenu();
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [exportMenuOpen, closeExportMenu]);
 
   function closeForms() {
     setOpenForm(null);
@@ -187,6 +222,38 @@ export function WeekGridDetailRow({
         ? { ok: true, message: "✅ Gepusht!" }
         : { ok: false, message: "❌ " + (result.error?.message || "Fehler") },
     );
+  }
+
+  /** Zwift und MyWhoosh lesen dieselbe .zwo-Datei (MyWhoosh hat keinen
+   *  lokalen Ordner, sondern nimmt sie über den Web-Workout-Builder an) —
+   *  ein Builder (buildZwoWorkout), nur der Zielhinweis nach dem Download
+   *  unterscheidet sich je Auswahl. */
+  function handleExport(target: "zwift" | "mywhoosh") {
+    closeExportMenu();
+    const built = buildZwoWorkout(card);
+    if (!built.ok) {
+      setExportResult({ ok: false, message: "❌ " + built.error.message });
+      return;
+    }
+    const blob = new Blob([built.xml], { type: "application/xml" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = built.filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    // Verzögert widerrufen (nicht sofort) — Safari liest den Blob u. U. erst
+    // im nächsten Tick, ein sofortiges revokeObjectURL kann dort den Download
+    // vor Abschluss ungültig machen.
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setExportResult({
+      ok: true,
+      message:
+        target === "zwift"
+          ? "✅ Heruntergeladen — nach Dokumente\\Zwift\\Workouts\\<deine Zwift-ID> legen, Zwift danach neu starten."
+          : "✅ Heruntergeladen — auf mywhoosh.com im Workout Builder hochladen.",
+    });
   }
 
   const color = typeColor(card.typ);
@@ -260,9 +327,64 @@ export function WeekGridDetailRow({
                 {pushing ? "⏳ Wird gepusht…" : "📤 Auf Wahoo pushen"}
               </button>
             )}
+            {canPush && canExportZwo(card.workout) && (
+              <div ref={exportMenuRef} style={{ position: "relative" }}>
+                <button
+                  type="button"
+                  title="Trainingsdatei für Zwift oder MyWhoosh herunterladen"
+                  style={ACTION_BTN_STYLE}
+                  onClick={() => setExportMenuOpen((open) => !open)}
+                >
+                  ⬇️ Für Trainer-App … ▾
+                </button>
+                {exportMenuOpen && (
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 4px)",
+                      right: 0,
+                      zIndex: 20,
+                      minWidth: 170,
+                      background: "var(--surface-tooltip)",
+                      border: "1px solid var(--hair)",
+                      borderRadius: "var(--radius-sm)",
+                      boxShadow: "var(--e2)",
+                      padding: 4,
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 2,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      style={MENU_ITEM_STYLE}
+                      onClick={() => handleExport("zwift")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,.06)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      Für Zwift (.zwo)
+                    </button>
+                    <button
+                      type="button"
+                      style={MENU_ITEM_STYLE}
+                      onClick={() => handleExport("mywhoosh")}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,.06)")}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    >
+                      Für MyWhoosh (.zwo)
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
             {pushResult && (
               <span style={{ fontSize: ".7rem", color: pushResult.ok ? "var(--z1)" : "var(--danger)" }}>
                 {pushResult.message}
+              </span>
+            )}
+            {exportResult && (
+              <span style={{ fontSize: ".7rem", color: exportResult.ok ? "var(--z1)" : "var(--danger)" }}>
+                {exportResult.message}
               </span>
             )}
             {card.cancelled || card.originalDate ? (

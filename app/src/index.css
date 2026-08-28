@@ -4,6 +4,14 @@
   box-sizing: border-box;
 }
 
+/* Ohne das rendert Chromium/Windows native Formularsteuerelemente (z. B. die
+   Options-Liste eines <select>) IMMER hell, unabhängig vom Rest der Seite —
+   sichtbar geworden am Zwift/MyWhoosh-Export-Dropdown, betrifft aber alle
+   <select>-Stellen der App (ExportPanel, PlanCardForm, EventForm) gleichermaßen. */
+:root {
+  color-scheme: dark;
+}
+
 body {
   margin: 0;
   min-height: 100vh;

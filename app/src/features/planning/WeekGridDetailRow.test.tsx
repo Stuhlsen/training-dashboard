@@ -155,6 +155,41 @@ describe("WeekGridDetailRow — Verschieben/Ausfallen/Push-Verdrahtung", () => {
       expect(onPush).not.toHaveBeenCalled();
     });
   });
+
+  describe("Zwift/MyWhoosh-Export", () => {
+    const NUMERIC_WORKOUT = { warmup: 10, intervals: 3, duration: 10, rest: 3, cooldown: 8, pct: [84, 97] };
+
+    it("zeigt die Export-Auswahl nicht bei Freitext-Blockform (keine %FTP-Werte ableitbar)", () => {
+      renderRow(card({ id: "g", workout: { blocks: [] } }), { canPush: true });
+      expect(screen.queryByTitle("Trainingsdatei für Zwift oder MyWhoosh herunterladen")).toBeNull();
+    });
+
+    it("zeigt die Export-Auswahl nicht bei numerischem Workout ohne Hauptsatz (z. B. Ramp-Test)", () => {
+      renderRow(
+        card({ id: "g2", workout: { warmup: 10, intervals: null, duration: null, cooldown: 5, pct: null } }),
+        { canPush: true },
+      );
+      expect(screen.queryByTitle("Trainingsdatei für Zwift oder MyWhoosh herunterladen")).toBeNull();
+    });
+
+    it("löst bei numerischem Workout einen Zwift-Download aus und zeigt den Zielordner-Hinweis", async () => {
+      const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock");
+      const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
+      const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+
+      renderRow(card({ id: "h", workout: NUMERIC_WORKOUT }), { canPush: true });
+      fireEvent.click(screen.getByTitle("Trainingsdatei für Zwift oder MyWhoosh herunterladen"));
+      fireEvent.click(screen.getByText("Für Zwift (.zwo)"));
+
+      expect(createObjectURL).toHaveBeenCalled();
+      expect(click).toHaveBeenCalled();
+      await screen.findByText(/Zwift\\Workouts/);
+
+      createObjectURL.mockRestore();
+      revokeObjectURL.mockRestore();
+      click.mockRestore();
+    });
+  });
 });
 
 describe("WeekGridDetailRow — Ruhetag-gefahren-Hinweis", () => {

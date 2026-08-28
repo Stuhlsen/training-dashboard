@@ -47,6 +47,7 @@ export function WeekGrid({ weeks, today, canEdit, trainerProposalMode, renderDet
       {weeks.map((week) => {
         const openDate = openByWeek[week.weekKey] ?? null;
         const openCell = openDate ? (week.days.find((d) => d.date === openDate) ?? null) : null;
+        const detail = openCell ? renderDetail?.(openCell, week) : null;
         return (
           <div key={week.weekKey} data-week={week.weekKey} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <WeekHeader week={week} />
@@ -75,7 +76,13 @@ export function WeekGrid({ weeks, today, canEdit, trainerProposalMode, renderDet
                 ))}
               </GlassCard>
             </div>
-            {openCell && renderDetail?.(openCell, week)}
+            {detail && (
+              // radius="var(--radius-sm)" passend zum eigenen Rand von
+              // WeekGridDetailRow.tsx (dieselbe Box, sonst mismatchte Ecken).
+              <GlassCard variant="soft" radius="var(--radius-sm)">
+                {detail}
+              </GlassCard>
+            )}
           </div>
         );
       })}
