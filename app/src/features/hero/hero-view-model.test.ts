@@ -129,7 +129,7 @@ describe("buildHeroViewModel", () => {
     expect(vm.session?.label).toBe("Sweet Spot");
   });
 
-  it("Session: Ruhetag heute → Vorschau der nächsten echten Einheit statt Leertext", () => {
+  it("Session: migrierte Ruhetag-Alt-Karte wird übersprungen, nächste echte Einheit gezeigt (Fahrplan 6 RUH4)", () => {
     const vm = buildHeroViewModel({
       ...BASE_INPUT,
       planCards: [
@@ -137,17 +137,20 @@ describe("buildHeroViewModel", () => {
         planCard({ date: "2026-07-25", typ: "Schwelle", name: "Schwelle 2×20" }),
       ],
     });
-    expect(vm.session?.label).toBe("Ruhetag");
-    expect(vm.session?.detailParts[0]).toContain("Nächste Einheit:");
-    expect(vm.session?.detailParts[0]).toContain("Schwelle 2×20");
+    expect(vm.session?.label).toBe("Schwelle 2×20");
+    // Auch die Belastungsempfehlung (buildBriefingInfo, gleiche Quelle wie
+    // AnalysisPage/TrainerBar) darf nie die Ruhetag-Alt-Karte als "nächste
+    // Einheit" führen.
+    expect(vm.briefing.recommendation).toContain("Schwelle 2×20");
+    expect(vm.briefing.recommendation).not.toContain("Ruhetag");
   });
 
-  it("Session: Ruhetag ohne weitere geplante Einheit → Fallback auf details-Text", () => {
+  it("Session: nur eine Ruhetag-Alt-Karte, sonst nichts → session null (Fahrplan 6 RUH4)", () => {
     const vm = buildHeroViewModel({
       ...BASE_INPUT,
       planCards: [planCard({ date: "2026-07-23", typ: "Ruhetag", name: "Ruhetag", details: "Bewusst frei · kein Training geplant" })],
     });
-    expect(vm.session?.detailParts).toEqual(["Bewusst frei · kein Training geplant"]);
+    expect(vm.session).toBe(null);
   });
 
   it("Session: strukturiertes Intervall-Workout liefert Segment-Balken + Warmup/Cooldown-Watt-Schätzung", () => {

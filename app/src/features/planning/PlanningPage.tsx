@@ -191,8 +191,8 @@ export function PlanningPage() {
   // Grundlage der Fortschritts-Statistik/Done-Liste oben.
   const weekGrid = useMemo(() => {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return buildWeekGrid(cards ?? [], rides, TODAY, derivedSets);
-  }, [cards, rideData, derivedSets]);
+    return buildWeekGrid(cards ?? [], rides, TODAY, activeAthleteId, derivedSets);
+  }, [cards, rideData, activeAthleteId, derivedSets]);
 
   // Etappe 13d: Soll/Ist-Tabellen-Projektion über sections.done — berechnet
   // nichts neu, reicht nur Zahlen aus buildDoneCompareRows()/visibleCompliance()

@@ -94,6 +94,35 @@ describe("buildWeekGrid — Status je Tag", () => {
   });
 });
 
+describe("buildWeekGrid — abgeleiteter Ruhetag aus dem Plan-Wochen-Modell (Fahrplan 6 RUH4)", () => {
+  // athlete1, KW33 (Mo 10.08.–So 16.08.): trainingWeekdays [1,2,4,5,6] →
+  // Mi + So sind Ruhe-Slots, Do ist Trainings-Slot.
+  const thuCard = [card({ id: "thu", date: "2026-08-13" })];
+
+  it("Tag ohne Karte auf einem Ruhe-Slot → status 'rest', card null", () => {
+    const grid = buildWeekGrid(thuCard, [], TODAY, "athlete1");
+    expect(cellFor(grid, "2026-08-12").status).toBe("rest"); // Mi
+    expect(cellFor(grid, "2026-08-16").status).toBe("rest"); // So
+    expect(cellFor(grid, "2026-08-12").card).toBeNull();
+  });
+
+  it("Tag mit Karte bleibt normaler Status, Trainings-Slot ohne Karte bleibt 'empty'", () => {
+    const grid = buildWeekGrid(thuCard, [], TODAY, "athlete1");
+    expect(cellFor(grid, "2026-08-13").status).toBe("open"); // Do, hat Karte
+    expect(cellFor(grid, "2026-08-10").status).toBe("empty"); // Mo, Trainings-Slot ohne Karte
+  });
+
+  it("ohne athleteId bleibt ein Ruhe-Slot-Tag 'empty' (Ableitung ist opt-in)", () => {
+    const grid = buildWeekGrid(thuCard, [], TODAY);
+    expect(cellFor(grid, "2026-08-12").status).toBe("empty");
+  });
+
+  it("row.phase kommt aus dem Modell, wenn athleteId gesetzt ist", () => {
+    expect(buildWeekGrid(thuCard, [], TODAY, "athlete1")[0].phase).toBe("Schwelle");
+    expect(buildWeekGrid(thuCard, [], TODAY)[0].phase).toBe("Aufbau 2"); // Fallback: Karten-Phase
+  });
+});
+
 describe("buildWeekGrid — Mehrfachkarten am selben Datum", () => {
   it("zeigt die nicht-ausgefallene Karte primär, die ausgefallene als otherCards", () => {
     const cancelledOriginal = card({ id: "orig", date: "2026-08-10", cancelled: true, name: "Original" });

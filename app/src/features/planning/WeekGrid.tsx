@@ -182,6 +182,11 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
   // (z. B. vergangen/erledigt) aber weiterhin per Klick/Enter aufklappbar
   // sind, fachlich falsch: Screenreader meldeten die Zelle faelschlich als
   // deaktiviert, obwohl onClick/onKeyDown unten unveraendert aktiv bleiben.
+  // Nur die klickbare Karten-Zelle bekommt `role="button"` und damit einen
+  // vorgelesenen `aria-label`. Die nicht-interaktive Ruhetag-/Leer-Zelle trägt
+  // ihre Bedeutung über den sichtbaren Text ("Ruhetag" unten) — ein
+  // `aria-label` auf einem rollenlosen <div> würde von Screenreadern ohnehin
+  // ignoriert.
   const cellAriaLabel = hasCard
     ? `${weekdayLabel} ${fmtDate(cell.date)}, ${cell.card?.name ?? ""}${statusLabel ? `, ${statusLabel}` : ""}`
     : undefined;
@@ -249,6 +254,12 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
             {cell.card.name}
           </span>
         </div>
+      )}
+      {/* Abgeleiteter Ruhetag (Fahrplan 6 RUH4): keine Karte, aber laut Plan-
+          Wochen-Modell ein Ruhe-Slot — sichtbar als frei kennzeichnen statt
+          die Zelle leer zu lassen. */}
+      {!cell.card && cell.status === "rest" && (
+        <span style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>Ruhetag</span>
       )}
       {cell.otherCards.length > 0 && (
         <span style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>+{cell.otherCards.length}</span>

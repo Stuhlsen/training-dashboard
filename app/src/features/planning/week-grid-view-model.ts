@@ -23,6 +23,7 @@
 
 import { isoWeekKey } from "../../core/aggregate.js";
 import { weekDays } from "../../core/plan-drag.js";
+import { isDeliberateRestDay, planWeekFor } from "../../core/plan-week-model.js";
 import {
   computePlanningDerivedSets,
   isMissedCard,
@@ -33,7 +34,7 @@ import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 
-export type DayStatus = "done" | "today" | "open" | "missed" | "cancelled" | "empty";
+export type DayStatus = "done" | "today" | "open" | "missed" | "cancelled" | "empty" | "rest";
 
 /** Statusglyphen — 1:1 an das Mockup angelehnt (STATUS-Objekt), hier als
  *  reine Konstante statt in der Komponente, analog PLAN_TYPE_COLOR/ICON in
@@ -45,6 +46,7 @@ export const DAY_STATUS_GLYPH: Record<DayStatus, string> = {
   missed: "!",
   cancelled: "×",
   empty: "",
+  rest: "😴",
 };
 
 /** Textform des Status fuer Screenreader — DAY_STATUS_GLYPH allein ist
@@ -57,6 +59,7 @@ export const DAY_STATUS_LABEL: Record<DayStatus, string> = {
   missed: "verpasst",
   cancelled: "ausgefallen",
   empty: "",
+  rest: "Ruhetag",
 };
 
 /** Token-Namen (tokens.css), keine Hex-Werte — Politur-Vorgabe aus dem
@@ -68,6 +71,9 @@ export const DAY_STATUS_COLOR_TOKEN: Record<DayStatus, string> = {
   missed: "var(--warn)",
   cancelled: "var(--danger)",
   empty: "var(--ink-3)",
+  // Bewusst gedämpft wie `empty` — ein (abgeleiteter) Ruhetag ist keine
+  // hervorzuhebende Leistung, nur eine Info.
+  rest: "var(--ink-3)",
 };
 
 export interface GridDayCell {
@@ -108,8 +114,14 @@ function statusForDate(
   primary: PlanCard | null,
   todayIso: string,
   doneDates: Set<string>,
+  athleteId?: string,
 ): DayStatus {
-  if (!primary) return "empty";
+  // Fahrplan 6 (RUH4): ein Tag ohne (aktive) Karte, der laut Plan-Wochen-Modell
+  // ein bewusster Ruhetag ist, wird als solcher gerendert statt als Planungs-
+  // lücke ("empty"). `isDeliberateRestDay` ist dieselbe Quelle wie in
+  // conflicts.js (RUH3). Ohne `athleteId` (z. B. in Alt-Tests) bleibt das
+  // Verhalten unverändert — die Ableitung ist opt-in.
+  if (!primary) return athleteId && isDeliberateRestDay(athleteId, date, false) ? "rest" : "empty";
   if (primary.cancelled) return "cancelled";
   // Ruhetag / reine Notiz-Karte: nie "verpasst" (isNonTrainingCard-Konvention
   // aus buildPlanningSections) — ein nicht gefahrener Ruhetag bzw. eine
@@ -128,6 +140,10 @@ export function buildWeekGrid(
   cards: PlanCard[],
   rides: Ride[],
   todayIso: string,
+  /** Fahrplan 6 (RUH4): schaltet die Ruhe-Slot-Ableitung + die Phasen-Quelle
+   *  aus dem Plan-Wochen-Modell frei. Ohne `athleteId` bit-identisch zu vorher
+   *  (Phase kommt dann nur aus den Nachbarkarten, kein "rest"-Status). */
+  athleteId?: string,
   derived: PlanningDerivedSets = computePlanningDerivedSets(cards, rides),
 ): GridWeekRow[] {
   const { doneDates, recoveryWeeks } = derived;
@@ -155,7 +171,7 @@ export function buildWeekGrid(
       return {
         date,
         isToday: date === todayIso,
-        status: statusForDate(date, primary, todayIso, doneDates),
+        status: statusForDate(date, primary, todayIso, doneDates, athleteId),
         card: primary,
         otherCards,
       };
@@ -163,7 +179,12 @@ export function buildWeekGrid(
 
     const weekCards = days.flatMap((d) => (d.card ? [d.card, ...d.otherCards] : d.otherCards));
     const activeCards = weekCards.filter((c) => !c.cancelled);
-    const phase = activeCards.find((c) => c.phase)?.phase ?? null;
+    // Fahrplan 6 (RUH4): Phase primär aus dem Plan-Wochen-Modell (card-
+    // unabhängig) — löst den offene-punkte.md-Punkt "Karte behält altes
+    // week/phase-Label in leerer Zielwoche" für die Rasteranzeige. Karten-Phase
+    // bleibt Fallback für Athleten/Zeiträume ohne Modelleintrag.
+    const modelPhase = athleteId ? planWeekFor(athleteId, anchorDate).phase : null;
+    const phase = modelPhase ?? activeCards.find((c) => c.phase)?.phase ?? null;
     const plannedTssSum = activeCards.reduce((sum, c) => sum + (c.tssPlanned ?? 0), 0);
     // `tssPlanned` fehlt bei den meisten Karten (nur strukturierte Plan-2-
     // Workouts haben es) — eine Woche mit real fahrenen Einheiten zeigte

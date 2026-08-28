@@ -98,6 +98,15 @@ export function doneDatesOf(rides: Ride[]): Set<string> {
   return new Set(rides.map((r) => r.date ?? r.dateISO));
 }
 
+/** Migrierte `typ: "Ruhetag"`-Alt-Karten aus einer Kartenliste entfernen.
+ *  Seit Fahrplan 6 (RUH2/RUH4) sind Ruhetage abgeleitet und haben keine Karte
+ *  mehr; bis die RUH6-Migration die Alt-Zeilen aus Supabase löscht, dürfen sie
+ *  hier weder als "nächste Einheit" (buildSession) noch im Briefing
+ *  (buildBriefingInfo — auch von AnalysisPage/TrainerBar mit rohen Karten
+ *  aufgerufen) auftauchen. `findNextSession`/`nextPlannedSession` filtern nicht
+ *  nach `typ`, deshalb hier. */
+const withoutRestDayCards = (cards: PlanCard[]): PlanCard[] => cards.filter((c) => c.typ !== "Ruhetag");
+
 export interface HeroCoreInput {
   athleteId: string;
   rides: Ride[];
@@ -267,7 +276,7 @@ export interface HeroViewModel extends HeroCore {
 const fmtSigned = (x: number) => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x);
 
 function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: number | null, todayISO: string): HeroSession | null {
-  const next = findNextSession(planCards, doneDates, todayISO);
+  const next = findNextSession(withoutRestDayCards(planCards), doneDates, todayISO);
   if (!next) return null;
 
   const when = next.isToday
@@ -275,28 +284,10 @@ function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: num
     : new Date(next.date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
   const color = typeColor(next.typ);
 
-  // Ruhetag: die Session-Karte bliebe sonst leer außer einem statischen
-  // Textbaustein (plan-rest-days.js::"Bewusst frei · kein Training
-  // geplant") — stattdessen die nächste ECHTE Einheit vorschauen (Alex'
-  // Vorgabe 23.08.2026: "auch bei einem Ruhetag etwas mit Informationen
-  // gefüllt"). Ruhetag-Karten aus planCards herausfiltern und denselben
-  // findNextSession()-Lauf noch einmal starten, statt eigene Datumslogik
-  // zu bauen — landet automatisch auf dem nächsten Nicht-Ruhetag-Termin.
-  if (next.typ === "Ruhetag") {
-    const upcoming = findNextSession(
-      planCards.filter((c) => c.typ !== "Ruhetag"),
-      doneDates,
-      todayISO,
-    );
-    const detailParts: string[] = [];
-    if (upcoming) {
-      const upcomingWhen = new Date(upcoming.date).toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit" });
-      detailParts.push(`Nächste Einheit: ${upcomingWhen} · ${upcoming.name || upcoming.typ || "Einheit"}`);
-    } else if (next.details) {
-      detailParts.push(next.details);
-    }
-    return { when, label: next.name || next.typ || "Ruhetag", km: next.km, color, interval: null, chips: [], detailParts };
-  }
+  // Ruhetage sind seit Fahrplan 6 (RUH2/RUH4) abgeleitet, keine Karten mehr —
+  // `withoutRestDayCards()` oben entfernt migrierte Alt-Karten, `next` kann
+  // hier also nie ein Ruhetag sein. `findNextSession()` landet automatisch auf
+  // der nächsten echten Karte.
 
   const workout = next.workout as WorkoutStructure | null;
   const chips: string[] = [];
@@ -393,7 +384,10 @@ export function buildBriefingInfo(
   );
   const loadRisk = loadRows.length ? loadRows[loadRows.length - 1].risk : null;
 
-  const next = findNextSession(planCards, doneDates, todayISO);
+  // withoutRestDayCards: AnalysisPage/TrainerBar rufen buildBriefingInfo mit
+  // rohen `cards` auf — migrierte Ruhetag-Alt-Karten dürfen nicht als "nächste
+  // Einheit" ins Briefing (s. Helper-Kommentar, Fahrplan 6 RUH4).
+  const next = findNextSession(withoutRestDayCards(planCards), doneDates, todayISO);
   const nextSession = next ? { date: next.date, title: next.name ?? undefined, typ: next.typ ?? undefined } : null;
 
   const briefing = buildBriefing({
