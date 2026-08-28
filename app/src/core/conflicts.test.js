@@ -183,6 +183,58 @@ test("K-LEER feuert weiterhin, wenn die ausgefallene Karte außerhalb der 3-Tage
   assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 1);
 });
 
+/* ── Fahrplan 6 RUH3: Ruhe-/Trainings-Slot aus dem Plan-Wochen-Modell ──────
+   Mit `options.athleteId` unterscheidet classOf() einen kartenlosen Ruhe-Slot
+   ("ruhe", bewusst frei) von einem kartenlosen Trainings-Slot ("leer", echte
+   Lücke). Ohne athleteId bleibt alles wie zuvor (Kontroll-Assertions). Daten
+   gegen app/src/core/plan-week-model.js geprüft: Athlet 1 KW30 (20.–26.07.,
+   trainingWeekdays [1,2,4,5,6] → Mi/So = Ruhe), Athlet 4 KW47 (16.–22.11.,
+   trainingWeekdays [2,6,7] → Mo/Mi/Do/Fr = Ruhe). */
+
+test("K-LEER feuert NICHT nach 3 kartenlosen Ruhe-Slot-Tagen (athlete4 KW47, Mi–Fr)", () => {
+  const proj = mkProj([
+    { date: "2026-11-18" }, // Mi — Ruhe-Slot
+    { date: "2026-11-19" }, // Do — Ruhe-Slot
+    { date: "2026-11-20" }, // Fr — Ruhe-Slot
+    { date: "2026-11-21" }, // Sa — Trainings-Slot
+  ]);
+  const cards = [hard("a", "2026-11-21")];
+  assert.equal(
+    byRule(detectConflicts(proj, cards, [], [], { athleteId: "athlete4" }), "K-LEER").length,
+    0
+  );
+  // Kontrolle: ohne athleteId zählen dieselben 3 kartenlosen Tage als Lücke.
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-LEER").length, 1);
+});
+
+test("K-LEER feuert nach 3 kartenlosen Trainings-Slot-Tagen (athlete1 KW30, Do–Sa)", () => {
+  const proj = mkProj([
+    { date: "2026-07-23" }, // Do — Trainings-Slot
+    { date: "2026-07-24" }, // Fr — Trainings-Slot
+    { date: "2026-07-25" }, // Sa — Trainings-Slot
+    { date: "2026-07-26" }, // So — Ruhe-Slot, trägt hier aber die harte Karte
+  ]);
+  const cards = [hard("a", "2026-07-26")];
+  const c = byRule(detectConflicts(proj, cards, [], [], { athleteId: "athlete1" }), "K-LEER");
+  assert.equal(c.length, 1);
+  assert.deepEqual(c[0].dates, ["2026-07-26"]);
+});
+
+test("K-HARTFOLGE feuert NICHT, wenn ein kartenloser Ruhe-Slot zwischen zwei harten Tagen liegt (athlete1 KW30, Mi)", () => {
+  const proj = mkProj([
+    { date: "2026-07-21" }, // Di — harte Karte
+    { date: "2026-07-22" }, // Mi — Ruhe-Slot, keine Karte
+    { date: "2026-07-23" }, // Do — harte Karte
+  ]);
+  const cards = [hard("a", "2026-07-21"), hard("c", "2026-07-23")];
+  assert.equal(
+    byRule(detectConflicts(proj, cards, [], [], { athleteId: "athlete1" }), "K-HARTFOLGE").length,
+    0
+  );
+  // Kontrolle: ohne athleteId ist der 22.07. eine Lücke, kein Ruhetag-Äquivalent.
+  assert.equal(byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE").length, 1);
+});
+
 /* ── K-WOCHENSPRUNG (bis Fenster E1: K-RAMPE) — zwei volle ISO-Wochen:
    KW30 20.–26.07., KW31 27.07.–02.08. ── */
 

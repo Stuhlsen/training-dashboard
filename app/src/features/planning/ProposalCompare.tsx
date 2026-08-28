@@ -119,7 +119,7 @@ export function ProposalCompare({
 
   const ftp = resolvePlanningFtp(athleteId, rideData?.athleteFtp ?? null);
   const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY };
+  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY, athleteId };
   const { left, right, changed } = sidesFor(proposal, cards ?? []);
   const detail = impactDetail(proposal, ctx);
   const isOwn = proposal.source === "claude";

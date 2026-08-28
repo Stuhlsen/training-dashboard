@@ -97,6 +97,12 @@ export interface ImpactContext {
   events: EventItem[];
   ftp?: number;
   today: string;
+  /** Fahrplan 6 (RUH3): an core/conflicts.js durchgereicht, damit abgeleitete
+   *  Ruhe-Slots ohne Karte auch in der Vorschlags-Vorschau als „bewusst frei"
+   *  gewertet werden. Optional — fehlt es, klassifiziert conflicts.js wie vor
+   *  RUH3 (nur Ruhetag-/ausgefallene Karten zählen als bewusst frei). Die
+   *  echten UI-Aufrufer (ProposalList/ProposalCompare) reichen es durch. */
+  athleteId?: string;
 }
 
 /** Schmale Adapter für core/projection.js/core/conflicts.js — dieselbe
@@ -126,6 +132,7 @@ function preview(proposal: Proposal, ctx: ImpactContext) {
     events: ctx.events.map(toProjectionEvent),
     ftp: ctx.ftp,
     today: ctx.today,
+    athleteId: ctx.athleteId,
   });
 }
 

@@ -174,9 +174,11 @@ export function PlanningPage() {
     const projectionCards = (cards ?? []).map(toProjectionCard);
     const projectionEvents = (events ?? []).map(toProjectionEvent);
     const projection = projectLoad(projectionCards, rides, { today: TODAY, events: projectionEvents, ftp });
-    const conflicts = detectConflicts(projection, projectionCards, projectionEvents, rides);
+    const conflicts = detectConflicts(projection, projectionCards, projectionEvents, rides, {
+      athleteId: activeAthleteId,
+    });
     return { projection, conflicts };
-  }, [cards, rideData, events, ftp]);
+  }, [cards, rideData, events, ftp, activeAthleteId]);
 
   const doneRides = useMemo(
     () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),

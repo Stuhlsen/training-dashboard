@@ -32,7 +32,10 @@
       einen Tag ganz ohne Karte exakt dasselbe TSS-Ergebnis (0) wie eine
       genullte Karte — Entfernen ist die ehrlichere Semantik für "wird zum
       echten Ruhetag" und hinterlässt keine Karten-ID mit 0 TSS im
-      Tagesobjekt.
+      Tagesobjekt. Seit Fahrplan 6 (RUH3): fällt der entfernte Tag in einen
+      Ruhe-Slot der Plan-Wochen-Vorlage, wird er von core/conflicts.js
+      ohnehin als abgeleiteter Ruhetag ("ruhe") erkannt — das passt zur
+      Entfern-Semantik hier, kein zusätzlicher Schritt nötig.
    4. Rampenrate: Wochen chronologisch sortiert, Woche 0 bleibt Referenz
       (kein Vorgänger im übergebenen Kartensatz), jede Folgewoche wird
       proportional auf vorherigeWoche×(1+rampRatePct/100) skaliert, verteilt

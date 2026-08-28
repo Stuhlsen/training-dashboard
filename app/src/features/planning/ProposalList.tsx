@@ -65,7 +65,7 @@ export function ProposalList({
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const ftp = resolvePlanningFtp(athleteId, rideData?.athleteFtp ?? null);
   const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY };
+  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY, athleteId };
 
   async function handleAccept(p: Proposal) {
     setPendingId(p.id);

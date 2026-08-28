@@ -17,6 +17,7 @@ import { CONFLICT_THRESHOLDS, INTENSITY_CLASS, intensityClass } from "./plan-con
 import { weeklyCtlRamp } from "./projection.js";
 import { RECOVERY_CARD_TYPES } from "./plan-feedback.js";
 import { currentBlockTarget, PHASE_SIGNATURES } from "./periodization.js";
+import { planWeekFor } from "./plan-week-model.js";
 
 /** Ein Konfliktbefund.
  *  @typedef {Object} Conflict
@@ -52,12 +53,18 @@ function dateRange(dates) {
  *   K-WOCHENSPRUNG-Ist-Seed (letzte tatsächlich gefahrene Woche als
  *   Vergleichswert für die erste volle Planwoche, s. docs/offene-punkte.md)
  *   UND für K-TID (Intensitätsverteilung der letzten 4 Wochen).
- * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>}} [options]
+ * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>, athleteId?: string}} [options]
+ *   `athleteId` (Fahrplan 6, RUH3): schaltet die Plan-Wochen-Modell-
+ *   Konsultation frei — ein Ruhe-Slot-Tag ohne Karte gilt dann als „ruhe"
+ *   (bewusst frei) statt „leer" (Planungslücke). Ohne `athleteId` bleibt die
+ *   Klassifikation exakt wie vor RUH3 (nur Ruhetag-/ausgefallene Karten
+ *   zählen als bewusst frei).
  * @returns {Conflict[]}
  */
 export function detectConflicts(projection, cards, events = [], actuals = [], options = {}) {
   const cfg = options.config ?? CONFLICT_THRESHOLDS;
   const intensityTable = options.intensityTable ?? INTENSITY_CLASS;
+  const athleteId = options.athleteId ?? null;
   const days = projection?.days ?? [];
   if (!days.length) return [];
 
@@ -79,19 +86,27 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
     cardsByDate.get(c.date).push(c);
   }
 
-  /** Tag ohne aktive Karte, aber mit mindestens einer ausgefallenen — die
-   *  ausgefallene Karte macht den Tag bewusst frei, kein Unterschied zu einem
-   *  geplanten Ruhetag. Ein Tag mit einer AKTIVEN Karte (egal welchen Typs)
-   *  bleibt davon unberührt, auch wenn zusätzlich etwas anderes an diesem Tag
-   *  ausgefallen ist — cardsByDate.has(date) sticht. */
-  const isRestEquivalent = (date) => !cardsByDate.has(date) && cancelledDates.has(date);
+  /** Tag ohne aktive Karte, der bewusst frei ist — kein Unterschied zu einem
+   *  geplanten Ruhetag. Zwei Quellen:
+   *   1. mindestens eine AUSGEFALLENE Karte an dem Tag (cancelledDates), oder
+   *   2. Fahrplan 6 (RUH3): der Tag ist laut Plan-Wochen-Modell ein Ruhe-Slot
+   *      (`planWeekFor().isRestSlot`) — nur wenn `athleteId` übergeben wurde,
+   *      sonst greift Quelle 2 nie und das Verhalten bleibt wie vor RUH3.
+   *  Ein Tag mit einer AKTIVEN Karte (egal welchen Typs) bleibt davon
+   *  unberührt, auch wenn zusätzlich etwas anderes an diesem Tag ausgefallen
+   *  ist — cardsByDate.has(date) sticht. */
+  const isRestEquivalent = (date) =>
+    !cardsByDate.has(date) &&
+    (cancelledDates.has(date) ||
+      (athleteId != null && planWeekFor(athleteId, date).isRestSlot));
 
   /** Lastklasse eines Tages: "hart" (≥1 harte Karte), "aktiv" (moderat/locker),
-   *  "ruhe" (nur Ruhetag-Karte(n) bzw. nur ausgefallene Karte(n), bewusst
-   *  frei) oder "leer" (keine Karte — echte Planungslücke). Vor D6 (docs/
-   *  konzept-progressionssteuerung.md) fielen "keine Karte" und "Ruhetag-
-   *  Karte" beide auf "ruhe" — K-LEER unten unterscheidet das jetzt bewusst
-   *  (nur "leer" löst aus). */
+   *  "ruhe" (bewusst frei: nur Ruhetag-Karte(n), nur ausgefallene Karte(n),
+   *  oder abgeleiteter Ruhe-Slot ohne Karte — s. isRestEquivalent) oder
+   *  "leer" (keine Karte an einem Trainings-Slot — echte Planungslücke). Vor
+   *  D6 (docs/konzept-progressionssteuerung.md) fielen "keine Karte" und
+   *  "Ruhetag-Karte" beide auf "ruhe" — K-LEER unten unterscheidet das jetzt
+   *  bewusst (nur "leer" löst aus). */
   const classOf = (date) => {
     const dc = cardsByDate.get(date) || [];
     if (!dc.length) return isRestEquivalent(date) ? "ruhe" : "leer";
@@ -148,9 +163,11 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   }
 
   // ── K-LEER: harte Einheit direkt nach einem Block ≥ 3 echten Planungs-
-  //    lücken ("leer" — keine Karte). Eine bewusst geplante Ruhetag-Karte
-  //    ("ruhe") bricht die Zählung wie ein aktiver Tag — ein bewusst freier
-  //    Tag ist keine Planungslücke (D6, docs/konzept-progressionssteuerung.md).
+  //    lücken ("leer" — keine Karte an einem Trainings-Slot). Ein bewusst
+  //    freier Tag ("ruhe": Ruhetag-/ausgefallene Karte ODER abgeleiteter
+  //    Ruhe-Slot, s. isRestEquivalent) bricht die Zählung wie ein aktiver
+  //    Tag — er ist keine Planungslücke (D6, docs/konzept-
+  //    progressionssteuerung.md; Ruhe-Slot-Ableitung: Fahrplan 6 RUH3).
   for (let i = 0; i < days.length; i++) {
     if (classOf(days[i].date) !== "hart") continue;
     let rest = 0;

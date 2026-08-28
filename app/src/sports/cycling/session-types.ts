@@ -59,14 +59,13 @@ import type {
  * TSS = 3h × IF² × 100 ≈ 221. Nach dem Renntag (30.08.) durch den echten
  * Ist-Wert ersetzen, sobald die Fahrt synchronisiert ist.
  *
- * `Ruhetag: 0` neu (docs/konzept-progressionssteuerung.md D6, Schritt 2)
- * — bewusst komplett freier Tag, kein geschätzter Wert nötig, Karten dieses
- * Typs tragen in der Praxis ohnehin immer ein explizites `tssPlanned: 0`
- * (Prioritätsstufe 1 in estimateTss, dieser Default greift nur als
- * Rückfallebene). D6.1: `Ruhetag`-Karten werden künftig (Fenster B/C1,
- * `workout_structure`) von der Compliance-Auswertung ausgenommen — hier nur
- * dokumentiert, noch nicht implementiert (kein `workout_structure`-Feld in
- * diesem Fenster).
+ * `Ruhetag: 0` (docs/konzept-progressionssteuerung.md D6, Schritt 2)
+ * — bewusst komplett freier Tag, kein geschätzter Wert nötig. Seit Fahrplan 6
+ * (RUH2/RUH3, docs/fahrplan-6-ruhetag-planwochen-modell.md) werden Ruhetage
+ * NICHT mehr als `plan_cards`-Zeilen erzeugt, sondern aus dem Plan-Wochen-
+ * Modell abgeleitet (`core/plan-week-model.js::planWeekFor().isRestSlot`).
+ * Dieser Default bleibt nur als defensive Rückfallebene für Alt-/migrierte
+ * Supabase-Karten mit `typ:"Ruhetag"` (bis RUH6 gelöscht).
  *
  * Doppelte Schreibweise aus den Rohdaten bewusst BEIDE behalten, damit eine
  * Karte unabhängig von der Schreibweise ihres Typs auflöst:
@@ -165,9 +164,13 @@ export const TYPE_EXPECTED_BAND: Readonly<Record<string, string>> = Object.freez
  * erfüllen sowohl `Ruhetag` als auch `Z1 Recovery` die Trennbedingung
  * zwischen zwei harten Tagen, sind hier aber bewusst unterschiedlich
  * klassifiziert ("ruhe" vs. "locker"), weil nur `Ruhetag` ein echter
- * Null-Reiz-Tag ist. Für K-LEER (core/conflicts.js) zählt zusätzlich NUR
- * eine wirklich fehlende Karte als Planungslücke, keine `Ruhetag`-Karte
- * (s. dortiger Kommentar).
+ * Null-Reiz-Tag ist.
+ *
+ * Fahrplan 6 (RUH3): „bewusst frei" für K-LEER/K-HARTFOLGE kommt jetzt
+ * primär aus dem Plan-Wochen-Modell — ein Ruhe-Slot-Tag OHNE Karte gilt als
+ * "ruhe", ein Trainings-Slot-Tag ohne Karte als "leer" (echte Planungslücke,
+ * s. core/conflicts.js::isRestEquivalent). Der `Ruhetag`-Key hier bleibt für
+ * migrierte Karten, die noch `typ:"Ruhetag"` tragen (bis RUH6).
  */
 export const INTENSITY_CLASS: Readonly<Record<string, string>> = Object.freeze({
   "Sweet Spot": "hart",
