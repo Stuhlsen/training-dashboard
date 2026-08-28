@@ -25,9 +25,12 @@
      Block 3 Rennhärte    KW31–34 (27.07.–23.08.)  Rennsimulation + Sprint
      Taper                KW35    (24.–30.08.)     Volumen halbieren
    Standard-Wochenstruktur (Mo–So):
-     Mo Ruhetag · Di MyWhoosh Crit (~30min) · Mi Z2 Rolle 90min ·
-     Do Intervalle 90min · Fr Ruhetag · Sa MyWhoosh Rennen 60–75min ·
+     Mo frei · Di MyWhoosh Crit (~30min) · Mi Z2 Rolle 90min ·
+     Do Intervalle 90min · Fr frei · Sa MyWhoosh Rennen 60–75min ·
      So Z2 outdoor/Rolle 90min
+   Mo + Fr (und die NLS-/Taper-Ausnahmen) sind seit Fahrplan 6 (RUH2,
+   docs/fahrplan-6-ruhetag-planwochen-modell.md) abgeleitete Ruhe-Slots
+   (core/plan-week-model.js), keine Einträge in dieser Vorlage mehr.
    Ausnahmen: NLS6 (17.–19.06., KW25) und NLS7 (29.07.–31.07., KW31)
    ersetzen Do–Sa durch Abfahrt/Renntag/Heimfahrt, kein Nachholen.
 
@@ -45,7 +48,6 @@
 // (mapActivity2 setzt ride.week/ride.phase bewusst nicht, s. map-activity.js).
 export const PLANNED_SESSIONS_ATHLETE2 = {
   // ── KW23 — 01.06.–07.06. ─────────────────────────────────────────
-  "2026-06-01": { name: "Ruhetag", typ: "Ruhetag", week: "KW23", phase: "Basis" },
   "2026-06-02": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -67,7 +69,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Basis",
     workout: { warmup: 15, intervals: 2, duration: 15, rest: 5, cooldown: 10, zone: "SS", watts: [232, 245], label: "2×15 Min @ SS (232–245W)" },
   },
-  "2026-06-05": { name: "Ruhetag", typ: "Ruhetag", week: "KW23", phase: "Basis" },
   "2026-06-06": {
     name: "MyWhoosh längeres Rennen",
     typ: "Rennen",
@@ -84,7 +85,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW24 — 08.06.–14.06. ─────────────────────────────────────────
-  "2026-06-08": { name: "Ruhetag", typ: "Ruhetag", week: "KW24", phase: "Basis" },
   "2026-06-09": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -106,7 +106,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Basis",
     workout: { warmup: 15, intervals: 3, duration: 12, rest: 5, cooldown: 10, zone: "SS", watts: [232, 245], label: "3×12 Min @ SS (232–245W)" },
   },
-  "2026-06-12": { name: "Ruhetag", typ: "Ruhetag", week: "KW24", phase: "Basis" },
   "2026-06-13": {
     name: "MyWhoosh längeres Rennen",
     typ: "Rennen",
@@ -123,7 +122,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW25 — 15.06.–21.06. | ⚠️ NLS6 Eifel Trophy ──────────────────
-  "2026-06-15": { name: "Ruhetag", typ: "Ruhetag", week: "KW25", phase: "Basis" },
   "2026-06-16": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -161,7 +159,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW26 — 22.06.–28.06. | Abschluss Block 1 ─────────────────────
-  "2026-06-22": { name: "Ruhetag", typ: "Ruhetag", week: "KW26", phase: "Basis" },
   "2026-06-23": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -183,7 +180,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Basis",
     workout: { warmup: 15, intervals: 2, duration: 10, rest: 5, cooldown: 10, zone: "THR", watts: [245, 265], label: "2×10 Min @ Schwelle (245–265W)" },
   },
-  "2026-06-26": { name: "Ruhetag", typ: "Ruhetag", week: "KW26", phase: "Basis" },
   "2026-06-27": {
     name: "MyWhoosh längeres Rennen",
     typ: "Rennen",
@@ -200,7 +196,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW27 — 29.06.–05.07. ─────────────────────────────────────────
-  "2026-06-29": { name: "Ruhetag", typ: "Ruhetag", week: "KW27", phase: "Aufbau" },
   "2026-06-30": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -222,7 +217,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Aufbau",
     workout: { warmup: 15, intervals: 3, duration: 8, rest: 5, cooldown: 10, zone: "THR", watts: [252, 278], label: "3×8 Min Over-Under (252–278W)" },
   },
-  "2026-07-03": { name: "Ruhetag", typ: "Ruhetag", week: "KW27", phase: "Aufbau" },
   "2026-07-04": {
     name: "MyWhoosh längeres Rennen",
     typ: "Rennen",
@@ -239,7 +233,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW28 — 06.07.–12.07. ─────────────────────────────────────────
-  "2026-07-06": { name: "Ruhetag", typ: "Ruhetag", week: "KW28", phase: "Aufbau" },
   "2026-07-07": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -262,7 +255,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     workout: { warmup: 15, intervals: 3, duration: 10, rest: 5, cooldown: 10, zone: "THR", watts: [252, 278], label: "3×10 Min Over-Under (252–278W)" },
     details: "Gang-Problem am Cube (Kadenz-Sprünge) — ab dieser Einheit ERG-Modus für Intervalle",
   },
-  "2026-07-10": { name: "Ruhetag", typ: "Ruhetag", week: "KW28", phase: "Aufbau" },
   "2026-07-11": {
     name: "MyWhoosh längeres Rennen",
     typ: "Rennen",
@@ -279,7 +271,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW29 — 13.07.–19.07. ─────────────────────────────────────────
-  "2026-07-13": { name: "Ruhetag", typ: "Ruhetag", week: "KW29", phase: "Aufbau" },
   "2026-07-14": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -301,7 +292,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Aufbau",
     workout: { warmup: 15, intervals: 3, duration: 12, rest: 5, cooldown: 10, zone: "THR", watts: [252, 278], label: "3×12 Min Over-Under (252–278W)" },
   },
-  "2026-07-17": { name: "Ruhetag", typ: "Ruhetag", week: "KW29", phase: "Aufbau" },
   "2026-07-18": {
     name: "MyWhoosh Rennsimulation",
     typ: "Rennen",
@@ -318,7 +308,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW30 — 20.07.–26.07. ─────────────────────────────────────────
-  "2026-07-20": { name: "Ruhetag", typ: "Ruhetag", week: "KW30", phase: "Aufbau" },
   "2026-07-21": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -340,7 +329,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Aufbau",
     workout: { warmup: 15, intervals: 3, duration: 12, rest: 5, cooldown: 10, zone: "THR", watts: [245, 265], label: "3×12 Min @ Schwelle 95% (245–265W)" },
   },
-  "2026-07-24": { name: "Ruhetag", typ: "Ruhetag", week: "KW30", phase: "Aufbau" },
   "2026-07-25": {
     name: "MyWhoosh Rennsimulation",
     typ: "Rennen",
@@ -357,7 +345,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW31 — 27.07.–02.08. | ⚠️ NLS7 Ruhr-Pokal ────────────────────
-  "2026-07-27": { name: "Ruhetag", typ: "Ruhetag", week: "KW31", phase: "Rennhärte" },
   "2026-07-28": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -395,7 +382,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW32 — 03.08.–09.08. ─────────────────────────────────────────
-  "2026-08-03": { name: "Ruhetag", typ: "Ruhetag", week: "KW32", phase: "Rennhärte" },
   "2026-08-04": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -417,7 +403,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Rennhärte",
     workout: { warmup: 15, intervals: 3, duration: 12, rest: 5, cooldown: 10, zone: "THR", watts: [252, 278], label: "3×12 Min @ Schwelle + Schlusssprint (252–278W)" },
   },
-  "2026-08-07": { name: "Ruhetag", typ: "Ruhetag", week: "KW32", phase: "Rennhärte" },
   "2026-08-08": {
     name: "Rennsimulation mit Schlusssprint",
     typ: "Rennen",
@@ -434,7 +419,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW33 — 10.08.–16.08. ─────────────────────────────────────────
-  "2026-08-10": { name: "Ruhetag", typ: "Ruhetag", week: "KW33", phase: "Rennhärte" },
   "2026-08-11": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -456,7 +440,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Rennhärte",
     workout: { warmup: 15, intervals: 3, duration: 10, rest: 5, cooldown: 10, zone: "THR", watts: [252, 278], label: "3×10 Min Over-Under + Schlusssprint (252–278W)" },
   },
-  "2026-08-14": { name: "Ruhetag", typ: "Ruhetag", week: "KW33", phase: "Rennhärte" },
   "2026-08-15": {
     name: "Rennsimulation 90 Min",
     typ: "Rennen",
@@ -473,7 +456,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW34 — 17.08.–23.08. | Peak-Woche ────────────────────────────
-  "2026-08-17": { name: "Ruhetag", typ: "Ruhetag", week: "KW34", phase: "Rennhärte" },
   "2026-08-18": {
     name: "MyWhoosh Crit",
     typ: "VO2max",
@@ -495,7 +477,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Rennhärte",
     workout: { warmup: 15, intervals: 2, duration: 15, rest: 5, cooldown: 10, zone: "THR", watts: [245, 265], label: "2×15 Min @ Schwelle (245–265W)" },
   },
-  "2026-08-21": { name: "Ruhetag", typ: "Ruhetag", week: "KW34", phase: "Rennhärte" },
   "2026-08-22": {
     name: "Letzte Rennsimulation 75 Min",
     typ: "Rennen",
@@ -512,7 +493,6 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
   },
 
   // ── KW35 — Taper (24.–30.08.) — 29.08. bewusst frei, s. Kopfkommentar ──
-  "2026-08-24": { name: "Ruhetag", typ: "Ruhetag", week: "KW35", phase: "Taper" },
   "2026-08-25": {
     name: "MyWhoosh Crit kurz",
     typ: "VO2max",
@@ -534,9 +514,12 @@ export const PLANNED_SESSIONS_ATHLETE2 = {
     phase: "Taper",
     workout: { warmup: 10, intervals: 2, duration: 8, rest: 5, cooldown: 10, zone: "SS", watts: [232, 245], label: "2×8 Min @ SS (232–245W)" },
   },
+  // Fahrplan 6 (RUH2): echte Aufgabe, kein freier Tag — bewusst typ "Notiz"
+  // statt "Ruhetag", damit das RUH6-Aufräumskript (löscht workout_type =
+  // 'Ruhetag') diese Karte in Ruhe lässt.
   "2026-08-28": {
-    name: "Ruhetag — Ausrüstung checken",
-    typ: "Ruhetag",
+    name: "Ausrüstung checken",
+    typ: "Notiz",
     week: "KW35",
     phase: "Taper",
   },

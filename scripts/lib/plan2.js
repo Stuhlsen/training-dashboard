@@ -6,14 +6,17 @@
    Leistungsaufbau (FTP 193 → ≥210 W). Wochen-Architektur:
      Mo  lockere Z2      · OPTIONAL (fällt zuerst raus)
      Di  Gruppenfahrt    · ~65 km, variabel
-     Mi  Ruhetag
+     Mi  frei            · Ruhe-Slot (abgeleitet, s. core/plan-week-model.js)
      Do  Intervalle      · phasenspezifischer Schlüsselreiz
      Fr  Recovery-Spin   · OPTIONAL (fällt zuerst raus)
      Sa  Sweet-Spot-Ausdauerfahrt · zweite Qualitätseinheit
-     So  Ruhetag
+     So  frei            · Ruhe-Slot (abgeleitet)
    Zwei strukturierte Qualitätstage (Do + Sa) mit Ruhe/Locker
    dazwischen; Mo/Fr sind die Stoßdämpfer bei müden Beinen.
    W0/W1 stehen als abgeschlossene Historie unverändert.
+   Ruhetage sind seit Fahrplan 6 (RUH2) KEINE Einträge mehr — nur die
+   tatsächlichen Trainingseinheiten stehen hier, freie Tage leitet
+   core/plan-week-model.js ab.
    ============================================================ */
 
 // === Plan 2 Woche/Phase-Mapping (datumsbasiert) ===
@@ -34,18 +37,16 @@ export { PLAN2_SCHEDULE, getPlan2WeekPhase };
 // (eigene Kopie für scripts/, s. docs/fahrplan-1-vanilla-entfernen.md V1).
 import { addDaysISO } from "./core/format.js";
 import { RECENT_BLOCK_KEY, PREVIOUS_BLOCK_KEY } from "./core/progress-indicators.js";
-import { fillRestDays } from "./core/plan-rest-days.js";
 
 // === Geplante Einheiten — Datum → Name + Typ ===
 // Ab W2: Mo/Fr = optionale Recovery (bei müden Beinen streichen),
 // Di = Gruppenfahrt ~65 km, Do = Intervalle, Sa = Sweet-Spot-Ausdauerfahrt.
 // SS-Watts bei FTP 193: 84–97 % = 162–187 W. Mi/So (und jeder sonst freie
-// Tag) werden NICHT einzeln getippt — fillRestDays() unten ergänzt sie
-// automatisch aus der Wochenstruktur (Nachtrag 05.08.2026, docs/
-// konzept-progressionssteuerung.md D6: eine Woche hat immer 7 Tage, ein Tag
-// ohne aktive Session ist innerhalb eines definierten Plan-Zeitraums ein
-// Ruhetag, kein Rateverfahren nötig).
-const ACTIVE_SESSIONS = {
+// Tag) sind KEINE Einträge — Ruhetage sind seit Fahrplan 6 (RUH2, docs/
+// fahrplan-6-ruhetag-planwochen-modell.md) abgeleitet: ein Tag ohne
+// Trainings-Slot in core/plan-week-model.js und ohne aktive Karte. Das
+// frühere fillRestDays() (core/plan-rest-days.js) ist entfallen.
+export const PLANNED_SESSIONS = {
   // ── W0 Übergang (Historie, unverändert) ─────────────────────────
   "2026-06-23": {
     name: "Gruppenfahrt",
@@ -760,17 +761,6 @@ const ACTIVE_SESSIONS = {
       label: "FTP Ramp Test · alle 1 min +20W bis zum Abbruch",
     },
   },
-};
-
-// Ab W2 (06.07., erste Nicht-Historie-Woche) bis zum Ende der Taper-Woche
-// (20.09., Sonntag nach dem Ramp Test): jeder Tag ohne aktive Session wird
-// automatisch als Ruhetag-Karte ergänzt — deckt auch den bisher genauso
-// lückenhaften Freitag der Taper-Woche (18.09.) und den Sonntag danach
-// (20.09.) mit ab, die beim ersten manuellen Nachtrag (05.08.2026) noch
-// übersehen wurden. W0/W1 (23.06.–04.07., Historie) bleiben unangetastet.
-export const PLANNED_SESSIONS = {
-  ...ACTIVE_SESSIONS,
-  ...fillRestDays(ACTIVE_SESSIONS, "2026-07-06", "2026-09-20", getPlan2WeekPhase),
 };
 
 /**

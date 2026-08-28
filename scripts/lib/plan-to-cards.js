@@ -12,7 +12,7 @@ import { workoutDurationMinutes } from "./core/ftp-progress.js";
  *  core/ftp-progress.js::workoutDurationMinutes() statt die WU+Intervalle×
  *  Dauer+Pausen+CD-Formel ein drittes Mal zu implementieren (existiert
  *  bereits dort UND inline in ui/planned.js's Timeline-Rendering). null
- *  wenn gar kein workout-Objekt vorhanden (freie Z2-Fahrten, Ruhetage) —
+ *  wenn gar kein workout-Objekt vorhanden (freie Z2-Fahrten, Notiz-Karten) —
  *  workoutDurationMinutes(undefined) selbst liefert 0, was hier mit "kein
  *  Wert bekannt" verwechselbar wäre.
  *  @param {Object|undefined} workout
@@ -36,10 +36,17 @@ function workoutDurationMin(workout) {
  * @returns {Array<Object>} plan_cards-Zeilen (ohne id/athlete_id/created_at)
  */
 export function buildPlanCardRows(sessionsByDate, adjustments) {
-  const resolved = Object.entries(sessionsByDate || {}).map(([date, session]) => {
-    const s = applyAdjustment({ date, ...session }, adjustments);
-    return { origDate: date, s };
-  });
+  const resolved = Object.entries(sessionsByDate || {})
+    .map(([date, session]) => {
+      const s = applyAdjustment({ date, ...session }, adjustments);
+      return { origDate: date, s };
+    })
+    // Fahrplan 6 (RUH2): Ruhetage sind abgeleitet (core/plan-week-model.js),
+    // keine gespeicherten plan_cards-Zeilen mehr. Die aktuellen Plan-
+    // definitionen tragen keine "Ruhetag"-Einträge mehr — dieser Guard
+    // fängt nur noch Alt-Adjustments ab, die eine Session zu einem Ruhetag
+    // umgetypt haben könnten.
+    .filter(({ s }) => s.typ !== "Ruhetag");
 
   // Pro effektivem Datum gruppieren, innerhalb der Gruppe nach dem
   // ursprünglichen Datum sortiert -> stabiler sort_order bei Kollisionen.

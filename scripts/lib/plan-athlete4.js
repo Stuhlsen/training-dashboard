@@ -23,8 +23,10 @@
    Widgets bleiben ausgeblendet. Nach dem 20-Min-Test in KW47 entsteht die
    erste FTP; dann können die Karten zusätzlich `watts` bekommen.
 
-   Wochenmuster (Mo–So): Mo/Mi/Fr Ruhetag · Di locker · Do locker ·
+   Wochenmuster (Mo–So): Di locker · Do locker (außer Testwoche) ·
    Sa Qualitätstag (phasenabhängig) · So längere lockere Ausfahrt.
+   Mo/Mi/Fr (und Do in KW47) sind seit Fahrplan 6 (RUH2) abgeleitete
+   Ruhe-Slots (core/plan-week-model.js), keine Einträge in dieser Vorlage.
 
    Blockstruktur:
      KW36–38  Einstieg    Gewöhnung, alles Z2, Sa langes ruhiges Z2
@@ -99,14 +101,14 @@ function weekPlan(i) {
   return { kw, phase, recovery, easy, sunday, saturday };
 }
 
-const REST = { name: "Ruhetag", typ: "Ruhetag" };
-
 /**
- * Baseline-Plan Athlet 4: Datum → { name, typ, week, phase, workout? }.
+ * Baseline-Plan Athlet 4: Datum → { name, typ, week, phase, workout }.
  * Rein aus START_MONDAY + weekPlan() erzeugt — kein I/O, deterministisch.
- * Ruhetage tragen kein workout; alle Fahr-Einheiten ein vollständiges,
- * .zwo-exportfähiges `workout` (nur %FTP).
- * @type {Record<string, {name:string, typ:string, week:string, phase:string, workout?:object}>}
+ * NUR Trainingseinheiten (Di/Do/Sa/So; Do außer Testwoche KW47) — jede mit
+ * vollständigem, .zwo-exportfähigem `workout` (nur %FTP). Ruhetage (Mo/Mi/Fr,
+ * plus Do in KW47) sind seit Fahrplan 6 (RUH2) KEINE Einträge, sondern
+ * abgeleitete Ruhe-Slots (core/plan-week-model.js).
+ * @type {Record<string, {name:string, typ:string, week:string, phase:string, workout:object}>}
  */
 export const PLANNED_SESSIONS_ATHLETE4 = (() => {
   const out = {};
@@ -115,14 +117,10 @@ export const PLANNED_SESSIONS_ATHLETE4 = (() => {
     const monday = addDays(START_MONDAY, i * 7);
     const tag = (s) => ({ name: s.name, typ: s.typ, week: wp.kw, phase: wp.phase, ...(s.workout ? { workout: s.workout } : {}) });
 
-    // Mo / Mi / Fr — Ruhetag
-    for (const off of [0, 2, 4]) {
-      out[addDays(monday, off)] = tag(REST);
-    }
     // Di — locker
     out[addDays(monday, 1)] = tag(wp.easy);
-    // Do — locker, außer in der Test-Woche (dort frei)
-    out[addDays(monday, 3)] = wp.phase === "Test" ? tag(REST) : tag(wp.easy);
+    // Do — locker, außer in der Test-Woche (dort abgeleiteter Ruhe-Slot)
+    if (wp.phase !== "Test") out[addDays(monday, 3)] = tag(wp.easy);
     // Sa — Qualitätstag
     out[addDays(monday, 5)] = tag(wp.saturday);
     // So — längere lockere Ausfahrt

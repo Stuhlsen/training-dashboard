@@ -95,3 +95,14 @@ test("buildPlanCardRows: leere/fehlende Eingaben → leeres Array", () => {
   assert.deepEqual(buildPlanCardRows({}, {}), []);
   assert.deepEqual(buildPlanCardRows(undefined, undefined), []);
 });
+
+test("buildPlanCardRows: Ruhetag-Session erzeugt keine Zeile (Fahrplan 6 RUH2 — Ruhetage sind abgeleitet)", () => {
+  const sessions = {
+    "2026-07-08": { name: "Ruhetag", typ: "Ruhetag", week: "2026-KW28", phase: "Sweet Spot" },
+    "2026-07-09": { name: "Sweet Spot", typ: "Sweet Spot" },
+  };
+  const rows = buildPlanCardRows(sessions, {});
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].planned_date, "2026-07-09");
+  assert.equal(rows[0].workout_type, "Sweet Spot");
+});
