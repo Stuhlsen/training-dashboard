@@ -8,7 +8,7 @@
 
 ## Planungstab / Progressionssteuerung
 
-- **Drag & Drop v1** (geprüft 26.08.2026, drei separate Punkte):
+- **Drag & Drop v1** (geprüft 26.08.2026, zwei separate Punkte):
   - Kein Tastatur-Verschieben per Drag-Geste — Ersatzweg existiert bereits
     (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld → Speichern, voll
     tastaturbedienbar), nur langsamer als Ziehen. Kein akuter A11y-Ausfall.
@@ -16,13 +16,6 @@
     Feld (`nextSortOrder()`, `app/src/api/plan-cards/patch.ts`), wird aber
     nur bei Karten-Erstellung gesetzt, nie danach geändert. Echtes neues
     Feature (Bedienelement + Schreibpfad), noch nicht gebaut.
-  - Karte behält altes `week`/`phase`-Label, wenn die Zielwoche komplett
-    leer ist (`app/src/core/plan-drag.js::weekLabelForDate()`) — bewusste
-    v1-Grenze, kein Bug: es gibt keine von Karten unabhängige Quelle für
-    "welche Plan-Woche/Phase ist Kalenderwoche X", nur das Abschauen von
-    Nachbarkarten. Nur lösbar mit einer echten Kalenderwoche→Plan-Phase-
-    Zuordnung unabhängig von `plan_cards` — größerer Umbau, kein Fix
-    nebenbei.
 
 ## Sync-Pipeline (`scripts/`)
 

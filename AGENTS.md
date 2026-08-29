@@ -352,9 +352,12 @@ supabase/
 
 scripts/
   generate-data.js         → Dünner Orchestrator (läuft in der Action + `npm run sync`)
-  add-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
+  delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
   preset-suggestion-check.js, report-derived-workout-structure.js,
   generate-jwt-keys.js    → einzelne Betriebs-/Migrations-/Analyse-Skripte
+                             (delete-rest-day-cards.js: Einmal-Aufräumskript
+                             Fahrplan 6 RUH6 — entfernt migrierte
+                             `workout_type="Ruhetag"`-Zeilen aus plan_cards)
   Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
@@ -725,13 +728,19 @@ React-Umbau nicht berührt):**
   leben inzwischen in der Supabase-Tabelle `plan_cards` (RLS-geschützt) —
   `data/adjustments.json`/`adjustments-2.json` sind seit dieser Migration nur
   noch read-only Archiv der alten Planungsdaten, keine aktive Datenquelle mehr.
-- Ruhetage werden seit dem 05.08.2026 für BEIDE Athleten im Planungstab
-  angezeigt, kein athletenscoped Filter mehr — die vorherige Ausblendung für
-  Athlet 2 war eine Alt-Konvention aus der Zeit vor D6 (`docs/konzept-
-  progressionssteuerung.md`), keine bewusste, weiterhin gewollte Athlet-2-
-  Sonderregel. Ruhetag-Karten sollen für beide Athleten nie als "verpasst"
-  zählen (ein nicht gefahrener Ruhetag ist Erfüllung, kein Ausfall) — genauen
-  Ort dieser Regel im portierten `app/src/core/` bei Bedarf verifizieren.
+- Ruhetage sind seit Fahrplan 6 (`docs/fahrplan-6-ruhetag-planwochen-modell.md`,
+  RUH1–RUH6) **abgeleitet, keine `plan_cards`-Zeilen mehr**: Ein Ruhetag ist
+  „Tag in einer aktiven Planwoche, der laut Plan-Wochen-Modell
+  (`app/src/core/plan-week-model.js` + `scripts/lib/core/`-Kopie) kein
+  Trainings-Slot ist und keine aktive Karte trägt". Die Erzeugung
+  (`plan-rest-days.js`, `fillRestDays()`, `add-rest-day-cards.js`) ist
+  entfallen, die migrierten Alt-Zeilen sind aus dev + prod gelöscht
+  (`scripts/delete-rest-day-cards.js`, RUH6). Angezeigt werden Ruhetage
+  weiterhin für BEIDE Athleten im Planungstab (Mi/So), jetzt datengetrieben
+  aus dem Modell; sie zählen nie als „verpasst" (ein nicht gefahrener Ruhetag
+  ist Erfüllung, kein Ausfall — `isNonTrainingCard`/`isRestSlot`-Konvention).
+  Athlet 2s „Ausrüstung checken" ist bewusst `typ:"Notiz"` (echte Aufgabe,
+  kein freier Tag) und bleibt eine Karte.
 
 **Nicht mehr zutreffend, ersatzlos entfallen mit dem React-Umbau:** die frühere
 gegenseitige Import-Beziehung zwischen `ui/table.js` und `ui/planned.js` sowie

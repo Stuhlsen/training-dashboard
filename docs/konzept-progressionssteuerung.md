@@ -3,7 +3,7 @@
 **Stand:** 01.08.2026
 **Zielablage:** `docs/konzept-progressionssteuerung.md`
 **Bezug:** `docs/phase-4-konzept-export-richtungsvorgabe.md`, `core/plan-config.js`, `core/projection.js`, `core/session-classify.js`, `core/export-briefing.js`
-**Gewählte Varianten:** B0 (Vorbedingung), B1 = 1C, B2 = 2C, B3 = 3C, B4 = 4A, B5 = 5A + 5B, B6 = 6A, B7 = 7B (Formatkatalog als Daten), B8 = 8B (Ruhetage als Karten), B9 = 9C (Wirkungsanzeige auf allen Karten)
+**Gewählte Varianten:** B0 (Vorbedingung), B1 = 1C, B2 = 2C, B3 = 3C, B4 = 4A, B5 = 5A + 5B, B6 = 6A, B7 = 7B (Formatkatalog als Daten), B8 = 8B (Ruhetage als Karten — *überholt seit Fahrplan 6: Ruhetage abgeleitet statt als Karten, s. D6*), B9 = 9C (Wirkungsanzeige auf allen Karten)
 
 ---
 
@@ -177,6 +177,15 @@ Neue Spalte `events.is_test` (boolean, default false). Alternativ als `priority:
 **Entscheidung D5.2:** Bestehende Events bleiben `is_test = false`; der Ramp Test 19.09. wird im Zuge der Migration einmalig umgesetzt. Kein Rateverfahren über den Titel.
 
 ### D6 — Ruhetage als Karten (aus 8B)
+
+> **Überholt seit Fahrplan 6** (`docs/fahrplan-6-ruhetag-planwochen-modell.md`,
+> RUH1–RUH6, umgesetzt 2026-08-29). Ruhetage sind **keine `plan_cards`-Zeilen
+> mehr**, sondern aus dem Plan-Wochen-Modell abgeleitet
+> (`app/src/core/plan-week-model.js`): „Ruhe-Slot-Tag ohne aktive Karte". Die
+> Entscheidungen D6.1/D6.2 (Compliance-Ausnahme, eigene Intensitätskategorie
+> „ruhe", K-LEER/K-HARTFOLGE-Verhalten) gelten **inhaltlich unverändert
+> weiter** — nur die Quelle ist jetzt das Modell statt eine `rest`-Karte. Der
+> Abschnitt unten bleibt als Entwurfshistorie stehen.
 
 Heute ist ein Ruhetag nicht von einer Planungslücke unterscheidbar. Das ist ein semantisches Loch mit drei konkreten Folgen: K-HARTFOLGE (5B) kann nicht prüfen, ob zwischen zwei harten Tagen bewusst frei geplant war; der Trainer-Chat füllt bei "Aufbau steigern" genau die Tage zu, die frei bleiben sollten; und Erholungswochen sind nur aus dem Blockplan ableitbar, nicht aus dem Plan selbst — obwohl die Sperrregel in C3 daran hängt.
 
