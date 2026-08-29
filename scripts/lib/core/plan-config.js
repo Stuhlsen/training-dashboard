@@ -132,6 +132,7 @@ export const TYPE_DEFAULT_TSS = Object.freeze({
   Race: 221,
   Rennen: 75,
   Ruhetag: 0,
+  Notiz: 0, // reine Erinnerungskarte, kein Trainingsreiz (s. INTENSITY_CLASS.Notiz)
   Schwelle: 57,
   "Sweet Spot": 72,
   Tempo: 46,
@@ -366,6 +367,10 @@ export const INTENSITY_CLASS = Object.freeze({
   Ausrollen: "locker",
   NLS: "locker",
   Ruhetag: "ruhe",
+  // Reine Erinnerungskarte ohne Trainingsreiz (z.B. Athlet 2 "Ausrüstung
+  // checken" vor dem Renntag) — für K-HART/K-HARTFOLGE/K-LEER wie ein
+  // Ruhetag: kein harter Tag, keine Planungslücke, trennt zwei harte Tage.
+  Notiz: "ruhe",
 });
 
 /**

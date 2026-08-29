@@ -81,7 +81,7 @@ describe("cycling/metrics", () => {
 });
 
 describe("cycling/session-types — Typvokabular vollständig", () => {
-  it("TYPE_DEFAULT_TSS, alle 21 Einträge", () => {
+  it("TYPE_DEFAULT_TSS, alle 22 Einträge", () => {
     expect(TYPE_DEFAULT_TSS).toEqual({
       Ausrollen: 5,
       Ausserplanmaessig: 55,
@@ -91,6 +91,7 @@ describe("cycling/session-types — Typvokabular vollständig", () => {
       "FTP-Test": 45,
       Gruppenfahrt: 186,
       NLS: 44,
+      Notiz: 0,
       Race: 221,
       Rennen: 75,
       Ruhetag: 0,

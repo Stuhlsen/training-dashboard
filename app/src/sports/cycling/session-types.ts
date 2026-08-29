@@ -84,6 +84,7 @@ export const TYPE_DEFAULT_TSS: Readonly<Record<string, number>> = Object.freeze(
   Race: 221,
   Rennen: 75,
   Ruhetag: 0,
+  Notiz: 0, // reine Erinnerungskarte, kein Trainingsreiz (s. INTENSITY_CLASS.Notiz)
   Schwelle: 57,
   "Sweet Spot": 72,
   Tempo: 46,

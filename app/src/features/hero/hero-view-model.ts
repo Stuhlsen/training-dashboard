@@ -46,7 +46,7 @@ import { currentFtpEntry } from "../../core/ftp-history.js";
 // GEOMETRIE (Segmente/Breiten) daraus; die Watt-Range kommt weiterhin aus
 // `workoutWattRange()` (auf die AKTUELLE FTP umgerechnet), nicht aus
 // `legacyWorkoutSegments()`s eigenem %FTP-/Autorenzeit-Text.
-import { legacyWorkoutSegments, typeColor, type LegacySegment } from "../planning/planning-view-model";
+import { legacyWorkoutSegments, typeColor, isNonTrainingCard, type LegacySegment } from "../planning/planning-view-model";
 import type { PlanCard } from "../../api/types";
 import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
@@ -98,14 +98,15 @@ export function doneDatesOf(rides: Ride[]): Set<string> {
   return new Set(rides.map((r) => r.date ?? r.dateISO));
 }
 
-/** Migrierte `typ: "Ruhetag"`-Alt-Karten aus einer Kartenliste entfernen.
- *  Seit Fahrplan 6 (RUH2/RUH4) sind Ruhetage abgeleitet und haben keine Karte
- *  mehr; bis die RUH6-Migration die Alt-Zeilen aus Supabase löscht, dürfen sie
- *  hier weder als "nächste Einheit" (buildSession) noch im Briefing
- *  (buildBriefingInfo — auch von AnalysisPage/TrainerBar mit rohen Karten
- *  aufgerufen) auftauchen. `findNextSession`/`nextPlannedSession` filtern nicht
- *  nach `typ`, deshalb hier. */
-const withoutRestDayCards = (cards: PlanCard[]): PlanCard[] => cards.filter((c) => c.typ !== "Ruhetag");
+/** Nicht-Trainingskarten (`typ: "Ruhetag"` / `"Notiz"`) aus einer Kartenliste
+ *  entfernen. Migrierte `"Ruhetag"`-Alt-Karten (bis die RUH6-Migration die
+ *  Alt-Zeilen aus Supabase löscht) und reine Erinnerungskarten wie Athlet 2s
+ *  "Ausrüstung checken" dürfen weder als "nächste Einheit" (buildSession) noch
+ *  im Briefing (buildBriefingInfo — auch von AnalysisPage/TrainerBar mit rohen
+ *  Karten aufgerufen) als Workout auftauchen. `findNextSession`/
+ *  `nextPlannedSession` filtern nicht nach `typ`, deshalb hier. Selbe
+ *  `isNonTrainingCard`-Konvention wie der Planungstab. */
+const withoutNonTrainingCards = (cards: PlanCard[]): PlanCard[] => cards.filter((c) => !isNonTrainingCard(c));
 
 export interface HeroCoreInput {
   athleteId: string;
@@ -276,7 +277,7 @@ export interface HeroViewModel extends HeroCore {
 const fmtSigned = (x: number) => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x);
 
 function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: number | null, todayISO: string): HeroSession | null {
-  const next = findNextSession(withoutRestDayCards(planCards), doneDates, todayISO);
+  const next = findNextSession(withoutNonTrainingCards(planCards), doneDates, todayISO);
   if (!next) return null;
 
   const when = next.isToday
@@ -285,9 +286,9 @@ function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: num
   const color = typeColor(next.typ);
 
   // Ruhetage sind seit Fahrplan 6 (RUH2/RUH4) abgeleitet, keine Karten mehr —
-  // `withoutRestDayCards()` oben entfernt migrierte Alt-Karten, `next` kann
-  // hier also nie ein Ruhetag sein. `findNextSession()` landet automatisch auf
-  // der nächsten echten Karte.
+  // `withoutNonTrainingCards()` oben entfernt migrierte Ruhetag-Alt-Karten
+  // UND reine Notiz-Karten, `next` ist hier also immer eine echte Einheit.
+  // `findNextSession()` landet automatisch auf der nächsten echten Karte.
 
   const workout = next.workout as WorkoutStructure | null;
   const chips: string[] = [];
@@ -384,10 +385,11 @@ export function buildBriefingInfo(
   );
   const loadRisk = loadRows.length ? loadRows[loadRows.length - 1].risk : null;
 
-  // withoutRestDayCards: AnalysisPage/TrainerBar rufen buildBriefingInfo mit
-  // rohen `cards` auf — migrierte Ruhetag-Alt-Karten dürfen nicht als "nächste
-  // Einheit" ins Briefing (s. Helper-Kommentar, Fahrplan 6 RUH4).
-  const next = findNextSession(withoutRestDayCards(planCards), doneDates, todayISO);
+  // withoutNonTrainingCards: AnalysisPage/TrainerBar rufen buildBriefingInfo
+  // mit rohen `cards` auf — migrierte Ruhetag-Alt-Karten und Notiz-Karten
+  // dürfen nicht als "nächste Einheit" ins Briefing (s. Helper-Kommentar,
+  // Fahrplan 6 RUH4).
+  const next = findNextSession(withoutNonTrainingCards(planCards), doneDates, todayISO);
   const nextSession = next ? { date: next.date, title: next.name ?? undefined, typ: next.typ ?? undefined } : null;
 
   const briefing = buildBriefing({
