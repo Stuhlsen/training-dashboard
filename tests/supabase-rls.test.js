@@ -138,9 +138,12 @@ if (!HAS_CREDS) {
     athlete = await signIn(SUPABASE_ATHLETE1_EMAIL, SUPABASE_ATHLETE1_PASSWORD);
     trainer = await signIn(SUPABASE_TRAINER_EMAIL, SUPABASE_TRAINER_PASSWORD);
 
+    // coach_id/is_admin sind seit Migration 0022 (#32) NICHT mehr auf der
+    // Basistabelle gegrantet — die eigene Zeile inkl. dieser Spalten kommt
+    // über die View profiles_visible (id = auth.uid()).
     const profileCheck = await rest(
       "GET",
-      `profiles?id=eq.${athlete.userId}&select=id,role,coach_id,wellbeing_public`,
+      `profiles_visible?id=eq.${athlete.userId}&select=id,role,coach_id,wellbeing_public`,
       { token: athlete.token }
     );
     const row = profileCheck.data?.[0];
@@ -192,22 +195,81 @@ if (!HAS_CREDS) {
 
   const coachSkip = () => (coachLinkOk ? false : "Coach-Verknüpfung Stuhlsen↔Trainer-ST fehlt (s. Test oben)");
 
+  // --- 1b. profiles: Spalten-Härtung (GitHub Issue #32, Migration 0022) -
+  // Vor 0022 lieferte ein unauth. GET /profiles die kompletten Zeilen inkl.
+  // coach_id/is_admin. 0022: Basistabelle nur noch id/display_name/role/
+  // wellbeing_public öffentlich; sensible Spalten der eigenen bzw. selbst
+  // gecoachten Zeile ausschließlich über die View profiles_visible.
+
+  test("profiles: anon liest die 4 öffentlichen Spalten, aber select=* / coach_id / is_admin scheitern", async () => {
+    // Nur die 4 explizit gegranteten Spalten -> ok.
+    const anonSafe = await rest("GET", "profiles?select=id,display_name,role,wellbeing_public", { token: null });
+    assert.equal(anonSafe.ok, true, `anon-Read der öffentlichen Spalten fehlgeschlagen: ${JSON.stringify(anonSafe.data)}`);
+    assert.ok(Array.isArray(anonSafe.data) && anonSafe.data.length > 0, "profiles liefert anon keine Zeilen");
+
+    // Column-Grant statt Table-Grant: select=* deckt ungegrantete Spalten mit ab -> 42501.
+    const anonAll = await rest("GET", "profiles?select=*", { token: null });
+    assert.equal(anonAll.ok, false, "select=* auf profiles darf für anon nicht durchgehen (#32)");
+
+    // Explizit angeforderte, nicht gegrantete Spalte -> harter Fehler.
+    const anonCol = await rest("GET", "profiles?select=id,coach_id,is_admin", { token: null });
+    assert.equal(anonCol.ok, false, "anon darf coach_id/is_admin nicht einmal explizit anfordern können (#32)");
+  });
+
+  test("profiles: auch eingeloggt kein coach_id/is_admin über die Basistabelle", async () => {
+    const authCol = await rest("GET", `profiles?id=eq.${athlete.userId}&select=coach_id,is_admin`, {
+      token: athlete.token,
+    });
+    assert.equal(authCol.ok, false, "authenticated darf coach_id/is_admin nicht über die Basistabelle lesen (#32)");
+  });
+
+  test("profiles_visible: Athlet sieht GENAU die eigene Zeile, mit coach_id/is_admin", async () => {
+    const own = await rest("GET", "profiles_visible?select=id,coach_id,is_admin", { token: athlete.token });
+    assert.equal(own.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(own.data)}`);
+    assert.equal(own.data.length, 1, "profiles_visible zeigt dem Athleten mehr/weniger als die eigene Zeile");
+    assert.equal(own.data[0].id, athlete.userId);
+    assert.equal("coach_id" in own.data[0], true, "profiles_visible muss coach_id der eigenen Zeile führen");
+    assert.equal("is_admin" in own.data[0], true, "profiles_visible muss is_admin der eigenen Zeile führen");
+  });
+
+  test("profiles_visible: anon bekommt nichts (kein GRANT)", async () => {
+    const anonView = await rest("GET", "profiles_visible?select=id", { token: null });
+    assert.equal(anonView.ok, false, "anon darf profiles_visible nicht lesen (#32)");
+  });
+
+  test("profiles_visible: Trainer sieht eigene Zeile UND die des gecoachten Athleten", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerView = await rest("GET", "profiles_visible?select=id,coach_id", { token: trainer.token });
+    assert.equal(trainerView.ok, true);
+    const ids = trainerView.data.map((r) => r.id);
+    assert.ok(ids.includes(trainer.userId), "profiles_visible führt die eigene Trainer-Zeile nicht");
+    assert.ok(ids.includes(athlete.userId), "profiles_visible führt die Zeile des gecoachten Athleten nicht");
+    const athleteRow = trainerView.data.find((r) => r.id === athlete.userId);
+    assert.equal(athleteRow.coach_id, trainer.userId);
+  });
+
   // --- 2. wellbeing_shared: anon sieht nur bei aktivem Toggle -----------
   // Regressionstest für den Bug, den Block B Teil 1 gefixt hat.
 
   const WB_DATE = "1999-12-31"; // Sentinel-Datum, real unbenutzt
 
   test("wellbeing_shared: anon sieht NICHTS, solange wellbeing_public=false ist", async () => {
-    // Baseline erzwingen: Toggle aus.
+    // Baseline erzwingen: Toggle aus. return=minimal, weil profiles seit
+    // Migration 0022 (#32) nur noch Column-Grants hat — ein PATCH mit
+    // return=representation würde beim RETURNING über alle Spalten an
+    // is_admin/coach_id scheitern (genau wie supabase-js' .update() ohne
+    // .select(), das die App nutzt).
     const off = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
       token: athlete.token,
       body: { wellbeing_public: false },
+      prefer: "return=minimal",
     });
     assert.equal(off.ok, true, `Toggle-aus fehlgeschlagen: ${JSON.stringify(off.data)}`);
     cleanupTasks.push(async () => {
       const restore = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
         token: athlete.token,
         body: { wellbeing_public: originalWellbeingPublic ?? false },
+        prefer: "return=minimal",
       });
       if (!restore.ok) throw new Error(`profiles.wellbeing_public nicht zurückgesetzt (Original: ${originalWellbeingPublic})`);
     });
@@ -238,6 +300,7 @@ if (!HAS_CREDS) {
     const on = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
       token: athlete.token,
       body: { wellbeing_public: true },
+      prefer: "return=minimal",
     });
     assert.equal(on.ok, true);
 

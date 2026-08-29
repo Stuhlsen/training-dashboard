@@ -15,7 +15,8 @@ vi.mock("./client", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { updateUnitsPreference, getCoachDisplayName } = await import("./profiles");
+const { updateUnitsPreference, getCoachDisplayName, getProfile, getProfileByDisplayName } =
+  await import("./profiles");
 
 describe("updateUnitsPreference", () => {
   it("schreibt units_preference für die eigene Zeile", async () => {
@@ -30,6 +31,54 @@ describe("updateUnitsPreference", () => {
     expect(result).toEqual({ ok: true });
     expect(seen).toEqual({ units_preference: "mi" });
     expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+});
+
+describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
+  it("getProfile liest die eigene Zeile über die View, nicht die Basistabelle", async () => {
+    let seenTable = "";
+    fakeClient.handlers.profiles_visible = (calls) => {
+      seenTable = calls.table;
+      return {
+        data: {
+          id: "self-1",
+          display_name: "Stuhlsen",
+          role: "athlete",
+          coach_id: "coach-1",
+          wellbeing_public: false,
+          is_admin: false,
+          ladder_progression_enabled: true,
+          units_preference: "km",
+        },
+        error: null,
+      };
+    };
+    const result = await getProfile("self-1");
+    expect(seenTable).toBe("profiles_visible");
+    expect(result).toEqual({
+      ok: true,
+      profile: {
+        id: "self-1",
+        displayName: "Stuhlsen",
+        role: "athlete",
+        coachId: "coach-1",
+        wellbeingPublic: false,
+        isAdmin: false,
+        ladderProgressionEnabled: true,
+        unitsPreference: "km",
+      },
+    });
+  });
+
+  it("getProfileByDisplayName liefert null, wenn die View keine Zeile zeigt (kein Coach)", async () => {
+    let seenTable = "";
+    fakeClient.handlers.profiles_visible = (calls) => {
+      seenTable = calls.table;
+      return { data: null, error: null };
+    };
+    const result = await getProfileByDisplayName("hc_diZee");
+    expect(seenTable).toBe("profiles_visible");
+    expect(result).toEqual({ ok: true, profile: null });
   });
 });
 

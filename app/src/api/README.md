@@ -19,7 +19,9 @@ api/
   intervals/streams.ts  intervals.icu-Sekunden-Rohdaten (Watt/Puls) für den
                          Planungstab-Rausch-Chart, on-demand — Zugangsdaten
                          kommen aus supabase/intervals-credentials.ts (eigene
-                         Tabelle, NICHT profiles — das ist öffentlich lesbar)
+                         Tabelle, NICHT profiles — dessen öffentliche Spalten
+                         sind nur id/display_name/role/wellbeing_public,
+                         Migration 0022 / Issue #32)
   plan-cards/patch.ts   Reine Regeln der Karten-Anpassungen (mockfrei getestet)
   hooks/                Die eigentliche Hook-Oberfläche
 ```

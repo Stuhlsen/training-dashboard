@@ -51,13 +51,20 @@ export async function findProfileIdByDisplayName(
 
 /** Wie findProfileIdByDisplayName(), liefert aber das volle Profil (inkl.
  *  coachId) statt nur der ID — gebraucht, um zu prüfen, ob der eingeloggte
- *  Trainer tatsächlich der Trainer des gerade angezeigten Athleten ist. */
+ *  Trainer tatsächlich der Trainer des gerade angezeigten Athleten ist.
+ *
+ *  Liest über die View `profiles_visible` (Migration 0022, #32): die
+ *  sensiblen Spalten coach_id/is_admin sind auf der Basistabelle nicht
+ *  gegrantet. Die View zeigt nur die eigene Zeile + Zeilen selbst
+ *  gecoachter Athleten — ein Coach findet also die Zeile seines Athleten,
+ *  jeder andere bekommt `null` (→ isTrainer: false in resolveTrainerContext). */
 export async function getProfileByDisplayName(
   displayName: string,
 ): Promise<Result<{ profile: Profile | null }>> {
   if (!supabase) return { ok: true, profile: null };
-  const { data, error } = await supabase
-    .from("profiles")
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("profiles_visible")
     .select(SELECT_COLS)
     .eq("display_name", displayName)
     .maybeSingle<ProfileRow>();
@@ -65,11 +72,16 @@ export async function getProfileByDisplayName(
   return { ok: true, profile: data ? toProfile(data) : null };
 }
 
+/** Die eigene Profil-Zeile des eingeloggten Users (Rolle, coachId, isAdmin,
+ *  Ladder-/Units-Präferenz). Liest über die View `profiles_visible`
+ *  (Migration 0022, #32) — dort filtert `id = auth.uid()` die eigene Zeile,
+ *  die sensiblen Spalten coach_id/is_admin sind auf der Basistabelle nicht
+ *  mehr gegrantet. */
 export async function getProfile(userId: string): Promise<Result<{ profile: Profile }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
-    .from("profiles")
+    .from("profiles_visible")
     .select(SELECT_COLS)
     .eq("id", userId)
     .single<ProfileRow>();
