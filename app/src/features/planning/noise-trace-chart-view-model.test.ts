@@ -61,4 +61,35 @@ describe("buildNoiseTrace", () => {
     expect(trace!.avgWatts).toBeCloseTo(200);
     expect(trace!.maxWatts).toBe(300);
   });
+
+  describe("mit opts.targetBand", () => {
+    it("zeichnet die Watt-Kurve auf einer absoluten Skala (Min/Max inkl. Bandkanten) und gibt band-yPcts zurück", () => {
+      const trace = buildNoiseTrace(
+        streams({ time: [0, 1, 2], watts: [150, 160, 155], heartrate: [] }),
+        { targetBand: { lowW: 100, highW: 200 } },
+      );
+      // Skala 100..200 → Bandkanten am unteren/oberen Rand.
+      expect(trace!.band).toEqual({ yLowPct: 0, yHighPct: 100 });
+      // Watt-Punkte auf DERSELBEN Skala, nicht mehr eigen-normiert (sonst wäre 150 → 0%).
+      expect(trace!.watts[0].yPct).toBe(50); // (150-100)/100
+      expect(trace!.watts[1].yPct).toBe(60); // (160-100)/100
+    });
+
+    it("weitet die Skala auf, wenn die gefahrenen Watt über die Bandkanten hinausgehen", () => {
+      const trace = buildNoiseTrace(
+        streams({ time: [0, 1, 2], watts: [100, 300, 200], heartrate: [] }),
+        { targetBand: { lowW: 180, highW: 220 } },
+      );
+      // Skala 100..300 (Kurve dominiert), Band liegt dazwischen.
+      expect(trace!.band!.yLowPct).toBeCloseTo(40); // (180-100)/200
+      expect(trace!.band!.yHighPct).toBeCloseTo(60); // (220-100)/200
+      expect(trace!.watts.map((p) => p.yPct)).toEqual([0, 100, 50]);
+    });
+
+    it("lässt band weg, wenn keine targetBand-Option übergeben wird (Rückwärtskompatibilität)", () => {
+      const trace = buildNoiseTrace(streams({ time: [0, 1, 2], watts: [150, 160, 155], heartrate: [] }));
+      expect(trace!.band).toBeUndefined();
+      expect(trace!.watts[0].yPct).toBe(0); // wieder eigen-normiert
+    });
+  });
 });

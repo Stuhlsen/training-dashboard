@@ -8,6 +8,16 @@
 
 ## Planungstab / Progressionssteuerung
 
+- **Ziel-Overlay im Done-Detail-Chart ist ein flaches Band** — der
+  Intervall-Zweig von `DoneDetailChart.tsx` legt die Ziel-Watt-Spanne
+  (`targetBandFromCompliance()`, min–max über `compliance.matched`) als
+  waagerechtes Band hinter die echte Sekunden-Watt-Kurve. Die genauere
+  gestufte, zeit-ausgerichtete Ziel-Linie (Warmup niedrig → Intervall hoch →
+  Pause niedrig …) braucht die Intervall-Startzeiten (`startSec`), die
+  `app/src/core/compliance-match.js` intern kennt, aber nicht über
+  `ComplianceInterval` (`app/src/types.js`) und die Sync-Pipeline nach außen
+  gibt — größerer Umbau, bewusst zurückgestellt.
+
 - **Drag & Drop v1** (geprüft 26.08.2026, zwei separate Punkte):
   - Kein Tastatur-Verschieben per Drag-Geste — Ersatzweg existiert bereits
     (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld → Speichern, voll

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildStepChart, zoneMixFromRide } from "./done-detail-chart-view-model";
+import { fallbackIntervalRows, targetBandFromCompliance, zoneMixFromRide } from "./done-detail-chart-view-model";
 
 type Ride = import("../../types.js").Ride;
 type RideCompliance = import("../../types.js").RideCompliance;
@@ -35,44 +35,59 @@ function ride(overrides: Partial<Ride> = {}): Ride {
   return { dateISO: "2026-08-06", ...overrides } as Ride;
 }
 
-describe("buildStepChart — Intervall-Zweig", () => {
-  it("baut einen Balken je matched-Intervall, mit fulfilled durchgereicht", () => {
-    const bars = buildStepChart(compliance([interval({ fulfilled: true }), interval({ fulfilled: false })]));
-    expect(bars).toHaveLength(2);
-    expect(bars?.[0].fulfilled).toBe(true);
-    expect(bars?.[1].fulfilled).toBe(false);
-  });
-
-  it("skaliert die Höhe relativ zum höchsten Watt-Wert (Soll ODER Ist) unter allen Balken", () => {
-    const bars = buildStepChart(
+describe("targetBandFromCompliance — Intervall-Zweig", () => {
+  it("liefert min/max/Mittel der plannedWatts über alle matched-Intervalle", () => {
+    const band = targetBandFromCompliance(
       compliance([
-        interval({ plannedWatts: 200, avgWatts: 190 }),
-        interval({ plannedWatts: 250, avgWatts: 260 }), // 260 ist der Max-Wert
+        interval({ plannedWatts: 200 }),
+        interval({ plannedWatts: 260 }),
+        interval({ plannedWatts: 230 }),
       ]),
-    )!;
-    expect(bars[1].actualHeightPct).toBe(100); // 260/260
-    expect(bars[0].plannedHeightPct).toBe(Math.round((200 / 260) * 100));
+    );
+    expect(band).toEqual({ lowW: 200, highW: 260, meanW: 230 });
   });
 
-  it("liefert actualHeightPct=null ohne avgWatts, statt eine erfundene Null zu zeigen", () => {
-    const bars = buildStepChart(compliance([interval({ avgWatts: null })]))!;
-    expect(bars[0].actualWatts).toBeNull();
-    expect(bars[0].actualHeightPct).toBeNull();
-    expect(bars[0].plannedHeightPct).toBe(100); // einziger Watt-Wert ist der Max
+  it("bei gleichem Ziel über alle Intervalle sind low und high identisch", () => {
+    expect(targetBandFromCompliance(compliance([interval({ plannedWatts: 250 }), interval({ plannedWatts: 250 })]))).toEqual({
+      lowW: 250,
+      highW: 250,
+      meanW: 250,
+    });
   });
 
-  it("skaliert die Breite relativ zur Summe aller plannedDurationS", () => {
-    const bars = buildStepChart(
-      compliance([interval({ plannedDurationS: 300 }), interval({ plannedDurationS: 900 })]),
-    )!;
-    expect(bars[0].widthPct).toBe(25); // 300/1200
-    expect(bars[1].widthPct).toBe(75); // 900/1200
+  it("überspringt 0/undefined plannedWatts, statt sie als Bandkante zu nehmen", () => {
+    const band = targetBandFromCompliance(
+      compliance([interval({ plannedWatts: 0 }), interval({ plannedWatts: 240 })]),
+    );
+    expect(band).toEqual({ lowW: 240, highW: 240, meanW: 240 });
   });
 
-  it("liefert null ohne Compliance oder ohne Intervalle (kein Chart statt leerer Balkenreihe)", () => {
-    expect(buildStepChart(null)).toBeNull();
-    expect(buildStepChart(undefined)).toBeNull();
-    expect(buildStepChart(compliance([]))).toBeNull();
+  it("liefert null ohne Compliance, ohne Intervalle oder ohne gültigen Zielwert", () => {
+    expect(targetBandFromCompliance(null)).toBeNull();
+    expect(targetBandFromCompliance(undefined)).toBeNull();
+    expect(targetBandFromCompliance(compliance([]))).toBeNull();
+    expect(targetBandFromCompliance(compliance([interval({ plannedWatts: 0 })]))).toBeNull();
+  });
+});
+
+describe("fallbackIntervalRows — Soll/Ist-Liste ohne Streams", () => {
+  it("baut eine Zeile je matched-Intervall mit gerundeten Watt-Werten und fulfilled", () => {
+    const rows = fallbackIntervalRows(
+      compliance([interval({ plannedWatts: 250.4, avgWatts: 247.6, fulfilled: true }), interval({ fulfilled: false })]),
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows?.[0]).toMatchObject({ index: 0, plannedWatts: 250, actualWatts: 248, fulfilled: true });
+    expect(rows?.[1].fulfilled).toBe(false);
+  });
+
+  it("liefert actualWatts=null ohne avgWatts", () => {
+    const rows = fallbackIntervalRows(compliance([interval({ avgWatts: null })]))!;
+    expect(rows[0].actualWatts).toBeNull();
+  });
+
+  it("liefert null ohne Compliance oder ohne Intervalle", () => {
+    expect(fallbackIntervalRows(null)).toBeNull();
+    expect(fallbackIntervalRows(compliance([]))).toBeNull();
   });
 });
 

@@ -2,16 +2,17 @@
    FEATURES/PLANNING/DONE-DETAIL-CHART-VIEW-MODEL.TS — reine Ableitung für
    den aufklappbaren Detail-Chart der "Absolviert"-Tabelle (Etappe 13e,
    Redesign nach "Planungstab Live"-Mockup). Ersetzt den im Mockup gezeigten
-   Rausch-Trace (Sekunden-Leistungs-/Puls-Kurve) durch zwei einfachere,
-   tatsächlich baubare Varianten — echte Streams-Rohdaten existieren
-   nirgends in der Pipeline (s. Etappe-13-Plan, dokumentiert in
-   docs/offene-punkte.md, Etappe 13i):
+   Rausch-Trace (Sekunden-Leistungs-/Puls-Kurve) durch zwei Varianten:
 
-   - Intervall-Workouts (RideCompliance vorhanden): buildStepChart() —
-     Soll/Ist je gematchtem Intervall aus compliance.matched, direkt aus
-     core/compliance-match.js über die Fahrt. KEINE HR-Linie: RideCompliance
-     hat kein Puls-Feld je Intervall (core/compliance-match.js), nicht
-     erfinden.
+   - Intervall-Workouts (RideCompliance vorhanden): targetBandFromCompliance()
+     liefert die Ziel-Watt-Spanne (min/max plannedWatts über compliance.matched),
+     die DoneDetailChart als flaches Band HINTER die echte Sekunden-Watt-Kurve
+     legt (gemeinsame Watt-Achse). Ohne Streams (keine intervals.icu-
+     Zugangsdaten) fällt die Komponente auf fallbackIntervalRows() zurück —
+     eine kompakte Soll/Ist-Textliste je Intervall. Die gestufte, zeit-
+     ausgerichtete Ziel-Linie wäre der größere Umbau (Intervall-Startzeiten
+     müssten durch die Sync-Pipeline exponiert werden, s.
+     docs/offene-punkte.md).
    - Ohne Intervallstruktur (Z2/Recovery/Gruppenfahrt): zoneMixFromRide() —
      echte Zonenzeiten der Fahrt, drei-drei-fünf gemappt auf
      COGGAN_ZONE_META statt der drei groben Bänder aus core/zones.js::
@@ -24,54 +25,50 @@ import { COGGAN_ZONE_META } from "../../sports/cycling/zones.js";
 type Ride = import("../../types.js").Ride;
 type RideCompliance = import("../../types.js").RideCompliance;
 
-export interface StepChartBar {
-  index: number;
-  fulfilled: boolean;
-  plannedDurationS: number;
-  actualDurationS: number;
-  plannedWatts: number;
-  /** `null` ohne Ist-Block (avgWatts fehlt) — Komponente zeichnet dann
-   *  keinen Ist-Balken für dieses Intervall, statt eine erfundene Null zu
-   *  zeigen. */
-  actualWatts: number | null;
-  /** 0–100, Breite relativ zur Summe aller `plannedDurationS` (Zeitachse
-   *  über alle Balken). */
-  widthPct: number;
-  /** 0–100, Höhe relativ zum höchsten Watt-Wert (Soll ODER Ist) unter allen
-   *  Balken — gemeinsame Skala, damit Soll- und Ist-Balken direkt
-   *  vergleichbar bleiben. */
-  plannedHeightPct: number;
-  /** wie `plannedHeightPct`, aber für den Ist-Wert — `null` ohne `avgWatts`. */
-  actualHeightPct: number | null;
+export interface TargetBand {
+  lowW: number;
+  highW: number;
+  meanW: number;
 }
 
-/** Ein Balken je `compliance.matched[i]` — Soll (gestrichelt) vs. Ist
- *  (gefüllt), `fulfilled` steuert ✓/✗ in der Komponente. Nutzt NUR
- *  `compliance.matched` (bereits auf Arbeits-Intervalle beschränkt, kind
- *  "set"|"alternating") — Nicht-Arbeits-Segmente (Ein-/Ausfahren/Pause) aus
- *  `workoutStructure` fließen hier bewusst nicht ein, sie haben keine
- *  gematchten Ist-Werte. `null` ohne Intervalle (kein Chart statt leerer
- *  Balkenreihe). */
-export function buildStepChart(compliance: RideCompliance | null | undefined): StepChartBar[] | null {
+/** Ziel-Watt-Spanne über alle matchbaren Arbeits-Intervalle
+ *  (`compliance.matched`, kind "set"|"alternating") — min/max/Mittel der
+ *  `plannedWatts` (0/undefined übersprungen). DoneDetailChart legt das als
+ *  flaches, getöntes Band hinter die echte Sekunden-Watt-Kurve; bei einem
+ *  Pyramiden-Workout wird das Band einfach höher. `null` ohne matchbare
+ *  Intervalle mit gültigem Zielwert (kein Band statt eines erfundenen). */
+export function targetBandFromCompliance(compliance: RideCompliance | null | undefined): TargetBand | null {
   if (!compliance || !compliance.matched.length) return null;
+  const watts = compliance.matched
+    .map((m) => m.plannedWatts)
+    .filter((w): w is number => typeof w === "number" && w > 0);
+  if (!watts.length) return null;
+  return {
+    lowW: Math.round(Math.min(...watts)),
+    highW: Math.round(Math.max(...watts)),
+    meanW: Math.round(watts.reduce((sum, w) => sum + w, 0) / watts.length),
+  };
+}
 
-  const totalDuration = compliance.matched.reduce((sum, m) => sum + (m.plannedDurationS || 0), 0) || 1;
-  const maxWatts = Math.max(
-    1,
-    ...compliance.matched.map((m) => m.plannedWatts || 0),
-    ...compliance.matched.map((m) => m.avgWatts ?? 0),
-  );
+export interface FallbackIntervalRow {
+  index: number;
+  plannedWatts: number;
+  /** `null` ohne Ist-Block (avgWatts fehlt) — Komponente zeigt "–". */
+  actualWatts: number | null;
+  fulfilled: boolean;
+}
 
+/** Kompakte Soll/Ist-Liste je `compliance.matched[i]` — Ersatz für den
+ *  früheren Stufenchart, wenn KEINE intervals.icu-Streams vorliegen (ohne
+ *  echte Sekunden-Kurve gibt es nichts, was ein Zielband hinterlegen
+ *  könnte). `null` ohne Intervalle. */
+export function fallbackIntervalRows(compliance: RideCompliance | null | undefined): FallbackIntervalRow[] | null {
+  if (!compliance || !compliance.matched.length) return null;
   return compliance.matched.map((m, index) => ({
     index,
+    plannedWatts: Math.round(m.plannedWatts || 0),
+    actualWatts: m.avgWatts != null ? Math.round(m.avgWatts) : null,
     fulfilled: m.fulfilled,
-    plannedDurationS: m.plannedDurationS,
-    actualDurationS: m.actualDurationS,
-    plannedWatts: m.plannedWatts,
-    actualWatts: m.avgWatts,
-    widthPct: Math.round(((m.plannedDurationS || 0) / totalDuration) * 1000) / 10,
-    plannedHeightPct: Math.round(((m.plannedWatts || 0) / maxWatts) * 100),
-    actualHeightPct: m.avgWatts != null ? Math.round((m.avgWatts / maxWatts) * 100) : null,
   }));
 }
 

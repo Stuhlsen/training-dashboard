@@ -1,17 +1,19 @@
 /* ============================================================
    FEATURES/PLANNING/NOISE-TRACE-CHART-VIEW-MODEL.TS — reine Ableitung für
    den Rausch-Chart (echter Sekunden-Verlauf Watt/Puls) im Planungstab-
-   Detail-Chart (docs/offene-punkte.md, Planungstab-Abschnitt). Ergänzt den
-   bestehenden Stufenchart/Zonen-Mix, ersetzt ihn nicht.
+   Detail-Chart (docs/offene-punkte.md, Planungstab-Abschnitt). Bei
+   Intervall-Workouts trägt dieser Chart auch das Ziel-Watt-Band
+   (targetBandFromCompliance()); der frühere separate Stufenchart ist damit
+   entfallen. Ohne Intervallstruktur ergänzt er den Zonen-Mix.
 
    Eine Fahrt kann mehrere tausend Sekunden-Samples haben (verifiziert:
    ~8000 bei einer ~2,3h-Fahrt) — für eine kompakte Inline-SVG-Linie werden
    sie auf `BUCKET_COUNT` Buckets gemittelt (Mittelwert, `null`-Lücken
    übersprungen statt als 0 gezählt — ein Sensor-Dropout soll nicht wie ein
-   Leistungseinbruch aussehen). Watt und Puls werden UNABHÄNGIG voneinander
-   auf ihre jeweilige Min/Max-Spanne normiert (0–100%, keine gemeinsame
-   Achse) — die Komponente zeigt zwei Trace-Linien zum Vergleich der
-   Verlaufsform, keine absolute Watt-/Puls-Skala. ============================== */
+   Leistungseinbruch aussehen). Puls wird auf seine eigene Min/Max-Spanne
+   normiert (0–100%). Die Watt-Kurve ebenso — AUSSER mit `opts.targetBand`:
+   dann teilen sich Watt-Kurve und Zielband eine absolute Watt-Skala, damit
+   sie maßstabsgetreu übereinanderliegen. ============================== */
 
 type ActivityStreams = import("../../api/intervals/streams").ActivityStreams;
 
@@ -29,6 +31,19 @@ export interface NoiseTrace {
   maxWatts: number | null;
   avgHr: number | null;
   maxHr: number | null;
+  /** Nur gesetzt, wenn `buildNoiseTrace` mit `opts.targetBand` aufgerufen
+   *  wurde: Ziel-Watt-Spanne auf DERSELBEN absoluten Watt-Skala wie die
+   *  Watt-Kurve (0–100 %, 0 = unten), damit sie im selben Maßstab
+   *  übereinanderliegen. */
+  band?: { yLowPct: number; yHighPct: number };
+}
+
+export interface BuildNoiseTraceOpts {
+  /** Wenn gesetzt: Watt-Kurve auf absoluter Skala (Min/Max inkl. Bandkanten)
+   *  statt eigen-normiert — nur so teilen sich Kurve und Zielband einen
+   *  Maßstab. Ohne diese Option bleibt das bisherige Verhalten (Watt-Kurve
+   *  auf ihre eigene Min/Max-Spanne normiert, kein `band` im Ergebnis). */
+  targetBand?: { lowW: number; highW: number };
 }
 
 function average(values: Array<number | null | undefined>): number | null {
@@ -65,13 +80,9 @@ function bucketAverages(values: Array<number | null> | undefined, sampleCount: n
   return out;
 }
 
-/** Normiert Buckets auf ihre eigene Min/Max-Spanne (0–100%) — Lücken
+/** Zeichnet `buckets` auf eine vorgegebene Skala [lo, hi] (0–100%) — Lücken
  *  (`null`) erzeugen keinen Punkt, statt eine erfundene Linie zu zeichnen. */
-function toPoints(buckets: Array<number | null>): NoiseTracePoint[] {
-  const present = buckets.filter((v): v is number => v != null);
-  if (!present.length) return [];
-  const lo = Math.min(...present);
-  const hi = Math.max(...present);
+function toPointsOnScale(buckets: Array<number | null>, lo: number, hi: number): NoiseTracePoint[] {
   const range = hi - lo || 1;
   const denom = Math.max(buckets.length - 1, 1);
   const points: NoiseTracePoint[] = [];
@@ -82,9 +93,24 @@ function toPoints(buckets: Array<number | null>): NoiseTracePoint[] {
   return points;
 }
 
+/** Normiert Buckets auf ihre eigene Min/Max-Spanne (0–100%). */
+function toPoints(buckets: Array<number | null>): NoiseTracePoint[] {
+  const present = buckets.filter((v): v is number => v != null);
+  if (!present.length) return [];
+  return toPointsOnScale(buckets, Math.min(...present), Math.max(...present));
+}
+
 /** `null` ohne Streams oder ohne Zeit-Achse (kein Chart statt leerer
- *  Zeichnung — gleiches Slot-Muster wie buildStepChart()/zoneMixFromRide()). */
-export function buildNoiseTrace(streams: ActivityStreams | null | undefined): NoiseTrace | null {
+ *  Zeichnung — gleiches Slot-Muster wie zoneMixFromRide()).
+ *
+ *  Mit `opts.targetBand` wird die Watt-Kurve auf einer absoluten Skala
+ *  (Min/Max der Kurve UND der Bandkanten) gezeichnet und `band` mit den
+ *  y-Positionen der Bandkanten auf derselben Skala zurückgegeben — so kann
+ *  die Komponente das Zielband maßstabsgetreu hinter die Kurve legen. */
+export function buildNoiseTrace(
+  streams: ActivityStreams | null | undefined,
+  opts: BuildNoiseTraceOpts = {},
+): NoiseTrace | null {
   if (!streams?.time.length) return null;
   const sampleCount = streams.time.length;
   const bucketCount = Math.min(BUCKET_COUNT, sampleCount);
@@ -92,7 +118,7 @@ export function buildNoiseTrace(streams: ActivityStreams | null | undefined): No
   const wattsBuckets = bucketAverages(streams.watts, sampleCount, bucketCount);
   const hrBuckets = bucketAverages(streams.heartrate, sampleCount, bucketCount);
 
-  return {
+  const trace: NoiseTrace = {
     watts: toPoints(wattsBuckets),
     heartrate: toPoints(hrBuckets),
     avgWatts: average(streams.watts),
@@ -100,4 +126,19 @@ export function buildNoiseTrace(streams: ActivityStreams | null | undefined): No
     avgHr: average(streams.heartrate),
     maxHr: max(streams.heartrate),
   };
+
+  const band = opts.targetBand;
+  if (band) {
+    const present = wattsBuckets.filter((v): v is number => v != null);
+    const lo = Math.min(band.lowW, ...(present.length ? present : [band.lowW]));
+    const hi = Math.max(band.highW, ...(present.length ? present : [band.highW]));
+    const range = hi - lo || 1;
+    trace.watts = toPointsOnScale(wattsBuckets, lo, hi);
+    trace.band = {
+      yLowPct: ((band.lowW - lo) / range) * 100,
+      yHighPct: ((band.highW - lo) / range) * 100,
+    };
+  }
+
+  return trace;
 }

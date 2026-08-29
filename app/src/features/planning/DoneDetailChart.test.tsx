@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
+import type { ReactElement } from "react";
 import { DoneDetailChart } from "./DoneDetailChart";
 import { buildDoneRows, type DoneRideMap } from "./done-table-view-model";
 import { createHarness } from "../../test/harness";
@@ -24,6 +25,13 @@ vi.mock("../../api/intervals/streams", () => ({
 
 // Kein globaler afterEach(cleanup) im Projekt-Setup (s. WeekGrid.test.tsx).
 afterEach(cleanup);
+
+// DoneDetailChart mountet im Intervall-Zweig immer useActivityStreams
+// (React Query) — daher jeder Render mit QueryClient-Wrapper.
+function renderChart(ui: ReactElement) {
+  const { wrapper } = createHarness();
+  return render(ui, { wrapper });
+}
 
 function card(overrides: Partial<PlanCard> & { id: string; date: string }): PlanCard {
   return {
@@ -83,21 +91,23 @@ function rowFor(c: PlanCard, r: Ride | null) {
 describe("DoneDetailChart — Zweigwahl", () => {
   it("rendert nichts ohne gematchte Ist-Fahrt (kein Crash)", () => {
     const row = rowFor(card({ id: "a", date: "2026-08-18" }), null);
-    const { container } = render(<DoneDetailChart {...row} />);
+    const { container } = renderChart(<DoneDetailChart {...row} />);
     expect(container.firstChild).toBeNull();
   });
 
   it("rendert nichts ohne Compliance UND ohne zoneTimes (kein Crash)", () => {
     const row = rowFor(card({ id: "a", date: "2026-08-18" }), ride());
-    const { container } = render(<DoneDetailChart {...row} />);
+    const { container } = renderChart(<DoneDetailChart {...row} />);
     expect(container.firstChild).toBeNull();
   });
 
-  it("rendert den Stufenchart bei sichtbarer Compliance-Ampel (Intervall-Workout)", () => {
+  it("rendert ohne Streams die Soll/Ist-Liste je Intervall + Rating-Zeile (Intervall-Workout)", () => {
     const c = card({ id: "a", date: "2026-08-18" });
     const row = rowFor(c, ride({ compliance: compliance("a", [interval(), interval({ fulfilled: false })]) }));
-    render(<DoneDetailChart {...row} />);
-    screen.getByText("Leistung — Soll vs. Ist");
+    renderChart(<DoneDetailChart {...row} />);
+    screen.getByText("Soll vs. Ist je Intervall");
+    screen.getByText("Intervall 1");
+    screen.getByText("Intervall 2");
     screen.getByText(/Fade: −3,0%/);
   });
 
@@ -107,40 +117,42 @@ describe("DoneDetailChart — Zweigwahl", () => {
       c,
       ride({ compliance: compliance("other", [interval()]), zoneTimes: [600, 600, 0, 0, 0] }),
     );
-    render(<DoneDetailChart {...row} />);
-    expect(screen.queryByText("Leistung — Soll vs. Ist")).toBeNull();
+    renderChart(<DoneDetailChart {...row} />);
+    expect(screen.queryByText("Soll vs. Ist je Intervall")).toBeNull();
     screen.getByText("Zonen-Mix");
   });
 
   it("rendert den Zonen-Mix ohne Intervallstruktur, mit echten Zonenzeiten", () => {
     const c = card({ id: "a", date: "2026-08-18", typ: "Z2 Dauer" });
     const row = rowFor(c, ride({ zoneTimes: [1800, 1800, 0, 0, 0] }));
-    render(<DoneDetailChart {...row} />);
+    renderChart(<DoneDetailChart {...row} />);
     screen.getByText("Zonen-Mix");
     screen.getByText(/Z1 Recovery 50%/);
     screen.getByText(/Z2 Endurance 50%/);
   });
 });
 
-describe("DoneDetailChart — Rausch-Chart (Streams)", () => {
-  it("rendert den Rausch-Chart zusätzlich zum Stufenchart, wenn activityId + Credentials vorliegen", async () => {
+describe("DoneDetailChart — Intervall-Zweig mit Streams", () => {
+  it("legt bei activityId + Credentials die echte Watt/Puls-Kurve mit Ziel-Band an, plus Rating-Zeile", async () => {
     const c = card({ id: "a", date: "2026-08-18" });
     const row = rowFor(
       c,
       ride({ activityId: "act1", compliance: compliance("a", [interval()]) }),
     );
-    const { wrapper } = createHarness();
-    render(<DoneDetailChart {...row} intervalsCredentials={{ apiKey: "k", athleteId: "i1" }} />, { wrapper });
-    screen.getByText("Leistung — Soll vs. Ist");
-    await screen.findByText("Verlauf — Watt/Puls");
+    renderChart(<DoneDetailChart {...row} intervalsCredentials={{ apiKey: "k", athleteId: "i1" }} />);
+    await screen.findByText("Leistung — Soll-Band vs. gefahren");
+    screen.getByText("Ziel 250 W");
     screen.getByText(/Ø 213 W · max 300 W/);
+    screen.getByText(/Fade: −3,0%/);
+    // Kein separater "Soll vs. Ist je Intervall"-Fallback mehr, wenn die Kurve da ist.
+    expect(screen.queryByText("Soll vs. Ist je Intervall")).toBeNull();
   });
 
-  it("zeigt keinen Rausch-Chart ohne Credentials, auch mit activityId", () => {
+  it("zeigt ohne Credentials die Fallback-Liste statt der Kurve, auch mit activityId", () => {
     const c = card({ id: "a", date: "2026-08-18" });
     const row = rowFor(c, ride({ activityId: "act1", compliance: compliance("a", [interval()]) }));
-    render(<DoneDetailChart {...row} />);
-    screen.getByText("Leistung — Soll vs. Ist");
-    expect(screen.queryByText("Verlauf — Watt/Puls")).toBeNull();
+    renderChart(<DoneDetailChart {...row} />);
+    screen.getByText("Soll vs. Ist je Intervall");
+    expect(screen.queryByText("Leistung — Soll-Band vs. gefahren")).toBeNull();
   });
 });
