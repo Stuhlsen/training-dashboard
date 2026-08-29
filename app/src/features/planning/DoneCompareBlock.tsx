@@ -3,8 +3,17 @@ import type { PlanCard as PlanCardT } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 
-const ROW_STYLE: React.CSSProperties = { display: "flex", gap: 8, padding: "3px 0", fontSize: ".78rem" };
-const CELL_STYLE: React.CSSProperties = { flex: 1 };
+/** Feste Spaltenvorlage statt Flex — die optionale Extra-Spalte (max HF, NP,
+ *  CTL, Distanz-Delta) ist immer als Grid-Track vorhanden, damit Pfeil und
+ *  Ist-Spalte über alle Zeilen bündig bleiben (früher: eine Flex-Zelle mehr
+ *  in Zeilen mit `extra` → verrutschte Spalten). */
+const GRID_STYLE: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "1fr 1fr 14px 1fr 1fr",
+  columnGap: 8,
+  rowGap: 6,
+  fontSize: ".78rem",
+};
 
 interface DoneCompareBlockProps {
   card: PlanCardT;
@@ -21,19 +30,21 @@ export function DoneCompareBlock({ card, ride, canEdit }: DoneCompareBlockProps)
   if (!rows.length) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: ".78rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: ".78rem" }}>
       <div style={{ fontSize: ".76rem", fontWeight: 600, color: "var(--ink-2)" }}>Geplant → Tatsächlich</div>
-      {rows.map((row) => (
-        <div key={row.label} style={ROW_STYLE}>
-          <span style={{ ...CELL_STYLE, color: "var(--ink-3)" }}>
-            {row.icon} {row.label}
-          </span>
-          <span style={CELL_STYLE}>{row.plan}</span>
-          <span style={{ ...CELL_STYLE, flex: "0 0 14px", color: "var(--ink-3)" }}>→</span>
-          <span style={{ ...CELL_STYLE, color: row.color ?? "var(--ink)" }}>{row.actual}</span>
-          {row.extra && <span style={{ ...CELL_STYLE, color: "var(--ink-3)" }}>{row.extra}</span>}
-        </div>
-      ))}
+      <div style={GRID_STYLE}>
+        {rows.map((row) => (
+          <div key={row.label} style={{ display: "contents" }}>
+            <span style={{ color: "var(--ink-3)" }}>
+              {row.icon} {row.label}
+            </span>
+            <span>{row.plan}</span>
+            <span style={{ color: "var(--ink-3)" }}>→</span>
+            <span style={{ color: row.color ?? "var(--ink)" }}>{row.actual}</span>
+            <span style={{ color: "var(--ink-3)" }}>{row.extra ?? ""}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
