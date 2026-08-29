@@ -68,6 +68,15 @@ describe("buildDoneRows", () => {
     expect(rows[0].tssRatioPct).toBeNull();
   });
 
+  it("unterdrückt Plan-TSS + Soll/Ist-Verhältnis bei Test-Karten (FTP-Test hat nur eine Platzhalter-Plan-TSS)", () => {
+    const c = card({ id: "a", typ: "FTP-Test", tssPlanned: 8 });
+    const r = ride({ tss: 44 });
+    const rows = buildDoneRows([c], new Map([["a", r]]), false);
+    expect(rows[0].tssPlanned).toBeNull();
+    expect(rows[0].tssRatioPct).toBeNull();
+    expect(rows[0].tssActual).toBe(44);
+  });
+
   it("markiert eine Zeile ohne gematchte Ist-Fahrt als nicht aufklappbar, mit Dash-Feldern", () => {
     const c = card({ id: "a", tssPlanned: 80 });
     const rows = buildDoneRows([c], new Map(), false);

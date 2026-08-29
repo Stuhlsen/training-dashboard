@@ -25,6 +25,13 @@ type RideCompliance = import("../../types.js").RideCompliance;
  *  `dataSource === "intervals"`), hier nicht noch einmal nötig. */
 export type DoneRideMap = Map<string, Ride | null>;
 
+/** Karten-Typen ohne echtes TSS-Ziel — der Soll/Ist-Balken (`tssActual /
+ *  tssPlanned`) ergäbe hier eine bedeutungslose Zahl: ein FTP-Test trägt nur
+ *  eine Platzhalter-Plan-TSS (z.B. 8), gegen die 44 gefahrene TSS → "550 %".
+ *  Später leicht erweiterbar (z.B. "Rennen"/"Race"), jetzt bewusst nur der
+ *  Test. */
+const NO_TSS_TARGET_TYPES = new Set(["FTP-Test"]);
+
 export interface DoneTableRow {
   card: PlanCard;
   ride: Ride | null;
@@ -55,7 +62,8 @@ function buildTableRow(card: PlanCard, ride: Ride | null, canEdit: boolean): Don
   const compareRows = ride ? buildDoneCompareRows(card, ride, canEdit) : [];
   const durationRow = compareRows.find((r) => r.label === "Dauer");
   const wattRow = compareRows.find((r) => r.label === "Ø Watt");
-  const tssPlanned = card.tssPlanned ?? null;
+  const hasTssTarget = card.typ == null || !NO_TSS_TARGET_TYPES.has(card.typ);
+  const tssPlanned = hasTssTarget ? (card.tssPlanned ?? null) : null;
   const tssActual = ride?.tss ?? null;
 
   return {
