@@ -34,6 +34,9 @@ Fahrplan-Fenster lesen (Ziel, Vorbedingung, Abnahme) statt nur den Titel.
   `../CLAUDE.md`).
 - **`docker-server-einrichten.md`** — Betrieb auf dem Produktivserver
   (Fahrplan 3, Docker-Umbau/Self-Hosting).
+- **`handoff-sync-apps01.md`** — Übergabe an Tony: was er auf apps01 für den
+  Sync-Container umzusetzen hat (Quadlet-Unit, Volume, Env-Datei), Issue #31.
+  Umsetzung von `fahrplan-3-sync-produktivbetrieb.md` Fenster B.
 
 ## Weitere laufende Fahrpläne (eigenständig, nicht Teil der vier oben)
 
@@ -41,6 +44,16 @@ Fahrplan-Fenster lesen (Ziel, Vorbedingung, Abnahme) statt nur den Titel.
   (Mo–So-Raster statt Karten-Liste, Soll/Ist-Tabelle statt Karten-Liste)
   nach dem „Planungstab Live"-Mockup aus Claude Design. Etappen 13a–13i,
   mehrere davon parallel in getrennten Chats startbar.
+- **`fahrplan-6-ruhetag-planwochen-modell.md`** — Ruhetage als abgeleitetes
+  Plan-Wochen-Modell statt gespeicherter `plan_cards`-Zeilen. Fenster RUH0–RUH7.
+- **`fahrplan-3-sync-produktivbetrieb.md`** — bricht den Sync-Produktivrollout
+  aus `fahrplan-3-docker-umbau.md` Fenster DKR2 in eigene Fenster herunter
+  (Issue #31): Sync-Job zieht von GitHub Actions auf den apps01-Container.
+- **`fahrplan-7-sync-credentials-self-service.md`** — Sync-Zugangsdaten +
+  Standort wandern in eine RLS-Tabelle, die jeder Athlet in Settings selbst
+  füllt; die Env des Sync-Containers schrumpft auf zwei Werte. Fenster
+  CRED0–CRED6. Setzt `fahrplan-3-sync-produktivbetrieb.md` Fenster B voraus,
+  lohnt sich erst bei einem konkreten neuen Athleten.
 
 ## Laufende Konzepte
 
