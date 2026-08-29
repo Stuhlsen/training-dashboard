@@ -95,8 +95,34 @@ test("weekLabelForDate: schließt die gezogene Karte selbst aus", () => {
   });
 });
 
-test("weekLabelForDate: leere Zielwoche → null (Aufrufer behält altes Label)", () => {
+test("weekLabelForDate: leere Zielwoche ohne athleteId → null (Aufrufer behält altes Label)", () => {
   assert.equal(weekLabelForDate(CARDS, "2026-08-19", "a"), null);
+});
+
+test("weekLabelForDate: leere Zielwoche + athleteId → Label aus dem Plan-Wochen-Modell (RUH5)", () => {
+  // 2026-08-19 liegt in Athlet 1s KW34 (Erholung), keine Karte dort.
+  assert.deepEqual(weekLabelForDate(CARDS, "2026-08-19", "a", "athlete1"), {
+    week: "2026-KW34",
+    phase: "Erholung",
+  });
+});
+
+test("weekLabelForDate: Nachbarkarte schlägt das Modell", () => {
+  // 2026-07-23 liegt in KW30; CARDS hat dort Karte c (Label KW30/Erholung).
+  // Das Modell würde dasselbe sagen — hier zählt, dass die Nachbarkarte
+  // zuerst greift, auch wenn athleteId gesetzt ist.
+  assert.deepEqual(weekLabelForDate(CARDS, "2026-07-23", "a", "athlete1"), {
+    week: "2026-KW30",
+    phase: "Erholung",
+  });
+});
+
+test("weekLabelForDate: athleteId, aber Datum außerhalb aller Planwochen → null", () => {
+  assert.equal(weekLabelForDate(CARDS, "2027-03-01", "a", "athlete1"), null);
+});
+
+test("weekLabelForDate: unbekannter athleteId → null (kein Modell)", () => {
+  assert.equal(weekLabelForDate(CARDS, "2026-08-19", "a", "athlete-x"), null);
 });
 
 test("weekLabelForDate: Karten ohne week-Label taugen nicht als Beleg", () => {

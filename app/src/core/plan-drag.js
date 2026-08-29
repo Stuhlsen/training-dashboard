@@ -13,6 +13,7 @@
    ============================================================ */
 
 import { isoWeekKey } from "./aggregate.js";
+import { planWeekFor } from "./plan-week-model.js";
 
 /** Alle Tage (Mo–So) der Kalenderwoche, in der `dateStr` liegt.
  *  @param {string} dateStr ISO-Datum (YYYY-MM-DD)
@@ -89,22 +90,38 @@ export function resolveDrop(card, targetDate, today) {
  * verlässt ihre alte Woche gerade und darf ihr eigenes altes Label nicht
  * als "Beleg" für die Zielwoche liefern.
  *
- * Ist die Zielwoche leer, gibt es nichts zu übernehmen → `null`, und der
- * Aufrufer lässt week/phase unverändert. Bekannte v1-Einschränkung: eine
- * auf einen komplett leeren Wochenblock gezogene Karte behält damit ihr
- * altes Label (s. docs/offene-punkte.md).
+ * Ist die Zielwoche leer, greift als Zweitquelle das Plan-Wochen-Modell
+ * (`core/plan-week-model.js`, Fahrplan 6 RUH5): es kennt Woche/Phase jeder
+ * Kalenderwoche card-unabhängig. Trifft auch das nicht (Datum außerhalb
+ * aller Planwochen, oder kein `athleteId` übergeben), bleibt es bei `null`
+ * und der Aufrufer lässt week/phase unverändert.
+ *
+ * Reihenfolge Nachbarkarte → Modell ist bewusst: eine von Hand editierte
+ * Woche kann vom Modell abweichen, dann ist das Label der real dort
+ * liegenden Karten die verlässlichere Quelle.
  *
  * @param {{id: string, date: string, week?: string|null, phase?: string|null}[]} cards
  * @param {string} date ISO-Zieldatum
  * @param {string} [excludeId] ID der gezogenen Karte
+ * @param {string} [athleteId] interne Athleten-ID für den Modell-Fallback
  * @returns {{week: string|null, phase: string|null}|null} null = Label behalten
  */
-export function weekLabelForDate(cards, date, excludeId) {
+export function weekLabelForDate(cards, date, excludeId, athleteId) {
   if (!date) return null;
   const targetWeek = isoWeekKey(date);
   const sibling = (cards || []).find(
     (c) => c.id !== excludeId && c.date && isoWeekKey(c.date) === targetWeek && c.week
   );
-  if (!sibling) return null;
-  return { week: sibling.week, phase: sibling.phase ?? null };
+  if (sibling) return { week: sibling.week, phase: sibling.phase ?? null };
+
+  // `model.week` bewusst NICHT über isoWeekKey(date) normalisiert: das
+  // Modell trägt denselben Wochen-Schlüsselraum wie die plan_cards.week des
+  // jeweiligen Athleten (Athlet 1: "YYYY-KWnn" aus PLAN2_SCHEDULE, Athlet
+  // 2/4: "KWnn"). weekLabelForDate wird immer athletenscoped aufgerufen
+  // (buildMovePatch bekommt athleteId vom athletenscoped Hook), also passt
+  // das Label zu den Nachbarkarten desselben Athleten — genau wie der
+  // sibling-Zweig oben, der `sibling.week` unverändert übernimmt.
+  const model = planWeekFor(athleteId, date);
+  if (model.week) return { week: model.week, phase: model.phase ?? null };
+  return null;
 }

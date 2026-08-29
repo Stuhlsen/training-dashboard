@@ -29,8 +29,10 @@ interface WeekLabel {
  *     auf dem ursprünglichen Datum stehen.
  *  2. Die Karte übernimmt week/phase der Zielwoche, sonst hinge sie nach
  *     einem Drop über die Wochengrenze unter der alten Wochenüberschrift.
- *     Ist die Zielwoche leer (kein Nachbar, von dem sich ein Label leihen
- *     ließe), bleibt das alte Label stehen — kein week/phase im Patch.
+ *     Quelle ist eine Nachbarkarte, ersatzweise das Plan-Wochen-Modell
+ *     (`athleteId`, Fahrplan 6 RUH5). Nur wenn beides nichts liefert
+ *     (Datum außerhalb aller Planwochen), bleibt das alte Label stehen —
+ *     dann kein week/phase im Patch.
  *  3. status/cancelReason werden mit zurückgesetzt: eine Karte kann in der
  *     DB theoretisch gleichzeitig "ausgefallen" UND "verschoben" markiert
  *     sein (getrennte Spalten, kein Constraint), das alte Modell kannte pro
@@ -41,9 +43,10 @@ export function buildMovePatch(
   card: PlanCard,
   newDate: string,
   reason?: string,
+  athleteId?: string,
 ): PlanCardPatch {
   const movedFromDate = card.originalDate ?? card.date;
-  const label = weekLabelForDate(cards, newDate, card.id) as WeekLabel | null;
+  const label = weekLabelForDate(cards, newDate, card.id, athleteId) as WeekLabel | null;
   return {
     plannedDate: newDate,
     movedFromDate,
@@ -64,9 +67,10 @@ export function applyMoveOptimistic(
   card: PlanCard,
   newDate: string,
   reason?: string,
+  athleteId?: string,
 ): PlanCard {
   const movedFromDate = card.originalDate ?? card.date;
-  const label = weekLabelForDate(cards, newDate, card.id) as WeekLabel | null;
+  const label = weekLabelForDate(cards, newDate, card.id, athleteId) as WeekLabel | null;
   return {
     ...card,
     date: newDate,
@@ -100,12 +104,16 @@ export function buildCancelPatch(reason?: string): PlanCardPatch {
  *    week/phase-Label der (wieder-)aktuellen Woche. Ohne das hinge die Karte
  *    nach "Rückgängig" weiter unter der zuletzt gezogenen Zielwoche.
  *  - weder noch          → `null`, es gibt nichts rückgängig zu machen */
-export function buildUndoPatch(cards: PlanCard[], card: PlanCard): PlanCardPatch | null {
+export function buildUndoPatch(
+  cards: PlanCard[],
+  card: PlanCard,
+  athleteId?: string,
+): PlanCardPatch | null {
   if (card.cancelled) {
     return { status: "geplant", cancelReason: null };
   }
   if (!card.originalDate) return null;
-  const label = weekLabelForDate(cards, card.originalDate, card.id) as WeekLabel | null;
+  const label = weekLabelForDate(cards, card.originalDate, card.id, athleteId) as WeekLabel | null;
   return {
     plannedDate: card.originalDate,
     movedFromDate: null,

@@ -162,12 +162,12 @@ export function useMovePlanCard(athleteId: string) {
       return catchResult(() =>
         mutation.mutateAsync({
           id,
-          patch: buildMovePatch(cards, card, newDate, reason),
-          optimistic: applyMoveOptimistic(cards, card, newDate, reason),
+          patch: buildMovePatch(cards, card, newDate, reason, athleteId),
+          optimistic: applyMoveOptimistic(cards, card, newDate, reason, athleteId),
         }),
       );
     },
-    [mutation, snapshot, userId],
+    [mutation, snapshot, userId, athleteId],
   );
 
   return { move, isPending: mutation.isPending };
@@ -203,11 +203,11 @@ export function useUndoAdjustment(athleteId: string) {
       const cards = snapshot();
       const card = cards.find((c) => c.id === id);
       if (!card) return { ok: true };
-      const patch = buildUndoPatch(cards, card);
+      const patch = buildUndoPatch(cards, card, athleteId);
       if (!patch) return { ok: true };
       return catchResult(() => mutation.mutateAsync({ id, patch }));
     },
-    [mutation, snapshot, userId],
+    [mutation, snapshot, userId, athleteId],
   );
 
   return { undo, isPending: mutation.isPending };

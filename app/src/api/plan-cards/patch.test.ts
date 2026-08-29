@@ -71,8 +71,21 @@ describe("buildMovePatch", () => {
     expect(patch.phase).toBe("Erholung");
   });
 
-  it("lässt week/phase unangetastet, wenn die Zielwoche leer ist", () => {
+  it("lässt week/phase unangetastet, wenn die Zielwoche leer ist und kein athleteId übergeben wird", () => {
     const patch = buildMovePatch(CARDS, byId("card-A"), "2026-08-19");
+    expect(patch.week).toBeUndefined();
+    expect(patch.phase).toBeUndefined();
+  });
+
+  it("holt week/phase bei leerer Zielwoche aus dem Plan-Wochen-Modell (RUH5)", () => {
+    // 2026-08-19 = Athlet 1s KW34 (Erholung), keine Karte dort.
+    const patch = buildMovePatch(CARDS, byId("card-A"), "2026-08-19", undefined, "athlete1");
+    expect(patch.week).toBe("2026-KW34");
+    expect(patch.phase).toBe("Erholung");
+  });
+
+  it("lässt week/phase weg, wenn auch das Modell nichts kennt (Datum außerhalb des Plans)", () => {
+    const patch = buildMovePatch(CARDS, byId("card-A"), "2027-03-01", undefined, "athlete1");
     expect(patch.week).toBeUndefined();
     expect(patch.phase).toBeUndefined();
   });
@@ -97,6 +110,13 @@ describe("applyMoveOptimistic", () => {
     const optimistic = applyMoveOptimistic(CARDS, byId("card-A"), "2026-07-29", "Regen");
     expect(optimistic.date).toBe(patch.plannedDate);
     expect(optimistic.originalDate).toBe(patch.movedFromDate);
+    expect(optimistic.week).toBe(patch.week);
+    expect(optimistic.phase).toBe(patch.phase);
+  });
+
+  it("zieht denselben Modell-Fallback wie buildMovePatch (RUH5)", () => {
+    const patch = buildMovePatch(CARDS, byId("card-A"), "2026-08-19", "Regen", "athlete1");
+    const optimistic = applyMoveOptimistic(CARDS, byId("card-A"), "2026-08-19", "Regen", "athlete1");
     expect(optimistic.week).toBe(patch.week);
     expect(optimistic.phase).toBe(patch.phase);
   });
@@ -147,6 +167,20 @@ describe("buildUndoPatch", () => {
     const patch = buildUndoPatch([...CARDS, moved], moved)!;
     expect(patch.week).toBe("2026-KW29");
     expect(patch.phase).toBe("Sweet Spot");
+  });
+
+  it("leiht week/phase der Ursprungswoche aus dem Modell, wenn dort keine Karte mehr liegt (RUH5)", () => {
+    // Ursprungsdatum 2026-08-19 = KW34, in CARDS unbelegt → Modell-Fallback.
+    const moved = card({
+      id: "card-A",
+      date: "2026-09-01",
+      originalDate: "2026-08-19",
+      week: "2026-KW36",
+      phase: "VO2max",
+    });
+    const patch = buildUndoPatch([...CARDS, moved], moved, "athlete1")!;
+    expect(patch.week).toBe("2026-KW34");
+    expect(patch.phase).toBe("Erholung");
   });
 
   it("liefert null, wenn es nichts rückgängig zu machen gibt", () => {
