@@ -4,7 +4,6 @@
    (Timeout + Retry) statt roher fetch-Aufrufe.
    ============================================================ */
 
-import { ENV } from "./env.js";
 import { fetchJson } from "./http.js";
 import { log } from "./log.js";
 
@@ -21,9 +20,11 @@ export const RIDE_TYPES = [
 
 /** Authentifizierter GET gegen die intervals.icu-API
  *  @param {string} endpoint Pfad ab /api/v1
- *  @param {string} [key] API-Key (Default: Athlet 1)
+ *  @param {string} key API-Key (Aufrufer übergibt ihn — seit Fahrplan 7
+ *    CRED3 kein ENV-Default mehr, er kommt aus athlete_sync_config bzw.
+ *    für Athlet 2 aus ENV.INTERVALS_KEY_2)
  *  @returns {Promise<Object|Array|null>} */
-export async function intervalsGet(endpoint, key = ENV.INTERVALS_KEY) {
+export async function intervalsGet(endpoint, key) {
   const url = `https://intervals.icu/api/v1${endpoint}`;
   const auth = Buffer.from(`API_KEY:${key}`).toString("base64");
   return await fetchJson(
@@ -54,13 +55,7 @@ export function powerCurveQuery(oldest, newest, curves = null) {
  *   (z. B. `r.2026-06-29.2026-07-13`) für eine auf den Zeitraum beschränkte
  *   Kurve — ohne diesen Parameter liefert die API ein Preset (s. powerCurveQuery)
  */
-export async function getIntervalsPowerCurves(
-  oldest,
-  newest,
-  key = ENV.INTERVALS_KEY,
-  athlete = ENV.INTERVALS_ATHLETE,
-  curves = null
-) {
+export async function getIntervalsPowerCurves(oldest, newest, key, athlete, curves = null) {
   log.info(`🔄 intervals.icu Power Curves (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
     `/athlete/${athlete}/power-curves?${powerCurveQuery(oldest, newest, curves)}`,
@@ -71,13 +66,7 @@ export async function getIntervalsPowerCurves(
   return data;
 }
 
-export async function getIntervalsActivities(
-  oldest,
-  newest,
-  key = ENV.INTERVALS_KEY,
-  athlete = ENV.INTERVALS_ATHLETE,
-  allowedTypes = ["Ride"]
-) {
+export async function getIntervalsActivities(oldest, newest, key, athlete, allowedTypes = ["Ride"]) {
   log.info(`🔄 intervals.icu Activities (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
     `/athlete/${athlete}/activities?oldest=${oldest}&newest=${newest}`,
@@ -98,12 +87,7 @@ export async function getIntervalsActivities(
   return rides;
 }
 
-export async function getIntervalsWellness(
-  oldest,
-  newest,
-  key = ENV.INTERVALS_KEY,
-  athlete = ENV.INTERVALS_ATHLETE
-) {
+export async function getIntervalsWellness(oldest, newest, key, athlete) {
   log.info(`🔄 intervals.icu Wellness (${oldest} bis ${newest})...`);
   const data = await intervalsGet(
     `/athlete/${athlete}/wellness?oldest=${oldest}&newest=${newest}`,

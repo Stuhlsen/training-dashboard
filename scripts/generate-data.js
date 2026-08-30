@@ -18,7 +18,7 @@ import { log } from "./lib/log.js";
 import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBlocks } from "./lib/plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
 import { PLANNED_SESSIONS_ATHLETE4 } from "./lib/plan-athlete4.js";
-import { loadIntervalsCredentials } from "./lib/intervals-credentials-fetch.js";
+import { loadSyncConfig } from "./lib/sync-config-fetch.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
 import {
   RIDE_TYPES,
@@ -69,6 +69,10 @@ import {
 } from "./lib/output.js";
 
 requireEnv(["NOTION_KEY", "DB_ID"]);
+// Seit Fahrplan 7 CRED3: der Sync liest intervals-Key/-ID + Standort je
+// Athlet aus athlete_sync_config über EINEN Service-Role-Aufruf. Fehlt der
+// Key, gibt es nichts zu syncen — harter Abbruch, kein stiller Fallback.
+requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 
 const ATHLETE_2_NAME = "hc_diZee"; // Anzeigename (Pseudonym) — keine Klarnamen (Datenschutz)
 const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
@@ -79,6 +83,31 @@ async function main() {
   // von beiden Athleten ergänzt, einmal am Ende geschrieben. Bereits
   // gecachte Aktivitäten werden nicht erneut abgerufen (unveränderlich).
   const intervalBlockCache = loadIntervalBlocks();
+
+  // Alle Sync-Zugangsdaten je Athlet aus athlete_sync_config (Migration
+  // 0023) — EIN Service-Role-Aufruf statt Login pro Athlet. Wirft bei
+  // fehlendem Key / HTTP-Fehler (fatal, s. sync-config-fetch.js) → der
+  // catch von main() bricht ab, bevor ein writeOutput() lief.
+  const syncConfig = await loadSyncConfig();
+  const cfg1 = syncConfig.get("athlete1");
+
+  // Athlet 1 ist der Primärathlet — eine fehlende Zeile ist eine
+  // Fehlkonfiguration, kein gültiger Zustand (anders als bei Athlet 2/4, die
+  // legitim nicht eingerichtet sein können). Ohne diesen harten Abbruch würde
+  // rides.json still auf "nur Notion-Plan 1" zurückfallen (kein stiller
+  // Fallback, s. Fahrplan 7 CRED3).
+  if (!cfg1) {
+    log.error(
+      "athlete_sync_config: keine Zeile für Athlet 1 — rides.json würde nur den Notion-Plan enthalten. Abbruch."
+    );
+    process.exitCode = 1;
+    return;
+  }
+  if (!cfg1.apiKey || !cfg1.athleteId) {
+    log.warn(
+      "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit Notion-Plan 1"
+    );
+  }
 
   // Ride↔Format-Brücke (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte
   // Sperre" Schritt 1) — athletenunabhängiger Katalog, öffentlich lesbar,
@@ -107,15 +136,15 @@ async function main() {
   const weatherEndDate = new Date();
   weatherEndDate.setDate(weatherEndDate.getDate() - 2); // Archive hat ~2 Tage Verzögerung
   const weatherEnd = weatherEndDate.toISOString().split("T")[0];
-  const weatherData = await getHistoricalWeather(PLAN1_FIRST_DATE, weatherEnd);
+  const weatherData = await getHistoricalWeather(PLAN1_FIRST_DATE, weatherEnd, cfg1?.lat, cfg1?.lon);
   const weatherMap = buildWeatherMap(weatherData);
   // Forecast-API für die letzten 2 Tage (überbrückt Archive-Delay)
-  const recentData = await getRecentWeather();
+  const recentData = await getRecentWeather(cfg1?.lat, cfg1?.lon);
   const recentMap = buildWeatherMap(recentData);
   Object.assign(weatherMap, recentMap); // recentMap überschreibt ggf. ältere Archive-Werte
 
   // 2b. Plan 2: intervals.icu + Notion subjektiv
-  if (ENV.INTERVALS_KEY && ENV.INTERVALS_ATHLETE) {
+  if (cfg1?.apiKey && cfg1?.athleteId) {
     const oldest = PLAN2_SCHEDULE[0].start;
     const today = new Date().toISOString().split("T")[0];
     const newest = today > "2026-09-20" ? "2026-09-20" : today;
@@ -123,12 +152,12 @@ async function main() {
     const activities = await getIntervalsActivities(
       oldest,
       newest,
-      ENV.INTERVALS_KEY,
-      ENV.INTERVALS_ATHLETE,
+      cfg1.apiKey,
+      cfg1.athleteId,
       RIDE_TYPES
     );
-    const wellness = await getIntervalsWellness(PLAN1_START, newest);
-    powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest);
+    const wellness = await getIntervalsWellness(PLAN1_START, newest, cfg1.apiKey, cfg1.athleteId);
+    powerCurves = await getIntervalsPowerCurves(PLAN1_START, newest, cfg1.apiKey, cfg1.athleteId);
 
     // Power-Curve-Blockvergleich: eigene Kurve je Trainingsblock
     // (Plan 1 + Plan-2-Phasenblöcke, sobald begonnen — max. 4 Zusatz-Calls).
@@ -139,8 +168,8 @@ async function main() {
       const curve = await getIntervalsPowerCurves(
         block.from,
         block.to,
-        ENV.INTERVALS_KEY,
-        ENV.INTERVALS_ATHLETE,
+        cfg1.apiKey,
+        cfg1.athleteId,
         `r.${block.from}.${block.to}`
       );
       if (curve) powerCurveBlocks.push({ ...block, curve });
@@ -154,8 +183,8 @@ async function main() {
       const curve = await getIntervalsPowerCurves(
         block.from,
         block.to,
-        ENV.INTERVALS_KEY,
-        ENV.INTERVALS_ATHLETE,
+        cfg1.apiKey,
+        cfg1.athleteId,
         `r.${block.from}.${block.to}`
       );
       if (curve) powerCurveBlocks.push({ ...block, curve });
@@ -172,8 +201,8 @@ async function main() {
     // [] (kein Fehler) -> ftpAt() fällt für jede Fahrt auf DEFAULT_FTP
     // zurück, exakt das bisherige Verhalten.
     const ftpHistory = await loadFtpHistory({
-      email: ENV.SUPABASE_ATHLETE1_EMAIL,
-      password: ENV.SUPABASE_ATHLETE1_PASSWORD,
+      profileId: cfg1.profileId,
+      serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
     });
     log.info(
       ftpHistory.length
@@ -185,7 +214,7 @@ async function main() {
     // ?intervals=true pro (noch nicht gecachter) Aktivität, throttled.
     // Nutzt dieselbe ftpHistory wie oben für die Schwelle je Fahrtdatum.
     await updateIntervalBlockCache(activities, intervalBlockCache, {
-      apiKey: ENV.INTERVALS_KEY,
+      apiKey: cfg1.apiKey,
       ftpHistory,
       fallbackFtp: DEFAULT_FTP,
     });
@@ -203,7 +232,7 @@ async function main() {
     // dass die neuen Tage manuell nachgetragen wurden — komplett ohne
     // Plan-Typ dastehen, statt auf den statischen Fallback auszuweichen.
     const planCards = await loadPlanCards(
-      { email: ENV.SUPABASE_ATHLETE1_EMAIL, password: ENV.SUPABASE_ATHLETE1_PASSWORD },
+      { profileId: cfg1.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY },
       { fromDate: oldest }
     );
     const effectivePlan = {
@@ -285,8 +314,9 @@ async function main() {
 
   const dataSources = [...new Set(rides.map((r) => r.dataSource))].filter(Boolean).sort();
 
-  // Planungs-Forecast serverseitig laden (Standort bleibt im Secret, nie im Frontend)
-  const planningForecast = await getPlanningForecast();
+  // Planungs-Forecast serverseitig laden (Standort aus athlete_sync_config,
+  // nie im Frontend, nie in rides.json)
+  const planningForecast = await getPlanningForecast(cfg1?.lat, cfg1?.lon);
 
   const output = {
     rides,
@@ -300,7 +330,7 @@ async function main() {
     forecast: planningForecast || {},
     dataSources,
     updated: new Date().toISOString(),
-    source: ENV.INTERVALS_KEY ? "notion+intervals" : "notion",
+    source: cfg1?.apiKey ? "notion+intervals" : "notion",
     count: rides.length,
   };
 
@@ -472,31 +502,30 @@ async function main() {
   // 6. Vierter Athlet (Bentastiic, Einsteiger — volles Modell wie Athlet 1
   //    [Login, Befinden, editierbare plan_cards], aber Lesedaten-Pipeline
   //    wie Athlet 2 [intervals.icu + Supabase, kein Notion]).
-  //    Besonderheit: der intervals.icu-Key/-Athlete-ID kommt NICHT aus einem
-  //    GitHub Secret, sondern aus der Supabase-Tabelle intervals_credentials
-  //    (vom Athleten selbst in Settings eingetragen). Ohne diese Zeile wird
-  //    rides-4.json trotzdem geschrieben — nur der Plan, keine Fahrten.
+  //    Seit Fahrplan 7 CRED3: intervals.icu-Key/-Athlete-ID + Standort kommen
+  //    aus athlete_sync_config (self-service in Settings). Fehlt die Zeile,
+  //    wird der Block übersprungen; fehlt nur der intervals-Key in der Zeile,
+  //    wird rides-4.json trotzdem geschrieben — nur der Plan, keine Fahrten.
   //    WATTLOS: kein Ramp-Test → output4.ftp = null; DEFAULT_FTP dient hier
   //    nur als reiner Rechen-Fallback für die Ist-Typerkennung.
   const plannedSessions4 = Object.entries(PLANNED_SESSIONS_ATHLETE4).map(([date, s]) => ({
     date,
     ...s,
   }));
-  if (ENV.SUPABASE_ATHLETE4_EMAIL && ENV.SUPABASE_ATHLETE4_PASSWORD) {
+  const cfg4 = syncConfig.get("athlete4");
+  if (cfg4) {
     log.info(`\n🔄 Vierter Athlet (${ATHLETE_4_NAME})...`);
-    const supaCreds4 = {
-      email: ENV.SUPABASE_ATHLETE4_EMAIL,
-      password: ENV.SUPABASE_ATHLETE4_PASSWORD,
-    };
+    const svc4 = { profileId: cfg4.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY };
     const oldest4 = "2026-08-01"; // kurz vor Planstart (KW36, 2026-08-31)
     const today4 = new Date().toISOString().split("T")[0];
 
-    const creds4 = await loadIntervalsCredentials(supaCreds4);
+    const creds4 =
+      cfg4.apiKey && cfg4.athleteId ? { apiKey: cfg4.apiKey, athleteId: cfg4.athleteId } : null;
 
-    // plan_cards + ftp_history hängen am Supabase-Login, nicht an creds4 —
-    // auch ohne eingetragenen intervals.icu-Key stehen sie schon bereit.
-    const planCards4 = await loadPlanCards(supaCreds4, { fromDate: oldest4 });
-    const ftpHistory4 = await loadFtpHistory(supaCreds4);
+    // plan_cards + ftp_history hängen an der profile_id (service_role), nicht
+    // an creds4 — auch ohne eingetragenen intervals.icu-Key stehen sie bereit.
+    const planCards4 = await loadPlanCards(svc4, { fromDate: oldest4 });
+    const ftpHistory4 = await loadFtpHistory(svc4);
     const effectivePlan4 = {
       ...buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE4, {}),
       ...buildPlanCardTypeIndex(planCards4),
@@ -532,17 +561,12 @@ async function main() {
         creds4.athleteId
       );
 
-      // Eigener Standort (separates Secret) — kein Rückfall auf Athlet 1/2
-      const weatherData4 = await getHistoricalWeather(
-        oldest4,
-        weatherEnd,
-        ENV.WEATHER_LAT_4,
-        ENV.WEATHER_LON_4
-      );
+      // Eigener Standort aus athlete_sync_config — kein Rückfall auf Athlet 1/2
+      const weatherData4 = await getHistoricalWeather(oldest4, weatherEnd, cfg4.lat, cfg4.lon);
       const weatherMap4 = buildWeatherMap(weatherData4);
-      const recentData4 = await getRecentWeather(ENV.WEATHER_LAT_4, ENV.WEATHER_LON_4);
+      const recentData4 = await getRecentWeather(cfg4.lat, cfg4.lon);
       Object.assign(weatherMap4, buildWeatherMap(recentData4));
-      planningForecast4 = (await getPlanningForecast(ENV.WEATHER_LAT_4, ENV.WEATHER_LON_4)) || {};
+      planningForecast4 = (await getPlanningForecast(cfg4.lat, cfg4.lon)) || {};
 
       // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1/2.
       await updateIntervalBlockCache(activities4, intervalBlockCache, {
@@ -604,7 +628,7 @@ async function main() {
     writeOutput(OUT_FILE_4, output4);
     log.info(`✅ ${rides4.length} Fahrten (${ATHLETE_4_NAME}) → ${OUT_FILE_4}`);
   } else {
-    log.info(`\n⏭️  Vierter Athlet: keine Supabase-Credentials, übersprungen`);
+    log.info(`\n⏭️  Vierter Athlet: keine Zeile in athlete_sync_config, übersprungen`);
   }
 
   writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);
@@ -616,5 +640,9 @@ async function main() {
 
 main().catch((err) => {
   log.error("Fehler:", err.message);
-  process.exit(1);
+  // process.exitCode statt process.exit(1): ein hartes exit() mitten in einem
+  // noch offenen fetch()/undici-Socket lässt libuv auf Windows mit einer
+  // Assertion abbrechen (exit 127 statt 1). So läuft der Event-Loop leer und
+  // Node beendet sauber mit Code 1 — es lief ohnehin kein writeOutput().
+  process.exitCode = 1;
 });

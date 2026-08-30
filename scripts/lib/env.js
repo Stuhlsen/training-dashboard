@@ -43,38 +43,36 @@ if (fs.existsSync(envPath)) {
 export const ENV = {
   NOTION_KEY: process.env.NOTION_API_KEY,
   DB_ID: process.env.NOTION_DATABASE_ID,
-  INTERVALS_KEY: process.env.INTERVALS_API_KEY || "",
-  INTERVALS_ATHLETE: process.env.INTERVALS_ATHLETE_ID || "",
-  // Zweiter Athlet (read-only Vergleich, kein eigener Trainingsplan)
+  // --- Athlet 1 + 4: intervals.icu-Key/-ID und der grobe Standort kommen
+  //     seit Fahrplan 7 CRED3 aus der Supabase-Tabelle athlete_sync_config
+  //     (scripts/lib/sync-config-fetch.js, EIN service_role-Aufruf) — NICHT
+  //     mehr aus INTERVALS_API_KEY(_4) / WEATHER_LAT/LON(_4). ---
+  // Zweiter Athlet (read-only Vergleich): bleibt vorerst auf Env — seine
+  // athlete_key-Zeile in athlete_sync_config wird erst in CRED4 befüllt,
+  // danach fallen diese vier Werte ebenfalls weg.
   INTERVALS_KEY_2: process.env.INTERVALS_API_KEY_2 || "",
   INTERVALS_ATHLETE_2: process.env.INTERVALS_ATHLETE_ID_2 || "",
-  // Vierter Athlet ("Bentastiic", Einsteiger, volles Modell): KEIN eigener
-  // INTERVALS_API_KEY_4 — der intervals.icu-Key + die Athlete-ID trägt der
-  // Athlet selbst in Settings ein (Supabase-Tabelle intervals_credentials,
-  // Migration 0019), der Sync liest sie über die SUPABASE_ATHLETE4_*-Zeile
-  // (scripts/lib/intervals-credentials-fetch.js). Ohne diese Zeile schreibt
-  // generate-data.js rides-4.json trotzdem (nur Plan, keine Fahrten).
-  // Standorte ausschließlich über Secrets — keine Koordinaten im Code
-  WEATHER_LAT: process.env.WEATHER_LAT || null,
-  WEATHER_LON: process.env.WEATHER_LON || null,
   WEATHER_LAT_2: process.env.WEATHER_LAT_2 || null,
   WEATHER_LON_2: process.env.WEATHER_LON_2 || null,
-  WEATHER_LAT_4: process.env.WEATHER_LAT_4 || null,
-  WEATHER_LON_4: process.env.WEATHER_LON_4 || null,
-  // Für scripts/migrate-plan-to-supabase.js (Einmal-Migration) UND seit
-  // Progressionssteuerung C1 auch für generate-data.js/npm run sync
-  // (scripts/lib/plan-cards-fetch.js, scripts/lib/ftp-history.js) — ohne
-  // diese Werte degradieren beide geräuschlos (keine plan_cards/keine
-  // FTP-Historie, s. dortige Kommentare), kein Fehler.
+  // Supabase. SUPABASE_SERVICE_ROLE_KEY: seit CRED3 der Zugang des Sync zu
+  // athlete_sync_config / profiles / plan_cards / ftp_history (RLS-Bypass,
+  // ein Aufruf statt Login pro Athlet). Nur lokal in .env bzw. auf apps01,
+  // nie im Frontend, nie im Repo. SUPABASE_ANON_KEY bleibt für den anonymen
+  // session_formats-Read (scripts/lib/formats-fetch.js) und die RLS-Tests.
   SUPABASE_URL: process.env.SUPABASE_URL || "",
   SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || "",
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   SUPABASE_ATHLETE1_EMAIL: process.env.SUPABASE_ATHLETE1_EMAIL || "",
   SUPABASE_ATHLETE1_PASSWORD: process.env.SUPABASE_ATHLETE1_PASSWORD || "",
+  // Athlet 2: Login-Fallback für plan_cards/ftp_history, solange die
+  // athlete_key-Zeile fehlt (CRED4) — scripts/lib/plan-cards-fetch.js /
+  // ftp-history.js nehmen ihn über den {email,password}-Legacy-Zweig.
   SUPABASE_ATHLETE2_EMAIL: process.env.SUPABASE_ATHLETE2_EMAIL || "",
   SUPABASE_ATHLETE2_PASSWORD: process.env.SUPABASE_ATHLETE2_PASSWORD || "",
-  // Vierter Athlet ("Bentastiic"): volles Modell (plan_cards, ftp_history,
-  // intervals_credentials) — der Sync loggt sich mit dieser Zeile bei
-  // dashboard-prod ein. Fehlt sie, wird der ganze Athlet-4-Block übersprungen.
+  // Athlet 4 ("Bentastiic"): vom Sync NICHT mehr gelesen (s. CRED3-Hinweis
+  // oben), aber weiter von den Einmal-Skripten
+  // scripts/migrate-plan-to-supabase.js und scripts/delete-rest-day-cards.js
+  // gebraucht.
   SUPABASE_ATHLETE4_EMAIL: process.env.SUPABASE_ATHLETE4_EMAIL || "",
   SUPABASE_ATHLETE4_PASSWORD: process.env.SUPABASE_ATHLETE4_PASSWORD || "",
   // Nur für tests/supabase-rls.test.js (Live-RLS-Check gegen dashboard-dev,

@@ -90,7 +90,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     // Athlet 4 ("Bentastiic") — Renn-/Trainings-Einsteiger. Volles Modell
     // (eigener Login, Befinden, editierbare plan_cards), aber Lesedaten wie
     // Athlet 2 (intervals.icu + Supabase, kein Notion). Der intervals.icu-
-    // Key kommt aus Settings (Tabelle intervals_credentials), nicht aus einem
+    // Key kommt aus Settings (Tabelle athlete_sync_config), nicht aus einem
     // Sync-Secret. WATTLOS bis zum ersten Test (scripts/lib/plan-athlete4.js,
     // KW47) — FTP-Felder `null`, die Hero-FTP-Widgets blenden sich dann aus.
     // Die interne ID "athlete3" ist reserviert, aber bewusst noch nicht

@@ -1,11 +1,12 @@
 /* ============================================================
    SCRIPTS/LIB/WEATHER.JS — Open-Meteo-Wetterintegration
    Archiv (historisch), Forecast (letzte Tage) und 16-Tage-
-   Planungs-Forecast. Standorte kommen ausschließlich aus
-   Secrets (ENV) — keine Koordinaten im Code.
+   Planungs-Forecast. Der Standort (lat/lon) wird vom Aufrufer
+   übergeben — keine Koordinaten im Code. generate-data.js holt
+   ihn seit Fahrplan 7 CRED3 aus athlete_sync_config
+   (scripts/lib/sync-config-fetch.js), Athlet 2 noch aus WEATHER_*_2.
    ============================================================ */
 
-import { ENV } from "./env.js";
 import { fetchJson } from "./http.js";
 import { log } from "./log.js";
 
@@ -13,14 +14,9 @@ const HOURLY_FIELDS =
   "temperature_2m,apparent_temperature,relative_humidity_2m," +
   "wind_speed_10m,wind_direction_10m,precipitation,cloud_cover,weather_code";
 
-export async function getHistoricalWeather(
-  startDate,
-  endDate,
-  lat = ENV.WEATHER_LAT,
-  lon = ENV.WEATHER_LON
-) {
-  if (!lat || !lon) {
-    log.info(`🌤️  Open-Meteo Wetter: kein Standort-Secret gesetzt, übersprungen`);
+export async function getHistoricalWeather(startDate, endDate, lat = null, lon = null) {
+  if (lat == null || lon == null) {
+    log.info(`🌤️  Open-Meteo Wetter: kein Standort hinterlegt, übersprungen`);
     return null;
   }
   log.info(`🌤️  Open-Meteo Wetter (${startDate} bis ${endDate})...`);
@@ -43,9 +39,9 @@ export async function getHistoricalWeather(
   return data;
 }
 
-export async function getRecentWeather(lat = ENV.WEATHER_LAT, lon = ENV.WEATHER_LON) {
-  if (!lat || !lon) {
-    log.info(`🌤️  Open-Meteo Forecast: kein Standort-Secret gesetzt, übersprungen`);
+export async function getRecentWeather(lat = null, lon = null) {
+  if (lat == null || lon == null) {
+    log.info(`🌤️  Open-Meteo Forecast: kein Standort hinterlegt, übersprungen`);
     return null;
   }
   // Forecast-API liefert auch vergangene Stunden der letzten Tage (kein Delay wie Archive)
@@ -74,9 +70,9 @@ export async function getRecentWeather(lat = ENV.WEATHER_LAT, lon = ENV.WEATHER_
  * (08–18 Uhr). Läuft serverseitig damit der Standort nie im Frontend-Code
  * oder im Browser-Request sichtbar wird.
  */
-export async function getPlanningForecast(lat = ENV.WEATHER_LAT, lon = ENV.WEATHER_LON) {
-  if (!lat || !lon) {
-    log.info(`🌤️  Planungs-Forecast: kein Standort-Secret gesetzt, übersprungen`);
+export async function getPlanningForecast(lat = null, lon = null) {
+  if (lat == null || lon == null) {
+    log.info(`🌤️  Planungs-Forecast: kein Standort hinterlegt, übersprungen`);
     return null;
   }
   log.info(`🌤️  Open-Meteo Planungs-Forecast (16 Tage)...`);

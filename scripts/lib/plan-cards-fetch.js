@@ -108,17 +108,50 @@ export function buildPlanCardTypeIndex(cards) {
 
 /**
  * plan_cards eines Athleten ab `fromDate` laden.
- * @param {{email:string, password:string}} credentials
+ *
+ * Zwei Wege (Fahrplan 7 CRED3):
+ *  - `{ profileId, serviceRoleKey }` — der Sync-Weg: ein GET mit dem
+ *    Service-Role-Key (RLS-Bypass), kein Login. `profileId` kommt aus
+ *    athlete_sync_config (scripts/lib/sync-config-fetch.js).
+ *  - `{ email, password }` — Legacy-Login (`grant_type=password`): Athlet 2,
+ *    solange seine athlete_key-Zeile fehlt (CRED4), sowie die Einmal-Skripte
+ *    backtest-ladder.js / report-derived-workout-structure.js.
+ *
+ * Gibt bei fehlenden Credentials/Netzwerkfehlern `[]` zurück statt zu werfen
+ * — derselbe Degradationspfad wie ftp-history.js.
+ * @param {{profileId?:string, serviceRoleKey?:string, email?:string, password?:string}} credentials
  * @param {{fromDate:string}} opts Datum (YYYY-MM-DD), ab dem Karten geladen werden
  * @returns {Promise<Array<{id:string, date:string, movedFromDate:string|null,
  *   sortOrder:number, name:string, typ:string, workoutStructure:Object|null,
  *   status:string}>>}
  */
-export async function loadPlanCards({ email, password } = {}, { fromDate } = {}) {
-  if (!ENV.SUPABASE_URL || !ENV.SUPABASE_ANON_KEY || !email || !password || !fromDate) {
+export async function loadPlanCards(
+  { profileId, serviceRoleKey, email, password } = {},
+  { fromDate } = {}
+) {
+  if (!ENV.SUPABASE_URL || !fromDate) return [];
+  if (serviceRoleKey && !profileId) {
+    log.warn(
+      "plan_cards: serviceRoleKey ohne profileId (athlete_key-Zeile ohne Supabase-Login?) — keine Compliance-Auswertung"
+    );
     return [];
   }
+  const cardsUrl = (athleteId, apikey, token) =>
+    fetch(
+      `${ENV.SUPABASE_URL}/rest/v1/plan_cards?athlete_id=eq.${athleteId}&planned_date=gte.${fromDate}&select=${SELECT_COLS}&order=planned_date.asc,sort_order.asc`,
+      { headers: { apikey, Authorization: `Bearer ${token}` } }
+    );
   try {
+    if (profileId && serviceRoleKey) {
+      const res = await cardsUrl(profileId, serviceRoleKey, serviceRoleKey);
+      if (!res.ok) {
+        log.warn(`plan_cards: Abruf fehlgeschlagen (HTTP ${res.status}) — keine Compliance-Auswertung`);
+        return [];
+      }
+      return (await res.json()).map(toCard);
+    }
+
+    if (!ENV.SUPABASE_ANON_KEY || !email || !password) return [];
     const signIn = await fetch(`${ENV.SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: { "Content-Type": "application/json", apikey: ENV.SUPABASE_ANON_KEY },
@@ -129,17 +162,12 @@ export async function loadPlanCards({ email, password } = {}, { fromDate } = {})
       return [];
     }
     const { access_token: token, user } = await signIn.json();
-
-    const res = await fetch(
-      `${ENV.SUPABASE_URL}/rest/v1/plan_cards?athlete_id=eq.${user.id}&planned_date=gte.${fromDate}&select=${SELECT_COLS}&order=planned_date.asc,sort_order.asc`,
-      { headers: { apikey: ENV.SUPABASE_ANON_KEY, Authorization: `Bearer ${token}` } }
-    );
+    const res = await cardsUrl(user.id, ENV.SUPABASE_ANON_KEY, token);
     if (!res.ok) {
       log.warn(`plan_cards: Abruf fehlgeschlagen (HTTP ${res.status}) — keine Compliance-Auswertung`);
       return [];
     }
-    const rows = await res.json();
-    return rows.map(toCard);
+    return (await res.json()).map(toCard);
   } catch (e) {
     log.warn(`plan_cards: Netzwerkfehler beim Abruf (${e.message}) — keine Compliance-Auswertung`);
     return [];
