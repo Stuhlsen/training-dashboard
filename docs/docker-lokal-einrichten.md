@@ -246,7 +246,11 @@ Löst DKR2 Punkt 2 (Intervall über Umgebungsvariable statt Host-Cron):
 
 ```sh
 #!/bin/sh
-INTERVAL_HOURS="${SYNC_INTERVAL_HOURS:-6}"
+# vereinfacht — der echte Entrypoint akzeptiert zusaetzlich
+# SYNC_INTERVAL_MINUTES (Vorrang), validiert die Werte (positive Ganzzahl,
+# sonst Fallback) und faengt SIGTERM ab.
+INTERVAL_SECS=$(( ${SYNC_INTERVAL_HOURS:-6} * 3600 ))
+INTERVAL_LABEL="${SYNC_INTERVAL_HOURS:-6}h"
 
 run_once() {
   start_ts=$(date +%s)
@@ -266,9 +270,9 @@ fi
 while true; do
   run_once
   if [ $? -ne 0 ]; then
-    echo "[sync] Lauf fehlgeschlagen — naechster Versuch in ${INTERVAL_HOURS}h" >&2
+    echo "[sync] Lauf fehlgeschlagen — naechster Versuch in ${INTERVAL_LABEL}" >&2
   fi
-  sleep $(( INTERVAL_HOURS * 3600 ))
+  sleep $INTERVAL_SECS
 done
 ```
 
@@ -288,8 +292,8 @@ bei `SYNC_INTERVAL_HOURS`, weil POSIX-Arithmetik in `$(( ))` keine
 Kommazahlen kann.
 
 Bewusst kein `set -e`: ein fehlgeschlagener Lauf soll die Schleife
-fortsetzen (nächster Versuch in `SYNC_INTERVAL_HOURS`), nicht den Container
-beenden.
+fortsetzen (nächster Versuch im konfigurierten Intervall), nicht den
+Container beenden.
 
 ### Ergänzung in `docker-compose.dev.yml`
 

@@ -12,31 +12,41 @@
 # Kommazahlen (SYNC_INTERVAL_HOURS=0.25 waere ein Syntaxfehler), ein
 # eigener Minuten-Wert umgeht das sauberer als eine Nachkomma-Klammer um
 # SYNC_INTERVAL_HOURS zu bauen.
-if [ -n "${SYNC_INTERVAL_MINUTES:-}" ]; then
-  INTERVAL_MINUTES="$SYNC_INTERVAL_MINUTES"
-  case "$INTERVAL_MINUTES" in
-    ''|*[!0-9]*)
-      echo "[sync] SYNC_INTERVAL_MINUTES='$INTERVAL_MINUTES' ist keine gueltige Ganzzahl — falle auf 360min (6h) zurueck" >&2
-      INTERVAL_MINUTES=360
-      ;;
+
+# Gibt $1 als positive Dezimal-Ganzzahl aus, sonst nichts (leer, nicht-
+# numerisch oder numerisch 0 -> ungueltig). "10#" erzwingt Dezimal-
+# Interpretation: sonst liest die Arithmetik eine fuehrende Null als
+# Oktalzahl — "08"/"09" waeren ungueltige Oktalziffern (Syntaxfehler,
+# der Dauerbetrieb-Killer, den das fehlende "set -e" verhindern soll),
+# "010" wuerde still zu 8 statt 10. Empirisch geprueft (Alpine/BusyBox sh).
+# Laeuft in $( ) — die Hilfsvariable _n leakt nicht in den Aufrufer.
+clean_positive_int() {
+  case "$1" in
+    ''|*[!0-9]*) return 1 ;;
   esac
-  # "10#": s. Kommentar bei der Sleep-Berechnung unten - gleicher Grund.
-  INTERVAL_SECS=$(( 10#$INTERVAL_MINUTES * 60 ))
+  _n=$(( 10#$1 ))
+  [ "$_n" -ge 1 ] && echo "$_n"
+}
+
+# Minuten haben Vorrang. Ist SYNC_INTERVAL_MINUTES gesetzt, aber ungueltig
+# (Tippfehler, Einheit wie "15m", oder 0 -> waere sleep 0, also Dauer-
+# schleife), wird NICHT hart auf 6h gesprungen, sondern auf
+# SYNC_INTERVAL_HOURS zurueckgefallen — ein bewusst gesetzter Stunden-Wert
+# bleibt so erhalten.
+INTERVAL_MINUTES=$(clean_positive_int "${SYNC_INTERVAL_MINUTES:-}")
+if [ -n "$INTERVAL_MINUTES" ]; then
+  INTERVAL_SECS=$(( INTERVAL_MINUTES * 60 ))
   INTERVAL_LABEL="${INTERVAL_MINUTES}min"
 else
-  INTERVAL_HOURS="${SYNC_INTERVAL_HOURS:-6}"
-
-  # Ungueltiger Wert (Tippfehler, Einheit wie "6h") wuerde sonst die
-  # Arithmetik-Expansion weiter unten mit einem Syntaxfehler abbrechen lassen —
-  # genau der Dauerbetrieb-Killer, den das fehlende "set -e" oben eigentlich
-  # verhindern soll.
-  case "$INTERVAL_HOURS" in
-    ''|*[!0-9]*)
-      echo "[sync] SYNC_INTERVAL_HOURS='$INTERVAL_HOURS' ist keine gueltige Ganzzahl — falle auf 6h zurueck" >&2
-      INTERVAL_HOURS=6
-      ;;
-  esac
-  INTERVAL_SECS=$(( 10#$INTERVAL_HOURS * 3600 ))
+  if [ -n "${SYNC_INTERVAL_MINUTES:-}" ]; then
+    echo "[sync] SYNC_INTERVAL_MINUTES='${SYNC_INTERVAL_MINUTES}' ist keine positive Ganzzahl — ignoriere, nutze SYNC_INTERVAL_HOURS" >&2
+  fi
+  INTERVAL_HOURS=$(clean_positive_int "${SYNC_INTERVAL_HOURS:-6}")
+  if [ -z "$INTERVAL_HOURS" ]; then
+    echo "[sync] SYNC_INTERVAL_HOURS='${SYNC_INTERVAL_HOURS:-}' ist keine positive Ganzzahl — falle auf 6h zurueck" >&2
+    INTERVAL_HOURS=6
+  fi
+  INTERVAL_SECS=$(( INTERVAL_HOURS * 3600 ))
   INTERVAL_LABEL="${INTERVAL_HOURS}h"
 fi
 
@@ -75,10 +85,8 @@ while true; do
   if [ $? -ne 0 ]; then
     echo "[sync] Lauf fehlgeschlagen — naechster Versuch in ${INTERVAL_LABEL}" >&2
   fi
-  # INTERVAL_SECS ist oben schon fertig berechnet (inkl. "10#" gegen
-  # fuehrende Nullen als Oktalzahl - "08"/"09" waeren sonst ungueltige
-  # Oktalziffern, "010" wuerde still zu 8 statt 10 werden. Empirisch
-  # geprueft, Alpine/BusyBox sh).
+  # INTERVAL_SECS ist oben schon validiert + berechnet (>= 60, dezimal,
+  # s. clean_positive_int).
   sleep "$INTERVAL_SECS" &
   CHILD_PID=$!
   wait "$CHILD_PID"
