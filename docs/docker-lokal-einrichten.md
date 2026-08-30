@@ -281,6 +281,12 @@ Zwei Betriebsarten über Umgebungsvariablen, kein zweites Image nötig:
   Sync-Laufs. Das ist der Modus für den manuellen Auslöser (`run --rm`,
   DKR2 Punkt 2 zweiter Halbsatz).
 
+`SYNC_INTERVAL_MINUTES` statt `SYNC_INTERVAL_HOURS`, wenn Sub-Stunden-
+Intervalle gebraucht werden (z.B. `15` für alle 15 Minuten) - hat Vorrang,
+falls beide gesetzt sind. Reiner Minuten-Wert statt einer Nachkomma-Zahl
+bei `SYNC_INTERVAL_HOURS`, weil POSIX-Arithmetik in `$(( ))` keine
+Kommazahlen kann.
+
 Bewusst kein `set -e`: ein fehlgeschlagener Lauf soll die Schleife
 fortsetzen (nächster Versuch in `SYNC_INTERVAL_HOURS`), nicht den Container
 beenden.
