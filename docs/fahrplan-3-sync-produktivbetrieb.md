@@ -1,8 +1,9 @@
 # Fahrplan 3 — Ergänzung: Sync-Produktivbetrieb (schließt Issue #31)
 
-**Stand:** 2026-08-30 — Fenster A + B abgeschlossen (Sync läuft produktiv auf
-apps01, Tony). Offen: Fenster C (Beobachtungszyklus + GitHub-Actions-Sync
-abschalten, bei Alex) und D (Doku + Issue schließen).
+**Stand:** 2026-08-30 — **alle Fenster (A–D) abgeschlossen, Issue #31 geschlossen.**
+Sync läuft produktiv als Container auf apps01, GitHub-Actions-Sync auf
+`workflow_dispatch` reduziert, `data/*.json` entversioniert (Commit `916b98e`),
+Doku nachgezogen.
 **Zielablage:** `docs/fahrplan-3-sync-produktivbetrieb.md`
 **Herkunft:** GitHub Issue #31 (Tony) + `docs/offene-punkte.md`, Abschnitt
 „Sync-Pipeline" — beide beschreiben denselben Umbau, werden mit diesem
@@ -75,9 +76,9 @@ externen Person, kein Schritt, der automatisch aus diesem Dokument folgt.
 ```
 Fenster A   Rücksprache mit Tony                    ✅ abgeschlossen (23.08.2026)
 Fenster B   Produktivrollout DKR2 auf apps01        ✅ abgeschlossen (30.08.2026, Tony)
-Fenster C   GitHub-Actions-Sync abschalten +           offen — bei Alex
+Fenster C   GitHub-Actions-Sync abschalten +        ✅ abgeschlossen (30.08.2026, Commit 916b98e)
             data/*.json aus der Versionierung
-Fenster D   Doku-Abschluss + Issue #31 schließen       offen
+Fenster D   Doku-Abschluss + Issue #31 schließen    ✅ abgeschlossen (30.08.2026)
 ```
 
 ---
@@ -200,9 +201,9 @@ abschließen — ein Zyklus Beobachtung dazwischen).
 
 ### Abnahme
 
-- [ ] `sync-data.yml` deaktiviert, Datei bleibt im Repo
-- [ ] `data/*.json` nicht mehr versioniert, `.gitignore` ergänzt
-- [ ] Ein Beobachtungszyklus (mind. 6h) ohne Datenausfall bestätigt
+- [x] `sync-data.yml` deaktiviert (`workflow_dispatch` allein), Datei bleibt im Repo (Commit `916b98e`)
+- [x] `data/*.json` nicht mehr versioniert, `.gitignore` ergänzt + `git rm --cached` (Commit `916b98e`)
+- [x] Ein Beobachtungszyklus (mind. 6h) ohne Datenausfall bestätigt — Live-Seite `training-dashboard.clear-solutions-it.com` zeigt frische Sync-Ausgabe
 
 ---
 
@@ -226,7 +227,7 @@ abschließen — ein Zyklus Beobachtung dazwischen).
 
 ### Abnahme
 
-- [ ] `offene-punkte.md` aktualisiert
-- [ ] `AGENTS.md` aktualisiert
-- [ ] `fahrplan-3-docker-umbau.md` DKR2 verweist auf dieses Dokument
-- [ ] Issue #31 geschlossen
+- [x] `offene-punkte.md` aktualisiert (Sync-Pipeline-Eintrag als „durch DKR2 abgedeckt" markiert)
+- [x] `AGENTS.md` aktualisiert (Datenquellen-Mix: apps01-Container; `SYNC_PUSH_TOKEN` als schlafend vermerkt)
+- [x] `fahrplan-3-docker-umbau.md` DKR2 verweist auf dieses Dokument (Abnahme-Checkliste vervollständigt)
+- [x] Issue #31 geschlossen (30.08.2026, `reason: completed`)

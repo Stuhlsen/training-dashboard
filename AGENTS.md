@@ -289,7 +289,8 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
 
 ### Datenquellen-Mix (lesen/schreiben)
 - **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline wie heute
-  (Action alle 6h, `scripts/generate-data.js`).
+  (`scripts/generate-data.js`, alle 6h — **seit 30.08.2026 als Container auf apps01, nicht mehr
+  GitHub Actions**; s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
 - **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
   → Supabase (RLS, Session-basiert).
 - **Die Linie ist NICHT mehr scharf** (seit `effectivePlan`/`ftpAt()` in `scripts/generate-data.js`):
@@ -537,11 +538,11 @@ wenn `HEAD` nicht `main` ist — das ist kein Stilhinweis, sondern eine echte Si
 am 25.07.2026 lag lokales `main` wochenlang veraltet herum (seit Einführung des
 `dashboard-2.0`-Branches nie wieder ausgecheckt/aktualisiert), `git sync` wurde versehentlich
 von `dashboard-2.0` aus aufgerufen und hätte damit `origin/main` um ~70 Commits (u. a. echte
-Befinden-/Plan-Einträge) zurückgesetzt. `--force-with-lease=main:<erwarteter Wert>` (statt
-dem bloßen `--force-with-lease` ohne Erwartungswert) lässt den Push zusätzlich hart fehlschlagen,
-wenn lokales `main` seinerseits hinter `origin/main` zurückliegt — bloßes `--force-with-lease`
-prüft nur gegen den `origin/main`-Tracking-Stand direkt nach dem vorangegangenen Fetch-Schritt
-im selben Alias-Lauf, das schützt gerade NICHT vor einem seit längerem veralteten lokalen `main`.
+Befinden-/Plan-Einträge) zurückgesetzt. Der `git merge-base --is-ancestor origin/main main`-Check
+(zweite Zeile im Block oben) bricht den Alias zusätzlich hart ab, wenn lokales `main` nicht
+alle `origin/main`-Commits enthält, also hinterherhängt — `--force-with-lease` allein prüft nur
+gegen den `origin/main`-Tracking-Stand direkt nach dem Fetch-Schritt im selben Alias-Lauf und
+schützt gerade NICHT vor einem seit längerem veralteten lokalen `main`.
 Vorfall + Wiederherstellung: s. Commit-Historie um den 25.07.2026, kein separates Dokument.
 
 **JavaScript/TypeScript:**
@@ -586,7 +587,12 @@ eingetragen), der Sync liest ihn über den `SUPABASE_ATHLETE4_*`-Login. Fehlen
 
 `SYNC_PUSH_TOKEN` (seit 22.08.2026): Fine-grained PAT von Alex statt des
 Standard-`GITHUB_TOKEN` — `main` hat Branch Protection, der Bot-Token allein
-kann seitdem nicht mehr pushen. Die vier `SUPABASE_*`-Einträge sind für den
+kann seitdem nicht mehr pushen. **Seit Fahrplan 3 Fenster C (30.08.2026)
+schlafend:** die Sync-Action committet `data/*.json` nicht mehr (der Sync
+läuft als Container auf apps01), `sync-data.yml` ist auf `workflow_dispatch`
+reduziert. Das Secret wurde bewusst **nicht gelöscht** (CLAUDE.md „Grenzen":
+Secrets nicht ohne Rücksprache) — es bleibt nur noch für den manuellen
+`workflow_dispatch`-Fallback nutzbar. Die vier `SUPABASE_*`-Einträge sind für den
 Sync-Job selbst (Prod-Supabase, nur Athlet 1, s. „Datenquellen-Mix" oben) —
 nicht zu verwechseln mit den athletengebundenen `SUPABASE_ATHLETE1/2_*` bzw.
 `SUPABASE_TRAINER_*`-Testvars aus dem RLS-Testabschnitt weiter oben, die nur

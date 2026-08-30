@@ -172,10 +172,15 @@ verbleibende Rollout ist in eigene, abschließbare Fenster heruntergebrochen:
 
 ### Abnahme
 
-- [ ] Sync läuft im Container, `data/*.json` erscheinen im Volume
-- [ ] Frontend zeigt die Daten aus dem Volume
-- [ ] Abgebrochener Sync lässt die alten Dateien intakt (aktiv getestet)
-- [ ] GitHub-Actions-Workflow deaktiviert, **nicht gelöscht** — Rückfahrkarte bis zum Cutover
+- [x] Sync läuft im Container, `data/*.json` erscheinen im Volume (produktiv auf apps01, 30.08.2026)
+- [x] Frontend zeigt die Daten aus dem Volume (Live-Seite `training-dashboard.clear-solutions-it.com`)
+- [x] Abgebrochener Sync lässt die alten Dateien intakt (lokal getestet, atomare Schreiblogik in Prod unverändert)
+- [x] GitHub-Actions-Workflow deaktiviert (`workflow_dispatch` allein), **nicht gelöscht** — Rückfahrkarte
+- [x] Punkt 5 (`data/*.json` aus der Versionierung nehmen) — mit Fahrplan 3 Fenster C erledigt (Commit `916b98e`, 30.08.2026)
+
+**Nachtrag:** Der Produktivrollout (Punkt 5 + GitHub-Actions-Abschaltung) lief
+nicht in einem Zug, sondern in eigenen, extern mit Tony abgestimmten Fenstern —
+s. `docs/fahrplan-3-sync-produktivbetrieb.md` (Fenster A–D, schließt Issue #31).
 
 ### So testest du es lokal
 

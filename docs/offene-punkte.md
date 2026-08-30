@@ -33,15 +33,16 @@
   braucht mindestens einen echten Ramp-Test-Eintrag pro Athlet in
   `ftp_history` (aktuell leer). `app/src/sports/cycling/session-types.ts`.
 
-- **Lesedaten (`rides.json`/`adjustments*.json`) noch als statische Dateien,
-  nicht in Supabase** — Sofort-Fix aus Tonys Diagnose (22.08.2026,
-  Sync-Container ohne Zugangsdaten) ist umgesetzt und bestätigt: Live-Check
-  gegen `clear-solutions-it.com` am 22.08.2026 (Playwright, `fetch()` im
-  echten Browser) zeigt `rides.json` aktuell — `updated` 22.08.2026 18:15 UTC,
-  95 Fahrten bis 22.08. Langfristig sauberer bleibt trotzdem: eigene Tabelle + RLS für diese Daten,
-  Sync schreibt via API statt JSON-Datei, Frontend fragt wie die übrigen
-  Supabase-Daten ab — würde den ganzen Datei-Umweg entfallen lassen. Größere
-  Architektur-Entscheidung, nicht nebenbei. → Datenquellen-Mix in `AGENTS.md`.
+- **Lesedaten (`rides.json`/`adjustments*.json`) als statische Dateien statt
+  Supabase-Tabelle — durch DKR2-Produktivrollout abgedeckt, Tabellen-Weg
+  bewusst nicht umgesetzt.** Der Sync läuft seit 30.08.2026 produktiv als
+  Container auf apps01 und schreibt `data/*.json` atomar in das mit dem
+  Frontend geteilte Volume — kein Commit+Poll-Umweg, kein Staleness-Fenster
+  mehr (Issue #31, `docs/fahrplan-3-sync-produktivbetrieb.md`, Fenster A–D).
+  Die früher hier als „langfristig sauberer" notierte eigene Tabelle + RLS für
+  die Lesedaten wird nicht weiterverfolgt: dasselbe Ziel ohne neues Schema,
+  neue RLS-Fläche und Frontend-Umbau in `app/src/api/pipeline.ts`.
+  → Datenquellen-Mix in `AGENTS.md`.
 
 ## Explorer / Charts
 
