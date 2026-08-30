@@ -29,6 +29,7 @@ services:
     env_file: .env
     environment:
       SYNC_INTERVAL_HOURS: ${SYNC_INTERVAL_HOURS:-6}
+      SYNC_INTERVAL_MINUTES: ${SYNC_INTERVAL_MINUTES:-}
     volumes:
       - data:/sync/data
     restart: unless-stopped
