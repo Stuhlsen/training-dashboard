@@ -128,6 +128,7 @@ if (!HAS_CREDS) {
   let originalWellbeingPublic = null;
   let originalViewPrefs; // undefined = noch nicht geprüft, null = existierte nicht
   let originalIntervalsCredentials; // undefined = noch nicht geprüft, null = existierte nicht
+  let originalSyncConfig; // undefined = noch nicht geprüft, null = existierte nicht (athlete_sync_config, 0023)
 
   /** Aufräum-Funktionen, LIFO im after()-Hook ausgeführt. Jede fängt ihre
    *  eigenen Fehler NICHT selbst — after() sammelt sie, damit ein einzelner
@@ -163,6 +164,16 @@ if (!HAS_CREDS) {
       { token: athlete.token }
     );
     originalIntervalsCredentials = credsCheck.data?.[0] ?? null;
+
+    // athlete_sync_config kann nach Migration 0023 bereits eine echte Zeile
+    // für Athlet 1 tragen (Bestandsübernahme aus intervals_credentials) —
+    // wie oben sichern und im Cleanup wiederherstellen statt zu löschen.
+    const syncConfigCheck = await rest(
+      "GET",
+      `athlete_sync_config?profile_id=eq.${athlete.userId}&select=intervals_api_key,intervals_athlete_id,weather_lat,weather_lon`,
+      { token: athlete.token }
+    );
+    originalSyncConfig = syncConfigCheck.data?.[0] ?? null;
   });
 
   after(async () => {
@@ -843,5 +854,92 @@ if (!HAS_CREDS) {
       body: { profile_id: trainer.userId, api_key: "rls-test-key", intervals_athlete_id: "i-rls-test" },
     });
     assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+  });
+
+  // --- 9. athlete_sync_config (0023, Fahrplan 7 CRED1) -------------------
+  // Verifikation der neuen Migration 0023_athlete_sync_config.sql. Gleiche
+  // Sensibilität wie intervals_credentials (Abschnitt 8): KEIN Coach-
+  // Lesezugriff, kein anon-GRANT. Zusätzlich hier geprüft: die
+  // numeric(5,2)/(6,2)-Rundung des Standorts serverseitig (Datenschutz-
+  // Schranke aus CRED1), und dass eine eingeloggte Person keine admin-Zeile
+  // (athlete_key statt profile_id) anlegen kann. profile_id ist unique
+  // (eine Zeile je Athlet) — Original wie bei intervals_credentials
+  // sichern/wiederherstellen, um eine aus der Bestandsübernahme entstandene
+  // echte Zeile nicht zu zerstören.
+
+  test("athlete_sync_config: Athlet schreibt eigene Zeile, Standort wird auf 2 Nachkommastellen gerundet, anon sieht nichts", async () => {
+    const upsert = await rest("POST", "athlete_sync_config?on_conflict=profile_id", {
+      token: athlete.token,
+      prefer: "return=representation,resolution=merge-duplicates",
+      body: { profile_id: athlete.userId, weather_lat: 52.51234, weather_lon: 13.40891 },
+    });
+    assert.equal(upsert.ok, true, `Upsert fehlgeschlagen: ${JSON.stringify(upsert.data)}`);
+    cleanupTasks.push(async () => {
+      if (originalSyncConfig) {
+        const restore = await rest("PATCH", `athlete_sync_config?profile_id=eq.${athlete.userId}`, {
+          token: athlete.token,
+          body: {
+            intervals_api_key: originalSyncConfig.intervals_api_key,
+            intervals_athlete_id: originalSyncConfig.intervals_athlete_id,
+            weather_lat: originalSyncConfig.weather_lat,
+            weather_lon: originalSyncConfig.weather_lon,
+          },
+        });
+        if (!restore.ok) throw new Error("athlete_sync_config: Originalwert nicht wiederhergestellt");
+      } else {
+        const del = await rest("DELETE", `athlete_sync_config?profile_id=eq.${athlete.userId}`, {
+          token: athlete.token,
+        });
+        if (!del.ok) throw new Error("athlete_sync_config-Testzeile nicht gelöscht");
+      }
+    });
+
+    const readBack = await rest(
+      "GET",
+      `athlete_sync_config?profile_id=eq.${athlete.userId}&select=weather_lat,weather_lon`,
+      { token: athlete.token }
+    );
+    assert.equal(readBack.ok, true);
+    assert.equal(
+      Number(readBack.data[0].weather_lat),
+      52.51,
+      "weather_lat serverseitig nicht auf 2 Nachkommastellen gerundet (numeric(5,2))"
+    );
+    assert.equal(
+      Number(readBack.data[0].weather_lon),
+      13.41,
+      "weather_lon serverseitig nicht auf 2 Nachkommastellen gerundet (numeric(6,2))"
+    );
+
+    const anonRead = await rest("GET", `athlete_sync_config?profile_id=eq.${athlete.userId}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf athlete_sync_config nicht lesen (kein GRANT)");
+  });
+
+  test("athlete_sync_config: Athlet kann keine Zeile für eine fremde profile_id anlegen", async () => {
+    const insert = await rest("POST", "athlete_sync_config", {
+      token: athlete.token,
+      body: { profile_id: trainer.userId, intervals_api_key: "rls-test", intervals_athlete_id: "i-rls-test" },
+    });
+    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+  });
+
+  test("athlete_sync_config: eingeloggte Person kann keine admin-Zeile (athlete_key statt profile_id) anlegen", async () => {
+    const insert = await rest("POST", "athlete_sync_config", {
+      token: athlete.token,
+      body: { athlete_key: "athlete999", intervals_api_key: "rls-test", intervals_athlete_id: "i-rls-test" },
+    });
+    assert.equal(
+      insert.ok,
+      false,
+      "athlete_key-Zeile hätte an der RLS with-check-Policy (profile_id = auth.uid()) scheitern müssen"
+    );
+  });
+
+  test("athlete_sync_config: Trainer darf die Zeile seines Athleten NICHT lesen (kein Coach-Zugriff, wie intervals_credentials)", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerRead = await rest("GET", `athlete_sync_config?profile_id=eq.${athlete.userId}`, {
+      token: trainer.token,
+    });
+    assert.deepEqual(trainerRead.data, [], "Trainer sieht die athlete_sync_config-Zeile seines Athleten — RLS zu weit gefasst");
   });
 }
