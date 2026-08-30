@@ -70,6 +70,9 @@ export const qk = {
   /** intervals.icu-Zugangsdaten des eingeloggten Users (Wahoo-Push +
    *  Streams-Abruf, Migration 0019). */
   intervalsCredentials: (userId: string) => ["intervals-credentials", userId] as const,
+  /** Grober Standort des eingeloggten Users für die Sync-Wettervorschau
+   *  (Tabelle athlete_sync_config, Migration 0023, Fahrplan 7 CRED2). */
+  syncLocation: (userId: string) => ["sync-location", userId] as const,
   /** Sekunden-Rohdaten (Watt/Puls) einer einzelnen intervals.icu-Aktivität —
    *  ändert sich nach Abschluss der Fahrt nie mehr (s. useActivityStreams). */
   activityStreams: (activityId: string) => ["activity-streams", activityId] as const,

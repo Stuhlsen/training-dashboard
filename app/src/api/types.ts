@@ -183,6 +183,16 @@ export interface IntervalsCredentials {
   athleteId: string;
 }
 
+/** Grober Standort für die Open-Meteo-Wettervorschau des Sync
+ *  (Tabelle `athlete_sync_config`, Migration 0023, Fahrplan 7). Wird
+ *  serverseitig auf 2 Nachkommastellen gerundet gespeichert (~1,1 km) und
+ *  NUR vom Sync gelesen — nie über einen Frontend-Lesepfad ausgeliefert,
+ *  nie in `rides.json`. `null`, solange der Athlet nichts eingetragen hat. */
+export interface SyncLocation {
+  lat: number | null;
+  lon: number | null;
+}
+
 export type ProposalOp = "add" | "replace" | "move" | "cancel";
 export type ProposalSource = "trainer" | "claude";
 export type ProposalStatus = "open" | "accepted" | "rejected" | "stale" | "withdrawn";

@@ -25,6 +25,7 @@ import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
 import { DataSourcesSection } from "./DataSourcesSection";
 import { IntervalsSection } from "./IntervalsSection";
+import { SyncLocationSection } from "./SyncLocationSection";
 import { UnitsSection } from "./UnitsSection";
 import { CoachLinkSection } from "./CoachLinkSection";
 import { DataExportSection } from "./DataExportSection";
@@ -173,6 +174,7 @@ export function SettingsPage() {
                   <h2 style={CARD_HEADING_STYLE}>Daten</h2>
                   <DataSourcesSection />
                   <IntervalsSection />
+                  <SyncLocationSection />
                   <UnitsSection />
                   <CoachLinkSection />
                 </GlassCard>
