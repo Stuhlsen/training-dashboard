@@ -1,6 +1,8 @@
 # Fahrplan 3 — Ergänzung: Sync-Produktivbetrieb (schließt Issue #31)
 
-**Stand:** 23.08.2026
+**Stand:** 2026-08-30 — Fenster A + B abgeschlossen (Sync läuft produktiv auf
+apps01, Tony). Offen: Fenster C (Beobachtungszyklus + GitHub-Actions-Sync
+abschalten, bei Alex) und D (Doku + Issue schließen).
 **Zielablage:** `docs/fahrplan-3-sync-produktivbetrieb.md`
 **Herkunft:** GitHub Issue #31 (Tony) + `docs/offene-punkte.md`, Abschnitt
 „Sync-Pipeline" — beide beschreiben denselben Umbau, werden mit diesem
@@ -71,11 +73,11 @@ externen Person, kein Schritt, der automatisch aus diesem Dokument folgt.
 ## Fensterübersicht
 
 ```
-Fenster A   Rücksprache mit Tony                    ◆  braucht Alex' Freigabe
-Fenster B   Produktivrollout DKR2 auf apps01
-Fenster C   GitHub-Actions-Sync abschalten +
+Fenster A   Rücksprache mit Tony                    ✅ abgeschlossen (23.08.2026)
+Fenster B   Produktivrollout DKR2 auf apps01        ✅ abgeschlossen (30.08.2026, Tony)
+Fenster C   GitHub-Actions-Sync abschalten +           offen — bei Alex
             data/*.json aus der Versionierung
-Fenster D   Doku-Abschluss + Issue #31 schließen
+Fenster D   Doku-Abschluss + Issue #31 schließen       offen
 ```
 
 ---
@@ -125,6 +127,25 @@ diese Daten an.
 eingerichtet).
 **Modell:** `[SO]`
 
+**Stand 2026-08-30 — abgeschlossen.** Tony hat den Sync-Container auf apps01
+deployt und verifiziert (Issue #31, Kommentar vom 30.08.2026):
+
+- Erster echter Produktionslauf sauber durchgelaufen (`0 Fehler`), beide
+  Athleten (1 + 2) geschrieben, FTP-Historie + `plan_cards` laden über die
+  self-hosted PostgREST-Instanz.
+- Alter fetch-timer vollständig abgebaut (Unit-Files entfernt,
+  `fetch-data.sh` gelöscht); die Live-Seite liefert nachweislich die frische
+  Sync-Ausgabe.
+- Container publiziert keine eigenen Ports; übersteht Host-Neustart (Teil
+  desselben Pod-Service wie die übrigen Container).
+- **`WEATHER_LAT/LON_4` + `SUPABASE_ATHLETE4_*` bewusst weggelassen** — für
+  Issue #31 nicht nötig. Athlet 4 ist im Code (`v1.9.1`) vollständig
+  gebaut und braucht nur diese Werte; eigener Follow-up, sobald so weit.
+  Athlet 3 hat noch keinen Sync-Codepfad (erwartet, s.
+  `fahrplan-4-athlet-3.md`).
+
+Offen bei Alex: der eine Beobachtungszyklus vor Fenster C (s. dort).
+
 1. Tony richtet die Sync-Quadlet-Unit ein (sein Teil, analog zum
    Frontend-Deployment aus DKR4) — Zeitsteuerung im Container (6h,
    Umgebungsvariable, s. DKR2 Punkt 2), gemeinsames Volume mit dem
@@ -146,13 +167,14 @@ eingerichtet).
 
 ### Abnahme
 
-- [ ] Sync läuft produktiv im Container auf apps01
-- [ ] Frontend zeigt Daten aus dem Volume, nicht mehr aus dem alten
-      Tarball-Poll
-- [ ] Ein echter Sync-Lauf mit echten Daten erfolgreich durchgelaufen
-- [ ] Abgebrochener Lauf lässt alte Dateien intakt (bereits lokal
-      getestet laut DKR2 — hier nur Bestätigung, dass Produktion
-      dieselbe Schreiblogik nutzt)
+- [x] Sync läuft produktiv im Container auf apps01 (Tony, 30.08.2026)
+- [x] Frontend zeigt Daten aus dem Volume, nicht mehr aus dem alten
+      Tarball-Poll (fetch-timer abgebaut)
+- [x] Ein echter Sync-Lauf mit echten Daten erfolgreich durchgelaufen
+      (`0 Fehler`, Athlet 1 + 2)
+- [x] Abgebrochener Lauf lässt alte Dateien intakt — dieselbe Image-/
+      Schreiblogik wie lokal in DKR2 getestet; in Prod nicht separat
+      abgebrochen
 
 ---
 

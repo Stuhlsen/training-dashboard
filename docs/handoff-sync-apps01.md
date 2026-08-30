@@ -10,6 +10,19 @@ Tony erst später (dortiges Fenster CRED5).
 
 ---
 
+## Stand 2026-08-30 — umgesetzt
+
+Tony hat deployt und verifiziert (Issue #31, Kommentar 30.08.2026). Alle vier
+Punkte aus „Confirm back to Alex" unten sind bestätigt: Container läuft,
+erster Produktionslauf sauber (`0 Fehler`, Athlet 1 + 2), fetch-timer
+abgebaut, keine Port-Kollision, übersteht Host-Neustart. `WEATHER_*_4` /
+`SUPABASE_ATHLETE4_*` wurden bewusst weggelassen (für #31 nicht nötig,
+eigener Follow-up für Athlet 4). Diese Anleitung ist damit erledigt —
+weiter in `fahrplan-3-sync-produktivbetrieb.md` Fenster C (Alex:
+Beobachtungszyklus, dann GitHub-Actions-Sync abschalten).
+
+---
+
 ## What you're setting up
 
 The full sync job runs on apps01 as an always-on container. It generates
@@ -89,10 +102,12 @@ once this is confirmed working.
 
 ## Confirm back to Alex
 
-- [ ] Sync container running on apps01, first real run completed clean
-- [ ] Frontend serves data from the shared dir, not the old tarball poll
-- [ ] No port / name collision with other apps on the host
-- [ ] Host restart brings the stack back automatically
+- [x] Sync container running on apps01, first real run completed clean
+- [x] Frontend serves data from the shared dir, not the old tarball poll
+- [x] No port / name collision with other apps on the host
+- [x] Host restart brings the stack back automatically
+
+_Alle vier bestätigt von Tony am 2026-08-30._
 
 ---
 
