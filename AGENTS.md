@@ -522,17 +522,15 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
 **`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
 ```
 git fetch origin
-git checkout origin/main -- data/adjustments.json
-git checkout origin/main -- data/subjective.json
-git add data/adjustments.json data/subjective.json
-git diff --staged --quiet || git commit -m 'chore: preserve browser-written data'
-git push --force-with-lease=main:<lokaler main-HEAD vor dem Fetch> origin main
+git merge-base --is-ancestor origin/main main   # bricht ab, wenn lokal main hinterherhängt
+git push --force-with-lease origin main
 ```
-Holt zuerst die beiden Dateien, die die Action bewusst vor Überschreiben schützt
-(s. „Bekannte Eigenheiten"), aus `origin/main` in den aktuellen Arbeitsbaum, committet
-sie bei Bedarf mit der festen Message „chore: preserve browser-written data", und
-pusht danach die lokale `main`-Branch-Referenz — **unabhängig davon, welcher Branch
-gerade ausgecheckt ist**.
+Pusht die lokale `main`-Branch-Referenz — **unabhängig davon, welcher Branch
+gerade ausgecheckt ist**. Bis Fahrplan 3 Fenster C (Issue #31, 30.08.2026) holte
+der Alias zuvor noch `data/adjustments.json`/`data/subjective.json` aus `origin/main`
+und committete sie als „chore: preserve browser-written data" — dieser Schritt ist
+entfallen, seit `data/*.json` nicht mehr versioniert ist (Sync schreibt direkt ins
+apps01-Volume, s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
 
 **Zwingend nur von `main` aus laufen lassen.** Der Alias weigert sich (Branch-Guard),
 wenn `HEAD` nicht `main` ist — das ist kein Stilhinweis, sondern eine echte Sicherung:

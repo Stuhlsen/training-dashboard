@@ -26,6 +26,13 @@ agent/
 data/skills/
 skills-lock.json
 
+# Lesedaten — seit Fahrplan 3 Fenster C (Issue #31, 30.08.2026) nicht mehr
+# versioniert. Der Sync läuft als Container auf apps01 und schreibt data/*.json
+# direkt ins geteilte Volume; das Repo ist nicht mehr die Quelle. Lokal für
+# `npm run dev` per `npm run sync` (.env-Secrets) oder Kopie aus dem Volume
+# befüllen. Historie der alten Stände bleibt im Repo (git show <sha>:data/…).
+data/*.json
+
 # OS
 .DS_Store
 Thumbs.db

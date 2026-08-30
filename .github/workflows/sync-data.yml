@@ -21,18 +21,18 @@
 
 name: Sync Training Data
 
+# DEAKTIVIERT seit Fahrplan 3 Fenster C (Issue #31, 30.08.2026): Der Sync
+# laeuft seither als Dauer-Container auf apps01 und schreibt data/*.json
+# direkt ins mit dem Frontend geteilte Volume — kein Commit-und-Poll-Umweg
+# mehr, data/*.json ist nicht mehr versioniert. Dieser Workflow bleibt als
+# Rueckfahrkarte im Repo, laeuft aber nur noch auf manuellen Anstoss
+# (workflow_dispatch). Wieder scharfschalten = schedule/push-Trigger unten
+# wieder eintragen UND data/*.json wieder ins Repo aufnehmen (Eintrag in
+# .gitignore entfernen), sonst schlaegt der "Commit data"-Schritt am
+# `git checkout origin/... -- data/...` fehl. Details:
+# docs/fahrplan-3-sync-produktivbetrieb.md.
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 */6 * * *"
-  push:
-    branches: [main]
-    paths:
-      - ".github/workflows/sync-data.yml"
-      - "scripts/generate-data.js"
-      - "data/adjustments.json"
-      - "data/subjective.json"
-      - "data/adjustments-2.json"
 
 permissions:
   contents: write
