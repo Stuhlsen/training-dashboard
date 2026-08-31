@@ -108,6 +108,7 @@ async function main() {
       "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit Notion-Plan 1"
     );
   }
+  const cfg2 = syncConfig.get("athlete2");
 
   // Ride↔Format-Brücke (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte
   // Sperre" Schritt 1) — athletenunabhängiger Katalog, öffentlich lesbar,
@@ -345,7 +346,7 @@ async function main() {
 
   // 5. Zweiter Athlet (Vergleichsathlet, read-only — hat aber seit GFNY
   //    Bremen 2026 einen eigenen Planungstab, s. plannedSessions unten)
-  if (ENV.INTERVALS_KEY_2 && ENV.INTERVALS_ATHLETE_2) {
+  if (cfg2?.apiKey && cfg2?.athleteId) {
     log.info(`\n🔄 Zweiter Athlet (${ATHLETE_2_NAME})...`);
     const oldest2 = "2026-01-01";
     const today2 = new Date().toISOString().split("T")[0];
@@ -353,32 +354,17 @@ async function main() {
     const activities2 = await getIntervalsActivities(
       oldest2,
       today2,
-      ENV.INTERVALS_KEY_2,
-      ENV.INTERVALS_ATHLETE_2,
+      cfg2.apiKey,
+      cfg2.athleteId,
       RIDE_TYPES
     );
-    const wellness2 = await getIntervalsWellness(
-      oldest2,
-      today2,
-      ENV.INTERVALS_KEY_2,
-      ENV.INTERVALS_ATHLETE_2
-    );
-    const powerCurves2 = await getIntervalsPowerCurves(
-      oldest2,
-      today2,
-      ENV.INTERVALS_KEY_2,
-      ENV.INTERVALS_ATHLETE_2
-    );
+    const wellness2 = await getIntervalsWellness(oldest2, today2, cfg2.apiKey, cfg2.athleteId);
+    const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, cfg2.apiKey, cfg2.athleteId);
 
-    // Eigener Standort für Athlet 2 (separates Secret) — kein Rückfall auf den Standort von Athlet 1
-    const weatherData2 = await getHistoricalWeather(
-      oldest2,
-      weatherEnd,
-      ENV.WEATHER_LAT_2,
-      ENV.WEATHER_LON_2
-    );
+    // Eigener Standort für Athlet 2 aus athlete_sync_config — kein Rückfall auf den Standort von Athlet 1
+    const weatherData2 = await getHistoricalWeather(oldest2, weatherEnd, cfg2.lat, cfg2.lon);
     const weatherMap2 = buildWeatherMap(weatherData2);
-    const recentData2 = await getRecentWeather(ENV.WEATHER_LAT_2, ENV.WEATHER_LON_2);
+    const recentData2 = await getRecentWeather(cfg2.lat, cfg2.lon);
     Object.assign(weatherMap2, buildWeatherMap(recentData2));
 
     // Feste FTP aus letztem Ramp-Test (ATHLETE_2_FTP), Fallback: Schätzung aus bestem NP ≥20min
@@ -401,7 +387,7 @@ async function main() {
     // analog zu planCards/effectivePlan bei Athlet 1 oben (Merge pro Datum,
     // s. dortiger Kommentar — kein alles-oder-nichts-Fallback).
     const planCards2 = await loadPlanCards(
-      { email: ENV.SUPABASE_ATHLETE2_EMAIL, password: ENV.SUPABASE_ATHLETE2_PASSWORD },
+      { profileId: cfg2.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY },
       { fromDate: oldest2 }
     );
     const effectivePlan2 = {
@@ -415,8 +401,8 @@ async function main() {
     // loadFtpHistory() [] und ftpAt() fällt auf estimatedFTP2 zurück —
     // exakt das bisherige Verhalten, ohne athletenspezifischen Code.
     const ftpHistory2 = await loadFtpHistory({
-      email: ENV.SUPABASE_ATHLETE2_EMAIL,
-      password: ENV.SUPABASE_ATHLETE2_PASSWORD,
+      profileId: cfg2.profileId,
+      serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
     });
     log.info(
       ftpHistory2.length
@@ -426,7 +412,7 @@ async function main() {
 
     // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1 (s. dort).
     await updateIntervalBlockCache(activities2, intervalBlockCache, {
-      apiKey: ENV.INTERVALS_KEY_2,
+      apiKey: cfg2.apiKey,
       ftpHistory: ftpHistory2,
       fallbackFtp: estimatedFTP2,
     });
@@ -470,9 +456,9 @@ async function main() {
     const latest2 = latestWeight(wellness2);
     const athleteWeight2 = latest2 ? latest2.weight : null;
 
-    // Eigener Standort für Athlet 2 (separates Secret, s. weatherData2 oben)
+    // Eigener Standort für Athlet 2 (athlete_sync_config, s. weatherData2 oben)
     // — kein Rückfall auf den Forecast von Athlet 1.
-    const planningForecast2 = await getPlanningForecast(ENV.WEATHER_LAT_2, ENV.WEATHER_LON_2);
+    const planningForecast2 = await getPlanningForecast(cfg2.lat, cfg2.lon);
 
     const output2 = {
       athleteName: ATHLETE_2_NAME,
@@ -496,7 +482,7 @@ async function main() {
     writeOutput(OUT_FILE_2, output2);
     log.info(`✅ ${rides2.length} Fahrten (${ATHLETE_2_NAME}) → ${OUT_FILE_2}`);
   } else {
-    log.info(`\n⏭️  Zweiter Athlet: kein API-Key gesetzt, übersprungen`);
+    log.info(`\n⏭️  Zweiter Athlet: keine (vollständige) Zeile in athlete_sync_config, übersprungen`);
   }
 
   // 6. Vierter Athlet (Bentastiic, Einsteiger — volles Modell wie Athlet 1
