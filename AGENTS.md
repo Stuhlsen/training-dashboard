@@ -1,8 +1,9 @@
 # Training Dashboard — Projektkontext
 
-Persönliches Radsport-Trainingsdashboard auf GitHub Pages.
+Persönliches Radsport-Trainingsdashboard, selbst-gehostet über Docker auf
+apps01 (Tony) — kein GitHub Pages mehr (Issue #30, 20.08.2026).
 Repo: github.com/Stuhlsen/training-dashboard
-Live: stuhlsen.github.io/training-dashboard
+Live: training-dashboard.clear-solutions-it.com
 
 ## Stack
 
@@ -21,9 +22,12 @@ Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
   Vitest, zwei Projekte (`core` unter Node, `app` unter jsdom — s.
   `app/vite.config.ts`). Details/Konventionen: `app/README.md`.
 
-Beide Teile teilen sich GitHub Actions (Sync alle 6h, je ein CI-Job pro
-Teil — `ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer nur bei
-Änderungen unter `app/**`).
+GitHub Actions trägt seit 30.08.2026 nur noch CI + Image-Publish: je ein
+CI-Job pro Teil (`ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer
+nur bei Änderungen unter `app/**`) und `publish-images.yml` (GHCR-Images bei
+`v*`-Tag). Der 6h-Datensync läuft **nicht mehr** in Actions, sondern als
+Dauer-Container auf apps01 (`sync-data.yml` ist auf `workflow_dispatch`-
+Fallback reduziert, s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
 
 **Versions-Aktualität (seit 22.08.2026):** `.github/dependabot.yml` prüft
 wöchentlich npm-Pakete (Root + `/app/`), Docker-Images (Root,
@@ -52,9 +56,10 @@ obwohl dieselben Tests lokal unter Node 24.18.0 anstandslos grün liefen.
 `mock.module()`-Konsumenten (`state/`-Schicht) sind mit dem Vanilla-Zweig
 entfernt worden — Stand 15.08.2026 nutzt keine Datei mehr unter `tests/`
 `mock.module()`; das Flag steht trotzdem weiter im Skript. `sync-data.yml`
-pinnt seit demselben Anlass ebenfalls `node-version: "24"` (kein Testlauf
-dort, aber derselbe `generate-data.js`-Code läuft dort produktiv). Node 22
-kommt nur noch im `code-quality`/Fallow-Job in `ci.yml` zum Einsatz.
+pinnt ebenfalls `node-version: "24"` (nur noch `workflow_dispatch`-Fallback;
+produktiv läuft `generate-data.js` im apps01-Container mit derselben
+Node-24-Basis, s. `scripts/Dockerfile`). Node 22 kommt nur noch im
+`code-quality`/Fallow-Job in `ci.yml` zum Einsatz.
 
 ## Befehle
 
@@ -95,10 +100,15 @@ npx fallow dupes
 ```
 
 Lokale `.env` (nicht committen, steht in .gitignore) für `npm run sync`:
-`NOTION_API_KEY`, `NOTION_DATABASE_ID`, `INTERVALS_API_KEY`, `INTERVALS_ATHLETE_ID`,
-`WEATHER_LAT`, `WEATHER_LON` (+ optional die `_2`-Varianten). `/app/` braucht
-keine eigene `.env` — die Supabase-Projekt-URLs/anon-Keys stehen (bewusst,
-RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
+`NOTION_API_KEY`, `NOTION_DATABASE_ID`, `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY` (seit Fahrplan 7 CRED3 der einzige Zugang des
+Sync — er liest intervals.icu-Key/-ID **und** die groben Standortkoordinaten
+je Athlet per Service-Role aus der Tabelle `athlete_sync_config`, s.
+„Datenquellen-Mix"). `SUPABASE_ANON_KEY` bleibt zusätzlich für den anonymen
+`session_formats`-Read. `INTERVALS_*` / `WEATHER_*` als Env-Werte sind für
+den Sync **abgelöst** (nur noch Restpfad bis CRED5, s. „GitHub Secrets").
+`/app/` braucht keine eigene `.env` — die Supabase-Projekt-URLs/anon-Keys
+stehen (bewusst, RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
 
 ## Workflow vor jedem Commit
 
@@ -118,8 +128,9 @@ RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
 5. Commit mit Konvention (siehe unten)
 6. `git sync`
 
-`data/*.json` NICHT manuell committen — die werden von der Action regeneriert;
-manuelle Commits erzeugen Konflikte mit dem Auto-Commit.
+`data/*.json` NICHT committen — seit Fahrplan 3 Fenster C nicht mehr
+versioniert (`.gitignore`); der apps01-Sync-Container schreibt sie direkt ins
+mit dem Frontend geteilte Volume.
 
 ## Commit-Konvention
 
@@ -216,6 +227,12 @@ die Zeit; `package-lock.json` ist dafür bewusst versioniert.
   "find circular dependencies" direkt in Claude Code.
 - Baseline-Score (09.07.2026, vor erstem gezielten Cleanup): 79 (B).
   Größte Deductions: Unit Size (−10.0), Circular Deps (−7.0).
+  **Nur historischer Referenzwert** — dieser Score stammt aus der Zeit vor
+  dem vollen `app/src/**`-Umfang; der Vollrepo-Score liegt seit dem
+  React-Ausbau bei rund 49 (D) (zuletzt beim Fahrplan-5-Abschluss gemessen,
+  s. dort). Ein Diff-scoped `fallow audit --base <ref>` ist für die
+  PR-Bewertung aussagekräftiger als der Vollrepo-Score; die Kalibrierung
+  neuer Schwellwerte steht weiter aus.
 
 ## Supabase — Dev/Prod-Trennung
 
@@ -232,7 +249,7 @@ in Arbeit. Was aus dieser Zeit **weiter aktiv gilt**, steht unten.
 | Projekt | Zweck | Keep-Alive |
 |---------|---|---|
 | `dashboard-dev` | Entwicklung, Tests, RLS-Testaccounts | nein (pausiert nach 1 Woche ist ok) |
-| `dashboard-prod` | echte Daten, echte Accounts | ja (in `sync-data.yml`, 6h-Ping wie die Datensync-Action) |
+| `dashboard-prod` | echte Daten, echte Accounts | ja — der apps01-Sync-Container liest alle 6h aus prod (`athlete_sync_config`/`plan_cards`/`ftp_history`), das hält das Projekt wach |
 
 **Hostname-basierte Config:**
 ```typescript
@@ -249,7 +266,7 @@ Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängi
 ### Migrations-Workflow
 SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/`
 (zeitstempel-/laufnummeriert, `0001_initial_schema.sql` — Tabellen, RLS, Trigger für
-User-Onboarding — bis Stand 15.08.2026 `0017_ladder_locked_until.sql`; neue Migration
+User-Onboarding — bis Stand 31.08.2026 `0024_sync_service_role_grants.sql`; neue Migration
 bei jeder Schema-Erweiterung anhängen, nie eine bestehende nachträglich ändern).
 
 **Einspielen (Sequence):**
@@ -288,25 +305,29 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
 `node --test --experimental-test-module-mocks tests/supabase-rls.test.js`.
 
 ### Datenquellen-Mix (lesen/schreiben)
-- **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline wie heute
-  (`scripts/generate-data.js`, alle 6h — **seit 30.08.2026 als Container auf apps01, nicht mehr
-  GitHub Actions**; s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
+- **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline
+  (`scripts/generate-data.js`, alle 6h — **seit 30.08.2026 als Dauer-Container auf apps01, nicht
+  mehr GitHub Actions**; s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
 - **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
   → Supabase (RLS, Session-basiert).
-- **Die Linie ist NICHT mehr scharf** (seit `effectivePlan`/`ftpAt()` in `scripts/generate-data.js`):
-  der Sync-Job selbst liest inzwischen lesend aus Supabase (`plan_cards`, `ftp_history`, nur
-  Athlet 1) zurück in die JSON-Pipeline, damit `rides.json` den echten Plan-Stand statt der
-  eingefrorenen `adjustments.json` widerspiegelt. Ohne die vier `SUPABASE_*`-Sync-Secrets (s.
-  „GitHub Secrets" unten) degradiert das unbemerkt auf den alten JSON-Stand bzw. `DEFAULT_FTP` —
-  kein Fehler, nur ein stiller Fallback (s. `docs/offene-punkte.md`). `app/src/api/pipeline.ts`
-  bleibt trotzdem der alleinige JSON-Loader im Frontend; `app/src/hooks/`/`features/` fragen
-  weiterhin nur abstrakt "gib mir Athletendaten".
-- **Athlet 4 geht noch einen Schritt weiter:** der Sync liest für ihn auch die
-  **intervals.icu-Zugangsdaten** aus Supabase (`intervals_credentials`,
-  `scripts/lib/intervals-credentials-fetch.js`) statt aus einem GitHub Secret —
-  der Athlet trägt Key + Athlete-ID selbst in Settings ein. Ohne diese Zeile
-  schreibt `generate-data.js` `rides-4.json` trotzdem (nur die Plan-Baseline aus
-  `scripts/lib/plan-athlete4.js`, keine Fahrten), `source: "plan-only"`.
+- **Der Sync liest selbst lesend aus Supabase zurück** (seit `effectivePlan`/`ftpAt()` in
+  `scripts/generate-data.js`): `plan_cards` + `ftp_history` fließen zurück in die JSON-Pipeline,
+  damit `rides.json` den echten Plan-Stand statt der eingefrorenen `adjustments.json`
+  widerspiegelt — für Athlet 1 **und** Athlet 2 (Fahrplan 7 CRED4). Seit Fahrplan 7 CRED3
+  läuft **jeder** Supabase-Zugriff des Sync über **einen** `SUPABASE_SERVICE_ROLE_KEY`
+  (RLS-Bypass): `scripts/lib/sync-config-fetch.js` liest in einem Aufruf die Tabelle
+  `athlete_sync_config` (intervals.icu-Key + Athlete-ID + grober Standort je Athlet),
+  Migration 0024 grantet Service-Role zusätzlich `SELECT` auf `profiles`/`plan_cards`/
+  `ftp_history`. Fehlt `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` oder scheitert der
+  Tabellen-Read, bricht der Sync **hart ab** (kein stiller Fallback mehr — bewusster
+  CRED3-Wechsel gegenüber früher). `app/src/api/pipeline.ts` bleibt trotzdem der alleinige
+  JSON-Loader im Frontend; `app/src/hooks/`/`features/` fragen weiterhin nur abstrakt
+  "gib mir Athletendaten".
+- **Zeilenmodell in `athlete_sync_config`:** Athlet 1 und 4 pflegen ihre Zeile self-service
+  über **Settings** (`profile_id`, owner-only RLS); Athlet 2 (read-only Vergleich, kein
+  Supabase-Login) bekommt eine admin-gepflegte Zeile mit `athlete_key = "athlete2"`, die nur
+  Service-Role sieht. Fehlt die Zeile eines Nebenathleten, schreibt `generate-data.js` dessen
+  `rides-N.json` trotzdem (nur die Plan-Baseline, keine Fahrten), `source: "plan-only"`.
 
 ## Dateistruktur
 
@@ -349,10 +370,10 @@ data/                     → generierte JSON-Dateien (rides*.json, wellbeing*.j
                             von scripts/generate-data.js geschrieben, NICHT manuell committen
 
 supabase/
-  migrations/             → SQL-Migrationen, laufnummeriert (Stand 15.08.2026: 0001–0017)
+  migrations/             → SQL-Migrationen, laufnummeriert (Stand 31.08.2026: 0001–0024)
 
 scripts/
-  generate-data.js         → Dünner Orchestrator (läuft in der Action + `npm run sync`)
+  generate-data.js         → Dünner Orchestrator (läuft im apps01-Sync-Container + `npm run sync`)
   delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
   preset-suggestion-check.js, report-derived-workout-structure.js,
   generate-jwt-keys.js    → einzelne Betriebs-/Migrations-/Analyse-Skripte
@@ -362,9 +383,12 @@ scripts/
   Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
+                             plan-athlete4 (Athlet 4, Einsteiger-Vorlage),
                              notion, intervals, weather, map-activity, wellness,
                              compliance, coverage, ftp-history, interval-blocks,
-                             formats-fetch, plan-cards-fetch, plan-to-cards, output
+                             formats-fetch, plan-cards-fetch, plan-to-cards, output,
+                             sync-config-fetch (athlete_sync_config per Service-Role,
+                             Fahrplan 7 CRED3 — löst intervals-credentials-fetch ab)
     core/                  → zur app/src/core/-Schicht parallele Portierung auf der
                              Sync-Seite (aggregate, briefing, plan2-schedule, projection,
                              readiness, workout-math/-validator/-structure-derive,
@@ -374,8 +398,9 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
                              (npm test, Repo-Root — s. Stack-Abschnitt)
 
 .github/workflows/
-  sync-data.yml            → Cron alle 6h; Jobs: sync (JSON generieren, app/dist
-                             bauen, committen, Artefakt-Upload) → deploy (Pages)
+  sync-data.yml            → nur noch `workflow_dispatch`-Fallback (der Sync läuft
+                             produktiv im apps01-Container, s. Fahrplan 3 Fenster C)
+  publish-images.yml       → bei `v*`-Tag: GHCR-Images (frontend, sync, migrate) + GitHub Release
   ci.yml                   → Push/PR (Repo-Root): npm test + ESLint + Fallow code-quality
   ci-app.yml                → Push/PR (nur bei Änderungen unter app/**): Vitest,
                              ESLint, Build (tsc -b + vite build) für /app/
@@ -400,11 +425,12 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
 - **Athlet 4** (`athlete4`, „bentastiic") — Renn-/Trainings-Einsteiger. Volles
   Modell wie Athlet 1 (eigener Login, Befinden, editierbare `plan_cards`,
   Wahoo-Push), aber Lesedaten-Pipeline wie Athlet 2 (intervals.icu + Supabase,
-  **kein Notion**). Der intervals.icu-Key/-Athlete-ID trägt der Athlet selbst
-  in **Settings → intervals.icu** ein (Tabelle `intervals_credentials`), der
-  Sync liest ihn über `scripts/lib/intervals-credentials-fetch.js` — es gibt
-  **kein** `INTERVALS_API_KEY_4`-Secret. Fehlt die Zeile, schreibt der Sync
-  `rides-4.json` trotzdem (nur Plan, keine Fahrten). **Fährt vorerst
+  **kein Notion**). Der intervals.icu-Key/-Athlete-ID **und den groben
+  Standort** trägt der Athlet selbst in **Settings** ein (Tabelle
+  `athlete_sync_config`, Fahrplan 7 CRED2), der Sync liest sie per
+  Service-Role über `scripts/lib/sync-config-fetch.js` — es gibt **kein**
+  `INTERVALS_API_KEY_4`/`WEATHER_*_4`-Secret. Fehlt die Zeile, schreibt der
+  Sync `rides-4.json` trotzdem (nur Plan, keine Fahrten). **Fährt vorerst
   überwiegend in Zwift:** Die 12-Wochen-Einsteigervorlage
   (`scripts/lib/plan-athlete4.js`, KW36–KW47 ab 2026-08-31, 4 Einheiten/Woche,
   generiert) trägt für jede Fahr-Einheit ein vollständiges `workout`-Objekt
@@ -433,6 +459,13 @@ alte IDs werden beim Start verworfen.
 Bei Athlet 2: Planungs-Tab read-only sichtbar (kein Verschieben/Ausfallen/Wahoo-Push),
 keine Befinden-Spalte, keine Ziellinien — Gate über `canWriteForAthlete()`/
 `isSelfAthlete()` in `app/src/api/write-authorization.ts`.
+
+**Onboarding neuer Athlet (seit Fahrplan 7):** anmelden → in **Settings**
+intervals.icu-Key + Athlete-ID + groben Standort eintragen (Tabelle
+`athlete_sync_config`) → der nächste Sync-Lauf nimmt ihn automatisch auf.
+Keine Env-Änderung, kein apps01-Eingriff, kein GitHub-Secret. Zusätzlich
+`NAME_TO_SLUG` in `scripts/lib/sync-config-fetch.js` **und** `ATHLETES[]` in
+`app/src/config.ts` pflegen (Anzeigename → interne ID).
 
 ## Trainingspläne
 
@@ -490,8 +523,15 @@ Tokens in `app/src/styles/tokens.css` (Namen stabil halten):
 
 **Datenschutz (HÖCHSTE Priorität):**
 - Standortkoordinaten NIEMALS im Code, JSON oder Kommentaren
-- Ausschließlich über GitHub Secrets: WEATHER_LAT, WEATHER_LON, WEATHER_LAT_2, WEATHER_LON_2
-- Wetter-Forecast wird serverseitig in der Action berechnet → nur Wetterwerte in rides.json
+- Seit Fahrplan 7 CRED1 (Migration 0023, von Alex am 30.08.2026 ausdrücklich
+  freigegeben): die groben Koordinaten liegen RLS-geschützt und
+  **serverseitig auf 2 Nachkommastellen gerundet** (`numeric(5,2)`/`(6,2)`,
+  ~1,1 km Unschärfe) in der Tabelle `athlete_sync_config` — owner-only,
+  **kein anon-Grant**, nur der Sync (Service-Role) liest sie. Nie über einen
+  Frontend-Lesepfad ausgeliefert. Die Env-Werte `WEATHER_LAT/LON(_2)` sind
+  nur noch Restpfad bis Fahrplan 7 CRED5.
+- Wetter-Forecast wird serverseitig im Sync berechnet → nur Wetterwerte in rides.json,
+  nie Koordinaten
 - Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder Commit-Messages —
   intern `athlete1`/`athlete2`, in der UI die selbstgewählten Pseudonyme
   (GitHub-Handles) "Stuhlsen"/"hc_diZee" (`app/src/config.ts` → `athletes[].name`)
@@ -503,7 +543,7 @@ git commit -m "..."
 git sync   # nur von main aus laufen lassen — s. Warnung unten
 ```
 - PowerShell: KEIN `&&` zwischen Befehlen — jeweils eigene Zeile
-- Bei Konflikten mit Action-Auto-Commits: `git fetch origin` dann `git push --force-with-lease origin main`
+- Bei Konflikten mit fremden Commits auf `origin/main`: `git fetch origin` dann `git push --force-with-lease origin main` (die früheren `data/*.json`-Auto-Commits der Sync-Action gibt es seit Fahrplan 3 Fenster C nicht mehr)
 - Zeilenenden: `.gitattributes` erzwingt LF im Repo (`* text=auto eol=lf`)
 - **Versions-Tag für Docker-Images:** Nach einem Push nach `main`, der
   `app/`, `scripts/` oder `supabase/` ändert (löst `publish-images.yml`
@@ -565,39 +605,36 @@ Vorfall + Wiederherstellung: s. Commit-Historie um den 25.07.2026, kein separate
 IF < 0.75 + ≥120min → "Z2 Lang", ≥60min → "Z2 Dauer", <60min → "Z1 Recovery"
 Grenzwerte sind in `tests/typ-inferenz.test.js` festgeschrieben.
 
-## GitHub Secrets (vorhanden, nie im Code)
+## GitHub Secrets / apps01-Env (vorhanden, nie im Code)
 
+**Sync-Container auf apps01 (produktiv) — Zielstand nach Fahrplan 7 CRED5:**
 ```
-NOTION_API_KEY          NOTION_DATABASE_ID
-INTERVALS_API_KEY       INTERVALS_ATHLETE_ID
-INTERVALS_API_KEY_2     INTERVALS_ATHLETE_ID_2
-WEATHER_LAT             WEATHER_LON
-WEATHER_LAT_2           WEATHER_LON_2
-WEATHER_LAT_4           WEATHER_LON_4
-SYNC_PUSH_TOKEN
-SUPABASE_URL                       SUPABASE_ANON_KEY
-SUPABASE_ATHLETE1_EMAIL            SUPABASE_ATHLETE1_PASSWORD
-SUPABASE_ATHLETE4_EMAIL            SUPABASE_ATHLETE4_PASSWORD
+NOTION_API_KEY          NOTION_DATABASE_ID     (nur Athlet-1-Historie Plan 1, wächst nie mit)
+SUPABASE_URL            SUPABASE_SERVICE_ROLE_KEY
+SUPABASE_ANON_KEY       (nur für den anonymen session_formats-Read)
 ```
+Seit Fahrplan 7 CRED3 liest der Sync intervals.icu-Key/-ID **und** die groben
+Standortkoordinaten je Athlet per Service-Role aus `athlete_sync_config`
+(`scripts/lib/sync-config-fetch.js`). Die pro Athlet wachsenden Werte
+`INTERVALS_API_KEY(_2/_4)`, `INTERVALS_ATHLETE_ID(_2/_4)`,
+`WEATHER_LAT/LON(_2/_4)`, `SUPABASE_ATHLETE1/4_EMAIL/PASSWORD` sind damit für
+den Sync **abgelöst** — sie stehen als Restpfad noch in der apps01-Env bzw. den
+GitHub-Actions-Secrets, bis CRED5 (Env-Schrumpfung mit Tony) läuft, und
+werden dann als tot markiert (nicht ohne Rücksprache gelöscht, CLAUDE.md
+„Grenzen").
 
-Athlet 4 („bentastiic"): **kein** `INTERVALS_API_KEY_4` — der intervals.icu-Key
-kommt aus der Supabase-Tabelle `intervals_credentials` (vom Athleten in Settings
-eingetragen), der Sync liest ihn über den `SUPABASE_ATHLETE4_*`-Login. Fehlen
-`SUPABASE_ATHLETE4_EMAIL/PASSWORD`, wird der Athlet-4-Block komplett übersprungen.
+**`sync-data.yml` (nur noch `workflow_dispatch`-Fallback):** `SYNC_PUSH_TOKEN`
+(seit 22.08.2026, Fine-grained PAT von Alex statt `GITHUB_TOKEN` — `main` hat
+Branch Protection) ist **seit Fahrplan 3 Fenster C schlafend**: die Action
+committet `data/*.json` nicht mehr, `data/*.json` ist nicht mehr versioniert.
+Bewusst **nicht gelöscht**, nur noch für den manuellen Fallback nutzbar.
 
-`SYNC_PUSH_TOKEN` (seit 22.08.2026): Fine-grained PAT von Alex statt des
-Standard-`GITHUB_TOKEN` — `main` hat Branch Protection, der Bot-Token allein
-kann seitdem nicht mehr pushen. **Seit Fahrplan 3 Fenster C (30.08.2026)
-schlafend:** die Sync-Action committet `data/*.json` nicht mehr (der Sync
-läuft als Container auf apps01), `sync-data.yml` ist auf `workflow_dispatch`
-reduziert. Das Secret wurde bewusst **nicht gelöscht** (CLAUDE.md „Grenzen":
-Secrets nicht ohne Rücksprache) — es bleibt nur noch für den manuellen
-`workflow_dispatch`-Fallback nutzbar. Die vier `SUPABASE_*`-Einträge sind für den
-Sync-Job selbst (Prod-Supabase, nur Athlet 1, s. „Datenquellen-Mix" oben) —
-nicht zu verwechseln mit den athletengebundenen `SUPABASE_ATHLETE1/2_*` bzw.
-`SUPABASE_TRAINER_*`-Testvars aus dem RLS-Testabschnitt weiter oben, die nur
-lokal in `.env` für `tests/supabase-rls.test.js` gebraucht werden. Details zu
-allen dreien: `.github/workflows/sync-data.yml` (Kopfkommentar).
+**Nur lokal in `.env` (RLS-Testsuite, Einmal-Skripte):**
+`SUPABASE_ATHLETE1/2/4_EMAIL/PASSWORD`, `SUPABASE_TRAINER_EMAIL/PASSWORD`
+(+ die optionalen `_PROD`-Gegenstücke) — für `tests/supabase-rls.test.js` und
+gezielte `--env=prod`-Einmal-Skripte (`migrate-plan-to-supabase.js`,
+`delete-rest-day-cards.js`). Details: `.env.example` +
+`.github/workflows/sync-data.yml` (Kopfkommentar).
 
 ## Chart-Label-Konvention (Überlappungsschutz)
 
@@ -666,8 +703,11 @@ in `index.html`/`app.js`.
 **Gilt weiter unverändert (Datensync, `scripts/`/`.github/workflows/` — vom
 React-Umbau nicht berührt):**
 
-- `subjective.json` und `adjustments.json` werden vom Action-Workflow vor
-  Überschreiben geschützt (immer Remote-Stand holen vor Commit)
+- `subjective.json`/`adjustments*.json` sind seit der `plan_cards`-Migration
+  bzw. dem Supabase-Check-in nur noch read-only Archiv (kein aktiver
+  Schreibpfad). `data/*.json` ist seit Fahrplan 3 Fenster C nicht mehr
+  versioniert — der `sync-data.yml`-Schutzcode (Rebase-Retry) bleibt nur als
+  Rückfahrkarte im Workflow stehen, greift im Normalbetrieb nicht mehr.
 - Fahrten am selben Datum werden nach `startTime` (start_date_local) sortiert;
   Plan-1-Fahrten (Notion) haben kein startTime → dort kein Tiebreaker
 - Athlet 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
@@ -682,11 +722,11 @@ React-Umbau nicht berührt):**
   praktisch identisch zur Gesamtkurve (nur der Anker-Zeitpunkt unterscheidet
   sich) — der Blöcke-Toggle im Power-Curve-Chart zeigt dann keine sinnvoll
   unterscheidbaren Kurven.
-- Pages-Deploy: `sync-data.yml` hat GETRENNTE Jobs `sync` (Daten generieren,
-  `app/dist` bauen, Artefakt-Upload) und `deploy` (`deploy-pages`, `needs: sync`).
-  NICHT wieder zusammenlegen — Upload + Deploy im selben Job dupliziert bei
-  einem Re-Run das `github-pages`-Artefakt („Multiple artifacts… count is 2").
-  Getrennt re-runnt „Re-run failed jobs" nur den Deploy, kein zweiter Upload.
+- Pages-Deploy: **entfallen** (Issue #30, 20.08.2026) — das Frontend läuft
+  selbst-gehostet über Docker (GHCR-Image `training-dashboard-frontend`,
+  Build in `publish-images.yml`). `sync-data.yml` hat nur noch den
+  `sync`-Job und keinen `deploy`/`deploy-pages`-Job mehr; er ist ohnehin auf
+  `workflow_dispatch`-Fallback reduziert (s. „GitHub Secrets" oben).
 - `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
   `icu_eftp`) — beide Formate werden normalisiert, mit Degradation samt
   Hinweistext, falls sie in der API-Antwort fehlen. Aktuellen Verifikationsstand

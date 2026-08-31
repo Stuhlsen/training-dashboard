@@ -1,6 +1,13 @@
 # Fahrplan 7: Sync-Zugangsdaten self-service, Env-loser Sync-Container
 
-**Stand:** 2026-08-29
+**Stand:** 2026-08-31 — **CRED0–CRED4 umgesetzt** (Commits `65b2b65` CRED1,
+`0a048bc` CRED2, `eff0cb8` CRED3, `2eef300` CRED4). Migrationen `0023_athlete_sync_config.sql`
++ `0024_sync_service_role_grants.sql`, `scripts/lib/intervals-credentials-fetch.js`
+umbenannt in `scripts/lib/sync-config-fetch.js`. **Offen: CRED5** (Env
+schrumpfen, Abstimmung mit Tony) **und CRED6** (Doku-Abschluss — AGENTS.md /
+README wurden am 2026-08-31 bereits im Rahmen eines Doku-Abgleichs
+nachgezogen, der formale CRED6-Haken steht noch aus).
+**Ursprünglicher Stand:** 2026-08-29
 **Zielablage:** `docs/fahrplan-7-sync-credentials-self-service.md`
 **Herkunft:** Frage von Alex im Anschluss an Issue #31 /
 `fahrplan-3-sync-produktivbetrieb.md`: Der Sync-Container läuft künftig auf
@@ -121,13 +128,13 @@ und der Rest des Fahrplans gilt trotzdem — die Env schrumpft dann auf
 ## Fenster-Übersicht
 
 ```
-CRED0  Inventar + Datenschutz-Entscheid (read-only)     ◆◆ bestimmt den Umfang
-CRED1  Sync-Config-Tabelle: Migration + RLS + Rundung    ◆  Tabelle erweitern vs. neu
-CRED2  Settings-UI: Standort + Athlet-2-Sonderweg        ◆  wie kommt Athlet 2 rein
-CRED3  Sync liest per Service-Role aus der Tabelle
-CRED4  Bestandswerte migrieren (dev → prod)             ◆  Rückfrage vor prod
-CRED5  Env schrumpfen + apps01/Quadlet + GitHub-Secrets  ◆  Abstimmung mit Tony
-CRED6  Doku + Onboarding-Notiz
+CRED0  Inventar + Datenschutz-Entscheid (read-only)     ✅ abgeschlossen
+CRED1  Sync-Config-Tabelle: Migration + RLS + Rundung    ✅ abgeschlossen (Migration 0023)
+CRED2  Settings-UI: Standort + Athlet-2-Sonderweg        ✅ abgeschlossen
+CRED3  Sync liest per Service-Role aus der Tabelle       ✅ abgeschlossen (Migration 0024, sync-config-fetch.js)
+CRED4  Bestandswerte migrieren (dev → prod)             ✅ abgeschlossen
+CRED5  Env schrumpfen + apps01/Quadlet + GitHub-Secrets  ⬜ offen (Abstimmung mit Tony)
+CRED6  Doku + Onboarding-Notiz                           ⬜ offen (AGENTS.md/README am 31.08. vorab nachgezogen)
 ```
 
 Jedes Fenster endet mit: `node -c` der geänderten `.js`-Dateien → `npm test`
@@ -178,19 +185,15 @@ liest. **Read-only, kein Code.**
 - [ ] Athlet-2-Optionen mit je einem Satz Vor-/Nachteil
 - [ ] Keine Datei verändert
 
-### ◆◆ Entscheidungspunkte
+### ◆◆ Entscheidungspunkte — **entschieden (2026-08-30, mit Alex)**
 
-1. **Datenschutz:** Standort in die Datenbank (grob gerundet, RLS,
-   Sync-only) — ja / nein. Bei Nein bleibt `WEATHER_*` in der Env, Rest
-   des Fahrplans unverändert (s. „Datenschutz" oben).
-2. **Tabellenform:** `intervals_credentials` um Standort-Spalten erweitern
-   **oder** neue Tabelle `athlete_sync_config` (intervals-Key, Athlete-ID,
-   lat, lon), `intervals_credentials` migrieren/ablösen.
-   Empfehlung: **neue Tabelle `athlete_sync_config`**, `intervals_credentials`
-   per Migration hineinführen — ein Name, der den Zweck („alles, was der
-   Sync pro Athlet braucht") trägt, statt einen intervals-spezifischen
-   Namen zu überladen.
-3. **Athlet 2** (s. Punkt 5 oben) — welcher der gesammelten Wege.
+1. **Datenschutz:** ✅ **ja** — Standort wandert in die Datenbank, grob
+   gerundet (`numeric(5,2)/(6,2)`, ~1,1 km), owner-only RLS, nur Sync liest.
+2. **Tabellenform:** ✅ **neue Tabelle `athlete_sync_config`**;
+   `intervals_credentials` wird in der Migration hineingeführt (idempotenter
+   `insert … on conflict do nothing`) und bleibt vorerst bestehen.
+3. **Athlet 2:** ✅ **Zeile ohne `profile_id`** — Schlüssel `athlete_key = "athlete2"`,
+   admin-/seed-gepflegt, nur für Service-Role sichtbar.
 
 ---
 
@@ -202,9 +205,12 @@ angeschlossen.**
 
 ### Umfang
 
-- Neue Migration `supabase/migrations/0023_athlete_sync_config.sql` (nächste
-  freie Nummer zum Umsetzungszeitpunkt prüfen — Stand jetzt ist `0022` die
-  höchste):
+> **Umgesetzt:** Migration `0023_athlete_sync_config.sql` (Tabelle + RLS +
+> Rundung im Spaltentyp, kein Trigger nötig) plus Folgemigration
+> `0024_sync_service_role_grants.sql` (CRED3 — `SELECT` für `service_role` auf
+> `profiles`/`plan_cards`/`ftp_history`, ohne die der Service-Role-Read in 42501 läuft).
+
+- Neue Migration `supabase/migrations/0023_athlete_sync_config.sql`:
   - Tabelle `athlete_sync_config`
     (`profile_id uuid` PK/FK → `profiles.id`, `intervals_api_key text`,
     `intervals_athlete_id text`, `weather_lat numeric(5,2)`,

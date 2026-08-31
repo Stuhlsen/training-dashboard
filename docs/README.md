@@ -18,10 +18,14 @@ bekannte Eigenheiten. Bei jeder Aufgabe zuerst hier nachsehen.
   (`assets/js/`) aus `main`. **Abgeschlossen.**
 - **`fahrplan-2-doku-aufraeumen.md`** — dieser Aufräumdurchgang selbst: Docs
   einordnen (dieses Dokument ist ein Ergebnis davon), `.gitignore`/`.env.example`,
-  später ein Betriebs-Runbook.
+  später ein Betriebs-Runbook. **DOK1/DOK2 abgeschlossen; DOK3 (Runbook) offen bis DKR6.**
 - **`fahrplan-3-docker-umbau.md`** — Ablösung der Supabase-Cloud durch einen
-  selbst gehosteten Docker-Verbund.
+  selbst gehosteten Docker-Verbund. **DKR0–DKR4 abgeschlossen, Frontend live
+  auf apps01; DKR5 (Backup/Restore-Probe) + DKR6 (Cutover) offen.**
 - **`fahrplan-4-athlet-3.md`** — dritter Athlet und Multi-Sport-Ausbau.
+  **Noch nicht begonnen** (Athlet 4 „bentastiic" ist angebunden, aber als
+  Radsport-Einsteiger, nicht als der geplante Triathlet `athlete3`; die
+  `sport`-Normalisierung aus ATH1 steht noch aus).
 
 Vor dem Start einer Aufgabe in diesem Themenbereich das jeweilige
 Fahrplan-Fenster lesen (Ziel, Vorbedingung, Abnahme) statt nur den Titel.
@@ -42,18 +46,20 @@ Fahrplan-Fenster lesen (Ziel, Vorbedingung, Abnahme) statt nur den Titel.
 
 - **`fahrplan-5-planungstab-redesign.md`** — Umbau des Planungstabs
   (Mo–So-Raster statt Karten-Liste, Soll/Ist-Tabelle statt Karten-Liste)
-  nach dem „Planungstab Live"-Mockup aus Claude Design. Etappen 13a–13i,
-  mehrere davon parallel in getrennten Chats startbar.
+  nach dem „Planungstab Live"-Mockup aus Claude Design. Etappen 13a–13i.
+  **Abgeschlossen.**
 - **`fahrplan-6-ruhetag-planwochen-modell.md`** — Ruhetage als abgeleitetes
   Plan-Wochen-Modell statt gespeicherter `plan_cards`-Zeilen. Fenster RUH0–RUH7.
+  **Abgeschlossen.**
 - **`fahrplan-3-sync-produktivbetrieb.md`** — bricht den Sync-Produktivrollout
   aus `fahrplan-3-docker-umbau.md` Fenster DKR2 in eigene Fenster herunter
   (Issue #31): Sync-Job zieht von GitHub Actions auf den apps01-Container.
+  **Abgeschlossen (Issue #31 geschlossen, 30.08.2026).**
 - **`fahrplan-7-sync-credentials-self-service.md`** — Sync-Zugangsdaten +
-  Standort wandern in eine RLS-Tabelle, die jeder Athlet in Settings selbst
-  füllt; die Env des Sync-Containers schrumpft auf zwei Werte. Fenster
-  CRED0–CRED6. Setzt `fahrplan-3-sync-produktivbetrieb.md` Fenster B voraus,
-  lohnt sich erst bei einem konkreten neuen Athleten.
+  Standort wandern in die RLS-Tabelle `athlete_sync_config`, die jeder Athlet
+  in Settings selbst füllt; die Env des Sync-Containers schrumpft auf
+  `SUPABASE_URL` + Service-Role-Key. Fenster CRED0–CRED6. **CRED0–CRED4
+  umgesetzt (Stand 31.08.2026), CRED5 (Tony) + CRED6 (Doku-Haken) offen.**
 
 ## Laufende Konzepte
 

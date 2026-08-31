@@ -8,11 +8,10 @@ web
 
 ## Stack
 
-React + Vite (Entscheidung G1, `docs/dashboard-3.0-konzept-react-umbau.md`, Stand 04.08.2026) —
-kompletter Umstieg von der bisherigen Vanilla-JS-Version. Grund: Design-Iterationen aus Claude
-Design (React-Klassenkomponenten-Export) sollen mit festem, weitgehend mechanischem
-Konvertierungsrezept übernommen werden (s. 5.7 im Konzeptdokument). Kein Tailwind — Design-Tokens
-zentral in `styles/tokens.css`. TypeScript ja/nein ist noch offen (Etappe 1, s. 5.1).
+React + Vite + **TypeScript** (Entscheidung G1, `docs/dashboard-3.0-konzept-react-umbau.md`) —
+der Umstieg von der Vanilla-JS-Version ist abgeschlossen, `/app/` ist seit 15.08.2026 die
+einzige Oberfläche (Fahrplan 1). Kein Tailwind — Design-Tokens zentral in `styles/tokens.css`.
+`app/src/core/` bleibt JS + JSDoc (per `allowJs` eingebunden).
 
 ## Users
 
@@ -45,12 +44,15 @@ Produkt von reinem intervals.icu-Ansehen, wo diese Verdichtung fehlt.
 
 ## Operating Context
 
-- Datenherkunft: JSON-Pipeline (Cron alle 6h) aus intervals.icu (Aktivitäten, Wellness,
-  Power-Curves), Notion (Plan 1), Open-Meteo (Wetter) — bleibt beim React-Umbau unverändert (G3).
+- Datenherkunft: JSON-Pipeline (Sync-Container alle 6h auf apps01) aus intervals.icu
+  (Aktivitäten, Wellness, Power-Curves), Notion (Plan 1), Open-Meteo (Wetter) — die
+  Pipeline-Logik blieb beim React-Umbau unverändert (G3).
 - Schreibpfad (Ziele, Events, Befinden, Trainingskarten, Vorschläge, Feedback) läuft über
   Supabase mit RLS, session-basiert.
-- Aktuell produktiv als Vanilla-JS-Version auf GitHub Pages (`main`); Neuaufbau läuft parallel
-  auf Branch `dashboard-3.0` / Ordner `/app/`, alte Version bleibt bis zur Umschaltung live (G2).
+- Produktiv als React-App (`/app/`), selbst-gehostet als Docker-Verbund auf apps01
+  (`training-dashboard.clear-solutions-it.com`) — kein GitHub Pages mehr, Vanilla-Zweig
+  entfernt (Fahrplan 1). Die Ablösung der Supabase-Cloud durch eigenes Postgres/GoTrue/
+  PostgREST ist deployt und in der Abnahmephase (Fahrplan 3, DKR5/DKR6 offen).
 - Genutzte Geräte (Athlet 1): Wahoo ELEMNT Roam v3, Favero Assioma PRO MX-1, Cube Nuroad Race
   Gravel.
 
@@ -70,18 +72,21 @@ Produkt von reinem intervals.icu-Ansehen, wo diese Verdichtung fehlt.
 ## Brand Commitments
 
 - Keine echten Namen oder Standortdaten von Athleten in Code, UI, Kommentaren oder
-  Commit-Messages — ausschließlich interne IDs plus selbstgewählte Pseudonyme;
-  Standortkoordinaten ausschließlich über GitHub Secrets, nie im Code/JSON.
-- UI-Sprache durchgehend Deutsch.
+  Commit-Messages — ausschließlich interne IDs plus selbstgewählte Pseudonyme.
+  Standortkoordinaten liegen RLS-geschützt und serverseitig grob gerundet (~1,1 km) in der
+  Supabase-Tabelle `athlete_sync_config`, nur vom Sync gelesen, nie im Code/JSON/Frontend
+  (Fahrplan 7 CRED1).
+- UI-Sprache durchgehend Deutsch; Commit-Subjects seit 26.08.2026 auf Englisch (Changelog-Generierung), Code-Kommentare/Doku bleiben Deutsch.
 
 ## Evidence on Hand
 
-- Bestehendes Repo (Vanilla-JS, Branch `main`): geschichtete Architektur (core/data-access/
-  state/ui), umfangreiche `node:test`-Suite, 12-Wochen-Periodisierungsplan (Plan 2), GFNY-Bremen-
-  2026-Plan (Athlet 2) — funktionale Spezifikation für die Portierung; `core/`-Rechenlogik wird
-  inhaltlich unverändert übernommen.
-- Kein DESIGN.md vorhanden — die visuelle Sprache wird im Zuge des React-Umbaus über
-  Claude-Design-Importe neu verhandelt.
+- Repo nach dem React-Umbau: geschichtete Architektur (`app/src/core` → `api` → `hooks`/
+  `features` → `components`/`charts`), zwei getrennte Testsuiten (Vitest für `/app/`,
+  `node:test` für `scripts/`), 12-Wochen-Periodisierungsplan (Plan 2), GFNY-Bremen-2026-Plan
+  (Athlet 2), Einsteiger-Vorlage (Athlet 4). `core/`-Rechenlogik wurde inhaltlich unverändert
+  aus der Vanilla-Fassung portiert.
+- `DESIGN.md` (Repo-Root) hält die visuelle Sprache fest (Konzept 5), wird über
+  Claude-Design-Importe gepflegt.
 - Konzeptdokumente unter `docs/` (Progressionssteuerung, Event-Verwaltung, Morgen-Check-in,
   Konfliktlogik/Prognose, Planungstab, Export/Import, Trainer-Sicht, Vorschlags-Schema, Explorer,
   Besucher-Feedback, Sichtbarkeit) dokumentieren bereichsweise Produktentscheidungen — künftige

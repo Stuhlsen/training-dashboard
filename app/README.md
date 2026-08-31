@@ -40,5 +40,6 @@ Pipeline in `scripts/`). Sie überschneiden sich nicht und müssen beide grün s
 ## Konventionen
 
 Siehe Projekt-`AGENTS.md`/`CLAUDE.md` (Repo-Root) — gelten unverändert auch
-hier (deutsche Commit-Präfixe, PowerShell ohne `&&`, Result-Konvention für
-fehlbare Operationen, keine Secrets im Code).
+hier (Commit-Konvention: Prefix + Beschreibung, Subject seit 26.08.2026 auf
+Englisch; PowerShell ohne `&&`, Result-Konvention für fehlbare Operationen,
+keine Secrets im Code).

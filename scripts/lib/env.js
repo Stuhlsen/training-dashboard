@@ -43,13 +43,13 @@ if (fs.existsSync(envPath)) {
 export const ENV = {
   NOTION_KEY: process.env.NOTION_API_KEY,
   DB_ID: process.env.NOTION_DATABASE_ID,
-  // --- Athlet 1 + 4: intervals.icu-Key/-ID und der grobe Standort kommen
-  //     seit Fahrplan 7 CRED3 aus der Supabase-Tabelle athlete_sync_config
+  // --- Athlet 1, 2 + 4: intervals.icu-Key/-ID und der grobe Standort kommen
+  //     seit Fahrplan 7 CRED3/CRED4 aus der Supabase-Tabelle athlete_sync_config
   //     (scripts/lib/sync-config-fetch.js, EIN service_role-Aufruf) — NICHT
-  //     mehr aus INTERVALS_API_KEY(_4) / WEATHER_LAT/LON(_4). ---
-  // Zweiter Athlet (read-only Vergleich): bleibt vorerst auf Env — seine
-  // athlete_key-Zeile in athlete_sync_config wird erst in CRED4 befüllt,
-  // danach fallen diese vier Werte ebenfalls weg.
+  //     mehr aus INTERVALS_API_KEY(_2/_4) / WEATHER_LAT/LON(_2/_4). ---
+  // Die folgenden vier Werte liest generate-data.js seit CRED4 NICHT mehr
+  // (Athlet 2 kommt jetzt aus der athlete_key="athlete2"-Zeile). Sie bleiben
+  // nur als toter Restpfad bis CRED5 stehen — dann ersatzlos entfernen.
   INTERVALS_KEY_2: process.env.INTERVALS_API_KEY_2 || "",
   INTERVALS_ATHLETE_2: process.env.INTERVALS_ATHLETE_ID_2 || "",
   WEATHER_LAT_2: process.env.WEATHER_LAT_2 || null,
@@ -81,7 +81,7 @@ export const ENV = {
   SUPABASE_TRAINER_EMAIL: process.env.SUPABASE_TRAINER_EMAIL || "",
   SUPABASE_TRAINER_PASSWORD: process.env.SUPABASE_TRAINER_PASSWORD || "",
   // Optionale Prod-Gegenstücke — nur für gezielte, manuell mit --env=prod
-  // gestartete Einmal-Skripte (z.B. scripts/add-rest-day-cards.js), NIE von
+  // gestartete Einmal-Skripte (z.B. scripts/delete-rest-day-cards.js), NIE von
   // npm test/npm run sync gelesen. Bewusst eigene Variablen statt die
   // Dev-Werte oben zu überschreiben, damit ein versehentlicher npm-test-Lauf
   // weiterhin gegen dashboard-dev läuft, nicht gegen echte Athletendaten.

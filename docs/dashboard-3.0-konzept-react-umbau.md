@@ -1198,7 +1198,7 @@ Damit ist dies kein Design-Umbau mehr, sondern ein **Frontend-Neuaufbau**, bei d
 | G4 | **Zugriffsschicht wird neu geschrieben** — heutige `state/*.js`-Module werden durch React-Query-artige Hooks ersetzt, die dieselben Supabase-Calls kapseln. Seit Etappe 2b konkret: **`@tanstack/react-query`** | Architekturwechsel im Code, kein Wechsel an dem, was in der DB passiert |
 | G5 | **Multi-Sport wird vorbereitet, nicht vorgebaut** — Komponentenstruktur und Typmodell sehen ein `sport`-Konzept von Anfang an vor (austauschbare Zonen-/Metrik-Logik statt hart codiert), aber es wird kein Jogging-Feature gebaut | Tür offen lassen statt Zimmer einrichten — verhindert späteren Zwangsumbau, ohne den Umfang jetzt zu sprengen |
 | G6 | **Umsetzung in viele kleine, in sich abgeschlossene Etappen**, jede als eigener Claude-Code-Chat nutzbar, geschnitten an fachlichen Bruchkanten (gemeinsam angefasste Dateien, Kontrollpunkte, Schichtgrenzen) | Tokensparen, Nachvollziehbarkeit, Möglichkeit zwischendurch zu pausieren |
-| G7 | Bisherige Test-/Architektur-Prinzipien (PowerShell, deutsche Commit-Präfixe, Node ≥22.3, `data/*.json` nie stagen) gelten unverändert weiter | Konsistenz mit dem Rest des Projekts |
+| G7 | Bisherige Test-/Architektur-Prinzipien (PowerShell, Commit-Präfixe, `data/*.json` nie stagen) gelten unverändert weiter | Konsistenz mit dem Rest des Projekts _(später geändert: Commit-Subjects seit 26.08.2026 englisch, Node-Pin auf ≥ 24 — s. `AGENTS.md`; `data/*.json` seit Fahrplan 3 Fenster C ganz aus der Versionierung)_ |
 
 ---
 

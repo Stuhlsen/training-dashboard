@@ -1,36 +1,28 @@
 # .github/workflows/sync-data.yml
-# Generiert rides.json aus Notion (Plan 1) und intervals.icu (Plan 2) und
-# committed die Daten. Kein GitHub-Pages-Deploy mehr (Issue #30) — das
-# Frontend läuft seit 2026-08-20 selbst-gehostet über Docker
-# (ghcr.io/stuhlsen/training-dashboard-frontend, Build in publish-images.yml).
 #
-# Benötigte Secrets (Settings → Secrets → Actions):
-#   NOTION_API_KEY        — Notion Integration Token
-#   NOTION_DATABASE_ID    — Plan 1 Trainingsdatenbank-ID
-#   INTERVALS_API_KEY     — intervals.icu API Key (Athlet 1)
-#   INTERVALS_ATHLETE_ID  — intervals.icu Athlete ID (Athlet 1)
-#   INTERVALS_API_KEY_2   — intervals.icu API Key (Athlet 2, optional — Vergleichsdaten)
-#   INTERVALS_ATHLETE_ID_2 — intervals.icu Athlete ID (Athlet 2, optional)
-#   WEATHER_LAT / WEATHER_LON     — Standort Athlet 1 (Breitengrad/Längengrad, privat)
-#   WEATHER_LAT_2 / WEATHER_LON_2 — Standort Athlet 2 (optional, privat)
-#   SUPABASE_ATHLETE4_EMAIL / _PASSWORD — Prod-Supabase-Login Athlet 4
-#     ("Bentastiic", Einsteiger, volles Modell). Kein INTERVALS_API_KEY_4:
-#     der intervals.icu-Key trägt der Athlet selbst in Settings ein
-#     (Tabelle intervals_credentials), der Sync liest ihn darüber.
-#   WEATHER_LAT_4 / WEATHER_LON_4 — Standort Athlet 4 (optional, privat)
-
-name: Sync Training Data
-
 # DEAKTIVIERT seit Fahrplan 3 Fenster C (Issue #31, 30.08.2026): Der Sync
 # laeuft seither als Dauer-Container auf apps01 und schreibt data/*.json
 # direkt ins mit dem Frontend geteilte Volume — kein Commit-und-Poll-Umweg
-# mehr, data/*.json ist nicht mehr versioniert. Dieser Workflow bleibt als
-# Rueckfahrkarte im Repo, laeuft aber nur noch auf manuellen Anstoss
-# (workflow_dispatch). Wieder scharfschalten = schedule/push-Trigger unten
-# wieder eintragen UND data/*.json wieder ins Repo aufnehmen (Eintrag in
-# .gitignore entfernen), sonst schlaegt der "Commit data"-Schritt am
-# `git checkout origin/... -- data/...` fehl. Details:
-# docs/fahrplan-3-sync-produktivbetrieb.md.
+# mehr, data/*.json ist nicht mehr versioniert. Dieser Workflow generiert
+# rides.json aus Notion (Plan 1) und intervals.icu (Plan 2) und committet
+# die Daten; er bleibt nur als Rueckfahrkarte im Repo und laeuft ausschliesslich
+# auf manuellen Anstoss (workflow_dispatch). Wieder scharfschalten =
+# schedule/push-Trigger unten wieder eintragen UND data/*.json wieder ins Repo
+# aufnehmen (Eintrag in .gitignore entfernen), sonst schlaegt der "Commit
+# data"-Schritt am `git checkout origin/... -- data/...` fehl.
+# Kein GitHub-Pages-Deploy (Issue #30) — Frontend selbst-gehostet ueber Docker
+# (ghcr.io/stuhlsen/training-dashboard-frontend, Build in publish-images.yml).
+#
+# Secrets (Settings → Secrets → Actions) — Stand seit Fahrplan 7 CRED3:
+#   NOTION_API_KEY / NOTION_DATABASE_ID   — Notion-Ära-Historie (nur Athlet 1)
+#   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — einziger Sync-Zugang; liest
+#     intervals.icu-Key/-ID + grobe Koordinaten je Athlet aus athlete_sync_config
+#     (scripts/lib/sync-config-fetch.js) sowie plan_cards/ftp_history/profiles.
+#   SUPABASE_ANON_KEY                     — nur fuer den anonymen session_formats-Read
+#   Die frueheren INTERVALS_API_KEY(_2/_4) / WEATHER_LAT/LON(_2/_4) /
+#   SUPABASE_ATHLETE1/4_* / SYNC_PUSH_TOKEN sind abgeloest (Restpfad bis CRED5).
+
+name: Sync Training Data
 on:
   workflow_dispatch:
 

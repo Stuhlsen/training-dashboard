@@ -56,6 +56,14 @@ Stichworte — der Volltext mit Begründung steht in `fahrplan-3-docker-umbau.md
 
 **18 Fenster insgesamt.** Jedes hat Ziel, Vorbedingung, nummerierte Schritte, Abnahmekriterien und Modellempfehlung.
 
+> **Nachtrag:** Seit diesem Übersichtsdokument sind eigenständige Fahrpläne
+> dazugekommen, die **nicht** Teil der vier oben sind (Herkunft/Umfang je im
+> Dokument selbst, Liste in `docs/README.md`): `fahrplan-3-sync-produktivbetrieb.md`
+> (Sync-Rollout auf apps01, Issue #31 — **abgeschlossen**),
+> `fahrplan-5-planungstab-redesign.md` (**abgeschlossen**),
+> `fahrplan-6-ruhetag-planwochen-modell.md` (**abgeschlossen**) und
+> `fahrplan-7-sync-credentials-self-service.md` (CRED1–CRED4 umgesetzt, CRED5/CRED6 offen).
+
 ---
 
 ## 5. Abhängigkeiten
@@ -111,7 +119,7 @@ Fenster, nach denen zwingend ein Bericht abgewartet wird:
 - **Pro Fenster ein frischer Claude-Code-Chat.** Nur der Auftrag rein, nur der Abschlussbericht raus.
 - **Planungschat wechseln** nach DKR2 und nach DKR6, um den Kontext klein zu halten.
 - **Modell-Kürzel:** `[F5]` Architektur/Security/Debugging · `[OP]` Refactoring/State-Sync · `[SO]` Arbeitspferd · `[HA]` Kleinkram
-- **Umgebung:** PowerShell, keine `&&`-Verkettung. Node ≥22.3, `npm test` mit `--experimental-test-module-mocks`. Deutsche Commit-Prefixes.
+- **Umgebung:** PowerShell, keine `&&`-Verkettung. Node ≥ 24 (CI pinnt `node-version: 24`, Begründung in `AGENTS.md`), `npm test` mit `--experimental-test-module-mocks`. Commit-Prefixes wie gehabt, Subject seit 26.08.2026 auf Englisch (`AGENTS.md` „Commit-Konvention").
 
 ---
 

@@ -1,6 +1,6 @@
 # 🚴 Radsport Trainingsdashboard
 
-Persönliches Radsport-Trainingsdashboard mit zwei Datenpfaden: **Lesedaten** (Leistungs-, HRV-, Schlaf- und Wellness-Werte aus intervals.icu und Apple Health) werden per GitHub Action alle 6 Stunden synchronisiert und als statisches JSON ausgeliefert — kein Server, keine laufenden Kosten. **Schreibdaten** (Login, Ziele, Events, tägliches Befinden, Trainingskarten, Trainer-Vorschläge) laufen über Supabase (Free Tier, Row Level Security) und machen aus dem ursprünglich rein statischen Dashboard eine interaktive Mehrbenutzer-App mit Athlet-, Trainer- und Besucher-Rolle.
+Persönliches Radsport-Trainingsdashboard mit zwei Datenpfaden: **Lesedaten** (Leistungs-, HRV-, Schlaf- und Wellness-Werte aus intervals.icu und Apple Health) werden alle 6 Stunden von einem Sync-Container synchronisiert und als statisches JSON ausgeliefert. **Schreibdaten** (Login, Ziele, Events, tägliches Befinden, Trainingskarten, Trainer-Vorschläge) laufen über Supabase (Postgres + Auth + Row Level Security) und machen aus dem ursprünglich rein statischen Dashboard eine interaktive Mehrbenutzer-App mit Athlet-, Trainer- und Besucher-Rolle. Betrieb: selbst-gehostet als Docker-Verbund auf einem eigenen Server (Frontend + Sync + Postgres/GoTrue/PostgREST/Caddy), kein GitHub Pages mehr.
 
 **Trainingshistorie:** März 2026 – laufend, FTP 166 W → 193 W (Basisaufbau, März–Juni) → laufendes Ziel ≥ 210 W (pyramidale Periodisierung, Retest 19.09.2026). Die frühen Wochen liefen über Notion (manuell erfasst), seit Sommer 2026 automatisch über intervals.icu — beide Ären laufen heute einheitlich auf ISO-Kalenderwochen statt der ursprünglichen Plan-1/Plan-2-Aufteilung.
 
@@ -12,7 +12,7 @@ Persönliches Radsport-Trainingsdashboard mit zwei Datenpfaden: **Lesedaten** (L
 ## Architektur
 
 ```
-LESEDATEN (alle 6h, GitHub Action)              SCHREIBDATEN (sofort, Supabase)
+LESEDATEN (alle 6h, Sync-Container apps01)      SCHREIBDATEN (sofort, Supabase)
 ──────────────────────────────────              ───────────────────────────────
 Notion DB (Notion-Ära, historisch) ──┐           Login/Session ──→ profiles
 intervals.icu API ────────────────────┼──→        Ziele ──────────→ goals
@@ -38,7 +38,7 @@ Open-Meteo API ─────────────────────�
 
 `data/subjective.json` und `data/adjustments.json`/`adjustments-2.json` sind seit der Migration nach `plan_cards` bzw. dem täglichen Supabase-Check-in nur noch read-only Archiv älterer Daten, kein aktiver Schreibpfad mehr.
 
-**Tech-Stack:** React + TypeScript + Vite (`/app/`, SVG-Charts als React-Komponenten) · Node.js ≥ 24 lokal (Details/Begründung in `AGENTS.md`) · GitHub Actions (Daten-Sync alle 6 h + getrennte CI-Jobs für Root und `/app/`: Tests, ESLint, Fallow-Codebase-Qualitätsreport) · Supabase (Free Tier, Postgres + Auth + RLS, offizielles `@supabase/supabase-js`-npm-Paket)
+**Tech-Stack:** React + TypeScript + Vite (`/app/`, SVG-Charts als React-Komponenten) · Node.js ≥ 24 lokal (Details/Begründung in `AGENTS.md`) · Daten-Sync alle 6 h als Container auf apps01 (nicht mehr GitHub Actions — s. `docs/fahrplan-3-sync-produktivbetrieb.md`) · GitHub Actions nur noch CI (getrennte Jobs für Root und `/app/`: Tests, ESLint, Fallow-Report) + GHCR-Image-Publish bei `v*`-Tag · Supabase (Postgres + Auth + RLS, offizielles `@supabase/supabase-js`-npm-Paket)
 
 **Code-Architektur:** strikte Schichtentrennung `app/src/core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Belastungsempfehlung, Intensitätsverteilung, EF-/HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierung, Konsistenz & Adhärenz, Bestwerte, Plan-Konflikte/-Prognose, Vorschlags-Validierung) → `app/src/api/` (I/O-Grenze: JSON-Pipeline + Supabase-Adapter) → `app/src/hooks/`/`features/` (Orchestrierung, React Query) → `app/src/components/`/`charts/`/`features/*` (Rendering). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
 
@@ -101,7 +101,7 @@ Ersetzt seit dem Redesign vom 20.08.2026 den früheren Kennzahlen/Verläufe-Tab-
   Frage 1 zeigt zusätzlich die Power-Curve als eigene Spurenkarte.
 - **Kennzahlen (eingeklappt)**: der bisherige Kennzahlen-Tab-Inhalt lebt aufklappbar als Anhang weiter (`LegacyKpiAppendix.tsx`) — Belastung & Erholung (CTL-Ramp, Foster-Monotonie), Intensitätsverteilung (polarisiert/pyramidal/schwellenlastig, 80%-Richtwert), Aerobe Entwicklung (EF, HF-Decoupling, Kadenz), Leistungsdiagnostik (FTP-Dreiklang 🔬 gemessen / 〜 geschätzt / 🎯 Ziel, Bestwerte), Regeneration & Körper (Gewicht, Energiebilanz, Hydration — nur bei ≥ 5 Punkten/30 Tagen), Konsistenz & Adhärenz, Periodisierungs-Erfüllung (nur eigener Plan).
 
-**Wetter:** Alle Standortdaten (Koordinaten) liegen ausschließlich als GitHub Secrets — niemals im Code, nie in der JSON, nie im Frontend-JavaScript. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig in der GitHub Action berechnet. Beide Athleten nutzen getrennte Standort-Secrets.
+**Wetter:** Standortkoordinaten liegen RLS-geschützt und serverseitig grob gerundet (~1,1 km) in der Supabase-Tabelle `athlete_sync_config` — niemals im Code, nie in der JSON, nie im Frontend-JavaScript, jeder Athlet trägt sie selbst in Settings ein. Historisches Wetter, aktuelles Wetter (letzte 3 Tage) und der 16-Tage-Planungs-Forecast werden ausschließlich serverseitig im Sync-Container berechnet. Nur die Wetterwerte landen in `rides.json`, nie die Koordinaten.
 
 ---
 
@@ -117,11 +117,11 @@ Ersetzt seit dem Redesign vom 20.08.2026 den früheren Kennzahlen/Verläufe-Tab-
 | eFTP-Historie | — | intervals.icu (`icu_eftp` je Fahrt + Wellness `sportInfo`) | intervals.icu (Wellness `sportInfo`) |
 | CTL / ATL / TSB | Notion (manuell) | intervals.icu (automatisch) | intervals.icu (automatisch) |
 | Einheitstyp | Notion | Datum-Mapping → IF-Inferenz | IF-Inferenz (NP ÷ FTP) + Dauer |
-| Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health | intervals.icu + Apple Health |
-| Schlaf | — | intervals.icu (Apple Health Sync) | intervals.icu (Apple Health Sync) |
+| Wellness (RHF, HRV) | Notion (manuell) | intervals.icu + Apple Health | intervals.icu + Amazfit |
+| Schlaf | — | intervals.icu (Apple Health Sync) | intervals.icu (Amazfit Sync) |
 | Körper & Regeneration (Gewicht, Kalorien, Hydration, Körperfett) | — | intervals.icu Wellness (Apple Health Sync) | intervals.icu Wellness |
 | Nach-Fahrt-Befinden | Notion (manuell) | RPE/Feel aus intervals.icu (kein editierbares Dropdown mehr im Dashboard) | — |
-| Wetter | Notion (manuell) | Open-Meteo (automatisch, Secrets) | Open-Meteo (automatisch, eigene Secrets) |
+| Wetter | Notion (manuell) | Open-Meteo (automatisch, `athlete_sync_config`) | Open-Meteo (automatisch, `athlete_sync_config`) |
 | Wetter-Forecast | — | Open-Meteo Forecast, serverseitig | — |
 | Geplante Sessions (Ursprung) | — | ursprünglich `PLANNED_SESSIONS` in `scripts/lib/plan2.js`, seit Phase 3 einmalig nach `plan_cards` migriert | `PLANNED_SESSIONS_ATHLETE2` in `scripts/lib/plan-athlete2.js` (GFNY Bremen 2026) |
 
@@ -156,23 +156,27 @@ Alle Tabellen sind per Row Level Security abgesichert (`supabase/migrations/`, i
 - Node.js ≥ 24 lokal — `npm test` nutzt `--experimental-test-module-mocks` mit der `{ exports }`-Kurzform, die erst ab Node 24 zuverlässig läuft (Details in `AGENTS.md`)
 - Ein eigenes Supabase-Projekt (Free Tier) nur nötig, wer die Schreibfunktionen (Login, Planung, Trainer-Flow) selbst betreiben will — die reine Leseansicht funktioniert auch ohne
 
-### GitHub Secrets (Lesedaten-Pipeline)
+### Sync-Zugangsdaten (Lesedaten-Pipeline)
 
-| Secret | Beschreibung |
+Der Sync läuft als Container auf apps01. Seit Fahrplan 7 liest er alle
+athletenbezogenen Zugangsdaten (intervals.icu-Key + Athlete-ID, grobe
+Standortkoordinaten) per **Service-Role** aus der RLS-geschützten
+Supabase-Tabelle `athlete_sync_config` — jeder Athlet trägt sie selbst in
+**Settings** ein. Der Container braucht damit nur noch:
+
+| Wert | Beschreibung |
 |---|---|
-| `NOTION_API_KEY` | Notion Integration Token (Notion-Ära) |
-| `NOTION_DATABASE_ID` | Notion-Trainingsdatenbank-ID |
-| `INTERVALS_API_KEY` | intervals.icu API Key (Athlete 1) |
-| `INTERVALS_ATHLETE_ID` | intervals.icu Athlete ID (Athlete 1) |
-| `INTERVALS_API_KEY_2` | intervals.icu API Key (Athlete 2, optional) |
-| `INTERVALS_ATHLETE_ID_2` | intervals.icu Athlete ID (Athlete 2, optional) |
-| `WEATHER_LAT` / `WEATHER_LON` | Koordinaten Athlete 1 (Dezimalgrad mit Punkt) |
-| `WEATHER_LAT_2` / `WEATHER_LON_2` | Koordinaten Athlete 2 (optional) |
-| `SYNC_PUSH_TOKEN` | Fine-grained PAT (Repo-Owner) für den Auto-Commit — nötig, weil `main` Branch Protection hat und der Standard-`GITHUB_TOKEN` dort nicht mehr pushen darf |
-| `SUPABASE_URL` / `SUPABASE_ANON_KEY` | Prod-Supabase-Projekt — der Sync-Job liest damit `plan_cards`/`ftp_history` zurück in die JSON-Pipeline |
-| `SUPABASE_ATHLETE1_EMAIL` / `SUPABASE_ATHLETE1_PASSWORD` | Login für den Sync-Job gegen Prod-Supabase (nur Athlete 1) |
+| `NOTION_API_KEY` / `NOTION_DATABASE_ID` | Notion-Ära-Historie (nur Athlet 1, Plan 1) |
+| `SUPABASE_URL` | Prod-Supabase-Projekt |
+| `SUPABASE_SERVICE_ROLE_KEY` | einziger Sync-Zugang zu `athlete_sync_config` / `plan_cards` / `ftp_history` / `profiles` (RLS-Bypass, nur serverseitig) |
+| `SUPABASE_ANON_KEY` | nur für den anonymen `session_formats`-Read |
 
-⚠️ **Standortdaten:** Koordinaten niemals im Code oder in JSON-Dateien eintragen — ausschließlich über GitHub Secrets. Der Wetter-Forecast wird serverseitig in der Action berechnet und nur als aggregierte Wetterwerte in `rides.json` gespeichert.
+Die früher pro Athlet wachsenden Secrets (`INTERVALS_API_KEY(_2/_4)`,
+`WEATHER_LAT/LON(_2/_4)`, `SUPABASE_ATHLETE*_EMAIL/PASSWORD`) sowie
+`SYNC_PUSH_TOKEN` (Auto-Commit der alten Sync-Action) sind **abgelöst** und
+schlafen — noch nicht gelöscht (s. Fahrplan 7 CRED5).
+
+⚠️ **Standortdaten:** Koordinaten niemals im Code oder in JSON-Dateien eintragen. Sie liegen RLS-geschützt und serverseitig auf ~1,1 km gerundet in `athlete_sync_config`, werden nur vom Sync gelesen, nie im Frontend, nie in JSON. Der Wetter-Forecast wird serverseitig im Sync berechnet und nur als aggregierte Wetterwerte in `rides.json` gespeichert.
 
 ### Lokale Entwicklung
 
@@ -180,10 +184,11 @@ Alle Tabellen sind per Row Level Security abgesichert (`supabase/migrations/`, i
 # .env Datei anlegen (wird nicht committet) — für die Lesedaten-Pipeline
 NOTION_API_KEY=...
 NOTION_DATABASE_ID=...
-INTERVALS_API_KEY=...
-INTERVALS_ATHLETE_ID=...
-WEATHER_LAT=...
-WEATHER_LON=...
+SUPABASE_URL=...
+SUPABASE_SERVICE_ROLE_KEY=...   # liest athlete_sync_config + plan_cards + ftp_history
+SUPABASE_ANON_KEY=...           # nur für den session_formats-Read
+# intervals.icu-Key/-ID + grobe Koordinaten je Athlet stehen in der
+# Supabase-Tabelle athlete_sync_config (via Settings), nicht mehr in .env
 
 # JSON generieren
 node scripts/generate-data.js
@@ -202,7 +207,7 @@ Im Planungs-Tab können strukturierte Workouts direkt zu intervals.icu gepusht w
 
 ### Git-Workflow
 
-Die GitHub Action committed Daten automatisch alle 6h. `subjective.json` und die inzwischen nur noch als Archiv gehaltenen `adjustments*.json` werden vor Überschreiben geschützt — der volle `git sync`-Alias (inkl. Branch-Guard, da er unabhängig vom ausgecheckten Branch immer die lokale `main`-Referenz pusht) ist in `AGENTS.md` dokumentiert:
+`data/*.json` ist seit Fahrplan 3 Fenster C nicht mehr versioniert — der apps01-Sync-Container schreibt es direkt ins mit dem Frontend geteilte Volume. Der volle `git sync`-Alias (inkl. Branch-Guard, da er unabhängig vom ausgecheckten Branch immer die lokale `main`-Referenz pusht) ist in `AGENTS.md` dokumentiert:
 
 ```powershell
 git add <dateien>
@@ -249,7 +254,7 @@ Eigenständiger Namensraum, definiert in `scripts/lib/plan-athlete2.js` — read
 
 ## Projektkontext
 
-Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → GitHub Actions → Self-Host via Docker) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
+Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → Sync-Container → Self-Host via Docker) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
 
 Der React-Umbau (Dashboard 3.0) ist abgeschlossen und live — `/app/` ist seit dem 15.08.2026 die einzige Oberfläche, der frühere Vanilla-JS-Zweig wurde entfernt. Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) ist als Konzeptdokument unter `docs/` vorbereitet, aber noch nicht umgesetzt; ein Self-Hosting-Umbau (Docker) läuft bereits — das Frontend ist seit 20.08.2026 live selbst-gehostet, die Ablösung der Supabase-Cloud (eigenes Postgres/GoTrue/PostgREST auf dem Zielserver) ist deployt und in der Abnahmephase (Details `docs/fahrplan-3-docker-umbau.md`).
 
