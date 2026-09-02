@@ -41,7 +41,7 @@ import {
   logRpeFeelCoverage,
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
-import { loadFtpHistory } from "./lib/ftp-history.js";
+import { loadFtpHistory, ftpAt } from "./lib/ftp-history.js";
 import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
 import { loadPlanCards, buildPlanCardTypeIndex } from "./lib/plan-cards-fetch.js";
 import { attachCompliance } from "./lib/compliance.js";
@@ -77,6 +77,38 @@ requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 const ATHLETE_2_NAME = "hc_diZee"; // Anzeigename (Pseudonym) — keine Klarnamen (Datenschutz)
 const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
 const ATHLETE_4_NAME = "bentastiic"; // Anzeigename (Pseudonym) — muss exakt profiles.display_name entsprechen
+
+/**
+ * Öffentliche FTP-Felder fürs rides*.json-Payload (Aufgabe "FTP-Anzeige im
+ * Hero für alle gleich", Migration 0025 `profiles.ftp_public`). Bei
+ * `ftpPublic === false` wird NUR das Flag geschrieben — das Frontend blendet
+ * die FTP-Widgets (Leistungsskala, Ringe, Zeitstrahl) für Besucher dann
+ * komplett aus. Bei `true`: aktuelle gemessene FTP (letzter Ramp-Test ≤ heute,
+ * sonst `scalarFallback`) + die Ramp-Test-Historie mit je eigenem Datum.
+ * @param {Array<{ftpWatt:number, validFrom:string, source:string}>} ftpHistory
+ * @param {boolean} ftpPublic
+ * @param {number|null} scalarFallback  Fallback für das skalare `ftp`-Feld
+ *   (Athlet 2: geschätzte FTP; Athlet 1/4: null)
+ * @param {string} todayISO
+ */
+function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO) {
+  if (!ftpPublic) return { ftpPublic: false };
+  const rampTests = (ftpHistory || []).filter((h) => h.source === "ramp-test");
+  const current = ftpAt(rampTests, todayISO, scalarFallback);
+  return {
+    ftpPublic: true,
+    ftp: current.ftpWatt ?? null,
+    // Synthetische, stabile id aus validFrom (pro Profil eindeutig, DB 0009) —
+    // keine echten ftp_history-UUIDs und kein `note`-Freitext im öffentlichen
+    // Payload.
+    ftpHistory: rampTests.map((h) => ({
+      id: `ramp-${h.validFrom}`,
+      ftpWatt: h.ftpWatt,
+      validFrom: h.validFrom,
+      source: "ramp-test",
+    })),
+  };
+}
 
 async function main() {
   // Blockerkennung-Cache (scripts/lib/interval-blocks.js) — einmal geladen,
@@ -130,6 +162,9 @@ async function main() {
   let athleteWeight = null;
   let powerCurves = null;
   const powerCurveBlocks = [];
+  // Öffentliche FTP-Felder (0025) — im intervals-Block unten aus der geladenen
+  // ftp_history befüllt; ohne intervals-Key bleibt es beim reinen Flag.
+  let ftpPublicFields1 = { ftpPublic: cfg1?.ftpPublic ?? true };
 
   // 2a. Wetter: Open-Meteo für gesamten Zeitraum (unabhängig von intervals.icu)
   const PLAN1_START = "2026-03-24";
@@ -209,6 +244,16 @@ async function main() {
       ftpHistory.length
         ? `✅ FTP-Historie: ${ftpHistory.length} Einträge (${ftpHistory.map((h) => `${h.ftpWatt}W ab ${h.validFrom}`).join(", ")})`
         : `ℹ️  FTP-Historie: keine Einträge/Credentials — Fallback auf DEFAULT_FTP (${DEFAULT_FTP}W) für alle Fahrten`
+    );
+
+    // Öffentliche FTP-Felder (0025): gemessene FTP + Ramp-Test-Zeitstrahl,
+    // nur wenn der Athlet sie freigegeben hat. Skalar-Fallback null — für
+    // Athlet 1 deckt config.ts::ftpMeasured die Planungs-/Analyse-Sicht ab.
+    ftpPublicFields1 = publicFtpFields(ftpHistory, cfg1?.ftpPublic ?? true, null, today);
+    log.info(
+      ftpPublicFields1.ftpPublic
+        ? `✅ FTP öffentlich: ${ftpPublicFields1.ftp ?? "–"}W · ${ftpPublicFields1.ftpHistory.length} Ramp-Test(s) im Payload`
+        : `ℹ️  FTP öffentlich: abgeschaltet (profiles.ftp_public=false) — keine FTP-Werte in rides.json`
     );
 
     // Blockerkennung (Fetch/Cache-Zwischenschritt, v2-Ist-Typerkennung) —
@@ -326,6 +371,7 @@ async function main() {
     powerCurves: powerCurves || null,
     powerCurveBlocks,
     athleteWeight,
+    ...ftpPublicFields1,
     plannedSessions: Object.entries(PLANNED_SESSIONS).map(([date, s]) => ({ date, ...s })),
     adjustments: loadAdjustments(),
     forecast: planningForecast || {},
@@ -460,9 +506,24 @@ async function main() {
     // — kein Rückfall auf den Forecast von Athlet 1.
     const planningForecast2 = await getPlanningForecast(cfg2.lat, cfg2.lon);
 
+    // Öffentliche FTP-Felder (0025) — Skalar-Fallback estimatedFTP2, damit
+    // `ftp` für Athlet 2 nicht auf null zurückfällt, wenn keine ramp-test-
+    // Historie gepflegt ist. Ersetzt das frühere feste `ftp: estimatedFTP2`.
+    const ftpPublicFields2 = publicFtpFields(
+      ftpHistory2,
+      cfg2?.ftpPublic ?? true,
+      estimatedFTP2,
+      today2
+    );
+    log.info(
+      ftpPublicFields2.ftpPublic
+        ? `✅ FTP öffentlich (${ATHLETE_2_NAME}): ${ftpPublicFields2.ftp ?? "–"}W · ${ftpPublicFields2.ftpHistory.length} Ramp-Test(s)`
+        : `ℹ️  FTP öffentlich (${ATHLETE_2_NAME}): abgeschaltet — keine FTP-Werte in rides-2.json`
+    );
+
     const output2 = {
       athleteName: ATHLETE_2_NAME,
-      ftp: estimatedFTP2,
+      ...ftpPublicFields2,
       rides: rides2,
       wellness: wellnessList2,
       wellnessMeta: { lastUpdated: lastFieldDates(wellnessList2, READINESS_FIELDS) },
@@ -595,9 +656,15 @@ async function main() {
       );
     }
 
+    // Öffentliche FTP-Felder (0025) — Athlet 4 hat (noch) keine ramp-test-
+    // Historie: `ftp` bleibt null, `ftpHistory` leer, bis der 20-Min-Test
+    // (plan-athlete4.js KW47) einen Eintrag anlegt. Dann leuchtet es
+    // automatisch, ohne Code-Änderung.
+    const ftpPublicFields4 = publicFtpFields(ftpHistory4, cfg4?.ftpPublic ?? true, null, today4);
+
     const output4 = {
       athleteName: ATHLETE_4_NAME,
-      ftp: null, // wattlos bis zum ersten Test (plan-athlete4.js KW47)
+      ...ftpPublicFields4,
       rides: rides4,
       wellness: wellnessList4,
       wellnessMeta: { lastUpdated: lastFieldDates(wellnessList4, READINESS_FIELDS) },

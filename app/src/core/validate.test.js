@@ -43,3 +43,24 @@ test("validateRidesPayload prüft Stichprobe der ersten Einträge", () => {
   const problems = validateRidesPayload(payload);
   assert.ok(problems.some((p) => p.startsWith("rides[0].date")));
 });
+
+test("validateRidesPayload: ftp / ftpPublic / ftpHistory sind gültige Felder (0025)", () => {
+  const payload = {
+    rides: [validRide],
+    ftp: 193,
+    ftpPublic: true,
+    ftpHistory: [{ id: "ramp-2026-06-12", ftpWatt: 193, validFrom: "2026-06-12", source: "ramp-test" }],
+  };
+  assert.deepEqual(validateRidesPayload(payload), []);
+});
+
+test("validateRidesPayload: falscher Typ bei ftpPublic / ftpHistory-Eintrag wird gemeldet", () => {
+  const bad = validateRidesPayload({ rides: [validRide], ftpPublic: "ja" });
+  assert.ok(bad.some((p) => p.startsWith("payload.ftpPublic")));
+
+  const badEntry = validateRidesPayload({
+    rides: [validRide],
+    ftpHistory: [{ id: "ramp-x", ftpWatt: "193", validFrom: "2026-06-12" }],
+  });
+  assert.ok(badEntry.some((p) => p.startsWith("ftpHistory[0].ftpWatt")));
+});

@@ -97,12 +97,28 @@ export const WELLNESS_SCHEMA = {
   eftp: "number?",
 };
 
+/** Öffentlicher Ramp-Test-Eintrag im rides*.json-Payload (Migration 0025,
+ *  scripts/generate-data.js::publicFtpFields) — Teilmenge von ftp_history
+ *  ohne `note`, mit synthetischer id. */
+export const FTP_HISTORY_SCHEMA = {
+  id: "string",
+  ftpWatt: "number",
+  validFrom: "string",
+  source: "string?",
+};
+
 const PAYLOAD_SCHEMA = {
   rides: "array",
   wellness: "array?",
   wellnessMeta: "object?",
   powerCurves: "object?",
   athleteWeight: "number?",
+  // Aktuelle gemessene FTP + Sichtbarkeits-Flag + Ramp-Test-Zeitstrahl
+  // (scripts/generate-data.js::publicFtpFields, Migration 0025). `ftp` fehlte
+  // hier bisher, obwohl Athlet 2 es seit jeher liefert — mit ergänzt.
+  ftp: "number?",
+  ftpPublic: "boolean?",
+  ftpHistory: "array?",
   plannedSessions: "array?",
   adjustments: "object?",
   forecast: "object?",
@@ -132,6 +148,10 @@ export function validateRidesPayload(json) {
   const wellness = json.wellness || [];
   for (let i = 0; i < Math.min(2, wellness.length); i++) {
     problems.push(...checkObject(wellness[i], WELLNESS_SCHEMA, `wellness[${i}]`));
+  }
+  const ftpHistory = Array.isArray(json.ftpHistory) ? json.ftpHistory : [];
+  for (let i = 0; i < Math.min(2, ftpHistory.length); i++) {
+    problems.push(...checkObject(ftpHistory[i], FTP_HISTORY_SCHEMA, `ftpHistory[${i}]`));
   }
   return problems;
 }

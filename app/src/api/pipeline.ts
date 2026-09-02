@@ -19,6 +19,7 @@ import { normalizeRide, normalizeWellness } from "../core/normalize.js";
 import { validateRidesPayload } from "../core/validate.js";
 import { athleteConfig } from "../config";
 import type { Result } from "./types";
+import type { FtpHistoryEntry } from "./supabase/ftp-history";
 
 /** Rohes Payload einer `rides*.json`. Die Feldtypen sind hier bewusst weich
  *  (`unknown[]`): die Laufzeitprüfung macht `core/validate.js`, und die
@@ -33,6 +34,13 @@ export interface RidesPayload {
   powerCurveBlocks?: unknown[];
   athleteWeight?: number | null;
   ftp?: number | null;
+  /** Sichtbarkeits-Flag (Migration 0025 `profiles.ftp_public`). Fehlt in
+   *  Alt-Payloads → als `true` behandeln. Bei `false` liefert der Sync weder
+   *  `ftp` noch `ftpHistory`. */
+  ftpPublic?: boolean;
+  /** Ramp-Test-Zeitstrahl für die öffentliche Hero-Ansicht — nur bei
+   *  `ftpPublic !== false` befüllt. Shape: `PublicFtpEntry` (types.js). */
+  ftpHistory?: unknown[];
   plannedSessions?: unknown[];
   adjustments?: Record<string, unknown>;
   forecast?: Record<string, unknown>;
@@ -47,6 +55,14 @@ export interface AthleteData {
   powerCurveBlocks: unknown[];
   athleteWeight: number | null;
   athleteFtp: number | null;
+  /** `false` = der Athlet hat die FTP-Anzeige abgeschaltet; die Hero-Seite
+   *  blendet Leistungsskala/Ringe/Zeitstrahl für Besucher dann komplett aus.
+   *  Alt-Payload ohne Feld → `true`. */
+  ftpPublic: boolean;
+  /** Ramp-Test-Historie aus dem Payload (nur öffentlich, `note` stets null) —
+   *  speist `buildHeroCore()`s `ftpHistoryEntries` für ausgeloggte Besucher,
+   *  analog `useFtpHistory()` für den eingeloggten Athleten. */
+  ftpHistory: FtpHistoryEntry[];
   plannedSessions: unknown[];
   adjustments: Record<string, unknown>;
   forecast: Record<string, unknown>;
@@ -69,6 +85,16 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
     powerCurveBlocks: json.powerCurveBlocks ?? [],
     athleteWeight: json.athleteWeight ?? null,
     athleteFtp: json.ftp ?? null,
+    ftpPublic: json.ftpPublic ?? true,
+    // `note` gibt es im öffentlichen Payload bewusst nicht — fix null. Cast
+    // wie bei rides/wellness: validateRidesPayload() hat die Struktur geprüft.
+    ftpHistory: ((json.ftpHistory ?? []) as Array<Record<string, unknown>>).map((r) => ({
+      id: String(r.id),
+      ftpWatt: Number(r.ftpWatt),
+      validFrom: String(r.validFrom),
+      source: typeof r.source === "string" ? r.source : "ramp-test",
+      note: null,
+    })),
     plannedSessions: json.plannedSessions ?? [],
     adjustments: json.adjustments ?? {},
     forecast: json.forecast ?? {},

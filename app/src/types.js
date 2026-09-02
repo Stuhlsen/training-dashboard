@@ -74,6 +74,23 @@
  */
 
 /**
+ * Öffentlicher Ramp-Test-Eintrag im rides*.json-Payload — vom Sync
+ * geschrieben (scripts/generate-data.js::publicFtpFields, Migration 0025
+ * `profiles.ftp_public`), damit die Hero-FTP-Widgets für Besucher dieselben
+ * Werte wie für den eingeloggten Athleten zeigen. Teilmenge der
+ * ftp_history-Zeile OHNE `note` (privater Freitext), mit synthetischer,
+ * stabiler `id` (`ramp-<validFrom>`) statt der echten UUID.
+ * Begleitende Payload-Top-Level-Felder: `ftp` (aktuelle gemessene FTP,
+ * number|null) und `ftpPublic` (boolean, Default true) — bei `ftpPublic:
+ * false` liefert der Sync weder `ftp` noch `ftpHistory`.
+ * @typedef {Object} PublicFtpEntry
+ * @property {string} id          synthetisch: "ramp-" + validFrom
+ * @property {number} ftpWatt
+ * @property {string} validFrom   YYYY-MM-DD
+ * @property {string} [source]    immer "ramp-test"
+ */
+
+/**
  * Ergebnis des Soll-Ist-Matchings gegen die zugehörige Plankarte
  * (core/compliance-match.js::computeCompliance, D3 in
  * docs/konzept-progressionssteuerung.md). Nur vorhanden, wenn eine
