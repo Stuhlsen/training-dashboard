@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
-import type { HeroViewModel } from "./hero-view-model";
+import { ChartTooltip } from "../../charts/ChartTooltip";
+import { powerScaleReadout, type HeroViewModel } from "./hero-view-model";
 
 interface PowerScaleProps {
   powerScale: HeroViewModel["powerScale"];
@@ -22,9 +24,29 @@ const PIN_COLOR: Record<HeroViewModel["powerScale"]["pins"][number]["kind"], str
  *  hero-view-model.ts (`core/zones.js`/`core/ftp-progress.js`); der
  *  Sliderwert selbst ist reiner Komponenten-Zustand in HeroPage (nur
  *  Vorschau, kein Schreiben). */
+interface ScaleHover {
+  x: number;
+  y: number;
+  watts: number;
+  zoneLabel: string;
+}
+
 export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftpVal }: PowerScaleProps) {
   const remaining = eftpVal != null ? Math.max(0, whatIfFtp - eftpVal) : null;
   const fillPct = ((whatIfFtp - whatIf.min) / (whatIf.max - whatIf.min)) * 100;
+  const [hover, setHover] = useState<ScaleHover | null>(null);
+
+  function handleScaleMove(e: React.MouseEvent<HTMLDivElement>) {
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const fraction = (e.clientX - rect.left) / rect.width;
+    const readout = powerScaleReadout(fraction, powerScale);
+    if (!readout) {
+      setHover(null);
+      return;
+    }
+    setHover({ x: e.clientX, y: e.clientY, watts: readout.watts, zoneLabel: readout.zoneLabel });
+  }
 
   return (
     <GlassCard
@@ -43,7 +65,11 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
           Leistungsskala · Watt
         </span>
 
-        <div style={{ position: "relative", marginTop: 4 }}>
+        <div
+          style={{ position: "relative", marginTop: 4, cursor: "crosshair" }}
+          onMouseMove={handleScaleMove}
+          onMouseLeave={() => setHover(null)}
+        >
           <div style={{ display: "flex", height: 16, borderRadius: 9, overflow: "hidden" }}>
             {powerScale.segments.map((z) => (
               <div key={z.id} style={{ flex: `0 0 ${z.pct.toFixed(2)}%`, background: z.color }} />
@@ -80,11 +106,22 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
                   boxShadow: tall ? "0 0 10px color-mix(in oklab, var(--accent) 60%, transparent)" : undefined,
                   transform: "translateX(-50%)",
                   borderRadius: 2,
+                  // Pins fangen den Hover auf der Skala nicht ab (nur der
+                  // Zonen-Balken darunter zählt) — s. handleScaleMove.
+                  pointerEvents: "none",
                 }}
               />
             );
           })}
         </div>
+
+        {hover && (
+          <ChartTooltip x={hover.x} y={hover.y} width={160}>
+            <div>
+              <b>{hover.watts} W</b> · {hover.zoneLabel}
+            </div>
+          </ChartTooltip>
+        )}
 
         <div style={{ display: "flex", fontSize: ".72rem", color: "var(--ink-3)", letterSpacing: ".05em" }}>
           {powerScale.segments.map((z) => (

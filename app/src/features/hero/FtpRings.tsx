@@ -173,6 +173,9 @@ export function FtpRings({
   // Nur der Ramp-Ring trägt ein Testdatum, unabhängig davon, ob er gerade
   // groß (primary) oder klein (secondary) dargestellt wird.
   const rampDate = ramp.date;
+  // Der Zeitstrahl kann mehrere „Ramp-Test"-Zeilen tragen (Settings-Historie,
+  // chronologisch); nur der letzte davon entspricht dem aktuellen Ring-Wert.
+  const lastRampIdx = milestones.map((m) => m.label).lastIndexOf("Ramp-Test");
 
   return (
     <GlassCard variant="soft" radius="24px" style={{ padding: "26px 28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
@@ -207,10 +210,17 @@ export function FtpRings({
       <div style={{ display: "flex", flexDirection: "column" }}>
         {milestones.map((m, i) => (
           <TimelineRow
-            key={m.label}
+            // Mehrere „Ramp-Test"-Zeilen möglich (Historie aus den Settings) —
+            // Label allein ist als React-Key nicht mehr eindeutig. Der Index
+            // sichert die Eindeutigkeit auch, falls zwei Einträge dasselbe
+            // Datum tragen; die Liste ist deterministisch geordnet, der Index
+            // daher über Renders hinweg stabil genug.
+            key={`${m.label}-${m.date ?? "nodate"}-${i}`}
             label={m.label}
             value={m.value}
-            date={m.label === "Ramp-Test" ? (m.date ?? rampDate ?? undefined) : m.date}
+            // Nur der aktuellste Ramp-Test darf auf das config-Datum
+            // zurückfallen; historische Einträge tragen ihr eigenes Datum.
+            date={m.label === "Ramp-Test" && i === lastRampIdx ? (m.date ?? rampDate ?? undefined) : m.date}
             suffix={m.label === "Saisonziel" ? remainingSuffix : undefined}
             isLast={i === milestones.length - 1}
           />

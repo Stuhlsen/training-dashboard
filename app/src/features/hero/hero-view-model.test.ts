@@ -3,7 +3,7 @@
    Berechnungen dahinter sind bereits in core/*.test.js abgedeckt. */
 
 import { describe, expect, it } from "vitest";
-import { buildHeroMetrics, buildHeroViewModel, type HeroViewModelInput } from "./hero-view-model";
+import { buildHeroMetrics, buildHeroViewModel, buildPowerScale, powerScaleReadout, type HeroViewModelInput } from "./hero-view-model";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -85,6 +85,22 @@ describe("buildHeroViewModel", () => {
       ],
     });
     expect(vm.ramp.value).toBe(193);
+  });
+
+  it("ftp_history: alle früheren ramp-test-Einträge landen chronologisch als eigene Zeitstrahl-Zeilen", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      ftpHistoryEntries: [
+        { id: "a", ftpWatt: 180, validFrom: "2026-04-01", source: "ramp-test", note: null },
+        { id: "b", ftpWatt: 195, validFrom: "2026-06-01", source: "ramp-test", note: null },
+        { id: "c", ftpWatt: 208, validFrom: "2026-07-15", source: "ramp-test", note: null },
+      ],
+    });
+    const ramps = vm.milestones.filter((m) => m.label === "Ramp-Test");
+    expect(ramps.map((m) => m.value)).toEqual([180, 195, 208]);
+    expect(ramps.map((m) => m.date)).toEqual(["2026-04-01", "2026-06-01", "2026-07-15"]);
+    // aktueller Ring-Wert = jüngster Eintrag
+    expect(vm.ramp.value).toBe(208);
   });
 
   it("ftp_history: nur source \"ramp-test\" zählt, \"schaetzung\" wird ignoriert (analog export-briefing-view-model.ts)", () => {
@@ -250,6 +266,38 @@ describe("buildHeroViewModel", () => {
       rides: [...BASE_INPUT.rides, { dateISO: "2026-07-22", date: "2026-07-22", eftp: 205 } as Ride],
     });
     expect(vm.powerScale.pins.map((p) => p.kind).sort()).toEqual(["eftp", "goal", "ramp"]);
+  });
+});
+
+describe("powerScaleReadout", () => {
+  const ps = buildPowerScale(200, 205, 210); // ftpVal, eftpVal, whatIfFtp
+
+  it("Segmente tragen Watt-Grenzen", () => {
+    expect(ps.segments.every((s) => s.toW > s.fromW)).toBe(true);
+    expect(ps.segments[0].fromW).toBe(0);
+  });
+
+  it("linker Rand ~ 0 W, rechter Rand ~ scaleMax", () => {
+    expect(powerScaleReadout(0, ps)?.watts).toBe(0);
+    expect(powerScaleReadout(1, ps)?.watts).toBe(ps.scaleMax);
+  });
+
+  it("Mitte eines Segments liefert dessen Zonen-Label", () => {
+    const z2 = ps.segments.find((s) => s.id === "z2")!;
+    const mid = (z2.fromW + z2.toW) / 2 / ps.scaleMax;
+    expect(powerScaleReadout(mid, ps)?.zoneLabel).toBe(z2.label);
+  });
+
+  it("oberhalb der letzten Zone: \"über Z5\"", () => {
+    const lastToW = ps.segments[ps.segments.length - 1].toW;
+    const beyond = (lastToW + (ps.scaleMax - lastToW) / 2) / ps.scaleMax;
+    expect(powerScaleReadout(beyond, ps)?.zoneLabel).toBe("über Z5");
+  });
+
+  it("außerhalb [0,1] -> null", () => {
+    expect(powerScaleReadout(-0.1, ps)).toBeNull();
+    expect(powerScaleReadout(1.5, ps)).toBeNull();
+    expect(powerScaleReadout(Number.NaN, ps)).toBeNull();
   });
 });
 

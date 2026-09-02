@@ -217,6 +217,11 @@ export interface HeroZoneSegment {
   label: string;
   pct: number;
   color: string;
+  /** Watt-Grenzen des Segments (aus `computeZones()`), damit die
+   *  Leistungsskala beim Hover eine Watt-/Zonen-Anzeige bauen kann, ohne
+   *  die Zonen ein zweites Mal zu berechnen. */
+  fromW: number;
+  toW: number;
 }
 
 /** `kind` statt eines reinen `isGoal`-Flags: die drei Pins sehen im Design
@@ -469,12 +474,27 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const weatherToday = buildWeatherToday(forecast, todayISO);
   const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO);
   const readiness = assessReadiness(wellness, todayISO);
-  const milestones = athleteCfg
+  const milestonesBase = athleteCfg
     ? buildMilestones(
         { ...athleteCfg, ftpMeasured: ftpVal ?? athleteCfg.ftpMeasured ?? undefined, ftpMeasuredDate },
         eftpVal,
       )
     : [];
+  // Alle FRÜHEREN Ramp-Test-Einträge aus der Settings-Historie zusätzlich in
+  // den Zeitstrahl (bisher zeigte er nur den aktuellsten). Chronologisch vor
+  // dem aktuellen „Ramp-Test" eingefügt — nur bei isSelf befüllt (s.
+  // HeroPage.tsx), Besucher sehen weiterhin nur die config-Meilensteine.
+  const rampHistory = (ftpHistoryEntries ?? [])
+    .filter((e) => e.source === "ramp-test" && e.id !== currentFtpEntryVal?.id)
+    .sort((a, b) => a.validFrom.localeCompare(b.validFrom))
+    .map((e) => ({ label: "Ramp-Test", value: e.ftpWatt, date: e.validFrom }));
+  const rampIdx = milestonesBase.findIndex((m) => m.label === "Ramp-Test");
+  const milestones =
+    rampHistory.length === 0
+      ? milestonesBase
+      : rampIdx === -1
+        ? [...rampHistory, ...milestonesBase]
+        : [...milestonesBase.slice(0, rampIdx), ...rampHistory, ...milestonesBase.slice(rampIdx)];
 
   return {
     athleteName: athleteCfg?.name ?? "",
@@ -508,6 +528,8 @@ export function buildPowerScale(ftpVal: number | null, eftpVal: number | null, w
     label: z.label,
     pct: ((z.bisW - z.vonW) / scaleMax) * 100,
     color: z.farbe,
+    fromW: z.vonW,
+    toW: z.bisW,
   }));
   const ssLeft = pinPercent(ss.vonW, scaleMax);
   const ssRight = pinPercent(ss.bisW, scaleMax);
@@ -524,6 +546,22 @@ export function buildPowerScale(ftpVal: number | null, eftpVal: number | null, w
     .filter((p): p is HeroPin => p.pct != null);
 
   return { scaleMax, segments, sweetSpot, pins };
+}
+
+/** Watt- + Zonen-Ablesung für einen Punkt auf der Leistungsskala.
+ *  `fraction` ist die relative x-Position (0 = links, 1 = rechts der Skala).
+ *  `null` außerhalb [0,1]. Reine Funktion — von PowerScale.tsx beim
+ *  Maus-Hover aufgerufen, mit Vitest testbar. */
+export function powerScaleReadout(
+  fraction: number,
+  ps: HeroPowerScale,
+): { watts: number; zoneLabel: string } | null {
+  if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1) return null;
+  const watts = Math.round(fraction * ps.scaleMax);
+  const seg = ps.segments.find((s) => watts >= s.fromW && watts <= s.toW);
+  const lastToW = ps.segments.length ? ps.segments[ps.segments.length - 1].toW : 0;
+  const zoneLabel = seg ? seg.label : watts > lastToW ? "über Z5" : ps.segments[0]?.label ?? "";
+  return { watts, zoneLabel };
 }
 
 /** Komplettaufruf (Core + PowerScale) — für Tests und einfache Aufrufer,
