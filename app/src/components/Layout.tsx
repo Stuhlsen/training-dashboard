@@ -1,13 +1,17 @@
-import type { CSSProperties } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import { EnvBadge } from "./EnvBadge";
 import { Footer } from "./Footer";
 import { AthleteToggle } from "./AthleteToggle";
+import { UserMenu } from "./UserMenu";
+import { PILL_BUTTON_STYLE } from "./pill-style";
 import { useAuth } from "../api/auth/useAuth";
 // api/ direkt statt über hooks/-Orchestrierung: schmale, bewusste Ausnahme
 // wie `auth` oben — useActiveAthlete ist ein reiner localStorage-Hook ohne
 // I/O (AGENTS.md-Abhängigkeitstabelle).
 import { useActiveAthlete } from "../api/hooks/useActiveAthlete";
+// hooks/-Schicht: darf api/ laden (AGENTS.md). Damit muss UserMenu (components/)
+// den Namen nicht selbst aus api/hooks holen — bekommt ihn als Prop.
+import { useAccountLabel } from "../hooks/account-label";
 
 /** "Settings" bewusst NICHT hier — sitzt rechts bei den User-Funktionen
  *  (Abmelden/Anmelden), nicht bei den Inhalts-Tabs (Review-Kommentar,
@@ -20,18 +24,6 @@ const NAV_ITEMS = [
   { to: "/events", label: "Events" },
 ];
 
-const PILL_BUTTON_STYLE: CSSProperties = {
-  padding: "8px 16px",
-  borderRadius: "var(--pill)",
-  border: "1px solid var(--hair)",
-  fontFamily: "var(--font-disp)",
-  fontWeight: 600,
-  fontSize: ".86rem",
-  whiteSpace: "nowrap",
-  cursor: "pointer",
-  textDecoration: "none",
-};
-
 /** Gemeinsame Kopfzeile für alle Hauptseiten (Etappe 11a) — vorher nacktes
  *  HTML ohne jede Gestaltung. Pill-Optik/Glass-Sticky-Bar aus
  *  assets/css/components.css::.tabs/.tab-btn übernommen, aber an die
@@ -42,6 +34,7 @@ const PILL_BUTTON_STYLE: CSSProperties = {
 export function Layout() {
   const { session, signOut } = useAuth();
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
+  const accountLabel = useAccountLabel();
 
   return (
     <div>
@@ -81,24 +74,10 @@ export function Layout() {
           <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifySelf: "end" }}>
-          <NavLink
-            to="/settings"
-            style={({ isActive }) => ({
-              ...PILL_BUTTON_STYLE,
-              background: isActive ? "rgba(255,255,255,0.14)" : "transparent",
-              color: isActive ? "var(--ink)" : "var(--ink-3)",
-            })}
-          >
-            Settings
-          </NavLink>
           {session ? (
-            <button
-              type="button"
-              onClick={() => void signOut()}
-              style={{ ...PILL_BUTTON_STYLE, background: "transparent", color: "var(--ink-3)" }}
-            >
-              Abmelden
-            </button>
+            // Name + Dropdown (Einstellungen / Abmelden) statt separater
+            // "Settings"-Pille — s. UserMenu.tsx.
+            <UserMenu label={accountLabel} onSignOut={() => void signOut()} />
           ) : (
             <NavLink
               to="/login"
