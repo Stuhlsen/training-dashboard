@@ -14,6 +14,7 @@
 
 import { useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import { PageShell } from "../../components/PageShell";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
@@ -67,6 +68,16 @@ function toProjectionEvent(e: EventItem) {
 }
 
 const PILL_ROW_STYLE = { display: "flex", gap: 3, padding: 3, borderRadius: "var(--pill)", background: "rgba(20,24,34,.62)", backdropFilter: "blur(18px)", border: "1px solid var(--hair)" } as const;
+
+/** Hero-Stat-Label → Glossar-Key. Labels kommen als Strings aus
+ *  answers-view-model.ts (`hero.stats`) — hier gematcht, View-Model bleibt
+ *  reine Daten. "Tage bis Event" braucht keinen Tooltip. */
+const HERO_STAT_TERMS: Record<string, string> = {
+  "CTL Fitness": "ctl",
+  "eFTP Watt": "eftp",
+  "eFTP W/kg": "eftp",
+  "TSB Form": "tsb",
+};
 
 export function AnalysisPage() {
   const { activeAthleteId } = useActiveAthlete();
@@ -225,7 +236,13 @@ export function AnalysisPage() {
                   {vm.hero.stats.map((s) => (
                     <div key={s.label} style={{ display: "flex", flexDirection: "column", gap: 3, minWidth: 92 }}>
                       <span style={{ fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: s.colorVar, fontVariantNumeric: "tabular-nums", lineHeight: 1 }}>{s.value}</span>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--text-label)" }}>{s.label}</span>
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--text-label)" }}>
+                        {HERO_STAT_TERMS[s.label] ? (
+                          <InfoTooltip termKey={HERO_STAT_TERMS[s.label]}>{s.label}</InfoTooltip>
+                        ) : (
+                          s.label
+                        )}
+                      </span>
                       <span style={{ fontSize: ".72rem", color: "var(--text-soft)" }}>{s.sub}</span>
                     </div>
                   ))}

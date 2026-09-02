@@ -365,7 +365,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneEftp = lane(
     "eftp",
     { kind: "power", vals: eftpVals },
-    { title: "Leistung", sub: "eFTP geschätzt", colorVar: "var(--ss)", legend: [{ label: "eFTP", colorVar: "var(--ss)", shape: "line" }], note: eftpForecast ? `eFTP-Trend ${fmtSigned(eftpForecast.slopePerWeek, 1)} W/Woche.` : "Noch nicht genug eFTP-Historie für einen Trend." },
+    { title: "Leistung", sub: "eFTP geschätzt", titleTermKey: "eftp", colorVar: "var(--ss)", legend: [{ label: "eFTP", colorVar: "var(--ss)", shape: "line" }], note: eftpForecast ? `eFTP-Trend ${fmtSigned(eftpForecast.slopePerWeek, 1)} W/Woche.` : "Noch nicht genug eFTP-Historie für einen Trend." },
     56,
     (v) => fmtW(v, unit, weightKg),
     staticUnit(unit),
@@ -374,7 +374,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneEf = lane(
     "ef",
     { kind: "dots", vals: efVals, min: 1.0, max: Math.max(1.6, ...efVals.filter((v): v is number => v != null)) },
-    { title: "Effizienz", sub: "W je Herzschlag", colorVar: "var(--z1)", legend: [{ label: "Effizienzfaktor", colorVar: "var(--z1)", shape: "block" }], note: efDeltaPct != null ? `Über den Beobachtungszeitraum ${fmtSigned(efDeltaPct, 0)} %.` : undefined },
+    { title: "Effizienz", sub: "W je Herzschlag", titleTermKey: "ef", colorVar: "var(--z1)", legend: [{ label: "Effizienzfaktor", colorVar: "var(--z1)", shape: "block" }], note: efDeltaPct != null ? `Über den Beobachtungszeitraum ${fmtSigned(efDeltaPct, 0)} %.` : undefined },
     46,
     (v) => fmt(v, 2),
     staticUnit("W/bpm"),
@@ -383,7 +383,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneFitness = lane(
     "fitness",
     { kind: "fitness", ctlVals, atlVals, todayIdx },
-    { title: "Fitness & Ermüdung", sub: "CTL · ATL", colorVar: "var(--role-primary)", legend: [{ label: "CTL Fitness", colorVar: "var(--role-primary)", shape: "line" }, { label: "ATL Ermüdung", colorVar: "var(--role-secondary)", shape: "line" }, { label: "Prognose", colorVar: "#6b7280", shape: "line" }], note: "CTL ist die Langzeitfitness (42 Tage), ATL die frische Ermüdung (7 Tage). Ab heute gestrichelt: Prognose aus dem geplanten Training." },
+    { title: "Fitness & Ermüdung", sub: "CTL · ATL", titleTermKey: "ctl", colorVar: "var(--role-primary)", legend: [{ label: "CTL Fitness", colorVar: "var(--role-primary)", shape: "line" }, { label: "ATL Ermüdung", colorVar: "var(--role-secondary)", shape: "line" }, { label: "Prognose", colorVar: "#6b7280", shape: "line" }], note: "CTL ist die Langzeitfitness (42 Tage), ATL die frische Ermüdung (7 Tage). Ab heute gestrichelt: Prognose aus dem geplanten Training." },
     88,
     (v) => fmt(v, 0),
     staticUnit("CTL"),
@@ -392,7 +392,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneTsb = lane(
     "tsb",
     { kind: "tsb", tsbVals, todayIdx },
-    { title: "Form (TSB)", sub: "CTL − ATL", colorVar: "var(--role-positive)", legend: [{ label: "TSB", colorVar: "var(--role-positive)", shape: "line" }, { label: "Aufbau −5 … −25", colorVar: "rgba(111,196,140,.45)", shape: "block" }, { label: "Frische +5 … +20", colorVar: "rgba(201,168,76,.45)", shape: "block" }, { label: "Überlast < −25", colorVar: "rgba(217,79,79,.45)", shape: "block" }], note: "−5 bis −25 ist der produktive Aufbaukorridor; unter −25 kippt es in Überlast, +5 bis +20 ist das Frischefenster." },
+    { title: "Form (TSB)", sub: "CTL − ATL", titleTermKey: "tsb", colorVar: "var(--role-positive)", legend: [{ label: "TSB", colorVar: "var(--role-positive)", shape: "line" }, { label: "Aufbau −5 … −25", colorVar: "rgba(111,196,140,.45)", shape: "block" }, { label: "Frische +5 … +20", colorVar: "rgba(201,168,76,.45)", shape: "block" }, { label: "Überlast < −25", colorVar: "rgba(217,79,79,.45)", shape: "block" }], note: "−5 bis −25 ist der produktive Aufbaukorridor; unter −25 kippt es in Überlast, +5 bis +20 ist das Frischefenster." },
     82,
     (v) => fmtSigned(v, 0),
     (rk) => (rk === "overload" ? "Überlast" : rk === "build" ? "im Aufbaukorridor" : rk === "fresh" ? "im Frischefenster" : rk === "too-fresh" ? "zu frisch" : "neutral"),
@@ -405,7 +405,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneTss = lane(
     "tss",
     { kind: "tssBars", vals: tssVals, todayIdx },
-    { title: "Tageslast", sub: "TSS je Tag", colorVar: "var(--ss)", legend: [{ label: "gefahren", colorVar: "var(--ss)", shape: "block" }, { label: "geplant", colorVar: "#6b7280", shape: "block" }], note: "Balken bis heute sind gefahren, danach geplant." },
+    { title: "Tageslast", sub: "TSS je Tag", titleTermKey: "tss", colorVar: "var(--ss)", legend: [{ label: "gefahren", colorVar: "var(--ss)", shape: "block" }, { label: "geplant", colorVar: "#6b7280", shape: "block" }], note: "Balken bis heute sind gefahren, danach geplant." },
     54,
     (v) => fmtInt(v),
     (rk) => (rk === "planned" ? "TSS geplant" : rk === "sum7" ? "TSS letzte 7 Tage" : "TSS"),
@@ -414,20 +414,20 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneZones = lane(
     "zones",
     { kind: "zoneStack", weeks: zoneWeeks },
-    { title: "Intensität", sub: "Anteile je Woche", colorVar: "var(--z2)", legend: [{ label: "niedrig", colorVar: "var(--z2)", shape: "block" }, { label: "mittel", colorVar: "var(--ss)", shape: "block" }, { label: "hoch", colorVar: "var(--vo2)", shape: "block" }], note: `Grundlagenanteil je Woche. Richtwert ${Math.round(GA_TARGET * 100)} %.` },
+    { title: "Intensität", sub: "Anteile je Woche", titleTermKey: "intensity-distribution", colorVar: "var(--z2)", legend: [{ label: "niedrig", colorVar: "var(--z2)", shape: "block" }, { label: "mittel", colorVar: "var(--ss)", shape: "block" }, { label: "hoch", colorVar: "var(--vo2)", shape: "block" }], note: `Grundlagenanteil je Woche. Richtwert ${Math.round(GA_TARGET * 100)} %.` },
     46,
     (v) => `${fmtInt(v)} %`,
     (rk) => (rk === "last-week" ? "% GA letzte Woche" : "% GA"),
   );
 
-  const laneHrv = lane("hrv", { kind: "line", vals: hrvVals, area: true }, { title: "HRV", sub: "Tageswert", colorVar: "var(--role-primary)", legend: [{ label: "HRV", colorVar: "var(--role-primary)", shape: "line" }], note: hrvBaseline != null ? `7-Tage-Mittel vs. 42-Tage-Basis: ${fmtSigned(hrvVsBaselinePct ?? 0, 0)} %.` : undefined }, 50, (v) => fmt(v, 0), staticUnit("ms"));
-  const laneRhr = lane("rhr", { kind: "line", vals: rhrVals }, { title: "Ruhepuls", sub: "Tageswert", colorVar: "var(--role-secondary)", legend: [{ label: "Ruhepuls", colorVar: "var(--role-secondary)", shape: "line" }] }, 44, (v) => fmt(v, 0), staticUnit("bpm"));
+  const laneHrv = lane("hrv", { kind: "line", vals: hrvVals, area: true }, { title: "HRV", sub: "Tageswert", titleTermKey: "hrv", colorVar: "var(--role-primary)", legend: [{ label: "HRV", colorVar: "var(--role-primary)", shape: "line" }], note: hrvBaseline != null ? `7-Tage-Mittel vs. 42-Tage-Basis: ${fmtSigned(hrvVsBaselinePct ?? 0, 0)} %.` : undefined }, 50, (v) => fmt(v, 0), staticUnit("ms"));
+  const laneRhr = lane("rhr", { kind: "line", vals: rhrVals }, { title: "Ruhepuls", sub: "Tageswert", titleTermKey: "rhr", colorVar: "var(--role-secondary)", legend: [{ label: "Ruhepuls", colorVar: "var(--role-secondary)", shape: "line" }] }, 44, (v) => fmt(v, 0), staticUnit("bpm"));
   const laneSleep = lane("sleep", { kind: "bars", vals: sleepVals, target: SLEEP_TARGET_H }, { title: "Schlaf", sub: "Stunden", colorVar: "var(--z2)", legend: [{ label: "Schlafdauer", colorVar: "var(--z2)", shape: "block" }, { label: `Ziel ${SLEEP_TARGET_H} h`, colorVar: "var(--role-status)", shape: "line" }], note: `Ziel ${SLEEP_TARGET_H} h.` }, 46, (v) => fmt(v, 1), staticUnit("h"));
 
-  const laneDec = lane("dec", { kind: "dots", vals: decVals, target: 5, goodAbove: false, min: 0 }, { title: "Entkopplung", sub: "je Fahrt", colorVar: "var(--ss)", legend: [{ label: "stabil", colorVar: "var(--z1)", shape: "block" }, { label: "über Schwelle", colorVar: "var(--ss)", shape: "block" }], note: dec ? `${dec.stableShare} % der Fahrten unter 5 % Entkopplung.` : "Noch nicht genug vergleichbare Fahrten." }, 46, (v) => fmt(v, 1), staticUnit("%"));
-  const laneKad = lane("kad", { kind: "dots", vals: kadVals, target: CADENCE_TARGET, goodAbove: true }, { title: "Kadenz", sub: "je Fahrt", colorVar: "var(--role-status)", legend: [{ label: `am Ziel ≥ ${CADENCE_TARGET}`, colorVar: "var(--z1)", shape: "block" }, { label: "unter Ziel", colorVar: "var(--role-status)", shape: "block" }], note: cadenceAvg != null ? `Ø ${Math.round(cadenceAvg)} RPM (Ziel ${CADENCE_TARGET}).` : undefined }, 46, (v) => fmt(v, 0), staticUnit("RPM"));
-  const laneEnergy = lane("energy", { kind: "diverge", vals: ebalVals }, { title: "Energiebilanz", sub: "Zufuhr − Verbrauch", colorVar: "var(--ss)", legend: [{ label: "Überschuss", colorVar: "var(--z1)", shape: "block" }, { label: "Defizit", colorVar: "var(--ss)", shape: "block" }], note: energyDeficitAvgKcal != null ? `Ø ${fmtSigned(energyDeficitAvgKcal, 0)} kcal/Tag über 30 Tage.` : "Noch keine Zufuhr-Daten." }, 52, (v) => fmtSigned(v, 0), (rk) => (rk === "avg30" ? "kcal Ø 30 Tage" : "kcal"));
-  const laneHydration = lane("hydration", { kind: "dots", vals: hydrVals }, { title: "Trinkrate", sub: hydration?.field === "hydrationVolume" ? "Tageswert" : "Score", colorVar: "var(--z2)", legend: [{ label: hydration?.field === "hydrationVolume" ? "ml/Tag" : "Score", colorVar: "var(--z2)", shape: "block" }] }, 46, (v) => fmt(v, 0), staticUnit(hydration?.field === "hydrationVolume" ? "ml" : "Score"));
+  const laneDec = lane("dec", { kind: "dots", vals: decVals, target: 5, goodAbove: false, min: 0 }, { title: "Entkopplung", sub: "je Fahrt", titleTermKey: "decoupling", colorVar: "var(--ss)", legend: [{ label: "stabil", colorVar: "var(--z1)", shape: "block" }, { label: "über Schwelle", colorVar: "var(--ss)", shape: "block" }], note: dec ? `${dec.stableShare} % der Fahrten unter 5 % Entkopplung.` : "Noch nicht genug vergleichbare Fahrten." }, 46, (v) => fmt(v, 1), staticUnit("%"));
+  const laneKad = lane("kad", { kind: "dots", vals: kadVals, target: CADENCE_TARGET, goodAbove: true }, { title: "Kadenz", sub: "je Fahrt", titleTermKey: "cadence", colorVar: "var(--role-status)", legend: [{ label: `am Ziel ≥ ${CADENCE_TARGET}`, colorVar: "var(--z1)", shape: "block" }, { label: "unter Ziel", colorVar: "var(--role-status)", shape: "block" }], note: cadenceAvg != null ? `Ø ${Math.round(cadenceAvg)} RPM (Ziel ${CADENCE_TARGET}).` : undefined }, 46, (v) => fmt(v, 0), staticUnit("RPM"));
+  const laneEnergy = lane("energy", { kind: "diverge", vals: ebalVals }, { title: "Energiebilanz", sub: "Zufuhr − Verbrauch", titleTermKey: "energy-balance", colorVar: "var(--ss)", legend: [{ label: "Überschuss", colorVar: "var(--z1)", shape: "block" }, { label: "Defizit", colorVar: "var(--ss)", shape: "block" }], note: energyDeficitAvgKcal != null ? `Ø ${fmtSigned(energyDeficitAvgKcal, 0)} kcal/Tag über 30 Tage.` : "Noch keine Zufuhr-Daten." }, 52, (v) => fmtSigned(v, 0), (rk) => (rk === "avg30" ? "kcal Ø 30 Tage" : "kcal"));
+  const laneHydration = lane("hydration", { kind: "dots", vals: hydrVals }, { title: "Trinkrate", sub: hydration?.field === "hydrationVolume" ? "Tageswert" : "Score", titleTermKey: "hydration", colorVar: "var(--z2)", legend: [{ label: hydration?.field === "hydrationVolume" ? "ml/Tag" : "Score", colorVar: "var(--z2)", shape: "block" }] }, 46, (v) => fmt(v, 0), staticUnit(hydration?.field === "hydrationVolume" ? "ml" : "Score"));
   const laneWeather = lane("weather", { kind: "weather", tempVals, windVals, rainVals }, { title: "Wetter", sub: "Temp · Wind · Regen", colorVar: "var(--text-soft)", legend: [{ label: "Temperatur", colorVar: "var(--text-soft)", shape: "line" }, { label: "über 24 °C", colorVar: "var(--ss)", shape: "block" }, { label: "Regen", colorVar: "var(--z2)", shape: "block" }] }, 50, (v) => fmt(v, 0), (rk) => (rk === "hot-days" ? "Tage über 24 °C" : "°C"));
   // "dots" statt "line": Gewicht wird unregelmäßig gemessen (oft einzelne Tage
   // ohne direkten Vorgänger/Nachfolger) — "line" verbindet nur ≥2 aufeinander-

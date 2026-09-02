@@ -6,6 +6,8 @@
    für horizontales Strecken, Ruhewert-Spalte rechtsbündig).
    ============================================================ */
 
+import { InfoTooltip } from "../components/InfoTooltip";
+
 /** Grid-Spaltenbreiten (Label-Spalte | Chart-Spalte | Ruhewert-Spalte),
  *  geteilt mit TraceCard.tsx — die Fadenkreuz-Positionsberechnung dort
  *  muss exakt dieselben Werte kennen wie das Grid hier, sonst läuft der
@@ -84,6 +86,9 @@ export interface LaneDisplay {
   colorVar: string;
   legend?: LaneLegendEntry[];
   note?: string;
+  /** Glossar-Key für einen Erklär-Tooltip am Spurtitel (`glossary.ts`).
+   *  Ohne Angabe wird der Titel als reiner Text gezeigt. */
+  titleTermKey?: string;
 }
 
 interface TraceLaneProps {
@@ -167,7 +172,13 @@ export function TraceLane({ display, geometry: g, height, expanded, onToggle, cu
         >
           <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
             <span style={{ width: 9, height: 3, borderRadius: 2, background: accent }} />
-            <span style={{ fontSize: ".82rem", fontWeight: 500, color: expanded ? "var(--text-ink)" : "var(--text-soft)" }}>{display.title}</span>
+            <span style={{ fontSize: ".82rem", fontWeight: 500, color: expanded ? "var(--text-ink)" : "var(--text-soft)" }}>
+              {display.titleTermKey ? (
+                <InfoTooltip termKey={display.titleTermKey}>{display.title}</InfoTooltip>
+              ) : (
+                display.title
+              )}
+            </span>
           </div>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", letterSpacing: ".08em", color: "var(--text-faint)", paddingLeft: 16 }}>{display.sub}</span>
         </button>
