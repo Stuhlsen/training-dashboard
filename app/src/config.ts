@@ -103,7 +103,10 @@ export const ATHLETES: readonly AthleteConfig[] = [
     eFTP: null,
     ftpGoal: null,
     seasonStartFtp: null,
-    dataSources: ["intervals.icu"],
+    // Athlet 4 trackt Wellness (Schlaf/HRV/Ruhepuls/Gewicht) über Garmin
+    // Connect → intervals.icu; analog Apple Health (Athlet 1) / Amazfit
+    // (Athlet 2). Wird im Footer + Settings als Untertitel angezeigt.
+    dataSources: ["intervals.icu", "Garmin Connect"],
   },
 ];
 
