@@ -67,6 +67,25 @@ export function typeIcon(typ: string | null): string {
   return (typ && PLAN_TYPE_ICON[typ]) || "📅";
 }
 
+/** Plan-Typ → Glossar-Key für den Erklär-Tooltip (`glossary.ts`). Nur die
+ *  Trainingslehre-Typen; organisatorische (Gruppenfahrt/Notiz/Ruhetag/
+ *  Rennen/NLS) haben keinen Eintrag → kein Tooltip. */
+const PLAN_TYPE_TERM: Record<string, string> = {
+  "Sweet Spot": "sweet-spot",
+  Schwelle: "z4",
+  VO2max: "vo2max",
+  "Z2 Lang": "z2",
+  "Z2 Dauer": "z2",
+  Z2: "z2",
+  "Z1 Recovery": "z1",
+  Z1: "z1",
+  "FTP-Test": "ftp",
+};
+
+export function planTypeTermKey(typ: string | null): string | null {
+  return (typ && PLAN_TYPE_TERM[typ]) || null;
+}
+
 /** Ruhetag-Karten zählen nie als "verpasst" (ein nicht gefahrener Ruhetag
  *  ist Erfüllung, kein Ausfall) und nicht als Basis der Fortschrittsquote —
  *  s. buildPlanningSections(). Seit Fahrplan 6 (RUH2) werden Ruhetage

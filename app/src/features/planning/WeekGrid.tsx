@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { GlassCard } from "../../components/GlassCard";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import { phaseColor } from "../../config";
 import { fmtDate } from "../../core/format.js";
 import { canDragCard, isDropAllowed } from "../../core/plan-drag.js";
@@ -122,7 +123,8 @@ function WeekHeader({ week }: { week: GridWeekRow }) {
           style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", color: "var(--ink-3)" }}
           title={week.tssIsPlanned ? "Geplante TSS (noch keine Fahrten diese Woche)" : "Tatsächlich gefahrene TSS"}
         >
-          {Math.round(week.tssSum)} TSS{week.tssIsPlanned ? " (geplant)" : ""}
+          {Math.round(week.tssSum)} <InfoTooltip termKey="tss">TSS</InfoTooltip>
+          {week.tssIsPlanned ? " (geplant)" : ""}
         </span>
       </div>
     </div>

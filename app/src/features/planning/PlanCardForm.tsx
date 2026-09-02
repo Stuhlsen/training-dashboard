@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
 import { addProposalArgs, replaceProposalArgs } from "../../core/proposal-payload.js";
 import { useCreatePlanCard, useDeletePlanCard, useUpdatePlanCard } from "../../api/hooks/usePlanCards";
@@ -225,7 +226,7 @@ export function PlanCardForm({
               </select>
             </label>
             <label style={{ ...LABEL_STYLE, flex: 1 }}>
-              Ziel-TSS
+              <span>Ziel-<InfoTooltip termKey="tss">TSS</InfoTooltip></span>
               <input type="number" min={0} step={1} value={tssPlanned} onChange={(e) => setTssPlanned(e.target.value)} style={INPUT_STYLE} />
             </label>
             <label style={{ ...LABEL_STYLE, flex: 1 }}>

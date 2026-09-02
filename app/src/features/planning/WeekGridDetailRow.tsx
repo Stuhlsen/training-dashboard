@@ -6,6 +6,7 @@ import { projectLoad } from "../../core/projection.js";
 import { detectConflicts } from "../../core/conflicts.js";
 import { buildZwoWorkout, canExportZwo } from "../../core/zwo-export.js";
 import { EventBadge } from "../events/EventBadge";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import { HintChip, type HintItem } from "./HintChip";
 import { LegacyWorkoutTimeline } from "./LegacyWorkoutTimeline";
 import { RecoveryBlock } from "./RecoveryBlock";
@@ -18,6 +19,7 @@ import {
   isRestDay,
   isZ2Type,
   legacyWorkoutSegments,
+  planTypeTermKey,
   typeColor,
   typeIcon,
   type DayForecast,
@@ -308,7 +310,13 @@ export function WeekGridDetailRow({
         </span>
         <span aria-hidden="true">{typeIcon(card.typ)}</span>
         <span style={{ fontSize: ".92rem", fontWeight: 500, color: "var(--ink)" }}>{card.name}</span>
-        <EventBadge label={card.typ ?? "—"} color={color} />
+        {planTypeTermKey(card.typ) ? (
+          <InfoTooltip termKey={planTypeTermKey(card.typ) as string} underline={false}>
+            <EventBadge label={card.typ ?? "—"} color={color} />
+          </InfoTooltip>
+        ) : (
+          <EventBadge label={card.typ ?? "—"} color={color} />
+        )}
         {card.originalDate && (
           <span style={{ fontSize: ".68rem", color: "var(--ink-3)" }}>
             verschoben von {fmtDate(card.originalDate)}
@@ -426,7 +434,11 @@ export function WeekGridDetailRow({
       {(card.km || card.tssPlanned) && (
         <div style={{ display: "flex", gap: 14, fontSize: ".76rem", color: "var(--ink-3)" }}>
           {card.km ? <span>{fmt(card.km, 0)} km</span> : null}
-          {card.tssPlanned ? <span>{fmt(card.tssPlanned, 0)} TSS</span> : null}
+          {card.tssPlanned ? (
+            <span>
+              {fmt(card.tssPlanned, 0)} <InfoTooltip termKey="tss">TSS</InfoTooltip>
+            </span>
+          ) : null}
         </div>
       )}
 

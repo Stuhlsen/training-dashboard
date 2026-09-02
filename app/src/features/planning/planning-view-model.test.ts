@@ -14,6 +14,7 @@ import {
   legacyWorkoutSegments,
   matchRideForCard,
   nextLoadAfter,
+  planTypeTermKey,
   resolvePlanningFtp,
   typeColor,
   typeIcon,
@@ -62,6 +63,22 @@ describe("typeColor/typeIcon", () => {
   it("fällt für einen unbekannten/fehlenden Typ auf den Default zurück", () => {
     expect(typeColor("Unbekannt")).toBe("#6b7280");
     expect(typeIcon(null)).toBe("📅");
+  });
+});
+
+describe("planTypeTermKey", () => {
+  it("bildet Trainingslehre-Typen auf Glossar-Keys ab", () => {
+    expect(planTypeTermKey("Sweet Spot")).toBe("sweet-spot");
+    expect(planTypeTermKey("VO2max")).toBe("vo2max");
+    expect(planTypeTermKey("Schwelle")).toBe("z4");
+    expect(planTypeTermKey("Z2 Dauer")).toBe("z2");
+    expect(planTypeTermKey("Z1 Recovery")).toBe("z1");
+  });
+
+  it("liefert null für organisatorische Typen und Unbekanntes", () => {
+    expect(planTypeTermKey("Gruppenfahrt")).toBeNull();
+    expect(planTypeTermKey("Notiz")).toBeNull();
+    expect(planTypeTermKey(null)).toBeNull();
   });
 });
 
