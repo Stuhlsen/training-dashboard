@@ -3,7 +3,7 @@ import type { Profile, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
-  "id, display_name, role, coach_id, wellbeing_public, is_admin, ladder_progression_enabled, units_preference";
+  "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, ladder_progression_enabled, units_preference";
 
 interface ProfileRow {
   id: string;
@@ -11,6 +11,7 @@ interface ProfileRow {
   role: Profile["role"];
   coach_id: string | null;
   wellbeing_public: boolean;
+  ftp_public: boolean;
   is_admin: boolean;
   ladder_progression_enabled: boolean;
   units_preference: Profile["unitsPreference"];
@@ -23,6 +24,7 @@ function toProfile(row: ProfileRow): Profile {
     role: row.role,
     coachId: row.coach_id,
     wellbeingPublic: row.wellbeing_public,
+    ftpPublic: row.ftp_public,
     isAdmin: row.is_admin,
     ladderProgressionEnabled: row.ladder_progression_enabled,
     unitsPreference: row.units_preference,
@@ -103,6 +105,21 @@ export async function updateWellbeingPublic(userId: string, value: boolean): Pro
   const { error } = await client
     .from("profiles")
     .update({ wellbeing_public: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+/** Migration 0025 — eigenes spalten-restriktives UPDATE-Grant wie
+ *  wellbeing_public, RLS lässt nur die eigene Zeile zu. Steuert, ob der Sync
+ *  gemessene FTP + Ramp-Test-Historie in den öffentlichen rides*.json-Payload
+ *  schreibt. */
+export async function updateFtpPublic(userId: string, value: boolean): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client
+    .from("profiles")
+    .update({ ftp_public: value })
     .eq("id", userId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };

@@ -14,6 +14,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   updateDisplayName as updateDisplayNameAdapter,
   updateWellbeingPublic as updateWellbeingPublicAdapter,
+  updateFtpPublic as updateFtpPublicAdapter,
   updateLadderProgressionEnabled as updateLadderProgressionEnabledAdapter,
   updateUnitsPreference as updateUnitsPreferenceAdapter,
 } from "../supabase/profiles";
@@ -63,6 +64,32 @@ export function useUpdateWellbeingPublic() {
     },
     onSuccess: ({ value }) => {
       queryClient.setQueryData<Profile>(key, (profile) => (profile ? { ...profile, wellbeingPublic: value } : profile));
+    },
+  });
+
+  const update = useCallback(
+    async (value: boolean): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateFtpPublic() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profile(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: boolean) => {
+      unwrap(await updateFtpPublicAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<Profile>(key, (profile) => (profile ? { ...profile, ftpPublic: value } : profile));
     },
   });
 

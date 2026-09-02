@@ -25,6 +25,10 @@ export interface Profile {
   role: Role;
   coachId: string | null;
   wellbeingPublic: boolean;
+  /** Migration 0025 — gibt gemessene FTP + Ramp-Test-Zeitstrahl für den
+   *  öffentlichen (ausgeloggten) Lesepfad frei. Self-Service wie
+   *  wellbeing_public, Default true. */
+  ftpPublic: boolean;
   isAdmin: boolean;
   /** D4b (Migration 0016) — Freigabe der scharfen Leiter-Fortschreibung,
    *  athletenweit wie is_admin, kein Self-Service. */

@@ -9,6 +9,7 @@ import { useSessionProfile } from "../../api/hooks/useSession";
 import {
   useUpdateDisplayName,
   useUpdateWellbeingPublic,
+  useUpdateFtpPublic,
   useUpdateLadderProgressionEnabled,
 } from "../../api/hooks/useProfile";
 import { ToggleSwitch } from "./ToggleSwitch";
@@ -33,6 +34,7 @@ export function ProfileSection({ onOpenCheckin }: ProfileSectionProps) {
   const profile = useSessionProfile();
   const { update: updateName, isPending: savingName } = useUpdateDisplayName();
   const { update: updateWellbeing } = useUpdateWellbeingPublic();
+  const { update: updateFtpPublic } = useUpdateFtpPublic();
   const { update: updateLadderProgression } = useUpdateLadderProgressionEnabled();
 
   const [name, setName] = useState(profile?.displayName ?? "");
@@ -135,6 +137,16 @@ export function ProfileSection({ onOpenCheckin }: ProfileSectionProps) {
               on={profile.wellbeingPublic}
               onChange={() => void updateWellbeing(!profile.wellbeingPublic)}
               label="Befinden öffentlich sichtbar"
+            />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>
+              FTP öffentlich
+            </span>
+            <ToggleSwitch
+              on={profile.ftpPublic}
+              onChange={() => void updateFtpPublic(!profile.ftpPublic)}
+              label="FTP öffentlich sichtbar"
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>

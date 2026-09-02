@@ -15,7 +15,7 @@ vi.mock("./client", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { updateUnitsPreference, getCoachDisplayName, getProfile, getProfileByDisplayName } =
+const { updateUnitsPreference, updateFtpPublic, getCoachDisplayName, getProfile, getProfileByDisplayName } =
   await import("./profiles");
 
 describe("updateUnitsPreference", () => {
@@ -34,6 +34,22 @@ describe("updateUnitsPreference", () => {
   });
 });
 
+describe("updateFtpPublic (Migration 0025)", () => {
+  it("schreibt ftp_public für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateFtpPublic("profile-1", false);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ ftp_public: false });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+});
+
 describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
   it("getProfile liest die eigene Zeile über die View, nicht die Basistabelle", async () => {
     let seenTable = "";
@@ -46,6 +62,7 @@ describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
           role: "athlete",
           coach_id: "coach-1",
           wellbeing_public: false,
+          ftp_public: true,
           is_admin: false,
           ladder_progression_enabled: true,
           units_preference: "km",
@@ -63,6 +80,7 @@ describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
         role: "athlete",
         coachId: "coach-1",
         wellbeingPublic: false,
+        ftpPublic: true,
         isAdmin: false,
         ladderProgressionEnabled: true,
         unitsPreference: "km",
