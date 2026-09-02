@@ -69,22 +69,20 @@ once this is confirmed working.
 ## Env file
 
 - One env file referenced by the Quadlet unit, permissions `600`.
-- Contents: Alex sends the values privately (already prepared). The keys:
+- **Stand 2026-09-02 (Fahrplan 7 CRED5): the shrink below is done.**
+  intervals.icu key/id and the coarse location for every athlete now live in
+  the `athlete_sync_config` table and are read with the service-role key.
+  Contents (Alex sends the values privately):
   ```
   NOTION_API_KEY            NOTION_DATABASE_ID
-  INTERVALS_API_KEY         INTERVALS_ATHLETE_ID
-  INTERVALS_API_KEY_2       INTERVALS_ATHLETE_ID_2
-  WEATHER_LAT               WEATHER_LON
-  WEATHER_LAT_2             WEATHER_LON_2
-  WEATHER_LAT_4             WEATHER_LON_4
-  SUPABASE_URL              SUPABASE_ANON_KEY
-  SUPABASE_ATHLETE1_EMAIL   SUPABASE_ATHLETE1_PASSWORD
-  SUPABASE_ATHLETE4_EMAIL   SUPABASE_ATHLETE4_PASSWORD
+  SUPABASE_URL              SUPABASE_SERVICE_ROLE_KEY
+  SUPABASE_ANON_KEY
   ```
-- Optional: `SYNC_INTERVAL_HOURS` (leave unset for the 6h default).
-- Heads-up: a later change on our side will shrink this list to just
-  `SUPABASE_URL` + one service-role key. Don't build tooling around the
-  long list — a plain env file is fine.
+- Optional: `SYNC_INTERVAL_HOURS` / `SYNC_INTERVAL_MINUTES` (leave unset for
+  the 6h default; prod currently runs 15 min).
+- The former long list (`INTERVALS_API_KEY(_2)`, `INTERVALS_ATHLETE_ID(_2)`,
+  `WEATHER_LAT/LON(_2/_4)`, `SUPABASE_ATHLETE1/4_EMAIL/PASSWORD`) is gone —
+  don't re-add it.
 
 ## Bring-up
 

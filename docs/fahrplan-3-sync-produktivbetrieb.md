@@ -158,6 +158,11 @@ Offen bei Alex: der eine Beobachtungszyklus vor Fenster C (s. dort).
    `SUPABASE_*`-Sync-Secrets für den `plan_cards`/`ftp_history`-Rücklesepfad,
    s. AGENTS.md „Datenquellen-Mix") — **nie im Repo, nie im Issue/Kommentar,
    nur direkt auf apps01**.
+   > **Überholt seit Fahrplan 7 CRED5:** diese Liste ist auf `NOTION_API_KEY`,
+   > `NOTION_DATABASE_ID`, `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`,
+   > `SUPABASE_ANON_KEY` geschrumpft — intervals.icu-Key/-ID + Standort je
+   > Athlet liegen jetzt in `athlete_sync_config`. Maßgeblich ist
+   > `docs/fahrplan-7-sync-credentials-self-service.md` (CRED5).
 3. Erster echter Sync-Lauf gegen die produktive Datenbank/APIs (das war
    in DKR2 selbst schon als offen benannt).
 4. `interval-blocks.json`-Cache mit ins Volume (DKR2 Punkt 4), damit ein

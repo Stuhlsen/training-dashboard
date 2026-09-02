@@ -106,7 +106,8 @@ Sync — er liest intervals.icu-Key/-ID **und** die groben Standortkoordinaten
 je Athlet per Service-Role aus der Tabelle `athlete_sync_config`, s.
 „Datenquellen-Mix"). `SUPABASE_ANON_KEY` bleibt zusätzlich für den anonymen
 `session_formats`-Read. `INTERVALS_*` / `WEATHER_*` als Env-Werte sind für
-den Sync **abgelöst** (nur noch Restpfad bis CRED5, s. „GitHub Secrets").
+den Sync **abgelöst** und seit Fahrplan 7 CRED5 aus `.env` / `sync-data.yml`
+entfernt (s. „GitHub Secrets").
 `/app/` braucht keine eigene `.env` — die Supabase-Projekt-URLs/anon-Keys
 stehen (bewusst, RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
 
@@ -249,7 +250,18 @@ in Arbeit. Was aus dieser Zeit **weiter aktiv gilt**, steht unten.
 | Projekt | Zweck | Keep-Alive |
 |---------|---|---|
 | `dashboard-dev` | Entwicklung, Tests, RLS-Testaccounts | nein (pausiert nach 1 Woche ist ok) |
-| `dashboard-prod` | echte Daten, echte Accounts | ja — der apps01-Sync-Container liest alle 6h aus prod (`athlete_sync_config`/`plan_cards`/`ftp_history`), das hält das Projekt wach |
+| `dashboard-prod` | Altlast auf `supabase.co` — die Live-Seite nutzt sie **nicht** (s. Hinweis unten) | — (kein aktiver Lesepfad mehr) |
+
+> **Zwei „prod"-Backends, nicht verwechseln:** `dashboard-prod` auf
+> `supabase.co` ist eine Altlast — die Live-Seite spricht sie nicht an. Echte
+> Produktion ist der **apps01-Self-Host-Stack** unter
+> `https://training-dashboard.clear-solutions-it.com`
+> (`window.__RUNTIME_CONFIG__` / `config.json`, anon-JWT mit
+> `iss: "supabase-local"`). Der apps01-Sync-Container liest alle 15 min aus
+> **diesem** Stack (`athlete_sync_config` / `plan_cards` / `ftp_history` /
+> `profiles`), nicht aus `supabase.co`. Migrationen und Seeds gehören an
+> apps01. `dashboard-dev` auf `supabase.co` bleibt unverändert der Test-/
+> CI-Zielpunkt.
 
 **Hostname-basierte Config:**
 ```typescript
@@ -272,8 +284,9 @@ bei jeder Schema-Erweiterung anhängen, nie eine bestehende nachträglich änder
 **Einspielen (Sequence):**
 1. Lokal gegen `dashboard-dev`: `supabase db push` (wenn supabase-cli installiert ist)
    oder manuell: Supabase-UI → SQL-Editor → Migration kopieren + ausführen.
-2. Nach jedem Merge nach `main`, der das Schema erweitert: dieselbe Migration in
-   `dashboard-prod` einspielen (oder später: CI-Job, der das automatisiert).
+2. Nach jedem Merge nach `main`, der das Schema erweitert: dieselbe Migration
+   an den **apps01-Self-Host-Stack** einspielen (echte Produktion, s.
+   „Supabase-Projekte" — nicht `dashboard-prod` auf `supabase.co`).
 3. Migration wird commits — Versionshistorie, Portfolio-Dokumentation, reproduzierbar.
 
 ### Test-Sicherheit
@@ -323,11 +336,16 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
   CRED3-Wechsel gegenüber früher). `app/src/api/pipeline.ts` bleibt trotzdem der alleinige
   JSON-Loader im Frontend; `app/src/hooks/`/`features/` fragen weiterhin nur abstrakt
   "gib mir Athletendaten".
-- **Zeilenmodell in `athlete_sync_config`:** Athlet 1 und 4 pflegen ihre Zeile self-service
-  über **Settings** (`profile_id`, owner-only RLS); Athlet 2 (read-only Vergleich, kein
-  Supabase-Login) bekommt eine admin-gepflegte Zeile mit `athlete_key = "athlete2"`, die nur
-  Service-Role sieht. Fehlt die Zeile eines Nebenathleten, schreibt `generate-data.js` dessen
-  `rides-N.json` trotzdem (nur die Plan-Baseline, keine Fahrten), `source: "plan-only"`.
+- **Zeilenmodell in `athlete_sync_config`:** Alle drei Athleten haben eine
+  normale `profile_id`-Zeile (owner-only RLS). Athlet 1 und 4 pflegen sie
+  self-service über **Settings**; Athlet 2 (`hc_diZee`) hat seit CRED4 einen
+  echten Supabase-Login und damit ebenfalls eine `profile_id`-Zeile (im
+  Frontend bleibt er trotzdem read-only, Gate `canWriteForAthlete()`). Die
+  `athlete_key`-Spalte aus Migration 0023 (CRED0.3-Sonderweg „Zeile ohne
+  Login" für Athlet 2) wird **nicht genutzt** — `sync-config-fetch.js` löst sie
+  noch auf, aber keine Zeile trägt sie. Fehlt die Zeile eines Nebenathleten,
+  schreibt `generate-data.js` dessen `rides-N.json` trotzdem (nur die
+  Plan-Baseline, keine Fahrten), `source: "plan-only"`.
 
 ## Dateistruktur
 
@@ -414,9 +432,13 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
 
 - **Athlet 1** (`athlete1`) — eigener Trainingsplan (Plan 1 + Plan 2), Primärnutzer
   FTP: 193W (`ftpMeasured` in `app/src/config.ts`; `DEFAULT_FTP` in `scripts/lib/map-activity.js`)
-- **Athlet 2** (`athlete2`) — Vergleichsathlet, weiterhin read-only (kein Befinden,
-  keine Schreibaktionen), hat aber seit GFNY Bremen 2026 einen eigenen Planungstab
-  (`scripts/lib/plan-athlete2.js`) — Anzeige-only, s. "Bekannte Eigenheiten".
+- **Athlet 2** (`athlete2`) — Vergleichsathlet, im Frontend weiterhin read-only
+  (kein Befinden, keine Schreibaktionen; Gate `canWriteForAthlete()`), hat aber
+  seit Fahrplan 7 CRED4 einen echten Supabase-Login und eine normale
+  `profile_id`-Zeile in `athlete_sync_config` (der Sync liest darüber
+  intervals.icu-Key/-Standort **und** `plan_cards`/`ftp_history`). Eigener
+  Planungstab seit GFNY Bremen 2026 (`scripts/lib/plan-athlete2.js`) —
+  Anzeige-only, s. "Bekannte Eigenheiten".
   Read-only-Gate seit dem Athlet-4-Umbau über `readOnly: true` in
   `app/src/config.ts` (`isReadOnlyAthlete()`), nicht mehr über einen
   hartkodierten `=== PRIMARY_ATHLETE_ID`-Vergleich im Planungstab.
@@ -528,8 +550,9 @@ Tokens in `app/src/styles/tokens.css` (Namen stabil halten):
   **serverseitig auf 2 Nachkommastellen gerundet** (`numeric(5,2)`/`(6,2)`,
   ~1,1 km Unschärfe) in der Tabelle `athlete_sync_config` — owner-only,
   **kein anon-Grant**, nur der Sync (Service-Role) liest sie. Nie über einen
-  Frontend-Lesepfad ausgeliefert. Die Env-Werte `WEATHER_LAT/LON(_2)` sind
-  nur noch Restpfad bis Fahrplan 7 CRED5.
+  Frontend-Lesepfad ausgeliefert. Die früheren Env-Werte `WEATHER_LAT/LON(_2)`
+  sind mit Fahrplan 7 CRED5 entfallen — es gibt keinen Env-Pfad für
+  Koordinaten mehr.
 - Wetter-Forecast wird serverseitig im Sync berechnet → nur Wetterwerte in rides.json,
   nie Koordinaten
 - Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder Commit-Messages —
@@ -607,21 +630,20 @@ Grenzwerte sind in `tests/typ-inferenz.test.js` festgeschrieben.
 
 ## GitHub Secrets / apps01-Env (vorhanden, nie im Code)
 
-**Sync-Container auf apps01 (produktiv) — Zielstand nach Fahrplan 7 CRED5:**
+**Sync-Container auf apps01 (produktiv) — Stand seit Fahrplan 7 CRED5:**
 ```
 NOTION_API_KEY          NOTION_DATABASE_ID     (nur Athlet-1-Historie Plan 1, wächst nie mit)
 SUPABASE_URL            SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_ANON_KEY       (nur für den anonymen session_formats-Read)
 ```
 Seit Fahrplan 7 CRED3 liest der Sync intervals.icu-Key/-ID **und** die groben
-Standortkoordinaten je Athlet per Service-Role aus `athlete_sync_config`
-(`scripts/lib/sync-config-fetch.js`). Die pro Athlet wachsenden Werte
-`INTERVALS_API_KEY(_2/_4)`, `INTERVALS_ATHLETE_ID(_2/_4)`,
-`WEATHER_LAT/LON(_2/_4)`, `SUPABASE_ATHLETE1/4_EMAIL/PASSWORD` sind damit für
-den Sync **abgelöst** — sie stehen als Restpfad noch in der apps01-Env bzw. den
-GitHub-Actions-Secrets, bis CRED5 (Env-Schrumpfung mit Tony) läuft, und
-werden dann als tot markiert (nicht ohne Rücksprache gelöscht, CLAUDE.md
-„Grenzen").
+Standortkoordinaten für **alle** Athleten per Service-Role aus
+`athlete_sync_config` (`scripts/lib/sync-config-fetch.js`), nicht mehr aus Env.
+Die früher pro Athlet wachsenden Werte `INTERVALS_API_KEY(_2/_4)`,
+`INTERVALS_ATHLETE_ID(_2/_4)`, `WEATHER_LAT/LON(_2/_4)`,
+`SUPABASE_ATHLETE1/4_EMAIL/PASSWORD` sind mit CRED5 aus der apps01-Env und aus
+`sync-data.yml` entfernt. In den GitHub-Actions-Secrets bleiben sie als **tote
+Secrets** stehen (als solche markiert, nicht gelöscht — CLAUDE.md „Grenzen").
 
 **`sync-data.yml` (nur noch `workflow_dispatch`-Fallback):** `SYNC_PUSH_TOKEN`
 (seit 22.08.2026, Fine-grained PAT von Alex statt `GITHUB_TOKEN` — `main` hat

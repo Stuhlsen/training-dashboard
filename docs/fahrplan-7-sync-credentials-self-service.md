@@ -1,12 +1,16 @@
 # Fahrplan 7: Sync-Zugangsdaten self-service, Env-loser Sync-Container
 
-**Stand:** 2026-08-31 — **CRED0–CRED4 umgesetzt** (Commits `65b2b65` CRED1,
-`0a048bc` CRED2, `eff0cb8` CRED3, `2eef300` CRED4). Migrationen `0023_athlete_sync_config.sql`
-+ `0024_sync_service_role_grants.sql`, `scripts/lib/intervals-credentials-fetch.js`
-umbenannt in `scripts/lib/sync-config-fetch.js`. **Offen: CRED5** (Env
-schrumpfen, Abstimmung mit Tony) **und CRED6** (Doku-Abschluss — AGENTS.md /
-README wurden am 2026-08-31 bereits im Rahmen eines Doku-Abgleichs
-nachgezogen, der formale CRED6-Haken steht noch aus).
+**Stand:** 2026-09-02 — **CRED0–CRED6 umgesetzt, Fahrplan abgeschlossen.**
+Commits: `65b2b65` CRED1, `0a048bc` CRED2, `eff0cb8` CRED3, `2eef300` CRED4,
+`c3c37b8` CRED5-Rest (Repo), CRED6 (dieser Commit). Migrationen
+`0023_athlete_sync_config.sql` + `0024_sync_service_role_grants.sql`,
+`scripts/lib/intervals-credentials-fetch.js` umbenannt in
+`scripts/lib/sync-config-fetch.js`. Der apps01-Teil von CRED5 (Env-Schrumpfung,
+0023/0024 eingespielt, voller Live-Sync) ist von Tony erledigt und verifiziert:
+Sync-Container auf `v1.10.0`, Env auf `SUPABASE_URL` +
+`SUPABASE_SERVICE_ROLE_KEY` + `SUPABASE_ANON_KEY` (+ `NOTION_*`), Intervall
+15 min, alle 3 Athleten schreiben ohne Credential-Weitergabe. Der
+Service-Role-Key liegt ausschließlich auf apps01.
 **Ursprünglicher Stand:** 2026-08-29
 **Zielablage:** `docs/fahrplan-7-sync-credentials-self-service.md`
 **Herkunft:** Frage von Alex im Anschluss an Issue #31 /
@@ -133,8 +137,8 @@ CRED1  Sync-Config-Tabelle: Migration + RLS + Rundung    ✅ abgeschlossen (Migr
 CRED2  Settings-UI: Standort + Athlet-2-Sonderweg        ✅ abgeschlossen
 CRED3  Sync liest per Service-Role aus der Tabelle       ✅ abgeschlossen (Migration 0024, sync-config-fetch.js)
 CRED4  Bestandswerte migrieren (dev → prod)             ✅ abgeschlossen
-CRED5  Env schrumpfen + apps01/Quadlet + GitHub-Secrets  ⬜ offen (Abstimmung mit Tony)
-CRED6  Doku + Onboarding-Notiz                           ⬜ offen (AGENTS.md/README am 31.08. vorab nachgezogen)
+CRED5  Env schrumpfen + apps01/Quadlet + GitHub-Secrets  ✅ abgeschlossen (apps01: Tony; Repo: c3c37b8)
+CRED6  Doku + Onboarding-Notiz                           ✅ abgeschlossen
 ```
 
 Jedes Fenster endet mit: `node -c` der geänderten `.js`-Dateien → `npm test`
@@ -194,6 +198,10 @@ liest. **Read-only, kein Code.**
    `insert … on conflict do nothing`) und bleibt vorerst bestehen.
 3. **Athlet 2:** ✅ **Zeile ohne `profile_id`** — Schlüssel `athlete_key = "athlete2"`,
    admin-/seed-gepflegt, nur für Service-Role sichtbar.
+   > **Verworfen in CRED4 (2026-08-31):** Athlet 2 hat doch einen echten
+   > Supabase-Login bekommen und ist eine normale `profile_id`-Zeile. Die
+   > `athlete_key`-Spalte bleibt in Migration 0023 stehen, wird aber von
+   > keiner Zeile genutzt (`sync-config-fetch.js` löst sie noch auf).
 
 ---
 
@@ -393,13 +401,17 @@ zusätzlich prüfen, dass das Log nichts davon im Klartext zeigt.
 
 ### Abnahme
 
-- [ ] apps01-Sync läuft mit zwei Env-Werten, voller Zyklus ohne
-      Datenausfall (Frontend zeigt aktuelles Datum/Fahrtenzahl)
-- [ ] `.env.example` / Docker-Doku spiegeln den neuen Stand
-- [ ] Tote GitHub-Secrets als solche vermerkt (Liste in CRED6-Doku),
-      keine gelöscht
-- [ ] Ein bewusst falsch gesetzter Service-Role-Key → Sync bricht sauber
-      ab, alte `data/*.json` bleiben intakt (Schreiblogik aus DKR2)
+- [x] apps01-Sync läuft mit den fünf Env-Werten (`SUPABASE_URL` +
+      `_SERVICE_ROLE_KEY` + `_ANON_KEY` + `NOTION_*`), voller Live-Sync mit
+      0 Fehlern, alle 3 Athleten geschrieben (Tony, verifiziert)
+- [x] `.env.example` / `sync-data.yml` / `docs/handoff-sync-apps01.md`
+      spiegeln den neuen Stand
+- [x] Tote GitHub-Secrets in der Liste festgehalten (Commit-Text `c3c37b8`
+      + AGENTS.md „GitHub Secrets"), keine gelöscht — Alex markiert sie in
+      der GitHub-UI
+- [x] Fataler Abbruch bei fehlendem/falschem Service-Role-Key: per Design in
+      `sync-config-fetch.js` (throw → `generate-data.js` `main().catch` →
+      `exit 1` vor jedem `writeOutput()`), abgedeckt in der CRED3-Abnahme
 
 ---
 
@@ -432,9 +444,10 @@ Datenschutz-Regel sind nachgezogen.
 
 ### Abnahme
 
-- [ ] `npm test` (Root) und `cd app && npm test` grün
-- [ ] `npx fallow health --score` nicht schlechter als vor Fahrplan 7
-- [ ] Doku-Querverweise stimmig, keine toten Verweise auf entfernte
+- [x] `npm test` (Root, 124) und `cd app && npm test` (1461) grün
+- [x] `npx fallow health --score` unverändert (reiner Doku-/Config-Commit,
+      kein Modulgraph berührt)
+- [x] Doku-Querverweise stimmig, keine toten Verweise auf entfernte
       Env-Werte / umbenannte Module
 
 ---
