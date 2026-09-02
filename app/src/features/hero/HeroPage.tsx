@@ -62,6 +62,14 @@ export function HeroPage() {
   // Quelle (Befinden) und ist für Besucher grundsätzlich ❌ — unabhängig
   // davon, ob für DIESE Ansicht gerade `subjective` null ist (s. isSelf oben).
   const { session } = useAuth();
+
+  // FTP-Sichtbarkeit für Besucher (Migration 0025 `profiles.ftp_public`): der
+  // eingeloggte Athlet sieht seine eigene FTP immer; für alle anderen
+  // entscheidet das serverseitig gesetzte Flag aus dem Payload (fehlt in
+  // Alt-Payloads → sichtbar). Bei `false` verschwinden Leistungsskala, Ringe
+  // und Zeitstrahl komplett — dasselbe Verhalten wie beim Befinden-Schalter.
+  const ftpGateOpen = isSelf || (athleteData?.ftpPublic ?? true);
+
   const [whatIfFtp, setWhatIfFtp] = useState(athleteCfg?.ftpGoal ?? 210);
 
   // Athletenwechsel muss den Slider auf den NEUEN Athleten zurücksetzen —
@@ -96,14 +104,13 @@ export function HeroPage() {
       planCards: planCards ?? [],
       subjective: isSelf ? (checkin?.subjective ?? null) : null,
       todayISO: TODAY,
-      // ftp_history hängt wie der Check-in an auth.uid(), nicht am
-      // Athleten-Toggle — nur bei isSelf anwenden, sonst würde ein Toggle
-      // auf den anderen Athleten dessen Ring mit der eigenen FTP-Historie
-      // zeigen. Ternary bewusst HIER (im Memo-Callback), nicht in einer
-      // eigenen Variable davor — sonst erzeugt `isSelf ? entries : []` bei
-      // jedem Render ein neues Array und triggert das Memo unabhängig von
-      // echten Datenänderungen (react-hooks/exhaustive-deps).
-      ftpHistoryEntries: isSelf ? ftpHistoryEntries : [],
+      // Eingeloggter Athlet: seine eigene ftp_history (hängt an auth.uid(),
+      // nicht am Toggle). Besucher / anderer Athlet: die serverseitig
+      // ftp_public-gegatete Historie aus dem Payload (Migration 0025) —
+      // damit sieht die ausgeloggte Ansicht dieselben Ramp-Tests wie die
+      // eingeloggte. Beide Zweige sind stabile Referenzen (react-query-Cache
+      // bzw. Hook-Konstante), kein Neu-Array pro Render.
+      ftpHistoryEntries: isSelf ? ftpHistoryEntries : (athleteData?.ftpHistory ?? []),
     });
   }, [activeAthleteId, athleteData, planCards, isSelf, checkin, ftpHistoryEntries]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
@@ -113,10 +120,13 @@ export function HeroPage() {
   // config-Felder null) und anfangs keine Fahrten — Leistungsskala und
   // FTP-Ringe hätten dann keine Basis. Erst einblenden, sobald irgendein
   // FTP-Wert vorliegt (config, ftp_history-Ringwert oder eFTP aus Fahrten).
+  // Zusätzlich: bei abgeschalteter FTP-Sichtbarkeit (ftpGateOpen=false)
+  // bleiben Kachel/Ringe/Skala für Besucher komplett aus.
   const hasFtpData =
-    (athleteCfg?.ftpMeasured ?? athleteCfg?.eFTP ?? athleteCfg?.ftpGoal ?? null) != null ||
-    core.ramp.value > 0 ||
-    core.eftp.value > 0;
+    ftpGateOpen &&
+    ((athleteCfg?.ftpMeasured ?? athleteCfg?.eFTP ?? athleteCfg?.ftpGoal ?? null) != null ||
+      core.ramp.value > 0 ||
+      core.eftp.value > 0);
 
   // Gesamtstatistiken-Kachelreihe (Etappe 11c) — nutzt core.ramp/core.eftp
   // statt FTP/eFTP ein zweites Mal herzuleiten (s. buildHeroMetrics()-
@@ -124,8 +134,8 @@ export function HeroPage() {
   // sondern bekommt ihre eigene, billigere.
   const metrics = useMemo(() => {
     const rides = (athleteData?.rides as Ride[] | undefined) ?? [];
-    return buildHeroMetrics(rides, core.ramp, core.eftp);
-  }, [athleteData, core.ramp, core.eftp]);
+    return buildHeroMetrics(rides, core.ramp, core.eftp, ftpGateOpen);
+  }, [athleteData, core.ramp, core.eftp, ftpGateOpen]);
 
   // Bestleistungen + Trainingskonsistenz (Etappe 12a) — vanilla zeigt beides
   // auf tab-overview (= Hero-Tab hier); Records zusätzlich auch im

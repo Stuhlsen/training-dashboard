@@ -588,8 +588,18 @@ export interface HeroMetric {
  *  Aufrufstellen). Ebenso entfällt der NP-Fallback aus `Data.ftpValue()`:
  *  `HeroCore.ramp.value` kommt ausschließlich aus `athleteCfg.ftpMeasured`
  *  (Pflichtfeld in `AthleteConfig`, s. config.ts) — der Vanilla-Zweig
- *  "kein ftpMeasured → höchstes NP" ist damit hier unerreichbar. */
-export function buildHeroMetrics(rides: Ride[], ramp: HeroCore["ramp"], eftp: HeroCore["eftp"]): HeroMetric[] {
+ *  "kein ftpMeasured → höchstes NP" ist damit hier unerreichbar.
+ *
+ *  `showFtp` (Default true): bei abgeschalteter FTP-Sichtbarkeit für Besucher
+ *  (Migration 0025 `profiles.ftp_public`) entfallen die FTP- und eFTP-Kacheln
+ *  — konsistent zu den dann ebenfalls ausgeblendeten Ringen/der Leistungsskala
+ *  (s. HeroPage.tsx::ftpGateOpen). */
+export function buildHeroMetrics(
+  rides: Ride[],
+  ramp: HeroCore["ramp"],
+  eftp: HeroCore["eftp"],
+  showFtp = true,
+): HeroMetric[] {
   const ownPlan = rides.some((r) => r.week);
   const totalKm = sum(rides, "km");
   const totalMin = sum(rides, "min");
@@ -626,15 +636,18 @@ export function buildHeroMetrics(rides: Ride[], ramp: HeroCore["ramp"], eftp: He
       desc: "Durchschnittliche Geschwindigkeit aller Fahrten",
       color: "var(--role-status)",
     },
-    {
+  ];
+
+  if (showFtp) {
+    metrics.push({
       value: ramp.value ? `${ramp.value}W` : "–",
       label: "FTP (Ramp Test)",
       desc: `Gemessene FTP aus dem Ramp-Test${ramp.date ? " vom " + ramp.date.split("-").reverse().join(".") : ""}`,
       color: "var(--role-status)",
-    },
-  ];
+    });
+  }
 
-  if (eftp.value) {
+  if (showFtp && eftp.value) {
     metrics.push({
       value: `${eftp.value}W`,
       label: "eFTP (Intervals.icu)",

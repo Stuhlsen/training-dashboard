@@ -353,4 +353,13 @@ describe("buildHeroMetrics", () => {
     expect(byLabel["Ø Herzfrequenz"]).toBe("145 bpm");
     expect(byLabel["Ø Kadenz"]).toBe("87 RPM");
   });
+
+  it("showFtp=false (FTP nicht öffentlich, Besucheransicht): FTP- und eFTP-Kachel entfallen, Rest bleibt", () => {
+    const metrics = buildHeroMetrics(metricRides, ramp, eftp, false);
+    const labels = metrics.map((m) => m.label);
+    expect(labels).not.toContain("FTP (Ramp Test)");
+    expect(labels).not.toContain("eFTP (Intervals.icu)");
+    expect(labels).toContain("Gesamtdistanz");
+    expect(labels).toContain("CTL Peak");
+  });
 });
