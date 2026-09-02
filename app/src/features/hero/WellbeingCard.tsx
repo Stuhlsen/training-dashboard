@@ -4,6 +4,7 @@ import { useAuthUserId, useSessionProfile } from "../../api/hooks/useSession";
 import { useTodayCheckin, useSharedCheckin } from "../../api/hooks/useWellbeing";
 import { athleteConfig } from "../../config";
 import { localISODate } from "../../core/format.js";
+import { useCheckinEnabled } from "../../hooks/useCheckinEnabled";
 import { CheckinDialog } from "../settings/CheckinDialog";
 
 function promptSeenKey(userId: string, todayISO: string) {
@@ -134,7 +135,14 @@ function SharedCard({ athleteId }: { athleteId: string }) {
 export function WellbeingCard({ activeAthleteId }: { activeAthleteId: string }) {
   const userId = useAuthUserId();
   const isAthleteRole = useSessionProfile()?.role === "athlete";
+  const { enabled: checkinEnabled } = useCheckinEnabled();
 
-  if (userId && isAthleteRole) return <SelfCard />;
+  if (userId && isAthleteRole) {
+    // Settings → Training → „Morgen-Check-in" aus: weder die eigene Kachel
+    // noch (über SelfCard) das tägliche Auto-Popup. SharedCard ist für den
+    // eingeloggten Athleten nicht der richtige Fallback (das sind fremde,
+    // freigegebene Werte) — hier bewusst gar keine Kachel.
+    return checkinEnabled ? <SelfCard /> : null;
+  }
   return <SharedCard athleteId={activeAthleteId} />;
 }
