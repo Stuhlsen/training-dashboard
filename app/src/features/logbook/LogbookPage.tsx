@@ -23,6 +23,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import { ChartTooltip } from "../../charts/ChartTooltip";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useRides } from "../../api/hooks/useRides";
@@ -179,7 +180,7 @@ export function LogbookPage() {
                               background: "var(--glass-2)",
                             }}
                           >
-                            {c.label}
+                            {c.termKey ? <InfoTooltip termKey={c.termKey}>{c.label}</InfoTooltip> : c.label}
                             {!c.noSort && (
                               <span style={{ opacity: sorted_ ? 1 : 0.35, marginLeft: 3, fontSize: ".65rem" }}>{icon}</span>
                             )}

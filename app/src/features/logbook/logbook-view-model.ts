@@ -20,9 +20,12 @@ export interface LogbookColumn {
   label: string;
   sortKey?: string;
   noSort?: boolean;
+  /** Glossar-Key für einen Erklär-Tooltip am Spaltenkopf (`glossary.ts`).
+   *  Nur echte Kürzel — Datum/Einheit/Typ/km/min bleiben ohne. */
+  termKey?: string;
 }
 
-/** 1:1 aus table.js::COLS. */
+/** 1:1 aus table.js::COLS (plus `termKey` für die Erklär-Tooltips). */
 export const COLUMNS: LogbookColumn[] = [
   { key: "dateShort", label: "Datum", sortKey: "dateISO" },
   { key: "week", label: "Woche" },
@@ -31,13 +34,13 @@ export const COLUMNS: LogbookColumn[] = [
   { key: "km", label: "km" },
   { key: "min", label: "min" },
   { key: "kmh", label: "km/h" },
-  { key: "hf", label: "Ø HF" },
-  { key: "hfMax", label: "HF-Max" },
-  { key: "kad", label: "Kadenz" },
+  { key: "hf", label: "Ø HF", termKey: "hf" },
+  { key: "hfMax", label: "HF-Max", termKey: "hf" },
+  { key: "kad", label: "Kadenz", termKey: "cadence" },
   { key: "watt", label: "Ø W" },
-  { key: "np", label: "NP" },
-  { key: "trimp", label: "TRIMP" },
-  { key: "ctl", label: "CTL" },
+  { key: "np", label: "NP", termKey: "np" },
+  { key: "trimp", label: "TRIMP", termKey: "trimp" },
+  { key: "ctl", label: "CTL", termKey: "ctl" },
   { key: "weather", label: "Wetter", noSort: true },
 ];
 
