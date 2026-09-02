@@ -21,8 +21,8 @@ export const RIDE_TYPES = [
 /** Authentifizierter GET gegen die intervals.icu-API
  *  @param {string} endpoint Pfad ab /api/v1
  *  @param {string} key API-Key (Aufrufer übergibt ihn — seit Fahrplan 7
- *    CRED3 kein ENV-Default mehr, er kommt aus athlete_sync_config bzw.
- *    für Athlet 2 aus ENV.INTERVALS_KEY_2)
+ *    CRED3 kein ENV-Default mehr, er kommt für jeden Athleten aus
+ *    athlete_sync_config)
  *  @returns {Promise<Object|Array|null>} */
 export async function intervalsGet(endpoint, key) {
   const url = `https://intervals.icu/api/v1${endpoint}`;

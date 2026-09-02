@@ -45,15 +45,10 @@ export const ENV = {
   DB_ID: process.env.NOTION_DATABASE_ID,
   // --- Athlet 1, 2 + 4: intervals.icu-Key/-ID und der grobe Standort kommen
   //     seit Fahrplan 7 CRED3/CRED4 aus der Supabase-Tabelle athlete_sync_config
-  //     (scripts/lib/sync-config-fetch.js, EIN service_role-Aufruf) — NICHT
-  //     mehr aus INTERVALS_API_KEY(_2/_4) / WEATHER_LAT/LON(_2/_4). ---
-  // Die folgenden vier Werte liest generate-data.js seit CRED4 NICHT mehr
-  // (Athlet 2 kommt jetzt aus der athlete_key="athlete2"-Zeile). Sie bleiben
-  // nur als toter Restpfad bis CRED5 stehen — dann ersatzlos entfernen.
-  INTERVALS_KEY_2: process.env.INTERVALS_API_KEY_2 || "",
-  INTERVALS_ATHLETE_2: process.env.INTERVALS_ATHLETE_ID_2 || "",
-  WEATHER_LAT_2: process.env.WEATHER_LAT_2 || null,
-  WEATHER_LON_2: process.env.WEATHER_LON_2 || null,
+  //     (scripts/lib/sync-config-fetch.js, EIN service_role-Aufruf). Jeder
+  //     Athlet ist eine normale profile_id-Zeile — es gibt kein
+  //     INTERVALS_API_KEY(_2/_4) / WEATHER_LAT/LON(_2/_4) mehr, weder hier
+  //     noch in der .env (Fahrplan 7 CRED5). ---
   // Supabase. SUPABASE_SERVICE_ROLE_KEY: seit CRED3 der Zugang des Sync zu
   // athlete_sync_config / profiles / plan_cards / ftp_history (RLS-Bypass,
   // ein Aufruf statt Login pro Athlet). Nur lokal in .env bzw. auf apps01,
@@ -64,9 +59,11 @@ export const ENV = {
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY || "",
   SUPABASE_ATHLETE1_EMAIL: process.env.SUPABASE_ATHLETE1_EMAIL || "",
   SUPABASE_ATHLETE1_PASSWORD: process.env.SUPABASE_ATHLETE1_PASSWORD || "",
-  // Athlet 2: Login-Fallback für plan_cards/ftp_history, solange die
-  // athlete_key-Zeile fehlt (CRED4) — scripts/lib/plan-cards-fetch.js /
-  // ftp-history.js nehmen ihn über den {email,password}-Legacy-Zweig.
+  // Athlet 2: vom Sync NICHT mehr gelesen (seit CRED4 eine normale
+  // profile_id-Zeile in athlete_sync_config). Der {email,password}-Legacy-
+  // Zweig in scripts/lib/plan-cards-fetch.js / ftp-history.js wird nur noch
+  // von scripts/backtest-ladder.js und
+  // scripts/report-derived-workout-structure.js genutzt.
   SUPABASE_ATHLETE2_EMAIL: process.env.SUPABASE_ATHLETE2_EMAIL || "",
   SUPABASE_ATHLETE2_PASSWORD: process.env.SUPABASE_ATHLETE2_PASSWORD || "",
   // Athlet 4 ("Bentastiic"): vom Sync NICHT mehr gelesen (s. CRED3-Hinweis

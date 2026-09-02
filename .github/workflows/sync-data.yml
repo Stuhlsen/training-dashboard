@@ -13,14 +13,15 @@
 # Kein GitHub-Pages-Deploy (Issue #30) — Frontend selbst-gehostet ueber Docker
 # (ghcr.io/stuhlsen/training-dashboard-frontend, Build in publish-images.yml).
 #
-# Secrets (Settings → Secrets → Actions) — Stand seit Fahrplan 7 CRED3:
+# Secrets (Settings → Secrets → Actions) — Stand seit Fahrplan 7 CRED5:
 #   NOTION_API_KEY / NOTION_DATABASE_ID   — Notion-Ära-Historie (nur Athlet 1)
 #   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — einziger Sync-Zugang; liest
 #     intervals.icu-Key/-ID + grobe Koordinaten je Athlet aus athlete_sync_config
 #     (scripts/lib/sync-config-fetch.js) sowie plan_cards/ftp_history/profiles.
 #   SUPABASE_ANON_KEY                     — nur fuer den anonymen session_formats-Read
-#   Die frueheren INTERVALS_API_KEY(_2/_4) / WEATHER_LAT/LON(_2/_4) /
-#   SUPABASE_ATHLETE1/4_* / SYNC_PUSH_TOKEN sind abgeloest (Restpfad bis CRED5).
+#   Die frueheren INTERVALS_API_KEY(_2/_4) / INTERVALS_ATHLETE_ID(_2) /
+#   WEATHER_LAT/LON(_2/_4) / SUPABASE_ATHLETE1/4_EMAIL/PASSWORD / SYNC_PUSH_TOKEN
+#   sind abgeloest — in der GitHub-UI als tote Secrets markiert, nicht geloescht.
 
 name: Sync Training Data
 on:
@@ -59,36 +60,17 @@ jobs:
 
       - name: Generate rides.json
         env:
+          # Seit Fahrplan 7 CRED5 der komplette Sync-Zugang. intervals.icu-Key/
+          # -ID + grobe Koordinaten je Athlet liest der Sync per Service-Role
+          # aus athlete_sync_config (scripts/lib/sync-config-fetch.js), ebenso
+          # plan_cards/ftp_history/profiles. NOTION_* nur für die Athlet-1-
+          # Historie (Plan 1). SUPABASE_ANON_KEY nur für den anonymen
+          # session_formats-Read (scripts/lib/formats-fetch.js).
           NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
           NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
-          INTERVALS_API_KEY: ${{ secrets.INTERVALS_API_KEY }}
-          INTERVALS_ATHLETE_ID: ${{ secrets.INTERVALS_ATHLETE_ID }}
-          INTERVALS_API_KEY_2: ${{ secrets.INTERVALS_API_KEY_2 }}
-          # Prod-Supabase (plan_cards, ftp_history) — ohne diese vier fehlt
-          # der Sync-Umgebung jeder Zugriff auf die echte Datenbank, und
-          # effectivePlan/ftpAt() fallen unbemerkt auf die eingefrorene
-          # statische Plan+adjustments.json-Kombination bzw. DEFAULT_FTP
-          # zurück (Degradationspfad, kein Fehler — deshalb lief das lange
-          # unbemerkt, s. docs/offene-punkte.md). Nur Athlet 1 (eigener
-          # Account) — für Athlet 2 existiert noch kein Prod-Zugang.
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          SUPABASE_ATHLETE1_EMAIL: ${{ secrets.SUPABASE_ATHLETE1_EMAIL }}
-          SUPABASE_ATHLETE1_PASSWORD: ${{ secrets.SUPABASE_ATHLETE1_PASSWORD }}
-          # Athlet 4 ("Bentastiic"): volles Modell. Der Sync liest den
-          # intervals.icu-Key aus der Supabase-Tabelle intervals_credentials
-          # (vom Athleten in Settings eingetragen) — deshalb hier NUR der
-          # Supabase-Login, kein INTERVALS_API_KEY_4. Fehlen diese beiden,
-          # wird der Athlet-4-Block komplett übersprungen (kein Fehler).
-          SUPABASE_ATHLETE4_EMAIL: ${{ secrets.SUPABASE_ATHLETE4_EMAIL }}
-          SUPABASE_ATHLETE4_PASSWORD: ${{ secrets.SUPABASE_ATHLETE4_PASSWORD }}
-          INTERVALS_ATHLETE_ID_2: ${{ secrets.INTERVALS_ATHLETE_ID_2 }}
-          WEATHER_LAT: ${{ secrets.WEATHER_LAT }}
-          WEATHER_LON: ${{ secrets.WEATHER_LON }}
-          WEATHER_LAT_2: ${{ secrets.WEATHER_LAT_2 }}
-          WEATHER_LON_2: ${{ secrets.WEATHER_LON_2 }}
-          WEATHER_LAT_4: ${{ secrets.WEATHER_LAT_4 }}
-          WEATHER_LON_4: ${{ secrets.WEATHER_LON_4 }}
         run: node scripts/generate-data.js
 
       - name: Commit data if changed
