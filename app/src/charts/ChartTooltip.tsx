@@ -10,6 +10,9 @@ interface ChartTooltipProps {
    *  Fahrten-Liste) — Default deckt weiterhin die kurzen Ein-Zeiler der
    *  übrigen Charts ab. */
   width?: number;
+  /** Optionale DOM-`id` der Box — für `aria-describedby` vom auslösenden
+   *  Element (InfoTooltip.tsx). Ohne Angabe unverändert wie bisher. */
+  id?: string;
 }
 
 /* Geschätzte Maße statt Ref-Messung (Vereinfachung ggü. vanilla
@@ -35,13 +38,14 @@ const EDGE_MARGIN = 8;
  *  der Tooltip also relativ zur Kachel statt zum Viewport, die
  *  Rand-Klemmung unten rechnet dann mit falschen Bezugswerten und der
  *  Tooltip kann über den sichtbaren Bildschirmrand hinausragen. */
-export function ChartTooltip({ x, y, children, width = ESTIMATED_WIDTH }: ChartTooltipProps) {
+export function ChartTooltip({ x, y, children, width = ESTIMATED_WIDTH, id }: ChartTooltipProps) {
   const left = Math.max(EDGE_MARGIN, Math.min(x + 14, window.innerWidth - width - EDGE_MARGIN));
   const top = Math.max(EDGE_MARGIN, Math.min(y - ESTIMATED_HEIGHT - 10, window.innerHeight - ESTIMATED_HEIGHT - EDGE_MARGIN));
 
   return createPortal(
     <div
       role="tooltip"
+      id={id}
       style={{
         position: "fixed",
         left,

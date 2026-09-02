@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { ChartTooltip } from "../../charts/ChartTooltip";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import { powerScaleReadout, type HeroViewModel } from "./hero-view-model";
 
 interface PowerScaleProps {
@@ -62,7 +63,7 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
         <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
-          Leistungsskala · Watt
+          <InfoTooltip termKey="coggan-zones">Leistungsskala · Watt</InfoTooltip>
         </span>
 
         <div
@@ -145,7 +146,7 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
       <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingLeft: "clamp(0px,2vw,28px)", borderLeft: "1px solid var(--hair)" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 16 }}>
           <span style={{ fontSize: ".72rem", letterSpacing: ".13em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
-            What-if · Ziel-FTP
+            What-if · <InfoTooltip termKey="ftp">Ziel-FTP</InfoTooltip>
           </span>
           <span style={{ fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>{whatIfFtp} W</span>
         </div>

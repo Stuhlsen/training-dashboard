@@ -1,5 +1,17 @@
 import { GlassCard } from "../../components/GlassCard";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import type { HeroMetric } from "./hero-view-model";
+
+/** Kachel-Label → Glossar-Key. Nur echte Abkürzungen/Jargon, nicht jedes
+ *  Label (Gesamtdistanz/Fahrten/… bleiben ohne Tooltip). Die Labels kommen
+ *  als Strings aus `buildHeroMetrics()` — hier gematcht, damit das
+ *  View-Model reine Daten bleibt. */
+const METRIC_TERMS: Record<string, string> = {
+  "FTP (Ramp Test)": "ftp",
+  "eFTP (Intervals.icu)": "eftp",
+  "CTL Peak": "ctl",
+  "Ø Kadenz": "cadence",
+};
 
 /** Eine Kachel — Port von `ui/overview.js::_renderMetrics()`s `.metric-card`
  *  (assets/css/components.css). Akzentkante links über einen absolut
@@ -38,7 +50,11 @@ function MetricTile({ metric }: { metric: HeroMetric }) {
           fontWeight: 500,
         }}
       >
-        {metric.label}
+        {METRIC_TERMS[metric.label] ? (
+          <InfoTooltip termKey={METRIC_TERMS[metric.label]}>{metric.label}</InfoTooltip>
+        ) : (
+          metric.label
+        )}
       </div>
       <div style={{ fontSize: ".72rem", color: "var(--ink-3)", marginTop: 6, lineHeight: 1.4 }}>{metric.desc}</div>
     </GlassCard>

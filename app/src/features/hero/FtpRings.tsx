@@ -1,5 +1,6 @@
 import { GlassCard } from "../../components/GlassCard";
 import { ProgressRing } from "../../components/ProgressRing";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import { fmtDate } from "../../core/format.js";
 import type { HeroRing, HeroViewModel } from "./hero-view-model";
 
@@ -13,6 +14,7 @@ import type { HeroRing, HeroViewModel } from "./hero-view-model";
  *  Stelle, mit Testschutz). */
 type RingKind = "eftp" | "ramp";
 const RING_LABEL: Record<RingKind, string> = { eftp: "eFTP · W", ramp: "Ramp · W" };
+const RING_TERM: Record<RingKind, string> = { eftp: "eftp", ramp: "ramp-test" };
 /** Gemessen (Ramp-Test) vs. geschätzt (eFTP) — Wort UND Icon an jeder
  *  Stelle, an der einer der beiden Werte auftaucht (Ringe + Zeitstrahl),
  *  damit der Unterschied auch ohne genaues Lesen auffällt (Review-Feedback
@@ -180,7 +182,7 @@ export function FtpRings({
   return (
     <GlassCard variant="soft" radius="24px" style={{ padding: "26px 28px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
-        FTP-Fortschritt
+        <InfoTooltip termKey="ftp">FTP-Fortschritt</InfoTooltip>
       </span>
 
       <div style={{ display: "flex", alignItems: "flex-start", gap: 36 }}>
@@ -188,7 +190,7 @@ export function FtpRings({
           <ProgressRing size={150} strokeWidth={12} progress={primary.progress} color="var(--accent)">
             <span style={{ fontSize: "2.35rem", fontWeight: 600, lineHeight: 1, letterSpacing: "-.02em", color: "var(--ink)" }}>{primary.value}</span>
             <span style={{ fontSize: ".64rem", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-2)", fontWeight: 600 }}>
-              {RING_LABEL[ftpPrimary]}
+              <InfoTooltip termKey={RING_TERM[ftpPrimary]}>{RING_LABEL[ftpPrimary]}</InfoTooltip>
             </span>
           </ProgressRing>
           <RingQualifier kind={ftpPrimary} />
@@ -198,7 +200,7 @@ export function FtpRings({
           <ProgressRing size={104} strokeWidth={8} progress={secondary.progress} color="var(--ink-2)">
             <span style={{ fontSize: "1.44rem", fontWeight: 600, lineHeight: 1, color: "var(--ink)" }}>{secondary.value}</span>
             <span style={{ fontSize: ".56rem", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
-              {RING_LABEL[secondaryKind]}
+              <InfoTooltip termKey={RING_TERM[secondaryKind]}>{RING_LABEL[secondaryKind]}</InfoTooltip>
             </span>
           </ProgressRing>
           <RingQualifier kind={secondaryKind} />
