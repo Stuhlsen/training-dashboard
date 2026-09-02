@@ -29,7 +29,12 @@ export const WELLNESS_FIELDS = [
   { out: "sleepScore", pick: (w) => (typeof w.sleepScore === "number" ? Math.round(w.sleepScore) : null) },
   { out: "avgSleepingHR", pick: (w) => w.avgSleepingHR || null },
   { out: "restingHR", pick: (w) => w.restingHR || null },
-  { out: "hrv", pick: (w) => w.hrvSDNN || null },
+  // HRV: intervals.icu liefert je Datenquelle ENTWEDER SDNN (`hrvSDNN`,
+  // z.B. Apple Health) ODER rMSSD (`hrv`, z.B. Garmin Connect). Andere
+  // Skala — dürfen nie in einer Reihe gemischt werden (readiness.js-Baseline,
+  // WellnessChart-Methodenlinie). Die Methode wird EINMAL pro Athleten-Set
+  // gewählt (pickHrvMethod), hier nur das passende Rohfeld gelesen.
+  { out: "hrv", pick: (w, method) => hrvByMethod(w, method) },
   // Regeneration & Körper (neu) — null-tolerant, UI blendet datengetrieben aus
   { out: "weight", pick: (w) => (w.weight > 0 ? Math.round(w.weight * 10) / 10 : null) },
   { out: "bodyFat", pick: (w) => (w.bodyFat > 0 ? Math.round(w.bodyFat * 10) / 10 : null) },
@@ -53,6 +58,32 @@ export const WELLNESS_FIELDS = [
   { out: "eftp", pick: (w) => eftpFromSportInfo(w) },
 ];
 
+/** HRV-Messmethode für einen ganzen Wellness-Satz — je Ökosystem eine feste
+ *  Methode: Apple Health/Amazfit liefern SDNN (`hrvSDNN`, Athlet 1/2), Garmin
+ *  Connect nur rMSSD (`hrv`, Athlet 4). Entscheidung per Mehrheit der Tage mit
+ *  Wert, nicht "irgendein Tag": ein einzelner Fremd-Tag (alter Geräte-Sync,
+ *  intervals.icu-Backfill) soll die Reihe nicht kippen und dadurch alle Tage
+ *  der Mehrheitsmethode auf null setzen. Gleichstand/leer → SDNN (bisheriges
+ *  Default). Nie pro Tag gemischt.
+ *  @param {Record<string, Object>} wellness Roh-Map date → intervals.icu-Objekt
+ *  @returns {"sdnn"|"rmssd"} */
+export function pickHrvMethod(wellness) {
+  let sdnn = 0;
+  let rmssd = 0;
+  for (const w of Object.values(wellness || {})) {
+    if (!w) continue;
+    if (w.hrvSDNN > 0) sdnn++;
+    else if (w.hrv > 0) rmssd++;
+  }
+  return rmssd > sdnn ? "rmssd" : "sdnn";
+}
+
+/** Roher HRV-Wert eines Tages nach gewählter Methode (s. pickHrvMethod).
+ *  @param {Object} w @param {"sdnn"|"rmssd"} method @returns {number|null} */
+function hrvByMethod(w, method) {
+  return (method === "rmssd" ? w.hrv : w.hrvSDNN) || null;
+}
+
 /** eFTP (Ride) aus dem sportInfo-Array eines Wellness-Tags
  *  @param {Object} w @returns {number|null} */
 export function eftpFromSportInfo(w) {
@@ -74,10 +105,15 @@ function hasAnyValue(day) {
  * @returns {Array<Record<string, unknown>>}
  */
 export function mapWellnessList(wellness) {
+  const hrvMethod = pickHrvMethod(wellness);
   return Object.entries(wellness || {})
     .map(([date, w]) => {
       const day = { date };
-      for (const f of WELLNESS_FIELDS) day[f.out] = f.pick(w || {});
+      for (const f of WELLNESS_FIELDS) day[f.out] = f.pick(w || {}, hrvMethod);
+      // Methode nur auf Tagen mit echtem HRV-Wert markieren — sonst trägt ein
+      // datenloser Tag ein irreführendes Label. Downstream (readiness.js,
+      // WellnessChart) liest die Methode aus dem ersten markierten Tag.
+      day.hrvMethod = day.hrv != null ? hrvMethod : null;
       return day;
     })
     .filter(hasAnyValue)

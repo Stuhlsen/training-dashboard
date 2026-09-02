@@ -70,7 +70,10 @@ export function WellnessChart({ rides, wellness, metric, onMetricChange }: Welln
       .map((w) => ({
         dateISO: (w.dateISO ?? w.date) as string,
         value: (w as Record<string, unknown>)[wellnessField] as number,
-        hrvMethod: "sdnn" as const,
+        // Echte Methode aus der Reihe (Garmin → "rmssd", Apple Health →
+        // "sdnn"); Fallback für Altdaten ohne das Feld. Nur der Divider
+        // reagiert darauf, und der zeigt sich nur bei einem Wechsel.
+        hrvMethod: (((w as Record<string, unknown>).hrvMethod as "sdnn" | "rmssd") ?? "sdnn"),
       }))
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   }, [rides, wellness, rideField, wellnessField]);

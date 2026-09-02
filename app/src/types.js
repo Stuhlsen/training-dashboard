@@ -146,6 +146,7 @@
  * @property {number|null} [avgSleepingHR]
  * @property {number|null} [restingHR]
  * @property {number|null} [hrv]
+ * @property {"sdnn"|"rmssd"|null} [hrvMethod]  HRV-Messmethode der Reihe — SDNN (Apple Health) oder rMSSD (Garmin), nie gemischt (scripts/lib/wellness.js::pickHrvMethod)
  * @property {number|null} [weight]          kg (Apple Health → intervals.icu)
  * @property {number|null} [bodyFat]         %
  * @property {number|null} [activeEnergy]     aktiv verbrannte kcal (Apple Health)

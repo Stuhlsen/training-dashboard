@@ -85,6 +85,9 @@ export const WELLNESS_SCHEMA = {
   avgSleepingHR: "number?",
   restingHR: "number?",
   hrv: "number?",
+  // "sdnn" (Apple Health) oder "rmssd" (Garmin) — HRV-Messmethode der Reihe,
+  // nie gemischt (scripts/lib/wellness.js::pickHrvMethod)
+  hrvMethod: "string?",
   // Regeneration & Körper (Sync-Erweiterung, siehe scripts/lib/wellness.js)
   weight: "number?",
   bodyFat: "number?",

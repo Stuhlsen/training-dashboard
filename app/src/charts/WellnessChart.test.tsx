@@ -51,6 +51,19 @@ describe("WellnessChart", () => {
     expect(svg.tagName).toBe("svg");
   });
 
+  it("zeigt bei einer reinen rMSSD-Reihe (Garmin) keinen Methodenwechsel-Divider", () => {
+    const wellness = Array.from({ length: 12 }, (_, i) => ({
+      dateISO: `2026-08-${String(i + 1).padStart(2, "0")}`,
+      hrv: 70 + i,
+      restingHR: 48,
+      hrvMethod: "rmssd" as const,
+    }));
+    const { container } = render(
+      <WellnessChart rides={[]} wellness={wellness as never} metric="hrv" />,
+    );
+    expect(container.querySelector('line[stroke-dasharray="2,3"]')).toBeNull();
+  });
+
   it("wechselt die Metrik über den Umschalter (onMetricChange)", () => {
     const onMetricChange = vi.fn();
     const { rides, wellness } = buildOwnPlanRidesAndWellness();

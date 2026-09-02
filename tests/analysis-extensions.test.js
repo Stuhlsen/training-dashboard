@@ -7,6 +7,7 @@ import {
   latestWeight,
   fieldCoverage,
   eftpFromSportInfo,
+  pickHrvMethod,
 } from "../scripts/lib/wellness.js";
 
 /* ── Wellness-Sync-Mapping ──────────────────────────────────── */
@@ -38,6 +39,60 @@ test("mapWellnessList: erweiterte Felder, Tage ohne Werte entfallen, sortiert", 
   assert.equal(d2.hydrationVolume, 1.65); // Liter, 2 Nachkommastellen
   assert.equal(d2.eftp, 262);
   assert.equal(d2.hrv, null);
+  // Satz enthält einen SDNN-Wert → Reihe gilt als SDNN
+  assert.equal(list[0].hrvMethod, "sdnn");
+  assert.equal(d2.hrvMethod, null, "kein HRV-Wert → keine Methode markiert");
+});
+
+test("mapWellnessList: nur rMSSD (Garmin) → hrv aus w.hrv, hrvMethod rmssd", () => {
+  const raw = {
+    "2026-08-29": { hrv: 78, restingHR: 51 },
+    "2026-08-30": { hrv: 64, restingHR: 51 },
+  };
+  const list = mapWellnessList(raw);
+  assert.equal(list.length, 2);
+  assert.equal(list[0].hrv, 78);
+  assert.equal(list[0].hrvMethod, "rmssd");
+  assert.equal(list[1].hrv, 64);
+  assert.equal(list[1].hrvMethod, "rmssd");
+});
+
+test("mapWellnessList: rMSSD-Reihe mit einem Fremd-SDNN-Tag → bleibt rMSSD, Garmin-Werte erhalten", () => {
+  const raw = {
+    "2026-08-28": { hrv: 78, restingHR: 51 },
+    "2026-08-29": { hrv: 64, restingHR: 51 },
+    "2026-08-30": { hrv: 83, restingHR: 51 },
+    "2026-08-31": { hrvSDNN: 42, restingHR: 52 }, // Ausreißer (alter Sync)
+  };
+  const list = mapWellnessList(raw);
+  assert.equal(list[0].hrv, 78);
+  assert.equal(list[0].hrvMethod, "rmssd");
+  assert.equal(list[2].hrv, 83, "Garmin-Tage werden nicht durch den Ausreißer genullt");
+  assert.equal(list[3].hrv, null, "der SDNN-Ausreißer selbst trägt in einer rMSSD-Reihe kein hrv");
+});
+
+test("mapWellnessList: SDNN + rMSSD im selben Satz → SDNN gewinnt, rMSSD-Tage ohne hrv (kein Mischen)", () => {
+  const raw = {
+    "2026-07-01": { hrvSDNN: 43, restingHR: 50 },
+    "2026-07-02": { hrv: 78, restingHR: 51 }, // nur rMSSD
+  };
+  const list = mapWellnessList(raw);
+  assert.equal(list[0].hrv, 43);
+  assert.equal(list[0].hrvMethod, "sdnn");
+  assert.equal(list[1].hrv, null, "rMSSD wird nicht in eine SDNN-Reihe gemischt");
+  assert.equal(list[1].hrvMethod, null);
+  assert.equal(list[1].restingHR, 51, "Tag bleibt wegen restingHR erhalten");
+});
+
+test("pickHrvMethod: Mehrheit entscheidet, Gleichstand/leer → sdnn", () => {
+  assert.equal(pickHrvMethod({ a: { hrv: 70 }, b: { hrv: 65 }, c: { hrv: 68 } }), "rmssd");
+  // ein einzelner Fremd-SDNN-Tag kippt eine rMSSD-Reihe NICHT
+  assert.equal(
+    pickHrvMethod({ a: { hrv: 70 }, b: { hrv: 65 }, c: { hrv: 68 }, d: { hrvSDNN: 42 } }),
+    "rmssd",
+  );
+  assert.equal(pickHrvMethod({ a: { hrvSDNN: 40 }, b: { hrv: 70 } }), "sdnn"); // Gleichstand
+  assert.equal(pickHrvMethod({}), "sdnn");
 });
 
 test("mapWellnessList: sleepScore (gemessen) wird NICHT mit sleepQuality (self-reported) verwechselt", () => {

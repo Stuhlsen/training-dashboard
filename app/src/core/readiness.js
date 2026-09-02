@@ -4,8 +4,11 @@
    gegen eine rollierende 42-Tage-Baseline (Mittelwert ± SD).
    Hintergrund: HRV-gesteuertes Training zeigte in Studien
    (u.a. Javaloyes 2019) bessere Anpassung als starre Pläne.
-   Methodik: nutzt ausschließlich die intervals.icu-Wellness-Reihe
-   (durchgehend SDNN) — kein Mischen mit Plan-1-RMSSD-Werten.
+   Methodik: nutzt ausschließlich die intervals.icu-Wellness-Reihe. Deren
+   HRV ist je Athlet durchgehend EINE Methode — SDNN (z.B. Apple Health)
+   oder rMSSD (z.B. Garmin), s. scripts/lib/wellness.js::pickHrvMethod;
+   nie gemischt, auch nicht mit Plan-1-RMSSD-Werten. Das Metrik-Label
+   führt die Methode mit.
    ============================================================ */
 
 /** Einzige Quelle für alle Readiness-Schwellenwerte — core/briefing.js liest
@@ -111,6 +114,10 @@ export function assessReadiness(wellness, todayISO) {
   const base = sorted.slice(-(BASELINE_DAYS + RECENT_DAYS), -RECENT_DAYS);
   if (base.length < 10) return null;
 
+  // HRV-Methode der Reihe (einheitlich, s. Modulkopf) — nur fürs Label.
+  const hrvMethod = sorted.reduce((m, w) => w.hrvMethod || m, null);
+  const hrvLabel = hrvMethod === "rmssd" ? "HRV (rMSSD)" : "HRV (SDNN)";
+
   // "domain" bündelt Metriken, die inhaltlich dasselbe Thema abdecken —
   // aktuell nur "sleep" (Dauer + Score aus 2 verschiedenen intervals.icu-
   // Feldern). Zählt in der Ampel-Kombination unten als EINE Stimme (s.
@@ -119,7 +126,7 @@ export function assessReadiness(wellness, todayISO) {
   // bleiben trotzdem einzeln sichtbar (eigene Zeile in ReadinessCard.tsx /
   // core/export-briefing.js).
   const defs = [
-    { key: "hrv", label: "HRV (SDNN)", get: (w) => w.hrv, higherIsBetter: true, domain: "hrv" },
+    { key: "hrv", label: hrvLabel, get: (w) => w.hrv, higherIsBetter: true, domain: "hrv" },
     { key: "restingHR", label: "Ruhepuls", get: (w) => w.restingHR, higherIsBetter: false, domain: "restingHR" },
     { key: "sleep", label: "Schlafdauer", get: (w) => w.sleepHours, higherIsBetter: true, domain: "sleep" },
     { key: "sleepScore", label: "Schlafqualität", get: (w) => w.sleepScore, higherIsBetter: true, domain: "sleep" },
