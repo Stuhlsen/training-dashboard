@@ -27,6 +27,34 @@
     nur bei Karten-Erstellung gesetzt, nie danach geändert. Echtes neues
     Feature (Bedienelement + Schreibpfad), noch nicht gebaut.
 
+- **Kein Self-Service zum Erstellen eines neuen Trainingsplans** — jeder Plan
+  ist Code: `scripts/lib/plan2.js` (Athlet 1, Plan 2), `scripts/lib/plan-athlete2.js`
+  (Athlet 2, GFNY Bremen 2026), `scripts/lib/plan-athlete4.js` (Athlet 4,
+  Einsteigervorlage). Es gibt keinen Weg für einen Athleten, nach Abschluss
+  eines Plans (Athlet 2 nach GFNY, 30.08.2026) einen neuen anzulegen. Der
+  Planungstab kann bestehende `plan_cards` verschieben/ausfallen lassen/pushen
+  und (sobald gebaut) mit „Plan um X Wochen verschieben" die generierte
+  Baseline verschieben, aber keine Plan-Struktur neu aufbauen.
+  - **Bevorzugter Weg (zurückgestellt, eigener Fahrplan):** Plan-Vorlagen-
+    System. Wenige generierte, parametrisierte Vorlagen nach dem Muster von
+    `plan-athlete4.js::PLANNED_SESSIONS_ATHLETE4` (deterministisch aus
+    `START_MONDAY` + `weekPlan(i)`), Parameter: Startdatum, Wochenzahl,
+    Ziel-Event, Einheiten/Woche, ggf. Grund-FTP. Athlet wählt Vorlage +
+    Parameter in einem neuen „Neuer Plan"-Flow → Sync erzeugt die Baseline →
+    danach normal über `plan_cards` (RLS) editierbar. Braucht: eine Tabelle
+    für die Vorlagen-Auswahl je Athlet (analog `athlete_sync_config`), einen
+    Vorlagen-Generator in `scripts/lib/` je Vorlagentyp,
+    `generate-data.js`-Verdrahtung (Baseline-Spread wie bei Athlet 4), UI im
+    Settings- oder Planungstab, Migration.
+  - **Verworfen:** voller Plan-Baukasten in der UI (Athlet legt Wochen/Einheiten
+    einzeln als `plan_cards` an, keine Baseline). Maximal flexibel, aber
+    größter Aufwand und verliert die strukturierte Aufbau-/Periodisierungs-
+    Logik, die in den Code-Plänen steckt.
+  - **Zwischenlösung bis dahin:** neuer Vorlagen-Block für Athlet 2 direkt im
+    Code, wie die bestehenden Pläne (z.B. Post-Race-Grundlagenblock).
+  - Ursprung: Anfrage Alex 03.09.2026 (6-Punkte-Liste, Punkt 2), bewusst auf
+    einen eigenen Tag/Fahrplan verschoben.
+
 ## Sync-Pipeline (`scripts/`)
 
 - **K3-Typ-Defaults nicht auf Basis der FTP-Historie neu abgeleitet** —
