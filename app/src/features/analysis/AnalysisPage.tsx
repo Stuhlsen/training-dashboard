@@ -272,7 +272,7 @@ export function AnalysisPage() {
 
                 {g.key === "load" && <BriefingSignals briefing={briefing} />}
 
-                <TraceCard lanes={g.lanes} r0={r0} r1={r1} todayIdx={vm.todayIdx} eventIdx={vm.eventIdx} formatDay={vm.formatDay} dense={dense} />
+                <TraceCard lanes={g.lanes} r0={r0} r1={r1} totalDays={vm.N} todayIdx={vm.todayIdx} eventIdx={vm.eventIdx} formatDay={vm.formatDay} dense={dense} />
 
                 {g.hasPowerCurve && (
                   <PowerCurveTraceCard powerCurves={vm.powerCurves} unit={unit} weightKg={vm.weightKg} formatValue={(v) => (unit === "W/kg" ? fmt(v, 2) : fmtInt(v))} />

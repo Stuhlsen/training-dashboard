@@ -159,7 +159,7 @@ export function TraceLane({ display, geometry: g, height, expanded, onToggle, cu
 
   return (
     <div style={{ display: "flex", flexDirection: "column" }}>
-      <div style={{ display: "grid", gridTemplateColumns: LANE_GRID_TEMPLATE, alignItems: "stretch", borderBottom: "1px solid rgba(255,255,255,.06)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: LANE_GRID_TEMPLATE, alignItems: "stretch", borderBottom: "1px solid rgba(255,255,255,.14)" }}>
         <button
           type="button"
           onClick={onToggle}

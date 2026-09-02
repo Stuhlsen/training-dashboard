@@ -12,6 +12,7 @@ import { useCallback, useRef, useState, type MouseEvent } from "react";
 import { GlassCard } from "../components/GlassCard";
 import { buildLaneGeometry } from "../core/trace-lanes.js";
 import { TraceLane, LANE_LABEL_COL, LANE_VALUE_COL, type LaneDisplay } from "./TraceLane";
+import { buildAxisTicks, effectiveR1 } from "./trace-card-axis";
 
 const GRID_TEMPLATE = `${LANE_LABEL_COL}px minmax(0, 1fr) ${LANE_VALUE_COL}px`;
 
@@ -30,15 +31,15 @@ export interface TraceLaneConfig {
   formatUnit: (readKind: string | null) => string;
 }
 
-export interface DayTick {
-  index: number;
-  label: string;
-}
-
 interface TraceCardProps {
   lanes: TraceLaneConfig[];
   r0: number;
   r1: number;
+  /** Gesamtlänge des Tages-Skeletts (vm.N). Nur nötig, um die
+   *  Mindestbreiten-Aufweitung ausschließlich auf „gesamte Historie ist
+   *  kürzer als MIN_SPAN_DAYS" zu beschränken — ein Brush-Zoom in ein
+   *  schmales Teilfenster darf NICHT aufgeweitet werden. */
+  totalDays: number;
   todayIdx: number;
   eventIdx: number | null;
   /** Formatiert einen Tagesindex zu einem Kurz-Datum (z. B. fmtDate). */
@@ -54,26 +55,16 @@ function resolveHeight(baseHeight: number, dense: boolean, isExpanded: boolean):
   return isExpanded ? Math.round(h * EXPANDED_FACTOR) : h;
 }
 
-/** Fünf Achsen-Ticks bei 0/25/50/75/100% des Fensters, "heute"-Marker
- *  unterdrückt Ticks näher als 7% (Handoff „Chart-Label-Konvention"). */
-function buildAxisTicks(r0: number, r1: number, todayIdx: number, formatDay: (i: number) => string): DayTick[] {
-  const span = Math.max(1, r1 - r0);
-  const todayFrac = (todayIdx - r0) / span;
-  const showsToday = todayIdx >= r0 && todayIdx <= r1;
-  return [0, 0.25, 0.5, 0.75, 1]
-    .filter((f) => !showsToday || Math.abs(f - todayFrac) > 0.07)
-    .map((f) => {
-      const index = Math.round(r0 + f * span);
-      return { index, label: formatDay(index) };
-    });
-}
-
 /** Spurenkarte: mehrere TraceLane-Zeilen + gemeinsame x-Achse + Fadenkreuz. */
-export function TraceCard({ lanes, r0, r1, todayIdx, eventIdx, formatDay, dense }: TraceCardProps) {
+export function TraceCard({ lanes, r0, r1, totalDays, todayIdx, eventIdx, formatDay, dense }: TraceCardProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
   const [cursor, setCursor] = useState<number | null>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
-  const span = Math.max(1, r1 - r0);
+  // Mindestbreite NUR, wenn das Fenster die gesamte (kurze) Historie zeigt —
+  // ein Brush-Zoom in ein Teilfenster bleibt unangetastet (Code-Review-Fund,
+  // s. effectiveR1). Alle Geometrie/Achsen rechnen gegen effR1, nicht r1.
+  const effR1 = effectiveR1(r0, r1, totalDays);
+  const span = Math.max(1, effR1 - r0);
 
   const handleMove = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -87,19 +78,19 @@ export function TraceCard({ lanes, r0, r1, todayIdx, eventIdx, formatDay, dense 
       if (chartWidth <= 0) return;
       const frac = (e.clientX - rect.left - LANE_LABEL_COL) / chartWidth;
       if (frac < 0 || frac > 1) return;
-      const idx = Math.max(r0, Math.min(r1, Math.round(r0 + frac * span)));
+      const idx = Math.max(r0, Math.min(effR1, Math.round(r0 + frac * span)));
       setCursor((prev) => (prev === idx ? prev : idx));
     },
-    [r0, r1, span],
+    [r0, effR1, span],
   );
   const handleLeave = useCallback(() => setCursor(null), []);
 
   const xOf = (i: number) => ((i - r0) / span) * 900;
-  const todayX = todayIdx >= r0 && todayIdx <= r1 ? xOf(todayIdx) : null;
-  const eventX = eventIdx != null && eventIdx >= r0 && eventIdx <= r1 ? xOf(eventIdx) : null;
+  const todayX = todayIdx >= r0 && todayIdx <= effR1 ? xOf(todayIdx) : null;
+  const eventX = eventIdx != null && eventIdx >= r0 && eventIdx <= effR1 ? xOf(eventIdx) : null;
   const cursorX = cursor != null ? xOf(cursor) : null;
   const todayPct = todayX != null ? (todayX / 900) * 100 : null;
-  const ticks = buildAxisTicks(r0, r1, todayIdx, formatDay);
+  const ticks = buildAxisTicks(r0, effR1, todayIdx, formatDay);
 
   return (
     <GlassCard
@@ -110,7 +101,7 @@ export function TraceCard({ lanes, r0, r1, todayIdx, eventIdx, formatDay, dense 
       <div ref={wrapRef} onMouseMove={handleMove} onMouseLeave={handleLeave}>
         {lanes.map((cfg) => {
           const height = resolveHeight(cfg.baseHeight, dense, expanded === cfg.display.key);
-          const geometry = buildLaneGeometry(cfg.lane, r0, r1, height, cursor);
+          const geometry = buildLaneGeometry(cfg.lane, r0, effR1, height, cursor);
           const readValueLabel = geometry.readValue == null ? "—" : cfg.formatValue(geometry.readValue);
           return (
             <TraceLane
