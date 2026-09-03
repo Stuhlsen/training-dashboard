@@ -128,3 +128,24 @@ export const PLANNED_SESSIONS_ATHLETE4 = (() => {
   }
   return out;
 })();
+
+/**
+ * Vorlage um N ganze Wochen verschoben (profiles.plan_offset_weeks,
+ * Migration 0026 — Punkt 1 der 6-Punkte-Liste). Nur die Datumsschlüssel
+ * wandern; `week`/`phase` je Eintrag bleiben unverändert (eine
+ * Ganzwochen-Verschiebung lässt „Woche 1 = Einstieg" Woche 1 = Einstieg,
+ * nur 7·N Tage später — dieselbe Semantik wie das offset-fähige
+ * app/src/core/plan-week-model.js). `offsetWeeks` 0/undefined ⇒ die
+ * unveränderte Konstante.
+ * @param {number} [offsetWeeks]
+ * @returns {Record<string, {name:string, typ:string, week:string, phase:string, workout?:object}>}
+ */
+export function shiftPlannedSessions4(offsetWeeks) {
+  const n = Math.round(offsetWeeks || 0);
+  if (!n) return PLANNED_SESSIONS_ATHLETE4;
+  const out = {};
+  for (const [date, s] of Object.entries(PLANNED_SESSIONS_ATHLETE4)) {
+    out[addDays(date, n * 7)] = { ...s };
+  }
+  return out;
+}

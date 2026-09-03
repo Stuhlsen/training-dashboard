@@ -17,7 +17,7 @@ import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
 import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBlocks } from "./lib/plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
-import { PLANNED_SESSIONS_ATHLETE4 } from "./lib/plan-athlete4.js";
+import { shiftPlannedSessions4 } from "./lib/plan-athlete4.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
 import {
@@ -555,11 +555,16 @@ async function main() {
   //    wird rides-4.json trotzdem geschrieben — nur der Plan, keine Fahrten.
   //    WATTLOS: kein Ramp-Test → output4.ftp = null; DEFAULT_FTP dient hier
   //    nur als reiner Rechen-Fallback für die Ist-Typerkennung.
-  const plannedSessions4 = Object.entries(PLANNED_SESSIONS_ATHLETE4).map(([date, s]) => ({
+  const cfg4 = syncConfig.get("athlete4");
+  // profiles.plan_offset_weeks (Migration 0026): Athlet 4 kann seinen Plan im
+  // Planungstab um N ganze Wochen verschieben. Die Vorlage (Datum + Baseline
+  // für Compliance/Hero) wandert hier mit; die editierten plan_cards sind
+  // beim Verschieben schon einmalig umdatiert worden (useShiftPlan).
+  const planTemplate4 = shiftPlannedSessions4(cfg4?.planOffsetWeeks ?? 0);
+  const plannedSessions4 = Object.entries(planTemplate4).map(([date, s]) => ({
     date,
     ...s,
   }));
-  const cfg4 = syncConfig.get("athlete4");
   if (cfg4) {
     log.info(`\n🔄 Vierter Athlet (${ATHLETE_4_NAME})...`);
     const svc4 = { profileId: cfg4.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY };
@@ -574,7 +579,7 @@ async function main() {
     const planCards4 = await loadPlanCards(svc4, { fromDate: oldest4 });
     const ftpHistory4 = await loadFtpHistory(svc4);
     const effectivePlan4 = {
-      ...buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE4, {}),
+      ...buildEffectivePlanIndex(planTemplate4, {}),
       ...buildPlanCardTypeIndex(planCards4),
     };
     log.info(

@@ -3,7 +3,7 @@ import type { Profile, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
-  "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, ladder_progression_enabled, units_preference";
+  "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, ladder_progression_enabled, units_preference, plan_offset_weeks";
 
 interface ProfileRow {
   id: string;
@@ -15,6 +15,7 @@ interface ProfileRow {
   is_admin: boolean;
   ladder_progression_enabled: boolean;
   units_preference: Profile["unitsPreference"];
+  plan_offset_weeks: number;
 }
 
 function toProfile(row: ProfileRow): Profile {
@@ -28,6 +29,7 @@ function toProfile(row: ProfileRow): Profile {
     isAdmin: row.is_admin,
     ladderProgressionEnabled: row.ladder_progression_enabled,
     unitsPreference: row.units_preference,
+    planOffsetWeeks: row.plan_offset_weeks ?? 0,
   };
 }
 
@@ -147,6 +149,22 @@ export async function updateUnitsPreference(userId: string, value: "km" | "mi"):
   const { error } = await client
     .from("profiles")
     .update({ units_preference: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+/** Migration 0026 — Ganzwochen-Verschiebung des Trainingsplans gegenüber der
+ *  Code-Vorlage (Punkt 1 der 6-Punkte-Liste). Spalten-restriktives
+ *  UPDATE-Grant wie units_preference (0020), RLS lässt nur die eigene Zeile
+ *  zu. CHECK `between -8 and 12` in der Migration — der Aufrufer
+ *  (useShiftPlan) begrenzt zusätzlich. */
+export async function updatePlanOffsetWeeks(userId: string, value: number): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client
+    .from("profiles")
+    .update({ plan_offset_weeks: value })
     .eq("id", userId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };

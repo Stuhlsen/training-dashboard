@@ -66,6 +66,7 @@ describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
           is_admin: false,
           ladder_progression_enabled: true,
           units_preference: "km",
+          plan_offset_weeks: 2,
         },
         error: null,
       };
@@ -84,6 +85,7 @@ describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
         isAdmin: false,
         ladderProgressionEnabled: true,
         unitsPreference: "km",
+        planOffsetWeeks: 2,
       },
     });
   });

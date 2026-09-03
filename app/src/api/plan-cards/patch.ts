@@ -44,9 +44,13 @@ export function buildMovePatch(
   newDate: string,
   reason?: string,
   athleteId?: string,
+  /** Plan-Verschiebung des Athleten (`profiles.plan_offset_weeks`, 0026) —
+   *  sonst berechnet weekLabelForDate das Phasen-Label aus dem unverschobenen
+   *  Plan-Wochen-Modell. Default 0. */
+  offsetWeeks = 0,
 ): PlanCardPatch {
   const movedFromDate = card.originalDate ?? card.date;
-  const label = weekLabelForDate(cards, newDate, card.id, athleteId) as WeekLabel | null;
+  const label = weekLabelForDate(cards, newDate, card.id, athleteId, offsetWeeks) as WeekLabel | null;
   return {
     plannedDate: newDate,
     movedFromDate,
@@ -68,9 +72,10 @@ export function applyMoveOptimistic(
   newDate: string,
   reason?: string,
   athleteId?: string,
+  offsetWeeks = 0,
 ): PlanCard {
   const movedFromDate = card.originalDate ?? card.date;
-  const label = weekLabelForDate(cards, newDate, card.id, athleteId) as WeekLabel | null;
+  const label = weekLabelForDate(cards, newDate, card.id, athleteId, offsetWeeks) as WeekLabel | null;
   return {
     ...card,
     date: newDate,
@@ -108,12 +113,13 @@ export function buildUndoPatch(
   cards: PlanCard[],
   card: PlanCard,
   athleteId?: string,
+  offsetWeeks = 0,
 ): PlanCardPatch | null {
   if (card.cancelled) {
     return { status: "geplant", cancelReason: null };
   }
   if (!card.originalDate) return null;
-  const label = weekLabelForDate(cards, card.originalDate, card.id, athleteId) as WeekLabel | null;
+  const label = weekLabelForDate(cards, card.originalDate, card.id, athleteId, offsetWeeks) as WeekLabel | null;
   return {
     plannedDate: card.originalDate,
     movedFromDate: null,

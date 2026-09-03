@@ -13,9 +13,10 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
-import { isReadOnlyAthlete } from "../../config";
+import { hasGeneratedPlan, isReadOnlyAthlete } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
-import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
+import { useCanWriteForAthlete, useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useTrainerContext } from "../../api/hooks/useTrainerContext";
 import { useEvents } from "../../api/hooks/useEvents";
 import { useRides } from "../../api/hooks/useRides";
@@ -37,6 +38,7 @@ import { moveProposalArgs, cancelProposalArgs } from "../../core/proposal-payloa
 import { DeltaBanner } from "./DeltaBanner";
 import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCardForm } from "./PlanCardForm";
+import { ShiftPlanDialog } from "./ShiftPlanDialog";
 import { ExportImportBar } from "./ExportImportBar";
 import { BlockDialogGate } from "./BlockDialog";
 import { ProposalBanner } from "./ProposalBanner";
@@ -99,11 +101,30 @@ const SECTION_TITLE_STYLE: React.CSSProperties = {
   fontWeight: 600,
 };
 
+/** Aktions-Pille in der „Ausstehend"-Kopfzeile (bisher inline am „+ Karte"-
+ *  Knopf — jetzt geteilt mit „Plan verschieben…"). */
+const SECTION_ACTION_BTN_STYLE: React.CSSProperties = {
+  padding: "9px 18px",
+  borderRadius: "var(--pill)",
+  border: "1px solid var(--hair)",
+  background: "transparent",
+  color: "var(--ink)",
+  fontSize: ".84rem",
+  fontWeight: 600,
+  cursor: "pointer",
+};
+
 export function PlanningPage() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
   const { activeAthleteId } = useActiveAthlete();
+  // Plan-Verschiebung (`profiles.plan_offset_weeks`, Migration 0026) — verschiebt
+  // Ruhetag-Ableitung, Erholungs-Schattierung und Phasen-Überschriften im
+  // Wochenraster + die Ruhe-Slot-Konfliktprüfung um N ganze Wochen mit. Zieht
+  // die Zeile des BETRACHTETEN Athleten (self + gecoachte Athleten); ein
+  // Nicht-Coach-Betrachter sieht 0 (nur Anzeige-Drift, s. useAthletePlanOffset).
+  const planOffsetWeeks = useAthletePlanOffset(activeAthleteId);
   const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
   const { data: rideData } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
@@ -122,6 +143,7 @@ export function PlanningPage() {
   const intervalsCredentials = isTrainer ? null : intervalsCredentialsRaw;
 
   const [dialog, setDialog] = useState<DialogState>("closed");
+  const [shiftOpen, setShiftOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   // Etappe 7b: Liste unabhängig von der Vergleichsansicht offen halten —
   // "Vergleichen…" öffnet die Vergleichsansicht ÜBER der weiterhin
@@ -160,6 +182,9 @@ export function PlanningPage() {
   // (trainerProposalMode). Athlet 4 ("Bentastiic") ist damit editierbar,
   // wenn als er selbst eingeloggt.
   const editable = canWrite && !isReadOnlyAthlete(activeAthleteId);
+  // „Plan verschieben" ist self-only: der Offset lebt auf der eigenen
+  // profiles-Zeile (RLS), ein Trainer kann ihn nicht für den Athleten setzen.
+  const { isSelf } = useIsSelfAthlete(activeAthleteId);
   const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
 
   const ftp = resolvePlanningFtp(activeAthleteId, rideData?.athleteFtp ?? null);
@@ -176,9 +201,10 @@ export function PlanningPage() {
     const projection = projectLoad(projectionCards, rides, { today: TODAY, events: projectionEvents, ftp });
     const conflicts = detectConflicts(projection, projectionCards, projectionEvents, rides, {
       athleteId: activeAthleteId,
+      offsetWeeks: planOffsetWeeks,
     });
     return { projection, conflicts };
-  }, [cards, rideData, events, ftp, activeAthleteId]);
+  }, [cards, rideData, events, ftp, activeAthleteId, planOffsetWeeks]);
 
   const doneRides = useMemo(
     () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),
@@ -191,8 +217,8 @@ export function PlanningPage() {
   // Grundlage der Fortschritts-Statistik/Done-Liste oben.
   const weekGrid = useMemo(() => {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return buildWeekGrid(cards ?? [], rides, TODAY, activeAthleteId, derivedSets);
-  }, [cards, rideData, activeAthleteId, derivedSets]);
+    return buildWeekGrid(cards ?? [], rides, TODAY, activeAthleteId, derivedSets, planOffsetWeeks);
+  }, [cards, rideData, activeAthleteId, derivedSets, planOffsetWeeks]);
 
   // Etappe 13d: Soll/Ist-Tabellen-Projektion über sections.done — berechnet
   // nichts neu, reicht nur Zahlen aus buildDoneCompareRows()/visibleCompliance()
@@ -420,22 +446,16 @@ export function PlanningPage() {
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <span style={SECTION_TITLE_STYLE}>📅 Ausstehend — {sections.stats.upcomingCount} Sessions</span>
                 {editable && (
-                  <button
-                    type="button"
-                    onClick={() => setDialog("new")}
-                    style={{
-                      padding: "9px 18px",
-                      borderRadius: "var(--pill)",
-                      border: "1px solid var(--hair)",
-                      background: "transparent",
-                      color: "var(--ink)",
-                      fontSize: ".84rem",
-                      fontWeight: 600,
-                      cursor: "pointer",
-                    }}
-                  >
-                    + Karte
-                  </button>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {isSelf && hasGeneratedPlan(activeAthleteId) && (
+                      <button type="button" onClick={() => setShiftOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+                        Plan verschieben…
+                      </button>
+                    )}
+                    <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>
+                      + Karte
+                    </button>
+                  </div>
                 )}
               </div>
               <WeekGrid
@@ -499,6 +519,16 @@ export function PlanningPage() {
           onClose={() => setDialog("closed")}
           isTrainerSaving={isTrainer}
           saveMode={saveMode}
+        />
+      )}
+
+      {shiftOpen && (
+        <ShiftPlanDialog
+          athleteId={activeAthleteId}
+          onClose={() => {
+            setShiftOpen(false);
+            recordDelta();
+          }}
         />
       )}
 

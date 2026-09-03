@@ -38,6 +38,7 @@
    ============================================================ */
 
 import { PLAN2_SCHEDULE } from "./plan2-schedule.js";
+import { addDaysISO } from "./format.js";
 
 /**
  * @typedef {Object} PlanWeekEntry
@@ -136,15 +137,28 @@ function isoWeekday(dateISO) {
  * agnostisch und mit Trainings-/Ruhe-Slot).
  * @param {string} athleteId interne Athleten-ID ("athlete1"/"athlete2"/"athlete4")
  * @param {string} dateISO ISO-Datum ("YYYY-MM-DD")
+ * @param {number} [offsetWeeks] Ganzwochen-Verschiebung des Plans gegenüber
+ *   der Code-Vorlage (`profiles.plan_offset_weeks`, self-service, faktisch nur
+ *   Athlet 4). Default 0 ⇒ alle bestehenden Aufrufer unverändert. Die
+ *   Modell-Wochen werden für den Vergleich um `offsetWeeks*7` Tage verschoben;
+ *   Phase und Mo–So-Trainingsmuster bleiben unter einer Ganzwochen-
+ *   Verschiebung erhalten. Das zurückgegebene `week`-Label trägt weiter die
+ *   Vorlagen-Wochennummer (Fallback-of-Fallback bei der Anzeige, s.
+ *   docs/offene-punkte.md).
  * @returns {{week: string|null, phase: string|null, isTrainingSlot: boolean, isRestSlot: boolean}}
  *   Kein Treffer (Datum außerhalb aller Planwochen, Athlet ohne Modell) →
  *   `{ week: null, phase: null, isTrainingSlot: false, isRestSlot: false }`.
  */
-export function planWeekFor(athleteId, dateISO) {
+export function planWeekFor(athleteId, dateISO, offsetWeeks = 0) {
   const miss = { week: null, phase: null, isTrainingSlot: false, isRestSlot: false };
   const weeks = PLAN_WEEK_MODEL[athleteId];
   if (!weeks || !dateISO) return miss;
-  const entry = weeks.find((w) => dateISO >= w.start && dateISO <= w.end);
+  const shift = (offsetWeeks || 0) * 7;
+  const entry = weeks.find((w) => {
+    const start = shift ? addDaysISO(w.start, shift) : w.start;
+    const end = shift ? addDaysISO(w.end, shift) : w.end;
+    return dateISO >= start && dateISO <= end;
+  });
   if (!entry) return miss;
   const isTrainingSlot = entry.trainingWeekdays.includes(isoWeekday(dateISO));
   return { week: entry.week, phase: entry.phase, isTrainingSlot, isRestSlot: !isTrainingSlot };
@@ -161,8 +175,9 @@ export function planWeekFor(athleteId, dateISO) {
  * @param {string} athleteId
  * @param {string} dateISO
  * @param {boolean} hasActiveCard ob an dem Datum eine nicht-ausgefallene Karte liegt
+ * @param {number} [offsetWeeks] s. planWeekFor()
  * @returns {boolean}
  */
-export function isDeliberateRestDay(athleteId, dateISO, hasActiveCard) {
-  return planWeekFor(athleteId, dateISO).isRestSlot && !hasActiveCard;
+export function isDeliberateRestDay(athleteId, dateISO, hasActiveCard, offsetWeeks = 0) {
+  return planWeekFor(athleteId, dateISO, offsetWeeks).isRestSlot && !hasActiveCard;
 }

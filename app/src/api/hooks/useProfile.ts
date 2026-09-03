@@ -17,6 +17,7 @@ import {
   updateFtpPublic as updateFtpPublicAdapter,
   updateLadderProgressionEnabled as updateLadderProgressionEnabledAdapter,
   updateUnitsPreference as updateUnitsPreferenceAdapter,
+  updatePlanOffsetWeeks as updatePlanOffsetWeeksAdapter,
 } from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter } from "../supabase/auth";
 import { useAuthUserId } from "./useSession";
@@ -149,6 +150,41 @@ export function useUpdateUnitsPreference() {
 
   const update = useCallback(
     async (value: "km" | "mi"): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+/** Migration 0026 — Ganzwochen-Verschiebung des Trainingsplans (Punkt 1).
+ *  Cache-Merge wie useUpdateUnitsPreference(). Der eigentliche Massen-Shift
+ *  der plan_cards läuft in useShiftPlan() (usePlanCards.ts) und ruft diesen
+ *  Adapter als letzten Schritt. Der Wert wird auf den DB-CHECK-Bereich
+ *  (-8..12, Migration 0026) geklemmt, damit ein Fehlaufruf keine rohe
+ *  Postgres-Constraint-Meldung in die UI trägt. */
+export function useUpdatePlanOffsetWeeks() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profile(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: number) => {
+      const clamped = Math.max(-8, Math.min(12, Math.round(value || 0)));
+      unwrap(await updatePlanOffsetWeeksAdapter(userId!, clamped));
+      return { value: clamped };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<Profile>(key, (profile) =>
+        profile ? { ...profile, planOffsetWeeks: value } : profile,
+      );
+    },
+  });
+
+  const update = useCallback(
+    async (value: number): Promise<Result> => {
       if (!userId) return { ok: false, error: NOT_LOGGED_IN };
       return catchResult(() => mutation.mutateAsync(value));
     },

@@ -14,6 +14,8 @@
 export const qk = {
   /** athleteId ("athlete1"/"athlete2") → Supabase-Profil-UUID */
   athleteProfileId: (athleteId: string) => ["athlete-profile-id", athleteId] as const,
+  /** plan_offset_weeks (Migration 0026) des betrachteten Athleten */
+  athletePlanOffset: (athleteId: string) => ["athlete-plan-offset", athleteId] as const,
   /** Profil des eingeloggten Users (Session-gebunden, nicht Toggle-gebunden) */
   profile: (userId: string) => ["profile", userId] as const,
 

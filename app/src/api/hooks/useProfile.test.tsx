@@ -70,6 +70,7 @@ describe("useUpdateDisplayName", () => {
       isAdmin: false,
       ladderProgressionEnabled: false,
       unitsPreference: "km",
+      planOffsetWeeks: 0,
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -108,6 +109,7 @@ describe("useUpdateWellbeingPublic", () => {
       isAdmin: false,
       ladderProgressionEnabled: false,
       unitsPreference: "km",
+      planOffsetWeeks: 0,
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -133,6 +135,7 @@ describe("useUpdateFtpPublic (Migration 0025)", () => {
       isAdmin: false,
       ladderProgressionEnabled: false,
       unitsPreference: "km",
+      planOffsetWeeks: 0,
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -158,6 +161,7 @@ describe("useUpdateLadderProgressionEnabled", () => {
       isAdmin: false,
       ladderProgressionEnabled: false,
       unitsPreference: "km",
+      planOffsetWeeks: 0,
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 

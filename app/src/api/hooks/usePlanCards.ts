@@ -35,11 +35,17 @@ import {
   sortCards,
 } from "../plan-cards/patch";
 import { fetchAthleteProfileId } from "./useAthleteProfileId";
-import { useAuthUserId } from "./useSession";
+import { useAthletePlanOffset } from "./useAthletePlanOffset";
+import { useAuthUserId, useSessionProfile } from "./useSession";
+import { useIsSelfAthlete } from "./useWriteAuthorization";
+import { useUpdatePlanOffsetWeeks } from "./useProfile";
 import { qk } from "../keys";
 import { catchResult, ResultError_, unwrap } from "../result";
 import { beginWrite, isCurrentWrite } from "../write-guard";
 import { pushCardWorkout } from "../intervals/push";
+import { planShiftPatches } from "../../core/plan-shift.js";
+import { localISODate } from "../../core/format.js";
+import { hasGeneratedPlan } from "../../config";
 import type { PlanCard, PlanCardInput, PlanCardPatch, Result } from "../types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
@@ -152,6 +158,9 @@ export function useMovePlanCard(athleteId: string) {
   const mutation = usePatchCard(athleteId);
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
+  // Plan-Verschiebung des angezeigten Athleten — damit ein Einzel-Move das
+  // Phasen-Label aus dem verschobenen Plan-Wochen-Modell zieht (Migration 0026).
+  const offsetWeeks = useAthletePlanOffset(athleteId);
 
   const move = useCallback(
     async (id: string, newDate: string, reason?: string): Promise<Result<{ card: PlanCard }>> => {
@@ -162,12 +171,12 @@ export function useMovePlanCard(athleteId: string) {
       return catchResult(() =>
         mutation.mutateAsync({
           id,
-          patch: buildMovePatch(cards, card, newDate, reason, athleteId),
-          optimistic: applyMoveOptimistic(cards, card, newDate, reason, athleteId),
+          patch: buildMovePatch(cards, card, newDate, reason, athleteId, offsetWeeks),
+          optimistic: applyMoveOptimistic(cards, card, newDate, reason, athleteId, offsetWeeks),
         }),
       );
     },
-    [mutation, snapshot, userId, athleteId],
+    [mutation, snapshot, userId, athleteId, offsetWeeks],
   );
 
   return { move, isPending: mutation.isPending };
@@ -196,6 +205,7 @@ export function useUndoAdjustment(athleteId: string) {
   const mutation = usePatchCard(athleteId);
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
+  const offsetWeeks = useAthletePlanOffset(athleteId);
 
   const undo = useCallback(
     async (id: string): Promise<Result<{ card?: PlanCard }>> => {
@@ -203,14 +213,87 @@ export function useUndoAdjustment(athleteId: string) {
       const cards = snapshot();
       const card = cards.find((c) => c.id === id);
       if (!card) return { ok: true };
-      const patch = buildUndoPatch(cards, card, athleteId);
+      const patch = buildUndoPatch(cards, card, athleteId, offsetWeeks);
       if (!patch) return { ok: true };
       return catchResult(() => mutation.mutateAsync({ id, patch }));
     },
-    [mutation, snapshot, userId, athleteId],
+    [mutation, snapshot, userId, athleteId, offsetWeeks],
   );
 
   return { undo, isPending: mutation.isPending };
+}
+
+/** Ganzen Trainingsplan um N Wochen verschieben (Migration 0026, Punkt 1 der
+ *  6-Punkte-Liste). Nur für Athlet 4 (generierte Vorlage, `hasGeneratedPlan`)
+ *  und nur self: der Offset lebt auf der eigenen `profiles`-Zeile
+ *  (RLS `id = auth.uid()`), ein Trainer kann ihn nicht für einen Athleten
+ *  setzen, und der Sync verschiebt nur diese eine Vorlage mit.
+ *
+ *  `plan_offset_weeks` ist die Quelle der Wahrheit; `target` ist der neue
+ *  Stand, das Delta zum gespeicherten Wert datiert die künftigen, nicht
+ *  ausgefallenen Karten um.
+ *
+ *  Reihenfolge OFFSET ZUERST, dann Karten: schlägt der ERSTE Karten-Patch
+ *  fehl, wird der Offset zurückgenommen (sauberer Ausgangszustand). Schlägt
+ *  ein SPÄTERER fehl, bleibt der Offset stehen und der Rest ist von Hand
+ *  nachzuziehen — ein Wiederholen mit demselben Ziel ist dann ein No-op
+ *  (delta 0) statt eines DOPPELTEN Shifts der bereits verschobenen Karten.
+ *  Karten sequenziell, nicht parallel: `usePatchCard` vergibt pro Aufruf ein
+ *  write-guard-Token, parallele Läufe würden sich gegenseitig aus dem
+ *  Cache-Update kegeln. */
+export function useShiftPlan(athleteId: string) {
+  const queryClient = useQueryClient();
+  const mutation = usePatchCard(athleteId);
+  const snapshot = useCardsSnapshot(athleteId);
+  const userId = useAuthUserId();
+  const { isSelf } = useIsSelfAthlete(athleteId);
+  const storedOffset = useSessionProfile()?.planOffsetWeeks ?? 0;
+  const { update: updateOffset } = useUpdatePlanOffsetWeeks();
+
+  const shift = useCallback(
+    async (targetOffsetWeeks: number): Promise<Result<{ moved: number }>> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      if (!isSelf || !hasGeneratedPlan(athleteId))
+        return { ok: false, error: { code: "UNKNOWN", message: "Der Plan lässt sich hier nicht verschieben" } };
+      const target = Math.max(-8, Math.min(12, Math.round(targetOffsetWeeks || 0)));
+      const delta = target - storedOffset;
+      if (delta === 0) return { ok: true, moved: 0 };
+
+      const cards = snapshot();
+      const plan = planShiftPatches(cards, delta, localISODate(), athleteId, target);
+      if (!plan.ok) return { ok: false, error: { code: "UNKNOWN", message: plan.reason } };
+      if (!plan.patches.length) return { ok: true, moved: 0 };
+
+      const offsetResult = await updateOffset(target);
+      if (!offsetResult.ok) return offsetResult;
+
+      let moved = 0;
+      for (const { id, ...patch } of plan.patches) {
+        const r = await catchResult(() => mutation.mutateAsync({ id, patch }));
+        if (!r.ok) {
+          if (moved === 0) {
+            await updateOffset(storedOffset); // best effort — noch keine Karte bewegt
+            return r;
+          }
+          return {
+            ok: false,
+            error: {
+              code: "UNKNOWN",
+              message: `Plan-Offset gesetzt, aber nur ${moved} von ${plan.patches.length} Einheiten verschoben — die übrigen bitte einzeln per Ziehen nachziehen.`,
+            },
+          };
+        }
+        moved++;
+      }
+      // qk.athletePlanOffset ist ein eigener Cache neben qk.profile — die
+      // Anzeige (buildWeekGrid/detectConflicts) liest daraus, also frisch ziehen.
+      void queryClient.invalidateQueries({ queryKey: qk.athletePlanOffset(athleteId) });
+      return { ok: true, moved };
+    },
+    [queryClient, userId, isSelf, storedOffset, snapshot, athleteId, mutation, updateOffset],
+  );
+
+  return { shift, isPending: mutation.isPending };
 }
 
 /** Pusht das Workout einer Karte zu intervals.icu (Etappe 6d). Holt die

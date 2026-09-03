@@ -76,11 +76,13 @@ async function getOrThrow(url, key, label) {
  * Alle Athleten-Zeilen aus athlete_sync_config per service_role laden.
  * @returns {Promise<Map<string, {profileId: string|null, apiKey: string|null,
  *   athleteId: string|null, lat: number|null, lon: number|null,
- *   ftpPublic: boolean}>>}
+ *   ftpPublic: boolean, planOffsetWeeks: number}>>}
  *   Key = interne Athleten-ID ("athlete1" …). `ftpPublic` steuert, ob der
  *   Sync die gemessene FTP + Ramp-Test-Historie in rides*.json schreibt
  *   (profiles.ftp_public, Migration 0025) — Default true, wenn keine
- *   profiles-Zeile zugeordnet ist.
+ *   profiles-Zeile zugeordnet ist. `planOffsetWeeks` (profiles.plan_offset_weeks,
+ *   Migration 0026) verschiebt die generierte Trainingsplan-Vorlage um N ganze
+ *   Wochen — Default 0.
  */
 export async function loadSyncConfig() {
   if (!ENV.SUPABASE_URL || !ENV.SUPABASE_SERVICE_ROLE_KEY) {
@@ -97,13 +99,17 @@ export async function loadSyncConfig() {
     "athlete_sync_config: Abruf"
   );
   const profiles = await getOrThrow(
-    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public`,
+    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public,plan_offset_weeks`,
     key,
     "profiles: Abruf"
   );
   const nameById = new Map(profiles.map((p) => [p.id, p.display_name]));
   // profiles.ftp_public (Migration 0025) — steuert das FTP-Gating im Sync.
   const ftpPublicById = new Map(profiles.map((p) => [p.id, p.ftp_public !== false]));
+  // profiles.plan_offset_weeks (Migration 0026) — Ganzwochen-Verschiebung der
+  // generierten Trainingsplan-Vorlage. numeric/int kommt je Zeile als Zahl
+  // oder String (toNum), Default 0.
+  const planOffsetById = new Map(profiles.map((p) => [p.id, toNum(p.plan_offset_weeks) ?? 0]));
 
   const bySlug = new Map();
   for (const row of rows) {
@@ -138,6 +144,8 @@ export async function loadSyncConfig() {
       // profiles.ftp_public (0025) — nur profile_id-Zeilen haben ein Profil;
       // athlete_key-Zeilen (nicht in Nutzung) defaulten auf sichtbar.
       ftpPublic: row.profile_id ? (ftpPublicById.get(row.profile_id) ?? true) : true,
+      // profiles.plan_offset_weeks (0026) — Default 0 ohne Profil-Zeile.
+      planOffsetWeeks: row.profile_id ? (planOffsetById.get(row.profile_id) ?? 0) : 0,
     });
   }
 

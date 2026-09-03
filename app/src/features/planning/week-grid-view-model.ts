@@ -115,13 +115,15 @@ function statusForDate(
   todayIso: string,
   doneDates: Set<string>,
   athleteId?: string,
+  offsetWeeks = 0,
 ): DayStatus {
   // Fahrplan 6 (RUH4): ein Tag ohne (aktive) Karte, der laut Plan-Wochen-Modell
   // ein bewusster Ruhetag ist, wird als solcher gerendert statt als Planungs-
   // lücke ("empty"). `isDeliberateRestDay` ist dieselbe Quelle wie in
   // conflicts.js (RUH3). Ohne `athleteId` (z. B. in Alt-Tests) bleibt das
   // Verhalten unverändert — die Ableitung ist opt-in.
-  if (!primary) return athleteId && isDeliberateRestDay(athleteId, date, false) ? "rest" : "empty";
+  if (!primary)
+    return athleteId && isDeliberateRestDay(athleteId, date, false, offsetWeeks) ? "rest" : "empty";
   if (primary.cancelled) return "cancelled";
   // Ruhetag / reine Notiz-Karte: nie "verpasst" (isNonTrainingCard-Konvention
   // aus buildPlanningSections) — ein nicht gefahrener Ruhetag bzw. eine
@@ -145,6 +147,10 @@ export function buildWeekGrid(
    *  (Phase kommt dann nur aus den Nachbarkarten, kein "rest"-Status). */
   athleteId?: string,
   derived: PlanningDerivedSets = computePlanningDerivedSets(cards, rides),
+  /** Plan-Verschiebung des Athleten (`profiles.plan_offset_weeks`, Migration
+   *  0026) — verschiebt die Ruhe-Slot-Ableitung + die Modell-Phasenquelle um
+   *  N ganze Wochen mit. Default 0 ⇒ unverändert. */
+  offsetWeeks = 0,
 ): GridWeekRow[] {
   const { doneDates, recoveryWeeks } = derived;
 
@@ -171,7 +177,7 @@ export function buildWeekGrid(
       return {
         date,
         isToday: date === todayIso,
-        status: statusForDate(date, primary, todayIso, doneDates, athleteId),
+        status: statusForDate(date, primary, todayIso, doneDates, athleteId, offsetWeeks),
         card: primary,
         otherCards,
       };
@@ -183,7 +189,7 @@ export function buildWeekGrid(
     // unabhängig) — löst den offene-punkte.md-Punkt "Karte behält altes
     // week/phase-Label in leerer Zielwoche" für die Rasteranzeige. Karten-Phase
     // bleibt Fallback für Athleten/Zeiträume ohne Modelleintrag.
-    const modelPhase = athleteId ? planWeekFor(athleteId, anchorDate).phase : null;
+    const modelPhase = athleteId ? planWeekFor(athleteId, anchorDate, offsetWeeks).phase : null;
     const phase = modelPhase ?? activeCards.find((c) => c.phase)?.phase ?? null;
     const plannedTssSum = activeCards.reduce((sum, c) => sum + (c.tssPlanned ?? 0), 0);
     // `tssPlanned` fehlt bei den meisten Karten (nur strukturierte Plan-2-

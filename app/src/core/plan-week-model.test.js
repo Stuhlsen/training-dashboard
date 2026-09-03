@@ -136,6 +136,46 @@ test("Athlet 4: Testwoche KW47 — Do zusätzlich frei", () => {
   assert.equal(planWeekFor("athlete4", "2026-11-19").phase, "Test");
 });
 
+/* ── offsetWeeks (Plan-Verschiebung, profiles.plan_offset_weeks) ──── */
+
+test("offsetWeeks: Default 0 ändert nichts", () => {
+  assert.deepEqual(
+    planWeekFor("athlete4", "2026-09-01"),
+    planWeekFor("athlete4", "2026-09-01", 0),
+  );
+});
+
+test("offsetWeeks 1: das Plan-Fenster wandert eine Woche nach hinten", () => {
+  // Der Wochentag bleibt bei einer 7-Tage-Verschiebung gleich (Di bleibt Di) —
+  // der Offset verschiebt nur, WELCHE Kalenderwochen zum Plan gehören.
+  // 2026-09-01 (Di, KW36) ist ohne Offset drin, mit +1 Woche noch vor dem
+  // verschobenen Start (2026-08-31 + 7 = 2026-09-07) → MISS.
+  assert.equal(planWeekFor("athlete4", "2026-09-01").phase, "Einstieg");
+  assert.deepEqual(planWeekFor("athlete4", "2026-09-01", 1), MISS);
+  // Der verschobene erste Di (2026-09-08) ist wieder ein Trainings-Slot.
+  assert.equal(planWeekFor("athlete4", "2026-09-08", 1).isTrainingSlot, true);
+  assert.equal(planWeekFor("athlete4", "2026-09-08", 1).phase, "Einstieg");
+});
+
+test("offsetWeeks 1: die Testwoche wandert eine Woche nach hinten", () => {
+  // KW47 ohne Offset = Test-Phase (2026-11-16…22). Mit +1 Woche liegt sie
+  // eine Woche später (2026-11-23…29): 2026-11-25 (Mi, Ruhe-Slot) ist dann
+  // Test-Phase; hinter dem verschobenen Plan-Ende ist wieder MISS.
+  assert.deepEqual(planWeekFor("athlete4", "2026-11-25"), MISS); // ohne Offset außerhalb
+  assert.equal(planWeekFor("athlete4", "2026-11-25", 1).phase, "Test");
+  assert.equal(planWeekFor("athlete4", "2026-11-25", 1).isRestSlot, true);
+  assert.deepEqual(planWeekFor("athlete4", "2026-11-30", 1), MISS); // hinter dem verschobenen Plan
+});
+
+test("isDeliberateRestDay: offsetWeeks wird durchgereicht", () => {
+  // 2026-11-25 (Mi) liegt ohne Offset außerhalb des Plans → kein Ruhetag;
+  // mit +1 Woche ist es ein Ruhe-Slot der verschobenen Testwoche → Ruhetag,
+  // sofern keine Karte dort liegt.
+  assert.equal(isDeliberateRestDay("athlete4", "2026-11-25", false), false);
+  assert.equal(isDeliberateRestDay("athlete4", "2026-11-25", false, 1), true);
+  assert.equal(isDeliberateRestDay("athlete4", "2026-11-25", true, 1), false);
+});
+
 /* ── isDeliberateRestDay ─────────────────────────────────────────── */
 
 test("isDeliberateRestDay: Ruhe-Slot ohne Karte → true", () => {

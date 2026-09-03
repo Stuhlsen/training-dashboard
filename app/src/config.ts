@@ -57,6 +57,13 @@ export interface AthleteConfig {
    *  Athlet 2. Athlet 1 und Athlet 4 haben das volle Modell und setzen
    *  dieses Flag NICHT. `isReadOnlyAthlete()` liest es. */
   readOnly?: boolean;
+  /** Der Trainingsplan ist eine generierte Vorlage (scripts/lib/plan-athlete4.js)
+   *  — nur dann darf „Plan verschieben…" (Migration 0026) angeboten werden:
+   *  der Sync verschiebt nur diese Vorlage mit (`shiftPlannedSessions4`), die
+   *  handgeschriebenen Pläne von Athlet 1/2 hängen an echten Kalenderdaten
+   *  (Notion-Historie, Renntag) und dürfen nicht per Offset wandern.
+   *  `hasGeneratedPlan()` liest es. */
+  generatedPlan?: boolean;
 }
 
 export const PRIMARY_ATHLETE_ID = "athlete1";
@@ -107,6 +114,9 @@ export const ATHLETES: readonly AthleteConfig[] = [
     // Connect → intervals.icu; analog Apple Health (Athlet 1) / Amazfit
     // (Athlet 2). Wird im Footer + Settings als Untertitel angezeigt.
     dataSources: ["intervals.icu", "Garmin Connect"],
+    // Plan aus scripts/lib/plan-athlete4.js generiert → „Plan verschieben…"
+    // (Migration 0026) verfügbar.
+    generatedPlan: true,
   },
 ];
 
@@ -119,6 +129,12 @@ export function athleteConfig(id: string): AthleteConfig | null {
  *  nur, solange athlete1 der einzige Athlet mit vollem Modell war. */
 export function isReadOnlyAthlete(id: string): boolean {
   return athleteConfig(id)?.readOnly === true;
+}
+
+/** Hat dieser Athlet eine generierte Plan-Vorlage (nur Athlet 4)? Gate für
+ *  „Plan verschieben…" (Migration 0026) — s. `AthleteConfig.generatedPlan`. */
+export function hasGeneratedPlan(id: string): boolean {
+  return athleteConfig(id)?.generatedPlan === true;
 }
 
 /** 1:1 aus `assets/js/state/config.js::retestDate` — FTP-Retest in der

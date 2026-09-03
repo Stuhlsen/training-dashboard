@@ -121,6 +121,23 @@ describe("buildWeekGrid — abgeleiteter Ruhetag aus dem Plan-Wochen-Modell (Fah
     expect(buildWeekGrid(thuCard, [], TODAY, "athlete1")[0].phase).toBe("Schwelle");
     expect(buildWeekGrid(thuCard, [], TODAY)[0].phase).toBe("Aufbau 2"); // Fallback: Karten-Phase
   });
+
+  // Migration 0026: plan_offset_weeks verschiebt die Ruhe-Slot-Ableitung mit.
+  it("offsetWeeks verschiebt die abgeleiteten Ruhetage um N ganze Wochen", () => {
+    // Athlet 4, KW36-Vorlage (Mo 2026-08-31). Di ist Trainings-Slot, Mi ist
+    // Ruhe-Slot. Ohne Offset: 2026-09-02 (Mi) → 'rest'.
+    const tue36 = [card({ id: "t36", date: "2026-09-01" })];
+    expect(cellFor(buildWeekGrid(tue36, [], TODAY, "athlete4"), "2026-09-02").status).toBe("rest");
+    // Mit +1 Woche liegt 2026-09-02 vor dem verschobenen Planstart → 'empty'.
+    expect(
+      cellFor(buildWeekGrid(tue36, [], TODAY, "athlete4", undefined, 1), "2026-09-02").status,
+    ).toBe("empty");
+    // Der verschobene Mi (2026-09-09) ist jetzt der Ruhe-Slot.
+    const tue37 = [card({ id: "t37", date: "2026-09-08" })];
+    expect(
+      cellFor(buildWeekGrid(tue37, [], TODAY, "athlete4", undefined, 1), "2026-09-09").status,
+    ).toBe("rest");
+  });
 });
 
 describe("buildWeekGrid — Mehrfachkarten am selben Datum", () => {

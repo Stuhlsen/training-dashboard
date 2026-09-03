@@ -36,6 +36,12 @@ export interface Profile {
   /** Migration 0020 — Anzeigepräferenz für Distanz-/Temperatureinheiten,
    *  Self-Service wie wellbeing_public. */
   unitsPreference: "km" | "mi";
+  /** Migration 0026 — Ganzwochen-Verschiebung des Trainingsplans gegenüber
+   *  der Code-Vorlage (Punkt 1 der 6-Punkte-Liste). Default 0, faktisch nur
+   *  für Athlet 4 relevant (generierte Vorlage). Positiv = Plan startet
+   *  später. Steuert die Datierung der `plan_cards`, das offset-fähige
+   *  Plan-Wochen-Modell und die Sync-Baseline. */
+  planOffsetWeeks: number;
 }
 
 /** Strukturiertes Workout einer Plankarte. Bewusst `unknown`-durchgereicht:
