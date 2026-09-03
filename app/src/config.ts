@@ -46,6 +46,13 @@ export interface AthleteConfig {
   /** Saison-Start-FTP für den Hero-Fortschrittsring. `null` bei Athlet 2 —
    *  keine eigene Saison-Basis, der Meilenstein entfällt dort. */
   seasonStartFtp: number | null;
+  /** Maximale Herzfrequenz (bpm) — Athletenwert, nicht Sportart (s.
+   *  Kopfkommentar + `sports/README.md`). Bezugswert für die HF-Zonen aus
+   *  `sports/cycling/metrics.ts::HR_ZONES`. Konsument: das Puls-Zielband im
+   *  Planungstab-Block „Geplant → Tatsächlich" (Punkt 6 der 6-Punkte-Liste).
+   *  `null`, solange kein Wert vorliegt (Athlet 2/4) — das Band entfällt dann,
+   *  die Puls-Zeile zeigt nur den Ist-Wert. */
+  hrMax: number | null;
   dataSources: string[];
   /** Grundumsatz-Schätzgrundlage (Mifflin-St-Jeor), Analyse-Tab "Regeneration
    *  & Körper" — nur Fallback, wenn Wellness keine `restingEnergy` trägt.
@@ -78,6 +85,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     eFTP: 199,
     ftpGoal: 210,
     seasonStartFtp: 166,
+    hrMax: 201, // 1:1 aus assets/js/state/config.js::CONFIG.hrMax
     dataSources: ["intervals.icu", "Apple Health"],
   },
   {
@@ -89,6 +97,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     eFTP: 261,
     ftpGoal: 280,
     seasonStartFtp: null,
+    hrMax: null, // read-only Vergleichsathlet, kein hinterlegter Wert
     dataSources: ["intervals.icu", "Amazfit"],
     bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92.5 },
     readOnly: true,
@@ -110,6 +119,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     eFTP: null,
     ftpGoal: null,
     seasonStartFtp: null,
+    hrMax: null, // Einsteiger, noch kein Wert erhoben
     // Athlet 4 trackt Wellness (Schlaf/HRV/Ruhepuls/Gewicht) über Garmin
     // Connect → intervals.icu; analog Apple Health (Athlet 1) / Amazfit
     // (Athlet 2). Wird im Footer + Settings als Untertitel angezeigt.
