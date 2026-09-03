@@ -64,6 +64,21 @@ const ACTION_BTN_STYLE: React.CSSProperties = {
   cursor: "pointer",
 };
 
+const REORDER_BTN_STYLE: React.CSSProperties = {
+  width: 22,
+  height: 22,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  padding: 0,
+  borderRadius: "var(--radius-sm)",
+  border: "1px solid var(--hair)",
+  background: "transparent",
+  color: "var(--ink-3)",
+  fontSize: "var(--fs-label)",
+  lineHeight: 1,
+};
+
 /** Eigenes Dropdown statt <select> — ein natives <select>-Popup lässt sich
  *  auf Windows/Chromium per CSS nicht zuverlässig auf das dunkle Theme
  *  umfärben (bestätigt: bleibt teilweise hell, auch mit `color-scheme: dark`
@@ -107,6 +122,14 @@ export interface WeekGridDetailRowProps {
   onMove: (id: string, date: string, reason?: string) => Promise<Result>;
   onCancel: (id: string, reason?: string) => Promise<Result>;
   onUndo: (id: string) => Promise<Result<{ card?: PlanCardT }>>;
+  /** Nur gesetzt, wenn dieser Tag mehrere Karten trägt — dann zeigt der Kopf
+   *  ▲/▼-Knöpfe zum Umsortieren innerhalb des Tages. `canUp`/`canDown` sind
+   *  an den Rändern `false`. */
+  reorder?: {
+    canUp: boolean;
+    canDown: boolean;
+    onReorder: (direction: "up" | "down") => Promise<Result>;
+  };
 }
 
 type OpenForm = "move" | "cancel" | null;
@@ -138,11 +161,13 @@ export function WeekGridDetailRow({
   onMove,
   onCancel,
   onUndo,
+  reorder,
 }: WeekGridDetailRowProps) {
   const [openForm, setOpenForm] = useState<OpenForm>(null);
   const [moveDate, setMoveDate] = useState(card.date);
   const [reason, setReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [error, setError] = useState("");
   const [pushing, setPushing] = useState(false);
   const [pushResult, setPushResult] = useState<{ ok: boolean; message: string } | null>(null);
@@ -202,6 +227,15 @@ export function WeekGridDetailRow({
     const result = await onUndo(card.id);
     setSubmitting(false);
     if (!result.ok) setError(result.error?.message || "Rückgängig fehlgeschlagen.");
+  }
+
+  async function handleReorder(direction: "up" | "down") {
+    if (!reorder || reordering) return;
+    setReordering(true);
+    setError("");
+    const result = await reorder.onReorder(direction);
+    setReordering(false);
+    if (!result.ok) setError(result.error?.message || "Umsortieren fehlgeschlagen.");
   }
 
   /** Token/Athlete-ID kommen aus den Settings (Migration 0019) statt aus
@@ -308,6 +342,38 @@ export function WeekGridDetailRow({
         <span style={{ fontFamily: "var(--font-mono)", fontSize: ".76rem", color: "var(--ink-3)", minWidth: 44 }}>
           {fmtDate(card.date)}
         </span>
+        {canEdit && reorder && (
+          <span role="group" aria-label="Reihenfolge an diesem Tag" style={{ display: "inline-flex", gap: 2 }}>
+            <button
+              type="button"
+              aria-label="Eine Position nach oben"
+              title="Eine Position nach oben"
+              disabled={!reorder.canUp || reordering}
+              onClick={() => void handleReorder("up")}
+              style={{
+                ...REORDER_BTN_STYLE,
+                opacity: !reorder.canUp || reordering ? 0.35 : 1,
+                cursor: !reorder.canUp || reordering ? "default" : "pointer",
+              }}
+            >
+              ▲
+            </button>
+            <button
+              type="button"
+              aria-label="Eine Position nach unten"
+              title="Eine Position nach unten"
+              disabled={!reorder.canDown || reordering}
+              onClick={() => void handleReorder("down")}
+              style={{
+                ...REORDER_BTN_STYLE,
+                opacity: !reorder.canDown || reordering ? 0.35 : 1,
+                cursor: !reorder.canDown || reordering ? "default" : "pointer",
+              }}
+            >
+              ▼
+            </button>
+          </span>
+        )}
         <span aria-hidden="true">{typeIcon(card.typ)}</span>
         <span style={{ fontSize: ".92rem", fontWeight: 500, color: "var(--ink)" }}>{card.name}</span>
         {planTypeTermKey(card.typ) ? (

@@ -25,6 +25,7 @@ import {
   useMovePlanCard,
   usePlanCards,
   usePushPlanCard,
+  useReorderPlanCard,
   useUndoAdjustment,
 } from "../../api/hooks/usePlanCards";
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
@@ -134,6 +135,7 @@ export function PlanningPage() {
   const { move } = useMovePlanCard(activeAthleteId);
   const { cancel } = useCancelPlanCard(activeAthleteId);
   const { undo } = useUndoAdjustment(activeAthleteId);
+  const { reorder } = useReorderPlanCard(activeAthleteId);
   const { push } = usePushPlanCard(activeAthleteId);
   const { create: createTrainerProposal } = useCreateTrainerProposal(activeAthleteId);
   // Trainer sehen weder den Push-Button (s. canPush unten) noch den
@@ -465,34 +467,56 @@ export function PlanningPage() {
                 trainerProposalMode={trainerProposalMode}
                 renderDetail={(cell) => {
                   if (!cell.card) return null;
-                  const card = cell.card;
+                  // Alle Karten des Tages, nach sort_order — bei mehreren
+                  // wird jede als eigene Detailzeile gezeigt (sonst wäre die
+                  // zweite Karte nur über das "+1" im Raster ahnbar) und
+                  // trägt ▲/▼ zum Umsortieren innerhalb des Tages.
+                  const dayCards = [cell.card, ...cell.otherCards].sort(
+                    (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+                  );
+                  const multi = dayCards.length > 1;
                   return (
-                    <WeekGridDetailRow
-                      key={card.id}
-                      card={card}
-                      canEdit={editable}
-                      // Push bleibt athletenexklusiv (docs/phase-4-konzept-
-                      // trainer-sicht.md: "Kein Wahoo-Push durch den
-                      // Trainer") — anders als Verschieben/Ausfallen gibt
-                      // es dafür keinen Vorschlag-Ersatz, der Token gehört
-                      // dem Athleten. editable allein reicht nicht, weil
-                      // es auch für den Trainer true ist (RLS T2).
-                      canPush={editable && !isTrainer}
-                      onPush={push}
-                      intervalsCredentials={intervalsCredentials}
-                      trainerProposalMode={trainerProposalMode}
-                      rides={allRides}
-                      conflicts={conflicts}
-                      projection={projection}
-                      ftp={ftp}
-                      forecast={forecast}
-                      wellness={wellness}
-                      plannedSessions={plannedSessions}
-                      onEdit={() => setDialog(card)}
-                      onMove={handleMove}
-                      onCancel={handleCancel}
-                      onUndo={undo}
-                    />
+                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                      {dayCards.map((card, idx) => (
+                        <WeekGridDetailRow
+                          key={card.id}
+                          card={card}
+                          canEdit={editable}
+                          // Push bleibt athletenexklusiv (docs/phase-4-konzept-
+                          // trainer-sicht.md: "Kein Wahoo-Push durch den
+                          // Trainer") — anders als Verschieben/Ausfallen gibt
+                          // es dafür keinen Vorschlag-Ersatz, der Token gehört
+                          // dem Athleten. editable allein reicht nicht, weil
+                          // es auch für den Trainer true ist (RLS T2).
+                          canPush={editable && !isTrainer}
+                          onPush={push}
+                          intervalsCredentials={intervalsCredentials}
+                          trainerProposalMode={trainerProposalMode}
+                          rides={allRides}
+                          conflicts={conflicts}
+                          projection={projection}
+                          ftp={ftp}
+                          forecast={forecast}
+                          wellness={wellness}
+                          plannedSessions={plannedSessions}
+                          onEdit={() => setDialog(card)}
+                          onMove={handleMove}
+                          onCancel={handleCancel}
+                          onUndo={undo}
+                          // Umsortieren hat keinen Vorschlag-Ersatz — im
+                          // Trainer-Vorschlagsmodus deshalb aus.
+                          reorder={
+                            multi && !trainerProposalMode
+                              ? {
+                                  canUp: idx > 0,
+                                  canDown: idx < dayCards.length - 1,
+                                  onReorder: (direction) => reorder(card.id, direction),
+                                }
+                              : undefined
+                          }
+                        />
+                      ))}
+                    </div>
                   );
                 }}
               />

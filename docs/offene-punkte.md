@@ -41,14 +41,10 @@
     diesen ~ms nach kaltem Laden schreibt ein week/phase-Label aus dem
     unverschobenen Modell (Datum korrekt, Label evtl. eine Phase daneben).
 
-- **Drag & Drop v1** (geprüft 26.08.2026, zwei separate Punkte):
-  - Kein Tastatur-Verschieben per Drag-Geste — Ersatzweg existiert bereits
-    (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld → Speichern, voll
-    tastaturbedienbar), nur langsamer als Ziehen. Kein akuter A11y-Ausfall.
-  - Keine Umsortierung innerhalb eines Tages — `sortOrder` existiert als
-    Feld (`nextSortOrder()`, `app/src/api/plan-cards/patch.ts`), wird aber
-    nur bei Karten-Erstellung gesetzt, nie danach geändert. Echtes neues
-    Feature (Bedienelement + Schreibpfad), noch nicht gebaut.
+- **Drag & Drop v1** — kein Tastatur-Verschieben per Drag-Geste. Ersatzweg
+  existiert bereits (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld →
+  Speichern, voll tastaturbedienbar), nur langsamer als Ziehen. Kein akuter
+  A11y-Ausfall (geprüft 26.08.2026).
 
 - **Kein Self-Service zum Erstellen eines neuen Trainingsplans** — jeder Plan
   ist Code: `scripts/lib/plan2.js` (Athlet 1, Plan 2), `scripts/lib/plan-athlete2.js`

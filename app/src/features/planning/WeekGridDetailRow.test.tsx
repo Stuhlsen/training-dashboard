@@ -192,6 +192,35 @@ describe("WeekGridDetailRow — Verschieben/Ausfallen/Push-Verdrahtung", () => {
   });
 });
 
+describe("WeekGridDetailRow — Umsortieren innerhalb des Tages", () => {
+  it("zeigt keine ▲/▼-Knöpfe ohne reorder-Prop (Tag mit nur einer Karte)", () => {
+    renderRow(card({ id: "a" }));
+    expect(screen.queryByRole("button", { name: "Eine Position nach oben" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Eine Position nach unten" })).toBeNull();
+  });
+
+  it("ruft onReorder('down') auf und lässt ▲ am oberen Rand deaktiviert", async () => {
+    const onReorder = vi.fn().mockResolvedValue({ ok: true });
+    renderRow(card({ id: "a" }), { reorder: { canUp: false, canDown: true, onReorder } });
+
+    const up = screen.getByRole("button", { name: "Eine Position nach oben" });
+    const down = screen.getByRole("button", { name: "Eine Position nach unten" });
+    expect(up).toHaveProperty("disabled", true);
+    expect(down).toHaveProperty("disabled", false);
+
+    fireEvent.click(down);
+    await vi.waitFor(() => expect(onReorder).toHaveBeenCalledWith("down"));
+  });
+
+  it("zeigt eine Fehlermeldung, wenn das Umsortieren fehlschlägt", async () => {
+    const onReorder = vi.fn().mockResolvedValue({ ok: false, error: { code: "UNKNOWN", message: "geht nicht" } });
+    renderRow(card({ id: "a" }), { reorder: { canUp: true, canDown: false, onReorder } });
+
+    fireEvent.click(screen.getByRole("button", { name: "Eine Position nach oben" }));
+    expect(await screen.findByText("geht nicht")).toBeTruthy();
+  });
+});
+
 describe("WeekGridDetailRow — Ruhetag-gefahren-Hinweis", () => {
   it("zeigt den Hinweis-Chip, wenn ein Ruhetag trotzdem gefahren wurde", () => {
     renderRow(card({ id: "f", typ: "Ruhetag", date: TODAY }), {
