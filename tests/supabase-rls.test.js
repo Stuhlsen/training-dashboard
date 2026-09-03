@@ -129,6 +129,8 @@ if (!HAS_CREDS) {
   let originalViewPrefs; // undefined = noch nicht geprüft, null = existierte nicht
   let originalIntervalsCredentials; // undefined = noch nicht geprüft, null = existierte nicht
   let originalSyncConfig; // undefined = noch nicht geprüft, null = existierte nicht (athlete_sync_config, 0023)
+  let planTableReady = false; // training_plans (0028) lesbar? (Migration eingespielt)
+  let planActiveAlready = false; // Athlet 1 hat bereits eine echte aktive training_plans-Zeile
 
   /** Aufräum-Funktionen, LIFO im after()-Hook ausgeführt. Jede fängt ihre
    *  eigenen Fehler NICHT selbst — after() sammelt sie, damit ein einzelner
@@ -174,6 +176,16 @@ if (!HAS_CREDS) {
       { token: athlete.token }
     );
     originalSyncConfig = syncConfigCheck.data?.[0] ?? null;
+
+    // training_plans (0028): Tabelle lesbar? Trägt Athlet 1 schon eine echte
+    // aktive Zeile (ab E6 möglich)? — steuert unten die destruktiven Tests.
+    const planProbe = await rest(
+      "GET",
+      `training_plans?athlete_id=eq.${athlete.userId}&select=id,is_active`,
+      { token: athlete.token }
+    );
+    planTableReady = planProbe.ok;
+    planActiveAlready = planTableReady && (planProbe.data ?? []).some((r) => r.is_active);
   });
 
   after(async () => {
@@ -941,5 +953,181 @@ if (!HAS_CREDS) {
       token: trainer.token,
     });
     assert.deepEqual(trainerRead.data, [], "Trainer sieht die athlete_sync_config-Zeile seines Athleten — RLS zu weit gefasst");
+  });
+
+  // --- 10. training_plans (0028, Fahrplan 8 E1) -------------------------
+  // Verifikation der neuen Migration 0028_training_plans.sql. training_plans
+  // hat KEINEN kollisionssicheren Sentinel-Schlüssel (id = gen_random_uuid,
+  // der partielle Unique-Index greift auf athlete_id WHERE is_active) —
+  // deshalb: (a) planTableReady prüft, ob die Migration überhaupt
+  // eingespielt ist, (b) planActiveAlready überspringt die Tests, die eine
+  // AKTIVE Zeile anlegen, falls Athlet 1 ab E6 schon einen echten aktiven
+  // Plan trägt. Jede Testzeile wird über ihre id im Cleanup gelöscht;
+  // aktiv angelegte Zeilen werden noch IM Test auf is_active=false gesetzt,
+  // damit spätere Tests im selben Lauf nicht am Unique-Index scheitern.
+  //
+  // Wichtig hier (anders als plan_cards, 0011): der Trainer darf für seinen
+  // Athleten NICHT nur updaten, sondern eine Plan-Zeile ANLEGEN
+  // (Entscheidung 19 — canWriteForAthlete deckt das ab). Das ist der
+  // zentrale Positiv-Test unten.
+
+  const planSkip = () =>
+    !planTableReady ? "training_plans nicht lesbar — Migration 0028 vermutlich noch nicht eingespielt" : false;
+  const planActiveSkip = () =>
+    planActiveAlready
+      ? "Athlet 1 trägt bereits eine echte aktive training_plans-Zeile — Test, der eine aktive Zeile anlegt, übersprungen"
+      : false;
+
+  const planBody = (over = {}) => ({
+    athlete_id: athlete.userId,
+    created_by: athlete.userId,
+    is_active: true,
+    mode: "open",
+    start_date: "1901-03-04", // real unbenutzte Sentinel-Daten (Montag)
+    end_date: "1901-04-28",
+    weeks: 8,
+    model: "linear",
+    focus: "allgemein",
+    level: "einsteiger",
+    training_weekdays: [2, 4, 6],
+    weekly_hours: 6,
+    indoor_share: 0.5,
+    week_model: [],
+    ...over,
+  });
+
+  /** Legt eine training_plans-Zeile an, registriert das Löschen im Cleanup
+   *  und setzt sie sofort auf is_active=false zurück, wenn sie aktiv war —
+   *  hält den partiellen Unique-Index für Folgetests frei. */
+  async function insertPlanRow(token, over) {
+    const insert = await rest("POST", "training_plans", { token, body: planBody(over) });
+    assert.equal(insert.ok, true, `training_plans-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    const id = insert.data[0].id;
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `training_plans?id=eq.${id}`, { token: athlete.token });
+      if (!del.ok) throw new Error(`training_plans-Testzeile ${id} nicht gelöscht: ${JSON.stringify(del.data)}`);
+    });
+    if ((over?.is_active ?? true) === true) {
+      const off = await rest("PATCH", `training_plans?id=eq.${id}`, { token, body: { is_active: false } });
+      assert.equal(off.ok, true, `training_plans: is_active=false-Rücksetzung fehlgeschlagen (${id})`);
+    }
+    return id;
+  }
+
+  test("training_plans: Athlet legt eigene aktive Zeile an, liest sie, anon sieht nichts (kein GRANT)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    if (planActiveSkip()) return t.skip(planActiveSkip());
+
+    const id = await insertPlanRow(athlete.token, {});
+
+    const own = await rest("GET", `training_plans?id=eq.${id}&select=id,mode,model,week_model`, {
+      token: athlete.token,
+    });
+    assert.equal(own.ok, true);
+    assert.equal(own.data.length, 1, "Athlet liest die eigene training_plans-Zeile nicht");
+    assert.deepEqual(own.data[0].week_model, [], "week_model sollte als leeres Array zurückkommen");
+
+    const anonRead = await rest("GET", `training_plans?id=eq.${id}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf training_plans nicht lesen (kein GRANT)");
+  });
+
+  test("training_plans: Trainer legt eine Plan-Zeile für seinen Athleten an (Entscheidung 19 — anders als plan_cards/0011)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    if (!coachLinkOk) return t.skip(coachSkip());
+    if (planActiveSkip()) return t.skip(planActiveSkip());
+
+    // created_by = Trainer, athlete_id = sein Athlet. Muss durchgehen —
+    // die for-all-Policy erlaubt is_coach_of() auch beim INSERT.
+    const id = await insertPlanRow(trainer.token, { created_by: trainer.userId });
+
+    const trainerRead = await rest("GET", `training_plans?id=eq.${id}&select=id,athlete_id`, { token: trainer.token });
+    assert.equal(trainerRead.ok, true);
+    assert.equal(trainerRead.data.length, 1, "Trainer liest die von ihm angelegte Plan-Zeile seines Athleten nicht (is_coach_of)");
+  });
+
+  test("training_plans: zweite aktive Zeile für denselben Athleten scheitert am partiellen Unique-Index", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    if (planActiveSkip()) return t.skip(planActiveSkip());
+
+    // Zeile 1 aktiv anlegen und AKTIV lassen (nicht über insertPlanRow, das
+    // würde sofort inaktiv setzen). Cleanup löscht sie.
+    const first = await rest("POST", "training_plans", { token: athlete.token, body: planBody() });
+    assert.equal(first.ok, true, `Insert Zeile 1 fehlgeschlagen: ${JSON.stringify(first.data)}`);
+    const firstId = first.data[0].id;
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `training_plans?id=eq.${firstId}`, { token: athlete.token });
+      if (!del.ok) throw new Error(`training_plans-Testzeile ${firstId} nicht gelöscht`);
+    });
+
+    // Zeile 2 aktiv -> Unique-Verletzung ist bei INSERT ein echter Fehler.
+    const second = await rest("POST", "training_plans", { token: athlete.token, body: planBody() });
+    assert.equal(second.ok, false, "Zweite aktive training_plans-Zeile hätte am partiellen Unique-Index scheitern müssen");
+    if (second.ok && Array.isArray(second.data) && second.data[0]?.id) {
+      const strayId = second.data[0].id;
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `training_plans?id=eq.${strayId}`, { token: athlete.token });
+      });
+    }
+
+    // Zeile 1 inaktiv setzen -> jetzt ist eine neue aktive Zeile wieder ok
+    // (beweist: partieller Index, keine harte "eine Zeile je Athlet"-Grenze).
+    const off = await rest("PATCH", `training_plans?id=eq.${firstId}`, {
+      token: athlete.token,
+      body: { is_active: false },
+    });
+    assert.equal(off.ok, true);
+    const third = await insertPlanRow(athlete.token, {});
+    assert.ok(third, "Nach is_active=false auf Zeile 1 sollte eine neue aktive Zeile durchgehen");
+  });
+
+  test("training_plans: unbekannte Enum-Werte (mode/model/focus/level) scheitern am CHECK", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    for (const bad of [{ mode: "foo" }, { model: "foo" }, { focus: "foo" }, { level: "foo" }]) {
+      const res = await rest("POST", "training_plans", {
+        token: athlete.token,
+        body: planBody({ is_active: false, ...bad }),
+      });
+      assert.equal(res.ok, false, `training_plans: ${JSON.stringify(bad)} hätte am CHECK scheitern müssen`);
+      if (res.ok && Array.isArray(res.data) && res.data[0]?.id) {
+        const strayId = res.data[0].id;
+        cleanupTasks.push(async () => {
+          await rest("DELETE", `training_plans?id=eq.${strayId}`, { token: athlete.token });
+        });
+      }
+    }
+  });
+
+  test("training_plans: Athlet kann keine Zeile für eine fremde athlete_id anlegen (RLS with check)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    // NICHT trainer.userId als "fremde" athlete_id — die Policy hat den
+    // OR-Zweig public.is_coach_of(athlete_id), und in dashboard-dev zeigt
+    // Trainer-STs coach_id zurück auf Stuhlsen, sodass is_coach_of(trainer)
+    // für den Athleten wahr ist und der Insert per Policy erlaubt wäre
+    // (derselbe Trap wie im proposals-Block oben). Stattdessen eine gültige,
+    // aber nicht existierende UUID: athlete_id = auth.uid() falsch,
+    // is_coach_of() falsch, is_admin() falsch UND der profiles-FK schlägt fehl.
+    const insert = await rest("POST", "training_plans", {
+      token: athlete.token,
+      body: planBody({ is_active: false, athlete_id: "00000000-0000-0000-0000-000000000000" }),
+    });
+    assert.equal(insert.ok, false, "Insert für fremde athlete_id hätte an der RLS with-check-Policy / am FK scheitern müssen");
+  });
+
+  test("training_plans: anon darf gar nicht lesen (kein GRANT)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    const anonRead = await rest("GET", "training_plans?select=id&limit=1", { token: null });
+    assert.equal(anonRead.ok, false, "anon darf training_plans nicht lesen (kein GRANT)");
+  });
+
+  test("plan_cards: neue Spalte plan_id ist vorhanden und für Bestandskarten null (0028)", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    const read = await rest("GET", `plan_cards?athlete_id=eq.${athlete.userId}&select=id,plan_id&limit=5`, {
+      token: athlete.token,
+    });
+    assert.equal(read.ok, true, `plan_cards?select=plan_id fehlgeschlagen (Spalte fehlt?): ${JSON.stringify(read.data)}`);
+    for (const row of read.data) {
+      assert.equal("plan_id" in row, true, "plan_cards-Zeile führt die neue Spalte plan_id nicht");
+      assert.equal(row.plan_id, null, "Bestandskarte sollte plan_id = null tragen");
+    }
   });
 }
