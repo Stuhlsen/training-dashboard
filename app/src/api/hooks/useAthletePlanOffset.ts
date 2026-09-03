@@ -4,27 +4,33 @@
 
    Gebraucht für die Anzeige-Kohärenz im Planungstab (Ruhetag-Ableitung,
    Erholungs-Schattierung, Phasen-Überschriften) und die week/phase-
-   Neuvergabe beim Einzel-Move — dort zählt der Offset des Athleten, dessen
-   Plan gezeigt wird, nicht der des Trainers/Betrachters.
+   Neuvergabe beim Einzel-Move.
 
-   Ist der betrachtete Athlet der eingeloggte User selbst (der Normalfall,
-   und der EINZIGE, der den Offset schreiben kann — RLS auf die eigene
-   profiles-Zeile), kommt der Wert direkt aus `useCurrentProfile()`: EINE
-   Quelle (qk.profile), die `useUpdatePlanOffsetWeeks` synchron aktualisiert,
-   kein zweiter Fetch, kein Auseinanderlaufen im Invalidate-Fenster.
+   NUR für Athleten mit generierter Plan-Vorlage (`hasGeneratedPlan`, aktuell
+   nur Athlet 4). Für alle anderen ist der Offset per Definition 0 — auch
+   wenn jemand die `profiles`-Spalte von Hand setzt, darf ein handgeschriebener
+   Plan (Athlet 1/2) NICHT per Offset wandern (CLAUDE.md). Damit ist der
+   Read-Pfad genauso gegatet wie der Write-Pfad (useShiftPlan +
+   „Plan verschieben…"-Button).
 
-   Nur für einen GECOACHTEN Fremdathleten wird `profiles_visible`
-   (getProfileByDisplayName) gezogen. Ein Nicht-Coach-Betrachter sieht die
-   Zeile nicht → 0 (nur Anzeige-Drift in einer reinen Betrachter-Ansicht).
+   Für den betrachteten Athleten == eingeloggter User (der Normalfall, und der
+   EINZIGE, der schreiben kann — RLS auf die eigene profiles-Zeile) kommt der
+   Wert direkt aus `useCurrentProfile()`: EINE Quelle (qk.profile), die
+   `useUpdatePlanOffsetWeeks` synchron aktualisiert, kein zweiter Fetch.
+   Self-Erkennung synchron über den Anzeigenamen (kein Warten auf eine
+   zweite Query).
+
+   Nur ein GECOACHTER Fremdathlet zieht `profiles_visible`
+   (getProfileByDisplayName); der Cache-Key trägt die Viewer-UID, weil der
+   Wert autorisierungsabhängig ist (Nicht-Coach → 0).
    ============================================================ */
 
 import { useQuery } from "@tanstack/react-query";
 import { getProfileByDisplayName } from "../supabase/profiles";
-import { athleteConfig } from "../../config";
+import { athleteConfig, hasGeneratedPlan } from "../../config";
 import { qk } from "../keys";
 import { unwrap } from "../result";
 import { useAuthUserId, useCurrentProfile } from "./useSession";
-import { useIsSelfAthlete } from "./useWriteAuthorization";
 
 async function resolve(athleteId: string): Promise<number> {
   const name = athleteConfig(athleteId)?.name;
@@ -33,19 +39,23 @@ async function resolve(athleteId: string): Promise<number> {
   return profile?.planOffsetWeeks ?? 0;
 }
 
-/** Ganzwochen-Verschiebung des betrachteten Athleten, `0` solange unbekannt. */
+/** Ganzwochen-Verschiebung des betrachteten Athleten, `0` solange unbekannt
+ *  und `0` für jeden Athleten ohne generierte Plan-Vorlage. */
 export function useAthletePlanOffset(athleteId: string): number {
   const userId = useAuthUserId();
-  const { isSelf } = useIsSelfAthlete(athleteId);
   const selfProfile = useCurrentProfile().data ?? null;
+  const gated = hasGeneratedPlan(athleteId);
+  const isSelf = !!selfProfile && athleteConfig(athleteId)?.name === selfProfile.displayName;
+
   const other = useQuery({
-    queryKey: qk.athletePlanOffset(athleteId),
+    queryKey: qk.athletePlanOffset(userId ?? "anon", athleteId),
     queryFn: () => resolve(athleteId),
-    // Nur bei einem Fremdathleten (mit Login): profiles_visible ist anon
-    // nicht lesbar, und beim Self-Athleten kommt der Wert aus useCurrentProfile.
-    enabled: !!userId && !isSelf,
+    // Nur bei einem gecoachten Fremdathleten mit generierter Vorlage.
+    enabled: !!userId && gated && !isSelf,
     staleTime: 5 * 60_000,
   });
-  if (isSelf) return selfProfile?.planOffsetWeeks ?? 0;
+
+  if (!gated) return 0;
+  if (isSelf) return selfProfile.planOffsetWeeks ?? 0;
   return other.data ?? 0;
 }

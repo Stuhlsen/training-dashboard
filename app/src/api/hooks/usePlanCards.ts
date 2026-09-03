@@ -246,7 +246,6 @@ export function useUndoAdjustment(athleteId: string) {
  *  würde `storedOffset` auf 0 zurückfallen und ein Delta gegen den falschen
  *  Ausgangswert gerechnet (gespeicherter Offset ↔ Kartendaten desynchron). */
 export function useShiftPlan(athleteId: string) {
-  const queryClient = useQueryClient();
   const mutation = usePatchCard(athleteId);
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
@@ -272,16 +271,10 @@ export function useShiftPlan(athleteId: string) {
       if (!plan.ok) return { ok: false, error: { code: "UNKNOWN", message: plan.reason } };
       if (!plan.patches.length) return { ok: true, moved: 0 };
 
-      // Jeder Offset-Schreibvorgang (vor UND zurück) muss den eigenen
-      // qk.athletePlanOffset-Cache mitziehen — der ist von qk.profile getrennt
-      // und wird von buildWeekGrid/detectConflicts/useMovePlanCard gelesen.
-      const writeOffset = async (v: number): Promise<Result> => {
-        const r = await updateOffset(v);
-        if (r.ok) void queryClient.invalidateQueries({ queryKey: qk.athletePlanOffset(athleteId) });
-        return r;
-      };
-
-      const offsetResult = await writeOffset(target);
+      // updateOffset (useUpdatePlanOffsetWeeks) aktualisiert qk.profile
+      // synchron — daraus liest useAthletePlanOffset für den Self-Athleten,
+      // also kein separater Cache zum Invalidieren.
+      const offsetResult = await updateOffset(target);
       if (!offsetResult.ok) return offsetResult;
 
       let moved = 0;
@@ -292,7 +285,7 @@ export function useShiftPlan(athleteId: string) {
             // Noch keine Karte bewegt → Offset zurücknehmen. Scheitert auch
             // das, steht der Offset falsch da (0 Karten, aber target) — dann
             // sagen wir das deutlich statt still den ursprünglichen Fehler.
-            const rollback = await writeOffset(storedOffset);
+            const rollback = await updateOffset(storedOffset);
             if (!rollback.ok) {
               return {
                 ok: false,
@@ -320,7 +313,7 @@ export function useShiftPlan(athleteId: string) {
       }
       return { ok: true, moved };
     },
-    [queryClient, userId, isSelf, profile, snapshot, athleteId, mutation, updateOffset],
+    [userId, isSelf, profile, snapshot, athleteId, mutation, updateOffset],
   );
 
   return { shift, isPending: mutation.isPending };

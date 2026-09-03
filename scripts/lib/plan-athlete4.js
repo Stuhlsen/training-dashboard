@@ -150,7 +150,12 @@ export const PLANNED_SESSIONS_ATHLETE4 = (() => {
  */
 export function shiftPlannedSessions4(offsetWeeks, fromDateISO = "") {
   const n = Math.round(offsetWeeks || 0);
-  if (!n) return PLANNED_SESSIONS_ATHLETE4;
+  // NUR positive Verschiebung („später starten"). Ein negativer Offset würde
+  // verschobene Datumsschlüssel mit unverschobenen kollidieren lassen
+  // (feste Wochentags-Slots, last-write-wins → Einträge gingen verloren).
+  // Der Dialog bietet Negatives nicht an; ein direkter DB-Write wird hier
+  // ignoriert (Vorlage unverändert).
+  if (n <= 0) return PLANNED_SESSIONS_ATHLETE4;
   const out = {};
   for (const [date, s] of Object.entries(PLANNED_SESSIONS_ATHLETE4)) {
     const key = date >= fromDateISO ? addDays(date, n * 7) : date;

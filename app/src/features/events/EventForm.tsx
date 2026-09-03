@@ -83,45 +83,55 @@ export function EventForm({ athleteId, editingEvent, onClose }: EventFormProps) 
   const athleteName = athleteConfig(athleteId)?.name;
   const baseTitle = editingEvent ? "Event bearbeiten" : "Event anlegen";
   const dialogTitle = !isSelf && athleteName ? `${baseTitle} (für ${athleteName})` : baseTitle;
+  // Ergebnis-Felder nur bei einem echten Rennen — nicht bei einem
+  // Testtermin (Ramp-Test) und nicht bei type='other'.
+  const canHaveResult = type === "race" && !isTest;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
-    // Zeit: leer ist ok, ein nicht leerer, unparsbarer String bricht ab.
-    const trimmedTime = resultTime.trim();
-    const parsedTime = trimmedTime ? parseFinishTime(trimmedTime) : null;
-    if (trimmedTime && parsedTime == null) {
-      setError("Zeit im Format h:mm:ss eingeben (z. B. 3:12:45).");
-      return;
-    }
-
-    // Watt/Plätze: leer -> null, sonst ganze Zahl >= min. Client-seitig prüfen,
-    // damit eine 0/negativ/Komma-Eingabe nicht als roher DB-CHECK-Fehler
-    // durchschlägt (wie beim type->'other'-Sonderfall unten).
-    const intFields: [string, string, number, string][] = [
-      [resultAvgWatts, "resultAvgWatts", 0, "Ø Leistung"],
-      [resultPlaceAg, "resultPlaceAg", 1, "Platz Altersklasse"],
-      [resultPlaceOverall, "resultPlaceOverall", 1, "Platz Gesamt"],
-    ];
-    const results: Record<string, number | null> = {};
-    for (const [raw, key, min, label] of intFields) {
-      const t = raw.trim();
-      if (!t) {
-        results[key] = null;
-        continue;
-      }
-      const n = Number(t);
-      if (!Number.isInteger(n) || n < min) {
-        setError(`${label}: bitte eine ganze Zahl ≥ ${min} eingeben.`);
+    // Ergebnis nur bei einem ECHTEN Rennen (nicht bei einem Testtermin und
+    // nicht bei type='other'). Sonst gar nicht erst validieren — ein
+    // stehen gebliebener, nicht mehr sichtbarer Wert würde das Speichern
+    // sonst blockieren.
+    let resultTimeS: number | null = null;
+    const results: Record<string, number | null> = {
+      resultAvgWatts: null,
+      resultPlaceAg: null,
+      resultPlaceOverall: null,
+    };
+    if (canHaveResult) {
+      const trimmedTime = resultTime.trim();
+      const parsedTime = trimmedTime ? parseFinishTime(trimmedTime) : null;
+      if (trimmedTime && parsedTime == null) {
+        setError("Zeit im Format h:mm:ss eingeben (z. B. 3:12:45).");
         return;
       }
-      results[key] = n;
+      resultTimeS = parsedTime;
+
+      // Watt/Plätze: leer -> null, sonst ganze Zahl > 0. Client-seitig prüfen,
+      // damit eine 0/negativ/Komma-Eingabe nicht als roher DB-CHECK-Fehler
+      // durchschlägt.
+      const intFields: [string, string, string][] = [
+        [resultAvgWatts, "resultAvgWatts", "Ø Leistung"],
+        [resultPlaceAg, "resultPlaceAg", "Platz Altersklasse"],
+        [resultPlaceOverall, "resultPlaceOverall", "Platz Gesamt"],
+      ];
+      for (const [raw, key, label] of intFields) {
+        const t = raw.trim();
+        if (!t) continue;
+        const n = Number(t);
+        if (!Number.isInteger(n) || n <= 0) {
+          setError(`${label}: bitte eine ganze Zahl größer 0 eingeben.`);
+          return;
+        }
+        results[key] = n;
+      }
     }
 
-    // Kein type-abhängiges Nullen hier — useCreateEvent/useUpdateEvent
-    // erzwingen priority=null/ftpGoal=null/isTest=false und die result_*-Felder
-    // bei type="other" bereits selbst (Check-Constraint-Spiegelung).
+    // priority/ftpGoal/isTest bei type='other' nullen useCreateEvent/
+    // useUpdateEvent selbst (Check-Constraint-Spiegelung).
     const payload: EventInput = {
       title: title.trim(),
       eventDate,
@@ -130,7 +140,7 @@ export function EventForm({ athleteId, editingEvent, onClose }: EventFormProps) 
       ftpGoal: ftpGoal ? Number(ftpGoal) : null,
       isTest,
       note: note.trim() || null,
-      resultTimeS: parsedTime,
+      resultTimeS,
       resultAvgWatts: results.resultAvgWatts,
       resultPlaceAg: results.resultPlaceAg,
       resultPlaceOverall: results.resultPlaceOverall,
@@ -249,58 +259,61 @@ export function EventForm({ athleteId, editingEvent, onClose }: EventFormProps) 
               </label>
 
               {/* Rennergebnis (Migration 0027) — nach dem Rennen ausfüllen;
-                  ein zukünftiges Rennen lässt die Felder einfach leer. */}
-              <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
-                <span style={{ ...LABEL_STYLE, color: "var(--ink-2)" }}>Ergebnis (optional)</span>
-                <label style={LABEL_STYLE}>
-                  Gefahrene Zeit (h:mm:ss)
-                  <input
-                    type="text"
-                    placeholder="z. B. 3:12:45"
-                    value={resultTime}
-                    onChange={(e) => setResultTime(e.target.value)}
-                    style={INPUT_STYLE}
-                  />
-                </label>
-                <label style={LABEL_STYLE}>
-                  Ø Leistung (Watt)
-                  <input
-                    type="number"
-                    min={0}
-                    step={1}
-                    placeholder="z. B. 245"
-                    value={resultAvgWatts}
-                    onChange={(e) => setResultAvgWatts(e.target.value)}
-                    style={INPUT_STYLE}
-                  />
-                </label>
-                <div style={{ display: "flex", gap: 12 }}>
-                  <label style={{ ...LABEL_STYLE, flex: 1 }}>
-                    Platz Altersklasse
+                  ein zukünftiges Rennen lässt die Felder einfach leer. NUR bei
+                  einem echten Rennen (nicht Testtermin). */}
+              {canHaveResult && (
+                <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 10, display: "flex", flexDirection: "column", gap: 12 }}>
+                  <span style={{ ...LABEL_STYLE, color: "var(--ink-2)" }}>Ergebnis (optional)</span>
+                  <label style={LABEL_STYLE}>
+                    Gefahrene Zeit (h:mm:ss)
+                    <input
+                      type="text"
+                      placeholder="z. B. 3:12:45"
+                      value={resultTime}
+                      onChange={(e) => setResultTime(e.target.value)}
+                      style={INPUT_STYLE}
+                    />
+                  </label>
+                  <label style={LABEL_STYLE}>
+                    Ø Leistung (Watt)
                     <input
                       type="number"
                       min={1}
                       step={1}
-                      placeholder="z. B. 42"
-                      value={resultPlaceAg}
-                      onChange={(e) => setResultPlaceAg(e.target.value)}
+                      placeholder="z. B. 245"
+                      value={resultAvgWatts}
+                      onChange={(e) => setResultAvgWatts(e.target.value)}
                       style={INPUT_STYLE}
                     />
                   </label>
-                  <label style={{ ...LABEL_STYLE, flex: 1 }}>
-                    Platz Gesamt
-                    <input
-                      type="number"
-                      min={1}
-                      step={1}
-                      placeholder="z. B. 312"
-                      value={resultPlaceOverall}
-                      onChange={(e) => setResultPlaceOverall(e.target.value)}
-                      style={INPUT_STYLE}
-                    />
-                  </label>
+                  <div style={{ display: "flex", gap: 12 }}>
+                    <label style={{ ...LABEL_STYLE, flex: 1 }}>
+                      Platz Altersklasse
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        placeholder="z. B. 42"
+                        value={resultPlaceAg}
+                        onChange={(e) => setResultPlaceAg(e.target.value)}
+                        style={INPUT_STYLE}
+                      />
+                    </label>
+                    <label style={{ ...LABEL_STYLE, flex: 1 }}>
+                      Platz Gesamt
+                      <input
+                        type="number"
+                        min={1}
+                        step={1}
+                        placeholder="z. B. 312"
+                        value={resultPlaceOverall}
+                        onChange={(e) => setResultPlaceOverall(e.target.value)}
+                        style={INPUT_STYLE}
+                      />
+                    </label>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

@@ -18,14 +18,18 @@
     unverschobenen kollidieren lassen (feste Wochentags-Slots) — der Dialog
     bietet sie nicht an, `planShiftPatches` hat trotzdem einen defensiven
     „vor heute"-Guard.
-  - **Sync-Stichtag driftet.** `shiftPlannedSessions4` nimmt das
-    Sync-Laufdatum als „nur ab hier verschieben"-Grenze, nicht das
-    (nirgends gespeicherte) Datum, an dem der Athlet verschoben hat.
-    Zwischen Verschiebe- und einem späteren Sync-Lauf können in
-    `rides-4.json` ein paar Vorlagen-Einträge auf dem alten Datum stehen
-    bleiben, während die echte Karte schon verschoben ist (kurzzeitiges
-    „Phantom-Geplant/verpasst" in Compliance/Hero). Sauberer Fix:
-    `plan_offset_anchor_date` mitspeichern.
+  - **Sync-Baseline ↔ plan_cards divergieren an den Rändern.** Zwei
+    Ursachen, beide „Phantom-Geplant/verpasst" in Compliance/Hero für ein
+    paar Einträge:
+    (a) `shiftPlannedSessions4` nimmt das Sync-Laufdatum als „nur ab hier
+    verschieben"-Grenze, nicht das (nirgends gespeicherte) Datum, an dem der
+    Athlet verschoben hat — zwischen Verschiebe- und späterem Sync-Lauf
+    bleiben Vorlagen-Einträge auf dem alten Datum stehen, während die Karte
+    schon verschoben ist. (b) `planShiftPatches` überspringt ausgefallene
+    Karten (bleiben am alten Datum), `shiftPlannedSessions4` verschiebt den
+    Slot trotzdem. Sauberer Fix für beides: `plan_offset_anchor_date`
+    mitspeichern und den Karten-Ausfall-Status in die Vorlage spiegeln — für
+    den einen Einsteiger-Athleten bewusst zurückgestellt.
   - **Teil-Fehlschlag beim Massen-Shift.** Offset wird zuerst geschrieben,
     dann die ~48 Karten sequenziell. Bricht eine spätere Karte ab, bleibt
     der Offset stehen; der Dialog sperrt sich dann (kein erneuter Versuch,

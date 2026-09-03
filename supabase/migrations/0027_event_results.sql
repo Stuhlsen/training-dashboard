@@ -27,17 +27,28 @@
 -- intervals.icu-Aktivitäten zusammensetzen, s. Punkt 4).
 -- ============================================================
 
-alter table public.events
-  add column if not exists result_time_s integer check (result_time_s > 0);
+alter table public.events add column if not exists result_time_s        integer;
+alter table public.events add column if not exists result_avg_watts     integer;
+alter table public.events add column if not exists result_place_ag      integer;
+alter table public.events add column if not exists result_place_overall integer;
 
-alter table public.events
-  add column if not exists result_avg_watts integer check (result_avg_watts >= 0);
-
-alter table public.events
-  add column if not exists result_place_ag integer check (result_place_ag > 0);
-
-alter table public.events
-  add column if not exists result_place_overall integer check (result_place_overall > 0);
+-- Wertebereich als BENANNTE Constraints (drop-if-exists + add) statt inline
+-- am ADD COLUMN — sonst würde ein Re-Run bei bereits vorhandener Spalte
+-- (halb-eingespielt / manuell angelegt) den Check still überspringen.
+-- Alle vier: „leer ODER > 0" (ein 0-Watt-Renn-Ø ist genauso unsinnig wie
+-- ein 0. Platz).
+alter table public.events drop constraint if exists events_result_time_s_positive;
+alter table public.events add  constraint events_result_time_s_positive
+  check (result_time_s is null or result_time_s > 0);
+alter table public.events drop constraint if exists events_result_avg_watts_positive;
+alter table public.events add  constraint events_result_avg_watts_positive
+  check (result_avg_watts is null or result_avg_watts > 0);
+alter table public.events drop constraint if exists events_result_place_ag_positive;
+alter table public.events add  constraint events_result_place_ag_positive
+  check (result_place_ag is null or result_place_ag > 0);
+alter table public.events drop constraint if exists events_result_place_overall_positive;
+alter table public.events add  constraint events_result_place_overall_positive
+  check (result_place_overall is null or result_place_overall > 0);
 
 -- Ergebnisfelder nur bei type='race' — eigener Constraint neben
 -- events_priority_only_for_race (0004/0012), gleiche Absicherung gegen einen

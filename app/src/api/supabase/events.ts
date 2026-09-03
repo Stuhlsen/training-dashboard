@@ -86,6 +86,12 @@ export async function createEvent(
 ): Promise<Result<{ event: EventItem }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
+  // type='other' verträgt weder priority/ftp_goal/is_test noch die
+  // result_*-Felder (CHECK events_priority_only_for_race /
+  // events_result_only_for_race) — hier im Adapter nullen, damit JEDER
+  // Aufrufer (nicht nur der useCreateEvent-Hook) sauber durchkommt, genau
+  // wie updateEvent() es tut.
+  const isRace = event.type === "race";
   const { data, error } = await client
     .from("events")
     .insert({
@@ -93,14 +99,14 @@ export async function createEvent(
       title: event.title,
       event_date: event.eventDate,
       type: event.type,
-      priority: event.priority ?? null,
-      ftp_goal: event.ftpGoal ?? null,
-      is_test: event.isTest ?? false,
+      priority: isRace ? (event.priority ?? null) : null,
+      ftp_goal: isRace ? (event.ftpGoal ?? null) : null,
+      is_test: isRace ? (event.isTest ?? false) : false,
       note: event.note ?? null,
-      result_time_s: event.resultTimeS ?? null,
-      result_avg_watts: event.resultAvgWatts ?? null,
-      result_place_ag: event.resultPlaceAg ?? null,
-      result_place_overall: event.resultPlaceOverall ?? null,
+      result_time_s: isRace ? (event.resultTimeS ?? null) : null,
+      result_avg_watts: isRace ? (event.resultAvgWatts ?? null) : null,
+      result_place_ag: isRace ? (event.resultPlaceAg ?? null) : null,
+      result_place_overall: isRace ? (event.resultPlaceOverall ?? null) : null,
     })
     .select(SELECT_COLS)
     .single<EventRow>();
