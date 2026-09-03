@@ -171,6 +171,11 @@ export const PHASES: Record<string, PhaseInfo> = {
   "Phase 3": { color: "#7c5cbf", label: "Phase 3 — Leistungsaufbau" },
   // Trainingsblock-Phasen (Athlet 1, intervals.icu-Ära)
   Übergang: { color: "#c9a84c", label: "Übergang" },
+  // Rein-aerobe Basisphase des Plan-Generators (Fahrplan 8, „Feinentscheidungen":
+  // ergänzt das Phasen-Vokabular um „Grundlage"). Farbe = --z2 (Grundlage/Basis),
+  // wie „Basis" bei Athlet 2. Ohne diesen Eintrag fiele phaseColor() für jede
+  // Grundlagen-Woche der Plan-Vorschau auf das Grau des Defaults zurück.
+  Grundlage: { color: "#4a7fa8", label: "Grundlage — rein aerob" },
   "Sweet Spot": { color: "#e08a3c", label: "Block 1 — Sweet Spot" },
   Schwelle: { color: "#d94f4f", label: "Block 2 — Schwelle" },
   VO2max: { color: "#a24ad0", label: "Block 3 — VO₂max" },

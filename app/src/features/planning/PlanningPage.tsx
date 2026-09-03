@@ -16,7 +16,7 @@ import { PageShell } from "../../components/PageShell";
 import { hasGeneratedPlan, isReadOnlyAthlete } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
-import { useCanWriteForAthlete, useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useCanCreatePlan, useCanWriteForAthlete, useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useTrainerContext } from "../../api/hooks/useTrainerContext";
 import { useEvents } from "../../api/hooks/useEvents";
 import { useRides } from "../../api/hooks/useRides";
@@ -40,6 +40,7 @@ import { DeltaBanner } from "./DeltaBanner";
 import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCardForm } from "./PlanCardForm";
 import { ShiftPlanDialog } from "./ShiftPlanDialog";
+import { NewPlanDialog } from "./NewPlanDialog";
 import { ExportImportBar } from "./ExportImportBar";
 import { BlockDialogGate } from "./BlockDialog";
 import { ProposalBanner } from "./ProposalBanner";
@@ -130,6 +131,9 @@ export function PlanningPage() {
   const { data: rideData } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
   const { canWrite } = useCanWriteForAthlete(activeAthleteId);
+  // „Neuer Plan" auch für read-only Athlet 2 (Fahrplan 8, schmales Gate) —
+  // deshalb nicht an `editable` gehängt.
+  const { canCreatePlan } = useCanCreatePlan(activeAthleteId);
   const { isTrainer } = useTrainerContext(activeAthleteId);
 
   const { move } = useMovePlanCard(activeAthleteId);
@@ -146,6 +150,7 @@ export function PlanningPage() {
 
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [shiftOpen, setShiftOpen] = useState(false);
+  const [newPlanOpen, setNewPlanOpen] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   // Etappe 7b: Liste unabhängig von der Vergleichsansicht offen halten —
   // "Vergleichen…" öffnet die Vergleichsansicht ÜBER der weiterhin
@@ -365,6 +370,11 @@ export function PlanningPage() {
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Planungstab
         </h1>
+        {canCreatePlan && (
+          <button type="button" onClick={() => setNewPlanOpen(true)} style={{ ...SECTION_ACTION_BTN_STYLE, marginLeft: "auto" }}>
+            + Neuer Plan
+          </button>
+        )}
       </div>
 
       <TrainerBar
@@ -404,7 +414,18 @@ export function PlanningPage() {
       )}
 
       {!isLoading && !error && !weekGrid.length && !sections.done.length && (
-        <p style={{ color: "var(--ink-3)" }}>Alle geplanten Sessions sind abgeschlossen 🎉</p>
+        <GlassCard variant="soft" style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
+          <p style={{ margin: 0, color: "var(--ink-3)", fontSize: ".9rem" }}>
+            {canCreatePlan
+              ? "Noch kein Trainingsplan angelegt."
+              : "Für diesen Athleten ist kein Trainingsplan hinterlegt."}
+          </p>
+          {canCreatePlan && (
+            <button type="button" onClick={() => setNewPlanOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+              Plan erstellen
+            </button>
+          )}
+        </GlassCard>
       )}
 
       {!isLoading && !error && (weekGrid.length > 0 || sections.done.length > 0) && (
@@ -547,6 +568,10 @@ export function PlanningPage() {
           isTrainerSaving={isTrainer}
           saveMode={saveMode}
         />
+      )}
+
+      {newPlanOpen && (
+        <NewPlanDialog athleteId={activeAthleteId} onClose={() => setNewPlanOpen(false)} />
       )}
 
       {shiftOpen && (
