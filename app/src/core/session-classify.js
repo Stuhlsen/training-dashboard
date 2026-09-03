@@ -102,6 +102,7 @@ const INTENSITY_RANK = {
   "Z2 Dauer": 0,
   "Z2 Lang": 0,
   Ausrollen: 0,
+  Einrollen: 0,
   Tempo: 1,
   "Sweet Spot": 2,
   Schwelle: 3,

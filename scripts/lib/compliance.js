@@ -9,7 +9,7 @@
 
    Muss NACH classifyCooldowns() (map-activity.js) laufen: die Auswahl der
    Hauptfahrt bei mehreren Fahrten am selben Tag (pickPrimaryRide) verlässt
-   sich auf ein bereits gesetztes typ === "Ausrollen".
+   sich auf ein bereits gesetztes typ === "Einrollen"/"Ausrollen".
 
    `rides`/`activities` müssen dieselbe Reihenfolge/Länge haben wie beim
    Mapping (plan2 = activities.map(act => mapActivity(act, ...))) — die
@@ -99,7 +99,7 @@ export function attachCompliance(rides, activities, cards, intervalBlockCache, f
 
   for (const [date, entries] of byDate) {
     const primary = pickPrimaryRide(entries.map((e) => e.ride));
-    if (!primary) continue; // z.B. nur eine als "Ausrollen" erkannte Fahrt an diesem Tag
+    if (!primary) continue; // z.B. nur eine als "Einrollen"/"Ausrollen" erkannte Fahrt an diesem Tag
     const entry = entries.find((e) => e.ride === primary);
     if (!entry?.activityId) continue;
 

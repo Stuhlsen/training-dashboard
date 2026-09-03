@@ -39,15 +39,15 @@ function numOrNull(v) {
 
 /**
  * Bei mehreren Fahrten am selben Tag die für Compliance relevante
- * Hauptfahrt wählen: als "Ausrollen" erkannte Fahrten (map-activity.js::
- * classifyCooldowns) scheiden aus, von den verbleibenden gewinnt die mit
- * dem höheren TSS (Tiebreak: Dauer). Begründete Auswahl statt
+ * Hauptfahrt wählen: als "Einrollen"/"Ausrollen" erkannte Begleitfahrten
+ * (map-activity.js::classifyCooldowns) scheiden aus, von den verbleibenden
+ * gewinnt die mit dem höheren TSS (Tiebreak: Dauer). Begründete Auswahl statt
  * stillschweigend die erste zu nehmen (Auftragsvorgabe).
  * @param {Array<{typ?:string, tss?:number|null, min?:number|null}>} ridesOfDay
  * @returns {Object|null}
  */
 export function pickPrimaryRide(ridesOfDay) {
-  const candidates = (ridesOfDay || []).filter((r) => r && r.typ !== "Ausrollen");
+  const candidates = (ridesOfDay || []).filter((r) => r && r.typ !== "Ausrollen" && r.typ !== "Einrollen");
   if (!candidates.length) return null;
   return candidates.reduce((best, r) => {
     if (!best) return r;

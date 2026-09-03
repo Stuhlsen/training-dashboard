@@ -185,6 +185,68 @@ test("classifyCooldowns: kurzes niedrig-intensives Workout nach Rennen wird zu A
   assert.equal(rides[1].name, "Ausrollen");
 });
 
+test("classifyCooldowns: Einrollen vor Rennen wird erkannt, Rennen + Ausrollen unverändert", () => {
+  // GFNY-artiger Renntag (Athlet 2): Einrollen zur Strecke → Rennen → Ausrollen.
+  const rides = [
+    {
+      date: "2026-08-30",
+      startTime: "2026-08-30T06:30:00",
+      name: "GFNY Bremen",
+      typ: "Race",
+      min: 20,
+      np: Math.round(265 * 0.5),
+    },
+    {
+      date: "2026-08-30",
+      startTime: "2026-08-30T07:05:00",
+      name: "GFNY Bremen",
+      typ: "Race",
+      min: 160,
+      np: Math.round(265 * 0.95),
+    },
+    {
+      date: "2026-08-30",
+      startTime: "2026-08-30T09:50:00",
+      name: "GFNY Bremen",
+      typ: "Race",
+      min: 15,
+      np: Math.round(265 * 0.4),
+    },
+  ];
+  classifyCooldowns(rides, [], 265);
+
+  assert.equal(rides[0].typ, "Einrollen");
+  assert.equal(rides[0].name, "Einrollen");
+  assert.equal(rides[1].typ, "Race", "die harte Fahrt bleibt unberührt");
+  assert.equal(rides[2].typ, "Ausrollen");
+  assert.equal(rides[2].name, "Ausrollen");
+});
+
+test("classifyCooldowns: kurze lockere Fahrt ohne harte Folge-Fahrt bleibt unverändert", () => {
+  const rides = [
+    {
+      date: "2026-08-31",
+      startTime: "2026-08-31T08:00:00",
+      name: "Rolle locker",
+      typ: "Z2",
+      min: 20,
+      np: Math.round(265 * 0.5),
+    },
+    {
+      date: "2026-08-31",
+      startTime: "2026-08-31T09:00:00",
+      name: "Z2 Dauer",
+      typ: "Z2",
+      min: 90,
+      np: Math.round(265 * 0.62),
+    },
+  ];
+  classifyCooldowns(rides, [], 265);
+
+  assert.equal(rides[0].typ, "Z2", "ohne harten Effort danach kein Einrollen");
+  assert.equal(rides[1].typ, "Z2");
+});
+
 test("classifyCooldowns: normaler Doppel-Fahrt-Tag (ähnliche Intensität) bleibt unverändert", () => {
   const rides = [
     { date: "2026-06-01", startTime: "2026-06-01T08:00:00", name: "Z2", typ: "Z2", min: 60, np: 150 },

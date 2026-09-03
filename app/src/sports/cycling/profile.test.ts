@@ -81,9 +81,10 @@ describe("cycling/metrics", () => {
 });
 
 describe("cycling/session-types — Typvokabular vollständig", () => {
-  it("TYPE_DEFAULT_TSS, alle 22 Einträge", () => {
+  it("TYPE_DEFAULT_TSS, alle 23 Einträge", () => {
     expect(TYPE_DEFAULT_TSS).toEqual({
       Ausrollen: 5,
+      Einrollen: 5,
       Ausserplanmaessig: 55,
       Außerplanmäßig: 42,
       Etappe: 155,
@@ -160,7 +161,9 @@ describe("cycling/session-types — Typvokabular vollständig", () => {
     // Fahrplan 6 (RUH3): reine Notiz-Karte (Athlet 2 "Ausrüstung checken")
     // zählt wie ein Ruhetag — kein harter Tag, keine Planungslücke.
     expect(INTENSITY_CLASS["Notiz"]).toBe("ruhe");
-    expect(Object.keys(INTENSITY_CLASS).length).toBe(23);
+    // "Einrollen" (Spiegel zu "Ausrollen", map-activity.js::classifyCooldowns)
+    expect(INTENSITY_CLASS["Einrollen"]).toBe("locker");
+    expect(Object.keys(INTENSITY_CLASS).length).toBe(24);
   });
 
   it("erwartete Zonen-Bänder", () => {
@@ -169,6 +172,7 @@ describe("cycling/session-types — Typvokabular vollständig", () => {
       "Z2 Dauer": "low",
       "Z2 Lang": "low",
       Ausrollen: "low",
+      Einrollen: "low",
       Tempo: "mid",
       "Sweet Spot": "mid",
       Schwelle: "mid",

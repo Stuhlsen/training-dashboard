@@ -327,12 +327,15 @@ export function mapActivity2(
 }
 
 /**
- * Erkennt ein kurzes, niedrig-intensives Workout direkt nach einem harten
- * (renn-artigen) Workout am selben Tag und markiert es als "Ausrollen" statt
- * der vom Datum geerbten Plankarten-Bezeichnung. Notwendig, weil die
- * Plan-Zuordnung pro Kalendertag erfolgt (ein Eintrag in PLANNED_SESSIONS*)
- * — bei zwei echten Aktivitäten am selben Tag (Rennen + Ausrollen) würden
- * sonst beide dieselbe (Renn-)Bezeichnung erben.
+ * Erkennt an einem Tag mit mehreren Fahrten die kurzen, niedrig-intensiven
+ * Begleitfahrten rund um einen harten (renn-artigen) Effort und markiert sie
+ * spiegelbildlich als "Einrollen" (kurz VOR dem harten Effort) bzw.
+ * "Ausrollen" (kurz NACH ihm) statt der vom Datum geerbten
+ * Plankarten-Bezeichnung. Notwendig, weil die Plan-Zuordnung pro Kalendertag
+ * erfolgt (ein Eintrag in PLANNED_SESSIONS*) — an einem Renntag mit
+ * Einrollen + Rennen + Ausrollen würden sonst alle drei dieselbe
+ * (Renn-)Bezeichnung erben und der Planungstab die falsche Fahrt an die
+ * Renn-Karte binden.
  * Rein, testbar — siehe tests/map-activity.test.js.
  * @param {Array<Object>} rides bereits gemappte Ride-Objekte
  * @param {Array<{ftpWatt:number, validFrom:string, source?:string}>} ftpHistory
@@ -360,12 +363,17 @@ export function classifyCooldowns(rides, ftpHistory, fallbackFtp) {
       const priorIF = ftp && priorPower ? priorPower / ftp : 0;
       const curIF = ftp && curPower ? curPower / ftp : 0;
       const priorWasHard = priorIF >= 0.9;
+      const curWasHard = curIF >= 0.9;
       // Zusätzlich zum relativen Verhältnis (curIF <= priorIF*0.6) eine
       // absolute Obergrenze: sonst würde ein selbst noch harter zweiter
       // Effort (z.B. IF 1.1 nach einem Extrem-Sprint IF 2.0) fälschlich
       // als "Ausrollen" durchgehen, nur weil er relativ leichter war.
       const curIsShortEasy =
         (cur.min ?? Infinity) <= 25 && curIF > 0 && curIF <= 0.55 && curIF <= priorIF * 0.6;
+      // Spiegelbild für "Einrollen": prior ist die kurze, lockere Fahrt VOR
+      // dem harten cur (gleiche Schwellen, nur die Rollen getauscht).
+      const priorIsShortEasy =
+        (prior.min ?? Infinity) <= 25 && priorIF > 0 && priorIF <= 0.55 && priorIF <= curIF * 0.6;
       if (priorWasHard && curIsShortEasy && isShortlyAfter(prior, cur)) {
         cur.typ = "Ausrollen";
         cur.name = "Ausrollen";
@@ -373,6 +381,18 @@ export function classifyCooldowns(rides, ftpHistory, fallbackFtp) {
         // — die Ausrollen-Einstufung kommt aus dieser IF/Dauer-Heuristik, nicht
         // mehr aus der ursprünglichen Quelle, sonst würde typSource lügen.
         cur.typSource = "inferred";
+      } else if (
+        curWasHard &&
+        priorIsShortEasy &&
+        isShortlyAfter(prior, cur) &&
+        // Ein in einer früheren Iteration schon als "Ausrollen" (eines noch
+        // früheren harten Efforts) erkanntes prior nicht rückwirkend zum
+        // "Einrollen" umbiegen.
+        prior.typ !== "Ausrollen"
+      ) {
+        prior.typ = "Einrollen";
+        prior.name = "Einrollen";
+        prior.typSource = "inferred";
       }
     }
   }

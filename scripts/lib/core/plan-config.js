@@ -122,6 +122,9 @@ export const CONFLICT_THRESHOLDS = Object.freeze({
  */
 export const TYPE_DEFAULT_TSS = Object.freeze({
   Ausrollen: 5,
+  // Kurzes lockeres Vorbereiten vor einem harten Effort (Renntag) — Spiegel
+  // zu "Ausrollen", map-activity.js::classifyCooldowns. Gleicher Näherungswert.
+  Einrollen: 5,
   Ausserplanmaessig: 55,
   Außerplanmäßig: 42,
   Etappe: 155,
@@ -318,6 +321,7 @@ export const TYPE_EXPECTED_BAND = Object.freeze({
   "Z2 Dauer": "low",
   "Z2 Lang": "low",
   Ausrollen: "low",
+  Einrollen: "low",
   Tempo: "mid",
   "Sweet Spot": "mid",
   Schwelle: "mid",
@@ -365,6 +369,7 @@ export const INTENSITY_CLASS = Object.freeze({
   "Z1 Recovery": "locker",
   Z1: "locker", // Athlet 2 Kurzform von "Z1 Recovery"
   Ausrollen: "locker",
+  Einrollen: "locker",
   NLS: "locker",
   Ruhetag: "ruhe",
   // Reine Erinnerungskarte ohne Trainingsreiz (z.B. Athlet 2 "Ausrüstung

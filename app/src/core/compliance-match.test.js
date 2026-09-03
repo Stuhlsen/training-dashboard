@@ -268,6 +268,20 @@ test("pickPrimaryRide: nur Ausrollen-Fahrten vorhanden → null", () => {
   assert.equal(pickPrimaryRide([{ typ: "Ausrollen", tss: 5, min: 10 }]), null);
 });
 
+test("pickPrimaryRide: Einrollen scheidet aus, die harte Renn-Fahrt gewinnt (3-Fahrten-Renntag)", () => {
+  const rides = [
+    { typ: "Einrollen", tss: 8, min: 20 },
+    { typ: "Race", tss: 210, min: 160 },
+    { typ: "Ausrollen", tss: 4, min: 15 },
+  ];
+  const picked = pickPrimaryRide(rides);
+  assert.equal(picked.typ, "Race");
+});
+
+test("pickPrimaryRide: nur Einrollen-Fahrten vorhanden → null", () => {
+  assert.equal(pickPrimaryRide([{ typ: "Einrollen", tss: 8, min: 20 }]), null);
+});
+
 test("pickPrimaryRide: leere Liste → null", () => {
   assert.equal(pickPrimaryRide([]), null);
 });
