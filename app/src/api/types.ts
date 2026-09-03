@@ -121,6 +121,12 @@ export interface EventItem {
   ftpGoal: number | null;
   isTest: boolean;
   note: string | null;
+  /** Rennergebnis (Migration 0027, nur bei type='race') — manuell erfasst.
+   *  `resultTimeS` = Netto-/Zielzeit in Sekunden. */
+  resultTimeS: number | null;
+  resultAvgWatts: number | null;
+  resultPlaceAg: number | null;
+  resultPlaceOverall: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -133,6 +139,10 @@ export interface EventInput {
   ftpGoal?: number | null;
   isTest?: boolean;
   note?: string | null;
+  resultTimeS?: number | null;
+  resultAvgWatts?: number | null;
+  resultPlaceAg?: number | null;
+  resultPlaceOverall?: number | null;
 }
 
 export type EventPatch = Partial<EventInput>;

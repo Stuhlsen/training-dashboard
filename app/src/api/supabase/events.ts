@@ -3,7 +3,9 @@ import type { EventInput, EventItem, EventPatch, EventPriority, EventType, Resul
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
-  "id, title, event_date, type, priority, ftp_goal, is_test, note, created_at, updated_at";
+  "id, title, event_date, type, priority, ftp_goal, is_test, note, " +
+  "result_time_s, result_avg_watts, result_place_ag, result_place_overall, " +
+  "created_at, updated_at";
 
 interface EventRow {
   id: string;
@@ -14,6 +16,10 @@ interface EventRow {
   ftp_goal: number | null;
   is_test: boolean;
   note: string | null;
+  result_time_s: number | null;
+  result_avg_watts: number | null;
+  result_place_ag: number | null;
+  result_place_overall: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -28,6 +34,10 @@ function toEvent(row: EventRow): EventItem {
     ftpGoal: row.ftp_goal,
     isTest: row.is_test,
     note: row.note,
+    resultTimeS: row.result_time_s,
+    resultAvgWatts: row.result_avg_watts,
+    resultPlaceAg: row.result_place_ag,
+    resultPlaceOverall: row.result_place_overall,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -87,6 +97,10 @@ export async function createEvent(
       ftp_goal: event.ftpGoal ?? null,
       is_test: event.isTest ?? false,
       note: event.note ?? null,
+      result_time_s: event.resultTimeS ?? null,
+      result_avg_watts: event.resultAvgWatts ?? null,
+      result_place_ag: event.resultPlaceAg ?? null,
+      result_place_overall: event.resultPlaceOverall ?? null,
     })
     .select(SELECT_COLS)
     .single<EventRow>();
@@ -108,15 +122,24 @@ export async function updateEvent(
   if (patch.ftpGoal !== undefined) updates.ftp_goal = patch.ftpGoal;
   if (patch.isTest !== undefined) updates.is_test = patch.isTest;
   if (patch.note !== undefined) updates.note = patch.note;
+  if (patch.resultTimeS !== undefined) updates.result_time_s = patch.resultTimeS;
+  if (patch.resultAvgWatts !== undefined) updates.result_avg_watts = patch.resultAvgWatts;
+  if (patch.resultPlaceAg !== undefined) updates.result_place_ag = patch.resultPlaceAg;
+  if (patch.resultPlaceOverall !== undefined) updates.result_place_overall = patch.resultPlaceOverall;
 
-  // type -> "other" macht priority/ftp_goal/is_test ungültig (Check-Constraint
-  // events_priority_only_for_race) — hier erzwingen statt dem Aufrufer zu
+  // type -> "other" macht priority/ftp_goal/is_test UND die Ergebnisfelder
+  // ungültig (Check-Constraints events_priority_only_for_race /
+  // events_result_only_for_race) — hier erzwingen statt dem Aufrufer zu
   // überlassen, sonst schlägt ein Patch wie { type: "other" } ohne explizites
-  // priority/ftpGoal/isTest:null am Constraint mit einem generischen Fehler fehl.
+  // Nullen am Constraint mit einem generischen Fehler fehl.
   if (updates.type === "other") {
     updates.priority = null;
     updates.ftp_goal = null;
     updates.is_test = false;
+    updates.result_time_s = null;
+    updates.result_avg_watts = null;
+    updates.result_place_ag = null;
+    updates.result_place_overall = null;
   }
 
   const { data, error } = await client
