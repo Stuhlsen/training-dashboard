@@ -19,6 +19,8 @@ import { FtpRings } from "./FtpRings";
 import { MetricsGrid } from "./MetricsGrid";
 import { PowerScale } from "./PowerScale";
 import { RaceCountdownPill } from "./RaceCountdownPill";
+import { RaceResultsCard } from "./RaceResultsCard";
+import { buildRaceResults } from "./race-results-view-model";
 import { ReadinessCard } from "./ReadinessCard";
 import { SessionCard } from "./SessionCard";
 import { WeatherCard } from "./WeatherCard";
@@ -145,6 +147,9 @@ export function HeroPage() {
   // unnötig neu rechnen (react-hooks/exhaustive-deps).
   const rides = useMemo(() => (athleteData?.rides as Ride[] | undefined) ?? [], [athleteData]);
   const records = useMemo(() => buildRecordChips(rides), [rides]);
+  // Absolvierte Rennen mit erfasstem Ergebnis (Migration 0027) — reine
+  // Ableitung aus der ohnehin geladenen Event-Liste, kein Request.
+  const raceResults = useMemo(() => buildRaceResults(events ?? [], TODAY), [events]);
 
   // Wochenrückblick (Fahrplan 1, V1) — Port von ui/panels.js::renderWeekReview().
   // Adjustments bewusst leer wie im Vanilla-Original (app.js ruft buildWeekReview
@@ -279,6 +284,7 @@ export function HeroPage() {
             </span>
             <RecordChips records={records} />
           </GlassCard>
+          {raceResults.length > 0 && <RaceResultsCard rows={raceResults} />}
           <WeekReviewCard review={weekReview} />
           <WellbeingCard activeAthleteId={activeAthleteId} />
           <ReadinessCard readiness={vm.readiness} briefing={vm.briefing} />
