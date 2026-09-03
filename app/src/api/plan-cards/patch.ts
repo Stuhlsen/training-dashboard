@@ -136,6 +136,43 @@ export function nextSortOrder(cards: PlanCard[], date: string): number {
   return sameDate.length ? Math.max(...sameDate) + 1 : 0;
 }
 
+/** Patches für „Karte innerhalb ihres Tages eine Position nach oben/unten".
+ *  Nummeriert ALLE Karten desselben Datums in ihrer aktuellen Reihenfolge
+ *  (sort_order, dann Eingabereihenfolge) sauber neu auf 0…n-1 und tauscht
+ *  die Zielkarte mit ihrem Nachbarn in `direction`. Zurück kommen nur die
+ *  Karten, deren sort_order sich dabei wirklich ändert — steht die Karte
+ *  schon am Rand, ist das Ergebnis leer (erfolgreicher No-Op).
+ *
+ *  Ausgefallene Karten zählen bewusst mit: sie tragen ebenfalls eine
+ *  sort_order, und eine Lücke in der Nummerierung würde `nextSortOrder`
+ *  bzw. eine spätere Neuvergabe verschieben. Welche Karte im Raster als
+ *  „primär" gilt, entscheidet ohnehin der Kartenstatus, nicht diese Zahl. */
+export function buildReorderPatches(
+  cards: PlanCard[],
+  cardId: string,
+  direction: "up" | "down",
+): Array<{ id: string; sortOrder: number }> {
+  const target = cards.find((c) => c.id === cardId);
+  if (!target) return [];
+
+  const sameDay = cards
+    .filter((c) => c.date === target.date)
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const i = sameDay.findIndex((c) => c.id === cardId);
+  const j = direction === "up" ? i - 1 : i + 1;
+  if (i < 0 || j < 0 || j >= sameDay.length) return [];
+
+  const reordered = [...sameDay];
+  [reordered[i], reordered[j]] = [reordered[j], reordered[i]];
+
+  const patches: Array<{ id: string; sortOrder: number }> = [];
+  reordered.forEach((c, idx) => {
+    if ((c.sortOrder ?? 0) !== idx) patches.push({ id: c.id, sortOrder: idx });
+  });
+  return patches;
+}
+
 /** Sortierung des lokalen Cache — dieselbe Ordnung, die listPlanCards()
  *  serverseitig liefert (Datum, dann sort_order). Nach jeder optimistischen
  *  Änderung nötig, sonst springt eine verschobene Karte erst beim nächsten

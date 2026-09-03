@@ -79,6 +79,10 @@ export interface PlanCard {
  *  tatsächlich ändert (`undefined` = "nicht anfassen", `null` = "leeren"). */
 export interface PlanCardPatch {
   plannedDate?: string;
+  /** Position innerhalb desselben Tages (kleiner = weiter oben, = die im
+   *  Raster primär gezeigte Karte). Nur das Umsortieren mehrerer Karten an
+   *  einem Tag schreibt dieses Feld (buildReorderPatches). */
+  sortOrder?: number;
   movedFromDate?: string | null;
   moveReason?: string | null;
   status?: "geplant" | "ausgefallen";

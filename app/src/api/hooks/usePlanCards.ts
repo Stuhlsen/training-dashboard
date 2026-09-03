@@ -30,6 +30,7 @@ import {
   applyMoveOptimistic,
   buildCancelPatch,
   buildMovePatch,
+  buildReorderPatches,
   buildUndoPatch,
   nextSortOrder,
   sortCards,
@@ -317,6 +318,44 @@ export function useShiftPlan(athleteId: string) {
   );
 
   return { shift, isPending: mutation.isPending };
+}
+
+/** Karte innerhalb ihres Tages eine Position nach oben/unten schieben —
+ *  für Tage mit mehreren Karten (die erste, kleinste sort_order ist die im
+ *  Raster primär gezeigte). Wie useShiftPlan patcht es die betroffenen
+ *  Karten nacheinander über dieselbe usePatchCard-Mutation, jede mit
+ *  optimistischer sort_order, damit das Raster sofort umsortiert. Steht die
+ *  Karte schon am Rand, ist es ein erfolgreicher No-Op (leere Patch-Liste).
+ *  Sequenziell, nicht parallel: usePatchCard vergibt pro Aufruf ein
+ *  write-guard-Token, parallele Läufe kegeln sich aus dem Cache-Update. */
+export function useReorderPlanCard(athleteId: string) {
+  const mutation = usePatchCard(athleteId);
+  const snapshot = useCardsSnapshot(athleteId);
+  const userId = useAuthUserId();
+
+  const reorder = useCallback(
+    async (id: string, direction: "up" | "down"): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      const cards = snapshot();
+      const patches = buildReorderPatches(cards, id, direction);
+      if (!patches.length) return { ok: true };
+      for (const { id: cardId, sortOrder } of patches) {
+        const card = cards.find((c) => c.id === cardId);
+        const result = await catchResult(() =>
+          mutation.mutateAsync({
+            id: cardId,
+            patch: { sortOrder },
+            optimistic: card ? { ...card, sortOrder } : undefined,
+          }),
+        );
+        if (!result.ok) return result;
+      }
+      return { ok: true };
+    },
+    [mutation, snapshot, userId],
+  );
+
+  return { reorder, isPending: mutation.isPending };
 }
 
 /** Pusht das Workout einer Karte zu intervals.icu (Etappe 6d). Holt die

@@ -84,6 +84,7 @@ export async function updatePlanCard(
   const client = (await getAuthedClient()) ?? supabase;
   const updates: Record<string, unknown> = {};
   if (patch.plannedDate !== undefined) updates.planned_date = patch.plannedDate;
+  if (patch.sortOrder !== undefined) updates.sort_order = patch.sortOrder;
   if (patch.movedFromDate !== undefined) updates.moved_from_date = patch.movedFromDate;
   if (patch.moveReason !== undefined) updates.move_reason = patch.moveReason;
   if (patch.status !== undefined) updates.status = patch.status;

@@ -49,9 +49,8 @@ vi.mock("../supabase/profiles", () => ({
 
 const { createHarness } = await import("../../test/harness");
 const { __resetWriteGuards } = await import("../write-guard");
-const { usePlanCards, useMovePlanCard, useCancelPlanCard, useUndoAdjustment } = await import(
-  "./usePlanCards"
-);
+const { usePlanCards, useMovePlanCard, useCancelPlanCard, useUndoAdjustment, useReorderPlanCard } =
+  await import("./usePlanCards");
 const { qk } = await import("../keys");
 
 function card(partial: Partial<PlanCard> & { id: string; date: string }): PlanCard {
@@ -86,6 +85,7 @@ function serverCard(base: PlanCard, patch: PlanCardPatch): PlanCard {
   return {
     ...base,
     date: patch.plannedDate ?? base.date,
+    sortOrder: patch.sortOrder ?? base.sortOrder,
     originalDate: patch.movedFromDate ?? base.originalDate ?? undefined,
     movedReason: patch.moveReason || undefined,
     cancelled: patch.status === "ausgefallen" || undefined,
@@ -106,6 +106,7 @@ async function setup() {
       move: useMovePlanCard(athleteId),
       cancel: useCancelPlanCard(athleteId),
       undo: useUndoAdjustment(athleteId),
+      reorder: useReorderPlanCard(athleteId),
     }),
     { wrapper: harness.wrapper, initialProps: "athlete1" },
   );
@@ -171,6 +172,53 @@ describe("Optimistik", () => {
       .getQueryData<PlanCard[]>(qk.planCards("athlete1"))!
       .map((c) => c.id);
     expect(order).toEqual(["card-C", "card-A", "card-B"]);
+  });
+});
+
+describe("useReorderPlanCard", () => {
+  /** Bringt card-A und card-C auf denselben Tag (20.07.) — Ausgangslage für
+   *  das Umsortieren. card-A behält sort_order 0, card-C 1. */
+  async function twoOnOneDay() {
+    const h = await setup();
+    act(() => void h.view.result.current.move.move("card-C", "2026-07-20"));
+    await waitFor(() => expect(pending).toHaveLength(1));
+    await settle(0, ok(0, SEED[2]));
+    pending = [];
+    return h;
+  }
+
+  it("tauscht zwei Karten desselben Tages sequenziell und hält die Sortierung stabil", async () => {
+    const { view, queryClient } = await twoOnOneDay();
+    const order = () =>
+      queryClient.getQueryData<PlanCard[]>(qk.planCards("athlete1"))!.map((c) => c.id);
+
+    let promise!: Promise<Result>;
+    act(() => {
+      promise = view.result.current.reorder.reorder("card-C", "up");
+    });
+
+    // Erst der eine Patch (card-C → 0) …
+    await waitFor(() => expect(pending).toHaveLength(1));
+    await settle(0, ok(0, { ...SEED[2], date: "2026-07-20" }));
+
+    // … dann der zweite (card-A → 1); ab hier steht die neue Reihenfolge.
+    await waitFor(() => expect(pending).toHaveLength(2));
+    expect(order()).toEqual(["card-C", "card-A", "card-B"]);
+    await settle(1, ok(1, SEED[0]));
+
+    await expect(promise).resolves.toMatchObject({ ok: true });
+    expect(order()).toEqual(["card-C", "card-A", "card-B"]);
+    const cardC = queryClient
+      .getQueryData<PlanCard[]>(qk.planCards("athlete1"))!
+      .find((c) => c.id === "card-C");
+    expect(cardC?.sortOrder).toBe(0);
+  });
+
+  it("ist ein erfolgreicher No-Op am Rand (up auf die bereits erste Karte)", async () => {
+    const { view } = await twoOnOneDay();
+    const result = await view.result.current.reorder.reorder("card-A", "up");
+    expect(result).toEqual({ ok: true });
+    expect(pending).toHaveLength(0);
   });
 });
 

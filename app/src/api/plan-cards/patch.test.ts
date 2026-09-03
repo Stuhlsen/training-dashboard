@@ -12,6 +12,7 @@ import {
   applyMoveOptimistic,
   buildCancelPatch,
   buildMovePatch,
+  buildReorderPatches,
   buildUndoPatch,
   nextSortOrder,
   sortCards,
@@ -196,6 +197,69 @@ describe("nextSortOrder", () => {
 
   it("beginnt bei 0, wenn der Tag noch leer ist", () => {
     expect(nextSortOrder(CARDS, "2026-08-01")).toBe(0);
+  });
+});
+
+describe("buildReorderPatches", () => {
+  const day = (ids: Array<[string, number]>) =>
+    ids.map(([id, sortOrder]) => card({ id, date: "2026-07-20", sortOrder }));
+
+  it("tauscht die Karte mit ihrem Vorgänger (up) — nur die geänderten Karten kommen zurück", () => {
+    const cards = day([["a", 0], ["b", 1], ["c", 2]]);
+    expect(buildReorderPatches(cards, "b", "up")).toEqual([
+      { id: "b", sortOrder: 0 },
+      { id: "a", sortOrder: 1 },
+    ]);
+  });
+
+  it("tauscht die Karte mit ihrem Nachfolger (down)", () => {
+    const cards = day([["a", 0], ["b", 1], ["c", 2]]);
+    expect(buildReorderPatches(cards, "b", "down")).toEqual([
+      { id: "c", sortOrder: 1 },
+      { id: "b", sortOrder: 2 },
+    ]);
+  });
+
+  it("liefert [] am oberen Rand (up auf die erste Karte)", () => {
+    expect(buildReorderPatches(day([["a", 0], ["b", 1]]), "a", "up")).toEqual([]);
+  });
+
+  it("liefert [] am unteren Rand (down auf die letzte Karte)", () => {
+    expect(buildReorderPatches(day([["a", 0], ["b", 1]]), "b", "down")).toEqual([]);
+  });
+
+  it("liefert [] für eine unbekannte Karten-ID", () => {
+    expect(buildReorderPatches(day([["a", 0]]), "weg", "down")).toEqual([]);
+  });
+
+  it("normalisiert Alt-Daten (mehrere sort_order 0) über die Eingabereihenfolge", () => {
+    const cards = day([["a", 0], ["b", 0]]);
+    // b nach vorne: a bekommt eine echte 1, b bleibt bei 0 (schon korrekt).
+    expect(buildReorderPatches(cards, "b", "up")).toEqual([{ id: "a", sortOrder: 1 }]);
+  });
+
+  it("betrachtet nur Karten desselben Tages", () => {
+    const cards = [
+      card({ id: "a", date: "2026-07-20", sortOrder: 0 }),
+      card({ id: "b", date: "2026-07-20", sortOrder: 1 }),
+      card({ id: "other", date: "2026-07-21", sortOrder: 0 }),
+    ];
+    expect(buildReorderPatches(cards, "b", "up")).toEqual([
+      { id: "b", sortOrder: 0 },
+      { id: "a", sortOrder: 1 },
+    ]);
+  });
+
+  it("zählt eine ausgefallene Karte in der Reihenfolge mit", () => {
+    const cards = [
+      card({ id: "a", date: "2026-07-20", sortOrder: 0, cancelled: true, cancelReason: "krank" }),
+      card({ id: "b", date: "2026-07-20", sortOrder: 1 }),
+      card({ id: "c", date: "2026-07-20", sortOrder: 2 }),
+    ];
+    expect(buildReorderPatches(cards, "c", "up")).toEqual([
+      { id: "c", sortOrder: 1 },
+      { id: "b", sortOrder: 2 },
+    ]);
   });
 });
 
