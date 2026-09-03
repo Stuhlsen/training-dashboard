@@ -194,6 +194,59 @@ test("computeCompliance: matched-Array enthält Soll-/Ist-Werte je Intervall (UI
   });
 });
 
+test("mergeActiveSegments: avgHr je Block dauergewichtet, null ohne HF-Segmente", () => {
+  const withHr = [
+    { start_time: 0, end_time: 300, average_watts: 185, average_hr: 150 },
+    { start_time: 300, end_time: 600, average_watts: 185, average_hr: 160 },
+  ];
+  const [blockWithHr] = mergeActiveSegments(withHr, 164, 90);
+  assert.equal(blockWithHr.avgHr, 155); // (150·300 + 160·300) / 600
+
+  const noHr = [{ start_time: 0, end_time: 600, average_watts: 185, average_hr: null }];
+  const [blockNoHr] = mergeActiveSegments(noHr, 164, 90);
+  assert.equal(blockNoHr.avgHr, null);
+});
+
+test("computeCompliance: matched trägt avgHr/startSec/endSec je Intervall (Intervall-Soll/Ist-Puls, Punkt 6)", () => {
+  const segments = [
+    { start_time: 0, end_time: 600, average_watts: 185, average_hr: 150, type: "WORK" },
+    { start_time: 600, end_time: 900, average_watts: 100, average_hr: 110, type: "RECOVERY" },
+    { start_time: 900, end_time: 1500, average_watts: 183, average_hr: 158, type: "WORK" },
+    { start_time: 1500, end_time: 1800, average_watts: 100, average_hr: 112, type: "RECOVERY" },
+    { start_time: 1800, end_time: 2400, average_watts: 181, average_hr: 162, type: "WORK" },
+  ];
+  const result = computeCompliance(SWEETSPOT_3X10, segments, FTP, { cardId: "card-hr" });
+  assert.deepEqual(
+    result.matched.map((m) => [m.avgHr, m.startSec, m.endSec]),
+    [
+      [150, 0, 600],
+      [158, 900, 1500],
+      [162, 1800, 2400],
+    ]
+  );
+});
+
+test("computeCompliance: fehlender Ist-Block → avgHr/startSec/endSec null (kein Wurf)", () => {
+  const segments = [
+    { start_time: 0, end_time: 600, average_watts: 185, average_hr: 150, type: "WORK" },
+    { start_time: 600, end_time: 900, average_watts: 100, average_hr: 110, type: "RECOVERY" },
+    { start_time: 900, end_time: 1500, average_watts: 183, average_hr: 158, type: "WORK" },
+    // drittes Intervall fehlt
+  ];
+  const result = computeCompliance(SWEETSPOT_3X10, segments, FTP, { cardId: "card-hr-gap" });
+  assert.deepEqual(result.matched[2], {
+    kind: "set",
+    fulfilled: false,
+    plannedDurationS: 600,
+    actualDurationS: 0,
+    plannedWatts: 180,
+    avgWatts: null,
+    avgHr: null,
+    startSec: null,
+    endSec: null,
+  });
+});
+
 test("computeCompliance: matched-Array bei alternating trägt Over-Zielwatt als plannedWatts (Over-Zeit ist die Währung)", () => {
   const structure = {
     version: 1,

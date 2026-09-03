@@ -97,16 +97,35 @@ export async function fetchActivityIntervals(activityId, apiKey) {
 /**
  * Rohe icu_intervals-Segmente auf die für Cache/Matching gebrauchten Felder
  * reduzieren (Progressionssteuerung C1, docs/konzept-progressionssteuerung.md)
- * — kein Grund, das komplette API-Objekt je Segment zu cachen.
- * @param {Array<Object>} segments @returns {Array<{start_time:number, end_time:number, average_watts:number, type:string|null}>}
+ * — kein Grund, das komplette API-Objekt je Segment zu cachen. `average_hr`
+ * kam mit dem Intervall-Soll/Ist-Puls dazu (Punkt 6 der 6-Punkte-Liste) —
+ * `null`, wenn das Segment keine Herzfrequenz trägt.
+ * @param {Array<Object>} segments @returns {Array<{start_time:number, end_time:number, average_watts:number, average_hr:number|null, type:string|null}>}
  */
 function slimSegments(segments) {
   return segments.map((s) => ({
     start_time: s.start_time,
     end_time: s.end_time,
     average_watts: s.average_watts,
+    average_hr: typeof s.average_hr === "number" && Number.isFinite(s.average_hr) ? s.average_hr : null,
     type: s.type ?? null,
   }));
+}
+
+/**
+ * Ist ein Cache-Eintrag im aktuellen Segment-Schema? Ein Eintrag ohne
+ * `segments` (nur `longestBlock`, Stand v2-Ist-Typerkennung) ODER mit
+ * Segmenten aus der Zeit vor `average_hr` (Punkt 6 der 6-Punkte-Liste) gilt
+ * als unvollständig und wird einmalig nachgeladen. Ein leerer `segments`-Array
+ * gilt als vollständig — die Fahrt trägt schlicht keine Intervalle, ein
+ * Refetch änderte daran nichts.
+ * @param {Object|undefined} entry
+ */
+function segmentsComplete(entry) {
+  const segs = entry?.segments;
+  if (!Array.isArray(segs)) return false;
+  if (segs.length === 0) return true;
+  return "average_hr" in segs[0];
 }
 
 /**
@@ -115,8 +134,9 @@ function slimSegments(segments) {
  * übersprungen (historische Aktivitäten sind unveränderlich, keine
  * Change-Detection nötig). "Vollständig" heißt seit C1
  * (docs/konzept-progressionssteuerung.md, Soll-Ist-Matching): der Eintrag
- * trägt bereits `segments` (rohe icu_intervals, s. slimSegments()) — ältere
- * Cache-Einträge (nur `longestBlock`, Stand v2-Ist-Typerkennung) gelten als
+ * trägt bereits `segments` (rohe icu_intervals, s. slimSegments()) MIT
+ * `average_hr` je Segment (s. segmentsComplete()) — ältere Cache-Einträge
+ * (nur `longestBlock`, oder Segmente ohne `average_hr`) gelten als
  * unvollständig und werden hier einmalig nachgeladen, derselbe throttled
  * Loop wie für neue Aktivitäten. `longestBlock` bleibt danach unverändert
  * aus denselben Segmenten berechnet — keine Regression für die bestehende
@@ -151,7 +171,7 @@ export async function updateIntervalBlockCache(activities, cache, opts) {
 
   for (const act of activities) {
     const key = String(act.id);
-    if (cache[key]?.segments || cache[key]?.noData) {
+    if (segmentsComplete(cache[key]) || cache[key]?.noData) {
       cachedCount++;
       continue;
     }

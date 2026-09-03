@@ -162,9 +162,12 @@ export function deriveThresholdWatts(units, ftp) {
  * längste. Gleiches Prinzip wie
  * scripts/lib/interval-blocks.js::longestBlockAboveThreshold(), bewusst
  * dupliziert statt importiert (s. Kopfkommentar).
- * @param {Array<{start_time:number, end_time:number, average_watts:number}>} segments
+ * `avgHr` = dauergewichtetes Mittel der Segment-Herzfrequenz im Block (nur über
+ * Segmente MIT `average_hr` gewichtet), `null` wenn kein Segment des Blocks
+ * eine Herzfrequenz trägt — Intervall-Soll/Ist-Puls (Punkt 6 der 6-Punkte-Liste).
+ * @param {Array<{start_time:number, end_time:number, average_watts:number, average_hr?:number|null}>} segments
  * @param {number} thresholdWatts @param {number} gapToleranceSec
- * @returns {Array<{startSec:number, endSec:number, totalDurationSec:number, workDurationSec:number, avgWatts:number}>}
+ * @returns {Array<{startSec:number, endSec:number, totalDurationSec:number, workDurationSec:number, avgWatts:number, avgHr:number|null}>}
  */
 export function mergeActiveSegments(segments, thresholdWatts, gapToleranceSec) {
   if (!Array.isArray(segments) || !segments.length || thresholdWatts == null) return [];
@@ -181,6 +184,7 @@ export function mergeActiveSegments(segments, thresholdWatts, gapToleranceSec) {
       totalDurationSec: run.endSec - run.startSec,
       workDurationSec: run.workDurationSec,
       avgWatts: Math.round(run.weightedWattSecs / run.workDurationSec),
+      avgHr: run.hrDurationSec > 0 ? Math.round(run.weightedHrSecs / run.hrDurationSec) : null,
     });
   };
 
@@ -190,10 +194,14 @@ export function mergeActiveSegments(segments, thresholdWatts, gapToleranceSec) {
     const qualifies = seg.average_watts >= thresholdWatts;
 
     if (qualifies) {
-      if (!run) run = { startSec: seg.start_time, endSec: seg.end_time, workDurationSec: 0, weightedWattSecs: 0 };
+      if (!run) run = { startSec: seg.start_time, endSec: seg.end_time, workDurationSec: 0, weightedWattSecs: 0, weightedHrSecs: 0, hrDurationSec: 0 };
       run.endSec = seg.end_time;
       run.workDurationSec += dur;
       run.weightedWattSecs += seg.average_watts * dur;
+      if (typeof seg.average_hr === "number" && Number.isFinite(seg.average_hr)) {
+        run.weightedHrSecs += seg.average_hr * dur;
+        run.hrDurationSec += dur;
+      }
     } else if (run && dur <= gapToleranceSec) {
       run.endSec = seg.end_time;
     } else {
@@ -220,14 +228,15 @@ function segmentsInWindow(segments, startSec, endSec) {
  * nicht gewertet (weder positiv noch negativ; z.B. ein spontaner
  * zusätzlicher Effort außerhalb des Plans).
  * @param {{steps?:Array<Object>}} structure
- * @param {Array<{start_time:number, end_time:number, average_watts:number}>} segments
+ * @param {Array<{start_time:number, end_time:number, average_watts:number, average_hr?:number|null}>} segments
  * @param {number} ftp
  * @param {{gapToleranceSec?:number}} [opts]
  * @returns {{
  *   intervalsPlanned:number, intervalsCompleted:number,
  *   plannedZoneTime_s:number, actualZoneTime_s:number,
  *   matched: Array<{kind:string, fulfilled:boolean, plannedDurationS:number,
- *     actualDurationS:number, avgWatts:number|null}>,
+ *     actualDurationS:number, plannedWatts:number, avgWatts:number|null,
+ *     avgHr:number|null, startSec:number|null, endSec:number|null}>,
  * }}
  */
 export function matchWorkoutToSegments(structure, segments, ftp, opts = {}) {
@@ -267,6 +276,9 @@ export function matchWorkoutToSegments(structure, segments, ftp, opts = {}) {
         actualDurationS,
         plannedWatts: unit.targetWatts,
         avgWatts,
+        avgHr: block ? block.avgHr : null,
+        startSec: block ? block.startSec : null,
+        endSec: block ? block.endSec : null,
       });
       return;
     }
@@ -297,6 +309,12 @@ export function matchWorkoutToSegments(structure, segments, ftp, opts = {}) {
       // Soll-/Ist-Dauer (Over), sonst wären beide Spalten inkonsistent.
       plannedWatts: unit.overTargetWatts,
       avgWatts,
+      // avgHr bezieht sich auf den GESAMTEN Over/Under-Block (nicht nur den
+      // Over-Anteil) — die Herzfrequenz trennt Over/Under ohnehin kaum, und
+      // die UI zeigt einen Blockschnitt, keinen Over-Only-Schnitt.
+      avgHr: block ? block.avgHr : null,
+      startSec: block ? block.startSec : null,
+      endSec: block ? block.endSec : null,
     });
   });
 
@@ -328,14 +346,15 @@ function computeFade(matched) {
  * `null`, wenn keine matchbaren Einheiten vorliegen (z.B. workout_structure
  * nur mit warmup/cooldown) — dann gibt es nichts zu bewerten.
  * @param {{steps?:Array<Object>}} structure
- * @param {Array<{start_time:number, end_time:number, average_watts:number}>} segments
+ * @param {Array<{start_time:number, end_time:number, average_watts:number, average_hr?:number|null}>} segments
  * @param {number} ftp
  * @param {{rpe?:number|null, cardId:string, gapToleranceSec?:number}} opts
  * @returns {{matchedCardId:string, plannedZoneTime_s:number,
  *   actualZoneTime_s:number, intervalsPlanned:number, intervalsCompleted:number,
  *   fadePct:number, rating:"green"|"yellow"|"red", rule:string,
  *   matched: Array<{kind:string, fulfilled:boolean, plannedDurationS:number,
- *     actualDurationS:number, plannedWatts:number, avgWatts:number|null}>}|null}
+ *     actualDurationS:number, plannedWatts:number, avgWatts:number|null,
+ *     avgHr:number|null, startSec:number|null, endSec:number|null}>}|null}
  */
 export function computeCompliance(structure, segments, ftp, opts) {
   const { rpe = null, cardId, gapToleranceSec } = opts;

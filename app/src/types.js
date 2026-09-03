@@ -133,6 +133,16 @@
  * @property {number} actualDurationS    Ist-Dauer bzw. Ist-Over-Zeit, Sekunden
  * @property {number} plannedWatts       Zielwatt (set) bzw. Over-Zielwatt (alternating)
  * @property {number|null} avgWatts      gemessene mittlere Leistung, null ohne Ist-Block
+ * @property {number|null} [avgHr]       gemessene mittlere Herzfrequenz im Ist-Block (dauergewichtet
+ *                                  über die Segmente MIT HF), null ohne Ist-Block oder ganz ohne
+ *                                  HF-Daten — Intervall-Soll/Ist-Puls (Punkt 6 der 6-Punkte-Liste).
+ *                                  Fehlt ganz bei Fahrten, die vor dem HF-Backfill des Block-Caches
+ *                                  synchronisiert wurden
+ * @property {number|null} [startSec]    Beginn des Ist-Blocks in Sekunden ab Fahrtbeginn, null ohne Ist-Block
+ * @property {number|null} [endSec]      Ende des Ist-Blocks in Sekunden ab Fahrtbeginn, null ohne Ist-Block
+ *                                  (startSec/endSec ermöglichen die zeit-ausgerichtete Ziel-Linie im
+ *                                  Done-Detail-Chart, s. docs/offene-punkte.md; fehlen bei
+ *                                  vor-Backfill synchronisierten Fahrten)
  */
 
 /**
