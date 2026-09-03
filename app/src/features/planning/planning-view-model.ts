@@ -14,6 +14,7 @@ import { plannedRecoveryWeeks } from "../../core/plan-feedback.js";
 import { athleteConfig } from "../../config";
 import { fmt, weatherIcon } from "../../core/format.js";
 import { intensityClass } from "../../core/plan-config.js";
+import { pickPrimaryRide } from "../../core/compliance-match.js";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -307,13 +308,19 @@ export function resolvePlanningFtp(athleteId: string, athleteFtp: number | null)
  *  Athlet 1 zusätzlich auf `dataSource === "intervals"` gefiltert (schützt
  *  vor Fehlzuordnung an Tagen mit sowohl Notion- als auch intervals.icu-
  *  Fahrt, z.B. in der Übergangswoche). Athlet 2 hat diese Unterscheidung
- *  nicht, dort reicht das Datum. */
+ *  nicht, dort reicht das Datum.
+ *
+ *  An einem Tag mit mehreren Fahrten (Renntag: Einrollen + Rennen + Ausrollen)
+ *  NICHT die erste nehmen, sondern die Hauptfahrt über core::pickPrimaryRide
+ *  (Einrollen/Ausrollen scheiden aus, dann höchster TSS, Tiebreak Dauer) —
+ *  dieselbe Auswahl wie im Sync (scripts/lib/compliance.js). Ein Tag mit
+ *  ausschließlich Einrollen/Ausrollen liefert `null`. */
 export function matchRideForCard(rides: Ride[], card: PlanCard, canEdit: boolean): Ride | null {
   const dateOf = (r: Ride) => r.date ?? r.dateISO;
-  const match = canEdit
-    ? rides.find((r) => dateOf(r) === card.date && r.dataSource === "intervals")
-    : rides.find((r) => dateOf(r) === card.date);
-  return match ?? null;
+  const candidates = rides.filter((r) =>
+    canEdit ? dateOf(r) === card.date && r.dataSource === "intervals" : dateOf(r) === card.date,
+  );
+  return (pickPrimaryRide(candidates) as Ride | null) ?? null;
 }
 
 /** Sichtbarkeits-Gate für die Compliance-Tabelle — 1:1 aus

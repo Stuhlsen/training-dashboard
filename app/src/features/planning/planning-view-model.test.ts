@@ -206,6 +206,24 @@ describe("matchRideForCard", () => {
   it("liefert null ohne Treffer", () => {
     expect(matchRideForCard([], c, true)).toBeNull();
   });
+
+  it("bindet am 3-Fahrten-Renntag die Renn-Fahrt, nicht das Einrollen", () => {
+    const raceCard = card({ id: "gfny", date: "2026-08-30", typ: "Race" });
+    const rides = [
+      { dateISO: "2026-08-30", dataSource: "intervals", typ: "Einrollen", tss: 8, min: 20 },
+      { dateISO: "2026-08-30", dataSource: "intervals", typ: "Race", tss: 210, min: 160 },
+      { dateISO: "2026-08-30", dataSource: "intervals", typ: "Ausrollen", tss: 4, min: 15 },
+    ] as Ride[];
+    expect(matchRideForCard(rides, raceCard, false)?.typ).toBe("Race");
+    expect(matchRideForCard(rides, raceCard, true)?.typ).toBe("Race");
+  });
+
+  it("liefert null an einem Tag mit ausschließlich Einrollen/Ausrollen", () => {
+    const rides = [
+      { dateISO: "2026-07-20", dataSource: "intervals", typ: "Ausrollen", tss: 5, min: 10 },
+    ] as Ride[];
+    expect(matchRideForCard(rides, c, true)).toBeNull();
+  });
 });
 
 describe("visibleCompliance", () => {
