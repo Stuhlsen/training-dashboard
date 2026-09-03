@@ -32,7 +32,9 @@
   Plan-Ende kann ein Athlet keinen neuen anlegen. Bevorzugter Weg: Plan-
   Vorlagen-System (parametrisierte Generatoren + Auswahl-Tabelle + „Neuer
   Plan"-Flow), eigener Fahrplan. Zwischenlösung: neuer Vorlagen-Block für
-  Athlet 2 direkt im Code. (6-Punkte-Liste Punkt 2, 03.09.2026.)
+  Athlet 2 direkt im Code. Verworfen: voller Plan-Baukasten in der UI
+  (Wochen/Einheiten einzeln, keine Baseline) — verliert die Periodisierungs-
+  Logik der Code-Pläne. (6-Punkte-Liste Punkt 2, 03.09.2026.)
 
 ## Sync-Pipeline (`scripts/`)
 
