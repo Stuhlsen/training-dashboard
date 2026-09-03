@@ -46,10 +46,12 @@
   (`targetBandFromCompliance()`, min–max über `compliance.matched`) als
   waagerechtes Band hinter die echte Sekunden-Watt-Kurve. Die genauere
   gestufte, zeit-ausgerichtete Ziel-Linie (Warmup niedrig → Intervall hoch →
-  Pause niedrig …) braucht die Intervall-Startzeiten (`startSec`), die
-  `app/src/core/compliance-match.js` intern kennt, aber nicht über
-  `ComplianceInterval` (`app/src/types.js`) und die Sync-Pipeline nach außen
-  gibt — größerer Umbau, bewusst zurückgestellt.
+  Pause niedrig …) ist **datenseitig nicht mehr blockiert**: seit „Geplant →
+  Tatsächlich Variante B" (6-Punkte-Liste, Punkt 6) gibt `ComplianceInterval`
+  (`app/src/types.js`) je Intervall `startSec`/`endSec` mit. Offen ist nur noch
+  die eigentliche gestufte Chart-Zeichnung in `DoneDetailChart.tsx` /
+  `noise-trace-chart-view-model.ts` (Watt-Kurve + zeit-ausgerichtete
+  Stufenlinie statt waagerechtem Band).
 
 - **Drag & Drop v1** (geprüft 26.08.2026, zwei separate Punkte):
   - Kein Tastatur-Verschieben per Drag-Geste — Ersatzweg existiert bereits
