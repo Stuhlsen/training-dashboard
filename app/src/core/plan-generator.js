@@ -9,8 +9,10 @@
    gedeckelter CTL-Rampe, Erholungswochen, Qualitätstage, Taper, FTP-Testtage.
 
    Umfang E2: Modelle `pyramidal` + `linear`. `polarized` + `block` → E9.
-   Die Workout-Auswahl der Qualitätstage läuft hier noch über einen STUB
-   (V5) — E3 ersetzt ihn durch die echte `session_formats`-Auswahl.
+   Die Workout-Auswahl der Qualitätstage läuft seit E3 über
+   `plan-workout-select.js::selectWorkout()` (echte `session_formats`-Auswahl
+   inkl. Ladder-Stufe); `input.formats` reicht die Katalogzeilen durch
+   (leer → eingebaute Startbelegung).
 
    Bewusste Abweichung vom Fahrplan-Text: `ftp-forecast.js::forecastFtp`
    wird NICHT aufgerufen. Es braucht eine `{date,eftp}[]`-Historie; V3
@@ -29,8 +31,9 @@ import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
 import { CONFLICT_THRESHOLDS } from "./plan-config.js";
 import { RECOVERY_MAX_SHARE } from "./periodization.js";
 import { TYPE_DEFAULT_TSS } from "../sports/cycling/session-types.js";
-import { estimateSessionTSS, workoutDurationMinutes } from "./ftp-progress.js";
+import { estimateSessionTSS } from "./ftp-progress.js";
 import { buildPhaseSequence } from "./plan-generator-blocks.js";
+import { selectWorkout } from "./plan-workout-select.js";
 
 /* ── Verträge V2–V4 als lokale JSDoc-Typen ───────────────────────
    In E2 hier lokal gehalten (kein I/O-Typ-Import in core/). E4/E5 dürfen die
@@ -62,6 +65,7 @@ import { buildPhaseSequence } from "./plan-generator-blocks.js";
  * @property {"einsteiger"|"fortgeschritten"} level
  * @property {"pyramidal"|"polarized"|"block"|"linear"} model
  * @property {HistoryAggregate} [history]
+ * @property {Array<object>} [formats]  session_formats-Zeilen (E3); leer → eingebaute Startbelegung
  */
 
 /**
@@ -185,49 +189,6 @@ function deriveFtpTarget(input, weeks) {
 function wattBand(pct, ftp) {
   if (ftp == null) return undefined;
   return [Math.round((pct[0] / 100) * ftp), Math.round((pct[1] / 100) * ftp)];
-}
-
-/**
- * V5-STUB — bis E3. Qualitätstag → fester Sweet-Spot-Block 3×12 @ ~90 % FTP.
- * `watts` nur bei gesetzter FTP (Entscheidung 22). E3 ersetzt das durch die
- * echte Auswahl aus `session_formats` inkl. Ladder-Stufe.
- * @param {number|null} ftp
- * @returns {{name:string, typ:string, workout:object, workoutStructure:object, tssPlanned:number, durationMin:number}}
- */
-function stubQualityWorkout(ftp) {
-  const pct = /** @type {[number,number]} */ ([88, 92]);
-  const workout = {
-    warmup: 10,
-    intervals: 3,
-    duration: 12,
-    rest: 5,
-    cooldown: 8,
-    zone: "SS",
-    pct,
-    ...(wattBand(pct, ftp) ? { watts: wattBand(pct, ftp) } : {}),
-    label: "Sweet Spot 3×12",
-  };
-  const workoutStructure = {
-    version: 1,
-    steps: [
-      { kind: "warmup", duration_s: 600, target_pct_ftp: 55 },
-      {
-        kind: "set",
-        reps: 3,
-        work: { duration_s: 720, target_pct_ftp: 90 },
-        recovery: { duration_s: 300, target_pct_ftp: 55 },
-      },
-      { kind: "cooldown", duration_s: 480, target_pct_ftp: 55 },
-    ],
-  };
-  return {
-    name: "Sweet Spot 3×12",
-    typ: "Sweet Spot",
-    workout,
-    workoutStructure,
-    tssPlanned: estimateSessionTSS(workout, ftp ?? undefined),
-    durationMin: workoutDurationMinutes(workout),
-  };
 }
 
 /**
@@ -442,26 +403,46 @@ function ftpTestWeeks(totalWeeks, startDate, ftpMeasuredDate) {
 }
 
 /**
- * Karten einer Woche: Qualitätstage aus dem Stub, lockere Tage als Z2-Blöcke
- * auf die Wochen-Restdauer verteilt und auf `targetTss` skaliert, optional ein
+ * Karten einer Woche: Qualitätstage aus `selectWorkout()` (E3, session_formats
+ * + Ladder-Stufe nach `weekIndexInPhase`), lockere Tage als Z2-Blöcke auf die
+ * Wochen-Restdauer verteilt und auf `targetTss` skaliert, optional ein
  * FTP-Testtag statt des ersten Slots.
  * @param {object} c
  * @param {string} c.weekStart @param {string} c.isoWeek @param {string} c.phase
  * @param {boolean} c.isRecovery @param {number[]} c.effectiveWeekdays
  * @param {number[]} c.quality @param {number} c.weeklyHours
  * @param {number} c.targetTss @param {number|null} c.ftp @param {boolean} c.isTestWeek
+ * @param {number} c.weekIndexInPhase  0-basiert, Woche innerhalb der Phase (Ladder-Stufe)
+ * @param {"allgemein"|"berg"|"langstrecke"|"crit"} c.focus
+ * @param {"einsteiger"|"fortgeschritten"} c.level
+ * @param {Array<object>} c.formats  session_formats-Zeilen (leer → eingebaute Startbelegung)
  * @returns {PlanCardDraft[]}
  */
 function buildWeekCards(c) {
   const { weekStart, isoWeek, phase, isRecovery, effectiveWeekdays, quality, weeklyHours, targetTss, ftp, isTestWeek } = c;
+  const { weekIndexInPhase, focus, level, formats } = c;
   const dayIsQuality = (wd) => !isRecovery && quality.includes(wd);
   const looseDays = effectiveWeekdays.filter((wd) => !dayIsQuality(wd));
+
+  // Qualitätstage bekommen ~ ein Viertel des Wochen-Zeitbudgets (45–100 min);
+  // die lockeren Tage füllen den Rest bis targetTss (scaleLooseCardsToTarget).
+  const qualityTargetMin = clamp(Math.round(weeklyHours * 60 * 0.25), 45, 100);
 
   const cards = [];
   let qTss = 0;
   for (const wd of effectiveWeekdays) {
     if (!dayIsQuality(wd)) continue;
-    const q = stubQualityWorkout(ftp);
+    const q = selectWorkout({
+      phase,
+      weekIndexInPhase,
+      qualitySlot: quality.indexOf(wd) === 0 ? 1 : 2,
+      focus,
+      level,
+      currentFtp: ftp,
+      targetDurationMin: qualityTargetMin,
+      targetTss: Math.round(targetTss * 0.3),
+      formats,
+    });
     qTss += q.tssPlanned;
     cards.push(makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, q, { isQuality: true }));
   }
@@ -573,11 +554,17 @@ export function generatePlan(input) {
 
   // 5)–7) Testwochen + Karten je Woche ------------------------------
   const ftp = input.currentFtp ?? null;
+  const formats = input.formats || [];
   const testWeeks = ftpTestWeeks(totalWeeks, startDate, input.ftpMeasuredDate);
   const quality = qualityWeekdays(effectiveWeekdays);
   const weeks = seq.phases.map((phase, i) => {
     const weekStart = addDaysISO(startDate, i * 7);
     const isoWeek = isoWeekKey(weekStart);
+    // 0-basierte Woche innerhalb der laufenden Phase (Erholungswochen zählen
+    // nicht mit) — treibt die Ladder-Stufe in selectWorkout().
+    const weekIndexInPhase = seq.phases
+      .slice(0, i)
+      .filter((p, j) => p === phase && !seq.isRecovery[j]).length;
     return {
       index: i,
       isoWeek,
@@ -597,6 +584,10 @@ export function generatePlan(input) {
         targetTss: ramp.targetTss[i],
         ftp,
         isTestWeek: testWeeks.has(i),
+        weekIndexInPhase,
+        focus: input.focus,
+        level: input.level,
+        formats,
       }),
     };
   });
