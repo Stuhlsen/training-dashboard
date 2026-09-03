@@ -85,7 +85,7 @@ function ride(overrides: Partial<Ride> = {}): Ride {
 
 function rowFor(c: PlanCard, r: Ride | null) {
   const doneRides: DoneRideMap = new Map([[c.id, r]]);
-  return buildDoneRows([c], doneRides, false)[0];
+  return buildDoneRows([c], doneRides, "athlete1", 200)[0];
 }
 
 describe("DoneDetailChart — Zweigwahl", () => {

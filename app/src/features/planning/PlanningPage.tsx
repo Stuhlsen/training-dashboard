@@ -224,8 +224,8 @@ export function PlanningPage() {
   // nichts neu, reicht nur Zahlen aus buildDoneCompareRows()/visibleCompliance()
   // durch (s. done-table-view-model.ts Kopfkommentar).
   const doneTableRows = useMemo(
-    () => buildDoneRows(sections.done, doneRides, editable),
-    [sections.done, doneRides, editable],
+    () => buildDoneRows(sections.done, doneRides, activeAthleteId, ftp ?? null),
+    [sections.done, doneRides, activeAthleteId, ftp],
   );
   const fidelity = useMemo(
     () => planFidelitySummary(sections.done, doneRides, TODAY),
@@ -505,7 +505,8 @@ export function PlanningPage() {
               rows={doneTableRows}
               fidelity={fidelity}
               gaps={gaps}
-              canEdit={editable}
+              athleteId={activeAthleteId}
+              ftp={ftp ?? null}
               renderChart={(row) => <DoneDetailChart {...row} intervalsCredentials={intervalsCredentials} />}
             />
           </div>

@@ -13,8 +13,11 @@
 import { plannedRecoveryWeeks } from "../../core/plan-feedback.js";
 import { athleteConfig } from "../../config";
 import { fmt, weatherIcon } from "../../core/format.js";
-import { intensityClass } from "../../core/plan-config.js";
+import { COMPLIANCE, intensityClass } from "../../core/plan-config.js";
 import { pickPrimaryRide } from "../../core/compliance-match.js";
+import { COGGAN_ZONE_UPPER_PCT } from "../../sports/cycling/zones.js";
+import { HR_ZONES } from "../../sports/cycling/metrics.js";
+import { targetBandFromCompliance } from "./done-detail-chart-view-model";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -591,16 +594,85 @@ export function actualWeatherColor(weather: ActualWeather): string {
   return bad >= 2 || hot ? "var(--danger)" : bad === 1 ? "var(--warn)" : "var(--ok)";
 }
 
+/** Dauergewichtetes Mittel eines `matched[]`-Ist-Werts (Watt oder Puls) über
+ *  alle Intervalle, die einen Ist-Block haben — Gewicht ist die Ist-Dauer des
+ *  Intervalls. `null`, wenn kein Intervall den Wert trägt (z.B. Fahrten, die
+ *  vor dem HF-Backfill des Block-Caches synchronisiert wurden → alle `avgHr`
+ *  noch `null`). */
+function weightedMatchedMean(matched: RideCompliance["matched"], key: "avgWatts" | "avgHr"): number | null {
+  let sum = 0;
+  let weight = 0;
+  for (const m of matched) {
+    const v = m[key];
+    if (typeof v !== "number" || !Number.isFinite(v)) continue;
+    const w = m.actualDurationS > 0 ? m.actualDurationS : 1;
+    sum += v * w;
+    weight += w;
+  }
+  return weight > 0 ? Math.round(sum / weight) : null;
+}
+
+/** "185 W" statt "185–185 W", wenn Ober- und Untergrenze zusammenfallen
+ *  (typisch bei einem Workout mit lauter gleichen Intervall-Zielwerten). */
+function bandLabel(lo: number, hi: number, unit: string): string {
+  return lo === hi ? `${lo} ${unit}` : `${lo}–${hi} ${unit}`;
+}
+
+const HR_ZONE_KEYS = ["z1", "z2", "z3", "z4", "z5"] as const;
+
+/** Puls-Zielband (bpm) aus dem HF-Zonenmodell des Athleten für die
+ *  Ziel-Intensität der matchbaren Intervalle: je Intervall Ziel-%FTP
+ *  (`plannedWatts / ftp`) → Coggan-Zonenindex (`COGGAN_ZONE_UPPER_PCT`) →
+ *  `HR_ZONES` × `hrMax`. Über alle Intervalle die weiteste Spanne
+ *  (min-`lo` / max-`hi`). `null` ohne FTP oder ohne gültige Ziel-Intensität.
+ *  Grobe Orientierung, kein exaktes Soll — die Herzfrequenz laggt der
+ *  Leistung, kurze VO2-Intervalle erreichen ihr Zonen-HF-Band evtl. nicht. */
+function hrTargetBandFromCompliance(
+  comp: RideCompliance,
+  ftp: number | null,
+  hrMax: number,
+): { lo: number; hi: number } | null {
+  if (!ftp) return null;
+  let lo = Infinity;
+  let hi = -Infinity;
+  for (const m of comp.matched) {
+    if (!(m.plannedWatts > 0)) continue;
+    const pct = m.plannedWatts / ftp;
+    let zi = COGGAN_ZONE_UPPER_PCT.findIndex((upper) => pct <= upper);
+    if (zi < 0) zi = HR_ZONE_KEYS.length - 1;
+    const [loFrac, hiFrac] = HR_ZONES[HR_ZONE_KEYS[zi]];
+    lo = Math.min(lo, loFrac * hrMax);
+    hi = Math.max(hi, hiFrac * hrMax);
+  }
+  if (!Number.isFinite(lo) || !Number.isFinite(hi)) return null;
+  return { lo: Math.round(lo), hi: Math.round(hi) };
+}
+
 /** "Geplant → Tatsächlich"-Vergleichszeilen für eine absolvierte Plankarte.
  *  Reine Funktion — jede Zeile fehlt einzeln, wenn ihr Ist-Wert fehlt (wie
- *  in der Vanilla-Vorlage). `canEdit` steuert nur die Puls-Zielbänder
- *  (Athlet 1s feste HF-Zonen — Athlet 2 hat keine konfiguriert, s.
- *  ui/planned.js Z. 1120-1124). */
-export function buildDoneCompareRows(card: PlanCard, ride: Ride, canEdit: boolean): DoneCompareRow[] {
+ *  in der Vanilla-Vorlage).
+ *
+ *  Variante B (Punkt 6 der 6-Punkte-Liste): bei einer strukturierten Einheit
+ *  mit Compliance-Match werden Ø Watt und Puls INTERVALL gegen INTERVALL
+ *  verglichen (Ist = dauergewichteter Intervall-Schnitt aus `ride.compliance`,
+ *  Soll = Intervall-Ziel-Spanne bzw. HF-Zonen-Band), nicht mehr der
+ *  Gesamt-Schnitt der Fahrt gegen die Intervall-Zielspanne. Distanz taugt bei
+ *  strukturierten (oft Indoor-)Einheiten nicht als Soll/Ist und wird dort nur
+ *  als Kontext gezeigt. `athleteId`/`ftp` speisen das HF-Zonen-Band. Das
+ *  frühere `canEdit`-Gate für die Puls-Bänder entfällt — das Band kommt jetzt
+ *  zonenbasiert aus `athleteId`/`ftp`, nicht mehr aus fest verdrahteten
+ *  Athlet-1-Werten. */
+export function buildDoneCompareRows(
+  card: PlanCard,
+  ride: Ride,
+  athleteId: string,
+  ftp: number | null,
+): DoneCompareRow[] {
   const rows: DoneCompareRow[] = [];
   const isZ2 = isZ2Type(card.typ);
   const isInterval = !!card.workout;
   const isGroup = card.typ === "Gruppenfahrt";
+  const comp = visibleCompliance(ride, card.id);
 
   // Typ — nur bei tatsächlich unterschiedlichem Text (sonst Redundanz zum
   // Karten-Titel) und nie bei Ruhetag (dafür gibt es restDayRiddenSignal).
@@ -617,35 +689,42 @@ export function buildDoneCompareRows(card: PlanCard, ride: Ride, canEdit: boolea
     });
   }
 
-  // Distanz
+  // Distanz — bei einer strukturierten Einheit (watts ODER pct) taugt die
+  // Distanz nicht als Soll/Ist: Indoor/Zwift-Distanz hängt vom Sim ab, und
+  // auch draußen richtet sich die Fahrt nach den Intervallen, nicht nach km.
+  // Dann nur Kontext (kein Plan/Delta/Farbe).
   if (ride.km) {
     const planned = card.km ?? null;
     let diff: number | null = null;
     let color: string | undefined;
-    if (planned) {
+    if (planned && !isInterval) {
       diff = Math.round((ride.km - planned) * 10) / 10;
       color = Math.abs(diff) <= planned * 0.15 || diff > 0 ? "var(--ok)" : "var(--warn)";
     }
     rows.push({
       label: "Distanz",
       icon: "📍",
-      plan: planned ? `${planned} km` : "–",
+      plan: planned && !isInterval ? `${planned} km` : "–",
       actual: `${fmt(ride.km)} km`,
       color,
       extra: diff != null ? `${diff > 0 ? "+" : ""}${diff} km` : undefined,
     });
   }
 
-  // Puls — echte Zielbänder nur für Athlet 1 (canEdit), sonst nur der Ist-Wert.
+  // Puls — Soll-Band zonenbasiert aus dem HF-Modell des Athleten für die
+  // Ziel-Intensität der Intervalle, Ist = dauergewichteter Intervall-Schnitt-
+  // Puls (nur wenn beides vorliegt). Sonst nur der Ist-Wert (Gesamt-Schnitt),
+  // kein Pass/Fail — kein erfundenes Band.
   if (ride.hf) {
+    const hrMax = athleteConfig(athleteId)?.hrMax ?? null;
+    const intervalHr = comp ? weightedMatchedMean(comp.matched, "avgHr") : null;
+    const band = comp && hrMax && intervalHr != null ? hrTargetBandFromCompliance(comp, ftp, hrMax) : null;
+    const actualHr = band && intervalHr != null ? intervalHr : ride.hf;
     let plan = "–";
     let color: string | undefined;
-    if (canEdit && isZ2) {
-      plan = "123–152 bpm";
-      color = ride.hf >= 123 && ride.hf <= 152 ? "var(--ok)" : "var(--warn)";
-    } else if (canEdit && isInterval) {
-      plan = "167–181 bpm";
-      color = ride.hf >= 160 ? "var(--ok)" : "var(--warn)";
+    if (band) {
+      plan = bandLabel(band.lo, band.hi, "bpm");
+      color = actualHr >= band.lo ? "var(--ok)" : "var(--warn)";
     } else if (isGroup) {
       plan = "Gruppenfahrt";
     }
@@ -653,38 +732,43 @@ export function buildDoneCompareRows(card: PlanCard, ride: Ride, canEdit: boolea
       label: "Puls",
       icon: "❤️",
       plan,
-      actual: `${ride.hf} bpm`,
+      actual: `${actualHr} bpm`,
       color,
       extra: ride.hfMax ? `max ${ride.hfMax}` : undefined,
     });
   }
 
-  // Ø Watt — liest card.workout.watts direkt (wie Vanilla Z. 1172: `s.workout?.watts`,
-  // OHNE Ausschluss der Blockform — anders als bei der Dauer-Schätzung unten
-  // ist das hier keine reine Zahlenform-Eigenschaft, ein Workout könnte
-  // theoretisch beides tragen).
+  // Ø Watt — Variante B: bei Compliance-Match Intervall-Ziel-Spanne gegen den
+  // dauergewichteten Intervall-Schnitt (Range vs. Range), Gesamt-Ø + NP nur
+  // als Kontext. Ohne Match (unstrukturiert / Athlet 4 ohne FTP): bisheriges
+  // card.workout.watts-Verhalten, aber ohne hartes Rot — der Gesamt-Schnitt
+  // gegen die Intervall-Zielspanne ist strukturell zu niedrig.
   if (ride.watt) {
-    const watts = (card.workout as { watts?: [number, number] } | null)?.watts;
+    const wattBand = comp ? targetBandFromCompliance(comp) : null;
+    const intervalWatt = comp ? weightedMatchedMean(comp.matched, "avgWatts") : null;
     let plan = "–";
+    let actual = `${ride.watt} W`;
     let color: string | undefined;
-    if (watts) {
-      const [wLow, wHigh] = watts;
-      plan = `${wLow}–${wHigh} W`;
+    let extra: string | undefined = ride.np ? `NP ${ride.np} W` : undefined;
+
+    if (wattBand && intervalWatt != null) {
+      plan = bandLabel(wattBand.lowW, wattBand.highW, "W");
+      actual = `${intervalWatt} W`;
+      // grün, sobald der Intervall-Schnitt das Ziel (minus Toleranz) erreicht —
+      // gleiche Schwelle wie die Compliance-Ampel (core/compliance-match.js).
+      // Über der Bandobergrenze ist bewusst kein Warnfall (härter gefahren).
       color =
-        ride.watt >= wLow && ride.watt <= wHigh
-          ? "var(--ok)"
-          : ride.watt > wHigh
-            ? "var(--warn)"
-            : "var(--danger)";
+        intervalWatt >= wattBand.lowW * (1 - COMPLIANCE.powerFulfillTolerancePct) ? "var(--ok)" : "var(--warn)";
+      extra = `Ø ${ride.watt} W${ride.np ? ` · NP ${ride.np} W` : ""}`;
+    } else {
+      const watts = (card.workout as { watts?: [number, number] } | null)?.watts;
+      if (watts) {
+        const [wLow, wHigh] = watts;
+        plan = `${wLow}–${wHigh} W`;
+        color = ride.watt >= wLow && ride.watt <= wHigh ? "var(--ok)" : "var(--warn)";
+      }
     }
-    rows.push({
-      label: "Ø Watt",
-      icon: "⚡",
-      plan,
-      actual: `${ride.watt} W`,
-      color,
-      extra: ride.np ? `NP ${ride.np} W` : undefined,
-    });
+    rows.push({ label: "Ø Watt", icon: "⚡", plan, actual, color, extra });
   }
 
   // Kadenz — für alle Typen (kein canEdit-Gate).

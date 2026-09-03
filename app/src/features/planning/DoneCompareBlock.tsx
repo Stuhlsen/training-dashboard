@@ -18,15 +18,17 @@ const GRID_STYLE: React.CSSProperties = {
 interface DoneCompareBlockProps {
   card: PlanCardT;
   ride: Ride;
-  canEdit: boolean;
+  athleteId: string;
+  ftp: number | null;
 }
 
 /** "Geplant → Tatsächlich"-Vergleichsblock einer absolvierten Plankarte —
  *  Port von ui/planned.js::_renderDoneCard Z. 1094-1259 (compareHtml).
  *  Rein präsentational, gleicher Row/Cell-Aufbau wie ComplianceTable.tsx;
- *  die eigentliche Zeilenlogik sitzt in buildDoneCompareRows(). */
-export function DoneCompareBlock({ card, ride, canEdit }: DoneCompareBlockProps) {
-  const rows = buildDoneCompareRows(card, ride, canEdit);
+ *  die eigentliche Zeilenlogik sitzt in buildDoneCompareRows(). `athleteId`/
+ *  `ftp` speisen dort das HF-Zonen-Band der Puls-Zeile. */
+export function DoneCompareBlock({ card, ride, athleteId, ftp }: DoneCompareBlockProps) {
+  const rows = buildDoneCompareRows(card, ride, athleteId, ftp);
   if (!rows.length) return null;
 
   return (

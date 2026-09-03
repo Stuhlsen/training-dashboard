@@ -37,7 +37,7 @@ function ride(overrides: Partial<Ride> = {}): Ride {
 
 describe("DoneTable — leerer Zustand", () => {
   it("zeigt einen Platzhaltertext ohne absolvierte Karten", () => {
-    render(<DoneTable rows={[]} fidelity={planFidelitySummary([], new Map(), TODAY)} gaps={[]} canEdit={false} />);
+    render(<DoneTable rows={[]} fidelity={planFidelitySummary([], new Map(), TODAY)} gaps={[]} athleteId="athlete1" ftp={200} />);
     screen.getByText("Noch keine absolvierten Einheiten.");
   });
 });
@@ -46,9 +46,9 @@ describe("DoneTable — Zeilen + Aufklappen", () => {
   it("klappt beim Klick auf eine Zeile mit gematchter Ist-Fahrt DoneCompareBlock auf", () => {
     const c = card({ id: "a", date: "2026-08-18", typ: "Schwelle", km: 60 });
     const doneRides: DoneRideMap = new Map([["a", ride({ typ: "Z2 Lang", km: 86 })]]);
-    const rows = buildDoneRows([c], doneRides, false);
+    const rows = buildDoneRows([c], doneRides, "athlete1", 200);
     render(
-      <DoneTable rows={rows} fidelity={planFidelitySummary([c], doneRides, TODAY)} gaps={[]} canEdit={false} />,
+      <DoneTable rows={rows} fidelity={planFidelitySummary([c], doneRides, TODAY)} gaps={[]} athleteId="athlete1" ftp={200} />,
     );
 
     expect(screen.queryByText("Geplant → Tatsächlich")).toBeNull();
@@ -63,13 +63,14 @@ describe("DoneTable — Zeilen + Aufklappen", () => {
   it("ruft renderChart nur für die aufgeklappte Zeile auf", () => {
     const c = card({ id: "a", date: "2026-08-18" });
     const doneRides: DoneRideMap = new Map([["a", ride()]]);
-    const rows = buildDoneRows([c], doneRides, false);
+    const rows = buildDoneRows([c], doneRides, "athlete1", 200);
     render(
       <DoneTable
         rows={rows}
         fidelity={planFidelitySummary([c], doneRides, TODAY)}
         gaps={[]}
-        canEdit={false}
+        athleteId="athlete1"
+        ftp={200}
         renderChart={(row) => <div data-testid="chart">{row.card.id}</div>}
       />,
     );
@@ -81,8 +82,8 @@ describe("DoneTable — Zeilen + Aufklappen", () => {
 
   it("zeigt keine Caret und reagiert nicht auf Klick ohne gematchte Ist-Fahrt", () => {
     const c = card({ id: "a", date: "2026-08-18" });
-    const rows = buildDoneRows([c], new Map(), false);
-    render(<DoneTable rows={rows} fidelity={planFidelitySummary([c], new Map(), TODAY)} gaps={[]} canEdit={false} />);
+    const rows = buildDoneRows([c], new Map(), "athlete1", 200);
+    render(<DoneTable rows={rows} fidelity={planFidelitySummary([c], new Map(), TODAY)} gaps={[]} athleteId="athlete1" ftp={200} />);
 
     fireEvent.click(screen.getByText("Session"));
     expect(screen.queryByText("Geplant → Tatsächlich")).toBeNull();
@@ -96,7 +97,8 @@ describe("DoneTable — Plantreue + Lücken", () => {
         rows={[]}
         fidelity={{ windowDays: 28, ratedCount: 4, fulfilledCount: 3, pct: 75 }}
         gaps={[]}
-        canEdit={false}
+        athleteId="athlete1"
+        ftp={200}
       />,
     );
     screen.getByText(/Plantreue 28 Tage:/);
@@ -109,7 +111,7 @@ describe("DoneTable — Plantreue + Lücken", () => {
     const cancelled = card({ id: "c", date: "2026-08-12", cancelled: true, cancelReason: "Krank" });
     const gaps = gapsChips([missed], [cancelled]);
     render(
-      <DoneTable rows={[]} fidelity={planFidelitySummary([], new Map(), TODAY)} gaps={gaps} canEdit={false} />,
+      <DoneTable rows={[]} fidelity={planFidelitySummary([], new Map(), TODAY)} gaps={gaps} athleteId="athlete1" ftp={200} />,
     );
     screen.getByText("Lücken");
     expect(screen.getAllByText("Session")).toHaveLength(2);

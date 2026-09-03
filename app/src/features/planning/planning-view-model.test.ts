@@ -26,6 +26,7 @@ import {
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
+type RideCompliance = import("../../types.js").RideCompliance;
 type WellnessDay = import("../../types.js").WellnessDay;
 
 const TODAY = "2026-07-22";
@@ -416,15 +417,43 @@ describe("actualWeatherColor", () => {
 });
 
 describe("buildDoneCompareRows", () => {
+  const A1 = "athlete1"; // hrMax 201 in config.ts
+  const FTP = 200;
+
   function doneRide(overrides: Partial<Ride> = {}): Ride {
     return { dateISO: "2026-08-06", ...overrides } as Ride;
+  }
+
+  /** Compliance-Objekt, das visibleCompliance() gegen `cardId` durchlässt. */
+  function compliance(cardId: string, matched: Array<Record<string, unknown>>): RideCompliance {
+    return {
+      matchedCardId: cardId,
+      plannedZoneTime_s: 0,
+      actualZoneTime_s: 0,
+      intervalsPlanned: matched.length,
+      intervalsCompleted: matched.length,
+      fadePct: 0,
+      rating: "green",
+      rule: "alle-intervalle-erfuellt",
+      matched: matched.map((m) => ({
+        kind: "set",
+        fulfilled: true,
+        plannedDurationS: 600,
+        actualDurationS: 600,
+        plannedWatts: 185,
+        avgWatts: null,
+        avgHr: null,
+        startSec: null,
+        endSec: null,
+        ...m,
+      })),
+    } as RideCompliance;
   }
 
   it("06.08.-Fall: Plan Schwelle, tatsächlich Z2 Lang gefahren → Typ-Zeile mit Warnfarbe", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Schwelle", km: 60 });
     const r = doneRide({ typ: "Z2 Lang", km: 86 });
-    const rows = buildDoneCompareRows(c, r, false);
-    const typRow = rows.find((row) => row.label === "Typ");
+    const typRow = buildDoneCompareRows(c, r, A1, FTP).find((row) => row.label === "Typ");
     expect(typRow).toEqual({
       label: "Typ",
       icon: "🏷️",
@@ -437,83 +466,132 @@ describe("buildDoneCompareRows", () => {
   it("keine Typ-Zeile bei identischem Text", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
     const r = doneRide({ typ: "Z2 Dauer" });
-    expect(buildDoneCompareRows(c, r, false).find((row) => row.label === "Typ")).toBeUndefined();
+    expect(buildDoneCompareRows(c, r, A1, FTP).find((row) => row.label === "Typ")).toBeUndefined();
   });
 
   it("keine Typ-Zeile bei Ruhetag (restDayRiddenSignal übernimmt das)", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Ruhetag" });
     const r = doneRide({ typ: "Z2 Dauer" });
-    expect(buildDoneCompareRows(c, r, false).find((row) => row.label === "Typ")).toBeUndefined();
+    expect(buildDoneCompareRows(c, r, A1, FTP).find((row) => row.label === "Typ")).toBeUndefined();
   });
 
   it("Typ-Zeile ohne Farbe bei reiner Label-Nuance (gleiche Intensitätsklasse)", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Z2" });
     const r = doneRide({ typ: "Z2 Dauer" });
-    const typRow = buildDoneCompareRows(c, r, false).find((row) => row.label === "Typ");
+    const typRow = buildDoneCompareRows(c, r, A1, FTP).find((row) => row.label === "Typ");
     expect(typRow?.color).toBeUndefined();
   });
 
-  it("Distanz: grün bei Übererfüllung, gold bei >15% Unterschreitung", () => {
+  it("Distanz (unstrukturiert): grün bei Übererfüllung, gold bei >15% Unterschreitung", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer", km: 60 });
-    const over = buildDoneCompareRows(c, doneRide({ km: 65 }), false).find((row) => row.label === "Distanz");
+    const over = buildDoneCompareRows(c, doneRide({ km: 65 }), A1, FTP).find((row) => row.label === "Distanz");
     expect(over?.color).toBe("var(--ok)");
-    const under = buildDoneCompareRows(c, doneRide({ km: 40 }), false).find((row) => row.label === "Distanz");
+    const under = buildDoneCompareRows(c, doneRide({ km: 40 }), A1, FTP).find((row) => row.label === "Distanz");
     expect(under?.color).toBe("var(--warn)");
   });
 
-  it("Ø Watt: rot unterhalb, gold oberhalb, grün innerhalb der Plan-Range", () => {
+  it("Distanz bei strukturierter Einheit nur Kontext: kein Plan, keine Farbe, kein Delta", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", km: 40, workout: { watts: [200, 220] } });
+    const row = buildDoneCompareRows(c, doneRide({ km: 55 }), A1, FTP).find((row) => row.label === "Distanz");
+    expect(row).toMatchObject({ plan: "–", actual: "55,0 km" });
+    expect(row?.color).toBeUndefined();
+    expect(row?.extra).toBeUndefined();
+  });
+
+  it("Ø Watt ohne Compliance-Match: kein hartes Rot mehr — außerhalb der Range nur gold", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", workout: { watts: [200, 220] } });
-    const below = buildDoneCompareRows(c, doneRide({ watt: 190 }), false).find((row) => row.label === "Ø Watt");
-    expect(below?.color).toBe("var(--danger)");
-    const above = buildDoneCompareRows(c, doneRide({ watt: 230 }), false).find((row) => row.label === "Ø Watt");
+    const below = buildDoneCompareRows(c, doneRide({ watt: 190 }), A1, FTP).find((row) => row.label === "Ø Watt");
+    expect(below?.color).toBe("var(--warn)");
+    const above = buildDoneCompareRows(c, doneRide({ watt: 230 }), A1, FTP).find((row) => row.label === "Ø Watt");
     expect(above?.color).toBe("var(--warn)");
-    const within = buildDoneCompareRows(c, doneRide({ watt: 210 }), false).find((row) => row.label === "Ø Watt");
+    const within = buildDoneCompareRows(c, doneRide({ watt: 210 }), A1, FTP).find((row) => row.label === "Ø Watt");
     expect(within?.color).toBe("var(--ok)");
+  });
+
+  it("Ø Watt mit Compliance-Match: Intervall-Schnitt gegen Intervall-Ziel-Band, Gesamt-Ø + NP als Kontext", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", workout: { watts: [180, 190] } });
+    const r = doneRide({
+      watt: 141,
+      np: 171,
+      compliance: compliance("a", [
+        { plannedWatts: 185, avgWatts: 210, actualDurationS: 600 },
+        { plannedWatts: 185, avgWatts: 206, actualDurationS: 600 },
+      ]),
+    });
+    const row = buildDoneCompareRows(c, r, A1, FTP).find((row) => row.label === "Ø Watt");
+    expect(row?.plan).toBe("185 W"); // lo === hi → Einzelwert
+    expect(row?.actual).toBe("208 W"); // (210·600 + 206·600) / 1200
+    expect(row?.color).toBe("var(--ok)");
+    expect(row?.extra).toBe("Ø 141 W · NP 171 W");
+  });
+
+  it("Ø Watt mit Compliance-Match, Intervall-Schnitt unter Ziel → gold, kein Rot", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot" });
+    const r = doneRide({
+      watt: 120,
+      compliance: compliance("a", [{ plannedWatts: 200, avgWatts: 150, actualDurationS: 600 }]),
+    });
+    expect(buildDoneCompareRows(c, r, A1, FTP).find((row) => row.label === "Ø Watt")?.color).toBe("var(--warn)");
   });
 
   it("Dauer nutzt card.durationMin, bevor auf Workout-Summe/km-Schätzung zurückgefallen wird", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", durationMin: 75 });
-    const row = buildDoneCompareRows(c, doneRide({ min: 80 }), false).find((row) => row.label === "Dauer");
+    const row = buildDoneCompareRows(c, doneRide({ min: 80 }), A1, FTP).find((row) => row.label === "Dauer");
     expect(row?.plan).toBe("75 min");
   });
 
   it("Dauer fällt bei Blockform-Workout (kein durationMin) auf die km-Schätzung zurück, nicht auf '–'", () => {
-    // isInterval ist hier true (card.workout ist gesetzt), aber es ist die neue
-    // Blockform ohne Zahlenfelder — legacyWorkoutSegments() liefert null dafür.
-    // Vanilla fällt in diesem Fall auf die km-Pace-Schätzung zurück (s.
-    // ui/planned.js Z. 1206-1220), nicht auf "–".
     const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot", km: 60, workout: { blocks: [{ type: "interval", text: "3x12min" }] } });
-    const row = buildDoneCompareRows(c, doneRide({ min: 90 }), false).find((row) => row.label === "Dauer");
+    const row = buildDoneCompareRows(c, doneRide({ min: 90 }), A1, FTP).find((row) => row.label === "Dauer");
     expect(row?.plan).toBe("~157 min");
   });
 
-  it("Ø Watt liest card.workout.watts auch bei einem Workout mit zusätzlichem blocks-Array", () => {
+  it("Ø Watt liest card.workout.watts (ohne Compliance-Match) auch bei einem Workout mit blocks-Array", () => {
     const c = card({
       id: "a",
       date: "2026-08-06",
       typ: "Sweet Spot",
       workout: { blocks: [{ type: "interval", text: "x" }], watts: [200, 220] },
     });
-    const row = buildDoneCompareRows(c, doneRide({ watt: 210 }), false).find((row) => row.label === "Ø Watt");
+    const row = buildDoneCompareRows(c, doneRide({ watt: 210 }), A1, FTP).find((row) => row.label === "Ø Watt");
     expect(row?.plan).toBe("200–220 W");
     expect(row?.color).toBe("var(--ok)");
   });
 
-  it("Puls-Zielband nur bei canEdit=true (Athlet 1), sonst nur Ist-Wert ohne Farbe", () => {
+  it("Puls ohne Compliance-Match: nur Ist-Wert, kein Band, keine Farbe", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
-    const r = doneRide({ hf: 140 });
-    expect(buildDoneCompareRows(c, r, false).find((row) => row.label === "Puls")).toMatchObject({
-      plan: "–",
-      color: undefined,
+    const row = buildDoneCompareRows(c, doneRide({ hf: 140 }), A1, FTP).find((row) => row.label === "Puls");
+    expect(row).toMatchObject({ plan: "–", actual: "140 bpm" });
+    expect(row?.color).toBeUndefined();
+  });
+
+  it("Puls mit Compliance-Match + hrMax: Zonen-Band als Soll, Intervall-Schnitt-Puls als Ist", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot" });
+    // Ziel 185 W bei FTP 200 → 92,5 % FTP → Coggan Z4 (≤105 %) →
+    // HR_ZONES.z4 [0.88, 0.95] × hrMax 201 → 177–191 bpm
+    const r = doneRide({
+      hf: 150,
+      compliance: compliance("a", [{ plannedWatts: 185, avgHr: 172, actualDurationS: 600 }]),
     });
-    expect(buildDoneCompareRows(c, r, true).find((row) => row.label === "Puls")).toMatchObject({
-      plan: "123–152 bpm",
-      color: "var(--ok)",
+    const row = buildDoneCompareRows(c, r, A1, FTP).find((row) => row.label === "Puls");
+    expect(row?.plan).toBe("177–191 bpm");
+    expect(row?.actual).toBe("172 bpm");
+    expect(row?.color).toBe("var(--warn)"); // 172 < 177
+  });
+
+  it("Puls mit Compliance-Match, aber Athlet ohne hrMax → nur Ist (Gesamt-Schnitt), kein Band", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot" });
+    const r = doneRide({
+      hf: 150,
+      compliance: compliance("a", [{ plannedWatts: 185, avgHr: 172, actualDurationS: 600 }]),
     });
+    const row = buildDoneCompareRows(c, r, "athlete2", 265).find((row) => row.label === "Puls");
+    expect(row).toMatchObject({ plan: "–", actual: "150 bpm" });
+    expect(row?.color).toBeUndefined();
   });
 
   it("leere Liste ohne jegliche Ist-Werte", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
-    expect(buildDoneCompareRows(c, doneRide(), false)).toEqual([]);
+    expect(buildDoneCompareRows(c, doneRide(), A1, FTP)).toEqual([]);
   });
 });

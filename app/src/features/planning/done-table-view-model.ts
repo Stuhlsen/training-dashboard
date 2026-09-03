@@ -57,9 +57,10 @@ export interface DoneTableRow {
 }
 
 /** 1:1-Wiederverwendung der bestehenden "Dauer"/"Ø Watt"-Zeilenlogik aus
- *  buildDoneCompareRows() statt eigener Parallel-Berechnung. */
-function buildTableRow(card: PlanCard, ride: Ride | null, canEdit: boolean): DoneTableRow {
-  const compareRows = ride ? buildDoneCompareRows(card, ride, canEdit) : [];
+ *  buildDoneCompareRows() statt eigener Parallel-Berechnung. `athleteId`/`ftp`
+ *  speisen dort das HF-Zonen-Band der Puls-Zeile. */
+function buildTableRow(card: PlanCard, ride: Ride | null, athleteId: string, ftp: number | null): DoneTableRow {
+  const compareRows = ride ? buildDoneCompareRows(card, ride, athleteId, ftp) : [];
   const durationRow = compareRows.find((r) => r.label === "Dauer");
   const wattRow = compareRows.find((r) => r.label === "Ø Watt");
   const hasTssTarget = card.typ == null || !NO_TSS_TARGET_TYPES.has(card.typ);
@@ -90,8 +91,13 @@ function buildTableRow(card: PlanCard, ride: Ride | null, canEdit: boolean): Don
  *  eine Zeile je Karte, neueste zuerst (Reihenfolge von `done` wird
  *  übernommen, `done` ist dort bereits `b.date.localeCompare(a.date)`
  *  sortiert). */
-export function buildDoneRows(done: PlanCard[], doneRides: DoneRideMap, canEdit: boolean): DoneTableRow[] {
-  return done.map((card) => buildTableRow(card, doneRides.get(card.id) ?? null, canEdit));
+export function buildDoneRows(
+  done: PlanCard[],
+  doneRides: DoneRideMap,
+  athleteId: string,
+  ftp: number | null,
+): DoneTableRow[] {
+  return done.map((card) => buildTableRow(card, doneRides.get(card.id) ?? null, athleteId, ftp));
 }
 
 export interface PlanFidelitySummary {

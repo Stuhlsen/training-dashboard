@@ -22,7 +22,9 @@ export interface DoneTableProps {
   rows: DoneTableRow[];
   fidelity: PlanFidelitySummary;
   gaps: GapChip[];
-  canEdit: boolean;
+  /** Für das HF-Zonen-Band der Puls-Zeile in DoneCompareBlock. */
+  athleteId: string;
+  ftp: number | null;
   /** 13e liefert DoneDetailChart als eigentlichen Chart-Inhalt — hier nur
    *  ein Einhänge-Slot (gleiches Muster wie WeekGrid.tsx::renderDetail),
    *  damit 13d/13e parallel entwickelbar bleiben. */
@@ -34,7 +36,7 @@ export interface DoneTableProps {
  *  (`CardSection("✅ Absolviert…")` in PlanningPage.tsx, Verdrahtung folgt
  *  in 13f). Klick auf eine Zeile klappt DoneCompareBlock (unverändert
  *  wiederverwendet) + den DoneDetailChart-Slot darunter auf. */
-export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTableProps) {
+export function DoneTable({ rows, fidelity, gaps, athleteId, ftp, renderChart }: DoneTableProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   // Soll/Ist und Compliance brauchen tssPlanned bzw. eine erkannte
   // Workout-Struktur auf der Karte — die meisten Karten (unstrukturierte
@@ -141,7 +143,7 @@ export function DoneTable({ rows, fidelity, gaps, canEdit, renderChart }: DoneTa
                         >
                           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                             <div style={{ flex: "1 1 260px", minWidth: 220 }}>
-                              <DoneCompareBlock card={row.card} ride={row.ride} canEdit={canEdit} />
+                              <DoneCompareBlock card={row.card} ride={row.ride} athleteId={athleteId} ftp={ftp} />
                             </div>
                             <div style={{ flex: "1 1 260px", minWidth: 220 }}>{renderChart?.(row)}</div>
                           </div>

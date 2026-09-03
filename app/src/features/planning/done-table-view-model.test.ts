@@ -44,7 +44,7 @@ describe("buildDoneRows", () => {
   it("übernimmt Dauer/Ø-Watt aus buildDoneCompareRows() statt eigener Berechnung", () => {
     const c = card({ id: "a", workout: { watts: [220, 240] }, durationMin: 60 });
     const r = ride({ min: 58, watt: 235 });
-    const rows = buildDoneRows([c], new Map([["a", r]]), false);
+    const rows = buildDoneRows([c], new Map([["a", r]]), "athlete1", 200);
     expect(rows[0].durationPlan).toBe("60 min");
     expect(rows[0].durationActual).toBe("58 min");
     expect(rows[0].wattPlan).toBe("220–240 W");
@@ -55,7 +55,7 @@ describe("buildDoneRows", () => {
   it("liest TSS direkt aus card.tssPlanned/ride.tss, ohne Neuberechnung", () => {
     const c = card({ id: "a", tssPlanned: 80 });
     const r = ride({ tss: 92 });
-    const rows = buildDoneRows([c], new Map([["a", r]]), false);
+    const rows = buildDoneRows([c], new Map([["a", r]]), "athlete1", 200);
     expect(rows[0].tssPlanned).toBe(80);
     expect(rows[0].tssActual).toBe(92);
     expect(rows[0].tssRatioPct).toBe(115);
@@ -64,14 +64,14 @@ describe("buildDoneRows", () => {
   it("liefert tssRatioPct=null ohne Plan-TSS", () => {
     const c = card({ id: "a", tssPlanned: null });
     const r = ride({ tss: 92 });
-    const rows = buildDoneRows([c], new Map([["a", r]]), false);
+    const rows = buildDoneRows([c], new Map([["a", r]]), "athlete1", 200);
     expect(rows[0].tssRatioPct).toBeNull();
   });
 
   it("unterdrückt Plan-TSS + Soll/Ist-Verhältnis bei Test-Karten (FTP-Test hat nur eine Platzhalter-Plan-TSS)", () => {
     const c = card({ id: "a", typ: "FTP-Test", tssPlanned: 8 });
     const r = ride({ tss: 44 });
-    const rows = buildDoneRows([c], new Map([["a", r]]), false);
+    const rows = buildDoneRows([c], new Map([["a", r]]), "athlete1", 200);
     expect(rows[0].tssPlanned).toBeNull();
     expect(rows[0].tssRatioPct).toBeNull();
     expect(rows[0].tssActual).toBe(44);
@@ -79,7 +79,7 @@ describe("buildDoneRows", () => {
 
   it("markiert eine Zeile ohne gematchte Ist-Fahrt als nicht aufklappbar, mit Dash-Feldern", () => {
     const c = card({ id: "a", tssPlanned: 80 });
-    const rows = buildDoneRows([c], new Map(), false);
+    const rows = buildDoneRows([c], new Map(), "athlete1", 200);
     expect(rows[0].ride).toBeNull();
     expect(rows[0].expandable).toBe(false);
     expect(rows[0].durationActual).toBe("–");
@@ -90,7 +90,7 @@ describe("buildDoneRows", () => {
   it("liefert die sichtbare Compliance-Ampel nur bei Match auf GENAU diese Karte", () => {
     const c = card({ id: "a", workoutStructure: null });
     const r = ride({ compliance: compliance({ matchedCardId: "a", rating: "yellow" }) });
-    const rows = buildDoneRows([c], new Map([["a", r]]), false);
+    const rows = buildDoneRows([c], new Map([["a", r]]), "athlete1", 200);
     expect(rows[0].compliance?.rating).toBe("yellow");
     expect(rows[0].expandable).toBe(true);
   });
@@ -98,7 +98,7 @@ describe("buildDoneRows", () => {
   it("liefert compliance=null, wenn die Ampel auf eine andere Karte gematcht ist", () => {
     const c = card({ id: "a" });
     const r = ride({ compliance: compliance({ matchedCardId: "other" }) });
-    const rows = buildDoneRows([c], new Map([["a", r]]), false);
+    const rows = buildDoneRows([c], new Map([["a", r]]), "athlete1", 200);
     expect(rows[0].compliance).toBeNull();
   });
 });

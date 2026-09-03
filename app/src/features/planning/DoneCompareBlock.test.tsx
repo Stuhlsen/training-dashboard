@@ -35,14 +35,14 @@ function ride(overrides: Partial<Ride> = {}): Ride {
 
 describe("DoneCompareBlock", () => {
   it("zeigt die Typ-Abweichung des 06.08.-Falls (Schwelle geplant, Z2 Lang gefahren)", () => {
-    render(<DoneCompareBlock card={card({ typ: "Schwelle", km: 60 })} ride={ride({ typ: "Z2 Lang", km: 86 })} canEdit={false} />);
+    render(<DoneCompareBlock card={card({ typ: "Schwelle", km: 60 })} ride={ride({ typ: "Z2 Lang", km: 86 })} athleteId="athlete1" ftp={200} />);
     screen.getByText("Geplant → Tatsächlich");
     screen.getByText("Schwelle");
     screen.getByText("Z2 Lang");
   });
 
   it("rendert nichts ohne jegliche Ist-Werte", () => {
-    const { container } = render(<DoneCompareBlock card={card()} ride={ride()} canEdit={false} />);
+    const { container } = render(<DoneCompareBlock card={card()} ride={ride()} athleteId="athlete1" ftp={200} />);
     expect(container.firstChild).toBeNull();
   });
 });
