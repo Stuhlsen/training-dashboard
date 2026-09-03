@@ -8,121 +8,64 @@
 
 ## Planungstab / Progressionssteuerung
 
-- **„Plan verschieben…" (Migration 0026) — Restkanten der Bulk-Shift-Lösung**
-  (Punkt 1 der 6-Punkte-Liste, 03.09.2026). `plan_offset_weeks` ist die
-  Quelle der Wahrheit; beim Ändern werden alle künftigen `plan_cards`
-  einmalig umdatiert und die Sync-Vorlage (`shiftPlannedSessions4`) zieht
-  mit. Drei bewusst offen gelassene Kanten:
-  - **Nur nach hinten** („später starten", positives N). Eine
-    Rückwärts-Verschiebung würde verschobene Vorlagen-Datumsschlüssel mit
-    unverschobenen kollidieren lassen (feste Wochentags-Slots) — der Dialog
-    bietet sie nicht an, `planShiftPatches` hat trotzdem einen defensiven
-    „vor heute"-Guard.
-  - **Sync-Baseline ↔ plan_cards divergieren an den Rändern.** Zwei
-    Ursachen, beide „Phantom-Geplant/verpasst" in Compliance/Hero für ein
-    paar Einträge:
-    (a) `shiftPlannedSessions4` nimmt das Sync-Laufdatum als „nur ab hier
-    verschieben"-Grenze, nicht das (nirgends gespeicherte) Datum, an dem der
-    Athlet verschoben hat — zwischen Verschiebe- und späterem Sync-Lauf
-    bleiben Vorlagen-Einträge auf dem alten Datum stehen, während die Karte
-    schon verschoben ist. (b) `planShiftPatches` überspringt ausgefallene
-    Karten (bleiben am alten Datum), `shiftPlannedSessions4` verschiebt den
-    Slot trotzdem. Sauberer Fix für beides: `plan_offset_anchor_date`
-    mitspeichern und den Karten-Ausfall-Status in die Vorlage spiegeln — für
-    den einen Einsteiger-Athleten bewusst zurückgestellt.
-  - **Teil-Fehlschlag beim Massen-Shift.** Offset wird zuerst geschrieben,
-    dann die ~48 Karten sequenziell. Bricht eine spätere Karte ab, bleibt
-    der Offset stehen; der Dialog sperrt sich dann (kein erneuter Versuch,
-    der die schon bewegten Karten doppelt schöbe), der Rest ist von Hand
-    per Ziehen nachzuziehen. Atomar wäre nur mit einer Supabase-RPC.
-  - **Einzel-Drag im ersten Render-Fenster.** `useMovePlanCard`/
-    `useUndoAdjustment` lesen den Offset über `useAthletePlanOffset`, das
-    bis zur ersten `profiles_visible`-Antwort `0` liefert. Ein Drag in
-    diesen ~ms nach kaltem Laden schreibt ein week/phase-Label aus dem
-    unverschobenen Modell (Datum korrekt, Label evtl. eine Phase daneben).
+- **„Plan verschieben…" (Migration 0026) — vier bewusst offen gelassene
+  Restkanten** (6-Punkte-Liste Punkt 1, 03.09.2026), alle für den einen
+  Einsteiger-Athleten zurückgestellt:
+  - Nur Verschiebung nach hinten (positives N) — rückwärts kollidieren die
+    festen Wochentags-Slots.
+  - Sync-Baseline ↔ `plan_cards` divergieren an den Rändern → „Phantom-
+    Geplant/verpasst" für wenige Einträge. Fix: `plan_offset_anchor_date`
+    speichern + Karten-Ausfall-Status in die Vorlage (`shiftPlannedSessions4`)
+    spiegeln.
+  - Teil-Fehlschlag beim Massen-Shift lässt den Offset stehen; atomar nur
+    per Supabase-RPC.
+  - Einzel-Drag im ersten Render-Fenster schreibt evtl. ein Phasen-Label aus
+    dem noch unverschobenen Modell (`useAthletePlanOffset` liefert bis zur
+    ersten Antwort `0`).
 
-- **Drag & Drop v1** — kein Tastatur-Verschieben per Drag-Geste. Ersatzweg
-  existiert bereits (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld →
-  Speichern, voll tastaturbedienbar), nur langsamer als Ziehen. Kein akuter
-  A11y-Ausfall (geprüft 26.08.2026).
+- **Kein Tastatur-Verschieben per Drag-Geste** — Ersatzweg (Karte öffnen →
+  `PlanCardForm.tsx`-Datumsfeld) ist voll tastaturbedienbar, nur langsamer.
+  Kein akuter A11y-Ausfall.
 
-- **Kein Self-Service zum Erstellen eines neuen Trainingsplans** — jeder Plan
-  ist Code: `scripts/lib/plan2.js` (Athlet 1, Plan 2), `scripts/lib/plan-athlete2.js`
-  (Athlet 2, GFNY Bremen 2026), `scripts/lib/plan-athlete4.js` (Athlet 4,
-  Einsteigervorlage). Es gibt keinen Weg für einen Athleten, nach Abschluss
-  eines Plans (Athlet 2 nach GFNY, 30.08.2026) einen neuen anzulegen. Der
-  Planungstab kann bestehende `plan_cards` verschieben/ausfallen lassen/pushen
-  und (sobald gebaut) mit „Plan um X Wochen verschieben" die generierte
-  Baseline verschieben, aber keine Plan-Struktur neu aufbauen.
-  - **Bevorzugter Weg (zurückgestellt, eigener Fahrplan):** Plan-Vorlagen-
-    System. Wenige generierte, parametrisierte Vorlagen nach dem Muster von
-    `plan-athlete4.js::PLANNED_SESSIONS_ATHLETE4` (deterministisch aus
-    `START_MONDAY` + `weekPlan(i)`), Parameter: Startdatum, Wochenzahl,
-    Ziel-Event, Einheiten/Woche, ggf. Grund-FTP. Athlet wählt Vorlage +
-    Parameter in einem neuen „Neuer Plan"-Flow → Sync erzeugt die Baseline →
-    danach normal über `plan_cards` (RLS) editierbar. Braucht: eine Tabelle
-    für die Vorlagen-Auswahl je Athlet (analog `athlete_sync_config`), einen
-    Vorlagen-Generator in `scripts/lib/` je Vorlagentyp,
-    `generate-data.js`-Verdrahtung (Baseline-Spread wie bei Athlet 4), UI im
-    Settings- oder Planungstab, Migration.
-  - **Verworfen:** voller Plan-Baukasten in der UI (Athlet legt Wochen/Einheiten
-    einzeln als `plan_cards` an, keine Baseline). Maximal flexibel, aber
-    größter Aufwand und verliert die strukturierte Aufbau-/Periodisierungs-
-    Logik, die in den Code-Plänen steckt.
-  - **Zwischenlösung bis dahin:** neuer Vorlagen-Block für Athlet 2 direkt im
-    Code, wie die bestehenden Pläne (z.B. Post-Race-Grundlagenblock).
-  - Ursprung: Anfrage Alex 03.09.2026 (6-Punkte-Liste, Punkt 2), bewusst auf
-    einen eigenen Tag/Fahrplan verschoben.
+- **Kein Self-Service für einen neuen Trainingsplan** — Pläne sind Code
+  (`scripts/lib/plan2.js` / `plan-athlete2.js` / `plan-athlete4.js`); nach
+  Plan-Ende kann ein Athlet keinen neuen anlegen. Bevorzugter Weg: Plan-
+  Vorlagen-System (parametrisierte Generatoren + Auswahl-Tabelle + „Neuer
+  Plan"-Flow), eigener Fahrplan. Zwischenlösung: neuer Vorlagen-Block für
+  Athlet 2 direkt im Code. (6-Punkte-Liste Punkt 2, 03.09.2026.)
 
 ## Sync-Pipeline (`scripts/`)
 
-- **K3-Typ-Defaults nicht auf Basis der FTP-Historie neu abgeleitet** —
-  braucht mindestens einen echten Ramp-Test-Eintrag pro Athlet in
-  `ftp_history` (aktuell leer). `app/src/sports/cycling/session-types.ts`.
-
-- **Lesedaten (`rides.json`/`adjustments*.json`) als statische Dateien statt
-  Supabase-Tabelle — durch DKR2-Produktivrollout abgedeckt, Tabellen-Weg
-  bewusst nicht umgesetzt.** Der Sync läuft seit 30.08.2026 produktiv als
-  Container auf apps01 und schreibt `data/*.json` atomar in das mit dem
-  Frontend geteilte Volume — kein Commit+Poll-Umweg, kein Staleness-Fenster
-  mehr (Issue #31, `docs/fahrplan-3-sync-produktivbetrieb.md`, Fenster A–D).
-  Die früher hier als „langfristig sauberer" notierte eigene Tabelle + RLS für
-  die Lesedaten wird nicht weiterverfolgt: dasselbe Ziel ohne neues Schema,
-  neue RLS-Fläche und Frontend-Umbau in `app/src/api/pipeline.ts`.
-  → Datenquellen-Mix in `AGENTS.md`.
+- **K3-Typ-Defaults nicht aus der FTP-Historie neu abgeleitet** — braucht je
+  Athlet einen echten Ramp-Test-Eintrag in `ftp_history` (aktuell leer).
+  `app/src/sports/cycling/session-types.ts`.
 
 ## Explorer / Charts
 
-- **Alle Chart-Komponenten rechnen indexbasiert** (`makeIndexScale`), nicht
-  als kontinuierliche Zeitachse — bei Athlet 2 (dünne Datenlage) würden
-  Datenlücken sonst sichtbar. Bewusster Nicht-Zielpunkt, Voraussetzung für
+- **Charts rechnen indexbasiert**, nicht als kontinuierliche Zeitachse —
+  bewusst (sonst sichtbare Datenlücken bei Athlet 2), aber Voraussetzung für
   Cursor-Sync über den Explorer hinaus. `app/src/core/chart-scale.js`.
-- **Vergleichsmodus vergleicht nur CTL**, nicht ATL/TSB — bewusste
-  Scope-Begrenzung. `app/src/charts/CompareChart.tsx`.
-- **`compareSlots` ein Einzelwert, keine Liste** — additiv statt Umbau,
-  bewusste Entscheidung. `app/src/api/hooks/useExplorerCompare.ts`.
+- **Vergleichsmodus nur CTL**, nicht ATL/TSB — bewusste Scope-Begrenzung.
+  `app/src/charts/CompareChart.tsx`.
+- **`compareSlots` ein Einzelwert, keine Liste** — additiv statt Umbau.
+  `app/src/api/hooks/useExplorerCompare.ts`.
 
 ## Settings
 
-- **Zwei-Faktor-Login noch nicht scharf geschaltet** — der TOTP-Faktor wird
-  in `TwoFactorSection.tsx` echt bei Supabase eingerichtet/verwaltet, aber
-  `LoginPage.tsx`/`ProtectedRoute.tsx`/`AuthContext.tsx` fragen ihn beim
-  Login noch nicht ab (kein AAL-Check). Bewusste Entscheidung Alex
-  (Settings-Redesign) gegen das Risiko, sich selbst auszusperren — ein
-  späterer Schritt für sich.
-- **"Aktive Sitzungen" ist Platzhalter** — eine Liste eigener Geräte
-  bräuchte die Supabase Admin-API (service_role), die nie clientseitig
-  laufen darf. `SessionsSection.tsx`.
-- **Echte E-Mail-Benachrichtigungen sind Platzhalter** — es gibt im Projekt
-  keine E-Mail-Versand-Infrastruktur (kein SMTP/Provider, kein
-  Edge-Function-Cron außer dem 6h-Datensync). `NotificationsSection.tsx`.
-- **Trainer-Verknüpfung nur read-only** — `CoachLinkSection.tsx` zeigt den
-  verknüpften Trainer an, ein Self-Service-"Verknüpfen" bräuchte einen
-  eigenen Einladungs-/Bestätigungsablauf (Coach muss zustimmen), noch nicht
-  gebaut.
+- **Zwei-Faktor-Login nicht scharf** — TOTP wird eingerichtet
+  (`TwoFactorSection.tsx`), aber beim Login nicht abgefragt (kein AAL-Check
+  in `LoginPage.tsx` / `ProtectedRoute.tsx` / `AuthContext.tsx`). Bewusst
+  zurückgestellt (Aussperr-Risiko).
+- **„Aktive Sitzungen" ist Platzhalter** — bräuchte die Supabase Admin-API
+  (service_role), die nie im Client laufen darf. `SessionsSection.tsx`.
+- **E-Mail-Benachrichtigungen sind Platzhalter** — keine
+  Mail-Infrastruktur im Projekt. `NotificationsSection.tsx`.
+- **Trainer-Verknüpfung nur read-only** — Self-Service bräuchte einen
+  Einladungs-/Bestätigungsablauf (Coach muss zustimmen).
+  `CoachLinkSection.tsx`.
 
 ## Sonstiges
 
-- **`sport`-Spalte bewusst noch nicht in der Datenbank** — additiv
-  nachrüstbar, sobald eine zweite Sportart echte Daten hat (Fahrplan 4).
-  Bis dahin sind `plan_cards`/`events`/`proposals` implizit Radsport.
+- **`sport`-Spalte noch nicht in der DB** — additiv nachrüstbar, sobald eine
+  zweite Sportart echte Daten hat (Fahrplan 4); `plan_cards` / `events` /
+  `proposals` sind bis dahin implizit Radsport.
