@@ -41,18 +41,6 @@
     diesen ~ms nach kaltem Laden schreibt ein week/phase-Label aus dem
     unverschobenen Modell (Datum korrekt, Label evtl. eine Phase daneben).
 
-- **Ziel-Overlay im Done-Detail-Chart ist ein flaches Band** — der
-  Intervall-Zweig von `DoneDetailChart.tsx` legt die Ziel-Watt-Spanne
-  (`targetBandFromCompliance()`, min–max über `compliance.matched`) als
-  waagerechtes Band hinter die echte Sekunden-Watt-Kurve. Die genauere
-  gestufte, zeit-ausgerichtete Ziel-Linie (Warmup niedrig → Intervall hoch →
-  Pause niedrig …) ist **datenseitig nicht mehr blockiert**: seit „Geplant →
-  Tatsächlich Variante B" (6-Punkte-Liste, Punkt 6) gibt `ComplianceInterval`
-  (`app/src/types.js`) je Intervall `startSec`/`endSec` mit. Offen ist nur noch
-  die eigentliche gestufte Chart-Zeichnung in `DoneDetailChart.tsx` /
-  `noise-trace-chart-view-model.ts` (Watt-Kurve + zeit-ausgerichtete
-  Stufenlinie statt waagerechtem Band).
-
 - **Drag & Drop v1** (geprüft 26.08.2026, zwei separate Punkte):
   - Kein Tastatur-Verschieben per Drag-Geste — Ersatzweg existiert bereits
     (Karte öffnen → `PlanCardForm.tsx`-Datumsfeld → Speichern, voll

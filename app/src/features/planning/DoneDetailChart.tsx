@@ -3,9 +3,11 @@ import { complianceRuleText, visibleCompliance } from "./planning-view-model";
 import {
   fallbackIntervalRows,
   targetBandFromCompliance,
+  targetProfileFromCard,
   zoneMixFromRide,
   type FallbackIntervalRow,
   type TargetBand,
+  type TargetProfile,
   type ZoneMixSegment,
 } from "./done-detail-chart-view-model";
 import { buildNoiseTrace, type NoiseTrace } from "./noise-trace-chart-view-model";
@@ -20,6 +22,10 @@ interface DoneDetailChartProps extends DoneTableRow {
   /** `null`/`undefined` ohne hinterlegte intervals.icu-Zugangsdaten — der
    *  Rausch-Chart bleibt dann einfach aus (kein Blocker, kein Popup). */
   intervalsCredentials?: IntervalsCredentials | null;
+  /** Aktuelle FTP des Athleten — speist die zeit-ausgerichtete Ziel-Treppe
+   *  (Umrechnung `%FTP` → Watt). Ohne FTP (z.B. Athlet 4) fällt der
+   *  Intervall-Zweig aufs flache Ziel-Watt-Band zurück. */
+  ftp?: number | null;
 }
 
 /** Aufklappbarer Detail-Chart der Done-Tabelle — zwei Zweige:
@@ -36,20 +42,25 @@ interface DoneDetailChartProps extends DoneTableRow {
  *
  *  `null` bei fehlenden Daten (kein Chart statt Fehler) — spiegelt das
  *  renderChart-Slot-Muster aus WeekGrid.tsx. */
-export function DoneDetailChart({ card, ride, intervalsCredentials }: DoneDetailChartProps) {
+export function DoneDetailChart({ card, ride, intervalsCredentials, ftp }: DoneDetailChartProps) {
   if (!ride) return null;
   const compliance = visibleCompliance(ride, card.id);
   const credentials = intervalsCredentials ?? null;
   const isInterval = !!compliance && compliance.matched.length > 0;
 
   if (isInterval) {
-    const targetBand = targetBandFromCompliance(compliance);
+    // Bevorzugt die volle geplante Phasenfolge als zeit-ausgerichtete
+    // Treppe; ohne FTP / ohne workout_structure bleibt das flache
+    // Compliance-Band als Rückfall.
+    const targetProfile = targetProfileFromCard(card, ftp);
+    const targetBand = targetProfile ? null : targetBandFromCompliance(compliance);
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
         <IntervalTopBlock
           activityId={ride.activityId}
           credentials={credentials}
           targetBand={targetBand}
+          targetProfile={targetProfile}
           compliance={compliance!}
         />
         <RatingLine compliance={compliance!} />
@@ -78,11 +89,13 @@ function IntervalTopBlock({
   activityId,
   credentials,
   targetBand,
+  targetProfile,
   compliance,
 }: {
   activityId: string | null | undefined;
   credentials: IntervalsCredentials | null;
   targetBand: TargetBand | null;
+  targetProfile: TargetProfile | null;
   compliance: NonNullable<ReturnType<typeof visibleCompliance>>;
 }) {
   const { streams, isLoading } = useActivityStreams(activityId, credentials);
@@ -90,9 +103,12 @@ function IntervalTopBlock({
     return <div style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>Lädt Rohdaten …</div>;
   }
 
-  const trace = buildNoiseTrace(streams, targetBand ? { targetBand } : {});
+  const trace = buildNoiseTrace(
+    streams,
+    targetProfile ? { targetProfile } : targetBand ? { targetBand } : {},
+  );
   if (trace && (trace.watts.length > 0 || trace.heartrate.length > 0)) {
-    return <NoiseTraceChart trace={trace} targetBand={targetBand} />;
+    return <NoiseTraceChart trace={trace} targetBand={targetBand} hasTargetProfile={!!targetProfile} />;
   }
   return <IntervalFallbackList rows={fallbackIntervalRows(compliance)} />;
 }
@@ -178,26 +194,47 @@ function points(pts: { xPct: number; yPct: number }[]): string {
   return pts.map((p) => `${p.xPct},${100 - p.yPct}`).join(" ");
 }
 
+/** Einen zusammenhängenden Treppen-Lauf in Polyline-Punkte übersetzen — je
+ *  Phase Anfangs- und Endpunkt auf gleicher Höhe; die senkrechten Stufen
+ *  zwischen zeitlich anschließenden Phasen entstehen von selbst. */
+function stepRunPoints(run: { xStartPct: number; xEndPct: number; yPct: number }[]): string {
+  return run.flatMap((s) => [`${s.xStartPct},${100 - s.yPct}`, `${s.xEndPct},${100 - s.yPct}`]).join(" ");
+}
+
 function targetBandLabel(band: TargetBand): string {
   return band.lowW === band.highW ? `Ziel ${band.lowW} W` : `Ziel ${band.lowW}–${band.highW} W`;
 }
 
 /** Echter Sekunden-Verlauf (Watt/Puls) als zwei überlagerte Trace-Linien.
- *  Mit `targetBand` (+ `trace.band` von buildNoiseTrace) liegt zusätzlich das
- *  getönte Ziel-Watt-Band HINTER den Linien, auf derselben Watt-Skala wie
- *  die Watt-Kurve. Ohne Band: Watt/Puls je auf ihre eigene Min/Max-Spanne
- *  normiert (kein gemeinsamer Achsenmaßstab, s. Kopfkommentar
- *  noise-trace-chart-view-model.ts). Fehlt eine Linie (z.B. kein Power
- *  Meter), wird nur die andere gezeichnet. */
-function NoiseTraceChart({ trace, targetBand }: { trace: NoiseTrace; targetBand: TargetBand | null }) {
+ *  Mit `hasTargetProfile` (+ `trace.stepRuns`) liegt zusätzlich die zeit-
+ *  ausgerichtete Ziel-Treppe (gestrichelt = geplant) auf derselben Watt-
+ *  Skala wie die durchgezogene Ist-Watt-Kurve. Mit `targetBand`
+ *  (+ `trace.band`) stattdessen das flache getönte Ziel-Watt-Band (Rückfall
+ *  ohne FTP / ohne workout_structure). Ohne beides: Watt/Puls je auf ihre
+ *  eigene Min/Max-Spanne normiert (kein gemeinsamer Achsenmaßstab, s.
+ *  Kopfkommentar noise-trace-chart-view-model.ts). Fehlt eine Linie (z.B.
+ *  kein Power Meter), wird nur die andere gezeichnet. */
+function NoiseTraceChart({
+  trace,
+  targetBand,
+  hasTargetProfile = false,
+}: {
+  trace: NoiseTrace;
+  targetBand: TargetBand | null;
+  hasTargetProfile?: boolean;
+}) {
   if (!trace.watts.length && !trace.heartrate.length) return null;
   const band = trace.band;
+  const stepRuns = trace.stepRuns;
+  const heading = hasTargetProfile
+    ? "Leistung — Soll-Profil vs. gefahren"
+    : targetBand
+      ? "Leistung — Soll-Band vs. gefahren"
+      : "Verlauf — Watt/Puls";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-      <div style={{ fontSize: ".76rem", fontWeight: 600, color: "var(--ink-2)" }}>
-        {targetBand ? "Leistung — Soll-Band vs. gefahren" : "Verlauf — Watt/Puls"}
-      </div>
+      <div style={{ fontSize: ".76rem", fontWeight: 600, color: "var(--ink-2)" }}>{heading}</div>
       <svg
         viewBox={`0 0 100 100`}
         preserveAspectRatio="none"
@@ -213,6 +250,18 @@ function NoiseTraceChart({ trace, targetBand }: { trace: NoiseTrace; targetBand:
             opacity={0.14}
           />
         )}
+        {stepRuns?.map((run, i) => (
+          <polyline
+            key={i}
+            points={stepRunPoints(run)}
+            fill="none"
+            stroke="var(--ss)"
+            strokeWidth={1.25}
+            strokeDasharray="3 2"
+            opacity={0.65}
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
         {trace.watts.length > 0 && (
           <polyline points={points(trace.watts)} fill="none" stroke="var(--ss)" strokeWidth={1.5} vectorEffect="non-scaling-stroke" />
         )}
@@ -221,7 +270,16 @@ function NoiseTraceChart({ trace, targetBand }: { trace: NoiseTrace; targetBand:
         )}
       </svg>
       <div style={{ display: "flex", gap: 14, flexWrap: "wrap", fontSize: ".72rem", color: "var(--ink-3)" }}>
-        {targetBand && (
+        {hasTargetProfile && (
+          <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+            <span
+              aria-hidden="true"
+              style={{ width: 10, height: 0, borderTop: "1.5px dashed var(--ss)", display: "inline-block" }}
+            />
+            Ziel-Profil (geplant)
+          </span>
+        )}
+        {!hasTargetProfile && targetBand && (
           <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
             <span aria-hidden="true" style={{ width: 10, height: 8, background: "var(--ss)", opacity: 0.3, display: "inline-block" }} />
             {targetBandLabel(targetBand)}

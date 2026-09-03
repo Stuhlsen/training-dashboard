@@ -24,6 +24,15 @@ export interface NoiseTracePoint {
   yPct: number;
 }
 
+/** Ein Treppen-Segment der Ziel-Linie: waagerechte Strecke auf Ziel-Watt-
+ *  Höhe (`yPct`, gleiche absolute Watt-Skala wie `watts`, 0 = unten) von
+ *  `xStartPct` bis `xEndPct`. */
+export interface NoiseTraceStep {
+  xStartPct: number;
+  xEndPct: number;
+  yPct: number;
+}
+
 export interface NoiseTrace {
   watts: NoiseTracePoint[];
   heartrate: NoiseTracePoint[];
@@ -36,6 +45,13 @@ export interface NoiseTrace {
    *  Watt-Kurve (0–100 %, 0 = unten), damit sie im selben Maßstab
    *  übereinanderliegen. */
   band?: { yLowPct: number; yHighPct: number };
+  /** Nur mit `opts.targetProfile`: die zeit-ausgerichtete Ziel-Treppe als
+   *  Folge zusammenhängender Läufe (jeder Lauf eine ununterbrochene
+   *  Segmentkette; ein neuer Lauf beginnt nach einer Phase ohne Ziel-Watt,
+   *  z.B. all-out Sprint). Watt-Kurve UND Treppe teilen sich hier dieselbe
+   *  absolute Watt-Skala; x ist an die ECHTE Fahrtlänge gelegt — endet der
+   *  Plan früher, endet die Treppe vor dem rechten Rand. */
+  stepRuns?: NoiseTraceStep[][];
 }
 
 export interface BuildNoiseTraceOpts {
@@ -44,6 +60,13 @@ export interface BuildNoiseTraceOpts {
    *  Maßstab. Ohne diese Option bleibt das bisherige Verhalten (Watt-Kurve
    *  auf ihre eigene Min/Max-Spanne normiert, kein `band` im Ergebnis). */
   targetBand?: { lowW: number; highW: number };
+  /** Wenn gesetzt (hat Vorrang vor `targetBand`): die volle geplante
+   *  Phasenfolge (Warmup → Work → Pause → … → Cooldown) in Watt. Ergibt
+   *  `stepRuns` — die zeit-ausgerichtete Ziel-Treppe — und legt die Watt-
+   *  Kurve auf die gemeinsame absolute Skala (Min/Max inkl. aller Ziel-Watt).
+   *  Phasen mit `watts: null` (ohne relative Intensität) lassen eine Lücke
+   *  in der Treppe, verschieben die Zeitachse aber korrekt weiter. */
+  targetProfile?: { phases: Array<{ watts: number | null; durationS: number }>; totalS: number };
 }
 
 function average(values: Array<number | null | undefined>): number | null {
@@ -106,7 +129,14 @@ function toPoints(buckets: Array<number | null>): NoiseTracePoint[] {
  *  Mit `opts.targetBand` wird die Watt-Kurve auf einer absoluten Skala
  *  (Min/Max der Kurve UND der Bandkanten) gezeichnet und `band` mit den
  *  y-Positionen der Bandkanten auf derselben Skala zurückgegeben — so kann
- *  die Komponente das Zielband maßstabsgetreu hinter die Kurve legen. */
+ *  die Komponente das Zielband maßstabsgetreu hinter die Kurve legen.
+ *
+ *  Mit `opts.targetProfile` (Vorrang vor `targetBand`) entsteht statt des
+ *  flachen Bands die zeit-ausgerichtete Ziel-Treppe (`stepRuns`): jede
+ *  geplante Phase eine waagerechte Strecke auf ihrer Ziel-Watt-Höhe, x an
+ *  die echte Fahrtlänge gelegt (Plan kürzer → Treppe endet vor dem Rand,
+ *  Plan länger → am rechten Rand abgeschnitten). Die Watt-Kurve liegt auf
+ *  derselben absoluten Skala (Min/Max inkl. aller Ziel-Watt). */
 export function buildNoiseTrace(
   streams: ActivityStreams | null | undefined,
   opts: BuildNoiseTraceOpts = {},
@@ -127,9 +157,41 @@ export function buildNoiseTrace(
     maxHr: max(streams.heartrate),
   };
 
+  const present = wattsBuckets.filter((v): v is number => v != null);
+  const profile = opts.targetProfile;
+  const profileWatts = profile
+    ? profile.phases.map((p) => p.watts).filter((w): w is number => w != null)
+    : [];
   const band = opts.targetBand;
-  if (band) {
-    const present = wattsBuckets.filter((v): v is number => v != null);
+
+  if (profile && profile.totalS > 0 && profileWatts.length) {
+    const lo = Math.min(...profileWatts, ...(present.length ? present : profileWatts));
+    const hi = Math.max(...profileWatts, ...(present.length ? present : profileWatts));
+    const range = hi - lo || 1;
+    trace.watts = toPointsOnScale(wattsBuckets, lo, hi);
+
+    const rideSpanS = (streams.time[streams.time.length - 1] - streams.time[0]) || 1;
+    const yOf = (w: number) => ((w - lo) / range) * 100;
+    const xOf = (sec: number) => Math.max(0, Math.min(100, (sec / rideSpanS) * 100));
+
+    const runs: NoiseTraceStep[][] = [];
+    let currentRun: NoiseTraceStep[] = [];
+    let cursorS = 0;
+    for (const phase of profile.phases) {
+      const startS = cursorS;
+      cursorS += phase.durationS;
+      if (phase.watts == null) {
+        // Phase ohne Ziel-Watt (all-out): Uhr läuft weiter, Lauf bricht ab.
+        if (currentRun.length) runs.push(currentRun);
+        currentRun = [];
+        continue;
+      }
+      if (startS >= rideSpanS) break; // liegt ganz rechts außerhalb der Fahrt
+      currentRun.push({ xStartPct: xOf(startS), xEndPct: xOf(cursorS), yPct: yOf(phase.watts) });
+    }
+    if (currentRun.length) runs.push(currentRun);
+    if (runs.length) trace.stepRuns = runs;
+  } else if (band) {
     const lo = Math.min(band.lowW, ...(present.length ? present : [band.lowW]));
     const hi = Math.max(band.highW, ...(present.length ? present : [band.highW]));
     const range = hi - lo || 1;

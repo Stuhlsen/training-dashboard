@@ -92,6 +92,74 @@ function expandStep(step) {
   return instances;
 }
 
+/** Eine Dauer-Phase roh in `{durationS, pct}` übersetzen — anders als
+ *  `phaseInstance` bleibt eine Phase OHNE relative Intensität (target:"max"
+ *  oder fehlendes `target_pct_ftp`) erhalten, mit `pct: null`. `null` nur,
+ *  wenn gar keine verwertbare Dauer da ist. @returns {{durationS:number, pct:number|null}|null} */
+function rawPhase(phase) {
+  if (!phase || typeof phase !== "object") return null;
+  const durationS = numOrNull(phase.duration_s);
+  if (!durationS || durationS <= 0) return null;
+  const pct = phase.target === "max" ? null : numOrNull(phase.target_pct_ftp);
+  return { durationS, pct };
+}
+
+/**
+ * Faltet eine workout_structure in die geordnete Phasenfolge auf, so wie sie
+ * zeitlich abläuft (reps/cycles ausmultipliziert, Reihenfolge erhalten).
+ * Anders als computeWorkoutSummary bleibt JEDE Phase mit ihrer Dauer stehen,
+ * auch die ohne relative Intensität (target:"max"/unplausibel → `pct: null`) —
+ * damit eine zeitachsentreue Ziel-Linie (Done-Detail-Chart, s.
+ * docs/offene-punkte.md) keine Lücke in der Uhr bekommt, sondern nur an der
+ * betreffenden Stelle keinen Wert zeichnet.
+ * @param {{steps?: Array<unknown>}|null|undefined} structure
+ * @returns {Array<{durationS: number, pct: number|null}>}
+ */
+export function expandWorkoutPhases(structure) {
+  const steps = Array.isArray(structure?.steps) ? structure.steps : [];
+  const out = [];
+
+  for (const step of steps) {
+    if (!step || typeof step !== "object") continue;
+    const kind = step.kind;
+
+    if (kind === "warmup" || kind === "cooldown" || kind === "steady") {
+      const p = rawPhase(step);
+      if (p) out.push(p);
+      continue;
+    }
+
+    const reps = Number.isInteger(step.reps) && step.reps > 0 ? step.reps : 0;
+
+    if (kind === "set" || kind === "accessory") {
+      const work = rawPhase(step.work);
+      const recovery = rawPhase(step.recovery);
+      for (let i = 0; i < reps; i++) {
+        if (work) out.push({ ...work });
+        if (recovery) out.push({ ...recovery });
+      }
+      continue;
+    }
+
+    if (kind === "alternating") {
+      const cycles = Number.isInteger(step.cycles) && step.cycles > 0 ? step.cycles : 0;
+      const over = rawPhase(step.over);
+      const under = rawPhase(step.under);
+      const recovery = rawPhase(step.recovery);
+      for (let r = 0; r < reps; r++) {
+        for (let c = 0; c < cycles; c++) {
+          if (over) out.push({ ...over });
+          if (under) out.push({ ...under });
+        }
+        if (recovery) out.push({ ...recovery });
+      }
+      continue;
+    }
+  }
+
+  return out;
+}
+
 function zoneIdForPct(pct) {
   const frac = pct / 100;
   for (let i = 0; i < COGGAN_ZONE_UPPER_PCT.length; i++) {

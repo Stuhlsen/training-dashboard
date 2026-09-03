@@ -507,7 +507,9 @@ export function PlanningPage() {
               gaps={gaps}
               athleteId={activeAthleteId}
               ftp={ftp ?? null}
-              renderChart={(row) => <DoneDetailChart {...row} intervalsCredentials={intervalsCredentials} />}
+              renderChart={(row) => (
+                <DoneDetailChart {...row} intervalsCredentials={intervalsCredentials} ftp={ftp ?? null} />
+              )}
             />
           </div>
         </>

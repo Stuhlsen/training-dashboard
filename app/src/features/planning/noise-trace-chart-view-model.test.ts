@@ -92,4 +92,99 @@ describe("buildNoiseTrace", () => {
       expect(trace!.watts[0].yPct).toBe(0); // wieder eigen-normiert
     });
   });
+
+  describe("mit opts.targetProfile — zeit-ausgerichtete Ziel-Treppe", () => {
+    // Zeit 0..100 → rideSpanS = 100, xOf(sec) === sec.
+    const time100 = Array.from({ length: 101 }, (_, i) => i);
+
+    it("legt die Treppe an die echte Fahrtlänge — endet der Plan früher, endet die Treppe vor dem rechten Rand", () => {
+      const trace = buildNoiseTrace(
+        streams({ time: time100, watts: time100.map(() => 150), heartrate: [] }),
+        {
+          targetProfile: {
+            phases: [
+              { watts: 100, durationS: 20 },
+              { watts: 200, durationS: 20 },
+            ],
+            totalS: 40,
+          },
+        },
+      );
+      expect(trace!.stepRuns).toHaveLength(1);
+      expect(trace!.stepRuns![0]).toEqual([
+        { xStartPct: 0, xEndPct: 20, yPct: 0 }, // 100 W am Skalenboden (lo = 100)
+        { xStartPct: 20, xEndPct: 40, yPct: 100 }, // 200 W am Skalendach (hi = 200)
+      ]);
+    });
+
+    it("schneidet die Treppe am rechten Rand ab, wenn der Plan länger als die Fahrt ist", () => {
+      const trace = buildNoiseTrace(
+        streams({ time: time100, watts: time100.map(() => 150), heartrate: [] }),
+        {
+          targetProfile: {
+            phases: [
+              { watts: 150, durationS: 60 },
+              { watts: 150, durationS: 60 },
+              { watts: 150, durationS: 60 },
+            ],
+            totalS: 180,
+          },
+        },
+      );
+      const run = trace!.stepRuns![0];
+      expect(run).toHaveLength(2); // dritte Phase beginnt jenseits der Fahrt → fällt weg
+      expect(run[1].xEndPct).toBe(100); // zweite Phase am Rand gekappt
+    });
+
+    it("bricht den Lauf an einer Phase ohne Ziel-Watt (all-out) auf, lässt die Uhr aber weiterlaufen", () => {
+      const trace = buildNoiseTrace(
+        streams({ time: time100, watts: time100.map(() => 150), heartrate: [] }),
+        {
+          targetProfile: {
+            phases: [
+              { watts: 120, durationS: 20 },
+              { watts: null, durationS: 10 },
+              { watts: 180, durationS: 20 },
+            ],
+            totalS: 50,
+          },
+        },
+      );
+      expect(trace!.stepRuns).toHaveLength(2);
+      expect(trace!.stepRuns![0][0].xStartPct).toBe(0);
+      expect(trace!.stepRuns![1][0].xStartPct).toBe(30); // 20 + 10 Lücke — nicht 20
+    });
+
+    it("legt Watt-Kurve UND Treppe auf dieselbe absolute Skala (Min/Max inkl. aller Ziel-Watt)", () => {
+      const trace = buildNoiseTrace(streams({ time: [0, 1, 2], watts: [150, 160, 155], heartrate: [] }), {
+        targetProfile: {
+          phases: [
+            { watts: 100, durationS: 1 },
+            { watts: 200, durationS: 1 },
+          ],
+          totalS: 2,
+        },
+      });
+      // Skala 100..200 → Watt-Punkte relativ dazu, nicht mehr eigen-normiert.
+      expect(trace!.watts.map((p) => Math.round(p.yPct))).toEqual([50, 60, 55]);
+      expect(trace!.band).toBeUndefined(); // kein flaches Band mehr
+    });
+
+    it("ignoriert targetProfile ohne einzige Ziel-Watt-Phase (fällt auf eigen-normiert zurück)", () => {
+      const trace = buildNoiseTrace(streams({ time: [0, 1, 2], watts: [150, 160, 155], heartrate: [] }), {
+        targetProfile: { phases: [{ watts: null, durationS: 2 }], totalS: 2 },
+      });
+      expect(trace!.stepRuns).toBeUndefined();
+      expect(trace!.watts[0].yPct).toBe(0); // eigen-normiert
+    });
+
+    it("hat Vorrang vor targetBand, wenn beide übergeben werden", () => {
+      const trace = buildNoiseTrace(streams({ time: time100, watts: time100.map(() => 150), heartrate: [] }), {
+        targetBand: { lowW: 90, highW: 110 },
+        targetProfile: { phases: [{ watts: 200, durationS: 50 }], totalS: 50 },
+      });
+      expect(trace!.stepRuns).toHaveLength(1);
+      expect(trace!.band).toBeUndefined();
+    });
+  });
 });

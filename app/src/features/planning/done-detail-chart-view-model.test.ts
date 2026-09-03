@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { fallbackIntervalRows, targetBandFromCompliance, zoneMixFromRide } from "./done-detail-chart-view-model";
+import {
+  fallbackIntervalRows,
+  targetBandFromCompliance,
+  targetProfileFromCard,
+  zoneMixFromRide,
+} from "./done-detail-chart-view-model";
 
 type Ride = import("../../types.js").Ride;
 type RideCompliance = import("../../types.js").RideCompliance;
@@ -67,6 +72,65 @@ describe("targetBandFromCompliance — Intervall-Zweig", () => {
     expect(targetBandFromCompliance(undefined)).toBeNull();
     expect(targetBandFromCompliance(compliance([]))).toBeNull();
     expect(targetBandFromCompliance(compliance([interval({ plannedWatts: 0 })]))).toBeNull();
+  });
+});
+
+describe("targetProfileFromCard — volles geplantes Ziel-Profil", () => {
+  const structure = {
+    version: 1,
+    steps: [
+      { kind: "warmup", duration_s: 600, target_pct_ftp: 55 },
+      {
+        kind: "set",
+        reps: 2,
+        work: { duration_s: 300, target_pct_ftp: 100 },
+        recovery: { duration_s: 180, target_pct_ftp: 50 },
+      },
+      { kind: "cooldown", duration_s: 300, target_pct_ftp: 45 },
+    ],
+  };
+
+  it("rechnet jede Phase über die FTP in Watt und summiert die Gesamtdauer", () => {
+    const profile = targetProfileFromCard({ workoutStructure: structure }, 200);
+    expect(profile).not.toBeNull();
+    expect(profile!.phases).toEqual([
+      { durationS: 600, watts: 110 }, // 55% × 200
+      { durationS: 300, watts: 200 }, // 100% × 200
+      { durationS: 180, watts: 100 }, // 50% × 200
+      { durationS: 300, watts: 200 },
+      { durationS: 180, watts: 100 },
+      { durationS: 300, watts: 90 }, // 45% × 200
+    ]);
+    expect(profile!.totalS).toBe(600 + 2 * (300 + 180) + 300);
+  });
+
+  it("liefert watts=null für eine Phase ohne relative Intensität (all-out Sprint)", () => {
+    const profile = targetProfileFromCard(
+      {
+        workoutStructure: {
+          version: 1,
+          steps: [
+            { kind: "warmup", duration_s: 300, target_pct_ftp: 50 },
+            { kind: "accessory", reps: 1, work: { duration_s: 15, target: "max" }, recovery: { duration_s: 120, target_pct_ftp: 45 } },
+          ],
+        },
+      },
+      200,
+    );
+    expect(profile!.phases[1]).toEqual({ durationS: 15, watts: null });
+    expect(profile!.totalS).toBe(435);
+  });
+
+  it("liefert null ohne gültige FTP (kein Watt-Bezug → Chart nutzt das flache Band)", () => {
+    expect(targetProfileFromCard({ workoutStructure: structure }, null)).toBeNull();
+    expect(targetProfileFromCard({ workoutStructure: structure }, 0)).toBeNull();
+    expect(targetProfileFromCard({ workoutStructure: structure }, undefined)).toBeNull();
+  });
+
+  it("liefert null ohne workout_structure oder ohne Karte", () => {
+    expect(targetProfileFromCard(null, 200)).toBeNull();
+    expect(targetProfileFromCard({}, 200)).toBeNull();
+    expect(targetProfileFromCard({ workoutStructure: { version: 1, steps: [] } }, 200)).toBeNull();
   });
 });
 

@@ -155,4 +155,41 @@ describe("DoneDetailChart — Intervall-Zweig mit Streams", () => {
     screen.getByText("Soll vs. Ist je Intervall");
     expect(screen.queryByText("Leistung — Soll-Band vs. gefahren")).toBeNull();
   });
+
+  it("zeichnet mit workout_structure + FTP die zeit-ausgerichtete Ziel-Treppe statt des flachen Bands", async () => {
+    const c = card({
+      id: "a",
+      date: "2026-08-18",
+      workoutStructure: {
+        version: 1,
+        steps: [
+          { kind: "warmup", duration_s: 1, target_pct_ftp: 50 },
+          { kind: "set", reps: 1, work: { duration_s: 1, target_pct_ftp: 100 }, recovery: { duration_s: 1, target_pct_ftp: 50 } },
+        ],
+      },
+    });
+    const row = rowFor(c, ride({ activityId: "act1", compliance: compliance("a", [interval()]) }));
+    renderChart(<DoneDetailChart {...row} intervalsCredentials={{ apiKey: "k", athleteId: "i1" }} ftp={200} />);
+    await screen.findByText("Leistung — Soll-Profil vs. gefahren");
+    screen.getByText("Ziel-Profil (geplant)");
+    // Kein flaches Compliance-Band mehr, wenn das volle Profil vorliegt.
+    expect(screen.queryByText("Ziel 250 W")).toBeNull();
+    expect(screen.queryByText("Leistung — Soll-Band vs. gefahren")).toBeNull();
+  });
+
+  it("fällt ohne FTP auf das flache Ziel-Band zurück (Athlet 4)", async () => {
+    const c = card({
+      id: "a",
+      date: "2026-08-18",
+      workoutStructure: {
+        version: 1,
+        steps: [{ kind: "warmup", duration_s: 1, target_pct_ftp: 50 }],
+      },
+    });
+    const row = rowFor(c, ride({ activityId: "act1", compliance: compliance("a", [interval()]) }));
+    renderChart(<DoneDetailChart {...row} intervalsCredentials={{ apiKey: "k", athleteId: "i1" }} ftp={null} />);
+    await screen.findByText("Leistung — Soll-Band vs. gefahren");
+    screen.getByText("Ziel 250 W");
+    expect(screen.queryByText("Ziel-Profil (geplant)")).toBeNull();
+  });
 });

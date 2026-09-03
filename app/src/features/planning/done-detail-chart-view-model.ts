@@ -20,6 +20,7 @@
      Auflösung, näher am Mockup). ============================== */
 
 import { accumulateZoneBuckets, normalizeZoneTimes } from "../../core/zones.js";
+import { expandWorkoutPhases } from "../../core/workout-math.js";
 import { COGGAN_ZONE_META } from "../../sports/cycling/zones.js";
 
 type Ride = import("../../types.js").Ride;
@@ -48,6 +49,44 @@ export function targetBandFromCompliance(compliance: RideCompliance | null | und
     highW: Math.round(Math.max(...watts)),
     meanW: Math.round(watts.reduce((sum, w) => sum + w, 0) / watts.length),
   };
+}
+
+export interface TargetProfilePhase {
+  /** Ziel-Watt der Phase; `null` bei Phasen ohne relative Intensität (all-out
+   *  Sprint) — der Chart lässt dort eine Lücke, die Zeitachse läuft weiter. */
+  watts: number | null;
+  durationS: number;
+}
+
+export interface TargetProfile {
+  phases: TargetProfilePhase[];
+  /** Summe aller Phasen-Dauern (geplante Gesamtdauer, Sekunden). */
+  totalS: number;
+}
+
+/** Volles geplantes Ziel-Watt-Profil aus `card.workoutStructure` — die
+ *  komplette Phasenfolge (Warmup → Work → Pause → … → Cooldown), `%FTP` über
+ *  `ftp` in Watt umgerechnet. Basis der zeit-ausgerichteten Treppen-Linie im
+ *  DoneDetailChart (genauer als das flache targetBandFromCompliance-Band, das
+ *  nur die Arbeits-Intervalle kennt). `null` ohne gültiges `ftp` (keine
+ *  Watt-Achse möglich → Chart fällt aufs flache Band zurück) oder ohne
+ *  verwertbare Phasen (z.B. Karte ohne `workout_structure`, alte Fahrt). */
+export function targetProfileFromCard(
+  card: { workoutStructure?: unknown } | null | undefined,
+  ftp: number | null | undefined,
+): TargetProfile | null {
+  if (!card || ftp == null || !(ftp > 0)) return null;
+  // `workoutStructure` ist projektweit als `unknown` durchgereicht (WorkoutJson,
+  // s. api/types.ts) — expandWorkoutPhases geht defensiv mit beliebiger Form um.
+  const raw = expandWorkoutPhases(card.workoutStructure as { steps?: unknown[] } | null | undefined);
+  if (!raw.length) return null;
+  const phases: TargetProfilePhase[] = raw.map((p) => ({
+    durationS: p.durationS,
+    watts: p.pct == null ? null : Math.round((p.pct / 100) * ftp),
+  }));
+  const totalS = phases.reduce((sum, p) => sum + p.durationS, 0);
+  if (!totalS) return null;
+  return { phases, totalS };
 }
 
 export interface FallbackIntervalRow {
