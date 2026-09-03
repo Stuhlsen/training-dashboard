@@ -20,6 +20,7 @@ import {
   updatePlanOffsetWeeks as updatePlanOffsetWeeksAdapter,
 } from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter } from "../supabase/auth";
+import { clampPlanOffset } from "../../core/plan-shift.js";
 import { useAuthUserId } from "./useSession";
 import { qk } from "../keys";
 import { catchResult, unwrap } from "../result";
@@ -172,7 +173,7 @@ export function useUpdatePlanOffsetWeeks() {
 
   const mutation = useMutation({
     mutationFn: async (value: number) => {
-      const clamped = Math.max(-8, Math.min(12, Math.round(value || 0)));
+      const clamped = clampPlanOffset(value);
       unwrap(await updatePlanOffsetWeeksAdapter(userId!, clamped));
       return { value: clamped };
     },

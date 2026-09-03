@@ -36,14 +36,14 @@ import {
 } from "../plan-cards/patch";
 import { fetchAthleteProfileId } from "./useAthleteProfileId";
 import { useAthletePlanOffset } from "./useAthletePlanOffset";
-import { useAuthUserId, useSessionProfile } from "./useSession";
+import { useAuthUserId, useCurrentProfile } from "./useSession";
 import { useIsSelfAthlete } from "./useWriteAuthorization";
 import { useUpdatePlanOffsetWeeks } from "./useProfile";
 import { qk } from "../keys";
 import { catchResult, ResultError_, unwrap } from "../result";
 import { beginWrite, isCurrentWrite } from "../write-guard";
 import { pushCardWorkout } from "../intervals/push";
-import { planShiftPatches } from "../../core/plan-shift.js";
+import { planShiftPatches, clampPlanOffset } from "../../core/plan-shift.js";
 import { localISODate } from "../../core/format.js";
 import { hasGeneratedPlan } from "../../config";
 import type { PlanCard, PlanCardInput, PlanCardPatch, Result } from "../types";
@@ -240,14 +240,18 @@ export function useUndoAdjustment(athleteId: string) {
  *  (delta 0) statt eines DOPPELTEN Shifts der bereits verschobenen Karten.
  *  Karten sequenziell, nicht parallel: `usePatchCard` vergibt pro Aufruf ein
  *  write-guard-Token, parallele Läufe würden sich gegenseitig aus dem
- *  Cache-Update kegeln. */
+ *  Cache-Update kegeln.
+ *
+ *  Bricht ab, solange das eigene Profil noch nicht geladen ist — sonst
+ *  würde `storedOffset` auf 0 zurückfallen und ein Delta gegen den falschen
+ *  Ausgangswert gerechnet (gespeicherter Offset ↔ Kartendaten desynchron). */
 export function useShiftPlan(athleteId: string) {
   const queryClient = useQueryClient();
   const mutation = usePatchCard(athleteId);
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
   const { isSelf } = useIsSelfAthlete(athleteId);
-  const storedOffset = useSessionProfile()?.planOffsetWeeks ?? 0;
+  const profile = useCurrentProfile().data ?? null;
   const { update: updateOffset } = useUpdatePlanOffsetWeeks();
 
   const shift = useCallback(
@@ -255,7 +259,11 @@ export function useShiftPlan(athleteId: string) {
       if (!userId) return { ok: false, error: NOT_LOGGED_IN };
       if (!isSelf || !hasGeneratedPlan(athleteId))
         return { ok: false, error: { code: "UNKNOWN", message: "Der Plan lässt sich hier nicht verschieben" } };
-      const target = Math.max(-8, Math.min(12, Math.round(targetOffsetWeeks || 0)));
+      if (!profile)
+        return { ok: false, error: { code: "UNKNOWN", message: "Profil lädt noch — kurz warten und erneut versuchen." } };
+
+      const target = clampPlanOffset(targetOffsetWeeks);
+      const storedOffset = profile.planOffsetWeeks;
       const delta = target - storedOffset;
       if (delta === 0) return { ok: true, moved: 0 };
 
@@ -264,7 +272,16 @@ export function useShiftPlan(athleteId: string) {
       if (!plan.ok) return { ok: false, error: { code: "UNKNOWN", message: plan.reason } };
       if (!plan.patches.length) return { ok: true, moved: 0 };
 
-      const offsetResult = await updateOffset(target);
+      // Jeder Offset-Schreibvorgang (vor UND zurück) muss den eigenen
+      // qk.athletePlanOffset-Cache mitziehen — der ist von qk.profile getrennt
+      // und wird von buildWeekGrid/detectConflicts/useMovePlanCard gelesen.
+      const writeOffset = async (v: number): Promise<Result> => {
+        const r = await updateOffset(v);
+        if (r.ok) void queryClient.invalidateQueries({ queryKey: qk.athletePlanOffset(athleteId) });
+        return r;
+      };
+
+      const offsetResult = await writeOffset(target);
       if (!offsetResult.ok) return offsetResult;
 
       let moved = 0;
@@ -272,25 +289,38 @@ export function useShiftPlan(athleteId: string) {
         const r = await catchResult(() => mutation.mutateAsync({ id, patch }));
         if (!r.ok) {
           if (moved === 0) {
-            await updateOffset(storedOffset); // best effort — noch keine Karte bewegt
+            // Noch keine Karte bewegt → Offset zurücknehmen. Scheitert auch
+            // das, steht der Offset falsch da (0 Karten, aber target) — dann
+            // sagen wir das deutlich statt still den ursprünglichen Fehler.
+            const rollback = await writeOffset(storedOffset);
+            if (!rollback.ok) {
+              return {
+                ok: false,
+                error: {
+                  code: "UNKNOWN",
+                  message:
+                    "Verschieben fehlgeschlagen und der Plan-Offset ließ sich nicht zurücksetzen — bitte die Seite neu laden und den Plan prüfen.",
+                },
+              };
+            }
             return r;
           }
+          // `moved` mit zurückgeben — der Dialog sperrt sich damit (kein
+          // erneuter Versuch, der die bereits bewegten Karten doppelt schöbe).
           return {
             ok: false,
+            moved,
             error: {
               code: "UNKNOWN",
               message: `Plan-Offset gesetzt, aber nur ${moved} von ${plan.patches.length} Einheiten verschoben — die übrigen bitte einzeln per Ziehen nachziehen.`,
             },
-          };
+          } as Result<{ moved: number }> & { moved: number };
         }
         moved++;
       }
-      // qk.athletePlanOffset ist ein eigener Cache neben qk.profile — die
-      // Anzeige (buildWeekGrid/detectConflicts) liest daraus, also frisch ziehen.
-      void queryClient.invalidateQueries({ queryKey: qk.athletePlanOffset(athleteId) });
       return { ok: true, moved };
     },
-    [queryClient, userId, isSelf, storedOffset, snapshot, athleteId, mutation, updateOffset],
+    [queryClient, userId, isSelf, profile, snapshot, athleteId, mutation, updateOffset],
   );
 
   return { shift, isPending: mutation.isPending };

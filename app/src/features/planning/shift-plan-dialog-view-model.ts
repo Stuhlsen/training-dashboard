@@ -2,16 +2,19 @@
    FEATURES/PLANNING/SHIFT-PLAN-DIALOG-VIEW-MODEL.TS — reine Vorschau- und
    Validierungslogik für „Plan verschieben…" (Migration 0026, Punkt 1).
 
-   Kein React: rechnet aus „gespeicherter Offset + Richtung + N Wochen" den
-   Ziel-Offset, die betroffenen Karten (über core/plan-shift.js, dieselbe
-   Quelle wie der Schreibpfad useShiftPlan) und ein neues Startdatum für die
-   Vorschau. Die Komponente rendert nur.
+   Kein React: rechnet aus „gespeicherter Offset + N Wochen" den Ziel-Offset,
+   die betroffenen Karten (über core/plan-shift.js, dieselbe Quelle wie der
+   Schreibpfad useShiftPlan) und ein neues Startdatum für die Vorschau.
+   Die Komponente rendert nur.
+
+   NUR nach hinten ("später starten", positives N): das war die Anfrage
+   ("eine Woche nach vorne verschieben" = später anfangen). Eine
+   Rückwärts-Verschiebung würde Vorlagen-Datumsschlüssel kollidieren lassen
+   und ist bewusst nicht angeboten (s. docs/offene-punkte.md).
    ============================================================ */
 
-import { planShiftPatches } from "../../core/plan-shift.js";
+import { planShiftPatches, PLAN_OFFSET_MAX } from "../../core/plan-shift.js";
 import { addDaysISO } from "../../core/format.js";
-
-export type ShiftDirection = "later" | "earlier";
 
 interface ShiftCard {
   id: string;
@@ -24,7 +27,7 @@ interface ShiftCard {
 export interface ShiftPreview {
   /** Neuer `plan_offset_weeks`-Stand, den useShiftPlan gesetzt bekäme. */
   targetOffset: number;
-  /** Verschiebung gegenüber JETZT (positiv = später). */
+  /** Verschiebung gegenüber JETZT (immer positiv = später). */
   deltaWeeks: number;
   /** Zahl der künftigen, nicht ausgefallenen Karten, die umdatiert würden. */
   affectedCount: number;
@@ -36,27 +39,22 @@ export interface ShiftPreview {
   error: string | null;
 }
 
-const MIN_OFFSET = -8;
-const MAX_OFFSET = 12;
-
 export function shiftPreview(opts: {
   storedOffset: number;
-  direction: ShiftDirection;
   weeks: number;
   cards: ShiftCard[];
   todayISO: string;
   athleteId: string;
 }): ShiftPreview {
-  const { storedOffset, direction, weeks, cards, todayISO, athleteId } = opts;
-  const n = Math.max(0, Math.round(weeks || 0));
-  const delta = direction === "later" ? n : -n;
+  const { storedOffset, weeks, cards, todayISO, athleteId } = opts;
+  const delta = Math.max(0, Math.round(weeks || 0));
   const target = storedOffset + delta;
 
   const base = { targetOffset: target, deltaWeeks: delta, affectedCount: 0, newStartDate: null };
 
   if (delta === 0) return { ...base, canApply: false, error: null };
-  if (target < MIN_OFFSET || target > MAX_OFFSET) {
-    return { ...base, canApply: false, error: `Verschiebung außerhalb des zulässigen Bereichs (${MIN_OFFSET}…${MAX_OFFSET} Wochen).` };
+  if (target > PLAN_OFFSET_MAX) {
+    return { ...base, canApply: false, error: `Insgesamt maximal ${PLAN_OFFSET_MAX} Wochen Verschiebung möglich.` };
   }
 
   const plan = planShiftPatches(cards, delta, todayISO, athleteId, target);

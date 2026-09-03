@@ -66,20 +66,26 @@ export function applyProposalToCards(cards, proposal) {
 /**
  * Prognose vor/nach Annahme eines einzelnen Vorschlags.
  * @param {Object} proposal
- * @param {{cards: Array, actuals: Array, events?: Array, ftp?: number, today?: string, athleteId?: string}} ctx
+ * @param {{cards: Array, actuals: Array, events?: Array, ftp?: number, today?: string, athleteId?: string, offsetWeeks?: number}} ctx
  *   `today` optional (Default localISODate() in core/projection.js) — für Tests fixierbar,
  *   sonst wandert der Horizont mit dem Kalenderdatum, an dem der Test läuft.
  *   `athleteId` (Fahrplan 6, RUH3): an detectConflicts durchgereicht, damit
  *   abgeleitete Ruhe-Slots ohne Karte auch in der Vorschau als „bewusst frei"
  *   statt als Planungslücke gewertet werden.
+ *   `offsetWeeks` (Migration 0026): Plan-Verschiebung des Athleten — an
+ *   detectConflicts durchgereicht, damit die Vorschau dieselben Ruhe-Slots
+ *   sieht wie der Planungstab des Athleten.
  * @returns {{before: ReturnType<typeof projectLoad>, after: ReturnType<typeof projectLoad>,
  *            beforeConflicts: Array, afterConflicts: Array}}
  */
-export function previewProposal(proposal, { cards, actuals, events = [], ftp, today, athleteId } = {}) {
+export function previewProposal(
+  proposal,
+  { cards, actuals, events = [], ftp, today, athleteId, offsetWeeks = 0 } = {},
+) {
   const before = projectLoad(cards, actuals, { events, ftp, today });
-  const beforeConflicts = detectConflicts(before, cards, events, actuals, { athleteId });
+  const beforeConflicts = detectConflicts(before, cards, events, actuals, { athleteId, offsetWeeks });
   const afterCards = applyProposalToCards(cards, proposal);
   const after = projectLoad(afterCards, actuals, { events, ftp, today });
-  const afterConflicts = detectConflicts(after, afterCards, events, actuals, { athleteId });
+  const afterConflicts = detectConflicts(after, afterCards, events, actuals, { athleteId, offsetWeeks });
   return { before, after, beforeConflicts, afterConflicts };
 }

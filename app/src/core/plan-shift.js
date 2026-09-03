@@ -20,6 +20,18 @@
 import { addDaysISO } from "./format.js";
 import { planWeekFor } from "./plan-week-model.js";
 
+/** Zulässiger Bereich für `profiles.plan_offset_weeks` — EINE Quelle für den
+ *  Client-Clamp (useShiftPlan, useUpdatePlanOffsetWeeks, das Dialog-View-Model).
+ *  MUSS mit dem `check (plan_offset_weeks between -8 and 12)` in Migration 0026
+ *  übereinstimmen. */
+export const PLAN_OFFSET_MIN = -8;
+export const PLAN_OFFSET_MAX = 12;
+
+/** @param {number} n @returns {number} auf [PLAN_OFFSET_MIN, PLAN_OFFSET_MAX] geklemmt */
+export function clampPlanOffset(n) {
+  return Math.max(PLAN_OFFSET_MIN, Math.min(PLAN_OFFSET_MAX, Math.round(n || 0)));
+}
+
 /**
  * @typedef {{id: string, date: string, name?: string|null, cancelled?: boolean, originalDate?: string}} ShiftableCard
  * @typedef {{id: string, plannedDate: string, movedFromDate?: string, week?: string|null, phase?: string|null}} ShiftPatch

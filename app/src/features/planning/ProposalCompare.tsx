@@ -5,6 +5,7 @@ import { useAcceptProposal, useRejectProposal, useWithdrawProposal } from "../..
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useRides } from "../../api/hooks/useRides";
 import { useEvents } from "../../api/hooks/useEvents";
+import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
 import { localISODate, fmtDate, fmtDateFull } from "../../core/format.js";
 import { resolvePlanningFtp } from "./planning-view-model";
 import { asWorkoutBlocks } from "./planning-view-model";
@@ -119,7 +120,8 @@ export function ProposalCompare({
 
   const ftp = resolvePlanningFtp(athleteId, rideData?.athleteFtp ?? null);
   const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY, athleteId };
+  const offsetWeeks = useAthletePlanOffset(athleteId);
+  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY, athleteId, offsetWeeks };
   const { left, right, changed } = sidesFor(proposal, cards ?? []);
   const detail = impactDetail(proposal, ctx);
   const isOwn = proposal.source === "claude";

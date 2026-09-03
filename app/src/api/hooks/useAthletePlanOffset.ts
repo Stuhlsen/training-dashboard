@@ -7,11 +7,15 @@
    Neuvergabe beim Einzel-Move — dort zählt der Offset des Athleten, dessen
    Plan gezeigt wird, nicht der des Trainers/Betrachters.
 
-   Liest über `profiles_visible` (getProfileByDisplayName): die View zeigt die
-   eigene Zeile UND die gecoachter Athleten. Ein Nicht-Coach, der per Toggle
-   auf einen Fremdathleten schaut, sieht die Zeile nicht → 0 (nur
-   Anzeige-Drift in einer reinen Betrachter-Ansicht — der Schreibpfad
-   „Plan verschieben" ist ohnehin self-only, RLS auf die eigene profiles-Zeile).
+   Ist der betrachtete Athlet der eingeloggte User selbst (der Normalfall,
+   und der EINZIGE, der den Offset schreiben kann — RLS auf die eigene
+   profiles-Zeile), kommt der Wert direkt aus `useCurrentProfile()`: EINE
+   Quelle (qk.profile), die `useUpdatePlanOffsetWeeks` synchron aktualisiert,
+   kein zweiter Fetch, kein Auseinanderlaufen im Invalidate-Fenster.
+
+   Nur für einen GECOACHTEN Fremdathleten wird `profiles_visible`
+   (getProfileByDisplayName) gezogen. Ein Nicht-Coach-Betrachter sieht die
+   Zeile nicht → 0 (nur Anzeige-Drift in einer reinen Betrachter-Ansicht).
    ============================================================ */
 
 import { useQuery } from "@tanstack/react-query";
@@ -19,7 +23,8 @@ import { getProfileByDisplayName } from "../supabase/profiles";
 import { athleteConfig } from "../../config";
 import { qk } from "../keys";
 import { unwrap } from "../result";
-import { useAuthUserId } from "./useSession";
+import { useAuthUserId, useCurrentProfile } from "./useSession";
+import { useIsSelfAthlete } from "./useWriteAuthorization";
 
 async function resolve(athleteId: string): Promise<number> {
   const name = athleteConfig(athleteId)?.name;
@@ -28,18 +33,19 @@ async function resolve(athleteId: string): Promise<number> {
   return profile?.planOffsetWeeks ?? 0;
 }
 
-/** Ganzwochen-Verschiebung des betrachteten Athleten, `0` solange unbekannt.
- *  Nur mit Login: `profiles_visible` ist anon nicht lesbar (401), und der
- *  Offset ist ohnehin nur für eingeloggte Bearbeiter/Coaches relevant —
- *  gleiche `enabled: !!user`-Gate wie useTrainerContext. */
+/** Ganzwochen-Verschiebung des betrachteten Athleten, `0` solange unbekannt. */
 export function useAthletePlanOffset(athleteId: string): number {
   const userId = useAuthUserId();
-  return (
-    useQuery({
-      queryKey: qk.athletePlanOffset(athleteId),
-      queryFn: () => resolve(athleteId),
-      enabled: !!userId,
-      staleTime: 5 * 60_000,
-    }).data ?? 0
-  );
+  const { isSelf } = useIsSelfAthlete(athleteId);
+  const selfProfile = useCurrentProfile().data ?? null;
+  const other = useQuery({
+    queryKey: qk.athletePlanOffset(athleteId),
+    queryFn: () => resolve(athleteId),
+    // Nur bei einem Fremdathleten (mit Login): profiles_visible ist anon
+    // nicht lesbar, und beim Self-Athleten kommt der Wert aus useCurrentProfile.
+    enabled: !!userId && !isSelf,
+    staleTime: 5 * 60_000,
+  });
+  if (isSelf) return selfProfile?.planOffsetWeeks ?? 0;
+  return other.data ?? 0;
 }

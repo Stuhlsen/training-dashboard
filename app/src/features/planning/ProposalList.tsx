@@ -5,6 +5,7 @@ import { useAcceptGroup, useAcceptProposal, useProposals } from "../../api/hooks
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useRides } from "../../api/hooks/useRides";
 import { useEvents } from "../../api/hooks/useEvents";
+import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
 import { localISODate } from "../../core/format.js";
 import { groupOpenProposals } from "../../core/proposal-groups.js";
 import { resolvePlanningFtp } from "./planning-view-model";
@@ -65,7 +66,8 @@ export function ProposalList({
   const total = groups.reduce((n, g) => n + g.items.length, 0);
   const ftp = resolvePlanningFtp(athleteId, rideData?.athleteFtp ?? null);
   const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY, athleteId };
+  const offsetWeeks = useAthletePlanOffset(athleteId);
+  const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY, athleteId, offsetWeeks };
 
   async function handleAccept(p: Proposal) {
     setPendingId(p.id);

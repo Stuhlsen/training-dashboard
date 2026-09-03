@@ -135,17 +135,26 @@ export const PLANNED_SESSIONS_ATHLETE4 = (() => {
  * wandern; `week`/`phase` je Eintrag bleiben unverändert (eine
  * Ganzwochen-Verschiebung lässt „Woche 1 = Einstieg" Woche 1 = Einstieg,
  * nur 7·N Tage später — dieselbe Semantik wie das offset-fähige
- * app/src/core/plan-week-model.js). `offsetWeeks` 0/undefined ⇒ die
- * unveränderte Konstante.
+ * app/src/core/plan-week-model.js).
+ *
+ * NUR künftige Einträge (`date >= fromDateISO`) wandern — genau wie der
+ * Frontend-Schreibpfad (`app/src/core/plan-shift.js::planShiftPatches`, „nur
+ * künftige, nicht ausgefallene Karten"). Sonst würde ein Offset-Wechsel
+ * mitten im Plan die bereits absolvierten Wochen der Sync-Baseline von den
+ * echten (nicht verschobenen) plan_cards wegziehen.
+ *
+ * `offsetWeeks` 0/undefined ⇒ die unveränderte Konstante.
  * @param {number} [offsetWeeks]
+ * @param {string} [fromDateISO] Stichtag (Default "" ⇒ alle Einträge wandern)
  * @returns {Record<string, {name:string, typ:string, week:string, phase:string, workout?:object}>}
  */
-export function shiftPlannedSessions4(offsetWeeks) {
+export function shiftPlannedSessions4(offsetWeeks, fromDateISO = "") {
   const n = Math.round(offsetWeeks || 0);
   if (!n) return PLANNED_SESSIONS_ATHLETE4;
   const out = {};
   for (const [date, s] of Object.entries(PLANNED_SESSIONS_ATHLETE4)) {
-    out[addDays(date, n * 7)] = { ...s };
+    const key = date >= fromDateISO ? addDays(date, n * 7) : date;
+    out[key] = { ...s };
   }
   return out;
 }

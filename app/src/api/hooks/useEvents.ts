@@ -90,13 +90,22 @@ export function useCreateEvent(athleteId: string) {
     mutationFn: async (event: EventInput) => {
       const profileId = await fetchAthleteProfileId(queryClient, athleteId);
       if (!profileId) throw new ResultError_(NO_ACCOUNT);
-      // type -> "other" macht priority/ftpGoal/isTest ungültig (Check-
-      // Constraint events_priority_only_for_race) — hier erzwingen statt
-      // jedem Aufrufer zuzumuten, das selbst zu wissen. Spiegelt die
-      // Logik von updateEvent().
+      // type -> "other" macht priority/ftpGoal/isTest UND die result_*-Felder
+      // ungültig (Check-Constraints events_priority_only_for_race /
+      // events_result_only_for_race, Migration 0027) — hier erzwingen statt
+      // jedem Aufrufer zuzumuten, das selbst zu wissen. Spiegelt updateEvent().
       const payload: EventInput =
         event.type === "other"
-          ? { ...event, priority: null, ftpGoal: null, isTest: false }
+          ? {
+              ...event,
+              priority: null,
+              ftpGoal: null,
+              isTest: false,
+              resultTimeS: null,
+              resultAvgWatts: null,
+              resultPlaceAg: null,
+              resultPlaceOverall: null,
+            }
           : event;
       return unwrap(await createEventAdapter(profileId, payload));
     },

@@ -87,7 +87,7 @@ describe("Athleten-Auflösung", () => {
 });
 
 describe("type 'other'", () => {
-  it("nullt priority/ftpGoal/isTest, auch wenn im Payload gesetzt", async () => {
+  it("nullt priority/ftpGoal/isTest UND die result_*-Felder, auch wenn im Payload gesetzt", async () => {
     const { wrapper } = createHarness({ userId: "user-1" });
     const view = renderHook(() => useCreateEvent("athlete1"), { wrapper });
     await view.result.current.create({
@@ -97,6 +97,8 @@ describe("type 'other'", () => {
       priority: "main",
       ftpGoal: 210,
       isTest: true,
+      resultTimeS: 11565,
+      resultPlaceAg: 42,
     });
     expect(createEventCalls[0].event).toEqual({
       title: "Trainingslager",
@@ -105,6 +107,10 @@ describe("type 'other'", () => {
       priority: null,
       ftpGoal: null,
       isTest: false,
+      resultTimeS: null,
+      resultAvgWatts: null,
+      resultPlaceAg: null,
+      resultPlaceOverall: null,
     });
   });
 });

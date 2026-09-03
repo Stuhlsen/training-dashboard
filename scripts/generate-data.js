@@ -556,11 +556,14 @@ async function main() {
   //    WATTLOS: kein Ramp-Test → output4.ftp = null; DEFAULT_FTP dient hier
   //    nur als reiner Rechen-Fallback für die Ist-Typerkennung.
   const cfg4 = syncConfig.get("athlete4");
+  const today4 = new Date().toISOString().split("T")[0];
   // profiles.plan_offset_weeks (Migration 0026): Athlet 4 kann seinen Plan im
   // Planungstab um N ganze Wochen verschieben. Die Vorlage (Datum + Baseline
-  // für Compliance/Hero) wandert hier mit; die editierten plan_cards sind
-  // beim Verschieben schon einmalig umdatiert worden (useShiftPlan).
-  const planTemplate4 = shiftPlannedSessions4(cfg4?.planOffsetWeeks ?? 0);
+  // für Compliance/Hero) wandert hier mit — aber NUR ab heute, genau wie der
+  // Schreibpfad im Frontend (planShiftPatches verschiebt nur künftige, nicht
+  // ausgefallene Karten). Die editierten plan_cards sind beim Verschieben
+  // schon einmalig umdatiert worden (useShiftPlan).
+  const planTemplate4 = shiftPlannedSessions4(cfg4?.planOffsetWeeks ?? 0, today4);
   const plannedSessions4 = Object.entries(planTemplate4).map(([date, s]) => ({
     date,
     ...s,
@@ -569,7 +572,7 @@ async function main() {
     log.info(`\n🔄 Vierter Athlet (${ATHLETE_4_NAME})...`);
     const svc4 = { profileId: cfg4.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY };
     const oldest4 = "2026-08-01"; // kurz vor Planstart (KW36, 2026-08-31)
-    const today4 = new Date().toISOString().split("T")[0];
+    // today4 ist oben (vor dem shiftPlannedSessions4-Aufruf) deklariert.
 
     const creds4 =
       cfg4.apiKey && cfg4.athleteId ? { apiKey: cfg4.apiKey, athleteId: cfg4.athleteId } : null;

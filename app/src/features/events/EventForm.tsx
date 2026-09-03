@@ -256,7 +256,6 @@ export function EventForm({ athleteId, editingEvent, onClose }: EventFormProps) 
                   Gefahrene Zeit (h:mm:ss)
                   <input
                     type="text"
-                    inputMode="numeric"
                     placeholder="z. B. 3:12:45"
                     value={resultTime}
                     onChange={(e) => setResultTime(e.target.value)}

@@ -6,14 +6,13 @@ describe("parseFinishTime", () => {
   it("h:mm:ss", () => {
     expect(parseFinishTime("3:12:45")).toBe(3 * 3600 + 12 * 60 + 45);
     expect(parseFinishTime(" 0:05:00 ")).toBe(300);
+    expect(parseFinishTime("0:45:30")).toBe(45 * 60 + 30);
   });
 
-  it("h:mm (zwei Teile, erster < 60)", () => {
-    expect(parseFinishTime("3:12")).toBe(3 * 3600 + 12 * 60);
-  });
-
-  it("mm:ss (zwei Teile, erster >= 60)", () => {
-    expect(parseFinishTime("192:30")).toBe(192 * 60 + 30);
+  it("nur h:mm:ss — zwei Teile sind mehrdeutig → null", () => {
+    expect(parseFinishTime("3:12")).toBeNull();
+    expect(parseFinishTime("45:30")).toBeNull();
+    expect(parseFinishTime("192:30")).toBeNull();
   });
 
   it("leer / Müll / falsches Format → null", () => {

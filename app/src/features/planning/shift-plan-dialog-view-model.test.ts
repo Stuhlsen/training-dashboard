@@ -10,8 +10,8 @@ const CARDS = [
 ];
 
 describe("shiftPreview", () => {
-  it("später +1: betroffene Karten + neuer Start, anwendbar", () => {
-    const p = shiftPreview({ storedOffset: 0, direction: "later", weeks: 1, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
+  it("+1: betroffene Karten + neuer Start, anwendbar", () => {
+    const p = shiftPreview({ storedOffset: 0, weeks: 1, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
     expect(p.targetOffset).toBe(1);
     expect(p.deltaWeeks).toBe(1);
     expect(p.affectedCount).toBe(2); // past + cx raus
@@ -21,26 +21,26 @@ describe("shiftPreview", () => {
   });
 
   it("0 Wochen → nicht anwendbar, kein Fehler", () => {
-    const p = shiftPreview({ storedOffset: 2, direction: "later", weeks: 0, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
+    const p = shiftPreview({ storedOffset: 2, weeks: 0, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
     expect(p.canApply).toBe(false);
     expect(p.error).toBeNull();
   });
 
-  it("früher, sodass eine Karte vor heute läge → blockiert mit Grund", () => {
-    const p = shiftPreview({ storedOffset: 0, direction: "earlier", weeks: 1, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
-    expect(p.canApply).toBe(false);
-    expect(p.error).toMatch(/vor heute/);
+  it("addiert auf den bereits gespeicherten Offset", () => {
+    const p = shiftPreview({ storedOffset: 3, weeks: 2, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
+    expect(p.targetOffset).toBe(5);
+    expect(p.deltaWeeks).toBe(2);
   });
 
-  it("Ziel außerhalb -8…12 → blockiert", () => {
-    const p = shiftPreview({ storedOffset: 10, direction: "later", weeks: 5, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
+  it("Gesamt-Offset über dem Maximum → blockiert", () => {
+    const p = shiftPreview({ storedOffset: 10, weeks: 5, cards: CARDS, todayISO: TODAY, athleteId: "athlete4" });
     expect(p.targetOffset).toBe(15);
     expect(p.canApply).toBe(false);
-    expect(p.error).toMatch(/zulässigen Bereich/);
+    expect(p.error).toMatch(/maximal/);
   });
 
   it("keine künftigen Karten → blockiert mit Grund", () => {
-    const p = shiftPreview({ storedOffset: 0, direction: "later", weeks: 1, cards: [{ id: "past", date: "2026-01-01" }], todayISO: TODAY, athleteId: "athlete4" });
+    const p = shiftPreview({ storedOffset: 0, weeks: 1, cards: [{ id: "past", date: "2026-01-01" }], todayISO: TODAY, athleteId: "athlete4" });
     expect(p.canApply).toBe(false);
     expect(p.error).toMatch(/Keine künftigen/);
   });

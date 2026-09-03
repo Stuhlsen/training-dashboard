@@ -8,6 +8,35 @@
 
 ## Planungstab / Progressionssteuerung
 
+- **„Plan verschieben…" (Migration 0026) — Restkanten der Bulk-Shift-Lösung**
+  (Punkt 1 der 6-Punkte-Liste, 03.09.2026). `plan_offset_weeks` ist die
+  Quelle der Wahrheit; beim Ändern werden alle künftigen `plan_cards`
+  einmalig umdatiert und die Sync-Vorlage (`shiftPlannedSessions4`) zieht
+  mit. Drei bewusst offen gelassene Kanten:
+  - **Nur nach hinten** („später starten", positives N). Eine
+    Rückwärts-Verschiebung würde verschobene Vorlagen-Datumsschlüssel mit
+    unverschobenen kollidieren lassen (feste Wochentags-Slots) — der Dialog
+    bietet sie nicht an, `planShiftPatches` hat trotzdem einen defensiven
+    „vor heute"-Guard.
+  - **Sync-Stichtag driftet.** `shiftPlannedSessions4` nimmt das
+    Sync-Laufdatum als „nur ab hier verschieben"-Grenze, nicht das
+    (nirgends gespeicherte) Datum, an dem der Athlet verschoben hat.
+    Zwischen Verschiebe- und einem späteren Sync-Lauf können in
+    `rides-4.json` ein paar Vorlagen-Einträge auf dem alten Datum stehen
+    bleiben, während die echte Karte schon verschoben ist (kurzzeitiges
+    „Phantom-Geplant/verpasst" in Compliance/Hero). Sauberer Fix:
+    `plan_offset_anchor_date` mitspeichern.
+  - **Teil-Fehlschlag beim Massen-Shift.** Offset wird zuerst geschrieben,
+    dann die ~48 Karten sequenziell. Bricht eine spätere Karte ab, bleibt
+    der Offset stehen; der Dialog sperrt sich dann (kein erneuter Versuch,
+    der die schon bewegten Karten doppelt schöbe), der Rest ist von Hand
+    per Ziehen nachzuziehen. Atomar wäre nur mit einer Supabase-RPC.
+  - **Einzel-Drag im ersten Render-Fenster.** `useMovePlanCard`/
+    `useUndoAdjustment` lesen den Offset über `useAthletePlanOffset`, das
+    bis zur ersten `profiles_visible`-Antwort `0` liefert. Ein Drag in
+    diesen ~ms nach kaltem Laden schreibt ein week/phase-Label aus dem
+    unverschobenen Modell (Datum korrekt, Label evtl. eine Phase daneben).
+
 - **Ziel-Overlay im Done-Detail-Chart ist ein flaches Band** — der
   Intervall-Zweig von `DoneDetailChart.tsx` legt die Ziel-Watt-Spanne
   (`targetBandFromCompliance()`, min–max über `compliance.matched`) als

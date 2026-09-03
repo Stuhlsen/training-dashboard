@@ -103,6 +103,10 @@ export interface ImpactContext {
    *  RUH3 (nur Ruhetag-/ausgefallene Karten zählen als bewusst frei). Die
    *  echten UI-Aufrufer (ProposalList/ProposalCompare) reichen es durch. */
   athleteId?: string;
+  /** Migration 0026: Plan-Verschiebung des Athleten — an conflicts.js
+   *  durchgereicht, damit die Vorschau dieselben Ruhe-Slots sieht wie sein
+   *  Planungstab. Default 0. */
+  offsetWeeks?: number;
 }
 
 /** Schmale Adapter für core/projection.js/core/conflicts.js — dieselbe
@@ -133,6 +137,7 @@ function preview(proposal: Proposal, ctx: ImpactContext) {
     ftp: ctx.ftp,
     today: ctx.today,
     athleteId: ctx.athleteId,
+    offsetWeeks: ctx.offsetWeeks ?? 0,
   });
 }
 
