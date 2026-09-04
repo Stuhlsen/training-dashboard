@@ -113,6 +113,50 @@ export interface PlanCardInput {
   sortOrder?: number;
 }
 
+/* ── Trainingsplan-Generator (Fahrplan 8) ───────────────────────────
+   V1 `training_plans` (Migration 0028) als Domänenshape. Der Adapter
+   api/supabase/training-plans.ts mappt die snake_case-Zeile hierher;
+   die reinen Bau-Helfer in features/planning/plan-persist.ts liefern
+   den `TrainingPlanDraft`, den `createTrainingPlan()` schreibt.
+   ──────────────────────────────────────────────────────────────── */
+
+export type PlanMode = "event" | "open";
+export type PlanModel = "pyramidal" | "polarized" | "block" | "linear";
+export type PlanFocus = "allgemein" | "berg" | "langstrecke" | "crit";
+export type PlanLevel = "einsteiger" | "fortgeschritten";
+
+/** Was der „Neuer Plan"-Dialog aus Formular + erzeugtem Plan zusammensetzt
+ *  und `createTrainingPlan()` in `training_plans` schreibt. `athlete_id` /
+ *  `created_by` / `is_active` setzt der Adapter, nicht der Draft. */
+export interface TrainingPlanDraft {
+  mode: PlanMode;
+  goalEventId: string | null;
+  startDate: string;
+  endDate: string;
+  weeks: number;
+  model: PlanModel;
+  focus: PlanFocus;
+  level: PlanLevel;
+  trainingWeekdays: number[]; // ISO 1..7
+  weeklyHours: number | null;
+  indoorShare: number | null; // 0..1
+  ftpAtCreation: number | null;
+  ftpTarget: number | null;
+  /** Roh-Formular + Aggregat-Momentaufnahme (V1 `params`, Reproduzierbarkeit). */
+  params: Record<string, unknown>;
+  /** V4 `WeekModelEntry[]` — Quelle für plan-week-model (E7). */
+  weekModel: unknown[];
+}
+
+export interface TrainingPlan extends TrainingPlanDraft {
+  id: string;
+  athleteId: string;
+  createdBy: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export type EventType = "race" | "other";
 export type EventPriority = "main" | "secondary";
 

@@ -22,6 +22,10 @@ export const qk = {
   profile: (userId: string) => ["profile", userId] as const,
 
   planCards: (athleteId: string) => ["plan-cards", athleteId] as const,
+  /** Aktive training_plans-Zeile des betrachteten Athleten (Fahrplan 8 E6/E7).
+   *  athletenscharf wie planCards — eine Antwort kann nicht im Cache eines
+   *  anderen Athleten landen. */
+  activeTrainingPlan: (athleteId: string) => ["active-training-plan", athleteId] as const,
   events: (athleteId: string) => ["events", athleteId] as const,
   proposals: (athleteId: string) => ["proposals", athleteId] as const,
 

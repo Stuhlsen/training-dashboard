@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase, getAuthedClient } from "./client";
 import type { PlanCard, PlanCardInput, PlanCardPatch, Result, WorkoutJson } from "../types";
 
@@ -137,6 +138,147 @@ export async function createPlanCard(
     .single<PlanCardRow>();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true, card: toPlanCard(data) };
+}
+
+/** Eine Tageskarte für den Bulk-Insert eines erzeugten Plans (Fahrplan 8 E6).
+ *  Feldnamen wie `PlanCardInput`, plus `week`/`phase`/`sortOrder` (die der
+ *  Generator liefert) — `plan_id` hängt `createPlanCards()` an. */
+export interface PlanCardBulkDraft {
+  date: string;
+  name: string;
+  typ: string;
+  phase: string | null;
+  week: string | null;
+  tssPlanned: number | null;
+  durationMin: number | null;
+  km: number | null;
+  workout: WorkoutJson;
+  workoutStructure: WorkoutJson;
+  sortOrder: number;
+}
+
+/** Schreibt alle Karten eines erzeugten Plans in einem `insert` — mit
+ *  `plan_id`-Rückverweis, `week`/`phase` und `sort_order`. Leere Liste ist
+ *  ein erfolgreicher No-Op. Gibt die angelegten Karten in derselben
+ *  Session-Shape zurück wie `listPlanCards()`. */
+export async function createPlanCards(
+  athleteId: string,
+  planId: string,
+  cards: PlanCardBulkDraft[],
+): Promise<Result<{ cards: PlanCard[] }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  if (!cards.length) return { ok: true, cards: [] };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("plan_cards")
+    .insert(
+      cards.map((c) => ({
+        athlete_id: athleteId,
+        plan_id: planId,
+        planned_date: c.date,
+        sort_order: c.sortOrder,
+        title: c.name,
+        workout_type: c.typ,
+        tss_planned: c.tssPlanned ?? null,
+        duration_min: c.durationMin ?? null,
+        km: c.km ?? null,
+        week: c.week ?? null,
+        phase: c.phase ?? null,
+        workout: c.workout ?? null,
+        workout_structure: c.workoutStructure ?? null,
+      })),
+    )
+    .select(SELECT_COLS)
+    .returns<PlanCardRow[]>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, cards: data.map(toPlanCard) };
+}
+
+/** „Noch geplant" = eine Karte, die „Plan (neu) erzeugen" ersetzen darf:
+ *  Status leer oder `"geplant"`. Ausgefallene (`"ausgefallen"`) und alles
+ *  mit eigenem Status bleiben stehen (Entscheidung 16) — genau wie
+ *  Vergangenes. */
+function isReplaceablePlanCard(status: string | null): boolean {
+  return status == null || status === "geplant";
+}
+
+const DELETE_ID_CHUNK = 100;
+
+/** Löscht Karten in Blöcken von `DELETE_ID_CHUNK` IDs. Ein 40-Wochen-Plan
+ *  hat ~160 Karten; ein einziges `id=in.(<160 UUIDs>)` bläht die URL auf
+ *  ~6 kB und läuft am Self-Host-Stack (nginx/Caddy, ~8 kB URI-Limit) in
+ *  ein 414. */
+async function deleteCardsByIds(
+  client: SupabaseClient,
+  ids: string[],
+): Promise<Result<{ deleted: number }>> {
+  for (let i = 0; i < ids.length; i += DELETE_ID_CHUNK) {
+    const { error } = await client
+      .from("plan_cards")
+      .delete()
+      .in("id", ids.slice(i, i + DELETE_ID_CHUNK));
+    if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  }
+  return { ok: true, deleted: ids.length };
+}
+
+/** Zukünftige (`planned_date >= fromDateISO`), noch geplante Karten EINES
+ *  Plans löschen — für „Plan neu erzeugen" (Entscheidung 16). Zwei Schritte
+ *  (IDs holen, dann chunk-weise `.in()` löschen), weil „ersetzbar" (Status
+ *  null ODER `"geplant"`) sich in JS sauberer prüfen lässt als über eine
+ *  PostgREST-Negation. */
+export async function deleteFuturePlanCardsForPlan(
+  planId: string,
+  fromDateISO: string,
+): Promise<Result<{ deleted: number }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("plan_cards")
+    .select("id, status")
+    .eq("plan_id", planId)
+    .gte("planned_date", fromDateISO)
+    .returns<{ id: string; status: string | null }[]>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  const ids = data.filter((r) => isReplaceablePlanCard(r.status)).map((r) => r.id);
+  if (!ids.length) return { ok: true, deleted: 0 };
+  return deleteCardsByIds(client, ids);
+}
+
+/** Zukünftige, noch geplante Karten OHNE Plan-Zuordnung (`plan_id IS NULL`)
+ *  eines Athleten löschen — die eingefrorenen Code-Vorlagen-Karten, damit
+ *  der erste selbst gebaute Plan nicht doppelt im Raster steht.
+ *
+ *  Übergangslösung bis E8: der Sync schreibt die Vorlagen-Karten beim
+ *  nächsten Lauf sonst wieder; ab E8 überspringt er die Vorlage für Athleten
+ *  mit aktivem Plan und das hier wird zum reinen Erstlauf-Aufräumer. */
+export async function deleteFuturePlanlessPlanCards(
+  athleteId: string,
+  fromDateISO: string,
+): Promise<Result<{ deleted: number }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("plan_cards")
+    .select("id, status")
+    .eq("athlete_id", athleteId)
+    .is("plan_id", null)
+    .gte("planned_date", fromDateISO)
+    .returns<{ id: string; status: string | null }[]>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  const ids = data.filter((r) => isReplaceablePlanCard(r.status)).map((r) => r.id);
+  if (!ids.length) return { ok: true, deleted: 0 };
+  return deleteCardsByIds(client, ids);
+}
+
+/** ALLE Karten eines Plans löschen — Rollback-Pfad, wenn ein mehrstufiges
+ *  „Plan übernehmen" nach dem Karten-Insert scheitert. */
+export async function deletePlanCardsForPlan(planId: string): Promise<Result<{ deleted: number }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("plan_cards").delete().eq("plan_id", planId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, deleted: 0 };
 }
 
 export async function removePlanCard(id: string): Promise<Result> {

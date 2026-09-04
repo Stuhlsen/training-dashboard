@@ -24,6 +24,10 @@ import { useEvents } from "../../api/hooks/useEvents";
 import { useRides } from "../../api/hooks/useRides";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
 import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
+import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
+import { usePlanCards } from "../../api/hooks/usePlanCards";
+import { useSessionProfile } from "../../api/hooks/useSession";
+import { useCreateTrainingPlan } from "./useCreateTrainingPlan";
 import { athleteConfig } from "../../config";
 import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.js";
 import { generatePlan } from "../../core/plan-generator.js";
@@ -41,9 +45,20 @@ import {
   type GeneratedPlan,
   type NewPlanFormState,
   type PlanFocus,
+  type PlanGeneratorInput,
   type PlanLevel,
   type PlanModel,
 } from "./new-plan-dialog-view-model";
+
+/** Vorschau + der Input/Formularstand, aus dem sie erzeugt wurde — im selben
+ *  Zug übernommen, damit die geschriebene `training_plans`-Zeile (params,
+ *  Modell) exakt zu den geschriebenen Karten passt, auch wenn Historie/Events
+ *  zwischen „Vorschau" und „Übernehmen" nachladen. */
+interface PreviewBundle {
+  plan: GeneratedPlan;
+  input: PlanGeneratorInput;
+  form: NewPlanFormState;
+}
 
 type Ride = import("../../types.js").Ride;
 
@@ -108,15 +123,29 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const { data: rideData } = useRides(athleteId);
   const { aggregate } = usePlanHistoryAggregate(athleteId);
   const { entries: formatEntries } = useAthleteFormats();
+  const { data: activePlan } = useActiveTrainingPlan(athleteId);
+  const { data: existingCards } = usePlanCards(athleteId);
+  const profile = useSessionProfile();
+  const { createPlan, isPending: saving } = useCreateTrainingPlan(athleteId);
 
   const [form, setForm] = useState<NewPlanFormState>(() => defaultFormState(cfg, today));
   const [modelTouched, setModelTouched] = useState(false);
-  const [preview, setPreview] = useState<GeneratedPlan | null>(null);
+  const [preview, setPreview] = useState<PreviewBundle | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // „Übernehmen" ersetzt künftige Karten, sobald es welche gibt — ein aktiver
+  // erzeugter Plan ODER noch-geplante Vorlagen-/Handkarten ab heute. Bestimmt
+  // Warnhinweis + Knopfbeschriftung.
+  const willReplace = useMemo(
+    () => !!activePlan || (existingCards ?? []).some((c) => c.date >= today && !c.cancelled),
+    [activePlan, existingCards, today],
+  );
 
   function patch(next: Partial<NewPlanFormState>) {
     setForm((f) => ({ ...f, ...next }));
     setPreview(null); // Vorschau ist mit der Formularänderung veraltet
+    setSaveError(null);
   }
 
   // Event-Dropdown: Rennen mit Priorität zuerst (Entscheidung 4), dann nach
@@ -164,15 +193,40 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const effectiveModel = modelTouched ? form.model : suggestion;
 
   function handlePreview() {
-    const built = buildGeneratorInput({ ...form, model: effectiveModel }, resolveEventDate, aggregate);
+    const effForm: NewPlanFormState = { ...form, model: effectiveModel };
+    const built = buildGeneratorInput(effForm, resolveEventDate, aggregate);
     if (!built.ok) {
       setErrors(built.errors);
       setPreview(null);
       return;
     }
     setErrors({});
+    setSaveError(null);
     const run = generatePlan as (input: unknown) => GeneratedPlan;
-    setPreview(run({ ...built.input, formats: formatEntries.map((e) => e.format) }));
+    const plan = run({ ...built.input, formats: formatEntries.map((e) => e.format) });
+    // Plan + Input + Formularstand zusammen einfrieren — „Übernehmen" nimmt
+    // exakt diese, nie einen inzwischen nachgeladenen Stand.
+    setPreview({ plan, input: built.input, form: effForm });
+  }
+
+  async function handleAdopt() {
+    if (!preview || saving) return; // Doppelklick-Schutz (disabled hinkt einen Render nach)
+    setSaveError(null);
+    if (!profile) {
+      setSaveError("Profil lädt noch — kurz warten und erneut versuchen.");
+      return;
+    }
+    const result = await createPlan({
+      generated: preview.plan,
+      input: preview.input,
+      form: preview.form,
+      createdBy: profile.id,
+    });
+    if (!result.ok) {
+      setSaveError(result.error.message);
+      return;
+    }
+    onClose();
   }
 
   function toggleWeekday(iso: number) {
@@ -206,8 +260,29 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
           Neuer Trainingsplan
         </div>
         <p style={{ margin: "8px 0 18px", fontSize: ".82rem", color: "var(--ink-3)" }}>
-          Rahmenbedingungen festlegen, Vorschau prüfen. Übernommen wird noch nicht — das kommt im nächsten Schritt.
+          Rahmenbedingungen festlegen, Vorschau prüfen, übernehmen. Der Plan lässt sich danach
+          weiter per Einzelkarte nachbessern.
         </p>
+
+        {willReplace && (
+          <div
+            style={{
+              margin: "0 0 16px",
+              padding: "10px 14px",
+              borderRadius: "var(--radius-sm)",
+              background: "rgba(224,138,60,.10)",
+              border: "1px solid rgba(224,138,60,.35)",
+              color: "var(--ink-2)",
+              fontSize: ".78rem",
+              lineHeight: 1.45,
+            }}
+          >
+            Für diesen Athleten sind bereits künftige Trainingskarten hinterlegt. „Plan
+            ersetzen" schreibt den neuen Plan und ersetzt <strong>alle künftigen Karten ab
+            heute</strong> — vergangene und als ausgefallen markierte bleiben. Manuelle
+            Änderungen an künftigen Karten gehen dabei verloren.
+          </div>
+        )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {/* Modus */}
@@ -428,7 +503,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
             </select>
           </label>
 
-          {Object.keys(errors).length > 0 && (
+          {(Object.keys(errors).length > 0 || saveError) && (
             <ul
               style={{
                 margin: 0,
@@ -443,30 +518,36 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
               {Object.values(errors).map((msg, i) => (
                 <li key={i}>{msg}</li>
               ))}
+              {saveError && <li>{saveError}</li>}
             </ul>
           )}
 
           {preview && (
             <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 14 }}>
-              <PlanPreview plan={preview} />
+              <PlanPreview plan={preview.plan} />
             </div>
           )}
         </div>
 
         <div style={{ display: "flex", justifyContent: "flex-end", gap: 10, marginTop: 20 }}>
-          <button type="button" style={BTN_STYLE} onClick={onClose}>
+          <button type="button" style={BTN_STYLE} onClick={onClose} disabled={saving}>
             Abbrechen
           </button>
-          <button type="button" style={BTN_STYLE} onClick={handlePreview}>
+          <button type="button" style={BTN_STYLE} onClick={handlePreview} disabled={saving}>
             Vorschau erstellen
           </button>
           <button
             type="button"
-            style={{ ...PRIMARY_BTN_STYLE, opacity: 0.5, cursor: "not-allowed" }}
-            disabled
-            title="Wird im nächsten Schritt scharf geschaltet (E6)"
+            style={
+              preview && !saving
+                ? PRIMARY_BTN_STYLE
+                : { ...PRIMARY_BTN_STYLE, opacity: 0.5, cursor: "not-allowed" }
+            }
+            disabled={!preview || saving}
+            onClick={handleAdopt}
+            title={preview ? undefined : "Erst eine Vorschau erstellen"}
           >
-            Übernehmen
+            {saving ? "Speichert…" : willReplace ? "Plan ersetzen" : "Übernehmen"}
           </button>
         </div>
       </GlassCard>

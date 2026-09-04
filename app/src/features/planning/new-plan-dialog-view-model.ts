@@ -14,19 +14,22 @@
 
 import { addDaysISO, diffDays } from "../../core/format.js";
 
+/* Kanonische Fassung der Plan-String-Unions liegt in api/types.ts (der
+ * training-plans-Adapter braucht sie und darf nicht in features/ greifen).
+ * Hier importiert (für die Typen unten) UND re-exportiert, damit die
+ * Dialog-Bausteine sie weiter aus dem View-Model beziehen können. */
+import type { PlanMode, PlanFocus, PlanLevel, PlanModel } from "../../api/types";
+export type { PlanMode, PlanFocus, PlanLevel, PlanModel };
+
 /** Ober-/Untergrenze für die Planlänge — im `open`-Modus als Formularfeld,
  *  im `event`-Modus aus `start..event` abgeleitet und hier gegengeprüft
  *  (sonst würde ein Renntag Jahre in der Zukunft z. B. 78 Wochen erzeugen). */
 export const MIN_PLAN_WEEKS = 3;
 export const MAX_PLAN_WEEKS = 40;
 
-/* ── Verträge V2/V4 als lokale TS-Typen (Fahrplan: „erzeugt in E5") ──── */
-
-export type PlanMode = "event" | "open";
-export type PlanFocus = "allgemein" | "berg" | "langstrecke" | "crit";
-export type PlanLevel = "einsteiger" | "fortgeschritten";
-/** In E5 nur die ersten beiden anwählbar (s. Modulkopf). */
-export type PlanModel = "pyramidal" | "polarized" | "block" | "linear";
+/* ── Verträge V2/V4 als lokale TS-Typen (Fahrplan: „erzeugt in E5") ────
+   Die Plan-String-Unions kommen per Re-Export oben aus api/types.ts;
+   nur in E5 anwählbar: pyramidal + linear (s. AVAILABLE_MODELS). */
 
 /** V4 `GeneratedPlan` — Ausgabe von `generatePlan()` (E2). Nur die Felder,
  *  die die Vorschau (E5) rendert; `weekModel` wird erst in E6 geschrieben. */
@@ -53,8 +56,14 @@ export interface GeneratedCard {
   name: string;
   typ: string;
   phase: string;
+  /** V4 `PlanCardDraft.isoWeek` — "YYYY-KWnn". Vom Generator immer gesetzt;
+   *  die Vorschau (E5) braucht es nicht, der Schreibpfad (E6) schon. */
+  isoWeek: string;
   tssPlanned: number;
   durationMin: number;
+  km: number | null;
+  workout: object | null;
+  workoutStructure: object | null;
   isQuality: boolean;
   isTest: boolean;
 }
