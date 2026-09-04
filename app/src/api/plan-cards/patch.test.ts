@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 import {
   applyMoveOptimistic,
   buildCancelPatch,
+  buildCopyInput,
   buildMovePatch,
   buildReorderPatches,
   buildUndoPatch,
@@ -56,13 +57,15 @@ describe("buildMovePatch", () => {
     const patch = buildMovePatch(CARDS, byId("card-A"), "2026-07-22", "Regen");
     expect(patch.plannedDate).toBe("2026-07-22");
     expect(patch.movedFromDate).toBe("2026-07-20");
+    expect(patch.previousDate).toBe("2026-07-20");
     expect(patch.moveReason).toBe("Regen");
   });
 
-  it("lässt movedFromDate beim ZWEITEN Verschieben auf dem Ursprung stehen", () => {
+  it("lässt movedFromDate beim ZWEITEN Verschieben auf dem Ursprung stehen, previousDate wandert mit", () => {
     const alreadyMoved = card({ id: "card-A", date: "2026-07-22", originalDate: "2026-07-20" });
     const patch = buildMovePatch(CARDS, alreadyMoved, "2026-07-24", "Hitze");
     expect(patch.movedFromDate).toBe("2026-07-20");
+    expect(patch.previousDate).toBe("2026-07-22");
   });
 
   it("übernimmt week/phase der Zielwoche", () => {
@@ -111,6 +114,7 @@ describe("applyMoveOptimistic", () => {
     const optimistic = applyMoveOptimistic(CARDS, byId("card-A"), "2026-07-29", "Regen");
     expect(optimistic.date).toBe(patch.plannedDate);
     expect(optimistic.originalDate).toBe(patch.movedFromDate);
+    expect(optimistic.previousDate).toBe(patch.previousDate);
     expect(optimistic.week).toBe(patch.week);
     expect(optimistic.phase).toBe(patch.phase);
   });
@@ -186,6 +190,68 @@ describe("buildUndoPatch", () => {
 
   it("liefert null, wenn es nichts rückgängig zu machen gibt", () => {
     expect(buildUndoPatch(CARDS, byId("card-A"))).toBeNull();
+  });
+
+  it("geht bei mehrfach verschobener Karte nur EINEN Schritt zurück (previousDate statt originalDate)", () => {
+    // Do (07-20) -> Fr (07-22) -> Sa (07-24): Rückgängig soll nach Fr gehen,
+    // nicht bis Do durchspringen (Bug, 02.09.2026 gemeldet).
+    const moved = card({ id: "card-A", date: "2026-07-24", originalDate: "2026-07-20", previousDate: "2026-07-22" });
+    const patch = buildUndoPatch(CARDS, moved)!;
+    expect(patch.plannedDate).toBe("2026-07-22");
+    expect(patch.previousDate).toBeNull();
+    // Karte ist noch nicht wieder am Ursprung — Badge "verschoben von Do" bleibt.
+    expect(patch.movedFromDate).toBe("2026-07-20");
+  });
+
+  it("löscht das 'verschoben von'-Badge, sobald Rückgängig den wahren Ursprung erreicht", () => {
+    const moved = card({ id: "card-A", date: "2026-07-22", originalDate: "2026-07-20", previousDate: "2026-07-20" });
+    const patch = buildUndoPatch(CARDS, moved)!;
+    expect(patch.plannedDate).toBe("2026-07-20");
+    expect(patch.previousDate).toBeNull();
+    expect(patch.movedFromDate).toBeNull();
+    expect(patch.moveReason).toBeNull();
+  });
+});
+
+describe("buildCopyInput", () => {
+  it("übernimmt die inhaltlichen Felder auf das Zieldatum", () => {
+    const source = card({
+      id: "card-A",
+      date: "2026-07-20",
+      name: "Sweet Spot 3×12",
+      typ: "Sweet Spot",
+      tssPlanned: 80,
+      km: 45,
+      details: "3x12min SS",
+      workout: { version: 1, steps: [] },
+    });
+    const input = buildCopyInput(source, "2026-07-27");
+    expect(input.date).toBe("2026-07-27");
+    expect(input.name).toBe("Sweet Spot 3×12");
+    expect(input.typ).toBe("Sweet Spot");
+    expect(input.tssPlanned).toBe(80);
+    expect(input.km).toBe(45);
+    expect(input.details).toBe("3x12min SS");
+    expect(input.workout).toEqual({ version: 1, steps: [] });
+  });
+
+  it("nimmt keine Verschiebe-/Status-Historie oder ID mit", () => {
+    const source = card({
+      id: "card-A",
+      date: "2026-07-22",
+      originalDate: "2026-07-20",
+      previousDate: "2026-07-20",
+      cancelled: true,
+      cancelReason: "Krank",
+      pushedExternalId: "ext-1",
+    });
+    const input = buildCopyInput(source, "2026-07-27") as unknown as Record<string, unknown>;
+    expect(input.id).toBeUndefined();
+    expect(input.originalDate).toBeUndefined();
+    expect(input.previousDate).toBeUndefined();
+    expect(input.cancelled).toBeUndefined();
+    expect(input.cancelReason).toBeUndefined();
+    expect(input.pushedExternalId).toBeUndefined();
   });
 });
 

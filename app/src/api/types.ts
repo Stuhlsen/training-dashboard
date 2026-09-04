@@ -67,6 +67,13 @@ export interface PlanCard {
   workout: WorkoutJson;
   workoutStructure: WorkoutJson;
   originalDate?: string;
+  /** Datum unmittelbar VOR dem letzten Verschieben — anders als
+   *  `originalDate` (friert beim ersten Move auf dem wahren Ursprung ein,
+   *  speist das "verschoben von …"-Badge) wird dieses Feld bei JEDEM Move
+   *  neu gesetzt. Einzige Quelle für "Rückgängig" (buildUndoPatch), damit
+   *  Undo nur den letzten Schritt zurücknimmt statt bis zum Ursprung zu
+   *  springen (Migration 0031). */
+  previousDate?: string;
   movedReason?: string;
   cancelled?: true;
   cancelReason?: string;
@@ -84,6 +91,7 @@ export interface PlanCardPatch {
    *  einem Tag schreibt dieses Feld (buildReorderPatches). */
   sortOrder?: number;
   movedFromDate?: string | null;
+  previousDate?: string | null;
   moveReason?: string | null;
   status?: "geplant" | "ausgefallen";
   cancelReason?: string | null;

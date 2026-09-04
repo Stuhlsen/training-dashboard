@@ -14,7 +14,7 @@
    ============================================================ */
 
 import { weekLabelForDate } from "../../core/plan-drag.js";
-import type { PlanCard, PlanCardPatch, WeekModelEntry } from "../types";
+import type { PlanCard, PlanCardInput, PlanCardPatch, WeekModelEntry } from "../types";
 
 interface WeekLabel {
   week: string;
@@ -64,6 +64,10 @@ export function buildMovePatch(
   return {
     plannedDate: newDate,
     movedFromDate,
+    // previousDate wird bei JEDEM Move neu gesetzt (anders als movedFromDate)
+    // — die einzige Quelle für buildUndoPatch(), damit Rückgängig nur den
+    // letzten Schritt zurücknimmt statt bis zum Ursprung zu springen.
+    previousDate: card.date,
     moveReason: reason || "",
     status: "geplant",
     cancelReason: null,
@@ -98,6 +102,7 @@ export function applyMoveOptimistic(
     ...card,
     date: newDate,
     originalDate: movedFromDate,
+    previousDate: card.date,
     movedReason: reason || undefined,
     cancelled: undefined,
     cancelReason: undefined,
@@ -123,9 +128,18 @@ export function buildCancelPatch(reason?: string): PlanCardPatch {
  *  gab es genau EINE Anpassung — Verschiebung ODER Ausfall):
  *
  *  - ausgefallene Karte  → zurück auf "geplant"
- *  - verschobene Karte   → zurück auf moved_from_date, inkl. neu geliehenem
- *    week/phase-Label der (wieder-)aktuellen Woche. Ohne das hinge die Karte
- *    nach "Rückgängig" weiter unter der zuletzt gezogenen Zielwoche.
+ *  - verschobene Karte   → zurück auf `previousDate` (das Datum vor dem
+ *    LETZTEN Verschieben, Migration 0031) statt auf `originalDate` (den
+ *    wahren Ursprung) — sonst übersprang Undo bei mehrfach verschobenen
+ *    Karten alle Zwischenschritte (Bug, 02.09.2026 gemeldet: Do→Fr→Sa
+ *    verschoben, Rückgängig sprang statt nach Fr direkt nach Do). Alt-Karten
+ *    ohne `previousDate` (vor der Migration verschoben) fallen weiter auf
+ *    `originalDate` zurück — identisches Verhalten wie bisher. Erreicht das
+ *    Zieldatum den wahren Ursprung, wird das "verschoben von …"-Badge
+ *    (movedFromDate/moveReason) mit gelöscht; ist noch ein Zwischenschritt
+ *    übrig, bleibt es stehen (die Karte ist ja noch nicht wieder am Ursprung).
+ *    week/phase werden für das Zieldatum neu geliehen — ohne das hinge die
+ *    Karte nach "Rückgängig" weiter unter der zuletzt gezogenen Zielwoche.
  *  - weder noch          → `null`, es gibt nichts rückgängig zu machen */
 export function buildUndoPatch(
   cards: PlanCard[],
@@ -138,19 +152,43 @@ export function buildUndoPatch(
     return { status: "geplant", cancelReason: null };
   }
   if (!card.originalDate) return null;
+  const target = card.previousDate ?? card.originalDate;
+  const backToOrigin = target === card.originalDate;
   const label = weekLabelForDate(
     cards,
-    card.originalDate,
+    target,
     card.id,
     athleteId,
     offsetWeeks,
     weekModel,
   ) as WeekLabel | null;
   return {
-    plannedDate: card.originalDate,
-    movedFromDate: null,
-    moveReason: null,
+    plannedDate: target,
+    previousDate: null,
+    movedFromDate: backToOrigin ? null : card.originalDate,
+    moveReason: backToOrigin ? null : (card.movedReason ?? null),
     ...(label ? { week: label.week, phase: label.phase } : {}),
+  };
+}
+
+/** Eingabe für eine Kopie einer bestehenden Karte auf `targetDate` (Drag&Drop
+ *  "Kopieren"-Wahl). Nimmt nur die inhaltlichen Felder mit — bewusst NICHT
+ *  id/createdAt/updatedAt (DB-vergeben), originalDate/movedReason/
+ *  previousDate (Verschiebe-Historie gehört nicht zu einer neuen Karte),
+ *  cancelled/cancelReason (Status-Historie) oder pushedExternalId (fremde
+ *  externe Identität). sortOrder/week/phase bleiben wie bei jeder manuellen
+ *  Neuanlage über useCreatePlanCard offen — keine Sonderbehandlung für
+ *  Kopien. */
+export function buildCopyInput(card: PlanCard, targetDate: string): PlanCardInput {
+  return {
+    date: targetDate,
+    name: card.name,
+    typ: card.typ,
+    tssPlanned: card.tssPlanned ?? undefined,
+    km: card.km ?? undefined,
+    details: card.details ?? undefined,
+    workout: card.workout ?? undefined,
+    workoutStructure: card.workoutStructure ?? undefined,
   };
 }
 

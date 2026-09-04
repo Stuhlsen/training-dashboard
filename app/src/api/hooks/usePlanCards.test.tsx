@@ -87,6 +87,7 @@ function serverCard(base: PlanCard, patch: PlanCardPatch): PlanCard {
     date: patch.plannedDate ?? base.date,
     sortOrder: patch.sortOrder ?? base.sortOrder,
     originalDate: patch.movedFromDate ?? base.originalDate ?? undefined,
+    previousDate: patch.previousDate ?? base.previousDate ?? undefined,
     movedReason: patch.moveReason || undefined,
     cancelled: patch.status === "ausgefallen" || undefined,
     cancelReason: patch.cancelReason || undefined,

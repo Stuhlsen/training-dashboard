@@ -23,12 +23,14 @@ import { useEvents } from "../../api/hooks/useEvents";
 import { useRides } from "../../api/hooks/useRides";
 import {
   useCancelPlanCard,
+  useCreatePlanCard,
   useMovePlanCard,
   usePlanCards,
   usePushPlanCard,
   useReorderPlanCard,
   useUndoAdjustment,
 } from "../../api/hooks/usePlanCards";
+import { buildCopyInput } from "../../api/plan-cards/patch";
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
 import { qk } from "../../api/keys";
 import { fmtDate, localISODate } from "../../core/format.js";
@@ -47,6 +49,7 @@ import { FtpRescaleDialog } from "./FtpRescaleDialog";
 import { detectDoneFtpTest } from "./ftp-rescale-dialog-view-model";
 import { ExportImportBar } from "./ExportImportBar";
 import { BlockDialogGate } from "./BlockDialog";
+import { MoveCopyDialog } from "./MoveCopyDialog";
 import { ProposalBanner } from "./ProposalBanner";
 import { ProposalList } from "./ProposalList";
 import { ProposalCompare } from "./ProposalCompare";
@@ -149,6 +152,7 @@ export function PlanningPage() {
   const { undo } = useUndoAdjustment(activeAthleteId);
   const { reorder } = useReorderPlanCard(activeAthleteId);
   const { push } = usePushPlanCard(activeAthleteId);
+  const { create: createPlanCard } = useCreatePlanCard(activeAthleteId);
   const { create: createTrainerProposal } = useCreateTrainerProposal(activeAthleteId);
   // Trainer sehen weder den Push-Button (s. canPush unten) noch den
   // Rausch-Chart — die eigenen intervals.icu-Zugangsdaten des Trainers
@@ -165,6 +169,10 @@ export function PlanningPage() {
   // (localStorage-gestützt, s. useEffect unten).
   const [ftpRescaleDismissed, setFtpRescaleDismissed] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
+  // Drop auf einen freien Zieltag fragt erst nach "Verschieben oder
+  // Kopieren?" statt sofort zu schreiben (Bugreport 02.09.2026) — dieser
+  // State hält die Wahl offen, bis der Dialog eine Entscheidung meldet.
+  const [pendingDrop, setPendingDrop] = useState<{ cardId: string; targetDate: string } | null>(null);
   // Etappe 7b: Liste unabhängig von der Vergleichsansicht offen halten —
   // "Vergleichen…" öffnet die Vergleichsansicht ÜBER der weiterhin
   // sichtbaren Liste (höherer z-index), wie ui/proposal-compare.js über
@@ -379,6 +387,19 @@ export function PlanningPage() {
     return result;
   }
 
+  /** Gegenstück zu handleMove für die "Kopieren"-Wahl im MoveCopyDialog —
+   *  legt eine neue Karte auf targetDate an, die Quellkarte bleibt
+   *  unangetastet. Kein Vorschlags-Zweig: der Dialog ist nur über eine
+   *  echte Zieh-Geste erreichbar, die canDragCard() für Trainer im
+   *  Vorschlagsmodus bereits vollständig sperrt (core/plan-drag.js). */
+  async function handleCopy(id: string, targetDate: string): Promise<Result> {
+    const source = (cards ?? []).find((c) => c.id === id);
+    if (!source) return { ok: false, error: { code: "NO_DATA", message: "Karte nicht gefunden" } };
+    const result = await createPlanCard(buildCopyInput(source, targetDate));
+    if (result.ok) recordDelta(targetDate);
+    return result;
+  }
+
   async function handleCancel(id: string, reason?: string): Promise<Result> {
     const cardDate = (cards ?? []).find((c) => c.id === id)?.date;
     if (trainerProposalMode) {
@@ -402,7 +423,11 @@ export function PlanningPage() {
     const targetDate = event.over?.id ? String(event.over.id) : "";
     if (activeCard) {
       const { action } = resolveDrop({ id: activeCard.id, date: activeCard.date }, targetDate, TODAY);
-      if (action === "move") void handleMove(activeCard.id, targetDate);
+      // Ein gültiger Drop fragt erst per Dialog "Verschieben oder
+      // Kopieren?" nach, statt sofort zu schreiben (Bugreport 02.09.2026) —
+      // "none" (derselbe Tag) und "rejected" (Vergangenheit) bleiben wie
+      // bisher ohne Dialog (Ghost schnappt zurück).
+      if (action === "move") setPendingDrop({ cardId: activeCard.id, targetDate });
     }
     setActiveId(null);
   }
@@ -726,6 +751,21 @@ export function PlanningPage() {
           }}
         />
       )}
+
+      {pendingDrop &&
+        (() => {
+          const dropCard = (cards ?? []).find((c) => c.id === pendingDrop.cardId);
+          if (!dropCard) return null;
+          return (
+            <MoveCopyDialog
+              card={dropCard}
+              targetDate={pendingDrop.targetDate}
+              onClose={() => setPendingDrop(null)}
+              onMove={() => handleMove(pendingDrop.cardId, pendingDrop.targetDate)}
+              onCopy={() => handleCopy(pendingDrop.cardId, pendingDrop.targetDate)}
+            />
+          );
+        })()}
 
       {proposalListOpen && (
         <ProposalList

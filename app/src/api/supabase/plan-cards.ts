@@ -5,7 +5,7 @@ import type { PlanCard, PlanCardInput, PlanCardPatch, Result, WorkoutJson } from
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
   "id, planned_date, sort_order, title, workout_type, km, duration_min, tss_planned, " +
-  "status, note, workout, workout_structure, cancel_reason, moved_from_date, move_reason, week, phase, " +
+  "status, note, workout, workout_structure, cancel_reason, moved_from_date, previous_date, move_reason, week, phase, " +
   "pushed_external_id, created_at, updated_at";
 
 interface PlanCardRow {
@@ -23,6 +23,7 @@ interface PlanCardRow {
   workout_structure: WorkoutJson;
   cancel_reason: string | null;
   moved_from_date: string | null;
+  previous_date: string | null;
   move_reason: string | null;
   week: string | null;
   phase: string | null;
@@ -51,6 +52,7 @@ function toPlanCard(row: PlanCardRow): PlanCard {
     workout: row.workout,
     workoutStructure: row.workout_structure,
     originalDate: row.moved_from_date || undefined,
+    previousDate: row.previous_date || undefined,
     movedReason: row.move_reason || undefined,
     cancelled: row.status === "ausgefallen" || undefined,
     cancelReason: row.cancel_reason || undefined,
@@ -87,6 +89,7 @@ export async function updatePlanCard(
   if (patch.plannedDate !== undefined) updates.planned_date = patch.plannedDate;
   if (patch.sortOrder !== undefined) updates.sort_order = patch.sortOrder;
   if (patch.movedFromDate !== undefined) updates.moved_from_date = patch.movedFromDate;
+  if (patch.previousDate !== undefined) updates.previous_date = patch.previousDate;
   if (patch.moveReason !== undefined) updates.move_reason = patch.moveReason;
   if (patch.status !== undefined) updates.status = patch.status;
   if (patch.cancelReason !== undefined) updates.cancel_reason = patch.cancelReason;
