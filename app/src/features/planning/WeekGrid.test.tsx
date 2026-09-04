@@ -155,3 +155,27 @@ describe("WeekGrid — Drop-Ziele", () => {
     expect(future?.getAttribute("data-drop-allowed")).toBe("true");
   });
 });
+
+describe("WeekGrid — Doppelbelegung im geschlossenen Raster (Bugreport 02.09.2026)", () => {
+  it("zeigt eine Warnung, wenn zwei AKTIVE Karten denselben Tag belegen", () => {
+    const cards = [
+      card({ id: "a", date: "2026-08-14", name: "Erste" }),
+      card({ id: "b", date: "2026-08-14", name: "Zweite", sortOrder: 1 }),
+    ];
+    renderGrid(cards);
+    const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]');
+    expect(cell?.textContent).toContain("⚠");
+    expect(cell?.textContent).toContain("+1");
+  });
+
+  it("zeigt KEINE Warnung, wenn die zweite Karte am Tag ausgefallen ist (normaler Move-Fall)", () => {
+    const cards = [
+      card({ id: "a", date: "2026-08-14", name: "Ersatz" }),
+      card({ id: "b", date: "2026-08-14", name: "Original", cancelled: true, sortOrder: 1 }),
+    ];
+    renderGrid(cards);
+    const cell = document.querySelector('[data-grid-cell-date="2026-08-14"]');
+    expect(cell?.textContent).not.toContain("⚠");
+    expect(cell?.textContent).toContain("+1");
+  });
+});

@@ -263,9 +263,25 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
       {!cell.card && cell.status === "rest" && (
         <span style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>Ruhetag</span>
       )}
-      {cell.otherCards.length > 0 && (
-        <span style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>+{cell.otherCards.length}</span>
-      )}
+      {/* Mehrere Karten am selben Tag: eine ausgefallene Alt-Karte neben der
+          aktiven Ersatzkarte ist harmlos (normaler Move-Fall), zwei aktive
+          Karten sind eine echte Doppelbelegung (K-OVERLAP, s.
+          core/conflicts.js) — nur dafür Warnfarbe/⚠, sonst bleibt es beim
+          neutralen Zähler. Klick öffnet in beiden Fällen bereits alle
+          Karten des Tages (renderDetail in PlanningPage.tsx). */}
+      {cell.otherCards.length > 0 &&
+        (() => {
+          const activeOtherCards = cell.otherCards.filter((c) => !c.cancelled);
+          const overlap = activeOtherCards.length > 0;
+          return (
+            <span
+              title={overlap ? "Doppelbelegung — zum Öffnen klicken" : undefined}
+              style={{ fontSize: "var(--fs-label)", color: overlap ? "var(--warn)" : "var(--ink-3)" }}
+            >
+              {overlap ? "⚠ " : ""}+{cell.otherCards.length}
+            </span>
+          );
+        })()}
     </div>
   );
 }
