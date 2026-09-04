@@ -39,6 +39,7 @@ export function usePlanHistoryAggregate(athleteId: string) {
         todayISO: localISODate(),
         ageYears,
         eftpFallback,
+        powerCurves: (athleteData?.powerCurves as object | null) ?? null,
       }),
     [athleteData, planCards, ageYears, eftpFallback],
   );

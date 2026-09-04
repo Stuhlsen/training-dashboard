@@ -197,3 +197,54 @@ test("buildPhaseSequence: open-Modus (taperWeeks 0) hat keine Taper-Woche", () =
   });
   assert.ok(!phases.includes("Taper"));
 });
+
+/* ── E10: weaknessPhase verschiebt eine Aufbau-Woche ───────────── */
+
+const buildPhaseCounts = (phases) => {
+  const c = {};
+  for (const p of phases) {
+    if (p === "Taper" || p === "Erholung") continue;
+    c[p] = (c[p] || 0) + 1;
+  }
+  return c;
+};
+
+test("buildPhaseSequence: weaknessPhase 'Schwelle' → genau +1 Schwelle, −1 andere Nicht-Grundlage-Phase", () => {
+  const args = { totalWeeks: 15, taperWeeks: 2, model: "pyramidal", level: "fortgeschritten", ageYears: 30 };
+  const base = buildPhaseSequence(args);
+  const biased = buildPhaseSequence({ ...args, weaknessPhase: "Schwelle" });
+
+  const cb = buildPhaseCounts(base.phases);
+  const cx = buildPhaseCounts(biased.phases);
+  assert.equal(biased.phases.length, base.phases.length);
+  assert.equal(cx["Schwelle"], cb["Schwelle"] + 1);
+  assert.equal(cx["Grundlage"], cb["Grundlage"]); // Grundlage nie Spender
+  assert.equal(cx["Sweet Spot"] + cx["VO2max"], cb["Sweet Spot"] + cb["VO2max"] - 1);
+  assert.ok(biased.warnings.some((w) => w.includes("Power-Kurve")));
+});
+
+test("buildPhaseSequence: weaknessPhase 'Grundlage' wächst, Spender ist ein Intensitätsblock", () => {
+  const args = { totalWeeks: 15, taperWeeks: 2, model: "pyramidal", level: "fortgeschritten", ageYears: 30 };
+  const cb = buildPhaseCounts(buildPhaseSequence(args).phases);
+  const cx = buildPhaseCounts(buildPhaseSequence({ ...args, weaknessPhase: "Grundlage" }).phases);
+  assert.equal(cx["Grundlage"], cb["Grundlage"] + 1);
+});
+
+test("buildPhaseSequence: weaknessPhase ohne Spielraum (alle Blöcke 1 Woche) → no-op, keine Warnung", () => {
+  // totalWeeks 7 / taper 1 → 6 Bau-Wochen, 2 Erholung → 4 Arbeitswochen → [1,1,1,1]
+  const args = { totalWeeks: 7, taperWeeks: 1, model: "pyramidal", level: "einsteiger", ageYears: null };
+  const base = buildPhaseSequence(args);
+  const biased = buildPhaseSequence({ ...args, weaknessPhase: "VO2max" });
+  assert.deepEqual(biased.phases, base.phases);
+  assert.ok(!biased.warnings.some((w) => w.includes("Power-Kurve")));
+});
+
+test("buildPhaseSequence: polarized/block ignorieren weaknessPhase", () => {
+  for (const model of ["polarized", "block"]) {
+    const args = { totalWeeks: 14, taperWeeks: 2, model, level: "fortgeschritten", ageYears: 30 };
+    const base = buildPhaseSequence(args);
+    const biased = buildPhaseSequence({ ...args, weaknessPhase: "Schwelle" });
+    assert.deepEqual(biased.phases, base.phases);
+    assert.deepEqual(biased.warnings, base.warnings);
+  }
+});

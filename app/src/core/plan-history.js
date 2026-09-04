@@ -11,16 +11,24 @@
    Kein Import von `config.ts` (Schichtenregel core/): `ageYears` und die
    eFTP-Ersatzquelle kommen als Parameter rein.
 
-   `powerCurveWeakness` bleibt bis E10 hart `null` (V3).
+   `powerCurveWeakness` (V3) wird seit E10 aus der Power-Kurve abgeleitet
+   (`derivePowerCurveWeakness`): relatives Watt-Defizit je Referenzdauer
+   (nur auf echten Kurven-Stützpunkten, keine nearest-neighbor-Extrapolation)
+   gegen ein grobes Referenzprofil zur FTP. Die Referenz-Multiplikatoren und
+   die 5-%-Schwelle sind ein begründeter Erstaufschlag (wie
+   `CONFLICT_THRESHOLDS`, K1) — nach echter Nutzung gegen Ist-Kurven zu
+   kalibrieren.
    `emptyHistory()` wird aus `plan-generator.js` re-exportiert — eine
    Definition, gemeinsame Quelle für E2 und E4.
    ============================================================ */
 
 import { addDaysISO } from "./format.js";
 import { isoWeekKey } from "./aggregate.js";
+import { avg } from "./stats.js";
 import { mondayOf, planAdherence as planAdherenceCore } from "./adherence.js";
 import { currentPmc } from "./pmc.js";
 import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "./ftp-forecast.js";
+import { extractPowerCurve } from "./powercurve.js";
 import { emptyHistory } from "./plan-generator.js";
 
 export { emptyHistory };
@@ -92,6 +100,90 @@ function recentAdherence(rides, planCards, todayISO) {
 }
 
 /**
+ * Grobes Referenzprofil „durchschnittlicher trainierter Radsportler":
+ * Watt je Standard-Dauer als Vielfaches der FTP. Kategorie → geprüfte Dauern
+ * (Sekunden, wie `powercurve.js::STANDARD_SECS`) + Referenz-Multiplikator.
+ * Startbelegung (K1) — nach echter Nutzung kalibrieren.
+ * @type {Array<{ key: "sprint"|"vo2"|"threshold"|"aerob", refs: Array<[number, number]> }>}
+ */
+const POWER_CURVE_REFERENCE = [
+  { key: "sprint", refs: [[1, 2.6], [5, 2.4]] },
+  { key: "vo2", refs: [[300, 1.15]] },
+  { key: "threshold", refs: [[600, 1.06], [1200, 1.0]] },
+  { key: "aerob", refs: [[1800, 0.97], [3600, 0.92]] },
+];
+
+/** Ab welchem mittleren Defizit (Anteil) eine Kategorie als Schwäche gilt. */
+const WEAKNESS_MIN_DEFICIT = 0.05;
+/** Mindestzahl echter Stützpunkte in der Kurve für eine belastbare Aussage. */
+const WEAKNESS_MIN_SAMPLES = 5;
+/** Zulässiger Abstand einer echten Stichprobe zur Referenzdauer (Anteil). */
+const SAMPLE_TOLERANCE = 0.15;
+
+/**
+ * Schwächste Leistungsdauer aus der Power-Kurve (V3 `powerCurveWeakness`,
+ * Fahrplan 8 E10). Vergleicht die Ist-Watt je Referenzdauer mit dem groben
+ * Referenzprofil (`POWER_CURVE_REFERENCE`, Vielfaches der FTP) und gibt die
+ * Kategorie mit dem größten mittleren relativen Defizit zurück.
+ *
+ * Bewusst **auf den echten Stützpunkten** der Kurve (`extractPowerCurve`), NICHT
+ * auf `buildCurveData()` — letzteres extrapoliert per nearest-neighbor jede
+ * Standard-Dauer aus dem nächstgelegenen Wert und würde bei einer dünnen Kurve
+ * (z. B. nur Schwellen-Dauern aus flachen ERG-Fahrten) eine Scheinschwäche in
+ * einer gar nicht gemessenen Dauer erzeugen. Eine Referenzdauer zählt nur, wenn
+ * eine echte Stichprobe innerhalb von ±15 % ihrer Sekundenzahl liegt.
+ *
+ * `null`, wenn: keine FTP · < 5 echte Stützpunkte · keine Kategorie hat eine
+ * Dauer mit naher Stichprobe · keine Kategorie reißt das 5-%-Defizit.
+ * @param {Object|null|undefined} powerCurves  intervals.icu-Antwort (beide Formate)
+ * @param {number|null} ftp
+ * @returns {"sprint"|"vo2"|"threshold"|"aerob"|null}
+ */
+export function derivePowerCurveWeakness(powerCurves, ftp) {
+  if (ftp == null || !(ftp > 0)) return null;
+
+  const { secs, watts } = extractPowerCurve(powerCurves);
+  const keys = [];
+  const wattBySecs = new Map();
+  for (let i = 0; i < secs.length; i++) {
+    if (watts[i] != null && watts[i] > 0 && !wattBySecs.has(secs[i])) {
+      wattBySecs.set(secs[i], watts[i]);
+      keys.push(secs[i]);
+    }
+  }
+  if (keys.length < WEAKNESS_MIN_SAMPLES) return null;
+  keys.sort((a, b) => a - b);
+
+  /** Watt für eine Referenzdauer — nur bei echter Stichprobe innerhalb ±15 %. */
+  const wattNear = (target) => {
+    let best = null;
+    for (const k of keys) {
+      const dist = Math.abs(k - target);
+      if (dist <= target * SAMPLE_TOLERANCE && (best == null || dist < Math.abs(best - target))) {
+        best = k;
+      }
+    }
+    return best == null ? null : wattBySecs.get(best);
+  };
+
+  let worst = null;
+  for (const cat of POWER_CURVE_REFERENCE) {
+    const deficits = [];
+    for (const [secs_, refMul] of cat.refs) {
+      const w = wattNear(secs_);
+      if (w == null) continue;
+      const refW = refMul * ftp;
+      deficits.push((refW - w) / refW);
+    }
+    const d = avg(deficits);
+    if (d == null) continue;
+    if (worst == null || d > worst.deficit) worst = { key: cat.key, deficit: d };
+  }
+  if (!worst || worst.deficit < WEAKNESS_MIN_DEFICIT) return null;
+  return worst.key;
+}
+
+/**
  * Baut das V3 `HistoryAggregate` für den Plan-Generator.
  *
  * `ageYears` wird auch im leeren Fall (keine Rides) durchgereicht — das
@@ -105,6 +197,7 @@ function recentAdherence(rides, planCards, todayISO) {
  * @param {string} args.todayISO
  * @param {number|null} [args.ageYears]
  * @param {number|null} [args.eftpFallback]  eFTP aus config.ts, wenn die Ride-/Wellness-Reihe leer ist
+ * @param {Object|null} [args.powerCurves]  intervals.icu-Power-Kurve (E10) — FTP-Anker ist der abgeleitete `currentEftp`
  * @returns {HistoryAggregate}
  */
 export function buildHistoryAggregate({
@@ -114,6 +207,7 @@ export function buildHistoryAggregate({
   todayISO,
   ageYears = null,
   eftpFallback = null,
+  powerCurves = null,
 }) {
   const rs = rides || [];
   const age = ageYears ?? null;
@@ -136,6 +230,6 @@ export function buildHistoryAggregate({
     currentEftp,
     planAdherence: recentAdherence(rs, planCards, todayISO),
     ageYears: age,
-    powerCurveWeakness: null, // E10
+    powerCurveWeakness: derivePowerCurveWeakness(powerCurves, currentEftp),
   };
 }

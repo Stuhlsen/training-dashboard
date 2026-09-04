@@ -122,6 +122,17 @@ import { selectWorkout } from "./plan-workout-select.js";
 /** @param {number} v @param {number} lo @param {number} hi @returns {number} */
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
+/** Power-Curve-Schwäche (V3) → Aufbau-Phase, die eine Woche mehr bekommt
+ *  (E10, nur bei `focus: "allgemein"`). „sprint" hat keinen eigenen Block im
+ *  4-Phasen-Vokabular → auf den VO2max-Block abgebildet.
+ *  @type {Record<"sprint"|"vo2"|"threshold"|"aerob", string>} */
+const WEAKNESS_TO_PHASE = {
+  sprint: "VO2max",
+  vo2: "VO2max",
+  threshold: "Schwelle",
+  aerob: "Grundlage",
+};
+
 /** Anteil des CTL-/ATL-Zuwachses, den eine gleichmäßig über 7 Tage verteilte
  *  Wochenlast erzeugt: ramp = FACTOR(τ) × (tagesTss − ctlStart).
  *  Herleitung: die tägliche Exponentialglättung ctl←ctl+(x−ctl)/τ 7× iteriert.
@@ -515,12 +526,20 @@ export function generatePlan(input) {
       : 0;
 
   // 2) Phasen je Woche --------------------------------------------------
+  // Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche
+  // zugunsten des schwächsten Systems (E10). Anderer Fokus hat schon einen
+  // bewussten Schwerpunkt → keine zusätzliche Verschiebung.
+  const weaknessPhase =
+    input.focus === "allgemein" && history.powerCurveWeakness
+      ? WEAKNESS_TO_PHASE[history.powerCurveWeakness] ?? null
+      : null;
   const seq = buildPhaseSequence({
     totalWeeks,
     taperWeeks,
     model: input.model,
     level: input.level,
     ageYears: history.ageYears,
+    weaknessPhase,
   });
   warnings.push(...seq.warnings);
 

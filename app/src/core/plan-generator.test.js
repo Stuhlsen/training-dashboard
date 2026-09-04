@@ -337,6 +337,53 @@ test("zu kurzer Plan wird auf 3 Wochen angehoben, mit Warnung", () => {
   assert.ok(plan.warnings.some((w) => w.includes("zu kurz")));
 });
 
+/* ── E10: Power-Curve-Schwäche verschiebt eine Aufbau-Woche ─────── */
+
+const phaseCount = (plan, phase) => plan.weeks.filter((w) => w.phase === phase).length;
+
+test("E10: powerCurveWeakness 'vo2' bei focus 'allgemein' → eine VO2max-Woche mehr", () => {
+  const base = generatePlan(eventInput());
+  const biased = generatePlan(
+    eventInput({ history: { ...eventInput().history, powerCurveWeakness: "vo2" } })
+  );
+  assert.equal(phaseCount(biased, "VO2max"), phaseCount(base, "VO2max") + 1);
+  // Gesamtwochenzahl + Taper unverändert, genau eine Nicht-Grundlage-Phase gibt ab.
+  assert.equal(biased.weeks.length, base.weeks.length);
+  assert.equal(phaseCount(biased, "Grundlage"), phaseCount(base, "Grundlage"));
+  assert.ok(phaseCount(biased, "Sweet Spot") + phaseCount(biased, "Schwelle")
+    === phaseCount(base, "Sweet Spot") + phaseCount(base, "Schwelle") - 1);
+  assert.ok(biased.warnings.some((w) => w.includes("Power-Kurve")));
+});
+
+test("E10: CTL-Rampe hält weiter die Hartgrenze trotz Verschiebung", () => {
+  const biased = generatePlan(
+    eventInput({ history: { ...eventInput().history, powerCurveWeakness: "vo2" } })
+  );
+  let ctl = eventInput().history.currentCtl;
+  for (const w of biased.weeks) {
+    const next = ctlAfterWeek(ctl, w.targetTss, CTL_DAYS);
+    assert.ok(next - ctl <= CONFLICT_THRESHOLDS.ctlRampWarn + 1e-9, `Woche ${w.index}: Rampe ${(next - ctl).toFixed(2)}`);
+    ctl = next;
+  }
+});
+
+test("E10: anderer Fokus als 'allgemein' → keine Verschiebung", () => {
+  const withWeakness = generatePlan(
+    eventInput({ focus: "berg", history: { ...eventInput().history, powerCurveWeakness: "threshold" } })
+  );
+  const without = generatePlan(
+    eventInput({ focus: "berg", history: { ...eventInput().history, powerCurveWeakness: null } })
+  );
+  assert.deepEqual(withWeakness, without);
+});
+
+test("E10: Verschiebung ist deterministisch", () => {
+  const mk = () => generatePlan(
+    eventInput({ history: { ...eventInput().history, powerCurveWeakness: "threshold" } })
+  );
+  assert.deepEqual(mk(), mk());
+});
+
 test("weekModel spiegelt Wochen 1:1 (V4)", () => {
   const plan = generatePlan(eventInput());
   assert.equal(plan.weekModel.length, plan.weeks.length);

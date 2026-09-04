@@ -5,7 +5,7 @@
 
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { buildHistoryAggregate, emptyHistory } from "./plan-history.js";
+import { buildHistoryAggregate, derivePowerCurveWeakness, emptyHistory } from "./plan-history.js";
 import { addDaysISO } from "./format.js";
 
 const TODAY = "2026-09-09"; // Mittwoch; Montag der laufenden Woche = 2026-09-07
@@ -13,6 +13,18 @@ const TODAY = "2026-09-09"; // Mittwoch; Montag der laufenden Woche = 2026-09-07
 /** Ride-Fixture mit den Feldern, die die Aggregation liest. */
 function ride(dateISO, over = {}) {
   return { dateISO, tss: 50, ...over };
+}
+
+/** Power-Kurve im intervals.icu-Kurzformat. `over` überschreibt einzelne
+ *  Sekunden-Watt-Paare; Default ist ein Profil ohne ausgeprägte Schwäche. */
+function powerCurve(over = {}) {
+  const base = {
+    1: 700, 5: 640, 10: 560, 30: 400, 60: 320,
+    120: 300, 300: 292, 600: 270, 1200: 254, 1800: 244, 3600: 232,
+  };
+  const merged = { ...base, ...over };
+  const secs = Object.keys(merged).map(Number).sort((a, b) => a - b);
+  return { secs, watts: secs.map((s) => merged[s]) };
 }
 
 test("keine Rides → emptyHistory-Form, ageYears + eFTP-Fallback bleiben", () => {
@@ -126,4 +138,51 @@ test("deterministisch: gleicher Input → gleicher Output", () => {
   const rides = [ride("2026-08-25", { ctl: 50, atl: 48, eftp: 244 }), ride("2026-09-01", { eftp: 250 })];
   const args = { rides, todayISO: TODAY, ageYears: 40, eftpFallback: 200 };
   assert.deepEqual(buildHistoryAggregate(args), buildHistoryAggregate(args));
+});
+
+/* ── E10: derivePowerCurveWeakness ────────────────────────────── */
+
+test("derivePowerCurveWeakness: klares 20-min-Defizit → 'threshold'", () => {
+  const curve = powerCurve({ 600: 235, 1200: 210 });
+  assert.equal(derivePowerCurveWeakness(curve, 250), "threshold");
+});
+
+test("derivePowerCurveWeakness: Kurve überall stark → null", () => {
+  assert.equal(derivePowerCurveWeakness(powerCurve(), 250), null);
+});
+
+test("derivePowerCurveWeakness: ohne FTP → null", () => {
+  assert.equal(derivePowerCurveWeakness(powerCurve({ 1200: 180 }), null), null);
+  assert.equal(derivePowerCurveWeakness(powerCurve({ 1200: 180 }), 0), null);
+});
+
+test("derivePowerCurveWeakness: zu wenige echte Stützpunkte (< 5) → null", () => {
+  assert.equal(derivePowerCurveWeakness({ secs: [1, 5], watts: [700, 640] }, 250), null);
+  assert.equal(
+    derivePowerCurveWeakness({ secs: [60, 300, 1200, 3600], watts: [320, 292, 254, 232] }, 250),
+    null
+  );
+  assert.equal(derivePowerCurveWeakness(null, 250), null);
+});
+
+test("derivePowerCurveWeakness: dünne Schwellen-Kurve erzeugt keine Sprint-Scheinschwäche", () => {
+  // Nur Dauern ab 60 s, niedrige Schwellenwatt — nearest-neighbor würde 1 s/5 s
+  // aus dem 60-s-Wert hochrechnen und „sprint" liefern; wattNear() lässt das nicht zu.
+  const curve = { secs: [60, 120, 300, 600, 1200], watts: [340, 310, 292, 235, 210] };
+  assert.equal(derivePowerCurveWeakness(curve, 250), "threshold");
+});
+
+test("buildHistoryAggregate: powerCurves + eFTP → powerCurveWeakness gesetzt", () => {
+  const rides = [ride("2026-08-25", { eftp: 250 }), ride("2026-09-01", { eftp: 250 })];
+  const agg = buildHistoryAggregate({
+    rides,
+    todayISO: TODAY,
+    powerCurves: powerCurve({ 600: 235, 1200: 210 }),
+  });
+  assert.equal(agg.powerCurveWeakness, "threshold");
+});
+
+test("buildHistoryAggregate: ohne powerCurves → powerCurveWeakness null", () => {
+  const rides = [ride("2026-09-01", { eftp: 250 })];
+  assert.equal(buildHistoryAggregate({ rides, todayISO: TODAY }).powerCurveWeakness, null);
 });

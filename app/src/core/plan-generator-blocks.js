@@ -107,6 +107,35 @@ export function largestRemainder(weights, total) {
   return out;
 }
 
+/**
+ * Verschiebt eine Aufbau-Woche zugunsten des schwächsten Systems (E10,
+ * Power-Curve-Schwäche bei allgemeinem Fokus). Spender ist die Phase mit
+ * dem größten `counts`-Wert unter allen Nicht-Ziel-, Nicht-`Grundlage`-
+ * Phasen mit `> 1` Woche — die Grundlage wird nie verkleinert. Kein
+ * Spielraum → kein Shift. Mutiert `counts`, hängt ggf. eine Warnung an.
+ * @param {number[]} counts  Länge/Reihenfolge wie BUILD_PHASES
+ * @param {string|null} weaknessPhase
+ * @param {string[]} warnings
+ */
+function applyWeaknessBias(counts, weaknessPhase, warnings) {
+  if (!weaknessPhase) return;
+  const target = BUILD_PHASES.indexOf(weaknessPhase);
+  if (target < 0) return;
+
+  let donor = -1;
+  for (let i = 0; i < counts.length; i++) {
+    if (i === target || BUILD_PHASES[i] === "Grundlage") continue;
+    if (counts[i] > 1 && (donor < 0 || counts[i] > counts[donor])) donor = i;
+  }
+  if (donor < 0) return;
+
+  counts[donor]--;
+  counts[target]++;
+  warnings.push(
+    `Power-Kurve: schwächste Dauer „${weaknessPhase}" — eine Woche mehr zulasten „${BUILD_PHASES[donor]}".`
+  );
+}
+
 /** Sorgt dafür, dass jede Aufbau-Phase mindestens eine Woche trägt, indem
  *  Wochen vom jeweils größten Block abgezweigt werden. Mutiert `counts`.
  *  @param {number[]} counts */
@@ -162,10 +191,11 @@ function interleaveRecovery(buildWeeks, recIdxSet, phaseRun, warnings) {
  * Arbeitswochen verteilen, Erholungswochen im level-/altersabhängigen
  * Rhythmus (recoveryPeriod) dazwischen.
  * @param {{ buildWeeks: number, model: "pyramidal"|"linear",
- *   level: "einsteiger"|"fortgeschritten", ageYears: number|null }} a
+ *   level: "einsteiger"|"fortgeschritten", ageYears: number|null,
+ *   weaknessPhase?: string|null }} a
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  */
-function classicSequence({ buildWeeks, model, level, ageYears }) {
+function classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase = null }) {
   const warnings = [];
   const period = recoveryPeriod(level, ageYears);
   const recIdx = new Set(recoveryWeekIndices(buildWeeks, period));
@@ -179,6 +209,7 @@ function classicSequence({ buildWeeks, model, level, ageYears }) {
 
   if (workWeeks >= BUILD_PHASES.length) {
     ensureEachPhaseHasAWeek(counts);
+    applyWeaknessBias(counts, weaknessPhase, warnings);
   } else if (workWeeks > 0) {
     warnings.push(
       `Nur ${workWeeks} Aufbau-Woche(n) — nicht jede Phase (${BUILD_PHASES.join("/")}) hat eine eigene Woche.`
@@ -286,10 +317,20 @@ function blockSequence(buildWeeks) {
  * @param {"pyramidal"|"polarized"|"block"|"linear"} args.model
  * @param {"einsteiger"|"fortgeschritten"} args.level
  * @param {number|null} [args.ageYears]
+ * @param {string|null} [args.weaknessPhase]  E10: Aufbau-Phase, die eine Woche
+ *   mehr bekommt (nur `pyramidal`/`linear` — `polarized`/`block` haben keine
+ *   tunbaren Anteile und ignorieren den Wert bewusst).
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  *   `phases`/`isRecovery` haben Länge `totalWeeks`.
  */
-export function buildPhaseSequence({ totalWeeks, taperWeeks, model, level, ageYears = null }) {
+export function buildPhaseSequence({
+  totalWeeks,
+  taperWeeks,
+  model,
+  level,
+  ageYears = null,
+  weaknessPhase = null,
+}) {
   const buildWeeks = Math.max(0, totalWeeks - taperWeeks);
 
   const seq =
@@ -297,7 +338,7 @@ export function buildPhaseSequence({ totalWeeks, taperWeeks, model, level, ageYe
       ? blockSequence(buildWeeks)
       : model === "polarized"
         ? polarizedSequence(buildWeeks, level, ageYears)
-        : classicSequence({ buildWeeks, model, level, ageYears });
+        : classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase });
 
   const phases = seq.phases.slice();
   const isRecovery = seq.isRecovery.slice();

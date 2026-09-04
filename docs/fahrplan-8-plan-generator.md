@@ -2,7 +2,9 @@
 
 **Stand:** 2026-09-04 — **Kern E1–E8 umgesetzt** (Athlet 2/4 können sich im
 Planungstab einen pyramidalen/linearen Plan bauen, übernehmen; der Sync
-respektiert ihn). **E9 umgesetzt** (alle vier Modelle wählbar). E10–E13 offen.
+respektiert ihn). **E9 umgesetzt** (alle vier Modelle wählbar). **E10 umgesetzt**
+(Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche).
+E11–E13 offen.
 **Zielablage:** `docs/fahrplan-8-plan-generator.md`
 **Herkunft:** Athlet 2 (`hc_diZee`) ist nach GFNY Bremen 2026 (30.08.) mit
 seinem Plan durch. Es gibt bisher **keinen** Weg, im Dashboard einen neuen
@@ -600,21 +602,52 @@ Erholung dazwischen, ein System je Block. Beide deterministisch.
 
 ### E10 — Power-Curve-Schwächen-Analyse
 
+**Stand:** umgesetzt (2026-09-04).
+
 **Ziel:** `powerCurveWeakness` in `HistoryAggregate` echt füllen; Generator
 betont den entsprechenden Block.
 
-**Dateien:**
-- `app/src/core/plan-history.js` (E4) — Schwäche aus `powercurve.js`
-  (`buildCurveData`/`extractPowerCurve`) ableiten: relatives Defizit je
-  Standard-Dauer (1 s/5 s → sprint, 3–5 min → vo2, 8–20 min → threshold,
-  ≥ 30 min / EF → aerob) gegen ein Referenzprofil zur FTP.
-- `app/src/core/plan-generator.js` — bei `focus: "allgemein"` verschiebt die
-  Schwäche die Wochenverteilung leicht zugunsten des schwächsten Systems
-  (Deckel: ± 1 Block-Woche, nie auf Kosten der Grundlage).
-- Tests beidseitig.
+**Umgesetzt:**
+- `app/src/core/plan-history.js` — neue exportierte reine Funktion
+  `derivePowerCurveWeakness(powerCurves, ftp)`: `extractPowerCurve()` (aus
+  `powercurve.js`) → echte Stützpunkte der Kurve, je Referenzdauer nur
+  verwendet, wenn eine echte Stichprobe innerhalb ±15 % liegt (keine
+  nearest-neighbor-Extrapolation — sonst Scheinschwäche bei dünnen Kurven).
+  Vergleich gegen ein grobes Referenzprofil `POWER_CURVE_REFERENCE`
+  (Vielfaches der FTP je Kategorie: `sprint` 1 s/5 s, `vo2` 5 min,
+  `threshold` 10/20 min, `aerob` 30/60 min). Kategorie mit dem größten
+  mittleren relativen Defizit gewinnt; `< 5 %` Defizit, fehlende FTP,
+  `< 5` echte Stützpunkte oder keine Kategorie mit naher Stichprobe →
+  `null`. Referenzzahlen + Schwelle sind ein Erstaufschlag (K1) — im
+  Modulkopf vermerkt.
+  `buildHistoryAggregate()` nimmt jetzt `powerCurves` an und setzt
+  `powerCurveWeakness` daraus (FTP-Anker = der abgeleitete `currentEftp`);
+  der frühe „keine Rides"-Return bleibt `null`.
+- `app/src/api/hooks/usePlanHistoryAggregate.ts` — reicht
+  `athleteData.powerCurves` durch (weiterhin keine Logik im Hook).
+- `app/src/core/plan-generator.js` — `WEAKNESS_TO_PHASE`
+  (`sprint`/`vo2` → VO2max, `threshold` → Schwelle, `aerob` → Grundlage);
+  nur bei `focus: "allgemein"` **und** gesetzter Schwäche wird `weaknessPhase`
+  an `buildPhaseSequence()` durchgereicht.
+- `app/src/core/plan-generator-blocks.js` — neuer Helfer
+  `applyWeaknessBias(counts, weaknessPhase, warnings)` in `classicSequence`
+  (nach `ensureEachPhaseHasAWeek`): verschiebt genau eine Woche vom größten
+  Nicht-Ziel-, Nicht-Grundlage-Block (`> 1` Woche) zum schwächsten System,
+  hängt eine `warnings`-Zeile an. Kein Spielraum → no-op. `polarized`/`block`
+  ignorieren `weaknessPhase` bewusst (keine tunbaren Anteile).
+- Tests: `plan-history.test.js` (derivePowerCurveWeakness-Fälle + Aggregat),
+  `plan-generator-blocks.test.js` (Verschiebung, Grundlage nie Spender,
+  no-op ohne Spielraum, polarized/block-Regression),
+  `plan-generator.test.js` (VO2max +1 bei `vo2`-Schwäche, CTL-Rampe hält,
+  anderer Fokus → keine Verschiebung, Determinismus).
 
-**Verifikation:** `npm test`; Fixture-Power-Curves mit klarer Schwäche →
-erwartete Kategorie; Generator-Output verschiebt genau eine Woche.
+**Verifikation:** `node -c` auf die drei Core-Dateien; `npm test -- --project
+core` (903 grün) + `--project app` (793 grün); `npm run build` (tsc-b + vite
+sauber). `/code-review` gelaufen — Befund „dünne Kurve wird per
+nearest-neighbor zu einer Scheinschwäche extrapoliert" behoben (echte
+Stützpunkte + ±15-%-Toleranz statt `buildCurveData()`). Reine `core/`-Logik +
+ein Hook-Feld → kein Docker-/UI-Check nötig, die Vorschau zeigt die neue
+Warnung über den bestehenden `warnings`-Kanal.
 
 **Abhängigkeiten:** E2, E4. **Commit:** `feat: power-curve weakness biases plan focus`
 
