@@ -1,7 +1,8 @@
 # Fahrplan 8: Trainingsplan-Generator (Athlet baut sich selbst einen Plan)
 
-**Stand:** 2026-09-03 — **Konzept abgestimmt (Grilling-Session mit Alex),
-noch keine Etappe umgesetzt.**
+**Stand:** 2026-09-04 — **Kern E1–E8 umgesetzt** (Athlet 2/4 können sich im
+Planungstab einen pyramidalen/linearen Plan bauen, übernehmen; der Sync
+respektiert ihn). Zusatzstufen E9–E13 offen.
 **Zielablage:** `docs/fahrplan-8-plan-generator.md`
 **Herkunft:** Athlet 2 (`hc_diZee`) ist nach GFNY Bremen 2026 (30.08.) mit
 seinem Plan durch. Es gibt bisher **keinen** Weg, im Dashboard einen neuen
@@ -513,20 +514,31 @@ Athlet 1 (unverändert, `week_model` null) **und** Athlet 2 (aus Plan).
 
 ### E8 — Sync-Umschaltung
 
+**Stand:** umgesetzt (2026-09-04). Migration
+`0029_training_plans_service_role_grant.sql` in `dashboard-dev` einspielen,
+danach apps01 (Rückfrage Alex vor prod).
+
 **Ziel:** `scripts/generate-data.js` überspringt die Code-Vorlage für Athleten
 mit aktivem `training_plans`-Eintrag.
 
-**Dateien:**
-- `scripts/lib/training-plan-fetch.js` (neu) — liest per Service-Role die aktive
-  `training_plans`-Zeile je Athlet (Muster `sync-config-fetch.js`; Migration
-  `0024`-Grants ggf. um `training_plans SELECT` für Service-Role erweitern →
-  kleine Zusatz-Migration).
-- `scripts/generate-data.js` — für Athlet 2 (`PLANNED_SESSIONS_ATHLETE2`) und
-  Athlet 4 (`shiftPlannedSessions4`): hat der Athlet einen aktiven Plan, wird
-  die Vorlage **nicht** gespreadet; `plan_cards` (schon geladen) ist dann die
-  alleinige Planquelle. `week`/`phase` der `rides` kommen dann aus dem
-  `week_model` (analog `plan-week-model`-Nutzung sync-seitig).
-- `docs/fahrplan-8-plan-generator.md` — diesen Abschnitt auf „umgesetzt" setzen.
+**Umgesetzt:**
+- `scripts/lib/training-plan-fetch.js` (neu) — `loadActiveTrainingPlan({ profileId,
+  serviceRoleKey })` liest per Service-Role die aktive `training_plans`-Zeile
+  eines Profils (Zugriffsmuster wie `ftp-history.js`/`plan-cards-fetch.js`; **nicht
+  fatal** — `null` bei fehlenden Credentials / Read-Fehler / keinem Plan → Sync
+  fällt auf die Code-Vorlage zurück, kein Datenverlust). `+ tests/training-plan-fetch.test.js`.
+- `supabase/migrations/0029_training_plans_service_role_grant.sql` (neu) —
+  `grant select on public.training_plans to service_role` (0028 granted bewusst
+  nur `authenticated`). Eigene Migration statt Änderung an 0024 (bestehende
+  Migrationen nie nachträglich ändern, AGENTS.md).
+- `scripts/generate-data.js` — für Athlet 2 und 4: `activePlan{2,4}` gesetzt →
+  `effectivePlan` = nur `buildPlanCardTypeIndex(planCards)` (kein Spread der
+  `PLANNED_SESSIONS_ATHLETE2` / `shiftPlannedSessions4`-Vorlage), und
+  `output.plannedSessions` = `[]` (Hinweistext-Feed `nextLoadAfter()` im
+  Frontend). `rides.week`/`rides.phase` bleiben unberührt — `mapActivity2()`
+  setzt sie für Athlet 2/4 ohnehin schon immer `null` (Plan-Bezug läuft über
+  `effectivePlan`, nicht über `ride.week`).
+- `docs/fahrplan-8-plan-generator.md` — dieser Abschnitt.
 
 **Verifikation:** `npm test` (Root); `npm run sync` lokal mit `.env` gegen
 `dashboard-dev`, bei dem Athlet 2 einen Testplan hat → `rides-2.json` /

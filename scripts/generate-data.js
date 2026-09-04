@@ -19,6 +19,7 @@ import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBl
 import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
 import { shiftPlannedSessions4 } from "./lib/plan-athlete4.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
+import { loadActiveTrainingPlan } from "./lib/training-plan-fetch.js";
 import { queryNotionPlan1 } from "./lib/notion.js";
 import {
   RIDE_TYPES,
@@ -436,10 +437,26 @@ async function main() {
       { profileId: cfg2.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY },
       { fromDate: oldest2 }
     );
-    const effectivePlan2 = {
-      ...buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2),
-      ...buildPlanCardTypeIndex(planCards2),
-    };
+    // Fahrplan 8 E8: hat Athlet 2 einen selbst gebauten, aktiven
+    // training_plans-Eintrag, ist plan_cards die ALLEINIGE Planquelle — die
+    // Code-Vorlage plan-athlete2.js wird dann nicht mehr gespreadet (weder
+    // in effectivePlan2 noch in output2.plannedSessions unten). Read nicht
+    // fatal (s. training-plan-fetch.js): null -> Vorlage wie bisher.
+    const activePlan2 = await loadActiveTrainingPlan({
+      profileId: cfg2.profileId,
+      serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    if (activePlan2) {
+      log.info(
+        `📅 Athlet 2: aktiver Trainingsplan (${activePlan2.id}) — Code-Vorlage plan-athlete2.js wird übersprungen`
+      );
+    }
+    const effectivePlan2 = activePlan2
+      ? buildPlanCardTypeIndex(planCards2)
+      : {
+          ...buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2),
+          ...buildPlanCardTypeIndex(planCards2),
+        };
 
     // Kein Sonderfall für Athlet 2: dieselbe generische ftpAt()-Auflösung
     // wie bei Athlet 1. Pflegt Athlet 2 keine ftp_history (vermutlich der
@@ -529,10 +546,12 @@ async function main() {
       wellnessMeta: { lastUpdated: lastFieldDates(wellnessList2, READINESS_FIELDS) },
       powerCurves: powerCurves2 || null,
       athleteWeight: athleteWeight2,
-      plannedSessions: Object.entries(PLANNED_SESSIONS_ATHLETE2).map(([date, s]) => ({
-        date,
-        ...s,
-      })),
+      // E8: bei aktivem DB-Plan ist plan_cards die Planquelle — die
+      // Vorlagen-Sessions (im Frontend nur noch ein Hinweistext-Feed,
+      // nextLoadAfter()) entfallen dann.
+      plannedSessions: activePlan2
+        ? []
+        : Object.entries(PLANNED_SESSIONS_ATHLETE2).map(([date, s]) => ({ date, ...s })),
       adjustments: adjustments2,
       forecast: planningForecast2 || {},
       updated: new Date().toISOString(),
@@ -557,13 +576,25 @@ async function main() {
   //    nur als reiner Rechen-Fallback für die Ist-Typerkennung.
   const cfg4 = syncConfig.get("athlete4");
   const today4 = new Date().toISOString().split("T")[0];
-  // profiles.plan_offset_weeks (Migration 0026): Athlet 4 kann seinen Plan im
-  // Planungstab um N ganze Wochen verschieben. Die Vorlage (Datum + Baseline
-  // für Compliance/Hero) wandert hier mit — aber NUR ab heute, genau wie der
+  // Fahrplan 8 E8: aktiver, selbst gebauter training_plans-Eintrag →
+  // plan_cards ist die alleinige Planquelle, die generierte Code-Vorlage
+  // plan-athlete4.js (inkl. plan_offset_weeks-Verschiebung) entfällt. Read
+  // nicht fatal (s. training-plan-fetch.js): null → Vorlage wie bisher.
+  const activePlan4 = cfg4
+    ? await loadActiveTrainingPlan({
+        profileId: cfg4.profileId,
+        serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      })
+    : null;
+  // profiles.plan_offset_weeks (Migration 0026): Athlet 4 kann seine Vorlage im
+  // Planungstab um N ganze Wochen verschieben. Sie (Datum + Baseline für
+  // Compliance/Hero) wandert hier mit — aber NUR ab heute, genau wie der
   // Schreibpfad im Frontend (planShiftPatches verschiebt nur künftige, nicht
   // ausgefallene Karten). Die editierten plan_cards sind beim Verschieben
-  // schon einmalig umdatiert worden (useShiftPlan).
-  const planTemplate4 = shiftPlannedSessions4(cfg4?.planOffsetWeeks ?? 0, today4);
+  // schon einmalig umdatiert worden (useShiftPlan). Bei aktivem DB-Plan: {}.
+  const planTemplate4 = activePlan4
+    ? {}
+    : shiftPlannedSessions4(cfg4?.planOffsetWeeks ?? 0, today4);
   const plannedSessions4 = Object.entries(planTemplate4).map(([date, s]) => ({
     date,
     ...s,
@@ -588,6 +619,11 @@ async function main() {
     log.info(
       `📋 Athlet 4: ${planCards4.length} plan_cards · ${ftpHistory4.length} FTP-Historie-Einträge`
     );
+    if (activePlan4) {
+      log.info(
+        `📅 Athlet 4: aktiver Trainingsplan (${activePlan4.id}) — Code-Vorlage plan-athlete4.js wird übersprungen`
+      );
+    }
 
     let rides4 = [];
     let wellnessList4 = [];
