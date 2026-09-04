@@ -64,3 +64,16 @@ test("leerer/fehlender Kartenstand → keine Patches, kein Wurf", () => {
   assert.deepEqual(planShiftPatches([], 2, TODAY, "athlete4", 2), { ok: true, patches: [] });
   assert.deepEqual(planShiftPatches(undefined, 2, TODAY, "athlete4", 2), { ok: true, patches: [] });
 });
+
+test("Fahrplan 8 E7: week/phase der Ziel-Patches kommen aus dem übergebenen weekModel", () => {
+  const cards = [{ id: "s", date: "2026-09-06", name: "Lange Ausfahrt" }];
+  const weekModel = [
+    { week: "P-KW02", phase: "Grundlage", start: "2026-09-07", end: "2026-09-13", trainingWeekdays: [2, 4, 6], targetTss: 300 },
+  ];
+  // +1 Woche → Zieldatum 2026-09-13 (2026-09-06 + 7) liegt in P-KW02 des Modells.
+  const r = planShiftPatches(cards, 1, TODAY, "athlete4", 1, weekModel);
+  assert.equal(r.ok, true);
+  assert.equal(r.patches[0].plannedDate, "2026-09-13");
+  assert.equal(r.patches[0].week, "P-KW02");
+  assert.equal(r.patches[0].phase, "Grundlage"); // aus weekModel, nicht "Einstieg" der Code-Vorlage
+});

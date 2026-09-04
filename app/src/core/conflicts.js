@@ -53,13 +53,16 @@ function dateRange(dates) {
  *   K-WOCHENSPRUNG-Ist-Seed (letzte tatsächlich gefahrene Woche als
  *   Vergleichswert für die erste volle Planwoche, s. docs/offene-punkte.md)
  *   UND für K-TID (Intensitätsverteilung der letzten 4 Wochen).
- * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>, athleteId?: string, offsetWeeks?: number}} [options]
+ * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>, athleteId?: string, offsetWeeks?: number, weekModel?: import("./plan-week-model.js").PlanWeekEntry[]|null}} [options]
  *   `athleteId` (Fahrplan 6, RUH3): schaltet die Plan-Wochen-Modell-
  *   Konsultation frei — ein Ruhe-Slot-Tag ohne Karte gilt dann als „ruhe"
  *   (bewusst frei) statt „leer" (Planungslücke). Ohne `athleteId` bleibt die
  *   Klassifikation exakt wie vor RUH3 (nur Ruhetag-/ausgefallene Karten
  *   zählen als bewusst frei). `offsetWeeks` (Migration 0026): Plan-
  *   Verschiebung des Athleten — reicht sie an planWeekFor() durch, Default 0.
+ *   `weekModel` (Fahrplan 8 E7): die Wochenstruktur eines aktiven
+ *   `training_plans`-Eintrags — wenn gesetzt, ist sie die Ruhe-Slot-Quelle
+ *   statt der Code-Vorlage.
  * @returns {Conflict[]}
  */
 export function detectConflicts(projection, cards, events = [], actuals = [], options = {}) {
@@ -67,6 +70,7 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   const intensityTable = options.intensityTable ?? INTENSITY_CLASS;
   const athleteId = options.athleteId ?? null;
   const offsetWeeks = options.offsetWeeks ?? 0;
+  const weekModel = options.weekModel ?? null;
   const days = projection?.days ?? [];
   if (!days.length) return [];
 
@@ -100,7 +104,7 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   const isRestEquivalent = (date) =>
     !cardsByDate.has(date) &&
     (cancelledDates.has(date) ||
-      (athleteId != null && planWeekFor(athleteId, date, offsetWeeks).isRestSlot));
+      (athleteId != null && planWeekFor(athleteId, date, offsetWeeks, weekModel).isRestSlot));
 
   /** Lastklasse eines Tages: "hart" (≥1 harte Karte), "aktiv" (moderat/locker),
    *  "ruhe" (bewusst frei: nur Ruhetag-Karte(n), nur ausgefallene Karte(n),

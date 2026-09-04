@@ -145,15 +145,27 @@ function isoWeekday(dateISO) {
  *   Verschiebung erhalten. Das zurückgegebene `week`-Label trägt weiter die
  *   Vorlagen-Wochennummer (Fallback-of-Fallback bei der Anzeige, s.
  *   docs/offene-punkte.md).
+ * @param {PlanWeekEntry[]|null} [weekModel] Fahrplan 8 E7: die materialisierte
+ *   Wochenstruktur eines aktiven `training_plans`-Eintrags (V4 `WeekModelEntry[]`
+ *   — dieselben Felder wie `PlanWeekEntry` plus `targetTss`). Wenn gesetzt und
+ *   nicht leer, ersetzt sie `PLAN_WEEK_MODEL[athleteId]` als Quelle. `null` ⇒
+ *   Code-Vorlage wie bisher. `core/` bleibt I/O-frei — der Aufrufer lädt die
+ *   Zeile (`useActiveTrainingPlan`) und reicht sie durch. Ein DB-Plan trägt
+ *   echte absolute Daten — ist `weekModel` gesetzt, wird `offsetWeeks`
+ *   ignoriert (der Vorlagen-Offset `profiles.plan_offset_weeks` gilt nur für
+ *   die Code-Vorlage).
  * @returns {{week: string|null, phase: string|null, isTrainingSlot: boolean, isRestSlot: boolean}}
  *   Kein Treffer (Datum außerhalb aller Planwochen, Athlet ohne Modell) →
  *   `{ week: null, phase: null, isTrainingSlot: false, isRestSlot: false }`.
  */
-export function planWeekFor(athleteId, dateISO, offsetWeeks = 0) {
+export function planWeekFor(athleteId, dateISO, offsetWeeks = 0, weekModel = null) {
   const miss = { week: null, phase: null, isTrainingSlot: false, isRestSlot: false };
-  const weeks = PLAN_WEEK_MODEL[athleteId];
+  const usingModel = !!(weekModel && weekModel.length);
+  const weeks = usingModel ? weekModel : PLAN_WEEK_MODEL[athleteId];
   if (!weeks || !dateISO) return miss;
-  const shift = (offsetWeeks || 0) * 7;
+  // Ein aktives week_model trägt echte absolute Daten — der Vorlagen-Offset
+  // (profiles.plan_offset_weeks) greift nur auf der Code-Vorlage.
+  const shift = usingModel ? 0 : (offsetWeeks || 0) * 7;
   const entry = weeks.find((w) => {
     const start = shift ? addDaysISO(w.start, shift) : w.start;
     const end = shift ? addDaysISO(w.end, shift) : w.end;
@@ -176,8 +188,9 @@ export function planWeekFor(athleteId, dateISO, offsetWeeks = 0) {
  * @param {string} dateISO
  * @param {boolean} hasActiveCard ob an dem Datum eine nicht-ausgefallene Karte liegt
  * @param {number} [offsetWeeks] s. planWeekFor()
+ * @param {PlanWeekEntry[]|null} [weekModel] s. planWeekFor() (Fahrplan 8 E7)
  * @returns {boolean}
  */
-export function isDeliberateRestDay(athleteId, dateISO, hasActiveCard, offsetWeeks = 0) {
-  return planWeekFor(athleteId, dateISO, offsetWeeks).isRestSlot && !hasActiveCard;
+export function isDeliberateRestDay(athleteId, dateISO, hasActiveCard, offsetWeeks = 0, weekModel = null) {
+  return planWeekFor(athleteId, dateISO, offsetWeeks, weekModel).isRestSlot && !hasActiveCard;
 }

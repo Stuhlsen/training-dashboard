@@ -30,7 +30,7 @@ import {
   isNonTrainingCard,
   type PlanningDerivedSets,
 } from "./planning-view-model";
-import type { PlanCard } from "../../api/types";
+import type { PlanCard, WeekModelEntry } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 
@@ -116,6 +116,7 @@ function statusForDate(
   doneDates: Set<string>,
   athleteId?: string,
   offsetWeeks = 0,
+  weekModel: WeekModelEntry[] | null = null,
 ): DayStatus {
   // Fahrplan 6 (RUH4): ein Tag ohne (aktive) Karte, der laut Plan-Wochen-Modell
   // ein bewusster Ruhetag ist, wird als solcher gerendert statt als Planungs-
@@ -123,7 +124,9 @@ function statusForDate(
   // conflicts.js (RUH3). Ohne `athleteId` (z. B. in Alt-Tests) bleibt das
   // Verhalten unverändert — die Ableitung ist opt-in.
   if (!primary)
-    return athleteId && isDeliberateRestDay(athleteId, date, false, offsetWeeks) ? "rest" : "empty";
+    return athleteId && isDeliberateRestDay(athleteId, date, false, offsetWeeks, weekModel)
+      ? "rest"
+      : "empty";
   if (primary.cancelled) return "cancelled";
   // Ruhetag / reine Notiz-Karte: nie "verpasst" (isNonTrainingCard-Konvention
   // aus buildPlanningSections) — ein nicht gefahrener Ruhetag bzw. eine
@@ -151,6 +154,10 @@ export function buildWeekGrid(
    *  0026) — verschiebt die Ruhe-Slot-Ableitung + die Modell-Phasenquelle um
    *  N ganze Wochen mit. Default 0 ⇒ unverändert. */
   offsetWeeks = 0,
+  /** Fahrplan 8 E7: die Wochenstruktur eines aktiven `training_plans`-
+   *  Eintrags. Wenn gesetzt, sind Ruhe-Slots + Modell-Phase daraus statt aus
+   *  der Code-Vorlage. `null` ⇒ Code-Vorlage wie bisher. */
+  weekModel: WeekModelEntry[] | null = null,
 ): GridWeekRow[] {
   const { doneDates, recoveryWeeks } = derived;
 
@@ -177,7 +184,7 @@ export function buildWeekGrid(
       return {
         date,
         isToday: date === todayIso,
-        status: statusForDate(date, primary, todayIso, doneDates, athleteId, offsetWeeks),
+        status: statusForDate(date, primary, todayIso, doneDates, athleteId, offsetWeeks, weekModel),
         card: primary,
         otherCards,
       };
@@ -189,7 +196,9 @@ export function buildWeekGrid(
     // unabhängig) — löst den offene-punkte.md-Punkt "Karte behält altes
     // week/phase-Label in leerer Zielwoche" für die Rasteranzeige. Karten-Phase
     // bleibt Fallback für Athleten/Zeiträume ohne Modelleintrag.
-    const modelPhase = athleteId ? planWeekFor(athleteId, anchorDate, offsetWeeks).phase : null;
+    const modelPhase = athleteId
+      ? planWeekFor(athleteId, anchorDate, offsetWeeks, weekModel).phase
+      : null;
     const phase = modelPhase ?? activeCards.find((c) => c.phase)?.phase ?? null;
     const plannedTssSum = activeCards.reduce((sum, c) => sum + (c.tssPlanned ?? 0), 0);
     // `tssPlanned` fehlt bei den meisten Karten (nur strukturierte Plan-2-

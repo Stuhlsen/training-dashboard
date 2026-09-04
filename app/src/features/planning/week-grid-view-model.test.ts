@@ -138,6 +138,30 @@ describe("buildWeekGrid — abgeleiteter Ruhetag aus dem Plan-Wochen-Modell (Fah
       cellFor(buildWeekGrid(tue37, [], TODAY, "athlete4", undefined, 1), "2026-09-09").status,
     ).toBe("rest");
   });
+
+  // Fahrplan 8 E7: hat der Athlet einen aktiven training_plans-Eintrag, kommen
+  // Phase + Ruhe-Slots aus dessen week_model statt aus der Code-Vorlage.
+  it("weekModel überschreibt Phase + Ruhe-/Trainings-Slots der Code-Vorlage", () => {
+    // athlete1/KW33 laut Code-Vorlage: phase "Schwelle", Training [1,2,4,5,6]
+    // (Mi + So Ruhe). Modell sagt: phase "Grundlage", Training [1,3,5].
+    const wm = [
+      {
+        week: "P-KW33",
+        phase: "Grundlage",
+        start: "2026-08-10",
+        end: "2026-08-16",
+        trainingWeekdays: [1, 3, 5],
+        targetTss: 300,
+      },
+    ];
+    const thuCard = [card({ id: "thu", date: "2026-08-13" })];
+    const grid = buildWeekGrid(thuCard, [], TODAY, "athlete1", undefined, 0, wm);
+    expect(grid[0].phase).toBe("Grundlage");
+    // Mi (3) ist im Modell ein Trainings-Slot → ohne Karte 'empty' (Code-Vorlage: 'rest').
+    expect(cellFor(grid, "2026-08-12").status).toBe("empty");
+    // Di (2) ist im Modell KEIN Trainings-Slot → ohne Karte 'rest' (Code-Vorlage: 'empty').
+    expect(cellFor(grid, "2026-08-11").status).toBe("rest");
+  });
 });
 
 describe("buildWeekGrid — Mehrfachkarten am selben Datum", () => {

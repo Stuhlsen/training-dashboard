@@ -15,7 +15,7 @@
    ============================================================ */
 
 import { addDaysISO } from "../../core/format.js";
-import type { TrainingPlanDraft } from "../../api/types";
+import type { TrainingPlanDraft, WeekModelEntry } from "../../api/types";
 import type { PlanCardBulkDraft } from "../../api/supabase/plan-cards";
 import type {
   GeneratedPlan,
@@ -115,6 +115,8 @@ export function trainingPlanDraft(
       history: (input.history as unknown) ?? null,
       warnings: plan.warnings,
     },
-    weekModel: plan.weekModel ?? [],
+    // `GeneratedPlan.weekModel` (E5-Vorschautyp) ist bewusst lose (`unknown[]`);
+    // der Generator-Kern (core/plan-generator.js) füllt die V4-Shape vollständig.
+    weekModel: (plan.weekModel ?? []) as WeekModelEntry[],
   };
 }

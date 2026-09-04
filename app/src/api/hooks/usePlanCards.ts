@@ -36,6 +36,7 @@ import {
   sortCards,
 } from "../plan-cards/patch";
 import { fetchAthleteProfileId } from "./useAthleteProfileId";
+import { useActiveWeekModel } from "./useActiveTrainingPlan";
 import { useAthletePlanOffset } from "./useAthletePlanOffset";
 import { useAuthUserId, useCurrentProfile } from "./useSession";
 import { useIsSelfAthlete } from "./useWriteAuthorization";
@@ -162,6 +163,9 @@ export function useMovePlanCard(athleteId: string) {
   // Plan-Verschiebung des angezeigten Athleten — damit ein Einzel-Move das
   // Phasen-Label aus dem verschobenen Plan-Wochen-Modell zieht (Migration 0026).
   const offsetWeeks = useAthletePlanOffset(athleteId);
+  // Fahrplan 8 E7: hat der Athlet einen selbst gebauten Plan, kommt das
+  // Phasen-Label aus dessen week_model statt aus der Code-Vorlage.
+  const weekModel = useActiveWeekModel(athleteId);
 
   const move = useCallback(
     async (id: string, newDate: string, reason?: string): Promise<Result<{ card: PlanCard }>> => {
@@ -172,12 +176,12 @@ export function useMovePlanCard(athleteId: string) {
       return catchResult(() =>
         mutation.mutateAsync({
           id,
-          patch: buildMovePatch(cards, card, newDate, reason, athleteId, offsetWeeks),
-          optimistic: applyMoveOptimistic(cards, card, newDate, reason, athleteId, offsetWeeks),
+          patch: buildMovePatch(cards, card, newDate, reason, athleteId, offsetWeeks, weekModel),
+          optimistic: applyMoveOptimistic(cards, card, newDate, reason, athleteId, offsetWeeks, weekModel),
         }),
       );
     },
-    [mutation, snapshot, userId, athleteId, offsetWeeks],
+    [mutation, snapshot, userId, athleteId, offsetWeeks, weekModel],
   );
 
   return { move, isPending: mutation.isPending };
@@ -207,6 +211,7 @@ export function useUndoAdjustment(athleteId: string) {
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
   const offsetWeeks = useAthletePlanOffset(athleteId);
+  const weekModel = useActiveWeekModel(athleteId);
 
   const undo = useCallback(
     async (id: string): Promise<Result<{ card?: PlanCard }>> => {
@@ -214,11 +219,11 @@ export function useUndoAdjustment(athleteId: string) {
       const cards = snapshot();
       const card = cards.find((c) => c.id === id);
       if (!card) return { ok: true };
-      const patch = buildUndoPatch(cards, card, athleteId, offsetWeeks);
+      const patch = buildUndoPatch(cards, card, athleteId, offsetWeeks, weekModel);
       if (!patch) return { ok: true };
       return catchResult(() => mutation.mutateAsync({ id, patch }));
     },
-    [mutation, snapshot, userId, athleteId, offsetWeeks],
+    [mutation, snapshot, userId, athleteId, offsetWeeks, weekModel],
   );
 
   return { undo, isPending: mutation.isPending };
@@ -253,6 +258,7 @@ export function useShiftPlan(athleteId: string) {
   const { isSelf } = useIsSelfAthlete(athleteId);
   const profile = useCurrentProfile().data ?? null;
   const { update: updateOffset } = useUpdatePlanOffsetWeeks();
+  const weekModel = useActiveWeekModel(athleteId);
 
   const shift = useCallback(
     async (targetOffsetWeeks: number): Promise<Result<{ moved: number }>> => {
@@ -268,7 +274,7 @@ export function useShiftPlan(athleteId: string) {
       if (delta === 0) return { ok: true, moved: 0 };
 
       const cards = snapshot();
-      const plan = planShiftPatches(cards, delta, localISODate(), athleteId, target);
+      const plan = planShiftPatches(cards, delta, localISODate(), athleteId, target, weekModel);
       if (!plan.ok) return { ok: false, error: { code: "UNKNOWN", message: plan.reason } };
       if (!plan.patches.length) return { ok: true, moved: 0 };
 
@@ -314,7 +320,7 @@ export function useShiftPlan(athleteId: string) {
       }
       return { ok: true, moved };
     },
-    [userId, isSelf, profile, snapshot, athleteId, mutation, updateOffset],
+    [userId, isSelf, profile, snapshot, athleteId, mutation, updateOffset, weekModel],
   );
 
   return { shift, isPending: mutation.isPending };

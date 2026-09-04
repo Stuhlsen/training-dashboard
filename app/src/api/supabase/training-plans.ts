@@ -21,6 +21,7 @@ import type {
   Result,
   TrainingPlan,
   TrainingPlanDraft,
+  WeekModelEntry,
 } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
@@ -74,7 +75,7 @@ export function toTrainingPlan(row: TrainingPlanRow): TrainingPlan {
     ftpAtCreation: row.ftp_at_creation,
     ftpTarget: row.ftp_target,
     params: row.params ?? {},
-    weekModel: row.week_model ?? [],
+    weekModel: (row.week_model ?? []) as WeekModelEntry[],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

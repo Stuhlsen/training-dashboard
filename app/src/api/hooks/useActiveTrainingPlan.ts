@@ -12,13 +12,21 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listActiveTrainingPlan } from "../supabase/training-plans";
 import { fetchAthleteProfileId } from "./useAthleteProfileId";
+import { useAuthUserId } from "./useSession";
 import { qk } from "../keys";
-import type { TrainingPlan } from "../types";
+import type { TrainingPlan, WeekModelEntry } from "../types";
 
 export function useActiveTrainingPlan(athleteId: string) {
   const queryClient = useQueryClient();
+  // `training_plans` hat keinen anon-GRANT — ohne Login kann der Read nur
+  // 401en (nie ein nützliches Ergebnis). Der Planungstab ist aber öffentlich
+  // (nicht hinter ProtectedRoute), also würde ein ausgeloggter Betrachter
+  // sonst bei jedem Aufruf eine 401 in die Konsole schreiben. Gaten statt
+  // schlucken.
+  const userId = useAuthUserId();
   return useQuery({
     queryKey: qk.activeTrainingPlan(athleteId),
+    enabled: !!userId,
     queryFn: async (): Promise<TrainingPlan | null> => {
       const profileId = await fetchAthleteProfileId(queryClient, athleteId);
       if (!profileId) return null;
@@ -26,4 +34,13 @@ export function useActiveTrainingPlan(athleteId: string) {
       return res.ok ? res.plan : null;
     },
   });
+}
+
+/** Die materialisierte Wochenstruktur des aktiven Plans, oder `null`, wenn der
+ *  Athlet keinen selbst gebauten Plan hat (dann greift die Code-Vorlage in
+ *  `core/plan-week-model.js`). Fahrplan 8 E7: Aufrufstellen von `planWeekFor()`
+ *  / `isDeliberateRestDay()` reichen diesen Wert durch. */
+export function useActiveWeekModel(athleteId: string): WeekModelEntry[] | null {
+  const model = useActiveTrainingPlan(athleteId).data?.weekModel;
+  return model && model.length ? model : null;
 }

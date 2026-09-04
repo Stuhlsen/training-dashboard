@@ -136,6 +136,18 @@ test("weekLabelForDate: robust gegen leere/fehlende Eingaben", () => {
   assert.equal(weekLabelForDate(CARDS, null, "a"), null);
 });
 
+test("weekLabelForDate: Fahrplan 8 E7 — leere Zielwoche + weekModel → Label aus dem Modell", () => {
+  const weekModel = [
+    { week: "P-KW02", phase: "Grundlage", start: "2026-08-17", end: "2026-08-23", trainingWeekdays: [2, 4, 6], targetTss: 300 },
+  ];
+  // 2026-08-19 liegt in P-KW02 des Modells; keine Nachbarkarte in der Woche.
+  // Ohne Modell (nur athleteId) käme "2026-KW34"/"Erholung" aus der Code-Vorlage.
+  assert.deepEqual(weekLabelForDate(CARDS, "2026-08-19", "a", "athlete1", 0, weekModel), {
+    week: "P-KW02",
+    phase: "Grundlage",
+  });
+});
+
 /* ── canDragCard — Bugfix: Drag & Drop umging den Trainer-Vorschlag-Modus
    vollständig (Trainer-Sicht-Konzept §3, Nachtrag Juli 2026) ─────────── */
 

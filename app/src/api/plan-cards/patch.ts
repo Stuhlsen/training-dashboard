@@ -14,7 +14,7 @@
    ============================================================ */
 
 import { weekLabelForDate } from "../../core/plan-drag.js";
-import type { PlanCard, PlanCardPatch } from "../types";
+import type { PlanCard, PlanCardPatch, WeekModelEntry } from "../types";
 
 interface WeekLabel {
   week: string;
@@ -48,9 +48,19 @@ export function buildMovePatch(
    *  sonst berechnet weekLabelForDate das Phasen-Label aus dem unverschobenen
    *  Plan-Wochen-Modell. Default 0. */
   offsetWeeks = 0,
+  /** Fahrplan 8 E7: Wochenstruktur eines aktiven `training_plans`-Eintrags —
+   *  an weekLabelForDate() durchgereicht. `null` ⇒ Code-Vorlage wie bisher. */
+  weekModel: WeekModelEntry[] | null = null,
 ): PlanCardPatch {
   const movedFromDate = card.originalDate ?? card.date;
-  const label = weekLabelForDate(cards, newDate, card.id, athleteId, offsetWeeks) as WeekLabel | null;
+  const label = weekLabelForDate(
+    cards,
+    newDate,
+    card.id,
+    athleteId,
+    offsetWeeks,
+    weekModel,
+  ) as WeekLabel | null;
   return {
     plannedDate: newDate,
     movedFromDate,
@@ -73,9 +83,17 @@ export function applyMoveOptimistic(
   reason?: string,
   athleteId?: string,
   offsetWeeks = 0,
+  weekModel: WeekModelEntry[] | null = null,
 ): PlanCard {
   const movedFromDate = card.originalDate ?? card.date;
-  const label = weekLabelForDate(cards, newDate, card.id, athleteId, offsetWeeks) as WeekLabel | null;
+  const label = weekLabelForDate(
+    cards,
+    newDate,
+    card.id,
+    athleteId,
+    offsetWeeks,
+    weekModel,
+  ) as WeekLabel | null;
   return {
     ...card,
     date: newDate,
@@ -114,12 +132,20 @@ export function buildUndoPatch(
   card: PlanCard,
   athleteId?: string,
   offsetWeeks = 0,
+  weekModel: WeekModelEntry[] | null = null,
 ): PlanCardPatch | null {
   if (card.cancelled) {
     return { status: "geplant", cancelReason: null };
   }
   if (!card.originalDate) return null;
-  const label = weekLabelForDate(cards, card.originalDate, card.id, athleteId, offsetWeeks) as WeekLabel | null;
+  const label = weekLabelForDate(
+    cards,
+    card.originalDate,
+    card.id,
+    athleteId,
+    offsetWeeks,
+    weekModel,
+  ) as WeekLabel | null;
   return {
     plannedDate: card.originalDate,
     movedFromDate: null,

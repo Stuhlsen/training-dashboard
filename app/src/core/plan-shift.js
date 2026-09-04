@@ -44,11 +44,14 @@ export function clampPlanOffset(n) {
  * @param {string} todayISO  "YYYY-MM-DD" — Karten davor bleiben unangetastet
  * @param {string} athleteId  interne ID für die week/phase-Neuvergabe
  * @param {number} [targetOffsetWeeks]  neuer Offset-Stand (für planWeekFor)
+ * @param {import("./plan-week-model.js").PlanWeekEntry[]|null} [weekModel]  Fahrplan 8 E7:
+ *   Wochenstruktur eines aktiven `training_plans`-Eintrags — an planWeekFor()
+ *   durchgereicht. `null` ⇒ Code-Vorlage wie bisher.
  * @returns {{ok: true, patches: ShiftPatch[]} | {ok: false, reason: string}}
  *   `ok:false` nur bei einer „früher"-Verschiebung, die eine Karte vor heute
  *   schöbe — die UI blockt damit den Bestätigen-Knopf.
  */
-export function planShiftPatches(cards, deltaWeeks, todayISO, athleteId, targetOffsetWeeks = 0) {
+export function planShiftPatches(cards, deltaWeeks, todayISO, athleteId, targetOffsetWeeks = 0, weekModel = null) {
   const days = Math.round(deltaWeeks || 0) * 7;
   if (!days) return { ok: true, patches: [] };
 
@@ -66,7 +69,7 @@ export function planShiftPatches(cards, deltaWeeks, todayISO, athleteId, targetO
         reason: `„${c.name || c.date}" würde vor heute (${todayISO}) liegen — so weit lässt sich der Plan nicht nach vorne holen.`,
       };
     }
-    const model = planWeekFor(athleteId, newDate, targetOffsetWeeks);
+    const model = planWeekFor(athleteId, newDate, targetOffsetWeeks, weekModel);
     patches.push({
       id: c.id,
       plannedDate: newDate,

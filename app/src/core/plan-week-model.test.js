@@ -198,6 +198,65 @@ test("isDeliberateRestDay: Athlet ohne Modell → false", () => {
   assert.equal(isDeliberateRestDay("athlete99", "2026-08-26", false), false);
 });
 
+/* ── weekModel (Fahrplan 8 E7 — aktiver training_plans-Eintrag) ───── */
+
+// V4 WeekModelEntry[]: dieselben Felder wie PlanWeekEntry plus targetTss.
+// Deckt bewusst denselben Zeitraum wie Athlet 1s KW35/KW36 ab, aber mit
+// ANDEREN Phasen/Trainingstagen — so zeigt sich, dass das Modell die
+// Code-Vorlage wirklich ersetzt und nicht nur ergänzt.
+const WM = [
+  { week: "P-KW01", phase: "Grundlage", start: "2026-08-24", end: "2026-08-30", trainingWeekdays: [2, 4, 6], targetTss: 280 },
+  { week: "P-KW02", phase: "Sweet Spot", start: "2026-08-31", end: "2026-09-06", trainingWeekdays: [1, 3, 5], targetTss: 320 },
+];
+
+test("weekModel: ersetzt die Code-Vorlage als Quelle (Woche/Phase/Slot)", () => {
+  // Ohne Modell: 2026-08-26 (Mi) = 2026-KW35 / VO2max / Ruhe-Slot.
+  assert.deepEqual(planWeekFor("athlete1", "2026-08-26"), {
+    week: "2026-KW35",
+    phase: "VO2max",
+    isTrainingSlot: false,
+    isRestSlot: true,
+  });
+  // Mit Modell: dessen Woche/Phase; Mi ist in [2,4,6] NICHT enthalten → Ruhe-Slot.
+  assert.deepEqual(planWeekFor("athlete1", "2026-08-26", 0, WM), {
+    week: "P-KW01",
+    phase: "Grundlage",
+    isTrainingSlot: false,
+    isRestSlot: true,
+  });
+  // Di (2) ist im Modell ein Trainings-Slot.
+  assert.equal(planWeekFor("athlete1", "2026-08-25", 0, WM).isTrainingSlot, true);
+  assert.equal(planWeekFor("athlete1", "2026-08-25", 0, WM).phase, "Grundlage");
+});
+
+test("weekModel: greift auch für einen Athleten ganz ohne Code-Vorlage", () => {
+  assert.deepEqual(planWeekFor("athlete99", "2026-09-02"), MISS);
+  const r = planWeekFor("athlete99", "2026-09-02", 0, WM); // Mi (3), in [1,3,5]
+  assert.deepEqual(r, {
+    week: "P-KW02",
+    phase: "Sweet Spot",
+    isTrainingSlot: true,
+    isRestSlot: false,
+  });
+});
+
+test("weekModel: Datum außerhalb aller Modell-Wochen → MISS", () => {
+  assert.deepEqual(planWeekFor("athlete1", "2026-12-01", 0, WM), MISS);
+});
+
+test("weekModel null/[] → bit-identisch zum Verhalten ohne Modell", () => {
+  assert.deepEqual(planWeekFor("athlete1", "2026-08-26", 0, null), planWeekFor("athlete1", "2026-08-26"));
+  assert.deepEqual(planWeekFor("athlete1", "2026-08-26", 0, []), planWeekFor("athlete1", "2026-08-26"));
+});
+
+test("isDeliberateRestDay: Ruhe-Slot aus übergebenem weekModel", () => {
+  // athlete99 hat keine Code-Vorlage — der Ruhetag kommt allein aus WM.
+  assert.equal(isDeliberateRestDay("athlete99", "2026-08-26", false), false);
+  assert.equal(isDeliberateRestDay("athlete99", "2026-08-26", false, 0, WM), true); // Mi, kein Trainings-Slot
+  assert.equal(isDeliberateRestDay("athlete99", "2026-08-26", true, 0, WM), false); // Karte liegt dort
+  assert.equal(isDeliberateRestDay("athlete99", "2026-08-25", false, 0, WM), false); // Di = Trainings-Slot
+});
+
 /* ── Modell-Invarianten ──────────────────────────────────────────── */
 
 test("jede Woche: start ist ein Montag, end ist ein Sonntag", () => {

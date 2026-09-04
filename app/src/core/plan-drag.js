@@ -106,9 +106,12 @@ export function resolveDrop(card, targetDate, today) {
  * @param {string} [athleteId] interne Athleten-ID für den Modell-Fallback
  * @param {number} [offsetWeeks] Plan-Verschiebung (`profiles.plan_offset_weeks`,
  *   s. core/plan-week-model.js::planWeekFor). Default 0.
+ * @param {import("./plan-week-model.js").PlanWeekEntry[]|null} [weekModel] Fahrplan 8 E7:
+ *   Wochenstruktur eines aktiven `training_plans`-Eintrags — an planWeekFor()
+ *   durchgereicht. `null` ⇒ Code-Vorlage wie bisher.
  * @returns {{week: string|null, phase: string|null}|null} null = Label behalten
  */
-export function weekLabelForDate(cards, date, excludeId, athleteId, offsetWeeks = 0) {
+export function weekLabelForDate(cards, date, excludeId, athleteId, offsetWeeks = 0, weekModel = null) {
   if (!date) return null;
   const targetWeek = isoWeekKey(date);
   const sibling = (cards || []).find(
@@ -123,7 +126,7 @@ export function weekLabelForDate(cards, date, excludeId, athleteId, offsetWeeks 
   // (buildMovePatch bekommt athleteId vom athletenscoped Hook), also passt
   // das Label zu den Nachbarkarten desselben Athleten — genau wie der
   // sibling-Zweig oben, der `sibling.week` unverändert übernimmt.
-  const model = planWeekFor(athleteId, date, offsetWeeks);
+  const model = planWeekFor(athleteId, date, offsetWeeks, weekModel);
   if (model.week) return { week: model.week, phase: model.phase ?? null };
   return null;
 }

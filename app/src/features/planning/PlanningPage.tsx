@@ -16,6 +16,7 @@ import { PageShell } from "../../components/PageShell";
 import { hasGeneratedPlan, isReadOnlyAthlete } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
+import { useActiveWeekModel } from "../../api/hooks/useActiveTrainingPlan";
 import { useCanCreatePlan, useCanWriteForAthlete, useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useTrainerContext } from "../../api/hooks/useTrainerContext";
 import { useEvents } from "../../api/hooks/useEvents";
@@ -127,6 +128,10 @@ export function PlanningPage() {
   // die Zeile des BETRACHTETEN Athleten (self + gecoachte Athleten); ein
   // Nicht-Coach-Betrachter sieht 0 (nur Anzeige-Drift, s. useAthletePlanOffset).
   const planOffsetWeeks = useAthletePlanOffset(activeAthleteId);
+  // Fahrplan 8 E7: hat der Athlet einen selbst gebauten Plan (`training_plans`),
+  // kommen Woche/Phase/Ruhe-Slots aus dessen `week_model` statt aus der
+  // Code-Vorlage in `core/plan-week-model.js`. `null` ⇒ Code-Vorlage wie bisher.
+  const activeWeekModel = useActiveWeekModel(activeAthleteId);
   const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
   const { data: rideData } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
@@ -209,9 +214,10 @@ export function PlanningPage() {
     const conflicts = detectConflicts(projection, projectionCards, projectionEvents, rides, {
       athleteId: activeAthleteId,
       offsetWeeks: planOffsetWeeks,
+      weekModel: activeWeekModel,
     });
     return { projection, conflicts };
-  }, [cards, rideData, events, ftp, activeAthleteId, planOffsetWeeks]);
+  }, [cards, rideData, events, ftp, activeAthleteId, planOffsetWeeks, activeWeekModel]);
 
   const doneRides = useMemo(
     () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),
@@ -224,8 +230,16 @@ export function PlanningPage() {
   // Grundlage der Fortschritts-Statistik/Done-Liste oben.
   const weekGrid = useMemo(() => {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    return buildWeekGrid(cards ?? [], rides, TODAY, activeAthleteId, derivedSets, planOffsetWeeks);
-  }, [cards, rideData, activeAthleteId, derivedSets, planOffsetWeeks]);
+    return buildWeekGrid(
+      cards ?? [],
+      rides,
+      TODAY,
+      activeAthleteId,
+      derivedSets,
+      planOffsetWeeks,
+      activeWeekModel,
+    );
+  }, [cards, rideData, activeAthleteId, derivedSets, planOffsetWeeks, activeWeekModel]);
 
   // Etappe 13d: Soll/Ist-Tabellen-Projektion über sections.done — berechnet
   // nichts neu, reicht nur Zahlen aus buildDoneCompareRows()/visibleCompliance()

@@ -145,7 +145,21 @@ export interface TrainingPlanDraft {
   /** Roh-Formular + Aggregat-Momentaufnahme (V1 `params`, Reproduzierbarkeit). */
   params: Record<string, unknown>;
   /** V4 `WeekModelEntry[]` — Quelle für plan-week-model (E7). */
-  weekModel: unknown[];
+  weekModel: WeekModelEntry[];
+}
+
+/** V4 — eine materialisierte Planwoche in `training_plans.week_model`. Form
+ *  von `core/plan-week-model.js::PlanWeekEntry` (Feld-für-Feld) plus
+ *  `targetTss`. `core/plan-week-model.js::planWeekFor()` konsumiert ein
+ *  `WeekModelEntry[]` direkt als Wochenquelle (Fahrplan 8 E7). */
+export interface WeekModelEntry {
+  week: string;
+  phase: string;
+  start: string;
+  end: string;
+  /** ISO 1..7 */
+  trainingWeekdays: number[];
+  targetTss: number;
 }
 
 export interface TrainingPlan extends TrainingPlanDraft {

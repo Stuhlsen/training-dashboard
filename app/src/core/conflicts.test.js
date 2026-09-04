@@ -235,6 +235,32 @@ test("K-HARTFOLGE feuert NICHT, wenn ein kartenloser Ruhe-Slot zwischen zwei har
   assert.equal(byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE").length, 1);
 });
 
+/* ── Fahrplan 8 E7: Ruhe-Slot aus einem aktiven training_plans.week_model ──
+   options.weekModel wird an planWeekFor() durchgereicht und ersetzt die
+   Code-Vorlage als Slot-Quelle — auch für einen Athleten ganz ohne Vorlage. */
+
+test("K-HARTFOLGE feuert NICHT, wenn ein Ruhe-Slot aus options.weekModel zwischen zwei harten Tagen liegt", () => {
+  const proj = mkProj([
+    { date: "2026-07-21" }, // Di — harte Karte
+    { date: "2026-07-22" }, // Mi — Ruhe-Slot laut weekModel, keine Karte
+    { date: "2026-07-23" }, // Do — harte Karte
+  ]);
+  const cards = [hard("a", "2026-07-21"), hard("c", "2026-07-23")];
+  const weekModel = [
+    { week: "P1", phase: "Aufbau", start: "2026-07-20", end: "2026-07-26", trainingWeekdays: [2, 4], targetTss: 300 },
+  ];
+  // athlete99 hat keine Code-Vorlage — der Ruhe-Slot am Mi kommt allein aus weekModel.
+  assert.equal(
+    byRule(detectConflicts(proj, cards, [], [], { athleteId: "athlete99", weekModel }), "K-HARTFOLGE").length,
+    0
+  );
+  // Kontrolle: ohne weekModel ist der 22.07. eine echte Lücke, kein Ruhetag-Äquivalent.
+  assert.equal(
+    byRule(detectConflicts(proj, cards, [], [], { athleteId: "athlete99" }), "K-HARTFOLGE").length,
+    1
+  );
+});
+
 /* ── K-WOCHENSPRUNG (bis Fenster E1: K-RAMPE) — zwei volle ISO-Wochen:
    KW30 20.–26.07., KW31 27.07.–02.08. ── */
 
