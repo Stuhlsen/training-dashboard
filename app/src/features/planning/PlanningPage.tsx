@@ -434,6 +434,30 @@ export function PlanningPage() {
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Planungstab
         </h1>
+        {/* Schreibrechte für einen fremden Athleten ohne Trainer-Beziehung ⇒
+            der Betrachter ist Admin. Das sichtbar machen, damit die Schreib-
+            Knöpfe (Neuer Plan, + Karte …) nicht wie eine normale Athleten-
+            oder Trainer-Sicht wirken. */}
+        {canWrite && !isSelf && !isTrainer && (
+          <span
+            title="Du bist als Admin eingeloggt. Schreibaktionen für diesen Athleten stehen dir nur in dieser Rolle offen — nicht als der Athlet selbst oder als sein Trainer."
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              padding: "5px 11px",
+              borderRadius: "var(--pill)",
+              border: "1px solid rgba(162,74,208,.4)",
+              background: "rgba(162,74,208,.12)",
+              color: "var(--ink-2)",
+              fontFamily: "var(--font-mono)",
+              fontSize: ".72rem",
+              letterSpacing: ".03em",
+            }}
+          >
+            🛡 Admin-Ansicht
+          </span>
+        )}
         {canCreatePlan && (
           <button type="button" onClick={() => setNewPlanOpen(true)} style={{ ...SECTION_ACTION_BTN_STYLE, marginLeft: "auto" }}>
             + Neuer Plan
