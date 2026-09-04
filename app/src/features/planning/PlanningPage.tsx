@@ -42,6 +42,8 @@ import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCardForm } from "./PlanCardForm";
 import { ShiftPlanDialog } from "./ShiftPlanDialog";
 import { NewPlanDialog } from "./NewPlanDialog";
+import { FtpRescaleDialog } from "./FtpRescaleDialog";
+import { detectDoneFtpTest } from "./ftp-rescale-dialog-view-model";
 import { ExportImportBar } from "./ExportImportBar";
 import { BlockDialogGate } from "./BlockDialog";
 import { ProposalBanner } from "./ProposalBanner";
@@ -156,6 +158,10 @@ export function PlanningPage() {
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [shiftOpen, setShiftOpen] = useState(false);
   const [newPlanOpen, setNewPlanOpen] = useState(false);
+  const [ftpRescaleOpen, setFtpRescaleOpen] = useState(false);
+  // Testtag-ID, für die das FTP-Umrechnungs-Banner bereits weggeklickt wurde
+  // (localStorage-gestützt, s. useEffect unten).
+  const [ftpRescaleDismissed, setFtpRescaleDismissed] = useState<string | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
   // Etappe 7b: Liste unabhängig von der Vergleichsansicht offen halten —
   // "Vergleichen…" öffnet die Vergleichsansicht ÜBER der weiterhin
@@ -265,6 +271,48 @@ export function PlanningPage() {
   // (core/progress-indicators.js::bestEffortComparison).
   const powerCurveBlocks =
     (rideData?.powerCurveBlocks as Array<{ key: string; curve?: object | null }> | undefined) ?? [];
+
+  // Fahrplan 8 E12: jüngster gefahrener FTP-Testtag eines selbst gebauten
+  // Plans → Banner „künftige Watt-Ziele anpassen?". Nur für Schreibberechtigte
+  // (self + Trainer). Weggeklickte Testtage merkt localStorage (pro testCardId).
+  const doneFtpTest = useMemo(
+    () =>
+      canWrite
+        ? detectDoneFtpTest({
+            cards: cards ?? [],
+            rides: (rideData?.rides as Ride[] | undefined) ?? [],
+            hasActivePlan: !!activeWeekModel,
+            todayISO: TODAY,
+          })
+        : null,
+    [canWrite, cards, rideData, activeWeekModel],
+  );
+  // localStorage direkt beim Rendern lesen (kein Effekt + setState) — der
+  // Wert ändert sich nur mit `testCardId` und beim Wegklicken (das den
+  // Session-State unten setzt und so einen Re-Render auslöst).
+  const ftpRescaleStoredDismissed = useMemo(() => {
+    if (!doneFtpTest) return false;
+    try {
+      return !!localStorage.getItem(`ftp-rescale-dismissed:${doneFtpTest.testCardId}`);
+    } catch {
+      return false; // localStorage nicht verfügbar — Banner bleibt sichtbar
+    }
+  }, [doneFtpTest]);
+  const showFtpRescaleBanner =
+    !!doneFtpTest &&
+    !ftpRescaleStoredDismissed &&
+    ftpRescaleDismissed !== doneFtpTest.testCardId;
+  function dismissFtpRescale() {
+    if (doneFtpTest) {
+      try {
+        localStorage.setItem(`ftp-rescale-dismissed:${doneFtpTest.testCardId}`, "1");
+      } catch {
+        /* ignorieren — nur eine Bequemlichkeit */
+      }
+      setFtpRescaleDismissed(doneFtpTest.testCardId);
+    }
+    setFtpRescaleOpen(false);
+  }
 
   // Etappe 6c: Vorher/Nachher-Vergleich nach Verschieben/Ausfallen/Drag,
   // Port von ui/planned.js::_recordDelta (dort Modul-State `deltaBanner` +
@@ -405,6 +453,44 @@ export function PlanningPage() {
       />
 
       <ProposalBanner athleteId={activeAthleteId} onOpen={() => setProposalListOpen(true)} />
+      {showFtpRescaleBanner && doneFtpTest && (
+        <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+          <button
+            type="button"
+            onClick={() => setFtpRescaleOpen(true)}
+            style={{
+              flex: 1,
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "flex-start",
+              gap: 2,
+              padding: "13px 18px",
+              borderRadius: "16px",
+              background: "rgba(224,138,60,.08)",
+              border: "1px solid rgba(224,138,60,.3)",
+              backdropFilter: "blur(14px)",
+              color: "var(--ink)",
+              font: "inherit",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            <span style={{ fontSize: ".88rem", fontWeight: 600 }}>
+              FTP-Test am {fmtDate(doneFtpTest.testDateISO)} erledigt
+            </span>
+            <span style={{ fontSize: ".76rem", color: "var(--ink-3)" }}>
+              Neue FTP eintragen — künftige Watt-Ziele anpassen
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={dismissFtpRescale}
+            style={{ ...SECTION_ACTION_BTN_STYLE, fontWeight: 400, fontSize: ".78rem" }}
+          >
+            Später
+          </button>
+        </div>
+      )}
       <BlockDialogGate athleteId={activeAthleteId} cards={cards ?? []} />
 
       <ExportImportBar
@@ -586,6 +672,14 @@ export function PlanningPage() {
 
       {newPlanOpen && (
         <NewPlanDialog athleteId={activeAthleteId} onClose={() => setNewPlanOpen(false)} />
+      )}
+
+      {ftpRescaleOpen && doneFtpTest && (
+        <FtpRescaleDialog
+          athleteId={activeAthleteId}
+          testDateISO={doneFtpTest.testDateISO}
+          onClose={dismissFtpRescale}
+        />
       )}
 
       {shiftOpen && (

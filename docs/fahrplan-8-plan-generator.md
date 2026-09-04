@@ -4,7 +4,9 @@
 Planungstab einen pyramidalen/linearen Plan bauen, übernehmen; der Sync
 respektiert ihn). **E9 umgesetzt** (alle vier Modelle wählbar). **E10 umgesetzt**
 (Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche).
-**E11 umgesetzt** (Admin-Editor für `session_formats` in Settings). E12–E13 offen.
+**E11 umgesetzt** (Admin-Editor für `session_formats` in Settings). **E12
+umgesetzt** (Post-Test-Dialog: neue FTP → künftige `workout.watts` neu
+gerechnet). E13 offen.
 **Zielablage:** `docs/fahrplan-8-plan-generator.md`
 **Herkunft:** Athlet 2 (`hc_diZee`) ist nach GFNY Bremen 2026 (30.08.) mit
 seinem Plan durch. Es gibt bisher **keinen** Weg, im Dashboard einen neuen
@@ -713,23 +715,50 @@ manueller Schritt bei Alex.
 
 ### E12 — FTP-Test-Einplanung + Post-Test-Umrechnung
 
-**Ziel:** Testtage sind schon in E2 gesetzt (Entscheidung 23) — hier der
-**Nachlauf**: nach einem erledigten Testtag Dialog „FTP jetzt X — zukünftige
-Karten umrechnen?".
+**Stand:** umgesetzt (2026-09-04). Testtage setzt E2 schon (`ftpTestWeeks()`
+in `plan-generator.js`) — der Fallback „falls E2 die Regeln noch nicht hat"
+entfiel. Keine Migration, kein neuer Adapter.
 
-**Dateien:**
-- `app/src/core/plan-ftp-rescale.js` (neu) + Test — nimmt Karten + alte + neue
-  FTP, gibt Patches (`watts` neu aus `pct`, `pct`/Struktur unverändert) nur für
-  `date >= today`.
-- `app/src/features/planning/FtpRescaleDialog.tsx` (neu) — ausgelöst, wenn eine
-  `isTest`-Karte als erledigt erkannt wird und ein neuer eFTP/FTP-Wert vorliegt.
-- `app/src/api/hooks/` — Bulk-Patch der betroffenen Karten (Result-Konvention).
-- Falls E2 die Testtag-Regeln noch nicht enthält (E2 vor Beschluss gemergt):
-  hier in `plan-generator.js` nachziehen.
+**Ziel:** Nachlauf nach einem erledigten FTP-Testtag: Dialog „neue FTP
+eintragen → künftige Watt-Ziele anpassen" (Entscheidung 24). Nur
+`workout.watts` aus `pct × neueFTP`; `pct`, `workout_structure` und TSS
+bleiben. Nur Karten mit `date >= heute`.
 
-**Verifikation:** `npm test`; Test: Rescale trifft nur Zukunft, `pct` bleibt,
-`watts = round(pct/100 × neueFtp)`; Dialog erscheint nur bei `isTest` + neuem
-Wert. Docker-Container-Check.
+**Umgesetzt:**
+- `app/src/core/plan-ftp-rescale.js` (neu) + `.test.js` — reine Funktion
+  `planFtpRescale({ cards, newFtp, todayISO })` → `{ patches, affectedCount }`;
+  Helfer `rescaledWorkout(workout, newFtp)`. Überspringt Vergangenheit,
+  ausgefallene Karten, Karten ohne numerisches `pct`-Band, ungültige FTP und
+  No-Ops (Band schon identisch). 8 Tests (nur Zukunft, `pct` bleibt,
+  `watts = round(pct/100 × newFtp)`, identische FTP → leer, deterministisch).
+- `app/src/api/hooks/usePlanCards.ts` — neuer Export
+  `useRescaleFuturePlanWatts(athleteId)`: `rescale(newFtp)` patcht die
+  betroffenen Karten sequenziell über die bestehende `usePatchCard`-Mutation
+  (Reihenfolge-Token, Teil-Fehler-Meldung wie `useShiftPlan`:
+  `{ ok:false, updated:k, error }`). Kein neuer `qk`-Key, kein neuer Adapter
+  (`updatePlanCard(id, { workout })` existiert). Kein dedizierter Hook-Test —
+  wie `useShiftPlan` (nur die reine Logik + das View-Model sind getestet).
+- `app/src/features/planning/ftp-rescale-dialog-view-model.ts` (neu) +
+  `.test.ts` — `detectDoneFtpTest()` (jüngste `typ:"FTP-Test"`-Karte ≤ heute,
+  ≤ 21 Tage her, mit Ist-Fahrt am selben Tag, nur bei aktivem selbst gebautem
+  Plan) und `rescalePreviewRows()` (Trockenlauf: Anzahl + Beispielzeilen).
+  7 Tests.
+- `app/src/features/planning/FtpRescaleDialog.tsx` (neu) — Overlay-/Sperr-
+  Muster wie `ShiftPlanDialog.tsx`. Leeres Zahlenfeld (manuelle Eingabe,
+  80–500 W), Live-Vorschau „N Einheiten: alt → neu", „Übernehmen" ruft den
+  Hook.
+- `app/src/features/planning/PlanningPage.tsx` — verwerfbares Banner (Muster
+  wie `ProposalBanner`) über `detectDoneFtpTest()`; „Später" merkt sich die
+  `testCardId` in `localStorage` (`ftp-rescale-dismissed:<id>`, try/catch,
+  beim Rendern gelesen — kein Effekt/setState). Gate: nur bei `canWrite`
+  (self + Trainer, Entscheidung 19). Nach Übernehmen/Abbrechen gilt der
+  Testtag als abgehakt.
+
+**Verifikation:** `node -c` auf die neue Core-Datei; `npm test -- --project
+core` (911 grün) + `--project app` (820 grün); `npm run build` (tsc-b + vite
+sauber); ESLint auf die geänderten Dateien sauber. Reine `core/`-Logik + ein
+Hook + Dialog → Docker-Container-Check + `/code-review` bleiben als manueller
+Schritt bei Alex (Verifikation ist opt-in).
 
 **Abhängigkeiten:** E2 (Testtage), E6 (Karten in der DB). **Commit:**
 `feat: rescale future plan watts after an FTP test`

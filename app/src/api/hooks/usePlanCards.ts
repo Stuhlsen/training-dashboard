@@ -46,6 +46,7 @@ import { catchResult, ResultError_, unwrap } from "../result";
 import { beginWrite, isCurrentWrite } from "../write-guard";
 import { pushCardWorkout } from "../intervals/push";
 import { planShiftPatches, clampPlanOffset } from "../../core/plan-shift.js";
+import { planFtpRescale } from "../../core/plan-ftp-rescale.js";
 import { localISODate } from "../../core/format.js";
 import { hasGeneratedPlan } from "../../config";
 import type { PlanCard, PlanCardInput, PlanCardPatch, Result } from "../types";
@@ -324,6 +325,53 @@ export function useShiftPlan(athleteId: string) {
   );
 
   return { shift, isPending: mutation.isPending };
+}
+
+/** Watt-Ziele künftiger Plankarten nach einem FTP-Test neu rechnen
+ *  (Fahrplan 8 E12). Nur `workout.watts` aus `pct × neueFTP`; `pct`,
+ *  `workout_structure` und TSS bleiben. Wie `useShiftPlan` patcht es die
+ *  betroffenen Karten sequenziell über dieselbe `usePatchCard`-Mutation
+ *  (Reihenfolge-Token) — bei einem Abbruch nach k Patches kommt `updated: k`
+ *  zurück, der Dialog sperrt sich dann gegen einen zweiten Versuch. */
+export function useRescaleFuturePlanWatts(athleteId: string) {
+  const mutation = usePatchCard(athleteId);
+  const snapshot = useCardsSnapshot(athleteId);
+  const userId = useAuthUserId();
+
+  const rescale = useCallback(
+    async (newFtp: number): Promise<Result<{ updated: number }>> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      const { patches } = planFtpRescale({
+        cards: snapshot(),
+        newFtp,
+        todayISO: localISODate(),
+      });
+      if (!patches.length) return { ok: true, updated: 0 };
+
+      let updated = 0;
+      for (const { id, workout } of patches) {
+        const r = await catchResult(() => mutation.mutateAsync({ id, patch: { workout } }));
+        if (!r.ok) {
+          return {
+            ok: false,
+            updated,
+            error: {
+              code: "UNKNOWN",
+              message:
+                updated === 0
+                  ? r.error?.message || "Watt-Umrechnung fehlgeschlagen."
+                  : `Nur ${updated} von ${patches.length} Einheiten umgerechnet — bitte den Plan prüfen und ggf. erneut anpassen.`,
+            },
+          } as Result<{ updated: number }> & { updated: number };
+        }
+        updated++;
+      }
+      return { ok: true, updated };
+    },
+    [userId, snapshot, mutation],
+  );
+
+  return { rescale, isPending: mutation.isPending };
 }
 
 /** Karte innerhalb ihres Tages eine Position nach oben/unten schieben —
