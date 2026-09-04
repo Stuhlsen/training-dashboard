@@ -5,12 +5,24 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import {
   BUILD_PHASES,
+  BLOCK_SYSTEMS,
   MODEL_BLOCK_SHARES,
   recoveryPeriod,
   recoveryWeekIndices,
   largestRemainder,
   buildPhaseSequence,
 } from "./plan-generator-blocks.js";
+
+/** Maximale Läufe gleicher Phase (ohne die abschließenden Taper-Wochen). */
+function phaseRuns(phases) {
+  const runs = [];
+  for (const p of phases) {
+    if (p === "Taper") break;
+    if (runs.length && runs.at(-1).phase === p) runs.at(-1).n++;
+    else runs.push({ phase: p, n: 1 });
+  }
+  return runs;
+}
 
 test("MODEL_BLOCK_SHARES: pyramidal + linear summieren auf 1", () => {
   for (const model of ["pyramidal", "linear"]) {
@@ -87,6 +99,92 @@ test("buildPhaseSequence: zu wenige Aufbau-Wochen → Warnung, kein Absturz", ()
   });
   assert.equal(phases.length, 5);
   assert.ok(warnings.length >= 1);
+});
+
+test("buildPhaseSequence polarized: Grundlagen-Block vorn, danach nur Schwelle/VO2max, kein Sweet Spot", () => {
+  const { phases } = buildPhaseSequence({
+    totalWeeks: 14,
+    taperWeeks: 2,
+    model: "polarized",
+    level: "fortgeschritten",
+    ageYears: 30,
+  });
+  assert.equal(phases.length, 14);
+  const build = phases.slice(0, 12).filter((p) => p !== "Erholung");
+  assert.ok(build.includes("Grundlage"), build.join("/"));
+  assert.ok(!build.includes("Sweet Spot"), build.join("/"));
+  for (const p of build) assert.ok(["Grundlage", "Schwelle", "VO2max"].includes(p), p);
+  // Alle Grundlagen-Wochen stehen ganz vorn (kein Grundlage nach der ersten Qualitätswoche).
+  const firstHard = build.findIndex((p) => p !== "Grundlage");
+  assert.ok(!build.slice(firstHard).includes("Grundlage"), build.join("/"));
+});
+
+test("buildPhaseSequence polarized: Schwelle/VO2max wechseln sich ab", () => {
+  const { phases, isRecovery } = buildPhaseSequence({
+    totalWeeks: 16,
+    taperWeeks: 0,
+    model: "polarized",
+    level: "fortgeschritten",
+    ageYears: 30,
+  });
+  const hard = phases.filter((p, i) => !isRecovery[i] && p !== "Grundlage");
+  assert.ok(hard.length >= 4);
+  for (let i = 1; i < hard.length; i++) {
+    assert.notEqual(hard[i], hard[i - 1], `${hard.join("/")}`);
+    assert.ok(["Schwelle", "VO2max"].includes(hard[i]));
+  }
+});
+
+test("buildPhaseSequence block: 3 zusammenhängende System-Blöcke (2–3 Wo), Erholung dazwischen, feste Reihenfolge", () => {
+  const { phases, warnings } = buildPhaseSequence({
+    totalWeeks: 14,
+    taperWeeks: 2,
+    model: "block",
+    level: "fortgeschritten",
+    ageYears: 30,
+  });
+  assert.equal(phases.length, 14);
+  assert.deepEqual(phases.slice(-2), ["Taper", "Taper"]);
+  assert.equal(warnings.length, 0);
+
+  const runs = phaseRuns(phases);
+  const sysRuns = runs.filter((r) => BLOCK_SYSTEMS.includes(r.phase));
+  assert.equal(sysRuns.length, 3, JSON.stringify(runs));
+  assert.deepEqual(
+    sysRuns.map((r) => r.phase),
+    BLOCK_SYSTEMS
+  );
+  for (const r of sysRuns) assert.ok(r.n >= 2 && r.n <= 3, `Blocklänge ${r.n}`);
+  assert.equal(runs[0].phase, "Grundlage");
+  assert.ok(runs.filter((r) => r.phase === "Erholung").length >= 1);
+});
+
+test("buildPhaseSequence block: kurzer Plan → Warnung, korrekte Länge, kein Absturz", () => {
+  const { phases, warnings } = buildPhaseSequence({
+    totalWeeks: 6,
+    taperWeeks: 1,
+    model: "block",
+    level: "fortgeschritten",
+    ageYears: 30,
+  });
+  assert.equal(phases.length, 6);
+  assert.equal(phases.at(-1), "Taper");
+  assert.ok(warnings.some((w) => w.includes("Block-Modell") || w.includes("braucht ~9")));
+});
+
+test("buildPhaseSequence: pyramidal/linear unverändert (Regression) — jede Phase, Reihenfolge, Taper hinten", () => {
+  for (const model of ["pyramidal", "linear"]) {
+    const { phases } = buildPhaseSequence({
+      totalWeeks: 15,
+      taperWeeks: 2,
+      model,
+      level: "fortgeschritten",
+      ageYears: 30,
+    });
+    assert.equal(phases.length, 15);
+    assert.deepEqual(phases.slice(-2), ["Taper", "Taper"]);
+    for (const p of BUILD_PHASES) assert.ok(phases.includes(p), `${model}: ${p} fehlt`);
+  }
 });
 
 test("buildPhaseSequence: open-Modus (taperWeeks 0) hat keine Taper-Woche", () => {

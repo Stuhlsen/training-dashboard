@@ -223,6 +223,101 @@ test("Kartenstruktur: workout_structure ist schema-valide, Karten chronologisch,
   }
 });
 
+/** Strukturierte harte Intervallzeit (Minuten) einer workoutStructure:
+ *  set-Arbeit + „over"-Anteil alternierender Blöcke. */
+function hardMinutes(structure) {
+  if (!structure || !Array.isArray(structure.steps)) return 0;
+  let m = 0;
+  for (const s of structure.steps) {
+    if (s.kind === "set") m += (s.reps * s.work.duration_s) / 60;
+    else if (s.kind === "alternating") m += (s.reps * s.cycles * s.over.duration_s) / 60;
+  }
+  return m;
+}
+
+test("polarized: keine Sweet-Spot-Phase, Qualität der Aufbauwochen nur Schwelle/VO2max, lockere Tage strikt Z2", () => {
+  const plan = generatePlan(eventInput({ model: "polarized" }));
+  // Keine Woche trägt die Phase "Sweet Spot" (nach dem kurzen Grundlagen-Block
+  // nur noch abwechselnd Schwelle/VO2max).
+  assert.ok(!plan.weeks.some((w) => w.phase === "Sweet Spot"));
+  for (const w of plan.weeks) {
+    for (const c of w.cards) {
+      if (c.isTest) continue;
+      if (c.isQuality) {
+        assert.ok(["Sweet Spot", "Schwelle", "VO2max"].includes(c.typ), `${c.date}: Qualität typ ${c.typ}`);
+        // Aufbauwochen der polarisierten Phase: Qualität == Phase (Schwelle/VO2max).
+        if (w.phase === "Schwelle" || w.phase === "VO2max") {
+          assert.equal(c.typ, w.phase, `${c.date}: Qualität typ ${c.typ} ≠ Phase ${w.phase}`);
+        }
+      } else {
+        assert.equal(c.workout?.zone, "Z2", `${c.date}: lockerer Tag nicht Z2`);
+        assert.ok(c.workout.pct[1] <= 75, `${c.date}: lockerer Tag pct ${c.workout.pct}`);
+      }
+    }
+  }
+});
+
+test("polarized: strukturierte harte Zeit < 25 % der Gesamtdauer (80/20-TID-Näherung)", () => {
+  const plan = generatePlan(eventInput({ model: "polarized" }));
+  let hard = 0;
+  let total = 0;
+  for (const w of plan.weeks) {
+    for (const c of w.cards) {
+      total += c.durationMin;
+      hard += hardMinutes(c.workoutStructure);
+    }
+  }
+  assert.ok(total > 0 && hard / total <= 0.25, `harte Zeit ${((100 * hard) / total).toFixed(1)} %`);
+});
+
+test("block: 3 zusammenhängende System-Blöcke (2–3 Wo), Erholung dazwischen, Qualität = Blocksystem", () => {
+  const plan = generatePlan(eventInput({ model: "block" }));
+  const nonTaper = plan.weeks.filter((w) => w.phase !== "Taper");
+  const runs = [];
+  for (const w of nonTaper) {
+    if (runs.length && runs.at(-1).phase === w.phase) runs.at(-1).weeks.push(w);
+    else runs.push({ phase: w.phase, weeks: [w] });
+  }
+  const systems = ["VO2max", "Schwelle", "Sweet Spot"];
+  const sysRuns = runs.filter((r) => systems.includes(r.phase));
+  assert.equal(sysRuns.length, 3, JSON.stringify(runs.map((r) => `${r.phase}×${r.weeks.length}`)));
+  assert.deepEqual(sysRuns.map((r) => r.phase), systems);
+  for (const r of sysRuns) {
+    assert.ok(r.weeks.length >= 2 && r.weeks.length <= 3, `${r.phase}: ${r.weeks.length} Wochen`);
+    for (const w of r.weeks) {
+      for (const c of w.cards) {
+        if (c.isQuality) assert.equal(c.typ, r.phase, `${c.date}: Qualität typ ${c.typ} ≠ Block ${r.phase}`);
+      }
+    }
+  }
+  assert.ok(runs.some((r) => r.phase === "Erholung"), "keine Erholungswoche zwischen den Blöcken");
+});
+
+test("polarized + block: deterministisch (gleicher Input → gleicher Output)", () => {
+  for (const model of ["polarized", "block"]) {
+    assert.deepEqual(generatePlan(eventInput({ model })), generatePlan(eventInput({ model })));
+  }
+});
+
+test("polarized + block: CTL-Rampe hält ctlRampWarn, Kartenstruktur schema-valide", () => {
+  for (const model of ["polarized", "block"]) {
+    const plan = generatePlan(eventInput({ model }));
+    let ctl = 62;
+    for (const w of plan.weeks) {
+      const before = ctl;
+      ctl = ctlAfterWeek(ctl, w.targetTss, CTL_DAYS);
+      assert.ok(ctl - before <= CONFLICT_THRESHOLDS.ctlRampWarn + 1e-6, `${model} Woche ${w.index + 1}: Rampe ${(ctl - before).toFixed(2)}`);
+      for (const c of w.cards) {
+        assert.ok(Number.isFinite(c.tssPlanned) && Number.isFinite(c.durationMin), `${model} ${c.date}: NaN`);
+        if (c.workoutStructure) {
+          const res = validateWorkoutStructure(c.workoutStructure);
+          assert.ok(res.valid, `${model} ${c.date}: ${JSON.stringify(res.errors)}`);
+        }
+      }
+    }
+  }
+});
+
 test("linear vs. pyramidal: linear hat mehr Grundlagen-Wochen", () => {
   const lin = generatePlan(eventInput({ model: "linear" }));
   const pyr = generatePlan(eventInput({ model: "pyramidal" }));

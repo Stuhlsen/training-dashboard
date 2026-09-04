@@ -2,7 +2,7 @@
 
 **Stand:** 2026-09-04 — **Kern E1–E8 umgesetzt** (Athlet 2/4 können sich im
 Planungstab einen pyramidalen/linearen Plan bauen, übernehmen; der Sync
-respektiert ihn). Zusatzstufen E9–E13 offen.
+respektiert ihn). **E9 umgesetzt** (alle vier Modelle wählbar). E10–E13 offen.
 **Zielablage:** `docs/fahrplan-8-plan-generator.md`
 **Herkunft:** Athlet 2 (`hc_diZee`) ist nach GFNY Bremen 2026 (30.08.) mit
 seinem Plan durch. Es gibt bisher **keinen** Weg, im Dashboard einen neuen
@@ -556,15 +556,43 @@ aktiven Plan unverändert. `node -c` auf geänderte Dateien.
 
 ### E9 — Modelle `polarized` + `block`
 
+**Stand:** umgesetzt (2026-09-04).
+
 **Ziel:** die beiden fehlenden Modelle im Generator.
 
-**Dateien:** `app/src/core/plan-generator.js` (+ `-blocks.js`) erweitern, neue
-Testfälle. Blockfolge-Tabelle oben.
+**Umgesetzt:**
+- `app/src/core/plan-generator-blocks.js` — `buildPhaseSequence()` schaltet
+  jetzt je Modell um: `classicSequence` (pyramidal/linear, unverändert aus der
+  geteilten `MODEL_BLOCK_SHARES`-Tabelle + `interleaveRecovery`),
+  `polarizedSequence` (Grundlage ~20 % der Arbeitswochen, danach abwechselnd
+  Schwelle/VO2max, Erholungsrhythmus wie klassisch, kein „Sweet Spot"),
+  `blockSequence` (Grundlage ~15 %, dann `BLOCK_SYSTEMS` = VO2max → Schwelle →
+  rennspezifisch als je 2–3-Wochen-Block mit `clampInt`-gedeckelter Länge, je
+  eine Erholungswoche dazwischen; Zusatzwochen langer Pläne wandern mit Warnung
+  in die Grundlage). „rennspezifisch" ist bewusst aufs bestehende Vokabular
+  „Sweet Spot" abgebildet (kein neuer Phasen-String → `selectWorkout()` greift
+  ohne Übersetzung).
+- `plan-generator.js` bleibt modell-agnostisch — die Modell-Unterschiede
+  stecken vollständig in der Phasen-Sequenz; lockere Tage sind in jedem Modell
+  strikt Z2 (`z2Workout` in `buildWeekCards`).
+- `plan-generator-blocks.test.js` / `plan-generator.test.js` — neue Fälle:
+  polarized-Struktur (nur Schwelle/VO2max-Aufbauwochen, Grundlage vorn,
+  Abwechslung, 80/20-TID-Näherung über strukturierte harte Zeit < 25 %),
+  block-Struktur (3 zusammenhängende 2–3-Wochen-Blöcke, Reihenfolge, Erholung,
+  Qualität = Blocksystem), kurzer-Plan-Warnung, pyramidal/linear-Regression,
+  CTL-Rampe/Schema/Determinismus für beide neuen Modelle.
+- `features/planning/new-plan-dialog-view-model.ts` — `AVAILABLE_MODELS` deckt
+  jetzt alle vier ab, `MODEL_LABELS` ohne „(ab E9)"-Vermerk. `suggestModel()`
+  schlägt weiter nur pyramidal/linear vor (Athlet wählt polarized/block aktiv).
+- `features/planning/NewPlanDialog.tsx` — die hartkodierten
+  `<option … disabled>` für polarized/block entfernt (kommen jetzt aus
+  `AVAILABLE_MODELS`).
 
-**Verifikation:** `npm test -- --project core` — `polarized`: TID der lockeren
-Tage strikt Z2, Qualitätstage nur Schwelle/VO2max, ~80/20-Verhältnis über den
-Plan. `block`: konzentrierte 2–3-Wochen-Blöcke, Erholung dazwischen, ein System
-je Block. Deterministisch.
+**Verifikation:** `npm run build` + `npm test -- --project core` (alles grün,
+36 Tests in den beiden Generator-Suiten) + `--project app` für das View-Model.
+`polarized`: lockere Tage strikt Z2, Aufbau-Qualitätstage nur Schwelle/VO2max,
+strukturierte harte Zeit < 25 %. `block`: konzentrierte 2–3-Wochen-Blöcke,
+Erholung dazwischen, ein System je Block. Beide deterministisch.
 
 **Abhängigkeiten:** E2. **Commit:** `feat: polarized + block periodization models`
 

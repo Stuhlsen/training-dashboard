@@ -8,7 +8,10 @@
    Wochenstruktur (V4 `GeneratedPlan`): Blockfolge, Wochen-TSS-Ziele mit
    gedeckelter CTL-Rampe, Erholungswochen, Qualitätstage, Taper, FTP-Testtage.
 
-   Umfang E2: Modelle `pyramidal` + `linear`. `polarized` + `block` → E9.
+   Modelle: `pyramidal` + `linear` (E2), `polarized` + `block` (E9). Die
+   Modell-Unterschiede stecken vollständig in der Phasen-Sequenz
+   (`plan-generator-blocks.js::buildPhaseSequence`) — der Rest dieses Moduls
+   ist modell-agnostisch (lockere Tage sind in jedem Modell strikt Z2).
    Die Workout-Auswahl der Qualitätstage läuft seit E3 über
    `plan-workout-select.js::selectWorkout()` (echte `session_formats`-Auswahl
    inkl. Ladder-Stufe); `input.formats` reicht die Katalogzeilen durch

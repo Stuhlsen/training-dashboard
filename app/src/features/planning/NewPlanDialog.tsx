@@ -494,12 +494,6 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   {MODEL_LABELS[m]}
                 </option>
               ))}
-              <option value="polarized" disabled>
-                {MODEL_LABELS.polarized}
-              </option>
-              <option value="block" disabled>
-                {MODEL_LABELS.block}
-              </option>
             </select>
           </label>
 

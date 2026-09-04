@@ -7,9 +7,9 @@
    Level + Länge + Zeitbudget ein Periodisierungsmodell vor (Entscheidung
    7+8). Die Komponente rendert nur und ruft `generatePlan()` (E2).
 
-   E5 bietet nur `pyramidal` + `linear` an — `polarized`/`block` kommen mit
-   E9 (bis dahin fallen sie im Generator still auf `pyramidal` zurück, s.
-   plan-generator-blocks.js::MODEL_BLOCK_SHARES).
+   Seit E9 sind alle vier Modelle wählbar (`pyramidal`, `linear`, `polarized`,
+   `block`); `suggestModel()` schlägt weiter nur `pyramidal`/`linear` vor, den
+   Rest wählt der Athlet aktiv.
    ============================================================ */
 
 import { addDaysISO, diffDays } from "../../core/format.js";
@@ -132,12 +132,12 @@ export const FOCUS_LABELS: Record<PlanFocus, string> = {
 export const MODEL_LABELS: Record<PlanModel, string> = {
   pyramidal: "Pyramidal (Allrounder)",
   linear: "Linear (Umfang zuerst)",
-  polarized: "Polarisiert (ab E9)",
-  block: "Blocktraining (ab E9)",
+  polarized: "Polarisiert (80/20)",
+  block: "Blocktraining",
 };
 
-/** In E5 tatsächlich baubar. */
-export const AVAILABLE_MODELS: readonly PlanModel[] = ["pyramidal", "linear"];
+/** Alle vier seit E9 baubar. */
+export const AVAILABLE_MODELS: readonly PlanModel[] = ["pyramidal", "linear", "polarized", "block"];
 
 /* ── reine Helfer ──────────────────────────────────────────────────── */
 
