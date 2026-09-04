@@ -69,6 +69,9 @@ export const qk = {
    *  Etappe 9) — anders als qk.ladderState() der VOLLE Katalog, nicht nur
    *  die aktiven Formate. */
   athleteFormats: (profileId: string) => ["athlete-formats", profileId] as const,
+  /** Voller session_formats-Katalog für den Admin-Editor (Fahrplan 8 E11).
+   *  Nicht profil-gebunden — der Katalog ist athletenunabhängig. */
+  sessionFormatCatalog: () => ["session-format-catalog"] as const,
   /** Blockstart-Dialog-Erkennung (E2) — hängt zusätzlich an einem
    *  Cards-Fingerprint, weil ein Kartenwechsel (Verschieben/Anlegen) das
    *  Blockziel verschieben kann, ohne dass sich profileId/athleteId ändern. */

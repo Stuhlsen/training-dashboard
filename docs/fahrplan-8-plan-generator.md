@@ -4,7 +4,7 @@
 Planungstab einen pyramidalen/linearen Plan bauen, übernehmen; der Sync
 respektiert ihn). **E9 umgesetzt** (alle vier Modelle wählbar). **E10 umgesetzt**
 (Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche).
-E11–E13 offen.
+**E11 umgesetzt** (Admin-Editor für `session_formats` in Settings). E12–E13 offen.
 **Zielablage:** `docs/fahrplan-8-plan-generator.md`
 **Herkunft:** Athlet 2 (`hc_diZee`) ist nach GFNY Bremen 2026 (30.08.) mit
 seinem Plan durch. Es gibt bisher **keinen** Weg, im Dashboard einen neuen
@@ -655,21 +655,56 @@ Warnung über den bestehenden `warnings`-Kanal.
 
 ### E11 — Admin-Editor für `session_formats`
 
+**Stand:** umgesetzt (2026-09-04). Keine Migration — Migration `0014` gewährt
+Admin-Insert/Update/Delete bereits.
+
 **Ziel:** Formate im UI anlegen/bearbeiten (Admin), statt nur per Migration.
 
-**Dateien:**
-- `app/src/features/settings/FormatCatalogSection.tsx` (neu) — nur sichtbar bei
-  `profile.isAdmin`. Liste + Formular (`id`, `label`, `target_system`,
-  `currency`, `evidence_grade`, `block_targets`, `axes` als `explicitSteps`).
-- `app/src/api/supabase/session-formats.ts` — `create/update/deleteSessionFormat`
-  (RLS erlaubt Admin-Insert bereits, Migration `0014`).
-- `app/src/features/settings/format-catalog-view-model.ts` (+ Test) —
-  `axes`-Validierung (gültiges `explicitSteps`-Schema), bevor geschrieben wird.
+**Umgesetzt:**
+- `app/src/api/supabase/session-formats.ts` — `createSessionFormat` /
+  `updateSessionFormat` / `deleteSessionFormat` (Result-Konvention, Zugriff über
+  `getAuthedClient()` wie `athlete-formats.ts`; RLS ist die Berechtigungsgrenze,
+  kein clientseitiges Rollen-Gate im Adapter). `SessionFormatInput` +
+  `toPatch()` (camelCase → snake_case, ohne den PK `id`). `+ Adapter-Tests`
+  (`session-formats.test.ts`).
+- `app/src/features/settings/format-catalog-view-model.ts` (+ `.test.ts`) —
+  reine Validierung vor dem Schreiben: `TARGET_SYSTEMS` / `CURRENCIES` /
+  `EVIDENCE_GRADES` (Spiegel der 0014-CHECK-Constraints),
+  `BLOCK_TARGET_SUGGESTIONS` (Periodisierungs-Vokabular, Freitext bleibt
+  erlaubt). `validateSteps()` prüft das `explicitSteps`-JSON: nicht-leeres
+  Array, je Stufe nicht-leeres `id`/`structureLabel`, eindeutige Stufen-IDs
+  und die `currency`-abhängigen Pflicht-Zahlenfelder > 0 (`zone-time`/
+  `time-above-90` → `pctFtp`+`zoneTimeMin`, `over-time` → `pctFtpOver`+
+  `pctFtpUnder`, `reps` → `reps`+`workSec`+`restMin`). `validateFormatDraft()`
+  bündelt Feld- + Step-Prüfung → `SessionFormatInput` oder Fehlerliste.
+  `emptyDraft()` / `draftFromFormat()` (Roundtrip-getestet).
+- `app/src/api/hooks/useSessionFormatCatalog.ts` (neu) —
+  `useSessionFormatCatalog()` (voller Katalog, nach `id` sortiert) +
+  `useSessionFormatMutations()` (create/update/remove). Nach jeder Änderung
+  wird `qk.sessionFormatCatalog()` **und** `qk.athleteFormats(userId)`
+  entwertet, damit die Familienauswahl (`FormatsSection`) neue/gelöschte
+  Formate sofort sieht. Neuer Key `qk.sessionFormatCatalog()` (nicht
+  profil-gebunden — der Katalog ist athletenunabhängig).
+- `app/src/features/settings/FormatCatalogSection.tsx` (neu) — Liste
+  (Label · `id` · `currency` · Blockziele) mit „Bearbeiten"/„Löschen"
+  (Löschen mit `window.confirm`, Hinweis auf `athlete_formats`-Kaskade) +
+  Formular: `id` (bei Bearbeiten gesperrt), `label`, Selects für
+  `target_system`/`currency`/`evidence_grade`, `block_targets` (Komma-Text),
+  `axes.explicitSteps` als JSON-Textarea. Fehler als Liste, `result.error.message`
+  bei RLS-/DB-Fehler durchgereicht. Styling über die geteilten
+  `section-styles.ts` wie die Nachbar-Sektionen.
+- `app/src/features/settings/SettingsPage.tsx` — neuer Bereich
+  `sec-katalog` „Formatkatalog", Nav-Eintrag + Karte **nur bei
+  `profile.isAdmin`** (unabhängig von `role`). Scrollspy-Effekt-Deps um
+  `isAdmin` erweitert.
 
-**Verifikation:** `npm test -- --project app`; `npm run build`; als Admin gegen
-`dashboard-dev` ein Format anlegen → taucht in `FormatsSection` (Familienauswahl)
-auf; als Nicht-Admin ist die Sektion unsichtbar und der Write scheitert an RLS.
-Docker-Container-Check.
+**Verifikation:** `npx tsc -b` sauber; `npm run build` (rolldown) sauber;
+`npm test -- --project app` — **813 grün** (97 Dateien; +20 neue in
+`format-catalog-view-model.test.ts` / `session-formats.test.ts`); ESLint auf
+die geänderten Dateien sauber. Der echte Admin-Klick gegen `dashboard-dev`
+(Format anlegen → erscheint in `FormatsSection`; Nicht-Admin sieht die
+Sektion nicht, Write scheitert an RLS) + Docker-Container-Check bleiben als
+manueller Schritt bei Alex.
 
 **Abhängigkeiten:** keine (nur bestehende `session_formats`-Tabelle).
 **Commit:** `feat: admin session-format catalog editor`

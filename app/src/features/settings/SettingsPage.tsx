@@ -24,6 +24,7 @@ import { GoalsSection } from "./GoalsSection";
 import { CheckinSection } from "./CheckinSection";
 import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
+import { FormatCatalogSection } from "./FormatCatalogSection";
 import { DataSourcesSection } from "./DataSourcesSection";
 import { IntervalsSection } from "./IntervalsSection";
 import { SyncLocationSection } from "./SyncLocationSection";
@@ -52,6 +53,7 @@ export function SettingsPage() {
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [activeId, setActiveId] = useState("sec-profil");
   const isAthlete = profile?.role === "athlete";
+  const isAdmin = !!profile?.isAdmin;
 
   const navEntries: NavEntry[] = [
     { id: "sec-profil", label: "Profil" },
@@ -59,6 +61,7 @@ export function SettingsPage() {
     { id: "sec-benachrichtigungen", label: "Benachrichtigungen" },
     ...(isAthlete ? [{ id: "sec-training", label: "Training" }] : []),
     ...(isAthlete ? [{ id: "sec-daten", label: "Daten" }] : []),
+    ...(isAdmin ? [{ id: "sec-katalog", label: "Formatkatalog" }] : []),
     { id: "sec-datenschutz", label: "Datenschutz & Account" },
   ];
 
@@ -87,8 +90,8 @@ export function SettingsPage() {
       window.removeEventListener("scroll", onScroll);
       if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- navEntries ändert sich nur mit isAthlete
-  }, [isAthlete]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- navEntries ändert sich nur mit isAthlete/isAdmin
+  }, [isAthlete, isAdmin]);
 
   return (
     <PageShell>
@@ -179,6 +182,13 @@ export function SettingsPage() {
                   <SyncLocationSection />
                   <UnitsSection />
                   <CoachLinkSection />
+                </GlassCard>
+              )}
+
+              {isAdmin && (
+                <GlassCard id="sec-katalog" variant="soft" style={CARD_STYLE}>
+                  <h2 style={CARD_HEADING_STYLE}>Formatkatalog</h2>
+                  <FormatCatalogSection />
                 </GlassCard>
               )}
 

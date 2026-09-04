@@ -13,7 +13,19 @@ vi.mock("./client", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { getSessionFormats } = await import("./session-formats");
+const { getSessionFormats, createSessionFormat, updateSessionFormat, deleteSessionFormat } = await import(
+  "./session-formats"
+);
+
+const INPUT = {
+  id: "my-format",
+  label: "Mein Format",
+  targetSystem: "schwelle",
+  currency: "zone-time",
+  evidenceGrade: "coaching-konsens",
+  blockTargets: ["Schwelle"],
+  axes: { explicitSteps: [{ id: "S1", structureLabel: "3×10", pctFtp: 88, zoneTimeMin: 30 }] },
+};
 
 describe("getSessionFormats", () => {
   it("mappt den Formatkatalog aus snake_case", async () => {
@@ -50,5 +62,61 @@ describe("getSessionFormats", () => {
     });
     const result = await getSessionFormats();
     expect(result.ok && result.formats[0].blockTargets).toEqual([]);
+  });
+});
+
+describe("createSessionFormat", () => {
+  it("schreibt die Zeile in snake_case und gibt die id zurück", async () => {
+    let seen: unknown;
+    fakeClient.handlers.session_formats = (calls) => {
+      seen = calls.payload;
+      return { data: null, error: null };
+    };
+    const result = await createSessionFormat(INPUT);
+    expect(result.ok && result.id).toBe("my-format");
+    expect(seen).toEqual({
+      id: "my-format",
+      label: "Mein Format",
+      target_system: "schwelle",
+      currency: "zone-time",
+      evidence_grade: "coaching-konsens",
+      block_targets: ["Schwelle"],
+      axes: { explicitSteps: [{ id: "S1", structureLabel: "3×10", pctFtp: 88, zoneTimeMin: 30 }] },
+    });
+  });
+
+  it("reicht einen RLS-/DB-Fehler als Result durch", async () => {
+    fakeClient.handlers.session_formats = () => ({ data: null, error: { message: "permission denied" } });
+    const result = await createSessionFormat(INPUT);
+    expect(result.ok).toBe(false);
+    expect(!result.ok && result.error.message).toBe("permission denied");
+  });
+});
+
+describe("updateSessionFormat", () => {
+  it("schreibt den Patch ohne id und filtert auf die Zeile", async () => {
+    let calls: { payload?: unknown; filters?: unknown };
+    fakeClient.handlers.session_formats = (c) => {
+      calls = c;
+      return { data: null, error: null };
+    };
+    const result = await updateSessionFormat("my-format", INPUT);
+    expect(result.ok).toBe(true);
+    expect(calls!.payload).not.toHaveProperty("id");
+    expect(calls!.filters).toContainEqual({ op: "eq", col: "id", val: "my-format" });
+  });
+});
+
+describe("deleteSessionFormat", () => {
+  it("löscht die Zeile per id", async () => {
+    let calls: { method?: string; filters?: unknown };
+    fakeClient.handlers.session_formats = (c) => {
+      calls = c;
+      return { data: null, error: null };
+    };
+    const result = await deleteSessionFormat("my-format");
+    expect(result.ok).toBe(true);
+    expect(calls!.method).toBe("delete");
+    expect(calls!.filters).toContainEqual({ op: "eq", col: "id", val: "my-format" });
   });
 });
