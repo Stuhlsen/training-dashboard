@@ -574,6 +574,10 @@ export function buildHeroViewModel(input: HeroViewModelInput): HeroViewModel {
 }
 
 export interface HeroMetric {
+  /** Stabile ID je Kennzahl-ART (nicht athletenabhängig) — seit dem Umbau
+   *  auf ein 2D-Raster (HeroTileGrid.tsx) ist jede Kennzahl ihre eigene
+   *  Hero-Kachel, die ID wird 1:1 als Kachel-ID verwendet (s. HeroPage.tsx). */
+  key: string;
   value: string | number;
   label: string;
   desc: string;
@@ -623,14 +627,22 @@ export function buildHeroMetrics(
 
   const metrics: HeroMetric[] = [
     {
+      key: "distance",
       value: `${Math.round(totalKm).toLocaleString("de")} km`,
       label: "Gesamtdistanz",
       desc: "Summierte Streckenlänge aller Fahrten",
       color: "var(--accent)",
     },
-    { value: rides.length, label: "Fahrten", desc: "Anzahl absolvierter Trainingseinheiten", color: "var(--ink)" },
-    { value: fmtDuration(totalMin), label: "Trainingszeit", desc: "Gesamte Fahrtdauer ohne Pausen", color: "var(--role-primary)" },
+    { key: "rides", value: rides.length, label: "Fahrten", desc: "Anzahl absolvierter Trainingseinheiten", color: "var(--ink)" },
     {
+      key: "time",
+      value: fmtDuration(totalMin),
+      label: "Trainingszeit",
+      desc: "Gesamte Fahrtdauer ohne Pausen",
+      color: "var(--role-primary)",
+    },
+    {
+      key: "tempo",
       value: `${fmt(avgKmh)} km/h`,
       label: "Ø Tempo",
       desc: "Durchschnittliche Geschwindigkeit aller Fahrten",
@@ -640,6 +652,7 @@ export function buildHeroMetrics(
 
   if (showFtp) {
     metrics.push({
+      key: "ftp",
       value: ramp.value ? `${ramp.value}W` : "–",
       label: "FTP (Ramp Test)",
       desc: `Gemessene FTP aus dem Ramp-Test${ramp.date ? " vom " + ramp.date.split("-").reverse().join(".") : ""}`,
@@ -649,6 +662,7 @@ export function buildHeroMetrics(
 
   if (showFtp && eftp.value) {
     metrics.push({
+      key: "eftp",
       value: `${eftp.value}W`,
       label: "eFTP (Intervals.icu)",
       desc: ownPlan
@@ -659,15 +673,28 @@ export function buildHeroMetrics(
   }
 
   metrics.push(
-    { value: fmtInt(maxCTL), label: "CTL Peak", desc: "Höchster Chronic Training Load — erreichte Fitnessstufe", color: "var(--role-positive)" },
-    { value: `${fmt(maxKm)} km`, label: "Längste Fahrt", desc: "Die längste einzelne Ausfahrt", color: "var(--role-primary)" },
     {
+      key: "ctl",
+      value: fmtInt(maxCTL),
+      label: "CTL Peak",
+      desc: "Höchster Chronic Training Load — erreichte Fitnessstufe",
+      color: "var(--role-positive)",
+    },
+    { key: "longest", value: `${fmt(maxKm)} km`, label: "Längste Fahrt", desc: "Die längste einzelne Ausfahrt", color: "var(--role-primary)" },
+    {
+      key: "hr",
       value: `${fmtInt(avgHF)} bpm`,
       label: "Ø Herzfrequenz",
       desc: "Durchschnittliche HF über alle Fahrten mit HF-Daten",
       color: "var(--role-secondary)",
     },
-    { value: `${fmtInt(avgKad)} RPM`, label: "Ø Kadenz", desc: "Durchschnittliche Trittfrequenz über alle Fahrten", color: "var(--role-status)" },
+    {
+      key: "cadence",
+      value: `${fmtInt(avgKad)} RPM`,
+      label: "Ø Kadenz",
+      desc: "Durchschnittliche Trittfrequenz über alle Fahrten",
+      color: "var(--role-status)",
+    },
   );
 
   return metrics;

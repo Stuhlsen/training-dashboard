@@ -13,11 +13,14 @@ const METRIC_TERMS: Record<string, string> = {
   "Ø Kadenz": "cadence",
 };
 
-/** Eine Kachel — Port von `ui/overview.js::_renderMetrics()`s `.metric-card`
- *  (assets/css/components.css). Akzentkante links über einen absolut
- *  positionierten Balken statt `::before` (diese App stylt ausschließlich
- *  inline, kein CSS-Modul für den Hero-Bereich). */
-function MetricTile({ metric }: { metric: HeroMetric }) {
+/** Eine Kennzahlen-Kachel — Port von `ui/overview.js::_renderMetrics()`s
+ *  `.metric-card` (assets/css/components.css). Akzentkante links über einen
+ *  absolut positionierten Balken statt `::before` (diese App stylt
+ *  ausschließlich inline, kein CSS-Modul für den Hero-Bereich). Seit dem
+ *  Umbau auf ein 2D-Raster (HeroTileGrid.tsx) ist JEDE Kennzahl ihre eigene
+ *  Hero-Kachel (einzeln verschiebbar) statt Teil eines gemeinsamen
+ *  `MetricsGrid`-Blocks — s. HeroPage.tsx's Kachel-Registry. */
+export function MetricTile({ metric }: { metric: HeroMetric }) {
   return (
     <GlassCard
       variant="soft"
@@ -58,17 +61,5 @@ function MetricTile({ metric }: { metric: HeroMetric }) {
       </div>
       <div style={{ fontSize: ".72rem", color: "var(--ink-3)", marginTop: 6, lineHeight: 1.4 }}>{metric.desc}</div>
     </GlassCard>
-  );
-}
-
-/** Gesamtstatistiken-Kachelreihe unten im Hero (Etappe 11c) — Port von
- *  `#metrics-grid`/`.grid.grid-auto` (assets/css/main.css). */
-export function MetricsGrid({ metrics }: { metrics: HeroMetric[] }) {
-  return (
-    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: 12 }}>
-      {metrics.map((m) => (
-        <MetricTile key={m.label} metric={m} />
-      ))}
-    </div>
   );
 }

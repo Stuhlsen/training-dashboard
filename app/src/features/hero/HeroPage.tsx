@@ -16,7 +16,8 @@ import { buildRecordChips } from "../analysis/analysis-view-model";
 import { RecordChips } from "../analysis/RecordChips";
 import { BriefingCard, LEVEL_COLOR } from "./BriefingCard";
 import { FtpRings } from "./FtpRings";
-import { MetricsGrid } from "./MetricsGrid";
+import { HeroTileGrid, type HeroTile } from "./HeroTileGrid";
+import { MetricTile } from "./MetricTile";
 import { PowerScale } from "./PowerScale";
 import { RaceCountdownPill } from "./RaceCountdownPill";
 import { RaceResultsCard } from "./RaceResultsCard";
@@ -27,6 +28,9 @@ import { WeatherCard } from "./WeatherCard";
 import { WeekReviewCard } from "./WeekReviewCard";
 import { WellbeingCard } from "./WellbeingCard";
 import { buildHeroCore, buildHeroMetrics, buildPowerScale, type HeroCoreInput } from "./hero-view-model";
+import { useHeroLayout } from "../../api/hooks/useHeroLayout";
+import { resolveTileLayout } from "../../core/hero-layout.js";
+import type { HeroTilePosition } from "../../api/supabase/hero-layout";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -160,9 +164,101 @@ export function HeroPage() {
     [rides, planCards],
   );
 
+  // Kachel-Anordnung (Edit-Modus) — 2D-Positionen sind eine persönliche
+  // Einstellung des EINGELOGGTEN Users (hängt an dessen auth.uid(), nicht
+  // am Athleten-Toggle — wie useExportPrefs), gilt also unabhängig davon,
+  // wessen Seite gerade betrachtet wird. `draftLayout` hält den Entwurf
+  // während des Bearbeitens lokal, bis "Fertig" gespeichert oder
+  // "Abbrechen" verwirft.
+  const { layout: savedLayout, save: saveLayout } = useHeroLayout();
+  const [editMode, setEditMode] = useState(false);
+  const [draftLayout, setDraftLayout] = useState<HeroTilePosition[] | null>(null);
 
   if (isLoading || !athleteData) {
     return <p style={{ color: "var(--ink-3)", padding: 40 }}>{error ? "Fehler beim Laden der Trainingsdaten." : "Lädt…"}</p>;
+  }
+
+  // Kachel-Registry: nur die gerade SICHTBAREN Kacheln landen hier — exakt
+  // dieselben Bedingungen wie vorher an den festen Grid-Positionen, jetzt
+  // nur nicht mehr an eine feste Position gebunden. PowerScale/MetricsGrid
+  // sind `wide` (spannen im Raster über alle Spalten, wie vorher als eigene
+  // volle Zeile).
+  const tiles: HeroTile[] = [];
+  if (vm.session) tiles.push({ id: "session", node: <SessionCard session={vm.session} statusColor={LEVEL_COLOR[vm.briefing.level]} /> });
+  if (vm.weatherToday) tiles.push({ id: "weather", node: <WeatherCard weather={vm.weatherToday} /> });
+  if (session) tiles.push({ id: "briefing", node: <BriefingCard briefing={vm.briefing} /> });
+  if (hasFtpData) {
+    tiles.push({
+      id: "ftpRings",
+      node: <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />,
+    });
+    tiles.push({
+      id: "powerScale",
+      wide: true,
+      node: (
+        <PowerScale
+          powerScale={vm.powerScale}
+          whatIf={vm.whatIf}
+          whatIfFtp={whatIfFtp}
+          onWhatIfChange={setWhatIfFtp}
+          eftpVal={vm.eftp.value || null}
+        />
+      ),
+    });
+  }
+  // Jede Kennzahl ist seit der Rückfrage vom 2026-09-04 ihre eigene, einzeln
+  // verschiebbare Hero-Kachel (nicht mehr ein gemeinsamer MetricsGrid-Block)
+  // — `metric.key` kommt stabil aus buildHeroMetrics(), s. hero-view-model.ts.
+  for (const metric of metrics) {
+    tiles.push({ id: `metric-${metric.key}`, node: <MetricTile metric={metric} /> });
+  }
+  tiles.push({
+    id: "consistency",
+    node: (
+      <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
+          Trainingskonsistenz
+        </span>
+        <ConsistencyCalendar rides={rides} todayISO={TODAY} />
+      </GlassCard>
+    ),
+  });
+  tiles.push({
+    id: "records",
+    node: (
+      <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
+        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
+          Bestleistungen
+        </span>
+        <RecordChips records={records} />
+      </GlassCard>
+    ),
+  });
+  if (raceResults.length > 0) tiles.push({ id: "raceResults", node: <RaceResultsCard rows={raceResults} /> });
+  tiles.push({ id: "weekReview", node: <WeekReviewCard review={weekReview} /> });
+  tiles.push({ id: "wellbeing", node: <WellbeingCard activeAthleteId={activeAthleteId} /> });
+  tiles.push({ id: "readiness", node: <ReadinessCard readiness={vm.readiness} briefing={vm.briefing} /> });
+
+  const availableTileIds = tiles.map((t) => t.id);
+  const effectiveLayout = resolveTileLayout(draftLayout ?? savedLayout, availableTileIds);
+
+  function handleLayoutChange(next: HeroTilePosition[]) {
+    setDraftLayout(next);
+  }
+
+  function startEditing() {
+    setDraftLayout(savedLayout);
+    setEditMode(true);
+  }
+
+  function cancelEditing() {
+    setDraftLayout(null);
+    setEditMode(false);
+  }
+
+  function finishEditing() {
+    if (draftLayout) saveLayout(draftLayout);
+    setEditMode(false);
   }
 
   return (
@@ -205,90 +301,105 @@ export function HeroPage() {
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
             <RaceCountdownPill countdown={countdown} />
-          </div>
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 340px), 1fr))", gap: "clamp(20px,2vw,34px)", alignItems: "start" }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 20, transform: "translateZ(46px)" }}>
-            {vm.eyebrow && (
-              <span style={{ fontSize: ".72rem", letterSpacing: ".17em", textTransform: "uppercase", color: "var(--accent-2)", fontWeight: 600 }}>
-                {vm.eyebrow}
-              </span>
+            {session && !editMode && (
+              <button
+                type="button"
+                onClick={startEditing}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 9,
+                  background: "rgba(255,255,255,.06)",
+                  border: "1px solid var(--hair)",
+                  borderRadius: "var(--pill)",
+                  padding: "11px 20px",
+                  color: "var(--ink)",
+                  font: "inherit",
+                  fontSize: ".86rem",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" strokeWidth={2}>
+                  <path d="M12 20h9" />
+                  <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                </svg>
+                Kacheln anordnen
+              </button>
             )}
-            <h1
-              style={{
-                margin: 0,
-                fontFamily: "var(--font-disp)",
-                fontSize: "clamp(2.6rem,3.4vw,4.1rem)",
-                lineHeight: 1,
-                fontWeight: 600,
-                letterSpacing: "-.03em",
-                color: "var(--ink)",
-                textShadow: "0 4px 30px rgba(0,0,0,.6)",
-              }}
-            >
-              Radsport
-              <br />
-              Trainingsdashboard
-            </h1>
-
-            {vm.session && <SessionCard session={vm.session} statusColor={LEVEL_COLOR[vm.briefing.level]} />}
-
-            {vm.weatherToday && <WeatherCard weather={vm.weatherToday} />}
+            {editMode && (
+              <>
+                <button
+                  type="button"
+                  onClick={cancelEditing}
+                  style={{
+                    background: "rgba(255,255,255,.06)",
+                    border: "1px solid var(--hair)",
+                    borderRadius: "var(--pill)",
+                    padding: "11px 20px",
+                    color: "var(--ink-2)",
+                    font: "inherit",
+                    fontSize: ".86rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  Abbrechen
+                </button>
+                <button
+                  type="button"
+                  onClick={finishEditing}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    background: "var(--ok)",
+                    border: "1px solid var(--ok)",
+                    borderRadius: "var(--pill)",
+                    padding: "11px 22px",
+                    color: "#0b1a10",
+                    font: "inherit",
+                    fontSize: ".86rem",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#0b1a10" strokeWidth={2.4}>
+                    <path d="M20 6 9 17l-5-5" />
+                  </svg>
+                  Fertig
+                </button>
+              </>
+            )}
           </div>
-
-          {session && (
-            // Unterkante bündig mit der linken Spalte (Wetter-Karte) statt
-            // oben an der Überschrift klebend (Review-Kommentar 23.08.2026)
-            // — `alignSelf: "end"` statt eines geschätzten Pixel-Werts, damit
-            // es bei jeder Inhaltslänge der linken Spalte stimmt. Gilt
-            // unabhängig vom Login-Status auch für die FTP-Ringe daneben.
-            <div style={{ alignSelf: "end", transform: "translateZ(88px)" }}>
-              <BriefingCard briefing={vm.briefing} />
-            </div>
-          )}
-
-          {hasFtpData && (
-            <div style={{ alignSelf: "end", transform: "translateZ(30px)" }}>
-              <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />
-            </div>
-          )}
         </div>
 
-        {hasFtpData && (
-          <div style={{ transform: "translateZ(22px)" }}>
-            <PowerScale
-              powerScale={vm.powerScale}
-              whatIf={vm.whatIf}
-              whatIfFtp={whatIfFtp}
-              onWhatIfChange={setWhatIfFtp}
-              eftpVal={vm.eftp.value || null}
-            />
-          </div>
-        )}
-
-        <div style={{ transform: "translateZ(14px)" }}>
-          <MetricsGrid metrics={metrics} />
-        </div>
-
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 420px), 1fr))", gap: "clamp(20px,2vw,34px)", transform: "translateZ(10px)" }}>
-          <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-            <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
-              Trainingskonsistenz
+        {/* Überschrift bleibt fix — bewusst nicht Teil der verschiebbaren
+            Kacheln (Alex' Vorgabe: "alles außer der Überschrift"). */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, transform: "translateZ(46px)" }}>
+          {vm.eyebrow && (
+            <span style={{ fontSize: ".72rem", letterSpacing: ".17em", textTransform: "uppercase", color: "var(--accent-2)", fontWeight: 600 }}>
+              {vm.eyebrow}
             </span>
-            <ConsistencyCalendar rides={rides} todayISO={TODAY} />
-          </GlassCard>
-          <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-            <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
-              Bestleistungen
-            </span>
-            <RecordChips records={records} />
-          </GlassCard>
-          {raceResults.length > 0 && <RaceResultsCard rows={raceResults} />}
-          <WeekReviewCard review={weekReview} />
-          <WellbeingCard activeAthleteId={activeAthleteId} />
-          <ReadinessCard readiness={vm.readiness} briefing={vm.briefing} />
+          )}
+          <h1
+            style={{
+              margin: 0,
+              fontFamily: "var(--font-disp)",
+              fontSize: "clamp(2.6rem,3.4vw,4.1rem)",
+              lineHeight: 1,
+              fontWeight: 600,
+              letterSpacing: "-.03em",
+              color: "var(--ink)",
+              textShadow: "0 4px 30px rgba(0,0,0,.6)",
+            }}
+          >
+            Radsport
+            <br />
+            Trainingsdashboard
+          </h1>
         </div>
+
+        <HeroTileGrid tiles={tiles} layout={effectiveLayout} editing={editMode} onLayoutChange={handleLayoutChange} />
       </div>
     </div>
   );
