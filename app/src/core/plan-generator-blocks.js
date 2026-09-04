@@ -323,6 +323,23 @@ function blockSequence(buildWeeks) {
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  *   `phases`/`isRecovery` haben Länge `totalWeeks`.
  */
+/**
+ * Fahrplan 8 E13 („Rest neu berechnen"): die eingefrorene Blockstruktur eines
+ * bestehenden Plans aus seinem `week_model` rekonstruieren, statt sie neu
+ * abzuleiten. `phases`/`isRecovery` haben Länge `baseWeekModel.length`.
+ * Erholungswochen tragen im `week_model` `phase === "Erholung"` (s.
+ * interleaveRecovery), die Taper-Wochen stehen am Ende.
+ * @param {Array<{phase: string, start: string}>} baseWeekModel  V4 WeekModelEntry[]
+ * @returns {{ phases: string[], isRecovery: boolean[], taperWeeks: number }}
+ */
+export function sequenceFromWeekModel(baseWeekModel) {
+  const phases = baseWeekModel.map((w) => w.phase);
+  const isRecovery = phases.map((p) => p === "Erholung");
+  let taperWeeks = 0;
+  for (let i = phases.length - 1; i >= 0 && phases[i] === "Taper"; i--) taperWeeks++;
+  return { phases, isRecovery, taperWeeks };
+}
+
 export function buildPhaseSequence({
   totalWeeks,
   taperWeeks,

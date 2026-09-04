@@ -42,6 +42,7 @@ import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
 import { PlanCardForm } from "./PlanCardForm";
 import { ShiftPlanDialog } from "./ShiftPlanDialog";
 import { NewPlanDialog } from "./NewPlanDialog";
+import { RecomputePlanDialog } from "./RecomputePlanDialog";
 import { FtpRescaleDialog } from "./FtpRescaleDialog";
 import { detectDoneFtpTest } from "./ftp-rescale-dialog-view-model";
 import { ExportImportBar } from "./ExportImportBar";
@@ -158,6 +159,7 @@ export function PlanningPage() {
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [shiftOpen, setShiftOpen] = useState(false);
   const [newPlanOpen, setNewPlanOpen] = useState(false);
+  const [recomputeOpen, setRecomputeOpen] = useState(false);
   const [ftpRescaleOpen, setFtpRescaleOpen] = useState(false);
   // Testtag-ID, für die das FTP-Umrechnungs-Banner bereits weggeklickt wurde
   // (localStorage-gestützt, s. useEffect unten).
@@ -575,6 +577,11 @@ export function PlanningPage() {
                         Plan verschieben…
                       </button>
                     )}
+                    {!!activeWeekModel && (
+                      <button type="button" onClick={() => setRecomputeOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+                        Rest neu berechnen…
+                      </button>
+                    )}
                     <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>
                       + Karte
                     </button>
@@ -672,6 +679,10 @@ export function PlanningPage() {
 
       {newPlanOpen && (
         <NewPlanDialog athleteId={activeAthleteId} onClose={() => setNewPlanOpen(false)} />
+      )}
+
+      {recomputeOpen && (
+        <RecomputePlanDialog athleteId={activeAthleteId} onClose={() => setRecomputeOpen(false)} />
       )}
 
       {ftpRescaleOpen && doneFtpTest && (

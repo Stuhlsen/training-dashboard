@@ -18,6 +18,7 @@ const {
   listActiveTrainingPlan,
   createTrainingPlan,
   setTrainingPlanActive,
+  updateTrainingPlan,
   deleteTrainingPlan,
   toTrainingPlan,
 } = await import("./training-plans");
@@ -152,6 +153,25 @@ describe("setTrainingPlanActive", () => {
     };
     await setTrainingPlanActive("tp1", true);
     expect(payload).toEqual({ is_active: true });
+    expect(filters).toEqual([{ op: "eq", col: "id", val: "tp1" }]);
+  });
+});
+
+describe("updateTrainingPlan", () => {
+  it("patcht nur week_model + params, per id-Filter (E13)", async () => {
+    let payload: Record<string, unknown> | undefined;
+    let filters: unknown;
+    fakeClient.handlers.training_plans = (calls) => {
+      payload = calls.payload as Record<string, unknown>;
+      filters = calls.filters;
+      return { data: row(), error: null };
+    };
+    const weekModel = [
+      { week: "2026-KW40", phase: "Schwelle", start: "2026-09-28", end: "2026-10-04", trainingWeekdays: [2, 4], targetTss: 420 },
+    ];
+    const res = await updateTrainingPlan("tp1", { weekModel, params: { warnings: ["x"] } });
+    expect(res.ok).toBe(true);
+    expect(payload).toEqual({ week_model: weekModel, params: { warnings: ["x"] } });
     expect(filters).toEqual([{ op: "eq", col: "id", val: "tp1" }]);
   });
 });

@@ -6,7 +6,9 @@ respektiert ihn). **E9 umgesetzt** (alle vier Modelle wählbar). **E10 umgesetzt
 (Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche).
 **E11 umgesetzt** (Admin-Editor für `session_formats` in Settings). **E12
 umgesetzt** (Post-Test-Dialog: neue FTP → künftige `workout.watts` neu
-gerechnet). E13 offen.
+gerechnet). **E13 umgesetzt** (2026-09-04 — „Rest neu berechnen": Restwochen
+des aktiven Plans mit frischer Historie neu, Blockstruktur + Vergangenheit
+eingefroren, dieselbe `training_plans`-Zeile). **Fahrplan 8 vollständig.**
 **Zielablage:** `docs/fahrplan-8-plan-generator.md`
 **Herkunft:** Athlet 2 (`hc_diZee`) ist nach GFNY Bremen 2026 (30.08.) mit
 seinem Plan durch. Es gibt bisher **keinen** Weg, im Dashboard einen neuen
@@ -767,22 +769,61 @@ Schritt bei Alex (Verifikation ist opt-in).
 
 ### E13 — „Rest neu berechnen"
 
+**Stand:** umgesetzt (2026-09-04). Keine Migration, kein `is_active`-Flip —
+dieselbe `training_plans`-Zeile bleibt aktiv.
+
 **Ziel:** Restwochen des aktiven Plans mit aktueller Form/Erfüllung neu bauen,
-gleiche Rahmenbedingungen, Vergangenheit unberührt.
+gleiche Rahmenbedingungen, Vergangenheit + Blockstruktur unberührt.
 
-**Dateien:**
-- `app/src/core/plan-generator.js` — Option `regenerateFrom?: string` (ISO):
-  nur Wochen `>= regenerateFrom` neu erzeugen, Phasen-/Blockstruktur der
-  ursprünglichen `week_model` beibehalten, nur TSS/Workouts an die frische
-  `HistoryAggregate` anpassen.
-- `app/src/features/planning/` — Knopf „Rest neu berechnen" + Vorschau (nur die
-  betroffenen Wochen) + Warnung wie bei „neu erzeugen".
-- `useCreateTrainingPlan` (E6) wiederverwenden (ersetzt nur Zukunfts-Karten,
-  `training_plans`-Zeile bleibt dieselbe, `params`/`week_model` aktualisiert).
+**Umgesetzt:**
+- `app/src/core/plan-generator.js` — zwei neue optionale `PlanGeneratorInput`-
+  Felder: `regenerateFrom` (ISO-Montag) + `baseWeekModel` (eingefrorene
+  Blockstruktur des Ur-Plans). Sind beide gesetzt: `buildPhaseSequence()`
+  entfällt, die Phasen-/Erholungs-/Taper-Sequenz wird per
+  `sequenceFromWeekModel()` (`plan-generator-blocks.js`) aus dem `week_model`
+  rekonstruiert. Wochen `< cut` (erste Woche mit `start >= regenerateFrom`)
+  kommen 1:1 aus `baseWeekModel` (`cards: []`, der Schreibpfad fasst sie nicht
+  an); Wochen `>= cut` laufen durch die unveränderte Pipeline
+  (`computeWeekTargets` nur über den Schwanz, CTL-Anker = frische
+  `history.currentCtl`, Woche-0-TSS = frischer Ist-Schnitt) — `weekIndexInPhase`
+  weiter über den ganzen Plan gezählt (Ladder-Stufen laufen nahtlos weiter).
+  `ftpTestWeeks()` bekommt einen `fromIndex` (kein Testtag in einer
+  eingefrorenen Woche). Ohne die beiden Felder: früher `else`-Zweig, Ausgabe
+  byte-identisch zum bisherigen Verhalten (Regressionstest).
+- `app/src/api/supabase/training-plans.ts` — `updateTrainingPlan(id, { weekModel,
+  params })` (`id`/`is_active`/`start_date` bleiben; nur `week_model` +
+  `params` ziehen nach). `+ Adapter-Test`.
+- `app/src/features/planning/recompute-plan-view-model.ts` (+ `.test.ts`) —
+  reine `buildRecomputeInput()`: aus aktivem `TrainingPlan` + frischem
+  `HistoryAggregate` + heute → `PlanGeneratorInput` mit `regenerateFrom` =
+  Montag der laufenden KW, `baseWeekModel = plan.weekModel`. Aktuelle FTP aus
+  `athleteConfig()` (nicht der Erstell-Stand); Ziel-FTP des Ur-Plans bleibt.
+  `{ ok:false, reason }`, wenn kein `week_model` da ist oder alle Wochen vor
+  der laufenden KW liegen.
+- `app/src/features/planning/useRecomputeRemainingPlan.ts` (+ `.test.tsx`) —
+  Schreibpfad: `deleteFuturePlanCardsForPlan(planId, regenerateFrom)` →
+  `createPlanCards(profileId, planId, flattenPlanCards(generated))` (frozen
+  weeks tragen `cards: []` → nur der Schwanz wird geschrieben) →
+  `updateTrainingPlan(planId, { weekModel, params })` → Caches invalidieren.
+  Löschen vor Einfügen; nach dem Löschen keine echte Rücknahme (wie E6, Nutzer
+  hat im Dialog zugestimmt).
+- `app/src/features/planning/RecomputePlanDialog.tsx` — Overlay-Muster wie
+  `FtpRescaleDialog.tsx`; Warnbanner (betroffene Wochenzahl + ab-Datum) +
+  `PlanPreview` **nur der Tail-Wochen** (`{ ...generated, weeks: tailWeeks }`,
+  keine `PlanPreview`-Änderung).
+- `app/src/features/planning/PlanningPage.tsx` — Knopf „Rest neu berechnen…"
+  im `editable`-Block neben „Plan verschieben…", sichtbar nur bei aktivem
+  `week_model` (`useActiveWeekModel`).
 
-**Verifikation:** `npm test`; Test: Wochen vor `regenerateFrom` byte-gleich,
-danach an neue Historie angepasst; `training_plans.id` unverändert.
-Docker-Container-Check.
+**Verifikation:** `node -c` auf die beiden Core-Dateien; `npm test --
+--project core` (917 grün, +8 E13-Fälle) + `--project app` (828 grün, +2
+neue Test-Dateien); `npm run build` (tsc -b + vite) sauber; ESLint auf die
+geänderten Dateien sauber. Neue Core-Tests: Wochen vor `regenerateFrom`
+byte-gleich zum `baseWeekModel` (ohne Karten), Tail-Phasen unberührt aber
+Tail-TSS folgt der frischen Historie, CTL-Rampe hält ab der frischen
+`currentCtl`, Testtag nur im Tail, deterministisch, „kein regenerateFrom → 
+unverändert". Docker-Container-Check + `/code-review` bleiben als manueller
+Schritt bei Alex (Verifikation ist opt-in).
 
 **Abhängigkeiten:** E2, E4, E6. **Commit:** `feat: recompute remaining plan weeks`
 

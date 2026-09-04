@@ -394,3 +394,98 @@ test("weekModel spiegelt Wochen 1:1 (V4)", () => {
     assert.equal(plan.weekModel[i].start, plan.weeks[i].start);
   }
 });
+
+/* ── E13: „Rest neu berechnen" (regenerateFrom + baseWeekModel) ──────── */
+
+/** Ein Ur-Plan aus einem vollen Erst-Lauf → als eingefrorene Blockstruktur. */
+function baseModelFrom(over = {}) {
+  return generatePlan(eventInput(over)).weekModel;
+}
+
+test("E13: kein regenerateFrom → Ausgabe unverändert (Regression)", () => {
+  const withoutFields = generatePlan(eventInput());
+  // baseWeekModel allein (ohne regenerateFrom) darf nichts ändern.
+  const withBaseOnly = generatePlan(eventInput({ baseWeekModel: baseModelFrom() }));
+  assert.deepEqual(withBaseOnly, withoutFields);
+});
+
+test("E13: Wochen vor regenerateFrom sind byte-gleich zum baseWeekModel, ohne Karten", () => {
+  const base = baseModelFrom();
+  const regenerateFrom = base[4].start; // ab Woche 5 neu rechnen
+  const plan = generatePlan(eventInput({ baseWeekModel: base, regenerateFrom }));
+
+  assert.equal(plan.weeks.length, base.length);
+  for (let i = 0; i < 4; i++) {
+    assert.equal(plan.weeks[i].phase, base[i].phase);
+    assert.equal(plan.weeks[i].targetTss, base[i].targetTss);
+    assert.equal(plan.weeks[i].start, base[i].start);
+    assert.equal(plan.weeks[i].end, base[i].end);
+    assert.equal(plan.weeks[i].isoWeek, base[i].week);
+    assert.equal(plan.weeks[i].cards.length, 0, `Woche ${i + 1} sollte eingefroren sein`);
+    assert.equal(plan.weekModel[i].targetTss, base[i].targetTss);
+  }
+  // ab der Schnittwoche wieder echte Karten
+  assert.ok(plan.weeks[4].cards.length > 0);
+  assert.ok(plan.weeks.at(-1).cards.length > 0);
+});
+
+test("E13: Tail-Phasen bleiben, aber frische Historie ändert die Tail-TSS", () => {
+  const base = baseModelFrom();
+  const regenerateFrom = base[4].start;
+  const hi = generatePlan(
+    eventInput({
+      baseWeekModel: base,
+      regenerateFrom,
+      history: { ...eventInput().history, currentCtl: 75, weeklyActualTss: [520, 540, 560, 580] },
+    })
+  );
+  const lo = generatePlan(
+    eventInput({
+      baseWeekModel: base,
+      regenerateFrom,
+      history: { ...eventInput().history, currentCtl: 40, weeklyActualTss: [260, 270, 280, 290] },
+    })
+  );
+  // Phasen-Struktur im Schwanz unberührt
+  for (let i = 4; i < base.length; i++) {
+    assert.equal(hi.weeks[i].phase, base[i].phase);
+    assert.equal(lo.weeks[i].phase, base[i].phase);
+  }
+  // aber die Last unterscheidet sich mit der Form
+  assert.ok(hi.weeks[5].targetTss > lo.weeks[5].targetTss);
+  // eingefrorener Kopf identisch
+  for (let i = 0; i < 4; i++) assert.equal(hi.weeks[i].targetTss, lo.weeks[i].targetTss);
+});
+
+test("E13: CTL-Rampe im Schwanz hält die Hartgrenze ab der frischen currentCtl", () => {
+  const base = baseModelFrom();
+  const regenerateFrom = base[4].start;
+  const plan = generatePlan(
+    eventInput({ baseWeekModel: base, regenerateFrom, history: { ...eventInput().history, currentCtl: 55 } })
+  );
+  let ctl = 55;
+  for (let i = 4; i < plan.weeks.length; i++) {
+    const next = ctlAfterWeek(ctl, plan.weeks[i].targetTss, CTL_DAYS);
+    assert.ok(
+      next - ctl <= CONFLICT_THRESHOLDS.ctlRampWarn + 1e-6,
+      `Woche ${i + 1}: Rampe ${(next - ctl).toFixed(2)}`
+    );
+    ctl = next;
+  }
+});
+
+test("E13: FTP-Testtag nur im neu gerechneten Bereich", () => {
+  const base = baseModelFrom();
+  const regenerateFrom = base[6].start;
+  const plan = generatePlan(eventInput({ baseWeekModel: base, regenerateFrom }));
+  for (let i = 0; i < 6; i++) {
+    assert.ok(!plan.weeks[i].cards.some((c) => c.isTest), `Woche ${i + 1} trägt einen Testtag`);
+  }
+});
+
+test("E13: deterministisch (gleicher Input → gleicher Output)", () => {
+  const base = baseModelFrom();
+  const mk = () =>
+    generatePlan(eventInput({ baseWeekModel: base, regenerateFrom: base[3].start }));
+  assert.deepEqual(mk(), mk());
+});

@@ -18,7 +18,7 @@ import { addDaysISO, diffDays } from "../../core/format.js";
  * training-plans-Adapter braucht sie und darf nicht in features/ greifen).
  * Hier importiert (für die Typen unten) UND re-exportiert, damit die
  * Dialog-Bausteine sie weiter aus dem View-Model beziehen können. */
-import type { PlanMode, PlanFocus, PlanLevel, PlanModel } from "../../api/types";
+import type { PlanMode, PlanFocus, PlanLevel, PlanModel, WeekModelEntry } from "../../api/types";
 export type { PlanMode, PlanFocus, PlanLevel, PlanModel };
 
 /** Ober-/Untergrenze für die Planlänge — im `open`-Modus als Formularfeld,
@@ -83,6 +83,12 @@ export interface PlanGeneratorInput {
   level: PlanLevel;
   model: PlanModel;
   history?: unknown;
+  /** E13 „Rest neu berechnen": ISO-Montag, ab dem die Wochen neu gerechnet
+   *  werden. Zusammen mit `baseWeekModel` gesetzt — sonst läuft der normale
+   *  Erst-Erzeugungspfad. */
+  regenerateFrom?: string;
+  /** E13: eingefrorene Blockstruktur des Ur-Plans (`training_plans.week_model`). */
+  baseWeekModel?: WeekModelEntry[];
 }
 
 /* ── Formularzustand ────────────────────────────────────────────────── */

@@ -158,6 +158,26 @@ export async function setTrainingPlanActive(
   return { ok: true, plan: toTrainingPlan(data) };
 }
 
+/** Blockstruktur + Momentaufnahme einer bestehenden Plan-Zeile aktualisieren —
+ *  „Rest neu berechnen" (Fahrplan 8 E13): `id` / `is_active` / `start_date`
+ *  bleiben, nur `week_model` (frischer Schwanz) + `params` (frische Historie/
+ *  Warnungen) ziehen nach. Kein neuer Plan, kein `is_active`-Flip. */
+export async function updateTrainingPlan(
+  id: string,
+  patch: { weekModel: WeekModelEntry[]; params: Record<string, unknown> },
+): Promise<Result<{ plan: TrainingPlan }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("training_plans")
+    .update({ week_model: patch.weekModel, params: patch.params })
+    .eq("id", id)
+    .select(SELECT_COLS)
+    .single<TrainingPlanRow>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, plan: toTrainingPlan(data) };
+}
+
 /** Eine Plan-Zeile hart löschen — Rollback-Pfad, wenn „Plan übernehmen" nach
  *  dem Anlegen der (noch inaktiven) Zeile scheitert. `plan_cards.plan_id` ist
  *  `on delete set null`, verwaiste Karten bleiben also lesbar; der Aufrufer

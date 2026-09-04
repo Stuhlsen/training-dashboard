@@ -35,7 +35,7 @@ import { CONFLICT_THRESHOLDS } from "./plan-config.js";
 import { RECOVERY_MAX_SHARE } from "./periodization.js";
 import { TYPE_DEFAULT_TSS } from "../sports/cycling/session-types.js";
 import { estimateSessionTSS } from "./ftp-progress.js";
-import { buildPhaseSequence } from "./plan-generator-blocks.js";
+import { buildPhaseSequence, sequenceFromWeekModel } from "./plan-generator-blocks.js";
 import { selectWorkout } from "./plan-workout-select.js";
 
 /* ── Verträge V2–V4 als lokale JSDoc-Typen ───────────────────────
@@ -69,6 +69,8 @@ import { selectWorkout } from "./plan-workout-select.js";
  * @property {"pyramidal"|"polarized"|"block"|"linear"} model
  * @property {HistoryAggregate} [history]
  * @property {Array<object>} [formats]  session_formats-Zeilen (E3); leer → eingebaute Startbelegung
+ * @property {string} [regenerateFrom]  E13: ISO-Montag, ab dem die Wochen neu gerechnet werden
+ * @property {WeekModelEntry[]} [baseWeekModel]  E13: eingefrorene Blockstruktur des Ur-Plans
  */
 
 /**
@@ -408,11 +410,13 @@ function computeWeekTargets(a) {
  *  fehlender FTP, danach alle 7 Wochen, plus die letzte Woche.
  *  @param {number} totalWeeks @param {string} startDate @param {string|null} ftpMeasuredDate
  *  @returns {Set<number>} */
-function ftpTestWeeks(totalWeeks, startDate, ftpMeasuredDate) {
+function ftpTestWeeks(totalWeeks, startDate, ftpMeasuredDate, fromIndex = 0) {
   const set = new Set();
   if (!ftpMeasuredDate || diffDays(startDate, ftpMeasuredDate) > 42) set.add(0);
   for (let i = 7; i < totalWeeks; i += 7) set.add(i);
   set.add(totalWeeks - 1);
+  // E13: in der Restberechnung kein Testtag in einer eingefrorenen Woche.
+  if (fromIndex > 0) for (const i of [...set]) if (i < fromIndex) set.delete(i);
   return set;
 }
 
@@ -509,39 +513,60 @@ function buildWeekCards(c) {
 export function generatePlan(input) {
   const history = input.history || emptyHistory();
   const warnings = [];
-  const startDate = input.startDate;
 
-  // 1) Wochenanzahl -------------------------------------------------------
-  let totalWeeks =
-    input.mode === "event"
-      ? Math.ceil((diffDays(input.eventDate, startDate) + 1) / 7)
-      : Math.round(input.weeks || 0);
-  if (!Number.isFinite(totalWeeks) || totalWeeks < 3) {
-    warnings.push(`Plan zu kurz (${totalWeeks || 0} Wochen) — auf 3 Wochen angehoben.`);
-    totalWeeks = 3;
-  }
-  const taperWeeks =
-    input.mode === "event"
-      ? Math.min(Math.ceil(CONFLICT_THRESHOLDS.eventTaperDays / 7), totalWeeks - 1)
-      : 0;
-
-  // 2) Phasen je Woche --------------------------------------------------
-  // Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche
-  // zugunsten des schwächsten Systems (E10). Anderer Fokus hat schon einen
-  // bewussten Schwerpunkt → keine zusätzliche Verschiebung.
-  const weaknessPhase =
-    input.focus === "allgemein" && history.powerCurveWeakness
-      ? WEAKNESS_TO_PHASE[history.powerCurveWeakness] ?? null
+  // E13 „Rest neu berechnen": mit `regenerateFrom` + `baseWeekModel` bleibt die
+  // Blockstruktur des Ur-Plans eingefroren (keine Neu-Ableitung der Phasen);
+  // nur die Wochen ab `cut` werden mit frischer Historie neu gerechnet. Ohne
+  // beide Felder läuft der unveränderte Erst-Erzeugungspfad.
+  const base =
+    input.regenerateFrom && Array.isArray(input.baseWeekModel) && input.baseWeekModel.length
+      ? input.baseWeekModel
       : null;
-  const seq = buildPhaseSequence({
-    totalWeeks,
-    taperWeeks,
-    model: input.model,
-    level: input.level,
-    ageYears: history.ageYears,
-    weaknessPhase,
-  });
-  warnings.push(...seq.warnings);
+  const startDate = base ? base[0].start : input.startDate;
+
+  // 1) Wochenanzahl + 2) Phasen je Woche -------------------------------
+  let totalWeeks;
+  let taperWeeks;
+  let seq;
+  let cut = 0;
+  if (base) {
+    const recon = sequenceFromWeekModel(base);
+    totalWeeks = base.length;
+    taperWeeks = recon.taperWeeks;
+    seq = { phases: recon.phases, isRecovery: recon.isRecovery, warnings: [] };
+    cut = base.findIndex((w) => w.start >= input.regenerateFrom);
+    if (cut < 0) cut = totalWeeks; // ganzer Plan liegt vor der Startwoche
+  } else {
+    totalWeeks =
+      input.mode === "event"
+        ? Math.ceil((diffDays(input.eventDate, startDate) + 1) / 7)
+        : Math.round(input.weeks || 0);
+    if (!Number.isFinite(totalWeeks) || totalWeeks < 3) {
+      warnings.push(`Plan zu kurz (${totalWeeks || 0} Wochen) — auf 3 Wochen angehoben.`);
+      totalWeeks = 3;
+    }
+    taperWeeks =
+      input.mode === "event"
+        ? Math.min(Math.ceil(CONFLICT_THRESHOLDS.eventTaperDays / 7), totalWeeks - 1)
+        : 0;
+
+    // Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche
+    // zugunsten des schwächsten Systems (E10). Anderer Fokus hat schon einen
+    // bewussten Schwerpunkt → keine zusätzliche Verschiebung.
+    const weaknessPhase =
+      input.focus === "allgemein" && history.powerCurveWeakness
+        ? WEAKNESS_TO_PHASE[history.powerCurveWeakness] ?? null
+        : null;
+    seq = buildPhaseSequence({
+      totalWeeks,
+      taperWeeks,
+      model: input.model,
+      level: input.level,
+      ageYears: history.ageYears,
+      weaknessPhase,
+    });
+    warnings.push(...seq.warnings);
+  }
 
   // 3) Woche-0-TSS + Anpassung bei schwacher Planerfüllung -------------
   const recentTss = avg((history.weeklyActualTss || []).slice(-4));
@@ -560,30 +585,70 @@ export function generatePlan(input) {
   }
 
   // 4) Wochen-TSS-Rampe + PMC-Projektion ------------------------------
+  // In der Restberechnung rampt nur der Schwanz ab `cut` (CTL-Anker = frische
+  // currentCtl, Woche-0-TSS = frischer Ist-Schnitt); die eingefrorenen Wochen
+  // behalten ihr targetTss aus dem Ur-week_model.
   const startCtl = history.currentCtl != null ? history.currentCtl : week0Tss / 7;
-  const ramp = computeWeekTargets({
-    totalWeeks,
-    taperWeeks,
-    phases: seq.phases,
-    isRecovery: seq.isRecovery,
-    week0Tss,
-    startCtl,
-    rampTarget,
-    weeklyGrowth,
-    mode: input.mode,
-  });
-  warnings.push(...ramp.warnings);
+  /** @type {(i: number) => number} */
+  let targetTssAt;
+  if (base) {
+    const tailPhases = seq.phases.slice(cut);
+    const tailRamp = computeWeekTargets({
+      totalWeeks: tailPhases.length,
+      taperWeeks: Math.min(taperWeeks, tailPhases.length),
+      phases: tailPhases,
+      isRecovery: seq.isRecovery.slice(cut),
+      week0Tss,
+      startCtl,
+      rampTarget,
+      weeklyGrowth,
+      mode: input.mode,
+    });
+    warnings.push(...tailRamp.warnings.map((w) => `Restberechnung: ${w}`));
+    targetTssAt = (i) =>
+      i < cut ? Math.round(base[i].targetTss ?? 0) : tailRamp.targetTss[i - cut];
+  } else {
+    const ramp = computeWeekTargets({
+      totalWeeks,
+      taperWeeks,
+      phases: seq.phases,
+      isRecovery: seq.isRecovery,
+      week0Tss,
+      startCtl,
+      rampTarget,
+      weeklyGrowth,
+      mode: input.mode,
+    });
+    warnings.push(...ramp.warnings);
+    targetTssAt = (i) => ramp.targetTss[i];
+  }
 
   // 5)–7) Testwochen + Karten je Woche ------------------------------
   const ftp = input.currentFtp ?? null;
   const formats = input.formats || [];
-  const testWeeks = ftpTestWeeks(totalWeeks, startDate, input.ftpMeasuredDate);
+  const testWeeks = ftpTestWeeks(totalWeeks, startDate, input.ftpMeasuredDate, cut);
   const quality = qualityWeekdays(effectiveWeekdays);
   const weeks = seq.phases.map((phase, i) => {
     const weekStart = addDaysISO(startDate, i * 7);
     const isoWeek = isoWeekKey(weekStart);
+    const targetTss = targetTssAt(i);
+    // Eingefrorene Woche der Restberechnung: Struktur + Ziel-TSS aus dem
+    // Ur-week_model, keine Karten (der Schreibpfad E13 fasst sie nicht an).
+    if (base && i < cut) {
+      return {
+        index: i,
+        isoWeek,
+        start: weekStart,
+        end: addDaysISO(weekStart, 6),
+        phase,
+        targetTss,
+        isRecovery: seq.isRecovery[i],
+        cards: [],
+      };
+    }
     // 0-basierte Woche innerhalb der laufenden Phase (Erholungswochen zählen
-    // nicht mit) — treibt die Ladder-Stufe in selectWorkout().
+    // nicht mit) — treibt die Ladder-Stufe in selectWorkout(). Über den ganzen
+    // Plan gezählt, damit die Restberechnung die Ladder nahtlos fortsetzt.
     const weekIndexInPhase = seq.phases
       .slice(0, i)
       .filter((p, j) => p === phase && !seq.isRecovery[j]).length;
@@ -593,7 +658,7 @@ export function generatePlan(input) {
       start: weekStart,
       end: addDaysISO(weekStart, 6),
       phase,
-      targetTss: ramp.targetTss[i],
+      targetTss,
       isRecovery: seq.isRecovery[i],
       cards: buildWeekCards({
         weekStart,
@@ -603,7 +668,7 @@ export function generatePlan(input) {
         effectiveWeekdays,
         quality,
         weeklyHours: input.weeklyHours,
-        targetTss: ramp.targetTss[i],
+        targetTss,
         ftp,
         isTestWeek: testWeeks.has(i),
         weekIndexInPhase,
@@ -615,12 +680,15 @@ export function generatePlan(input) {
   });
 
   // 8) Wochenmodell (V4) --------------------------------------------
-  const weekModel = weeks.map((w) => ({
+  const weekModel = weeks.map((w, i) => ({
     week: w.isoWeek,
     phase: w.phase,
     start: w.start,
     end: w.end,
-    trainingWeekdays: effectiveWeekdays.slice(),
+    trainingWeekdays:
+      base && i < cut && Array.isArray(base[i].trainingWeekdays) && base[i].trainingWeekdays.length
+        ? base[i].trainingWeekdays.slice()
+        : effectiveWeekdays.slice(),
     targetTss: w.targetTss,
   }));
 
