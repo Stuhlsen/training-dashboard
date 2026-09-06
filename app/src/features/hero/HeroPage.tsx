@@ -170,7 +170,7 @@ export function HeroPage() {
   // wessen Seite gerade betrachtet wird. `draftLayout` hält den Entwurf
   // während des Bearbeitens lokal, bis "Fertig" gespeichert oder
   // "Abbrechen" verwirft.
-  const { layout: savedLayout, save: saveLayout } = useHeroLayout();
+  const { layout: savedLayout, save: saveLayout } = useHeroLayout(activeAthleteId);
   const [editMode, setEditMode] = useState(false);
   const [draftLayout, setDraftLayout] = useState<HeroTilePosition[] | null>(null);
 

@@ -95,9 +95,10 @@ export const qk = {
   /** Account-Löschantrag des eingeloggten Profils (Settings, Bereich
    *  "Datenschutz & Account"), Migration 0021. */
   accountDeletionRequest: (userId: string) => ["account-deletion-request", userId] as const,
-  /** Hero-Kachel-Anordnung (2D-Positionen) des eingeloggten Profils
-   *  (Migration 0030 + 0032). */
-  heroLayout: (profileId: string) => ["hero-layout", profileId] as const,
+  /** Hero-Kachel-Anordnung (2D-Positionen) des eingeloggten Profils, JE
+   *  angesehenem Athleten-Tab (athleteId = interne App-Kennung, "athlete1"
+   *  etc. — Migration 0030 + 0032 + 0033). */
+  heroLayout: (profileId: string, athleteId: string) => ["hero-layout", profileId, athleteId] as const,
   /** Zwei-Faktor-Faktoren (Supabase Auth MFA) des eingeloggten Users. */
   mfaFactors: (userId: string) => ["mfa-factors", userId] as const,
 } as const;

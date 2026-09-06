@@ -21,25 +21,25 @@ describe("getHeroLayout", () => {
       { i: "session", x: 1, y: 0 },
     ];
     fakeClient.handlers.hero_tile_order = () => ({ data: { layout }, error: null });
-    const result = await getHeroLayout("profile-1");
+    const result = await getHeroLayout("profile-1", "athlete1");
     expect(result).toEqual({ ok: true, layout });
   });
 
   it("keine Zeile -> layout null, kein Fehler", async () => {
     fakeClient.handlers.hero_tile_order = () => ({ data: null, error: null });
-    const result = await getHeroLayout("profile-1");
+    const result = await getHeroLayout("profile-1", "athlete1");
     expect(result).toEqual({ ok: true, layout: null });
   });
 
   it("leeres Array -> layout null (wie 'noch nie gespeichert')", async () => {
     fakeClient.handlers.hero_tile_order = () => ({ data: { layout: [] }, error: null });
-    const result = await getHeroLayout("profile-1");
+    const result = await getHeroLayout("profile-1", "athlete1");
     expect(result).toEqual({ ok: true, layout: null });
   });
 });
 
 describe("setHeroLayout", () => {
-  it("upsertet über profile_id als Konfliktschlüssel", async () => {
+  it("upsertet über (profile_id, athlete_id) als Konfliktschlüssel", async () => {
     let seen: Record<string, unknown> = {};
     let opts: Record<string, unknown> | undefined;
     fakeClient.handlers.hero_tile_order = (calls) => {
@@ -48,9 +48,9 @@ describe("setHeroLayout", () => {
       return { data: null, error: null };
     };
     const layout = [{ i: "records", x: 0, y: 1 }];
-    const result = await setHeroLayout("profile-1", layout);
+    const result = await setHeroLayout("profile-1", "athlete1", layout);
     expect(result).toEqual({ ok: true });
-    expect(seen).toEqual({ profile_id: "profile-1", layout });
-    expect(opts).toEqual({ onConflict: "profile_id" });
+    expect(seen).toEqual({ profile_id: "profile-1", athlete_id: "athlete1", layout });
+    expect(opts).toEqual({ onConflict: "profile_id,athlete_id" });
   });
 });
