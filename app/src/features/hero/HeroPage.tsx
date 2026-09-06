@@ -287,7 +287,20 @@ export function HeroPage() {
           flexDirection: "column",
           gap: 34,
           transformStyle: "preserve-3d",
-          transform: `rotateX(${BASE_ROTATE_X}deg)`,
+          // Während des Kachel-Anordnens flach schalten (kein rotateX): die
+          // permanente 3D-Kippung der Plate + react-grid-layouts eigene
+          // Positions-Transforms je Kachel verschachteln sich zu einem
+          // 3D-Compositing-Kontext, in dem Chromiums Klick-Treffertest
+          // (elementFromPoint / echte Maus-Events) nachweislich das falsche
+          // Element trifft, je weiter eine Kachel von der Kippachse entfernt
+          // liegt — dadurch ließen sich Kacheln unterhalb der Leistungsskala
+          // gar nicht greifen (Rückfrage Alex, 06.09.2026, per Playwright
+          // live diagnostiziert: `.hero-tile-grip` lag laut vollständigem
+          // Paint-Stack (elementsFromPoint) zuoberst, ein echter Maus-Klick
+          // an derselben Stelle landete trotzdem auf `.react-grid-layout`
+          // dahinter). Sobald editMode endet, kippt die Plate wieder normal.
+          transform: editMode ? "none" : `rotateX(${BASE_ROTATE_X}deg)`,
+          transition: "transform .2s ease",
         }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap", transform: "translateZ(70px)" }}>

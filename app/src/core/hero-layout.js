@@ -42,9 +42,47 @@ function rowsFor(px) {
 /** Große Kacheln spannen 4 von 12 Spalten (3 pro Zeile). */
 const BIG = 4;
 
+/** Mindest-Containerbreite, ab der HeroTileGrid.tsx außerhalb des Edit-
+ *  Modus dieselben echten 2D-Rasterpositionen zeigt wie im Edit-Modus
+ *  (nicht-interaktiv, ohne Zieh-Griffe) statt des schmaleren responsiven
+ *  Fließ-Grids.
+ *
+ *  Der eigentliche Grund ist NICHT Lesbarkeit (eine BIG-Kachel wäre schon ab
+ *  ~1060px breit genug), sondern Sicherheit gegen echtes Überlaufen: HERO_
+ *  TILE_SIZE gibt jeder Kachel eine FESTE Pixelhöhe, ihr echter Inhalt aber
+ *  wird bei schmalerem Container automatisch breiter umgebrochen (mehr
+ *  Zeilen) und damit höher — bei rein rechnerisch "ausreichend breiten"
+ *  ~1080px liefen mehrere Kacheln beim Live-Test (Playwright, 06.09.2026)
+ *  bereits deutlich über ihren zugewiesenen Rahmen hinaus (Bestleistungen
+ *  −307px, Belastungsempfehlung −115px, FTP-Fortschritt −42px — sichtbar
+ *  dank `overflow:visible`, aber eine echte Überlappung mit der Kachel
+ *  darunter, nicht nur Kosmetik). Bei 1700px lag der knappste gemessene
+ *  Puffer nur noch bei 8px (Trainingskonsistenz/FTP-Fortschritt) — 1800
+ *  lässt zusätzlichen Spielraum für andere Athleten/Tage mit etwas längeren
+ *  Texten. Das Fließ-Grid darunter bleibt der sichere Fallback, weil CSS
+ *  dort die Zeilenhöhe automatisch an den echten Inhalt anpasst statt eine
+ *  feste Pixelzahl vorzugeben. Bei künftigen Layoutänderungen hier zuerst
+ *  mit echten Playwright-Messungen (nicht nur bei einer Fensterbreite)
+ *  gegenprüfen, nicht schätzen — s. auch den Kommentar bei HERO_TILE_SIZE. */
+export const HERO_GRID_MIN_WIDTH = 1800;
+
 export const HERO_TILE_SIZE = {
-  session: { w: BIG, h: rowsFor(170) },
-  weather: { w: BIG, h: rowsFor(180) },
+  // session/weather/readiness am 06.09.2026 gegen echte, per Playwright
+  // gemessene Inhaltshöhen nachjustiert (Rückfrage Alex — die gestrichelten
+  // Rahmen im Edit-Modus passten sichtbar nicht zum Inhalt): session/weather
+  // waren um 1-2 volle Zeilen-Einheiten zu groß (verschenkter Platz),
+  // readiness umgekehrt zu KLEIN (Inhalt lief unbemerkt über den zugewiesenen
+  // Rahmen hinaus, s. `overflow: visible` in HeroTileGrid.tsx — kein Absturz,
+  // aber ein zu knapper Rahmen). Die übrigen Werte unten sind trotz sichtbar
+  // wirkendem Leerraum NICHT reduzierbar, ohne echten Inhalt zu riskieren —
+  // die Rasterzeile quantisiert in 20px-Schritten (HERO_ROW_HEIGHT +
+  // HERO_ROW_MARGIN), ihr gemessener Inhalt liegt bereits so nah am
+  // nächstkleineren Vielfachen, dass eine weitere Stufe nach unten den realen
+  // Inhalt abschneiden würde (z. B. weekReview: 181px Inhalt, 190px Rahmen —
+  // die nächstkleinere Stufe wäre 170px, zu knapp). Bei neuer Content-Menge
+  // hier zuerst mit echten Playwright-Messungen gegenprüfen, nicht schätzen.
+  session: { w: BIG, h: rowsFor(125) },
+  weather: { w: BIG, h: rowsFor(170) },
   briefing: { w: BIG, h: rowsFor(330) },
   ftpRings: { w: BIG, h: rowsFor(420) },
   powerScale: { w: HERO_GRID_COLS, h: rowsFor(172) },
@@ -53,7 +91,7 @@ export const HERO_TILE_SIZE = {
   raceResults: { w: BIG, h: rowsFor(150) },
   weekReview: { w: BIG, h: rowsFor(190) },
   wellbeing: { w: BIG, h: rowsFor(90) },
-  readiness: { w: BIG, h: rowsFor(330) },
+  readiness: { w: BIG, h: rowsFor(380) },
   // Kennzahlen (Etappe "Kennzahlen einzeln verschiebbar", Rückfrage
   // 2026-09-04) — seit hero-view-model.ts::buildHeroMetrics()s `key`-Feld
   // ist jede Kennzahl ihre eigene, kleine Kachel (2 von 12 Spalten, 6 pro
