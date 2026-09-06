@@ -314,3 +314,29 @@ export interface ProposalInput {
   source: ProposalSource;
   groupId?: string | null;
 }
+
+/* ── KI-Coach-Loop (Fahrplan 9) ─────────────────────────────────────
+   Verlauf des "Claude als Trainer"-Copy-Paste-Loops. `coach_exchanges`
+   (Migration 0034) hält je abgeschlossener Runde eine unveränderliche
+   Zeile; der Adapter api/supabase/coach-exchanges.ts mappt die
+   snake_case-Zeile hierher. Der `outcome` wird NICHT gespeichert, sondern
+   beim Laden aus den verknüpften proposals abgeleitet (Hook/View-Model,
+   Etappe B).
+   ──────────────────────────────────────────────────────────────── */
+
+export type CoachExchangePreset = "general" | "event" | "check" | "reduce" | "build";
+
+/** Abgeleitet aus den verknüpften proposals beim Laden, nicht gespeichert. */
+export type CoachExchangeOutcome = "pending" | "accepted" | "rejected" | "mixed" | "empty";
+
+export interface CoachExchange {
+  id: string;
+  athleteId: string;
+  createdBy: string;
+  preset: CoachExchangePreset;
+  rawResponse: string;
+  proposalGroupId: string | null;
+  createdAt: string;
+  /** Nur im Hook/View-Model gefüllt (Join auf proposals), nicht im Adapter-Row-Mapping. */
+  outcome?: CoachExchangeOutcome;
+}

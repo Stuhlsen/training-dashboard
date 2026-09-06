@@ -131,6 +131,7 @@ if (!HAS_CREDS) {
   let originalSyncConfig; // undefined = noch nicht geprüft, null = existierte nicht (athlete_sync_config, 0023)
   let planTableReady = false; // training_plans (0028) lesbar? (Migration eingespielt)
   let planActiveAlready = false; // Athlet 1 hat bereits eine echte aktive training_plans-Zeile
+  let cxTableReady = false; // coach_exchanges (0034) lesbar? (Migration eingespielt)
 
   /** Aufräum-Funktionen, LIFO im after()-Hook ausgeführt. Jede fängt ihre
    *  eigenen Fehler NICHT selbst — after() sammelt sie, damit ein einzelner
@@ -186,6 +187,16 @@ if (!HAS_CREDS) {
     );
     planTableReady = planProbe.ok;
     planActiveAlready = planTableReady && (planProbe.data ?? []).some((r) => r.is_active);
+
+    // coach_exchanges (0034): Tabelle lesbar? (Migration eingespielt) —
+    // steuert unten den Skip des gesamten Blocks, solange 0034 nach einem
+    // frischen Merge noch nicht in dashboard-dev ist.
+    const cxProbe = await rest(
+      "GET",
+      `coach_exchanges?athlete_id=eq.${athlete.userId}&select=id&limit=1`,
+      { token: athlete.token }
+    );
+    cxTableReady = cxProbe.ok;
   });
 
   after(async () => {
@@ -1129,5 +1140,165 @@ if (!HAS_CREDS) {
       assert.equal("plan_id" in row, true, "plan_cards-Zeile führt die neue Spalte plan_id nicht");
       assert.equal(row.plan_id, null, "Bestandskarte sollte plan_id = null tragen");
     }
+  });
+
+  // --- 11. coach_exchanges (0034, Fahrplan 9 Etappe A) ------------------
+  // Verifikation der neuen Migration 0034_coach_exchanges.sql. Sichtbarkeit
+  // wie proposals/ftp_history (Athlet + Trainer lesen, is_coach_of), aber
+  // bewusst KEIN öffentlicher Lesepfad (anders als proposals/0010 — die rohe
+  // Claude-Antwort bleibt privat) und KEINE update-Policy. Anlegen darf nur
+  // der Athlet für sich selbst (created_by = athlete_id = auth.uid()).
+  // Kollisionsfreier Schlüssel: die id aus der Insert-Antwort, im Cleanup
+  // per id gelöscht (kein Sentinel-Feld wie bei ftp_history nötig).
+
+  const CX_PRESET = "general";
+  const cxSkip = () =>
+    !cxTableReady ? "coach_exchanges nicht lesbar — Migration 0034 vermutlich noch nicht eingespielt" : false;
+
+  async function insertCoachExchangeRow(over = {}) {
+    const insert = await rest("POST", "coach_exchanges", {
+      token: athlete.token,
+      body: {
+        athlete_id: athlete.userId,
+        created_by: athlete.userId,
+        preset: CX_PRESET,
+        raw_response: "rls-test — Text + JSON-Block",
+        proposal_group_id: null,
+        ...over,
+      },
+    });
+    assert.equal(insert.ok, true, `coach_exchanges-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    const id = insert.data[0].id;
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `coach_exchanges?id=eq.${id}`, { token: athlete.token });
+      // Athlet hat die Zeile im Test evtl. schon selbst gelöscht -> 0 Treffer
+      // ist hier ok, nur ein harter Fehler zählt als Rest.
+      if (!del.ok) throw new Error(`coach_exchanges-Testzeile ${id} nicht gelöscht: ${JSON.stringify(del.data)}`);
+    });
+    return id;
+  }
+
+  test("coach_exchanges: Athlet legt eigene Zeile an und liest sie, anon sieht nichts (kein GRANT)", async (t) => {
+    if (cxSkip()) return t.skip(cxSkip());
+    const id = await insertCoachExchangeRow();
+
+    const ownRead = await rest("GET", `coach_exchanges?id=eq.${id}`, { token: athlete.token });
+    assert.equal(ownRead.ok, true);
+    assert.equal(ownRead.data.length, 1, "Athlet liest die eigene coach_exchanges-Zeile nicht");
+
+    const anonRead = await rest("GET", `coach_exchanges?id=eq.${id}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf coach_exchanges nicht lesen (kein GRANT)");
+  });
+
+  test("coach_exchanges: Athlet kann keine Zeile für eine fremde athlete_id anlegen (WITH CHECK)", async (t) => {
+    if (cxSkip()) return t.skip(cxSkip());
+    // Die INSERT-Policy hat KEINEN is_coach_of()-OR-Zweig (anders als
+    // proposals) — trainer.userId als fremde athlete_id ist deshalb ein
+    // sauberer WITH-CHECK-Fehlschlag (athlete_id = auth.uid() falsch); den
+    // proposals-Trap ("athlete_id = auth.uid()"-ODER greift trivial) gibt es
+    // hier nicht. INSERT wirft bei verletzter WITH-CHECK-Policy einen echten
+    // 42501 -> .ok ist verlässlich.
+    const insert = await rest("POST", "coach_exchanges", {
+      token: athlete.token,
+      body: {
+        athlete_id: trainer.userId,
+        created_by: athlete.userId,
+        preset: CX_PRESET,
+        raw_response: "rls-test fremd",
+        proposal_group_id: null,
+      },
+    });
+    assert.equal(insert.ok, false, "Insert für fremde athlete_id hätte an der WITH-CHECK-Policy scheitern müssen");
+    if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
+      const strayId = insert.data[0].id;
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `coach_exchanges?id=eq.${strayId}`, { token: athlete.token });
+      });
+    }
+  });
+
+  test("coach_exchanges: unbekannter preset-Wert scheitert am Check-Constraint", async (t) => {
+    if (cxSkip()) return t.skip(cxSkip());
+    const bad = await rest("POST", "coach_exchanges", {
+      token: athlete.token,
+      body: {
+        athlete_id: athlete.userId,
+        created_by: athlete.userId,
+        preset: "sonstwas",
+        raw_response: "rls-test",
+        proposal_group_id: null,
+      },
+    });
+    assert.equal(bad.ok, false, "preset='sonstwas' hätte am Check-Constraint scheitern müssen");
+  });
+
+  test("coach_exchanges: Trainer liest die Zeile seines Athleten, kann aber keine anlegen", async (t) => {
+    if (cxSkip()) return t.skip(cxSkip());
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const id = await insertCoachExchangeRow({ raw_response: "rls-test trainer-read" });
+
+    const trainerRead = await rest("GET", `coach_exchanges?id=eq.${id}`, { token: trainer.token });
+    assert.equal(trainerRead.ok, true);
+    assert.equal(
+      trainerRead.data.length,
+      1,
+      "Trainer sollte die coach_exchanges-Zeile seines Athleten lesen können (is_coach_of)"
+    );
+
+    // Trainer legt für seinen Athleten an -> WITH CHECK verlangt
+    // athlete_id = auth.uid() UND created_by = auth.uid(), beim Trainer
+    // nicht erfüllbar (es gibt bewusst keine Insert-Policy für ihn).
+    const trainerInsert = await rest("POST", "coach_exchanges", {
+      token: trainer.token,
+      body: {
+        athlete_id: athlete.userId,
+        created_by: trainer.userId,
+        preset: CX_PRESET,
+        raw_response: "rls-test trainer-insert",
+        proposal_group_id: null,
+      },
+    });
+    assert.equal(
+      trainerInsert.ok,
+      false,
+      "Trainer konnte eine coach_exchanges-Zeile anlegen — es gibt bewusst keine Insert-Policy dafür"
+    );
+    if (trainerInsert.ok && Array.isArray(trainerInsert.data) && trainerInsert.data[0]?.id) {
+      const strayId = trainerInsert.data[0].id;
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `coach_exchanges?id=eq.${strayId}`, { token: athlete.token });
+      });
+    }
+  });
+
+  test("coach_exchanges: Trainer kann die Zeile seines Athleten NICHT löschen, der Athlet schon", async (t) => {
+    if (cxSkip()) return t.skip(cxSkip());
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const id = await insertCoachExchangeRow({ raw_response: "rls-test delete" });
+
+    // Trainer-DELETE: RLS blendet die nicht "besessene" Zeile aus der
+    // Trefferliste aus -> HTTP 200 mit data: [], KEIN Fehlerstatus (s.
+    // Kopfkommentar der Datei). Deshalb data.length prüfen, nicht .ok.
+    const trainerDel = await rest("DELETE", `coach_exchanges?id=eq.${id}`, { token: trainer.token });
+    assert.equal(
+      trainerDel.data?.length ?? 0,
+      0,
+      "Trainer konnte die coach_exchanges-Zeile seines Athleten löschen — Delete-Policy (athlete_id = auth.uid()) greift nicht"
+    );
+
+    // Zeile ist noch da.
+    const stillThere = await rest("GET", `coach_exchanges?id=eq.${id}`, { token: athlete.token });
+    assert.equal(stillThere.data.length, 1, "coach_exchanges-Zeile wurde vom Trainer-DELETE tatsächlich entfernt");
+
+    // Athlet löscht die eigene Zeile -> genau 1 Treffer.
+    const athleteDel = await rest("DELETE", `coach_exchanges?id=eq.${id}`, { token: athlete.token });
+    assert.equal(athleteDel.ok, true);
+    assert.equal(athleteDel.data.length, 1, "Athlet konnte die eigene coach_exchanges-Zeile nicht löschen");
+  });
+
+  test("coach_exchanges: anon darf gar nicht lesen (kein GRANT)", async (t) => {
+    if (cxSkip()) return t.skip(cxSkip());
+    const anonRead = await rest("GET", "coach_exchanges?select=id&limit=1", { token: null });
+    assert.equal(anonRead.ok, false, "anon darf coach_exchanges nicht lesen (kein GRANT)");
   });
 }
