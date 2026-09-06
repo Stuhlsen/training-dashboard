@@ -90,6 +90,14 @@ export function HeroPage() {
     setWhatIfFtp(athleteCfg?.ftpGoal ?? 210);
   }
 
+  // Subjektiver Morgen-Check-in: nur der EIGENE des eingeloggten Athleten
+  // (hängt an auth.uid(), nicht am Athleten-Toggle — s. isSelf oben). Eine
+  // Quelle für beide Verbraucher: buildHeroCore() (Governor-Verrechnung im
+  // Briefing) und die Tagesform-Karte als reine Kontextzeile (Idee 5 R2,
+  // ohne Farbwirkung). `checkin?.subjective` ist eine stabile Referenz aus
+  // dem react-query-Cache, taugt daher als useMemo-Dependency.
+  const readinessSubjective = isSelf ? (checkin?.subjective ?? null) : null;
+
   // buildHeroCore() durchläuft die gesamte Fahrten-/Wellness-Historie
   // (Briefing/Readiness/LoadGuard/eFTP) — memoisiert, damit ein What-if-
   // Slider-Tick (whatIfFtp ändert sich, sonst nichts) das nicht jedes Mal
@@ -108,7 +116,7 @@ export function HeroPage() {
       wellness,
       forecast,
       planCards: planCards ?? [],
-      subjective: isSelf ? (checkin?.subjective ?? null) : null,
+      subjective: readinessSubjective,
       todayISO: TODAY,
       // Eingeloggter Athlet: seine eigene ftp_history (hängt an auth.uid(),
       // nicht am Toggle). Besucher / anderer Athlet: die serverseitig
@@ -118,7 +126,7 @@ export function HeroPage() {
       // bzw. Hook-Konstante), kein Neu-Array pro Render.
       ftpHistoryEntries: isSelf ? ftpHistoryEntries : (athleteData?.ftpHistory ?? []),
     });
-  }, [activeAthleteId, athleteData, planCards, isSelf, checkin, ftpHistoryEntries]);
+  }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
 
@@ -237,7 +245,10 @@ export function HeroPage() {
   if (raceResults.length > 0) tiles.push({ id: "raceResults", node: <RaceResultsCard rows={raceResults} /> });
   tiles.push({ id: "weekReview", node: <WeekReviewCard review={weekReview} /> });
   tiles.push({ id: "wellbeing", node: <WellbeingCard activeAthleteId={activeAthleteId} /> });
-  tiles.push({ id: "readiness", node: <ReadinessCard readiness={vm.readiness} briefing={vm.briefing} /> });
+  tiles.push({
+    id: "readiness",
+    node: <ReadinessCard readiness={vm.readiness} briefing={vm.briefing} subjective={readinessSubjective} />,
+  });
 
   const availableTileIds = tiles.map((t) => t.id);
   const effectiveLayout = resolveTileLayout(draftLayout ?? savedLayout, availableTileIds);

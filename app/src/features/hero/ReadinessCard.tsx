@@ -1,12 +1,18 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GlassCard } from "../../components/GlassCard";
 import { LEVEL_COLOR } from "./BriefingCard";
 import type { HeroBriefing } from "./hero-view-model";
 import { LEVEL_LABEL, SLEEP_SCORE_DEVICE_NOTE } from "../../core/readiness.js";
-import type { assessReadiness } from "../../core/readiness.js";
+import type { assessReadiness, getSubjectiveReadiness } from "../../core/readiness.js";
+import { subjectiveSignal } from "../../core/briefing.js";
 
 type Readiness = NonNullable<ReturnType<typeof assessReadiness>>;
 type Metric = Readiness["metrics"][number];
+type Subjective = ReturnType<typeof getSubjectiveReadiness> | null;
+/** Fertig abgeleitetes Befinden-Signal ({status, text}) oder `null`, wenn
+ *  kein Check-in vorliegt (core/briefing.js::subjectiveSignal). */
+type SubjSignal = ReturnType<typeof subjectiveSignal>;
 
 const STATUS_COLOR: Record<Metric["status"], string> = {
   ok: "var(--ok)",
@@ -24,6 +30,51 @@ const CONFIDENCE_BADGE: Record<Metric["confidence"], string> = {
 function metricTitle(m: Metric): string {
   const days = m.daysSinceLastValue != null ? ` (${m.daysSinceLastValue}d)` : "";
   return `z = ${m.z != null ? m.z : "–"} · Konfidenz: ${m.confidence}${days}`;
+}
+
+/** "über"/"unter" Baseline für einen abweichenden Marker: bei `restingHR`
+ *  (higherIsBetter=false) ist ein zu HOHER Wert schlecht, bei HRV/Schlaf ein
+ *  zu niedriger — `higherIsBetter` ist genau dafür Teil des öffentlichen
+ *  Metrik-Typs. */
+function dirWord(m: Metric): string {
+  return m.higherIsBetter ? "unter" : "über";
+}
+
+/** R5 (Idee 5): Klartext-Aufriss, warum die Ampel heute so steht. Reine
+ *  ABLESUNG des stabilen `assessReadiness()`-Outputs — listet die
+ *  abweichenden Marker (`metrics[].status`) und nennt die Entscheidungsregel
+ *  als feststehenden Satz. Bewusst KEINE Nachbildung der if/else-Kette aus
+ *  core/readiness.js::assessReadiness: der Regelsatz ist so formuliert, dass
+ *  er für 2-von-N, den schweren Einzelausreißer (severeSingle) und die milde
+ *  Einzelabweichung (mildSingle) zugleich stimmt, ohne den konkreten Fall
+ *  hier zu rekonstruieren. Der genaue Handlungstext steht ohnehin schon in
+ *  `readiness.recommendation` direkt unter der Ampel. */
+function whyLines(r: Readiness): string[] {
+  const usable = r.metrics.filter((m) => m.confidence === "vorhanden");
+  const off = usable.filter((m) => m.status === "caution" || m.status === "alert");
+  const staleLabels = [...new Set(r.metrics.filter((m) => m.confidence === "veraltet").map((m) => m.label))];
+  const lines: string[] = [];
+
+  if (off.length) {
+    const parts = off.map((m) => `${m.label} ${m.status === "alert" ? "deutlich" : "leicht"} ${dirWord(m)} Baseline`);
+    lines.push(`Abweichend: ${parts.join(", ")}.`);
+  } else if (usable.length) {
+    lines.push("Alle vorhandenen Marker liegen im Normalbereich.");
+  }
+
+  lines.push(
+    "Einzelne leichte Abweichungen ändern die Ampelfarbe nicht — sie wechselt erst, wenn mindestens zwei Marker zusammen abweichen oder ein Marker sehr deutlich ausschlägt.",
+  );
+
+  if (!usable.length) {
+    lines.push("Aktuell fehlen verwertbare Marker — dann steht die Ampel vorsorglich auf Gelb.");
+  } else if (staleLabels.length) {
+    lines.push(
+      `Für ${staleLabels.join(", ")} fehlen aktuelle Werte; solange das so ist, kann die Ampel vorsorglich auf Gelb stehen.`,
+    );
+  }
+
+  return lines;
 }
 
 function BriefingLink({ briefing }: { briefing: HeroBriefing }) {
@@ -48,13 +99,71 @@ function BriefingLink({ briefing }: { briefing: HeroBriefing }) {
   );
 }
 
+/** Aufklappbarer "Warum?"-Aufriss (R5). Grundzustand zu, Zustand nur lokal
+ *  (kein localStorage — ein Ein-Klick-Aufriss). Immer sichtbar, auch bei
+ *  sauberem Grün: nachsehen können, DASS geprüft wurde, trägt zum Vertrauen
+ *  ins Signal bei (der Zweck von Idee 5). */
+function WhyBreakdown({ readiness, subjSignal }: { readiness: Readiness; subjSignal: SubjSignal }) {
+  const [open, setOpen] = useState(false);
+  const lines = whyLines(readiness);
+  // Kontext-Satz nur, wenn tatsächlich ein Check-in vorliegt (status
+  // "nodata" = noch keiner) — sonst gibt es nichts einzuordnen.
+  const showSubjectiveNote = !!subjSignal && subjSignal.status !== "nodata";
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          cursor: "pointer",
+          font: "inherit",
+          fontSize: ".72rem",
+          color: "var(--ink-2)",
+        }}
+      >
+        Warum? {open ? "▾" : "▸"}
+      </button>
+      {open && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 8 }}>
+          {lines.map((l, i) => (
+            <p key={i} style={{ margin: 0, fontSize: ".72rem", color: "var(--ink-3)", lineHeight: 1.5 }}>
+              {l}
+            </p>
+          ))}
+          {showSubjectiveNote && (
+            <p style={{ margin: 0, fontSize: ".72rem", color: "var(--ink-3)", lineHeight: 1.5 }}>
+              Dein heutiger Check-in fließt als Kontext ein und verschiebt die Ampelfarbe nicht.
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Port von `ui/panels.js::renderReadiness()` — Tagesform als eigenständige
  *  Detailkarte NEBEN der Belastungsempfehlung (BriefingCard): beide
  *  verrechnen dasselbe `assessReadiness()`-Rohsignal unterschiedlich weit
  *  (s. hero-view-model.ts::HeroCore.readiness-Kommentar), können also
  *  divergieren — genau deshalb zeigt Vanilla beide Panels nebeneinander
  *  statt nur eines. */
-export function ReadinessCard({ readiness, briefing }: { readiness: Readiness | null; briefing: HeroBriefing }) {
+export function ReadinessCard({
+  readiness,
+  briefing,
+  subjective,
+}: {
+  readiness: Readiness | null;
+  briefing: HeroBriefing;
+  /** Subjektiver Morgen-Check-in des eingeloggten Athleten (R2) — `null` für
+   *  Besucher / einen per Toggle betrachteten fremden Athleten (HeroPage
+   *  gated auf `isSelf`). Kontext-Anzeige, keine Farbwirkung. */
+  subjective: Subjective;
+}) {
   if (!readiness) {
     return (
       <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
@@ -70,6 +179,9 @@ export function ReadinessCard({ readiness, briefing }: { readiness: Readiness | 
   }
 
   const color = LEVEL_COLOR[readiness.level];
+  // Ein Ort für beide Verwender (R2-Kontextzeile + "Warum?"-Zusatzsatz) —
+  // `null` sobald kein Check-in vorliegt (Besucher/fremder Athlet).
+  const subjSignal = subjective ? subjectiveSignal(subjective) : null;
 
   return (
     <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
@@ -88,6 +200,22 @@ export function ReadinessCard({ readiness, briefing }: { readiness: Readiness | 
         </div>
       </div>
 
+      {/* R2: reine Kontextzeile — gleicher Wortlaut wie das Briefing-Signal
+          (core/briefing.js::subjectiveSignal), neutral grau, ohne Farbwirkung. */}
+      {subjSignal && (
+        <div
+          style={{
+            marginTop: 12,
+            paddingTop: 12,
+            borderTop: "1px solid var(--hair)",
+            fontSize: ".8rem",
+            color: "var(--ink-3)",
+          }}
+        >
+          {subjSignal.text}
+        </div>
+      )}
+
       <div style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 14 }}>
         {readiness.metrics.map((m) => (
           <div
@@ -105,6 +233,8 @@ export function ReadinessCard({ readiness, briefing }: { readiness: Readiness | 
           </div>
         ))}
       </div>
+
+      <WhyBreakdown readiness={readiness} subjSignal={subjSignal} />
 
       {readiness.metrics.some((m) => m.key === "sleepScore" && m.recent != null) && (
         <p style={{ margin: "10px 0 0", fontSize: ".72rem", color: "var(--ink-3)" }}>{SLEEP_SCORE_DEVICE_NOTE}</p>
