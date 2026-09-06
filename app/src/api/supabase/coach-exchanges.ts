@@ -29,8 +29,13 @@ function toCoachExchange(row: CoachExchangeRow): CoachExchange {
   };
 }
 
-/** Verlauf der KI-Coach-Runden eines Athleten, neueste zuerst (Migration
- *  0034). RLS lässt nur den Athleten selbst und dessen Trainer durch. */
+/** Verlauf der KI-Coach-Runden eines Athleten, neueste zuerst, letzte 20
+ *  (Migration 0034). RLS lässt nur den Athleten selbst und dessen Trainer
+ *  durch. Der Verlauf wächst unbegrenzt (eine Zeile je Coach-Runde) — das
+ *  Limit an der Quelle hält ihn dauerhaft klein; die Panel-Ansicht zeigt
+ *  ohnehin nur die jüngsten (Fahrplan 9 Q10). */
+const HISTORY_LIMIT = 20;
+
 export async function listCoachExchanges(
   athleteId: string,
 ): Promise<Result<{ exchanges: CoachExchange[] }>> {
@@ -41,6 +46,7 @@ export async function listCoachExchanges(
     .select(SELECT_COLS)
     .eq("athlete_id", athleteId)
     .order("created_at", { ascending: false })
+    .limit(HISTORY_LIMIT)
     .returns<CoachExchangeRow[]>();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true, exchanges: data.map(toCoachExchange) };

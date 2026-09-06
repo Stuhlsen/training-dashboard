@@ -28,6 +28,10 @@ export const qk = {
   activeTrainingPlan: (athleteId: string) => ["active-training-plan", athleteId] as const,
   events: (athleteId: string) => ["events", athleteId] as const,
   proposals: (athleteId: string) => ["proposals", athleteId] as const,
+  /** Verlauf der KI-Coach-Runden eines Athleten (Tabelle coach_exchanges,
+   *  Migration 0034, Fahrplan 9). Athletenscharf wie proposals — der Ausgang
+   *  jeder Zeile wird beim Laden aus qk.proposals(athleteId) gejoint. */
+  coachExchanges: (athleteId: string) => ["coach-exchanges", athleteId] as const,
 
   /** Check-in des EINGELOGGTEN Users — hängt an der auth.uid(), nicht am
    *  Athleten-Toggle (s. state/wellbeing.js: der Toggle betrifft ihn

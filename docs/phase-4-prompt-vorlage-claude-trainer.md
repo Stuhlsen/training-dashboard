@@ -12,6 +12,12 @@
 > weist Claude an, bei gesundheitlichen Warnsignalen im Briefing keine Einheiten zu
 > verschreiben, sondern Ruhe zu empfehlen und auf ärztliche Abklärung zu verweisen.
 >
+> **Seit Fahrplan 9 (KI-Coach-Loop):** Export und Import laufen im Frontend nicht mehr
+> über zwei getrennte Dialoge, sondern über **ein** Stufen-Panel „Coach" im
+> Planungstab (Prompt kopieren → in Claude öffnen → Antwort mit Live-Parser-
+> Rückmeldung einfügen → Verlauf jeder Runde). Diese Vorlage selbst ist davon
+> unberührt.
+>
 > **Seit dem Export-Richtungsvorgabe-Konzept (R1/R4):** Die Vorlage ist in einen
 > **Rumpf** (preset-unabhängig: JSON-Regeln, Beispiele, Grundsätze) und fünf
 > **Auftragsvarianten** (`general`/`event`/`check`/`reduce`/`build`, je Preset genau
