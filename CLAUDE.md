@@ -55,6 +55,12 @@ unten) + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
 
 ## Arbeitsweise
 
+- **Backlog-Idee → Fahrplan in Etappen mit sauberen Bruchkanten.** Wird eine
+  Idee aus `planning/ideen-backlog.md` umgesetzt, zuerst einen `docs/`-Fahrplan
+  schreiben, der in Etappen mit klaren Bruchkanten geschnitten ist — jede
+  Etappe in **einem** Claude-Code-Fenster machbar (nur ihr Etappen-Block + die
+  geteilten Verträge als Kontext), um Token zu sparen. Muster:
+  `docs/fahrplan-8-plan-generator.md`.
 - **Plan Mode** vor Änderungen an `core/*.js`, die mehr als eine Funktion
   betreffen, oder die die Schichtenregel (`ui → state → core`) berühren.
 - **TodoWrite** ab 3 Schritten (z. B. die 3 Pflichtstellen bei neuem Datenfeld).
