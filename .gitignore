@@ -64,3 +64,8 @@ app/*.local
 .impeccable/live/server.json
 .impeccable/live/inject-journal.json
 .impeccable/live/sessions/
+# Planung — zukünftige, noch nicht ausgelieferte Ideen/Fahrpläne.
+# Bewusst NICHT im öffentlichen Repo (LP2: Produkt, nicht Portfolio —
+# der Fahrplan soll nicht für Wettbewerber sichtbar sein). Ausgelieferte
+# Features dürfen als Historie nach docs/archiv/ wandern.
+planning/

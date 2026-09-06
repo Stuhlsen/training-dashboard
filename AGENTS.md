@@ -426,6 +426,14 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
 .claude/skills/
   fallow/                  → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
                              — übersetzt Anfragen wie "check code health" in fallow-Befehle
+
+planning/                  → GITIGNORED, nicht im öffentlichen Repo. Zukünftige,
+                             noch nicht ausgelieferte Ideen + Fahrpläne
+                             (planning/ideen-backlog.md). Grund: LP2 — der
+                             Fahrplan soll nicht für Wettbewerber sichtbar sein.
+                             Ausgelieferte Features dürfen als Historie nach
+                             docs/archiv/ wandern. Optional zusätzlich als
+                             eigener privater Repo gesichert.
 ```
 
 ## Athleten
