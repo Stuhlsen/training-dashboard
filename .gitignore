@@ -68,4 +68,6 @@ app/*.local
 # Bewusst NICHT im öffentlichen Repo (LP2: Produkt, nicht Portfolio —
 # der Fahrplan soll nicht für Wettbewerber sichtbar sein). Ausgelieferte
 # Features dürfen als Historie nach docs/archiv/ wandern.
-planning/
+# Führender Slash: nur der planning/-Ordner in der Repo-Wurzel, NICHT das
+# Feature-Verzeichnis app/src/features/planning/.
+/planning/
