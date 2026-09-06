@@ -346,8 +346,8 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
 - **Zeilenmodell in `athlete_sync_config`:** Alle drei Athleten haben eine
   normale `profile_id`-Zeile (owner-only RLS). Athlet 1 und 4 pflegen sie
   self-service über **Settings**; Athlet 2 (`hc_diZee`) hat seit CRED4 einen
-  echten Supabase-Login und damit ebenfalls eine `profile_id`-Zeile (im
-  Frontend bleibt er trotzdem read-only, Gate `canWriteForAthlete()`). Die
+  echten Supabase-Login und damit ebenfalls eine `profile_id`-Zeile und pflegt
+  sie ebenso self-service. Die
   `athlete_key`-Spalte aus Migration 0023 (CRED0.3-Sonderweg „Zeile ohne
   Login" für Athlet 2) wird **nicht genutzt** — `sync-config-fetch.js` löst sie
   noch auf, aber keine Zeile trägt sie. Fehlt die Zeile eines Nebenathleten,
@@ -447,16 +447,17 @@ planning/                  → GITIGNORED, nicht im öffentlichen Repo. Zukünft
 
 - **Athlet 1** (`athlete1`) — eigener Trainingsplan (Plan 1 + Plan 2), Primärnutzer
   FTP: 193W (`ftpMeasured` in `app/src/config.ts`; `DEFAULT_FTP` in `scripts/lib/map-activity.js`)
-- **Athlet 2** (`athlete2`) — Vergleichsathlet, im Frontend weiterhin read-only
-  (kein Befinden, keine Schreibaktionen; Gate `canWriteForAthlete()`), hat aber
-  seit Fahrplan 7 CRED4 einen echten Supabase-Login und eine normale
-  `profile_id`-Zeile in `athlete_sync_config` (der Sync liest darüber
-  intervals.icu-Key/-Standort **und** `plan_cards`/`ftp_history`). Eigener
-  Planungstab seit GFNY Bremen 2026 (`scripts/lib/plan-athlete2.js`) —
-  Anzeige-only, s. "Bekannte Eigenheiten".
-  Read-only-Gate seit dem Athlet-4-Umbau über `readOnly: true` in
-  `app/src/config.ts` (`isReadOnlyAthlete()`), nicht mehr über einen
-  hartkodierten `=== PRIMARY_ATHLETE_ID`-Vergleich im Planungstab.
+- **Athlet 2** (`athlete2`) — ursprünglich Vergleichsathlet, seit Fahrplan 7
+  CRED4 mit echtem Supabase-Login und normaler `profile_id`-Zeile in
+  `athlete_sync_config` (der Sync liest darüber intervals.icu-Key/-Standort
+  **und** `plan_cards`/`ftp_history`). Seit Fahrplan 9 Etappe 0 **kein
+  Sonderfall mehr**: volles Modell wie Athlet 1/4 (Befinden, editierbare
+  `plan_cards`, Wahoo-Push), sobald hc_diZee als er selbst eingeloggt ist —
+  das frühere `readOnly: true` / `isReadOnlyAthlete()` ist entfernt.
+  Schreibzugriff entscheidet allein die Beziehung (Self / Trainer / Admin,
+  Gate `canWriteForAthlete()`); von einem fremden Login (z. B. Athlet 1 auf
+  athlete2 getoggelt) bleibt der Tab damit weiterhin nur-lesend. Eigener
+  Planungstab seit GFNY Bremen 2026 (`scripts/lib/plan-athlete2.js`).
   FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test),
   FTP-Ziel 280W (Notion-Korridor 275–285W)
 - **Athlet 4** (`athlete4`, „bentastiic") — Renn-/Trainings-Einsteiger. Volles
@@ -493,9 +494,12 @@ selbstgewählten Pseudonyme (GitHub-Handles) "Stuhlsen"/"hc_diZee"/"bentastiic"
 duplizieren). Athleten-Toggle persistent via
 `localStorage("active_athlete")` (`app/src/api/hooks/useActiveAthlete.ts`); unbekannte/
 alte IDs werden beim Start verworfen.
-Bei Athlet 2: Planungs-Tab read-only sichtbar (kein Verschieben/Ausfallen/Wahoo-Push),
-keine Befinden-Spalte, keine Ziellinien — Gate über `canWriteForAthlete()`/
-`isSelfAthlete()` in `app/src/api/write-authorization.ts`.
+Schreibaktionen im Planungstab (Verschieben/Ausfallen/Wahoo-Push, Befinden,
+Ziellinien) hängen für **alle** Athleten am selben Gate `canWriteForAthlete()`/
+`isSelfAthlete()` in `app/src/api/write-authorization.ts`: sichtbar nur, wenn
+der eingeloggte User der Athlet selbst, dessen Trainer oder Admin ist. Ein
+fremder Betrachter (Athleten-Toggle auf einen anderen Athleten) sieht den Tab
+nur-lesend.
 
 **Onboarding neuer Athlet (seit Fahrplan 7):** anmelden → in **Settings**
 intervals.icu-Key + Athlete-ID + groben Standort eintragen (Tabelle
@@ -534,8 +538,10 @@ unverändert (29.08. bleibt bewusst frei, s. Kopfkommentar in
 plan-athlete2.js). Definiert in
 `scripts/lib/plan-athlete2.js` (PLANNED_SESSIONS_ATHLETE2), Blöcke
 Basis→Aufbau→Rennhärte→Taper. Ruhetage werden seit dem 05.08.2026 für beide
-Athleten im Planungstab angezeigt (s. "Bekannte Eigenheiten"). Read-only im
-Frontend, FTP-Ziel 280W.
+Athleten im Planungstab angezeigt (s. "Bekannte Eigenheiten"). FTP-Ziel 280W.
+Der Plan ist abgeschlossene Historie (Renntag 30.08.2026) — im Frontend
+editiert ihn nur hc_diZees eigener Login, kein athletenabhängiger Sonderfall
+mehr (s. "Bekannte Eigenheiten").
 
 ## Equipment (Athlet 1)
 
@@ -803,7 +809,9 @@ React-Umbau nicht berührt):**
   kein `pct` (% FTP) wie bei Athlet 1 — die Planungstab-Kartenkomponente in
   `app/src/features/planning/PlanningPage.tsx` fällt für die
   Intervall-Beschriftung auf `watts` zurück, wenn `pct` fehlt.
-- Athlet 2s Planungstab (GFNY Bremen 2026) ist read-only: Gate über
+- Der Planungstab kennt keinen athletenabhängigen Editier-Sonderfall mehr
+  (seit Fahrplan 9 Etappe 0 — `readOnly`/`isReadOnlyAthlete()` entfernt).
+  `editable` im Planungstab ist schlicht `canWrite`; Gate über
   `canWriteForAthlete()`/`isSelfAthlete()` in `app/src/api/write-authorization.ts`
   statt eines lokalen `_canEdit()` in einem UI-Modul. Die Trainingskarten selbst
   leben inzwischen in der Supabase-Tabelle `plan_cards` (RLS-geschützt) —

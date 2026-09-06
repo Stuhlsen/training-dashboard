@@ -27,13 +27,11 @@ export function useCanWriteForAthlete(athleteId: string) {
 /** Darf der eingeloggte User für den angezeigten Athleten einen
  *  Trainingsplan erzeugen (Fahrplan 8 E5)?
  *
- *  Bewusst getrennt von `editable` im Planungstab: dort schließt
- *  `isReadOnlyAthlete()` Athlet 2 komplett vom Schreiben aus (reiner
- *  Vergleichsathlet). Das „Plan bauen" ist die eine Ausnahme, die auch für
- *  einen read-only Athleten gelten soll (Fahrplan-Entscheidung 1, hier als
- *  schmales Gate statt `readOnly` ganz zu entfernen). Autorisierung selbst
- *  = `canWriteForAthlete` (Self + Trainer + Admin, Entscheidung 19); die RLS
- *  auf `training_plans` (E1) setzt es durch. */
+ *  Autorisierung = `canWriteForAthlete` (Self + Trainer + Admin,
+ *  Entscheidung 19); die RLS auf `training_plans` (E1) setzt es durch.
+ *  Eigener Name statt direkter `canWrite`-Nutzung im Planungstab: ein
+ *  benannter Anker, falls „Plan bauen" später von den übrigen
+ *  Schreibaktionen abweichen soll. */
 export function useCanCreatePlan(athleteId: string) {
   const { canWrite, isLoading } = useCanWriteForAthlete(athleteId);
   return { canCreatePlan: canWrite, isLoading };

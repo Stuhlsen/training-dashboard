@@ -13,7 +13,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
-import { hasGeneratedPlan, isReadOnlyAthlete } from "../../config";
+import { hasGeneratedPlan } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
 import { useActiveWeekModel } from "../../api/hooks/useActiveTrainingPlan";
@@ -142,8 +142,6 @@ export function PlanningPage() {
   const { data: rideData } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
   const { canWrite } = useCanWriteForAthlete(activeAthleteId);
-  // „Neuer Plan" auch für read-only Athlet 2 (Fahrplan 8, schmales Gate) —
-  // deshalb nicht an `editable` gehängt.
   const { canCreatePlan } = useCanCreatePlan(activeAthleteId);
   const { isTrainer } = useTrainerContext(activeAthleteId);
 
@@ -204,12 +202,11 @@ export function PlanningPage() {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
     return buildPlanningSections(cards ?? [], rides, TODAY, derivedSets);
   }, [cards, rideData, derivedSets]);
-  // Athlet 2 bleibt bewusst read-only (reiner Vergleichsathlet, s. AGENTS.md).
-  // Sonst entscheidet allein die Autorisierung: `canWrite` deckt Self +
-  // Trainer + Admin ab, Trainer speichern über den Vorschlagspfad
-  // (trainerProposalMode). Athlet 4 ("Bentastiic") ist damit editierbar,
-  // wenn als er selbst eingeloggt.
-  const editable = canWrite && !isReadOnlyAthlete(activeAthleteId);
+  // Editierbarkeit entscheidet allein die Autorisierung: `canWrite` deckt
+  // Self + Trainer + Admin ab (Trainer speichern über den Vorschlagspfad,
+  // trainerProposalMode). Für alle Athleten dieselbe Regel — jeder mit
+  // echtem Login editiert seinen eigenen Plan.
+  const editable = canWrite;
   // „Plan verschieben" ist self-only: der Offset lebt auf der eigenen
   // profiles-Zeile (RLS), ein Trainer kann ihn nicht für den Athleten setzen.
   const { isSelf } = useIsSelfAthlete(activeAthleteId);

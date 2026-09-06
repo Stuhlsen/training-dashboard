@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ATHLETES, athleteConfig, isReadOnlyAthlete, PHASES, WEEK_ORDER } from "./config";
+import { ATHLETES, athleteConfig, PHASES, WEEK_ORDER } from "./config";
 
 describe("ATHLETES", () => {
   it("führt athlete1, athlete2 und athlete4 (athlete3 ist reserviert)", () => {
@@ -15,18 +15,6 @@ describe("ATHLETES", () => {
     expect(a4?.eFTP).toBeNull();
     expect(a4?.ftpGoal).toBeNull();
     expect(a4?.seasonStartFtp).toBeNull();
-  });
-});
-
-describe("isReadOnlyAthlete", () => {
-  it("nur Athlet 2 ist read-only", () => {
-    expect(isReadOnlyAthlete("athlete1")).toBe(false);
-    expect(isReadOnlyAthlete("athlete2")).toBe(true);
-    expect(isReadOnlyAthlete("athlete4")).toBe(false);
-  });
-
-  it("unbekannte ID → false (kein Wurf)", () => {
-    expect(isReadOnlyAthlete("athlete99")).toBe(false);
   });
 });
 

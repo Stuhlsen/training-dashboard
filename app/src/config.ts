@@ -59,11 +59,6 @@ export interface AthleteConfig {
    *  1:1 aus `assets/js/state/config.js::athletes[].bmr`, nur bei Athlet 2
    *  gesetzt. */
   bmr?: { heightCm: number; age: number; sex: string; weightKg: number };
-  /** Reiner Vergleichsathlet ohne Schreibpfad (kein Befinden, keine
-   *  Planungs-Edits, kein Wahoo-Push) — auch für den eigenen Login. Nur
-   *  Athlet 2. Athlet 1 und Athlet 4 haben das volle Modell und setzen
-   *  dieses Flag NICHT. `isReadOnlyAthlete()` liest es. */
-  readOnly?: boolean;
   /** Der Trainingsplan ist eine generierte Vorlage (scripts/lib/plan-athlete4.js)
    *  — nur dann darf „Plan verschieben…" (Migration 0026) angeboten werden:
    *  der Sync verschiebt nur diese Vorlage mit (`shiftPlannedSessions4`), die
@@ -97,10 +92,9 @@ export const ATHLETES: readonly AthleteConfig[] = [
     eFTP: 261,
     ftpGoal: 280,
     seasonStartFtp: null,
-    hrMax: null, // read-only Vergleichsathlet, kein hinterlegter Wert
+    hrMax: null, // Vergleichsathlet, kein hinterlegter Wert
     dataSources: ["intervals.icu", "Amazfit"],
     bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92.5 },
-    readOnly: true,
   },
   {
     // Athlet 4 ("Bentastiic") — Renn-/Trainings-Einsteiger. Volles Modell
@@ -132,13 +126,6 @@ export const ATHLETES: readonly AthleteConfig[] = [
 
 export function athleteConfig(id: string): AthleteConfig | null {
   return ATHLETES.find((a) => a.id === id) ?? null;
-}
-
-/** Reiner Vergleichsathlet ohne Schreibpfad (nur Athlet 2)? Ersetzt den
- *  früheren `=== PRIMARY_ATHLETE_ID`-Klammergriff im Planungstab — der galt
- *  nur, solange athlete1 der einzige Athlet mit vollem Modell war. */
-export function isReadOnlyAthlete(id: string): boolean {
-  return athleteConfig(id)?.readOnly === true;
 }
 
 /** Hat dieser Athlet eine generierte Plan-Vorlage (nur Athlet 4)? Gate für
