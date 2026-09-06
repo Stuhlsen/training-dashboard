@@ -5,6 +5,13 @@
 - **fallow** (`.claude/skills/fallow`) — bei Anfragen wie "check code health",
   "find circular deps", "dead code check" dieses Skill nutzen statt Rohbefehle
   zu raten.
+- **grilling** (`.claude/skills/grilling`) — ab jetzt bewusst häufiger nutzen.
+  Bei jeder Unklarheit in Anforderung, Design oder Vorgehen (mehrere plausible
+  Wege, ungenannte Randfälle, eine Entscheidung, die Alex gehört) **nicht raten
+  und nicht vorsichtshalber alles bauen** — `/grill` starten, Frage für Frage
+  durchgehen, je eine Empfehlung geben, auf Alex' Antwort warten. Die
+  Ideen-Fahrpläne aus `planning/ideen-backlog.md` sind so entstanden; ihre
+  offenen Fragen werden vor der Umsetzung ebenso gegrillt.
 - Vor neuer Datei in `assets/js/core|state|ui/…` prüfen, ob ein Skill oder
   bestehendes Modul die Aufgabe schon abdeckt — nicht parallel neu erfinden.
 
