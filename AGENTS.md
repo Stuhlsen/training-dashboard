@@ -1,9 +1,16 @@
 # Training Dashboard — Projektkontext
 
-Persönliches Radsport-Trainingsdashboard, selbst-gehostet über Docker auf
-apps01 (Tony) — kein GitHub Pages mehr (Issue #30, 20.08.2026).
+Persönliches Radsport-Trainingsdashboard, selbst-gehostet als Container-Verbund
+auf apps01 (Tony) — kein GitHub Pages mehr (Issue #30, 20.08.2026).
 Repo: github.com/Stuhlsen/training-dashboard
 Live: training-dashboard.clear-solutions-it.com
+
+**Container-Laufzeit:** In Produktion auf apps01 (einer Hetzner-VM, betrieben
+von Tony) läuft **Podman**, nicht Docker. Lokal für den Vor-Commit-Check nutzt
+Alex **Docker Desktop** (Windows). Die Image-Artefakte sind OCI-Format und
+laufen mit beidem; die Dateinamen (`Dockerfile`, `docker-compose*.yml`)
+bleiben unverändert, Podman liest sie. Wo unten „Docker-Image" steht, ist das
+OCI-Image gemeint.
 
 ## Stack
 
@@ -273,7 +280,7 @@ const PROJECT_CONFIG: Record<string, ProjectEntry> = {
 // beide anon-Keys sind öffentlich (per Design, RLS schützt), Ports (5173, 3000)
 // fallen unter den bare-Hostname-Eintrag — s. app/src/api/supabase/config.test.ts
 ```
-Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängigen Config. Kein Build-Schritt, kein Secret-Management — Prod-Key ist sichtbar, ist aber per RLS wirkungslos ohne Login. Seit Fahrplan 3 DKR1 gibt es zusätzlich einen Laufzeit-Pfad für den Docker-Betrieb: `window.__RUNTIME_CONFIG__` (von `index.html` aus einer vom Container geschriebenen `config.json` befüllt) hat in `config.ts::resolveEntry()` Vorrang vor dieser Tabelle — Details dort im Kommentar und in `docs/docker-lokal-einrichten.md`.
+Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängigen Config. Kein Build-Schritt, kein Secret-Management — Prod-Key ist sichtbar, ist aber per RLS wirkungslos ohne Login. Seit Fahrplan 3 DKR1 gibt es zusätzlich einen Laufzeit-Pfad für den Container-Betrieb: `window.__RUNTIME_CONFIG__` (von `index.html` aus einer vom Container geschriebenen `config.json` befüllt) hat in `config.ts::resolveEntry()` Vorrang vor dieser Tabelle — Details dort im Kommentar und in `docs/docker-lokal-einrichten.md`.
 
 ### Migrations-Workflow
 SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/`

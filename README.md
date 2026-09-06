@@ -1,6 +1,6 @@
 # 🚴 Radsport Trainingsdashboard
 
-Persönliches Radsport-Trainingsdashboard mit zwei Datenpfaden: **Lesedaten** (Leistungs-, HRV-, Schlaf- und Wellness-Werte aus intervals.icu und Apple Health) werden alle 6 Stunden von einem Sync-Container synchronisiert und als statisches JSON ausgeliefert. **Schreibdaten** (Login, Ziele, Events, tägliches Befinden, Trainingskarten, Trainer-Vorschläge) laufen über Supabase (Postgres + Auth + Row Level Security) und machen aus dem ursprünglich rein statischen Dashboard eine interaktive Mehrbenutzer-App mit Athlet-, Trainer- und Besucher-Rolle. Betrieb: selbst-gehostet als Docker-Verbund auf einem eigenen Server (Frontend + Sync + Postgres/GoTrue/PostgREST/Caddy), kein GitHub Pages mehr.
+Persönliches Radsport-Trainingsdashboard mit zwei Datenpfaden: **Lesedaten** (Leistungs-, HRV-, Schlaf- und Wellness-Werte aus intervals.icu und Apple Health) werden alle 6 Stunden von einem Sync-Container synchronisiert und als statisches JSON ausgeliefert. **Schreibdaten** (Login, Ziele, Events, tägliches Befinden, Trainingskarten, Trainer-Vorschläge) laufen über Supabase (Postgres + Auth + Row Level Security) und machen aus dem ursprünglich rein statischen Dashboard eine interaktive Mehrbenutzer-App mit Athlet-, Trainer- und Besucher-Rolle. Betrieb: selbst-gehostet als Container-Verbund (Podman in Produktion) auf einem eigenen Server (Frontend + Sync + Postgres/GoTrue/PostgREST/Caddy), kein GitHub Pages mehr.
 
 **Trainingshistorie:** März 2026 – laufend, FTP 166 W → 193 W (Basisaufbau, März–Juni) → laufendes Ziel ≥ 210 W (pyramidale Periodisierung, Retest 19.09.2026). Die frühen Wochen liefen über Notion (manuell erfasst), seit Sommer 2026 automatisch über intervals.icu — beide Ären laufen heute einheitlich auf ISO-Kalenderwochen statt der ursprünglichen Plan-1/Plan-2-Aufteilung.
 
@@ -150,7 +150,7 @@ Alle Tabellen sind per Row Level Security abgesichert (`supabase/migrations/`, i
 ## Setup
 
 ### Voraussetzungen
-- GitHub-Account (für Actions/Secrets — kein GitHub Pages mehr nötig, das Frontend läuft selbst-gehostet über Docker)
+- GitHub-Account (für Actions/Secrets — kein GitHub Pages mehr nötig, das Frontend läuft selbst-gehostet in Containern, Podman in Produktion)
 - intervals.icu Account (Wahoo / Garmin verbunden)
 - Notion Integration Token (nur für die Notion-Ära-Historie)
 - Node.js ≥ 24 lokal — `npm test` nutzt `--experimental-test-module-mocks` mit der `{ exports }`-Kurzform, die erst ab Node 24 zuverlässig läuft (Details in `AGENTS.md`)
@@ -254,8 +254,8 @@ Eigenständiger Namensraum, definiert in `scripts/lib/plan-athlete2.js` — read
 
 ## Projektkontext
 
-Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → Sync-Container → Self-Host via Docker) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
+Dieses Dashboard ist ein Dual-Purpose-Projekt: primär ein persönliches Trainingsanalyse-Tool, sekundär ein reales Praxisprojekt im Rahmen einer QA-Ausbildung bei Masterschool. Die Daten-Pipeline (Notion → intervals.icu → Sync-Container → Self-Host als Container-Verbund, Podman) und der Supabase-Schreibpfad (Login, RLS, Trainer-Workflow) dienen gleichzeitig als Testobjekt für STLC-Dokumentation, API-Testing und Sicherheits-Reviews.
 
-Der React-Umbau (Dashboard 3.0) ist abgeschlossen und live — `/app/` ist seit dem 15.08.2026 die einzige Oberfläche, der frühere Vanilla-JS-Zweig wurde entfernt. Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) ist als Konzeptdokument unter `docs/` vorbereitet, aber noch nicht umgesetzt; ein Self-Hosting-Umbau (Docker) läuft bereits — das Frontend ist seit 20.08.2026 live selbst-gehostet, die Ablösung der Supabase-Cloud (eigenes Postgres/GoTrue/PostgREST auf dem Zielserver) ist deployt und in der Abnahmephase (Details `docs/fahrplan-3-docker-umbau.md`).
+Der React-Umbau (Dashboard 3.0) ist abgeschlossen und live — `/app/` ist seit dem 15.08.2026 die einzige Oberfläche, der frühere Vanilla-JS-Zweig wurde entfernt. Aktuell laufende Weiterentwicklung: Besucher-Feedback (Phase 6) ist als Konzeptdokument unter `docs/` vorbereitet, aber noch nicht umgesetzt; ein Self-Hosting-Umbau (Container, Podman in Produktion) läuft bereits — das Frontend ist seit 20.08.2026 live selbst-gehostet, die Ablösung der Supabase-Cloud (eigenes Postgres/GoTrue/PostgREST auf dem Zielserver) ist deployt und in der Abnahmephase (Details `docs/fahrplan-3-docker-umbau.md`).
 
 📁 QA-Portfolio: [github.com/Stuhlsen/Portfolio](https://github.com/Stuhlsen/Portfolio)

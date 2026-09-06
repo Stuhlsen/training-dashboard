@@ -49,7 +49,7 @@ Produkt von reinem intervals.icu-Ansehen, wo diese Verdichtung fehlt.
   Pipeline-Logik blieb beim React-Umbau unverändert (G3).
 - Schreibpfad (Ziele, Events, Befinden, Trainingskarten, Vorschläge, Feedback) läuft über
   Supabase mit RLS, session-basiert.
-- Produktiv als React-App (`/app/`), selbst-gehostet als Docker-Verbund auf apps01
+- Produktiv als React-App (`/app/`), selbst-gehostet als Container-Verbund (Podman) auf apps01
   (`training-dashboard.clear-solutions-it.com`) — kein GitHub Pages mehr, Vanilla-Zweig
   entfernt (Fahrplan 1). Die Ablösung der Supabase-Cloud durch eigenes Postgres/GoTrue/
   PostgREST ist deployt und in der Abnahmephase (Fahrplan 3, DKR5/DKR6 offen).
