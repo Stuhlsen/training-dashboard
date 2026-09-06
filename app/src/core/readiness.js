@@ -19,6 +19,7 @@ export const READINESS_CONFIG = {
   recentDays: 7,
   zCaution: 0.75,
   zAlert: 1.5,
+  minAgreeingDomains: 2, // 2-von-N: gelb/rot erst, wenn ≥2 Domains dieselbe Richtung zeigen (s. assessReadiness)
   freshMaxAgeDays: 1, // letzter Wert ≤1 Tag alt → "vorhanden"
   staleMinAgeDays: 5, // ≥5 Tage alt (oder nie erfasst) → "veraltet"; dazwischen "ausstehend"
 };
@@ -175,18 +176,43 @@ export function assessReadiness(wellness, todayISO) {
   // grün/gelb/rot-Kombination erst pro `domain` bündeln (schlechtester
   // Status gewinnt) — sonst würde "sleep" (2 Metriken: Dauer + Score)
   // doppelt so viel Gewicht wie "hrv"/"restingHR" (je 1 Metrik) bekommen.
+  // `domainDriver` merkt zusätzlich die Metrik, die den Domain-Status treibt —
+  // nur fürs recommendation-Label unten.
   const domainStatus = {};
+  const domainDriver = {};
   for (const m of usable) {
     const rank = STATUS_RANK[m.status] ?? 0;
     if (!(m.domain in domainStatus) || rank > STATUS_RANK[domainStatus[m.domain]]) {
       domainStatus[m.domain] = m.status;
+      domainDriver[m.domain] = m;
     }
   }
-  const statuses = Object.values(domainStatus);
+  const alertDomains = Object.keys(domainStatus).filter((d) => domainStatus[d] === "alert");
+  const cautionDomains = Object.keys(domainStatus).filter((d) => domainStatus[d] === "caution");
+  const minAgree = READINESS_CONFIG.minAgreeingDomains;
+
+  // 2-von-N (Idee 5, Grilling 2026-09-06): eine EINZELNE abweichende Domain
+  // ändert die Ampelfarbe nicht mehr — Alex hatte real "Erholung nötig" bei
+  // nur leicht erhöhtem Ruhepuls und ist danach PBs gefahren. Farbe kippt nur,
+  // wenn ≥minAgree Domains dieselbe Richtung zeigen. Zwei Ausnahmen:
+  //  - ein EINZELNER schwerer Ausreißer (genau 1 Domain auf "alert", sonst ok)
+  //    hebt noch auf gelb, nie auf rot — Ruhepuls +2 SD allein ist ein
+  //    plausibles Krankheits-Frühzeichen (OF-2).
+  //  - eine einzelne leichte Abweichung (genau 1 Domain "caution") bleibt grün,
+  //    bekommt aber einen Hinweis im recommendation-Text (mildSingle).
   let level = "green";
-  if (statuses.includes("alert")) level = "red";
-  else if (statuses.filter((s) => s === "caution").length >= 2) level = "yellow";
-  else if (statuses.includes("caution")) level = "yellow";
+  let severeSingle = false;
+  let mildSingle = false;
+  if (alertDomains.length >= minAgree) {
+    level = "red";
+  } else if (alertDomains.length + cautionDomains.length >= minAgree) {
+    level = "yellow";
+  } else if (alertDomains.length === 1) {
+    level = "yellow";
+    severeSingle = true;
+  } else if (cautionDomains.length === 1) {
+    mildSingle = true; // level bleibt "green"
+  }
 
   // Veraltete Daten (oder gar keine vorhandene Metrik) dürfen nie ein falsches
   // "Bereit" erzeugen — anders als "ausstehend" wird das explizit eskaliert.
@@ -199,12 +225,23 @@ export function assessReadiness(wellness, todayISO) {
   const staleDomains = [...new Set(stale.map((m) => m.domain))].filter((d) => !usableDomains.has(d));
   if (level === "green" && (staleDomains.length > 0 || usable.length === 0)) level = "yellow";
 
-  const recommendation =
-    level === "green"
-      ? "Einheit wie geplant fahren."
-      : level === "yellow"
-        ? "Intensität heute eine Stufe reduzieren — Umfang ist okay."
-        : "Erholung priorisieren: Ruhetag oder lockeres Ausrollen erwägen.";
+  // Richtungswort relativ zur Baseline: HRV/Schlaf schlecht = "unter",
+  // Ruhepuls schlecht = "über" (higherIsBetter dreht das Vorzeichen).
+  const dirWord = (m) => (m.higherIsBetter ? "unter" : "über");
+  let recommendation;
+  if (level === "red") {
+    recommendation = "Erholung priorisieren: Ruhetag oder lockeres Ausrollen erwägen.";
+  } else if (severeSingle) {
+    const m = domainDriver[alertDomains[0]];
+    recommendation = `${m.label} deutlich ${dirWord(m)} Baseline — heute vorsichtig starten und nach Gefühl entscheiden. Kann ein Frühzeichen sein.`;
+  } else if (level === "yellow") {
+    recommendation = "Intensität heute eine Stufe reduzieren — Umfang ist okay.";
+  } else if (mildSingle) {
+    const m = domainDriver[cautionDomains[0]];
+    recommendation = `Einheit wie geplant fahren — ${m.label} leicht ${dirWord(m)} Baseline, im Blick behalten.`;
+  } else {
+    recommendation = "Einheit wie geplant fahren.";
+  }
 
   const basisSegments = [`Basiert auf ${usable.length}/${metrics.length} Metriken`];
   if (pending.length) basisSegments.push(`${pending.map((m) => m.label).join(", ")} ausstehend`);

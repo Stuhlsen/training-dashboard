@@ -22,6 +22,7 @@ test("READINESS_CONFIG: BASELINE_DAYS/RECENT_DAYS sind Aliase, keine Doppel-Kons
   assert.equal(RECENT_DAYS, READINESS_CONFIG.recentDays);
   assert.equal(typeof READINESS_CONFIG.zCaution, "number");
   assert.equal(typeof READINESS_CONFIG.zAlert, "number");
+  assert.equal(typeof READINESS_CONFIG.minAgreeingDomains, "number");
   assert.equal(typeof READINESS_CONFIG.freshMaxAgeDays, "number");
   assert.equal(typeof READINESS_CONFIG.staleMinAgeDays, "number");
 });
@@ -149,13 +150,13 @@ function makeSleepJitteredBase() {
   }));
 }
 
-test("assessReadiness: Schlafdauer UND Schlafqualität gleichzeitig 'caution' → zählt als EINE Caution-Stimme, nicht zwei", () => {
+test("assessReadiness: nur die Schlaf-Domain 'caution' (Dauer + Qualität) → EINE Stimme, kippt die Ampel NICHT mehr (2-von-N)", () => {
   // Baseline stabil (leicht gejittert), in den letzten 7 Tagen beide
-  // Schlafmetriken exakt im caution-Bereich (z=-1) — HRV/Ruhepuls bleiben
-  // ok. Wäre "sleep" zwei unabhängige Stimmen, würde das an der
-  // Yellow-Schwelle nichts ändern (schon 1 caution → yellow) — der
-  // eigentliche Beweis ist der nächste Test (sleepScore allein "alert"
-  // trotz unauffälliger Dauer, Ampel bleibt trotzdem nur EINE Sleep-Stimme).
+  // Schlafmetriken exakt im caution-Bereich (z=-1) — HRV/Ruhepuls bleiben ok.
+  // Domain-Bündelung greift weiter: Schlafdauer + Schlafqualität sind zusammen
+  // EINE Caution-Stimme, nicht zwei. Neu mit Idee 5 (2-von-N): eine einzelne
+  // Caution-Domain ändert die Farbe nicht mehr — grün bleibt grün, aber der
+  // Empfehlungstext benennt den wackelnden Marker.
   const base = makeSleepJitteredBase();
   const cautious = base.map((w) =>
     w.date >= "2026-07-06" ? { ...w, sleepHours: 7.2 - 0.245, sleepScore: 82 - 2.45 } : w
@@ -164,17 +165,63 @@ test("assessReadiness: Schlafdauer UND Schlafqualität gleichzeitig 'caution' �
   assert.ok(r);
   assert.equal(r.metrics.find((m) => m.key === "sleep").status, "caution");
   assert.equal(r.metrics.find((m) => m.key === "sleepScore").status, "caution");
-  assert.equal(r.level, "yellow"); // nicht "red" — eine Domain kann nie allein auf rot eskalieren
+  assert.equal(r.level, "green"); // 1 Caution-Domain allein → keine Farbänderung
+  assert.match(r.recommendation, /wie geplant fahren/);
+  assert.match(r.recommendation, /Schlafdauer leicht unter Baseline/);
 });
 
-test("assessReadiness: nur Schlafqualität 'alert', Schlafdauer unauffällig → Domain-Vote nimmt den schlechteren, Ampel rot", () => {
+test("assessReadiness: nur Schlafqualität 'alert', sonst unauffällig → EINZELNER schwerer Ausreißer hebt auf gelb, nicht rot (OF-2)", () => {
+  // Domain-Vote nimmt weiter den schlechteren Status (sleep-Domain = alert).
+  // Neu mit Idee 5: ein einzelner schwerer Ausreißer (genau 1 alert-Domain)
+  // eskaliert nur auf gelb, nie auf rot allein — mit eigenem, ruhigerem Text
+  // (mögliches Krankheits-Frühzeichen).
   const base = makeSleepJitteredBase();
   const stressed = base.map((w) => (w.date >= "2026-07-06" ? { ...w, sleepScore: 82 - 5 } : w));
   const r = assessReadiness(stressed, TODAY);
   assert.ok(r);
   assert.equal(r.metrics.find((m) => m.key === "sleep").status, "ok");
   assert.equal(r.metrics.find((m) => m.key === "sleepScore").status, "alert");
-  assert.equal(r.level, "red");
+  assert.equal(r.level, "yellow");
+  assert.match(r.recommendation, /Schlafqualität deutlich unter Baseline/);
+  assert.match(r.recommendation, /Frühzeichen/);
+});
+
+/* ── 2-von-N-Regel: Mehrheit aus zwei verschiedenen Domains ────────────── */
+
+test("assessReadiness: zwei Domains 'caution' (HRV + Ruhepuls) → Mehrheit erreicht, Ampel gelb", () => {
+  const base = makeSleepJitteredBase();
+  const cautious = base.map((w) =>
+    w.date >= "2026-07-06" ? { ...w, hrv: 61.0, restingHR: 53.0 } : w
+  );
+  const r = assessReadiness(cautious, TODAY);
+  assert.ok(r);
+  assert.equal(r.metrics.find((m) => m.key === "hrv").status, "caution");
+  assert.equal(r.metrics.find((m) => m.key === "restingHR").status, "caution");
+  assert.equal(r.level, "yellow");
+});
+
+test("assessReadiness: eine Domain 'alert' + eine 'caution' (verschiedene Domains) → gelb, NICHT rot (rot braucht 2× alert)", () => {
+  const base = makeSleepJitteredBase();
+  const mixed = base.map((w) =>
+    w.date >= "2026-07-06" ? { ...w, hrv: 60.0, restingHR: 53.0 } : w
+  );
+  const r = assessReadiness(mixed, TODAY);
+  assert.ok(r);
+  assert.equal(r.metrics.find((m) => m.key === "hrv").status, "alert");
+  assert.equal(r.metrics.find((m) => m.key === "restingHR").status, "caution");
+  assert.equal(r.level, "yellow");
+});
+
+test("assessReadiness: einzelner schwerer Ruhepuls-Ausreißer → gelb, Text mit 'über Baseline' (Richtung stimmt)", () => {
+  const base = makeSleepJitteredBase();
+  const spike = base.map((w) => (w.date >= "2026-07-06" ? { ...w, restingHR: 54.0 } : w));
+  const r = assessReadiness(spike, TODAY);
+  assert.ok(r);
+  assert.equal(r.metrics.find((m) => m.key === "restingHR").status, "alert");
+  assert.equal(r.metrics.find((m) => m.key === "hrv").status, "ok");
+  assert.equal(r.level, "yellow");
+  assert.match(r.recommendation, /Ruhepuls deutlich über Baseline/);
+  assert.match(r.recommendation, /Frühzeichen/);
 });
 
 test("assessReadiness: sleepScore fehlt komplett (alte Daten vor Rollout) → 'veraltet', aber Ampel bleibt grün (Schlafdauer trägt die Domain)", () => {

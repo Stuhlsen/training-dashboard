@@ -193,6 +193,49 @@ test("buildBriefing: HRV-Z-Score über der Schwelle entschärft auch bei sonst g
   assert.equal(b.recovering, true);
 });
 
+test("buildBriefing: einzelner schwerer Erholungsmarker (Idee 5 severeSingle → readiness gelb) blockiert 'Erholung wirkt bereits'", () => {
+  // assessReadiness gibt seit Idee 5 (2-von-N) für einen EINZELNEN z≥zAlert-
+  // Marker nur noch gelb statt rot — rSig.status ist dann "caution", würde die
+  // `!== "alert"`-Sperre also nicht greifen lassen. Ein solcher Marker kann ein
+  // Krankheits-Frühzeichen sein: die TSB-Entschärfung darf NICHT freischalten,
+  // auch wenn HRV/Ruhepuls unauffällig sind.
+  const b = buildBriefing({
+    readiness: {
+      level: "yellow",
+      metrics: [
+        { key: "hrv", z: 0.1, status: "ok", confidence: "vorhanden" },
+        { key: "restingHR", z: 0.1, status: "ok", confidence: "vorhanden" },
+        { key: "sleepScore", z: -2.1, status: "alert", confidence: "vorhanden" },
+      ],
+    },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.recovering, false);
+  assert.equal(b.level, "red");
+});
+
+test("buildBriefing: ein 'alert'-Marker, der nur ausstehend/veraltet ist (von der Ampel ausgeschlossen), blockiert die Entschärfung NICHT", () => {
+  // Gegenprobe zum Test darüber: assessReadiness schließt eine nicht-frische
+  // Metrik selbst aus der Ampel aus — dann darf sie auch hier nicht als
+  // severeSingle-Marker gelten.
+  const b = buildBriefing({
+    readiness: {
+      level: "yellow",
+      metrics: [
+        { key: "hrv", z: -0.2, status: "caution", confidence: "vorhanden" },
+        { key: "sleepScore", z: -2.1, status: "alert", confidence: "ausstehend" },
+      ],
+    },
+    tsb: -25,
+    loadRisk: "ok",
+    trend: { direction: "steigend", delta: 30 },
+  });
+  assert.equal(b.recovering, true);
+  assert.equal(b.level, "yellow");
+});
+
 test("buildBriefing: TSB niedrig + Trend fallend → bleibt rot, keine Entschärfung ohne echte Erholung", () => {
   const b = buildBriefing({
     readiness: { level: "green", metrics: [{ key: "hrv", z: 0.1 }] },

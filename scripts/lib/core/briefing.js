@@ -11,9 +11,11 @@
    zur Tagessteuerung. Rote Erholungs-/Strain-Signale schlagen dabei
    immer einen grünen TSB (Priorisierung: Schutz vor Übersteuerung).
    Einzige Ausnahme: TSB ist die ALLEINIGE Alert-Quelle UND der Trend
-   zeigt aktive Erholung UND HRV/RHR widersprechen nicht — dann kippt
-   der Status von rot auf gelb ("Erholung wirkt bereits", s. unten),
-   statt eine schon laufende Erholung fälschlich als Warnung zu zeigen.
+   zeigt aktive Erholung UND HRV/RHR widersprechen nicht UND keine
+   vorhandene Readiness-Metrik steht auf "alert" (der severeSingle-Fall
+   aus readiness.js) — dann kippt der Status von rot auf gelb ("Erholung
+   wirkt bereits", s. unten), statt eine schon laufende Erholung
+   fälschlich als Warnung zu zeigen.
 
    Optionaler vierter Kanal: der subjektive Morgen-Check-in (Konzept
    docs/phase-2-konzept-morgen-checkin.md Abschnitt 5.2, core/readiness.js::
@@ -132,11 +134,14 @@ export function governLevel(objLevel, subjLevel) {
  * Ausnahme ("Erholung wirkt bereits"): ist TSB die EINZIGE Alert-Quelle
  * (Readiness und LoadGuard schlagen nicht an), zeigt der 3-Tage-Trend
  * eine steigende TSB UND widerspricht HRV nicht deutlich (Status ok
- * oder z ≥ HRV_RECOVERING_Z; ohne Baseline zählt das als kein Widerspruch),
- * dann kippt der Status auf gelb mit entsprechend angepasster Formulierung —
- * ein rotes Readiness- oder LoadGuard-Signal schlägt weiterhin immer durch.
+ * oder z ≥ HRV_RECOVERING_Z; ohne Baseline zählt das als kein Widerspruch)
+ * UND keine vorhandene Readiness-Metrik steht auf "alert" (der severeSingle-
+ * Fall aus readiness.js — ein einzelner schwerer Marker gibt dort nur gelb,
+ * darf die Entschärfung aber nicht freischalten), dann kippt der Status auf
+ * gelb mit entsprechend angepasster Formulierung — ein rotes Readiness- oder
+ * LoadGuard-Signal schlägt weiterhin immer durch.
  * @param {Object} input
- * @param {null|{level: string, metrics?: Array<{key:string, z:number|null}>}} input.readiness  aus core/readiness.js
+ * @param {null|{level: string, metrics?: Array<{key:string, z:number|null, status?: string, confidence?: string}>}} input.readiness  aus core/readiness.js
  * @param {number|null} input.tsb                     aktuellster (ggf. auf heute projizierter) TSB
  * @param {"ok"|"caution"|"high"|null} input.loadRisk aktuelle LoadGuard-Woche
  * @param {null|{date: string, title?: string, typ?: string}} [input.nextSession] nächste geplante Einheit (nur Athlet 1)
@@ -186,12 +191,24 @@ export function buildBriefing({
   const hrvOk = hrv?.z == null || hrv.z >= HRV_RECOVERING_Z;
   const rhrOk = rhr?.z == null || rhr.z <= RHR_RECOVERING_Z;
   const hrvNotContradicting = degraded || rSig.status === "ok" || (hrvOk && rhrOk);
+  // Ein einzelner schwerer Erholungsmarker gibt seit Idee 5 (2-von-N,
+  // readiness.js "severeSingle") nur noch "yellow" statt "red" — rSig.status
+  // ist dann bloß "caution" und würde die `!== "alert"`-Sperre unten NICHT
+  // greifen lassen. So ein Marker kann aber ein Krankheits-Frühzeichen sein und
+  // darf die "Erholung wirkt bereits"-Entschärfung nicht freischalten.
+  // Nur vorhandene Metriken zählen — genau die Menge, aus der readiness.js
+  // "severeSingle" ableitet. Eine ausstehende/veraltete Metrik hat die Ampel
+  // selbst schon ausgeschlossen und darf hier nicht doch noch blockieren.
+  const readinessMarkerAlert = (readiness?.metrics || []).some(
+    (m) => m.status === "alert" && m.confidence === "vorhanden"
+  );
   // tSig.status === "alert" impliziert bereits level === "red" (s. oben) —
   // keine separate level-Prüfung nötig.
   let recovering = false;
   if (
     tSig.status === "alert" &&
     rSig.status !== "alert" &&
+    !readinessMarkerAlert &&
     lSig.status !== "alert" &&
     hrvNotContradicting &&
     trend?.direction === "steigend"
