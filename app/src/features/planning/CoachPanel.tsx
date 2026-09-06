@@ -207,12 +207,15 @@ export function CoachPanel({
   const [text, setText] = useState("Lade Briefing …");
   const [fileName, setFileName] = useState(() => exportFileName(athleteId, TODAY));
   const [promptError, setPromptError] = useState("");
-  const [copied, setCopied] = useState(false);
+  // Der Prompt-Stand, der zuletzt in die Zwischenablage ging. „Kopiert ✓" gilt
+  // nur, solange dieser mit dem aktuell angezeigten `text` übereinstimmt —
+  // baut Preset/Event/Zusatzkontext den Prompt neu, ist das Kopierte veraltet
+  // und der Knopf springt zurück (abgeleitet, kein Effekt).
+  const [copiedText, setCopiedText] = useState<string | null>(null);
 
   // ── Abschnitt 3/3b: Antwort + Live-Feedback ──────────────────────────
   const [answerText, setAnswerText] = useState("");
   const [debouncedAnswer, setDebouncedAnswer] = useState("");
-  const [preview, setPreview] = useState<CoachImportPreview | null>(null);
   const [importError, setImportError] = useState("");
   // Deckt die GANZE Import-Runde ab (importProposals → createExchange). Der
   // isPending der Import-Mutation allein reicht nicht: er fällt zwischen den
@@ -239,21 +242,13 @@ export function CoachPanel({
     return () => clearTimeout(timer);
   }, [answerText]);
 
-  // „Kopiert ✓" gilt für den Prompt-Stand, der beim Klick in der Zwischen-
-  // ablage landete. Sobald Preset/Event/Zusatzkontext den Prompt neu bauen,
-  // ist das Kopierte veraltet — Zustand zurücksetzen, damit nicht „In Claude
-  // öffnen" als primärer Knopf einen alten Prompt suggeriert.
-  useEffect(() => {
-    setCopied(false);
-  }, [text]);
+  const copied = copiedText !== null && copiedText === text;
 
-  // Live-Parser-Feedback: bei jedem entprellten Antwort-Stand neu auswerten.
-  useEffect(() => {
-    if (!debouncedAnswer.trim()) {
-      setPreview(null);
-      return;
-    }
-    setPreview(previewClaudeImport(debouncedAnswer) as CoachImportPreview);
+  // Live-Parser-Feedback: aus dem entprellten Antwort-Stand abgeleitet (reine
+  // Auswertung über usePreviewClaudeImport, kein I/O) — kein Effekt/State.
+  const preview = useMemo<CoachImportPreview | null>(() => {
+    if (!debouncedAnswer.trim()) return null;
+    return previewClaudeImport(debouncedAnswer) as CoachImportPreview;
   }, [debouncedAnswer, previewClaudeImport]);
 
   const feedback = useMemo(
@@ -403,7 +398,7 @@ export function CoachPanel({
   async function handleCopy() {
     try {
       await navigator.clipboard.writeText(text);
-      setCopied(true);
+      setCopiedText(text);
     } catch {
       setPromptError("Kopieren nicht möglich — Text manuell markieren und kopieren.");
     }
@@ -456,10 +451,10 @@ export function CoachPanel({
         );
       }
 
-      // Antwort-Abschnitt zurücksetzen; Verlauf zeigt die neue Zeile oben.
+      // Antwort-Abschnitt zurücksetzen; `preview` folgt dem leeren
+      // debouncedAnswer. Verlauf zeigt die neue Zeile oben.
       setAnswerText("");
       setDebouncedAnswer("");
-      setPreview(null);
       if (fileInputRef.current) fileInputRef.current.value = "";
     } finally {
       setSubmitting(false);
