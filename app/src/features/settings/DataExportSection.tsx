@@ -19,9 +19,13 @@ export function DataExportSection() {
 
   return (
     <div style={SECTION_STYLE}>
-      <div style={HEADING_STYLE}>Eigene Daten exportieren</div>
-      <p style={{ fontFamily: "var(--font-body)", fontSize: ".8rem", color: "var(--ink-3)", margin: "0 0 12px", maxWidth: 420 }}>
-        Aktive Ziele, FTP-Verlauf, Trainingskarten und Befinden-Einträge als Datei.
+      <div style={HEADING_STYLE}>Meine Daten</div>
+      <p style={{ fontFamily: "var(--font-body)", fontSize: ".8rem", color: "var(--ink-3)", margin: "0 0 12px", maxWidth: 440 }}>
+        Alle unter deinem Login gespeicherten Daten als ZIP mit JSON-Dateien:
+        Profil, Ziele, Events, Trainingskarten, Befinden (inkl. Notizen),
+        FTP-Verlauf, Vorschläge, Plan, Formate und die abgeleiteten Lesedaten
+        (Fahrten, Wellness). Standort und API-Key sind aus Datenschutzgründen
+        nicht enthalten.
       </p>
       <button
         type="button"
@@ -39,7 +43,7 @@ export function DataExportSection() {
           opacity: isPending ? 0.7 : 1,
         }}
       >
-        {isPending ? "Exportiere …" : "Exportieren"}
+        {isPending ? "Erstelle ZIP …" : "Als ZIP herunterladen"}
       </button>
       {error && <div style={{ ...ERROR_STYLE, marginTop: 8 }}>{error}</div>}
     </div>
