@@ -201,13 +201,12 @@ export function HeroTileGrid({ tiles, layout, editing, onLayoutChange }: HeroTil
       rowHeight: HERO_ROW_HEIGHT,
       maxRows: Infinity,
     };
-    let totalHeight = 0;
     const placed = visiblePositions.map((pos) => {
       const size = HERO_TILE_SIZE[pos.i as keyof typeof HERO_TILE_SIZE] ?? DEFAULT_TILE_SIZE;
       const { left, top, width: w, height: h } = calcGridItemPosition(positionParams, pos.x, pos.y, size.w, size.h);
-      totalHeight = Math.max(totalHeight, top + h);
       return { tile: byId.get(pos.i)!, left, top, w, h };
     });
+    const totalHeight = placed.reduce((max, p) => Math.max(max, p.top + p.h), 0);
 
     content = (
       <div style={{ position: "relative", height: totalHeight }}>
