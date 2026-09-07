@@ -16,8 +16,7 @@
 import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
 import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBlocks } from "./lib/plan2.js";
-import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
-import { shiftPlannedSessions4 } from "./lib/plan-athlete4.js";
+import { SECONDARY_ATHLETES } from "./lib/athletes.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
 import { loadActiveTrainingPlan } from "./lib/training-plan-fetch.js";
 import { loadPlan1History } from "./lib/plan1-history.js";
@@ -60,12 +59,9 @@ const READINESS_FIELDS = ["hrv", "restingHR", "sleepHours"];
 import {
   loadSubjective,
   loadAdjustments,
-  loadAdjustments2,
   loadIntervalBlocks,
   writeOutput,
   OUT_FILE,
-  OUT_FILE_2,
-  OUT_FILE_4,
   INTERVAL_BLOCKS_FILE,
 } from "./lib/output.js";
 
@@ -74,9 +70,9 @@ import {
 // Key, gibt es nichts zu syncen — harter Abbruch, kein stiller Fallback.
 requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 
-const ATHLETE_2_NAME = "hc_diZee"; // Anzeigename (Pseudonym) — keine Klarnamen (Datenschutz)
-const ATHLETE_2_FTP = 265; // Fester Wert aus letztem Ramp-Test
-const ATHLETE_4_NAME = "bentastiic"; // Anzeigename (Pseudonym) — muss exakt profiles.display_name entsprechen
+// Athlet 2 + 4 (Anzeigename, feste FTP, Plan-Vorlage, …) sind seit Fahrplan 10
+// E3 Einträge in scripts/lib/athletes.js — sie teilen sich den Rumpf
+// syncSecondaryAthlete() unten. Athlet 1 behält seinen eigenen Pfad in main().
 
 /**
  * Öffentliche FTP-Felder fürs rides*.json-Payload (Aufgabe "FTP-Anzeige im
@@ -110,6 +106,197 @@ function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO) {
   };
 }
 
+/**
+ * Sync-Rumpf für einen Sekundär-Athleten (2 / 4 / … — nicht Athlet 1).
+ * Alle athletenspezifischen Unterschiede kommen aus `entry`
+ * (scripts/lib/athletes.js), nicht aus kopiertem Code. Erzeugt
+ * `entry.outfile` mit `mapActivity2` + der Athlet-2/4-Output-Form
+ * (`athleteName` + `...ftpPublic` + rides/wellness/…).
+ *
+ * `entry.requireCreds`: true (Athlet 2) → ohne intervals.icu-Key/-ID wird
+ * der Athlet komplett übersprungen, keine Datei. false (Athlet 4) → die
+ * Datei wird trotzdem geschrieben (nur Plan, keine Fahrten,
+ * `source:"plan-only"`).
+ *
+ * @param {import("./lib/athletes.js").SecondaryAthlete} entry
+ * @param {Map<string, object>} syncConfig  aus loadSyncConfig()
+ * @param {{ today: string, weatherEnd: string, formatCatalog: Array<object>,
+ *   intervalBlockCache: object }} ctx  geteilte Sync-Zustände aus main()
+ */
+async function syncSecondaryAthlete(entry, syncConfig, ctx) {
+  const { today, weatherEnd, formatCatalog, intervalBlockCache } = ctx;
+  const cfg = syncConfig.get(entry.slug);
+  const creds =
+    cfg && cfg.apiKey && cfg.athleteId ? { apiKey: cfg.apiKey, athleteId: cfg.athleteId } : null;
+
+  if (!cfg || (entry.requireCreds && !creds)) {
+    log.info(
+      `\n⏭️  ${entry.label}: ${entry.requireCreds ? "keine (vollständige) Zeile" : "keine Zeile"} ` +
+        `in athlete_sync_config, übersprungen`
+    );
+    return;
+  }
+
+  log.info(`\n🔄 ${entry.label} (${entry.name})...`);
+  const svc = { profileId: cfg.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY };
+
+  // plan_cards + ftp_history + aktiver DB-Plan hängen an der profile_id
+  // (service_role) — stehen also auch ohne eingetragenen intervals.icu-Key
+  // bereit. Read nicht fatal (loadPlanCards/loadFtpHistory/
+  // loadActiveTrainingPlan: [] bzw. null ohne Credentials/Treffer).
+  const planCards = await loadPlanCards(svc, { fromDate: entry.oldest });
+  const ftpHistory = await loadFtpHistory(svc);
+  // Fahrplan 8 E8: aktiver, selbst gebauter training_plans-Eintrag →
+  // plan_cards ist die alleinige Planquelle, die Code-Vorlage entfällt ({}).
+  const activePlan = await loadActiveTrainingPlan(svc);
+  if (activePlan) {
+    log.info(
+      `📅 ${entry.shortLabel}: aktiver Trainingsplan (${activePlan.id}) — ` +
+        `Code-Vorlage ${entry.templateModule} wird übersprungen`
+    );
+  }
+
+  const adjustments = entry.loadAdjustments();
+  if (entry.adjustmentsLabel) {
+    log.info(`📋 ${entry.adjustmentsLabel}: ${Object.keys(adjustments).length} Anpassungen`);
+  }
+  log.info(
+    `📋 ${entry.shortLabel}: ${planCards.length} plan_cards · ${ftpHistory.length} FTP-Historie-Einträge`
+  );
+
+  // Merge PRO DATUM wie bei Athlet 1: statische Vorlage (+ adjustments) als
+  // Basis, echte plan_cards überschreiben Datum für Datum. Bei aktivem
+  // DB-Plan trägt die Vorlage nichts mehr bei ({} → buildEffectivePlanIndex
+  // liefert {}).
+  const planTemplate = activePlan ? {} : entry.buildTemplate(cfg, today);
+  const plannedSessions = Object.entries(planTemplate).map(([date, s]) => ({ date, ...s }));
+  const effectivePlan = {
+    ...buildEffectivePlanIndex(planTemplate, adjustments),
+    ...buildPlanCardTypeIndex(planCards),
+  };
+
+  let rides = [];
+  let wellnessList = [];
+  let athleteWeight = null;
+  let powerCurves = null;
+  let planningForecast = {};
+  let effectiveFtp = entry.fixedFtp;
+
+  if (creds) {
+    const activities = await getIntervalsActivities(
+      entry.oldest,
+      today,
+      creds.apiKey,
+      creds.athleteId,
+      RIDE_TYPES
+    );
+    const wellness = await getIntervalsWellness(entry.oldest, today, creds.apiKey, creds.athleteId);
+    powerCurves = await getIntervalsPowerCurves(entry.oldest, today, creds.apiKey, creds.athleteId);
+
+    // Eigener Standort aus athlete_sync_config — kein Rückfall auf Athlet 1
+    const weatherData = await getHistoricalWeather(entry.oldest, weatherEnd, cfg.lat, cfg.lon);
+    const weatherMap = buildWeatherMap(weatherData);
+    Object.assign(weatherMap, buildWeatherMap(await getRecentWeather(cfg.lat, cfg.lon)));
+    planningForecast = (await getPlanningForecast(cfg.lat, cfg.lon)) || {};
+
+    // Feste FTP (Ramp-Test bzw. Default-Rechenwert). Nur wenn keine feste FTP
+    // gesetzt ist, aus dem besten NP ≥20min schätzen — historischer
+    // Athlet-2-Pfad, greift heute nicht (fixedFtp ist immer gesetzt).
+    if (!effectiveFtp && entry.npFallbackFtp) {
+      const longRides = activities.filter(
+        (a) => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts
+      );
+      const bestNP = longRides.length
+        ? Math.max(...longRides.map((a) => a.icu_weighted_avg_watts))
+        : null;
+      effectiveFtp = bestNP ? Math.round(bestNP * 0.95) : null;
+      if (entry.logFtp) {
+        log.info(
+          `   ... FTP (${entry.name}): ${effectiveFtp}W (geschätzt aus bestem NP ${bestNP}W ≥20min)`
+        );
+      }
+    } else if (entry.logFtp) {
+      log.info(`   ... FTP (${entry.name}): ${effectiveFtp}W (Ramp-Test)`);
+    }
+
+    // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1.
+    await updateIntervalBlockCache(activities, intervalBlockCache, {
+      apiKey: creds.apiKey,
+      ftpHistory,
+      fallbackFtp: effectiveFtp,
+    });
+
+    // Reihenfolge bewusst wie `activities` (attachCompliance braucht den
+    // Gleichlauf rides[i] <-> activities[i]) — Datumssortierung erst danach.
+    rides = activities.map((act) =>
+      mapActivity2(act, wellness, weatherMap, effectiveFtp, effectivePlan, ftpHistory, intervalBlockCache)
+    );
+    classifyCooldowns(rides, ftpHistory, effectiveFtp);
+    logRpeFeelCoverage(rides, entry.name);
+
+    const complianceCounts = attachCompliance(
+      rides,
+      activities,
+      planCards,
+      intervalBlockCache,
+      ftpHistory,
+      effectiveFtp,
+      formatCatalog
+    );
+    log.info(
+      `✅ Compliance (${entry.name}): ${complianceCounts.evaluated} Fahrten ausgewertet ` +
+        `(🟢 ${complianceCounts.green} · 🟡 ${complianceCounts.yellow} · 🔴 ${complianceCounts.red}, ` +
+        `${planCards.length} plan_cards geladen)`
+    );
+
+    rides.sort((a, b) => a.date.localeCompare(b.date));
+
+    wellnessList = mapWellnessList(wellness);
+    logWellnessCoverage(wellnessList, entry.name);
+    const latest = latestWeight(wellness);
+    athleteWeight = latest ? latest.weight : null;
+  } else {
+    log.info(
+      `ℹ️  ${entry.name}: intervals.icu-Key noch nicht in Settings — nur Plan, keine Fahrten`
+    );
+  }
+
+  // Öffentliche FTP-Felder (0025). Skalar-Fallback: die effektive FTP
+  // (Athlet 2, damit `ftp` nicht auf null fällt) oder null (Athlet 4 —
+  // `ftp` kommt allein aus ftp_history).
+  const ftpPublicFields = publicFtpFields(
+    ftpHistory,
+    cfg?.ftpPublic ?? true,
+    entry.publicFtpScalarFromEffective ? effectiveFtp : null,
+    today
+  );
+  log.info(
+    ftpPublicFields.ftpPublic
+      ? `✅ FTP öffentlich (${entry.name}): ${ftpPublicFields.ftp ?? "–"}W · ` +
+          `${ftpPublicFields.ftpHistory.length} Ramp-Test(s)`
+      : `ℹ️  FTP öffentlich (${entry.name}): abgeschaltet — keine FTP-Werte in ${entry.ridesFileName}`
+  );
+
+  const output = {
+    athleteName: entry.name,
+    ...ftpPublicFields,
+    rides,
+    wellness: wellnessList,
+    wellnessMeta: { lastUpdated: lastFieldDates(wellnessList, READINESS_FIELDS) },
+    powerCurves: powerCurves || null,
+    athleteWeight,
+    plannedSessions,
+    adjustments,
+    forecast: planningForecast || {},
+    updated: new Date().toISOString(),
+    source: creds ? "intervals.icu" : "plan-only",
+    count: rides.length,
+  };
+
+  writeOutput(entry.outfile, output);
+  log.info(`✅ ${rides.length} Fahrten (${entry.name}) → ${entry.outfile}`);
+}
+
 async function main() {
   // Blockerkennung-Cache (scripts/lib/interval-blocks.js) — einmal geladen,
   // von beiden Athleten ergänzt, einmal am Ende geschrieben. Bereits
@@ -140,12 +327,11 @@ async function main() {
       "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit der Plan-1-Historie"
     );
   }
-  const cfg2 = syncConfig.get("athlete2");
 
   // Ride↔Format-Brücke (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte
   // Sperre" Schritt 1) — athletenunabhängiger Katalog, öffentlich lesbar,
-  // einmal für beide Athleten geladen (beide attachCompliance()-Aufrufe
-  // unten liegen in getrennten if-Blöcken, s. dort).
+  // einmal geladen und an alle attachCompliance()-Aufrufe weitergereicht
+  // (Athlet 1 unten, die Sekundär-Athleten über ctx).
   const formatCatalog = await loadSessionFormats();
   log.info(
     formatCatalog.length
@@ -392,341 +578,18 @@ async function main() {
   );
   log.info(`   Quelle: ${output.source}`);
 
-  // 5. Zweiter Athlet (Vergleichsathlet, read-only — hat aber seit GFNY
-  //    Bremen 2026 einen eigenen Planungstab, s. plannedSessions unten)
-  if (cfg2?.apiKey && cfg2?.athleteId) {
-    log.info(`\n🔄 Zweiter Athlet (${ATHLETE_2_NAME})...`);
-    const oldest2 = "2026-01-01";
-    const today2 = new Date().toISOString().split("T")[0];
-
-    const activities2 = await getIntervalsActivities(
-      oldest2,
-      today2,
-      cfg2.apiKey,
-      cfg2.athleteId,
-      RIDE_TYPES
-    );
-    const wellness2 = await getIntervalsWellness(oldest2, today2, cfg2.apiKey, cfg2.athleteId);
-    const powerCurves2 = await getIntervalsPowerCurves(oldest2, today2, cfg2.apiKey, cfg2.athleteId);
-
-    // Eigener Standort für Athlet 2 aus athlete_sync_config — kein Rückfall auf den Standort von Athlet 1
-    const weatherData2 = await getHistoricalWeather(oldest2, weatherEnd, cfg2.lat, cfg2.lon);
-    const weatherMap2 = buildWeatherMap(weatherData2);
-    const recentData2 = await getRecentWeather(cfg2.lat, cfg2.lon);
-    Object.assign(weatherMap2, buildWeatherMap(recentData2));
-
-    // Feste FTP aus letztem Ramp-Test (ATHLETE_2_FTP), Fallback: Schätzung aus bestem NP ≥20min
-    const longRides2 = activities2.filter(
-      (a) => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts
-    );
-    const bestNP2 = longRides2.length
-      ? Math.max(...longRides2.map((a) => a.icu_weighted_avg_watts))
-      : null;
-    const estimatedFTP2 = ATHLETE_2_FTP || (bestNP2 ? Math.round(bestNP2 * 0.95) : null);
-    log.info(
-      `   ... FTP (${ATHLETE_2_NAME}): ${estimatedFTP2}W ${ATHLETE_2_FTP ? "(Ramp-Test)" : `(geschätzt aus bestem NP ${bestNP2}W ≥20min)`}`
-    );
-
-    const adjustments2 = loadAdjustments2();
-    log.info(`📋 adjustments-2.json: ${Object.keys(adjustments2).length} Anpassungen`);
-    // planCards2 hier laden (statt erst bei der Compliance weiter unten) —
-    // effectivePlan2 braucht den echten, aktuellen Kartenstand für einen
-    // Tausch/eine Verschiebung im (read-only) Planungstab von Athlet 2,
-    // analog zu planCards/effectivePlan bei Athlet 1 oben (Merge pro Datum,
-    // s. dortiger Kommentar — kein alles-oder-nichts-Fallback).
-    const planCards2 = await loadPlanCards(
-      { profileId: cfg2.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY },
-      { fromDate: oldest2 }
-    );
-    // Fahrplan 8 E8: hat Athlet 2 einen selbst gebauten, aktiven
-    // training_plans-Eintrag, ist plan_cards die ALLEINIGE Planquelle — die
-    // Code-Vorlage plan-athlete2.js wird dann nicht mehr gespreadet (weder
-    // in effectivePlan2 noch in output2.plannedSessions unten). Read nicht
-    // fatal (s. training-plan-fetch.js): null -> Vorlage wie bisher.
-    const activePlan2 = await loadActiveTrainingPlan({
-      profileId: cfg2.profileId,
-      serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
-    });
-    if (activePlan2) {
-      log.info(
-        `📅 Athlet 2: aktiver Trainingsplan (${activePlan2.id}) — Code-Vorlage plan-athlete2.js wird übersprungen`
-      );
-    }
-    const effectivePlan2 = activePlan2
-      ? buildPlanCardTypeIndex(planCards2)
-      : {
-          ...buildEffectivePlanIndex(PLANNED_SESSIONS_ATHLETE2, adjustments2),
-          ...buildPlanCardTypeIndex(planCards2),
-        };
-
-    // Kein Sonderfall für Athlet 2: dieselbe generische ftpAt()-Auflösung
-    // wie bei Athlet 1. Pflegt Athlet 2 keine ftp_history (vermutlich der
-    // Fall, kein Ramp-Test-Konzept in derselben Form), liefert
-    // loadFtpHistory() [] und ftpAt() fällt auf estimatedFTP2 zurück —
-    // exakt das bisherige Verhalten, ohne athletenspezifischen Code.
-    const ftpHistory2 = await loadFtpHistory({
-      profileId: cfg2.profileId,
-      serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
-    });
-    log.info(
-      ftpHistory2.length
-        ? `✅ FTP-Historie (${ATHLETE_2_NAME}): ${ftpHistory2.length} Einträge`
-        : `ℹ️  FTP-Historie (${ATHLETE_2_NAME}): keine Einträge/Credentials — Fallback auf ${estimatedFTP2}W für alle Fahrten`
-    );
-
-    // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1 (s. dort).
-    await updateIntervalBlockCache(activities2, intervalBlockCache, {
-      apiKey: cfg2.apiKey,
-      ftpHistory: ftpHistory2,
-      fallbackFtp: estimatedFTP2,
-    });
-
-    // Reihenfolge bewusst identisch zu activities2 (noch NICHT nach Datum
-    // sortiert) — attachCompliance() unten braucht den Gleichlauf
-    // rides2[i] <-> activities2[i], um die intervals.icu-Activity-ID je
-    // Fahrt aufzulösen (die im gemappten Ride-Objekt selbst nicht mehr
-    // vorkommt). Die Datumssortierung fürs Frontend passiert erst danach.
-    const rides2 = activities2.map((act) =>
-      mapActivity2(act, wellness2, weatherMap2, estimatedFTP2, effectivePlan2, ftpHistory2, intervalBlockCache)
-    );
-    // Ausrollen nach einem Rennen (gleicher Tag, kurz, deutlich niedrigere
-    // Leistung) erbt sonst die Renn-Plankarte des Tages — hier korrigiert.
-    classifyCooldowns(rides2, ftpHistory2, estimatedFTP2);
-    logRpeFeelCoverage(rides2, ATHLETE_2_NAME);
-
-    // Soll-Ist-Matching + Compliance-Ampel (s. Athlet 1 oben) — MUSS vor der
-    // folgenden Datumssortierung laufen (Gleichlauf rides2[i] <-> activities2[i]).
-    // Nutzt dieselben planCards2 wie effectivePlan2 oben (kein zweiter Fetch).
-    const complianceCounts2 = attachCompliance(
-      rides2,
-      activities2,
-      planCards2,
+  // 5. Sekundär-Athleten (2 + 4, künftig 3) — ein gemeinsamer Rumpf, je
+  //    Athlet über die Felder in scripts/lib/athletes.js parametrisiert.
+  //    Athlet 1 oben hat bewusst einen eigenen Pfad (Plan-1-Historie,
+  //    Power-Curve-Blöcke, subjective.js/mapActivity, eigene Output-Form).
+  const today = new Date().toISOString().split("T")[0];
+  for (const entry of SECONDARY_ATHLETES) {
+    await syncSecondaryAthlete(entry, syncConfig, {
+      today,
+      weatherEnd,
+      formatCatalog,
       intervalBlockCache,
-      ftpHistory2,
-      estimatedFTP2,
-      formatCatalog
-    );
-    log.info(
-      `✅ Compliance (${ATHLETE_2_NAME}): ${complianceCounts2.evaluated} Fahrten ausgewertet ` +
-        `(🟢 ${complianceCounts2.green} · 🟡 ${complianceCounts2.yellow} · 🔴 ${complianceCounts2.red}, ` +
-        `${planCards2.length} plan_cards geladen)`
-    );
-
-    rides2.sort((a, b) => a.date.localeCompare(b.date));
-
-    const wellnessList2 = mapWellnessList(wellness2);
-    logWellnessCoverage(wellnessList2, ATHLETE_2_NAME);
-
-    const latest2 = latestWeight(wellness2);
-    const athleteWeight2 = latest2 ? latest2.weight : null;
-
-    // Eigener Standort für Athlet 2 (athlete_sync_config, s. weatherData2 oben)
-    // — kein Rückfall auf den Forecast von Athlet 1.
-    const planningForecast2 = await getPlanningForecast(cfg2.lat, cfg2.lon);
-
-    // Öffentliche FTP-Felder (0025) — Skalar-Fallback estimatedFTP2, damit
-    // `ftp` für Athlet 2 nicht auf null zurückfällt, wenn keine ramp-test-
-    // Historie gepflegt ist. Ersetzt das frühere feste `ftp: estimatedFTP2`.
-    const ftpPublicFields2 = publicFtpFields(
-      ftpHistory2,
-      cfg2?.ftpPublic ?? true,
-      estimatedFTP2,
-      today2
-    );
-    log.info(
-      ftpPublicFields2.ftpPublic
-        ? `✅ FTP öffentlich (${ATHLETE_2_NAME}): ${ftpPublicFields2.ftp ?? "–"}W · ${ftpPublicFields2.ftpHistory.length} Ramp-Test(s)`
-        : `ℹ️  FTP öffentlich (${ATHLETE_2_NAME}): abgeschaltet — keine FTP-Werte in rides-2.json`
-    );
-
-    const output2 = {
-      athleteName: ATHLETE_2_NAME,
-      ...ftpPublicFields2,
-      rides: rides2,
-      wellness: wellnessList2,
-      wellnessMeta: { lastUpdated: lastFieldDates(wellnessList2, READINESS_FIELDS) },
-      powerCurves: powerCurves2 || null,
-      athleteWeight: athleteWeight2,
-      // E8: bei aktivem DB-Plan ist plan_cards die Planquelle — die
-      // Vorlagen-Sessions (im Frontend nur noch ein Hinweistext-Feed,
-      // nextLoadAfter()) entfallen dann.
-      plannedSessions: activePlan2
-        ? []
-        : Object.entries(PLANNED_SESSIONS_ATHLETE2).map(([date, s]) => ({ date, ...s })),
-      adjustments: adjustments2,
-      forecast: planningForecast2 || {},
-      updated: new Date().toISOString(),
-      source: "intervals.icu",
-      count: rides2.length,
-    };
-
-    writeOutput(OUT_FILE_2, output2);
-    log.info(`✅ ${rides2.length} Fahrten (${ATHLETE_2_NAME}) → ${OUT_FILE_2}`);
-  } else {
-    log.info(`\n⏭️  Zweiter Athlet: keine (vollständige) Zeile in athlete_sync_config, übersprungen`);
-  }
-
-  // 6. Vierter Athlet (Bentastiic, Einsteiger — volles Modell wie Athlet 1
-  //    [Login, Befinden, editierbare plan_cards], aber Lesedaten-Pipeline
-  //    wie Athlet 2 [intervals.icu + Supabase, kein Notion]).
-  //    Seit Fahrplan 7 CRED3: intervals.icu-Key/-Athlete-ID + Standort kommen
-  //    aus athlete_sync_config (self-service in Settings). Fehlt die Zeile,
-  //    wird der Block übersprungen; fehlt nur der intervals-Key in der Zeile,
-  //    wird rides-4.json trotzdem geschrieben — nur der Plan, keine Fahrten.
-  //    WATTLOS: kein Ramp-Test → output4.ftp = null; DEFAULT_FTP dient hier
-  //    nur als reiner Rechen-Fallback für die Ist-Typerkennung.
-  const cfg4 = syncConfig.get("athlete4");
-  const today4 = new Date().toISOString().split("T")[0];
-  // Fahrplan 8 E8: aktiver, selbst gebauter training_plans-Eintrag →
-  // plan_cards ist die alleinige Planquelle, die generierte Code-Vorlage
-  // plan-athlete4.js (inkl. plan_offset_weeks-Verschiebung) entfällt. Read
-  // nicht fatal (s. training-plan-fetch.js): null → Vorlage wie bisher.
-  const activePlan4 = cfg4
-    ? await loadActiveTrainingPlan({
-        profileId: cfg4.profileId,
-        serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
-      })
-    : null;
-  // profiles.plan_offset_weeks (Migration 0026): Athlet 4 kann seine Vorlage im
-  // Planungstab um N ganze Wochen verschieben. Sie (Datum + Baseline für
-  // Compliance/Hero) wandert hier mit — aber NUR ab heute, genau wie der
-  // Schreibpfad im Frontend (planShiftPatches verschiebt nur künftige, nicht
-  // ausgefallene Karten). Die editierten plan_cards sind beim Verschieben
-  // schon einmalig umdatiert worden (useShiftPlan). Bei aktivem DB-Plan: {}.
-  const planTemplate4 = activePlan4
-    ? {}
-    : shiftPlannedSessions4(cfg4?.planOffsetWeeks ?? 0, today4);
-  const plannedSessions4 = Object.entries(planTemplate4).map(([date, s]) => ({
-    date,
-    ...s,
-  }));
-  if (cfg4) {
-    log.info(`\n🔄 Vierter Athlet (${ATHLETE_4_NAME})...`);
-    const svc4 = { profileId: cfg4.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY };
-    const oldest4 = "2026-08-01"; // kurz vor Planstart (KW36, 2026-08-31)
-    // today4 ist oben (vor dem shiftPlannedSessions4-Aufruf) deklariert.
-
-    const creds4 =
-      cfg4.apiKey && cfg4.athleteId ? { apiKey: cfg4.apiKey, athleteId: cfg4.athleteId } : null;
-
-    // plan_cards + ftp_history hängen an der profile_id (service_role), nicht
-    // an creds4 — auch ohne eingetragenen intervals.icu-Key stehen sie bereit.
-    const planCards4 = await loadPlanCards(svc4, { fromDate: oldest4 });
-    const ftpHistory4 = await loadFtpHistory(svc4);
-    const effectivePlan4 = {
-      ...buildEffectivePlanIndex(planTemplate4, {}),
-      ...buildPlanCardTypeIndex(planCards4),
-    };
-    log.info(
-      `📋 Athlet 4: ${planCards4.length} plan_cards · ${ftpHistory4.length} FTP-Historie-Einträge`
-    );
-    if (activePlan4) {
-      log.info(
-        `📅 Athlet 4: aktiver Trainingsplan (${activePlan4.id}) — Code-Vorlage plan-athlete4.js wird übersprungen`
-      );
-    }
-
-    let rides4 = [];
-    let wellnessList4 = [];
-    let athleteWeight4 = null;
-    let powerCurves4 = null;
-    let planningForecast4 = {};
-
-    if (creds4) {
-      const activities4 = await getIntervalsActivities(
-        oldest4,
-        today4,
-        creds4.apiKey,
-        creds4.athleteId,
-        RIDE_TYPES
-      );
-      const wellness4 = await getIntervalsWellness(
-        oldest4,
-        today4,
-        creds4.apiKey,
-        creds4.athleteId
-      );
-      powerCurves4 = await getIntervalsPowerCurves(
-        oldest4,
-        today4,
-        creds4.apiKey,
-        creds4.athleteId
-      );
-
-      // Eigener Standort aus athlete_sync_config — kein Rückfall auf Athlet 1/2
-      const weatherData4 = await getHistoricalWeather(oldest4, weatherEnd, cfg4.lat, cfg4.lon);
-      const weatherMap4 = buildWeatherMap(weatherData4);
-      const recentData4 = await getRecentWeather(cfg4.lat, cfg4.lon);
-      Object.assign(weatherMap4, buildWeatherMap(recentData4));
-      planningForecast4 = (await getPlanningForecast(cfg4.lat, cfg4.lon)) || {};
-
-      // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1/2.
-      await updateIntervalBlockCache(activities4, intervalBlockCache, {
-        apiKey: creds4.apiKey,
-        ftpHistory: ftpHistory4,
-        fallbackFtp: DEFAULT_FTP,
-      });
-
-      // Reihenfolge bewusst wie activities4 (attachCompliance braucht den
-      // Gleichlauf rides4[i] <-> activities4[i]) — Datumssortierung danach.
-      rides4 = activities4.map((act) =>
-        mapActivity2(act, wellness4, weatherMap4, DEFAULT_FTP, effectivePlan4, ftpHistory4, intervalBlockCache)
-      );
-      classifyCooldowns(rides4, ftpHistory4, DEFAULT_FTP);
-      logRpeFeelCoverage(rides4, ATHLETE_4_NAME);
-
-      const complianceCounts4 = attachCompliance(
-        rides4,
-        activities4,
-        planCards4,
-        intervalBlockCache,
-        ftpHistory4,
-        DEFAULT_FTP,
-        formatCatalog
-      );
-      log.info(
-        `✅ Compliance (${ATHLETE_4_NAME}): ${complianceCounts4.evaluated} Fahrten ausgewertet ` +
-          `(🟢 ${complianceCounts4.green} · 🟡 ${complianceCounts4.yellow} · 🔴 ${complianceCounts4.red})`
-      );
-
-      rides4.sort((a, b) => a.date.localeCompare(b.date));
-
-      wellnessList4 = mapWellnessList(wellness4);
-      logWellnessCoverage(wellnessList4, ATHLETE_4_NAME);
-      const latest4 = latestWeight(wellness4);
-      athleteWeight4 = latest4 ? latest4.weight : null;
-    } else {
-      log.info(
-        `ℹ️  ${ATHLETE_4_NAME}: intervals.icu-Key noch nicht in Settings — nur Plan, keine Fahrten`
-      );
-    }
-
-    // Öffentliche FTP-Felder (0025) — Athlet 4 hat (noch) keine ramp-test-
-    // Historie: `ftp` bleibt null, `ftpHistory` leer, bis der 20-Min-Test
-    // (plan-athlete4.js KW47) einen Eintrag anlegt. Dann leuchtet es
-    // automatisch, ohne Code-Änderung.
-    const ftpPublicFields4 = publicFtpFields(ftpHistory4, cfg4?.ftpPublic ?? true, null, today4);
-
-    const output4 = {
-      athleteName: ATHLETE_4_NAME,
-      ...ftpPublicFields4,
-      rides: rides4,
-      wellness: wellnessList4,
-      wellnessMeta: { lastUpdated: lastFieldDates(wellnessList4, READINESS_FIELDS) },
-      powerCurves: powerCurves4 || null,
-      athleteWeight: athleteWeight4,
-      plannedSessions: plannedSessions4,
-      adjustments: {}, // volles Modell: Verschiebungen leben in plan_cards
-      forecast: planningForecast4,
-      updated: new Date().toISOString(),
-      source: creds4 ? "intervals.icu" : "plan-only",
-      count: rides4.length,
-    };
-
-    writeOutput(OUT_FILE_4, output4);
-    log.info(`✅ ${rides4.length} Fahrten (${ATHLETE_4_NAME}) → ${OUT_FILE_4}`);
-  } else {
-    log.info(`\n⏭️  Vierter Athlet: keine Zeile in athlete_sync_config, übersprungen`);
+    });
   }
 
   writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);
