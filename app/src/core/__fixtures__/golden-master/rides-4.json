@@ -1,0 +1,638 @@
+[
+  {
+    "week": null,
+    "phase": null,
+    "typ": "Z1 Recovery",
+    "typPlanned": null,
+    "typDetected": "Z1 Recovery",
+    "typDetection": {
+      "type": "Z1 Recovery",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.72,
+          "note": "NP 139W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "46 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 57% · Z3/Z4+ 35% · Z5+ 8%",
+          "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-niedrig-kurz"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-30",
+    "startTime": "2026-08-30T17:42:03",
+    "activityId": "i181424531",
+    "km": 19.8,
+    "min": 46,
+    "kmh": 25.9,
+    "watt": 128,
+    "maxWatt": null,
+    "np": 139,
+    "hf": 135,
+    "hfMax": 149,
+    "kad": 62,
+    "hoehe": 89,
+    "hmProKm": 4.5,
+    "tss": 45,
+    "if": 0.77,
+    "vi": 1.09,
+    "trimp": 80,
+    "ctl": 27.5,
+    "atl": 38.1,
+    "tsb": -10.5,
+    "decoupling": -2.7,
+    "dtl": 45,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 553
+      },
+      {
+        "id": "Z2",
+        "secs": 1018
+      },
+      {
+        "id": "Z3",
+        "secs": 664
+      },
+      {
+        "id": "Z4",
+        "secs": 289
+      },
+      {
+        "id": "Z5",
+        "secs": 143
+      },
+      {
+        "id": "Z6",
+        "secs": 66
+      },
+      {
+        "id": "Z7",
+        "secs": 12
+      },
+      {
+        "id": "SS",
+        "secs": 410
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23.9,
+      "tempFeel": 23.5,
+      "humidity": 53,
+      "windSpeed": 10.2,
+      "windDir": 281,
+      "precip": 0,
+      "cloudCover": 71,
+      "weatherCode": 2
+    },
+    "wetter": "23.9°C",
+    "source": "intervals.icu",
+    "ruhepuls": 51,
+    "hrv": null,
+    "avgSleepingHR": null,
+    "sleepHours": 5.9,
+    "feel": null
+  },
+  {
+    "week": null,
+    "phase": null,
+    "typ": "Sweet Spot",
+    "typPlanned": null,
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "mittel",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.793,
+          "note": "NP 153W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "39 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "8 min zusammenhängend über Schwelle (210 W, 20.5% der Fahrzeit)",
+          "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 66% · Z3/Z4+ 17% · Z5+ 16%",
+          "note": "weicht von der IF-Einstufung ab — Z3/Z4+-Anteil geringer als erwartet"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-30",
+    "startTime": "2026-08-30T16:49:52",
+    "activityId": "i181399081",
+    "km": 6.7,
+    "min": 39,
+    "kmh": 10.2,
+    "watt": 126,
+    "maxWatt": null,
+    "np": 153,
+    "hf": 128,
+    "hfMax": 163,
+    "kad": 59,
+    "hoehe": 160,
+    "hmProKm": 23.9,
+    "tss": 47,
+    "if": 0.85,
+    "vi": 1.21,
+    "trimp": 56,
+    "ctl": 27.5,
+    "atl": 38.1,
+    "tsb": -10.5,
+    "decoupling": -28.1,
+    "dtl": 47,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 623
+      },
+      {
+        "id": "Z2",
+        "secs": 940
+      },
+      {
+        "id": "Z3",
+        "secs": 233
+      },
+      {
+        "id": "Z4",
+        "secs": 178
+      },
+      {
+        "id": "Z5",
+        "secs": 204
+      },
+      {
+        "id": "Z6",
+        "secs": 179
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 145
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23.9,
+      "tempFeel": 23.4,
+      "humidity": 54,
+      "windSpeed": 11.5,
+      "windDir": 278,
+      "precip": 0,
+      "cloudCover": 84,
+      "weatherCode": 3
+    },
+    "wetter": "23.9°C",
+    "source": "intervals.icu",
+    "ruhepuls": 51,
+    "hrv": null,
+    "avgSleepingHR": null,
+    "sleepHours": 5.9,
+    "feel": null
+  },
+  {
+    "week": null,
+    "phase": null,
+    "typ": "Z2",
+    "typPlanned": "Z2",
+    "typDetected": null,
+    "typDetection": {
+      "type": null,
+      "confidence": "niedrig",
+      "signals": [
+        {
+          "label": "Leistungsdaten",
+          "value": null,
+          "note": "keine Normalized Power/FTP für diese Fahrt verfügbar — Typ nicht ableitbar"
+        }
+      ],
+      "rule": "keine-leistungsdaten"
+    },
+    "typSource": "plan",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-09-01",
+    "startTime": "2026-09-01T16:14:53",
+    "activityId": "i182624272",
+    "km": 13.9,
+    "min": 40,
+    "kmh": 21.2,
+    "watt": null,
+    "maxWatt": null,
+    "np": null,
+    "hf": 137,
+    "hfMax": 170,
+    "kad": null,
+    "hoehe": 77,
+    "hmProKm": 5.5,
+    "tss": 43,
+    "if": 0.8,
+    "vi": null,
+    "trimp": 72,
+    "ctl": 27.3,
+    "atl": 34.3,
+    "tsb": -7.1,
+    "decoupling": null,
+    "dtl": 43,
+    "zoneTimes": null,
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 22.5,
+      "tempFeel": 20.5,
+      "humidity": 43,
+      "windSpeed": 12,
+      "windDir": 273,
+      "precip": 0,
+      "cloudCover": 10,
+      "weatherCode": 0
+    },
+    "wetter": "22.5°C",
+    "source": "intervals.icu",
+    "ruhepuls": 55,
+    "hrv": null,
+    "avgSleepingHR": null,
+    "sleepHours": null,
+    "feel": null
+  },
+  {
+    "week": null,
+    "phase": null,
+    "typ": "Sweet Spot",
+    "typPlanned": null,
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.922,
+          "note": "NP 166W ÷ FTP 180W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "80 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 40% · Z3/Z4+ 47% · Z5+ 13%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-09-02",
+    "startTime": "2026-09-02T18:21:44",
+    "activityId": "i182570146",
+    "km": 35,
+    "min": 80,
+    "kmh": 26.4,
+    "watt": 144,
+    "maxWatt": null,
+    "np": 166,
+    "hf": 134,
+    "hfMax": 170,
+    "kad": 61,
+    "hoehe": 158,
+    "hmProKm": 4.5,
+    "tss": 113,
+    "if": 0.92,
+    "vi": 1.15,
+    "trimp": 139,
+    "ctl": 29.7,
+    "atl": 47.3,
+    "tsb": -17.6,
+    "decoupling": 3.9,
+    "dtl": 113,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 628
+      },
+      {
+        "id": "Z2",
+        "secs": 1265
+      },
+      {
+        "id": "Z3",
+        "secs": 1575
+      },
+      {
+        "id": "Z4",
+        "secs": 673
+      },
+      {
+        "id": "Z5",
+        "secs": 282
+      },
+      {
+        "id": "Z6",
+        "secs": 213
+      },
+      {
+        "id": "Z7",
+        "secs": 143
+      },
+      {
+        "id": "SS",
+        "secs": 1050
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 21.7,
+      "tempFeel": 20,
+      "humidity": 48,
+      "windSpeed": 11.8,
+      "windDir": 275,
+      "precip": 0,
+      "cloudCover": 55,
+      "weatherCode": 2
+    },
+    "wetter": "21.7°C",
+    "source": "intervals.icu",
+    "ruhepuls": 48,
+    "hrv": null,
+    "avgSleepingHR": null,
+    "sleepHours": 7.7,
+    "feel": null
+  },
+  {
+    "week": null,
+    "phase": null,
+    "typ": "Tempo",
+    "typPlanned": null,
+    "typDetected": "Tempo",
+    "typDetection": {
+      "type": "Tempo",
+      "confidence": "niedrig",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.889,
+          "note": "NP 160W ÷ FTP 180W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "14 min",
+          "note": "unter 20 min — Einstufung unsicher"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 42% · Z3/Z4+ 41% · Z5+ 18%",
+          "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-tempo"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-09-02",
+    "startTime": "2026-09-02T17:51:22",
+    "activityId": "i182529719",
+    "km": 5,
+    "min": 14,
+    "kmh": 21,
+    "watt": 143,
+    "maxWatt": null,
+    "np": 160,
+    "hf": 127,
+    "hfMax": 139,
+    "kad": 60,
+    "hoehe": 48,
+    "hmProKm": 9.6,
+    "tss": 19,
+    "if": 0.89,
+    "vi": 1.12,
+    "trimp": 20,
+    "ctl": 29.7,
+    "atl": 47.3,
+    "tsb": -17.6,
+    "decoupling": 1.8,
+    "dtl": 19,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 168
+      },
+      {
+        "id": "Z2",
+        "secs": 187
+      },
+      {
+        "id": "Z3",
+        "secs": 138
+      },
+      {
+        "id": "Z4",
+        "secs": 208
+      },
+      {
+        "id": "Z5",
+        "secs": 87
+      },
+      {
+        "id": "Z6",
+        "secs": 45
+      },
+      {
+        "id": "Z7",
+        "secs": 17
+      },
+      {
+        "id": "SS",
+        "secs": 149
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23.2,
+      "tempFeel": 21.2,
+      "humidity": 44,
+      "windSpeed": 13.6,
+      "windDir": 273,
+      "precip": 0,
+      "cloudCover": 63,
+      "weatherCode": 3
+    },
+    "wetter": "23.2°C",
+    "source": "intervals.icu",
+    "ruhepuls": 48,
+    "hrv": null,
+    "avgSleepingHR": null,
+    "sleepHours": 7.7,
+    "feel": null
+  },
+  {
+    "week": null,
+    "phase": null,
+    "typ": "Z2",
+    "typPlanned": "Z2",
+    "typDetected": null,
+    "typDetection": {
+      "type": null,
+      "confidence": "niedrig",
+      "signals": [
+        {
+          "label": "Leistungsdaten",
+          "value": null,
+          "note": "keine Normalized Power/FTP für diese Fahrt verfügbar — Typ nicht ableitbar"
+        }
+      ],
+      "rule": "keine-leistungsdaten"
+    },
+    "typSource": "plan",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-09-03",
+    "startTime": "2026-09-03T15:41:21",
+    "activityId": "i182920709",
+    "km": 19.2,
+    "min": 59,
+    "kmh": 19.7,
+    "watt": null,
+    "maxWatt": null,
+    "np": null,
+    "hf": null,
+    "hfMax": null,
+    "kad": null,
+    "hoehe": 108,
+    "hmProKm": 5.6,
+    "tss": null,
+    "if": null,
+    "vi": null,
+    "trimp": null,
+    "ctl": 29,
+    "atl": 41,
+    "tsb": -12,
+    "decoupling": null,
+    "dtl": null,
+    "zoneTimes": null,
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 24.5,
+      "tempFeel": 22.3,
+      "humidity": 41,
+      "windSpeed": 16.3,
+      "windDir": 262,
+      "precip": 0,
+      "cloudCover": 99,
+      "weatherCode": 3
+    },
+    "wetter": "24.5°C",
+    "source": "intervals.icu",
+    "ruhepuls": 50,
+    "hrv": null,
+    "avgSleepingHR": null,
+    "sleepHours": 6.2,
+    "feel": null
+  },
+  {
+    "week": null,
+    "phase": null,
+    "typ": "Außerplanmäßig",
+    "typPlanned": null,
+    "typDetected": null,
+    "typDetection": {
+      "type": null,
+      "confidence": "niedrig",
+      "signals": [
+        {
+          "label": "Leistungsdaten",
+          "value": null,
+          "note": "keine Normalized Power/FTP für diese Fahrt verfügbar — Typ nicht ableitbar"
+        }
+      ],
+      "rule": "keine-leistungsdaten"
+    },
+    "typSource": "inferred",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-09-04",
+    "startTime": "2026-09-04T11:23:12",
+    "activityId": "i183286279",
+    "km": 57.4,
+    "min": 179,
+    "kmh": 19.5,
+    "watt": null,
+    "maxWatt": null,
+    "np": null,
+    "hf": 147,
+    "hfMax": 170,
+    "kad": null,
+    "hoehe": 427,
+    "hmProKm": 7.4,
+    "tss": 256,
+    "if": 0.93,
+    "vi": null,
+    "trimp": 438,
+    "ctl": 34.4,
+    "atl": 69.6,
+    "tsb": -35.3,
+    "decoupling": null,
+    "dtl": 256,
+    "zoneTimes": null,
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 27.6,
+      "tempFeel": 27.4,
+      "humidity": 45,
+      "windSpeed": 14.4,
+      "windDir": 258,
+      "precip": 0,
+      "cloudCover": 16,
+      "weatherCode": 1
+    },
+    "wetter": "27.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 49,
+    "hrv": null,
+    "avgSleepingHR": null,
+    "sleepHours": 8,
+    "feel": null
+  }
+]

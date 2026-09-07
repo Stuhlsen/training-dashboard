@@ -1,0 +1,7965 @@
+[
+  {
+    "date": "2026-03-24",
+    "week": "Vor W1",
+    "phase": "Vorbereitung",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.23,
+    "min": 48,
+    "kmh": 23.9,
+    "hf": 163,
+    "hfMax": 183,
+    "kad": 74,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 131,
+    "ctl": null,
+    "atl": null,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 37.4,
+    "hoehe": 22,
+    "feel": "Hart",
+    "heu": false,
+    "wetter": "7.4°C",
+    "weather": {
+      "temp": 7.4,
+      "tempFeel": 4,
+      "humidity": 66,
+      "windSpeed": 9.6,
+      "windDir": 225,
+      "precip": 0,
+      "cloudCover": 100,
+      "weatherCode": 3
+    },
+    "id": 1,
+    "dateShort": "24.03",
+    "dateISO": "2026-03-24"
+  },
+  {
+    "date": "2026-03-25",
+    "week": "Vor W1",
+    "phase": "Vorbereitung",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.22,
+    "min": 57,
+    "kmh": 20.1,
+    "hf": 133,
+    "hfMax": 149,
+    "kad": 77,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 72,
+    "ctl": 1,
+    "atl": 5.5,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 44.6,
+    "hoehe": 26,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "12°C",
+    "weather": {
+      "temp": 12,
+      "tempFeel": 6.9,
+      "humidity": 49,
+      "windSpeed": 21.8,
+      "windDir": 207,
+      "precip": 0,
+      "cloudCover": 100,
+      "weatherCode": 3
+    },
+    "id": 2,
+    "dateShort": "25.03",
+    "dateISO": "2026-03-25"
+  },
+  {
+    "date": "2026-03-26",
+    "week": "Vor W1",
+    "phase": "Vorbereitung",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.11,
+    "min": 57,
+    "kmh": 20.1,
+    "hf": 131,
+    "hfMax": 146,
+    "kad": 84,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 68,
+    "ctl": 1.9,
+    "atl": 9.9,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 44.3,
+    "hoehe": 20,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "4.5°C",
+    "weather": {
+      "temp": 4.5,
+      "tempFeel": 0.2,
+      "humidity": 77,
+      "windSpeed": 15.3,
+      "windDir": 291,
+      "precip": 0,
+      "cloudCover": 100,
+      "weatherCode": 3
+    },
+    "id": 3,
+    "dateShort": "26.03",
+    "dateISO": "2026-03-26"
+  },
+  {
+    "date": "2026-03-27",
+    "week": "Vor W1",
+    "phase": "Vorbereitung",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.23,
+    "min": 57,
+    "kmh": 20.2,
+    "hf": 139,
+    "hfMax": 156,
+    "kad": 81,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 84,
+    "ctl": 2.9,
+    "atl": 15,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 44.4,
+    "hoehe": 25,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "1.8°C",
+    "weather": {
+      "temp": 1.8,
+      "tempFeel": -1.8,
+      "humidity": 71,
+      "windSpeed": 7.8,
+      "windDir": 272,
+      "precip": 0,
+      "cloudCover": 1,
+      "weatherCode": 0
+    },
+    "id": 4,
+    "dateShort": "27.03",
+    "dateISO": "2026-03-27"
+  },
+  {
+    "date": "2026-03-28",
+    "week": "Vor W1",
+    "phase": "Vorbereitung",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.22,
+    "min": 53,
+    "kmh": 21.7,
+    "hf": 140,
+    "hfMax": 155,
+    "kad": 83,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 80,
+    "ctl": 5,
+    "atl": 25.1,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 41.3,
+    "hoehe": 21,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "3.9°C",
+    "weather": {
+      "temp": 3.9,
+      "tempFeel": 0.3,
+      "humidity": 59,
+      "windSpeed": 6.1,
+      "windDir": 225,
+      "precip": 0,
+      "cloudCover": 72,
+      "weatherCode": 3
+    },
+    "id": 5,
+    "dateShort": "28.03",
+    "dateISO": "2026-03-28"
+  },
+  {
+    "date": "2026-03-31",
+    "week": "W1",
+    "phase": "Phase 1",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.22,
+    "min": 58,
+    "kmh": 19.9,
+    "hf": 137,
+    "hfMax": 154,
+    "kad": 84,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 80,
+    "ctl": 5.8,
+    "atl": 22.5,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 44.9,
+    "hoehe": null,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "4.6°C",
+    "weather": {
+      "temp": 4.6,
+      "tempFeel": 0.5,
+      "humidity": 85,
+      "windSpeed": 16.4,
+      "windDir": 316,
+      "precip": 0.1,
+      "cloudCover": 61,
+      "weatherCode": 51
+    },
+    "id": 6,
+    "dateShort": "31.03",
+    "dateISO": "2026-03-31"
+  },
+  {
+    "date": "2026-04-01",
+    "week": "W1",
+    "phase": "Phase 1",
+    "typ": "Z2 Kadenz",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 23.32,
+    "min": 66,
+    "kmh": 21.1,
+    "hf": 134,
+    "hfMax": 147,
+    "kad": 84,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 85,
+    "ctl": 6.8,
+    "atl": 26,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 51.5,
+    "hoehe": null,
+    "feel": "Leicht",
+    "heu": false,
+    "wetter": "4.6°C",
+    "weather": {
+      "temp": 4.6,
+      "tempFeel": 2.8,
+      "humidity": 91,
+      "windSpeed": 0.5,
+      "windDir": 270,
+      "precip": 0.1,
+      "cloudCover": 93,
+      "weatherCode": 51
+    },
+    "id": 7,
+    "dateShort": "01.04",
+    "dateISO": "2026-04-01"
+  },
+  {
+    "date": "2026-04-02",
+    "week": "W1",
+    "phase": "Phase 1",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 23.7,
+    "min": 73,
+    "kmh": 19.4,
+    "hf": 133,
+    "hfMax": 158,
+    "kad": 80,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 92,
+    "ctl": 7.9,
+    "atl": 29.6,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 55.6,
+    "hoehe": null,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "6.2°C",
+    "weather": {
+      "temp": 6.2,
+      "tempFeel": 3.7,
+      "humidity": 67,
+      "windSpeed": 2.8,
+      "windDir": 272,
+      "precip": 0,
+      "cloudCover": 1,
+      "weatherCode": 0
+    },
+    "id": 8,
+    "dateShort": "02.04",
+    "dateISO": "2026-04-02"
+  },
+  {
+    "date": "2026-04-04",
+    "week": "W1",
+    "phase": "Phase 1",
+    "typ": "Z2 Lang",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 28.52,
+    "min": 85,
+    "kmh": 20.1,
+    "hf": 136,
+    "hfMax": 171,
+    "kad": 82,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 117,
+    "ctl": 9.1,
+    "atl": 31.2,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 64.6,
+    "hoehe": 60,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "12.2°C",
+    "weather": {
+      "temp": 12.2,
+      "tempFeel": 8.6,
+      "humidity": 71,
+      "windSpeed": 19.5,
+      "windDir": 256,
+      "precip": 0.1,
+      "cloudCover": 100,
+      "weatherCode": 51
+    },
+    "id": 9,
+    "dateShort": "04.04",
+    "dateISO": "2026-04-04"
+  },
+  {
+    "date": "2026-04-05",
+    "week": "W1",
+    "phase": "Phase 1",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 30,
+    "min": 87,
+    "kmh": 20.6,
+    "hf": 134,
+    "hfMax": 159,
+    "kad": 83,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 113,
+    "ctl": 10.4,
+    "atl": 35.7,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 67.9,
+    "hoehe": null,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "15.9°C",
+    "weather": {
+      "temp": 15.9,
+      "tempFeel": 12.8,
+      "humidity": 59,
+      "windSpeed": 16.5,
+      "windDir": 209,
+      "precip": 0,
+      "cloudCover": 74,
+      "weatherCode": 3
+    },
+    "id": 10,
+    "dateShort": "05.04",
+    "dateISO": "2026-04-05"
+  },
+  {
+    "date": "2026-04-06",
+    "week": "W2",
+    "phase": "Phase 1",
+    "typ": "Z2 Kadenz",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 23.55,
+    "min": 77,
+    "kmh": 18.3,
+    "hf": 131,
+    "hfMax": 153,
+    "kad": 80,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 91,
+    "ctl": 11.4,
+    "atl": 38,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 60.1,
+    "hoehe": null,
+    "feel": "Irgendwie schwer",
+    "heu": true,
+    "wetter": "8.6°C",
+    "weather": {
+      "temp": 8.6,
+      "tempFeel": 3.3,
+      "humidity": 56,
+      "windSpeed": 21.9,
+      "windDir": 273,
+      "precip": 0,
+      "cloudCover": 5,
+      "weatherCode": 0
+    },
+    "id": 11,
+    "dateShort": "06.04",
+    "dateISO": "2026-04-06"
+  },
+  {
+    "date": "2026-04-08",
+    "week": "W2",
+    "phase": "Phase 1",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 22.58,
+    "min": 64,
+    "kmh": 21.2,
+    "hf": 136,
+    "hfMax": 165,
+    "kad": 85,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 87,
+    "ctl": 12,
+    "atl": 35.2,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 49.6,
+    "hoehe": null,
+    "feel": "Irgendwie einfach",
+    "heu": true,
+    "wetter": "7.3°C",
+    "weather": {
+      "temp": 7.3,
+      "tempFeel": 4.6,
+      "humidity": 53,
+      "windSpeed": 2.3,
+      "windDir": 19,
+      "precip": 0,
+      "cloudCover": 12,
+      "weatherCode": 1
+    },
+    "id": 12,
+    "dateShort": "08.04",
+    "dateISO": "2026-04-08"
+  },
+  {
+    "date": "2026-04-09",
+    "week": "W2",
+    "phase": "Phase 1",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 57.2,
+    "min": 158,
+    "kmh": 21.7,
+    "hf": 144,
+    "hfMax": 189,
+    "kad": 82,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 268,
+    "ctl": 15.4,
+    "atl": 51,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 122.7,
+    "hoehe": 115,
+    "feel": "Moderat",
+    "heu": true,
+    "wetter": "5.5°C",
+    "weather": {
+      "temp": 5.5,
+      "tempFeel": 2.1,
+      "humidity": 58,
+      "windSpeed": 7.7,
+      "windDir": 53,
+      "precip": 0,
+      "cloudCover": 85,
+      "weatherCode": 3
+    },
+    "id": 13,
+    "dateShort": "09.04",
+    "dateISO": "2026-04-09"
+  },
+  {
+    "date": "2026-04-13",
+    "week": "W3",
+    "phase": "Phase 1",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 21.81,
+    "min": 63,
+    "kmh": 20.6,
+    "hf": 138,
+    "hfMax": 165,
+    "kad": 85,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 91,
+    "ctl": 15.2,
+    "atl": 35.9,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 49.3,
+    "hoehe": null,
+    "feel": "Moderat",
+    "heu": true,
+    "wetter": "10.4°C",
+    "weather": {
+      "temp": 10.4,
+      "tempFeel": 7.6,
+      "humidity": 74,
+      "windSpeed": 12.3,
+      "windDir": 96,
+      "precip": 0,
+      "cloudCover": 100,
+      "weatherCode": 3
+    },
+    "id": 14,
+    "dateShort": "13.04",
+    "dateISO": "2026-04-13"
+  },
+  {
+    "date": "2026-04-15",
+    "week": "W3",
+    "phase": "Phase 1",
+    "typ": "Z2 Lang",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 39.02,
+    "min": 115,
+    "kmh": 20.4,
+    "hf": 138,
+    "hfMax": 157,
+    "kad": 85,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 165,
+    "ctl": 16.7,
+    "atl": 39.5,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 87.1,
+    "hoehe": null,
+    "feel": "Irgendwie einfach",
+    "heu": true,
+    "wetter": "10.5°C",
+    "weather": {
+      "temp": 10.5,
+      "tempFeel": 8.6,
+      "humidity": 66,
+      "windSpeed": 4.6,
+      "windDir": 38,
+      "precip": 0,
+      "cloudCover": 0,
+      "weatherCode": 0
+    },
+    "id": 15,
+    "dateShort": "15.04",
+    "dateISO": "2026-04-15"
+  },
+  {
+    "date": "2026-04-16",
+    "week": "W3",
+    "phase": "Phase 1",
+    "typ": "Freestyle",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 21.35,
+    "min": 58,
+    "kmh": 22,
+    "hf": 155,
+    "hfMax": 189,
+    "kad": 86,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 131,
+    "ctl": 18.1,
+    "atl": 44.3,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 45.3,
+    "hoehe": null,
+    "feel": "Moderat",
+    "heu": true,
+    "wetter": "13°C",
+    "weather": {
+      "temp": 13,
+      "tempFeel": 11.2,
+      "humidity": 73,
+      "windSpeed": 9.1,
+      "windDir": 247,
+      "precip": 0,
+      "cloudCover": 39,
+      "weatherCode": 1
+    },
+    "id": 16,
+    "dateShort": "16.04",
+    "dateISO": "2026-04-16"
+  },
+  {
+    "date": "2026-04-18",
+    "week": "W3",
+    "phase": "Phase 1",
+    "typ": "Z2 Lang",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 43.31,
+    "min": 115,
+    "kmh": 22.6,
+    "hf": 144,
+    "hfMax": 192,
+    "kad": 86,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 195,
+    "ctl": 19.9,
+    "atl": 48.4,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 89.5,
+    "hoehe": null,
+    "feel": "Moderat",
+    "heu": true,
+    "wetter": "15.2°C",
+    "weather": {
+      "temp": 15.2,
+      "tempFeel": 13.7,
+      "humidity": 54,
+      "windSpeed": 4.1,
+      "windDir": 107,
+      "precip": 0,
+      "cloudCover": 94,
+      "weatherCode": 3
+    },
+    "id": 17,
+    "dateShort": "18.04",
+    "dateISO": "2026-04-18"
+  },
+  {
+    "date": "2026-04-20",
+    "week": "W4",
+    "phase": "Phase 1",
+    "typ": "Z1 Recovery",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 23.68,
+    "min": 75,
+    "kmh": 19,
+    "hf": 136,
+    "hfMax": 162,
+    "kad": 85,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 101,
+    "ctl": 20.4,
+    "atl": 43.9,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 55.3,
+    "hoehe": null,
+    "feel": "Leicht",
+    "heu": true,
+    "wetter": "5.4°C",
+    "weather": {
+      "temp": 5.4,
+      "tempFeel": 1.7,
+      "humidity": 95,
+      "windSpeed": 15.6,
+      "windDir": 282,
+      "precip": 1.4,
+      "cloudCover": 100,
+      "weatherCode": 53
+    },
+    "id": 18,
+    "dateShort": "20.04",
+    "dateISO": "2026-04-20"
+  },
+  {
+    "date": "2026-04-25",
+    "week": "W4",
+    "phase": "Phase 1",
+    "typ": "Z1 Recovery",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 33.03,
+    "min": 101,
+    "kmh": 19.7,
+    "hf": 133,
+    "hfMax": 154,
+    "kad": 84,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 126,
+    "ctl": 19.8,
+    "atl": 31.1,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 74.7,
+    "hoehe": null,
+    "feel": "Leicht",
+    "heu": true,
+    "wetter": "9.2°C",
+    "weather": {
+      "temp": 9.2,
+      "tempFeel": 5.5,
+      "humidity": 70,
+      "windSpeed": 16.3,
+      "windDir": 269,
+      "precip": 0,
+      "cloudCover": 84,
+      "weatherCode": 3
+    },
+    "id": 19,
+    "dateShort": "25.04",
+    "dateISO": "2026-04-25"
+  },
+  {
+    "date": "2026-04-26",
+    "week": "W4",
+    "phase": "Phase 1",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 40.04,
+    "min": 121,
+    "kmh": 19.9,
+    "hf": 133,
+    "hfMax": 177,
+    "kad": 85,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 152,
+    "ctl": 21.4,
+    "atl": 39.1,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 89.3,
+    "hoehe": null,
+    "feel": "Leicht",
+    "heu": true,
+    "wetter": "9.4°C",
+    "weather": {
+      "temp": 9.4,
+      "tempFeel": 6.4,
+      "humidity": 56,
+      "windSpeed": 9.7,
+      "windDir": 310,
+      "precip": 0,
+      "cloudCover": 2,
+      "weatherCode": 0
+    },
+    "id": 20,
+    "dateShort": "26.04",
+    "dateISO": "2026-04-26"
+  },
+  {
+    "date": "2026-04-27",
+    "week": "W5",
+    "phase": "Phase 2",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 23.72,
+    "min": 72,
+    "kmh": 19.7,
+    "hf": 128,
+    "hfMax": 147,
+    "kad": 87,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 79,
+    "ctl": 22,
+    "atl": 39.9,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 21.2,
+    "hoehe": null,
+    "feel": "Sehr leicht",
+    "heu": false,
+    "wetter": "11.7°C",
+    "weather": {
+      "temp": 11.7,
+      "tempFeel": 9.5,
+      "humidity": 46,
+      "windSpeed": 2.7,
+      "windDir": 265,
+      "precip": 0,
+      "cloudCover": 59,
+      "weatherCode": 2
+    },
+    "id": 21,
+    "dateShort": "27.04",
+    "dateISO": "2026-04-27"
+  },
+  {
+    "date": "2026-04-28",
+    "week": "W5",
+    "phase": "Phase 2",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 26.32,
+    "min": 83,
+    "kmh": 19.1,
+    "hf": 126,
+    "hfMax": 138,
+    "kad": 88,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 85,
+    "ctl": 22.6,
+    "atl": 41.1,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 24.1,
+    "hoehe": null,
+    "feel": "Sehr leicht",
+    "heu": false,
+    "wetter": "9.8°C",
+    "weather": {
+      "temp": 9.8,
+      "tempFeel": 5.8,
+      "humidity": 44,
+      "windSpeed": 12.3,
+      "windDir": 65,
+      "precip": 0,
+      "cloudCover": 43,
+      "weatherCode": 2
+    },
+    "id": 22,
+    "dateShort": "28.04",
+    "dateISO": "2026-04-28"
+  },
+  {
+    "date": "2026-04-29",
+    "week": "W5",
+    "phase": "Phase 2",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 28.2,
+    "min": 81,
+    "kmh": 20.9,
+    "hf": 136,
+    "hfMax": 169,
+    "kad": 87,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 111,
+    "ctl": 23.6,
+    "atl": 44.3,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 61.4,
+    "hoehe": null,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "8.7°C",
+    "weather": {
+      "temp": 8.7,
+      "tempFeel": 4.4,
+      "humidity": 40,
+      "windSpeed": 12.3,
+      "windDir": 68,
+      "precip": 0,
+      "cloudCover": 0,
+      "weatherCode": 0
+    },
+    "id": 23,
+    "dateShort": "29.04",
+    "dateISO": "2026-04-29"
+  },
+  {
+    "date": "2026-05-01",
+    "week": "W5",
+    "phase": "Phase 2",
+    "typ": "Etappe",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 79.77,
+    "min": 276,
+    "kmh": 17.4,
+    "hf": 143,
+    "hfMax": 201,
+    "kad": 80,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 453,
+    "ctl": 28.7,
+    "atl": 68.3,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 228.8,
+    "hoehe": 376,
+    "feel": "Schwer",
+    "heu": false,
+    "wetter": "16.8°C",
+    "weather": {
+      "temp": 16.8,
+      "tempFeel": 15.7,
+      "humidity": 47,
+      "windSpeed": 4.9,
+      "windDir": 289,
+      "precip": 0,
+      "cloudCover": 0,
+      "weatherCode": 0
+    },
+    "id": 24,
+    "dateShort": "01.05",
+    "dateISO": "2026-05-01"
+  },
+  {
+    "date": "2026-05-03",
+    "week": "W5",
+    "phase": "Phase 2",
+    "typ": "Etappe",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 68.63,
+    "min": 194,
+    "kmh": 21.2,
+    "hf": 142,
+    "hfMax": 176,
+    "kad": 83,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 310,
+    "ctl": 31.6,
+    "atl": 75.4,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 155.3,
+    "hoehe": 209,
+    "feel": "Irgendwie schwer",
+    "heu": false,
+    "wetter": "23.7°C",
+    "weather": {
+      "temp": 23.7,
+      "tempFeel": 22,
+      "humidity": 33,
+      "windSpeed": 9.5,
+      "windDir": 202,
+      "precip": 0,
+      "cloudCover": 68,
+      "weatherCode": 3
+    },
+    "id": 25,
+    "dateShort": "03.05",
+    "dateISO": "2026-05-03"
+  },
+  {
+    "date": "2026-05-06",
+    "week": "W6",
+    "phase": "Phase 2",
+    "typ": "Z2 Erholung",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 26.38,
+    "min": 76,
+    "kmh": 20.8,
+    "hf": 131,
+    "hfMax": 153,
+    "kad": 86,
+    "watt": null,
+    "np": null,
+    "ftpWatt": null,
+    "maxWatt": null,
+    "trimp": 90,
+    "ctl": 30.7,
+    "atl": 56,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": null,
+    "hrv": null,
+    "decoupling": null,
+    "dtl": 56.3,
+    "hoehe": null,
+    "feel": "Leicht",
+    "heu": false,
+    "wetter": "16.2°C",
+    "weather": {
+      "temp": 16.2,
+      "tempFeel": 13.1,
+      "humidity": 73,
+      "windSpeed": 23,
+      "windDir": 244,
+      "precip": 0.1,
+      "cloudCover": 57,
+      "weatherCode": 51
+    },
+    "id": 26,
+    "dateShort": "06.05",
+    "dateISO": "2026-05-06"
+  },
+  {
+    "date": "2026-05-08",
+    "week": "W6",
+    "phase": "Phase 2",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.89,
+    "min": 49,
+    "kmh": 24.4,
+    "hf": 149,
+    "hfMax": 185,
+    "kad": 88,
+    "watt": 139,
+    "np": 177,
+    "ftpWatt": null,
+    "maxWatt": 851,
+    "trimp": 94,
+    "ctl": 30.6,
+    "atl": 49.8,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 60,
+    "hrv": 35,
+    "decoupling": null,
+    "dtl": 38,
+    "hoehe": 6,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "8.8°C",
+    "weather": {
+      "temp": 8.8,
+      "tempFeel": 6.9,
+      "humidity": 87,
+      "windSpeed": 7.3,
+      "windDir": 49,
+      "precip": 0.1,
+      "cloudCover": 100,
+      "weatherCode": 51
+    },
+    "id": 27,
+    "dateShort": "08.05",
+    "dateISO": "2026-05-08"
+  },
+  {
+    "date": "2026-05-09",
+    "week": "W6",
+    "phase": "Phase 2",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 51.94,
+    "min": 141,
+    "kmh": 22,
+    "hf": 132,
+    "hfMax": 197,
+    "kad": 84,
+    "watt": 116,
+    "np": 169,
+    "ftpWatt": null,
+    "maxWatt": 957,
+    "trimp": 221,
+    "ctl": 33.1,
+    "atl": 61,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 55,
+    "hrv": 41,
+    "decoupling": null,
+    "dtl": 110,
+    "hoehe": 53,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "13.5°C",
+    "weather": {
+      "temp": 13.5,
+      "tempFeel": 11.7,
+      "humidity": 59,
+      "windSpeed": 4.9,
+      "windDir": 78,
+      "precip": 0,
+      "cloudCover": 78,
+      "weatherCode": 3
+    },
+    "id": 28,
+    "dateShort": "09.05",
+    "dateISO": "2026-05-09"
+  },
+  {
+    "date": "2026-05-11",
+    "week": "W7",
+    "phase": "Phase 2",
+    "typ": "Z2 Erholung",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 39.25,
+    "min": 91,
+    "kmh": 26,
+    "hf": 132,
+    "hfMax": 147,
+    "kad": 79,
+    "watt": 107,
+    "np": 121,
+    "ftpWatt": null,
+    "maxWatt": 646,
+    "trimp": 111,
+    "ctl": 32.6,
+    "atl": 52,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 63,
+    "hrv": 38,
+    "decoupling": null,
+    "dtl": 91.13,
+    "hoehe": 0,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "14°C",
+    "weather": {
+      "temp": 14,
+      "tempFeel": 13.3,
+      "humidity": 86,
+      "windSpeed": 8.1,
+      "windDir": 185,
+      "precip": 1.8,
+      "cloudCover": 98,
+      "weatherCode": 55
+    },
+    "id": 29,
+    "dateShort": "11.05",
+    "dateISO": "2026-05-11"
+  },
+  {
+    "date": "2026-05-12",
+    "week": "W7",
+    "phase": "Phase 2",
+    "typ": "Z1 Recovery",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 7.47,
+    "min": 20,
+    "kmh": 22.3,
+    "hf": 147,
+    "hfMax": 168,
+    "kad": 39,
+    "watt": 99,
+    "np": 99,
+    "ftpWatt": null,
+    "maxWatt": 227,
+    "trimp": 37,
+    "ctl": 32.7,
+    "atl": 49.9,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 66,
+    "hrv": 48,
+    "decoupling": null,
+    "dtl": 7,
+    "hoehe": 37,
+    "feel": "Sehr leicht",
+    "heu": false,
+    "wetter": "8.5°C",
+    "weather": {
+      "temp": 8.5,
+      "tempFeel": 3.6,
+      "humidity": 60,
+      "windSpeed": 19.9,
+      "windDir": 253,
+      "precip": 0.1,
+      "cloudCover": 43,
+      "weatherCode": 51
+    },
+    "id": 30,
+    "dateShort": "12.05",
+    "dateISO": "2026-05-12"
+  },
+  {
+    "date": "2026-05-12",
+    "week": "W7",
+    "phase": "Phase 2",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 13.94,
+    "min": 29,
+    "kmh": 29.1,
+    "hf": 172,
+    "hfMax": 187,
+    "kad": 58,
+    "watt": 151,
+    "np": 162,
+    "ftpWatt": null,
+    "maxWatt": 367,
+    "trimp": 97,
+    "ctl": 32.7,
+    "atl": 49.9,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 66,
+    "hrv": 48,
+    "decoupling": null,
+    "dtl": 27,
+    "hoehe": 28,
+    "feel": "Hart",
+    "heu": false,
+    "wetter": "8.5°C",
+    "weather": {
+      "temp": 8.5,
+      "tempFeel": 3.6,
+      "humidity": 60,
+      "windSpeed": 19.9,
+      "windDir": 253,
+      "precip": 0.1,
+      "cloudCover": 43,
+      "weatherCode": 51
+    },
+    "id": 31,
+    "dateShort": "12.05",
+    "dateISO": "2026-05-12"
+  },
+  {
+    "date": "2026-05-14",
+    "week": "W7",
+    "phase": "Phase 2",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 26.11,
+    "min": 61,
+    "kmh": 25.6,
+    "hf": null,
+    "hfMax": null,
+    "kad": null,
+    "watt": 135,
+    "np": 135,
+    "ftpWatt": null,
+    "maxWatt": 371,
+    "trimp": 83,
+    "ctl": 32.2,
+    "atl": 43.3,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 59,
+    "hrv": 61,
+    "decoupling": null,
+    "dtl": 40,
+    "hoehe": 111,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "10.9°C",
+    "weather": {
+      "temp": 10.9,
+      "tempFeel": 6.3,
+      "humidity": 65,
+      "windSpeed": 23,
+      "windDir": 237,
+      "precip": 0.5,
+      "cloudCover": 29,
+      "weatherCode": 51
+    },
+    "id": 32,
+    "dateShort": "14.05",
+    "dateISO": "2026-05-14"
+  },
+  {
+    "date": "2026-05-16",
+    "week": "W7",
+    "phase": "Phase 2",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 39.38,
+    "min": 100,
+    "kmh": 23.7,
+    "hf": 143,
+    "hfMax": 179,
+    "kad": 85,
+    "watt": 135,
+    "np": 158,
+    "ftpWatt": null,
+    "maxWatt": 1036,
+    "trimp": 165,
+    "ctl": 32.8,
+    "atl": 44.3,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 55,
+    "hrv": 54,
+    "decoupling": null,
+    "dtl": 77.4,
+    "hoehe": 44,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "11.4°C",
+    "weather": {
+      "temp": 11.4,
+      "tempFeel": 9,
+      "humidity": 64,
+      "windSpeed": 7.9,
+      "windDir": 302,
+      "precip": 0.1,
+      "cloudCover": 46,
+      "weatherCode": 51
+    },
+    "id": 33,
+    "dateShort": "16.05",
+    "dateISO": "2026-05-16"
+  },
+  {
+    "date": "2026-05-17",
+    "week": "W7",
+    "phase": "Phase 2",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 44.58,
+    "min": 120,
+    "kmh": 22.3,
+    "hf": 143,
+    "hfMax": 175,
+    "kad": 84,
+    "watt": 125,
+    "np": 156,
+    "ftpWatt": null,
+    "maxWatt": 793,
+    "trimp": 198,
+    "ctl": 34.4,
+    "atl": 52.2,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 61,
+    "hrv": 62,
+    "decoupling": null,
+    "dtl": 89,
+    "hoehe": 55,
+    "feel": "Leicht",
+    "heu": false,
+    "wetter": "13.9°C",
+    "weather": {
+      "temp": 13.9,
+      "tempFeel": 11.9,
+      "humidity": 46,
+      "windSpeed": 4.6,
+      "windDir": 240,
+      "precip": 0,
+      "cloudCover": 9,
+      "weatherCode": 1
+    },
+    "id": 34,
+    "dateShort": "17.05",
+    "dateISO": "2026-05-17"
+  },
+  {
+    "date": "2026-05-18",
+    "week": "W8",
+    "phase": "Phase 2",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 32.72,
+    "min": 79,
+    "kmh": 24.9,
+    "hf": 144,
+    "hfMax": 180,
+    "kad": 87,
+    "watt": 148,
+    "np": 179,
+    "ftpWatt": null,
+    "maxWatt": 802,
+    "trimp": 133,
+    "ctl": 35.7,
+    "atl": 57.3,
+    "tsb": null,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 59,
+    "hrv": 62,
+    "decoupling": null,
+    "dtl": 59.6,
+    "hoehe": 50,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "15.3°C",
+    "weather": {
+      "temp": 15.3,
+      "tempFeel": 13.1,
+      "humidity": 50,
+      "windSpeed": 8.7,
+      "windDir": 108,
+      "precip": 0,
+      "cloudCover": 68,
+      "weatherCode": 3
+    },
+    "id": 35,
+    "dateShort": "18.05",
+    "dateISO": "2026-05-18"
+  },
+  {
+    "date": "2026-05-20",
+    "week": "W8",
+    "phase": "Phase 2",
+    "typ": "Z2 Kadenz",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 28.74,
+    "min": 67.5,
+    "kmh": 25.6,
+    "hf": 148,
+    "hfMax": 177,
+    "kad": 88,
+    "watt": 160,
+    "np": 181,
+    "ftpWatt": null,
+    "maxWatt": 960,
+    "trimp": 126,
+    "ctl": 36,
+    "atl": 54,
+    "tsb": -18,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 52,
+    "hrv": 44,
+    "decoupling": null,
+    "dtl": 51.1,
+    "hoehe": 24,
+    "feel": "Irgendwie einfach",
+    "heu": true,
+    "wetter": "18.9°C",
+    "weather": {
+      "temp": 18.9,
+      "tempFeel": 16.4,
+      "humidity": 48,
+      "windSpeed": 13.1,
+      "windDir": 237,
+      "precip": 0,
+      "cloudCover": 75,
+      "weatherCode": 3
+    },
+    "id": 36,
+    "dateShort": "20.05",
+    "dateISO": "2026-05-20"
+  },
+  {
+    "date": "2026-05-21",
+    "week": "W8",
+    "phase": "Phase 2",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 27.28,
+    "min": 71.3,
+    "kmh": 22.9,
+    "hf": 130,
+    "hfMax": 148,
+    "kad": 85,
+    "watt": 124,
+    "np": 137,
+    "ftpWatt": null,
+    "maxWatt": 726,
+    "trimp": 82,
+    "ctl": 36,
+    "atl": 53,
+    "tsb": -17,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 56,
+    "hrv": 90,
+    "decoupling": null,
+    "dtl": 52.9,
+    "hoehe": 14,
+    "feel": "Leicht",
+    "heu": true,
+    "wetter": "17°C",
+    "weather": {
+      "temp": 17,
+      "tempFeel": 16.2,
+      "humidity": 68,
+      "windSpeed": 7.7,
+      "windDir": 288,
+      "precip": 0.1,
+      "cloudCover": 55,
+      "weatherCode": 51
+    },
+    "id": 37,
+    "dateShort": "21.05",
+    "dateISO": "2026-05-21"
+  },
+  {
+    "date": "2026-05-22",
+    "week": "W8",
+    "phase": "Phase 2",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 30.29,
+    "min": 77.1,
+    "kmh": 23.6,
+    "hf": 146,
+    "hfMax": 181,
+    "kad": 86,
+    "watt": 134,
+    "np": 161,
+    "ftpWatt": null,
+    "maxWatt": 749,
+    "trimp": 139,
+    "ctl": 37,
+    "atl": 55,
+    "tsb": -18,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 51,
+    "hrv": 47,
+    "decoupling": null,
+    "dtl": 57.1,
+    "hoehe": 19,
+    "feel": "Leicht",
+    "heu": true,
+    "wetter": "19.8°C",
+    "weather": {
+      "temp": 19.8,
+      "tempFeel": 19.4,
+      "humidity": 53,
+      "windSpeed": 5.6,
+      "windDir": 282,
+      "precip": 0,
+      "cloudCover": 21,
+      "weatherCode": 1
+    },
+    "id": 38,
+    "dateShort": "22.05",
+    "dateISO": "2026-05-22"
+  },
+  {
+    "date": "2026-05-23",
+    "week": "W8",
+    "phase": "Phase 2",
+    "typ": "Z2 Lang",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 52.11,
+    "min": 129.8,
+    "kmh": 24.1,
+    "hf": 143,
+    "hfMax": 181,
+    "kad": 85,
+    "watt": 131,
+    "np": 160,
+    "ftpWatt": null,
+    "maxWatt": 1123,
+    "trimp": 214,
+    "ctl": 39,
+    "atl": 63,
+    "tsb": -24,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 64,
+    "hrv": 39,
+    "decoupling": null,
+    "dtl": 100.8,
+    "hoehe": 45,
+    "feel": "Moderat",
+    "heu": true,
+    "wetter": "23.2°C",
+    "weather": {
+      "temp": 23.2,
+      "tempFeel": 24.3,
+      "humidity": 48,
+      "windSpeed": 0.8,
+      "windDir": 149,
+      "precip": 0,
+      "cloudCover": 0,
+      "weatherCode": 0
+    },
+    "id": 39,
+    "dateShort": "23.05",
+    "dateISO": "2026-05-23"
+  },
+  {
+    "date": "2026-05-24",
+    "week": "W8",
+    "phase": "Phase 2",
+    "typ": "Freestyle",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 43.11,
+    "min": 123.2,
+    "kmh": 21,
+    "hf": 139,
+    "hfMax": 184,
+    "kad": 78,
+    "watt": 109,
+    "np": 145,
+    "ftpWatt": null,
+    "maxWatt": 1020,
+    "trimp": 183,
+    "ctl": 41,
+    "atl": 66,
+    "tsb": -25,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 66,
+    "hrv": 78,
+    "decoupling": null,
+    "dtl": 91.3,
+    "hoehe": 46,
+    "feel": "Leicht",
+    "heu": false,
+    "wetter": "25.9°C",
+    "weather": {
+      "temp": 25.9,
+      "tempFeel": 25.8,
+      "humidity": 45,
+      "windSpeed": 10.3,
+      "windDir": 258,
+      "precip": 0,
+      "cloudCover": 40,
+      "weatherCode": 2
+    },
+    "id": 40,
+    "dateShort": "24.05",
+    "dateISO": "2026-05-24"
+  },
+  {
+    "date": "2026-05-25",
+    "week": "W9",
+    "phase": "Phase 2",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 22.52,
+    "min": 51.9,
+    "kmh": 26.1,
+    "hf": 146,
+    "hfMax": 160,
+    "kad": 89,
+    "watt": 156,
+    "np": 169,
+    "ftpWatt": null,
+    "maxWatt": 637,
+    "trimp": 92,
+    "ctl": 41,
+    "atl": 64,
+    "tsb": -23,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 59,
+    "hrv": 52,
+    "decoupling": null,
+    "dtl": 15.1,
+    "hoehe": 10,
+    "feel": "Sehr leicht",
+    "heu": false,
+    "wetter": "19.1°C",
+    "weather": {
+      "temp": 19.1,
+      "tempFeel": 19.3,
+      "humidity": 59,
+      "windSpeed": 1.8,
+      "windDir": 227,
+      "precip": 0,
+      "cloudCover": 3,
+      "weatherCode": 0
+    },
+    "id": 41,
+    "dateShort": "25.05",
+    "dateISO": "2026-05-25"
+  },
+  {
+    "date": "2026-05-27",
+    "week": "W9",
+    "phase": "Phase 2",
+    "typ": "Z2 Kadenz",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 32.22,
+    "min": 80.75,
+    "kmh": 23.9,
+    "hf": 141,
+    "hfMax": 160,
+    "kad": 86,
+    "watt": 139,
+    "np": 155,
+    "ftpWatt": null,
+    "maxWatt": 755,
+    "trimp": 127,
+    "ctl": 41,
+    "atl": 58,
+    "tsb": -17,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 55,
+    "hrv": 50,
+    "decoupling": null,
+    "dtl": 59.8,
+    "hoehe": 25,
+    "feel": "Leicht",
+    "heu": false,
+    "wetter": "21.2°C",
+    "weather": {
+      "temp": 21.2,
+      "tempFeel": 20.2,
+      "humidity": 56,
+      "windSpeed": 12.9,
+      "windDir": 332,
+      "precip": 0,
+      "cloudCover": 8,
+      "weatherCode": 1
+    },
+    "id": 42,
+    "dateShort": "27.05",
+    "dateISO": "2026-05-27"
+  },
+  {
+    "date": "2026-05-28",
+    "week": "W9",
+    "phase": "Phase 3",
+    "typ": "Etappe",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 60.4,
+    "min": 131.5,
+    "kmh": 27.6,
+    "hf": 144,
+    "hfMax": 189,
+    "kad": 86,
+    "watt": 151,
+    "np": 180,
+    "ftpWatt": null,
+    "maxWatt": 1045,
+    "trimp": 223,
+    "ctl": 43,
+    "atl": 71,
+    "tsb": -28,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 63,
+    "hrv": 57,
+    "decoupling": null,
+    "dtl": 102.1,
+    "hoehe": 93,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "17.5°C",
+    "weather": {
+      "temp": 17.5,
+      "tempFeel": 15.7,
+      "humidity": 45,
+      "windSpeed": 9.8,
+      "windDir": 309,
+      "precip": 0,
+      "cloudCover": 6,
+      "weatherCode": 0
+    },
+    "id": 43,
+    "dateShort": "28.05",
+    "dateISO": "2026-05-28"
+  },
+  {
+    "date": "2026-05-30",
+    "week": "W9",
+    "phase": "Phase 3",
+    "typ": "Freestyle",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 23.46,
+    "min": 52.4,
+    "kmh": 26.9,
+    "hf": 146,
+    "hfMax": 169,
+    "kad": 90,
+    "watt": 167,
+    "np": 186,
+    "ftpWatt": null,
+    "maxWatt": 765,
+    "trimp": 93,
+    "ctl": 43,
+    "atl": 62,
+    "tsb": -19,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 52,
+    "hrv": 89,
+    "decoupling": null,
+    "dtl": 40.7,
+    "hoehe": 21,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "21.3°C",
+    "weather": {
+      "temp": 21.3,
+      "tempFeel": 20.3,
+      "humidity": 62,
+      "windSpeed": 14.6,
+      "windDir": 297,
+      "precip": 0,
+      "cloudCover": 15,
+      "weatherCode": 0
+    },
+    "id": 44,
+    "dateShort": "30.05",
+    "dateISO": "2026-05-30"
+  },
+  {
+    "date": "2026-06-01",
+    "week": "W10",
+    "phase": "Phase 3",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 34.17,
+    "min": 87,
+    "kmh": 23.6,
+    "hf": 144,
+    "hfMax": 174,
+    "kad": 86,
+    "watt": 136,
+    "np": 163,
+    "ftpWatt": null,
+    "maxWatt": 740,
+    "trimp": 143,
+    "ctl": 43,
+    "atl": 57,
+    "tsb": -14,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 57,
+    "hrv": 67,
+    "decoupling": null,
+    "dtl": 65.9,
+    "hoehe": 31,
+    "feel": "Irgendwie einfach",
+    "heu": true,
+    "wetter": "17.6°C",
+    "weather": {
+      "temp": 17.6,
+      "tempFeel": 17.2,
+      "humidity": 74,
+      "windSpeed": 8.5,
+      "windDir": 303,
+      "precip": 0.6,
+      "cloudCover": 90,
+      "weatherCode": 51
+    },
+    "id": 45,
+    "dateShort": "01.06",
+    "dateISO": "2026-06-01"
+  },
+  {
+    "date": "2026-06-02",
+    "week": "W10",
+    "phase": "Phase 3",
+    "typ": "Etappe",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 62.43,
+    "min": 147.1,
+    "kmh": 25.5,
+    "hf": 140,
+    "hfMax": 177,
+    "kad": 86,
+    "watt": 135,
+    "np": 162,
+    "ftpWatt": null,
+    "maxWatt": 892,
+    "trimp": 225,
+    "ctl": 45,
+    "atl": 68,
+    "tsb": -23,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 58,
+    "hrv": 93,
+    "decoupling": null,
+    "dtl": 114.3,
+    "hoehe": 43,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "22.8°C",
+    "weather": {
+      "temp": 22.8,
+      "tempFeel": 22.1,
+      "humidity": 44,
+      "windSpeed": 7.9,
+      "windDir": 151,
+      "precip": 0,
+      "cloudCover": 95,
+      "weatherCode": 3
+    },
+    "id": 46,
+    "dateShort": "02.06",
+    "dateISO": "2026-06-02"
+  },
+  {
+    "date": "2026-06-03",
+    "week": "W10",
+    "phase": "Phase 3",
+    "typ": "Schwelle",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 34.03,
+    "min": 84.4,
+    "kmh": 24.2,
+    "hf": 132,
+    "hfMax": 153,
+    "kad": 90,
+    "watt": 128,
+    "np": 143,
+    "ftpWatt": null,
+    "maxWatt": 776,
+    "trimp": 103,
+    "ctl": 46,
+    "atl": 67,
+    "tsb": -21,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 63,
+    "hrv": 87,
+    "decoupling": null,
+    "dtl": 65.5,
+    "hoehe": 4,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "15.6°C",
+    "weather": {
+      "temp": 15.6,
+      "tempFeel": 15.5,
+      "humidity": 95,
+      "windSpeed": 11.6,
+      "windDir": 256,
+      "precip": 0.8,
+      "cloudCover": 100,
+      "weatherCode": 53
+    },
+    "id": 47,
+    "dateShort": "03.06",
+    "dateISO": "2026-06-03"
+  },
+  {
+    "date": "2026-06-05",
+    "week": "W10",
+    "phase": "Phase 3",
+    "typ": "Z2 Lang",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 100.4,
+    "min": 241.8,
+    "kmh": 24.9,
+    "hf": 135,
+    "hfMax": 160,
+    "kad": 89,
+    "watt": 138,
+    "np": 154,
+    "ftpWatt": null,
+    "maxWatt": 788,
+    "trimp": 322,
+    "ctl": 48,
+    "atl": 78,
+    "tsb": -30,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 58,
+    "hrv": 84,
+    "decoupling": null,
+    "dtl": 183.2,
+    "hoehe": 84,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "17.1°C",
+    "weather": {
+      "temp": 17.1,
+      "tempFeel": 15.7,
+      "humidity": 70,
+      "windSpeed": 12.6,
+      "windDir": 251,
+      "precip": 0.4,
+      "cloudCover": 100,
+      "weatherCode": 51
+    },
+    "id": 48,
+    "dateShort": "05.06",
+    "dateISO": "2026-06-05"
+  },
+  {
+    "date": "2026-06-06",
+    "week": "W10",
+    "phase": "Phase 3",
+    "typ": "Z1 Recovery",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 30.38,
+    "min": 86,
+    "kmh": 21.2,
+    "hf": 121,
+    "hfMax": 153,
+    "kad": 84,
+    "watt": 104,
+    "np": 131,
+    "ftpWatt": null,
+    "maxWatt": 693,
+    "trimp": 77,
+    "ctl": 48,
+    "atl": 74,
+    "tsb": -26,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 55,
+    "hrv": 51,
+    "decoupling": null,
+    "dtl": 66.9,
+    "hoehe": 25,
+    "feel": "Leicht",
+    "heu": false,
+    "wetter": "19°C",
+    "weather": {
+      "temp": 19,
+      "tempFeel": 19.4,
+      "humidity": 59,
+      "windSpeed": 2,
+      "windDir": 193,
+      "precip": 0.1,
+      "cloudCover": 37,
+      "weatherCode": 51
+    },
+    "id": 49,
+    "dateShort": "06.06",
+    "dateISO": "2026-06-06"
+  },
+  {
+    "date": "2026-06-08",
+    "week": "W11",
+    "phase": "Phase 3",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 64,
+    "min": 159,
+    "kmh": 24.2,
+    "hf": 136,
+    "hfMax": 170,
+    "kad": 88,
+    "watt": 129,
+    "np": 150,
+    "ftpWatt": null,
+    "maxWatt": 876,
+    "trimp": 213,
+    "ctl": 49,
+    "atl": 72,
+    "tsb": -23,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 55,
+    "hrv": 76,
+    "decoupling": null,
+    "dtl": 117.6,
+    "hoehe": 27,
+    "feel": "Leicht",
+    "heu": true,
+    "wetter": "20.8°C",
+    "weather": {
+      "temp": 20.8,
+      "tempFeel": 21,
+      "humidity": 53,
+      "windSpeed": 5.2,
+      "windDir": 164,
+      "precip": 0,
+      "cloudCover": 56,
+      "weatherCode": 3
+    },
+    "id": 50,
+    "dateShort": "08.06",
+    "dateISO": "2026-06-08"
+  },
+  {
+    "date": "2026-06-09",
+    "week": "W11",
+    "phase": "Phase 3",
+    "typ": "Freestyle",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 71.06,
+    "min": 182,
+    "kmh": 23.5,
+    "hf": 128,
+    "hfMax": 175,
+    "kad": 84,
+    "watt": 127,
+    "np": 155,
+    "ftpWatt": null,
+    "maxWatt": 1107,
+    "trimp": 199,
+    "ctl": 51,
+    "atl": 82,
+    "tsb": -31,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 61,
+    "hrv": 63,
+    "decoupling": null,
+    "dtl": 141.1,
+    "hoehe": 92,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "19°C",
+    "weather": {
+      "temp": 19,
+      "tempFeel": 17.8,
+      "humidity": 74,
+      "windSpeed": 17.2,
+      "windDir": 258,
+      "precip": 1.7,
+      "cloudCover": 99,
+      "weatherCode": 53
+    },
+    "id": 51,
+    "dateShort": "09.06",
+    "dateISO": "2026-06-09"
+  },
+  {
+    "date": "2026-06-12",
+    "week": "W11",
+    "phase": "Phase 3",
+    "typ": "FTP-Test",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 12.26,
+    "min": 29,
+    "kmh": null,
+    "hf": 133,
+    "hfMax": 177,
+    "kad": 79,
+    "watt": 130,
+    "np": 163,
+    "ftpWatt": 193,
+    "maxWatt": 249,
+    "trimp": 36,
+    "ctl": 49,
+    "atl": 59,
+    "tsb": -10,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 55,
+    "hrv": 73,
+    "decoupling": null,
+    "dtl": null,
+    "hoehe": null,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "14.8°C",
+    "weather": {
+      "temp": 14.8,
+      "tempFeel": 13.1,
+      "humidity": 69,
+      "windSpeed": 10.1,
+      "windDir": 213,
+      "precip": 0,
+      "cloudCover": 100,
+      "weatherCode": 3
+    },
+    "id": 52,
+    "dateShort": "12.06",
+    "dateISO": "2026-06-12"
+  },
+  {
+    "date": "2026-06-13",
+    "week": "W11",
+    "phase": "Phase 3",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 62.09,
+    "min": 136,
+    "kmh": null,
+    "hf": 123,
+    "hfMax": 157,
+    "kad": 81,
+    "watt": 132,
+    "np": 144,
+    "ftpWatt": null,
+    "maxWatt": 708,
+    "trimp": 128,
+    "ctl": 51,
+    "atl": 68,
+    "tsb": -17,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 56,
+    "hrv": 82,
+    "decoupling": null,
+    "dtl": 102,
+    "hoehe": 80,
+    "feel": "Leicht",
+    "heu": false,
+    "wetter": "16.7°C",
+    "weather": {
+      "temp": 16.7,
+      "tempFeel": 15.8,
+      "humidity": 86,
+      "windSpeed": 14.9,
+      "windDir": 259,
+      "precip": 3.2,
+      "cloudCover": 84,
+      "weatherCode": 63
+    },
+    "id": 53,
+    "dateShort": "13.06",
+    "dateISO": "2026-06-13"
+  },
+  {
+    "date": "2026-06-16",
+    "week": "W12",
+    "phase": "Phase 3",
+    "typ": "Ausserplanmaessig",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 70.72,
+    "min": 167,
+    "kmh": 25.1,
+    "hf": 133,
+    "hfMax": 180,
+    "kad": 85,
+    "watt": 141,
+    "np": 170,
+    "ftpWatt": null,
+    "maxWatt": 620,
+    "trimp": 212,
+    "ctl": 51,
+    "atl": 68,
+    "tsb": -17,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 55,
+    "hrv": 107,
+    "decoupling": null,
+    "dtl": 127.8,
+    "hoehe": 122,
+    "feel": "Irgendwie einfach",
+    "heu": false,
+    "wetter": "17.2°C",
+    "weather": {
+      "temp": 17.2,
+      "tempFeel": 15.2,
+      "humidity": 56,
+      "windSpeed": 12.9,
+      "windDir": 245,
+      "precip": 0,
+      "cloudCover": 93,
+      "weatherCode": 3
+    },
+    "id": 54,
+    "dateShort": "16.06",
+    "dateISO": "2026-06-16"
+  },
+  {
+    "date": "2026-06-17",
+    "week": "W12",
+    "phase": "Phase 3",
+    "typ": "Freestyle",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 19.51,
+    "min": 40,
+    "kmh": 29.6,
+    "hf": 155,
+    "hfMax": 171,
+    "kad": 91,
+    "watt": 186,
+    "np": 200,
+    "ftpWatt": null,
+    "maxWatt": 619,
+    "trimp": 89,
+    "ctl": 53,
+    "atl": 73,
+    "tsb": -20,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 58,
+    "hrv": 72,
+    "decoupling": null,
+    "dtl": 30.8,
+    "hoehe": 9,
+    "feel": "Moderat",
+    "heu": false,
+    "wetter": "19.2°C",
+    "weather": {
+      "temp": 19.2,
+      "tempFeel": 19.6,
+      "humidity": 73,
+      "windSpeed": 6.7,
+      "windDir": 281,
+      "precip": 0,
+      "cloudCover": 96,
+      "weatherCode": 3
+    },
+    "id": 55,
+    "dateShort": "17.06",
+    "dateISO": "2026-06-17"
+  },
+  {
+    "date": "2026-06-18",
+    "week": "W12",
+    "phase": "Phase 3",
+    "typ": "Z2 Dauer",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 28.79,
+    "min": 70,
+    "kmh": 24.8,
+    "hf": 141,
+    "hfMax": 167,
+    "kad": 87,
+    "watt": 133,
+    "np": 147,
+    "ftpWatt": null,
+    "maxWatt": 822,
+    "trimp": 109,
+    "ctl": 53,
+    "atl": 72,
+    "tsb": -19,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 56,
+    "hrv": 95,
+    "decoupling": null,
+    "dtl": 20.3,
+    "hoehe": 18,
+    "feel": "Sehr leicht",
+    "heu": false,
+    "wetter": "24°C",
+    "weather": {
+      "temp": 24,
+      "tempFeel": 24.1,
+      "humidity": 59,
+      "windSpeed": 11.2,
+      "windDir": 260,
+      "precip": 0,
+      "cloudCover": 71,
+      "weatherCode": 3
+    },
+    "id": 56,
+    "dateShort": "18.06",
+    "dateISO": "2026-06-18"
+  },
+  {
+    "date": "2026-06-20",
+    "week": "W12",
+    "phase": "Phase 3",
+    "typ": "Z2 Lang",
+    "dataSource": "notion",
+    "sport": "ride",
+    "km": 138.4,
+    "min": 373,
+    "kmh": 22.2,
+    "hf": 132,
+    "hfMax": 167,
+    "kad": 84,
+    "watt": 119,
+    "np": 145,
+    "ftpWatt": null,
+    "maxWatt": 923,
+    "trimp": 460,
+    "ctl": 59,
+    "atl": 100,
+    "tsb": -41,
+    "tss": null,
+    "vi": null,
+    "ruhepuls": 63,
+    "hrv": 95,
+    "decoupling": null,
+    "dtl": 298.2,
+    "hoehe": 399,
+    "feel": "Irgendwie schwer",
+    "heu": false,
+    "wetter": "26.9°C",
+    "weather": {
+      "temp": 26.9,
+      "tempFeel": 29.8,
+      "humidity": 67,
+      "windSpeed": 9.3,
+      "windDir": 292,
+      "precip": 1.4,
+      "cloudCover": 48,
+      "weatherCode": 55
+    },
+    "id": 57,
+    "dateShort": "20.06",
+    "dateISO": "2026-06-20"
+  },
+  {
+    "week": "2026-KW26",
+    "phase": "Übergang",
+    "typ": "Tempo",
+    "typPlanned": "Gruppenfahrt",
+    "typDetected": "Tempo",
+    "typDetection": {
+      "type": "Tempo",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.86,
+          "note": "NP 166W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "161 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 53% · Z3/Z4+ 30% · Z5+ 17%",
+          "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-tempo"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-06-23",
+    "startTime": "2026-06-23T17:12:54",
+    "activityId": "i159753873",
+    "km": 70.8,
+    "min": 161,
+    "kmh": 26.4,
+    "watt": 136,
+    "maxWatt": null,
+    "np": 166,
+    "hf": 141,
+    "hfMax": 185,
+    "kad": 85,
+    "hoehe": 91,
+    "hmProKm": 1.3,
+    "tss": 199,
+    "if": 0.86,
+    "vi": 1.22,
+    "trimp": 194,
+    "ctl": 59.3,
+    "atl": 91.6,
+    "tsb": -32.4,
+    "decoupling": 17.8,
+    "dtl": 199,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 3116
+      },
+      {
+        "id": "Z2",
+        "secs": 1997
+      },
+      {
+        "id": "Z3",
+        "secs": 1696
+      },
+      {
+        "id": "Z4",
+        "secs": 1237
+      },
+      {
+        "id": "Z5",
+        "secs": 780
+      },
+      {
+        "id": "Z6",
+        "secs": 606
+      },
+      {
+        "id": "Z7",
+        "secs": 249
+      },
+      {
+        "id": "SS",
+        "secs": 1309
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 26.2,
+      "tempFeel": 26,
+      "humidity": 44,
+      "windSpeed": 7.9,
+      "windDir": 46,
+      "precip": 0,
+      "cloudCover": 13,
+      "weatherCode": 1
+    },
+    "wetter": "26.2°C",
+    "source": "intervals.icu",
+    "ruhepuls": 52,
+    "hrv": 47,
+    "avgSleepingHR": 52,
+    "sleepHours": 7.7,
+    "feel": "Moderat",
+    "id": 58,
+    "dateShort": "23.06",
+    "dateISO": "2026-06-23"
+  },
+  {
+    "week": "2026-KW26",
+    "phase": "Übergang",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.756,
+          "note": "NP 146W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "70 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 55% · Z3/Z4+ 37% · Z5+ 8%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-06-25",
+    "startTime": "2026-06-25T19:06:54",
+    "activityId": "i160322695",
+    "km": 29.2,
+    "min": 70,
+    "kmh": 25,
+    "watt": 129,
+    "maxWatt": null,
+    "np": 146,
+    "hf": 137,
+    "hfMax": 177,
+    "kad": 88,
+    "hoehe": 12,
+    "hmProKm": 0.4,
+    "tss": 67,
+    "if": 0.76,
+    "vi": 1.13,
+    "trimp": 75,
+    "ctl": 58.1,
+    "atl": 77.8,
+    "tsb": -19.7,
+    "decoupling": 23.6,
+    "dtl": 67,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1192
+      },
+      {
+        "id": "Z2",
+        "secs": 1147
+      },
+      {
+        "id": "Z3",
+        "secs": 1126
+      },
+      {
+        "id": "Z4",
+        "secs": 417
+      },
+      {
+        "id": "Z5",
+        "secs": 194
+      },
+      {
+        "id": "Z6",
+        "secs": 114
+      },
+      {
+        "id": "Z7",
+        "secs": 34
+      },
+      {
+        "id": "SS",
+        "secs": 626
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 30.4,
+      "tempFeel": 31.1,
+      "humidity": 41,
+      "windSpeed": 8.1,
+      "windDir": 126,
+      "precip": 0,
+      "cloudCover": 38,
+      "weatherCode": 2
+    },
+    "wetter": "30.4°C",
+    "source": "intervals.icu",
+    "ruhepuls": 54,
+    "hrv": 70,
+    "avgSleepingHR": 49,
+    "sleepHours": 5.3,
+    "feel": "Leicht",
+    "id": 59,
+    "dateShort": "25.06",
+    "dateISO": "2026-06-25"
+  },
+  {
+    "week": "2026-KW26",
+    "phase": "Übergang",
+    "typ": "Z2 Lang",
+    "typPlanned": "Z2 Lang",
+    "typDetected": "Z2 Lang",
+    "typDetection": {
+      "type": "Z2 Lang",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.808,
+          "note": "NP 156W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "194 min",
+          "note": "≥ 180 min → trotz Z2-Dauer-Band als Z2 Lang eingestuft"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 46% · Z3/Z4+ 44% · Z5+ 11%",
+          "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer-lang-override"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-06-28",
+    "startTime": "2026-06-28T04:55:10",
+    "activityId": "i160865528",
+    "km": 80.4,
+    "min": 194,
+    "kmh": 25,
+    "watt": 134,
+    "maxWatt": null,
+    "np": 156,
+    "hf": 138,
+    "hfMax": 173,
+    "kad": 89,
+    "hoehe": 78,
+    "hmProKm": 1,
+    "tss": 211,
+    "if": 0.81,
+    "vi": 1.16,
+    "trimp": 187,
+    "ctl": 59,
+    "atl": 78.8,
+    "tsb": -19.7,
+    "decoupling": 11.4,
+    "dtl": 211,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 3001
+      },
+      {
+        "id": "Z2",
+        "secs": 2326
+      },
+      {
+        "id": "Z3",
+        "secs": 3161
+      },
+      {
+        "id": "Z4",
+        "secs": 1907
+      },
+      {
+        "id": "Z5",
+        "secs": 761
+      },
+      {
+        "id": "Z6",
+        "secs": 380
+      },
+      {
+        "id": "Z7",
+        "secs": 100
+      },
+      {
+        "id": "SS",
+        "secs": 2386
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 28.1,
+      "tempFeel": 29.2,
+      "humidity": 50,
+      "windSpeed": 8.3,
+      "windDir": 191,
+      "precip": 0,
+      "cloudCover": 71,
+      "weatherCode": 3
+    },
+    "wetter": "28.1°C",
+    "source": "intervals.icu",
+    "ruhepuls": 65,
+    "hrv": 42,
+    "avgSleepingHR": 51,
+    "sleepHours": 3.3,
+    "feel": "Irgendwie einfach",
+    "id": 60,
+    "dateShort": "28.06",
+    "dateISO": "2026-06-28"
+  },
+  {
+    "week": "2026-KW27",
+    "phase": "Sweet Spot",
+    "typ": "Tempo",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Tempo",
+    "typDetection": {
+      "type": "Tempo",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.86,
+          "note": "NP 166W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "97 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 37% · Z3/Z4+ 50% · Z5+ 13%",
+          "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-tempo"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-06-29",
+    "startTime": "2026-06-29T18:15:41",
+    "activityId": "i161294934",
+    "km": 43.1,
+    "min": 97,
+    "kmh": 27.1,
+    "watt": 150,
+    "maxWatt": null,
+    "np": 166,
+    "hf": 146,
+    "hfMax": 167,
+    "kad": 91,
+    "hoehe": 8,
+    "hmProKm": 0.2,
+    "tss": 119,
+    "if": 0.86,
+    "vi": 1.11,
+    "trimp": 125,
+    "ctl": 60.4,
+    "atl": 84.1,
+    "tsb": -23.7,
+    "decoupling": -4.8,
+    "dtl": 119,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 987
+      },
+      {
+        "id": "Z2",
+        "secs": 1132
+      },
+      {
+        "id": "Z3",
+        "secs": 1794
+      },
+      {
+        "id": "Z4",
+        "secs": 1125
+      },
+      {
+        "id": "Z5",
+        "secs": 397
+      },
+      {
+        "id": "Z6",
+        "secs": 224
+      },
+      {
+        "id": "Z7",
+        "secs": 132
+      },
+      {
+        "id": "SS",
+        "secs": 1450
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 26,
+      "tempFeel": 27.7,
+      "humidity": 65,
+      "windSpeed": 10.8,
+      "windDir": 351,
+      "precip": 0.3,
+      "cloudCover": 78,
+      "weatherCode": 51
+    },
+    "wetter": "26°C",
+    "source": "intervals.icu",
+    "ruhepuls": 57,
+    "hrv": 56,
+    "avgSleepingHR": 50,
+    "sleepHours": 5.2,
+    "feel": "Leicht",
+    "id": 61,
+    "dateShort": "29.06",
+    "dateISO": "2026-06-29"
+  },
+  {
+    "week": "2026-KW27",
+    "phase": "Sweet Spot",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Gruppenfahrt",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.839,
+          "note": "NP 162W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "150 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 48% · Z3/Z4+ 38% · Z5+ 14%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-06-30",
+    "startTime": "2026-06-30T16:23:56",
+    "activityId": "i161559967",
+    "km": 66.4,
+    "min": 150,
+    "kmh": 26.7,
+    "watt": 141,
+    "maxWatt": null,
+    "np": 162,
+    "hf": 138,
+    "hfMax": 173,
+    "kad": 88,
+    "hoehe": 75,
+    "hmProKm": 1.1,
+    "tss": 176,
+    "if": 0.84,
+    "vi": 1.15,
+    "trimp": 160,
+    "ctl": 63.2,
+    "atl": 96.4,
+    "tsb": -33.2,
+    "decoupling": 2,
+    "dtl": 176,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2298
+      },
+      {
+        "id": "Z2",
+        "secs": 2012
+      },
+      {
+        "id": "Z3",
+        "secs": 1916
+      },
+      {
+        "id": "Z4",
+        "secs": 1495
+      },
+      {
+        "id": "Z5",
+        "secs": 696
+      },
+      {
+        "id": "Z6",
+        "secs": 358
+      },
+      {
+        "id": "Z7",
+        "secs": 196
+      },
+      {
+        "id": "SS",
+        "secs": 1531
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 20.9,
+      "tempFeel": 23.6,
+      "humidity": 94,
+      "windSpeed": 7.5,
+      "windDir": 21,
+      "precip": 3.1,
+      "cloudCover": 84,
+      "weatherCode": 61
+    },
+    "wetter": "20.9°C",
+    "source": "intervals.icu",
+    "ruhepuls": 56,
+    "hrv": 46,
+    "avgSleepingHR": 55,
+    "sleepHours": 6.7,
+    "feel": "Moderat",
+    "id": 62,
+    "dateShort": "30.06",
+    "dateISO": "2026-06-30"
+  },
+  {
+    "week": "2026-KW27",
+    "phase": "Sweet Spot",
+    "typ": "Sweet Spot",
+    "typPlanned": "Sweet Spot",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.803,
+          "note": "NP 155W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "88 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "8 min zusammenhängend über Schwelle (176 W, 9.4% der Fahrzeit)",
+          "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 53% · Z3/Z4+ 38% · Z5+ 9%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-02",
+    "startTime": "2026-07-02T16:14:28",
+    "activityId": "i162119124",
+    "km": 37.7,
+    "min": 88,
+    "kmh": 25.8,
+    "watt": 136,
+    "maxWatt": null,
+    "np": 155,
+    "hf": 135,
+    "hfMax": 163,
+    "kad": 89,
+    "hoehe": 13,
+    "hmProKm": 0.3,
+    "tss": 95,
+    "if": 0.8,
+    "vi": 1.14,
+    "trimp": 88,
+    "ctl": 62.5,
+    "atl": 85.1,
+    "tsb": -22.6,
+    "decoupling": 1,
+    "dtl": 95,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1435
+      },
+      {
+        "id": "Z2",
+        "secs": 1369
+      },
+      {
+        "id": "Z3",
+        "secs": 1051
+      },
+      {
+        "id": "Z4",
+        "secs": 935
+      },
+      {
+        "id": "Z5",
+        "secs": 332
+      },
+      {
+        "id": "Z6",
+        "secs": 135
+      },
+      {
+        "id": "Z7",
+        "secs": 25
+      },
+      {
+        "id": "SS",
+        "secs": 982
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 25.8,
+      "tempFeel": 23.8,
+      "humidity": 39,
+      "windSpeed": 18.6,
+      "windDir": 254,
+      "precip": 0,
+      "cloudCover": 45,
+      "weatherCode": 3
+    },
+    "wetter": "25.8°C",
+    "source": "intervals.icu",
+    "ruhepuls": 55,
+    "hrv": 53,
+    "avgSleepingHR": 51,
+    "sleepHours": 4.6,
+    "feel": "Moderat",
+    "compliance": {
+      "matchedCardId": "bbea1861-b2f0-4f3a-b12c-628df692f652",
+      "plannedZoneTime_s": 1800,
+      "actualZoneTime_s": 1127,
+      "intervalsPlanned": 3,
+      "intervalsCompleted": 0,
+      "fadePct": -1.7,
+      "rating": "red",
+      "rule": "intervall-abgebrochen",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 600,
+          "actualDurationS": 364,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 179,
+          "avgHr": null,
+          "startSec": 2818,
+          "endSec": 3182
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 600,
+          "actualDurationS": 267,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 183,
+          "avgHr": null,
+          "startSec": 3667,
+          "endSec": 3934
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 600,
+          "actualDurationS": 496,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 176,
+          "avgHr": null,
+          "startSec": 4346,
+          "endSec": 4842
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "sweetspot-long"
+    },
+    "id": 63,
+    "dateShort": "02.07",
+    "dateISO": "2026-07-02"
+  },
+  {
+    "week": "2026-KW27",
+    "phase": "Sweet Spot",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "mittel",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.845,
+          "note": "NP 163W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "67 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 43% · Z3/Z4+ 42% · Z5+ 16%",
+          "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-03",
+    "startTime": "2026-07-03T19:53:22",
+    "activityId": "i162468700",
+    "km": 28.6,
+    "min": 67,
+    "kmh": 25.7,
+    "watt": 144,
+    "maxWatt": null,
+    "np": 163,
+    "hf": 139,
+    "hfMax": 162,
+    "kad": 88,
+    "hoehe": 16,
+    "hmProKm": 0.6,
+    "tss": 79,
+    "if": 0.84,
+    "vi": 1.13,
+    "trimp": 75,
+    "ctl": 62.9,
+    "atl": 84.2,
+    "tsb": -21.4,
+    "decoupling": 16.7,
+    "dtl": 79,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 973
+      },
+      {
+        "id": "Z2",
+        "secs": 724
+      },
+      {
+        "id": "Z3",
+        "secs": 854
+      },
+      {
+        "id": "Z4",
+        "secs": 811
+      },
+      {
+        "id": "Z5",
+        "secs": 422
+      },
+      {
+        "id": "Z6",
+        "secs": 138
+      },
+      {
+        "id": "Z7",
+        "secs": 68
+      },
+      {
+        "id": "SS",
+        "secs": 815
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 20.2,
+      "tempFeel": 17.1,
+      "humidity": 47,
+      "windSpeed": 18.7,
+      "windDir": 282,
+      "precip": 0,
+      "cloudCover": 32,
+      "weatherCode": 2
+    },
+    "wetter": "20.2°C",
+    "source": "intervals.icu",
+    "ruhepuls": 53,
+    "hrv": 51,
+    "avgSleepingHR": 52,
+    "sleepHours": 7.7,
+    "feel": "Leicht",
+    "id": 64,
+    "dateShort": "03.07",
+    "dateISO": "2026-07-03"
+  },
+  {
+    "week": "2026-KW27",
+    "phase": "Sweet Spot",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z2 Lang",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.72,
+          "note": "NP 139W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "93 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 64% · Z3/Z4+ 35% · Z5+ 1%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-niedrig-dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-05",
+    "startTime": "2026-07-05T16:37:16",
+    "activityId": "i162976289",
+    "km": 35,
+    "min": 93,
+    "kmh": 22.5,
+    "watt": 132,
+    "maxWatt": null,
+    "np": 139,
+    "hf": 129,
+    "hfMax": 149,
+    "kad": 82,
+    "hoehe": 318,
+    "hmProKm": 9.1,
+    "tss": 81,
+    "if": 0.72,
+    "vi": 1.05,
+    "trimp": 79,
+    "ctl": 61.8,
+    "atl": 74.1,
+    "tsb": -12.3,
+    "decoupling": 2.5,
+    "dtl": 81,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 490
+      },
+      {
+        "id": "Z2",
+        "secs": 3097
+      },
+      {
+        "id": "Z3",
+        "secs": 1931
+      },
+      {
+        "id": "Z4",
+        "secs": 42
+      },
+      {
+        "id": "Z5",
+        "secs": 16
+      },
+      {
+        "id": "Z6",
+        "secs": 17
+      },
+      {
+        "id": "Z7",
+        "secs": 6
+      },
+      {
+        "id": "SS",
+        "secs": 198
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 22.6,
+      "tempFeel": 19.9,
+      "humidity": 46,
+      "windSpeed": 21.3,
+      "windDir": 297,
+      "precip": 0,
+      "cloudCover": 96,
+      "weatherCode": 3
+    },
+    "wetter": "22.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 56,
+    "hrv": 53,
+    "avgSleepingHR": 50,
+    "sleepHours": 6,
+    "feel": "Moderat",
+    "id": 65,
+    "dateShort": "05.07",
+    "dateISO": "2026-07-05"
+  },
+  {
+    "week": "2026-KW28",
+    "phase": "Sweet Spot",
+    "typ": "Sweet Spot",
+    "typPlanned": "Gruppenfahrt",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.798,
+          "note": "NP 154W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "63 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "12 min zusammenhängend über Schwelle (174 W, 18.9% der Fahrzeit)",
+          "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 43% · Z3/Z4+ 57% · Z5+ 0%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-07",
+    "startTime": "2026-07-07T18:32:52",
+    "activityId": "i163620562",
+    "km": 28.3,
+    "min": 63,
+    "kmh": 26.9,
+    "watt": 141,
+    "maxWatt": null,
+    "np": 154,
+    "hf": 140,
+    "hfMax": 168,
+    "kad": 93,
+    "hoehe": null,
+    "hmProKm": null,
+    "tss": 67,
+    "if": 0.8,
+    "vi": 1.09,
+    "trimp": 72,
+    "ctl": 60.5,
+    "atl": 64.6,
+    "tsb": -4.1,
+    "decoupling": 7.6,
+    "dtl": 67,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1032
+      },
+      {
+        "id": "Z2",
+        "secs": 588
+      },
+      {
+        "id": "Z3",
+        "secs": 26
+      },
+      {
+        "id": "Z4",
+        "secs": 2127
+      },
+      {
+        "id": "Z5",
+        "secs": 0
+      },
+      {
+        "id": "Z6",
+        "secs": 0
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 2144
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 21,
+      "tempFeel": 19.9,
+      "humidity": 68,
+      "windSpeed": 18.6,
+      "windDir": 282,
+      "precip": 1.5,
+      "cloudCover": 98,
+      "weatherCode": 61
+    },
+    "wetter": "21°C",
+    "source": "intervals.icu",
+    "ruhepuls": 54,
+    "hrv": 44,
+    "avgSleepingHR": 49,
+    "sleepHours": 7.5,
+    "feel": "Moderat",
+    "compliance": {
+      "matchedCardId": "13cace1c-a0cb-4b2b-a0ca-990eb406db9b",
+      "plannedZoneTime_s": 2160,
+      "actualZoneTime_s": 2147,
+      "intervalsPlanned": 3,
+      "intervalsCompleted": 3,
+      "fadePct": -0.6,
+      "rating": "green",
+      "rule": "alle-intervalle-erfuellt",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 720,
+          "actualDurationS": 715,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 174,
+          "avgHr": null,
+          "startSec": 606,
+          "endSec": 1321
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 720,
+          "actualDurationS": 716,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 174,
+          "avgHr": null,
+          "startSec": 1590,
+          "endSec": 2306
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 720,
+          "actualDurationS": 716,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 173,
+          "avgHr": null,
+          "startSec": 2490,
+          "endSec": 3206
+        }
+      ],
+      "matchedFormatId": "sweetspot-long"
+    },
+    "id": 66,
+    "dateShort": "07.07",
+    "dateISO": "2026-07-07"
+  },
+  {
+    "week": "2026-KW28",
+    "phase": "Sweet Spot",
+    "typ": "Sweet Spot",
+    "typPlanned": null,
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.902,
+          "note": "NP 174W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "115 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "11 min zusammenhängend über Schwelle (191 W, 10% der Fahrzeit)",
+          "note": "bestätigt Sweet Spot"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 41% · Z3/Z4+ 40% · Z5+ 19%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-09",
+    "startTime": "2026-07-09T16:22:42",
+    "activityId": "i164228485",
+    "km": 50.2,
+    "min": 115,
+    "kmh": 26.2,
+    "watt": 154,
+    "maxWatt": null,
+    "np": 174,
+    "hf": 143,
+    "hfMax": 173,
+    "kad": 88,
+    "hoehe": 71,
+    "hmProKm": 1.4,
+    "tss": 156,
+    "if": 0.9,
+    "vi": 1.13,
+    "trimp": 138,
+    "ctl": 61.4,
+    "atl": 69.3,
+    "tsb": -7.9,
+    "decoupling": 2.9,
+    "dtl": 156,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1411
+      },
+      {
+        "id": "Z2",
+        "secs": 1418
+      },
+      {
+        "id": "Z3",
+        "secs": 1458
+      },
+      {
+        "id": "Z4",
+        "secs": 1274
+      },
+      {
+        "id": "Z5",
+        "secs": 673
+      },
+      {
+        "id": "Z6",
+        "secs": 456
+      },
+      {
+        "id": "Z7",
+        "secs": 202
+      },
+      {
+        "id": "SS",
+        "secs": 1320
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23.5,
+      "tempFeel": 21.6,
+      "humidity": 40,
+      "windSpeed": 14.2,
+      "windDir": 307,
+      "precip": 0,
+      "cloudCover": 2,
+      "weatherCode": 0
+    },
+    "wetter": "23.5°C",
+    "source": "intervals.icu",
+    "ruhepuls": 57,
+    "hrv": 55,
+    "avgSleepingHR": 49,
+    "sleepHours": 6.7,
+    "feel": "Moderat",
+    "id": 67,
+    "dateShort": "09.07",
+    "dateISO": "2026-07-09"
+  },
+  {
+    "week": "2026-KW28",
+    "phase": "Sweet Spot",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.803,
+          "note": "NP 155W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "168 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 54% · Z3/Z4+ 35% · Z5+ 11%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-10",
+    "startTime": "2026-07-10T13:30:43",
+    "activityId": "i164480043",
+    "km": 68.7,
+    "min": 168,
+    "kmh": 24.5,
+    "watt": 137,
+    "maxWatt": null,
+    "np": 155,
+    "hf": 136,
+    "hfMax": 161,
+    "kad": 90,
+    "hoehe": 204,
+    "hmProKm": 3,
+    "tss": 180,
+    "if": 0.8,
+    "vi": 1.13,
+    "trimp": 144,
+    "ctl": 64.2,
+    "atl": 84,
+    "tsb": -19.9,
+    "decoupling": 0,
+    "dtl": 180,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2237
+      },
+      {
+        "id": "Z2",
+        "secs": 3151
+      },
+      {
+        "id": "Z3",
+        "secs": 2537
+      },
+      {
+        "id": "Z4",
+        "secs": 999
+      },
+      {
+        "id": "Z5",
+        "secs": 489
+      },
+      {
+        "id": "Z6",
+        "secs": 448
+      },
+      {
+        "id": "Z7",
+        "secs": 199
+      },
+      {
+        "id": "SS",
+        "secs": 1430
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 25.5,
+      "tempFeel": 25.2,
+      "humidity": 40,
+      "windSpeed": 12.1,
+      "windDir": 332,
+      "precip": 0,
+      "cloudCover": 29,
+      "weatherCode": 2
+    },
+    "wetter": "25.5°C",
+    "source": "intervals.icu",
+    "ruhepuls": 69,
+    "hrv": 65,
+    "avgSleepingHR": 56,
+    "sleepHours": 8.1,
+    "feel": "Irgendwie einfach",
+    "id": 68,
+    "dateShort": "10.07",
+    "dateISO": "2026-07-10"
+  },
+  {
+    "week": "2026-KW28",
+    "phase": "Sweet Spot",
+    "typ": "Z2 Lang",
+    "typPlanned": "Sweet Spot",
+    "typDetected": "Z2 Lang",
+    "typDetection": {
+      "type": "Z2 Lang",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.813,
+          "note": "NP 157W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "182 min",
+          "note": "≥ 180 min → trotz Z2-Dauer-Band als Z2 Lang eingestuft"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 48% · Z3/Z4+ 42% · Z5+ 10%",
+          "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer-lang-override"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-12",
+    "startTime": "2026-07-12T14:54:22",
+    "activityId": "i165050962",
+    "km": 71.1,
+    "min": 182,
+    "kmh": 23.4,
+    "watt": 138,
+    "maxWatt": null,
+    "np": 157,
+    "hf": 145,
+    "hfMax": 175,
+    "kad": 90,
+    "hoehe": 190,
+    "hmProKm": 2.7,
+    "tss": 201,
+    "if": 0.81,
+    "vi": 1.14,
+    "trimp": 226,
+    "ctl": 65.9,
+    "atl": 89.9,
+    "tsb": -24,
+    "decoupling": -8.3,
+    "dtl": 201,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2431
+      },
+      {
+        "id": "Z2",
+        "secs": 2772
+      },
+      {
+        "id": "Z3",
+        "secs": 2923
+      },
+      {
+        "id": "Z4",
+        "secs": 1673
+      },
+      {
+        "id": "Z5",
+        "secs": 670
+      },
+      {
+        "id": "Z6",
+        "secs": 338
+      },
+      {
+        "id": "Z7",
+        "secs": 132
+      },
+      {
+        "id": "SS",
+        "secs": 2159
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 27.7,
+      "tempFeel": 26.9,
+      "humidity": 39,
+      "windSpeed": 14.3,
+      "windDir": 279,
+      "precip": 0.3,
+      "cloudCover": 26,
+      "weatherCode": 51
+    },
+    "wetter": "27.7°C",
+    "source": "intervals.icu",
+    "ruhepuls": 59,
+    "hrv": 45,
+    "avgSleepingHR": 57,
+    "sleepHours": 13,
+    "feel": "Irgendwie einfach",
+    "compliance": {
+      "matchedCardId": "8a35219e-4f12-431a-97e4-9377ec8f0b9e",
+      "plannedZoneTime_s": 2700,
+      "actualZoneTime_s": 139,
+      "intervalsPlanned": 3,
+      "intervalsCompleted": 0,
+      "fadePct": 20.2,
+      "rating": "red",
+      "rule": "intervall-abgebrochen",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 900,
+          "actualDurationS": 101,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 242,
+          "avgHr": null,
+          "startSec": 639,
+          "endSec": 773
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 900,
+          "actualDurationS": 5,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 342,
+          "avgHr": null,
+          "startSec": 905,
+          "endSec": 910
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 900,
+          "actualDurationS": 33,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 291,
+          "avgHr": null,
+          "startSec": 1225,
+          "endSec": 1258
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "sweetspot-long"
+    },
+    "id": 69,
+    "dateShort": "12.07",
+    "dateISO": "2026-07-12"
+  },
+  {
+    "week": "2026-KW29",
+    "phase": "Sweet Spot",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Sweet Spot",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "mittel",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.803,
+          "note": "NP 155W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "67 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 40% · Z3/Z4+ 60% · Z5+ 0%",
+          "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-14",
+    "startTime": "2026-07-14T18:25:30",
+    "activityId": "i165713324",
+    "km": 30.1,
+    "min": 67,
+    "kmh": 26.5,
+    "watt": 140,
+    "maxWatt": null,
+    "np": 155,
+    "hf": 130,
+    "hfMax": 152,
+    "kad": 93,
+    "hoehe": null,
+    "hmProKm": null,
+    "tss": 72,
+    "if": 0.8,
+    "vi": 1.11,
+    "trimp": 61,
+    "ctl": 64.6,
+    "atl": 77.2,
+    "tsb": -12.6,
+    "decoupling": -0.1,
+    "dtl": 72,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1104
+      },
+      {
+        "id": "Z2",
+        "secs": 502
+      },
+      {
+        "id": "Z3",
+        "secs": 14
+      },
+      {
+        "id": "Z4",
+        "secs": 2385
+      },
+      {
+        "id": "Z5",
+        "secs": 0
+      },
+      {
+        "id": "Z6",
+        "secs": 0
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 2394
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 21.6,
+      "tempFeel": 21.7,
+      "humidity": 68,
+      "windSpeed": 11.1,
+      "windDir": 45,
+      "precip": 0,
+      "cloudCover": 76,
+      "weatherCode": 3
+    },
+    "wetter": "21.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 52,
+    "hrv": 58,
+    "avgSleepingHR": 49,
+    "sleepHours": 5.4,
+    "feel": "Moderat",
+    "compliance": {
+      "matchedCardId": "dce4a135-90d6-4d29-999b-4d85afbb3467",
+      "plannedZoneTime_s": 2400,
+      "actualZoneTime_s": 2399,
+      "intervalsPlanned": 2,
+      "intervalsCompleted": 2,
+      "fadePct": 0,
+      "rating": "green",
+      "rule": "alle-intervalle-erfuellt",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 1200,
+          "actualDurationS": 1201,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 173,
+          "avgHr": null,
+          "startSec": 602,
+          "endSec": 1803
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 1200,
+          "actualDurationS": 1198,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 173,
+          "avgHr": null,
+          "startSec": 2104,
+          "endSec": 3302
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "sweetspot-long"
+    },
+    "id": 70,
+    "dateShort": "14.07",
+    "dateISO": "2026-07-14"
+  },
+  {
+    "week": "2026-KW29",
+    "phase": "Sweet Spot",
+    "typ": "Sweet Spot",
+    "typPlanned": null,
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.948,
+          "note": "NP 183W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "117 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "11 min zusammenhängend über Schwelle (201 W, 9.7% der Fahrzeit)",
+          "note": "bestätigt Sweet Spot"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 35% · Z3/Z4+ 41% · Z5+ 24%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-16",
+    "startTime": "2026-07-16T16:58:51",
+    "activityId": "i166361894",
+    "km": 55.4,
+    "min": 117,
+    "kmh": 28.6,
+    "watt": 163,
+    "maxWatt": null,
+    "np": 183,
+    "hf": 156,
+    "hfMax": 186,
+    "kad": 90,
+    "hoehe": 78,
+    "hmProKm": 1.4,
+    "tss": 175,
+    "if": 0.95,
+    "vi": 1.12,
+    "trimp": 185,
+    "ctl": 65.7,
+    "atl": 81.3,
+    "tsb": -15.6,
+    "decoupling": 8.2,
+    "dtl": 175,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1291
+      },
+      {
+        "id": "Z2",
+        "secs": 1191
+      },
+      {
+        "id": "Z3",
+        "secs": 1411
+      },
+      {
+        "id": "Z4",
+        "secs": 1434
+      },
+      {
+        "id": "Z5",
+        "secs": 805
+      },
+      {
+        "id": "Z6",
+        "secs": 596
+      },
+      {
+        "id": "Z7",
+        "secs": 286
+      },
+      {
+        "id": "SS",
+        "secs": 1389
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 27.3,
+      "tempFeel": 27.9,
+      "humidity": 44,
+      "windSpeed": 6,
+      "windDir": 68,
+      "precip": 0.1,
+      "cloudCover": 37,
+      "weatherCode": 51
+    },
+    "wetter": "27.3°C",
+    "source": "intervals.icu",
+    "ruhepuls": 62,
+    "hrv": 51,
+    "avgSleepingHR": 51,
+    "sleepHours": 6.4,
+    "feel": "Moderat",
+    "id": 71,
+    "dateShort": "16.07",
+    "dateISO": "2026-07-16"
+  },
+  {
+    "week": "2026-KW29",
+    "phase": "Sweet Spot",
+    "typ": "Sweet Spot",
+    "typPlanned": "Sweet Spot",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "mittel",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.71,
+          "note": "NP 137W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "166 min",
+          "note": "≥ 120 min → Einstufung als Z2 Lang"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "25 min zusammenhängend über Schwelle (179 W, 15% der Fahrzeit)",
+          "note": "hebt Einstufung von Z2 Lang auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 70% · Z3/Z4+ 30% · Z5+ 0%",
+          "note": "weicht von der IF-Einstufung ab — Z3/Z4+-Anteil geringer als erwartet"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-19",
+    "startTime": "2026-07-19T15:22:05",
+    "activityId": "i167198378",
+    "km": 68.6,
+    "min": 166,
+    "kmh": 24.7,
+    "watt": 117,
+    "maxWatt": null,
+    "np": 137,
+    "hf": 117,
+    "hfMax": 150,
+    "kad": 90,
+    "hoehe": null,
+    "hmProKm": null,
+    "tss": 139,
+    "if": 0.71,
+    "vi": 1.17,
+    "trimp": 105,
+    "ctl": 64.4,
+    "atl": 71.5,
+    "tsb": -7,
+    "decoupling": 14.3,
+    "dtl": 139,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 6396
+      },
+      {
+        "id": "Z2",
+        "secs": 527
+      },
+      {
+        "id": "Z3",
+        "secs": 664
+      },
+      {
+        "id": "Z4",
+        "secs": 2334
+      },
+      {
+        "id": "Z5",
+        "secs": 24
+      },
+      {
+        "id": "Z6",
+        "secs": 3
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 2683
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 19.7,
+      "tempFeel": 17.4,
+      "humidity": 51,
+      "windSpeed": 15.6,
+      "windDir": 257,
+      "precip": 0.2,
+      "cloudCover": 46,
+      "weatherCode": 51
+    },
+    "wetter": "19.7°C",
+    "source": "intervals.icu",
+    "ruhepuls": 53,
+    "hrv": 45,
+    "avgSleepingHR": 53,
+    "sleepHours": 8.4,
+    "feel": "Irgendwie einfach",
+    "id": 72,
+    "dateShort": "19.07",
+    "dateISO": "2026-07-19"
+  },
+  {
+    "week": "2026-KW30",
+    "phase": "Erholung",
+    "typ": "Sweet Spot",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.933,
+          "note": "NP 180W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "172 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 37% · Z3/Z4+ 35% · Z5+ 28%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-21",
+    "startTime": "2026-07-21T16:09:47",
+    "activityId": "i167827258",
+    "km": 76.9,
+    "min": 172,
+    "kmh": 26.6,
+    "watt": 155,
+    "maxWatt": null,
+    "np": 180,
+    "hf": 145,
+    "hfMax": 183,
+    "kad": 87,
+    "hoehe": 19,
+    "hmProKm": 0.2,
+    "tss": 249,
+    "if": 0.93,
+    "vi": 1.16,
+    "trimp": 226,
+    "ctl": 67.3,
+    "atl": 86.8,
+    "tsb": -19.6,
+    "decoupling": -1,
+    "dtl": 249,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2334
+      },
+      {
+        "id": "Z2",
+        "secs": 1448
+      },
+      {
+        "id": "Z3",
+        "secs": 1791
+      },
+      {
+        "id": "Z4",
+        "secs": 1839
+      },
+      {
+        "id": "Z5",
+        "secs": 1600
+      },
+      {
+        "id": "Z6",
+        "secs": 1115
+      },
+      {
+        "id": "Z7",
+        "secs": 190
+      },
+      {
+        "id": "SS",
+        "secs": 1711
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 20.6,
+      "tempFeel": 18.5,
+      "humidity": 48,
+      "windSpeed": 12.1,
+      "windDir": 323,
+      "precip": 0.1,
+      "cloudCover": 46,
+      "weatherCode": 51
+    },
+    "wetter": "20.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 53,
+    "hrv": 49,
+    "avgSleepingHR": 50,
+    "sleepHours": 7,
+    "feel": "Moderat",
+    "id": 73,
+    "dateShort": "21.07",
+    "dateISO": "2026-07-21"
+  },
+  {
+    "week": "2026-KW30",
+    "phase": "Erholung",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "mittel",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.824,
+          "note": "NP 159W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "71 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 12% · Z3/Z4+ 87% · Z5+ 1%",
+          "note": "weicht von der IF-Einstufung ab — Z1/Z2-Anteil geringer als erwartet"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-23",
+    "startTime": "2026-07-23T18:22:02",
+    "activityId": "i168532073",
+    "km": 13.1,
+    "min": 71,
+    "kmh": 11.1,
+    "watt": 157,
+    "maxWatt": null,
+    "np": 159,
+    "hf": 133,
+    "hfMax": 150,
+    "kad": 87,
+    "hoehe": 632,
+    "hmProKm": 48.2,
+    "tss": 80,
+    "if": 0.82,
+    "vi": 1.01,
+    "trimp": 67,
+    "ctl": 66,
+    "atl": 75.9,
+    "tsb": -9.9,
+    "decoupling": 6.1,
+    "dtl": 80,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 87
+      },
+      {
+        "id": "Z2",
+        "secs": 443
+      },
+      {
+        "id": "Z3",
+        "secs": 3368
+      },
+      {
+        "id": "Z4",
+        "secs": 332
+      },
+      {
+        "id": "Z5",
+        "secs": 23
+      },
+      {
+        "id": "Z6",
+        "secs": 0
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 1777
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 15.6,
+      "tempFeel": 15.7,
+      "humidity": 90,
+      "windSpeed": 8,
+      "windDir": 271,
+      "precip": 2.8,
+      "cloudCover": 63,
+      "weatherCode": 61
+    },
+    "wetter": "15.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 56,
+    "hrv": 44,
+    "avgSleepingHR": 50,
+    "sleepHours": 7.3,
+    "feel": "Moderat",
+    "id": 74,
+    "dateShort": "23.07",
+    "dateISO": "2026-07-23"
+  },
+  {
+    "week": "2026-KW30",
+    "phase": "Erholung",
+    "typ": "Sweet Spot",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.922,
+          "note": "NP 178W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "75 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "33 min zusammenhängend über Schwelle (184 W, 44.6% der Fahrzeit)",
+          "note": "bestätigt Sweet Spot"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 37% · Z3/Z4+ 40% · Z5+ 23%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-24",
+    "startTime": "2026-07-24T13:37:39",
+    "activityId": "i168788704",
+    "km": 31.2,
+    "min": 75,
+    "kmh": 25,
+    "watt": 152,
+    "maxWatt": null,
+    "np": 178,
+    "hf": 147,
+    "hfMax": 174,
+    "kad": 89,
+    "hoehe": 30,
+    "hmProKm": 1,
+    "tss": 106,
+    "if": 0.92,
+    "vi": 1.17,
+    "trimp": 97,
+    "ctl": 67,
+    "atl": 79.9,
+    "tsb": -12.9,
+    "decoupling": 20.7,
+    "dtl": 106,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1096
+      },
+      {
+        "id": "Z2",
+        "secs": 569
+      },
+      {
+        "id": "Z3",
+        "secs": 805
+      },
+      {
+        "id": "Z4",
+        "secs": 976
+      },
+      {
+        "id": "Z5",
+        "secs": 511
+      },
+      {
+        "id": "Z6",
+        "secs": 361
+      },
+      {
+        "id": "Z7",
+        "secs": 176
+      },
+      {
+        "id": "SS",
+        "secs": 882
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 20.7,
+      "tempFeel": 19.5,
+      "humidity": 48,
+      "windSpeed": 11.1,
+      "windDir": 266,
+      "precip": 0,
+      "cloudCover": 68,
+      "weatherCode": 3
+    },
+    "wetter": "20.7°C",
+    "source": "intervals.icu",
+    "ruhepuls": 60,
+    "hrv": 43,
+    "avgSleepingHR": 57,
+    "sleepHours": 6.8,
+    "feel": "Leicht",
+    "id": 75,
+    "dateShort": "24.07",
+    "dateISO": "2026-07-24"
+  },
+  {
+    "week": "2026-KW30",
+    "phase": "Erholung",
+    "typ": "Z2 Lang",
+    "typPlanned": "Z2 Lang",
+    "typDetected": "Z2 Lang",
+    "typDetection": {
+      "type": "Z2 Lang",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.824,
+          "note": "NP 159W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "244 min",
+          "note": "≥ 180 min → trotz Z2-Dauer-Band als Z2 Lang eingestuft"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 46% · Z3/Z4+ 42% · Z5+ 12%",
+          "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer-lang-override"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-25",
+    "startTime": "2026-07-25T14:56:16",
+    "activityId": "i169160035",
+    "km": 100.9,
+    "min": 244,
+    "kmh": 24.7,
+    "watt": 136,
+    "maxWatt": null,
+    "np": 159,
+    "hf": 137,
+    "hfMax": 167,
+    "kad": 88,
+    "hoehe": 76,
+    "hmProKm": 0.8,
+    "tss": 276,
+    "if": 0.82,
+    "vi": 1.17,
+    "trimp": 235,
+    "ctl": 71.9,
+    "atl": 106,
+    "tsb": -34.1,
+    "decoupling": 2.6,
+    "dtl": 276,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 3578
+      },
+      {
+        "id": "Z2",
+        "secs": 3151
+      },
+      {
+        "id": "Z3",
+        "secs": 3609
+      },
+      {
+        "id": "Z4",
+        "secs": 2613
+      },
+      {
+        "id": "Z5",
+        "secs": 965
+      },
+      {
+        "id": "Z6",
+        "secs": 533
+      },
+      {
+        "id": "Z7",
+        "secs": 211
+      },
+      {
+        "id": "SS",
+        "secs": 3074
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 27.3,
+      "tempFeel": 27.1,
+      "humidity": 35,
+      "windSpeed": 7,
+      "windDir": 215,
+      "precip": 0,
+      "cloudCover": 19,
+      "weatherCode": 1
+    },
+    "wetter": "27.3°C",
+    "source": "intervals.icu",
+    "ruhepuls": 63,
+    "hrv": 50,
+    "avgSleepingHR": 55,
+    "sleepHours": 8.3,
+    "feel": "Irgendwie einfach",
+    "id": 76,
+    "dateShort": "25.07",
+    "dateISO": "2026-07-25"
+  },
+  {
+    "week": "2026-KW31",
+    "phase": "Schwelle",
+    "typ": "Schwelle",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Schwelle",
+    "typDetection": {
+      "type": "Schwelle",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.984,
+          "note": "NP 190W ÷ FTP 193W — im Schwellenbereich (0.95–1.05)"
+        },
+        {
+          "label": "Dauer",
+          "value": "54 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "27 min zusammenhängend über Schwelle (203 W, 50.2% der Fahrzeit)",
+          "note": "bestätigt Schwelle"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 33% · Z3/Z4+ 38% · Z5+ 29%",
+          "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-schwelle"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-27",
+    "startTime": "2026-07-27T14:07:46",
+    "activityId": "i169692548",
+    "km": 24.9,
+    "min": 54,
+    "kmh": 27.4,
+    "watt": 168,
+    "maxWatt": null,
+    "np": 190,
+    "hf": 148,
+    "hfMax": 177,
+    "kad": 89,
+    "hoehe": 11,
+    "hmProKm": 0.4,
+    "tss": 88,
+    "if": 0.98,
+    "vi": 1.13,
+    "trimp": 74,
+    "ctl": 70.6,
+    "atl": 91.4,
+    "tsb": -20.8,
+    "decoupling": -12,
+    "dtl": 88,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 558
+      },
+      {
+        "id": "Z2",
+        "secs": 523
+      },
+      {
+        "id": "Z3",
+        "secs": 639
+      },
+      {
+        "id": "Z4",
+        "secs": 591
+      },
+      {
+        "id": "Z5",
+        "secs": 428
+      },
+      {
+        "id": "Z6",
+        "secs": 352
+      },
+      {
+        "id": "Z7",
+        "secs": 168
+      },
+      {
+        "id": "SS",
+        "secs": 525
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 22,
+      "tempFeel": 19.7,
+      "humidity": 47,
+      "windSpeed": 20.3,
+      "windDir": 295,
+      "precip": 0.1,
+      "cloudCover": 30,
+      "weatherCode": 51
+    },
+    "wetter": "22°C",
+    "source": "intervals.icu",
+    "ruhepuls": 57,
+    "hrv": 50,
+    "avgSleepingHR": 49,
+    "sleepHours": 6.9,
+    "feel": "Leicht",
+    "id": 77,
+    "dateShort": "27.07",
+    "dateISO": "2026-07-27"
+  },
+  {
+    "week": "2026-KW31",
+    "phase": "Schwelle",
+    "typ": "Schwelle",
+    "typPlanned": "Gruppenfahrt",
+    "typDetected": "Schwelle",
+    "typDetection": {
+      "type": "Schwelle",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 1.005,
+          "note": "NP 194W ÷ FTP 193W — im Schwellenbereich (0.95–1.05)"
+        },
+        {
+          "label": "Dauer",
+          "value": "116 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "14 min zusammenhängend über Schwelle (195 W, 12.2% der Fahrzeit)",
+          "note": "bestätigt Schwelle"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 34% · Z3/Z4+ 33% · Z5+ 33%",
+          "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-schwelle"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-28",
+    "startTime": "2026-07-28T15:54:46",
+    "activityId": "i170114578",
+    "km": 55.4,
+    "min": 116,
+    "kmh": 28.6,
+    "watt": 170,
+    "maxWatt": null,
+    "np": 194,
+    "hf": 147,
+    "hfMax": 178,
+    "kad": 89,
+    "hoehe": 72,
+    "hmProKm": 1.3,
+    "tss": 195,
+    "if": 1.01,
+    "vi": 1.14,
+    "trimp": 160,
+    "ctl": 73.5,
+    "atl": 105.2,
+    "tsb": -31.6,
+    "decoupling": -2.1,
+    "dtl": 195,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1469
+      },
+      {
+        "id": "Z2",
+        "secs": 920
+      },
+      {
+        "id": "Z3",
+        "secs": 997
+      },
+      {
+        "id": "Z4",
+        "secs": 1278
+      },
+      {
+        "id": "Z5",
+        "secs": 1008
+      },
+      {
+        "id": "Z6",
+        "secs": 875
+      },
+      {
+        "id": "Z7",
+        "secs": 416
+      },
+      {
+        "id": "SS",
+        "secs": 1141
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23.3,
+      "tempFeel": 21,
+      "humidity": 40,
+      "windSpeed": 13.4,
+      "windDir": 279,
+      "precip": 0,
+      "cloudCover": 49,
+      "weatherCode": 3
+    },
+    "wetter": "23.3°C",
+    "source": "intervals.icu",
+    "ruhepuls": 53,
+    "hrv": 45,
+    "avgSleepingHR": 51,
+    "sleepHours": 7.8,
+    "feel": "Moderat",
+    "id": 78,
+    "dateShort": "28.07",
+    "dateISO": "2026-07-28"
+  },
+  {
+    "week": "2026-KW31",
+    "phase": "Schwelle",
+    "typ": "Sweet Spot",
+    "typPlanned": "Schwelle",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.834,
+          "note": "NP 161W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "52 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "8 min zusammenhängend über Schwelle (191 W, 15.4% der Fahrzeit)",
+          "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 53% · Z3/Z4+ 47% · Z5+ 0%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-30",
+    "startTime": "2026-07-30T16:22:16",
+    "activityId": "i170813912",
+    "km": 22.6,
+    "min": 52,
+    "kmh": 25.4,
+    "watt": 137,
+    "maxWatt": null,
+    "np": 161,
+    "hf": 131,
+    "hfMax": 157,
+    "kad": 97,
+    "hoehe": null,
+    "hmProKm": null,
+    "tss": 60,
+    "if": 0.83,
+    "vi": 1.18,
+    "trimp": 46,
+    "ctl": 71.5,
+    "atl": 87,
+    "tsb": -15.5,
+    "decoupling": 15,
+    "dtl": 60,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1055
+      },
+      {
+        "id": "Z2",
+        "secs": 600
+      },
+      {
+        "id": "Z3",
+        "secs": 12
+      },
+      {
+        "id": "Z4",
+        "secs": 1431
+      },
+      {
+        "id": "Z5",
+        "secs": 0
+      },
+      {
+        "id": "Z6",
+        "secs": 0
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 12
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 35,
+      "tempFeel": 35.2,
+      "humidity": 26,
+      "windSpeed": 7,
+      "windDir": 224,
+      "precip": 0,
+      "cloudCover": 1,
+      "weatherCode": 0
+    },
+    "wetter": "35°C",
+    "source": "intervals.icu",
+    "ruhepuls": 57,
+    "hrv": 53,
+    "avgSleepingHR": 50,
+    "sleepHours": 7.3,
+    "feel": "Irgendwie einfach",
+    "compliance": {
+      "matchedCardId": "0a9e3ecc-a26e-4b99-b3fb-f3ef70bd2183",
+      "plannedZoneTime_s": 1440,
+      "actualZoneTime_s": 1433,
+      "intervalsPlanned": 3,
+      "intervalsCompleted": 3,
+      "fadePct": 0.5,
+      "rating": "green",
+      "rule": "alle-intervalle-erfuellt",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 480,
+          "actualDurationS": 479,
+          "plannedWatts": 193,
+          "avgWatts": 191,
+          "avgHr": null,
+          "startSec": 604,
+          "endSec": 1083
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 480,
+          "actualDurationS": 478,
+          "plannedWatts": 193,
+          "avgWatts": 191,
+          "avgHr": null,
+          "startSec": 1265,
+          "endSec": 1743
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 480,
+          "actualDurationS": 476,
+          "plannedWatts": 193,
+          "avgWatts": 192,
+          "avgHr": null,
+          "startSec": 1928,
+          "endSec": 2404
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "threshold-long"
+    },
+    "id": 79,
+    "dateShort": "30.07",
+    "dateISO": "2026-07-30"
+  },
+  {
+    "week": "2026-KW31",
+    "phase": "Schwelle",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.782,
+          "note": "NP 151W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "88 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 60% · Z3/Z4+ 28% · Z5+ 12%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-07-31",
+    "startTime": "2026-07-31T13:58:06",
+    "activityId": "i171130239",
+    "km": 33.3,
+    "min": 88,
+    "kmh": 22.4,
+    "watt": 118,
+    "maxWatt": null,
+    "np": 151,
+    "hf": 134,
+    "hfMax": 164,
+    "kad": 85,
+    "hoehe": 9,
+    "hmProKm": 0.3,
+    "tss": 90,
+    "if": 0.78,
+    "vi": 1.28,
+    "trimp": 84,
+    "ctl": 72,
+    "atl": 87.4,
+    "tsb": -15.5,
+    "decoupling": -13.3,
+    "dtl": 90,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1983
+      },
+      {
+        "id": "Z2",
+        "secs": 1193
+      },
+      {
+        "id": "Z3",
+        "secs": 837
+      },
+      {
+        "id": "Z4",
+        "secs": 644
+      },
+      {
+        "id": "Z5",
+        "secs": 394
+      },
+      {
+        "id": "Z6",
+        "secs": 198
+      },
+      {
+        "id": "Z7",
+        "secs": 41
+      },
+      {
+        "id": "SS",
+        "secs": 644
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 29.3,
+      "tempFeel": 32.4,
+      "humidity": 48,
+      "windSpeed": 5.9,
+      "windDir": 55,
+      "precip": 0,
+      "cloudCover": 31,
+      "weatherCode": 1
+    },
+    "wetter": "29.3°C",
+    "source": "intervals.icu",
+    "ruhepuls": 57,
+    "hrv": 50,
+    "avgSleepingHR": 51,
+    "sleepHours": 7.3,
+    "feel": null,
+    "id": 80,
+    "dateShort": "31.07",
+    "dateISO": "2026-07-31"
+  },
+  {
+    "week": "2026-KW31",
+    "phase": "Schwelle",
+    "typ": "Schwelle",
+    "typPlanned": null,
+    "typDetected": "Schwelle",
+    "typDetection": {
+      "type": "Schwelle",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.953,
+          "note": "NP 184W ÷ FTP 193W — im Schwellenbereich (0.95–1.05)"
+        },
+        {
+          "label": "Dauer",
+          "value": "211 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 37% · Z3/Z4+ 37% · Z5+ 26%",
+          "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-schwelle"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-02",
+    "startTime": "2026-08-02T14:32:50",
+    "activityId": "i171814551",
+    "km": 90.8,
+    "min": 211,
+    "kmh": 25.9,
+    "watt": 156,
+    "maxWatt": null,
+    "np": 184,
+    "hf": 150,
+    "hfMax": 182,
+    "kad": 88,
+    "hoehe": 71,
+    "hmProKm": 0.8,
+    "tss": 320,
+    "if": 0.95,
+    "vi": 1.18,
+    "trimp": 299,
+    "ctl": 76.2,
+    "atl": 108.3,
+    "tsb": -32.1,
+    "decoupling": -7.5,
+    "dtl": 320,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2878
+      },
+      {
+        "id": "Z2",
+        "secs": 1873
+      },
+      {
+        "id": "Z3",
+        "secs": 2315
+      },
+      {
+        "id": "Z4",
+        "secs": 2349
+      },
+      {
+        "id": "Z5",
+        "secs": 1544
+      },
+      {
+        "id": "Z6",
+        "secs": 1223
+      },
+      {
+        "id": "Z7",
+        "secs": 494
+      },
+      {
+        "id": "SS",
+        "secs": 2285
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23.6,
+      "tempFeel": 23.1,
+      "humidity": 42,
+      "windSpeed": 8.3,
+      "windDir": 82,
+      "precip": 0,
+      "cloudCover": 1,
+      "weatherCode": 0
+    },
+    "wetter": "23.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 58,
+    "hrv": 45,
+    "avgSleepingHR": 50,
+    "sleepHours": 8.6,
+    "feel": null,
+    "id": 81,
+    "dateShort": "02.08",
+    "dateISO": "2026-08-02"
+  },
+  {
+    "week": "2026-KW32",
+    "phase": "Schwelle",
+    "typ": "Sweet Spot",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.798,
+          "note": "NP 154W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "63 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "6 min zusammenhängend über Schwelle (209 W, 9.2% der Fahrzeit)",
+          "note": "hebt Einstufung von Z2 Dauer auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 65% · Z3/Z4+ 27% · Z5+ 8%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-03",
+    "startTime": "2026-08-03T16:29:54",
+    "activityId": "i172088958",
+    "km": 24.7,
+    "min": 63,
+    "kmh": 23.7,
+    "watt": 123,
+    "maxWatt": null,
+    "np": 154,
+    "hf": 132,
+    "hfMax": 173,
+    "kad": 87,
+    "hoehe": 14,
+    "hmProKm": 0.6,
+    "tss": 67,
+    "if": 0.8,
+    "vi": 1.25,
+    "trimp": 57,
+    "ctl": 76,
+    "atl": 103.3,
+    "tsb": -27.3,
+    "decoupling": 22,
+    "dtl": 67,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1376
+      },
+      {
+        "id": "Z2",
+        "secs": 1088
+      },
+      {
+        "id": "Z3",
+        "secs": 644
+      },
+      {
+        "id": "Z4",
+        "secs": 375
+      },
+      {
+        "id": "Z5",
+        "secs": 152
+      },
+      {
+        "id": "Z6",
+        "secs": 91
+      },
+      {
+        "id": "Z7",
+        "secs": 77
+      },
+      {
+        "id": "SS",
+        "secs": 410
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 29.9,
+      "tempFeel": 31.3,
+      "humidity": 40,
+      "windSpeed": 3.4,
+      "windDir": 45,
+      "precip": 0,
+      "cloudCover": 3,
+      "weatherCode": 0
+    },
+    "wetter": "29.9°C",
+    "source": "intervals.icu",
+    "ruhepuls": 58,
+    "hrv": 49,
+    "avgSleepingHR": 53,
+    "sleepHours": 7.9,
+    "feel": null,
+    "id": 82,
+    "dateShort": "03.08",
+    "dateISO": "2026-08-03"
+  },
+  {
+    "week": "2026-KW32",
+    "phase": "Schwelle",
+    "typ": "Z1 Recovery",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Z1 Recovery",
+    "typDetection": {
+      "type": "Z1 Recovery",
+      "confidence": "niedrig",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.658,
+          "note": "NP 127W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "6 min",
+          "note": "unter 20 min — Einstufung unsicher"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 86% · Z3/Z4+ 7% · Z5+ 8%",
+          "note": "bestätigt Z1 Recovery (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-niedrig-kurz"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-03",
+    "startTime": "2026-08-03T14:55:28",
+    "activityId": "i172030064",
+    "km": 2.1,
+    "min": 6,
+    "kmh": 21.1,
+    "watt": 114,
+    "maxWatt": null,
+    "np": 127,
+    "hf": 119,
+    "hfMax": 144,
+    "kad": 83,
+    "hoehe": 34,
+    "hmProKm": 16.2,
+    "tss": 4,
+    "if": 0.66,
+    "vi": 1.11,
+    "trimp": 4,
+    "ctl": 76,
+    "atl": 103.3,
+    "tsb": -27.3,
+    "decoupling": -2.3,
+    "dtl": 4,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 175
+      },
+      {
+        "id": "Z2",
+        "secs": 131
+      },
+      {
+        "id": "Z3",
+        "secs": 15
+      },
+      {
+        "id": "Z4",
+        "secs": 9
+      },
+      {
+        "id": "Z5",
+        "secs": 10
+      },
+      {
+        "id": "Z6",
+        "secs": 15
+      },
+      {
+        "id": "Z7",
+        "secs": 2
+      },
+      {
+        "id": "SS",
+        "secs": 4
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 29.4,
+      "tempFeel": 32.2,
+      "humidity": 45,
+      "windSpeed": 5.3,
+      "windDir": 74,
+      "precip": 0,
+      "cloudCover": 4,
+      "weatherCode": 0
+    },
+    "wetter": "29.4°C",
+    "source": "intervals.icu",
+    "ruhepuls": 58,
+    "hrv": 49,
+    "avgSleepingHR": 53,
+    "sleepHours": 7.9,
+    "feel": null,
+    "id": 83,
+    "dateShort": "03.08",
+    "dateISO": "2026-08-03"
+  },
+  {
+    "week": "2026-KW32",
+    "phase": "Schwelle",
+    "typ": "Z2 Lang",
+    "typPlanned": "Gruppenfahrt",
+    "typDetected": "Z2 Lang",
+    "typDetection": {
+      "type": "Z2 Lang",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.736,
+          "note": "NP 142W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "151 min",
+          "note": "≥ 120 min → Einstufung als Z2 Lang"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 70% · Z3/Z4+ 25% · Z5+ 5%",
+          "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-niedrig-lang"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-04",
+    "startTime": "2026-08-04T16:44:44",
+    "activityId": "i172475844",
+    "km": 59.9,
+    "min": 151,
+    "kmh": 23.7,
+    "watt": 118,
+    "maxWatt": null,
+    "np": 142,
+    "hf": 130,
+    "hfMax": 172,
+    "kad": 85,
+    "hoehe": 55,
+    "hmProKm": 0.9,
+    "tss": 137,
+    "if": 0.74,
+    "vi": 1.2,
+    "trimp": 134,
+    "ctl": 77.5,
+    "atl": 107.8,
+    "tsb": -30.3,
+    "decoupling": 6.2,
+    "dtl": 137,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 3195
+      },
+      {
+        "id": "Z2",
+        "secs": 3202
+      },
+      {
+        "id": "Z3",
+        "secs": 1557
+      },
+      {
+        "id": "Z4",
+        "secs": 675
+      },
+      {
+        "id": "Z5",
+        "secs": 225
+      },
+      {
+        "id": "Z6",
+        "secs": 143
+      },
+      {
+        "id": "Z7",
+        "secs": 92
+      },
+      {
+        "id": "SS",
+        "secs": 914
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 29.3,
+      "tempFeel": 33.1,
+      "humidity": 61,
+      "windSpeed": 3.7,
+      "windDir": 262,
+      "precip": 0.4,
+      "cloudCover": 72,
+      "weatherCode": 51
+    },
+    "wetter": "29.3°C",
+    "source": "intervals.icu",
+    "ruhepuls": 55,
+    "hrv": 48,
+    "avgSleepingHR": 55,
+    "sleepHours": 6.1,
+    "feel": null,
+    "id": 84,
+    "dateShort": "04.08",
+    "dateISO": "2026-08-04"
+  },
+  {
+    "week": "2026-KW32",
+    "phase": "Schwelle",
+    "typ": "Sweet Spot",
+    "typPlanned": "Schwelle",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.881,
+          "note": "NP 170W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "54 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "10 min zusammenhängend über Schwelle (194 W, 18.5% der Fahrzeit)",
+          "note": "hebt Einstufung von Tempo auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 44% · Z3/Z4+ 56% · Z5+ 0%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-06",
+    "startTime": "2026-08-06T17:29:22",
+    "activityId": "i173130608",
+    "km": 27,
+    "min": 54,
+    "kmh": 29.9,
+    "watt": 153,
+    "maxWatt": null,
+    "np": 170,
+    "hf": 144,
+    "hfMax": 174,
+    "kad": 88,
+    "hoehe": 144,
+    "hmProKm": 5.3,
+    "tss": 70,
+    "if": 0.88,
+    "vi": 1.11,
+    "trimp": 66,
+    "ctl": 75.5,
+    "atl": 90.3,
+    "tsb": -14.8,
+    "decoupling": 12.9,
+    "dtl": 70,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 920
+      },
+      {
+        "id": "Z2",
+        "secs": 525
+      },
+      {
+        "id": "Z3",
+        "secs": 82
+      },
+      {
+        "id": "Z4",
+        "secs": 1721
+      },
+      {
+        "id": "Z5",
+        "secs": 0
+      },
+      {
+        "id": "Z6",
+        "secs": 0
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 86
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 28.2,
+      "tempFeel": 27.4,
+      "humidity": 40,
+      "windSpeed": 12.1,
+      "windDir": 305,
+      "precip": 0,
+      "cloudCover": 17,
+      "weatherCode": 1
+    },
+    "wetter": "28.2°C",
+    "source": "intervals.icu",
+    "ruhepuls": 58,
+    "hrv": 48,
+    "avgSleepingHR": 50,
+    "sleepHours": 6.8,
+    "feel": null,
+    "compliance": {
+      "matchedCardId": "0dc4c923-7d87-4076-b1b3-fe6305b777e5",
+      "plannedZoneTime_s": 1800,
+      "actualZoneTime_s": 1725,
+      "intervalsPlanned": 3,
+      "intervalsCompleted": 2,
+      "fadePct": -1,
+      "rating": "red",
+      "rule": "intervall-abgebrochen",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 600,
+          "actualDurationS": 599,
+          "plannedWatts": 193,
+          "avgWatts": 194,
+          "avgHr": null,
+          "startSec": 605,
+          "endSec": 1204
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 600,
+          "actualDurationS": 597,
+          "plannedWatts": 193,
+          "avgWatts": 194,
+          "avgHr": null,
+          "startSec": 1388,
+          "endSec": 1985
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 600,
+          "actualDurationS": 529,
+          "plannedWatts": 193,
+          "avgWatts": 192,
+          "avgHr": null,
+          "startSec": 2169,
+          "endSec": 2698
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "threshold-long"
+    },
+    "id": 85,
+    "dateShort": "06.08",
+    "dateISO": "2026-08-06"
+  },
+  {
+    "week": "2026-KW32",
+    "phase": "Schwelle",
+    "typ": "Z2 Lang",
+    "typPlanned": "Sweet Spot",
+    "typDetected": "Z2 Lang",
+    "typDetection": {
+      "type": "Z2 Lang",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.627,
+          "note": "NP 121W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "163 min",
+          "note": "≥ 120 min → Einstufung als Z2 Lang"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 96% · Z3/Z4+ 4% · Z5+ 0%",
+          "note": "bestätigt Z2 Lang (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-niedrig-lang"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-08",
+    "startTime": "2026-08-08T16:52:19",
+    "activityId": "i173816005",
+    "km": 67.8,
+    "min": 163,
+    "kmh": 24.9,
+    "watt": 115,
+    "maxWatt": null,
+    "np": 121,
+    "hf": 119,
+    "hfMax": 151,
+    "kad": 88,
+    "hoehe": 487,
+    "hmProKm": 7.2,
+    "tss": 107,
+    "if": 0.63,
+    "vi": 1.05,
+    "trimp": 110,
+    "ctl": 74.5,
+    "atl": 82.1,
+    "tsb": -7.6,
+    "decoupling": 5.9,
+    "dtl": 107,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 3869
+      },
+      {
+        "id": "Z2",
+        "secs": 5508
+      },
+      {
+        "id": "Z3",
+        "secs": 108
+      },
+      {
+        "id": "Z4",
+        "secs": 300
+      },
+      {
+        "id": "Z5",
+        "secs": 5
+      },
+      {
+        "id": "Z6",
+        "secs": 3
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 329
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23.4,
+      "tempFeel": 22.7,
+      "humidity": 39,
+      "windSpeed": 3.7,
+      "windDir": 106,
+      "precip": 0,
+      "cloudCover": 0,
+      "weatherCode": 0
+    },
+    "wetter": "23.4°C",
+    "source": "intervals.icu",
+    "ruhepuls": 53,
+    "hrv": 56,
+    "avgSleepingHR": 50,
+    "sleepHours": 7.2,
+    "feel": null,
+    "compliance": {
+      "matchedCardId": "b7529c3e-2582-4a70-8f6c-c50f28d339b1",
+      "plannedZoneTime_s": 2400,
+      "actualZoneTime_s": 240,
+      "intervalsPlanned": 2,
+      "intervalsCompleted": 0,
+      "fadePct": 0,
+      "rating": "red",
+      "rule": "intervall-abgebrochen",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 1200,
+          "actualDurationS": 240,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": 174,
+          "avgHr": null,
+          "startSec": 5232,
+          "endSec": 5472
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 1200,
+          "actualDurationS": 0,
+          "plannedWatts": 173.70000000000002,
+          "avgWatts": null,
+          "avgHr": null,
+          "startSec": null,
+          "endSec": null
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "sweetspot-long"
+    },
+    "id": 86,
+    "dateShort": "08.08",
+    "dateISO": "2026-08-08"
+  },
+  {
+    "week": "2026-KW32",
+    "phase": "Schwelle",
+    "typ": "Sweet Spot",
+    "typPlanned": null,
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.876,
+          "note": "NP 169W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "112 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "25 min zusammenhängend über Schwelle (183 W, 22.6% der Fahrzeit)",
+          "note": "hebt Einstufung von Tempo auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 49% · Z3/Z4+ 34% · Z5+ 17%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-09",
+    "startTime": "2026-08-09T13:30:33",
+    "activityId": "i174051238",
+    "km": 45.1,
+    "min": 112,
+    "kmh": 24.4,
+    "watt": 139,
+    "maxWatt": null,
+    "np": 169,
+    "hf": 149,
+    "hfMax": 183,
+    "kad": 89,
+    "hoehe": 25,
+    "hmProKm": 0.6,
+    "tss": 143,
+    "if": 0.88,
+    "vi": 1.22,
+    "trimp": 160,
+    "ctl": 76.1,
+    "atl": 90.2,
+    "tsb": -14.1,
+    "decoupling": -3.4,
+    "dtl": 143,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2016
+      },
+      {
+        "id": "Z2",
+        "secs": 1267
+      },
+      {
+        "id": "Z3",
+        "secs": 1262
+      },
+      {
+        "id": "Z4",
+        "secs": 999
+      },
+      {
+        "id": "Z5",
+        "secs": 590
+      },
+      {
+        "id": "Z6",
+        "secs": 389
+      },
+      {
+        "id": "Z7",
+        "secs": 182
+      },
+      {
+        "id": "SS",
+        "secs": 1036
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 29.7,
+      "tempFeel": 29.3,
+      "humidity": 31,
+      "windSpeed": 12.4,
+      "windDir": 172,
+      "precip": 0,
+      "cloudCover": 26,
+      "weatherCode": 2
+    },
+    "wetter": "29.7°C",
+    "source": "intervals.icu",
+    "ruhepuls": 54,
+    "hrv": 50,
+    "avgSleepingHR": 54,
+    "sleepHours": 7.8,
+    "feel": null,
+    "id": 87,
+    "dateShort": "09.08",
+    "dateISO": "2026-08-09"
+  },
+  {
+    "week": "2026-KW33",
+    "phase": "Schwelle",
+    "typ": "Sweet Spot",
+    "typPlanned": "Gruppenfahrt",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.891,
+          "note": "NP 172W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "69 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "20 min zusammenhängend über Schwelle (194 W, 29% der Fahrzeit)",
+          "note": "hebt Einstufung von Tempo auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 42% · Z3/Z4+ 58% · Z5+ 0%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-11",
+    "startTime": "2026-08-11T15:21:59",
+    "activityId": "i174776504",
+    "km": 27.9,
+    "min": 69,
+    "kmh": 24.1,
+    "watt": 153,
+    "maxWatt": null,
+    "np": 172,
+    "hf": 139,
+    "hfMax": 167,
+    "kad": 89,
+    "hoehe": 428,
+    "hmProKm": 15.3,
+    "tss": 92,
+    "if": 0.89,
+    "vi": 1.12,
+    "trimp": 76,
+    "ctl": 74.8,
+    "atl": 80.1,
+    "tsb": -5.3,
+    "decoupling": -2.8,
+    "dtl": 92,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1133
+      },
+      {
+        "id": "Z2",
+        "secs": 613
+      },
+      {
+        "id": "Z3",
+        "secs": 8
+      },
+      {
+        "id": "Z4",
+        "secs": 2397
+      },
+      {
+        "id": "Z5",
+        "secs": 2
+      },
+      {
+        "id": "Z6",
+        "secs": 3
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 8
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 22.2,
+      "tempFeel": 19.8,
+      "humidity": 36,
+      "windSpeed": 13.2,
+      "windDir": 320,
+      "precip": 0,
+      "cloudCover": 14,
+      "weatherCode": 1
+    },
+    "wetter": "22.2°C",
+    "source": "intervals.icu",
+    "ruhepuls": 56,
+    "hrv": 44,
+    "avgSleepingHR": 53,
+    "sleepHours": 6.6,
+    "feel": null,
+    "id": 88,
+    "dateShort": "11.08",
+    "dateISO": "2026-08-11"
+  },
+  {
+    "week": "2026-KW33",
+    "phase": "Schwelle",
+    "typ": "Z2 Dauer",
+    "typPlanned": null,
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.798,
+          "note": "NP 154W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "31 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 46% · Z3/Z4+ 46% · Z5+ 8%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-12",
+    "startTime": "2026-08-12T19:23:36",
+    "activityId": "i175256059",
+    "km": 12.3,
+    "min": 31,
+    "kmh": 23.3,
+    "watt": 137,
+    "maxWatt": null,
+    "np": 154,
+    "hf": 131,
+    "hfMax": 149,
+    "kad": 87,
+    "hoehe": 8,
+    "hmProKm": 0.7,
+    "tss": 33,
+    "if": 0.8,
+    "vi": 1.12,
+    "trimp": 28,
+    "ctl": 74.2,
+    "atl": 76.2,
+    "tsb": -2,
+    "decoupling": -9.1,
+    "dtl": 33,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 432
+      },
+      {
+        "id": "Z2",
+        "secs": 428
+      },
+      {
+        "id": "Z3",
+        "secs": 497
+      },
+      {
+        "id": "Z4",
+        "secs": 366
+      },
+      {
+        "id": "Z5",
+        "secs": 119
+      },
+      {
+        "id": "Z6",
+        "secs": 28
+      },
+      {
+        "id": "Z7",
+        "secs": 13
+      },
+      {
+        "id": "SS",
+        "secs": 392
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 22,
+      "tempFeel": 21,
+      "humidity": 46,
+      "windSpeed": 5.6,
+      "windDir": 13,
+      "precip": 0,
+      "cloudCover": 1,
+      "weatherCode": 0
+    },
+    "wetter": "22°C",
+    "source": "intervals.icu",
+    "ruhepuls": 55,
+    "hrv": 51,
+    "avgSleepingHR": 51,
+    "sleepHours": 8.3,
+    "feel": null,
+    "id": 89,
+    "dateShort": "12.08",
+    "dateISO": "2026-08-12"
+  },
+  {
+    "week": "2026-KW33",
+    "phase": "Schwelle",
+    "typ": "Sweet Spot",
+    "typPlanned": "Schwelle",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.912,
+          "note": "NP 176W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "138 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 42% · Z3/Z4+ 37% · Z5+ 21%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-13",
+    "startTime": "2026-08-13T16:28:40",
+    "activityId": "i175508409",
+    "km": 59.7,
+    "min": 138,
+    "kmh": 26,
+    "watt": 147,
+    "maxWatt": null,
+    "np": 176,
+    "hf": 130,
+    "hfMax": 187,
+    "kad": 88,
+    "hoehe": 65,
+    "hmProKm": 1.1,
+    "tss": 191,
+    "if": 0.91,
+    "vi": 1.2,
+    "trimp": 123,
+    "ctl": 76.9,
+    "atl": 91.5,
+    "tsb": -14.5,
+    "decoupling": 16.1,
+    "dtl": 191,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2126
+      },
+      {
+        "id": "Z2",
+        "secs": 1365
+      },
+      {
+        "id": "Z3",
+        "secs": 1497
+      },
+      {
+        "id": "Z4",
+        "secs": 1543
+      },
+      {
+        "id": "Z5",
+        "secs": 905
+      },
+      {
+        "id": "Z6",
+        "secs": 624
+      },
+      {
+        "id": "Z7",
+        "secs": 200
+      },
+      {
+        "id": "SS",
+        "secs": 1444
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 26.1,
+      "tempFeel": 24.9,
+      "humidity": 34,
+      "windSpeed": 7,
+      "windDir": 106,
+      "precip": 0,
+      "cloudCover": 3,
+      "weatherCode": 0
+    },
+    "wetter": "26.1°C",
+    "source": "intervals.icu",
+    "ruhepuls": 54,
+    "hrv": 47,
+    "avgSleepingHR": 51,
+    "sleepHours": 7.9,
+    "feel": null,
+    "compliance": {
+      "matchedCardId": "8a43e3bf-ff74-40bd-8eb1-1ea7c830f340",
+      "plannedZoneTime_s": 2400,
+      "actualZoneTime_s": 932,
+      "intervalsPlanned": 2,
+      "intervalsCompleted": 0,
+      "fadePct": 11.2,
+      "rating": "red",
+      "rule": "intervall-abgebrochen",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 1200,
+          "actualDurationS": 416,
+          "plannedWatts": 193,
+          "avgWatts": 196,
+          "avgHr": null,
+          "startSec": 1322,
+          "endSec": 1816
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 1200,
+          "actualDurationS": 516,
+          "plannedWatts": 193,
+          "avgWatts": 218,
+          "avgHr": null,
+          "startSec": 2453,
+          "endSec": 3035
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "threshold-long"
+    },
+    "id": 90,
+    "dateShort": "13.08",
+    "dateISO": "2026-08-13"
+  },
+  {
+    "week": "2026-KW33",
+    "phase": "Schwelle",
+    "typ": "Tempo",
+    "typPlanned": null,
+    "typDetected": "Tempo",
+    "typDetection": {
+      "type": "Tempo",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.896,
+          "note": "NP 173W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "254 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 44% · Z3/Z4+ 37% · Z5+ 18%",
+          "note": "bestätigt Tempo (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-tempo"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-16",
+    "startTime": "2026-08-16T13:04:03",
+    "activityId": "i176497041",
+    "km": 106,
+    "min": 254,
+    "kmh": 25.1,
+    "watt": 144,
+    "maxWatt": null,
+    "np": 173,
+    "hf": 139,
+    "hfMax": 185,
+    "kad": 86,
+    "hoehe": 86,
+    "hmProKm": 0.8,
+    "tss": 340,
+    "if": 0.9,
+    "vi": 1.2,
+    "trimp": 285,
+    "ctl": 79.6,
+    "atl": 104.8,
+    "tsb": -25.2,
+    "decoupling": 1.6,
+    "dtl": 340,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 4198
+      },
+      {
+        "id": "Z2",
+        "secs": 2544
+      },
+      {
+        "id": "Z3",
+        "secs": 3109
+      },
+      {
+        "id": "Z4",
+        "secs": 2574
+      },
+      {
+        "id": "Z5",
+        "secs": 1306
+      },
+      {
+        "id": "Z6",
+        "secs": 961
+      },
+      {
+        "id": "Z7",
+        "secs": 536
+      },
+      {
+        "id": "SS",
+        "secs": 2786
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 22.1,
+      "tempFeel": 23.8,
+      "humidity": 72,
+      "windSpeed": 5.6,
+      "windDir": 25,
+      "precip": 0.1,
+      "cloudCover": 62,
+      "weatherCode": 51
+    },
+    "wetter": "22.1°C",
+    "source": "intervals.icu",
+    "ruhepuls": 54,
+    "hrv": 47,
+    "avgSleepingHR": 51,
+    "sleepHours": 7.2,
+    "feel": null,
+    "id": 91,
+    "dateShort": "16.08",
+    "dateISO": "2026-08-16"
+  },
+  {
+    "week": "2026-KW34",
+    "phase": "Erholung",
+    "typ": "Sweet Spot",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.938,
+          "note": "NP 181W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "143 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 42% · Z3/Z4+ 36% · Z5+ 22%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-18",
+    "startTime": "2026-08-18T15:57:00",
+    "activityId": "i177247478",
+    "km": 62.4,
+    "min": 143,
+    "kmh": 26.3,
+    "watt": 155,
+    "maxWatt": null,
+    "np": 181,
+    "hf": 135,
+    "hfMax": 181,
+    "kad": 84,
+    "hoehe": 143,
+    "hmProKm": 2.3,
+    "tss": 209,
+    "if": 0.94,
+    "vi": 1.17,
+    "trimp": 135,
+    "ctl": 80.9,
+    "atl": 106.6,
+    "tsb": -25.8,
+    "decoupling": 0.6,
+    "dtl": 209,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1889
+      },
+      {
+        "id": "Z2",
+        "secs": 1671
+      },
+      {
+        "id": "Z3",
+        "secs": 1743
+      },
+      {
+        "id": "Z4",
+        "secs": 1332
+      },
+      {
+        "id": "Z5",
+        "secs": 822
+      },
+      {
+        "id": "Z6",
+        "secs": 682
+      },
+      {
+        "id": "Z7",
+        "secs": 415
+      },
+      {
+        "id": "SS",
+        "secs": 1475
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 19.9,
+      "tempFeel": 18.3,
+      "humidity": 57,
+      "windSpeed": 14,
+      "windDir": 253,
+      "precip": 0.4,
+      "cloudCover": 80,
+      "weatherCode": 51
+    },
+    "wetter": "19.9°C",
+    "source": "intervals.icu",
+    "ruhepuls": 60,
+    "hrv": 38,
+    "avgSleepingHR": 51,
+    "sleepHours": 5.8,
+    "feel": null,
+    "id": 92,
+    "dateShort": "18.08",
+    "dateISO": "2026-08-18"
+  },
+  {
+    "week": "2026-KW34",
+    "phase": "Erholung",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.808,
+          "note": "NP 156W ÷ FTP 193W — im Z2-Dauer-Band (0.75–0.85)"
+        },
+        {
+          "label": "Dauer",
+          "value": "74 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 54% · Z3/Z4+ 33% · Z5+ 13%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-z2dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-20",
+    "startTime": "2026-08-20T13:03:12",
+    "activityId": "i177934033",
+    "km": 30.1,
+    "min": 74,
+    "kmh": 24.1,
+    "watt": 132,
+    "maxWatt": null,
+    "np": 156,
+    "hf": 140,
+    "hfMax": 170,
+    "kad": 86,
+    "hoehe": 25,
+    "hmProKm": 0.8,
+    "tss": 81,
+    "if": 0.81,
+    "vi": 1.18,
+    "trimp": 84,
+    "ctl": 79,
+    "atl": 90.9,
+    "tsb": -11.9,
+    "decoupling": 11.3,
+    "dtl": 81,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1398
+      },
+      {
+        "id": "Z2",
+        "secs": 989
+      },
+      {
+        "id": "Z3",
+        "secs": 822
+      },
+      {
+        "id": "Z4",
+        "secs": 666
+      },
+      {
+        "id": "Z5",
+        "secs": 286
+      },
+      {
+        "id": "Z6",
+        "secs": 189
+      },
+      {
+        "id": "Z7",
+        "secs": 105
+      },
+      {
+        "id": "SS",
+        "secs": 738
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 23,
+      "tempFeel": 22.8,
+      "humidity": 54,
+      "windSpeed": 11,
+      "windDir": 241,
+      "precip": 0.1,
+      "cloudCover": 63,
+      "weatherCode": 51
+    },
+    "wetter": "23°C",
+    "source": "intervals.icu",
+    "ruhepuls": 56,
+    "hrv": 61,
+    "avgSleepingHR": 52,
+    "sleepHours": 5.2,
+    "feel": null,
+    "id": 93,
+    "dateShort": "20.08",
+    "dateISO": "2026-08-20"
+  },
+  {
+    "week": "2026-KW34",
+    "phase": "Erholung",
+    "typ": "Z2 Dauer",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.72,
+          "note": "NP 139W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "99 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 67% · Z3/Z4+ 28% · Z5+ 6%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-niedrig-dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-21",
+    "startTime": "2026-08-21T15:38:35",
+    "activityId": "i178341650",
+    "km": 34.7,
+    "min": 99,
+    "kmh": 20.9,
+    "watt": 103,
+    "maxWatt": null,
+    "np": 139,
+    "hf": 118,
+    "hfMax": 155,
+    "kad": 85,
+    "hoehe": 22,
+    "hmProKm": 0.6,
+    "tss": 86,
+    "if": 0.72,
+    "vi": 1.35,
+    "trimp": 59,
+    "ctl": 79.2,
+    "atl": 90.2,
+    "tsb": -11.1,
+    "decoupling": 15.4,
+    "dtl": 86,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2323
+      },
+      {
+        "id": "Z2",
+        "secs": 1647
+      },
+      {
+        "id": "Z3",
+        "secs": 1109
+      },
+      {
+        "id": "Z4",
+        "secs": 526
+      },
+      {
+        "id": "Z5",
+        "secs": 156
+      },
+      {
+        "id": "Z6",
+        "secs": 107
+      },
+      {
+        "id": "Z7",
+        "secs": 72
+      },
+      {
+        "id": "SS",
+        "secs": 721
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 24.6,
+      "tempFeel": 23.9,
+      "humidity": 41,
+      "windSpeed": 6.3,
+      "windDir": 213,
+      "precip": 0,
+      "cloudCover": 100,
+      "weatherCode": 3
+    },
+    "wetter": "24.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 58,
+    "hrv": 52,
+    "avgSleepingHR": 52,
+    "sleepHours": 7.5,
+    "feel": null,
+    "id": 94,
+    "dateShort": "21.08",
+    "dateISO": "2026-08-21"
+  },
+  {
+    "week": "2026-KW34",
+    "phase": "Erholung",
+    "typ": "Sweet Spot",
+    "typPlanned": "Z2 Lang",
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.896,
+          "note": "NP 173W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "33 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "9 min zusammenhängend über Schwelle (226 W, 27.5% der Fahrzeit)",
+          "note": "hebt Einstufung von Tempo auf Sweet Spot an"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 63% · Z3/Z4+ 15% · Z5+ 22%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "block-upgrade-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-22",
+    "startTime": "2026-08-22T17:03:08",
+    "activityId": "i178639446",
+    "km": 14.9,
+    "min": 33,
+    "kmh": 27.1,
+    "watt": 131,
+    "maxWatt": null,
+    "np": 173,
+    "hf": 132,
+    "hfMax": 181,
+    "kad": 87,
+    "hoehe": 32.600002,
+    "hmProKm": 2.2,
+    "tss": 44,
+    "if": 0.9,
+    "vi": 1.32,
+    "trimp": 31,
+    "ctl": 78.3,
+    "atl": 84.1,
+    "tsb": -5.8,
+    "decoupling": 8.2,
+    "dtl": 44,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1063
+      },
+      {
+        "id": "Z2",
+        "secs": 183
+      },
+      {
+        "id": "Z3",
+        "secs": 178
+      },
+      {
+        "id": "Z4",
+        "secs": 123
+      },
+      {
+        "id": "Z5",
+        "secs": 178
+      },
+      {
+        "id": "Z6",
+        "secs": 246
+      },
+      {
+        "id": "Z7",
+        "secs": 0
+      },
+      {
+        "id": "SS",
+        "secs": 122
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 18.8,
+      "tempFeel": 16.5,
+      "humidity": 59,
+      "windSpeed": 17.2,
+      "windDir": 273,
+      "precip": 0.1,
+      "cloudCover": 41,
+      "weatherCode": 51
+    },
+    "wetter": "18.8°C",
+    "source": "intervals.icu",
+    "ruhepuls": 53,
+    "hrv": 72,
+    "avgSleepingHR": 51,
+    "sleepHours": 9.3,
+    "feel": null,
+    "id": 95,
+    "dateShort": "22.08",
+    "dateISO": "2026-08-22"
+  },
+  {
+    "week": "2026-KW35",
+    "phase": "VO2max",
+    "typ": "Schwelle",
+    "typPlanned": "Z2 Dauer",
+    "typDetected": "Schwelle",
+    "typDetection": {
+      "type": "Schwelle",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.979,
+          "note": "NP 189W ÷ FTP 193W — im Schwellenbereich (0.95–1.05)"
+        },
+        {
+          "label": "Dauer",
+          "value": "140 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 44% · Z3/Z4+ 30% · Z5+ 26%",
+          "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-schwelle"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-24",
+    "startTime": "2026-08-24T16:24:31",
+    "activityId": "i179322004",
+    "km": 60.2,
+    "min": 140,
+    "kmh": 25.9,
+    "watt": 154,
+    "maxWatt": null,
+    "np": 189,
+    "hf": 130,
+    "hfMax": 171,
+    "kad": 85,
+    "hoehe": 108,
+    "hmProKm": 1.8,
+    "tss": 224,
+    "if": 0.98,
+    "vi": 1.23,
+    "trimp": 124,
+    "ctl": 80,
+    "atl": 93,
+    "tsb": -13.1,
+    "decoupling": 3.9,
+    "dtl": 224,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2184
+      },
+      {
+        "id": "Z2",
+        "secs": 1531
+      },
+      {
+        "id": "Z3",
+        "secs": 1296
+      },
+      {
+        "id": "Z4",
+        "secs": 1242
+      },
+      {
+        "id": "Z5",
+        "secs": 890
+      },
+      {
+        "id": "Z6",
+        "secs": 853
+      },
+      {
+        "id": "Z7",
+        "secs": 421
+      },
+      {
+        "id": "SS",
+        "secs": 1252
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 19.1,
+      "tempFeel": 18.7,
+      "humidity": 55,
+      "windSpeed": 2.2,
+      "windDir": 108,
+      "precip": 0,
+      "cloudCover": 22,
+      "weatherCode": 1
+    },
+    "wetter": "19.1°C",
+    "source": "intervals.icu",
+    "ruhepuls": 55,
+    "hrv": 47,
+    "avgSleepingHR": 50,
+    "sleepHours": 7.2,
+    "feel": null,
+    "id": 96,
+    "dateShort": "24.08",
+    "dateISO": "2026-08-24"
+  },
+  {
+    "week": "2026-KW35",
+    "phase": "VO2max",
+    "typ": "Z2 Dauer",
+    "typPlanned": null,
+    "typDetected": "Z2 Dauer",
+    "typDetection": {
+      "type": "Z2 Dauer",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.508,
+          "note": "NP 98W ÷ FTP 193W — unter der Z2-Schwelle 0.75"
+        },
+        {
+          "label": "Dauer",
+          "value": "68 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 96% · Z3/Z4+ 2% · Z5+ 2%",
+          "note": "bestätigt Z2 Dauer (Z1/Z2-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-niedrig-dauer"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-26",
+    "startTime": "2026-08-26T17:21:27",
+    "activityId": "i180137933",
+    "km": 18.5,
+    "min": 68,
+    "kmh": 16.2,
+    "watt": 59,
+    "maxWatt": null,
+    "np": 98,
+    "hf": 103,
+    "hfMax": 158,
+    "kad": 68,
+    "hoehe": 19,
+    "hmProKm": 1,
+    "tss": 29,
+    "if": 0.51,
+    "vi": 1.66,
+    "trimp": 22,
+    "ctl": 76.9,
+    "atl": 73.8,
+    "tsb": 3.2,
+    "decoupling": 28.7,
+    "dtl": 29,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 3554
+      },
+      {
+        "id": "Z2",
+        "secs": 355
+      },
+      {
+        "id": "Z3",
+        "secs": 63
+      },
+      {
+        "id": "Z4",
+        "secs": 23
+      },
+      {
+        "id": "Z5",
+        "secs": 15
+      },
+      {
+        "id": "Z6",
+        "secs": 12
+      },
+      {
+        "id": "Z7",
+        "secs": 51
+      },
+      {
+        "id": "SS",
+        "secs": 25
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 19,
+      "tempFeel": 18,
+      "humidity": 64,
+      "windSpeed": 11.4,
+      "windDir": 97,
+      "precip": 0,
+      "cloudCover": 98,
+      "weatherCode": 3
+    },
+    "wetter": "19°C",
+    "source": "intervals.icu",
+    "ruhepuls": 63,
+    "hrv": 47,
+    "avgSleepingHR": 49,
+    "sleepHours": 7.2,
+    "feel": null,
+    "id": 97,
+    "dateShort": "26.08",
+    "dateISO": "2026-08-26"
+  },
+  {
+    "week": "2026-KW35",
+    "phase": "VO2max",
+    "typ": "Tempo",
+    "typPlanned": "Z1 Recovery",
+    "typDetected": "Tempo",
+    "typDetection": {
+      "type": "Tempo",
+      "confidence": "mittel",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.886,
+          "note": "NP 171W ÷ FTP 193W — im Tempo-Band (0.85–0.9)"
+        },
+        {
+          "label": "Dauer",
+          "value": "53 min"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 71% · Z3/Z4+ 1% · Z5+ 28%",
+          "note": "weicht von der IF-Einstufung ab — Z3/Z4+-Anteil geringer als erwartet"
+        }
+      ],
+      "rule": "if-tempo"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-28",
+    "startTime": "2026-08-28T17:50:19",
+    "activityId": "i180754447",
+    "km": 22.9,
+    "min": 53,
+    "kmh": 25.7,
+    "watt": 141,
+    "maxWatt": null,
+    "np": 171,
+    "hf": 145,
+    "hfMax": 181,
+    "kad": 85,
+    "hoehe": 279,
+    "hmProKm": 12.2,
+    "tss": 70,
+    "if": 0.89,
+    "vi": 1.21,
+    "trimp": 64,
+    "ctl": 75,
+    "atl": 64.7,
+    "tsb": 10.2,
+    "decoupling": 19.8,
+    "dtl": 70,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1672
+      },
+      {
+        "id": "Z2",
+        "secs": 620
+      },
+      {
+        "id": "Z3",
+        "secs": 10
+      },
+      {
+        "id": "Z4",
+        "secs": 14
+      },
+      {
+        "id": "Z5",
+        "secs": 251
+      },
+      {
+        "id": "Z6",
+        "secs": 638
+      },
+      {
+        "id": "Z7",
+        "secs": 1
+      },
+      {
+        "id": "SS",
+        "secs": 11
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 24,
+      "tempFeel": 25.5,
+      "humidity": 73,
+      "windSpeed": 12.5,
+      "windDir": 156,
+      "precip": 0,
+      "cloudCover": 96,
+      "weatherCode": 3
+    },
+    "wetter": "24°C",
+    "source": "intervals.icu",
+    "ruhepuls": 63,
+    "hrv": 51,
+    "avgSleepingHR": 52,
+    "sleepHours": 7.4,
+    "feel": null,
+    "id": 98,
+    "dateShort": "28.08",
+    "dateISO": "2026-08-28"
+  },
+  {
+    "week": "2026-KW35",
+    "phase": "VO2max",
+    "typ": "Sweet Spot",
+    "typPlanned": null,
+    "typDetected": "Sweet Spot",
+    "typDetection": {
+      "type": "Sweet Spot",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 0.938,
+          "note": "NP 181W ÷ FTP 193W — im Sweet-Spot-Band (0.9–0.95)"
+        },
+        {
+          "label": "Dauer",
+          "value": "148 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "18 min zusammenhängend über Schwelle (212 W, 12.3% der Fahrzeit)",
+          "note": "bestätigt Sweet Spot"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 43% · Z3/Z4+ 34% · Z5+ 23%",
+          "note": "bestätigt Sweet Spot (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-sweet-spot"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-08-30",
+    "startTime": "2026-08-30T13:34:48",
+    "activityId": "i181387232",
+    "km": 61.7,
+    "min": 148,
+    "kmh": 25,
+    "watt": 148,
+    "maxWatt": null,
+    "np": 181,
+    "hf": 148,
+    "hfMax": 189,
+    "kad": 86,
+    "hoehe": 35,
+    "hmProKm": 0.6,
+    "tss": 217,
+    "if": 0.94,
+    "vi": 1.22,
+    "trimp": 198,
+    "ctl": 76.6,
+    "atl": 77.5,
+    "tsb": -0.9,
+    "decoupling": -6,
+    "dtl": 217,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 2511
+      },
+      {
+        "id": "Z2",
+        "secs": 1339
+      },
+      {
+        "id": "Z3",
+        "secs": 1501
+      },
+      {
+        "id": "Z4",
+        "secs": 1504
+      },
+      {
+        "id": "Z5",
+        "secs": 1127
+      },
+      {
+        "id": "Z6",
+        "secs": 579
+      },
+      {
+        "id": "Z7",
+        "secs": 334
+      },
+      {
+        "id": "SS",
+        "secs": 1420
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 24.8,
+      "tempFeel": 22.8,
+      "humidity": 48,
+      "windSpeed": 20.9,
+      "windDir": 243,
+      "precip": 0.4,
+      "cloudCover": 68,
+      "weatherCode": 51
+    },
+    "wetter": "24.8°C",
+    "source": "intervals.icu",
+    "ruhepuls": 59,
+    "hrv": 54,
+    "avgSleepingHR": 53,
+    "sleepHours": 5.8,
+    "feel": null,
+    "id": 99,
+    "dateShort": "30.08",
+    "dateISO": "2026-08-30"
+  },
+  {
+    "week": "2026-KW36",
+    "phase": "VO2max",
+    "typ": "Schwelle",
+    "typPlanned": null,
+    "typDetected": "Schwelle",
+    "typDetection": {
+      "type": "Schwelle",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 1.031,
+          "note": "NP 199W ÷ FTP 193W — im Schwellenbereich (0.95–1.05)"
+        },
+        {
+          "label": "Dauer",
+          "value": "117 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "17 min zusammenhängend über Schwelle (211 W, 14.2% der Fahrzeit)",
+          "note": "bestätigt Schwelle"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 25% · Z3/Z4+ 38% · Z5+ 37%",
+          "note": "bestätigt Schwelle (Z3/Z4+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-schwelle"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-09-02",
+    "startTime": "2026-09-02T17:00:07",
+    "activityId": "i182551804",
+    "km": 55.3,
+    "min": 117,
+    "kmh": 28.2,
+    "watt": 177,
+    "maxWatt": null,
+    "np": 199,
+    "hf": 147,
+    "hfMax": 175,
+    "kad": 88,
+    "hoehe": 62,
+    "hmProKm": 1.1,
+    "tss": 208,
+    "if": 1.03,
+    "vi": 1.12,
+    "trimp": 142,
+    "ctl": 76.2,
+    "atl": 78.2,
+    "tsb": -2,
+    "decoupling": -7.5,
+    "dtl": 208,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 1018
+      },
+      {
+        "id": "Z2",
+        "secs": 757
+      },
+      {
+        "id": "Z3",
+        "secs": 1214
+      },
+      {
+        "id": "Z4",
+        "secs": 1469
+      },
+      {
+        "id": "Z5",
+        "secs": 1284
+      },
+      {
+        "id": "Z6",
+        "secs": 927
+      },
+      {
+        "id": "Z7",
+        "secs": 366
+      },
+      {
+        "id": "SS",
+        "secs": 1246
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 20.6,
+      "tempFeel": 20.4,
+      "humidity": 57,
+      "windSpeed": 4.1,
+      "windDir": 267,
+      "precip": 0,
+      "cloudCover": 90,
+      "weatherCode": 3
+    },
+    "wetter": "20.6°C",
+    "source": "intervals.icu",
+    "ruhepuls": 66,
+    "hrv": 65,
+    "avgSleepingHR": 52,
+    "sleepHours": 6.7,
+    "feel": null,
+    "id": 100,
+    "dateShort": "02.09",
+    "dateISO": "2026-09-02"
+  },
+  {
+    "week": "2026-KW36",
+    "phase": "VO2max",
+    "typ": "VO2max",
+    "typPlanned": "VO2max",
+    "typDetected": "VO2max",
+    "typDetection": {
+      "type": "VO2max",
+      "confidence": "hoch",
+      "signals": [
+        {
+          "label": "IF",
+          "value": 1.057,
+          "note": "NP 204W ÷ FTP 193W — über der Schwelle 1.05 — VO2max-Bereich"
+        },
+        {
+          "label": "Dauer",
+          "value": "84 min"
+        },
+        {
+          "label": "Zusammenhängender Block",
+          "value": "30 min zusammenhängend über Schwelle (214 W, 35.3% der Fahrzeit)",
+          "note": "bestätigt VO2max"
+        },
+        {
+          "label": "Zonenverteilung",
+          "value": "Z1/Z2 23% · Z3/Z4+ 40% · Z5+ 37%",
+          "note": "bestätigt VO2max (Z5+-Anteil ausreichend)"
+        }
+      ],
+      "rule": "if-vo2max"
+    },
+    "typSource": "detected",
+    "dataSource": "intervals",
+    "sport": "ride",
+    "date": "2026-09-03",
+    "startTime": "2026-09-03T15:40:03",
+    "activityId": "i182898694",
+    "km": 40.5,
+    "min": 84,
+    "kmh": 29,
+    "watt": 182,
+    "maxWatt": null,
+    "np": 204,
+    "hf": 157,
+    "hfMax": 191,
+    "kad": 94,
+    "hoehe": 30,
+    "hmProKm": 0.7,
+    "tss": 156,
+    "if": 1.06,
+    "vi": 1.12,
+    "trimp": 138,
+    "ctl": 78.1,
+    "atl": 88.6,
+    "tsb": -10.5,
+    "decoupling": -4.5,
+    "dtl": 156,
+    "zoneTimes": [
+      {
+        "id": "Z1",
+        "secs": 646
+      },
+      {
+        "id": "Z2",
+        "secs": 517
+      },
+      {
+        "id": "Z3",
+        "secs": 825
+      },
+      {
+        "id": "Z4",
+        "secs": 1167
+      },
+      {
+        "id": "Z5",
+        "secs": 893
+      },
+      {
+        "id": "Z6",
+        "secs": 688
+      },
+      {
+        "id": "Z7",
+        "secs": 294
+      },
+      {
+        "id": "SS",
+        "secs": 919
+      }
+    ],
+    "eftp": null,
+    "rpe": null,
+    "feelIcu": null,
+    "weather": {
+      "temp": 22.7,
+      "tempFeel": 20.2,
+      "humidity": 51,
+      "windSpeed": 21.1,
+      "windDir": 238,
+      "precip": 0,
+      "cloudCover": 74,
+      "weatherCode": 3
+    },
+    "wetter": "22.7°C",
+    "source": "intervals.icu",
+    "ruhepuls": 60,
+    "hrv": 41,
+    "avgSleepingHR": 56,
+    "sleepHours": 7.3,
+    "feel": null,
+    "compliance": {
+      "matchedCardId": "eb55a1f9-afb3-4744-be18-52c83b854572",
+      "plannedZoneTime_s": 1080,
+      "actualZoneTime_s": 1857,
+      "intervalsPlanned": 6,
+      "intervalsCompleted": 4,
+      "fadePct": -25.7,
+      "rating": "red",
+      "rule": "intervall-abgebrochen",
+      "matched": [
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 180,
+          "actualDurationS": 5,
+          "plannedWatts": 210.37,
+          "avgWatts": 304,
+          "avgHr": null,
+          "startSec": 243,
+          "endSec": 248
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 180,
+          "actualDurationS": 567,
+          "plannedWatts": 210.37,
+          "avgWatts": 212,
+          "avgHr": null,
+          "startSec": 722,
+          "endSec": 1436
+        },
+        {
+          "kind": "set",
+          "fulfilled": false,
+          "plannedDurationS": 180,
+          "actualDurationS": 118,
+          "plannedWatts": 210.37,
+          "avgWatts": 256,
+          "avgHr": null,
+          "startSec": 1843,
+          "endSec": 2068
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 180,
+          "actualDurationS": 284,
+          "plannedWatts": 210.37,
+          "avgWatts": 229,
+          "avgHr": null,
+          "startSec": 2232,
+          "endSec": 2633
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 180,
+          "actualDurationS": 278,
+          "plannedWatts": 210.37,
+          "avgWatts": 227,
+          "avgHr": null,
+          "startSec": 2954,
+          "endSec": 3238
+        },
+        {
+          "kind": "set",
+          "fulfilled": true,
+          "plannedDurationS": 180,
+          "actualDurationS": 605,
+          "plannedWatts": 210.37,
+          "avgWatts": 226,
+          "avgHr": null,
+          "startSec": 3331,
+          "endSec": 4249
+        }
+      ],
+      "derived": true,
+      "matchedFormatId": "vo2-long"
+    },
+    "id": 101,
+    "dateShort": "03.09",
+    "dateISO": "2026-09-03"
+  }
+]
