@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // unset" wuerde .env den bewussten Override still ueberschreiben, empirisch
 // beim DKR3-Testlauf aufgefallen. Ein leerer String zaehlt bewusst als
 // "nicht gesetzt" (nicht nur undefined) — sonst wuerde z. B. ein Docker-
-// Dry-Run mit "-e NOTION_API_KEY=" (s. Abschnitt 2, gezielt fuer
+// Dry-Run mit "-e SUPABASE_SERVICE_ROLE_KEY=" (s. Abschnitt 2, gezielt fuer
 // requireEnv()-Fail-Fast-Tests) einen spaeteren echten .env-Wert im selben
 // Prozess blockieren.
 // "preset" wird VOR dem Einlesen von .env erfasst — nur diese Schluessel
@@ -41,8 +41,6 @@ if (fs.existsSync(envPath)) {
 }
 
 export const ENV = {
-  NOTION_KEY: process.env.NOTION_API_KEY,
-  DB_ID: process.env.NOTION_DATABASE_ID,
   // --- Athlet 1, 2 + 4: intervals.icu-Key/-ID und der grobe Standort kommen
   //     seit Fahrplan 7 CRED3/CRED4 aus der Supabase-Tabelle athlete_sync_config
   //     (scripts/lib/sync-config-fetch.js, EIN service_role-Aufruf). Jeder

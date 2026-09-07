@@ -5,11 +5,11 @@
 
      env.js           .env/Secrets           log.js   Logging+Zähler
      http.js          fetch mit Retry        plan2.js Plan-2-Struktur (Athlet 1)
-     notion.js        Plan 1 (Notion)        plan-athlete2.js Plan-Struktur (Athlet 2)
+     plan1-history.js Plan 1 (eingefroren)   plan-athlete2.js Plan-Struktur (Athlet 2)
      weather.js       Open-Meteo             intervals.js  intervals.icu
      map-activity.js  Mapping                output.js  Dateien lesen/schreiben
 
-   Ablauf: Plan 1 (Notion) → Wetter → Plan 2 (intervals.icu)
+   Ablauf: Plan 1 (eingefroren) → Wetter → Plan 2 (intervals.icu)
    → mergen/sortieren → rides.json → Athlet 2 → rides-2.json
    ============================================================ */
 
@@ -20,7 +20,7 @@ import { PLANNED_SESSIONS_ATHLETE2 } from "./lib/plan-athlete2.js";
 import { shiftPlannedSessions4 } from "./lib/plan-athlete4.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
 import { loadActiveTrainingPlan } from "./lib/training-plan-fetch.js";
-import { queryNotionPlan1 } from "./lib/notion.js";
+import { loadPlan1History } from "./lib/plan1-history.js";
 import {
   RIDE_TYPES,
   getIntervalsActivities,
@@ -69,7 +69,6 @@ import {
   INTERVAL_BLOCKS_FILE,
 } from "./lib/output.js";
 
-requireEnv(["NOTION_KEY", "DB_ID"]);
 // Seit Fahrplan 7 CRED3: der Sync liest intervals-Key/-ID + Standort je
 // Athlet aus athlete_sync_config über EINEN Service-Role-Aufruf. Fehlt der
 // Key, gibt es nichts zu syncen — harter Abbruch, kein stiller Fallback.
@@ -127,18 +126,18 @@ async function main() {
   // Athlet 1 ist der Primärathlet — eine fehlende Zeile ist eine
   // Fehlkonfiguration, kein gültiger Zustand (anders als bei Athlet 2/4, die
   // legitim nicht eingerichtet sein können). Ohne diesen harten Abbruch würde
-  // rides.json still auf "nur Notion-Plan 1" zurückfallen (kein stiller
+  // rides.json still auf "nur Plan-1-Historie" zurückfallen (kein stiller
   // Fallback, s. Fahrplan 7 CRED3).
   if (!cfg1) {
     log.error(
-      "athlete_sync_config: keine Zeile für Athlet 1 — rides.json würde nur den Notion-Plan enthalten. Abbruch."
+      "athlete_sync_config: keine Zeile für Athlet 1 — rides.json würde nur die Plan-1-Historie enthalten. Abbruch."
     );
     process.exitCode = 1;
     return;
   }
   if (!cfg1.apiKey || !cfg1.athleteId) {
     log.warn(
-      "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit Notion-Plan 1"
+      "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit der Plan-1-Historie"
     );
   }
   const cfg2 = syncConfig.get("athlete2");
@@ -154,10 +153,10 @@ async function main() {
       : `ℹ️  Formatkatalog (session_formats): keine Einträge/Credentials — Ride↔Format-Brücke bleibt für diesen Lauf unbesetzt`
   );
 
-  // 1. Plan 1: komplett aus Notion
-  const plan1 = await queryNotionPlan1();
+  // 1. Plan 1: eingefrorene Historie (früher Notion-API, s. plan1-history.js)
+  const plan1 = loadPlan1History();
 
-  // 2. Plan 2: intervals.icu + Notion subjektiv
+  // 2. Plan 2: intervals.icu + subjective.json
   let plan2 = [];
   let wellnessList = [];
   let athleteWeight = null;
@@ -180,7 +179,7 @@ async function main() {
   const recentMap = buildWeatherMap(recentData);
   Object.assign(weatherMap, recentMap); // recentMap überschreibt ggf. ältere Archive-Werte
 
-  // 2b. Plan 2: intervals.icu + Notion subjektiv
+  // 2b. Plan 2: intervals.icu + subjective.json
   if (cfg1?.apiKey && cfg1?.athleteId) {
     const oldest = PLAN2_SCHEDULE[0].start;
     const today = new Date().toISOString().split("T")[0];
@@ -337,7 +336,7 @@ async function main() {
         r.wetter = `${w.temp}°C`;
         weatherAdded++;
       } else {
-        // Fallback: Notion-Freitext wenn kein Open-Meteo-Wert
+        // Fallback: eingefrorener Freitext (früher Notion) wenn kein Open-Meteo-Wert
         r.wetter = r.notionWetter || null;
       }
       delete r.notionWetter;
@@ -378,6 +377,8 @@ async function main() {
     forecast: planningForecast || {},
     dataSources,
     updated: new Date().toISOString(),
+    // "notion" bleibt als historisches Quellen-Label der Plan-1-Ära stehen
+    // (eingefroren in plan1-history.js) — kein Live-Notion-Aufruf mehr.
     source: cfg1?.apiKey ? "notion+intervals" : "notion",
     count: rides.length,
   };

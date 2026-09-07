@@ -17,7 +17,8 @@ OCI-Image gemeint.
 Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
 
 - **Repo-Root** (`scripts/`, `tests/`) — reines Node.js, kein Framework. Liest
-  Notion/intervals.icu/Open-Meteo und schreibt `data/*.json` (die Lesedaten-
+  intervals.icu/Open-Meteo (+ die eingefrorene Plan-1-Historie,
+  `scripts/lib/plan1-history.js`) und schreibt `data/*.json` (die Lesedaten-
   Pipeline). `package.json` existiert primär für `"type": "module"` und die
   npm-Scripts — braucht kein `npm install`. Einzige Ausnahme: `fallow` als
   `devDependency` (nur für den lokalen/CI-Codebase-Qualitätscheck, siehe
@@ -107,11 +108,12 @@ npx fallow dupes
 ```
 
 Lokale `.env` (nicht committen, steht in .gitignore) für `npm run sync`:
-`NOTION_API_KEY`, `NOTION_DATABASE_ID`, `SUPABASE_URL`,
-`SUPABASE_SERVICE_ROLE_KEY` (seit Fahrplan 7 CRED3 der einzige Zugang des
-Sync — er liest intervals.icu-Key/-ID **und** die groben Standortkoordinaten
-je Athlet per Service-Role aus der Tabelle `athlete_sync_config`, s.
-„Datenquellen-Mix"). `SUPABASE_ANON_KEY` bleibt zusätzlich für den anonymen
+`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (seit Fahrplan 7 CRED3 der einzige
+Zugang des Sync — er liest intervals.icu-Key/-ID **und** die groben
+Standortkoordinaten je Athlet per Service-Role aus der Tabelle
+`athlete_sync_config`, s. „Datenquellen-Mix"). `NOTION_API_KEY` /
+`NOTION_DATABASE_ID` sind seit Fahrplan 10 E3a entfallen — Plan 1 ist
+eingefroren (`scripts/lib/plan1-history.js`), kein Notion-API-Aufruf mehr. `SUPABASE_ANON_KEY` bleibt zusätzlich für den anonymen
 `session_formats`-Read. `INTERVALS_*` / `WEATHER_*` als Env-Werte sind für
 den Sync **abgelöst** und seit Fahrplan 7 CRED5 aus `.env` / `sync-data.yml`
 entfernt (s. „GitHub Secrets").
@@ -409,7 +411,7 @@ scripts/
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
                              plan-athlete4 (Athlet 4, Einsteiger-Vorlage),
-                             notion, intervals, weather, map-activity, wellness,
+                             plan1-history, intervals, weather, map-activity, wellness,
                              compliance, coverage, ftp-history, interval-blocks,
                              formats-fetch, plan-cards-fetch, plan-to-cards, output,
                              sync-config-fetch (athlete_sync_config per Service-Role,
@@ -510,7 +512,10 @@ Keine Env-Änderung, kein apps01-Eingriff, kein GitHub-Secret. Zusätzlich
 
 ## Trainingspläne
 
-**Plan 1** — Notion-Daten (manuell), März–Juni 2026, FTP 166→193W
+**Plan 1** — eingefrorene Historie (früher manuell in Notion gepflegt),
+März–Juni 2026, FTP 166→193W, 57 Fahrten. Seit Fahrplan 10 E3a fest in
+`scripts/lib/plan1-history.js` (`plan1-history.json`), kein Notion-API-Aufruf
+mehr — die Phase ist abgeschlossen und wächst nie mehr.
 **Plan 2** — intervals.icu API (automatisch via Wahoo), ab Juni 2026, Ziel FTP ≥210W
 
 Plan-2-Struktur (12 Wochen, pyramidale Periodisierung):
@@ -658,12 +663,15 @@ Grenzwerte sind in `tests/typ-inferenz.test.js` festgeschrieben.
 
 ## GitHub Secrets / apps01-Env (vorhanden, nie im Code)
 
-**Sync-Container auf apps01 (produktiv) — Stand seit Fahrplan 7 CRED5:**
+**Sync-Container auf apps01 (produktiv) — Stand seit Fahrplan 10 E3a:**
 ```
-NOTION_API_KEY          NOTION_DATABASE_ID     (nur Athlet-1-Historie Plan 1, wächst nie mit)
 SUPABASE_URL            SUPABASE_SERVICE_ROLE_KEY
 SUPABASE_ANON_KEY       (nur für den anonymen session_formats-Read)
 ```
+`NOTION_API_KEY` / `NOTION_DATABASE_ID` sind mit Fahrplan 10 E3a entfallen —
+Plan 1 ist eingefroren (`scripts/lib/plan1-history.js`). In den
+GitHub-Actions-Secrets bleiben sie als tote Secrets stehen (nicht gelöscht,
+s. CLAUDE.md „Grenzen").
 Seit Fahrplan 7 CRED3 liest der Sync intervals.icu-Key/-ID **und** die groben
 Standortkoordinaten für **alle** Athleten per Service-Role aus
 `athlete_sync_config` (`scripts/lib/sync-config-fetch.js`), nicht mehr aus Env.
@@ -759,7 +767,7 @@ React-Umbau nicht berührt):**
   versioniert — der `sync-data.yml`-Schutzcode (Rebase-Retry) bleibt nur als
   Rückfahrkarte im Workflow stehen, greift im Normalbetrieb nicht mehr.
 - Fahrten am selben Datum werden nach `startTime` (start_date_local) sortiert;
-  Plan-1-Fahrten (Notion) haben kein startTime → dort kein Tiebreaker
+  Plan-1-Fahrten (eingefrorene Historie) haben kein startTime → dort kein Tiebreaker
 - Athlet 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
   distanzlose/unklassifizierte Aktivitäten werden bewusst ausgeschlossen
 - intervals.icu `/power-curves`: `oldest`/`newest` allein grenzen die

@@ -73,8 +73,9 @@ export function projectPmc(ctl, atl, days) {
  * `todayISO`), bei vorhandenem ctl+atl lastfrei vorwärtsprojiziert. Ohne
  * diese Projektion bliebe der TSB an Ruhetagen auf dem Stand der letzten
  * Fahrt eingefroren, obwohl er sich real durch die ausbleibende Belastung
- * weiter erholt. Manuell gepflegte Plan-1-Fahrten (Notion) können einen
- * expliziten TSB ohne ctl/atl tragen (s. scripts/lib/notion.js) — dafür ist
+ * weiter erholt. Manuell gepflegte Plan-1-Fahrten (eingefrorene Historie)
+ * können einen expliziten TSB ohne ctl/atl tragen
+ * (s. scripts/lib/plan1-history.js) — dafür ist
  * keine Projektion möglich, daysProjected bleibt dann 0.
  * @param {import("../types.js").Ride[]} rides
  * @param {string} todayISO

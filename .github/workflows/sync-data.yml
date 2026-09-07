@@ -4,7 +4,8 @@
 # laeuft seither als Dauer-Container auf apps01 und schreibt data/*.json
 # direkt ins mit dem Frontend geteilte Volume — kein Commit-und-Poll-Umweg
 # mehr, data/*.json ist nicht mehr versioniert. Dieser Workflow generiert
-# rides.json aus Notion (Plan 1) und intervals.icu (Plan 2) und committet
+# rides.json aus der Plan-1-Historie (scripts/lib/plan1-history.js) und
+# intervals.icu (Plan 2) und committet
 # die Daten; er bleibt nur als Rueckfahrkarte im Repo und laeuft ausschliesslich
 # auf manuellen Anstoss (workflow_dispatch). Wieder scharfschalten =
 # schedule/push-Trigger unten wieder eintragen UND data/*.json wieder ins Repo
@@ -13,8 +14,9 @@
 # Kein GitHub-Pages-Deploy (Issue #30) — Frontend selbst-gehostet ueber Docker
 # (ghcr.io/stuhlsen/training-dashboard-frontend, Build in publish-images.yml).
 #
-# Secrets (Settings → Secrets → Actions) — Stand seit Fahrplan 7 CRED5:
-#   NOTION_API_KEY / NOTION_DATABASE_ID   — Notion-Ära-Historie (nur Athlet 1)
+# Secrets (Settings → Secrets → Actions) — Stand seit Fahrplan 10 E3a:
+#   (NOTION_API_KEY / NOTION_DATABASE_ID entfallen — Plan 1 ist eingefroren,
+#    s. scripts/lib/plan1-history.js; die Secrets bleiben als tote Secrets stehen)
 #   SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY — einziger Sync-Zugang; liest
 #     intervals.icu-Key/-ID + grobe Koordinaten je Athlet aus athlete_sync_config
 #     (scripts/lib/sync-config-fetch.js) sowie plan_cards/ftp_history/profiles.
@@ -63,11 +65,10 @@ jobs:
           # Seit Fahrplan 7 CRED5 der komplette Sync-Zugang. intervals.icu-Key/
           # -ID + grobe Koordinaten je Athlet liest der Sync per Service-Role
           # aus athlete_sync_config (scripts/lib/sync-config-fetch.js), ebenso
-          # plan_cards/ftp_history/profiles. NOTION_* nur für die Athlet-1-
-          # Historie (Plan 1). SUPABASE_ANON_KEY nur für den anonymen
+          # plan_cards/ftp_history/profiles. Plan 1 (Athlet 1) ist seit
+          # Fahrplan 10 E3a eingefroren (scripts/lib/plan1-history.js) — kein
+          # NOTION_* mehr. SUPABASE_ANON_KEY nur für den anonymen
           # session_formats-Read (scripts/lib/formats-fetch.js).
-          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
-          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
