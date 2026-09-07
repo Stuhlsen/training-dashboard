@@ -30,14 +30,21 @@ interface ExportImportBarProps {
   conflicts: Array<{ rule: string; severity: string; message: string }>;
 }
 
+// Glass-Fill + Hairline + Schatten, damit der Knopf auch über dem
+// Seiten-Hintergrundfoto (außerhalb einer GlassCard) klar lesbar bleibt —
+// s. AGENTS.md „Design — Konzept 5", Abschnitt Buttons/Pillen über dem
+// Seitengrund.
 const BTN_STYLE: React.CSSProperties = {
-  border: "1px solid var(--hair)",
+  border: "1px solid rgba(255, 255, 255, 0.14)",
   borderRadius: "var(--pill)",
   padding: "8px 16px",
-  background: "transparent",
-  color: "var(--ink-2)",
+  background: "var(--glass)",
+  backdropFilter: "blur(16px)",
+  boxShadow: "var(--e2)",
+  color: "var(--ink)",
   font: "inherit",
   fontSize: ".82rem",
+  fontWeight: 600,
   cursor: "pointer",
 };
 

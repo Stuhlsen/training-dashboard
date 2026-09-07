@@ -556,6 +556,13 @@ Tokens in `app/src/styles/tokens.css` (Namen stabil halten):
   `--z1 #4a9a6e` (Recovery/positiv) · `--z2 #4a7fa8` (Grundlage/Plan 1) · `--z3 color-mix(in oklch, var(--ss) 75%, black 25%)` (Tempo, Hero-Leistungsskala — abgeleitetes Token, keine neue Basisfarbe; ein Mix aus `--z2`+`--ss` kippt in sRGB/OKLab auf Grau/Taupe, weil Blau/Orange nahezu komplementär sind, deshalb stattdessen ein abgedunkelter `--ss`-Ton) · `--ss #e08a3c` (Sweet Spot/Akzent/Plan 2) · `--thr #d94f4f` (Schwelle/Warnung) · `--vo2 #a24ad0`
 - Typografie: **Sora** (Display/Zahlen, `--font-disp`) · **IBM Plex Mono** (Labels/Meta, `--font-mono`) · **Inter** (Fließtext, `--font-body`) — seit der Typeset-Etappe 2026-08-19 selbst gehostet über `@fontsource/*` (Import in `app/src/main.tsx`, nur die tatsächlich genutzten Gewichte: Sora 400/600/700, IBM Plex Mono 400/500/600, Inter 400/500/600), keine Google-Fonts-CDN-Anfrage. Zuvor lief die App faktisch auf System-Fallbacks (kein Font-Link in `app/index.html`) — dieser Zustand ist damit behoben, nicht mehr offen.
 - Pills überall interaktiv (`--pill`): Tabs (aktiv = SS-Fill mit dunklem Text `#17110a`), Athleten-Toggle (aktiv = Z2), Unit-/Plan-Toggle
+- **Ghost-Buttons/-Pillen über dem Seitengrund** (Seiten-Kopfzeilen, nicht auf einer
+  GlassCard — z. B. „+ Neuer Plan", „Coach", „+ Karte" im Planungstab): brauchen einen
+  Glass-Fill (`background: var(--glass)` + `backdrop-filter: blur(16px)` + `box-shadow:
+  var(--e2)` + Rand `1px solid rgba(255,255,255,0.14)`, Text `var(--ink)`), sonst gehen sie
+  über hellen Stellen des Hintergrundfotos unter. Reine Haarlinie auf transparent bleibt nur
+  innerhalb einer GlassCard richtig. Volltext + Beispielwerte: `DESIGN.md` → Components →
+  Buttons → „Ghost über dem Seitengrund".
 - Hero-Signaturen: **interaktive Leistungsskala** (Coggan-Zonen Z1–Z5 aus `app/src/core/zones.js::computeZones`, Sweet-Spot-Overlay `sweetSpotBand` statt eigenem Segment, Skalenmax `scaleMaxWatts` = Z5-Ende, What-if-Slider für die Ziel-FTP-Vorschau, Pins FTP/eFTP/Ziel via `app/src/core/ftp-progress.js::pinPercent`), **FTP-Fortschrittsring** (Z2→SS-Gradient, Fortschritt `ringProgress(eFTP, athleteCfg.seasonStartFtp ?? ftpMeasured, athleteCfg.ftpGoal)` — athletenagnostisch aus `athleteConfig(id)` in `app/src/config.ts`), **Meilensteinliste** (`buildMilestones`, nur vorhandene Werte) und **Session-Karte** (nächste Einheit via `nextPlannedSession`, Watt-Ziel/Dauer/TSS-Schätzung nur bei strukturiertem `workout` via `workoutWattRange`/`workoutDurationMinutes`/`estimateSessionTSS`)
 - Anders als in der Vanilla-Fassung ist keine JS-gespiegelte Farbpalette mehr nötig:
   React rendert echtes DOM-SVG, `var(--token)` funktioniert dort direkt in `stroke`/`fill`

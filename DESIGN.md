@@ -253,6 +253,13 @@ zonenfarbigen Akzentkanten (`::before`-Leiste links an Metric-Cards).
   Schrift Sora 600
 - **Ghost/Tab:** transparent bzw. `var(--card)`-Füllung, Rand `var(--border)`, Text `var(--dim)`;
   Hover hellt Text/Rand auf, aktiver Zustand füllt komplett mit dem Akzent
+- **Ghost über dem Seitengrund:** Sitzt ein Ghost-Button NICHT auf einer GlassCard, sondern
+  direkt über dem Seiten-Hintergrundfoto (Seiten-Kopfzeilen wie „+ Neuer Plan", „Coach",
+  „+ Karte" im Planungstab), reicht die reine Haarlinie auf transparent nicht — der Button
+  verschwindet über hellen Bildstellen. Dann Glass-Fill wie eine Mini-Card geben:
+  `background: var(--glass)`, `backdropFilter: blur(16px)`, `box-shadow: var(--e2)`, Rand
+  `1px solid rgba(255,255,255,0.14)`, Text `var(--ink)` / Sora 600. Innerhalb einer GlassCard
+  bleibt der schlichte Ghost-Stil richtig.
 
 ### Chips / Pills / Tags
 - **Interaktive Pills** (Tab-Btn, Athleten-Toggle, Pill-Toggle, Ghost-Toggle): `999px`-Radius,

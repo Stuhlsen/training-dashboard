@@ -111,12 +111,17 @@ const SECTION_TITLE_STYLE: React.CSSProperties = {
 };
 
 /** Aktions-Pille in der „Ausstehend"-Kopfzeile (bisher inline am „+ Karte"-
- *  Knopf — jetzt geteilt mit „Plan verschieben…"). */
+ *  Knopf — jetzt geteilt mit „Plan verschieben…"). Glass-Fill + Hairline +
+ *  Schatten, damit die Pille auch über dem Seiten-Hintergrundfoto (außerhalb
+ *  einer GlassCard) klar als Bedienelement lesbar bleibt — s. AGENTS.md
+ *  „Design — Konzept 5", Abschnitt Buttons/Pillen über dem Seitengrund. */
 const SECTION_ACTION_BTN_STYLE: React.CSSProperties = {
   padding: "9px 18px",
   borderRadius: "var(--pill)",
-  border: "1px solid var(--hair)",
-  background: "transparent",
+  border: "1px solid rgba(255, 255, 255, 0.14)",
+  background: "var(--glass)",
+  backdropFilter: "blur(16px)",
+  boxShadow: "var(--e2)",
   color: "var(--ink)",
   fontSize: ".84rem",
   fontWeight: 600,
