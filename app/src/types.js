@@ -24,6 +24,12 @@
  * @property {string} [dataSource]  "notion" | "intervals" — Herkunft der Rohdaten,
  *                                  athletenunabhängig (Athlet 1 Notion-Ära vs.
  *                                  intervals.icu-Ära; Athlet 2 immer "intervals")
+ * @property {"ride"|"run"|"swim"|"other"} [sport]  Sportart der Aktivität
+ *                                  (Fahrplan 10, Vertrag V1/V2). Optional/non-breaking:
+ *                                  fehlt in Alt-Payloads und bei Bestandsathleten vor
+ *                                  dem nächsten Sync — überall als "ride" gelesen
+ *                                  (app/src/core/activity-sport.js). Die Rad-Bestands-
+ *                                  athleten (1/2/4) tragen ausschließlich "ride".
  * @property {string} [name]
  * @property {string} [typ]           Anzeige-Typ (Priorität: subjective > Ist-Typerkennung >
  *                                     Plan > IF-Ableitung, s. typSource)

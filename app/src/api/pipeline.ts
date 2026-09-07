@@ -16,6 +16,7 @@
    ============================================================ */
 
 import { normalizeRide, normalizeWellness } from "../core/normalize.js";
+import { onlyCyclingRides } from "../core/activity-sport.js";
 import { validateRidesPayload } from "../core/validate.js";
 import { athleteConfig } from "../config";
 import type { Result } from "./types";
@@ -78,7 +79,13 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
     // Der Cast ist die Grenze zwischen ungeprüftem JSON und den
     // core-Normalisierern: validateRidesPayload() oben hat die Struktur
     // bereits geprüft, die Normalisierer erwarten laut JSDoc ein Objekt.
-    rides: json.rides.map((r) => normalizeRide(r as object)),
+    //
+    // onlyCyclingRides(): Fahrplan 10 E1 — der EINE Sportart-Filter am
+    // Auswertungs-Eingang. Aktivitäten ohne `sport` bzw. mit `sport:"ride"`
+    // (= alle Zeilen der Bestandsathleten 1/2/4) passieren unverändert;
+    // Lauf/Schwimm/Sonstiges bleibt bis E8 komplett draußen. E8 ersetzt den
+    // festen Filter durch die im Frontend aktive Sportart.
+    rides: onlyCyclingRides(json.rides.map((r) => normalizeRide(r as object))),
     wellness: (json.wellness ?? []).map((w) => normalizeWellness(w as object)),
     wellnessMeta: json.wellnessMeta ?? null,
     powerCurves: json.powerCurves ?? null,

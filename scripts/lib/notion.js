@@ -88,6 +88,10 @@ export async function queryNotionPlan1() {
         phase: getSelect(pr["Phase"]),
         typ: getSelect(pr["Typ"]),
         dataSource: "notion",
+        // Plan 1 (März–Juni 2026) ist zu 100 % Radsport, manuell aus Notion
+        // gepflegt — kein intervals-`type` zum Normalisieren. Fahrplan 10 V2:
+        // Bestand ohne erkennbaren Sport → "ride".
+        sport: "ride",
         km: getNum(pr["Distanz (km)"]),
         min: getNum(pr["Dauer (min)"]),
         kmh: getNum(pr["Avg-Tempo (km/h)"]),

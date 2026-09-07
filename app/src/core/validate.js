@@ -5,14 +5,19 @@
 
    Schema-Syntax: "typ" oder "typ?" (nullable/optional).
    Typen: string, number, boolean, object, array
+   Enum:  "enum:a|b|c" bzw. "enum:a|b|c?" (fester Wertevorrat, optional)
    ============================================================ */
 
-/** Prüft einen Wert gegen einen Schema-Typ ("number?", "string", …)
+/** Prüft einen Wert gegen einen Schema-Typ ("number?", "string", "enum:x|y?", …)
  *  @param {unknown} value @param {string} spec @returns {boolean} */
 function matchesType(value, spec) {
   const optional = spec.endsWith("?");
   const type = optional ? spec.slice(0, -1) : spec;
   if (value == null) return optional;
+  // Fester Wertevorrat (z.B. sport: "ride"|"run"|"swim"|"other") — eine
+  // Abweichung ist wie jede andere RIDE_SCHEMA-Abweichung nur eine Warnung,
+  // nicht fatal (nur fehlende/leere `rides` brechen den Load ab).
+  if (type.startsWith("enum:")) return type.slice(5).split("|").includes(String(value));
   if (type === "array") return Array.isArray(value);
   if (type === "object") return typeof value === "object" && !Array.isArray(value);
   return typeof value === type;
@@ -30,9 +35,14 @@ export function checkObject(obj, schema, label) {
   const problems = [];
   for (const [field, spec] of Object.entries(schema)) {
     if (!matchesType(obj[field], spec)) {
-      problems.push(
-        `${label}.${field}: erwartet ${spec}, erhalten ${obj[field] === null ? "null" : typeof obj[field]}`
-      );
+      // Bei einem Enum ist der konkrete Wert aussagekräftiger als sein `typeof`.
+      const got =
+        obj[field] === null
+          ? "null"
+          : spec.startsWith("enum:")
+            ? JSON.stringify(obj[field])
+            : typeof obj[field];
+      problems.push(`${label}.${field}: erwartet ${spec}, erhalten ${got}`);
     }
   }
   return problems;
@@ -51,6 +61,9 @@ export const RIDE_SCHEMA = {
   compliance: "object?",
   typSource: "string?",
   dataSource: "string?",
+  // Fahrplan 10 V1/V2 — optionales Sportart-Feld. Fehlt in Alt-Payloads;
+  // wird überall als "ride" gelesen (app/src/core/activity-sport.js).
+  sport: "enum:ride|run|swim|other?",
   week: "string?",
   km: "number?",
   hmProKm: "number?",

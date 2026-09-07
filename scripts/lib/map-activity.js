@@ -17,6 +17,55 @@ import { countFieldCoverage } from "./coverage.js";
 export const DEFAULT_FTP = 193;
 
 /**
+ * intervals.icu-`type` → unser `sport`-Vokabular (Fahrplan 10, Vertrag V2).
+ * Feldwerte: "ride" | "run" | "swim" | "other". NUR die vier expliziten
+ * Rad-Typen der V2-Tabelle geben "ride" zurück — alles andere (auch
+ * EBikeRide/Handcycle/Workout, die in RIDE_TYPES als Radfahrt zählen) wird
+ * bewusst "other". Grund: für Athlet 3 (ab E4, echter Triathlet) soll eine
+ * "Soccer"-Aktivität wirklich aus den Auswertungen fallen. Wer prüfen will
+ * "ist DAS eine für die Rad-Bestandsathleten zählende Fahrt", nutzt NICHT
+ * diese Funktion direkt, sondern cyclingSportOf() (unten) — die hebt die
+ * generischen Rad-Typen wieder auf "ride" an, weil getIntervalsActivities()
+ * für 1/2/4 ohnehin nur RIDE_TYPES durchlässt.
+ * @param {string|null|undefined} type
+ * @returns {"ride"|"run"|"swim"|"other"}
+ */
+export function normalizeSport(type) {
+  switch (type) {
+    case "Ride":
+    case "VirtualRide":
+    case "GravelRide":
+    case "MountainBikeRide":
+      return "ride";
+    case "Run":
+    case "TrailRun":
+    case "VirtualRun":
+      return "run";
+    case "Swim":
+    case "OpenWaterSwim":
+      return "swim";
+    default:
+      return "other";
+  }
+}
+
+/**
+ * `sport` für die Rad-Bestandsathleten (1/2/4). Deren Aktivitäten kommen
+ * durch den RIDE_TYPES-Filter von getIntervalsActivities() — nie Lauf/Schwimm,
+ * aber durchaus generische Typen (Workout, EBikeRide, Handcycle, leerer Typ).
+ * Ein hier nicht eindeutig als Lauf/Schwimm erkannter Typ zählt darum als
+ * "ride", nicht als "other": sonst fiele die Fahrt aus der Rad-Auswertung
+ * (onlyCyclingRides(), app/src/core/activity-sport.js). Fahrplan 10 E1 —
+ * "Bestand ohne erkennbaren Sport → ride".
+ * @param {string|null|undefined} type
+ * @returns {"ride"|"run"|"swim"}
+ */
+function cyclingSportOf(type) {
+  const s = normalizeSport(type);
+  return s === "run" || s === "swim" ? s : "ride";
+}
+
+/**
  * Baut aus einer statischen Plankarten-Map + adjustments.json den Index
  * "welche Plankarte gilt aktuell für Datum X" — berücksichtigt Verschiebungen
  * (movedTo) und Ausfälle (cancelled). Ohne diesen Schritt würde die Ride-
@@ -262,6 +311,7 @@ export function mapActivity(
     typDetection: detection,
     typSource,
     dataSource: "intervals",
+    sport: cyclingSportOf(act.type),
     ...baseFields(act, weather),
     ...wellnessFields(w),
     feel: s.feel || null,
@@ -319,6 +369,7 @@ export function mapActivity2(
     // Athlet 2 kommt vollständig aus intervals.icu (kein Notion-Anteil) —
     // dieselbe Datenherkunfts-Semantik wie Athlet 1s intervals.icu-Ära.
     dataSource: "intervals",
+    sport: cyclingSportOf(act.type),
     ...baseFields(act, weather),
     ...wellnessFields(w),
     feel: null,

@@ -13,7 +13,7 @@
 import { describe, it, expect } from "vitest";
 
 import type { SportProfile } from "./types.js";
-import { SPORTS, DEFAULT_SPORT_ID, getSport, defaultSport } from "./index.js";
+import { SPORTS, DEFAULT_SPORT_ID, getSport, defaultSport, sportProfileFor } from "./index.js";
 import { cyclingProfile } from "./cycling/index.js";
 
 describe("Registry", () => {
@@ -27,6 +27,18 @@ describe("Registry", () => {
     expect(getSport("cycling")).toBe(cyclingProfile);
     expect(getSport("running")).toBe(null);
     expect(getSport("")).toBe(null);
+  });
+
+  it("sportProfileFor löst den sport-Feldwert auf (Fahrplan 10 V2)", () => {
+    // "ride" → bestehende Profil-ID "cycling" (NICHT umbenannt)
+    expect(sportProfileFor("ride")).toBe(cyclingProfile);
+    // run/swim haben in E1 noch kein Profil → null, kein Wurf
+    expect(sportProfileFor("run")).toBe(null);
+    expect(sportProfileFor("swim")).toBe(null);
+    expect(sportProfileFor("other")).toBe(null);
+    expect(sportProfileFor("")).toBe(null);
+    // greift nicht auf geerbte Object-Eigenschaften durch
+    expect(sportProfileFor("constructor")).toBe(null);
   });
 
   it("getSport greift nicht auf geerbte Object-Eigenschaften durch", () => {

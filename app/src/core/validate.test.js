@@ -54,6 +54,25 @@ test("validateRidesPayload: ftp / ftpPublic / ftpHistory sind gültige Felder (0
   assert.deepEqual(validateRidesPayload(payload), []);
 });
 
+test("checkObject: sport-Enum — gültige Werte ok, fehlend ok, Abweichung gemeldet (Fahrplan 10)", () => {
+  for (const sport of ["ride", "run", "swim", "other"]) {
+    assert.deepEqual(checkObject({ ...validRide, sport }, RIDE_SCHEMA, "ride"), []);
+  }
+  // Optional: fehlendes Feld ist kein Problem
+  assert.deepEqual(checkObject(validRide, RIDE_SCHEMA, "ride"), []);
+  // Unbekannter Wert → Warnung (nicht fatal), mit Wert im Text
+  const problems = checkObject({ ...validRide, sport: "kayak" }, RIDE_SCHEMA, "ride");
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /ride\.sport/);
+  assert.match(problems[0], /"kayak"/);
+});
+
+test("validateRidesPayload: sport-Abweichung ist eine Warnung, kein SCHEMA-Fatal", () => {
+  const problems = validateRidesPayload({ rides: [{ ...validRide, sport: "kayak" }] });
+  assert.ok(problems.some((p) => p.startsWith("rides[0].sport")));
+  assert.ok(!problems.some((p) => p.startsWith("payload.rides")));
+});
+
 test("validateRidesPayload: falscher Typ bei ftpPublic / ftpHistory-Eintrag wird gemeldet", () => {
   const bad = validateRidesPayload({ rides: [validRide], ftpPublic: "ja" });
   assert.ok(bad.some((p) => p.startsWith("payload.ftpPublic")));

@@ -14,6 +14,7 @@ import {
   mapActivity2,
   classifyCooldowns,
   rpeFeelCoverage,
+  normalizeSport,
 } from "../scripts/lib/map-activity.js";
 
 function baseAct(overrides = {}) {
@@ -449,4 +450,28 @@ test("mapActivity: hmProKm ist null ohne Distanz (Division durch 0)", () => {
 test("mapActivity: hmProKm ist null ohne total_elevation_gain", () => {
   const ride = mapActivity(baseAct({ distance: 25000, total_elevation_gain: undefined }), {}, {}, {});
   assert.equal(ride.hmProKm, null);
+});
+
+/* ── Fahrplan 10 E1 — sport-Feld + Normalisierung ──────────────── */
+
+test("normalizeSport: V2-Tabelle — Rad/Lauf/Schwimm/Sonstiges", () => {
+  for (const t of ["Ride", "VirtualRide", "GravelRide", "MountainBikeRide"]) {
+    assert.equal(normalizeSport(t), "ride");
+  }
+  for (const t of ["Run", "TrailRun", "VirtualRun"]) assert.equal(normalizeSport(t), "run");
+  for (const t of ["Swim", "OpenWaterSwim"]) assert.equal(normalizeSport(t), "swim");
+  for (const t of ["Workout", "EBikeRide", "Soccer", "", null, undefined]) {
+    assert.equal(normalizeSport(t), "other");
+  }
+});
+
+test("mapActivity/mapActivity2: Rad-Bestandsathleten bekommen sport 'ride'", () => {
+  assert.equal(mapActivity(baseAct(), {}, {}, {}).sport, "ride");
+  assert.equal(mapActivity2(baseAct(), {}, {}, 265).sport, "ride");
+  // Regression: ein generischer intervals-Typ (Workout/leerer Typ) fällt hier
+  // NICHT auf "other" (das würde die Fahrt aus der Rad-Auswertung kegeln),
+  // sondern bleibt "ride".
+  assert.equal(mapActivity(baseAct({ type: "Workout" }), {}, {}, {}).sport, "ride");
+  assert.equal(mapActivity(baseAct({ type: undefined }), {}, {}, {}).sport, "ride");
+  assert.equal(mapActivity2(baseAct({ type: "EBikeRide" }), {}, {}, 265).sport, "ride");
 });

@@ -38,3 +38,19 @@ export function getSport(id: string): SportProfile | null {
 export function defaultSport(): SportProfile {
   return SPORTS[DEFAULT_SPORT_ID];
 }
+
+/** Der `sport`-Feldwert einer Aktivität ("ride"|"run"|"swim"|"other",
+ *  Fahrplan 10 Vertrag V2) → Profil-ID der Registry. Bewusst getrennt vom
+ *  Feldvokabular: "ride" löst auf die bestehende Profil-ID "cycling" auf,
+ *  die NICHT umbenannt wird. */
+const SPORT_TO_PROFILE_ID: Readonly<Record<string, string>> = Object.freeze({
+  ride: CYCLING_SPORT_ID,
+  // run/swim bekommen ihr Profil erst mit E5 (running/ + swimming/).
+});
+
+/** SportProfile zu einem `sport`-Feldwert. Kein registriertes Profil
+ *  (heute: alles außer "ride") → `null`, kein Wurf — analog getSport(). */
+export function sportProfileFor(sport: string): SportProfile | null {
+  const id = Object.hasOwn(SPORT_TO_PROFILE_ID, sport) ? SPORT_TO_PROFILE_ID[sport] : null;
+  return id ? getSport(id) : null;
+}
