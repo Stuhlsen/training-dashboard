@@ -31,10 +31,16 @@ import { log } from "./log.js";
  *  BEIDE Stellen pflegen. Keine Klarnamen, nur die selbstgewählten Pseudonyme.
  *  Lookup läuft über slugForName() case-insensitiv + getrimmt: display_name ist
  *  vom Nutzer in Settings editierbar, ein Tippfehler in Groß/Kleinschreibung
- *  darf einen Athleten nicht aus dem Sync fallen lassen. */
+ *  darf einen Athleten nicht aus dem Sync fallen lassen.
+ *
+ *  Ausnahme (Fahrplan 10 E4): `Hendrik`/`athlete3` (Triathlet) ist bewusst nur
+ *  sync-seitig verdrahtet — sein `ATHLETES`-Eintrag + die Umschalter-Pille im
+ *  Frontend folgen in E8 (Sport-Umschalter). Bis dahin erzeugt der Sync
+ *  `rides-3.json`, das Frontend zeigt Athlet 3 noch nicht. */
 export const NAME_TO_SLUG = {
   Stuhlsen: "athlete1",
   hc_diZee: "athlete2",
+  Hendrik: "athlete3",
   bentastiic: "athlete4",
 };
 

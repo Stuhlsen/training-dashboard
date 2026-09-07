@@ -103,8 +103,9 @@ export const ATHLETES: readonly AthleteConfig[] = [
     // Key kommt aus Settings (Tabelle athlete_sync_config), nicht aus einem
     // Sync-Secret. WATTLOS bis zum ersten Test (scripts/lib/plan-athlete4.js,
     // KW47) — FTP-Felder `null`, die Hero-FTP-Widgets blenden sich dann aus.
-    // Die interne ID "athlete3" ist reserviert, aber bewusst noch nicht
-    // verdrahtet — daher die Lücke.
+    // Die interne ID "athlete3" (Triathlet) ist seit Fahrplan 10 E4 nur
+    // sync-seitig verdrahtet (scripts/lib/athletes.js) — der ATHLETES-Eintrag
+    // hier + die Umschalter-Pille folgen in E8. Daher die Nummern-Lücke.
     id: "athlete4",
     name: "bentastiic",
     endpoint: "data/rides-4.json",

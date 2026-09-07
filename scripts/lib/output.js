@@ -14,8 +14,10 @@ const DATA_DIR = path.join(__dirname, "..", "..", "data");
 
 export const OUT_FILE = path.join(DATA_DIR, "rides.json");
 export const OUT_FILE_2 = path.join(DATA_DIR, "rides-2.json");
-// Vierter Athlet ("Bentastiic", Einsteiger). Kein OUT_FILE_3 — die interne
-// ID athlete3 ist in Supabase reserviert, aber bewusst noch nicht verdrahtet.
+// Dritter Athlet ("Hendrik"), Triathlet mit eigenem intervals.icu-Account —
+// Fahrplan 10 E4 (Sync + Speicherung, noch keine Auswertung).
+export const OUT_FILE_3 = path.join(DATA_DIR, "rides-3.json");
+// Vierter Athlet ("Bentastiic", Einsteiger).
 export const OUT_FILE_4 = path.join(DATA_DIR, "rides-4.json");
 const SUBJECTIVE_FILE = path.join(DATA_DIR, "subjective.json");
 const ADJUSTMENTS_FILE = path.join(DATA_DIR, "adjustments.json");

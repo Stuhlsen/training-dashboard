@@ -88,7 +88,7 @@ test("Athlet 1: Datum nach dem Plan → kompletter Miss", () => {
 });
 
 test("unbekannte / reservierte Athleten-ID → Miss, kein Wurf", () => {
-  assert.deepEqual(planWeekFor("athlete3", "2026-08-27"), MISS); // reserviert, nicht verdrahtet
+  assert.deepEqual(planWeekFor("athlete3", "2026-08-27"), MISS); // nur sync-seitig verdrahtet (Fahrplan 10 E4), kein Plan-Wochen-Modell
   assert.deepEqual(planWeekFor("athlete99", "2026-08-27"), MISS);
   assert.deepEqual(planWeekFor(undefined, "2026-08-27"), MISS);
 });

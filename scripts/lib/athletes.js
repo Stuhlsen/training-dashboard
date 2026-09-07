@@ -25,7 +25,7 @@
    Klarnamen, keine Koordinaten.
    ============================================================ */
 
-import { OUT_FILE_2, OUT_FILE_4, loadAdjustments2 } from "./output.js";
+import { OUT_FILE_2, OUT_FILE_3, OUT_FILE_4, loadAdjustments2 } from "./output.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { shiftPlannedSessions4 } from "./plan-athlete4.js";
 import { DEFAULT_FTP } from "./map-activity.js";
@@ -36,8 +36,9 @@ import { DEFAULT_FTP } from "./map-activity.js";
  * @property {string} name         Anzeigename (= profiles.display_name)
  * @property {string} label        Log-Überschrift ("Zweiter Athlet" …)
  * @property {string} shortLabel   Kurzform für Detail-Logs ("Athlet 2" …)
- * @property {string} templateModule  Dateiname der Code-Vorlage (nur für den
- *                                    "wird übersprungen"-Log bei aktivem DB-Plan)
+ * @property {string|null} templateModule  Dateiname der Code-Vorlage (nur für den
+ *                                    "wird übersprungen"-Log bei aktivem DB-Plan);
+ *                                    null → kein Vorlage-Modul (Athlet 3)
  * @property {string} outfile      Zielpfad (aus output.js)
  * @property {string} ridesFileName  Basename von `outfile` (nur für Log-Texte)
  * @property {string} oldest       ISO-Startdatum für activities/wellness/planCards/Wetter
@@ -74,6 +75,35 @@ export const SECONDARY_ATHLETES = [
     logFtp: true,
     publicFtpScalarFromEffective: true,
     requireCreds: true,
+  },
+  {
+    // Athlet 3 ("Hendrik") — Triathlet (Rad/Lauf/Schwimm) mit eigenem
+    // intervals.icu-Account. Fahrplan 10 E4: Sync + Speicherung, noch KEINE
+    // Auswertung — der sport-Filter in app/src/api/pipeline.ts hält Lauf/
+    // Schwimm draußen, bis der Sport-Umschalter (E8) sie öffnet. Kein Notion,
+    // keine Code-Plan-Vorlage (ein editierbarer Laufplan käme erst über
+    // plan_cards in Phase 2). Lesedaten wie Athlet 4 (intervals.icu +
+    // Supabase, self-service über Settings).
+    slug: "athlete3",
+    name: "Hendrik",
+    label: "Dritter Athlet",
+    shortLabel: "Athlet 3",
+    templateModule: null,
+    outfile: OUT_FILE_3,
+    ridesFileName: "rides-3.json",
+    oldest: "2025-08-01", // knapp vor der ersten Aktivität im Account (E0)
+    buildTemplate: () => ({}), // keine statische Plan-Vorlage
+    loadAdjustments: () => ({}), // volles Modell: Verschiebungen leben in plan_cards
+    adjustmentsLabel: null,
+    // WATTLOS bis zum ersten Test: kein fester FTP-Wert → aus dem besten NP
+    // ≥20min geschätzt (npFallbackFtp). Ein echter Ramp-Test-/bekannter FTP
+    // wird später über Settings eingetragen. publicFtpFields-Skalar bleibt
+    // null (output3.ftp kommt allein aus ftp_history).
+    fixedFtp: null,
+    npFallbackFtp: true,
+    logFtp: true,
+    publicFtpScalarFromEffective: false,
+    requireCreds: false,
   },
   {
     slug: "athlete4",

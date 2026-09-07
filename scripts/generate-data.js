@@ -152,7 +152,9 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
   if (activePlan) {
     log.info(
       `📅 ${entry.shortLabel}: aktiver Trainingsplan (${activePlan.id}) — ` +
-        `Code-Vorlage ${entry.templateModule} wird übersprungen`
+        (entry.templateModule
+          ? `Code-Vorlage ${entry.templateModule} wird übersprungen`
+          : `keine Code-Vorlage`)
     );
   }
 
@@ -199,9 +201,14 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     Object.assign(weatherMap, buildWeatherMap(await getRecentWeather(cfg.lat, cfg.lon)));
     planningForecast = (await getPlanningForecast(cfg.lat, cfg.lon)) || {};
 
-    // Feste FTP (Ramp-Test bzw. Default-Rechenwert). Nur wenn keine feste FTP
-    // gesetzt ist, aus dem besten NP ≥20min schätzen — historischer
-    // Athlet-2-Pfad, greift heute nicht (fixedFtp ist immer gesetzt).
+    // FTP-Grundlage für die IF-/Ist-Typerkennung:
+    //  - `fixedFtp` gesetzt (Athlet 2: Ramp-Test 265W · Athlet 4: DEFAULT_FTP)
+    //    → direkt nutzen.
+    //  - `fixedFtp: null` + `npFallbackFtp` (Athlet 3, Triathlet ohne Ramp-Test)
+    //    → aus dem besten NP ≥20min schätzen. Ohne solche Efforts bleibt
+    //    `effectiveFtp` null; downstream fällt die Typerkennung dann auf
+    //    "Außerplanmäßig" zurück (map-activity.js::inferTypFromIF, `!np || !ftp`).
+    //    Ein echter/getesteter FTP wird später über Settings gepflegt.
     if (!effectiveFtp && entry.npFallbackFtp) {
       const longRides = activities.filter(
         (a) => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts
@@ -212,7 +219,9 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
       effectiveFtp = bestNP ? Math.round(bestNP * 0.95) : null;
       if (entry.logFtp) {
         log.info(
-          `   ... FTP (${entry.name}): ${effectiveFtp}W (geschätzt aus bestem NP ${bestNP}W ≥20min)`
+          bestNP
+            ? `   ... FTP (${entry.name}): ${effectiveFtp}W (geschätzt aus bestem NP ${bestNP}W ≥20min)`
+            : `   ... FTP (${entry.name}): noch offen — keine ≥20min-Power-Efforts`
         );
       }
     } else if (entry.logFtp) {
