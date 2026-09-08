@@ -102,6 +102,10 @@ export interface WeekGridDetailRowProps {
    *  Button nicht (canPush wird an der Aufrufstelle entsprechend gesetzt). */
   canPush?: boolean;
   onPush?: (id: string, token: string, athleteId: string) => Promise<Result>;
+  /** Intervall-Kadenzziel des Athleten für den .zwo-Export (Fahrplan 11).
+   *  Kommt von PlanningPage (useCadenceTarget, nur bei eigenem Login);
+   *  Default 90 = CADENCE_TARGET_RPM. */
+  cadenceTarget?: number;
   /** intervals.icu-Zugangsdaten des eingeloggten Users (Settings,
    *  Migration 0019) — `null` ohne hinterlegte Werte. Ersetzt das frühere
    *  localStorage/window.prompt()-Muster. */
@@ -148,6 +152,7 @@ export function WeekGridDetailRow({
   canEdit,
   canPush,
   onPush,
+  cadenceTarget = 90,
   intervalsCredentials,
   trainerProposalMode,
   rides,
@@ -266,7 +271,7 @@ export function WeekGridDetailRow({
    *  unterscheidet sich je Auswahl. */
   function handleExport(target: "zwift" | "mywhoosh") {
     closeExportMenu();
-    const built = buildZwoWorkout(card);
+    const built = buildZwoWorkout(card, cadenceTarget);
     if (!built.ok) {
       setExportResult({ ok: false, message: "❌ " + built.error.message });
       return;

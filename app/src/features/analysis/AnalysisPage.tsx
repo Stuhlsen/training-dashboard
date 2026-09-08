@@ -23,6 +23,8 @@ import { useEvents } from "../../api/hooks/useEvents";
 import { useExplorerRange } from "../../api/hooks/useExplorerRange";
 import { useTodayCheckin } from "../../api/hooks/useWellbeing";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useCadenceTarget } from "../../api/hooks/useCadenceTarget";
+import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics";
 import { weekSortIndex } from "../../core/aggregate.js";
 import { fmt, fmtInt, localISODate } from "../../core/format.js";
 import { presetWindow } from "../../core/brush.js";
@@ -91,6 +93,11 @@ export function AnalysisPage() {
   // einen anderen Athleten dessen Belastungsempfehlung mit dem eigenen
   // Befinden vermischt.
   const { isSelf } = useIsSelfAthlete(activeAthleteId);
+  // Kadenzziel greift nur für den eigenen Login (session-gebunden). Bei
+  // einem Toggle auf einen fremden Athleten wieder auf den Standard 90 —
+  // wie bisher, als die Konstante überall fest verdrahtet war.
+  const { target: ownCadenceTarget } = useCadenceTarget();
+  const cadenceTarget = isSelf ? ownCadenceTarget : CADENCE_TARGET_RPM;
 
   const [unit, setUnit] = useState<PowerUnit>("W");
   const [dense, setDense] = useState(false);
@@ -115,8 +122,9 @@ export function AnalysisPage() {
         powerCurves: athleteData?.powerCurves ?? null,
         unit,
         todayISO: TODAY,
+        cadenceTarget,
       }),
-    [rides, wellness, cards, eventList, athleteCfg, athleteData, unit],
+    [rides, wellness, cards, eventList, athleteCfg, athleteData, unit, cadenceTarget],
   );
 
   // Dieselbe Belastungsempfehlung wie auf der Hero-Seite (buildBriefingInfo()
@@ -153,11 +161,17 @@ export function AnalysisPage() {
   }, [range, anchorISO, horizonEndISO]);
 
   // Legacy-Anhang: unveränderte Verdrahtung aus dem bisherigen Kennzahlen-Tab.
-  const kpis = useMemo(() => buildAnalysisKpis(rides, athleteCfg?.ftpMeasured ?? null, TODAY), [rides, athleteCfg]);
+  const kpis = useMemo(
+    () => buildAnalysisKpis(rides, athleteCfg?.ftpMeasured ?? null, TODAY, cadenceTarget),
+    [rides, athleteCfg, cadenceTarget],
+  );
   const loadRows = useMemo(() => buildLoadRows(rides), [rides]);
   const intensity = useMemo(() => buildIntensityDistribution(rides), [rides]);
   const typDist = useMemo(() => buildTypDistribution(rides), [rides]);
-  const aerobicCards = useMemo(() => buildAerobicCards(rides, ownPlan), [rides, ownPlan]);
+  const aerobicCards = useMemo(
+    () => buildAerobicCards(rides, ownPlan, cadenceTarget),
+    [rides, ownPlan, cadenceTarget],
+  );
   const powerDiagnostics = useMemo(
     () =>
       buildPowerDiagnostics({

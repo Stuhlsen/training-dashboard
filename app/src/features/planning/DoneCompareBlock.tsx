@@ -20,6 +20,10 @@ interface DoneCompareBlockProps {
   ride: Ride;
   athleteId: string;
   ftp: number | null;
+  /** Intervall-Kadenzziel des Athleten für die Kadenz-Zeile (Fahrplan 11).
+   *  Kommt von PlanningPage (useCadenceTarget, nur bei eigenem Login);
+   *  Default 90 = CADENCE_TARGET_RPM. */
+  cadenceTarget?: number;
 }
 
 /** "Geplant → Tatsächlich"-Vergleichsblock einer absolvierten Plankarte —
@@ -27,8 +31,8 @@ interface DoneCompareBlockProps {
  *  Rein präsentational, gleicher Row/Cell-Aufbau wie ComplianceTable.tsx;
  *  die eigentliche Zeilenlogik sitzt in buildDoneCompareRows(). `athleteId`/
  *  `ftp` speisen dort das HF-Zonen-Band der Puls-Zeile. */
-export function DoneCompareBlock({ card, ride, athleteId, ftp }: DoneCompareBlockProps) {
-  const rows = buildDoneCompareRows(card, ride, athleteId, ftp);
+export function DoneCompareBlock({ card, ride, athleteId, ftp, cadenceTarget = 90 }: DoneCompareBlockProps) {
+  const rows = buildDoneCompareRows(card, ride, athleteId, ftp, cadenceTarget);
   if (!rows.length) return null;
 
   return (

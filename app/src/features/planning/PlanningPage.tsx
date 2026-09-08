@@ -61,6 +61,7 @@ import { buildWeekGrid } from "./week-grid-view-model";
 import { DoneTable } from "./DoneTable";
 import { DoneDetailChart } from "./DoneDetailChart";
 import { useIntervalsCredentials } from "../../api/hooks/useIntervalsCredentials";
+import { useCadenceTarget } from "../../api/hooks/useCadenceTarget";
 import { buildDoneRows, gapsChips, planFidelitySummary } from "./done-table-view-model";
 import {
   buildPlanningSections,
@@ -216,6 +217,11 @@ export function PlanningPage() {
   // profiles-Zeile (RLS), ein Trainer kann ihn nicht für den Athleten setzen.
   const { isSelf } = useIsSelfAthlete(activeAthleteId);
   const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
+
+  // Intervall-Kadenzziel: session-gebunden, greift nur beim Blick auf den
+  // eigenen Plan. Fremder Athlet ⇒ Standard 90 (wie früher fest verdrahtet).
+  const { target: ownCadenceTarget } = useCadenceTarget();
+  const cadenceTarget = isSelf ? ownCadenceTarget : 90;
 
   const ftp = resolvePlanningFtp(activeAthleteId, rideData?.athleteFtp ?? null);
 
@@ -669,6 +675,7 @@ export function PlanningPage() {
                           // es auch für den Trainer true ist (RLS T2).
                           canPush={editable && !isTrainer}
                           onPush={push}
+                          cadenceTarget={cadenceTarget}
                           intervalsCredentials={intervalsCredentials}
                           trainerProposalMode={trainerProposalMode}
                           rides={allRides}
@@ -710,6 +717,7 @@ export function PlanningPage() {
               gaps={gaps}
               athleteId={activeAthleteId}
               ftp={ftp ?? null}
+              cadenceTarget={cadenceTarget}
               renderChart={(row) => (
                 <DoneDetailChart {...row} intervalsCredentials={intervalsCredentials} ftp={ftp ?? null} />
               )}

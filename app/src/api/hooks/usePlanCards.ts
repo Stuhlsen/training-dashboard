@@ -45,6 +45,7 @@ import { qk } from "../keys";
 import { catchResult, ResultError_, unwrap } from "../result";
 import { beginWrite, isCurrentWrite } from "../write-guard";
 import { pushCardWorkout } from "../intervals/push";
+import { useCadenceTarget } from "./useCadenceTarget";
 import { planShiftPatches, clampPlanOffset } from "../../core/plan-shift.js";
 import { planFtpRescale } from "../../core/plan-ftp-rescale.js";
 import { localISODate } from "../../core/format.js";
@@ -419,17 +420,24 @@ export function useReorderPlanCard(athleteId: string) {
  *  Verschieben) über external_id aktualisiert statt dupliziert. Kein
  *  useAuthUserId()-Gate — der Push braucht den intervals.icu-API-Key aus
  *  localStorage, keine Supabase-Session (PlanningPage blendet den Button
- *  ohnehin athletenscharf aus, s. `canPush`). */
+ *  ohnehin athletenscharf aus, s. `canPush`). `useCadenceTarget()` ist
+ *  session-gebunden; das Ziel greift nur beim Blick auf den eigenen Plan
+ *  (`isSelf`), sonst der Default 90 — sonst würde ein Admin sein eigenes
+ *  Kadenzziel in den Push eines fremden Athleten schreiben (dieselbe
+ *  Absicherung wie der .zwo-Export in PlanningPage). */
 export function usePushPlanCard(athleteId: string) {
   const mutation = usePatchCard(athleteId);
   const snapshot = useCardsSnapshot(athleteId);
+  const { isSelf } = useIsSelfAthlete(athleteId);
+  const { target: ownCadenceTarget } = useCadenceTarget();
+  const cadenceTarget = isSelf ? ownCadenceTarget : 90;
 
   const push = useCallback(
     async (id: string, token: string, intervalsAthleteId: string): Promise<Result> => {
       const card = snapshot().find((c) => c.id === id);
       if (!card) return { ok: false, error: CARD_NOT_FOUND };
 
-      const result = await pushCardWorkout(card, token, intervalsAthleteId);
+      const result = await pushCardWorkout(card, token, intervalsAthleteId, cadenceTarget);
       if (!result.ok) return result;
 
       try {
@@ -441,7 +449,7 @@ export function usePushPlanCard(athleteId: string) {
       }
       return result;
     },
-    [mutation, snapshot],
+    [mutation, snapshot, cadenceTarget],
   );
 
   return { push, isPending: mutation.isPending };

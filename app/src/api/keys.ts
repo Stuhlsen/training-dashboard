@@ -88,6 +88,10 @@ export const qk = {
   /** Grober Standort des eingeloggten Users für die Sync-Wettervorschau
    *  (Tabelle athlete_sync_config, Migration 0023, Fahrplan 7 CRED2). */
   syncLocation: (userId: string) => ["sync-location", userId] as const,
+  /** Intervall-Kadenz-Ziel des eingeloggten Users (Push-Text, .zwo,
+   *  Analyse-Anzeige — Tabelle athlete_sync_config, Migration 0036,
+   *  Fahrplan 11). */
+  cadenceTarget: (userId: string) => ["cadence-target", userId] as const,
   /** Sekunden-Rohdaten (Watt/Puls) einer einzelnen intervals.icu-Aktivität —
    *  ändert sich nach Abschluss der Fahrt nie mehr (s. useActivityStreams). */
   activityStreams: (activityId: string) => ["activity-streams", activityId] as const,

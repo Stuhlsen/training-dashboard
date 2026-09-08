@@ -76,6 +76,11 @@ describe("buildAnalysisKpis", () => {
     expect(buildAnalysisKpis(withoutPlan, null, "2026-06-05").find((k) => k.label === "Ø Kadenz")?.sub).toBeNull();
     expect(buildAnalysisKpis(withPlan, null, "2026-06-05").find((k) => k.label === "Ø Kadenz")?.sub).toMatch(/Ziel: 90/);
   });
+
+  it("übernimmt ein abweichendes cadenceTarget im Kadenz-Ziel (Fahrplan 11)", () => {
+    const withPlan = [ride({ week: "2026-KW22", kad: 82 })];
+    expect(buildAnalysisKpis(withPlan, null, "2026-06-05", 78).find((k) => k.label === "Ø Kadenz")?.sub).toMatch(/Ziel: 78/);
+  });
 });
 
 describe("buildLoadRows", () => {

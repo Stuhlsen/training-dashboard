@@ -13,6 +13,8 @@ interface CadenceChartProps {
   /** Zielinie nur bei eigenem Plan sinnvoll (wie im Vanilla-Original,
    *  assets/js/ui/charts/power.js::renderSmallMultiples). */
   ownPlan: boolean;
+  /** Kadenz-Ziel des Athleten (Fahrplan 11). Default = CADENCE_TARGET_RPM (90). */
+  target?: number;
 }
 
 const W_FALLBACK = 780;
@@ -112,7 +114,7 @@ function CadenceCoachChips({ coach, target }: { coach: ReturnType<typeof cadence
  *  im vanilla-Original. `core/cadence.js::cadenceCoach` liefert dieselbe
  *  Statistik, die auch die Analyse-Tab-Karte "Kadenz-Ökonomie" nutzt
  *  (analysis-view-model.ts). */
-export function CadenceChart({ rides, ownPlan }: CadenceChartProps) {
+export function CadenceChart({ rides, ownPlan, target = CADENCE_TARGET_RPM }: CadenceChartProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [width, setWidth] = useState(W_FALLBACK);
   const [tooltip, setTooltip] = useState<Tooltip | null>(null);
@@ -128,7 +130,7 @@ export function CadenceChart({ rides, ownPlan }: CadenceChartProps) {
     return () => ro.disconnect();
   }, []);
 
-  const coach = useMemo(() => cadenceCoach(rides ?? [], CADENCE_TARGET_RPM), [rides]);
+  const coach = useMemo(() => cadenceCoach(rides ?? [], target), [rides, target]);
 
   const data = useMemo(() => {
     const sorted = (rides ?? []).filter((r) => r.kad != null).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
@@ -164,7 +166,7 @@ export function CadenceChart({ rides, ownPlan }: CadenceChartProps) {
         ])
       : null;
 
-  const targetY = ownPlan ? yOf(CADENCE_TARGET_RPM) : null;
+  const targetY = ownPlan ? yOf(target) : null;
 
   const pickedTickPositions = pickLabelIndices(
     points.map((p) => p.x),
@@ -174,7 +176,7 @@ export function CadenceChart({ rides, ownPlan }: CadenceChartProps) {
 
   return (
     <div style={{ position: "relative" }}>
-      <CadenceCoachChips coach={coach} target={CADENCE_TARGET_RPM} />
+      <CadenceCoachChips coach={coach} target={target} />
       <svg
         ref={svgRef}
         viewBox={`0 0 ${width} ${H}`}
@@ -208,7 +210,7 @@ export function CadenceChart({ rides, ownPlan }: CadenceChartProps) {
               opacity={0.5}
             />
             <text x={width - PAD.r - 4} y={targetY - 5} textAnchor="end" fontSize={9} fill="var(--role-status)" opacity={0.85}>
-              Ziel {CADENCE_TARGET_RPM}
+              Ziel {target}
             </text>
           </g>
         )}

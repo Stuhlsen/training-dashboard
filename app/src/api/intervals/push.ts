@@ -48,21 +48,27 @@ function isBlockWorkout(w: unknown): w is BlockWorkout {
   return !!w && typeof w === "object" && Array.isArray((w as BlockWorkout).blocks);
 }
 
-function legacyDescription(w: LegacyWorkout, details?: string | null): string {
+function legacyDescription(w: LegacyWorkout, details: string | null | undefined, cadenceTarget: number): string {
+  // Warmup `T-5`, Intervalle `T`, Pausen + Cooldown `T-10` — derselbe
+  // Abstand wie die früher fest verdrahteten 85/90/80, jetzt aus dem
+  // Athleten-Kadenzziel (Fahrplan 11, useCadenceTarget).
+  const warmupRpm = cadenceTarget - 5;
+  const easyRpm = cadenceTarget - 10;
+
   const lines: string[] = [];
   lines.push("Warmup");
-  lines.push(`- ${w.warmup}m 60% 85rpm`);
+  lines.push(`- ${w.warmup}m 60% ${warmupRpm}rpm`);
   lines.push("");
 
   if (w.intervals && w.duration) {
     lines.push(`Main Set ${w.intervals}x`);
-    lines.push(`- ${w.duration}m ${w.pct?.[0]}-${w.pct?.[1]}% 90rpm`);
-    if (w.rest) lines.push(`- ${w.rest}m 50% 80rpm`);
+    lines.push(`- ${w.duration}m ${w.pct?.[0]}-${w.pct?.[1]}% ${cadenceTarget}rpm`);
+    if (w.rest) lines.push(`- ${w.rest}m 50% ${easyRpm}rpm`);
     lines.push("");
   }
 
   lines.push("Cooldown");
-  lines.push(`- ${w.cooldown}m 50%-40% 80rpm`);
+  lines.push(`- ${w.cooldown}m 50%-40% ${easyRpm}rpm`);
 
   const workoutText = lines.join("\n");
   const label = w.label + (details ? `\n${details}` : "");
@@ -88,7 +94,10 @@ function blockDescription(blocks: WorkoutBlock[], details?: string | null): stri
   return details ? `${details}\n\n${text}` : text;
 }
 
-function buildDescription(card: Pick<PlanCard, "workout" | "details">): Result<{ description: string }> {
+function buildDescription(
+  card: Pick<PlanCard, "workout" | "details">,
+  cadenceTarget: number,
+): Result<{ description: string }> {
   const w = card.workout;
   if (!w) {
     return { ok: false, error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" } };
@@ -97,6 +106,7 @@ function buildDescription(card: Pick<PlanCard, "workout" | "details">): Result<{
     if (!w.blocks.length) {
       return { ok: false, error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" } };
     }
+    // Freitext-Blöcke tragen keine rpm-Zahl — cadenceTarget wirkt hier nicht.
     return { ok: true, description: blockDescription(w.blocks, card.details) };
   }
   const legacy = w as LegacyWorkout;
@@ -108,13 +118,21 @@ function buildDescription(card: Pick<PlanCard, "workout" | "details">): Result<{
       error: { code: "NO_DATA", message: "Workout ohne %FTP-Angabe (pct) — Push nicht möglich" },
     };
   }
-  return { ok: true, description: legacyDescription(legacy, card.details) };
+  return { ok: true, description: legacyDescription(legacy, card.details, cadenceTarget) };
 }
 
 /** Pusht das Workout einer Karte als Kalender-Event zu intervals.icu.
- *  `card` trägt das bereits aufgelöste Datum (inkl. Verschiebung). */
-export async function pushCardWorkout(card: PlanCard, token: string, athleteId: string): Promise<Result> {
-  const built = buildDescription(card);
+ *  `card` trägt das bereits aufgelöste Datum (inkl. Verschiebung).
+ *  `cadenceTarget` ist das Intervall-Kadenzziel des Athleten (Fahrplan 11);
+ *  der Aufrufer reicht es aus useCadenceTarget durch, Default in der Kette
+ *  ist DEFAULT_CADENCE_TARGET_RPM (90). */
+export async function pushCardWorkout(
+  card: PlanCard,
+  token: string,
+  athleteId: string,
+  cadenceTarget = 90,
+): Promise<Result> {
+  const built = buildDescription(card, cadenceTarget);
   if (!built.ok) return built;
 
   const event = {

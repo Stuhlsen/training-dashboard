@@ -62,7 +62,12 @@ export interface AnalysisKpi {
 /** Port von analysis.js::_renderKPIs. `ftpMeasured` kommt vom Aufrufer aus
  *  athleteConfig(id) — das Äquivalent zu Data.ftpValue() im React-Port
  *  (s. hero-view-model.ts). */
-export function buildAnalysisKpis(rides: Ride[], ftpMeasured: number | null, todayISO: string): AnalysisKpi[] {
+export function buildAnalysisKpis(
+  rides: Ride[],
+  ftpMeasured: number | null,
+  todayISO: string,
+  cadenceTarget: number = CADENCE_TARGET_RPM,
+): AnalysisKpi[] {
   const totalKm = Math.round(sum(rides, "km"));
   const totalMin = Math.round(sum(rides, "min"));
   const totalH = (totalMin / 60).toFixed(0);
@@ -88,7 +93,7 @@ export function buildAnalysisKpis(rides: Ride[], ftpMeasured: number | null, tod
       sub: lastTSB != null ? `TSB heute: ${lastTSB > 0 ? "+" : ""}${fmt(lastTSB)}` : null,
     },
     { value: `${avgHF} bpm`, label: "Ø Herzfrequenz" },
-    { value: `${avgKad} RPM`, label: "Ø Kadenz", sub: ownPlan ? `Ziel: ${CADENCE_TARGET_RPM}+ RPM` : null },
+    { value: `${avgKad} RPM`, label: "Ø Kadenz", sub: ownPlan ? `Ziel: ${cadenceTarget}+ RPM` : null },
     { value: totalTSS.toLocaleString("de"), label: "Gesamt TSS" },
   ];
 }
@@ -241,7 +246,11 @@ export interface AerobicCard {
 /** Port von analysis.js::_renderAerobic — Effizienzfaktor, HF-Decoupling,
  *  Kadenz-Ökonomie, immer in dieser Reihenfolge (auch je eine leere Karte,
  *  wenn die Datenbasis fehlt — 1:1 wie im Original, keine Karte entfällt). */
-export function buildAerobicCards(rides: Ride[], ownPlan: boolean): AerobicCard[] {
+export function buildAerobicCards(
+  rides: Ride[],
+  ownPlan: boolean,
+  cadenceTarget: number = CADENCE_TARGET_RPM,
+): AerobicCard[] {
   const cards: AerobicCard[] = [];
 
   const ef = efficiencyTrend(rides);
@@ -286,10 +295,10 @@ export function buildAerobicCards(rides: Ride[], ownPlan: boolean): AerobicCard[
     });
   }
 
-  const kad = cadenceCoach(rides, CADENCE_TARGET_RPM);
+  const kad = cadenceCoach(rides, cadenceTarget);
   if (kad) {
     const deltaText = kad.delta != null ? `${kad.delta > 0 ? "+" : ""}${kad.delta} RPM seit Beginn · ` : "";
-    const targetText = ownPlan ? `≥ Ziel ${CADENCE_TARGET_RPM}` : "≥ 90";
+    const targetText = ownPlan ? `≥ Ziel ${cadenceTarget}` : `≥ ${CADENCE_TARGET_RPM}`;
     cards.push({
       title: "Kadenz-Ökonomie",
       value: `${kad.recentAvg}`,

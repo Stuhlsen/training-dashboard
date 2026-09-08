@@ -36,6 +36,21 @@
   (Wochen/Einheiten einzeln, keine Baseline) — verliert die Periodisierungs-
   Logik der Code-Pläne. (6-Punkte-Liste Punkt 2, 03.09.2026.)
 
+- **Kadenz-Ziel wird auf der geplanten Trainingskarte nicht angezeigt**
+  (Fahrplan 11). Das athletenspezifische Kadenz-Ziel wirkt im
+  intervals.icu-Push-Text, im `.zwo`-Export und im Analyse-Tab; im
+  „Geplant → Tatsächlich"-Vergleich einer **absolvierten** Karte steht die
+  Kadenz-Zeile (`buildDoneCompareRows`). Die **kommende** Karte selbst
+  (`WeekGridDetailRow.tsx` + `LegacyWorkoutTimeline.tsx`) zeigt nur
+  Watt/%FTP/Dauer/TSS, keine Kadenz-Vorgabe. Nachziehen: Kadenz je Block
+  (`T` / `T−5` / `T−10`) in der Workout-Timeline der Plankarte.
+- **Kein rückwirkendes Update schon gepushter Workouts** (Fahrplan 11). Ein
+  vor der Änderung zu intervals.icu gepushtes oder als `.zwo` exportiertes
+  Workout trägt weiter die alte feste Kadenz (85/90/80); das neue Ziel
+  greift erst beim nächsten Push/Export derselben Karte. Für Athlet 4 heißt
+  das: nach dem Setzen seines Ziels die betroffenen Karten einmal neu
+  pushen/exportieren.
+
 ## Sync-Pipeline (`scripts/`)
 
 - **K3-Typ-Defaults nicht aus der FTP-Historie neu abgeleitet** — braucht je

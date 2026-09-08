@@ -172,6 +172,9 @@ export interface AnswersViewModelInput {
   powerCurves: unknown;
   unit: PowerUnit;
   todayISO?: string;
+  /** Intervall-Kadenzziel des eingeloggten Athleten (Fahrplan 11).
+   *  Fehlt ⇒ CADENCE_TARGET_RPM (90). */
+  cadenceTarget?: number;
 }
 
 const VERDICT_COLOR: Record<string, string> = {
@@ -194,6 +197,7 @@ function fmtW(raw: number, unit: PowerUnit, weightKg: number | null): string {
 export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersViewModel | null {
   const { rides, wellness, planCards, events, athleteCfg, athleteFtp, athleteWeightKg, powerCurves, unit } = input;
   const todayISO = input.todayISO ?? localISODate();
+  const cadenceTarget = input.cadenceTarget ?? CADENCE_TARGET;
 
   const anchorISO = pmcSkeletonAnchor(rides);
   if (!anchorISO) return null;
@@ -260,7 +264,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const kadVals = joinSeries(skeleton, kadRows, { key: "kad", absence: "gap" });
   const kadSamples = kadVals.filter((v): v is number => v != null);
   const cadenceAvg = kadSamples.length ? kadSamples.reduce((s, v) => s + v, 0) / kadSamples.length : null;
-  const cadenceSharePct = kadSamples.length ? (kadSamples.filter((v) => v >= CADENCE_TARGET).length / kadSamples.length) * 100 : null;
+  const cadenceSharePct = kadSamples.length ? (kadSamples.filter((v) => v >= cadenceTarget).length / kadSamples.length) * 100 : null;
 
   // ── Energiebilanz ───────────────────────────────────────────────────
   const estBmr = athleteCfg?.bmr ? estimateBMR(athleteCfg.bmr) : null;
@@ -346,7 +350,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
     decouplingStableSharePct: dec ? dec.stableShare : null,
     cadenceSharePct,
     cadenceAvg,
-    cadenceTarget: CADENCE_TARGET,
+    cadenceTarget,
     energyDeficitAvgKcal,
     hydrationBelowTargetShare: null,
   });
@@ -425,7 +429,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneSleep = lane("sleep", { kind: "bars", vals: sleepVals, target: SLEEP_TARGET_H }, { title: "Schlaf", sub: "Stunden", colorVar: "var(--z2)", legend: [{ label: "Schlafdauer", colorVar: "var(--z2)", shape: "block" }, { label: `Ziel ${SLEEP_TARGET_H} h`, colorVar: "var(--role-status)", shape: "line" }], note: `Ziel ${SLEEP_TARGET_H} h.` }, 46, (v) => fmt(v, 1), staticUnit("h"));
 
   const laneDec = lane("dec", { kind: "dots", vals: decVals, target: 5, goodAbove: false, min: 0 }, { title: "Entkopplung", sub: "je Fahrt", titleTermKey: "decoupling", colorVar: "var(--ss)", legend: [{ label: "stabil", colorVar: "var(--z1)", shape: "block" }, { label: "über Schwelle", colorVar: "var(--ss)", shape: "block" }], note: dec ? `${dec.stableShare} % der Fahrten unter 5 % Entkopplung.` : "Noch nicht genug vergleichbare Fahrten." }, 46, (v) => fmt(v, 1), staticUnit("%"));
-  const laneKad = lane("kad", { kind: "dots", vals: kadVals, target: CADENCE_TARGET, goodAbove: true }, { title: "Kadenz", sub: "je Fahrt", titleTermKey: "cadence", colorVar: "var(--role-status)", legend: [{ label: `am Ziel ≥ ${CADENCE_TARGET}`, colorVar: "var(--z1)", shape: "block" }, { label: "unter Ziel", colorVar: "var(--role-status)", shape: "block" }], note: cadenceAvg != null ? `Ø ${Math.round(cadenceAvg)} RPM (Ziel ${CADENCE_TARGET}).` : undefined }, 46, (v) => fmt(v, 0), staticUnit("RPM"));
+  const laneKad = lane("kad", { kind: "dots", vals: kadVals, target: cadenceTarget, goodAbove: true }, { title: "Kadenz", sub: "je Fahrt", titleTermKey: "cadence", colorVar: "var(--role-status)", legend: [{ label: `am Ziel ≥ ${cadenceTarget}`, colorVar: "var(--z1)", shape: "block" }, { label: "unter Ziel", colorVar: "var(--role-status)", shape: "block" }], note: cadenceAvg != null ? `Ø ${Math.round(cadenceAvg)} RPM (Ziel ${cadenceTarget}).` : undefined }, 46, (v) => fmt(v, 0), staticUnit("RPM"));
   const laneEnergy = lane("energy", { kind: "diverge", vals: ebalVals }, { title: "Energiebilanz", sub: "Zufuhr − Verbrauch", titleTermKey: "energy-balance", colorVar: "var(--ss)", legend: [{ label: "Überschuss", colorVar: "var(--z1)", shape: "block" }, { label: "Defizit", colorVar: "var(--ss)", shape: "block" }], note: energyDeficitAvgKcal != null ? `Ø ${fmtSigned(energyDeficitAvgKcal, 0)} kcal/Tag über 30 Tage.` : "Noch keine Zufuhr-Daten." }, 52, (v) => fmtSigned(v, 0), (rk) => (rk === "avg30" ? "kcal Ø 30 Tage" : "kcal"));
   const laneHydration = lane("hydration", { kind: "dots", vals: hydrVals }, { title: "Trinkrate", sub: hydration?.field === "hydrationVolume" ? "Tageswert" : "Score", titleTermKey: "hydration", colorVar: "var(--z2)", legend: [{ label: hydration?.field === "hydrationVolume" ? "ml/Tag" : "Score", colorVar: "var(--z2)", shape: "block" }] }, 46, (v) => fmt(v, 0), staticUnit(hydration?.field === "hydrationVolume" ? "ml" : "Score"));
   const laneWeather = lane("weather", { kind: "weather", tempVals, windVals, rainVals }, { title: "Wetter", sub: "Temp · Wind · Regen", colorVar: "var(--text-soft)", legend: [{ label: "Temperatur", colorVar: "var(--text-soft)", shape: "line" }, { label: "über 24 °C", colorVar: "var(--ss)", shape: "block" }, { label: "Regen", colorVar: "var(--z2)", shape: "block" }] }, 50, (v) => fmt(v, 0), (rk) => (rk === "hot-days" ? "Tage über 24 °C" : "°C"));

@@ -668,6 +668,10 @@ export function buildDoneCompareRows(
   ride: Ride,
   athleteId: string,
   ftp: number | null,
+  /** Intervall-Kadenzziel des Athleten (Fahrplan 11). Default 90 =
+   *  CADENCE_TARGET_RPM; Warmup/lockere Blöcke liegen 5 darunter, echte
+   *  Z2-Fahrten 10 darunter (früher fest 85 / 80). */
+  cadenceTarget: number = 90,
 ): DoneCompareRow[] {
   const rows: DoneCompareRow[] = [];
   const isZ2 = isZ2Type(card.typ);
@@ -772,9 +776,10 @@ export function buildDoneCompareRows(
     rows.push({ label: "Ø Watt", icon: "⚡", plan, actual, color, extra });
   }
 
-  // Kadenz — für alle Typen (kein canEdit-Gate).
+  // Kadenz — für alle Typen (kein canEdit-Gate). Ziel aus dem
+  // Athleten-Kadenzziel: Z2 −10, sonst −5 (früher fest 80 / 85).
   if (ride.kad) {
-    const target = isZ2 ? 80 : 85;
+    const target = isZ2 ? cadenceTarget - 10 : cadenceTarget - 5;
     rows.push({
       label: "Kadenz",
       icon: "🔄",

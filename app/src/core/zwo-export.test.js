@@ -5,6 +5,14 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { buildZwoWorkout, canExportZwo } from "./zwo-export.js";
+import { CADENCE_TARGET_RPM } from "../sports/cycling/metrics.js";
+
+// Drift-Guard: buildZwoWorkout() hat einen bare `90`-Default (core/ darf
+// nicht aus sports/ importieren). Wird CADENCE_TARGET_RPM je geändert, muss
+// dieser Test brechen, damit der Default nachgezogen wird.
+test("buildZwoWorkout: bare-90-Default deckt sich mit CADENCE_TARGET_RPM", () => {
+  assert.equal(CADENCE_TARGET_RPM, 90);
+});
 
 const NUMERIC_CARD = {
   date: "2026-07-02",
@@ -27,14 +35,28 @@ test("buildZwoWorkout: numerisches Workout -> gültige .zwo-XML mit korrekten We
   const result = buildZwoWorkout(NUMERIC_CARD);
   assert.equal(result.ok, true);
   assert.equal(result.filename, "2026-07-02-workout.zwo");
-  assert.match(result.xml, /<SteadyState Duration="600" Power="0\.6"\/>/);
+  // Ohne cadenceTarget-Argument: Default 90 -> Warmup 85, Intervall 90,
+  // Pause/Cooldown 80 (Fahrplan 11, gleicher Abstand wie der Push-Text).
+  assert.match(result.xml, /<SteadyState Duration="600" Power="0\.6" Cadence="85"\/>/);
   // Mittelwert aus pct [84,97] gerundet = 91 % FTP = 0.91. Pause NUR zwischen
   // den Wiederholungen (Repeat = intervals-1), keine nach der letzten — s.
   // core/ftp-progress.js::workoutSegments() ("keine Pause nach der letzten").
-  assert.match(result.xml, /<IntervalsT Repeat="2" OnDuration="600" OffDuration="180" OnPower="0\.91" OffPower="0\.5"\/>/);
-  assert.match(result.xml, /<SteadyState Duration="600" Power="0\.91"\/>/);
-  assert.match(result.xml, /<Cooldown Duration="480" PowerLow="0\.5" PowerHigh="0\.4"\/>/);
+  assert.match(
+    result.xml,
+    /<IntervalsT Repeat="2" OnDuration="600" OffDuration="180" OnPower="0\.91" OffPower="0\.5" Cadence="90" CadenceResting="80"\/>/,
+  );
+  assert.match(result.xml, /<SteadyState Duration="600" Power="0\.91" Cadence="90"\/>/);
+  assert.match(result.xml, /<Cooldown Duration="480" PowerLow="0\.5" PowerHigh="0\.4" Cadence="80"\/>/);
   assert.match(result.xml, /<name>Sweet Spot 3×10 min<\/name>/);
+});
+
+test("buildZwoWorkout: cadenceTarget wird durchgereicht (Warmup T-5, Intervall T, Pause/Cooldown T-10)", () => {
+  const result = buildZwoWorkout(NUMERIC_CARD, 78);
+  assert.equal(result.ok, true);
+  assert.match(result.xml, /<SteadyState Duration="600" Power="0\.6" Cadence="73"\/>/);
+  assert.match(result.xml, /<IntervalsT [^>]*Cadence="78" CadenceResting="68"\/>/);
+  assert.match(result.xml, /<SteadyState Duration="600" Power="0\.91" Cadence="78"\/>/);
+  assert.match(result.xml, /<Cooldown [^>]*Cadence="68"\/>/);
 });
 
 test("buildZwoWorkout: bei genau einem Intervall (intervals: 1) kein IntervalsT-Pausenblock", () => {
@@ -45,7 +67,7 @@ test("buildZwoWorkout: bei genau einem Intervall (intervals: 1) kein IntervalsT-
   });
   assert.equal(result.ok, true);
   assert.doesNotMatch(result.xml, /IntervalsT/);
-  assert.match(result.xml, /<SteadyState Duration="1200" Power="1\.00"\/>/);
+  assert.match(result.xml, /<SteadyState Duration="1200" Power="1\.00" Cadence="90"\/>/);
 });
 
 test("canExportZwo: numerisches Workout mit Hauptsatz -> true, Blockform/Ramp-Test -> false", () => {

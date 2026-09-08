@@ -79,3 +79,39 @@ export async function updateSyncLocation(
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };
 }
+
+/* --- Intervall-Kadenz-Ziel (Migration 0036) -----------------------------
+   Dieselbe Zeile/RLS wie der Standort, aber KEIN Sync-Bezug: der Wert
+   wirkt rein im Frontend (Push-Text, .zwo-Export, Analyse-Anzeige). `null`
+   = nichts hinterlegt ⇒ die App fällt auf CADENCE_TARGET_RPM (90) zurück.
+   Der Upsert fasst nur diese eine Spalte an, die weather-/intervals-Werte
+   einer bestehenden Zeile bleiben unangetastet (wie updateSyncLocation). */
+
+interface SyncConfigCadenceRow {
+  interval_cadence_target: number | string | null;
+}
+
+export async function getCadenceTarget(
+  userId: string,
+): Promise<Result<{ target: number | null }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("athlete_sync_config")
+    .select("interval_cadence_target")
+    .eq("profile_id", userId)
+    .maybeSingle<SyncConfigCadenceRow>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, target: data ? toNum(data.interval_cadence_target) : null };
+}
+
+export async function updateCadenceTarget(userId: string, target: number | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("athlete_sync_config").upsert(
+    { profile_id: userId, interval_cadence_target: target },
+    { onConflict: "profile_id" },
+  );
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}

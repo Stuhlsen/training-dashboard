@@ -21,6 +21,13 @@
    Power-Ziele — dieselbe Trennung wie zwischen ftpMeasured/eFTP im
    Analyse-Tab, kein Drift-Risiko gegenüber der aktuellen FTP.
 
+   `cadenceTarget` (Fahrplan 11) ist das Intervall-Kadenzziel des Athleten;
+   der Aufrufer reicht es aus useCadenceTarget durch (Default 90). Warmup
+   bekommt `T-5`, die Intervalle `T`, Pausen/Cooldown `T-10` — derselbe
+   Abstand wie im intervals.icu-Push-Text (api/intervals/push.ts). Zwift/
+   MyWhoosh lesen `Cadence`/`CadenceResting` als Zielvorgabe; ohne die
+   Attribute schlägt Zwift eine eigene (früher: fest 90) vor.
+
    isNumericWorkout() dupliziert bewusst die Formerkennung aus
    app/src/api/intervals/push.ts::isBlockWorkout() — core/ darf laut
    Schichtentabelle nichts aus api/ importieren, auch keine Hilfsfunktion.
@@ -62,8 +69,9 @@ export function canExportZwo(workout) {
 }
 
 /** @param {{name?: string|null, date: string, workout?: unknown, details?: string|null}} card
+ *  @param {number} [cadenceTarget] Intervall-Kadenzziel des Athleten (Default 90).
  *  @returns {{ok: true, xml: string, filename: string}|{ok: false, error: {code: string, message: string}}} */
-export function buildZwoWorkout(card) {
+export function buildZwoWorkout(card, cadenceTarget = 90) {
   const w = card?.workout;
   if (!canExportZwo(w)) {
     return {
@@ -75,6 +83,12 @@ export function buildZwoWorkout(card) {
   const onPower = (midPct(w.pct) / 100).toFixed(2);
   const onDuration = Math.round(w.duration * 60);
 
+  // Warmup `T-5`, Intervalle `T`, Pausen/Cooldown `T-10` — derselbe Abstand
+  // wie legacyDescription() in api/intervals/push.ts.
+  const onCadence = Math.round(cadenceTarget);
+  const warmupCadence = onCadence - 5;
+  const easyCadence = onCadence - 10;
+
   // Pausen NUR zwischen den Wiederholungen, keine nach der letzten — dieselbe
   // Konvention wie workoutSegments() in core/ftp-progress.js (restMin =
   // (intervals-1)×rest), sonst weicht die exportierte Dauer von der Dauer/
@@ -83,15 +97,15 @@ export function buildZwoWorkout(card) {
   if (w.intervals > 1) {
     const offDuration = Math.round((w.rest || 0) * 60);
     mainSetSegments.push(
-      `<IntervalsT Repeat="${w.intervals - 1}" OnDuration="${onDuration}" OffDuration="${offDuration}" OnPower="${onPower}" OffPower="0.5"/>`,
+      `<IntervalsT Repeat="${w.intervals - 1}" OnDuration="${onDuration}" OffDuration="${offDuration}" OnPower="${onPower}" OffPower="0.5" Cadence="${onCadence}" CadenceResting="${easyCadence}"/>`,
     );
   }
-  mainSetSegments.push(`<SteadyState Duration="${onDuration}" Power="${onPower}"/>`);
+  mainSetSegments.push(`<SteadyState Duration="${onDuration}" Power="${onPower}" Cadence="${onCadence}"/>`);
 
   const segments = [
-    `<SteadyState Duration="${Math.round(w.warmup * 60)}" Power="0.6"/>`,
+    `<SteadyState Duration="${Math.round(w.warmup * 60)}" Power="0.6" Cadence="${warmupCadence}"/>`,
     ...mainSetSegments,
-    `<Cooldown Duration="${Math.round(w.cooldown * 60)}" PowerLow="0.5" PowerHigh="0.4"/>`,
+    `<Cooldown Duration="${Math.round(w.cooldown * 60)}" PowerLow="0.5" PowerHigh="0.4" Cadence="${easyCadence}"/>`,
   ];
 
   const name = xmlEscape(card.name || "Training");
