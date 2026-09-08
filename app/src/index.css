@@ -42,6 +42,44 @@ body {
   animation: row-highlight-pulse 2.5s ease-out;
 }
 
+/* Sanfter Auftritt des Morgen-Check-in-Dialogs (CheckinDialog.tsx) — der
+   Dialog nutzt sonst ausschließlich Inline-Styles, Keyframes gehen dort
+   nicht. Overlay blendet ein, die Karte steigt kurz auf. */
+@keyframes checkin-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes checkin-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.checkin-overlay {
+  animation: checkin-overlay-in 0.16s ease-out;
+}
+
+.checkin-card {
+  animation: checkin-card-in 0.2s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .checkin-overlay,
+  .checkin-card {
+    animation: none;
+  }
+}
+
 /* Bislang keine einzige Fokus-Stil-Regel im Projekt (Audit Etappe
    2026-08-19) — Tastatur-/Screenreader-Nutzer sahen nur den je nach Browser
    unterschiedlichen Default-Ring, oft kaum sichtbar auf den transluzenten

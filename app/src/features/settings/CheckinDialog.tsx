@@ -1,11 +1,22 @@
 /* ============================================================
-   FEATURES/SETTINGS/CHECKINDIALOG.TSX — Morgen-Check-in (neu, Port von
-   ui/checkin-dialog.js)
+   FEATURES/SETTINGS/CHECKINDIALOG.TSX — Morgen-Check-in
 
    Bisher hatte der React-Port KEINE UI für den täglichen Befinden-
    Check-in — useTodayCheckin()/useSaveCheckin() (Etappe 2b) existierten
-   unbenutzt. Erreichbar über ProfileSection ("Befinden anpassen"), wie im
-   Vanilla-Original wo der Dialog ebenfalls nur über Settings geöffnet wird.
+   unbenutzt. Erreichbar über ProfileSection ("Befinden anpassen") und als
+   tägliches Auto-Popup über dem Hero (WellbeingCard.tsx::SelfCard).
+
+   Zwei Layout-Bugs behoben (2026-09-08):
+   - Der Dialog rutschte HINTER die Hero-Kacheln und schien durch. Ursache:
+     `position:fixed` wird von einem `backdrop-filter`-Elternteil (jede
+     Hero-Kachel via GlassCard) eingefangen — der Dialog füllte dann nur
+     die kleine "Befinden heute"-Kachel statt des Viewports. Fix: per
+     `createPortal` an `document.body` (raus aus dem Kachel-Stacking-Context)
+     + deckende Fläche `--card-solid` statt transluzentem Glas.
+
+   Interaktiver (Grilling 2026-09-08): 1–5-Schieberegler → antippbare
+   Zahlen-Pills, dazu eine Live-Vorschau der subjektiven Tagesform
+   (getSubjectiveReadiness), die sich beim Tippen mitbewegt.
 
    Kein `openGuard`-Äquivalent nötig (anders als das Vanilla-Original):
    die Komponente wird bei `onClose` komplett unmounted, eine spät
@@ -14,9 +25,12 @@
    ============================================================ */
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useTodayCheckin, useSaveCheckin } from "../../api/hooks/useWellbeing";
+import { getSubjectiveReadiness, LEVEL_LABEL } from "../../core/readiness.js";
+import { localISODate } from "../../core/format.js";
 
 interface CheckinDialogProps {
   onClose: () => void;
@@ -34,6 +48,76 @@ const SLIDER_DEFS: SliderDef[] = [
   { key: "muscleFeel", label: "Muskelgefühl", min: "schwer / platt / Muskelkater", max: "frisch & locker" },
   { key: "mood", label: "Stimmung", min: "mies / gereizt", max: "top / motiviert" },
 ];
+
+/** Ampelfarbe + fester Vorschau-Satz je subjektivem Level. Der Wortlaut
+ *  lehnt sich an core/readiness.js::assessReadiness an, ohne ihn zu kopieren
+ *  (der objektive Kanal hat eine eigene, HRV-/schlafbasierte Empfehlung). */
+const LEVEL_PREVIEW: Record<"green" | "yellow" | "red", { color: string; hint: string }> = {
+  green: { color: "var(--ok)", hint: "Gute Ausgangslage — Einheit wie geplant angehen." },
+  yellow: { color: "var(--warn)", hint: "Etwas platt — heute eher Intensität rausnehmen, Umfang ok." },
+  red: { color: "var(--danger)", hint: "Deutlich unter Normal — Ruhetag oder lockeres Ausrollen erwägen." },
+};
+
+/** Antippbare 1–5-Skala (ersetzt den <input type=range>). Pfeiltasten
+ *  verschieben den Wert, damit Tastatur-/Screenreader-Nutzer nichts verlieren. */
+function PillScale({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (e.key === "ArrowRight" || e.key === "ArrowUp") {
+      e.preventDefault();
+      onChange(Math.min(5, value + 1));
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
+      e.preventDefault();
+      onChange(Math.max(1, value - 1));
+    }
+  }
+
+  return (
+    <div
+      role="radiogroup"
+      aria-label={`${label} (1 bis 5)`}
+      onKeyDown={onKeyDown}
+      style={{ display: "flex", gap: 6 }}
+    >
+      {[1, 2, 3, 4, 5].map((n) => {
+        const active = n === value;
+        return (
+          <button
+            key={n}
+            type="button"
+            role="radio"
+            aria-checked={active}
+            aria-label={String(n)}
+            tabIndex={active ? 0 : -1}
+            onClick={() => onChange(n)}
+            style={{
+              flex: 1,
+              padding: "9px 0",
+              borderRadius: "var(--pill)",
+              border: active ? "1px solid var(--ss)" : "1px solid var(--hair)",
+              background: active ? "var(--ss)" : "transparent",
+              color: active ? "#17110a" : "var(--ink-3)",
+              fontFamily: "var(--font-disp)",
+              fontWeight: 700,
+              fontSize: ".9rem",
+              cursor: "pointer",
+              transition: "background .15s, color .15s, border-color .15s",
+            }}
+          >
+            {n}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 export function CheckinDialog({ onClose }: CheckinDialogProps) {
   const { data, isLoading } = useTodayCheckin();
@@ -72,6 +156,19 @@ export function CheckinDialog({ onClose }: CheckinDialogProps) {
     mood: setMood,
   };
 
+  function setValue(key: SliderDef["key"], v: number) {
+    setTouched(true);
+    setters[key](v);
+  }
+
+  // Live-Vorschau: subjektive Tagesform aus den drei aktuellen Reglern.
+  // getSubjectiveReadiness erwartet die Check-ins als Daten (nicht als IDs)
+  // — hier ein synthetischer "heute"-Eintrag aus dem lokalen State.
+  const today = localISODate();
+  const preview = getSubjectiveReadiness([{ date: today, energy, muscleFeel, mood }], today);
+  const previewLevel = (preview.level ?? "yellow") as "green" | "yellow" | "red";
+  const previewStyle = LEVEL_PREVIEW[previewLevel];
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
@@ -83,15 +180,18 @@ export function CheckinDialog({ onClose }: CheckinDialogProps) {
     onClose();
   }
 
-  return (
+  return createPortal(
     <div
+      className="checkin-overlay"
       style={{
         position: "fixed",
         inset: 0,
-        background: "rgba(7,9,14,.75)",
+        background: "rgba(7,9,14,.8)",
+        backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        padding: 16,
         zIndex: 1000,
       }}
       onClick={(e) => {
@@ -101,131 +201,152 @@ export function CheckinDialog({ onClose }: CheckinDialogProps) {
       <GlassCard
         variant="strong"
         radius="22px"
-        style={{ width: "100%", maxWidth: 360, maxHeight: "90vh", overflowY: "auto", padding: "26px 24px" }}
+        style={{
+          background: "var(--card-solid)",
+          border: "1px solid var(--hair)",
+          width: "100%",
+          maxWidth: 380,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          padding: "26px 24px",
+        }}
       >
-        <div style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: "1rem", color: "var(--ink)" }}>
-          Morgen-Check-in
-        </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", textTransform: "uppercase", color: "var(--ink-3)", marginTop: 4 }}>
-          Wie geht's dir heute?
-        </div>
+        <div className="checkin-card">
+          <div style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: "1rem", color: "var(--ink)" }}>
+            Morgen-Check-in
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", textTransform: "uppercase", letterSpacing: ".08em", color: "var(--ink-3)", marginTop: 4 }}>
+            Wie geht's dir heute?
+          </div>
 
-        <div
-          style={{
-            marginTop: 16,
-            padding: "10px 12px",
-            background: "rgba(255,255,255,.03)",
-            border: "1px solid var(--hair)",
-            borderRadius: 12,
-            fontFamily: "var(--font-body)",
-            fontSize: ".72rem",
-            color: "var(--ink-3)",
-          }}
-        >
-          Schlaf: Score kommt automatisch aus intervals.icu
-        </div>
-
-        <form onSubmit={(e) => void handleSubmit(e)} style={{ marginTop: 18 }}>
-          {SLIDER_DEFS.map((def) => (
-            <div key={def.key} style={{ marginBottom: 16 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--ink-3)" }}>
-                  {def.label}
-                </span>
-                <b style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: ".85rem", color: "var(--ss)" }}>
-                  {values[def.key]}
-                </b>
+          <form onSubmit={(e) => void handleSubmit(e)} style={{ marginTop: 20 }}>
+            {SLIDER_DEFS.map((def) => (
+              <div key={def.key} style={{ marginBottom: 18 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: ".68rem", textTransform: "uppercase", letterSpacing: ".06em", color: "var(--ink-3)" }}>
+                    {def.label}
+                  </span>
+                  <b style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: ".85rem", color: "var(--ss)" }}>
+                    {values[def.key]}
+                  </b>
+                </div>
+                <PillScale label={def.label} value={values[def.key]} onChange={(v) => setValue(def.key, v)} />
+                <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: ".66rem", color: "var(--ink-3)" }}>{def.min}</span>
+                  <span style={{ fontFamily: "var(--font-body)", fontSize: ".66rem", color: "var(--ink-3)", textAlign: "right" }}>{def.max}</span>
+                </div>
               </div>
-              <input
-                type="range"
-                min={1}
-                max={5}
-                step={1}
-                value={values[def.key]}
-                aria-label={`${def.label} (1 bis 5)`}
+            ))}
+
+            {/* Live-Vorschau der subjektiven Tagesform */}
+            <div
+              style={{
+                marginTop: 4,
+                padding: "12px 14px",
+                background: "rgba(255,255,255,.03)",
+                border: "1px solid var(--hair)",
+                borderRadius: 12,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <span
+                  style={{
+                    width: 9,
+                    height: 9,
+                    borderRadius: "50%",
+                    background: previewStyle.color,
+                    flexShrink: 0,
+                    transition: "background .2s",
+                  }}
+                />
+                <span style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: ".82rem", color: previewStyle.color, transition: "color .2s" }}>
+                  {LEVEL_LABEL[previewLevel]}
+                </span>
+                <span style={{ marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: ".64rem", color: "var(--ink-3)" }}>
+                  Ø {preview.score?.toFixed(1)}
+                </span>
+              </div>
+              <p style={{ margin: "6px 0 0", fontFamily: "var(--font-body)", fontSize: ".74rem", lineHeight: 1.4, color: "var(--ink-2)" }}>
+                {previewStyle.hint}
+              </p>
+              <p style={{ margin: "8px 0 0", fontFamily: "var(--font-mono)", fontSize: ".6rem", color: "var(--ink-3)" }}>
+                Schlaf-Score kommt automatisch aus intervals.icu
+              </p>
+            </div>
+
+            <label style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 18 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", textTransform: "uppercase", letterSpacing: ".08em", color: "var(--ink-3)" }}>
+                Notiz (optional)
+              </span>
+              <textarea
+                rows={2}
+                placeholder="z. B. Kopf dicht, evtl. was im Anflug"
+                value={note}
                 onChange={(e) => {
                   setTouched(true);
-                  setters[def.key](Number(e.target.value));
+                  setNote(e.target.value);
                 }}
-                style={{ width: "100%", accentColor: "var(--ss)", cursor: "pointer" }}
+                style={{
+                  background: "rgba(255,255,255,.04)",
+                  border: "1px solid var(--hair)",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "9px 11px",
+                  color: "var(--ink)",
+                  font: "inherit",
+                  fontSize: ".85rem",
+                  resize: "vertical",
+                }}
               />
-              <div style={{ display: "flex", justifyContent: "space-between", marginTop: 4 }}>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: ".66rem", color: "var(--ink-3)" }}>{def.min}</span>
-                <span style={{ fontFamily: "var(--font-body)", fontSize: ".66rem", color: "var(--ink-3)", textAlign: "right" }}>{def.max}</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", color: "var(--ink-3)" }}>
+                Notiz nie öffentlich sichtbar
+              </span>
+            </label>
+
+            {error && (
+              <div style={{ color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: ".7rem", minHeight: "1em", marginTop: 10 }}>
+                {error}
               </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
+              <button
+                type="submit"
+                disabled={isPending}
+                style={{
+                  flex: 1,
+                  padding: "11px 0",
+                  borderRadius: "var(--pill)",
+                  border: "none",
+                  background: "var(--ss)",
+                  color: "#17110a",
+                  fontWeight: 600,
+                  cursor: isPending ? "default" : "pointer",
+                  opacity: isPending ? 0.7 : 1,
+                }}
+              >
+                {isPending ? "Speichern …" : "Speichern"}
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  flex: 1,
+                  padding: "11px 0",
+                  background: "transparent",
+                  border: "1px solid var(--hair)",
+                  borderRadius: "var(--pill)",
+                  color: "var(--ink-3)",
+                  fontFamily: "var(--font-body)",
+                  cursor: "pointer",
+                }}
+              >
+                Überspringen
+              </button>
             </div>
-          ))}
-
-          <label style={{ display: "flex", flexDirection: "column", gap: 6, marginTop: 4 }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".64rem", textTransform: "uppercase", letterSpacing: ".08em", color: "var(--ink-3)" }}>
-              Notiz (optional)
-            </span>
-            <textarea
-              rows={2}
-              placeholder="z. B. Kopf dicht, evtl. was im Anflug"
-              value={note}
-              onChange={(e) => {
-                setTouched(true);
-                setNote(e.target.value);
-              }}
-              style={{
-                background: "rgba(255,255,255,.04)",
-                border: "1px solid var(--hair)",
-                borderRadius: "var(--radius-sm)",
-                padding: "9px 11px",
-                color: "var(--ink)",
-                font: "inherit",
-                fontSize: ".85rem",
-                resize: "vertical",
-              }}
-            />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", color: "var(--ink-3)" }}>
-              Notiz nie öffentlich sichtbar
-            </span>
-          </label>
-
-          {error && (
-            <div style={{ color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: ".7rem", minHeight: "1em", marginTop: 8 }}>
-              {error}
-            </div>
-          )}
-
-          <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
-            <button
-              type="submit"
-              disabled={isPending}
-              style={{
-                flex: 1,
-                padding: "10px 0",
-                borderRadius: "var(--pill)",
-                border: "none",
-                background: "var(--ss)",
-                color: "#17110a",
-                fontWeight: 600,
-                cursor: isPending ? "default" : "pointer",
-                opacity: isPending ? 0.7 : 1,
-              }}
-            >
-              {isPending ? "Speichern …" : "Speichern"}
-            </button>
-            <button
-              type="button"
-              onClick={onClose}
-              style={{
-                flex: 1,
-                background: "transparent",
-                border: "1px solid var(--hair)",
-                borderRadius: "var(--pill)",
-                color: "var(--ink-3)",
-                fontFamily: "var(--font-body)",
-                cursor: "pointer",
-              }}
-            >
-              Überspringen
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </GlassCard>
-    </div>
+    </div>,
+    document.body,
   );
 }
