@@ -25,6 +25,7 @@
 import { ENV } from "./env.js";
 import { fetchJson } from "./http.js";
 import { log } from "./log.js";
+import { tanakaHrMax } from "./hr.js";
 
 /** Anzeigename (profiles.display_name in Supabase) → interne Athleten-ID.
  *  Spiegel von app/src/config.ts::ATHLETES[].name — bei einem neuen Athleten
@@ -82,13 +83,17 @@ async function getOrThrow(url, key, label) {
  * Alle Athleten-Zeilen aus athlete_sync_config per service_role laden.
  * @returns {Promise<Map<string, {profileId: string|null, apiKey: string|null,
  *   athleteId: string|null, lat: number|null, lon: number|null,
- *   ftpPublic: boolean, planOffsetWeeks: number}>>}
+ *   ftpPublic: boolean, planOffsetWeeks: number,
+ *   hrMax: number|null, hrRest: number|null}>>}
  *   Key = interne Athleten-ID ("athlete1" …). `ftpPublic` steuert, ob der
  *   Sync die gemessene FTP + Ramp-Test-Historie in rides*.json schreibt
  *   (profiles.ftp_public, Migration 0025) — Default true, wenn keine
  *   profiles-Zeile zugeordnet ist. `planOffsetWeeks` (profiles.plan_offset_weeks,
  *   Migration 0026) verschiebt die generierte Trainingsplan-Vorlage um N ganze
- *   Wochen — Default 0.
+ *   Wochen — Default 0. `hrMax` (Tanaka-Schätzung aus profiles.birthdate) +
+ *   `hrRest` (profiles.resting_hr) sind die HF-Grundlage für den Multi-Sport-
+ *   TRIMP-Lastpfad (Migration 0035, Fahrplan 10 E5a) — beide `null` ohne
+ *   Profil-Zeile bzw. ohne hinterlegten Wert; Konsument folgt in E6.
  */
 export async function loadSyncConfig() {
   if (!ENV.SUPABASE_URL || !ENV.SUPABASE_SERVICE_ROLE_KEY) {
@@ -97,6 +102,7 @@ export async function loadSyncConfig() {
     );
   }
   const key = ENV.SUPABASE_SERVICE_ROLE_KEY;
+  const todayISO = new Date().toISOString().slice(0, 10);
 
   const rows = await getOrThrow(
     `${ENV.SUPABASE_URL}/rest/v1/athlete_sync_config` +
@@ -105,7 +111,7 @@ export async function loadSyncConfig() {
     "athlete_sync_config: Abruf"
   );
   const profiles = await getOrThrow(
-    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public,plan_offset_weeks`,
+    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public,plan_offset_weeks,birthdate,resting_hr`,
     key,
     "profiles: Abruf"
   );
@@ -116,6 +122,11 @@ export async function loadSyncConfig() {
   // generierten Trainingsplan-Vorlage. numeric/int kommt je Zeile als Zahl
   // oder String (toNum), Default 0.
   const planOffsetById = new Map(profiles.map((p) => [p.id, toNum(p.plan_offset_weeks) ?? 0]));
+  // profiles.birthdate / profiles.resting_hr (Migration 0035, Fahrplan 10 E5a)
+  // — HF-Grundlage für den Multi-Sport-TRIMP-Lastpfad (E6). hrMax wird hier
+  // nach Tanaka geschätzt (scripts/lib/hr.js), hrRest ist der rohe Wert.
+  const restingHrById = new Map(profiles.map((p) => [p.id, toNum(p.resting_hr)]));
+  const birthdateById = new Map(profiles.map((p) => [p.id, p.birthdate ?? null]));
 
   const bySlug = new Map();
   for (const row of rows) {
@@ -152,6 +163,11 @@ export async function loadSyncConfig() {
       ftpPublic: row.profile_id ? (ftpPublicById.get(row.profile_id) ?? true) : true,
       // profiles.plan_offset_weeks (0026) — Default 0 ohne Profil-Zeile.
       planOffsetWeeks: row.profile_id ? (planOffsetById.get(row.profile_id) ?? 0) : 0,
+      // profiles.birthdate / resting_hr (0035) — nur profile_id-Zeilen haben
+      // ein Profil; ohne Wert bzw. ohne Profil-Zeile bleibt beides null
+      // (E6-TRIMP überspringt die Aktivität dann + loggt, s. Fahrplan 10 E6).
+      hrMax: row.profile_id ? tanakaHrMax(birthdateById.get(row.profile_id) ?? null, todayISO) : null,
+      hrRest: row.profile_id ? (restingHrById.get(row.profile_id) ?? null) : null,
     });
   }
 

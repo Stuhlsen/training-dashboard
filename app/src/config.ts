@@ -53,6 +53,17 @@ export interface AthleteConfig {
    *  `null`, solange kein Wert vorliegt (Athlet 2/4) — das Band entfällt dann,
    *  die Puls-Zeile zeigt nur den Ist-Wert. */
   hrMax: number | null;
+  /** Ruhe-Herzfrequenz (bpm) — Athletenwert wie `hrMax`. Zusammen mit `hrMax`
+   *  die Grundlage der HF-Reserve (`HRr`) für den Multi-Sport-TRIMP-Lastpfad
+   *  (Fahrplan 10). Für den **Sync** ist `profiles.resting_hr` (Migration 0035)
+   *  die Wahrheit — dieses Literal deckt nur einen künftigen Frontend-Konsumenten
+   *  ab. `null`, solange kein Wert vorliegt (alle Bestandsathleten — sie nutzen
+   *  den TRIMP-Pfad nicht). */
+  hrRest: number | null;
+  /** Sportarten dieses Athleten (Fahrplan 10 G14). Fehlt ⇒ als `["ride"]`
+   *  gelesen. Steuert u. a. den `>1 Sport`-Zweig des Governors (E6) und den
+   *  Sport-Umschalter (E8). Wird für Athlet 3 erst in E8 gefüllt. */
+  sports?: readonly ("ride" | "run" | "swim" | "other")[];
   dataSources: string[];
   /** Grundumsatz-Schätzgrundlage (Mifflin-St-Jeor), Analyse-Tab "Regeneration
    *  & Körper" — nur Fallback, wenn Wellness keine `restingEnergy` trägt.
@@ -81,6 +92,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     ftpGoal: 210,
     seasonStartFtp: 166,
     hrMax: 201, // 1:1 aus assets/js/state/config.js::CONFIG.hrMax
+    hrRest: null, // nutzt den Multi-Sport-TRIMP-Pfad nicht (Rad-only)
     dataSources: ["intervals.icu", "Apple Health"],
   },
   {
@@ -93,6 +105,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     ftpGoal: 280,
     seasonStartFtp: null,
     hrMax: null, // Vergleichsathlet, kein hinterlegter Wert
+    hrRest: null,
     dataSources: ["intervals.icu", "Amazfit"],
     bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92.5 },
   },
@@ -115,6 +128,7 @@ export const ATHLETES: readonly AthleteConfig[] = [
     ftpGoal: null,
     seasonStartFtp: null,
     hrMax: null, // Einsteiger, noch kein Wert erhoben
+    hrRest: null,
     // Athlet 4 trackt Wellness (Schlaf/HRV/Ruhepuls/Gewicht) über Garmin
     // Connect → intervals.icu; analog Apple Health (Athlet 1) / Amazfit
     // (Athlet 2). Wird im Footer + Settings als Untertitel angezeigt.
