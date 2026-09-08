@@ -250,6 +250,51 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
       log.info(`   ... FTP (${entry.name}): ${effectiveFtp}W (Ramp-Test)`);
     }
 
+    // Fahrplan 10 E6-Nachtrag: HF-Grenzen für den Multi-Sport-TRIMP. Ein
+    // explizit gepflegter Profilwert (cfg.hrMax = Tanaka aus profiles.birthdate,
+    // cfg.hrRest = profiles.resting_hr) gewinnt immer. Fehlt einer, aber der
+    // Athlet hat HF-Trainingsdaten, wird er aus den Daten GESCHÄTZT — gleiches
+    // Prinzip wie die NP-FTP-Notschätzung (Q6): lieber ein markiert-geschätzter
+    // Wert als gar keine Lauf-/Schwimm-Last. Nur für Multi-Sport-Athleten
+    // (entry.activityTypes gesetzt) — für 1/2/4 wird hrMax/hrRest ohnehin nie
+    // genutzt (alle Zeilen sport:"ride"), der Block bleibt für sie stumm.
+    let hrMax = cfg.hrMax;
+    let hrRest = cfg.hrRest;
+    if (entry.activityTypes) {
+      if (hrMax == null) {
+        // P98 der pro-Aktivität max_heartrate — robust gegen einen Sensor-Spike
+        // (wie das NP-P95). max_heartrate ist bei trainierten Athleten ein
+        // brauchbarer HFmax-Proxy, oft besser als eine Altersformel.
+        const maxHrs = activities.map((a) => a.max_heartrate).filter((v) => v > 0);
+        hrMax = maxHrs.length ? Math.round(percentile(maxHrs, 0.98)) : null;
+        if (hrMax != null) {
+          log.info(
+            `   ... HFmax (${entry.name}): ${hrMax} bpm (geschätzt — P98 aus ${maxHrs.length} Aktivitäten, kein Profilwert)`
+          );
+        }
+      }
+      if (hrRest == null) {
+        // Median der Wellness-Ruhepulse (Tageswerte, schon sauber); sonst der
+        // niedrigste avgSleepingHR.
+        const restHrs = Object.values(wellness)
+          .map((w) => w.restingHR)
+          .filter((v) => v > 0);
+        if (restHrs.length) {
+          hrRest = Math.round(percentile(restHrs, 0.5));
+        } else {
+          const sleepHrs = Object.values(wellness)
+            .map((w) => w.avgSleepingHR)
+            .filter((v) => v > 0);
+          hrRest = sleepHrs.length ? Math.min(...sleepHrs) : null;
+        }
+        if (hrRest != null) {
+          log.info(
+            `   ... Ruhe-HF (${entry.name}): ${hrRest} bpm (geschätzt aus Wellness, kein Profilwert)`
+          );
+        }
+      }
+    }
+
     // Fahrplan 10 E6: für einen Triathleten kommen jetzt auch Lauf-/Schwimm-
     // Aktivitäten herein. Die radspezifische Nachbearbeitung (Blockerkennung,
     // Ein-/Ausrollen, Compliance-Match) läuft nur auf dem Rad-Subset —
@@ -273,12 +318,12 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
 
     // Reihenfolge bewusst wie `activities` (attachCompliance braucht den
     // Gleichlauf cyclingRides[i] <-> cyclingActs[i]) — Datumssortierung erst
-    // danach. hrMax/hrRest (Migration 0035) speisen den Multi-Sport-TRIMP-Pfad
-    // in mapActivity2 für Nicht-Rad-Zeilen.
+    // danach. hrMax/hrRest (Migration 0035 bzw. oben aus den Daten geschätzt)
+    // speisen den Multi-Sport-TRIMP-Pfad in mapActivity2 für Nicht-Rad-Zeilen.
     rides = activities.map((act) =>
       mapActivity2(act, wellness, weatherMap, effectiveFtp, effectivePlan, ftpHistory, intervalBlockCache, {
-        hrMax: cfg.hrMax,
-        hrRest: cfg.hrRest,
+        hrMax,
+        hrRest,
       })
     );
 
