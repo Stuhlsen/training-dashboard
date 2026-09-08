@@ -298,9 +298,10 @@ export function buildPlanningSections(
    feedback.js und werden direkt in den Komponenten genutzt, nicht hier
    noch einmal gewrappt). ============================================== */
 
-/** FTP-Wert für `cardImpact({ftp})` — steuert dort nur die `scale`-
- *  Klassifizierung ("tss" vs. "tss-approx" in estimateTss()), keine
- *  kritische Anzeigezahl. Vereinfachte Fallback-Kette gegenüber Vanillas
+/** FTP-Wert für `cardImpact({ftp})` — steuert dort nur die `scale.source`-
+ *  Klassifizierung ("tss" vs. "tss-approx" in estimateTss(); `scale` ist seit
+ *  Fahrplan 10 E6 ein `{ source, sport }`-Objekt), keine kritische
+ *  Anzeigezahl. Vereinfachte Fallback-Kette gegenüber Vanillas
  *  `Data.ftpValue()` (state/data.js): der dritte Fallback dort — höchster
  *  NP aus den Ist-Fahrten — entfällt hier bewusst. */
 export function resolvePlanningFtp(athleteId: string, athleteFtp: number | null): number | undefined {

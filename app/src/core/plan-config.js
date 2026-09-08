@@ -137,6 +137,26 @@ export const LADDER_PROGRESSION = Object.freeze({
 });
 
 /**
+ * Governor-Zweig für Athleten mit > 1 Sport (Fahrplan 10 E6, OF-4).
+ *
+ * Ein Triathlet trägt durch drei Sportarten eine höhere Gesamt-Wochenlast als
+ * ein reiner Radfahrer — die absoluten Rad-Schwellen (RAMP_HIGH etc.,
+ * core/loadguard.js) würden ihm dauerhaft „Dauer-Ruhe" empfehlen. Für > 1
+ * Sport wird die absolute Wochenlast-Grenze daher gegen die eigene
+ * rollierende Median-Wochenlast bezogen. CTL-Rampe und die TSB-Punkt-
+ * Schwellen (briefing.js) bleiben ABSOLUT — die Rampe ist bereits eine
+ * Differenzgröße, kein Absolutniveau.
+ *
+ * Erster begründeter Aufschlag (Muster K1, wie CONFLICT_THRESHOLDS), keine
+ * validierte Wahrheit — nach echter Nutzung durch Athlet 3 gegen seine
+ * Ist-Daten reviewen (Fahrplan 10 „Risiken / Governor relativ zur Eigenlast").
+ * In E6 setzt KEIN echter Aufrufer `multiSport:true` (Athlet 3 ist im Frontend
+ * bis E8 unsichtbar) — der Zweig ist gebaut + unit-getestet, aber dormant.
+ */
+export const OWN_LOAD_MEDIAN_WEEKS = 6; // Fenster (abgeschlossene Wochen) für die rollierende Median-Wochenlast
+export const WEEK_LOAD_CEILING_FACTOR = 1.5; // Wochenlast > Median(letzte N) × Faktor → Risiko "high" (Schärfe wie ramp > RAMP_HIGH)
+
+/**
  * Ride↔Format-Brücke (D4b Schritt 1, core/session-format-match.js).
  * vo2-short (30/15-Bauart) und vo2-long überlappen sich im Pct-FTP-Band
  * (106-112 vs. 110-112, s. session_formats-Seed Migration 0014) — die

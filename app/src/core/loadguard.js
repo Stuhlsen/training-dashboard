@@ -6,7 +6,21 @@
    - Foster-Monotonie & Strain: Ø Tageslast ÷ SD der Tageslast
      (7 Tage inkl. Ruhetage=0); Monotonie ≥ 2,0 gilt als eintönig,
      Strain = Wochenlast × Monotonie
+
+   Governor-Zweig (Fahrplan 10 E6, OF-4): für Athleten mit > 1 Sport
+   (`buildLoadGuard(..., { multiSport: true })`) kommt ein dritter Indikator
+   hinzu — die Wochenlast relativ zur eigenen rollierenden Median-Wochenlast
+   (OWN_LOAD_MEDIAN_WEEKS / WEEK_LOAD_CEILING_FACTOR in plan-config.js). Ein
+   Triathlet hat durch drei Sportarten eine höhere Gesamtlast; absolute
+   Rad-Schwellen empfehlen ihm sonst dauerhaft Ruhe. Ohne `multiSport` wird
+   nichts davon berechnet und riskLevel() verhält sich exakt wie vor E6
+   (Golden-Master 1/2/4 = 0 Diff). In E6 setzt KEIN echter Aufrufer
+   `multiSport:true` (Athlet 3 unsichtbar bis E8) — Zweig gebaut + getestet,
+   aber dormant; describeWeek() ordnet einen deckel-getriebenen "high" bis
+   dahin noch der Monotonie-Fallback-Formulierung zu (E8 zieht das nach).
    ============================================================ */
+
+import { OWN_LOAD_MEDIAN_WEEKS, WEEK_LOAD_CEILING_FACTOR } from "./plan-config.js";
 
 /** Sichere Ramp-Korridor-Grenzen (CTL/Woche) */
 export const RAMP_OK_MIN = 3;
@@ -37,10 +51,27 @@ export function fosterWeek(dailyLoads) {
   return { total, mean, sd, monotony, strain: total * monotony };
 }
 
-/** Risiko-Einstufung einer Woche aus Ramp und Monotonie
+/** Median einer nicht-leeren Zahlenliste (die Kopie wird sortiert). */
+function median(nums) {
+  const s = [...nums].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
+
+/** Risiko-Einstufung einer Woche aus Ramp, Monotonie und — nur für
+ *  Multi-Sport-Athleten (Fahrplan 10 E6) — dem Eigenlast-Wochendeckel.
+ *  `weekLoadOverCeiling` ist `false`, solange kein Aufrufer den Governor-Zweig
+ *  aktiviert; dann verhält sich die Funktion exakt wie vor E6.
+ *  @param {number|null} ramp @param {number|null} monotony
+ *  @param {boolean} [weekLoadOverCeiling]
  *  @returns {"ok"|"caution"|"high"} */
-export function riskLevel(ramp, monotony) {
-  if ((ramp != null && ramp > RAMP_HIGH) || (monotony != null && monotony >= 2.5)) return "high";
+export function riskLevel(ramp, monotony, weekLoadOverCeiling = false) {
+  if (
+    weekLoadOverCeiling ||
+    (ramp != null && ramp > RAMP_HIGH) ||
+    (monotony != null && monotony >= 2.5)
+  )
+    return "high";
   if ((ramp != null && ramp > RAMP_OK_MAX) || (monotony != null && monotony >= MONOTONY_WARN))
     return "caution";
   return "ok";
@@ -53,9 +84,15 @@ export function riskLevel(ramp, monotony) {
  * @param {import("../types.js").Ride[]} rides
  * @param {(r: import("../types.js").Ride) => string} weekKeyFn Woche einer Fahrt
  * @param {(a: string, b: string) => number} weekSortFn Sortierung der Wochen
+ * @param {{multiSport?: boolean}} [opts]  `multiSport: true` (Fahrplan 10 E6,
+ *   Athleten mit > 1 Sport) schaltet den Eigenlast-Wochendeckel frei — die
+ *   Wochenlast wird gegen den Median der bis zu OWN_LOAD_MEDIAN_WEEKS
+ *   vorangehenden Wochen bezogen, Bruch → risk "high". Default aus: exakt das
+ *   Verhalten vor E6 (Golden-Master 1/2/4 = 0 Diff).
  * @returns {Array<{week: string, total: number, monotony: number|null, strain: number|null, ctlEnd: number|null, ramp: number|null, risk: "ok"|"caution"|"high"}>}
  */
-export function buildLoadGuard(rides, weekKeyFn, weekSortFn) {
+export function buildLoadGuard(rides, weekKeyFn, weekSortFn, opts = {}) {
+  const multiSport = opts.multiSport === true;
   const byWeek = {};
   for (const r of rides) {
     const key = weekKeyFn(r);
@@ -66,6 +103,10 @@ export function buildLoadGuard(rides, weekKeyFn, weekSortFn) {
 
   const weeks = Object.keys(byWeek).sort(weekSortFn);
   let prevCtl = null;
+  // Chronologische Wochen-`total`-Werte der bisher verarbeiteten Wochen — nur
+  // für den Multi-Sport-Deckel (Median der Vorwochen). Ohne multiSport
+  // ungenutzt.
+  const priorTotals = [];
 
   return weeks.map((week) => {
     const wr = byWeek[week];
@@ -76,6 +117,17 @@ export function buildLoadGuard(rides, weekKeyFn, weekSortFn) {
     while (dailyLoads.length < 7) dailyLoads.push(0);
 
     const foster = fosterWeek(dailyLoads);
+    const total = Math.round(foster.total);
+
+    // Governor-Deckel (E6): nur bei multiSport und nur, wenn Vorwochen
+    // vorliegen. Median der letzten OWN_LOAD_MEDIAN_WEEKS Wochen; Bruch der
+    // Wochenlast über Median × WEEK_LOAD_CEILING_FACTOR → "high".
+    let weekLoadOverCeiling = false;
+    if (multiSport && priorTotals.length) {
+      const med = median(priorTotals.slice(-OWN_LOAD_MEDIAN_WEEKS));
+      if (med > 0 && total > med * WEEK_LOAD_CEILING_FACTOR) weekLoadOverCeiling = true;
+    }
+    priorTotals.push(total);
 
     const withCtl = wr
       .filter((r) => r.ctl != null)
@@ -87,12 +139,12 @@ export function buildLoadGuard(rides, weekKeyFn, weekSortFn) {
 
     return {
       week,
-      total: Math.round(foster.total),
+      total,
       monotony: foster.monotony != null ? Math.round(foster.monotony * 100) / 100 : null,
       strain: foster.strain != null ? Math.round(foster.strain) : null,
       ctlEnd,
       ramp,
-      risk: riskLevel(ramp, foster.monotony),
+      risk: riskLevel(ramp, foster.monotony, weekLoadOverCeiling),
     };
   });
 }

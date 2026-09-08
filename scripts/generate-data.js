@@ -39,6 +39,7 @@ import {
   buildEffectivePlanIndex,
   classifyCooldowns,
   logRpeFeelCoverage,
+  normalizeSport,
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
 import { loadFtpHistory, ftpAt } from "./lib/ftp-history.js";
@@ -73,6 +74,19 @@ requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 // Athlet 2 + 4 (Anzeigename, feste FTP, Plan-Vorlage, …) sind seit Fahrplan 10
 // E3 Einträge in scripts/lib/athletes.js — sie teilen sich den Rumpf
 // syncSecondaryAthlete() unten. Athlet 1 behält seinen eigenen Pfad in main().
+
+// Fahrplan 10 E6 (Q6): NP-basierte FTP-Notschätzung (npFallbackFtp) über ein
+// hohes Perzentil statt Math.max — ein einzelner kaputter Power-Datenpunkt
+// zog Athlet 3 im E4-Verifikations-Sync auf 425 W (bestes NP 447 W). Bei
+// wenigen Fahrten liegt P95 nahe am Max; der echte Fix ist ein per Settings
+// eingetragener FTP-Wert.
+const NP_FTP_PERCENTILE = 0.95;
+
+/** Nearest-Rank-Perzentil einer nicht-leeren Zahlenliste (0 < p ≤ 1). */
+function percentile(nums, p) {
+  const s = [...nums].sort((a, b) => a - b);
+  return s[Math.max(0, Math.ceil(p * s.length) - 1)];
+}
 
 /**
  * Öffentliche FTP-Felder fürs rides*.json-Payload (Aufgabe "FTP-Anzeige im
@@ -190,7 +204,9 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
       today,
       creds.apiKey,
       creds.athleteId,
-      RIDE_TYPES
+      // Fahrplan 10 E6: nur Athlet 3 (Triathlet) zieht zusätzlich Lauf/Schwimm;
+      // 1/2/4 haben kein activityTypes → exakt RIDE_TYPES wie vor E6.
+      entry.activityTypes ?? RIDE_TYPES
     );
     const wellness = await getIntervalsWellness(entry.oldest, today, creds.apiKey, creds.athleteId);
     powerCurves = await getIntervalsPowerCurves(entry.oldest, today, creds.apiKey, creds.athleteId);
@@ -210,17 +226,23 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     //    "Außerplanmäßig" zurück (map-activity.js::inferTypFromIF, `!np || !ftp`).
     //    Ein echter/getesteter FTP wird später über Settings gepflegt.
     if (!effectiveFtp && entry.npFallbackFtp) {
-      const longRides = activities.filter(
-        (a) => (a.moving_time || 0) >= 20 * 60 && a.icu_weighted_avg_watts
-      );
-      const bestNP = longRides.length
-        ? Math.max(...longRides.map((a) => a.icu_weighted_avg_watts))
-        : null;
+      // Nur Rad-Aktivitäten (die FTP-Notschätzung ist ein Rad-Wert) mit
+      // ≥20min-Power-Effort. P95 statt Math.max (Q6) — ein einzelner kaputter
+      // Datenpunkt vergiftet sonst die Schätzung (E4: Athlet 3 → 425 W).
+      const longRideNPs = activities
+        .filter(
+          (a) =>
+            RIDE_TYPES.includes(a.type) &&
+            (a.moving_time || 0) >= 20 * 60 &&
+            a.icu_weighted_avg_watts
+        )
+        .map((a) => a.icu_weighted_avg_watts);
+      const bestNP = longRideNPs.length ? percentile(longRideNPs, NP_FTP_PERCENTILE) : null;
       effectiveFtp = bestNP ? Math.round(bestNP * 0.95) : null;
       if (entry.logFtp) {
         log.info(
           bestNP
-            ? `   ... FTP (${entry.name}): ${effectiveFtp}W (geschätzt aus bestem NP ${bestNP}W ≥20min)`
+            ? `   ... FTP (${entry.name}): ${effectiveFtp}W (geschätzt aus NP-P95 ${Math.round(bestNP)}W ≥20min, n=${longRideNPs.length})`
             : `   ... FTP (${entry.name}): noch offen — keine ≥20min-Power-Efforts`
         );
       }
@@ -228,24 +250,56 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
       log.info(`   ... FTP (${entry.name}): ${effectiveFtp}W (Ramp-Test)`);
     }
 
-    // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1.
-    await updateIntervalBlockCache(activities, intervalBlockCache, {
+    // Fahrplan 10 E6: für einen Triathleten kommen jetzt auch Lauf-/Schwimm-
+    // Aktivitäten herein. Die radspezifische Nachbearbeitung (Blockerkennung,
+    // Ein-/Ausrollen, Compliance-Match) läuft nur auf dem Rad-Subset —
+    // `isRideActivity` ist die EINZIGE Klassifikationsstelle dafür und spiegelt
+    // bewusst cyclingSportOf() aus map-activity.js (das ride.sport setzt):
+    // alles außer eindeutig Lauf/Schwimm zählt als Rad, generische Typen wie
+    // "Workout"/EBikeRide bleiben Rad wie vor E6. Für 1/2/4 (Fetch nur
+    // RIDE_TYPES) ist das Subset == activities → 0 Verhaltensänderung.
+    const isRideActivity = (a) => {
+      const s = normalizeSport(a.type);
+      return s !== "run" && s !== "swim";
+    };
+    const cyclingActivities = activities.filter(isRideActivity);
+
+    // Blockerkennung, derselbe geteilte Cache wie bei Athlet 1 — nur Rad.
+    await updateIntervalBlockCache(cyclingActivities, intervalBlockCache, {
       apiKey: creds.apiKey,
       ftpHistory,
       fallbackFtp: effectiveFtp,
     });
 
     // Reihenfolge bewusst wie `activities` (attachCompliance braucht den
-    // Gleichlauf rides[i] <-> activities[i]) — Datumssortierung erst danach.
+    // Gleichlauf cyclingRides[i] <-> cyclingActs[i]) — Datumssortierung erst
+    // danach. hrMax/hrRest (Migration 0035) speisen den Multi-Sport-TRIMP-Pfad
+    // in mapActivity2 für Nicht-Rad-Zeilen.
     rides = activities.map((act) =>
-      mapActivity2(act, wellness, weatherMap, effectiveFtp, effectivePlan, ftpHistory, intervalBlockCache)
+      mapActivity2(act, wellness, weatherMap, effectiveFtp, effectivePlan, ftpHistory, intervalBlockCache, {
+        hrMax: cfg.hrMax,
+        hrRest: cfg.hrRest,
+      })
     );
-    classifyCooldowns(rides, ftpHistory, effectiveFtp);
-    logRpeFeelCoverage(rides, entry.name);
+
+    // Gezipptes Rad-Subset aus DEMSELBEN Prädikat wie oben (rides[i] gehört zu
+    // activities[i]). Die Objektreferenzen bleiben in `rides`, die Nicht-Rad-
+    // Zeilen laufen unverändert durch (TRIMP schon in mapActivity2 gesetzt).
+    const cyclingRides = [];
+    const cyclingActs = [];
+    activities.forEach((a, i) => {
+      if (isRideActivity(a)) {
+        cyclingRides.push(rides[i]);
+        cyclingActs.push(a);
+      }
+    });
+
+    classifyCooldowns(cyclingRides, ftpHistory, effectiveFtp);
+    logRpeFeelCoverage(cyclingRides, entry.name);
 
     const complianceCounts = attachCompliance(
-      rides,
-      activities,
+      cyclingRides,
+      cyclingActs,
       planCards,
       intervalBlockCache,
       ftpHistory,
@@ -257,6 +311,23 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
         `(🟢 ${complianceCounts.green} · 🟡 ${complianceCounts.yellow} · 🔴 ${complianceCounts.red}, ` +
         `${planCards.length} plan_cards geladen)`
     );
+
+    // Fahrplan 10 E6: Multi-Sport-TRIMP-Abdeckung je Sync melden (Muster
+    // logWellnessCoverage) — eine Nicht-Rad-Zeile ohne TRIMP heißt fehlendes
+    // HRavg/hrMax/hrRest (profiles.birthdate/resting_hr).
+    const nonRideRides = rides.filter((r) => r.sport !== "ride");
+    if (nonRideRides.length) {
+      const withTrimp = nonRideRides.filter((r) => r.trimp != null).length;
+      log.info(
+        `   📊 Multi-Sport-TRIMP (${entry.name}): ${withTrimp}/${nonRideRides.length} Nicht-Rad-Zeilen mit TRIMP`
+      );
+      if (withTrimp < nonRideRides.length) {
+        log.warn(
+          `   ${nonRideRides.length - withTrimp} Nicht-Rad-Zeile(n) ohne TRIMP (${entry.name}) — ` +
+            `HRavg/hrMax/hrRest prüfen (profiles.birthdate/resting_hr)`
+        );
+      }
+    }
 
     rides.sort((a, b) => a.date.localeCompare(b.date));
 

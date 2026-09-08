@@ -6,6 +6,13 @@
      auf "heute" fortgeschrieben statt am Stand der letzten Fahrt
      eingefroren) + dessen 3-Tage-Trend
    - LoadGuard-Risiko der aktuellen Woche (Ramp/Monotonie)
+
+   Der Governor-multiSport-Zweig (Fahrplan 10 E6, OF-4) verändert buildBriefing
+   NICHT — er wirkt nur über den `loadRisk`-Eingang, den der app-seitige
+   buildLoadGuard bei `multiSport:true` liefert (core/loadguard.js +
+   app/src/core/plan-config.js). Der Sync ruft buildBriefing ohnehin nicht auf;
+   diese Datei ist eine bewusst divergente, eingefrorene Kopie.
+
    Kein Einzelmarker ist allein entscheidungsreif — die Kombination
    aus Erholungslage UND Belastungsbilanz ist der etablierte Ansatz
    zur Tagessteuerung. Rote Erholungs-/Strain-Signale schlagen dabei

@@ -16,6 +16,7 @@ import {
   rpeFeelCoverage,
   normalizeSport,
 } from "../scripts/lib/map-activity.js";
+import { banisterTrimp, rpeTrimp } from "../scripts/lib/core/trimp.js";
 
 function baseAct(overrides = {}) {
   return {
@@ -474,4 +475,46 @@ test("mapActivity/mapActivity2: Rad-Bestandsathleten bekommen sport 'ride'", () 
   assert.equal(mapActivity(baseAct({ type: "Workout" }), {}, {}, {}).sport, "ride");
   assert.equal(mapActivity(baseAct({ type: undefined }), {}, {}, {}).sport, "ride");
   assert.equal(mapActivity2(baseAct({ type: "EBikeRide" }), {}, {}, 265).sport, "ride");
+});
+
+/* ── Fahrplan 10 E6: Multi-Sport-TRIMP-Überschreibung in mapActivity2 ── */
+
+const HR_OPTS = { hrMax: 190, hrRest: 50 };
+
+test("mapActivity2: Lauf-Zeile trägt die HF-basierte Banister-TRIMP (überschreibt act.trimp)", () => {
+  const act = baseAct({ type: "Run", moving_time: 60 * 60, average_heartrate: 150, trimp: 999 });
+  const ride = mapActivity2(act, {}, {}, null, {}, [], {}, HR_OPTS);
+  assert.equal(ride.sport, "run");
+  assert.equal(ride.trimp, banisterTrimp({ durationMin: 60, hrAvg: 150, hrRest: 50, hrMax: 190 }));
+  assert.notEqual(ride.trimp, 999, "der intervals-Wert act.trimp wird für Nicht-Rad ersetzt");
+});
+
+test("mapActivity2: Rad-Zeile behält act.trimp unverändert (kein Multi-Sport-Pfad)", () => {
+  const ride = mapActivity2(baseAct({ trimp: 118 }), {}, {}, 265, {}, [], {}, HR_OPTS);
+  assert.equal(ride.sport, "ride");
+  assert.equal(ride.trimp, 118);
+});
+
+test("mapActivity2: Schwimm-Zeile ohne HF → RPE-Ersatz (moderat), mit HF → Banister", () => {
+  const noHr = mapActivity2(
+    baseAct({ type: "Swim", moving_time: 40 * 60, average_heartrate: undefined }),
+    {}, {}, null, {}, [], {}, HR_OPTS
+  );
+  assert.equal(noHr.sport, "swim");
+  assert.equal(noHr.trimp, rpeTrimp(40, "moderat"));
+
+  const withHr = mapActivity2(
+    baseAct({ type: "Swim", moving_time: 40 * 60, average_heartrate: 160 }),
+    {}, {}, null, {}, [], {}, HR_OPTS
+  );
+  assert.equal(withHr.trimp, banisterTrimp({ durationMin: 40, hrAvg: 160, hrRest: 50, hrMax: 190 }));
+});
+
+test("mapActivity2: fehlt hrMax/hrRest → Nicht-Rad-Zeile behält den intervals-Wert (hier null)", () => {
+  const ride = mapActivity2(
+    baseAct({ type: "Run", moving_time: 60 * 60, average_heartrate: 150 }),
+    {}, {}, null, {}, [], {} /* hrOpts weggelassen */
+  );
+  assert.equal(ride.sport, "run");
+  assert.equal(ride.trimp, null);
 });

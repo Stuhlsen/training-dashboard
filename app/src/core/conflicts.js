@@ -243,6 +243,11 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   }
 
   // ── K-HARTFOLGE (P2, neu): zwei harte Tage ohne rest-/recovery- ─
+  //    Fahrplan 10 E6: K-HARTFOLGE / K-WOCHENTSS / K-TID werten bewusst NUR
+  //    Rad-Plankarten aus (intensityClass hängt an der Rad-Typenliste). Eine
+  //    harte Laufeinheit nach einer harten Radeinheit ist genau der Zielfall
+  //    — die Cross-Sport-Eichung dieser Regeln ist Fahrplan 10 Phase 2
+  //    (verschiebbare Grenze, nicht bröckelnd).
   //    Karte dazwischen (D6.2). Nur die NÄCHSTE vorangehende harte Karte
   //    zählt (kein O(n²) über alle Paare) — echte Rückenlücke = 0
   //    (unmittelbar aufeinanderfolgende harte Tage) deckt bereits K-HART

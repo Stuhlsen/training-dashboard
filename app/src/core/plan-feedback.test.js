@@ -226,19 +226,23 @@ test("dayImpact: null außerhalb der Projektion (Datum nicht enthalten)", () => 
   assert.equal(dayImpact({ days: [] }, "2026-07-24"), null);
 });
 
-test("formatCardImpact: W1.1-Format, deutsches Vorzeichen/Komma, Qualifier je scale", () => {
+test("formatCardImpact: W1.1-Format, deutsches Vorzeichen/Komma, Qualifier je scale.source", () => {
   const impact = { deltaFitness: -1.3, deltaFatigue: -8.6, deltaForm: 7.3 };
-  assert.equal(formatCardImpact(impact, "tss"), "Ermüdung −8,6 · Fitness −1,3 · Form +7,3 — modelliert");
   assert.equal(
-    formatCardImpact(impact, "tss-approx"),
+    formatCardImpact(impact, { source: "tss", sport: "ride" }),
+    "Ermüdung −8,6 · Fitness −1,3 · Form +7,3 — modelliert"
+  );
+  assert.equal(
+    formatCardImpact(impact, { source: "tss-approx", sport: "ride" }),
     "Ermüdung −8,6 · Fitness −1,3 · Form +7,3 — grob geschätzt"
   );
 });
 
 test("formatCardImpact: Null-Delta zeigt ±0 statt −0", () => {
   const impact = { deltaFitness: 0, deltaFatigue: -0.04, deltaForm: 0.04 };
-  assert.match(formatCardImpact(impact, "tss"), /Fitness ±0/);
-  assert.match(formatCardImpact(impact, "tss"), /Ermüdung ±0/);
+  const scale = { source: "tss", sport: "ride" };
+  assert.match(formatCardImpact(impact, scale), /Fitness ±0/);
+  assert.match(formatCardImpact(impact, scale), /Ermüdung ±0/);
 });
 
 test("cardImpact: kombiniert dayImpact + estimateTss-scale zu einer fertigen Beschriftung", () => {
@@ -246,7 +250,7 @@ test("cardImpact: kombiniert dayImpact + estimateTss-scale zu einer fertigen Bes
   const card = { id: "a", date: "2026-07-24", typ: "Z2 Lang" }; // Typ-Default MIT echtem TSS-Beleg → scale "tss"
   const projection = projectLoad([card], actuals, { today: "2026-07-24" });
   const result = cardImpact(card, projection);
-  assert.equal(result.scale, "tss");
+  assert.deepEqual(result.scale, { source: "tss", sport: "ride" });
   assert.match(result.label, /modelliert$/);
   assert.equal(result.deltaFitness, dayImpact(projection, "2026-07-24").deltaFitness);
 });
@@ -256,7 +260,7 @@ test("cardImpact: Typ ohne echten TSS-Beleg → scale 'tss-approx', schwächere 
   const card = { id: "a", date: "2026-07-24", typ: "Etappe" }; // TYPE_DEFAULT_TSS_APPROX_TYPES
   const projection = projectLoad([card], actuals, { today: "2026-07-24" });
   const result = cardImpact(card, projection);
-  assert.equal(result.scale, "tss-approx");
+  assert.deepEqual(result.scale, { source: "tss-approx", sport: "ride" });
   assert.match(result.label, /grob geschätzt$/);
 });
 

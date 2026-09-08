@@ -29,6 +29,7 @@ import { OUT_FILE_2, OUT_FILE_3, OUT_FILE_4, loadAdjustments2 } from "./output.j
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { shiftPlannedSessions4 } from "./plan-athlete4.js";
 import { DEFAULT_FTP } from "./map-activity.js";
+import { RIDE_TYPES } from "./intervals.js";
 
 /**
  * @typedef {Object} SecondaryAthlete
@@ -54,6 +55,14 @@ import { DEFAULT_FTP } from "./map-activity.js";
  * @property {boolean} requireCreds   true → ohne intervals.icu-Key/-ID komplett
  *                                    übersprungen (keine Datei); false → Datei
  *                                    trotzdem schreiben (nur Plan, `source:"plan-only"`)
+ * @property {string[]} [activityTypes]  intervals.icu-`type`-Whitelist für den
+ *                                    Aktivitäten-Fetch (Fahrplan 10 E6). Fehlt
+ *                                    das Feld → nur `RIDE_TYPES` (1/2/4, exakt
+ *                                    wie vor E6). Nur Athlet 3 (Triathlet)
+ *                                    erweitert um Lauf-/Schwimm-Typen; der
+ *                                    Sport-Filter in app/src/api/pipeline.ts
+ *                                    hält Lauf/Schwimm bis E8 aus den
+ *                                    Auswertungen.
  */
 
 /** @type {SecondaryAthlete[]} */
@@ -104,6 +113,10 @@ export const SECONDARY_ATHLETES = [
     logFtp: true,
     publicFtpScalarFromEffective: false,
     requireCreds: false,
+    // Fahrplan 10 E6: Triathlet — Fetch zieht zusätzlich Lauf + Schwimm.
+    // normalizeSport() (map-activity.js) mappt die Typen auf sport:"run"/
+    // "swim"; week/phase bleiben null (kein Plan-Bezug für Nicht-Rad).
+    activityTypes: [...RIDE_TYPES, "Run", "TrailRun", "VirtualRun", "Swim", "OpenWaterSwim"],
   },
   {
     slug: "athlete4",

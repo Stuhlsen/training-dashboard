@@ -6,6 +6,7 @@
 
 import { effectiveSessions } from "./core/planning.js";
 import { classifySession } from "./core/session-classify.js";
+import { banisterTrimp, rpeTrimp } from "./core/trimp.js";
 import { ftpAt } from "./ftp-history.js";
 import { PLANNED_SESSIONS, getPlan2WeekPhase } from "./plan2.js";
 import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
@@ -340,7 +341,8 @@ export function mapActivity2(
   estimatedFtp,
   effectivePlan = PLANNED_SESSIONS_ATHLETE2,
   ftpHistory = [],
-  intervalBlockCache = {}
+  intervalBlockCache = {},
+  hrOpts = {}
 ) {
   const date = act.start_date_local.split("T")[0];
   const w = wellness[date] || {};
@@ -353,8 +355,9 @@ export function mapActivity2(
   const detection = detectSession(act, min, ftpWatt, longestBlock);
 
   const weather = getWeatherForRide(weatherMap, date, startHourOf(act), min);
+  const sport = cyclingSportOf(act.type);
 
-  return {
+  const ride = {
     name: planned.name || act.name || "Radfahren",
     week: null,
     phase: null,
@@ -369,12 +372,37 @@ export function mapActivity2(
     // Athlet 2 kommt vollständig aus intervals.icu (kein Notion-Anteil) —
     // dieselbe Datenherkunfts-Semantik wie Athlet 1s intervals.icu-Ära.
     dataSource: "intervals",
-    sport: cyclingSportOf(act.type),
+    sport,
     ...baseFields(act, weather),
     ...wellnessFields(w),
     feel: null,
     notizen: null,
   };
+
+  // Fahrplan 10 E6 (Vertrag V3): für Nicht-Rad-Aktivitäten (Athlet 3, Lauf/
+  // Schwimm) ist die Last ausschließlich unsere HF-basierte Banister-TRIMP —
+  // sie ersetzt den intervals-Wert aus baseFields() KOMPLETT (G3: intervals-
+  // Last-Felder werden nicht genutzt). Schwimmen ohne HF → RPE-Ersatz
+  // (Pflichtpfad, OF-3; RPE-Klasse aus Plankarte/Morgen-Gefühl ist Fahrplan 10
+  // Phase 2, in E6 gibt es weder Schwimmdaten noch Schwimm-Karten → immer
+  // "moderat"). Lässt sich kein eigener Wert bilden (fehlendes HRavg/hrMax/
+  // hrRest, unplausible HFr), wird ride.trimp bewusst `null` — NICHT der
+  // intervals-Wert: so bleibt der Coverage-Zähler in generate-data.js ehrlich
+  // (er meldet genau diese Ausfälle). Rad-Zeilen (1/2/4 und Athlet-3-Rad)
+  // behalten act.trimp unverändert.
+  if (sport !== "ride") {
+    ride.trimp =
+      sport === "swim" && !act.average_heartrate
+        ? rpeTrimp(min, "moderat")
+        : banisterTrimp({
+            durationMin: min,
+            hrAvg: act.average_heartrate,
+            hrRest: hrOpts.hrRest,
+            hrMax: hrOpts.hrMax,
+          });
+  }
+
+  return ride;
 }
 
 /**

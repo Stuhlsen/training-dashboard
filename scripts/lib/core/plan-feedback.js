@@ -101,12 +101,14 @@ export function formatSignedDelta(n) {
  *  optimieren (Konzept P2-Begründung). `scale` (aus estimateTss(), B0/
  *  Schritt 3) muss durchschlagen (W1.2): sitzt der Wert auf der TRIMP-
  *  Näherung statt echtem/berechnetem TSS, reicht der Zusatz "modelliert"
- *  allein nicht — braucht eine erkennbar schwächere Formulierung.
+ *  allein nicht — braucht eine erkennbar schwächere Formulierung. `scale` ist
+ *  seit Fahrplan 10 E6 ein Objekt `{ source, sport }` (Vertrag V3) — die
+ *  Formulierungsstufe hängt an `scale.source`.
  *  @param {{deltaFitness:number, deltaFatigue:number, deltaForm:number}} impact
- *  @param {"tss"|"tss-approx"} scale
+ *  @param {{source: "tss"|"tss-approx"|"trimp"|"rpe", sport: "ride"|"run"|"swim"}} scale
  *  @returns {string} */
 export function formatCardImpact(impact, scale) {
-  const qualifier = scale === "tss-approx" ? "grob geschätzt" : "modelliert";
+  const qualifier = scale?.source === "tss-approx" ? "grob geschätzt" : "modelliert";
   return `Ermüdung ${formatSignedDelta(impact.deltaFatigue)} · Fitness ${formatSignedDelta(impact.deltaFitness)} · Form ${formatSignedDelta(impact.deltaForm)} — ${qualifier}`;
 }
 
@@ -118,7 +120,7 @@ export function formatCardImpact(impact, scale) {
  *  @param {{date?:string, tssPlanned?:number|null, workout?:Object|null, workoutStructure?:Object|null, typ?:string|null}} card
  *  @param {ReturnType<typeof import("./projection.js").projectLoad>} projection
  *  @param {{ftp?:number}} [opts]
- *  @returns {{deltaFitness:number, deltaFatigue:number, deltaForm:number, uncertain:boolean, scale:"tss"|"tss-approx", label:string}|null} */
+ *  @returns {{deltaFitness:number, deltaFatigue:number, deltaForm:number, uncertain:boolean, scale:{source:"tss"|"tss-approx"|"trimp"|"rpe", sport:"ride"|"run"|"swim"}, label:string}|null} */
 export function cardImpact(card, projection, opts = {}) {
   if (!card?.date) return null;
   const impact = dayImpact(projection, card.date);

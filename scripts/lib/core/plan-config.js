@@ -298,6 +298,13 @@ export const LADDER_PROGRESSION = Object.freeze({
   rpeUpgradeBlockMin: COMPLIANCE.rpeYellowMin,
 });
 
+// Governor-multiSport-Zweig (Fahrplan 10 E6, OF-4): OWN_LOAD_MEDIAN_WEEKS /
+// WEEK_LOAD_CEILING_FACTOR + der Eigenlast-Wochendeckel leben BEWUSST nur
+// app-seitig (app/src/core/plan-config.js + core/loadguard.js). Der Sync ruft
+// buildLoadGuard/buildBriefing nicht auf — eine Spiegelung hier wäre toter,
+// ungetesteter Code. Diese Datei ist ohnehin eine bewusst divergente,
+// eingefrorene Kopie (s. Modulkopf), kein byte-identischer Spiegel.
+
 /**
  * Ride↔Format-Brücke (D4b Schritt 1, core/session-format-match.js).
  * vo2-short (30/15-Bauart) und vo2-long überlappen sich im Pct-FTP-Band

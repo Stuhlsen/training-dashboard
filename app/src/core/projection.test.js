@@ -21,12 +21,12 @@ test("estimateTss Stufe 0: workout_structure schlägt sogar einen expliziten tss
     steps: [{ kind: "steady", duration_s: 3600, target_pct_ftp: 100 }], // IF=1 → 3600×1/36 = 100
   };
   const r = estimateTss({ tssPlanned: 999, workoutStructure: structure, typ: "Schwelle" });
-  assert.deepEqual(r, { tss: 100, uncertain: false, source: "structure", scale: "tss" });
+  assert.deepEqual(r, { tss: 100, uncertain: false, source: "structure", scale: { source: "tss", sport: "ride" } });
 });
 
 test("estimateTss: workoutStructure vorhanden, aber ohne verwertbaren Inhalt → fällt auf die nächste Stufe zurück", () => {
   const r = estimateTss({ tssPlanned: 55, workoutStructure: { version: 1, steps: [] }, typ: "Schwelle" });
-  assert.deepEqual(r, { tss: 55, uncertain: false, source: "target", scale: "tss" });
+  assert.deepEqual(r, { tss: 55, uncertain: false, source: "target", scale: { source: "tss", sport: "ride" } });
 });
 
 test("estimateTss Regression: Karten OHNE workoutStructure verhalten sich exakt wie vor Schritt 3 (B2)", () => {
@@ -48,7 +48,7 @@ test("estimateTss Regression: Karten OHNE workoutStructure verhalten sich exakt 
 
 test("estimateTss Stufe 1: expliziter tssPlanned gewinnt, sicher", () => {
   const r = estimateTss({ tssPlanned: 120, typ: "Sweet Spot" });
-  assert.deepEqual(r, { tss: 120, uncertain: false, source: "target", scale: "tss" });
+  assert.deepEqual(r, { tss: 120, uncertain: false, source: "target", scale: { source: "tss", sport: "ride" } });
 });
 
 test("estimateTss respektiert einen expliziten tssPlanned von 0", () => {
@@ -56,7 +56,7 @@ test("estimateTss respektiert einen expliziten tssPlanned von 0", () => {
   assert.equal(r.tss, 0);
   assert.equal(r.source, "target");
   assert.equal(r.uncertain, false);
-  assert.equal(r.scale, "tss");
+  assert.deepEqual(r.scale, { source: "tss", sport: "ride" });
 });
 
 test("estimateTss Stufe 2: Schätzung aus workout-Blöcken, unsicher, Skala 'tss'", () => {
@@ -66,30 +66,53 @@ test("estimateTss Stufe 2: Schätzung aus workout-Blöcken, unsicher, Skala 'tss
   });
   assert.equal(r.source, "workout");
   assert.equal(r.uncertain, true);
-  assert.equal(r.scale, "tss");
+  assert.deepEqual(r.scale, { source: "tss", sport: "ride" });
   assert.ok(r.tss > 0, "geschätzter TSS > 0");
 });
 
 test("estimateTss Stufe 3: Typ-Default (K3-Median, echter TSS-Beleg), unsicher", () => {
   const r = estimateTss({ typ: "Z2 Lang" });
-  assert.deepEqual(r, { tss: 146, uncertain: true, source: "type", scale: "tss" });
+  assert.deepEqual(r, { tss: 146, uncertain: true, source: "type", scale: { source: "tss", sport: "ride" } });
 });
 
 test("estimateTss Stufe 3: Typ-Default ohne eigene TSS-Belege → scale 'tss-approx'", () => {
   const r = estimateTss({ typ: "Etappe" });
-  assert.deepEqual(r, { tss: 155, uncertain: true, source: "type", scale: "tss-approx" });
+  assert.deepEqual(r, { tss: 155, uncertain: true, source: "type", scale: { source: "tss-approx", sport: "ride" } });
 });
 
 test("estimateTss: unbekannter Typ → Fallback-TSS, Skala 'tss'", () => {
   const r = estimateTss({ typ: "Gibt-es-nicht" });
   assert.equal(r.tss, 70);
   assert.equal(r.source, "type");
-  assert.equal(r.scale, "tss");
+  assert.deepEqual(r.scale, { source: "tss", sport: "ride" });
 });
 
 test("estimateTss: leeres workout ohne Segmente fällt auf den Typ-Default zurück", () => {
   const r = estimateTss({ workout: {}, typ: "Schwelle" });
-  assert.deepEqual(r, { tss: 57, uncertain: true, source: "type", scale: "tss" });
+  assert.deepEqual(r, { tss: 57, uncertain: true, source: "type", scale: { source: "tss", sport: "ride" } });
+});
+
+test("estimateTss: scale ist seit Fahrplan 10 E6 immer ein Objekt, nie ein blanker String", () => {
+  const cards = [
+    { workoutStructure: { version: 1, steps: [{ kind: "steady", duration_s: 3600, target_pct_ftp: 100 }] } },
+    { tssPlanned: 80, typ: "Sweet Spot" },
+    { workout: { warmup: 10, intervals: 3, duration: 8, rest: 4, cooldown: 10, pct: [88, 94] }, typ: "Schwelle" },
+    { typ: "Z2 Lang" },
+    { typ: "Etappe" },
+    { typ: "Gibt-es-nicht" },
+  ];
+  for (const c of cards) {
+    const { scale } = estimateTss(c);
+    assert.equal(typeof scale, "object");
+    assert.ok(["tss", "tss-approx", "trimp", "rpe"].includes(scale.source));
+    assert.equal(scale.sport, "ride", "Default-Sportart");
+  }
+});
+
+test("estimateTss: opts.sport wird in scale.sport durchgereicht (Default 'ride')", () => {
+  assert.equal(estimateTss({ typ: "Z2 Lang" }).scale.sport, "ride");
+  assert.equal(estimateTss({ typ: "Z2 Lang" }, { sport: "run" }).scale.sport, "run");
+  assert.equal(estimateTss({ tssPlanned: 50 }, { sport: "swim" }).scale.sport, "swim");
 });
 
 /* ── projectLoad: bekannte PMC-Kurve ─────────────────────────── */

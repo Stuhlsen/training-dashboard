@@ -8,6 +8,12 @@
    Backtest (scripts/backtest-ladder.js) und von presetAction() (unten)
    aufgerufen, schreibt selbst nichts.
 
+   Fahrplan 10 (Multi-Sport): die Progressionsleiter bleibt Rad-only —
+   Formatfamilien, session_formats, athlete_formats, ladder_history sind
+   nicht sportartübergreifend geeicht. Eine bewusst verschiebbare Grenze
+   (Guardrail 3), nicht bröckelnd: Lauf/Schwimm bekommen in Phase 2 einen
+   über plan_cards editierbaren Plan, aber keine Leiter.
+
    presetAction() (D4b, Auftrag "Preset-Umstellung, scharf geschaltet nur
    für Athlet 1"): bildet C4 ("Bedeutung der Presets nach dem Umbau") auf
    evaluateLocks/nextStep ab. Bleibt wie die beiden anderen Funktionen eine

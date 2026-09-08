@@ -49,28 +49,40 @@ function round2(n) {
  * Ausgefallene Karten behandelt der Aufrufer (projectLoad überspringt sie) —
  * diese Funktion beschreibt nur, WAS die Karte an Last brächte.
  *
- * `scale` (docs/konzept-progressionssteuerung.md B0, Schritt 1): auf welcher
- * Skala der Wert beruht. "tss" für `structure`/`target`/`workout` (alle
- * genuin TSS-skaliert) sowie für Typ-Defaults mit echten TSS-Belegen;
- * "tss-approx" nur für die Typ-Defaults ohne eigene TSS-Belege (TRIMP-Median
- * × gepoolter Faktor, s. plan-config.js::TYPE_DEFAULT_TSS_APPROX_TYPES) —
- * damit ein späterer Leser der Projektion nicht erneut raten muss, welche
- * Werte eine echte Messgröße und welche eine Näherung sind.
+ * `scale` (docs/konzept-progressionssteuerung.md B0, Schritt 1; Fahrplan 10
+ * E6): ein Objekt `{ source, sport }`.
+ *   `source` — auf welcher Skala der Wert beruht: "tss" für
+ *   `structure`/`target`/`workout` (alle genuin TSS-skaliert) sowie für
+ *   Typ-Defaults mit echten TSS-Belegen; "tss-approx" nur für die
+ *   Typ-Defaults ohne eigene TSS-Belege (TRIMP-Median × gepoolter Faktor, s.
+ *   plan-config.js::TYPE_DEFAULT_TSS_APPROX_TYPES) — damit ein späterer Leser
+ *   nicht erneut raten muss, welche Werte eine Messgröße und welche eine
+ *   Näherung sind. "trimp"/"rpe" sind für Nicht-Rad-Karten reserviert
+ *   (Fahrplan 10 Phase 2) — estimateTss erzeugt sie noch nicht.
+ *   `sport` — Sportart-Herkunft (Vertrag V3), Default "ride". In Phase 1
+ *   trägt keine Plankarte eine andere Sportart; die sport-abhängige
+ *   defaultLoad je `SportProfile.sessionTypes`, die K-Regeln und ein
+ *   Dispatch auf running/swimming sind Fahrplan 10 Phase 2. Hier wird `sport`
+ *   nur durchgereicht — bewusst KEIN toter Nicht-Rad-Zweig.
+ * Die historische CTL/ATL/TSB-Reihe bleibt davon unberührt (pmc-series.js
+ * liest icu_ctl/icu_atl je Fahrt) — eine eigene historische TRIMP-PMC-
+ * Rechnung ist Fahrplan 10 Phase 3.
  *
  * @param {{tssPlanned?: number|null, workout?: Object|null, workoutStructure?: Object|null, typ?: string|null}} card
- * @param {{typeDefaults?: Record<string,number>, fallbackTss?: number, ftp?: number, approxTypes?: Set<string>}} [opts]
- * @returns {{tss: number, uncertain: boolean, source: "structure"|"target"|"workout"|"type", scale: "tss"|"tss-approx"}}
+ * @param {{typeDefaults?: Record<string,number>, fallbackTss?: number, ftp?: number, approxTypes?: Set<string>, sport?: "ride"|"run"|"swim"}} [opts]
+ * @returns {{tss: number, uncertain: boolean, source: "structure"|"target"|"workout"|"type", scale: {source: "tss"|"tss-approx"|"trimp"|"rpe", sport: "ride"|"run"|"swim"}}}
  */
 export function estimateTss(card, opts = {}) {
   const typeDefaults = opts.typeDefaults ?? TYPE_DEFAULT_TSS;
   const fallbackTss = opts.fallbackTss ?? FALLBACK_TSS;
   const approxTypes = opts.approxTypes ?? TYPE_DEFAULT_TSS_APPROX_TYPES;
+  const sport = opts.sport ?? "ride";
 
   // 1. berechneter Wert aus der Workout-Struktur (echter TSS, kein Freitext)
   if (card?.workoutStructure) {
     const { computedTss } = computeWorkoutSummary(card.workoutStructure, opts.ftp);
     if (computedTss > 0) {
-      return { tss: computedTss, uncertain: false, source: "structure", scale: "tss" };
+      return { tss: computedTss, uncertain: false, source: "structure", scale: { source: "tss", sport } };
     }
   }
 
@@ -78,19 +90,19 @@ export function estimateTss(card, opts = {}) {
   //    NaN würde sonst als "gesetzt" durchgehen und die gesamte Kurve mit
   //    NaN vergiften — 0 bleibt ein gültiger expliziter Wert)
   if (Number.isFinite(card?.tssPlanned)) {
-    return { tss: card.tssPlanned, uncertain: false, source: "target", scale: "tss" };
+    return { tss: card.tssPlanned, uncertain: false, source: "target", scale: { source: "tss", sport } };
   }
 
   // 3. Schätzung aus den Workout-Blöcken (nur wenn sie etwas ergibt)
   if (card?.workout) {
     const est = estimateSessionTSS(card.workout, opts.ftp);
-    if (est > 0) return { tss: est, uncertain: true, source: "workout", scale: "tss" };
+    if (est > 0) return { tss: est, uncertain: true, source: "workout", scale: { source: "tss", sport } };
   }
 
   // 4. Typ-Default (Median-TSS je Typ, wo belegt — sonst TRIMP-Näherung)
   const tss = typeDefaults[card?.typ] ?? fallbackTss;
-  const scale = approxTypes.has(card?.typ) ? "tss-approx" : "tss";
-  return { tss, uncertain: true, source: "type", scale };
+  const source = approxTypes.has(card?.typ) ? "tss-approx" : "tss";
+  return { tss, uncertain: true, source: "type", scale: { source, sport } };
 }
 
 /** Höchstes Datum in `dates`, das ≥ `floor` liegt; `floor`, wenn keins passt. */
