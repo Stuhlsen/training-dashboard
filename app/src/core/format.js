@@ -97,6 +97,17 @@ export const fmtDateFull = (iso) => {
   return `${parts[2]}.${parts[1]}.${parts[0]}`;
 };
 
+/** Sekunden pro Distanz-Einheit → "m:ss" (270 → "4:30"). Für Pace-
+ *  Anzeigen; die Einheit (min/km, min/100 m) hängt der Aufrufer an.
+ *  "–" bei null/NaN/≤ 0. Intern wird Pace immer in Sekunden gerechnet
+ *  (rechenbar), nur die Anzeige ist "m:ss" (Fahrplan 10 E7).
+ *  @param {number|null|undefined} totalSeconds @returns {string} */
+export const fmtPace = (totalSeconds) => {
+  if (totalSeconds == null || isNaN(totalSeconds) || totalSeconds <= 0) return "–";
+  const s = Math.round(totalSeconds);
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+};
+
 /** Minuten → "4:02h" Format
  *  @param {number|null|undefined} minutes @returns {string} */
 export const fmtDuration = (minutes) => {

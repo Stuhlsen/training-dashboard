@@ -41,7 +41,10 @@ export const runningMetrics: SportMetrics = {
   loadMetric: "TRIMP",
   intensityMetric: "IF",
   /** Steigungsangepasste Pace (Grade Adjusted Pace) — das Lauf-Pendant
-   *  zur geglätteten Leistungsgröße "NP" beim Rad. */
+   *  zur geglätteten Leistungsgröße "NP" beim Rad. In E7 noch nicht
+   *  berechnet: der Pace-Stack rechnet mit roher Pace. Echtes GAP
+   *  braucht Höhen-Streams (rides-N.json trägt nur Ganzfahrt-hoehe/
+   *  hmProKm) — folgt, sobald Streams vorliegen. */
   normalizedPowerMetric: "GAP",
   cadenceMetric: "Schrittfrequenz",
   cadenceUnit: "spm",

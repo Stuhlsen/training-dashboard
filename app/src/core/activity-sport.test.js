@@ -2,7 +2,12 @@
 
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { activitySport, isCyclingActivity, onlyCyclingRides } from "./activity-sport.js";
+import {
+  activitySport,
+  isCyclingActivity,
+  onlyCyclingRides,
+  ridesForSport,
+} from "./activity-sport.js";
 
 test("activitySport: explizite Werte werden durchgereicht", () => {
   assert.equal(activitySport({ sport: "ride" }), "ride");
@@ -43,4 +48,24 @@ test("onlyCyclingRides: hält Lauf/Schwimm draußen, Reihenfolge + Rad-Zeilen un
 test("onlyCyclingRides: leere/fehlende Liste → leeres Array", () => {
   assert.deepEqual(onlyCyclingRides([]), []);
   assert.deepEqual(onlyCyclingRides(undefined), []);
+});
+
+test("ridesForSport: Sport-Gate (E7) — filtert auf genau eine Sportart", () => {
+  const rides = [
+    { id: 1, sport: "run" },
+    { id: 2, sport: "ride" },
+    { id: 3 }, // kein sport → zählt als Rad
+    { id: 4, sport: "swim" },
+    { id: 5, sport: "run" },
+  ];
+  assert.deepEqual(
+    ridesForSport(rides, "run").map((r) => r.id),
+    [1, 5],
+  );
+  // "ride" schließt die feldlose Alt-Zeile ein — deckungsgleich mit onlyCyclingRides
+  assert.deepEqual(
+    ridesForSport(rides, "ride").map((r) => r.id),
+    onlyCyclingRides(rides).map((r) => r.id),
+  );
+  assert.deepEqual(ridesForSport(null, "run"), []);
 });

@@ -37,3 +37,17 @@ export function isCyclingActivity(activity) {
 export function onlyCyclingRides(rides) {
   return (rides || []).filter(isCyclingActivity);
 }
+
+/** Filtert eine Aktivitätsliste auf EINE Sportart — Verallgemeinerung
+ *  von `onlyCyclingRides()` mit derselben „fehlendes sport ⇒ ride"-Regel
+ *  (über `activitySport()`). Das Sport-Gate für die Zonen-/Pace-
+ *  Auswertungen (Fahrplan 10 E7, Guardrail 4): eine Zonen- oder
+ *  Pace-Bänderung bekommt so nie Aktivitäten einer fremden Sportart
+ *  (nie Rad-Zonen auf Laufdaten, nie Pace-Zonen auf Radfahrten).
+ *  `onlyCyclingRides()` bleibt als eigener Name bestehen —
+ *  `api/pipeline.ts` hängt daran.
+ *  @template {{sport?: string|null}} T
+ *  @param {T[]} rides @param {"ride"|"run"|"swim"|"other"} sport @returns {T[]} */
+export function ridesForSport(rides, sport) {
+  return (rides || []).filter((r) => activitySport(r) === sport);
+}
