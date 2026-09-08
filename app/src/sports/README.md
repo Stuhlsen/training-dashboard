@@ -1,30 +1,43 @@
 # sports/
 
-Multi-Sport-Grundstruktur (Etappe 3, Konzept G5). Hier liegen die Werte, die
-an einer **Sportart** hängen — Zonengrenzen, Metriknamen, Typvokabular,
-Einstufungsschwellen. Die Berechnung selbst bleibt in `core/`.
+Multi-Sport-Grundstruktur (Etappe 3, Konzept G5; ausgebaut Fahrplan 10 E5).
+Hier liegen die Werte, die an einer **Sportart** hängen — Zonengrenzen,
+Metriknamen, Typvokabular, Einstufungsschwellen. Die Berechnung selbst bleibt
+in `core/`.
 
 ```
 types.ts    → SportProfile: der Vertrag, den eine Sportart erfüllen muss
-index.ts    → Registry: SPORTS, getSport(id), defaultSport()
-cycling/    → die einzige Implementierung
+index.ts    → Registry: SPORTS, getSport(id), defaultSport(), sportProfileFor()
+cycling/    → Radsport (Etappe 3) — die einzige Sportart mit core-Konsumenten
+running/    → Laufen (Fahrplan 10 E5) — Werte nach Daniels/Friel
+swimming/   → Schwimmen (Fahrplan 10 E5) — UNKALIBRIERTES Wertegerüst (Swim-Smooth CSS)
 ```
 
-## Warum es die Registry gibt, obwohl es nur eine Sportart gibt
+## Von einer Sportart auf drei
 
-Das Konzept sagt für diese Etappe ausdrücklich: **kein zweites Sport-Modul
-bauen** — nur sicherstellen, dass eins prinzipiell danebenstehen könnte. Ein
-zweites, halbfertiges Profil auszuliefern wäre toter Code; die Behauptung
-ungeprüft zu lassen wäre wertlos. Deshalb steht das zweite Profil als
-**Test-Fixture** in `registry.test.ts`: ein minimales Laufsport-Profil, das
-den Vertrag vollständig erfüllt und mit dem Radsport-Profil auf Feldgleichheit
-geprüft wird. Es wird nicht ausgeliefert und ist über `getSport()` nicht
-erreichbar.
+Bis Fahrplan 10 E5 gab es genau eine Implementierung (`cycling/`). Der Vertrag
+`types.ts` existierte, damit ein zweites Profil prinzipiell danebenstehen
+**könnte** — bewiesen durch ein Lauf-**Fixture** in `registry.test.ts`, nicht
+durch ausgelieferten Code.
 
-Genau dieses Fixture hat beim Schreiben zwei Dinge gezeigt, die vorher nur
-Annahme waren: dass `overlayBandPct` (Sweet-Spot-Band) nullable sein muss, weil
-Laufen kein solches Band kennt, und dass `hrMax`/`scaleMax` gar nicht an der
-Sportart hängen.
+E5 macht aus dem Beweis Produkt: `running/` und `swimming/` sind echte Profile,
+über `getSport()` erreichbar und im Feldgleichheits-Test (jetzt über alle
+drei). Das Fixture ist weg. **Noch von niemandem konsumiert** — `core/` rechnet
+weiter mit `cycling/` (`DEFAULT_SPORT_ID`); E6 zieht die Default-Lasten,
+E7 die Pace-Zonen/Metriken.
+
+Das frühere Fixture hatte zwei Dinge gezeigt, die jetzt fest im Vertrag stehen:
+`overlayBandPct` (Sweet-Spot-Band) muss nullable sein, weil Lauf/Schwimm kein
+solches Band kennen, und `hrMax`/`scaleMax` hängen gar nicht an der Sportart.
+
+## Feldnamen bleiben radsport-geprägt (Fahrplan 10 Q1)
+
+`normalizedPowerMetric`, `ftpTestMaxMin`, `ifSweetSpotMax`, `longRideMin` … im
+Vertrag sind radsport-benannt. E5 hat sie **nicht** umbenannt — die Umdeutung
+für Lauf/Schwimm steht im Kommentar der jeweiligen Konstante (`running/`:
+`normalizedPowerMetric` → `"GAP"`; `swimming/`: → `"—"`; „ftpTest" = Schwellen-
+bzw. CSS-Test; `whatIfScaleHeadroom` = `0`). Hält den Feldgleichheits-Test und
+künftige `core/`-Konsumenten stabil. Ein echtes Rename wäre eine eigene Etappe.
 
 ## Was NICHT hierher gehört
 
