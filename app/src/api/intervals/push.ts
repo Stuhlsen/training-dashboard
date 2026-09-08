@@ -49,26 +49,28 @@ function isBlockWorkout(w: unknown): w is BlockWorkout {
 }
 
 function legacyDescription(w: LegacyWorkout, details: string | null | undefined, cadenceTarget: number): string {
-  // Warmup `T-5`, Intervalle `T`, Pausen + Cooldown `T-10` — derselbe
-  // Abstand wie die früher fest verdrahteten 85/90/80, jetzt aus dem
-  // Athleten-Kadenzziel (Fahrplan 11, useCadenceTarget).
-  const warmupRpm = cadenceTarget - 5;
-  const easyRpm = cadenceTarget - 10;
+  // Kadenz-rpm NUR bei echtem Intervallsatz (>1 Wiederholung). Warmup `T-5`,
+  // Intervalle `T`, Pausen + Cooldown `T-10` — Abstand aus dem Athleten-
+  // Kadenzziel (Fahrplan 11, useCadenceTarget). Eine freie Ein-Block-Fahrt
+  // (intervals === 1) oder ein Workout ganz ohne Satz bekommt keine
+  // rpm-Angabe — gleiche Trennung wie der .zwo-Export (core/zwo-export.js).
+  const isIntervalSet = (w.intervals ?? 0) > 1;
+  const rpm = (target: number) => (isIntervalSet ? ` ${target}rpm` : "");
 
   const lines: string[] = [];
   lines.push("Warmup");
-  lines.push(`- ${w.warmup}m 60% ${warmupRpm}rpm`);
+  lines.push(`- ${w.warmup}m 60%${rpm(cadenceTarget - 5)}`);
   lines.push("");
 
   if (w.intervals && w.duration) {
     lines.push(`Main Set ${w.intervals}x`);
-    lines.push(`- ${w.duration}m ${w.pct?.[0]}-${w.pct?.[1]}% ${cadenceTarget}rpm`);
-    if (w.rest) lines.push(`- ${w.rest}m 50% ${easyRpm}rpm`);
+    lines.push(`- ${w.duration}m ${w.pct?.[0]}-${w.pct?.[1]}%${rpm(cadenceTarget)}`);
+    if (w.rest) lines.push(`- ${w.rest}m 50%${rpm(cadenceTarget - 10)}`);
     lines.push("");
   }
 
   lines.push("Cooldown");
-  lines.push(`- ${w.cooldown}m 50%-40% ${easyRpm}rpm`);
+  lines.push(`- ${w.cooldown}m 50%-40%${rpm(cadenceTarget - 10)}`);
 
   const workoutText = lines.join("\n");
   const label = w.label + (details ? `\n${details}` : "");
@@ -137,7 +139,10 @@ export async function pushCardWorkout(
 
   const event = {
     category: "WORKOUT",
-    name: card.name,
+    // Datum vorne im Titel (ISO) — beim Zug in Zwift/Wahoo steht sonst nur der
+    // Name ohne Kalendertag. Gleicher Präfix wie der .zwo-Export
+    // (core/zwo-export.js).
+    name: `${card.date} · ${card.name || "Training"}`,
     description: built.description,
     type: "Ride",
     start_date_local: `${card.date}T07:00:00`,

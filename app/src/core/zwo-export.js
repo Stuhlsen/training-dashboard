@@ -28,6 +28,12 @@
    MyWhoosh lesen `Cadence`/`CadenceResting` als Zielvorgabe; ohne die
    Attribute schlägt Zwift eine eigene (früher: fest 90) vor.
 
+   Kadenzvorgaben NUR bei echtem Intervallsatz (`intervals > 1`). Eine freie
+   Ein-Block-Fahrt (`intervals === 1`: Z2/Dauer, auch der 20-Min-Test) bekommt
+   GAR KEIN `Cadence`-Attribut — die Trittfrequenz ist dort frei, nichts
+   vorzugeben ("im Zweifel nicht raten, auslassen"). Gleiche Trennung im
+   Push-Text (api/intervals/push.ts).
+
    isNumericWorkout() dupliziert bewusst die Formerkennung aus
    app/src/api/intervals/push.ts::isBlockWorkout() — core/ darf laut
    Schichtentabelle nichts aus api/ importieren, auch keine Hilfsfunktion.
@@ -51,6 +57,19 @@ function hasMainSet(w) {
 
 function xmlEscape(text) {
   return String(text ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" })[c]);
+}
+
+/** Kartenname → dateinamentauglicher Slug: klein, `×`/`₂` normalisiert, alles
+ *  andere Nicht-Alphanumerische zu `-` zusammengezogen. Leerer Rest ⇒ "workout"
+ *  (Fallback, damit nie `<datum>-.zwo` entsteht). */
+function filenameSlug(name) {
+  const s = String(name ?? "")
+    .toLowerCase()
+    .replace(/×/g, "x")
+    .replace(/₂/g, "2")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return s || "workout";
 }
 
 /** @param {[number, number]} pct @returns {number} Mittelwert, gerundet — dieselbe
@@ -83,32 +102,43 @@ export function buildZwoWorkout(card, cadenceTarget = 90) {
   const onPower = (midPct(w.pct) / 100).toFixed(2);
   const onDuration = Math.round(w.duration * 60);
 
-  // Warmup `T-5`, Intervalle `T`, Pausen/Cooldown `T-10` — derselbe Abstand
-  // wie legacyDescription() in api/intervals/push.ts.
+  // Kadenz nur bei echtem Intervallsatz (>1 Wiederholung). Warmup `T-5`,
+  // Intervalle `T`, Pausen/Cooldown `T-10` — derselbe Abstand wie
+  // legacyDescription() in api/intervals/push.ts. Bei einer freien
+  // Ein-Block-Fahrt (intervals === 1) bleibt jedes `Cadence`-Attribut weg.
+  const isIntervalSet = w.intervals > 1;
   const onCadence = Math.round(cadenceTarget);
-  const warmupCadence = onCadence - 5;
-  const easyCadence = onCadence - 10;
+  const cad = (rpm) => (isIntervalSet ? ` Cadence="${rpm}"` : "");
+  const warmupCad = cad(onCadence - 5);
+  const mainCad = cad(onCadence);
+  const easyCad = cad(onCadence - 10);
+  const intervalCad = isIntervalSet ? ` Cadence="${onCadence}" CadenceResting="${onCadence - 10}"` : "";
 
   // Pausen NUR zwischen den Wiederholungen, keine nach der letzten — dieselbe
   // Konvention wie workoutSegments() in core/ftp-progress.js (restMin =
   // (intervals-1)×rest), sonst weicht die exportierte Dauer von der Dauer/
   // TSS-Schätzung ab, die die App selbst für dieselbe Karte anzeigt.
   const mainSetSegments = [];
-  if (w.intervals > 1) {
+  if (isIntervalSet) {
     const offDuration = Math.round((w.rest || 0) * 60);
     mainSetSegments.push(
-      `<IntervalsT Repeat="${w.intervals - 1}" OnDuration="${onDuration}" OffDuration="${offDuration}" OnPower="${onPower}" OffPower="0.5" Cadence="${onCadence}" CadenceResting="${easyCadence}"/>`,
+      `<IntervalsT Repeat="${w.intervals - 1}" OnDuration="${onDuration}" OffDuration="${offDuration}" OnPower="${onPower}" OffPower="0.5"${intervalCad}/>`,
     );
   }
-  mainSetSegments.push(`<SteadyState Duration="${onDuration}" Power="${onPower}" Cadence="${onCadence}"/>`);
+  mainSetSegments.push(`<SteadyState Duration="${onDuration}" Power="${onPower}"${mainCad}/>`);
 
   const segments = [
-    `<SteadyState Duration="${Math.round(w.warmup * 60)}" Power="0.6" Cadence="${warmupCadence}"/>`,
+    `<SteadyState Duration="${Math.round(w.warmup * 60)}" Power="0.6"${warmupCad}/>`,
     ...mainSetSegments,
-    `<Cooldown Duration="${Math.round(w.cooldown * 60)}" PowerLow="0.5" PowerHigh="0.4" Cadence="${easyCadence}"/>`,
+    `<Cooldown Duration="${Math.round(w.cooldown * 60)}" PowerLow="0.5" PowerHigh="0.4"${easyCad}/>`,
   ];
 
-  const name = xmlEscape(card.name || "Training");
+  // Datum vorne im angezeigten Titel (ISO, sortiert sich in Zwifts Workout-
+  // Liste chronologisch) — beim Zug aus intervals.icu/Datei geht der
+  // Kalendertag sonst verloren. Gleicher Präfix wie der intervals.icu-Push
+  // (api/intervals/push.ts).
+  const title = `${card.date} · ${card.name || "Training"}`;
+  const name = xmlEscape(title);
   const description = xmlEscape(card.details || "");
 
   const xml =
@@ -121,5 +151,5 @@ export function buildZwoWorkout(card, cadenceTarget = 90) {
     `  <workout>\n    ${segments.join("\n    ")}\n  </workout>\n` +
     `</workout_file>\n`;
 
-  return { ok: true, xml, filename: `${card.date}-workout.zwo` };
+  return { ok: true, xml, filename: `${card.date}-${filenameSlug(card.name)}.zwo` };
 }

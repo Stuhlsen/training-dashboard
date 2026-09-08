@@ -34,7 +34,7 @@ const NUMERIC_CARD = {
 test("buildZwoWorkout: numerisches Workout -> gültige .zwo-XML mit korrekten Werten", () => {
   const result = buildZwoWorkout(NUMERIC_CARD);
   assert.equal(result.ok, true);
-  assert.equal(result.filename, "2026-07-02-workout.zwo");
+  assert.equal(result.filename, "2026-07-02-sweet-spot-3x10-min.zwo");
   // Ohne cadenceTarget-Argument: Default 90 -> Warmup 85, Intervall 90,
   // Pause/Cooldown 80 (Fahrplan 11, gleicher Abstand wie der Push-Text).
   assert.match(result.xml, /<SteadyState Duration="600" Power="0\.6" Cadence="85"\/>/);
@@ -47,7 +47,18 @@ test("buildZwoWorkout: numerisches Workout -> gültige .zwo-XML mit korrekten We
   );
   assert.match(result.xml, /<SteadyState Duration="600" Power="0\.91" Cadence="90"\/>/);
   assert.match(result.xml, /<Cooldown Duration="480" PowerLow="0\.5" PowerHigh="0\.4" Cadence="80"\/>/);
-  assert.match(result.xml, /<name>Sweet Spot 3×10 min<\/name>/);
+  // Datum vorne im angezeigten Titel (ISO) — gleicher Präfix wie der Push.
+  assert.match(result.xml, /<name>2026-07-02 · Sweet Spot 3×10 min<\/name>/);
+});
+
+test("buildZwoWorkout: Dateiname = Datum + Slug aus dem Kartennamen (klein, × → x, Sonderzeichen → -)", () => {
+  const mk = (name) => buildZwoWorkout({ ...NUMERIC_CARD, name }).filename;
+  assert.equal(mk("Tempo 3×8 Min"), "2026-07-02-tempo-3x8-min.zwo");
+  assert.equal(mk("Z2 50 Min (Erholungswoche)"), "2026-07-02-z2-50-min-erholungswoche.zwo");
+  assert.equal(mk("20-Min-FTP-Test"), "2026-07-02-20-min-ftp-test.zwo");
+  assert.equal(mk("VO₂max 5×3 min"), "2026-07-02-vo2max-5x3-min.zwo");
+  // Kein sinnvoller Rest -> Fallback "workout", nie "<datum>-.zwo".
+  assert.equal(mk("—"), "2026-07-02-workout.zwo");
 });
 
 test("buildZwoWorkout: cadenceTarget wird durchgereicht (Warmup T-5, Intervall T, Pause/Cooldown T-10)", () => {
@@ -59,7 +70,7 @@ test("buildZwoWorkout: cadenceTarget wird durchgereicht (Warmup T-5, Intervall T
   assert.match(result.xml, /<Cooldown [^>]*Cadence="68"\/>/);
 });
 
-test("buildZwoWorkout: bei genau einem Intervall (intervals: 1) kein IntervalsT-Pausenblock", () => {
+test("buildZwoWorkout: bei genau einem Intervall (intervals: 1) kein IntervalsT-Pausenblock UND keine Kadenzvorgabe (freie Fahrt)", () => {
   const result = buildZwoWorkout({
     date: "2026-07-02",
     name: "Threshold 1×20 min",
@@ -67,7 +78,12 @@ test("buildZwoWorkout: bei genau einem Intervall (intervals: 1) kein IntervalsT-
   });
   assert.equal(result.ok, true);
   assert.doesNotMatch(result.xml, /IntervalsT/);
-  assert.match(result.xml, /<SteadyState Duration="1200" Power="1\.00" Cadence="90"\/>/);
+  // Ein-Block-Fahrt: die Trittfrequenz ist frei -> KEIN Cadence-Attribut,
+  // auch nicht an Warmup/Cooldown.
+  assert.doesNotMatch(result.xml, /Cadence/);
+  assert.match(result.xml, /<SteadyState Duration="1200" Power="1\.00"\/>/);
+  assert.match(result.xml, /<SteadyState Duration="600" Power="0\.6"\/>/);
+  assert.match(result.xml, /<Cooldown Duration="480" PowerLow="0\.5" PowerHigh="0\.4"\/>/);
 });
 
 test("canExportZwo: numerisches Workout mit Hauptsatz -> true, Blockform/Ramp-Test -> false", () => {
@@ -120,6 +136,6 @@ test("buildZwoWorkout: Name/Details mit XML-Sonderzeichen werden escaped", () =>
     details: "A & B",
   });
   assert.equal(result.ok, true);
-  assert.match(result.xml, /<name>Test &amp; &lt;Intervalle&gt; &quot;hart&quot;<\/name>/);
+  assert.match(result.xml, /<name>2026-07-02 · Test &amp; &lt;Intervalle&gt; &quot;hart&quot;<\/name>/);
   assert.match(result.xml, /<description>A &amp; B<\/description>/);
 });

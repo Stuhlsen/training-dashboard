@@ -75,27 +75,27 @@ function weekPlan(i) {
 
   // Lockere Wochentagseinheit (Di/Do) — steady Z2.
   const easy = recovery
-    ? { name: "Lockere Einheit", typ: "Z2", workout: mkWorkout({ warmup: 5, intervals: 1, duration: 30, rest: 0, cooldown: 5, zone: "Z2", pct: [55, 65], label: "40 Min sehr locker @ 55–65% FTP" }) }
-    : { name: "Lockere Einheit", typ: "Z2", workout: mkWorkout({ warmup: 5, intervals: 1, duration: 40, rest: 0, cooldown: 5, zone: "Z2", pct: [60, 70], label: "50 Min locker @ 60–70% FTP" }) };
+    ? { name: "Z2 40 Min sehr locker", typ: "Z2", workout: mkWorkout({ warmup: 5, intervals: 1, duration: 30, rest: 0, cooldown: 5, zone: "Z2", pct: [55, 65], label: "40 Min sehr locker @ 55–65% FTP" }) }
+    : { name: "Z2 50 Min locker", typ: "Z2", workout: mkWorkout({ warmup: 5, intervals: 1, duration: 40, rest: 0, cooldown: 5, zone: "Z2", pct: [60, 70], label: "50 Min locker @ 60–70% FTP" }) };
 
   // Sonntag — längere ruhige Ausfahrt.
   const sunday = recovery
-    ? { name: "Längere lockere Ausfahrt", typ: "Z2 Dauer", workout: mkWorkout({ warmup: 10, intervals: 1, duration: 40, rest: 0, cooldown: 10, zone: "Z2", pct: [60, 70], label: "60 Min locker @ 60–70% FTP (reduziert)" }) }
-    : { name: "Längere lockere Ausfahrt", typ: "Z2 Dauer", workout: mkWorkout({ warmup: 10, intervals: 1, duration: 65, rest: 0, cooldown: 10, zone: "Z2", pct: [62, 72], label: "85 Min locker @ 62–72% FTP" }) };
+    ? { name: "Z2 Dauer 60 Min (reduziert)", typ: "Z2 Dauer", workout: mkWorkout({ warmup: 10, intervals: 1, duration: 40, rest: 0, cooldown: 10, zone: "Z2", pct: [60, 70], label: "60 Min locker @ 60–70% FTP (reduziert)" }) }
+    : { name: "Z2 Dauer 85 Min", typ: "Z2 Dauer", workout: mkWorkout({ warmup: 10, intervals: 1, duration: 65, rest: 0, cooldown: 10, zone: "Z2", pct: [62, 72], label: "85 Min locker @ 62–72% FTP" }) };
 
   // Samstag — Qualitätstag, phasenabhängig.
   let saturday;
   if (phase === "Einstieg") {
-    saturday = { name: "Lange ruhige Ausfahrt", typ: "Z2 Dauer", workout: mkWorkout({ warmup: 10, intervals: 1, duration: 70, rest: 0, cooldown: 10, zone: "Z2", pct: [63, 73], label: "90 Min gleichmäßig @ 63–73% FTP" }) };
+    saturday = { name: "Lange Z2 90 Min", typ: "Z2 Dauer", workout: mkWorkout({ warmup: 10, intervals: 1, duration: 70, rest: 0, cooldown: 10, zone: "Z2", pct: [63, 73], label: "90 Min gleichmäßig @ 63–73% FTP" }) };
   } else if (phase === "Erholung") {
-    saturday = { name: "Lockere Ausfahrt (Erholungswoche)", typ: "Z2", workout: mkWorkout({ warmup: 5, intervals: 1, duration: 40, rest: 0, cooldown: 5, zone: "Z2", pct: [58, 68], label: "50 Min sehr locker @ 58–68% FTP" }) };
+    saturday = { name: "Z2 50 Min (Erholungswoche)", typ: "Z2", workout: mkWorkout({ warmup: 5, intervals: 1, duration: 40, rest: 0, cooldown: 5, zone: "Z2", pct: [58, 68], label: "50 Min sehr locker @ 58–68% FTP" }) };
   } else if (phase === "Grundlagen") {
-    saturday = { name: "3×8 Min Tempo", typ: "Tempo", workout: mkWorkout({ warmup: 15, intervals: 3, duration: 8, rest: 3, cooldown: 10, zone: "Z3", pct: [83, 90], label: "3×8 Min @ 83–90% FTP · 3 Min locker dazwischen" }) };
+    saturday = { name: "Tempo 3×8 Min", typ: "Tempo", workout: mkWorkout({ warmup: 15, intervals: 3, duration: 8, rest: 3, cooldown: 10, zone: "Z3", pct: [83, 90], label: "3×8 Min @ 83–90% FTP · 3 Min locker dazwischen" }) };
   } else if (phase === "Steigerung") {
-    saturday = { name: "2×15 Min Sweet Spot", typ: "Sweet Spot", workout: mkWorkout({ warmup: 15, intervals: 2, duration: 15, rest: 5, cooldown: 10, zone: "SS", pct: [88, 94], label: "2×15 Min @ 88–94% FTP · 5 Min locker dazwischen" }) };
+    saturday = { name: "Sweet Spot 2×15 Min", typ: "Sweet Spot", workout: mkWorkout({ warmup: 15, intervals: 2, duration: 15, rest: 5, cooldown: 10, zone: "SS", pct: [88, 94], label: "2×15 Min @ 88–94% FTP · 5 Min locker dazwischen" }) };
   } else {
     // Test-Woche: 1×20 Min so hart wie 20 Min gleichmäßig haltbar.
-    saturday = { name: "20-Min-Test", typ: "FTP-Test", workout: mkWorkout({ warmup: 20, intervals: 1, duration: 20, rest: 0, cooldown: 10, zone: "THR", pct: [100, 106], label: "20 Min All-out gleichmäßig — Ø-Leistung × 0,95 = erste FTP" }) };
+    saturday = { name: "20-Min-FTP-Test", typ: "FTP-Test", workout: mkWorkout({ warmup: 20, intervals: 1, duration: 20, rest: 0, cooldown: 10, zone: "THR", pct: [100, 106], label: "20 Min All-out gleichmäßig — Ø-Leistung × 0,95 = erste FTP" }) };
   }
 
   return { kw, phase, recovery, easy, sunday, saturday };

@@ -20,10 +20,13 @@ function stubFetchOk() {
   return spy;
 }
 
-function sentDescription(spy: ReturnType<typeof stubFetchOk>): string {
+function sentEvent(spy: ReturnType<typeof stubFetchOk>): Record<string, unknown> {
   const init = spy.mock.calls[0][1];
-  const body = JSON.parse(init.body as string);
-  return body[0].description as string;
+  return JSON.parse(init.body as string)[0];
+}
+
+function sentDescription(spy: ReturnType<typeof stubFetchOk>): string {
+  return sentEvent(spy).description as string;
 }
 
 afterEach(() => {
@@ -51,4 +54,25 @@ describe("pushCardWorkout — Kadenz im Workout-Text (Fahrplan 11)", () => {
     expect(d).toContain("50% 68rpm");
     expect(d).toContain("50%-40% 68rpm");
   });
+
+  test("freie Ein-Block-Fahrt (intervals: 1) -> gar keine rpm-Angabe", async () => {
+    const spy = stubFetchOk();
+    const card = {
+      id: "card-2",
+      date: "2026-09-12",
+      name: "Z2 50 Min locker",
+      details: null,
+      workout: { warmup: 5, intervals: 1, duration: 40, rest: 0, cooldown: 5, pct: [60, 70], label: "50 Min locker @ 60–70% FTP" },
+    } as unknown as PlanCard;
+    await pushCardWorkout(card, "tok", "i123");
+    const d = sentDescription(spy);
+    expect(d).not.toContain("rpm");
+    expect(d).toContain("- 40m 60-70%"); // Power-Ziel bleibt, nur die Kadenz fehlt
+  });
+});
+
+test("pushCardWorkout: Datum vorne im Eintrags-Titel (ISO, gleicher Präfix wie der .zwo-Export)", async () => {
+  const spy = stubFetchOk();
+  await pushCardWorkout(LEGACY_CARD, "tok", "i123");
+  expect(sentEvent(spy).name).toBe("2026-09-10 · 3×8 Min Tempo");
 });
