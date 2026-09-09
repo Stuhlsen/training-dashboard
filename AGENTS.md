@@ -403,10 +403,14 @@ scripts/
   generate-data.js         → Dünner Orchestrator (läuft im apps01-Sync-Container + `npm run sync`)
   delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
   preset-suggestion-check.js, report-derived-workout-structure.js,
-  generate-jwt-keys.js    → einzelne Betriebs-/Migrations-/Analyse-Skripte
+  generate-jwt-keys.js, rename-athlete4-cards.js → einzelne Betriebs-/
+                             Migrations-/Analyse-Skripte
                              (delete-rest-day-cards.js: Einmal-Aufräumskript
                              Fahrplan 6 RUH6 — entfernt migrierte
-                             `workout_type="Ruhetag"`-Zeilen aus plan_cards)
+                             `workout_type="Ruhetag"`-Zeilen aus plan_cards;
+                             rename-athlete4-cards.js: Einmal-Umbenennung der
+                             Athlet-4-`plan_cards`-Titel auf die v1.23.0-Namen,
+                             Match über Titel + `week`, Dry-Run ohne `--apply`)
   Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
