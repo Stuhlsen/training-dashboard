@@ -27,6 +27,7 @@ import { buildLoadGuard } from "../../core/loadguard.js";
 import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories, forecastFtp } from "../../core/ftp-forecast.js";
 import { efficiencyTrend, decouplingTrend } from "../../core/efficiency.js";
 import { normalizeZoneTimes, bandZoneTimes, LOW_INTENSITY_TARGET } from "../../core/zones.js";
+import { ridesForSport } from "../../core/activity-sport.js";
 import { energyView, hydrationSeries, estimateBMR, wattsPerKg } from "../../core/body.js";
 import { isoWeekKey } from "../../core/aggregate.js";
 import { fmt, fmtInt, fmtSigned, fmtDate, localISODate } from "../../core/format.js";
@@ -86,7 +87,10 @@ function lastKnown(vals: Array<number | null>, uptoIdx: number): number | null {
 /** Wochenweise Intensitätsverteilung MIT Tagesindex-Grenzen (für die
  *  zoneStack-Spur) — core/zones.js::weeklyZoneShares liefert nur ISO-Wochen-
  *  Schlüssel, keine Tagesindizes; hier direkt gegen das Skelett gebaut. */
-function buildZoneWeeks(skeleton: Array<{ dateISO: string }>, rides: Ride[]) {
+function buildZoneWeeks(skeleton: Array<{ dateISO: string }>, allRides: Ride[]) {
+  // Sport-Gate (Fahrplan 10 Guardrail 4): Zeit-in-Zone-Bänderung ist rad-
+  // spezifisch. No-op für Athlet 1/2/4.
+  const rides = ridesForSport(allRides, "ride");
   const weeks: Array<{ startIdx: number; endIdx: number; low: number; mid: number; high: number }> = [];
   const byDate = new Map<string, Ride[]>();
   for (const r of rides) {
@@ -299,7 +303,11 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const gaShareDeltaPct = gaShareRecentAvg != null && gaSharePriorAvg != null ? (gaShareRecentAvg - gaSharePriorAvg) * 100 : null;
 
   // ── Belastungswächter (Ramp-Zielband) ──────────────────────────────
-  const loadWeeks = buildLoadGuard(rides, (r) => isoWeekKey(r.dateISO), (a, b) => a.localeCompare(b));
+  // multiSport (Fahrplan 10 E8a): Eigenlast-Wochendeckel nur für Athleten mit
+  // > 1 Sportart (Athlet 3). Für 1/2/4 exakt das Verhalten vor E6.
+  const loadWeeks = buildLoadGuard(rides, (r) => isoWeekKey(r.dateISO), (a, b) => a.localeCompare(b), {
+    multiSport: (athleteCfg?.sports?.length ?? 1) > 1,
+  });
   const rampWeeksOverBand = loadWeeks.slice(-4).filter((w) => w.ramp != null && w.ramp > 6).length;
 
   // ── CTL-Trend (4 Wochen) ───────────────────────────────────────────

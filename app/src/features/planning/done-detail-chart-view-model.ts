@@ -20,6 +20,7 @@
      Auflösung, näher am Mockup). ============================== */
 
 import { accumulateZoneBuckets, normalizeZoneTimes } from "../../core/zones.js";
+import { activitySport } from "../../core/activity-sport.js";
 import { expandWorkoutPhases } from "../../core/workout-math.js";
 import { COGGAN_ZONE_META } from "../../sports/cycling/zones.js";
 
@@ -129,6 +130,10 @@ export interface ZoneMixSegment {
  *  ODER wenn die Summe 0 ist (keine sinnvollen Anteile berechenbar) —
  *  Komponente rendert dann keinen Zonen-Mix statt einer leeren Leiste. */
 export function zoneMixFromRide(ride: Ride): ZoneMixSegment[] | null {
+  // Sport-Gate (Fahrplan 10 Guardrail 4): die COGGAN_ZONE_META-Bänder sind
+  // rad-spezifisch — nie auf eine Lauf-/Schwimm-Einheit anwenden. Athlet 3 hat
+  // in Phase 1 keine Nicht-Rad-Plankarten, der Guard ist Vorsorge.
+  if (activitySport(ride) !== "ride") return null;
   const secs = normalizeZoneTimes(ride.zoneTimes);
   if (!secs) return null;
 

@@ -134,6 +134,16 @@ describe("buildIntensityDistribution", () => {
     expect(dist?.shapeLabel).toBeNull();
     expect(dist?.note).toMatch(/fehlen noch Zeit-in-Zone-Daten/);
   });
+
+  it("Sport-Gate (Fahrplan 10 Guardrail 4): Lauf/Schwimm-Zeilen zählen nicht mit", () => {
+    const cyc = ride({ zoneTimes: [1000, 2000, 500, 300, 100], sport: "ride" });
+    const run = ride({ zoneTimes: [9999, 0, 0, 0, 0], sport: "run" });
+    const swim = ride({ zoneTimes: [9999, 0, 0, 0, 0], sport: "swim" });
+    const withGate = buildIntensityDistribution([cyc, run, swim]);
+    const rideOnly = buildIntensityDistribution([cyc]);
+    expect(withGate).toEqual(rideOnly);
+    expect(withGate?.nRides).toBe(1);
+  });
 });
 
 describe("buildTypDistribution", () => {

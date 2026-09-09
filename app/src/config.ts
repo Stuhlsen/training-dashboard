@@ -110,15 +110,36 @@ export const ATHLETES: readonly AthleteConfig[] = [
     bmr: { heightCm: 185, age: 40, sex: "m", weightKg: 92.5 },
   },
   {
+    // Athlet 3 ("Hendrik") — Triathlet, erster echter Multi-Sport-Nutzer
+    // (Fahrplan 10). `sports` mit Rad/Lauf/Schwimm schaltet den Sport-
+    // Umschalter frei (SportToggle, nur sichtbar bei > 1 Sportart) und den
+    // `multiSport`-Governor-Zweig (E6). Lesedaten wie Athlet 4 (intervals.icu
+    // + Supabase, kein Notion, Key/Standort self-service in Settings).
+    // WATTLOS: kein Ramp-Test → alle FTP-Felder `null`, Hero-FTP-Widgets
+    // blenden sich aus. `hrMax`/`hrRest` bewusst `null` — der Sync schätzt
+    // sich seine Werte selbst (E6), ein Frontend-Konsument (HF-bpm-Zonen)
+    // kommt erst mit E8b. Datenschutz: "Hendrik" ist das selbstgewählte
+    // Pseudonym, die einzige Quelle des Anzeigenamens.
+    id: "athlete3",
+    name: "Hendrik",
+    endpoint: "data/rides-3.json",
+    ftpMeasured: null,
+    ftpMeasuredDate: null,
+    eFTP: null,
+    ftpGoal: null,
+    seasonStartFtp: null,
+    hrMax: null,
+    hrRest: null,
+    sports: ["ride", "run", "swim"],
+    dataSources: ["intervals.icu"],
+  },
+  {
     // Athlet 4 ("Bentastiic") — Renn-/Trainings-Einsteiger. Volles Modell
     // (eigener Login, Befinden, editierbare plan_cards), aber Lesedaten wie
     // Athlet 2 (intervals.icu + Supabase, kein Notion). Der intervals.icu-
     // Key kommt aus Settings (Tabelle athlete_sync_config), nicht aus einem
     // Sync-Secret. WATTLOS bis zum ersten Test (scripts/lib/plan-athlete4.js,
     // KW47) — FTP-Felder `null`, die Hero-FTP-Widgets blenden sich dann aus.
-    // Die interne ID "athlete3" (Triathlet) ist seit Fahrplan 10 E4 nur
-    // sync-seitig verdrahtet (scripts/lib/athletes.js) — der ATHLETES-Eintrag
-    // hier + die Umschalter-Pille folgen in E8. Daher die Nummern-Lücke.
     id: "athlete4",
     name: "bentastiic",
     endpoint: "data/rides-4.json",

@@ -3,6 +3,7 @@ import { isoWeekKey } from "../core/aggregate.js";
 import { weekDisplayLabels } from "../core/week-labels.js";
 import { pickLabelIndices } from "../core/chart-scale.js";
 import { LOW_INTENSITY_TARGET, weeklyZoneShares } from "../core/zones.js";
+import { ridesForSport } from "../core/activity-sport.js";
 import { ChartTooltip } from "./ChartTooltip";
 
 type Ride = import("../types.js").Ride;
@@ -57,7 +58,13 @@ export function ZoneWeeklyChart({ rides }: ZoneWeeklyChartProps) {
     return () => ro.disconnect();
   }, []);
 
-  const weeks = useMemo(() => weeklyZoneShares(rides ?? [], weekKeyFn, weekSortFn), [rides]);
+  // Sport-Gate (Fahrplan 10 Guardrail 4): Zeit-in-Zonen ist rad-spezifisch —
+  // nie Rad-Zonen auf Laufdaten. Für Athlet 1/2/4 (alle Zeilen "ride") ein
+  // No-op.
+  const weeks = useMemo(
+    () => weeklyZoneShares(ridesForSport(rides ?? [], "ride"), weekKeyFn, weekSortFn),
+    [rides],
+  );
 
   if (!weeks.length) {
     return (

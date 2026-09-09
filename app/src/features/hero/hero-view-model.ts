@@ -371,6 +371,7 @@ export function buildBriefingInfo(
   doneDates: Set<string>,
   subjective: Subjective | null,
   todayISO: string,
+  opts: { multiSport?: boolean } = {},
 ): HeroBriefing {
   const pmc = currentPmc(rides, todayISO);
   const readiness = assessReadiness(wellness, todayISO);
@@ -387,6 +388,9 @@ export function buildBriefingInfo(
     // wie im Vanilla-Vorbild (assets/js/app.js:384).
     (r) => (r.dateISO ? isoWeekKey(r.dateISO) : ""),
     (a, b) => a.localeCompare(b),
+    // multiSport (Fahrplan 10 E8a): Eigenlast-Wochendeckel nur bei Athleten mit
+    // > 1 Sportart (Athlet 3). Für 1/2/4 exakt das Verhalten vor E6.
+    { multiSport: opts.multiSport },
   );
   const loadRisk = loadRows.length ? loadRows[loadRows.length - 1].risk : null;
 
@@ -472,7 +476,9 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const doneDates = doneDatesOf(rides);
   const session = buildSession(planCards, doneDates, ftpVal, todayISO);
   const weatherToday = buildWeatherToday(forecast, todayISO);
-  const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO);
+  const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO, {
+    multiSport: (athleteCfg?.sports?.length ?? 1) > 1,
+  });
   const readiness = assessReadiness(wellness, todayISO);
   const milestonesBase = athleteCfg
     ? buildMilestones(

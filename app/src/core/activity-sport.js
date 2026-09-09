@@ -9,10 +9,12 @@
    Non-breaking: ein fehlendes `sport` zählt als "ride". Damit ändert sich
    für die Bestandsathleten 1/2/4 (deren Zeilen alle "ride" tragen) nichts.
 
-   `onlyCyclingRides()` sitzt heute an genau einem Eingang (api/pipeline.ts).
-   Fahrplan 10 E8 öffnet diesen Helfer gezielt: dann bestimmt die im
-   Frontend aktive Sportart, welche Aktivitäten in Aggregation / PMC /
-   Charts / Fahrtenbuch eintreten — bis dahin ist es fest "ride".
+   Seit Fahrplan 10 E8a bestimmt der Sport-Umschalter im Frontend
+   (`useEffectiveSport` → `useRides`) über `ridesForSport()`, welche
+   Aktivitäten in Aggregation / PMC / Charts / Fahrtenbuch eintreten.
+   `onlyCyclingRides()` selbst bleibt bestehen — es ist der feste "nur Rad"-
+   Filter, den die Golden-Master-Rechenkette (`__fixtures__/golden-master/
+   compute-series.js`) und die Rad-Zonen-Gates (Guardrail 4) nutzen.
    ============================================================ */
 
 /** @typedef {import("../types.js").Ride} Ride */
@@ -29,6 +31,15 @@ export function activitySport(activity) {
  *  @param {{sport?: string|null}} activity @returns {boolean} */
 export function isCyclingActivity(activity) {
   return activitySport(activity) === "ride";
+}
+
+/** Kleines Sportart-Symbol für Fahrtenbuch-/Kartenzeilen (Fahrplan 10 E8a) —
+ *  bewusst nur ein Emoji, keine eigene Zeile. Rad bekommt keins: es ist der
+ *  Default, und für die Bestandsathleten (nur `"ride"`) soll die Ansicht
+ *  unverändert bleiben.
+ *  @param {"ride"|"run"|"swim"|"other"} sport @returns {string} */
+export function sportEmoji(sport) {
+  return sport === "run" ? "🏃" : sport === "swim" ? "🏊" : sport === "other" ? "•" : "";
 }
 
 /** Filtert eine Aktivitätsliste auf Radfahrten.

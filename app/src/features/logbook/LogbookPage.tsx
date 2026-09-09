@@ -28,6 +28,7 @@ import { ChartTooltip } from "../../charts/ChartTooltip";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useRides } from "../../api/hooks/useRides";
 import { fmt, fmtInt, weatherIcon, windDir } from "../../core/format.js";
+import { activitySport, sportEmoji } from "../../core/activity-sport.js";
 import { sum } from "../../core/stats.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
 import { phaseColor } from "../../config";
@@ -161,6 +162,12 @@ export function LogbookPage() {
                 {filtered.length} Fahrten · {totalKm.toLocaleString("de")} km
               </div>
 
+              {sorted.length === 0 && (
+                <p style={{ color: "var(--ink-3)", margin: "8px 0" }}>
+                  Keine Aktivitäten für diese Auswahl.
+                </p>
+              )}
+
               <div style={{ overflowX: "auto", border: "1px solid var(--hair)", borderRadius: "var(--radius)" }}>
                 <table style={{ width: "max-content", minWidth: "100%", borderCollapse: "collapse", fontSize: ".78rem" }}>
                   <thead>
@@ -245,7 +252,13 @@ export function LogbookPage() {
                               </span>
                             )}
                           </td>
-                          <td style={{ ...TD_STYLE, fontSize: ".72rem", color: "var(--ink-3)" }}>{r.typ || "–"}</td>
+                          <td style={{ ...TD_STYLE, fontSize: ".72rem", color: "var(--ink-3)" }}>
+                            {/* Sportart-Marker (Fahrplan 10 E8a): nur für
+                                Nicht-Rad — Athlet 1/2/4 tragen nur "ride" und
+                                sehen ihn nie. */}
+                            {activitySport(r) !== "ride" ? `${sportEmoji(activitySport(r))} ` : ""}
+                            {r.typ || "–"}
+                          </td>
                           <td style={{ ...TD_STYLE, fontWeight: 600 }}>{fmt(r.km)}</td>
                           <td style={TD_STYLE}>{fmtInt(r.min)}</td>
                           <td style={TD_STYLE}>{r.kmh ? fmt(r.kmh) : "–"}</td>

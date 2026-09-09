@@ -44,6 +44,7 @@ import { currentPmc } from "../../core/pmc.js";
 import { recordProgression } from "../../core/records.js";
 import { avg, maxVal, sum } from "../../core/stats.js";
 import { distributionShape, overallBandsFromIF, overallZoneShares } from "../../core/zones.js";
+import { ridesForSport } from "../../core/activity-sport.js";
 import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics.js";
 import type { PlanCard } from "../../api/types";
 
@@ -115,10 +116,14 @@ export interface LoadRow {
  *  ISO-Kalenderwoche (wie _weekFns() im Original — der dortige ownPlan-
  *  Parameter blieb dort bereits ungenutzt, keine Regression hier). Zeigt
  *  die letzten 8 Wochen mit Daten. */
-export function buildLoadRows(rides: Ride[]): LoadRow[] {
+export function buildLoadRows(rides: Ride[], opts: { multiSport?: boolean } = {}): LoadRow[] {
   const weekKeyFn = (r: Ride) => isoWeekKey(r.dateISO);
   const weekSortFn = (a: string, b: string) => a.localeCompare(b);
-  const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn);
+  // multiSport (Fahrplan 10 E8a): schaltet den Eigenlast-Wochendeckel des
+  // Governors frei — nur für Athleten mit > 1 Sportart. Die Wochen-`total`s
+  // sind hier die der aktiv gewählten Sportart (der Umschalter filtert `rides`
+  // vorab); die sportartübergreifende Last-Summierung ist Phase 3.
+  const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn, { multiSport: opts.multiSport });
   return guard.slice(-8).map((r) => {
     const d = describeWeek(r);
     return { ...r, label: d.label, detail: d.detail };
@@ -142,7 +147,11 @@ export interface IntensityDistribution {
  *  (Zeit-in-Zone ODER ≥60% der Fahrten mit IF-Näherung) ein Formurteil
  *  ("polarisiert"/…) — sonst ehrlich als Vorschau labeln, s. Kommentar im
  *  Original. */
-export function buildIntensityDistribution(rides: Ride[]): IntensityDistribution | null {
+export function buildIntensityDistribution(allRides: Ride[]): IntensityDistribution | null {
+  // Sport-Gate (Fahrplan 10 Guardrail 4): Coggan-Zonen / IF-Näherung gelten
+  // nur fürs Rad — nie Rad-Zonen auf Laufdaten. Für Athlet 1/2/4 (alle Zeilen
+  // "ride") ist das ein No-op, Golden-Master + Zonen-Tests unberührt.
+  const rides = ridesForSport(allRides, "ride");
   const zoneBased = overallZoneShares(rides);
   const dist = zoneBased || overallBandsFromIF(rides);
   if (!dist) return null;

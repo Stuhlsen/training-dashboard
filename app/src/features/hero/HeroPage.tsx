@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useAuth } from "../../api/auth/useAuth";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
+import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { useRides } from "../../api/hooks/useRides";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useTodayCheckin } from "../../api/hooks/useWellbeing";
@@ -45,6 +46,7 @@ const BASE_ROTATE_X = 1.6;
 export function HeroPage() {
   const { activeAthleteId } = useActiveAthlete();
   const athleteCfg = athleteConfig(activeAthleteId);
+  const { effectiveSport } = useEffectiveSport(activeAthleteId);
   const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
   const { data: checkin } = useTodayCheckin();
@@ -148,8 +150,11 @@ export function HeroPage() {
   // sondern bekommt ihre eigene, billigere.
   const metrics = useMemo(() => {
     const rides = (athleteData?.rides as Ride[] | undefined) ?? [];
-    return buildHeroMetrics(rides, core.ramp, core.eftp, ftpGateOpen);
-  }, [athleteData, core.ramp, core.eftp, ftpGateOpen]);
+    // FTP-/eFTP-Kacheln nur auf dem Rad-Tab (Fahrplan 10 E8a) — konsistent mit
+    // den ausgeblendeten Ringen/der Leistungsskala. `effectiveSport` ist für
+    // Athlet 1/2/4 immer "ride".
+    return buildHeroMetrics(rides, core.ramp, core.eftp, ftpGateOpen && effectiveSport === "ride");
+  }, [athleteData, core.ramp, core.eftp, ftpGateOpen, effectiveSport]);
 
   // Bestleistungen + Trainingskonsistenz (Etappe 12a) — vanilla zeigt beides
   // auf tab-overview (= Hero-Tab hier); Records zusätzlich auch im
@@ -195,7 +200,10 @@ export function HeroPage() {
   if (vm.session) tiles.push({ id: "session", node: <SessionCard session={vm.session} statusColor={LEVEL_COLOR[vm.briefing.level]} /> });
   if (vm.weatherToday) tiles.push({ id: "weather", node: <WeatherCard weather={vm.weatherToday} /> });
   if (session) tiles.push({ id: "briefing", node: <BriefingCard briefing={vm.briefing} /> });
-  if (hasFtpData) {
+  // Leistungsskala/FTP-Ringe sind rad-spezifisch (Coggan-Zonen aus der FTP).
+  // Auf einem Lauf-/Schwimm-Tab (Fahrplan 10 E8a) ausblenden — nie Rad-Zonen
+  // auf Nicht-Rad. Für Athlet 1/2/4 ist `effectiveSport` immer "ride".
+  if (hasFtpData && effectiveSport === "ride") {
     tiles.push({
       id: "ftpRings",
       node: <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />,
@@ -231,17 +239,39 @@ export function HeroPage() {
       </GlassCard>
     ),
   });
-  tiles.push({
-    id: "records",
-    node: (
-      <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
-        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
-          Bestleistungen
-        </span>
-        <RecordChips records={records} />
-      </GlassCard>
-    ),
-  });
+  // Bestleistungen sind rad-geprägt (Watt-/Kletter-/Distanzrekorde). Auf einem
+  // Lauf-/Schwimm-Tab (Fahrplan 10 E8a) ausblenden; stattdessen ein kurzer
+  // Hinweis auf die noch fehlende Pace-Auswertung (kommt in E8b).
+  if (effectiveSport === "ride") {
+    tiles.push({
+      id: "records",
+      node: (
+        <GlassCard variant="soft" style={{ padding: "20px 22px" }}>
+          <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
+            Bestleistungen
+          </span>
+          <RecordChips records={records} />
+        </GlassCard>
+      ),
+    });
+  } else {
+    tiles.push({
+      id: "paceSoon",
+      node: (
+        <GlassCard variant="soft" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 8 }}>
+          <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
+            {effectiveSport === "run" ? "Laufen" : "Schwimmen"}
+          </span>
+          <p style={{ margin: 0, fontSize: ".86rem", color: "var(--ink-3)", lineHeight: 1.6 }}>
+            Pace-Zonen, Pace-Kurve und Pace:HF-Drift folgen in Kürze. Fitness,
+            Ermüdung und Form oben sind derzeit auf {effectiveSport === "run" ? "Laufen" : "Schwimmen"}{" "}
+            eingegrenzt — die sportartübergreifende Gesamtansicht kommt mit dem
+            nächsten Schritt.
+          </p>
+        </GlassCard>
+      ),
+    });
+  }
   if (raceResults.length > 0) tiles.push({ id: "raceResults", node: <RaceResultsCard rows={raceResults} /> });
   tiles.push({ id: "weekReview", node: <WeekReviewCard review={weekReview} /> });
   tiles.push({ id: "wellbeing", node: <WellbeingCard activeAthleteId={activeAthleteId} /> });

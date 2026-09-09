@@ -16,7 +16,6 @@
    ============================================================ */
 
 import { normalizeRide, normalizeWellness } from "../core/normalize.js";
-import { onlyCyclingRides } from "../core/activity-sport.js";
 import { validateRidesPayload } from "../core/validate.js";
 import { athleteConfig } from "../config";
 import type { Result } from "./types";
@@ -80,12 +79,14 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
     // core-Normalisierern: validateRidesPayload() oben hat die Struktur
     // bereits geprüft, die Normalisierer erwarten laut JSDoc ein Objekt.
     //
-    // onlyCyclingRides(): Fahrplan 10 E1 — der EINE Sportart-Filter am
-    // Auswertungs-Eingang. Aktivitäten ohne `sport` bzw. mit `sport:"ride"`
-    // (= alle Zeilen der Bestandsathleten 1/2/4) passieren unverändert;
-    // Lauf/Schwimm/Sonstiges bleibt bis E8 komplett draußen. E8 ersetzt den
-    // festen Filter durch die im Frontend aktive Sportart.
-    rides: onlyCyclingRides(json.rides.map((r) => normalizeRide(r as object))),
+    // KEIN Sportart-Filter mehr (Fahrplan 10 E8a): bis E7 filterte
+    // `onlyCyclingRides()` hier hart auf `sport:"ride"`. Die Sportart-Auswahl
+    // lebt jetzt im Frontend — `api/hooks/useRides.ts` filtert das geladene
+    // `rides`-Array nach der im Umschalter aktiven Sportart
+    // (`useEffectiveSport`). `api/` ist damit sportart-blind und liefert immer
+    // ALLE Aktivitäten (Rad/Lauf/Schwimm) — nötig u. a. für den Datenexport
+    // ("meine Daten"), der `loadAthleteData()` direkt aufruft.
+    rides: json.rides.map((r) => normalizeRide(r as object)),
     wellness: (json.wellness ?? []).map((w) => normalizeWellness(w as object)),
     wellnessMeta: json.wellnessMeta ?? null,
     powerCurves: json.powerCurves ?? null,

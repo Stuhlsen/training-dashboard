@@ -7,6 +7,7 @@ import {
   isCyclingActivity,
   onlyCyclingRides,
   ridesForSport,
+  sportEmoji,
 } from "./activity-sport.js";
 
 test("activitySport: explizite Werte werden durchgereicht", () => {
@@ -68,4 +69,11 @@ test("ridesForSport: Sport-Gate (E7) — filtert auf genau eine Sportart", () =>
     onlyCyclingRides(rides).map((r) => r.id),
   );
   assert.deepEqual(ridesForSport(null, "run"), []);
+});
+
+test("sportEmoji: Rad ohne Symbol (Default, keine Ansichtsänderung für 1/2/4)", () => {
+  assert.equal(sportEmoji("ride"), "");
+  assert.equal(sportEmoji("run"), "🏃");
+  assert.equal(sportEmoji("swim"), "🏊");
+  assert.equal(sportEmoji("other"), "•");
 });

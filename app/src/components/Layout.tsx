@@ -2,6 +2,7 @@ import { NavLink, Outlet } from "react-router-dom";
 import { EnvBadge } from "./EnvBadge";
 import { Footer } from "./Footer";
 import { AthleteToggle } from "./AthleteToggle";
+import { SportToggle } from "./SportToggle";
 import { UserMenu } from "./UserMenu";
 import { PILL_BUTTON_STYLE } from "./pill-style";
 import { useAuth } from "../api/auth/useAuth";
@@ -70,8 +71,24 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        <div style={{ justifySelf: "center" }}>
+        {/* minWidth:0 + overflowX:auto: mit einem 3. Athleten (Fahrplan 10 E8a)
+            wird der Athleten-Toggle 4 Pillen breit und liefe auf dem Handy sonst
+            über die mittlere Grid-Spalte hinaus. SportToggle rendert nur bei
+            Athlet 3 (> 1 Sportart), für 1/2/4 bleibt die Kopfzeile unverändert. */}
+        <div
+          style={{
+            justifySelf: "center",
+            minWidth: 0,
+            maxWidth: "100%",
+            overflowX: "auto",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
           <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
+          <SportToggle athleteId={activeAthleteId} />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8, justifySelf: "end" }}>
           {session ? (

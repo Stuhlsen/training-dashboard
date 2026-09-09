@@ -14,10 +14,11 @@
    Triathlet hat durch drei Sportarten eine höhere Gesamtlast; absolute
    Rad-Schwellen empfehlen ihm sonst dauerhaft Ruhe. Ohne `multiSport` wird
    nichts davon berechnet und riskLevel() verhält sich exakt wie vor E6
-   (Golden-Master 1/2/4 = 0 Diff). In E6 setzt KEIN echter Aufrufer
-   `multiSport:true` (Athlet 3 unsichtbar bis E8) — Zweig gebaut + getestet,
-   aber dormant; describeWeek() ordnet einen deckel-getriebenen "high" bis
-   dahin noch der Monotonie-Fallback-Formulierung zu (E8 zieht das nach).
+   (Golden-Master 1/2/4 = 0 Diff). Seit Fahrplan 10 E8a setzen die
+   Frontend-Aufrufer `multiSport:true` für Athleten mit > 1 Sportart (nur
+   Athlet 3); die Zeile trägt dann `weekLoadOverCeiling`, und describeWeek()
+   benennt einen deckel-getriebenen "high" eigenständig ("Eigenlast-Deckel")
+   statt ihn der Monotonie-Formulierung zuzuschlagen.
    ============================================================ */
 
 import { OWN_LOAD_MEDIAN_WEEKS, WEEK_LOAD_CEILING_FACTOR } from "./plan-config.js";
@@ -28,11 +29,24 @@ export const RAMP_OK_MAX = 6;
 export const RAMP_HIGH = 8;
 export const MONOTONY_WARN = 2.0;
 
-/** Tageslast einer Fahrt: TSS bevorzugt, TRIMP als Fallback
- *  @param {import("../types.js").Ride} r @returns {number} */
+/** Tageslast einer Aktivität.
+ *  - Rad (`sport` fehlt oder `"ride"`): TSS bevorzugt, TRIMP als Fallback —
+ *    unverändert wie vor Fahrplan 10.
+ *  - Nicht-Rad (`"run"`/`"swim"`, Fahrplan 10 E8a): TRIMP bevorzugt. Die
+ *    Lauf-/Schwimm-Zeilen tragen neben unserem Banister-`trimp` noch den
+ *    intervals-`tss` aus dem Rad-Modell — der ist für eine Laufeinheit
+ *    bedeutungslos. Bestandsathleten 1/2/4 tragen nie `sport !== "ride"`
+ *    und kein `trimp` → dieser Zweig ändert für sie nichts.
+ *  @param {import("../types.js").Ride & {sport?: string}} r @returns {number} */
 export function rideLoad(r) {
-  if (r.tss != null) return r.tss;
+  const isRide = !r.sport || r.sport === "ride";
+  if (isRide) {
+    if (r.tss != null) return r.tss;
+    if (r.trimp != null) return r.trimp;
+    return 0;
+  }
   if (r.trimp != null) return r.trimp;
+  if (r.tss != null) return r.tss;
   return 0;
 }
 
@@ -89,7 +103,7 @@ export function riskLevel(ramp, monotony, weekLoadOverCeiling = false) {
  *   Wochenlast wird gegen den Median der bis zu OWN_LOAD_MEDIAN_WEEKS
  *   vorangehenden Wochen bezogen, Bruch → risk "high". Default aus: exakt das
  *   Verhalten vor E6 (Golden-Master 1/2/4 = 0 Diff).
- * @returns {Array<{week: string, total: number, monotony: number|null, strain: number|null, ctlEnd: number|null, ramp: number|null, risk: "ok"|"caution"|"high"}>}
+ * @returns {Array<{week: string, total: number, monotony: number|null, strain: number|null, ctlEnd: number|null, ramp: number|null, weekLoadOverCeiling: boolean, risk: "ok"|"caution"|"high"}>}
  */
 export function buildLoadGuard(rides, weekKeyFn, weekSortFn, opts = {}) {
   const multiSport = opts.multiSport === true;
@@ -144,6 +158,7 @@ export function buildLoadGuard(rides, weekKeyFn, weekSortFn, opts = {}) {
       strain: foster.strain != null ? Math.round(foster.strain) : null,
       ctlEnd,
       ramp,
+      weekLoadOverCeiling,
       risk: riskLevel(ramp, foster.monotony, weekLoadOverCeiling),
     };
   });
@@ -152,12 +167,20 @@ export function buildLoadGuard(rides, weekKeyFn, weekSortFn, opts = {}) {
 /**
  * Interpretierte Wochen-Einordnung für die Analyse-Tabelle:
  * benennt, WELCHES Signal die Einstufung treibt (Ramp vs. Monotonie).
- * @param {{ramp: number|null, monotony: number|null, risk: "ok"|"caution"|"high"}} row Zeile aus buildLoadGuard
+ * @param {{ramp: number|null, monotony: number|null, weekLoadOverCeiling?: boolean, risk: "ok"|"caution"|"high"}} row Zeile aus buildLoadGuard
  * @returns {{label: string, detail: string}}
  */
 export function describeWeek(row) {
   const { ramp, monotony, risk } = row;
   if (risk === "high") {
+    // Multi-Sport-Governor (Fahrplan 10 E6/E8a): der Eigenlast-Wochendeckel
+    // ist die spezifischste Ursache, vor Ramp/Monotonie benennen.
+    if (row.weekLoadOverCeiling) {
+      return {
+        label: "Eigenlast-Deckel",
+        detail: `Wochenlast über ${WEEK_LOAD_CEILING_FACTOR}× dem ${OWN_LOAD_MEDIAN_WEEKS}-Wochen-Median der eigenen Last — Multi-Sport-Governor.`,
+      };
+    }
     if (ramp != null && ramp > RAMP_HIGH) {
       return {
         label: "Übersteuert",

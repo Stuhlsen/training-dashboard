@@ -7,7 +7,7 @@
 
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { riskLevel, buildLoadGuard } from "./loadguard.js";
+import { riskLevel, buildLoadGuard, describeWeek, rideLoad } from "./loadguard.js";
 import { OWN_LOAD_MEDIAN_WEEKS, WEEK_LOAD_CEILING_FACTOR } from "./plan-config.js";
 
 const keyFn = (r) => r.week;
@@ -84,4 +84,39 @@ test("buildLoadGuard: ohne multiSport-Option identische Reihe wie mit multiSport
   const b = buildLoadGuard(rides, keyFn, sortFn, { multiSport: false });
   assert.deepEqual(a, b);
   assert.equal(a[6].risk, "ok", "die 999er-Woche eskaliert NICHT ohne multiSport");
+});
+
+/* ── Fahrplan 10 E8a: rideLoad sportart-abhängig ───────────── */
+
+test("rideLoad: Rad (kein sport / 'ride') → tss bevorzugt, trimp Fallback — unverändert", () => {
+  assert.equal(rideLoad({ tss: 80, trimp: 120 }), 80);
+  assert.equal(rideLoad({ sport: "ride", tss: 80, trimp: 120 }), 80);
+  assert.equal(rideLoad({ trimp: 55 }), 55);
+  assert.equal(rideLoad({}), 0);
+});
+
+test("rideLoad: Nicht-Rad ('run'/'swim') → trimp bevorzugt (intervals-tss ist Rad-Modell)", () => {
+  assert.equal(rideLoad({ sport: "run", tss: 80, trimp: 120 }), 120);
+  assert.equal(rideLoad({ sport: "swim", tss: 40, trimp: 30 }), 30);
+  assert.equal(rideLoad({ sport: "run", tss: 60 }), 60, "kein trimp → tss als Fallback");
+  assert.equal(rideLoad({ sport: "run" }), 0);
+});
+
+/* ── Fahrplan 10 E8a: weekLoadOverCeiling + describeWeek ───── */
+
+test("buildLoadGuard: jede Zeile trägt weekLoadOverCeiling (false ohne multiSport)", () => {
+  const rides = [1, 2, 3, 4, 5, 6].map((n) => wk(n, 100)).concat(wk(7, 300));
+  const plain = buildLoadGuard(rides, keyFn, sortFn);
+  assert.equal(
+    plain.every((r) => r.weekLoadOverCeiling === false),
+    true,
+  );
+  const multi = buildLoadGuard(rides, keyFn, sortFn, { multiSport: true });
+  assert.equal(multi[6].weekLoadOverCeiling, true, "W07 = 300 > Median 100 × 1,5");
+});
+
+test("describeWeek: ein deckel-getriebener 'high' heißt 'Eigenlast-Deckel', nicht Monotonie", () => {
+  const d = describeWeek({ ramp: 2, monotony: 1.0, weekLoadOverCeiling: true, risk: "high" });
+  assert.equal(d.label, "Eigenlast-Deckel");
+  assert.match(d.detail, /Median/);
 });
