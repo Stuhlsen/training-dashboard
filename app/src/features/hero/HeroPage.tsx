@@ -9,7 +9,10 @@ import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useEvents, raceCountdown } from "../../api/hooks/useEvents";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { athleteConfig } from "../../config";
-import { localISODate } from "../../core/format.js";
+import { localISODate, fmtPace } from "../../core/format.js";
+import { estimateThresholdSpeed } from "../../core/critical-speed.js";
+import { PACE_FROM_KMH } from "../../core/pace-zones.js";
+import { sportProfileFor } from "../../sports";
 import { buildWeekReview } from "../../core/weekreview.js";
 import { GlassCard } from "../../components/GlassCard";
 import { ConsistencyCalendar } from "../../charts/ConsistencyCalendar";
@@ -115,6 +118,11 @@ export function HeroPage() {
     return buildHeroCore({
       athleteId: activeAthleteId,
       rides,
+      // Ungefilterte Aktivitätsliste ALLER Sportarten (Fahrplan 10 E8b) —
+      // verankert die gemeinsame CTL/ATL/TSB-Anzeige, damit Fitness/Form auf
+      // jedem Sportart-Tab identisch sind (s. buildBriefingInfo). Für Athlet
+      // 1/2/4 deckungsgleich mit `rides`.
+      pmcRides: (athleteData?.ridesAll as Ride[] | undefined) ?? rides,
       wellness,
       forecast,
       planCards: planCards ?? [],
@@ -153,7 +161,7 @@ export function HeroPage() {
     // FTP-/eFTP-Kacheln nur auf dem Rad-Tab (Fahrplan 10 E8a) — konsistent mit
     // den ausgeblendeten Ringen/der Leistungsskala. `effectiveSport` ist für
     // Athlet 1/2/4 immer "ride".
-    return buildHeroMetrics(rides, core.ramp, core.eftp, ftpGateOpen && effectiveSport === "ride");
+    return buildHeroMetrics(rides, core.ramp, core.eftp, ftpGateOpen && effectiveSport === "ride", effectiveSport);
   }, [athleteData, core.ramp, core.eftp, ftpGateOpen, effectiveSport]);
 
   // Bestleistungen + Trainingskonsistenz (Etappe 12a) — vanilla zeigt beides
@@ -164,6 +172,14 @@ export function HeroPage() {
   // unnötig neu rechnen (react-hooks/exhaustive-deps).
   const rides = useMemo(() => (athleteData?.rides as Ride[] | undefined) ?? [], [athleteData]);
   const records = useMemo(() => buildRecordChips(rides), [rides]);
+  // Schwellenpace-/CSS-Kurzanzeige für den Hero-Tab (Fahrplan 10 E8b). Nur
+  // Laufen trägt eine rides-basierte 2-Punkt-Schätzung (estimateThresholdSpeed);
+  // Schwimmen hat dafür keine Datenbasis. Die volle Pace-Auswertung (Zonen,
+  // Kurve) lebt im Analyse-Tab (PaceSection). UNKALIBRIERT.
+  const paceThreshold = useMemo(
+    () => (effectiveSport === "run" ? estimateThresholdSpeed(rides) : null),
+    [effectiveSport, rides],
+  );
   // Absolvierte Rennen mit erfasstem Ergebnis (Migration 0027) — reine
   // Ableitung aus der ohnehin geladenen Event-Liste, kein Request.
   const raceResults = useMemo(() => buildRaceResults(events ?? [], TODAY), [events]);
@@ -255,18 +271,39 @@ export function HeroPage() {
       ),
     });
   } else {
+    const sportProfile = sportProfileFor(effectiveSport);
+    const sportLabel = sportProfile?.label ?? (effectiveSport === "run" ? "Laufen" : "Schwimmen");
+    const thrMetric = sportProfile?.metrics.thresholdMetric ?? "Schwellenpace";
+    const thrUnit = sportProfile?.metrics.thresholdUnit ?? "min/km";
+    const paceSpeed =
+      paceThreshold && typeof paceThreshold.speed === "number" ? paceThreshold.speed : null;
+    const paceSecPerKm = paceSpeed != null ? PACE_FROM_KMH(paceSpeed) : null;
     tiles.push({
-      id: "paceSoon",
+      id: "paceSummary",
       node: (
         <GlassCard variant="soft" style={{ padding: "20px 22px", display: "flex", flexDirection: "column", gap: 8 }}>
           <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
-            {effectiveSport === "run" ? "Laufen" : "Schwimmen"}
+            {sportLabel}
           </span>
-          <p style={{ margin: 0, fontSize: ".86rem", color: "var(--ink-3)", lineHeight: 1.6 }}>
-            Pace-Zonen, Pace-Kurve und Pace:HF-Drift folgen in Kürze. Fitness,
-            Ermüdung und Form oben sind derzeit auf {effectiveSport === "run" ? "Laufen" : "Schwimmen"}{" "}
-            eingegrenzt — die sportartübergreifende Gesamtansicht kommt mit dem
-            nächsten Schritt.
+          {paceSecPerKm != null ? (
+            <span style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+              <span style={{ fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)", lineHeight: 1 }}>
+                {fmtPace(paceSecPerKm)}{" "}
+                <span style={{ fontSize: ".86rem", fontWeight: 400, color: "var(--ink-3)" }}>{thrUnit}</span>
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: ".6rem", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--ink-3)" }}>
+                {thrMetric} · geschätzt (unkalibriert)
+              </span>
+            </span>
+          ) : (
+            <p style={{ margin: 0, fontSize: ".86rem", color: "var(--ink-3)", lineHeight: 1.6 }}>
+              {thrMetric} noch nicht schätzbar — es fehlt ein annähernd erschöpfender
+              Lauf. Die volle Pace-Auswertung steht im Analyse-Tab.
+            </p>
+          )}
+          <p style={{ margin: 0, fontSize: ".8rem", color: "var(--ink-3)", lineHeight: 1.6 }}>
+            Fitness und Form oben beziehen alle Sportarten ein. Die Wochenlast bleibt
+            je Sportart getrennt (Summierung folgt in Phase&nbsp;3).
           </p>
         </GlassCard>
       ),
@@ -447,7 +484,7 @@ export function HeroPage() {
               textShadow: "0 4px 30px rgba(0,0,0,.6)",
             }}
           >
-            Radsport
+            {sportProfileFor(effectiveSport)?.label ?? "Radsport"}
             <br />
             Trainingsdashboard
           </h1>

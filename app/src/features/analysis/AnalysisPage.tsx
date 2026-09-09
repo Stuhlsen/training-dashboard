@@ -37,6 +37,7 @@ import { LEVEL_COLOR } from "../hero/BriefingCard";
 import { TraceCard } from "../../charts/TraceCard";
 import { PowerCurveTraceCard } from "../../charts/PowerCurveTraceCard";
 import { LegacyKpiAppendix } from "./LegacyKpiAppendix";
+import { PaceSection } from "./PaceSection";
 import { buildAnswersViewModel, type PowerUnit } from "./answers-view-model";
 import {
   buildAerobicCards,
@@ -141,8 +142,12 @@ export function AnalysisPage() {
     () =>
       buildBriefingInfo(rides, wellness, cards, doneDatesOf(rides), isSelf ? (checkin?.subjective ?? null) : null, TODAY, {
         multiSport,
+        // Gemeinsame CTL/ATL/TSB über alle Sportarten (Fahrplan 10 E8b) — die
+        // BriefingSignals hier sollen denselben Fitness-/Form-Anker zeigen wie
+        // der Hero-Tab. Für Athlet 1/2/4 ist `ridesAll === rides`.
+        pmcRides: (athleteData?.ridesAll as typeof rides | undefined) ?? rides,
       }),
-    [rides, wellness, cards, isSelf, checkin, multiSport],
+    [rides, wellness, cards, isSelf, checkin, multiSport, athleteData],
   );
 
   const projection = useMemo(() => {
@@ -212,7 +217,7 @@ export function AnalysisPage() {
         </div>
 
         {effectiveSport !== "ride" ? (
-          <PaceSoonNote sport={effectiveSport} />
+          <PaceSection rides={rides} sport={effectiveSport} />
         ) : !vm ? (
           <p style={{ color: "var(--text-soft)" }}>Noch keine ausreichende Belastungshistorie (CTL/ATL) für diese Ansicht.</p>
         ) : (
@@ -349,27 +354,6 @@ export function AnalysisPage() {
         )}
       </div>
     </PageShell>
-  );
-}
-
-/** Platzhalter für Lauf/Schwimm im Analyse-Tab (Fahrplan 10 E8a). Die
- *  Pace-Auswertungen (Pace-Zonen, Pace-Curve, Pace:HF) werden in E8b
- *  verdrahtet; Fitness/Form (gemeinsame CTL/ATL/TSB) stehen bis dahin im
- *  Hero-Tab. */
-function PaceSoonNote({ sport }: { sport: "run" | "swim" }) {
-  const label = sport === "run" ? "Laufen" : "Schwimmen";
-  return (
-    <GlassCard variant="soft" style={{ padding: "22px 24px", display: "flex", flexDirection: "column", gap: 8 }}>
-      <span style={{ fontFamily: "var(--font-disp)", fontSize: "1.05rem", fontWeight: 600, color: "var(--text-ink)" }}>
-        Pace-Analyse für {label} folgt in Kürze
-      </span>
-      <p style={{ margin: 0, fontSize: ".9rem", color: "var(--text-soft)", lineHeight: 1.6, maxWidth: "60ch" }}>
-        Pace-Zonen, Pace-Kurve und Pace:HF-Drift kommen mit dem nächsten Schritt.
-        Fitness, Ermüdung und Form findest du im Hero-Tab — dort aktuell auf die
-        gewählte Sportart eingegrenzt, die sportartübergreifende Gesamtansicht
-        folgt.
-      </p>
-    </GlassCard>
   );
 }
 

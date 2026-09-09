@@ -49,6 +49,13 @@ export interface RidesPayload {
 
 export interface AthleteData {
   rides: unknown[];
+  /** Die ungefilterte Aktivitätsliste ALLER Sportarten. Nur `api/hooks/useRides.ts`
+   *  füllt dieses Feld in seinem `select` (neben dem sport-gefilterten `rides`) —
+   *  `loadAthleteData()` / `toAthleteData()` lassen es `undefined`. Die
+   *  gemeinsame CTL/ATL/TSB-Anzeige (Fahrplan 10 E8b) verankert „heute"
+   *  darüber, damit Fitness/Form auf jedem Sportart-Tab identisch sind. Für
+   *  Athlet 1/2/4 (Single-Sport) ist es deckungsgleich mit `rides`. */
+  ridesAll?: unknown[];
   wellness: unknown[];
   wellnessMeta: unknown;
   powerCurves: unknown;

@@ -39,6 +39,7 @@ import {
   TSS_ASSUMED_IF,
 } from "../../core/ftp-progress.js";
 import { computeZones, sweetSpotBand, whatIfScaleMax } from "../../core/zones.js";
+import { sportProfileFor } from "../../sports";
 import { currentFtpEntry } from "../../core/ftp-history.js";
 // Wiederverwendung statt Neubau (CLAUDE.md: bestehendes Modul prüfen) — die
 // Segment-Balken-Zerlegung für Intervall-Workouts existiert schon für die
@@ -126,6 +127,10 @@ export interface HeroCoreInput {
   planCards: PlanCard[];
   subjective: Subjective | null;
   todayISO: string;
+  /** Ungefilterte Aktivitätsliste ALLER Sportarten (Fahrplan 10 E8b, aus
+   *  `useRides`s `ridesAll`). Verankert die gemeinsame CTL/ATL/TSB-Anzeige, s.
+   *  `buildBriefingInfo`. Fehlt ⇒ `rides` (Athlet 1/2/4 = Single-Sport). */
+  pmcRides?: Ride[];
   /** FTP-Historie des eingeloggten Athleten (Settings → "FTP-Historie") —
    *  nur bei isSelf befüllt (s. HeroPage.tsx), sonst leer, damit ein
    *  Athleten-Toggle nicht die eigene Historie über einen fremden Athleten
@@ -371,11 +376,19 @@ export function buildBriefingInfo(
   doneDates: Set<string>,
   subjective: Subjective | null,
   todayISO: string,
-  opts: { multiSport?: boolean } = {},
+  opts: { multiSport?: boolean; pmcRides?: Ride[] } = {},
 ): HeroBriefing {
-  const pmc = currentPmc(rides, todayISO);
+  // Gemeinsame CTL/ATL/TSB (Fahrplan 10 E8b): `pmcRides` ist die ungefilterte
+  // Aktivitätsliste ALLER Sportarten (aus `useRides`s `ridesAll`). Damit ist
+  // der Fitness-/Form-Anker auf jedem Sportart-Tab derselbe — jede Ride-Zeile
+  // trägt `ctl`/`atl` bereits als intervals-kombinierten Tageswert. Der
+  // Wochen-Lastdeckel (`buildLoadGuard` unten) bleibt bewusst auf `rides`
+  // (sport-eigen). Ohne `pmcRides` (Athlet 1/2/4, alle Alt-Aufrufer) = altes
+  // Verhalten, da `pmcRides ?? rides`.
+  const pmcRides = opts.pmcRides ?? rides;
+  const pmc = currentPmc(pmcRides, todayISO);
   const readiness = assessReadiness(wellness, todayISO);
-  const trend = tsbTrend(rides, todayISO);
+  const trend = tsbTrend(pmcRides, todayISO);
   const loadRows = buildLoadGuard(
     rides,
     // Leere/kaputte dateISO ("" nach normalizeRide-Fallback) NICHT in
@@ -449,7 +462,7 @@ function ringBase(athleteCfg: AthleteConfig): number {
  *  gegen [athleteId, rides, wellness, planCards, subjective, todayISO]
  *  memoisiert werden. */
 export function buildHeroCore(input: HeroCoreInput): HeroCore {
-  const { athleteId, rides, wellness, forecast, planCards, subjective, todayISO, ftpHistoryEntries } = input;
+  const { athleteId, rides, wellness, forecast, planCards, subjective, todayISO, ftpHistoryEntries, pmcRides } = input;
   const athleteCfg = athleteConfig(athleteId);
   const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   const first = sorted[0];
@@ -478,6 +491,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const weatherToday = buildWeatherToday(forecast, todayISO);
   const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO, {
     multiSport: (athleteCfg?.sports?.length ?? 1) > 1,
+    pmcRides: pmcRides ?? rides,
   });
   const readiness = assessReadiness(wellness, todayISO);
   const milestonesBase = athleteCfg
@@ -603,13 +617,25 @@ export interface HeroMetric {
  *  `showFtp` (Default true): bei abgeschalteter FTP-Sichtbarkeit für Besucher
  *  (Migration 0025 `profiles.ftp_public`) entfallen die FTP- und eFTP-Kacheln
  *  — konsistent zu den dann ebenfalls ausgeblendeten Ringen/der Leistungsskala
- *  (s. HeroPage.tsx::ftpGateOpen). */
+ *  (s. HeroPage.tsx::ftpGateOpen).
+ *
+ *  `sport` (Fahrplan 10 E8b, Default `"ride"`): nur die Kachel-BESCHRIFTUNGEN
+ *  wechseln je Sportart ("Fahrten" → "Läufe", "Ø Kadenz"/"RPM" →
+ *  "Ø Schrittfrequenz"/"spm" aus dem `SportProfile`). Die Zahlen selbst kommen
+ *  aus der bereits sport-gefilterten `rides`-Liste. Für Athlet 1/2/4 immer
+ *  `"ride"` ⇒ Text unverändert. */
 export function buildHeroMetrics(
   rides: Ride[],
   ramp: HeroCore["ramp"],
   eftp: HeroCore["eftp"],
   showFtp = true,
+  sport: "ride" | "run" | "swim" | "other" = "ride",
 ): HeroMetric[] {
+  const isRide = sport === "ride";
+  const activityNoun = sport === "run" ? "Läufe" : sport === "swim" ? "Einheiten" : "Fahrten";
+  const sportMetrics = sportProfileFor(sport)?.metrics;
+  const cadenceLabel = isRide ? "Ø Kadenz" : `Ø ${sportMetrics?.cadenceMetric ?? "Kadenz"}`;
+  const cadenceUnit = isRide ? "RPM" : (sportMetrics?.cadenceUnit ?? "RPM");
   const ownPlan = rides.some((r) => r.week);
   const totalKm = sum(rides, "km");
   const totalMin = sum(rides, "min");
@@ -639,7 +665,7 @@ export function buildHeroMetrics(
       desc: "Summierte Streckenlänge aller Fahrten",
       color: "var(--accent)",
     },
-    { key: "rides", value: rides.length, label: "Fahrten", desc: "Anzahl absolvierter Trainingseinheiten", color: "var(--ink)" },
+    { key: "rides", value: rides.length, label: activityNoun, desc: "Anzahl absolvierter Trainingseinheiten", color: "var(--ink)" },
     {
       key: "time",
       value: fmtDuration(totalMin),
@@ -686,7 +712,7 @@ export function buildHeroMetrics(
       desc: "Höchster Chronic Training Load — erreichte Fitnessstufe",
       color: "var(--role-positive)",
     },
-    { key: "longest", value: `${fmt(maxKm)} km`, label: "Längste Fahrt", desc: "Die längste einzelne Ausfahrt", color: "var(--role-primary)" },
+    { key: "longest", value: `${fmt(maxKm)} km`, label: isRide ? "Längste Fahrt" : "Längste Einheit", desc: isRide ? "Die längste einzelne Ausfahrt" : "Die längste einzelne Einheit", color: "var(--role-primary)" },
     {
       key: "hr",
       value: `${fmtInt(avgHF)} bpm`,
@@ -696,9 +722,11 @@ export function buildHeroMetrics(
     },
     {
       key: "cadence",
-      value: `${fmtInt(avgKad)} RPM`,
-      label: "Ø Kadenz",
-      desc: "Durchschnittliche Trittfrequenz über alle Fahrten",
+      value: `${fmtInt(avgKad)} ${cadenceUnit}`,
+      label: cadenceLabel,
+      desc: isRide
+        ? "Durchschnittliche Trittfrequenz über alle Fahrten"
+        : "Durchschnittliche Frequenz über alle Einheiten mit Kadenz-Daten",
       color: "var(--role-status)",
     },
   );
