@@ -18,10 +18,13 @@
 
 import { localISODate } from "./format.js";
 import { KNOWN_PLAN_TYPES } from "./plan-config.js";
+import { RUNNING_KNOWN_TYPES } from "../sports/running/session-types.js";
 import { validateWorkoutStructure } from "./workout-validator.js";
 
 export const SCHEMA_VERSION = 1;
 export const KNOWN_OPS = ["add", "replace", "move", "cancel"];
+// Fahrplan 12 W3 — erlaubte Werte für `payload.sport` (fehlend ⇒ "ride").
+const KNOWN_SPORTS = ["ride", "run", "swim"];
 
 const TSS_MIN = 0;
 const TSS_MAX = 400;
@@ -33,9 +36,16 @@ const PROPOSAL_FIELDS = ["op", "target_card_id", "target_updated_at", "reason", 
 // muss aber schon jetzt bekannt sein, sonst scheitert jeder Vorschlag mit
 // Struktur an "Unbekannte payload-Felder" (derselbe Fehler wie beim
 // bisherigen Payload-Schema-Bug, s. Konzept Schrittfolge Fußnote).
+// sport / paceSec (Fahrplan 12 W3): Lauf-Vorschläge tragen `sport:"run"`. Die
+// Zielpace gehört kanonisch in `workout.paceSec` (W2) und wird von dort auf
+// die Karte übernommen; ein zusätzlich als payload-Geschwister von `workout`
+// mitgeschicktes `paceSec` wird hier nur toleriert (Wert geprüft, aber nicht
+// eigenständig auf die Karte gemappt), damit ein solcher Vorschlag nicht am
+// "Unbekannte payload-Felder"-Fehler scheitert — dieselbe Toleranz wie bei
+// `workout_structure`.
 const PAYLOAD_FIELDS_BY_OP = {
-  add: ["title", "type", "plan_date", "target_tss", "km", "workout", "workout_structure", "note"],
-  replace: ["title", "type", "plan_date", "target_tss", "km", "workout", "workout_structure", "note"],
+  add: ["title", "type", "plan_date", "target_tss", "km", "workout", "workout_structure", "note", "sport", "paceSec"],
+  replace: ["title", "type", "plan_date", "target_tss", "km", "workout", "workout_structure", "note", "sport", "paceSec"],
   move: ["plan_date"],
   cancel: ["reason"],
 };
@@ -175,6 +185,11 @@ export function validateProposal(proposal, { knownCardIds = new Set(), today, op
     errors.push(`Unbekannte payload-Felder für '${proposal.op}': ${unknownPayload.join(", ")}`);
   }
 
+  // Fahrplan 12 W3 — Sportart des Vorschlags. Fehlt `sport`, ist es ein
+  // Rad-Vorschlag: alle Zweige unten verhalten sich dann byte-identisch zum
+  // Stand vor Phase 2 (Regressionstest in proposal-validator.test.js).
+  const sport = payload.sport ?? "ride";
+
   const needsPlanDate = proposal.op === "add" || proposal.op === "replace" || proposal.op === "move";
   if (needsPlanDate) {
     if (!payload.plan_date) {
@@ -187,7 +202,11 @@ export function validateProposal(proposal, { knownCardIds = new Set(), today, op
     errors.push("payload.title fehlt.");
   }
   if ((proposal.op === "add" || proposal.op === "replace") && payload.type != null) {
-    if (!KNOWN_PLAN_TYPES.includes(payload.type)) errors.push(`Unbekannter Typ '${payload.type}'.`);
+    // Fahrplan 12 W3: Lauf-Vorschläge gegen das Lauf-Typvokabular prüfen, alle
+    // anderen (inkl. fehlendem/ungültigem `sport` — und "swim", das erst in
+    // einer späteren Phase eigenes Vokabular bekommt) gegen die Rad-Liste.
+    const knownTypes = sport === "run" ? RUNNING_KNOWN_TYPES : KNOWN_PLAN_TYPES;
+    if (!knownTypes.includes(payload.type)) errors.push(`Unbekannter Typ '${payload.type}'.`);
   }
   if ((proposal.op === "add" || proposal.op === "replace") && payload.target_tss != null) {
     if (!(Number.isFinite(payload.target_tss) && payload.target_tss >= TSS_MIN && payload.target_tss <= TSS_MAX)) {
@@ -195,9 +214,25 @@ export function validateProposal(proposal, { knownCardIds = new Set(), today, op
     }
   }
   if ((proposal.op === "add" || proposal.op === "replace") && payload.workout_structure != null) {
-    const wsResult = validateWorkoutStructure(payload.workout_structure);
-    if (!wsResult.valid) {
-      errors.push(...wsResult.errors.map((e) => `payload.workout_structure: ${e}`));
+    if (sport === "run") {
+      // Fahrplan 12 W3 / Guardrail 4: Laufkarten tragen nie eine strukturierte
+      // Workout-Struktur (kein .zwo, kein Push, kein Konsument) — die Prüfung
+      // wird übersprungen, eine gesetzte Struktur ist selbst der Fehler.
+      errors.push("payload.workout_structure: bei Lauf nicht erlaubt.");
+    } else {
+      const wsResult = validateWorkoutStructure(payload.workout_structure);
+      if (!wsResult.valid) {
+        errors.push(...wsResult.errors.map((e) => `payload.workout_structure: ${e}`));
+      }
+    }
+  }
+  // Fahrplan 12 W3 — `sport`-Wert selbst und (bei Lauf) die optionale Zielpace.
+  if ((proposal.op === "add" || proposal.op === "replace") && payload.sport != null) {
+    if (!KNOWN_SPORTS.includes(payload.sport)) errors.push(`Unbekannter Sport '${payload.sport}'.`);
+  }
+  if ((proposal.op === "add" || proposal.op === "replace") && payload.paceSec != null) {
+    if (!Number.isInteger(payload.paceSec) || payload.paceSec <= 0) {
+      errors.push("payload.paceSec: keine Ganzzahl > 0.");
     }
   }
 

@@ -394,3 +394,83 @@ test("validateProposal: dieselbe Karte, korrekt unter payload verschachtelt → 
   const result = validateProposal(p, { today: TODAY, knownCardIds: new Set([p.target_card_id]) });
   assert.deepEqual(result, { valid: true, errors: [] });
 });
+
+/* ── Fahrplan 12 W3 — sport-bewusste Prüfung. Ein Vorschlag OHNE payload.sport
+   verhält sich byte-identisch zum Stand vor Phase 2 (Regressionsbeleg). ── */
+
+test("validateProposal: 'add' mit sport:'run' + Lauf-Typ + paceSec → gültig", () => {
+  const p = {
+    op: "add",
+    payload: {
+      title: "Tempolauf 5×1 km",
+      type: "Tempolauf",
+      plan_date: "2026-08-01",
+      sport: "run",
+      paceSec: 270,
+    },
+  };
+  const result = validateProposal(p, { today: TODAY });
+  assert.deepEqual(result, { valid: true, errors: [] });
+});
+
+test("validateProposal: 'add' mit sport:'run' + Rad-Typ 'Sweet Spot' → Unbekannter Typ", () => {
+  const p = {
+    op: "add",
+    payload: { title: "X", plan_date: "2026-08-01", sport: "run", type: "Sweet Spot" },
+  };
+  const result = validateProposal(p, { today: TODAY });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("Unbekannter Typ") && e.includes("Sweet Spot")));
+});
+
+test("validateProposal: 'add' OHNE sport + Rad-Typ → gültig wie vor Phase 2 (Regression)", () => {
+  const p = {
+    op: "add",
+    payload: { title: "Sweet-Spot 2×15", type: "Sweet Spot", plan_date: "2026-08-01", target_tss: 65 },
+  };
+  const result = validateProposal(p, { today: TODAY, knownCardIds: KNOWN_CARDS });
+  assert.deepEqual(result, { valid: true, errors: [] });
+});
+
+test("validateProposal: unbekannter sport-Wert → Fehler", () => {
+  const p = { op: "add", payload: { title: "X", plan_date: "2026-08-01", sport: "xyz" } };
+  const result = validateProposal(p, { today: TODAY });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e.includes("Unbekannter Sport") && e.includes("xyz")));
+});
+
+test("validateProposal: sport:'run' mit gesetzter workout_structure → bei Lauf nicht erlaubt", () => {
+  const p = {
+    op: "add",
+    payload: {
+      title: "X",
+      plan_date: "2026-08-01",
+      sport: "run",
+      workout_structure: { version: 1, steps: [] },
+    },
+  };
+  const result = validateProposal(p, { today: TODAY });
+  assert.equal(result.valid, false);
+  assert.ok(result.errors.some((e) => e === "payload.workout_structure: bei Lauf nicht erlaubt."));
+});
+
+test("validateProposal: sport:'run' + paceSec ungültig (negativ / nicht ganzzahlig) → Fehler; fehlend → gültig", () => {
+  const base = { op: "add", payload: { title: "X", type: "Dauerlauf", plan_date: "2026-08-01", sport: "run" } };
+
+  const negative = validateProposal(
+    { ...base, payload: { ...base.payload, paceSec: -5 } },
+    { today: TODAY }
+  );
+  assert.equal(negative.valid, false);
+  assert.ok(negative.errors.some((e) => e.includes("paceSec")));
+
+  const fractional = validateProposal(
+    { ...base, payload: { ...base.payload, paceSec: 4.5 } },
+    { today: TODAY }
+  );
+  assert.equal(fractional.valid, false);
+  assert.ok(fractional.errors.some((e) => e.includes("paceSec")));
+
+  const missing = validateProposal(base, { today: TODAY });
+  assert.deepEqual(missing, { valid: true, errors: [] });
+});

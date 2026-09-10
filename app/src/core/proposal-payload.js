@@ -15,7 +15,8 @@
 /** @param {Object} payload Vorschlags-Payload (add/replace)
  *  @returns {{date: string|undefined, name: string|undefined, typ: string|undefined,
  *             tssPlanned: number|null, km: number|null, details: string|null,
- *             workout: Object|null, workoutStructure: Object|null}} */
+ *             workout: Object|null, workoutStructure: Object|null,
+ *             sport?: "ride"|"run"|"swim"}} */
 export function payloadToCardData(payload) {
   return {
     date: payload?.plan_date,
@@ -26,6 +27,12 @@ export function payloadToCardData(payload) {
     details: payload?.note ?? null,
     workout: payload?.workout ?? null,
     workoutStructure: payload?.workout_structure ?? null,
+    // Fahrplan 12 W3: Vorschlags-Sportart NUR durchreichen, wenn der Vorschlag
+    // sie ausdrücklich trägt. So bleibt `add` ohne `sport` byte-identisch
+    // (createPlanCard() defaultet auf "ride") und `replace` ohne `sport`
+    // überschreibt die Sportart einer bestehenden Lauf-/Schwimm-Karte NICHT.
+    // Die Zielpace (`paceSec`) lebt im `workout`-Objekt (W2), kein eigenes Feld.
+    ...(payload?.sport != null ? { sport: payload.sport } : {}),
   };
 }
 

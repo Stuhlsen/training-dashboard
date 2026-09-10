@@ -56,6 +56,15 @@ test("payloadToCardData: fehlende optionale Felder werden null, nicht undefined"
   assert.equal(result.workout, null);
 });
 
+test("payloadToCardData: sport wird nur bei gesetztem payload.sport durchgereicht (Fahrplan 12 W3)", () => {
+  // Mit sport: 1:1 an die Karte.
+  assert.equal(payloadToCardData({ title: "Lauf", plan_date: "2026-08-01", sport: "run" }).sport, "run");
+  // Ohne sport: kein Schlüssel — `add` bekommt "ride" per createPlanCard-Default,
+  // `replace` lässt die Sportart einer bestehenden Karte damit unangetastet.
+  assert.ok(!("sport" in payloadToCardData({ title: "X", plan_date: "2026-08-01" })));
+  assert.ok(!("sport" in payloadToCardData({})));
+});
+
 test("payloadToCardData: leeres/fehlendes payload crasht nicht", () => {
   assert.doesNotThrow(() => payloadToCardData(undefined));
   assert.doesNotThrow(() => payloadToCardData({}));

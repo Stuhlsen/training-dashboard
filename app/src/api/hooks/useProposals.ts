@@ -262,6 +262,10 @@ export function useAcceptProposal(athleteId: string) {
         // im Payload wird zu null, nicht zu undefined: sonst ließe der
         // Adapter die Spalte beim Update ungeschrieben und ein alter Wert
         // bliebe stehen, obwohl der Vorschlag ihn nicht mehr vorsieht.
+        // `sport` reicht payloadToCardData() nur durch, wenn der Vorschlag es
+        // trägt (Fahrplan 12 W3); per Spread landet es dann in `input` und
+        // damit an create/updatePlanCard. Fehlt es, bleibt es aus: createCard
+        // defaultet auf "ride", updateCard lässt die Spalte unangetastet.
         const input: PlanCardInput = {
           ...cardData,
           date: cardData.date,
