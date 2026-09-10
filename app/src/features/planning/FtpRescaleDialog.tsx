@@ -50,7 +50,10 @@ const PRIMARY_BTN_STYLE: React.CSSProperties = {
 const band = (b: [number, number] | null) => (b ? `${b[0]}–${b[1]} W` : "—");
 
 export function FtpRescaleDialog({ athleteId, testDateISO, onClose }: FtpRescaleDialogProps) {
-  const { data: cards } = usePlanCards(athleteId);
+  // allSports: die Watt-Umrechnung betrifft nur Radkarten (pct/watts) — die
+  // muss der Dialog auch dann sehen, wenn der Sport-Umschalter gerade auf
+  // Lauf steht (sonst leere Vorschau ↔ nicht-leerer Schreib-Cache).
+  const { data: cards } = usePlanCards(athleteId, { allSports: true });
   const { rescale, isPending } = useRescaleFuturePlanWatts(athleteId);
 
   const [ftpText, setFtpText] = useState("");

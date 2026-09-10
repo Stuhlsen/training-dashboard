@@ -108,7 +108,10 @@ export function ProposalCompare({
   onClose: () => void;
 }) {
   const { isSelf } = useIsSelfAthlete(athleteId);
-  const { data: cards } = usePlanCards(athleteId);
+  // allSports: der Vergleich löst `proposal.targetCardId` gegen die Karten
+  // auf — die Zielkarte kann eine andere Sportart haben als der Umschalter
+  // gerade zeigt (sonst fehlt die „vorher"-Seite).
+  const { data: cards } = usePlanCards(athleteId, { allSports: true });
   const { data: rideData } = useRides(athleteId);
   const { data: events } = useEvents(athleteId);
   const { accept } = useAcceptProposal(athleteId);

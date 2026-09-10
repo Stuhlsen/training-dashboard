@@ -404,7 +404,10 @@ export function WeekGridDetailRow({
             <button type="button" style={ACTION_BTN_STYLE} onClick={onEdit}>
               Bearbeiten
             </button>
-            {canPush && card.workout != null && onPush && (
+            {/* Wahoo-Push nur für Radkarten (Fahrplan 12 E3): der Push baut ein
+                intervals.icu-Workout aus %FTP/Watt — für eine Laufkarte
+                ({paceSec}) gibt es keinen sinnvollen Zielwert. */}
+            {canPush && card.workout != null && onPush && activitySport(card) === "ride" && (
               <button type="button" style={ACTION_BTN_STYLE} disabled={pushing} onClick={() => void handlePush()}>
                 {pushing ? "⏳ Wird gepusht…" : "📤 Auf Wahoo pushen"}
               </button>

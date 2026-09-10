@@ -69,7 +69,7 @@ const scopeOf = (athleteId: string) => `plan-cards:${athleteId}`;
  *  Events" durchgeht (s. useEvents). Der Unterschied stammt aus der
  *  Vanilla-Version und bleibt erhalten: eine leere Kartenliste würde im
  *  Planungstab wie ein leerer Plan aussehen statt wie ein fehlender Account. */
-export function usePlanCards(athleteId: string) {
+export function usePlanCards(athleteId: string, opts?: { allSports?: boolean }) {
   const queryClient = useQueryClient();
   // SPORTART-FILTER (Fahrplan 12 E3) — Muster 1:1 wie useRides (Fahrplan 10
   // E8a): `select` grenzt den Cache auf die im Umschalter aktive Sportart ein,
@@ -78,10 +78,18 @@ export function usePlanCards(athleteId: string) {
   // Filter ein No-Op — dort sind alle Karten "ride" und effectiveSport ist
   // immer "ride". Die Schreib-Hooks lesen weiter den ROHEN Cache
   // (useCardsSnapshot), nicht diese gefilterte Sicht.
+  //
+  // `allSports: true` schaltet den Filter ab — für die wenigen Rad-only-
+  // Konsumenten, die ALLE Karten brauchen, egal welcher Sport gerade im
+  // Umschalter steht (FtpRescaleDialog rechnet `workout.pct/watts` um,
+  // ProposalCompare löst `proposal.targetCardId` auf; beide würden sonst auf
+  // dem Lauf-Tab die Radkarten nicht sehen). Fahrplan 12 E3, Code-Review.
   const { effectiveSport } = useEffectiveSport(athleteId);
+  const allSports = opts?.allSports ?? false;
   const select = useCallback(
-    (cards: PlanCard[]): PlanCard[] => cards.filter((c) => activitySport(c) === effectiveSport),
-    [effectiveSport],
+    (cards: PlanCard[]): PlanCard[] =>
+      allSports ? cards : cards.filter((c) => activitySport(c) === effectiveSport),
+    [allSports, effectiveSport],
   );
   return useQuery({
     queryKey: qk.planCards(athleteId),
