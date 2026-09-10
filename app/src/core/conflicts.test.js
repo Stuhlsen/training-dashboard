@@ -561,6 +561,91 @@ test("K-OVERLAP zählt ausgefallene Karten nicht mit", () => {
   assert.equal(byRule(detectConflicts(proj, cards, []), "K-OVERLAP").length, 0);
 });
 
+/* ── Fahrplan 12 E4: sportübergreifende Konfliktregeln ─────────────────
+   K-HART / K-HARTFOLGE werten Rad + Lauf gemeinsam aus (die days-Schleife
+   kennt keine Sportart, classOf() löst die Intensität je card.sport auf).
+   K-WOCHENTSS / K-TID bleiben je Sport getrennt (TRIMP↔TSS-Einheiten-Mix,
+   Cross-Sport-Eichung = Fahrplan 10 Phase 3). */
+
+const hardRun = (id, date) => ({ id, date, typ: "Intervalle", sport: "run" }); // RUNNING_INTENSITY_CLASS: hart
+const tempoRun = (id, date) => ({ id, date, typ: "Tempolauf", sport: "run" }); // RUNNING_INTENSITY_CLASS: hart
+const easyRun = (id, date) => ({ id, date, typ: "Dauerlauf", sport: "run" }); // RUNNING_INTENSITY_CLASS: locker
+
+test("E4: harte Radkarte + harte Laufkarte an Folgetagen → K-HART übergreifend", () => {
+  const proj = mkProj([{ date: "2026-07-21" }, { date: "2026-07-22" }]);
+  const cards = [hard("rad", "2026-07-21"), hardRun("lauf", "2026-07-22")];
+  const c = byRule(detectConflicts(proj, cards, []), "K-HART");
+  assert.equal(c.length, 1);
+  assert.deepEqual(c[0].cardIds.sort(), ["lauf", "rad"]);
+});
+
+test("E4: harte Radkarte, ein freier Tag, harte Laufkarte → K-HARTFOLGE übergreifend", () => {
+  const proj = mkProj([{ date: "2026-07-20" }, { date: "2026-07-21" }, { date: "2026-07-22" }]);
+  const cards = [hard("rad", "2026-07-20"), hardRun("lauf", "2026-07-22")];
+  const c = byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE");
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "warning");
+  assert.deepEqual(c[0].dates, ["2026-07-20", "2026-07-22"]);
+  assert.deepEqual(c[0].cardIds.sort(), ["lauf", "rad"]);
+});
+
+test("E4: zwei harte Laufkarten (Tempolauf) mit Pause dazwischen → K-HARTFOLGE nur über RUNNING_INTENSITY_CLASS", () => {
+  // "Tempolauf" steht NICHT in der Rad-INTENSITY_CLASS — ohne die
+  // sport-abhängige Tabelle fiele der Typ auf "moderat" und K-HARTFOLGE
+  // würde nie feuern.
+  const proj = mkProj([{ date: "2026-07-20" }, { date: "2026-07-21" }, { date: "2026-07-22" }]);
+  const cards = [tempoRun("a", "2026-07-20"), tempoRun("c", "2026-07-22")];
+  const c = byRule(detectConflicts(proj, cards, []), "K-HARTFOLGE");
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "warning");
+});
+
+test("E4: Dauerlauf ist über RUNNING_INTENSITY_CLASS locker — kein K-HART/K-HARTFOLGE", () => {
+  const proj = mkProj([{ date: "2026-07-20" }, { date: "2026-07-21" }, { date: "2026-07-22" }]);
+  const cards = [easyRun("a", "2026-07-20"), easyRun("b", "2026-07-21"), easyRun("c", "2026-07-22")];
+  const r = rules(detectConflicts(proj, cards, []));
+  assert.ok(!r.includes("K-HART"), "kein K-HART");
+  assert.ok(!r.includes("K-HARTFOLGE"), "kein K-HARTFOLGE");
+});
+
+test("E4: eine volle Woche Laufkarten löst K-WOCHENTSS NICHT aus (Rad-Wochen-TSS je Sport getrennt)", () => {
+  const days = ONE_WEEK_DATES.map((date, i) => ({ date, tsb: 0, cardIds: [`r${i}`], tss: 200, ctl: 50 }));
+  const proj = { days, startCtl: 50 };
+  const cards = ONE_WEEK_DATES.map((date, i) => hardRun(`r${i}`, date));
+  assert.equal(
+    byRule(detectConflicts(proj, cards, []), "K-WOCHENTSS").length,
+    0,
+    "200×7 TRIMP zählt nicht gegen die Rad-Obergrenze CTL×8"
+  );
+});
+
+test("E4: K-TID ignoriert Lauf-Ist-Fahrten — nur Rad-IF speist die Intensitätsverteilung", () => {
+  const proj = mkProj([{ date: "2026-07-20" }]);
+  const cards = [{ id: "a", date: "2026-07-20", typ: "Sweet Spot", phase: "Sweet Spot" }]; // Rad-Blockkorridor
+  const actuals = [
+    { dateISO: "2026-07-01", if: 0.85, sport: "ride" }, // im Korridor
+    { dateISO: "2026-07-05", if: 1.4, sport: "run" }, // hoch, aber Lauf → zählt nicht
+    { dateISO: "2026-07-10", if: 1.5, sport: "run" }, // hoch, aber Lauf → zählt nicht
+  ];
+  // Ohne den Sport-Filter läge der Anteil oberhalb des Korridors bei 2/3 → K-TID.
+  assert.equal(byRule(detectConflicts(proj, cards, [], actuals), "K-TID").length, 0);
+});
+
+test("E4 Regression: K-WOCHENTSS feuert unverändert für eine reine Radkarten-Woche", () => {
+  const days = ONE_WEEK_DATES.map((date, i) => ({ date, tsb: 0, cardIds: [`r${i}`], tss: 70, ctl: 50 }));
+  const proj = { days, startCtl: 50 };
+  const cards = ONE_WEEK_DATES.map((date, i) => ({ id: `r${i}`, date, typ: "Sweet Spot" })); // ride, ohne sport
+  const c = byRule(detectConflicts(proj, cards, []), "K-WOCHENTSS"); // 490 > 400
+  assert.equal(c.length, 1);
+  assert.equal(c[0].severity, "warning");
+});
+
+test("E4 Regression: reine Radkarten-Konstellation liefert exakt dieselbe Konfliktliste wie vor E4", () => {
+  const proj = mkProj([{ date: "2026-07-24" }, { date: "2026-07-25" }, { date: "2026-07-26" }]);
+  const cards = [hard("a", "2026-07-24"), easy("b", "2026-07-25"), hard("c", "2026-07-26")];
+  assert.deepEqual(rules(detectConflicts(proj, cards, [])).sort(), ["K-HARTFOLGE"]);
+});
+
 /* ── Kombination + Auflösung ─────────────────────────────────── */
 
 test("Zwei Regeln am selben Tag: tiefer TSB löst K-TSB UND K-TSB2 aus", () => {

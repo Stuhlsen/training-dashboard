@@ -13,7 +13,8 @@
 
 import { fmtDate, addDaysISO } from "./format.js";
 import { isoWeekKey } from "./aggregate.js";
-import { CONFLICT_THRESHOLDS, INTENSITY_CLASS, intensityClass } from "./plan-config.js";
+import { CONFLICT_THRESHOLDS, INTENSITY_CLASS, intensityClassForCard } from "./plan-config.js";
+import { activitySport } from "./activity-sport.js";
 import { weeklyCtlRamp } from "./projection.js";
 import { RECOVERY_CARD_TYPES } from "./plan-feedback.js";
 import { currentBlockTarget, PHASE_SIGNATURES } from "./periodization.js";
@@ -113,17 +114,20 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
    *  D6 (docs/konzept-progressionssteuerung.md) fielen "keine Karte" und
    *  "Ruhetag-Karte" beide auf "ruhe" — K-LEER unten unterscheidet das jetzt
    *  bewusst (nur "leer" löst aus). */
+  // Fahrplan 12 E4: die Intensitätsklasse einer Karte wird je `card.sport`
+  // aufgelöst (Laufkarte → RUNNING_INTENSITY_CLASS, sonst die Rad-Tabelle
+  // `intensityTable`). Eine Karte ohne `sport` bleibt byte-identisch zu vorher.
   const classOf = (date) => {
     const dc = cardsByDate.get(date) || [];
     if (!dc.length) return isRestEquivalent(date) ? "ruhe" : "leer";
-    const classes = dc.map((c) => intensityClass(c.typ, intensityTable));
+    const classes = dc.map((c) => intensityClassForCard(c, intensityTable));
     if (classes.includes("hart")) return "hart";
     if (classes.some((k) => k === "moderat" || k === "locker")) return "aktiv";
     return "ruhe";
   };
   const hardCardIds = (date) =>
     (cardsByDate.get(date) || [])
-      .filter((c) => intensityClass(c.typ, intensityTable) === "hart")
+      .filter((c) => intensityClassForCard(c, intensityTable) === "hart")
       .map((c) => c.id);
 
   const conflicts = [];
@@ -156,6 +160,9 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   }
 
   // ── K-HART: harte Einheiten an Folgetagen ──────────────────────
+  //    Seit Fahrplan 12 übergreifend Rad+Lauf: die days-Schleife kennt keine
+  //    Sportart, classOf() löst die Intensität je card.sport auf — ein harter
+  //    Lauf am Tag nach einer harten Radeinheit zählt mit.
   for (const run of runsWhere(days, (d) => classOf(d.date) === "hart")) {
     if (run.length < cfg.hardStreakInfo) continue;
     const dates = run.map((d) => d.date);
@@ -243,11 +250,10 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   }
 
   // ── K-HARTFOLGE (P2, neu): zwei harte Tage ohne rest-/recovery- ─
-  //    Fahrplan 10 E6: K-HARTFOLGE / K-WOCHENTSS / K-TID werten bewusst NUR
-  //    Rad-Plankarten aus (intensityClass hängt an der Rad-Typenliste). Eine
-  //    harte Laufeinheit nach einer harten Radeinheit ist genau der Zielfall
-  //    — die Cross-Sport-Eichung dieser Regeln ist Fahrplan 10 Phase 2
-  //    (verschiebbare Grenze, nicht bröckelnd).
+  //    Seit Fahrplan 12 übergreifend Rad+Lauf: classOf() löst die Intensität
+  //    je card.sport auf (Laufkarte → RUNNING_INTENSITY_CLASS), die Schleife
+  //    selbst kennt keine Sportart. Eine harte Laufeinheit nach einer harten
+  //    Radeinheit ohne Ruhetag dazwischen ist genau der Zielfall.
   //    Karte dazwischen (D6.2). Nur die NÄCHSTE vorangehende harte Karte
   //    zählt (kein O(n²) über alle Paare) — echte Rückenlücke = 0
   //    (unmittelbar aufeinanderfolgende harte Tage) deckt bereits K-HART
@@ -284,7 +290,37 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   }
 
   // ── K-WOCHENTSS (P2, neu): Wochen-TSS > CTL(Wochenstart) × Faktor ─
-  for (const w of weeks.filter((w) => w !== seed)) {
+  //    Je Sport getrennt (Fahrplan 12 E4): nur Rad-Karten speisen die
+  //    Wochen-TSS-Obergrenze. Die Last einer Laufkarte ist TRIMP-skaliert,
+  //    die Obergrenze CTL(Wochenstart)×Faktor ist eine TSS-Größe — die
+  //    Cross-Sport-Last-Summierung / TRIMP↔TSS-Eichung ist Fahrplan 10
+  //    Phase 3.
+  //    Fast-Pfad: trägt der Plan keine Nicht-Rad-Karte (alle Bestands-
+  //    athleten), ist die sport-gefilterte Wochensumme identisch zu `weeks`
+  //    — dann kein zweiter weeklyTss-Lauf, keine Kopie (detectConflicts
+  //    läuft im Planungstab pro Drag neu). Sonst zählen Tage mit
+  //    ausschließlich Nicht-Rad-Karten mit tss 0 (die 7 Tage der Woche
+  //    bleiben erhalten, sonst fiele die Woche aus der „nur volle Wochen"-
+  //    Prüfung); ein Misch-Tag (Rad + Lauf, selten, K-OVERLAP warnt) zählt
+  //    konservativ voll. `weeks` enthält an dieser Stelle den Ist-Seed
+  //    vorne (K-WOCHENSPRUNG-unshift) — die alte `!== seed`-Filterung
+  //    bleibt im Fast-Pfad erhalten; `weeklyTss()` erzeugt den Seed nie.
+  let hasNonRideCard = false;
+  for (const dc of cardsByDate.values()) {
+    if (dc.some((c) => activitySport(c) !== "ride")) {
+      hasNonRideCard = true;
+      break;
+    }
+  }
+  const rideWeeks = hasNonRideCard
+    ? weeklyTss(
+        days.map((d) => {
+          const dc = cardsByDate.get(d.date) || [];
+          return dc.length && !dc.some((c) => activitySport(c) === "ride") ? { ...d, tss: 0 } : d;
+        })
+      )
+    : weeks.filter((w) => w !== seed);
+  for (const w of rideWeeks) {
     const idx = days.findIndex((d) => d.date === w.firstDate);
     const ctlAtStart = idx > 0 ? days[idx - 1].ctl : projection?.startCtl;
     if (!Number.isFinite(ctlAtStart)) continue;
@@ -306,13 +342,18 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   //    korridors über die letzten 4 Ist-Wochen (`r.if`, bereits vorhanden).
   //    Kein Korridor für die aktuelle Blockphase (Taper/Übergang/kein
   //    Blockziel) → keine Regel, keine Aussage.
-  const tidPhase = currentBlockTarget(cards, today);
+  // Je Sport getrennt (Fahrplan 12 E4): Blockkorridor UND Ist-Fenster nur aus
+  // Rad-Karten bzw. Rad-Ist-Fahrten — PHASE_SIGNATURES und `r.if` sind
+  // radsportkalibriert. Cross-Sport-Eichung / kombinierte Intensitäts-
+  // verteilung = Fahrplan 10 Phase 3.
+  const rideCards = (cards || []).filter((c) => activitySport(c) === "ride");
+  const tidPhase = currentBlockTarget(rideCards, today);
   const tidCorridor = tidPhase ? PHASE_SIGNATURES[tidPhase] : null;
   if (tidCorridor) {
     const tidFrom = addDaysISO(today, -28);
     const tidWindow = (actuals || []).filter((r) => {
       const d = r.dateISO || r.date;
-      return d && d >= tidFrom && d < today && r.if != null;
+      return d && d >= tidFrom && d < today && r.if != null && activitySport(r) === "ride";
     });
     if (tidWindow.length) {
       const above = tidWindow.filter((r) => r.if > tidCorridor.ifMax).length;

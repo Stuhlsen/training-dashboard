@@ -115,6 +115,32 @@ test("estimateTss: opts.sport wird in scale.sport durchgereicht (Default 'ride')
   assert.equal(estimateTss({ tssPlanned: 50 }, { sport: "swim" }).scale.sport, "swim");
 });
 
+/* ── Fahrplan 12 E4: Dispatch je card.sport auf das Lauf-SportProfile ── */
+
+test("estimateTss: Laufkarte (card.sport 'run') zieht den Typ-Default aus RUNNING_TYPE_DEFAULT_LOAD, Skala 'trimp'", () => {
+  const r = estimateTss({ typ: "Dauerlauf", sport: "run" });
+  assert.deepEqual(r, { tss: 55, uncertain: true, source: "type", scale: { source: "trimp", sport: "run" } });
+});
+
+test("estimateTss: Laufkarte mit explizitem Zielwert → source 'target', Skala 'trimp'", () => {
+  const r = estimateTss({ tssPlanned: 90, sport: "run", typ: "Intervalle" });
+  assert.deepEqual(r, { tss: 90, uncertain: false, source: "target", scale: { source: "trimp", sport: "run" } });
+});
+
+test("estimateTss: unbekannter Lauftyp → Lauf-Fallback-Last, Skala 'trimp'", () => {
+  const r = estimateTss({ typ: "Gibt-es-nicht", sport: "run" });
+  assert.equal(r.tss, 60);
+  assert.equal(r.source, "type");
+  assert.deepEqual(r.scale, { source: "trimp", sport: "run" });
+});
+
+test("estimateTss: card.sport 'ride' (bzw. fehlend) bleibt byte-identisch zum Rad-Pfad", () => {
+  assert.deepEqual(
+    estimateTss({ typ: "Z2 Lang", sport: "ride" }),
+    estimateTss({ typ: "Z2 Lang" })
+  );
+});
+
 /* ── projectLoad: bekannte PMC-Kurve ─────────────────────────── */
 
 test("projectLoad schreibt CTL/ATL/TSB gegen die handgerechnete Kurve fort", () => {

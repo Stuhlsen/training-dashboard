@@ -15,6 +15,7 @@ import { diffDays, addDaysISO } from "./format.js";
 import { buildLoadGuard, RAMP_HIGH } from "./loadguard.js";
 import { weeklyCtlRamp } from "./projection.js";
 import { intensityClass } from "./plan-config.js";
+import { activitySport } from "./activity-sport.js";
 import { currentBlockTarget, PHASE_SIGNATURES } from "./periodization.js";
 
 const weekKeyFn = (r) => (r.dateISO ? isoWeekKey(r.dateISO) : null);
@@ -55,6 +56,8 @@ function hardDaysPerWeek(cards, today) {
   const byWeek = new Map();
   for (const c of cards || []) {
     if (c.cancelled || !c.date || c.date < today) continue;
+    // Rad-Briefing; Lauf-Leitplanken = E6, reduziert (Fahrplan 12 E4).
+    if (activitySport(c) !== "ride") continue;
     if (intensityClass(c.typ) !== "hart") continue;
     const key = isoWeekKey(c.date);
     byWeek.set(key, (byWeek.get(key) || 0) + 1);
@@ -66,7 +69,8 @@ function hardDaysPerWeek(cards, today) {
  *  oder null bei weniger als zwei harten Tagen. */
 function shortestHardGap(cards, today) {
   const hardDates = (cards || [])
-    .filter((c) => !c.cancelled && c.date >= today && intensityClass(c.typ) === "hart")
+    // Rad-Briefing; Lauf-Leitplanken = E6, reduziert (Fahrplan 12 E4).
+    .filter((c) => !c.cancelled && c.date >= today && activitySport(c) === "ride" && intensityClass(c.typ) === "hart")
     .map((c) => c.date)
     .sort();
   if (hardDates.length < 2) return null;
@@ -87,12 +91,18 @@ function shortestHardGap(cards, today) {
  *  @param {Array<{date:string, phase?:string|null, cancelled?:boolean}>} cards
  *  @param {string} today */
 function tidVsCorridor(actuals, cards, today) {
-  const phase = currentBlockTarget(cards, today);
+  // Rad-Briefing; Lauf-Leitplanken = E6, reduziert (Fahrplan 12 E4):
+  // PHASE_SIGNATURES + `r.if` sind radsportkalibriert, deshalb Blockkorridor
+  // und Ist-Fenster nur aus Rad-Karten bzw. Rad-Ist-Fahrten.
+  const rideCards = (cards || []).filter((c) => activitySport(c) === "ride");
+  const phase = currentBlockTarget(rideCards, today);
   const corridor = phase ? PHASE_SIGNATURES[phase] : null;
   if (!corridor) return null;
 
   const fromIso = addDaysISO(today, -28);
-  const window = (actuals || []).filter((r) => r.dateISO >= fromIso && r.dateISO < today && r.if != null);
+  const window = (actuals || []).filter(
+    (r) => r.dateISO >= fromIso && r.dateISO < today && r.if != null && activitySport(r) === "ride"
+  );
   if (!window.length) return null;
 
   const above = window.filter((r) => r.if > corridor.ifMax).length;

@@ -23,6 +23,7 @@ import { computeWorkoutSummary } from "./workout-math.js";
 import { localISODate, addDaysISO } from "./format.js";
 import { isoWeekKey } from "./aggregate.js";
 import { TYPE_DEFAULT_TSS, FALLBACK_TSS, TYPE_DEFAULT_TSS_APPROX_TYPES } from "./plan-config.js";
+import { sportProfileFor } from "../sports/index.js";
 
 /** Auf 2 Nachkommastellen runden (nur für die Ausgabe — die Fortschreibung
  *  selbst rollt ungerundet, damit sich Rundungsfehler nicht akkumulieren). */
@@ -57,32 +58,47 @@ function round2(n) {
  *   Typ-Defaults ohne eigene TSS-Belege (TRIMP-Median × gepoolter Faktor, s.
  *   plan-config.js::TYPE_DEFAULT_TSS_APPROX_TYPES) — damit ein späterer Leser
  *   nicht erneut raten muss, welche Werte eine Messgröße und welche eine
- *   Näherung sind. "trimp"/"rpe" sind für Nicht-Rad-Karten reserviert
- *   (Fahrplan 10 Phase 2) — estimateTss erzeugt sie noch nicht.
- *   `sport` — Sportart-Herkunft (Vertrag V3), Default "ride". In Phase 1
- *   trägt keine Plankarte eine andere Sportart; die sport-abhängige
- *   defaultLoad je `SportProfile.sessionTypes`, die K-Regeln und ein
- *   Dispatch auf running/swimming sind Fahrplan 10 Phase 2. Hier wird `sport`
- *   nur durchgereicht — bewusst KEIN toter Nicht-Rad-Zweig.
+ *   Näherung sind. "trimp" trägt seit Fahrplan 12 E4 jede Nicht-Rad-Karte
+ *   (Laufkarten-Last ist eine Banister-TRIMP-Näherung); "rpe" ist weiter
+ *   reserviert und wird noch nicht erzeugt.
+ *   `sport` — Sportart-Herkunft (Vertrag V3). Herkunft: `card.sport`, sonst
+ *   `opts.sport`, sonst "ride" (`card.sport` gewinnt bewusst über
+ *   `opts.sport` — der Dispatch hängt an der Karte, nicht am Aufrufkontext).
+ *   Für "run"/"swim" kommen Typ-Default-Satz und Rückfall-Last aus dem
+ *   jeweiligen `SportProfile.sessionTypes` (Fahrplan 12 E4); "other"/
+ *   unbekannt fällt auf die Rad-Konstanten zurück.
  * Die historische CTL/ATL/TSB-Reihe bleibt davon unberührt (pmc-series.js
  * liest icu_ctl/icu_atl je Fahrt) — eine eigene historische TRIMP-PMC-
- * Rechnung ist Fahrplan 10 Phase 3.
+ * Rechnung bzw. die Cross-Sport-Last-Summierung ist Fahrplan 10 Phase 3.
  *
- * @param {{tssPlanned?: number|null, workout?: Object|null, workoutStructure?: Object|null, typ?: string|null}} card
+ * @param {{tssPlanned?: number|null, workout?: Object|null, workoutStructure?: Object|null, typ?: string|null, sport?: "ride"|"run"|"swim"}} card
  * @param {{typeDefaults?: Record<string,number>, fallbackTss?: number, ftp?: number, approxTypes?: Set<string>, sport?: "ride"|"run"|"swim"}} [opts]
  * @returns {{tss: number, uncertain: boolean, source: "structure"|"target"|"workout"|"type", scale: {source: "tss"|"tss-approx"|"trimp"|"rpe", sport: "ride"|"run"|"swim"}}}
  */
 export function estimateTss(card, opts = {}) {
-  const typeDefaults = opts.typeDefaults ?? TYPE_DEFAULT_TSS;
-  const fallbackTss = opts.fallbackTss ?? FALLBACK_TSS;
-  const approxTypes = opts.approxTypes ?? TYPE_DEFAULT_TSS_APPROX_TYPES;
-  const sport = opts.sport ?? "ride";
+  // Fahrplan 12 E4 (W4): Dispatch je `card.sport` (fällt auf `opts.sport`,
+  // dann "ride"). Für Rad bleibt alles byte-identisch (kein Profil-Lookup,
+  // dieselben Konstanten, scale.source "tss"/"tss-approx"). Für eine
+  // Laufkarte kommen Typ-Default-Satz + Rückfall aus dem Lauf-SportProfile,
+  // und die Last ist durchweg eine Banister-TRIMP-Näherung → scale.source
+  // "trimp". Cross-Sport-Last-Summierung / TRIMP↔TSS-Eichung = Fahrplan 10
+  // Phase 3.
+  const sport = card?.sport ?? opts.sport ?? "ride";
+  const profile = sport === "ride" ? null : sportProfileFor(sport);
+  const typeDefaults = opts.typeDefaults ?? profile?.sessionTypes.defaultLoad ?? TYPE_DEFAULT_TSS;
+  const fallbackTss = opts.fallbackTss ?? profile?.classify.fallbackLoad ?? FALLBACK_TSS;
+  const approxTypes = opts.approxTypes ?? profile?.sessionTypes.defaultLoadApprox ?? TYPE_DEFAULT_TSS_APPROX_TYPES;
+  // Skala der gemeldeten Last: Rad rechnet in TSS, jede andere Sportart in
+  // TRIMP (die "tss-approx"-Feinunterscheidung gibt es nur beim Rad).
+  const loadScale = sport === "ride" ? "tss" : "trimp";
 
-  // 1. berechneter Wert aus der Workout-Struktur (echter TSS, kein Freitext)
+  // 1. berechneter Wert aus der Workout-Struktur (echter TSS, kein Freitext).
+  //    Laufkarten tragen workout_structure immer null (Fahrplan 12 G21) —
+  //    dieser Zweig greift für sie nie.
   if (card?.workoutStructure) {
     const { computedTss } = computeWorkoutSummary(card.workoutStructure, opts.ftp);
     if (computedTss > 0) {
-      return { tss: computedTss, uncertain: false, source: "structure", scale: { source: "tss", sport } };
+      return { tss: computedTss, uncertain: false, source: "structure", scale: { source: loadScale, sport } };
     }
   }
 
@@ -90,18 +106,19 @@ export function estimateTss(card, opts = {}) {
   //    NaN würde sonst als "gesetzt" durchgehen und die gesamte Kurve mit
   //    NaN vergiften — 0 bleibt ein gültiger expliziter Wert)
   if (Number.isFinite(card?.tssPlanned)) {
-    return { tss: card.tssPlanned, uncertain: false, source: "target", scale: { source: "tss", sport } };
+    return { tss: card.tssPlanned, uncertain: false, source: "target", scale: { source: loadScale, sport } };
   }
 
   // 3. Schätzung aus den Workout-Blöcken (nur wenn sie etwas ergibt)
   if (card?.workout) {
     const est = estimateSessionTSS(card.workout, opts.ftp);
-    if (est > 0) return { tss: est, uncertain: true, source: "workout", scale: { source: "tss", sport } };
+    if (est > 0) return { tss: est, uncertain: true, source: "workout", scale: { source: loadScale, sport } };
   }
 
-  // 4. Typ-Default (Median-TSS je Typ, wo belegt — sonst TRIMP-Näherung)
+  // 4. Typ-Default (Rad: Median-TSS je Typ, wo belegt — sonst TRIMP-Näherung;
+  //    Lauf: durchweg TRIMP-Näherung aus RUNNING_TYPE_DEFAULT_LOAD)
   const tss = typeDefaults[card?.typ] ?? fallbackTss;
-  const source = approxTypes.has(card?.typ) ? "tss-approx" : "tss";
+  const source = sport === "ride" ? (approxTypes.has(card?.typ) ? "tss-approx" : "tss") : loadScale;
   return { tss, uncertain: true, source: "type", scale: { source, sport } };
 }
 

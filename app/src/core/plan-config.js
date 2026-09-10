@@ -25,6 +25,7 @@ import {
   TYPE_EXPECTED_BAND,
   INTENSITY_CLASS,
 } from "../sports/cycling/session-types.js";
+import { RUNNING_INTENSITY_CLASS } from "../sports/running/session-types.js";
 import { SESSION_CLASSIFY, FALLBACK_TSS } from "../sports/cycling/classify.js";
 
 export {
@@ -181,4 +182,21 @@ export const FORMAT_MATCH = Object.freeze({
  */
 export function intensityClass(typ, table = INTENSITY_CLASS) {
   return /** @type {any} */ (table[typ] ?? "moderat");
+}
+
+/**
+ * Intensitätsklasse einer PLANKARTE — wie {@link intensityClass}, aber die
+ * Typ-Tabelle richtet sich nach `card.sport` (Fahrplan 12 E4): eine Laufkarte
+ * (`sport === "run"`) wird gegen `RUNNING_INTENSITY_CLASS` aufgelöst, jede
+ * andere Karte (inkl. fehlendem `sport` ⇒ „ride") gegen die Rad-Tabelle.
+ * Eine Karte ohne `sport` verhält sich damit byte-identisch zu vorher
+ * (Golden-Master 1/2/4). Schmaler Helfer für core/conflicts.js, damit die
+ * K-Regeln nicht selbst je Sportart die Tabelle wählen müssen.
+ * @param {{typ?: string|null, sport?: string|null}} card
+ * @param {Record<string,string>} [rideTable] Rad-Tabelle (Default INTENSITY_CLASS)
+ * @returns {"hart"|"moderat"|"locker"|"ruhe"}
+ */
+export function intensityClassForCard(card, rideTable = INTENSITY_CLASS) {
+  const table = card?.sport === "run" ? RUNNING_INTENSITY_CLASS : rideTable;
+  return intensityClass(card?.typ, table);
 }
