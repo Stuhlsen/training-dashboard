@@ -5,7 +5,7 @@ import type { PlanCard, PlanCardInput, PlanCardPatch, Result, WorkoutJson } from
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
   "id, planned_date, sort_order, title, workout_type, km, duration_min, tss_planned, " +
-  "status, note, workout, workout_structure, cancel_reason, moved_from_date, previous_date, move_reason, week, phase, " +
+  "status, note, workout, workout_structure, cancel_reason, moved_from_date, previous_date, move_reason, week, phase, sport, " +
   "pushed_external_id, created_at, updated_at";
 
 interface PlanCardRow {
@@ -27,6 +27,9 @@ interface PlanCardRow {
   move_reason: string | null;
   week: string | null;
   phase: string | null;
+  /** Sportart der Karte (Migration 0037). NOT NULL DEFAULT 'ride' in der DB;
+   *  Bestandszeilen sind auf 'ride' backfilled. Fahrplan 12 W1. */
+  sport: "ride" | "run" | "swim";
   pushed_external_id: string | null;
   created_at: string;
   updated_at: string;
@@ -48,6 +51,7 @@ function toPlanCard(row: PlanCardRow): PlanCard {
     tssPlanned: row.tss_planned,
     week: row.week,
     phase: row.phase,
+    sport: row.sport ?? "ride",
     details: row.note,
     workout: row.workout,
     workoutStructure: row.workout_structure,
@@ -103,6 +107,7 @@ export async function updatePlanCard(
   if (patch.pushedExternalId !== undefined) updates.pushed_external_id = patch.pushedExternalId;
   if (patch.week !== undefined) updates.week = patch.week;
   if (patch.phase !== undefined) updates.phase = patch.phase;
+  if (patch.sport !== undefined) updates.sport = patch.sport;
 
   const { data, error } = await client
     .from("plan_cards")
@@ -136,6 +141,7 @@ export async function createPlanCard(
       note: card.details ?? null,
       workout: card.workout ?? null,
       workout_structure: card.workoutStructure ?? null,
+      sport: card.sport ?? "ride",
     })
     .select(SELECT_COLS)
     .single<PlanCardRow>();
@@ -158,6 +164,8 @@ export interface PlanCardBulkDraft {
   workout: WorkoutJson;
   workoutStructure: WorkoutJson;
   sortOrder: number;
+  /** Sportart der Karte (Migration 0037). Fehlt ⇒ "ride". Fahrplan 12 W1. */
+  sport?: "ride" | "run" | "swim";
 }
 
 /** Schreibt alle Karten eines erzeugten Plans in einem `insert` — mit
@@ -189,6 +197,7 @@ export async function createPlanCards(
         phase: c.phase ?? null,
         workout: c.workout ?? null,
         workout_structure: c.workoutStructure ?? null,
+        sport: c.sport ?? "ride",
       })),
     )
     .select(SELECT_COLS)

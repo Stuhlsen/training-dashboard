@@ -26,7 +26,7 @@ import { ENV } from "./env.js";
 import { log } from "./log.js";
 
 const SELECT_COLS =
-  "id,planned_date,moved_from_date,sort_order,title,workout_type,workout_structure,status";
+  "id,planned_date,moved_from_date,sort_order,title,workout_type,workout_structure,status,sport";
 
 /** Eine plan_cards-Zeile (PostgREST-Spaltennamen) auf die schlanke Shape
  *  mappen, die core/compliance-match.js braucht.
@@ -41,7 +41,25 @@ function toCard(row) {
     typ: row.workout_type,
     workoutStructure: row.workout_structure ?? null,
     status: row.status,
+    sport: row.sport ?? "ride",
   };
+}
+
+/**
+ * PostgREST-Zeilen auf die schlanke Shape mappen UND auf Rad-Karten
+ * einschränken.
+ *
+ * Cross-Sport → Fahrplan 12 Phase 2/3-Grenze (TRIMP<->TSS-Last-Summierung
+ * = Fahrplan 10 Phase 3): Nicht-Rad-Karten (`sport` "run"/"swim", Migration
+ * 0037) fließen NICHT in die Rad-Pipeline (`rides-N.json`) — weder in den
+ * `effectivePlan`-/`buildPlanCardTypeIndex`-Merge noch in `attachCompliance`.
+ * Sie leben ausschließlich in Supabase fürs Frontend (Planungstab-Lauf-Tab,
+ * ab Fahrplan 12 E3). Bestandskarten ohne `sport` zählen als Rad.
+ * @param {Object[]} rows
+ * @returns {ReturnType<typeof toCard>[]}
+ */
+function toRideCards(rows) {
+  return rows.map(toCard).filter((c) => c.sport === "ride" || c.sport == null);
 }
 
 /**
@@ -87,6 +105,9 @@ function toCard(row) {
 export function buildPlanCardTypeIndex(cards) {
   const byDate = new Map();
   const vacatedDates = new Set();
+  // Hinweis: `cards` ist bereits Rad-only — loadPlanCards()/toRideCards()
+  // filtert Nicht-Rad-Karten aus, bevor sie diesen (oder attachCompliance)
+  // erreichen (Fahrplan 12 Phase 2/3-Grenze, s. toRideCards).
   for (const card of cards) {
     if (!card.date) continue;
     if (!byDate.has(card.date)) byDate.set(card.date, []);
@@ -123,7 +144,7 @@ export function buildPlanCardTypeIndex(cards) {
  * @param {{fromDate:string}} opts Datum (YYYY-MM-DD), ab dem Karten geladen werden
  * @returns {Promise<Array<{id:string, date:string, movedFromDate:string|null,
  *   sortOrder:number, name:string, typ:string, workoutStructure:Object|null,
- *   status:string}>>}
+ *   status:string, sport:string}>>}
  */
 export async function loadPlanCards(
   { profileId, serviceRoleKey, email, password } = {},
@@ -148,7 +169,7 @@ export async function loadPlanCards(
         log.warn(`plan_cards: Abruf fehlgeschlagen (HTTP ${res.status}) — keine Compliance-Auswertung`);
         return [];
       }
-      return (await res.json()).map(toCard);
+      return toRideCards(await res.json());
     }
 
     if (!ENV.SUPABASE_ANON_KEY || !email || !password) return [];
@@ -167,7 +188,7 @@ export async function loadPlanCards(
       log.warn(`plan_cards: Abruf fehlgeschlagen (HTTP ${res.status}) — keine Compliance-Auswertung`);
       return [];
     }
-    return (await res.json()).map(toCard);
+    return toRideCards(await res.json());
   } catch (e) {
     log.warn(`plan_cards: Netzwerkfehler beim Abruf (${e.message}) — keine Compliance-Auswertung`);
     return [];

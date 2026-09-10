@@ -47,7 +47,13 @@ export interface Profile {
 /** Strukturiertes Workout einer Plankarte. Bewusst `unknown`-durchgereicht:
  *  die Struktur (Intervallblöcke, watts/pct) wird in Etappe 6 (Planungstab)
  *  getypt, wenn die Karten-UI sie tatsächlich liest — hier würde ein
- *  geratener Typ nur eine zweite Wahrheit neben core/workout-*.js schaffen. */
+ *  geratener Typ nur eine zweite Wahrheit neben core/workout-*.js schaffen.
+ *
+ *  Fahrplan 12 W2: eine Laufkarte trägt zusätzlich `paceSec` (Ganzzahl
+ *  Sekunden pro km) in diesem JSON. Der Wert wird erst getypt gelesen, wenn
+ *  das Kartenformular (E3) ihn tatsächlich anfasst — bis dahin bleibt der
+ *  Typ offen, damit die vielen `object|null`-Anschlussstellen (Generator,
+ *  Vorschlags-Payload, FTP-Rescale, intervals-Push) unverändert passen. */
 export type WorkoutJson = unknown;
 
 /** Plankarte in der "Session-Shape", die bisher core/planning.js::
@@ -63,6 +69,9 @@ export interface PlanCard {
   tssPlanned: number | null;
   week: string | null;
   phase: string | null;
+  /** Sportart der Karte (Migration 0037). Fehlt beim Lesen ⇒ "ride"
+   *  (toPlanCard mappt das). Fahrplan 12 W1. */
+  sport?: "ride" | "run" | "swim";
   details: string | null;
   workout: WorkoutJson;
   workoutStructure: WorkoutJson;
@@ -105,6 +114,9 @@ export interface PlanCardPatch {
   pushedExternalId?: string | null;
   week?: string | null;
   phase?: string | null;
+  /** Sportart der Karte (Migration 0037). Nur gesetzt, wenn der Aufrufer sie
+   *  wirklich ändert. Fahrplan 12 W1. */
+  sport?: "ride" | "run" | "swim";
 }
 
 /** Eingabe-Shape der Karten-Dialoge (Anlegen/Vollbearbeitung) — nicht
@@ -119,6 +131,9 @@ export interface PlanCardInput {
   workout?: WorkoutJson;
   workoutStructure?: WorkoutJson;
   sortOrder?: number;
+  /** Sportart der Karte (Migration 0037). Fehlt ⇒ "ride" beim Schreiben.
+   *  Fahrplan 12 W1. */
+  sport?: "ride" | "run" | "swim";
 }
 
 /* ── Trainingsplan-Generator (Fahrplan 8) ───────────────────────────
