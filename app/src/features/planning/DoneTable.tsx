@@ -1,6 +1,7 @@
 import { Fragment, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { fmt, fmtDate, fmtInt } from "../../core/format.js";
+import { activitySport, sportEmoji } from "../../core/activity-sport.js";
 import { RATING_COLOR, RATING_ICON } from "./compliance-rating";
 import { DoneCompareBlock } from "./DoneCompareBlock";
 import type { DoneTableRow, GapChip, PlanFidelitySummary } from "./done-table-view-model";
@@ -99,6 +100,10 @@ export function DoneTable({ rows, fidelity, gaps, athleteId, ftp, cadenceTarget 
                       </td>
                       <td style={CELL_STYLE}>
                         <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
+                          {/* Sportart-Marker (Fahrplan 12 E3): nur für Nicht-Rad. */}
+                          {activitySport(row.card) !== "ride" && (
+                            <span aria-hidden="true">{sportEmoji(activitySport(row.card))}</span>
+                          )}
                           <span aria-hidden="true">{row.typIcon}</span>
                           <span style={{ color: "var(--ink)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                             {row.name}

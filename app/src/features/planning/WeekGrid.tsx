@@ -4,6 +4,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { InfoTooltip } from "../../components/InfoTooltip";
 import { phaseColor } from "../../config";
 import { fmtDate } from "../../core/format.js";
+import { activitySport, sportEmoji } from "../../core/activity-sport.js";
 import { canDragCard, isDropAllowed } from "../../core/plan-drag.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
 import { typeColor, typeIcon } from "./planning-view-model";
@@ -243,6 +244,11 @@ function DayCell({ cell, today, canEdit, trainerProposalMode, isOpen, onToggle }
       </div>
       {cell.card && (
         <div style={{ display: "flex", alignItems: "center", gap: 4, minWidth: 0 }}>
+          {/* Sportart-Marker (Fahrplan 12 E3, Muster aus LogbookPage): nur für
+              Nicht-Rad — Rad ist der Default und bleibt markerlos. */}
+          {activitySport(cell.card) !== "ride" && (
+            <span aria-hidden="true">{sportEmoji(activitySport(cell.card))}</span>
+          )}
           <span aria-hidden="true">{typeIcon(cell.card.typ)}</span>
           <span
             style={{

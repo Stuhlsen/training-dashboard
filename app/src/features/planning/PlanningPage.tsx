@@ -15,6 +15,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { hasGeneratedPlan } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
+import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
 import { useActiveWeekModel } from "../../api/hooks/useActiveTrainingPlan";
 import { useCanCreatePlan, useCanWriteForAthlete, useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
@@ -134,6 +135,10 @@ export function PlanningPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const { activeAthleteId } = useActiveAthlete();
+  // Aktive Sportart des Umschalters (Fahrplan 12 E3) — steuert den
+  // Leerzustand-Text für den Lauf-Tab. Die Kartenliste selbst filtert bereits
+  // usePlanCards (select). Athlet 1/2/4 ⇒ immer "ride", kein Unterschied.
+  const { effectiveSport } = useEffectiveSport(activeAthleteId);
   // Plan-Verschiebung (`profiles.plan_offset_weeks`, Migration 0026) — verschiebt
   // Ruhetag-Ableitung, Erholungs-Schattierung und Phasen-Überschriften im
   // Wochenraster + die Ruhe-Slot-Konfliktprüfung um N ganze Wochen mit. Zieht
@@ -575,15 +580,25 @@ export function PlanningPage() {
       {!isLoading && !error && !weekGrid.length && !sections.done.length && (
         <GlassCard variant="soft" style={{ padding: "28px 24px", display: "flex", flexDirection: "column", gap: 12, alignItems: "flex-start" }}>
           <p style={{ margin: 0, color: "var(--ink-3)", fontSize: ".9rem" }}>
-            {canCreatePlan
-              ? "Noch kein Trainingsplan angelegt."
-              : "Für diesen Athleten ist kein Trainingsplan hinterlegt."}
+            {effectiveSport === "run"
+              ? "Noch kein Laufplan — lege eine Karte an."
+              : canCreatePlan
+                ? "Noch kein Trainingsplan angelegt."
+                : "Für diesen Athleten ist kein Trainingsplan hinterlegt."}
           </p>
-          {canCreatePlan && (
-            <button type="button" onClick={() => setNewPlanOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
-              Plan erstellen
-            </button>
-          )}
+          {/* Lauf: loser Kartenplan, kein Generator (Fahrplan 12 G5/G12) —
+              „+ Karte" statt „Plan erstellen". Rad-Tab unverändert. */}
+          {effectiveSport === "run"
+            ? editable && (
+                <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>
+                  + Karte
+                </button>
+              )
+            : canCreatePlan && (
+                <button type="button" onClick={() => setNewPlanOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+                  Plan erstellen
+                </button>
+              )}
         </GlassCard>
       )}
 

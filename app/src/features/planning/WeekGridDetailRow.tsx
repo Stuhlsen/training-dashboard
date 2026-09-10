@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { fmt, fmtDate } from "../../core/format.js";
+import { activitySport, sportEmoji } from "../../core/activity-sport.js";
 import { cardImpact, conflictsForCard, restDayRiddenSignal } from "../../core/plan-feedback.js";
 import { projectLoad } from "../../core/projection.js";
 import { detectConflicts } from "../../core/conflicts.js";
@@ -379,6 +380,8 @@ export function WeekGridDetailRow({
             </button>
           </span>
         )}
+        {/* Sportart-Marker (Fahrplan 12 E3): nur für Nicht-Rad. */}
+        {activitySport(card) !== "ride" && <span aria-hidden="true">{sportEmoji(activitySport(card))}</span>}
         <span aria-hidden="true">{typeIcon(card.typ)}</span>
         <span style={{ fontSize: ".92rem", fontWeight: 500, color: "var(--ink)" }}>{card.name}</span>
         {planTypeTermKey(card.typ) ? (

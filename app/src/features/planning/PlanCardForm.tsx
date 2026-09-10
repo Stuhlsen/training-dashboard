@@ -1,16 +1,23 @@
 import { useEffect, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { InfoTooltip } from "../../components/InfoTooltip";
-import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
 import { addProposalArgs, replaceProposalArgs } from "../../core/proposal-payload.js";
 import { useCreatePlanCard, useDeletePlanCard, useUpdatePlanCard } from "../../api/hooks/usePlanCards";
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
+import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import type { PlanCard, PlanCardInput } from "../../api/types";
 import type { WorkoutBlock, WorkoutBlockType } from "./planning-view-model";
 import { asWorkoutBlocks } from "./planning-view-model";
+import {
+  formatPaceSec,
+  paceSecOf,
+  parsePaceInput,
+  planTypesForSport,
+  showSportPicker,
+  workoutForSave,
+  type PlanFormSport,
+} from "./plan-card-form-view-model";
 import { isTrainerCardProposalMode, type SaveMode } from "./trainer-bar-view-model";
-
-const TYP_OPTIONS: readonly string[] = KNOWN_PLAN_TYPES;
 
 const TYPE_LABEL: Record<WorkoutBlockType, string> = {
   warmup: "WU",
@@ -71,12 +78,33 @@ export function PlanCardForm({
   isTrainerSaving = false,
   saveMode = "proposal",
 }: PlanCardFormProps) {
+  // Sport-Picker nur bei Athleten mit > 1 Sportart (Fahrplan 12 E3/G20) —
+  // Athlet 1/2/4 sehen ihn nie, `sport` bleibt für sie fest "ride". Eine
+  // bestehende Schwimm-Karte hat in Phase 2 keinen Formularpfad: Picker aus,
+  // `sport` beim Speichern unverändert durchreichen (kein stiller Verlust).
+  const isSwimCard = editingCard?.sport === "swim";
+  const pickerVisible = showSportPicker(athleteId) && !isSwimCard;
+  const { effectiveSport } = useEffectiveSport(athleteId);
+  const initialSport: PlanFormSport =
+    editingCard?.sport === "run"
+      ? "run"
+      : editingCard?.sport === "ride"
+        ? "ride"
+        : pickerVisible && effectiveSport === "run"
+          ? "run"
+          : "ride";
+
+  const [sport, setSport] = useState<PlanFormSport>(initialSport);
   const [title, setTitle] = useState(editingCard?.name ?? "");
   const [date, setDate] = useState(editingCard?.date ?? "");
-  const [typ, setTyp] = useState(editingCard?.typ ?? TYP_OPTIONS[0]);
+  const [typ, setTyp] = useState(editingCard?.typ ?? planTypesForSport(initialSport)[0]);
   const [tssPlanned, setTssPlanned] = useState(editingCard?.tssPlanned != null ? String(editingCard.tssPlanned) : "");
   const [km, setKm] = useState(editingCard?.km != null ? String(editingCard.km) : "");
   const [details, setDetails] = useState(editingCard?.details ?? "");
+  const [paceInput, setPaceInput] = useState(() => {
+    const p = paceSecOf(editingCard);
+    return p != null ? formatPaceSec(p) : "";
+  });
   const [blocks, setBlocks] = useState<EditableBlock[]>(() => {
     const existing = asWorkoutBlocks(editingCard?.workout);
     return existing ? existing.blocks.map((b) => ({ ...b, key: blockIdSeq++ })) : [];
@@ -96,7 +124,15 @@ export function PlanCardForm({
   // entscheidet der Umschalter.
   const proposalMode = isTrainerCardProposalMode(isTrainerSaving, !!editingCard, saveMode);
 
-  const hasLegacyWorkout = !!(editingCard?.workout && !asWorkoutBlocks(editingCard.workout));
+  // „Legacy" heißt: WEDER Block-Form ({blocks:[…]}) NOCH die Lauf-Pace-Form
+  // ({paceSec}) — nur das alte, starre Zahlenformat. Sonst würde eine reine
+  // Pace-Laufkarte fälschlich als „altes Format, hier nicht editierbar"
+  // markiert und beim Speichern eingefroren.
+  const hasLegacyWorkout = !!(
+    editingCard?.workout &&
+    !asWorkoutBlocks(editingCard.workout) &&
+    paceSecOf(editingCard) == null
+  );
 
   useEffect(() => {
     function onKeydown(e: KeyboardEvent) {
@@ -118,15 +154,37 @@ export function PlanCardForm({
     setBlocks((bs) => bs.map((b) => (b.key === key ? { ...b, ...patch } : b)));
   }
 
+  /** Sportwechsel: Typenliste umstellen und einen Typ der falschen Sportart
+   *  auf den ersten der neuen Liste zurücksetzen. */
+  function handleSportChange(next: PlanFormSport) {
+    setSport(next);
+    const options = planTypesForSport(next);
+    if (!typ || !options.includes(typ)) setTyp(options[0]);
+  }
+
+  const paceTrimmed = paceInput.trim();
+  const paceError = sport === "run" && paceTrimmed !== "" && parsePaceInput(paceTrimmed) === null;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
 
+    if (paceError) {
+      setError("Ziel-Pace bitte als mm:ss angeben (z. B. 4:30).");
+      return;
+    }
+
     const finalBlocks = blocks.filter((b) => b.text.trim()).map(({ type, text }) => ({ type, text: text.trim() }));
-    // Kein neuer Block, aber die bestehende Karte trug ein Legacy-Workout:
-    // das bleibt unangetastet (s. Kommentar oben). Sonst: neue Blöcke, oder
-    // null wenn weder neue Blöcke noch ein zu erhaltendes Legacy-Workout da sind.
-    const workout = finalBlocks.length ? { blocks: finalBlocks } : hasLegacyWorkout ? editingCard!.workout : null;
+    // Schwimm-Karte behält ihren Sport (kein Formularpfad in Phase 2), sonst
+    // steuert ihn der Picker (bzw. "ride" für Ein-Sport-Athleten).
+    const sportToSave = isSwimCard ? "swim" : sport;
+    const paceSec = sport === "run" ? parsePaceInput(paceTrimmed) : null;
+    // workoutForSave() liefert für Rad exakt das bisherige Verhalten
+    // ({ blocks } bzw. null), für Lauf zusätzlich `paceSec`. Kein neuer Block
+    // und die bestehende Karte trug ein Legacy-Workout ⇒ das bleibt
+    // unangetastet (s. Kommentar oben). `workout_structure` wird hier nie
+    // erzeugt (bei Lauf IMMER null).
+    const workout = workoutForSave(sport, finalBlocks, paceSec) ?? (hasLegacyWorkout ? editingCard!.workout : null);
 
     const cardData: PlanCardInput = {
       date,
@@ -136,6 +194,7 @@ export function PlanCardForm({
       km: km ? Number(km) : null,
       details: details.trim() || null,
       workout,
+      sport: sportToSave,
     };
 
     const result = proposalMode
@@ -214,11 +273,25 @@ export function PlanCardForm({
             </label>
           </div>
 
+          {pickerVisible && (
+            <label style={LABEL_STYLE}>
+              Sportart
+              <select
+                value={sport}
+                onChange={(e) => handleSportChange(e.target.value as PlanFormSport)}
+                style={INPUT_STYLE}
+              >
+                <option value="ride">Rad</option>
+                <option value="run">Lauf</option>
+              </select>
+            </label>
+          )}
+
           <div style={{ display: "flex", gap: 10 }}>
             <label style={{ ...LABEL_STYLE, flex: 2 }}>
               Typ
               <select value={typ ?? ""} onChange={(e) => setTyp(e.target.value)} style={INPUT_STYLE}>
-                {TYP_OPTIONS.map((t) => (
+                {planTypesForSport(sport).map((t) => (
                   <option key={t} value={t}>
                     {t}
                   </option>
@@ -226,7 +299,11 @@ export function PlanCardForm({
               </select>
             </label>
             <label style={{ ...LABEL_STYLE, flex: 1 }}>
-              <span>Ziel-<InfoTooltip termKey="tss">TSS</InfoTooltip></span>
+              {sport === "run" ? (
+                <span>Ziel-TRIMP</span>
+              ) : (
+                <span>Ziel-<InfoTooltip termKey="tss">TSS</InfoTooltip></span>
+              )}
               <input type="number" min={0} step={1} value={tssPlanned} onChange={(e) => setTssPlanned(e.target.value)} style={INPUT_STYLE} />
             </label>
             <label style={{ ...LABEL_STYLE, flex: 1 }}>
@@ -234,6 +311,25 @@ export function PlanCardForm({
               <input type="number" min={0} step={1} value={km} onChange={(e) => setKm(e.target.value)} style={INPUT_STYLE} />
             </label>
           </div>
+
+          {sport === "run" && (
+            <label style={LABEL_STYLE}>
+              Ziel-Pace (min/km)
+              <input
+                type="text"
+                inputMode="numeric"
+                placeholder="z. B. 4:30"
+                value={paceInput}
+                onChange={(e) => setPaceInput(e.target.value)}
+                style={{ ...INPUT_STYLE, borderColor: paceError ? "var(--danger)" : "var(--hair)" }}
+              />
+              {paceError && (
+                <span style={{ color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: ".7rem" }}>
+                  Format mm:ss, z. B. 4:30
+                </span>
+              )}
+            </label>
+          )}
 
           <label style={LABEL_STYLE}>
             Notiz
@@ -336,7 +432,7 @@ export function PlanCardForm({
             )}
             <button
               type="submit"
-              disabled={pending}
+              disabled={pending || paceError}
               style={{
                 flex: 1,
                 padding: "10px 0",
@@ -345,8 +441,8 @@ export function PlanCardForm({
                 background: "var(--ss)",
                 color: "#17110a",
                 fontWeight: 600,
-                cursor: pending ? "default" : "pointer",
-                opacity: pending ? 0.7 : 1,
+                cursor: pending || paceError ? "default" : "pointer",
+                opacity: pending || paceError ? 0.7 : 1,
               }}
             >
               {pending ? "Speichern …" : proposalMode ? "Als Vorschlag speichern" : "Speichern"}

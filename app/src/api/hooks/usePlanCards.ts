@@ -49,7 +49,9 @@ import { useCadenceTarget } from "./useCadenceTarget";
 import { planShiftPatches, clampPlanOffset } from "../../core/plan-shift.js";
 import { planFtpRescale } from "../../core/plan-ftp-rescale.js";
 import { localISODate } from "../../core/format.js";
+import { activitySport } from "../../core/activity-sport.js";
 import { hasGeneratedPlan } from "../../config";
+import { useEffectiveSport } from "./useActiveSport";
 import type { PlanCard, PlanCardInput, PlanCardPatch, Result } from "../types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
@@ -69,6 +71,18 @@ const scopeOf = (athleteId: string) => `plan-cards:${athleteId}`;
  *  Planungstab wie ein leerer Plan aussehen statt wie ein fehlender Account. */
 export function usePlanCards(athleteId: string) {
   const queryClient = useQueryClient();
+  // SPORTART-FILTER (Fahrplan 12 E3) — Muster 1:1 wie useRides (Fahrplan 10
+  // E8a): `select` grenzt den Cache auf die im Umschalter aktive Sportart ein,
+  // der Fetch bleibt athletenscharf. Eine Karte ohne `sport` zählt als "ride"
+  // (activitySport()). Für Athleten mit nur einer Sportart (1/2/4) ist der
+  // Filter ein No-Op — dort sind alle Karten "ride" und effectiveSport ist
+  // immer "ride". Die Schreib-Hooks lesen weiter den ROHEN Cache
+  // (useCardsSnapshot), nicht diese gefilterte Sicht.
+  const { effectiveSport } = useEffectiveSport(athleteId);
+  const select = useCallback(
+    (cards: PlanCard[]): PlanCard[] => cards.filter((c) => activitySport(c) === effectiveSport),
+    [effectiveSport],
+  );
   return useQuery({
     queryKey: qk.planCards(athleteId),
     queryFn: async (): Promise<PlanCard[]> => {
@@ -76,6 +90,7 @@ export function usePlanCards(athleteId: string) {
       if (!profileId) throw new ResultError_(NO_ACCOUNT);
       return unwrap(await listPlanCards(profileId)).cards;
     },
+    select,
   });
 }
 
@@ -477,6 +492,10 @@ export function useUpdatePlanCard(athleteId: string) {
             details: cardData.details ?? null,
             workout: cardData.workout ?? null,
             workoutStructure: cardData.workoutStructure ?? null,
+            // Fahrplan 12 E3: der Sport-Picker im Formular ändert `sport` —
+            // sonst würde ein Wechsel Rad↔Lauf beim Bearbeiten still verworfen.
+            // `undefined` (Formular ohne Picker) lässt die Spalte unangetastet.
+            sport: cardData.sport,
           },
         }),
       );
