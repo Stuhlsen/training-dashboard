@@ -217,7 +217,12 @@ export function AnalysisPage() {
         </div>
 
         {effectiveSport !== "ride" ? (
-          <PaceSection rides={rides} sport={effectiveSport} />
+          <PaceSection
+            rides={rides}
+            sport={effectiveSport}
+            hrMax={athleteData?.hrMax ?? null}
+            hrEstimated={athleteData?.hrEstimated ?? false}
+          />
         ) : !vm ? (
           <p style={{ color: "var(--text-soft)" }}>Noch keine ausreichende Belastungshistorie (CTL/ATL) für diese Ansicht.</p>
         ) : (

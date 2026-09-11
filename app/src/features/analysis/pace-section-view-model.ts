@@ -12,6 +12,12 @@
    Samples noch ein `decoupling`-Feld) — die Sektion zeigt dafür nur einen
    Fußzeilen-Satz.
 
+   HF-bpm-Zonen (Fahrplan 12 E7, nur Lauf): `hrMax` kommt als geschätzter
+   Athleten-Wert aus dem Sync-Output (api/pipeline.ts), NICHT aus den Rides
+   selbst — anders als die Pace-Zonen oben hängt die HF-Zonen-Kette nicht an
+   `estimateThresholdSpeed`. `sports/running/metrics.ts::RUNNING_HR_ZONES`
+   (%HFmax, UNKALIBRIERT) × `hrMax` ergibt die bpm-Grenzen.
+
    GUARDRAIL 4 (Zonen-Vorbehalt): `ridesForSport()` vorweg — die Pace-
    Auswertung bekommt nie eine Aktivität einer fremden Sportart.
 
@@ -48,6 +54,27 @@ export interface PaceCurvePoint {
   label: string;
 }
 
+/** Eine HF-Zone in bpm, aus RUNNING_HR_ZONES (%HFmax) × geschätztem hrMax. */
+export interface HrZone {
+  id: string;
+  label: string;
+  farbe: string;
+  vonBpm: number;
+  bisBpm: number;
+}
+
+/** Zonen-Metadaten für die HF-bpm-Skala — lokal dupliziert (gleiches Muster
+ *  wie PaceZoneScale.FALLBACK_LABELS), weil RUNNING_HR_ZONES nur Prozent-
+ *  Grenzen trägt, keine Anzeigenamen/Farben. Label-/Farb-Konvention
+ *  deckungsgleich mit sports/cycling/zones.ts::COGGAN_ZONE_META. */
+const HR_ZONE_META: Readonly<Record<string, { label: string; farbe: string }>> = {
+  z1: { label: "Z1 Recovery", farbe: "var(--z1)" },
+  z2: { label: "Z2 Endurance", farbe: "var(--z2)" },
+  z3: { label: "Z3 Tempo", farbe: "var(--z3)" },
+  z4: { label: "Z4 Threshold", farbe: "var(--thr)" },
+  z5: { label: "Z5 VO2max", farbe: "var(--vo2)" },
+};
+
 export interface PaceSectionViewModel {
   sport: PaceSport;
   sportLabel: string;
@@ -77,11 +104,22 @@ export interface PaceSectionViewModel {
   /** true, wenn der Athlet in dieser Sportart noch gar nichts geloggt hat
    *  (Schwimm-Tab: 0 Aktivitäten — expliziter Leerzustand). */
   emptySport: boolean;
+  /** HF-bpm-Zonen (nur Lauf) — `[]` ohne `hrMax` oder bei Schwimm. */
+  hrZones: HrZone[];
+  /** true, solange `hrZones` leer ist (kein `hrMax` bzw. Schwimm). */
+  hrDegraded: boolean;
+  /** true, solange `hrMax` geschätzt statt gemessen ist (Phase 2: immer,
+   *  sobald überhaupt ein hrMax vorliegt — s. G13/G15). */
+  hrEstimated: boolean;
 }
 
 export interface PaceSectionInput {
   rides: Ride[];
   sport: PaceSport;
+  /** Geschätzter Athleten-hrMax aus dem Sync-Output (api/pipeline.ts),
+   *  `null`/fehlend außerhalb von Multi-Sport-Athleten. */
+  hrMax?: number | null;
+  hrEstimated?: boolean;
 }
 
 /**
@@ -89,7 +127,12 @@ export interface PaceSectionInput {
  * @param {PaceSectionInput} input  volle Ride-Liste + Zielsportart
  * @returns {PaceSectionViewModel}
  */
-export function buildPaceSection({ rides, sport }: PaceSectionInput): PaceSectionViewModel {
+export function buildPaceSection({
+  rides,
+  sport,
+  hrMax = null,
+  hrEstimated = false,
+}: PaceSectionInput): PaceSectionViewModel {
   const profile = sportProfileFor(sport);
   const sportLabel = profile?.label ?? (sport === "run" ? "Laufen" : "Schwimmen");
   const thresholdMetric = profile?.metrics.thresholdMetric ?? "Schwellenpace";
@@ -121,6 +164,23 @@ export function buildPaceSection({ rides, sport }: PaceSectionInput): PaceSectio
 
   const curve = buildPaceCurve(subset) as PaceCurvePoint[];
 
+  // HF-bpm-Zonen: nur Lauf (G19-Nicht-Ziel für Schwimm), unabhängig von der
+  // Pace-Schwellenschätzung oben — hängt allein am Athleten-hrMax.
+  const hrZoneSource = sport === "run" ? sportProfileFor("run")?.metrics.hrZones : null;
+  const hrZones: HrZone[] =
+    hrMax != null && hrMax > 0 && hrZoneSource
+      ? Object.entries(hrZoneSource).map(([id, [lowPct, highPct]]) => {
+          const meta = HR_ZONE_META[id] ?? { label: id.toUpperCase(), farbe: "var(--z1)" };
+          return {
+            id,
+            label: meta.label,
+            farbe: meta.farbe,
+            vonBpm: Math.round(hrMax * lowPct),
+            bisBpm: Math.round(hrMax * highPct),
+          };
+        })
+      : [];
+
   return {
     sport,
     sportLabel,
@@ -135,5 +195,8 @@ export function buildPaceSection({ rides, sport }: PaceSectionInput): PaceSectio
     curve,
     nActivities,
     emptySport,
+    hrZones,
+    hrDegraded: hrZones.length === 0,
+    hrEstimated,
   };
 }

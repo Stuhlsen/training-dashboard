@@ -139,6 +139,11 @@ const PAYLOAD_SCHEMA = {
   adjustments: "object?",
   forecast: "object?",
   updated: "string?",
+  // Fahrplan 12 E7 (W5): geschätzte Athleten-HF-Grenzen, nur bei
+  // Multi-Sport-Athleten befüllt (scripts/generate-data.js::syncSecondaryAthlete).
+  hrMax: "number?",
+  hrRest: "number?",
+  hrEstimated: "boolean?",
 };
 
 /**

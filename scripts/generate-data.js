@@ -197,6 +197,12 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
   let powerCurves = null;
   let planningForecast = {};
   let effectiveFtp = entry.fixedFtp;
+  // Fahrplan 12 E7: gehoben, damit sie im output-Objekt unten (außerhalb
+  // dieses Blocks) sichtbar sind — bleiben für 1/2/4 (kein `creds`-Zweig
+  // bzw. kein activityTypes) auf null/false.
+  let hrMax = null;
+  let hrRest = null;
+  let hrEstimated = false;
 
   if (creds) {
     const activities = await getIntervalsActivities(
@@ -258,9 +264,14 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     // Wert als gar keine Lauf-/Schwimm-Last. Nur für Multi-Sport-Athleten
     // (entry.activityTypes gesetzt) — für 1/2/4 wird hrMax/hrRest ohnehin nie
     // genutzt (alle Zeilen sport:"ride"), der Block bleibt für sie stumm.
-    let hrMax = cfg.hrMax;
-    let hrRest = cfg.hrRest;
+    hrMax = cfg.hrMax;
+    hrRest = cfg.hrRest;
     if (entry.activityTypes) {
+      // G13: in Phase 2 gibt es keinen gemessenen/config.ts-Literal-Weg —
+      // auch cfg.hrMax (Tanaka aus profiles.birthdate) ist bereits eine
+      // Altersschätzung, kein Messwert. Immer true, sobald dieser Zweig
+      // läuft (Multi-Sport-Athlet).
+      hrEstimated = true;
       if (hrMax == null) {
         // P98 der pro-Aktivität max_heartrate — robust gegen einen Sensor-Spike
         // (wie das NP-P95). max_heartrate ist bei trainierten Athleten ein
@@ -405,6 +416,17 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
   const output = {
     athleteName: entry.name,
     ...ftpPublicFields,
+    // Fahrplan 12 E7 (W5): nur für Multi-Sport-Athleten befüllt (1/2/4
+    // bleiben ohne diese drei Felder — kein Rauschen im Payload-Diff).
+    // Das `entry.activityTypes`-Gate ist Pflicht, nicht nur der hrMax/hrRest-
+    // Null-Check: cfg.hrMax/cfg.hrRest (Tanaka aus profiles.birthdate) sind
+    // athletenweite Profilwerte, die grundsätzlich auch für 1/4 gesetzt sein
+    // könnten, sobald deren Supabase-Profil ein birthdate trägt — ohne dieses
+    // Gate würden sie dann mit hrEstimated:false (falsch, da Alters-
+    // formel, kein Messwert) ins Payload rutschen.
+    ...(entry.activityTypes && (hrMax != null || hrRest != null)
+      ? { hrMax, hrRest, hrEstimated }
+      : {}),
     rides,
     wellness: wellnessList,
     wellnessMeta: { lastUpdated: lastFieldDates(wellnessList, READINESS_FIELDS) },

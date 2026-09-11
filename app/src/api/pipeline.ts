@@ -45,6 +45,14 @@ export interface RidesPayload {
   adjustments?: Record<string, unknown>;
   forecast?: Record<string, unknown>;
   updated?: string;
+  /** Geschätzte Athleten-HF-Grenzen (Fahrplan 12 E7) — nur bei Multi-Sport-
+   *  Athleten befüllt (scripts/generate-data.js::syncSecondaryAthlete).
+   *  Fehlen bei Athlet 1/2/4 komplett. */
+  hrMax?: number | null;
+  hrRest?: number | null;
+  /** true, solange kein gemessener/config.ts-Literal-Wert existiert (Phase 2:
+   *  immer true, sobald hrMax/hrRest überhaupt gesetzt sind). */
+  hrEstimated?: boolean;
 }
 
 export interface AthleteData {
@@ -74,6 +82,12 @@ export interface AthleteData {
   adjustments: Record<string, unknown>;
   forecast: Record<string, unknown>;
   updated?: string;
+  /** Geschätzte Athleten-HF-Grenzen (Fahrplan 12 E7) — `null`, solange nicht
+   *  geschätzt (Athlet 1/2/4 immer, Athlet 3 bis zur ersten Schätzung). Speist
+   *  die HF-bpm-Zonen-Skala im Analyse-Tab (`PaceSection.tsx`). */
+  hrMax: number | null;
+  hrRest: number | null;
+  hrEstimated: boolean;
   /** Nicht-fatale Schema-Abweichungen aus core/validate.js — der Aufrufer
    *  entscheidet, ob und wie er sie anzeigt. Fatale (fehlende/leere
    *  `rides`) kommen als `{ ok: false }` zurück, nicht hier. */
@@ -114,6 +128,9 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
     adjustments: json.adjustments ?? {},
     forecast: json.forecast ?? {},
     updated: json.updated,
+    hrMax: json.hrMax ?? null,
+    hrRest: json.hrRest ?? null,
+    hrEstimated: json.hrEstimated ?? false,
     warnings,
   };
 }

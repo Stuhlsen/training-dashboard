@@ -6,6 +6,8 @@
    Enthält:
    - Pace-Zonen-Skala (PaceZoneScale) — degradiert, solange keine
      belastbare Schwellenpace geschätzt werden kann.
+   - HF-bpm-Zonen-Skala (HrZoneScale, Fahrplan 12 E7, NUR Lauf) — unter der
+     Pace-Zonen-Skala, aus dem geschätzten Athleten-hrMax.
    - Pace-Kurve (PaceCurveCard) — beste Ø-Pace je Distanz.
    - Fußzeile: Pace:HF-Drift folgt mit Streams; Fitness/Form im Hero-Tab.
 
@@ -16,6 +18,7 @@
 import { useMemo } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { PaceZoneScale } from "../../charts/PaceZoneScale";
+import { HrZoneScale } from "../../charts/HrZoneScale";
 import { PaceCurveCard } from "../../charts/PaceCurveCard";
 import { buildPaceSection } from "./pace-section-view-model";
 
@@ -24,10 +27,17 @@ type Ride = import("../../types.js").Ride;
 interface PaceSectionProps {
   rides: Ride[];
   sport: "run" | "swim";
+  /** Geschätzter Athleten-hrMax aus dem Sync-Output (Fahrplan 12 E7) —
+   *  `null` außerhalb von Multi-Sport-Athleten. */
+  hrMax?: number | null;
+  hrEstimated?: boolean;
 }
 
-export function PaceSection({ rides, sport }: PaceSectionProps) {
-  const vm = useMemo(() => buildPaceSection({ rides, sport }), [rides, sport]);
+export function PaceSection({ rides, sport, hrMax = null, hrEstimated = false }: PaceSectionProps) {
+  const vm = useMemo(
+    () => buildPaceSection({ rides, sport, hrMax, hrEstimated }),
+    [rides, sport, hrMax, hrEstimated],
+  );
   const nounSingular = sport === "run" ? "Lauf" : "Einheit";
   const nounPlural = sport === "run" ? "Läufe" : "Einheiten";
 
@@ -76,6 +86,18 @@ export function PaceSection({ rides, sport }: PaceSectionProps) {
           Die Konstanten sind Lehrbuchwerte und noch nicht an echten Efforts kalibriert.
         </p>
       </GlassCard>
+
+      {/* HF-bpm-Zonen (Fahrplan 12 E7, nur Lauf) */}
+      {sport === "run" && (
+        <GlassCard variant="strong" radius="20px" style={{ padding: "18px 22px", display: "flex", flexDirection: "column", gap: 12 }}>
+          <span style={{ fontFamily: "var(--font-disp)", fontSize: ".98rem", fontWeight: 600, color: "var(--text-ink)" }}>HF-Zonen</span>
+          <HrZoneScale zones={vm.hrZones} degraded={vm.hrDegraded} />
+          <p style={{ margin: 0, fontSize: ".8rem", color: "var(--text-soft)", lineHeight: 1.55 }}>
+            Fünf Zonen als Anteil der Maximalherzfrequenz (%HFmax) — die Grenzen sind
+            Lehrbuchwerte, noch nicht kalibriert.
+          </p>
+        </GlassCard>
+      )}
 
       {/* Pace-Kurve */}
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>

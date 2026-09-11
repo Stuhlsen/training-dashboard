@@ -80,4 +80,49 @@ describe("buildPaceSection", () => {
     expect(vm.emptySport).toBe(true);
     expect(vm.degraded).toBe(true);
   });
+
+  describe("HF-bpm-Zonen (Fahrplan 12 E7)", () => {
+    it("Lauf mit hrMax → fünf bpm-Zonen, aufsteigend, geschätzt-Flag durchgereicht", () => {
+      const rides = [ride({ km: 5, min: 20 })];
+      const vm = buildPaceSection({ rides, sport: "run", hrMax: 180, hrEstimated: true });
+
+      expect(vm.hrDegraded).toBe(false);
+      expect(vm.hrZones).toHaveLength(5);
+      expect(vm.hrEstimated).toBe(true);
+      // aufsteigend und lückenlos verkettet (Zone n.bis === Zone n+1.von)
+      for (let i = 1; i < vm.hrZones.length; i++) {
+        expect(vm.hrZones[i].vonBpm).toBe(vm.hrZones[i - 1].bisBpm);
+        expect(vm.hrZones[i].bisBpm).toBeGreaterThan(vm.hrZones[i].vonBpm);
+      }
+      expect(vm.hrZones[vm.hrZones.length - 1].bisBpm).toBe(180);
+    });
+
+    it("Lauf ohne hrMax → degradiert, leere hrZones", () => {
+      const rides = [ride({ km: 5, min: 20 })];
+      const vm = buildPaceSection({ rides, sport: "run" });
+
+      expect(vm.hrDegraded).toBe(true);
+      expect(vm.hrZones).toHaveLength(0);
+      expect(vm.hrEstimated).toBe(false);
+    });
+
+    it("Schwimmen mit hrMax → trotzdem keine HF-Zonen (nur Lauf, G19)", () => {
+      const rides = [ride({ km: 5, min: 20, sport: "swim" })];
+      const vm = buildPaceSection({ rides, sport: "swim", hrMax: 180, hrEstimated: true });
+
+      expect(vm.hrDegraded).toBe(true);
+      expect(vm.hrZones).toHaveLength(0);
+    });
+
+    it("Regressionsschutz: Athlet-1/2/4-Fixtures (kein hrMax im Payload) bleiben degradiert", () => {
+      // Simuliert den Aufruf, wie ihn PaceSection.tsx für Single-Sport-Athleten
+      // macht — hrMax/hrEstimated fehlen im Payload, Default null/false greift.
+      const rides = [ride({ km: 5, min: 20 })];
+      const vm = buildPaceSection({ rides, sport: "run" });
+
+      expect(vm.hrZones).toHaveLength(0);
+      expect(vm.hrDegraded).toBe(true);
+      expect(vm.hrEstimated).toBe(false);
+    });
+  });
 });
