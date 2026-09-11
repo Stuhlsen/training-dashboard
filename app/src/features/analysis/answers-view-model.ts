@@ -157,6 +157,12 @@ export interface AnswersViewModel {
    *  Brush-Fensters (BrushBar arbeitet auf ISO-Daten, TraceCard auf
    *  Tagesindizes über demselben Skelett). */
   skeletonDates: string[];
+  /** Fahrt am Tagesindex `i` (dieselbe Skelett-Indexierung wie
+   *  skeletonDates), `null` an trainingsfreien Tagen — Grundlage für den
+   *  Fahrt-Hover in TraceCard (Vorbild intervals.icu-Fitnesschart: eine
+   *  Detailbox erscheint nur an echten Trainingstagen, keine leere Box an
+   *  Ruhetagen). */
+  rideOnDay: (index: number) => Ride | null;
   defaultRange: { r0: number; r1: number };
   hero: { readoutDate: string; headline: string; text: string; stats: HeroStat[] };
   wins: Win[];
@@ -456,6 +462,9 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
     { key: "blockers", question: "Was bremst mich?", verdict: v4.verdict, colorVar: VERDICT_COLOR[v4.color], answer: v4.answer, lanes: [laneDec, laneKad, laneEnergy, laneHydration, laneWeather, laneWeight], hasPowerCurve: false },
   ];
 
+  const rideByDate = new Map<string, Ride>();
+  for (const r of rides) if (!rideByDate.has(r.dateISO)) rideByDate.set(r.dateISO, r);
+
   return {
     N,
     todayIdx,
@@ -463,6 +472,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
     eventDateISO,
     formatDay: (i: number) => fmtDate(skeleton[Math.max(0, Math.min(N - 1, i))]?.dateISO ?? null),
     skeletonDates: skeleton.map((d) => d.dateISO),
+    rideOnDay: (i: number) => rideByDate.get(skeleton[Math.max(0, Math.min(N - 1, i))]?.dateISO ?? "") ?? null,
     defaultRange: { r0: Math.max(0, todayIdx - 90), r1: N - 1 },
     hero,
     wins: winsList,

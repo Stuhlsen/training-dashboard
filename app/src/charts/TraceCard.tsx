@@ -11,8 +11,12 @@
 import { useCallback, useRef, useState, type MouseEvent } from "react";
 import { GlassCard } from "../components/GlassCard";
 import { buildLaneGeometry } from "../core/trace-lanes.js";
+import { rideLabel, fmtDuration, fmt, fmtInt } from "../core/format.js";
 import { TraceLane, LANE_LABEL_COL, LANE_VALUE_COL, type LaneDisplay } from "./TraceLane";
+import { ChartTooltip } from "./ChartTooltip";
 import { buildAxisTicks, effectiveR1 } from "./trace-card-axis";
+
+type Ride = import("../types.js").Ride;
 
 const GRID_TEMPLATE = `${LANE_LABEL_COL}px minmax(0, 1fr) ${LANE_VALUE_COL}px`;
 
@@ -45,6 +49,11 @@ interface TraceCardProps {
   /** Formatiert einen Tagesindex zu einem Kurz-Datum (z. B. fmtDate). */
   formatDay: (index: number) => string;
   dense: boolean;
+  /** Fahrt am Tagesindex, `null` an trainingsfreien Tagen — treibt die
+   *  Fahrt-Detailbox unterm Fadenkreuz (Vorbild intervals.icu-Fitnesschart:
+   *  Box erscheint nur an echten Trainingstagen). Optional/fehlend blendet
+   *  die Box komplett aus, kein Pflicht-Prop für ältere Aufrufstellen. */
+  rideOnDay?: (index: number) => Ride | null;
 }
 
 const EXPANDED_FACTOR = 1.6;
@@ -56,9 +65,14 @@ function resolveHeight(baseHeight: number, dense: boolean, isExpanded: boolean):
 }
 
 /** Spurenkarte: mehrere TraceLane-Zeilen + gemeinsame x-Achse + Fadenkreuz. */
-export function TraceCard({ lanes, r0, r1, totalDays, todayIdx, eventIdx, formatDay, dense }: TraceCardProps) {
+export function TraceCard({ lanes, r0, r1, totalDays, todayIdx, eventIdx, formatDay, dense, rideOnDay }: TraceCardProps) {
   const [expanded, setExpanded] = useState<string | null>(null);
-  const [cursor, setCursor] = useState<number | null>(null);
+  // Tagesindex + die Mausposition, mit der er ermittelt wurde — Letztere
+  // NUR für die Fahrt-Detailbox (ChartTooltip-Portal braucht clientX/Y),
+  // aktualisiert im selben gated setState wie der Index (kein zusätzlicher
+  // Re-Render pro Pixel-Bewegung innerhalb desselben Tages).
+  const [hover, setHover] = useState<{ idx: number; x: number; y: number } | null>(null);
+  const cursor = hover?.idx ?? null;
   const wrapRef = useRef<HTMLDivElement>(null);
   // Mindestbreite NUR, wenn das Fenster die gesamte (kurze) Historie zeigt —
   // ein Brush-Zoom in ein Teilfenster bleibt unangetastet (Code-Review-Fund,
@@ -79,11 +93,11 @@ export function TraceCard({ lanes, r0, r1, totalDays, todayIdx, eventIdx, format
       const frac = (e.clientX - rect.left - LANE_LABEL_COL) / chartWidth;
       if (frac < 0 || frac > 1) return;
       const idx = Math.max(r0, Math.min(effR1, Math.round(r0 + frac * span)));
-      setCursor((prev) => (prev === idx ? prev : idx));
+      setHover((prev) => (prev && prev.idx === idx ? prev : { idx, x: e.clientX, y: e.clientY }));
     },
     [r0, effR1, span],
   );
-  const handleLeave = useCallback(() => setCursor(null), []);
+  const handleLeave = useCallback(() => setHover(null), []);
 
   const xOf = (i: number) => ((i - r0) / span) * 900;
   const todayX = todayIdx >= r0 && todayIdx <= effR1 ? xOf(todayIdx) : null;
@@ -91,6 +105,11 @@ export function TraceCard({ lanes, r0, r1, totalDays, todayIdx, eventIdx, format
   const cursorX = cursor != null ? xOf(cursor) : null;
   const todayPct = todayX != null ? (todayX / 900) * 100 : null;
   const ticks = buildAxisTicks(r0, effR1, todayIdx, formatDay);
+  // Vorbild intervals.icu-Fitnesschart: eine Detailbox mit der echten Fahrt
+  // erscheint nur an Tagen, an denen wirklich eine Fahrt liegt — an
+  // Ruhetagen bleibt sie ganz weg (kein leerer Platzhalter), s. Live-
+  // Vergleich vom 11.09.2026.
+  const hoveredRide = cursor != null ? (rideOnDay?.(cursor) ?? null) : null;
 
   return (
     <GlassCard
@@ -162,6 +181,18 @@ export function TraceCard({ lanes, r0, r1, totalDays, todayIdx, eventIdx, format
           <span />
         </div>
       </div>
+      {hoveredRide && hover && (
+        <ChartTooltip x={hover.x} y={hover.y} width={240}>
+          <div style={{ fontWeight: 600, color: "var(--text-ink)" }}>{rideLabel(hoveredRide, hoveredRide.km ?? 0)}</div>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+            {hoveredRide.min != null && <span>{fmtDuration(hoveredRide.min)}</span>}
+            {hoveredRide.km != null && <span>{fmt(hoveredRide.km, 1)} km</span>}
+            {hoveredRide.tss != null && <span>TSS {fmtInt(hoveredRide.tss)}</span>}
+            {hoveredRide.hf != null && <span>Ø {fmtInt(hoveredRide.hf)} bpm</span>}
+            {hoveredRide.watt != null && <span>Ø {fmtInt(hoveredRide.watt)} W</span>}
+          </div>
+        </ChartTooltip>
+      )}
     </GlassCard>
   );
 }
