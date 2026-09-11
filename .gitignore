@@ -71,3 +71,4 @@ app/*.local
 # Führender Slash: nur der planning/-Ordner in der Repo-Wurzel, NICHT das
 # Feature-Verzeichnis app/src/features/planning/.
 /planning/
+.fallow/
