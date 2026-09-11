@@ -324,6 +324,9 @@ export function WeekGridDetailRow({
       workout: card.workout as object | null,
       workoutStructure: card.workoutStructure as object | null,
       typ: card.typ,
+      // Fahrplan 12 E6 (Nachtrag zu E4) — estimateTss() dispatcht über
+      // card.sport, sonst zählt jede Laufkarte als Rad.
+      sport: card.sport,
     },
     projection,
     { ftp },

@@ -175,6 +175,9 @@ export function buildExportBriefingCtx(athleteId: string, input: ExportBriefingI
     events: input.events,
     planCards,
     actuals,
+    // Fahrplan 12 E6: volle, ungefensterte Historie — core/export-briefing.js
+    // braucht sie für estimateThresholdSpeed() (nur sport==="run").
+    rides: input.rides,
     wellbeing: input.wellbeing,
     readiness,
     projection: input.projection,

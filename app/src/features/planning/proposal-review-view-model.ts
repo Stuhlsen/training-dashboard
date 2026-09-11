@@ -122,6 +122,9 @@ function toProjectionCard(c: PlanCard) {
     cancelled: c.cancelled,
     tssPlanned: c.tssPlanned,
     workout: c.workout as object | null,
+    // Fahrplan 12 E6 (Nachtrag zu E4) — s. PlanningPage.tsx::toProjectionCard.
+    sport: c.sport,
+    workoutStructure: c.workoutStructure as object | null,
   };
 }
 

@@ -26,6 +26,11 @@ import { computeZones } from "./zones.js";
 import { KNOWN_PLAN_TYPES, CONFLICT_THRESHOLDS } from "./plan-config.js";
 import { estimateTss } from "./projection.js";
 import { LEVEL_LABEL, SLEEP_SCORE_DEVICE_NOTE } from "./readiness.js";
+import { sportProfileFor } from "../sports/index.js";
+import { RUNNING_KNOWN_TYPES } from "../sports/running/session-types.js";
+import { computePaceZones, PACE_FROM_KMH } from "./pace-zones.js";
+import { estimateThresholdSpeed } from "./critical-speed.js";
+import { rideLoad } from "./loadguard.js";
 
 // TSB-Zielfenster je Event-Priorität (K-EVENT, core/conflicts.js) — hier
 // eigenständig statt importiert, weil core/conflicts.js dieselbe Konstante
@@ -213,6 +218,107 @@ Hier ist mein Briefing:
 
 {{BRIEFING}}`;
 
+/** Lauf-Fassung von PROMPT_RUMPF (Fahrplan 12 E6, G8/G12) — Pace statt Watt,
+ *  OHNE den Leiterstand/Stufenvorschlag-Absatz (Progressionsleiter bleibt
+ *  Rad-only, Guardrail 3). Text 1:1 aus docs/phase-4-prompt-vorlage-claude-
+ *  trainer.md zwischen den RUMPF-RUNNING-ANFANG/ENDE-Markern (geprüft von
+ *  export-briefing-consistency.test.js, analog zu PROMPT_RUMPF). */
+export const PROMPT_RUMPF_RUNNING = `Du bist mein Lauf-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
+Profil (Schwellenpace, Pace-Zonen, Ziele), anstehende Events mit Priorität, meinen
+Trainingsplan (Karten mit \`id\` und \`updated_at\`), die Ist-Läufe der letzten Wochen
+(Last/TRIMP, Pace, RPE/Feel), meinen Befinden-Verlauf, die aktuelle Form (CTL/ATL/TSB)
+samt Projektion, die offene Konfliktliste des Planers sowie meine letzten
+Entscheidungen (welche Vorschläge ich angenommen oder abgelehnt habe).
+
+{{AUFTRAG}}
+
+**Regeln für den JSON-Block (werden maschinell geprüft — Abweichungen führen zur
+Ablehnung des Imports):**
+- Exakt ein \`\`\`json-Codeblock am Ende deiner Antwort, sonst kein JSON in der Antwort.
+- Äußere Struktur: \`{ "schema_version": 1, "athlete": "<aus dem Briefing>", "source":
+  "claude", "proposals": [ <Vorschlag>, … ] }\`. Keine zusätzlichen Felder auf dieser
+  Ebene.
+- **Jeder Eintrag in \`proposals\` hat GENAU diese fünf Felder auf oberster Ebene —
+  nie mehr, nie weniger:** \`op\`, \`target_card_id\`, \`target_updated_at\`, \`reason\`,
+  \`payload\`. **Alle inhaltlichen Kartenfelder (\`title\`, \`type\`, \`plan_date\`,
+  \`target_tss\`, \`km\`, \`workout\`, \`note\`) gehören AUSSCHLIESSLICH in das
+  verschachtelte \`payload\`-Objekt — niemals als Geschwister von \`op\` auf oberster
+  Ebene.**
+- **Jeder Vorschlag mit \`op\` \`add\` oder \`replace\` trägt zusätzlich
+  \`payload.sport: "run"\` — Pflicht.** Ohne dieses Feld gilt ein Vorschlag als
+  Rad-Vorschlag und wird gegen das falsche Typ-Vokabular geprüft.
+- Erlaubte \`op\`-Werte und ihr jeweiliges \`payload\`:
+  - \`add\` — neue Karte. \`target_card_id\`/\`target_updated_at\` beide \`null\` (es gibt
+    noch keine Zielkarte). \`payload\`: \`title\` (Pflicht), \`plan_date\` (Pflicht,
+    \`YYYY-MM-DD\`), \`sport: "run"\` (Pflicht), dazu optional \`type\`, \`target_tss\`,
+    \`km\`, \`workout\`, \`note\`.
+  - \`replace\` — bestehende Karte inhaltlich ersetzen. \`target_card_id\` +
+    \`target_updated_at\` Pflicht, unverändert aus dem Briefing übernommen.
+    \`payload\`: dieselben Felder wie bei \`add\`, \`title\` hier aber optional.
+  - \`move\` — nur Datumswechsel. \`target_card_id\` + \`target_updated_at\` Pflicht.
+    \`payload\` enthält **ausschließlich** \`{ "plan_date": "…" }\` — kein \`title\`,
+    \`type\` o. ä.
+  - \`cancel\` — Karte als ausgefallen markieren. \`target_card_id\` +
+    \`target_updated_at\` Pflicht. \`payload\` enthält **höchstens** \`{ "reason": "…" }\`
+    (derselbe Text wie das äußere \`reason\`-Feld) — kein weiteres Feld erlaubt.
+  - Kein Löschen — wenn eine Einheit entfallen soll, nutze \`cancel\` mit Begründung.
+- Zwei vollständige Beispiele, je ein Eintrag aus \`proposals\`:
+
+  \`\`\`json
+  { "op": "add", "target_card_id": null, "target_updated_at": null,
+    "reason": "Zusätzlicher Rekom-Lauf nach zwei harten Tagen",
+    "payload": { "title": "Rekom 25min", "type": "Rekom", "plan_date": "2026-09-17",
+      "sport": "run", "target_tss": 25, "km": 4,
+      "workout": null, "note": null } }
+  \`\`\`
+  \`\`\`json
+  { "op": "replace", "target_card_id": "eb55a1f9-afb3-4744-be18-52c83b854572",
+    "target_updated_at": "2026-09-10T14:45:36.681223+00:00",
+    "reason": "TSB vor dem Longrun sonst zu niedrig — Reduktion schafft Puffer",
+    "payload": { "title": "Tempolauf 20min", "type": "Tempolauf", "plan_date": "2026-09-19",
+      "sport": "run", "target_tss": 60, "km": 8,
+      "workout": { "blocks": [ { "type": "interval", "text": "20min im Schwellentempo" } ],
+        "paceSec": 270 },
+      "note": null } }
+  \`\`\`
+
+- \`payload.workout\` trägt für Lauf-Einheiten \`blocks\` (Freitext-Intervallbeschreibung,
+  z. B. \`[{ "type": "interval", "text": "6×800m @ 3:45" }]\`) und optional \`paceSec\`
+  (Ganzzahl Sekunden pro km Zielpace, z. B. \`270\` für 4:30 min/km). Ohne erkennbares
+  Pace-Ziel lässt du \`paceSec\` weg oder setzt \`null\`. Keine strukturierten Intervalle
+  wie beim Rad — \`payload.workout_structure\` bleibt bei Lauf-Vorschlägen immer \`null\`
+  bzw. wird weggelassen; ein gesetzter Wert wird abgelehnt.
+- \`target_card_id\` und \`target_updated_at\` übernimmst du **unverändert** aus dem
+  Briefing der jeweiligen Karte. Erfinde niemals IDs; Karten ohne ID im Briefing
+  kannst du nicht ändern (nur \`add\` neuer Karten ist ohne ID möglich).
+- \`plan_date\` nie in der Vergangenheit; Datumsformat \`YYYY-MM-DD\`.
+- \`type\` nur aus der Typenliste im Briefing; \`target_tss\` (Last, TRIMP-Näherung)
+  realistisch (0–400).
+- Jeder Vorschlag trägt einen kurzen \`reason\` (ein Satz, konkret: „TSB vor dem
+  Longrun sonst −6, Ziel +5…+20", nicht „zur Optimierung").
+- \`reason\` ist auf der Website **öffentlich sichtbar**. Formuliere ausschließlich
+  lastbasiert (Last/TRIMP, TSB, Plan, Events) — nie mit Bezug auf Befinden, Schlaf,
+  Gesundheit oder Persönliches, auch wenn das Briefing solche Daten enthält.
+- Wenn du nichts ändern würdest: \`"proposals": []\` — und im Text davor, warum.
+
+**Wichtige Grundsätze:**
+- Sicherheit vor Fortschritt: Bei Anzeichen von Überlastung, Krankheit oder
+  auffälligem Befinden-Verlauf im Briefing schlage Entlastung vor — keine
+  zusätzliche Intensität. Bei gesundheitlichen Warnsignalen (z. B. Schmerzen,
+  ungewöhnlicher Ruhepuls über Tage) empfiehl ärztliche Abklärung statt Training.
+- Respektiere die Ereignis-Prioritäten: A-Events bestimmen die Form-Spitze,
+  B-Events werden untergeordnet.
+- Maximal eine harte Einheit pro Vorschlagsrunde umbauen — ich will deine Änderungen
+  nachvollziehen können, nicht einen komplett neuen Plan bekommen.
+- Du siehst nur, was im Briefing steht. Wenn dir eine wichtige Information fehlt,
+  benenne sie im Text, statt Annahmen ins JSON zu schreiben.
+- Zusatzkontext des Athleten darf deine Entscheidung beeinflussen, aber niemals
+  in \`reason\` auftauchen — \`reason\` bleibt lastbasiert (Last/TRIMP, TSB, Plan, Events).
+
+Hier ist mein Briefing:
+
+{{BRIEFING}}`;
+
 /** Auftragsblock je Preset (Export-Richtungsvorgabe-Konzept R1/R4) — ersetzt
  *  die früheren, preset-losen Punkte 1–3 unter "**Deine Aufgabe:**". Jede
  *  Variante ist ein vollständig ausformulierter, für sich lesbarer
@@ -294,6 +400,74 @@ export const AUFTRAG_VARIANTEN = {
    JSON-Block (den liest die App).`,
 };
 
+/** Lauf-Fassung von AUFTRAG_VARIANTEN (Fahrplan 12 E6, G22) — dieselben 5
+ *  Keys, Watt-/TSS-Bezüge → Pace-/Last-Bezüge, „harter Block" → „harte
+ *  Einheit". Die Stufenvorschlag-Sätze aus jeder Rad-Variante entfallen
+ *  komplett (Progressionsleiter bleibt Rad-only, Guardrail 3). Text 1:1
+ *  gegen docs/phase-4-prompt-vorlage-claude-trainer.md geprüft (Konsistenztest,
+ *  analog zu AUFTRAG_VARIANTEN). */
+export const AUFTRAG_VARIANTEN_RUNNING = {
+  general: `**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events. Prüfe insbesondere: Passt die Belastungskurve
+   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
+   Konflikte aus der Liste, die ein Umbau lösen würde? Deckt sich der Plan mit
+   meinem Befinden- und RPE-Verlauf?
+2. Schlage Änderungen nur vor, wo sie einen klaren Zweck haben. Wenige gute
+   Vorschläge sind besser als viele kleine. Wenn der Plan passt, ist „keine
+   Änderung" eine vollwertige Antwort.
+3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum ändern
+   würdest (das lese ich). Gib **danach** deine Vorschläge als JSON-Block (den
+   liest die App).`,
+
+  event: `**Deine Aufgabe:**
+1. Richte deine Analyse gezielt auf mein Event **{{EVENT_TITLE}}** am
+   **{{EVENT_DATE}}** aus. Prüfe, ob die Belastungskurve (CTL/ATL/TSB-Projektion
+   im Briefing) bis zu diesem Termin ins Zielfenster läuft, und ob der
+   bestehende Plan das unterstützt oder eher konterkariert.
+2. Schlage nur Änderungen vor, die die Form gezielt auf dieses Event hin
+   verbessern — andere Baustellen im Plan bleiben außen vor, solange sie
+   dieses Ziel nicht gefährden. Wenn der Plan bereits passt, ist „keine
+   Änderung" eine vollwertige Antwort.
+3. Erkläre zuerst in normaler Sprache, wie der Plan aktuell zu diesem Ziel
+   steht und was du warum ändern würdest (das lese ich). Gib **danach** deine
+   Vorschläge als JSON-Block (den liest die App).`,
+
+  check: `**Deine Aufgabe:**
+1. Prüfe Form, Plan und Events auf Plausibilität: Passt die Belastungskurve
+   zum nächsten priorisierten Event (TSB-Zielfenster laut Briefing)? Gibt es
+   Konflikte aus der Liste? Deckt sich der Plan mit meinem Befinden- und
+   RPE-Verlauf?
+2. Schlage in dieser Runde **keine Änderungen** vor — ich will nur deine
+   Einschätzung, keinen Umbau. Liefere trotzdem den JSON-Block mit
+   \`"proposals": []\`, die App braucht die äußere Struktur auch ohne
+   Vorschläge.
+3. Erkläre in normaler Sprache deine Einschätzung: wo siehst du Risiken,
+   Diskrepanzen oder Auffälligkeiten, auch wenn du nichts änderst?`,
+
+  reduce: `**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events mit Fokus auf Entlastung: Wo ist die
+   Belastung (Last-Verlauf, TSB-Trend, Belastungswächter-Signale im Briefing)
+   zuletzt zu hoch oder das Muster ungünstig?
+2. Baue gezielt Entlastung ein — reduzierte Intensität oder Umfang, zusätzliche
+   Erholungseinheiten, verschobene harte Einheiten. Wenige gezielte Vorschläge,
+   kein kompletter Neubau des Plans.
+3. Erkläre zuerst in normaler Sprache, wo du Entlastungsbedarf siehst und was
+   du deshalb änderst (das lese ich). Gib **danach** deine Vorschläge als
+   JSON-Block (den liest die App).`,
+
+  build: `**Deine Aufgabe:**
+1. Analysiere Form, Plan und Events mit Fokus auf Belastungssteigerung: Lässt
+   die aktuelle Form (CTL/ATL/TSB-Projektion, Belastungswächter-Signale im
+   Briefing) zusätzlichen Reiz zu, ohne ins Risiko zu laufen?
+2. Wenn ja: baue gezielt mehr Reiz ein (Intensität, Umfang oder eine
+   zusätzliche Qualitätseinheit). Sprechen die Daten dagegen (z. B.
+   TSB-Warnsignal, Ramp-Rate-Alarm), sag das offen und schlage **keine**
+   zusätzliche Belastung vor — Sicherheit geht vor Fortschritt.
+3. Erkläre zuerst in normaler Sprache deine Einschätzung und was du warum
+   änderst (oder bewusst nicht änderst). Gib **danach** deine Vorschläge als
+   JSON-Block (den liest die App).`,
+};
+
 // Sichtbarer Fallback (R3/R4: "kein stiller Fallback") — wird VOR den
 // general-Auftrag gesetzt, wenn preset "event" ohne gewähltes Event
 // exportiert wird.
@@ -315,19 +489,22 @@ const EVENT_IS_TEST_HINWEIS = `\n\n_Hinweis: Das ist ein Testtermin (kein Wettka
  *  `{ title, eventDate, isTest? }` — fehlt title/eventDate, fällt der
  *  Auftrag sichtbar auf `general` zurück (kein stiller Fallback, R3/R4).
  *  Ein unbekanntes/fehlendes Preset fällt ebenfalls auf `general` zurück.
+ *  `variants` (Fahrplan 12 E6): Default `AUFTRAG_VARIANTEN` (Rad) — der
+ *  Lauf-Aufrufer reicht `AUFTRAG_VARIANTEN_RUNNING` durch.
  *  @param {string} preset @param {{title?:string, eventDate?:string, isTest?:boolean}|null} [event]
+ *  @param {Record<string,string>} [variants]
  *  @returns {string} */
-export function buildAuftragBlock(preset, event = null) {
+export function buildAuftragBlock(preset, event = null, variants = AUFTRAG_VARIANTEN) {
   if (preset === "event") {
     if (event?.title && event?.eventDate) {
-      const block = AUFTRAG_VARIANTEN.event
+      const block = variants.event
         .replaceAll("{{EVENT_TITLE}}", event.title)
         .replaceAll("{{EVENT_DATE}}", event.eventDate);
       return event.isTest ? block + EVENT_IS_TEST_HINWEIS : block;
     }
-    return EVENT_FALLBACK_HINWEIS + AUFTRAG_VARIANTEN.general;
+    return EVENT_FALLBACK_HINWEIS + variants.general;
   }
-  return AUFTRAG_VARIANTEN[preset] ?? AUFTRAG_VARIANTEN.general;
+  return variants[preset] ?? variants.general;
 }
 
 /** Kurze Compliance-Zelle für die Ist-Fahrten-Tabelle (C2,
@@ -346,6 +523,17 @@ function complianceCell(r) {
 function mdEscapeCell(v) {
   if (v == null) return "–";
   return String(v).replace(/\|/g, "/");
+}
+
+/** Ganzzahl Sekunden pro km → `mm:ss` fürs Lauf-Briefing. Bewusst lokal
+ *  dupliziert statt aus features/planning/plan-card-form-view-model.ts
+ *  importiert — core/ darf laut Schichtenregel (AGENTS.md) nicht aus
+ *  features/ importieren. @param {number} sec @returns {string} */
+function formatPaceSecLocal(sec) {
+  const total = Math.max(0, Math.round(sec));
+  const minutes = Math.floor(total / 60);
+  const seconds = total % 60;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 /** Anzeige-Label je Proposal-Status (DB-Enum seit Migration 0006:
@@ -434,8 +622,12 @@ function buildProgressSection(progress) {
  *    tidVsCorridor: {phase:string, shareAboveCorridor:number}|null,
  *    weeklyTssVsCeiling: Array<{week:string, tss:number, ceiling:number, overCeiling:boolean}>,
  *  }|null} [guardrails]
+ *  @param {{sport?: "ride"|"run"|"swim"}} [opts] Fahrplan 12 E6: bei `"run"`
+ *    nur die CTL-Rampen-Zeile (G23) — die restlichen Bullets sind Rad-
+ *    Korridor-/Watt-basiert (harte Tage/Woche, TID, Wochen-TSS-Obergrenze).
+ *    Default `"ride"` hält den bisherigen Output byte-identisch.
  *  @returns {string[]} Markdown-Zeilen */
-function buildGuardrailsSection(guardrails) {
+function buildGuardrailsSection(guardrails, { sport = "ride" } = {}) {
   const lines = [];
   lines.push("## Leitplanken");
   if (!guardrails) {
@@ -453,6 +645,11 @@ function buildGuardrailsSection(guardrails) {
       ? ` — Schwelle (8) wurde in ${Math.round(guardrails.rampHistoricalHitRate * 100)}% der bisherigen Wochen real erreicht`
       : "";
   lines.push(`- CTL-Rampe: ${rampText}${hitRateText}`);
+
+  if (sport === "run") {
+    lines.push("");
+    return lines;
+  }
 
   if (guardrails.hardDaysPerWeek?.length) {
     const list = guardrails.hardDaysPerWeek.map((w) => `${w.week}: ${w.count}`).join(" · ");
@@ -583,8 +780,9 @@ function buildReadinessSection(readiness) {
  *    athleteId: string, displayName?: string, ftp?: number|null, ftpGoal?: number|null,
  *    dataSources?: string[],
  *    events?: Array<{eventDate:string, title?:string, type?:string, priority?:string}>,
- *    planCards?: Array<{id:string, date:string, name?:string, typ?:string, tssPlanned?:number|null, updatedAt?:string}>,
+ *    planCards?: Array<{id:string, date:string, name?:string, typ?:string, tssPlanned?:number|null, updatedAt?:string, sport?:string}>,
  *    actuals?: import("../types.js").Ride[],
+ *    rides?: import("../types.js").Ride[],  Fahrplan 12 E6 — VOLLE, ungefensterte Historie (nicht das 4-Wochen-`actuals`), nur für sport==="run" (estimateThresholdSpeed)
  *    wellbeing?: Array<{date:string, energy?:number, muscleFeel?:number, mood?:number, note?:string|null}>,
  *    readiness?: ReturnType<import("./readiness.js").assessReadiness>,  objektive HRV/Ruhepuls/Schlaf-Ampel — s. buildReadinessSection
  *    projection?: {asOf:string, startCtl:number, startAtl:number, days:Array<{date:string,ctl:number,atl:number,tsb:number}>}|null,
@@ -596,37 +794,68 @@ function buildReadinessSection(readiness) {
  *    guardrails?: Object|null,   P1 — s. buildGuardrailsSection für die genaue Form
  *    today?: string,
  *  }} ctx
+ *  @param {{sport?: "ride"|"run"|"swim"}} [opts] Fahrplan 12 E6 — bei `"run"`
+ *    Pace statt Watt, Lauf-Typenliste, reduzierte Leitplanken, ohne
+ *    Fortschritt-Sektion (G23). Default `"ride"` hält den Rad-Output
+ *    byte-identisch zum Stand vor E6.
  *  @returns {string} */
-export function buildBriefingMarkdown({
-  athleteId,
-  displayName = "Athlet",
-  ftp = null,
-  ftpGoal = null,
-  dataSources = [],
-  events = [],
-  planCards = [],
-  actuals = [],
-  wellbeing = [],
-  readiness = null,
-  projection = null,
-  conflicts = [],
-  recentProposals = [],
-  ladderState = [],
-  presetSuggestions = [],
-  progress = null,
-  guardrails = null,
-  today,
-} = {}) {
+export function buildBriefingMarkdown(
+  {
+    athleteId,
+    displayName = "Athlet",
+    ftp = null,
+    ftpGoal = null,
+    dataSources = [],
+    events = [],
+    planCards = [],
+    actuals = [],
+    rides = [],
+    wellbeing = [],
+    readiness = null,
+    projection = null,
+    conflicts = [],
+    recentProposals = [],
+    ladderState = [],
+    presetSuggestions = [],
+    progress = null,
+    guardrails = null,
+    today,
+  } = {},
+  { sport = "ride" } = {}
+) {
   const todayIso = today ?? localISODate();
-  const zones = ftp ? computeZones(ftp) : [];
+  const isRunning = sport === "run";
   const lines = [];
 
   lines.push(`# Trainings-Briefing — ${displayName}`);
   lines.push("");
   lines.push("## Profil");
-  lines.push(`- FTP: ${ftp ?? "–"} W${ftpGoal ? ` (Ziel: ${ftpGoal} W)` : ""}`);
-  if (zones.length) {
-    lines.push(`- Zonen: ${zones.map((z) => `${z.label} ${z.vonW}–${z.bisW}W`).join(" · ")}`);
+  if (isRunning) {
+    // G29: ehrlich degradieren statt zu blockieren — estimateThresholdSpeed
+    // liefert `speed: null`, solange kein erschöpfender Lauf in den Daten ist.
+    const runProfile = sportProfileFor("run");
+    const est = estimateThresholdSpeed(rides);
+    const thresholdSpeed = est && typeof est.speed === "number" && est.speed > 0 ? est.speed : null;
+    if (thresholdSpeed != null && runProfile?.zones) {
+      lines.push(`- Schwellenpace: ${formatPaceSecLocal(PACE_FROM_KMH(thresholdSpeed))} min/km`);
+      const paceZones = computePaceZones(thresholdSpeed, runProfile.zones, PACE_FROM_KMH);
+      lines.push(
+        `- Zonen: ${paceZones
+          .map(
+            (z) =>
+              `${z.label} ${z.vonPaceSec != null ? formatPaceSecLocal(z.vonPaceSec) : "–"}–${formatPaceSecLocal(z.bisPaceSec)} min/km`
+          )
+          .join(" · ")}`
+      );
+    } else {
+      lines.push("- Schwellenpace nicht schätzbar — kein Schwellen-Effort in den Daten.");
+    }
+  } else {
+    const zones = ftp ? computeZones(ftp) : [];
+    lines.push(`- FTP: ${ftp ?? "–"} W${ftpGoal ? ` (Ziel: ${ftpGoal} W)` : ""}`);
+    if (zones.length) {
+      lines.push(`- Zonen: ${zones.map((z) => `${z.label} ${z.vonW}–${z.bisW}W`).join(" · ")}`);
+    }
   }
   if (dataSources.length) lines.push(`- Datenquellen: ${dataSources.join(", ")}`);
   lines.push("");
@@ -658,21 +887,24 @@ export function buildBriefingMarkdown({
   lines.push("");
 
   lines.push("## Typenliste (nur diese Werte für `type` verwenden)");
-  lines.push(KNOWN_PLAN_TYPES.join(", "));
+  lines.push((isRunning ? RUNNING_KNOWN_TYPES : KNOWN_PLAN_TYPES).join(", "));
   lines.push("");
 
   lines.push("## Trainingsplan (ab heute)");
   if (!planCards.length) {
     lines.push("Keine geplanten Karten im Horizont.");
   } else {
-    lines.push("| Datum | Titel | Typ | Ziel-TSS | Karten-ID | Zuletzt geändert |");
+    // G25: die Spalte heißt bei Lauf "Ziel-Last" (TRIMP-Näherung statt TSS).
+    const loadLabel = isRunning ? "Ziel-Last" : "Ziel-TSS";
+    lines.push(`| Datum | Titel | Typ | ${loadLabel} | Karten-ID | Zuletzt geändert |`);
     lines.push("|---|---|---|---|---|---|");
     let anyUncertainTss = false;
     for (const c of planCards) {
       // R10: K3-Typ-Default (core/projection.js::estimateTss, dieselbe
       // Prioritätskette wie die PMC-Prognose) statt nur tssPlanned zu lesen —
       // die Spalte stand vorher bei jeder Karte ohne expliziten Zielwert auf
-      // "–", obwohl ein Median-TSS-Wert für den Typ vorliegt.
+      // "–", obwohl ein Median-TSS-Wert für den Typ vorliegt. estimateTss()
+      // dispatcht seit Fahrplan 12 E4 bereits über card.sport.
       const { tss, uncertain } = estimateTss(c, { ftp });
       if (uncertain) anyUncertainTss = true;
       lines.push(
@@ -682,7 +914,7 @@ export function buildBriefingMarkdown({
     if (anyUncertainTss) {
       lines.push("");
       lines.push(
-        "_Ziel-TSS mit „~“ ist kein von mir gesetztes Ziel, sondern aus Workout-Blöcken oder dem Typ-Durchschnitt geschätzt._"
+        `_${loadLabel} mit „~“ ist kein von mir gesetztes Ziel, sondern aus Workout-Blöcken oder dem Typ-Durchschnitt geschätzt._`
       );
     }
   }
@@ -691,6 +923,18 @@ export function buildBriefingMarkdown({
   lines.push("## Ist-Fahrten (letzte Wochen)");
   if (!actuals.length) {
     lines.push("Keine Fahrten im Zeitraum.");
+  } else if (isRunning) {
+    // G23: Last-Spalte bleibt (TRIMP), neue Pace-Spalte, Compliance-Spalte
+    // raus (kein Lauf-Struktur-Matching in Phase 2).
+    lines.push("| Datum | Typ | Last (TRIMP) | Pace | RPE | Feel |");
+    lines.push("|---|---|---|---|---|---|");
+    for (const r of actuals) {
+      const kmh = r.kmh || ((r.km ?? 0) > 0 && (r.min ?? 0) > 0 ? (r.km ?? 0) / ((r.min ?? 0) / 60) : 0);
+      const paceSec = kmh > 0 ? PACE_FROM_KMH(kmh) : null;
+      lines.push(
+        `| ${r.dateISO} | ${mdEscapeCell(r.typ)} | ${rideLoad(r)} | ${paceSec != null ? formatPaceSecLocal(paceSec) : "–"} | ${r.rpe ?? "–"} | ${r.feelIcu ?? "–"} |`
+      );
+    }
   } else {
     lines.push("| Datum | Typ | TSS | RPE | Feel | Compliance |");
     lines.push("|---|---|---|---|---|---|");
@@ -747,8 +991,9 @@ export function buildBriefingMarkdown({
   }
   lines.push("");
 
-  lines.push(...buildProgressSection(progress));
-  lines.push(...buildGuardrailsSection(guardrails));
+  // G23: Fortschritt (eFTP/EF/Decoupling) sind Rad-Größen — für Lauf ganz weg.
+  if (!isRunning) lines.push(...buildProgressSection(progress));
+  lines.push(...buildGuardrailsSection(guardrails, { sport }));
 
   lines.push("## Offene Konflikte");
   if (!conflicts.length) {
@@ -758,8 +1003,14 @@ export function buildBriefingMarkdown({
   }
   lines.push("");
 
-  lines.push(...buildMemorySection(recentProposals, ladderState));
-  lines.push(...buildPresetSuggestionSection(presetSuggestions));
+  // Guardrail 3 (Fahrplan 12): Progressionsleiter bleibt Rad-only. Heute
+  // liefern ladderState/presetSuggestions für Athlet 3 ohnehin [] (kein
+  // Athlet hat ladder_progression_enabled), aber das ist Laufzeitzustand,
+  // keine strukturelle Garantie — ein künftiger Multi-Sport-Athlet mit
+  // aktiver Rad-Freigabe darf trotzdem keinen Leiterstand/Stufenvorschlag
+  // im Lauf-Briefing sehen (code-review-Fund).
+  lines.push(...buildMemorySection(recentProposals, isRunning ? [] : ladderState));
+  if (!isRunning) lines.push(...buildPresetSuggestionSection(presetSuggestions));
 
   lines.push("## Maschinenlesbarer Anhang");
   lines.push("```json");
@@ -770,14 +1021,28 @@ export function buildBriefingMarkdown({
         athlete: athleteId,
         today: todayIso,
         ftp,
-        knownTypes: KNOWN_PLAN_TYPES,
-        cards: planCards.map((c) => ({
-          id: c.id,
-          updated_at: c.updatedAt ?? null,
-          plan_date: c.date,
-          title: c.name ?? null,
-          type: c.typ ?? null,
-        })),
+        knownTypes: isRunning ? RUNNING_KNOWN_TYPES : KNOWN_PLAN_TYPES,
+        // Fahrplan 12 E6 (W3): jede Lauf-Karte trägt zusätzlich `sport`, damit
+        // Claude payload.sport:"run" beim Vorschlag nicht erraten muss. Bei
+        // Rad bleibt das Objekt exakt wie vor E6 (Byte-Gleichheit).
+        cards: planCards.map((c) =>
+          isRunning
+            ? {
+                id: c.id,
+                updated_at: c.updatedAt ?? null,
+                plan_date: c.date,
+                title: c.name ?? null,
+                type: c.typ ?? null,
+                sport: c.sport ?? sport,
+              }
+            : {
+                id: c.id,
+                updated_at: c.updatedAt ?? null,
+                plan_date: c.date,
+                title: c.name ?? null,
+                type: c.typ ?? null,
+              }
+        ),
       },
       null,
       2
@@ -795,17 +1060,23 @@ export function buildBriefingMarkdown({
  *  `extraContext` (R2/R7, ungetrimmt erlaubt, wird hier getrimmt) hängt als
  *  eigener Absatz direkt unter den Auftragsblock — nie in die maschinelle
  *  JSON-Sektion, nie persistiert (das erledigt der Aufrufer in state/).
+ *  `sport` (Fahrplan 12 E6): bei `"run"` PROMPT_RUMPF_RUNNING +
+ *  AUFTRAG_VARIANTEN_RUNNING statt der Rad-Vorlage. Default `"ride"` hält
+ *  bestehende Aufrufer ohne diese Option byte-identisch zum Stand vor E6.
  *  @param {object} ctx
- *  @param {{preset?:string, event?:{title?:string,eventDate?:string}|null, extraContext?:string}} [opts] */
-export function buildExportText(ctx, { preset = "general", event = null, extraContext = "" } = {}) {
-  let auftrag = buildAuftragBlock(preset, event);
+ *  @param {{preset?:string, event?:{title?:string,eventDate?:string}|null, extraContext?:string, sport?:"ride"|"run"|"swim"}} [opts] */
+export function buildExportText(ctx, { preset = "general", event = null, extraContext = "", sport = "ride" } = {}) {
+  const isRunning = sport === "run";
+  const rumpf = isRunning ? PROMPT_RUMPF_RUNNING : PROMPT_RUMPF;
+  const variants = isRunning ? AUFTRAG_VARIANTEN_RUNNING : AUFTRAG_VARIANTEN;
+  let auftrag = buildAuftragBlock(preset, event, variants);
   const trimmedContext = (extraContext || "").trim().slice(0, EXTRA_CONTEXT_MAX_LENGTH);
   if (trimmedContext) {
     auftrag += `\n\n**Zusatzkontext von mir:** ${trimmedContext}`;
   }
-  return PROMPT_RUMPF
+  return rumpf
     .replace("{{AUFTRAG}}", auftrag)
-    .replace("{{BRIEFING}}", buildBriefingMarkdown(ctx));
+    .replace("{{BRIEFING}}", buildBriefingMarkdown(ctx, { sport }));
 }
 
 /** Dateiname für den Download-Weg (Konzept §2). @param {string} athleteId

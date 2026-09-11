@@ -52,7 +52,12 @@ export function ProposalList({
 }) {
   const { isSelf } = useIsSelfAthlete(athleteId);
   const { data: proposalsData } = useProposals(athleteId);
-  const { data: cards } = usePlanCards(athleteId);
+  // Fahrplan 12 (code-review-Fund, Etappe E6): `cards` geht nur in die
+  // Projektions-/Konflikt-Vorschau (impactSummary → toProjectionCard), nicht
+  // in eine sichtbare Kartenliste — sportübergreifend wie in ProposalCompare.tsx,
+  // sonst sieht K-HARTFOLGE einen harten Rad-Tag nicht, wenn gerade der
+  // Lauf-Tab aktiv ist.
+  const { data: cards } = usePlanCards(athleteId, { allSports: true });
   const { data: rideData } = useRides(athleteId);
   const { data: events } = useEvents(athleteId);
   const { accept } = useAcceptProposal(athleteId);

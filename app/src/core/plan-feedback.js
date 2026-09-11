@@ -117,7 +117,7 @@ export function formatCardImpact(impact, scale) {
  *  intern für die Prognose selbst nutzt) und liefert die fertige
  *  Beschriftung. `null`, wenn die Karte außerhalb der Projektion liegt
  *  (kein Tag mit `card.date` vorhanden — vergangene/ausgefallene Karten).
- *  @param {{date?:string, tssPlanned?:number|null, workout?:Object|null, workoutStructure?:Object|null, typ?:string|null}} card
+ *  @param {{date?:string, tssPlanned?:number|null, workout?:Object|null, workoutStructure?:Object|null, typ?:string|null, sport?:"ride"|"run"|"swim"}} card
  *  @param {ReturnType<typeof import("./projection.js").projectLoad>} projection
  *  @param {{ftp?:number}} [opts]
  *  @returns {{deltaFitness:number, deltaFatigue:number, deltaForm:number, uncertain:boolean, scale:{source:"tss"|"tss-approx"|"trimp"|"rpe", sport:"ride"|"run"|"swim"}, label:string}|null} */

@@ -97,6 +97,11 @@ function toProjectionCard(c: PlanCardT) {
     cancelled: c.cancelled,
     tssPlanned: c.tssPlanned,
     workout: c.workout as object | null,
+    // Fahrplan 12 E6 (Nachtrag zu E4): ohne `sport` dispatcht estimateTss()
+    // stillschweigend auf Rad-Konstanten — K-HARTFOLGE "harter Lauf nach
+    // hartem Rad" hätte sonst nie ausgelöst.
+    sport: c.sport,
+    workoutStructure: c.workoutStructure as object | null,
   };
 }
 
@@ -150,6 +155,10 @@ export function PlanningPage() {
   // Code-Vorlage in `core/plan-week-model.js`. `null` ⇒ Code-Vorlage wie bisher.
   const activeWeekModel = useActiveWeekModel(activeAthleteId);
   const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
+  // Fahrplan 12 E6 (Nachtrag zu E4): NUR für Projektion/Konfliktprüfung —
+  // K-HARTFOLGE muss einen harten Lauf nach hartem Rad übergreifend sehen.
+  // Die sichtbar gerenderte Kartenliste (`cards` oben) bleibt sportgefiltert.
+  const { data: allSportCards } = usePlanCards(activeAthleteId, { allSports: true });
   const { data: rideData } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
   const { canWrite } = useCanWriteForAthlete(activeAthleteId);
@@ -237,7 +246,9 @@ export function PlanningPage() {
   // seit Etappe 2a portiert und getestet, hier nur verdrahtet.
   const { projection, conflicts } = useMemo(() => {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
-    const projectionCards = (cards ?? []).map(toProjectionCard);
+    // Fahrplan 12 E6: sportübergreifend, damit K-HARTFOLGE einen harten Lauf
+    // nach hartem Rad sieht — die gerenderte Kartenliste bleibt sportgefiltert.
+    const projectionCards = (allSportCards ?? []).map(toProjectionCard);
     const projectionEvents = (events ?? []).map(toProjectionEvent);
     const projection = projectLoad(projectionCards, rides, { today: TODAY, events: projectionEvents, ftp });
     const conflicts = detectConflicts(projection, projectionCards, projectionEvents, rides, {
@@ -246,7 +257,7 @@ export function PlanningPage() {
       weekModel: activeWeekModel,
     });
     return { projection, conflicts };
-  }, [cards, rideData, events, ftp, activeAthleteId, planOffsetWeeks, activeWeekModel]);
+  }, [allSportCards, rideData, events, ftp, activeAthleteId, planOffsetWeeks, activeWeekModel]);
 
   const doneRides = useMemo(
     () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),

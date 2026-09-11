@@ -19,6 +19,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { athleteConfig } from "../../config";
 import { useSessionProfile, useAuthUserId } from "../../api/hooks/useSession";
+import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { useCheckinRange } from "../../api/hooks/useWellbeing";
 import { useProposals } from "../../api/hooks/useProposals";
 import { usePreviewClaudeImport, useImportClaudeProposals } from "../../api/hooks/useProposals";
@@ -180,6 +181,10 @@ export function CoachPanel({
   const profile = useSessionProfile();
   const userId = useAuthUserId();
   const athleteCfg = athleteConfig(athleteId);
+  // Fahrplan 12 E6: folgt dem aktiven Sport-Umschalter, kein eigener
+  // Selektor im Panel (G24). Swim fällt mangels eigener Vorlage auf Rad
+  // zurück (außerhalb des Fahrplan-12-Scopes).
+  const { effectiveSport } = useEffectiveSport(athleteId);
 
   const { preset: savedPreset, eventId: savedEventId, save: saveExportPrefs, isLoading: prefsLoading } = useExportPrefs();
   const { data: proposalsData } = useProposals(athleteId);
@@ -358,6 +363,7 @@ export function CoachPanel({
         preset: selectedPreset,
         event: eventArg,
         extraContext: debouncedExtraContext,
+        sport: effectiveSport === "run" ? "run" : "ride",
       });
       if (cancelled) return;
       setText(generated);
@@ -374,6 +380,7 @@ export function CoachPanel({
   }, [
     athleteId,
     userId,
+    effectiveSport,
     selectedPreset,
     selectedEventId,
     debouncedExtraContext,

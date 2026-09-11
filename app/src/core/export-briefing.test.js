@@ -418,3 +418,132 @@ test("Fixture: 'keine Änderung' — leere proposals-Liste ist ein gültiger Imp
   assert.equal(result.ok, true);
   assert.deepEqual(result.results, []);
 });
+
+/* ── Lauf-Briefing (Fahrplan 12 E6) ──────────────────────────────────── */
+
+const CTX_RUN = {
+  athleteId: "athlete-3-uuid",
+  displayName: "Hendrik",
+  ftp: null,
+  ftpGoal: null,
+  dataSources: ["intervals.icu"],
+  events: [],
+  planCards: [
+    { id: "run-card-1", date: "2026-09-20", name: "Tempolauf 20min", typ: "Tempolauf", tssPlanned: null, updatedAt: "2026-09-10T00:00:00Z", sport: "run" },
+  ],
+  actuals: [
+    { dateISO: "2026-09-05", typ: "Dauerlauf", trimp: 55, rpe: 4, feelIcu: 3, km: 8, min: 48 },
+  ],
+  rides: [], // zu dünn für estimateThresholdSpeed — degradierter Fall
+  wellbeing: [],
+  projection: null,
+  conflicts: [],
+  today: "2026-09-10",
+};
+
+test("buildExportText: sport 'run' beginnt mit dem Lauf-Rumpf, nicht dem Rad-Rumpf", () => {
+  const text = buildExportText(CTX_RUN, { sport: "run" });
+  assert.ok(text.startsWith("Du bist mein Lauf-Trainer."));
+  assert.doesNotMatch(text, /Radsport-Trainer/);
+});
+
+test("buildExportText: sport 'run' enthält weder Radcomputer- noch Leiterstand-/Stufenvorschlag-Bezüge", () => {
+  const text = buildExportText(CTX_RUN, { sport: "run" });
+  assert.doesNotMatch(text, /Radcomputer/);
+  assert.doesNotMatch(text, /Leiterstand/);
+  assert.doesNotMatch(text, /Stufenvorschlag/);
+});
+
+test("buildExportText: ohne sport-Option unverändert Rad-Vorlage (Regressionsschutz Fahrplan 12 E6)", () => {
+  const text = buildExportText(CTX);
+  assert.ok(text.startsWith("Du bist mein Radsport-Trainer."));
+});
+
+test("buildBriefingMarkdown: sport 'run' zeigt die Lauf-Typenliste statt KNOWN_PLAN_TYPES", () => {
+  const md = buildBriefingMarkdown(CTX_RUN, { sport: "run" });
+  assert.match(md, /## Typenliste[\s\S]*Dauerlauf, Intervalle, Longrun, Tempolauf, Rekom/);
+});
+
+test("buildBriefingMarkdown: sport 'run' — Trainingsplan-Kopf trägt 'Ziel-Last' statt 'Ziel-TSS'", () => {
+  const md = buildBriefingMarkdown(CTX_RUN, { sport: "run" });
+  assert.match(md, /\| Datum \| Titel \| Typ \| Ziel-Last \| Karten-ID \| Zuletzt geändert \|/);
+  assert.doesNotMatch(md, /Ziel-TSS/);
+});
+
+test("buildBriefingMarkdown: sport 'run' — Ist-Fahrten-Tabelle zeigt Last(TRIMP)/Pace statt TSS/Compliance", () => {
+  const md = buildBriefingMarkdown(CTX_RUN, { sport: "run" });
+  assert.match(md, /\| Datum \| Typ \| Last \(TRIMP\) \| Pace \| RPE \| Feel \|/);
+  assert.doesNotMatch(md, /Compliance/);
+  // km:8 / min:48 → 6 min/km ⇒ 360s ⇒ "6:00"
+  assert.match(md, /\| 2026-09-05 \| Dauerlauf \| 55 \| 6:00 \| 4 \| 3 \|/);
+});
+
+test("buildBriefingMarkdown: sport 'run' — degradierter Fall ohne belastbare Schwellenpace-Schätzung", () => {
+  const md = buildBriefingMarkdown(CTX_RUN, { sport: "run" });
+  assert.match(md, /Schwellenpace nicht schätzbar — kein Schwellen-Effort in den Daten\./);
+  assert.doesNotMatch(md, /FTP:/);
+});
+
+test("buildBriefingMarkdown: sport 'run' — Fortschritt-Sektion fehlt komplett", () => {
+  const md = buildBriefingMarkdown({ ...CTX_RUN, progress: { eftp: { first: 1, last: 2, slopePerWeek: 1, nPoints: 2, lastRampTest: null } } }, { sport: "run" });
+  assert.doesNotMatch(md, /## Fortschritt/);
+});
+
+test("buildBriefingMarkdown: sport 'run' — Leitplanken zeigen nur die CTL-Rampen-Zeile, keine harten-Tage/TID-Zeilen", () => {
+  const guardrails = {
+    rampActual4w: 4.2,
+    rampProjectedHorizon: 6.5,
+    rampHistoricalHitRate: 0.04,
+    hardDaysPerWeek: [{ week: "2026-KW31", count: 2 }],
+    shortestHardGap: 1,
+    tidVsCorridor: { phase: "Grundlage", shareAboveCorridor: 0.15 },
+    weeklyTssVsCeiling: [{ week: "2026-KW31", tss: 420, ceiling: 440, overCeiling: false }],
+  };
+  const md = buildBriefingMarkdown({ ...CTX_RUN, guardrails }, { sport: "run" });
+  assert.match(md, /CTL-Rampe: Ist \(letzte 4 Wochen\) 4\.2 CTL\/Woche/);
+  assert.doesNotMatch(md, /Harte Tage\/Woche/);
+  assert.doesNotMatch(md, /Intensitätsverteilung/);
+  assert.doesNotMatch(md, /Wochen-TSS vs\. Obergrenze/);
+});
+
+test("buildBriefingMarkdown: sport 'run' — Anhang trägt RUNNING_KNOWN_TYPES als knownTypes und sport je Karte", () => {
+  const md = buildBriefingMarkdown(CTX_RUN, { sport: "run" });
+  const jsonBlock = md.match(/```json\n([\s\S]*?)\n```/)[1];
+  const parsed = JSON.parse(jsonBlock);
+  assert.deepEqual(parsed.knownTypes, ["Dauerlauf", "Intervalle", "Longrun", "Tempolauf", "Rekom"]);
+  assert.equal(parsed.cards[0].sport, "run");
+});
+
+test("buildBriefingMarkdown: Rad-Anhang (Default) trägt kein sport-Feld je Karte (Byte-Gleichheit Fahrplan 12 E6)", () => {
+  const md = buildBriefingMarkdown(CTX);
+  const jsonBlock = md.match(/```json\n([\s\S]*?)\n```/)[1];
+  const parsed = JSON.parse(jsonBlock);
+  assert.equal("sport" in parsed.cards[0], false);
+});
+
+test("buildBriefingMarkdown: sport 'run' — Anhang-Karte ohne explizites sport-Feld fällt auf 'run', nicht 'ride' (code-review-Fund)", () => {
+  const md = buildBriefingMarkdown(
+    { ...CTX_RUN, planCards: [{ id: "run-card-2", date: "2026-09-21", name: "Dauerlauf", typ: "Dauerlauf", updatedAt: null }] },
+    { sport: "run" },
+  );
+  const jsonBlock = md.match(/```json\n([\s\S]*?)\n```/)[1];
+  const parsed = JSON.parse(jsonBlock);
+  assert.equal(parsed.cards[0].sport, "run");
+});
+
+test("buildBriefingMarkdown: sport 'run' — Leiterstand/Stufenvorschlag bleiben weg, selbst wenn ladderState/presetSuggestions gesetzt sind (Guardrail 3, code-review-Fund)", () => {
+  const md = buildBriefingMarkdown(
+    {
+      ...CTX_RUN,
+      ladderState: [
+        { summary: "Sweet Spot lang · Stufe S3 (3×15)", evidenceGrade: "coaching-konsens", neighbors: { prev: null, next: null } },
+      ],
+      presetSuggestions: [{ formatId: "f-up", label: "Format hoch", step: 4, action: "up", inTaper: false }],
+    },
+    { sport: "run" },
+  );
+  assert.doesNotMatch(md, /Leiterstand:/);
+  assert.doesNotMatch(md, /## Stufenvorschlag/);
+  // Entscheidungsgedächtnis selbst bleibt (sportneutral) — nur der Leiterstand-Unterpunkt fehlt.
+  assert.match(md, /## Entscheidungsgedächtnis/);
+});

@@ -14,7 +14,13 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import path from "node:path";
-import { PROMPT_RUMPF, AUFTRAG_VARIANTEN, buildBriefingMarkdown } from "./export-briefing.js";
+import {
+  PROMPT_RUMPF,
+  AUFTRAG_VARIANTEN,
+  PROMPT_RUMPF_RUNNING,
+  AUFTRAG_VARIANTEN_RUNNING,
+  buildBriefingMarkdown,
+} from "./export-briefing.js";
 import { validateWorkoutStructure, WORKOUT_STEP_KINDS } from "./workout-validator.js";
 import { validateProposal } from "./proposal-validator.js";
 import { presetAction } from "./ladder-progression.js";
@@ -58,6 +64,24 @@ test("Rumpf enthält den R7-Hinweis (Zusatzkontext darf nie in reason auftauchen
     /Zusatzkontext des Athleten darf deine Entscheidung beeinflussen, aber niemals\s+in `reason` auftauchen/,
   );
 });
+
+/* ── Lauf-Variante (Fahrplan 12 E6) — analog zur Rad-Prüfung oben ──────── */
+
+test("Lauf-Rumpf: PROMPT_RUMPF_RUNNING steht wörtlich (getrimmt) zwischen RUMPF-RUNNING-ANFANG/-ENDE in der Doku", () => {
+  const docRumpf = extractBetween("<!-- RUMPF-RUNNING-ANFANG -->", "<!-- RUMPF-RUNNING-ENDE -->");
+  assert.equal(docRumpf, PROMPT_RUMPF_RUNNING.trim());
+});
+
+test("Alle fünf Presets aus AUFTRAG_VARIANTEN_RUNNING sind vertreten — kein fehlender/zusätzlicher Schlüssel", () => {
+  assert.deepEqual(Object.keys(AUFTRAG_VARIANTEN_RUNNING).sort(), ["build", "check", "event", "general", "reduce"]);
+});
+
+for (const preset of Object.keys(AUFTRAG_VARIANTEN_RUNNING)) {
+  test(`Lauf-Auftragsvariante '${preset}': steht wörtlich (getrimmt) zwischen den AUFTRAG-RUNNING:${preset}-Markern in der Doku`, () => {
+    const docVariant = extractBetween(`<!-- AUFTRAG-RUNNING:${preset}-ANFANG -->`, `<!-- AUFTRAG-RUNNING:${preset}-ENDE -->`);
+    assert.equal(docVariant, AUFTRAG_VARIANTEN_RUNNING[preset].trim());
+  });
+}
 
 /* ── E2 Schritt 2: workout_structure — Schema-Drift-Schutz ──────────────
    Die bisherigen Tests oben stellen nur sicher, dass Vorlage und Doku
