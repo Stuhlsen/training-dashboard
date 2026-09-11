@@ -108,9 +108,9 @@ interface TraceLaneProps {
 }
 
 const ZONE_BAND_FILL: Record<string, string> = {
-  overload: "rgba(217,79,79,.17)",
-  build: "rgba(111,196,140,.12)",
-  fresh: "rgba(201,168,76,.14)",
+  overload: "rgba(217,79,79,.32)",
+  build: "rgba(111,196,140,.26)",
+  fresh: "rgba(201,168,76,.28)",
 };
 
 const ZONE_BAR_FILL: Record<string, string> = {
@@ -132,6 +132,10 @@ function lineColor(role: string, accent: string): string {
   if (role === "secondary") return "var(--role-secondary)";
   if (role === "positive") return "var(--role-positive)";
   if (role === "neutral") return "var(--text-soft)";
+  // Zonenfarbige TSB-Linie (Vorbild intervals.icu-Formchart) — dieselben
+  // Töne wie die Band-Labels (LABEL_ROLE_COLOR), damit Linie und
+  // Beschriftung an derselben Zone erkennbar zusammengehören.
+  if (role === "fresh" || role === "build" || role === "overload") return LABEL_ROLE_COLOR[role];
   return accent;
 }
 
@@ -197,6 +201,23 @@ export function TraceLane({ display, geometry: g, height, expanded, onToggle, cu
             {g.areas.map((a, i) => (
               <path key={i} d={a.d} fill={`color-mix(in srgb, ${lineColor(a.role, accent)} 12%, transparent)`} />
             ))}
+            {/* Weicher Kontur-Schatten hinter der Linie, nur wenn die Spur
+                Zonenbänder zeichnet (g.zones) — hebt die Linie vom kräftiger
+                gewordenen Bandhintergrund ab (aktuell nur "tsb"/Form, gilt
+                aber generisch für jede künftige Spur mit Zonenbändern). */}
+            {g.zones.length > 0 &&
+              g.lines.map((l, i) => (
+                <path
+                  key={`glow-${i}`}
+                  d={l.d}
+                  fill="none"
+                  stroke={lineColor(l.role, accent)}
+                  strokeWidth={l.width + 3.5}
+                  strokeDasharray={l.dash}
+                  opacity={Math.min(l.opacity, 0.3)}
+                  strokeLinejoin="round"
+                />
+              ))}
             {g.lines.map((l, i) => (
               <path key={i} d={l.d} fill="none" stroke={lineColor(l.role, accent)} strokeWidth={l.width} strokeDasharray={l.dash} opacity={l.opacity} strokeLinejoin="round" />
             ))}

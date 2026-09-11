@@ -62,9 +62,79 @@ function xOf(i, r0, span) {
   return ((i - r0) / span) * LANE_WIDTH;
 }
 
-/** SVG-Pfad aus Punktpaaren. */
+/** SVG-Pfad aus Punktpaaren, gerade Strecken (Fallback für <3 Punkte). */
 function pathFrom(points) {
   return points.map((p, i) => (i ? "L" : "M") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+}
+
+/** Weiche Kurve durch dieselben Punkte (Catmull-Rom → kubische Bézier,
+ *  Standard-Tension 1/6) statt gerader Strecken — Vorbild intervals.icu-
+ *  Formchart, dessen Linien ohne Knick durch die Tageswerte laufen. Reiner
+ *  Zeichen-Stil: Endpunkte sind exakt dieselben wie bei pathFrom(), Balken/
+ *  Punkte/Zielwert-Linien richten sich unverändert nach x(i)/y(v). */
+function smoothPathFrom(points) {
+  if (points.length < 3) return pathFrom(points);
+  let d = `M${points[0][0].toFixed(1)},${points[0][1].toFixed(1)}`;
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[i - 1] ?? points[i];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[i + 2] ?? p2;
+    const c1x = p1[0] + (p2[0] - p0[0]) / 6;
+    const c1y = p1[1] + (p2[1] - p0[1]) / 6;
+    const c2x = p2[0] - (p3[0] - p1[0]) / 6;
+    const c2y = p2[1] - (p3[1] - p1[1]) / 6;
+    d += ` C${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`;
+  }
+  return d;
+}
+
+/** `tsbBandOf()`-Ergebnis auf eine Linienfarben-Rolle abgebildet — NUR für
+ *  die drei Zustände, für die buildTsbLane() auch wirklich ein Band
+ *  zeichnet (overload/build/fresh, s. dort). "neutral" und "too-fresh"
+ *  liegen außerhalb jedes gezeichneten Bands (Lücken -5…+5 und >+20) und
+ *  bekommen deshalb bewusst `null` zurück → Aufrufer fällt auf die normale
+ *  Linienfarbe zurück, statt eine Zonenfarbe ohne zugehöriges Band zu
+ *  zeigen (Review-Fund: graue Linie ohne graues Band wirkt wie ein Fehler). */
+function tsbLineRole(v) {
+  const band = tsbBandOf(v);
+  return band === "overload" || band === "build" || band === "fresh" ? band : null;
+}
+
+/**
+ * Wie segmentPoints(), zusätzlich an TSB-Zonenwechseln getrennt (für die
+ * zonenfarbige Linie, Vorbild intervals.icu-Formchart). Der Übergangspunkt
+ * gehört zu beiden angrenzenden Segmenten, damit die Linie an der Naht
+ * lückenlos bleibt.
+ * @param {(number|null)[]} vals @param {number} from @param {number} to
+ * @param {(i:number)=>number} x @param {(v:number)=>number} y
+ * @returns {Array<{pts: Array<[number,number]>, role: string}>}
+ */
+function segmentPointsByZone(vals, from, to, x, y) {
+  const segs = [];
+  let cur = [];
+  let curRole = null;
+  for (let i = from; i <= to; i++) {
+    const v = vals[i];
+    if (v == null) {
+      if (cur.length > 1) segs.push({ pts: cur, role: curRole });
+      cur = [];
+      curRole = null;
+      continue;
+    }
+    const role = tsbLineRole(v);
+    const pt = [x(i), y(v)];
+    if (curRole != null && role !== curRole) {
+      cur.push(pt);
+      segs.push({ pts: cur, role: curRole });
+      cur = [pt];
+    } else {
+      cur.push(pt);
+    }
+    curRole = role;
+  }
+  if (cur.length > 1) segs.push({ pts: cur, role: curRole });
+  return segs;
 }
 
 /**
@@ -137,11 +207,12 @@ export function buildValueLane(kind, series, r0, r1, h, cursor) {
 
   if (kind === "line" || kind === "power") {
     for (const pts of segmentPoints(vals, r0, r1, x, y)) {
-      out.lines.push({ d: pathFrom(pts), width: 1.7, dash: "0", opacity: 1, role: "series" });
+      out.lines.push({ d: smoothPathFrom(pts), width: 1.7, dash: "0", opacity: 1, role: "series" });
       if (series.area) {
         const first = pts[0], last = pts[pts.length - 1];
+        const topEdge = smoothPathFrom(pts).replace(/^M/, "L");
         out.areas.push({
-          d: `M${first[0].toFixed(1)},${(h - 4).toFixed(1)} ${pts.map((p) => `L${p[0].toFixed(1)},${p[1].toFixed(1)}`).join(" ")} L${last[0].toFixed(1)},${(h - 4).toFixed(1)} Z`,
+          d: `M${first[0].toFixed(1)},${(h - 4).toFixed(1)} ${topEdge} L${last[0].toFixed(1)},${(h - 4).toFixed(1)} Z`,
           role: "series",
         });
       }
@@ -194,11 +265,11 @@ export function buildFitnessLane(series, r0, r1, h, cursor) {
 
   const pushSeries = (vals, dashedFrom) => {
     for (const pts of segmentPoints(vals, r0, Math.min(dashedFrom, r1), x, y)) {
-      out.lines.push({ d: pathFrom(pts), width: vals === ctlVals ? 2 : 1.3, dash: "0", opacity: 1, role: vals === ctlVals ? "primary" : "secondary" });
+      out.lines.push({ d: smoothPathFrom(pts), width: vals === ctlVals ? 2 : 1.3, dash: "0", opacity: 1, role: vals === ctlVals ? "primary" : "secondary" });
     }
     if (dashedFrom < r1) {
       for (const pts of segmentPoints(vals, dashedFrom, r1, x, y)) {
-        out.lines.push({ d: pathFrom(pts), width: vals === ctlVals ? 2 : 1.3, dash: "5 4", opacity: 0.9, role: vals === ctlVals ? "primary" : "secondary" });
+        out.lines.push({ d: smoothPathFrom(pts), width: vals === ctlVals ? 2 : 1.3, dash: "5 4", opacity: 0.9, role: vals === ctlVals ? "primary" : "secondary" });
       }
     }
   };
@@ -249,12 +320,12 @@ export function buildTsbLane(series, r0, r1, h, cursor) {
     if (v <= tmax - 3 && v >= tmin + 3) out.labels.push({ x: LANE_WIDTH - 4, y: ty(v), text, role, align: "end" });
   }
 
-  for (const pts of segmentPoints(tsbVals, r0, Math.min(todayIdx, r1), x, ty)) {
-    out.lines.push({ d: pathFrom(pts), width: 1.6, dash: "0", opacity: 0.95, role: "positive" });
+  for (const seg of segmentPointsByZone(tsbVals, r0, Math.min(todayIdx, r1), x, ty)) {
+    out.lines.push({ d: smoothPathFrom(seg.pts), width: 1.6, dash: "0", opacity: 0.95, role: seg.role ?? "positive" });
   }
   if (todayIdx < r1) {
-    for (const pts of segmentPoints(tsbVals, todayIdx, r1, x, ty)) {
-      out.lines.push({ d: pathFrom(pts), width: 1.6, dash: "5 4", opacity: 0.6, role: "positive" });
+    for (const seg of segmentPointsByZone(tsbVals, todayIdx, r1, x, ty)) {
+      out.lines.push({ d: smoothPathFrom(seg.pts), width: 1.6, dash: "5 4", opacity: 0.6, role: seg.role ?? "positive" });
     }
   }
 
@@ -385,7 +456,7 @@ export function buildWeatherLane(series, r0, r1, h, cursor, opts = {}) {
   }
   out.hlines.push({ y: y(hotThreshold), kind: "hot-threshold" });
   const pts = idx.filter((i) => series.tempVals[i] != null).map((i) => [x(i), y(series.tempVals[i])]);
-  if (pts.length > 1) out.lines.push({ d: pathFrom(pts), width: 1.4, dash: "0", opacity: 0.9, role: "neutral" });
+  if (pts.length > 1) out.lines.push({ d: smoothPathFrom(pts), width: 1.4, dash: "0", opacity: 0.9, role: "neutral" });
 
   if (cursor != null && series.tempVals[cursor] != null) {
     out.hasCursorDot = true;
