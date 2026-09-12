@@ -70,7 +70,7 @@ services:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
 
   gotrue:
-    image: supabase/gotrue:v2.196.0
+    image: supabase/gotrue:v2.197.0
     depends_on:
       migrate:
         condition: service_completed_successfully
