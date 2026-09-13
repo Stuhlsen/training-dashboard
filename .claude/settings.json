@@ -9,5 +9,20 @@
   },
   "enabledPlugins": {
     "ecc@ecc": true
+  },
+  "permissions": {
+    "deny": [
+      "Bash(git push --force)",
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Bash(git reset --hard *)",
+      "Bash(git clean -f*)",
+      "Bash(git branch -D *)",
+      "Bash(rm -rf *)",
+      "Bash(sudo *)",
+      "Bash(chmod 777 *)",
+      "Bash(ssh *)",
+      "Bash(* > /dev/*)"
+    ]
   }
 }
