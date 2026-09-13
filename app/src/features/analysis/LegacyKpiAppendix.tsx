@@ -45,12 +45,16 @@ interface LegacyKpiAppendixProps {
   consistency: ConsistencySummary;
   periodization: PeriodizationSummary | null;
   ownPlan: boolean;
+  /** Fahrplan 13 E3: true bei Multi-Sport-Athleten — die Last-Tabelle zeigt
+   *  dann den bereits kombinierten TSS+TRIMP-Rohwert (E1/X1) als Näherung
+   *  gekennzeichnet. */
+  multiSport: boolean;
 }
 
 /** `<details>` statt eines eigenen `expanded`-useState — kein Zustand nötig,
  *  Browser-nativ zugänglich (Enter/Space togglet, Screenreader kennt die
  *  Rolle), kollabiert per Default über das fehlende `open`-Attribut. */
-export function LegacyKpiAppendix({ kpis, loadRows, intensity, typDist, aerobicCards, powerDiagnostics, records, bodyCards, consistency, periodization, ownPlan }: LegacyKpiAppendixProps) {
+export function LegacyKpiAppendix({ kpis, loadRows, intensity, typDist, aerobicCards, powerDiagnostics, records, bodyCards, consistency, periodization, ownPlan, multiSport }: LegacyKpiAppendixProps) {
   return (
     <details style={{ borderRadius: 18, border: "1px dashed rgba(255,255,255,.14)", background: "rgba(20,24,34,.5)", backdropFilter: "blur(18px)" }}>
       <summary
@@ -73,7 +77,7 @@ export function LegacyKpiAppendix({ kpis, loadRows, intensity, typDist, aerobicC
           title="Belastung & Erholung"
           explainer="Ramp-Rate (sicherer Aufbau: +3 bis +6 CTL/Woche) und Foster-Monotonie/Strain pro Woche — erkennt Übersteuerung und „gleichförmig hart“-Muster, die die CTL allein maskiert."
         >
-          <LoadTable rows={loadRows} />
+          <LoadTable rows={loadRows} approximate={multiSport} />
         </AnalysisSection>
 
         <AnalysisSection

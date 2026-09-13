@@ -23,12 +23,26 @@ const ROW_STYLE: React.CSSProperties = {
 };
 
 /** Port von analysis.js::_renderLoad's `.load-table` (letzte 8 Wochen). */
-export function LoadTable({ rows }: { rows: LoadRow[] }) {
+export function LoadTable({ rows, approximate = false }: { rows: LoadRow[]; approximate?: boolean }) {
   if (!rows.length) return <AnalysisEmpty>Noch keine Wochenlast-Daten.</AnalysisEmpty>;
 
   return (
     <AnalysisBox>
       <div style={{ display: "flex", flexDirection: "column" }}>
+        {approximate && (
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: ".58rem",
+              letterSpacing: ".05em",
+              textTransform: "uppercase",
+              color: "var(--ink-3)",
+              padding: "0 4px 8px",
+            }}
+          >
+            Last · TSS (Rad) + TRIMP (Lauf/Schwimm) addiert, näherungsweise
+          </span>
+        )}
         <div
           style={{
             ...ROW_STYLE,

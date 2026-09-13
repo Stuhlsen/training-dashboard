@@ -373,6 +373,7 @@ export function AnalysisPage() {
               consistency={consistency}
               periodization={periodization}
               ownPlan={ownPlan}
+              multiSport={multiSport}
             />
           </>
         )}
