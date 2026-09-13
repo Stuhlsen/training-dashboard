@@ -13,7 +13,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
-import { hasGeneratedPlan } from "../../config";
+import { athleteConfig, hasGeneratedPlan } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
@@ -39,6 +39,7 @@ import { resolveDrop } from "../../core/plan-drag.js";
 import { detectConflicts } from "../../core/conflicts.js";
 import { projectLoad } from "../../core/projection.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
+import { isoWeekKey, weeklyVolumeBySport } from "../../core/aggregate.js";
 import { moveProposalArgs, cancelProposalArgs } from "../../core/proposal-payload.js";
 import { DeltaBanner } from "./DeltaBanner";
 import { computeDeltaBanner, type DeltaBannerState } from "./planning-delta";
@@ -79,6 +80,13 @@ type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
 
 const TODAY = localISODate();
+const CURRENT_WEEK_KEY = isoWeekKey(TODAY);
+
+const VOLUME_SPORT_LABEL: Record<"ride" | "run" | "swim", string> = {
+  ride: "Rad",
+  run: "Lauf",
+  swim: "Schwimm",
+};
 
 type DialogState = "closed" | "new" | PlanCardT;
 
@@ -159,8 +167,19 @@ export function PlanningPage() {
   // K-HARTFOLGE muss einen harten Lauf nach hartem Rad übergreifend sehen.
   // Die sichtbar gerenderte Kartenliste (`cards` oben) bleibt sportgefiltert.
   const { data: allSportCards } = usePlanCards(activeAthleteId, { allSports: true });
-  const { data: rideData } = useRides(activeAthleteId);
+  const { data: rideData, isLoading: ridesLoading, error: ridesError } = useRides(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
+  // Fahrplan 13 E4/X3: Wochenvolumen je Sport (reine Dauer-Summe, kein
+  // Lastmodell), sichtbar nur bei >1 Sportart (wie SportToggle). "Diese
+  // Woche" ist die echte, laufende Kalenderwoche (CURRENT_WEEK_KEY) —
+  // unabhängig vom gerade betrachteten Plan-Block/Sport-Tab, deshalb aus
+  // `ridesAll` (ungefiltert über alle Sportarten) statt `rides`.
+  const athleteSports = athleteConfig(activeAthleteId)?.sports ?? [];
+  const showWeeklyVolume = athleteSports.length > 1;
+  const weeklyVolume = useMemo(
+    () => weeklyVolumeBySport((rideData?.ridesAll as Ride[] | undefined) ?? [], CURRENT_WEEK_KEY),
+    [rideData?.ridesAll],
+  );
   const { canWrite } = useCanWriteForAthlete(activeAthleteId);
   const { canCreatePlan } = useCanCreatePlan(activeAthleteId);
   const { isTrainer } = useTrainerContext(activeAthleteId);
@@ -586,6 +605,23 @@ export function PlanningPage() {
 
       {!isLoading && error && (
         <p style={{ color: "var(--danger)" }}>⚠️ Trainingsplan konnte nicht geladen werden.</p>
+      )}
+
+      {/* Fahrplan 13 E4/X3: Wochenvolumen je Sport — reine Ist-Fahrten-Anzeige,
+          unabhängig davon, ob für den aktiven Sport-Tab schon ein Plan
+          angelegt ist (sonst bei "Noch kein Plan"-Athlet 3 nie sichtbar).
+          Gate hängt bewusst an `useRides` (ridesLoading/ridesError), nicht an
+          `usePlanCards` (isLoading/error oben) — andere Query, eigener
+          Ladezustand; sonst zeigt die Zeile "0.0h" statt zu warten, sobald
+          Plankarten schneller laden als die Fahrtendaten. */}
+      {!ridesLoading && !ridesError && showWeeklyVolume && (
+        <p style={{ margin: 0, fontSize: ".84rem", color: "var(--ink-2)" }}>
+          Diese Woche:{" "}
+          {athleteSports
+            .filter((s): s is "ride" | "run" | "swim" => s === "ride" || s === "run" || s === "swim")
+            .map((s) => `${VOLUME_SPORT_LABEL[s]} ${(weeklyVolume[s] / 60).toFixed(1)}h`)
+            .join(" · ")}
+        </p>
       )}
 
       {!isLoading && !error && !weekGrid.length && !sections.done.length && (

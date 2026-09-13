@@ -4,6 +4,7 @@
    ============================================================ */
 
 import { avg, sum } from "./stats.js";
+import { activitySport } from "./activity-sport.js";
 
 /**
  * ISO-Kalenderwochen-Schlüssel für ein Datum, z.B. "2026-KW27".
@@ -79,6 +80,24 @@ export function weeklyByCalendar(rides) {
   return Object.entries(grouped)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([week, wr]) => aggregateGroup(week, wr, { phase: wr[0]?.phase || null }));
+}
+
+/**
+ * Wochenvolumen (Dauer in Minuten) je Sportart für EINE Ziel-Kalenderwoche
+ * (Fahrplan 13 E4/X3 — reine Dauer-Summe, kein Lastmodell). `rides` ist die
+ * ungefilterte Aktivitätsliste aller Sportarten (`ridesAll` aus `useRides`),
+ * `weekKey` z.B. `isoWeekKey(TODAY)`.
+ * @param {import("../types.js").Ride[]} rides
+ * @param {string} weekKey
+ * @returns {{ride: number, run: number, swim: number, other: number}}
+ */
+export function weeklyVolumeBySport(rides, weekKey) {
+  const totals = { ride: 0, run: 0, swim: 0, other: 0 };
+  for (const r of rides) {
+    if (isoWeekKey(r.dateISO) !== weekKey) continue;
+    totals[activitySport(r)] += r.min || 0;
+  }
+  return totals;
 }
 
 /**

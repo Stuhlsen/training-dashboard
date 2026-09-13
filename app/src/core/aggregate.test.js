@@ -8,6 +8,7 @@ import {
   weeklyByCalendar,
   monthlyFromRides,
   weekSortIndex,
+  weeklyVolumeBySport,
 } from "./aggregate.js";
 
 test("sum ignoriert null, avg ignoriert null/NaN", () => {
@@ -100,6 +101,24 @@ test("monthlyFromRides: week ist der rohe YYYY-MM-Bucket-Schlüssel, keine lokal
   const rides = [{ dateISO: "2026-07-15", km: 10, min: 30, trimp: 50 }];
   const months = monthlyFromRides(rides);
   assert.equal(months[0].week, "2026-07");
+});
+
+test("weeklyVolumeBySport summiert Minuten je Sportart nur für die Ziel-Woche", () => {
+  const rides = [
+    { dateISO: "2026-07-01", sport: "ride", min: 90 },
+    { dateISO: "2026-07-02", sport: "run", min: 40 },
+    { dateISO: "2026-07-03", sport: "run", min: 30 },
+    { dateISO: "2026-07-04", sport: "swim", min: 20 },
+    { dateISO: "2026-07-08", sport: "ride", min: 999 }, // nächste KW, zählt nicht mit
+    { dateISO: "2026-07-05", min: 60 }, // fehlendes sport ⇒ "ride"
+  ];
+  const totals = weeklyVolumeBySport(rides, "2026-KW27");
+  assert.deepEqual(totals, { ride: 150, run: 70, swim: 20, other: 0 });
+});
+
+test("weeklyVolumeBySport: leere Woche liefert 0 für alle Sportarten", () => {
+  const totals = weeklyVolumeBySport([{ dateISO: "2026-07-01", sport: "ride", min: 90 }], "2026-KW01");
+  assert.deepEqual(totals, { ride: 0, run: 0, swim: 0, other: 0 });
 });
 
 test("linearTrend: Steigung einer perfekten Geraden, null bei Degeneration", () => {
