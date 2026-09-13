@@ -466,6 +466,16 @@ planning/                  → GITIGNORED, nicht im öffentlichen Repo. Zukünft
   Planungstab seit GFNY Bremen 2026 (`scripts/lib/plan-athlete2.js`).
   FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test),
   FTP-Ziel 280W (Notion-Korridor 275–285W)
+- **Athlet 3** (`athlete3`, „Hendrik") — Triathlet, seit Fahrplan 10–13
+  (Idee-1-Umsetzung, 09.–13.09.2026) voll verdrahtet, **kein Sonderfall
+  mehr**. Einziger Athlet mit mehreren Sportarten: `sports: ["ride", "run",
+  "swim"]` in `config.ts`. Synct alle drei über intervals.icu, hat eine
+  sportartübergreifende CTL/ATL/TSB-Anzeige, Pace-Zonen-Skala + Pace-Kurve
+  fürs Laufen, einen Sport-Umschalter, editierbare Laufplan-Karten
+  (`plan_cards` mit `sport`-Feld, Migration 0037) und die kombinierte
+  Last-/Konflikt-Ansicht über alle Sportarten (K-HARTFOLGE erkennt harten
+  Lauf nach hartem Rad). `ftpMeasured`/`hrMax`/`hrRest` sind noch `null` —
+  fehlt bislang ein Referenzwert, kein technisches Hindernis.
 - **Athlet 4** (`athlete4`, „bentastiic") — Renn-/Trainings-Einsteiger. Volles
   Modell wie Athlet 1 (eigener Login, Befinden, editierbare `plan_cards`,
   Wahoo-Push), aber Lesedaten-Pipeline wie Athlet 2 (intervals.icu + Supabase,
@@ -485,8 +495,7 @@ planning/                  → GITIGNORED, nicht im öffentlichen Repo. Zukünft
   Zwift-Profil hinterlegte FTP) → `output4.ftp = null`, die Hero-FTP-Widgets
   (Leistungsskala, Ringe) blenden sich datengetrieben aus. Nach dem 20-Min-Test
   (Vorlage-KW47) kann eine erste FTP gesetzt und die Vorlage um `watts` ergänzt
-  werden. Die interne ID `athlete3` ist reserviert, aber bewusst noch nicht
-  verdrahtet — daher die Lücke in der Nummerierung.
+  werden.
 
 FTP-Dreiklang pro Athlet in `app/src/config.ts` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
 (Ramp-Test) und `ftpGoal` (Ziel) — im Analyse-Tab strikt getrennt von der laufend
@@ -494,10 +503,10 @@ geschätzten eFTP. `seasonStartFtp` (Saison-Start-FTP für Fortschrittsring/Meil
 — nur bei Athlet 1 gesetzt, Athlet 2 → `null`) und `dataSources` (Untertitel-Anzeige,
 z.B. `["intervals.icu", "Apple Health"]`) leben ebenfalls dort.
 
-Interne IDs sind `athlete1`/`athlete2`/`athlete4`, Anzeigenamen sind die
-selbstgewählten Pseudonyme (GitHub-Handles) "Stuhlsen"/"hc_diZee"/"bentastiic"
-(einzige Quelle: `app/src/config.ts` → `athletes[].name` — nicht hartkodiert
-duplizieren). Athleten-Toggle persistent via
+Interne IDs sind `athlete1`/`athlete2`/`athlete3`/`athlete4`, Anzeigenamen sind
+die selbstgewählten Pseudonyme (GitHub-Handles bei 1/2/4) "Stuhlsen"/"hc_diZee"/
+"Hendrik"/"bentastiic" (einzige Quelle: `app/src/config.ts` → `athletes[].name`
+— nicht hartkodiert duplizieren). Athleten-Toggle persistent via
 `localStorage("active_athlete")` (`app/src/api/hooks/useActiveAthlete.ts`); unbekannte/
 alte IDs werden beim Start verworfen.
 Schreibaktionen im Planungstab (Verschieben/Ausfallen/Wahoo-Push, Befinden,
@@ -593,8 +602,9 @@ Tokens in `app/src/styles/tokens.css` (Namen stabil halten):
 - Wetter-Forecast wird serverseitig im Sync berechnet → nur Wetterwerte in rides.json,
   nie Koordinaten
 - Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder Commit-Messages —
-  intern `athlete1`/`athlete2`, in der UI die selbstgewählten Pseudonyme
-  (GitHub-Handles) "Stuhlsen"/"hc_diZee" (`app/src/config.ts` → `athletes[].name`)
+  intern `athlete1`/`athlete2`/`athlete3`/`athlete4`, in der UI die
+  selbstgewählten Pseudonyme "Stuhlsen"/"hc_diZee"/"Hendrik"/"bentastiic"
+  (`app/src/config.ts` → `athletes[].name`)
 
 **Git-Workflow:**
 ```powershell
