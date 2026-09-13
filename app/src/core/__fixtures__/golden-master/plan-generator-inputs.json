@@ -1,0 +1,178 @@
+{
+  "pyramidal-event": {
+    "startDate": "2026-09-07",
+    "mode": "event",
+    "eventDate": "2026-11-29",
+    "trainingWeekdays": [1, 2, 4, 6],
+    "weeklyHours": 8,
+    "currentFtp": 250,
+    "ftpMeasuredDate": "2026-08-20",
+    "ftpTarget": null,
+    "indoorShare": 0.4,
+    "focus": "allgemein",
+    "level": "fortgeschritten",
+    "model": "pyramidal",
+    "history": {
+      "weeklyActualTss": [420, 440, 455, 460],
+      "currentCtl": 62,
+      "currentEftp": 255,
+      "planAdherence": 0.85,
+      "ageYears": 34,
+      "powerCurveWeakness": null
+    }
+  },
+  "pyramidal-open-einsteiger": {
+    "startDate": "2026-09-07",
+    "mode": "open",
+    "weeks": 10,
+    "trainingWeekdays": [2, 4, 6, 7],
+    "weeklyHours": 6,
+    "currentFtp": null,
+    "ftpMeasuredDate": null,
+    "ftpTarget": null,
+    "indoorShare": 1,
+    "focus": "allgemein",
+    "level": "einsteiger",
+    "model": "pyramidal",
+    "history": {
+      "weeklyActualTss": [],
+      "currentCtl": null,
+      "currentEftp": null,
+      "planAdherence": null,
+      "ageYears": null,
+      "powerCurveWeakness": null
+    }
+  },
+  "linear-open-fortgeschritten": {
+    "startDate": "2026-09-07",
+    "mode": "open",
+    "weeks": 14,
+    "trainingWeekdays": [1, 3, 5, 6, 7],
+    "weeklyHours": 10,
+    "currentFtp": 280,
+    "ftpMeasuredDate": "2026-07-01",
+    "ftpTarget": 300,
+    "indoorShare": 0.2,
+    "focus": "berg",
+    "level": "fortgeschritten",
+    "model": "linear",
+    "history": {
+      "weeklyActualTss": [500, 510, 505, 520],
+      "currentCtl": 70,
+      "currentEftp": 282,
+      "planAdherence": 0.9,
+      "ageYears": 29,
+      "powerCurveWeakness": null
+    }
+  },
+  "polarized-event": {
+    "startDate": "2026-09-07",
+    "mode": "event",
+    "eventDate": "2026-10-19",
+    "trainingWeekdays": [1, 2, 4, 6],
+    "weeklyHours": 7,
+    "currentFtp": 220,
+    "ftpMeasuredDate": "2026-08-01",
+    "ftpTarget": null,
+    "indoorShare": 0.3,
+    "focus": "crit",
+    "level": "fortgeschritten",
+    "model": "polarized",
+    "history": {
+      "weeklyActualTss": [380, 390, 400, 410],
+      "currentCtl": 55,
+      "currentEftp": 222,
+      "planAdherence": 0.8,
+      "ageYears": 41,
+      "powerCurveWeakness": null
+    }
+  },
+  "block-open": {
+    "startDate": "2026-09-07",
+    "mode": "open",
+    "weeks": 9,
+    "trainingWeekdays": [1, 3, 5, 7],
+    "weeklyHours": 9,
+    "currentFtp": 240,
+    "ftpMeasuredDate": "2026-06-01",
+    "ftpTarget": null,
+    "indoorShare": 0.25,
+    "focus": "langstrecke",
+    "level": "fortgeschritten",
+    "model": "block",
+    "history": {
+      "weeklyActualTss": [430, 440, 450, 445],
+      "currentCtl": 60,
+      "currentEftp": 238,
+      "planAdherence": 0.82,
+      "ageYears": 33,
+      "powerCurveWeakness": null
+    }
+  },
+  "low-adherence": {
+    "startDate": "2026-09-07",
+    "mode": "event",
+    "eventDate": "2026-11-29",
+    "trainingWeekdays": [1, 2, 3, 4, 6],
+    "weeklyHours": 8,
+    "currentFtp": 250,
+    "ftpMeasuredDate": "2026-08-20",
+    "ftpTarget": null,
+    "indoorShare": 0.4,
+    "focus": "allgemein",
+    "level": "fortgeschritten",
+    "model": "pyramidal",
+    "history": {
+      "weeklyActualTss": [400, 395, 390, 385],
+      "currentCtl": 58,
+      "currentEftp": 252,
+      "planAdherence": 0.5,
+      "ageYears": 34,
+      "powerCurveWeakness": null
+    }
+  },
+  "power-curve-weakness": {
+    "startDate": "2026-09-07",
+    "mode": "open",
+    "weeks": 12,
+    "trainingWeekdays": [1, 2, 4, 6],
+    "weeklyHours": 8,
+    "currentFtp": 245,
+    "ftpMeasuredDate": "2026-07-15",
+    "ftpTarget": null,
+    "indoorShare": 0.3,
+    "focus": "allgemein",
+    "level": "fortgeschritten",
+    "model": "pyramidal",
+    "history": {
+      "weeklyActualTss": [410, 420, 430, 425],
+      "currentCtl": 59,
+      "currentEftp": 248,
+      "planAdherence": 0.88,
+      "ageYears": 30,
+      "powerCurveWeakness": "vo2"
+    }
+  },
+  "short-plan-warning": {
+    "startDate": "2026-09-07",
+    "mode": "open",
+    "weeks": 2,
+    "trainingWeekdays": [2, 4, 6],
+    "weeklyHours": 5,
+    "currentFtp": null,
+    "ftpMeasuredDate": null,
+    "ftpTarget": null,
+    "indoorShare": 1,
+    "focus": "allgemein",
+    "level": "einsteiger",
+    "model": "linear",
+    "history": {
+      "weeklyActualTss": [],
+      "currentCtl": null,
+      "currentEftp": null,
+      "planAdherence": null,
+      "ageYears": null,
+      "powerCurveWeakness": null
+    }
+  }
+}
