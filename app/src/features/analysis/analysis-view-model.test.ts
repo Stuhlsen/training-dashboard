@@ -108,6 +108,27 @@ describe("buildLoadRows", () => {
     );
     expect(buildLoadRows(rides).length).toBeLessThanOrEqual(8);
   });
+
+  it("Cross-Sport-Last (Fahrplan 13 E1/X1): multiSport nimmt ridesAll statt der tab-gefilterten rides", () => {
+    const rideOnly = [ride({ dateISO: "2026-06-01", tss: 50, sport: "ride" })];
+    const ridesAll = [
+      ride({ dateISO: "2026-06-01", tss: 50, sport: "ride" }),
+      ride({ dateISO: "2026-06-01", trimp: 30, sport: "run" }),
+    ];
+    const rows = buildLoadRows(rideOnly, { multiSport: true, ridesAll });
+    // Rad-TSS + Lauf-TRIMP roh summiert (ridesAll statt rideOnly)
+    expect(rows[0].total).toBe(80);
+  });
+
+  it("Cross-Sport-Last: ohne multiSport bleibt ridesAll unberücksichtigt (Golden-Master 1/2/4)", () => {
+    const rides = [ride({ dateISO: "2026-06-01", tss: 50, sport: "ride" })];
+    const ridesAll = [
+      ride({ dateISO: "2026-06-01", tss: 50, sport: "ride" }),
+      ride({ dateISO: "2026-06-01", trimp: 30, sport: "run" }),
+    ];
+    const rows = buildLoadRows(rides, { multiSport: false, ridesAll });
+    expect(rows[0].total).toBe(50);
+  });
 });
 
 describe("buildIntensityDistribution", () => {

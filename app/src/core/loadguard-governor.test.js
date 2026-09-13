@@ -120,3 +120,25 @@ test("describeWeek: ein deckel-getriebener 'high' heißt 'Eigenlast-Deckel', nic
   assert.equal(d.label, "Eigenlast-Deckel");
   assert.match(d.detail, /Median/);
 });
+
+/* ── Fahrplan 13 X1/E1: sportübergreifende Tageslast ────────── */
+
+test("buildLoadGuard: Rad-tss + Lauf-trimp am selben Tag werden roh summiert (Fahrplan 13 X1)", () => {
+  const rides = [
+    { dateISO: "2026-01-05", week: "W01", sport: "ride", tss: 80 },
+    { dateISO: "2026-01-05", week: "W01", sport: "run", trimp: 45 },
+  ];
+  const rows = buildLoadGuard(rides, keyFn, sortFn);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].total, 125, "Tageslast = rideLoad(Rad) + rideLoad(Lauf), roh addiert");
+});
+
+test("buildLoadGuard: Regression — reines Single-Sport-Array (Athlet 1/2/4) unverändert", () => {
+  const singleSport = [1, 2, 3, 4, 5, 6].map((n) => wk(n, 100)).concat(wk(7, 300));
+  // Dieselben Fahrten, jetzt explizit mit sport:"ride" markiert — muss exakt
+  // dasselbe Ergebnis liefern wie ohne `sport`-Feld (Bestandsathleten).
+  const marked = singleSport.map((r) => ({ ...r, sport: "ride" }));
+  const a = buildLoadGuard(singleSport, keyFn, sortFn);
+  const b = buildLoadGuard(marked, keyFn, sortFn);
+  assert.deepEqual(a, b);
+});

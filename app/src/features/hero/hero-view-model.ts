@@ -381,16 +381,21 @@ export function buildBriefingInfo(
   // Gemeinsame CTL/ATL/TSB (Fahrplan 10 E8b): `pmcRides` ist die ungefilterte
   // Aktivitätsliste ALLER Sportarten (aus `useRides`s `ridesAll`). Damit ist
   // der Fitness-/Form-Anker auf jedem Sportart-Tab derselbe — jede Ride-Zeile
-  // trägt `ctl`/`atl` bereits als intervals-kombinierten Tageswert. Der
-  // Wochen-Lastdeckel (`buildLoadGuard` unten) bleibt bewusst auf `rides`
-  // (sport-eigen). Ohne `pmcRides` (Athlet 1/2/4, alle Alt-Aufrufer) = altes
-  // Verhalten, da `pmcRides ?? rides`.
+  // trägt `ctl`/`atl` bereits als intervals-kombinierten Tageswert. Ohne
+  // `pmcRides` (Athlet 1/2/4, alle Alt-Aufrufer) = altes Verhalten, da
+  // `pmcRides ?? rides`.
   const pmcRides = opts.pmcRides ?? rides;
   const pmc = currentPmc(pmcRides, todayISO);
   const readiness = assessReadiness(wellness, todayISO);
   const trend = tsbTrend(pmcRides, todayISO);
+  // Cross-Sport-Last für den Governor (Fahrplan 13 E1/X1): bei multiSport
+  // bekommt buildLoadGuard dasselbe ungefilterte `pmcRides` statt der
+  // tab-gefilterten `rides` — dieselbe Woche summiert dann TSS (Rad) +
+  // TRIMP (Lauf/Schwimm) roh (rideLoad() in core/loadguard.js). Ohne
+  // multiSport (Athlet 1/2/4) bleibt es exakt `rides` wie vor E1.
+  const loadGuardRides = opts.multiSport ? pmcRides : rides;
   const loadRows = buildLoadGuard(
-    rides,
+    loadGuardRides,
     // Leere/kaputte dateISO ("" nach normalizeRide-Fallback) NICHT in
     // isoWeekKey geben — das liefert dafür die truthy Bogus-Woche
     // "NaN-KWNaN" statt eines leeren Schlüssels, die dann als "aktuellste

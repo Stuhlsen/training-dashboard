@@ -116,14 +116,20 @@ export interface LoadRow {
  *  ISO-Kalenderwoche (wie _weekFns() im Original — der dortige ownPlan-
  *  Parameter blieb dort bereits ungenutzt, keine Regression hier). Zeigt
  *  die letzten 8 Wochen mit Daten. */
-export function buildLoadRows(rides: Ride[], opts: { multiSport?: boolean } = {}): LoadRow[] {
+export function buildLoadRows(
+  rides: Ride[],
+  opts: { multiSport?: boolean; ridesAll?: Ride[] } = {},
+): LoadRow[] {
   const weekKeyFn = (r: Ride) => isoWeekKey(r.dateISO);
   const weekSortFn = (a: string, b: string) => a.localeCompare(b);
   // multiSport (Fahrplan 10 E8a): schaltet den Eigenlast-Wochendeckel des
-  // Governors frei — nur für Athleten mit > 1 Sportart. Die Wochen-`total`s
-  // sind hier die der aktiv gewählten Sportart (der Umschalter filtert `rides`
-  // vorab); die sportartübergreifende Last-Summierung ist Phase 3.
-  const guard = buildLoadGuard(rides, weekKeyFn, weekSortFn, { multiSport: opts.multiSport });
+  // Governors frei — nur für Athleten mit > 1 Sportart. Cross-Sport-Last
+  // (Fahrplan 13 E1/X1): bei multiSport bekommt buildLoadGuard `ridesAll`
+  // (ungefiltert, Muster wie pmcRides in hero-view-model.ts) statt der
+  // tab-gefilterten `rides` — dieselbe Woche summiert dann TSS (Rad) + TRIMP
+  // (Lauf/Schwimm) roh. Ohne multiSport (Athlet 1/2/4) bleibt es `rides`.
+  const guardRides = opts.multiSport ? (opts.ridesAll ?? rides) : rides;
+  const guard = buildLoadGuard(guardRides, weekKeyFn, weekSortFn, { multiSport: opts.multiSport });
   return guard.slice(-8).map((r) => {
     const d = describeWeek(r);
     return { ...r, label: d.label, detail: d.detail };

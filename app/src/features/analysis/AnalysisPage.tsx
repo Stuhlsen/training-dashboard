@@ -109,6 +109,12 @@ export function AnalysisPage() {
   const [dense, setDense] = useState(false);
 
   const rides = useMemo(() => (athleteData?.rides as Ride[] | undefined) ?? [], [athleteData]);
+  // Cross-Sport-Last (Fahrplan 13 E1/X1): ungefilterte Aktivitätsliste ALLER
+  // Sportarten, einmal berechnet und an alle drei buildLoadGuard-Aufrufstellen
+  // unten (briefing/loadRows/vm) durchgereicht — dieselbe Quelle wie
+  // hero-view-model.ts::buildBriefingInfo. Für Athlet 1/2/4 ist
+  // `ridesAll === rides`.
+  const ridesAll = useMemo(() => (athleteData?.ridesAll as Ride[] | undefined) ?? rides, [athleteData, rides]);
   const wellness = useMemo(() => (athleteData?.wellness as WellnessDay[] | undefined) ?? [], [athleteData]);
   const cards = useMemo(() => planCards ?? [], [planCards]);
   const eventList = useMemo(() => events ?? [], [events]);
@@ -129,8 +135,11 @@ export function AnalysisPage() {
         unit,
         todayISO: TODAY,
         cadenceTarget,
+        // Cross-Sport-Last (Fahrplan 13 E1/X1): dieselbe Quelle wie briefing/
+        // loadRows unten.
+        ridesAll,
       }),
-    [rides, wellness, cards, eventList, athleteCfg, athleteData, unit, cadenceTarget],
+    [rides, wellness, cards, eventList, athleteCfg, athleteData, unit, cadenceTarget, ridesAll],
   );
 
   // Dieselbe Belastungsempfehlung wie auf der Hero-Seite (buildBriefingInfo()
@@ -144,10 +153,11 @@ export function AnalysisPage() {
         multiSport,
         // Gemeinsame CTL/ATL/TSB über alle Sportarten (Fahrplan 10 E8b) — die
         // BriefingSignals hier sollen denselben Fitness-/Form-Anker zeigen wie
-        // der Hero-Tab. Für Athlet 1/2/4 ist `ridesAll === rides`.
-        pmcRides: (athleteData?.ridesAll as typeof rides | undefined) ?? rides,
+        // der Hero-Tab. Seit Fahrplan 13 E1/X1 auch Quelle des Eigenlast-
+        // Wochendeckels bei multiSport.
+        pmcRides: ridesAll,
       }),
-    [rides, wellness, cards, isSelf, checkin, multiSport, athleteData],
+    [rides, wellness, cards, isSelf, checkin, multiSport, ridesAll],
   );
 
   const projection = useMemo(() => {
@@ -178,7 +188,16 @@ export function AnalysisPage() {
     () => buildAnalysisKpis(rides, athleteCfg?.ftpMeasured ?? null, TODAY, cadenceTarget),
     [rides, athleteCfg, cadenceTarget],
   );
-  const loadRows = useMemo(() => buildLoadRows(rides, { multiSport }), [rides, multiSport]);
+  const loadRows = useMemo(
+    () =>
+      buildLoadRows(rides, {
+        multiSport,
+        // Cross-Sport-Last (Fahrplan 13 E1/X1): dieselbe Quelle wie briefing
+        // oben.
+        ridesAll,
+      }),
+    [rides, multiSport, ridesAll],
+  );
   const intensity = useMemo(() => buildIntensityDistribution(rides), [rides]);
   const typDist = useMemo(() => buildTypDistribution(rides), [rides]);
   const aerobicCards = useMemo(

@@ -3,7 +3,7 @@
    Berechnungen dahinter sind bereits in core/*.test.js abgedeckt. */
 
 import { describe, expect, it } from "vitest";
-import { buildHeroMetrics, buildHeroViewModel, buildPowerScale, powerScaleReadout, type HeroViewModelInput } from "./hero-view-model";
+import { buildBriefingInfo, buildHeroMetrics, buildHeroViewModel, buildPowerScale, powerScaleReadout, type HeroViewModelInput } from "./hero-view-model";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -361,5 +361,29 @@ describe("buildHeroMetrics", () => {
     expect(labels).not.toContain("eFTP (Intervals.icu)");
     expect(labels).toContain("Gesamtdistanz");
     expect(labels).toContain("CTL Peak");
+  });
+});
+
+describe("buildBriefingInfo", () => {
+  // Fahrplan 13 E1/X1: Cross-Sport-Last für den Governor. 6 Vorwochen mit
+  // Rad-tss=100 (Median 100), letzte Woche (KW08) nur mit Rad-tss=100 in
+  // `rides` — `pmcRides` bekommt dieselbe letzte Woche zusätzlich einen Lauf
+  // mit trimp=200 dazu (Woche = 300 > Median(100) × 1,5 → Eigenlast-Deckel).
+  const mondays = ["2026-01-05", "2026-01-12", "2026-01-19", "2026-01-26", "2026-02-02", "2026-02-09", "2026-02-16"];
+  const rides = mondays.map((d) => ({ dateISO: d, sport: "ride", tss: 100 })) as Ride[];
+  const pmcRides = [...rides, { dateISO: "2026-02-17", sport: "run", trimp: 200 }] as Ride[];
+  const loadStatus = (b: ReturnType<typeof buildBriefingInfo>) =>
+    b.signals.find((s) => /Belastungswächter|Belastungsaufbau im sicheren Korridor/.test(s.text))?.status;
+
+  it("multiSport: der Eigenlast-Deckel greift auf pmcRides (ridesAll), nicht auf die tab-gefilterten rides", () => {
+    const withoutCross = buildBriefingInfo(rides, [], [], new Set(), null, "2026-02-18", { multiSport: true });
+    const withCross = buildBriefingInfo(rides, [], [], new Set(), null, "2026-02-18", { multiSport: true, pmcRides });
+    expect(loadStatus(withoutCross)).toBe("ok");
+    expect(loadStatus(withCross)).toBe("alert");
+  });
+
+  it("ohne multiSport bleibt pmcRides für den Lastdeckel unberücksichtigt (Golden-Master 1/2/4)", () => {
+    const b = buildBriefingInfo(rides, [], [], new Set(), null, "2026-02-18", { multiSport: false, pmcRides });
+    expect(loadStatus(b)).toBe("ok");
   });
 });

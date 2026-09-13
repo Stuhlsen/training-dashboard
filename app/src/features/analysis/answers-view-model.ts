@@ -185,6 +185,10 @@ export interface AnswersViewModelInput {
   /** Intervall-Kadenzziel des eingeloggten Athleten (Fahrplan 11).
    *  Fehlt ⇒ CADENCE_TARGET_RPM (90). */
   cadenceTarget?: number;
+  /** Ungefilterte Aktivitätsliste ALLER Sportarten (Fahrplan 10 E8b, aus
+   *  `useRides`s `ridesAll`) — Cross-Sport-Last für den Belastungswächter
+   *  (Fahrplan 13 E1/X1). Fehlt ⇒ `rides` (Athlet 1/2/4 = Single-Sport). */
+  ridesAll?: Ride[];
 }
 
 const VERDICT_COLOR: Record<string, string> = {
@@ -205,7 +209,7 @@ function fmtW(raw: number, unit: PowerUnit, weightKg: number | null): string {
 /** Baut das komplette View-Model, oder `null` ohne belastbare PMC-Basis
  *  (kein Skelett möglich — Aufrufer zeigt dann einen Leerzustand). */
 export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersViewModel | null {
-  const { rides, wellness, planCards, events, athleteCfg, athleteFtp, athleteWeightKg, powerCurves, unit } = input;
+  const { rides, wellness, planCards, events, athleteCfg, athleteFtp, athleteWeightKg, powerCurves, unit, ridesAll } = input;
   const todayISO = input.todayISO ?? localISODate();
   const cadenceTarget = input.cadenceTarget ?? CADENCE_TARGET;
 
@@ -311,8 +315,14 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   // ── Belastungswächter (Ramp-Zielband) ──────────────────────────────
   // multiSport (Fahrplan 10 E8a): Eigenlast-Wochendeckel nur für Athleten mit
   // > 1 Sportart (Athlet 3). Für 1/2/4 exakt das Verhalten vor E6.
-  const loadWeeks = buildLoadGuard(rides, (r) => isoWeekKey(r.dateISO), (a, b) => a.localeCompare(b), {
-    multiSport: (athleteCfg?.sports?.length ?? 1) > 1,
+  // Cross-Sport-Last (Fahrplan 13 E1/X1): bei multiSport bekommt
+  // buildLoadGuard `ridesAll` (ungefiltert) statt der tab-gefilterten
+  // `rides` — dieselbe Woche summiert dann TSS (Rad) + TRIMP (Lauf/Schwimm)
+  // roh. Ohne multiSport (Athlet 1/2/4) bleibt es `rides`.
+  const isMultiSport = (athleteCfg?.sports?.length ?? 1) > 1;
+  const loadGuardRides = isMultiSport ? (ridesAll ?? rides) : rides;
+  const loadWeeks = buildLoadGuard(loadGuardRides, (r) => isoWeekKey(r.dateISO), (a, b) => a.localeCompare(b), {
+    multiSport: isMultiSport,
   });
   const rampWeeksOverBand = loadWeeks.slice(-4).filter((w) => w.ramp != null && w.ramp > 6).length;
 

@@ -37,6 +37,12 @@ export const MONOTONY_WARN = 2.0;
  *    intervals-`tss` aus dem Rad-Modell — der ist für eine Laufeinheit
  *    bedeutungslos. Bestandsathleten 1/2/4 tragen nie `sport !== "ride"`
  *    und kein `trimp` → dieser Zweig ändert für sie nichts.
+ *  - Fahrplan 13 X1/P9: sobald `buildLoadGuard()` ein sportübergreifendes
+ *    Rides-Array bekommt (Multi-Sport-Athleten, E1), summiert `fosterWeek()`
+ *    Rad-TSS und Lauf/Schwimm-TRIMP tageweise **roh** auf — bewusste
+ *    Vereinfachung, keine belegte Skalengleichheit zwischen beiden Größen.
+ *    Kein Umrechnungsfaktor (bleibt OF-8, zurückgestellt), s. Fahrplan 10
+ *    OF-8 / Fahrplan 13 Risiken.
  *  @param {import("../types.js").Ride & {sport?: string}} r @returns {number} */
 export function rideLoad(r) {
   const isRide = !r.sport || r.sport === "ride";

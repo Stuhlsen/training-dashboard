@@ -26,9 +26,11 @@ import { ridesForSport } from "../../core/activity-sport.js";
  *  zusätzlich mitgegeben. Die gemeinsame CTL/ATL/TSB-Anzeige (`buildBriefingInfo`
  *  → `currentPmc`/`tsbTrend`) verankert „heute" darüber, damit der Fitness-/
  *  Form-Wert auf jedem Sportart-Tab derselbe ist (jede Ride-Zeile trägt `ctl`/
- *  `atl` bereits als intervals-kombinierten Tageswert). Der Wochen-Lastdeckel
- *  (`buildLoadGuard`) bleibt sport-eigen. Für Athlet 1/2/4 ist
- *  `ridesAll === rides` (Single-Sport). */
+ *  `atl` bereits als intervals-kombinierten Tageswert). Seit Fahrplan 13 E1/X1
+ *  bekommt auch der Wochen-Lastdeckel (`buildLoadGuard`) für Multi-Sport-
+ *  Athleten (`multiSport:true`) dieses `ridesAll` statt der tab-gefilterten
+ *  `rides` — s. hero-view-model.ts::buildBriefingInfo. Für Athlet 1/2/4 ist
+ *  `ridesAll === rides` (Single-Sport), also ohne jeden Unterschied. */
 export function useRides(athleteId: string) {
   const { effectiveSport } = useEffectiveSport(athleteId);
   const select = useCallback(
