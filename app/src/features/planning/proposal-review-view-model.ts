@@ -107,6 +107,15 @@ export interface ImpactContext {
    *  durchgereicht, damit die Vorschau dieselben Ruhe-Slots sieht wie sein
    *  Planungstab. Default 0. */
   offsetWeeks?: number;
+  /** Fahrplan 13 E5: schaltet den Rad-only-Filter von K-WOCHENTSS/K-TID in
+   *  conflicts.js ab (Athleten mit >1 Sportart). `rides` muss dann bereits
+   *  die ungefilterte Ist-Fahrtenliste sein (ProposalList.tsx/
+   *  ProposalCompare.tsx reichen `ridesAll` durch), sonst sieht K-TID die
+   *  Lauf-/Schwimm-Ist-Fahrten trotz gesetzter Option nie. Wirkt als
+   *  Nebeneffekt zusätzlich auf den K-WOCHENSPRUNG-Ist-Seed (summiert
+   *  `actuals` sportunabhängig) — gewollt, s. Kommentar in
+   *  proposal-preview.js::previewProposal(). */
+  multiSport?: boolean;
 }
 
 /** Schmale Adapter für core/projection.js/core/conflicts.js — dieselbe
@@ -141,6 +150,7 @@ function preview(proposal: Proposal, ctx: ImpactContext) {
     today: ctx.today,
     athleteId: ctx.athleteId,
     offsetWeeks: ctx.offsetWeeks ?? 0,
+    multiSport: ctx.multiSport,
   });
 }
 

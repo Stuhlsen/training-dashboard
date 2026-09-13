@@ -270,13 +270,28 @@ export function PlanningPage() {
     const projectionCards = (allSportCards ?? []).map(toProjectionCard);
     const projectionEvents = (events ?? []).map(toProjectionEvent);
     const projection = projectLoad(projectionCards, rides, { today: TODAY, events: projectionEvents, ftp });
-    const conflicts = detectConflicts(projection, projectionCards, projectionEvents, rides, {
+    // Fahrplan 13 E5: multiSport schaltet den Rad-only-Filter von K-WOCHENTSS/
+    // K-TID in detectConflicts() ab (`showWeeklyVolume` trägt dieselbe
+    // Bedingung `athleteSports.length > 1`, hier bewusst wiederverwendet
+    // statt eines zweiten Booleans). K-WOCHENTSS hängt dabei nur an den
+    // (bereits sportübergreifenden) Plankarten — `rides` reicht. K-TID liest
+    // die Ist-Fahrten aber direkt aus `actuals`: mit dem tab-gefilterten
+    // `rides` sähe es Lauf-/Schwimm-Intensität nie, egal was `multiSport`
+    // sagt — deshalb hier `ridesAll` wie schon bei `projectionCards`. Wirkt
+    // als Nebeneffekt zusätzlich auf den K-WOCHENSPRUNG-Ist-Seed
+    // (lastRiddenWeekTss() in conflicts.js summiert `actuals` sportunabhängig)
+    // — gewollt: die Vergleichswoche soll dieselbe Sport-Mischung tragen wie
+    // die (bereits sportübergreifende) erste volle Planwoche, sonst wäre
+    // jeder Vergleich ein Äpfel-Birnen-Sprung.
+    const conflictActuals = showWeeklyVolume ? ((rideData?.ridesAll as Ride[] | undefined) ?? rides) : rides;
+    const conflicts = detectConflicts(projection, projectionCards, projectionEvents, conflictActuals, {
       athleteId: activeAthleteId,
       offsetWeeks: planOffsetWeeks,
       weekModel: activeWeekModel,
+      multiSport: showWeeklyVolume,
     });
     return { projection, conflicts };
-  }, [allSportCards, rideData, events, ftp, activeAthleteId, planOffsetWeeks, activeWeekModel]);
+  }, [allSportCards, rideData, events, ftp, activeAthleteId, planOffsetWeeks, activeWeekModel, showWeeklyVolume]);
 
   const doneRides = useMemo(
     () => new Map(sections.done.map((c) => [c.id, matchRideForCard((rideData?.rides as Ride[] | undefined) ?? [], c, editable)])),

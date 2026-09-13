@@ -350,12 +350,21 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   //    korridors über die letzten 4 Ist-Wochen (`r.if`, bereits vorhanden).
   //    Kein Korridor für die aktuelle Blockphase (Taper/Übergang/kein
   //    Blockziel) → keine Regel, keine Aussage.
-  // Je Sport getrennt (Fahrplan 12 E4): Blockkorridor UND Ist-Fenster nur aus
-  // Rad-Karten bzw. Rad-Ist-Fahrten — PHASE_SIGNATURES und `r.if` sind
-  // radsportkalibriert. Seit Fahrplan 13 sportübergreifend bei >1 Sport,
-  // sonst weiter Rad-only.
-  const rideCards = multiSport ? cards || [] : (cards || []).filter((c) => activitySport(c) === "ride");
-  const tidPhase = currentBlockTarget(rideCards, today);
+  // Blockkorridor (currentBlockTarget()/PHASE_SIGNATURES) ist radsport-
+  // kalibriert und bleibt darum IMMER auf Rad-Karten eingegrenzt — anders als
+  // das Ist-Fenster unten, das bei multiSport bewusst sportübergreifend wird.
+  // Fahrplan 13 E5 (K-TID-Randfall): ohne diese eigene Eingrenzung könnte
+  // currentBlockTarget() bei multiSport eine näher liegende Lauf-/Schwimm-
+  // Karte als "nächstgelegene" wählen; deren Phase ist kein PHASE_SIGNATURES-
+  // Schlüssel, tidCorridor würde null und K-TID feuert die ganze Woche nicht
+  // — auch nicht für die eigenen Rad-Ist-Fahrten. Wichtig: NICHT nach "Phase
+  // bekannt" filtern (verworfen, code-review-Fund) — eine echte Rad-
+  // Erholungs-/Taper-Karte hat ebenfalls keine PHASE_SIGNATURES-Phase und
+  // muss trotzdem als nächstgelegene Karte zählen dürfen (dann liefert
+  // tidCorridor korrekt null: keine Regel während Taper/Erholung, statt einen
+  // entfernteren Block fälschlich heranzuziehen).
+  const tidCandidateCards = (cards || []).filter((c) => activitySport(c) === "ride");
+  const tidPhase = currentBlockTarget(tidCandidateCards, today);
   const tidCorridor = tidPhase ? PHASE_SIGNATURES[tidPhase] : null;
   if (tidCorridor) {
     const tidFrom = addDaysISO(today, -28);

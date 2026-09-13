@@ -66,7 +66,7 @@ export function applyProposalToCards(cards, proposal) {
 /**
  * Prognose vor/nach Annahme eines einzelnen Vorschlags.
  * @param {Object} proposal
- * @param {{cards: Array, actuals: Array, events?: Array, ftp?: number, today?: string, athleteId?: string, offsetWeeks?: number}} ctx
+ * @param {{cards: Array, actuals: Array, events?: Array, ftp?: number, today?: string, athleteId?: string, offsetWeeks?: number, multiSport?: boolean}} ctx
  *   `today` optional (Default localISODate() in core/projection.js) — für Tests fixierbar,
  *   sonst wandert der Horizont mit dem Kalenderdatum, an dem der Test läuft.
  *   `athleteId` (Fahrplan 6, RUH3): an detectConflicts durchgereicht, damit
@@ -75,17 +75,23 @@ export function applyProposalToCards(cards, proposal) {
  *   `offsetWeeks` (Migration 0026): Plan-Verschiebung des Athleten — an
  *   detectConflicts durchgereicht, damit die Vorschau dieselben Ruhe-Slots
  *   sieht wie der Planungstab des Athleten.
+ *   `multiSport` (Fahrplan 13 E5): an detectConflicts durchgereicht, damit
+ *   K-WOCHENTSS/K-TID (und als Nebeneffekt der K-WOCHENSPRUNG-Ist-Seed,
+ *   der `actuals` sportunabhängig summiert) in der Vorschau dieselbe
+ *   sportübergreifende Einschätzung zeigen wie der Planungstab. `actuals`
+ *   muss dafür bereits die ungefilterte Ist-Fahrtenliste sein (Aufrufer-
+ *   Pflicht, s. ProposalList.tsx).
  * @returns {{before: ReturnType<typeof projectLoad>, after: ReturnType<typeof projectLoad>,
  *            beforeConflicts: Array, afterConflicts: Array}}
  */
 export function previewProposal(
   proposal,
-  { cards, actuals, events = [], ftp, today, athleteId, offsetWeeks = 0 } = {},
+  { cards, actuals, events = [], ftp, today, athleteId, offsetWeeks = 0, multiSport } = {},
 ) {
   const before = projectLoad(cards, actuals, { events, ftp, today });
-  const beforeConflicts = detectConflicts(before, cards, events, actuals, { athleteId, offsetWeeks });
+  const beforeConflicts = detectConflicts(before, cards, events, actuals, { athleteId, offsetWeeks, multiSport });
   const afterCards = applyProposalToCards(cards, proposal);
   const after = projectLoad(afterCards, actuals, { events, ftp, today });
-  const afterConflicts = detectConflicts(after, afterCards, events, actuals, { athleteId, offsetWeeks });
+  const afterConflicts = detectConflicts(after, afterCards, events, actuals, { athleteId, offsetWeeks, multiSport });
   return { before, after, beforeConflicts, afterConflicts };
 }

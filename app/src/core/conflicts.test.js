@@ -707,6 +707,62 @@ test("E2 Regression: multiSport ändert bei reinen Rad-Karten/-Ist-Fahrten (Athl
   );
 });
 
+/* ── Fahrplan 13 E5: K-TID-Randfall — sportfremde Nachbarkarte darf ─────
+   currentBlockTarget() nicht auf eine unbekannte Phase ziehen (dann würde
+   tidCorridor null und K-TID feuert die ganze Woche nicht, s.
+   docs/offene-punkte.md). */
+
+test("E5: eine näher liegende Lauf-Blockphase (kein PHASE_SIGNATURES-Schlüssel) darf K-TID nicht stumm schalten", () => {
+  const today = "2026-07-20";
+  const proj = mkProj([{ date: today }]);
+  // Lauf-Karte näher an "today" mit einer Phase, die es in PHASE_SIGNATURES
+  // (radsportkalibriert) nicht gibt — ohne Eingrenzung wäre sie die
+  // "nächstgelegene" Karte für currentBlockTarget().
+  const runCard = { id: "lauf", date: "2026-07-05", typ: "Grundlagenausdauer", sport: "run", phase: "Grundlage" };
+  // Rad-Karte mit bekannter Phase, aber weiter weg.
+  const rideCard = { id: "rad", date: "2026-06-01", typ: "Sweet Spot", phase: "Sweet Spot" };
+  const cards = [runCard, rideCard];
+  const actuals = [
+    { dateISO: "2026-07-01", if: 1.4, sport: "ride" }, // oberhalb Sweet-Spot-Korridor
+    { dateISO: "2026-07-05", if: 1.5, sport: "ride" }, // oberhalb Sweet-Spot-Korridor
+  ];
+  const c = byRule(detectConflicts(proj, cards, [], actuals, { multiSport: true }), "K-TID");
+  assert.equal(c.length, 1, "Sweet-Spot-Korridor der weiter entfernten Radkarte muss weiter greifen");
+});
+
+test("E5: eine näher liegende RAD-Erholungskarte (auch kein PHASE_SIGNATURES-Schlüssel) muss trotzdem als nächstgelegene zählen — K-TID bleibt dann korrekt still", () => {
+  // code-review-Fund (E5): ein Filter auf "Phase in PHASE_SIGNATURES bekannt"
+  // würde eine echte Rad-Erholungs-/Taper-Karte fälschlich überspringen und
+  // stattdessen einen entfernteren Block heranziehen — der Filter muss allein
+  // nach Sportart gehen (activitySport === "ride"), nicht nach Phase-Kenntnis.
+  const today = "2026-07-20";
+  const proj = mkProj([{ date: today }]);
+  const recoveryCard = { id: "erholung", date: "2026-07-15", typ: "Z1 Recovery", sport: "ride", phase: "Erholung" };
+  const sweetSpotCard = { id: "rad", date: "2026-06-01", typ: "Sweet Spot", phase: "Sweet Spot" };
+  const cards = [recoveryCard, sweetSpotCard];
+  const actuals = [
+    { dateISO: "2026-07-01", if: 1.4, sport: "ride" },
+    { dateISO: "2026-07-05", if: 1.5, sport: "ride" },
+  ];
+  const c = byRule(detectConflicts(proj, cards, [], actuals, { multiSport: true }), "K-TID");
+  assert.equal(c.length, 0, "nächstgelegene Karte ist die Erholungswoche — kein Korridor, keine Regel");
+});
+
+test("E5 Regression: ohne multiSport bleibt der Rad-only-Filter vor currentBlockTarget() unverändert (Athlet 1/2/4)", () => {
+  const today = "2026-07-20";
+  const proj = mkProj([{ date: today }]);
+  const runCard = { id: "lauf", date: "2026-07-05", typ: "Grundlagenausdauer", sport: "run", phase: "Grundlage" };
+  const rideCard = { id: "rad", date: "2026-06-01", typ: "Sweet Spot", phase: "Sweet Spot" };
+  const cards = [runCard, rideCard];
+  const actuals = [
+    { dateISO: "2026-07-01", if: 1.4, sport: "ride" },
+    { dateISO: "2026-07-05", if: 1.5, sport: "ride" },
+  ];
+  // Ohne multiSport wird die Laufkarte schon vorher rausgefiltert (activitySport
+  // !== "ride") — dasselbe Ergebnis wie mit dem neuen Eingrenzungsfilter.
+  assert.equal(byRule(detectConflicts(proj, cards, [], actuals), "K-TID").length, 1);
+});
+
 /* ── Kombination + Auflösung ─────────────────────────────────── */
 
 test("Zwei Regeln am selben Tag: tiefer TSB löst K-TSB UND K-TSB2 aus", () => {

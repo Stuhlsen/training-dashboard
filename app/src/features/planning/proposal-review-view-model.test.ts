@@ -160,4 +160,31 @@ describe("impactSummary/impactDetail", () => {
     const text = impactSummary(p, { cards: CARDS, rides, events: [], ftp: 200, today: "2026-08-05" });
     expect(text).toBe("löst K-LEER");
   });
+
+  it("multiSport wird an detectConflicts() durchgereicht (Fahrplan 13 E5)", () => {
+    // Ausfallenlassen der Sweet-Spot-Karte entfernt sie aus den Kandidaten
+    // von currentBlockTarget() (cancelled) — tidCorridor wird danach null,
+    // K-TID verschwindet also in JEDEM Fall in `after`. Ob es vorher (`before`)
+    // überhaupt feuert, hängt allein an `multiSport` (Lauf-Ist-Fahrten zählen
+    // nur mit), macht den Konflikt also genau bei multiSport zu einem
+    // "gelösten" (resolved) statt gar keinem.
+    const tidCards: PlanCard[] = [card({ id: "card-A", date: "2026-07-20", phase: "Sweet Spot" })];
+    const tidRides: Ride[] = [
+      { dateISO: "2026-07-01", if: 0.85, sport: "ride" } as Ride, // im Korridor
+      { dateISO: "2026-07-05", if: 1.4, sport: "run" } as Ride, // hoch, aber Lauf
+      { dateISO: "2026-07-10", if: 1.5, sport: "run" } as Ride, // hoch, aber Lauf
+    ];
+    const p = proposal({ id: "p-e5", op: "cancel", targetCardId: "card-A" });
+    const withoutMulti = impactDetail(p, { cards: tidCards, rides: tidRides, events: [], ftp: 200, today: "2026-07-20" });
+    const withMulti = impactDetail(p, {
+      cards: tidCards,
+      rides: tidRides,
+      events: [],
+      ftp: 200,
+      today: "2026-07-20",
+      multiSport: true,
+    });
+    expect(withoutMulti.resolved.filter((c) => c.rule === "K-TID")).toHaveLength(0);
+    expect(withMulti.resolved.filter((c) => c.rule === "K-TID")).toHaveLength(1);
+  });
 });

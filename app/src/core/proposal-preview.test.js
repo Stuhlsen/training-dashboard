@@ -87,6 +87,29 @@ test("previewProposal: liefert before/after-Projektion + Konfliktlisten", () => 
   assert.ok(Array.isArray(preview.afterConflicts));
 });
 
+test("previewProposal: multiSport wird an detectConflicts() durchgereicht (Fahrplan 13 E5)", () => {
+  const cards = [{ id: "a", date: "2026-07-20", typ: "Sweet Spot", phase: "Sweet Spot" }];
+  const actuals = [
+    { dateISO: "2026-07-01", if: 0.85, sport: "ride" }, // im Korridor
+    { dateISO: "2026-07-05", if: 1.4, sport: "run" }, // hoch, aber Lauf
+    { dateISO: "2026-07-10", if: 1.5, sport: "run" }, // hoch, aber Lauf
+  ];
+  const proposal = { id: "p-e5", op: "cancel", targetCardId: "keine-solche-karte", payload: {} };
+  const withoutMulti = previewProposal(proposal, { cards, actuals, events: [], ftp: 200, today: "2026-07-20" });
+  const withMulti = previewProposal(proposal, {
+    cards,
+    actuals,
+    events: [],
+    ftp: 200,
+    today: "2026-07-20",
+    multiSport: true,
+  });
+  const kTidWithout = withoutMulti.beforeConflicts.filter((c) => c.rule === "K-TID");
+  const kTidWith = withMulti.beforeConflicts.filter((c) => c.rule === "K-TID");
+  assert.equal(kTidWithout.length, 0, "ohne multiSport zählen die Lauf-Ist-Fahrten nicht mit");
+  assert.equal(kTidWith.length, 1, "mit multiSport zählen 2 von 3 hohen IF-Werten oberhalb des Korridors");
+});
+
 test("previewProposal: cancel reduziert die Tages-TSS im Vergleich zu vorher", () => {
   const proposal = { id: "p7", op: "cancel", targetCardId: "card-A", payload: { reason: "Krank" } };
   const preview = previewProposal(proposal, {
