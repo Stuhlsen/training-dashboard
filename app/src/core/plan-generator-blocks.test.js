@@ -7,6 +7,9 @@ import {
   BUILD_PHASES,
   BLOCK_SYSTEMS,
   MODEL_BLOCK_SHARES,
+  GENERIC_BUILD_PHASES,
+  GENERIC_BLOCK_SYSTEMS,
+  GENERIC_MODEL_BLOCK_SHARES,
   recoveryPeriod,
   recoveryWeekIndices,
   largestRemainder,
@@ -247,4 +250,100 @@ test("buildPhaseSequence: polarized/block ignorieren weaknessPhase", () => {
     assert.deepEqual(biased.phases, base.phases);
     assert.deepEqual(biased.warnings, base.warnings);
   }
+});
+
+/* ── Fahrplan 14 E2/E3: `phases`-Override (Lauf/Schwimm, kein Sweet Spot) ── */
+
+test("GENERIC_MODEL_BLOCK_SHARES: pyramidal + linear summieren auf 1, kein 'Sweet Spot'", () => {
+  for (const model of ["pyramidal", "linear"]) {
+    const shares = GENERIC_MODEL_BLOCK_SHARES[model];
+    assert.equal(Object.keys(shares).sort().join(","), [...GENERIC_BUILD_PHASES].sort().join(","));
+    const total = GENERIC_BUILD_PHASES.reduce((s, p) => s + shares[p], 0);
+    assert.ok(Math.abs(total - 1) < 1e-9, `${model} → ${total}`);
+  }
+});
+
+test("buildPhaseSequence + phases-Override: pyramidal/linear/block/polarized liefern nie 'Sweet Spot'", () => {
+  for (const model of ["pyramidal", "linear", "block", "polarized"]) {
+    const { phases } = buildPhaseSequence({
+      totalWeeks: 16,
+      taperWeeks: 2,
+      model,
+      level: "fortgeschritten",
+      ageYears: 30,
+      phases: GENERIC_BUILD_PHASES,
+    });
+    assert.equal(phases.length, 16);
+    for (const p of phases) {
+      assert.ok(
+        [...GENERIC_BUILD_PHASES, "Erholung", "Taper"].includes(p),
+        `${model}: unerwartete Phase "${p}"`
+      );
+    }
+  }
+});
+
+test("buildPhaseSequence + phases-Override, model 'block': nur GENERIC_BLOCK_SYSTEMS (2 Blöcke, kein Sweet Spot)", () => {
+  const { phases } = buildPhaseSequence({
+    totalWeeks: 14,
+    taperWeeks: 0,
+    model: "block",
+    level: "fortgeschritten",
+    ageYears: 30,
+    phases: GENERIC_BUILD_PHASES,
+  });
+  const blockPhases = new Set(phases.filter((p) => p !== "Grundlage" && p !== "Erholung"));
+  assert.deepEqual([...blockPhases].sort(), [...GENERIC_BLOCK_SYSTEMS].sort());
+});
+
+test("buildPhaseSequence: model 'block' ohne phases-Override bleibt unverändert (Rad, 3 Blöcke inkl. Sweet Spot)", () => {
+  const { phases, warnings } = buildPhaseSequence({
+    totalWeeks: 4,
+    taperWeeks: 0,
+    model: "block",
+    level: "fortgeschritten",
+    ageYears: 30,
+  });
+  // Regression: der kurze Plan (< ~9 Wochen) muss weiter den exakten
+  // Ride-Warnungstext liefern (Golden-Master-Schutz für den Default-Pfad).
+  assert.ok(warnings.some((w) => w.includes("das Block-Modell braucht ~9+")));
+  assert.ok(phases.some((p) => p === "Sweet Spot"));
+});
+
+test("buildPhaseSequence + phases-Override, model 'block', zu kurzer Plan: dynamische (nicht die Ride-) Warnung", () => {
+  // 4 Bau-Wochen, GENERIC_BLOCK_SYSTEMS hat nur 2 Blöcke (statt 3 bei Rad) →
+  // pool < nBlocks*BLOCK_MIN_WEEKS greift hier über einen anderen Zweig als
+  // der Ride-Test oben (Fahrplan-14-Review: eigener Test für die generische
+  // Warnungs-Formel, bislang nur der Ride-Zweig war abgedeckt).
+  const { warnings } = buildPhaseSequence({
+    totalWeeks: 4,
+    taperWeeks: 0,
+    model: "block",
+    level: "fortgeschritten",
+    ageYears: 30,
+    phases: GENERIC_BUILD_PHASES,
+  });
+  assert.ok(
+    warnings.some((w) => w.includes("das Block-Modell braucht mindestens 4 Wochen für 2 Blöcke"))
+  );
+  assert.ok(!warnings.some((w) => w.includes("~9+")));
+});
+
+test("buildPhaseSequence + phases-Override: weaknessPhase mit 3-Phasen-Vokabular — Spender kann nur VO2max sein (kein Sweet Spot)", () => {
+  const args = {
+    totalWeeks: 14,
+    taperWeeks: 2,
+    model: "pyramidal",
+    level: "fortgeschritten",
+    ageYears: 30,
+    phases: GENERIC_BUILD_PHASES,
+  };
+  const base = buildPhaseSequence(args);
+  const biased = buildPhaseSequence({ ...args, weaknessPhase: "Schwelle" });
+  const cb = buildPhaseCounts(base.phases);
+  const cx = buildPhaseCounts(biased.phases);
+  assert.equal(cx["Grundlage"], cb["Grundlage"]); // Grundlage nie Spender
+  assert.equal(cx["Schwelle"], cb["Schwelle"] + 1); // Ziel
+  assert.equal(cx["VO2max"], cb["VO2max"] - 1); // einziger möglicher Spender
+  assert.ok(biased.warnings.some((w) => w.includes("Power-Kurve")));
 });

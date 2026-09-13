@@ -74,3 +74,41 @@ test("estimateThresholdSpeed: keine Läufe → speed null", () => {
   assert.equal(estimateThresholdSpeed([{ sport: "ride", km: 40, min: 60 }]).speed, null);
   assert.equal(estimateThresholdSpeed([]).speed, null);
 });
+
+/* ── Fahrplan 14 E3: sport-Parameter (Schwimmen) ──────────────────
+   0 Schwimm-Aktivitäten im Account (E0-Bericht 2026-09-07) — nur
+   synthetisch/fixture-testbar, s. Modulkopf + Fahrplan-Risiko-Abschnitt. */
+
+test("estimateThresholdSpeed: Default bleibt 'run' (bestehende Aufrufer unverändert)", () => {
+  const rides = [
+    { sport: "swim", km: 0.75, min: 16 },
+    { sport: "swim", km: 1.5, min: 36 },
+  ];
+  // Ohne sport-Option werden Schwimm-Aktivitäten weiterhin herausgefiltert.
+  assert.equal(estimateThresholdSpeed(rides).speed, null);
+});
+
+test("estimateThresholdSpeed: sport:'swim' filtert auf Schwimm-Aktivitäten und nutzt die Schwimm-Distanz-Buckets", () => {
+  const rides = [
+    { sport: "swim", km: 0.75, min: 16 }, // 750 m in 16 min → Bucket 0,75
+    { sport: "swim", km: 1.5, min: 36 }, // 1500 m in 36 min → Bucket 1,5
+    { sport: "run", km: 10, min: 45 }, // andere Sportart → raus
+  ];
+  const res = estimateThresholdSpeed(rides, { sport: "swim" });
+  assert.equal(res.calibrated, false);
+  assert.equal(res.source, "2-point-cs");
+  assert.deepEqual(res.efforts, [
+    { km: 0.75, min: 16 },
+    { km: 1.5, min: 36 },
+  ]);
+  // Δd = 0,75 km, Δt = 1200 s → 0,75/1200 km/s × 3600 = 2,25 km/h
+  assert.equal(res.speed, 2.25);
+  assert.equal(res.dPrimeKm, 0.15);
+});
+
+test("estimateThresholdSpeed: sport:'swim', 0 Schwimm-Aktivitäten → speed null + Klartext-Grund", () => {
+  const res = estimateThresholdSpeed([{ sport: "ride", km: 40, min: 60 }], { sport: "swim" });
+  assert.equal(res.speed, null);
+  assert.equal(res.calibrated, false);
+  assert.ok(res.reason.includes("(0/2)"));
+});

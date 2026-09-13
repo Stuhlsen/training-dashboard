@@ -33,7 +33,6 @@ import { avg } from "./stats.js";
 import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
 import { CONFLICT_THRESHOLDS } from "./plan-config.js";
 import { RECOVERY_MAX_SHARE } from "./periodization.js";
-import { estimateSessionTSS } from "./ftp-progress.js";
 import { buildPhaseSequence, sequenceFromWeekModel } from "./plan-generator-blocks.js";
 import { getSportStrategy } from "./plan-generator-sport.js";
 
@@ -201,43 +200,6 @@ function deriveFtpTarget(input, weeks) {
   return Math.round(clamp(projected, base, base * 1.12));
 }
 
-/* ── Workout-Bausteine ───────────────────────────────────────── */
-
-/**
- * Lockerer Z2-Dauerblock über `minutes` Minuten.
- * @param {number} minutes @param {number|null} ftp @param {object} strategy  Sport-Strategie (`wattBand`)
- * @returns {{name:string, typ:string, workout:object, workoutStructure:object, tssPlanned:number, durationMin:number}}
- */
-function z2Workout(minutes, ftp, strategy) {
-  const min = Math.max(20, Math.round(minutes));
-  const pct = /** @type {[number,number]} */ ([60, 70]);
-  const isLong = min >= 150;
-  const band = strategy.wattBand(pct, ftp);
-  const workout = {
-    warmup: 0,
-    intervals: 1,
-    duration: min,
-    rest: 0,
-    cooldown: 0,
-    zone: "Z2",
-    pct,
-    ...(band ? { watts: band } : {}),
-    label: isLong ? "Z2 Lang" : "Z2 Dauer",
-  };
-  const workoutStructure = {
-    version: 1,
-    steps: [{ kind: "steady", duration_s: min * 60, target_pct_ftp: 65 }],
-  };
-  return {
-    name: isLong ? "Z2 Lang" : "Z2 Dauer",
-    typ: isLong ? "Z2 Lang" : "Z2 Dauer",
-    workout,
-    workoutStructure,
-    tssPlanned: estimateSessionTSS(workout, ftp ?? undefined),
-    durationMin: min,
-  };
-}
-
 /* ── Wochentag-Layout ────────────────────────────────────────── */
 
 /**
@@ -305,13 +267,17 @@ function distributeLooseMinutes(looseDays, looseMin) {
 
 /** Lockere Karten so umskalieren, dass ihre TSS-Summe ≈ `looseTargetTss`
  *  trifft (Faktor auf die Z2-Dauer, auf 0.5–1.8 begrenzt). Mutiert die Karten.
- *  @param {PlanCardDraft[]} looseCards @param {number} looseTargetTss @param {number|null} ftp @param {object} strategy */
-function scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, strategy) {
+ *  `strategy.looseWorkout()` kapselt die Sport-Verzweigung (Rad → FTP,
+ *  Lauf/Schwimm → Schwellengeschwindigkeit) vollständig — plan-generator.js
+ *  selbst kennt keinen Sportnamen mehr (Fahrplan-14-Review).
+ *  @param {PlanCardDraft[]} looseCards @param {number} looseTargetTss
+ *  @param {number|null} ftp @param {number|null} thresholdSpeed @param {object} strategy */
+function scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, thresholdSpeed, strategy) {
   const base = looseCards.reduce((s, c) => s + c.tssPlanned, 0);
   if (base <= 0) return;
   const factor = clamp(looseTargetTss / base, 0.5, 1.8);
   for (const c of looseCards) {
-    const scaled = z2Workout(c.durationMin * factor, ftp, strategy);
+    const scaled = strategy.looseWorkout(c.durationMin * factor, ftp, thresholdSpeed, strategy);
     Object.assign(c, {
       name: scaled.name,
       typ: scaled.typ,
@@ -413,6 +379,7 @@ function computeWeekTargets(a) {
  * @param {boolean} c.isRecovery @param {number[]} c.effectiveWeekdays
  * @param {number[]} c.quality @param {number} c.weeklyHours
  * @param {number} c.targetTss @param {number|null} c.ftp @param {boolean} c.isTestWeek
+ * @param {number|null} [c.thresholdSpeed]  km/h — nur "run"/"swim" (Fahrplan 14 E2/E3)
  * @param {number} c.weekIndexInPhase  0-basiert, Woche innerhalb der Phase (Ladder-Stufe)
  * @param {"allgemein"|"berg"|"langstrecke"|"crit"} c.focus
  * @param {"einsteiger"|"fortgeschritten"} c.level
@@ -422,7 +389,7 @@ function computeWeekTargets(a) {
  */
 function buildWeekCards(c) {
   const { weekStart, isoWeek, phase, isRecovery, effectiveWeekdays, quality, weeklyHours, targetTss, ftp, isTestWeek } = c;
-  const { weekIndexInPhase, focus, level, formats, strategy } = c;
+  const { weekIndexInPhase, focus, level, formats, strategy, thresholdSpeed = null } = c;
   const dayIsQuality = (wd) => !isRecovery && quality.includes(wd);
   const looseDays = effectiveWeekdays.filter((wd) => !dayIsQuality(wd));
 
@@ -441,6 +408,7 @@ function buildWeekCards(c) {
       focus,
       level,
       currentFtp: ftp,
+      currentThresholdSpeed: thresholdSpeed,
       targetDurationMin: qualityTargetMin,
       targetTss: Math.round(targetTss * 0.3),
       formats,
@@ -453,12 +421,29 @@ function buildWeekCards(c) {
   const looseMin = Math.max(0, weeklyMin - cards.reduce((s, x) => s + x.durationMin, 0));
   const perDayMin = distributeLooseMinutes(looseDays, looseMin);
   const looseCards = looseDays.map((wd) =>
-    makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, z2Workout(perDayMin[wd], ftp, strategy))
+    makeCard(
+      addDaysISO(weekStart, wd - 1),
+      phase,
+      isoWeek,
+      strategy.looseWorkout(perDayMin[wd], ftp, thresholdSpeed, strategy)
+    )
   );
-  scaleLooseCardsToTarget(looseCards, Math.max(0, targetTss - qTss), ftp, strategy);
+  scaleLooseCardsToTarget(looseCards, Math.max(0, targetTss - qTss), ftp, thresholdSpeed, strategy);
   cards.push(...looseCards);
 
   if (isTestWeek && effectiveWeekdays.length) {
+    // Sicherheitsnetz statt stiller Degradation: eine Strategie, deren
+    // testWeeks() eine echte Testwoche liefert, MUSS ein testCard mitbringen
+    // — sonst würde `{...undefined}` unbemerkt eine Karte mit lauter
+    // undefined-Feldern bauen (Fahrplan 14 E2/E3-Review). Für Rad immer
+    // erfüllt; für Lauf/Schwimm derzeit unreachable, da testWeeks() konstant
+    // eine leere Menge liefert (Entscheidung 7, kein Testtag).
+    if (!strategy.testCard) {
+      throw new Error(
+        `plan-generator: strategy.testWeeks() lieferte eine Testwoche, aber ` +
+          `strategy.testCard fehlt (sport "${strategy.sport}").`
+      );
+    }
     const testWd = quality.length && !isRecovery ? quality[0] : effectiveWeekdays[0];
     const testDate = addDaysISO(weekStart, testWd - 1);
     const testCard = makeCard(
@@ -534,9 +519,16 @@ export function generatePlan(input) {
 
     // Power-Curve-Schwäche verschiebt bei allgemeinem Fokus eine Aufbau-Woche
     // zugunsten des schwächsten Systems (E10). Anderer Fokus hat schon einen
-    // bewussten Schwerpunkt → keine zusätzliche Verschiebung.
+    // bewussten Schwerpunkt → keine zusätzliche Verschiebung. Nur Rad: die
+    // Power-Curve-Schwäche kommt ausschließlich aus Watt-/FTP-Daten
+    // (plan-history.js::derivePowerCurveWeakness) — für Lauf/Schwimm ist
+    // `history.powerCurveWeakness` bislang zwar immer `null` (E5 baut die
+    // sport-bewusste Historie erst noch), aber ohne dieses Gate würde ein
+    // Rad-Signal aus derselben Historie fälschlich auf einen Lauf-/Schwimmplan
+    // wirken UND eine Rad-spezifische "Power-Kurve"-Warnung dort anzeigen
+    // (Fahrplan-14-Review, bestätigt per generatePlan({sport:"swim"})-Lauf).
     const weaknessPhase =
-      input.focus === "allgemein" && history.powerCurveWeakness
+      strategy.sport === "ride" && input.focus === "allgemein" && history.powerCurveWeakness
         ? WEAKNESS_TO_PHASE[history.powerCurveWeakness] ?? null
         : null;
     seq = buildPhaseSequence({
@@ -546,6 +538,7 @@ export function generatePlan(input) {
       level: input.level,
       ageYears: history.ageYears,
       weaknessPhase,
+      phases: strategy.phases ?? null,
     });
     warnings.push(...seq.warnings);
   }
@@ -607,6 +600,7 @@ export function generatePlan(input) {
 
   // 5)–7) Testwochen + Karten je Woche ------------------------------
   const ftp = input.currentFtp ?? null;
+  const thresholdSpeed = input.currentThresholdSpeed ?? null;
   const formats = input.formats || [];
   const testWeeks = strategy.testWeeks(totalWeeks, startDate, input.ftpMeasuredDate, cut);
   const quality = qualityWeekdays(effectiveWeekdays);
@@ -652,6 +646,7 @@ export function generatePlan(input) {
         weeklyHours: input.weeklyHours,
         targetTss,
         ftp,
+        thresholdSpeed,
         isTestWeek: testWeeks.has(i),
         weekIndexInPhase,
         focus: input.focus,

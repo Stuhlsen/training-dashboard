@@ -47,6 +47,36 @@ export const MODEL_BLOCK_SHARES = Object.freeze({
   linear: Object.freeze({ Grundlage: 0.4, "Sweet Spot": 0.25, Schwelle: 0.2, VO2max: 0.15 }),
 });
 
+/** Fahrplan 14 E2/E3: Aufbau-Phasen für Nicht-Rad-Sportarten — kein Sweet
+ *  Spot (Fahrplan-Feinentscheidung „3 Phasen: Grundlage/Schwelle/VO2max",
+ *  deckungsgleich mit RUNNING_PHASE_SIGNATURES/SWIMMING_PHASE_SIGNATURES).
+ *  Wird `buildPhaseSequence()` als `phases`-Override durchgereicht. */
+export const GENERIC_BUILD_PHASES = ["Grundlage", "Schwelle", "VO2max"];
+
+/** Fahrplan 14 E2/E3, Alex-Entscheidung 2026-09-14: das `block`-Modell hat
+ *  für Rad drei konzentrierte Blöcke (VO2max/Schwelle/Sweet Spot); Lauf/
+ *  Schwimm kennen kein Sweet-Spot-Äquivalent, darum nur zwei Blöcke
+ *  (VO2max, Schwelle) — die frei werdende Zeit wandert in die Grundlage
+ *  (dieselbe „zu wenig Wochen"-Weiche wie unten in blockSequence()). */
+export const GENERIC_BLOCK_SYSTEMS = ["VO2max", "Schwelle"];
+
+/** GENERIC_BUILD_PHASES-Anteile, aus MODEL_BLOCK_SHARES abgeleitet: der
+ *  „Sweet Spot"-Anteil entfällt, die übrigen drei Anteile werden proportional
+ *  auf 1 renormalisiert. Keine neue Kalibrierung (Fahrplan-14-Nicht-Ziel) —
+ *  nur eine konsistente Projektion der (ebenfalls unkalibrierten) Rad-Anteile.
+ *  @param {Record<string, number>} shares @returns {Record<string, number>} */
+function dropSweetSpot(shares) {
+  const kept = GENERIC_BUILD_PHASES.map((p) => shares[p] ?? 0);
+  const sum = kept.reduce((s, v) => s + v, 0) || 1;
+  return Object.fromEntries(GENERIC_BUILD_PHASES.map((p, i) => [p, kept[i] / sum]));
+}
+
+/** @type {Record<"pyramidal"|"linear", Record<string, number>>} */
+export const GENERIC_MODEL_BLOCK_SHARES = Object.freeze({
+  pyramidal: Object.freeze(dropSweetSpot(MODEL_BLOCK_SHARES.pyramidal)),
+  linear: Object.freeze(dropSweetSpot(MODEL_BLOCK_SHARES.linear)),
+});
+
 /**
  * Erholungsrhythmus-Periode: jede `period`-te Woche ist eine Erholungswoche
  * (2:1 → 3, 3:1 → 4). Level-abhängig; ab 40 Jahren immer 2:1 (Fahrplan
@@ -113,18 +143,20 @@ export function largestRemainder(weights, total) {
  * dem größten `counts`-Wert unter allen Nicht-Ziel-, Nicht-`Grundlage`-
  * Phasen mit `> 1` Woche — die Grundlage wird nie verkleinert. Kein
  * Spielraum → kein Shift. Mutiert `counts`, hängt ggf. eine Warnung an.
- * @param {number[]} counts  Länge/Reihenfolge wie BUILD_PHASES
+ * @param {number[]} counts  Länge/Reihenfolge wie `buildPhases`
  * @param {string|null} weaknessPhase
  * @param {string[]} warnings
+ * @param {string[]} buildPhases  Fahrplan 14 E2/E3: sport-abhängige Phasenliste
+ *   (Default `BUILD_PHASES`, s. Aufrufer)
  */
-function applyWeaknessBias(counts, weaknessPhase, warnings) {
+function applyWeaknessBias(counts, weaknessPhase, warnings, buildPhases) {
   if (!weaknessPhase) return;
-  const target = BUILD_PHASES.indexOf(weaknessPhase);
+  const target = buildPhases.indexOf(weaknessPhase);
   if (target < 0) return;
 
   let donor = -1;
   for (let i = 0; i < counts.length; i++) {
-    if (i === target || BUILD_PHASES[i] === "Grundlage") continue;
+    if (i === target || buildPhases[i] === "Grundlage") continue;
     if (counts[i] > 1 && (donor < 0 || counts[i] > counts[donor])) donor = i;
   }
   if (donor < 0) return;
@@ -132,7 +164,7 @@ function applyWeaknessBias(counts, weaknessPhase, warnings) {
   counts[donor]--;
   counts[target]++;
   warnings.push(
-    `Power-Kurve: schwächste Dauer „${weaknessPhase}" — eine Woche mehr zulasten „${BUILD_PHASES[donor]}".`
+    `Power-Kurve: schwächste Dauer „${weaknessPhase}" — eine Woche mehr zulasten „${buildPhases[donor]}".`
   );
 }
 
@@ -151,10 +183,10 @@ function ensureEachPhaseHasAWeek(counts) {
 }
 
 /** Aufbau-Phasen-Zähler zu einer Woche-für-Woche-Sequenz expandieren.
- *  @param {number[]} counts @returns {string[]} */
-function expandPhaseRun(counts) {
+ *  @param {number[]} counts @param {string[]} buildPhases @returns {string[]} */
+function expandPhaseRun(counts, buildPhases) {
   const run = [];
-  BUILD_PHASES.forEach((p, i) => {
+  buildPhases.forEach((p, i) => {
     for (let k = 0; k < counts[i]; k++) run.push(p);
   });
   return run;
@@ -167,9 +199,11 @@ function expandPhaseRun(counts) {
  * @param {Set<number>} recIdxSet  0-basierte Erholungswochen-Indizes
  * @param {string[]} phaseRun  Phasen der Nicht-Erholungs-Wochen, in Reihenfolge
  * @param {string[]} warnings  durchgereicht
+ * @param {string} [fallbackPhase]  Phase für einen (eigentlich nicht
+ *   vorkommenden) Cursor-Überlauf — Default "VO2max" (letzte BUILD_PHASES-Phase)
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  */
-function interleaveRecovery(buildWeeks, recIdxSet, phaseRun, warnings) {
+function interleaveRecovery(buildWeeks, recIdxSet, phaseRun, warnings, fallbackPhase = "VO2max") {
   const phases = [];
   const isRecovery = [];
   let cursor = 0;
@@ -178,7 +212,7 @@ function interleaveRecovery(buildWeeks, recIdxSet, phaseRun, warnings) {
       phases.push("Erholung");
       isRecovery.push(true);
     } else {
-      phases.push(phaseRun[cursor] ?? BUILD_PHASES[BUILD_PHASES.length - 1]);
+      phases.push(phaseRun[cursor] ?? fallbackPhase);
       cursor++;
       isRecovery.push(false);
     }
@@ -192,31 +226,48 @@ function interleaveRecovery(buildWeeks, recIdxSet, phaseRun, warnings) {
  * Rhythmus (recoveryPeriod) dazwischen.
  * @param {{ buildWeeks: number, model: "pyramidal"|"linear",
  *   level: "einsteiger"|"fortgeschritten", ageYears: number|null,
- *   weaknessPhase?: string|null }} a
+ *   weaknessPhase?: string|null, buildPhases?: string[],
+ *   shareTable?: Record<string, Record<string, number>> }} a
+ *   `buildPhases`/`shareTable` — Fahrplan 14 E2/E3: sport-abhängige
+ *   Überschreibung (Default `BUILD_PHASES`/`MODEL_BLOCK_SHARES`, Rad).
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  */
-function classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase = null }) {
+function classicSequence({
+  buildWeeks,
+  model,
+  level,
+  ageYears,
+  weaknessPhase = null,
+  buildPhases = BUILD_PHASES,
+  shareTable = MODEL_BLOCK_SHARES,
+}) {
   const warnings = [];
   const period = recoveryPeriod(level, ageYears);
   const recIdx = new Set(recoveryWeekIndices(buildWeeks, period));
   const workWeeks = buildWeeks - recIdx.size;
 
-  const shares = MODEL_BLOCK_SHARES[model] || MODEL_BLOCK_SHARES.pyramidal;
+  const shares = shareTable[model] || shareTable.pyramidal;
   const counts = largestRemainder(
-    BUILD_PHASES.map((p) => shares[p]),
+    buildPhases.map((p) => shares[p] ?? 0),
     workWeeks
   );
 
-  if (workWeeks >= BUILD_PHASES.length) {
+  if (workWeeks >= buildPhases.length) {
     ensureEachPhaseHasAWeek(counts);
-    applyWeaknessBias(counts, weaknessPhase, warnings);
+    applyWeaknessBias(counts, weaknessPhase, warnings, buildPhases);
   } else if (workWeeks > 0) {
     warnings.push(
-      `Nur ${workWeeks} Aufbau-Woche(n) — nicht jede Phase (${BUILD_PHASES.join("/")}) hat eine eigene Woche.`
+      `Nur ${workWeeks} Aufbau-Woche(n) — nicht jede Phase (${buildPhases.join("/")}) hat eine eigene Woche.`
     );
   }
 
-  return interleaveRecovery(buildWeeks, recIdx, expandPhaseRun(counts), warnings);
+  return interleaveRecovery(
+    buildWeeks,
+    recIdx,
+    expandPhaseRun(counts, buildPhases),
+    warnings,
+    buildPhases[buildPhases.length - 1]
+  );
 }
 
 /**
@@ -258,24 +309,31 @@ function polarizedSequence(buildWeeks, level, ageYears) {
  * einer Erholungswoche dazwischen. Für kurze Vorbereitungen gedacht; bei zu
  * vielen Wochen wandert der Rest in die Grundlage (mit Warnung).
  * @param {number} buildWeeks
+ * @param {string[]} [systems]  Fahrplan 14 E2/E3: sport-abhängige
+ *   Block-Reihenfolge (Default `BLOCK_SYSTEMS`, Rad — 3 Blöcke inkl.
+ *   Sweet Spot; Lauf/Schwimm nutzen `GENERIC_BLOCK_SYSTEMS`, 2 Blöcke)
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  */
-function blockSequence(buildWeeks) {
+function blockSequence(buildWeeks, systems = BLOCK_SYSTEMS) {
   const warnings = [];
   if (buildWeeks <= 0) return { phases: [], isRecovery: [], warnings };
 
-  const nBlocks = BLOCK_SYSTEMS.length;
+  const nBlocks = systems.length;
   const recoveries = buildWeeks >= 9 ? 2 : buildWeeks >= 6 ? 1 : 0;
   let grundlage = Math.max(1, Math.round(buildWeeks * 0.15));
   const pool = Math.max(0, buildWeeks - grundlage - recoveries);
 
   const minEach = pool < nBlocks * BLOCK_MIN_WEEKS ? 1 : BLOCK_MIN_WEEKS;
   if (pool < nBlocks * BLOCK_MIN_WEEKS) {
+    // Ride-Pfad (Default-`systems`): Text unverändert (Golden-Master-Schutz).
+    // Generischer Pfad (Lauf/Schwimm, andere Blockzahl): dynamisch berechnet.
     warnings.push(
-      `Nur ${buildWeeks} Aufbau-Wochen — das Block-Modell braucht ~9+; Blöcke auf ${minEach} Woche(n) verkürzt.`
+      systems === BLOCK_SYSTEMS
+        ? `Nur ${buildWeeks} Aufbau-Wochen — das Block-Modell braucht ~9+; Blöcke auf ${minEach} Woche(n) verkürzt.`
+        : `Nur ${buildWeeks} Aufbau-Wochen — das Block-Modell braucht mindestens ${nBlocks * BLOCK_MIN_WEEKS} Wochen für ${nBlocks} Blöcke (+ Grundlage); Blöcke auf ${minEach} Woche(n) verkürzt.`
     );
   }
-  const counts = largestRemainder([1, 1, 1], Math.max(nBlocks * minEach, pool)).map((c) =>
+  const counts = largestRemainder(new Array(nBlocks).fill(1), Math.max(nBlocks * minEach, pool)).map((c) =>
     clampInt(c, minEach, BLOCK_MAX_WEEKS)
   );
   const leftover = Math.max(0, pool - counts.reduce((s, c) => s + c, 0));
@@ -295,7 +353,7 @@ function blockSequence(buildWeeks) {
     }
   };
   push(grundlage, "Grundlage");
-  BLOCK_SYSTEMS.forEach((sys, i) => {
+  systems.forEach((sys, i) => {
     push(counts[i], sys);
     if (i < recoveries) push(1, "Erholung");
   });
@@ -320,6 +378,12 @@ function blockSequence(buildWeeks) {
  * @param {string|null} [args.weaknessPhase]  E10: Aufbau-Phase, die eine Woche
  *   mehr bekommt (nur `pyramidal`/`linear` — `polarized`/`block` haben keine
  *   tunbaren Anteile und ignorieren den Wert bewusst).
+ * @param {string[]|null} [args.phases]  Fahrplan 14 E2/E3: sport-abhängige
+ *   Aufbau-Phasenliste (Default `null` → Rad-Vokabular `BUILD_PHASES` +
+ *   `MODEL_BLOCK_SHARES`/`BLOCK_SYSTEMS`; gesetzt → `classicSequence()`
+ *   nutzt diese Liste + `GENERIC_MODEL_BLOCK_SHARES`, `blockSequence()`
+ *   `GENERIC_BLOCK_SYSTEMS`. `polarizedSequence()` braucht keine Anpassung —
+ *   sie nutzt bereits nur Grundlage/Schwelle/VO2max, nie Sweet Spot.)
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  *   `phases`/`isRecovery` haben Länge `totalWeeks`.
  */
@@ -347,21 +411,25 @@ export function buildPhaseSequence({
   level,
   ageYears = null,
   weaknessPhase = null,
+  phases = null,
 }) {
   const buildWeeks = Math.max(0, totalWeeks - taperWeeks);
+  const buildPhases = phases || BUILD_PHASES;
+  const shareTable = phases ? GENERIC_MODEL_BLOCK_SHARES : MODEL_BLOCK_SHARES;
+  const blockSystems = phases ? GENERIC_BLOCK_SYSTEMS : BLOCK_SYSTEMS;
 
   const seq =
     model === "block"
-      ? blockSequence(buildWeeks)
+      ? blockSequence(buildWeeks, blockSystems)
       : model === "polarized"
         ? polarizedSequence(buildWeeks, level, ageYears)
-        : classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase });
+        : classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase, buildPhases, shareTable });
 
-  const phases = seq.phases.slice();
+  const phasesOut = seq.phases.slice();
   const isRecovery = seq.isRecovery.slice();
   for (let i = 0; i < taperWeeks; i++) {
-    phases.push("Taper");
+    phasesOut.push("Taper");
     isRecovery.push(false);
   }
-  return { phases, isRecovery, warnings: seq.warnings };
+  return { phases: phasesOut, isRecovery, warnings: seq.warnings };
 }

@@ -30,6 +30,14 @@ import { bestEffortPerBucket, STANDARD_RUN_DISTANCES_KM } from "./pace-curve.js"
 
 /** @typedef {import("../types.js").Ride} Ride */
 
+/** Standard-Distanz-Buckets Schwimmen, in KM — gleiche Einheit wie `ride.km`
+ *  (intervals.icu liefert `distance` sportartunabhängig in Metern;
+ *  `baseFields()` in scripts/lib/map-activity.js rechnet einheitlich
+ *  km = distance/1000, gegen den Sync-Code geprüft, Fahrplan 14 E3).
+ *  100/200/400/750/1500 m — verbreitete CSS-Test-/Bahn-Wettkampfdistanzen
+ *  (Swim-Smooth 400+200-CSS-Test, dazu gängige Renndistanzen). */
+export const STANDARD_SWIM_DISTANCES_KM = [0.1, 0.2, 0.4, 0.75, 1.5];
+
 const num = (v) => (typeof v === "number" && !isNaN(v) ? v : 0);
 
 /** Die zwei Efforts müssen sich in der Distanz deutlich unterscheiden,
@@ -61,24 +69,27 @@ export function criticalSpeedFromTwoEfforts(a, b) {
 }
 
 /**
- * Geschätzte Schwellengeschwindigkeit (km/h) eines Läufers aus seinen
- * echten Aktivitäten. Bildet Distanz-Bucket-Bestwerte (geteilt mit
- * pace-curve.js) und legt die 2-Punkt-CS-Gerade durch die zwei am
- * weitesten getrennten belegten Buckets.
- * @param {Ride[]} rides  volle Aktivitätsliste (wird intern auf `run` gefiltert)
- * @param {{minDurationMin?: number, distances?: number[]}} [opts]
+ * Geschätzte Schwellengeschwindigkeit (km/h) eines Athleten aus seinen
+ * echten Aktivitäten — Laufen ODER Schwimmen (Fahrplan 14 E3: `sport`-
+ * Parameter, bestehende Aufrufer bleiben unverändert auf `"run"`). Bildet
+ * Distanz-Bucket-Bestwerte (geteilt mit pace-curve.js) und legt die
+ * 2-Punkt-CS-Gerade durch die zwei am weitesten getrennten belegten Buckets.
+ * @param {Ride[]} rides  volle Aktivitätsliste (wird intern auf `sport` gefiltert)
+ * @param {{minDurationMin?: number, distances?: number[], sport?: "run"|"swim"}} [opts]
  * @returns {{speed: number|null, calibrated: false} & Record<string, unknown>}
  *   Immer ein Objekt. `speed: null` + `reason`, wenn < 2 belegte
  *   Distanz-Buckets vorliegen (Degradations-Muster wie zoneTimes, nicht raten).
  */
 export function estimateThresholdSpeed(rides, opts = {}) {
-  const { minDurationMin = 15, distances = STANDARD_RUN_DISTANCES_KM } = opts;
+  const { minDurationMin = 15, sport = "run" } = opts;
+  const distances =
+    opts.distances || (sport === "swim" ? STANDARD_SWIM_DISTANCES_KM : STANDARD_RUN_DISTANCES_KM);
   // Sport-Gate über den geteilten Helfer (Guardrail 4), dann die
   // Effort-Mindestkriterien.
-  const runs = ridesForSport(rides, "run").filter(
+  const activities = ridesForSport(rides, sport).filter(
     (r) => num(r.min) >= minDurationMin && num(r.km) > 0
   );
-  const efforts = bestEffortPerBucket(runs, distances);
+  const efforts = bestEffortPerBucket(activities, distances);
   if (efforts.length < 2) {
     return {
       speed: null,
