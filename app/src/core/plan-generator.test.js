@@ -489,3 +489,31 @@ test("E13: deterministisch (gleicher Input → gleicher Output)", () => {
     generatePlan(eventInput({ baseWeekModel: base, regenerateFrom: base[3].start }));
   assert.deepEqual(mk(), mk());
 });
+
+/* ── Fahrplan 14 E1: sport-Parameter + Sport-Strategie-Gerüst ────
+   sport:"ride" bzw. fehlendes sport-Feld muss byte-identische Ausgabe
+   liefern (abgesichert zusätzlich durch den Golden-Master-Test). */
+
+test("sport:'ride' liefert dieselbe Ausgabe wie ohne sport-Feld (event-Input)", () => {
+  assert.deepEqual(generatePlan(eventInput({ sport: "ride" })), generatePlan(eventInput()));
+});
+
+test("sport:'ride' liefert dieselbe Ausgabe wie ohne sport-Feld (open-Input, Einsteiger ohne FTP)", () => {
+  assert.deepEqual(generatePlan(openInput({ sport: "ride" })), generatePlan(openInput()));
+});
+
+test("sport:'ride' liefert dieselbe Ausgabe wie ohne sport-Feld (E13-Restberechnung)", () => {
+  const base = baseModelFrom();
+  const withSport = generatePlan(
+    eventInput({ sport: "ride", baseWeekModel: base, regenerateFrom: base[3].start })
+  );
+  const withoutSport = generatePlan(
+    eventInput({ baseWeekModel: base, regenerateFrom: base[3].start })
+  );
+  assert.deepEqual(withSport, withoutSport);
+});
+
+test("unbekannte Sportart wirft (Platzhalter, Fahrplan 14 E2/E3 füllen sie noch)", () => {
+  assert.throws(() => generatePlan(eventInput({ sport: "run" })));
+  assert.throws(() => generatePlan(eventInput({ sport: "swim" })));
+});

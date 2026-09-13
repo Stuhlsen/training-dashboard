@@ -33,10 +33,9 @@ import { avg } from "./stats.js";
 import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
 import { CONFLICT_THRESHOLDS } from "./plan-config.js";
 import { RECOVERY_MAX_SHARE } from "./periodization.js";
-import { TYPE_DEFAULT_TSS } from "../sports/cycling/session-types.js";
 import { estimateSessionTSS } from "./ftp-progress.js";
 import { buildPhaseSequence, sequenceFromWeekModel } from "./plan-generator-blocks.js";
-import { selectWorkout } from "./plan-workout-select.js";
+import { getSportStrategy } from "./plan-generator-sport.js";
 
 /* ── Verträge V2–V4 als lokale JSDoc-Typen ───────────────────────
    In E2 hier lokal gehalten (kein I/O-Typ-Import in core/). E4/E5 dürfen die
@@ -54,15 +53,19 @@ import { selectWorkout } from "./plan-workout-select.js";
 
 /**
  * @typedef {Object} PlanGeneratorInput  (V2)
+ * @property {"ride"|"run"|"swim"} [sport]  Default "ride" (Golden-Master, Fahrplan 14 E1)
  * @property {string} startDate  ISO, Montag
  * @property {"event"|"open"} mode
  * @property {string} [eventDate]
  * @property {number} [weeks]
  * @property {number[]} trainingWeekdays  ISO 1..7, aufsteigend
  * @property {number} weeklyHours
- * @property {number|null} currentFtp
- * @property {string|null} ftpMeasuredDate
- * @property {number|null} ftpTarget
+ * @property {number|null} currentFtp  nur sport === "ride"
+ * @property {string|null} ftpMeasuredDate  nur sport === "ride"
+ * @property {number|null} ftpTarget  nur sport === "ride"
+ * @property {number|null} [currentThresholdSpeed]  km/h — nur "run"/"swim" (E2/E3)
+ * @property {string|null} [thresholdSpeedMeasuredDate]  nur "run"/"swim" (E2/E3)
+ * @property {number|null} [thresholdSpeedTarget]  nur "run"/"swim" (E2/E3)
  * @property {number} indoorShare  0..1
  * @property {"allgemein"|"berg"|"langstrecke"|"crit"} focus
  * @property {"einsteiger"|"fortgeschritten"} level
@@ -200,22 +203,16 @@ function deriveFtpTarget(input, weeks) {
 
 /* ── Workout-Bausteine ───────────────────────────────────────── */
 
-/** Zwei Nachkommastellen als [lo,hi]-Watt-Band aus einem %-Band.
- *  @param {[number,number]} pct @param {number|null} ftp @returns {[number,number]|undefined} */
-function wattBand(pct, ftp) {
-  if (ftp == null) return undefined;
-  return [Math.round((pct[0] / 100) * ftp), Math.round((pct[1] / 100) * ftp)];
-}
-
 /**
  * Lockerer Z2-Dauerblock über `minutes` Minuten.
- * @param {number} minutes @param {number|null} ftp
+ * @param {number} minutes @param {number|null} ftp @param {object} strategy  Sport-Strategie (`wattBand`)
  * @returns {{name:string, typ:string, workout:object, workoutStructure:object, tssPlanned:number, durationMin:number}}
  */
-function z2Workout(minutes, ftp) {
+function z2Workout(minutes, ftp, strategy) {
   const min = Math.max(20, Math.round(minutes));
   const pct = /** @type {[number,number]} */ ([60, 70]);
   const isLong = min >= 150;
+  const band = strategy.wattBand(pct, ftp);
   const workout = {
     warmup: 0,
     intervals: 1,
@@ -224,7 +221,7 @@ function z2Workout(minutes, ftp) {
     cooldown: 0,
     zone: "Z2",
     pct,
-    ...(wattBand(pct, ftp) ? { watts: wattBand(pct, ftp) } : {}),
+    ...(band ? { watts: band } : {}),
     label: isLong ? "Z2 Lang" : "Z2 Dauer",
   };
   const workoutStructure = {
@@ -308,13 +305,13 @@ function distributeLooseMinutes(looseDays, looseMin) {
 
 /** Lockere Karten so umskalieren, dass ihre TSS-Summe ≈ `looseTargetTss`
  *  trifft (Faktor auf die Z2-Dauer, auf 0.5–1.8 begrenzt). Mutiert die Karten.
- *  @param {PlanCardDraft[]} looseCards @param {number} looseTargetTss @param {number|null} ftp */
-function scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp) {
+ *  @param {PlanCardDraft[]} looseCards @param {number} looseTargetTss @param {number|null} ftp @param {object} strategy */
+function scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, strategy) {
   const base = looseCards.reduce((s, c) => s + c.tssPlanned, 0);
   if (base <= 0) return;
   const factor = clamp(looseTargetTss / base, 0.5, 1.8);
   for (const c of looseCards) {
-    const scaled = z2Workout(c.durationMin * factor, ftp);
+    const scaled = z2Workout(c.durationMin * factor, ftp, strategy);
     Object.assign(c, {
       name: scaled.name,
       typ: scaled.typ,
@@ -406,20 +403,6 @@ function computeWeekTargets(a) {
   return { targetTss, raceTsb, warnings };
 }
 
-/** Wochen-Indizes mit FTP-Testtag (Entscheidung 23): Start bei veralteter/
- *  fehlender FTP, danach alle 7 Wochen, plus die letzte Woche.
- *  @param {number} totalWeeks @param {string} startDate @param {string|null} ftpMeasuredDate
- *  @returns {Set<number>} */
-function ftpTestWeeks(totalWeeks, startDate, ftpMeasuredDate, fromIndex = 0) {
-  const set = new Set();
-  if (!ftpMeasuredDate || diffDays(startDate, ftpMeasuredDate) > 42) set.add(0);
-  for (let i = 7; i < totalWeeks; i += 7) set.add(i);
-  set.add(totalWeeks - 1);
-  // E13: in der Restberechnung kein Testtag in einer eingefrorenen Woche.
-  if (fromIndex > 0) for (const i of [...set]) if (i < fromIndex) set.delete(i);
-  return set;
-}
-
 /**
  * Karten einer Woche: Qualitätstage aus `selectWorkout()` (E3, session_formats
  * + Ladder-Stufe nach `weekIndexInPhase`), lockere Tage als Z2-Blöcke auf die
@@ -434,11 +417,12 @@ function ftpTestWeeks(totalWeeks, startDate, ftpMeasuredDate, fromIndex = 0) {
  * @param {"allgemein"|"berg"|"langstrecke"|"crit"} c.focus
  * @param {"einsteiger"|"fortgeschritten"} c.level
  * @param {Array<object>} c.formats  session_formats-Zeilen (leer → eingebaute Startbelegung)
+ * @param {object} c.strategy  Sport-Strategie (`plan-generator-sport.js`)
  * @returns {PlanCardDraft[]}
  */
 function buildWeekCards(c) {
   const { weekStart, isoWeek, phase, isRecovery, effectiveWeekdays, quality, weeklyHours, targetTss, ftp, isTestWeek } = c;
-  const { weekIndexInPhase, focus, level, formats } = c;
+  const { weekIndexInPhase, focus, level, formats, strategy } = c;
   const dayIsQuality = (wd) => !isRecovery && quality.includes(wd);
   const looseDays = effectiveWeekdays.filter((wd) => !dayIsQuality(wd));
 
@@ -450,7 +434,7 @@ function buildWeekCards(c) {
   let qTss = 0;
   for (const wd of effectiveWeekdays) {
     if (!dayIsQuality(wd)) continue;
-    const q = selectWorkout({
+    const q = strategy.selectWorkout({
       phase,
       weekIndexInPhase,
       qualitySlot: quality.indexOf(wd) === 0 ? 1 : 2,
@@ -469,9 +453,9 @@ function buildWeekCards(c) {
   const looseMin = Math.max(0, weeklyMin - cards.reduce((s, x) => s + x.durationMin, 0));
   const perDayMin = distributeLooseMinutes(looseDays, looseMin);
   const looseCards = looseDays.map((wd) =>
-    makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, z2Workout(perDayMin[wd], ftp))
+    makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, z2Workout(perDayMin[wd], ftp, strategy))
   );
-  scaleLooseCardsToTarget(looseCards, Math.max(0, targetTss - qTss), ftp);
+  scaleLooseCardsToTarget(looseCards, Math.max(0, targetTss - qTss), ftp, strategy);
   cards.push(...looseCards);
 
   if (isTestWeek && effectiveWeekdays.length) {
@@ -482,10 +466,7 @@ function buildWeekCards(c) {
       phase,
       isoWeek,
       {
-        name: "FTP-Test (20 min)",
-        typ: "FTP-Test",
-        tssPlanned: TYPE_DEFAULT_TSS["FTP-Test"],
-        durationMin: 55,
+        ...strategy.testCard,
         workout: null,
         workoutStructure: null,
       },
@@ -511,6 +492,7 @@ function buildWeekCards(c) {
  * @returns {GeneratedPlan}  V4
  */
 export function generatePlan(input) {
+  const strategy = getSportStrategy(input.sport ?? "ride");
   const history = input.history || emptyHistory();
   const warnings = [];
 
@@ -626,7 +608,7 @@ export function generatePlan(input) {
   // 5)–7) Testwochen + Karten je Woche ------------------------------
   const ftp = input.currentFtp ?? null;
   const formats = input.formats || [];
-  const testWeeks = ftpTestWeeks(totalWeeks, startDate, input.ftpMeasuredDate, cut);
+  const testWeeks = strategy.testWeeks(totalWeeks, startDate, input.ftpMeasuredDate, cut);
   const quality = qualityWeekdays(effectiveWeekdays);
   const weeks = seq.phases.map((phase, i) => {
     const weekStart = addDaysISO(startDate, i * 7);
@@ -675,6 +657,7 @@ export function generatePlan(input) {
         focus: input.focus,
         level: input.level,
         formats,
+        strategy,
       }),
     };
   });
@@ -695,7 +678,9 @@ export function generatePlan(input) {
   return {
     weeks,
     weekModel,
-    ftpTarget: deriveFtpTarget({ ...input, history }, totalWeeks),
+    // deriveFtpTarget() bleibt vorerst ride-only (Fahrplan 14 E1) — E2/E3
+    // bringen ihr eigenes Schwellenpace-Ziel-Äquivalent mit.
+    ftpTarget: strategy.sport === "ride" ? deriveFtpTarget({ ...input, history }, totalWeeks) : null,
     warnings,
   };
 }
