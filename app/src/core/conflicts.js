@@ -54,7 +54,11 @@ function dateRange(dates) {
  *   K-WOCHENSPRUNG-Ist-Seed (letzte tatsächlich gefahrene Woche als
  *   Vergleichswert für die erste volle Planwoche, s. docs/offene-punkte.md)
  *   UND für K-TID (Intensitätsverteilung der letzten 4 Wochen).
- * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>, athleteId?: string, offsetWeeks?: number, weekModel?: import("./plan-week-model.js").PlanWeekEntry[]|null}} [options]
+ * @param {{config?: typeof CONFLICT_THRESHOLDS, intensityTable?: Record<string,string>, athleteId?: string, offsetWeeks?: number, weekModel?: import("./plan-week-model.js").PlanWeekEntry[]|null, multiSport?: boolean}} [options]
+ *   `multiSport` (Fahrplan 13 E2/X2): schaltet den Rad-only-Filter von
+ *   K-WOCHENTSS/K-TID ab — bei Athleten mit `sports.length > 1` werten diese
+ *   Regeln dann alle Sportarten aus. Ohne `multiSport` (Standard, 1/2/4)
+ *   bleibt das Verhalten exakt wie vor Fahrplan 13.
  *   `athleteId` (Fahrplan 6, RUH3): schaltet die Plan-Wochen-Modell-
  *   Konsultation frei — ein Ruhe-Slot-Tag ohne Karte gilt dann als „ruhe"
  *   (bewusst frei) statt „leer" (Planungslücke). Ohne `athleteId` bleibt die
@@ -72,6 +76,7 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   const athleteId = options.athleteId ?? null;
   const offsetWeeks = options.offsetWeeks ?? 0;
   const weekModel = options.weekModel ?? null;
+  const multiSport = options.multiSport === true;
   const days = projection?.days ?? [];
   if (!days.length) return [];
 
@@ -292,9 +297,8 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   // ── K-WOCHENTSS (P2, neu): Wochen-TSS > CTL(Wochenstart) × Faktor ─
   //    Je Sport getrennt (Fahrplan 12 E4): nur Rad-Karten speisen die
   //    Wochen-TSS-Obergrenze. Die Last einer Laufkarte ist TRIMP-skaliert,
-  //    die Obergrenze CTL(Wochenstart)×Faktor ist eine TSS-Größe — die
-  //    Cross-Sport-Last-Summierung / TRIMP↔TSS-Eichung ist Fahrplan 10
-  //    Phase 3.
+  //    die Obergrenze CTL(Wochenstart)×Faktor ist eine TSS-Größe — seit
+  //    Fahrplan 13 sportübergreifend bei >1 Sport, sonst weiter Rad-only.
   //    Fast-Pfad: trägt der Plan keine Nicht-Rad-Karte (alle Bestands-
   //    athleten), ist die sport-gefilterte Wochensumme identisch zu `weeks`
   //    — dann kein zweiter weeklyTss-Lauf, keine Kopie (detectConflicts
@@ -305,6 +309,9 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   //    konservativ voll. `weeks` enthält an dieser Stelle den Ist-Seed
   //    vorne (K-WOCHENSPRUNG-unshift) — die alte `!== seed`-Filterung
   //    bleibt im Fast-Pfad erhalten; `weeklyTss()` erzeugt den Seed nie.
+  //    Bei `multiSport` entfällt der Rad-only-Filter ganz: `days[].tss`
+  //    trägt bereits die sportübergreifende Last (estimateTss(), W4 aus
+  //    Fahrplan 12) — der Fast-Pfad greift dann immer.
   let hasNonRideCard = false;
   for (const dc of cardsByDate.values()) {
     if (dc.some((c) => activitySport(c) !== "ride")) {
@@ -312,14 +319,15 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
       break;
     }
   }
-  const rideWeeks = hasNonRideCard
-    ? weeklyTss(
-        days.map((d) => {
-          const dc = cardsByDate.get(d.date) || [];
-          return dc.length && !dc.some((c) => activitySport(c) === "ride") ? { ...d, tss: 0 } : d;
-        })
-      )
-    : weeks.filter((w) => w !== seed);
+  const rideWeeks =
+    !multiSport && hasNonRideCard
+      ? weeklyTss(
+          days.map((d) => {
+            const dc = cardsByDate.get(d.date) || [];
+            return dc.length && !dc.some((c) => activitySport(c) === "ride") ? { ...d, tss: 0 } : d;
+          })
+        )
+      : weeks.filter((w) => w !== seed);
   for (const w of rideWeeks) {
     const idx = days.findIndex((d) => d.date === w.firstDate);
     const ctlAtStart = idx > 0 ? days[idx - 1].ctl : projection?.startCtl;
@@ -344,16 +352,16 @@ export function detectConflicts(projection, cards, events = [], actuals = [], op
   //    Blockziel) → keine Regel, keine Aussage.
   // Je Sport getrennt (Fahrplan 12 E4): Blockkorridor UND Ist-Fenster nur aus
   // Rad-Karten bzw. Rad-Ist-Fahrten — PHASE_SIGNATURES und `r.if` sind
-  // radsportkalibriert. Cross-Sport-Eichung / kombinierte Intensitäts-
-  // verteilung = Fahrplan 10 Phase 3.
-  const rideCards = (cards || []).filter((c) => activitySport(c) === "ride");
+  // radsportkalibriert. Seit Fahrplan 13 sportübergreifend bei >1 Sport,
+  // sonst weiter Rad-only.
+  const rideCards = multiSport ? cards || [] : (cards || []).filter((c) => activitySport(c) === "ride");
   const tidPhase = currentBlockTarget(rideCards, today);
   const tidCorridor = tidPhase ? PHASE_SIGNATURES[tidPhase] : null;
   if (tidCorridor) {
     const tidFrom = addDaysISO(today, -28);
     const tidWindow = (actuals || []).filter((r) => {
       const d = r.dateISO || r.date;
-      return d && d >= tidFrom && d < today && r.if != null && activitySport(r) === "ride";
+      return d && d >= tidFrom && d < today && r.if != null && (multiSport || activitySport(r) === "ride");
     });
     if (tidWindow.length) {
       const above = tidWindow.filter((r) => r.if > tidCorridor.ifMax).length;

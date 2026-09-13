@@ -646,6 +646,67 @@ test("E4 Regression: reine Radkarten-Konstellation liefert exakt dieselbe Konfli
   assert.deepEqual(rules(detectConflicts(proj, cards, [])).sort(), ["K-HARTFOLGE"]);
 });
 
+/* ── Fahrplan 13 E2/X2: K-WOCHENTSS/K-TID sportübergreifend bei multiSport ─
+   Der Rad-only-Filter aus Fahrplan 12 E4 entfällt nur bei options.multiSport
+   (Athleten mit sports.length > 1). Für 1/2/4 (kein multiSport) bleibt der
+   Filter-Effekt identisch — s. Regressionstests unten. */
+
+test("E2: harte Radkarte + harte Laufkarte in derselben Woche — mit multiSport zählt die volle Last für K-WOCHENTSS", () => {
+  const days = ONE_WEEK_DATES.map((date, i) => ({ date, tsb: 0, cardIds: [`r${i}`], tss: 70, ctl: 50 }));
+  const proj = { days, startCtl: 50 };
+  // Rad an geraden Tagen, Lauf an ungeraden Tagen — 490 TSS über die volle
+  // Woche, aber nur 4 Rad-Tage × 70 = 280 TSS, wenn Lauf-Tage rausgefiltert werden.
+  const cards = ONE_WEEK_DATES.map((date, i) =>
+    i % 2 === 0 ? { id: `r${i}`, date, typ: "Sweet Spot" } : hardRun(`r${i}`, date)
+  );
+  assert.equal(
+    byRule(detectConflicts(proj, cards, []), "K-WOCHENTSS").length,
+    0,
+    "ohne multiSport: 280 TSS (nur Rad-Tage) < Obergrenze 400"
+  );
+  const c = byRule(detectConflicts(proj, cards, [], [], { multiSport: true }), "K-WOCHENTSS");
+  assert.equal(c.length, 1, "mit multiSport: 490 TSS (Rad+Lauf) > Obergrenze 400");
+  assert.equal(c[0].severity, "warning");
+});
+
+test("E2: multiSport lässt Lauf-Ist-Fahrten in K-TID mitzählen", () => {
+  const proj = mkProj([{ date: "2026-07-20" }]);
+  const cards = [{ id: "a", date: "2026-07-20", typ: "Sweet Spot", phase: "Sweet Spot" }];
+  const actuals = [
+    { dateISO: "2026-07-01", if: 0.85, sport: "ride" }, // im Korridor
+    { dateISO: "2026-07-05", if: 1.4, sport: "run" }, // hoch, Lauf
+    { dateISO: "2026-07-10", if: 1.5, sport: "run" }, // hoch, Lauf
+  ];
+  assert.equal(
+    byRule(detectConflicts(proj, cards, [], actuals), "K-TID").length,
+    0,
+    "ohne multiSport ignoriert K-TID die Lauf-Ist-Fahrten weiterhin (E4-Verhalten)"
+  );
+  const c = byRule(detectConflicts(proj, cards, [], actuals, { multiSport: true }), "K-TID");
+  assert.equal(c.length, 1, "mit multiSport zählen die 2 von 3 hohen Lauf+Rad-IF-Werten oberhalb des Korridors");
+});
+
+test("E2 Regression: multiSport ändert bei reinen Rad-Karten/-Ist-Fahrten (Athlet 1/2/4) nichts", () => {
+  const days = ONE_WEEK_DATES.map((date, i) => ({ date, tsb: 0, cardIds: [`r${i}`], tss: 70, ctl: 50 }));
+  const proj = { days, startCtl: 50 };
+  const cards = ONE_WEEK_DATES.map((date, i) => ({ id: `r${i}`, date, typ: "Sweet Spot" })); // ride, ohne sport
+  const withoutMulti = detectConflicts(proj, cards, []);
+  const withMulti = detectConflicts(proj, cards, [], [], { multiSport: true });
+  assert.deepEqual(rules(withoutMulti).sort(), rules(withMulti).sort());
+  assert.equal(byRule(withMulti, "K-WOCHENTSS").length, 1);
+
+  const tidProj = mkProj([{ date: "2026-07-20" }]);
+  const tidCards = [{ id: "a", date: "2026-07-20", typ: "Sweet Spot", phase: "Sweet Spot" }];
+  const tidActuals = [
+    { dateISO: "2026-07-01", if: 0.85, sport: "ride" },
+    { dateISO: "2026-07-05", if: 1.4, sport: "ride" },
+  ];
+  assert.deepEqual(
+    byRule(detectConflicts(tidProj, tidCards, [], tidActuals), "K-TID"),
+    byRule(detectConflicts(tidProj, tidCards, [], tidActuals, { multiSport: true }), "K-TID")
+  );
+});
+
 /* ── Kombination + Auflösung ─────────────────────────────────── */
 
 test("Zwei Regeln am selben Tag: tiefer TSB löst K-TSB UND K-TSB2 aus", () => {

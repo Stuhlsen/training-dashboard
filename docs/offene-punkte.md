@@ -81,6 +81,27 @@
   Einladungs-/Bestätigungsablauf (Coach muss zustimmen).
   `CoachLinkSection.tsx`.
 
+## Multi-Sport / Fahrplan 13
+
+- **K-WOCHENTSS/K-TID noch ohne Aufrufer für `multiSport`** (Fahrplan 13 E2,
+  `app/src/core/conflicts.js`) — die Option existiert und ist getestet, aber
+  weder `PlanningPage.tsx` noch `proposal-preview.js` übergeben sie. Für
+  Hendrik (`athlete3`, `sports: ["ride","run","swim"]`) werten diese beiden
+  Regeln im Planungstab dadurch weiterhin nur Rad-Karten/-Fahrten aus, obwohl
+  der Governor (Fahrplan 13 E1, `loadguard.js`/Hero/Analyse) für ihn schon
+  sportübergreifend rechnet. Nachziehen: eigene Etappe, die `multiSport` an
+  beiden Aufrufstellen setzt (wie bereits in `hero-view-model.ts`/
+  `AnalysisPage.tsx`/`TrainerBar.tsx` üblich) — **dabei gleich den
+  K-TID-Randfall darunter mitfixen/mittesten.**
+- **K-TID kann bei `multiSport` durch eine sportfremde Nachbarkarte
+  verstummen** — `currentBlockTarget()` (`core/periodization.js`) wählt die
+  zeitlich nächstgelegene Karte unabhängig von der Sportart; trägt sie eine
+  Phase außerhalb von `PHASE_SIGNATURES` (z. B. ein Lauf-/Schwimm-Blockname),
+  wird `tidCorridor` `null` und K-TID feuert die ganze Woche nicht — auch
+  nicht für Hendriks eigene Rad-Ist-Fahrten. Noch nicht live wirksam (s.
+  Punkt oben), aber vor/mit der Verdrahtung gegen Hendriks echte Plankarten
+  in Docker zu verifizieren.
+
 ## Sonstiges
 
 - **`sport`-Spalte noch nicht in der DB** — additiv nachrüstbar, sobald eine
