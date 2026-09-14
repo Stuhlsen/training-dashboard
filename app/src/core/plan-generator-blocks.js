@@ -312,9 +312,14 @@ function polarizedSequence(buildWeeks, level, ageYears) {
  * @param {string[]} [systems]  Fahrplan 14 E2/E3: sport-abhängige
  *   Block-Reihenfolge (Default `BLOCK_SYSTEMS`, Rad — 3 Blöcke inkl.
  *   Sweet Spot; Lauf/Schwimm nutzen `GENERIC_BLOCK_SYSTEMS`, 2 Blöcke)
+ * @param {boolean} [isGeneric]  Fahrplan-14-Review: explizites Signal statt
+ *   `systems === BLOCK_SYSTEMS`-Identitätsvergleich (fragil gegen jeden
+ *   Aufrufer, der ein wertgleiches, aber anderes Array übergibt) — vom
+ *   Aufrufer (`buildPhaseSequence()`) aus demselben `phases`-Flag gesetzt,
+ *   das auch `buildPhases`/`shareTable`/`blockSystems` bestimmt.
  * @returns {{ phases: string[], isRecovery: boolean[], warnings: string[] }}
  */
-function blockSequence(buildWeeks, systems = BLOCK_SYSTEMS) {
+function blockSequence(buildWeeks, systems = BLOCK_SYSTEMS, isGeneric = false) {
   const warnings = [];
   if (buildWeeks <= 0) return { phases: [], isRecovery: [], warnings };
 
@@ -325,10 +330,10 @@ function blockSequence(buildWeeks, systems = BLOCK_SYSTEMS) {
 
   const minEach = pool < nBlocks * BLOCK_MIN_WEEKS ? 1 : BLOCK_MIN_WEEKS;
   if (pool < nBlocks * BLOCK_MIN_WEEKS) {
-    // Ride-Pfad (Default-`systems`): Text unverändert (Golden-Master-Schutz).
+    // Ride-Pfad (isGeneric: false): Text unverändert (Golden-Master-Schutz).
     // Generischer Pfad (Lauf/Schwimm, andere Blockzahl): dynamisch berechnet.
     warnings.push(
-      systems === BLOCK_SYSTEMS
+      !isGeneric
         ? `Nur ${buildWeeks} Aufbau-Wochen — das Block-Modell braucht ~9+; Blöcke auf ${minEach} Woche(n) verkürzt.`
         : `Nur ${buildWeeks} Aufbau-Wochen — das Block-Modell braucht mindestens ${nBlocks * BLOCK_MIN_WEEKS} Wochen für ${nBlocks} Blöcke (+ Grundlage); Blöcke auf ${minEach} Woche(n) verkürzt.`
     );
@@ -420,7 +425,7 @@ export function buildPhaseSequence({
 
   const seq =
     model === "block"
-      ? blockSequence(buildWeeks, blockSystems)
+      ? blockSequence(buildWeeks, blockSystems, Boolean(phases))
       : model === "polarized"
         ? polarizedSequence(buildWeeks, level, ageYears)
         : classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase, buildPhases, shareTable });

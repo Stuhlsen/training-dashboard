@@ -76,12 +76,19 @@ export function criticalSpeedFromTwoEfforts(a, b) {
  * 2-Punkt-CS-Gerade durch die zwei am weitesten getrennten belegten Buckets.
  * @param {Ride[]} rides  volle Aktivitätsliste (wird intern auf `sport` gefiltert)
  * @param {{minDurationMin?: number, distances?: number[], sport?: "run"|"swim"}} [opts]
+ *   `minDurationMin` Default sportabhängig: 15 (Lauf), 3 (Schwimmen — ein
+ *   CSS-Test über 100/200/400 m dauert oft nur wenige Minuten).
  * @returns {{speed: number|null, calibrated: false} & Record<string, unknown>}
  *   Immer ein Objekt. `speed: null` + `reason`, wenn < 2 belegte
  *   Distanz-Buckets vorliegen (Degradations-Muster wie zoneTimes, nicht raten).
  */
 export function estimateThresholdSpeed(rides, opts = {}) {
-  const { minDurationMin = 15, sport = "run" } = opts;
+  const { sport = "run" } = opts;
+  // Sportabhängiger Default: ein Schwimm-CSS-Test (100/200/400 m) dauert
+  // oft nur wenige Minuten — der Lauf-Default (15 min) würde diese Buckets
+  // fast nie erreichbar machen. 3 min filtert weiterhin kurze Einschwimm-/
+  // Pausenabschnitte raus, ohne echte Testdistanzen zu verwerfen.
+  const minDurationMin = opts.minDurationMin ?? (sport === "swim" ? 3 : 15);
   const distances =
     opts.distances || (sport === "swim" ? STANDARD_SWIM_DISTANCES_KM : STANDARD_RUN_DISTANCES_KM);
   // Sport-Gate über den geteilten Helfer (Guardrail 4), dann die
@@ -129,12 +136,13 @@ export function estimateThresholdSpeed(rides, opts = {}) {
   // Dauerläufen live beobachtet: 24 km/h). Kein Wert statt eines
   // flagged-aber-kaputten (Muster wie die NP-FTP-Härtung in E6).
   if (cs.dPrime <= 0) {
+    const longerLabel = sport === "swim" ? "das längere Schwimmen" : "der längere Lauf";
     return {
       speed: null,
       calibrated: false,
       reason:
-        "Efforts nicht erschöpfend genug — 2-Punkt-CS ergibt negatives D' " +
-        "(der längere Lauf war schneller). Ein echter Schwellen-/Zeitfahrt-Effort fehlt.",
+        `Efforts nicht erschöpfend genug — 2-Punkt-CS ergibt negatives D' (${longerLabel} ` +
+        "war schneller). Ein echter Schwellen-/Zeitfahrt-Effort fehlt.",
     };
   }
   return {

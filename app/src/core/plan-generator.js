@@ -673,8 +673,10 @@ export function generatePlan(input) {
   return {
     weeks,
     weekModel,
-    // deriveFtpTarget() bleibt vorerst ride-only (Fahrplan 14 E1) — E2/E3
-    // bringen ihr eigenes Schwellenpace-Ziel-Äquivalent mit.
+    // deriveFtpTarget() bleibt ride-only (Fahrplan 14 E1). E2/E3 (Lauf/
+    // Schwimm) liefern trotz `thresholdSpeedTarget`-Inputfeld (V1) bewusst
+    // noch kein abgeleitetes Schwellenpace-Ziel — offener Punkt, kein Teil
+    // des E2/E3-Aufgabenumfangs.
     ftpTarget: strategy.sport === "ride" ? deriveFtpTarget({ ...input, history }, totalWeeks) : null,
     warnings,
   };

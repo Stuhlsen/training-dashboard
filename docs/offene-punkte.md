@@ -51,6 +51,22 @@
   das: nach dem Setzen seines Ziels die betroffenen Karten einmal neu
   pushen/exportieren.
 
+## Plan-Generator Lauf/Schwimm (Fahrplan 14)
+
+- **Zwei getrennte Intensitäts-Tabellen für Lauf/Schwimm-Qualitätstage, mit
+  leicht abweichenden Zahlen.** `plan-workout-select-generic.js::PHASE_PCT_BAND`
+  (feste %-Bänder je Phase) und `sports/running|swimming/session-types.ts::*_PHASE_SIGNATURES`
+  (`ifMin`/`ifMax` je Phase, genutzt u. a. von `periodization.js` zur
+  Ist-Klassifikation) beschreiben denselben Gedanken — „wie intensiv ist
+  Phase X" — unabhängig voneinander. Beispiel Schwimmen „Grundlage":
+  PHASE_PCT_BAND 70–85 %, SWIMMING_PHASE_SIGNATURES 85–97 %. Beide Seiten
+  sind als UNKALIBRIERT markiert (Fahrplan 10), daher aktuell kein
+  funktionaler Fehler — aber eine künftige Kalibrierung, die nur eine der
+  beiden Tabellen anfasst, lässt sie stillschweigend auseinanderlaufen.
+  Naheliegende Zusammenführung: `PHASE_PCT_BAND` aus
+  `sessionTypes.phaseSignatures[phase].ifMin/ifMax` ableiten statt eigener
+  Literale — eigener kleiner Fahrplan-Punkt, kein Schnellschuss.
+
 ## Sync-Pipeline (`scripts/`)
 
 - **K3-Typ-Defaults nicht aus der FTP-Historie neu abgeleitet** — braucht je

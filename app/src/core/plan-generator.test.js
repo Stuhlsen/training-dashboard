@@ -513,8 +513,119 @@ test("sport:'ride' liefert dieselbe Ausgabe wie ohne sport-Feld (E13-Restberechn
   assert.deepEqual(withSport, withoutSport);
 });
 
-test("unbekannte Sportart wirft (Platzhalter, Fahrplan 14 E2 füllt sie noch)", () => {
-  assert.throws(() => generatePlan(eventInput({ sport: "run" })));
+test("unbekannte Sportart wirft", () => {
+  assert.throws(() => generatePlan(eventInput({ sport: "triathlon" })));
+});
+
+/* ── Fahrplan 14 E2: Sport-Strategie Laufen ──────────────────────
+   generatePlan({sport:"run"}) liefert einen echten, periodisierten
+   Laufplan — 3 Phasen (Grundlage/Schwelle/VO2max, kein Sweet Spot),
+   keine Testtage, speedTarget nur mit gesetzter currentThresholdSpeed. */
+
+/** Vollständiger Lauf-Input, event-Modus, mit Schwellengeschwindigkeit. */
+function runInput(over = {}) {
+  return {
+    sport: "run",
+    startDate: "2026-09-07", // Montag
+    mode: "event",
+    eventDate: "2026-11-29", // Sonntag, 12 Wochen später
+    trainingWeekdays: [1, 3, 5, 7],
+    weeklyHours: 5,
+    currentFtp: null,
+    ftpMeasuredDate: null,
+    ftpTarget: null,
+    currentThresholdSpeed: 14, // km/h, ~4:17 min/km Schwellenpace
+    thresholdSpeedMeasuredDate: "2026-08-20",
+    thresholdSpeedTarget: null,
+    indoorShare: 0.3,
+    focus: "allgemein",
+    level: "fortgeschritten",
+    model: "pyramidal",
+    history: {
+      weeklyActualTss: [150, 160, 155, 165],
+      currentCtl: 22,
+      currentEftp: null,
+      planAdherence: 0.8,
+      ageYears: 34,
+      powerCurveWeakness: null,
+    },
+    ...over,
+  };
+}
+
+test("sport:'run' — nur die 3 Aufbau-Phasen Grundlage/Schwelle/VO2max, kein Sweet Spot", () => {
+  const plan = generatePlan(runInput());
+  const buildPhases = new Set(
+    plan.weeks.map((w) => w.phase).filter((p) => p !== "Erholung" && p !== "Taper")
+  );
+  assert.ok(buildPhases.size > 0);
+  for (const p of buildPhases) {
+    assert.ok(["Grundlage", "Schwelle", "VO2max"].includes(p), `unerwartete Phase "${p}"`);
+  }
+});
+
+test("sport:'run' — keine automatischen Testtage (Entscheidung 7)", () => {
+  const plan = generatePlan(runInput());
+  const testCards = plan.weeks.flatMap((w) => w.cards).filter((c) => c.isTest);
+  assert.deepEqual(testCards, []);
+});
+
+test("sport:'run' — speedTarget nur bei gesetzter currentThresholdSpeed", () => {
+  const withSpeed = generatePlan(runInput());
+  const withSpeedTargets = withSpeed.weeks
+    .flatMap((w) => w.cards)
+    .filter((c) => c.workout && c.workout.speedTarget);
+  assert.ok(withSpeedTargets.length > 0);
+  for (const c of withSpeedTargets) {
+    assert.equal(c.workout.speedTarget.length, 2);
+    assert.ok(c.workout.speedTarget[0] < c.workout.speedTarget[1]);
+  }
+
+  const withoutSpeed = generatePlan(runInput({ currentThresholdSpeed: null }));
+  const anySpeedTarget = withoutSpeed.weeks
+    .flatMap((w) => w.cards)
+    .some((c) => c.workout && c.workout.speedTarget);
+  assert.equal(anySpeedTarget, false);
+});
+
+test("sport:'run' — deterministisch (gleicher Input → gleicher Output)", () => {
+  const mk = () => generatePlan(runInput());
+  assert.deepEqual(mk(), mk());
+});
+
+test("sport:'run' — Taper-Woche (Event-Modus) baut Karten ohne Absturz, Intensität wie Grundlage", () => {
+  const plan = generatePlan(runInput());
+  const taperWeeks = plan.weeks.filter((w) => w.phase === "Taper");
+  assert.ok(taperWeeks.length > 0);
+  const taperQuality = taperWeeks.flatMap((w) => w.cards).filter((c) => c.isQuality);
+  assert.ok(taperQuality.length > 0);
+  for (const c of taperQuality) {
+    assert.equal(typeof c.typ, "string");
+    assert.deepEqual(c.workout.pct, [70, 85]); // dieselbe Grundlage-Intensität, bewusst gemappt
+  }
+});
+
+test("sport:'run' — alle 4 Modelle liefern nur das 3-Phasen-Vokabular, kein Absturz", () => {
+  for (const model of ["pyramidal", "linear", "polarized", "block"]) {
+    const plan = generatePlan(runInput({ model }));
+    assert.ok(plan.weeks.length > 0, model);
+    for (const w of plan.weeks) {
+      assert.ok(
+        ["Grundlage", "Schwelle", "VO2max", "Erholung", "Taper"].includes(w.phase),
+        `${model}: unerwartete Phase "${w.phase}"`
+      );
+    }
+  }
+});
+
+test("sport:'run' — 0 Lauf-Aktivitäten → currentThresholdSpeed:null → Plan ohne speedTarget, kein Fehler", () => {
+  const input = runInput({ currentThresholdSpeed: null, thresholdSpeedMeasuredDate: null });
+  const plan = generatePlan(input);
+  assert.ok(plan.weeks.length > 0);
+  const cards = plan.weeks.flatMap((w) => w.cards);
+  assert.ok(cards.length > 0);
+  assert.ok(cards.every((c) => !(c.workout && c.workout.speedTarget)));
+  assert.equal(plan.ftpTarget, null);
 });
 
 /* ── Fahrplan 14 E3: Sport-Strategie Schwimmen ───────────────────

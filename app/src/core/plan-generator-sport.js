@@ -9,14 +9,11 @@
 
    `RIDE_STRATEGY` ist 1:1 das bisherige Rad-Verhalten aus plan-generator.js
    (vor E1 hart im Modul) — nur hinter dieser Tabelle statt hart im Code.
-   `SWIM_STRATEGY` ist seit E3 befüllt (Speed-Band + `selectGenericWorkout()`
-   aus `plan-workout-select-generic.js`, Zonen/Session-Typen aus
-   `sports/swimming/`). `RUN_STRATEGY` bleibt Platzhalter (`null`) — E2
-   befüllt sie analog aus `sports/running/`, auf demselben geteilten
-   `plan-workout-select-generic.js`-Baustein. `getSportStrategy()` wirft für
-   `RUN_STRATEGY` weiter bewusst, statt still auf Rad zurückzufallen — ein
-   Aufruf mit `sport: "run"` vor E2 ist ein Programmierfehler, kein
-   Laufzeit-Sonderfall.
+   `RUN_STRATEGY`/`SWIM_STRATEGY` sind seit E2/E3 befüllt (Speed-Band +
+   `selectGenericWorkout()` aus `plan-workout-select-generic.js`, Zonen/
+   Session-Typen aus `sports/running/`/`sports/swimming/`). `getSportStrategy()`
+   wirft nur noch für echte Unbekannte (z. B. `"triathlon"`) — ein Aufruf mit
+   `sport: "run"`/`"swim"` ist kein Programmierfehler mehr.
    ============================================================ */
 
 import { diffDays } from "./format.js";
@@ -24,6 +21,8 @@ import { estimateSessionTSS } from "./ftp-progress.js";
 import { TYPE_DEFAULT_TSS } from "../sports/cycling/session-types.js";
 import { selectWorkout } from "./plan-workout-select.js";
 import { selectGenericWorkout, speedBand } from "./plan-workout-select-generic.js";
+import { runningSessionTypes } from "../sports/running/session-types.js";
+import { runningZones } from "../sports/running/zones.js";
 import { swimmingSessionTypes } from "../sports/swimming/session-types.js";
 import { swimmingZones } from "../sports/swimming/zones.js";
 import { GENERIC_BUILD_PHASES } from "./plan-generator-blocks.js";
@@ -106,9 +105,30 @@ export const RIDE_STRATEGY = Object.freeze({
   }),
 });
 
-/** Platzhalter — E2 befüllt die Lauf-Strategie (Speed-Band, `selectGenericWorkout()`,
- *  keine Testtage, `sports/running/*`). */
-export const RUN_STRATEGY = null;
+/** `strategy.selectWorkout()`-Adapter für Laufen: `buildWeekCards()`
+ *  reicht dieselbe (Rad-geprägte) Argument-Form durch wie an `selectWorkout()`
+ *  — Laufen braucht nur eine Teilmenge (V4-Vertrag: keine Ladder-Stufe,
+ *  kein `formats`-Katalog). */
+function runSelectWorkout({ phase, qualitySlot, currentThresholdSpeed, targetDurationMin, targetTss }) {
+  return selectGenericWorkout({ sport: "run", phase, qualitySlot, currentThresholdSpeed, targetDurationMin, targetTss });
+}
+
+/** Lauf-Strategie (Fahrplan 14 E2). Kein Testtag (Entscheidung 7 — `testWeeks`
+ *  liefert immer eine leere Menge, `testCard` wird darum nie gebraucht).
+ *  `phases`: 3-Phasen-Vokabular ohne Sweet Spot (GENERIC_BUILD_PHASES), an
+ *  `buildPhaseSequence()` durchgereicht. `looseWorkout(minutes, _ftp,
+ *  thresholdSpeed, strategy)`: einheitliche Signatur über alle Strategien,
+ *  Laufen ignoriert `ftp`. */
+export const RUN_STRATEGY = Object.freeze({
+  sport: "run",
+  phases: GENERIC_BUILD_PHASES,
+  sessionTypes: runningSessionTypes,
+  zones: runningZones,
+  speedBand,
+  selectWorkout: runSelectWorkout,
+  looseWorkout: (minutes, _ftp, thresholdSpeed, strategy) => genericZ2Workout(minutes, thresholdSpeed, strategy),
+  testWeeks: () => new Set(),
+});
 
 /** `strategy.selectWorkout()`-Adapter für Schwimmen: `buildWeekCards()`
  *  reicht dieselbe (Rad-geprägte) Argument-Form durch wie an `selectWorkout()`
@@ -172,7 +192,7 @@ export const SWIM_STRATEGY = Object.freeze({
   testWeeks: () => new Set(),
 });
 
-/** @type {Record<"ride"|"run"|"swim", object|null>} */
+/** @type {Record<"ride"|"run"|"swim", object>} */
 const SPORT_STRATEGIES = Object.freeze({
   ride: RIDE_STRATEGY,
   run: RUN_STRATEGY,
@@ -180,17 +200,15 @@ const SPORT_STRATEGIES = Object.freeze({
 });
 
 /**
- * Sport-Strategie nachschlagen. Wirft für noch nicht implementierte
- * Sportarten (Platzhalter `null`) statt still zu degradieren.
+ * Sport-Strategie nachschlagen. Wirft für unbekannte Sportarten (z. B.
+ * `"triathlon"`) statt still zu degradieren.
  * @param {"ride"|"run"|"swim"} sport
  * @returns {object}
  */
 export function getSportStrategy(sport) {
   const strategy = SPORT_STRATEGIES[sport];
   if (!strategy) {
-    throw new Error(
-      `plan-generator: sport "${sport}" ist noch nicht implementiert (Fahrplan 14 E2).`
-    );
+    throw new Error(`plan-generator: unbekannte Sportart "${sport}".`);
   }
   return strategy;
 }
