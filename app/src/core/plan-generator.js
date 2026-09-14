@@ -48,6 +48,7 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {number|null} planAdherence  0..1 über die letzten ~6 Wochen
  * @property {number|null} ageYears
  * @property {"sprint"|"vo2"|"threshold"|"aerob"|null} powerCurveWeakness  (E10; bis dahin null)
+ * @property {number|null} currentThresholdSpeed  km/h — nur "run"/"swim" (Fahrplan 14 E5); sonst null
  */
 
 /**
@@ -172,6 +173,7 @@ export function emptyHistory() {
     planAdherence: null,
     ageYears: null,
     powerCurveWeakness: null,
+    currentThresholdSpeed: null,
   };
 }
 

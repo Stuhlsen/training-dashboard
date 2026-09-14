@@ -11,6 +11,9 @@
    `emptyHistory()` mit bekanntem Alter/eFTP-Fallback (nie `undefined`),
    damit der E5-Dialog keinen Ladezustand behandeln muss. `isLoading` sagt
    nur, ob die Zahlen noch dünn sind.
+
+   `sport`-Parameter (Fahrplan 14 E5, Default "ride") wird 1:1 an
+   `buildHistoryAggregate()` durchgereicht — keine eigene Logik hier.
    ============================================================ */
 
 import { useMemo } from "react";
@@ -19,11 +22,12 @@ import { usePlanCards } from "./usePlanCards";
 import { athleteConfig } from "../../config";
 import { localISODate } from "../../core/format.js";
 import { buildHistoryAggregate } from "../../core/plan-history.js";
+import type { ActiveSport } from "./useActiveSport";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
 
-export function usePlanHistoryAggregate(athleteId: string) {
+export function usePlanHistoryAggregate(athleteId: string, sport: ActiveSport = "ride") {
   const { data: athleteData, isLoading: ridesLoading } = useRides(athleteId);
   const { data: planCards, isLoading: cardsLoading } = usePlanCards(athleteId);
   const cfg = athleteConfig(athleteId);
@@ -40,8 +44,9 @@ export function usePlanHistoryAggregate(athleteId: string) {
         ageYears,
         eftpFallback,
         powerCurves: (athleteData?.powerCurves as object | null) ?? null,
+        sport,
       }),
-    [athleteData, planCards, ageYears, eftpFallback],
+    [athleteData, planCards, ageYears, eftpFallback, sport],
   );
 
   return { aggregate, isLoading: ridesLoading || cardsLoading };

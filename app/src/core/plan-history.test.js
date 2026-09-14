@@ -186,3 +186,56 @@ test("buildHistoryAggregate: ohne powerCurves → powerCurveWeakness null", () =
   const rides = [ride("2026-09-01", { eftp: 250 })];
   assert.equal(buildHistoryAggregate({ rides, todayISO: TODAY }).powerCurveWeakness, null);
 });
+
+/* ── Fahrplan 14 E5: sport-bewusstes HistoryAggregate ────────────── */
+
+test("sport 'run': currentThresholdSpeed gesetzt, currentEftp/powerCurveWeakness bleiben null", () => {
+  const rides = [
+    { dateISO: "2026-08-25", sport: "run", km: 5, min: 25, trimp: 60 },
+    { dateISO: "2026-09-01", sport: "run", km: 10, min: 55, trimp: 90 },
+  ];
+  const agg = buildHistoryAggregate({ rides, todayISO: TODAY, sport: "run", eftpFallback: 260 });
+  assert.equal(agg.currentThresholdSpeed, 10);
+  assert.equal(agg.currentEftp, null);
+  assert.equal(agg.powerCurveWeakness, null);
+});
+
+test("sport 'swim': currentThresholdSpeed gesetzt, currentEftp/powerCurveWeakness bleiben null", () => {
+  const rides = [
+    { dateISO: "2026-08-25", sport: "swim", km: 0.4, min: 6, trimp: 20 },
+    { dateISO: "2026-09-01", sport: "swim", km: 1.5, min: 26, trimp: 40 },
+  ];
+  const agg = buildHistoryAggregate({ rides, todayISO: TODAY, sport: "swim" });
+  assert.equal(agg.currentThresholdSpeed, 3.3);
+  assert.equal(agg.currentEftp, null);
+  assert.equal(agg.powerCurveWeakness, null);
+});
+
+test("sport 'run' ohne belastbare Efforts → currentThresholdSpeed null, kein Fehler", () => {
+  const rides = [{ dateISO: "2026-09-01", sport: "run", km: 5, min: 25, trimp: 60 }];
+  const agg = buildHistoryAggregate({ rides, todayISO: TODAY, sport: "run" });
+  assert.equal(agg.currentThresholdSpeed, null);
+});
+
+test("weeklyActualTss trennt Sportarten: sport 'run' zählt nur Lauf-Last, sport 'ride' nur Rad-Last", () => {
+  const rides = [
+    ride("2026-09-01", { tss: 50 }), // kein sport-Feld → Default "ride"
+    { dateISO: "2026-09-01", sport: "run", trimp: 30 },
+  ];
+  const rideAgg = buildHistoryAggregate({ rides, todayISO: TODAY });
+  const runAgg = buildHistoryAggregate({ rides, todayISO: TODAY, sport: "run" });
+  assert.equal(rideAgg.weeklyActualTss.at(-1), 50);
+  assert.equal(runAgg.weeklyActualTss.at(-1), 30);
+});
+
+test("sport-Default 'ride': identisches Ergebnis wie ohne sport-Feld (Regressionsschutz)", () => {
+  const rides = [ride("2026-08-25", { tss: 40 }), ride("2026-09-01", { tss: 60 })];
+  const withoutSport = buildHistoryAggregate({ rides, todayISO: TODAY, eftpFallback: 200 });
+  const withRideSport = buildHistoryAggregate({
+    rides,
+    todayISO: TODAY,
+    eftpFallback: 200,
+    sport: "ride",
+  });
+  assert.deepEqual(withoutSport, withRideSport);
+});

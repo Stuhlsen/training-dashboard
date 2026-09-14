@@ -30,6 +30,8 @@ import { currentPmc } from "./pmc.js";
 import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "./ftp-forecast.js";
 import { extractPowerCurve } from "./powercurve.js";
 import { emptyHistory } from "./plan-generator.js";
+import { ridesForSport } from "./activity-sport.js";
+import { estimateThresholdSpeed } from "./critical-speed.js";
 
 export { emptyHistory };
 
@@ -196,8 +198,9 @@ export function derivePowerCurveWeakness(powerCurves, ftp) {
  * @param {Array<{date:string, name?:string|null, title?:string|null, cancelled?:boolean, movedTo?:string}>|null} [args.planCards]
  * @param {string} args.todayISO
  * @param {number|null} [args.ageYears]
- * @param {number|null} [args.eftpFallback]  eFTP aus config.ts, wenn die Ride-/Wellness-Reihe leer ist
- * @param {Object|null} [args.powerCurves]  intervals.icu-Power-Kurve (E10) — FTP-Anker ist der abgeleitete `currentEftp`
+ * @param {number|null} [args.eftpFallback]  eFTP aus config.ts, wenn die Ride-/Wellness-Reihe leer ist — nur sport === "ride"
+ * @param {Object|null} [args.powerCurves]  intervals.icu-Power-Kurve (E10) — FTP-Anker ist der abgeleitete `currentEftp`; nur sport === "ride"
+ * @param {"ride"|"run"|"swim"} [args.sport]  Default "ride" (Fahrplan 14 E5) — steuert eFTP/Power-Curve vs. Schwellenpace-Zweig
  * @returns {HistoryAggregate}
  */
 export function buildHistoryAggregate({
@@ -208,28 +211,46 @@ export function buildHistoryAggregate({
   ageYears = null,
   eftpFallback = null,
   powerCurves = null,
+  sport = "ride",
 }) {
   const rs = rides || [];
   const age = ageYears ?? null;
+  const isRide = sport === "ride";
 
   if (!rs.length) {
-    return { ...emptyHistory(), ageYears: age, currentEftp: eftpFallback ?? null };
+    return { ...emptyHistory(), ageYears: age, currentEftp: isRide ? (eftpFallback ?? null) : null };
   }
 
   const pmc = currentPmc(rs, todayISO);
   const currentCtl = pmc && pmc.ctl != null ? Math.round(pmc.ctl * 10) / 10 : null;
 
-  const eftpSeries = mergeEftpHistories(eftpHistory(rs), eftpHistoryFromWellness(wellness || []));
-  const currentEftp = eftpSeries.length
-    ? eftpSeries[eftpSeries.length - 1].eftp
-    : (eftpFallback ?? null);
+  let currentEftp = null;
+  let powerCurveWeakness = null;
+  let currentThresholdSpeed = null;
+
+  if (isRide) {
+    const eftpSeries = mergeEftpHistories(eftpHistory(rs), eftpHistoryFromWellness(wellness || []));
+    currentEftp = eftpSeries.length ? eftpSeries[eftpSeries.length - 1].eftp : (eftpFallback ?? null);
+    powerCurveWeakness = derivePowerCurveWeakness(powerCurves, currentEftp);
+  } else {
+    // estimateThresholdSpeed filtert `rs` intern selbst über ridesForSport() —
+    // ungefiltert übergeben (Fahrplan 14 E3-Vertrag).
+    currentThresholdSpeed = estimateThresholdSpeed(rs, { sport }).speed ?? null;
+  }
+
+  // Immer nach Sportart gefiltert (auch "ride") — für Bestandsathleten mit
+  // ausschließlich `sport:"ride"`-Rides (bzw. gar keinem `sport`-Feld,
+  // Default über `activitySport()`) ohne Wirkung, trennt aber bei einem
+  // Multi-Sport-Athleten die TSS-/TRIMP-Summe sauber je Sportart.
+  const tssRides = ridesForSport(rs, sport);
 
   return {
-    weeklyActualTss: weeklyActualTss(rs, todayISO),
+    weeklyActualTss: weeklyActualTss(tssRides, todayISO),
     currentCtl,
     currentEftp,
-    planAdherence: recentAdherence(rs, planCards, todayISO),
+    planAdherence: recentAdherence(tssRides, planCards, todayISO),
     ageYears: age,
-    powerCurveWeakness: derivePowerCurveWeakness(powerCurves, currentEftp),
+    powerCurveWeakness,
+    currentThresholdSpeed,
   };
 }

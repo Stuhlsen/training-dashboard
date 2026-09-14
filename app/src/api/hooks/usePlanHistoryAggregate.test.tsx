@@ -41,6 +41,7 @@ describe("usePlanHistoryAggregate", () => {
       planAdherence: null,
       ageYears: 40,
       powerCurveWeakness: null,
+      currentThresholdSpeed: null,
     });
   });
 
