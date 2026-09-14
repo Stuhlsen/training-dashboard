@@ -1,0 +1,5 @@
+{
+  "name": "admin-api",
+  "private": true,
+  "type": "commonjs"
+}

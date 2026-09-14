@@ -121,12 +121,17 @@ services:
     # und aeussert sich hoechstens als einzelner transienter 502 direkt
     # nach "up -d", nicht als dauerhafter Fehlzustand.
 
-  # Fahrplan 15, E1 — noch ohne echte Logik, antwortet nur auf /admin/health.
+  # Fahrplan 15, E2 — Admin-Pruefung (V2) gegen PostgREST, Invite noch Stub.
   admin-api:
     build:
       context: ./admin-api
+    depends_on:
+      postgrest:
+        condition: service_started
     environment:
       PORT: "3001"
+      JWT_SECRET: ${JWT_SECRET}
+      POSTGREST_INTERNAL_URL: http://postgrest:3000
     # KEIN "ports:" hier — von aussen nur ueber den Proxy erreichbar (wie postgres)
 
   proxy:
