@@ -1,5 +1,6 @@
-# Fahrplan 3, DKR4 — baut die drei eigenen Images (frontend, sync, migrate)
-# und pusht sie versioniert nach GHCR. Postgres/GoTrue/PostgREST/Caddy werden
+# Fahrplan 3, DKR4 — baut die eigenen Images (frontend, sync, migrate,
+# admin-api seit Fahrplan 15 E6) und pusht sie versioniert nach GHCR.
+# Postgres/GoTrue/PostgREST/Caddy werden
 # NICHT hier veroeffentlicht — Tonys Infra (apps01) zieht diese direkt aus
 # den offiziellen Registries, sein Update-Tooling (Renovate) verfolgt sie
 # dort. s. docs/docker-lokal-einrichten.md.
@@ -117,6 +118,33 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
+  admin-api:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/login-action@v4
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/metadata-action@v6
+        id: meta
+        with:
+          images: ghcr.io/stuhlsen/training-dashboard-admin-api
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable={{is_default_branch}}
+
+      - uses: docker/build-push-action@v7
+        with:
+          context: ./admin-api
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   # Erstellt bei einem "v*"-Tag ein GitHub Release mit nach Commit-Typ
   # gruppierten Notizen (fix:/feat:/design:/docs:/chore:/test: — s.
   # Commit-Konvention in AGENTS.md) statt der nackten Vergleichs-Links von
@@ -134,7 +162,7 @@ jobs:
   # "Commit-Konvention") — ältere Releases/Commits vor diesem Datum bleiben
   # deutsch, keine rückwirkende Umbenennung.
   release:
-    needs: [frontend, sync, migrate]
+    needs: [frontend, sync, migrate, admin-api]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     permissions:
