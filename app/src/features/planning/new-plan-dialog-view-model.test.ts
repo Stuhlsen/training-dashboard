@@ -60,6 +60,9 @@ const BASE: NewPlanFormState = {
   currentFtp: 265,
   ftpMeasuredDate: "2026-06-24",
   ftpTarget: null,
+  currentThresholdSpeed: null,
+  thresholdSpeedMeasuredDate: null,
+  thresholdSpeedTarget: null,
   indoorPct: 40,
   focus: "allgemein",
   level: "fortgeschritten",
@@ -150,7 +153,7 @@ describe("buildGeneratorInput", () => {
 
   it("reicht die Historie unverändert durch", () => {
     const history = { weeklyActualTss: [300, 320] };
-    const res = buildGeneratorInput(BASE, noEvent, history);
+    const res = buildGeneratorInput(BASE, noEvent, "ride", history);
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.input.history).toBe(history);

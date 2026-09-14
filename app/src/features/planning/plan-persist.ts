@@ -72,11 +72,10 @@ function serialiseForm(form: NewPlanFormState): Record<string, unknown> {
  * @param plan      Ausgabe von `generatePlan()`
  * @param goalEventId  ID des Ziel-Events (bestehend oder frisch angelegt),
  *                     sonst null
- * @param sport     Sportart des Plans (Fahrplan 14 V3/E4). `PlanGeneratorInput`
- *                  trägt noch kein eigenes `sport`-Feld (das verdrahtet erst
- *                  E6 über `buildGeneratorInput()`/`effectiveSport`) — bis
- *                  dahin reicht der Aufrufer den Wert separat durch. Default
- *                  "ride" hält den heutigen, einzigen Erzeugungsweg unverändert.
+ * @param sport     Sportart des Plans (Fahrplan 14 V3/E4). Seit E6 spiegelt
+ *                  das `input.sport` (`buildGeneratorInput()`/`effectiveSport`);
+ *                  der Aufrufer reicht ihn trotzdem separat durch (Default
+ *                  "ride"), damit dieser Helfer ohne Sport-Kontext testbar bleibt.
  */
 export function trainingPlanDraft(
   input: PlanGeneratorInput,
@@ -117,11 +116,11 @@ export function trainingPlanDraft(
     ftpAtCreation: input.currentFtp ?? null,
     ftpTarget: plan.ftpTarget ?? null,
     sport,
-    // Schwellenpace/-CSS-Quelle (currentThresholdSpeed/thresholdSpeedTarget)
-    // kommt erst mit E5 (HistoryAggregate) bzw. E6 (Dialog-Input) — bis dahin
-    // gibt es für keinen Sport einen echten Wert zu schreiben.
-    thresholdSpeedAtCreation: null,
-    thresholdSpeedTarget: null,
+    // Schwellenpace/-CSS-Quelle (Fahrplan 14 E6): aus dem Dialog-Input, wie
+    // ftpAtCreation/ftpTarget bei Rad — für sport === "ride" bleiben beide
+    // Felder null (input trägt sie dort nicht, s. PlanGeneratorInput/V1).
+    thresholdSpeedAtCreation: input.currentThresholdSpeed ?? null,
+    thresholdSpeedTarget: input.thresholdSpeedTarget ?? null,
     params: {
       form: serialiseForm(form),
       history: (input.history as unknown) ?? null,

@@ -108,6 +108,16 @@ export const fmtPace = (totalSeconds) => {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 };
 
+/** km/h → Pace in Sekunden für die angegebene Distanz (1000 = min/km beim
+ *  Laufen, 100 = min/100m beim Schwimmen) — Kehrwert der Geschwindigkeit.
+ *  Ergebnis mit `fmtPace()` weiter zu "m:ss" formatieren. `null` bei
+ *  fehlender/ungültiger Geschwindigkeit (Fahrplan 14 E6, `workout.speedTarget`).
+ *  @param {number|null|undefined} speedKmh @param {number} meters @returns {number|null} */
+export const paceSecFromSpeedKmh = (speedKmh, meters) => {
+  if (speedKmh == null || isNaN(speedKmh) || speedKmh <= 0) return null;
+  return (3600 * meters) / (speedKmh * 1000);
+};
+
 /** Minuten → "4:02h" Format
  *  @param {number|null|undefined} minutes @returns {string} */
 export const fmtDuration = (minutes) => {

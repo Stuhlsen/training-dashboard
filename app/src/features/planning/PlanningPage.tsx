@@ -648,19 +648,23 @@ export function PlanningPage() {
                 ? "Noch kein Trainingsplan angelegt."
                 : "Für diesen Athleten ist kein Trainingsplan hinterlegt."}
           </p>
-          {/* Lauf: loser Kartenplan, kein Generator (Fahrplan 12 G5/G12) —
-              „+ Karte" statt „Plan erstellen". Rad-Tab unverändert. */}
-          {effectiveSport === "run"
-            ? editable && (
-                <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>
-                  + Karte
-                </button>
-              )
-            : canCreatePlan && (
-                <button type="button" onClick={() => setNewPlanOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
-                  Plan erstellen
-                </button>
-              )}
+          {/* Lauf: seit Fahrplan 14 E6 BEIDE Wege — Karte-für-Karte (Fahrplan 12
+              G5/G12) UND „Plan erstellen" (Entscheidung 5), NewPlanDialog
+              erkennt den Sport-Tab jetzt selbst. Rad/Schwimm: unverändert nur
+              „Plan erstellen" — für Schwimm ist das seit E6 real sport-bewusst
+              statt implizit "ride" (der frühere Bug). */}
+          <div style={{ display: "flex", gap: 10 }}>
+            {effectiveSport === "run" && editable && (
+              <button type="button" onClick={() => setDialog("new")} style={SECTION_ACTION_BTN_STYLE}>
+                + Karte
+              </button>
+            )}
+            {canCreatePlan && (
+              <button type="button" onClick={() => setNewPlanOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
+                Plan erstellen
+              </button>
+            )}
+          </div>
         </GlassCard>
       )}
 

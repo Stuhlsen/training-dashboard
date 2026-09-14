@@ -5,6 +5,7 @@ import { addProposalArgs, replaceProposalArgs } from "../../core/proposal-payloa
 import { useCreatePlanCard, useDeletePlanCard, useUpdatePlanCard } from "../../api/hooks/usePlanCards";
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
 import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { fmtPace, paceSecFromSpeedKmh } from "../../core/format.js";
 import type { PlanCard, PlanCardInput } from "../../api/types";
 import type { WorkoutBlock, WorkoutBlockType } from "./planning-view-model";
 import { asWorkoutBlocks } from "./planning-view-model";
@@ -14,6 +15,7 @@ import {
   parsePaceInput,
   planTypesForSport,
   showSportPicker,
+  speedTargetOf,
   workoutForSave,
   type PlanFormSport,
 } from "./plan-card-form-view-model";
@@ -164,6 +166,15 @@ export function PlanCardForm({
 
   const paceTrimmed = paceInput.trim();
   const paceError = sport === "run" && paceTrimmed !== "" && parsePaceInput(paceTrimmed) === null;
+
+  // Vom Generator gesetztes Schwellenpace-Band (V2 `workout.speedTarget`,
+  // Fahrplan 14 E6) — nur Anzeige, kein Formularfeld (die Generator-Karte
+  // bleibt sonst unangetastet; ein Rad-Workout hat kein speedTarget).
+  const generatedSpeedTarget = speedTargetOf(editingCard);
+  const speedTargetDistanceM = isSwimCard ? 100 : 1000;
+  const speedTargetLine = generatedSpeedTarget
+    ? `${fmtPace(paceSecFromSpeedKmh(generatedSpeedTarget[0], speedTargetDistanceM))}–${fmtPace(paceSecFromSpeedKmh(generatedSpeedTarget[1], speedTargetDistanceM))} min${isSwimCard ? "/100m" : "/km"}`
+    : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -329,6 +340,12 @@ export function PlanCardForm({
                 </span>
               )}
             </label>
+          )}
+
+          {speedTargetLine && (
+            <div style={{ fontSize: ".76rem", color: "var(--ink-3)" }}>
+              Ziel lt. Plan-Generator: {speedTargetLine}
+            </div>
           )}
 
           <label style={LABEL_STYLE}>

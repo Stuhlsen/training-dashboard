@@ -8,22 +8,46 @@
    ============================================================ */
 
 import { phaseColor } from "../../config";
-import { fmtDate } from "../../core/format.js";
+import { fmtDate, fmtPace, paceSecFromSpeedKmh } from "../../core/format.js";
 import { weekDisplayLabels } from "../../core/week-labels.js";
+import type { ActiveSport } from "../../api/hooks/useActiveSport";
 import type { GeneratedPlan, GeneratedWeek } from "./new-plan-dialog-view-model";
+
+/** Distanz für die Pace-Umrechnung je Sportart (m) — min/km beim Laufen,
+ *  min/100m beim Schwimmen (V2, Fahrplan 14 E6). */
+const PACE_DISTANCE_M: Record<"run" | "swim", number> = { run: 1000, swim: 100 };
+const PACE_UNIT_LABEL: Record<"run" | "swim", string> = { run: "/km", swim: "/100m" };
 
 interface PlanPreviewProps {
   plan: GeneratedPlan;
+  /** Aktiver Sport-Tab (Fahrplan 14 E6) — bestimmt, ob die Kopf-Metrik FTP
+   *  oder Ziel-Pace zeigt. Default "ride" für Aufrufer vor E6. */
+  sport?: ActiveSport;
+  /** Vom Athleten eingegebenes Schwellenpace-Ziel (km/h, `PlanGeneratorInput.
+   *  thresholdSpeedTarget`) — der Generator leitet für sport !== "ride" (noch)
+   *  kein `ftpTarget`-Äquivalent selbst ab (Fahrplan 14 E1, bewusst offener
+   *  Punkt), deshalb kommt der Wert hier aus dem Input, nicht aus `plan`. */
+  thresholdSpeedTarget?: number | null;
 }
 
-export function PlanPreview({ plan }: PlanPreviewProps) {
+export function PlanPreview({ plan, sport = "ride", thresholdSpeedTarget = null }: PlanPreviewProps) {
   const totalTss = plan.weeks.reduce((s, w) => s + w.targetTss, 0);
+  const goalMetric =
+    sport === "ride"
+      ? { value: plan.ftpTarget != null ? `${plan.ftpTarget} W` : "–", label: "FTP-Ziel" }
+      : {
+          value:
+            thresholdSpeedTarget != null
+              ? `${fmtPace(paceSecFromSpeedKmh(thresholdSpeedTarget, PACE_DISTANCE_M[sport]))}${PACE_UNIT_LABEL[sport]}`
+              : "–",
+          label: "Ziel-Pace",
+        };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
       <div style={{ display: "flex", gap: 20, flexWrap: "wrap", alignItems: "baseline" }}>
         <Metric value={String(plan.weeks.length)} label="Wochen" />
-        <Metric value={plan.ftpTarget != null ? `${plan.ftpTarget} W` : "–"} label="FTP-Ziel" />
+        <Metric value={goalMetric.value} label={goalMetric.label} />
         <Metric value={Math.round(totalTss).toLocaleString("de-DE")} label="TSS gesamt" />
       </div>
 

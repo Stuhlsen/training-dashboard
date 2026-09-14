@@ -87,3 +87,13 @@ export function paceSecOf(card: PlanCard | null | undefined): number | null {
   const workout = card?.workout as { paceSec?: number } | null | undefined;
   return typeof workout?.paceSec === "number" ? workout.paceSec : null;
 }
+
+/** Vom Plan-Generator gesetztes Schwellenpace-Band (km/h, V2 `workout.
+ *  speedTarget`, Fahrplan 14) — anders als `paceSecOf()` kein manuelles
+ *  Formularfeld, nur read-only Anzeige einer generierten Karte. `null`, wenn
+ *  keins hinterlegt ist (Rad-Karten, manuell angelegte Karten, Karten ohne
+ *  bekannte Schwellenpace zum Erzeugungszeitpunkt). */
+export function speedTargetOf(card: PlanCard | null | undefined): [number, number] | null {
+  const workout = card?.workout as { speedTarget?: [number, number] } | null | undefined;
+  return Array.isArray(workout?.speedTarget) ? workout.speedTarget : null;
+}

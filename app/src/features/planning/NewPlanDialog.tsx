@@ -22,6 +22,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useEvents } from "../../api/hooks/useEvents";
 import { useRides } from "../../api/hooks/useRides";
+import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
 import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
@@ -119,9 +120,10 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
 
   const today = localISODate();
   const cfg = athleteConfig(athleteId);
+  const { effectiveSport } = useEffectiveSport(athleteId);
   const { data: events } = useEvents(athleteId);
   const { data: rideData } = useRides(athleteId);
-  const { aggregate } = usePlanHistoryAggregate(athleteId);
+  const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
   const { entries: formatEntries } = useAthleteFormats();
   const { data: activePlan } = useActiveTrainingPlan(athleteId);
   const { data: existingCards } = usePlanCards(athleteId);
@@ -173,8 +175,10 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.mode, form.weeks, form.eventId, form.newEventDate, form.startDate, eventOptions]);
 
-  // Retest-Prognose als Platzhalter im FTP-Ziel-Feld.
+  // Retest-Prognose als Platzhalter im FTP-Ziel-Feld — nur Rad (Fahrplan 14
+  // Nicht-Ziel: keine Fortschrittsprognose für Lauf/Schwimm-Schwellenpace).
   const forecastHint = useMemo(() => {
+    if (effectiveSport !== "ride") return null;
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
     const endISO =
       form.mode === "event"
@@ -186,7 +190,27 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
     const fc = forecastFtp(eftpHistory(rides), endISO);
     return fc ? Math.round(fc.projected) : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rideData, form.mode, form.eventId, form.newEventDate, form.startDate, form.weeks, eventOptions]);
+  }, [effectiveSport, rideData, form.mode, form.eventId, form.newEventDate, form.startDate, form.weeks, eventOptions]);
+
+  // Schwellenpace vorbefüllen, sobald die Historie eine liefert (kein
+  // config.ts-Startwert wie bei FTP möglich, s. new-plan-dialog-view-model.ts).
+  // State-Anpassung WÄHREND des Renders („Adjusting state when a prop
+  // changes", React-Doku) statt in einem Effect — sonst kaskadierende
+  // Zusatz-Renders (react-hooks/set-state-in-effect, ESLint-Fund). Nur beim
+  // ERSTEN geladenen Wert, danach überschreibt das nicht mehr eine bewusste
+  // Athlet-Eingabe (auch nicht ein absichtliches Leeren des Felds).
+  const speedFromHistory =
+    effectiveSport === "ride"
+      ? null
+      : ((aggregate as { currentThresholdSpeed?: number | null } | null)?.currentThresholdSpeed ?? null);
+  const [prefilledSpeed, setPrefilledSpeed] = useState<number | null>(null);
+  if (speedFromHistory != null && speedFromHistory !== prefilledSpeed) {
+    setPrefilledSpeed(speedFromHistory);
+    if (form.currentThresholdSpeed == null) {
+      const speed = speedFromHistory;
+      setForm((f) => (f.currentThresholdSpeed == null ? { ...f, currentThresholdSpeed: speed } : f));
+    }
+  }
 
   const suggestion = suggestModel({ level: form.level, weeks: effWeeks, weeklyHours: form.weeklyHours });
   // Solange der Athlet das Modell nicht selbst gewählt hat, gilt der Vorschlag.
@@ -194,7 +218,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
 
   function handlePreview() {
     const effForm: NewPlanFormState = { ...form, model: effectiveModel };
-    const built = buildGeneratorInput(effForm, resolveEventDate, aggregate);
+    const built = buildGeneratorInput(effForm, resolveEventDate, effectiveSport, aggregate);
     if (!built.ok) {
       setErrors(built.errors);
       setPreview(null);
@@ -424,31 +448,64 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
             </label>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={LABEL_STYLE}>
-              Aktuelle FTP (W)
-              <input
-                type="number"
-                min={80}
-                max={500}
-                style={FIELD_STYLE}
-                value={form.currentFtp ?? ""}
-                onChange={(e) => patch({ currentFtp: e.target.value ? Number(e.target.value) : null })}
-              />
-            </label>
-            <label style={LABEL_STYLE}>
-              FTP-Ziel (W, optional)
-              <input
-                type="number"
-                min={80}
-                max={500}
-                style={FIELD_STYLE}
-                value={form.ftpTarget ?? ""}
-                placeholder={forecastHint != null ? `Prognose ${forecastHint}` : "wird berechnet"}
-                onChange={(e) => patch({ ftpTarget: e.target.value ? Number(e.target.value) : null })}
-              />
-            </label>
-          </div>
+          {effectiveSport === "ride" ? (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <label style={LABEL_STYLE}>
+                Aktuelle FTP (W)
+                <input
+                  type="number"
+                  min={80}
+                  max={500}
+                  style={FIELD_STYLE}
+                  value={form.currentFtp ?? ""}
+                  onChange={(e) => patch({ currentFtp: e.target.value ? Number(e.target.value) : null })}
+                />
+              </label>
+              <label style={LABEL_STYLE}>
+                FTP-Ziel (W, optional)
+                <input
+                  type="number"
+                  min={80}
+                  max={500}
+                  style={FIELD_STYLE}
+                  value={form.ftpTarget ?? ""}
+                  placeholder={forecastHint != null ? `Prognose ${forecastHint}` : "wird berechnet"}
+                  onChange={(e) => patch({ ftpTarget: e.target.value ? Number(e.target.value) : null })}
+                />
+              </label>
+            </div>
+          ) : (
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <label style={LABEL_STYLE}>
+                Aktuelle Schwellenpace (km/h)
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  step={0.1}
+                  style={FIELD_STYLE}
+                  value={form.currentThresholdSpeed ?? ""}
+                  onChange={(e) =>
+                    patch({ currentThresholdSpeed: e.target.value ? Number(e.target.value) : null })
+                  }
+                />
+              </label>
+              <label style={LABEL_STYLE}>
+                Schwellenpace-Ziel (km/h, optional)
+                <input
+                  type="number"
+                  min={1}
+                  max={30}
+                  step={0.1}
+                  style={FIELD_STYLE}
+                  value={form.thresholdSpeedTarget ?? ""}
+                  onChange={(e) =>
+                    patch({ thresholdSpeedTarget: e.target.value ? Number(e.target.value) : null })
+                  }
+                />
+              </label>
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={LABEL_STYLE}>
@@ -518,7 +575,11 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
 
           {preview && (
             <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 14 }}>
-              <PlanPreview plan={preview.plan} />
+              <PlanPreview
+                plan={preview.plan}
+                sport={preview.input.sport ?? "ride"}
+                thresholdSpeedTarget={preview.input.thresholdSpeedTarget ?? null}
+              />
             </div>
           )}
         </div>

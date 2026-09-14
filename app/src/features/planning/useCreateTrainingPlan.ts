@@ -88,14 +88,13 @@ export function useCreateTrainingPlan(athleteId: string) {
       if (!profileId) throw new ResultError_(NO_ACCOUNT);
       const today = localISODate();
 
-      // Fahrplan 14 E4: bis E6 den echten sport aus dem Dialog durchreicht
-      // (`PlanGeneratorInput` hat noch kein eigenes `sport`-Feld), ist dieser
-      // Hook hart auf "ride" gesetzt — der einzige heute nutzbare
-      // Erzeugungsweg. Seit Migration 0038 kann ein Athlet pro Sportart
-      // einen eigenen aktiven Plan tragen; alles unten filtert deshalb auf
-      // GENAU diesen sport, damit eine künftige Lauf-/Schwimm-Neuanlage
-      // keinen aktiven Radplan (oder dessen Karten) anfasst.
-      const sport: "ride" | "run" | "swim" = "ride";
+      // Fahrplan 14 E6: `sport` kommt jetzt aus dem Dialog-Input
+      // (`buildGeneratorInput()` füllt ihn aus `effectiveSport`). Seit
+      // Migration 0038 (E4) kann ein Athlet pro Sportart einen eigenen
+      // aktiven Plan tragen; alles unten filtert deshalb auf GENAU diesen
+      // sport, damit eine Lauf-/Schwimm-Neuanlage keinen aktiven Radplan
+      // (oder dessen Karten) anfasst.
+      const sport: "ride" | "run" | "swim" = args.input.sport ?? "ride";
 
       // (1) Maßgeblicher Alt-Plan DERSELBEN Sportart direkt aus der DB.
       //     Schlägt der Read fehl, brechen wir ab, BEVOR irgendetwas

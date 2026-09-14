@@ -21,6 +21,11 @@ import { addDaysISO, diffDays } from "../../core/format.js";
 import type { PlanMode, PlanFocus, PlanLevel, PlanModel, WeekModelEntry } from "../../api/types";
 export type { PlanMode, PlanFocus, PlanLevel, PlanModel };
 
+/* Sportart des Generator-Inputs — bewusst `ActiveSport` (Sport-Umschalter,
+ * api/hooks/useActiveSport.ts) wiederverwendet statt eines eigenen
+ * `PlanSport`-Typs (Fahrplan 14 V1 nennt ihn nur konzeptionell so). */
+import type { ActiveSport } from "../../api/hooks/useActiveSport";
+
 /** Ober-/Untergrenze für die Planlänge — im `open`-Modus als Formularfeld,
  *  im `event`-Modus aus `start..event` abgeleitet und hier gegengeprüft
  *  (sonst würde ein Renntag Jahre in der Zukunft z. B. 78 Wochen erzeugen). */
@@ -69,15 +74,26 @@ export interface GeneratedCard {
 }
 
 export interface PlanGeneratorInput {
+  /** Fehlt es, nimmt der Generator "ride" an (Golden-Master, Fahrplan 14 E1). */
+  sport?: ActiveSport;
   startDate: string;
   mode: PlanMode;
   eventDate?: string;
   weeks?: number;
   trainingWeekdays: number[];
   weeklyHours: number;
+  /** nur sport === "ride" */
   currentFtp: number | null;
+  /** nur sport === "ride" */
   ftpMeasuredDate: string | null;
+  /** nur sport === "ride" */
   ftpTarget: number | null;
+  /** km/h — nur "run"/"swim" (Fahrplan 14 V1) */
+  currentThresholdSpeed?: number | null;
+  /** nur "run"/"swim" */
+  thresholdSpeedMeasuredDate?: string | null;
+  /** km/h — nur "run"/"swim" */
+  thresholdSpeedTarget?: number | null;
   indoorShare: number;
   focus: PlanFocus;
   level: PlanLevel;
@@ -112,6 +128,14 @@ export interface NewPlanFormState {
   ftpMeasuredDate: string | null;
   /** leer → Generator leitet das FTP-Ziel selbst ab (V4 `ftpTarget`). */
   ftpTarget: number | null;
+  /** km/h — nur "run"/"swim". Kein config.ts-Startwert wie bei FTP (kein
+   *  Testtag-Äquivalent, Fahrplan 14 Nicht-Ziel); der Dialog füllt ihn erst
+   *  nach, sobald `usePlanHistoryAggregate()` eine Schwellenpace liefert. */
+  currentThresholdSpeed: number | null;
+  /** nur "run"/"swim", analog `ftpMeasuredDate`. */
+  thresholdSpeedMeasuredDate: string | null;
+  /** km/h, optional — nur "run"/"swim", analog `ftpTarget`. */
+  thresholdSpeedTarget: number | null;
   indoorPct: number; // 0..100 im Formular, /100 im Input
   focus: PlanFocus;
   level: PlanLevel;
@@ -199,6 +223,9 @@ export function defaultFormState(cfg: AthleteDefaults | null, todayISO: string):
     currentFtp: cfg?.ftpMeasured ?? cfg?.eFTP ?? null,
     ftpMeasuredDate: cfg?.ftpMeasuredDate ?? null,
     ftpTarget: null,
+    currentThresholdSpeed: null,
+    thresholdSpeedMeasuredDate: null,
+    thresholdSpeedTarget: null,
     indoorPct: 40,
     focus: "allgemein",
     level,
@@ -219,11 +246,16 @@ export type BuildResult =
  * @param state  aktueller Formularzustand
  * @param resolveEventDate  liefert das Renntagsdatum zu `state.eventId`
  *   (aus `useEvents`); `null`, wenn die ID nicht (mehr) existiert
+ * @param sport  aktiver Sport-Tab (`useEffectiveSport`) — wie `history` ein
+ *   von außen kommender, nicht im Formular editierbarer Wert, deshalb ein
+ *   eigenes Funktionsargument statt eines `NewPlanFormState`-Felds
+ *   (Fahrplan 14 E6, geprüft gegen das `modelTouched`/`history`-Muster).
  * @param history  V3-Aggregat aus `usePlanHistoryAggregate` (durchgereicht)
  */
 export function buildGeneratorInput(
   state: NewPlanFormState,
   resolveEventDate: (eventId: string) => string | null,
+  sport: ActiveSport = "ride",
   history?: unknown,
 ): BuildResult {
   const errors: Record<string, string> = {};
@@ -268,17 +300,24 @@ export function buildGeneratorInput(
   return {
     ok: true,
     input: {
+      sport,
       startDate,
       mode: state.mode,
       ...(eventDate ? { eventDate } : {}),
       ...(weeks ? { weeks } : {}),
       trainingWeekdays: weekdays,
       weeklyHours: state.weeklyHours,
-      currentFtp: state.currentFtp,
-      ftpMeasuredDate: state.ftpMeasuredDate,
-      ftpTarget: state.ftpTarget,
+      currentFtp: sport === "ride" ? state.currentFtp : null,
+      ftpMeasuredDate: sport === "ride" ? state.ftpMeasuredDate : null,
+      ftpTarget: sport === "ride" ? state.ftpTarget : null,
+      currentThresholdSpeed: sport === "ride" ? null : state.currentThresholdSpeed,
+      thresholdSpeedMeasuredDate: sport === "ride" ? null : state.thresholdSpeedMeasuredDate,
+      thresholdSpeedTarget: sport === "ride" ? null : state.thresholdSpeedTarget,
       indoorShare: Math.min(1, Math.max(0, state.indoorPct / 100)),
-      focus: state.focus,
+      // "focus" ist Rad-Vokabular und wird von der Lauf-/Schwimm-Strategie
+      // ignoriert (Fahrplan 14 Feinentscheidung) — fester Default, unabhängig
+      // davon, was im (weiter sichtbaren) Fokus-Dropdown steht.
+      focus: sport === "ride" ? state.focus : "allgemein",
       level: state.level,
       model: state.model,
       history,
