@@ -12,9 +12,14 @@ function fakeFetch(status, body) {
   });
 }
 
-test("sendInvite: ok bei 200", async () => {
-  const result = await sendInvite("neu@example.com", ENV, fakeFetch(200, { id: "u1" }));
+test("sendInvite: ok bei 200, gibt den action_link durch", async () => {
+  const result = await sendInvite(
+    "neu@example.com",
+    ENV,
+    fakeFetch(200, { id: "u1", action_link: "http://localhost/verify?token=abc&type=invite" })
+  );
   assert.equal(result.ok, true);
+  assert.equal(result.link, "http://localhost/verify?token=abc&type=invite");
 });
 
 test("sendInvite: 409 bei GoTrue email_exists", async () => {

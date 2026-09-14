@@ -1,28 +1,26 @@
-// V1 — ruft GoTrues Admin-Endpunkt /invite auf (Bearer = Service-Role-Key)
-// und bildet dessen Antwort auf unsere eigenen Statuscodes ab. Empirisch
-// geprueft (Fahrplan 15, E3) gegen den lokalen Self-Host-Stack ohne SMTP:
-// GoTrue verschickt dann zwar keine E-Mail, quittiert den Request aber
-// trotzdem mit 200 — kein Sonderfall fuer fehlendes SMTP noetig. Erneutes
-// Einladen einer noch unbestaetigten Adresse ist bei GoTrue selbst schon
-// idempotent (200, erneuert nur den Token) — nur eine bereits BESTAETIGTE
-// Adresse liefert 422 "email_exists", das bilden wir auf 409 ab (V1).
+// V1 — ruft GoTrues Admin-Endpunkt /admin/generate_link (type=invite) auf
+// (Bearer = Service-Role-Key) statt /invite: der lokale Stack hat kein SMTP
+// konfiguriert (und die aktuelle Produktion auch nicht), /invite wuerde den
+// Einladungslink also verschicken wollen und verwerfen. generate_link legt
+// das Konto genauso an, liefert den fertigen Link aber direkt im
+// Response-Body zurueck (action_link) — Alex kopiert ihn in Settings und
+// schickt ihn selbst (WhatsApp/Signal/SMS), s. Grilling-Entscheidung
+// Fahrplan 15 nach E3. Fehlerverhalten empirisch identisch zu /invite
+// geprueft: bereits bestaetigte Adresse -> 422 email_exists (unser 409),
+// leere/fehlende E-Mail -> 400.
 async function sendInvite(email, env, fetchImpl = fetch) {
   let res;
   try {
-    res = await fetchImpl(`${env.GOTRUE_INTERNAL_URL}/invite`, {
+    res = await fetchImpl(`${env.GOTRUE_INTERNAL_URL}/admin/generate_link`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ type: "invite", email }),
     });
   } catch {
     return { ok: false, status: 502, error: { code: "NETWORK", message: "GoTrue nicht erreichbar" } };
-  }
-
-  if (res.ok) {
-    return { ok: true };
   }
 
   let body = null;
@@ -31,6 +29,10 @@ async function sendInvite(email, env, fetchImpl = fetch) {
   } catch {
     // body bleibt null — GoTrue liefert im Fehlerfall normalerweise JSON,
     // ein leerer/kaputter Body degradiert nur die Fehlermeldung, nicht den Status.
+  }
+
+  if (res.ok) {
+    return { ok: true, link: body?.action_link ?? null };
   }
 
   if (res.status === 422 && body?.error_code === "email_exists") {

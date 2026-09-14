@@ -63,7 +63,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, result.status, { ok: false, error: result.error });
       return;
     }
-    sendJson(res, 200, { ok: true });
+    sendJson(res, 200, { ok: true, link: result.link });
     return;
   }
 
