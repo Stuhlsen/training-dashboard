@@ -121,12 +121,22 @@ services:
     # und aeussert sich hoechstens als einzelner transienter 502 direkt
     # nach "up -d", nicht als dauerhafter Fehlzustand.
 
+  # Fahrplan 15, E1 — noch ohne echte Logik, antwortet nur auf /admin/health.
+  admin-api:
+    build:
+      context: ./admin-api
+    environment:
+      PORT: "3001"
+    # KEIN "ports:" hier — von aussen nur ueber den Proxy erreichbar (wie postgres)
+
   proxy:
     image: caddy:2.11-alpine
     depends_on:
       gotrue:
         condition: service_healthy
       postgrest:
+        condition: service_started
+      admin-api:
         condition: service_started
     ports:
       - "80:80"
