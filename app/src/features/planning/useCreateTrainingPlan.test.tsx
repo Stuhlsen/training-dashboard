@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Result } from "../../api/types";
 
 const calls: string[] = [];
+const seenArgs: Record<string, unknown[]> = {};
 let listActiveResult: Result<{ plan: { id: string } | null }> = { ok: true, plan: null };
 let activateResult: Result<{ plan: unknown }> = { ok: true, plan: {} };
 
@@ -26,12 +27,14 @@ vi.mock("../../api/supabase/events", () => ({
 }));
 
 vi.mock("../../api/supabase/training-plans", () => ({
-  listActiveTrainingPlan: async () => {
+  listActiveTrainingPlan: async (...args: unknown[]) => {
     calls.push("listActive");
+    seenArgs.listActiveTrainingPlan = args;
     return listActiveResult;
   },
-  createTrainingPlan: async () => {
+  createTrainingPlan: async (...args: unknown[]) => {
     calls.push("createTrainingPlan");
+    seenArgs.createTrainingPlan = args;
     return { ok: true, plan: { id: "new-1" } };
   },
   setTrainingPlanActive: async (id: string, active: boolean) => {
@@ -53,8 +56,9 @@ vi.mock("../../api/supabase/plan-cards", () => ({
     calls.push(`deleteFuturePlanCardsForPlan(${planId})`);
     return { ok: true, deleted: 0 };
   },
-  deleteFuturePlanlessPlanCards: async () => {
+  deleteFuturePlanlessPlanCards: async (...args: unknown[]) => {
     calls.push("deleteFuturePlanlessPlanCards");
+    seenArgs.deleteFuturePlanlessPlanCards = args;
     return { ok: true, deleted: 0 };
   },
   deletePlanCardsForPlan: async (planId: string) => {
@@ -142,6 +146,7 @@ function setup() {
 
 beforeEach(() => {
   calls.length = 0;
+  for (const k of Object.keys(seenArgs)) delete seenArgs[k];
   listActiveResult = { ok: true, plan: null };
   activateResult = { ok: true, plan: {} };
 });
@@ -158,6 +163,13 @@ describe("useCreateTrainingPlan", () => {
       "deleteFuturePlanlessPlanCards",
       "setActive(new-1,true)",
     ]);
+  });
+
+  it("filtert die Alt-Plan-Suche + die planlose-Karten-Aufräumung auf sport 'ride' (Fahrplan 14 E4 — bis E6 der einzige Erzeugungsweg)", async () => {
+    const { result } = setup();
+    await result.current.createPlan(args);
+    expect(seenArgs.listActiveTrainingPlan).toEqual(["prof-a", "ride"]);
+    expect(seenArgs.deleteFuturePlanlessPlanCards).toEqual(["prof-a", expect.any(String), "ride"]);
   });
 
   it("mit aktivem Alt-Plan: dessen Zukunftskarten weg, deaktivieren, dann neuen scharf schalten", async () => {

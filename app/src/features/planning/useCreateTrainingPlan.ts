@@ -11,7 +11,8 @@
    Formular-/Vorschau-Shape des Dialogs gebunden ist — die generische
    api/-Schicht bleibt frei von features/-Importen.
 
-   REIHENFOLGE (partieller Unique-Index „ein aktiver Plan je Athlet"):
+   REIHENFOLGE (partieller Unique-Index „ein aktiver Plan je Athlet+Sportart",
+   Migration 0038, Fahrplan 14 E4 — vorher „je Athlet" allein):
      1. aktiven Alt-Plan AUS DER DB lesen (nicht aus dem Dialog-Hook — der
         kann beim Klick noch laden), dieser ist maßgeblich für „ersetzen".
      2. evtl. neues Ziel-Event anlegen
@@ -87,9 +88,19 @@ export function useCreateTrainingPlan(athleteId: string) {
       if (!profileId) throw new ResultError_(NO_ACCOUNT);
       const today = localISODate();
 
-      // (1) Maßgeblicher Alt-Plan direkt aus der DB. Schlägt der Read fehl,
-      //     brechen wir ab, BEVOR irgendetwas geschrieben ist.
-      const { plan: activePlan } = unwrap(await listActiveTrainingPlan(profileId));
+      // Fahrplan 14 E4: bis E6 den echten sport aus dem Dialog durchreicht
+      // (`PlanGeneratorInput` hat noch kein eigenes `sport`-Feld), ist dieser
+      // Hook hart auf "ride" gesetzt — der einzige heute nutzbare
+      // Erzeugungsweg. Seit Migration 0038 kann ein Athlet pro Sportart
+      // einen eigenen aktiven Plan tragen; alles unten filtert deshalb auf
+      // GENAU diesen sport, damit eine künftige Lauf-/Schwimm-Neuanlage
+      // keinen aktiven Radplan (oder dessen Karten) anfasst.
+      const sport: "ride" | "run" | "swim" = "ride";
+
+      // (1) Maßgeblicher Alt-Plan DERSELBEN Sportart direkt aus der DB.
+      //     Schlägt der Read fehl, brechen wir ab, BEVOR irgendetwas
+      //     geschrieben ist.
+      const { plan: activePlan } = unwrap(await listActiveTrainingPlan(profileId, sport));
       const replacePlanId = activePlan?.id ?? null;
 
       const needsNewEvent = args.form.mode === "event" && !args.form.eventId;
@@ -120,7 +131,7 @@ export function useCreateTrainingPlan(athleteId: string) {
           createdEventId = event.id;
         }
 
-        const draft = trainingPlanDraft(args.input, args.form, args.generated, goalEventId);
+        const draft = trainingPlanDraft(args.input, args.form, args.generated, goalEventId, sport);
         const { plan } = unwrap(await createTrainingPlan(profileId, args.createdBy, draft));
         newPlanId = plan.id;
 
@@ -133,7 +144,9 @@ export function useCreateTrainingPlan(athleteId: string) {
         }
         // Übergangs-Aufräumer bis E8: eingefrorene Code-Vorlagen-Karten ohne
         // plan_id, damit der erste eigene Plan nicht doppelt im Raster steht.
-        unwrap(await deleteFuturePlanlessPlanCards(profileId, today));
+        // sport-gefiltert (Fahrplan 14 E4) — sonst würde eine Lauf-Neuanlage
+        // plan-lose Rad-Vorlagenkarten mit wegräumen.
+        unwrap(await deleteFuturePlanlessPlanCards(profileId, today, sport));
 
         if (replacePlanId) {
           unwrap(await setTrainingPlanActive(replacePlanId, false));
@@ -143,7 +156,7 @@ export function useCreateTrainingPlan(athleteId: string) {
 
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),
-          queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId) }),
+          queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId, sport) }),
           needsNewEvent
             ? queryClient.invalidateQueries({ queryKey: qk.events(athleteId) })
             : Promise.resolve(),

@@ -30,6 +30,8 @@ function plan(over: Partial<TrainingPlan> = {}): TrainingPlan {
     indoorShare: 0.4,
     ftpAtCreation: 190,
     ftpTarget: 210,
+    thresholdSpeedAtCreation: null,
+    thresholdSpeedTarget: null,
     params: {},
     weekModel: [
       wm("2026-09-07", "Grundlage", 300),

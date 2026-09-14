@@ -72,12 +72,18 @@ function serialiseForm(form: NewPlanFormState): Record<string, unknown> {
  * @param plan      Ausgabe von `generatePlan()`
  * @param goalEventId  ID des Ziel-Events (bestehend oder frisch angelegt),
  *                     sonst null
+ * @param sport     Sportart des Plans (Fahrplan 14 V3/E4). `PlanGeneratorInput`
+ *                  trägt noch kein eigenes `sport`-Feld (das verdrahtet erst
+ *                  E6 über `buildGeneratorInput()`/`effectiveSport`) — bis
+ *                  dahin reicht der Aufrufer den Wert separat durch. Default
+ *                  "ride" hält den heutigen, einzigen Erzeugungsweg unverändert.
  */
 export function trainingPlanDraft(
   input: PlanGeneratorInput,
   form: NewPlanFormState,
   plan: GeneratedPlan,
   goalEventId: string | null,
+  sport: "ride" | "run" | "swim" = "ride",
 ): TrainingPlanDraft {
   const weeks = plan.weeks.length;
   const lastEnd = plan.weeks[weeks - 1]?.end;
@@ -110,6 +116,12 @@ export function trainingPlanDraft(
     indoorShare: Number.isFinite(input.indoorShare) ? input.indoorShare : null,
     ftpAtCreation: input.currentFtp ?? null,
     ftpTarget: plan.ftpTarget ?? null,
+    sport,
+    // Schwellenpace/-CSS-Quelle (currentThresholdSpeed/thresholdSpeedTarget)
+    // kommt erst mit E5 (HistoryAggregate) bzw. E6 (Dialog-Input) — bis dahin
+    // gibt es für keinen Sport einen echten Wert zu schreiben.
+    thresholdSpeedAtCreation: null,
+    thresholdSpeedTarget: null,
     params: {
       form: serialiseForm(form),
       history: (input.history as unknown) ?? null,

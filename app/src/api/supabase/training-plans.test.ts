@@ -41,6 +41,9 @@ const row = (over: Record<string, unknown> = {}) => ({
   indoor_share: 0.4,
   ftp_at_creation: 193,
   ftp_target: 210,
+  sport: "ride",
+  threshold_speed_at_creation: null,
+  threshold_speed_target: null,
   params: { form: { weeks: 12 } },
   week_model: [{ week: "2026-KW37", phase: "Sweet Spot" }],
   created_at: "2026-09-01T00:00:00Z",
@@ -62,6 +65,8 @@ const draft: TrainingPlanDraft = {
   indoorShare: 0.25,
   ftpAtCreation: null,
   ftpTarget: 240,
+  thresholdSpeedAtCreation: null,
+  thresholdSpeedTarget: null,
   params: { form: {}, history: null },
   weekModel: [],
 };
@@ -80,8 +85,25 @@ describe("toTrainingPlan", () => {
       indoorShare: 0.4,
       ftpAtCreation: 193,
       ftpTarget: 210,
+      sport: "ride",
+      thresholdSpeedAtCreation: null,
+      thresholdSpeedTarget: null,
       weekModel: [{ week: "2026-KW37", phase: "Sweet Spot" }],
     });
+  });
+
+  it("mappt sport + threshold_speed_* für Lauf-/Schwimmpläne (Fahrplan 14 E4)", () => {
+    const p = toTrainingPlan(
+      row({ sport: "run", threshold_speed_at_creation: 14.2, threshold_speed_target: 15.5 }),
+    );
+    expect(p.sport).toBe("run");
+    expect(p.thresholdSpeedAtCreation).toBe(14.2);
+    expect(p.thresholdSpeedTarget).toBe(15.5);
+  });
+
+  it("fällt bei fehlendem sport auf 'ride' zurück (Bestandszeilen vor Migration 0038)", () => {
+    const p = toTrainingPlan(row({ sport: undefined as unknown as string }));
+    expect(p.sport).toBe("ride");
   });
 
   it("gibt fehlende Arrays als leeres Array zurück", () => {
@@ -93,7 +115,7 @@ describe("toTrainingPlan", () => {
 });
 
 describe("listActiveTrainingPlan", () => {
-  it("filtert auf athlete_id + is_active und gibt die Zeile zurück", async () => {
+  it("filtert auf athlete_id + is_active + sport (default 'ride') und gibt die Zeile zurück", async () => {
     let seen: unknown;
     fakeClient.handlers.training_plans = (calls) => {
       seen = calls.filters;
@@ -104,7 +126,19 @@ describe("listActiveTrainingPlan", () => {
     expect(seen).toEqual([
       { op: "eq", col: "athlete_id", val: "prof-a" },
       { op: "eq", col: "is_active", val: true },
+      { op: "eq", col: "sport", val: "ride" },
     ]);
+  });
+
+  it("filtert auf den übergebenen sport statt des Defaults (Fahrplan 14 E4 — Rad-/Laufplan desselben Athleten dürfen sich nicht überschreiben)", async () => {
+    let seen: unknown;
+    fakeClient.handlers.training_plans = (calls) => {
+      seen = calls.filters;
+      return { data: [row({ sport: "run" })], error: null };
+    };
+    const res = await listActiveTrainingPlan("prof-a", "run");
+    expect(res.ok && res.plan?.sport).toBe("run");
+    expect(seen).toContainEqual({ op: "eq", col: "sport", val: "run" });
   });
 
   it("gibt plan: null zurück, wenn keine aktive Zeile existiert", async () => {
@@ -138,6 +172,36 @@ describe("createTrainingPlan", () => {
       ftp_at_creation: null,
       ftp_target: 240,
       week_model: [],
+    });
+  });
+
+  it("fällt bei fehlendem draft.sport auf 'ride' zurück", async () => {
+    let payload: Record<string, unknown> | undefined;
+    fakeClient.handlers.training_plans = (calls) => {
+      payload = calls.payload as Record<string, unknown>;
+      return { data: row(), error: null };
+    };
+    await createTrainingPlan("prof-a", "prof-coach", draft);
+    expect(payload).toMatchObject({ sport: "ride" });
+  });
+
+  it("schreibt sport + threshold_speed_* für Lauf-/Schwimmpläne (Fahrplan 14 E4)", async () => {
+    let payload: Record<string, unknown> | undefined;
+    fakeClient.handlers.training_plans = (calls) => {
+      payload = calls.payload as Record<string, unknown>;
+      return { data: row({ sport: "run" }), error: null };
+    };
+    const runDraft: TrainingPlanDraft = {
+      ...draft,
+      sport: "run",
+      thresholdSpeedAtCreation: 14.2,
+      thresholdSpeedTarget: 15.5,
+    };
+    await createTrainingPlan("prof-a", "prof-coach", runDraft);
+    expect(payload).toMatchObject({
+      sport: "run",
+      threshold_speed_at_creation: 14.2,
+      threshold_speed_target: 15.5,
     });
   });
 });

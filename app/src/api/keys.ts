@@ -24,8 +24,12 @@ export const qk = {
   planCards: (athleteId: string) => ["plan-cards", athleteId] as const,
   /** Aktive training_plans-Zeile des betrachteten Athleten (Fahrplan 8 E6/E7).
    *  athletenscharf wie planCards — eine Antwort kann nicht im Cache eines
-   *  anderen Athleten landen. */
-  activeTrainingPlan: (athleteId: string) => ["active-training-plan", athleteId] as const,
+   *  anderen Athleten landen. `sport` seit Fahrplan 14 E4 Teil des Schlüssels
+   *  (default "ride") — ein Athlet kann pro Sportart einen eigenen aktiven
+   *  Plan haben (Migration 0038), Rad-/Lauf-Cache dürfen sich nicht
+   *  überschreiben. */
+  activeTrainingPlan: (athleteId: string, sport: "ride" | "run" | "swim" = "ride") =>
+    ["active-training-plan", athleteId, sport] as const,
   events: (athleteId: string) => ["events", athleteId] as const,
   proposals: (athleteId: string) => ["proposals", athleteId] as const,
   /** Verlauf der KI-Coach-Runden eines Athleten (Tabelle coach_exchanges,

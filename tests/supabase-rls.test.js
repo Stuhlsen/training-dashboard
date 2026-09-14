@@ -981,6 +981,13 @@ if (!HAS_CREDS) {
   // Athleten NICHT nur updaten, sondern eine Plan-Zeile ANLEGEN
   // (Entscheidung 19 — canWriteForAthlete deckt das ab). Das ist der
   // zentrale Positiv-Test unten.
+  //
+  // Seit Migration 0038 (Fahrplan 14 E4) trägt jede Zeile zusätzlich
+  // `sport` ('ride'/'run'/'swim', Default 'ride') und der partielle
+  // Unique-Index sitzt auf (athlete_id, sport) statt (athlete_id) allein —
+  // ein Athlet kann also einen aktiven Rad- UND Laufplan gleichzeitig
+  // tragen. `planBody()` setzt kein `sport` (nutzt den DB-Default), Tests
+  // die das prüfen, setzen es explizit.
 
   const planSkip = () =>
     !planTableReady ? "training_plans nicht lesbar — Migration 0028 vermutlich noch nicht eingespielt" : false;
@@ -1091,9 +1098,76 @@ if (!HAS_CREDS) {
     assert.ok(third, "Nach is_active=false auf Zeile 1 sollte eine neue aktive Zeile durchgehen");
   });
 
-  test("training_plans: unbekannte Enum-Werte (mode/model/focus/level) scheitern am CHECK", async (t) => {
+  test("training_plans: zwei aktive Zeilen desselben Athleten mit verschiedenem sport gehen durch, gleicher sport scheitert weiter (Migration 0038, Fahrplan 14 E4)", async (t) => {
     if (planSkip()) return t.skip(planSkip());
-    for (const bad of [{ mode: "foo" }, { model: "foo" }, { focus: "foo" }, { level: "foo" }]) {
+    if (planActiveSkip()) return t.skip(planActiveSkip());
+
+    // Radplan (sport default 'ride') aktiv anlegen und aktiv lassen.
+    const ride = await rest("POST", "training_plans", { token: athlete.token, body: planBody() });
+    assert.equal(ride.ok, true, `Insert Radplan fehlgeschlagen: ${JSON.stringify(ride.data)}`);
+    const rideId = ride.data[0].id;
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `training_plans?id=eq.${rideId}`, { token: athlete.token });
+      if (!del.ok) throw new Error(`training_plans-Testzeile ${rideId} nicht gelöscht`);
+    });
+
+    // Laufplan (sport='run') GLEICHZEITIG aktiv -> muss jetzt durchgehen —
+    // der neue Index sitzt auf (athlete_id, sport), nicht mehr (athlete_id)
+    // allein.
+    const run = await rest("POST", "training_plans", {
+      token: athlete.token,
+      body: planBody({ sport: "run" }),
+    });
+    assert.equal(
+      run.ok,
+      true,
+      `Zwei aktive Pläne mit verschiedenem sport hätten durchgehen müssen: ${JSON.stringify(run.data)}`,
+    );
+    const runId = run.data[0]?.id;
+    if (runId) {
+      cleanupTasks.push(async () => {
+        const del = await rest("DELETE", `training_plans?id=eq.${runId}`, { token: athlete.token });
+        if (!del.ok) throw new Error(`training_plans-Testzeile ${runId} nicht gelöscht`);
+      });
+    }
+
+    // Ein ZWEITER aktiver Laufplan (gleicher sport wie oben) scheitert
+    // weiter am Unique-Index — jetzt (athlete_id, sport) statt (athlete_id).
+    const secondRun = await rest("POST", "training_plans", {
+      token: athlete.token,
+      body: planBody({ sport: "run" }),
+    });
+    assert.equal(
+      secondRun.ok,
+      false,
+      "Zweite aktive Zeile mit gleichem sport hätte am Unique-Index scheitern müssen",
+    );
+    if (secondRun.ok && Array.isArray(secondRun.data) && secondRun.data[0]?.id) {
+      const strayId = secondRun.data[0].id;
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `training_plans?id=eq.${strayId}`, { token: athlete.token });
+      });
+    }
+
+    // Beide aktiven Zeilen wieder inaktiv setzen, damit Folgetests im
+    // selben Lauf nicht am Index scheitern.
+    const offRide = await rest("PATCH", `training_plans?id=eq.${rideId}`, {
+      token: athlete.token,
+      body: { is_active: false },
+    });
+    assert.equal(offRide.ok, true);
+    if (runId) {
+      const offRun = await rest("PATCH", `training_plans?id=eq.${runId}`, {
+        token: athlete.token,
+        body: { is_active: false },
+      });
+      assert.equal(offRun.ok, true);
+    }
+  });
+
+  test("training_plans: unbekannte Enum-Werte (mode/model/focus/level/sport) scheitern am CHECK", async (t) => {
+    if (planSkip()) return t.skip(planSkip());
+    for (const bad of [{ mode: "foo" }, { model: "foo" }, { focus: "foo" }, { level: "foo" }, { sport: "foo" }]) {
       const res = await rest("POST", "training_plans", {
         token: athlete.token,
         body: planBody({ is_active: false, ...bad }),

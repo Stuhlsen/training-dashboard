@@ -177,7 +177,7 @@ describe("deleteFuturePlanCardsForPlan", () => {
 });
 
 describe("deleteFuturePlanlessPlanCards", () => {
-  it("filtert auf athlete_id + plan_id IS NULL + planned_date >= from", async () => {
+  it("filtert auf athlete_id + plan_id IS NULL + sport (default ride) + planned_date >= from", async () => {
     const calls: { method?: string; filters: unknown }[] = [];
     fakeClient.handlers.plan_cards = (c) => {
       calls.push({ method: c.method, filters: c.filters });
@@ -189,9 +189,21 @@ describe("deleteFuturePlanlessPlanCards", () => {
     expect(calls[0].filters).toEqual([
       { op: "eq", col: "athlete_id", val: "prof-a" },
       { op: "is", col: "plan_id", val: null },
+      { op: "eq", col: "sport", val: "ride" },
       { op: "gte", col: "planned_date", val: "2026-09-03" },
     ]);
     expect(calls[1].filters).toEqual([{ op: "in", col: "id", val: ["t1"] }]);
+  });
+
+  it("filtert auf den übergebenen sport statt des Defaults (Fahrplan 14 E4 — eine Lauf-Neuanlage räumt keine Rad-Vorlagenkarten weg)", async () => {
+    const calls: { method?: string; filters: unknown }[] = [];
+    fakeClient.handlers.plan_cards = (c) => {
+      calls.push({ method: c.method, filters: c.filters });
+      if (c.method === "delete") return { data: null, error: null };
+      return { data: [{ id: "t1", status: null }], error: null };
+    };
+    await deleteFuturePlanlessPlanCards("prof-a", "2026-09-03", "run");
+    expect(calls[0].filters).toContainEqual({ op: "eq", col: "sport", val: "run" });
   });
 });
 

@@ -165,6 +165,13 @@ export interface TrainingPlanDraft {
   indoorShare: number | null; // 0..1
   ftpAtCreation: number | null;
   ftpTarget: number | null;
+  /** Sportart des Plans (Migration 0038, Fahrplan 14 V3). Fehlt ⇒ "ride"
+   *  beim Schreiben — additiv wie `plan_cards.sport` (Fahrplan 12 W1). */
+  sport?: "ride" | "run" | "swim";
+  /** Schwellen-Äquivalent zu ftpAtCreation/ftpTarget für sport !== "ride"
+   *  (km/h). Additiv statt Rename (Fahrplan 14 Feinentscheidung). */
+  thresholdSpeedAtCreation: number | null;
+  thresholdSpeedTarget: number | null;
   /** Roh-Formular + Aggregat-Momentaufnahme (V1 `params`, Reproduzierbarkeit). */
   params: Record<string, unknown>;
   /** V4 `WeekModelEntry[]` — Quelle für plan-week-model (E7). */

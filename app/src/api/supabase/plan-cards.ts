@@ -258,8 +258,13 @@ export async function deleteFuturePlanCardsForPlan(
 }
 
 /** Zukünftige, noch geplante Karten OHNE Plan-Zuordnung (`plan_id IS NULL`)
- *  eines Athleten löschen — die eingefrorenen Code-Vorlagen-Karten, damit
- *  der erste selbst gebaute Plan nicht doppelt im Raster steht.
+ *  eines Athleten UND EINER SPORTART löschen — die eingefrorenen
+ *  Code-Vorlagen-Karten, damit der erste selbst gebaute Plan nicht doppelt
+ *  im Raster steht. `sport` default "ride" (Fahrplan 14 E4): ohne diesen
+ *  Filter würde ein neu angelegter Laufplan plan-lose RAD-Vorlagenkarten mit
+ *  wegräumen und umgekehrt — dieselbe Sportart-Isolation wie bei
+ *  `deleteFuturePlanCardsForPlan` (dort implizit über `plan_id`, hier
+ *  explizit, weil plan-lose Karten keinen Plan zum Filtern haben).
  *
  *  Übergangslösung bis E8: der Sync schreibt die Vorlagen-Karten beim
  *  nächsten Lauf sonst wieder; ab E8 überspringt er die Vorlage für Athleten
@@ -267,6 +272,7 @@ export async function deleteFuturePlanCardsForPlan(
 export async function deleteFuturePlanlessPlanCards(
   athleteId: string,
   fromDateISO: string,
+  sport: "ride" | "run" | "swim" = "ride",
 ): Promise<Result<{ deleted: number }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
@@ -275,6 +281,7 @@ export async function deleteFuturePlanlessPlanCards(
     .select("id, status")
     .eq("athlete_id", athleteId)
     .is("plan_id", null)
+    .eq("sport", sport)
     .gte("planned_date", fromDateISO)
     .returns<{ id: string; status: string | null }[]>();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };

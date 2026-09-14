@@ -29,7 +29,8 @@ const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konf
 const SELECT_COLS =
   "id, athlete_id, created_by, is_active, mode, goal_event_id, start_date, end_date, " +
   "weeks, model, focus, level, training_weekdays, weekly_hours, indoor_share, " +
-  "ftp_at_creation, ftp_target, params, week_model, created_at, updated_at";
+  "ftp_at_creation, ftp_target, sport, threshold_speed_at_creation, threshold_speed_target, " +
+  "params, week_model, created_at, updated_at";
 
 interface TrainingPlanRow {
   id: string;
@@ -49,6 +50,9 @@ interface TrainingPlanRow {
   indoor_share: number | null;
   ftp_at_creation: number | null;
   ftp_target: number | null;
+  sport: string;
+  threshold_speed_at_creation: number | null;
+  threshold_speed_target: number | null;
   params: Record<string, unknown> | null;
   week_model: unknown[] | null;
   created_at: string;
@@ -74,6 +78,9 @@ export function toTrainingPlan(row: TrainingPlanRow): TrainingPlan {
     indoorShare: row.indoor_share,
     ftpAtCreation: row.ftp_at_creation,
     ftpTarget: row.ftp_target,
+    sport: (row.sport ?? "ride") as "ride" | "run" | "swim",
+    thresholdSpeedAtCreation: row.threshold_speed_at_creation,
+    thresholdSpeedTarget: row.threshold_speed_target,
     params: row.params ?? {},
     weekModel: (row.week_model ?? []) as WeekModelEntry[],
     createdAt: row.created_at,
@@ -81,14 +88,19 @@ export function toTrainingPlan(row: TrainingPlanRow): TrainingPlan {
   };
 }
 
-/** Die aktive Zeile des Athleten, `null` wenn keine existiert. Ohne
- *  Supabase-Konfig ist das kein Fehler (wie `listPlanCards`), sondern
- *  schlicht „kein Plan". `training_plans` hat keinen anon-GRANT — ein
- *  ausgeloggter Betrachter bekommt hier einen Fehler zurück, den der Hook
- *  auf `null` abbildet (der „Neuer Plan"-Dialog ist ohnehin nur für
- *  eingeloggte, schreibberechtigte Nutzer sichtbar). */
+/** Die aktive Zeile des Athleten FÜR DIESE SPORTART, `null` wenn keine
+ *  existiert. `sport` default "ride" — Fahrplan 14 E4: seit Migration 0038
+ *  ist der Unique-Index (athlete_id, sport) statt (athlete_id) allein, ein
+ *  Athlet kann also einen aktiven Rad- UND Laufplan gleichzeitig tragen; wer
+ *  einen Laufplan sucht, muss das hier explizit sagen. Ohne Supabase-Konfig
+ *  ist das kein Fehler (wie `listPlanCards`), sondern schlicht „kein Plan".
+ *  `training_plans` hat keinen anon-GRANT — ein ausgeloggter Betrachter
+ *  bekommt hier einen Fehler zurück, den der Hook auf `null` abbildet (der
+ *  „Neuer Plan"-Dialog ist ohnehin nur für eingeloggte, schreibberechtigte
+ *  Nutzer sichtbar). */
 export async function listActiveTrainingPlan(
   athleteProfileId: string,
+  sport: "ride" | "run" | "swim" = "ride",
 ): Promise<Result<{ plan: TrainingPlan | null }>> {
   if (!supabase) return { ok: true, plan: null };
   const client = (await getAuthedClient()) ?? supabase;
@@ -97,6 +109,7 @@ export async function listActiveTrainingPlan(
     .select(SELECT_COLS)
     .eq("athlete_id", athleteProfileId)
     .eq("is_active", true)
+    .eq("sport", sport)
     .order("created_at", { ascending: false })
     .limit(1)
     .returns<TrainingPlanRow[]>();
@@ -104,7 +117,8 @@ export async function listActiveTrainingPlan(
   return { ok: true, plan: data.length ? toTrainingPlan(data[0]) : null };
 }
 
-/** Legt die Plan-Zeile an — `is_active = false` (s. Modulkopf). */
+/** Legt die Plan-Zeile an — `is_active = false` (s. Modulkopf). `draft.sport`
+ *  fehlt ⇒ "ride" (additiv wie `plan_cards.sport`, Fahrplan 12 W1). */
 export async function createTrainingPlan(
   athleteProfileId: string,
   createdBy: string,
@@ -131,6 +145,9 @@ export async function createTrainingPlan(
       indoor_share: draft.indoorShare,
       ftp_at_creation: draft.ftpAtCreation,
       ftp_target: draft.ftpTarget,
+      sport: draft.sport ?? "ride",
+      threshold_speed_at_creation: draft.thresholdSpeedAtCreation,
+      threshold_speed_target: draft.thresholdSpeedTarget,
       params: draft.params,
       week_model: draft.weekModel,
     })
@@ -141,7 +158,10 @@ export async function createTrainingPlan(
 }
 
 /** `is_active` einer Zeile setzen — scharf schalten (neuer Plan) oder
- *  deaktivieren (alter Plan, „eingefrorene Vergangenheit"). */
+ *  deaktivieren (alter Plan, „eingefrorene Vergangenheit"). Filtert nur
+ *  über `id` — die ist je Plan eindeutig, ein zusätzlicher `sport`-Filter
+ *  wäre hier überflüssig (anders als bei `listActiveTrainingPlan`, das eine
+ *  ganze Sport/Athlet-Kombination statt einer einzelnen Zeile adressiert). */
 export async function setTrainingPlanActive(
   id: string,
   isActive: boolean,
