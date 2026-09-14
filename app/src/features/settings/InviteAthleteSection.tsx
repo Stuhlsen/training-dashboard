@@ -1,0 +1,126 @@
+/* ============================================================
+   FEATURES/SETTINGS/INVITEATHLETESECTION.TSX — Admin-Athlet-Einladen
+   (Fahrplan 15 E4, Muster FormatCatalogSection)
+
+   Nur für `profile.isAdmin` gemountet (SettingsPage). E-Mail eingeben →
+   „Einladen" → admin-api ruft GoTrues generate_link auf und liefert den
+   fertigen Einladungslink direkt in der Antwort zurück (kein SMTP, s.
+   Nachtrag V1 in planning/fahrplan-15-einladungs-onboarding.md) — der Link
+   wird hier angezeigt und ist per Button kopierbar, Alex verschickt ihn
+   selbst (WhatsApp/Signal/SMS).
+   ============================================================ */
+
+import { useState } from "react";
+import { inviteAthlete } from "../../api/admin-invite";
+import type { ResultError } from "../../api/types";
+import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, LINK_BUTTON_STYLE, ERROR_STYLE } from "./section-styles";
+
+const PRIMARY_BUTTON_STYLE = {
+  alignSelf: "flex-start" as const,
+  padding: "9px 18px",
+  borderRadius: "var(--pill)",
+  border: "none",
+  background: "var(--ss)",
+  color: "#17110a",
+  fontWeight: 600,
+};
+
+const LINK_BOX_STYLE = {
+  display: "block",
+  wordBreak: "break-all" as const,
+  fontFamily: "var(--font-mono)",
+  fontSize: ".7rem",
+  color: "var(--ink)",
+  background: "rgba(255,255,255,.04)",
+  border: "1px solid var(--hair)",
+  borderRadius: "var(--radius-sm)",
+  padding: "8px 10px",
+};
+
+function translateError(error: ResultError): string {
+  switch (error.code) {
+    case "HTTP":
+      return "Diese E-Mail ist bereits eingeladen oder registriert.";
+    case "NETWORK":
+      return "admin-api oder GoTrue gerade nicht erreichbar — später erneut versuchen.";
+    case "SCHEMA":
+      return "Ungültige E-Mail-Adresse.";
+    case "TOKEN_INVALID":
+      return "Sitzung abgelaufen — bitte neu einloggen.";
+    default:
+      return error.message || "Einladen fehlgeschlagen.";
+  }
+}
+
+export function InviteAthleteSection() {
+  const [email, setEmail] = useState("");
+  const [isPending, setIsPending] = useState(false);
+  const [link, setLink] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setIsPending(true);
+    setError(null);
+    setLink(null);
+    setCopied(false);
+    const result = await inviteAthlete(email.trim());
+    setIsPending(false);
+    if (!result.ok) {
+      setError(translateError(result.error));
+      return;
+    }
+    setLink(result.link);
+    setEmail("");
+  }
+
+  async function handleCopy() {
+    if (!link) return;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setError("Kopieren fehlgeschlagen — Link von Hand markieren.");
+    }
+  }
+
+  return (
+    <div style={SECTION_STYLE}>
+      <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <label style={LABEL_STYLE}>
+          E-Mail der einzuladenden Person
+          <input
+            type="email"
+            required
+            value={email}
+            disabled={isPending}
+            onChange={(e) => setEmail(e.target.value)}
+            style={INPUT_STYLE}
+          />
+        </label>
+        <button
+          type="submit"
+          disabled={isPending || !email.trim()}
+          style={{ ...PRIMARY_BUTTON_STYLE, cursor: isPending ? "default" : "pointer", opacity: isPending ? 0.7 : 1 }}
+        >
+          {isPending ? "Lädt …" : "Einladen"}
+        </button>
+      </form>
+
+      {error && <p style={{ ...ERROR_STYLE, marginTop: 8 }}>{error}</p>}
+
+      {link && (
+        <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
+          <p style={{ margin: 0, color: "var(--ink-3)", fontSize: ".78rem" }}>
+            Einladungslink erstellt — kein Mail-Versand, selbst weitergeben (WhatsApp/Signal/SMS):
+          </p>
+          <code style={LINK_BOX_STYLE}>{link}</code>
+          <button type="button" onClick={() => void handleCopy()} style={LINK_BUTTON_STYLE}>
+            {copied ? "Kopiert ✓" : "Link kopieren"}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

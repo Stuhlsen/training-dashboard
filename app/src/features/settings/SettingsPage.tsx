@@ -26,6 +26,7 @@ import { CheckinSection } from "./CheckinSection";
 import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
 import { FormatCatalogSection } from "./FormatCatalogSection";
+import { InviteAthleteSection } from "./InviteAthleteSection";
 import { DataSourcesSection } from "./DataSourcesSection";
 import { IntervalsSection } from "./IntervalsSection";
 import { SyncLocationSection } from "./SyncLocationSection";
@@ -63,6 +64,7 @@ export function SettingsPage() {
     ...(isAthlete ? [{ id: "sec-training", label: "Training" }] : []),
     ...(isAthlete ? [{ id: "sec-daten", label: "Daten" }] : []),
     ...(isAdmin ? [{ id: "sec-katalog", label: "Formatkatalog" }] : []),
+    ...(isAdmin ? [{ id: "sec-einladen", label: "Athlet einladen" }] : []),
     { id: "sec-datenschutz", label: "Datenschutz & Account" },
   ];
 
@@ -191,6 +193,13 @@ export function SettingsPage() {
                 <GlassCard id="sec-katalog" variant="soft" style={CARD_STYLE}>
                   <h2 style={CARD_HEADING_STYLE}>Formatkatalog</h2>
                   <FormatCatalogSection />
+                </GlassCard>
+              )}
+
+              {isAdmin && (
+                <GlassCard id="sec-einladen" variant="soft" style={CARD_STYLE}>
+                  <h2 style={CARD_HEADING_STYLE}>Athlet einladen</h2>
+                  <InviteAthleteSection />
                 </GlassCard>
               )}
 
