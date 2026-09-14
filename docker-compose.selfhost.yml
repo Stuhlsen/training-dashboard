@@ -128,10 +128,19 @@ services:
     depends_on:
       postgrest:
         condition: service_started
+      gotrue:
+        condition: service_healthy
     environment:
       PORT: "3001"
       JWT_SECRET: ${JWT_SECRET}
       POSTGREST_INTERNAL_URL: http://postgrest:3000
+      GOTRUE_INTERNAL_URL: http://gotrue:8081
+      # Lokaler service_role-JWT (signiert mit demselben JWT_SECRET wie
+      # gotrue/postgrest), per "node scripts/generate-jwt-keys.js" erzeugt
+      # und in die eigene .env kopiert — eigene Variable, NICHT die
+      # SUPABASE_SERVICE_ROLE_KEY aus .env (die gehoert dem Cloud-Projekt
+      # dashboard-dev und ist mit dessen eigenem Secret signiert).
+      SUPABASE_SERVICE_ROLE_KEY: ${SELFHOST_SERVICE_ROLE_KEY}
     # KEIN "ports:" hier — von aussen nur ueber den Proxy erreichbar (wie postgres)
 
   proxy:

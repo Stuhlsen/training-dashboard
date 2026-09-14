@@ -1,15 +1,39 @@
 const http = require("node:http");
 const { requireAdmin } = require("./auth.js");
+const { sendInvite } = require("./invite.js");
 
 const PORT = process.env.PORT || 3001;
 const ENV = {
   JWT_SECRET: process.env.JWT_SECRET,
   POSTGREST_INTERNAL_URL: process.env.POSTGREST_INTERNAL_URL,
+  GOTRUE_INTERNAL_URL: process.env.GOTRUE_INTERNAL_URL,
+  SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
 };
 
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json" });
   res.end(JSON.stringify(body));
+}
+
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let raw = "";
+    req.on("data", (chunk) => {
+      raw += chunk;
+    });
+    req.on("end", () => {
+      if (!raw) {
+        resolve({});
+        return;
+      }
+      try {
+        resolve(JSON.parse(raw));
+      } catch (err) {
+        reject(err);
+      }
+    });
+    req.on("error", reject);
+  });
 }
 
 const server = http.createServer(async (req, res) => {
@@ -24,8 +48,22 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, admin.status, { ok: false, error: admin.error });
       return;
     }
-    // E3 ersetzt diesen Stub durch den echten GoTrue-/invite-Aufruf (V1).
-    sendJson(res, 200, { ok: true, stub: true });
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendJson(res, 400, { ok: false, error: { code: "SCHEMA", message: "ungueltiger Request-Body" } });
+      return;
+    }
+
+    const email = typeof body.email === "string" ? body.email : "";
+    const result = await sendInvite(email, ENV);
+    if (!result.ok) {
+      sendJson(res, result.status, { ok: false, error: result.error });
+      return;
+    }
+    sendJson(res, 200, { ok: true });
     return;
   }
 
