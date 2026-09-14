@@ -94,8 +94,9 @@ const input = {
 const args = { plan: activePlan, generated, input } as any;
 
 function setup() {
-  const { wrapper } = createHarness({ userId: "prof-a" });
-  return renderHook(() => useRecomputeRemainingPlan("athlete2"), { wrapper });
+  const { wrapper, queryClient } = createHarness({ userId: "prof-a" });
+  const hook = renderHook(() => useRecomputeRemainingPlan("athlete2"), { wrapper });
+  return { ...hook, queryClient };
 }
 
 beforeEach(() => {
@@ -124,5 +125,27 @@ describe("useRecomputeRemainingPlan", () => {
     expect(res.error.message).toMatch(/insert kaputt/);
     expect(res.error.message).toMatch(/erneut ausführen/);
     expect(calls).toEqual(["deleteFuture(tp1,2026-10-05)", "createPlanCards(tp1,n=1)"]);
+  });
+
+  // Fahrplan 14 E7 — invalidiert den sport-eigenen Cache-Eintrag, nicht den
+  // Rad-Default (Migration 0038: ein aktiver Plan JE Sportart).
+  it("invalidiert qk.activeTrainingPlan mit dem Sport des Plans (sport:'run')", async () => {
+    const { result, queryClient } = setup();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const runArgs = { ...args, plan: { ...activePlan, sport: "run" } };
+    const res = await result.current.recompute(runArgs);
+    expect(res.ok).toBe(true);
+    const invalidatedKeys = invalidateSpy.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey);
+    expect(invalidatedKeys).toContainEqual(["active-training-plan", "athlete2", "run"]);
+    expect(invalidatedKeys).not.toContainEqual(["active-training-plan", "athlete2", "ride"]);
+  });
+
+  it("invalidiert qk.activeTrainingPlan mit 'ride' als Default, wenn der Plan kein sport-Feld trägt", async () => {
+    const { result, queryClient } = setup();
+    const invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    const res = await result.current.recompute(args);
+    expect(res.ok).toBe(true);
+    const invalidatedKeys = invalidateSpy.mock.calls.map((c) => (c[0] as { queryKey: unknown[] }).queryKey);
+    expect(invalidatedKeys).toContainEqual(["active-training-plan", "athlete2", "ride"]);
   });
 });

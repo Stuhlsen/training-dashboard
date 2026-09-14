@@ -161,7 +161,9 @@ export function PlanningPage() {
   // Fahrplan 8 E7: hat der Athlet einen selbst gebauten Plan (`training_plans`),
   // kommen Woche/Phase/Ruhe-Slots aus dessen `week_model` statt aus der
   // Code-Vorlage in `core/plan-week-model.js`. `null` ⇒ Code-Vorlage wie bisher.
-  const activeWeekModel = useActiveWeekModel(activeAthleteId);
+  // Fahrplan 14 E7: sport-bewusst — sonst zeigt der Lauf-/Schwimm-Tab
+  // fälschlich den Status (u. a. den „Rest neu berechnen…"-Knopf) des Rad-Plans.
+  const activeWeekModel = useActiveWeekModel(activeAthleteId, effectiveSport);
   const { data: cards, isLoading, error } = usePlanCards(activeAthleteId);
   // Fahrplan 12 E6 (Nachtrag zu E4): NUR für Projektion/Konfliktprüfung —
   // K-HARTFOLGE muss einen harten Lauf nach hartem Rad übergreifend sehen.

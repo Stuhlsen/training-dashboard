@@ -17,6 +17,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanHistoryAggregate } from "../../api/hooks/usePlanHistoryAggregate";
+import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
 import { athleteConfig } from "../../config";
 import { fmtDate, localISODate } from "../../core/format.js";
@@ -54,8 +55,9 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
   useEscapeToClose(onClose);
 
   const today = localISODate();
-  const { data: activePlan, isLoading: planLoading } = useActiveTrainingPlan(athleteId);
-  const { aggregate } = usePlanHistoryAggregate(athleteId);
+  const { effectiveSport } = useEffectiveSport(athleteId);
+  const { data: activePlan, isLoading: planLoading } = useActiveTrainingPlan(athleteId, effectiveSport);
+  const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
   const { entries: formatEntries } = useAthleteFormats();
   const { recompute, isPending } = useRecomputeRemainingPlan(athleteId);
 
@@ -71,6 +73,8 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
       history: aggregate,
       todayISO: today,
       athleteDefaults: athleteConfig(athleteId),
+      currentThresholdSpeed: (aggregate as { currentThresholdSpeed?: number | null } | null)
+        ?.currentThresholdSpeed,
     });
     if (!res.ok) return { error: res.reason };
     const run = generatePlan as (input: unknown) => GeneratedPlan;
@@ -159,7 +163,11 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
             </div>
 
             <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 14 }}>
-              <PlanPreview plan={built.preview} />
+              <PlanPreview
+                plan={built.preview}
+                sport={built.input.sport ?? "ride"}
+                thresholdSpeedTarget={built.input.thresholdSpeedTarget ?? null}
+              />
             </div>
           </>
         )}

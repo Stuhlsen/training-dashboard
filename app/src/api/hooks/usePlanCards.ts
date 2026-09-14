@@ -190,7 +190,10 @@ export function useMovePlanCard(athleteId: string) {
   const offsetWeeks = useAthletePlanOffset(athleteId);
   // Fahrplan 8 E7: hat der Athlet einen selbst gebauten Plan, kommt das
   // Phasen-Label aus dessen week_model statt aus der Code-Vorlage.
-  const weekModel = useActiveWeekModel(athleteId);
+  // Fahrplan 14 E7: sport-bewusst — sonst zieht ein Move auf dem Lauf-/
+  // Schwimm-Tab das Wochenmodell des Rad-Plans.
+  const { effectiveSport } = useEffectiveSport(athleteId);
+  const weekModel = useActiveWeekModel(athleteId, effectiveSport);
 
   const move = useCallback(
     async (id: string, newDate: string, reason?: string): Promise<Result<{ card: PlanCard }>> => {
@@ -236,7 +239,9 @@ export function useUndoAdjustment(athleteId: string) {
   const snapshot = useCardsSnapshot(athleteId);
   const userId = useAuthUserId();
   const offsetWeeks = useAthletePlanOffset(athleteId);
-  const weekModel = useActiveWeekModel(athleteId);
+  // Fahrplan 14 E7: sport-bewusst, analog useMovePlanCard.
+  const { effectiveSport } = useEffectiveSport(athleteId);
+  const weekModel = useActiveWeekModel(athleteId, effectiveSport);
 
   const undo = useCallback(
     async (id: string): Promise<Result<{ card?: PlanCard }>> => {
@@ -283,7 +288,9 @@ export function useShiftPlan(athleteId: string) {
   const { isSelf } = useIsSelfAthlete(athleteId);
   const profile = useCurrentProfile().data ?? null;
   const { update: updateOffset } = useUpdatePlanOffsetWeeks();
-  const weekModel = useActiveWeekModel(athleteId);
+  // Fahrplan 14 E7: sport-bewusst, analog useMovePlanCard.
+  const { effectiveSport } = useEffectiveSport(athleteId);
+  const weekModel = useActiveWeekModel(athleteId, effectiveSport);
 
   const shift = useCallback(
     async (targetOffsetWeeks: number): Promise<Result<{ moved: number }>> => {

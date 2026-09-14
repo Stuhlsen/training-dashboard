@@ -114,4 +114,53 @@ describe("buildRecomputeInput", () => {
     if (res.ok) return;
     expect(res.reason).toMatch(/Restwochen/);
   });
+
+  // Fahrplan 14 E7 — sport:"run"/"swim": Schwellenpace statt FTP.
+  it("sport:'run' → sport durchgereicht, currentFtp/ftpTarget null, currentThresholdSpeed aus dem Argument", () => {
+    const res = buildRecomputeInput({
+      plan: plan({ sport: "run", thresholdSpeedAtCreation: 14, thresholdSpeedTarget: 16 }),
+      history: {},
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      currentThresholdSpeed: 15,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.sport).toBe("run");
+    expect(res.input.currentFtp).toBeNull();
+    expect(res.input.ftpMeasuredDate).toBeNull();
+    expect(res.input.ftpTarget).toBeNull();
+    // aktueller Aggregat-Wert schlägt den Erstell-Stand
+    expect(res.input.currentThresholdSpeed).toBe(15);
+    // Ziel-Pace des Ur-Plans bleibt
+    expect(res.input.thresholdSpeedTarget).toBe(16);
+  });
+
+  it("sport:'swim' → fällt auf thresholdSpeedAtCreation zurück, wenn kein frischer Aggregat-Wert vorliegt", () => {
+    const res = buildRecomputeInput({
+      plan: plan({ sport: "swim", thresholdSpeedAtCreation: 3.2, thresholdSpeedTarget: null }),
+      history: {},
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      currentThresholdSpeed: null,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.sport).toBe("swim");
+    expect(res.input.currentThresholdSpeed).toBe(3.2);
+    expect(res.input.thresholdSpeedTarget).toBeNull();
+  });
+
+  it("kein sport-Feld am Plan → Default 'ride' (Golden-Master-Verhalten)", () => {
+    const res = buildRecomputeInput({
+      plan: plan({ sport: undefined }),
+      history: {},
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+    });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.sport).toBe("ride");
+    expect(res.input.currentThresholdSpeed).toBeNull();
+  });
 });

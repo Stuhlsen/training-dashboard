@@ -71,6 +71,7 @@ export function useRecomputeRemainingPlan(athleteId: string) {
       const regenerateFrom = args.input.regenerateFrom;
       if (!regenerateFrom) throw new ResultError_(NO_REGEN_DATE);
       const planId = args.plan.id;
+      const sport = args.plan.sport ?? "ride";
 
       let deletedFuture = false;
       try {
@@ -95,7 +96,7 @@ export function useRecomputeRemainingPlan(athleteId: string) {
 
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: qk.planCards(athleteId) }),
-          queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId) }),
+          queryClient.invalidateQueries({ queryKey: qk.activeTrainingPlan(athleteId, sport) }),
         ]);
 
         return { planId };

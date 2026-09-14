@@ -25,8 +25,15 @@ export interface RecomputeArgs {
   history?: unknown;
   /** Heute (lokal, ISO). */
   todayISO: string;
-  /** Aktuelle FTP / Messdatum aus `athleteConfig()` — nicht der Erstell-Stand. */
+  /** Aktuelle FTP / Messdatum aus `athleteConfig()` — nicht der Erstell-Stand.
+   *  Nur für `plan.sport === "ride"` relevant. */
   athleteDefaults: AthleteDefaults | null;
+  /** Aktuelle Schwellenpace (km/h) aus `usePlanHistoryAggregate(athleteId, sport)
+   *  .aggregate.currentThresholdSpeed` — das Äquivalent zu `athleteDefaults.
+   *  ftpMeasured` für `plan.sport !== "ride"`. `config.ts` hat dafür (anders als
+   *  bei FTP) keinen statischen Startwert, deshalb ein eigenes Argument statt
+   *  Teil von `athleteDefaults` (Fahrplan 14 E7). */
+  currentThresholdSpeed?: number | null;
 }
 
 export type RecomputeInput =
@@ -46,7 +53,8 @@ export type RecomputeInput =
  * rechnen ist.
  */
 export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
-  const { plan, history, todayISO, athleteDefaults } = args;
+  const { plan, history, todayISO, athleteDefaults, currentThresholdSpeed } = args;
+  const sport = plan.sport ?? "ride";
 
   const base = (plan.weekModel ?? []) as WeekModelEntry[];
   if (!base.length) {
@@ -70,6 +78,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     : [...(plan.trainingWeekdays ?? [])];
 
   const input: PlanGeneratorInput = {
+    sport,
     startDate: base[0].start,
     mode: plan.mode,
     ...(plan.mode === "event" && plan.endDate ? { eventDate: plan.endDate } : {}),
@@ -77,12 +86,24 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     trainingWeekdays: tailWeekdays,
     weeklyHours: plan.weeklyHours ?? 6,
     // Aktuelle FTP zuerst; erst dahinter der (u. U. veraltete) Erstell-Stand.
+    // Nur sport === "ride" (V1) — für Lauf/Schwimm bleibt es null.
     currentFtp:
-      athleteDefaults?.ftpMeasured ?? athleteDefaults?.eFTP ?? plan.ftpAtCreation ?? null,
-    ftpMeasuredDate: athleteDefaults?.ftpMeasuredDate ?? null,
+      sport === "ride"
+        ? (athleteDefaults?.ftpMeasured ?? athleteDefaults?.eFTP ?? plan.ftpAtCreation ?? null)
+        : null,
+    ftpMeasuredDate: sport === "ride" ? (athleteDefaults?.ftpMeasuredDate ?? null) : null,
     // Ziel-FTP des Ur-Plans beibehalten — eine Restberechnung verschiebt nicht
     // das Saisonziel (deriveFtpTarget übernimmt einen gesetzten Wert 1:1).
-    ftpTarget: plan.ftpTarget ?? null,
+    ftpTarget: sport === "ride" ? (plan.ftpTarget ?? null) : null,
+    // Schwellenpace-Äquivalent (V1) für sport !== "ride": aktueller Aggregat-
+    // Wert zuerst, sonst der (u. U. veraltete) Erstell-Stand des Plans.
+    currentThresholdSpeed:
+      sport === "ride" ? null : (currentThresholdSpeed ?? plan.thresholdSpeedAtCreation ?? null),
+    // Kein persistiertes Messdatum für die Schwellenpace (V3-Schema hat keine
+    // entsprechende Spalte) — die Testtag-Regel für run/swim ignoriert es ohnehin.
+    thresholdSpeedMeasuredDate: null,
+    // Ziel-Pace des Ur-Plans beibehalten, analog ftpTarget.
+    thresholdSpeedTarget: sport === "ride" ? null : (plan.thresholdSpeedTarget ?? null),
     indoorShare: plan.indoorShare ?? 0,
     focus: plan.focus,
     level: plan.level,
