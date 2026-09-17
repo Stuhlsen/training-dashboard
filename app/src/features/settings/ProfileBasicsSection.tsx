@@ -3,9 +3,10 @@
    Maximalherzfrequenz, Größe, Gewicht, Geschlecht (Migration 0039,
    Fahrplan 17 E3). Alle Felder einzeln speicherbar, alle optional.
 
-   Soll später auch als Wizard-Schritt (E7, V5-Contract) laufen, ohne
-   Änderung an der Feldlogik hier — deshalb schon jetzt die optionalen
-   `onComplete`/`onSkip`-Props, auch wenn E3 sie noch nicht verwendet.
+   Läuft auch als Wizard-Schritt im Onboarding-Assistenten (E7, V5-Contract,
+   s. OnboardingWizard.tsx) — ohne Änderung an der Feldlogik hier: die
+   `onComplete`/`onSkip`-Props steuern nur den Weiter/Überspringen-Footer
+   unten, standalone in Settings bleiben sie unbenutzt (kein Footer).
    ============================================================ */
 
 import { useState } from "react";
@@ -120,7 +121,7 @@ function useImmediateFieldEditor<T>(loaded: T | null | undefined, save: (value: 
   return { value, commit, saved, error, setError };
 }
 
-export function ProfileBasicsSection(_props: ProfileBasicsSectionProps = {}) {
+export function ProfileBasicsSection({ onComplete, onSkip }: ProfileBasicsSectionProps = {}) {
   const { data: basics, isLoading } = useProfileBasics();
   const { update: saveBirthdate } = useUpdateBirthdate();
   const { update: saveRestingHr } = useUpdateRestingHr();
@@ -266,6 +267,42 @@ export function ProfileBasicsSection(_props: ProfileBasicsSectionProps = {}) {
           {gender.error && <div style={ERROR_STYLE}>{gender.error}</div>}
         </div>
       </div>
+
+      {onComplete && (
+        <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
+          <button
+            type="button"
+            onClick={onComplete}
+            style={{
+              padding: "9px 18px",
+              borderRadius: "var(--pill)",
+              border: "none",
+              background: "var(--ss)",
+              color: "#17110a",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            Weiter
+          </button>
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              style={{
+                padding: "9px 18px",
+                borderRadius: "var(--pill)",
+                border: "1px solid var(--hair)",
+                background: "transparent",
+                color: "var(--ink-3)",
+                cursor: "pointer",
+              }}
+            >
+              Überspringen
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

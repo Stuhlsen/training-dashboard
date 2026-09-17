@@ -26,7 +26,7 @@ import {
   updateHrMax as updateHrMaxAdapter,
   getProfileBasics,
 } from "../supabase/profiles";
-import { updatePassword as updatePasswordAdapter } from "../supabase/auth";
+import { updatePassword as updatePasswordAdapter, setInitialPassword as setInitialPasswordAdapter } from "../supabase/auth";
 import { clampPlanOffset } from "../../core/plan-shift.js";
 import { useAuthUserId } from "./useSession";
 import { qk } from "../keys";
@@ -214,6 +214,31 @@ export function useUpdatePassword() {
   const update = useCallback(
     async (currentPassword: string, newPassword: string): Promise<Result> =>
       catchResult(() => mutation.mutateAsync({ currentPassword, newPassword })),
+    [mutation],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+/** Setzt das Passwort eines frisch eingeladenen Users, ohne Re-Auth (V2/E7,
+ *  s. api/supabase/auth.ts::setInitialPassword()). Aktualisiert den
+ *  `profileBasics`-Cache optimistisch auf `hasPassword: true` — der
+ *  DB-Trigger setzt das serverseitig ohnehin, aber ein sofortiger
+ *  Cache-Refetch ist hier nicht nötig, um die Wizard-UI weiterzuschalten. */
+export function useSetInitialPassword() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (newPassword: string) => unwrap(await setInitialPasswordAdapter(newPassword)),
+    onSuccess: () => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, hasPassword: true } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (newPassword: string): Promise<Result> => catchResult(() => mutation.mutateAsync(newPassword)),
     [mutation],
   );
 

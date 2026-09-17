@@ -50,3 +50,16 @@ export async function updatePassword(
   }
   return { ok: true };
 }
+
+/** Setzt das Passwort für einen frisch eingeladenen User (Onboarding-
+ *  Assistent, Fahrplan 17 E7) — OHNE Re-Authentifizierung: nach dem
+ *  Invite-Link existiert noch kein aktuelles Passwort, das man abfragen
+ *  könnte. Die aktive Session aus dem Link reicht `updateUser()`. Der
+ *  `has_password`-Trigger (V2) setzt danach serverseitig `profiles.
+ *  has_password = true`. */
+export async function setInitialPassword(newPassword: string): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}

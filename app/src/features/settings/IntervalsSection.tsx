@@ -11,7 +11,15 @@ import { useIntervalsCredentials, useUpdateIntervalsCredentials } from "../../ap
 import { SavedCheck } from "./SavedCheck";
 import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, HEADING_STYLE, ERROR_STYLE } from "./section-styles";
 
-export function IntervalsSection() {
+export interface IntervalsSectionProps {
+  /** Nur relevant, wenn diese Sektion als Onboarding-Wizard-Schritt läuft
+   *  (E7, V5-Contract) statt standalone in Settings — dort ungenutzt. Bei
+   *  erfolgreichem Speichern wird automatisch weitergeschaltet. */
+  onComplete?: () => void;
+  onSkip?: () => void;
+}
+
+export function IntervalsSection({ onComplete, onSkip }: IntervalsSectionProps = {}) {
   const { credentials } = useIntervalsCredentials();
   const { update, isPending } = useUpdateIntervalsCredentials();
 
@@ -45,6 +53,10 @@ export function IntervalsSection() {
       return;
     }
     setApiKey("");
+    if (onComplete) {
+      onComplete();
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 1500);
   }
@@ -88,9 +100,25 @@ export function IntervalsSection() {
               opacity: isPending ? 0.7 : 1,
             }}
           >
-            {isPending ? "Speichern …" : "Speichern"}
+            {isPending ? "Speichern …" : onComplete ? "Weiter" : "Speichern"}
           </button>
           {saved && <SavedCheck />}
+          {onSkip && (
+            <button
+              type="button"
+              onClick={onSkip}
+              style={{
+                padding: "9px 18px",
+                borderRadius: "var(--pill)",
+                border: "1px solid var(--hair)",
+                background: "transparent",
+                color: "var(--ink-3)",
+                cursor: "pointer",
+              }}
+            >
+              Überspringen
+            </button>
+          )}
         </span>
       </form>
     </div>

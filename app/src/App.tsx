@@ -2,6 +2,7 @@ import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppBackground } from "./components/AppBackground";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import { OnboardingGate } from "./features/onboarding/OnboardingGate";
 import { LoginPage } from "./features/auth/LoginPage";
 import { HeroPage } from "./features/hero/HeroPage";
 import { PlanningPage } from "./features/planning/PlanningPage";
@@ -42,19 +43,26 @@ export default function App() {
               Ziele/FTP/Formate/Datenquellen). Layout wrappt beide Gruppen,
               ProtectedRoute gated deshalb nur noch die Settings-Unterroute,
               nicht mehr den ganzen Baum. */}
-          <Route element={<Layout />}>
-            <Route index element={<HeroPage />} />
-            <Route path="planning" element={<PlanningPage />} />
-            {/* Explorer war bis Etappe Layout-Merge 2026-08-20 eine eigene
-                Route — jetzt der "Verläufe"-Tab in AnalysisPage.tsx (Critique-
-                Fund P1: "Analyse" hatte keine Charts). Redirect für alte
-                Lesezeichen/Links. */}
-            <Route path="explorer" element={<ExplorerRedirect />} />
-            <Route path="log" element={<LogbookPage />} />
-            <Route path="analysis" element={<AnalysisPage />} />
-            <Route path="events" element={<EventsPage />} />
-            <Route element={<ProtectedRoute />}>
-              <Route path="settings" element={<SettingsPage />} />
+          {/* OnboardingGate wrapt die ganze eingeloggte App (nicht nur
+              /settings wie ProtectedRoute): eine frisch eingeladene Person
+              (has_password === false) landet nach dem Invite-Link auf
+              irgendeiner Route — der Assistent muss dort greifen, nicht nur
+              beim gezielten Settings-Aufruf (Fahrplan 17 E7). */}
+          <Route element={<OnboardingGate />}>
+            <Route element={<Layout />}>
+              <Route index element={<HeroPage />} />
+              <Route path="planning" element={<PlanningPage />} />
+              {/* Explorer war bis Etappe Layout-Merge 2026-08-20 eine eigene
+                  Route — jetzt der "Verläufe"-Tab in AnalysisPage.tsx (Critique-
+                  Fund P1: "Analyse" hatte keine Charts). Redirect für alte
+                  Lesezeichen/Links. */}
+              <Route path="explorer" element={<ExplorerRedirect />} />
+              <Route path="log" element={<LogbookPage />} />
+              <Route path="analysis" element={<AnalysisPage />} />
+              <Route path="events" element={<EventsPage />} />
+              <Route element={<ProtectedRoute />}>
+                <Route path="settings" element={<SettingsPage />} />
+              </Route>
             </Route>
           </Route>
         </Routes>

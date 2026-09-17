@@ -1,14 +1,42 @@
 :80 {
+    # CORS: Frontend läuft auf Port 8080, dieser Proxy auf Port 80 — für den
+    # Browser zwei verschiedene Origins. Bisher wurde dieser Stack nur per
+    # curl getestet (keine CORS-Prüfung dort), ein echter Browser-Fetch
+    # scheiterte zuerst am Preflight (OPTIONS -> 405), dann — nach Fix der
+    # erlaubten Header (supabase-js schickt zusätzlich
+    # x-supabase-api-version mit) — an einem doppelten
+    # Access-Control-Allow-Origin-Header: GoTrue/PostgREST setzen selbst
+    # schon "*", ein simples "header"-Directive hier kam als zweiter Wert
+    # oben drauf statt ihn zu ersetzen ("contains multiple values"). Fix:
+    # "header_down" direkt im reverse_proxy-Block ersetzt den
+    # Upstream-Header statt ihn zu ergänzen. Gefunden per Playwright MCP
+    # beim Onboarding-Assistenten-Test, Fahrplan 17 E7.
+    @cors_preflight {
+        method OPTIONS
+    }
+    handle @cors_preflight {
+        header Access-Control-Allow-Origin "http://localhost:8080"
+        header Access-Control-Allow-Methods "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+        header Access-Control-Allow-Headers "authorization, apikey, content-type, prefer, x-client-info, x-supabase-api-version, accept-profile, content-profile, range, x-retry-count"
+        respond "" 204
+    }
+
     handle /auth/v1/* {
         uri strip_prefix /auth/v1
-        reverse_proxy gotrue:8081
+        reverse_proxy gotrue:8081 {
+            header_down Access-Control-Allow-Origin "http://localhost:8080"
+        }
     }
     handle /rest/v1/* {
         uri strip_prefix /rest/v1
-        reverse_proxy postgrest:3000
+        reverse_proxy postgrest:3000 {
+            header_down Access-Control-Allow-Origin "http://localhost:8080"
+        }
     }
     handle /admin/* {
-        reverse_proxy admin-api:3001
+        reverse_proxy admin-api:3001 {
+            header_down Access-Control-Allow-Origin "http://localhost:8080"
+        }
     }
     handle {
         respond "DKR3 self-host stack: nur /auth/v1 und /rest/v1 sind geroutet, das Frontend laeuft separat (DKR1)." 404
