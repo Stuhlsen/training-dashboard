@@ -212,6 +212,58 @@ export async function getProfileBasics(): Promise<Result<{ basics: ProfileOwnFie
   return { ok: true, basics: toProfileOwnFields(data) };
 }
 
+/** Migration 0039 (Fahrplan 17 E3) — sechs spaltenrestriktive UPDATE-Grants
+ *  wie ftp_public/units_preference, RLS lässt jeweils nur die eigene Zeile
+ *  zu. Schreiben bleibt auf der Basistabelle `profiles` (die View
+ *  `profiles_own` ist reiner Lesepfad, kein UPDATE-Grant darauf). */
+export async function updateBirthdate(userId: string, value: string | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ birthdate: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+export async function updateRestingHr(userId: string, value: number | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ resting_hr: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+export async function updateGender(userId: string, value: ProfileOwnFields["gender"]): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ gender: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+export async function updateHeightCm(userId: string, value: number | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ height_cm: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+export async function updateWeightKg(userId: string, value: number | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ weight_kg: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+export async function updateHrMax(userId: string, value: number | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ hr_max: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
 /** Anzeigename eines beliebigen Profils (Trainer-Verknüpfung, Settings/Daten)
  *  — öffentlicher Read wie findProfileIdByDisplayName(), kein
  *  getAuthedClient() nötig (profiles: "öffentlich lesbar", 0001/0002). */

@@ -18,6 +18,12 @@ import {
   updateLadderProgressionEnabled as updateLadderProgressionEnabledAdapter,
   updateUnitsPreference as updateUnitsPreferenceAdapter,
   updatePlanOffsetWeeks as updatePlanOffsetWeeksAdapter,
+  updateBirthdate as updateBirthdateAdapter,
+  updateRestingHr as updateRestingHrAdapter,
+  updateGender as updateGenderAdapter,
+  updateHeightCm as updateHeightCmAdapter,
+  updateWeightKg as updateWeightKgAdapter,
+  updateHrMax as updateHrMaxAdapter,
   getProfileBasics,
 } from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter } from "../supabase/auth";
@@ -216,9 +222,9 @@ export function useUpdatePassword() {
 
 /** Die privaten `profiles_own`-Felder des eingeloggten Users (Geburtsdatum,
  *  Ruhepuls, Geschlecht, Größe, Gewicht, hrMax — Migration 0039, Fahrplan 17
- *  E2). Read-only in dieser Etappe; die Update-Mutationen für die neuen
- *  Felder kommen mit E3 (ProfileBasicsSection) dazu, unter demselben
- *  Query-Key. Muster wie `useCurrentProfile()` (useSession.ts). */
+ *  E2). Muster wie `useCurrentProfile()` (useSession.ts). Die Update-Hooks
+ *  darunter (E3, ProfileBasicsSection) schreiben unter demselben
+ *  Query-Key in den Cache zurück. */
 export function useProfileBasics() {
   const userId = useAuthUserId();
   return useQuery({
@@ -227,4 +233,163 @@ export function useProfileBasics() {
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<ProfileOwnFields> => unwrap(await getProfileBasics()).basics,
   });
+}
+
+/** Sechs Update-Hooks für die `ProfileBasicsSection` (Fahrplan 17 E3) — je
+ *  ein Feld einzeln speicherbar, gleiches Muster wie useUpdateFtpPublic()
+ *  oben, nur gegen den `profileBasics`-Cache statt `profile`. */
+export function useUpdateBirthdate() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: string | null) => {
+      unwrap(await updateBirthdateAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, birthdate: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: string | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateRestingHr() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: number | null) => {
+      unwrap(await updateRestingHrAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, restingHr: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: number | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateGender() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: ProfileOwnFields["gender"]) => {
+      unwrap(await updateGenderAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, gender: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: ProfileOwnFields["gender"]): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateHeightCm() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: number | null) => {
+      unwrap(await updateHeightCmAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, heightCm: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: number | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateWeightKg() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: number | null) => {
+      unwrap(await updateWeightKgAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, weightKg: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: number | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+export function useUpdateHrMax() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: number | null) => {
+      unwrap(await updateHrMaxAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, hrMax: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: number | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
 }

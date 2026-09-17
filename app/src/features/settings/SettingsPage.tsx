@@ -22,6 +22,7 @@ import { SessionsSection } from "./SessionsSection";
 import { NotificationsSection } from "./NotificationsSection";
 import { GoalsSection } from "./GoalsSection";
 import { TrainingTargetsSection } from "./TrainingTargetsSection";
+import { ProfileBasicsSection } from "./ProfileBasicsSection";
 import { CheckinSection } from "./CheckinSection";
 import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
@@ -173,6 +174,7 @@ export function SettingsPage() {
                 <GlassCard id="sec-training" variant="soft" style={CARD_STYLE}>
                   <h2 style={CARD_HEADING_STYLE}>Training</h2>
                   <GoalsSection />
+                  <ProfileBasicsSection />
                   <TrainingTargetsSection />
                   <CheckinSection />
                   <FtpHistorySection />

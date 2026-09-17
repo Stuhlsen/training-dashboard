@@ -22,6 +22,12 @@ const {
   getProfile,
   getProfileByDisplayName,
   getProfileBasics,
+  updateBirthdate,
+  updateRestingHr,
+  updateGender,
+  updateHeightCm,
+  updateWeightKg,
+  updateHrMax,
 } = await import("./profiles");
 
 describe("updateUnitsPreference", () => {
@@ -119,6 +125,91 @@ describe("getCoachDisplayName", () => {
     fakeClient.handlers.profiles = () => ({ data: null, error: null });
     const result = await getCoachDisplayName("coach-1");
     expect(result).toEqual({ ok: true, name: null });
+  });
+});
+
+describe("Profil-Basisdaten-Updates (Migration 0039, Fahrplan 17 E3)", () => {
+  it("updateBirthdate schreibt birthdate für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateBirthdate("profile-1", "1990-05-01");
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ birthdate: "1990-05-01" });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+
+  it("updateBirthdate mit null löscht das Feld", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateBirthdate("profile-1", null);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ birthdate: null });
+  });
+
+  it("updateRestingHr schreibt resting_hr für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateRestingHr("profile-1", 52);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ resting_hr: 52 });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+
+  it("updateGender schreibt gender für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateGender("profile-1", "divers");
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ gender: "divers" });
+  });
+
+  it("updateHeightCm schreibt height_cm für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateHeightCm("profile-1", 180);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ height_cm: 180 });
+  });
+
+  it("updateWeightKg schreibt weight_kg für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateWeightKg("profile-1", 74.5);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ weight_kg: 74.5 });
+  });
+
+  it("updateHrMax schreibt hr_max für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateHrMax("profile-1", 201);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ hr_max: 201 });
   });
 });
 

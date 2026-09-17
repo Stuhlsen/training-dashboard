@@ -10,6 +10,12 @@ let updateWellbeingCalls: Array<{ userId: string; value: boolean }> = [];
 let updateFtpPublicCalls: Array<{ userId: string; value: boolean }> = [];
 let updateLadderProgressionCalls: Array<{ userId: string; value: boolean }> = [];
 let profileBasics: ProfileOwnFields | null = null;
+let updateBirthdateCalls: Array<{ userId: string; value: string | null }> = [];
+let updateRestingHrCalls: Array<{ userId: string; value: number | null }> = [];
+let updateGenderCalls: Array<{ userId: string; value: ProfileOwnFields["gender"] }> = [];
+let updateHeightCmCalls: Array<{ userId: string; value: number | null }> = [];
+let updateWeightKgCalls: Array<{ userId: string; value: number | null }> = [];
+let updateHrMaxCalls: Array<{ userId: string; value: number | null }> = [];
 
 vi.mock("../supabase/profiles", () => ({
   updateDisplayName: async (userId: string, name: string) => {
@@ -32,6 +38,30 @@ vi.mock("../supabase/profiles", () => ({
     if (!profileBasics) return { ok: false, error: { code: "UNKNOWN", message: "keine Zeile" } };
     return { ok: true, basics: profileBasics };
   },
+  updateBirthdate: async (userId: string, value: string | null) => {
+    updateBirthdateCalls.push({ userId, value });
+    return { ok: true };
+  },
+  updateRestingHr: async (userId: string, value: number | null) => {
+    updateRestingHrCalls.push({ userId, value });
+    return { ok: true };
+  },
+  updateGender: async (userId: string, value: ProfileOwnFields["gender"]) => {
+    updateGenderCalls.push({ userId, value });
+    return { ok: true };
+  },
+  updateHeightCm: async (userId: string, value: number | null) => {
+    updateHeightCmCalls.push({ userId, value });
+    return { ok: true };
+  },
+  updateWeightKg: async (userId: string, value: number | null) => {
+    updateWeightKgCalls.push({ userId, value });
+    return { ok: true };
+  },
+  updateHrMax: async (userId: string, value: number | null) => {
+    updateHrMaxCalls.push({ userId, value });
+    return { ok: true };
+  },
 }));
 
 let updatePasswordCalls: Array<{ currentPassword: string; newPassword: string }> = [];
@@ -52,6 +82,12 @@ const {
   useUpdateLadderProgressionEnabled,
   useUpdatePassword,
   useProfileBasics,
+  useUpdateBirthdate,
+  useUpdateRestingHr,
+  useUpdateGender,
+  useUpdateHeightCm,
+  useUpdateWeightKg,
+  useUpdateHrMax,
 } = await import("./useProfile");
 
 beforeEach(() => {
@@ -62,6 +98,12 @@ beforeEach(() => {
   updatePasswordCalls = [];
   updatePasswordResult = { ok: true };
   profileBasics = null;
+  updateBirthdateCalls = [];
+  updateRestingHrCalls = [];
+  updateGenderCalls = [];
+  updateHeightCmCalls = [];
+  updateWeightKgCalls = [];
+  updateHrMaxCalls = [];
 });
 
 describe("useUpdateDisplayName", () => {
@@ -239,5 +281,103 @@ describe("useProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
     const view = renderHook(() => useProfileBasics(), { wrapper });
     await waitFor(() => expect(view.result.current.isLoading).toBe(false));
     expect(view.result.current.data).toBeUndefined();
+  });
+});
+
+const BASELINE_BASICS: ProfileOwnFields = {
+  hasPassword: true,
+  birthdate: null,
+  restingHr: null,
+  gender: null,
+  heightCm: null,
+  weightKg: null,
+  hrMax: null,
+  updatedAt: "2026-09-01T00:00:00Z",
+};
+
+describe("Profil-Basisdaten-Update-Hooks (Migration 0039, Fahrplan 17 E3)", () => {
+  it("useUpdateBirthdate schreibt den Wert und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateBirthdate(), { wrapper });
+    await act(async () => {
+      await view.result.current.update("1990-05-01");
+    });
+    expect(updateBirthdateCalls).toEqual([{ userId: "user-1", value: "1990-05-01" }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).birthdate).toBe(
+      "1990-05-01",
+    );
+  });
+
+  it("useUpdateRestingHr schreibt den Wert und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateRestingHr(), { wrapper });
+    await act(async () => {
+      await view.result.current.update(52);
+    });
+    expect(updateRestingHrCalls).toEqual([{ userId: "user-1", value: 52 }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).restingHr).toBe(52);
+  });
+
+  it("useUpdateGender schreibt den Wert und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateGender(), { wrapper });
+    await act(async () => {
+      await view.result.current.update("divers");
+    });
+    expect(updateGenderCalls).toEqual([{ userId: "user-1", value: "divers" }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).gender).toBe("divers");
+  });
+
+  it("useUpdateHeightCm schreibt den Wert und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateHeightCm(), { wrapper });
+    await act(async () => {
+      await view.result.current.update(180);
+    });
+    expect(updateHeightCmCalls).toEqual([{ userId: "user-1", value: 180 }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).heightCm).toBe(180);
+  });
+
+  it("useUpdateWeightKg schreibt den Wert und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateWeightKg(), { wrapper });
+    await act(async () => {
+      await view.result.current.update(74.5);
+    });
+    expect(updateWeightKgCalls).toEqual([{ userId: "user-1", value: 74.5 }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).weightKg).toBe(74.5);
+  });
+
+  it("useUpdateHrMax schreibt den Wert und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateHrMax(), { wrapper });
+    await act(async () => {
+      await view.result.current.update(201);
+    });
+    expect(updateHrMaxCalls).toEqual([{ userId: "user-1", value: 201 }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).hrMax).toBe(201);
+  });
+
+  it("ohne Session -> Fehler, kein Aufruf (Beispiel useUpdateHrMax)", async () => {
+    const { wrapper } = createHarness({ userId: null });
+    const view = renderHook(() => useUpdateHrMax(), { wrapper });
+    let result;
+    await act(async () => {
+      result = await view.result.current.update(201);
+    });
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } });
+    expect(updateHrMaxCalls).toEqual([]);
   });
 });
