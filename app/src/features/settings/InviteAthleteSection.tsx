@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { inviteAthlete } from "../../api/admin-invite";
 import type { ResultError } from "../../api/types";
-import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, LINK_BUTTON_STYLE, ERROR_STYLE } from "./section-styles";
+import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, LINK_BUTTON_STYLE, ERROR_STYLE, HEADING_STYLE } from "./section-styles";
 
 const PRIMARY_BUTTON_STYLE = {
   alignSelf: "flex-start" as const,
@@ -87,6 +87,7 @@ export function InviteAthleteSection() {
 
   return (
     <div style={SECTION_STYLE}>
+      <h3 style={HEADING_STYLE}>Neu einladen</h3>
       <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <label style={LABEL_STYLE}>
           E-Mail der einzuladenden Person

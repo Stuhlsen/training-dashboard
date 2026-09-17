@@ -62,6 +62,22 @@ export interface ProfileOwnFields {
   updatedAt: string;
 }
 
+/** Eine Zeile der Admin-Athletenübersicht (`GET /admin/athletes`,
+ *  admin-api, Fahrplan 17 E5/V4/E6) — GoTrue (E-Mail, letzter Login) gemergt
+ *  mit `profiles` + den Athleten-Tabellen mit eigenem `updated_at`-Trigger
+ *  (grobes "zuletzt geändert"-Label, kein Änderungsprotokoll auf Feldebene,
+ *  s. Nicht-Ziele). `email` kann null sein, wenn der GoTrue-User zur
+ *  `profiles`-Zeile nicht (mehr) gefunden wird. */
+export interface AdminAthleteRow {
+  id: string;
+  email: string | null;
+  displayName: string | null;
+  hasPassword: boolean;
+  lastSignInAt: string | null;
+  lastChangedAt: string | null;
+  lastChangedArea: string | null;
+}
+
 /** Strukturiertes Workout einer Plankarte. Bewusst `unknown`-durchgereicht:
  *  die Struktur (Intervallblöcke, watts/pct) wird in Etappe 6 (Planungstab)
  *  getypt, wenn die Karten-UI sie tatsächlich liest — hier würde ein
