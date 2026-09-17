@@ -1,6 +1,7 @@
 const http = require("node:http");
 const { requireAdmin } = require("./auth.js");
 const { sendInvite } = require("./invite.js");
+const { listAthletes } = require("./athletes.js");
 
 const PORT = process.env.PORT || 3001;
 const ENV = {
@@ -64,6 +65,22 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     sendJson(res, 200, { ok: true, link: result.link });
+    return;
+  }
+
+  if (req.method === "GET" && req.url === "/admin/athletes") {
+    const admin = await requireAdmin(req.headers.authorization, ENV);
+    if (!admin.ok) {
+      sendJson(res, admin.status, { ok: false, error: admin.error });
+      return;
+    }
+
+    const result = await listAthletes(ENV);
+    if (!result.ok) {
+      sendJson(res, result.status, { ok: false, error: result.error });
+      return;
+    }
+    sendJson(res, 200, { ok: true, athletes: result.athletes });
     return;
   }
 
