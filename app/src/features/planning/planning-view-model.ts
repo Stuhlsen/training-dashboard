@@ -672,6 +672,14 @@ export function buildDoneCompareRows(
    *  CADENCE_TARGET_RPM; Warmup/lockere Blöcke liegen 5 darunter, echte
    *  Z2-Fahrten 10 darunter (früher fest 85 / 80). */
   cadenceTarget: number = 90,
+  /** Maximale Herzfrequenz für das Puls-Zonen-Band (Fahrplan 17 E2).
+   *  `undefined` (Parameter weggelassen) → altes Verhalten, interner
+   *  Lookup über `athleteConfig(athleteId)?.hrMax` (Legacy-Fallback,
+   *  s. config.ts). Explizit übergeben (auch `null`) → dieser Wert
+   *  gewinnt, ohne den Lookup — der Aufrufer (PlanningPage.tsx) löst dann
+   *  selbst den DB-Wert aus `profiles_own` auf (nur bei Eigenansicht, s.
+   *  `useIsSelfAthlete()`), sonst bleibt es bei config.ts. */
+  hrMax?: number | null,
 ): DoneCompareRow[] {
   const rows: DoneCompareRow[] = [];
   const isZ2 = isZ2Type(card.typ);
@@ -721,9 +729,12 @@ export function buildDoneCompareRows(
   // Puls (nur wenn beides vorliegt). Sonst nur der Ist-Wert (Gesamt-Schnitt),
   // kein Pass/Fail — kein erfundenes Band.
   if (ride.hf) {
-    const hrMax = athleteConfig(athleteId)?.hrMax ?? null;
+    const resolvedHrMax = hrMax !== undefined ? hrMax : (athleteConfig(athleteId)?.hrMax ?? null);
     const intervalHr = comp ? weightedMatchedMean(comp.matched, "avgHr") : null;
-    const band = comp && hrMax && intervalHr != null ? hrTargetBandFromCompliance(comp, ftp, hrMax) : null;
+    const band =
+      comp && resolvedHrMax && intervalHr != null
+        ? hrTargetBandFromCompliance(comp, ftp, resolvedHrMax)
+        : null;
     const actualHr = band && intervalHr != null ? intervalHr : ride.hf;
     let plan = "–";
     let color: string | undefined;

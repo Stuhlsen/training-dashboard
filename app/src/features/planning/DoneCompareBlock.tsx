@@ -24,6 +24,10 @@ interface DoneCompareBlockProps {
    *  Kommt von PlanningPage (useCadenceTarget, nur bei eigenem Login);
    *  Default 90 = CADENCE_TARGET_RPM. */
   cadenceTarget?: number;
+  /** Maximale Herzfrequenz für das Puls-Zonen-Band (Fahrplan 17 E2). Kommt
+   *  von PlanningPage (profiles_own, nur bei Eigenansicht) — `undefined`
+   *  lässt buildDoneCompareRows() auf den config.ts-Fallback zurückfallen. */
+  hrMax?: number | null;
 }
 
 /** "Geplant → Tatsächlich"-Vergleichsblock einer absolvierten Plankarte —
@@ -31,8 +35,8 @@ interface DoneCompareBlockProps {
  *  Rein präsentational, gleicher Row/Cell-Aufbau wie ComplianceTable.tsx;
  *  die eigentliche Zeilenlogik sitzt in buildDoneCompareRows(). `athleteId`/
  *  `ftp` speisen dort das HF-Zonen-Band der Puls-Zeile. */
-export function DoneCompareBlock({ card, ride, athleteId, ftp, cadenceTarget = 90 }: DoneCompareBlockProps) {
-  const rows = buildDoneCompareRows(card, ride, athleteId, ftp, cadenceTarget);
+export function DoneCompareBlock({ card, ride, athleteId, ftp, cadenceTarget = 90, hrMax }: DoneCompareBlockProps) {
+  const rows = buildDoneCompareRows(card, ride, athleteId, ftp, cadenceTarget, hrMax);
   if (!rows.length) return null;
 
   return (

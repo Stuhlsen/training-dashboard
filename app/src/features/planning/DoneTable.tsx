@@ -29,6 +29,9 @@ export interface DoneTableProps {
   /** Intervall-Kadenzziel des Athleten für die Kadenz-Zeile im
    *  DoneCompareBlock (Fahrplan 11). Default 90. */
   cadenceTarget?: number;
+  /** Maximale Herzfrequenz für das Puls-Zonen-Band im DoneCompareBlock
+   *  (Fahrplan 17 E2) — durchgereicht, s. Kommentar dort. */
+  hrMax?: number | null;
   /** 13e liefert DoneDetailChart als eigentlichen Chart-Inhalt — hier nur
    *  ein Einhänge-Slot (gleiches Muster wie WeekGrid.tsx::renderDetail),
    *  damit 13d/13e parallel entwickelbar bleiben. */
@@ -40,7 +43,7 @@ export interface DoneTableProps {
  *  (`CardSection("✅ Absolviert…")` in PlanningPage.tsx, Verdrahtung folgt
  *  in 13f). Klick auf eine Zeile klappt DoneCompareBlock (unverändert
  *  wiederverwendet) + den DoneDetailChart-Slot darunter auf. */
-export function DoneTable({ rows, fidelity, gaps, athleteId, ftp, cadenceTarget = 90, renderChart }: DoneTableProps) {
+export function DoneTable({ rows, fidelity, gaps, athleteId, ftp, cadenceTarget = 90, hrMax, renderChart }: DoneTableProps) {
   const [openId, setOpenId] = useState<string | null>(null);
   // Soll/Ist und Compliance brauchen tssPlanned bzw. eine erkannte
   // Workout-Struktur auf der Karte — die meisten Karten (unstrukturierte
@@ -151,7 +154,7 @@ export function DoneTable({ rows, fidelity, gaps, athleteId, ftp, cadenceTarget 
                         >
                           <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
                             <div style={{ flex: "1 1 260px", minWidth: 220 }}>
-                              <DoneCompareBlock card={row.card} ride={row.ride} athleteId={athleteId} ftp={ftp} cadenceTarget={cadenceTarget} />
+                              <DoneCompareBlock card={row.card} ride={row.ride} athleteId={athleteId} ftp={ftp} cadenceTarget={cadenceTarget} hrMax={hrMax} />
                             </div>
                             <div style={{ flex: "1 1 260px", minWidth: 220 }}>{renderChart?.(row)}</div>
                           </div>

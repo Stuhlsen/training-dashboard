@@ -15,8 +15,14 @@ vi.mock("./client", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { updateUnitsPreference, updateFtpPublic, getCoachDisplayName, getProfile, getProfileByDisplayName } =
-  await import("./profiles");
+const {
+  updateUnitsPreference,
+  updateFtpPublic,
+  getCoachDisplayName,
+  getProfile,
+  getProfileByDisplayName,
+  getProfileBasics,
+} = await import("./profiles");
 
 describe("updateUnitsPreference", () => {
   it("schreibt units_preference für die eigene Zeile", async () => {
@@ -113,5 +119,43 @@ describe("getCoachDisplayName", () => {
     fakeClient.handlers.profiles = () => ({ data: null, error: null });
     const result = await getCoachDisplayName("coach-1");
     expect(result).toEqual({ ok: true, name: null });
+  });
+});
+
+describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
+  it("liest die eigene Zeile über profiles_own, ohne zusätzlichen Filter (RLS filtert serverseitig auf auth.uid())", async () => {
+    let seenTable = "";
+    fakeClient.handlers.profiles_own = (calls) => {
+      seenTable = calls.table;
+      return {
+        data: {
+          id: "self-1",
+          has_password: true,
+          birthdate: "1990-05-01",
+          resting_hr: 52,
+          gender: "maennlich",
+          height_cm: 180,
+          weight_kg: "74.5",
+          hr_max: 201,
+          updated_at: "2026-09-01T00:00:00Z",
+        },
+        error: null,
+      };
+    };
+    const result = await getProfileBasics();
+    expect(seenTable).toBe("profiles_own");
+    expect(result).toEqual({
+      ok: true,
+      basics: {
+        hasPassword: true,
+        birthdate: "1990-05-01",
+        restingHr: 52,
+        gender: "maennlich",
+        heightCm: 180,
+        weightKg: 74.5,
+        hrMax: 201,
+        updatedAt: "2026-09-01T00:00:00Z",
+      },
+    });
   });
 });

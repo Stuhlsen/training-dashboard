@@ -64,6 +64,7 @@ import { DoneTable } from "./DoneTable";
 import { DoneDetailChart } from "./DoneDetailChart";
 import { useIntervalsCredentials } from "../../api/hooks/useIntervalsCredentials";
 import { useCadenceTarget } from "../../api/hooks/useCadenceTarget";
+import { useProfileBasics } from "../../api/hooks/useProfile";
 import { buildDoneRows, gapsChips, planFidelitySummary } from "./done-table-view-model";
 import {
   buildPlanningSections,
@@ -257,6 +258,15 @@ export function PlanningPage() {
   // eigenen Plan. Fremder Athlet ⇒ Standard 90 (wie früher fest verdrahtet).
   const { target: ownCadenceTarget } = useCadenceTarget();
   const cadenceTarget = isSelf ? ownCadenceTarget : 90;
+
+  // Planungstab-Pulsband (Fahrplan 17 E2): DB-Wert (profiles_own.hr_max)
+  // nur bei Eigenansicht — die View ist per RLS ohnehin nur für auth.uid()
+  // lesbar, ein Trainer/Fremdblick bekäme hier nie eine Zeile. Fremdansicht
+  // bzw. noch kein eigener DB-Wert eingetragen ⇒ config.ts-Legacy-Fallback
+  // (identisch zum bisherigen Verhalten, Golden Master).
+  const { data: profileBasics } = useProfileBasics();
+  const configHrMax = athleteConfig(activeAthleteId)?.hrMax ?? null;
+  const hrMax = isSelf ? (profileBasics?.hrMax ?? configHrMax) : configHrMax;
 
   const ftp = resolvePlanningFtp(activeAthleteId, rideData?.athleteFtp ?? null);
 
@@ -801,6 +811,7 @@ export function PlanningPage() {
               athleteId={activeAthleteId}
               ftp={ftp ?? null}
               cadenceTarget={cadenceTarget}
+              hrMax={hrMax}
               renderChart={(row) => (
                 <DoneDetailChart {...row} intervalsCredentials={intervalsCredentials} ftp={ftp ?? null} />
               )}

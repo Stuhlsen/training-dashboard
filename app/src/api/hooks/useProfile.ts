@@ -10,7 +10,7 @@
    ============================================================ */
 
 import { useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   updateDisplayName as updateDisplayNameAdapter,
   updateWellbeingPublic as updateWellbeingPublicAdapter,
@@ -18,13 +18,14 @@ import {
   updateLadderProgressionEnabled as updateLadderProgressionEnabledAdapter,
   updateUnitsPreference as updateUnitsPreferenceAdapter,
   updatePlanOffsetWeeks as updatePlanOffsetWeeksAdapter,
+  getProfileBasics,
 } from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter } from "../supabase/auth";
 import { clampPlanOffset } from "../../core/plan-shift.js";
 import { useAuthUserId } from "./useSession";
 import { qk } from "../keys";
 import { catchResult, unwrap } from "../result";
-import type { Profile, Result } from "../types";
+import type { Profile, ProfileOwnFields, Result } from "../types";
 
 const NOT_LOGGED_IN = { code: "UNKNOWN" as const, message: "Nicht eingeloggt" };
 
@@ -211,4 +212,19 @@ export function useUpdatePassword() {
   );
 
   return { update, isPending: mutation.isPending };
+}
+
+/** Die privaten `profiles_own`-Felder des eingeloggten Users (Geburtsdatum,
+ *  Ruhepuls, Geschlecht, Größe, Gewicht, hrMax — Migration 0039, Fahrplan 17
+ *  E2). Read-only in dieser Etappe; die Update-Mutationen für die neuen
+ *  Felder kommen mit E3 (ProfileBasicsSection) dazu, unter demselben
+ *  Query-Key. Muster wie `useCurrentProfile()` (useSession.ts). */
+export function useProfileBasics() {
+  const userId = useAuthUserId();
+  return useQuery({
+    queryKey: qk.profileBasics(userId ?? "anonymous"),
+    enabled: !!userId,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<ProfileOwnFields> => unwrap(await getProfileBasics()).basics,
+  });
 }

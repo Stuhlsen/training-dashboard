@@ -50,15 +50,24 @@ export interface AthleteConfig {
    *  Kopfkommentar + `sports/README.md`). Bezugswert für die HF-Zonen aus
    *  `sports/cycling/metrics.ts::HR_ZONES`. Konsument: das Puls-Zielband im
    *  Planungstab-Block „Geplant → Tatsächlich" (Punkt 6 der 6-Punkte-Liste).
-   *  `null`, solange kein Wert vorliegt (Athlet 2/4) — das Band entfällt dann,
-   *  die Puls-Zeile zeigt nur den Ist-Wert. */
+   *
+   *  **LEGACY-FALLBACK seit Fahrplan 17 E2:** die eigentliche Wahrheit ist
+   *  jetzt `profiles.hr_max` (Migration 0039, self-service über Settings,
+   *  E3) — gelesen über `profiles_own` und in `PlanningPage.tsx` nur bei
+   *  Eigenansicht angewendet (`useIsSelfAthlete()`). Dieses Literal greift
+   *  nur noch, solange kein eigener DB-Wert eingetragen ist, oder wenn ein
+   *  FREMDER Athlet betrachtet wird (`profiles_own` ist per RLS nie über
+   *  einen anderen Account lesbar). `null`, solange kein Wert vorliegt
+   *  (Athlet 2/4) — das Band entfällt dann, die Puls-Zeile zeigt nur den
+   *  Ist-Wert. */
   hrMax: number | null;
   /** Ruhe-Herzfrequenz (bpm) — Athletenwert wie `hrMax`. Zusammen mit `hrMax`
    *  die Grundlage der HF-Reserve (`HRr`) für den Multi-Sport-TRIMP-Lastpfad
-   *  (Fahrplan 10). Für den **Sync** ist `profiles.resting_hr` (Migration 0035)
-   *  die Wahrheit — dieses Literal deckt nur einen künftigen Frontend-Konsumenten
-   *  ab. `null`, solange kein Wert vorliegt (alle Bestandsathleten — sie nutzen
-   *  den TRIMP-Pfad nicht). */
+   *  (Fahrplan 10) — app-seitig weiterhin unkonsumiert (s. `core/trimp.js`).
+   *  Für den **Sync** ist `profiles.resting_hr` (Migration 0035) die
+   *  Wahrheit; dieses Literal ist LEGACY-FALLBACK wie `hrMax` oben, für einen
+   *  künftigen Frontend-Konsumenten. `null`, solange kein Wert vorliegt (alle
+   *  Bestandsathleten — sie nutzen den TRIMP-Pfad nicht). */
   hrRest: number | null;
   /** Sportarten dieses Athleten (Fahrplan 10 G14). Fehlt ⇒ als `["ride"]`
    *  gelesen. Steuert u. a. den `>1 Sport`-Zweig des Governors (E6) und den

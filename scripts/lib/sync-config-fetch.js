@@ -90,10 +90,13 @@ async function getOrThrow(url, key, label) {
  *   (profiles.ftp_public, Migration 0025) — Default true, wenn keine
  *   profiles-Zeile zugeordnet ist. `planOffsetWeeks` (profiles.plan_offset_weeks,
  *   Migration 0026) verschiebt die generierte Trainingsplan-Vorlage um N ganze
- *   Wochen — Default 0. `hrMax` (Tanaka-Schätzung aus profiles.birthdate) +
- *   `hrRest` (profiles.resting_hr) sind die HF-Grundlage für den Multi-Sport-
- *   TRIMP-Lastpfad (Migration 0035, Fahrplan 10 E5a) — beide `null` ohne
- *   Profil-Zeile bzw. ohne hinterlegten Wert; Konsument folgt in E6.
+ *   Wochen — Default 0. `hrMax`/`hrRest` sind die HF-Grundlage für den
+ *   Multi-Sport-TRIMP-Lastpfad (Migration 0035, Fahrplan 10 E5a) — beide
+ *   `null` ohne Profil-Zeile bzw. ohne hinterlegten Wert; Konsument folgt in
+ *   E6. `hrMax` bevorzugt seit Fahrplan 17 E2 den GEMESSENEN Wert
+ *   (profiles.hr_max, Migration 0039, Settings-Self-Service) vor der
+ *   Tanaka-Schätzung aus profiles.birthdate — exakt das Muster
+ *   `ftpMeasured` vor `eFTP`. `hrRest` bleibt der rohe `profiles.resting_hr`.
  */
 export async function loadSyncConfig() {
   if (!ENV.SUPABASE_URL || !ENV.SUPABASE_SERVICE_ROLE_KEY) {
@@ -111,7 +114,7 @@ export async function loadSyncConfig() {
     "athlete_sync_config: Abruf"
   );
   const profiles = await getOrThrow(
-    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public,plan_offset_weeks,birthdate,resting_hr`,
+    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public,plan_offset_weeks,birthdate,resting_hr,hr_max`,
     key,
     "profiles: Abruf"
   );
@@ -127,6 +130,10 @@ export async function loadSyncConfig() {
   // nach Tanaka geschätzt (scripts/lib/hr.js), hrRest ist der rohe Wert.
   const restingHrById = new Map(profiles.map((p) => [p.id, toNum(p.resting_hr)]));
   const birthdateById = new Map(profiles.map((p) => [p.id, p.birthdate ?? null]));
+  // profiles.hr_max (Migration 0039, Fahrplan 17 E1/E2) — GEMESSENER Wert,
+  // vom Athleten selbst in Settings eingetragen (E3). Gewinnt vor der
+  // Tanaka-Schätzung, wenn gesetzt.
+  const measuredHrMaxById = new Map(profiles.map((p) => [p.id, toNum(p.hr_max)]));
 
   const bySlug = new Map();
   for (const row of rows) {
@@ -166,7 +173,11 @@ export async function loadSyncConfig() {
       // profiles.birthdate / resting_hr (0035) — nur profile_id-Zeilen haben
       // ein Profil; ohne Wert bzw. ohne Profil-Zeile bleibt beides null
       // (E6-TRIMP überspringt die Aktivität dann + loggt, s. Fahrplan 10 E6).
-      hrMax: row.profile_id ? tanakaHrMax(birthdateById.get(row.profile_id) ?? null, todayISO) : null,
+      // hrMax: GEMESSENER Wert (profiles.hr_max, Fahrplan 17 E2) vor der
+      // Tanaka-Schätzung aus dem Geburtsdatum — Muster ftpMeasured vor eFTP.
+      hrMax: row.profile_id
+        ? (measuredHrMaxById.get(row.profile_id) ?? tanakaHrMax(birthdateById.get(row.profile_id) ?? null, todayISO))
+        : null,
       hrRest: row.profile_id ? (restingHrById.get(row.profile_id) ?? null) : null,
     });
   }

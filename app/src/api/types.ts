@@ -44,6 +44,24 @@ export interface Profile {
   planOffsetWeeks: number;
 }
 
+/** Die eigene Zeile aus der View `profiles_own` (Migration 0039, Fahrplan 17
+ *  E1) — bewusst getrennt von `Profile`/`profiles_visible`: diese Felder
+ *  sind aus Datenschutzgründen NIE über die Basistabelle oder eine
+ *  breiter lesbare View freigegeben, `profiles_own` filtert serverseitig
+ *  auf `id = auth.uid()`. Konsumenten: `ProfileBasicsSection.tsx` (E3),
+ *  das Planungstab-Pulsband (`hrMax`, Fahrplan 17 E2, nur bei
+ *  Eigenansicht — s. `useIsSelfAthlete()`). */
+export interface ProfileOwnFields {
+  hasPassword: boolean;
+  birthdate: string | null;
+  restingHr: number | null;
+  gender: "maennlich" | "weiblich" | "divers" | null;
+  heightCm: number | null;
+  weightKg: number | null;
+  hrMax: number | null;
+  updatedAt: string;
+}
+
 /** Strukturiertes Workout einer Plankarte. Bewusst `unknown`-durchgereicht:
  *  die Struktur (Intervallblöcke, watts/pct) wird in Etappe 6 (Planungstab)
  *  getypt, wenn die Karten-UI sie tatsächlich liest — hier würde ein

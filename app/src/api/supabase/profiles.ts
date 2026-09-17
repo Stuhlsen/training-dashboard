@@ -1,5 +1,5 @@
 import { supabase, getAuthedClient } from "./client";
-import type { Profile, Result } from "../types";
+import type { Profile, ProfileOwnFields, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
@@ -168,6 +168,48 @@ export async function updatePlanOffsetWeeks(userId: string, value: number): Prom
     .eq("id", userId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };
+}
+
+interface ProfileOwnRow {
+  id: string;
+  has_password: boolean;
+  birthdate: string | null;
+  resting_hr: number | null;
+  gender: ProfileOwnFields["gender"];
+  height_cm: number | null;
+  weight_kg: number | string | null;
+  hr_max: number | null;
+  updated_at: string;
+}
+
+function toProfileOwnFields(row: ProfileOwnRow): ProfileOwnFields {
+  return {
+    hasPassword: row.has_password,
+    birthdate: row.birthdate,
+    restingHr: row.resting_hr,
+    gender: row.gender,
+    heightCm: row.height_cm,
+    // numeric(5,1) kommt je nach PostgREST-Antwort als Zahl oder String.
+    weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
+    hrMax: row.hr_max,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** Die eigene Profil-Zeile (Geburtsdatum, Ruhepuls, Geschlecht, Größe,
+ *  Gewicht, hrMax) über die self-only View `profiles_own` (Migration 0039,
+ *  Fahrplan 17 E1/E2) — RLS filtert dort serverseitig auf `id = auth.uid()`,
+ *  ein fremder Aufruf (anderer Athlet) liefert nie eine Zeile. Deshalb ohne
+ *  `.eq("id", userId)`: die View kennt "die eigene Zeile" schon selbst. */
+export async function getProfileBasics(): Promise<Result<{ basics: ProfileOwnFields }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("profiles_own")
+    .select("id, has_password, birthdate, resting_hr, gender, height_cm, weight_kg, hr_max, updated_at")
+    .single<ProfileOwnRow>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, basics: toProfileOwnFields(data) };
 }
 
 /** Anzeigename eines beliebigen Profils (Trainer-Verknüpfung, Settings/Daten)

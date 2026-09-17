@@ -590,6 +590,33 @@ describe("buildDoneCompareRows", () => {
     expect(row?.color).toBeUndefined();
   });
 
+  // Golden Master (Fahrplan 17 E2): hrMax wandert von config.ts auf die DB
+  // (profiles.hr_max, nur bei Eigenansicht — s. PlanningPage.tsx). Der neue
+  // 6. Parameter darf am Ergebnis NICHTS ändern, solange der übergebene
+  // Wert mit dem bisherigen config.ts-Lookup übereinstimmt — das ist exakt
+  // die Golden-Master-Zusage (kein einziger berechneter Wert ändert sich).
+  it("Golden Master: expliziter hrMax=201 (Athlet 1, DB-Wert) liefert dieselbe Puls-Zeile wie der interne config.ts-Lookup", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot" });
+    const r = doneRide({
+      hf: 150,
+      compliance: compliance("a", [{ plannedWatts: 185, avgHr: 172, actualDurationS: 600 }]),
+    });
+    const withoutOverride = buildDoneCompareRows(c, r, A1, FTP);
+    const withOverride = buildDoneCompareRows(c, r, A1, FTP, 90, 201);
+    expect(withOverride).toEqual(withoutOverride);
+  });
+
+  it("Golden Master: expliziter hrMax=null (Athlet 2, kein DB-Wert) liefert dieselbe Puls-Zeile wie der interne config.ts-Lookup", () => {
+    const c = card({ id: "a", date: "2026-08-06", typ: "Sweet Spot" });
+    const r = doneRide({
+      hf: 150,
+      compliance: compliance("a", [{ plannedWatts: 185, avgHr: 172, actualDurationS: 600 }]),
+    });
+    const withoutOverride = buildDoneCompareRows(c, r, "athlete2", 265);
+    const withOverride = buildDoneCompareRows(c, r, "athlete2", 265, 90, null);
+    expect(withOverride).toEqual(withoutOverride);
+  });
+
   it("leere Liste ohne jegliche Ist-Werte", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
     expect(buildDoneCompareRows(c, doneRide(), A1, FTP)).toEqual([]);

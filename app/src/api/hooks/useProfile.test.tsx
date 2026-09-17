@@ -1,14 +1,15 @@
 /* Tests: useUpdateDisplayName/useUpdateWellbeingPublic/useUpdatePassword —
  * Konto-Einstellungen (Settings, Etappe 9). */
 
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Profile } from "../types";
+import type { Profile, ProfileOwnFields } from "../types";
 
 let updateNameCalls: Array<{ userId: string; name: string }> = [];
 let updateWellbeingCalls: Array<{ userId: string; value: boolean }> = [];
 let updateFtpPublicCalls: Array<{ userId: string; value: boolean }> = [];
 let updateLadderProgressionCalls: Array<{ userId: string; value: boolean }> = [];
+let profileBasics: ProfileOwnFields | null = null;
 
 vi.mock("../supabase/profiles", () => ({
   updateDisplayName: async (userId: string, name: string) => {
@@ -26,6 +27,10 @@ vi.mock("../supabase/profiles", () => ({
   updateLadderProgressionEnabled: async (userId: string, value: boolean) => {
     updateLadderProgressionCalls.push({ userId, value });
     return { ok: true };
+  },
+  getProfileBasics: async () => {
+    if (!profileBasics) return { ok: false, error: { code: "UNKNOWN", message: "keine Zeile" } };
+    return { ok: true, basics: profileBasics };
   },
 }));
 
@@ -46,6 +51,7 @@ const {
   useUpdateFtpPublic,
   useUpdateLadderProgressionEnabled,
   useUpdatePassword,
+  useProfileBasics,
 } = await import("./useProfile");
 
 beforeEach(() => {
@@ -55,6 +61,7 @@ beforeEach(() => {
   updateLadderProgressionCalls = [];
   updatePasswordCalls = [];
   updatePasswordResult = { ok: true };
+  profileBasics = null;
 });
 
 describe("useUpdateDisplayName", () => {
@@ -206,5 +213,31 @@ describe("useUpdatePassword", () => {
       result = await view.result.current.update("falsch", "neu456");
     });
     expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "Aktuelles Passwort ist falsch." } });
+  });
+});
+
+describe("useProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
+  it("lädt die eigenen profiles_own-Felder", async () => {
+    profileBasics = {
+      hasPassword: true,
+      birthdate: "1990-05-01",
+      restingHr: 52,
+      gender: "maennlich",
+      heightCm: 180,
+      weightKg: 74.5,
+      hrMax: 201,
+      updatedAt: "2026-09-01T00:00:00Z",
+    };
+    const { wrapper } = createHarness({ userId: "user-1" });
+    const view = renderHook(() => useProfileBasics(), { wrapper });
+    await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+    expect(view.result.current.data).toEqual(profileBasics);
+  });
+
+  it("ohne Session -> kein Ladeversuch (enabled: false)", async () => {
+    const { wrapper } = createHarness({ userId: null });
+    const view = renderHook(() => useProfileBasics(), { wrapper });
+    await waitFor(() => expect(view.result.current.isLoading).toBe(false));
+    expect(view.result.current.data).toBeUndefined();
   });
 });

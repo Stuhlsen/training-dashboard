@@ -20,6 +20,11 @@ export const qk = {
     ["athlete-plan-offset", userId, athleteId] as const,
   /** Profil des eingeloggten Users (Session-gebunden, nicht Toggle-gebunden) */
   profile: (userId: string) => ["profile", userId] as const,
+  /** Die privaten profiles_own-Felder (Geburtsdatum, Ruhepuls, Geschlecht,
+   *  Größe, Gewicht, hrMax) des eingeloggten Users (Migration 0039,
+   *  Fahrplan 17 E2/E3) — eigener Key, weil eine andere View als
+   *  qk.profile() dahintersteht. */
+  profileBasics: (userId: string) => ["profile-basics", userId] as const,
 
   planCards: (athleteId: string) => ["plan-cards", athleteId] as const,
   /** Aktive training_plans-Zeile des betrachteten Athleten (Fahrplan 8 E6/E7).
