@@ -1375,4 +1375,153 @@ if (!HAS_CREDS) {
     const anonRead = await rest("GET", "coach_exchanges?select=id&limit=1", { token: null });
     assert.equal(anonRead.ok, false, "anon darf coach_exchanges nicht lesen (kein GRANT)");
   });
+
+  // --- 12. profiles_own + has_password (0039, Fahrplan 17 E1) ------------
+  // Verifikation der neuen Migration 0039_profile_basics.sql. Zentrale
+  // Datenschutz-Nuance (V1): profiles' SELECT-Policy ist "using (true)" —
+  // die neuen Spalten (gender/height_cm/weight_kg/hr_max/has_password/
+  // updated_at) dürfen deshalb NICHT über die Basistabelle oder
+  // profiles_visible lesbar sein, nur über die neue self-only View
+  // profiles_own. has_password ist nirgends user-schreibbar, nur der
+  // Trigger auf auth.users darf es setzen (V2).
+
+  test("profiles: die neuen Basisdaten-Spalten sind auch für den Eigentümer nicht über die Basistabelle lesbar (nur profiles_own)", async () => {
+    const own = await rest(
+      "GET",
+      `profiles?id=eq.${athlete.userId}&select=id,gender,height_cm,weight_kg,hr_max,has_password`,
+      { token: athlete.token }
+    );
+    assert.equal(
+      own.ok,
+      false,
+      "profiles-Basistabelle darf die neuen Spalten nicht ausliefern, selbst für die eigene Zeile (kein Spalten-Grant, s. V1)"
+    );
+  });
+
+  test("profiles_visible: führt keine der neuen Basisdaten-Spalten", async () => {
+    const own = await rest("GET", "profiles_visible?select=*", { token: athlete.token });
+    assert.equal(own.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(own.data)}`);
+    const row = own.data.find((r) => r.id === athlete.userId);
+    assert.ok(row, "profiles_visible führt die eigene Zeile nicht");
+    for (const col of ["gender", "height_cm", "weight_kg", "hr_max", "has_password", "birthdate", "resting_hr"]) {
+      assert.equal(col in row, false, `profiles_visible darf ${col} nicht führen (das wäre für ALLE Nutzer lesbar)`);
+    }
+  });
+
+  test("profiles_own: Athlet sieht genau die eigene Zeile mit allen neuen Feldern", async () => {
+    const own = await rest("GET", "profiles_own", { token: athlete.token });
+    assert.equal(own.ok, true, `profiles_own-Read fehlgeschlagen: ${JSON.stringify(own.data)}`);
+    assert.equal(own.data.length, 1, "profiles_own zeigt dem Athleten mehr/weniger als die eigene Zeile");
+    const row = own.data[0];
+    assert.equal(row.id, athlete.userId);
+    for (const col of ["has_password", "birthdate", "resting_hr", "gender", "height_cm", "weight_kg", "hr_max", "updated_at"]) {
+      assert.equal(col in row, true, `profiles_own muss ${col} führen`);
+    }
+  });
+
+  test("profiles_own: anon bekommt nichts (kein GRANT)", async () => {
+    const anonView = await rest("GET", "profiles_own?select=id", { token: null });
+    assert.equal(anonView.ok, false, "anon darf profiles_own nicht lesen (kein GRANT)");
+  });
+
+  test("profiles_own: Trainer sieht dort NICHT die Zeile seines Athleten (self-only, keine Coach-Ausnahme)", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerView = await rest("GET", `profiles_own?id=eq.${athlete.userId}`, { token: trainer.token });
+    assert.equal(trainerView.ok, true);
+    assert.deepEqual(trainerView.data, [], "profiles_own darf dem Trainer nicht die Zeile seines Athleten zeigen (id = auth.uid())");
+  });
+
+  test("profiles: fremder PATCH auf die neuen Spalten scheitert (RLS 'eigenes Profil ändern', id = auth.uid())", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    // PATCH ohne RLS-Match liefert HTTP 200 mit 0 Zeilen, keinen harten
+    // Fehler (s. Kopfkommentar der Datei) — data.length prüfen, nicht .ok.
+    const foreignPatch = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: trainer.token,
+      body: { gender: "divers", height_cm: 180 },
+      prefer: "return=representation",
+    });
+    assert.equal(
+      foreignPatch.data?.length ?? 0,
+      0,
+      "Trainer konnte die neuen Basisdaten-Spalten des Athleten schreiben — RLS 'eigenes Profil ändern' greift nicht"
+    );
+  });
+
+  test("profiles_own: has_password ist nicht direkt schreibbar (kein Grant, nur der Trigger darf setzen)", async () => {
+    const patch = await rest("PATCH", `profiles_own?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { has_password: true },
+    });
+    assert.equal(
+      patch.ok,
+      false,
+      "PATCH auf profiles_own mit has_password hätte an fehlendem UPDATE-Grant scheitern müssen"
+    );
+  });
+
+  const HAS_SERVICE_ROLE = !!ENV.SUPABASE_SERVICE_ROLE_KEY;
+
+  test(
+    "profiles: Trigger sync_has_password setzt has_password erst NACH einem echten Passwort-Update (encrypted_password leer -> gesetzt)",
+    async (t) => {
+      if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — Trigger-Test übersprungen");
+
+      const authHeaders = {
+        apikey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json",
+      };
+
+      // Wirft KEINE echte Mail (generate_link liefert den Link nur im
+      // Response-Body zurück, verschickt nichts — s. admin-api/invite.js
+      // Kopfkommentar), legt aber einen echten auth.users-Datensatz OHNE
+      // Passwort an (encrypted_password leer, wie nach einem echten Invite).
+      const testEmail = `rls-test-has-password-${Date.now()}@example.com`;
+      const created = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+        method: "POST",
+        headers: authHeaders,
+        body: JSON.stringify({ type: "invite", email: testEmail }),
+      });
+      const createdText = await created.text();
+      let createdBody = null;
+      try {
+        createdBody = createdText ? JSON.parse(createdText) : null;
+      } catch {
+        createdBody = createdText;
+      }
+      assert.equal(created.ok, true, `admin/generate_link fehlgeschlagen: ${JSON.stringify(createdBody)}`);
+      const testUserId = createdBody?.id;
+      assert.ok(testUserId, `admin/generate_link lieferte keine id: ${JSON.stringify(createdBody)}`);
+
+      cleanupTasks.push(async () => {
+        // Cascade (profiles.id references auth.users(id) on delete cascade,
+        // 0001) räumt die zugehörige profiles-Zeile mit auf.
+        const del = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
+          method: "DELETE",
+          headers: authHeaders,
+        });
+        if (!del.ok) throw new Error(`Test-Account ${testUserId} (has_password-Trigger) nicht gelöscht: ${await del.text()}`);
+      });
+
+      const before = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      });
+      assert.equal(before.ok, true, `profiles-Read (service_role) fehlgeschlagen: ${JSON.stringify(before.data)}`);
+      assert.equal(before.data?.[0]?.has_password, false, "has_password sollte vor dem Passwort-Setzen false sein (Default)");
+
+      const setPassword = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
+        method: "PUT",
+        headers: authHeaders,
+        body: JSON.stringify({ password: "rls-test-Passw0rd-9x!" }),
+      });
+      const setPasswordText = setPassword.ok ? "" : await setPassword.text();
+      assert.equal(setPassword.ok, true, `admin-Passwort-Update fehlgeschlagen: ${setPasswordText}`);
+
+      const after = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      });
+      assert.equal(after.ok, true);
+      assert.equal(after.data?.[0]?.has_password, true, "Trigger sync_has_password hat has_password nicht auf true gesetzt");
+    }
+  );
 }
