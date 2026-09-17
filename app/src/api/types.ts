@@ -321,6 +321,11 @@ export interface IntervalsCredentials {
 export interface SyncLocation {
   lat: number | null;
   lon: number | null;
+  /** Der von der Stadt-Suche eingetippte/ausgewählte Ortsname (Spalte
+   *  `weather_location_label`, Migration 0039, Fahrplan 17 V1) — nur für die
+   *  Anzeige in Settings, fließt nicht in die Koordinaten-Berechnung ein.
+   *  Optional, damit ältere Aufrufstellen ohne das Feld gültig bleiben. */
+  locationLabel?: string | null;
 }
 
 export type ProposalOp = "add" | "replace" | "move" | "cancel";

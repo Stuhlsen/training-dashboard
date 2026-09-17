@@ -142,8 +142,10 @@ export function ProfileBasicsSection(_props: ProfileBasicsSectionProps = {}) {
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Profil-Basisdaten</div>
       <p style={{ fontSize: ".72rem", color: "var(--ink-3)", margin: "0 0 12px" }}>
-        Alle Felder sind optional und einzeln gespeichert. Ruhepuls/Maximalherzfrequenz fließen in
-        Trainingszonen und Belastungsberechnung ein.
+        Alle Felder sind optional und einzeln gespeichert. Maximalherzfrequenz zeigt sich im Pulsband
+        des Planungstabs (nur eigene Ansicht) — bleibt sie leer, gilt weiterhin der bisherige feste
+        Wert. Ruhepuls wird aktuell nur für die Belastungsberechnung bei Lauf/Schwimm-Athleten
+        gebraucht.
       </p>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>

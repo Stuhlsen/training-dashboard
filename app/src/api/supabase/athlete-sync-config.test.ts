@@ -30,19 +30,22 @@ describe("roundCoord", () => {
 });
 
 describe("getSyncLocation", () => {
-  it("mappt weather_lat/weather_lon aus der Zeile (auch als String geliefert)", async () => {
+  it("mappt weather_lat/weather_lon/weather_location_label aus der Zeile (auch als String geliefert)", async () => {
     fakeClient.handlers.athlete_sync_config = () => ({
-      data: { weather_lat: "52.52", weather_lon: 13.41 },
+      data: { weather_lat: "52.52", weather_lon: 13.41, weather_location_label: "Berlin, Deutschland" },
       error: null,
     });
     const result = await getSyncLocation("profile-1");
-    expect(result).toEqual({ ok: true, location: { lat: 52.52, lon: 13.41 } });
+    expect(result).toEqual({
+      ok: true,
+      location: { lat: 52.52, lon: 13.41, locationLabel: "Berlin, Deutschland" },
+    });
   });
 
-  it("keine Zeile -> lat/lon null, kein Fehler", async () => {
+  it("keine Zeile -> lat/lon/locationLabel null, kein Fehler", async () => {
     fakeClient.handlers.athlete_sync_config = () => ({ data: null, error: null });
     const result = await getSyncLocation("profile-1");
-    expect(result).toEqual({ ok: true, location: { lat: null, lon: null } });
+    expect(result).toEqual({ ok: true, location: { lat: null, lon: null, locationLabel: null } });
   });
 
   it("filtert auf die eigene profile_id", async () => {
@@ -63,7 +66,7 @@ describe("getSyncLocation", () => {
 });
 
 describe("updateSyncLocation", () => {
-  it("upsertet über profile_id, rundet die Koordinaten vor dem Senden", async () => {
+  it("upsertet über profile_id, rundet die Koordinaten vor dem Senden, schreibt den Ortsnamen", async () => {
     let seen: Record<string, unknown> = {};
     let opts: Record<string, unknown> | undefined;
     fakeClient.handlers.athlete_sync_config = (calls) => {
@@ -71,26 +74,50 @@ describe("updateSyncLocation", () => {
       opts = calls.upsertOpts;
       return { data: null, error: null };
     };
-    const result = await updateSyncLocation("profile-1", { lat: 52.51234, lon: 13.40891 });
+    const result = await updateSyncLocation("profile-1", {
+      lat: 52.51234,
+      lon: 13.40891,
+      locationLabel: "Berlin, Deutschland",
+    });
     expect(result).toEqual({ ok: true });
-    expect(seen).toEqual({ profile_id: "profile-1", weather_lat: 52.51, weather_lon: 13.41 });
+    expect(seen).toEqual({
+      profile_id: "profile-1",
+      weather_lat: 52.51,
+      weather_lon: 13.41,
+      weather_location_label: "Berlin, Deutschland",
+    });
     expect(opts).toEqual({ onConflict: "profile_id" });
   });
 
-  it("null/null schreibt null (Standort entfernen)", async () => {
+  it("null/null/kein Label schreibt null (Standort entfernen)", async () => {
     let seen: Record<string, unknown> = {};
     fakeClient.handlers.athlete_sync_config = (calls) => {
       seen = calls.payload as Record<string, unknown>;
       return { data: null, error: null };
     };
-    const result = await updateSyncLocation("profile-1", { lat: null, lon: null });
+    const result = await updateSyncLocation("profile-1", { lat: null, lon: null, locationLabel: null });
     expect(result).toEqual({ ok: true });
-    expect(seen).toEqual({ profile_id: "profile-1", weather_lat: null, weather_lon: null });
+    expect(seen).toEqual({
+      profile_id: "profile-1",
+      weather_lat: null,
+      weather_lon: null,
+      weather_location_label: null,
+    });
+  });
+
+  it("fehlendes locationLabel-Feld -> null (Rückwärtskompatibilität älterer Aufrufer)", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.athlete_sync_config = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    await updateSyncLocation("profile-1", { lat: 1, lon: 2 });
+    expect(seen.weather_location_label).toBeNull();
   });
 
   it("DB-Fehler -> Result ok:false", async () => {
     fakeClient.handlers.athlete_sync_config = () => ({ data: null, error: { message: "nope" } });
-    const result = await updateSyncLocation("profile-1", { lat: 1, lon: 2 });
+    const result = await updateSyncLocation("profile-1", { lat: 1, lon: 2, locationLabel: null });
     expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "nope" } });
   });
 });

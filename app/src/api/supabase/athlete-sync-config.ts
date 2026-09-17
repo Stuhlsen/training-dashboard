@@ -1,7 +1,9 @@
 /* ============================================================
    API/SUPABASE/ATHLETE-SYNC-CONFIG.TS — grober Standort des eingeloggten
    Users für die Sync-Wettervorschau (Tabelle `athlete_sync_config`,
-   Migration 0023, Fahrplan 7 CRED2).
+   Migration 0023, Fahrplan 7 CRED2) plus der dazu eingetippte Ortsname
+   (Spalte `weather_location_label`, Migration 0039, Fahrplan 17 E4 — reine
+   Anzeige, fließt nicht in die Koordinaten).
 
    Nur die Standort-Spalten (`weather_lat`/`weather_lon`). Die
    intervals.icu-Zugangsdaten derselben Tabelle pflegt bis zum
@@ -32,6 +34,7 @@ export function roundCoord(n: number | null): number | null {
 interface SyncConfigLocationRow {
   weather_lat: number | string | null;
   weather_lon: number | string | null;
+  weather_location_label: string | null;
 }
 
 /** PostgREST liefert `numeric` je nach Client mal als Zahl, mal als String
@@ -49,7 +52,7 @@ export async function getSyncLocation(
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("athlete_sync_config")
-    .select("weather_lat, weather_lon")
+    .select("weather_lat, weather_lon, weather_location_label")
     .eq("profile_id", userId)
     .maybeSingle<SyncConfigLocationRow>();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
@@ -58,13 +61,14 @@ export async function getSyncLocation(
     location: {
       lat: data ? toNum(data.weather_lat) : null,
       lon: data ? toNum(data.weather_lon) : null,
+      locationLabel: data ? data.weather_location_label : null,
     },
   };
 }
 
 export async function updateSyncLocation(
   userId: string,
-  { lat, lon }: SyncLocation,
+  { lat, lon, locationLabel }: SyncLocation,
 ): Promise<Result> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
@@ -73,6 +77,7 @@ export async function updateSyncLocation(
       profile_id: userId,
       weather_lat: roundCoord(lat),
       weather_lon: roundCoord(lon),
+      weather_location_label: locationLabel ?? null,
     },
     { onConflict: "profile_id" },
   );
