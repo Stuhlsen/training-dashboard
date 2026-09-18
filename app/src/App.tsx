@@ -1,5 +1,6 @@
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppBackground } from "./components/AppBackground";
+import { AuthErrorBanner } from "./components/AuthErrorBanner";
 import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OnboardingGate } from "./features/onboarding/OnboardingGate";
@@ -25,6 +26,7 @@ export default function App() {
   return (
     <>
       <AppBackground />
+      <AuthErrorBanner />
       {/* position:relative + z-index macht ALLE Routen zu "positionierten"
           Nachfahren (CSS-Stacking-Reihenfolge), unabhängig davon, ob die
           jeweilige Seite selbst eine Positionierung setzt — sonst würden
