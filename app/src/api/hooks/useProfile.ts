@@ -222,9 +222,10 @@ export function useUpdatePassword() {
 
 /** Setzt das Passwort eines frisch eingeladenen Users, ohne Re-Auth (V2/E7,
  *  s. api/supabase/auth.ts::setInitialPassword()). Aktualisiert den
- *  `profileBasics`-Cache optimistisch auf `hasPassword: true` — der
- *  DB-Trigger setzt das serverseitig ohnehin, aber ein sofortiger
- *  Cache-Refetch ist hier nicht nötig, um die Wizard-UI weiterzuschalten. */
+ *  `profileBasics`-Cache optimistisch auf `hasPassword: true` — die RPC
+ *  `mark_password_set()` (Migration 0042) setzt das serverseitig ohnehin,
+ *  aber ein sofortiger Cache-Refetch ist hier nicht nötig, um die
+ *  Wizard-UI weiterzuschalten. */
 export function useSetInitialPassword() {
   const queryClient = useQueryClient();
   const userId = useAuthUserId();

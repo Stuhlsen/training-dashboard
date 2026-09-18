@@ -1382,8 +1382,9 @@ if (!HAS_CREDS) {
   // die neuen Spalten (gender/height_cm/weight_kg/hr_max/has_password/
   // updated_at) dürfen deshalb NICHT über die Basistabelle oder
   // profiles_visible lesbar sein, nur über die neue self-only View
-  // profiles_own. has_password ist nirgends user-schreibbar, nur der
-  // Trigger auf auth.users darf es setzen (V2).
+  // profiles_own. has_password ist nirgends user-schreibbar, nur die
+  // security-definer-RPC mark_password_set() darf es setzen (V2, seit
+  // Migration 0042 statt eines Triggers auf auth.users — s. dort).
 
   test("profiles: die neuen Basisdaten-Spalten sind auch für den Eigentümer nicht über die Basistabelle lesbar (nur profiles_own)", async () => {
     const own = await rest(
@@ -1447,7 +1448,7 @@ if (!HAS_CREDS) {
     );
   });
 
-  test("profiles_own: has_password ist nicht direkt schreibbar (kein Grant, nur der Trigger darf setzen)", async () => {
+  test("profiles_own: has_password ist nicht direkt schreibbar (kein Grant, nur mark_password_set() darf setzen)", async () => {
     const patch = await rest("PATCH", `profiles_own?id=eq.${athlete.userId}`, {
       token: athlete.token,
       body: { has_password: true },
@@ -1462,9 +1463,9 @@ if (!HAS_CREDS) {
   const HAS_SERVICE_ROLE = !!ENV.SUPABASE_SERVICE_ROLE_KEY;
 
   test(
-    "profiles: Trigger sync_has_password setzt has_password erst NACH einem echten Passwort-Update (encrypted_password leer -> gesetzt)",
+    "profiles: RPC mark_password_set() setzt has_password nur für die eigene Zeile (Migration 0042, ersetzt den auth.users-Trigger aus 0039)",
     async (t) => {
-      if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — Trigger-Test übersprungen");
+      if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — RPC-Test übersprungen");
 
       const authHeaders = {
         apikey: ENV.SUPABASE_SERVICE_ROLE_KEY,
@@ -1474,9 +1475,12 @@ if (!HAS_CREDS) {
 
       // Wirft KEINE echte Mail (generate_link liefert den Link nur im
       // Response-Body zurück, verschickt nichts — s. admin-api/invite.js
-      // Kopfkommentar), legt aber einen echten auth.users-Datensatz OHNE
-      // Passwort an (encrypted_password leer, wie nach einem echten Invite).
-      const testEmail = `rls-test-has-password-${Date.now()}@example.com`;
+      // Kopfkommentar). GoTrue haengt selbst schon beim Einladen ein
+      // zufaelliges Passwort an (Migration-0042-Befund) — für diesen Test
+      // wird direkt danach EIN BEKANNTES Passwort per Admin-API gesetzt,
+      // rein als Testsetup, nicht der zu prüfende Pfad.
+      const testEmail = `rls-test-mark-password-${Date.now()}@example.com`;
+      const testPassword = "rls-test-Passw0rd-9x!";
       const created = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
         method: "POST",
         headers: authHeaders,
@@ -1500,28 +1504,51 @@ if (!HAS_CREDS) {
           method: "DELETE",
           headers: authHeaders,
         });
-        if (!del.ok) throw new Error(`Test-Account ${testUserId} (has_password-Trigger) nicht gelöscht: ${await del.text()}`);
+        if (!del.ok) throw new Error(`Test-Account ${testUserId} (mark_password_set) nicht gelöscht: ${await del.text()}`);
       });
+
+      // email_confirm: true noetig, damit der anschliessende Login klappt —
+      // anders als der lokale Self-Host-Stack (GOTRUE_MAILER_AUTOCONFIRM)
+      // bestaetigt dashboard-dev E-Mails nicht automatisch.
+      const setPassword = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
+        method: "PUT",
+        headers: authHeaders,
+        body: JSON.stringify({ password: testPassword, role: "authenticated", email_confirm: true }),
+      });
+      assert.equal(setPassword.ok, true, `admin-Passwort-Setup fehlgeschlagen: ${await setPassword.text()}`);
 
       const before = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
         token: ENV.SUPABASE_SERVICE_ROLE_KEY,
       });
       assert.equal(before.ok, true, `profiles-Read (service_role) fehlgeschlagen: ${JSON.stringify(before.data)}`);
-      assert.equal(before.data?.[0]?.has_password, false, "has_password sollte vor dem Passwort-Setzen false sein (Default)");
+      assert.equal(before.data?.[0]?.has_password, false, "has_password sollte vor dem RPC-Aufruf false sein (Default)");
 
-      const setPassword = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
-        method: "PUT",
-        headers: authHeaders,
-        body: JSON.stringify({ password: "rls-test-Passw0rd-9x!" }),
-      });
-      const setPasswordText = setPassword.ok ? "" : await setPassword.text();
-      assert.equal(setPassword.ok, true, `admin-Passwort-Update fehlgeschlagen: ${setPasswordText}`);
+      const testUser = await signIn(testEmail, testPassword);
+      const rpcRes = await rest("POST", "rpc/mark_password_set", { token: testUser.token, body: {} });
+      assert.equal(rpcRes.ok, true, `mark_password_set() fehlgeschlagen: ${JSON.stringify(rpcRes.data)}`);
 
       const after = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
         token: ENV.SUPABASE_SERVICE_ROLE_KEY,
       });
       assert.equal(after.ok, true);
-      assert.equal(after.data?.[0]?.has_password, true, "Trigger sync_has_password hat has_password nicht auf true gesetzt");
+      assert.equal(after.data?.[0]?.has_password, true, "mark_password_set() hat has_password nicht auf true gesetzt");
+
+      // Gegenprobe: die Funktion darf NUR die eigene Zeile treffen (id =
+      // auth.uid() in der security-definer-Funktion) — der eingeloggte
+      // Athlet darf über denselben Aufruf nicht fremde Zeilen verändern.
+      const athleteBefore = await rest("GET", `profiles?id=eq.${athlete.userId}&select=has_password`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      });
+      const athleteRpc = await rest("POST", "rpc/mark_password_set", { token: testUser.token, body: {} });
+      assert.equal(athleteRpc.ok, true);
+      const athleteAfter = await rest("GET", `profiles?id=eq.${athlete.userId}&select=has_password`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      });
+      assert.equal(
+        athleteAfter.data?.[0]?.has_password,
+        athleteBefore.data?.[0]?.has_password,
+        "mark_password_set() hat eine fremde Zeile (Stuhlsen) verändert — security-definer-Grenze verletzt"
+      );
     }
   );
 }

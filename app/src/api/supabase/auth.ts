@@ -1,5 +1,5 @@
 import type { Session, Subscription, User } from "@supabase/supabase-js";
-import { supabase } from "./client";
+import { supabase, getAuthedClient } from "./client";
 import type { Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
@@ -68,12 +68,29 @@ export async function verifyInviteToken(tokenHash: string): Promise<Result> {
 /** Setzt das Passwort für einen frisch eingeladenen User (Onboarding-
  *  Assistent, Fahrplan 17 E7) — OHNE Re-Authentifizierung: nach dem
  *  Invite-Link existiert noch kein aktuelles Passwort, das man abfragen
- *  könnte. Die aktive Session aus dem Link reicht `updateUser()`. Der
- *  `has_password`-Trigger (V2) setzt danach serverseitig `profiles.
- *  has_password = true`. */
+ *  könnte. Die aktive Session aus dem Link reicht `updateUser()`.
+ *
+ *  `has_password` wird danach explizit per RPC gesetzt (Migration 0042,
+ *  V2-Fix nach Vorfall admin-Invite/Tony 18.09.2026) — NICHT mehr über
+ *  einen DB-Trigger auf `auth.users.encrypted_password`: GoTrue setzt bei
+ *  `/admin/generate_link` bereits beim Einladen selbst einen (zufälligen)
+ *  Passwort-Hash, der frühere Trigger hätte has_password dadurch sofort auf
+ *  true gesetzt, noch bevor die Person hier überhaupt war — der
+ *  Pflicht-Schritt wäre für jede Einladung übersprungen worden. */
 export async function setInitialPassword(newPassword: string): Promise<Result> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const { error } = await supabase.auth.updateUser({ password: newPassword });
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+
+  // getAuthedClient(), nicht der Singleton `supabase`: der aktualisiert
+  // seinen intern fuer REST-/RPC-Requests genutzten Authorization-Header
+  // nach dem Login nicht zuverlaessig (s. Kommentar in client.ts) — ein
+  // `supabase.rpc(...)` hier liefe sonst faktisch als `anon`, die RPC faende
+  // per `auth.uid()` niemanden und wuerde still 0 Zeilen treffen (kein
+  // Fehler, aber auch kein Effekt — empirisch genau so beobachtet).
+  const authedClient = await getAuthedClient();
+  if (!authedClient) return { ok: false, error: { code: "TOKEN_INVALID", message: "Nicht eingeloggt" } };
+  const { error: rpcError } = await authedClient.rpc("mark_password_set");
+  if (rpcError) return { ok: false, error: { code: "UNKNOWN", message: rpcError.message } };
   return { ok: true };
 }

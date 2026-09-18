@@ -19,6 +19,20 @@
 // laesst sich nur genau einmal per POST einloesen (zweiter Versuch -> 403).
 // Fehlerverhalten unveraendert: bereits bestaetigte Adresse -> 422
 // email_exists (unser 409), leere/fehlende E-Mail -> 400.
+//
+// Auth-Rolle "authenticated" ist PFLICHT (bei der V2-Verifikation entdeckt,
+// 18.09.2026): ohne sie legt GoTrue den neuen User mit leerem `role` in
+// auth.users an, das ausgestellte JWT traegt dann einen leeren role-Claim,
+// und JEDER anschliessende PostgREST-Aufruf (profiles, wellbeing, …)
+// scheitert mit 401 — die eingeladene Person waere nach dem Einloggen
+// komplett blockiert, unabhaengig vom Link-Mechanismus selbst. Dieselbe
+// Eigenheit ist fuer /admin/users bereits in
+// docs/docker-lokal-einrichten.md ("Lücke 5") dokumentiert. NEU entdeckt:
+// `/admin/generate_link` ignoriert ein `role`-Feld im Body (empirisch
+// gegengeprueft, DB-Spalte blieb leer trotz `role: "authenticated"` im
+// generate_link-Request) — anders als `/admin/users`. Deshalb zwei Aufrufe:
+// generate_link legt den User an, ein direkt folgendes PUT /admin/users/:id
+// setzt die Rolle nach (dort WIRD sie respektiert, empirisch bestaetigt).
 async function sendInvite(email, env, fetchImpl = fetch) {
   let res;
   try {
@@ -43,6 +57,23 @@ async function sendInvite(email, env, fetchImpl = fetch) {
   }
 
   if (res.ok) {
+    try {
+      await fetchImpl(`${env.GOTRUE_INTERNAL_URL}/admin/users/${body?.id}`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role: "authenticated" }),
+      });
+    } catch {
+      // Der Invite selbst ist bereits angelegt (generate_link lief durch) —
+      // ein Netzwerkfehler nur bei diesem Nachtrag soll den Erfolg nicht
+      // verwerfen. Bleibt dieser Schritt aus, ist die Person zwar
+      // eingeladen, bekommt beim ersten Login aber 401 auf jeden
+      // PostgREST-Aufruf (s. Kommentar oben) — seltener Fall, aber nicht
+      // automatisch heilbar; zeigt sich als Fehlfunktion nach dem Klick.
+    }
     return { ok: true, hashedToken: body?.hashed_token ?? null };
   }
 
