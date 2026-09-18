@@ -5,6 +5,7 @@ import { Layout } from "./components/Layout";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { OnboardingGate } from "./features/onboarding/OnboardingGate";
 import { LoginPage } from "./features/auth/LoginPage";
+import { AcceptInvitePage } from "./features/onboarding/AcceptInvitePage";
 import { HeroPage } from "./features/hero/HeroPage";
 import { PlanningPage } from "./features/planning/PlanningPage";
 import { EventsPage } from "./features/events/EventsPage";
@@ -38,6 +39,7 @@ export default function App() {
       <div style={{ position: "relative", zIndex: 1 }}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/onboarding/accept" element={<AcceptInvitePage />} />
           {/* Sichtbarkeits-Matrix E1 (docs/phase-6-konzept-sichtbarkeit.md):
               Lesedaten/goals/events/plan_cards/proposals sind öffentlich lesbar
               — Login gilt nur fürs Schreiben (bestehende canWrite-Gates) und

@@ -51,6 +51,20 @@ export async function updatePassword(
   return { ok: true };
 }
 
+/** Löst einen Einladungs-Token-Hash ein (Fahrplan 17 E7 V2, s. Kommentar in
+ *  admin-api/invite.js): `verifyOtp({ token_hash, type })` ist ein POST,
+ *  ausgeloest von echtem Browser-JS auf AcceptInvitePage.tsx — anders als
+ *  GoTrues eigener `action_link` (reiner GET) unempfindlich gegen
+ *  Linkvorschau-Bots (Signal etc.), die den Code sonst vor dem echten Klick
+ *  verbrauchen. Baut bei Erfolg automatisch eine Session auf (wie
+ *  `signInWithPassword`) — `onAuthChange` in AuthContext.tsx übernimmt sie. */
+export async function verifyInviteToken(tokenHash: string): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "invite" });
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
 /** Setzt das Passwort für einen frisch eingeladenen User (Onboarding-
  *  Assistent, Fahrplan 17 E7) — OHNE Re-Authentifizierung: nach dem
  *  Invite-Link existiert noch kein aktuelles Passwort, das man abfragen

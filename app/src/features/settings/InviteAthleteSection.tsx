@@ -3,11 +3,14 @@
    (Fahrplan 15 E4, Muster FormatCatalogSection)
 
    Nur für `profile.isAdmin` gemountet (SettingsPage). E-Mail eingeben →
-   „Einladen" → admin-api ruft GoTrues generate_link auf und liefert den
-   fertigen Einladungslink direkt in der Antwort zurück (kein SMTP, s.
-   Nachtrag V1 in planning/fahrplan-15-einladungs-onboarding.md) — der Link
-   wird hier angezeigt und ist per Button kopierbar, Alex verschickt ihn
-   selbst (WhatsApp/Signal/SMS).
+   „Einladen" → admin-api ruft GoTrues generate_link auf und liefert
+   `hashedToken` zurück (kein SMTP, s. Nachtrag V1 in
+   planning/fahrplan-15-einladungs-onboarding.md) — die Sektion baut daraus
+   selbst einen Link auf die eigene Onboarding-Seite (nicht auf GoTrue
+   direkt, s. V2-Kommentar in admin-api/invite.js: ein GoTrue-`action_link`
+   verbraucht sich schon durch einen stillen Linkvorschau-Abruf, bevor die
+   eingeladene Person je klickt). Wird hier angezeigt und ist per Button
+   kopierbar, Alex verschickt ihn selbst (Signal/SMS).
    ============================================================ */
 
 import { useState } from "react";
@@ -71,7 +74,10 @@ export function InviteAthleteSection() {
       setError(translateError(result.error));
       return;
     }
-    setLink(result.link);
+    const url = new URL("/onboarding/accept", window.location.origin);
+    url.searchParams.set("token_hash", result.hashedToken);
+    url.searchParams.set("type", "invite");
+    setLink(url.toString());
     setEmail("");
   }
 
@@ -114,7 +120,7 @@ export function InviteAthleteSection() {
       {link && (
         <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 6 }}>
           <p style={{ margin: 0, color: "var(--ink-3)", fontSize: ".78rem" }}>
-            Einladungslink erstellt — kein Mail-Versand, selbst weitergeben (WhatsApp/Signal/SMS):
+            Einladungslink erstellt — kein Mail-Versand, selbst weitergeben (Signal/SMS):
           </p>
           <code style={LINK_BOX_STYLE}>{link}</code>
           <button type="button" onClick={() => void handleCopy()} style={LINK_BUTTON_STYLE}>

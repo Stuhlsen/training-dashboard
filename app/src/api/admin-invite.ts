@@ -8,19 +8,20 @@
    wird hier nur durchgereicht statt neu gebaut.
 
    Kein SMTP lokal/produktiv (Nachtrag V1 nach E3): der Erfolgsfall liefert
-   den fertigen GoTrue-Einladungslink direkt im Response-Body zurück, es wird
-   keine Mail verschickt — die UI muss den Link anzeigen/kopierbar machen.
+   `hashedToken` im Response-Body zurück, es wird keine Mail verschickt — die
+   UI baut daraus selbst den Link (s. Kommentar in InviteAthleteSection.tsx,
+   V2-Fix gegen Linkvorschau-Bots) und macht ihn anzeigbar/kopierbar.
    ============================================================ */
 
 import { supabase } from "./supabase/client";
 import { getConfig } from "./supabase/config";
 import type { Result } from "./types";
 
-function isResultShape(body: unknown): body is Result<{ link: string }> {
+function isResultShape(body: unknown): body is Result<{ hashedToken: string }> {
   return !!body && typeof body === "object" && "ok" in body;
 }
 
-export async function inviteAthlete(email: string): Promise<Result<{ link: string }>> {
+export async function inviteAthlete(email: string): Promise<Result<{ hashedToken: string }>> {
   const config = getConfig();
   if (!supabase || !config) {
     return { ok: false, error: { code: "UNKNOWN", message: "Supabase nicht konfiguriert" } };
