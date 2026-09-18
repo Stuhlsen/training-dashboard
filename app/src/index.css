@@ -12,6 +12,16 @@
   color-scheme: dark;
 }
 
+/* color-scheme:dark allein reicht auf Windows/Chromium nicht für die
+   Options-Liste eines <select> — die Popup-Fläche blieb hell, während der
+   ererbte helle --ink-Textfarbe (aus INPUT_STYLE) darauf kaum lesbar war
+   (Geschlecht-Dropdown, Settings). Explizite Farben pro <option> beheben das
+   unabhängig vom color-scheme-Verhalten des Browsers. */
+select option {
+  background: var(--card-solid);
+  color: var(--ink);
+}
+
 body {
   margin: 0;
   min-height: 100vh;

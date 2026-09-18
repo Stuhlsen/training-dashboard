@@ -72,7 +72,7 @@ export function IntervalsSection({ onComplete, onSkip }: IntervalsSectionProps =
           API-Key {credentials && "(hinterlegt — leer lassen, um ihn zu behalten)"}
           <input
             type="password"
-            autoComplete="off"
+            autoComplete="new-password"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder={credentials ? "••••••••" : ""}
@@ -81,7 +81,13 @@ export function IntervalsSection({ onComplete, onSkip }: IntervalsSectionProps =
         </label>
         <label style={LABEL_STYLE}>
           Athlete-ID (z. B. i12345)
-          <input type="text" value={athleteId} onChange={(e) => setAthleteId(e.target.value)} style={INPUT_STYLE} />
+          <input
+            type="text"
+            autoComplete="off"
+            value={athleteId}
+            onChange={(e) => setAthleteId(e.target.value)}
+            style={INPUT_STYLE}
+          />
         </label>
         {error && <div style={ERROR_STYLE}>{error}</div>}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
