@@ -1,7 +1,7 @@
 const http = require("node:http");
 const { requireAdmin } = require("./auth.js");
 const { sendInvite } = require("./invite.js");
-const { listAthletes } = require("./athletes.js");
+const { listUsers, banUser, unbanUser, deleteUser, resendUserLink } = require("./users.js");
 
 const PORT = process.env.PORT || 3001;
 const ENV = {
@@ -70,19 +70,70 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "GET" && req.url === "/admin/athletes") {
+  if (req.method === "GET" && req.url === "/admin/users") {
     const admin = await requireAdmin(req.headers.authorization, ENV);
     if (!admin.ok) {
       sendJson(res, admin.status, { ok: false, error: admin.error });
       return;
     }
 
-    const result = await listAthletes(ENV);
+    const result = await listUsers(ENV);
     if (!result.ok) {
       sendJson(res, result.status, { ok: false, error: result.error });
       return;
     }
-    sendJson(res, 200, { ok: true, athletes: result.athletes });
+    sendJson(res, 200, { ok: true, users: result.users });
+    return;
+  }
+
+  const actionMatch =
+    req.method === "POST" ? req.url.match(/^\/admin\/users\/([^/]+)\/(ban|unban|resend)$/) : null;
+  if (actionMatch) {
+    const admin = await requireAdmin(req.headers.authorization, ENV);
+    if (!admin.ok) {
+      sendJson(res, admin.status, { ok: false, error: admin.error });
+      return;
+    }
+
+    const [, userId, action] = actionMatch;
+    const fn = { ban: banUser, unban: unbanUser, resend: resendUserLink }[action];
+    const result = await fn(userId, admin.sub, ENV);
+    if (!result.ok) {
+      sendJson(res, result.status, { ok: false, error: result.error });
+      return;
+    }
+    if (action === "resend") {
+      sendJson(res, 200, { ok: true, hashedToken: result.hashedToken, type: result.type });
+      return;
+    }
+    sendJson(res, 200, { ok: true });
+    return;
+  }
+
+  const deleteMatch = req.method === "DELETE" ? req.url.match(/^\/admin\/users\/([^/]+)$/) : null;
+  if (deleteMatch) {
+    const admin = await requireAdmin(req.headers.authorization, ENV);
+    if (!admin.ok) {
+      sendJson(res, admin.status, { ok: false, error: admin.error });
+      return;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendJson(res, 400, { ok: false, error: { code: "SCHEMA", message: "ungueltiger Request-Body" } });
+      return;
+    }
+
+    const [, userId] = deleteMatch;
+    const confirmEmail = typeof body.confirmEmail === "string" ? body.confirmEmail : "";
+    const result = await deleteUser(userId, confirmEmail, admin.sub, ENV);
+    if (!result.ok) {
+      sendJson(res, result.status, { ok: false, error: result.error });
+      return;
+    }
+    sendJson(res, 200, { ok: true });
     return;
   }
 
