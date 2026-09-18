@@ -4,7 +4,8 @@ import { GlassCard } from "../../components/GlassCard";
 import { verifyInviteToken } from "../../api/supabase/auth";
 
 /* ============================================================
-   FEATURES/ONBOARDING/ACCEPTINVITEPAGE.TSX — Fahrplan 17 E7 V2
+   FEATURES/ONBOARDING/ACCEPTINVITEPAGE.TSX — Fahrplan 17 E7 V2,
+   `type`-Parameter Fahrplan 18 E2/V2
 
    Ziel des selbst gebauten Einladungslinks (statt GoTrues `action_link`
    direkt, s. Kommentar in admin-api/invite.js). Ein Linkvorschau-Bot
@@ -14,6 +15,11 @@ import { verifyInviteToken } from "../../api/supabase/auth";
    Supabase die Session automatisch auf (AuthContext.tsx übernimmt sie über
    `onAuthChange`) — der Redirect nach `/` läuft danach direkt in
    OnboardingGate (has_password === false → Assistent).
+
+   Derselbe Link-Mechanismus trägt seit Fahrplan 18 auch "Link erneut
+   senden" für Accounts mit vergessenem Passwort — dort liefert admin-api
+   `type: "recovery"` statt "invite" (s. admin-api/users.js::
+   resendUserLink()), als `type`-Query-Parameter im Link kodiert.
    ============================================================ */
 
 type Status = "pending" | "done" | "error";
@@ -21,13 +27,14 @@ type Status = "pending" | "done" | "error";
 export function AcceptInvitePage() {
   const [searchParams] = useSearchParams();
   const tokenHash = searchParams.get("token_hash");
+  const type = searchParams.get("type") === "recovery" ? "recovery" : "invite";
   const [status, setStatus] = useState<Status>(() => (tokenHash ? "pending" : "error"));
   const [error, setError] = useState(() => (tokenHash ? "" : "Kein gültiger Einladungslink."));
 
   useEffect(() => {
     if (!tokenHash) return;
     let cancelled = false;
-    void verifyInviteToken(tokenHash).then((result) => {
+    void verifyInviteToken(tokenHash, type).then((result) => {
       if (cancelled) return;
       if (result.ok) {
         setStatus("done");
@@ -39,7 +46,7 @@ export function AcceptInvitePage() {
     return () => {
       cancelled = true;
     };
-  }, [tokenHash]);
+  }, [tokenHash, type]);
 
   if (status === "done") return <Navigate to="/" replace />;
 

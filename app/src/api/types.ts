@@ -62,17 +62,25 @@ export interface ProfileOwnFields {
   updatedAt: string;
 }
 
-/** Eine Zeile der Admin-Athletenübersicht (`GET /admin/athletes`,
- *  admin-api, Fahrplan 17 E5/V4/E6) — GoTrue (E-Mail, letzter Login) gemergt
- *  mit `profiles` + den Athleten-Tabellen mit eigenem `updated_at`-Trigger
- *  (grobes "zuletzt geändert"-Label, kein Änderungsprotokoll auf Feldebene,
- *  s. Nicht-Ziele). `email` kann null sein, wenn der GoTrue-User zur
- *  `profiles`-Zeile nicht (mehr) gefunden wird. */
-export interface AdminAthleteRow {
+/** Eine Zeile der Admin-Nutzerübersicht (`GET /admin/users`, admin-api,
+ *  Fahrplan 18 E1/V3 — ersetzt `AdminAthleteRow`/`GET /admin/athletes`,
+ *  jetzt alle Rollen statt nur Athleten) — GoTrue (E-Mail, letzter Login,
+ *  Sperr-Status) gemergt mit `profiles` + den Athleten-Tabellen mit eigenem
+ *  `updated_at`-Trigger (grobes "zuletzt geändert"-Label, kein
+ *  Änderungsprotokoll auf Feldebene, s. Nicht-Ziele). `email` kann null
+ *  sein, wenn der GoTrue-User zur `profiles`-Zeile nicht (mehr) gefunden
+ *  wird. */
+export interface AdminUserRow {
   id: string;
   email: string | null;
   displayName: string | null;
+  role: Role;
+  isAdmin: boolean;
   hasPassword: boolean;
+  /** ISO-Zeitstempel, bis zu dem GoTrue den Account sperrt — null = nicht
+   *  gesperrt (`banned_until` liegt praktisch in der Ferne, s. Nicht-Ziele:
+   *  kein Sperr-Dauer-Feld, Sperren ist Ein/Aus). */
+  bannedUntil: string | null;
   lastSignInAt: string | null;
   lastChangedAt: string | null;
   lastChangedArea: string | null;

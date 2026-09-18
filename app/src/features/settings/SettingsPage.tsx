@@ -28,7 +28,7 @@ import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
 import { FormatCatalogSection } from "./FormatCatalogSection";
 import { InviteAthleteSection } from "./InviteAthleteSection";
-import { AdminAthletesTable } from "./AdminAthletesTable";
+import { AdminUsersTable } from "./AdminUsersTable";
 import { FeedbackSection } from "./FeedbackSection";
 import { DataSourcesSection } from "./DataSourcesSection";
 import { IntervalsSection } from "./IntervalsSection";
@@ -67,7 +67,7 @@ export function SettingsPage() {
     ...(isAthlete ? [{ id: "sec-training", label: "Training" }] : []),
     ...(isAthlete ? [{ id: "sec-daten", label: "Daten" }] : []),
     ...(isAdmin ? [{ id: "sec-katalog", label: "Formatkatalog" }] : []),
-    ...(isAdmin ? [{ id: "sec-einladen", label: "Athleten" }] : []),
+    ...(isAdmin ? [{ id: "sec-einladen", label: "Nutzer" }] : []),
     { id: "sec-feedback", label: "Feedback" },
     { id: "sec-datenschutz", label: "Datenschutz & Account" },
   ];
@@ -203,8 +203,8 @@ export function SettingsPage() {
 
               {isAdmin && (
                 <GlassCard id="sec-einladen" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Athleten</h2>
-                  <AdminAthletesTable />
+                  <h2 style={CARD_HEADING_STYLE}>Nutzerverwaltung</h2>
+                  <AdminUsersTable />
                   <InviteAthleteSection />
                 </GlassCard>
               )}
