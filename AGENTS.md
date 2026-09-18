@@ -33,9 +33,9 @@ Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
 GitHub Actions trägt seit 30.08.2026 nur noch CI + Image-Publish: je ein
 CI-Job pro Teil (`ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer
 nur bei Änderungen unter `app/**`) und `publish-images.yml` (GHCR-Images bei
-`v*`-Tag). Der 6h-Datensync läuft **nicht mehr** in Actions, sondern als
-Dauer-Container auf apps01 (`sync-data.yml` ist auf `workflow_dispatch`-
-Fallback reduziert, s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
+`v*`-Tag). Der Datensync (alle 15 Min, s. u.) läuft **nicht mehr** in Actions,
+sondern als Dauer-Container auf apps01 (`sync-data.yml` ist auf
+`workflow_dispatch`-Fallback reduziert, s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
 
 **Versions-Aktualität (seit 22.08.2026):** `.github/dependabot.yml` prüft
 wöchentlich npm-Pakete (Root + `/app/`), Docker-Images (Root,
@@ -328,8 +328,9 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
 
 ### Datenquellen-Mix (lesen/schreiben)
 - **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline
-  (`scripts/generate-data.js`, alle 6h — **seit 30.08.2026 als Dauer-Container auf apps01, nicht
-  mehr GitHub Actions**; s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
+  (`scripts/generate-data.js`, alle 15 Min — **seit 30.08.2026 als Dauer-Container auf apps01, nicht
+  mehr GitHub Actions**; s. `docs/fahrplan-3-sync-produktivbetrieb.md`). Der Container prüft
+  zusätzlich stündlich, ob ein neues Image-Release verfügbar ist.
 - **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
   → Supabase (RLS, Session-basiert).
 - **Der Sync liest selbst lesend aus Supabase zurück** (seit `effectivePlan`/`ftpAt()` in
