@@ -59,7 +59,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     const email = typeof body.email === "string" ? body.email : "";
-    const result = await sendInvite(email, ENV);
+    const profileRole = body.role === "coach" ? "coach" : "athlete";
+    const isAdmin = body.isAdmin === true;
+    const result = await sendInvite(email, ENV, fetch, { profileRole, isAdmin });
     if (!result.ok) {
       sendJson(res, result.status, { ok: false, error: result.error });
       return;

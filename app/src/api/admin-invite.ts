@@ -21,7 +21,13 @@ function isResultShape(body: unknown): body is Result<{ hashedToken: string }> {
   return !!body && typeof body === "object" && "ok" in body;
 }
 
-export async function inviteAthlete(email: string): Promise<Result<{ hashedToken: string }>> {
+export type InviteProfileRole = "athlete" | "coach";
+
+export async function inviteAthlete(
+  email: string,
+  role: InviteProfileRole = "athlete",
+  isAdmin = false,
+): Promise<Result<{ hashedToken: string }>> {
   const config = getConfig();
   if (!supabase || !config) {
     return { ok: false, error: { code: "UNKNOWN", message: "Supabase nicht konfiguriert" } };
@@ -38,7 +44,7 @@ export async function inviteAthlete(email: string): Promise<Result<{ hashedToken
     res = await fetch(`${config.projectUrl}/admin/invite`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ email }),
+      body: JSON.stringify({ email, role, isAdmin }),
     });
   } catch (e) {
     return { ok: false, error: { code: "NETWORK", message: e instanceof Error ? e.message : String(e) } };

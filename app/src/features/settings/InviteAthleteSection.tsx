@@ -14,7 +14,7 @@
    ============================================================ */
 
 import { useState } from "react";
-import { inviteAthlete } from "../../api/admin-invite";
+import { inviteAthlete, type InviteProfileRole } from "../../api/admin-invite";
 import type { ResultError } from "../../api/types";
 import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, LINK_BUTTON_STYLE, ERROR_STYLE, HEADING_STYLE } from "./section-styles";
 
@@ -57,6 +57,8 @@ function translateError(error: ResultError): string {
 
 export function InviteAthleteSection() {
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<InviteProfileRole>("athlete");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const [link, setLink] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -68,7 +70,7 @@ export function InviteAthleteSection() {
     setError(null);
     setLink(null);
     setCopied(false);
-    const result = await inviteAthlete(email.trim());
+    const result = await inviteAthlete(email.trim(), role, isAdmin);
     setIsPending(false);
     if (!result.ok) {
       setError(translateError(result.error));
@@ -105,6 +107,27 @@ export function InviteAthleteSection() {
             onChange={(e) => setEmail(e.target.value)}
             style={INPUT_STYLE}
           />
+        </label>
+        <label style={LABEL_STYLE}>
+          Rolle
+          <select
+            value={role}
+            disabled={isPending}
+            onChange={(e) => setRole(e.target.value as InviteProfileRole)}
+            style={INPUT_STYLE}
+          >
+            <option value="athlete">Athlet</option>
+            <option value="coach">Trainer</option>
+          </select>
+        </label>
+        <label style={{ ...LABEL_STYLE, display: "flex", alignItems: "center", gap: 6 }}>
+          <input
+            type="checkbox"
+            checked={isAdmin}
+            disabled={isPending}
+            onChange={(e) => setIsAdmin(e.target.checked)}
+          />
+          Admin-Rechte
         </label>
         <button
           type="submit"

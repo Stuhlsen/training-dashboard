@@ -33,7 +33,16 @@
 // generate_link-Request) — anders als `/admin/users`. Deshalb zwei Aufrufe:
 // generate_link legt den User an, ein direkt folgendes PUT /admin/users/:id
 // setzt die Rolle nach (dort WIRD sie respektiert, empirisch bestaetigt).
-async function sendInvite(email, env, fetchImpl = fetch) {
+//
+// `profileRole`/`isAdmin` (18.09.2026, Alex' Nachtrag zur selben Anfrage):
+// legen profiles.role ('athlete'/'coach') und profiles.is_admin fest — per
+// direktem PostgREST-PATCH mit service_role (Migration 0043 grantet dafuer
+// UPDATE), NICHT ueber GoTrues user_metadata: handle_new_user() (0001) liest
+// raw_user_meta_data nur beim INSERT, und wie beim role="authenticated"-Fall
+// oben ist ungeprueft, ob generate_link mitgegebene Metadaten ueberhaupt
+// uebernimmt — der direkte Schreibzugriff auf profiles ist unabhaengig
+// davon zuverlaessig und folgt demselben Muster wie der Rollen-Nachtrag.
+async function sendInvite(email, env, fetchImpl = fetch, { profileRole = "athlete", isAdmin = false } = {}) {
   let res;
   try {
     res = await fetchImpl(`${env.GOTRUE_INTERNAL_URL}/admin/generate_link`, {
@@ -73,6 +82,21 @@ async function sendInvite(email, env, fetchImpl = fetch) {
       // eingeladen, bekommt beim ersten Login aber 401 auf jeden
       // PostgREST-Aufruf (s. Kommentar oben) — seltener Fall, aber nicht
       // automatisch heilbar; zeigt sich als Fehlfunktion nach dem Klick.
+    }
+    try {
+      await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/profiles?id=eq.${body?.id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+          apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ role: profileRole, is_admin: isAdmin }),
+      });
+    } catch {
+      // Analog oben: Konto existiert bereits mit dem handle_new_user()-
+      // Default (role "athlete", is_admin false) — nur die bewusste Wahl
+      // aus dem Dialog ginge verloren, keine Fehlfunktion.
     }
     return { ok: true, hashedToken: body?.hashed_token ?? null };
   }
