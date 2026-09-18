@@ -4,7 +4,7 @@
 
 services:
   postgres:
-    image: supabase/postgres:17.6.1.165
+    image: supabase/postgres:17.6.1.171
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -39,7 +39,7 @@ services:
   # Tabellen anlegt — die anschliessenden Migrationen vergeben die Rechte
   # dann exklusiv selbst.
   db-init:
-    image: supabase/postgres:17.6.1.165
+    image: supabase/postgres:17.6.1.171
     depends_on:
       postgres:
         condition: service_healthy
@@ -70,7 +70,7 @@ services:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
 
   gotrue:
-    image: supabase/gotrue:v2.196.0
+    image: supabase/gotrue:v2.197.0
     depends_on:
       migrate:
         condition: service_completed_successfully
@@ -102,7 +102,7 @@ services:
       retries: 10
 
   postgrest:
-    image: postgrest/postgrest:v16.2
+    image: postgrest/postgrest:v16.3
     depends_on:
       migrate:
         condition: service_completed_successfully
