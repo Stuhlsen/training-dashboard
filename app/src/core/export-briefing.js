@@ -7,18 +7,17 @@
    Baut aus bereits geladenen Domänenobjekten (state/ zieht sie zusammen,
    ruft nur diese reine Funktion auf) das Markdown-Briefing FÜR DEN MENSCHEN
    im Loop plus einen maschinenlesbaren JSON-Anhang mit den Karten-IDs
-   (Schema-Konzept §6), setzt das Ergebnis in die feste Prompt-Vorlage aus
-   docs/phase-4-prompt-vorlage-claude-trainer.md ein.
+   (Schema-Konzept §6), setzt das Ergebnis in die feste Prompt-Vorlage ein.
 
-   PROMPT_RUMPF + AUFTRAG_VARIANTEN sind hier Konstanten (nicht aus der
-   .md-Datei nachgeladen) — Vorlage und Validator (core/proposal-validator.js)
-   sollen laut eigener Aussage der Vorlage "im selben Commit" geändert werden.
-   Frühere Fassung dieses Kommentars behauptete, ein Test halte
-   PROMPT_TEMPLATE bytegleich gegen die Doku synchron — das stimmte nie
-   (tests/export-briefing.test.js prüft nur Regex-Muster im zusammengesetzten
-   Output, nie die Vorlage selbst). tests/export-briefing-consistency.test.js
-   übernimmt das jetzt tatsächlich: Rumpf + jede der fünf Auftragsvarianten
-   wörtlich gegen die Doku (Export-Richtungsvorgabe-Konzept R4).
+   PROMPT_RUMPF + AUFTRAG_VARIANTEN sind die alleinige Quelle der Wahrheit für
+   den Prompt-Text — CoachPanel.tsx baut den kopierbaren Text ausschließlich
+   hieraus (buildExportText()), liest nie eine separate Doku-Kopie. Bis
+   2026-09-19 gab es zusätzlich eine von Hand gepflegte Markdown-Kopie
+   (docs/phase-4-prompt-vorlage-claude-trainer.md) samt Byte-Vergleichstest
+   (tests/export-briefing-consistency.test.js) — beide sind entfallen, weil
+   die Kopie von der App nie gelesen wurde und nur eine Drift-Fehlerquelle
+   war (die genau das mal unentdeckt ließ). Änderungen an Vorlage und
+   Validator (core/proposal-validator.js) weiterhin im selben Commit.
    ============================================================ */
 
 import { localISODate, diffDays } from "./format.js";
@@ -49,11 +48,9 @@ export const SCHEMA_VERSION = 1;
  *  nicht über dieses eine Feld hereinkommt. */
 export const EXTRA_CONTEXT_MAX_LENGTH = 500;
 
-/** Preset-unabhängiger Rumpf der Prompt-Vorlage (Stand schema_version 1) —
- *  Text 1:1 aus docs/phase-4-prompt-vorlage-claude-trainer.md zwischen den
- *  RUMPF-ANFANG/ENDE-Markern. `{{AUFTRAG}}` wird durch buildAuftragBlock()
- *  ersetzt (Export-Richtungsvorgabe-Konzept R4), `{{BRIEFING}}` durch
- *  buildBriefingMarkdown(). */
+/** Preset-unabhängiger Rumpf der Prompt-Vorlage (Stand schema_version 1).
+ *  `{{AUFTRAG}}` wird durch buildAuftragBlock() ersetzt (Export-
+ *  Richtungsvorgabe-Konzept R4), `{{BRIEFING}}` durch buildBriefingMarkdown(). */
 export const PROMPT_RUMPF = `Du bist mein Radsport-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
 Profil (FTP, Zonen, Ziele), anstehende Events mit Priorität, meinen Trainingsplan
 (Karten mit \`id\` und \`updated_at\`), die Ist-Fahrten der letzten Wochen (TSS,
@@ -220,9 +217,7 @@ Hier ist mein Briefing:
 
 /** Lauf-Fassung von PROMPT_RUMPF (Fahrplan 12 E6, G8/G12) — Pace statt Watt,
  *  OHNE den Leiterstand/Stufenvorschlag-Absatz (Progressionsleiter bleibt
- *  Rad-only, Guardrail 3). Text 1:1 aus docs/phase-4-prompt-vorlage-claude-
- *  trainer.md zwischen den RUMPF-RUNNING-ANFANG/ENDE-Markern (geprüft von
- *  export-briefing-consistency.test.js, analog zu PROMPT_RUMPF). */
+ *  Rad-only, Guardrail 3). */
 export const PROMPT_RUMPF_RUNNING = `Du bist mein Lauf-Trainer. Unten findest du mein aktuelles Trainings-Briefing:
 Profil (Schwellenpace, Pace-Zonen, Ziele), anstehende Events mit Priorität, meinen
 Trainingsplan (Karten mit \`id\` und \`updated_at\`), die Ist-Läufe der letzten Wochen
@@ -403,9 +398,7 @@ export const AUFTRAG_VARIANTEN = {
 /** Lauf-Fassung von AUFTRAG_VARIANTEN (Fahrplan 12 E6, G22) — dieselben 5
  *  Keys, Watt-/TSS-Bezüge → Pace-/Last-Bezüge, „harter Block" → „harte
  *  Einheit". Die Stufenvorschlag-Sätze aus jeder Rad-Variante entfallen
- *  komplett (Progressionsleiter bleibt Rad-only, Guardrail 3). Text 1:1
- *  gegen docs/phase-4-prompt-vorlage-claude-trainer.md geprüft (Konsistenztest,
- *  analog zu AUFTRAG_VARIANTEN). */
+ *  komplett (Progressionsleiter bleibt Rad-only, Guardrail 3). */
 export const AUFTRAG_VARIANTEN_RUNNING = {
   general: `**Deine Aufgabe:**
 1. Analysiere Form, Plan und Events. Prüfe insbesondere: Passt die Belastungskurve

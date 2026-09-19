@@ -25,7 +25,7 @@ Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
   „Codebase-Qualität"). Tests laufen mit dem eingebauten `node:test`.
 - **`/app/`** — Vite + React + TypeScript. **Die einzige verbliebene
   Oberfläche** (der frühere Vanilla-JS-Zweig unter `assets/js/` wurde mit
-  Fahrplan 1 entfernt, s. `docs/fahrplan-1-vanilla-entfernen.md`). Eigenes
+  Fahrplan 1 entfernt, s. `planning/docs/fahrplan-1-vanilla-entfernen.md`). Eigenes
   `npm install` gegen `app/package-lock.json`, unabhängig vom Root. Tests mit
   Vitest, zwei Projekte (`core` unter Node, `app` unter jsdom — s.
   `app/vite.config.ts`). Details/Konventionen: `app/README.md`.
@@ -35,7 +35,7 @@ CI-Job pro Teil (`ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer
 nur bei Änderungen unter `app/**`) und `publish-images.yml` (GHCR-Images bei
 `v*`-Tag). Der Datensync (alle 15 Min, s. u.) läuft **nicht mehr** in Actions,
 sondern als Dauer-Container auf apps01 (`sync-data.yml` ist auf
-`workflow_dispatch`-Fallback reduziert, s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
+`workflow_dispatch`-Fallback reduziert, s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`).
 
 **Versions-Aktualität (seit 22.08.2026):** `.github/dependabot.yml` prüft
 wöchentlich npm-Pakete (Root + `/app/`), Docker-Images (Root,
@@ -44,7 +44,7 @@ und GitHub-Actions-Versionen, öffnet bei Veraltung automatisch PRs. Löst
 nicht automatisch — jeder PR wird wie jeder andere geprüft/gemergt.
 Deckt nur ab, was im Repo selbst gepinnt ist: Tonys eigene Pulls auf
 apps01 (Postgres/GoTrue/PostgREST/Caddy laufen dort über sein eigenes
-Renovate-Tooling, s. `docs/fahrplan-3-docker-umbau.md`) bleiben davon
+Renovate-Tooling, s. `planning/docs/fahrplan-3-docker-umbau.md`) bleiben davon
 unberührt — die `supabase/postgres`-Pins hier in `docker-compose.selfhost.yml`
 sind nur die lokale Referenz, kein Deploy an apps01. Anlass: Tony wies
 Alex am 22.08.2026 darauf hin, dass der lokale `supabase/postgres`-Pin auf
@@ -130,7 +130,7 @@ stehen (bewusst, RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
    Zwischenstände während der Arbeit, aber als **letzter Check vor dem
    Commit-Vorschlag zwingend zusätzlich gegen den lokalen Docker-Container**
    (`docker compose -f docker-compose.dev.yml up -d`, Frontend auf
-   `http://localhost:8080` — Details `docs/docker-lokal-einrichten.md`).
+   `http://localhost:8080` — Details `planning/docs/docker-lokal-einrichten.md`).
    Grund: nur der Container durchläuft den echten Produktions-Build
    (Vite-Build + nginx + `window.__RUNTIME_CONFIG__`-Laufzeitpfad) — der
    Vite-Dev-Server mit HMR kann Fehler verdecken, die erst im gebauten
@@ -282,7 +282,7 @@ const PROJECT_CONFIG: Record<string, ProjectEntry> = {
 // beide anon-Keys sind öffentlich (per Design, RLS schützt), Ports (5173, 3000)
 // fallen unter den bare-Hostname-Eintrag — s. app/src/api/supabase/config.test.ts
 ```
-Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängigen Config. Kein Build-Schritt, kein Secret-Management — Prod-Key ist sichtbar, ist aber per RLS wirkungslos ohne Login. Seit Fahrplan 3 DKR1 gibt es zusätzlich einen Laufzeit-Pfad für den Container-Betrieb: `window.__RUNTIME_CONFIG__` (von `index.html` aus einer vom Container geschriebenen `config.json` befüllt) hat in `config.ts::resolveEntry()` Vorrang vor dieser Tabelle — Details dort im Kommentar und in `docs/docker-lokal-einrichten.md`.
+Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängigen Config. Kein Build-Schritt, kein Secret-Management — Prod-Key ist sichtbar, ist aber per RLS wirkungslos ohne Login. Seit Fahrplan 3 DKR1 gibt es zusätzlich einen Laufzeit-Pfad für den Container-Betrieb: `window.__RUNTIME_CONFIG__` (von `index.html` aus einer vom Container geschriebenen `config.json` befüllt) hat in `config.ts::resolveEntry()` Vorrang vor dieser Tabelle — Details dort im Kommentar und in `planning/docs/docker-lokal-einrichten.md`.
 
 ### Migrations-Workflow
 SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/`
@@ -329,7 +329,7 @@ Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder g
 ### Datenquellen-Mix (lesen/schreiben)
 - **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline
   (`scripts/generate-data.js`, alle 15 Min — **seit 30.08.2026 als Dauer-Container auf apps01, nicht
-  mehr GitHub Actions**; s. `docs/fahrplan-3-sync-produktivbetrieb.md`). Der Container prüft
+  mehr GitHub Actions**; s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`). Der Container prüft
   zusätzlich stündlich, ob ein neues Image-Release verfügbar ist.
 - **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
   → Supabase (RLS, Session-basiert).
@@ -391,7 +391,7 @@ app/                       → Vite + React + TypeScript, s. app/README.md
     hooks/                  → generische UI-Hooks (nicht datenbezogen)
     features/               → ein Verzeichnis je Tab/Bereich: hero, logbook,
                               planning, analysis, explorer, events, auth, settings
-    styles/tokens.css       → Design-Tokens (abgeglichen mit docs/chart-grundlagen.md,
+    styles/tokens.css       → Design-Tokens (abgeglichen mit planning/docs/archiv/chart-grundlagen.md,
                               archiviert — Werte selbst bleiben aktuell)
 
 data/                     → generierte JSON-Dateien (rides*.json, wellbeing*.json, …),
@@ -441,13 +441,18 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
   fallow/                  → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
                              — übersetzt Anfragen wie "check code health" in fallow-Befehle
 
-planning/                  → GITIGNORED, nicht im öffentlichen Repo. Zukünftige,
-                             noch nicht ausgelieferte Ideen + Fahrpläne
-                             (planning/ideen-backlog.md). Grund: LP2 — der
-                             Fahrplan soll nicht für Wettbewerber sichtbar sein.
-                             Ausgelieferte Features dürfen als Historie nach
-                             docs/archiv/ wandern. Optional zusätzlich als
-                             eigener privater Repo gesichert.
+planning/                  → GITIGNORED, nicht im öffentlichen Repo. Eigenes
+                             privates Git-Repo (lokal im selben Arbeits-
+                             verzeichnis eingecheckt). Ideen + Fahrpläne
+                             (planning/ideen-backlog.md) UND seit 2026-09-19
+                             die gesamte bisherige `docs/`-Doku
+                             (planning/docs/, planning/docs/archiv/) — Grund:
+                             LP2, s. „Repo-Hygiene" im Backlog. Ausgelieferte
+                             Fahrpläne wandern innerhalb von planning/ von
+                             planning/docs/ nach planning/docs/archiv/ (reine
+                             interne Umsortierung, kein Repo-Wechsel mehr).
+                             Das öffentliche Repo behält nur `docs/README.md`
+                             als kurzen Verweis.
 ```
 
 ## Athleten
@@ -621,7 +626,7 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
   aus), zusätzlich einen `vX.Y.Z`-Tag setzen und pushen
   (`git tag vX.Y.Z` / `git push origin vX.Y.Z`) — Patch bei Bugfixes, Minor
   bei neuen Features, Major bei Breaking Changes. Grund: Der Produktivserver
-  zieht bewusst nie `:latest` (`docs/fahrplan-3-docker-umbau.md`, Fenster
+  zieht bewusst nie `:latest` (`planning/docs/fahrplan-3-docker-umbau.md`, Fenster
   DKR4), sondern eine feste Version — ohne neuen Tag bleibt ein Fix dort
   unsichtbar, auch wenn `main` längst aktualisiert ist. Bleibt ein manueller
   Schritt mit Rückfrage bei Alex (welche Versionsstufe) — kein automatisches
@@ -642,7 +647,7 @@ gerade ausgecheckt ist**. Bis Fahrplan 3 Fenster C (Issue #31, 30.08.2026) holte
 der Alias zuvor noch `data/adjustments.json`/`data/subjective.json` aus `origin/main`
 und committete sie als „chore: preserve browser-written data" — dieser Schritt ist
 entfallen, seit `data/*.json` nicht mehr versioniert ist (Sync schreibt direkt ins
-apps01-Volume, s. `docs/fahrplan-3-sync-produktivbetrieb.md`).
+apps01-Volume, s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`).
 
 **Zwingend nur von `main` aus laufen lassen.** Der Alias weigert sich (Branch-Guard),
 wenn `HEAD` nicht `main` ist — das ist kein Stilhinweis, sondern eine echte Sicherung:
@@ -803,7 +808,7 @@ React-Umbau nicht berührt):**
 - `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
   `icu_eftp`) — beide Formate werden normalisiert, mit Degradation samt
   Hinweistext, falls sie in der API-Antwort fehlen. Aktuellen Verifikationsstand
-  in `docs/offene-punkte.md` prüfen, nicht hier — der ändert sich mit jedem
+  in `planning/docs/offene-punkte.md` prüfen, nicht hier — der ändert sich mit jedem
   echten Sync-Lauf.
 - eFTP-Historie mergt `icu_eftp` (je Fahrt) mit dem Wellness-Tageswert aus `sportInfo`
   (`scripts/lib/wellness.js`). Wellness trägt zusätzlich Gewicht/Kalorien/Hydration/
@@ -847,7 +852,7 @@ React-Umbau nicht berührt):**
   leben inzwischen in der Supabase-Tabelle `plan_cards` (RLS-geschützt) —
   `data/adjustments.json`/`adjustments-2.json` sind seit dieser Migration nur
   noch read-only Archiv der alten Planungsdaten, keine aktive Datenquelle mehr.
-- Ruhetage sind seit Fahrplan 6 (`docs/fahrplan-6-ruhetag-planwochen-modell.md`,
+- Ruhetage sind seit Fahrplan 6 (`planning/docs/fahrplan-6-ruhetag-planwochen-modell.md`,
   RUH1–RUH6) **abgeleitet, keine `plan_cards`-Zeilen mehr**: Ein Ruhetag ist
   „Tag in einer aktiven Planwoche, der laut Plan-Wochen-Modell
   (`app/src/core/plan-week-model.js` + `scripts/lib/core/`-Kopie) kein

@@ -26,7 +26,7 @@
   schlüssig und beide wirkungslos — die Ursache war eine Race Condition
   zwischen zwei Event-Listenern, deren relative Reihenfolge keine im
   Quelltext sichtbare Eigenschaft ist. Erst die Live-Diagnose mit Playwright
-  MCP machte sie eindeutig, s. `docs/offene-punkte.md`).
+  MCP machte sie eindeutig, s. `planning/docs/offene-punkte.md`).
   - **Kann:** echten Browser steuern (Navigation, Klicks, Formulare,
     Drag-Gesten über Pointer-Events), Accessibility-Snapshot statt
     Screenshot bevorzugen (`browser_snapshot`), Konsole und Netzwerk-Requests
@@ -56,11 +56,13 @@ unten) + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
 ## Arbeitsweise
 
 - **Backlog-Idee → Fahrplan in Etappen mit sauberen Bruchkanten.** Wird eine
-  Idee aus `planning/ideen-backlog.md` umgesetzt, zuerst einen `docs/`-Fahrplan
-  schreiben, der in Etappen mit klaren Bruchkanten geschnitten ist — jede
-  Etappe in **einem** Claude-Code-Fenster machbar (nur ihr Etappen-Block + die
-  geteilten Verträge als Kontext), um Token zu sparen. Muster:
-  `docs/fahrplan-8-plan-generator.md`.
+  Idee aus `planning/ideen-backlog.md` umgesetzt, zuerst einen Fahrplan direkt
+  in `planning/` schreiben (seit 2026-09-19 lebt die gesamte Fahrplan-Doku
+  dort, nicht mehr in `docs/` — s. `docs/README.md`), der in Etappen mit
+  klaren Bruchkanten geschnitten ist — jede Etappe in **einem**
+  Claude-Code-Fenster machbar (nur ihr Etappen-Block + die geteilten Verträge
+  als Kontext), um Token zu sparen. Muster:
+  `planning/docs/fahrplan-8-plan-generator.md`.
 - **Plan Mode** vor Änderungen an `core/*.js`, die mehr als eine Funktion
   betreffen, oder die die Schichtenregel (`ui → state → core`) berühren.
 - **TodoWrite** ab 3 Schritten (z. B. die 3 Pflichtstellen bei neuem Datenfeld).
