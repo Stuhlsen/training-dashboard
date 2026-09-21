@@ -276,6 +276,24 @@ export function parseDescriptionSegments(text: string): DescriptionSegment[] {
     });
 }
 
+/* ── V2: MODEL_BLOCK_SHARES (Fahrplan 20 E2) ───────────────────────────
+   Feste, illustrative Werte je Modell für die Balkenreihe (ModelBlockBar) —
+   keine Live-Berechnung aus generatePlan() (Fahrplan-Nicht-Ziel). */
+
+export interface BlockShare {
+  locker: number; // 0..100, Summe der drei Felder = 100
+  mittel: number;
+  hart: number;
+}
+
+export const MODEL_BLOCK_SHARES: Record<PlanModel, BlockShare> = {
+  pyramidal: { locker: 40, mittel: 35, hart: 25 },
+  linear: { locker: 55, mittel: 30, hart: 15 },
+  polarized: { locker: 75, mittel: 5, hart: 20 },
+  block: { locker: 30, mittel: 30, hart: 40 },
+  reverse: { locker: 30, mittel: 20, hart: 50 },
+};
+
 /* ── reine Helfer ──────────────────────────────────────────────────── */
 
 /** Montag der Woche, in der `iso` liegt (Plan-Wochen beginnen montags). */

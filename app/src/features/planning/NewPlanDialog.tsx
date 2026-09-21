@@ -36,6 +36,7 @@ import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.j
 import { generatePlan } from "../../core/plan-generator.js";
 import { eftpHistory, forecastFtp } from "../../core/ftp-forecast.js";
 import { PlanPreview } from "./PlanPreview";
+import { ModelBlockBar } from "./ModelBlockBar";
 import {
   AVAILABLE_MODELS,
   buildGeneratorInput,
@@ -44,6 +45,7 @@ import {
   FOCUS_LABELS,
   KNOWN_PLAN_TYPES,
   LEVEL_DESCRIPTIONS,
+  MODEL_BLOCK_SHARES,
   MODEL_DESCRIPTIONS,
   MODEL_LABELS,
   mondayOf,
@@ -776,6 +778,9 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 </span>
               ))}
             </span>
+            <div style={{ marginTop: 6 }}>
+              <ModelBlockBar shares={MODEL_BLOCK_SHARES[effectiveModel]} />
+            </div>
           </label>
 
           {(Object.keys(errors).length > 0 || saveError) && (
