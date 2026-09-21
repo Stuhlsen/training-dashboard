@@ -175,6 +175,67 @@ test("buildPhaseSequence block: kurzer Plan → Warnung, korrekte Länge, kein A
   assert.ok(warnings.some((w) => w.includes("Block-Modell") || w.includes("braucht ~9")));
 });
 
+/* ── Fahrplan 15: Modell "reverse" (Intensität zuerst) ───────────── */
+
+test("MODEL_BLOCK_SHARES: reverse == linear (gleiche Anteile, nur umgekehrte Reihenfolge)", () => {
+  assert.deepEqual(MODEL_BLOCK_SHARES.reverse, MODEL_BLOCK_SHARES.linear);
+});
+
+test("buildPhaseSequence reverse: Aufbau-Phasen laufen in umgekehrter BUILD_PHASES-Reihenfolge, Taper hinten", () => {
+  const { phases } = buildPhaseSequence({
+    totalWeeks: 15,
+    taperWeeks: 2,
+    model: "reverse",
+    level: "fortgeschritten",
+    ageYears: 30,
+  });
+  assert.equal(phases.length, 15);
+  assert.deepEqual(phases.slice(-2), ["Taper", "Taper"]);
+
+  const reversedBuildPhases = [...BUILD_PHASES].reverse();
+  const buildOnly = phases.slice(0, 13).filter((p) => p !== "Erholung");
+  let maxSeen = -1;
+  for (const p of buildOnly) {
+    const rank = reversedBuildPhases.indexOf(p);
+    assert.ok(rank >= maxSeen, `${p} kommt nach einer späteren Phase (reverse-Reihenfolge)`);
+    maxSeen = Math.max(maxSeen, rank);
+  }
+  for (const p of BUILD_PHASES) assert.ok(phases.includes(p), `Phase ${p} fehlt: ${phases.join("/")}`);
+});
+
+test("buildPhaseSequence + phases-Override, model 'reverse': GENERIC_BUILD_PHASES umgekehrt, kein Sweet Spot", () => {
+  const { phases } = buildPhaseSequence({
+    totalWeeks: 14,
+    taperWeeks: 2,
+    model: "reverse",
+    level: "fortgeschritten",
+    ageYears: 30,
+    phases: GENERIC_BUILD_PHASES,
+  });
+  assert.ok(!phases.includes("Sweet Spot"));
+
+  const reversedGeneric = [...GENERIC_BUILD_PHASES].reverse();
+  const buildOnly = phases.slice(0, 12).filter((p) => p !== "Erholung");
+  let maxSeen = -1;
+  for (const p of buildOnly) {
+    const rank = reversedGeneric.indexOf(p);
+    assert.ok(rank >= maxSeen, `${p} kommt nach einer späteren Phase (reverse-Reihenfolge)`);
+    maxSeen = Math.max(maxSeen, rank);
+  }
+});
+
+test("buildPhaseSequence reverse: weaknessPhase funktioniert wie bei linear", () => {
+  const args = { totalWeeks: 15, taperWeeks: 2, model: "reverse", level: "fortgeschritten", ageYears: 30 };
+  const base = buildPhaseSequence(args);
+  const biased = buildPhaseSequence({ ...args, weaknessPhase: "Schwelle" });
+
+  const cb = buildPhaseCounts(base.phases);
+  const cx = buildPhaseCounts(biased.phases);
+  assert.equal(cx["Schwelle"], cb["Schwelle"] + 1);
+  assert.equal(cx["Grundlage"], cb["Grundlage"]); // Grundlage nie Spender
+  assert.ok(biased.warnings.some((w) => w.includes("Power-Kurve")));
+});
+
 test("buildPhaseSequence: pyramidal/linear unverändert (Regression) — jede Phase, Reihenfolge, Taper hinten", () => {
   for (const model of ["pyramidal", "linear"]) {
     const { phases } = buildPhaseSequence({

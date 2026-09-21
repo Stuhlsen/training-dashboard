@@ -30,21 +30,29 @@ const BLOCK_MAX_WEEKS = 3;
 /** @param {number} v @param {number} lo @param {number} hi @returns {number} */
 const clampInt = (v, lo, hi) => Math.min(hi, Math.max(lo, Math.round(v)));
 
+// Umfang früh hoch/locker, Intensität wandert nach hinten — Einsteiger /
+// lange Vorlaufzeit. Von `reverse` unten geteilt (gleiche Anteile, nur
+// umgekehrte Blockreihenfolge), damit eine künftige Kalibrierung nicht
+// versehentlich nur eine der beiden Kopien trifft.
+const LINEAR_SHARES = Object.freeze({ Grundlage: 0.4, "Sweet Spot": 0.25, Schwelle: 0.2, VO2max: 0.15 });
+
 /**
  * Anteil je Aufbau-Phase an den Nicht-Taper-, Nicht-Erholungs-Wochen — nur
- * für `pyramidal` + `linear`. `polarized`/`block` haben eigene Sequenz-Builder
- * (polarizedSequence / blockSequence) und stehen bewusst nicht in dieser
- * Tabelle. In E2 finalisiert (Fahrplan „Feinentscheidungen"). Erste begründete
- * Näherung, nach echter Nutzung gegen die Ist-Daten zu kalibrieren
- * (wie CONFLICT_THRESHOLDS, K1).
- * @type {Record<"pyramidal"|"linear", Record<string, number>>}
+ * für `pyramidal` + `linear`/`reverse`. `polarized`/`block` haben eigene
+ * Sequenz-Builder (polarizedSequence / blockSequence) und stehen bewusst
+ * nicht in dieser Tabelle. In E2 finalisiert (Fahrplan „Feinentscheidungen").
+ * Erste begründete Näherung, nach echter Nutzung gegen die Ist-Daten zu
+ * kalibrieren (wie CONFLICT_THRESHOLDS, K1).
+ * @type {Record<"pyramidal"|"linear"|"reverse", Record<string, number>>}
  */
 export const MODEL_BLOCK_SHARES = Object.freeze({
   // Allrounder / TID-Pyramide — gleichmäßig über die vier Systeme.
   pyramidal: Object.freeze({ Grundlage: 0.25, "Sweet Spot": 0.25, Schwelle: 0.25, VO2max: 0.25 }),
-  // Umfang früh hoch/locker, Intensität wandert nach hinten — Einsteiger /
-  // lange Vorlaufzeit.
-  linear: Object.freeze({ Grundlage: 0.4, "Sweet Spot": 0.25, Schwelle: 0.2, VO2max: 0.15 }),
+  linear: LINEAR_SHARES,
+  // Gleiche Anteile wie `linear`, aber umgekehrte Reihenfolge (VO2max zuerst,
+  // Grundlage zuletzt vor dem Taper) — für erfahrene Athlet:innen mit knapper
+  // Vorlaufzeit oder bereits hoher Basisfitness (Reverse-Periodisierung).
+  reverse: LINEAR_SHARES,
 });
 
 /** Fahrplan 14 E2/E3: Aufbau-Phasen für Nicht-Rad-Sportarten — kein Sweet
@@ -71,10 +79,11 @@ function dropSweetSpot(shares) {
   return Object.fromEntries(GENERIC_BUILD_PHASES.map((p, i) => [p, kept[i] / sum]));
 }
 
-/** @type {Record<"pyramidal"|"linear", Record<string, number>>} */
+/** @type {Record<"pyramidal"|"linear"|"reverse", Record<string, number>>} */
 export const GENERIC_MODEL_BLOCK_SHARES = Object.freeze({
   pyramidal: Object.freeze(dropSweetSpot(MODEL_BLOCK_SHARES.pyramidal)),
   linear: Object.freeze(dropSweetSpot(MODEL_BLOCK_SHARES.linear)),
+  reverse: Object.freeze(dropSweetSpot(MODEL_BLOCK_SHARES.reverse)),
 });
 
 /**
@@ -224,7 +233,7 @@ function interleaveRecovery(buildWeeks, recIdxSet, phaseRun, warnings, fallbackP
  * `pyramidal` / `linear`: BUILD_PHASES nach MODEL_BLOCK_SHARES über die
  * Arbeitswochen verteilen, Erholungswochen im level-/altersabhängigen
  * Rhythmus (recoveryPeriod) dazwischen.
- * @param {{ buildWeeks: number, model: "pyramidal"|"linear",
+ * @param {{ buildWeeks: number, model: "pyramidal"|"linear"|"reverse",
  *   level: "einsteiger"|"fortgeschritten", ageYears: number|null,
  *   weaknessPhase?: string|null, buildPhases?: string[],
  *   shareTable?: Record<string, Record<string, number>> }} a
@@ -377,7 +386,7 @@ function blockSequence(buildWeeks, systems = BLOCK_SYSTEMS, isGeneric = false) {
  * @param {object} args
  * @param {number} args.totalWeeks
  * @param {number} args.taperWeeks  0 im `open`-Modus
- * @param {"pyramidal"|"polarized"|"block"|"linear"} args.model
+ * @param {"pyramidal"|"polarized"|"block"|"linear"|"reverse"} args.model
  * @param {"einsteiger"|"fortgeschritten"} args.level
  * @param {number|null} [args.ageYears]
  * @param {string|null} [args.weaknessPhase]  E10: Aufbau-Phase, die eine Woche
@@ -428,7 +437,17 @@ export function buildPhaseSequence({
       ? blockSequence(buildWeeks, blockSystems, Boolean(phases))
       : model === "polarized"
         ? polarizedSequence(buildWeeks, level, ageYears)
-        : classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase, buildPhases, shareTable });
+        : model === "reverse"
+          ? classicSequence({
+              buildWeeks,
+              model,
+              level,
+              ageYears,
+              weaknessPhase,
+              buildPhases: [...buildPhases].reverse(),
+              shareTable,
+            })
+          : classicSequence({ buildWeeks, model, level, ageYears, weaknessPhase, buildPhases, shareTable });
 
   const phasesOut = seq.phases.slice();
   const isRecovery = seq.isRecovery.slice();

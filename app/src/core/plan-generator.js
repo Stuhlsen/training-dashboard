@@ -71,7 +71,7 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {number} indoorShare  0..1
  * @property {"allgemein"|"berg"|"langstrecke"|"crit"} focus
  * @property {"einsteiger"|"fortgeschritten"} level
- * @property {"pyramidal"|"polarized"|"block"|"linear"} model
+ * @property {"pyramidal"|"polarized"|"block"|"linear"|"reverse"} model
  * @property {HistoryAggregate} [history]
  * @property {Array<object>} [formats]  session_formats-Zeilen (E3); leer → eingebaute Startbelegung
  * @property {string} [regenerateFrom]  E13: ISO-Montag, ab dem die Wochen neu gerechnet werden

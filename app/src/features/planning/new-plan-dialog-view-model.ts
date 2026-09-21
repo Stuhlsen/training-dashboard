@@ -188,6 +188,7 @@ export const MODEL_LABELS: Record<PlanModel, string> = {
   linear: "Linear (Umfang zuerst)",
   polarized: "Polarisiert (80/20)",
   block: "Blocktraining",
+  reverse: "Reverse (Intensität zuerst)",
 };
 
 /** Kurzbeschreibung je Modell für neue Athleten (Alex-Feedback 21.09.2026) —
@@ -202,10 +203,12 @@ export const MODEL_DESCRIPTIONS: Record<PlanModel, string> = {
     "Fast alles sehr locker, dazwischen kurze, sehr harte Intervalle (80/20), kaum etwas dazwischen — für erfahrene Athlet:innen mit klarer Zonendisziplin.",
   block:
     "Kurze, konzentrierte 2–3-Wochen-Blöcke je Trainingsbereich mit Erholung dazwischen, statt gleichmäßig gemischt — braucht Erfahrung und Zeit für Erholung.",
+  reverse:
+    "Harte Intervalle zuerst, die Grundlage wandert ans Ende vor dem Taper — für Athlet:innen mit knapper Vorlaufzeit oder bereits hoher Basisfitness.",
 };
 
-/** Alle vier seit E9 baubar. */
-export const AVAILABLE_MODELS: readonly PlanModel[] = ["pyramidal", "linear", "polarized", "block"];
+/** Alle fünf seit E14 baubar. */
+export const AVAILABLE_MODELS: readonly PlanModel[] = ["pyramidal", "linear", "polarized", "block", "reverse"];
 
 /* ── reine Helfer ──────────────────────────────────────────────────── */
 

@@ -186,7 +186,7 @@ export interface PlanCardInput {
    ──────────────────────────────────────────────────────────────── */
 
 export type PlanMode = "event" | "open";
-export type PlanModel = "pyramidal" | "polarized" | "block" | "linear";
+export type PlanModel = "pyramidal" | "polarized" | "block" | "linear" | "reverse";
 export type PlanFocus = "allgemein" | "berg" | "langstrecke" | "crit";
 export type PlanLevel = "einsteiger" | "fortgeschritten";
 

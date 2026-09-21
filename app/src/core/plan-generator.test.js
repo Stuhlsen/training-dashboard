@@ -624,8 +624,8 @@ test("sport:'run' — Taper-Woche (Event-Modus) baut Karten ohne Absturz, Intens
   }
 });
 
-test("sport:'run' — alle 4 Modelle liefern nur das 3-Phasen-Vokabular, kein Absturz", () => {
-  for (const model of ["pyramidal", "linear", "polarized", "block"]) {
+test("sport:'run' — alle 5 Modelle liefern nur das 3-Phasen-Vokabular, kein Absturz", () => {
+  for (const model of ["pyramidal", "linear", "polarized", "block", "reverse"]) {
     const plan = generatePlan(runInput({ model }));
     assert.ok(plan.weeks.length > 0, model);
     for (const w of plan.weeks) {
@@ -735,8 +735,8 @@ test("sport:'swim' — Taper-Woche (Event-Modus) baut Karten ohne Absturz, Inten
   }
 });
 
-test("sport:'swim' — alle 4 Modelle liefern nur das 3-Phasen-Vokabular, kein Absturz", () => {
-  for (const model of ["pyramidal", "linear", "polarized", "block"]) {
+test("sport:'swim' — alle 5 Modelle liefern nur das 3-Phasen-Vokabular, kein Absturz", () => {
+  for (const model of ["pyramidal", "linear", "polarized", "block", "reverse"]) {
     const plan = generatePlan(swimInput({ model }));
     assert.ok(plan.weeks.length > 0, model);
     for (const w of plan.weeks) {
