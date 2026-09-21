@@ -26,6 +26,12 @@ export type { PlanMode, PlanFocus, PlanLevel, PlanModel };
  * `PlanSport`-Typs (Fahrplan 14 V1 nennt ihn nur konzeptionell so). */
 import type { ActiveSport } from "../../api/hooks/useActiveSport";
 
+/* "Feste Tage" (Alex-Feedback 21.09.2026): der Typ-Select greift auf dasselbe
+ * Rad-Zonen-Vokabular wie der Karten-Dialog zurück (plan-card-form-view-model.ts
+ * nutzt für den dortigen Typ-Select denselben Re-Export). */
+import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
+export { KNOWN_PLAN_TYPES };
+
 /** Ober-/Untergrenze für die Planlänge — im `open`-Modus als Formularfeld,
  *  im `event`-Modus aus `start..event` abgeleitet und hier gegengeprüft
  *  (sonst würde ein Renntag Jahre in der Zukunft z. B. 78 Wochen erzeugen). */
@@ -73,6 +79,18 @@ export interface GeneratedCard {
   isTest: boolean;
 }
 
+/** "Feste Tage" (Alex-Feedback 21.09.2026): ein Wochentag bekommt IMMER
+ *  denselben Typ statt der automatisch verteilten Qualitätstage — z.B.
+ *  "Dienstag ist immer Gruppenfahrt". Nur sport === "ride". */
+export interface FixedDay {
+  /** ISO 1..7, muss in trainingWeekdays enthalten sein. */
+  weekday: number;
+  /** aus KNOWN_PLAN_TYPES. */
+  typ: string;
+  /** Default false — sonst pausiert die Fixierung in Erholungswochen. */
+  keepInRecoveryWeek: boolean;
+}
+
 export interface PlanGeneratorInput {
   /** Fehlt es, nimmt der Generator "ride" an (Golden-Master, Fahrplan 14 E1). */
   sport?: ActiveSport;
@@ -81,6 +99,7 @@ export interface PlanGeneratorInput {
   eventDate?: string;
   weeks?: number;
   trainingWeekdays: number[];
+  fixedDays?: FixedDay[];
   weeklyHours: number;
   /** nur sport === "ride" */
   currentFtp: number | null;
@@ -120,6 +139,8 @@ export interface NewPlanFormState {
   weeks: number;
   startDate: string;
   trainingWeekdays: number[]; // ISO 1..7
+  /** "Feste Tage" — nur sport === "ride" (UI blendet den Abschnitt sonst aus). */
+  fixedDays: FixedDay[];
   weeklyHours: number;
   currentFtp: number | null;
   /** Aus `config.ts` durchgereicht (nicht im Formular editierbar) — steuert
@@ -219,6 +240,7 @@ export function defaultFormState(cfg: AthleteDefaults | null, todayISO: string):
     weeks,
     startDate: start,
     trainingWeekdays: [2, 4, 6], // Di / Do / Sa — zwei Qualitätstage + langer Tag
+    fixedDays: [],
     weeklyHours,
     currentFtp: cfg?.ftpMeasured ?? cfg?.eFTP ?? null,
     ftpMeasuredDate: cfg?.ftpMeasuredDate ?? null,
@@ -268,6 +290,16 @@ export function buildGeneratorInput(
     .sort((a, b) => a - b);
   if (weekdays.length < 2) errors.trainingWeekdays = "Mindestens zwei Trainingstage wählen.";
 
+  const fixedDays = sport === "ride" ? state.fixedDays : [];
+  const fixedWeekdaySet = new Set(fixedDays.map((d) => d.weekday));
+  if (
+    fixedWeekdaySet.size !== fixedDays.length ||
+    fixedDays.some((d) => !weekdays.includes(d.weekday) || !KNOWN_PLAN_TYPES.includes(d.typ))
+  ) {
+    errors.fixedDays =
+      "Jeder feste Tag darf nur einmal vorkommen und muss ein gewählter Trainingstag mit gültigem Typ sein.";
+  }
+
   if (!(state.weeklyHours > 0)) errors.weeklyHours = "Zeitbudget in Stunden angeben.";
 
   let eventDate: string | undefined;
@@ -306,6 +338,7 @@ export function buildGeneratorInput(
       ...(eventDate ? { eventDate } : {}),
       ...(weeks ? { weeks } : {}),
       trainingWeekdays: weekdays,
+      fixedDays,
       weeklyHours: state.weeklyHours,
       currentFtp: sport === "ride" ? state.currentFtp : null,
       ftpMeasuredDate: sport === "ride" ? state.ftpMeasuredDate : null,

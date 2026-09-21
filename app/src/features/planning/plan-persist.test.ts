@@ -69,6 +69,7 @@ const FORM: NewPlanFormState = {
   weeks: 12,
   startDate: "2026-09-07",
   trainingWeekdays: [2, 4, 6],
+  fixedDays: [],
   weeklyHours: 6,
   currentFtp: 193,
   ftpMeasuredDate: "2026-06-01",

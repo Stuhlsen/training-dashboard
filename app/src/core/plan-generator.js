@@ -31,7 +31,7 @@ import { addDaysISO, diffDays } from "./format.js";
 import { isoWeekKey } from "./aggregate.js";
 import { avg } from "./stats.js";
 import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
-import { CONFLICT_THRESHOLDS } from "./plan-config.js";
+import { CONFLICT_THRESHOLDS, TYPE_DEFAULT_TSS, intensityClass } from "./plan-config.js";
 import { RECOVERY_MAX_SHARE } from "./periodization.js";
 import { buildPhaseSequence, sequenceFromWeekModel } from "./plan-generator-blocks.js";
 import { getSportStrategy } from "./plan-generator-sport.js";
@@ -59,6 +59,8 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {string} [eventDate]
  * @property {number} [weeks]
  * @property {number[]} trainingWeekdays  ISO 1..7, aufsteigend
+ * @property {FixedDayInput[]} [fixedDays]  "Feste Tage" (Alex-Feedback 21.09.2026): pro
+ *   Wochentag optional ein fixierter Typ statt der automatischen Qualitätstag-Verteilung
  * @property {number} weeklyHours
  * @property {number|null} currentFtp  nur sport === "ride"
  * @property {string|null} ftpMeasuredDate  nur sport === "ride"
@@ -74,6 +76,13 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {Array<object>} [formats]  session_formats-Zeilen (E3); leer → eingebaute Startbelegung
  * @property {string} [regenerateFrom]  E13: ISO-Montag, ab dem die Wochen neu gerechnet werden
  * @property {WeekModelEntry[]} [baseWeekModel]  E13: eingefrorene Blockstruktur des Ur-Plans
+ */
+
+/**
+ * @typedef {Object} FixedDayInput  (V2, "Feste Tage")
+ * @property {number} weekday  ISO 1..7, muss in trainingWeekdays enthalten sein
+ * @property {string} typ  aus KNOWN_PLAN_TYPES (plan-config.js)
+ * @property {boolean} keepInRecoveryWeek  Default false — sonst pausiert die Fixierung in Erholungswochen
  */
 
 /**
@@ -371,15 +380,60 @@ function computeWeekTargets(a) {
   return { targetTss, raceTsb, warnings };
 }
 
+/** Grobe %FTP-/Dauer-Schätzung je Intensitätsklasse für "feste Tage" — bewusst
+ *  kein `selectWorkout()`-Aufruf: ein fixierter Tag soll IMMER denselben Typ
+ *  tragen, unabhängig von der aktuellen Phase (die PHASE_PLAN-Ladder-Progression
+ *  aus plan-workout-select.js gilt nur für die automatisch verteilten
+ *  Qualitätstage).
+ *  @type {Record<string, {pctBand:[number,number], assumedIF:number}>} */
+const FIXED_DAY_PROFILE = {
+  hart: { pctBand: [88, 94], assumedIF: 0.88 },
+  moderat: { pctBand: [70, 85], assumedIF: 0.75 },
+  locker: { pctBand: [60, 70], assumedIF: 0.65 },
+};
+
+/** Karte für einen "festen Tag" (V2 `fixedDays`, Alex-Feedback 21.09.2026 —
+ *  z.B. "Dienstag ist immer Gruppenfahrt"): TSS-Vorgabe aus
+ *  `TYPE_DEFAULT_TSS[typ]`, Dauer aus TSS + einer pauschalen IF-Schätzung je
+ *  Intensitätsklasse zurückgerechnet (TSS = Std × IF² × 100).
+ *  @param {string} typ  aus KNOWN_PLAN_TYPES @param {number|null} ftp
+ *  @returns {{name:string, typ:string, workout:object|null, workoutStructure:object|null, tssPlanned:number, durationMin:number}} */
+function fixedDayCard(typ, ftp) {
+  const tssPlanned = TYPE_DEFAULT_TSS[typ] ?? 50;
+  if (tssPlanned <= 0) {
+    return { name: typ, typ, workout: null, workoutStructure: null, tssPlanned: 0, durationMin: 0 };
+  }
+  const profile = FIXED_DAY_PROFILE[intensityClass(typ)] ?? FIXED_DAY_PROFILE.moderat;
+  const durationMin = clamp(Math.round((tssPlanned / (100 * profile.assumedIF ** 2)) * 60), 20, 240);
+  const pct = profile.pctBand;
+  const watts = ftp != null ? [Math.round((pct[0] / 100) * ftp), Math.round((pct[1] / 100) * ftp)] : undefined;
+  const workout = {
+    warmup: 0,
+    intervals: 1,
+    duration: durationMin,
+    rest: 0,
+    cooldown: 0,
+    zone: typ,
+    pct,
+    ...(watts ? { watts } : {}),
+    label: typ,
+  };
+  const workoutStructure = {
+    version: 1,
+    steps: [{ kind: "steady", duration_s: durationMin * 60, target_pct_ftp: Math.round((pct[0] + pct[1]) / 2) }],
+  };
+  return { name: typ, typ, workout, workoutStructure, tssPlanned, durationMin };
+}
+
 /**
  * Karten einer Woche: Qualitätstage aus `selectWorkout()` (E3, session_formats
- * + Ladder-Stufe nach `weekIndexInPhase`), lockere Tage als Z2-Blöcke auf die
- * Wochen-Restdauer verteilt und auf `targetTss` skaliert, optional ein
- * FTP-Testtag statt des ersten Slots.
+ * + Ladder-Stufe nach `weekIndexInPhase`), feste Tage aus `fixedDayCard()`,
+ * lockere Tage als Z2-Blöcke auf die Wochen-Restdauer verteilt und auf
+ * `targetTss` skaliert, optional ein FTP-Testtag statt des ersten Slots.
  * @param {object} c
  * @param {string} c.weekStart @param {string} c.isoWeek @param {string} c.phase
  * @param {boolean} c.isRecovery @param {number[]} c.effectiveWeekdays
- * @param {number[]} c.quality @param {number} c.weeklyHours
+ * @param {number[]} c.quality @param {FixedDayInput[]} [c.fixedDays] @param {number} c.weeklyHours
  * @param {number} c.targetTss @param {number|null} c.ftp @param {boolean} c.isTestWeek
  * @param {number|null} [c.thresholdSpeed]  km/h — nur "run"/"swim" (Fahrplan 14 E2/E3)
  * @param {number} c.weekIndexInPhase  0-basiert, Woche innerhalb der Phase (Ladder-Stufe)
@@ -391,9 +445,37 @@ function computeWeekTargets(a) {
  */
 function buildWeekCards(c) {
   const { weekStart, isoWeek, phase, isRecovery, effectiveWeekdays, quality, weeklyHours, targetTss, ftp, isTestWeek } = c;
-  const { weekIndexInPhase, focus, level, formats, strategy, thresholdSpeed = null } = c;
-  const dayIsQuality = (wd) => !isRecovery && quality.includes(wd);
-  const looseDays = effectiveWeekdays.filter((wd) => !dayIsQuality(wd));
+  const { weekIndexInPhase, focus, level, formats, strategy, thresholdSpeed = null, fixedDays = [] } = c;
+
+  // "Feste Tage": nur aktiv, wenn der Wochentag ein Trainingstag ist UND
+  // (keine Erholungswoche ODER der Eintrag trägt `keepInRecoveryWeek: true`).
+  const fixedByWeekday = new Map(fixedDays.map((d) => [d.weekday, d]));
+  const dayIsFixed = (wd) => {
+    const entry = fixedByWeekday.get(wd);
+    return entry != null && (!isRecovery || entry.keepInRecoveryWeek);
+  };
+  // Ein "harter" fixierter Tag (z.B. Sweet Spot) ersetzt einen der automatisch
+  // verteilten Qualitätstage, statt zusätzlich draufzukommen — sonst würde die
+  // Gesamtzahl Qualitätstage/Woche unbeabsichtigt steigen. Reichen die
+  // automatischen Slots nicht aus (mehr feste harte Tage als `quality.length`,
+  // s. generatePlan()s hartFixedCount-Warnung), bleiben ab dann keine Slots
+  // mehr zum Ersetzen übrig — die überzähligen fixierten harten Tage kommen
+  // zusätzlich oben drauf statt zu verdrängen (bewusste, im Formular einzeln
+  // sichtbare Athletenentscheidung, keine stille Fehlzählung). "Gruppenfahrt"
+  // & Co. (moderat/locker) zählen NICHT als Qualitätstag, die normale
+  // Verteilung läuft auf den übrigen Tagen unverändert (Alex' konkreter Fall).
+  let effectiveQuality = quality;
+  for (const wd of effectiveWeekdays) {
+    if (!dayIsFixed(wd) || effectiveQuality.includes(wd) || !effectiveQuality.length) continue;
+    if (intensityClass(fixedByWeekday.get(wd).typ) !== "hart") continue;
+    if (effectiveQuality === quality) effectiveQuality = quality.slice();
+    let farthest = effectiveQuality[0];
+    for (const q of effectiveQuality) if (Math.abs(q - wd) > Math.abs(farthest - wd)) farthest = q;
+    effectiveQuality = effectiveQuality.filter((q) => q !== farthest);
+  }
+
+  const dayIsQuality = (wd) => !isRecovery && !dayIsFixed(wd) && effectiveQuality.includes(wd);
+  const looseDays = effectiveWeekdays.filter((wd) => !dayIsQuality(wd) && !dayIsFixed(wd));
 
   // Qualitätstage bekommen ~ ein Viertel des Wochen-Zeitbudgets (45–100 min);
   // die lockeren Tage füllen den Rest bis targetTss (scaleLooseCardsToTarget).
@@ -406,7 +488,7 @@ function buildWeekCards(c) {
     const q = strategy.selectWorkout({
       phase,
       weekIndexInPhase,
-      qualitySlot: quality.indexOf(wd) === 0 ? 1 : 2,
+      qualitySlot: effectiveQuality.indexOf(wd) === 0 ? 1 : 2,
       focus,
       level,
       currentFtp: ftp,
@@ -417,6 +499,16 @@ function buildWeekCards(c) {
     });
     qTss += q.tssPlanned;
     cards.push(makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, q, { isQuality: true }));
+  }
+
+  for (const wd of effectiveWeekdays) {
+    if (!dayIsFixed(wd)) continue;
+    const entry = fixedByWeekday.get(wd);
+    const f = fixedDayCard(entry.typ, ftp);
+    qTss += f.tssPlanned;
+    cards.push(
+      makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, f, { isQuality: intensityClass(entry.typ) === "hart" })
+    );
   }
 
   const weeklyMin = weeklyHours * 60 * (isRecovery ? 0.7 : 1);
@@ -606,6 +698,19 @@ export function generatePlan(input) {
   const formats = input.formats || [];
   const testWeeks = strategy.testWeeks(totalWeeks, startDate, input.ftpMeasuredDate, cut);
   const quality = qualityWeekdays(effectiveWeekdays);
+  const fixedDays = input.fixedDays || [];
+  // Mehr feste harte Tage als automatische Qualitätstage/Woche (quality.length,
+  // i.d.R. 2): buildWeekCards() ersetzt dann nicht mehr genug Slots, die
+  // überzähligen fixierten harten Tage kommen zusätzlich oben drauf — eine
+  // bewusste Athletenentscheidung (jeder Eintrag ist im Formular einzeln
+  // sichtbar gewählt), aber die Wochenbelastung steigt entsprechend. Hinweis
+  // statt stiller Zusatzbelastung.
+  const hartFixedCount = fixedDays.filter((d) => intensityClass(d.typ) === "hart").length;
+  if (hartFixedCount > quality.length) {
+    warnings.push(
+      `${hartFixedCount} feste harte Tage, aber nur ${quality.length} automatische Qualitätstage/Woche — zusätzliche Belastung prüfen.`
+    );
+  }
   const weeks = seq.phases.map((phase, i) => {
     const weekStart = addDaysISO(startDate, i * 7);
     const isoWeek = isoWeekKey(weekStart);
@@ -645,6 +750,7 @@ export function generatePlan(input) {
         isRecovery: seq.isRecovery[i],
         effectiveWeekdays,
         quality,
+        fixedDays,
         weeklyHours: input.weeklyHours,
         targetTss,
         ftp,

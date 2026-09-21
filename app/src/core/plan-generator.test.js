@@ -6,7 +6,8 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import { generatePlan, emptyHistory, levelDefaultWeekTss, qualityWeekdays } from "./plan-generator.js";
-import { CONFLICT_THRESHOLDS } from "./plan-config.js";
+import { CONFLICT_THRESHOLDS, TYPE_DEFAULT_TSS } from "./plan-config.js";
+import { addDaysISO } from "./format.js";
 import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
 import { validateWorkoutStructure } from "./workout-validator.js";
 
@@ -737,4 +738,81 @@ test("sport:'swim' — 0 Schwimm-Aktivitäten → currentThresholdSpeed:null →
   assert.ok(cards.length > 0);
   assert.ok(cards.every((c) => !(c.workout && c.workout.speedTarget)));
   assert.equal(plan.ftpTarget, null);
+});
+
+/* ── "Feste Tage" (Alex-Feedback 21.09.2026) ─────────────────────────── */
+
+test("fixedDays: harter fixierter Tag ersetzt einen Qualitätstag, Gesamtzahl bleibt gleich", () => {
+  const plan = generatePlan(
+    eventInput({ fixedDays: [{ weekday: 2, typ: "Schwelle", keepInRecoveryWeek: false }] })
+  );
+  const w = plan.weeks.find((wk) => !wk.isRecovery && wk.phase !== "Taper");
+  assert.ok(w, "keine Aufbauwoche gefunden");
+  const fixedCard = w.cards.find((c) => c.date === addDaysISO(w.start, 1)); // Dienstag
+  assert.ok(fixedCard, "keine Karte am fixierten Dienstag");
+  assert.equal(fixedCard.typ, "Schwelle");
+  assert.equal(fixedCard.isQuality, true);
+  const qualityCount = w.cards.filter((c) => c.isQuality).length;
+  assert.equal(qualityCount, 2, `Qualitätstage in Woche ${w.index + 1}: ${qualityCount} (Gesamtzahl darf nicht steigen)`);
+});
+
+test("fixedDays: leichter fixierter Tag (Gruppenfahrt) kommt zusätzlich zu den normalen Qualitätstagen dazu", () => {
+  const plan = generatePlan(
+    eventInput({ fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false }] })
+  );
+  const w = plan.weeks.find((wk) => !wk.isRecovery && wk.phase !== "Taper");
+  assert.ok(w, "keine Aufbauwoche gefunden");
+  const fixedCard = w.cards.find((c) => c.date === addDaysISO(w.start, 1)); // Dienstag
+  assert.ok(fixedCard, "keine Karte am fixierten Dienstag");
+  assert.equal(fixedCard.typ, "Gruppenfahrt");
+  assert.equal(fixedCard.isQuality, false);
+  assert.equal(fixedCard.tssPlanned, TYPE_DEFAULT_TSS.Gruppenfahrt);
+  const qualityCount = w.cards.filter((c) => c.isQuality).length;
+  assert.equal(qualityCount, 2, `Qualitätstage in Woche ${w.index + 1}: ${qualityCount} (unverändert)`);
+});
+
+test("fixedDays: keepInRecoveryWeek:false pausiert die Fixierung in Erholungswochen", () => {
+  const plan = generatePlan(
+    eventInput({ fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false }] })
+  );
+  const rec = plan.weeks.find((wk) => wk.isRecovery);
+  assert.ok(rec, "keine Erholungswoche gefunden");
+  const tuesday = rec.cards.find((c) => c.date === addDaysISO(rec.start, 1));
+  assert.ok(tuesday, "keine Karte am Dienstag der Erholungswoche");
+  assert.notEqual(tuesday.typ, "Gruppenfahrt");
+});
+
+test("fixedDays: keepInRecoveryWeek:true bleibt in Erholungswochen bestehen", () => {
+  const plan = generatePlan(
+    eventInput({ fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: true }] })
+  );
+  const rec = plan.weeks.find((wk) => wk.isRecovery);
+  assert.ok(rec, "keine Erholungswoche gefunden");
+  const tuesday = rec.cards.find((c) => c.date === addDaysISO(rec.start, 1));
+  assert.ok(tuesday, "keine Karte am Dienstag der Erholungswoche");
+  assert.equal(tuesday.typ, "Gruppenfahrt");
+});
+
+test("fixedDays: mehr feste harte Tage als automatische Qualitätstage → Warnung statt stiller Zusatzbelastung", () => {
+  const plan = generatePlan(
+    eventInput({
+      trainingWeekdays: [1, 2, 3, 4, 5], // 5 Trainingstage → qualityWeekdays liefert nur 2 Slots
+      fixedDays: [
+        { weekday: 2, typ: "Schwelle", keepInRecoveryWeek: false },
+        { weekday: 3, typ: "VO2max", keepInRecoveryWeek: false },
+        { weekday: 4, typ: "Sweet Spot", keepInRecoveryWeek: false },
+      ],
+    })
+  );
+  assert.ok(
+    plan.warnings.some((w) => w.includes("feste harte Tage")),
+    `erwartete Warnung fehlt: ${JSON.stringify(plan.warnings)}`
+  );
+  // Alle drei fixierten harten Tage bekommen trotzdem ihren gewählten Typ —
+  // keine stille Degradation, nur der zusätzliche Hinweis.
+  const w = plan.weeks.find((wk) => !wk.isRecovery && wk.phase !== "Taper");
+  assert.ok(w, "keine Aufbauwoche gefunden");
+  assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 1))?.typ, "Schwelle");
+  assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 2))?.typ, "VO2max");
+  assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 3))?.typ, "Sweet Spot");
 });

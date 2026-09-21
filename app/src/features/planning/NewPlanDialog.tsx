@@ -39,10 +39,12 @@ import {
   buildGeneratorInput,
   defaultFormState,
   FOCUS_LABELS,
+  KNOWN_PLAN_TYPES,
   MODEL_LABELS,
   mondayOf,
   suggestModel,
   WEEKDAY_LABELS,
+  type FixedDay,
   type GeneratedPlan,
   type NewPlanFormState,
   type PlanFocus,
@@ -254,11 +256,34 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   }
 
   function toggleWeekday(iso: number) {
+    const nextWeekdays = form.trainingWeekdays.includes(iso)
+      ? form.trainingWeekdays.filter((d) => d !== iso)
+      : [...form.trainingWeekdays, iso].sort((a, b) => a - b);
     patch({
-      trainingWeekdays: form.trainingWeekdays.includes(iso)
-        ? form.trainingWeekdays.filter((d) => d !== iso)
-        : [...form.trainingWeekdays, iso].sort((a, b) => a - b),
+      trainingWeekdays: nextWeekdays,
+      // ein Wochentag, der abgewählt wird, nimmt seinen festen Tag mit —
+      // sonst bliebe ein verwaister Eintrag stehen, der erst bei „Vorschau
+      // erstellen" als Fehler auffiele.
+      fixedDays: form.fixedDays.filter((f) => nextWeekdays.includes(f.weekday)),
     });
+  }
+
+  function addFixedDay() {
+    const freeWeekday = form.trainingWeekdays.find(
+      (iso) => !form.fixedDays.some((f) => f.weekday === iso),
+    );
+    if (freeWeekday == null) return;
+    patch({
+      fixedDays: [...form.fixedDays, { weekday: freeWeekday, typ: KNOWN_PLAN_TYPES[0], keepInRecoveryWeek: false }],
+    });
+  }
+
+  function updateFixedDay(index: number, next: Partial<FixedDay>) {
+    patch({ fixedDays: form.fixedDays.map((f, i) => (i === index ? { ...f, ...next } : f)) });
+  }
+
+  function removeFixedDay(index: number) {
+    patch({ fixedDays: form.fixedDays.filter((_, i) => i !== index) });
   }
 
   return (
@@ -421,6 +446,69 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
               })}
             </div>
           </div>
+
+          {/* Feste Tage — nur Rad, KNOWN_PLAN_TYPES kennt nur das Rad-Vokabular. */}
+          {effectiveSport === "ride" && (
+            <div style={LABEL_STYLE}>
+              Feste Tage (optional)
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {form.fixedDays.map((fd, i) => (
+                  <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                    <select
+                      style={{ ...FIELD_STYLE, width: "auto" }}
+                      value={fd.weekday}
+                      onChange={(e) => updateFixedDay(i, { weekday: Number(e.target.value) })}
+                    >
+                      {form.trainingWeekdays
+                        .filter((iso) => iso === fd.weekday || !form.fixedDays.some((f) => f.weekday === iso))
+                        .map((iso) => (
+                          <option key={iso} value={iso}>
+                            {WEEKDAY_LABELS.find((w) => w.iso === iso)?.short}
+                          </option>
+                        ))}
+                    </select>
+                    <select
+                      style={{ ...FIELD_STYLE, width: "auto", flex: 1, minWidth: 120 }}
+                      value={fd.typ}
+                      onChange={(e) => updateFixedDay(i, { typ: e.target.value })}
+                    >
+                      {KNOWN_PLAN_TYPES.map((t) => (
+                        <option key={t} value={t}>
+                          {t}
+                        </option>
+                      ))}
+                    </select>
+                    <label
+                      style={{ display: "flex", alignItems: "center", gap: 4, fontSize: ".76rem", color: "var(--ink-3)" }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={fd.keepInRecoveryWeek}
+                        onChange={(e) => updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })}
+                      />
+                      auch in Erholungswochen
+                    </label>
+                    <button
+                      type="button"
+                      style={PILL_STYLE}
+                      onClick={() => removeFixedDay(i)}
+                      aria-label="Festen Tag entfernen"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  style={PILL_STYLE}
+                  onClick={addFixedDay}
+                  disabled={form.fixedDays.length >= form.trainingWeekdays.length}
+                >
+                  + Fester Tag
+                </button>
+              </div>
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <label style={LABEL_STYLE}>
