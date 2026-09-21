@@ -39,6 +39,7 @@ import { PlanPreview } from "./PlanPreview";
 import { ModelBlockBar } from "./ModelBlockBar";
 import { MiniPlanPreview } from "./MiniPlanPreview";
 import { GuidedPlanQuestions } from "./GuidedPlanQuestions";
+import { CompareModelsDialog } from "./CompareModelsDialog";
 import {
   AVAILABLE_MODELS,
   buildGeneratorInput,
@@ -164,6 +165,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   );
   const [guidedMode, setGuidedMode] = useState(true);
   const [modelTouched, setModelTouched] = useState(false);
+  const [comparing, setComparing] = useState(false);
   const [ftpTouched, setFtpTouched] = useState(false);
   const [preview, setPreview] = useState<PreviewBundle | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -798,12 +800,21 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
               </div>
 
               <label style={LABEL_STYLE}>
-                Periodisierungsmodell{" "}
-                {!modelTouched && (
-                  <span style={{ color: "var(--ink-3)" }}>
-                    · Vorschlag: {MODEL_LABELS[suggestion]}
-                  </span>
-                )}
+                <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  Periodisierungsmodell{" "}
+                  {!modelTouched && (
+                    <span style={{ color: "var(--ink-3)" }}>
+                      · Vorschlag: {MODEL_LABELS[suggestion]}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    style={{ ...PILL_STYLE, marginLeft: "auto" }}
+                    onClick={() => setComparing(true)}
+                  >
+                    Vergleichen
+                  </button>
+                </span>
                 <select
                   style={FIELD_STYLE}
                   value={effectiveModel}
@@ -897,6 +908,18 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
           </button>
         </div>
       </GlassCard>
+
+      {comparing && (
+        <CompareModelsDialog
+          initialLeft={effectiveModel}
+          onAdopt={(model) => {
+            setModelTouched(true);
+            patch({ model });
+            setComparing(false);
+          }}
+          onClose={() => setComparing(false)}
+        />
+      )}
     </div>
   );
 }
