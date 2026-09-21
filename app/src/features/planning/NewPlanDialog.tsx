@@ -40,6 +40,7 @@ import {
   defaultFormState,
   FOCUS_LABELS,
   KNOWN_PLAN_TYPES,
+  MODEL_DESCRIPTIONS,
   MODEL_LABELS,
   mondayOf,
   suggestModel,
@@ -640,6 +641,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 </option>
               ))}
             </select>
+            <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>{MODEL_DESCRIPTIONS[effectiveModel]}</span>
           </label>
 
           {(Object.keys(errors).length > 0 || saveError) && (

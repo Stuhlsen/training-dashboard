@@ -190,6 +190,20 @@ export const MODEL_LABELS: Record<PlanModel, string> = {
   block: "Blocktraining",
 };
 
+/** Kurzbeschreibung je Modell für neue Athleten (Alex-Feedback 21.09.2026) —
+ *  Substanz aus planning/docs/fahrplan-8-plan-generator.md, für die UI
+ *  sprachlich vereinfacht (kein interner Planungsjargon). */
+export const MODEL_DESCRIPTIONS: Record<PlanModel, string> = {
+  pyramidal:
+    "Gleichmäßiger Mix aus allen Trainingsbereichen (viel Grundlage, etwas Tempo, wenig ganz hart) — guter Standard für die meisten Athlet:innen.",
+  linear:
+    "Erst viele Wochen lockeres Grundlagentraining, die Intensität steigt erst später im Plan — passt bei viel Vorlaufzeit oder wenig Zeit pro Woche.",
+  polarized:
+    "Fast alles sehr locker, dazwischen kurze, sehr harte Intervalle (80/20), kaum etwas dazwischen — für erfahrene Athlet:innen mit klarer Zonendisziplin.",
+  block:
+    "Kurze, konzentrierte 2–3-Wochen-Blöcke je Trainingsbereich mit Erholung dazwischen, statt gleichmäßig gemischt — braucht Erfahrung und Zeit für Erholung.",
+};
+
 /** Alle vier seit E9 baubar. */
 export const AVAILABLE_MODELS: readonly PlanModel[] = ["pyramidal", "linear", "polarized", "block"];
 
