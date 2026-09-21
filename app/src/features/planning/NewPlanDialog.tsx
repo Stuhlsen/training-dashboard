@@ -28,6 +28,8 @@ import { useAthleteFormats } from "../../api/hooks/useAthleteFormats";
 import { useActiveTrainingPlan } from "../../api/hooks/useActiveTrainingPlan";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useSessionProfile } from "../../api/hooks/useSession";
+import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { useCreateTrainingPlan } from "./useCreateTrainingPlan";
 import { athleteConfig } from "../../config";
 import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.js";
@@ -45,6 +47,7 @@ import {
   MODEL_DESCRIPTIONS,
   MODEL_LABELS,
   mondayOf,
+  resolveMeasuredFtp,
   suggestModel,
   WEEKDAY_LABELS,
   type FixedDay,
@@ -134,19 +137,60 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const { data: existingCards } = usePlanCards(athleteId);
   const profile = useSessionProfile();
   const { createPlan, isPending: saving } = useCreateTrainingPlan(athleteId);
+  const { isSelf, isLoading: isSelfLoading } = useIsSelfAthlete(athleteId);
+  // useFtpHistory() liest owner-only per RLS immer die Historie des
+  // EINGELOGGTEN Users — nur bei isSelf gehört sie also zu diesem Athleten.
+  // Für den Trainer-für-Athlet-Fall liefert der ohnehin geladene rideData
+  // dieselbe Historie öffentlich/read-only aus der JSON-Pipeline (analog
+  // HeroPage.tsx::ftpHistoryEntries). Solange isSelf selbst noch lädt: leer
+  // lassen statt zwischenzeitlich die falsche Quelle zu ziehen — sonst
+  // flippt ftpHistoryEntries einmal beim Laden und noch einmal, sobald
+  // isSelf feststeht, und würde dazwischen unbemerkt eine schon erzeugte
+  // Vorschau verwerfen (patch() unten).
+  const { entries: ownFtpHistoryEntries } = useFtpHistory();
+  const ftpHistoryEntries = isSelfLoading
+    ? []
+    : isSelf
+      ? ownFtpHistoryEntries
+      : (rideData?.ftpHistory ?? []);
 
-  const [form, setForm] = useState<NewPlanFormState>(() => defaultFormState(cfg, today));
+  const [form, setForm] = useState<NewPlanFormState>(() =>
+    defaultFormState(cfg, today, ftpHistoryEntries)
+  );
   const [modelTouched, setModelTouched] = useState(false);
+  const [ftpTouched, setFtpTouched] = useState(false);
   const [preview, setPreview] = useState<PreviewBundle | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // FTP-Historie lädt asynchron — beim allerersten Render greift der
+  // Startzustand oben (defaultFormState()) meist nur auf den config.ts-
+  // Fallback zurück. Sobald echte Daten da sind, hier nachziehen. State-
+  // Anpassung WÄHREND des Renders statt in einem Effect (wie bei
+  // prefilledSpeed unten) — sonst react-hooks/set-state-in-effect. Vergleich
+  // direkt gegen `form` (nicht gegen eine eigene Merkvariable) — erkennt so
+  // auch eine Datumsänderung bei gleichem Watt-Wert und braucht keinen
+  // zusätzlichen State. Nur solange der Athlet das FTP-Feld nicht selbst
+  // angefasst hat. patch() statt setForm(), obwohl das hier kein Nutzer-
+  // Tastendruck ist: eine schon erzeugte Vorschau (preview) muss verfallen,
+  // sonst zeigt das Feld die neue FTP, während "Übernehmen" noch die alte
+  // speichert.
+  const measuredFtp = resolveMeasuredFtp(cfg, ftpHistoryEntries, today);
+  if (
+    measuredFtp.ftpMeasured != null &&
+    !ftpTouched &&
+    (measuredFtp.ftpMeasured !== form.currentFtp ||
+      measuredFtp.ftpMeasuredDate !== form.ftpMeasuredDate)
+  ) {
+    patch({ currentFtp: measuredFtp.ftpMeasured, ftpMeasuredDate: measuredFtp.ftpMeasuredDate });
+  }
 
   // „Übernehmen" ersetzt künftige Karten, sobald es welche gibt — ein aktiver
   // erzeugter Plan ODER noch-geplante Vorlagen-/Handkarten ab heute. Bestimmt
   // Warnhinweis + Knopfbeschriftung.
   const willReplace = useMemo(
     () => !!activePlan || (existingCards ?? []).some((c) => c.date >= today && !c.cancelled),
-    [activePlan, existingCards, today],
+    [activePlan, existingCards, today]
   );
 
   function patch(next: Partial<NewPlanFormState>) {
@@ -163,7 +207,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const eventOptions = useMemo(() => {
     const rank = (p: string | null) => (p === "main" ? 0 : p === "secondary" ? 1 : 2);
     return [...(events ?? [])].sort(
-      (a, b) => rank(a.priority) - rank(b.priority) || a.eventDate.localeCompare(b.eventDate),
+      (a, b) => rank(a.priority) - rank(b.priority) || a.eventDate.localeCompare(b.eventDate)
     );
   }, [events]);
 
@@ -195,7 +239,16 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
     const fc = forecastFtp(eftpHistory(rides), endISO);
     return fc ? Math.round(fc.projected) : null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveSport, rideData, form.mode, form.eventId, form.newEventDate, form.startDate, form.weeks, eventOptions]);
+  }, [
+    effectiveSport,
+    rideData,
+    form.mode,
+    form.eventId,
+    form.newEventDate,
+    form.startDate,
+    form.weeks,
+    eventOptions,
+  ]);
 
   // Schwellenpace vorbefüllen, sobald die Historie eine liefert (kein
   // config.ts-Startwert wie bei FTP möglich, s. new-plan-dialog-view-model.ts).
@@ -207,17 +260,24 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const speedFromHistory =
     effectiveSport === "ride"
       ? null
-      : ((aggregate as { currentThresholdSpeed?: number | null } | null)?.currentThresholdSpeed ?? null);
+      : ((aggregate as { currentThresholdSpeed?: number | null } | null)?.currentThresholdSpeed ??
+        null);
   const [prefilledSpeed, setPrefilledSpeed] = useState<number | null>(null);
   if (speedFromHistory != null && speedFromHistory !== prefilledSpeed) {
     setPrefilledSpeed(speedFromHistory);
     if (form.currentThresholdSpeed == null) {
       const speed = speedFromHistory;
-      setForm((f) => (f.currentThresholdSpeed == null ? { ...f, currentThresholdSpeed: speed } : f));
+      setForm((f) =>
+        f.currentThresholdSpeed == null ? { ...f, currentThresholdSpeed: speed } : f
+      );
     }
   }
 
-  const suggestion = suggestModel({ level: form.level, weeks: effWeeks, weeklyHours: form.weeklyHours });
+  const suggestion = suggestModel({
+    level: form.level,
+    weeks: effWeeks,
+    weeklyHours: form.weeklyHours,
+  });
   // Solange der Athlet das Modell nicht selbst gewählt hat, gilt der Vorschlag.
   const effectiveModel = modelTouched ? form.model : suggestion;
 
@@ -273,11 +333,14 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
 
   function addFixedDay() {
     const freeWeekday = form.trainingWeekdays.find(
-      (iso) => !form.fixedDays.some((f) => f.weekday === iso),
+      (iso) => !form.fixedDays.some((f) => f.weekday === iso)
     );
     if (freeWeekday == null) return;
     patch({
-      fixedDays: [...form.fixedDays, { weekday: freeWeekday, typ: KNOWN_PLAN_TYPES[0], keepInRecoveryWeek: false }],
+      fixedDays: [
+        ...form.fixedDays,
+        { weekday: freeWeekday, typ: KNOWN_PLAN_TYPES[0], keepInRecoveryWeek: false },
+      ],
     });
   }
 
@@ -307,8 +370,19 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <GlassCard variant="strong" radius="22px" style={{ width: "100%", maxWidth: 620, padding: "26px 24px" }}>
-        <div style={{ fontFamily: "var(--font-disp)", fontWeight: 700, fontSize: "1rem", color: "var(--ink)" }}>
+      <GlassCard
+        variant="strong"
+        radius="22px"
+        style={{ width: "100%", maxWidth: 620, padding: "26px 24px" }}
+      >
+        <div
+          style={{
+            fontFamily: "var(--font-disp)",
+            fontWeight: 700,
+            fontSize: "1rem",
+            color: "var(--ink)",
+          }}
+        >
           Neuer Trainingsplan
         </div>
         <p style={{ margin: "8px 0 18px", fontSize: ".82rem", color: "var(--ink-3)" }}>
@@ -329,10 +403,10 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
               lineHeight: 1.45,
             }}
           >
-            Für diesen Athleten sind bereits künftige Trainingskarten hinterlegt. „Plan
-            ersetzen" schreibt den neuen Plan und ersetzt <strong>alle künftigen Karten ab
-            heute</strong> — vergangene und als ausgefallen markierte bleiben. Manuelle
-            Änderungen an künftigen Karten gehen dabei verloren.
+            Für diesen Athleten sind bereits künftige Trainingskarten hinterlegt. „Plan ersetzen"
+            schreibt den neuen Plan und ersetzt <strong>alle künftigen Karten ab heute</strong> —
+            vergangene und als ausgefallen markierte bleiben. Manuelle Änderungen an künftigen
+            Karten gehen dabei verloren.
           </div>
         )}
 
@@ -440,7 +514,9 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   <button
                     key={d.iso}
                     type="button"
-                    style={on ? { ...PILL_STYLE, ...PRIMARY_BTN_STYLE, padding: "6px 12px" } : PILL_STYLE}
+                    style={
+                      on ? { ...PILL_STYLE, ...PRIMARY_BTN_STYLE, padding: "6px 12px" } : PILL_STYLE
+                    }
                     onClick={() => toggleWeekday(d.iso)}
                   >
                     {d.short}
@@ -456,14 +532,20 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
               Feste Tage (optional)
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {form.fixedDays.map((fd, i) => (
-                  <div key={i} style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+                  <div
+                    key={i}
+                    style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
+                  >
                     <select
                       style={{ ...FIELD_STYLE, width: "auto" }}
                       value={fd.weekday}
                       onChange={(e) => updateFixedDay(i, { weekday: Number(e.target.value) })}
                     >
                       {form.trainingWeekdays
-                        .filter((iso) => iso === fd.weekday || !form.fixedDays.some((f) => f.weekday === iso))
+                        .filter(
+                          (iso) =>
+                            iso === fd.weekday || !form.fixedDays.some((f) => f.weekday === iso)
+                        )
                         .map((iso) => (
                           <option key={iso} value={iso}>
                             {WEEKDAY_LABELS.find((w) => w.iso === iso)?.short}
@@ -482,12 +564,20 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                       ))}
                     </select>
                     <label
-                      style={{ display: "flex", alignItems: "center", gap: 4, fontSize: ".76rem", color: "var(--ink-3)" }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 4,
+                        fontSize: ".76rem",
+                        color: "var(--ink-3)",
+                      }}
                     >
                       <input
                         type="checkbox"
                         checked={fd.keepInRecoveryWeek}
-                        onChange={(e) => updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })}
+                        onChange={(e) =>
+                          updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })
+                        }
                       />
                       auch in Erholungswochen
                     </label>
@@ -549,8 +639,16 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   max={500}
                   style={FIELD_STYLE}
                   value={form.currentFtp ?? ""}
-                  onChange={(e) => patch({ currentFtp: e.target.value ? Number(e.target.value) : null })}
+                  onChange={(e) => {
+                    setFtpTouched(true);
+                    patch({ currentFtp: e.target.value ? Number(e.target.value) : null });
+                  }}
                 />
+                {isSelf && (
+                  <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+                    Wirkt nur für diesen Plan · dauerhaft hinterlegen: Settings → FTP-Historie
+                  </span>
+                )}
               </label>
               <label style={LABEL_STYLE}>
                 FTP-Ziel (W, optional)
@@ -561,7 +659,9 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   style={FIELD_STYLE}
                   value={form.ftpTarget ?? ""}
                   placeholder={forecastHint != null ? `Prognose ${forecastHint}` : "wird berechnet"}
-                  onChange={(e) => patch({ ftpTarget: e.target.value ? Number(e.target.value) : null })}
+                  onChange={(e) =>
+                    patch({ ftpTarget: e.target.value ? Number(e.target.value) : null })
+                  }
                 />
               </label>
             </div>
@@ -609,7 +709,9 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 <option value="einsteiger">Einsteiger</option>
                 <option value="fortgeschritten">Fortgeschritten</option>
               </select>
-              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>{LEVEL_DESCRIPTIONS[form.level]}</span>
+              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+                {LEVEL_DESCRIPTIONS[form.level]}
+              </span>
             </label>
             <label style={LABEL_STYLE}>
               Fokus
@@ -624,13 +726,17 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   </option>
                 ))}
               </select>
-              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>{FOCUS_DESCRIPTIONS[form.focus]}</span>
+              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+                {FOCUS_DESCRIPTIONS[form.focus]}
+              </span>
             </label>
           </div>
 
           <label style={LABEL_STYLE}>
             Periodisierungsmodell{" "}
-            {!modelTouched && <span style={{ color: "var(--ink-3)" }}>· Vorschlag: {MODEL_LABELS[suggestion]}</span>}
+            {!modelTouched && (
+              <span style={{ color: "var(--ink-3)" }}>· Vorschlag: {MODEL_LABELS[suggestion]}</span>
+            )}
             <select
               style={FIELD_STYLE}
               value={effectiveModel}
@@ -645,7 +751,9 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 </option>
               ))}
             </select>
-            <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>{MODEL_DESCRIPTIONS[effectiveModel]}</span>
+            <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+              {MODEL_DESCRIPTIONS[effectiveModel]}
+            </span>
           </label>
 
           {(Object.keys(errors).length > 0 || saveError) && (

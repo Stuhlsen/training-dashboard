@@ -27,7 +27,11 @@ import { assessReadiness, getSubjectiveReadiness } from "../../core/readiness.js
 import { buildLoadGuard } from "../../core/loadguard.js";
 import { buildBriefing } from "../../core/briefing.js";
 import { isoWeekKey } from "../../core/aggregate.js";
-import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../../core/ftp-forecast.js";
+import {
+  eftpHistory,
+  eftpHistoryFromWellness,
+  mergeEftpHistories,
+} from "../../core/ftp-forecast.js";
 import {
   pinPercent,
   ringProgress,
@@ -47,7 +51,12 @@ import { currentFtpEntry } from "../../core/ftp-history.js";
 // GEOMETRIE (Segmente/Breiten) daraus; die Watt-Range kommt weiterhin aus
 // `workoutWattRange()` (auf die AKTUELLE FTP umgerechnet), nicht aus
 // `legacyWorkoutSegments()`s eigenem %FTP-/Autorenzeit-Text.
-import { legacyWorkoutSegments, typeColor, isNonTrainingCard, type LegacySegment } from "../planning/planning-view-model";
+import {
+  legacyWorkoutSegments,
+  typeColor,
+  isNonTrainingCard,
+  type LegacySegment,
+} from "../planning/planning-view-model";
 import type { PlanCard } from "../../api/types";
 import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
@@ -83,12 +92,16 @@ type NextSession = PlanCard & { isToday: boolean };
  *  `Parameters<typeof nextPlannedSession>[0]` statt `never`/`any` — bleibt
  *  an die tatsächliche Signatur gekoppelt, statt sie ein zweites Mal lose
  *  zu behaupten; ändert sich die core-Signatur, wandert der Zieltyp mit. */
-function findNextSession(planCards: PlanCard[], doneDates: Set<string>, todayISO: string): NextSession | null {
+function findNextSession(
+  planCards: PlanCard[],
+  doneDates: Set<string>,
+  todayISO: string
+): NextSession | null {
   return nextPlannedSession(
     planCards as unknown as Parameters<typeof nextPlannedSession>[0],
     {},
     doneDates,
-    todayISO,
+    todayISO
   ) as NextSession | null;
 }
 
@@ -107,7 +120,8 @@ export function doneDatesOf(rides: Ride[]): Set<string> {
  *  Karten aufgerufen) als Workout auftauchen. `findNextSession`/
  *  `nextPlannedSession` filtern nicht nach `typ`, deshalb hier. Selbe
  *  `isNonTrainingCard`-Konvention wie der Planungstab. */
-const withoutNonTrainingCards = (cards: PlanCard[]): PlanCard[] => cards.filter((c) => !isNonTrainingCard(c));
+const withoutNonTrainingCards = (cards: PlanCard[]): PlanCard[] =>
+  cards.filter((c) => !isNonTrainingCard(c));
 
 export interface HeroCoreInput {
   athleteId: string;
@@ -286,13 +300,22 @@ export interface HeroViewModel extends HeroCore {
 
 const fmtSigned = (x: number) => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x);
 
-function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: number | null, todayISO: string): HeroSession | null {
+function buildSession(
+  planCards: PlanCard[],
+  doneDates: Set<string>,
+  ftpVal: number | null,
+  todayISO: string
+): HeroSession | null {
   const next = findNextSession(withoutNonTrainingCards(planCards), doneDates, todayISO);
   if (!next) return null;
 
   const when = next.isToday
     ? "Heute"
-    : new Date(next.date).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
+    : new Date(next.date).toLocaleDateString("de-DE", {
+        weekday: "short",
+        day: "2-digit",
+        month: "2-digit",
+      });
   const color = typeColor(next.typ);
 
   // Ruhetage sind seit Fahrplan 6 (RUH2/RUH4) abgeleitet, keine Karten mehr —
@@ -319,8 +342,12 @@ function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: num
       interval = {
         segments,
         wattRange,
-        warmupLabel: workout.warmup ? `${workout.warmup}' · ~${Math.round(ftpVal * TSS_ASSUMED_IF.warmup)} W` : null,
-        cooldownLabel: workout.cooldown ? `${workout.cooldown}' · ~${Math.round(ftpVal * TSS_ASSUMED_IF.cooldown)} W` : null,
+        warmupLabel: workout.warmup
+          ? `${workout.warmup}' · ~${Math.round(ftpVal * TSS_ASSUMED_IF.warmup)} W`
+          : null,
+        cooldownLabel: workout.cooldown
+          ? `${workout.cooldown}' · ~${Math.round(ftpVal * TSS_ASSUMED_IF.cooldown)} W`
+          : null,
       };
       if (minutes) chips.push(`~${minutes} min gesamt`);
       if (tss) chips.push(`TSS ~${tss}`);
@@ -331,7 +358,9 @@ function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: num
         hasPause = true;
       }
       if (interval.warmupLabel || interval.cooldownLabel || hasPause) {
-        detailParts.push("Watt bei Warmup/Pause/Cooldown geschätzt (60/50 % FTP) — im Plan nicht einzeln hinterlegt.");
+        detailParts.push(
+          "Watt bei Warmup/Pause/Cooldown geschätzt (60/50 % FTP) — im Plan nicht einzeln hinterlegt."
+        );
       }
     } else {
       // workout ohne intervals/duration (z. B. reine Z2-Dauerfahrt mit nur
@@ -351,10 +380,21 @@ function buildSession(planCards: PlanCard[], doneDates: Set<string>, ftpVal: num
     if (next.details) detailParts.push(next.details);
   }
 
-  return { when, label: next.name || next.typ || "Einheit", km: next.km, color, interval, chips, detailParts };
+  return {
+    when,
+    label: next.name || next.typ || "Einheit",
+    km: next.km,
+    color,
+    interval,
+    chips,
+    detailParts,
+  };
 }
 
-function buildWeatherToday(forecast: HeroCoreInput["forecast"], todayISO: string): HeroWeather | null {
+function buildWeatherToday(
+  forecast: HeroCoreInput["forecast"],
+  todayISO: string
+): HeroWeather | null {
   const wx = forecast?.[todayISO];
   if (!wx) return null;
   return {
@@ -362,7 +402,10 @@ function buildWeatherToday(forecast: HeroCoreInput["forecast"], todayISO: string
     tempLabel: `${fmt(wx.temp ?? null, 0)}°C`,
     feelsLabel: `${fmt(wx.tempFeel ?? null, 0)}°C`,
     rainLabel: wx.precipProb != null ? `${fmtInt(wx.precipProb)}%` : "–",
-    windLabel: wx.windSpeed != null ? `${fmtInt(wx.windSpeed)} km/h${wx.windDir != null ? ` ${windDir(wx.windDir)}` : ""}` : "–",
+    windLabel:
+      wx.windSpeed != null
+        ? `${fmtInt(wx.windSpeed)} km/h${wx.windDir != null ? ` ${windDir(wx.windDir)}` : ""}`
+        : "–",
   };
 }
 
@@ -376,7 +419,7 @@ export function buildBriefingInfo(
   doneDates: Set<string>,
   subjective: Subjective | null,
   todayISO: string,
-  opts: { multiSport?: boolean; pmcRides?: Ride[] } = {},
+  opts: { multiSport?: boolean; pmcRides?: Ride[] } = {}
 ): HeroBriefing {
   // Gemeinsame CTL/ATL/TSB (Fahrplan 10 E8b): `pmcRides` ist die ungefilterte
   // Aktivitätsliste ALLER Sportarten (aus `useRides`s `ridesAll`). Damit ist
@@ -408,7 +451,7 @@ export function buildBriefingInfo(
     (a, b) => a.localeCompare(b),
     // multiSport (Fahrplan 10 E8a): Eigenlast-Wochendeckel nur bei Athleten mit
     // > 1 Sportart (Athlet 3). Für 1/2/4 exakt das Verhalten vor E6.
-    { multiSport: opts.multiSport },
+    { multiSport: opts.multiSport }
   );
   const loadRisk = loadRows.length ? loadRows[loadRows.length - 1].risk : null;
 
@@ -417,7 +460,9 @@ export function buildBriefingInfo(
   // dürfen nicht als "nächste Einheit" ins Briefing (s. Helper-Kommentar,
   // Fahrplan 6 RUH4).
   const next = findNextSession(withoutNonTrainingCards(planCards), doneDates, todayISO);
-  const nextSession = next ? { date: next.date, title: next.name ?? undefined, typ: next.typ ?? undefined } : null;
+  const nextSession = next
+    ? { date: next.date, title: next.name ?? undefined, typ: next.typ ?? undefined }
+    : null;
 
   const briefing = buildBriefing({
     readiness,
@@ -448,7 +493,11 @@ export function buildBriefingInfo(
   };
 }
 
-function eftpValue(rides: Ride[], wellness: WellnessDay[], athleteCfg: AthleteConfig | null): number | null {
+function eftpValue(
+  rides: Ride[],
+  wellness: WellnessDay[],
+  athleteCfg: AthleteConfig | null
+): number | null {
   const hist = mergeEftpHistories(eftpHistory(rides), eftpHistoryFromWellness(wellness));
   if (hist.length) return hist[hist.length - 1].eftp;
   return athleteCfg?.eFTP ?? null;
@@ -467,7 +516,17 @@ function ringBase(athleteCfg: AthleteConfig): number {
  *  gegen [athleteId, rides, wellness, planCards, subjective, todayISO]
  *  memoisiert werden. */
 export function buildHeroCore(input: HeroCoreInput): HeroCore {
-  const { athleteId, rides, wellness, forecast, planCards, subjective, todayISO, ftpHistoryEntries, pmcRides } = input;
+  const {
+    athleteId,
+    rides,
+    wellness,
+    forecast,
+    planCards,
+    subjective,
+    todayISO,
+    ftpHistoryEntries,
+    pmcRides,
+  } = input;
   const athleteCfg = athleteConfig(athleteId);
   const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   const first = sorted[0];
@@ -482,8 +541,9 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   // Settings eingetragener Ramp-Test-Wert im Hero unsichtbar (nur die
   // Settings-Seite selbst las ftp_history).
   const currentFtpEntryVal = currentFtpEntry(
-    (ftpHistoryEntries ?? []).filter((e) => e.source === "ramp-test"),
+    ftpHistoryEntries ?? [],
     todayISO,
+    "ramp-test"
   ) as FtpHistoryEntry | null;
   const ftpVal = currentFtpEntryVal?.ftpWatt ?? athleteCfg?.ftpMeasured ?? null;
   const ftpMeasuredDate = currentFtpEntryVal?.validFrom ?? athleteCfg?.ftpMeasuredDate ?? null;
@@ -501,8 +561,12 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const readiness = assessReadiness(wellness, todayISO);
   const milestonesBase = athleteCfg
     ? buildMilestones(
-        { ...athleteCfg, ftpMeasured: ftpVal ?? athleteCfg.ftpMeasured ?? undefined, ftpMeasuredDate },
-        eftpVal,
+        {
+          ...athleteCfg,
+          ftpMeasured: ftpVal ?? athleteCfg.ftpMeasured ?? undefined,
+          ftpMeasuredDate,
+        },
+        eftpVal
       )
     : [];
   // Alle FRÜHEREN Ramp-Test-Einträge aus der Settings-Historie zusätzlich in
@@ -544,7 +608,11 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
  *  bei jedem What-if-Slider-Tick neu zu laufen, ohne `buildHeroCore()`
  *  erneut anzustoßen. `ftpVal`/`eftpVal` kommen vom Aufrufer aus dem
  *  bereits berechneten `HeroCore` (`ramp.value`/`eftp.value`). */
-export function buildPowerScale(ftpVal: number | null, eftpVal: number | null, whatIfFtp: number): HeroPowerScale {
+export function buildPowerScale(
+  ftpVal: number | null,
+  eftpVal: number | null,
+  whatIfFtp: number
+): HeroPowerScale {
   const scaleMax = whatIfScaleMax(whatIfFtp) || 1;
   const zones = computeZones(whatIfFtp);
   const ss = sweetSpotBand(whatIfFtp);
@@ -558,9 +626,15 @@ export function buildPowerScale(ftpVal: number | null, eftpVal: number | null, w
   }));
   const ssLeft = pinPercent(ss.vonW, scaleMax);
   const ssRight = pinPercent(ss.bisW, scaleMax);
-  const sweetSpot = ssLeft != null && ssRight != null ? { leftPct: ssLeft, widthPct: ssRight - ssLeft } : null;
+  const sweetSpot =
+    ssLeft != null && ssRight != null ? { leftPct: ssLeft, widthPct: ssRight - ssLeft } : null;
 
-  const pinCandidates: Array<{ value: number | null; label: string; kind: HeroPin["kind"]; skipIfEqual?: number | null }> = [
+  const pinCandidates: Array<{
+    value: number | null;
+    label: string;
+    kind: HeroPin["kind"];
+    skipIfEqual?: number | null;
+  }> = [
     { value: ftpVal, label: `Ramp-Test ${ftpVal} W`, kind: "ramp" },
     { value: eftpVal, label: `eFTP ${eftpVal} W`, kind: "eftp", skipIfEqual: ftpVal },
     { value: whatIfFtp, label: `Ziel ${whatIfFtp} W`, kind: "goal" },
@@ -579,13 +653,13 @@ export function buildPowerScale(ftpVal: number | null, eftpVal: number | null, w
  *  Maus-Hover aufgerufen, mit Vitest testbar. */
 export function powerScaleReadout(
   fraction: number,
-  ps: HeroPowerScale,
+  ps: HeroPowerScale
 ): { watts: number; zoneLabel: string } | null {
   if (!Number.isFinite(fraction) || fraction < 0 || fraction > 1) return null;
   const watts = Math.round(fraction * ps.scaleMax);
   const seg = ps.segments.find((s) => watts >= s.fromW && watts <= s.toW);
   const lastToW = ps.segments.length ? ps.segments[ps.segments.length - 1].toW : 0;
-  const zoneLabel = seg ? seg.label : watts > lastToW ? "über Z5" : ps.segments[0]?.label ?? "";
+  const zoneLabel = seg ? seg.label : watts > lastToW ? "über Z5" : (ps.segments[0]?.label ?? "");
   return { watts, zoneLabel };
 }
 
@@ -634,7 +708,7 @@ export function buildHeroMetrics(
   ramp: HeroCore["ramp"],
   eftp: HeroCore["eftp"],
   showFtp = true,
-  sport: "ride" | "run" | "swim" | "other" = "ride",
+  sport: "ride" | "run" | "swim" | "other" = "ride"
 ): HeroMetric[] {
   const isRide = sport === "ride";
   const activityNoun = sport === "run" ? "Läufe" : sport === "swim" ? "Einheiten" : "Fahrten";
@@ -646,20 +720,20 @@ export function buildHeroMetrics(
   const totalMin = sum(rides, "min");
   const avgKmh = avg(
     rides.filter((r) => r.kmh),
-    "kmh",
+    "kmh"
   );
   const maxCTL = maxVal(
     rides.filter((r) => r.ctl != null),
-    "ctl",
+    "ctl"
   );
   const maxKm = maxVal(rides, "km");
   const avgHF = avg(
     rides.filter((r) => r.hf),
-    "hf",
+    "hf"
   );
   const avgKad = avg(
     rides.filter((r) => r.kad),
-    "kad",
+    "kad"
   );
 
   const metrics: HeroMetric[] = [
@@ -670,7 +744,13 @@ export function buildHeroMetrics(
       desc: "Summierte Streckenlänge aller Fahrten",
       color: "var(--accent)",
     },
-    { key: "rides", value: rides.length, label: activityNoun, desc: "Anzahl absolvierter Trainingseinheiten", color: "var(--ink)" },
+    {
+      key: "rides",
+      value: rides.length,
+      label: activityNoun,
+      desc: "Anzahl absolvierter Trainingseinheiten",
+      color: "var(--ink)",
+    },
     {
       key: "time",
       value: fmtDuration(totalMin),
@@ -717,7 +797,13 @@ export function buildHeroMetrics(
       desc: "Höchster Chronic Training Load — erreichte Fitnessstufe",
       color: "var(--role-positive)",
     },
-    { key: "longest", value: `${fmt(maxKm)} km`, label: isRide ? "Längste Fahrt" : "Längste Einheit", desc: isRide ? "Die längste einzelne Ausfahrt" : "Die längste einzelne Einheit", color: "var(--role-primary)" },
+    {
+      key: "longest",
+      value: `${fmt(maxKm)} km`,
+      label: isRide ? "Längste Fahrt" : "Längste Einheit",
+      desc: isRide ? "Die längste einzelne Ausfahrt" : "Die längste einzelne Einheit",
+      color: "var(--role-primary)",
+    },
     {
       key: "hr",
       value: `${fmtInt(avgHF)} bpm`,
@@ -733,7 +819,7 @@ export function buildHeroMetrics(
         ? "Durchschnittliche Trittfrequenz über alle Fahrten"
         : "Durchschnittliche Frequenz über alle Einheiten mit Kadenz-Daten",
       color: "var(--role-status)",
-    },
+    }
   );
 
   return metrics;

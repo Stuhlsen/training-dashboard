@@ -15,7 +15,11 @@ import { addDaysISO, localISODate } from "../../core/format.js";
 import { currentFtpEntry } from "../../core/ftp-history.js";
 import { assessReadiness } from "../../core/readiness.js";
 import { efficiencyTrend, decouplingTrend } from "../../core/efficiency.js";
-import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories } from "../../core/ftp-forecast.js";
+import {
+  eftpHistory,
+  eftpHistoryFromWellness,
+  mergeEftpHistories,
+} from "../../core/ftp-forecast.js";
 import {
   eftpProgressSummary,
   bestEffortComparison,
@@ -116,7 +120,9 @@ export function buildExportBriefingCtx(athleteId: string, input: ExportBriefingI
   // zählen als Gedächtnis.
   const recentProposals = input.proposals
     .filter((p) => DECIDED_PROPOSAL_STATUSES.has(p.status))
-    .sort((a, b) => (b.decidedAt ?? b.createdAt ?? "").localeCompare(a.decidedAt ?? a.createdAt ?? ""))
+    .sort((a, b) =>
+      (b.decidedAt ?? b.createdAt ?? "").localeCompare(a.decidedAt ?? a.createdAt ?? "")
+    )
     .slice(0, RECENT_PROPOSALS_LIMIT)
     .map((p) => ({
       date: (p.decidedAt ?? p.createdAt ?? "").slice(0, 10) || null,
@@ -129,8 +135,9 @@ export function buildExportBriefingCtx(athleteId: string, input: ExportBriefingI
   // hält den FTP-Dreiklang gemessen/geschätzt/Ziel auseinander), sonst die
   // bereits aufgelöste `input.ftp` (Config-Fallback, s. planning-view-model.ts).
   const currentEntry = currentFtpEntry(
-    input.ftpHistoryEntries.filter((e) => e.source === "ramp-test"),
+    input.ftpHistoryEntries,
     today,
+    "ramp-test"
   ) as FtpHistoryEntry | null;
   const ftp = currentEntry?.ftpWatt ?? input.ftp ?? null;
 
@@ -139,8 +146,13 @@ export function buildExportBriefingCtx(athleteId: string, input: ExportBriefingI
   const progressFrom = addDaysISO(today, -7 * PROGRESS_WEEKS);
   const rides8w = input.rides.filter((r) => r.dateISO >= progressFrom);
   const wellness8w = input.wellness.filter((w) => (w.dateISO || w.date) >= progressFrom);
-  const eftpHistory8w = mergeEftpHistories(eftpHistory(rides8w), eftpHistoryFromWellness(wellness8w));
-  const lastRampTest = currentEntry ? { date: currentEntry.validFrom, ftpWatt: currentEntry.ftpWatt } : null;
+  const eftpHistory8w = mergeEftpHistories(
+    eftpHistory(rides8w),
+    eftpHistoryFromWellness(wellness8w)
+  );
+  const lastRampTest = currentEntry
+    ? { date: currentEntry.validFrom, ftpWatt: currentEntry.ftpWatt }
+    : null;
   const recentBlock = input.powerCurveBlocks.find((b) => b.key === RECENT_BLOCK_KEY) ?? null;
   const previousBlock = input.powerCurveBlocks.find((b) => b.key === PREVIOUS_BLOCK_KEY) ?? null;
   const progress = {

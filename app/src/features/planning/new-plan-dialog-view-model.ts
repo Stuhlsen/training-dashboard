@@ -13,6 +13,7 @@
    ============================================================ */
 
 import { addDaysISO, diffDays } from "../../core/format.js";
+import { currentFtpEntry } from "../../core/ftp-history.js";
 
 /* Kanonische Fassung der Plan-String-Unions liegt in api/types.ts (der
  * training-plans-Adapter braucht sie und darf nicht in features/ greifen).
@@ -25,6 +26,10 @@ export type { PlanMode, PlanFocus, PlanLevel, PlanModel };
  * api/hooks/useActiveSport.ts) wiederverwendet statt eines eigenen
  * `PlanSport`-Typs (Fahrplan 14 V1 nennt ihn nur konzeptionell so). */
 import type { ActiveSport } from "../../api/hooks/useActiveSport";
+
+/* Für resolveMeasuredFtp() — dieselbe Historie, die auch das Hero-Widget
+ * liest (api/hooks/useFtpHistory.ts). */
+import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
 /* "Feste Tage" (Alex-Feedback 21.09.2026): der Typ-Select greift auf dasselbe
  * Rad-Zonen-Vokabular wie der Karten-Dialog zurück (plan-card-form-view-model.ts
@@ -208,7 +213,13 @@ export const MODEL_DESCRIPTIONS: Record<PlanModel, string> = {
 };
 
 /** Alle fünf seit E14 baubar. */
-export const AVAILABLE_MODELS: readonly PlanModel[] = ["pyramidal", "linear", "polarized", "block", "reverse"];
+export const AVAILABLE_MODELS: readonly PlanModel[] = [
+  "pyramidal",
+  "linear",
+  "polarized",
+  "block",
+  "reverse",
+];
 
 /** Kurzbeschreibung je Erfahrungslevel — was der Wert konkret am generierten
  *  Plan ändert (Fahrplan 15 E3, Alex-Feedback: 5 Code-Stellen wirken bereits,
@@ -266,13 +277,45 @@ export interface AthleteDefaults {
   eFTP: number | null;
 }
 
+/** Neuester "gemessener" FTP-Wert + Datum: bevorzugt den jüngsten
+ *  `ftp_history`-Eintrag mit `source === "ramp-test"` (echter, in Settings
+ *  selbst gepflegter Test), sonst Fallback auf den in config.ts hinterlegten
+ *  Wert — dieselbe Auswahl (inkl. Zukunfts-Datums-Deckel) wie
+ *  `core/ftp-history.js::currentFtpEntry()`, das bereits hero-view-model.ts,
+ *  export-briefing-view-model.ts und FtpHistorySection.tsx nutzen (keine
+ *  zweite, abweichende Kopie der Auswahlregel). `schaetzung`-Einträge zählen
+ *  bewusst nicht: eine Schätzung ersetzt keinen echten Test (Alex-Entscheidung
+ *  per /grill, 2026-09-21) — sonst würde die 42-Tage-Testtag-Regel in
+ *  deriveFtpTarget()/ftpTestWeeks() zahnlos. */
+export function resolveMeasuredFtp(
+  cfg: AthleteDefaults | null,
+  ftpHistoryEntries: FtpHistoryEntry[] = [],
+  todayISO: string
+): { ftpMeasured: number | null; ftpMeasuredDate: string | null } {
+  const latest = currentFtpEntry(
+    ftpHistoryEntries,
+    todayISO,
+    "ramp-test"
+  ) as FtpHistoryEntry | null;
+  if (latest) return { ftpMeasured: latest.ftpWatt, ftpMeasuredDate: latest.validFrom };
+  return { ftpMeasured: cfg?.ftpMeasured ?? null, ftpMeasuredDate: cfg?.ftpMeasuredDate ?? null };
+}
+
 /** Startzustand des Formulars. `todayISO` = heute (lokal); Plan startet am
- *  nächsten Montag, damit die erste Woche voll ist. */
-export function defaultFormState(cfg: AthleteDefaults | null, todayISO: string): NewPlanFormState {
+ *  nächsten Montag, damit die erste Woche voll ist. `ftpHistoryEntries` (Default
+ *  leer) kommt vom aufrufenden NewPlanDialog nur für den eingeloggten Athleten
+ *  selbst (useFtpHistory() liest owner-only per RLS) — im Trainer-für-Athlet-
+ *  Fall bleibt es leer, dann greift wie bisher nur der config.ts-Fallback. */
+export function defaultFormState(
+  cfg: AthleteDefaults | null,
+  todayISO: string,
+  ftpHistoryEntries: FtpHistoryEntry[] = []
+): NewPlanFormState {
   const start = mondayOf(addDaysISO(todayISO, 7));
   const weeks = 12;
   const level: PlanLevel = "fortgeschritten";
   const weeklyHours = 6;
+  const measured = resolveMeasuredFtp(cfg, ftpHistoryEntries, todayISO);
   return {
     mode: "open",
     eventId: "",
@@ -283,8 +326,8 @@ export function defaultFormState(cfg: AthleteDefaults | null, todayISO: string):
     trainingWeekdays: [2, 4, 6], // Di / Do / Sa — zwei Qualitätstage + langer Tag
     fixedDays: [],
     weeklyHours,
-    currentFtp: cfg?.ftpMeasured ?? cfg?.eFTP ?? null,
-    ftpMeasuredDate: cfg?.ftpMeasuredDate ?? null,
+    currentFtp: measured.ftpMeasured ?? cfg?.eFTP ?? null,
+    ftpMeasuredDate: measured.ftpMeasuredDate,
     ftpTarget: null,
     currentThresholdSpeed: null,
     thresholdSpeedMeasuredDate: null,
@@ -299,8 +342,7 @@ export function defaultFormState(cfg: AthleteDefaults | null, todayISO: string):
 /* ── Validierung → PlanGeneratorInput ──────────────────────────────── */
 
 export type BuildResult =
-  | { ok: true; input: PlanGeneratorInput }
-  | { ok: false; errors: Record<string, string> };
+  { ok: true; input: PlanGeneratorInput } | { ok: false; errors: Record<string, string> };
 
 /**
  * Formular → `PlanGeneratorInput` (V2). Prüft die Pflichtfelder; die
@@ -319,7 +361,7 @@ export function buildGeneratorInput(
   state: NewPlanFormState,
   resolveEventDate: (eventId: string) => string | null,
   sport: ActiveSport = "ride",
-  history?: unknown,
+  history?: unknown
 ): BuildResult {
   const errors: Record<string, string> = {};
 
@@ -346,9 +388,7 @@ export function buildGeneratorInput(
   let eventDate: string | undefined;
   let weeks: number | undefined;
   if (state.mode === "event") {
-    const chosen = state.eventId
-      ? resolveEventDate(state.eventId)
-      : state.newEventDate || null;
+    const chosen = state.eventId ? resolveEventDate(state.eventId) : state.newEventDate || null;
     if (!chosen) {
       errors.event = "Event wählen oder Renntag + Name angeben.";
     } else if (chosen <= startDate) {

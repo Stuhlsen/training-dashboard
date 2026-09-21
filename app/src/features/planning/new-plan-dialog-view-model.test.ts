@@ -5,11 +5,13 @@ import {
   FOCUS_DESCRIPTIONS,
   LEVEL_DESCRIPTIONS,
   mondayOf,
+  resolveMeasuredFtp,
   suggestModel,
   type NewPlanFormState,
   type PlanFocus,
   type PlanLevel,
 } from "./new-plan-dialog-view-model";
+import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
 describe("mondayOf", () => {
   it("gibt den Montag derselben Woche zurück", () => {
@@ -37,18 +39,96 @@ describe("defaultFormState", () => {
   it("startet am nächsten Montag und übernimmt die FTP aus der Config", () => {
     const state = defaultFormState(
       { ftpMeasured: 265, ftpMeasuredDate: "2026-06-24", eFTP: 261 },
-      "2026-09-03",
+      "2026-09-03"
     );
     expect(state.startDate).toBe("2026-09-07"); // Montag nach heute+7
     expect(state.currentFtp).toBe(265);
     expect(state.ftpMeasuredDate).toBe("2026-06-24");
     expect(state.trainingWeekdays.length).toBeGreaterThanOrEqual(2);
-    expect(state.model).toBe(suggestModel({ level: state.level, weeks: state.weeks, weeklyHours: state.weeklyHours }));
+    expect(state.model).toBe(
+      suggestModel({ level: state.level, weeks: state.weeks, weeklyHours: state.weeklyHours })
+    );
   });
 
   it("fällt ohne gemessene FTP auf eFTP zurück, dann null", () => {
-    expect(defaultFormState({ ftpMeasured: null, ftpMeasuredDate: null, eFTP: 200 }, "2026-09-03").currentFtp).toBe(200);
+    expect(
+      defaultFormState({ ftpMeasured: null, ftpMeasuredDate: null, eFTP: 200 }, "2026-09-03")
+        .currentFtp
+    ).toBe(200);
     expect(defaultFormState(null, "2026-09-03").currentFtp).toBeNull();
+  });
+
+  it("bevorzugt den neuesten ftp_history-Ramp-Test vor dem config.ts-Wert", () => {
+    const entries: FtpHistoryEntry[] = [
+      { id: "1", ftpWatt: 193, validFrom: "2026-06-12", source: "ramp-test", note: null },
+      { id: "2", ftpWatt: 205, validFrom: "2026-08-22", source: "ramp-test", note: null },
+    ];
+    const state = defaultFormState(
+      { ftpMeasured: 193, ftpMeasuredDate: "2026-06-12", eFTP: 213 },
+      "2026-09-21",
+      entries
+    );
+    expect(state.currentFtp).toBe(205);
+    expect(state.ftpMeasuredDate).toBe("2026-08-22");
+  });
+});
+
+describe("resolveMeasuredFtp", () => {
+  const cfg = { ftpMeasured: 193, ftpMeasuredDate: "2026-06-12", eFTP: 213 };
+  const today = "2026-09-21";
+
+  it("ohne Historie: Fallback auf config.ts", () => {
+    expect(resolveMeasuredFtp(cfg, [], today)).toEqual({
+      ftpMeasured: 193,
+      ftpMeasuredDate: "2026-06-12",
+    });
+    expect(resolveMeasuredFtp(null, [], today)).toEqual({
+      ftpMeasured: null,
+      ftpMeasuredDate: null,
+    });
+  });
+
+  it("nimmt den jüngsten ramp-test-Eintrag, egal in welcher Reihenfolge geliefert", () => {
+    const entries: FtpHistoryEntry[] = [
+      { id: "2", ftpWatt: 205, validFrom: "2026-08-22", source: "ramp-test", note: null },
+      { id: "1", ftpWatt: 193, validFrom: "2026-06-12", source: "ramp-test", note: null },
+    ];
+    expect(resolveMeasuredFtp(cfg, entries, today)).toEqual({
+      ftpMeasured: 205,
+      ftpMeasuredDate: "2026-08-22",
+    });
+  });
+
+  it("ignoriert 'schaetzung'-Einträge — nur ramp-test zählt als gemessen", () => {
+    const entries: FtpHistoryEntry[] = [
+      { id: "1", ftpWatt: 193, validFrom: "2026-06-12", source: "ramp-test", note: null },
+      { id: "2", ftpWatt: 220, validFrom: "2026-09-10", source: "schaetzung", note: null },
+    ];
+    expect(resolveMeasuredFtp(cfg, entries, today)).toEqual({
+      ftpMeasured: 193,
+      ftpMeasuredDate: "2026-06-12",
+    });
+  });
+
+  it("nur schaetzung-Einträge vorhanden -> Fallback auf config.ts wie bei leerer Historie", () => {
+    const entries: FtpHistoryEntry[] = [
+      { id: "1", ftpWatt: 220, validFrom: "2026-09-10", source: "schaetzung", note: null },
+    ];
+    expect(resolveMeasuredFtp(cfg, entries, today)).toEqual({
+      ftpMeasured: 193,
+      ftpMeasuredDate: "2026-06-12",
+    });
+  });
+
+  it("ignoriert einen zukünftig datierten ramp-test-Eintrag (currentFtpEntry()-Deckel)", () => {
+    const entries: FtpHistoryEntry[] = [
+      { id: "1", ftpWatt: 193, validFrom: "2026-06-12", source: "ramp-test", note: null },
+      { id: "2", ftpWatt: 230, validFrom: "2026-10-01", source: "ramp-test", note: null }, // nach `today`
+    ];
+    expect(resolveMeasuredFtp(cfg, entries, today)).toEqual({
+      ftpMeasured: 193,
+      ftpMeasuredDate: "2026-06-12",
+    });
   });
 });
 
@@ -108,9 +188,8 @@ describe("buildGeneratorInput", () => {
   });
 
   it("event-Modus: gewähltes Event liefert eventDate, keine weeks", () => {
-    const res = buildGeneratorInput(
-      { ...BASE, mode: "event", eventId: "ev1" },
-      (id) => (id === "ev1" ? "2026-12-06" : null),
+    const res = buildGeneratorInput({ ...BASE, mode: "event", eventId: "ev1" }, (id) =>
+      id === "ev1" ? "2026-12-06" : null
     );
     expect(res.ok).toBe(true);
     if (!res.ok) return;
@@ -121,7 +200,7 @@ describe("buildGeneratorInput", () => {
   it("event-Modus: Renntag zu weit weg (> 40 Wochen) -> Fehler", () => {
     const res = buildGeneratorInput(
       { ...BASE, mode: "event", eventId: "ev1" },
-      () => "2028-06-01", // ~90 Wochen nach dem Start
+      () => "2028-06-01" // ~90 Wochen nach dem Start
     );
     expect(res.ok).toBe(false);
     if (res.ok) return;
@@ -131,16 +210,13 @@ describe("buildGeneratorInput", () => {
   it("event-Modus: Renntag knapp innerhalb 40 Wochen -> ok", () => {
     const res = buildGeneratorInput(
       { ...BASE, mode: "event", eventId: "ev1" },
-      () => "2027-06-01", // ~38 Wochen nach dem 2026-09-07-Start
+      () => "2027-06-01" // ~38 Wochen nach dem 2026-09-07-Start
     );
     expect(res.ok).toBe(true);
   });
 
   it("event-Modus: Renntag vor dem Start -> Fehler", () => {
-    const res = buildGeneratorInput(
-      { ...BASE, mode: "event", eventId: "ev1" },
-      () => "2026-09-01",
-    );
+    const res = buildGeneratorInput({ ...BASE, mode: "event", eventId: "ev1" }, () => "2026-09-01");
     expect(res.ok).toBe(false);
     if (res.ok) return;
     expect(res.errors.event).toBeTruthy();
@@ -149,7 +225,7 @@ describe("buildGeneratorInput", () => {
   it("event-Modus: neues Event ohne Namen -> Fehler", () => {
     const res = buildGeneratorInput(
       { ...BASE, mode: "event", eventId: "", newEventDate: "2026-12-06", newEventName: "  " },
-      noEvent,
+      noEvent
     );
     expect(res.ok).toBe(false);
     if (res.ok) return;

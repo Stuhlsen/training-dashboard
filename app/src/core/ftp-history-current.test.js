@@ -41,3 +41,24 @@ test("currentFtpEntry: Default-todayISO ohne expliziten Parameter nutzbar", () =
   const entries = [{ id: "a", validFrom: "2020-01-01" }];
   assert.equal(currentFtpEntry(entries)?.id, "a");
 });
+
+test("currentFtpEntry: source-Filter schließt andere Quellen aus, auch wenn jünger", () => {
+  const entries = [
+    { id: "test", validFrom: "2026-06-01", source: "ramp-test" },
+    { id: "schaetzung", validFrom: "2026-08-01", source: "schaetzung" },
+  ];
+  assert.equal(currentFtpEntry(entries, "2026-09-01", "ramp-test")?.id, "test");
+});
+
+test("currentFtpEntry: source-Filter, keine passende Quelle vorhanden → null", () => {
+  const entries = [{ id: "schaetzung", validFrom: "2026-08-01", source: "schaetzung" }];
+  assert.equal(currentFtpEntry(entries, "2026-09-01", "ramp-test"), null);
+});
+
+test("currentFtpEntry: ohne source-Parameter (undefined) unverändert — kein Filter", () => {
+  const entries = [
+    { id: "test", validFrom: "2026-06-01", source: "ramp-test" },
+    { id: "schaetzung", validFrom: "2026-08-01", source: "schaetzung" },
+  ];
+  assert.equal(currentFtpEntry(entries, "2026-09-01")?.id, "schaetzung");
+});
