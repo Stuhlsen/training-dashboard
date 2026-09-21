@@ -37,6 +37,7 @@ import { generatePlan } from "../../core/plan-generator.js";
 import { eftpHistory, forecastFtp } from "../../core/ftp-forecast.js";
 import { PlanPreview } from "./PlanPreview";
 import { ModelBlockBar } from "./ModelBlockBar";
+import { MiniPlanPreview } from "./MiniPlanPreview";
 import {
   AVAILABLE_MODELS,
   buildGeneratorInput,
@@ -283,6 +284,22 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   });
   // Solange der Athlet das Modell nicht selbst gewählt hat, gilt der Vorschlag.
   const effectiveModel = modelTouched ? form.model : suggestion;
+
+  // Live-Vorschau (V3, E3) — komplett getrennt vom Klick-`preview`-State
+  // oben, reagiert bewusst NUR auf Level/Fokus/Modell (Entscheidung 5), nicht
+  // auf Datum/Trainingstage/FTP/Zeitbudget (die sind während der Eingabe oft
+  // ungültig, würden ständig Fehler/Flackern erzeugen). Scheitert
+  // buildGeneratorInput() (z. B. Datum/Trainingstage gerade ungültig), zeigt
+  // sich die Mini-Vorschau kommentarlos nicht — kein Ersatz für die
+  // Fehlerliste beim Klick auf „Vorschau erstellen".
+  const miniPreviewPlan = useMemo(() => {
+    const effForm: NewPlanFormState = { ...form, model: effectiveModel };
+    const built = buildGeneratorInput(effForm, resolveEventDate, effectiveSport, aggregate);
+    if (!built.ok) return null;
+    const run = generatePlan as (input: unknown) => GeneratedPlan;
+    return run({ ...built.input, formats: formatEntries.map((e) => e.format) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.level, form.focus, effectiveModel]);
 
   function handlePreview() {
     const effForm: NewPlanFormState = { ...form, model: effectiveModel };
@@ -782,6 +799,15 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
               <ModelBlockBar shares={MODEL_BLOCK_SHARES[effectiveModel]} />
             </div>
           </label>
+
+          {miniPreviewPlan && (
+            <div style={{ marginTop: 4 }}>
+              <div style={{ fontSize: ".72rem", color: "var(--ink-3)", marginBottom: 4 }}>
+                Wochenverlauf bei dieser Auswahl
+              </div>
+              <MiniPlanPreview plan={miniPreviewPlan} />
+            </div>
+          )}
 
           {(Object.keys(errors).length > 0 || saveError) && (
             <ul
