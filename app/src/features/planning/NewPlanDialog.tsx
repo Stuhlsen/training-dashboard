@@ -47,6 +47,7 @@ import {
   MODEL_DESCRIPTIONS,
   MODEL_LABELS,
   mondayOf,
+  parseDescriptionSegments,
   resolveMeasuredFtp,
   suggestModel,
   WEEKDAY_LABELS,
@@ -709,8 +710,16 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 <option value="einsteiger">Einsteiger</option>
                 <option value="fortgeschritten">Fortgeschritten</option>
               </select>
-              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
-                {LEVEL_DESCRIPTIONS[form.level]}
+              <span style={{ fontSize: ".72rem" }}>
+                {parseDescriptionSegments(LEVEL_DESCRIPTIONS[form.level]).map((seg, i) => (
+                  <span
+                    key={i}
+                    style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}
+                  >
+                    {i > 0 && " · "}
+                    {seg.text}
+                  </span>
+                ))}
               </span>
             </label>
             <label style={LABEL_STYLE}>
@@ -726,8 +735,16 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   </option>
                 ))}
               </select>
-              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
-                {FOCUS_DESCRIPTIONS[form.focus]}
+              <span style={{ fontSize: ".72rem" }}>
+                {parseDescriptionSegments(FOCUS_DESCRIPTIONS[form.focus]).map((seg, i) => (
+                  <span
+                    key={i}
+                    style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}
+                  >
+                    {i > 0 && " · "}
+                    {seg.text}
+                  </span>
+                ))}
               </span>
             </label>
           </div>
@@ -751,8 +768,13 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 </option>
               ))}
             </select>
-            <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
-              {MODEL_DESCRIPTIONS[effectiveModel]}
+            <span style={{ fontSize: ".72rem" }}>
+              {parseDescriptionSegments(MODEL_DESCRIPTIONS[effectiveModel]).map((seg, i) => (
+                <span key={i} style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}>
+                  {i > 0 && " · "}
+                  {seg.text}
+                </span>
+              ))}
             </span>
           </label>
 

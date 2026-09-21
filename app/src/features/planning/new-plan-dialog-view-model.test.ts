@@ -4,12 +4,15 @@ import {
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   LEVEL_DESCRIPTIONS,
+  MODEL_DESCRIPTIONS,
   mondayOf,
+  parseDescriptionSegments,
   resolveMeasuredFtp,
   suggestModel,
   type NewPlanFormState,
   type PlanFocus,
   type PlanLevel,
+  type PlanModel,
 } from "./new-plan-dialog-view-model";
 import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
@@ -254,6 +257,53 @@ describe("LEVEL_DESCRIPTIONS / FOCUS_DESCRIPTIONS", () => {
   it("jeder PlanFocus-Wert hat einen nicht-leeren Erklärtext", () => {
     for (const focus of FOCI) {
       expect(FOCUS_DESCRIPTIONS[focus].trim().length).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("parseDescriptionSegments", () => {
+  it("zerlegt mehrere Teilsätze an ' · ' und liest das Vorzeichen", () => {
+    expect(parseDescriptionSegments("+Erstes Plus · −Erstes Minus · +Zweites Plus")).toEqual([
+      { text: "Erstes Plus", sign: "plus" },
+      { text: "Erstes Minus", sign: "minus" },
+      { text: "Zweites Plus", sign: "plus" },
+    ]);
+  });
+
+  it("ein einzelnes Segment ohne Trenner", () => {
+    expect(parseDescriptionSegments("+Nur ein Segment")).toEqual([
+      { text: "Nur ein Segment", sign: "plus" },
+    ]);
+  });
+
+  it("Segment ohne führendes Zeichen -> Fallback sign 'plus'", () => {
+    expect(parseDescriptionSegments("Kein Vorzeichen")).toEqual([
+      { text: "Kein Vorzeichen", sign: "plus" },
+    ]);
+  });
+
+  it("alle drei echten Beschreibungs-Konstanten parsen ohne Rest-Fehler", () => {
+    const LEVELS: PlanLevel[] = ["einsteiger", "fortgeschritten"];
+    const FOCI: PlanFocus[] = ["allgemein", "berg", "langstrecke", "crit"];
+    const MODELS: PlanModel[] = ["pyramidal", "linear", "polarized", "block", "reverse"];
+
+    for (const level of LEVELS) {
+      for (const seg of parseDescriptionSegments(LEVEL_DESCRIPTIONS[level])) {
+        expect(seg.text.startsWith("+")).toBe(false);
+        expect(seg.text.startsWith("−")).toBe(false);
+      }
+    }
+    for (const focus of FOCI) {
+      for (const seg of parseDescriptionSegments(FOCUS_DESCRIPTIONS[focus])) {
+        expect(seg.text.startsWith("+")).toBe(false);
+        expect(seg.text.startsWith("−")).toBe(false);
+      }
+    }
+    for (const model of MODELS) {
+      for (const seg of parseDescriptionSegments(MODEL_DESCRIPTIONS[model])) {
+        expect(seg.text.startsWith("+")).toBe(false);
+        expect(seg.text.startsWith("−")).toBe(false);
+      }
     }
   });
 });

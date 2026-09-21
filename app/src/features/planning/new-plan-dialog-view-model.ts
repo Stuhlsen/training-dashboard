@@ -198,18 +198,21 @@ export const MODEL_LABELS: Record<PlanModel, string> = {
 
 /** Kurzbeschreibung je Modell für neue Athleten (Alex-Feedback 21.09.2026) —
  *  Substanz aus planning/docs/fahrplan-8-plan-generator.md, für die UI
- *  sprachlich vereinfacht (kein interner Planungsjargon). */
+ *  sprachlich vereinfacht (kein interner Planungsjargon). Seit Fahrplan 20 E1
+ *  im V1-Markup (s. dort): jeder Teilsatz startet mit „+" (positiver Effekt)
+ *  oder „−" (U+2212, logische Konsequenz), Trenner " · " —
+ *  `parseDescriptionSegments()` liest das für die Anzeige aus. */
 export const MODEL_DESCRIPTIONS: Record<PlanModel, string> = {
   pyramidal:
-    "Gleichmäßiger Mix aus allen Trainingsbereichen (viel Grundlage, etwas Tempo, wenig ganz hart) — guter Standard für die meisten Athlet:innen.",
+    "+Gleichmäßiger Mix aus allen Trainingsbereichen (viel Grundlage, etwas Tempo, wenig ganz hart) · +Guter Standard für die meisten Athlet:innen",
   linear:
-    "Erst viele Wochen lockeres Grundlagentraining, die Intensität steigt erst später im Plan — passt bei viel Vorlaufzeit oder wenig Zeit pro Woche.",
+    "+Erst viele Wochen lockeres Grundlagentraining · −Die Intensität steigt erst später im Plan · +Passt bei viel Vorlaufzeit oder wenig Zeit pro Woche",
   polarized:
-    "Fast alles sehr locker, dazwischen kurze, sehr harte Intervalle (80/20), kaum etwas dazwischen — braucht mehrjährigen Trainingshintergrund und klare Zonendisziplin.",
+    "+Fast alles sehr locker, dazwischen kurze, sehr harte Intervalle (80/20) · −Kaum etwas dazwischen · −Braucht mehrjährigen Trainingshintergrund und klare Zonendisziplin",
   block:
-    "Kurze, konzentrierte 2–3-Wochen-Blöcke je Trainingsbereich mit Erholung dazwischen, statt gleichmäßig gemischt — nur für sehr gut trainierte bis Elite-Athlet:innen, braucht Zeit für vollständige Erholung.",
+    "+Kurze, konzentrierte 2–3-Wochen-Blöcke je Trainingsbereich mit Erholung dazwischen · −Nur für sehr gut trainierte bis Elite-Athlet:innen · −Braucht Zeit für vollständige Erholung",
   reverse:
-    "Harte Intervalle zuerst, die Grundlage wandert ans Ende vor dem Taper — für Athlet:innen mit knapper Vorlaufzeit oder bereits hoher Basisfitness.",
+    "+Harte Intervalle zuerst · −Die Grundlage wandert ans Ende vor dem Taper · +Für Athlet:innen mit knapper Vorlaufzeit oder bereits hoher Basisfitness",
 };
 
 /** Alle fünf seit E14 baubar. */
@@ -223,24 +226,55 @@ export const AVAILABLE_MODELS: readonly PlanModel[] = [
 
 /** Kurzbeschreibung je Erfahrungslevel — was der Wert konkret am generierten
  *  Plan ändert (Fahrplan 15 E3, Alex-Feedback: 5 Code-Stellen wirken bereits,
- *  waren aber nirgends erklärt). */
+ *  waren aber nirgends erklärt). Seit Fahrplan 20 E1 im V1-Markup (s. dort). */
 export const LEVEL_DESCRIPTIONS: Record<PlanLevel, string> = {
   einsteiger:
-    "Niedrigeres TSS-Ziel, zügigerer FTP-Zuwachs (mehr Raum für schnelle Anfängerfortschritte), Erholungswoche alle 3 Wochen, Ladder-Stufen bei Qualitätstagen auf Stufe 4 gedeckelt.",
+    "+Niedrigeres TSS-Ziel · +Zügigerer FTP-Zuwachs (mehr Raum für schnelle Anfängerfortschritte) · +Erholungswoche alle 3 Wochen · −Ladder-Stufen bei Qualitätstagen auf Stufe 4 gedeckelt",
   fortgeschritten:
-    "Höheres TSS-Ziel, langsamerer FTP-Zuwachs (näher am Leistungsplateau), Erholungswoche alle 4 Wochen (ab 40 Jahren ebenfalls alle 3), keine Ladder-Deckelung.",
+    "+Höheres TSS-Ziel · −Langsamerer FTP-Zuwachs (näher am Leistungsplateau) · +Erholungswoche alle 4 Wochen (ab 40 Jahren ebenfalls alle 3) · +Keine Ladder-Deckelung",
 };
 
 /** Kurzbeschreibung je Fokus — was der Wert konkret am generierten Plan
  *  ändert (Fahrplan 15: "Berg"/"Langstrecke" wirken seit E2 wirklich, statt
- *  reiner Deko im Dropdown zu sein). */
+ *  reiner Deko im Dropdown zu sein). Seit Fahrplan 20 E1 im V1-Markup (s. dort). */
 export const FOCUS_DESCRIPTIONS: Record<PlanFocus, string> = {
-  allgemein: "Ausgewogene Verteilung, keine Sonderbehandlung einzelner Tage.",
-  berg: "Sweet-Spot-/Schwelle-/Over-Under-Einheiten springen 2 Ladder-Stufen weiter — längere, härtere Einzelintervalle statt der normalen Wochenprogression.",
+  allgemein: "+Ausgewogene Verteilung, keine Sonderbehandlung einzelner Tage",
+  berg: "+Sweet-Spot-/Schwelle-/Over-Under-Einheiten springen 2 Ladder-Stufen weiter (mehr Bergspezifität) · −Längere, härtere Einzelintervalle statt der normalen Wochenprogression",
   langstrecke:
-    "Der lange Wochenendtag bekommt einen größeren Anteil der lockeren Trainingszeit (statt 50 % ca. 65 %, Obergrenze 300 statt 210 Minuten).",
-  crit: "Der zweite Qualitätstag der Woche bekommt einen zusätzlichen Sprint-Block angehängt.",
+    "+Der lange Wochenendtag bekommt einen größeren Anteil der lockeren Trainingszeit (statt 50 % ca. 65 %) · −Obergrenze auf 300 statt 210 Minuten angehoben",
+  crit: "+Der zweite Qualitätstag der Woche bekommt einen zusätzlichen Sprint-Block angehängt",
 };
+
+/* ── V1: Plus/Minus-Markup in den Beschreibungs-Strings (Fahrplan 20 E1) ── */
+
+export interface DescriptionSegment {
+  text: string;
+  sign: "plus" | "minus";
+}
+
+/** U+2212 (Minuszeichen), bewusst nicht der Bindestrich "-" — sonst
+ *  Verwechslung mit Wortbindestrichen innerhalb der Texte. */
+const DESCRIPTION_MINUS_SIGN = "−";
+
+/** Zerlegt einen LEVEL_/FOCUS_/MODEL_DESCRIPTIONS-String (V1-Markup) in
+ *  einzelne Teilsätze mit Vorzeichen. Segment ohne führendes "+"/"−" ->
+ *  `sign: "plus"` (Fallback, sollte bei den echten Konstanten nicht
+ *  vorkommen — s. new-plan-dialog-view-model.test.ts). */
+export function parseDescriptionSegments(text: string): DescriptionSegment[] {
+  return text
+    .split(" · ")
+    .map((segment) => segment.trim())
+    .filter((segment) => segment.length > 0)
+    .map((segment) => {
+      if (segment.startsWith(DESCRIPTION_MINUS_SIGN)) {
+        return { text: segment.slice(1).trim(), sign: "minus" as const };
+      }
+      if (segment.startsWith("+")) {
+        return { text: segment.slice(1).trim(), sign: "plus" as const };
+      }
+      return { text: segment, sign: "plus" as const };
+    });
+}
 
 /* ── reine Helfer ──────────────────────────────────────────────────── */
 
