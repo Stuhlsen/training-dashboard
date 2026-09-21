@@ -118,4 +118,7 @@ export const qk = {
   heroLayout: (profileId: string, athleteId: string) => ["hero-layout", profileId, athleteId] as const,
   /** Zwei-Faktor-Faktoren (Supabase Auth MFA) des eingeloggten Users. */
   mfaFactors: (userId: string) => ["mfa-factors", userId] as const,
+  /** Iterations-Zeitpunkte für den Bike-Fit-Marker im Fahrtenbuch (Fahrplan 16
+   *  E9/OF-4) — athletenscharf wie qk.events(). */
+  bikefitMarkerDates: (athleteId: string) => ["bikefit-marker-dates", athleteId] as const,
 } as const;

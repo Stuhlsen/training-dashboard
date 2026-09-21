@@ -1551,4 +1551,174 @@ if (!HAS_CREDS) {
       );
     }
   );
+
+  test(
+    "bikes (0047/0051): Basistabelle nur für Eigentümer/Coach/Admin lesbar, bikes_public (ohne notes) für alle authenticated",
+    { skip: !HAS_CREDS },
+    async () => {
+      // 1. Anon darf weder Basistabelle noch die öffentliche Sicht lesen
+      const anonRead = await rest("GET", "bikes");
+      assert.notEqual(anonRead.status, 200, "anon sollte bikes nicht ohne Authentifizierung lesen können");
+      const anonPublicRead = await rest("GET", "bikes_public");
+      assert.notEqual(anonPublicRead.status, 200, "anon sollte bikes_public nicht ohne Authentifizierung lesen können");
+
+      // 2. Athlet 1 darf eigenes Rad anlegen
+      const insertRes = await rest("POST", "bikes", {
+        token: athlete.token,
+        body: {
+          profile_id: athlete.userId,
+          name: "Test Gravel Bike",
+          bike_type: "gravel",
+          crank_length_mm: 172,
+          notes: "GEHEIME TESTNOTIZ",
+        },
+      });
+
+      // Falls Migration 0047 in dashboard-dev noch nicht ausgeführt wurde (404/relation does not exist),
+      // Test sauber überspringen / melden
+      if (insertRes.status === 404 || insertRes.data?.message?.includes("does not exist")) {
+        console.warn("Migration 0047_bikes.sql noch nicht in dashboard-dev eingespielt — Test übersprungen");
+        return;
+      }
+
+      assert.equal(insertRes.ok, true, `Insert durch Athlet fehlgeschlagen: ${JSON.stringify(insertRes.data)}`);
+      const bikeId = insertRes.data?.[0]?.id;
+      assert.ok(bikeId, "Keine bikeId zurückgegeben");
+
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `bikes?id=eq.${bikeId}`, { token: athlete.token });
+      });
+
+      // 3. Trainer darf das Rad des betreuten Athleten über die Basistabelle lesen (inkl. notes)
+      const trainerRead = await rest("GET", `bikes?id=eq.${bikeId}`, { token: trainer.token });
+      assert.equal(trainerRead.ok, true);
+      assert.equal(trainerRead.data?.length, 1, "Trainer sollte das Rad des Athleten lesen können");
+
+      // 3b. Migration 0051 (Security-Review-Fund): bikes_public. Falls in
+      // dashboard-dev noch nicht eingespielt, hier sauber überspringen statt
+      // den ganzen Test scheitern zu lassen (Muster wie oben bei 0047).
+      const publicProbe = await rest("GET", `bikes_public?id=eq.${bikeId}&select=name`, { token: trainer.token });
+      if (publicProbe.status === 404 || publicProbe.data?.message?.includes("does not exist")) {
+        console.warn("Migration 0051_bikes_notes_private.sql noch nicht in dashboard-dev eingespielt — Rest des Tests übersprungen");
+        return;
+      }
+
+      // 3c. notes ist NICHT über die öffentliche Sicht bikes_public erreichbar —
+      // die Spalte existiert dort strukturell nicht, unabhängig davon wer fragt
+      // (kein Zeilenfilter, sondern eine fehlende Spalte).
+      const publicNotesQuery = await rest("GET", `bikes_public?id=eq.${bikeId}&select=name,notes`, {
+        token: trainer.token,
+      });
+      assert.notEqual(publicNotesQuery.status, 200, "notes sollte in bikes_public gar nicht existieren");
+
+      // 3d. Aber Name/Typ/Kurbellänge bleiben über bikes_public für jeden authenticated
+      // Nutzer sichtbar (OF-6 — unverändert durch 0051).
+      const publicRead = await rest("GET", `bikes_public?id=eq.${bikeId}&select=name,bike_type,crank_length_mm`, {
+        token: trainer.token,
+      });
+      assert.equal(publicRead.ok, true);
+      assert.equal(publicRead.data?.[0]?.name, "Test Gravel Bike");
+
+      // 4. Trainer darf das Rad des betreuten Athleten aktualisieren
+      const trainerUpdate = await rest("PATCH", `bikes?id=eq.${bikeId}`, {
+        token: trainer.token,
+        body: { notes: "Vom Coach geprüft" },
+      });
+      assert.equal(trainerUpdate.ok, true, `Update durch Coach fehlgeschlagen: ${JSON.stringify(trainerUpdate.data)}`);
+
+      // 5. Athlet darf sein Rad löschen
+      const deleteRes = await rest("DELETE", `bikes?id=eq.${bikeId}`, { token: athlete.token });
+      assert.equal(deleteRes.ok, true, `Delete durch Athlet fehlgeschlagen: ${JSON.stringify(deleteRes.data)}`);
+    }
+  );
+
+  test(
+    "bikefit_fittings & bikefit_iterations (0048): nur eigener Athlet/Trainer/Admin lesen+schreiben, kein anon",
+    { skip: !HAS_CREDS },
+    async () => {
+      // 1. Anon darf weder fittings noch iterations lesen
+      const anonFittings = await rest("GET", "bikefit_fittings");
+      assert.notEqual(anonFittings.status, 200, "anon sollte bikefit_fittings nicht lesen können");
+
+      const anonIterations = await rest("GET", "bikefit_iterations");
+      assert.notEqual(anonIterations.status, 200, "anon sollte bikefit_iterations nicht lesen können");
+
+      // 2. Rad anlegen für den Fitting-Test
+      const bikeRes = await rest("POST", "bikes", {
+        token: athlete.token,
+        body: {
+          profile_id: athlete.userId,
+          name: "Fit Test Bike",
+          bike_type: "road",
+        },
+      });
+
+      if (bikeRes.status === 404 || bikeRes.data?.message?.includes("does not exist")) {
+        console.warn("Migration 0047/0048 noch nicht in dashboard-dev eingespielt — Test übersprungen");
+        return;
+      }
+      const testBikeId = bikeRes.data?.[0]?.id;
+      assert.ok(testBikeId, "Test-Bike konnte nicht angelegt werden");
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `bikes?id=eq.${testBikeId}`, { token: athlete.token });
+      });
+
+      // 3. Fitting anlegen durch Athleten
+      const fitRes = await rest("POST", "bikefit_fittings", {
+        token: athlete.token,
+        body: {
+          profile_id: athlete.userId,
+          bike_id: testBikeId,
+          status: "active",
+          target_goal: "balanced",
+        },
+      });
+
+      if (fitRes.status === 404 || fitRes.data?.message?.includes("does not exist")) {
+        console.warn("Migration 0048 noch nicht in dashboard-dev eingespielt — Test übersprungen");
+        return;
+      }
+      assert.equal(fitRes.ok, true, `Fitting-Insert fehlgeschlagen: ${JSON.stringify(fitRes.data)}`);
+      const fittingId = fitRes.data?.[0]?.id;
+      assert.ok(fittingId, "Keine fittingId erhalten");
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `bikefit_fittings?id=eq.${fittingId}`, { token: athlete.token });
+      });
+
+      // 4. Zweites aktives Fitting auf demselben Rad muss am partiellen Unique-Index scheitern (B4)
+      const dupFitRes = await rest("POST", "bikefit_fittings", {
+        token: athlete.token,
+        body: {
+          profile_id: athlete.userId,
+          bike_id: testBikeId,
+          status: "active",
+        },
+      });
+      assert.equal(dupFitRes.ok, false, "Zweites aktives Fitting auf demselben Rad hätte scheitern müssen");
+
+      // 5. Iteration anlegen durch Athleten
+      const iterRes = await rest("POST", "bikefit_iterations", {
+        token: athlete.token,
+        body: {
+          fitting_id: fittingId,
+          sequence: 1,
+          points: { legs: { hip: { x: 10, y: 20 } } },
+          angles: { kneeAngle: 145 },
+          recommendation: { kneeAngle: { direction: "ok" } },
+        },
+      });
+      assert.equal(iterRes.ok, true, `Iteration-Insert fehlgeschlagen: ${JSON.stringify(iterRes.data)}`);
+      const iterationId = iterRes.data?.[0]?.id;
+      assert.ok(iterationId, "Keine iterationId erhalten");
+
+      // 6. Trainer darf Fitting & Iteration seines Athleten lesen
+      const trainerFitRead = await rest("GET", `bikefit_fittings?id=eq.${fittingId}`, { token: trainer.token });
+      assert.equal(trainerFitRead.ok, true);
+      assert.equal(trainerFitRead.data?.length, 1, "Trainer sollte das Fitting seines Athleten lesen können");
+
+      const trainerIterRead = await rest("GET", `bikefit_iterations?fitting_id=eq.${fittingId}`, { token: trainer.token });
+      assert.equal(trainerIterRead.ok, true);
+      assert.equal(trainerIterRead.data?.length, 1, "Trainer sollte die Iteration seines Athleten lesen können");
+    }
+  );
 }

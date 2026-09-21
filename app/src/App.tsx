@@ -12,6 +12,7 @@ import { EventsPage } from "./features/events/EventsPage";
 import { LogbookPage } from "./features/logbook/LogbookPage";
 import { AnalysisPage } from "./features/analysis/AnalysisPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
+import { BikefitPage } from "./features/bikefit/BikefitPage";
 
 /** `<Navigate>` allein wuerde `location.state` (z. B. ein mitgereichtes
  *  `highlightDate`) beim Redirect verwerfen, statt es weiterzureichen — bei
@@ -64,6 +65,7 @@ export default function App() {
               <Route path="log" element={<LogbookPage />} />
               <Route path="analysis" element={<AnalysisPage />} />
               <Route path="events" element={<EventsPage />} />
+              <Route path="bikefit" element={<BikefitPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="settings" element={<SettingsPage />} />
               </Route>

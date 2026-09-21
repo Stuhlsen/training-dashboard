@@ -55,7 +55,20 @@ services:
         psql -h postgres -U supabase_admin -d postgres -c
         "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$AUTH_ADMIN_PASSWORD';" &&
         psql -h postgres -U supabase_admin -d postgres -c
-        "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;"
+        "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;" &&
+        psql -h postgres -U supabase_admin -d postgres -c
+        "GRANT ALL ON SCHEMA storage TO postgres, supabase_storage_admin; GRANT ALL ON ALL TABLES IN SCHEMA storage TO postgres, supabase_storage_admin;"
+
+  # Storage-Schema vor dbmate-Migrationen anlegen
+  storage-init:
+    image: supabase/storage-api:v1.16.0
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+    entrypoint: ["node", "dist/scripts/migrate-call.js"]
 
   # Fahrplan 3, DKR4: eigenes Image (supabase/Dockerfile) statt Bind-Mount —
   # das ist das Artefakt, das zusammen mit dem Frontend versioniert nach
@@ -64,7 +77,7 @@ services:
     build:
       context: ./supabase
     depends_on:
-      db-init:
+      storage-init:
         condition: service_completed_successfully
     environment:
       DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
@@ -143,6 +156,33 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${SELFHOST_SERVICE_ROLE_KEY}
     # KEIN "ports:" hier — von aussen nur ueber den Proxy erreichbar (wie postgres)
 
+  # Fahrplan 16, E1 — Supabase Storage API fuer Bikefit-Fotos (und spaetere Medien)
+  storage-api:
+    image: supabase/storage-api:v1.16.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      ANON_KEY: ${ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.dummy}
+      SERVICE_KEY: ${SELFHOST_SERVICE_ROLE_KEY}
+      POSTGREST_URL: http://postgrest:3000
+      PGRST_JWT_SECRET: ${JWT_SECRET}
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
+      FILE_SIZE_LIMIT: "15728640" # 15MB
+      STORAGE_BACKEND: file
+      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: default
+      REGION: local
+      GLOBAL_S3_BUCKET: bikefit-photos
+      ENABLE_IMAGE_TRANSFORMATION: "false"
+    volumes:
+      - storage_data:/var/lib/storage
+    # KEIN "ports:" hier — von aussen nur ueber den Proxy erreichbar
+
   proxy:
     image: caddy:2.11-alpine
     depends_on:
@@ -152,6 +192,8 @@ services:
         condition: service_started
       admin-api:
         condition: service_started
+      storage-api:
+        condition: service_started
     ports:
       - "80:80"
     volumes:
@@ -159,3 +201,4 @@ services:
 
 volumes:
   pgdata:
+  storage_data:

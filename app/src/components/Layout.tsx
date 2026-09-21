@@ -10,6 +10,7 @@ import { useAuth } from "../api/auth/useAuth";
 // wie `auth` oben — useActiveAthlete ist ein reiner localStorage-Hook ohne
 // I/O (AGENTS.md-Abhängigkeitstabelle).
 import { useActiveAthlete } from "../api/hooks/useActiveAthlete";
+import { ATHLETES } from "../config";
 // hooks/-Schicht: darf api/ laden (AGENTS.md). Damit muss UserMenu (components/)
 // den Namen nicht selbst aus api/hooks holen — bekommt ihn als Prop.
 import { useAccountLabel } from "../hooks/account-label";
@@ -17,7 +18,7 @@ import { useAccountLabel } from "../hooks/account-label";
 /** "Settings" bewusst NICHT hier — sitzt rechts bei den User-Funktionen
  *  (Abmelden/Anmelden), nicht bei den Inhalts-Tabs (Review-Kommentar,
  *  Hero-Tab-Redesign 23.08.2026). */
-const NAV_ITEMS = [
+const BASE_NAV_ITEMS = [
   { to: "/", label: "Hero", end: true },
   { to: "/planning", label: "Planungstab" },
   { to: "/log", label: "Fahrtenbuch" },
@@ -36,6 +37,15 @@ export function Layout() {
   const { session, signOut } = useAuth();
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const accountLabel = useAccountLabel();
+
+  const activeAthleteCfg = ATHLETES.find((a) => a.id === activeAthleteId);
+  const sports = activeAthleteCfg?.sports ?? ["ride"];
+  const hasCycling = sports.includes("ride");
+
+  const navItems = [
+    ...BASE_NAV_ITEMS,
+    ...(hasCycling ? [{ to: "/bikefit", label: "Bike-Fit" }] : []),
+  ];
 
   return (
     <div>
@@ -56,7 +66,7 @@ export function Layout() {
       >
         <nav style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, justifySelf: "start" }}>
           <EnvBadge />
-          {NAV_ITEMS.map((item) => (
+          {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

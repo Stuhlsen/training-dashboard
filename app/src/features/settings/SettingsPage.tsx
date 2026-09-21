@@ -23,6 +23,7 @@ import { NotificationsSection } from "./NotificationsSection";
 import { GoalsSection } from "./GoalsSection";
 import { TrainingTargetsSection } from "./TrainingTargetsSection";
 import { ProfileBasicsSection } from "./ProfileBasicsSection";
+import { BikesSection } from "./BikesSection";
 import { CheckinSection } from "./CheckinSection";
 import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
@@ -177,6 +178,7 @@ export function SettingsPage() {
                   <GoalsSection />
                   <ProfileBasicsSection />
                   <TrainingTargetsSection />
+                  <BikesSection />
                   <CheckinSection />
                   <FtpHistorySection />
                   <FormatsSection />

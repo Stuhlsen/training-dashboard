@@ -27,6 +27,7 @@ import { InfoTooltip } from "../../components/InfoTooltip";
 import { ChartTooltip } from "../../charts/ChartTooltip";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useRides } from "../../api/hooks/useRides";
+import { useBikefitMarkerDates } from "../../api/hooks/useBikefitMarkerDates";
 import { fmt, fmtInt, weatherIcon, windDir } from "../../core/format.js";
 import { activitySport, sportEmoji } from "../../core/activity-sport.js";
 import { sum } from "../../core/stats.js";
@@ -75,6 +76,7 @@ interface WeatherHover {
 export function LogbookPage() {
   const { activeAthleteId } = useActiveAthlete();
   const { data: rideData, isLoading, error } = useRides(activeAthleteId);
+  const { data: fittingDates = [] } = useBikefitMarkerDates(activeAthleteId);
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState("Alle");
@@ -249,6 +251,23 @@ export function LogbookPage() {
                                 style={{ marginLeft: 6, cursor: "pointer" }}
                               >
                                 📅
+                              </span>
+                            )}
+                            {fittingDates.some((fd) => r.dateISO >= fd) && (
+                              <span
+                                title="Fahrt nach Bike-Fitting Anpassung (neue Sitzposition)"
+                                style={{
+                                  marginLeft: 6,
+                                  fontSize: ".75rem",
+                                  padding: "1px 5px",
+                                  borderRadius: "var(--radius-pill)",
+                                  background: "rgba(224, 138, 60, 0.15)",
+                                  border: "1px solid var(--ss)",
+                                  color: "var(--ss)",
+                                  cursor: "default",
+                                }}
+                              >
+                                🚲 Fit
                               </span>
                             )}
                           </td>
