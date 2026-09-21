@@ -38,8 +38,10 @@ import {
   AVAILABLE_MODELS,
   buildGeneratorInput,
   defaultFormState,
+  FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
   KNOWN_PLAN_TYPES,
+  LEVEL_DESCRIPTIONS,
   MODEL_DESCRIPTIONS,
   MODEL_LABELS,
   mondayOf,
@@ -607,6 +609,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 <option value="einsteiger">Einsteiger</option>
                 <option value="fortgeschritten">Fortgeschritten</option>
               </select>
+              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>{LEVEL_DESCRIPTIONS[form.level]}</span>
             </label>
             <label style={LABEL_STYLE}>
               Fokus
@@ -621,6 +624,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   </option>
                 ))}
               </select>
+              <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>{FOCUS_DESCRIPTIONS[form.focus]}</span>
             </label>
           </div>
 

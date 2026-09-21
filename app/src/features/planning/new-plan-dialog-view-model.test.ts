@@ -2,9 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   buildGeneratorInput,
   defaultFormState,
+  FOCUS_DESCRIPTIONS,
+  LEVEL_DESCRIPTIONS,
   mondayOf,
   suggestModel,
   type NewPlanFormState,
+  type PlanFocus,
+  type PlanLevel,
 } from "./new-plan-dialog-view-model";
 
 describe("mondayOf", () => {
@@ -158,5 +162,22 @@ describe("buildGeneratorInput", () => {
     expect(res.ok).toBe(true);
     if (!res.ok) return;
     expect(res.input.history).toBe(history);
+  });
+});
+
+describe("LEVEL_DESCRIPTIONS / FOCUS_DESCRIPTIONS", () => {
+  const LEVELS: PlanLevel[] = ["einsteiger", "fortgeschritten"];
+  const FOCI: PlanFocus[] = ["allgemein", "berg", "langstrecke", "crit"];
+
+  it("jeder PlanLevel-Wert hat einen nicht-leeren Erklärtext", () => {
+    for (const level of LEVELS) {
+      expect(LEVEL_DESCRIPTIONS[level].trim().length).toBeGreaterThan(0);
+    }
+  });
+
+  it("jeder PlanFocus-Wert hat einen nicht-leeren Erklärtext", () => {
+    for (const focus of FOCI) {
+      expect(FOCUS_DESCRIPTIONS[focus].trim().length).toBeGreaterThan(0);
+    }
   });
 });

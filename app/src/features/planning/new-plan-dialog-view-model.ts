@@ -200,15 +200,36 @@ export const MODEL_DESCRIPTIONS: Record<PlanModel, string> = {
   linear:
     "Erst viele Wochen lockeres Grundlagentraining, die Intensität steigt erst später im Plan — passt bei viel Vorlaufzeit oder wenig Zeit pro Woche.",
   polarized:
-    "Fast alles sehr locker, dazwischen kurze, sehr harte Intervalle (80/20), kaum etwas dazwischen — für erfahrene Athlet:innen mit klarer Zonendisziplin.",
+    "Fast alles sehr locker, dazwischen kurze, sehr harte Intervalle (80/20), kaum etwas dazwischen — braucht mehrjährigen Trainingshintergrund und klare Zonendisziplin.",
   block:
-    "Kurze, konzentrierte 2–3-Wochen-Blöcke je Trainingsbereich mit Erholung dazwischen, statt gleichmäßig gemischt — braucht Erfahrung und Zeit für Erholung.",
+    "Kurze, konzentrierte 2–3-Wochen-Blöcke je Trainingsbereich mit Erholung dazwischen, statt gleichmäßig gemischt — nur für sehr gut trainierte bis Elite-Athlet:innen, braucht Zeit für vollständige Erholung.",
   reverse:
     "Harte Intervalle zuerst, die Grundlage wandert ans Ende vor dem Taper — für Athlet:innen mit knapper Vorlaufzeit oder bereits hoher Basisfitness.",
 };
 
 /** Alle fünf seit E14 baubar. */
 export const AVAILABLE_MODELS: readonly PlanModel[] = ["pyramidal", "linear", "polarized", "block", "reverse"];
+
+/** Kurzbeschreibung je Erfahrungslevel — was der Wert konkret am generierten
+ *  Plan ändert (Fahrplan 15 E3, Alex-Feedback: 5 Code-Stellen wirken bereits,
+ *  waren aber nirgends erklärt). */
+export const LEVEL_DESCRIPTIONS: Record<PlanLevel, string> = {
+  einsteiger:
+    "Niedrigeres TSS-Ziel, zügigerer FTP-Zuwachs (mehr Raum für schnelle Anfängerfortschritte), Erholungswoche alle 3 Wochen, Ladder-Stufen bei Qualitätstagen auf Stufe 4 gedeckelt.",
+  fortgeschritten:
+    "Höheres TSS-Ziel, langsamerer FTP-Zuwachs (näher am Leistungsplateau), Erholungswoche alle 4 Wochen (ab 40 Jahren ebenfalls alle 3), keine Ladder-Deckelung.",
+};
+
+/** Kurzbeschreibung je Fokus — was der Wert konkret am generierten Plan
+ *  ändert (Fahrplan 15: "Berg"/"Langstrecke" wirken seit E2 wirklich, statt
+ *  reiner Deko im Dropdown zu sein). */
+export const FOCUS_DESCRIPTIONS: Record<PlanFocus, string> = {
+  allgemein: "Ausgewogene Verteilung, keine Sonderbehandlung einzelner Tage.",
+  berg: "Sweet-Spot-/Schwelle-/Over-Under-Einheiten springen 2 Ladder-Stufen weiter — längere, härtere Einzelintervalle statt der normalen Wochenprogression.",
+  langstrecke:
+    "Der lange Wochenendtag bekommt einen größeren Anteil der lockeren Trainingszeit (statt 50 % ca. 65 %, Obergrenze 300 statt 210 Minuten).",
+  crit: "Der zweite Qualitätstag der Woche bekommt einen zusätzlichen Sprint-Block angehängt.",
+};
 
 /* ── reine Helfer ──────────────────────────────────────────────────── */
 
