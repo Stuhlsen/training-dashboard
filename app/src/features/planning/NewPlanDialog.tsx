@@ -38,6 +38,7 @@ import { eftpHistory, forecastFtp } from "../../core/ftp-forecast.js";
 import { PlanPreview } from "./PlanPreview";
 import { ModelBlockBar } from "./ModelBlockBar";
 import { MiniPlanPreview } from "./MiniPlanPreview";
+import { GuidedPlanQuestions } from "./GuidedPlanQuestions";
 import {
   AVAILABLE_MODELS,
   buildGeneratorInput,
@@ -94,7 +95,7 @@ const FIELD_STYLE: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-const LABEL_STYLE: React.CSSProperties = {
+export const LABEL_STYLE: React.CSSProperties = {
   display: "flex",
   flexDirection: "column",
   gap: 4,
@@ -113,7 +114,7 @@ const BTN_STYLE: React.CSSProperties = {
   cursor: "pointer",
 };
 
-const PRIMARY_BTN_STYLE: React.CSSProperties = {
+export const PRIMARY_BTN_STYLE: React.CSSProperties = {
   ...BTN_STYLE,
   background: "var(--ss)",
   borderColor: "var(--ss)",
@@ -121,7 +122,7 @@ const PRIMARY_BTN_STYLE: React.CSSProperties = {
   fontWeight: 600,
 };
 
-const PILL_STYLE: React.CSSProperties = {
+export const PILL_STYLE: React.CSSProperties = {
   ...BTN_STYLE,
   padding: "6px 12px",
   fontSize: ".78rem",
@@ -161,6 +162,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const [form, setForm] = useState<NewPlanFormState>(() =>
     defaultFormState(cfg, today, ftpHistoryEntries)
   );
+  const [guidedMode, setGuidedMode] = useState(true);
   const [modelTouched, setModelTouched] = useState(false);
   const [ftpTouched, setFtpTouched] = useState(false);
   const [preview, setPreview] = useState<PreviewBundle | null>(null);
@@ -431,6 +433,24 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
         )}
 
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Geführt/Erweitert */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              style={guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
+              onClick={() => setGuidedMode(true)}
+            >
+              Geführt
+            </button>
+            <button
+              type="button"
+              style={!guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
+              onClick={() => setGuidedMode(false)}
+            >
+              Erweitert
+            </button>
+          </div>
+
           {/* Modus */}
           <div style={{ display: "flex", gap: 8 }}>
             <button
@@ -718,95 +738,111 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={LABEL_STYLE}>
-              Erfahrungslevel
-              <select
-                style={FIELD_STYLE}
-                value={form.level}
-                onChange={(e) => patch({ level: e.target.value as PlanLevel })}
-              >
-                <option value="einsteiger">Einsteiger</option>
-                <option value="fortgeschritten">Fortgeschritten</option>
-              </select>
-              <span style={{ fontSize: ".72rem" }}>
-                {parseDescriptionSegments(LEVEL_DESCRIPTIONS[form.level]).map((seg, i) => (
-                  <span
-                    key={i}
-                    style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}
-                  >
-                    {i > 0 && " · "}
-                    {seg.text}
-                  </span>
-                ))}
-              </span>
-            </label>
-            <label style={LABEL_STYLE}>
-              Fokus
-              <select
-                style={FIELD_STYLE}
-                value={form.focus}
-                onChange={(e) => patch({ focus: e.target.value as PlanFocus })}
-              >
-                {(Object.keys(FOCUS_LABELS) as PlanFocus[]).map((f) => (
-                  <option key={f} value={f}>
-                    {FOCUS_LABELS[f]}
-                  </option>
-                ))}
-              </select>
-              <span style={{ fontSize: ".72rem" }}>
-                {parseDescriptionSegments(FOCUS_DESCRIPTIONS[form.focus]).map((seg, i) => (
-                  <span
-                    key={i}
-                    style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}
-                  >
-                    {i > 0 && " · "}
-                    {seg.text}
-                  </span>
-                ))}
-              </span>
-            </label>
-          </div>
-
-          <label style={LABEL_STYLE}>
-            Periodisierungsmodell{" "}
-            {!modelTouched && (
-              <span style={{ color: "var(--ink-3)" }}>· Vorschlag: {MODEL_LABELS[suggestion]}</span>
-            )}
-            <select
-              style={FIELD_STYLE}
-              value={effectiveModel}
-              onChange={(e) => {
-                setModelTouched(true);
-                patch({ model: e.target.value as PlanModel });
+          {guidedMode ? (
+            <GuidedPlanQuestions
+              onComplete={({ level, focus }) => {
+                patch({ level, focus });
+                setGuidedMode(false);
               }}
-            >
-              {AVAILABLE_MODELS.map((m) => (
-                <option key={m} value={m}>
-                  {MODEL_LABELS[m]}
-                </option>
-              ))}
-            </select>
-            <span style={{ fontSize: ".72rem" }}>
-              {parseDescriptionSegments(MODEL_DESCRIPTIONS[effectiveModel]).map((seg, i) => (
-                <span key={i} style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}>
-                  {i > 0 && " · "}
-                  {seg.text}
-                </span>
-              ))}
-            </span>
-            <div style={{ marginTop: 6 }}>
-              <ModelBlockBar shares={MODEL_BLOCK_SHARES[effectiveModel]} />
-            </div>
-          </label>
-
-          {miniPreviewPlan && (
-            <div style={{ marginTop: 4 }}>
-              <div style={{ fontSize: ".72rem", color: "var(--ink-3)", marginBottom: 4 }}>
-                Wochenverlauf bei dieser Auswahl
+            />
+          ) : (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <label style={LABEL_STYLE}>
+                  Erfahrungslevel
+                  <select
+                    style={FIELD_STYLE}
+                    value={form.level}
+                    onChange={(e) => patch({ level: e.target.value as PlanLevel })}
+                  >
+                    <option value="einsteiger">Einsteiger</option>
+                    <option value="fortgeschritten">Fortgeschritten</option>
+                  </select>
+                  <span style={{ fontSize: ".72rem" }}>
+                    {parseDescriptionSegments(LEVEL_DESCRIPTIONS[form.level]).map((seg, i) => (
+                      <span
+                        key={i}
+                        style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}
+                      >
+                        {i > 0 && " · "}
+                        {seg.text}
+                      </span>
+                    ))}
+                  </span>
+                </label>
+                <label style={LABEL_STYLE}>
+                  Fokus
+                  <select
+                    style={FIELD_STYLE}
+                    value={form.focus}
+                    onChange={(e) => patch({ focus: e.target.value as PlanFocus })}
+                  >
+                    {(Object.keys(FOCUS_LABELS) as PlanFocus[]).map((f) => (
+                      <option key={f} value={f}>
+                        {FOCUS_LABELS[f]}
+                      </option>
+                    ))}
+                  </select>
+                  <span style={{ fontSize: ".72rem" }}>
+                    {parseDescriptionSegments(FOCUS_DESCRIPTIONS[form.focus]).map((seg, i) => (
+                      <span
+                        key={i}
+                        style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}
+                      >
+                        {i > 0 && " · "}
+                        {seg.text}
+                      </span>
+                    ))}
+                  </span>
+                </label>
               </div>
-              <MiniPlanPreview plan={miniPreviewPlan} />
-            </div>
+
+              <label style={LABEL_STYLE}>
+                Periodisierungsmodell{" "}
+                {!modelTouched && (
+                  <span style={{ color: "var(--ink-3)" }}>
+                    · Vorschlag: {MODEL_LABELS[suggestion]}
+                  </span>
+                )}
+                <select
+                  style={FIELD_STYLE}
+                  value={effectiveModel}
+                  onChange={(e) => {
+                    setModelTouched(true);
+                    patch({ model: e.target.value as PlanModel });
+                  }}
+                >
+                  {AVAILABLE_MODELS.map((m) => (
+                    <option key={m} value={m}>
+                      {MODEL_LABELS[m]}
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: ".72rem" }}>
+                  {parseDescriptionSegments(MODEL_DESCRIPTIONS[effectiveModel]).map((seg, i) => (
+                    <span
+                      key={i}
+                      style={{ color: seg.sign === "plus" ? "var(--z1)" : "var(--danger)" }}
+                    >
+                      {i > 0 && " · "}
+                      {seg.text}
+                    </span>
+                  ))}
+                </span>
+                <div style={{ marginTop: 6 }}>
+                  <ModelBlockBar shares={MODEL_BLOCK_SHARES[effectiveModel]} />
+                </div>
+              </label>
+
+              {miniPreviewPlan && (
+                <div style={{ marginTop: 4 }}>
+                  <div style={{ fontSize: ".72rem", color: "var(--ink-3)", marginBottom: 4 }}>
+                    Wochenverlauf bei dieser Auswahl
+                  </div>
+                  <MiniPlanPreview plan={miniPreviewPlan} />
+                </div>
+              )}
+            </>
           )}
 
           {(Object.keys(errors).length > 0 || saveError) && (

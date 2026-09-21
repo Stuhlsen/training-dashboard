@@ -321,6 +321,13 @@ export function suggestModel(opts: {
   return "pyramidal";
 }
 
+/** Geführter Modus (Fahrplan 20 E4): leitet das Erfahrungslevel aus der
+ *  ersten geführten Frage ab — "unter1Jahr" gilt als Einsteiger, alles
+ *  andere als fortgeschritten. */
+export function levelFromExperience(experience: "unter1Jahr" | "ueber1Jahr"): PlanLevel {
+  return experience === "unter1Jahr" ? "einsteiger" : "fortgeschritten";
+}
+
 /* ── Defaults ──────────────────────────────────────────────────────── */
 
 export interface AthleteDefaults {

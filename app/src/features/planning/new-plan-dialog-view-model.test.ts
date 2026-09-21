@@ -4,6 +4,7 @@ import {
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   LEVEL_DESCRIPTIONS,
+  levelFromExperience,
   MODEL_DESCRIPTIONS,
   mondayOf,
   parseDescriptionSegments,
@@ -35,6 +36,16 @@ describe("suggestModel", () => {
 
   it("Fortgeschritten, Standardfall -> pyramidal", () => {
     expect(suggestModel({ level: "fortgeschritten", weeks: 12, weeklyHours: 8 })).toBe("pyramidal");
+  });
+});
+
+describe("levelFromExperience", () => {
+  it("unter1Jahr -> einsteiger", () => {
+    expect(levelFromExperience("unter1Jahr")).toBe("einsteiger");
+  });
+
+  it("ueber1Jahr -> fortgeschritten", () => {
+    expect(levelFromExperience("ueber1Jahr")).toBe("fortgeschritten");
   });
 });
 
