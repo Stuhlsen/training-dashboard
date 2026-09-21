@@ -5,7 +5,7 @@
 
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { generatePlan, emptyHistory, levelDefaultWeekTss, qualityWeekdays } from "./plan-generator.js";
+import { generatePlan, emptyHistory, levelDefaultWeekTss, qualityWeekdays, weekLoadContext } from "./plan-generator.js";
 import { CONFLICT_THRESHOLDS, TYPE_DEFAULT_TSS } from "./plan-config.js";
 import { addDaysISO } from "./format.js";
 import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
@@ -79,6 +79,15 @@ test("qualityWeekdays: erster Tag + spätester mit ≥ 2 Tagen Abstand", () => {
   assert.deepEqual(qualityWeekdays([5]), [5]);
 });
 
+test("weekLoadContext: Einordnung relativ zur CTL zu Wochenbeginn", () => {
+  assert.equal(weekLoadContext(0, null), null);
+  assert.equal(weekLoadContext(400, 0), null);
+  assert.equal(weekLoadContext(300, 60), "deutlich unter deiner aktuellen Belastung"); // Ratio 5
+  assert.equal(weekLoadContext(420, 60), "passt zu deiner aktuellen Belastung"); // Ratio 7
+  assert.equal(weekLoadContext(450, 60), "über deiner aktuellen Belastung"); // Ratio 7.5
+  assert.equal(weekLoadContext(500, 60), "deutlich über deiner aktuellen Belastung"); // Ratio ≈ 8.3
+});
+
 test("event-Modus: Wochenzahl, 2 Taper-Wochen, letzte Woche Phase 'Taper'", () => {
   const plan = generatePlan(eventInput());
   assert.equal(plan.weeks.length, 12);
@@ -122,6 +131,15 @@ test("CTL-Rampe: kein Bau-Woche überschreitet ctlRampWarn; ctlRampInfo nur mit 
       assert.ok(hasWarn, `Woche ${w.index + 1}: Rampe ${ramp.toFixed(2)} ohne Warnung`);
     }
   }
+});
+
+test("generatePlan: jede Woche trägt eine loadContext-Einordnung, Erholungswoche 'deutlich unter'", () => {
+  const plan = generatePlan(eventInput());
+  for (const w of plan.weeks) {
+    assert.ok(typeof w.loadContext === "string", `Woche ${w.index + 1}: loadContext ${w.loadContext}`);
+  }
+  const rec = plan.weeks.find((w) => w.isRecovery);
+  assert.equal(rec.loadContext, "deutlich unter deiner aktuellen Belastung");
 });
 
 test("Erholungswoche: targetTss ≤ 60 % des Mittels der Nachbarwochen", () => {

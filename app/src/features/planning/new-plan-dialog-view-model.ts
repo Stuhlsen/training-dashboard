@@ -59,6 +59,9 @@ export interface GeneratedWeek {
   phase: string;
   targetTss: number;
   isRecovery: boolean;
+  /** Einordnung "wie passt targetTss zur Fitness (CTL) zu Wochenbeginn" —
+   *  null für eingefrorene Wochen der Restberechnung ohne bekannte CTL. */
+  loadContext: string | null;
   cards: GeneratedCard[];
 }
 

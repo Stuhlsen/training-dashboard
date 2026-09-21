@@ -33,6 +33,7 @@ function week(over: Partial<GeneratedPlan["weeks"][number]> = {}): GeneratedPlan
     phase: "Sweet Spot",
     targetTss: 320,
     isRecovery: false,
+    loadContext: "passt zu deiner aktuellen Belastung",
     cards: [card()],
     ...over,
   };

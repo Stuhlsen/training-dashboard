@@ -110,6 +110,8 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {string} phase
  * @property {number} targetTss
  * @property {boolean} isRecovery
+ * @property {string|null} loadContext  Einordnung "wie passt targetTss zur CTL zu
+ *   Wochenbeginn" (weekLoadContext()) — null für eingefrorene Wochen ohne bekannte CTL
  * @property {PlanCardDraft[]} cards
  */
 
@@ -337,17 +339,21 @@ function buildWeekTss(ctl, prevBuildTss, isFirst, week0Tss, rampTarget, weeklyGr
  * @param {number} a.week0Tss @param {number} a.startCtl
  * @param {number} a.rampTarget @param {number} a.weeklyGrowth
  * @param {"event"|"open"} a.mode
- * @returns {{ targetTss: number[], raceTsb: number|null, warnings: string[] }}
+ * @returns {{ targetTss: number[], ctlByWeek: number[], raceTsb: number|null, warnings: string[] }}
  */
 function computeWeekTargets(a) {
   const { totalWeeks, taperWeeks, phases, isRecovery, week0Tss, startCtl, rampTarget, weeklyGrowth, mode } = a;
   const warnings = [];
   const targetTss = new Array(totalWeeks).fill(0);
+  // CTL VOR der jeweiligen Woche (für weekLoadContext() — wie passt die
+  // geplante Wochenbelastung zur Fitness zu Wochenbeginn).
+  const ctlByWeek = new Array(totalWeeks).fill(0);
   let ctl = startCtl;
   let atl = startCtl;
   let prevBuildTss = week0Tss;
 
   for (let i = 0; i < totalWeeks; i++) {
+    ctlByWeek[i] = ctl;
     let tss;
     if (isRecovery[i]) {
       // −45 % der vorangehenden Bau-Woche, zusätzlich hart auf
@@ -377,7 +383,26 @@ function computeWeekTargets(a) {
       );
     }
   }
-  return { targetTss, raceTsb, warnings };
+  return { targetTss, ctlByWeek, raceTsb, warnings };
+}
+
+/** Wortkategorie: wie die geplante Wochen-TSS zur Fitness (CTL) zu Wochenbeginn
+ *  passt. Referenzpunkt "Steady State" ≈ 7 × CTL (eine Woche gleichmäßig
+ *  verteilter TSS in Höhe der CTL hält die CTL stabil, s. `pmcAfterWeek()`)
+ *  und die bestehende harte Deckel-Schwelle
+ *  `CONFLICT_THRESHOLDS.weekTssCeilingFactor` (dieselbe, die `buildWeekTss()`s
+ *  `ceilCap` begrenzt) — keine neue Schwelle, nur eine grobe Textkategorie
+ *  für die Vorschau.
+ *  @param {number} weekTss @param {number|null} ctlAtWeekStart @returns {string|null} */
+export function weekLoadContext(weekTss, ctlAtWeekStart) {
+  if (ctlAtWeekStart == null || ctlAtWeekStart <= 0) return null;
+  const ceiling = CONFLICT_THRESHOLDS.weekTssCeilingFactor; // 8
+  const steady = ceiling - 1; // 7 — Steady-State-Referenzpunkt
+  const ratio = weekTss / ctlAtWeekStart;
+  if (ratio < steady - 1) return "deutlich unter deiner aktuellen Belastung";
+  if (ratio < steady + 0.5) return "passt zu deiner aktuellen Belastung";
+  if (ratio < ceiling) return "über deiner aktuellen Belastung";
+  return "deutlich über deiner aktuellen Belastung";
 }
 
 /** Grobe %FTP-/Dauer-Schätzung je Intensitätsklasse für "feste Tage" — bewusst
@@ -660,6 +685,10 @@ export function generatePlan(input) {
   const startCtl = history.currentCtl != null ? history.currentCtl : week0Tss / 7;
   /** @type {(i: number) => number} */
   let targetTssAt;
+  // CTL vor Wochenbeginn (für weekLoadContext()) — für eingefrorene Wochen der
+  // Restberechnung (i < cut, keine Karten) nicht bekannt, dort bleibt sie null.
+  /** @type {(i: number) => number|null} */
+  let ctlAt;
   if (base) {
     const tailPhases = seq.phases.slice(cut);
     const tailRamp = computeWeekTargets({
@@ -676,6 +705,7 @@ export function generatePlan(input) {
     warnings.push(...tailRamp.warnings.map((w) => `Restberechnung: ${w}`));
     targetTssAt = (i) =>
       i < cut ? Math.round(base[i].targetTss ?? 0) : tailRamp.targetTss[i - cut];
+    ctlAt = (i) => (i < cut ? null : tailRamp.ctlByWeek[i - cut]);
   } else {
     const ramp = computeWeekTargets({
       totalWeeks,
@@ -690,6 +720,7 @@ export function generatePlan(input) {
     });
     warnings.push(...ramp.warnings);
     targetTssAt = (i) => ramp.targetTss[i];
+    ctlAt = (i) => ramp.ctlByWeek[i];
   }
 
   // 5)–7) Testwochen + Karten je Woche ------------------------------
@@ -726,6 +757,7 @@ export function generatePlan(input) {
         phase,
         targetTss,
         isRecovery: seq.isRecovery[i],
+        loadContext: null,
         cards: [],
       };
     }
@@ -743,6 +775,7 @@ export function generatePlan(input) {
       phase,
       targetTss,
       isRecovery: seq.isRecovery[i],
+      loadContext: weekLoadContext(targetTss, ctlAt(i)),
       cards: buildWeekCards({
         weekStart,
         isoWeek,
