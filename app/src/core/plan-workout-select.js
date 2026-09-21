@@ -140,6 +140,13 @@ const PHASE_PLAN = Object.freeze({
 });
 const DEFAULT_PHASE_KEY = "Sweet Spot";
 
+/** Fokus "berg": Formate mit ausdauernder Kraft, bei denen 2 Ladder-Stufen
+ *  weitergesprungen wird — längere/härtere Einzelintervalle statt der
+ *  normalen Wochenprogression (Kletter-Repeats 95-110% FTP, 8-30 min am
+ *  Stück). Bewusst NICHT vo2-long/vo2-short/sprint-accessory (kurze,
+ *  hochintensive Formate — kein Kletter-Charakter). */
+const BERG_FOCUS_FORMATS = new Set(["sweetspot-long", "threshold-long", "over-under"]);
+
 /**
  * Formatzeile auflösen: die durchgereichte DB-Zeile, wenn sie
  * `axes.explicitSteps` trägt, sonst die eingebaute Startbelegung.
@@ -364,7 +371,10 @@ function sprintAccessoryStep(step) {
  * @param {string} args.phase  "Grundlage" | "Sweet Spot" | "Schwelle" | "VO2max" | "Taper"
  * @param {number} [args.weekIndexInPhase]  0-basiert, treibt die Ladder-Stufe
  * @param {1|2} [args.qualitySlot]  erster / zweiter Qualitätstag der Woche
- * @param {"allgemein"|"berg"|"langstrecke"|"crit"} [args.focus]
+ * @param {"allgemein"|"berg"|"langstrecke"|"crit"} [args.focus]  "berg" springt
+ *   bei sweetspot-long/threshold-long/over-under 2 Ladder-Stufen weiter
+ *   (längere/härtere Einzelintervalle statt der normalen Wochenprogression);
+ *   "crit" hängt am zweiten Qualitätstag einen Sprint-Block an
  * @param {"einsteiger"|"fortgeschritten"} [args.level]
  * @param {number|null} [args.currentFtp]
  * @param {number} [args.targetDurationMin]
@@ -389,7 +399,11 @@ export function selectWorkout({
   const format = resolveFormat(formatId, formats) || BUILTIN_FORMATS["sweetspot-long"];
   const steps = resolveSteps(format);
   const stepNo = ladderStep(weekIndexInPhase, level, plan.maxStep, steps.length);
-  const step = stepAt(format, stepNo) || steps[steps.length - 1] || {};
+  const effectiveStepNo =
+    focus === "berg" && BERG_FOCUS_FORMATS.has(formatId)
+      ? ladderStep(weekIndexInPhase + 2, level, plan.maxStep, steps.length)
+      : stepNo;
+  const step = stepAt(format, effectiveStepNo) || steps[steps.length - 1] || {};
 
   let built;
   if (formatId === "over-under") built = overUnderWorkout({ step, zone: plan.zone, currentFtp, targetDurationMin });

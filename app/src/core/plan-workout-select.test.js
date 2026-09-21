@@ -9,6 +9,7 @@ import assert from "node:assert/strict";
 import { selectWorkout, ladderStep, BUILTIN_FORMATS } from "./plan-workout-select.js";
 import { validateWorkoutStructure } from "./workout-validator.js";
 import { canExportZwo } from "./zwo-export.js";
+import { resolveSteps, stepAt } from "./ladder.js";
 
 const PHASES = ["Grundlage", "Sweet Spot", "Schwelle", "VO2max", "Taper"];
 
@@ -104,6 +105,69 @@ test("Fokus crit hängt an Slot 2 einen Sprint-Block an, an Slot 1 nicht", () =>
 
   const plain = selectWorkout(args({ phase: "VO2max", qualitySlot: 2, focus: "allgemein" }));
   assert.ok(slot2.durationMin > plain.durationMin, "crit-Variante nicht länger");
+});
+
+/* ── Fahrplan 15: Fokus "berg" (2 Ladder-Stufen weiter bei Ausdauerkraft-Formaten) ── */
+
+test("Fokus 'berg' springt bei sweetspot-long/threshold-long/over-under 2 Ladder-Stufen weiter", () => {
+  const cases = [
+    { phase: "Sweet Spot", qualitySlot: 1, formatId: "sweetspot-long" },
+    { phase: "Schwelle", qualitySlot: 1, formatId: "threshold-long" },
+    { phase: "Schwelle", qualitySlot: 2, formatId: "over-under" },
+  ];
+  for (const { phase, qualitySlot, formatId } of cases) {
+    const weekIndexInPhase = 1;
+    const format = BUILTIN_FORMATS[formatId];
+    const steps = resolveSteps(format);
+    const normalStep = stepAt(format, ladderStep(weekIndexInPhase, "fortgeschritten", undefined, steps.length));
+    const bergStep = stepAt(format, ladderStep(weekIndexInPhase + 2, "fortgeschritten", undefined, steps.length));
+    assert.notEqual(bergStep.id, normalStep.id, `${formatId}: Referenzstufe unverändert — Testaufbau prüfen`);
+
+    const normal = selectWorkout(args({ phase, qualitySlot, weekIndexInPhase, focus: "allgemein" }));
+    const berg = selectWorkout(args({ phase, qualitySlot, weekIndexInPhase, focus: "berg" }));
+
+    const expectedPct =
+      formatId === "over-under"
+        ? [bergStep.pctFtpUnder, bergStep.pctFtpOver]
+        : [bergStep.pctFtp - 2, bergStep.pctFtp + 2];
+    assert.deepEqual(berg.workout.pct, expectedPct, formatId);
+    assert.notDeepEqual(berg.workout.pct, normal.workout.pct, `${formatId}: berg ändert nichts`);
+  }
+});
+
+test("Fokus 'berg' in der VO2max-Phase verändert nichts (vo2-long/vo2-short zählen nicht als Ausdauerkraft)", () => {
+  for (const qualitySlot of [1, 2]) {
+    const normal = selectWorkout(args({ phase: "VO2max", qualitySlot, weekIndexInPhase: 1, focus: "allgemein" }));
+    const berg = selectWorkout(args({ phase: "VO2max", qualitySlot, weekIndexInPhase: 1, focus: "berg" }));
+    assert.deepEqual(berg, normal, `slot${qualitySlot}`);
+  }
+});
+
+test("Fokus 'berg' deckelt weiterhin korrekt (Format-Stufenzahl, Phasen-maxStep, Einsteiger-4)", () => {
+  // Format-Stufenzahl (sweetspot-long: 8 Stufen) — auch mit +2-Sprung nicht überschritten.
+  const capped = selectWorkout(args({ phase: "Sweet Spot", qualitySlot: 1, weekIndexInPhase: 20, focus: "berg" }));
+  assert.equal(capped.name, "Sweet Spot 2×30"); // S8, letzte Stufe
+
+  // Phasen-maxStep (Grundlage: 2).
+  const grundlage = selectWorkout(args({ phase: "Grundlage", qualitySlot: 1, weekIndexInPhase: 20, focus: "berg" }));
+  assert.equal(grundlage.name, "Sweet Spot 3×12"); // S2, Grundlage-Deckel
+
+  // Einsteiger-Deckel (4), auch mit +2-Sprung nicht überschritten.
+  const einsteiger = selectWorkout(
+    args({ phase: "Schwelle", qualitySlot: 1, weekIndexInPhase: 3, level: "einsteiger", focus: "berg" })
+  );
+  assert.equal(einsteiger.name, "Schwelle 3×12"); // T4, Einsteiger-Deckel
+});
+
+test("Fokus 'crit' an einem Berg-Format-Slot (over-under) nutzt weiterhin das originale stepNo für den Sprint-Zusatz", () => {
+  const weekIndexInPhase = 2;
+  const withoutCrit = selectWorkout(args({ phase: "Schwelle", qualitySlot: 2, weekIndexInPhase, focus: "allgemein" }));
+  const withCrit = selectWorkout(args({ phase: "Schwelle", qualitySlot: 2, weekIndexInPhase, focus: "crit" }));
+  // Der Sprint-Zusatz kommt dazu, aber die Over-Under-Stufe selbst bleibt exakt
+  // wie bei focus:"allgemein" (kein Berg-Sprung, weil focus !== "berg").
+  assert.deepEqual(withCrit.workout.pct, withoutCrit.workout.pct);
+  assert.ok(withCrit.workoutStructure.steps.some((s) => s.kind === "accessory"));
+  assert.ok(withCrit.name.endsWith(" + Sprint"));
 });
 
 test("durchgereichte session_formats-Zeile schlägt die eingebaute Startbelegung", () => {

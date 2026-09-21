@@ -4308,13 +4308,13 @@
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
-            "tssPlanned": 102,
-            "durationMin": 145,
+            "tssPlanned": 96,
+            "durationMin": 137,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 145,
+              "duration": 137,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -4333,7 +4333,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 8700,
+                  "duration_s": 8220,
                   "target_pct_ftp": 65
                 }
               ]
@@ -4347,13 +4347,13 @@
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
-            "tssPlanned": 102,
-            "durationMin": 145,
+            "tssPlanned": 96,
+            "durationMin": 137,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 145,
+              "duration": 137,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -4372,7 +4372,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 8700,
+                  "duration_s": 8220,
                   "target_pct_ftp": 65
                 }
               ]
@@ -4386,13 +4386,13 @@
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
-            "tssPlanned": 179,
-            "durationMin": 254,
+            "tssPlanned": 177,
+            "durationMin": 252,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 254,
+              "duration": 252,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -4411,7 +4411,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 15240,
+                  "duration_s": 15120,
                   "target_pct_ftp": 65
                 }
               ]
@@ -4421,17 +4421,17 @@
           },
           {
             "date": "2026-09-13",
-            "name": "Sweet Spot 3×10",
+            "name": "Sweet Spot 3×12",
             "typ": "Sweet Spot",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
-            "tssPlanned": 62,
-            "durationMin": 75,
+            "tssPlanned": 70,
+            "durationMin": 81,
             "km": null,
             "workout": {
               "warmup": 25,
               "intervals": 3,
-              "duration": 10,
+              "duration": 12,
               "rest": 5,
               "cooldown": 10,
               "zone": "SS",
@@ -4443,7 +4443,7 @@
                 241,
                 252
               ],
-              "label": "Sweet Spot 3×10"
+              "label": "Sweet Spot 3×12"
             },
             "workoutStructure": {
               "version": 1,
@@ -4457,7 +4457,7 @@
                   "kind": "set",
                   "reps": 3,
                   "work": {
-                    "duration_s": 600,
+                    "duration_s": 720,
                     "target_pct_ftp": 88
                   },
                   "recovery": {
@@ -5419,29 +5419,29 @@
         "cards": [
           {
             "date": "2026-10-12",
-            "name": "Sweet Spot 3×10",
+            "name": "Sweet Spot 3×15",
             "typ": "Sweet Spot",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
-            "tssPlanned": 62,
-            "durationMin": 75,
+            "tssPlanned": 84,
+            "durationMin": 90,
             "km": null,
             "workout": {
               "warmup": 25,
               "intervals": 3,
-              "duration": 10,
+              "duration": 15,
               "rest": 5,
               "cooldown": 10,
               "zone": "SS",
               "pct": [
-                86,
-                90
+                88,
+                92
               ],
               "watts": [
-                241,
-                252
+                246,
+                258
               ],
-              "label": "Sweet Spot 3×10"
+              "label": "Sweet Spot 3×15"
             },
             "workoutStructure": {
               "version": 1,
@@ -5455,8 +5455,8 @@
                   "kind": "set",
                   "reps": 3,
                   "work": {
-                    "duration_s": 600,
-                    "target_pct_ftp": 88
+                    "duration_s": 900,
+                    "target_pct_ftp": 90
                   },
                   "recovery": {
                     "duration_s": 300,
@@ -5475,17 +5475,17 @@
           },
           {
             "date": "2026-10-14",
-            "name": "Z2 Lang",
-            "typ": "Z2 Lang",
+            "name": "Z2 Dauer",
+            "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
-            "tssPlanned": 119,
-            "durationMin": 169,
+            "tssPlanned": 101,
+            "durationMin": 144,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 169,
+              "duration": 144,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -5497,14 +5497,14 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 Dauer"
             },
             "workoutStructure": {
               "version": 1,
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 10140,
+                  "duration_s": 8640,
                   "target_pct_ftp": 65
                 }
               ]
@@ -5514,17 +5514,17 @@
           },
           {
             "date": "2026-10-16",
-            "name": "Z2 Lang",
-            "typ": "Z2 Lang",
+            "name": "Z2 Dauer",
+            "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
-            "tssPlanned": 119,
-            "durationMin": 169,
+            "tssPlanned": 101,
+            "durationMin": 144,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 169,
+              "duration": 144,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -5536,14 +5536,14 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 Dauer"
             },
             "workoutStructure": {
               "version": 1,
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 10140,
+                  "duration_s": 8640,
                   "target_pct_ftp": 65
                 }
               ]
@@ -5557,13 +5557,13 @@
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
-            "tssPlanned": 209,
-            "durationMin": 297,
+            "tssPlanned": 202,
+            "durationMin": 287,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 297,
+              "duration": 287,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -5582,7 +5582,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 17820,
+                  "duration_s": 17220,
                   "target_pct_ftp": 65
                 }
               ]
@@ -5592,29 +5592,29 @@
           },
           {
             "date": "2026-10-18",
-            "name": "Sweet Spot 3×10",
+            "name": "Sweet Spot 3×15",
             "typ": "Sweet Spot",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
-            "tssPlanned": 62,
-            "durationMin": 75,
+            "tssPlanned": 84,
+            "durationMin": 90,
             "km": null,
             "workout": {
               "warmup": 25,
               "intervals": 3,
-              "duration": 10,
+              "duration": 15,
               "rest": 5,
               "cooldown": 10,
               "zone": "SS",
               "pct": [
-                86,
-                90
+                88,
+                92
               ],
               "watts": [
-                241,
-                252
+                246,
+                258
               ],
-              "label": "Sweet Spot 3×10"
+              "label": "Sweet Spot 3×15"
             },
             "workoutStructure": {
               "version": 1,
@@ -5628,8 +5628,8 @@
                   "kind": "set",
                   "reps": 3,
                   "work": {
-                    "duration_s": 600,
-                    "target_pct_ftp": 88
+                    "duration_s": 900,
+                    "target_pct_ftp": 90
                   },
                   "recovery": {
                     "duration_s": 300,
@@ -5660,29 +5660,29 @@
         "cards": [
           {
             "date": "2026-10-19",
-            "name": "Sweet Spot 3×12",
+            "name": "Sweet Spot 4×12",
             "typ": "Sweet Spot",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 70,
-            "durationMin": 81,
+            "tssPlanned": 90,
+            "durationMin": 98,
             "km": null,
             "workout": {
               "warmup": 25,
-              "intervals": 3,
+              "intervals": 4,
               "duration": 12,
               "rest": 5,
               "cooldown": 10,
               "zone": "SS",
               "pct": [
-                86,
-                90
+                88,
+                92
               ],
               "watts": [
-                241,
-                252
+                246,
+                258
               ],
-              "label": "Sweet Spot 3×12"
+              "label": "Sweet Spot 4×12"
             },
             "workoutStructure": {
               "version": 1,
@@ -5694,10 +5694,10 @@
                 },
                 {
                   "kind": "set",
-                  "reps": 3,
+                  "reps": 4,
                   "work": {
                     "duration_s": 720,
-                    "target_pct_ftp": 88
+                    "target_pct_ftp": 90
                   },
                   "recovery": {
                     "duration_s": 300,
@@ -5716,17 +5716,17 @@
           },
           {
             "date": "2026-10-21",
-            "name": "Z2 Lang",
-            "typ": "Z2 Lang",
+            "name": "Z2 Dauer",
+            "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 115,
-            "durationMin": 163,
+            "tssPlanned": 101,
+            "durationMin": 143,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 163,
+              "duration": 143,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -5738,14 +5738,14 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 Dauer"
             },
             "workoutStructure": {
               "version": 1,
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 9780,
+                  "duration_s": 8580,
                   "target_pct_ftp": 65
                 }
               ]
@@ -5755,17 +5755,17 @@
           },
           {
             "date": "2026-10-23",
-            "name": "Z2 Lang",
-            "typ": "Z2 Lang",
+            "name": "Z2 Dauer",
+            "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 115,
-            "durationMin": 163,
+            "tssPlanned": 101,
+            "durationMin": 143,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 163,
+              "duration": 143,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -5777,14 +5777,14 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 Dauer"
             },
             "workoutStructure": {
               "version": 1,
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 9780,
+                  "duration_s": 8580,
                   "target_pct_ftp": 65
                 }
               ]
@@ -5798,13 +5798,13 @@
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 212,
-            "durationMin": 301,
+            "tssPlanned": 201,
+            "durationMin": 285,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 301,
+              "duration": 285,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -5823,7 +5823,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 18060,
+                  "duration_s": 17100,
                   "target_pct_ftp": 65
                 }
               ]
@@ -5833,29 +5833,29 @@
           },
           {
             "date": "2026-10-25",
-            "name": "Sweet Spot 3×12",
+            "name": "Sweet Spot 4×12",
             "typ": "Sweet Spot",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 70,
-            "durationMin": 81,
+            "tssPlanned": 90,
+            "durationMin": 98,
             "km": null,
             "workout": {
               "warmup": 25,
-              "intervals": 3,
+              "intervals": 4,
               "duration": 12,
               "rest": 5,
               "cooldown": 10,
               "zone": "SS",
               "pct": [
-                86,
-                90
+                88,
+                92
               ],
               "watts": [
-                241,
-                252
+                246,
+                258
               ],
-              "label": "Sweet Spot 3×12"
+              "label": "Sweet Spot 4×12"
             },
             "workoutStructure": {
               "version": 1,
@@ -5867,10 +5867,10 @@
                 },
                 {
                   "kind": "set",
-                  "reps": 3,
+                  "reps": 4,
                   "work": {
                     "duration_s": 720,
-                    "target_pct_ftp": 88
+                    "target_pct_ftp": 90
                   },
                   "recovery": {
                     "duration_s": 300,
@@ -6083,29 +6083,29 @@
         "cards": [
           {
             "date": "2026-11-02",
-            "name": "Sweet Spot 3×15",
+            "name": "Sweet Spot 2×20",
             "typ": "Sweet Spot",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
-            "tssPlanned": 84,
-            "durationMin": 90,
+            "tssPlanned": 78,
+            "durationMin": 83,
             "km": null,
             "workout": {
               "warmup": 25,
-              "intervals": 3,
-              "duration": 15,
-              "rest": 5,
+              "intervals": 2,
+              "duration": 20,
+              "rest": 8,
               "cooldown": 10,
               "zone": "SS",
               "pct": [
-                88,
-                92
+                89,
+                93
               ],
               "watts": [
-                246,
-                258
+                249,
+                260
               ],
-              "label": "Sweet Spot 3×15"
+              "label": "Sweet Spot 2×20"
             },
             "workoutStructure": {
               "version": 1,
@@ -6117,13 +6117,13 @@
                 },
                 {
                   "kind": "set",
-                  "reps": 3,
+                  "reps": 2,
                   "work": {
-                    "duration_s": 900,
-                    "target_pct_ftp": 90
+                    "duration_s": 1200,
+                    "target_pct_ftp": 91
                   },
                   "recovery": {
-                    "duration_s": 300,
+                    "duration_s": 480,
                     "target_pct_ftp": 50
                   }
                 },
@@ -6139,95 +6139,17 @@
           },
           {
             "date": "2026-11-04",
-            "name": "Z2 Dauer",
-            "typ": "Z2 Dauer",
-            "phase": "Sweet Spot",
-            "isoWeek": "2026-KW45",
-            "tssPlanned": 104,
-            "durationMin": 147,
-            "km": null,
-            "workout": {
-              "warmup": 0,
-              "intervals": 1,
-              "duration": 147,
-              "rest": 0,
-              "cooldown": 0,
-              "zone": "Z2",
-              "pct": [
-                60,
-                70
-              ],
-              "watts": [
-                168,
-                196
-              ],
-              "label": "Z2 Dauer"
-            },
-            "workoutStructure": {
-              "version": 1,
-              "steps": [
-                {
-                  "kind": "steady",
-                  "duration_s": 8820,
-                  "target_pct_ftp": 65
-                }
-              ]
-            },
-            "isQuality": false,
-            "isTest": false
-          },
-          {
-            "date": "2026-11-06",
-            "name": "Z2 Dauer",
-            "typ": "Z2 Dauer",
-            "phase": "Sweet Spot",
-            "isoWeek": "2026-KW45",
-            "tssPlanned": 104,
-            "durationMin": 147,
-            "km": null,
-            "workout": {
-              "warmup": 0,
-              "intervals": 1,
-              "duration": 147,
-              "rest": 0,
-              "cooldown": 0,
-              "zone": "Z2",
-              "pct": [
-                60,
-                70
-              ],
-              "watts": [
-                168,
-                196
-              ],
-              "label": "Z2 Dauer"
-            },
-            "workoutStructure": {
-              "version": 1,
-              "steps": [
-                {
-                  "kind": "steady",
-                  "duration_s": 8820,
-                  "target_pct_ftp": 65
-                }
-              ]
-            },
-            "isQuality": false,
-            "isTest": false
-          },
-          {
-            "date": "2026-11-07",
             "name": "Z2 Lang",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
-            "tssPlanned": 206,
-            "durationMin": 293,
+            "tssPlanned": 110,
+            "durationMin": 156,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 293,
+              "duration": 156,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -6246,7 +6168,85 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 17580,
+                  "duration_s": 9360,
+                  "target_pct_ftp": 65
+                }
+              ]
+            },
+            "isQuality": false,
+            "isTest": false
+          },
+          {
+            "date": "2026-11-06",
+            "name": "Z2 Lang",
+            "typ": "Z2 Lang",
+            "phase": "Sweet Spot",
+            "isoWeek": "2026-KW45",
+            "tssPlanned": 110,
+            "durationMin": 156,
+            "km": null,
+            "workout": {
+              "warmup": 0,
+              "intervals": 1,
+              "duration": 156,
+              "rest": 0,
+              "cooldown": 0,
+              "zone": "Z2",
+              "pct": [
+                60,
+                70
+              ],
+              "watts": [
+                168,
+                196
+              ],
+              "label": "Z2 Lang"
+            },
+            "workoutStructure": {
+              "version": 1,
+              "steps": [
+                {
+                  "kind": "steady",
+                  "duration_s": 9360,
+                  "target_pct_ftp": 65
+                }
+              ]
+            },
+            "isQuality": false,
+            "isTest": false
+          },
+          {
+            "date": "2026-11-07",
+            "name": "Z2 Lang",
+            "typ": "Z2 Lang",
+            "phase": "Sweet Spot",
+            "isoWeek": "2026-KW45",
+            "tssPlanned": 206,
+            "durationMin": 292,
+            "km": null,
+            "workout": {
+              "warmup": 0,
+              "intervals": 1,
+              "duration": 292,
+              "rest": 0,
+              "cooldown": 0,
+              "zone": "Z2",
+              "pct": [
+                60,
+                70
+              ],
+              "watts": [
+                168,
+                196
+              ],
+              "label": "Z2 Lang"
+            },
+            "workoutStructure": {
+              "version": 1,
+              "steps": [
+                {
+                  "kind": "steady",
+                  "duration_s": 17520,
                   "target_pct_ftp": 65
                 }
               ]
@@ -6256,29 +6256,29 @@
           },
           {
             "date": "2026-11-08",
-            "name": "Sweet Spot 3×15",
+            "name": "Sweet Spot 2×20",
             "typ": "Sweet Spot",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
-            "tssPlanned": 84,
-            "durationMin": 90,
+            "tssPlanned": 78,
+            "durationMin": 83,
             "km": null,
             "workout": {
               "warmup": 25,
-              "intervals": 3,
-              "duration": 15,
-              "rest": 5,
+              "intervals": 2,
+              "duration": 20,
+              "rest": 8,
               "cooldown": 10,
               "zone": "SS",
               "pct": [
-                88,
-                92
+                89,
+                93
               ],
               "watts": [
-                246,
-                258
+                249,
+                260
               ],
-              "label": "Sweet Spot 3×15"
+              "label": "Sweet Spot 2×20"
             },
             "workoutStructure": {
               "version": 1,
@@ -6290,13 +6290,13 @@
                 },
                 {
                   "kind": "set",
-                  "reps": 3,
+                  "reps": 2,
                   "work": {
-                    "duration_s": 900,
-                    "target_pct_ftp": 90
+                    "duration_s": 1200,
+                    "target_pct_ftp": 91
                   },
                   "recovery": {
-                    "duration_s": 300,
+                    "duration_s": 480,
                     "target_pct_ftp": 50
                   }
                 },
@@ -6324,29 +6324,29 @@
         "cards": [
           {
             "date": "2026-11-09",
-            "name": "Schwelle 3×8",
+            "name": "Schwelle 2×15",
             "typ": "Schwelle",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
-            "tssPlanned": 62,
-            "durationMin": 69,
+            "tssPlanned": 71,
+            "durationMin": 70,
             "km": null,
             "workout": {
               "warmup": 25,
-              "intervals": 3,
-              "duration": 8,
+              "intervals": 2,
+              "duration": 15,
               "rest": 5,
               "cooldown": 10,
               "zone": "THR",
               "pct": [
-                96,
-                100
+                98,
+                102
               ],
               "watts": [
-                269,
-                280
+                274,
+                286
               ],
-              "label": "Schwelle 3×8"
+              "label": "Schwelle 2×15"
             },
             "workoutStructure": {
               "version": 1,
@@ -6358,10 +6358,10 @@
                 },
                 {
                   "kind": "set",
-                  "reps": 3,
+                  "reps": 2,
                   "work": {
-                    "duration_s": 480,
-                    "target_pct_ftp": 98
+                    "duration_s": 900,
+                    "target_pct_ftp": 100
                   },
                   "recovery": {
                     "duration_s": 300,
@@ -6384,13 +6384,13 @@
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
-            "tssPlanned": 125,
-            "durationMin": 178,
+            "tssPlanned": 121,
+            "durationMin": 172,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 178,
+              "duration": 172,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -6409,7 +6409,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 10680,
+                  "duration_s": 10320,
                   "target_pct_ftp": 65
                 }
               ]
@@ -6423,13 +6423,13 @@
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
-            "tssPlanned": 125,
-            "durationMin": 178,
+            "tssPlanned": 121,
+            "durationMin": 172,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 178,
+              "duration": 172,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -6448,7 +6448,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 10680,
+                  "duration_s": 10320,
                   "target_pct_ftp": 65
                 }
               ]
@@ -6462,13 +6462,13 @@
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
-            "tssPlanned": 207,
-            "durationMin": 294,
+            "tssPlanned": 202,
+            "durationMin": 287,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 294,
+              "duration": 287,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -6487,7 +6487,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 17640,
+                  "duration_s": 17220,
                   "target_pct_ftp": 65
                 }
               ]
@@ -6501,253 +6501,6 @@
             "typ": "Schwelle",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
-            "tssPlanned": 63,
-            "durationMin": 68,
-            "km": null,
-            "workout": {
-              "warmup": 25,
-              "intervals": 3,
-              "duration": 9,
-              "rest": 3,
-              "cooldown": 10,
-              "zone": "THR",
-              "pct": [
-                88,
-                103
-              ],
-              "watts": [
-                246,
-                288
-              ],
-              "label": "Over-Under 3×9"
-            },
-            "workoutStructure": {
-              "version": 1,
-              "steps": [
-                {
-                  "kind": "warmup",
-                  "duration_s": 1500,
-                  "target_pct_ftp": 55
-                },
-                {
-                  "kind": "alternating",
-                  "reps": 3,
-                  "cycles": 3,
-                  "duration_s": 540,
-                  "over": {
-                    "duration_s": 120,
-                    "target_pct_ftp": 103
-                  },
-                  "under": {
-                    "duration_s": 60,
-                    "target_pct_ftp": 88
-                  },
-                  "recovery": {
-                    "duration_s": 180,
-                    "target_pct_ftp": 50
-                  }
-                },
-                {
-                  "kind": "cooldown",
-                  "duration_s": 600,
-                  "target_pct_ftp": 50
-                }
-              ]
-            },
-            "isQuality": true,
-            "isTest": false
-          }
-        ]
-      },
-      {
-        "index": 10,
-        "isoWeek": "2026-KW47",
-        "start": "2026-11-16",
-        "end": "2026-11-22",
-        "phase": "Schwelle",
-        "targetTss": 588,
-        "isRecovery": false,
-        "loadContext": "über deiner aktuellen Belastung",
-        "cards": [
-          {
-            "date": "2026-11-16",
-            "name": "Schwelle 4×8",
-            "typ": "Schwelle",
-            "phase": "Schwelle",
-            "isoWeek": "2026-KW47",
-            "tssPlanned": 77,
-            "durationMin": 82,
-            "km": null,
-            "workout": {
-              "warmup": 25,
-              "intervals": 4,
-              "duration": 8,
-              "rest": 5,
-              "cooldown": 10,
-              "zone": "THR",
-              "pct": [
-                96,
-                100
-              ],
-              "watts": [
-                269,
-                280
-              ],
-              "label": "Schwelle 4×8"
-            },
-            "workoutStructure": {
-              "version": 1,
-              "steps": [
-                {
-                  "kind": "warmup",
-                  "duration_s": 1500,
-                  "target_pct_ftp": 55
-                },
-                {
-                  "kind": "set",
-                  "reps": 4,
-                  "work": {
-                    "duration_s": 480,
-                    "target_pct_ftp": 98
-                  },
-                  "recovery": {
-                    "duration_s": 300,
-                    "target_pct_ftp": 50
-                  }
-                },
-                {
-                  "kind": "cooldown",
-                  "duration_s": 600,
-                  "target_pct_ftp": 50
-                }
-              ]
-            },
-            "isQuality": true,
-            "isTest": false
-          },
-          {
-            "date": "2026-11-18",
-            "name": "Z2 Lang",
-            "typ": "Z2 Lang",
-            "phase": "Schwelle",
-            "isoWeek": "2026-KW47",
-            "tssPlanned": 119,
-            "durationMin": 169,
-            "km": null,
-            "workout": {
-              "warmup": 0,
-              "intervals": 1,
-              "duration": 169,
-              "rest": 0,
-              "cooldown": 0,
-              "zone": "Z2",
-              "pct": [
-                60,
-                70
-              ],
-              "watts": [
-                168,
-                196
-              ],
-              "label": "Z2 Lang"
-            },
-            "workoutStructure": {
-              "version": 1,
-              "steps": [
-                {
-                  "kind": "steady",
-                  "duration_s": 10140,
-                  "target_pct_ftp": 65
-                }
-              ]
-            },
-            "isQuality": false,
-            "isTest": false
-          },
-          {
-            "date": "2026-11-20",
-            "name": "Z2 Lang",
-            "typ": "Z2 Lang",
-            "phase": "Schwelle",
-            "isoWeek": "2026-KW47",
-            "tssPlanned": 119,
-            "durationMin": 169,
-            "km": null,
-            "workout": {
-              "warmup": 0,
-              "intervals": 1,
-              "duration": 169,
-              "rest": 0,
-              "cooldown": 0,
-              "zone": "Z2",
-              "pct": [
-                60,
-                70
-              ],
-              "watts": [
-                168,
-                196
-              ],
-              "label": "Z2 Lang"
-            },
-            "workoutStructure": {
-              "version": 1,
-              "steps": [
-                {
-                  "kind": "steady",
-                  "duration_s": 10140,
-                  "target_pct_ftp": 65
-                }
-              ]
-            },
-            "isQuality": false,
-            "isTest": false
-          },
-          {
-            "date": "2026-11-21",
-            "name": "Z2 Lang",
-            "typ": "Z2 Lang",
-            "phase": "Schwelle",
-            "isoWeek": "2026-KW47",
-            "tssPlanned": 208,
-            "durationMin": 295,
-            "km": null,
-            "workout": {
-              "warmup": 0,
-              "intervals": 1,
-              "duration": 295,
-              "rest": 0,
-              "cooldown": 0,
-              "zone": "Z2",
-              "pct": [
-                60,
-                70
-              ],
-              "watts": [
-                168,
-                196
-              ],
-              "label": "Z2 Lang"
-            },
-            "workoutStructure": {
-              "version": 1,
-              "steps": [
-                {
-                  "kind": "steady",
-                  "duration_s": 17700,
-                  "target_pct_ftp": 65
-                }
-              ]
-            },
-            "isQuality": false,
-            "isTest": false
-          },
-          {
-            "date": "2026-11-22",
-            "name": "Over-Under 3×9",
-            "typ": "Schwelle",
-            "phase": "Schwelle",
-            "isoWeek": "2026-KW47",
             "tssPlanned": 64,
             "durationMin": 68,
             "km": null,
@@ -6788,6 +6541,253 @@
                   "under": {
                     "duration_s": 60,
                     "target_pct_ftp": 88
+                  },
+                  "recovery": {
+                    "duration_s": 180,
+                    "target_pct_ftp": 50
+                  }
+                },
+                {
+                  "kind": "cooldown",
+                  "duration_s": 600,
+                  "target_pct_ftp": 50
+                }
+              ]
+            },
+            "isQuality": true,
+            "isTest": false
+          }
+        ]
+      },
+      {
+        "index": 10,
+        "isoWeek": "2026-KW47",
+        "start": "2026-11-16",
+        "end": "2026-11-22",
+        "phase": "Schwelle",
+        "targetTss": 588,
+        "isRecovery": false,
+        "loadContext": "über deiner aktuellen Belastung",
+        "cards": [
+          {
+            "date": "2026-11-16",
+            "name": "Schwelle 3×12",
+            "typ": "Schwelle",
+            "phase": "Schwelle",
+            "isoWeek": "2026-KW47",
+            "tssPlanned": 83,
+            "durationMin": 81,
+            "km": null,
+            "workout": {
+              "warmup": 25,
+              "intervals": 3,
+              "duration": 12,
+              "rest": 5,
+              "cooldown": 10,
+              "zone": "THR",
+              "pct": [
+                98,
+                102
+              ],
+              "watts": [
+                274,
+                286
+              ],
+              "label": "Schwelle 3×12"
+            },
+            "workoutStructure": {
+              "version": 1,
+              "steps": [
+                {
+                  "kind": "warmup",
+                  "duration_s": 1500,
+                  "target_pct_ftp": 55
+                },
+                {
+                  "kind": "set",
+                  "reps": 3,
+                  "work": {
+                    "duration_s": 720,
+                    "target_pct_ftp": 100
+                  },
+                  "recovery": {
+                    "duration_s": 300,
+                    "target_pct_ftp": 50
+                  }
+                },
+                {
+                  "kind": "cooldown",
+                  "duration_s": 600,
+                  "target_pct_ftp": 50
+                }
+              ]
+            },
+            "isQuality": true,
+            "isTest": false
+          },
+          {
+            "date": "2026-11-18",
+            "name": "Z2 Lang",
+            "typ": "Z2 Lang",
+            "phase": "Schwelle",
+            "isoWeek": "2026-KW47",
+            "tssPlanned": 118,
+            "durationMin": 167,
+            "km": null,
+            "workout": {
+              "warmup": 0,
+              "intervals": 1,
+              "duration": 167,
+              "rest": 0,
+              "cooldown": 0,
+              "zone": "Z2",
+              "pct": [
+                60,
+                70
+              ],
+              "watts": [
+                168,
+                196
+              ],
+              "label": "Z2 Lang"
+            },
+            "workoutStructure": {
+              "version": 1,
+              "steps": [
+                {
+                  "kind": "steady",
+                  "duration_s": 10020,
+                  "target_pct_ftp": 65
+                }
+              ]
+            },
+            "isQuality": false,
+            "isTest": false
+          },
+          {
+            "date": "2026-11-20",
+            "name": "Z2 Lang",
+            "typ": "Z2 Lang",
+            "phase": "Schwelle",
+            "isoWeek": "2026-KW47",
+            "tssPlanned": 118,
+            "durationMin": 167,
+            "km": null,
+            "workout": {
+              "warmup": 0,
+              "intervals": 1,
+              "duration": 167,
+              "rest": 0,
+              "cooldown": 0,
+              "zone": "Z2",
+              "pct": [
+                60,
+                70
+              ],
+              "watts": [
+                168,
+                196
+              ],
+              "label": "Z2 Lang"
+            },
+            "workoutStructure": {
+              "version": 1,
+              "steps": [
+                {
+                  "kind": "steady",
+                  "duration_s": 10020,
+                  "target_pct_ftp": 65
+                }
+              ]
+            },
+            "isQuality": false,
+            "isTest": false
+          },
+          {
+            "date": "2026-11-21",
+            "name": "Z2 Lang",
+            "typ": "Z2 Lang",
+            "phase": "Schwelle",
+            "isoWeek": "2026-KW47",
+            "tssPlanned": 205,
+            "durationMin": 291,
+            "km": null,
+            "workout": {
+              "warmup": 0,
+              "intervals": 1,
+              "duration": 291,
+              "rest": 0,
+              "cooldown": 0,
+              "zone": "Z2",
+              "pct": [
+                60,
+                70
+              ],
+              "watts": [
+                168,
+                196
+              ],
+              "label": "Z2 Lang"
+            },
+            "workoutStructure": {
+              "version": 1,
+              "steps": [
+                {
+                  "kind": "steady",
+                  "duration_s": 17460,
+                  "target_pct_ftp": 65
+                }
+              ]
+            },
+            "isQuality": false,
+            "isTest": false
+          },
+          {
+            "date": "2026-11-22",
+            "name": "Over-Under 3×9",
+            "typ": "Schwelle",
+            "phase": "Schwelle",
+            "isoWeek": "2026-KW47",
+            "tssPlanned": 65,
+            "durationMin": 68,
+            "km": null,
+            "workout": {
+              "warmup": 25,
+              "intervals": 3,
+              "duration": 9,
+              "rest": 3,
+              "cooldown": 10,
+              "zone": "THR",
+              "pct": [
+                90,
+                107
+              ],
+              "watts": [
+                252,
+                300
+              ],
+              "label": "Over-Under 3×9"
+            },
+            "workoutStructure": {
+              "version": 1,
+              "steps": [
+                {
+                  "kind": "warmup",
+                  "duration_s": 1500,
+                  "target_pct_ftp": 55
+                },
+                {
+                  "kind": "alternating",
+                  "reps": 3,
+                  "cycles": 3,
+                  "duration_s": 540,
+                  "over": {
+                    "duration_s": 120,
+                    "target_pct_ftp": 107
+                  },
+                  "under": {
+                    "duration_s": 60,
+                    "target_pct_ftp": 90
                   },
                   "recovery": {
                     "duration_s": 180,
@@ -9794,13 +9794,13 @@
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
-            "tssPlanned": 45,
-            "durationMin": 64,
+            "tssPlanned": 32,
+            "durationMin": 45,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 64,
+              "duration": 45,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -9819,7 +9819,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 3840,
+                  "duration_s": 2700,
                   "target_pct_ftp": 65
                 }
               ]
@@ -9833,13 +9833,13 @@
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
-            "tssPlanned": 45,
-            "durationMin": 64,
+            "tssPlanned": 32,
+            "durationMin": 45,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 64,
+              "duration": 45,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -9858,7 +9858,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 3840,
+                  "duration_s": 2700,
                   "target_pct_ftp": 65
                 }
               ]
@@ -9872,13 +9872,13 @@
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
-            "tssPlanned": 45,
-            "durationMin": 64,
+            "tssPlanned": 32,
+            "durationMin": 45,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 64,
+              "duration": 45,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -9897,7 +9897,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 3840,
+                  "duration_s": 2700,
                   "target_pct_ftp": 65
                 }
               ]
@@ -9911,13 +9911,13 @@
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
-            "tssPlanned": 136,
-            "durationMin": 193,
+            "tssPlanned": 177,
+            "durationMin": 251,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 193,
+              "duration": 251,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -9936,7 +9936,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 11580,
+                  "duration_s": 15060,
                   "target_pct_ftp": 65
                 }
               ]
@@ -10378,13 +10378,13 @@
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 45,
-            "durationMin": 64,
+            "tssPlanned": 32,
+            "durationMin": 45,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 64,
+              "duration": 45,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -10403,7 +10403,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 3840,
+                  "duration_s": 2700,
                   "target_pct_ftp": 65
                 }
               ]
@@ -10417,13 +10417,13 @@
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 45,
-            "durationMin": 64,
+            "tssPlanned": 32,
+            "durationMin": 45,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 64,
+              "duration": 45,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -10442,7 +10442,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 3840,
+                  "duration_s": 2700,
                   "target_pct_ftp": 65
                 }
               ]
@@ -10456,13 +10456,13 @@
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 45,
-            "durationMin": 64,
+            "tssPlanned": 32,
+            "durationMin": 45,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 64,
+              "duration": 45,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -10481,7 +10481,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 3840,
+                  "duration_s": 2700,
                   "target_pct_ftp": 65
                 }
               ]
@@ -10495,13 +10495,13 @@
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
-            "tssPlanned": 136,
-            "durationMin": 193,
+            "tssPlanned": 177,
+            "durationMin": 251,
             "km": null,
             "workout": {
               "warmup": 0,
               "intervals": 1,
-              "duration": 193,
+              "duration": 251,
               "rest": 0,
               "cooldown": 0,
               "zone": "Z2",
@@ -10520,7 +10520,7 @@
               "steps": [
                 {
                   "kind": "steady",
-                  "duration_s": 11580,
+                  "duration_s": 15060,
                   "target_pct_ftp": 65
                 }
               ]

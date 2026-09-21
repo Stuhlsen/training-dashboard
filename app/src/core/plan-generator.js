@@ -260,16 +260,22 @@ function makeCard(date, phase, isoWeek, b, { isQuality = false, isTest = false }
 
 /** Lockere Restminuten auf die lockeren Tage verteilen: langer Tag (Wochenende,
  *  falls Trainingstag) bekommt den halben Rest (45–210 min), der Rest wird
- *  gleichmäßig verteilt. Jeder Tag mindestens 30 min.
+ *  gleichmäßig verteilt. Jeder Tag mindestens 30 min. Fokus "langstrecke"
+ *  gibt dem langen Tag einen größeren Anteil (0.65 statt 0.5) und eine
+ *  höhere Obergrenze (300 statt 210 min) — alle anderen Fokus-Werte
+ *  verhalten sich exakt wie bisher.
  *  @param {number[]} looseDays @param {number} looseMin
+ *  @param {"allgemein"|"berg"|"langstrecke"|"crit"} [focus]
  *  @returns {Record<number, number>} */
-function distributeLooseMinutes(looseDays, looseMin) {
+export function distributeLooseMinutes(looseDays, looseMin, focus = "allgemein") {
   /** @type {Record<number, number>} */
   const perDay = {};
   if (!looseDays.length) return perDay;
   const longDay = looseDays.find((wd) => wd >= 6);
+  const longShare = focus === "langstrecke" ? 0.65 : 0.5;
+  const longCap = focus === "langstrecke" ? 300 : 210;
   if (longDay != null && looseDays.length > 1) {
-    perDay[longDay] = clamp(looseMin * 0.5, 45, 210);
+    perDay[longDay] = clamp(looseMin * longShare, 45, longCap);
     const rest = (looseMin - perDay[longDay]) / (looseDays.length - 1);
     for (const wd of looseDays) if (wd !== longDay) perDay[wd] = Math.max(30, rest);
   } else {
@@ -538,7 +544,7 @@ function buildWeekCards(c) {
 
   const weeklyMin = weeklyHours * 60 * (isRecovery ? 0.7 : 1);
   const looseMin = Math.max(0, weeklyMin - cards.reduce((s, x) => s + x.durationMin, 0));
-  const perDayMin = distributeLooseMinutes(looseDays, looseMin);
+  const perDayMin = distributeLooseMinutes(looseDays, looseMin, focus);
   const looseCards = looseDays.map((wd) =>
     makeCard(
       addDaysISO(weekStart, wd - 1),

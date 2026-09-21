@@ -5,7 +5,14 @@
 
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { generatePlan, emptyHistory, levelDefaultWeekTss, qualityWeekdays, weekLoadContext } from "./plan-generator.js";
+import {
+  generatePlan,
+  emptyHistory,
+  levelDefaultWeekTss,
+  qualityWeekdays,
+  weekLoadContext,
+  distributeLooseMinutes,
+} from "./plan-generator.js";
 import { CONFLICT_THRESHOLDS, TYPE_DEFAULT_TSS } from "./plan-config.js";
 import { addDaysISO } from "./format.js";
 import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
@@ -86,6 +93,55 @@ test("weekLoadContext: Einordnung relativ zur CTL zu Wochenbeginn", () => {
   assert.equal(weekLoadContext(420, 60), "passt zu deiner aktuellen Belastung"); // Ratio 7
   assert.equal(weekLoadContext(450, 60), "über deiner aktuellen Belastung"); // Ratio 7.5
   assert.equal(weekLoadContext(500, 60), "deutlich über deiner aktuellen Belastung"); // Ratio ≈ 8.3
+});
+
+/* ── Fahrplan 15: Fokus "langstrecke" (langer Tag bekommt mehr Anteil/Deckel) ── */
+
+test("distributeLooseMinutes: 'langstrecke' → 0.65/300, 'allgemein' unverändert 0.5/210, 'crit'/'berg' wie 'allgemein'", () => {
+  const looseDays = [3, 7]; // ein normaler Tag + der lange (Wochenende)
+  const looseMin = 400;
+
+  const allgemein = distributeLooseMinutes(looseDays, looseMin, "allgemein");
+  assert.equal(allgemein[7], 200); // 400*0.5=200, unter dem 210er-Deckel
+
+  const lang = distributeLooseMinutes(looseDays, looseMin, "langstrecke");
+  assert.equal(lang[7], 260); // 400*0.65=260, unter dem 300er-Deckel
+
+  for (const focus of ["crit", "berg"]) {
+    assert.deepEqual(distributeLooseMinutes(looseDays, looseMin, focus), allgemein, focus);
+  }
+
+  // Deckel greift tatsächlich: sehr viele lockere Minuten.
+  const looseMinHigh = 1000;
+  assert.equal(distributeLooseMinutes(looseDays, looseMinHigh, "allgemein")[7], 210);
+  assert.equal(distributeLooseMinutes(looseDays, looseMinHigh, "langstrecke")[7], 300);
+
+  // Kein Default-Parameter-Bruch: alter Aufruf ohne focus verhält sich wie "allgemein".
+  assert.deepEqual(distributeLooseMinutes(looseDays, looseMin), allgemein);
+});
+
+test("generatePlan({focus:'langstrecke'}): der lange Loose-Tag hat längere durationMin als bei focus:'allgemein'", () => {
+  // openInput()s trainingWeekdays [2,4,6,7] machen Sa(6)/So(7) zu den
+  // Qualitätstagen (qualityWeekdays) — der "lange Tag" wird in
+  // distributeLooseMinutes() erst in Erholungswochen sichtbar, wo ALLE Tage
+  // (auch der sonst qualitative) locker sind (dayIsQuality gated auf
+  // !isRecovery). longDay = looseDays.find(wd >= 6) → dort Sa (6).
+  const allgemein = generatePlan(openInput({ focus: "allgemein" }));
+  const lang = generatePlan(openInput({ focus: "langstrecke" }));
+
+  const longLooseMin = (plan) => {
+    for (const w of plan.weeks) {
+      if (!w.isRecovery) continue;
+      const longCard = w.cards.find((c) => new Date(c.date + "T00:00:00Z").getUTCDay() === 6 && !c.isQuality);
+      if (longCard) return longCard.durationMin;
+    }
+    return null;
+  };
+
+  const a = longLooseMin(allgemein);
+  const l = longLooseMin(lang);
+  assert.ok(a != null && l != null, `keine lockere Sa-Karte in einer Erholungswoche gefunden (a=${a}, l=${l})`);
+  assert.ok(l > a, `langstrecke (${l}) nicht länger als allgemein (${a})`);
 });
 
 test("event-Modus: Wochenzahl, 2 Taper-Wochen, letzte Woche Phase 'Taper'", () => {
