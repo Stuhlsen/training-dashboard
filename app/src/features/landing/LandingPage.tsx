@@ -23,9 +23,20 @@ import "./landing.css";
 
 type Ride = import("../../types.js").Ride;
 
+import { buildWeekGrid, type GridWeekRow } from "../planning/week-grid-view-model";
+import { computePlanningDerivedSets } from "../planning/planning-view-model";
+import { WeekGrid } from "../planning/WeekGrid";
+import { PlanPreview } from "../planning/PlanPreview";
+import { generatePlan, emptyHistory } from "../../core/plan-generator.js";
+import type { PlanCard } from "../../api/types";
+
 const demo = loadDemoDataset();
 const activityCount = demo.rides.length;
 const sportCount = new Set(demo.rides.map((ride) => ride.sport)).size;
+
+/** Letztes Datum im Demo-Zeitraum — als todayIso, damit die Karten nicht
+ *  als "verpasst" markiert werden. */
+const DEMO_TODAY = "2026-03-01";
 
 /** Grobe ISO-Kalenderwoche fürs Hero-Kennzahlenfeld (Montag = Wochenstart). */
 function isoWeekKey(dateStr: string): string {
@@ -63,6 +74,63 @@ function toRide(entry: (typeof demo.rides)[number]): Ride {
 
 const demoRides: Ride[] = demo.rides.map(toRide);
 const loadRows: LoadRow[] = buildLoadRows(demoRides, { multiSport: true, ridesAll: demoRides });
+
+/** Demo-eigener Generator-Input — kein echter Athlet, keine echte Historie.
+ *  Startet an einem Montag, 12 Wochen pyramidal, Ziel-FTP 210 W, 8 h/Woche,
+ *  4 Trainingstage (Di/Do/Sa/So). */
+const DEMO_GENERATED_PLAN = generatePlan({
+  sport: "ride",
+  startDate: "2026-03-02",
+  mode: "open",
+  weeks: 12,
+  trainingWeekdays: [2, 4, 6, 7],
+  fixedDays: [],
+  weeklyHours: 8,
+  currentFtp: 190,
+  ftpMeasuredDate: "2026-03-01",
+  ftpTarget: 210,
+  indoorShare: 0.4,
+  focus: "allgemein",
+  level: "fortgeschritten",
+  model: "pyramidal",
+  history: emptyHistory(),
+});
+
+/** Demo-PlanCard → PlanCard (app/src/api/types.ts). Die Demo hat keine
+ *  IDs, Workouts oder DB-Felder — die Pflichtfelder bekommen Dummy-Werte. */
+function toPlanCard(entry: (typeof demo.planCards)[number]): PlanCard {
+  return {
+    id: `demo-${entry.date}-${entry.label}`,
+    date: entry.date,
+    sortOrder: 0,
+    name: entry.label,
+    typ: entry.type === "rest" ? "Ruhetag" : entry.type === "workout" ? "Intervall" : entry.type === "endurance" ? "Ausdauer" : "Erholung",
+    km: null,
+    durationMin: entry.durationMinutes,
+    tssPlanned: null,
+    week: null,
+    phase: null,
+    sport: entry.sport === "rest" ? "ride" : (entry.sport as "ride" | "run" | "swim" | undefined),
+    details: null,
+    workout: null,
+    workoutStructure: null,
+    pushedExternalId: null,
+    createdAt: "",
+    updatedAt: "",
+  };
+}
+
+const demoPlanCards: PlanCard[] = demo.planCards.map(toPlanCard);
+const demoDerivedSets = computePlanningDerivedSets(demoPlanCards, demoRides);
+const demoWeekGridRows: GridWeekRow[] = buildWeekGrid(
+  demoPlanCards,
+  demoRides,
+  DEMO_TODAY,
+  undefined, // athleteId — kein echter Athlet, keine Ruhetag-Ableitung
+  demoDerivedSets,
+  0,         // offsetWeeks
+  [],        // weekModel
+);
 
 function buildDemoLanes(rows: LoadRow[]): TraceLaneConfig[] {
   const lane = (vals: (number | null)[]) => ({ kind: "line" as const, vals });
@@ -139,13 +207,104 @@ function LoadStoryBlock() {
   );
 }
 
+function PlanningStoryBlock() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "start center"],
+  });
+  // Side-Einschub laut Fahrplan V4 (translateX)
+  const x = useTransform(scrollYProgress, [0, 0.4, 1], [80, 0, 0]);
+
+  return (
+    <motion.div
+      ref={sectionRef}
+      className="landing-story__block"
+      style={reducedMotion ? undefined : { x, opacity: useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.8]) }}
+    >
+      <div className="landing-story__heading">
+        <p className="landing-eyebrow">02 · Trainingsplanung</p>
+        <h2>Woche für Woche sehen, was ansteht.</h2>
+        <p>
+          Mo–So-Raster mit Plan- und Ist-Einheiten, Verschieben per Drag &amp; Drop und Erholungswochen,
+          die das Modell automatisch einplant. So behältst du den Überblick, ohne jede Karte einzeln zu ordnen.
+        </p>
+      </div>
+      <div className="landing-story__chart landing-story__chart--weekgrid">
+        <WeekGrid
+          weeks={demoWeekGridRows}
+          today={DEMO_TODAY}
+          canEdit={false}
+          trainerProposalMode={false}
+          renderDetail={undefined}
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+function GeneratorStoryBlock() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "start center"],
+  });
+  // scale+opacity laut Fahrplan V4
+  const scale = useTransform(scrollYProgress, [0, 0.4, 1], [0.8, 1, 1]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.8]);
+
+  return (
+    <motion.div
+      ref={sectionRef}
+      className="landing-story__block"
+      style={reducedMotion ? undefined : { scale, opacity }}
+    >
+      <div className="landing-story__heading">
+        <p className="landing-eyebrow">03 · Plan-Generator</p>
+        <h2>Dein nächster Plan in Sekunden.</h2>
+        <p>
+          Wähle Belastungsstufe, Modell und Fokus — aus deiner Historie berechnet der Generator
+          einen pyramidalen oder linearen Plan, der zu dir passt. Ohne Tabellenkalkulation.
+        </p>
+      </div>
+      <div className="landing-story__chart">
+        <PlanPreview
+          plan={DEMO_GENERATED_PLAN}
+          sport="ride"
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+/** Jeder Block bekommt eine EIGENE `.landing-story`-Sektion (eigener
+ *  155vh-Scrollbereich + eigenes Sticky) statt eines gemeinsamen Containers
+ *  für alle drei — sonst stapeln sich die Blöcke nur nacheinander, statt dass
+ *  jeder beim Scrollen sein eigenes "Kapitel" bekommt und den vorherigen
+ *  ablöst (Live-Check nach Etappe 4, 22.09.2026). Die Scroll-Animation selbst
+ *  hängt ohnehin am jeweiligen Block-Ref, nicht am Wrapper — das Aufteilen
+ *  ändert an der Animationslogik in den Blöcken nichts. */
 function ScrollStory() {
   return (
-    <section id="demo-preview" className="landing-story" aria-label="Demo-Einblick">
-      <div className="landing-story__sticky">
-        <LoadStoryBlock />
-      </div>
-    </section>
+    <>
+      <section id="demo-preview" className="landing-story" aria-label="Demo-Einblick: Form &amp; Belastung">
+        <div className="landing-story__sticky">
+          <LoadStoryBlock />
+        </div>
+      </section>
+      <section className="landing-story" aria-label="Demo-Einblick: Trainingsplanung">
+        <div className="landing-story__sticky">
+          <PlanningStoryBlock />
+        </div>
+      </section>
+      <section className="landing-story" aria-label="Demo-Einblick: Plan-Generator">
+        <div className="landing-story__sticky">
+          <GeneratorStoryBlock />
+        </div>
+      </section>
+    </>
   );
 }
 

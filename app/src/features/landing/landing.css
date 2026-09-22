@@ -246,6 +246,14 @@
   overflow: hidden;
 }
 
+/** WeekGrid im Planungsstory-Block: breiter als das Standard-Chart,
+ *  damit das Mo–So-Raster nicht quetscht. */
+.landing-story__chart--weekgrid {
+  min-width: 0;
+  overflow: auto;
+  max-height: min(70vh, 560px);
+}
+
 @media (max-width: 768px), (prefers-reduced-motion: reduce) {
   .landing-story {
     min-height: auto;
