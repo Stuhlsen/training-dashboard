@@ -1,8 +1,11 @@
 /* ============================================================
    FEATURES/SETTINGS/SPORTSSECTION.TSX — Self-Service
-   Sportart-Auswahl (Fahrplan 21, E3). Checkboxen Rad/Lauf/Schwimm,
-   mindestens eine Sportart muss aktiv bleiben (letzte verbleibende
-   Checkbox lässt sich nicht abwählen, kein Fehler-Dialog nötig).
+   Sportart-Auswahl (Fahrplan 21, E3). Checkboxen Rad/Lauf/Schwimm.
+   KEINE Sportart ist Pflicht — auch Rad nicht (Q4). Die einzige
+   Regel: die jeweils letzte *verbleibende* aktive Sportart (welche
+   auch immer das gerade ist) lässt sich nicht abwählen, damit nie
+   eine leere Auswahl entsteht. Kein Fehler-Dialog nötig, der Schalter
+   bleibt einfach stehen.
 
    Schreibt direkt auf `profiles.sports` (nicht `profiles_own` — Q5
    verlangt Trainer-Sichtbarkeit über `profiles_visible`). Der Wert
@@ -39,7 +42,7 @@ export function SportsSection({ onComplete }: SportsSectionProps) {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const selected = profile.data?.sports ?? ["ride"];
+  const selected = profile.data?.sports ?? [];
   const isOnlyOneLeft = selected.length <= 1;
 
   async function toggle(sport: Sport, next: boolean) {
