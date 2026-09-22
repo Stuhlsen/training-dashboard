@@ -1,23 +1,26 @@
 /* ============================================================
-   FEATURES/ONBOARDING/ONBOARDINGWIZARD.TSX — Fahrplan 17 E7
+   FEATURES/ONBOARDING/ONBOARDINGWIZARD.TSX — Fahrplan 17 E7 (+ Fahrplan 21 E4)
 
    Reine Orchestrierung, welcher Schritt gerade dran ist (V5-Contract) —
    keine eigene Feldlogik. Die Schritte sind entweder der neue
    SetPasswordStep (Pflicht) oder bestehende Settings-Sektionen, hier nur
-   als Wizard-Schritt eingebunden (ProfileBasicsSection/IntervalsSection,
-   beide laufen unverändert auch standalone in Settings).
+   als Wizard-Schritt eingebunden (SportsSection/ProfileBasicsSection/
+   IntervalsSection, alle laufen unverändert auch standalone in Settings).
 
-   Reihenfolge: Passwort (Pflicht) → Profil-Basisdaten (überspringbar) →
-   intervals.icu-Key (überspringbar) → onFinished().
+   Reihenfolge (Fahrplan 21 E4): Passwort (Pflicht) →
+   Sportarten (Pflicht, neu, Q8 nicht überspringbar) →
+   Profil-Basisdaten (überspringbar) → intervals.icu-Key (überspringbar)
+   → onFinished().
    ============================================================ */
 
 import { useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { SetPasswordStep } from "./SetPasswordStep";
+import { SportsSection } from "../settings/SportsSection";
 import { ProfileBasicsSection } from "../settings/ProfileBasicsSection";
 import { IntervalsSection } from "../settings/IntervalsSection";
 
-type Step = "password" | "profile" | "intervals";
+type Step = "password" | "sports" | "profile" | "intervals";
 
 export interface OnboardingWizardProps {
   onFinished: () => void;
@@ -50,7 +53,10 @@ export function OnboardingWizard({ onFinished }: OnboardingWizardProps) {
           Willkommen
         </h1>
 
-        {step === "password" && <SetPasswordStep onComplete={() => setStep("profile")} />}
+        {step === "password" && <SetPasswordStep onComplete={() => setStep("sports")} />}
+        {step === "sports" && (
+          <SportsSection onComplete={() => setStep("profile")} />
+        )}
         {step === "profile" && (
           <ProfileBasicsSection onComplete={() => setStep("intervals")} onSkip={() => setStep("intervals")} />
         )}
