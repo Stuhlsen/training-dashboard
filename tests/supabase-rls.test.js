@@ -1721,4 +1721,109 @@ if (!HAS_CREDS) {
       assert.equal(trainerIterRead.data?.length, 1, "Trainer sollte die Iteration seines Athleten lesen können");
     }
   );
+
+  // --- 11. profiles.sports (0052, Fahrplan 21 E1) -------------------------
+  // Verifikation der neuen Migration 0052_athlete_sports.sql: Sportarten als
+  // self-service Spalte auf profiles, sichtbar für Athlet + Trainer über
+  // profiles_visible (Q5). PATCH ohne RLS-Match liefert HTTP 200 mit 0
+  // Zeilen (s. Kommentar beim session_formats-Admin-Test oben) — Negativ-
+  // asserts deshalb data.length prüfen, nicht .ok. Der Originalwert von
+  // Athlet 1 wird gesichert und nach dem Test wiederhergestellt, damit kein
+  // echter Athlet seinen konfigurierten Wert verliert.
+
+  let originalSports; // undefined = noch nicht geprüft, null = Spalte/Zeile fehlte
+
+  test("profiles.sports: Athlet 1 trägt heute einen gültigen Wert (Golden-Master-Basis)", async () => {
+    const read = await rest(
+      "GET",
+      `profiles_visible?id=eq.${athlete.userId}&select=id,sports`,
+      { token: athlete.token }
+    );
+    assert.equal(read.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(read.data)}`);
+    originalSports = read.data?.[0]?.sports ?? null;
+    assert.ok(
+      Array.isArray(originalSports) && originalSports.length >= 1,
+      "Athlet 1 sollte mindestens eine Sportart tragen"
+    );
+    assert.ok(
+      originalSports.every((s) => ["ride", "run", "swim"].includes(s)),
+      `Unerwartete Sportart in ${JSON.stringify(originalSports)}`
+    );
+  });
+
+  test("profiles.sports: Athlet kann eigene Sportarten ändern (self-service)", async () => {
+    const patch = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { sports: ["ride", "run"] },
+      prefer: "return=minimal",
+    });
+    assert.equal(patch.ok, true, `sports-Update fehlgeschlagen: ${JSON.stringify(patch.data)}`);
+    cleanupTasks.push(async () => {
+      const restore = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: { sports: originalSports ?? ["ride"] },
+        prefer: "return=minimal",
+      });
+      if (!restore.ok) {
+        throw new Error(`profiles.sports nicht zurückgesetzt (Original: ${JSON.stringify(originalSports)})`);
+      }
+    });
+
+    const readBack = await rest(
+      "GET",
+      `profiles_visible?id=eq.${athlete.userId}&select=sports`,
+      { token: athlete.token }
+    );
+    assert.equal(readBack.ok, true);
+    assert.deepEqual(readBack.data?.[0]?.sports, ["ride", "run"], "sports-Update wurde nicht übernommen");
+  });
+
+  test("profiles.sports: leeres Array scheitert am Check-Constraint", async () => {
+    const bad = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { sports: [] },
+      prefer: "return=minimal",
+    });
+    // PATCH mit Constraint-Verletzung wirft einen echten Fehler (kein
+    // stilles 0-Rows), .ok ist hier verlässlich.
+    assert.equal(bad.ok, false, "Leere sports-Liste hätte am Check-Constraint scheitern müssen");
+  });
+
+  test("profiles.sports: ungültige Sportart scheitert am Check-Constraint", async () => {
+    const bad = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { sports: ["strength"] },
+      prefer: "return=minimal",
+    });
+    assert.equal(bad.ok, false, "sports=['strength'] hätte am Check-Constraint scheitern müssen");
+  });
+
+  test("profiles.sports: Athlet darf fremde Sportarten nicht ändern (RLS)", async () => {
+    const patch = await rest("PATCH", `profiles?id=eq.${trainer.userId}`, {
+      token: athlete.token,
+      body: { sports: ["ride", "swim"] },
+      prefer: "return=minimal",
+    });
+    // RLS blendet die fremde Zeile aus -> 0 betroffene Zeilen (HTTP 200).
+    assert.equal(
+      patch.data?.length ?? 0,
+      0,
+      "Athlet konnte fremde sports ändern — RLS greift nicht"
+    );
+  });
+
+  test("profiles.sports: Trainer sieht die Sportarten seines gecoachten Athleten (profiles_visible)", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerView = await rest(
+      "GET",
+      `profiles_visible?id=eq.${athlete.userId}&select=id,sports`,
+      { token: trainer.token }
+    );
+    assert.equal(trainerView.ok, true);
+    assert.equal(trainerView.data.length, 1, "profiles_visible führt die Zeile des gecoachten Athleten nicht");
+    assert.ok(
+      Array.isArray(trainerView.data[0].sports) && trainerView.data[0].sports.length >= 1,
+      "Trainer sieht keine gültigen Sportarten des gecoachten Athleten"
+    );
+  });
 }
