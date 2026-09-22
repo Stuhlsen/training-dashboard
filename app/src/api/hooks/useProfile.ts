@@ -18,6 +18,7 @@ import {
   updateLadderProgressionEnabled as updateLadderProgressionEnabledAdapter,
   updateUnitsPreference as updateUnitsPreferenceAdapter,
   updatePlanOffsetWeeks as updatePlanOffsetWeeksAdapter,
+  updateSports as updateSportsAdapter,
   updateBirthdate as updateBirthdateAdapter,
   updateRestingHr as updateRestingHrAdapter,
   updateGender as updateGenderAdapter,
@@ -193,6 +194,40 @@ export function useUpdatePlanOffsetWeeks() {
 
   const update = useCallback(
     async (value: number): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+/** Migration 0052 (Fahrplan 21, E3) — self-service Sportart-Auswahl. Cache-Merge
+ *  wie useUpdateUnitsPreference() gegen den `profile`-Cache, damit der
+ *  Sport-Umschalter/Multi-Sport-Ansicht sofort den neuen Wert zeigt. Der
+ *  Aufrufer (SportsSection) verhindert, dass weniger als eine Sportart
+ *  abgewählt wird; trifft das DB-Check dennoch (leer/ungültig), trägt der
+ *  Result-Fehler die Server-Meldung in die UI. */
+export function useUpdateSports() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profile(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: readonly Profile["sports"][number][]) => {
+      unwrap(await updateSportsAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<Profile>(key, (profile) =>
+        profile ? { ...profile, sports: value } : profile,
+      );
+    },
+  });
+
+  const update = useCallback(
+    async (value: readonly Profile["sports"][number][]): Promise<Result> => {
       if (!userId) return { ok: false, error: NOT_LOGGED_IN };
       return catchResult(() => mutation.mutateAsync(value));
     },

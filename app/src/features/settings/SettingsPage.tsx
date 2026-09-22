@@ -23,6 +23,7 @@ import { NotificationsSection } from "./NotificationsSection";
 import { GoalsSection } from "./GoalsSection";
 import { TrainingTargetsSection } from "./TrainingTargetsSection";
 import { ProfileBasicsSection } from "./ProfileBasicsSection";
+import { SportsSection } from "./SportsSection";
 import { BikesSection } from "./BikesSection";
 import { CheckinSection } from "./CheckinSection";
 import { FtpHistorySection } from "./FtpHistorySection";
@@ -177,6 +178,7 @@ export function SettingsPage() {
                   <h2 style={CARD_HEADING_STYLE}>Training</h2>
                   <GoalsSection />
                   <ProfileBasicsSection />
+                  <SportsSection />
                   <TrainingTargetsSection />
                   <BikesSection />
                   <CheckinSection />

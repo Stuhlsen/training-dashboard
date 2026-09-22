@@ -16,6 +16,7 @@ let updateGenderCalls: Array<{ userId: string; value: ProfileOwnFields["gender"]
 let updateHeightCmCalls: Array<{ userId: string; value: number | null }> = [];
 let updateWeightKgCalls: Array<{ userId: string; value: number | null }> = [];
 let updateHrMaxCalls: Array<{ userId: string; value: number | null }> = [];
+let updateSportsCalls: Array<{ userId: string; value: readonly string[] }> = [];
 
 vi.mock("../supabase/profiles", () => ({
   updateDisplayName: async (userId: string, name: string) => {
@@ -62,6 +63,10 @@ vi.mock("../supabase/profiles", () => ({
     updateHrMaxCalls.push({ userId, value });
     return { ok: true };
   },
+  updateSports: async (userId: string, value: readonly string[]) => {
+    updateSportsCalls.push({ userId, value });
+    return { ok: true };
+  },
 }));
 
 let updatePasswordCalls: Array<{ currentPassword: string; newPassword: string }> = [];
@@ -88,6 +93,7 @@ const {
   useUpdateHeightCm,
   useUpdateWeightKg,
   useUpdateHrMax,
+  useUpdateSports,
 } = await import("./useProfile");
 
 beforeEach(() => {
@@ -372,6 +378,30 @@ describe("Profil-Basisdaten-Update-Hooks (Migration 0039, Fahrplan 17 E3)", () =
     });
     expect(updateHrMaxCalls).toEqual([{ userId: "user-1", value: 201 }]);
     expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).hrMax).toBe(201);
+  });
+
+  it("useUpdateSports schreibt das Sportarten-Array und aktualisiert den profile-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile", "user-1"], {
+      id: "user-1",
+      displayName: "Stuhlsen",
+      role: "athlete",
+      coachId: null,
+      wellbeingPublic: false,
+      ftpPublic: true,
+      isAdmin: false,
+      ladderProgressionEnabled: true,
+      unitsPreference: "km",
+      planOffsetWeeks: 0,
+      sports: ["ride"],
+    });
+
+    const view = renderHook(() => useUpdateSports(), { wrapper });
+    await act(async () => {
+      await view.result.current.update(["ride", "run"]);
+    });
+    expect(updateSportsCalls).toEqual([{ userId: "user-1", value: ["ride", "run"] }]);
+    expect((queryClient.getQueryData(["profile", "user-1"]) as Profile).sports).toEqual(["ride", "run"]);
   });
 
   it("ohne Session -> Fehler, kein Aufruf (Beispiel useUpdateHrMax)", async () => {

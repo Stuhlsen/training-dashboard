@@ -161,6 +161,25 @@ export async function updateUnitsPreference(userId: string, value: "km" | "mi"):
  *  UPDATE-Grant wie units_preference (0020), RLS lässt nur die eigene Zeile
  *  zu. CHECK `between -8 and 12` in der Migration — der Aufrufer
  *  (useShiftPlan) begrenzt zusätzlich. */
+/** Migration 0052 (Fahrplan 21, E3) — self-service Sportart-Auswahl wie
+ *  ftp_public/units_preference, über die Basistabelle `profiles` (nicht
+ *  `profiles_own`, Q5 verlangt Trainer-Sichtbarkeit über `profiles_visible`).
+ *  Spalten-restriktives UPDATE-Grant wie die übrigen Self-Service-Felder, RLS
+ *  lässt nur die eigene Zeile zu. Der Wert ist auf ` ride,run,swim ` und
+ *  mindestens eine Sportart begrenzt (CHECK in Migration 0052) — der Aufrufer
+ *  (SportsSection) verhindert schon im UI, dass weniger als eine Sportart
+ *  abgewählt wird, damit kein rohes Constraint-Fail in die UI trägt. */
+export async function updateSports(userId: string, value: readonly Profile["sports"][number][]): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client
+    .from("profiles")
+    .update({ sports: value })
+    .eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
 export async function updatePlanOffsetWeeks(userId: string, value: number): Promise<Result> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;

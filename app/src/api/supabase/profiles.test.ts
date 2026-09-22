@@ -28,6 +28,7 @@ const {
   updateHeightCm,
   updateWeightKg,
   updateHrMax,
+  updateSports,
 } = await import("./profiles");
 
 describe("updateUnitsPreference", () => {
@@ -211,6 +212,20 @@ describe("Profil-Basisdaten-Updates (Migration 0039, Fahrplan 17 E3)", () => {
     const result = await updateHrMax("profile-1", 201);
     expect(result).toEqual({ ok: true });
     expect(seen).toEqual({ hr_max: 201 });
+  });
+
+  it("updateSports (Migration 0052, Fahrplan 21 E3) schreibt das Sportarten-Array für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateSports("profile-1", ["ride", "run", "swim"]);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ sports: ["ride", "run", "swim"] });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
   });
 });
 
