@@ -107,10 +107,22 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
                   boxShadow: tall ? "0 0 10px color-mix(in oklab, var(--accent) 60%, transparent)" : undefined,
                   transform: "translateX(-50%)",
                   borderRadius: 2,
-                  // Pins fangen den Hover auf der Skala nicht ab (nur der
-                  // Zonen-Balken darunter zählt) — s. handleScaleMove.
-                  pointerEvents: "none",
+                  // Pins sind bewusst fokussierbar: Tastatur- und
+                  // Screenreader-Nutzer erhalten dieselbe Watt-/Zonen-Info
+                  // wie beim Maus-Hover über die Skala.
+                  pointerEvents: "auto",
+                  cursor: "help",
                 }}
+                tabIndex={0}
+                role="img"
+                aria-label={`${p.label}: ${powerScaleReadout(p.pct / 100, powerScale)?.watts ?? "unbekannt"} W`}
+                onFocus={(e) => {
+                  const readout = powerScaleReadout(p.pct / 100, powerScale);
+                  if (!readout) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setHover({ x: rect.left + rect.width / 2, y: rect.top, watts: readout.watts, zoneLabel: readout.zoneLabel });
+                }}
+                onBlur={() => setHover(null)}
               />
             );
           })}

@@ -151,11 +151,27 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
                 rx={4}
                 fill={LEVEL_FILL[days]}
                 style={{ cursor: w.days > 0 ? "pointer" : "default" }}
+                tabIndex={w.days > 0 ? 0 : undefined}
+                role={w.days > 0 ? "button" : undefined}
+                aria-label={w.days > 0 ? `${w.days} Trainingstag${w.days === 1 ? "" : "e"}, Woche ab ${fmtDate(w.monday)}` : undefined}
                 onMouseEnter={(e) => {
                   if (!w.days) return;
                   setTooltip({ x: e.clientX, y: e.clientY, week: w });
                 }}
                 onMouseLeave={() => setTooltip(null)}
+                onFocus={(e) => {
+                  if (!w.days) return;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setTooltip({ x: rect.left + rect.width / 2, y: rect.top, week: w });
+                }}
+                onBlur={() => setTooltip(null)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setTooltip({ x: rect.left + rect.width / 2, y: rect.top, week: w });
+                  }
+                }}
               />
               {showNum && w.days > 0 && (
                 <text
