@@ -23,6 +23,52 @@ export type Role = "athlete" | "coach";
  *  wählbarer Zustand (kein eigenes `sports/`-Profil, s. Fahrplan-21-Q3). */
 export type Sport = "ride" | "run" | "swim";
 
+/** Handgemachter, athletenunabhängiger Datensatz für die Landingpage-Demo. */
+export interface DemoDataset {
+  /** 8 Wochen tägliche Rides (Mo–So), ~56 Einträge */
+  rides: DemoRide[];
+  wellbeing: DemoWellbeingEntry[];
+  /** 8 Wochen geplante Sessions */
+  planCards: DemoPlanCard[];
+}
+
+export interface DemoRide {
+  date: string;
+  sport: Sport;
+  durationMinutes: number;
+  distanceKm: number;
+  elevationGain: number;
+  avgWatts: number;
+  npWatts: number;
+  avgHr: number;
+  /** Zonenzeit in Sekunden [z1, z2, z3, z4, z5] */
+  zoneTimesSec: [number, number, number, number, number];
+  eftpWatts: number;
+  /** Subjektives Gefühl 1–5 */
+  feel: number;
+}
+
+export interface DemoWellbeingEntry {
+  date: string;
+  hrvSdnn: number;
+  rhr: number;
+  sleepHours: number;
+  sleepQuality: number;
+}
+
+export interface DemoPlanCard {
+  date: string;
+  sport: Sport | "rest";
+  /** Freitext-Beschreibung der Einheit */
+  label: string;
+  /** Geplante Dauer in Minuten */
+  durationMinutes: number;
+  /** Trainingsqualität: strukturierte Einheit oder locker */
+  type: "workout" | "endurance" | "recovery" | "rest";
+  /** Watt-Vorgabe bei strukturierten Einheiten */
+  targetWatts?: number;
+}
+
 export interface Profile {
   id: string;
   displayName: string | null;

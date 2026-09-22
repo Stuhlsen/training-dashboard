@@ -1,0 +1,1188 @@
+﻿{
+    "rides":  [
+                  {
+                      "date":  "2026-01-05",
+                      "sport":  "ride",
+                      "durationMinutes":  60,
+                      "distanceKm":  28.4,
+                      "elevationGain":  180,
+                      "avgWatts":  158,
+                      "npWatts":  172,
+                      "avgHr":  132,
+                      "zoneTimesSec":  [
+                                           300,
+                                           2700,
+                                           480,
+                                           90,
+                                           30
+                                       ],
+                      "eftpWatts":  246,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-07",
+                      "sport":  "ride",
+                      "durationMinutes":  52,
+                      "distanceKm":  24.1,
+                      "elevationGain":  120,
+                      "avgWatts":  146,
+                      "npWatts":  155,
+                      "avgHr":  128,
+                      "zoneTimesSec":  [
+                                           420,
+                                           2520,
+                                           120,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  247,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-09",
+                      "sport":  "ride",
+                      "durationMinutes":  75,
+                      "distanceKm":  35.8,
+                      "elevationGain":  260,
+                      "avgWatts":  162,
+                      "npWatts":  178,
+                      "avgHr":  136,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3060,
+                                           720,
+                                           300,
+                                           60
+                                       ],
+                      "eftpWatts":  248,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-10",
+                      "sport":  "ride",
+                      "durationMinutes":  52,
+                      "distanceKm":  24.7,
+                      "elevationGain":  130,
+                      "avgWatts":  148,
+                      "npWatts":  158,
+                      "avgHr":  129,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           120,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  248,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-11",
+                      "sport":  "ride",
+                      "durationMinutes":  105,
+                      "distanceKm":  51.2,
+                      "elevationGain":  410,
+                      "avgWatts":  151,
+                      "npWatts":  169,
+                      "avgHr":  130,
+                      "zoneTimesSec":  [
+                                           480,
+                                           4920,
+                                           720,
+                                           120,
+                                           60
+                                       ],
+                      "eftpWatts":  249,
+                      "feel":  5
+                  },
+                  {
+                      "date":  "2026-01-12",
+                      "sport":  "ride",
+                      "durationMinutes":  60,
+                      "distanceKm":  28.7,
+                      "elevationGain":  190,
+                      "avgWatts":  160,
+                      "npWatts":  174,
+                      "avgHr":  133,
+                      "zoneTimesSec":  [
+                                           300,
+                                           2700,
+                                           480,
+                                           90,
+                                           30
+                                       ],
+                      "eftpWatts":  250,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-14",
+                      "sport":  "ride",
+                      "durationMinutes":  55,
+                      "distanceKm":  25.6,
+                      "elevationGain":  140,
+                      "avgWatts":  150,
+                      "npWatts":  161,
+                      "avgHr":  129,
+                      "zoneTimesSec":  [
+                                           360,
+                                           2760,
+                                           120,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  250,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-16",
+                      "sport":  "ride",
+                      "durationMinutes":  80,
+                      "distanceKm":  38.9,
+                      "elevationGain":  300,
+                      "avgWatts":  168,
+                      "npWatts":  184,
+                      "avgHr":  139,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3240,
+                                           900,
+                                           240,
+                                           60
+                                       ],
+                      "eftpWatts":  251,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-17",
+                      "sport":  "ride",
+                      "durationMinutes":  55,
+                      "distanceKm":  25.8,
+                      "elevationGain":  145,
+                      "avgWatts":  152,
+                      "npWatts":  163,
+                      "avgHr":  130,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           120,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  251,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-18",
+                      "sport":  "ride",
+                      "durationMinutes":  115,
+                      "distanceKm":  56.8,
+                      "elevationGain":  450,
+                      "avgWatts":  154,
+                      "npWatts":  173,
+                      "avgHr":  131,
+                      "zoneTimesSec":  [
+                                           540,
+                                           5100,
+                                           900,
+                                           240,
+                                           120
+                                       ],
+                      "eftpWatts":  252,
+                      "feel":  5
+                  },
+                  {
+                      "date":  "2026-01-19",
+                      "sport":  "run",
+                      "durationMinutes":  42,
+                      "distanceKm":  7.1,
+                      "elevationGain":  60,
+                      "avgWatts":  0,
+                      "npWatts":  0,
+                      "avgHr":  148,
+                      "zoneTimesSec":  [
+                                           600,
+                                           1500,
+                                           360,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  0,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-21",
+                      "sport":  "ride",
+                      "durationMinutes":  58,
+                      "distanceKm":  27.2,
+                      "elevationGain":  160,
+                      "avgWatts":  153,
+                      "npWatts":  166,
+                      "avgHr":  130,
+                      "zoneTimesSec":  [
+                                           420,
+                                           2880,
+                                           120,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  253,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-23",
+                      "sport":  "ride",
+                      "durationMinutes":  85,
+                      "distanceKm":  41.6,
+                      "elevationGain":  330,
+                      "avgWatts":  171,
+                      "npWatts":  189,
+                      "avgHr":  141,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3420,
+                                           960,
+                                           240,
+                                           120
+                                       ],
+                      "eftpWatts":  254,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-01-24",
+                      "sport":  "ride",
+                      "durationMinutes":  55,
+                      "distanceKm":  25.9,
+                      "elevationGain":  150,
+                      "avgWatts":  154,
+                      "npWatts":  165,
+                      "avgHr":  131,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           180,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  254,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-25",
+                      "sport":  "ride",
+                      "durationMinutes":  120,
+                      "distanceKm":  59.4,
+                      "elevationGain":  480,
+                      "avgWatts":  157,
+                      "npWatts":  176,
+                      "avgHr":  133,
+                      "zoneTimesSec":  [
+                                           600,
+                                           5400,
+                                           960,
+                                           180,
+                                           60
+                                       ],
+                      "eftpWatts":  255,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-26",
+                      "sport":  "ride",
+                      "durationMinutes":  65,
+                      "distanceKm":  30.9,
+                      "elevationGain":  220,
+                      "avgWatts":  166,
+                      "npWatts":  181,
+                      "avgHr":  136,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3060,
+                                           480,
+                                           0,
+                                           0
+                                       ],
+                      "eftpWatts":  255,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-28",
+                      "sport":  "ride",
+                      "durationMinutes":  62,
+                      "distanceKm":  29.1,
+                      "elevationGain":  180,
+                      "avgWatts":  158,
+                      "npWatts":  172,
+                      "avgHr":  132,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           180,
+                                           120,
+                                           0
+                                       ],
+                      "eftpWatts":  256,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-01-30",
+                      "sport":  "ride",
+                      "durationMinutes":  90,
+                      "distanceKm":  44.8,
+                      "elevationGain":  350,
+                      "avgWatts":  178,
+                      "npWatts":  198,
+                      "avgHr":  145,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3360,
+                                           1080,
+                                           480,
+                                           120
+                                       ],
+                      "eftpWatts":  257,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-01-31",
+                      "sport":  "ride",
+                      "durationMinutes":  55,
+                      "distanceKm":  26.2,
+                      "elevationGain":  160,
+                      "avgWatts":  156,
+                      "npWatts":  168,
+                      "avgHr":  132,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           180,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  257,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-01",
+                      "sport":  "ride",
+                      "durationMinutes":  110,
+                      "distanceKm":  54.2,
+                      "elevationGain":  430,
+                      "avgWatts":  160,
+                      "npWatts":  180,
+                      "avgHr":  134,
+                      "zoneTimesSec":  [
+                                           480,
+                                           4800,
+                                           960,
+                                           300,
+                                           60
+                                       ],
+                      "eftpWatts":  258,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-02",
+                      "sport":  "swim",
+                      "durationMinutes":  35,
+                      "distanceKm":  1.6,
+                      "elevationGain":  0,
+                      "avgWatts":  0,
+                      "npWatts":  0,
+                      "avgHr":  136,
+                      "zoneTimesSec":  [
+                                           600,
+                                           1200,
+                                           240,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  0,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-04",
+                      "sport":  "ride",
+                      "durationMinutes":  60,
+                      "distanceKm":  28.2,
+                      "elevationGain":  170,
+                      "avgWatts":  155,
+                      "npWatts":  169,
+                      "avgHr":  131,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           120,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  259,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-06",
+                      "sport":  "ride",
+                      "durationMinutes":  95,
+                      "distanceKm":  46.9,
+                      "elevationGain":  370,
+                      "avgWatts":  182,
+                      "npWatts":  204,
+                      "avgHr":  148,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3300,
+                                           1200,
+                                           660,
+                                           180
+                                       ],
+                      "eftpWatts":  260,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-02-07",
+                      "sport":  "ride",
+                      "durationMinutes":  55,
+                      "distanceKm":  26.5,
+                      "elevationGain":  165,
+                      "avgWatts":  158,
+                      "npWatts":  170,
+                      "avgHr":  133,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           240,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  260,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-08",
+                      "sport":  "ride",
+                      "durationMinutes":  118,
+                      "distanceKm":  58.1,
+                      "elevationGain":  460,
+                      "avgWatts":  163,
+                      "npWatts":  183,
+                      "avgHr":  136,
+                      "zoneTimesSec":  [
+                                           540,
+                                           5100,
+                                           960,
+                                           360,
+                                           120
+                                       ],
+                      "eftpWatts":  261,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-09",
+                      "sport":  "ride",
+                      "durationMinutes":  72,
+                      "distanceKm":  34.4,
+                      "elevationGain":  250,
+                      "avgWatts":  174,
+                      "npWatts":  192,
+                      "avgHr":  142,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3240,
+                                           660,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  261,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-11",
+                      "sport":  "ride",
+                      "durationMinutes":  65,
+                      "distanceKm":  30.8,
+                      "elevationGain":  200,
+                      "avgWatts":  160,
+                      "npWatts":  175,
+                      "avgHr":  134,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3180,
+                                           240,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  262,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-13",
+                      "sport":  "ride",
+                      "durationMinutes":  100,
+                      "distanceKm":  49.5,
+                      "elevationGain":  390,
+                      "avgWatts":  185,
+                      "npWatts":  207,
+                      "avgHr":  149,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3300,
+                                           1320,
+                                           780,
+                                           240
+                                       ],
+                      "eftpWatts":  263,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-02-14",
+                      "sport":  "ride",
+                      "durationMinutes":  55,
+                      "distanceKm":  26.8,
+                      "elevationGain":  170,
+                      "avgWatts":  162,
+                      "npWatts":  174,
+                      "avgHr":  135,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           300,
+                                           120,
+                                           0
+                                       ],
+                      "eftpWatts":  263,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-15",
+                      "sport":  "ride",
+                      "durationMinutes":  105,
+                      "distanceKm":  51.7,
+                      "elevationGain":  400,
+                      "avgWatts":  166,
+                      "npWatts":  186,
+                      "avgHr":  138,
+                      "zoneTimesSec":  [
+                                           480,
+                                           4560,
+                                           900,
+                                           240,
+                                           120
+                                       ],
+                      "eftpWatts":  264,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-16",
+                      "sport":  "run",
+                      "durationMinutes":  35,
+                      "distanceKm":  6.2,
+                      "elevationGain":  45,
+                      "avgWatts":  0,
+                      "npWatts":  0,
+                      "avgHr":  151,
+                      "zoneTimesSec":  [
+                                           480,
+                                           1200,
+                                           360,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  0,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-18",
+                      "sport":  "ride",
+                      "durationMinutes":  68,
+                      "distanceKm":  32.4,
+                      "elevationGain":  220,
+                      "avgWatts":  165,
+                      "npWatts":  181,
+                      "avgHr":  137,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3240,
+                                           360,
+                                           60,
+                                           0
+                                       ],
+                      "eftpWatts":  265,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-20",
+                      "sport":  "ride",
+                      "durationMinutes":  105,
+                      "distanceKm":  51.8,
+                      "elevationGain":  410,
+                      "avgWatts":  190,
+                      "npWatts":  214,
+                      "avgHr":  152,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3120,
+                                           1500,
+                                           960,
+                                           360
+                                       ],
+                      "eftpWatts":  266,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-02-21",
+                      "sport":  "ride",
+                      "durationMinutes":  55,
+                      "distanceKm":  27.1,
+                      "elevationGain":  175,
+                      "avgWatts":  164,
+                      "npWatts":  177,
+                      "avgHr":  136,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3000,
+                                           360,
+                                           120,
+                                           0
+                                       ],
+                      "eftpWatts":  266,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-22",
+                      "sport":  "ride",
+                      "durationMinutes":  115,
+                      "distanceKm":  57.3,
+                      "elevationGain":  450,
+                      "avgWatts":  168,
+                      "npWatts":  188,
+                      "avgHr":  139,
+                      "zoneTimesSec":  [
+                                           540,
+                                           5040,
+                                           900,
+                                           360,
+                                           60
+                                       ],
+                      "eftpWatts":  267,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-23",
+                      "sport":  "ride",
+                      "durationMinutes":  80,
+                      "distanceKm":  38.2,
+                      "elevationGain":  280,
+                      "avgWatts":  184,
+                      "npWatts":  207,
+                      "avgHr":  148,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3300,
+                                           1080,
+                                           720,
+                                           120
+                                       ],
+                      "eftpWatts":  267,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-02-25",
+                      "sport":  "ride",
+                      "durationMinutes":  70,
+                      "distanceKm":  33.2,
+                      "elevationGain":  220,
+                      "avgWatts":  168,
+                      "npWatts":  185,
+                      "avgHr":  139,
+                      "zoneTimesSec":  [
+                                           420,
+                                           3240,
+                                           420,
+                                           120,
+                                           0
+                                       ],
+                      "eftpWatts":  268,
+                      "feel":  4
+                  },
+                  {
+                      "date":  "2026-02-26",
+                      "sport":  "ride",
+                      "durationMinutes":  75,
+                      "distanceKm":  35.6,
+                      "elevationGain":  260,
+                      "avgWatts":  176,
+                      "npWatts":  195,
+                      "avgHr":  144,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3300,
+                                           900,
+                                           360,
+                                           120
+                                       ],
+                      "eftpWatts":  269,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-02-27",
+                      "sport":  "ride",
+                      "durationMinutes":  95,
+                      "distanceKm":  46.4,
+                      "elevationGain":  350,
+                      "avgWatts":  188,
+                      "npWatts":  211,
+                      "avgHr":  151,
+                      "zoneTimesSec":  [
+                                           360,
+                                           3000,
+                                           1320,
+                                           840,
+                                           180
+                                       ],
+                      "eftpWatts":  269,
+                      "feel":  3
+                  },
+                  {
+                      "date":  "2026-03-01",
+                      "sport":  "ride",
+                      "durationMinutes":  105,
+                      "distanceKm":  51.5,
+                      "elevationGain":  400,
+                      "avgWatts":  166,
+                      "npWatts":  186,
+                      "avgHr":  138,
+                      "zoneTimesSec":  [
+                                           480,
+                                           4560,
+                                           900,
+                                           240,
+                                           120
+                                       ],
+                      "eftpWatts":  270,
+                      "feel":  4
+                  }
+              ],
+    "wellbeing":  [
+                      {
+                          "date":  "2026-01-05",
+                          "hrvSdnn":  52,
+                          "rhr":  54,
+                          "sleepHours":  7.6,
+                          "sleepQuality":  82
+                      },
+                      {
+                          "date":  "2026-01-08",
+                          "hrvSdnn":  55,
+                          "rhr":  52,
+                          "sleepHours":  8.1,
+                          "sleepQuality":  88
+                      },
+                      {
+                          "date":  "2026-01-11",
+                          "hrvSdnn":  58,
+                          "rhr":  51,
+                          "sleepHours":  7.9,
+                          "sleepQuality":  86
+                      },
+                      {
+                          "date":  "2026-01-15",
+                          "hrvSdnn":  54,
+                          "rhr":  53,
+                          "sleepHours":  7.8,
+                          "sleepQuality":  84
+                      },
+                      {
+                          "date":  "2026-01-18",
+                          "hrvSdnn":  61,
+                          "rhr":  49,
+                          "sleepHours":  8.3,
+                          "sleepQuality":  92
+                      },
+                      {
+                          "date":  "2026-01-22",
+                          "hrvSdnn":  56,
+                          "rhr":  52,
+                          "sleepHours":  8,
+                          "sleepQuality":  87
+                      },
+                      {
+                          "date":  "2026-01-25",
+                          "hrvSdnn":  59,
+                          "rhr":  50,
+                          "sleepHours":  8.2,
+                          "sleepQuality":  90
+                      },
+                      {
+                          "date":  "2026-01-29",
+                          "hrvSdnn":  52,
+                          "rhr":  54,
+                          "sleepHours":  7.4,
+                          "sleepQuality":  78
+                      },
+                      {
+                          "date":  "2026-02-01",
+                          "hrvSdnn":  60,
+                          "rhr":  50,
+                          "sleepHours":  8.4,
+                          "sleepQuality":  93
+                      },
+                      {
+                          "date":  "2026-02-05",
+                          "hrvSdnn":  55,
+                          "rhr":  53,
+                          "sleepHours":  7.8,
+                          "sleepQuality":  84
+                      },
+                      {
+                          "date":  "2026-02-08",
+                          "hrvSdnn":  62,
+                          "rhr":  49,
+                          "sleepHours":  8.5,
+                          "sleepQuality":  94
+                      },
+                      {
+                          "date":  "2026-02-12",
+                          "hrvSdnn":  54,
+                          "rhr":  53,
+                          "sleepHours":  7.6,
+                          "sleepQuality":  81
+                      },
+                      {
+                          "date":  "2026-02-15",
+                          "hrvSdnn":  58,
+                          "rhr":  51,
+                          "sleepHours":  8,
+                          "sleepQuality":  89
+                      },
+                      {
+                          "date":  "2026-02-19",
+                          "hrvSdnn":  53,
+                          "rhr":  54,
+                          "sleepHours":  7.5,
+                          "sleepQuality":  79
+                      },
+                      {
+                          "date":  "2026-02-22",
+                          "hrvSdnn":  61,
+                          "rhr":  50,
+                          "sleepHours":  8.3,
+                          "sleepQuality":  92
+                      },
+                      {
+                          "date":  "2026-02-26",
+                          "hrvSdnn":  56,
+                          "rhr":  52,
+                          "sleepHours":  7.7,
+                          "sleepQuality":  85
+                      },
+                      {
+                          "date":  "2026-03-01",
+                          "hrvSdnn":  63,
+                          "rhr":  49,
+                          "sleepHours":  8.6,
+                          "sleepQuality":  95
+                      }
+                  ],
+    "planCards":  [
+                      {
+                          "date":  "2026-01-05",
+                          "sport":  "ride",
+                          "label":  "Lockere Grundlage",
+                          "durationMinutes":  60,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-06",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-01-07",
+                          "sport":  "ride",
+                          "label":  "Kadenztechnik",
+                          "durationMinutes":  50,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-01-09",
+                          "sport":  "ride",
+                          "label":  "Grundlage mit Anstiegen",
+                          "durationMinutes":  75,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-11",
+                          "sport":  "ride",
+                          "label":  "Lange Ausfahrt",
+                          "durationMinutes":  105,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-12",
+                          "sport":  "ride",
+                          "label":  "Lockere Grundlage",
+                          "durationMinutes":  60,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-13",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-01-14",
+                          "sport":  "ride",
+                          "label":  "Technik und Tritt",
+                          "durationMinutes":  55,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-01-16",
+                          "sport":  "ride",
+                          "label":  "Ausdauerprogression",
+                          "durationMinutes":  80,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-18",
+                          "sport":  "ride",
+                          "label":  "Lange Ausfahrt",
+                          "durationMinutes":  115,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-19",
+                          "sport":  "ride",
+                          "label":  "Grundlage",
+                          "durationMinutes":  65,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-20",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-01-21",
+                          "sport":  "ride",
+                          "label":  "Lockere Grundlage",
+                          "durationMinutes":  58,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-01-23",
+                          "sport":  "ride",
+                          "label":  "Tempoausdauer",
+                          "durationMinutes":  85,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-25",
+                          "sport":  "ride",
+                          "label":  "Lange Ausfahrt",
+                          "durationMinutes":  120,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-26",
+                          "sport":  "ride",
+                          "label":  "Grundlage",
+                          "durationMinutes":  65,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-01-27",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-01-28",
+                          "sport":  "ride",
+                          "label":  "Trittfrequenz",
+                          "durationMinutes":  62,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-01-30",
+                          "sport":  "ride",
+                          "label":  "Sweet-Spot Einstieg",
+                          "durationMinutes":  90,
+                          "type":  "workout",
+                          "targetWatts":  220
+                      },
+                      {
+                          "date":  "2026-02-01",
+                          "sport":  "ride",
+                          "label":  "Lange Ausfahrt",
+                          "durationMinutes":  110,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-02-02",
+                          "sport":  "ride",
+                          "label":  "Tempoausdauer",
+                          "durationMinutes":  70,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-02-03",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-02-04",
+                          "sport":  "ride",
+                          "label":  "Regeneration",
+                          "durationMinutes":  60,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-02-06",
+                          "sport":  "ride",
+                          "label":  "Sweet-Spot Intervalle",
+                          "durationMinutes":  95,
+                          "type":  "workout",
+                          "targetWatts":  228
+                      },
+                      {
+                          "date":  "2026-02-08",
+                          "sport":  "ride",
+                          "label":  "Lange Ausfahrt",
+                          "durationMinutes":  118,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-02-09",
+                          "sport":  "ride",
+                          "label":  "Grundlage",
+                          "durationMinutes":  72,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-02-10",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-02-11",
+                          "sport":  "ride",
+                          "label":  "Lockere Grundlage",
+                          "durationMinutes":  65,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-02-13",
+                          "sport":  "ride",
+                          "label":  "Schwellenintervalle",
+                          "durationMinutes":  100,
+                          "type":  "workout",
+                          "targetWatts":  250
+                      },
+                      {
+                          "date":  "2026-02-15",
+                          "sport":  "ride",
+                          "label":  "Ausdauerfahrt",
+                          "durationMinutes":  105,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-02-16",
+                          "sport":  "ride",
+                          "label":  "Sweet-Spot",
+                          "durationMinutes":  75,
+                          "type":  "workout",
+                          "targetWatts":  232
+                      },
+                      {
+                          "date":  "2026-02-17",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-02-18",
+                          "sport":  "ride",
+                          "label":  "Regeneration",
+                          "durationMinutes":  68,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-02-20",
+                          "sport":  "ride",
+                          "label":  "Schwelle 4 × 8 min",
+                          "durationMinutes":  105,
+                          "type":  "workout",
+                          "targetWatts":  255
+                      },
+                      {
+                          "date":  "2026-02-22",
+                          "sport":  "ride",
+                          "label":  "Lange Ausfahrt",
+                          "durationMinutes":  115,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-02-23",
+                          "sport":  "ride",
+                          "label":  "VO2max 5 × 3 min",
+                          "durationMinutes":  80,
+                          "type":  "workout",
+                          "targetWatts":  285
+                      },
+                      {
+                          "date":  "2026-02-24",
+                          "sport":  "rest",
+                          "label":  "Ruhetag",
+                          "durationMinutes":  0,
+                          "type":  "rest"
+                      },
+                      {
+                          "date":  "2026-02-25",
+                          "sport":  "ride",
+                          "label":  "Lockere Grundlage",
+                          "durationMinutes":  70,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-02-27",
+                          "sport":  "ride",
+                          "label":  "VO2max 6 × 3 min",
+                          "durationMinutes":  110,
+                          "type":  "workout",
+                          "targetWatts":  290
+                      },
+                      {
+                          "date":  "2026-03-01",
+                          "sport":  "ride",
+                          "label":  "Ruhige Ausdauerfahrt",
+                          "durationMinutes":  100,
+                          "type":  "endurance"
+                      },
+                      {
+                          "date":  "2026-03-01",
+                          "sport":  "run",
+                          "label":  "Taper-Lauf",
+                          "durationMinutes":  35,
+                          "type":  "recovery"
+                      },
+                      {
+                          "date":  "2026-03-01",
+                          "sport":  "swim",
+                          "label":  "Technikschwimmen",
+                          "durationMinutes":  35,
+                          "type":  "recovery"
+                      }
+                  ]
+}
