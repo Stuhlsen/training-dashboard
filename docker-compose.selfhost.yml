@@ -190,13 +190,13 @@ services:
       PGRST_JWT_SECRET: ${JWT_SECRET}
       # supabase_admin statt postgres — s. Kommentar bei storage-init oben.
       DATABASE_URL: postgres://supabase_admin:${POSTGRES_PASSWORD}@postgres:5432/postgres?sslmode=disable
-      FILE_SIZE_LIMIT: "15728640" # 15MB
+      UPLOAD_FILE_SIZE_LIMIT: "15728640" # 15MB
       STORAGE_BACKEND: file
-      FILE_STORAGE_BACKEND_PATH: /var/lib/storage
+      STORAGE_FILE_BACKEND_PATH: /var/lib/storage
       TENANT_ID: default
       REGION: local
       GLOBAL_S3_BUCKET: bikefit-photos
-      ENABLE_IMAGE_TRANSFORMATION: "false"
+      IMAGE_TRANSFORMATION_ENABLED: "false"
     volumes:
       - storage_data:/var/lib/storage
     # KEIN "ports:" hier — von aussen nur ueber den Proxy erreichbar
