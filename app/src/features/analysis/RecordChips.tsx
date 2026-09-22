@@ -26,7 +26,7 @@ export function RecordChips({ records }: { records: RecordChip[] }) {
             {r.value}&nbsp;{r.unit}
           </span>
           <span style={{ fontSize: ".7rem", color: "var(--ink-3)" }}>{r.label}</span>
-          <span style={{ fontSize: ".63rem", color: "var(--ink-3)" }}>
+          <span style={{ fontSize: "var(--fs-label)", color: "var(--ink-3)" }}>
             {r.date}
             {r.historyCount ? ` · ${r.historyCount}× abgelöst` : ""}
           </span>

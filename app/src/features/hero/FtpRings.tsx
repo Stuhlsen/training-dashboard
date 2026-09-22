@@ -43,7 +43,7 @@ function RingQualifier({ kind }: { kind: RingKind }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
       {kind === "ramp" ? <CheckIcon color={color} /> : <ApproxIcon color={color} />}
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: ".66rem", letterSpacing: ".06em", textTransform: "uppercase", color }}>
+      <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", letterSpacing: ".06em", textTransform: "uppercase", color }}>
         {QUALIFIER_LABEL[kind]}
       </span>
     </div>
@@ -189,7 +189,7 @@ export function FtpRings({
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10 }}>
           <ProgressRing size={150} strokeWidth={12} progress={primary.progress} color="var(--accent)">
             <span style={{ fontSize: "2.35rem", fontWeight: 600, lineHeight: 1, letterSpacing: "-.02em", color: "var(--ink)" }}>{primary.value}</span>
-            <span style={{ fontSize: ".64rem", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-2)", fontWeight: 600 }}>
+            <span style={{ fontSize: "var(--fs-label)", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--accent-2)", fontWeight: 600 }}>
               <InfoTooltip termKey={RING_TERM[ftpPrimary]}>{RING_LABEL[ftpPrimary]}</InfoTooltip>
             </span>
           </ProgressRing>
@@ -199,7 +199,7 @@ export function FtpRings({
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 10, paddingTop: 22 }}>
           <ProgressRing size={104} strokeWidth={8} progress={secondary.progress} color="var(--ink-2)">
             <span style={{ fontSize: "1.44rem", fontWeight: 600, lineHeight: 1, color: "var(--ink)" }}>{secondary.value}</span>
-            <span style={{ fontSize: ".56rem", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
+            <span style={{ fontSize: "var(--fs-label)", letterSpacing: ".08em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 600 }}>
               <InfoTooltip termKey={RING_TERM[secondaryKind]}>{RING_LABEL[secondaryKind]}</InfoTooltip>
             </span>
           </ProgressRing>
