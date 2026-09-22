@@ -1,11 +1,25 @@
-/** `app/public/background.png` (1376×768) — von Alex geliefert, da
- *  `DesignSync.get_file` bei 256 KiB deckelt und die in
- *  `.image-slots.state.json` eingebettete Bild-Data-URI nur `truncated`
- *  lieferte (s. docs/vorlage-design-import.md §2). Alles unter
- *  `app/public/` liefert Vite unverändert unter `/`, kein Import/Bundling
- *  nötig. Pfad über `BASE_URL` (nicht hart "/"), sonst 404 auf GitHub
- *  Pages unter `/training-dashboard/` (Etappe 10c, Live-Verifikation). */
-const BACKGROUND_IMAGE_URL = `${import.meta.env.BASE_URL}background.png`;
+import { useLocation } from "react-router-dom";
+// api/ direkt statt über hooks/-Orchestrierung: schmale, bewusste Ausnahme
+// wie in Layout.tsx — useActiveAthlete/useEffectiveSport sind reine
+// localStorage-Hooks ohne I/O (AGENTS.md-Abhängigkeitstabelle).
+import { useActiveAthlete } from "../api/hooks/useActiveAthlete";
+import { useEffectiveSport } from "../api/hooks/useActiveSport";
+
+/** Alle vier Fotos generiert über `scripts/generate-media.js`
+ *  (OpenRouter, Nano Banana 2 — `google/gemini-3.1-flash-image`), 1376×768,
+ *  einheitlicher heller/warmer Bergsport-Look. Der ursprüngliche
+ *  `background.png` (fest verdrahtet, ein einziges Foto für alle Seiten)
+ *  ist damit ersetzt — s. Git-Historie für den alten Einzelbild-Stand.
+ *  Alles unter `app/public/` liefert Vite unverändert unter `/`, kein
+ *  Import/Bundling nötig. Pfad über `BASE_URL` (nicht hart "/"), sonst 404
+ *  auf GitHub Pages unter `/training-dashboard/` (Etappe 10c, Live-Verifikation). */
+const BACKGROUND_BY_SPORT: Record<"ride" | "run" | "swim", string> = {
+  ride: "background.png",
+  run: "background-run.png",
+  swim: "background-swim.png",
+};
+
+const LANDING_BACKGROUND = "assets/landing/background.png";
 
 const BASE_SCALE = "scale(1.06)";
 
@@ -16,8 +30,23 @@ const BASE_SCALE = "scale(1.06)";
  *  irrelevant für die Optik. Quelle: `Hero-Weitwinkel.dc.html`
  *  (Design-Projekt `fed5c129-1eb1-4ea8-a950-ad70fa39ddad`). Bewusst OHNE
  *  Maus-Parallax (bis 22.08.2026 vorhanden, auf Wunsch entfernt — störte
- *  beim normalen Hovern über die Seite). */
+ *  beim normalen Hovern über die Seite).
+ *
+ *  Bildauswahl (Fahrplan 22 Nebenauftrag, 22.09.2026): Route "/" (Landing)
+ *  zeigt das Landing-Foto, alles unter "/app" zeigt das sportartabhängige
+ *  Foto über `useEffectiveSport()` — bewusst NICHT der rohe
+ *  `useActiveSport()`-Wert: sonst würde z. B. bei Athlet 1 (nur Rad/Lauf)
+ *  ein anderswo global gespeichertes "swim" den Schwimm-Hintergrund zeigen,
+ *  obwohl der sichtbare Sport-Umschalter gar kein Schwimmen anbietet.
+ *  `useEffectiveSport()` klemmt genau wie SportToggle.tsx auf die Sportarten
+ *  des aktiven Athleten und fällt sonst auf "ride" zurück. */
 export function AppBackground() {
+  const location = useLocation();
+  const { activeAthleteId } = useActiveAthlete();
+  const { effectiveSport } = useEffectiveSport(activeAthleteId);
+  const fileName = location.pathname === "/" ? LANDING_BACKGROUND : BACKGROUND_BY_SPORT[effectiveSport];
+  const backgroundImageUrl = `${import.meta.env.BASE_URL}${fileName}`;
+
   return (
     <div style={{ position: "fixed", inset: "-6% -4%", zIndex: 0 }} aria-hidden="true">
       <div style={{ position: "absolute", inset: 0, transform: BASE_SCALE }}>
@@ -25,7 +54,7 @@ export function AppBackground() {
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: `url(${BACKGROUND_IMAGE_URL})`,
+            backgroundImage: `url(${backgroundImageUrl})`,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
