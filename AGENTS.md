@@ -287,7 +287,7 @@ Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängi
 ### Migrations-Workflow
 SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/`
 (zeitstempel-/laufnummeriert, `0001_initial_schema.sql` — Tabellen, RLS, Trigger für
-User-Onboarding — bis Stand 31.08.2026 `0024_sync_service_role_grants.sql`; neue Migration
+User-Onboarding — bis Stand 22.09.2026 `0051_bikes_notes_private.sql`; neue Migration
 bei jeder Schema-Erweiterung anhängen, nie eine bestehende nachträglich ändern).
 
 **Einspielen (Sequence):**
@@ -390,7 +390,8 @@ app/                       → Vite + React + TypeScript, s. app/README.md
     components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
     hooks/                  → generische UI-Hooks (nicht datenbezogen)
     features/               → ein Verzeichnis je Tab/Bereich: hero, logbook,
-                              planning, analysis, explorer, events, auth, settings
+                              planning, analysis, explorer, events, auth, settings,
+                              bikefit (Fahrplan 16)
     styles/tokens.css       → Design-Tokens (abgeglichen mit planning/docs/archiv/chart-grundlagen.md,
                               archiviert — Werte selbst bleiben aktuell)
 
@@ -398,7 +399,7 @@ data/                     → generierte JSON-Dateien (rides*.json, wellbeing*.j
                             von scripts/generate-data.js geschrieben, NICHT manuell committen
 
 supabase/
-  migrations/             → SQL-Migrationen, laufnummeriert (Stand 31.08.2026: 0001–0024)
+  migrations/             → SQL-Migrationen, laufnummeriert (Stand 22.09.2026: 0001–0051)
 
 scripts/
   generate-data.js         → Dünner Orchestrator (läuft im apps01-Sync-Container + `npm run sync`)
