@@ -88,13 +88,11 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
   const cellW = Math.min((width - PAD_L - PAD_R - (n - 1) * gap) / n, 60);
   const stepX = cellW + gap;
   const showNum = cellW >= 20;
-  // +72 statt +54: Fußzeile (Wochen-/Tage-Summe) und Legende stehen auf
-  // zwei Zeilen statt einer gemeinsamen — bei schmaler Kachel liefen beide
-  // sonst horizontal ineinander (Review-Kommentar 23.08.2026, Screenshot:
-  // "22 von 22 Wochen trainiert · 93 aktive Tage" überlappte "wenig → viel
-  // Tage"). Eigene Zeilen sind robust gegen jede Textlänge, ohne
-  // Pixel-Breiten schätzen zu müssen.
-  const H = Y_TOP + CELL_H + 72;
+  // +46 statt +54: nur noch die Legende am Fuß braucht eine eigene Zeile.
+  // Die frühere Wochen-/Tage-Summe steht jetzt als normales HTML-<div> unter
+  // dem SVG (s. unten) und bricht auf schmalen Kacheln sauber um, statt im
+  // SVG viewBox hart abgeschnitten zu werden (Mobile 390/320px).
+  const H = Y_TOP + CELL_H + 46;
 
   // Monatswechsel pro Woche vorab bestimmen (kein Mutieren einer Closure-
   // Variable innerhalb des JSX-`.map()` unten, s. react-hooks/immutability).
@@ -198,9 +196,6 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
           );
         })}
 
-        <text x={PAD_L} y={H - 26} fontSize={11} fontFamily="var(--font-mono)" fill="var(--text-soft)">
-          {wc.activeWeeks} von {wc.totalWeeks} Wochen trainiert · {wc.activeDays} aktive Tage
-        </text>
         {LEGEND_LEVELS.map((lvl, i) => (
           <rect
             key={lvl}
@@ -223,6 +218,23 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
           wenig → viel Tage
         </text>
       </svg>
+      <div
+        style={{
+          display: "flex",
+          flexWrap: "wrap",
+          gap: "0 .5rem",
+          marginTop: 8,
+          fontSize: "var(--fs-label)",
+          fontFamily: "var(--font-mono)",
+          color: "var(--text-soft)",
+        }}
+      >
+        <span>
+          {wc.activeWeeks} von {wc.totalWeeks} Wochen trainiert
+        </span>
+        <span>·</span>
+        <span>{wc.activeDays} aktive Tage</span>
+      </div>
       {tooltip && (
         // Strukturierte Mini-Tabelle statt eines langen, umbrechenden
         // Text-Strings (Review-Kommentar 23.08.2026: mit reinem
