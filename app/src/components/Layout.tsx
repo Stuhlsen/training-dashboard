@@ -48,22 +48,8 @@ export function Layout() {
 
   return (
     <div>
-      <header
-        style={{
-          position: "sticky",
-          top: 0,
-          zIndex: 40,
-          display: "grid",
-          gridTemplateColumns: "1fr auto 1fr",
-          alignItems: "center",
-          gap: 20,
-          padding: "14px clamp(20px,3vw,48px)",
-          background: "color-mix(in oklab, var(--surface-page) 72%, transparent)",
-          backdropFilter: "blur(14px)",
-          borderBottom: "1px solid var(--hair)",
-        }}
-      >
-        <nav style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 8, justifySelf: "start" }}>
+      <header className="app-header">
+        <nav className="app-header-nav">
           <EnvBadge />
           {navItems.map((item) => (
             <NavLink
@@ -80,26 +66,11 @@ export function Layout() {
             </NavLink>
           ))}
         </nav>
-        {/* minWidth:0 + overflowX:auto: mit einem 3. Athleten (Fahrplan 10 E8a)
-            wird der Athleten-Toggle 4 Pillen breit und liefe auf dem Handy sonst
-            über die mittlere Grid-Spalte hinaus. SportToggle rendert nur bei
-            Athlet 3 (> 1 Sportart), für 1/2/4 bleibt die Kopfzeile unverändert. */}
-        <div
-          style={{
-            justifySelf: "center",
-            minWidth: 0,
-            maxWidth: "100%",
-            overflowX: "auto",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 8,
-          }}
-        >
+        <div className="app-header-toggles">
           <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
           <SportToggle athleteId={activeAthleteId} />
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, justifySelf: "end" }}>
+        <div className="app-header-actions">
           {session ? (
             // Name + Dropdown (Einstellungen / Abmelden) statt separater
             // "Settings"-Pille — s. UserMenu.tsx.

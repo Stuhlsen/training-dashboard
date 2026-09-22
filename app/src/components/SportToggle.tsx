@@ -36,7 +36,10 @@ export function SportToggle({ athleteId }: SportToggleProps) {
         background: "var(--hair)",
         borderRadius: "var(--pill)",
         padding: 4,
-        width: pills.length * 104,
+        // min(100%, …): darf auf schmalen Viewports unter den Idealwert
+        // schrumpfen statt über den Rand zu laufen (wie AthleteToggle.tsx,
+        // Playwright-Audit 22.09.2026, P0).
+        width: `min(100%, ${pills.length * 104}px)`,
         backdropFilter: "blur(10px)",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)",
       }}

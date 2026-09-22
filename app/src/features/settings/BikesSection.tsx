@@ -281,8 +281,10 @@ export function BikesSection() {
               key={b.id}
               style={{
                 display: "flex",
+                flexWrap: "wrap",
                 alignItems: "center",
                 justifyContent: "space-between",
+                gap: 8,
                 padding: "12px 16px",
                 borderRadius: "var(--radius-md)",
                 background: "var(--glass-2)",

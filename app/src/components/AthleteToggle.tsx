@@ -23,8 +23,12 @@ export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps)
         borderRadius: "var(--pill)",
         padding: 4,
         // Breite skaliert mit der Athletenzahl (2 → 248 wie bisher, 3 → 372),
-        // damit längere Pseudonyme bei drei Pills nicht clippen.
-        width: ATHLETES.length * 124,
+        // damit längere Pseudonyme bei drei Pills nicht clippen. min(100%, …):
+        // auf schmalen Viewports (Handy) darf die Breite unter diesen Idealwert
+        // schrumpfen, statt über den Rand hinauszulaufen (Playwright-Audit
+        // 22.09.2026, P0) — die Pillen selbst sind `flex:1`, bleiben also
+        // gleich breit zueinander, nur insgesamt schmaler.
+        width: `min(100%, ${ATHLETES.length * 124}px)`,
         backdropFilter: "blur(10px)",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)",
       }}

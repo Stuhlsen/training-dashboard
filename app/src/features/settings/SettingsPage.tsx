@@ -116,21 +116,8 @@ export function SettingsPage() {
         )}
 
         {profile && (
-          <div style={{ display: "grid", gridTemplateColumns: "220px 1fr", gap: 32, alignItems: "start" }}>
-            <nav
-              style={{
-                position: "sticky",
-                top: 24,
-                background: "var(--glass-2)",
-                backdropFilter: "blur(var(--blur, 16px))",
-                borderRadius: "var(--radius-lg)",
-                boxShadow: "var(--e2)",
-                padding: "16px 6px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 2,
-              }}
-            >
+          <div className="settings-grid">
+            <nav className="settings-nav">
               {navEntries.map((entry) => {
                 const active = entry.id === activeId;
                 return (
