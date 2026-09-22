@@ -36,10 +36,11 @@ export function SportToggle({ athleteId }: SportToggleProps) {
         background: "var(--hair)",
         borderRadius: "var(--pill)",
         padding: 4,
-        // min(100%, …): darf auf schmalen Viewports unter den Idealwert
-        // schrumpfen statt über den Rand zu laufen (wie AthleteToggle.tsx,
-        // Playwright-Audit 22.09.2026, P0).
-        width: `min(100%, ${pills.length * 104}px)`,
+        // Feste px-Breite statt min(100%, …) — Begründung wie AthleteToggle.tsx
+        // (Prozent-Breite kollabiert hier auf Text-Mindestbreite statt zu
+        // schrumpfen; Elterncontainer `.app-header-toggles` fängt schmale
+        // Viewports über overflow-x:auto ab, Playwright-Nachtest 22.09.2026).
+        width: pills.length * 104,
         backdropFilter: "blur(10px)",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)",
       }}

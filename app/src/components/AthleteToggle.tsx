@@ -23,12 +23,17 @@ export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps)
         borderRadius: "var(--pill)",
         padding: 4,
         // Breite skaliert mit der Athletenzahl (2 → 248 wie bisher, 3 → 372),
-        // damit längere Pseudonyme bei drei Pills nicht clippen. min(100%, …):
-        // auf schmalen Viewports (Handy) darf die Breite unter diesen Idealwert
-        // schrumpfen, statt über den Rand hinauszulaufen (Playwright-Audit
-        // 22.09.2026, P0) — die Pillen selbst sind `flex:1`, bleiben also
-        // gleich breit zueinander, nur insgesamt schmaler.
-        width: `min(100%, ${ATHLETES.length * 124}px)`,
+        // damit längere Pseudonyme bei drei Pills nicht clippen. Bewusst eine
+        // feste px-Breite statt min(100%, …): eine Prozent-Breite hier verwirrt
+        // die intrinsische Breitenberechnung der umgebenden CSS-Grid-Spalte
+        // (.app-header, auto-Spur) und lässt die Box auf ihre Text-Mindestbreite
+        // kollabieren — Pillen ohne jeden Abstand, wirkt wie ein Wort
+        // (Playwright-Nachtest 22.09.2026, Regression aus genau diesem
+        // min(100%, …)-Versuch). Der Elterncontainer `.app-header-toggles`
+        // (index.css) fängt schmale Viewports stattdessen über
+        // `max-width: 100%` + `overflow-x: auto` ab — Pillen bleiben lesbar,
+        // bei Bedarf horizontal scrollbar statt zusammengequetscht.
+        width: ATHLETES.length * 124,
         backdropFilter: "blur(10px)",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)",
       }}
