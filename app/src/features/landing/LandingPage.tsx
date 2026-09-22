@@ -1,0 +1,207 @@
+/* ============================================================
+   FEATURES/LANDING/LANDINGPAGE.TSX — Etappe 3 / Fahrplan 22
+
+   Hero + Block 1 "Form & Belastung". Der Story-Block unter dem Hero
+   nutzt echte Dashboard-Komponenten (TraceCard/TraceLane, buildLoadRows)
+   mit dem Etappe-2-Demo-Datensatz statt echten Athletendaten.
+
+   Scroll-Animation über Framer Motion (nur im Landing-Bundle, code-
+   gesplittet). Mobile/reduced-motion: landing.css erzwingt bei
+   `max-width: 768px`/`prefers-reduced-motion: reduce` position:static
+   und `transform: none !important` auf `.landing-story__block` — die
+   JS-Seite muss dafür nichts zusätzlich abfragen, nur `useReducedMotion()`
+   respektieren, damit vor dem ersten Scroll kein unsichtbarer Zustand
+   hängen bleibt.
+   ============================================================ */
+
+import { useRef } from "react";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
+import { loadDemoDataset } from "../../api/demo-pipeline";
+import { TraceCard, type TraceLaneConfig } from "../../charts/TraceCard";
+import { buildLoadRows, type LoadRow } from "../analysis/analysis-view-model";
+import "./landing.css";
+
+type Ride = import("../../types.js").Ride;
+
+const demo = loadDemoDataset();
+const activityCount = demo.rides.length;
+const sportCount = new Set(demo.rides.map((ride) => ride.sport)).size;
+
+/** Grobe ISO-Kalenderwoche fürs Hero-Kennzahlenfeld (Montag = Wochenstart). */
+function isoWeekKey(dateStr: string): string {
+  const date = new Date(`${dateStr}T00:00:00Z`);
+  const day = (date.getUTCDay() + 6) % 7;
+  date.setUTCDate(date.getUTCDate() - day + 3);
+  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
+  const diffWeeks = Math.round((date.getTime() - firstThursday.getTime()) / 604800000);
+  return `${date.getUTCFullYear()}-KW${String(1 + diffWeeks).padStart(2, "0")}`;
+}
+
+const weekCount = new Set(demo.rides.map((ride) => isoWeekKey(ride.date))).size;
+
+/** Demo-Ride → app/src/types.js::Ride, wie core/loadguard.js::rideLoad() sie
+ *  erwartet: Rad bevorzugt tss, Lauf/Schwimm bevorzugt trimp (fehlt eines,
+ *  fällt rideLoad() aufs andere zurück — beide zu setzen wäre irreführend,
+ *  deshalb nur das jeweils passende Feld). Die TSS-Näherung nutzt eine feste
+ *  Referenzleistung von 200 W rein zur Demo-Skalierung, keine echte FTP. */
+function toRide(entry: (typeof demo.rides)[number]): Ride {
+  const isRide = !entry.sport || entry.sport === "ride";
+  return {
+    dateISO: entry.date,
+    sport: entry.sport,
+    min: entry.durationMinutes,
+    km: entry.distanceKm,
+    watt: entry.avgWatts,
+    np: entry.npWatts,
+    hf: entry.avgHr,
+    tss: isRide ? Math.round((entry.durationMinutes / 60) * (entry.npWatts / 200) ** 2 * 100) : null,
+    trimp: isRide ? null : Math.round((entry.durationMinutes * entry.avgHr) / 100),
+    eftp: entry.eftpWatts,
+    feel: String(entry.feel),
+  };
+}
+
+const demoRides: Ride[] = demo.rides.map(toRide);
+const loadRows: LoadRow[] = buildLoadRows(demoRides, { multiSport: true, ridesAll: demoRides });
+
+function buildDemoLanes(rows: LoadRow[]): TraceLaneConfig[] {
+  const lane = (vals: (number | null)[]) => ({ kind: "line" as const, vals });
+  const fmt = (value: number) => Math.round(value).toLocaleString("de-DE");
+  return [
+    {
+      display: { key: "load", title: "Belastung", sub: "Wochenlast", colorVar: "var(--ss)" },
+      lane: lane(rows.map((row) => row.total)),
+      baseHeight: 70,
+      formatValue: fmt,
+      formatUnit: () => "TSS",
+    },
+    {
+      display: { key: "ramp", title: "Ramp", sub: "Belastungsaufbau", colorVar: "var(--z2)" },
+      lane: lane(rows.map((row) => row.ramp)),
+      baseHeight: 70,
+      formatValue: fmt,
+      formatUnit: () => "TSS/Woche",
+    },
+    {
+      display: { key: "strain", title: "Strain", sub: "Belastungsdichte", colorVar: "var(--thr)" },
+      lane: lane(rows.map((row) => row.strain)),
+      baseHeight: 70,
+      formatValue: fmt,
+      formatUnit: () => "Score",
+    },
+    {
+      display: { key: "monotony", title: "Monotonie", sub: "Trainingsrhythmus", colorVar: "var(--vo2)" },
+      lane: lane(rows.map((row) => row.monotony)),
+      baseHeight: 70,
+      formatValue: fmt,
+      formatUnit: () => "Index",
+    },
+  ];
+}
+
+const loadLanes = buildDemoLanes(loadRows);
+
+function LoadStoryBlock() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({ target: sectionRef, offset: ["start end", "end start"] });
+  const y = useTransform(scrollYProgress, [0, 0.35, 0.7, 1], [40, 0, 0, -24]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.8]);
+
+  return (
+    <motion.div
+      ref={sectionRef}
+      className="landing-story__block"
+      aria-labelledby="landing-story-title"
+      style={reducedMotion ? undefined : { y, opacity }}
+    >
+      <div className="landing-story__heading">
+        <p className="landing-eyebrow">01 · Form &amp; Belastung</p>
+        <h2 id="landing-story-title">Belastung wird lesbar.</h2>
+        <p>
+          Acht Wochen Training in einer Spur: Last, Aufbau, Dichte und Rhythmus — damit klar wird,
+          wann Training trägt und wann Erholung dazugehört.
+        </p>
+      </div>
+      <div className="landing-story__chart">
+        <TraceCard
+          lanes={loadLanes}
+          r0={0}
+          r1={Math.max(0, loadRows.length - 1)}
+          totalDays={loadRows.length}
+          todayIdx={loadRows.length - 1}
+          eventIdx={null}
+          formatDay={(index) => loadRows[index]?.label ?? ""}
+          dense
+        />
+      </div>
+    </motion.div>
+  );
+}
+
+function ScrollStory() {
+  return (
+    <section id="demo-preview" className="landing-story" aria-label="Demo-Einblick">
+      <div className="landing-story__sticky">
+        <LoadStoryBlock />
+      </div>
+    </section>
+  );
+}
+
+export function LandingPage() {
+  return (
+    <main className="landing-page">
+      <section className="landing-hero" aria-labelledby="landing-title">
+        <div className="landing-hero__copy">
+          <p className="landing-eyebrow">Training Intelligence</p>
+          <h1 id="landing-title">
+            Dein Training.
+            <br />
+            <span>Klarer gesehen.</span>
+          </h1>
+          <p className="landing-hero__intro">
+            Ein persönliches Trainingsdashboard für Belastung, Form und Fortschritt — mit Daten,
+            die nicht im Weg stehen, sondern Entscheidungen leichter machen.
+          </p>
+          <div className="landing-hero__actions">
+            <a className="landing-button landing-button--primary" href="#demo-preview">
+              Demo ansehen
+            </a>
+            <a className="landing-button landing-button--ghost" href="/app">
+              Zum Dashboard
+            </a>
+          </div>
+          <dl className="landing-metrics" aria-label="Demo-Datensatz">
+            <div>
+              <dt>Zeitraum</dt>
+              <dd>{weekCount} Wochen</dd>
+            </div>
+            <div>
+              <dt>Aktivitäten</dt>
+              <dd>{activityCount}</dd>
+            </div>
+            <div>
+              <dt>Sportarten</dt>
+              <dd>{sportCount}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div className="landing-signature" aria-hidden="true">
+          <div className="landing-signature__orb landing-signature__orb--large" />
+          <div className="landing-signature__orb landing-signature__orb--small" />
+          <div className="landing-signature__grid" />
+          <div className="landing-signature__line landing-signature__line--one" />
+          <div className="landing-signature__line landing-signature__line--two" />
+          <div className="landing-signature__readout">
+            <span>LOAD / FORM / PROGRESS</span>
+            <strong>↗</strong>
+          </div>
+        </div>
+      </section>
+
+      <ScrollStory />
+    </main>
+  );
+}
