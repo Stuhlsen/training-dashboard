@@ -77,7 +77,7 @@ export function Layout() {
             <UserMenu label={accountLabel} onSignOut={() => void signOut()} />
           ) : (
             <NavLink
-              to="/login"
+              to="/app/login"
               style={({ isActive }) => ({
                 ...PILL_BUTTON_STYLE,
                 background: isActive ? "rgba(255,255,255,0.14)" : "var(--hair)",

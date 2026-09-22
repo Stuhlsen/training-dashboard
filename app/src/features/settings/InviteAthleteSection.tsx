@@ -76,7 +76,7 @@ export function InviteAthleteSection() {
       setError(translateError(result.error));
       return;
     }
-    const url = new URL("/onboarding/accept", window.location.origin);
+    const url = new URL("/app/onboarding/accept", window.location.origin);
     url.searchParams.set("token_hash", result.hashedToken);
     url.searchParams.set("type", "invite");
     setLink(url.toString());
