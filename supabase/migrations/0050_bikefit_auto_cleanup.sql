@@ -6,58 +6,43 @@
 -- Referenz: planning/fahrplan-16-bikefitting.md (E8)
 --
 -- Nicht abgeschlossene Fittings (status = 'active', created_at älter als 30 Tage)
--- werden auf status = 'abandoned' gesetzt, und verwaiste Storage-Einträge
--- aus bikefit_iterations (photo_path_*) gelöscht / genullt.
+-- werden auf status = 'abandoned' gesetzt — rein Metadaten, KEIN Storage-Zugriff.
+--
+-- Bewusst metadata-only (Tony, 22.09.2026, vor dem ersten Einspielen entdeckt):
+-- 1. storage.objects hat seit storage-api-Migration 0055 einen
+--    protect_objects_delete-Trigger, der ein rohes DELETE FROM storage.objects
+--    verweigert, solange storage.allow_delete_query nicht in derselben Session
+--    gesetzt ist — eine plpgsql-Funktion ohne das bricht dort mit Exception ab,
+--    und da kein exception handler in der Loop sitzt, rollt der GESAMTE Lauf
+--    zurück (auch die status-Updates).
+-- 2. Selbst mit gesetztem Flag würde ein rohes DELETE nur die DB-Zeile
+--    entfernen, nicht die physische Datei — storage-api löscht die Datei vom
+--    Backend nur über seinen eigenen deleteObject()-API-Pfad, es gibt keinen
+--    DB-Trigger/Queue-Mechanismus, der das synchronisiert.
+-- Die echte Foto-Löschung (DB-Zeile + Datei atomar) läuft deshalb NICHT hier,
+-- sondern im apps01-Sync-Container (hält bereits den Service-Role-Key und
+-- kann DELETE /storage/v1/object/... aufrufen) — s. offene-punkte.md.
 -- ============================================================
 
--- Funktion zum Bereinigen veralteter aktiver Fittings (> 30 Tage)
+-- Funktion zum Bereinigen veralteter aktiver Fittings (> 30 Tage) — Metadaten only
+-- drop nötig: alte Fassung hatte eine andere Rückgabetabelle (cleaned_iterations
+-- zusätzlich), create or replace kann den Rückgabetyp nicht ändern
+drop function if exists public.cleanup_abandoned_bikefits();
+
 create or replace function public.cleanup_abandoned_bikefits()
-returns table(cleaned_fittings integer, cleaned_iterations integer)
-language plpgsql security definer set search_path = public, storage as $$
+returns table(cleaned_fittings integer) language plpgsql security definer set search_path = public as $$
 declare
   fitting_count integer := 0;
-  iteration_count integer := 0;
-  updated_rows integer;
-  r record;
 begin
-  -- 1. Finde alle verwaisten aktiven Fittings älter als 30 Tage
-  for r in
-    select id from public.bikefit_fittings
-    where status = 'active'
-      and created_at < now() - interval '30 days'
-  loop
-    -- Lösche zugehörige Storage-Objekte
-    delete from storage.objects
-    where bucket_id = 'bikefit-photos'
-      and (
-        name in (
-          select photo_path_legs from public.bikefit_iterations
-          where fitting_id = r.id and photo_path_legs is not null
-          union
-          select photo_path_riding from public.bikefit_iterations
-          where fitting_id = r.id and photo_path_riding is not null
-        )
-      );
+  update public.bikefit_fittings
+  set status = 'abandoned',
+      completed_at = now()
+  where status = 'active'
+    and created_at < now() - interval '30 days';
 
-    -- Nulle die Pfade in bikefit_iterations (Datenschutz)
-    update public.bikefit_iterations
-    set photo_path_legs = null,
-        photo_path_riding = null
-    where fitting_id = r.id;
+  get diagnostics fitting_count = row_count;
 
-    get diagnostics updated_rows = row_count;
-    iteration_count := iteration_count + updated_rows;
-
-    -- Setze Fitting auf abandoned
-    update public.bikefit_fittings
-    set status = 'abandoned',
-        completed_at = now()
-    where id = r.id;
-
-    fitting_count := fitting_count + 1;
-  end loop;
-
-  return query select fitting_count, iteration_count;
+  return query select fitting_count;
 end;
 $$;
 
