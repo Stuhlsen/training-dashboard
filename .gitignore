@@ -26,6 +26,15 @@ agent/
 data/skills/
 skills-lock.json
 
+# Impeccable-Skill (Claude Code + GitHub Copilot) lädt sich seit v4.1 eine
+# kompilierte, plattformspezifische Engine nach (~15MB je Betriebssystem,
+# `impeccable update`) statt reiner .mjs-Quelldateien wie zuvor — gehört
+# ebenso wenig ins Repo wie die Fallow-Artefakte oben.
+.claude/skills/impeccable/scripts/bin/
+.claude/skills/impeccable/scripts/data/
+.github/skills/impeccable/scripts/bin/
+.github/skills/impeccable/scripts/data/
+
 # Lesedaten — seit Fahrplan 3 Fenster C (Issue #31, 30.08.2026) nicht mehr
 # versioniert. Der Sync läuft als Container auf apps01 und schreibt data/*.json
 # direkt ins geteilte Volume; das Repo ist nicht mehr die Quelle. Lokal für
