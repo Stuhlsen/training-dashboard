@@ -132,6 +132,48 @@ test("buildAnswersViewModel: nur Frage 1 (Werde ich stärker?) trägt die Power-
   expect(vm!.groups.filter((g) => g.hasPowerCurve).length).toBe(1);
 });
 
+test("buildAnswersViewModel: isMultiSport aus DB-Sportarten (Fahrplan 21 E2), nicht config.ts", () => {
+  // Synthetischer Athlet mit > 1 Sportart AUS DER DB (nicht aus config.ts):
+  // buildAnswersViewModel akzeptiert das sports-Feld und leitet isMultiSport
+  // daraus ab (Cross-Sport-Last im Belastungswächter). Golden Master: ohne
+  // sports (Athlet 1) bleibt es single-sport, VM ist identisch gültig.
+  const rides = buildFixtureRides();
+  const ridesAll = [...rides, makeRide({ dateISO: TODAY, sport: "run", trimp: 200, ctl: 50, atl: 60 })];
+  const multi = buildAnswersViewModel({
+    rides,
+    wellness: buildFixtureWellness(),
+    planCards: NO_CARDS,
+    events: NO_EVENTS,
+    athleteCfg: athleteConfig("athlete1"),
+    athleteFtp: null,
+    athleteWeightKg: 75,
+    powerCurves: null,
+    unit: "W",
+    todayISO: TODAY,
+    // DB-Sportarten mit Länge > 1 → isMultiSport = true
+    sports: ["ride", "run"],
+    ridesAll,
+  });
+  expect(multi).toBeTruthy();
+  expect(multi!.groups.length).toBeGreaterThan(0);
+
+  // Golden Master: fehlendes sports (Athlet 1) → single-sport, VM bleibt gültig.
+  const single = buildAnswersViewModel({
+    rides,
+    wellness: buildFixtureWellness(),
+    planCards: NO_CARDS,
+    events: NO_EVENTS,
+    athleteCfg: athleteConfig("athlete1"),
+    athleteFtp: null,
+    athleteWeightKg: 75,
+    powerCurves: null,
+    unit: "W",
+    todayISO: TODAY,
+    ridesAll,
+  });
+  expect(single).toBeTruthy();
+});
+
 test("buildAnswersViewModel: W/kg-Umschalter ändert die eFTP-Hero-Kennzahl, nicht CTL/TSB", () => {
   const input = {
     rides: buildFixtureRides(),

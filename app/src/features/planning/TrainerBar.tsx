@@ -117,8 +117,9 @@ export function TrainerBar({
   const today = checkinToday(weekCheckins, TODAY);
   const subjective = getSubjectiveReadiness(weekCheckins, TODAY);
   const doneDates = doneDatesOf(rides);
+  const sports = useAthleteSports(athleteId);
   const briefing = buildBriefingInfo(rides, wellness, cards, doneDates, subjective, TODAY, {
-    multiSport: useAthleteSports(athleteId).length > 1,
+    multiSport: sports.length > 1,
   });
   const tsb = currentPmc(rides, TODAY)?.tsb ?? null;
   const tsbData = tsbTileData(tsb, events, projection, TODAY);

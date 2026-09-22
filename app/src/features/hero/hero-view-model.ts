@@ -20,6 +20,7 @@
    ============================================================ */
 
 import { athleteConfig, type AthleteConfig } from "../../config";
+import type { Sport } from "../../api/types";
 import { fmtDate, weatherIcon, windDir, fmt, fmtInt, fmtDuration } from "../../core/format.js";
 import { sum, avg, maxVal } from "../../core/stats.js";
 import { currentPmc, tsbTrend } from "../../core/pmc.js";
@@ -141,6 +142,11 @@ export interface HeroCoreInput {
   planCards: PlanCard[];
   subjective: Subjective | null;
   todayISO: string;
+  /** Aktive Sportarten des Athleten (Fahrplan 21 E2) — aus dem DB-gestützten
+   *  `useAthleteSports`-Hook, nicht mehr aus `config.ts`. Steuert `multiSport`
+   *  für die gemeinsame Last-/Cross-Sport-Anzeige. Vor E3 liegt der
+   *  `config.ts`-Fallback vor, der Hook liefert ihn identisch. */
+  sports: readonly Sport[];
   /** Ungefilterte Aktivitätsliste ALLER Sportarten (Fahrplan 10 E8b, aus
    *  `useRides`s `ridesAll`). Verankert die gemeinsame CTL/ATL/TSB-Anzeige, s.
    *  `buildBriefingInfo`. Fehlt ⇒ `rides` (Athlet 1/2/4 = Single-Sport). */
@@ -555,7 +561,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const session = buildSession(planCards, doneDates, ftpVal, todayISO);
   const weatherToday = buildWeatherToday(forecast, todayISO);
   const briefing = buildBriefingInfo(rides, wellness, planCards, doneDates, subjective, todayISO, {
-    multiSport: (athleteCfg?.sports?.length ?? 1) > 1,
+    multiSport: (input.sports?.length ?? 1) > 1,
     pmcRides: pmcRides ?? rides,
   });
   const readiness = assessReadiness(wellness, todayISO);

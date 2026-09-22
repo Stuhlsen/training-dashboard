@@ -38,7 +38,7 @@ import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics";
 import type { AthleteConfig } from "../../config";
 import type { LaneDisplay } from "../../charts/TraceLane";
 import type { LaneSpecInput, TraceLaneConfig } from "../../charts/TraceCard";
-import type { EventItem, PlanCard as PlanCardT } from "../../api/types";
+import type { EventItem, PlanCard as PlanCardT, Sport } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -189,6 +189,12 @@ export interface AnswersViewModelInput {
    *  `useRides`s `ridesAll`) — Cross-Sport-Last für den Belastungswächter
    *  (Fahrplan 13 E1/X1). Fehlt ⇒ `rides` (Athlet 1/2/4 = Single-Sport). */
   ridesAll?: Ride[];
+  /** Aktive Sportarten des Athleten (Fahrplan 21 E2) — aus dem DB-gestützten
+   *  `useAthleteSports`-Hook, nicht mehr aus `config.ts`. Steuert `isMultiSport`
+   *  für den Belastungswächter. Vor E3 liegt der `config.ts`-Fallback vor.
+   *  Optional/non-breaking: fehlt in Alt-Aufrufen (Golden Master bleibt
+   *  single-sport). */
+  sports?: readonly Sport[];
 }
 
 const VERDICT_COLOR: Record<string, string> = {
@@ -319,7 +325,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   // buildLoadGuard `ridesAll` (ungefiltert) statt der tab-gefilterten
   // `rides` — dieselbe Woche summiert dann TSS (Rad) + TRIMP (Lauf/Schwimm)
   // roh. Ohne multiSport (Athlet 1/2/4) bleibt es `rides`.
-  const isMultiSport = (athleteCfg?.sports?.length ?? 1) > 1;
+  const isMultiSport = (input.sports?.length ?? 1) > 1;
   const loadGuardRides = isMultiSport ? (ridesAll ?? rides) : rides;
   const loadWeeks = buildLoadGuard(loadGuardRides, (r) => isoWeekKey(r.dateISO), (a, b) => a.localeCompare(b), {
     multiSport: isMultiSport,

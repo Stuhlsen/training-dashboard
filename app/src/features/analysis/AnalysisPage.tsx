@@ -90,7 +90,10 @@ export function AnalysisPage() {
   const { effectiveSport } = useEffectiveSport(activeAthleteId);
   // Eigenlast-Wochendeckel des Governors nur für Athleten mit > 1 Sportart
   // (Fahrplan 10 E8a) — für 1/2/4 exakt das Verhalten vor E6.
-  const multiSport = useAthleteSports(activeAthleteId).length > 1;
+  // Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts — einmal
+  // aufrufen und für multiSport UND buildAnswersViewModel wiederverwenden.
+  const sports = useAthleteSports(activeAthleteId);
+  const multiSport = sports.length > 1;
   const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);
@@ -139,6 +142,8 @@ export function AnalysisPage() {
         // Cross-Sport-Last (Fahrplan 13 E1/X1): dieselbe Quelle wie briefing/
         // loadRows unten.
         ridesAll,
+        // Aktive Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts.
+        sports,
       }),
     [rides, wellness, cards, eventList, athleteCfg, athleteData, unit, cadenceTarget, ridesAll],
   );

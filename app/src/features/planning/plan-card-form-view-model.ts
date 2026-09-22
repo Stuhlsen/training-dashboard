@@ -11,9 +11,8 @@
 
 import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
 import { RUNNING_KNOWN_TYPES } from "../../sports/running/session-types";
-import { athleteConfig } from "../../config";
 import type { WorkoutBlock, WorkoutBlocks } from "./planning-view-model";
-import type { PlanCard } from "../../api/types";
+import type { PlanCard, Sport } from "../../api/types";
 
 /** Vom Sport-Picker im Formular wählbare Sportarten — bewusst nur zwei
  *  (Fahrplan 12 G19: Schwimmen hat in Phase 2 keinen Formularpfad). */
@@ -46,9 +45,10 @@ export function planTypesForSport(sport: PlanFormSport): readonly string[] {
 
 /** Zeigt das Formular den Sport-Picker? Nur bei Athleten mit > 1 Sportart
  *  (Fahrplan 12 G20) — Athlet 1/2/4 (`sports` fehlt oder `["ride"]`) sehen
- *  ihn nie. */
-export function showSportPicker(athleteId: string): boolean {
-  const sports = athleteConfig(athleteId)?.sports;
+ *  ihn nie. Die Sportartenliste kommt aus dem DB-gestützten
+ *  `useAthleteSports`-Hook (Fahrplan 21 E2), nicht mehr aus `config.ts` —
+ *  sonst bliebe ein über Settings freigeschalteter Sport im Formular unsichtbar. */
+export function showSportPicker(sports: readonly Sport[]): boolean {
   return sports != null && sports.length > 1;
 }
 

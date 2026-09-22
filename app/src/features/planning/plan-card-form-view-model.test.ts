@@ -9,7 +9,7 @@ import {
 } from "./plan-card-form-view-model";
 import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
 import { RUNNING_KNOWN_TYPES } from "../../sports/running/session-types";
-import type { PlanCard } from "../../api/types";
+import type { PlanCard, Sport } from "../../api/types";
 
 describe("parsePaceInput / formatPaceSec", () => {
   it("mm:ss → Sekunden pro km", () => {
@@ -59,12 +59,16 @@ describe("planTypesForSport", () => {
 });
 
 describe("showSportPicker", () => {
-  it("nur bei Athleten mit > 1 Sportart", () => {
-    expect(showSportPicker("athlete3")).toBe(true); // sports: ride/run/swim
-    expect(showSportPicker("athlete1")).toBe(false);
-    expect(showSportPicker("athlete2")).toBe(false);
-    expect(showSportPicker("athlete4")).toBe(false);
-    expect(showSportPicker("unbekannt")).toBe(false);
+  it("nur bei Athleten mit > 1 Sportart (Sport-Array, nicht config.ts)", () => {
+    // Multi-Sport: Rad + Lauf (wie ein Athlet, der über Settings "Lauf" freischaltet)
+    expect(showSportPicker(["ride", "run"] as unknown as Sport[])).toBe(true);
+    expect(showSportPicker(["ride", "run", "swim"] as unknown as Sport[])).toBe(true);
+    // Single-Sport (Athlet 1/2/4): Sport-Picker bleibt versteckt
+    expect(showSportPicker(["ride"] as unknown as Sport[])).toBe(false);
+    expect(showSportPicker(["run"] as unknown as Sport[])).toBe(false);
+    // Keine/leere Liste: defensiv false (kein Picker)
+    expect(showSportPicker([] as unknown as Sport[])).toBe(false);
+    expect(showSportPicker(null as unknown as Sport[])).toBe(false);
   });
 });
 

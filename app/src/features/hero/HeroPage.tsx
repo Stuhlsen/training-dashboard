@@ -8,6 +8,7 @@ import { useTodayCheckin } from "../../api/hooks/useWellbeing";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useEvents, raceCountdown } from "../../api/hooks/useEvents";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { athleteConfig } from "../../config";
 import { localISODate, fmtPace } from "../../core/format.js";
 import { estimateThresholdSpeed } from "../../core/critical-speed.js";
@@ -135,6 +136,9 @@ export function HeroPage() {
       // eingeloggte. Beide Zweige sind stabile Referenzen (react-query-Cache
       // bzw. Hook-Konstante), kein Neu-Array pro Render.
       ftpHistoryEntries: isSelf ? ftpHistoryEntries : (athleteData?.ftpHistory ?? []),
+      // Aktive Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts —
+      // steuert multiSport für die gemeinsame Last-/Cross-Sport-Anzeige.
+      sports: useAthleteSports(activeAthleteId),
     });
   }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);

@@ -5,6 +5,7 @@ import { addProposalArgs, replaceProposalArgs } from "../../core/proposal-payloa
 import { useCreatePlanCard, useDeletePlanCard, useUpdatePlanCard } from "../../api/hooks/usePlanCards";
 import { useCreateTrainerProposal } from "../../api/hooks/useProposals";
 import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { fmtPace, paceSecFromSpeedKmh } from "../../core/format.js";
 import type { PlanCard, PlanCardInput } from "../../api/types";
 import type { WorkoutBlock, WorkoutBlockType } from "./planning-view-model";
@@ -85,7 +86,10 @@ export function PlanCardForm({
   // bestehende Schwimm-Karte hat in Phase 2 keinen Formularpfad: Picker aus,
   // `sport` beim Speichern unverändert durchreichen (kein stiller Verlust).
   const isSwimCard = editingCard?.sport === "swim";
-  const pickerVisible = showSportPicker(athleteId) && !isSwimCard;
+  // Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts — sonst
+  // bliebe ein über Settings freigeschalteter Sport im Formular unsichtbar.
+  const sports = useAthleteSports(athleteId);
+  const pickerVisible = showSportPicker(sports) && !isSwimCard;
   const { effectiveSport } = useEffectiveSport(athleteId);
   const initialSport: PlanFormSport =
     editingCard?.sport === "run"

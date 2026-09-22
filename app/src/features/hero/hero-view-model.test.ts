@@ -43,6 +43,9 @@ const BASE_INPUT: HeroViewModelInput = {
   subjective: null,
   todayISO: "2026-07-23",
   whatIfFtp: 210,
+  // Golden Master (Fahrplan 21 E2): Athlet 1 = Single-Sport aus der DB, nicht
+  // mehr aus config.ts — multiSport bleibt false.
+  sports: ["ride"],
 };
 
 describe("buildHeroViewModel", () => {
