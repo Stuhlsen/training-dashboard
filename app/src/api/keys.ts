@@ -18,6 +18,11 @@ export const qk = {
    *  Viewer-UID, weil der Wert autorisierungsabhängig ist (Nicht-Coach → 0). */
   athletePlanOffset: (userId: string, athleteId: string) =>
     ["athlete-plan-offset", userId, athleteId] as const,
+  /** Sportarten (Migration 0052, Fahrplan 21 E2) des betrachteten Athleten —
+   *  mit Viewer-UID, weil der Wert beim gecoachten Fremdathleten über
+   *  `profiles_visible` (Trainer-Sicht) autorisierungsabhängig ist. */
+  athleteSports: (userId: string, athleteId: string) =>
+    ["athlete-sports", userId, athleteId] as const,
   /** Profil des eingeloggten Users (Session-gebunden, nicht Toggle-gebunden) */
   profile: (userId: string) => ["profile", userId] as const,
   /** Die privaten profiles_own-Felder (Geburtsdatum, Ruhepuls, Geschlecht,

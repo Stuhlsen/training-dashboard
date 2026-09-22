@@ -10,7 +10,7 @@ import { useAuth } from "../api/auth/useAuth";
 // wie `auth` oben — useActiveAthlete ist ein reiner localStorage-Hook ohne
 // I/O (AGENTS.md-Abhängigkeitstabelle).
 import { useActiveAthlete } from "../api/hooks/useActiveAthlete";
-import { ATHLETES } from "../config";
+import { useAthleteSports } from "../api/hooks/useAthleteSports";
 // hooks/-Schicht: darf api/ laden (AGENTS.md). Damit muss UserMenu (components/)
 // den Namen nicht selbst aus api/hooks holen — bekommt ihn als Prop.
 import { useAccountLabel } from "../hooks/account-label";
@@ -38,8 +38,7 @@ export function Layout() {
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const accountLabel = useAccountLabel();
 
-  const activeAthleteCfg = ATHLETES.find((a) => a.id === activeAthleteId);
-  const sports = activeAthleteCfg?.sports ?? ["ride"];
+  const sports = useAthleteSports(activeAthleteId);
   const hasCycling = sports.includes("ride");
 
   const navItems = [

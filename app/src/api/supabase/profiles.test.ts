@@ -98,6 +98,7 @@ describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
         ladderProgressionEnabled: true,
         unitsPreference: "km",
         planOffsetWeeks: 2,
+        sports: ["ride"],
       },
     });
   });

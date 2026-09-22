@@ -17,6 +17,7 @@ import { athleteConfig, hasGeneratedPlan } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useEffectiveSport } from "../../api/hooks/useActiveSport";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { useActiveWeekModel } from "../../api/hooks/useActiveTrainingPlan";
 import { useCanCreatePlan, useCanWriteForAthlete, useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useTrainerContext } from "../../api/hooks/useTrainerContext";
@@ -177,7 +178,7 @@ export function PlanningPage() {
   // Woche" ist die echte, laufende Kalenderwoche (CURRENT_WEEK_KEY) —
   // unabhängig vom gerade betrachteten Plan-Block/Sport-Tab, deshalb aus
   // `ridesAll` (ungefiltert über alle Sportarten) statt `rides`.
-  const athleteSports = athleteConfig(activeAthleteId)?.sports ?? [];
+  const athleteSports = useAthleteSports(activeAthleteId);
   const showWeeklyVolume = athleteSports.length > 1;
   const weeklyVolume = useMemo(
     () => weeklyVolumeBySport((rideData?.ridesAll as Ride[] | undefined) ?? [], CURRENT_WEEK_KEY),

@@ -120,6 +120,7 @@ describe("useUpdateDisplayName", () => {
       ladderProgressionEnabled: false,
       unitsPreference: "km",
       planOffsetWeeks: 0,
+    sports: ["ride"],
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -159,6 +160,7 @@ describe("useUpdateWellbeingPublic", () => {
       ladderProgressionEnabled: false,
       unitsPreference: "km",
       planOffsetWeeks: 0,
+    sports: ["ride"],
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -185,6 +187,7 @@ describe("useUpdateFtpPublic (Migration 0025)", () => {
       ladderProgressionEnabled: false,
       unitsPreference: "km",
       planOffsetWeeks: 0,
+    sports: ["ride"],
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 
@@ -211,6 +214,7 @@ describe("useUpdateLadderProgressionEnabled", () => {
       ladderProgressionEnabled: false,
       unitsPreference: "km",
       planOffsetWeeks: 0,
+    sports: ["ride"],
     };
     queryClient.setQueryData(["profile", "user-1"], profile);
 

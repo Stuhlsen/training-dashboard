@@ -1,5 +1,5 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { athleteConfig } from "../../config";
+import { useAthleteSports } from "./useAthleteSports";
 
 /** Aktive Sportart im Sport-Umschalter (Fahrplan 10 E8a). Muster 1:1 wie
  *  `useActiveAthlete`: ein modul-weiter Zustand + `useSyncExternalStore`, damit
@@ -28,12 +28,10 @@ function readStoredSport(): ActiveSport {
   return valid ? (saved as ActiveSport) : "ride";
 }
 
-let currentSport: ActiveSport = readStoredSport();
 const listeners = new Set<() => void>();
 
 function setStoredSport(sport: ActiveSport) {
   localStorage.setItem(STORAGE_KEY, sport);
-  currentSport = sport;
   listeners.forEach((listener) => listener());
 }
 
@@ -43,7 +41,11 @@ function subscribe(listener: () => void) {
 }
 
 function getSnapshot() {
-  return currentSport;
+  // Frisch aus localStorage lesen (nicht den Modul-Cache `currentSport`) —
+  // sonst bleibt ein in einem anderen Test gesetzter Wert über beforeEach
+  // (localStorage.clear()) hinweg hängen. `setStoredSport` schreibt ebenfalls
+  // direkt nach localStorage, also ist der Wert hiernach konsistent.
+  return readStoredSport();
 }
 
 /** Der roh gespeicherte Umschalter-Zustand. Meist willst du
@@ -63,7 +65,7 @@ export function useActiveSport() {
  *  nicht, ist `effectiveSport` schlicht `"ride"`. */
 export function useEffectiveSport(athleteId: string) {
   const { activeSport, setActiveSport } = useActiveSport();
-  const sports = athleteConfig(athleteId)?.sports ?? (["ride"] as const);
+  const sports = useAthleteSports(athleteId);
   const effectiveSport: ActiveSport = (sports as readonly string[]).includes(activeSport)
     ? activeSport
     : "ride";

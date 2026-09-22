@@ -28,6 +28,7 @@ import { useTrainerViewPrefs } from "../../api/hooks/useTrainerViewPrefs";
 import { useCheckinRange } from "../../api/hooks/useWellbeing";
 import { useProposals } from "../../api/hooks/useProposals";
 import { useAuthUserId } from "../../api/hooks/useSession";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { athleteConfig } from "../../config";
 import { addDaysISO, localISODate } from "../../core/format.js";
 import { getSubjectiveReadiness } from "../../core/readiness.js";
@@ -117,7 +118,7 @@ export function TrainerBar({
   const subjective = getSubjectiveReadiness(weekCheckins, TODAY);
   const doneDates = doneDatesOf(rides);
   const briefing = buildBriefingInfo(rides, wellness, cards, doneDates, subjective, TODAY, {
-    multiSport: (athleteConfig(athleteId)?.sports?.length ?? 1) > 1,
+    multiSport: useAthleteSports(athleteId).length > 1,
   });
   const tsb = currentPmc(rides, TODAY)?.tsb ?? null;
   const tsbData = tsbTileData(tsb, events, projection, TODAY);

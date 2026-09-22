@@ -6,8 +6,8 @@ import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useRides } from "../../api/hooks/useRides";
 import { useEvents } from "../../api/hooks/useEvents";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { localISODate, fmtDate, fmtDateFull } from "../../core/format.js";
-import { athleteConfig } from "../../config";
 import { resolvePlanningFtp } from "./planning-view-model";
 import { asWorkoutBlocks } from "./planning-view-model";
 import { impactDetail, sidesFor, type CompareCardData } from "./proposal-review-view-model";
@@ -132,7 +132,7 @@ export function ProposalCompare({
   // sportübergreifende) erste volle Planwoche, sonst wäre jeder Vergleich
   // ein Äpfel-Birnen-Sprung. `?? 1` wie in answers-view-model.ts/
   // hero-view-model.ts (Fahrplan 13 E1) — kein neuer Fallback-Wert.
-  const multiSport = (athleteConfig(athleteId)?.sports?.length ?? 1) > 1;
+  const multiSport = useAthleteSports(athleteId).length > 1;
   const rides = ((multiSport ? (rideData?.ridesAll ?? rideData?.rides) : rideData?.rides) as Ride[] | undefined) ?? [];
   const offsetWeeks = useAthletePlanOffset(athleteId);
   const ctx = { cards: cards ?? [], rides, events: events ?? [], ftp, today: TODAY, athleteId, offsetWeeks, multiSport };

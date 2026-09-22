@@ -4,7 +4,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useAthleteProfileId } from "../../api/hooks/useAthleteProfileId";
 import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
-import { ATHLETES } from "../../config";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { useBikesPublic } from "../../api/hooks/useBikes";
 import {
   useActiveFitting,
@@ -71,10 +71,8 @@ export function BikefitPage() {
   const { activeAthleteId } = useActiveAthlete();
   const { data: athleteProfileId } = useAthleteProfileId(activeAthleteId);
   const canWrite = useCanWriteForAthlete(activeAthleteId);
-  const activeAthleteCfg = ATHLETES.find((a) => a.id === activeAthleteId);
-
   // Gating: Sportart Radsport aktiv?
-  const athleteSports = activeAthleteCfg?.sports ?? ["ride"];
+  const athleteSports = useAthleteSports(activeAthleteId);
   const hasCycling = athleteSports.includes("ride");
 
   const { bikes, isLoading: loading } = useBikesPublic(activeAthleteId);

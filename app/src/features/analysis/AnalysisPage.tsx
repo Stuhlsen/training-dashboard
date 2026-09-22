@@ -18,6 +18,7 @@ import { InfoTooltip } from "../../components/InfoTooltip";
 import { PageShell } from "../../components/PageShell";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useEffectiveSport } from "../../api/hooks/useActiveSport";
+import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useRides } from "../../api/hooks/useRides";
 import { useEvents } from "../../api/hooks/useEvents";
@@ -89,7 +90,7 @@ export function AnalysisPage() {
   const { effectiveSport } = useEffectiveSport(activeAthleteId);
   // Eigenlast-Wochendeckel des Governors nur für Athleten mit > 1 Sportart
   // (Fahrplan 10 E8a) — für 1/2/4 exakt das Verhalten vor E6.
-  const multiSport = (athleteCfg?.sports?.length ?? 1) > 1;
+  const multiSport = useAthleteSports(activeAthleteId).length > 1;
   const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
   const { data: events } = useEvents(activeAthleteId);

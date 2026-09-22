@@ -19,6 +19,10 @@ export type Result<T extends object = object> =
 
 export type Role = "athlete" | "coach";
 
+/** Wählbare Sportart (Fahrplan 21). Rad/Lauf/Schwimm — „Sonstiges" ist kein
+ *  wählbarer Zustand (kein eigenes `sports/`-Profil, s. Fahrplan-21-Q3). */
+export type Sport = "ride" | "run" | "swim";
+
 export interface Profile {
   id: string;
   displayName: string | null;
@@ -42,6 +46,12 @@ export interface Profile {
    *  später. Steuert die Datierung der `plan_cards`, das offset-fähige
    *  Plan-Wochen-Modell und die Sync-Baseline. */
   planOffsetWeeks: number;
+  /** Migration 0052 (Fahrplan 21, E1) — Sportarten des Athleten, self-service
+   *  wie `ftpPublic`/`unitsPreference` und sichtbar für Athlet + zugeordneten
+   *  Trainer über `profiles_visible` (Q5). Spaltenrestriktiv auf
+   *  ` ride,run,swim `, mindestens eine Sportart. Bis ein DB-Wert vorliegt,
+   *  lesen die Lesepfade den `config.ts`-Fallback (s. useAthleteSports). */
+  sports: readonly Sport[];
 }
 
 /** Die eigene Zeile aus der View `profiles_own` (Migration 0039, Fahrplan 17

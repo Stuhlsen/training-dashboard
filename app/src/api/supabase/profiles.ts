@@ -3,7 +3,7 @@ import type { Profile, ProfileOwnFields, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
-  "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, ladder_progression_enabled, units_preference, plan_offset_weeks";
+  "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, ladder_progression_enabled, units_preference, plan_offset_weeks, sports";
 
 interface ProfileRow {
   id: string;
@@ -16,6 +16,7 @@ interface ProfileRow {
   ladder_progression_enabled: boolean;
   units_preference: Profile["unitsPreference"];
   plan_offset_weeks: number;
+  sports: Profile["sports"];
 }
 
 function toProfile(row: ProfileRow): Profile {
@@ -30,6 +31,7 @@ function toProfile(row: ProfileRow): Profile {
     ladderProgressionEnabled: row.ladder_progression_enabled,
     unitsPreference: row.units_preference,
     planOffsetWeeks: row.plan_offset_weeks ?? 0,
+    sports: row.sports ?? ["ride"],
   };
 }
 
