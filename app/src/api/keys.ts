@@ -121,4 +121,13 @@ export const qk = {
   /** Iterations-Zeitpunkte für den Bike-Fit-Marker im Fahrtenbuch (Fahrplan 16
    *  E9/OF-4) — athletenscharf wie qk.events(). */
   bikefitMarkerDates: (athleteId: string) => ["bikefit-marker-dates", athleteId] as const,
+  /** Eigene Räder (mit notes) des eingeloggten Users — Settings-Verwaltung. */
+  bikes: (userId: string) => ["bikes", userId] as const,
+  /** Räder eines beliebigen angezeigten Athleten OHNE notes (bikes_public-View,
+   *  Migration 0051) — Bike-Fit-Tab, athletenscharf wie qk.events(). */
+  bikesPublic: (athleteId: string) => ["bikes-public", athleteId] as const,
+  /** Aktives Fitting eines Rads (höchstens eines pro Rad, B4). */
+  activeFitting: (bikeId: string) => ["active-fitting", bikeId] as const,
+  /** Iterationen eines Fittings, sequenzsortiert. */
+  fittingIterations: (fittingId: string) => ["fitting-iterations", fittingId] as const,
 } as const;

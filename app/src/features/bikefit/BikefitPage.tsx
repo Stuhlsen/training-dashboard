@@ -1,21 +1,19 @@
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { PageShell } from "../../components/PageShell";
 import { GlassCard } from "../../components/GlassCard";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useAthleteProfileId } from "../../api/hooks/useAthleteProfileId";
 import { useCanWriteForAthlete } from "../../api/hooks/useWriteAuthorization";
 import { ATHLETES } from "../../config";
-import { getBikesPublic, type PublicBike } from "../../api/supabase/bikes";
+import { useBikesPublic } from "../../api/hooks/useBikes";
 import {
-  getActiveFitting,
-  startFitting,
-  completeFitting,
-  getIterations,
-  addIteration,
-  type BikefitFitting,
-  type BikefitIteration,
-  type TargetGoal,
-} from "../../api/supabase/bikefit";
+  useActiveFitting,
+  useFittingIterations,
+  useStartFitting,
+  useCompleteFitting,
+  useAddIteration,
+} from "../../api/hooks/useBikefitState";
+import type { TargetGoal } from "../../api/supabase/bikefit";
 import { uploadBikefitPhoto, deleteBikefitPhotos } from "../../api/supabase/bikefit-storage";
 import { PointMarker, type Point, type PointDef } from "./PointMarker";
 import { IterationResult } from "./IterationResult";
@@ -79,14 +77,22 @@ export function BikefitPage() {
   const athleteSports = activeAthleteCfg?.sports ?? ["ride"];
   const hasCycling = athleteSports.includes("ride");
 
-  const [bikes, setBikes] = useState<PublicBike[]>([]);
-  const [selectedBikeId, setSelectedBikeId] = useState<string>("");
+  const { bikes, isLoading: loading } = useBikesPublic(activeAthleteId);
+  // Explizite Auswahl bleibt nur der User-Klick — welches Rad WIRKLICH
+  // angezeigt wird, ist eine reine Ableitung aus der geladenen Liste
+  // (fällt auf das erste Rad zurück, wenn die Auswahl nicht mehr existiert,
+  // z. B. nach Athleten-Wechsel). Kein Sync-Effekt nötig, s.
+  // react-hooks/set-state-in-effect / "Resetting state when a prop changes".
+  const [explicitBikeId, setExplicitBikeId] = useState<string>("");
+  const selectedBikeId = bikes.some((b) => b.id === explicitBikeId) ? explicitBikeId : (bikes[0]?.id ?? "");
   const [targetGoal, setTargetGoal] = useState<TargetGoal>("balanced");
   const [notes, setNotes] = useState("");
 
-  const [activeFitting, setActiveFitting] = useState<BikefitFitting | null>(null);
-  const [iterations, setIterations] = useState<BikefitIteration[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { fitting: activeFitting } = useActiveFitting(selectedBikeId);
+  const { iterations } = useFittingIterations(activeFitting?.id ?? "");
+  const { start: startFittingMutation } = useStartFitting(selectedBikeId);
+  const { complete: completeFittingMutation } = useCompleteFitting(selectedBikeId);
+  const { addIteration: addIterationMutation } = useAddIteration(activeFitting?.id ?? "");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Neuer Iterations-Workflow
@@ -103,63 +109,13 @@ export function BikefitPage() {
 
   const [isPending, startTransition] = useTransition();
 
-  // Räder laden
-  useEffect(() => {
-    if (!athleteProfileId) {
-      setLoading(false);
-      setBikes([]);
-      setSelectedBikeId("");
-      return;
-    }
-    setLoading(true);
-    getBikesPublic(athleteProfileId).then((res) => {
-      setLoading(false);
-      if (res.ok) {
-        setBikes(res.bikes);
-        if (res.bikes.length > 0) {
-          setSelectedBikeId((prev) => (res.bikes.some((b) => b.id === prev) ? prev : res.bikes[0].id));
-        } else {
-          setSelectedBikeId("");
-        }
-      } else {
-        setErrorMsg(res.error.message);
-      }
-    });
-  }, [athleteProfileId]);
-
-  // Aktives Fitting für ausgewähltes Rad laden
-  useEffect(() => {
-    if (!selectedBikeId) {
-      setActiveFitting(null);
-      setIterations([]);
-      return;
-    }
-    setErrorMsg(null);
-    getActiveFitting(selectedBikeId).then((res) => {
-      if (res.ok) {
-        setActiveFitting(res.fitting);
-        if (res.fitting) {
-          getIterations(res.fitting.id).then((iterRes) => {
-            if (iterRes.ok) setIterations(iterRes.iterations);
-          });
-        } else {
-          setIterations([]);
-        }
-      } else {
-        setErrorMsg(res.error.message);
-      }
-    });
-  }, [selectedBikeId]);
-
   const handleStartFitting = () => {
     if (!athleteProfileId || !selectedBikeId || !canWrite) return;
 
     startTransition(async () => {
       setErrorMsg(null);
-      const res = await startFitting(athleteProfileId, selectedBikeId, targetGoal, notes);
+      const res = await startFittingMutation({ profileId: athleteProfileId, targetGoal, notes });
       if (res.ok) {
-        setActiveFitting(res.fitting);
-        setIterations([]);
         setIsRecordingIteration(true);
       } else {
         setErrorMsg(res.error.message);
@@ -186,10 +142,8 @@ export function BikefitPage() {
         await deleteBikefitPhotos(pathsToDelete);
       }
 
-      const res = await completeFitting(activeFitting.id);
+      const res = await completeFittingMutation(activeFitting.id);
       if (res.ok) {
-        setActiveFitting(null);
-        setIterations([]);
         setIsRecordingIteration(false);
       } else {
         setErrorMsg(res.error.message);
@@ -251,8 +205,7 @@ export function BikefitPage() {
         if (upRes.ok) pathRiding = upRes.path;
       }
 
-      const res = await addIteration({
-        fittingId: activeFitting.id,
+      const res = await addIterationMutation({
         sequence: currentSequence,
         photoPathLegs: pathLegs,
         photoPathRiding: pathRiding,
@@ -264,7 +217,6 @@ export function BikefitPage() {
       if (res.ok) {
         if (legsPreview) URL.revokeObjectURL(legsPreview);
         if (ridingPreview) URL.revokeObjectURL(ridingPreview);
-        setIterations((prev) => [...prev, res.iteration]);
         setIsRecordingIteration(false);
         setLegsFile(null);
         setRidingFile(null);
@@ -380,7 +332,7 @@ export function BikefitPage() {
                 <select
                   value={selectedBikeId}
                   disabled={!!activeFitting}
-                  onChange={(e) => setSelectedBikeId(e.target.value)}
+                  onChange={(e) => setExplicitBikeId(e.target.value)}
                   style={SELECT_STYLE}
                 >
                   {bikes.map((b) => (
@@ -666,6 +618,7 @@ export function BikefitPage() {
                 {/* 2. Schritt: Beine markieren */}
                 {activeTabStep === "legs" && legsPreview && (
                   <PointMarker
+                    key={legsPreview}
                     title="Punkte: Beine am tiefsten Totpunkt"
                     description="Markiere Hüfte, Knie, Knöchel und Pedalachse im Bild."
                     imageUrl={legsPreview}
@@ -688,6 +641,7 @@ export function BikefitPage() {
                 {/* 3. Schritt: Oberkörper markieren */}
                 {activeTabStep === "riding" && ridingPreview && (
                   <PointMarker
+                    key={ridingPreview}
                     title="Punkte: Oberkörper & Cockpit"
                     description="Markiere Schulter, Ellbogen, Handgelenk und Hüfte im Bild."
                     imageUrl={ridingPreview}

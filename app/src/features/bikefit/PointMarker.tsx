@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 export interface Point {
   x: number;
   y: number;
@@ -31,18 +31,15 @@ export function PointMarker({
   description,
 }: PointMarkerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [activePointKey, setActivePointKey] = useState<string>(pointsToMark[0]?.key || "");
+  // Erster noch ungesetzter Punkt ist aktiv, sonst der erste überhaupt. Der
+  // Aufrufer (BikefitPage.tsx) rendert diese Komponente mit `key={imageUrl}` —
+  // ein Bildwechsel remountet sie also komplett, wodurch dieser Lazy-Initializer
+  // erneut greift, statt einen Reset-Effekt zu brauchen (React-Empfehlung:
+  // "Resetting state when a prop changes" per key statt per Effekt lösen).
+  const [activePointKey, setActivePointKey] = useState<string>(
+    () => pointsToMark.find((p) => !currentPoints[p.key])?.key ?? pointsToMark[0]?.key ?? ""
+  );
   const [draggedKey, setDraggedKey] = useState<string | null>(null);
-
-  // Finde den ersten noch ungesetzten Punkt beim Bildwechsel
-  useEffect(() => {
-    const unplaced = pointsToMark.find((p) => !currentPoints[p.key]);
-    if (unplaced) {
-      setActivePointKey(unplaced.key);
-    } else if (pointsToMark[0]) {
-      setActivePointKey(pointsToMark[0].key);
-    }
-  }, [imageUrl, pointsToMark]);
 
   const handlePointerDownImage = (e: React.PointerEvent<HTMLDivElement>) => {
     if (!containerRef.current || !activePointKey) return;

@@ -1,6 +1,6 @@
-import { useEffect, useState, useTransition } from "react";
-import { useSessionProfile } from "../../api/hooks/useSession";
-import { getBikes, createBike, updateBike, deleteBike, type Bike, type BikeType } from "../../api/supabase/bikes";
+import { useState, useTransition } from "react";
+import { useOwnBikes } from "../../api/hooks/useBikes";
+import type { Bike, BikeType } from "../../api/supabase/bikes";
 import { GlassCard } from "../../components/GlassCard";
 
 const BIKE_TYPE_LABELS: Record<BikeType, string> = {
@@ -33,11 +33,7 @@ const INPUT_STYLE = {
 };
 
 export function BikesSection() {
-  const profile = useSessionProfile();
-  const profileId = profile?.id;
-
-  const [bikes, setBikes] = useState<Bike[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { bikes, isLoading: loading, create, update, remove } = useOwnBikes();
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Formular-Zustand für Neuanlage
@@ -55,30 +51,14 @@ export function BikesSection() {
   const [editCrankLengthMm, setEditCrankLengthMm] = useState<string>("");
   const [editNotes, setEditNotes] = useState("");
 
-  useEffect(() => {
-    if (!profileId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-    getBikes(profileId).then((res) => {
-      setLoading(false);
-      if (res.ok) {
-        setBikes(res.bikes);
-      } else {
-        setErrorMsg(res.error.message);
-      }
-    });
-  }, [profileId]);
-
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profileId || !name.trim()) return;
+    if (!name.trim()) return;
 
     startTransition(async () => {
       setErrorMsg(null);
       const crankNum = crankLengthMm ? parseInt(crankLengthMm, 10) : null;
-      const res = await createBike(profileId, {
+      const res = await create({
         name: name.trim(),
         bikeType,
         crankLengthMm: Number.isFinite(crankNum) ? crankNum : null,
@@ -86,7 +66,6 @@ export function BikesSection() {
       });
 
       if (res.ok) {
-        setBikes((prev) => [...prev, res.bike]);
         setName("");
         setCrankLengthMm("");
         setNotes("");
@@ -111,7 +90,7 @@ export function BikesSection() {
     startTransition(async () => {
       setErrorMsg(null);
       const crankNum = editCrankLengthMm ? parseInt(editCrankLengthMm, 10) : null;
-      const res = await updateBike(bikeId, {
+      const res = await update(bikeId, {
         name: editName.trim(),
         bikeType: editBikeType,
         crankLengthMm: Number.isFinite(crankNum) ? crankNum : null,
@@ -119,7 +98,6 @@ export function BikesSection() {
       });
 
       if (res.ok) {
-        setBikes((prev) => prev.map((b) => (b.id === bikeId ? res.bike : b)));
         setEditingBikeId(null);
       } else {
         setErrorMsg(res.error.message);
@@ -132,10 +110,8 @@ export function BikesSection() {
 
     startTransition(async () => {
       setErrorMsg(null);
-      const res = await deleteBike(bikeId);
-      if (res.ok) {
-        setBikes((prev) => prev.filter((b) => b.id !== bikeId));
-      } else {
+      const res = await remove(bikeId);
+      if (!res.ok) {
         setErrorMsg(res.error.message);
       }
     });
