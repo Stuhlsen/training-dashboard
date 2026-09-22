@@ -122,6 +122,16 @@ body {
 
 .app-header-toggles {
   justify-self: center;
+  /* `width: fit-content` gibt der Prozent-Breite der Athleten-/Sport-Toggle
+     (AthleteToggle/SportToggle: `width: min(100%, Npx)`) eine definierte
+     Bezugsbasis: `fit-content` löst Prozentangaben gegen den verfügbaren
+     Platz des Grid-Tracks auf (statt gegen eine von den Kindern abhängige,
+     unbestimmte Breite). Ohne das kollabiert die Breite bei mittleren
+     Fensterbreiten (Auto-Grid-Spur `minmax(0, auto)`) browser-abhängig und
+     die Pillen rendern als unformatierter Textklumpen (Regression aus
+     Commit 445a3e1, Playwright-Audit). `max-width: 100%` begrenzt zusätzlich
+     gegen den Track, `overflow-x: auto` fängt sehr schmale Viewports ab. */
+  width: fit-content;
   min-width: 0;
   max-width: 100%;
   overflow-x: auto;
