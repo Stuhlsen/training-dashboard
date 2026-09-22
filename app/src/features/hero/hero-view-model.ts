@@ -687,7 +687,27 @@ export interface HeroMetric {
   label: string;
   desc: string;
   color: string;
+  /** Fachgruppe für die Kennzahl — als dezente Kopfzeile auf der Kachel
+   *  gerendert (s. MetricTile.tsx), damit Volumen/Leistung/Physiologie
+   *  auch ohne gemeinsamen Block erkennbar bleiben. */
+  group: "Volumen" | "Leistung" | "Physiologie";
 }
+
+/** Kennzahl-Key → Fachgruppe (einheitlich für alle Athleten/Sportarten). */
+const METRIC_GROUP: Record<string, HeroMetric["group"]> = {
+  distance: "Volumen",
+  rides: "Volumen",
+  time: "Volumen",
+  tempo: "Volumen",
+  ftp: "Leistung",
+  eftp: "Leistung",
+  ctl: "Leistung",
+  longest: "Physiologie",
+  hr: "Physiologie",
+  cadence: "Physiologie",
+};
+
+const groupOf = (key: string): HeroMetric["group"] => METRIC_GROUP[key] ?? "Volumen";
 
 /** Port von `ui/overview.js::_renderMetrics()` (Gesamtstatistiken-Kachelreihe,
  *  Etappe 11c). Nimmt `ramp`/`eftp` aus dem bereits gebauten `HeroCore`
@@ -749,6 +769,7 @@ export function buildHeroMetrics(
       label: "Gesamtdistanz",
       desc: "Summierte Streckenlänge aller Fahrten",
       color: "var(--accent)",
+      group: groupOf("distance"),
     },
     {
       key: "rides",
@@ -756,6 +777,7 @@ export function buildHeroMetrics(
       label: activityNoun,
       desc: "Anzahl absolvierter Trainingseinheiten",
       color: "var(--ink)",
+      group: groupOf("rides"),
     },
     {
       key: "time",
@@ -763,6 +785,7 @@ export function buildHeroMetrics(
       label: "Trainingszeit",
       desc: "Gesamte Fahrtdauer ohne Pausen",
       color: "var(--role-primary)",
+      group: groupOf("time"),
     },
     {
       key: "tempo",
@@ -770,6 +793,7 @@ export function buildHeroMetrics(
       label: "Ø Tempo",
       desc: "Durchschnittliche Geschwindigkeit aller Fahrten",
       color: "var(--role-status)",
+      group: groupOf("tempo"),
     },
   ];
 
@@ -780,6 +804,7 @@ export function buildHeroMetrics(
       label: "FTP (Ramp Test)",
       desc: `Gemessene FTP aus dem Ramp-Test${ramp.date ? " vom " + ramp.date.split("-").reverse().join(".") : ""}`,
       color: "var(--role-status)",
+      group: groupOf("ftp"),
     });
   }
 
@@ -792,6 +817,7 @@ export function buildHeroMetrics(
         ? "Geschätzte FTP aus den besten Leistungen über verschiedene Zeitfenster"
         : "Geschätzte FTP aus intervals.icu (Vergleichsdaten)",
       color: "var(--role-positive)",
+      group: groupOf("eftp"),
     });
   }
 
@@ -802,6 +828,7 @@ export function buildHeroMetrics(
       label: "CTL Peak",
       desc: "Höchster Chronic Training Load — erreichte Fitnessstufe",
       color: "var(--role-positive)",
+      group: groupOf("ctl"),
     },
     {
       key: "longest",
@@ -809,6 +836,7 @@ export function buildHeroMetrics(
       label: isRide ? "Längste Fahrt" : "Längste Einheit",
       desc: isRide ? "Die längste einzelne Ausfahrt" : "Die längste einzelne Einheit",
       color: "var(--role-primary)",
+      group: groupOf("longest"),
     },
     {
       key: "hr",
@@ -816,6 +844,7 @@ export function buildHeroMetrics(
       label: "Ø Herzfrequenz",
       desc: "Durchschnittliche HF über alle Fahrten mit HF-Daten",
       color: "var(--role-secondary)",
+      group: groupOf("hr"),
     },
     {
       key: "cadence",
@@ -825,6 +854,7 @@ export function buildHeroMetrics(
         ? "Durchschnittliche Trittfrequenz über alle Fahrten"
         : "Durchschnittliche Frequenz über alle Einheiten mit Kadenz-Daten",
       color: "var(--role-status)",
+      group: groupOf("cadence"),
     }
   );
 

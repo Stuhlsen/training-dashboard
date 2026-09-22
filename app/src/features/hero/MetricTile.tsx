@@ -31,6 +31,19 @@ export function MetricTile({ metric }: { metric: HeroMetric }) {
       <div style={{ position: "absolute", left: 0, top: 12, bottom: 12, width: 3, borderRadius: 3, background: metric.color }} />
       <div
         style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: "var(--fs-label)",
+          color: "var(--ink-3)",
+          textTransform: "uppercase",
+          letterSpacing: ".14em",
+          marginBottom: 8,
+          fontWeight: 500,
+        }}
+      >
+        {metric.group}
+      </div>
+      <div
+        style={{
           fontFamily: "var(--font-disp)",
           fontSize: "1.5rem",
           fontWeight: 700,
