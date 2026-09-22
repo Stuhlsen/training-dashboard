@@ -51,7 +51,7 @@ export function HeroPage() {
   const { activeAthleteId } = useActiveAthlete();
   const athleteCfg = athleteConfig(activeAthleteId);
   const { effectiveSport } = useEffectiveSport(activeAthleteId);
-  const { data: athleteData, isLoading, error } = useRides(activeAthleteId);
+  const { data: athleteData, isLoading, error, refetch } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
   const { data: checkin } = useTodayCheckin();
   // Eigene, von der Session-Karte unabhängige Datenquelle (Events statt
@@ -213,7 +213,48 @@ export function HeroPage() {
   const [draftLayout, setDraftLayout] = useState<HeroTilePosition[] | null>(null);
 
   if (isLoading || !athleteData) {
-    return <p style={{ color: "var(--ink-3)", padding: 40 }}>{error ? "Fehler beim Laden der Trainingsdaten." : "Lädt…"}</p>;
+    if (error) {
+      const message = error instanceof Error ? error.message : "Unbekannter Fehler";
+      return (
+        <GlassCard variant="soft" style={{ padding: "28px 32px", maxWidth: 520 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "var(--fs-label)", letterSpacing: ".14em", textTransform: "uppercase", color: "var(--danger)", fontWeight: 600 }}>
+              Daten nicht verfügbar
+            </span>
+            <p style={{ margin: 0, fontSize: ".92rem", color: "var(--ink-3)", lineHeight: 1.6 }}>
+              Fehler beim Laden der Trainingsdaten. {message}
+            </p>
+            <div>
+              <button
+                type="button"
+                onClick={() => refetch()}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  background: "var(--accent)",
+                  border: "1px solid var(--accent)",
+                  borderRadius: "var(--pill)",
+                  padding: "10px 18px",
+                  color: "var(--surface-page)",
+                  font: "inherit",
+                  fontSize: ".86rem",
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                Erneut versuchen
+              </button>
+            </div>
+          </div>
+        </GlassCard>
+      );
+    }
+    return (
+      <GlassCard variant="soft" style={{ padding: "28px 32px" }}>
+        <p style={{ margin: 0, color: "var(--ink-3)", fontSize: ".92rem" }}>Lädt…</p>
+      </GlassCard>
+    );
   }
 
   // Kachel-Registry: nur die gerade SICHTBAREN Kacheln landen hier — exakt
