@@ -16,7 +16,7 @@ let updateGenderCalls: Array<{ userId: string; value: ProfileOwnFields["gender"]
 let updateHeightCmCalls: Array<{ userId: string; value: number | null }> = [];
 let updateWeightKgCalls: Array<{ userId: string; value: number | null }> = [];
 let updateHrMaxCalls: Array<{ userId: string; value: number | null }> = [];
-let updateSportsCalls: Array<{ userId: string; value: readonly string[] }> = [];
+const updateSportsCalls: Array<{ userId: string; value: readonly string[] }> = [];
 
 vi.mock("../supabase/profiles", () => ({
   updateDisplayName: async (userId: string, name: string) => {

@@ -110,6 +110,10 @@ export function TrainerBar({
   const { data: weekCheckinsData } = useCheckinRange(isTrainer ? athleteProfileId : null, addDaysISO(TODAY, -6), TODAY);
   const { data: proposalsData } = useProposals(athleteId, { enabled: isTrainer });
   const [panelOpen, setPanelOpen] = useState(false);
+  // Aktive Sportarten aus der DB (Fahrplan 21 E2) — hier vor dem early return
+  // aufrufen (React-Hooks-Regel: kein bedingter Hook). Multi-Sport-Info für
+  // die Briefing-Berechnung unten.
+  const sports = useAthleteSports(athleteId);
 
   if (!isTrainer) return null;
 
@@ -117,7 +121,6 @@ export function TrainerBar({
   const today = checkinToday(weekCheckins, TODAY);
   const subjective = getSubjectiveReadiness(weekCheckins, TODAY);
   const doneDates = doneDatesOf(rides);
-  const sports = useAthleteSports(athleteId);
   const briefing = buildBriefingInfo(rides, wellness, cards, doneDates, subjective, TODAY, {
     multiSport: sports.length > 1,
   });

@@ -145,7 +145,7 @@ export function AnalysisPage() {
         // Aktive Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts.
         sports,
       }),
-    [rides, wellness, cards, eventList, athleteCfg, athleteData, unit, cadenceTarget, ridesAll],
+    [rides, wellness, cards, eventList, athleteCfg, athleteData, unit, cadenceTarget, ridesAll, sports],
   );
 
   // Dieselbe Belastungsempfehlung wie auf der Hero-Seite (buildBriefingInfo()

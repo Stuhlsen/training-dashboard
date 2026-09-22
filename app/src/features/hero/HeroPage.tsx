@@ -104,6 +104,11 @@ export function HeroPage() {
   // dem react-query-Cache, taugt daher als useMemo-Dependency.
   const readinessSubjective = isSelf ? (checkin?.subjective ?? null) : null;
 
+  // Aktive Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts —
+  // steuert multiSport für die gemeinsame Last-/Cross-Sport-Anzeige. Vor dem
+  // useMemo aufrufen (React-Hooks-Regel: kein Hook im Callback).
+  const sports = useAthleteSports(activeAthleteId);
+
   // buildHeroCore() durchläuft die gesamte Fahrten-/Wellness-Historie
   // (Briefing/Readiness/LoadGuard/eFTP) — memoisiert, damit ein What-if-
   // Slider-Tick (whatIfFtp ändert sich, sonst nichts) das nicht jedes Mal
@@ -138,9 +143,9 @@ export function HeroPage() {
       ftpHistoryEntries: isSelf ? ftpHistoryEntries : (athleteData?.ftpHistory ?? []),
       // Aktive Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts —
       // steuert multiSport für die gemeinsame Last-/Cross-Sport-Anzeige.
-      sports: useAthleteSports(activeAthleteId),
+      sports,
     });
-  }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries]);
+  }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries, sports]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
 

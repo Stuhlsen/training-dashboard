@@ -6,7 +6,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 let updateMock: ReturnType<typeof vi.fn> = vi.fn();
-let updatePending = false;
+const updatePending = false;
 let profileData: { sports: string[] } | undefined = { sports: ["ride"] };
 
 vi.mock("../../api/hooks/useSession", () => ({
