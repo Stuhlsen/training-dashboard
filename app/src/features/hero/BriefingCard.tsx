@@ -8,7 +8,10 @@ export const LEVEL_COLOR: Record<HeroBriefing["level"], string> = {
   red: "var(--danger)",
 };
 
-const LEVEL_HEADLINE: Record<HeroBriefing["level"], string> = {
+/** Status-Label (Punkt+Text-Stil, konsistent mit ReadinessCard.tsx) statt der
+ *  bisherigen 3-Boxen-Ampel. Beide Karten beantworten "wie geht's mir heute"
+ *  und sollen als ein System wirken, nicht als zwei konkurrierende Meinungen. */
+const LEVEL_LABEL: Record<HeroBriefing["level"], string> = {
   green: "Grünes Licht",
   yellow: "Mit Bedacht",
   red: "Erholung priorisieren",
@@ -28,48 +31,28 @@ function StatChip({ label, value }: { label: string; value: string }) {
  *  hero-view-model.ts::buildBriefingInfo(). Maße/Radien synchronisiert mit
  *  Hero-Weitwinkel.dc.html (löst Hero-Ebenen.dc.html als Quelle ab). */
 export function BriefingCard({ briefing }: { briefing: HeroBriefing }) {
+  const color = LEVEL_COLOR[briefing.level];
   return (
-    <GlassCard variant="strong" radius="28px" style={{ padding: "34px 36px", display: "flex", gap: 30, alignItems: "flex-start" }}>
-      <div style={{ display: "flex", flexDirection: "column", gap: 11, flex: "none", paddingTop: 22 }}>
-        {(["danger", "warn", "ok"] as const).map((tier) => {
-          const on =
-            (tier === "danger" && briefing.level === "red") ||
-            (tier === "warn" && briefing.level === "yellow") ||
-            (tier === "ok" && briefing.level === "green");
-          const tierColor = tier === "danger" ? "var(--danger)" : tier === "warn" ? "var(--warn)" : "var(--ok)";
-          return (
-            <div
-              key={tier}
-              style={{
-                width: 54,
-                height: 46,
-                borderRadius: 14,
-                transition: "box-shadow .3s ease, background .3s ease",
-                background: on ? tierColor : "rgba(255,255,255,0.07)",
-                boxShadow: on
-                  ? `0 0 0 1px color-mix(in oklab, ${tierColor} 55%, transparent), 0 12px 30px -6px color-mix(in oklab, ${tierColor} 70%, transparent)`
-                  : "inset 0 0 0 1px var(--hair)",
-              }}
-            />
-          );
-        })}
-      </div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12, minWidth: 0 }}>
-        <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
-          Belastungsempfehlung
-        </span>
-        <h2 style={{ margin: 0, fontSize: "clamp(1.9rem,2.3vw,2.6rem)", lineHeight: 1.04, fontWeight: 600, letterSpacing: "-.022em", color: "var(--ink)" }}>
-          {LEVEL_HEADLINE[briefing.level]}
-        </h2>
-        <p style={{ margin: 0, maxWidth: "52ch", fontSize: "1.02rem", lineHeight: 1.5, color: "var(--ink-2)" }}>{briefing.recommendation}</p>
-        <div style={{ display: "flex", flexWrap: "wrap", marginTop: 8 }}>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingRight: 24 }}>
-            <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>Form</span>
-            <span style={{ fontSize: "1.3rem", fontWeight: 600, color: "var(--ink)" }}>{briefing.tsbFmt}</span>
-          </div>
-          <StatChip label="Ruhepuls" value={briefing.rhr} />
-          <StatChip label="HRV" value={briefing.hrv} />
+    <GlassCard variant="strong" radius="28px" style={{ padding: "28px 30px", display: "flex", flexDirection: "column", gap: 16 }}>
+      <span style={{ fontSize: "var(--fs-tile-title)", letterSpacing: ".16em", textTransform: "uppercase", color: "var(--ink)", fontWeight: 700 }}>
+        Belastungsempfehlung
+      </span>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <span style={{ width: 10, height: 10, borderRadius: "50%", background: color, boxShadow: `0 0 14px ${color}`, flexShrink: 0 }} />
+        <div>
+          <div style={{ fontFamily: "var(--font-disp)", fontWeight: 600, fontSize: ".95rem", color }}>{LEVEL_LABEL[briefing.level]}</div>
+          <div style={{ fontSize: ".8rem", color: "var(--ink-2)" }}>{briefing.recommendation}</div>
         </div>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4, paddingTop: 12, borderTop: "1px solid var(--hair)" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4, paddingRight: 24 }}>
+          <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>Form</span>
+          <span style={{ fontSize: "1.3rem", fontWeight: 600, color: "var(--ink)" }}>{briefing.tsbFmt}</span>
+        </div>
+        <StatChip label="Ruhepuls" value={briefing.rhr} />
+        <StatChip label="HRV" value={briefing.hrv} />
       </div>
     </GlassCard>
   );
