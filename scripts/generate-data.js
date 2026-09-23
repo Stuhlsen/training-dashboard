@@ -516,7 +516,9 @@ async function main() {
   if (cfg1?.apiKey && cfg1?.athleteId) {
     const oldest = PLAN2_SCHEDULE[0].start;
     const today = new Date().toISOString().split("T")[0];
-    const newest = today > "2026-09-20" ? "2026-09-20" : today;
+    // Kein Kappen aufs Plan-2-Ende mehr: Fahrten danach bekommen über
+    // getPlan2WeekPhase() einfach week/phase = null (wie Athlet 2/4).
+    const newest = today;
 
     const activities = await getIntervalsActivities(
       oldest,
