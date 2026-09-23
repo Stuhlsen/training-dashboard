@@ -1,13 +1,17 @@
 /* ============================================================
-   SCRIPTS/GENERATE-MEDIA.JS — KI-Bilder über OpenRouter
-   Einmalige Preview-Generierung für die öffentliche Landingpage.
+   SCRIPTS/GENERATE-MEDIA.JS — KI-Medien über OpenRouter
+   Einmalige Medien-Generierung für die öffentliche Landingpage.
 
    Verwendung:
-     OPENROUTER_API_KEY=... node scripts/generate-media.js
+     OPENROUTER_API_KEY=... OPENROUTER_IMAGE_MODEL=... node scripts/generate-media.js trenner-1 trenner-2 trenner-3
+     OPENROUTER_API_KEY=... OPENROUTER_VIDEO_MODEL=... node scripts/generate-media.js hero-video
 
-   Die .env wird über scripts/lib/env.js geladen. Der API-Key wird
+   Die .env wird über scripts/lib/env.js geladen. API-Keys werden
    niemals ausgegeben oder in eine Datei geschrieben.
    ============================================================ */
+
+// Doku: https://openrouter.ai/docs/guides/overview/multimodal/image-generation
+// Doku: https://openrouter.ai/blog/tutorials/video-generation-api/
 
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -16,9 +20,29 @@ import "./lib/env.js";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const OUTPUT_DIR = path.join(ROOT, "app", "public", "assets", "landing");
-const API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const IMAGE_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+const VIDEO_API_URL = "https://openrouter.ai/api/v1/videos";
 const API_KEY = process.env.OPENROUTER_API_KEY?.trim();
-const MODEL = process.env.OPENROUTER_IMAGE_MODEL?.trim();
+const IMAGE_MODEL = process.env.OPENROUTER_IMAGE_MODEL?.trim();
+const VIDEO_MODEL = process.env.OPENROUTER_VIDEO_MODEL?.trim();
+const REQUEST_HEADERS = {
+  Authorization: `Bearer ${API_KEY}`,
+  "Content-Type": "application/json",
+  "HTTP-Referer": "https://training-dashboard.clear-solutions-it.com",
+  "X-Title": "Training Dashboard media preview",
+};
+const IMAGE_FILES = {
+  cycling: "cycling-preview.png",
+  running: "running-preview.png",
+  swimming: "swimming-preview.png",
+  landing: "landing-preview.png",
+  "trenner-1": "trenner-1.png",
+  "trenner-2": "trenner-2.png",
+  "trenner-3": "trenner-3.png",
+};
+const VIDEO_FILE = "hero.mp4";
+const VIDEO_POLL_INTERVAL_MS = 30_000;
+const VIDEO_TIMEOUT_MS = 20 * 60 * 1_000;
 
 const PROMPTS = {
   cycling:
@@ -29,6 +53,14 @@ const PROMPTS = {
     "Bright, sunlit editorial sports photograph of a swimmer in an outdoor pool or open water in warm golden-hour daylight, sparkling sunlit water, realistic photography, atmospheric but bright and airy (not dark or moody), no text, no logos, no identifiable person, wide 16:9 composition, keep the center and left side visually calm for UI overlay.",
   landing:
     "Bright, sunlit premium sports-training atmosphere combining subtle visual traces of cycling, running and swimming in one coherent outdoor scene in warm golden-hour daylight, wide open landscape, realistic editorial photography, atmospheric but bright and airy (not dark or moody), no text, no logos, no identifiable person, wide 16:9 composition, keep the center visually calm for landing-page typography.",
+  "trenner-1":
+    "Bright, warm editorial photograph of a broad open cycling landscape in clear daylight and golden hour, an airy road or trail leading through the scene, realistic photography, calm visual center, wide 21:9 panoramic composition, no text, no logos, no identifiable people, no recognizable real places or landmarks.",
+  "trenner-2":
+    "Bright, warm editorial photograph of a broad open running landscape in clear daylight and golden hour, an airy path leading through the scene, realistic photography, calm visual center, wide 21:9 panoramic composition, no text, no logos, no identifiable people, no recognizable real places or landmarks.",
+  "trenner-3":
+    "Bright, warm editorial photograph of a broad open swimming landscape with sunlit water in clear daylight and golden hour, an airy horizon and calm visual center, realistic photography, wide 21:9 panoramic composition, no text, no logos, no identifiable people, no recognizable real places or landmarks.",
+  "hero-video":
+    "Bright, warm daylight, a calm slow camera movement over a wide open landscape in golden hour, a road or path winding through the landscape, gentle motion that works well as a repeating loop, no cuts, no text, no logos, no identifiable people, no real places, keep the left half visually calm for text overlay.",
 };
 
 function fail(message) {
@@ -65,7 +97,7 @@ function extractImageSource(payload) {
   if (dataUrl) return { type: "data", value: dataUrl };
 
   const remoteUrl = candidates
-    .flatMap((value) => value.match(/https?:\/\/[^\\s)\\]]+/g) ?? [])
+    .flatMap((value) => value.match(/https?:\/\/[^\s)\]]+/g) ?? [])
     .find((value) => /\.(png|jpe?g|webp)(\?|$)/i.test(value));
   if (remoteUrl) return { type: "url", value: remoteUrl };
 
@@ -73,18 +105,16 @@ function extractImageSource(payload) {
 }
 
 async function requestImage(category, prompt) {
-  const response = await fetch(API_URL, {
+  const response = await fetch(IMAGE_API_URL, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${API_KEY}`,
-      "Content-Type": "application/json",
-      "HTTP-Referer": "https://training-dashboard.clear-solutions-it.com",
-      "X-Title": "Training Dashboard media preview",
-    },
+    headers: REQUEST_HEADERS,
     body: JSON.stringify({
-      model: MODEL,
+      model: IMAGE_MODEL,
       messages: [{ role: "user", content: prompt }],
       modalities: ["text", "image"],
+      // Bei chat/completions liegt das Seitenverhältnis unter image_config,
+      // nicht top-level (top-level aspect_ratio gilt nur für /api/v1/images).
+      image_config: { aspect_ratio: category.startsWith("trenner-") ? "21:9" : "16:9" },
     }),
   });
 
@@ -98,7 +128,7 @@ async function requestImage(category, prompt) {
 
 async function saveImage(category, source) {
   await fs.mkdir(OUTPUT_DIR, { recursive: true });
-  const outputPath = path.join(OUTPUT_DIR, `${category}-preview.png`);
+  const outputPath = path.join(OUTPUT_DIR, IMAGE_FILES[category]);
 
   if (source.type === "data") {
     const match = source.value.match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/s);
@@ -113,29 +143,116 @@ async function saveImage(category, source) {
   return outputPath;
 }
 
+async function requestVideo(prompt) {
+  const response = await fetch(VIDEO_API_URL, {
+    method: "POST",
+    headers: REQUEST_HEADERS,
+    body: JSON.stringify({
+      model: VIDEO_MODEL,
+      prompt,
+      duration: 6,
+      resolution: "720p",
+      aspect_ratio: "16:9",
+      generate_audio: false,
+    }),
+  });
+
+  const body = await response.json().catch(() => null);
+  if (!response.ok) {
+    const detail = body?.error?.message || `HTTP ${response.status}`;
+    throw new Error(`hero-video: OpenRouter-Fehler: ${detail}`);
+  }
+  if (!body?.id || !body?.polling_url) {
+    throw new Error("hero-video: OpenRouter-Antwort enthält keine Job-ID oder Polling-URL.");
+  }
+  return body;
+}
+
+async function pollVideo(job) {
+  const startedAt = Date.now();
+  let status = job.status;
+  let result = job;
+
+  while (status !== "completed") {
+    if (["failed", "cancelled", "expired"].includes(status)) {
+      throw new Error(`hero-video: Video-Job ${status}: ${result.error || "keine weiteren Details"}.`);
+    }
+    if (Date.now() - startedAt >= VIDEO_TIMEOUT_MS) {
+      throw new Error("hero-video: Video-Job wurde nach 20 Minuten ohne Ergebnis abgebrochen.");
+    }
+
+    console.log(`hero-video: Status ${status || "unbekannt"}; nächste Prüfung in 30 s.`);
+    await new Promise((resolve) => setTimeout(resolve, VIDEO_POLL_INTERVAL_MS));
+    const response = await fetch(job.polling_url, { headers: REQUEST_HEADERS });
+    result = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail = result?.error?.message || `HTTP ${response.status}`;
+      throw new Error(`hero-video: Statusabfrage fehlgeschlagen: ${detail}`);
+    }
+    status = result?.status;
+  }
+
+  return result;
+}
+
+async function saveVideo(job) {
+  const response = await fetch(`${VIDEO_API_URL}/${encodeURIComponent(job.id)}/content?index=0`, {
+    headers: REQUEST_HEADERS,
+  });
+  if (!response.ok) throw new Error(`hero-video: Video-Download fehlgeschlagen (HTTP ${response.status}).`);
+
+  const outputPath = path.join(OUTPUT_DIR, VIDEO_FILE);
+  await fs.mkdir(OUTPUT_DIR, { recursive: true });
+  await fs.writeFile(outputPath, Buffer.from(await response.arrayBuffer()));
+  return outputPath;
+}
+
+function printHelp() {
+  console.log("Keine Kategorie angegeben. Es wird nichts erzeugt.");
+  console.log("Verfügbare Kategorien:");
+  for (const category of Object.keys(PROMPTS)) {
+    const filename = category === "hero-video" ? VIDEO_FILE : IMAGE_FILES[category];
+    console.log(`- ${category} → app/public/assets/landing/${filename}`);
+  }
+}
+
 async function main() {
-  if (!API_KEY) throw new Error("OPENROUTER_API_KEY fehlt in .env.");
-  if (!MODEL) {
-    throw new Error(
-      "OPENROUTER_IMAGE_MODEL fehlt in .env. Bitte die aktuelle exakte Nano-Banana-2-Modell-ID aus OpenRouter eintragen; sie wird bewusst nicht geraten.",
-    );
-  }
-
-  // Ohne Argument: alle Kategorien (Vollstart). Mit Argumenten: nur die
-  // genannten Kategorien neu erzeugen, z.B. `node scripts/generate-media.js
-  // cycling` — spart Kosten, wenn nur eine Kategorie erneut probiert wird.
   const requested = process.argv.slice(2);
-  const entries = requested.length
-    ? Object.entries(PROMPTS).filter(([category]) => requested.includes(category))
-    : Object.entries(PROMPTS);
-  if (requested.length && entries.length !== requested.length) {
-    const known = Object.keys(PROMPTS).join(", ");
-    throw new Error(`Unbekannte Kategorie in [${requested.join(", ")}]. Bekannt: ${known}.`);
+  if (!requested.length) {
+    printHelp();
+    return;
   }
 
-  for (const [category, prompt] of entries) {
-    console.log(`Generiere Preview: ${category}`);
-    const source = await requestImage(category, prompt);
+  const unknown = requested.filter((category) => !PROMPTS[category]);
+  if (unknown.length) {
+    const known = Object.keys(PROMPTS).join(", ");
+    throw new Error(`Unbekannte Kategorie in [${unknown.join(", ")}]. Bekannt: ${known}.`);
+  }
+  if (!API_KEY) throw new Error("OPENROUTER_API_KEY fehlt in .env.");
+
+  for (const category of requested) {
+    if (category === "hero-video") {
+      if (!VIDEO_MODEL) {
+        throw new Error(
+          "OPENROUTER_VIDEO_MODEL fehlt in .env. Bitte die gewünschte exakte OpenRouter-Video-Modell-ID eintragen; sie wird bewusst nicht geraten.",
+        );
+      }
+      console.log("Starte hero-video-Job.");
+      const job = await requestVideo(PROMPTS[category]);
+      const completed = await pollVideo(job);
+      const outputPath = await saveVideo(completed);
+      console.log(`Gespeichert: ${path.relative(ROOT, outputPath)}`);
+      if (completed.usage?.cost !== undefined) console.log(`Kosten: ${completed.usage.cost}`);
+      continue;
+    }
+
+    if (!IMAGE_MODEL) {
+      throw new Error(
+        "OPENROUTER_IMAGE_MODEL fehlt in .env. Bitte die aktuelle exakte Nano-Banana-2-Modell-ID aus OpenRouter eintragen; sie wird bewusst nicht geraten.",
+      );
+    }
+    console.log(`Generiere Bild: ${category}`);
+    const source = await requestImage(category, PROMPTS[category]);
     const outputPath = await saveImage(category, source);
     console.log(`Gespeichert: ${path.relative(ROOT, outputPath)}`);
   }
