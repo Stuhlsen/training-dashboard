@@ -42,7 +42,10 @@ import { buildIntensityDistribution } from "../analysis/analysis-view-model";
 import type { PaceCurvePoint, PaceZone } from "../analysis/pace-section-view-model";
 import { IterationResult } from "../bikefit/IterationResult";
 import { compareToTargets } from "../../core/bikefit.js";
-import { countDemoWeeks, toPlanCard, toRide } from "./landing-demo-model";
+import { buildDemoFormTrend, countDemoWeeks, toPlanCard, toRide, withDemoPmc } from "./landing-demo-model";
+import { flattenPlanCards } from "../planning/plan-persist";
+import { buildHeroFormChart } from "./hero-form-chart-model";
+import { HeroFormChart } from "./HeroFormChart";
 
 const demo = loadDemoDataset();
 const activityCount = demo.rides.length;
@@ -136,6 +139,35 @@ const demoPaceCurve: PaceCurvePoint[] = (demo.paceCurve ?? []) as PaceCurvePoint
 const demoPaceZones: PaceZone[] = (demo.paceZones ?? []) as PaceZone[];
 const demoBike = demo.bikefit ?? { bikeType: "road", goal: "balanced", angles: {} };
 const demoRecommendations = compareToTargets(demoBike.angles, demoBike.bikeType, demoBike.goal);
+
+/** Hero-Widget (Fahrplan 22, nach E8): echte Form-Kurve statt Deko. Demo-
+ *  Fahrten bekommen CTL/ATL lokal gerechnet (withDemoPmc), die Prognose
+ *  kommt aus demselben Demo-Plan wie Block 03 (startet am Tag nach
+ *  DEMO_TODAY). */
+const FORM_PROGNOSIS_DAYS = 28;
+const demoFormTrend = buildDemoFormTrend(
+  withDemoPmc(demoRides),
+  flattenPlanCards(DEMO_GENERATED_PLAN),
+  DEMO_TODAY,
+  FORM_PROGNOSIS_DAYS,
+);
+
+const heroFormChart = demoFormTrend ? buildHeroFormChart(demoFormTrend) : null;
+
+function HeroFormWidget() {
+  const reducedMotion = useReducedMotion();
+  if (!heroFormChart) return null;
+  return (
+    <motion.div
+      className="landing-form-widget"
+      initial={reducedMotion ? false : { opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.7, ease: "easeOut", delay: 0.2 }}
+    >
+      <HeroFormChart chart={heroFormChart} />
+    </motion.div>
+  );
+}
 
 function LoadStoryBlock() {
   const sectionRef = useRef<HTMLDivElement>(null);
@@ -763,17 +795,7 @@ export function LandingPage() {
           </dl>
         </div>
 
-        <div className="landing-signature" aria-hidden="true">
-          <div className="landing-signature__orb landing-signature__orb--large" />
-          <div className="landing-signature__orb landing-signature__orb--small" />
-          <div className="landing-signature__grid" />
-          <div className="landing-signature__line landing-signature__line--one" />
-          <div className="landing-signature__line landing-signature__line--two" />
-          <div className="landing-signature__readout">
-            <span>Last · Form</span>
-            <strong>↗</strong>
-          </div>
-        </div>
+        <HeroFormWidget />
       </section>
 
       <ProblemWhySection />
