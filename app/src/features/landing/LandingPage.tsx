@@ -16,7 +16,7 @@
    hängen bleibt.
    ============================================================ */
 
-import { useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { loadDemoDataset } from "../../api/demo-pipeline";
 import { addToWaitlist } from "../../api/supabase/waitlist";
@@ -469,6 +469,7 @@ function ScrollStory() {
           <GeneratorStoryBlock />
         </div>
       </section>
+      <SceneMarker scene={2} />
       <section className="landing-story" aria-label="Demo: Auswertung">
         <div className="landing-story__sticky">
           <AnalysisStoryBlock />
@@ -651,9 +652,131 @@ function WaitlistSection() {
   );
 }
 
+/** Etappe 7b: Pfad wie in AppBackground.tsx über BASE_URL, nicht hart "/". */
+const LANDING_ASSETS = `${import.meta.env.BASE_URL}assets/landing/`;
+
+/** Szenen des Landing-Hintergrunds (Etappe 7b): Szene 0 ist das Hero-Video
+ *  (Poster als Standbild), 1–3 die Kapitelbilder Rad, Feldweg/Laufen, See. */
+const SCENES = [
+  { image: "hero-poster.webp", width: 1280, height: 720 },
+  { image: "trenner-1.webp", width: 1584, height: 672 },
+  { image: "trenner-2.webp", width: 1584, height: 672 },
+  { image: "trenner-3.webp", width: 1584, height: 672 },
+] as const;
+
+/** Aktive Szene = höchster `.landing-scene-marker`, dessen Oberkante die
+ *  Bildschirmmitte schon passiert hat. `seen` merkt sich die weiteste
+ *  erreichte Szene, damit Bilder erst kurz vor ihrem Einsatz laden. */
+function useActiveScene(): { active: number; seen: number } {
+  const [scene, setScene] = useState({ active: 0, seen: 0 });
+
+  useEffect(() => {
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      const line = window.innerHeight * 0.5;
+      let active = 0;
+      document.querySelectorAll<HTMLElement>(".landing-scene-marker").forEach((marker) => {
+        if (marker.getBoundingClientRect().top < line) {
+          active = Math.max(active, Number(marker.dataset.scene));
+        }
+      });
+      setScene((prev) =>
+        prev.active === active && prev.seen >= active
+          ? prev
+          : { active, seen: Math.max(prev.seen, active) },
+      );
+    };
+    const schedule = () => {
+      if (!frame) frame = requestAnimationFrame(update);
+    };
+    schedule();
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+    return () => {
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      cancelAnimationFrame(frame);
+    };
+  }, []);
+
+  return scene;
+}
+
+/** Unsichtbare Kapitelgrenze für den Szenenwechsel im Hintergrund. */
+function SceneMarker({ scene }: { scene: 1 | 2 | 3 }) {
+  return <div className="landing-scene-marker" data-scene={scene} aria-hidden="true" />;
+}
+
+/** Ein einziger fester Hintergrund für die ganze Landingpage (Etappe 7b):
+ *  blendet beim Scrollen von Szene zu Szene über, statt Trennbilder als
+ *  Balken über das feste Foto zu legen (Alex' Rückmeldung: zwei Bildebenen
+ *  gleichzeitig wirkten verwirrend). Deckt das Landing-Foto aus
+ *  AppBackground.tsx vollständig ab. Das Video spielt nur in Szene 0; bei
+ *  reduced-motion gibt es nur das Poster-Bild und keinen Überblend-Effekt. */
+function LandingBackdrop() {
+  const reducedMotion = useReducedMotion();
+  const { active, seen } = useActiveScene();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (active === 0) {
+      // Abgelehntes Autoplay ist kein Fehler: dann bleibt das Poster stehen.
+      video.play().catch(() => undefined);
+    } else {
+      video.pause();
+    }
+  }, [active]);
+
+  return (
+    <div className="landing-backdrop" aria-hidden="true">
+      {SCENES.map((scene, index) => {
+        const className = `landing-backdrop__layer${index === active ? " is-active" : ""}`;
+        const src = `${LANDING_ASSETS}${scene.image}`;
+        if (index === 0 && !reducedMotion) {
+          return (
+            <video
+              key={scene.image}
+              ref={videoRef}
+              className={className}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              poster={src}
+              width={scene.width}
+              height={scene.height}
+            >
+              <source src={`${LANDING_ASSETS}hero.mp4`} type="video/mp4" />
+            </video>
+          );
+        }
+        if (index > seen + 1) return null;
+        return (
+          <img
+            key={scene.image}
+            className={className}
+            src={src}
+            alt=""
+            width={scene.width}
+            height={scene.height}
+            decoding="async"
+          />
+        );
+      })}
+      <div className="landing-backdrop__shade" />
+    </div>
+  );
+}
+
 export function LandingPage() {
   return (
     <main className="landing-page">
+      <LandingBackdrop />
+
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-hero__copy">
           <p className="landing-eyebrow">Trainingsdashboard für Ausdauersport</p>
@@ -705,7 +828,11 @@ export function LandingPage() {
 
       <ProblemWhySection />
 
+      <SceneMarker scene={1} />
+
       <ScrollStory />
+
+      <SceneMarker scene={3} />
 
       <AudienceSection />
       <WaitlistSection />

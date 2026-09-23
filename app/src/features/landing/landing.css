@@ -1,8 +1,53 @@
 .landing-page {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   overflow-x: hidden;
   padding: clamp(28px, 6vw, 76px) clamp(20px, 6vw, 88px) 72px;
   color: var(--ink);
+}
+
+/* ── Szenen-Hintergrund (Etappe 7b) — ein fester Hintergrund für die ganze
+   Landingpage, der beim Scrollen von Szene zu Szene überblendet. Liegt im
+   isolierten Stapel von .landing-page (z-index -1) und deckt damit das
+   Landing-Foto aus AppBackground.tsx ab. ── */
+.landing-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background: rgb(6, 8, 13);
+}
+
+.landing-backdrop__layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 900ms ease;
+}
+
+.landing-backdrop__layer.is-active {
+  opacity: 1;
+}
+
+/* Gleiche Grundfarbe wie die Overlays in AppBackground.tsx: links dunkler
+   für lesbaren Text, oben und unten leicht abgedunkelt. */
+.landing-backdrop__shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(6, 8, 13, 0.5) 0%, rgba(6, 8, 13, 0.12) 32%, rgba(6, 8, 13, 0.18) 64%, rgba(6, 8, 13, 0.7) 100%),
+    linear-gradient(90deg, rgba(6, 8, 13, 0.72) 0%, rgba(6, 8, 13, 0.2) 100%);
+}
+
+/* Unsichtbare Kapitelgrenze — nur Messpunkt für den Szenenwechsel. */
+.landing-scene-marker {
+  height: 0;
 }
 
 .landing-hero {
@@ -199,7 +244,7 @@
 
 .landing-story {
   position: relative;
-  min-height: 155vh;
+  min-height: 110vh;
   max-width: 1280px;
   margin: 0 auto;
   padding-top: 8vh;
@@ -539,7 +584,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .landing-button {
+  .landing-button,
+  .landing-backdrop__layer {
     transition: none;
   }
 
