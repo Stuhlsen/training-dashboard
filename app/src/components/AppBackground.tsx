@@ -1,7 +1,8 @@
 import { useLocation } from "react-router-dom";
 // api/ direkt statt über hooks/-Orchestrierung: schmale, bewusste Ausnahme
-// wie in Layout.tsx — useActiveAthlete/useEffectiveSport sind reine
-// localStorage-Hooks ohne I/O (AGENTS.md-Abhängigkeitstabelle).
+// wie in Layout.tsx — useActiveAthlete ist ein reiner localStorage-Hook,
+// useEffectiveSport liest die Sportarten gecacht über React Query
+// (AGENTS.md-Abhängigkeitstabelle).
 import { useActiveAthlete } from "../api/hooks/useActiveAthlete";
 import { useEffectiveSport } from "../api/hooks/useActiveSport";
 
@@ -19,8 +20,6 @@ const BACKGROUND_BY_SPORT: Record<"ride" | "run" | "swim", string> = {
   swim: "background-swim.png",
 };
 
-const LANDING_BACKGROUND = "assets/landing/background.png";
-
 const BASE_SCALE = "scale(1.06)";
 
 /** Viewport-weiter Hintergrund (Foto + zwei Gradient-Overlays), einmal in
@@ -33,7 +32,9 @@ const BASE_SCALE = "scale(1.06)";
  *  beim normalen Hovern über die Seite).
  *
  *  Bildauswahl (Fahrplan 22 Nebenauftrag, 22.09.2026): Route "/" (Landing)
- *  zeigt das Landing-Foto, alles unter "/app" zeigt das sportartabhängige
+ *  lädt seit E8 KEIN Bild — dort liegt der Szenen-Hintergrund aus
+ *  LandingPage.tsx (LandingBackdrop) deckend darüber, ein Foto hier wäre
+ *  nur ein unsichtbarer Download. Alles unter "/app" zeigt das sportartabhängige
  *  Foto über `useEffectiveSport()` — bewusst NICHT der rohe
  *  `useActiveSport()`-Wert: sonst würde z. B. bei Athlet 1 (nur Rad/Lauf)
  *  ein anderswo global gespeichertes "swim" den Schwimm-Hintergrund zeigen,
@@ -44,8 +45,8 @@ export function AppBackground() {
   const location = useLocation();
   const { activeAthleteId } = useActiveAthlete();
   const { effectiveSport } = useEffectiveSport(activeAthleteId);
-  const fileName = location.pathname === "/" ? LANDING_BACKGROUND : BACKGROUND_BY_SPORT[effectiveSport];
-  const backgroundImageUrl = `${import.meta.env.BASE_URL}${fileName}`;
+  const isLanding = location.pathname === "/";
+  const backgroundImage = isLanding ? "none" : `url(${import.meta.env.BASE_URL}${BACKGROUND_BY_SPORT[effectiveSport]})`;
 
   return (
     <div style={{ position: "fixed", inset: "-6% -4%", zIndex: 0 }} aria-hidden="true">
@@ -54,7 +55,7 @@ export function AppBackground() {
           style={{
             position: "absolute",
             inset: 0,
-            backgroundImage: `url(${backgroundImageUrl})`,
+            backgroundImage,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
