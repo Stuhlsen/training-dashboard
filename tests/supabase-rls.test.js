@@ -1826,4 +1826,39 @@ if (!HAS_CREDS) {
       "Trainer sieht keine gültigen Sportarten des gecoachten Athleten"
     );
   });
+
+  // --- 9. waitlist (0054): anon/authenticated dürfen NUR einfügen --------
+  // Öffentliche Landing-Warteliste, anon/authenticated haben nur INSERT.
+  // Insert mit `return=minimal`: der rest()-Default `return=representation`
+  // liest die neue Zeile zurück und bräuchte dafür SELECT — genau das hat
+  // anon absichtlich nicht (die App nutzt supabase-js ohne .select(), also
+  // ebenfalls minimal). Aufräumen geht nur per Service-Role, weil anon kein
+  // DELETE hat; ohne Service-Role-Key wird der Insert-Test übersprungen,
+  // statt eine Zeile in dashboard-dev liegen zu lassen.
+
+  const WAITLIST_SENTINEL = `rls-test-${Date.now()}@example.com`;
+
+  test("waitlist: anon darf eine E-Mail eintragen", async (t) => {
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) {
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufräumen kein Insert-Test");
+    }
+    const insert = await rest("POST", "waitlist", {
+      token: null,
+      body: { email: WAITLIST_SENTINEL },
+      prefer: "return=minimal",
+    });
+    assert.equal(insert.ok, true, `waitlist-Insert für anon fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `waitlist?email=eq.${encodeURIComponent(WAITLIST_SENTINEL)}`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        prefer: "return=minimal",
+      });
+      if (!del.ok) throw new Error(`waitlist-Sentinel nicht gelöscht: ${JSON.stringify(del.data)}`);
+    });
+  });
+
+  test("waitlist: anon kann die Warteliste NICHT lesen (kein select-Grant)", async () => {
+    const read = await rest("GET", "waitlist?select=email&limit=1", { token: null });
+    assert.equal(read.ok, false, "anon darf die waitlist nicht lesen — kein select-Grant");
+  });
 }

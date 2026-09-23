@@ -1,9 +1,11 @@
 /* ============================================================
-   FEATURES/LANDING/LANDINGPAGE.TSX — Etappe 3 / Fahrplan 22
+   FEATURES/LANDING/LANDINGPAGE.TSX — Etappe 3 + 6 / Fahrplan 22
 
-   Hero + Block 1 "Form & Belastung". Der Story-Block unter dem Hero
-   nutzt echte Dashboard-Komponenten (TraceCard/TraceLane, buildLoadRows)
-   mit dem Etappe-2-Demo-Datensatz statt echten Athletendaten.
+   Hero + Story-Blöcke (1–5) nutzen echte Dashboard-Komponenten mit
+   dem Etappe-2-Demo-Datensatz statt echten Athletendaten. Etappe 6
+   ergänzt die normalen (nicht animierten) Sektionen um Hero und Blöcke
+   herum: "Problem/Warum" direkt nach dem Hero, "Für wen" nach Block 5
+   und den Abschluss-CTA mit Wartelisten-Formular ganz unten.
 
    Scroll-Animation über Framer Motion (nur im Landing-Bundle, code-
    gesplittet). Mobile/reduced-motion: landing.css erzwingt bei
@@ -14,9 +16,10 @@
    hängen bleibt.
    ============================================================ */
 
-import { useRef, useState } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { loadDemoDataset } from "../../api/demo-pipeline";
+import { addToWaitlist } from "../../api/supabase/waitlist";
 import { TraceCard, type TraceLaneConfig } from "../../charts/TraceCard";
 import { buildLoadRows, type LoadRow } from "../analysis/analysis-view-model";
 import "./landing.css";
@@ -480,6 +483,174 @@ function ScrollStory() {
   );
 }
 
+/** Problem/Warum — normale Sektion direkt nach dem Hero (Etappe 6). Kein
+ *  Story-Block: keine Sticky-, keine Framer-Animation. Kurz, worum es geht
+ *  und warum es das Dashboard gibt. */
+function ProblemWhySection() {
+  return (
+    <section className="landing-section" aria-labelledby="landing-why-title">
+      <div className="landing-section__inner">
+        <p className="landing-eyebrow">Worum es geht</p>
+        <h2 id="landing-why-title">Trainingsdaten liegen oft verstreut.</h2>
+        <p className="landing-section__lead">
+          Die Daten stecken in der Uhr, in der App und manchmal im Notizbuch. Einzelne Einheiten
+          siehst du, aber nicht, wie sie zusammenspielen.
+        </p>
+        <p>
+          Hier liegt alles an einem Ort. Du siehst, wann ein harter Block Sinn macht und wann du
+          Pause brauchst.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/** Für wen — normale Sektion nach Block 5 (Etappe 6). Zwei Fälle: allein
+ *  trainieren und mit Trainer trainieren. Es werden nur Funktionen genannt,
+ *  die es wirklich gibt (Plan-Generator, Verschieben im Planungstab,
+ *  Trainer-Rolle/Vorschläge — CoachPanel.tsx, ProposalList.tsx). */
+function AudienceSection() {
+  return (
+    <section className="landing-section" aria-labelledby="landing-audience-title">
+      <div className="landing-section__inner">
+        <p className="landing-eyebrow">Für wen</p>
+        <h2 id="landing-audience-title">Für dich, ob allein oder mit Trainer.</h2>
+        <div className="landing-audience">
+          <div className="landing-card">
+            <h3>Du trainierst allein</h3>
+            <p>
+              Der Plan-Generator baut dir einen Plan aus deiner Zeit, deinen Trainingstagen und
+              deinem Ziel. Kommt etwas dazwischen, verschiebst du die Einheit im Planungstab.
+            </p>
+          </div>
+          <div className="landing-card">
+            <h3>Du trainierst mit Trainer</h3>
+            <p>
+              Wer dich trainiert, sieht deinen Plan und deine Belastung und kann dir Änderungen
+              vorschlagen. Du entscheidest, was du übernimmst.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** Gleiche Regel wie der Check-Constraint in Migration 0054 — beide ändern. */
+const EMAIL_PATTERN = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$/;
+
+/** Abschluss-CTA mit Wartelisten-Formular (Etappe 6). Zustände: sendet,
+ *  gesendet, Fehler. Button ist während des Sendens gesperrt. Pflicht-
+ *  Checkbox für die Einwilligung + kurzer Datenschutz-Hinweis. */
+function WaitlistSection() {
+  const [email, setEmail] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [status, setStatus] = useState<"idle" | "sending" | "done" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const handleSubmit = async (event: FormEvent) => {
+    event.preventDefault();
+    if (status === "sending") return;
+
+    if (!consent) {
+      setStatus("error");
+      setErrorMessage("Bitte bestätige zuerst, dass wir deine Adresse speichern dürfen.");
+      return;
+    }
+    if (!EMAIL_PATTERN.test(email.trim())) {
+      setStatus("error");
+      setErrorMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
+      return;
+    }
+
+    setStatus("sending");
+    setErrorMessage("");
+    const result = await addToWaitlist(email);
+    if (result.ok) {
+      setStatus("done");
+    } else {
+      setStatus("error");
+      setErrorMessage("Das hat gerade nicht geklappt. Bitte versuch es später noch einmal.");
+    }
+  };
+
+  return (
+    <section className="landing-section landing-section--final" aria-labelledby="landing-waitlist-title">
+      <div className="landing-section__inner">
+        <p className="landing-eyebrow">Warteliste</p>
+        <h2 id="landing-waitlist-title">Sei dabei, wenn die Anmeldung startet.</h2>
+        <p className="landing-section__lead">
+          Trag dich ein, dann melden wir uns, sobald du dich anmelden kannst.
+        </p>
+
+        {status === "done" ? (
+          <p className="landing-waitlist__done" role="status">
+            Du stehst auf der Liste.
+          </p>
+        ) : (
+          <form className="landing-waitlist" onSubmit={handleSubmit} noValidate>
+            <div className="landing-waitlist__field">
+              <label htmlFor="waitlist-email">E-Mail-Adresse</label>
+              <input
+                id="waitlist-email"
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="du@beispiel.de"
+                disabled={status === "sending"}
+              />
+            </div>
+            <label className="landing-waitlist__consent">
+              <input
+                type="checkbox"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+                disabled={status === "sending"}
+              />
+              <span>
+                Ich willige ein, dass meine E-Mail-Adresse für die Warteliste gespeichert und
+                ich über den Start benachrichtigt werde.
+              </span>
+            </label>
+            {status === "error" && (
+              <p className="landing-waitlist__error" role="alert">
+                {errorMessage}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="landing-button landing-button--primary"
+              disabled={status === "sending"}
+            >
+              {status === "sending" ? "Wird eingetragen…" : "Auf die Warteliste"}
+            </button>
+          </form>
+        )}
+
+        <p className="landing-waitlist__privacy">
+          Deine Adresse wird nur für die Benachrichtigung genutzt. Auf Wunsch löschen wir sie
+          wieder.
+        </p>
+
+        <div className="landing-waitlist__who">
+          <p className="landing-eyebrow">Wer dahintersteckt</p>
+          <p>
+            Stuhlsen fährt Rad und wollte besser verstehen, was das eigene Training bringt. Daraus ist
+            dieses Dashboard entstanden.
+          </p>
+        </div>
+
+        <div className="landing-waitlist__cta">
+          <a className="landing-button landing-button--ghost" href="/app">
+            Zum Dashboard
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export function LandingPage() {
   return (
     <main className="landing-page">
@@ -532,7 +703,12 @@ export function LandingPage() {
         </div>
       </section>
 
+      <ProblemWhySection />
+
       <ScrollStory />
+
+      <AudienceSection />
+      <WaitlistSection />
     </main>
   );
 }
