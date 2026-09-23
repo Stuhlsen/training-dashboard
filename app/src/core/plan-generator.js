@@ -81,7 +81,7 @@ import { getSportStrategy } from "./plan-generator-sport.js";
 /**
  * @typedef {Object} FixedDayInput  (V2, "Feste Tage")
  * @property {number} weekday  ISO 1..7, muss in trainingWeekdays enthalten sein
- * @property {string} typ  aus KNOWN_PLAN_TYPES (plan-config.js)
+ * @property {string} typ  aus KNOWN_PLAN_TYPES (plan-config.js) oder FIXED_INTERVAL_TYP
  * @property {boolean} keepInRecoveryWeek  Default false — sonst pausiert die Fixierung in Erholungswochen
  */
 
@@ -411,6 +411,36 @@ export function weekLoadContext(weekTss, ctlAtWeekStart) {
   return "deutlich über deiner aktuellen Belastung";
 }
 
+/** Sonderwert für `FixedDayInput.typ` (Alex-Feedback 23.09.2026): "an diesem
+ *  Wochentag immer Intervalle" — ohne festen Typ. Der Tag wird zum festen
+ *  Qualitätsplatz; welche Einheit dort liegt, wählt weiter `selectWorkout()`
+ *  passend zu Phase + Ladder-Stufe (echte Intervalle mit Progression statt
+ *  des flachen `fixedDayCard()`-Blocks). In Erholungswochen gibt es keine
+ *  Qualitätstage, der Tag wird dann ein lockerer Tag.
+ *  Bewusst KEIN Eintrag in KNOWN_PLAN_TYPES: es ist kein Kartentyp. */
+export const FIXED_INTERVAL_TYP = "Intervalle";
+
+/** Qualitätstage einer Woche nach den festen Intervalltagen (`pinned`)
+ *  ausrichten: jeder gepinnte Tag ist Qualitätstag, die Gesamtzahl bleibt
+ *  `quality.length` (mehr nur, wenn mehr Tage gepinnt sind). Welche
+ *  automatischen Slots weichen: zuerst solche, die ohnehin ein anderer fester
+ *  Tag belegt (`isBlocked`, z.B. Gruppenfahrt — der Slot wäre sonst still
+ *  verloren), danach der dem Pin nächstgelegene (harte Tage bleiben verteilt).
+ *  @param {number[]} quality @param {number[]} pinned @param {(wd:number)=>boolean} isBlocked
+ *  @returns {number[]}  aufsteigend */
+function applyIntervalPins(quality, pinned, isBlocked) {
+  if (!pinned.length) return quality;
+  let auto = quality.filter((q) => !pinned.includes(q));
+  const keep = Math.max(0, quality.length - pinned.length);
+  const dist = (q) => Math.min(...pinned.map((p) => Math.abs(p - q)));
+  while (auto.length > keep) {
+    const blocked = auto.find(isBlocked);
+    const victim = blocked ?? auto.reduce((a, b) => (dist(b) < dist(a) ? b : a));
+    auto = auto.filter((q) => q !== victim);
+  }
+  return [...pinned, ...auto].sort((a, b) => a - b);
+}
+
 /** Grobe %FTP-/Dauer-Schätzung je Intensitätsklasse für "feste Tage" — bewusst
  *  kein `selectWorkout()`-Aufruf: ein fixierter Tag soll IMMER denselben Typ
  *  tragen, unabhängig von der aktuellen Phase (die PHASE_PLAN-Ladder-Progression
@@ -480,10 +510,13 @@ function buildWeekCards(c) {
 
   // "Feste Tage": nur aktiv, wenn der Wochentag ein Trainingstag ist UND
   // (keine Erholungswoche ODER der Eintrag trägt `keepInRecoveryWeek: true`).
+  // Feste Intervalltage (FIXED_INTERVAL_TYP) sind keine festen Karten, sondern
+  // feste Qualitätsplätze — s. applyIntervalPins().
   const fixedByWeekday = new Map(fixedDays.map((d) => [d.weekday, d]));
+  const isIntervalPin = (wd) => fixedByWeekday.get(wd)?.typ === FIXED_INTERVAL_TYP;
   const dayIsFixed = (wd) => {
     const entry = fixedByWeekday.get(wd);
-    return entry != null && (!isRecovery || entry.keepInRecoveryWeek);
+    return entry != null && !isIntervalPin(wd) && (!isRecovery || entry.keepInRecoveryWeek);
   };
   // Ein "harter" fixierter Tag (z.B. Sweet Spot) ersetzt einen der automatisch
   // verteilten Qualitätstage, statt zusätzlich draufzukommen — sonst würde die
@@ -495,13 +528,15 @@ function buildWeekCards(c) {
   // sichtbare Athletenentscheidung, keine stille Fehlzählung). "Gruppenfahrt"
   // & Co. (moderat/locker) zählen NICHT als Qualitätstag, die normale
   // Verteilung läuft auf den übrigen Tagen unverändert (Alex' konkreter Fall).
-  let effectiveQuality = quality;
+  let effectiveQuality = applyIntervalPins(quality, effectiveWeekdays.filter(isIntervalPin), dayIsFixed);
   for (const wd of effectiveWeekdays) {
-    if (!dayIsFixed(wd) || effectiveQuality.includes(wd) || !effectiveQuality.length) continue;
+    if (!dayIsFixed(wd) || effectiveQuality.includes(wd)) continue;
     if (intensityClass(fixedByWeekday.get(wd).typ) !== "hart") continue;
-    if (effectiveQuality === quality) effectiveQuality = quality.slice();
-    let farthest = effectiveQuality[0];
-    for (const q of effectiveQuality) if (Math.abs(q - wd) > Math.abs(farthest - wd)) farthest = q;
+    // Gepinnte Intervalltage werden nie verdrängt.
+    const replaceable = effectiveQuality.filter((q) => !isIntervalPin(q));
+    if (!replaceable.length) continue;
+    let farthest = replaceable[0];
+    for (const q of replaceable) if (Math.abs(q - wd) > Math.abs(farthest - wd)) farthest = q;
     effectiveQuality = effectiveQuality.filter((q) => q !== farthest);
   }
 
@@ -569,7 +604,7 @@ function buildWeekCards(c) {
           `strategy.testCard fehlt (sport "${strategy.sport}").`
       );
     }
-    const testWd = quality.length && !isRecovery ? quality[0] : effectiveWeekdays[0];
+    const testWd = effectiveQuality.length && !isRecovery ? effectiveQuality[0] : effectiveWeekdays[0];
     const testDate = addDaysISO(weekStart, testWd - 1);
     const testCard = makeCard(
       testDate,
@@ -742,7 +777,9 @@ export function generatePlan(input) {
   // bewusste Athletenentscheidung (jeder Eintrag ist im Formular einzeln
   // sichtbar gewählt), aber die Wochenbelastung steigt entsprechend. Hinweis
   // statt stiller Zusatzbelastung.
-  const hartFixedCount = fixedDays.filter((d) => intensityClass(d.typ) === "hart").length;
+  const hartFixedCount = fixedDays.filter(
+    (d) => d.typ === FIXED_INTERVAL_TYP || intensityClass(d.typ) === "hart"
+  ).length;
   if (hartFixedCount > quality.length) {
     warnings.push(
       `${hartFixedCount} feste harte Tage, aber nur ${quality.length} automatische Qualitätstage/Woche — zusätzliche Belastung prüfen.`

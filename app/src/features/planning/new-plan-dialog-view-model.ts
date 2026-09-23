@@ -35,7 +35,12 @@ import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
  * Rad-Zonen-Vokabular wie der Karten-Dialog zurück (plan-card-form-view-model.ts
  * nutzt für den dortigen Typ-Select denselben Re-Export). */
 import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
-export { KNOWN_PLAN_TYPES };
+import { FIXED_INTERVAL_TYP } from "../../core/plan-generator.js";
+export { KNOWN_PLAN_TYPES, FIXED_INTERVAL_TYP };
+
+/** Auswahl im "Feste Tage"-Select: der Intervall-Platzhalter (Typ wählt der
+ *  Plan passend zur Phase) zuerst, dann die festen Kartentypen. */
+export const FIXED_DAY_TYPES: readonly string[] = [FIXED_INTERVAL_TYP, ...KNOWN_PLAN_TYPES];
 
 /** Ober-/Untergrenze für die Planlänge — im `open`-Modus als Formularfeld,
  *  im `event`-Modus aus `start..event` abgeleitet und hier gegengeprüft
@@ -93,7 +98,7 @@ export interface GeneratedCard {
 export interface FixedDay {
   /** ISO 1..7, muss in trainingWeekdays enthalten sein. */
   weekday: number;
-  /** aus KNOWN_PLAN_TYPES. */
+  /** aus FIXED_DAY_TYPES (KNOWN_PLAN_TYPES oder FIXED_INTERVAL_TYP). */
   typ: string;
   /** Default false — sonst pausiert die Fixierung in Erholungswochen. */
   keepInRecoveryWeek: boolean;
@@ -436,7 +441,7 @@ export function buildGeneratorInput(
   const fixedWeekdaySet = new Set(fixedDays.map((d) => d.weekday));
   if (
     fixedWeekdaySet.size !== fixedDays.length ||
-    fixedDays.some((d) => !weekdays.includes(d.weekday) || !KNOWN_PLAN_TYPES.includes(d.typ))
+    fixedDays.some((d) => !weekdays.includes(d.weekday) || !FIXED_DAY_TYPES.includes(d.typ))
   ) {
     errors.fixedDays =
       "Jeder feste Tag darf nur einmal vorkommen und muss ein gewählter Trainingstag mit gültigem Typ sein.";

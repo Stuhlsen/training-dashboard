@@ -46,7 +46,8 @@ import {
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
-  KNOWN_PLAN_TYPES,
+  FIXED_DAY_TYPES,
+  FIXED_INTERVAL_TYP,
   LEVEL_DESCRIPTIONS,
   MODEL_BLOCK_SHARES,
   MODEL_DESCRIPTIONS,
@@ -363,7 +364,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
     patch({
       fixedDays: [
         ...form.fixedDays,
-        { weekday: freeWeekday, typ: KNOWN_PLAN_TYPES[0], keepInRecoveryWeek: false },
+        { weekday: freeWeekday, typ: FIXED_DAY_TYPES[0], keepInRecoveryWeek: false },
       ],
     });
   }
@@ -568,7 +569,7 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
             </div>
           </div>
 
-          {/* Feste Tage — nur Rad, KNOWN_PLAN_TYPES kennt nur das Rad-Vokabular. */}
+          {/* Feste Tage — nur Rad, FIXED_DAY_TYPES kennt nur das Rad-Vokabular. */}
           {effectiveSport === "ride" && (
             <div style={LABEL_STYLE}>
               Feste Tage (optional)
@@ -599,30 +600,34 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                       value={fd.typ}
                       onChange={(e) => updateFixedDay(i, { typ: e.target.value })}
                     >
-                      {KNOWN_PLAN_TYPES.map((t) => (
+                      {FIXED_DAY_TYPES.map((t) => (
                         <option key={t} value={t}>
-                          {t}
+                          {t === FIXED_INTERVAL_TYP ? "Intervalle (passend zur Phase)" : t}
                         </option>
                       ))}
                     </select>
-                    <label
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 4,
-                        fontSize: ".76rem",
-                        color: "var(--ink-3)",
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={fd.keepInRecoveryWeek}
-                        onChange={(e) =>
-                          updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })
-                        }
-                      />
-                      auch in Erholungswochen
-                    </label>
+                    {/* Intervalltage entfallen in Erholungswochen immer (keine
+                        Qualitätstage dort) — die Checkbox hätte keine Wirkung. */}
+                    {fd.typ !== FIXED_INTERVAL_TYP && (
+                      <label
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 4,
+                          fontSize: ".76rem",
+                          color: "var(--ink-3)",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={fd.keepInRecoveryWeek}
+                          onChange={(e) =>
+                            updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })
+                          }
+                        />
+                        auch in Erholungswochen
+                      </label>
+                    )}
                     <button
                       type="button"
                       style={PILL_STYLE}

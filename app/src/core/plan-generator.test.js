@@ -12,6 +12,7 @@ import {
   qualityWeekdays,
   weekLoadContext,
   distributeLooseMinutes,
+  FIXED_INTERVAL_TYP,
 } from "./plan-generator.js";
 import { CONFLICT_THRESHOLDS, TYPE_DEFAULT_TSS } from "./plan-config.js";
 import { addDaysISO } from "./format.js";
@@ -889,4 +890,71 @@ test("fixedDays: mehr feste harte Tage als automatische Qualitätstage → Warnu
   assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 1))?.typ, "Schwelle");
   assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 2))?.typ, "VO2max");
   assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 3))?.typ, "Sweet Spot");
+});
+
+/* ── Fester Intervalltag (Alex-Feedback 23.09.2026) ──────────────────── */
+
+test("fixedDays Intervalle: Do wird fester Qualitätstag, Di-Gruppenfahrt-Slot geht nicht verloren", () => {
+  const plan = generatePlan(
+    eventInput({
+      trainingWeekdays: [2, 4, 6, 7],
+      fixedDays: [
+        { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false },
+        { weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false },
+      ],
+    })
+  );
+  const builds = plan.weeks.filter(
+    (wk) => !wk.isRecovery && wk.cards.length && !wk.cards.some((c) => c.isTest)
+  );
+  assert.ok(builds.length, "keine Aufbauwoche gefunden");
+  for (const w of builds) {
+    const thu = w.cards.find((c) => c.date === addDaysISO(w.start, 3));
+    assert.ok(thu?.isQuality, `Woche ${w.index + 1}: Donnerstag ist kein Qualitätstag`);
+    assert.notEqual(thu.typ, FIXED_INTERVAL_TYP, "Intervalle ist kein Kartentyp");
+    assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 1))?.typ, "Gruppenfahrt");
+    assert.equal(
+      w.cards.filter((c) => c.isQuality).length,
+      2,
+      `Woche ${w.index + 1}: Qualitätstage`
+    );
+  }
+  // Der Typ folgt der Phase (selectWorkout), nicht einem festen Wert.
+  const thuTypes = new Set(
+    builds.map((w) => w.cards.find((c) => c.date === addDaysISO(w.start, 3)).typ)
+  );
+  assert.ok(thuTypes.size > 1, `Donnerstag immer gleich: ${[...thuTypes]}`);
+});
+
+test("fixedDays Intervalle: Erholungswoche → Tag wird locker, keine Qualität", () => {
+  const plan = generatePlan(
+    eventInput({ fixedDays: [{ weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false }] })
+  );
+  const rec = plan.weeks.find((wk) => wk.isRecovery);
+  assert.ok(rec, "keine Erholungswoche gefunden");
+  const thu = rec.cards.find((c) => c.date === addDaysISO(rec.start, 3));
+  assert.ok(thu, "keine Karte am Donnerstag der Erholungswoche");
+  assert.equal(thu.isQuality, false);
+});
+
+test("fixedDays Intervalle: harter fester Tag verdrängt den gepinnten Intervalltag nicht", () => {
+  const plan = generatePlan(
+    eventInput({
+      trainingWeekdays: [1, 2, 4, 6],
+      fixedDays: [
+        { weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false },
+        { weekday: 6, typ: "Schwelle", keepInRecoveryWeek: false },
+      ],
+    })
+  );
+  const w = plan.weeks.find(
+    (wk) => !wk.isRecovery && wk.phase !== "Taper" && !wk.cards.some((c) => c.isTest)
+  );
+  assert.ok(w, "keine Aufbauwoche gefunden");
+  assert.ok(
+    w.cards.find((c) => c.date === addDaysISO(w.start, 3))?.isQuality,
+    "Do ist kein Qualitätstag"
+  );
+  assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 5))?.typ, "Schwelle");
+  assert.equal(w.cards.filter((c) => c.isQuality).length, 2);
 });

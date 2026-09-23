@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildGeneratorInput,
   defaultFormState,
+  FIXED_INTERVAL_TYP,
   FOCUS_DESCRIPTIONS,
   LEVEL_DESCRIPTIONS,
   levelFromExperience,
@@ -180,6 +181,26 @@ describe("buildGeneratorInput", () => {
     expect(res.input.weeks).toBe(12);
     expect(res.input.eventDate).toBeUndefined();
     expect(res.input.indoorShare).toBeCloseTo(0.4);
+  });
+
+  it("fester Intervalltag (FIXED_INTERVAL_TYP) ist ein gültiger fester Tag", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false }] },
+      noEvent
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.fixedDays).toEqual([
+      { weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false },
+    ]);
+  });
+
+  it("fester Tag mit unbekanntem Typ -> Fehler", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: "Quatsch", keepInRecoveryWeek: false }] },
+      noEvent
+    );
+    expect(res.ok).toBe(false);
   });
 
   it("weniger als zwei Trainingstage -> Fehler", () => {
