@@ -14,7 +14,7 @@
    hängen bleibt.
    ============================================================ */
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import { loadDemoDataset } from "../../api/demo-pipeline";
 import { TraceCard, type TraceLaneConfig } from "../../charts/TraceCard";
@@ -29,6 +29,14 @@ import { WeekGrid } from "../planning/WeekGrid";
 import { PlanPreview } from "../planning/PlanPreview";
 import { generatePlan, emptyHistory } from "../../core/plan-generator.js";
 import type { PlanCard } from "../../api/types";
+import { PowerCurveTraceCard, type PowerUnit } from "../../charts/PowerCurveTraceCard";
+import { PaceCurveCard } from "../../charts/PaceCurveCard";
+import { PaceZoneScale } from "../../charts/PaceZoneScale";
+import { IntensityBand } from "../analysis/IntensityBand";
+import { buildIntensityDistribution } from "../analysis/analysis-view-model";
+import type { PaceCurvePoint, PaceZone } from "../analysis/pace-section-view-model";
+import { IterationResult } from "../bikefit/IterationResult";
+import { compareToTargets } from "../../core/bikefit.js";
 
 const demo = loadDemoDataset();
 const activityCount = demo.rides.length;
@@ -69,6 +77,7 @@ function toRide(entry: (typeof demo.rides)[number]): Ride {
     trimp: isRide ? null : Math.round((entry.durationMinutes * entry.avgHr) / 100),
     eftp: entry.eftpWatts,
     feel: String(entry.feel),
+    zoneTimes: entry.zoneTimesSec,
   };
 }
 
@@ -169,6 +178,16 @@ function buildDemoLanes(rows: LoadRow[]): TraceLaneConfig[] {
 
 const loadLanes = buildDemoLanes(loadRows);
 
+/** Demo-Werte für Block 4 (Analyse) — direkt aus dataset.json, kein Hook.
+ *  `buildIntensityDistribution` erwartet `Ride[]` (demoRides schon gebaut). */
+const demoIntensity = buildIntensityDistribution(demoRides);
+/** Structural Cast: die Demo-Shapes sind identisch zu PaceCurvePoint/PaceZone
+ *  (bewusst keine api/-Import-Abhängigkeit von features/, s. types.ts). */
+const demoPaceCurve: PaceCurvePoint[] = (demo.paceCurve ?? []) as PaceCurvePoint[];
+const demoPaceZones: PaceZone[] = (demo.paceZones ?? []) as PaceZone[];
+const demoBike = demo.bikefit ?? { bikeType: "road", goal: "balanced", angles: {} };
+const demoRecommendations = compareToTargets(demoBike.angles, demoBike.bikeType, demoBike.goal);
+
 function LoadStoryBlock() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
@@ -216,12 +235,13 @@ function PlanningStoryBlock() {
   });
   // Side-Einschub laut Fahrplan V4 (translateX)
   const x = useTransform(scrollYProgress, [0, 0.4, 1], [80, 0, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.8]);
 
   return (
     <motion.div
       ref={sectionRef}
       className="landing-story__block"
-      style={reducedMotion ? undefined : { x, opacity: useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.8]) }}
+      style={reducedMotion ? undefined : { x, opacity }}
     >
       <div className="landing-story__heading">
         <p className="landing-eyebrow">02 · Trainingsplanung</p>
@@ -279,6 +299,152 @@ function GeneratorStoryBlock() {
   );
 }
 
+function AnalysisStoryBlock() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "start center"],
+  });
+  // Zoom-in laut Fahrplan V4 (scale) — gleiches Guard-Muster wie die
+  // anderen Blöcke (eigener ref + useScroll + useReducedMotion).
+  const scale = useTransform(scrollYProgress, [0, 0.4, 1], [0.8,  1,  1]);
+  const opacity = useTransform(scrollYProgress, [0,  0.2, 0.8, 1], [0, 1, 1, 0.8]);
+
+  return (
+    <motion.div
+      ref={sectionRef}
+      className="landing-story__block"
+      style={reducedMotion ? undefined : { scale, opacity }}
+    >
+      <div className="landing-story__heading">
+        <p className="landing-eyebrow">04 · Analyse</p>
+        <h2>Zahlen, die erklären, statt erklären zu müssen.</h2>
+        <p>
+          Leistungsverlauf über 90 Minuten und die Intensitätsverteilung deiner Einheiten —
+          damit klar wird, wo die Form herkommt.
+
+        </p>
+      </div>
+      <div className="landing-story__chart">
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <PowerCurveTraceCard
+            powerCurves={demo.powerCurve}
+            unit={"W" as PowerUnit}
+            weightKg={72}
+            formatValue={(watts) => Math.round(watts).toLocaleString("de-DE")}
+          />
+          <IntensityBand dist={demoIntensity} />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+function MultiSportStoryBlock() {
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const reducedMotion = useReducedMotion();
+  const [sport, setSport] = useState<"ride" | "run" | "swim">("ride");
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start end", "start center"],
+  });
+  // Card-shift laut Fahrplan V4 — Sport-Umschalter bleibt lokal und schreibt
+  // bewusst NICHT in localStorage (anders als der Dashboard-SportToggle).
+  const x = useTransform(scrollYProgress, [0, 0.4, 1], [64, 0, 0]);
+  const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.8]);
+  const labels: Record<"ride" | "run" | "swim", string> = {
+    ride: "Rad",
+    run: "Lauf",
+    swim: "Schwimmen",
+  };
+
+  return (
+    <motion.div
+      ref={sectionRef}
+      className="landing-story__block"
+      style={reducedMotion ? undefined : { x, opacity }}
+    >
+      <div className="landing-story__heading">
+        <p className="landing-eyebrow">05 · Multi-Sport &amp; Bike-Fit</p>
+        <h2>Rad, Lauf, Schwimm — alles an einem Ort.</h2>
+        <p>
+          Ein Umschalter für deine Sportarten, Pace-Trainingszonen fürs Laufen und eine
+          Bike-Fit-Analyse direkt in der App. Dein Trainingskonzept endet nicht an der Rennrad-Saison.
+        </p>
+      </div>
+      <div className="landing-story__chart">
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} role="tablist" aria-label="Sportart wechseln">
+            {(["ride", "run", "swim"] as const).map((key) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setSport(key)}
+                aria-pressed={sport === key}
+                style={{
+                  padding: "8px 18px",
+                  borderRadius: "var(--pill)",
+                  border: "1px solid rgba(255, 255, 255, 0.18)",
+                  background: sport === key ? "var(--ss)" : "var(--glass)",
+                  color: sport === key ? "#17110a" : "var(--ink)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: ".78rem",
+                  cursor: "pointer",
+                  transition: "background 160ms ease, color 160ms ease",
+                }}
+              >
+                {labels[key]}
+              </button>
+            ))}
+          </div>
+
+          {sport === "ride" && (
+            <div className="landing-sport-note">
+              <p>
+                Beim Rad dreht sich alles um Leistung, Belastung und Form — genau das,
+                was du in den Blöcken 01–04 oben schon gesehen hast: Leistungsskala,
+                Wochenlast, Power-Curve und Intensitätsverteilung.
+              </p>
+            </div>
+          )}
+
+          {sport === "run" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              <PaceCurveCard curve={demoPaceCurve} thresholdUnit="min/km" activityNoun="Läufe" />
+              <PaceZoneScale
+                zones={demoPaceZones}
+                scaleMaxSpeed={demo.scaleMaxSpeed ?? 0}
+                degraded={false}
+                thresholdUnit="min/km"
+                sport="run"
+              />
+            </div>
+          )}
+
+          {sport === "swim" && (
+            <div className="landing-sport-note">
+              <p>
+                Schwimmen wird ebenso unterstützt, inklusive Einheitenplanung und Pace-Zonen.
+                Sobald deine Einheiten in intervals.icu laufen, zeigt dir das Dashboard dieselben
+                Analysen wie für Rad und Lauf.
+              </p>
+            </div>
+          )}
+
+          <p className="landing-eyebrow landing-story__sub-eyebrow">Bike-Fit</p>
+          <IterationResult
+            bikeType={demoBike.bikeType}
+            goal={demoBike.goal}
+            angles={demoBike.angles}
+            recommendations={demoRecommendations}
+          />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+
 /** Jeder Block bekommt eine EIGENE `.landing-story`-Sektion (eigener
  *  155vh-Scrollbereich + eigenes Sticky) statt eines gemeinsamen Containers
  *  für alle drei — sonst stapeln sich die Blöcke nur nacheinander, statt dass
@@ -302,6 +468,16 @@ function ScrollStory() {
       <section className="landing-story" aria-label="Demo-Einblick: Plan-Generator">
         <div className="landing-story__sticky">
           <GeneratorStoryBlock />
+        </div>
+      </section>
+      <section className="landing-story" aria-label="Demo-Einblick: Analyse">
+        <div className="landing-story__sticky">
+          <AnalysisStoryBlock />
+        </div>
+      </section>
+      <section className="landing-story" aria-label="Demo-Einblick: Multi-Sport und Bike-Fit">
+        <div className="landing-story__sticky">
+          <MultiSportStoryBlock />
         </div>
       </section>
     </>

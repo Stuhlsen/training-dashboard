@@ -30,6 +30,22 @@ export interface DemoDataset {
   wellbeing: DemoWellbeingEntry[];
   /** 8 Wochen geplante Sessions */
   planCards: DemoPlanCard[];
+  /** Power-Curve (Rad) — Format wie `extractPowerCurve()` liest (core/powercurve.js):
+   *  `{ list: [{ secs: number[], watts: number[] }] }`, eine Serie. */
+  powerCurve?: { list: Array<{ secs: number[]; watts: number[] }> };
+  /** Lauf-Bestzeiten (beste Ø-Pace je Distanz, PaceCurvePoint-Shape). Ohne
+   *  buildPaceSection — die Demo trägt die Kurve direkt. */
+  paceCurve?: DemoPaceCurvePoint[];
+  /** Lauf-Pace-Trainingszonen (PaceZone-Shape) — für die PaceZoneScale. */
+  paceZones?: DemoPaceZone[];
+  /** Skalenmaximum der Pace-Skala in Geschwindigkeit (km/h) — Ende der letzten Zone. */
+  scaleMaxSpeed?: number;
+  /** Bike-Fit-Winkel-Analyse (Schlüssel aus BIKEFIT_TARGET_RANGES in core/bikefit.js). */
+  bikefit?: {
+    bikeType: "road" | "gravel" | "tt" | "mtb";
+    goal: "comfort" | "balanced" | "aero";
+    angles: Record<string, number>;
+  };
 }
 
 export interface DemoRide {
@@ -67,6 +83,29 @@ export interface DemoPlanCard {
   type: "workout" | "endurance" | "recovery" | "rest";
   /** Watt-Vorgabe bei strukturierten Einheiten */
   targetWatts?: number;
+}
+
+/** Lauf-Bestzeit je Distanz — strukturell identisch zu `PaceCurvePoint`
+ *  (features/analysis/pace-section-view-model.ts); bewusst KEIN Import aus
+ *  features/ in api/ (Schichtenregel). */
+export interface DemoPaceCurvePoint {
+  distance: number;
+  actualDistance: number;
+  /** Sekunden pro km (Pace, je kürzer desto schneller). */
+  paceSec: number;
+  label: string;
+}
+
+/** Handgemachte Lauf-Pace-Zone — strukturell identisch zu `PaceZone`
+ *  (features/analysis/pace-section-view-model.ts); keine features/-Abhängigkeit. */
+export interface DemoPaceZone {
+  id: string;
+  label: string;
+  farbe: string;
+  vonSpeed: number;
+  bisSpeed: number;
+  vonPaceSec: number | null;
+  bisPaceSec: number | null;
 }
 
 export interface Profile {

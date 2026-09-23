@@ -254,6 +254,23 @@
   max-height: min(70vh, 560px);
 }
 
+.landing-sport-note {
+  padding: 18px 22px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--glass-2);
+}
+
+.landing-sport-note p {
+  margin: 0;
+  color: var(--ink-2);
+  font: 400 0.9rem / 1.6 var(--font-body);
+}
+
+.landing-story__sub-eyebrow {
+  margin: 4px 0;
+}
+
 @media (max-width: 768px), (prefers-reduced-motion: reduce) {
   .landing-story {
     min-height: auto;

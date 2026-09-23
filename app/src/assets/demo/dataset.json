@@ -1,4 +1,4 @@
-﻿{
+{
     "rides":  [
                   {
                       "date":  "2026-01-05",
@@ -1185,4 +1185,103 @@
                           "type":  "recovery"
                       }
                   ]
+,
+    "powerCurve": {
+        "list": [
+            {
+                "secs": [5, 15, 60, 300, 600,  1200,  3600,  5400],
+                "watts": [720, 650,  380,  315,  290,  255,  205,  195]
+            }
+        ]
+    },
+    "paceCurve": [
+        {
+            "distance":  0.4,
+            "actualDistance":  0.4,
+            "paceSec":  200,
+            "label":  "400 m"
+        },
+        {
+            "distance":  1,
+            "actualDistance":  1,
+            "paceSec":   228,
+            "label":  "1 km"
+        },
+        {
+            "distance":   3,
+            "actualDistance":   3,
+            "paceSec":   245,
+            "label":  "3 km"
+        },
+        {
+            "distance":   5,
+            "actualDistance":   5,
+            "paceSec":   258,
+            "label":  "5 km"
+        },
+        {
+            "distance":   10,
+            "actualDistance":   10,
+            "paceSec":   282,
+            "label":  "10 km"
+        }
+    ],
+    "paceZones": [
+        {
+            "id":  "e",
+            "label":  "E Easy",
+            "farbe":  "var(--z1)",
+            "vonSpeed":  0,
+            "bisSpeed":  10.68,
+            "vonPaceSec":  null,
+            "bisPaceSec":  337
+        },
+        {
+            "id":  "m",
+            "label":  "M Marathon",
+            "farbe":  "var(--z2)",
+            "vonSpeed":  10.68,
+            "bisSpeed":  11.64,
+            "vonPaceSec":  337,
+            "bisPaceSec":  309
+        },
+        {
+            "id":  "t",
+            "label":  "T Schwelle",
+            "farbe":  "var(--z3)",
+            "vonSpeed":  11.64,
+            "bisSpeed":  12.48,
+            "vonPaceSec":  309,
+            "bisPaceSec":  288
+        },
+        {
+            "id":  "i",
+            "label":  "I Intervall",
+            "farbe":  "var(--thr)",
+            "vonSpeed":  12.48,
+            "bisSpeed":  13.56,
+            "vonPaceSec":  288,
+            "bisPaceSec":  265
+        },
+        {
+            "id":  "r",
+            "label":  "R Wiederholung",
+            "farbe":  "var(--vo2)",
+            "vonSpeed":  13.56,
+            "bisSpeed":  14.4,
+            "vonPaceSec":  265,
+            "bisPaceSec":  250
+        }
+    ],
+    "scaleMaxSpeed":  14.4,
+    "bikefit": {
+        "bikeType":  "road",
+        "goal":  "balanced",
+        "angles": {
+            "kneeAngle":  146,
+            "hipAngle":  61,
+            "torsoAngle":  52,
+            "elbowAngle":  155
+        }
+    }
 }
