@@ -313,9 +313,11 @@ export function buildTsbLane(series, r0, r1, h, cursor) {
   out.zones.push(band(TSB_FRESH_LOW, TSB_FRESH_HIGH, "fresh"));
   out.hlines.push({ y: ty(0), kind: "zero" });
   for (const { v, text, role } of [
-    { v: (TSB_FRESH_LOW + TSB_FRESH_HIGH) / 2, text: `Frische +${TSB_FRESH_LOW} … +${TSB_FRESH_HIGH}`, role: "fresh" },
-    { v: (TSB_BUILD_LOW + TSB_BUILD_HIGH) / 2, text: `Aufbau ${TSB_BUILD_HIGH} … ${TSB_BUILD_LOW}`, role: "build" },
-    { v: TSB_OVERLOAD - 3, text: "Überlast", role: "overload" },
+    // Nur Wörter, keine Zahlen: die Bandgrenzen stehen in der Legende der
+    // Spur, im Band selbst zeigten "+5 … +20" & Co. auf nichts (Alex, 23.09.2026).
+    { v: (TSB_FRESH_LOW + TSB_FRESH_HIGH) / 2, text: "Erholt", role: "fresh" },
+    { v: (TSB_BUILD_LOW + TSB_BUILD_HIGH) / 2, text: "Produktiv", role: "build" },
+    { v: TSB_OVERLOAD - 3, text: "Überlastet", role: "overload" },
   ]) {
     if (v <= tmax - 3 && v >= tmin + 3) out.labels.push({ x: LANE_WIDTH - 4, y: ty(v), text, role, align: "end" });
   }

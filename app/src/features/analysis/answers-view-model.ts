@@ -429,7 +429,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
     { title: "Form (TSB)", sub: "CTL − ATL", titleTermKey: "tsb", colorVar: "var(--role-positive)", legend: [{ label: "TSB", colorVar: "var(--role-positive)", shape: "line" }, { label: "Aufbau −5 … −25", colorVar: "rgba(111,196,140,.45)", shape: "block" }, { label: "Frische +5 … +20", colorVar: "rgba(201,168,76,.45)", shape: "block" }, { label: "Überlast < −25", colorVar: "rgba(217,79,79,.45)", shape: "block" }], note: "−5 bis −25 ist der produktive Aufbaukorridor; unter −25 kippt es in Überlast, +5 bis +20 ist das Frischefenster." },
     82,
     (v) => fmtSigned(v, 0),
-    (rk) => (rk === "overload" ? "Überlast" : rk === "build" ? "im Aufbaukorridor" : rk === "fresh" ? "im Frischefenster" : rk === "too-fresh" ? "zu frisch" : "neutral"),
+    (rk) => (rk === "overload" ? "überlastet" : rk === "build" ? "produktiv" : rk === "fresh" ? "erholt" : rk === "too-fresh" ? "zu frisch" : "neutral"),
   );
 
   const actualTssVals = joinSeries(skeleton, rides, { key: "tss", absence: "zero" });

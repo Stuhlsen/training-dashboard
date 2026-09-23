@@ -99,6 +99,15 @@ test("buildTsbLane: unterdrückt das Überlast-Label, wenn es zu nah am unteren 
   );
 });
 
+test("buildTsbLane: Bandbeschriftungen sind reine Wörter ohne Zahlen", () => {
+  const tsbVals = [TSB_OVERLOAD - 10, -15, 10];
+  const geo = buildTsbLane({ tsbVals, todayIdx: 2 }, 0, 2, 82, null);
+  assert.deepEqual(
+    geo.labels.map((l) => l.text),
+    ["Erholt", "Produktiv", "Überlastet"]
+  );
+});
+
 test("buildTsbLane: readKind klassifiziert den Cursor-Wert korrekt in den Korridor", () => {
   const tsbVals = [TSB_OVERLOAD - 5, TSB_BUILD_HIGH - 1, 0, TSB_FRESH_LOW + 1, TSB_FRESH_HIGH + 5];
   const geo = buildTsbLane({ tsbVals, todayIdx: 4 }, 0, 4, 82, 0);
