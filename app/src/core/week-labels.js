@@ -7,6 +7,8 @@
    deshalb nach core/ statt (wieder) in eine UI-Datei dupliziert zu werden.
    ============================================================ */
 
+import { isoWeekKey } from "./aggregate.js";
+
 /**
  * Kürzt ISO-Kalenderwochen ("2026-KW27" → "KW27") und Monats-Buckets
  * ("2026-07" → "07/26") für die Anzeige. Markiert einen Jahreswechsel
@@ -29,4 +31,17 @@ export function weekDisplayLabels(weeks) {
     if (mo) return `${mo[2]}/${mo[1].slice(2)}`;
     return w;
   });
+}
+
+/**
+ * Wochen-Schlüssel einer Fahrt fürs Fahrtenbuch: die Plan-Woche, wenn die
+ * Fahrt eine trägt ("W3", "2026-KW38"), sonst die ISO-Kalenderwoche des
+ * Datums — Fahrten außerhalb eines Plans (nach Plan-2-Ende, Athlet 2/4
+ * mit `week: null`) liegen trotzdem in einer Kalenderwoche.
+ * @param {{ week?: string|null, dateISO?: string|null }} ride
+ * @returns {string|null}
+ */
+export function rideWeekKey(ride) {
+  if (ride.week) return ride.week;
+  return ride.dateISO ? isoWeekKey(ride.dateISO) : null;
 }

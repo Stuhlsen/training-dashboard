@@ -31,7 +31,7 @@ import { useBikefitMarkerDates } from "../../api/hooks/useBikefitMarkerDates";
 import { fmt, fmtInt, weatherIcon, windDir } from "../../core/format.js";
 import { activitySport, sportEmoji } from "../../core/activity-sport.js";
 import { sum } from "../../core/stats.js";
-import { weekDisplayLabels } from "../../core/week-labels.js";
+import { rideWeekKey, weekDisplayLabels } from "../../core/week-labels.js";
 import { phaseColor } from "../../config";
 import {
   classifyWeather,
@@ -202,6 +202,7 @@ export function LogbookPage() {
                     {sorted.map((r, i) => {
                       const isIntervalsEra = r.dataSource === "intervals";
                       const weekColor = phaseColor(r.phase);
+                      const weekKey = rideWeekKey(r);
                       const weather = r.weather as RideWeather | null | undefined;
                       const weatherInfo = weather ? classifyWeather(weather) : null;
                       return (
@@ -220,7 +221,7 @@ export function LogbookPage() {
                         >
                           <td style={TD_STYLE}>{r.dateShort}</td>
                           <td style={TD_STYLE}>
-                            {r.week ? (
+                            {weekKey ? (
                               <span
                                 style={{
                                   fontFamily: "var(--font-mono)",
@@ -233,7 +234,7 @@ export function LogbookPage() {
                                   boxShadow: `inset 0 0 0 1px ${weekColor}44`,
                                 }}
                               >
-                                {weekDisplayLabels([r.week])[0]}
+                                {weekDisplayLabels([weekKey])[0]}
                               </span>
                             ) : (
                               "–"
