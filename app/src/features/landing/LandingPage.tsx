@@ -203,11 +203,11 @@ function LoadStoryBlock() {
       style={reducedMotion ? undefined : { y, opacity }}
     >
       <div className="landing-story__heading">
-        <p className="landing-eyebrow">01 · Form &amp; Belastung</p>
-        <h2 id="landing-story-title">Belastung wird lesbar.</h2>
+        <p className="landing-eyebrow">01 · Belastung</p>
+        <h2 id="landing-story-title">Wie viel ist zu viel?</h2>
         <p>
-          Acht Wochen Training in einer Spur: Last, Aufbau, Dichte und Rhythmus — damit klar wird,
-          wann Training trägt und wann Erholung dazugehört.
+          Die Wochenlast zeigt, wie hart du trainiert hast. Steigt sie zu schnell oder ist jede
+          Woche gleich, siehst du das hier, bevor du es in den Beinen merkst.
         </p>
       </div>
       <div className="landing-story__chart">
@@ -244,11 +244,11 @@ function PlanningStoryBlock() {
       style={reducedMotion ? undefined : { x, opacity }}
     >
       <div className="landing-story__heading">
-        <p className="landing-eyebrow">02 · Trainingsplanung</p>
-        <h2>Woche für Woche sehen, was ansteht.</h2>
+        <p className="landing-eyebrow">02 · Planung</p>
+        <h2>Deine Woche, Tag für Tag.</h2>
         <p>
-          Mo–So-Raster mit Plan- und Ist-Einheiten, Verschieben per Drag &amp; Drop und Erholungswochen,
-          die das Modell automatisch einplant. So behältst du den Überblick, ohne jede Karte einzeln zu ordnen.
+          Geplante und gefahrene Einheiten stehen nebeneinander. Fällt ein Termin aus, ziehst du
+          die Einheit einfach auf einen anderen Tag.
         </p>
       </div>
       <div className="landing-story__chart landing-story__chart--weekgrid">
@@ -282,11 +282,11 @@ function GeneratorStoryBlock() {
       style={reducedMotion ? undefined : { scale, opacity }}
     >
       <div className="landing-story__heading">
-        <p className="landing-eyebrow">03 · Plan-Generator</p>
-        <h2>Dein nächster Plan in Sekunden.</h2>
+        <p className="landing-eyebrow">03 · Plan erstellen</p>
+        <h2>Ein neuer Plan in ein paar Klicks.</h2>
         <p>
-          Wähle Belastungsstufe, Modell und Fokus — aus deiner Historie berechnet der Generator
-          einen pyramidalen oder linearen Plan, der zu dir passt. Ohne Tabellenkalkulation.
+          Du gibst an, wie viel Zeit du pro Woche hast, an welchen Tagen du trainierst und worauf
+          du hinarbeitest. Daraus entsteht ein Plan mit Aufbau- und Erholungswochen.
         </p>
       </div>
       <div className="landing-story__chart">
@@ -318,12 +318,11 @@ function AnalysisStoryBlock() {
       style={reducedMotion ? undefined : { scale, opacity }}
     >
       <div className="landing-story__heading">
-        <p className="landing-eyebrow">04 · Analyse</p>
-        <h2>Zahlen, die erklären, statt erklären zu müssen.</h2>
+        <p className="landing-eyebrow">04 · Auswertung</p>
+        <h2>Wo stehst du gerade?</h2>
         <p>
-          Leistungsverlauf über 90 Minuten und die Intensitätsverteilung deiner Einheiten —
-          damit klar wird, wo die Form herkommt.
-
+          Die Leistungskurve zeigt deine besten Werte von 5 Sekunden bis 90 Minuten. Darunter
+          siehst du, wie viel Zeit du locker, mittel und hart unterwegs warst.
         </p>
       </div>
       <div className="landing-story__chart">
@@ -365,11 +364,11 @@ function MultiSportStoryBlock() {
       style={reducedMotion ? undefined : { x, opacity }}
     >
       <div className="landing-story__heading">
-        <p className="landing-eyebrow">05 · Multi-Sport &amp; Bike-Fit</p>
-        <h2>Rad, Lauf, Schwimm — alles an einem Ort.</h2>
+        <p className="landing-eyebrow">05 · Laufen, Schwimmen, Bike-Fit</p>
+        <h2>Nicht nur fürs Rad.</h2>
         <p>
-          Ein Umschalter für deine Sportarten, Pace-Trainingszonen fürs Laufen und eine
-          Bike-Fit-Analyse direkt in der App. Dein Trainingskonzept endet nicht an der Rennrad-Saison.
+          Läufe und Schwimmeinheiten werden auch ausgewertet, mit eigenen Pace-Zonen. Mit der
+          Bike-Fit-Analyse prüfst du anhand eines Fotos, ob deine Sitzposition passt.
         </p>
       </div>
       <div className="landing-story__chart">
@@ -401,9 +400,8 @@ function MultiSportStoryBlock() {
           {sport === "ride" && (
             <div className="landing-sport-note">
               <p>
-                Beim Rad dreht sich alles um Leistung, Belastung und Form — genau das,
-                was du in den Blöcken 01–04 oben schon gesehen hast: Leistungsskala,
-                Wochenlast, Power-Curve und Intensitätsverteilung.
+                Rad ist der Schwerpunkt. Leistung, Wochenlast und Leistungskurve hast du
+                weiter oben schon gesehen.
               </p>
             </div>
           )}
@@ -424,9 +422,7 @@ function MultiSportStoryBlock() {
           {sport === "swim" && (
             <div className="landing-sport-note">
               <p>
-                Schwimmen wird ebenso unterstützt, inklusive Einheitenplanung und Pace-Zonen.
-                Sobald deine Einheiten in intervals.icu laufen, zeigt dir das Dashboard dieselben
-                Analysen wie für Rad und Lauf.
+                Schwimmeinheiten lassen sich genauso planen und auswerten, mit Pace pro 100 Meter.
               </p>
             </div>
           )}
@@ -455,27 +451,27 @@ function MultiSportStoryBlock() {
 function ScrollStory() {
   return (
     <>
-      <section id="demo-preview" className="landing-story" aria-label="Demo-Einblick: Form &amp; Belastung">
+      <section id="demo-preview" className="landing-story" aria-label="Demo: Belastung">
         <div className="landing-story__sticky">
           <LoadStoryBlock />
         </div>
       </section>
-      <section className="landing-story" aria-label="Demo-Einblick: Trainingsplanung">
+      <section className="landing-story" aria-label="Demo: Planung">
         <div className="landing-story__sticky">
           <PlanningStoryBlock />
         </div>
       </section>
-      <section className="landing-story" aria-label="Demo-Einblick: Plan-Generator">
+      <section className="landing-story" aria-label="Demo: Plan erstellen">
         <div className="landing-story__sticky">
           <GeneratorStoryBlock />
         </div>
       </section>
-      <section className="landing-story" aria-label="Demo-Einblick: Analyse">
+      <section className="landing-story" aria-label="Demo: Auswertung">
         <div className="landing-story__sticky">
           <AnalysisStoryBlock />
         </div>
       </section>
-      <section className="landing-story" aria-label="Demo-Einblick: Multi-Sport und Bike-Fit">
+      <section className="landing-story" aria-label="Demo: Laufen, Schwimmen, Bike-Fit">
         <div className="landing-story__sticky">
           <MultiSportStoryBlock />
         </div>
@@ -489,15 +485,15 @@ export function LandingPage() {
     <main className="landing-page">
       <section className="landing-hero" aria-labelledby="landing-title">
         <div className="landing-hero__copy">
-          <p className="landing-eyebrow">Training Intelligence</p>
+          <p className="landing-eyebrow">Trainingsdashboard für Ausdauersport</p>
           <h1 id="landing-title">
-            Dein Training.
+            Dein Training
             <br />
-            <span>Klarer gesehen.</span>
+            <span>auf einen Blick.</span>
           </h1>
           <p className="landing-hero__intro">
-            Ein persönliches Trainingsdashboard für Belastung, Form und Fortschritt — mit Daten,
-            die nicht im Weg stehen, sondern Entscheidungen leichter machen.
+            Hier landen deine Fahrten, Läufe und Schwimmeinheiten. Du siehst, wie müde du gerade
+            bist und ob sich das Training lohnt.
           </p>
           <div className="landing-hero__actions">
             <a className="landing-button landing-button--primary" href="#demo-preview">
@@ -530,7 +526,7 @@ export function LandingPage() {
           <div className="landing-signature__line landing-signature__line--one" />
           <div className="landing-signature__line landing-signature__line--two" />
           <div className="landing-signature__readout">
-            <span>LOAD / FORM / PROGRESS</span>
+            <span>Last · Form</span>
             <strong>↗</strong>
           </div>
         </div>
