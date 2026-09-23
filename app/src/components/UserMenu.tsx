@@ -113,7 +113,7 @@ export function UserMenu({ label, onSignOut }: UserMenuProps) {
           }}
         >
           <NavLink
-            to="/settings"
+            to="/app/settings"
             onClick={close}
             onMouseEnter={hoverOn}
             onMouseLeave={hoverOff}

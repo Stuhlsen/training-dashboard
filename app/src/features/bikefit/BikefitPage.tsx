@@ -305,7 +305,7 @@ export function BikefitPage() {
                 Du hast in deinem Profil noch keine Räder hinterlegt.
               </p>
               <a
-                href="/settings#sec-training"
+                href="/app/settings#sec-training"
                 style={{
                   display: "inline-block",
                   marginTop: 8,

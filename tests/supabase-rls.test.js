@@ -1857,6 +1857,30 @@ if (!HAS_CREDS) {
     });
   });
 
+  // 0055: anon darf nur die Spalte `email` setzen, `source` & Co. nicht.
+  // Aufräumen trotzdem registrieren: fehlt 0055 in dashboard-dev, geht der
+  // Insert durch und die Zeile soll nicht liegen bleiben.
+  const WAITLIST_SOURCE_SENTINEL = `rls-test-source-${Date.now()}@example.com`;
+
+  test("waitlist: anon darf source NICHT selbst setzen (nur email-Spaltenrecht, 0055)", async (t) => {
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) {
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufräumen kein Insert-Test");
+    }
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `waitlist?email=eq.${encodeURIComponent(WAITLIST_SOURCE_SENTINEL)}`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        prefer: "return=minimal",
+      });
+      if (!del.ok) throw new Error(`waitlist-Source-Sentinel nicht gelöscht: ${JSON.stringify(del.data)}`);
+    });
+    const insert = await rest("POST", "waitlist", {
+      token: null,
+      body: { email: WAITLIST_SOURCE_SENTINEL, source: "manipuliert" },
+      prefer: "return=minimal",
+    });
+    assert.equal(insert.ok, false, "anon darf source nicht setzen — nur INSERT (email) ist gegrantet");
+  });
+
   test("waitlist: anon kann die Warteliste NICHT lesen (kein select-Grant)", async () => {
     const read = await rest("GET", "waitlist?select=email&limit=1", { token: null });
     assert.equal(read.ok, false, "anon darf die waitlist nicht lesen — kein select-Grant");

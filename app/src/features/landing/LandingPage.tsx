@@ -1,11 +1,13 @@
 /* ============================================================
-   FEATURES/LANDING/LANDINGPAGE.TSX — Etappe 3 + 6 / Fahrplan 22
+   FEATURES/LANDING/LANDINGPAGE.TSX — Fahrplan 22 (Etappen 3–8)
 
    Hero + Story-Blöcke (1–5) nutzen echte Dashboard-Komponenten mit
    dem Etappe-2-Demo-Datensatz statt echten Athletendaten. Etappe 6
    ergänzt die normalen (nicht animierten) Sektionen um Hero und Blöcke
    herum: "Problem/Warum" direkt nach dem Hero, "Für wen" nach Block 5
-   und den Abschluss-CTA mit Wartelisten-Formular ganz unten.
+   und den Abschluss-CTA mit Wartelisten-Formular ganz unten. Etappe 7b
+   legt einen festen Szenen-Hintergrund darunter (LandingBackdrop), der
+   an unsichtbaren Kapitelmarkern von Hero-Video zu Bild überblendet.
 
    Scroll-Animation über Framer Motion (nur im Landing-Bundle, code-
    gesplittet). Mobile/reduced-motion: landing.css erzwingt bei
@@ -40,6 +42,7 @@ import { buildIntensityDistribution } from "../analysis/analysis-view-model";
 import type { PaceCurvePoint, PaceZone } from "../analysis/pace-section-view-model";
 import { IterationResult } from "../bikefit/IterationResult";
 import { compareToTargets } from "../../core/bikefit.js";
+import { countDemoWeeks, toPlanCard, toRide } from "./landing-demo-model";
 
 const demo = loadDemoDataset();
 const activityCount = demo.rides.length;
@@ -49,40 +52,7 @@ const sportCount = new Set(demo.rides.map((ride) => ride.sport)).size;
  *  als "verpasst" markiert werden. */
 const DEMO_TODAY = "2026-03-01";
 
-/** Grobe ISO-Kalenderwoche fürs Hero-Kennzahlenfeld (Montag = Wochenstart). */
-function isoWeekKey(dateStr: string): string {
-  const date = new Date(`${dateStr}T00:00:00Z`);
-  const day = (date.getUTCDay() + 6) % 7;
-  date.setUTCDate(date.getUTCDate() - day + 3);
-  const firstThursday = new Date(Date.UTC(date.getUTCFullYear(), 0, 4));
-  const diffWeeks = Math.round((date.getTime() - firstThursday.getTime()) / 604800000);
-  return `${date.getUTCFullYear()}-KW${String(1 + diffWeeks).padStart(2, "0")}`;
-}
-
-const weekCount = new Set(demo.rides.map((ride) => isoWeekKey(ride.date))).size;
-
-/** Demo-Ride → app/src/types.js::Ride, wie core/loadguard.js::rideLoad() sie
- *  erwartet: Rad bevorzugt tss, Lauf/Schwimm bevorzugt trimp (fehlt eines,
- *  fällt rideLoad() aufs andere zurück — beide zu setzen wäre irreführend,
- *  deshalb nur das jeweils passende Feld). Die TSS-Näherung nutzt eine feste
- *  Referenzleistung von 200 W rein zur Demo-Skalierung, keine echte FTP. */
-function toRide(entry: (typeof demo.rides)[number]): Ride {
-  const isRide = !entry.sport || entry.sport === "ride";
-  return {
-    dateISO: entry.date,
-    sport: entry.sport,
-    min: entry.durationMinutes,
-    km: entry.distanceKm,
-    watt: entry.avgWatts,
-    np: entry.npWatts,
-    hf: entry.avgHr,
-    tss: isRide ? Math.round((entry.durationMinutes / 60) * (entry.npWatts / 200) ** 2 * 100) : null,
-    trimp: isRide ? null : Math.round((entry.durationMinutes * entry.avgHr) / 100),
-    eftp: entry.eftpWatts,
-    feel: String(entry.feel),
-    zoneTimes: entry.zoneTimesSec,
-  };
-}
+const weekCount = countDemoWeeks(demo.rides);
 
 const demoRides: Ride[] = demo.rides.map(toRide);
 const loadRows: LoadRow[] = buildLoadRows(demoRides, { multiSport: true, ridesAll: demoRides });
@@ -107,30 +77,6 @@ const DEMO_GENERATED_PLAN = generatePlan({
   model: "pyramidal",
   history: emptyHistory(),
 });
-
-/** Demo-PlanCard → PlanCard (app/src/api/types.ts). Die Demo hat keine
- *  IDs, Workouts oder DB-Felder — die Pflichtfelder bekommen Dummy-Werte. */
-function toPlanCard(entry: (typeof demo.planCards)[number]): PlanCard {
-  return {
-    id: `demo-${entry.date}-${entry.label}`,
-    date: entry.date,
-    sortOrder: 0,
-    name: entry.label,
-    typ: entry.type === "rest" ? "Ruhetag" : entry.type === "workout" ? "Intervall" : entry.type === "endurance" ? "Ausdauer" : "Erholung",
-    km: null,
-    durationMin: entry.durationMinutes,
-    tssPlanned: null,
-    week: null,
-    phase: null,
-    sport: entry.sport === "rest" ? "ride" : (entry.sport as "ride" | "run" | "swim" | undefined),
-    details: null,
-    workout: null,
-    workoutStructure: null,
-    pushedExternalId: null,
-    createdAt: "",
-    updatedAt: "",
-  };
-}
 
 const demoPlanCards: PlanCard[] = demo.planCards.map(toPlanCard);
 const demoDerivedSets = computePlanningDerivedSets(demoPlanCards, demoRides);
@@ -376,7 +322,7 @@ function MultiSportStoryBlock() {
       </div>
       <div className="landing-story__chart">
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} role="tablist" aria-label="Sportart wechseln">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }} role="group" aria-label="Sportart wechseln">
             {(["ride", "run", "swim"] as const).map((key) => (
               <button
                 key={key}
@@ -445,7 +391,7 @@ function MultiSportStoryBlock() {
 
 
 /** Jeder Block bekommt eine EIGENE `.landing-story`-Sektion (eigener
- *  155vh-Scrollbereich + eigenes Sticky) statt eines gemeinsamen Containers
+ *  110vh-Scrollbereich + eigenes Sticky) statt eines gemeinsamen Containers
  *  für alle drei — sonst stapeln sich die Blöcke nur nacheinander, statt dass
  *  jeder beim Scrollen sein eigenes "Kapitel" bekommt und den vorherigen
  *  ablöst (Live-Check nach Etappe 4, 22.09.2026). Die Scroll-Animation selbst
@@ -537,8 +483,10 @@ function AudienceSection() {
   );
 }
 
-/** Gleiche Regel wie der Check-Constraint in Migration 0054 — beide ändern. */
+/** Gleiche Regeln wie die Check-Constraints in Migration 0054 (Muster) und
+ *  0055 (Länge) — bei Änderung beide Seiten anpassen. */
 const EMAIL_PATTERN = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+[.][A-Za-z]{2,}$/;
+const EMAIL_MAX_LENGTH = 254;
 
 /** Abschluss-CTA mit Wartelisten-Formular (Etappe 6). Zustände: sendet,
  *  gesendet, Fehler. Button ist während des Sendens gesperrt. Pflicht-
@@ -558,7 +506,8 @@ function WaitlistSection() {
       setErrorMessage("Bitte bestätige zuerst, dass wir deine Adresse speichern dürfen.");
       return;
     }
-    if (!EMAIL_PATTERN.test(email.trim())) {
+    const trimmed = email.trim();
+    if (trimmed.length > EMAIL_MAX_LENGTH || !EMAIL_PATTERN.test(trimmed)) {
       setStatus("error");
       setErrorMessage("Bitte gib eine gültige E-Mail-Adresse ein.");
       return;
@@ -596,6 +545,7 @@ function WaitlistSection() {
                 id="waitlist-email"
                 type="email"
                 autoComplete="email"
+                maxLength={EMAIL_MAX_LENGTH}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="du@beispiel.de"
@@ -711,8 +661,8 @@ function SceneMarker({ scene }: { scene: 1 | 2 | 3 }) {
 /** Ein einziger fester Hintergrund für die ganze Landingpage (Etappe 7b):
  *  blendet beim Scrollen von Szene zu Szene über, statt Trennbilder als
  *  Balken über das feste Foto zu legen (Alex' Rückmeldung: zwei Bildebenen
- *  gleichzeitig wirkten verwirrend). Deckt das Landing-Foto aus
- *  AppBackground.tsx vollständig ab. Das Video spielt nur in Szene 0; bei
+ *  gleichzeitig wirkten verwirrend). Ersetzt auf "/" das Hintergrundbild
+ *  aus AppBackground.tsx (das dort auf "/" keins mehr lädt). Das Video spielt nur in Szene 0; bei
  *  reduced-motion gibt es nur das Poster-Bild und keinen Überblend-Effekt. */
 function LandingBackdrop() {
   const reducedMotion = useReducedMotion();

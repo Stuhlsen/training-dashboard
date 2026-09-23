@@ -24,7 +24,18 @@ const LandingPage = lazy(() => import("./features/landing").then((m) => ({ defau
  *  dorthin wollte. */
 function ExplorerRedirect() {
   const location = useLocation();
-  return <Navigate to="/analysis" replace state={location.state} />;
+  return <Navigate to="/app/analysis" replace state={location.state} />;
+}
+
+/** Alte Pfade von vor Fahrplan 22 (Dashboard lag auf "/", jetzt "/app").
+ *  Schon verschickte Einladungslinks (`/onboarding/accept?token_hash=…`) und
+ *  Lesezeichen sollen weiter funktionieren — deshalb Query, Hash und State
+ *  mitnehmen statt nur den Pfad umzuschreiben. */
+const LEGACY_PATHS = ["login", "onboarding/accept", "planning", "explorer", "log", "analysis", "events", "bikefit", "settings"];
+
+function LegacyRedirect() {
+  const location = useLocation();
+  return <Navigate to={{ pathname: `/app${location.pathname}`, search: location.search, hash: location.hash }} replace state={location.state} />;
 }
 
 export default function App() {
@@ -75,6 +86,10 @@ export default function App() {
               </Route>
             </Route>
           </Route>
+          {LEGACY_PATHS.map((path) => (
+            <Route key={path} path={`/${path}`} element={<LegacyRedirect />} />
+          ))}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>
     </>

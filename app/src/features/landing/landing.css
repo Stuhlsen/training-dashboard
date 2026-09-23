@@ -442,10 +442,6 @@
   cursor: pointer;
 }
 
-.landing-waitlist__consent input:disabled {
-  cursor: not-allowed;
-}
-
 .landing-waitlist__error {
   margin: 0;
   color: var(--danger);

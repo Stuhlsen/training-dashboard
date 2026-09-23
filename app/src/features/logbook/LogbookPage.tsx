@@ -98,12 +98,12 @@ export function LogbookPage() {
     // Ziel war bis Etappe Layout-Merge 2026-08-20 "/explorer" (eigene
     // Route) — jetzt der "Verläufe"-Tab in AnalysisPage.tsx, der
     // highlightDate liest, um dorthin statt auf "Kennzahlen" zu starten.
-    navigate("/analysis", { state: { highlightDate: dateISO } });
+    navigate("/app/analysis", { state: { highlightDate: dateISO } });
   }
 
   function handlePlanLinkClick(e: React.MouseEvent, dateISO: string) {
     e.stopPropagation();
-    navigate("/planning", { state: { highlightDate: dateISO } });
+    navigate("/app/planning", { state: { highlightDate: dateISO } });
   }
 
   return (

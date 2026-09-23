@@ -187,7 +187,7 @@ Datei anlegen → per `import` einbinden, kein Script-Tag-Management.
     | `core/` | `sports/` (Werte, s. u.) | sonst nichts |
     | `api/` | `core/` (nur Typen) | `features/`, `components/` |
     | `hooks/`, `features/*` (Orchestrierung) | `core/`, `api/` | — |
-    | `components/`, `charts/`, `features/*` (UI-Teil) | `core/`, `hooks/`, `features/*` | `api/` direkt (`config`/`auth`/`useActiveAthlete` als schmale, bewusste Ausnahme für globale Chrome-Komponenten — s. `EnvBadge.tsx`/`Layout.tsx`/`ProtectedRoute.tsx`/`Footer.tsx`; `useActiveAthlete` ist ein reiner `localStorage`-Hook ohne I/O, kein Unterschied zur `auth`-Ausnahme in der Sache) |
+    | `components/`, `charts/`, `features/*` (UI-Teil) | `core/`, `hooks/`, `features/*` | `api/` direkt (`config`/`auth`/`useActiveAthlete`/`useAthleteSports`/`useEffectiveSport` als schmale, bewusste Ausnahme für globale Chrome-Komponenten — s. `EnvBadge.tsx`/`Layout.tsx`/`ProtectedRoute.tsx`/`Footer.tsx`/`AppBackground.tsx`; `useActiveAthlete` ist ein reiner `localStorage`-Hook ohne I/O, kein Unterschied zur `auth`-Ausnahme in der Sache; `useAthleteSports`/`useEffectiveSport` lesen die Sportarten des aktiven Athleten über einen gecachten React-Query-Aufruf — nur für Tab-Liste bzw. Hintergrundbild) |
   - `app/src/sports/` — Multi-Sport-Vorbereitung (G5, bisher nur `cycling/`
     befüllt): austauschbare Zonen-/Metrik-Logik statt hart codiert. Details:
     `app/src/sports/README.md`.

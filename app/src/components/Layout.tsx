@@ -19,11 +19,11 @@ import { useAccountLabel } from "../hooks/account-label";
  *  (Abmelden/Anmelden), nicht bei den Inhalts-Tabs (Review-Kommentar,
  *  Hero-Tab-Redesign 23.08.2026). */
 const BASE_NAV_ITEMS = [
-  { to: "/", label: "Hero", end: true },
-  { to: "/planning", label: "Planungstab" },
-  { to: "/log", label: "Fahrtenbuch" },
-  { to: "/analysis", label: "Analyse" },
-  { to: "/events", label: "Events" },
+  { to: "/app", label: "Hero", end: true },
+  { to: "/app/planning", label: "Planungstab" },
+  { to: "/app/log", label: "Fahrtenbuch" },
+  { to: "/app/analysis", label: "Analyse" },
+  { to: "/app/events", label: "Events" },
 ];
 
 /** Gemeinsame Kopfzeile für alle Hauptseiten (Etappe 11a) — vorher nacktes
@@ -43,7 +43,7 @@ export function Layout() {
 
   const navItems = [
     ...BASE_NAV_ITEMS,
-    ...(hasCycling ? [{ to: "/bikefit", label: "Bike-Fit" }] : []),
+    ...(hasCycling ? [{ to: "/app/bikefit", label: "Bike-Fit" }] : []),
   ];
 
   return (

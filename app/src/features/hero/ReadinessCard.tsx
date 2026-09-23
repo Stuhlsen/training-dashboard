@@ -82,7 +82,7 @@ function BriefingLink({ briefing }: { briefing: HeroBriefing }) {
   return (
     <button
       type="button"
-      onClick={() => navigate("/analysis")}
+      onClick={() => navigate("/app/analysis")}
       style={{
         marginTop: 12,
         background: "none",
