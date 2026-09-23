@@ -10,6 +10,6 @@ export function ProtectedRoute() {
   // weiter, damit ein Login nach diesem Redirect dorthin zurückführt statt
   // immer auf die Hero-Seite (Bug-Report: kein Weg zurück aus /login außer
   // dem Browser-Zurück-Button, s. LoginPage.tsx).
-  if (!session) return <Navigate to="/login" replace state={{ from: location }} />;
+  if (!session) return <Navigate to="/app/login" replace state={{ from: location }} />;
   return <Outlet />;
 }

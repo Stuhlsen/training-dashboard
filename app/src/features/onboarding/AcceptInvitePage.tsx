@@ -48,7 +48,7 @@ export function AcceptInvitePage() {
     };
   }, [tokenHash, type]);
 
-  if (status === "done") return <Navigate to="/" replace />;
+  if (status === "done") return <Navigate to="/app" replace />;
 
   return (
     <div

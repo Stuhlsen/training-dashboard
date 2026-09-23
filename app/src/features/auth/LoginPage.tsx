@@ -56,7 +56,7 @@ export function LoginPage() {
   // statt immer fest auf die Hero-Seite (Bug-Report: kein Weg zurück aus
   // /login außer dem Browser-Zurück-Button).
   const from = (location.state as { from?: Location } | null)?.from;
-  const redirectTo = from ? `${from.pathname}${from.search}${from.hash}` : "/";
+  const redirectTo = from ? `${from.pathname}${from.search}${from.hash}` : "/app";
 
   if (!loading && session) return <Navigate to={redirectTo} replace />;
 
@@ -81,7 +81,7 @@ export function LoginPage() {
     >
       <GlassCard variant="strong" radius="var(--radius-xl)" style={{ width: "100%", maxWidth: 380, padding: "36px 32px" }}>
         <Link
-          to="/"
+          to="/app"
           style={{
             display: "inline-block",
             marginBottom: 16,

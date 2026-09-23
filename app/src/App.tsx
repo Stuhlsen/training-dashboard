@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AppBackground } from "./components/AppBackground";
 import { AuthErrorBanner } from "./components/AuthErrorBanner";
@@ -13,6 +14,8 @@ import { LogbookPage } from "./features/logbook/LogbookPage";
 import { AnalysisPage } from "./features/analysis/AnalysisPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { BikefitPage } from "./features/bikefit/BikefitPage";
+
+const LandingPage = lazy(() => import("./features/landing").then((m) => ({ default: m.LandingPage })));
 
 /** `<Navigate>` allein wuerde `location.state` (z. B. ein mitgereichtes
  *  `highlightDate`) beim Redirect verwerfen, statt es weiterzureichen — bei
@@ -39,8 +42,9 @@ export default function App() {
           auto) — der Hintergrund läge dann sichtbar über der Seite. */}
       <div style={{ position: "relative", zIndex: 1 }}>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/onboarding/accept" element={<AcceptInvitePage />} />
+          <Route path="/" element={<Suspense fallback={<div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: ".72rem" }}>Lade …</div>}><LandingPage /></Suspense>} />
+          <Route path="/app/login" element={<LoginPage />} />
+          <Route path="/app/onboarding/accept" element={<AcceptInvitePage />} />
           {/* Sichtbarkeits-Matrix E1 (docs/phase-6-konzept-sichtbarkeit.md):
               Lesedaten/goals/events/plan_cards/proposals sind öffentlich lesbar
               — Login gilt nur fürs Schreiben (bestehende canWrite-Gates) und
@@ -53,7 +57,7 @@ export default function App() {
               (has_password === false) landet nach dem Invite-Link auf
               irgendeiner Route — der Assistent muss dort greifen, nicht nur
               beim gezielten Settings-Aufruf (Fahrplan 17 E7). */}
-          <Route element={<OnboardingGate />}>
+          <Route path="/app" element={<OnboardingGate />}>
             <Route element={<Layout />}>
               <Route index element={<HeroPage />} />
               <Route path="planning" element={<PlanningPage />} />
