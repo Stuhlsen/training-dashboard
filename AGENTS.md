@@ -188,9 +188,9 @@ Datei anlegen → per `import` einbinden, kein Script-Tag-Management.
     | `api/` | `core/` (nur Typen) | `features/`, `components/` |
     | `hooks/`, `features/*` (Orchestrierung) | `core/`, `api/` | — |
     | `components/`, `charts/`, `features/*` (UI-Teil) | `core/`, `hooks/`, `features/*` | `api/` direkt (`config`/`auth`/`useActiveAthlete`/`useAthleteSports`/`useEffectiveSport` als schmale, bewusste Ausnahme für globale Chrome-Komponenten — s. `EnvBadge.tsx`/`Layout.tsx`/`ProtectedRoute.tsx`/`Footer.tsx`/`AppBackground.tsx`; `useActiveAthlete` ist ein reiner `localStorage`-Hook ohne I/O, kein Unterschied zur `auth`-Ausnahme in der Sache; `useAthleteSports`/`useEffectiveSport` lesen die Sportarten des aktiven Athleten über einen gecachten React-Query-Aufruf — nur für Tab-Liste bzw. Hintergrundbild) |
-  - `app/src/sports/` — Multi-Sport-Vorbereitung (G5, bisher nur `cycling/`
-    befüllt): austauschbare Zonen-/Metrik-Logik statt hart codiert. Details:
-    `app/src/sports/README.md`.
+  - `app/src/sports/` — Multi-Sport-Vorbereitung (G5, `cycling/`, `running/`
+    und `swimming/` befüllt): austauschbare Zonen-/Metrik-Logik statt hart
+    codiert. Details: `app/src/sports/README.md`.
 - Typen: **TypeScript** in `app/` (kein `checkJs`/JSDoc mehr nötig, `app/src/core/`
   bleibt JS + JSDoc und wird per `allowJs` eingebunden — s. `app/src/core/README.md`).
   Zentrale Domänentypen in `app/src/api/types.ts` bzw. `app/src/types.js` (die
@@ -383,8 +383,8 @@ app/                       → Vite + React + TypeScript, s. app/README.md
       hooks/                    React-Query-Hooks — die eigentliche Aufrufstelle
                               — Details: src/api/README.md
     sports/cycling/         → Multi-Sport-Vorbereitung: austauschbare Zonen-/
-                              Metrik-/Session-Typ-/Klassifikations-Logik
-                              — Details: src/sports/README.md
+      running/                 Metrik-/Session-Typ-/Klassifikations-Logik je
+      swimming/                Sportart — Details: src/sports/README.md
     charts/                 → Chart-Engine + alle Einzel-Charts (SVG/Canvas),
                               Details: src/charts/README.md
     components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
