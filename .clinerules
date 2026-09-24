@@ -1,0 +1,108 @@
+# Cline-spezifische Ergänzungen zu AGENTS.md
+
+AGENTS.md wird automatisch als Projekt-Kontext gelesen und gilt vollständig
+auch für Cline. Diese Datei ergänzt nur die Cline-spezifischen Punkte, die in
+CLAUDE.md (Claude-Code-spezifisch, s. deren eigener "Grenzen"-Abschnitt) stehen,
+aber hier in einer für Cline passenden Form.
+
+## Skills
+
+Die folgenden Skills liegen unter `.claude/skills/` (und teils `.agents/skills/`)
+und werden von Cline automatisch als Skills erkannt/nutzbar gemacht:
+
+- **fallow** — bei Anfragen wie "check code health", "find circular deps",
+  "dead code check" dieses Skill nutzen statt Rohbefehle zu raten.
+- **grilling** / **grill-me** — bei jeder Unklarheit in Anforderung, Design
+  oder Vorgehen (mehrere plausible Wege, ungenannte Randfälle, eine
+  Entscheidung, die Alex gehört) **nicht raten und nicht vorsichtshalber
+  alles bauen** — dieses Skill nutzen, Frage für Frage durchgehen, je eine
+  Empfehlung geben, auf Antwort warten. Die Ideen-Fahrpläne aus
+  `planning/ideen-backlog.md` sind so entstanden; ihre offenen Fragen werden
+  vor der Umsetzung ebenso gegrillt.
+- **impeccable** — für UI/Design-Reviews und -Änderungen unter `app/src/**`.
+- **archify** / **archify-review** — für Architektur-/Ablaufdiagramme bzw.
+  Issue-/PR-Bewertung nach Value/Cost/Impact.
+- Vor neuer Datei unter `app/src/core|api|components|features|...` prüfen,
+  ob ein Skill oder bestehendes Modul die Aufgabe schon abdeckt — nicht
+  parallel neu erfinden.
+- **ECC-Skills (Developer-Profil)** — über `ecc-universal` projektlokal
+  unter `.claude/skills/` installiert. Stehen Cline via `use_skill` zur
+  Verfügung (z. B. `frontend-patterns`, `react-patterns`, `react-testing`,
+  `tdd-workflow`, `backend-patterns`, `verification-loop`,
+  `continuous-learning-v2`, `codehealth-mcp`, `e2e-testing` u.v.m.).
+  Zugehörige Coding- und Pattern-Regeln liegen unter `.claude/rules/ecc/`.
+
+Cline hat **keine Slash-Commands** wie `/grill` oder `/code-review` — die
+gleichwertige Vorgehensweise ist, das jeweilige Skill über `use_skill`
+explizit zu laden bzw. den Diff manuell/gedanklich gegen Schichtenregel,
+Result-Konvention und fehlende Tests zu prüfen, bevor ein Commit
+vorgeschlagen wird.
+
+## MCP-Tools
+
+- **Playwright MCP** (`.mcp.json` im Repo für Claude Code; für Cline zusätzlich
+  in der eigenen `cline_mcp_settings.json` eingetragen, `npx @playwright/mcp@latest`)
+  — aktiv nutzen für UI-nahe Bugs, Race Conditions und alles, was sich nicht
+  zuverlässig durch reines Code-Lesen klären lässt. Nicht erst als letztes
+  Mittel nach mehreren erfolglosen Theorien greifen.
+  - **Kann:** echten Browser steuern (Navigation, Klicks, Formulare,
+    Drag-Gesten über Pointer-Events), Accessibility-Snapshot statt
+    Screenshot bevorzugen (`browser_snapshot`), Konsole und Netzwerk-Requests
+    einsehen, Laufzeit-Zustand direkt inspizieren via `browser_evaluate`.
+  - **Bleibt manuell bei Alex:** die finale Bestätigung im echten Browser vor
+    jedem `git sync`.
+  - `.playwright-mcp/` (Snapshot-/Konsolen-Dumps) ist gitignored — nicht committen.
+  - Vgl. Playwright-MCP-Nutzungskonvention im AGENTS.md-Abschnitt (Unit-Test
+    vor Browser, Snapshot statt Screenshot, Session-Disziplin, bei Unklarheit
+    fragen).
+- **GitHub**: kein eigener MCP-Server — `gh`-CLI über `execute_command` reicht
+  (identisch zum Claude-Code-Setup, das ebenfalls nur `gh`/`git` nutzt, kein
+  GitHub-MCP). `gh auth status` zeigt einen bereits eingeloggten Account
+  (Stuhlsen); git-Remote/Credential-Helper sind bereits konfiguriert.
+
+## Vor jeder Aufgabe
+
+Kurz benennen, wie das Ergebnis verifiziert wird, bevor losgeschrieben wird:
+`app/src/core/`-Logik → welcher Test unter `app/src/**/*.test.ts(x)`;
+`scripts/lib/`-Logik → welcher Test unter `tests/`; UI-Änderung →
+`npm run build` + `npm run dev` (`/app/`) für schnelle Zwischenstände, **vor
+dem Commit-Vorschlag zusätzlich einmal gegen den lokalen Docker-Container**
+(`docker compose -f docker-compose.dev.yml up -d`, `http://localhost:8080`);
+neues Datenfeld → alle 3 Pflichtstellen (`scripts/`, `app/src/core/validate.js`,
+`app/src/types.js`) einzeln nennen; Standort/Athletennamen → explizit
+gegenprüfen, dass nichts davon in Code/JSON/Commit landet.
+
+## Arbeitsweise
+
+- **Backlog-Idee → Fahrplan in Etappen mit sauberen Bruchkanten.** Wird eine
+  Idee aus `planning/ideen-backlog.md` umgesetzt, zuerst einen Fahrplan direkt
+  in `planning/` schreiben, der in Etappen mit klaren Bruchkanten geschnitten
+  ist — jede Etappe in **einem** Chat-Fenster machbar (nur ihr Etappen-Block +
+  die geteilten Verträge als Kontext), um Token zu sparen. Muster:
+  `planning/docs/fahrplan-8-plan-generator.md`.
+- **Plan Mode** vor Änderungen an `app/src/core/*.js`/`scripts/lib/core/*.js`,
+  die mehr als eine Funktion betreffen, oder die die Schichtenregel
+  (`core → api → hooks/features → components/charts`) berühren.
+- Nach jeder `.js`-Änderung selbst `node -c <datei>` laufen lassen.
+- Vor jedem Commit-Vorschlag: `node -c` (Root-JS) bzw. `npm run build`
+  (`/app/`) → `npm test` im betroffenen Teil → Diff gedanklich gegen
+  Schichtenregel, Result-Konvention und fehlende Tests in `core/` prüfen →
+  bei UI-Änderungen zwingend einmal gegen den lokalen Docker-Container
+  prüfen (nicht nur `npm run dev`) → erst danach Commit-Befehl vorschlagen.
+  Testlücken nur benennen, nicht ungefragt auffüllen.
+- `data/*.json`, `.agents/`, `agent/`, `data/skills/`, `skills-lock.json`
+  **nie** selbst stagen/committen, auch nicht mit `git add -A`.
+
+## Grenzen
+
+- Kein `git push --force` ohne `--force-with-lease`.
+- Keine Secrets (Standortkoordinaten, API-Keys) in Terminal-Output,
+  Kommentaren oder Commit-Messages ausgeben, auch nicht zu Debug-Zwecken.
+- PowerShell: ein Befehl pro Zeile, kein `&&`.
+- Neue `.md`-Konvention (Commit-Typ, Schicht) → in **AGENTS.md** ergänzen,
+  nicht hier — diese Datei bleibt Cline-spezifisch (analog zu CLAUDE.md für
+  Claude Code).
+- **Immer vorher nachfragen**, nie automatisch ausführen: echter Push/Sync zu
+  intervals.icu (nicht nur geloggt/simuliert), Löschen oder Überschreiben von
+  `data/*.json` außerhalb des Sync-Workflows, Änderungen an `.gitattributes`
+  oder Zeilenenden-Konfiguration, Setzen/Pushen eines neuen `vX.Y.Z`-Tags.

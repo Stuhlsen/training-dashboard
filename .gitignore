@@ -64,6 +64,31 @@ app/*.local
 # kein Quellcode (s. .mcp.json für den Server selbst, der bleibt versioniert)
 .playwright-mcp/
 
+# ECC (Everything Claude Code)-Plugin — projekt-lokal via
+# `npx ecc-universal setup --scope project` installiertes generisches
+# Agent-Harness-Bundle (Agents/Commands/Rules/Skills/MCP-Configs für viele
+# Sprachen/Frameworks, nicht projektspezifisch). Bleibt lokal, kein
+# Quellcode dieses Projekts — sonst landen hunderte fremde Tooling-Dateien
+# im öffentlichen Portfolio-Repo. Projekteigene Skills (fallow/, grilling/,
+# grill-me/, impeccable/) bleiben über die Ausnahmen unten versioniert.
+.claude/agents/
+.claude/commands/
+.claude/ecc/
+.claude/mcp-configs/
+.claude/rules/
+.claude/scripts/
+.claude/.pi/
+.claude/marketplace.json
+.claude/plugin.json
+.claude/AGENTS.md
+.claude/PLUGIN_SCHEMA_NOTES.md
+.claude/README.md
+.claude/skills/*
+!.claude/skills/fallow/
+!.claude/skills/grilling/
+!.claude/skills/grill-me/
+!.claude/skills/impeccable/
+
 # Impeccable — Laufzeit-/Session-State (Server-Token, absolute Pfade, Dedup-Cache),
 # kein Quellcode. Config bleibt versioniert: .impeccable/config.json,
 # .impeccable/design.json, .impeccable/live/config.json
