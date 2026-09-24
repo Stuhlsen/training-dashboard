@@ -231,7 +231,7 @@ test("assessReadiness: sleepScore fehlt komplett (alte Daten vor Rollout) → 'v
   // Domain "sleep") noch vorhanden ist — sonst würde ein Athlet ohne
   // sleepScore-fähiges Gerät (oder alte Daten vor dem Rollout) dauerhaft auf
   // Gelb hängen bleiben, obwohl objektiv nichts dagegen spricht.
-  const { sleepScore, ...withoutScore } = STABLE;
+  const withoutScore = { hrv: STABLE.hrv, restingHR: STABLE.restingHR, sleepHours: STABLE.sleepHours };
   const wellness = makeWellness(TODAY, 50, withoutScore);
   const r = assessReadiness(wellness, TODAY);
   assert.ok(r);
@@ -244,7 +244,7 @@ test("assessReadiness: sleepScore fehlt komplett (alte Daten vor Rollout) → 'v
 });
 
 test("assessReadiness: BEIDE Schlafmetriken fehlen → Domain 'sleep' hat keine vorhandene Metrik mehr, eskaliert wie eine normale veraltete Domain", () => {
-  const { sleepHours: _h, sleepScore: _s, ...withoutSleep } = STABLE;
+  const withoutSleep = { hrv: STABLE.hrv, restingHR: STABLE.restingHR };
   const wellness = makeWellness(TODAY, 50, withoutSleep);
   const r = assessReadiness(wellness, TODAY);
   assert.ok(r);

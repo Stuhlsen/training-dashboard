@@ -21,7 +21,6 @@ import {
   wattsPerKg,
   nearestWeightKg,
   energyView,
-  estimateBMR,
   hydrationSeries,
   rideKJ,
   MIN_POINTS,
