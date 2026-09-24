@@ -391,8 +391,8 @@ app/                       → Vite + React + TypeScript, s. app/README.md
     components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
     hooks/                  → generische UI-Hooks (nicht datenbezogen)
     features/               → ein Verzeichnis je Tab/Bereich: hero, logbook,
-                              planning, analysis, explorer, events, auth, settings,
-                              bikefit (Fahrplan 16)
+                              planning, analysis, events, auth, settings,
+                              bikefit (Fahrplan 16), landing, onboarding
     styles/tokens.css       → Design-Tokens (abgeglichen mit planning/docs/archiv/chart-grundlagen.md,
                               archiviert — Werte selbst bleiben aktuell)
 
