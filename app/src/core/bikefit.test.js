@@ -4,7 +4,6 @@ import {
   calculateTorsoAngle,
   computeJointAngles,
   compareToTargets,
-  getAdjustmentAdvice,
   BIKEFIT_TARGET_RANGES,
 } from "./bikefit.js";
 
