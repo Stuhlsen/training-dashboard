@@ -4,7 +4,7 @@ Selbst-gehostetes Trainingsdashboard für Rad, Lauf und Schwimmen mit zwei Daten
 
 **Vier Athleten, unterschiedlich weit ausgebaut:**
 - **Athlet 1** — Primärnutzer, eigener Trainingsplan (Rad). Trainingshistorie seit März 2026, FTP 166 W → 193 W → laufendes Ziel ≥ 210 W (pyramidale Periodisierung, Retest 19.09.2026). Die frühen Wochen (März–Juni) sind eine eingefrorene Historie im Code, keine Live-Datenquelle mehr.
-- **Athlet 2** — Vergleichsathlet, eigener Renn-Trainingsplan (GFNY Bremen 2026, Renntag war der 30.08.2026), read-only im Planungstab.
+- **Athlet 2** — Vergleichsathlet, eigener Renn-Trainingsplan (GFNY Bremen 2026, Renntag war der 30.08.2026), voller Zugriff auf den Planungstab im eigenen Login.
 - **Athlet 3** — Triathlet: einziger Athlet mit mehreren Sportarten (Rad **und** Lauf **und** Schwimmen), sportartübergreifende CTL/ATL/TSB, eigene Pace-Zonen/-Kurve fürs Laufen, editierbarer Laufplan.
 - **Athlet 4** — Renn-/Trainings-Einsteiger, generierte 12-Wochen-Einsteigervorlage für Zwift/MyWhoosh (`.zwo`-Export), noch ohne gemessene FTP.
 
@@ -19,6 +19,8 @@ Selbst-gehostetes Trainingsdashboard für Rad, Lauf und Schwimmen mit zwei Daten
 
 `data/subjective.json` und `data/adjustments*.json` sind seit der Migration nach `plan_cards` bzw. dem täglichen Supabase-Check-in nur noch read-only Archiv älterer Daten, kein aktiver Schreibpfad mehr. `data/*.json` selbst ist nicht mehr versioniert — der Sync-Container schreibt direkt in ein mit dem Frontend geteiltes Volume.
 
+**Routing:** Seit dem Landingpage-Umbau (Sept. 2026) ist `/` eine öffentliche Marketing-Startseite mit Warteliste (kein Login nötig), das eigentliche Dashboard liegt unter `/app`. Alte Lesezeichen/Links von davor (`/login`, `/planning`, `/log`, `/analysis`, `/events`, `/bikefit`, `/settings`, …) werden automatisch auf `/app/…` umgeleitet.
+
 **Tech-Stack:** React + TypeScript + Vite (`/app/`, SVG-Charts als React-Komponenten) · Node.js ≥ 24 lokal (Details/Begründung in `AGENTS.md`) · Daten-Sync alle 15 Minuten als Dauer-Container auf dem Produktivserver (nicht mehr GitHub Actions) · GitHub Actions nur noch CI (getrennte Jobs für Root und `/app/`: Tests, ESLint, Fallow-Report) + GHCR-Image-Publish bei `v*`-Tag · Postgres + GoTrue + PostgREST mit Row Level Security (`@supabase/supabase-js`-npm-Paket als Client, kein Supabase-Cloud-Projekt mehr in Produktion)
 
 **Code-Architektur:** strikte Schichtentrennung `app/src/core/` (reine, getestete Berechnung — PMC, Belastungswächter, Readiness, Belastungsempfehlung, Intensitätsverteilung, EF-/HF-Decoupling-Trend, FTP-Prognose, Regeneration & Körper, Periodisierung, Konsistenz & Adhärenz, Bestwerte, Plan-Konflikte/-Prognose, Vorschlags-Validierung) → `app/src/api/` (I/O-Grenze: JSON-Pipeline + Supabase-Adapter) → `app/src/hooks/`/`features/` (Orchestrierung, React Query) → `app/src/components/`/`charts/`/`features/*` (Rendering). `app/src/sports/` kapselt austauschbare Zonen-/Metrik-Logik je Sportart (bisher `cycling`, `running`, `swimming` befüllt). Der Daten-Sync ist analog in `scripts/lib/`-Module zerlegt. Design: Konzept 5 — Glas-Kacheln auf Anthrazit-Blau, die Trainingszonen-Skala als Farbsystem, Sora/IBM Plex Mono/Inter.
@@ -31,7 +33,7 @@ Selbst-gehostetes Trainingsdashboard für Rad, Lauf und Schwimmen mit zwei Daten
 
 Vier Rollen: **Athlet** (eigener Login, schreibt eigene Ziele/Events/Befinden/Trainingskarten), **Trainer** (eigener Login, sieht „seinen" Athleten vollständig, kann direkt ändern oder als Vorschlag markieren), **Admin** (verwaltet Nutzer — einladen, sperren/entsperren, löschen, Zugangslink erneut senden, mit Audit-Log) und **Besucher** (kein Login, liest öffentliche Daten). Login/Registrierung laufen über eine geführte Onboarding-Strecke (Einladungslink → Passwort setzen → Profil-Basisdaten wie Wohnort per Stadt-Suche statt roher Koordinaten, Geburtsdatum, Ruhepuls). Der Athleten-Toggle oben rechts im Header bleibt für Besucher frei wählbar und wechselt Charts, Texte und Erklärtexte auf den jeweils aktiven Athleten, unabhängig davon, wer eingeloggt ist — Schreibaktionen bleiben dabei immer an die tatsächliche Beziehung gebunden (Selbst/Trainer/Admin), ein fremder Betrachter sieht nur lesend zu. Die Auswahl bleibt persistent über Reload (`localStorage`).
 
-Athlet 2 bleibt read-only im Planungstab: kein Anlegen/Verschieben/Ausfallen von Karten, kein Workout-Push, keine Befinden-Spalte im Fahrtenbuch. Typ-Inferenz läuft dort weiter über IF-Berechnung (NP ÷ FTP) + Fahrtdauer statt über Planzuordnung.
+Es gibt keinen athletenabhängigen Sonderfall mehr: Schreibzugriff (Karten anlegen/verschieben/ausfallen, Workout-Push, Befinden) hängt für alle vier Athleten allein an der Beziehung zum angezeigten Profil (Selbst/Trainer/Admin). Ein fremder Betrachter — z. B. Athlet 1 mit dem Athleten-Toggle auf Athlet 2 — sieht den Tab weiterhin nur lesend. Athlet 2s Fahrten tragen bewusst keinen Plan-Bezug (`week`/`phase`); die Typ-Inferenz läuft dort über IF-Berechnung (NP ÷ FTP) + Fahrtdauer statt über Planzuordnung.
 
 ### Tab: Übersicht
 - Hero mit **FTP-Zonen-Band** (Watt-Skala mit Pins für FTP, eFTP und Saisonziel), **FTP-Fortschrittsring** und **Session-Pill** (nächste geplante Einheit, berücksichtigt Verschiebungen/Ausfälle, zeigt Renn-Countdown bei anstehenden Events)
@@ -63,7 +65,7 @@ Trainingskarten leben in einer RLS-geschützten Tabelle, nicht mehr in JSON. Ses
 - **Prognose & Konflikterkennung**: jede Verschiebung/Änderung rechnet die PMC-Fortschreibung neu und prüft ein festes Regelset (TSB-Einbruch, harte Tage in Folge, Ramp-Rate, Event-Nähe, Terminüberlappung, sportartübergreifend bei Athlet 3) — warnt, blockiert aber nicht. Nach jeder Aktion zeigt ein Delta-Banner die TSB-Änderung, Konflikt-Badges hängen direkt an der Karte.
 - **Workout-Push zu intervals.icu**: strukturierte Workouts per Knopfdruck pushen, per `external_id`-Upsert dedupliziert (erneutes Pushen derselben Karte überschreibt statt zu duplizieren) — nur für den eigenen Athleten. Athlet 4 kann Karten stattdessen als `.zwo`-Datei für Zwift/MyWhoosh exportieren.
 - **Ruhetage** sind abgeleitet, keine eigenen Karten: ein Tag ohne Trainings-Slot und ohne aktive Karte im Plan-Wochen-Modell zählt automatisch als Ruhetag und nie als „verpasst".
-- **Athlet 2** (GFNY Bremen 2026, eigener Namensraum) bleibt read-only, keine der obigen Schreibaktionen verfügbar.
+- **Athlet 2** (GFNY Bremen 2026, eigener Namensraum) editiert seinen Plan im eigenen Login wie jeder andere Athlet — kein Sonderfall mehr.
 
 ### Trainer-Dashboard & Claude-Trainer-Workflow
 
@@ -215,7 +217,7 @@ git sync   # nur von main aus — s. AGENTS.md für den vollständigen Alias
 | Rennhärte | KW31–34 | Rennsimulation + Sprint |
 | Taper | KW35 | Volumen halbieren |
 
-Eigenständiger Namensraum, definiert in `scripts/lib/plan-athlete2.js` — read-only im Dashboard (siehe [Tab: Planung](#tab-planung--interaktiver-wochenplaner)). Der Plan ist abgeschlossene Historie; das Dashboard selbst bleibt für Athlet 2 als Vergleichsdatensatz aktiv.
+Eigenständiger Namensraum, definiert in `scripts/lib/plan-athlete2.js` — im Dashboard editierbar nur über den eigenen Login (siehe [Tab: Planung](#tab-planung--interaktiver-wochenplaner)); ein fremder Betrachter sieht den Tab nur lesend. Der Plan ist abgeschlossene Historie; das Dashboard selbst bleibt für Athlet 2 als Vergleichsdatensatz aktiv.
 
 ---
 
