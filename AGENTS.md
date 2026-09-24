@@ -382,9 +382,10 @@ app/                       → Vite + React + TypeScript, s. app/README.md
       intervals/                intervals.icu-Push (Workout → Wahoo)
       hooks/                    React-Query-Hooks — die eigentliche Aufrufstelle
                               — Details: src/api/README.md
-    sports/cycling/         → Multi-Sport-Vorbereitung: austauschbare Zonen-/
-      running/                 Metrik-/Session-Typ-/Klassifikations-Logik je
-      swimming/                Sportart — Details: src/sports/README.md
+    sports/                 → Multi-Sport-Vorbereitung (G5, cycling/,
+                              running/ und swimming/ befüllt): austauschbare
+                              Zonen-/Metrik-Logik statt hart codiert —
+                              Details: src/sports/README.md
     charts/                 → Chart-Engine + alle Einzel-Charts (SVG/Canvas),
                               Details: src/charts/README.md
     components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
