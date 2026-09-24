@@ -12,8 +12,9 @@
   durchgehen, je eine Empfehlung geben, auf Alex' Antwort warten. Die
   Ideen-Fahrpläne aus `planning/ideen-backlog.md` sind so entstanden; ihre
   offenen Fragen werden vor der Umsetzung ebenso gegrillt.
-- Vor neuer Datei in `assets/js/core|state|ui/…` prüfen, ob ein Skill oder
-  bestehendes Modul die Aufgabe schon abdeckt — nicht parallel neu erfinden.
+- Vor neuer Datei in `app/src/core|api|hooks|features|components|charts/…`
+  prüfen, ob ein Skill oder bestehendes Modul die Aufgabe schon abdeckt —
+  nicht parallel neu erfinden.
 
 ## MCP-Tools
 
@@ -32,7 +33,8 @@
     Screenshot bevorzugen (`browser_snapshot`), Konsole und Netzwerk-Requests
     einsehen, Laufzeit-Zustand direkt inspizieren via `browser_evaluate` mit
     dynamischem `import()` der laufenden App-Module (liefert echten
-    In-Memory-State aus `state/*.js`, nicht nur den DOM-Ausschnitt).
+    In-Memory-State aus `app/src/api/`/React-Query-Caches, nicht nur den
+    DOM-Ausschnitt).
   - **Bleibt manuell bei Alex:** die finale Bestätigung im echten Browser vor
     jedem `git sync`; echte Multi-Step-Zeigergesten, falls synthetische
     Pointer-Events einen Unterschied machen könnten — beim Drag-Freeze-Bug
@@ -63,8 +65,9 @@ unten) + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
   Claude-Code-Fenster machbar (nur ihr Etappen-Block + die geteilten Verträge
   als Kontext), um Token zu sparen. Muster:
   `planning/docs/fahrplan-8-plan-generator.md`.
-- **Plan Mode** vor Änderungen an `core/*.js`, die mehr als eine Funktion
-  betreffen, oder die die Schichtenregel (`ui → state → core`) berühren.
+- **Plan Mode** vor Änderungen an `app/src/core/*.js`, die mehr als eine
+  Funktion betreffen, oder die die Schichtenregel
+  (`components/charts/features → hooks/api → core`) berühren.
 - **TodoWrite** ab 3 Schritten (z. B. die 3 Pflichtstellen bei neuem Datenfeld).
 - Nach jeder `.js`-Änderung selbst `node -c <datei>` laufen lassen.
 - Vor jedem Commit-Vorschlag: `node -c` → `npm test` → `/code-review` auf den
