@@ -23,7 +23,14 @@ updates:
       interval: "weekly"
     ignore:
       - dependency-name: "node"
-        patterns: ["25*", "27*", "29*", "31*", "33*"]
+        # Platzhalter — bei neuen Node-Hauptversionen erweitern (hier: ungerade
+        # Non-LTS-Majors blockiert bis 33, bei 35/37/… ergänzen)
+        versions:
+          - ">= 25, < 26"
+          - ">= 27, < 28"
+          - ">= 29, < 30"
+          - ">= 31, < 32"
+          - ">= 33, < 34"
 
   # Docker-Images: scripts/Dockerfile (node)
   - package-ecosystem: "docker"
@@ -32,7 +39,14 @@ updates:
       interval: "weekly"
     ignore:
       - dependency-name: "node"
-        patterns: ["25*", "27*", "29*", "31*", "33*"]
+        # Platzhalter — bei neuen Node-Hauptversionen erweitern (hier: ungerade
+        # Non-LTS-Majors blockiert bis 33, bei 35/37/… ergänzen)
+        versions:
+          - ">= 25, < 26"
+          - ">= 27, < 28"
+          - ">= 29, < 30"
+          - ">= 31, < 32"
+          - ">= 33, < 34"
 
   # Docker-Images: supabase/Dockerfile (dbmate)
   - package-ecosystem: "docker"
