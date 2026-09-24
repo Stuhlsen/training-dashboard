@@ -12,27 +12,27 @@
   durchgehen, je eine Empfehlung geben, auf Alex' Antwort warten. Die
   Ideen-Fahrpläne aus `planning/ideen-backlog.md` sind so entstanden; ihre
   offenen Fragen werden vor der Umsetzung ebenso gegrillt.
-- Vor neuer Datei in `assets/js/core|state|ui/…` prüfen, ob ein Skill oder
-  bestehendes Modul die Aufgabe schon abdeckt — nicht parallel neu erfinden.
+- Vor neuer Datei in `app/src/core|api|hooks|features|components|charts/…`
+  prüfen, ob ein Skill oder bestehendes Modul die Aufgabe schon abdeckt —
+  nicht parallel neu erfinden.
 
 ## MCP-Tools
 
 - **Playwright MCP** (`.mcp.json`, projektlokal, `npx @playwright/mcp@latest`,
-  bereits eingerichtet und committet) — aktiv nutzen für UI-nahe Bugs, Race
-  Conditions und alles, was sich nicht zuverlässig durch reines Code-Lesen
-  klären lässt. Nicht erst als letztes Mittel nach mehreren erfolglosen
-  Theorien greifen (so verlief der Drag-Grip-Bug im Trainer-Modus, Juli 2026:
-  zwei rein code-lesebasierte Fixversuche waren beide in sich logisch
-  schlüssig und beide wirkungslos — die Ursache war eine Race Condition
-  zwischen zwei Event-Listenern, deren relative Reihenfolge keine im
-  Quelltext sichtbare Eigenschaft ist. Erst die Live-Diagnose mit Playwright
-  MCP machte sie eindeutig, s. `planning/docs/offene-punkte.md`).
+  bereits eingerichtet und committet) — gemäß `AGENTS.md` als **letztes
+  Mittel** einsetzen, nicht als Standard-Reflex. Vor jedem Einsatz prüfen, ob
+  ein Unit-Test dieselbe Eigenschaft zuverlässig belegen kann; Playwright ist
+  für UI-nahe Bugs, Race Conditions und anderes Laufzeitverhalten reserviert,
+  das sich nicht gleichwertig durch einen Unit-Test prüfen lässt. Die
+  detaillierten Einsatz- und Nicht-Einsatzregeln in `AGENTS.md` sind dafür
+  die kanonische Quelle.
   - **Kann:** echten Browser steuern (Navigation, Klicks, Formulare,
     Drag-Gesten über Pointer-Events), Accessibility-Snapshot statt
     Screenshot bevorzugen (`browser_snapshot`), Konsole und Netzwerk-Requests
     einsehen, Laufzeit-Zustand direkt inspizieren via `browser_evaluate` mit
     dynamischem `import()` der laufenden App-Module (liefert echten
-    In-Memory-State aus `state/*.js`, nicht nur den DOM-Ausschnitt).
+    In-Memory-State aus `app/src/api/`/React-Query-Caches, nicht nur den
+    DOM-Ausschnitt).
   - **Bleibt manuell bei Alex:** die finale Bestätigung im echten Browser vor
     jedem `git sync`; echte Multi-Step-Zeigergesten, falls synthetische
     Pointer-Events einen Unterschied machen könnten — beim Drag-Freeze-Bug
@@ -63,8 +63,9 @@ unten) + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
   Claude-Code-Fenster machbar (nur ihr Etappen-Block + die geteilten Verträge
   als Kontext), um Token zu sparen. Muster:
   `planning/docs/fahrplan-8-plan-generator.md`.
-- **Plan Mode** vor Änderungen an `core/*.js`, die mehr als eine Funktion
-  betreffen, oder die die Schichtenregel (`ui → state → core`) berühren.
+- **Plan Mode** vor Änderungen an `app/src/core/*.js`, die mehr als eine
+  Funktion betreffen, oder die die Schichtenregel
+  (`components/charts/features → hooks/api → core`) berühren.
 - **TodoWrite** ab 3 Schritten (z. B. die 3 Pflichtstellen bei neuem Datenfeld).
 - Nach jeder `.js`-Änderung selbst `node -c <datei>` laufen lassen.
 - Vor jedem Commit-Vorschlag: `node -c` → `npm test` → `/code-review` auf den

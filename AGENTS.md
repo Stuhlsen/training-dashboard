@@ -32,8 +32,11 @@ Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
 
 GitHub Actions trägt seit 30.08.2026 nur noch CI + Image-Publish: je ein
 CI-Job pro Teil (`ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer
-nur bei Änderungen unter `app/**`) und `publish-images.yml` (GHCR-Images bei
-`v*`-Tag). Der Datensync (alle 15 Min, s. u.) läuft **nicht mehr** in Actions,
+nur bei Änderungen unter `app/**`) und `publish-images.yml` (baut vier
+GHCR-Images — frontend, sync, migrate, admin-api, seit Fahrplan 15 E6 — und
+pusht sie: bei Push nach `main` als `latest`, bei `v*`-Tag zusätzlich
+versioniert + GitHub Release; ein Pull Request baut nur, ohne Push). Der
+Datensync (alle 15 Min, s. u.) läuft **nicht mehr** in Actions,
 sondern als Dauer-Container auf apps01 (`sync-data.yml` ist auf
 `workflow_dispatch`-Fallback reduziert, s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`).
 
@@ -202,9 +205,9 @@ gleichen Pfad unter `/app/…` umgeschrieben (inkl. Query/Hash/State).
     | `api/` | `core/` (nur Typen) | `features/`, `components/` |
     | `hooks/`, `features/*` (Orchestrierung) | `core/`, `api/` | — |
     | `components/`, `charts/`, `features/*` (UI-Teil) | `core/`, `hooks/`, `features/*` | `api/` direkt (`config`/`auth`/`useActiveAthlete`/`useAthleteSports`/`useEffectiveSport` als schmale, bewusste Ausnahme für globale Chrome-Komponenten — s. `EnvBadge.tsx`/`Layout.tsx`/`ProtectedRoute.tsx`/`Footer.tsx`/`AppBackground.tsx`; `useActiveAthlete` ist ein reiner `localStorage`-Hook ohne I/O, kein Unterschied zur `auth`-Ausnahme in der Sache; `useAthleteSports`/`useEffectiveSport` lesen die Sportarten des aktiven Athleten über einen gecachten React-Query-Aufruf — nur für Tab-Liste bzw. Hintergrundbild) |
-  - `app/src/sports/` — Multi-Sport-Vorbereitung (G5, bisher nur `cycling/`
-    befüllt): austauschbare Zonen-/Metrik-Logik statt hart codiert. Details:
-    `app/src/sports/README.md`.
+  - `app/src/sports/` — Multi-Sport-Vorbereitung (G5, `cycling/`, `running/`
+    und `swimming/` befüllt): austauschbare Zonen-/Metrik-Logik statt hart
+    codiert. Details: `app/src/sports/README.md`.
 - Typen: **TypeScript** in `app/` (kein `checkJs`/JSDoc mehr nötig, `app/src/core/`
   bleibt JS + JSDoc und wird per `allowJs` eingebunden — s. `app/src/core/README.md`).
   Zentrale Domänentypen in `app/src/api/types.ts` bzw. `app/src/types.js` (die
@@ -301,7 +304,7 @@ Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängi
 ### Migrations-Workflow
 SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/`
 (zeitstempel-/laufnummeriert, `0001_initial_schema.sql` — Tabellen, RLS, Trigger für
-User-Onboarding — bis Stand 22.09.2026 `0051_bikes_notes_private.sql`; neue Migration
+User-Onboarding — bis Stand 24.09.2026 `0055_waitlist_hardening.sql`; neue Migration
 bei jeder Schema-Erweiterung anhängen, nie eine bestehende nachträglich ändern).
 
 **Einspielen (Sequence):**
@@ -396,20 +399,29 @@ app/                       → Vite + React + TypeScript, s. app/README.md
       intervals/                intervals.icu-Push (Workout → Wahoo)
       hooks/                    React-Query-Hooks — die eigentliche Aufrufstelle
                               — Details: src/api/README.md
-    sports/cycling/         → Multi-Sport-Vorbereitung: austauschbare Zonen-/
-                              Metrik-/Session-Typ-/Klassifikations-Logik
-                              — Details: src/sports/README.md
+    sports/                 → Multi-Sport-Vorbereitung (G5, cycling/,
+                              running/ und swimming/ befüllt): austauschbare
+                              Zonen-/Metrik-Logik statt hart codiert —
+                              Details: src/sports/README.md
     charts/                 → Chart-Engine + alle Einzel-Charts (SVG/Canvas),
                               Details: src/charts/README.md
     components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
     hooks/                  → generische UI-Hooks (nicht datenbezogen)
     features/               → ein Verzeichnis je Tab/Bereich: hero, logbook,
-                              planning, analysis, explorer, events, auth, settings,
+                              planning, analysis, events, auth, settings,
                               bikefit (Fahrplan 16), landing (Fahrplan 22 —
                               öffentliche Startseite auf `/`, Warteliste,
-                              nicht Teil des `/app`-Dashboards)
+                              nicht Teil des `/app`-Dashboards), onboarding
     styles/tokens.css       → Design-Tokens (abgeglichen mit planning/docs/archiv/chart-grundlagen.md,
                               archiviert — Werte selbst bleiben aktuell)
+
+admin-api/                → schlanker Node.js-HTTP-Server (kein Framework, `node:http`),
+                            eigenes Image seit Fahrplan 15 E6 (s. `publish-images.yml`).
+                            Admin-Accountverwaltung (Liste/Sperren/Entsperren/Löschen/
+                            Link erneut senden) gegen GoTrue/PostgREST intern, JWT-Prüfung
+                            in `auth.js` (`requireAdmin`), schreibt das Admin-Audit-Log
+                            (s. „Schreibdaten" im README). Eigene `Dockerfile` +
+                            `*.test.js` je Modul (`node --test`).
 
 data/                     → generierte JSON-Dateien (rides*.json, wellbeing*.json, …),
                             von scripts/generate-data.js geschrieben, NICHT manuell committen
@@ -421,8 +433,8 @@ scripts/
   generate-data.js         → Dünner Orchestrator (läuft im apps01-Sync-Container + `npm run sync`)
   delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
   preset-suggestion-check.js, report-derived-workout-structure.js,
-  generate-jwt-keys.js, rename-athlete4-cards.js, generate-media.js →
-                             einzelne Betriebs-/Migrations-/Analyse-/Medien-
+  generate-jwt-keys.js, rename-athlete4-cards.js, generate-media.js,
+  seed-profile-hr-max.js → einzelne Betriebs-/Migrations-/Analyse-/Medien-
                              Skripte
                              (delete-rest-day-cards.js: Einmal-Aufräumskript
                              Fahrplan 6 RUH6 — entfernt migrierte
@@ -438,7 +450,10 @@ scripts/
                              `app/public/assets/landing/`, braucht
                              `OPENROUTER_API_KEY` + `OPENROUTER_IMAGE_MODEL`/
                              `OPENROUTER_VIDEO_MODEL` in `.env`, kein
-                             Automatik-Lauf im Sync/in CI)
+                             Automatik-Lauf im Sync/in CI; seed-profile-hr-max.js:
+                             Einmal-Seed für den Golden Master, Fahrplan 17 E2 —
+                             hrMax/hrRest von app/src/config.ts-Literalen nach
+                             profiles.hr_max)
   Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
@@ -447,7 +462,12 @@ scripts/
                              compliance, coverage, ftp-history, interval-blocks,
                              formats-fetch, plan-cards-fetch, plan-to-cards, output,
                              sync-config-fetch (athlete_sync_config per Service-Role,
-                             Fahrplan 7 CRED3 — löst intervals-credentials-fetch ab)
+                             Fahrplan 7 CRED3 — löst intervals-credentials-fetch ab),
+                             athletes (Config-Liste der Athleten-Ausgabedateien,
+                             Fahrplan 10 E3), hr (Herzfrequenz-Hilfsrechnungen,
+                             HFmax nach Tanaka), training-plan-fetch (aktive
+                             training_plans-Zeile eines Athleten aus Supabase,
+                             Migration 0028/0029)
     core/                  → zur app/src/core/-Schicht parallele Portierung auf der
                              Sync-Seite (aggregate, briefing, plan2-schedule, projection,
                              readiness, workout-math/-validator/-structure-derive,
@@ -459,9 +479,13 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
 .github/workflows/
   sync-data.yml            → nur noch `workflow_dispatch`-Fallback (der Sync läuft
                              produktiv im apps01-Container, s. Fahrplan 3 Fenster C)
-  publish-images.yml       → bei `v*`-Tag: GHCR-Images (frontend, sync, migrate) + GitHub Release
+  publish-images.yml       → baut vier GHCR-Images (frontend, sync, migrate,
+                             admin-api): Push nach main = "latest"-Tag,
+                             `v*`-Tag = versioniert + GitHub Release, PR =
+                             nur Bauen, kein Push
   ci.yml                   → Push/PR (Repo-Root): npm test + ESLint + Fallow code-quality
-  ci-app.yml                → Push/PR (nur bei Änderungen unter app/**): Vitest,
+  ci-app.yml                → Push/PR (nur bei Änderungen unter app/** oder an
+                             der Workflow-Datei selbst): Vitest,
                              ESLint, Build (tsc -b + vite build) für /app/
 
 .claude/skills/
@@ -660,8 +684,10 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
   Taggen ohne Bestätigung, ein neuer Tag ist ein sichtbarer, kaum
   rückholbarer Schritt (löst einen echten Image-Build/-Push aus). Derselbe
   `v*`-Tag löst in `publish-images.yml` zusätzlich einen `release`-Job aus,
-  der per `gh release create --generate-notes` automatisch ein GitHub
-  Release mit Auto-Notes anlegt — kein separater manueller Schritt nötig.
+  der eine eigene `release-notes.md` baut (`git log`, nach Commit-Typ
+  gruppiert) und per `gh release create --notes-file` automatisch ein
+  GitHub Release mit diesen Auto-Notes anlegt — kein separater manueller
+  Schritt nötig.
 
 **`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
 ```
