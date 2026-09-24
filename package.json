@@ -2,7 +2,7 @@
   "name": "training-dashboard",
   "private": true,
   "version": "1.0.0",
-  "description": "Radsport-Trainingsdashboard — React (app/) auf GitHub Pages, Datensync via GitHub Actions",
+  "description": "Radsport-Trainingsdashboard — React (app/) selbst-gehostet als Container-Verbund auf apps01, Datensync via apps01-Sidecar-Container",
   "type": "module",
   "scripts": {
     "test": "node --test --experimental-test-module-mocks \"tests/**/*.test.js\"",

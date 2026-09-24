@@ -417,14 +417,19 @@ scripts/
   generate-data.js         → Dünner Orchestrator (läuft im apps01-Sync-Container + `npm run sync`)
   delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
   preset-suggestion-check.js, report-derived-workout-structure.js,
-  generate-jwt-keys.js, rename-athlete4-cards.js → einzelne Betriebs-/
-                             Migrations-/Analyse-Skripte
+  generate-jwt-keys.js, rename-athlete4-cards.js, generate-media.js,
+  seed-profile-hr-max.js → einzelne Betriebs-/Migrations-/Analyse-Skripte
                              (delete-rest-day-cards.js: Einmal-Aufräumskript
                              Fahrplan 6 RUH6 — entfernt migrierte
                              `workout_type="Ruhetag"`-Zeilen aus plan_cards;
                              rename-athlete4-cards.js: Einmal-Umbenennung der
                              Athlet-4-`plan_cards`-Titel auf die v1.23.0-Namen,
-                             Match über Titel + `week`, Dry-Run ohne `--apply`)
+                             Match über Titel + `week`, Dry-Run ohne `--apply`;
+                             generate-media.js: einmalige KI-Medien-Generierung
+                             über OpenRouter für die öffentliche Landingpage;
+                             seed-profile-hr-max.js: Einmal-Seed für den Golden
+                             Master, Fahrplan 17 E2 — hrMax/hrRest von
+                             app/src/config.ts-Literalen nach profiles.hr_max)
   Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
@@ -433,7 +438,12 @@ scripts/
                              compliance, coverage, ftp-history, interval-blocks,
                              formats-fetch, plan-cards-fetch, plan-to-cards, output,
                              sync-config-fetch (athlete_sync_config per Service-Role,
-                             Fahrplan 7 CRED3 — löst intervals-credentials-fetch ab)
+                             Fahrplan 7 CRED3 — löst intervals-credentials-fetch ab),
+                             athletes (Config-Liste der Athleten-Ausgabedateien,
+                             Fahrplan 10 E3), hr (Herzfrequenz-Hilfsrechnungen,
+                             HFmax nach Tanaka), training-plan-fetch (aktive
+                             training_plans-Zeile eines Athleten aus Supabase,
+                             Migration 0028/0029)
     core/                  → zur app/src/core/-Schicht parallele Portierung auf der
                              Sync-Seite (aggregate, briefing, plan2-schedule, projection,
                              readiness, workout-math/-validator/-structure-derive,
@@ -450,7 +460,8 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
                              `v*`-Tag = versioniert + GitHub Release, PR =
                              nur Bauen, kein Push
   ci.yml                   → Push/PR (Repo-Root): npm test + ESLint + Fallow code-quality
-  ci-app.yml                → Push/PR (nur bei Änderungen unter app/**): Vitest,
+  ci-app.yml                → Push/PR (nur bei Änderungen unter app/** oder an
+                             der Workflow-Datei selbst): Vitest,
                              ESLint, Build (tsc -b + vite build) für /app/
 
 .claude/skills/
@@ -649,8 +660,10 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
   Taggen ohne Bestätigung, ein neuer Tag ist ein sichtbarer, kaum
   rückholbarer Schritt (löst einen echten Image-Build/-Push aus). Derselbe
   `v*`-Tag löst in `publish-images.yml` zusätzlich einen `release`-Job aus,
-  der per `gh release create --generate-notes` automatisch ein GitHub
-  Release mit Auto-Notes anlegt — kein separater manueller Schritt nötig.
+  der eine eigene `release-notes.md` baut (`git log`, nach Commit-Typ
+  gruppiert) und per `gh release create --notes-file` automatisch ein
+  GitHub Release mit diesen Auto-Notes anlegt — kein separater manueller
+  Schritt nötig.
 
 **`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
 ```
