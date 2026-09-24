@@ -18,15 +18,13 @@
 ## MCP-Tools
 
 - **Playwright MCP** (`.mcp.json`, projektlokal, `npx @playwright/mcp@latest`,
-  bereits eingerichtet und committet) — aktiv nutzen für UI-nahe Bugs, Race
-  Conditions und alles, was sich nicht zuverlässig durch reines Code-Lesen
-  klären lässt. Nicht erst als letztes Mittel nach mehreren erfolglosen
-  Theorien greifen (so verlief der Drag-Grip-Bug im Trainer-Modus, Juli 2026:
-  zwei rein code-lesebasierte Fixversuche waren beide in sich logisch
-  schlüssig und beide wirkungslos — die Ursache war eine Race Condition
-  zwischen zwei Event-Listenern, deren relative Reihenfolge keine im
-  Quelltext sichtbare Eigenschaft ist. Erst die Live-Diagnose mit Playwright
-  MCP machte sie eindeutig, s. `planning/docs/offene-punkte.md`).
+  bereits eingerichtet und committet) — gemäß `AGENTS.md` als **letztes
+  Mittel** einsetzen, nicht als Standard-Reflex. Vor jedem Einsatz prüfen, ob
+  ein Unit-Test dieselbe Eigenschaft zuverlässig belegen kann; Playwright ist
+  für UI-nahe Bugs, Race Conditions und anderes Laufzeitverhalten reserviert,
+  das sich nicht gleichwertig durch einen Unit-Test prüfen lässt. Die
+  detaillierten Einsatz- und Nicht-Einsatzregeln in `AGENTS.md` sind dafür
+  die kanonische Quelle.
   - **Kann:** echten Browser steuern (Navigation, Klicks, Formulare,
     Drag-Gesten über Pointer-Events), Accessibility-Snapshot statt
     Screenshot bevorzugen (`browser_snapshot`), Konsole und Netzwerk-Requests
