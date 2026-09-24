@@ -169,6 +169,20 @@ dort.
 → `App.tsx`), React-Routing/Gates statt Tab-Umschaltung per Hand. Neue
 Datei anlegen → per `import` einbinden, kein Script-Tag-Management.
 
+**Routing seit Fahrplan 22 (Sept. 2026):** Die Root-Route `/` ist nicht mehr
+das Dashboard, sondern eine öffentliche Marketing-/Landingpage
+(`app/src/features/landing/`, lazy geladen) mit Warteliste (`waitlist`-
+Tabelle, Migration 0054/0055, `app/src/api/supabase/waitlist.ts`) und einem
+Seedance-Herovideo + generierten Trenner-/Vorschaubildern unter
+`app/public/assets/landing/` (erzeugt von `scripts/generate-media.js`, s.
+„Dateistruktur"). Das eigentliche Dashboard liegt seit diesem Umbau unter
+`/app` (`OnboardingGate` → `Layout` in `App.tsx`, alle bisherigen Tabs als
+Unterrouten: `/app`, `/app/planning`, `/app/log`, `/app/analysis`, …). Alte
+Links/Lesezeichen von vor Fahrplan 22 (`/login`, `/planning`, `/explorer`,
+`/log`, `/analysis`, `/events`, `/bikefit`, `/settings`,
+`/onboarding/accept`) werden per `LegacyRedirect` transparent auf den
+gleichen Pfad unter `/app/…` umgeschrieben (inkl. Query/Hash/State).
+
 - **Schichtenregel** — gilt unverändert seit der Vanilla-Zeit, nur die Namen
   der I/O-/Orchestrierungs-Schicht haben sich mit dem React-Umbau geändert:
   - `app/src/core/` — reine Berechnung, portiert aus dem früheren `core/`
@@ -395,7 +409,9 @@ app/                       → Vite + React + TypeScript, s. app/README.md
     hooks/                  → generische UI-Hooks (nicht datenbezogen)
     features/               → ein Verzeichnis je Tab/Bereich: hero, logbook,
                               planning, analysis, events, auth, settings,
-                              bikefit (Fahrplan 16), landing, onboarding
+                              bikefit (Fahrplan 16), landing (Fahrplan 22 —
+                              öffentliche Startseite auf `/`, Warteliste,
+                              nicht Teil des `/app`-Dashboards), onboarding
     styles/tokens.css       → Design-Tokens (abgeglichen mit planning/docs/archiv/chart-grundlagen.md,
                               archiviert — Werte selbst bleiben aktuell)
 
@@ -418,18 +434,26 @@ scripts/
   delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
   preset-suggestion-check.js, report-derived-workout-structure.js,
   generate-jwt-keys.js, rename-athlete4-cards.js, generate-media.js,
-  seed-profile-hr-max.js → einzelne Betriebs-/Migrations-/Analyse-Skripte
+  seed-profile-hr-max.js → einzelne Betriebs-/Migrations-/Analyse-/Medien-
+                             Skripte
                              (delete-rest-day-cards.js: Einmal-Aufräumskript
                              Fahrplan 6 RUH6 — entfernt migrierte
                              `workout_type="Ruhetag"`-Zeilen aus plan_cards;
                              rename-athlete4-cards.js: Einmal-Umbenennung der
                              Athlet-4-`plan_cards`-Titel auf die v1.23.0-Namen,
                              Match über Titel + `week`, Dry-Run ohne `--apply`;
-                             generate-media.js: einmalige KI-Medien-Generierung
-                             über OpenRouter für die öffentliche Landingpage;
-                             seed-profile-hr-max.js: Einmal-Seed für den Golden
-                             Master, Fahrplan 17 E2 — hrMax/hrRest von
-                             app/src/config.ts-Literalen nach profiles.hr_max)
+                             generate-media.js: Einmalige KI-Medien-Generierung
+                             für die Landingpage über OpenRouter — Bilder
+                             [`trenner-1..3`, `cycling`/`running`/`swimming`/
+                             `landing`-Vorschau] und das Seedance-Herovideo
+                             [`hero-video`], schreibt nach
+                             `app/public/assets/landing/`, braucht
+                             `OPENROUTER_API_KEY` + `OPENROUTER_IMAGE_MODEL`/
+                             `OPENROUTER_VIDEO_MODEL` in `.env`, kein
+                             Automatik-Lauf im Sync/in CI; seed-profile-hr-max.js:
+                             Einmal-Seed für den Golden Master, Fahrplan 17 E2 —
+                             hrMax/hrRest von app/src/config.ts-Literalen nach
+                             profiles.hr_max)
   Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
