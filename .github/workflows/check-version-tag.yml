@@ -1,0 +1,60 @@
+# Prüft nach jedem main-Push (app/scripts/supabase/admin-api) ob ein v*-Tag
+# den aktuellen HEAD markiert.
+# apps01 deployed nur pinned v*-Images, nie :latest — ein untagged Merge
+# bleibt sonst unsichtbar in Produktion.
+# Siehe AGENTS.md → "Versions-Tag für Docker-Images", "Git-Workflow".
+name: Version Tag Check
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "scripts/**"
+      - "supabase/**"
+      - "admin-api/**"
+      - ".github/workflows/check-version-tag.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tag-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Check version tag on HEAD
+        run: |
+          HEAD_SHA=$(git rev-parse HEAD)
+          TAG_ON_HEAD=$(git tag --points-at HEAD | grep '^v' | head -n1)
+
+          if [ -n "$TAG_ON_HEAD" ]; then
+            echo "::notice::HEAD ($HEAD_SHA) ist bereits mit $TAG_ON_HEAD versioniert."
+            exit 0
+          fi
+
+          # Pruefe ob ueberhaupt ein v*-Tag im Repo existiert (fuer Drittnachricht)
+          LATEST_TAG=$(git tag --sort=-v:refname | grep '^v' | head -n1)
+          if [ -n "$LATEST_TAG" ]; then
+            echo "::warning::Letzter Versionstag: $LATEST_TAG"
+            echo "::warning::"
+          else
+            echo "::warning::Noch kein v*-Tag im Repo."
+            echo "::warning::"
+          fi
+
+          echo "::error::HEAD ($HEAD_SHA) hat keinen v*-Tag."
+          echo "::error::Dieser main-Push aendert Image-Verzeichnisse (app/scripts/supabase/admin-api),"
+          echo "::error::wird aber auf apps01 nicht deployed — apps01 pullt nur pinned v*-Images."
+          echo "::error::"
+          echo "::error::Nach dem Merge: git tag vX.Y.Z && git push origin vX.Y.Z"
+          echo "::error::(auf Deutsch: nach dem Merge einen passenden Versionstag setzen."
+          echo "::error:: Siehe AGENTS.md → Versions-Tag für Docker-Images.)"
+          echo "::error::"
+          echo "::error::Die publish-images.yml hat zwar :latest gebaut, aber apps01"
+          echo "::error::zieht nie :latest — nur v*-Tags. Ohne neuen Tag bleibt die"
+          echo "::error::Aenderung auf apps01 unsichtbar."
+          exit 1
