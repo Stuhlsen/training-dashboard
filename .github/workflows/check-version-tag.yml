@@ -3,6 +3,15 @@
 # apps01 deployed nur pinned v*-Images, nie :latest — ein untagged Merge
 # bleibt sonst unsichtbar in Produktion.
 # Siehe AGENTS.md → "Versions-Tag für Docker-Images", "Git-Workflow".
+#
+# HINWEIS: Dieser Workflow triggert nur bei push auf main. Wird der Tag
+# nachträglich gesetzt (git tag vX.Y.Z && git push origin vX.Y.Z), löst das
+# publish-images.yml aus, aber dieser Check läuft nicht neu — der historisch
+# rote Commit bleibt rot. Das ist akzeptiert: das publish-images.yml-Release
+# ist der tatsächliche Deploy-Indikator, der rote Check dient nur als
+# Auffälligkeit beim PR-Merge. Wer den Check grün sehen will, pusht in einem
+# Schritt (Merge + Tag vor Push) oder akzeptiert den Rot-Zustand als
+# Dokumentation des nachträglichen Tags.
 name: Version Tag Check
 
 on:
@@ -29,7 +38,7 @@ jobs:
       - name: Check version tag on HEAD
         run: |
           HEAD_SHA=$(git rev-parse HEAD)
-          TAG_ON_HEAD=$(git tag --points-at HEAD | grep '^v' | head -n1)
+          TAG_ON_HEAD=$(git tag --points-at HEAD | grep '^v' | head -n1) || true
 
           if [ -n "$TAG_ON_HEAD" ]; then
             echo "::notice::HEAD ($HEAD_SHA) ist bereits mit $TAG_ON_HEAD versioniert."
@@ -37,7 +46,7 @@ jobs:
           fi
 
           # Pruefe ob ueberhaupt ein v*-Tag im Repo existiert (fuer Drittnachricht)
-          LATEST_TAG=$(git tag --sort=-v:refname | grep '^v' | head -n1)
+          LATEST_TAG=$(git tag --sort=-v:refname | grep '^v' | head -n1) || true
           if [ -n "$LATEST_TAG" ]; then
             echo "::warning::Letzter Versionstag: $LATEST_TAG"
             echo "::warning::"
