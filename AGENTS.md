@@ -30,13 +30,17 @@ Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
   Vitest, zwei Projekte (`core` unter Node, `app` unter jsdom — s.
   `app/vite.config.ts`). Details/Konventionen: `app/README.md`.
 
-GitHub Actions trägt seit 30.08.2026 nur noch CI + Image-Publish: je ein
-CI-Job pro Teil (`ci.yml` für den Root, `ci-app.yml` für `/app/`, letzterer
-nur bei Änderungen unter `app/**`) und `publish-images.yml` (baut vier
-GHCR-Images — frontend, sync, migrate, admin-api, seit Fahrplan 15 E6 — und
-pusht sie: bei Push nach `main` als `latest`, bei `v*`-Tag zusätzlich
-versioniert + GitHub Release; ein Pull Request baut nur, ohne Push). Der
-Datensync (alle 15 Min, s. u.) läuft **nicht mehr** in Actions,
+GitHub Actions trägt seit 30.08.2026 nur noch CI + Image-Publish +
+Version-Tag-Check: je ein CI-Job pro Teil (`ci.yml` für den Root,
+`ci-app.yml` für `/app/`, letzterer nur bei Änderungen unter `app/**`) und
+`publish-images.yml` (baut vier GHCR-Images — frontend, sync, migrate,
+admin-api, seit Fahrplan 15 E6 — und pusht sie: bei Push nach `main` als
+`latest`, bei `v*`-Tag zusätzlich versioniert + GitHub Release; ein Pull
+Request baut nur, ohne Push). `check-version-tag.yml` (seit Issue #68)
+warnt und failt, wenn `app/`, `scripts/`, `supabase/` oder `admin-api/`
+auf `main` ohne neuen `v*`-Tag gepusht werden — apps01 deployt nur
+gepinnte Tags, nie `latest`. Der Datensync (alle 15 Min, s. u.) läuft
+**nicht mehr** in Actions,
 sondern als Dauer-Container auf apps01 (`sync-data.yml` ist auf
 `workflow_dispatch`-Fallback reduziert, s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`).
 
@@ -487,6 +491,10 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
   ci-app.yml                → Push/PR (nur bei Änderungen unter app/** oder an
                              der Workflow-Datei selbst): Vitest,
                              ESLint, Build (tsc -b + vite build) für /app/
+  check-version-tag.yml     → Push nach main (nur bei Änderungen unter
+                             app/**, scripts/**, supabase/**, admin-api/**):
+                             failt mit Hinweis, wenn kein neuer v*-Tag auf
+                             dem Commit liegt (apps01 deployt nur Tags)
 
 .claude/skills/
   fallow/                  → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
