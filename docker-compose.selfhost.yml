@@ -71,7 +71,7 @@ services:
 
   # Storage-Schema vor dbmate-Migrationen anlegen
   storage-init:
-    image: supabase/storage-api:v1.79.12
+    image: supabase/storage-api:v1.79.14
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -175,7 +175,7 @@ services:
   # v1.16.0-Pin war ungewollt veraltet (Jan. 2025, ~58 Releases zurueck),
   # keine bewusste Festlegung auf die alte Version.
   storage-api:
-    image: supabase/storage-api:v1.79.12
+    image: supabase/storage-api:v1.79.14
     depends_on:
       postgres:
         condition: service_healthy
