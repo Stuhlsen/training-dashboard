@@ -680,22 +680,30 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
 - PowerShell: KEIN `&&` zwischen Befehlen — jeweils eigene Zeile
 - Bei Konflikten mit fremden Commits auf `origin/main`: `git fetch origin` dann `git push --force-with-lease origin main` (die früheren `data/*.json`-Auto-Commits der Sync-Action gibt es seit Fahrplan 3 Fenster C nicht mehr)
 - Zeilenenden: `.gitattributes` erzwingt LF im Repo (`* text=auto eol=lf`)
-- **Versions-Tag für Docker-Images:** Nach einem Push nach `main`, der
-  `app/`, `scripts/` oder `supabase/` ändert (löst `publish-images.yml`
-  aus), zusätzlich einen `vX.Y.Z`-Tag setzen und pushen
-  (`git tag vX.Y.Z` / `git push origin vX.Y.Z`) — Patch bei Bugfixes, Minor
-  bei neuen Features, Major bei Breaking Changes. Grund: Der Produktivserver
-  zieht bewusst nie `:latest` (`planning/docs/fahrplan-3-docker-umbau.md`, Fenster
-  DKR4), sondern eine feste Version — ohne neuen Tag bleibt ein Fix dort
-  unsichtbar, auch wenn `main` längst aktualisiert ist. Bleibt ein manueller
-  Schritt mit Rückfrage bei Alex (welche Versionsstufe) — kein automatisches
-  Taggen ohne Bestätigung, ein neuer Tag ist ein sichtbarer, kaum
-  rückholbarer Schritt (löst einen echten Image-Build/-Push aus). Derselbe
-  `v*`-Tag löst in `publish-images.yml` zusätzlich einen `release`-Job aus,
-  der eine eigene `release-notes.md` baut (`git log`, nach Commit-Typ
-  gruppiert) und per `gh release create --notes-file` automatisch ein
-  GitHub Release mit diesen Auto-Notes anlegt — kein separater manueller
-  Schritt nötig.
+- **Versions-Tag für Docker-Images:** Ein PR, der `app/`, `scripts/`,
+  `supabase/` oder `admin-api/` ändert, wird gemergt UND getaggt in einem
+  Schritt: `git merge-tag <pr-nummer> <version>` (globaler Git-Alias, z. B.
+  `git merge-tag 97 1.5.0`) — merged den PR (`gh pr merge --squash`), holt
+  den neuen `main`-Stand, setzt `vX.Y.Z` darauf und pusht den Tag, alles in
+  einem Befehl. Patch bei Bugfixes, Minor bei neuen Features, Major bei
+  Breaking Changes — bleibt Alex' eigene Einschätzung, kein Bot entscheidet
+  das (s. „Grenzen"). Grund für das Ein-Schritt-Kommando statt "erst
+  mergen, dann später taggen": Issue #68 (25.–26.09.2026, mit Tony) zeigte,
+  dass "später taggen" real vergessen werden kann, ein separater
+  CI-Merge-Block davor aber technisch nicht funktioniert — Squash-/Merge-/
+  Rebase-Merges erzeugen auf `main` einen neuen Commit, den ein vor dem
+  Merge gesetzter Tag nie treffen kann. `check-version-tag.yml` bleibt als
+  sichtbarer, aber nicht blockierender Warnhinweis bestehen (kein `exit 1`
+  mehr) — er zeigt einen vergessenen Tag an, verhindert aber keinen Merge.
+  Ein neuer Tag ist trotzdem ein sichtbarer, kaum rückholbarer Schritt (löst
+  einen echten Image-Build/-Push aus) — bleibt bewusst Alex' eigener
+  Befehl, kein automatischer Bot-Trigger. Der Produktivserver zieht
+  bewusst nie `:latest` (`planning/docs/fahrplan-3-docker-umbau.md`, Fenster
+  DKR4), sondern eine feste Version. Derselbe `v*`-Tag löst in
+  `publish-images.yml` zusätzlich einen `release`-Job aus, der eine eigene
+  `release-notes.md` baut (`git log`, nach Commit-Typ gruppiert) und per
+  `gh release create --notes-file` automatisch ein GitHub Release mit
+  diesen Auto-Notes anlegt — kein separater manueller Schritt nötig.
 
 **`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
 ```

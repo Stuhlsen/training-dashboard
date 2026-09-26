@@ -1,17 +1,15 @@
 # Prüft nach jedem main-Push (app/scripts/supabase/admin-api) ob ein v*-Tag
-# den aktuellen HEAD markiert.
+# den aktuellen HEAD markiert. Informational only (warning, no failing exit
+# code) — see the discussion on issue #68 (Tony) for why this is not a hard
+# merge gate: squash/merge/rebase all produce a new commit SHA on main, so a
+# tag set on the PR branch before merging can never point at that SHA — a
+# hard block would be unenforceable at the right moment. The actual
+# enforcement is the `git merge-tag <pr> <version>` one-command flow
+# (merge, then tag the resulting main commit, then push the tag, in one
+# step) — see AGENTS.md → "Versions-Tag für Docker-Images". This check is
+# the visible safety net if that command was skipped, not the gate itself.
 # apps01 deployed nur pinned v*-Images, nie :latest — ein untagged Merge
 # bleibt sonst unsichtbar in Produktion.
-# Siehe AGENTS.md → "Versions-Tag für Docker-Images", "Git-Workflow".
-#
-# HINWEIS: Dieser Workflow triggert nur bei push auf main. Wird der Tag
-# nachträglich gesetzt (git tag vX.Y.Z && git push origin vX.Y.Z), löst das
-# publish-images.yml aus, aber dieser Check läuft nicht neu — der historisch
-# rote Commit bleibt rot. Das ist akzeptiert: das publish-images.yml-Release
-# ist der tatsächliche Deploy-Indikator, der rote Check dient nur als
-# Auffälligkeit beim PR-Merge. Wer den Check grün sehen will, pusht in einem
-# Schritt (Merge + Tag vor Push) oder akzeptiert den Rot-Zustand als
-# Dokumentation des nachträglichen Tags.
 name: Version Tag Check
 
 on:
@@ -49,21 +47,17 @@ jobs:
           LATEST_TAG=$(git tag --sort=-v:refname | grep '^v' | head -n1) || true
           if [ -n "$LATEST_TAG" ]; then
             echo "::warning::Letzter Versionstag: $LATEST_TAG"
-            echo "::warning::"
           else
             echo "::warning::Noch kein v*-Tag im Repo."
-            echo "::warning::"
           fi
 
-          echo "::error::HEAD ($HEAD_SHA) hat keinen v*-Tag."
-          echo "::error::Dieser main-Push aendert Image-Verzeichnisse (app/scripts/supabase/admin-api),"
-          echo "::error::wird aber auf apps01 nicht deployed — apps01 pullt nur pinned v*-Images."
-          echo "::error::"
-          echo "::error::Nach dem Merge: git tag vX.Y.Z && git push origin vX.Y.Z"
-          echo "::error::(auf Deutsch: nach dem Merge einen passenden Versionstag setzen."
-          echo "::error:: Siehe AGENTS.md → Versions-Tag für Docker-Images.)"
-          echo "::error::"
-          echo "::error::Die publish-images.yml hat zwar :latest gebaut, aber apps01"
-          echo "::error::zieht nie :latest — nur v*-Tags. Ohne neuen Tag bleibt die"
-          echo "::error::Aenderung auf apps01 unsichtbar."
-          exit 1
+          echo "::warning::HEAD ($HEAD_SHA) hat keinen v*-Tag."
+          echo "::warning::Dieser main-Push aendert Image-Verzeichnisse (app/scripts/supabase/admin-api),"
+          echo "::warning::wird aber auf apps01 nicht deployed, bis ein Tag gesetzt ist —"
+          echo "::warning::apps01 pullt nur pinned v*-Images, nie :latest."
+          echo "::warning::"
+          echo "::warning::Falls das kein 'git merge-tag'-Merge war: git tag vX.Y.Z && git push origin vX.Y.Z"
+          echo "::warning::Siehe AGENTS.md -> Versions-Tag fuer Docker-Images."
+          # Informational only: no exit 1. This never blocks the job or a PR merge,
+          # it is the visible reminder, not the enforcement (see header comment).
+          exit 0
