@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GlassCard } from "../../components/GlassCard";
-import { LEVEL_COLOR } from "./BriefingCard";
+import { LEVEL_COLOR } from "./briefing-levels";
 import type { HeroBriefing } from "./hero-view-model";
 import { LEVEL_LABEL, SLEEP_SCORE_DEVICE_NOTE } from "../../core/readiness.js";
 import type { assessReadiness, getSubjectiveReadiness } from "../../core/readiness.js";

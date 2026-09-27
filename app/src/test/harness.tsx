@@ -11,7 +11,7 @@
 import type { ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import type { Session, User } from "@supabase/supabase-js";
-import { AuthContext, type AuthContextValue } from "../api/auth/AuthContext";
+import { AuthContext, type AuthContextValue } from "../api/auth/AuthContextValue";
 import { createQueryClient } from "../api/queryClient";
 
 export interface HarnessOptions {
