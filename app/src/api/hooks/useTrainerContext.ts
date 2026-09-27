@@ -15,6 +15,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { resolveTrainerContext } from "../write-authorization";
 import { useSessionProfile } from "./useSession";
+import { useAthleteProfileId } from "./useAthleteProfileId";
 import { qk } from "../keys";
 
 export interface TrainerContext {
@@ -26,10 +27,11 @@ export interface TrainerContext {
  *    BETRACHTETEN Athleten. */
 export function useTrainerContext(athleteId: string): TrainerContext & { isLoading: boolean } {
   const user = useSessionProfile();
+  const { data: athleteProfileId } = useAthleteProfileId(athleteId);
   const query = useQuery({
     queryKey: qk.trainerContext(user?.id ?? null, athleteId),
-    queryFn: () => resolveTrainerContext(user, athleteId),
-    enabled: !!user,
+    queryFn: () => resolveTrainerContext(user, athleteProfileId ?? null),
+    enabled: !!user && !!athleteProfileId,
     staleTime: 5 * 60_000,
   });
   return {

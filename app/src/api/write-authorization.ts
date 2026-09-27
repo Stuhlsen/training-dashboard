@@ -65,9 +65,8 @@
    ============================================================ */
 
 import type { QueryClient } from "@tanstack/react-query";
-import { getProfileByDisplayName } from "./supabase/profiles";
+import { getProfile } from "./supabase/profiles";
 import { fetchAthleteProfileId } from "./hooks/useAthleteProfileId";
-import { athleteConfig } from "../config";
 import { qk } from "./keys";
 import type { Profile } from "./types";
 
@@ -91,11 +90,11 @@ export async function canWriteForAthlete(
   // fetchQuery statt direktem Aufruf: teilt sich Cache/Deduplizierung mit
   // useTrainerContext() (identischer qk.trainerContext-Key, Muster wie
   // fetchAthleteProfileId oben) — ein Coach, der eine Athletenseite
-  // betrachtet, löst sonst denselben getProfileByDisplayName()-Lookup
-  // zweimal aus (einmal hier, einmal in der Trainer-Leiste).
+  // betrachtet, löst sonst denselben Lookup zweimal aus (einmal hier,
+  // einmal in der Trainer-Leiste).
   const { isTrainer } = await queryClient.fetchQuery({
     queryKey: qk.trainerContext(user.id, athleteId),
-    queryFn: () => resolveTrainerContext(user, athleteId),
+    queryFn: () => resolveTrainerContext(user, profileId),
     staleTime: 5 * 60_000,
   });
   return isTrainer;
@@ -107,15 +106,19 @@ export async function canWriteForAthlete(
  *  Trainer-Leiste (`useTrainerContext`) braucht denselben Lookup, zusätzlich
  *  aber `athleteProfileId` für `trainer_view_prefs` — canWriteForAthlete
  *  selbst braucht nur das Bool-Ergebnis. Ein Nicht-Coach löst keinen
- *  Lookup aus, exakt wie vorher. */
+ *  Lookup aus, exakt wie vorher.
+ *
+ *  `athleteProfileId` ist die Supabase-Profil-UUID des betrachteten Athleten
+ *  (aufgelöst über fetchAthleteProfileId/useAthleteProfileId), NICHT der
+ *  Anzeigename — ein Lookup über profiles.display_name wäre nicht
+ *  eindeutig, weil das Feld self-service writable und ohne unique
+ *  Constraint ist. Stattdessen läuft der Lookup über die UUID (getProfile). */
 export async function resolveTrainerContext(
   user: Profile | null,
-  athleteId: string,
+  athleteProfileId: string | null,
 ): Promise<{ isTrainer: boolean; athleteProfileId: string | null }> {
-  if (!user || user.role !== "coach") return { isTrainer: false, athleteProfileId: null };
-  const name = athleteConfig(athleteId)?.name;
-  if (!name) return { isTrainer: false, athleteProfileId: null };
-  const result = await getProfileByDisplayName(name);
+  if (!user || user.role !== "coach" || !athleteProfileId) return { isTrainer: false, athleteProfileId: null };
+  const result = await getProfile(athleteProfileId);
   if (!result.ok || !result.profile) return { isTrainer: false, athleteProfileId: null };
   return { isTrainer: result.profile.coachId === user.id, athleteProfileId: result.profile.id };
 }
