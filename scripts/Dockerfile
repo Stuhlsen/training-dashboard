@@ -1,4 +1,4 @@
-FROM node:25-alpine
+FROM node:24-alpine
 LABEL org.opencontainers.image.source="https://github.com/Stuhlsen/training-dashboard"
 WORKDIR /sync
 COPY package*.json ./

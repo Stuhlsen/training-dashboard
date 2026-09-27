@@ -11,14 +11,57 @@
    zeigte — ohne zu prüfen, ob überhaupt eine Beziehung zum angezeigten
    Athleten besteht.
 
-   Dieser Check spiegelt exakt die drei RLS-Fälle
-   (athlete_id = auth.uid() OR is_coach_of(athlete_id) OR is_admin()) für
-   die UI-Sichtbarkeit. Die RLS bleibt die tatsächliche Durchsetzung; hier
-   wird nur entschieden, ob die Knöpfe überhaupt erscheinen.
+   === Abweichung: Admin-Fall ===
 
-   Das Konzept nennt genau diese Gates als den Ort des letzten echten
-   Sicherheitsfundes — der Regressionsdurchlauf in Etappe 10 prüft sie
-   gegen die neue UI.
+   Der Gate prüft user.isAdmin && true (Zeile 86), aber NICHT alle
+   Tabellen haben eine is_admin()-RLS-Policy. Die RLS bleibt die
+   tatsächliche Durchsetzung — dieser Gate ist grosszügiger als die
+   RLS und kann Admin-Schreibbuttons anzeigen, die beim POST/PUT/PATCH
+   mit 403 scheitern. Das ist sicher (keine unbefugten Schreibvorgänge
+   moeglich), aber die Buttons sind tote UI.
+
+   Tabellen MIT is_admin()-RLS (Admin darf schreiben):
+     events          — migration 0004 (FOR ALL with is_admin())
+     training_plans  — migration 0028 (FOR ALL with is_admin())
+     bikes           — migration 0047 (FOR ALL with is_admin())
+     bikefit         — migration 0049 (storage policies with is_admin())
+
+   Tabellen OHNE is_admin()-RLS (Admin wuerde 403 erhalten):
+     goals           — migration 0001 (nur uid/is_coach_of, FOR ALL)
+     plan_cards      — migration 0001 + 0011 (nur uid/is_coach_of, UPDATE-T2)
+     wellbeing       — migration 0001 (uid/is_coach_of fuer SELECT,
+                       nur uid fuer INSERT/UPDATE/DELETE)
+     ftp_history     — migration 0009 (uid/is_coach_of fuer SELECT,
+                       nur uid fuer INSERT/UPDATE/DELETE)
+     ladder_history  — migration 0015 (uid/is_coach_of fuer SELECT,
+                       nur uid fuer INSERT/UPDATE/DELETE)
+     athlete_formats — migration 0014 (uid/is_coach_of fuer SELECT,
+                       nur uid fuer INSERT/UPDATE/DELETE)
+
+   === Abweichung: Coach-Fall ===
+
+   Der Gate gibt fuer Trainer ebenfalls true (resolveTrainerContext),
+   aber die RLS granularisiert pro Tabelle und Aktion:
+     goals:          Coach darf FOR ALL (Insert/Update/Delete) —
+                     Gate trifft zu.
+     events:         Coach darf FOR ALL (Insert/Update/Delete) —
+                     Gate trifft zu.
+     plan_cards:     Coach darf SEIT MIGRATION 0011 NUR UPDATE
+                     (kein Insert/Delete). Gate ist zu grosszuegig.
+     wellbeing:      Coach darf NUR SELECT (Insert/Update/Delete
+                     sind athlete-only). Gate ist zu grosszuegig.
+     ftp_history:    Coach darf NUR SELECT. Gate zu grosszuegig.
+     ladder_history: Coach darf NUR SELECT. Gate zu grosszuegig.
+     athlete_formats: Coach darf NUR SELECT. Gate zu grosszuegig.
+
+   *** Sicherheitsbewertung ***
+   In allen Faellen faellt die Entscheidung sicherheitskonservativ aus:
+   die UI zeigt Buttons, die RLS kann sie ablehnen. Kein unbefugter
+   Schreibvorgang ist moeglich. Ein zukuenftiger Umbau sollte entweder
+   (a) die fehlenden Admin-Policies ergaenzen oder (b) isAdmin aus dem
+   generischen Gate entfernen und pro Feature zulassen, das es wirklich
+   braucht. Coach-Granularitaet koennte per per-table whitelist
+   geloest werden.
    ============================================================ */
 
 import type { QueryClient } from "@tanstack/react-query";

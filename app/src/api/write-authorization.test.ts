@@ -1,8 +1,11 @@
 /* Tests: canWriteForAthlete() / isSelfAthlete().
  *
  * Verhaltens-Spezifikation ist tests/write-authorization.test.js (Vanilla).
- * Die Fälle spiegeln die drei RLS-Bedingungen für die UI-Sichtbarkeit:
- * athlete_id = auth.uid() OR is_coach_of(athlete_id) OR is_admin().
+ * Die drei Fälle (self+coach+admin) sind die UI-Sichtbarkeitskriterien,
+ * decken sich aber NICHT exakt mit den RLS-Policies aller Tabellen
+ * (Details siehe write-authorization.ts Headerkommentar).
+ * Das ist sicherheitskonservativ — kein unbefugter Schreibvorgang mögllich,
+ * aber tote UI-Buttons für Admin/Coach auf Tabellen ohne admin-/coach-Policy.
  *
  * Beide Funktionen sind gewöhnliche async-Funktionen, kein Hook — deshalb
  * ohne React-Geschirr prüfbar, nur mit einem eigenen QueryClient für den
