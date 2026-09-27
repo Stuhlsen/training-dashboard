@@ -59,7 +59,7 @@ function round1(n) {
 
 /** Rides eines Datums zusammenfassen: TSS summiert, hard = irgendeine Ride
  *  klassifiziert "hart", CTL/ATL/TSB vom zeitlich letzten Ride des Tages
- *  (Tiebreaker wie AGENTS.md "Bekannte Eigenheiten": startTime, sonst
+ *  (Tiebreaker wie .claude/skills/sync-pipeline "Bekannte Sync-Eigenheiten": startTime, sonst
  *  Einfügereihenfolge). */
 function groupByDate(rides) {
   const byDate = new Map();

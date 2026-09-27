@@ -7,7 +7,7 @@
    spiegelt stattdessen zwei echte Paare: Trainer-ST↔Stuhlsen,
    Trainer-DZ↔hc_diZee).
 
-   Läuft NUR mit Live-Credentials in .env (s. AGENTS.md "Test-Sicherheit"):
+   Läuft NUR mit Live-Credentials in .env (s. .claude/skills/sync-pipeline "RLS-Testsuite"):
      SUPABASE_URL, SUPABASE_ANON_KEY,
      SUPABASE_ATHLETE1_EMAIL/_PASSWORD   (Account "Stuhlsen")
      SUPABASE_TRAINER_EMAIL/_PASSWORD    (Account "Trainer-ST")
@@ -63,7 +63,7 @@ const HAS_CREDS = !!(
 if (!HAS_CREDS) {
   test(
     "supabase-rls: übersprungen (keine Live-Credentials in .env)",
-    { skip: "SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_ATHLETE1_*/SUPABASE_TRAINER_* fehlen — s. AGENTS.md \"Test-Sicherheit\"" },
+    { skip: "SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_ATHLETE1_*/SUPABASE_TRAINER_* fehlen — s. .claude/skills/sync-pipeline \"RLS-Testsuite\"" },
     () => {}
   );
 } else {

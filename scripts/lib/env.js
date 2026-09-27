@@ -72,7 +72,7 @@ export const ENV = {
   SUPABASE_ATHLETE4_PASSWORD: process.env.SUPABASE_ATHLETE4_PASSWORD || "",
   // Nur für tests/supabase-rls.test.js (Live-RLS-Check gegen dashboard-dev,
   // Account "Trainer-ST", coacht dort den SUPABASE_ATHLETE1_EMAIL-Account
-  // "Stuhlsen") — s. AGENTS.md "Test-Sicherheit".
+  // "Stuhlsen") — s. .claude/skills/sync-pipeline "RLS-Testsuite".
   SUPABASE_TRAINER_EMAIL: process.env.SUPABASE_TRAINER_EMAIL || "",
   SUPABASE_TRAINER_PASSWORD: process.env.SUPABASE_TRAINER_PASSWORD || "",
   // Optionale Prod-Gegenstücke — nur für gezielte, manuell mit --env=prod

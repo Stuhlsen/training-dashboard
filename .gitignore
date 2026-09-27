@@ -88,6 +88,9 @@ app/*.local
 !.claude/skills/grilling/
 !.claude/skills/grill-me/
 !.claude/skills/impeccable/
+!.claude/skills/chart-labels/
+!.claude/skills/sync-pipeline/
+!.claude/skills/playwright-mcp/
 
 # Impeccable — Laufzeit-/Session-State (Server-Token, absolute Pfade, Dedup-Cache),
 # kein Quellcode. Config bleibt versioniert: .impeccable/config.json,

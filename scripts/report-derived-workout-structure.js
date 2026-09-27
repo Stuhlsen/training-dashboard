@@ -47,14 +47,14 @@ const ATHLETES = [
     ridesFile: "data/rides.json",
     email: ENV.SUPABASE_ATHLETE1_EMAIL,
     password: ENV.SUPABASE_ATHLETE1_PASSWORD,
-    fallbackFtp: 193, // CONFIG.ftp, s. AGENTS.md "Athleten"
+    fallbackFtp: 193, // CONFIG.ftp, s. AGENTS.md "Athleten & Trainingspläne"
   },
   {
     id: "athlete2",
     ridesFile: "data/rides-2.json",
     email: ENV.SUPABASE_ATHLETE2_EMAIL,
     password: ENV.SUPABASE_ATHLETE2_PASSWORD,
-    fallbackFtp: 265, // ATHLETE_2_FTP, s. AGENTS.md "Athleten"
+    fallbackFtp: 265, // ATHLETE_2_FTP, s. AGENTS.md "Athleten & Trainingspläne"
   },
 ];
 

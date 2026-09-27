@@ -602,7 +602,7 @@ export interface ConsistencySummary {
  *  aufgelöst) — core/adherence.js::planAdherence fällt intern auf `.name`
  *  zurück, wenn `.title` fehlt, exakt wie im Vanilla-Original mit
  *  plan_cards-Objekten. `null` bei Athlet 2 (kein eigener Plan im Sinne
- *  von ownPlan, s. AGENTS.md "Bekannte Eigenheiten" zu mapActivity2()). */
+ *  von ownPlan, s. .claude/skills/sync-pipeline "Bekannte Sync-Eigenheiten" zu mapActivity2()). */
 export function buildConsistencySummary(rides: Ride[], planCards: PlanCard[] | null, todayISO: string): ConsistencySummary {
   const c = buildConsistencyCore(rides, planCards, {}, todayISO);
 

@@ -130,8 +130,8 @@ const SECTION_TITLE_STYLE: React.CSSProperties = {
 /** Aktions-Pille in der „Ausstehend"-Kopfzeile (bisher inline am „+ Karte"-
  *  Knopf — jetzt geteilt mit „Plan verschieben…"). Glass-Fill + Hairline +
  *  Schatten, damit die Pille auch über dem Seiten-Hintergrundfoto (außerhalb
- *  einer GlassCard) klar als Bedienelement lesbar bleibt — s. AGENTS.md
- *  „Design — Konzept 5", Abschnitt Buttons/Pillen über dem Seitengrund. */
+ *  einer GlassCard) klar als Bedienelement lesbar bleibt — s. DESIGN.md
+ *  → Components → Buttons → „Ghost über dem Seitengrund". */
 const SECTION_ACTION_BTN_STYLE: React.CSSProperties = {
   padding: "9px 18px",
   borderRadius: "var(--pill)",

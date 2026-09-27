@@ -1,16 +1,13 @@
 # Training Dashboard — Projektkontext
 
 Persönliches Radsport-Trainingsdashboard, selbst-gehostet als Container-Verbund
-auf apps01 (Tony) — kein GitHub Pages mehr (Issue #30, 20.08.2026).
+auf apps01 (Tony) — kein GitHub Pages mehr.
 Repo: github.com/Stuhlsen/training-dashboard
 Live: training-dashboard.clear-solutions-it.com
 
-**Container-Laufzeit:** In Produktion auf apps01 (einer Hetzner-VM, betrieben
-von Tony) läuft **Podman**, nicht Docker. Lokal für den Vor-Commit-Check nutzt
-Alex **Docker Desktop** (Windows). Die Image-Artefakte sind OCI-Format und
-laufen mit beidem; die Dateinamen (`Dockerfile`, `docker-compose*.yml`)
-bleiben unverändert, Podman liest sie. Wo unten „Docker-Image" steht, ist das
-OCI-Image gemeint.
+Produktion (apps01) läuft **Podman**, lokal für den Vor-Commit-Check nutzt Alex
+**Docker Desktop**. Beide lesen dieselben OCI-Images; wo unten „Docker-Image"
+steht, ist das OCI-Image gemeint.
 
 ## Stack
 
@@ -18,63 +15,34 @@ Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
 
 - **Repo-Root** (`scripts/`, `tests/`) — reines Node.js, kein Framework. Liest
   intervals.icu/Open-Meteo (+ die eingefrorene Plan-1-Historie,
-  `scripts/lib/plan1-history.js`) und schreibt `data/*.json` (die Lesedaten-
-  Pipeline). `package.json` existiert primär für `"type": "module"` und die
-  npm-Scripts — braucht kein `npm install`. Einzige Ausnahme: `fallow` als
-  `devDependency` (nur für den lokalen/CI-Codebase-Qualitätscheck, siehe
-  „Codebase-Qualität"). Tests laufen mit dem eingebauten `node:test`.
-- **`/app/`** — Vite + React + TypeScript. **Die einzige verbliebene
-  Oberfläche** (der frühere Vanilla-JS-Zweig unter `assets/js/` wurde mit
-  Fahrplan 1 entfernt, s. `planning/docs/fahrplan-1-vanilla-entfernen.md`). Eigenes
-  `npm install` gegen `app/package-lock.json`, unabhängig vom Root. Tests mit
-  Vitest, zwei Projekte (`core` unter Node, `app` unter jsdom — s.
-  `app/vite.config.ts`). Details/Konventionen: `app/README.md`.
+  `scripts/lib/plan1-history.js`) und schreibt `data/*.json`. Kein
+  `npm install` nötig (einzige Ausnahme: `fallow` als `devDependency`, s.
+  „Codebase-Qualität"). Tests mit dem eingebauten `node:test`.
+- **`/app/`** — Vite + React + TypeScript, die einzige Oberfläche. Eigenes
+  `npm install` gegen `app/package-lock.json`. Tests mit Vitest, zwei Projekte
+  (`core` unter Node, `app` unter jsdom — s. `app/vite.config.ts`). Details:
+  `app/README.md`.
 
-GitHub Actions trägt seit 30.08.2026 nur noch CI + Image-Publish +
-Version-Tag-Check: je ein CI-Job pro Teil (`ci.yml` für den Root,
-`ci-app.yml` für `/app/`, letzterer nur bei Änderungen unter `app/**`) und
+GitHub Actions: `ci.yml` (Root: npm test + ESLint + Fallow), `ci-app.yml`
+(`/app/`, nur bei Änderungen unter `app/**`: Vitest, ESLint, Build),
 `publish-images.yml` (baut vier GHCR-Images — frontend, sync, migrate,
-admin-api, seit Fahrplan 15 E6 — und pusht sie: bei Push nach `main` als
-`latest`, bei `v*`-Tag zusätzlich versioniert + GitHub Release; ein Pull
-Request baut nur, ohne Push). `check-version-tag.yml` (seit Issue #68)
-warnt (informational, kein `exit 1`), wenn `app/`, `scripts/`, `supabase/`
-oder `admin-api/` auf `main` ohne neuen `v*`-Tag gepusht werden — apps01
-deployt nur gepinnte Tags, nie `latest`. Der Datensync (alle 15 Min, s. u.) läuft
-**nicht mehr** in Actions,
-sondern als Dauer-Container auf apps01 (`sync-data.yml` ist auf
-`workflow_dispatch`-Fallback reduziert, s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`).
+admin-api — Push nach `main` = `latest`, `v*`-Tag = versioniert + GitHub
+Release, PR = nur Bauen), `check-version-tag.yml` (informational, kein
+`exit 1`: warnt, wenn `app/`/`scripts/`/`supabase/`/`admin-api/` ohne neuen
+`v*`-Tag auf `main` landen — apps01 deployt nur gepinnte Tags, nie `latest`).
+Der Datensync läuft **nicht** in Actions, sondern als Dauer-Container auf
+apps01 (`sync-data.yml` ist nur noch `workflow_dispatch`-Fallback).
 
-**Versions-Aktualität (seit 22.08.2026):** `.github/dependabot.yml` prüft
-wöchentlich npm-Pakete (Root + `/app/`), Docker-Images (Root,
-`/app/`, `/scripts/`, `/supabase/` — je eigener Dockerfile-/Compose-Ort)
-und GitHub-Actions-Versionen, öffnet bei Veraltung automatisch PRs. Löst
-nicht automatisch — jeder PR wird wie jeder andere geprüft/gemergt.
-Deckt nur ab, was im Repo selbst gepinnt ist: Tonys eigene Pulls auf
-apps01 (Postgres/GoTrue/PostgREST/Caddy laufen dort über sein eigenes
-Renovate-Tooling, s. `planning/docs/fahrplan-3-docker-umbau.md`) bleiben davon
-unberührt — die `supabase/postgres`-Pins hier in `docker-compose.selfhost.yml`
-sind nur die lokale Referenz, kein Deploy an apps01. Anlass: Tony wies
-Alex am 22.08.2026 darauf hin, dass der lokale `supabase/postgres`-Pin auf
-Version 15 stehengeblieben war, obwohl Supabase seit Juni 2026
-standardmäßig auf 17 wechselte — bis dahin gab es keinen Mechanismus, der
-das automatisch aufgefallen wäre.
+`.github/dependabot.yml` prüft wöchentlich npm-Pakete, Docker-Images und
+Actions-Versionen und öffnet PRs — löst nicht automatisch. Deckt nur ab, was
+im Repo selbst gepinnt ist; Tonys eigene Pulls auf apps01 laufen über sein
+eigenes Tooling.
 
-**Warum Node ≥ 24 für den Root-Teil:** `npm test` läuft als
-`node --test --experimental-test-module-mocks`. Das Flag (und `mock.module()`)
-gibt es zwar bereits ab Node 22.3, aber `mock.module()`-Aufrufe im Repo
-nutzten die vereinheitlichte `{ exports: {...} }`-Kurzform — die ist in Node
-22.23.1 noch nicht verlässlich unterstützt: `ci.yml` scheiterte damit am
-31.07.2026 beim Merge nach `main` reproduzierbar an acht Testdateien
-(`SyntaxError: The requested module … does not provide an export named …`),
-obwohl dieselben Tests lokal unter Node 24.18.0 anstandslos grün liefen.
-`ci.yml`/`ci-app.yml` pinnen seitdem `node-version: 24`. Die damaligen
-`mock.module()`-Konsumenten (`state/`-Schicht) sind mit dem Vanilla-Zweig
-entfernt worden — Stand 15.08.2026 nutzt keine Datei mehr unter `tests/`
-`mock.module()`; das Flag steht trotzdem weiter im Skript. `sync-data.yml`
-pinnt ebenfalls `node-version: "24"` (nur noch `workflow_dispatch`-Fallback;
-produktiv läuft `generate-data.js` im apps01-Container mit derselben
-Node-24-Basis, s. `scripts/Dockerfile`). Node 22 kommt nur noch im
-`code-quality`/Fallow-Job in `ci.yml` zum Einsatz.
+**Node ≥ 24 für den Root-Teil zwingend:** `npm test` läuft mit
+`--experimental-test-module-mocks`; die im Repo genutzte `{ exports: {...} }`-
+Kurzform von `mock.module()` ist unter Node 22.23.1 nicht verlässlich
+unterstützt (`ci.yml` scheiterte damit reproduzierbar). `ci.yml`/`ci-app.yml`/
+`sync-data.yml` pinnen `node-version: 24`.
 
 ## Befehle
 
@@ -82,7 +50,7 @@ Node-24-Basis, s. `scripts/Dockerfile`). Node 22 kommt nur noch im
 # Repo-Root: Unit-Tests (eingebauter Node-Test-Runner, kein Install nötig)
 npm test
 
-# Repo-Root: Datensync lokal ausführen (braucht .env mit Secrets, siehe unten)
+# Repo-Root: Datensync lokal ausführen (braucht .env mit Secrets)
 npm run sync
 
 # Repo-Root: Syntax-Check einer JS-Datei — PFLICHT vor jedem Commit
@@ -114,18 +82,12 @@ npx fallow dead-code
 npx fallow dupes
 ```
 
-Lokale `.env` (nicht committen, steht in .gitignore) für `npm run sync`:
-`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (seit Fahrplan 7 CRED3 der einzige
-Zugang des Sync — er liest intervals.icu-Key/-ID **und** die groben
-Standortkoordinaten je Athlet per Service-Role aus der Tabelle
-`athlete_sync_config`, s. „Datenquellen-Mix"). `NOTION_API_KEY` /
-`NOTION_DATABASE_ID` sind seit Fahrplan 10 E3a entfallen — Plan 1 ist
-eingefroren (`scripts/lib/plan1-history.js`), kein Notion-API-Aufruf mehr. `SUPABASE_ANON_KEY` bleibt zusätzlich für den anonymen
-`session_formats`-Read. `INTERVALS_*` / `WEATHER_*` als Env-Werte sind für
-den Sync **abgelöst** und seit Fahrplan 7 CRED5 aus `.env` / `sync-data.yml`
-entfernt (s. „GitHub Secrets").
-`/app/` braucht keine eigene `.env` — die Supabase-Projekt-URLs/anon-Keys
-stehen (bewusst, RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
+Lokale `.env` (nicht committen) für `npm run sync`: `SUPABASE_URL`,
+`SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_ANON_KEY` (anonymer
+`session_formats`-Read). Details zum Sync-Credential-Modell, Secrets-Layout
+und Datenquellen-Mix: `.claude/skills/sync-pipeline`. `/app/` braucht keine
+eigene `.env` — Supabase-URLs/anon-Keys stehen (bewusst, RLS-geschützt) in
+`app/src/api/supabase/config.ts`.
 
 ## Workflow vor jedem Commit
 
@@ -145,21 +107,16 @@ stehen (bewusst, RLS-geschützt) direkt in `app/src/api/supabase/config.ts`.
 5. Commit mit Konvention (siehe unten)
 6. `git sync`
 
-`data/*.json` NICHT committen — seit Fahrplan 3 Fenster C nicht mehr
-versioniert (`.gitignore`); der apps01-Sync-Container schreibt sie direkt ins
-mit dem Frontend geteilte Volume.
+`data/*.json` NICHT committen (`.gitignore`) — der apps01-Sync-Container
+schreibt sie direkt ins mit dem Frontend geteilte Volume.
 
 ## Commit-Konvention
 
-Prefix + knappe Beschreibung — **seit 26.08.2026 auf Englisch** (davor
-deutsch, s. Git-Historie, keine rückwirkende Umbenennung). Grund:
-`.github/workflows/publish-images.yml` generiert bei jedem `v*`-Tag den
-GitHub-Release-Changelog automatisch aus den Commit-Subjects (`git log
---pretty=format:"%s"`, nach Typ gruppiert, Text 1:1 übernommen) — der
-Changelog soll für GitHub-/Portfolio-Besucher ohne Übersetzung lesbar sein.
-Betrifft NUR Commit-Nachrichten — Code-Kommentare, Doku (README, AGENTS.md,
-CLAUDE.md, docs/) und UI-Texte bleiben deutsch, keine Konventionsänderung
-dort.
+Prefix + knappe Beschreibung, **auf Englisch**. Grund: `publish-images.yml`
+generiert bei jedem `v*`-Tag den GitHub-Release-Changelog automatisch aus den
+Commit-Subjects — soll für GitHub-/Portfolio-Besucher ohne Übersetzung lesbar
+sein. Betrifft NUR Commit-Nachrichten — Code-Kommentare, Doku und UI-Texte
+bleiben deutsch.
 - `fix:`    — Bugfix
 - `feat:`   — neues Feature
 - `design:` — reine CSS-/Styling-Änderung
@@ -167,514 +124,115 @@ dort.
 - `chore:`  — Wartung, Config, Workflow
 - `test:`   — Tests hinzugefügt/geändert
 
-## Boot / Modul-Architektur
+## Architektur / Schichtenregel
 
 `/app/` ist eine normale Vite-App: **ein** Einstiegspunkt (`app/src/main.tsx`
-→ `App.tsx`), React-Routing/Gates statt Tab-Umschaltung per Hand. Neue
-Datei anlegen → per `import` einbinden, kein Script-Tag-Management.
+→ `App.tsx`), React-Routing/Gates statt Tab-Umschaltung per Hand. Die
+Root-Route `/` ist eine öffentliche Landingpage (`app/src/features/landing/`),
+das Dashboard liegt unter `/app/*`. Alte Pre-Umbau-Routen (`/login`,
+`/planning`, `/log`, …) werden per `LegacyRedirect` transparent umgeschrieben.
 
-**Routing seit Fahrplan 22 (Sept. 2026):** Die Root-Route `/` ist nicht mehr
-das Dashboard, sondern eine öffentliche Marketing-/Landingpage
-(`app/src/features/landing/`, lazy geladen) mit Warteliste (`waitlist`-
-Tabelle, Migration 0054/0055, `app/src/api/supabase/waitlist.ts`) und einem
-Seedance-Herovideo + generierten Trenner-/Vorschaubildern unter
-`app/public/assets/landing/` (erzeugt von `scripts/generate-media.js`, s.
-„Dateistruktur"). Das eigentliche Dashboard liegt seit diesem Umbau unter
-`/app` (`OnboardingGate` → `Layout` in `App.tsx`, alle bisherigen Tabs als
-Unterrouten: `/app`, `/app/planning`, `/app/log`, `/app/analysis`, …). Alte
-Links/Lesezeichen von vor Fahrplan 22 (`/login`, `/planning`, `/explorer`,
-`/log`, `/analysis`, `/events`, `/bikefit`, `/settings`,
-`/onboarding/accept`) werden per `LegacyRedirect` transparent auf den
-gleichen Pfad unter `/app/…` umgeschrieben (inkl. Query/Hash/State).
+**Schichtenregel** (Default: importiere nie höher):
+- `app/src/core/` — reine Berechnung, greift NIEMALS auf `document`, `window`,
+  `localStorage` oder `fetch` zu. Details: `app/src/core/README.md`.
+- `app/src/api/` — I/O-Grenze. Kapselt JSON-Pipeline (`api/pipeline.ts`) und
+  Supabase-Adapter (`api/supabase/`, eine Datei je Tabelle). Details:
+  `app/src/api/README.md`.
+- `app/src/hooks/`, `app/src/features/*` — Orchestrierung + Zustand, lädt über
+  `app/src/api/` (React Query).
+- `app/src/components/`, `app/src/charts/`, `app/src/features/*` (UI-Teil) —
+  DOM/SVG-Rendering, ruft `api/`/`hooks/` auf.
+- `app/src/sports/` — austauschbare Zonen-/Metrik-Logik pro Sportart. Details:
+  `app/src/sports/README.md`.
 
-- **Schichtenregel** — gilt unverändert seit der Vanilla-Zeit, nur die Namen
-  der I/O-/Orchestrierungs-Schicht haben sich mit dem React-Umbau geändert:
-  - `app/src/core/` — reine Berechnung, portiert aus dem früheren `core/`
-    (**inhaltlich unverändert**, keine Logikänderung). Greift NIEMALS auf
-    `document`, `window`, `localStorage` oder `fetch` zu. Details/Umfang der
-    Portierung: `app/src/core/README.md`.
-  - `app/src/api/` — I/O-Grenze, ersetzt die frühere `state/*.js`-Schicht
-    (bewusst nicht `data/` genannt, um Verwechslung mit `/data/*.json` zu
-    vermeiden). Kapselt JSON-Pipeline (`api/pipeline.ts`) und Supabase-Adapter
-    (`api/supabase/`, eine Datei je Tabelle), gibt schlichte Domänenobjekte
-    zurück. Details: `app/src/api/README.md`.
-  - `app/src/hooks/`, `app/src/features/*` — Orchestrierung + Zustand. Lädt
-    über `app/src/api/` (React Query), hält Session/Athleten-Zuordnung.
-  - `app/src/components/`, `app/src/charts/`, `app/src/features/*` (UI-Teil) —
-    DOM/SVG-Rendering, Event-Handler. Ruft `api/`/`hooks/` auf.
-  - **Abhängigkeitstabelle** (Default: importiere nie höher):
-    | Schicht | darf importieren | darf NICHT |
-    |---------|---|---|
-    | `core/` | `sports/` (Werte, s. u.) | sonst nichts |
-    | `api/` | `core/` (nur Typen) | `features/`, `components/` |
-    | `hooks/`, `features/*` (Orchestrierung) | `core/`, `api/` | — |
-    | `components/`, `charts/`, `features/*` (UI-Teil) | `core/`, `hooks/`, `features/*` | `api/` direkt (`config`/`auth`/`useActiveAthlete`/`useAthleteSports`/`useEffectiveSport` als schmale, bewusste Ausnahme für globale Chrome-Komponenten — s. `EnvBadge.tsx`/`Layout.tsx`/`ProtectedRoute.tsx`/`Footer.tsx`/`AppBackground.tsx`; `useActiveAthlete` ist ein reiner `localStorage`-Hook ohne I/O, kein Unterschied zur `auth`-Ausnahme in der Sache; `useAthleteSports`/`useEffectiveSport` lesen die Sportarten des aktiven Athleten über einen gecachten React-Query-Aufruf — nur für Tab-Liste bzw. Hintergrundbild) |
-  - `app/src/sports/` — Multi-Sport-Vorbereitung (G5, `cycling/`, `running/`
-    und `swimming/` befüllt): austauschbare Zonen-/Metrik-Logik statt hart
-    codiert. Details: `app/src/sports/README.md`.
-- Typen: **TypeScript** in `app/` (kein `checkJs`/JSDoc mehr nötig, `app/src/core/`
-  bleibt JS + JSDoc und wird per `allowJs` eingebunden — s. `app/src/core/README.md`).
-  Zentrale Domänentypen in `app/src/api/types.ts` bzw. `app/src/types.js` (die
-  reinen JSDoc-Typen aus `core/`).
+| Schicht | darf importieren | darf NICHT |
+|---------|---|---|
+| `core/` | `sports/` (Werte) | sonst nichts |
+| `api/` | `core/` (nur Typen) | `features/`, `components/` |
+| `hooks/`, `features/*` (Orchestrierung) | `core/`, `api/` | — |
+| `components/`, `charts/`, `features/*` (UI-Teil) | `core/`, `hooks/`, `features/*` | `api/` direkt (schmale, bewusste Ausnahme für globale Chrome-Komponenten: `config`/`auth`/`useActiveAthlete`/`useAthleteSports`/`useEffectiveSport`, s. `EnvBadge.tsx`/`Layout.tsx`/`ProtectedRoute.tsx`/`Footer.tsx`/`AppBackground.tsx`) |
+
+Typen: **TypeScript** in `app/`; `app/src/core/` bleibt JS + JSDoc (per
+`allowJs` eingebunden). Zentrale Domänentypen: `app/src/api/types.ts` bzw.
+`app/src/types.js`.
 
 ## Fehlerbehandlung / Result-Konvention
 
-Fehlbare Operationen (Laden, Supabase-Write, intervals.icu-Push) geben einheitlich
-`{ ok: true, ... }` oder `{ ok: false, error: { code, message } }` zurück
-(Typ `Result`; Codes: HTTP, NETWORK, TOKEN_INVALID, SCHEMA, NO_DATA, UNKNOWN).
-In `app/src/api/` gilt die Konvention nach außen weiter, `api/result.ts` ist die
-Umschaltstelle zu React Querys wurf-basiertem Fehlerkanal (`unwrap()`/`catchResult()`
-— s. Kommentar in der Datei). UI-Aufrufstellen prüfen `result.ok`/`isError` und
-zeigen `result.error?.message`. `scripts/lib/log.js` übernimmt das Logging auf der
-Sync-Seite (zählt Warnungen/Fehler, bestimmt den Exit-Code). Keine rohen
-`console.*`-Aufrufe in neuen Dateien — Stand 15.08.2026 nutzt `app/src/**`
-durchgängig keine.
+Fehlbare Operationen (Laden, Supabase-Write, intervals.icu-Push) geben
+einheitlich `{ ok: true, ... }` oder `{ ok: false, error: { code, message } }`
+zurück (Typ `Result`; Codes: HTTP, NETWORK, TOKEN_INVALID, SCHEMA, NO_DATA,
+UNKNOWN). In `app/src/api/` gilt die Konvention nach außen weiter,
+`api/result.ts` ist die Umschaltstelle zu React Querys wurf-basiertem
+Fehlerkanal. UI-Aufrufstellen prüfen `result.ok`/`isError`. Keine rohen
+`console.*`-Aufrufe in neuen Dateien.
 
 ## Schema-Validierung
 
-`app/src/core/validate.js` prüft geladene `rides.json`-Payloads zur Laufzeit
-(Stichprobe). **Neues Feld im Datenformat → an DREI Stellen ergänzen:**
+`app/src/core/validate.js` prüft geladene `rides.json`-Payloads zur Laufzeit.
+**Neues Feld im Datenformat → an DREI Stellen ergänzen:**
 1. `scripts/` (Erzeugung), 2. `app/src/core/validate.js` (Schema),
 3. `app/src/types.js` (JSDoc-Typ). Abweichungen werden als Warnung geloggt;
 fehlende/leere `rides` sind fatal.
 
 ## Codebase-Qualität (Fallow)
 
-`npx fallow` analysiert das Repo als System (Dependency-Graph, nicht nur Einzeldateien):
-Health Score, Circular Deps, Duplication, Dead Code, Complexity Hotspots.
-Deterministisch, keine KI im Analyzer. `fallow` ist als `devDependency` in `package.json`
-gepinnt (einzige Ausnahme von „kein npm install nötig") — für reproduzierbare Scores über
-die Zeit; `package-lock.json` ist dafür bewusst versioniert.
+`npx fallow` analysiert das Repo als System (Dependency-Graph): Health Score,
+Circular Deps, Duplication, Dead Code, Complexity Hotspots. Deterministisch,
+keine KI im Analyzer.
 
-- **CI**: läuft als eigener Job `code-quality` in `ci.yml`, parallel zu `test` —
-  **non-blocking** (`continue-on-error: true`), da Schwellwerte noch nicht kalibriert
-  sind. Report als Artefakt (`fallow-report.json`, 30 Tage). Wenn sich der Score
-  stabilisiert hat: `continue-on-error` entfernen + `--threshold` setzen für hartes Gate.
+- **CI**: eigener Job `code-quality` in `ci.yml`, **non-blocking**
+  (`continue-on-error: true`, Schwellwerte noch nicht kalibriert). Report als
+  Artefakt (`fallow-report.json`, 30 Tage).
 - **Lokal**: `npx fallow health --score` für den schnellen Check, `--hotspots
-  --circular-deps` für Details. Circular Deps ist hier besonders relevant, weil es
-  direkt die Schichtenregel (`features/components → hooks/api → core`) verletzen kann.
-- **Skill**: unter `.claude/skills/fallow` (repo) und optional global unter
-  `~/.claude/skills/fallow` — erlaubt Anfragen wie "check code health" oder
-  "find circular dependencies" direkt in Claude Code.
-- Baseline-Score (09.07.2026, vor erstem gezielten Cleanup): 79 (B).
-  Größte Deductions: Unit Size (−10.0), Circular Deps (−7.0).
-  **Nur historischer Referenzwert** — dieser Score stammt aus der Zeit vor
-  dem vollen `app/src/**`-Umfang; der Vollrepo-Score liegt seit dem
-  React-Ausbau bei rund 49 (D) (zuletzt beim Fahrplan-5-Abschluss gemessen,
-  s. dort). Ein Diff-scoped `fallow audit --base <ref>` ist für die
-  PR-Bewertung aussagekräftiger als der Vollrepo-Score; die Kalibrierung
-  neuer Schwellwerte steht weiter aus.
+  --circular-deps` für Details — Circular Deps kann direkt die Schichtenregel
+  verletzen.
+- **Skill**: `.claude/skills/fallow` — erlaubt Anfragen wie "check code health"
+  oder "find circular dependencies" direkt in Claude Code.
+- Ein Diff-scoped `fallow audit --base <ref>` ist für die PR-Bewertung
+  aussagekräftiger als der Vollrepo-Score; Kalibrierung neuer Schwellwerte
+  steht weiter aus.
 
-## Supabase — Dev/Prod-Trennung
+## Supabase — Dev/Prod (Sicherheitshinweis)
 
-**Historie:** Der Umbau lief auf einem langlebigen `dashboard-2.0`-Branch
-(Auth → Befinden → Planungstab → … in Phasen), danach auf `dashboard-3.0`
-(React-Neubau). Beide sind inzwischen nach `main` gemerged — Fahrplan 1 hat
-den Vanilla-Zweig entfernt, `main` ist seither die einzige aktive Linie.
-Die alten Branches bleiben remote als Historie stehen, sind aber nicht mehr
-in Arbeit. Was aus dieser Zeit **weiter aktiv gilt**, steht unten.
+**Zwei „prod"-Backends, nicht verwechseln:** `dashboard-prod` auf
+`supabase.co` ist eine Altlast, die Live-Seite nutzt sie **nicht**. Echte
+Produktion ist der **apps01-Self-Host-Stack**
+(`https://training-dashboard.clear-solutions-it.com`). Migrationen und Seeds
+gehören an apps01, nicht an `supabase.co`. `dashboard-dev` bleibt der Test-/
+CI-Zielpunkt. Volles Migrations-/RLS-Test-/Secrets-Detail:
+`.claude/skills/sync-pipeline`.
 
-### Supabase-Projekte
-**Free Tier:** max. 2 Projekte — dev/prod-Trennung bleibt bestehen.
+## Athleten & Trainingspläne
 
-| Projekt | Zweck | Keep-Alive |
-|---------|---|---|
-| `dashboard-dev` | Entwicklung, Tests, RLS-Testaccounts | nein (pausiert nach 1 Woche ist ok) |
-| `dashboard-prod` | Altlast auf `supabase.co` — die Live-Seite nutzt sie **nicht** (s. Hinweis unten) | — (kein aktiver Lesepfad mehr) |
+Vier Athleten (`athlete1`–`athlete4`), Stammdaten/Pseudonyme/FTP-Werte/
+Sportarten **ausschließlich** in `app/src/config.ts` → `athletes[]` — hier
+nicht duplizieren. Trainingsplan-Definitionen (Plan 1/2, GFNY Bremen,
+Einsteiger-Vorlage) leben in `scripts/lib/plan*.js`, jede Datei mit
+Kopfkommentar zum jeweiligen Plan. Schreibzugriff im Planungstab hängt für
+**alle** Athleten am selben Gate `canWriteForAthlete()`/`isSelfAthlete()`
+(`app/src/api/write-authorization.ts`) — kein athletenabhängiger
+Sonderfall mehr. Onboarding neuer Athlet: Settings → intervals.icu-Key +
+Athlete-ID + Standort eintragen, s. `.claude/skills/sync-pipeline`.
 
-> **Zwei „prod"-Backends, nicht verwechseln:** `dashboard-prod` auf
-> `supabase.co` ist eine Altlast — die Live-Seite spricht sie nicht an. Echte
-> Produktion ist der **apps01-Self-Host-Stack** unter
-> `https://training-dashboard.clear-solutions-it.com`
-> (`window.__RUNTIME_CONFIG__` / `config.json`, anon-JWT mit
-> `iss: "supabase-local"`). Der apps01-Sync-Container liest alle 15 min aus
-> **diesem** Stack (`athlete_sync_config` / `plan_cards` / `ftp_history` /
-> `profiles`), nicht aus `supabase.co`. Migrationen und Seeds gehören an
-> apps01. `dashboard-dev` auf `supabase.co` bleibt unverändert der Test-/
-> CI-Zielpunkt.
+## Design
 
-**Hostname-basierte Config:**
-```typescript
-// app/src/api/supabase/config.ts
-const PROJECT_CONFIG: Record<string, ProjectEntry> = {
-  localhost: { env: "dev", projectUrl: "https://<dev-id>.supabase.co", anonKey: "…" },
-  "stuhlsen.github.io": { env: "prod", projectUrl: "https://<prod-id>.supabase.co", anonKey: "…" },
-};
-// beide anon-Keys sind öffentlich (per Design, RLS schützt), Ports (5173, 3000)
-// fallen unter den bare-Hostname-Eintrag — s. app/src/api/supabase/config.test.ts
-```
-Das ist die einzige Stelle mit einer fest im Quellcode hinterlegten env-abhängigen Config. Kein Build-Schritt, kein Secret-Management — Prod-Key ist sichtbar, ist aber per RLS wirkungslos ohne Login. Seit Fahrplan 3 DKR1 gibt es zusätzlich einen Laufzeit-Pfad für den Container-Betrieb: `window.__RUNTIME_CONFIG__` (von `index.html` aus einer vom Container geschriebenen `config.json` befüllt) hat in `config.ts::resolveEntry()` Vorrang vor dieser Tabelle — Details dort im Kommentar und in `planning/docs/docker-lokal-einrichten.md`.
-
-### Migrations-Workflow
-SQL-Migrationsskripte sind **Quellcode** und liegen im Repo unter `supabase/migrations/`
-(zeitstempel-/laufnummeriert, `0001_initial_schema.sql` — Tabellen, RLS, Trigger für
-User-Onboarding — bis Stand 24.09.2026 `0055_waitlist_hardening.sql`; neue Migration
-bei jeder Schema-Erweiterung anhängen, nie eine bestehende nachträglich ändern).
-
-**Einspielen (Sequence):**
-1. Lokal gegen `dashboard-dev`: `supabase db push` (wenn supabase-cli installiert ist)
-   oder manuell: Supabase-UI → SQL-Editor → Migration kopieren + ausführen.
-2. Nach jedem Merge nach `main`, der das Schema erweitert: dieselbe Migration
-   an den **apps01-Self-Host-Stack** einspielen (echte Produktion, s.
-   „Supabase-Projekte" — nicht `dashboard-prod` auf `supabase.co`).
-3. Migration wird commits — Versionshistorie, Portfolio-Dokumentation, reproduzierbar.
-
-### Test-Sicherheit
-`tests/supabase-rls.test.js` läuft echt (kein Mock) gegen das `dashboard-dev`-Projekt und prüft:
-- `wellbeing_shared`: anon sieht nur bei aktivem `wellbeing_public`-Toggle, nie `note`
-- `proposals`: nur der zugehörige Trainer/Athlet liest/schreibt, keine fremde `athlete_id`
-- `trainer_view_prefs`: nur der jeweilige Trainer liest/ändert seine eigene Zeile
-- anon ohne Login: `proposals`/`trainer_view_prefs` komplett zu (kein GRANT)
-
-Das ist der laufende Sicherheits-Review-Prüfpunkt für RLS. Läuft nur mit Live-Credentials in `.env`,
-sonst überspringt sich die Datei selbst (kein Fehlschlag in CI, wo diese Secrets nicht existieren):
-
-```
-SUPABASE_URL                              SUPABASE_ANON_KEY
-SUPABASE_ATHLETE1_EMAIL / _PASSWORD       (Account "Stuhlsen")
-SUPABASE_TRAINER_EMAIL / _PASSWORD        (Account "Trainer-ST", coacht Stuhlsen)
-```
-
-Diese beiden Accounts sind die einzige in `dashboard-dev` bereits real verknüpfte Coach-Athlet-
-Beziehung (`profiles.coach_id`) — dashboard-dev spiegelt zwei Paare (Trainer-ST↔Stuhlsen,
-Trainer-DZ↔hc_diZee), keine generischen "athlet-test"/"trainer-test"-Accounts wie ursprünglich
-in Phase 0 skizziert. `SUPABASE_ATHLETE2_EMAIL`/`_PASSWORD` (hc_diZee, für
-`scripts/migrate-plan-to-supabase.js`) bleibt unabhängig davon bestehen.
-
-Jede Testzeile räumt sich selbst wieder auf (`cleanupTasks` im `after()`-Hook, inkl. Wieder-
-herstellen von `wellbeing_public`/`trainer_view_prefs` auf den vorgefundenen Ausgangszustand) —
-schlägt ein Aufräumschritt fehl, wirft der Hook mit einer Liste der Reste, statt es zu verschlucken.
-Lokal ausführen: `npm test` (läuft mit, sobald obige Vars gesetzt sind) oder gezielt
-`node --test --experimental-test-module-mocks tests/supabase-rls.test.js`.
-
-### Datenquellen-Mix (lesen/schreiben)
-- **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) → JSON-Pipeline
-  (`scripts/generate-data.js`, alle 15 Min — **seit 30.08.2026 als Dauer-Container auf apps01, nicht
-  mehr GitHub Actions**; s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`). Der Container prüft
-  zusätzlich stündlich, ob ein neues Image-Release verfügbar ist.
-- **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge, Feedback)
-  → Supabase (RLS, Session-basiert).
-- **Der Sync liest selbst lesend aus Supabase zurück** (seit `effectivePlan`/`ftpAt()` in
-  `scripts/generate-data.js`): `plan_cards` + `ftp_history` fließen zurück in die JSON-Pipeline,
-  damit `rides.json` den echten Plan-Stand statt der eingefrorenen `adjustments.json`
-  widerspiegelt — für Athlet 1 **und** Athlet 2 (Fahrplan 7 CRED4). Seit Fahrplan 7 CRED3
-  läuft **jeder** Supabase-Zugriff des Sync über **einen** `SUPABASE_SERVICE_ROLE_KEY`
-  (RLS-Bypass): `scripts/lib/sync-config-fetch.js` liest in einem Aufruf die Tabelle
-  `athlete_sync_config` (intervals.icu-Key + Athlete-ID + grober Standort je Athlet),
-  Migration 0024 grantet Service-Role zusätzlich `SELECT` auf `profiles`/`plan_cards`/
-  `ftp_history`. Fehlt `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` oder scheitert der
-  Tabellen-Read, bricht der Sync **hart ab** (kein stiller Fallback mehr — bewusster
-  CRED3-Wechsel gegenüber früher). `app/src/api/pipeline.ts` bleibt trotzdem der alleinige
-  JSON-Loader im Frontend; `app/src/hooks/`/`features/` fragen weiterhin nur abstrakt
-  "gib mir Athletendaten".
-- **Zeilenmodell in `athlete_sync_config`:** Alle drei Athleten haben eine
-  normale `profile_id`-Zeile (owner-only RLS). Athlet 1 und 4 pflegen sie
-  self-service über **Settings**; Athlet 2 (`hc_diZee`) hat seit CRED4 einen
-  echten Supabase-Login und damit ebenfalls eine `profile_id`-Zeile und pflegt
-  sie ebenso self-service. Die
-  `athlete_key`-Spalte aus Migration 0023 (CRED0.3-Sonderweg „Zeile ohne
-  Login" für Athlet 2) wird **nicht genutzt** — `sync-config-fetch.js` löst sie
-  noch auf, aber keine Zeile trägt sie. Fehlt die Zeile eines Nebenathleten,
-  schreibt `generate-data.js` dessen `rides-N.json` trotzdem (nur die
-  Plan-Baseline, keine Fahrten), `source: "plan-only"`.
-
-## Dateistruktur
-
-Tiefe Details stehen bewusst NICHT hier, sondern in READMEs direkt im
-jeweiligen Verzeichnis (bleiben so beim Ändern des Codes automatisch näher
-dran als eine Kopie in AGENTS.md). Diese Übersicht zeigt nur die Form.
-
-```
-app/                       → Vite + React + TypeScript, s. app/README.md
-  src/
-    main.tsx, App.tsx      → Einstiegspunkt + Routing/Gates
-    config.ts              → Athleten-Stammdaten, Phasen/Farben (phaseColor)
-    types.js                → Reine JSDoc-Typen, aus der Vanilla-core-Schicht portiert
-    core/                   → Reine Berechnung, aus dem früheren `core/` portiert
-                              (PMC, Belastungswächter, Readiness, Briefing,
-                              Intensitätsverteilung, EF-/Decoupling-Trend,
-                              FTP-Prognose, Body, Periodisierung, Konsistenz,
-                              Records, Validate, Konflikte/Vorschlags-Validierung, …)
-                              — Details/Umfang: src/core/README.md
-    api/                    → I/O-Grenze (ersetzt frühere `state/*.js`)
-      pipeline.ts             JSON-Loader (data/*.json)
-      supabase/                Adapter, eine Datei je Tabelle (auth, goals,
-                                events, wellbeing, plan-cards, proposals, …)
-      intervals/                intervals.icu-Push (Workout → Wahoo)
-      hooks/                    React-Query-Hooks — die eigentliche Aufrufstelle
-                              — Details: src/api/README.md
-    sports/                 → Multi-Sport-Vorbereitung (G5, cycling/,
-                              running/ und swimming/ befüllt): austauschbare
-                              Zonen-/Metrik-Logik statt hart codiert —
-                              Details: src/sports/README.md
-    charts/                 → Chart-Engine + alle Einzel-Charts (SVG/Canvas),
-                              Details: src/charts/README.md
-    components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
-    hooks/                  → generische UI-Hooks (nicht datenbezogen)
-    features/               → ein Verzeichnis je Tab/Bereich: hero, logbook,
-                              planning, analysis, events, auth, settings,
-                              bikefit (Fahrplan 16), landing (Fahrplan 22 —
-                              öffentliche Startseite auf `/`, Warteliste,
-                              nicht Teil des `/app`-Dashboards), onboarding
-    styles/tokens.css       → Design-Tokens (abgeglichen mit planning/docs/archiv/chart-grundlagen.md,
-                              archiviert — Werte selbst bleiben aktuell)
-
-admin-api/                → schlanker Node.js-HTTP-Server (kein Framework, `node:http`),
-                            eigenes Image seit Fahrplan 15 E6 (s. `publish-images.yml`).
-                            Admin-Accountverwaltung (Liste/Sperren/Entsperren/Löschen/
-                            Link erneut senden) gegen GoTrue/PostgREST intern, JWT-Prüfung
-                            in `auth.js` (`requireAdmin`), schreibt das Admin-Audit-Log
-                            (s. „Schreibdaten" im README). Eigene `Dockerfile` +
-                            `*.test.js` je Modul (`node --test`).
-
-data/                     → generierte JSON-Dateien (rides*.json, wellbeing*.json, …),
-                            von scripts/generate-data.js geschrieben, NICHT manuell committen
-
-supabase/
-  migrations/             → SQL-Migrationen, laufnummeriert (Stand 24.09.2026: 0001–0055)
-
-scripts/
-  generate-data.js         → Dünner Orchestrator (läuft im apps01-Sync-Container + `npm run sync`)
-  delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
-  preset-suggestion-check.js, report-derived-workout-structure.js,
-  generate-jwt-keys.js, rename-athlete4-cards.js, generate-media.js,
-  seed-profile-hr-max.js, git-merge-tag.js → einzelne Betriebs-/Migrations-/
-                             Analyse-/Medien-/Git-Skripte
-                             (delete-rest-day-cards.js: Einmal-Aufräumskript
-                             Fahrplan 6 RUH6 — entfernt migrierte
-                             `workout_type="Ruhetag"`-Zeilen aus plan_cards;
-                             rename-athlete4-cards.js: Einmal-Umbenennung der
-                             Athlet-4-`plan_cards`-Titel auf die v1.23.0-Namen,
-                             Match über Titel + `week`, Dry-Run ohne `--apply`;
-                             generate-media.js: Einmalige KI-Medien-Generierung
-                             für die Landingpage über OpenRouter — Bilder
-                             [`trenner-1..3`, `cycling`/`running`/`swimming`/
-                             `landing`-Vorschau] und das Seedance-Herovideo
-                             [`hero-video`], schreibt nach
-                             `app/public/assets/landing/`, braucht
-                             `OPENROUTER_API_KEY` + `OPENROUTER_IMAGE_MODEL`/
-                             `OPENROUTER_VIDEO_MODEL` in `.env`, kein
-                             Automatik-Lauf im Sync/in CI; seed-profile-hr-max.js:
-                             Einmal-Seed für den Golden Master, Fahrplan 17 E2 —
-                             hrMax/hrRest von app/src/config.ts-Literalen nach
-                             profiles.hr_max; git-merge-tag.js: Ein-Schritt-
-                             Merge+Tag für PRs, die app/scripts/supabase/
-                             admin-api ändern — Aufrufstelle des globalen
-                             `git merge-tag`-Alias, s. „Versions-Tag für
-                             Docker-Images" oben, Issue #68)
-  Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
-  lib/                     → von generate-data.js verwendete Module: env, log, http,
-                             plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
-                             plan-athlete4 (Athlet 4, Einsteiger-Vorlage),
-                             plan1-history, intervals, weather, map-activity, wellness,
-                             compliance, coverage, ftp-history, interval-blocks,
-                             formats-fetch, plan-cards-fetch, plan-to-cards, output,
-                             sync-config-fetch (athlete_sync_config per Service-Role,
-                             Fahrplan 7 CRED3 — löst intervals-credentials-fetch ab),
-                             athletes (Config-Liste der Athleten-Ausgabedateien,
-                             Fahrplan 10 E3), hr (Herzfrequenz-Hilfsrechnungen,
-                             HFmax nach Tanaka), training-plan-fetch (aktive
-                             training_plans-Zeile eines Athleten aus Supabase,
-                             Migration 0028/0029)
-    core/                  → zur app/src/core/-Schicht parallele Portierung auf der
-                             Sync-Seite (aggregate, briefing, plan2-schedule, projection,
-                             readiness, workout-math/-validator/-structure-derive,
-                             zones, ladder-progression u.a.)
-
-tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls.test.js
-                             (npm test, Repo-Root — s. Stack-Abschnitt)
-
-.github/workflows/
-  sync-data.yml            → nur noch `workflow_dispatch`-Fallback (der Sync läuft
-                             produktiv im apps01-Container, s. Fahrplan 3 Fenster C)
-  publish-images.yml       → baut vier GHCR-Images (frontend, sync, migrate,
-                             admin-api): Push nach main = "latest"-Tag,
-                             `v*`-Tag = versioniert + GitHub Release, PR =
-                             nur Bauen, kein Push
-  ci.yml                   → Push/PR (Repo-Root): npm test + ESLint + Fallow code-quality
-  ci-app.yml                → Push/PR (nur bei Änderungen unter app/** oder an
-                             der Workflow-Datei selbst): Vitest,
-                             ESLint, Build (tsc -b + vite build) für /app/
-  check-version-tag.yml     → Push nach main (nur bei Änderungen unter
-                             app/**, scripts/**, supabase/**, admin-api/**):
-                             warnt (informational, kein exit 1), wenn kein
-                             neuer v*-Tag auf dem Commit liegt (apps01
-                             deployt nur Tags)
-
-.claude/skills/
-  fallow/                  → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
-                             — übersetzt Anfragen wie "check code health" in fallow-Befehle
-
-planning/                  → GITIGNORED, nicht im öffentlichen Repo. Eigenes
-                             privates Git-Repo (lokal im selben Arbeits-
-                             verzeichnis eingecheckt). Ideen + Fahrpläne
-                             (planning/ideen-backlog.md) UND seit 2026-09-19
-                             die gesamte bisherige `docs/`-Doku
-                             (planning/docs/, planning/docs/archiv/) — Grund:
-                             LP2, s. „Repo-Hygiene" im Backlog. Ausgelieferte
-                             Fahrpläne wandern innerhalb von planning/ von
-                             planning/docs/ nach planning/docs/archiv/ (reine
-                             interne Umsortierung, kein Repo-Wechsel mehr).
-                             Das öffentliche Repo behält nur `docs/README.md`
-                             als kurzen Verweis.
-```
-
-## Athleten
-
-- **Athlet 1** (`athlete1`) — eigener Trainingsplan (Plan 1 + Plan 2), Primärnutzer
-  FTP: 193W (`ftpMeasured` in `app/src/config.ts`; `DEFAULT_FTP` in `scripts/lib/map-activity.js`)
-- **Athlet 2** (`athlete2`) — ursprünglich Vergleichsathlet, seit Fahrplan 7
-  CRED4 mit echtem Supabase-Login und normaler `profile_id`-Zeile in
-  `athlete_sync_config` (der Sync liest darüber intervals.icu-Key/-Standort
-  **und** `plan_cards`/`ftp_history`). Seit Fahrplan 9 Etappe 0 **kein
-  Sonderfall mehr**: volles Modell wie Athlet 1/4 (Befinden, editierbare
-  `plan_cards`, Wahoo-Push), sobald hc_diZee als er selbst eingeloggt ist —
-  das frühere `readOnly: true` / `isReadOnlyAthlete()` ist entfernt.
-  Schreibzugriff entscheidet allein die Beziehung (Self / Trainer / Admin,
-  Gate `canWriteForAthlete()`); von einem fremden Login (z. B. Athlet 1 auf
-  athlete2 getoggelt) bleibt der Tab damit weiterhin nur-lesend. Eigener
-  Planungstab seit GFNY Bremen 2026 (`scripts/lib/plan-athlete2.js`).
-  FTP: 265W (ATHLETE_2_FTP in scripts/generate-data.js, letzter Ramp Test),
-  FTP-Ziel 280W (Notion-Korridor 275–285W)
-- **Athlet 3** (`athlete3`, „Hendrik") — Triathlet, seit Fahrplan 10–13
-  (Idee-1-Umsetzung, 09.–13.09.2026) voll verdrahtet, **kein Sonderfall
-  mehr**. Einziger Athlet mit mehreren Sportarten: `sports: ["ride", "run",
-  "swim"]` in `config.ts`. Synct alle drei über intervals.icu, hat eine
-  sportartübergreifende CTL/ATL/TSB-Anzeige, Pace-Zonen-Skala + Pace-Kurve
-  fürs Laufen, einen Sport-Umschalter, editierbare Laufplan-Karten
-  (`plan_cards` mit `sport`-Feld, Migration 0037) und die kombinierte
-  Last-/Konflikt-Ansicht über alle Sportarten (K-HARTFOLGE erkennt harten
-  Lauf nach hartem Rad). `ftpMeasured`/`hrMax`/`hrRest` sind noch `null` —
-  fehlt bislang ein Referenzwert, kein technisches Hindernis.
-- **Athlet 4** (`athlete4`, „bentastiic") — Renn-/Trainings-Einsteiger. Volles
-  Modell wie Athlet 1 (eigener Login, Befinden, editierbare `plan_cards`,
-  Wahoo-Push), aber Lesedaten-Pipeline wie Athlet 2 (intervals.icu + Supabase,
-  **kein Notion**). Der intervals.icu-Key/-Athlete-ID **und den groben
-  Standort** trägt der Athlet selbst in **Settings** ein (Tabelle
-  `athlete_sync_config`, Fahrplan 7 CRED2), der Sync liest sie per
-  Service-Role über `scripts/lib/sync-config-fetch.js` — es gibt **kein**
-  `INTERVALS_API_KEY_4`/`WEATHER_*_4`-Secret. Fehlt die Zeile, schreibt der
-  Sync `rides-4.json` trotzdem (nur Plan, keine Fahrten). **Fährt vorerst
-  überwiegend in Zwift:** Die 12-Wochen-Einsteigervorlage
-  (`scripts/lib/plan-athlete4.js`, KW36–KW47 ab 2026-08-31, 4 Einheiten/Woche,
-  generiert) trägt für jede Fahr-Einheit ein vollständiges `workout`-Objekt
-  mit **`pct` (% FTP)** wie Athlet 1 (kein `watts` — es gibt noch keine echte
-  FTP), damit die Karten per `.zwo` nach Zwift/MyWhoosh exportierbar sind
-  (`app/src/core/zwo-export.js`). `ftpMeasured`/`eFTP`/`ftpGoal` in `config.ts`
-  bleiben trotzdem `null` (die %FTP-Ziele rechnet Zwift gegen die im
-  Zwift-Profil hinterlegte FTP) → `output4.ftp = null`, die Hero-FTP-Widgets
-  (Leistungsskala, Ringe) blenden sich datengetrieben aus. Nach dem 20-Min-Test
-  (Vorlage-KW47) kann eine erste FTP gesetzt und die Vorlage um `watts` ergänzt
-  werden.
-
-FTP-Dreiklang pro Athlet in `app/src/config.ts` → `athletes[]`: `ftpMeasured`/`ftpMeasuredDate`
-(Ramp-Test) und `ftpGoal` (Ziel) — im Analyse-Tab strikt getrennt von der laufend
-geschätzten eFTP. `seasonStartFtp` (Saison-Start-FTP für Fortschrittsring/Meilenstein
-— nur bei Athlet 1 gesetzt, Athlet 2 → `null`) und `dataSources` (Untertitel-Anzeige,
-z.B. `["intervals.icu", "Apple Health"]`) leben ebenfalls dort.
-
-Interne IDs sind `athlete1`/`athlete2`/`athlete3`/`athlete4`, Anzeigenamen sind
-die selbstgewählten Pseudonyme (GitHub-Handles bei 1/2/4) "Stuhlsen"/"hc_diZee"/
-"Hendrik"/"bentastiic" (einzige Quelle: `app/src/config.ts` → `athletes[].name`
-— nicht hartkodiert duplizieren). Athleten-Toggle persistent via
-`localStorage("active_athlete")` (`app/src/api/hooks/useActiveAthlete.ts`); unbekannte/
-alte IDs werden beim Start verworfen.
-Schreibaktionen im Planungstab (Verschieben/Ausfallen/Wahoo-Push, Befinden,
-Ziellinien) hängen für **alle** Athleten am selben Gate `canWriteForAthlete()`/
-`isSelfAthlete()` in `app/src/api/write-authorization.ts`: sichtbar nur, wenn
-der eingeloggte User der Athlet selbst, dessen Trainer oder Admin ist. Ein
-fremder Betrachter (Athleten-Toggle auf einen anderen Athleten) sieht den Tab
-nur-lesend.
-
-**Onboarding neuer Athlet (seit Fahrplan 7):** anmelden → in **Settings**
-intervals.icu-Key + Athlete-ID + groben Standort eintragen (Tabelle
-`athlete_sync_config`) → der nächste Sync-Lauf nimmt ihn automatisch auf.
-Keine Env-Änderung, kein apps01-Eingriff, kein GitHub-Secret. Zusätzlich
-`NAME_TO_SLUG` in `scripts/lib/sync-config-fetch.js` **und** `ATHLETES[]` in
-`app/src/config.ts` pflegen (Anzeigename → interne ID).
-
-## Trainingspläne
-
-**Plan 1** — eingefrorene Historie (früher manuell in Notion gepflegt),
-März–Juni 2026, FTP 166→193W, 57 Fahrten. Seit Fahrplan 10 E3a fest in
-`scripts/lib/plan1-history.js` (`plan1-history.json`), kein Notion-API-Aufruf
-mehr — die Phase ist abgeschlossen und wächst nie mehr.
-**Plan 2** — intervals.icu API (automatisch via Wahoo), ab Juni 2026, Ziel FTP ≥210W
-
-Plan-2-Struktur (12 Wochen, pyramidale Periodisierung):
-- W1–W3: Sweet Spot (84–97% FTP)
-- W4: Erholung (Volumen −50%)
-- W5–W7: Schwelle (95–105% FTP)
-- W8: Erholung
-- W9–W11: VO2max (106–120% FTP)
-- W12: Taper + Ramp Test
-
-Wochenstruktur (ab W2, Fokus Leistungsaufbau): Mo lockere Z2 (optional) · Di Gruppenfahrt
-~65 km · Do strukturierte Intervalle · Fr Recovery (optional) · Sa Sweet-Spot-Ausdauerfahrt
-(zweite Qualitätseinheit). Mo/Fr sind die Stoßdämpfer (bei müden Beinen streichen), Do+Sa
-die zwei Qualitätstage. Definiert in `scripts/lib/plan2.js` (PLANNED_SESSIONS + PLAN2_SCHEDULE);
-die Sa-Sessions haben strukturierte `workout`-Objekte (SS-Blöcke), pushbar zu intervals.icu.
-W0/W1 stehen als abgeschlossene Historie unverändert — die Umstellung greift ab W2.
-Realistisches FTP-Ziel: 210W (Korridor ~205–213W bis Retest 19.09.).
-
-**GFNY Bremen 2026** (Athlet 2, eigenständiger Plan, kein Bezug zu Plan 1/2) —
-KW23–KW35 (01.06.–30.08.2026), Renntag So 30.08. (Ziel <3:00h, 100km). Die
-Wochenschema-Termine (Ruhetag/Crit/Z2/Intervalle/Rennsim.) waren am
-13.07.2026 durchgängig einen Tag zu spät eingetragen und wurden um -1 Tag
-korrigiert — der Renntag selbst ist ein fester externer Termin und blieb
-unverändert (29.08. bleibt bewusst frei, s. Kopfkommentar in
-plan-athlete2.js). Definiert in
-`scripts/lib/plan-athlete2.js` (PLANNED_SESSIONS_ATHLETE2), Blöcke
-Basis→Aufbau→Rennhärte→Taper. Ruhetage werden seit dem 05.08.2026 für beide
-Athleten im Planungstab angezeigt (s. "Bekannte Eigenheiten"). FTP-Ziel 280W.
-Der Plan ist abgeschlossene Historie (Renntag 30.08.2026) — im Frontend
-editiert ihn nur hc_diZees eigener Login, kein athletenabhängiger Sonderfall
-mehr (s. "Bekannte Eigenheiten").
-
-## Equipment (Athlet 1)
-
-Cube Nuroad Race Gravel · Favero Assioma PRO MX-1 Power Meter · Wahoo ELEMNT Roam v3
-
-## Design — Konzept 5 (Kachel-Anatomie × Zonen-Farbsystem)
-
-Tokens in `app/src/styles/tokens.css` (Namen stabil halten):
-- Hintergrund: `#0b0e13` Anthrazit-Blau mit fixierten Zonen-Gradienten (Z2-Schimmer oben rechts, Sweet-Spot-Glut unten links)
-- Kacheln: Glas — `rgba(255,255,255,0.045)` + 1px-Hauchrand, Radius 22/28px; Tooltip/Dropdowns deckend via `--card-solid`
-- **Zonen-Skala als Farbsystem** (Farbe = Bedeutung, nie Deko):
-  `--z1 #4a9a6e` (Recovery/positiv) · `--z2 #4a7fa8` (Grundlage/Plan 1) · `--z3 color-mix(in oklch, var(--ss) 75%, black 25%)` (Tempo, Hero-Leistungsskala — abgeleitetes Token, keine neue Basisfarbe; ein Mix aus `--z2`+`--ss` kippt in sRGB/OKLab auf Grau/Taupe, weil Blau/Orange nahezu komplementär sind, deshalb stattdessen ein abgedunkelter `--ss`-Ton) · `--ss #e08a3c` (Sweet Spot/Akzent/Plan 2) · `--thr #d94f4f` (Schwelle/Warnung) · `--vo2 #a24ad0`
-- Typografie: **Sora** (Display/Zahlen, `--font-disp`) · **IBM Plex Mono** (Labels/Meta, `--font-mono`) · **Inter** (Fließtext, `--font-body`) — seit der Typeset-Etappe 2026-08-19 selbst gehostet über `@fontsource/*` (Import in `app/src/main.tsx`, nur die tatsächlich genutzten Gewichte: Sora 400/600/700, IBM Plex Mono 400/500/600, Inter 400/500/600), keine Google-Fonts-CDN-Anfrage. Zuvor lief die App faktisch auf System-Fallbacks (kein Font-Link in `app/index.html`) — dieser Zustand ist damit behoben, nicht mehr offen.
-- Pills überall interaktiv (`--pill`): Tabs (aktiv = SS-Fill mit dunklem Text `#17110a`), Athleten-Toggle (aktiv = Z2), Unit-/Plan-Toggle
-- **Ghost-Buttons/-Pillen über dem Seitengrund** (Seiten-Kopfzeilen, nicht auf einer
-  GlassCard — z. B. „+ Neuer Plan", „Coach", „+ Karte" im Planungstab): brauchen einen
-  Glass-Fill (`background: var(--glass)` + `backdrop-filter: blur(16px)` + `box-shadow:
-  var(--e2)` + Rand `1px solid rgba(255,255,255,0.14)`, Text `var(--ink)`), sonst gehen sie
-  über hellen Stellen des Hintergrundfotos unter. Reine Haarlinie auf transparent bleibt nur
-  innerhalb einer GlassCard richtig. Volltext + Beispielwerte: `DESIGN.md` → Components →
-  Buttons → „Ghost über dem Seitengrund".
-- Hero-Signaturen: **interaktive Leistungsskala** (Coggan-Zonen Z1–Z5 aus `app/src/core/zones.js::computeZones`, Sweet-Spot-Overlay `sweetSpotBand` statt eigenem Segment, Skalenmax `scaleMaxWatts` = Z5-Ende, What-if-Slider für die Ziel-FTP-Vorschau, Pins FTP/eFTP/Ziel via `app/src/core/ftp-progress.js::pinPercent`), **FTP-Fortschrittsring** (Z2→SS-Gradient, Fortschritt `ringProgress(eFTP, athleteCfg.seasonStartFtp ?? ftpMeasured, athleteCfg.ftpGoal)` — athletenagnostisch aus `athleteConfig(id)` in `app/src/config.ts`), **Meilensteinliste** (`buildMilestones`, nur vorhandene Werte) und **Session-Karte** (nächste Einheit via `nextPlannedSession`, Watt-Ziel/Dauer/TSS-Schätzung nur bei strukturiertem `workout` via `workoutWattRange`/`workoutDurationMinutes`/`estimateSessionTSS`)
-- Anders als in der Vanilla-Fassung ist keine JS-gespiegelte Farbpalette mehr nötig:
-  React rendert echtes DOM-SVG, `var(--token)` funktioniert dort direkt in `stroke`/`fill`
-  (s. `app/src/charts/*.tsx`) — ein Palettenwechsel ändert nur noch `tokens.css`.
-- `prefers-reduced-motion` wird respektiert (globale CSS-Regel + Ring-Transition)
+Konzept 5 (Kachel-Anatomie × Zonen-Farbsystem). Tokens in
+`app/src/styles/tokens.css` (Namen stabil halten, Farbe = Bedeutung, nie
+Deko). Volltext, Komponenten-Beispiele und die Ghost-Button-Regel für
+UI-Elemente über dem Seitenhintergrund: `DESIGN.md`.
 
 ## Wichtige Konventionen
 
 **Datenschutz (HÖCHSTE Priorität):**
-- Standortkoordinaten NIEMALS im Code, JSON oder Kommentaren
-- Seit Fahrplan 7 CRED1 (Migration 0023, von Alex am 30.08.2026 ausdrücklich
-  freigegeben): die groben Koordinaten liegen RLS-geschützt und
-  **serverseitig auf 2 Nachkommastellen gerundet** (`numeric(5,2)`/`(6,2)`,
-  ~1,1 km Unschärfe) in der Tabelle `athlete_sync_config` — owner-only,
-  **kein anon-Grant**, nur der Sync (Service-Role) liest sie. Nie über einen
-  Frontend-Lesepfad ausgeliefert. Die früheren Env-Werte `WEATHER_LAT/LON(_2)`
-  sind mit Fahrplan 7 CRED5 entfallen — es gibt keinen Env-Pfad für
-  Koordinaten mehr.
-- Wetter-Forecast wird serverseitig im Sync berechnet → nur Wetterwerte in rides.json,
-  nie Koordinaten
-- Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder Commit-Messages —
-  intern `athlete1`/`athlete2`/`athlete3`/`athlete4`, in der UI die
-  selbstgewählten Pseudonyme "Stuhlsen"/"hc_diZee"/"Hendrik"/"bentastiic"
-  (`app/src/config.ts` → `athletes[].name`)
+- Standortkoordinaten NIEMALS im Code, JSON oder Kommentaren. Die groben
+  Koordinaten liegen RLS-geschützt und serverseitig auf 2 Nachkommastellen
+  gerundet (~1,1 km Unschärfe) in `athlete_sync_config` — owner-only, kein
+  anon-Grant, nie über einen Frontend-Lesepfad ausgeliefert.
+- Wetter-Forecast wird serverseitig im Sync berechnet → nur Wetterwerte in
+  `rides.json`, nie Koordinaten.
+- Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder
+  Commit-Messages — intern `athlete1`–`athlete4`, in der UI die
+  selbstgewählten Pseudonyme aus `app/src/config.ts` → `athletes[].name`.
 
 **Git-Workflow:**
 ```powershell
@@ -683,317 +241,103 @@ git commit -m "..."
 git sync   # nur von main aus laufen lassen — s. Warnung unten
 ```
 - PowerShell: KEIN `&&` zwischen Befehlen — jeweils eigene Zeile
-- Bei Konflikten mit fremden Commits auf `origin/main`: `git fetch origin` dann `git push --force-with-lease origin main` (die früheren `data/*.json`-Auto-Commits der Sync-Action gibt es seit Fahrplan 3 Fenster C nicht mehr)
-- Zeilenenden: `.gitattributes` erzwingt LF im Repo (`* text=auto eol=lf`)
-- **Versions-Tag für Docker-Images:** Ein PR, der `app/`, `scripts/`,
-  `supabase/` oder `admin-api/` ändert, wird gemergt UND getaggt in einem
-  Schritt: `git merge-tag <pr-nummer> <version>` (globaler Git-Alias, z. B.
-  `git merge-tag 97 1.5.0`) — der Alias ist nur ein dünner Aufruf von
-  `node scripts/git-merge-tag.js` (**echte, versionierte Datei im Repo**,
-  nicht nur lokale Config — Review-Finding 2 in PR #97, Tony wies zu Recht
-  darauf hin, dass ein reiner Alias-Einzeiler für niemanden außer Alex
-  nachvollziehbar/testbar gewesen wäre). Das Skript: merged den PR
-  (`gh pr merge --squash --delete-branch`), holt per `git fetch` +
-  `git merge --ff-only origin/main` den neuen `main`-Stand (bricht sauber
-  ab statt etwas zu überschreiben, falls lokal main divergiert ist — kein
-  `reset --hard`), setzt `vX.Y.Z` **genau auf diesen Commit** und pusht den
-  Tag. Version ohne oder mit `v`-Prefix übergeben, beides ergibt denselben
-  Tag (`1.5.0` und `v1.5.0` → `v1.5.0`). Patch bei Bugfixes, Minor bei
-  neuen Features, Major bei Breaking Changes — bleibt Alex' eigene
-  Einschätzung, kein Bot entscheidet das (s. „Grenzen"). Grund für das
-  Ein-Schritt-Kommando statt "erst mergen, dann später taggen": Issue #68
-  (25.–26.09.2026, mit Tony) zeigte, dass "später taggen" real vergessen
-  werden kann, ein separater CI-Merge-Block davor aber technisch nicht
-  funktioniert — Squash-/Merge-/Rebase-Merges erzeugen auf `main` einen
-  neuen Commit, den ein vor dem Merge gesetzter Tag nie treffen kann.
-  `check-version-tag.yml` bleibt als sichtbarer, aber nicht blockierender
-  Warnhinweis bestehen (kein `exit 1`) — er zeigt einen vergessenen Tag an,
-  verhindert aber keinen Merge. Ein neuer Tag ist trotzdem ein sichtbarer,
-  kaum rückholbarer Schritt (löst einen echten Image-Build/-Push aus) —
-  bleibt bewusst Alex' eigener Befehl, kein automatischer Bot-Trigger. Der
-  Produktivserver zieht bewusst nie `:latest` (`planning/docs/fahrplan-3-docker-umbau.md`, Fenster
-  DKR4), sondern eine feste Version. Derselbe `v*`-Tag löst in
-  `publish-images.yml` zusätzlich einen `release`-Job aus, der eine eigene
-  `release-notes.md` baut (`git log`, nach Commit-Typ gruppiert) und per
-  `gh release create --notes-file` automatisch ein GitHub Release mit
-  diesen Auto-Notes anlegt — kein separater manueller Schritt nötig.
+- Bei Konflikten mit `origin/main`: `git fetch origin` dann
+  `git push --force-with-lease origin main`
+- Zeilenenden: `.gitattributes` erzwingt LF im Repo
 
-**`git sync` — was der Alias wirklich tut (nicht nur fetch+push):**
-```
-git fetch origin
-git merge-base --is-ancestor origin/main main   # bricht ab, wenn lokal main hinterherhängt
-git push --force-with-lease origin main
-```
-Pusht die lokale `main`-Branch-Referenz — **unabhängig davon, welcher Branch
-gerade ausgecheckt ist**. Bis Fahrplan 3 Fenster C (Issue #31, 30.08.2026) holte
-der Alias zuvor noch `data/adjustments.json`/`data/subjective.json` aus `origin/main`
-und committete sie als „chore: preserve browser-written data" — dieser Schritt ist
-entfallen, seit `data/*.json` nicht mehr versioniert ist (Sync schreibt direkt ins
-apps01-Volume, s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`).
+**`git sync` — Branch-Guard ist eine echte Sicherung, kein Stilhinweis.** Der
+Alias (`git fetch` → `git merge-base --is-ancestor origin/main main` →
+`git push --force-with-lease origin main`) weigert sich, wenn `HEAD` nicht
+`main` ist, und bricht ab, wenn lokales `main` hinter `origin/main`
+zurückliegt. Beides schützt gegen denselben Vorfall: am 25.07.2026 wurde
+`git sync` versehentlich von einem veralteten Feature-Branch aus aufgerufen
+und hätte `origin/main` um ~70 Commits zurückgesetzt (s. Commit-Historie um
+dieses Datum).
 
-**Zwingend nur von `main` aus laufen lassen.** Der Alias weigert sich (Branch-Guard),
-wenn `HEAD` nicht `main` ist — das ist kein Stilhinweis, sondern eine echte Sicherung:
-am 25.07.2026 lag lokales `main` wochenlang veraltet herum (seit Einführung des
-`dashboard-2.0`-Branches nie wieder ausgecheckt/aktualisiert), `git sync` wurde versehentlich
-von `dashboard-2.0` aus aufgerufen und hätte damit `origin/main` um ~70 Commits (u. a. echte
-Befinden-/Plan-Einträge) zurückgesetzt. Der `git merge-base --is-ancestor origin/main main`-Check
-(zweite Zeile im Block oben) bricht den Alias zusätzlich hart ab, wenn lokales `main` nicht
-alle `origin/main`-Commits enthält, also hinterherhängt — `--force-with-lease` allein prüft nur
-gegen den `origin/main`-Tracking-Stand direkt nach dem Fetch-Schritt im selben Alias-Lauf und
-schützt gerade NICHT vor einem seit längerem veralteten lokalen `main`.
-Vorfall + Wiederherstellung: s. Commit-Historie um den 25.07.2026, kein separates Dokument.
+**Versions-Tag für Docker-Images:** Ein PR, der `app/`, `scripts/`,
+`supabase/` oder `admin-api/` ändert, wird gemergt UND getaggt in einem
+Schritt: `git merge-tag <pr-nummer> <version>` (globaler Git-Alias, ruft
+`scripts/git-merge-tag.js` auf — echte, versionierte Datei, kein reiner
+Alias-Einzeiler). Mergt den PR, holt per `--ff-only` den neuen `main`-Stand
+(bricht sauber ab statt zu überschreiben, falls lokal divergiert), setzt
+`vX.Y.Z` genau auf diesen Commit und pusht den Tag. Patch/Minor/Major bleibt
+Alex' eigene Einschätzung. `check-version-tag.yml` warnt nur (kein
+`exit 1`) bei fehlendem Tag — verhindert keinen Merge. Der Produktivserver
+zieht bewusst nie `:latest`, sondern eine feste Version.
 
 **JavaScript/TypeScript:**
-- Es gibt kein globales `Data`-Singleton mehr (Vanilla-Ära). Zustand lebt in
-  React-Query-Caches, Aufrufstellen sind die Hooks unter `app/src/api/hooks/`
-  (z. B. `useActiveAthlete`, `useRides`, `usePlanCards`) statt eines
-  gemeinsamen Objekts, das jedes Modul direkt liest.
-- ISO-Kalenderwochen-Aggregation für beide Athleten läuft weiter über
-  `app/src/core/aggregate.js` (portiert, unverändert). Athlet 2s Rides tragen
-  weiterhin bewusst kein `week`/`phase` (s. "Bekannte Eigenheiten") — das
-  betrifft nur den Plan-Bezug einzelner Ride-Objekte, nicht die Wochen-Aggregation selbst.
-- Chart-Erklärtexte sind athletenabhängig, leben jetzt als Teil der jeweiligen
-  Feature-Komponente statt einer zentralen `updateChartExplainers()`-Funktion.
+- Kein globales `Data`-Singleton mehr — Zustand lebt in React-Query-Caches,
+  Aufrufstellen sind Hooks unter `app/src/api/hooks/`.
 - Berechnung gehört nach `app/src/core/` (mit Test), Rendering nach
-  `app/src/charts/`, `app/src/components/` bzw. dem UI-Teil von `app/src/features/*`
+  `app/src/charts/`/`app/src/components/`/UI-Teil von `app/src/features/*`
   — nicht mischen.
 
-**Typ-Inferenz (scripts/lib/map-activity.js):**
-`inferTypFromIF(np, min, ftp)` — NP÷FTP = IF, dann Dauer als zweites Kriterium:
-IF < 0.75 + ≥120min → "Z2 Lang", ≥60min → "Z2 Dauer", <60min → "Z1 Recovery"
-Grenzwerte sind in `tests/typ-inferenz.test.js` festgeschrieben.
+**Typ-Inferenz (`scripts/lib/map-activity.js`):**
+`inferTypFromIF(np, min, ftp)` — NP÷FTP = IF, dann Dauer als zweites
+Kriterium: IF < 0.75 + ≥120min → "Z2 Lang", ≥60min → "Z2 Dauer", <60min →
+"Z1 Recovery". Grenzwerte sind in `tests/typ-inferenz.test.js` festgeschrieben.
 
-## GitHub Secrets / apps01-Env (vorhanden, nie im Code)
+## Skills (`.claude/skills/`)
 
-**Sync-Container auf apps01 (produktiv) — Stand seit Fahrplan 10 E3a:**
+Vor Rohbefehlen/eigener Recherche prüfen, ob eines dieser Themen zutrifft —
+sie laden nur bei Bedarf und halten diese Datei kurz:
+- **fallow** — Codebase Intelligence ("check code health", "find circular deps").
+- **grilling** — bei Unklarheit in Anforderung/Design/Vorgehen Frage für
+  Frage klären statt zu raten oder vorsichtshalber alles zu bauen.
+- **chart-labels** — Label-/Datums-/Merge-Konvention für Charts.
+- **sync-pipeline** — Datenquellen-Mix, `athlete_sync_config`, Secrets-Layout,
+  Supabase-Migrationsworkflow, RLS-Testsuite.
+- **playwright-mcp** — wann Playwright MCP statt Unit-Test gerechtfertigt ist.
+
+## Dateistruktur
+
+Tiefe Details stehen bewusst NICHT hier, sondern in READMEs direkt im
+jeweiligen Verzeichnis. Diese Übersicht zeigt nur die Form.
+
 ```
-SUPABASE_URL            SUPABASE_SERVICE_ROLE_KEY
-SUPABASE_ANON_KEY       (nur für den anonymen session_formats-Read)
+app/                       → Vite + React + TypeScript, s. app/README.md
+  src/
+    main.tsx, App.tsx      → Einstiegspunkt + Routing/Gates
+    config.ts              → Athleten-Stammdaten, Phasen/Farben
+    types.js                → Reine JSDoc-Typen
+    core/                   → Reine Berechnung — Details: src/core/README.md
+    api/                    → I/O-Grenze — Details: src/api/README.md
+    sports/                 → Multi-Sport-Zonen/Metriken — Details: src/sports/README.md
+    charts/                 → Chart-Engine — Details: src/charts/README.md
+    components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
+    hooks/                  → generische UI-Hooks (nicht datenbezogen)
+    features/               → ein Verzeichnis je Tab/Bereich (hero, logbook,
+                              planning, analysis, events, auth, settings,
+                              bikefit, landing, onboarding)
+    styles/tokens.css       → Design-Tokens
+
+admin-api/                → schlanker Node.js-HTTP-Server, Admin-Accountverwaltung
+                            gegen GoTrue/PostgREST, eigenes Image/Dockerfile/Tests
+
+data/                     → generierte JSON-Dateien, NICHT manuell committen
+
+supabase/migrations/       → SQL-Migrationen, laufnummeriert
+
+scripts/
+  generate-data.js         → Dünner Orchestrator (Sync-Container + `npm run sync`)
+  lib/                     → Sync-Module (plan2, plan-athlete2/4, intervals, weather,
+                             map-activity, wellness, sync-config-fetch, …) — Details
+                             und Einmal-Skripte: Kopfkommentare je Datei
+  Dockerfile                → Container-Build für den Sync-Job
+
+tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls.test.js
+
+.github/workflows/         → ci.yml, ci-app.yml, publish-images.yml,
+                            check-version-tag.yml, sync-data.yml (s. „Stack")
+
+.claude/skills/             → fallow, grilling, chart-labels, sync-pipeline,
+                            playwright-mcp — repo-versioniert (s. „Skills")
+
+planning/                  → GITIGNORED, eigenes privates Git-Repo. Ideen +
+                            Fahrpläne (planning/ideen-backlog.md, planning/docs/).
+                            Das öffentliche Repo behält nur docs/README.md.
 ```
-`NOTION_API_KEY` / `NOTION_DATABASE_ID` sind mit Fahrplan 10 E3a entfallen —
-Plan 1 ist eingefroren (`scripts/lib/plan1-history.js`). In den
-GitHub-Actions-Secrets bleiben sie als tote Secrets stehen (nicht gelöscht,
-s. CLAUDE.md „Grenzen").
-Seit Fahrplan 7 CRED3 liest der Sync intervals.icu-Key/-ID **und** die groben
-Standortkoordinaten für **alle** Athleten per Service-Role aus
-`athlete_sync_config` (`scripts/lib/sync-config-fetch.js`), nicht mehr aus Env.
-Die früher pro Athlet wachsenden Werte `INTERVALS_API_KEY(_2/_4)`,
-`INTERVALS_ATHLETE_ID(_2/_4)`, `WEATHER_LAT/LON(_2/_4)`,
-`SUPABASE_ATHLETE1/4_EMAIL/PASSWORD` sind mit CRED5 aus der apps01-Env und aus
-`sync-data.yml` entfernt. In den GitHub-Actions-Secrets bleiben sie als **tote
-Secrets** stehen (als solche markiert, nicht gelöscht — CLAUDE.md „Grenzen").
 
-**`sync-data.yml` (nur noch `workflow_dispatch`-Fallback):** `SYNC_PUSH_TOKEN`
-(seit 22.08.2026, Fine-grained PAT von Alex statt `GITHUB_TOKEN` — `main` hat
-Branch Protection) ist **seit Fahrplan 3 Fenster C schlafend**: die Action
-committet `data/*.json` nicht mehr, `data/*.json` ist nicht mehr versioniert.
-Bewusst **nicht gelöscht**, nur noch für den manuellen Fallback nutzbar.
+## Equipment (Athlet 1)
 
-**Nur lokal in `.env` (RLS-Testsuite, Einmal-Skripte):**
-`SUPABASE_ATHLETE1/2/4_EMAIL/PASSWORD`, `SUPABASE_TRAINER_EMAIL/PASSWORD`
-(+ die optionalen `_PROD`-Gegenstücke) — für `tests/supabase-rls.test.js` und
-gezielte `--env=prod`-Einmal-Skripte (`migrate-plan-to-supabase.js`,
-`delete-rest-day-cards.js`). Details: `.env.example` +
-`.github/workflows/sync-data.yml` (Kopfkommentar).
-
-## Chart-Label-Konvention (Überlappungsschutz)
-
-X-Achsen- und Wert-Labels NIEMALS pro Datenpunkt/Balken ohne Ausdünnung
-zeichnen — bei Athlet 2 (30+ Kalenderwochen) überlappt sonst die Achse.
-Pflicht für jedes Chart mit variabler Datenmenge:
-- `pickLabelIndices(xs, minPx)` aus `app/src/core/chart-scale.js` (pure,
-  getestet in `chart-scale.test.js`): Mindestabstand, letzter Punkt garantiert
-  und kollisionsfrei. Richtwerte: 40px für Wochen-Balken, 55–60px für Datums-Labels.
-- Wochen-Keys über `weekDisplayLabels()` (`app/src/core/week-labels.js` bzw.
-  `aggregate.js`) kürzen ("2026-KW27" → "KW27", Jahreswechsel wird markiert,
-  Monate → "MM/JJ").
-- Wert-Labels auf Balken bei Pitch < ~22px nur auf den Label-Indizes zeichnen;
-  In-Balken-Labels zusätzlich per Balkenbreite gaten (siehe Wetter-Chart).
-- Keine "Modulo-Step + letzter immer"-Guards mehr — die erzeugen End-Kollisionen.
-- Segment-/Phasen-Labels an Divider-Linien zentriert im eigenen Segment
-  zeichnen, nie an den Rändern der Divider-Linie (zwei benachbarte Rand-Labels
-  kollidieren, sobald ein Segment schmal wird — z. B. eine kurze Übergangswoche).
-  Die Vanilla-Fassung hatte dafür ein `fitsLabel(spanPx, text)` in `ui/charts/base.js`
-  — **nicht mit nach `app/src/core/chart-scale.js` portiert** (`CompareChart.tsx`
-  verzichtet laut eigenem Kommentar bewusst auf eine `fitsLabel()`-Segment-
-  beschriftung mitten in der Kurve). Vor einer Änderung an Divider-Labels im
-  React-Code prüfen, ob das Kollisionsproblem dort überhaupt noch auftreten kann
-  (z. B. weil die Divider selbst mit dem Umbau „Plan 1/2 → Kalenderwoche"
-  entfallen sind) und ggf. neu entscheiden, statt eine nicht vorhandene Funktion
-  vorauszusetzen.
-- Mehrzeilige SVG-Texte (z. B. per `wrapText()`) grundsätzlich gegen die
-  viewBox-Höhe absichern — der SVG-Root clippt Inhalt außerhalb der
-  viewBox standardmäßig, eine zu tief platzierte zweite Zeile ist dann
-  unsichtbar statt nur falsch positioniert. Ein Filter wie
-  `lines.filter((_, i) => y(i) <= H - 4)` ist nur dann wirklich dynamisch,
-  wenn `y(i)` unabhängig von einer Konstante prüfbar bleibt — bei fixer
-  Chart-Höhe (`H` lokal hartkodiert) kann so ein Filter unbemerkt zu einem
-  festen Zeilenlimit degenerieren. Einfacher und ehrlicher: wenn ohnehin
-  nur eine Zeile Platz hat (wie im HRV/RHF-Hinweis), explizit nur die
-  erste `wrapText()`-Zeile zeichnen statt mit einer Pseudo-Dynamik zu tun,
-  als würde mehr passen.
-
-## Datumsformat (Charts)
-
-Einheitlich **DD.MM** für Achsen-/Label-Text (`fmtDate(iso)`, `app/src/core/format.js`)
-und **DD.MM.JJJJ** für Tooltips, wo das Jahr zur Eindeutigkeit gebraucht wird
-(`fmtDateFull(iso)`, `app/src/core/format.js`) — DD.MM ist die Mehrheitskonvention im
-restlichen Dashboard (Fahrtenbuch, `normalizeRide`/`normalizeWellness`).
-Achsenlabels über `fmtDate()` erzeugen, nicht `iso.split("-")`/`iso.slice(5)`
-selbst zusammensetzen — das bleibt gültig, auch wenn die einzelnen Charts
-seit dem React-Umbau eigene `<text>`-Elemente statt einer gemeinsamen
-`xLabel()`-Zeichenfunktion verwenden (Font-Größe/-Ausrichtung über gemeinsame
-Konstanten in `app/src/charts/`, nicht mehr über einen einzigen Helper).
-
-## Chart-Merge-Konvention
-
-Neue Auswertungen möglichst in bestehende Charts integrieren statt neue Boxen
-anzulegen (Chart-Masse begrenzen): Belastungswächter lebt IM TRIMP-Chart
-(`TrimpLoadChart.tsx`, Ramp-Linie + ⚠), EF-Trend IM Effizienz-Chart
-(`EfficiencyChart.tsx`), Blockvergleich IM Power-Curve-Chart (`PowerCurveChart.tsx`,
-Toggle), Kadenz-Coach als Chips ÜBER dem Kadenz-Chart (`CadenceChart.tsx`). Der
-Konsistenzkalender (`ConsistencyCalendar.tsx`) hat die Wochentags-Heatmap ERSETZT
-(Wochentagszähler in den Zeilenlabels). Explainer-Texte bei Chart-Änderungen immer
-mitziehen — sie leben jetzt als Teil der jeweiligen Feature-Komponente
-(`app/src/features/*`, für beide Athleten-Varianten prüfen), nicht mehr zentral
-in `index.html`/`app.js`.
-
-## Bekannte Eigenheiten
-
-**Gilt weiter unverändert (Datensync, `scripts/`/`.github/workflows/` — vom
-React-Umbau nicht berührt):**
-
-- `subjective.json`/`adjustments*.json` sind seit der `plan_cards`-Migration
-  bzw. dem Supabase-Check-in nur noch read-only Archiv (kein aktiver
-  Schreibpfad). `data/*.json` ist seit Fahrplan 3 Fenster C nicht mehr
-  versioniert — der `sync-data.yml`-Schutzcode (Rebase-Retry) bleibt nur als
-  Rückfahrkarte im Workflow stehen, greift im Normalbetrieb nicht mehr.
-- Fahrten am selben Datum werden nach `startTime` (start_date_local) sortiert;
-  Plan-1-Fahrten (eingefrorene Historie) haben kein startTime → dort kein Tiebreaker
-- Athlet 2 hat aus intervals.icu nur Fahrten mit gültiger Distanz erfasst;
-  distanzlose/unklassifizierte Aktivitäten werden bewusst ausgeschlossen
-- intervals.icu `/power-curves`: `oldest`/`newest` allein grenzen die
-  Kurve NICHT auf den Zeitraum ein — ohne `curves`-Parameter liefert die
-  API ein Preset (beobachtet: `id: "1y"`, ein Jahr rückwärts ab `newest`,
-  `oldest` wird ignoriert). Für eine zeitraumgebundene Kurve (Power-Curve-
-  Blockvergleich, `getPlan2Blocks()`) ist `curves=r.<von>.<bis>` (intervals.icu-
-  Range-Spezifizierer) zwingend, s. `powerCurveQuery()` in
-  `scripts/lib/intervals.js`. Ohne diesen Parameter sind alle Blockkurven
-  praktisch identisch zur Gesamtkurve (nur der Anker-Zeitpunkt unterscheidet
-  sich) — der Blöcke-Toggle im Power-Curve-Chart zeigt dann keine sinnvoll
-  unterscheidbaren Kurven.
-- Pages-Deploy: **entfallen** (Issue #30, 20.08.2026) — das Frontend läuft
-  selbst-gehostet über Docker (GHCR-Image `training-dashboard-frontend`,
-  Build in `publish-images.yml`). `sync-data.yml` hat nur noch den
-  `sync`-Job und keinen `deploy`/`deploy-pages`-Job mehr; er ist ohnehin auf
-  `workflow_dispatch`-Fallback reduziert (s. „GitHub Secrets" oben).
-- `zoneTimes`/`eftp` kommen aus intervals.icu-Feldern (`icu_zone_times`,
-  `icu_eftp`) — beide Formate werden normalisiert, mit Degradation samt
-  Hinweistext, falls sie in der API-Antwort fehlen. Aktuellen Verifikationsstand
-  in `planning/docs/offene-punkte.md` prüfen, nicht hier — der ändert sich mit jedem
-  echten Sync-Lauf.
-- eFTP-Historie mergt `icu_eftp` (je Fahrt) mit dem Wellness-Tageswert aus `sportInfo`
-  (`scripts/lib/wellness.js`). Wellness trägt zusätzlich Gewicht/Kalorien/Hydration/
-  Körperfett; welche Felder real befüllt sind, zeigt `logWellnessCoverage` im
-  Sync-Log — die „Regeneration & Körper"-Sektion (`app/src/core/body.js::availability()`)
-  blendet sich datengetrieben ein (≥5 Punkte / 30 Tage).
-- `mapActivity2()` (`scripts/lib/map-activity.js`) setzt für Athlet-2-Fahrten
-  bewusst `week: null, phase: null` — der Plan-Bezug läuft ausschließlich über
-  die eigenständigen `plannedSessions`/`adjustments`-Felder in rides-2.json,
-  NICHT über `ride.week`.
-- `npm install` (für Fallow) bzw. der Skills-Installer legen `.agents/`, `agent/`,
-  `data/skills/` und `skills-lock.json` an — generierte Tooling-Artefakte, kein
-  Quellcode, bewusst in `.gitignore` (nicht committen, auch nicht bei `git add -A`).
-
-**Ported/angepasst mit dem React-Umbau (Pfad hat sich geändert, Konzept meist gleich):**
-
-- Die frühere Race Condition (Frontend committed per-Fahrt-Befinden direkt via
-  GitHub-API in `subjective.json`, parallel zum Sync-Workflow) betrifft
-  `app/src` nicht mehr: das editierbare Befinden-/Feel-Dropdown im Fahrtenbuch
-  gab es laut Kopfkommentar in `app/src/features/logbook/LogbookPage.tsx`
-  schon im letzten Vanilla-Stand nicht mehr (bewusst nicht portiert, kein
-  GitHub-API-Code irgendwo unter `app/src`). `sync-data.yml` schützt
-  `subjective.json`/`adjustments*.json` trotzdem weiter vor Überschreiben
-  (Rebase-Retry-Schleife, 3 Versuche) — harmlose Vorsichtsmaßnahme für reinen
-  Archivbestand, kein aktiver Schreibpfad mehr dahinter.
-- Phase-Key `"Taper"` wird zwischen Plan 2 (Athlet 1) und Athlet 2s Plan geteilt
-  (identische Farbe) — `phaseColor()` in `app/src/config.ts` ist die einzige
-  Stelle, die `PHASES[phase].color` liest; verwendet u. a. in
-  `app/src/features/planning/PlanningPage.tsx`. Deshalb brauchen "Basis"/
-  "Aufbau"/"Rennhärte" (Athlet 2, keine Namensüberschneidung mit Plan 1/2)
-  auch kein Präfix.
-- Athlet-2-Workout-Objekte (`scripts/lib/plan-athlete2.js`) tragen nur `watts`,
-  kein `pct` (% FTP) wie bei Athlet 1 — die Planungstab-Kartenkomponente in
-  `app/src/features/planning/PlanningPage.tsx` fällt für die
-  Intervall-Beschriftung auf `watts` zurück, wenn `pct` fehlt.
-- Der Planungstab kennt keinen athletenabhängigen Editier-Sonderfall mehr
-  (seit Fahrplan 9 Etappe 0 — `readOnly`/`isReadOnlyAthlete()` entfernt).
-  `editable` im Planungstab ist schlicht `canWrite`; Gate über
-  `canWriteForAthlete()`/`isSelfAthlete()` in `app/src/api/write-authorization.ts`
-  statt eines lokalen `_canEdit()` in einem UI-Modul. Die Trainingskarten selbst
-  leben inzwischen in der Supabase-Tabelle `plan_cards` (RLS-geschützt) —
-  `data/adjustments.json`/`adjustments-2.json` sind seit dieser Migration nur
-  noch read-only Archiv der alten Planungsdaten, keine aktive Datenquelle mehr.
-- Ruhetage sind seit Fahrplan 6 (`planning/docs/fahrplan-6-ruhetag-planwochen-modell.md`,
-  RUH1–RUH6) **abgeleitet, keine `plan_cards`-Zeilen mehr**: Ein Ruhetag ist
-  „Tag in einer aktiven Planwoche, der laut Plan-Wochen-Modell
-  (`app/src/core/plan-week-model.js` + `scripts/lib/core/`-Kopie) kein
-  Trainings-Slot ist und keine aktive Karte trägt". Die Erzeugung
-  (`plan-rest-days.js`, `fillRestDays()`, `add-rest-day-cards.js`) ist
-  entfallen, die migrierten Alt-Zeilen sind aus dev + prod gelöscht
-  (`scripts/delete-rest-day-cards.js`, RUH6). Angezeigt werden Ruhetage
-  weiterhin für BEIDE Athleten im Planungstab (Mi/So), jetzt datengetrieben
-  aus dem Modell; sie zählen nie als „verpasst" (ein nicht gefahrener Ruhetag
-  ist Erfüllung, kein Ausfall — `isNonTrainingCard`/`isRestSlot`-Konvention).
-  Athlet 2s „Ausrüstung checken" ist bewusst `typ:"Notiz"` (echte Aufgabe,
-  kein freier Tag) und bleibt eine Karte.
-
-**Nicht mehr zutreffend, ersatzlos entfallen mit dem React-Umbau:** die frühere
-gegenseitige Import-Beziehung zwischen `ui/table.js` und `ui/planned.js` sowie
-alle Verweise auf das globale `Data`-Objekt (s. „Wichtige Konventionen").
-
-## Playwright-MCP — Nutzungskonvention
-
-> **Hintergrund:** Playwright-MCP wurde in Phase 3 projektlokal eingerichtet (`.mcp.json`)
-> für echte Browser-Verifikationen, die sich nicht durch Unit-Tests abdecken lassen
-> (Pointer-Gesten, Timing-Races, CSS-Rendering). Diese Regel schreibt fest, was seitdem
-> nur als Absicht existierte, aber nie dokumentiert wurde.
-
-### Grundsatz: Unit-Test vor Browser
-
-Playwright ist das **letzte Mittel**, nicht der Standard-Reflex beim Prüfen einer
-Änderung. Vor jedem Playwright-Einsatz gilt die Frage: *Lässt sich das auch als reine
-Funktion in Vitest (`app/src/**/*.test.ts(x)`) oder `tests/*.test.js` (Repo-Root) prüfen?*
-Fast immer lautet die Antwort ja — dieses Projekt hat für genau diesen Zweck eine große,
-schnelle Testsuite in `app/src/core/` und `app/src/api/`.
-
-**Playwright ist gerechtfertigt für:**
-- echte mehrstufige Pointer-Gesten (Drag & Drop, Brush-Ziehen) — nicht als Ein-Schritt-Kurzschluss simulierbar
-- Race Conditions, die nur im echten Browser-Timing auftreten
-- CSS-/Layout-Rendering, das sich nicht durch eine reine Funktion abbilden lässt
-- End-zu-Ende-Verifikation eines abgeschlossenen Features gegen `dashboard-dev`, **einmalig am Ende**, nicht iterativ währenddessen
-
-**Playwright ist NICHT gerechtfertigt für:**
-- "mal schauen ob es geklappt hat" nach jeder kleinen Code-Änderung
-- Dinge, die ein Unit-Test genauso beweist (Berechnungen, Zustandsübergänge, Datenformate)
-- wiederholtes Nachprüfen während des Bauens — ein Playwright-Lauf am Ende eines
-  abgeschlossenen Schritts ersetzt zehn während des Schritts
-
-### Snapshot statt Screenshot
-
-**`browser_snapshot` verwenden, nicht `browser_screenshot`**, wo immer die Aufgabe es
-zulässt. Der Accessibility-Snapshot ist ein Text-/Baum-Artefakt und typischerweise eine
-Größenordnung kleiner im Kontext als ein gerendertes Bild. Screenshot nur, wenn es
-tatsächlich um visuelles Aussehen geht (Farben, Layout-Politur), das der Snapshot nicht
-abbilden kann — nicht standardmäßig für Funktionsprüfungen.
-
-### Session-Disziplin
-
-Eine Playwright-Session pro Verifikationsschritt, danach schließen. Nicht über viele
-Chat-Turns hinweg offen halten und wiederholt abfragen — jeder zusätzliche Turn in einer
-offenen Session trägt den bisherigen Seitenzustand im Kontext mit.
-
-### Bei Unklarheit: fragen
-
-Wenn nicht klar ist, ob eine Prüfung Playwright braucht oder ein Unit-Test reicht: fragen,
-nicht vorsichtshalber beides machen.
+Cube Nuroad Race Gravel · Favero Assioma PRO MX-1 Power Meter · Wahoo ELEMNT Roam v3

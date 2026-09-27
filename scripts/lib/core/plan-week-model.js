@@ -112,7 +112,7 @@ const ATHLETE4_WEEKS = /** @type {PlanWeekEntry[]} */ ([
 /**
  * Plan-Wochen je Athlet. Schlüssel = interne Athleten-ID (app/src/config.ts
  * → athletes[].id). Die interne ID `athlete3` ist reserviert, aber nicht
- * verdrahtet (s. AGENTS.md „Athleten").
+ * verdrahtet (s. AGENTS.md „Athleten & Trainingspläne").
  * @type {Record<string, PlanWeekEntry[]>}
  */
 export const PLAN_WEEK_MODEL = {
