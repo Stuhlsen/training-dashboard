@@ -38,6 +38,7 @@ create policy "bikefit_photos_insert" on storage.objects
     bucket_id = 'bikefit-photos'
     and (
       (storage.foldername(name))[1] = auth.uid()::text
+      or public.is_coach_of((storage.foldername(name))[1]::uuid)
       or public.is_admin()
     )
   );
