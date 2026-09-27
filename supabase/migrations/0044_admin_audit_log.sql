@@ -34,11 +34,8 @@ alter table public.admin_audit_log enable row level security;
 create policy "admin liest audit log" on public.admin_audit_log
   for select using (public.is_admin());
 
--- SELECT-Grant fuer authenticated, damit PostgREST die Tabelle ueberhaupt
--- ausliefern kann — die RLS-Policy oben schraenkt dann auf echte Admins ein.
--- INSERT/UPDATE/DELETE bleiben service_role-exklusiv (admin-api schreibt per
--- RLS-Bypass).
-grant select on public.admin_audit_log to authenticated;
+-- Kein INSERT/UPDATE/DELETE-Grant fuer authenticated — schreibt
+-- ausschliesslich admin-api per service_role (RLS-Bypass).
 grant select, insert on public.admin_audit_log to service_role;
 
 -- ============================================================
