@@ -62,9 +62,14 @@ const blocksPath = path.join(ROOT, "data/interval-blocks.json");
 const intervalBlockCache = JSON.parse(readFileSync(blocksPath, "utf8"));
 
 async function runAthlete(athlete) {
-  const cards = await loadPlanCards({ email: athlete.email, password: athlete.password }, { fromDate: "2026-01-01" });
+  const cards = await loadPlanCards(
+    { email: athlete.email, password: athlete.password },
+    { fromDate: "2026-01-01" }
+  );
   if (!cards.length) {
-    console.log(`\n=== ${athlete.id} — keine plan_cards geladen (Credentials/Netzwerk?) — übersprungen ===`);
+    console.log(
+      `\n=== ${athlete.id} — keine plan_cards geladen (Credentials/Netzwerk?) — übersprungen ===`
+    );
     return null;
   }
   const ftpHistory = await loadFtpHistory({ email: athlete.email, password: athlete.password });
@@ -72,10 +77,15 @@ async function runAthlete(athlete) {
   const raw = JSON.parse(readFileSync(path.join(ROOT, athlete.ridesFile), "utf8"));
   const rides = raw.rides || [];
 
-  const intensityCards = cards.filter((c) => INTENSITY_TYPES.includes(c.typ) && c.status !== "ausgefallen");
+  const intensityCards = cards.filter(
+    (c) => INTENSITY_TYPES.includes(c.typ) && c.status !== "ausgefallen"
+  );
   const withRealStructure = intensityCards.filter((c) => c.workoutStructure);
   const withoutStructure = intensityCards.filter((c) => !c.workoutStructure);
-  const derivedAttempts = withoutStructure.map((c) => ({ card: c, result: deriveWorkoutStructure(c.name) }));
+  const derivedAttempts = withoutStructure.map((c) => ({
+    card: c,
+    result: deriveWorkoutStructure(c.name),
+  }));
   const parsable = derivedAttempts.filter((a) => a.result);
   const unparsable = derivedAttempts.filter((a) => !a.result);
 
@@ -100,21 +110,33 @@ async function runAthlete(athlete) {
 function printReport(result) {
   if (!result) return;
   console.log(`\n=== ${result.athleteId} ===`);
-  console.log(`Intensitätstragende Karten (Sweet Spot/Schwelle/VO2max, nicht ausgefallen): ${result.totalIntensity}`);
+  console.log(
+    `Intensitätstragende Karten (Sweet Spot/Schwelle/VO2max, nicht ausgefallen): ${result.totalIntensity}`
+  );
   console.log(`  davon bereits mit echter workout_structure: ${result.withRealStructure}`);
   console.log(`  davon ohne Struktur: ${result.withoutStructure}`);
   console.log(`    → per Freitext-Titel parsebar: ${result.parsable} / ${result.withoutStructure}`);
   if (result.unparsable.length) {
-    console.log(`    → NICHT parsebar (${result.unparsable.length}): ${result.unparsable.map((a) => `"${a.card.name}"`).join(", ")}`);
+    console.log(
+      `    → NICHT parsebar (${result.unparsable.length}): ${result.unparsable.map((a) => `"${a.card.name}"`).join(", ")}`
+    );
   }
-  console.log(`  Trefferquote gesamt (echte + abgeleitete Struktur / alle intensitätstragenden Karten): ${result.withRealStructure + result.parsable} / ${result.totalIntensity}`);
-  console.log(`  Karten, die DADURCH zusätzlich eine echte Compliance-Auswertung (Ist-Fahrt + Segmente) bekommen: ${result.derivedMatches.length}`);
+  console.log(
+    `  Trefferquote gesamt (echte + abgeleitete Struktur / alle intensitätstragenden Karten): ${result.withRealStructure + result.parsable} / ${result.totalIntensity}`
+  );
+  console.log(
+    `  Karten, die DADURCH zusätzlich eine echte Compliance-Auswertung (Ist-Fahrt + Segmente) bekommen: ${result.derivedMatches.length}`
+  );
 }
 
 function printExamples(results) {
-  const allExamples = results.filter(Boolean).flatMap((r) => r.examples.map((e) => ({ athleteId: r.athleteId, ...e })));
+  const allExamples = results
+    .filter(Boolean)
+    .flatMap((r) => r.examples.map((e) => ({ athleteId: r.athleteId, ...e })));
   const sample = allExamples.slice(0, 10);
-  console.log(`\n=== 10 Beispiele: Freitext → abgeleitete Struktur (von ${allExamples.length} parsebaren) ===`);
+  console.log(
+    `\n=== 10 Beispiele: Freitext → abgeleitete Struktur (von ${allExamples.length} parsebaren) ===`
+  );
   for (const ex of sample) {
     console.log(`\n[${ex.athleteId}] "${ex.card.name}" (${ex.card.date})`);
     console.log(JSON.stringify(ex.result.structure));
@@ -129,8 +151,12 @@ for (const r of results) printReport(r);
 printExamples(results);
 
 const totalIntensity = results.filter(Boolean).reduce((s, r) => s + r.totalIntensity, 0);
-const totalCovered = results.filter(Boolean).reduce((s, r) => s + r.withRealStructure + r.parsable, 0);
+const totalCovered = results
+  .filter(Boolean)
+  .reduce((s, r) => s + r.withRealStructure + r.parsable, 0);
 const totalNewMatches = results.filter(Boolean).reduce((s, r) => s + r.derivedMatches.length, 0);
 console.log(`\n=== Gesamt ===`);
-console.log(`Trefferquote: ${totalCovered} / ${totalIntensity} (${totalIntensity ? Math.round((totalCovered / totalIntensity) * 1000) / 10 : 0}%)`);
+console.log(
+  `Trefferquote: ${totalCovered} / ${totalIntensity} (${totalIntensity ? Math.round((totalCovered / totalIntensity) * 1000) / 10 : 0}%)`
+);
 console.log(`Zusätzlich bewertbare Karten (neue Compliance dank Ableitung): ${totalNewMatches}`);
