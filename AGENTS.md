@@ -37,9 +37,9 @@ Version-Tag-Check: je ein CI-Job pro Teil (`ci.yml` für den Root,
 admin-api, seit Fahrplan 15 E6 — und pusht sie: bei Push nach `main` als
 `latest`, bei `v*`-Tag zusätzlich versioniert + GitHub Release; ein Pull
 Request baut nur, ohne Push). `check-version-tag.yml` (seit Issue #68)
-warnt und failt, wenn `app/`, `scripts/`, `supabase/` oder `admin-api/`
-auf `main` ohne neuen `v*`-Tag gepusht werden — apps01 deployt nur
-gepinnte Tags, nie `latest`. Der Datensync (alle 15 Min, s. u.) läuft
+warnt (informational, kein `exit 1`), wenn `app/`, `scripts/`, `supabase/`
+oder `admin-api/` auf `main` ohne neuen `v*`-Tag gepusht werden — apps01
+deployt nur gepinnte Tags, nie `latest`. Der Datensync (alle 15 Min, s. u.) läuft
 **nicht mehr** in Actions,
 sondern als Dauer-Container auf apps01 (`sync-data.yml` ist auf
 `workflow_dispatch`-Fallback reduziert, s. `planning/docs/fahrplan-3-sync-produktivbetrieb.md`).
@@ -438,8 +438,8 @@ scripts/
   delete-rest-day-cards.js, backtest-ladder.js, migrate-plan-to-supabase.js,
   preset-suggestion-check.js, report-derived-workout-structure.js,
   generate-jwt-keys.js, rename-athlete4-cards.js, generate-media.js,
-  seed-profile-hr-max.js → einzelne Betriebs-/Migrations-/Analyse-/Medien-
-                             Skripte
+  seed-profile-hr-max.js, git-merge-tag.js → einzelne Betriebs-/Migrations-/
+                             Analyse-/Medien-/Git-Skripte
                              (delete-rest-day-cards.js: Einmal-Aufräumskript
                              Fahrplan 6 RUH6 — entfernt migrierte
                              `workout_type="Ruhetag"`-Zeilen aus plan_cards;
@@ -457,7 +457,11 @@ scripts/
                              Automatik-Lauf im Sync/in CI; seed-profile-hr-max.js:
                              Einmal-Seed für den Golden Master, Fahrplan 17 E2 —
                              hrMax/hrRest von app/src/config.ts-Literalen nach
-                             profiles.hr_max)
+                             profiles.hr_max; git-merge-tag.js: Ein-Schritt-
+                             Merge+Tag für PRs, die app/scripts/supabase/
+                             admin-api ändern — Aufrufstelle des globalen
+                             `git merge-tag`-Alias, s. „Versions-Tag für
+                             Docker-Images" oben, Issue #68)
   Dockerfile, docker-entrypoint.sh → Container-Build für den Sync-Job (Fahrplan 3)
   lib/                     → von generate-data.js verwendete Module: env, log, http,
                              plan2 (Athlet 1), plan-athlete2 (Athlet 2, GFNY Bremen),
@@ -493,8 +497,9 @@ tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls
                              ESLint, Build (tsc -b + vite build) für /app/
   check-version-tag.yml     → Push nach main (nur bei Änderungen unter
                              app/**, scripts/**, supabase/**, admin-api/**):
-                             failt mit Hinweis, wenn kein neuer v*-Tag auf
-                             dem Commit liegt (apps01 deployt nur Tags)
+                             warnt (informational, kein exit 1), wenn kein
+                             neuer v*-Tag auf dem Commit liegt (apps01
+                             deployt nur Tags)
 
 .claude/skills/
   fallow/                  → Agent Skill für Fallow (Codebase Intelligence), repo-versioniert
@@ -683,22 +688,30 @@ git sync   # nur von main aus laufen lassen — s. Warnung unten
 - **Versions-Tag für Docker-Images:** Ein PR, der `app/`, `scripts/`,
   `supabase/` oder `admin-api/` ändert, wird gemergt UND getaggt in einem
   Schritt: `git merge-tag <pr-nummer> <version>` (globaler Git-Alias, z. B.
-  `git merge-tag 97 1.5.0`) — merged den PR (`gh pr merge --squash`), holt
-  den neuen `main`-Stand, setzt `vX.Y.Z` darauf und pusht den Tag, alles in
-  einem Befehl. Patch bei Bugfixes, Minor bei neuen Features, Major bei
-  Breaking Changes — bleibt Alex' eigene Einschätzung, kein Bot entscheidet
-  das (s. „Grenzen"). Grund für das Ein-Schritt-Kommando statt "erst
-  mergen, dann später taggen": Issue #68 (25.–26.09.2026, mit Tony) zeigte,
-  dass "später taggen" real vergessen werden kann, ein separater
-  CI-Merge-Block davor aber technisch nicht funktioniert — Squash-/Merge-/
-  Rebase-Merges erzeugen auf `main` einen neuen Commit, den ein vor dem
-  Merge gesetzter Tag nie treffen kann. `check-version-tag.yml` bleibt als
-  sichtbarer, aber nicht blockierender Warnhinweis bestehen (kein `exit 1`
-  mehr) — er zeigt einen vergessenen Tag an, verhindert aber keinen Merge.
-  Ein neuer Tag ist trotzdem ein sichtbarer, kaum rückholbarer Schritt (löst
-  einen echten Image-Build/-Push aus) — bleibt bewusst Alex' eigener
-  Befehl, kein automatischer Bot-Trigger. Der Produktivserver zieht
-  bewusst nie `:latest` (`planning/docs/fahrplan-3-docker-umbau.md`, Fenster
+  `git merge-tag 97 1.5.0`) — der Alias ist nur ein dünner Aufruf von
+  `node scripts/git-merge-tag.js` (**echte, versionierte Datei im Repo**,
+  nicht nur lokale Config — Review-Finding 2 in PR #97, Tony wies zu Recht
+  darauf hin, dass ein reiner Alias-Einzeiler für niemanden außer Alex
+  nachvollziehbar/testbar gewesen wäre). Das Skript: merged den PR
+  (`gh pr merge --squash --delete-branch`), holt per `git fetch` +
+  `git merge --ff-only origin/main` den neuen `main`-Stand (bricht sauber
+  ab statt etwas zu überschreiben, falls lokal main divergiert ist — kein
+  `reset --hard`), setzt `vX.Y.Z` **genau auf diesen Commit** und pusht den
+  Tag. Version ohne oder mit `v`-Prefix übergeben, beides ergibt denselben
+  Tag (`1.5.0` und `v1.5.0` → `v1.5.0`). Patch bei Bugfixes, Minor bei
+  neuen Features, Major bei Breaking Changes — bleibt Alex' eigene
+  Einschätzung, kein Bot entscheidet das (s. „Grenzen"). Grund für das
+  Ein-Schritt-Kommando statt "erst mergen, dann später taggen": Issue #68
+  (25.–26.09.2026, mit Tony) zeigte, dass "später taggen" real vergessen
+  werden kann, ein separater CI-Merge-Block davor aber technisch nicht
+  funktioniert — Squash-/Merge-/Rebase-Merges erzeugen auf `main` einen
+  neuen Commit, den ein vor dem Merge gesetzter Tag nie treffen kann.
+  `check-version-tag.yml` bleibt als sichtbarer, aber nicht blockierender
+  Warnhinweis bestehen (kein `exit 1`) — er zeigt einen vergessenen Tag an,
+  verhindert aber keinen Merge. Ein neuer Tag ist trotzdem ein sichtbarer,
+  kaum rückholbarer Schritt (löst einen echten Image-Build/-Push aus) —
+  bleibt bewusst Alex' eigener Befehl, kein automatischer Bot-Trigger. Der
+  Produktivserver zieht bewusst nie `:latest` (`planning/docs/fahrplan-3-docker-umbau.md`, Fenster
   DKR4), sondern eine feste Version. Derselbe `v*`-Tag löst in
   `publish-images.yml` zusätzlich einen `release`-Job aus, der eine eigene
   `release-notes.md` baut (`git log`, nach Commit-Typ gruppiert) und per
