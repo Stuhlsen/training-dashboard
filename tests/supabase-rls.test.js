@@ -48,7 +48,8 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { ENV } from "../scripts/lib/env.js";
 
-const { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_ATHLETE1_EMAIL, SUPABASE_ATHLETE1_PASSWORD } = ENV;
+const { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_ATHLETE1_EMAIL, SUPABASE_ATHLETE1_PASSWORD } =
+  ENV;
 const { SUPABASE_TRAINER_EMAIL, SUPABASE_TRAINER_PASSWORD } = ENV;
 
 const HAS_CREDS = !!(
@@ -63,7 +64,9 @@ const HAS_CREDS = !!(
 if (!HAS_CREDS) {
   test(
     "supabase-rls: übersprungen (keine Live-Credentials in .env)",
-    { skip: "SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_ATHLETE1_*/SUPABASE_TRAINER_* fehlen — s. .claude/skills/sync-pipeline \"RLS-Testsuite\"" },
+    {
+      skip: 'SUPABASE_URL/SUPABASE_ANON_KEY/SUPABASE_ATHLETE1_*/SUPABASE_TRAINER_* fehlen — s. .claude/skills/sync-pipeline "RLS-Testsuite"',
+    },
     () => {}
   );
 } else {
@@ -100,7 +103,11 @@ if (!HAS_CREDS) {
    *  bereits gefixten Stellen prüft keine weitere Negativ-Assertion `.ok`
    *  nach PATCH/DELETE (die übrigen sind Cleanup/Setup auf eigenen Zeilen,
    *  wo `.ok===true` das korrekte, positive Ergebnis ist). */
-  async function rest(method, tablePath, { token = null, body, prefer = "return=representation" } = {}) {
+  async function rest(
+    method,
+    tablePath,
+    { token = null, body, prefer = "return=representation" } = {}
+  ) {
     const headers = {
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${token ?? SUPABASE_ANON_KEY}`,
@@ -227,7 +234,8 @@ if (!HAS_CREDS) {
     );
   });
 
-  const coachSkip = () => (coachLinkOk ? false : "Coach-Verknüpfung Stuhlsen↔Trainer-ST fehlt (s. Test oben)");
+  const coachSkip = () =>
+    coachLinkOk ? false : "Coach-Verknüpfung Stuhlsen↔Trainer-ST fehlt (s. Test oben)";
 
   // --- 1b. profiles: Spalten-Härtung (GitHub Issue #32, Migration 0022) -
   // Vor 0022 lieferte ein unauth. GET /profiles die kompletten Zeilen inkl.
@@ -237,9 +245,18 @@ if (!HAS_CREDS) {
 
   test("profiles: anon liest die 4 öffentlichen Spalten, aber select=* / coach_id / is_admin scheitern", async () => {
     // Nur die 4 explizit gegranteten Spalten -> ok.
-    const anonSafe = await rest("GET", "profiles?select=id,display_name,role,wellbeing_public", { token: null });
-    assert.equal(anonSafe.ok, true, `anon-Read der öffentlichen Spalten fehlgeschlagen: ${JSON.stringify(anonSafe.data)}`);
-    assert.ok(Array.isArray(anonSafe.data) && anonSafe.data.length > 0, "profiles liefert anon keine Zeilen");
+    const anonSafe = await rest("GET", "profiles?select=id,display_name,role,wellbeing_public", {
+      token: null,
+    });
+    assert.equal(
+      anonSafe.ok,
+      true,
+      `anon-Read der öffentlichen Spalten fehlgeschlagen: ${JSON.stringify(anonSafe.data)}`
+    );
+    assert.ok(
+      Array.isArray(anonSafe.data) && anonSafe.data.length > 0,
+      "profiles liefert anon keine Zeilen"
+    );
 
     // Column-Grant statt Table-Grant: select=* deckt ungegrantete Spalten mit ab -> 42501.
     const anonAll = await rest("GET", "profiles?select=*", { token: null });
@@ -247,23 +264,45 @@ if (!HAS_CREDS) {
 
     // Explizit angeforderte, nicht gegrantete Spalte -> harter Fehler.
     const anonCol = await rest("GET", "profiles?select=id,coach_id,is_admin", { token: null });
-    assert.equal(anonCol.ok, false, "anon darf coach_id/is_admin nicht einmal explizit anfordern können (#32)");
+    assert.equal(
+      anonCol.ok,
+      false,
+      "anon darf coach_id/is_admin nicht einmal explizit anfordern können (#32)"
+    );
   });
 
   test("profiles: auch eingeloggt kein coach_id/is_admin über die Basistabelle", async () => {
     const authCol = await rest("GET", `profiles?id=eq.${athlete.userId}&select=coach_id,is_admin`, {
       token: athlete.token,
     });
-    assert.equal(authCol.ok, false, "authenticated darf coach_id/is_admin nicht über die Basistabelle lesen (#32)");
+    assert.equal(
+      authCol.ok,
+      false,
+      "authenticated darf coach_id/is_admin nicht über die Basistabelle lesen (#32)"
+    );
   });
 
   test("profiles_visible: Athlet sieht GENAU die eigene Zeile, mit coach_id/is_admin", async () => {
-    const own = await rest("GET", "profiles_visible?select=id,coach_id,is_admin", { token: athlete.token });
+    const own = await rest("GET", "profiles_visible?select=id,coach_id,is_admin", {
+      token: athlete.token,
+    });
     assert.equal(own.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(own.data)}`);
-    assert.equal(own.data.length, 1, "profiles_visible zeigt dem Athleten mehr/weniger als die eigene Zeile");
+    assert.equal(
+      own.data.length,
+      1,
+      "profiles_visible zeigt dem Athleten mehr/weniger als die eigene Zeile"
+    );
     assert.equal(own.data[0].id, athlete.userId);
-    assert.equal("coach_id" in own.data[0], true, "profiles_visible muss coach_id der eigenen Zeile führen");
-    assert.equal("is_admin" in own.data[0], true, "profiles_visible muss is_admin der eigenen Zeile führen");
+    assert.equal(
+      "coach_id" in own.data[0],
+      true,
+      "profiles_visible muss coach_id der eigenen Zeile führen"
+    );
+    assert.equal(
+      "is_admin" in own.data[0],
+      true,
+      "profiles_visible muss is_admin der eigenen Zeile führen"
+    );
   });
 
   test("profiles_visible: anon bekommt nichts (kein GRANT)", async () => {
@@ -273,11 +312,19 @@ if (!HAS_CREDS) {
 
   test("profiles_visible: Trainer sieht eigene Zeile UND die des gecoachten Athleten", async (t) => {
     if (!coachLinkOk) return t.skip(coachSkip());
-    const trainerView = await rest("GET", "profiles_visible?select=id,coach_id", { token: trainer.token });
+    const trainerView = await rest("GET", "profiles_visible?select=id,coach_id", {
+      token: trainer.token,
+    });
     assert.equal(trainerView.ok, true);
     const ids = trainerView.data.map((r) => r.id);
-    assert.ok(ids.includes(trainer.userId), "profiles_visible führt die eigene Trainer-Zeile nicht");
-    assert.ok(ids.includes(athlete.userId), "profiles_visible führt die Zeile des gecoachten Athleten nicht");
+    assert.ok(
+      ids.includes(trainer.userId),
+      "profiles_visible führt die eigene Trainer-Zeile nicht"
+    );
+    assert.ok(
+      ids.includes(athlete.userId),
+      "profiles_visible führt die Zeile des gecoachten Athleten nicht"
+    );
     const athleteRow = trainerView.data.find((r) => r.id === athlete.userId);
     assert.equal(athleteRow.coach_id, trainer.userId);
   });
@@ -305,20 +352,41 @@ if (!HAS_CREDS) {
         body: { wellbeing_public: originalWellbeingPublic ?? false },
         prefer: "return=minimal",
       });
-      if (!restore.ok) throw new Error(`profiles.wellbeing_public nicht zurückgesetzt (Original: ${originalWellbeingPublic})`);
+      if (!restore.ok)
+        throw new Error(
+          `profiles.wellbeing_public nicht zurückgesetzt (Original: ${originalWellbeingPublic})`
+        );
     });
 
     // Testzeile anlegen (note darf laut Schema nie öffentlich werden).
     const insert = await rest("POST", "wellbeing", {
       token: athlete.token,
-      body: { athlete_id: athlete.userId, date: WB_DATE, energy: 3, muscle_feel: 2, mood: 4, note: "rls-test" },
+      body: {
+        athlete_id: athlete.userId,
+        date: WB_DATE,
+        energy: 3,
+        muscle_feel: 2,
+        mood: 4,
+        note: "rls-test",
+      },
     });
-    assert.equal(insert.ok, true, `wellbeing-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    assert.equal(
+      insert.ok,
+      true,
+      `wellbeing-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
     cleanupTasks.push(async () => {
-      const del = await rest("DELETE", `wellbeing?athlete_id=eq.${athlete.userId}&date=eq.${WB_DATE}`, {
-        token: athlete.token,
-      });
-      if (!del.ok) throw new Error(`wellbeing-Testzeile (${WB_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`);
+      const del = await rest(
+        "DELETE",
+        `wellbeing?athlete_id=eq.${athlete.userId}&date=eq.${WB_DATE}`,
+        {
+          token: athlete.token,
+        }
+      );
+      if (!del.ok)
+        throw new Error(
+          `wellbeing-Testzeile (${WB_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`
+        );
     });
 
     const anonShared = await rest(
@@ -327,7 +395,11 @@ if (!HAS_CREDS) {
       { token: null }
     );
     assert.equal(anonShared.ok, true);
-    assert.deepEqual(anonShared.data, [], "wellbeing_shared zeigt Daten trotz deaktiviertem Toggle");
+    assert.deepEqual(
+      anonShared.data,
+      [],
+      "wellbeing_shared zeigt Daten trotz deaktiviertem Toggle"
+    );
   });
 
   test("wellbeing_shared: anon sieht energy/muscle_feel/mood NACH Toggle-an, aber nie note", async () => {
@@ -344,7 +416,11 @@ if (!HAS_CREDS) {
       { token: null }
     );
     assert.equal(anonShared.ok, true);
-    assert.equal(anonShared.data.length, 1, "wellbeing_shared liefert die Testzeile nicht nach Toggle-an");
+    assert.equal(
+      anonShared.data.length,
+      1,
+      "wellbeing_shared liefert die Testzeile nicht nach Toggle-an"
+    );
     const row = anonShared.data[0];
     assert.equal(row.energy, 3);
     assert.equal(row.muscle_feel, 2);
@@ -357,7 +433,11 @@ if (!HAS_CREDS) {
       `wellbeing?athlete_id=eq.${athlete.userId}&date=eq.${WB_DATE}`,
       { token: null }
     );
-    assert.equal(anonBase.ok, false, "anon darf die wellbeing-Basistabelle nicht direkt lesen (kein GRANT)");
+    assert.equal(
+      anonBase.ok,
+      false,
+      "anon darf die wellbeing-Basistabelle nicht direkt lesen (kein GRANT)"
+    );
   });
 
   test("wellbeing: Trainer sieht note, anon nie — Basistabelle", async (t) => {
@@ -381,13 +461,20 @@ if (!HAS_CREDS) {
   test("proposals: Athlet legt eigenen Vorschlag an (Claude-Import-Pfad), anon sieht ihn (S1, seit Migration 0010)", async () => {
     const insert = await rest("POST", "proposals", {
       token: athlete.token,
-      body: { athlete_id: athlete.userId, created_by: athlete.userId, source: "claude", op: "cancel", payload: {} },
+      body: {
+        athlete_id: athlete.userId,
+        created_by: athlete.userId,
+        source: "claude",
+        op: "cancel",
+        payload: {},
+      },
     });
     assert.equal(insert.ok, true, `Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
     const id = insert.data[0].id;
     cleanupTasks.push(async () => {
       const del = await rest("DELETE", `proposals?id=eq.${id}`, { token: athlete.token });
-      if (!del.ok || del.data.length !== 1) throw new Error(`proposals-Testzeile ${id} nicht gelöscht`);
+      if (!del.ok || del.data.length !== 1)
+        throw new Error(`proposals-Testzeile ${id} nicht gelöscht`);
     });
 
     // S1 (docs/phase-6-konzept-sichtbarkeit.md): proposals sind öffentlich
@@ -396,102 +483,113 @@ if (!HAS_CREDS) {
     // Vorher lief dieser Test genau umgekehrt (anon durfte NICHT lesen) —
     // das war ein Bug (S1 unimplementiert), keine gewollte Sperre.
     const anonRead = await rest("GET", `proposals?id=eq.${id}`, { token: null });
-    assert.equal(anonRead.ok, true, `anon soll proposals lesen dürfen (S1): ${JSON.stringify(anonRead.data)}`);
+    assert.equal(
+      anonRead.ok,
+      true,
+      `anon soll proposals lesen dürfen (S1): ${JSON.stringify(anonRead.data)}`
+    );
     assert.equal(anonRead.data.length, 1);
   });
 
-  test(
-    "proposals: Athlet kann KEINEN Vorschlag für eine fremde athlete_id anlegen (RLS, nicht nur App-Gate)",
-    async () => {
-      const insert = await rest("POST", "proposals", {
+  test("proposals: Athlet kann KEINEN Vorschlag für eine fremde athlete_id anlegen (RLS, nicht nur App-Gate)", async () => {
+    const insert = await rest("POST", "proposals", {
+      token: athlete.token,
+      // athlete-test ist weder athlete_id noch Coach von trainer-tests eigener profile-id.
+      body: {
+        athlete_id: trainer.userId,
+        created_by: athlete.userId,
+        source: "claude",
+        op: "cancel",
+        payload: {},
+      },
+    });
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde athlete_id hätte an der RLS-Policy scheitern müssen"
+    );
+  });
+
+  test("proposals: Trainer erstellt für seinen Athleten, Athlet entscheidet, Trainer kann Entscheidung NICHT überschreiben", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const insert = await rest("POST", "proposals", {
+      token: trainer.token,
+      body: {
+        athlete_id: athlete.userId,
+        created_by: trainer.userId,
+        source: "trainer",
+        op: "cancel",
+        payload: { reason: "rls-test" },
+      },
+    });
+    assert.equal(insert.ok, true, `Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    const id = insert.data[0].id;
+    cleanupTasks.push(async () => {
+      // Ersteller darf nur löschen, solange status='open' — vor dem Löschen
+      // sicherheitshalber zurücksetzen (der Test setzt es weiter unten auf
+      // 'accepted'), sonst greift die Delete-Policy nicht mehr.
+      const reset = await rest("PATCH", `proposals?id=eq.${id}`, {
         token: athlete.token,
-        // athlete-test ist weder athlete_id noch Coach von trainer-tests eigener profile-id.
-        body: { athlete_id: trainer.userId, created_by: athlete.userId, source: "claude", op: "cancel", payload: {} },
+        body: { status: "open" },
       });
-      assert.equal(insert.ok, false, "Insert für fremde athlete_id hätte an der RLS-Policy scheitern müssen");
-    }
-  );
+      if (!reset.ok)
+        throw new Error(`proposals-Testzeile ${id}: Status-Reset auf 'open' fehlgeschlagen`);
+      const del = await rest("DELETE", `proposals?id=eq.${id}`, { token: trainer.token });
+      if (!del.ok || del.data.length !== 1)
+        throw new Error(`proposals-Testzeile ${id} nicht gelöscht`);
+    });
 
-  test(
-    "proposals: Trainer erstellt für seinen Athleten, Athlet entscheidet, Trainer kann Entscheidung NICHT überschreiben",
-    async (t) => {
-      if (!coachLinkOk) return t.skip(coachSkip());
-      const insert = await rest("POST", "proposals", {
-        token: trainer.token,
-        body: {
-          athlete_id: athlete.userId,
-          created_by: trainer.userId,
-          source: "trainer",
-          op: "cancel",
-          payload: { reason: "rls-test" },
-        },
-      });
-      assert.equal(insert.ok, true, `Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
-      const id = insert.data[0].id;
-      cleanupTasks.push(async () => {
-        // Ersteller darf nur löschen, solange status='open' — vor dem Löschen
-        // sicherheitshalber zurücksetzen (der Test setzt es weiter unten auf
-        // 'accepted'), sonst greift die Delete-Policy nicht mehr.
-        const reset = await rest("PATCH", `proposals?id=eq.${id}`, {
-          token: athlete.token,
-          body: { status: "open" },
-        });
-        if (!reset.ok) throw new Error(`proposals-Testzeile ${id}: Status-Reset auf 'open' fehlgeschlagen`);
-        const del = await rest("DELETE", `proposals?id=eq.${id}`, { token: trainer.token });
-        if (!del.ok || del.data.length !== 1) throw new Error(`proposals-Testzeile ${id} nicht gelöscht`);
-      });
+    // Athlet sieht ihn (Beteiligte lesen).
+    const athleteRead = await rest("GET", `proposals?id=eq.${id}`, { token: athlete.token });
+    assert.equal(
+      athleteRead.data?.length,
+      1,
+      "Athlet sieht den vom Trainer erstellten Vorschlag nicht"
+    );
 
-      // Athlet sieht ihn (Beteiligte lesen).
-      const athleteRead = await rest("GET", `proposals?id=eq.${id}`, { token: athlete.token });
-      assert.equal(athleteRead.data?.length, 1, "Athlet sieht den vom Trainer erstellten Vorschlag nicht");
+    // Athlet entscheidet — erlaubt (Spalten-Härtung: status/decided_at).
+    const decide = await rest("PATCH", `proposals?id=eq.${id}`, {
+      token: athlete.token,
+      body: { status: "accepted", decided_at: new Date().toISOString() },
+    });
+    assert.equal(decide.ok, true);
+    assert.equal(decide.data?.[0]?.status, "accepted");
 
-      // Athlet entscheidet — erlaubt (Spalten-Härtung: status/decided_at).
-      const decide = await rest("PATCH", `proposals?id=eq.${id}`, {
-        token: athlete.token,
-        body: { status: "accepted", decided_at: new Date().toISOString() },
-      });
-      assert.equal(decide.ok, true);
-      assert.equal(decide.data?.[0]?.status, "accepted");
+    // Trainer versucht, die Athleten-Entscheidung zu überschreiben — RLS
+    // ("proposals: Athlet entscheidet", athlete_id = auth.uid()) blockt,
+    // erkennbar an 0 betroffenen Zeilen (kein harter Fehler, nur kein Match).
+    const override = await rest("PATCH", `proposals?id=eq.${id}`, {
+      token: trainer.token,
+      body: { status: "rejected" },
+    });
+    assert.equal(
+      override.data?.length ?? 0,
+      0,
+      "Trainer konnte die Athleten-Entscheidung überschreiben — RLS-Policy 'proposals: Athlet entscheidet' greift nicht"
+    );
+  });
 
-      // Trainer versucht, die Athleten-Entscheidung zu überschreiben — RLS
-      // ("proposals: Athlet entscheidet", athlete_id = auth.uid()) blockt,
-      // erkennbar an 0 betroffenen Zeilen (kein harter Fehler, nur kein Match).
-      const override = await rest("PATCH", `proposals?id=eq.${id}`, {
-        token: trainer.token,
-        body: { status: "rejected" },
-      });
-      assert.equal(
-        override.data?.length ?? 0,
-        0,
-        "Trainer konnte die Athleten-Entscheidung überschreiben — RLS-Policy 'proposals: Athlet entscheidet' greift nicht"
-      );
-    }
-  );
-
-  test(
-    "proposals: Trainer kann für eine nicht existierende/nicht gecoachte athlete_id keinen Vorschlag anlegen",
-    async () => {
-      // WICHTIG: hier NICHT trainer.userId als "fremde" athlete_id verwenden —
-      // die proposals-INSERT-Policy hat (anders als trainer_view_prefs) das
-      // ODER "athlete_id = auth.uid()", das beim eigenen Trainer-Uid trivial
-      // durchgeht (genau dieser Fehler ist beim ersten Lauf dieser Testdatei
-      // passiert und hat kurzzeitig eine echte Zeile angelegt, s. Cleanup-
-      // Historie). Stattdessen eine syntaktisch gültige, aber nicht
-      // existierende UUID — sowohl is_coach_of() als auch der FK schlagen
-      // dann fehl, das mit-check kommt so oder so nie durch.
-      const insert = await rest("POST", "proposals", {
-        token: trainer.token,
-        body: {
-          athlete_id: "00000000-0000-0000-0000-000000000000",
-          created_by: trainer.userId,
-          source: "trainer",
-          op: "cancel",
-          payload: {},
-        },
-      });
-      assert.equal(insert.ok, false, "Insert für nicht-gecoachte athlete_id hätte scheitern müssen");
-    }
-  );
+  test("proposals: Trainer kann für eine nicht existierende/nicht gecoachte athlete_id keinen Vorschlag anlegen", async () => {
+    // WICHTIG: hier NICHT trainer.userId als "fremde" athlete_id verwenden —
+    // die proposals-INSERT-Policy hat (anders als trainer_view_prefs) das
+    // ODER "athlete_id = auth.uid()", das beim eigenen Trainer-Uid trivial
+    // durchgeht (genau dieser Fehler ist beim ersten Lauf dieser Testdatei
+    // passiert und hat kurzzeitig eine echte Zeile angelegt, s. Cleanup-
+    // Historie). Stattdessen eine syntaktisch gültige, aber nicht
+    // existierende UUID — sowohl is_coach_of() als auch der FK schlagen
+    // dann fehl, das mit-check kommt so oder so nie durch.
+    const insert = await rest("POST", "proposals", {
+      token: trainer.token,
+      body: {
+        athlete_id: "00000000-0000-0000-0000-000000000000",
+        created_by: trainer.userId,
+        source: "trainer",
+        op: "cancel",
+        payload: {},
+      },
+    });
+    assert.equal(insert.ok, false, "Insert für nicht-gecoachte athlete_id hätte scheitern müssen");
+  });
 
   // --- 4. trainer_view_prefs ----------------------------------------------
 
@@ -506,15 +604,24 @@ if (!HAS_CREDS) {
     assert.equal(upsert.ok, true, `Upsert fehlgeschlagen: ${JSON.stringify(upsert.data)}`);
     cleanupTasks.push(async () => {
       if (originalViewPrefs !== null) {
-        const restore = await rest("PATCH", `trainer_view_prefs?trainer_id=eq.${trainer.userId}&athlete_id=eq.${athlete.userId}`, {
-          token: trainer.token,
-          body: { categories: originalViewPrefs },
-        });
-        if (!restore.ok) throw new Error("trainer_view_prefs: Originalwert nicht wiederhergestellt");
+        const restore = await rest(
+          "PATCH",
+          `trainer_view_prefs?trainer_id=eq.${trainer.userId}&athlete_id=eq.${athlete.userId}`,
+          {
+            token: trainer.token,
+            body: { categories: originalViewPrefs },
+          }
+        );
+        if (!restore.ok)
+          throw new Error("trainer_view_prefs: Originalwert nicht wiederhergestellt");
       } else {
-        const del = await rest("DELETE", `trainer_view_prefs?trainer_id=eq.${trainer.userId}&athlete_id=eq.${athlete.userId}`, {
-          token: trainer.token,
-        });
+        const del = await rest(
+          "DELETE",
+          `trainer_view_prefs?trainer_id=eq.${trainer.userId}&athlete_id=eq.${athlete.userId}`,
+          {
+            token: trainer.token,
+          }
+        );
         if (!del.ok) throw new Error("trainer_view_prefs-Testzeile nicht gelöscht");
       }
     });
@@ -532,14 +639,22 @@ if (!HAS_CREDS) {
       `trainer_view_prefs?trainer_id=eq.${trainer.userId}&athlete_id=eq.${athlete.userId}`,
       { token: athlete.token }
     );
-    assert.deepEqual(athleteRead.data, [], "Athlet darf trainer_view_prefs nicht lesen (RLS: trainer_id = auth.uid())");
+    assert.deepEqual(
+      athleteRead.data,
+      [],
+      "Athlet darf trainer_view_prefs nicht lesen (RLS: trainer_id = auth.uid())"
+    );
 
     const athleteWrite = await rest("POST", "trainer_view_prefs", {
       token: athlete.token,
       prefer: "return=representation,resolution=merge-duplicates",
       body: { trainer_id: trainer.userId, athlete_id: athlete.userId, categories: ["hack"] },
     });
-    assert.equal(athleteWrite.ok, false, "Athlet konnte trainer_view_prefs schreiben — RLS greift nicht");
+    assert.equal(
+      athleteWrite.ok,
+      false,
+      "Athlet konnte trainer_view_prefs schreiben — RLS greift nicht"
+    );
 
     // anon: kein GRANT auf der Tabelle überhaupt.
     const anonRead = await rest(
@@ -579,7 +694,10 @@ if (!HAS_CREDS) {
         `ftp_history?profile_id=eq.${athlete.userId}&valid_from=eq.${FTP_SENTINEL_DATE}`,
         { token: athlete.token }
       );
-      if (!del.ok) throw new Error(`ftp_history-Testzeile (${FTP_SENTINEL_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`);
+      if (!del.ok)
+        throw new Error(
+          `ftp_history-Testzeile (${FTP_SENTINEL_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`
+        );
     });
 
     const anonRead = await rest(
@@ -595,7 +713,11 @@ if (!HAS_CREDS) {
       token: athlete.token,
       body: { profile_id: athlete.userId, ftp_watt: 200, valid_from: FTP_SENTINEL_DATE },
     });
-    assert.equal(dup.ok, false, "Doppelter valid_from-Eintrag hätte am unique-Constraint scheitern müssen");
+    assert.equal(
+      dup.ok,
+      false,
+      "Doppelter valid_from-Eintrag hätte am unique-Constraint scheitern müssen"
+    );
   });
 
   test("ftp_history: ftp_watt <= 0 scheitert am Check-Constraint", async () => {
@@ -609,9 +731,18 @@ if (!HAS_CREDS) {
   test("ftp_history: unbekannter source-Wert scheitert am Check-Constraint", async () => {
     const bad = await rest("POST", "ftp_history", {
       token: athlete.token,
-      body: { profile_id: athlete.userId, ftp_watt: 199, valid_from: "1901-01-03", source: "geschaetzt" },
+      body: {
+        profile_id: athlete.userId,
+        ftp_watt: 199,
+        valid_from: "1901-01-03",
+        source: "geschaetzt",
+      },
     });
-    assert.equal(bad.ok, false, "source='geschaetzt' (falscher Wert) hätte scheitern müssen — erlaubt ist nur 'schaetzung'");
+    assert.equal(
+      bad.ok,
+      false,
+      "source='geschaetzt' (falscher Wert) hätte scheitern müssen — erlaubt ist nur 'schaetzung'"
+    );
   });
 
   test("ftp_history: Trainer liest mit, kann aber nicht für den Athleten schreiben", async (t) => {
@@ -622,14 +753,22 @@ if (!HAS_CREDS) {
       { token: trainer.token }
     );
     assert.equal(trainerRead.ok, true);
-    assert.equal(trainerRead.data.length, 1, "Trainer sollte den Eintrag seines Athleten lesen können (is_coach_of)");
+    assert.equal(
+      trainerRead.data.length,
+      1,
+      "Trainer sollte den Eintrag seines Athleten lesen können (is_coach_of)"
+    );
     assert.equal(trainerRead.data[0].ftp_watt, 199);
 
     const trainerWrite = await rest("POST", "ftp_history", {
       token: trainer.token,
       body: { profile_id: athlete.userId, ftp_watt: 250, valid_from: "1901-01-04" },
     });
-    assert.equal(trainerWrite.ok, false, "Trainer konnte für den Athleten schreiben — es gibt bewusst keine Insert-Policy dafür");
+    assert.equal(
+      trainerWrite.ok,
+      false,
+      "Trainer konnte für den Athleten schreiben — es gibt bewusst keine Insert-Policy dafür"
+    );
   });
 
   test("ftp_history: Athlet kann keinen Eintrag für eine fremde profile_id anlegen", async () => {
@@ -637,7 +776,11 @@ if (!HAS_CREDS) {
       token: athlete.token,
       body: { profile_id: trainer.userId, ftp_watt: 199, valid_from: "1901-01-05" },
     });
-    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen"
+    );
   });
 
   // --- 6. session_formats + athlete_formats (0014, D1/D2) -----------------
@@ -651,19 +794,41 @@ if (!HAS_CREDS) {
   // eine echte Athleten-Entscheidung zu überschreiben/zu löschen.
 
   test("session_formats: von allen Rollen lesbar (öffentlicher Katalog, E1)", async () => {
-    for (const [label, token] of [["anon", null], ["Athlet", athlete.token], ["Trainer", trainer.token]]) {
-      const read = await rest("GET", "session_formats?select=id,label,target_system,currency,evidence_grade,block_targets", { token });
+    for (const [label, token] of [
+      ["anon", null],
+      ["Athlet", athlete.token],
+      ["Trainer", trainer.token],
+    ]) {
+      const read = await rest(
+        "GET",
+        "session_formats?select=id,label,target_system,currency,evidence_grade,block_targets",
+        { token }
+      );
       assert.equal(read.ok, true, `${label} sollte session_formats lesen können`);
-      assert.ok(read.data.length >= 6, `${label}: erwartet mind. 6 Startformate (L2-L6), erhalten ${read.data.length}`);
+      assert.ok(
+        read.data.length >= 6,
+        `${label}: erwartet mind. 6 Startformate (L2-L6), erhalten ${read.data.length}`
+      );
     }
   });
 
   test("session_formats: weder Athlet noch Trainer dürfen schreiben (nur Admin)", async () => {
     const athleteWrite = await rest("POST", "session_formats", {
       token: athlete.token,
-      body: { id: "rls-test-format", label: "RLS-Test", target_system: "schwelle", currency: "zone-time", evidence_grade: "coaching-konsens", axes: {} },
+      body: {
+        id: "rls-test-format",
+        label: "RLS-Test",
+        target_system: "schwelle",
+        currency: "zone-time",
+        evidence_grade: "coaching-konsens",
+        axes: {},
+      },
     });
-    assert.equal(athleteWrite.ok, false, "Athlet konnte session_formats schreiben — sollte nur Admin dürfen");
+    assert.equal(
+      athleteWrite.ok,
+      false,
+      "Athlet konnte session_formats schreiben — sollte nur Admin dürfen"
+    );
 
     // PATCH ohne RLS-Match liefert HTTP 200 mit 0 Zeilen, keinen harten
     // Fehler (s. proposals-Block oben) — deshalb data.length prüfen, nicht .ok.
@@ -671,7 +836,11 @@ if (!HAS_CREDS) {
       token: trainer.token,
       body: { label: "Manipuliert" },
     });
-    assert.equal(trainerWrite.data?.length ?? 0, 0, "Trainer konnte session_formats ändern — sollte nur Admin dürfen");
+    assert.equal(
+      trainerWrite.data?.length ?? 0,
+      0,
+      "Trainer konnte session_formats ändern — sollte nur Admin dürfen"
+    );
   });
 
   test("athlete_formats: unbekannte format_id scheitert am FK-Constraint (kollisionsfrei, keine echten Daten betroffen)", async () => {
@@ -679,7 +848,11 @@ if (!HAS_CREDS) {
       token: athlete.token,
       body: { profile_id: athlete.userId, format_id: "nicht-vorhanden-rls-test" },
     });
-    assert.equal(bad.ok, false, "format_id ohne Katalogeintrag hätte am FK-Constraint scheitern müssen");
+    assert.equal(
+      bad.ok,
+      false,
+      "format_id ohne Katalogeintrag hätte am FK-Constraint scheitern müssen"
+    );
   });
 
   test("athlete_formats: anon sieht nichts (kein GRANT), Athlet+Trainer je nach RLS", async (t) => {
@@ -688,9 +861,14 @@ if (!HAS_CREDS) {
       `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`,
       { token: athlete.token }
     );
-    if (!existing.ok) return t.skip("athlete_formats nicht lesbar — Migration 0014 vermutlich noch nicht eingespielt");
+    if (!existing.ok)
+      return t.skip(
+        "athlete_formats nicht lesbar — Migration 0014 vermutlich noch nicht eingespielt"
+      );
     if (existing.data.length) {
-      return t.skip("bereits eine echte athlete_formats-Zeile für sprint-accessory vorhanden — destruktiver Test übersprungen, um echte Athletenentscheidung nicht anzufassen");
+      return t.skip(
+        "bereits eine echte athlete_formats-Zeile für sprint-accessory vorhanden — destruktiver Test übersprungen, um echte Athletenentscheidung nicht anzufassen"
+      );
     }
 
     const insert = await rest("POST", "athlete_formats", {
@@ -699,24 +877,47 @@ if (!HAS_CREDS) {
     });
     assert.equal(insert.ok, true, `Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
     cleanupTasks.push(async () => {
-      const del = await rest("DELETE", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, { token: athlete.token });
-      if (!del.ok) throw new Error(`athlete_formats-Testzeile (sprint-accessory) nicht gelöscht: ${JSON.stringify(del.data)}`);
+      const del = await rest(
+        "DELETE",
+        `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`,
+        { token: athlete.token }
+      );
+      if (!del.ok)
+        throw new Error(
+          `athlete_formats-Testzeile (sprint-accessory) nicht gelöscht: ${JSON.stringify(del.data)}`
+        );
     });
 
-    const anonRead = await rest("GET", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, { token: null });
+    const anonRead = await rest(
+      "GET",
+      `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`,
+      { token: null }
+    );
     assert.equal(anonRead.ok, false, "anon darf athlete_formats nicht lesen (kein GRANT)");
 
     if (!coachLinkOk) return t.skip(coachSkip());
-    const trainerRead = await rest("GET", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, { token: trainer.token });
+    const trainerRead = await rest(
+      "GET",
+      `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`,
+      { token: trainer.token }
+    );
     assert.equal(trainerRead.ok, true);
-    assert.equal(trainerRead.data.length, 1, "Trainer sollte die Formatzuordnung seines Athleten lesen können (is_coach_of)");
+    assert.equal(
+      trainerRead.data.length,
+      1,
+      "Trainer sollte die Formatzuordnung seines Athleten lesen können (is_coach_of)"
+    );
 
     // PATCH ohne RLS-Match liefert HTTP 200 mit 0 Zeilen (s. Kommentar beim
     // session_formats-Admin-Test oben) — data.length prüfen, nicht .ok.
-    const trainerWrite = await rest("PATCH", `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`, {
-      token: trainer.token,
-      body: { active: false },
-    });
+    const trainerWrite = await rest(
+      "PATCH",
+      `athlete_formats?profile_id=eq.${athlete.userId}&format_id=eq.sprint-accessory`,
+      {
+        token: trainer.token,
+        body: { active: false },
+      }
+    );
     assert.equal(
       trainerWrite.data?.length ?? 0,
       0,
@@ -729,7 +930,11 @@ if (!HAS_CREDS) {
       token: athlete.token,
       body: { profile_id: trainer.userId, format_id: "sprint-accessory" },
     });
-    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen"
+    );
   });
 
   // --- 7. ladder_history (0015, D2) ----------------------------------------
@@ -757,7 +962,10 @@ if (!HAS_CREDS) {
         `ladder_history?profile_id=eq.${athlete.userId}&format_id=eq.sweetspot-long&valid_from=eq.${LADDER_SENTINEL_DATE}`,
         { token: athlete.token }
       );
-      if (!del.ok) throw new Error(`ladder_history-Testzeile (${LADDER_SENTINEL_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`);
+      if (!del.ok)
+        throw new Error(
+          `ladder_history-Testzeile (${LADDER_SENTINEL_DATE}) nicht gelöscht: ${JSON.stringify(del.data)}`
+        );
     });
 
     const anonRead = await rest(
@@ -771,15 +979,31 @@ if (!HAS_CREDS) {
   test("ladder_history: zweiter Eintrag für dasselbe Format+Datum scheitert am unique-Constraint", async () => {
     const dup = await rest("POST", "ladder_history", {
       token: athlete.token,
-      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 2, valid_from: LADDER_SENTINEL_DATE, reason: "manual" },
+      body: {
+        profile_id: athlete.userId,
+        format_id: "sweetspot-long",
+        step: 2,
+        valid_from: LADDER_SENTINEL_DATE,
+        reason: "manual",
+      },
     });
-    assert.equal(dup.ok, false, "Doppelter (format_id,valid_from)-Eintrag hätte am unique-Constraint scheitern müssen");
+    assert.equal(
+      dup.ok,
+      false,
+      "Doppelter (format_id,valid_from)-Eintrag hätte am unique-Constraint scheitern müssen"
+    );
   });
 
   test("ladder_history: step <= 0 scheitert am Check-Constraint", async () => {
     const bad = await rest("POST", "ladder_history", {
       token: athlete.token,
-      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 0, valid_from: "1901-02-02", reason: "manual" },
+      body: {
+        profile_id: athlete.userId,
+        format_id: "sweetspot-long",
+        step: 0,
+        valid_from: "1901-02-02",
+        reason: "manual",
+      },
     });
     assert.equal(bad.ok, false, "step=0 hätte am Check-Constraint scheitern müssen");
   });
@@ -787,7 +1011,13 @@ if (!HAS_CREDS) {
   test("ladder_history: unbekannter reason-Wert scheitert am Check-Constraint", async () => {
     const bad = await rest("POST", "ladder_history", {
       token: athlete.token,
-      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 1, valid_from: "1901-02-03", reason: "sonstwas" },
+      body: {
+        profile_id: athlete.userId,
+        format_id: "sweetspot-long",
+        step: 1,
+        valid_from: "1901-02-03",
+        reason: "sonstwas",
+      },
     });
     assert.equal(bad.ok, false, "reason='sonstwas' (falscher Wert) hätte scheitern müssen");
   });
@@ -795,9 +1025,19 @@ if (!HAS_CREDS) {
   test("ladder_history: unbekannte format_id scheitert am FK-Constraint", async () => {
     const bad = await rest("POST", "ladder_history", {
       token: athlete.token,
-      body: { profile_id: athlete.userId, format_id: "nicht-vorhanden-rls-test", step: 1, valid_from: "1901-02-04", reason: "manual" },
+      body: {
+        profile_id: athlete.userId,
+        format_id: "nicht-vorhanden-rls-test",
+        step: 1,
+        valid_from: "1901-02-04",
+        reason: "manual",
+      },
     });
-    assert.equal(bad.ok, false, "format_id ohne Katalogeintrag hätte am FK-Constraint scheitern müssen");
+    assert.equal(
+      bad.ok,
+      false,
+      "format_id ohne Katalogeintrag hätte am FK-Constraint scheitern müssen"
+    );
   });
 
   test("ladder_history: Trainer liest mit, kann aber nicht für den Athleten schreiben", async (t) => {
@@ -808,21 +1048,45 @@ if (!HAS_CREDS) {
       { token: trainer.token }
     );
     assert.equal(trainerRead.ok, true);
-    assert.equal(trainerRead.data.length, 1, "Trainer sollte den Eintrag seines Athleten lesen können (is_coach_of)");
+    assert.equal(
+      trainerRead.data.length,
+      1,
+      "Trainer sollte den Eintrag seines Athleten lesen können (is_coach_of)"
+    );
 
     const trainerWrite = await rest("POST", "ladder_history", {
       token: trainer.token,
-      body: { profile_id: athlete.userId, format_id: "sweetspot-long", step: 3, valid_from: "1901-02-05", reason: "manual" },
+      body: {
+        profile_id: athlete.userId,
+        format_id: "sweetspot-long",
+        step: 3,
+        valid_from: "1901-02-05",
+        reason: "manual",
+      },
     });
-    assert.equal(trainerWrite.ok, false, "Trainer konnte für den Athleten schreiben — es gibt bewusst keine Insert-Policy dafür");
+    assert.equal(
+      trainerWrite.ok,
+      false,
+      "Trainer konnte für den Athleten schreiben — es gibt bewusst keine Insert-Policy dafür"
+    );
   });
 
   test("ladder_history: Athlet kann keinen Eintrag für eine fremde profile_id anlegen", async () => {
     const insert = await rest("POST", "ladder_history", {
       token: athlete.token,
-      body: { profile_id: trainer.userId, format_id: "sweetspot-long", step: 1, valid_from: "1901-02-06", reason: "manual" },
+      body: {
+        profile_id: trainer.userId,
+        format_id: "sweetspot-long",
+        step: 1,
+        valid_from: "1901-02-06",
+        reason: "manual",
+      },
     });
-    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen"
+    );
   });
 
   // --- 8. intervals_credentials (0019) -------------------------------------
@@ -838,19 +1102,28 @@ if (!HAS_CREDS) {
     const upsert = await rest("POST", "intervals_credentials", {
       token: athlete.token,
       prefer: "return=representation,resolution=merge-duplicates",
-      body: { profile_id: athlete.userId, api_key: "rls-test-key", intervals_athlete_id: "i-rls-test" },
+      body: {
+        profile_id: athlete.userId,
+        api_key: "rls-test-key",
+        intervals_athlete_id: "i-rls-test",
+      },
     });
     assert.equal(upsert.ok, true, `Upsert fehlgeschlagen: ${JSON.stringify(upsert.data)}`);
     cleanupTasks.push(async () => {
       if (originalIntervalsCredentials) {
-        const restore = await rest("PATCH", `intervals_credentials?profile_id=eq.${athlete.userId}`, {
-          token: athlete.token,
-          body: {
-            api_key: originalIntervalsCredentials.api_key,
-            intervals_athlete_id: originalIntervalsCredentials.intervals_athlete_id,
-          },
-        });
-        if (!restore.ok) throw new Error("intervals_credentials: Originalwert nicht wiederhergestellt");
+        const restore = await rest(
+          "PATCH",
+          `intervals_credentials?profile_id=eq.${athlete.userId}`,
+          {
+            token: athlete.token,
+            body: {
+              api_key: originalIntervalsCredentials.api_key,
+              intervals_athlete_id: originalIntervalsCredentials.intervals_athlete_id,
+            },
+          }
+        );
+        if (!restore.ok)
+          throw new Error("intervals_credentials: Originalwert nicht wiederhergestellt");
       } else {
         const del = await rest("DELETE", `intervals_credentials?profile_id=eq.${athlete.userId}`, {
           token: athlete.token,
@@ -859,7 +1132,9 @@ if (!HAS_CREDS) {
       }
     });
 
-    const anonRead = await rest("GET", `intervals_credentials?profile_id=eq.${athlete.userId}`, { token: null });
+    const anonRead = await rest("GET", `intervals_credentials?profile_id=eq.${athlete.userId}`, {
+      token: null,
+    });
     assert.equal(anonRead.ok, false, "anon darf intervals_credentials nicht lesen (kein GRANT)");
   });
 
@@ -868,15 +1143,27 @@ if (!HAS_CREDS) {
     const trainerRead = await rest("GET", `intervals_credentials?profile_id=eq.${athlete.userId}`, {
       token: trainer.token,
     });
-    assert.deepEqual(trainerRead.data, [], "Trainer sieht die intervals_credentials-Zeile seines Athleten — RLS zu weit gefasst");
+    assert.deepEqual(
+      trainerRead.data,
+      [],
+      "Trainer sieht die intervals_credentials-Zeile seines Athleten — RLS zu weit gefasst"
+    );
   });
 
   test("intervals_credentials: Athlet kann keine Zeile für eine fremde profile_id anlegen", async () => {
     const insert = await rest("POST", "intervals_credentials", {
       token: athlete.token,
-      body: { profile_id: trainer.userId, api_key: "rls-test-key", intervals_athlete_id: "i-rls-test" },
+      body: {
+        profile_id: trainer.userId,
+        api_key: "rls-test-key",
+        intervals_athlete_id: "i-rls-test",
+      },
     });
-    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen"
+    );
   });
 
   // --- 9. athlete_sync_config (0023, Fahrplan 7 CRED1) -------------------
@@ -908,7 +1195,8 @@ if (!HAS_CREDS) {
             weather_lon: originalSyncConfig.weather_lon,
           },
         });
-        if (!restore.ok) throw new Error("athlete_sync_config: Originalwert nicht wiederhergestellt");
+        if (!restore.ok)
+          throw new Error("athlete_sync_config: Originalwert nicht wiederhergestellt");
       } else {
         const del = await rest("DELETE", `athlete_sync_config?profile_id=eq.${athlete.userId}`, {
           token: athlete.token,
@@ -934,22 +1222,36 @@ if (!HAS_CREDS) {
       "weather_lon serverseitig nicht auf 2 Nachkommastellen gerundet (numeric(6,2))"
     );
 
-    const anonRead = await rest("GET", `athlete_sync_config?profile_id=eq.${athlete.userId}`, { token: null });
+    const anonRead = await rest("GET", `athlete_sync_config?profile_id=eq.${athlete.userId}`, {
+      token: null,
+    });
     assert.equal(anonRead.ok, false, "anon darf athlete_sync_config nicht lesen (kein GRANT)");
   });
 
   test("athlete_sync_config: Athlet kann keine Zeile für eine fremde profile_id anlegen", async () => {
     const insert = await rest("POST", "athlete_sync_config", {
       token: athlete.token,
-      body: { profile_id: trainer.userId, intervals_api_key: "rls-test", intervals_athlete_id: "i-rls-test" },
+      body: {
+        profile_id: trainer.userId,
+        intervals_api_key: "rls-test",
+        intervals_athlete_id: "i-rls-test",
+      },
     });
-    assert.equal(insert.ok, false, "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde profile_id hätte an der RLS-Policy scheitern müssen"
+    );
   });
 
   test("athlete_sync_config: eingeloggte Person kann keine admin-Zeile (athlete_key statt profile_id) anlegen", async () => {
     const insert = await rest("POST", "athlete_sync_config", {
       token: athlete.token,
-      body: { athlete_key: "athlete999", intervals_api_key: "rls-test", intervals_athlete_id: "i-rls-test" },
+      body: {
+        athlete_key: "athlete999",
+        intervals_api_key: "rls-test",
+        intervals_athlete_id: "i-rls-test",
+      },
     });
     assert.equal(
       insert.ok,
@@ -963,7 +1265,11 @@ if (!HAS_CREDS) {
     const trainerRead = await rest("GET", `athlete_sync_config?profile_id=eq.${athlete.userId}`, {
       token: trainer.token,
     });
-    assert.deepEqual(trainerRead.data, [], "Trainer sieht die athlete_sync_config-Zeile seines Athleten — RLS zu weit gefasst");
+    assert.deepEqual(
+      trainerRead.data,
+      [],
+      "Trainer sieht die athlete_sync_config-Zeile seines Athleten — RLS zu weit gefasst"
+    );
   });
 
   // --- 10. training_plans (0028, Fahrplan 8 E1) -------------------------
@@ -990,7 +1296,9 @@ if (!HAS_CREDS) {
   // die das prüfen, setzen es explizit.
 
   const planSkip = () =>
-    !planTableReady ? "training_plans nicht lesbar — Migration 0028 vermutlich noch nicht eingespielt" : false;
+    !planTableReady
+      ? "training_plans nicht lesbar — Migration 0028 vermutlich noch nicht eingespielt"
+      : false;
   const planActiveSkip = () =>
     planActiveAlready
       ? "Athlet 1 trägt bereits eine echte aktive training_plans-Zeile — Test, der eine aktive Zeile anlegt, übersprungen"
@@ -1019,15 +1327,29 @@ if (!HAS_CREDS) {
    *  hält den partiellen Unique-Index für Folgetests frei. */
   async function insertPlanRow(token, over) {
     const insert = await rest("POST", "training_plans", { token, body: planBody(over) });
-    assert.equal(insert.ok, true, `training_plans-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    assert.equal(
+      insert.ok,
+      true,
+      `training_plans-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
     const id = insert.data[0].id;
     cleanupTasks.push(async () => {
       const del = await rest("DELETE", `training_plans?id=eq.${id}`, { token: athlete.token });
-      if (!del.ok) throw new Error(`training_plans-Testzeile ${id} nicht gelöscht: ${JSON.stringify(del.data)}`);
+      if (!del.ok)
+        throw new Error(
+          `training_plans-Testzeile ${id} nicht gelöscht: ${JSON.stringify(del.data)}`
+        );
     });
     if ((over?.is_active ?? true) === true) {
-      const off = await rest("PATCH", `training_plans?id=eq.${id}`, { token, body: { is_active: false } });
-      assert.equal(off.ok, true, `training_plans: is_active=false-Rücksetzung fehlgeschlagen (${id})`);
+      const off = await rest("PATCH", `training_plans?id=eq.${id}`, {
+        token,
+        body: { is_active: false },
+      });
+      assert.equal(
+        off.ok,
+        true,
+        `training_plans: is_active=false-Rücksetzung fehlgeschlagen (${id})`
+      );
     }
     return id;
   }
@@ -1058,9 +1380,15 @@ if (!HAS_CREDS) {
     // die for-all-Policy erlaubt is_coach_of() auch beim INSERT.
     const id = await insertPlanRow(trainer.token, { created_by: trainer.userId });
 
-    const trainerRead = await rest("GET", `training_plans?id=eq.${id}&select=id,athlete_id`, { token: trainer.token });
+    const trainerRead = await rest("GET", `training_plans?id=eq.${id}&select=id,athlete_id`, {
+      token: trainer.token,
+    });
     assert.equal(trainerRead.ok, true);
-    assert.equal(trainerRead.data.length, 1, "Trainer liest die von ihm angelegte Plan-Zeile seines Athleten nicht (is_coach_of)");
+    assert.equal(
+      trainerRead.data.length,
+      1,
+      "Trainer liest die von ihm angelegte Plan-Zeile seines Athleten nicht (is_coach_of)"
+    );
   });
 
   test("training_plans: zweite aktive Zeile für denselben Athleten scheitert am partiellen Unique-Index", async (t) => {
@@ -1079,7 +1407,11 @@ if (!HAS_CREDS) {
 
     // Zeile 2 aktiv -> Unique-Verletzung ist bei INSERT ein echter Fehler.
     const second = await rest("POST", "training_plans", { token: athlete.token, body: planBody() });
-    assert.equal(second.ok, false, "Zweite aktive training_plans-Zeile hätte am partiellen Unique-Index scheitern müssen");
+    assert.equal(
+      second.ok,
+      false,
+      "Zweite aktive training_plans-Zeile hätte am partiellen Unique-Index scheitern müssen"
+    );
     if (second.ok && Array.isArray(second.data) && second.data[0]?.id) {
       const strayId = second.data[0].id;
       cleanupTasks.push(async () => {
@@ -1121,7 +1453,7 @@ if (!HAS_CREDS) {
     assert.equal(
       run.ok,
       true,
-      `Zwei aktive Pläne mit verschiedenem sport hätten durchgehen müssen: ${JSON.stringify(run.data)}`,
+      `Zwei aktive Pläne mit verschiedenem sport hätten durchgehen müssen: ${JSON.stringify(run.data)}`
     );
     const runId = run.data[0]?.id;
     if (runId) {
@@ -1140,7 +1472,7 @@ if (!HAS_CREDS) {
     assert.equal(
       secondRun.ok,
       false,
-      "Zweite aktive Zeile mit gleichem sport hätte am Unique-Index scheitern müssen",
+      "Zweite aktive Zeile mit gleichem sport hätte am Unique-Index scheitern müssen"
     );
     if (secondRun.ok && Array.isArray(secondRun.data) && secondRun.data[0]?.id) {
       const strayId = secondRun.data[0].id;
@@ -1167,12 +1499,22 @@ if (!HAS_CREDS) {
 
   test("training_plans: unbekannte Enum-Werte (mode/model/focus/level/sport) scheitern am CHECK", async (t) => {
     if (planSkip()) return t.skip(planSkip());
-    for (const bad of [{ mode: "foo" }, { model: "foo" }, { focus: "foo" }, { level: "foo" }, { sport: "foo" }]) {
+    for (const bad of [
+      { mode: "foo" },
+      { model: "foo" },
+      { focus: "foo" },
+      { level: "foo" },
+      { sport: "foo" },
+    ]) {
       const res = await rest("POST", "training_plans", {
         token: athlete.token,
         body: planBody({ is_active: false, ...bad }),
       });
-      assert.equal(res.ok, false, `training_plans: ${JSON.stringify(bad)} hätte am CHECK scheitern müssen`);
+      assert.equal(
+        res.ok,
+        false,
+        `training_plans: ${JSON.stringify(bad)} hätte am CHECK scheitern müssen`
+      );
       if (res.ok && Array.isArray(res.data) && res.data[0]?.id) {
         const strayId = res.data[0].id;
         cleanupTasks.push(async () => {
@@ -1195,7 +1537,11 @@ if (!HAS_CREDS) {
       token: athlete.token,
       body: planBody({ is_active: false, athlete_id: "00000000-0000-0000-0000-000000000000" }),
     });
-    assert.equal(insert.ok, false, "Insert für fremde athlete_id hätte an der RLS with-check-Policy / am FK scheitern müssen");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde athlete_id hätte an der RLS with-check-Policy / am FK scheitern müssen"
+    );
   });
 
   test("training_plans: anon darf gar nicht lesen (kein GRANT)", async (t) => {
@@ -1206,10 +1552,18 @@ if (!HAS_CREDS) {
 
   test("plan_cards: neue Spalte plan_id ist vorhanden und für Bestandskarten null (0028)", async (t) => {
     if (planSkip()) return t.skip(planSkip());
-    const read = await rest("GET", `plan_cards?athlete_id=eq.${athlete.userId}&select=id,plan_id&limit=5`, {
-      token: athlete.token,
-    });
-    assert.equal(read.ok, true, `plan_cards?select=plan_id fehlgeschlagen (Spalte fehlt?): ${JSON.stringify(read.data)}`);
+    const read = await rest(
+      "GET",
+      `plan_cards?athlete_id=eq.${athlete.userId}&select=id,plan_id&limit=5`,
+      {
+        token: athlete.token,
+      }
+    );
+    assert.equal(
+      read.ok,
+      true,
+      `plan_cards?select=plan_id fehlgeschlagen (Spalte fehlt?): ${JSON.stringify(read.data)}`
+    );
     for (const row of read.data) {
       assert.equal("plan_id" in row, true, "plan_cards-Zeile führt die neue Spalte plan_id nicht");
       assert.equal(row.plan_id, null, "Bestandskarte sollte plan_id = null tragen");
@@ -1227,7 +1581,9 @@ if (!HAS_CREDS) {
 
   const CX_PRESET = "general";
   const cxSkip = () =>
-    !cxTableReady ? "coach_exchanges nicht lesbar — Migration 0034 vermutlich noch nicht eingespielt" : false;
+    !cxTableReady
+      ? "coach_exchanges nicht lesbar — Migration 0034 vermutlich noch nicht eingespielt"
+      : false;
 
   async function insertCoachExchangeRow(over = {}) {
     const insert = await rest("POST", "coach_exchanges", {
@@ -1241,13 +1597,20 @@ if (!HAS_CREDS) {
         ...over,
       },
     });
-    assert.equal(insert.ok, true, `coach_exchanges-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    assert.equal(
+      insert.ok,
+      true,
+      `coach_exchanges-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
     const id = insert.data[0].id;
     cleanupTasks.push(async () => {
       const del = await rest("DELETE", `coach_exchanges?id=eq.${id}`, { token: athlete.token });
       // Athlet hat die Zeile im Test evtl. schon selbst gelöscht -> 0 Treffer
       // ist hier ok, nur ein harter Fehler zählt als Rest.
-      if (!del.ok) throw new Error(`coach_exchanges-Testzeile ${id} nicht gelöscht: ${JSON.stringify(del.data)}`);
+      if (!del.ok)
+        throw new Error(
+          `coach_exchanges-Testzeile ${id} nicht gelöscht: ${JSON.stringify(del.data)}`
+        );
     });
     return id;
   }
@@ -1282,7 +1645,11 @@ if (!HAS_CREDS) {
         proposal_group_id: null,
       },
     });
-    assert.equal(insert.ok, false, "Insert für fremde athlete_id hätte an der WITH-CHECK-Policy scheitern müssen");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde athlete_id hätte an der WITH-CHECK-Policy scheitern müssen"
+    );
     if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
       const strayId = insert.data[0].id;
       cleanupTasks.push(async () => {
@@ -1353,7 +1720,9 @@ if (!HAS_CREDS) {
     // Trainer-DELETE: RLS blendet die nicht "besessene" Zeile aus der
     // Trefferliste aus -> HTTP 200 mit data: [], KEIN Fehlerstatus (s.
     // Kopfkommentar der Datei). Deshalb data.length prüfen, nicht .ok.
-    const trainerDel = await rest("DELETE", `coach_exchanges?id=eq.${id}`, { token: trainer.token });
+    const trainerDel = await rest("DELETE", `coach_exchanges?id=eq.${id}`, {
+      token: trainer.token,
+    });
     assert.equal(
       trainerDel.data?.length ?? 0,
       0,
@@ -1362,12 +1731,22 @@ if (!HAS_CREDS) {
 
     // Zeile ist noch da.
     const stillThere = await rest("GET", `coach_exchanges?id=eq.${id}`, { token: athlete.token });
-    assert.equal(stillThere.data.length, 1, "coach_exchanges-Zeile wurde vom Trainer-DELETE tatsächlich entfernt");
+    assert.equal(
+      stillThere.data.length,
+      1,
+      "coach_exchanges-Zeile wurde vom Trainer-DELETE tatsächlich entfernt"
+    );
 
     // Athlet löscht die eigene Zeile -> genau 1 Treffer.
-    const athleteDel = await rest("DELETE", `coach_exchanges?id=eq.${id}`, { token: athlete.token });
+    const athleteDel = await rest("DELETE", `coach_exchanges?id=eq.${id}`, {
+      token: athlete.token,
+    });
     assert.equal(athleteDel.ok, true);
-    assert.equal(athleteDel.data.length, 1, "Athlet konnte die eigene coach_exchanges-Zeile nicht löschen");
+    assert.equal(
+      athleteDel.data.length,
+      1,
+      "Athlet konnte die eigene coach_exchanges-Zeile nicht löschen"
+    );
   });
 
   test("coach_exchanges: anon darf gar nicht lesen (kein GRANT)", async (t) => {
@@ -1404,18 +1783,43 @@ if (!HAS_CREDS) {
     assert.equal(own.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(own.data)}`);
     const row = own.data.find((r) => r.id === athlete.userId);
     assert.ok(row, "profiles_visible führt die eigene Zeile nicht");
-    for (const col of ["gender", "height_cm", "weight_kg", "hr_max", "has_password", "birthdate", "resting_hr"]) {
-      assert.equal(col in row, false, `profiles_visible darf ${col} nicht führen (das wäre für ALLE Nutzer lesbar)`);
+    for (const col of [
+      "gender",
+      "height_cm",
+      "weight_kg",
+      "hr_max",
+      "has_password",
+      "birthdate",
+      "resting_hr",
+    ]) {
+      assert.equal(
+        col in row,
+        false,
+        `profiles_visible darf ${col} nicht führen (das wäre für ALLE Nutzer lesbar)`
+      );
     }
   });
 
   test("profiles_own: Athlet sieht genau die eigene Zeile mit allen neuen Feldern", async () => {
     const own = await rest("GET", "profiles_own", { token: athlete.token });
     assert.equal(own.ok, true, `profiles_own-Read fehlgeschlagen: ${JSON.stringify(own.data)}`);
-    assert.equal(own.data.length, 1, "profiles_own zeigt dem Athleten mehr/weniger als die eigene Zeile");
+    assert.equal(
+      own.data.length,
+      1,
+      "profiles_own zeigt dem Athleten mehr/weniger als die eigene Zeile"
+    );
     const row = own.data[0];
     assert.equal(row.id, athlete.userId);
-    for (const col of ["has_password", "birthdate", "resting_hr", "gender", "height_cm", "weight_kg", "hr_max", "updated_at"]) {
+    for (const col of [
+      "has_password",
+      "birthdate",
+      "resting_hr",
+      "gender",
+      "height_cm",
+      "weight_kg",
+      "hr_max",
+      "updated_at",
+    ]) {
       assert.equal(col in row, true, `profiles_own muss ${col} führen`);
     }
   });
@@ -1427,9 +1831,15 @@ if (!HAS_CREDS) {
 
   test("profiles_own: Trainer sieht dort NICHT die Zeile seines Athleten (self-only, keine Coach-Ausnahme)", async (t) => {
     if (!coachLinkOk) return t.skip(coachSkip());
-    const trainerView = await rest("GET", `profiles_own?id=eq.${athlete.userId}`, { token: trainer.token });
+    const trainerView = await rest("GET", `profiles_own?id=eq.${athlete.userId}`, {
+      token: trainer.token,
+    });
     assert.equal(trainerView.ok, true);
-    assert.deepEqual(trainerView.data, [], "profiles_own darf dem Trainer nicht die Zeile seines Athleten zeigen (id = auth.uid())");
+    assert.deepEqual(
+      trainerView.data,
+      [],
+      "profiles_own darf dem Trainer nicht die Zeile seines Athleten zeigen (id = auth.uid())"
+    );
   });
 
   test("profiles: fremder PATCH auf die neuen Spalten scheitert (RLS 'eigenes Profil ändern', id = auth.uid())", async (t) => {
@@ -1462,95 +1872,127 @@ if (!HAS_CREDS) {
 
   const HAS_SERVICE_ROLE = !!ENV.SUPABASE_SERVICE_ROLE_KEY;
 
-  test(
-    "profiles: RPC mark_password_set() setzt has_password nur für die eigene Zeile (Migration 0042, ersetzt den auth.users-Trigger aus 0039)",
-    async (t) => {
-      if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — RPC-Test übersprungen");
+  test("profiles: RPC mark_password_set() setzt has_password nur für die eigene Zeile (Migration 0042, ersetzt den auth.users-Trigger aus 0039)", async (t) => {
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — RPC-Test übersprungen");
 
-      const authHeaders = {
-        apikey: ENV.SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
-        "Content-Type": "application/json",
-      };
+    const authHeaders = {
+      apikey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+    };
 
-      // Wirft KEINE echte Mail (generate_link liefert den Link nur im
-      // Response-Body zurück, verschickt nichts — s. admin-api/invite.js
-      // Kopfkommentar). GoTrue haengt selbst schon beim Einladen ein
-      // zufaelliges Passwort an (Migration-0042-Befund) — für diesen Test
-      // wird direkt danach EIN BEKANNTES Passwort per Admin-API gesetzt,
-      // rein als Testsetup, nicht der zu prüfende Pfad.
-      const testEmail = `rls-test-mark-password-${Date.now()}@example.com`;
-      const testPassword = "rls-test-Passw0rd-9x!";
-      const created = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
-        method: "POST",
-        headers: authHeaders,
-        body: JSON.stringify({ type: "invite", email: testEmail }),
-      });
-      const createdText = await created.text();
-      let createdBody = null;
-      try {
-        createdBody = createdText ? JSON.parse(createdText) : null;
-      } catch {
-        createdBody = createdText;
-      }
-      assert.equal(created.ok, true, `admin/generate_link fehlgeschlagen: ${JSON.stringify(createdBody)}`);
-      const testUserId = createdBody?.id;
-      assert.ok(testUserId, `admin/generate_link lieferte keine id: ${JSON.stringify(createdBody)}`);
-
-      cleanupTasks.push(async () => {
-        // Cascade (profiles.id references auth.users(id) on delete cascade,
-        // 0001) räumt die zugehörige profiles-Zeile mit auf.
-        const del = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
-          method: "DELETE",
-          headers: authHeaders,
-        });
-        if (!del.ok) throw new Error(`Test-Account ${testUserId} (mark_password_set) nicht gelöscht: ${await del.text()}`);
-      });
-
-      // email_confirm: true noetig, damit der anschliessende Login klappt —
-      // anders als der lokale Self-Host-Stack (GOTRUE_MAILER_AUTOCONFIRM)
-      // bestaetigt dashboard-dev E-Mails nicht automatisch.
-      const setPassword = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
-        method: "PUT",
-        headers: authHeaders,
-        body: JSON.stringify({ password: testPassword, role: "authenticated", email_confirm: true }),
-      });
-      assert.equal(setPassword.ok, true, `admin-Passwort-Setup fehlgeschlagen: ${await setPassword.text()}`);
-
-      const before = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
-        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
-      });
-      assert.equal(before.ok, true, `profiles-Read (service_role) fehlgeschlagen: ${JSON.stringify(before.data)}`);
-      assert.equal(before.data?.[0]?.has_password, false, "has_password sollte vor dem RPC-Aufruf false sein (Default)");
-
-      const testUser = await signIn(testEmail, testPassword);
-      const rpcRes = await rest("POST", "rpc/mark_password_set", { token: testUser.token, body: {} });
-      assert.equal(rpcRes.ok, true, `mark_password_set() fehlgeschlagen: ${JSON.stringify(rpcRes.data)}`);
-
-      const after = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
-        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
-      });
-      assert.equal(after.ok, true);
-      assert.equal(after.data?.[0]?.has_password, true, "mark_password_set() hat has_password nicht auf true gesetzt");
-
-      // Gegenprobe: die Funktion darf NUR die eigene Zeile treffen (id =
-      // auth.uid() in der security-definer-Funktion) — der eingeloggte
-      // Athlet darf über denselben Aufruf nicht fremde Zeilen verändern.
-      const athleteBefore = await rest("GET", `profiles?id=eq.${athlete.userId}&select=has_password`, {
-        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
-      });
-      const athleteRpc = await rest("POST", "rpc/mark_password_set", { token: testUser.token, body: {} });
-      assert.equal(athleteRpc.ok, true);
-      const athleteAfter = await rest("GET", `profiles?id=eq.${athlete.userId}&select=has_password`, {
-        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
-      });
-      assert.equal(
-        athleteAfter.data?.[0]?.has_password,
-        athleteBefore.data?.[0]?.has_password,
-        "mark_password_set() hat eine fremde Zeile (Stuhlsen) verändert — security-definer-Grenze verletzt"
-      );
+    // Wirft KEINE echte Mail (generate_link liefert den Link nur im
+    // Response-Body zurück, verschickt nichts — s. admin-api/invite.js
+    // Kopfkommentar). GoTrue haengt selbst schon beim Einladen ein
+    // zufaelliges Passwort an (Migration-0042-Befund) — für diesen Test
+    // wird direkt danach EIN BEKANNTES Passwort per Admin-API gesetzt,
+    // rein als Testsetup, nicht der zu prüfende Pfad.
+    const testEmail = `rls-test-mark-password-${Date.now()}@example.com`;
+    const testPassword = "rls-test-Passw0rd-9x!";
+    const created = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ type: "invite", email: testEmail }),
+    });
+    const createdText = await created.text();
+    let createdBody = null;
+    try {
+      createdBody = createdText ? JSON.parse(createdText) : null;
+    } catch {
+      createdBody = createdText;
     }
-  );
+    assert.equal(
+      created.ok,
+      true,
+      `admin/generate_link fehlgeschlagen: ${JSON.stringify(createdBody)}`
+    );
+    const testUserId = createdBody?.id;
+    assert.ok(testUserId, `admin/generate_link lieferte keine id: ${JSON.stringify(createdBody)}`);
+
+    cleanupTasks.push(async () => {
+      // Cascade (profiles.id references auth.users(id) on delete cascade,
+      // 0001) räumt die zugehörige profiles-Zeile mit auf.
+      const del = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+      if (!del.ok)
+        throw new Error(
+          `Test-Account ${testUserId} (mark_password_set) nicht gelöscht: ${await del.text()}`
+        );
+    });
+
+    // email_confirm: true noetig, damit der anschliessende Login klappt —
+    // anders als der lokale Self-Host-Stack (GOTRUE_MAILER_AUTOCONFIRM)
+    // bestaetigt dashboard-dev E-Mails nicht automatisch.
+    const setPassword = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${testUserId}`, {
+      method: "PUT",
+      headers: authHeaders,
+      body: JSON.stringify({ password: testPassword, role: "authenticated", email_confirm: true }),
+    });
+    assert.equal(
+      setPassword.ok,
+      true,
+      `admin-Passwort-Setup fehlgeschlagen: ${await setPassword.text()}`
+    );
+
+    const before = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(
+      before.ok,
+      true,
+      `profiles-Read (service_role) fehlgeschlagen: ${JSON.stringify(before.data)}`
+    );
+    assert.equal(
+      before.data?.[0]?.has_password,
+      false,
+      "has_password sollte vor dem RPC-Aufruf false sein (Default)"
+    );
+
+    const testUser = await signIn(testEmail, testPassword);
+    const rpcRes = await rest("POST", "rpc/mark_password_set", { token: testUser.token, body: {} });
+    assert.equal(
+      rpcRes.ok,
+      true,
+      `mark_password_set() fehlgeschlagen: ${JSON.stringify(rpcRes.data)}`
+    );
+
+    const after = await rest("GET", `profiles?id=eq.${testUserId}&select=has_password`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(after.ok, true);
+    assert.equal(
+      after.data?.[0]?.has_password,
+      true,
+      "mark_password_set() hat has_password nicht auf true gesetzt"
+    );
+
+    // Gegenprobe: die Funktion darf NUR die eigene Zeile treffen (id =
+    // auth.uid() in der security-definer-Funktion) — der eingeloggte
+    // Athlet darf über denselben Aufruf nicht fremde Zeilen verändern.
+    const athleteBefore = await rest(
+      "GET",
+      `profiles?id=eq.${athlete.userId}&select=has_password`,
+      {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      }
+    );
+    const athleteRpc = await rest("POST", "rpc/mark_password_set", {
+      token: testUser.token,
+      body: {},
+    });
+    assert.equal(athleteRpc.ok, true);
+    const athleteAfter = await rest("GET", `profiles?id=eq.${athlete.userId}&select=has_password`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(
+      athleteAfter.data?.[0]?.has_password,
+      athleteBefore.data?.[0]?.has_password,
+      "mark_password_set() hat eine fremde Zeile (Stuhlsen) verändert — security-definer-Grenze verletzt"
+    );
+  });
 
   test(
     "bikes (0047/0051): Basistabelle nur für Eigentümer/Coach/Admin lesbar, bikes_public (ohne notes) für alle authenticated",
@@ -1558,9 +2000,17 @@ if (!HAS_CREDS) {
     async () => {
       // 1. Anon darf weder Basistabelle noch die öffentliche Sicht lesen
       const anonRead = await rest("GET", "bikes");
-      assert.notEqual(anonRead.status, 200, "anon sollte bikes nicht ohne Authentifizierung lesen können");
+      assert.notEqual(
+        anonRead.status,
+        200,
+        "anon sollte bikes nicht ohne Authentifizierung lesen können"
+      );
       const anonPublicRead = await rest("GET", "bikes_public");
-      assert.notEqual(anonPublicRead.status, 200, "anon sollte bikes_public nicht ohne Authentifizierung lesen können");
+      assert.notEqual(
+        anonPublicRead.status,
+        200,
+        "anon sollte bikes_public nicht ohne Authentifizierung lesen können"
+      );
 
       // 2. Athlet 1 darf eigenes Rad anlegen
       const insertRes = await rest("POST", "bikes", {
@@ -1577,11 +2027,17 @@ if (!HAS_CREDS) {
       // Falls Migration 0047 in dashboard-dev noch nicht ausgeführt wurde (404/relation does not exist),
       // Test sauber überspringen / melden
       if (insertRes.status === 404 || insertRes.data?.message?.includes("does not exist")) {
-        console.warn("Migration 0047_bikes.sql noch nicht in dashboard-dev eingespielt — Test übersprungen");
+        console.warn(
+          "Migration 0047_bikes.sql noch nicht in dashboard-dev eingespielt — Test übersprungen"
+        );
         return;
       }
 
-      assert.equal(insertRes.ok, true, `Insert durch Athlet fehlgeschlagen: ${JSON.stringify(insertRes.data)}`);
+      assert.equal(
+        insertRes.ok,
+        true,
+        `Insert durch Athlet fehlgeschlagen: ${JSON.stringify(insertRes.data)}`
+      );
       const bikeId = insertRes.data?.[0]?.id;
       assert.ok(bikeId, "Keine bikeId zurückgegeben");
 
@@ -1597,9 +2053,13 @@ if (!HAS_CREDS) {
       // 3b. Migration 0051 (Security-Review-Fund): bikes_public. Falls in
       // dashboard-dev noch nicht eingespielt, hier sauber überspringen statt
       // den ganzen Test scheitern zu lassen (Muster wie oben bei 0047).
-      const publicProbe = await rest("GET", `bikes_public?id=eq.${bikeId}&select=name`, { token: trainer.token });
+      const publicProbe = await rest("GET", `bikes_public?id=eq.${bikeId}&select=name`, {
+        token: trainer.token,
+      });
       if (publicProbe.status === 404 || publicProbe.data?.message?.includes("does not exist")) {
-        console.warn("Migration 0051_bikes_notes_private.sql noch nicht in dashboard-dev eingespielt — Rest des Tests übersprungen");
+        console.warn(
+          "Migration 0051_bikes_notes_private.sql noch nicht in dashboard-dev eingespielt — Rest des Tests übersprungen"
+        );
         return;
       }
 
@@ -1609,13 +2069,21 @@ if (!HAS_CREDS) {
       const publicNotesQuery = await rest("GET", `bikes_public?id=eq.${bikeId}&select=name,notes`, {
         token: trainer.token,
       });
-      assert.notEqual(publicNotesQuery.status, 200, "notes sollte in bikes_public gar nicht existieren");
+      assert.notEqual(
+        publicNotesQuery.status,
+        200,
+        "notes sollte in bikes_public gar nicht existieren"
+      );
 
       // 3d. Aber Name/Typ/Kurbellänge bleiben über bikes_public für jeden authenticated
       // Nutzer sichtbar (OF-6 — unverändert durch 0051).
-      const publicRead = await rest("GET", `bikes_public?id=eq.${bikeId}&select=name,bike_type,crank_length_mm`, {
-        token: trainer.token,
-      });
+      const publicRead = await rest(
+        "GET",
+        `bikes_public?id=eq.${bikeId}&select=name,bike_type,crank_length_mm`,
+        {
+          token: trainer.token,
+        }
+      );
       assert.equal(publicRead.ok, true);
       assert.equal(publicRead.data?.[0]?.name, "Test Gravel Bike");
 
@@ -1624,11 +2092,19 @@ if (!HAS_CREDS) {
         token: trainer.token,
         body: { notes: "Vom Coach geprüft" },
       });
-      assert.equal(trainerUpdate.ok, true, `Update durch Coach fehlgeschlagen: ${JSON.stringify(trainerUpdate.data)}`);
+      assert.equal(
+        trainerUpdate.ok,
+        true,
+        `Update durch Coach fehlgeschlagen: ${JSON.stringify(trainerUpdate.data)}`
+      );
 
       // 5. Athlet darf sein Rad löschen
       const deleteRes = await rest("DELETE", `bikes?id=eq.${bikeId}`, { token: athlete.token });
-      assert.equal(deleteRes.ok, true, `Delete durch Athlet fehlgeschlagen: ${JSON.stringify(deleteRes.data)}`);
+      assert.equal(
+        deleteRes.ok,
+        true,
+        `Delete durch Athlet fehlgeschlagen: ${JSON.stringify(deleteRes.data)}`
+      );
     }
   );
 
@@ -1641,7 +2117,11 @@ if (!HAS_CREDS) {
       assert.notEqual(anonFittings.status, 200, "anon sollte bikefit_fittings nicht lesen können");
 
       const anonIterations = await rest("GET", "bikefit_iterations");
-      assert.notEqual(anonIterations.status, 200, "anon sollte bikefit_iterations nicht lesen können");
+      assert.notEqual(
+        anonIterations.status,
+        200,
+        "anon sollte bikefit_iterations nicht lesen können"
+      );
 
       // 2. Rad anlegen für den Fitting-Test
       const bikeRes = await rest("POST", "bikes", {
@@ -1654,7 +2134,9 @@ if (!HAS_CREDS) {
       });
 
       if (bikeRes.status === 404 || bikeRes.data?.message?.includes("does not exist")) {
-        console.warn("Migration 0047/0048 noch nicht in dashboard-dev eingespielt — Test übersprungen");
+        console.warn(
+          "Migration 0047/0048 noch nicht in dashboard-dev eingespielt — Test übersprungen"
+        );
         return;
       }
       const testBikeId = bikeRes.data?.[0]?.id;
@@ -1678,7 +2160,11 @@ if (!HAS_CREDS) {
         console.warn("Migration 0048 noch nicht in dashboard-dev eingespielt — Test übersprungen");
         return;
       }
-      assert.equal(fitRes.ok, true, `Fitting-Insert fehlgeschlagen: ${JSON.stringify(fitRes.data)}`);
+      assert.equal(
+        fitRes.ok,
+        true,
+        `Fitting-Insert fehlgeschlagen: ${JSON.stringify(fitRes.data)}`
+      );
       const fittingId = fitRes.data?.[0]?.id;
       assert.ok(fittingId, "Keine fittingId erhalten");
       cleanupTasks.push(async () => {
@@ -1694,7 +2180,11 @@ if (!HAS_CREDS) {
           status: "active",
         },
       });
-      assert.equal(dupFitRes.ok, false, "Zweites aktives Fitting auf demselben Rad hätte scheitern müssen");
+      assert.equal(
+        dupFitRes.ok,
+        false,
+        "Zweites aktives Fitting auf demselben Rad hätte scheitern müssen"
+      );
 
       // 5. Iteration anlegen durch Athleten
       const iterRes = await rest("POST", "bikefit_iterations", {
@@ -1707,18 +2197,34 @@ if (!HAS_CREDS) {
           recommendation: { kneeAngle: { direction: "ok" } },
         },
       });
-      assert.equal(iterRes.ok, true, `Iteration-Insert fehlgeschlagen: ${JSON.stringify(iterRes.data)}`);
+      assert.equal(
+        iterRes.ok,
+        true,
+        `Iteration-Insert fehlgeschlagen: ${JSON.stringify(iterRes.data)}`
+      );
       const iterationId = iterRes.data?.[0]?.id;
       assert.ok(iterationId, "Keine iterationId erhalten");
 
       // 6. Trainer darf Fitting & Iteration seines Athleten lesen
-      const trainerFitRead = await rest("GET", `bikefit_fittings?id=eq.${fittingId}`, { token: trainer.token });
+      const trainerFitRead = await rest("GET", `bikefit_fittings?id=eq.${fittingId}`, {
+        token: trainer.token,
+      });
       assert.equal(trainerFitRead.ok, true);
-      assert.equal(trainerFitRead.data?.length, 1, "Trainer sollte das Fitting seines Athleten lesen können");
+      assert.equal(
+        trainerFitRead.data?.length,
+        1,
+        "Trainer sollte das Fitting seines Athleten lesen können"
+      );
 
-      const trainerIterRead = await rest("GET", `bikefit_iterations?fitting_id=eq.${fittingId}`, { token: trainer.token });
+      const trainerIterRead = await rest("GET", `bikefit_iterations?fitting_id=eq.${fittingId}`, {
+        token: trainer.token,
+      });
       assert.equal(trainerIterRead.ok, true);
-      assert.equal(trainerIterRead.data?.length, 1, "Trainer sollte die Iteration seines Athleten lesen können");
+      assert.equal(
+        trainerIterRead.data?.length,
+        1,
+        "Trainer sollte die Iteration seines Athleten lesen können"
+      );
     }
   );
 
@@ -1734,12 +2240,14 @@ if (!HAS_CREDS) {
   let originalSports; // undefined = noch nicht geprüft, null = Spalte/Zeile fehlte
 
   test("profiles.sports: Athlet 1 trägt heute einen gültigen Wert (Golden-Master-Basis)", async () => {
-    const read = await rest(
-      "GET",
-      `profiles_visible?id=eq.${athlete.userId}&select=id,sports`,
-      { token: athlete.token }
+    const read = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=id,sports`, {
+      token: athlete.token,
+    });
+    assert.equal(
+      read.ok,
+      true,
+      `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(read.data)}`
     );
-    assert.equal(read.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(read.data)}`);
     originalSports = read.data?.[0]?.sports ?? null;
     assert.ok(
       Array.isArray(originalSports) && originalSports.length >= 1,
@@ -1765,17 +2273,21 @@ if (!HAS_CREDS) {
         prefer: "return=minimal",
       });
       if (!restore.ok) {
-        throw new Error(`profiles.sports nicht zurückgesetzt (Original: ${JSON.stringify(originalSports)})`);
+        throw new Error(
+          `profiles.sports nicht zurückgesetzt (Original: ${JSON.stringify(originalSports)})`
+        );
       }
     });
 
-    const readBack = await rest(
-      "GET",
-      `profiles_visible?id=eq.${athlete.userId}&select=sports`,
-      { token: athlete.token }
-    );
+    const readBack = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=sports`, {
+      token: athlete.token,
+    });
     assert.equal(readBack.ok, true);
-    assert.deepEqual(readBack.data?.[0]?.sports, ["ride", "run"], "sports-Update wurde nicht übernommen");
+    assert.deepEqual(
+      readBack.data?.[0]?.sports,
+      ["ride", "run"],
+      "sports-Update wurde nicht übernommen"
+    );
   });
 
   test("profiles.sports: leeres Array scheitert am Check-Constraint", async () => {
@@ -1820,7 +2332,11 @@ if (!HAS_CREDS) {
       { token: trainer.token }
     );
     assert.equal(trainerView.ok, true);
-    assert.equal(trainerView.data.length, 1, "profiles_visible führt die Zeile des gecoachten Athleten nicht");
+    assert.equal(
+      trainerView.data.length,
+      1,
+      "profiles_visible führt die Zeile des gecoachten Athleten nicht"
+    );
     assert.ok(
       Array.isArray(trainerView.data[0].sports) && trainerView.data[0].sports.length >= 1,
       "Trainer sieht keine gültigen Sportarten des gecoachten Athleten"
@@ -1847,12 +2363,20 @@ if (!HAS_CREDS) {
       body: { email: WAITLIST_SENTINEL },
       prefer: "return=minimal",
     });
-    assert.equal(insert.ok, true, `waitlist-Insert für anon fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    assert.equal(
+      insert.ok,
+      true,
+      `waitlist-Insert für anon fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
     cleanupTasks.push(async () => {
-      const del = await rest("DELETE", `waitlist?email=eq.${encodeURIComponent(WAITLIST_SENTINEL)}`, {
-        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
-        prefer: "return=minimal",
-      });
+      const del = await rest(
+        "DELETE",
+        `waitlist?email=eq.${encodeURIComponent(WAITLIST_SENTINEL)}`,
+        {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          prefer: "return=minimal",
+        }
+      );
       if (!del.ok) throw new Error(`waitlist-Sentinel nicht gelöscht: ${JSON.stringify(del.data)}`);
     });
   });
@@ -1867,18 +2391,27 @@ if (!HAS_CREDS) {
       return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufräumen kein Insert-Test");
     }
     cleanupTasks.push(async () => {
-      const del = await rest("DELETE", `waitlist?email=eq.${encodeURIComponent(WAITLIST_SOURCE_SENTINEL)}`, {
-        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
-        prefer: "return=minimal",
-      });
-      if (!del.ok) throw new Error(`waitlist-Source-Sentinel nicht gelöscht: ${JSON.stringify(del.data)}`);
+      const del = await rest(
+        "DELETE",
+        `waitlist?email=eq.${encodeURIComponent(WAITLIST_SOURCE_SENTINEL)}`,
+        {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          prefer: "return=minimal",
+        }
+      );
+      if (!del.ok)
+        throw new Error(`waitlist-Source-Sentinel nicht gelöscht: ${JSON.stringify(del.data)}`);
     });
     const insert = await rest("POST", "waitlist", {
       token: null,
       body: { email: WAITLIST_SOURCE_SENTINEL, source: "manipuliert" },
       prefer: "return=minimal",
     });
-    assert.equal(insert.ok, false, "anon darf source nicht setzen — nur INSERT (email) ist gegrantet");
+    assert.equal(
+      insert.ok,
+      false,
+      "anon darf source nicht setzen — nur INSERT (email) ist gegrantet"
+    );
   });
 
   test("waitlist: anon kann die Warteliste NICHT lesen (kein select-Grant)", async () => {
