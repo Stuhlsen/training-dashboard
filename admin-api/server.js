@@ -149,6 +149,10 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { ok: false, error: { code: "NOT_FOUND", message: "not found" } });
 });
 
-server.listen(PORT, () => {
-  console.log(`admin-api listening on :${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`admin-api listening on :${PORT}`);
+  });
+}
+
+module.exports = { server };

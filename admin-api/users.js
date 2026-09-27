@@ -111,6 +111,11 @@ async function listUsers(env, fetchImpl = fetch) {
 // rueckgaengig (GoTrue ist bereits gesperrt/entsperrt), aber delete/resend
 // scheitern am Audit-Log, da sie destruktiv/takeover-faehig sind — kein
 // stiller Verlust der Nachvollziehbarkeit.
+// HINWEIS: Bei delete/resend wird das Audit VOR der GoTrue-Aktion geschrieben
+// (um zu verhindern, dass ein Live-Token ohne Aufzeichnung ausgegeben wird).
+// Ein Audit-Eintrag fuer diese Aktionen dokumentiert daher einen VERSUCH, der
+// anschliessend an GoTrue scheitern kann — die tatsaechliche Ausfuehrung muss
+// gegen die GoTrue-Daten geprueft werden, nicht allein aus dem Audit-Log.
 async function writeAuditLog(env, fetchImpl, { actorId, targetUserId, targetEmail, action, details }) {
   try {
     await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/admin_audit_log`, {

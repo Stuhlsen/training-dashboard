@@ -5,7 +5,7 @@
   "description": "Radsport-Trainingsdashboard — React (app/) selbst-gehostet als Container-Verbund auf apps01, Datensync via apps01-Sidecar-Container",
   "type": "module",
   "scripts": {
-    "test": "node --test --experimental-test-module-mocks \"tests/**/*.test.js\"",
+    "test": "node --test --experimental-test-module-mocks \"tests/**/*.test.js\" \"admin-api/*.test.js\"",
     "sync": "node scripts/generate-data.js",
     "lint": "npx --yes eslint@9 scripts tests",
     "format": "npx --yes prettier@3 --write \"scripts/**/*.js\" \"tests/**/*.js\""
