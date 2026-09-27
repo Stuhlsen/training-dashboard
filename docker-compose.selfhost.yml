@@ -4,7 +4,7 @@
 
 services:
   postgres:
-    image: supabase/postgres:17.6.1.171
+    image: supabase/postgres:17.6.1.173
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -47,7 +47,7 @@ services:
   # Rollenmitgliedschafts-Zyklus, storage-api crash-loopt beim ersten Start.
   # Das REVOKE muss hier stehen, VOR storage-init.
   db-init:
-    image: supabase/postgres:17.6.1.171
+    image: supabase/postgres:17.6.1.173
     depends_on:
       postgres:
         condition: service_healthy
