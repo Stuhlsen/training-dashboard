@@ -13,7 +13,7 @@
 
    === Abweichung: Admin-Fall ===
 
-   Der Gate prüft user.isAdmin && true (Zeile 44), aber NICHT alle
+   Der Gate prüft user.isAdmin && true (Zeile 86), aber NICHT alle
    Tabellen haben eine is_admin()-RLS-Policy. Die RLS bleibt die
    tatsächliche Durchsetzung — dieser Gate ist grosszügiger als die
    RLS und kann Admin-Schreibbuttons anzeigen, die beim POST/PUT/PATCH
