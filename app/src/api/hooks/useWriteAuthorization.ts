@@ -27,14 +27,17 @@ export function useCanWriteForAthlete(athleteId: string) {
 /** Darf der eingeloggte User für den angezeigten Athleten einen
  *  Trainingsplan erzeugen (Fahrplan 8 E5)?
  *
- *  Autorisierung = `canWriteForAthlete` (Self + Trainer + Admin,
- *  Entscheidung 19); die RLS auf `training_plans` (E1) setzt es durch.
- *  Eigener Name statt direkter `canWrite`-Nutzung im Planungstab: ein
- *  benannter Anker, falls „Plan bauen" später von den übrigen
- *  Schreibaktionen abweichen soll. */
+ *  Bewusst NICHT `canWriteForAthlete` (Self + Trainer + Admin) — ein neuer
+ *  Plan legt per Bulk-INSERT komplett neue `plan_cards`-Zeilen an (und
+ *  löscht/deaktiviert ggf. bestehende, s. useCreateTrainingPlan.ts). Die
+ *  RLS auf `plan_cards` (0011) erlaubt das ausschließlich dem Athleten
+ *  selbst — Trainer darf dort nur UPDATE (kein INSERT/DELETE), Admin hat
+ *  gar keine Policy. Vor Issue #103 zeigte "+ Neuer Plan" den Button auch
+ *  für Trainer/Admin, der Bulk-Insert scheiterte dann an der RLS (403,
+ *  Rollback greift zwar, aber der Button war dead UI). */
 export function useCanCreatePlan(athleteId: string) {
-  const { canWrite, isLoading } = useCanWriteForAthlete(athleteId);
-  return { canCreatePlan: canWrite, isLoading };
+  const { isSelf, isLoading } = useIsSelfAthlete(athleteId);
+  return { canCreatePlan: isSelf, isLoading };
 }
 
 /** Ist der angezeigte Athlet der eingeloggte User selbst? Für Dialoge, die

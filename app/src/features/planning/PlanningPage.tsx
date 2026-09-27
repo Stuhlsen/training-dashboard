@@ -57,7 +57,7 @@ import { ProposalBanner } from "./ProposalBanner";
 import { ProposalList } from "./ProposalList";
 import { ProposalCompare } from "./ProposalCompare";
 import { TrainerBar } from "./TrainerBar";
-import { isTrainerProposalMode, type SaveMode } from "./trainer-bar-view-model";
+import { canEditPlanCards, isTrainerProposalMode, type SaveMode } from "./trainer-bar-view-model";
 import { WeekGrid } from "./WeekGrid";
 import { WeekGridDetailRow } from "./WeekGridDetailRow";
 import { buildWeekGrid } from "./week-grid-view-model";
@@ -245,14 +245,10 @@ export function PlanningPage() {
     const rides = (rideData?.rides as Ride[] | undefined) ?? [];
     return buildPlanningSections(cards ?? [], rides, TODAY, derivedSets);
   }, [cards, rideData, derivedSets]);
-  // Editierbarkeit entscheidet allein die Autorisierung: `canWrite` deckt
-  // Self + Trainer + Admin ab (Trainer speichern über den Vorschlagspfad,
-  // trainerProposalMode). Für alle Athleten dieselbe Regel — jeder mit
-  // echtem Login editiert seinen eigenen Plan.
-  const editable = canWrite;
   // „Plan verschieben" ist self-only: der Offset lebt auf der eigenen
   // profiles-Zeile (RLS), ein Trainer kann ihn nicht für den Athleten setzen.
   const { isSelf } = useIsSelfAthlete(activeAthleteId);
+  const editable = canEditPlanCards(isSelf, isTrainer);
   const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
 
   // Intervall-Kadenzziel: session-gebunden, greift nur beim Blick auf den
@@ -530,13 +526,14 @@ export function PlanningPage() {
         <h1 style={{ margin: 0, fontFamily: "var(--font-disp)", fontSize: "1.6rem", fontWeight: 600, color: "var(--ink)" }}>
           Planungstab
         </h1>
-        {/* Schreibrechte für einen fremden Athleten ohne Trainer-Beziehung ⇒
-            der Betrachter ist Admin. Das sichtbar machen, damit die Schreib-
-            Knöpfe (Neuer Plan, + Karte …) nicht wie eine normale Athleten-
-            oder Trainer-Sicht wirken. */}
+        {/* canWrite (Self+Trainer+Admin) ohne Self/Trainer ⇒ der Betrachter
+            ist Admin. plan_cards hat keine is_admin()-RLS-Policy (Issue #103)
+            — die Ansicht ist für Admin rein lesend (editable=false oben),
+            das hier sichtbar machen, damit die fehlenden Schreib-Knöpfe nicht
+            wie eine defekte Athleten-/Trainer-Sicht wirken. */}
         {canWrite && !isSelf && !isTrainer && (
           <span
-            title="Du bist als Admin eingeloggt. Schreibaktionen für diesen Athleten stehen dir nur in dieser Rolle offen — nicht als der Athlet selbst oder als sein Trainer."
+            title="Du bist als Admin eingeloggt. Die Trainingsplanung ist für dich hier rein lesend — Admin hat keine Schreibrechte auf Trainingskarten, weder als der Athlet selbst noch als sein Trainer."
             style={{
               display: "inline-flex",
               alignItems: "center",

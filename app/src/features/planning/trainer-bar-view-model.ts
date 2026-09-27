@@ -41,6 +41,17 @@ export function isTrainerProposalMode(isTrainer: boolean, saveMode: SaveMode): b
   return isTrainer && saveMode === "proposal";
 }
 
+/** Editierbarkeit des Planungstabs — bewusst OHNE Admin (Issue #103):
+ *  `plan_cards` hat keine `is_admin()`-RLS-Policy (0011_plan_cards_trainer_-
+ *  update_only.sql), Admin schreibt hier also nie, unabhängig vom
+ *  generischen `canWriteForAthlete()`-Gate (Self+Trainer+Admin). Trainer
+ *  bleibt drin: direktes Ändern/Verschieben ist per RLS erlaubt (UPDATE),
+ *  Anlegen/Löschen läuft ohnehin über den Vorschlagspfad
+ *  (isTrainerProposalMode), nicht über dieses Gate. */
+export function canEditPlanCards(isSelf: boolean, isTrainer: boolean): boolean {
+  return isSelf || isTrainer;
+}
+
 /** T2 (Trainer-Sicht-Konzept §3): Neuanlage ist für den Trainer IMMER
  *  Vorschlag, unabhängig vom Umschalter — nur bei einer BESTEHENDEN Karte
  *  entscheidet saveMode. Port von ui/plan-card-dialog.js:378-382. */

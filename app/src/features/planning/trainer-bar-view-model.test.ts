@@ -3,6 +3,7 @@ import {
   CATEGORY_LABELS,
   DEFAULT_CATEGORIES,
   OPTIONAL_CATEGORIES,
+  canEditPlanCards,
   checkinToday,
   governorColor,
   isTrainerCardProposalMode,
@@ -43,6 +44,20 @@ describe("isTrainerCardProposalMode (T2)", () => {
   it("kein Trainer-Speichern → immer false", () => {
     expect(isTrainerCardProposalMode(false, false, "proposal")).toBe(false);
     expect(isTrainerCardProposalMode(false, true, "proposal")).toBe(false);
+  });
+});
+
+describe("canEditPlanCards (Issue #103: plan_cards hat keine is_admin()-RLS-Policy)", () => {
+  it("Athlet selbst → editierbar", () => {
+    expect(canEditPlanCards(true, false)).toBe(true);
+  });
+
+  it("Trainer des Athleten → editierbar (RLS erlaubt UPDATE direkt, Anlegen/Löschen läuft über Vorschläge)", () => {
+    expect(canEditPlanCards(false, true)).toBe(true);
+  });
+
+  it("weder Self noch Trainer (Admin oder fremder Betrachter) → NICHT editierbar", () => {
+    expect(canEditPlanCards(false, false)).toBe(false);
   });
 });
 
