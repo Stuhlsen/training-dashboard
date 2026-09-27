@@ -34,7 +34,7 @@ import { projectLoad } from "../../core/projection.js";
 import { athleteConfig, RETEST_DATE, weekIndex } from "../../config";
 import { resolvePlanningFtp } from "../planning/planning-view-model";
 import { buildBriefingInfo, doneDatesOf, type HeroBriefing, type HeroBriefingSignal } from "../hero/hero-view-model";
-import { LEVEL_COLOR } from "../hero/BriefingCard";
+import { LEVEL_COLOR } from "../hero/briefing-levels";
 import { TraceCard } from "../../charts/TraceCard";
 import { PowerCurveTraceCard } from "../../charts/PowerCurveTraceCard";
 import { LegacyKpiAppendix } from "./LegacyKpiAppendix";
