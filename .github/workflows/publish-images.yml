@@ -161,6 +161,11 @@ jobs:
   # 26.08.2026 sind Commit-Nachrichten deshalb bewusst Englisch (s. AGENTS.md
   # "Commit-Konvention") — ältere Releases/Commits vor diesem Datum bleiben
   # deutsch, keine rückwirkende Umbenennung.
+  #
+  # Migrations-Abschnitt (Issue #69): listet die seit dem letzten Tag neu
+  # hinzugekommenen supabase/migrations/*.sql, damit apps01/Tony beim
+  # Deployment ohne manuelles Nachschlagen sieht, welche Migrationen zu
+  # diesem Release gehören.
   release:
     needs: [frontend, sync, migrate, admin-api]
     if: startsWith(github.ref, 'refs/tags/v')
@@ -195,6 +200,19 @@ jobs:
                 echo ""
               fi
             done
+            if [ -n "$PREV_TAG" ]; then
+              NEW_MIGRATIONS=$(git diff --name-only --diff-filter=A "$RANGE" -- supabase/migrations/ \
+                | xargs -n1 basename 2>/dev/null | sort)
+            else
+              NEW_MIGRATIONS=$(git ls-tree -r --name-only "$GITHUB_REF_NAME" -- supabase/migrations/ \
+                | xargs -n1 basename 2>/dev/null | sort)
+            fi
+            if [ -n "$NEW_MIGRATIONS" ]; then
+              echo "### Migrations"
+              echo ""
+              echo "$NEW_MIGRATIONS" | sed 's/^/- /'
+              echo ""
+            fi
             if [ -n "$PREV_TAG" ]; then
               echo "**Full Changelog**: https://github.com/${GITHUB_REPOSITORY}/compare/${PREV_TAG}...${GITHUB_REF_NAME}"
             fi
