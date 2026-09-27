@@ -29,8 +29,7 @@ create policy "bikes_select_owner_coach_admin" on public.bikes
 -- Oeffentliche Sicht ohne notes — laeuft mit den Rechten des View-Erstellers
 -- (bypasst damit bewusst die oben verschaerfte Zeilen-Policy fuer genau diese
 -- Spaltenauswahl), matcht OF-6 ("alle Betrachter sehen die Liste").
-create or replace view public.bikes_public
-with (security_invoker = off) as
+create or replace view public.bikes_public as
   select id, profile_id, name, bike_type, crank_length_mm, created_at, updated_at
   from public.bikes;
 
