@@ -15,7 +15,7 @@ export const FITNESS_H = 120;
 export const FORM_H = 110;
 
 /** Angenommene Darstellungsbreite der Kurve (px) — nur für den Mindestabstand
- *  der Achsenbeschriftung (Chart-Label-Konvention, AGENTS.md). */
+ *  der Achsenbeschriftung (Chart-Label-Konvention, .claude/skills/chart-labels). */
 const AXIS_RENDER_PX = 480;
 const AXIS_MIN_PX = 60;
 

@@ -12,6 +12,16 @@
   durchgehen, je eine Empfehlung geben, auf Alex' Antwort warten. Die
   Ideen-Fahrpläne aus `planning/ideen-backlog.md` sind so entstanden; ihre
   offenen Fragen werden vor der Umsetzung ebenso gegrillt.
+- **chart-labels** (`.claude/skills/chart-labels`) — Label-/Datums-/
+  Merge-Konvention für Charts; nutzen statt in `AGENTS.md` nachzuschlagen,
+  sobald `app/src/charts/` oder eine Chart-Komponente in `app/src/features/*`
+  geändert wird.
+- **sync-pipeline** (`.claude/skills/sync-pipeline`) — Datenquellen-Mix,
+  `athlete_sync_config`, Secrets-Layout, Supabase-Migrationsworkflow,
+  RLS-Testsuite; nutzen bei Änderungen unter `scripts/`, `scripts/lib/` oder
+  `supabase/migrations/`.
+- **playwright-mcp** (`.claude/skills/playwright-mcp`) — kanonische Quelle für
+  Einsatz-/Nicht-Einsatzregeln, s. „MCP-Tools" unten.
 - Vor neuer Datei in `app/src/core|api|hooks|features|components|charts/…`
   prüfen, ob ein Skill oder bestehendes Modul die Aufgabe schon abdeckt —
   nicht parallel neu erfinden.
@@ -19,28 +29,10 @@
 ## MCP-Tools
 
 - **Playwright MCP** (`.mcp.json`, projektlokal, `npx @playwright/mcp@latest`,
-  bereits eingerichtet und committet) — gemäß `AGENTS.md` als **letztes
-  Mittel** einsetzen, nicht als Standard-Reflex. Vor jedem Einsatz prüfen, ob
-  ein Unit-Test dieselbe Eigenschaft zuverlässig belegen kann; Playwright ist
-  für UI-nahe Bugs, Race Conditions und anderes Laufzeitverhalten reserviert,
-  das sich nicht gleichwertig durch einen Unit-Test prüfen lässt. Die
-  detaillierten Einsatz- und Nicht-Einsatzregeln in `AGENTS.md` sind dafür
-  die kanonische Quelle.
-  - **Kann:** echten Browser steuern (Navigation, Klicks, Formulare,
-    Drag-Gesten über Pointer-Events), Accessibility-Snapshot statt
-    Screenshot bevorzugen (`browser_snapshot`), Konsole und Netzwerk-Requests
-    einsehen, Laufzeit-Zustand direkt inspizieren via `browser_evaluate` mit
-    dynamischem `import()` der laufenden App-Module (liefert echten
-    In-Memory-State aus `app/src/api/`/React-Query-Caches, nicht nur den
-    DOM-Ausschnitt).
-  - **Bleibt manuell bei Alex:** die finale Bestätigung im echten Browser vor
-    jedem `git sync`; echte Multi-Step-Zeigergesten, falls synthetische
-    Pointer-Events einen Unterschied machen könnten — beim Drag-Freeze-Bug
-    (Juli 2026) ließ sich das Symptom mit einer einfachen Zwei-Schritt-
-    Pointer-Simulation nicht reproduzieren, blieb aber ein offener Punkt bis
-    zur manuellen Bestätigung.
-  - `.playwright-mcp/` (Snapshot-/Konsolen-Dumps aus Diagnose-Sessions) ist
-    gitignored — kein Quellcode, nicht committen.
+  bereits eingerichtet und committet) — Einsatz-/Nicht-Einsatzregeln,
+  Fähigkeiten/Grenzen und Session-Disziplin: `.claude/skills/playwright-mcp`
+  (kanonische Quelle, als **letztes Mittel** einsetzen, nicht als
+  Standard-Reflex).
 
 ## Vor jeder Aufgabe
 

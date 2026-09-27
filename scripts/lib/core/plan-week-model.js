@@ -76,43 +76,193 @@ const ATHLETE1_WEEKS = PLAN2_SCHEDULE.map((w) => ({
 /** Athlet 2 — GFNY Bremen 2026 (scripts/lib/plan-athlete2.js). Renntag
  *  So 30.08. (KW35). Wochen-Keys ohne Jahrespräfix wie im Plan. */
 const ATHLETE2_WEEKS = /** @type {PlanWeekEntry[]} */ ([
-  { week: "KW23", phase: "Basis", start: "2026-06-01", end: "2026-06-07", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW24", phase: "Basis", start: "2026-06-08", end: "2026-06-14", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW25", phase: "Basis", start: "2026-06-15", end: "2026-06-21", trainingWeekdays: [2, 3, 4, 5, 6] }, // NLS6 Eifel Trophy: Do–Sa Renn-Trip, So frei
-  { week: "KW26", phase: "Basis", start: "2026-06-22", end: "2026-06-28", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW27", phase: "Aufbau", start: "2026-06-29", end: "2026-07-05", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW28", phase: "Aufbau", start: "2026-07-06", end: "2026-07-12", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW29", phase: "Aufbau", start: "2026-07-13", end: "2026-07-19", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW30", phase: "Aufbau", start: "2026-07-20", end: "2026-07-26", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW31", phase: "Rennhärte", start: "2026-07-27", end: "2026-08-02", trainingWeekdays: [2, 3, 4, 5, 6] }, // NLS7 Ruhr-Pokal: Do–Sa Renn-Trip, So frei
-  { week: "KW32", phase: "Rennhärte", start: "2026-08-03", end: "2026-08-09", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW33", phase: "Rennhärte", start: "2026-08-10", end: "2026-08-16", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW34", phase: "Rennhärte", start: "2026-08-17", end: "2026-08-23", trainingWeekdays: [2, 3, 4, 6, 7] },
-  { week: "KW35", phase: "Taper", start: "2026-08-24", end: "2026-08-30", trainingWeekdays: [2, 3, 4, 5, 7] }, // Fr 28.08. = Notiz-Karte (RUH2), Sa 29.08. bewusst frei, So 30.08. Renntag
+  {
+    week: "KW23",
+    phase: "Basis",
+    start: "2026-06-01",
+    end: "2026-06-07",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW24",
+    phase: "Basis",
+    start: "2026-06-08",
+    end: "2026-06-14",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW25",
+    phase: "Basis",
+    start: "2026-06-15",
+    end: "2026-06-21",
+    trainingWeekdays: [2, 3, 4, 5, 6],
+  }, // NLS6 Eifel Trophy: Do–Sa Renn-Trip, So frei
+  {
+    week: "KW26",
+    phase: "Basis",
+    start: "2026-06-22",
+    end: "2026-06-28",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW27",
+    phase: "Aufbau",
+    start: "2026-06-29",
+    end: "2026-07-05",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW28",
+    phase: "Aufbau",
+    start: "2026-07-06",
+    end: "2026-07-12",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW29",
+    phase: "Aufbau",
+    start: "2026-07-13",
+    end: "2026-07-19",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW30",
+    phase: "Aufbau",
+    start: "2026-07-20",
+    end: "2026-07-26",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW31",
+    phase: "Rennhärte",
+    start: "2026-07-27",
+    end: "2026-08-02",
+    trainingWeekdays: [2, 3, 4, 5, 6],
+  }, // NLS7 Ruhr-Pokal: Do–Sa Renn-Trip, So frei
+  {
+    week: "KW32",
+    phase: "Rennhärte",
+    start: "2026-08-03",
+    end: "2026-08-09",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW33",
+    phase: "Rennhärte",
+    start: "2026-08-10",
+    end: "2026-08-16",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW34",
+    phase: "Rennhärte",
+    start: "2026-08-17",
+    end: "2026-08-23",
+    trainingWeekdays: [2, 3, 4, 6, 7],
+  },
+  {
+    week: "KW35",
+    phase: "Taper",
+    start: "2026-08-24",
+    end: "2026-08-30",
+    trainingWeekdays: [2, 3, 4, 5, 7],
+  }, // Fr 28.08. = Notiz-Karte (RUH2), Sa 29.08. bewusst frei, So 30.08. Renntag
 ]);
 
 /** Athlet 4 — Einsteigervorlage „bentastiic" (scripts/lib/plan-athlete4.js),
  *  12 Wochen ab Mo 2026-08-31 (KW36). Muster Di/Do/Sa/So, Testwoche KW47
  *  ohne Do. */
 const ATHLETE4_WEEKS = /** @type {PlanWeekEntry[]} */ ([
-  { week: "KW36", phase: "Einstieg", start: "2026-08-31", end: "2026-09-06", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW37", phase: "Einstieg", start: "2026-09-07", end: "2026-09-13", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW38", phase: "Einstieg", start: "2026-09-14", end: "2026-09-20", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW39", phase: "Erholung", start: "2026-09-21", end: "2026-09-27", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW40", phase: "Grundlagen", start: "2026-09-28", end: "2026-10-04", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW41", phase: "Grundlagen", start: "2026-10-05", end: "2026-10-11", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW42", phase: "Grundlagen", start: "2026-10-12", end: "2026-10-18", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW43", phase: "Erholung", start: "2026-10-19", end: "2026-10-25", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW44", phase: "Steigerung", start: "2026-10-26", end: "2026-11-01", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW45", phase: "Steigerung", start: "2026-11-02", end: "2026-11-08", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW46", phase: "Steigerung", start: "2026-11-09", end: "2026-11-15", trainingWeekdays: [2, 4, 6, 7] },
-  { week: "KW47", phase: "Test", start: "2026-11-16", end: "2026-11-22", trainingWeekdays: [2, 6, 7] }, // Do frei (Testwoche)
+  {
+    week: "KW36",
+    phase: "Einstieg",
+    start: "2026-08-31",
+    end: "2026-09-06",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW37",
+    phase: "Einstieg",
+    start: "2026-09-07",
+    end: "2026-09-13",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW38",
+    phase: "Einstieg",
+    start: "2026-09-14",
+    end: "2026-09-20",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW39",
+    phase: "Erholung",
+    start: "2026-09-21",
+    end: "2026-09-27",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW40",
+    phase: "Grundlagen",
+    start: "2026-09-28",
+    end: "2026-10-04",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW41",
+    phase: "Grundlagen",
+    start: "2026-10-05",
+    end: "2026-10-11",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW42",
+    phase: "Grundlagen",
+    start: "2026-10-12",
+    end: "2026-10-18",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW43",
+    phase: "Erholung",
+    start: "2026-10-19",
+    end: "2026-10-25",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW44",
+    phase: "Steigerung",
+    start: "2026-10-26",
+    end: "2026-11-01",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW45",
+    phase: "Steigerung",
+    start: "2026-11-02",
+    end: "2026-11-08",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW46",
+    phase: "Steigerung",
+    start: "2026-11-09",
+    end: "2026-11-15",
+    trainingWeekdays: [2, 4, 6, 7],
+  },
+  {
+    week: "KW47",
+    phase: "Test",
+    start: "2026-11-16",
+    end: "2026-11-22",
+    trainingWeekdays: [2, 6, 7],
+  }, // Do frei (Testwoche)
 ]);
 
 /**
  * Plan-Wochen je Athlet. Schlüssel = interne Athleten-ID (app/src/config.ts
  * → athletes[].id). Die interne ID `athlete3` ist reserviert, aber nicht
- * verdrahtet (s. AGENTS.md „Athleten").
+ * verdrahtet (s. AGENTS.md „Athleten & Trainingspläne").
  * @type {Record<string, PlanWeekEntry[]>}
  */
 export const PLAN_WEEK_MODEL = {
@@ -191,6 +341,12 @@ export function planWeekFor(athleteId, dateISO, offsetWeeks = 0, weekModel = nul
  * @param {PlanWeekEntry[]|null} [weekModel] s. planWeekFor() (Fahrplan 8 E7)
  * @returns {boolean}
  */
-export function isDeliberateRestDay(athleteId, dateISO, hasActiveCard, offsetWeeks = 0, weekModel = null) {
+export function isDeliberateRestDay(
+  athleteId,
+  dateISO,
+  hasActiveCard,
+  offsetWeeks = 0,
+  weekModel = null
+) {
   return planWeekFor(athleteId, dateISO, offsetWeeks, weekModel).isRestSlot && !hasActiveCard;
 }

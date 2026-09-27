@@ -79,18 +79,20 @@ const ATHLETES = [
     file: "data/rides.json",
     email: ENV.SUPABASE_ATHLETE1_EMAIL,
     password: ENV.SUPABASE_ATHLETE1_PASSWORD,
-    fallbackFtp: 193, // CONFIG.ftp, s. AGENTS.md "Athleten"
+    fallbackFtp: 193, // CONFIG.ftp, s. AGENTS.md "Athleten & Trainingspläne"
   },
   {
     id: "athlete2",
     file: "data/rides-2.json",
     email: ENV.SUPABASE_ATHLETE2_EMAIL,
     password: ENV.SUPABASE_ATHLETE2_PASSWORD,
-    fallbackFtp: 265, // ATHLETE_2_FTP, s. AGENTS.md "Athleten"
+    fallbackFtp: 265, // ATHLETE_2_FTP, s. AGENTS.md "Athleten & Trainingspläne"
   },
 ];
 
-const intervalBlockCache = JSON.parse(readFileSync(path.join(ROOT, "data/interval-blocks.json"), "utf8"));
+const intervalBlockCache = JSON.parse(
+  readFileSync(path.join(ROOT, "data/interval-blocks.json"), "utf8")
+);
 
 // Heuristische Zuordnung Ist-Typ → Startformat (D1). Nur die vier über
 // ride.typ unterscheidbaren Zielsysteme — over-under/sprint-accessory
@@ -124,7 +126,9 @@ function mergePlannedCards(plannedSessions, adjustments) {
  *  @returns {number|null} */
 function actualNextWeekRamp(rides, dateIso) {
   const ctlAt = (targetIso) => {
-    const before = rides.filter((r) => r.dateISO <= targetIso).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    const before = rides
+      .filter((r) => r.dateISO <= targetIso)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     return before.length ? before[before.length - 1].ctl : null;
   };
   const start = ctlAt(dateIso);
@@ -185,15 +189,30 @@ async function runAthlete({ id: athleteId, file, email, password, fallbackFtp })
     // Nur "alert" (objektiv rot) zählt als Governor-Sperre — "caution"/
     // "nodata" bleiben ungesperrt (dieselbe Asymmetrie wie im Live-Governor:
     // nur ein klares Rot bremst, s. core/briefing.js::governLevel).
-    const governorLevel = rSignal.status === "alert" ? "red" : rSignal.status === "ok" ? "green" : null;
+    const governorLevel =
+      rSignal.status === "alert" ? "red" : rSignal.status === "ok" ? "green" : null;
     const projectedRampCtl = actualNextWeekRamp(rides, ride.dateISO);
 
     const alreadyUpgradedThisWeek = upgradedWeekByFormat.get(formatId)?.has(week) ?? false;
-    const locks = evaluateLocks({ isRecoveryWeek, governorLevel, projectedRampCtl, alreadyUpgradedThisWeek });
-    const action = nextStep({ rating: ride.compliance.rating, rpe: ride.rpe ?? null, locked: locks.locked });
+    const locks = evaluateLocks({
+      isRecoveryWeek,
+      governorLevel,
+      projectedRampCtl,
+      alreadyUpgradedThisWeek,
+    });
+    const action = nextStep({
+      rating: ride.compliance.rating,
+      rpe: ride.rpe ?? null,
+      locked: locks.locked,
+    });
 
     const stepBefore = stepByFormat.get(formatId) ?? 1;
-    const stepAfter = action === "up" ? stepBefore + 1 : action === "down" ? Math.max(1, stepBefore - 1) : stepBefore;
+    const stepAfter =
+      action === "up"
+        ? stepBefore + 1
+        : action === "down"
+          ? Math.max(1, stepBefore - 1)
+          : stepBefore;
     stepByFormat.set(formatId, stepAfter);
     if (action === "up") {
       if (!upgradedWeekByFormat.has(formatId)) upgradedWeekByFormat.set(formatId, new Set());
@@ -224,26 +243,41 @@ async function runAthlete({ id: athleteId, file, email, password, fallbackFtp })
     if (ramp > 8) rampOverThreshold++;
   }
 
-  return { athleteId, windowStart, anchor, rows, rampChecks, rampOverThreshold, recoveryWeeks: [...recoveryWeeks] };
+  return {
+    athleteId,
+    windowStart,
+    anchor,
+    rows,
+    rampChecks,
+    rampOverThreshold,
+    recoveryWeeks: [...recoveryWeeks],
+  };
 }
 
 function printReport(result) {
-  console.log(`\n=== ${result.athleteId} — Trockenlauf ${result.windowStart} bis ${result.anchor} ===`);
+  console.log(
+    `\n=== ${result.athleteId} — Trockenlauf ${result.windowStart} bis ${result.anchor} ===`
+  );
   console.log(`Geplante Erholungswochen im Fenster: ${result.recoveryWeeks.join(", ") || "keine"}`);
   console.log(
-    `Rampenschwelle (>8 Punkte) über ${result.rampChecks} Wochengrenzen im Fenster: ${result.rampOverThreshold}× überschritten`,
+    `Rampenschwelle (>8 Punkte) über ${result.rampChecks} Wochengrenzen im Fenster: ${result.rampOverThreshold}× überschritten`
   );
   if (!result.rows.length) {
     console.log("Keine Fahrt mit ride.compliance im Betrachtungsfenster — nichts zu simulieren.");
     return;
   }
-  console.log("\nDatum       | Format           | Ampel  | Regel                     | Stufe      | Sperre | Herkunft   | Gründe");
+  console.log(
+    "\nDatum       | Format           | Ampel  | Regel                     | Stufe      | Sperre | Herkunft   | Gründe"
+  );
   console.log("-".repeat(125));
   for (const r of result.rows) {
-    const stepCol = r.stepBefore === r.stepAfter ? `${r.stepBefore} → ${r.stepAfter} (halten)` : `${r.stepBefore} → ${r.stepAfter}`;
+    const stepCol =
+      r.stepBefore === r.stepAfter
+        ? `${r.stepBefore} → ${r.stepAfter} (halten)`
+        : `${r.stepBefore} → ${r.stepAfter}`;
     const herkunft = r.derived ? "abgeleitet" : "echt";
     console.log(
-      `${r.date}  | ${r.format.padEnd(16)} | ${r.rating.padEnd(6)} | ${(r.rule ?? "–").padEnd(25)} | ${stepCol.padEnd(10)} | ${r.locked.padEnd(6)} | ${herkunft.padEnd(10)} | ${r.lockReasons}`,
+      `${r.date}  | ${r.format.padEnd(16)} | ${r.rating.padEnd(6)} | ${(r.rule ?? "–").padEnd(25)} | ${stepCol.padEnd(10)} | ${r.locked.padEnd(6)} | ${herkunft.padEnd(10)} | ${r.lockReasons}`
     );
   }
   const up = result.rows.filter((r) => r.stepAfter > r.stepBefore).length;

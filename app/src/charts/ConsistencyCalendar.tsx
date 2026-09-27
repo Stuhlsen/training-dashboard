@@ -98,7 +98,7 @@ export function ConsistencyCalendar({ rides, todayISO }: ConsistencyCalendarProp
   // Variable innerhalb des JSX-`.map()` unten, s. react-hooks/immutability).
   // Bei vielen Wochen (schmale Zellen) liegen Monatswechsel enger als ihre
   // Labelbreite zusammen und überlappen sich — Ausdünnung nach der
-  // Chart-Label-Konvention (AGENTS.md), analog zu den anderen Charts, statt
+  // Chart-Label-Konvention (.claude/skills/chart-labels), analog zu den anderen Charts, statt
   // jeden Wechsel ungeachtet des verfügbaren Platzes zu zeichnen (Review-
   // Kommentar 23.08.2026: "wird unübersichtlich, Text überlagert").
   const monthOf = wc.weeks.map((w) => new Date(`${w.monday}T00:00:00`).getMonth());
