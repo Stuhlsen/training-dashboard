@@ -14,18 +14,18 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Profile } from "./types";
 
-let getProfileByDisplayNameCalls = 0;
+let getProfileCalls = 0;
 
 vi.mock("./supabase/profiles", () => ({
   findProfileIdByDisplayName: async (name: string) => ({
     ok: true,
     id: name === "hc_diZee" ? "profile-uuid-dizee" : "profile-uuid-stuhlsen",
   }),
-  getProfileByDisplayName: async (name: string) => {
-    getProfileByDisplayNameCalls++;
-    return name === "hc_diZee"
+  getProfile: async (id: string) => {
+    getProfileCalls++;
+    return id === "profile-uuid-dizee"
       ? { ok: true, profile: { id: "profile-uuid-dizee", coachId: "coach-uuid-dz" } }
-      : { ok: true, profile: { id: "profile-uuid-stuhlsen", coachId: "coach-uuid-st" } };
+      : { ok: true, profile: { id, coachId: "coach-uuid-st" } };
   },
 }));
 
@@ -53,7 +53,7 @@ let qc = createQueryClient();
 
 beforeEach(() => {
   qc = createQueryClient();
-  getProfileByDisplayNameCalls = 0;
+  getProfileCalls = 0;
 });
 
 describe("canWriteForAthlete", () => {
@@ -63,7 +63,7 @@ describe("canWriteForAthlete", () => {
 
   it("Athlet betrachtet die eigene Seite → true, ohne Trainer-Lookup", async () => {
     expect(await canWriteForAthlete(qc, STUHLSEN, "athlete1")).toBe(true);
-    expect(getProfileByDisplayNameCalls).toBe(0);
+    expect(getProfileCalls).toBe(0);
   });
 
   it("eingeloggter Athlet ohne Beziehung zum angezeigten Athleten → false", async () => {
@@ -72,7 +72,7 @@ describe("canWriteForAthlete", () => {
 
   it("ein Nicht-Coach löst gar keinen Trainer-Lookup aus", async () => {
     await canWriteForAthlete(qc, STUHLSEN, "athlete2");
-    expect(getProfileByDisplayNameCalls).toBe(0);
+    expect(getProfileCalls).toBe(0);
   });
 
   it("Trainer des angezeigten Athleten → true", async () => {
@@ -120,26 +120,30 @@ describe("isSelfAthlete", () => {
 
 describe("resolveTrainerContext", () => {
   it("nicht eingeloggt → isTrainer:false, kein Lookup", async () => {
-    expect(await resolveTrainerContext(null, "athlete1")).toEqual({ isTrainer: false, athleteProfileId: null });
-    expect(getProfileByDisplayNameCalls).toBe(0);
+    expect(await resolveTrainerContext(null, "profile-uuid-dizee")).toEqual({ isTrainer: false, athleteProfileId: null });
+    expect(getProfileCalls).toBe(0);
   });
 
   it("ein Nicht-Coach löst keinen Lookup aus", async () => {
-    expect(await resolveTrainerContext(STUHLSEN, "athlete2")).toEqual({ isTrainer: false, athleteProfileId: null });
-    expect(getProfileByDisplayNameCalls).toBe(0);
+    expect(await resolveTrainerContext(STUHLSEN, "profile-uuid-dizee")).toEqual({ isTrainer: false, athleteProfileId: null });
+    expect(getProfileCalls).toBe(0);
   });
 
   it("Trainer des angezeigten Athleten → isTrainer:true + korrekte athleteProfileId", async () => {
-    expect(await resolveTrainerContext(COACH_DZ, "athlete2")).toEqual({
+    expect(await resolveTrainerContext(COACH_DZ, "profile-uuid-dizee")).toEqual({
       isTrainer: true,
       athleteProfileId: "profile-uuid-dizee",
     });
   });
-
   it("Trainer eines ANDEREN Athleten → isTrainer:false, athleteProfileId trotzdem gefüllt", async () => {
-    expect(await resolveTrainerContext(COACH_ST, "athlete2")).toEqual({
+    expect(await resolveTrainerContext(COACH_ST, "profile-uuid-dizee")).toEqual({
       isTrainer: false,
       athleteProfileId: "profile-uuid-dizee",
     });
+  });
+
+  it("null athleteProfileId → isTrainer:false, kein Lookup", async () => {
+    expect(await resolveTrainerContext(COACH_DZ, null)).toEqual({ isTrainer: false, athleteProfileId: null });
+    expect(getProfileCalls).toBe(0);
   });
 });

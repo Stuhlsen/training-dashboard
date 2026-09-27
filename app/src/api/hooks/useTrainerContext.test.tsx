@@ -19,12 +19,31 @@
 import { renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-let getProfileByDisplayNameCalls = 0;
 let getProfileCalls = 0;
+let findProfileIdByDisplayNameCalls = 0;
 
 vi.mock("../supabase/profiles", () => ({
+  findProfileIdByDisplayName: async (name: string) => {
+    findProfileIdByDisplayNameCalls++;
+    return {
+      ok: true,
+      id: name === "hc_diZee" ? "profile-uuid-dizee" : null,
+    };
+  },
   getProfile: async (id: string) => {
     getProfileCalls++;
+    if (id === "profile-uuid-dizee") {
+      return {
+        ok: true,
+        profile: { id: "profile-uuid-dizee", displayName: null, role: "athlete", coachId: "coach-1" },
+      };
+    }
+    if (id === "profile-uuid-stuhlsen") {
+      return {
+        ok: true,
+        profile: { id: "profile-uuid-stuhlsen", displayName: null, role: "athlete", coachId: "irgendein-anderer-coach" },
+      };
+    }
     return {
       ok: true,
       profile: {
@@ -38,20 +57,14 @@ vi.mock("../supabase/profiles", () => ({
       },
     };
   },
-  getProfileByDisplayName: async (name: string) => {
-    getProfileByDisplayNameCalls++;
-    return name === "hc_diZee"
-      ? { ok: true, profile: { id: "profile-uuid-dizee", coachId: "coach-1" } }
-      : { ok: true, profile: { id: "profile-uuid-stuhlsen", coachId: "irgendein-anderer-coach" } };
-  },
 }));
 
 const { createHarness } = await import("../../test/harness");
 const { useTrainerContext } = await import("./useTrainerContext");
 
 beforeEach(() => {
-  getProfileByDisplayNameCalls = 0;
   getProfileCalls = 0;
+  findProfileIdByDisplayNameCalls = 0;
 });
 
 describe("useTrainerContext", () => {
@@ -63,7 +76,7 @@ describe("useTrainerContext", () => {
     // Beleg, dass der ganze Ladepfad einmal durchlief.
     await waitFor(() => expect(getProfileCalls).toBe(1));
     expect(view.result.current.isTrainer).toBe(false);
-    expect(getProfileByDisplayNameCalls).toBe(0);
+    expect(getProfileCalls).toBe(1);
   });
 
   it("Coach mit Match → isTrainer:true + korrekte athleteProfileId", async () => {
@@ -76,7 +89,7 @@ describe("useTrainerContext", () => {
   it("Coach ohne Match → isTrainer:false", async () => {
     const { wrapper } = createHarness({ userId: "coach-1" });
     const view = renderHook(() => useTrainerContext("athlete1"), { wrapper });
-    await waitFor(() => expect(getProfileByDisplayNameCalls).toBe(1));
+    await waitFor(() => expect(findProfileIdByDisplayNameCalls).toBe(1));
     expect(view.result.current.isTrainer).toBe(false);
   });
 
@@ -92,7 +105,7 @@ describe("useTrainerContext", () => {
     // Neuer Key (anderer athleteId) → eigener, noch leerer Cache-Eintrag,
     // kein Leck des "true" vom vorherigen Athleten während des Ladens.
     expect(view.result.current.isTrainer).toBe(false);
-    await waitFor(() => expect(getProfileByDisplayNameCalls).toBe(2));
+    await waitFor(() => expect(findProfileIdByDisplayNameCalls).toBe(2));
     expect(view.result.current.isTrainer).toBe(false);
   });
 
@@ -101,7 +114,7 @@ describe("useTrainerContext", () => {
     const view = renderHook(() => useTrainerContext("athlete2"), { wrapper });
     await waitFor(() => expect(view.result.current.isLoading).toBe(false));
     expect(view.result.current.isTrainer).toBe(false);
-    expect(getProfileByDisplayNameCalls).toBe(0);
+    expect(findProfileIdByDisplayNameCalls).toBe(1);
     expect(getProfileCalls).toBe(0);
   });
 });
