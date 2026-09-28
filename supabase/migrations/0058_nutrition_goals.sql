@@ -39,7 +39,7 @@
 --   Bewusst KEIN updated_at / set_updated_at-Trigger: Zeilen sind
 --   unveränderliche Fakten — ein neues Ziel = neue Zeile.
 --
--- RLS (owner-only, Vorbild bikes/0047 + shoes, aber strikter:
+-- RLS (owner-only, Vorbild bikes/0047, aber strikter:
 --   kein Coach-/Admin-Override — Ziele sind privat pro Athlet per
 --   fahrplan-23-ernaehrung.md E0):
 --   SELECT: nur eigener Athlet (profile_id = auth.uid())
