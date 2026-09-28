@@ -44,8 +44,10 @@
 --   fahrplan-23-ernaehrung.md E0):
 --   SELECT: nur eigener Athlet (profile_id = auth.uid())
 --   INSERT: nur eigener Athlet
---   UPDATE: nur eigener Athlet
 --   DELETE: nur eigener Athlet
+--   KEIN UPDATE: Append-Only — ein neues Ziel = neue Zeile.
+--   Service-Role darf dennoch update für Datenpflege (über
+--   RLS-Bypass, kein Athlet-Pfad).
 --   anon (unauthenticated) bekommt nichts.
 -- ============================================================
 
@@ -70,6 +72,7 @@ create index if not exists nutrition_goals_profile_created_idx
 alter table public.nutrition_goals enable row level security;
 
 -- Policies (strikt owner-only – keine is_coach_of/is_admin-Wege, anders als bikes/0047)
+-- KEIN UPDATE: Append-Only — ein neues Ziel = neue Zeile.
 
 drop policy if exists "nutrition_goals_select_owner" on public.nutrition_goals;
 create policy "nutrition_goals_select_owner"
@@ -81,21 +84,20 @@ create policy "nutrition_goals_insert_owner"
   on public.nutrition_goals for insert to authenticated
   with check (profile_id = auth.uid());
 
-drop policy if exists "nutrition_goals_update_owner" on public.nutrition_goals;
-create policy "nutrition_goals_update_owner"
-  on public.nutrition_goals for update to authenticated
-  using (profile_id = auth.uid())
-  with check (profile_id = auth.uid());
-
 drop policy if exists "nutrition_goals_delete_owner" on public.nutrition_goals;
 create policy "nutrition_goals_delete_owner"
   on public.nutrition_goals for delete to authenticated
   using (profile_id = auth.uid());
 
--- Grants (Vorbild bikes/0047: nur authenticated + service_role, kein anon)
-grant select, insert, update, delete on public.nutrition_goals to authenticated;
+-- Grants: bewusst KEIN update für authenticated (Append-Only, s. Kopfkommentar).
+-- Service-Role behält update für administrative Datenpflege.
+grant select, insert, delete on public.nutrition_goals to authenticated;
 grant select, insert, update, delete on public.nutrition_goals to service_role;
 
+-- PRIVACY REVIEW NEEDED (Finding 2, issue #13): nutrition_goals speichert
+-- neue personenbezogene Gesundheitsdaten (Zielgewicht, Gewichtsänderungs-Tempo,
+-- Zieldatum). RLS ist owner-only und es sind keine Koordinaten oder Standorte
+-- betroffen, aber die Datenkategorie ist neu im Schema. Human sign-off bei Merge.
 -- ============================================================
 -- PRÜFLISTE (dev, dann apps01):
 -- Spalten:  select profile_id, goal_type, target_weight_kg, pace_per_week_kg,
@@ -116,7 +118,8 @@ grant select, insert, update, delete on public.nutrition_goals to service_role;
 --             -> 23514 (check target_weight_kg > 0)
 -- als anon:   nutrition_goals lesen / schreiben -> 42501 (kein GRANT)
 -- als Athlet A:  eigene Zeile anlegen ✓, eigene lesen ✓,
---                eigene aktualisieren ✓, eigene löschen ✓
+--                eigene aktualisieren ✗ (kein update-GRANT für authenticated),
+--                eigene löschen ✓
 -- als Athlet B:  Zeilen von Athlet A lesen -> 0 Treffer (RLS-unsichtbar)
 --                für Athlet A einfügen -> 42501 (WITH CHECK)
 --                Zeilen von Athlet A aktualisieren -> 0 Treffer

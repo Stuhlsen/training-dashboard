@@ -2542,23 +2542,23 @@ if (!HAS_CREDS) {
     assert.equal(stillThere.data.length, 1, "nutrition_goals-Zeile wurde durch Trainer-Operation entfernt");
   });
 
-  test("nutrition_goals: Athlet aktualisiert und löscht eigene Zeile", async (t) => {
+  test("nutrition_goals: Athlet kann NICHT aktualisieren (Append-Only, kein update-GRANT), aber löschen", async (t) => {
     if (ngSkip()) return t.skip(ngSkip());
     const id = await insertNutritionGoalRow({ goal_type: "lose", pace_per_week_kg: -0.5 });
 
-    // Athlet darf eigene Zeile aktualisieren (PATCH liefert 200 mit data: [geänderte Zeile])
+    // Athlet darf NICHT aktualisieren — kein update-GRANT für authenticated.
+    // PostgREST antwortet mit 405 (Method Not Allowed) oder 400.
     const update = await rest("PATCH", `nutrition_goals?id=eq.${id}`, {
       token: athlete.token,
       body: { pace_per_week_kg: -0.3 },
     });
-    assert.equal(update.ok, true);
     assert.equal(
-      update.data?.length ?? 0,
-      1,
-      "Athlet konnte die eigene nutrition_goals-Zeile nicht aktualisieren"
+      update.ok,
+      false,
+      "PATCH an nutrition_goals hätte ohne update-GRANT scheitern müssen"
     );
 
-    // Athlet löscht die eigene Zeile
+    // Athlet löscht die eigene Zeile (weiterhin erlaubt)
     const del = await rest("DELETE", `nutrition_goals?id=eq.${id}`, {
       token: athlete.token,
     });
