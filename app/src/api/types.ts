@@ -504,3 +504,56 @@ export interface CoachExchange {
   /** Nur im Hook/View-Model gefüllt (Join auf proposals), nicht im Adapter-Row-Mapping. */
   outcome?: CoachExchangeOutcome;
 }
+
+/* ── Recipes (Migration 0058, Fahrplan 23 E0) ─────────────────────
+   Shared recipe library. Die DB-Spaltennamen (snake_case) mappt der
+   zukuenftige Adapter (E3) nach camelCase. Ein `contains_tags` von
+   `[]` (Default) bedeutet "unremarkable" — keine Exclusion.          */
+
+export type RecipeSource = 'own' | 'spoonacular' | 'athlete';
+export type RecipeStatus = 'pending' | 'approved' | 'rejected';
+export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+export type DietTag = 'veg' | 'vegan' | 'glutenfrei' | 'omnivor';
+export type AllergenTag =
+  | 'gluten' | 'crustaceans' | 'eggs' | 'fish' | 'peanuts'
+  | 'soybeans' | 'milk' | 'nuts' | 'celery' | 'mustard'
+  | 'sesame' | 'sulphites' | 'lupin' | 'molluscs' | 'sonstiges';
+
+export interface RecipeIngredient {
+  name: string;
+  amount: number;
+  unit: string;
+  category: string;
+}
+
+export interface RecipeInstruction {
+  text: string;
+  timerSeconds?: number;
+}
+
+export interface RecipeNutrition {
+  kcal: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+}
+
+export interface Recipe {
+  id: string;
+  source: RecipeSource;
+  externalId: string | null;
+  submittedBy: string | null;
+  status: RecipeStatus;
+  rejectionReason: string | null;
+  title: string;
+  mealType: MealType[];
+  dietTags: DietTag[];
+  containsTags: AllergenTag[];
+  servings: number;
+  ingredients: RecipeIngredient[];
+  instructions: RecipeInstruction[];
+  nutrition: RecipeNutrition | null;
+  imageUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
+}

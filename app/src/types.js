@@ -224,3 +224,52 @@
  */
 
 export {};
+
+/* ── Recipe types (Migration 0058, Fahrplan 23 E0) ─────────────── */
+
+/**
+ * Ein einzelner Zutateneintrag eines Rezepts.
+ * @typedef {Object} RecipeIngredient
+ * @property {string} name
+ * @property {number} amount
+ * @property {string} unit
+ * @property {string} category  — Einkaufslisten-Gruppierung (E6)
+ */
+
+/**
+ * Ein einzelner Zubereitungsschritt.
+ * @typedef {Object} RecipeInstruction
+ * @property {string} text
+ * @property {number} [timerSeconds]  Timer optional (E0-Schema)
+ */
+
+/**
+ * Nährwerte pro Portion.
+ * @typedef {Object} RecipeNutrition
+ * @property {number} kcal
+ * @property {number} protein
+ * @property {number} carbs
+ * @property {number} fat
+ */
+
+/**
+ * Ein Rezept aus der Shared Library (public.recipes).
+ * @typedef {Object} Recipe
+ * @property {string} id
+ * @property {"own"|"spoonacular"|"athlete"} source
+ * @property {string|null} externalId        Spoonacular-Dedup-Schlüssel
+ * @property {string|null} submittedBy       profile_id, nur bei source='athlete'
+ * @property {"pending"|"approved"|"rejected"} status
+ * @property {string|null} rejectionReason
+ * @property {string} title
+ * @property {Array<"breakfast"|"lunch"|"dinner"|"snack">} mealType
+ * @property {Array<"veg"|"vegan"|"glutenfrei"|"omnivor">} dietTags
+ * @property {Array<"gluten"|"crustaceans"|"eggs"|"fish"|"peanuts"|"soybeans"|"milk"|"nuts"|"celery"|"mustard"|"sesame"|"sulphites"|"lupin"|"molluscs"|"sonstiges">} containsTags
+ * @property {number} servings
+ * @property {RecipeIngredient[]} ingredients
+ * @property {RecipeInstruction[]} instructions
+ * @property {RecipeNutrition|null} nutrition
+ * @property {string|null} imageUrl
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ */
