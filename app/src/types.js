@@ -263,11 +263,11 @@ export {};
  * @property {string|null} rejectionReason
  * @property {string} title
  * @property {Array<"breakfast"|"lunch"|"dinner"|"snack">} mealType
- * @property {Array<"veg"|"vegan"|"glutenfrei"|"omnivor">} dietTags
+ * @property {Array<"veg"|"vegan"|"glutenfrei"|"omnivor">|null} dietTags
  * @property {Array<"gluten"|"crustaceans"|"eggs"|"fish"|"peanuts"|"soybeans"|"milk"|"nuts"|"celery"|"mustard"|"sesame"|"sulphites"|"lupin"|"molluscs"|"sonstiges">} containsTags
  * @property {number} servings
- * @property {RecipeIngredient[]} ingredients
- * @property {RecipeInstruction[]} instructions
+ * @property {RecipeIngredient[]|null} ingredients
+ * @property {RecipeInstruction[]|null} instructions
  * @property {RecipeNutrition|null} nutrition
  * @property {string|null} imageUrl
  * @property {string} createdAt

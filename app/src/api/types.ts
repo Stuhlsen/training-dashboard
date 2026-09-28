@@ -547,11 +547,11 @@ export interface Recipe {
   rejectionReason: string | null;
   title: string;
   mealType: MealType[];
-  dietTags: DietTag[];
+  dietTags: DietTag[] | null;
   containsTags: AllergenTag[];
   servings: number;
-  ingredients: RecipeIngredient[];
-  instructions: RecipeInstruction[];
+  ingredients: RecipeIngredient[] | null;
+  instructions: RecipeInstruction[] | null;
   nutrition: RecipeNutrition | null;
   imageUrl: string | null;
   createdAt: string;

@@ -12,7 +12,7 @@
 -- Teil dieser Migration — sie kommen in einer eigenstaendigen
 -- Folge-Migration.
 --
--- CHECK-CONSTRAINTS (Dokumentation fuer den Review):
+-- CHECK-CONSTRAINTS und TRIGGER (Dokumentation fuer den Review):
 --   source in ('own','spoonacular','athlete') — erweiterbar per
 --     Kommentar + App-Types-Ergaenzung, siehe Tabellenkommentar
 --   status in ('pending','approved','rejected'), default 'approved'
@@ -20,10 +20,17 @@
 --     (source <> 'athlete' OR submitted_by IS NOT NULL)
 --     AND (source = 'athlete' OR submitted_by IS NULL)
 --   source = 'athlete' ⇒ status = 'pending' bei INSERT:
---     (source <> 'athlete' OR status = 'pending')
---     — Admin approval erfolgt per UPDATE, nicht per INSERT.
---   status = 'rejected' ⇒ rejection_reason NOT NULL:
---     (status <> 'rejected' OR rejection_reason IS NOT NULL)
+--     Ein BEFORE-INSERT-Trigger (recipes_set_athlete_pending)
+--     normalisiert new.status auf 'pending', sobald source='athlete'.
+--     Kein table-wide CHECK — der wuerde den Approval per UPDATE in
+--     E16 blockieren (Owner-Clarification im Issue). Die langfristige
+--     Insert-time-Durchsetzung gehoert in die RLS-INSERT-Policy von
+--     Issue #16.
+--     Der Trigger normalisiert (statt raise) — siehe Begruendung
+--     im Trigger-Kommentar.
+--   rejection_reason: bewusst KEIN Constraint — laut E17 ist ein
+--     Grund optional ("optionaler kurzer Grund"), siehe Owner-
+--     Clarification im Issue.
 --   meal_type: jedes Element einer der vier Werte
 --   diet_tags / contains_tags: jedes Element aus dem erlaubten Set
 --   contains_tags = '{}' (Default, nicht nullable):
@@ -52,15 +59,11 @@ create table if not exists public.recipes (
   updated_at        timestamptz not null default now(),
 
   -- submitted_by ⇔ source = 'athlete' (beide Richtungen)
+  -- Normales CHECK-Constraint: beide Richtungen sind invariante
+  -- Geschaeftsregeln, keine insert-time-Besonderheit.
   constraint recipes_submitted_by_athlete_check
     check ((source <> 'athlete' or submitted_by is not null)
-       and (source = 'athlete' or submitted_by is null)),
-  -- source = 'athlete' ⇒ status = 'pending' bei INSERT
-  constraint recipes_athlete_pending_check
-    check (source <> 'athlete' or status = 'pending'),
-  -- rejection erfordert Grund
-  constraint recipes_rejection_reason_check
-    check (status <> 'rejected' or rejection_reason is not null)
+       and (source = 'athlete' or submitted_by is null))
 );
 
 comment on table public.recipes is
@@ -78,6 +81,40 @@ create index if not exists recipes_status_idx on public.recipes (status);
 create index if not exists recipes_external_id_idx on public.recipes (external_id)
   where external_id is not null;
 
+-- ---------------------------------------------------------------
+-- BEFORE-INSERT-Trigger: source='athlete' ⇒ status='pending'
+-- Normalisiert new.status auf 'pending', sobald source='athlete'.
+-- Begruendung fuer Normalisierung statt raise exception:
+--   Ein Absender, der explizit status='approved' setzt, macht
+--   einen App-Fehler oder ehrlichen Irrtum — "pending" ist das
+--   sichere Auffangbecken (der Admin sieht es dann im Approval-
+--   Workflow und genehmigt es ggf.). Ein raise wuerde den User
+--   mit einem 500er ueberraschen, obwohl 1. der Fehler harmlos
+--   ist (der Admin muss ohnehin nochmal draufschauen) und 2. die
+--   echte Sicherheitsgrenze in der RLS-INSERT-Policy von #16
+--   liegt (die rejected, nicht normalisiert).
+--   Kein CHECK-Constraint — der Approval per UPDATE (E16) muss
+--   funktionieren.
+-- ---------------------------------------------------------------
+create or replace function public.recipes_set_athlete_pending()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.source = 'athlete' then
+    new.status := 'pending';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists recipes_set_athlete_pending on public.recipes;
+create trigger recipes_set_athlete_pending
+  before insert on public.recipes
+  for each row execute function public.recipes_set_athlete_pending();
+
 -- updated_at trigger
 drop trigger if exists recipes_set_updated_at on public.recipes;
 create trigger recipes_set_updated_at
@@ -86,5 +123,7 @@ create trigger recipes_set_updated_at
 
 -- migrate:down
 
+drop trigger if exists recipes_set_athlete_pending on public.recipes;
+drop function if exists public.recipes_set_athlete_pending();
 drop trigger if exists recipes_set_updated_at on public.recipes;
 drop table if exists public.recipes;
