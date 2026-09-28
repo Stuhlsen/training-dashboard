@@ -20,14 +20,12 @@
 --     (source <> 'athlete' OR submitted_by IS NOT NULL)
 --     AND (source = 'athlete' OR submitted_by IS NULL)
 --   source = 'athlete' ⇒ status = 'pending' bei INSERT:
---     Ein BEFORE-INSERT-Trigger (recipes_set_athlete_pending)
---     normalisiert new.status auf 'pending', sobald source='athlete'.
---     Kein table-wide CHECK — der wuerde den Approval per UPDATE in
---     E16 blockieren (Owner-Clarification im Issue). Die langfristige
---     Insert-time-Durchsetzung gehoert in die RLS-INSERT-Policy von
---     Issue #16.
---     Der Trigger normalisiert (statt raise) — siehe Begruendung
---     im Trigger-Kommentar.
+--   Ein BEFORE-INSERT-Trigger (recipes_set_athlete_pending)
+--     rejected (raise exception) bei source='athlete' AND status<>'pending'.
+--     Der raise ist insert-time-only und blockiert nicht den spaeteren
+--     Approval per UPDATE in E16 (Owner-Clarification im Issue).
+--     Die langfristige Insert-time-Durchsetzung gehoert zusaetzlich
+--     in die RLS-INSERT-Policy von Issue #16.
 --   rejection_reason: bewusst KEIN Constraint — laut E17 ist ein
 --     Grund optional ("optionaler kurzer Grund"), siehe Owner-
 --     Clarification im Issue.
@@ -43,7 +41,15 @@ create table if not exists public.recipes (
   id                uuid primary key default gen_random_uuid(),
   source            text not null check (source in ('own','spoonacular','athlete')),
   external_id       text,
-  submitted_by      uuid references public.profiles(id) on delete set null,
+  -- ON DELETE RESTRICT: ein Profil, das Athleten-Rezepte eingereicht hat,
+  -- kann nicht geloescht werden, ohne dass diese Rezepte vorher geloescht
+  -- oder submitted_by angepasst werden. Das bewahrt die Invariante
+  -- (source <> 'athlete' or submitted_by is not null) bei Account-Loeschung
+  -- (Migration 0021 — admin loescht auth.users, profiles cascaded).
+  -- Der manuelle Admin-Loeschprozess muss daher ggf. Rezepte vor dem Loeschen
+  -- des Kontos aufraeumen (umsetzen/loeschen). ON DELETE SET NULL wuerde
+  -- die Invariante brechen und die gesamte Loesch-Transaktion abbrechen.
+  submitted_by      uuid references public.profiles(id) on delete restrict,
   status            text not null default 'approved' check (status in ('pending','approved','rejected')),
   rejection_reason  text,
   title             text not null,
@@ -83,28 +89,26 @@ create index if not exists recipes_external_id_idx on public.recipes (external_i
 
 -- ---------------------------------------------------------------
 -- BEFORE-INSERT-Trigger: source='athlete' ⇒ status='pending'
--- Normalisiert new.status auf 'pending', sobald source='athlete'.
--- Begruendung fuer Normalisierung statt raise exception:
---   Ein Absender, der explizit status='approved' setzt, macht
---   einen App-Fehler oder ehrlichen Irrtum — "pending" ist das
---   sichere Auffangbecken (der Admin sieht es dann im Approval-
---   Workflow und genehmigt es ggf.). Ein raise wuerde den User
---   mit einem 500er ueberraschen, obwohl 1. der Fehler harmlos
---   ist (der Admin muss ohnehin nochmal draufschauen) und 2. die
---   echte Sicherheitsgrenze in der RLS-INSERT-Policy von #16
---   liegt (die rejected, nicht normalisiert).
---   Kein CHECK-Constraint — der Approval per UPDATE (E16) muss
---   funktionieren.
+-- Bei source='athlete' AND status<>'pending' wird der Insert
+-- mit einem Fehler abgewiesen (raise exception).
+-- Grund fuer raise statt Normalisierung:
+--   Ein Absender, der explizit status='approved' setzt, macht einen
+--   App-Fehler oder ehrlichen Irrtum — die sichere Reaktion ist, den
+--   Vorgang abzulehnen, damit der Fehler nicht unbemerkt bleibt.
+--   Der Admin genehmigt spaeter per UPDATE (E16), was den Check
+--   nicht blockieren darf — deshalb ist dies ein Trigger und kein
+--   table-wide CHECK-Constraint (Owner-Clarification im Issue).
+--   Die echte Sicherheitsgrenze liegt zusaetzlich in der RLS-INSERT-
+--   Policy von Issue #16.
 -- ---------------------------------------------------------------
 create or replace function public.recipes_set_athlete_pending()
 returns trigger
 language plpgsql
-security definer
 set search_path = public
 as $$
 begin
-  if new.source = 'athlete' then
-    new.status := 'pending';
+  if new.source = 'athlete' and new.status is distinct from 'pending' then
+    raise exception 'athlete-submitted recipes must have status = ''pending'' at insert time (use UPDATE for approval)';
   end if;
   return new;
 end;
