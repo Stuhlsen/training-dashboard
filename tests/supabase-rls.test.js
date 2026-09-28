@@ -139,6 +139,7 @@ if (!HAS_CREDS) {
   let planTableReady = false; // training_plans (0028) lesbar? (Migration eingespielt)
   let planActiveAlready = false; // Athlet 1 hat bereits eine echte aktive training_plans-Zeile
   let cxTableReady = false; // coach_exchanges (0034) lesbar? (Migration eingespielt)
+  let nutritionGoalsTableReady = false; // nutrition_goals (0058) lesbar? (Migration eingespielt)
 
   /** Aufräum-Funktionen, LIFO im after()-Hook ausgeführt. Jede fängt ihre
    *  eigenen Fehler NICHT selbst — after() sammelt sie, damit ein einzelner
@@ -204,6 +205,16 @@ if (!HAS_CREDS) {
       { token: athlete.token }
     );
     cxTableReady = cxProbe.ok;
+
+    // nutrition_goals (0058): Tabelle lesbar? (Migration eingespielt) —
+    // steuert unten den Skip des gesamten Blocks, solange 0058 nach einem
+    // frischen Merge noch nicht in dashboard-dev ist.
+    const ngProbe = await rest(
+      "GET",
+      `nutrition_goals?profile_id=eq.${athlete.userId}&select=id&limit=1`,
+      { token: athlete.token }
+    );
+    nutritionGoalsTableReady = ngProbe.ok;
   });
 
   after(async () => {
@@ -2417,5 +2428,157 @@ if (!HAS_CREDS) {
   test("waitlist: anon kann die Warteliste NICHT lesen (kein select-Grant)", async () => {
     const read = await rest("GET", "waitlist?select=email&limit=1", { token: null });
     assert.equal(read.ok, false, "anon darf die waitlist nicht lesen — kein select-Grant");
+  });
+
+  // --- 10. nutrition_goals (0058): owner-only, kein Coach-Zugriff ----------
+  // Strikte Owner-only-RLS (kein is_coach_of/is_admin, anders als bikes/0047).
+  // INSERT mit return=representation gibt die Zeile zurück (SELECT läuft dann
+  // über die owner-only Policy). Aufräumen über id im cleanupTasks.
+
+  const NG_GOAL_TYPE = "maintain";
+  const ngSkip = () =>
+    !nutritionGoalsTableReady
+      ? "nutrition_goals nicht lesbar — Migration 0058 vermutlich noch nicht eingespielt"
+      : false;
+
+  async function insertNutritionGoalRow(over = {}) {
+    const insert = await rest("POST", "nutrition_goals", {
+      token: athlete.token,
+      body: {
+        profile_id: athlete.userId,
+        goal_type: NG_GOAL_TYPE,
+        ...over,
+      },
+    });
+    assert.equal(
+      insert.ok,
+      true,
+      `nutrition_goals-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
+    const id = insert.data[0].id;
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `nutrition_goals?id=eq.${id}`, { token: athlete.token });
+      if (!del.ok)
+        throw new Error(
+          `nutrition_goals-Testzeile ${id} nicht gelöscht: ${JSON.stringify(del.data)}`
+        );
+    });
+    return id;
+  }
+
+  test("nutrition_goals: Athlet legt eigene Zeile an und liest sie, anon sieht nichts (kein GRANT)", async (t) => {
+    if (ngSkip()) return t.skip(ngSkip());
+    const id = await insertNutritionGoalRow();
+
+    const ownRead = await rest("GET", `nutrition_goals?id=eq.${id}`, { token: athlete.token });
+    assert.equal(ownRead.ok, true);
+    assert.equal(ownRead.data.length, 1, "Athlet liest die eigene nutrition_goals-Zeile nicht");
+
+    const anonRead = await rest("GET", `nutrition_goals?id=eq.${id}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf nutrition_goals nicht lesen (kein GRANT)");
+  });
+
+  test("nutrition_goals: Athlet kann keine Zeile für eine fremde profile_id anlegen (WITH CHECK)", async (t) => {
+    if (ngSkip()) return t.skip(ngSkip());
+    // Owner-only: trainer.userId als fremde profile_id -> WITH CHECK (profile_id = auth.uid()) scheitert
+    const insert = await rest("POST", "nutrition_goals", {
+      token: athlete.token,
+      body: {
+        profile_id: trainer.userId,
+        goal_type: NG_GOAL_TYPE,
+      },
+    });
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert für fremde profile_id hätte an der WITH-CHECK-Policy scheitern müssen"
+    );
+    if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
+      const strayId = insert.data[0].id;
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `nutrition_goals?id=eq.${strayId}`, { token: athlete.token });
+      });
+    }
+  });
+
+  test("nutrition_goals: unbekannter goal_type scheitert am Check-Constraint", async (t) => {
+    if (ngSkip()) return t.skip(ngSkip());
+    const bad = await rest("POST", "nutrition_goals", {
+      token: athlete.token,
+      body: {
+        profile_id: athlete.userId,
+        goal_type: "sonstwas",
+      },
+    });
+    assert.equal(bad.ok, false, "goal_type='sonstwas' hätte am Check-Constraint scheitern müssen");
+  });
+
+  test("nutrition_goals: Trainer sieht die Zeile seines Athleten NICHT (owner-only, kein is_coach_of)", async (t) => {
+    if (ngSkip()) return t.skip(ngSkip());
+    if (!coachLinkOk) return t.skip("Trainer-ST ist nicht als Coach verknüpft");
+    const id = await insertNutritionGoalRow({ goal_type: "gain", pace_per_week_kg: 0.3 });
+
+    // Trainer-SELECT: RLS blendet die nicht "besessene" Zeile aus -> HTTP 200 mit data: [], kein Fehlerstatus
+    const trainerRead = await rest("GET", `nutrition_goals?id=eq.${id}`, { token: trainer.token });
+    assert.equal(trainerRead.ok, true);
+    assert.equal(
+      trainerRead.data?.length ?? 0,
+      0,
+      "Trainer sollte die nutrition_goals-Zeile des Athleten nicht sehen (owner-only)"
+    );
+
+    // Trainer-DELETE ebenfalls unsichtbar
+    const trainerDel = await rest("DELETE", `nutrition_goals?id=eq.${id}`, {
+      token: trainer.token,
+    });
+    assert.equal(
+      trainerDel.data?.length ?? 0,
+      0,
+      "Trainer konnte die nutrition_goals-Zeile des Athleten löschen — RLS hätte sie ausblenden müssen"
+    );
+
+    // Zeile ist noch da
+    const stillThere = await rest("GET", `nutrition_goals?id=eq.${id}`, { token: athlete.token });
+    assert.equal(stillThere.data.length, 1, "nutrition_goals-Zeile wurde durch Trainer-Operation entfernt");
+  });
+
+  test("nutrition_goals: Athlet aktualisiert und löscht eigene Zeile", async (t) => {
+    if (ngSkip()) return t.skip(ngSkip());
+    const id = await insertNutritionGoalRow({ goal_type: "lose", pace_per_week_kg: -0.5 });
+
+    // Athlet darf eigene Zeile aktualisieren (PATCH liefert 200 mit data: [geänderte Zeile])
+    const update = await rest("PATCH", `nutrition_goals?id=eq.${id}`, {
+      token: athlete.token,
+      body: { pace_per_week_kg: -0.3 },
+    });
+    assert.equal(update.ok, true);
+    assert.equal(
+      update.data?.length ?? 0,
+      1,
+      "Athlet konnte die eigene nutrition_goals-Zeile nicht aktualisieren"
+    );
+
+    // Athlet löscht die eigene Zeile
+    const del = await rest("DELETE", `nutrition_goals?id=eq.${id}`, {
+      token: athlete.token,
+    });
+    assert.equal(del.ok, true);
+    assert.equal(
+      del.data.length,
+      1,
+      "Athlet konnte die eigene nutrition_goals-Zeile nicht löschen"
+    );
+  });
+
+  test("nutrition_goals: anon darf gar nicht einfügen (kein GRANT)", async (t) => {
+    if (ngSkip()) return t.skip(ngSkip());
+    const insert = await rest("POST", "nutrition_goals", {
+      token: null,
+      body: {
+        profile_id: athlete.userId,
+        goal_type: "maintain",
+      },
+    });
+    assert.equal(insert.ok, false, "anon darf nutrition_goals nicht einfügen (kein GRANT)");
   });
 }

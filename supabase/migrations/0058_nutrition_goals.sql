@@ -53,7 +53,7 @@ create table if not exists public.nutrition_goals (
   id                uuid primary key default gen_random_uuid(),
   profile_id        uuid not null references public.profiles(id) on delete cascade,
   goal_type         text not null check (goal_type in ('lose', 'gain', 'maintain')),
-  target_weight_kg  numeric check (target_weight_kg is null or target_weight_kg > 0),
+  target_weight_kg  numeric check (target_weight_kg > 0),
   pace_per_week_kg  numeric,  -- nullable; App-Schicht erwartet pace für 'lose'/'gain'
   target_date       date,
   created_at        timestamptz not null default now()
