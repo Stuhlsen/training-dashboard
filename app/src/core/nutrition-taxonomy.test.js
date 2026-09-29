@@ -118,6 +118,22 @@ describe("core/nutrition-taxonomy", () => {
     });
   });
 
+  // ── AC: values match AllergenKey typedef (single source of truth) ─
+  it("every ALLERGEN_TAXONOMY key matches the AllergenKey typedef values", () => {
+    // The AllergenKey typedef in nutrition-taxonomy.js defines the 15
+    // allowed literals. This test confirms ALLERGEN_TAXONOMY contains
+    // exactly those literals (not one more, not one fewer, no typos).
+    // If someone edits ENTRIES without updating the typedef (or vice
+    // versa), this test fails.
+    const expectedKeys = [
+      "gluten", "crustaceans", "eggs", "fish", "peanuts",
+      "soybeans", "milk", "nuts", "celery", "mustard",
+      "sesame", "sulphites", "lupin", "molluscs", "sonstiges",
+    ];
+    const actualKeys = ALLERGEN_TAXONOMY.map((e) => e.key);
+    expect(actualKeys).toEqual(expectedKeys);
+  });
+
   // ── Frozenness ─────────────────────────────────────────────────
   it("ALLERGEN_TAXONOMY is frozen and cannot be mutated", () => {
     expect(Object.isFrozen(ALLERGEN_TAXONOMY)).toBe(true);

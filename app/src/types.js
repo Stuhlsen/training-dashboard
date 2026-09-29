@@ -264,7 +264,7 @@ export {};
  * @property {string} title
  * @property {Array<"breakfast"|"lunch"|"dinner"|"snack">} mealType
  * @property {Array<"veg"|"vegan"|"glutenfrei"|"omnivor">|null} dietTags
- * @property {Array<"gluten"|"crustaceans"|"eggs"|"fish"|"peanuts"|"soybeans"|"milk"|"nuts"|"celery"|"mustard"|"sesame"|"sulphites"|"lupin"|"molluscs"|"sonstiges">} containsTags
+ * @property {Array<import("./core/nutrition-taxonomy").AllergenKey>} containsTags
  * @property {number} servings
  * @property {RecipeIngredient[]|null} ingredients
  * @property {RecipeInstruction[]|null} instructions
@@ -279,5 +279,5 @@ export {};
  * EU-Allergen-Taxonomie (core/nutrition-taxonomy.js).
  * Leeres Array = "keine Intoleranzen" (E21).
  * Validierung auf App-Ebene, kein DB-Check (Migration 0059).
- * @typedef {Array<"gluten"|"crustaceans"|"eggs"|"fish"|"peanuts"|"soybeans"|"milk"|"nuts"|"celery"|"mustard"|"sesame"|"sulphites"|"lupin"|"molluscs"|"sonstiges">} ProfileIntolerance
+ * @typedef {Array<import("./core/nutrition-taxonomy").AllergenKey>} ProfileIntolerance
  */

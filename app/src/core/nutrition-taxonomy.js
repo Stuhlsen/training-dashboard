@@ -15,6 +15,13 @@
    der freie Text wird in der App-State (nicht hier) verwaltet.
    ============================================================ */
 
+/**
+ * Einzelner Taxonomie-Key — die einzige Definition der gültigen
+ * Machine-Keys. Wird von app/src/api/types.ts und app/src/types.js
+ * importiert, damit keine zweite, abweichende Liste im Repo existiert.
+ * @typedef {"gluten"|"crustaceans"|"eggs"|"fish"|"peanuts"|"soybeans"|"milk"|"nuts"|"celery"|"mustard"|"sesame"|"sulphites"|"lupin"|"molluscs"|"sonstiges"} AllergenKey
+ */
+
 /** @type {Readonly<{key: string, label: string, isFreetext?: true}>} */
 // Jeder Eintrag: Machine-Key (ascii, lowercase) + deutsches Label.
 const ENTRIES = [

@@ -1,3 +1,5 @@
+import type { AllergenKey } from "../core/nutrition-taxonomy.js";
+
 export type ErrorCode = "HTTP" | "NETWORK" | "TOKEN_INVALID" | "SCHEMA" | "NO_DATA" | "UNKNOWN";
 
 export interface ResultError {
@@ -520,15 +522,16 @@ export type RecipeSource = 'own' | 'spoonacular' | 'athlete';
 export type RecipeStatus = 'pending' | 'approved' | 'rejected';
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 export type DietTag = 'veg' | 'vegan' | 'glutenfrei' | 'omnivor';
-export type AllergenTag =
-  | 'gluten' | 'crustaceans' | 'eggs' | 'fish' | 'peanuts'
-  | 'soybeans' | 'milk' | 'nuts' | 'celery' | 'mustard'
-  | 'sesame' | 'sulphites' | 'lupin' | 'molluscs' | 'sonstiges';
+export type AllergenTag = AllergenKey;
 
 /** Intoleranz-Eintrag eines Profils — Array von AllergenTag-Werten.
  *  Leeres Array = "keine Intoleranzen" (E21).
  *  Validierung auf App-Ebene via core/nutrition-taxonomy.js (KEIN DB-Check). */
 export type ProfileIntolerance = AllergenTag[];
+
+/** contains_tags-Eintrag eines Rezepts — Array von AllergenTag-Werten.
+ *  Leeres Array = "unremarkable" (keine Exclusion). */
+export type RecipeContainsTag = AllergenTag[];
 
 export interface RecipeIngredient {
   name: string;
