@@ -105,6 +105,13 @@ create trigger recipe_votes_set_updated_at
 grant select, insert, update on public.recipe_votes to authenticated;
 grant all on public.recipe_votes to service_role;
 
+-- PRIVACY REVIEW NEEDED (Finding 1, issue #17): recipe_votes.comment ist
+-- freier Text, verfasst vom Athleten, und ueber die SELECT-Policy
+-- (using(true)) fuer ALLE eingeloggten Athleten lesbar — breitere
+-- Exposure als nutrition_goals (owner-only). Auch wenn der Vote selbst
+-- nur 'up'/'down' ist (niedrige Sensitivitaet), ist comment potenziell
+-- personenbezogen. Human sign-off bei Merge.
+
 -- migrate:down
 -- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
 -- (s. AGENTS.md, Migrations-Workflow). dbmate verlangt den Marker trotzdem.
