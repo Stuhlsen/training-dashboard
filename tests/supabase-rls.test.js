@@ -132,6 +132,7 @@ if (!HAS_CREDS) {
   let athlete; // { token, userId }
   let trainer; // { token, userId }
   let coachLinkOk = false;
+  let testAthleteIsAdmin = false; // ob der test-Account is_admin=true hat → skip der Nicht-Admin-Tests
   let originalWellbeingPublic = null;
   let originalViewPrefs; // undefined = noch nicht geprüft, null = existierte nicht
   let originalIntervalsCredentials; // undefined = noch nicht geprüft, null = existierte nicht
@@ -156,11 +157,12 @@ if (!HAS_CREDS) {
     // über die View profiles_visible (id = auth.uid()).
     const profileCheck = await rest(
       "GET",
-      `profiles_visible?id=eq.${athlete.userId}&select=id,role,coach_id,wellbeing_public`,
+      `profiles_visible?id=eq.${athlete.userId}&select=id,role,coach_id,is_admin,wellbeing_public`,
       { token: athlete.token }
     );
     const row = profileCheck.data?.[0];
     originalWellbeingPublic = row?.wellbeing_public ?? null;
+    testAthleteIsAdmin = row?.is_admin ?? false;
     coachLinkOk = !!row && row.role === "athlete" && row.coach_id === trainer.userId;
 
     const prefsCheck = await rest(
@@ -2931,6 +2933,13 @@ if (!HAS_CREDS) {
       ? "recipes-Tabelle nicht lesbar — Migration 0062 vermutlich noch nicht eingespielt"
       : false;
 
+  const adminRecipesSkip = () => {
+    const base = recipesSkip();
+    if (base) return base;
+    if (testAthleteIsAdmin) return "Test-Athlet hat is_admin=true auf dashboard-dev — dieser Test setzt einen Nicht-Admin voraus (siehe Issue #23)";
+    return false;
+  };
+
   test("recipes: anon kann NICHT lesen (kein GRANT)", async (t) => {
     if (recipesSkip()) return t.skip(recipesSkip());
     const read = await rest("GET", "recipes?select=id,title&limit=1", { token: null });
@@ -2938,7 +2947,7 @@ if (!HAS_CREDS) {
   });
 
   test("recipes: Athlet kann approved+pending lesen, rejected nur selber", async (t) => {
-    if (recipesSkip()) return t.skip(recipesSkip());
+    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
 
     // Drei Rezepte anlegen: pending (eigenes), approved (via service_role),
     // rejected (via service_role)
@@ -3191,7 +3200,7 @@ if (!HAS_CREDS) {
   });
 
   test("recipes: Athlet UPDATE status — 0 rows (WITH CHECK / Trigger E16)", async (t) => {
-    if (recipesSkip()) return t.skip(recipesSkip());
+    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
     const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Update-Status" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
@@ -3216,7 +3225,7 @@ if (!HAS_CREDS) {
   });
 
   test("recipes: Athlet UPDATE rejection_reason — 0 rows (Trigger E16, Review Finding 1)", async (t) => {
-    if (recipesSkip()) return t.skip(recipesSkip());
+    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
     const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Update-Rejection" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
@@ -3339,7 +3348,7 @@ if (!HAS_CREDS) {
   });
 
   test("recipes: Athlet DELETE — 0 rows (admin-only)", async (t) => {
-    if (recipesSkip()) return t.skip(recipesSkip());
+    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
     const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Delete" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
