@@ -1,7 +1,7 @@
 -- migrate:up
 
 -- ============================================================
--- Dashboard 2.0 — Migration 0058: nutrition_goals
+-- Dashboard 2.0 — Migration 0061: nutrition_goals
 -- (Ernährungsziele, append-only je Athlet)
 -- Einspielen: Supabase SQL-Editor / dbmate, dev-Projekt zuerst (dashboard-dev),
 --             danach der apps01-Self-Host-Stack (echte Produktion, s.
