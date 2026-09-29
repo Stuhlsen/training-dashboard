@@ -1,7 +1,7 @@
 -- migrate:up
 
 -- ============================================================
--- Dashboard 2.0 -- Migration 0062: recipe_votes
+-- Dashboard 2.0 -- Migration 0063: recipe_votes
 -- Einspielen: Supabase SQL-Editor / dbmate, dev-Projekt zuerst (dashboard-dev),
 --             danach der apps01-Self-Host-Stack (echte Produktion, s.
 --             AGENTS.md "Migrations-Workflow" -- NICHT dashboard-prod auf

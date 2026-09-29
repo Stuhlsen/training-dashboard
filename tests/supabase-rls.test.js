@@ -140,7 +140,7 @@ if (!HAS_CREDS) {
   let planActiveAlready = false; // Athlet 1 hat bereits eine echte aktive training_plans-Zeile
   let cxTableReady = false; // coach_exchanges (0034) lesbar? (Migration eingespielt)
   let nutritionGoalsTableReady = false; // nutrition_goals (0058) lesbar? (Migration eingespielt)
-  let recipeVotesTableReady = false; // recipe_votes (0062) lesbar? (Migration eingespielt)
+  let recipeVotesTableReady = false; // recipe_votes (0063) lesbar? (Migration eingespielt)
 
   /** Aufräum-Funktionen, LIFO im after()-Hook ausgeführt. Jede fängt ihre
    *  eigenen Fehler NICHT selbst — after() sammelt sie, damit ein einzelner
@@ -217,7 +217,7 @@ if (!HAS_CREDS) {
     );
     nutritionGoalsTableReady = ngProbe.ok;
 
-    // recipe_votes (0062): Tabelle lesbar? (Migration eingespielt) — steuert unten den Skip.
+    // recipe_votes (0063): Tabelle lesbar? (Migration eingespielt) — steuert unten den Skip.
     const rvProbe = await rest(
       "GET",
       `recipe_votes?select=id&limit=1`,
@@ -2591,7 +2591,7 @@ if (!HAS_CREDS) {
     assert.equal(insert.ok, false, "anon darf nutrition_goals nicht einfuegen (kein GRANT)");
   });
 
-  // --- 11. recipe_votes (0062): community-voting, authenticated-read-all,
+  // --- 11. recipe_votes (0063): community-voting, authenticated-read-all,
   //     self-insert/update, kein DELETE --------------------------------
   // Strikte RLS (V3): SELECT for all authenticated, INSERT/UPDATE nur eigener
   // Vote (athlete_id = auth.uid()), DELETE gar nicht (nur per service_role).
@@ -2607,7 +2607,7 @@ if (!HAS_CREDS) {
 
   const rvSkip = () =>
     !recipeVotesTableReady
-      ? "recipe_votes nicht lesbar — Migration 0062 vermutlich noch nicht eingespielt"
+      ? "recipe_votes nicht lesbar — Migration 0063 vermutlich noch nicht eingespielt"
       : false;
 
   /** Legt ein Test-Rezept an (service_role, RLS-Bypass). */
