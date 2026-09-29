@@ -21,8 +21,13 @@
 --   submitter darf eigene pending-Rezepte bearbeiten).
 --   Der gewaehlte Mechanismus ist "trigger guard" (s. Issue #16 AC:
 --   "either column-level policy or trigger guard; document the mechanism").
---   Status und rejection_reason duerfen dagegen auch nach dem
---   Entscheid geaendert werden (admin only, E16).
+--
+--   ZUSAETZLICH ueberwacht der Trigger auch Aenderungen an status und
+--   rejection_reason (E16): nur admin (is_admin()) darf diese Spalten
+--   aendern. Ein Athlet kann also rejection_reason an seinem eigenen
+--   pending-Rezept NICHT setzen (Review Finding 1, Issue #16).
+--   Status und rejection_reason duerfen dagegen nach dem Entscheid
+--   geaendert werden (admin only, E16).
 --
 -- ADMIN-IDENTITAET:
 --   public.is_admin() aus Migration 0001 (profiles.is_admin).
@@ -154,11 +159,12 @@ create policy "recipes_delete_admin"
 
 -- BEFORE-UPDATE-Trigger, der Aenderungen an Inhaltsfeldern blockt,
 -- sobald der Status nicht mehr 'pending' ist ODER der Aenderer
--- nicht der submitter ist.
+-- nicht der submitter ist (E18). Zusaetzlich blockt er Aenderungen
+-- an status und rejection_reason fuer Nicht-Admin (E16).
 --
 -- Greift auch fuer Admin/service_role (RLS-Bypass) — das ist die
 -- letzte Sicherheitsschicht fuer E18. Der Name "check" statt "block"
--- ist gewaehlt, weil der Trigger inhALTS-PRUEFT und nur bei
+-- ist gewaehlt, weil der Trigger inhalts-prueft und nur bei
 -- Verstoss abbricht (passiver Guard, kein aktives Normalisieren).
 --
 -- updated_at wird NICHT als Inhaltsfeld geprueft — der
@@ -170,7 +176,7 @@ language plpgsql
 set search_path = public
 as $$
 begin
-  -- Pruefen, ob irgendein Inhaltsfeld geaendert wurde
+  -- Pruefen, ob irgendein Inhaltsfeld geaendert wurde (E18)
   if new.title is distinct from old.title
      or new.ingredients is distinct from old.ingredients
      or new.instructions is distinct from old.instructions
@@ -188,6 +194,18 @@ begin
       raise exception 'E18: only the submitter may modify content fields';
     end if;
   end if;
+
+  -- Status und rejection_reason: nur admin darf aendern (E16)
+  -- Dies schliesst auch den Fall aus, dass ein Athlet rejection_reason
+  -- an seinem eigenen pending-Rezept setzt (Review Finding 1, Issue #16).
+  if new.status is distinct from old.status
+     or new.rejection_reason is distinct from old.rejection_reason
+  then
+    if not public.is_admin() then
+      raise exception 'E16: only admin may change status or rejection_reason';
+    end if;
+  end if;
+
   return new;
 end;
 $$;
@@ -225,6 +243,10 @@ create trigger recipes_check_content_update
 --     -> 42501 (WITH CHECK: nur source='athlete' erlaubt)
 --   POST /rest/v1/recipes mit source='athlete',status='pending',submitted_by=B
 --     -> 42501 (WITH CHECK: submitted_by = auth.uid() erforderlich)
+--   PATCH /rest/v1/recipes?id=eq.<eigenes-pending> mit rejection_reason='test'
+--     -> E16-Trigger blockt mit Exception (42501) — rejection_reason darf
+--        nicht durch Athlet gesetzt werden, auch nicht am eigenen pending
+--        (Review Finding 1, Issue #16)
 --   PATCH /rest/v1/recipes?id=eq.<eigenes-pending> mit title='neu'
 --     -> 200, title geaendert
 --   PATCH /rest/v1/recipes?id=eq.<eigenes-pending> mit status='approved'
