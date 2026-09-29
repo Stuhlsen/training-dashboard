@@ -1,7 +1,7 @@
 -- migrate:up
 
 -- ============================================================
--- Dashboard 2.0 — Migration 0058: recipes (shared library)
+-- Dashboard 2.0 — Migration 0060: recipes (shared library)
 -- Einspielen: Supabase SQL-Editor / dbmate, dev-Projekt zuerst
 --             (dashboard-dev), danach der apps01-Self-Host-Stack.
 -- Referenz: planning/fahrplan-23-ernaehrung.md — Etappe E0, E14–E20
