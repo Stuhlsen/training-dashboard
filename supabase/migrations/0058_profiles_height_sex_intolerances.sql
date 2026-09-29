@@ -16,9 +16,13 @@
 -- Grundlage auf profiles.
 --
 --   height_cm    — bereits aus 0039 vorhanden (smallint,
---                  check between 100 and 250, erfüllt die Anforderung
---                  > 0). Hier nochmals als if not exists dokumentiert;
---                  Laufzeit-noop in bestehenden DBs.
+--                  check between 100 and 250). Die hier notierte
+--                  Check-Bedingung (> 0) kommt nur auf einer
+--                  frischen DB zum Tragen (add column if not exists
+--                  überspringt die ganze Klausel, wenn die Spalte
+--                  existiert). Auf bestehenden DBs gilt 0039s
+--                  between 100 and 250, was > 0 logisch einschließt
+--                  und die AC (keine negativen/null-Werte) erfüllt.
 --   sex          — biologisches Geschlecht für RED-S-Formel (m/f).
 --                  NULL = "unknown" (E20 legt fest: Kennwert für den
 --                  RED-S Floor ohne Wertung). Keine dritte Kategorie
@@ -33,23 +37,33 @@
 --                  INSERT/Update ohne Angabe automatisch die leere
 --                  Liste setzt.
 --
--- Datenschutz (V6): height_cm und sex sind personenbezogene
--- Gesundheitsdaten. Sie erben die bestehenden profiles-RLS-Policies
--- (owner-only) und sind NICHT auf der Basistabelle für anon/
--- authenticated gelistet (0022 grantet nur öffentliche Stammdaten).
--- KEIN service_role-Grant für sex oder intolerances — der RED-S Floor
--- und die Ernährungsanalyse sind reine Kernberechnungen
--- (app/src/core/), keine service_role-Auslese nötig.
+-- PRIVACY (V6) / security review (#14 finding 2): height_cm und sex
+-- sind personenbezogene Gesundheitsdaten. Owner-only-Scoping (via
+-- bestehende RLS + Spalten-Grants) bleibt intakt:
+--   - KEIN grant update für sex/intolerances (write path kommt
+--     in E5 Settings-Form, analog 0035→0039).
+--   - KEINE Aufnahme in profiles_own-View (self-service read
+--     kommt ebenfalls in E5).
+--   - KEIN service_role-Grant (RED-S Floor ist app/src/core/
+--     Kernberechnung, keine service_role-Auslese nötig).
+--   - Basistabelle select bleibt auf 0022-Satz beschränkt
+--     (id,display_name,role,wellbeing_public) — neue Spalten
+--     sind für anon/authenticated nicht sichtbar.
+--   Die Spalten existieren auf DB-Ebene, sind aber ohne
+--   Frontend-Lesepfad oder Write-Surface bis E5.
 -- ============================================================
 
 -- ------------------------------------------------------------
 -- 1. Spalten hinzufügen
 -- ------------------------------------------------------------
 
--- height_cm exists from 0039 (smallint, check between 100 and 250);
--- the if not exists guard makes re-runs harmless. The existing
--- constraint already satisfies "rejects non-integer / negative values"
--- (AC 2).
+-- height_cm exists from 0039 (smallint, check between 100 and 250).
+-- The if not exists guard makes re-runs harmless. On an existing DB
+-- the whole clause (including the > 0 check) is skipped because the
+-- column already exists; 0039's between 100 and 250 is stricter and
+-- already satisfies AC "rejects non-integer / negative values".
+-- On a fresh DB (where height_cm does not yet exist) this creates
+-- the column with the > 0 constraint.
 alter table public.profiles
   add column if not exists height_cm smallint
     check (height_cm is null or height_cm > 0);
@@ -68,72 +82,72 @@ alter table public.profiles
   add column if not exists intolerances text[] not null default '{}';
 
 -- ------------------------------------------------------------
--- 2. profiles_own-View erweitern (self-service Lesepfad)
+-- 2. grants (NUR Spaltenanlage — Updates und View-Erweiterung
+--    sind E5 vorbehalten, analog 0035 → 0039)
 -- ------------------------------------------------------------
--- Die View (0039) listet Spalten explizit — sex und intolerances
--- müssen ergänzt werden, damit Athleten ihre eigenen Daten sehen.
-create or replace view public.profiles_own
-  with (security_invoker = off) as
-select id, has_password, birthdate, resting_hr, gender, height_cm, weight_kg,
-       hr_max, updated_at, sex, intolerances
-from public.profiles
-where id = auth.uid();
-
--- ------------------------------------------------------------
--- 3. Update-Grant erweitern
--- ------------------------------------------------------------
--- sex und intolerances sind selbst-schreibbar (Settings-Form, E5).
--- RLS-Policy "profiles: eigenes Profil ändern" (0001) gated bereits
--- via id = auth.uid() — nur Spaltenliste ergänzen.
-revoke update on public.profiles from authenticated;
-grant update (display_name, wellbeing_public, birthdate, resting_hr, gender,
-              height_cm, weight_kg, hr_max, sex, intolerances)
-  on public.profiles to authenticated;
+-- Bewusst KEIN revoke+grant update — der authenticated Schreibpfad
+-- fuer sex/intolerances kommt erst mit dem Settings-Formular in E5.
+-- Migration 0035 hielt es genauso (birthdate/resting_hr ohne update
+-- grant, der kam in 0039).
+--
+-- Bewusst KEINE Erweiterung von profiles_own — der self-service
+-- Lesepfad kommt ebenfalls in E5.
+--
+-- Die neuen Spalten fallen in der Zwischenzeit unter den
+-- Basistabelle-select von 0022 (nur id,display_name,role,
+-- wellbeing_public lesbar). Sie sind fuer anon/authenticated
+-- unsichtbar, und service_role hat keinen Grant — der RED-S
+-- Floor braucht sie nicht zum Sync-Zeitpunkt.
 
 -- ============================================================
--- PRÜFLISTE nach dem Einspielen (dev, dann apps01):
+-- PRUEFLISTE nach dem Einspielen (dev, dann apps01):
 --
--- Spalten-Check:
---   select height_cm, sex, intolerances from profiles limit 1;
---   → NULL, NULL, '{}' für bestehende Zeilen
+-- Spalten-Check (service_role, bypasses RLS):
+--   select id, height_cm, sex, intolerances from profiles limit 1;
+--   -> NULL, NULL, '{}' fuer bestehende Zeilen (height_cm existiert
+--     bereits aus 0039 mit seinem bisherigen Wert)
 --
 -- Constraints:
---   insert into profiles (id, display_name) values (gen_random_uuid(), 'test')
---     on conflict do nothing; -- ok (Defaults: NULL, NULL, '{}')
---   update profiles set sex = 'x' where id = '<eigene-id>' → Fehler
---     (check in ('m','f'))
---   update profiles set sex = null where id = '<eigene-id>' → ok
---   update profiles set height_cm = -1 → Fehler (check > 0)
---   update profiles set height_cm = 0 → Fehler (check > 0)
---   update profiles set height_cm = 180 → ok
---   update profiles set intolerances = '{"erdnuss","milch"}' → ok
---   update profiles set intolerances = '{"non_eu_value"}' → ok
---     (DB lässt durch — App-Ebene prüft Taxonomy-Set)
---   update profiles set intolerances = null → Fehler (NOT NULL)
---   update profiles set intolerances = '{}' → ok ("keine")
+--   insert into profiles (id, display_name)
+--     values (gen_random_uuid(), 'test') on conflict do nothing;
+--     -- ok (Defaults: height_cm NULL, sex NULL, intolerances '{}')
+--   update profiles set sex = 'x' where id = '<service_role-ok>'
+--     -> Fehler (check in ('m','f'))
+--   update profiles set sex = null ...  -> ok
+--   update profiles set height_cm = -1  -> Fehler (check > 0)
+--   update profiles set height_cm = 0   -> Fehler (check > 0)
+--   update profiles set height_cm = 180 -> ok
+--   update profiles set intolerances = '{"erdnuss","milch"}' -> ok
+--   update profiles set intolerances = '{"non_eu_value"}' -> ok
+--     (DB laesst durch — App-Ebene prueft Taxonomy-Set)
+--   update profiles set intolerances = null -> Fehler (NOT NULL)
+--   update profiles set intolerances = '{}' -> ok ("keine")
 --
 -- Re-Run:
---   Migration ein zweites Mal ausführen → keine Fehler
+--   Migration ein zweites Mal ausfuehren -> keine Fehler
 --
--- RLS (bestehende Policies unverändert):
---   als Athlet A: GET /profiles_own → eigene Zeile mit sex,
---                 intolerances (neue Spalten sichtbar)
---   als Athlet A: GET /profiles_visible → KEINE der neuen Spalten
---                 (bewusst nicht in dieser View)
---   als Athlet B: GET /profiles_own → nur Bs eigene Zeile, kein A
---   als anon:     GET /profiles?select=sex,height_cm → Fehler
---                 (nur id, display_name, role, wellbeing_public
---                  sind anon lesbar, per 0022)
---   PATCH /profiles?id=eq.<fremde-id> mit sex='m' → RLS-Fehler
---     (policy "eigenes Profil ändern", using id = auth.uid())
---   PATCH /profiles_own?id=eq.<eigene-id> mit sex='m' → 204
+-- RLS (bestehende Policies unveraendert, keine neuen Grants):
+--   als anon:         GET /profiles?select=sex,height_cm -> Fehler
+--                     (0022 grantet nur id,display_name,role,
+--                      wellbeing_public)
+--   als Athlet A:     GET /profiles_own -> KEINE sex/intolerances
+--                     (View nicht erweitert — kommt in E5)
+--   als Athlet A:     PATCH /profiles_own mit sex='m' -> Fehler
+--                     (kein update grant fuer sex)
+--   als Athlet A:     PATCH /profiles mit height_cm=180 -> ok
+--                     (grant update aus 0039 fuer height_cm)
+--   als Athlet A:     PATCH /profiles mit sex='m' -> RLS-Fehler
+--                     (kein grant update fuer sex)
+--   als Athlet B:     PATCH /profiles?id=eq.<A-id> mit height_cm ->
+--                     RLS-Fehler (policy gated id = auth.uid())
 --
--- Sync (service_role, kein Grant auf neue Spalten):
+-- Sync (service_role, kein Grant auf sex/intolerances):
 --   select id, display_name, sex, intolerances from profiles
---     → sex, intolerances: NULL (kein Grant → von PostgREST
---       unterdrückt, keine Fehler, weil RLS-Bypass und service_role
---       haben default grant on all tables; der fehlende Spalten-Grant
---       kehrt das für genau diese Spalten um)
+--     -> sex, intolerances als NULL angezeigt (kein Spalten-Grant
+--       -> PostgREST unterdrueckt sie; RLS-Bypass allein reicht
+--       nicht, weil service_role default grant on all tables
+--       durch den fehlenden Spalten-Grant fuer genau diese
+--       Spalten zurueckgenommen ist)
 -- ============================================================
 
 -- migrate:down
