@@ -137,6 +137,12 @@ export interface Profile {
    *  ` ride,run,swim `, mindestens eine Sportart. Bis ein DB-Wert vorliegt,
    *  lesen die Lesepfade den `config.ts`-Fallback (s. useAthleteSports). */
   sports: readonly Sport[];
+  /** Migration 0059 (Fahrplan 23, E0) — EU-Allergen-Intoleranzen des
+   *  Athleten, text[]-Array der Keys aus core/nutrition-taxonomy.js.
+   *  Leeres Array = "keine Intoleranzen" (E21). DB-Spalte existiert,
+   *  Lesepfad kommt in E5 (Settings-Formular). Optional, da bis dahin
+   *  keine Aufnahme in profiles_own/Adapter. */
+  intolerances?: AllergenTag[];
 }
 
 /** Die eigene Zeile aus der View `profiles_own` (Migration 0039, Fahrplan 17
@@ -518,6 +524,11 @@ export type AllergenTag =
   | 'gluten' | 'crustaceans' | 'eggs' | 'fish' | 'peanuts'
   | 'soybeans' | 'milk' | 'nuts' | 'celery' | 'mustard'
   | 'sesame' | 'sulphites' | 'lupin' | 'molluscs' | 'sonstiges';
+
+/** Intoleranz-Eintrag eines Profils — Array von AllergenTag-Werten.
+ *  Leeres Array = "keine Intoleranzen" (E21).
+ *  Validierung auf App-Ebene via core/nutrition-taxonomy.js (KEIN DB-Check). */
+export type ProfileIntolerance = AllergenTag[];
 
 export interface RecipeIngredient {
   name: string;

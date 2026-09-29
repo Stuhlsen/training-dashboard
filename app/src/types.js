@@ -273,3 +273,11 @@ export {};
  * @property {string} createdAt
  * @property {string} updatedAt
  */
+
+/**
+ * Intoleranz-Eintrag eines Profils — Array von Keys aus der
+ * EU-Allergen-Taxonomie (core/nutrition-taxonomy.js).
+ * Leeres Array = "keine Intoleranzen" (E21).
+ * Validierung auf App-Ebene, kein DB-Check (Migration 0059).
+ * @typedef {Array<"gluten"|"crustaceans"|"eggs"|"fish"|"peanuts"|"soybeans"|"milk"|"nuts"|"celery"|"mustard"|"sesame"|"sulphites"|"lupin"|"molluscs"|"sonstiges">} ProfileIntolerance
+ */
