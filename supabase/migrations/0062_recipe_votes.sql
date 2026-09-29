@@ -64,10 +64,12 @@ comment on table public.recipe_votes is
   'FK cascade beidseitig. '
   'Kein DELETE-Grant/Policy fuer authenticated (V3).';
 
--- Index: Votes pro Recipe abrufen (Community-Ansicht, Admin-Review)
-create index if not exists recipe_votes_recipe_idx on public.recipe_votes (recipe_id);
--- Index: Vote eines bestimmten Athleten zu einem Recipe (MyVote-Check)
-create index if not exists recipe_votes_recipe_athlete_idx on public.recipe_votes (recipe_id, athlete_id);
+-- Index: Votes eines bestimmten Athleten (Admin-Review, Profile-Ansicht)
+-- Der unique-Constraint (recipe_id, athlete_id) deckt per leftmost-prefix bereits
+-- "alle Votes fuer ein Recipe" und "Vote eines Athleten zu einem Recipe" ab.
+-- Ein athlete_id-Only Index ergaenzt die noch fehlende Coverage "alle Votes
+-- eines Athleten", ohne Redundanz.
+create index if not exists recipe_votes_athlete_idx on public.recipe_votes (athlete_id);
 
 alter table public.recipe_votes enable row level security;
 

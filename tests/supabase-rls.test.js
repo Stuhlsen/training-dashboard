@@ -140,6 +140,7 @@ if (!HAS_CREDS) {
   let planActiveAlready = false; // Athlet 1 hat bereits eine echte aktive training_plans-Zeile
   let cxTableReady = false; // coach_exchanges (0034) lesbar? (Migration eingespielt)
   let nutritionGoalsTableReady = false; // nutrition_goals (0058) lesbar? (Migration eingespielt)
+  let recipeVotesTableReady = false; // recipe_votes (0062) lesbar? (Migration eingespielt)
 
   /** Aufräum-Funktionen, LIFO im after()-Hook ausgeführt. Jede fängt ihre
    *  eigenen Fehler NICHT selbst — after() sammelt sie, damit ein einzelner
@@ -215,6 +216,14 @@ if (!HAS_CREDS) {
       { token: athlete.token }
     );
     nutritionGoalsTableReady = ngProbe.ok;
+
+    // recipe_votes (0062): Tabelle lesbar? (Migration eingespielt) — steuert unten den Skip.
+    const rvProbe = await rest(
+      "GET",
+      `recipe_votes?select=id&limit=1`,
+      { token: athlete.token }
+    );
+    recipeVotesTableReady = rvProbe.ok;
   });
 
   after(async () => {
@@ -2570,7 +2579,7 @@ if (!HAS_CREDS) {
     );
   });
 
-  test("nutrition_goals: anon darf gar nicht einfügen (kein GRANT)", async (t) => {
+  test("nutrition_goals: anon darf gar nicht einfuegen (kein GRANT)", async (t) => {
     if (ngSkip()) return t.skip(ngSkip());
     const insert = await rest("POST", "nutrition_goals", {
       token: null,
@@ -2579,6 +2588,286 @@ if (!HAS_CREDS) {
         goal_type: "maintain",
       },
     });
-    assert.equal(insert.ok, false, "anon darf nutrition_goals nicht einfügen (kein GRANT)");
+    assert.equal(insert.ok, false, "anon darf nutrition_goals nicht einfuegen (kein GRANT)");
+  });
+
+  // --- 11. recipe_votes (0062): community-voting, authenticated-read-all,
+  //     self-insert/update, kein DELETE --------------------------------
+  // Strikte RLS (V3): SELECT for all authenticated, INSERT/UPDATE nur eigener
+  // Vote (athlete_id = auth.uid()), DELETE gar nicht (nur per service_role).
+  // Referenziert recipes(id) on delete cascade – fuer den Test wird zuerst
+  // ein Rezept per service_role angelegt (RLS-Bypass), damit die FK-Referenz
+  // existiert. Ohne service_role-Key wird der ganze Block uebersprungen, um
+  // keine Waisen liegen zu lassen.
+  //
+  // Da recipe_votes absichtlich kein DELETE-Grant fuer authenticated hat,
+  // wird das Aufraeumen per service_role gemacht. Der Test registriert daher
+  // zwei Cleanup-Schritte: (1) Vote loeschen, (2) Recipe loeschen (cascaded).
+  // Fehlt service_role in .env, muessen die Tests ausgelassen werden.
+
+  const rvSkip = () =>
+    !recipeVotesTableReady
+      ? "recipe_votes nicht lesbar — Migration 0062 vermutlich noch nicht eingespielt"
+      : false;
+
+  /** Legt ein Test-Rezept an (service_role, RLS-Bypass). */
+  async function ensureTestRecipe() {
+    const insert = await rest("POST", "recipes", {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: {
+        source: "own",
+        title: "RLS-Test-Rezept",
+        meal_type: ["dinner"],
+      },
+    });
+    assert.equal(
+      insert.ok,
+      true,
+      `Test-Rezept-Insert (service_role) fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
+    const recipeId = insert.data[0].id;
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `recipes?id=eq.${recipeId}`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      });
+      if (!del.ok)
+        throw new Error(`recipe_votes-Test-Rezept ${recipeId} nicht geloescht: ${JSON.stringify(del.data)}`);
+    });
+    return recipeId;
+  }
+
+  async function insertVoteRow(recipeId, over = {}) {
+    const insert = await rest("POST", "recipe_votes", {
+      token: athlete.token,
+      body: {
+        recipe_id: recipeId,
+        athlete_id: athlete.userId,
+        vote: "up",
+        ...over,
+      },
+    });
+    assert.equal(
+      insert.ok,
+      true,
+      `recipe_votes-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
+    const id = insert.data[0].id;
+    // Cleanup per service_role (kein DELETE-Grant fuer authenticated)
+    cleanupTasks.push(async () => {
+      const del = await rest("DELETE", `recipe_votes?id=eq.${id}`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      });
+      if (!del.ok)
+        throw new Error(
+          `recipe_votes-Testzeile ${id} nicht geloescht (service_role): ${JSON.stringify(del.data)}`
+        );
+    });
+    return id;
+  }
+
+  test("recipe_votes: Athlet legt eigenen Vote an und liest ihn, anon liest nichts (kein GRANT)", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+    const recipeId = await ensureTestRecipe();
+    const id = await insertVoteRow(recipeId);
+
+    const ownRead = await rest("GET", `recipe_votes?id=eq.${id}&select=vote,comment`, {
+      token: athlete.token,
+    });
+    assert.equal(ownRead.ok, true);
+    assert.equal(ownRead.data.length, 1, "Athlet liest den eigenen Vote nicht");
+    assert.equal(ownRead.data[0].vote, "up");
+
+    const anonRead = await rest("GET", `recipe_votes?id=eq.${id}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf recipe_votes nicht lesen (kein GRANT)");
+  });
+
+  test("recipe_votes: alle authenticated lesen alle Votes (SELECT using(true))", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+    if (!coachLinkOk) return t.skip("Coach-Verknuepfung fehlt — Trainer-Login nicht verfuegbar");
+
+    const recipeId = await ensureTestRecipe();
+    const id = await insertVoteRow(recipeId);
+
+    // Trainer (authenticated, nicht der Athlet) muss den Vote ebenfalls sehen
+    const trainerRead = await rest("GET", `recipe_votes?id=eq.${id}&select=vote,athlete_id`, {
+      token: trainer.token,
+    });
+    assert.equal(trainerRead.ok, true);
+    assert.equal(
+      trainerRead.data.length,
+      1,
+      "Trainer sollte den Vote des Athleten lesen koennen (SELECT all auth)"
+    );
+    assert.equal(trainerRead.data[0].athlete_id, athlete.userId);
+  });
+
+  test("recipe_votes: UPDATE des eigenen Votes aendert vote-Wert (up->down)", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+
+    const recipeId = await ensureTestRecipe();
+    const id = await insertVoteRow(recipeId, { vote: "up" });
+
+    // UPDATE auf 'down'
+    const update = await rest("PATCH", `recipe_votes?id=eq.${id}`, {
+      token: athlete.token,
+      body: { vote: "down" },
+    });
+    assert.equal(update.ok, true);
+    assert.equal(
+      update.data?.[0]?.vote,
+      "down",
+      "UPDATE des eigenen Votes hat vote-Wert nicht geaendert"
+    );
+
+    // Zuruecklesen: 'down'
+    const readBack = await rest("GET", `recipe_votes?id=eq.${id}&select=vote`, {
+      token: athlete.token,
+    });
+    assert.equal(readBack.data[0].vote, "down");
+  });
+
+  test("recipe_votes: UPDATE auf fremden Vote schlaegt still (0 rows)", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+    if (!coachLinkOk) return t.skip("Coach-Verknuepfung fehlt — Trainer-Login nicht verfuegbar");
+
+    const recipeId = await ensureTestRecipe();
+    const id = await insertVoteRow(recipeId, { vote: "up" });
+
+    // Trainer versucht, Athlet 1's Vote zu aendern (RLS: trainer.auth.uid() != athlete_id)
+    const foreignUpdate = await rest("PATCH", `recipe_votes?id=eq.${id}`, {
+      token: trainer.token,
+      body: { vote: "down" },
+    });
+    assert.equal(
+      foreignUpdate.data?.length ?? 0,
+      0,
+      "Fremder UPDATE auf recipe_votes haette still 0 Zeilen treffen muessen"
+    );
+  });
+
+  test("recipe_votes: Athlet kann keinen Vote fuer fremde athlete_id anlegen (WITH CHECK)", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+
+    const recipeId = await ensureTestRecipe();
+    const insert = await rest("POST", "recipe_votes", {
+      token: athlete.token,
+      body: {
+        recipe_id: recipeId,
+        athlete_id: trainer.userId, // fremde athlete_id
+        vote: "up",
+      },
+    });
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert mit fremder athlete_id haette an WITH-CHECK-Policy scheitern muessen"
+    );
+    if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
+      const strayId = insert.data[0].id;
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `recipe_votes?id=eq.${strayId}`, {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        });
+      });
+    }
+  });
+
+  test("recipe_votes: DELETE des eigenen Votes schlaegt still (keine DELETE-Policy)", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+
+    const recipeId = await ensureTestRecipe();
+    const id = await insertVoteRow(recipeId, { vote: "up" });
+
+    // Athlet versucht eigenen Vote zu loeschen -> keine DELETE-Policy -> 0 rows
+    const ownDel = await rest("DELETE", `recipe_votes?id=eq.${id}`, {
+      token: athlete.token,
+    });
+    assert.equal(
+      ownDel.data?.length ?? 0,
+      0,
+      "DELETE des eigenen Votes haette ohne Policy 0 Zeilen treffen muessen"
+    );
+
+    // Vote existiert noch
+    const stillThere = await rest("GET", `recipe_votes?id=eq.${id}`, { token: athlete.token });
+    assert.equal(stillThere.data.length, 1, "Vote wurde trotz fehlender DELETE-Policy entfernt");
+  });
+
+  test("recipe_votes: unbekannter vote-Wert scheitert am Check-Constraint", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+
+    const recipeId = await ensureTestRecipe();
+    const bad = await rest("POST", "recipe_votes", {
+      token: athlete.token,
+      body: {
+        recipe_id: recipeId,
+        athlete_id: athlete.userId,
+        vote: "neutral",
+      },
+    });
+    assert.equal(bad.ok, false, "vote='neutral' haette am CHECK-Constraint scheitern muessen");
+  });
+
+  test("recipe_votes: zweiter Insert fuer selbes (recipe_id, athlete_id) scheitert am unique-Constraint", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+
+    const recipeId = await ensureTestRecipe();
+    const first = await rest("POST", "recipe_votes", {
+      token: athlete.token,
+      body: { recipe_id: recipeId, athlete_id: athlete.userId, vote: "up" },
+    });
+    assert.equal(first.ok, true, `Erster Insert fehlgeschlagen: ${JSON.stringify(first.data)}`);
+    const firstId = first.data[0].id;
+    // Cleanup: erste Zeile per service_role (falls der zweite Insert NICHT scheitert und
+    // wir zwei Zeilen haben) — zweiten Cleanup ggf. im catch-Block.
+    const cleanupId = firstId;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipe_votes?id=eq.${cleanupId}`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      });
+    });
+
+    const dup = await rest("POST", "recipe_votes", {
+      token: athlete.token,
+      body: { recipe_id: recipeId, athlete_id: athlete.userId, vote: "down" },
+    });
+    assert.equal(
+      dup.ok,
+      false,
+      "Doppelter (recipe_id, athlete_id)-Insert haette am unique-Constraint scheitern muessen"
+    );
+  });
+
+  test("recipe_votes: anon darf gar kein Recipe-Voting machen (kein GRANT)", async (t) => {
+    if (rvSkip()) return t.skip(rvSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
+
+    const recipeId = await ensureTestRecipe();
+    const anonInsert = await rest("POST", "recipe_votes", {
+      token: null,
+      body: {
+        recipe_id: recipeId,
+        athlete_id: athlete.userId,
+        vote: "up",
+      },
+    });
+    assert.equal(anonInsert.ok, false, "anon darf recipe_votes nicht einfuegen (kein GRANT)");
   });
 }
