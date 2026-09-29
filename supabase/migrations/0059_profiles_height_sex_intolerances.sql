@@ -1,7 +1,7 @@
 -- migrate:up
 
 -- ============================================================
--- Dashboard 2.0 — Migration 0058: profiles.height_cm (noop),
+-- Dashboard 2.0 — Migration 0059: profiles.height_cm (noop),
 --             profiles.sex, profiles.intolerances
 --             (Ernährungs-Datengrundlage)
 -- Einspielen: Supabase SQL-Editor / dbmate, dev-Projekt zuerst
