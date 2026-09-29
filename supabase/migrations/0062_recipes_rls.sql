@@ -78,6 +78,10 @@ grant delete on public.recipes to authenticated;
 
 -- Service-Role: volle Kontrolle fuer Sync/Saat-/Migrationspfad
 -- (z. B. Einspielen von Spoonacular-Rezepten, Datenpflege).
+-- Hinweis: Der E16-Trigger guard (recipes_check_content_update) hat einen
+--   auth.role()-Bypass fuer service_role, damit service_role auch Status-
+--   Transitionen (approved/rejected) durchfuehren kann — public.is_admin()
+--   allein wuerde scheitern, da service_role-JWTs kein sub-claim fuehren.
 grant select, insert, update, delete on public.recipes to service_role;
 
 -- --------------------------------------------------------------
@@ -195,14 +199,19 @@ begin
     end if;
   end if;
 
-  -- Status und rejection_reason: nur admin darf aendern (E16)
+  -- Status und rejection_reason: nur admin oder service_role darf aendern (E16)
+  -- service_role-Bypass: auth.role() = 'service_role' ist erforderlich, damit
+  --   der Sync-/Seed-Pfad (z. B. Spoonacular-Import, admin-api) Status-
+  --   Transitionen durchfuehren kann. public.is_admin() allein wuerde
+  --   scheitern, weil service_role-JWTs kein 'sub'-Claim fuehren (auth.uid()
+  --   = NULL → is_admin() = false).
   -- Dies schliesst auch den Fall aus, dass ein Athlet rejection_reason
   -- an seinem eigenen pending-Rezept setzt (Review Finding 1, Issue #16).
   if new.status is distinct from old.status
      or new.rejection_reason is distinct from old.rejection_reason
   then
-    if not public.is_admin() then
-      raise exception 'E16: only admin may change status or rejection_reason';
+    if not public.is_admin() and auth.role() <> 'service_role' then
+      raise exception 'E16: only admin or service_role may change status or rejection_reason';
     end if;
   end if;
 
@@ -250,9 +259,8 @@ create trigger recipes_check_content_update
 --   PATCH /rest/v1/recipes?id=eq.<eigenes-pending> mit title='neu'
 --     -> 200, title geaendert
 --   PATCH /rest/v1/recipes?id=eq.<eigenes-pending> mit status='approved'
---     -> 200, data: [] (WITH CHECK im submitter-policy blockt Aenderung;
---         PostgREST blendet Zeilen aus, die nach WITH CHECK nicht mehr
---         sichtbar waeren — kein Fehler, aber data=[])
+--     -> E16-Trigger blockt mit Exception (42501) — status darf
+--        nicht durch Athlet gesetzt werden (E16)
 --   PATCH /rest/v1/recipes?id=eq.<fremdes-pending> mit title='neu'
 --     -> 200, data: [] (USING im submitter-policy: submitted_by != auth.uid())
 --   PATCH /rest/v1/recipes?id=eq.<approved-rezept> mit title='neu'

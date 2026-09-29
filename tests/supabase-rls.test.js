@@ -2913,15 +2913,16 @@ if (!HAS_CREDS) {
     });
 
     // Athlet versucht status auf approved zu setzen
+    // E16-Trigger blockt — da der Trigger VOR dem RLS-Using-Check feuert,
+    // ist das ein harter Fehler (42501), kein stilles 0-Rows.
     const updateStatus = await rest("PATCH", `recipes?id=eq.${id}`, {
       token: athlete.token,
       body: { status: "approved" },
     });
-    // WITH CHECK im submitter-policy blockt (data: [])
     assert.equal(
-      updateStatus.data?.length ?? 0,
-      0,
-      "Athlet konnte status am eigenen pending setzen — WITH CHECK/E16-Trigger greift nicht"
+      updateStatus.ok,
+      false,
+      "Athlet konnte status am eigenen pending setzen — E16-Trigger greift nicht"
     );
   });
 
@@ -2937,24 +2938,29 @@ if (!HAS_CREDS) {
     });
 
     // Athlet versucht rejection_reason zu setzen
+    // E16-Trigger blockt mit Exception (42501) — rejection_reason darf
+    // nicht durch Athlet gesetzt werden, auch nicht am eigenen pending.
     const updateReason = await rest("PATCH", `recipes?id=eq.${id}`, {
       token: athlete.token,
       body: { rejection_reason: "Eigenmaechtig" },
     });
-    // RLS: submitter policy matched (USING), aber WITH CHECK (submitted_by = auth.uid() AND status = 'pending') laesst
-    // rejection_reason-Aenderung durch — der Trigger blockt sie.
-    // PostgREST liefert bei Trigger-Exception einen harten Fehler.
-    // ACHTUNG: Bei PATCH erzeugt ein Trigger-raise (42501) einen http 200 mit
-    // data: [], weil PostgREST die Zeile vor dem Fehler nicht mehr sieht.
     assert.equal(
-      updateReason.data?.length ?? 0,
-      0,
-      "Athlet konnte rejection_reason am eigenen pending setzen — E16-Trigger/RLS greift nicht"
+      updateReason.ok,
+      false,
+      "Athlet konnte rejection_reason am eigenen pending setzen — E16-Trigger greift nicht"
     );
   });
 
-  test("recipes: Athlet UPDATE content after approval — 0 rows (E18 Trigger, auch fuer admin)", async (t) => {
+  test("recipes: Athlet UPDATE content after approval blocked (E18 Trigger, race condition edge case #16)", async (t) => {
     if (recipesSkip()) return t.skip(recipesSkip());
+
+    // Edge Case (Issue #16): "Simultaneous submitter content-edit and admin
+    // status-change in the same window → admin approves while submitter edit
+    // is in flight → edit fails."
+    // Hier sequentiell simuliert: admin approved zuerst, dann submitter
+    // content-Edit — durch PostgreSQL MVCC garantiert, dass der zweite
+    // UPDATE den kommittierten Status des ersten sieht (old.status='approved'),
+    // sodass der E18-Trigger den content-Edit blockt.
 
     // Approved-Rezept (RLS-Bypass, submitted_by=null) — Athlet A darf
     // content nicht aendern, auch wenn es sein eigenes waere (nach approval
