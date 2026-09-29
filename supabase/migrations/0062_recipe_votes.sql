@@ -110,7 +110,10 @@ grant all on public.recipe_votes to service_role;
 -- (using(true)) fuer ALLE eingeloggten Athleten lesbar — breitere
 -- Exposure als nutrition_goals (owner-only). Auch wenn der Vote selbst
 -- nur 'up'/'down' ist (niedrige Sensitivitaet), ist comment potenziell
--- personenbezogen. Human sign-off bei Merge.
+-- personenbezogen. Keine Koordinaten oder Standorte betroffen und anon
+-- hat keinerlei Grant auf der Tabelle (nur authenticated), aber die neue
+-- Datenkategorie (frei verfasste Kommentare) braucht Human sign-off bei Merge.
+-- ============================================================
 
 -- migrate:down
 -- Bewusst leer: dieses Projekt rollt Migrationen nie automatisiert zurueck
