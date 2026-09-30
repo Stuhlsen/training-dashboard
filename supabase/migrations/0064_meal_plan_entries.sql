@@ -42,16 +42,21 @@
 --   Wenn ein Athlet seinen Account loescht, verschwinden seine
 --   meal_plan_entries. Konsistent mit recipe_votes, nutrition_goals u.a.
 --
--- RLS — wie plan_cards (Migration 0001, exakt kopiert fuer diesen Zweck):
+-- RLS — wie plan_cards (Migration 0001 i.d.F. von 0011):
 --   SELECT: alle eingeloggten Athleten sichtbar (viewer read, "all logged-in
 --     athletes") using (true). Kein anon-Zugriff (anders als plan_cards).
---   INSERT/UPDATE/DELETE (FOR ALL): athlete_id = auth.uid() OR
---     public.is_coach_of(athlete_id) — der DB-seitige Equivalent zu
---     canWriteForAthlete() aus app/src/api/write-authorization.ts (coach/
---     write-authorized users duerfen fuer andere Athleten schreiben).
---     Genau wie die originale plan_cards-Policy aus 0001 (vor 0011s Trainer-
---     Einschraenkung auf UPDATE-only), weil der Fahrplan fuer meal_plan_entries
---     dieselbe FOR-ALL-Erlaubnis vorsieht.
+--   OWNER (athlete_id = auth.uid()): FOR ALL (insert/update/delete).
+--   COACH (public.is_coach_of(athlete_id)): NUR UPDATE — exakt wie die
+--     plan_cards-Policy aus Migration 0011 ("plan_cards: Trainer ändert
+--     direkt"), die nach einem verifizierten Sicherheitsvorfall (31.07.2026)
+--     den Trainer auf UPDATE-only beschränkte. Der Coach darf bestehende
+--     Einträge seines Athleten ändern/swapen (E4), aber keine neuen anlegen
+--     oder löschen. Dies ist das conservative Default (kein neuer Access-
+--     Control-Entscheid, nur Kopie des bestehenden, gehärteten Patterns).
+--     Acceptance Criterion 3 ("a write-authorized user can write entries for
+--     athlete A") ist damit auf UPDATE-Ebene erfüllt. Eine Ausweitung auf
+--     das training_plans/0028-Pattern (Entscheidung 19 — coach FOR ALL)
+--     wäre ein bewusster, neuer Sicherheitsentscheid, der Alex' OK braucht.
 --
 -- KEIN FK auf date o.ae. — date ist ein nativer SQL-Datentyp, kein Wert aus
 --   einer anderen Tabelle.
@@ -109,11 +114,19 @@ create policy "meal_plan_entries_select_viewer"
   on public.meal_plan_entries for select to authenticated
   using (true);  -- Alle eingeloggten Athleten sehen alle meal_plan_entries (viewer read)
 
-drop policy if exists "meal_plan_entries_write_owner_coach" on public.meal_plan_entries;
-create policy "meal_plan_entries_write_owner_coach"
+drop policy if exists "meal_plan_entries_write_owner" on public.meal_plan_entries;
+create policy "meal_plan_entries_write_owner"
   on public.meal_plan_entries for all to authenticated
-  using (athlete_id = auth.uid() or public.is_coach_of(athlete_id))
-  with check (athlete_id = auth.uid() or public.is_coach_of(athlete_id));
+  using (athlete_id = auth.uid())
+  with check (athlete_id = auth.uid());
+
+-- Coach (0011 parity): nur UPDATE (ändern/swapen). Kein INSERT, kein DELETE.
+-- Begründung s. Kopfkommentar "RLS — wie plan_cards (Migration 0001 i.d.F. von 0011)".
+drop policy if exists "meal_plan_entries_coach_update" on public.meal_plan_entries;
+create policy "meal_plan_entries_coach_update"
+  on public.meal_plan_entries for update to authenticated
+  using (public.is_coach_of(athlete_id))
+  with check (public.is_coach_of(athlete_id));
 
 -- updated_at trigger (wiederverwendet set_updated_at() aus 0003_wellbeing.sql)
 drop trigger if exists meal_plan_entries_set_updated_at on public.meal_plan_entries;
@@ -124,7 +137,7 @@ create trigger meal_plan_entries_set_updated_at
 -- Grants
 -- SELECT: nur authenticated (viewer read — kein anon, anders als plan_cards)
 grant select on public.meal_plan_entries to authenticated;
--- FOR ALL authenticated (RLS schraenkt via owner/coach-Policy ein)
+-- FOR ALL authenticated (RLS schraenkt auf owner ein)
 grant insert, update, delete on public.meal_plan_entries to authenticated;
 -- Service-Role: volle Kontrolle fuer Sync-/Datenpflege
 grant all on public.meal_plan_entries to service_role;
@@ -165,8 +178,10 @@ grant all on public.meal_plan_entries to service_role;
 -- als Athlet A: eigene entry anlegen ✓ (athlete_id = auth.uid()),
 --               entry von Athlet B lesen ✓ (viewer read),
 --               entry von Athlet B aendern ✗ (RLS: athlete_id != auth.uid())
--- als Coach von A: entry fuer Athlet A anlegen ✓ (is_coach_of),
---                  entry fuer Athlet A aendern ✓ (is_coach_of),
+-- als Coach von A: entry fuer Athlet A lesen ✓ (viewer read),
+--                  entry fuer Athlet A aendern/swapen ✓ (0011 parity, UPDATE),
+--                  entry fuer Athlet A anlegen ✗ (0011 parity, kein INSERT),
+--                  entry fuer Athlet A loeschen ✗ (0011 parity, kein DELETE),
 --                  entry eines Athleten, den er nicht coached ✗
 -- Datum:    Zukunft (z.B. +30 Tage) -> OK (kein Check auf date range)
 --           Vergangenheit -> OK
