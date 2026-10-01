@@ -77,9 +77,8 @@ function isValidNumber(v, allowZero = false, allowNegative = false) {
 function calcFFM(weightKg, bodyFat) {
   if (!isValidNumber(weightKg)) return null;
 
-  // bodyFat 0 oder >100 (Prozent-Werte, die keinem sinnvollen
-  // Bereich entsprechen) → kein brauchbarer Wert
-  if (bodyFat != null && (bodyFat <= 0 || bodyFat >= 1 || bodyFat > 100)) {
+  // bodyFat <= 0 oder > 1 (Dezimalbereich) ist kein brauchbarer Wert
+  if (bodyFat != null && (bodyFat <= 0 || bodyFat > 1)) {
     return null;
   }
 
@@ -107,6 +106,19 @@ export function estimateDailyTarget(profile) {
     return { ok: false, hint: "Profil ergänzen" };
   }
 
+  // Negatives/ungültiges Gewicht früh abweisen, bevor estimateBMR
+  // aufgerufen wird (isValidNumber prüft > 0, rejects NaN/0/negative)
+  if (!isValidNumber(profile.weightKg)) {
+    const missing = [];
+    if (!isValidNumber(profile.weightKg)) missing.push("Gewicht (kg)");
+    if (!isValidNumber(profile.heightCm)) missing.push("Größe (cm)");
+    if (!isValidNumber(profile.age)) missing.push("Alter");
+    const hint = missing.length
+      ? `Profil ergänzen: ${missing.join(", ")}`
+      : "Profil ergänzen";
+    return { ok: false, hint };
+  }
+
   const bmr = estimateBMR({
     weightKg: profile.weightKg,
     heightCm: profile.heightCm,
@@ -115,9 +127,8 @@ export function estimateDailyTarget(profile) {
   });
 
   if (bmr == null) {
-    // Ermitteln, welches Feld fehlt
+    // Ermitteln, welches Feld fehlt (weightKg ist hier bereits validiert)
     const missing = [];
-    if (!isValidNumber(profile.weightKg)) missing.push("Gewicht (kg)");
     if (!isValidNumber(profile.heightCm)) missing.push("Größe (cm)");
     if (!isValidNumber(profile.age)) missing.push("Alter");
     const hint = missing.length
@@ -187,7 +198,121 @@ export function redSFloor(params) {
     source: "ioc-reds-2023",
     bodyFatAssumed,
     sexAssumed,
-    note: "Richtwert, keine Diagnose — grobe Orientierung für die Mindestzufuhr.",
+    note: "Richtwert, keine Diagnose - grobe Orientierung fuer die Mindestzufuhr.",
+  };
+}
+
+/**
+ * Zusammengesetztes, zieladjustiertes taegliches Kalorienziel inklusive
+ * RED-S-Floor-Cap.
+ *
+ * Verknuepft estimateDailyTarget (BMR), paceToDailyKcal (Ziel-Anpassung
+ * aus nutrition_goals.pace_per_week_kg) und redSFloor (Minimalgrenze).
+ *
+ * @param {{
+ *   profile: {weightKg?:number, heightCm?:number, age?:number, sex?:string, bodyFat?:number},
+ *   goal?: {goalType?:string, pacePerWeekKg?:number, targetWeightKg?:number}
+ * }} params
+ * @returns {{
+ *   ok:true, target:number, bmr:number, adjustment:number,
+ *   floor:number|null, capped:boolean,
+ *   source:string[], note:string
+ * }|{ok:false, hint:string}}
+ */
+export function estimateDailyGoal(params) {
+  const { profile, goal } = params || {};
+
+  // BMR aus dem Profil
+  if (!profile) {
+    return { ok: false, hint: "Profil ergaenzen" };
+  }
+  const bmrResult = estimateDailyTarget({
+    weightKg: profile.weightKg,
+    heightCm: profile.heightCm,
+    age: profile.age,
+    sex: profile.sex,
+  });
+  if (!bmrResult.ok) return bmrResult;
+
+  const bmr = bmrResult.bmr;
+
+  // Ziel-Adjustment aus der Goal (nur lose/gain mit pace)
+  let adjustment = 0;
+  let applyFloor = false;
+
+  if (goal) {
+    if (goal.goalType === "lose" || goal.goalType === "gain") {
+      if (isValidNumber(goal.pacePerWeekKg, true, true)) {
+        // paceToDailyKcal: positive pace = deficit (positive kcal)
+        // target = BMR - paceToDailyKcal(pace):
+        //   lose 0.5 kg/week -> paceToDailyKcal = +550 -> target = BMR - 550
+        //   gain 0.5 kg/week -> paceToDailyKcal = +550 -> target = BMR + 550
+        //                                   (pacePerWeekKg is negative for gain)
+        adjustment = paceToDailyKcal(goal.pacePerWeekKg);
+        applyFloor = adjustment > 0; // only cap deficits, not surpluses
+      }
+    }
+    // 'maintain' or no goalType: no adjustment, no floor
+  }
+
+  // Rohes Target vor Floor: BMR - adjustment
+  // adjustment > 0 = deficit (subtract from BMR)
+  // adjustment < 0 = surplus (add to BMR)
+  let target = bmr - adjustment;
+
+  // RED-S-Floor anwenden (nur bei Defizit)
+  let floor = null;
+  let capped = false;
+
+  if (applyFloor) {
+    const floorResult = redSFloor({
+      sex: profile.sex,
+      weightKg: profile.weightKg,
+      bodyFat: profile.bodyFat,
+    });
+    if (floorResult.ok) {
+      floor = floorResult.floorKcal;
+      if (target < floor) {
+        target = floor;
+        capped = true;
+      }
+    }
+  }
+
+  // Notiz zusammenbauen
+  const parts = [];
+  const sourceSet = new Set(["mifflin-st-jeor"]);
+
+  if (adjustment !== 0) {
+    const label = adjustment > 0 ? "Defizit" : "Ueberschuss";
+    parts.push(
+      `Ziel-Anpassung ${label} ${Math.abs(adjustment)} kcal (${Math.abs(goal.pacePerWeekKg)} kg/Woche)`
+    );
+    sourceSet.add("7700-kcal-per-kg");
+  }
+  if (capped) {
+    parts.push(`Durch RED-S-Minimum (${floor} kcal) begrenzt`);
+    sourceSet.add("ioc-reds-2023");
+  }
+  if (floor != null && !capped) {
+    parts.push(`RED-S-Minimum ${floor} kcal (nicht unterschaerzt)`);
+    sourceSet.add("ioc-reds-2023");
+  }
+
+  const tag = goal && goal.goalType === "maintain" ? " (Erhalt)" : "";
+  const note = parts.length
+    ? `Ziel ${target} kcal/Tag${tag}. ${parts.join("; ")}.`
+    : `Ziel ${target} kcal/Tag${tag}.`;
+
+  return {
+    ok: true,
+    target,
+    bmr,
+    adjustment,
+    floor,
+    capped,
+    source: [...sourceSet],
+    note,
   };
 }
 
@@ -321,14 +446,16 @@ export function estimateCarbTarget(params) {
     return { ok: false, hint: "Profil ergänzen: Gewicht (kg)" };
   }
 
-  if (plannedDurationMin == null || !isValidNumber(plannedDurationMin, true) || plannedDurationMin < 0) {
-    return { ok: false, hint: "Keine gültige Trainingsdauer angegeben." };
-  }
+  // Fehlende/ungültige Dauer als "Ruhetag / keine Angabe" werten,
+  // da das Issue "0 min oder none" explizit in die 3-5 g/kg-Band einordnet.
+  const duration = (plannedDurationMin == null || !isValidNumber(plannedDurationMin, true) || plannedDurationMin < 0)
+    ? 0
+    : plannedDurationMin;
 
   // Band finden
   let band = CARB_BANDS[0]; // Default: no session
   for (const b of CARB_BANDS) {
-    if (plannedDurationMin <= b.maxMin) {
+    if (duration <= b.maxMin) {
       band = b;
       break;
     }
@@ -338,10 +465,14 @@ export function estimateCarbTarget(params) {
   const gramHigh = Math.round(weightKg * band.maxG);
 
   let note;
-  if (plannedDurationMin === 0) {
-    note = "Ruhetag: untere Bandbreite (3–5 g/kg).";
-  } else if (plannedDurationMin > 60 && plannedDurationMin <= 240) {
-    note = "Die 3–4 h-Lücke (6–10 g/kg) ist eigene Interpretation der ACSM/AND/DC-Tabelle.";
+  if (duration === 0) {
+    if (plannedDurationMin == null || plannedDurationMin < 0) {
+      note = "Keine Trainingsdauer angegeben - als Ruhetag gewertet (3-5 g/kg).";
+    } else {
+      note = "Ruhetag: untere Bandbreite (3-5 g/kg).";
+    }
+  } else if (duration > 60 && duration <= 240) {
+    note = "Die 3-4 h-Lücke (6-10 g/kg) ist eigene Interpretation der ACSM/AND/DC-Tabelle.";
   } else {
     note = "Bandbreite nach ACSM/AND/DC 2016.";
   }

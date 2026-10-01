@@ -315,4 +315,17 @@ export {};
  * @property {string} note
  */
 
+/**
+ * Ergebnis von estimateDailyGoal().
+ * @typedef {Object} DailyGoalResult
+ * @property {true} ok
+ * @property {number} target  finales Tagesziel (kcal), ggf. durch RED-S-Floor gecapped
+ * @property {number} bmr  Grundumsatz (kcal)
+ * @property {number} adjustment  Anpassung aus pace_per_week_kg (kcal), 0 wenn keine
+ * @property {number|null} floor  RED-S-Floor (kcal), null wenn nicht berechenbar
+ * @property {boolean} capped  true, wenn target durch RED-S-Floor angehoben wurde
+ * @property {string[]} source  verwendete Quellen-Schlüssel
+ * @property {string} note  beschreibender Text
+ */
+
 export {};
