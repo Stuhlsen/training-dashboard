@@ -234,11 +234,13 @@ export function redSFloor(params) {
  * Tagesgrundlage OHNE Training: Grundumsatz (Formel) + Alltag (Grundumsatz x (PAL - 1)).
  *
  * Bewusst KEINE Uhr-Daten (activeEnergy/restingEnergy aus der Wellness-Pipeline):
- *  - Uebersichtsarbeiten bis 2025: bei der Energie ist keine Marke genau (Apple Watch
- *    ca. 28 % mittlerer Fehler), Uhren liegen eher zu niedrig.
- *  - Der "Grundumsatz" der Uhr ist eine Formel aus Profildaten, keine Messung.
- *  - Der aktive Verbrauch enthaelt das Training und liegt an Ruhetagen weit unter
- *    dem Alltagsverbrauch (lokale Daten: ca. 230 kcal gegen ca. 960 kcal nach PAL).
+ *  - Metaanalyse 2025 (Choe & Kang, Physiol Meas, 56 Studien, doi 10.1088/1361-6579/adca82):
+ *    bei der Energie liegen alle Untergruppen ueber 10 % Fehler (laut Pressemitteilung der
+ *    Universitaet ca. 28 % bei der Apple Watch; die Zahl steht nicht im Abstract).
+ *  - Der "Grundumsatz" der Uhr ist laut Foren/Blogs eine Formel aus Profildaten, keine
+ *    Messung (nicht offiziell belegt).
+ *  - Der aktive Verbrauch ist anders definiert als der Alltagsverbrauch (unsere Vermutung):
+ *    an Ruhetagen lag er in lokalen Daten bei ca. 230 kcal gegen ca. 960 kcal nach PAL.
  *    Ein zu niedriges Ziel waere die gefaehrliche Richtung (zu wenig essen).
  * @param {number} bmr
  * @returns {{restingKcal:number, activityKcal:number, totalKcal:number}}
