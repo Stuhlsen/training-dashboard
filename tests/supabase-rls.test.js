@@ -51,6 +51,7 @@ import { ENV } from "../scripts/lib/env.js";
 const { SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_ATHLETE1_EMAIL, SUPABASE_ATHLETE1_PASSWORD } =
   ENV;
 const { SUPABASE_TRAINER_EMAIL, SUPABASE_TRAINER_PASSWORD } = ENV;
+const { SUPABASE_ATHLETE2_EMAIL, SUPABASE_ATHLETE2_PASSWORD } = ENV;
 
 const HAS_CREDS = !!(
   SUPABASE_URL &&
@@ -131,8 +132,11 @@ if (!HAS_CREDS) {
 
   let athlete; // { token, userId }
   let trainer; // { token, userId }
+  let stranger = null; // { token, userId } — Athlet 2: weder Besitzer noch Coach noch Admin (optional, s. before())
+  let strangerUsable = false;
   let coachLinkOk = false;
   let testAthleteIsAdmin = false; // ob der test-Account is_admin=true hat → skip der Nicht-Admin-Tests
+  let testTrainerIsAdmin = false; // ob der Trainer-Test-Account is_admin=true hat (er ist die Nicht-Admin-Identität der recipes-Verbotstests)
   let originalWellbeingPublic = null;
   let originalViewPrefs; // undefined = noch nicht geprüft, null = existierte nicht
   let originalIntervalsCredentials; // undefined = noch nicht geprüft, null = existierte nicht
@@ -164,6 +168,30 @@ if (!HAS_CREDS) {
     const row = profileCheck.data?.[0];
     originalWellbeingPublic = row?.wellbeing_public ?? null;
     testAthleteIsAdmin = row?.is_admin ?? false;
+    const trainerProfile = await rest(
+      "GET",
+      `profiles_visible?id=eq.${trainer.userId}&select=id,is_admin`,
+      { token: trainer.token }
+    );
+    testTrainerIsAdmin = trainerProfile.data?.[0]?.is_admin ?? false;
+
+    // Dritte Identität „Fremder": Athlet 2, nur wenn Credentials da sind und der
+    // Account weder Admin noch Coach von Athlet 1 ist. Fehlt sie, überspringen
+    // sich die Fremden-Tests einzeln (kein Fehlschlag der Suite).
+    if (SUPABASE_ATHLETE2_EMAIL && SUPABASE_ATHLETE2_PASSWORD) {
+      try {
+        stranger = await signIn(SUPABASE_ATHLETE2_EMAIL, SUPABASE_ATHLETE2_PASSWORD);
+        const strangerProfile = await rest(
+          "GET",
+          `profiles_visible?id=eq.${stranger.userId}&select=id,is_admin`,
+          { token: stranger.token }
+        );
+        strangerUsable =
+          strangerProfile.data?.[0]?.is_admin === false && row?.coach_id !== stranger.userId;
+      } catch {
+        stranger = null;
+      }
+    }
     coachLinkOk = !!row && row.role === "athlete" && row.coach_id === trainer.userId;
 
     const prefsCheck = await rest(
@@ -2942,10 +2970,12 @@ if (!HAS_CREDS) {
       ? "recipes-Tabelle nicht lesbar — Migration 0062 vermutlich noch nicht eingespielt"
       : false;
 
-  const adminRecipesSkip = () => {
+  // Nicht-Admin-Verbotstests: der Trainer-Account ist die Nicht-Admin-Identität
+  // (der Athlet-Account ist auf dashboard-dev Admin, s. Issue #23).
+  const nonAdminActorSkip = () => {
     const base = recipesSkip();
     if (base) return base;
-    if (testAthleteIsAdmin) return "Test-Athlet hat is_admin=true auf dashboard-dev — dieser Test setzt einen Nicht-Admin voraus (siehe Issue #23)";
+    if (testTrainerIsAdmin) return "Trainer-Test-Account hat is_admin=true — Verbotstests brauchen einen Nicht-Admin";
     return false;
   };
 
@@ -2955,12 +2985,12 @@ if (!HAS_CREDS) {
     assert.equal(read.ok, false, "anon darf recipes nicht lesen (kein GRANT)");
   });
 
-  test("recipes: Athlet kann approved+pending lesen, rejected nur selber", async (t) => {
-    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
+  test("recipes: Nicht-Admin kann approved+pending lesen, fremdes rejected nicht", async (t) => {
+    if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
 
     // Drei Rezepte anlegen: pending (eigenes), approved (via service_role),
     // rejected (via service_role)
-    const pending = await insertRecipeRow(athlete.token, {});
+    const pending = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId });
     assert.equal(pending.ok, true, `pending-Rezept anlegen: ${JSON.stringify(pending.data)}`);
     const pendingId = pending.data[0].id;
     cleanupTasks.push(async () => {
@@ -3015,22 +3045,22 @@ if (!HAS_CREDS) {
 
     // Athlet sieht pending (eigenes)
     const ownPending = await rest("GET", `recipes?id=eq.${pendingId}&select=id,title,status`, {
-      token: athlete.token,
+      token: trainer.token,
     });
     assert.equal(ownPending.ok, true);
     assert.equal(ownPending.data.length, 1, "Athlet sieht eigenes pending-Rezept nicht");
 
     // Athlet sieht approved (anderes)
     const athleteApproved = await rest("GET", `recipes?id=eq.${approvedId}&select=id,title,status`, {
-      token: athlete.token,
+      token: trainer.token,
     });
     assert.equal(athleteApproved.ok, true);
     assert.equal(athleteApproved.data.length, 1, "Athlet sieht approved-Rezept eines anderen nicht (sollte approved+pending fuer alle sein)");
     assert.equal(athleteApproved.data[0].status, "approved");
 
-    // Athlet sieht eigenes rejected nicht (submitted_by != auth.uid())
+    // Nicht-Admin sieht fremdes rejected nicht (submitted_by != auth.uid())
     const athleteRejected = await rest("GET", `recipes?id=eq.${rejectedId}&select=id,title,status`, {
-      token: athlete.token,
+      token: trainer.token,
     });
     assert.equal(athleteRejected.ok, true);
     assert.equal(
@@ -3208,9 +3238,9 @@ if (!HAS_CREDS) {
     );
   });
 
-  test("recipes: Athlet UPDATE status — 0 rows (WITH CHECK / Trigger E16)", async (t) => {
-    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Update-Status" });
+  test("recipes: Nicht-Admin UPDATE status — 0 rows (WITH CHECK / Trigger E16)", async (t) => {
+    if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
+    const own = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId, title: "RLS-Test-Update-Status" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -3223,7 +3253,7 @@ if (!HAS_CREDS) {
     // E16-Trigger blockt — da der Trigger VOR dem RLS-Using-Check feuert,
     // ist das ein harter Fehler (42501), kein stilles 0-Rows.
     const updateStatus = await rest("PATCH", `recipes?id=eq.${id}`, {
-      token: athlete.token,
+      token: trainer.token,
       body: { status: "approved" },
     });
     assert.equal(
@@ -3233,9 +3263,9 @@ if (!HAS_CREDS) {
     );
   });
 
-  test("recipes: Athlet UPDATE rejection_reason — 0 rows (Trigger E16, Review Finding 1)", async (t) => {
-    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Update-Rejection" });
+  test("recipes: Nicht-Admin UPDATE rejection_reason — 0 rows (Trigger E16, Review Finding 1)", async (t) => {
+    if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
+    const own = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId, title: "RLS-Test-Update-Rejection" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -3248,7 +3278,7 @@ if (!HAS_CREDS) {
     // E16-Trigger blockt mit Exception (42501) — rejection_reason darf
     // nicht durch Athlet gesetzt werden, auch nicht am eigenen pending.
     const updateReason = await rest("PATCH", `recipes?id=eq.${id}`, {
-      token: athlete.token,
+      token: trainer.token,
       body: { rejection_reason: "Eigenmaechtig" },
     });
     assert.equal(
@@ -3356,9 +3386,9 @@ if (!HAS_CREDS) {
     assert.equal(reject.data?.[0]?.rejection_reason, "Test via service_role", "rejection_reason wurde nicht gesetzt");
   });
 
-  test("recipes: Athlet DELETE — 0 rows (admin-only)", async (t) => {
-    if (adminRecipesSkip()) return t.skip(adminRecipesSkip());
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Delete" });
+  test("recipes: Nicht-Admin DELETE — 0 rows (admin-only)", async (t) => {
+    if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
+    const own = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId, title: "RLS-Test-Delete" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     // Cleanup ueber service_role, falls der Athlet-DELETE nicht loescht
@@ -3368,7 +3398,7 @@ if (!HAS_CREDS) {
       }
     });
 
-    const del = await rest("DELETE", `recipes?id=eq.${id}`, { token: athlete.token });
+    const del = await rest("DELETE", `recipes?id=eq.${id}`, { token: trainer.token });
     assert.equal(del.ok, true);
     assert.equal(
       del.data?.length ?? 0,
@@ -3461,12 +3491,26 @@ if (!HAS_CREDS) {
     return recipeId;
   }
 
+  const strangerSkip = () =>
+    strangerUsable
+      ? false
+      : "Fremden-Identität (SUPABASE_ATHLETE2_*) fehlt, ist Admin oder Coach von Athlet 1 — Test übersprungen";
+
+  // Jeder Body bekommt ein eigenes Datum: Testzeilen werden erst im after()-Hook
+  // aufgeraeumt, ein gemeinsames (athlete_id, date, meal_slot) wuerde sich sonst
+  // am unique-Constraint stossen. Tests, die genau diese Kollision brauchen,
+  // setzen date explizit.
+  let mealPlanDateCounter = 0;
+  function nextMealPlanDate() {
+    return new Date(Date.UTC(2027, 0, 4 + mealPlanDateCounter++)).toISOString().slice(0, 10);
+  }
+
   /** Standard-Body fuer einen meal_plan_entry (ohne id/created_at/updated_at).
    *  over ueberschreibt einzelne Felder (z. B. meal_slot, servings, date). */
   function mealPlanEntryBody(recipeId, over = {}) {
     return {
       athlete_id: athlete.userId,
-      date: "2027-01-04",
+      date: nextMealPlanDate(),
       meal_slot: "breakfast",
       recipe_id: recipeId,
       servings: 1,
@@ -3571,6 +3615,7 @@ if (!HAS_CREDS) {
 
   test("meal_plan_entries: Athlet B kann A's Eintraege lesen (viewer) aber nicht schreiben", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
+    if (strangerSkip()) return t.skip(strangerSkip());
     if (!HAS_SERVICE_ROLE)
       return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
 
@@ -3578,16 +3623,16 @@ if (!HAS_CREDS) {
     // Eintrag als Athlet A (der Test-Account) anlegen
     const id = await insertMealPlanEntryRow(athlete.token, recipeId);
 
-    // Athlet B = Trainer-Token (anderer User) liest den Eintrag von Athlet A
+    // Fremder (Athlet 2, kein Coach) liest den Eintrag von Athlet A
     const viewerRead = await rest("GET", `meal_plan_entries?id=eq.${id}&select=id,athlete_id`, {
-      token: trainer.token,
+      token: stranger.token,
     });
     assert.equal(viewerRead.ok, true);
     assert.equal(viewerRead.data.length, 1, "Athlet B (viewer) kann A's Eintrag nicht lesen");
 
     // Athlet B versucht A's Eintrag zu aendern (soll 0 rows)
     const viewerUpdate = await rest("PATCH", `meal_plan_entries?id=eq.${id}`, {
-      token: trainer.token,
+      token: stranger.token,
       body: { servings: 5 },
     });
     assert.equal(
@@ -3598,7 +3643,7 @@ if (!HAS_CREDS) {
 
     // Athlet B versucht A's Eintrag zu loeschen (soll 0 rows)
     const viewerDelete = await rest("DELETE", `meal_plan_entries?id=eq.${id}`, {
-      token: trainer.token,
+      token: stranger.token,
     });
     assert.equal(
       viewerDelete.data?.length ?? 0,
@@ -3675,18 +3720,20 @@ if (!HAS_CREDS) {
 
     const recipeId = await ensureMealPlanTestRecipe();
     // Selbes recipe fuer zwei unterschiedliche Slots (soll gehen)
-    const id1 = await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "breakfast" });
+    const date = nextMealPlanDate();
+    await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "breakfast", date });
 
     // Zweiter Eintrag mit gleichem athlete_id, date, meal_slot (soll scheitern)
     const dup = await rest("POST", "meal_plan_entries", {
       token: athlete.token,
-      body: mealPlanEntryBody(recipeId, { meal_slot: "breakfast" }),
+      body: mealPlanEntryBody(recipeId, { meal_slot: "breakfast", date }),
     });
     assert.equal(
       dup.ok,
       false,
       "Zweiter meal_plan_entry mit gleichem (athlete_id, date, meal_slot) haette am unique-Constraint scheitern muessen"
     );
+    assert.equal(dup.data?.code, "23505", "Ablehnung muss vom unique-Constraint kommen (23505)");
     if (dup.ok && Array.isArray(dup.data) && dup.data[0]?.id) {
       cleanupTasks.push(async () => {
         await rest("DELETE", `meal_plan_entries?id=eq.${dup.data[0].id}`, { token: athlete.token });
@@ -3700,8 +3747,9 @@ if (!HAS_CREDS) {
       return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
 
     const recipeId = await ensureMealPlanTestRecipe();
-    const id1 = await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "breakfast" });
-    const id2 = await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "lunch" });
+    const date = nextMealPlanDate();
+    const id1 = await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "breakfast", date });
+    const id2 = await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "lunch", date });
 
     const both = await rest(
       "GET",
@@ -3729,5 +3777,216 @@ if (!HAS_CREDS) {
       false,
       "Referenziertes Rezept wurde geloescht — FK on delete RESTRICT greift nicht"
     );
+  });
+  // --- 12. profiles.sex / intolerances (0059): für niemanden lesbar --------
+  // Migration 0059: height_cm/sex sind Gesundheitsdaten, weder Basistabelle
+  // noch profiles_visible/profiles_own führen die neuen Spalten, kein
+  // UPDATE-Grant (Lese-/Schreibpfad kommt erst in E5). Der Schreibtest nutzt
+  // bewusst einen UNGÜLTIGEN Wert ('x' verletzt den check): so landet auch bei
+  // einem fehlerhaften Grant nie ein Wert im echten Profil — erwartet wird
+  // ein Berechtigungsfehler (42501), kein Check-Fehler (23514).
+
+  test("profiles: sex/intolerances sind weder für den Eigentümer noch für anon über die Basistabelle lesbar", async () => {
+    const own = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
+      token: athlete.token,
+    });
+    assert.equal(own.ok, false, "Eigentümer darf sex/intolerances nicht aus der Basistabelle lesen (kein Spalten-Grant)");
+    const anon = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
+      token: null,
+    });
+    assert.equal(anon.ok, false, "anon darf sex/intolerances nicht lesen");
+  });
+
+  test("profiles: ein Fremder kann sex/intolerances eines anderen Athleten nicht lesen", async (t) => {
+    if (strangerSkip()) return t.skip(strangerSkip());
+    const read = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
+      token: stranger.token,
+    });
+    assert.equal(read.ok, false, "Fremder darf sex/intolerances von Athlet 1 nicht lesen");
+  });
+
+  test("profiles_visible und profiles_own führen sex/intolerances nicht", async () => {
+    for (const view of ["profiles_visible", "profiles_own"]) {
+      const res = await rest("GET", `${view}?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
+      assert.equal(res.ok, true, `${view}-Read fehlgeschlagen: ${JSON.stringify(res.data)}`);
+      const row = res.data?.[0];
+      assert.ok(row, `${view} führt die eigene Zeile nicht`);
+      for (const col of ["sex", "intolerances"]) {
+        assert.equal(col in row, false, `${view} darf ${col} nicht ausliefern`);
+      }
+    }
+  });
+
+  test("profiles: sex/intolerances sind nicht schreibbar (kein UPDATE-Grant, 42501)", async () => {
+    const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { sex: "x" },
+    });
+    assert.equal(upd.ok, false, "UPDATE auf profiles.sex muss scheitern");
+    assert.equal(upd.data?.code, "42501", `Ablehnung muss am fehlenden Grant liegen (42501), nicht am Check: ${JSON.stringify(upd.data)}`);
+    const upd2 = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { intolerances: ["gluten"] },
+    });
+    assert.equal(upd2.ok, false, "UPDATE auf profiles.intolerances muss scheitern");
+    assert.equal(upd2.data?.code, "42501", `Ablehnung muss am fehlenden Grant liegen (42501): ${JSON.stringify(upd2.data)}`);
+  });
+
+  // --- 13. recipe-images Bucket (0065) -------------------------------------
+  // Privater Bucket. INSERT: nur unter eigenem Prefix (auth.uid()) oder als
+  // Admin. SELECT: alle authenticated, anon nichts. DELETE: nur Admin, kein
+  // UPDATE (kein Überschreiben). Cleanup der Testobjekte über service_role.
+
+  const STORAGE_BASE = `${SUPABASE_URL}/storage/v1`;
+  // 1x1-PNG, reicht für die erlaubten mime types
+  const TINY_PNG = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+    "base64"
+  );
+  let recipeImagesBucketReady = false;
+
+  async function storage(method, path, { token = null, body, contentType } = {}) {
+    const headers = {
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${token ?? SUPABASE_ANON_KEY}`,
+    };
+    if (contentType) headers["Content-Type"] = contentType;
+    const res = await fetch(`${STORAGE_BASE}/${path}`, { method, headers, body });
+    const text = await res.text();
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      data = text;
+    }
+    return { status: res.status, ok: res.ok, data };
+  }
+
+  /** Lädt TINY_PNG unter recipe-images/<path> hoch und merkt das Aufräumen vor. */
+  async function uploadRecipeImage(token, path) {
+    const res = await storage("POST", `object/recipe-images/${path}`, {
+      token,
+      body: TINY_PNG,
+      contentType: "image/png",
+    });
+    cleanupTasks.push(async () => {
+      if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
+        await storage("DELETE", `object/recipe-images/${path}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+      }
+    });
+    return res;
+  }
+
+  const recipeImagesSkip = () => {
+    if (!HAS_SERVICE_ROLE) return "SUPABASE_SERVICE_ROLE_KEY fehlt — ohne Aufräumpfad keine Storage-Tests";
+    if (!recipeImagesBucketReady) return "Bucket recipe-images nicht vorhanden — Migration 0065 vermutlich noch nicht eingespielt";
+    return false;
+  };
+
+  const imgPath = (userId, label) => `${userId}/rls-test-${label}-${Date.now()}.png`;
+
+  test("recipe-images: Bucket existiert und ist privat (0065 eingespielt?)", async (t) => {
+    if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt");
+    const bucket = await storage("GET", "bucket/recipe-images", { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    if (!bucket.ok) {
+      console.warn("Bucket recipe-images fehlt auf dashboard-dev — Migration 0065 noch nicht eingespielt, Bucket-Tests übersprungen");
+      recipeImagesBucketReady = false;
+      return;
+    }
+    recipeImagesBucketReady = true;
+    assert.equal(bucket.data?.public, false, "recipe-images muss privat sein");
+  });
+
+  test("recipe-images: Nicht-Admin darf unter dem eigenen Prefix hochladen", async (t) => {
+    if (recipeImagesSkip()) return t.skip(recipeImagesSkip());
+    if (testTrainerIsAdmin) return t.skip("Trainer-Account ist Admin");
+    const up = await uploadRecipeImage(trainer.token, imgPath(trainer.userId, "own"));
+    assert.equal(up.ok, true, `Upload unter eigenem Prefix: ${JSON.stringify(up.data)}`);
+  });
+
+  test("recipe-images: Nicht-Admin darf NICHT unter fremdem Prefix hochladen", async (t) => {
+    if (recipeImagesSkip()) return t.skip(recipeImagesSkip());
+    if (testTrainerIsAdmin) return t.skip("Trainer-Account ist Admin");
+    const up = await uploadRecipeImage(trainer.token, imgPath(athlete.userId, "foreign"));
+    assert.equal(up.ok, false, "Upload unter dem Prefix eines anderen Athleten muss scheitern (WITH CHECK)");
+  });
+
+  test("recipe-images: anon darf weder hochladen noch lesen", async (t) => {
+    if (recipeImagesSkip()) return t.skip(recipeImagesSkip());
+    if (testTrainerIsAdmin) return t.skip("Trainer-Account ist Admin");
+    const up = await uploadRecipeImage(null, imgPath(trainer.userId, "anon"));
+    assert.equal(up.ok, false, "anon darf nicht hochladen");
+
+    const path = imgPath(trainer.userId, "anon-read");
+    const seeded = await uploadRecipeImage(trainer.token, path);
+    assert.equal(seeded.ok, true, `Testobjekt anlegen: ${JSON.stringify(seeded.data)}`);
+    const anonRead = await storage("GET", `object/authenticated/recipe-images/${path}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf nicht lesen");
+    const publicRead = await storage("GET", `object/public/recipe-images/${path}`, { token: null });
+    assert.equal(publicRead.ok, false, "Bucket ist privat — der public-Pfad darf kein Bild liefern");
+  });
+
+  test("recipe-images: jeder eingeloggte Athlet darf Bilder lesen (SELECT using bucket_id)", async (t) => {
+    if (recipeImagesSkip()) return t.skip(recipeImagesSkip());
+    if (strangerSkip()) return t.skip(strangerSkip());
+    if (testTrainerIsAdmin) return t.skip("Trainer-Account ist Admin");
+    const path = imgPath(trainer.userId, "read-all");
+    const seeded = await uploadRecipeImage(trainer.token, path);
+    assert.equal(seeded.ok, true, `Testobjekt anlegen: ${JSON.stringify(seeded.data)}`);
+    const read = await storage("GET", `object/authenticated/recipe-images/${path}`, { token: stranger.token });
+    assert.equal(read.ok, true, `Fremder muss das Bild lesen können: ${read.status}`);
+  });
+
+  test("recipe-images: Nicht-Admin darf eigene Bilder NICHT löschen oder überschreiben", async (t) => {
+    if (recipeImagesSkip()) return t.skip(recipeImagesSkip());
+    if (testTrainerIsAdmin) return t.skip("Trainer-Account ist Admin");
+    const path = imgPath(trainer.userId, "nodelete");
+    const seeded = await uploadRecipeImage(trainer.token, path);
+    assert.equal(seeded.ok, true, `Testobjekt anlegen: ${JSON.stringify(seeded.data)}`);
+
+    await storage("DELETE", `object/recipe-images/${path}`, { token: trainer.token });
+    const still = await storage("GET", `object/authenticated/recipe-images/${path}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(still.ok, true, "Objekt wurde trotz fehlender DELETE-Policy entfernt");
+
+    // Überschreiben (upsert) braucht eine UPDATE-Policy — es gibt keine
+    const overwrite = await storage("PUT", `object/recipe-images/${path}`, {
+      token: trainer.token,
+      body: TINY_PNG,
+      contentType: "image/png",
+    });
+    assert.equal(overwrite.ok, false, "Überschreiben darf nicht gehen (keine UPDATE-Policy)");
+  });
+
+  test("recipe-images: Admin darf unter fremdem Prefix hochladen", async (t) => {
+    if (recipeImagesSkip()) return t.skip(recipeImagesSkip());
+    if (!testAthleteIsAdmin) return t.skip("Test-Athlet ist kein Admin — Admin-Pfad nicht prüfbar");
+    const up = await uploadRecipeImage(athlete.token, imgPath(trainer.userId, "admin"));
+    assert.equal(up.ok, true, `Admin-Upload unter fremdem Prefix: ${JSON.stringify(up.data)}`);
+  });
+
+  // --- 14. recipe_votes: Self-Vote (Edge Case aus Issue #21) ----------------
+  // Entscheidung: Ein Athlet DARF auf sein eigenes pending-Rezept stimmen. Die
+  // Policy prüft nur athlete_id = auth.uid(), keine Beziehung zum Rezept
+  // (E15: „alle Athleten", Votes sind reine Meinungsäußerung ohne Approval-
+  // Effekt). Dieser Test hält das Verhalten fest, damit eine spätere
+  // Verschärfung bewusst geschieht.
+
+  test("recipe_votes: Self-Vote auf eigenes pending-Rezept ist erlaubt", async (t) => {
+    if (!recipeVotesTableReady || !recipesTableReady) return t.skip("recipes/recipe_votes nicht lesbar — Migration fehlt");
+    if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    const recipe = await insertRecipeRow(athlete.token, { title: "RLS-Test-Self-Vote" });
+    assert.equal(recipe.ok, true, `Rezept anlegen: ${JSON.stringify(recipe.data)}`);
+    const recipeId = recipe.data[0].id;
+    // Rezept-Löschung räumt die Votes per ON DELETE CASCADE mit auf
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?id=eq.${recipeId}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    });
+    const vote = await rest("POST", "recipe_votes", {
+      token: athlete.token,
+      body: { recipe_id: recipeId, athlete_id: athlete.userId, vote: "up" },
+    });
+    assert.equal(vote.ok, true, `Self-Vote muss erlaubt sein: ${JSON.stringify(vote.data)}`);
   });
 }
