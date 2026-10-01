@@ -31,6 +31,8 @@ export const SOURCE_KEYS = Object.freeze({
   ACSM_AND_2016: "acsm-and-2016",
   DGE_KONIG_2020: "dge-konig-2020",
   KCAL_PER_KG_7700: "7700-kcal-per-kg",
+  FAO_WHO_UNU_PAL: "fao-who-unu-pal",
+  NEAT_GOSHOZONO_2024: "neat-goshozono-2024",
 });
 
 /** @type {ReadonlyArray<Readonly<SourceEntry>>} */
@@ -88,6 +90,20 @@ const ENTRIES = [
     title: "7700 kcal pro kg Körpermasse",
     link: "",
     note: "Gängige Näherung; überschätzt die Wirkung über längere Zeit (Anpassung des Stoffwechsels), z. B. Hall, Obesity 2024 (doi 10.1002/oby.24027).",
+  },
+  {
+    key: SOURCE_KEYS.FAO_WHO_UNU_PAL,
+    title:
+      "Human energy requirements: Report of a Joint FAO/WHO/UNU Expert Consultation (Energy requirements of adults, PAL-Kategorien)",
+    link: "https://www.fao.org/4/y5686e/y5686e07.htm",
+    note: "Alltag ohne regelmäßigen Sport: PAL (Gesamtverbrauch ÷ Grundumsatz) 1,40–1,69, typischer Mittelwert ca. 1,55–1,65. Wir nehmen 1,55 (Näherung, echte Spanne 1,40–1,69). Das Training wird getrennt addiert, deshalb gilt der Wert für einen Alltag ohne Sport.",
+  },
+  {
+    key: SOURCE_KEYS.NEAT_GOSHOZONO_2024,
+    title:
+      "Goshozono et al.: Characteristics of non-exercise activity thermogenesis in male collegiate athletes under real-life conditions. Front Sports Act Living 2024",
+    link: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10896989/",
+    note: "Plausibilitäts-Gegenprobe zum PAL: Alltagsverbrauch ohne Sport ca. 10,4 kcal/kg/Tag (33 junge Männer, Beschleunigungssensor, kleine Stichprobe). Kein Rechenwert in der App.",
   },
 ];
 

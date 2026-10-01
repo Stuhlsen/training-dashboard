@@ -25,6 +25,22 @@ import { SOURCE_KEYS } from "./nutrition-sources.js";
  *  @type {number} */
 export const ENERGY_PER_KG_BODY_MASS = 7700;
 
+/** Alltagsverbrauch OHNE regelmäßigen Sport als Faktor auf den Grundumsatz (PAL).
+ *  FAO/WHO/UNU: sitzender/leicht aktiver Alltag 1,40–1,69, typischer Mittelwert
+ *  ca. 1,55–1,65. Näherung, keine Messung — das Training wird getrennt addiert
+ *  (sonst doppelt gezählt). Quelle: fao-who-unu-pal.
+ *  @type {number} */
+export const NON_EXERCISE_PAL = 1.55;
+
+/** Messmodus: so viele Tage vor "heute" werden betrachtet, und so viele Tage
+ *  mit Messwert braucht ein Feld, damit es statt der Schätzung gilt. */
+const BASELINE_WINDOW_DAYS = 14;
+const BASELINE_MIN_DAYS = 7;
+
+/** Plausibilitätsgrenze für einen gemessenen Grundumsatz (Vielfaches der Formel).
+ *  Großzügig gewählt: sie fängt nur offensichtlich kaputte Werte ab. */
+const RESTING_PLAUSIBLE = { min: 0.6, max: 1.6 };
+
 /** RED-S-Floor: kcal pro kg fettfreier Masse pro Tag.
  *  Frauen/general: 30, Männer: 25. Fehlt das Geschlecht → 30 (strenger).
  *  Quelle: IOC Consensus 2023 (ioc-reds-2023). */
@@ -213,6 +229,93 @@ export function redSFloor(params) {
   };
 }
 
+/** ISO-Datum n Tage vor todayISO (UTC-rechnen, keine Zeitzonen-Sprünge).
+ *  @param {string} todayISO @param {number} n @returns {string|null} */
+function isoDaysBefore(todayISO, n) {
+  const d = new Date(`${todayISO}T00:00:00Z`);
+  if (Number.isNaN(d.getTime())) return null;
+  d.setUTCDate(d.getUTCDate() - n);
+  return d.toISOString().slice(0, 10);
+}
+
+/** @param {number|null|undefined} v @returns {boolean} positive, endliche Zahl */
+function isPositive(v) {
+  return typeof v === "number" && Number.isFinite(v) && v > 0;
+}
+
+/**
+ * Tagesgrundlage OHNE Training: Grundumsatz + Alltag. Jedes Feld entscheidet für
+ * sich (Messung nur bei genug Tagen, sonst Rückfall auf die Formel/Schätzung):
+ *  - Grundumsatz: Mittel von wellness.restingEnergy, sonst die Formel (Mifflin-St-Jeor).
+ *  - Alltag: Mittel von (activeEnergy − Energie der Einheiten dieses Tages), sonst
+ *    Grundumsatz × (NON_EXERCISE_PAL − 1). Gemessen nur, wenn `rides` übergeben
+ *    wurde (vollständige Fahrten-Liste): activeEnergy enthält das Training, ohne
+ *    Abzug würde es zusätzlich zur geplanten Einheit doppelt gezählt.
+ * Betrachtet werden die BASELINE_WINDOW_DAYS Tage vor todayISO (ohne heute).
+ * Die Messung enthält die Nahrungswärme-Wirkung (TEF) nicht — sie kann den
+ * Alltag um einige Prozent unterschätzen; der RED-S-Boden fängt das nach unten ab.
+ *
+ * @param {{bmr:number, wellness?:Array<object>, rides?:Array<{dateISO?:string, watt?:number, min?:number}>, todayISO?:string}} params
+ * @returns {{restingKcal:number, activityKcal:number, totalKcal:number,
+ *            restingSource:"measured"|"formula", activitySource:"measured"|"estimate",
+ *            restingDays:number, activityDays:number}}
+ */
+export function estimateBaselineExpenditure(params) {
+  const { bmr, wellness, rides, todayISO } = params || {};
+
+  const to = todayISO ? isoDaysBefore(todayISO, 1) : null;
+  const from = todayISO ? isoDaysBefore(todayISO, BASELINE_WINDOW_DAYS) : null;
+  const days = new Map(); // dateISO -> Wellness-Zeile (letzte gewinnt)
+  if (Array.isArray(wellness) && from && to) {
+    for (const w of wellness) {
+      const d = w && (w.dateISO || w.date);
+      if (typeof d === "string" && d >= from && d <= to) days.set(d, w);
+    }
+  }
+
+  // Grundumsatz
+  let restingKcal = bmr;
+  let restingSource = /** @type {"measured"|"formula"} */ ("formula");
+  const resting = [...days.values()].map((w) => w.restingEnergy).filter(isPositive);
+  if (resting.length >= BASELINE_MIN_DAYS) {
+    const mean = resting.reduce((a, b) => a + b, 0) / resting.length;
+    if (mean >= bmr * RESTING_PLAUSIBLE.min && mean <= bmr * RESTING_PLAUSIBLE.max) {
+      restingKcal = Math.round(mean);
+      restingSource = "measured";
+    }
+  }
+
+  // Alltag
+  let activityKcal = Math.round(restingKcal * (NON_EXERCISE_PAL - 1));
+  let activitySource = /** @type {"measured"|"estimate"} */ ("estimate");
+  let activityDays = 0;
+  if (Array.isArray(rides)) {
+    const nonExercise = [];
+    for (const [day, w] of days) {
+      if (!isPositive(w.activeEnergy)) continue;
+      const trainingKcal = rides
+        .filter((r) => r && r.dateISO === day)
+        .reduce((sum, r) => sum + sessionEnergyKcal(r), 0);
+      nonExercise.push(Math.max(0, w.activeEnergy - trainingKcal));
+    }
+    activityDays = nonExercise.length;
+    if (nonExercise.length >= BASELINE_MIN_DAYS) {
+      activityKcal = Math.round(nonExercise.reduce((a, b) => a + b, 0) / nonExercise.length);
+      activitySource = "measured";
+    }
+  }
+
+  return {
+    restingKcal,
+    activityKcal,
+    totalKcal: restingKcal + activityKcal,
+    restingSource,
+    activitySource,
+    restingDays: resting.length,
+    activityDays,
+  };
+}
+
 /**
  * Zusammengesetztes, zieladjustiertes taegliches Kalorienziel inklusive
  * RED-S-Floor-Cap.
@@ -223,16 +326,17 @@ export function redSFloor(params) {
  * @param {{
  *   profile: {weightKg?:number, heightCm?:number, age?:number, sex?:string, bodyFat?:number},
  *   goal?: {goalType?:string, pacePerWeekKg?:number, targetWeightKg?:number},
- *   session?: {watt?:number, min?:number}
+ *   session?: {watt?:number, min?:number},
+ *   wellness?: Array<object>, rides?: Array<object>, todayISO?: string
  * }} params
  * @returns {{
- *   ok:true, target:number, bmr:number, trainingKcal:number, adjustment:number,
+ *   ok:true, target:number, bmr:number, baseline:object, trainingKcal:number, adjustment:number,
  *   floor:number, capped:boolean, bodyFatAssumed:boolean, sexAssumed:boolean,
  *   source:string[], note:string
  * }|{ok:false, hint:string}}
  */
 export function estimateDailyGoal(params) {
-  const { profile, goal, session } = params || {};
+  const { profile, goal, session, wellness, rides, todayISO } = params || {};
 
   // BMR aus dem Profil
   if (!profile) {
@@ -266,13 +370,16 @@ export function estimateDailyGoal(params) {
     // 'maintain' or no goalType: keine Anpassung (der Boden gilt trotzdem)
   }
 
+  // Tagesgrundlage ohne Training: Grundumsatz + Alltag (gemessen oder geschaetzt)
+  const baseline = estimateBaselineExpenditure({ bmr, wellness, rides, todayISO });
+
   // Energie der geplanten Einheit (E8: Trainingsenergie separat addieren)
   const trainingKcal = sessionEnergyKcal(session);
 
-  // Rohes Target vor Floor: BMR + Training - adjustment
+  // Rohes Target vor Floor: Grundlage + Training - adjustment
   // adjustment > 0 = deficit (subtract from BMR)
   // adjustment < 0 = surplus (add to BMR)
-  let target = bmr + trainingKcal - adjustment;
+  let target = baseline.totalKcal + trainingKcal - adjustment;
 
   // RED-S-Floor: gilt IMMER (Fahrplan: das Tagesziel darf ihn nie unterschreiten),
   // nicht nur bei Defizit. Fail-closed: laesst sich der Boden nicht berechnen
@@ -296,6 +403,12 @@ export function estimateDailyGoal(params) {
   const parts = [];
   const sourceSet = new Set([SOURCE_KEYS.MIFFLIN_ST_JEOR]);
 
+  parts.push(
+    `Grundlage ${baseline.totalKcal} kcal (Grundumsatz ${baseline.restingKcal} ${
+      baseline.restingSource === "measured" ? "gemessen" : "berechnet"
+    } + Alltag ${baseline.activityKcal} ${baseline.activitySource === "measured" ? "gemessen" : "geschaetzt"})`
+  );
+  if (baseline.activitySource === "estimate") sourceSet.add(SOURCE_KEYS.FAO_WHO_UNU_PAL);
   if (trainingKcal > 0) {
     parts.push(`Training +${trainingKcal} kcal (Faustregel kJ ≈ kcal)`);
   }
@@ -324,6 +437,7 @@ export function estimateDailyGoal(params) {
     ok: true,
     target,
     bmr,
+    baseline,
     trainingKcal,
     adjustment,
     floor,
