@@ -8,7 +8,6 @@ import {
   trainingNutritionHint,
   weightMissingHint,
   estimateCarbTarget,
-  estimateBaselineExpenditure,
   paceToDailyKcal,
   ENERGY_PER_KG_BODY_MASS,
   NON_EXERCISE_PAL,
@@ -290,111 +289,29 @@ describe("NON_EXERCISE_PAL", () => {
 });
 
 /* ──────────────────────────────────────────────────────────
-   estimateBaselineExpenditure — Messung je Feld, sonst Schaetzung
+   redSFloor — Energieverfuegbarkeit = (Aufnahme - Training) / FFM
    ────────────────────────────────────────────────────────── */
-describe("estimateBaselineExpenditure", () => {
-  const TODAY = "2026-10-15"; // Fenster: 2026-10-01 .. 2026-10-14 (ohne heute)
-  const BMR = 1755;
-  /** n Tage ab dem 2026-10-01 mit den gegebenen Feldern. */
-  const days = (n, fields, start = 1) =>
-    Array.from({ length: n }, (_, i) => ({
-      dateISO: `2026-10-${String(start + i).padStart(2, "0")}`,
-      ...fields,
-    }));
-
-  it("ohne Daten: Grundumsatz = Formel, Alltag = Grundumsatz x 0,55 (geschaetzt)", () => {
-    const r = estimateBaselineExpenditure({ bmr: BMR });
-    expect(r.restingKcal).toBe(1755);
-    expect(r.activityKcal).toBe(965); // round(1755 x 0,55)
-    expect(r.totalKcal).toBe(2720);
-    expect(r.restingSource).toBe("formula");
-    expect(r.activitySource).toBe("estimate");
+describe("redSFloor — Trainingsverbrauch hebt die Mindestaufnahme an (IOC 2023, Box 1)", () => {
+  it("Mann 80 kg, 20 % Fett (FFM 64): 25 x 64 = 1600; mit 720 kcal Training -> 2320", () => {
+    const r = redSFloor({ sex: "m", weightKg: 80, bodyFat: 0.2, exerciseKcal: 720 });
+    expect(r.ok).toBe(true);
+    expect(r.eaFloorKcal).toBe(1600);
+    expect(r.exerciseKcal).toBe(720);
+    expect(r.floorKcal).toBe(2320);
   });
 
-  it("kein todayISO oder wellness null -> Schaetzung, kein Absturz", () => {
-    const noToday = estimateBaselineExpenditure({ bmr: BMR, wellness: days(10, { restingEnergy: 1800 }) });
-    expect(noToday.restingSource).toBe("formula");
-    const noWellness = estimateBaselineExpenditure({ bmr: BMR, wellness: null, todayISO: TODAY });
-    expect(noWellness.restingSource).toBe("formula");
-    expect(Number.isFinite(noWellness.totalKcal)).toBe(true);
+  it("Frau 60 kg, 20 % Fett (FFM 48): 30 x 48 = 1440; mit 500 kcal Training -> 1940", () => {
+    const r = redSFloor({ sex: "f", weightKg: 60, bodyFat: 0.2, exerciseKcal: 500 });
+    expect(r.eaFloorKcal).toBe(1440);
+    expect(r.floorKcal).toBe(1940);
   });
 
-  it("Grundumsatz gemessen ab 7 Tagen mit Wert; der Alltag nutzt dann den gemessenen Grundumsatz", () => {
-    const r = estimateBaselineExpenditure({
-      bmr: BMR,
-      wellness: days(7, { restingEnergy: 1800 }),
-      todayISO: TODAY,
-    });
-    expect(r.restingKcal).toBe(1800);
-    expect(r.restingSource).toBe("measured");
-    expect(r.restingDays).toBe(7);
-    expect(r.activityKcal).toBe(990); // round(1800 x 0,55), Alltag geschaetzt
-    expect(r.totalKcal).toBe(2790);
-  });
-
-  it("nur 6 Tage mit Grundumsatz -> Formel", () => {
-    const r = estimateBaselineExpenditure({ bmr: BMR, wellness: days(6, { restingEnergy: 1800 }), todayISO: TODAY });
-    expect(r.restingSource).toBe("formula");
-    expect(r.restingKcal).toBe(1755);
-  });
-
-  it("unplausibler gemessener Grundumsatz (zu klein/gross) -> Formel", () => {
-    for (const v of [100, 5000]) {
-      const r = estimateBaselineExpenditure({ bmr: BMR, wellness: days(7, { restingEnergy: v }), todayISO: TODAY });
-      expect(r.restingSource).toBe("formula");
+  it("ohne oder mit unsinnigem Trainingsverbrauch -> wie bisher (kein NaN)", () => {
+    for (const exerciseKcal of [undefined, null, 0, -5, NaN, "x"]) {
+      const r = redSFloor({ sex: "m", weightKg: 80, bodyFat: 0.2, exerciseKcal });
+      expect(r.floorKcal).toBe(1600);
+      expect(r.exerciseKcal).toBe(0);
     }
-  });
-
-  it("Alltag gemessen nur mit vollstaendiger Fahrten-Liste: activeEnergy 900 ohne Fahrten -> 900", () => {
-    const r = estimateBaselineExpenditure({
-      bmr: BMR,
-      wellness: days(7, { activeEnergy: 900 }),
-      rides: [],
-      todayISO: TODAY,
-    });
-    expect(r.activitySource).toBe("measured");
-    expect(r.activityKcal).toBe(900);
-    expect(r.activityDays).toBe(7);
-    expect(r.restingSource).toBe("formula"); // Grundumsatz nicht gemessen -> Formel
-    expect(r.totalKcal).toBe(1755 + 900);
-  });
-
-  it("ohne rides-Liste bleibt der Alltag geschaetzt, auch wenn activeEnergy da ist (kein Doppelzaehlen)", () => {
-    const r = estimateBaselineExpenditure({ bmr: BMR, wellness: days(10, { activeEnergy: 900 }), todayISO: TODAY });
-    expect(r.activitySource).toBe("estimate");
-    expect(r.activityKcal).toBe(965);
-  });
-
-  it("Training wird aus activeEnergy herausgerechnet: 1000 - (200 W x 30 min = 360) = 640", () => {
-    const wellness = days(7, { activeEnergy: 1000 });
-    const rides = wellness.map((w) => ({ dateISO: w.dateISO, watt: 200, min: 30 }));
-    const r = estimateBaselineExpenditure({ bmr: BMR, wellness, rides, todayISO: TODAY });
-    expect(r.activityKcal).toBe(640);
-    expect(r.activitySource).toBe("measured");
-  });
-
-  it("Abzug wird bei 0 gedeckelt (Uhr schaetzt weniger als die Wattmessung)", () => {
-    const wellness = days(7, { activeEnergy: 300 });
-    const rides = wellness.map((w) => ({ dateISO: w.dateISO, watt: 200, min: 30 })); // 360 kJ > 300
-    const r = estimateBaselineExpenditure({ bmr: BMR, wellness, rides, todayISO: TODAY });
-    expect(r.activityKcal).toBe(0);
-  });
-
-  it("heute und Tage ausserhalb des 14-Tage-Fensters zaehlen nicht", () => {
-    const wellness = [
-      ...days(6, { activeEnergy: 900 }),
-      { dateISO: TODAY, activeEnergy: 5000 }, // heute: unvollstaendiger Tag
-      { dateISO: "2026-09-30", activeEnergy: 5000 }, // 15 Tage vorher
-    ];
-    const r = estimateBaselineExpenditure({ bmr: BMR, wellness, rides: [], todayISO: TODAY });
-    expect(r.activityDays).toBe(6); // zu wenig -> Schaetzung
-    expect(r.activitySource).toBe("estimate");
-  });
-
-  it("doppelte Datumseintraege zaehlen einmal; Zeilen ohne Datum werden ignoriert", () => {
-    const wellness = [...days(6, { activeEnergy: 900 }), { dateISO: "2026-10-01", activeEnergy: 900 }, { activeEnergy: 900 }];
-    const r = estimateBaselineExpenditure({ bmr: BMR, wellness, rides: [], todayISO: TODAY });
-    expect(r.activityDays).toBe(6);
   });
 });
 
@@ -407,19 +324,30 @@ describe("estimateDailyGoal", () => {
   const roomyProfile = { ...validProfile, bodyFat: 0.2 };
   // roomyProfile: FFM 64, Boden 1600
 
-  it("ohne Ziel: Ziel = Grundlage (Grundumsatz + geschaetzter Alltag), Boden nicht erreicht", () => {
+  it("ohne Ziel: Ziel = Grundlage (Grundumsatz berechnet + Alltag geschaetzt), Boden nicht erreicht", () => {
     const r = estimateDailyGoal({ profile: roomyProfile });
     expect(r.ok).toBe(true);
     expect(r.bmr).toBe(1755);
-    expect(r.baseline.totalKcal).toBe(2720);
+    expect(r.baseline).toEqual({ restingKcal: 1755, activityKcal: 965, totalKcal: 2720 });
     expect(r.target).toBe(2720);
     expect(r.adjustment).toBe(0);
     expect(r.floor).toBe(1600);
+    expect(r.eaFloorKcal).toBe(1600);
     expect(r.capped).toBe(false);
     expect(r.source).toContain("mifflin-st-jeor");
     expect(r.source).toContain("fao-who-unu-pal");
     expect(r.note).toContain("2720");
     expect(r.note).toContain("geschaetzt");
+  });
+
+  it("Uhr-Daten (wellness/rides) werden bewusst ignoriert", () => {
+    const wellness = Array.from({ length: 10 }, (_, i) => ({
+      dateISO: `2026-10-${String(i + 1).padStart(2, "0")}`,
+      restingEnergy: 1840,
+      activeEnergy: 230,
+    }));
+    const r = estimateDailyGoal({ profile: roomyProfile, wellness, rides: [], todayISO: "2026-10-15" });
+    expect(r.target).toBe(2720);
   });
 
   it("Erhalt/unbekannter Zieltyp/ohne Tempo/Tempo 0 -> keine Anpassung", () => {
@@ -465,20 +393,6 @@ describe("estimateDailyGoal", () => {
     expect(r.ok).toBe(false);
     expect(r.hint).toBeTruthy();
   });
-
-  it("nutzt gemessene Daten, wenn genug da sind (Grundumsatz 1800 gemessen, Alltag 900 gemessen)", () => {
-    const wellness = Array.from({ length: 7 }, (_, i) => ({
-      dateISO: `2026-10-${String(i + 1).padStart(2, "0")}`,
-      restingEnergy: 1800,
-      activeEnergy: 900,
-    }));
-    const r = estimateDailyGoal({ profile: roomyProfile, wellness, rides: [], todayISO: "2026-10-15" });
-    expect(r.baseline.restingSource).toBe("measured");
-    expect(r.baseline.activitySource).toBe("measured");
-    expect(r.target).toBe(2700); // 1800 + 900
-    expect(r.note).toContain("gemessen");
-    expect(r.source).not.toContain("fao-who-unu-pal");
-  });
 });
 
 describe("estimateDailyGoal — Boden gilt immer, fail-closed", () => {
@@ -522,7 +436,7 @@ describe("estimateDailyGoal — Boden gilt immer, fail-closed", () => {
 });
 
 describe("estimateDailyGoal — Trainingsenergie der geplanten Einheit", () => {
-  const profile = { weightKg: 80, heightCm: 180, age: 35, sex: "m", bodyFat: 0.2 }; // Boden 1600
+  const profile = { weightKg: 80, heightCm: 180, age: 35, sex: "m", bodyFat: 0.2 }; // FFM 64, Boden 1600
 
   it("ohne Einheit: trainingKcal 0", () => {
     const r = estimateDailyGoal({ profile });
@@ -556,15 +470,37 @@ describe("estimateDailyGoal — Trainingsenergie der geplanten Einheit", () => {
     }
   });
 
-  it("der Boden gilt auch mit Training (Defizit darf nie unter den Boden fuehren)", () => {
+  it("Boden an Trainingstagen: starkes Defizit mit 720-kcal-Fahrt -> Ziel 2320 statt 1790 (EA bleibt >= 25)", () => {
+    // ohne Anhebung waere das Ziel 2720 + 720 - 1650 = 1790 (EA = (1790 - 720) / 64 = 16,7 kcal/kg FFM)
     const r = estimateDailyGoal({
-      profile: { ...profile, bodyFat: 0.12 }, // Boden 1760
+      profile,
+      goal: { goalType: "lose", pacePerWeekKg: 1.5 },
+      session: { watt: 200, min: 60 },
+    });
+    expect(r.eaFloorKcal).toBe(1600);
+    expect(r.floor).toBe(2320); // 1600 + 720
+    expect(r.target).toBe(2320);
+    expect(r.capped).toBe(true);
+    expect((r.target - r.trainingKcal) / 64).toBeGreaterThanOrEqual(25);
+    expect(r.note).toContain("1600 + Training 720");
+  });
+
+  it("Boden an Trainingstagen, 12 % Koerperfett: Defizit 1,5 kg/Woche, 180 kcal Einheit -> Boden 1940", () => {
+    const r = estimateDailyGoal({
+      profile: { ...profile, bodyFat: 0.12 }, // Boden ohne Training 1760
       goal: { goalType: "lose", pacePerWeekKg: 1.5 }, // 1650 kcal Defizit
       session: { watt: 100, min: 30 }, // 180 kcal
     });
-    // 2720 + 180 - 1650 = 1250 -> auf Boden 1760 angehoben
-    expect(r.target).toBe(1760);
+    // 2720 + 180 - 1650 = 1250 -> auf Boden 1760 + 180 = 1940 angehoben
+    expect(r.floor).toBe(1940);
+    expect(r.target).toBe(1940);
     expect(r.capped).toBe(true);
+  });
+
+  it("Trainingstag ohne Defizit: der Boden (Training eingerechnet) wird nicht unterschritten", () => {
+    const r = estimateDailyGoal({ profile, session: { watt: 200, min: 60 } });
+    expect(r.target).toBeGreaterThanOrEqual(r.floor);
+    expect(r.capped).toBe(false);
   });
 });
 
