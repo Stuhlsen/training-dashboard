@@ -13,6 +13,7 @@
 
 import { estimateBMR, rideKJ } from "./body.js";
 import { normalizeAllergenKeys } from "./nutrition-taxonomy.js";
+import { SOURCE_KEYS } from "./nutrition-sources.js";
 
 /* ──────────────────────────────────────────────────────────
    Konstanten
@@ -141,7 +142,7 @@ export function estimateDailyTarget(profile) {
   return {
     ok: true,
     bmr,
-    source: "mifflin-st-jeor",
+    source: SOURCE_KEYS.MIFFLIN_ST_JEOR,
     note: `Schätzung ±100–400 kcal, kein exakter Wert (Grundumsatz nach Mifflin-St-Jeor).`,
   };
 }
@@ -196,7 +197,7 @@ export function redSFloor(params) {
     ok: true,
     floorKcal,
     ffm: Math.round(ffm * 100) / 100,
-    source: "ioc-reds-2023",
+    source: SOURCE_KEYS.IOC_REDS_2023,
     bodyFatAssumed,
     sexAssumed,
     note: "Richtwert, keine Diagnose - grobe Orientierung fuer die Mindestzufuhr.",
@@ -216,7 +217,7 @@ export function redSFloor(params) {
  * }} params
  * @returns {{
  *   ok:true, target:number, bmr:number, adjustment:number,
- *   floor:number|null, capped:boolean,
+ *   floor:number, capped:boolean, bodyFatAssumed:boolean, sexAssumed:boolean,
  *   source:string[], note:string
  * }|{ok:false, hint:string}}
  */
@@ -239,7 +240,6 @@ export function estimateDailyGoal(params) {
 
   // Ziel-Adjustment aus der Goal (nur lose/gain mit pace)
   let adjustment = 0;
-  let applyFloor = false;
 
   if (goal) {
     if (goal.goalType === "lose" || goal.goalType === "gain") {
@@ -251,10 +251,9 @@ export function estimateDailyGoal(params) {
         //   gain  -> adjustment = -pace (surplus, addiere zu BMR)
         const raw = paceToDailyKcal(Math.abs(goal.pacePerWeekKg));
         adjustment = goal.goalType === "lose" ? raw : -raw;
-        applyFloor = adjustment > 0; // only cap deficits, not surpluses
       }
     }
-    // 'maintain' or no goalType: no adjustment, no floor
+    // 'maintain' or no goalType: keine Anpassung (der Boden gilt trotzdem)
   }
 
   // Rohes Target vor Floor: BMR - adjustment
@@ -262,43 +261,42 @@ export function estimateDailyGoal(params) {
   // adjustment < 0 = surplus (add to BMR)
   let target = bmr - adjustment;
 
-  // RED-S-Floor anwenden (nur bei Defizit)
-  let floor = null;
-  let capped = false;
+  // RED-S-Floor: gilt IMMER (Fahrplan: das Tagesziel darf ihn nie unterschreiten),
+  // nicht nur bei Defizit. Fail-closed: laesst sich der Boden nicht berechnen
+  // (z. B. ungueltiger Koerperfett-Wert), gibt es KEIN Ziel — sonst wuerde ein
+  // Defizit ohne Boden und ohne Hinweis ausgeliefert.
+  const floorResult = redSFloor({
+    sex: profile.sex,
+    weightKg: profile.weightKg,
+    bodyFat: profile.bodyFat,
+  });
+  if (!floorResult.ok) return floorResult;
 
-  if (applyFloor) {
-    const floorResult = redSFloor({
-      sex: profile.sex,
-      weightKg: profile.weightKg,
-      bodyFat: profile.bodyFat,
-    });
-    if (floorResult.ok) {
-      floor = floorResult.floorKcal;
-      if (target < floor) {
-        target = floor;
-        capped = true;
-      }
-    }
+  const floor = floorResult.floorKcal;
+  let capped = false;
+  if (target < floor) {
+    target = floor;
+    capped = true;
   }
 
   // Notiz zusammenbauen
   const parts = [];
-  const sourceSet = new Set(["mifflin-st-jeor"]);
+  const sourceSet = new Set([SOURCE_KEYS.MIFFLIN_ST_JEOR]);
 
   if (adjustment !== 0) {
     const label = adjustment > 0 ? "Defizit" : "Ueberschuss";
     parts.push(
       `Ziel-Anpassung ${label} ${Math.abs(adjustment)} kcal (${Math.abs(goal.pacePerWeekKg)} kg/Woche)`
     );
-    sourceSet.add("7700-kcal-per-kg");
+    sourceSet.add(SOURCE_KEYS.KCAL_PER_KG_7700);
   }
   if (capped) {
     parts.push(`Durch RED-S-Minimum (${floor} kcal) begrenzt`);
-    sourceSet.add("ioc-reds-2023");
+    sourceSet.add(SOURCE_KEYS.IOC_REDS_2023);
   }
-  if (floor != null && !capped) {
-    parts.push(`RED-S-Minimum ${floor} kcal (nicht unterschaerzt)`);
-    sourceSet.add("ioc-reds-2023");
+  if (!capped) {
+    parts.push(`RED-S-Minimum ${floor} kcal (nicht unterschritten)`);
+    sourceSet.add(SOURCE_KEYS.IOC_REDS_2023);
   }
 
   const tag = goal && goal.goalType === "maintain" ? " (Erhalt)" : "";
@@ -313,6 +311,8 @@ export function estimateDailyGoal(params) {
     adjustment,
     floor,
     capped,
+    bodyFatAssumed: floorResult.bodyFatAssumed,
+    sexAssumed: floorResult.sexAssumed,
     source: [...sourceSet],
     note,
   };
@@ -483,7 +483,7 @@ export function estimateCarbTarget(params) {
     ok: true,
     band: [band.minG, band.maxG],
     gramRange: [gramLow, gramHigh],
-    source: "acsm-and-2016",
+    source: SOURCE_KEYS.ACSM_AND_2016,
     note,
   };
 }

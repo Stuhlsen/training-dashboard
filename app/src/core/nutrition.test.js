@@ -15,6 +15,7 @@ import {
 import {
   NUTRITION_SOURCES,
   SOURCE_BY_KEY,
+  SOURCE_KEYS,
 } from "./nutrition-sources.js";
 
 /* ──────────────────────────────────────────────────────────
@@ -281,14 +282,17 @@ describe("redSFloor", () => {
 describe("estimateDailyGoal", () => {
   const validProfile = { weightKg: 80, heightCm: 180, age: 35, sex: "m", bodyFat: 0.12 };
   // BMR = 1755, Floor = 1760, FFM = 70.4
+  // Bei diesem Profil liegt der Boden knapp UEBER dem BMR — gut fuer Cap-Tests.
+  // roomyProfile: gleiche Person mit 20 % Koerperfett -> FFM 64, Boden 1600 < BMR 1755.
+  const roomyProfile = { ...validProfile, bodyFat: 0.2 };
 
-  it("no goal -> BMR as target, no adjustment, no floor", () => {
-    const r = estimateDailyGoal({ profile: validProfile });
+  it("no goal -> BMR as target, no adjustment, floor not reached", () => {
+    const r = estimateDailyGoal({ profile: roomyProfile });
     expect(r.ok).toBe(true);
     expect(r.target).toBe(1755);
     expect(r.bmr).toBe(1755);
     expect(r.adjustment).toBe(0);
-    expect(r.floor).toBeNull();
+    expect(r.floor).toBe(1600);
     expect(r.capped).toBe(false);
     expect(r.source).toContain("mifflin-st-jeor");
     expect(r.note).toContain("1755");
@@ -296,13 +300,13 @@ describe("estimateDailyGoal", () => {
 
   it("maintain goal -> BMR as target, no adjustment", () => {
     const r = estimateDailyGoal({
-      profile: validProfile,
+      profile: roomyProfile,
       goal: { goalType: "maintain" },
     });
     expect(r.ok).toBe(true);
     expect(r.target).toBe(1755);
     expect(r.adjustment).toBe(0);
-    expect(r.floor).toBeNull();
+    expect(r.floor).toBe(1600);
   });
 
   it("lose goal with pace -> target adjusted below BMR", () => {
@@ -356,7 +360,7 @@ describe("estimateDailyGoal", () => {
 
   it("lose goal without pace -> no adjustment", () => {
     const r = estimateDailyGoal({
-      profile: validProfile,
+      profile: roomyProfile,
       goal: { goalType: "lose" },
     });
     expect(r.ok).toBe(true);
@@ -366,7 +370,7 @@ describe("estimateDailyGoal", () => {
 
   it("lose goal with zero pace -> no adjustment", () => {
     const r = estimateDailyGoal({
-      profile: validProfile,
+      profile: roomyProfile,
       goal: { goalType: "lose", pacePerWeekKg: 0 },
     });
     expect(r.ok).toBe(true);
@@ -376,7 +380,7 @@ describe("estimateDailyGoal", () => {
 
   it("non-cycling goal_type -> treated as maintain", () => {
     const r = estimateDailyGoal({
-      profile: validProfile,
+      profile: roomyProfile,
       goal: { goalType: "unknown", pacePerWeekKg: 0.5 },
     });
     expect(r.ok).toBe(true);
@@ -404,6 +408,82 @@ describe("estimateDailyGoal", () => {
 /* ──────────────────────────────────────────────────────────
    filterByIntolerances
    ────────────────────────────────────────────────────────── */
+describe("estimateDailyGoal — Boden gilt immer, fail-closed", () => {
+  const validProfile = { weightKg: 80, heightCm: 180, age: 35, sex: "m", bodyFat: 0.12 };
+
+  it("ungueltiger Koerperfett-Wert mit Defizit-Ziel -> kein Ziel, nur Hinweis (kein Defizit ohne Boden)", () => {
+    const r = estimateDailyGoal({
+      profile: { ...validProfile, bodyFat: 150 },
+      goal: { goalType: "lose", pacePerWeekKg: 0.5 },
+    });
+    expect(r.ok).toBe(false);
+    expect(r.hint).toContain("Körperfett");
+    expect(r.target).toBeUndefined();
+  });
+
+  it("ungueltiger Koerperfett-Wert ohne Ziel -> ebenfalls kein Ziel (Boden nicht berechenbar)", () => {
+    const r = estimateDailyGoal({ profile: { ...validProfile, bodyFat: -0.1 } });
+    expect(r.ok).toBe(false);
+    expect(r.hint).toContain("Körperfett");
+  });
+
+  it("Erhalt: liegt der BMR unter dem Boden, wird auch ohne Defizit auf den Boden angehoben", () => {
+    // BMR 1755 < Boden 1760 (80 kg, 12 % Koerperfett, Mann: 70,4 kg FFM x 25)
+    const r = estimateDailyGoal({ profile: validProfile, goal: { goalType: "maintain" } });
+    expect(r.ok).toBe(true);
+    expect(r.target).toBe(1760);
+    expect(r.floor).toBe(1760);
+    expect(r.capped).toBe(true);
+    expect(r.note).toContain("RED-S-Minimum");
+  });
+
+  it("Aufbau (Ueberschuss) wird ebenfalls nie unter den Boden gesetzt", () => {
+    // Frau 50 kg, 20 %: BMR 1189, Boden 30 x 40 = 1200; Ueberschuss 0.01 kg/Woche (= 11 kcal) -> 1200
+    const r = estimateDailyGoal({
+      profile: { weightKg: 50, heightCm: 160, age: 30, sex: "f", bodyFat: 0.2 },
+      goal: { goalType: "gain", pacePerWeekKg: 0.01 },
+    });
+    expect(r.ok).toBe(true);
+    expect(r.target).toBeGreaterThanOrEqual(r.floor);
+    expect(r.floor).toBe(1200);
+  });
+
+  it("fehlendes Geschlecht und Koerperfett -> strengerer Boden (30) und beide Annahmen gekennzeichnet", () => {
+    const r = estimateDailyGoal({ profile: { weightKg: 80, heightCm: 180, age: 35 } });
+    expect(r.ok).toBe(true);
+    expect(r.sexAssumed).toBe(true);
+    expect(r.bodyFatAssumed).toBe(true);
+    expect(r.floor).toBe(1920); // 80 kg x (1 - 0,20) x 30
+  });
+
+  it("gemessenes Geschlecht und Koerperfett -> keine Annahme gekennzeichnet", () => {
+    const r = estimateDailyGoal({ profile: validProfile });
+    expect(r.sexAssumed).toBe(false);
+    expect(r.bodyFatAssumed).toBe(false);
+  });
+});
+
+describe("Quellen-Schluessel bleiben synchron (kein Drift)", () => {
+  it("jeder Wert in SOURCE_KEYS existiert in der Quellenliste", () => {
+    for (const key of Object.values(SOURCE_KEYS)) {
+      expect(SOURCE_BY_KEY.has(key)).toBe(true);
+    }
+  });
+
+  it("jeder von nutrition.js zurueckgegebene Quellen-Schluessel existiert in der Quellenliste", () => {
+    const profile = { weightKg: 80, heightCm: 180, age: 35, sex: "m", bodyFat: 0.12 };
+    const keys = [
+      estimateDailyTarget(profile).source,
+      redSFloor({ sex: "m", weightKg: 80, bodyFat: 0.12 }).source,
+      estimateCarbTarget({ weightKg: 70, plannedDurationMin: 90 }).source,
+      ...estimateDailyGoal({ profile, goal: { goalType: "lose", pacePerWeekKg: 0.5 } }).source,
+    ];
+    for (const key of keys) {
+      expect(SOURCE_BY_KEY.has(key)).toBe(true);
+    }
+  });
+});
+
 describe("filterByIntolerances", () => {
   const recipes = [
     { id: "1", title: "Haferbrei",     containsTags: ["gluten", "milk"] },
@@ -682,9 +762,9 @@ describe("layering (V1)", () => {
     );
     // Pruefe auf tatsaechliche Nutzung (nicht blosse Erwaehnung in Kommentaren)
     expect(src).not.toMatch(/console\.(log|warn|error|debug|info|trace)/);
-    expect(src).not.toMatch(/\bdocument\s*[\.\(]/);
-    expect(src).not.toMatch(/\bwindow\s*[\.\(]/);
-    expect(src).not.toMatch(/\blocalStorage\s*[\.\(]/);
+    expect(src).not.toMatch(/\bdocument\s*[.(]/);
+    expect(src).not.toMatch(/\bwindow\s*[.(]/);
+    expect(src).not.toMatch(/\blocalStorage\s*[.(]/);
     expect(src).not.toMatch(/\bfetch\s*\(/);
   });
 
