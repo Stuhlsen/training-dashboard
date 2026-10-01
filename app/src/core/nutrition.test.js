@@ -463,6 +463,54 @@ describe("estimateDailyGoal — Boden gilt immer, fail-closed", () => {
   });
 });
 
+describe("estimateDailyGoal — Trainingsenergie der geplanten Einheit", () => {
+  // Boden 1600 < BMR 1755 (20 % Koerperfett), damit der Boden nicht stoert
+  const profile = { weightKg: 80, heightCm: 180, age: 35, sex: "m", bodyFat: 0.2 };
+
+  it("ohne Einheit: trainingKcal 0, Ziel = BMR", () => {
+    const r = estimateDailyGoal({ profile });
+    expect(r.trainingKcal).toBe(0);
+    expect(r.target).toBe(1755);
+  });
+
+  it("200 W x 60 min = 720 kJ -> +720 kcal auf das Ziel", () => {
+    const r = estimateDailyGoal({ profile, session: { watt: 200, min: 60 } });
+    expect(r.trainingKcal).toBe(720);
+    expect(r.target).toBe(1755 + 720);
+    expect(r.note).toContain("Training +720");
+  });
+
+  it("Training und Defizit werden verrechnet: 1755 + 720 - 550 = 1925 (Boden 1600 nicht erreicht)", () => {
+    const r = estimateDailyGoal({
+      profile,
+      goal: { goalType: "lose", pacePerWeekKg: 0.5 },
+      session: { watt: 200, min: 60 },
+    });
+    expect(r.target).toBe(1925);
+    expect(r.capped).toBe(false);
+  });
+
+  it("unvollstaendige oder unsinnige Einheit -> 0, nie NaN", () => {
+    for (const session of [{ watt: 200 }, { min: 60 }, { watt: -50, min: 60 }, {}, null]) {
+      const r = estimateDailyGoal({ profile, session });
+      expect(r.ok).toBe(true);
+      expect(r.trainingKcal).toBe(0);
+      expect(Number.isFinite(r.target)).toBe(true);
+    }
+  });
+
+  it("der Boden gilt auch mit Training (Defizit darf nie unter den Boden fuehren)", () => {
+    const r = estimateDailyGoal({
+      profile: { ...profile, bodyFat: 0.12 }, // Boden 1760
+      goal: { goalType: "lose", pacePerWeekKg: 1 },
+      session: { watt: 100, min: 30 }, // 180 kcal
+    });
+    // 1755 + 180 - 1100 = 835 -> auf Boden 1760 angehoben
+    expect(r.target).toBe(1760);
+    expect(r.capped).toBe(true);
+  });
+});
+
 describe("Quellen-Schluessel bleiben synchron (kein Drift)", () => {
   it("jeder Wert in SOURCE_KEYS existiert in der Quellenliste", () => {
     for (const key of Object.values(SOURCE_KEYS)) {

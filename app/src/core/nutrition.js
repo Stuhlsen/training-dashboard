@@ -51,6 +51,15 @@ const CARB_BANDS = [
    Hilfsfunktionen
    ────────────────────────────────────────────────────────── */
 
+/** Energie der geplanten Einheit in kcal (Faustregel kJ ≈ kcal, s. body.js::rideKJ).
+ *  Fehlende, unvollständige oder unsinnige Werte (<= 0) zählen als 0 — nie NaN.
+ *  @param {{watt?:number, min?:number}|null|undefined} session
+ *  @returns {number} */
+function sessionEnergyKcal(session) {
+  const kj = session ? rideKJ(session) : null;
+  return Number.isFinite(kj) && kj > 0 ? kj : 0;
+}
+
 /** @param {string|null|undefined} sex
  *  @returns {{isMale:boolean, isFemale:boolean, assumed:boolean}} */
 function resolveSex(sex) {
@@ -213,16 +222,17 @@ export function redSFloor(params) {
  *
  * @param {{
  *   profile: {weightKg?:number, heightCm?:number, age?:number, sex?:string, bodyFat?:number},
- *   goal?: {goalType?:string, pacePerWeekKg?:number, targetWeightKg?:number}
+ *   goal?: {goalType?:string, pacePerWeekKg?:number, targetWeightKg?:number},
+ *   session?: {watt?:number, min?:number}
  * }} params
  * @returns {{
- *   ok:true, target:number, bmr:number, adjustment:number,
+ *   ok:true, target:number, bmr:number, trainingKcal:number, adjustment:number,
  *   floor:number, capped:boolean, bodyFatAssumed:boolean, sexAssumed:boolean,
  *   source:string[], note:string
  * }|{ok:false, hint:string}}
  */
 export function estimateDailyGoal(params) {
-  const { profile, goal } = params || {};
+  const { profile, goal, session } = params || {};
 
   // BMR aus dem Profil
   if (!profile) {
@@ -256,10 +266,13 @@ export function estimateDailyGoal(params) {
     // 'maintain' or no goalType: keine Anpassung (der Boden gilt trotzdem)
   }
 
-  // Rohes Target vor Floor: BMR - adjustment
+  // Energie der geplanten Einheit (E8: Trainingsenergie separat addieren)
+  const trainingKcal = sessionEnergyKcal(session);
+
+  // Rohes Target vor Floor: BMR + Training - adjustment
   // adjustment > 0 = deficit (subtract from BMR)
   // adjustment < 0 = surplus (add to BMR)
-  let target = bmr - adjustment;
+  let target = bmr + trainingKcal - adjustment;
 
   // RED-S-Floor: gilt IMMER (Fahrplan: das Tagesziel darf ihn nie unterschreiten),
   // nicht nur bei Defizit. Fail-closed: laesst sich der Boden nicht berechnen
@@ -283,6 +296,9 @@ export function estimateDailyGoal(params) {
   const parts = [];
   const sourceSet = new Set([SOURCE_KEYS.MIFFLIN_ST_JEOR]);
 
+  if (trainingKcal > 0) {
+    parts.push(`Training +${trainingKcal} kcal (Faustregel kJ ≈ kcal)`);
+  }
   if (adjustment !== 0) {
     const label = adjustment > 0 ? "Defizit" : "Ueberschuss";
     parts.push(
@@ -308,6 +324,7 @@ export function estimateDailyGoal(params) {
     ok: true,
     target,
     bmr,
+    trainingKcal,
     adjustment,
     floor,
     capped,
