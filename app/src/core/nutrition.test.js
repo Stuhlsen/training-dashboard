@@ -217,6 +217,14 @@ describe("redSFloor", () => {
     expect(r.floorKcal).toBe(1785);
   });
 
+  it("sex 'w' (outside 'm'/'f' schema) → treated as unknown, sexAssumed flag", () => {
+    const r = redSFloor({ sex: "w", weightKg: 70, bodyFat: 0.15 });
+    expect(r.ok).toBe(true);
+    expect(r.sexAssumed).toBe(true);
+    // 30 kcal/kg, FFM = 70*0.85 = 59.5 -> 30*59.5 = 1785
+    expect(r.floorKcal).toBe(1785);
+  });
+
   it("missing weight → ok:false + hint", () => {
     const r = redSFloor({ sex: "m", bodyFat: 0.12 });
     expect(r.ok).toBe(false);
@@ -313,20 +321,22 @@ describe("estimateDailyGoal", () => {
     expect(r.source).toContain("ioc-reds-2023");
   });
 
-  it("gain goal with pace -> target above BMR", () => {
-    // -0.5 kg/week (gain) -> paceToDailyKcal = -550 (surplus)
+  it("gain goal with pace -> target above BMR (goalType drives sign, not pace sign)", () => {
+    // +0.5 kg/week gain -> paceToDailyKcal(|0.5|) = 550
+    // goalType='gain' -> adjustment = -550 (surplus)
     // target = 1755 - (-550) = 2305, no floor cap for surplus
     const r = estimateDailyGoal({
       profile: validProfile,
-      goal: { goalType: "gain", pacePerWeekKg: -0.5 },
+      goal: { goalType: "gain", pacePerWeekKg: 0.5 },
     });
     expect(r.ok).toBe(true);
     expect(r.target).toBe(2305);
     expect(r.capped).toBe(false);
     expect(r.adjustment).toBe(-550);
+    expect(r.note).toContain("Ueberschuss");
   });
 
-  it("lose goal with modest pace -> not capped if above floor", () => {
+  it("lose goal with modest pace -> target capped when below floor", () => {
     // 0.1 kg/week -> paceToDailyKcal = 110
     // target = 1755 - 110 = 1645, floor = 1760 -> 1645 < 1760 -> capped
     const r = estimateDailyGoal({
@@ -639,18 +649,53 @@ describe("estimateCarbTarget", () => {
    charts/ imports, no console.*, no DOM globals.
    ────────────────────────────────────────────────────────── */
 describe("layering (V1)", () => {
-  it("does not reference forbidden modules", async () => {
-    await import("fs").then(() => null);
-    // Can't easily check imports statically, but we verify
-    // that the module loads without errors in a Node environment.
-    // The real check: CI passes with --project core (no jsdom).
+  it("nutrition.js imports only from core/ (no api/, hooks/, etc.)", () => {
+    // Statische Regression: source auf unerlaubte Importe scannen
+    const fs = require("fs");
+    const path = require("path");
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "nutrition.js"),
+      "utf-8"
+    );
+    const importLines = src.match(/import\s+.*\s+from\s+"([^"]+)"/g) || [];
+    const forbidden = ["api/", "hooks/", "features/", "components/", "charts/"];
+    for (const line of importLines) {
+      for (const frag of forbidden) {
+        expect(line).not.toContain(frag);
+      }
+    }
+    // Ausserdem muessen alle Imports mit ./ oder ../ beginnen (core/ oder types.js)
+    for (const line of importLines) {
+      const m = line.match(/from\s+"([^"]+)"/);
+      if (m) {
+        expect(m[1]).toMatch(/^\.\.?\//);
+      }
+    }
   });
 
-  it("NUTRITION_SOURCES import does not bring in api/ or DOM", () => {
-    // This test verifies the module loads cleanly in Node-only
-    // environment (vitest project "core" uses node, not jsdom).
-    expect(() => {
-      require?.resolve?.("./nutrition.js");
-    }).not.toThrow();
+  it("no console.* or DOM globals in nutrition.js", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "nutrition.js"),
+      "utf-8"
+    );
+    // Pruefe auf tatsaechliche Nutzung (nicht blosse Erwaehnung in Kommentaren)
+    expect(src).not.toMatch(/console\.(log|warn|error|debug|info|trace)/);
+    expect(src).not.toMatch(/\bdocument\s*[\.\(]/);
+    expect(src).not.toMatch(/\bwindow\s*[\.\(]/);
+    expect(src).not.toMatch(/\blocalStorage\s*[\.\(]/);
+    expect(src).not.toMatch(/\bfetch\s*\(/);
+  });
+
+  it("nutrition-sources.js imports nothing from the module tree", () => {
+    const fs = require("fs");
+    const path = require("path");
+    const src = fs.readFileSync(
+      path.resolve(__dirname, "nutrition-sources.js"),
+      "utf-8"
+    );
+    const importLines = src.match(/import\s+.*\s+from\s+"([^"]+)"/g) || [];
+    expect(importLines).toHaveLength(0);
   });
 });

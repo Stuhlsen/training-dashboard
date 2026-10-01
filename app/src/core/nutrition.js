@@ -54,8 +54,9 @@ const CARB_BANDS = [
  *  @returns {{isMale:boolean, isFemale:boolean, assumed:boolean}} */
 function resolveSex(sex) {
   if (sex === "m") return { isMale: true, isFemale: false, assumed: false };
-  if (sex === "f" || sex === "w") return { isMale: false, isFemale: true, assumed: false };
-  // Ungueltiger Wert (z.B. hand-edited) oder fehlend -> als unbekannt behandeln
+  if (sex === "f") return { isMale: false, isFemale: true, assumed: false };
+  // profiles.sex (Migration 0059) ist 'm'|'f'|null — "w" und andere Werte
+  // zählen als unbekannt -> strengeren Floor (30) und sexAssumed=true
   return { isMale: false, isFemale: true, assumed: true };
 }
 
@@ -242,13 +243,14 @@ export function estimateDailyGoal(params) {
 
   if (goal) {
     if (goal.goalType === "lose" || goal.goalType === "gain") {
-      if (isValidNumber(goal.pacePerWeekKg, true, true)) {
-        // paceToDailyKcal: positive pace = deficit (positive kcal)
-        // target = BMR - paceToDailyKcal(pace):
-        //   lose 0.5 kg/week -> paceToDailyKcal = +550 -> target = BMR - 550
-        //   gain 0.5 kg/week -> paceToDailyKcal = +550 -> target = BMR + 550
-        //                                   (pacePerWeekKg is negative for gain)
-        adjustment = paceToDailyKcal(goal.pacePerWeekKg);
+      if (isValidNumber(goal.pacePerWeekKg, true, true) && goal.pacePerWeekKg !== 0) {
+        // paceToDailyKcal liefert immer den Kalorienwert zur Magnitude:
+        //   |+0.5| = 550, |-0.5| = 550
+        // Richtung bestimmt goalType:
+        //   lose  -> adjustment = +pace (deficit, ziehe von BMR ab)
+        //   gain  -> adjustment = -pace (surplus, addiere zu BMR)
+        const raw = paceToDailyKcal(Math.abs(goal.pacePerWeekKg));
+        adjustment = goal.goalType === "lose" ? raw : -raw;
         applyFloor = adjustment > 0; // only cap deficits, not surpluses
       }
     }
