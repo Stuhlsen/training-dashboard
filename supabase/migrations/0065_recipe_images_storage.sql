@@ -1,7 +1,7 @@
 -- migrate:up
 
 -- ============================================================
--- Dashboard 2.0 — Migration 0064: recipe-images storage bucket + RLS
+-- Dashboard 2.0 — Migration 0065: recipe-images storage bucket + RLS
 -- Einspielen: Supabase SQL-Editor / dbmate, dev-Projekt zuerst (dashboard-dev),
 --             danach der apps01-Self-Host-Stack (echte Produktion, s.
 --             AGENTS.md "Migrations-Workflow" -- NICHT dashboard-prod auf
