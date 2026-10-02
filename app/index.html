@@ -21,7 +21,11 @@
   </head>
   <body>
     <div id="root"></div>
-    <script>
+    <!-- data-cookieconsent="ignore": Cookiebots Auto-Modus hält sonst dieses
+         Script zurück und führt es erst NACH dem App-Bundle aus —
+         __RUNTIME_CONFIG__ fehlt dann, supabase bleibt null, die App hängt
+         bei "Lade Session…". -->
+    <script data-cookieconsent="ignore">
       // Läuft vor dem App-Bundle (klassisches Script, kein type="module" —
       // die Ausführungsreihenfolge relativ zum Modul-Script unten ist damit
       // garantiert). Liest eine vom Docker-Entrypoint zur Laufzeit
