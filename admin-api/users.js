@@ -107,9 +107,15 @@ async function listUsers(env, fetchImpl = fetch) {
   return { ok: true, users };
 }
 
-// Audit-Log-Schreibfehler sollen die eigentliche Aktion nicht rueckgaengig
-// machen (Konto ist zu diesem Zeitpunkt bereits gesperrt/entsperrt/
-// geloescht) — analog zum best-effort Profil-PATCH in invite.js.
+// Audit-Log-Schreibfehler: ban/unban lassen die Hauptaktion nicht
+// rueckgaengig (GoTrue ist bereits gesperrt/entsperrt), aber delete/resend
+// scheitern am Audit-Log, da sie destruktiv/takeover-faehig sind — kein
+// stiller Verlust der Nachvollziehbarkeit.
+// HINWEIS: Bei delete/resend wird das Audit VOR der GoTrue-Aktion geschrieben
+// (um zu verhindern, dass ein Live-Token ohne Aufzeichnung ausgegeben wird).
+// Ein Audit-Eintrag fuer diese Aktionen dokumentiert daher einen VERSUCH, der
+// anschliessend an GoTrue scheitern kann — die tatsaechliche Ausfuehrung muss
+// gegen die GoTrue-Daten geprueft werden, nicht allein aus dem Audit-Log.
 async function writeAuditLog(env, fetchImpl, { actorId, targetUserId, targetEmail, action, details }) {
   try {
     await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/admin_audit_log`, {
@@ -128,8 +134,10 @@ async function writeAuditLog(env, fetchImpl, { actorId, targetUserId, targetEmai
         details: details ?? null,
       }),
     });
-  } catch {
-    // s. Kommentar oben
+    return true;
+  } catch (err) {
+    console.error("admin_audit_log write failed:", err);
+    return false;
   }
 }
 
@@ -195,8 +203,7 @@ async function deleteUser(userId, confirmEmail, actorId, env, fetchImpl = fetch)
     return { ok: false, status: 400, error: { code: "SCHEMA", message: "E-Mail stimmt nicht ueberein" } };
   }
 
-  // Nur fuers Audit-Log — ein Fehler hier soll das Loeschen selbst nicht
-  // blockieren, das Konto existiert nachweislich (s. GoTrue-Fetch oben).
+  // Profil-Daten fuers Audit-Log lesen
   let profileRows = [];
   try {
     profileRows = await fetchJson(
@@ -206,7 +213,21 @@ async function deleteUser(userId, confirmEmail, actorId, env, fetchImpl = fetch)
       "PostgREST"
     );
   } catch {
-    // s. Kommentar oben
+    // Profil-Read schlaegt fehl -> wir schreiben das Audit trotzdem
+    // ohne details (der Delete selbst soll trotzdem durchgehen, wenn
+    // das GoTrue-Konto existiert).
+  }
+
+  // Audit-Log VOR dem eigentlichen Loeschen — bei Fehler abbrechen
+  const auditWritten = await writeAuditLog(env, fetchImpl, {
+    actorId,
+    targetUserId: userId,
+    targetEmail: email,
+    action: "delete",
+    details: profileRows[0] ?? null,
+  });
+  if (!auditWritten) {
+    return { ok: false, status: 502, error: { code: "NETWORK", message: "Audit-Log nicht schreibbar" } };
   }
 
   let res;
@@ -233,13 +254,6 @@ async function deleteUser(userId, confirmEmail, actorId, env, fetchImpl = fetch)
     };
   }
 
-  await writeAuditLog(env, fetchImpl, {
-    actorId,
-    targetUserId: userId,
-    targetEmail: email,
-    action: "delete",
-    details: profileRows[0] ?? null,
-  });
   return { ok: true };
 }
 
@@ -286,6 +300,20 @@ async function resendUserLink(userId, actorId, env, fetchImpl = fetch) {
   }
 
   const type = "recovery";
+  const action = hasPassword ? "resend_recovery" : "resend_invite";
+
+  // Audit-Log VOR dem GoTrue-Aufruf — bei Fehler keinen Token ausstellen
+  const auditWritten = await writeAuditLog(env, fetchImpl, {
+    actorId,
+    targetUserId: userId,
+    targetEmail: email,
+    action,
+    details: { type },
+  });
+  if (!auditWritten) {
+    return { ok: false, status: 502, error: { code: "NETWORK", message: "Audit-Log nicht schreibbar" } };
+  }
+
   let res;
   try {
     res = await fetchImpl(`${env.GOTRUE_INTERNAL_URL}/admin/generate_link`, {
@@ -310,14 +338,6 @@ async function resendUserLink(userId, actorId, env, fetchImpl = fetch) {
     return { ok: false, status: 502, error: { code: "NETWORK", message: body?.msg ?? "GoTrue-Fehler" } };
   }
 
-  const action = hasPassword ? "resend_recovery" : "resend_invite";
-  await writeAuditLog(env, fetchImpl, {
-    actorId,
-    targetUserId: userId,
-    targetEmail: email,
-    action,
-    details: { type },
-  });
   return { ok: true, hashedToken: body?.hashed_token ?? null, type };
 }
 
