@@ -37,6 +37,11 @@ function verifyJwt(token, secret) {
   const now = Math.floor(Date.now() / 1000);
   if (typeof payload.exp !== "number" || payload.exp <= now) return null;
   if (typeof payload.sub !== "string" || !payload.sub) return null;
+  // GoTrue setzt aud:"authenticated" und role:"authenticated" auf normale
+  // User-Tokens — fehlt eines, ist das Token nicht von GoTrue signiert
+  // (oder ein service_role-Key, der keinem realen sub zugeordnet ist).
+  if (payload.aud !== "authenticated") return null;
+  if (payload.role !== "authenticated") return null;
   return payload;
 }
 

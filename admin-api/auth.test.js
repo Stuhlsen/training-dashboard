@@ -26,7 +26,7 @@ function signJwt(payload, secret = SECRET) {
 
 function validPayload(overrides = {}) {
   const now = Math.floor(Date.now() / 1000);
-  return { sub: "user-123", role: "authenticated", iat: now, exp: now + 3600, ...overrides };
+  return { sub: "user-123", aud: "authenticated", role: "authenticated", iat: now, exp: now + 3600, ...overrides };
 }
 
 test("verifyJwt akzeptiert ein gueltiges, unabgelaufenes Token", () => {
@@ -49,6 +49,16 @@ test("verifyJwt lehnt ein abgelaufenes Token ab", () => {
 test("verifyJwt lehnt kaputtes Token-Format ab", () => {
   assert.equal(verifyJwt("nicht.genug.teile.hier", SECRET), null);
   assert.equal(verifyJwt("", SECRET), null);
+});
+
+test("verifyJwt lehnt ein Token ohne aud=authenticated ab", () => {
+  const token = signJwt(validPayload({ aud: "service_role" }));
+  assert.equal(verifyJwt(token, SECRET), null);
+});
+
+test("verifyJwt lehnt ein Token ohne role=authenticated ab", () => {
+  const token = signJwt(validPayload({ role: "service_role" }));
+  assert.equal(verifyJwt(token, SECRET), null);
 });
 
 test("requireAdmin: 401 ohne Authorization-Header", async () => {
