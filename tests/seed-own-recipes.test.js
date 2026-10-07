@@ -196,7 +196,7 @@ test("ungültige Rezepte → ok:false, kein fetch", async () => {
 
 /* ── Validierungsfehler werden an logger gemeldet ──────────── */
 
-test("validierungsfehler → logger.error wird für jede Fehlermeldung aufgerufen", async () => {
+test("validierungsfehler → seedOwnRecipes gibt errors zurück (logging ist CLI-Aufgabe)", async () => {
   const captured = [];
   const captureLogger = {
     info: () => {},
@@ -205,7 +205,7 @@ test("validierungsfehler → logger.error wird für jede Fehlermeldung aufgerufe
     summary: () => {},
   };
 
-  await seedOwnRecipes({
+  const result = await seedOwnRecipes({
     recipes: [{ title: "", meal_type: ["breakfast"], servings: 1 }],
     apply: true,
     supabaseUrl: FAKE_URL,
@@ -214,14 +214,12 @@ test("validierungsfehler → logger.error wird für jede Fehlermeldung aufgerufe
     log: captureLogger,
   });
 
-  // buildRows wird vor dem apply-Check aufgerufen und müsste im
-  // !built.ok-Zweig die errors via return zurückgeben, ohne sie
-  // zu loggen. Das liegt am CLI-Layer — dieser Test prüft nur,
-  // dass seedOwnRecipes selbst NICHT loggt (reine Rückgabe).
-  // Das eigentliche Logging testet der CLI-Handler separat.
-  // Hier prüfen wir: die zurückgegebenen errors sind vorhanden.
-  // Das logging ist Aufgabe des CLI-Aufrufers (PR-Bugfix).
-  // Siehe Bericht.
+  // seedOwnRecipes selbst loggt nicht, sondern gibt die errors im
+  // Rückgabewert zurück. Das Loggen ist Aufgabe des CLI-Aufrufers
+  // (seed-own-recipes.js CLI-Entry-Point .then()-Handler).
+  assert.equal(result.ok, false);
+  assert.ok(Array.isArray(result.errors));
+  assert.ok(result.errors.length > 0);
   assert.equal(captured.length, 0, "seedOwnRecipes selbst loggt keine Fehler (liefert sie nur zurück)");
 });
 
