@@ -86,7 +86,7 @@ function buildRows(recipes, logger = logModule) {
     const slug = titleToSlug(r.title);
     const externalId = `own-${slug}`;
     if (slug && seenSlugs.has(slug)) {
-      logger.warn(`⚠️  Slug-Kollision: "${r.title}" → external_id "${externalId}" bereits belegt.`);
+      logger.warn(`Slug-Kollision: "${r.title}" → external_id "${externalId}" bereits belegt.`);
     }
     if (slug) seenSlugs.add(slug);
 
@@ -143,7 +143,7 @@ async function doUpsert(rows, supabaseUrl, serviceRoleKey, fetchFn, logger) {
     } catch {
       for (const entry of batch) {
         try { await upsertBatch([entry]); successCount++; }
-        catch (e2) { logger.error(`❌ Fehler bei "${entry.row.title}": ${e2.message}`); errorCount++; }
+        catch (e2) { logger.error(`Fehler bei "${entry.row.title}": ${e2.message}`); errorCount++; }
       }
     }
   }
@@ -167,7 +167,7 @@ export async function seedOwnRecipes({
   }
 
   logger.info(`📦 ${built.rows.length} Rezept(e) für Upsert vorbereitet.`);
-  if (noNutritionCount > 0) logger.warn(`⚠️  ${noNutritionCount} Rezept(e) ohne Nährwertangaben.`);
+  if (noNutritionCount > 0) logger.warn(`${noNutritionCount} Rezept(e) ohne Nährwertangaben.`);
   if (built.rows.length > 0) {
     logger.info("   Rezepte (Titel → external_id):");
     for (const { externalId, row } of built.rows) logger.info(`     "${row.title}" → ${externalId}`);
@@ -177,7 +177,7 @@ export async function seedOwnRecipes({
 
   const { successCount, errorCount } = await doUpsert(built.rows, supabaseUrl, serviceRoleKey, fetchFn, logger);
   logger.info(`✅ ${successCount} Rezept(e) erfolgreich geschrieben.`);
-  if (errorCount > 0) logger.error(`❌ ${errorCount} Rezept(e) fehlgeschlagen.`);
+  if (errorCount > 0) logger.error(`${errorCount} Rezept(e) fehlgeschlagen.`);
   return { ok: errorCount === 0, rows: built.rows, successCount, errorCount, warnings: built.warnings };
 }
 
@@ -214,9 +214,13 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
 
   seedOwnRecipes({ recipes, apply: APPLY, supabaseUrl: SUPABASE_URL, serviceRoleKey: SERVICE_ROLE_KEY, log: logModule })
     .then((result) => {
+      if (!result.ok && result.errors) {
+        logModule.error("Validierung fehlgeschlagen:");
+        for (const err of result.errors) logModule.error(`  - ${err}`);
+      }
       if (result.dryRun) logModule.info("🔍 Dry-Run beendet — mit --apply werden die Rezepte in die DB geschrieben.");
       if (result.warnings && APPLY && result.warnings.some((w) => w.includes("keine Nährwertangaben"))) {
-        logModule.warn(`⚠️  ${result.warnings.filter((w) => w.includes("keine Nährwertangaben")).length} Rezept(e) ohne Nährwertangaben.`);
+        logModule.warn(`${result.warnings.filter((w) => w.includes("keine Nährwertangaben")).length} Rezept(e) ohne Nährwertangaben.`);
       }
       logModule.summary();
       if (!result.ok) process.exit(1);
