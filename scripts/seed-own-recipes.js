@@ -38,7 +38,7 @@
                                  //     "Obst & Gemüse", "Milchprodukte",
                                  //     "Getreide & Backwaren", "Fleisch & Fisch",
                                  //     "Eier", "Hülsenfrüchte & Konserven",
-                                 //     "Nüsse & Samen", "Öle", "Gewürze & Vorrat"
+                                 //     "Nüsse & Samen", "Öle, Gewürze & Vorrat"
      }],
      instructions: [{             // Optional, wenn vorhanden:
        text: string,              //   Pflicht
@@ -205,7 +205,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const SERVICE_ROLE_KEY = KEY_OVERRIDE || (PROD ? ENV.SUPABASE_SERVICE_ROLE_KEY_PROD : ENV.SUPABASE_SERVICE_ROLE_KEY);
 
   if (URL_OVERRIDE) logModule.info("⚙️  URL/Service-Role-Key via Shell-Override (apps01-Pfad).");
-  logModule.info(`🌐 Ziel: ${PROD ? "prod" : "dev"}`);
+  logModule.info(`🌐 Ziel: ${URL_OVERRIDE ? "Shell-Override (apps01-Pfad)" : PROD ? "prod (supabase.co, Altlast)" : "dev"}`);
   logModule.info(APPLY ? "🚀 Seed eigener Rezepte (--apply) …" : "🔍 Dry-Run …");
 
   let raw;

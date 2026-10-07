@@ -211,10 +211,19 @@ export function validateRecipes(recipes) {
  * @returns {string}
  */
 export function titleToSlug(title) {
+  // Umlaute zuerst umschreiben (ä -> ae), erst danach restliche Akzente entfernen —
+  // sonst würde die Normalisierung aus "ä" nur "a" machen. Die external_id bleibt
+  // dadurch reines ASCII (kein Encoding-Ärger in URLs/Filtern).
   return title
     .toLowerCase()
     .trim()
-    .replace(/[^a-z0-9äöüß]+/g, "-")
+    .replace(/ä/g, "ae")
+    .replace(/ö/g, "oe")
+    .replace(/ü/g, "ue")
+    .replace(/ß/g, "ss")
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .substring(0, 100);
 }

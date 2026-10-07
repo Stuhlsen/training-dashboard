@@ -398,11 +398,18 @@ test("titleToSlug: simple title", () => {
 });
 
 test("titleToSlug: special chars", () => {
-  assert.equal(titleToSlug("Süße Kürbissuppe!"), "süße-kürbissuppe");
+  assert.equal(titleToSlug("Süße Kürbissuppe!"), "suesse-kuerbissuppe");
 });
 
 test("titleToSlug: multiple spaces", () => {
   assert.equal(titleToSlug("  Bananen  Pancakes  "), "bananen-pancakes");
+});
+
+test("titleToSlug: Umlaute, ß und Akzente werden zu reinem ASCII", () => {
+  assert.equal(titleToSlug("Rührei mit Hähnchen"), "ruehrei-mit-haehnchen");
+  assert.equal(titleToSlug("Größe Öl-Äpfel"), "groesse-oel-aepfel");
+  assert.equal(titleToSlug("Crème brûlée"), "creme-brulee");
+  assert.match(titleToSlug("Süße Köstlichkeiten 2 für Alle"), /^[a-z0-9-]+$/);
 });
 
 test("titleToSlug: very long title truncated", () => {

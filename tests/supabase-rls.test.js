@@ -3989,4 +3989,45 @@ if (!HAS_CREDS) {
     });
     assert.equal(vote.ok, true, `Self-Vote muss erlaubt sein: ${JSON.stringify(vote.data)}`);
   });
+
+  // --- 15. recipes.external_id eindeutig (0066) ----------------------------
+  // Regressionstest: scripts/seed-own-recipes.js schreibt per PostgREST-Upsert
+  // (on_conflict=external_id). Ohne UNIQUE-Constraint scheitert das mit 42P10 —
+  // ein Fake-fetch in den Skript-Tests kann das nicht sehen, nur die echte DB.
+
+  test("recipes: external_id ist eindeutig — Upsert per on_conflict aktualisiert statt zu duplizieren (0066)", async (t) => {
+    if (!recipesTableReady) return t.skip("recipes nicht lesbar — Migration 0060/0062 fehlt");
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Schreib-/Aufräumpfad");
+    const service = ENV.SUPABASE_SERVICE_ROLE_KEY;
+    const externalId = `own-rls-test-${Date.now()}`;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?external_id=eq.${externalId}`, { token: service });
+    });
+    const row = (title) => ({
+      source: "own",
+      external_id: externalId,
+      status: "approved",
+      title,
+      meal_type: ["lunch"],
+      servings: 1,
+    });
+    const upsert = (title) =>
+      rest("POST", "recipes?on_conflict=external_id", {
+        token: service,
+        body: [row(title)],
+        prefer: "resolution=merge-duplicates,return=representation",
+      });
+
+    const first = await upsert("RLS-Test-Upsert-1");
+    if (first.data?.code === "42P10") {
+      return t.skip("Migration 0066 (UNIQUE auf recipes.external_id) noch nicht eingespielt");
+    }
+    assert.equal(first.ok, true, `erster Upsert: ${JSON.stringify(first.data)}`);
+    const second = await upsert("RLS-Test-Upsert-2");
+    assert.equal(second.ok, true, `zweiter Upsert: ${JSON.stringify(second.data)}`);
+
+    const read = await rest("GET", `recipes?external_id=eq.${externalId}&select=id,title`, { token: service });
+    assert.equal(read.data?.length, 1, "derselbe external_id darf nur eine Zeile ergeben");
+    assert.equal(read.data[0].title, "RLS-Test-Upsert-2", "der zweite Upsert muss die Zeile aktualisieren");
+  });
 }
