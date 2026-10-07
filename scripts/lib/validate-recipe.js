@@ -153,6 +153,10 @@ export function validateRecipes(recipes) {
         for (let j = 0; j < r.ingredients.length; j++) {
           const ing = r.ingredients[j];
           const iprefix = `${prefix}, Zutat #${j + 1}`;
+          if (ing === undefined || ing === null || typeof ing !== "object") {
+            errors.push(`${iprefix}: Zutat ist null oder ungültig`);
+            continue;
+          }
           const missing = REQUIRED_INGREDIENT_FIELDS.filter(
             (f) =>
               ing[f] === undefined ||

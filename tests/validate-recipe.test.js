@@ -267,6 +267,19 @@ test("null ingredients → ok", () => {
   assert.equal(result.ok, true);
 });
 
+test("null entry in ingredients array → error (crash guard)", () => {
+  const r = {
+    ...VALID_RECIPE,
+    ingredients: [
+      { name: "Haferflocken", amount: 100, unit: "g", category: "Getreide" },
+      null,
+    ],
+  };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors.some((e) => e.includes("Zutat ist null oder ungültig")));
+});
+
 /* ── duplicate titles ──────────────────────────────────────── */
 
 test("duplicate titles → error", () => {

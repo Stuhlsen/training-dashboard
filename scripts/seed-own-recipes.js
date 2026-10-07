@@ -81,12 +81,13 @@ function buildRows(recipes, logger = logModule) {
 
   const seenSlugs = new Set();
   const rows = [];
+  const errors = [];
 
   for (const r of recipes) {
     const slug = titleToSlug(r.title);
     const externalId = `own-${slug}`;
     if (slug && seenSlugs.has(slug)) {
-      logger.warn(`Slug-Kollision: "${r.title}" → external_id "${externalId}" bereits belegt.`);
+      errors.push(`Slug-Kollision: "${r.title}" → external_id "${externalId}" bereits belegt durch einen anderen Titel`);
     }
     if (slug) seenSlugs.add(slug);
 
@@ -110,6 +111,10 @@ function buildRows(recipes, logger = logModule) {
         image_url: r.image_url ?? null,
       },
     });
+  }
+  if (errors.length > 0) {
+    for (const w of validation.warnings || []) logger.warn(w);
+    return { ok: false, errors };
   }
   return { ok: true, rows, warnings: validation.warnings };
 }

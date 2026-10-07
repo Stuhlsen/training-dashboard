@@ -175,6 +175,44 @@ test("idempotenz: gleicher Titel erzeugt gleichen external_id", async () => {
   }
 });
 
+/* ── Slug-Kollision (verschiedene Titel → gleicher Slug) ────── */
+
+test("slug collision → buildRows gibt einen Fehler zurück", async () => {
+  // "Haferflocken-Porridge!" und "Haferflocken Porridge" → slug "haferflocken-porridge"
+  const recipesWithSlugCollision = [
+    {
+      title: "Haferflocken-Porridge!",
+      meal_type: ["breakfast"],
+      servings: 2,
+      ingredients: [{ name: "Haferflocken", amount: 100, unit: "g", category: "Getreide" }],
+      instructions: [{ text: "Kochen" }],
+    },
+    {
+      title: "Haferflocken Porridge",
+      meal_type: ["breakfast"],
+      servings: 2,
+      ingredients: [{ name: "Haferflocken", amount: 100, unit: "g", category: "Getreide" }],
+      instructions: [{ text: "Kochen" }],
+    },
+  ];
+
+  const fakeFetch = createFakeFetch();
+  const result = await seedOwnRecipes({
+    recipes: recipesWithSlugCollision,
+    apply: true,
+    supabaseUrl: FAKE_URL,
+    serviceRoleKey: FAKE_KEY,
+    fetch: fakeFetch,
+    log: SILENT_LOGGER,
+  });
+
+  assert.equal(result.ok, false, "slug collision should fail");
+  assert.ok(Array.isArray(result.errors));
+  assert.ok(result.errors.some((e) => e.includes("Slug-Kollision") || e.includes("external_id")),
+    "error message should mention slug collision");
+  assert.equal(fakeFetch.calls.length, 0, "slug collision darf kein fetch auslösen");
+});
+
 /* ── Validierungsfehler → kein Schreibversuch ────────────────── */
 
 test("ungültige Rezepte → ok:false, kein fetch", async () => {
