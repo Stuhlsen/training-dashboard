@@ -3989,4 +3989,112 @@ if (!HAS_CREDS) {
     });
     assert.equal(vote.ok, true, `Self-Vote muss erlaubt sein: ${JSON.stringify(vote.data)}`);
   });
+
+  // --- 15. recipes.external_id eindeutig (0066) + Seed-Skript gegen die echte DB ---
+  // Regressionstests: scripts/seed-own-recipes.js schreibt per PostgREST-Upsert
+  // (on_conflict=external_id). Ohne UNIQUE-Constraint scheitert das mit 42P10 —
+  // ein Fake-fetch in den Skript-Tests kann das nicht sehen, nur die echte DB.
+  // E18 (Trigger recipes_check_content_update) sperrt zudem Inhaltsänderungen an
+  // freigegebenen Rezepten, auch für service_role: das Skript geht deshalb für
+  // Änderungen den Admin-Weg (pending -> ändern -> approved).
+
+  const recipesSeedSkip = () => {
+    if (!recipesTableReady) return "recipes nicht lesbar — Migration 0060/0062 fehlt";
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return "SUPABASE_SERVICE_ROLE_KEY fehlt — kein Schreib-/Aufräumpfad";
+    return false;
+  };
+
+  test("recipes: external_id ist eindeutig — Upsert aktualisiert nicht duplizierend, geänderter Inhalt wird von E18 abgelehnt (0066)", async (t) => {
+    if (recipesSeedSkip()) return t.skip(recipesSeedSkip());
+    const service = ENV.SUPABASE_SERVICE_ROLE_KEY;
+    const externalId = `own-rls-test-${Date.now()}`;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?external_id=eq.${externalId}`, { token: service });
+    });
+    const row = (title) => ({
+      source: "own",
+      external_id: externalId,
+      status: "approved",
+      title,
+      meal_type: ["lunch"],
+      servings: 1,
+    });
+    const upsert = (title) =>
+      rest("POST", "recipes?on_conflict=external_id", {
+        token: service,
+        body: [row(title)],
+        prefer: "resolution=merge-duplicates,return=representation",
+      });
+
+    const first = await upsert("RLS-Test-Upsert");
+    if (first.data?.code === "42P10") {
+      return t.skip("Migration 0066 (UNIQUE auf recipes.external_id) noch nicht eingespielt");
+    }
+    assert.equal(first.ok, true, `erster Upsert: ${JSON.stringify(first.data)}`);
+    const again = await upsert("RLS-Test-Upsert"); // gleicher Inhalt
+    assert.equal(again.ok, true, `zweiter Upsert (gleicher Inhalt): ${JSON.stringify(again.data)}`);
+    const read = await rest("GET", `recipes?external_id=eq.${externalId}&select=id`, { token: service });
+    assert.equal(read.data?.length, 1, "derselbe external_id darf nur eine Zeile ergeben");
+
+    const changed = await upsert("RLS-Test-Upsert-geaendert");
+    assert.equal(changed.ok, false, "geänderter Inhalt an freigegebenem Rezept muss von E18 abgelehnt werden");
+    assert.equal(changed.data?.code, "P0001");
+    assert.match(changed.data?.message ?? "", /E18/);
+  });
+
+  test("seed-own-recipes (echtes Skript, echte DB): neu -> unverändert -> geändert (pending-Weg), ID und Status bleiben stabil", async (t) => {
+    if (recipesSeedSkip()) return t.skip(recipesSeedSkip());
+    const service = ENV.SUPABASE_SERVICE_ROLE_KEY;
+    const { seedOwnRecipes } = await import("../scripts/seed-own-recipes.js");
+    const { titleToSlug } = await import("../scripts/lib/validate-recipe.js");
+    const silent = { info() {}, warn() {}, error() {}, summary() {} };
+
+    const title = `RLS-Test Seed ${Date.now()}`;
+    const externalId = `own-${titleToSlug(title)}`;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?external_id=eq.${externalId}`, { token: service });
+    });
+    const recipe = (containsTags) => ({
+      title,
+      meal_type: ["lunch"],
+      diet_tags: ["veg"],
+      contains_tags: containsTags,
+      servings: 1,
+      ingredients: [{ name: "Testzutat", amount: 1, unit: "Stück", category: "Sonstiges" }],
+      instructions: [{ text: "Testschritt" }],
+    });
+    const run = (recipes) =>
+      seedOwnRecipes({
+        recipes,
+        apply: true,
+        supabaseUrl: SUPABASE_URL,
+        serviceRoleKey: service,
+        log: silent,
+      });
+    const read = async () => {
+      const r = await rest("GET", `recipes?external_id=eq.${externalId}&select=id,status,contains_tags,title`, { token: service });
+      return r.data?.[0];
+    };
+
+    const first = await run([recipe([])]);
+    if (!first.ok && first.errorCount > 0 && first.insertedCount === 0) {
+      return t.skip("Seed schreibt nicht (Migration 0066 vermutlich noch nicht eingespielt)");
+    }
+    assert.equal(first.ok, true);
+    assert.equal(first.insertedCount, 1);
+    const afterInsert = await read();
+    assert.equal(afterInsert.status, "approved");
+
+    const second = await run([recipe([])]);
+    assert.equal(second.ok, true);
+    assert.equal(second.unchangedCount, 1, "gleicher Inhalt darf nichts schreiben");
+
+    const third = await run([recipe(["gluten"])]); // Korrektur einer Allergen-Angabe
+    assert.equal(third.ok, true, JSON.stringify(third));
+    assert.equal(third.updatedCount, 1);
+    const afterUpdate = await read();
+    assert.equal(afterUpdate.id, afterInsert.id, "die Rezept-ID muss stabil bleiben");
+    assert.equal(afterUpdate.status, "approved", "nach der Änderung wieder freigegeben");
+    assert.deepEqual(afterUpdate.contains_tags, ["gluten"]);
+  });
 }

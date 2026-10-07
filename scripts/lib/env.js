@@ -82,6 +82,7 @@ export const ENV = {
   // weiterhin gegen dashboard-dev läuft, nicht gegen echte Athletendaten.
   SUPABASE_URL_PROD: process.env.SUPABASE_URL_PROD || "",
   SUPABASE_ANON_KEY_PROD: process.env.SUPABASE_ANON_KEY_PROD || "",
+  SUPABASE_SERVICE_ROLE_KEY_PROD: process.env.SUPABASE_SERVICE_ROLE_KEY_PROD || "",
   SUPABASE_ATHLETE1_EMAIL_PROD: process.env.SUPABASE_ATHLETE1_EMAIL_PROD || "",
   SUPABASE_ATHLETE1_PASSWORD_PROD: process.env.SUPABASE_ATHLETE1_PASSWORD_PROD || "",
   SUPABASE_ATHLETE4_EMAIL_PROD: process.env.SUPABASE_ATHLETE4_EMAIL_PROD || "",

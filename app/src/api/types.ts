@@ -513,7 +513,7 @@ export interface CoachExchange {
   outcome?: CoachExchangeOutcome;
 }
 
-/* ── Recipes (Migration 0058, Fahrplan 23 E0) ─────────────────────
+/* ── Recipes (Migration 0060, Fahrplan 23 E0) ─────────────────────
    Shared recipe library. Die DB-Spaltennamen (snake_case) mappt der
    zukuenftige Adapter (E3) nach camelCase. Ein `contains_tags` von
    `[]` (Default) bedeutet "unremarkable" — keine Exclusion.          */

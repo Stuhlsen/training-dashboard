@@ -225,7 +225,27 @@
 
 export {};
 
-/* ── Recipe types (Migration 0058, Fahrplan 23 E0) ─────────────── */
+/* ── Recipe types (Migration 0060, Fahrplan 23 E0) ─────────────── */
+
+/**
+ * Quellen eines Rezepts.
+ * @typedef {"own"|"spoonacular"|"athlete"} RecipeSource
+ */
+
+/**
+ * Status eines Rezepts.
+ * @typedef {"pending"|"approved"|"rejected"} RecipeStatus
+ */
+
+/**
+ * Mahlzeit-Typ.
+ * @typedef {"breakfast"|"lunch"|"dinner"|"snack"} MealType
+ */
+
+/**
+ * Diät-Tag.
+ * @typedef {"veg"|"vegan"|"glutenfrei"|"omnivor"} DietTag
+ */
 
 /**
  * Ein einzelner Zutateneintrag eines Rezepts.
