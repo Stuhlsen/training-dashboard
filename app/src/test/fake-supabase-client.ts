@@ -65,6 +65,10 @@ export function createFakeSupabaseClient() {
         calls.filters.push({ op: "is", col, val });
         return api;
       },
+      contains(col: string, val: unknown) {
+        calls.filters.push({ op: "contains", col, val });
+        return api;
+      },
       order(col: string, opts?: { ascending?: boolean }) {
         calls.order = { col, ...opts };
         return api;
