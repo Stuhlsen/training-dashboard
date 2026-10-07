@@ -2,9 +2,6 @@
    CORE/NUTRITION-TAXONOMY.JS — EU-Allergen-Taxonomie (kein I/O)
    (Fahrplan 23, Etappe E0, Entscheidungen E20/E21)
 
-   Parallelkopie: scripts/lib/core/nutrition-taxonomy.js (byte-identisch,
-   gemeinsam pflegen) von app/src/core/nutrition-taxonomy.js.
-
    Einzige, gemeinsam genutzte Quelle der Wahrheit für beide
    DB-Spalten profiles.intolerances UND recipes.contains_tags.
 

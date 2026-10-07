@@ -5,15 +5,17 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { validateRecipes, titleToSlug } from "../scripts/lib/validate-recipe.js";
 
+/* Input-Format: snake_case (DB-Spaltennamen), siehe Script-Header. */
+
 const VALID_RECIPE = {
   title: "Haferflocken-Porridge",
-  mealType: ["breakfast"],
-  dietTags: ["veg", "vegan"],
-  containsTags: ["gluten"],
+  meal_type: ["breakfast"],
+  diet_tags: ["veg", "vegan"],
+  contains_tags: ["gluten"],
   servings: 2,
   ingredients: [
-    { name: "Haferflocken", amount: 100, unit: "g", category: "Getreide" },
-    { name: "Mandelmilch", amount: 200, unit: "ml", category: "Milchersatz" },
+    { name: "Haferflocken", amount: 100, unit: "g", category: "Getreide & Backwaren" },
+    { name: "Mandelmilch", amount: 200, unit: "ml", category: "Milchprodukte" },
   ],
   instructions: [
     { text: "Haferflocken in Topf geben" },
@@ -47,48 +49,75 @@ test("null input → error", () => {
   assert.ok(result.errors[0].startsWith("Eingabe ist kein Array"));
 });
 
+/* ── invented example in documented format ────────────────────── */
+
+test("invented example in documented format passes", () => {
+  const example = [
+    {
+      title: "Bananen-Pancakes",
+      meal_type: ["breakfast"],
+      diet_tags: ["veg", "vegan"],
+      contains_tags: ["gluten"],
+      servings: 2,
+      ingredients: [
+        { name: "Banane", amount: 1, unit: "Stück", category: "Obst & Gemüse" },
+        { name: "Haferflocken", amount: 80, unit: "g", category: "Getreide & Backwaren" },
+      ],
+      instructions: [
+        { text: "Banane zerdrücken" },
+        { text: "Mit Haferflocken mischen und braten", timerSeconds: 240 },
+      ],
+    },
+  ];
+  const result = validateRecipes(example);
+  assert.equal(result.ok, true);
+  // Has nutrition warning since no nutrition provided
+  assert.ok(Array.isArray(result.warnings));
+  assert.ok(result.warnings[0].includes("keine Nährwertangaben"));
+});
+
 /* ── unknown meal_type ──────────────────────────────────────── */
 
 test("unknown meal_type → error", () => {
-  const r = { ...VALID_RECIPE, mealType: ["brunch"] };
+  const r = { ...VALID_RECIPE, meal_type: ["brunch"] };
   const result = validateRecipes([r]);
   assert.equal(result.ok, false);
   assert.ok(result.errors[0].includes('unbekannter meal_type "brunch"'));
 });
 
-test("empty mealType array → error", () => {
-  const r = { ...VALID_RECIPE, mealType: [] };
+test("empty meal_type array → error", () => {
+  const r = { ...VALID_RECIPE, meal_type: [] };
   const result = validateRecipes([r]);
   assert.equal(result.ok, false);
-  assert.ok(result.errors[0].includes("mealType fehlt oder leer"));
+  assert.ok(result.errors[0].includes("meal_type fehlt oder leer"));
 });
 
-test("missing mealType → error", () => {
+test("missing meal_type → error", () => {
   const r = { ...VALID_RECIPE };
-  delete r.mealType;
+  delete r.meal_type;
   const result = validateRecipes([r]);
   assert.equal(result.ok, false);
-  assert.ok(result.errors[0].includes("mealType fehlt oder leer"));
+  assert.ok(result.errors[0].includes("meal_type fehlt oder leer"));
 });
 
 /* ── unknown diet_tag ────────────────────────────────────────── */
 
 test("unknown diet_tag → error", () => {
-  const r = { ...VALID_RECIPE, dietTags: ["paleo"] };
+  const r = { ...VALID_RECIPE, diet_tags: ["paleo"] };
   const result = validateRecipes([r]);
   assert.equal(result.ok, false);
   assert.ok(result.errors[0].includes('unbekannter diet_tag "paleo"'));
 });
 
-test("valid null dietTags → ok", () => {
-  const r = { ...VALID_RECIPE, dietTags: null };
+test("valid null diet_tags → ok", () => {
+  const r = { ...VALID_RECIPE, diet_tags: null };
   const result = validateRecipes([r]);
   assert.equal(result.ok, true);
 });
 
-test("undefined dietTags → ok", () => {
+test("undefined diet_tags → ok", () => {
   const r = { ...VALID_RECIPE };
-  delete r.dietTags;
+  delete r.diet_tags;
   const result = validateRecipes([r]);
   assert.equal(result.ok, true);
 });
@@ -96,27 +125,27 @@ test("undefined dietTags → ok", () => {
 /* ── unknown allergen key ────────────────────────────────────── */
 
 test("unknown allergen key → error", () => {
-  const r = { ...VALID_RECIPE, containsTags: ["xyz_allergen"] };
+  const r = { ...VALID_RECIPE, contains_tags: ["xyz_allergen"] };
   const result = validateRecipes([r]);
   assert.equal(result.ok, false);
   assert.ok(result.errors[0].includes('unbekannter Allergen-Key "xyz_allergen"'));
 });
 
-test("valid null containsTags → ok", () => {
-  const r = { ...VALID_RECIPE, containsTags: null };
+test("valid null contains_tags → ok", () => {
+  const r = { ...VALID_RECIPE, contains_tags: null };
   const result = validateRecipes([r]);
   assert.equal(result.ok, true);
 });
 
-test("undefined containsTags → ok", () => {
+test("undefined contains_tags → ok", () => {
   const r = { ...VALID_RECIPE };
-  delete r.containsTags;
+  delete r.contains_tags;
   const result = validateRecipes([r]);
   assert.equal(result.ok, true);
 });
 
-test("empty containsTags → ok (unremarkable)", () => {
-  const r = { ...VALID_RECIPE, containsTags: [] };
+test("empty contains_tags → ok (unremarkable)", () => {
+  const r = { ...VALID_RECIPE, contains_tags: [] };
   const result = validateRecipes([r]);
   assert.equal(result.ok, true);
 });
@@ -169,7 +198,7 @@ test("missing title → error", () => {
   assert.ok(result.errors[0].includes("title fehlt oder leer"));
 });
 
-/* ── ingredient without amount ──────────────────────────────── */
+/* ── ingredient without required fields ──────────────────────── */
 
 test("ingredient missing amount → error", () => {
   const r = {
@@ -212,6 +241,26 @@ test("ingredient missing category → error", () => {
   assert.ok(result.errors[0].includes("category"));
 });
 
+test("ingredient amount = 0 → error", () => {
+  const r = {
+    ...VALID_RECIPE,
+    ingredients: [{ name: "Salz", amount: 0, unit: "Prise", category: "Gewürze & Vorrat" }],
+  };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors[0].includes("amount muss > 0 sein"));
+});
+
+test("ingredient amount negative → error", () => {
+  const r = {
+    ...VALID_RECIPE,
+    ingredients: [{ name: "Salz", amount: -1, unit: "Prise", category: "Gewürze & Vorrat" }],
+  };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors[0].includes("amount muss > 0 sein"));
+});
+
 test("null ingredients → ok", () => {
   const r = { ...VALID_RECIPE, ingredients: null };
   const result = validateRecipes([r]);
@@ -223,7 +272,7 @@ test("null ingredients → ok", () => {
 test("duplicate titles → error", () => {
   const result = validateRecipes([
     { ...VALID_RECIPE },
-    { ...VALID_RECIPE, mealType: ["lunch"], ingredients: null, instructions: null },
+    { ...VALID_RECIPE, meal_type: ["lunch"], ingredients: null, instructions: null },
   ]);
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((e) => e.includes("doppelter Titel")));
@@ -232,7 +281,13 @@ test("duplicate titles → error", () => {
 test("duplicate titles (case-insensitive) → error", () => {
   const result = validateRecipes([
     { ...VALID_RECIPE },
-    { ...VALID_RECIPE, title: "haferflocken-porridge", mealType: ["lunch"], ingredients: null, instructions: null },
+    {
+      ...VALID_RECIPE,
+      title: "haferflocken-porridge",
+      meal_type: ["lunch"],
+      ingredients: null,
+      instructions: null,
+    },
   ]);
   assert.equal(result.ok, false);
   assert.ok(result.errors.some((e) => e.includes("doppelter Titel")));
@@ -241,7 +296,13 @@ test("duplicate titles (case-insensitive) → error", () => {
 test("similar but different titles → ok", () => {
   const result = validateRecipes([
     { ...VALID_RECIPE },
-    { ...VALID_RECIPE, title: "Haferflocken-Porridge mit Beeren", mealType: ["lunch"], ingredients: null, instructions: null },
+    {
+      ...VALID_RECIPE,
+      title: "Haferflocken-Porridge mit Beeren",
+      meal_type: ["lunch"],
+      ingredients: null,
+      instructions: null,
+    },
   ]);
   assert.equal(result.ok, true);
 });
@@ -265,6 +326,56 @@ test("null instructions → ok", () => {
   const r = { ...VALID_RECIPE, instructions: null };
   const result = validateRecipes([r]);
   assert.equal(result.ok, true);
+});
+
+/* ── nutrition validation ───────────────────────────────────── */
+
+test("missing nutrition → ok with warning", () => {
+  const r = { ...VALID_RECIPE };
+  delete r.nutrition;
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, true);
+  assert.ok(Array.isArray(result.warnings));
+  assert.ok(result.warnings[0].includes("keine Nährwertangaben"));
+});
+
+test("null nutrition → ok with warning", () => {
+  const r = { ...VALID_RECIPE, nutrition: null };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, true);
+  assert.ok(Array.isArray(result.warnings));
+  assert.ok(result.warnings[0].includes("keine Nährwertangaben"));
+});
+
+test("nutrition with negative kcal → error", () => {
+  const r = { ...VALID_RECIPE, nutrition: { kcal: -100, protein: 10, carbs: 50, fat: 5 } };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors[0].includes("nutrition ungültig"));
+});
+
+test("nutrition with non-numeric protein → error", () => {
+  const r = { ...VALID_RECIPE, nutrition: { kcal: 200, protein: "abc", carbs: 50, fat: 5 } };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors[0].includes("nutrition ungültig"));
+});
+
+test("nutrition with NaN → error", () => {
+  const r = { ...VALID_RECIPE, nutrition: { kcal: 200, protein: NaN, carbs: 50, fat: 5 } };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors[0].includes("nutrition ungültig"));
+});
+
+test("nutrition with missing field → error", () => {
+  const r = {
+    ...VALID_RECIPE,
+    nutrition: { kcal: 200, protein: 10, carbs: 50 },
+  };
+  const result = validateRecipes([r]);
+  assert.equal(result.ok, false);
+  assert.ok(result.errors[0].includes("nutrition ungültig"));
 });
 
 /* ── titleToSlug ───────────────────────────────────────────── */
@@ -292,13 +403,15 @@ test("multiple validation errors reported together", () => {
   const result = validateRecipes([
     {
       title: "",
-      mealType: ["brunch"],
-      dietTags: ["paleo"],
-      containsTags: ["fake_key"],
+      meal_type: ["brunch"],
+      diet_tags: ["paleo"],
+      contains_tags: ["fake_key"],
       servings: -1,
-      ingredients: [{ name: "Test" }],
+      ingredients: [{ name: "Test", amount: 0, unit: "g", category: "Getreide" }],
     },
   ]);
   assert.equal(result.ok, false);
-  assert.ok(result.errors.length >= 4);
+  // Should have at least: empty title, unknown meal_type, unknown diet_tag,
+  // unknown allergen key, servings <= 0, ingredient amount > 0
+  assert.ok(result.errors.length >= 5);
 });

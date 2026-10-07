@@ -20,27 +20,37 @@
    Idempotent: external_id = "own-" + slug(title); upsert auf
    external_id — wiederholtes Ausführen aktualisiert bestehende Zeilen.
 
-   Input-Format (JSON-Array, jedes Objekt):
+   Input-Format (JSON-Array, jedes Objekt — snake_case = DB-Spaltennamen):
+
    {
      title: string,               // Pflicht, nicht leer
-     mealType: string[],          // Pflicht: breakfast/lunch/dinner/snack
-     dietTags: string[],          // Optional: veg/vegan/glutenfrei/omnivor
-     containsTags: string[],      // Optional: gültige AllergenKeys
+     meal_type: string[],         // Pflicht: "breakfast"/"lunch"/"dinner"/"snack"
+     diet_tags: string[],         // Optional: "veg"/"vegan"/"glutenfrei"/"omnivor"
+                                 //  (vegan = ["veg", "vegan"])
+     contains_tags: string[],     // Optional: gültige AllergenKeys aus ALLERGEN_KEYS
+                                 //  (leeres Array = "unremarkable")
      servings: number,            // Pflicht, > 0
      ingredients: [{              // Optional, wenn vorhanden:
        name: string,              //   Pflicht
-       amount: number,            //   Pflicht
+       amount: number,            //   Pflicht (> 0)
        unit: string,              //   Pflicht
-       category: string           //   Pflicht
+       category: string           //   Pflicht — für Einkaufsliste (E6), z.B.:
+                                 //     "Obst & Gemüse", "Milchprodukte",
+                                 //     "Getreide & Backwaren", "Fleisch & Fisch",
+                                 //     "Eier", "Hülsenfrüchte & Konserven",
+                                 //     "Nüsse & Samen", "Öle", "Gewürze & Vorrat"
      }],
      instructions: [{             // Optional, wenn vorhanden:
        text: string,              //   Pflicht
        timerSeconds: number       //   Optional
      }],
-     nutrition: {                 // Optional
-       kcal: number, protein: number, carbs: number, fat: number
+     nutrition: {                 // Optional — fehlend = Warning, kein Fehler
+       kcal: number,              //   Pflicht, wenn nutrition vorhanden
+       protein: number,           //   Pflicht, wenn nutrition vorhanden
+       carbs: number,             //   Pflicht, wenn nutrition vorhanden
+       fat: number                //   Pflicht, wenn nutrition vorhanden
      },
-     imageUrl: string             // Optional
+     image_url: string            // Optional
    }
 
    Der echte Datenbestand (Alex' Rezepte) liegt im privaten
@@ -88,7 +98,9 @@ const SUPABASE_URL = URL_OVERRIDE || (PROD ? ENV.SUPABASE_URL_PROD : ENV.SUPABAS
 const SERVICE_ROLE_KEY = KEY_OVERRIDE || (PROD ? ENV.SUPABASE_SERVICE_ROLE_KEY_PROD : ENV.SUPABASE_SERVICE_ROLE_KEY);
 if (URL_OVERRIDE) log.info("⚙️  URL/Service-Role-Key via Shell-Override (apps01-Pfad).");
 
-log.info(`🌐 Ziel-Umgebung: ${PROD ? "prod" : "dev"} (${SUPABASE_URL})`);
+// Keine URL in Ausgabe (Issue #25 Edge Case: "Output must never print
+// SUPABASE_SERVICE_ROLE_KEY, the target URL").
+log.info(`🌐 Ziel: ${PROD ? "prod" : "dev"}`);
 log.info(
   APPLY
     ? "🚀 Seed eigener Rezepte (--apply) …"
@@ -133,7 +145,23 @@ if (!validation.ok) {
 
 log.info("✅ Validierung bestanden.");
 
-/* ── Upsert-Vorbereitung und Ausführung ────────────────────── */
+// Warnings aus der Validierung loggen (z.B. fehlende Nährwerte)
+let noNutritionCount = 0;
+if (validation.warnings) {
+  for (const w of validation.warnings) {
+    if (w.includes("keine Nährwertangaben")) {
+      noNutritionCount++;
+    }
+  }
+  // Beim Dry-Run alle Warnings zeigen, beim Apply nur zählen
+  if (!APPLY) {
+    for (const w of validation.warnings) {
+      log.warn(w);
+    }
+  }
+}
+
+/* ── Upsert-Vorbereitung ───────────────────────────────────── */
 
 const rows = [];
 const seenSlugs = new Set();
@@ -155,20 +183,23 @@ for (const r of recipes) {
     submitted_by: null,
     rejection_reason: null,
     title: r.title,
-    meal_type: r.mealType,
-    diet_tags: r.dietTags ?? null,
-    contains_tags: r.containsTags ?? [],
+    meal_type: r.meal_type,
+    diet_tags: r.diet_tags ?? null,
+    contains_tags: r.contains_tags ?? [],
     servings: r.servings,
     ingredients: r.ingredients ?? null,
     instructions: r.instructions ?? null,
     nutrition: r.nutrition ?? null,
-    image_url: r.imageUrl ?? null,
+    image_url: r.image_url ?? null,
   };
 
   rows.push({ slug, externalId, row });
 }
 
 log.info(`📦 ${rows.length} Rezept(e) für Upsert vorbereitet.`);
+if (noNutritionCount > 0) {
+  log.warn(`⚠️  ${noNutritionCount} Rezept(e) ohne Nährwertangaben.`);
+}
 
 if (rows.length > 0) {
   log.info("   Rezepte (Titel → external_id):");

@@ -7,30 +7,35 @@
    kein I/O — getestet mit node:test + dem gemockten Supabase-Client.
 
    Validierung startet mit einem leeren Fehler-Array und sammelt
-   alle Verstöße, nie nur den ersten. Rückgabe: { ok, errors } mit
-   detaillierten Fehlermeldungen — kein Wurf.
+   alle Verstöße, nie nur den ersten. Rückgabe: { ok, errors, warnings }
+   mit detaillierten Fehlermeldungen — kein Wurf.
 
-   Erwartetes Eingabeformat (pro Rezept):
+   Erwartetes Eingabeformat (pro Rezept, snake_case — DB-Spaltennamen):
    {
      title: string,               // Pflicht, nicht leer
-     mealType: string[],          // Pflicht, nur "breakfast"/"lunch"/"dinner"/"snack"
-     dietTags: string[],          // Optional, nur "veg"/"vegan"/"glutenfrei"/"omnivor"
-     containsTags: string[],      // Optional, nur gültige AllergenKeys aus nutrition-taxonomy.js
+     meal_type: string[],         // Pflicht, nur "breakfast"/"lunch"/"dinner"/"snack"
+     diet_tags: string[],         // Optional, nur "veg"/"vegan"/"glutenfrei"/"omnivor"
+     contains_tags: string[],     // Optional, nur gültige AllergenKeys aus nutrition-taxonomy.js
      servings: number,            // Pflicht, > 0
      ingredients: [{              // Optional, wenn vorhanden:
        name: string,              //   Pflicht
-       amount: number,            //   Pflicht
+       amount: number,            //   Pflicht (> 0)
        unit: string,              //   Pflicht
-       category: string           //   Pflicht
+       category: string           //   Pflicht (z.B. "Obst & Gemüse", "Milchprodukte",
+                                  //   "Getreide & Backwaren", "Fleisch & Fisch", "Eier",
+                                  //   "Hülsenfrüchte & Konserven", "Nüsse & Samen",
+                                  //   "Öle", "Gewürze & Vorrat")
      }],
      instructions: [{             // Optional, wenn vorhanden:
        text: string,              //   Pflicht
        timerSeconds: number       //   Optional
      }],
-     nutrition: {                 // Optional
+     nutrition: {                 // Optional — fehlend = warning, kein Fehler.
+                                  //   Wenn vorhanden, müssen kcal/protein/carbs/fat
+                                  //   positive Zahlen sein.
        kcal: number, protein: number, carbs: number, fat: number
      },
-     imageUrl: string             // Optional
+     image_url: string            // Optional
    }
    ============================================================ */
 
@@ -40,28 +45,28 @@ const VALID_MEAL_TYPES = new Set(["breakfast", "lunch", "dinner", "snack"]);
 const VALID_DIET_TAGS = new Set(["veg", "vegan", "glutenfrei", "omnivor"]);
 const REQUIRED_INGREDIENT_FIELDS = ["name", "amount", "unit", "category"];
 
-/**
- * Prüft, ob ein Wert ein gültiger MealType ist.
- * @param {unknown} val
- * @returns {val is "breakfast"|"lunch"|"dinner"|"snack"}
- */
 function isValidMealType(val) {
   return typeof val === "string" && VALID_MEAL_TYPES.has(val);
 }
 
-/**
- * Prüft, ob ein Wert ein gültiger DietTag ist.
- * @param {unknown} val
- * @returns {val is "veg"|"vegan"|"glutenfrei"|"omnivor"}
- */
 function isValidDietTag(val) {
   return typeof val === "string" && VALID_DIET_TAGS.has(val);
 }
 
+/** Prüft, ob ein Nutrition-Objekt gültige Zahlen hat. */
+function isValidNutrition(n) {
+  if (!n || typeof n !== "object") return false;
+  for (const field of ["kcal", "protein", "carbs", "fat"]) {
+    const v = n[field];
+    if (typeof v !== "number" || Number.isNaN(v) || v < 0) return false;
+  }
+  return true;
+}
+
 /**
- * Validiert ein Array von Rezept-Objekten.
+ * Validiert ein Array von Rezept-Objekten (snake_case keys).
  * @param {unknown[]} recipes  Roh-Array aus der JSON-Datei
- * @returns {{ ok: true } | { ok: false, errors: string[] }}
+ * @returns {{ ok: true, warnings?: string[] } | { ok: false, errors: string[], warnings?: string[] }}
  */
 export function validateRecipes(recipes) {
   if (!Array.isArray(recipes)) {
@@ -70,6 +75,8 @@ export function validateRecipes(recipes) {
 
   /** @type {string[]} */
   const errors = [];
+  /** @type {string[]} */
+  const warnings = [];
   const seenTitles = new Set();
 
   for (let i = 0; i < recipes.length; i++) {
@@ -95,10 +102,10 @@ export function validateRecipes(recipes) {
       seenTitles.add(key);
     }
 
-    // ---- mealType ----
-    const mealType = r.mealType;
+    // ---- meal_type ----
+    const mealType = r.meal_type;
     if (!Array.isArray(mealType) || mealType.length === 0) {
-      errors.push(`${prefix}: mealType fehlt oder leer`);
+      errors.push(`${prefix}: meal_type fehlt oder leer`);
     } else {
       for (const mt of mealType) {
         if (!isValidMealType(mt)) {
@@ -107,12 +114,12 @@ export function validateRecipes(recipes) {
       }
     }
 
-    // ---- dietTags ----
-    if (r.dietTags !== undefined && r.dietTags !== null) {
-      if (!Array.isArray(r.dietTags)) {
-        errors.push(`${prefix}: dietTags ist kein Array`);
+    // ---- diet_tags ----
+    if (r.diet_tags !== undefined && r.diet_tags !== null) {
+      if (!Array.isArray(r.diet_tags)) {
+        errors.push(`${prefix}: diet_tags ist kein Array`);
       } else {
-        for (const dt of r.dietTags) {
+        for (const dt of r.diet_tags) {
           if (!isValidDietTag(dt)) {
             errors.push(`${prefix}: unbekannter diet_tag "${String(dt)}"`);
           }
@@ -120,12 +127,12 @@ export function validateRecipes(recipes) {
       }
     }
 
-    // ---- containsTags (allergen keys) ----
-    if (r.containsTags !== undefined && r.containsTags !== null) {
-      if (!Array.isArray(r.containsTags)) {
-        errors.push(`${prefix}: containsTags ist kein Array`);
+    // ---- contains_tags (allergen keys) ----
+    if (r.contains_tags !== undefined && r.contains_tags !== null) {
+      if (!Array.isArray(r.contains_tags)) {
+        errors.push(`${prefix}: contains_tags ist kein Array`);
       } else {
-        for (const ak of r.containsTags) {
+        for (const ak of r.contains_tags) {
           if (!isValidAllergenKey(ak)) {
             errors.push(`${prefix}: unbekannter Allergen-Key "${String(ak)}"`);
           }
@@ -147,10 +154,17 @@ export function validateRecipes(recipes) {
           const ing = r.ingredients[j];
           const iprefix = `${prefix}, Zutat #${j + 1}`;
           const missing = REQUIRED_INGREDIENT_FIELDS.filter(
-            (f) => ing[f] === undefined || ing[f] === null || (typeof ing[f] === "number" && Number.isNaN(ing[f]))
+            (f) =>
+              ing[f] === undefined ||
+              ing[f] === null ||
+              (typeof ing[f] === "number" && Number.isNaN(ing[f])),
           );
           if (missing.length > 0) {
             errors.push(`${iprefix}: Pflichtfelder fehlen: ${missing.join(", ")}`);
+          }
+          // amount must be > 0 (positive)
+          if (ing && typeof ing.amount === "number" && ing.amount <= 0) {
+            errors.push(`${iprefix}: amount muss > 0 sein`);
           }
         }
       }
@@ -169,12 +183,22 @@ export function validateRecipes(recipes) {
         }
       }
     }
+
+    // ---- nutrition ----
+    if (r.nutrition !== undefined && r.nutrition !== null) {
+      if (!isValidNutrition(r.nutrition)) {
+        errors.push(`${prefix}: nutrition ungültig (kcal/protein/carbs/fat müssen positive Zahlen sein)`);
+      }
+    } else {
+      // Missing nutrition is accepted, with a warning
+      warnings.push(`${prefix}: keine Nährwertangaben (nutrition fehlt)`);
+    }
   }
 
   if (errors.length > 0) {
-    return { ok: false, errors };
+    return { ok: false, errors, warnings: warnings.length > 0 ? warnings : undefined };
   }
-  return { ok: true };
+  return { ok: true, warnings: warnings.length > 0 ? warnings : undefined };
 }
 
 /**
