@@ -16,6 +16,7 @@ die apps01-Ansible-Rolle.
 | `POSTGREST_INTERNAL_URL` | interner PostgREST-Host für den Admin-Check (`profiles_visible.is_admin`) und Profile-Patches | `http://postgrest:3000` (Container-Netz) |
 | `GOTRUE_INTERNAL_URL` | interner GoTrue-Host für `/admin/generate_link`, `/admin/users/*` | `http://gotrue:8081` (Container-Netz) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-Role-JWT gegen GoTrue/PostgREST | **eigene, lokal signierte Variable** — lokal `SELFHOST_SERVICE_ROLE_KEY` (per `scripts/generate-jwt-keys.js` erzeugt), NICHT die `SUPABASE_SERVICE_ROLE_KEY` aus der Root-`.env` (die gehört dem Cloud-Projekt `dashboard-dev`) |
+| `SUPER_ADMIN_ID` | user ID des einzigen Admins, der weitere Admins anlegen darf (opt-in: leer/fehlend → jeder Admin darf) | apps01-Ansible-Rolle muss den Wert explizit setzen; lokal `${SUPER_ADMIN_ID}` aus `.env` |
 
 Kein `ports:`-Mapping auf dem Container — von außen ausschließlich über den
 Proxy erreichbar (wie `postgres`/`storage-api`).

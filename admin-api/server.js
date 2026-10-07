@@ -9,6 +9,7 @@ const ENV = {
   POSTGREST_INTERNAL_URL: process.env.POSTGREST_INTERNAL_URL,
   GOTRUE_INTERNAL_URL: process.env.GOTRUE_INTERNAL_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+  SUPER_ADMIN_ID: process.env.SUPER_ADMIN_ID || null,
 };
 
 function sendJson(res, status, body) {
@@ -61,6 +62,14 @@ const server = http.createServer(async (req, res) => {
     const email = typeof body.email === "string" ? body.email : "";
     const profileRole = body.role === "coach" ? "coach" : "athlete";
     const isAdmin = body.isAdmin === true;
+
+    // Opt-in super-admin restriction: wenn SUPER_ADMIN_ID gesetzt ist, darf
+    // nur dieser Admin weitere Admins anlegen (nicht jeder Admin).
+    if (isAdmin && ENV.SUPER_ADMIN_ID && admin.sub !== ENV.SUPER_ADMIN_ID) {
+      sendJson(res, 403, { ok: false, error: { code: "UNKNOWN", message: "nur der Super-Admin darf Admins anlegen" } });
+      return;
+    }
+
     const result = await sendInvite(email, ENV, fetch, { profileRole, isAdmin });
     if (!result.ok) {
       sendJson(res, result.status, { ok: false, error: result.error });
@@ -140,6 +149,13 @@ const server = http.createServer(async (req, res) => {
   sendJson(res, 404, { ok: false, error: { code: "NOT_FOUND", message: "not found" } });
 });
 
-server.listen(PORT, () => {
-  console.log(`admin-api listening on :${PORT}`);
-});
+if (require.main === module) {
+  if (!ENV.SUPER_ADMIN_ID) {
+    console.warn("SUPER_ADMIN_ID nicht gesetzt: jeder Admin darf weitere Admins anlegen");
+  }
+  server.listen(PORT, () => {
+    console.log(`admin-api listening on :${PORT}`);
+  });
+}
+
+module.exports = { server };

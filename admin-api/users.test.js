@@ -209,7 +209,7 @@ test("deleteUser: exakte confirmEmail (case-insensitiv/getrimmt) -> Erfolg + Aud
   assert.deepEqual(auditBody.details, { display_name: "Stuhlsen", role: "athlete", is_admin: false });
 });
 
-test("deleteUser: GoTrue-DELETE scheitert (z.B. Fremdschluessel-Konflikt) -> 409, keine Audit-Zeile", async () => {
+test("deleteUser: GoTrue-DELETE scheitert (z.B. Fremdschluessel-Konflikt) -> 409, Audit-Zeile protokolliert den Versuch", async () => {
   const { impl, calls } = deleteFetch("u1@example.com", {
     deleteOk: false,
     deleteStatus: 500,
@@ -219,7 +219,8 @@ test("deleteUser: GoTrue-DELETE scheitert (z.B. Fremdschluessel-Konflikt) -> 409
   assert.equal(result.ok, false);
   assert.equal(result.status, 409);
   assert.match(result.error.message, /foreign key/);
-  assert.equal(calls.some((c) => c.url === "http://postgrest/admin_audit_log"), false);
+  // Audit wird VOR dem DELETE geschrieben — protokolliert auch fehlschlagende Versuche
+  assert.ok(calls.some((c) => c.url === "http://postgrest/admin_audit_log"), "Audit-Zeile fehlt");
 });
 
 function resendFetch(hasPassword, email = "u1@example.com") {
@@ -268,4 +269,71 @@ test("resendUserLink: has_password=true -> type recovery, action resend_recovery
 
   const auditBody = JSON.parse(calls.find((c) => c.url === "http://postgrest/admin_audit_log").options.body);
   assert.equal(auditBody.action, "resend_recovery");
+});
+
+// Audit-Log-Fehler Faelle: deleteUser und resendUserLink muessen abbrechen
+
+// mode "throw": Netzwerkfehler; mode "http": PostgREST antwortet mit 403
+// (z. B. fehlender Grant) — fetch loest dann normal auf, ok ist false.
+function auditFailFetch(mode = "throw") {
+  const calls = [];
+  const impl = async (url, options) => {
+    calls.push({ url, options });
+    if (url.includes("/admin_audit_log")) {
+      if (mode === "http") {
+        return { ok: false, status: 403, json: async () => ({ message: "permission denied" }) };
+      }
+      throw new Error("PostgREST nicht erreichbar");
+    }
+    if (url.includes("postgrest")) {
+      return { ok: true, status: 200, json: async () => [{ has_password: true }] };
+    }
+    if (url.includes("gotrue")) {
+      return { ok: true, status: 200, json: async () => ({ id: "u1", email: "u1@example.com" }) };
+    }
+    throw new Error(`unerwartete URL in Test: ${url}`);
+  };
+  return { impl, calls };
+}
+
+test("deleteUser: Audit-Log-Fehler -> 502, kein GoTrue-DELETE", async () => {
+  const { impl, calls } = auditFailFetch();
+  const result = await deleteUser("u1", "u1@example.com", "admin-1", ENV, impl);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error.message, /Audit-Log/);
+  // Kein GoTrue-DELETE, weil wir vorher abgebrochen sind
+  const deleteCalls = calls.filter((c) => c.url.includes("gotrue") && c.options?.method === "DELETE");
+  assert.equal(deleteCalls.length, 0);
+});
+
+test("resendUserLink: Audit-Log-Fehler -> 502, kein generate_link", async () => {
+  const { impl, calls } = auditFailFetch();
+  const result = await resendUserLink("u1", "admin-1", ENV, impl);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error.message, /Audit-Log/);
+  // Kein generate_link, weil wir vorher abgebrochen sind
+  const genLinkCalls = calls.filter((c) => c.url.includes("generate_link"));
+  assert.equal(genLinkCalls.length, 0);
+});
+
+test("deleteUser: Audit-Insert mit HTTP 403 -> 502, kein GoTrue-DELETE", async () => {
+  const { impl, calls } = auditFailFetch("http");
+  const result = await deleteUser("u1", "u1@example.com", "admin-1", ENV, impl);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error.message, /Audit-Log/);
+  const deleteCalls = calls.filter((c) => c.url.includes("gotrue") && c.options?.method === "DELETE");
+  assert.equal(deleteCalls.length, 0);
+});
+
+test("resendUserLink: Audit-Insert mit HTTP 403 -> 502, kein generate_link", async () => {
+  const { impl, calls } = auditFailFetch("http");
+  const result = await resendUserLink("u1", "admin-1", ENV, impl);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error.message, /Audit-Log/);
+  const genLinkCalls = calls.filter((c) => c.url.includes("generate_link"));
+  assert.equal(genLinkCalls.length, 0);
 });
