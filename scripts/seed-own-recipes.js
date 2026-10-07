@@ -17,8 +17,10 @@
                      URL/Key als Shell-Env überschreiben:
                        SUPABASE_URL_OVERRIDE / SUPABASE_SERVICE_ROLE_KEY_OVERRIDE
 
-   Idempotent: external_id = "own-" + slug(title); upsert auf
-   external_id — wiederholtes Ausführen aktualisiert bestehende Zeilen.
+   Idempotent: external_id = "own-" + slug(title). Neue Rezepte werden angelegt,
+   unveränderte übersprungen, geänderte aktualisiert. Da E18 den Inhalt
+   freigegebener Rezepte sperrt, läuft eine Änderung über den Admin-Weg
+   (Status kurz 'pending', Inhalt ändern, wieder 'approved'; die ID bleibt).
 
    Input-Format (JSON-Array, jedes Objekt — snake_case = DB-Spaltennamen):
 
@@ -119,40 +121,140 @@ function buildRows(recipes, logger = logModule) {
   return { ok: true, rows, warnings: validation.warnings };
 }
 
-/* ── doUpsert ──────────────────────────────────────────────── */
+/* ── Schreiben: neu anlegen, überspringen, ändern ───────────── */
 
-async function doUpsert(rows, supabaseUrl, serviceRoleKey, fetchFn, logger) {
-  const url = `${supabaseUrl}/rest/v1/recipes?on_conflict=external_id`;
-  const headers = {
+/** Inhaltsfelder, die E18 (Trigger recipes_check_content_update) schützt. */
+const CONTENT_FIELDS = [
+  "title", "meal_type", "diet_tags", "contains_tags", "servings",
+  "ingredients", "instructions", "nutrition", "image_url",
+];
+
+/** Schlüssel-sortierte JSON-Darstellung (jsonb liefert die Schlüssel in anderer Reihenfolge). */
+function stable(v) {
+  if (Array.isArray(v)) return `[${v.map(stable).join(",")}]`;
+  if (v && typeof v === "object") {
+    return `{${Object.keys(v).sort().map((k) => `${JSON.stringify(k)}:${stable(v[k])}`).join(",")}}`;
+  }
+  return JSON.stringify(v ?? null);
+}
+
+/** Gleicher Inhalt? (contains_tags: null und [] gelten als gleich) */
+function sameContent(a, b) {
+  return CONTENT_FIELDS.every((f) => {
+    const x = f === "contains_tags" ? (a[f] ?? []) : (a[f] ?? null);
+    const y = f === "contains_tags" ? (b[f] ?? []) : (b[f] ?? null);
+    return stable(x) === stable(y);
+  });
+}
+
+function contentOf(row) {
+  return Object.fromEntries(CONTENT_FIELDS.map((f) => [f, row[f] ?? (f === "contains_tags" ? [] : null)]));
+}
+
+/**
+ * Schreibt die Rezepte:
+ *  - neu: Upsert auf external_id (race-sicher, in Batches mit Einzel-Rückfall)
+ *  - vorhanden und gleich: nichts
+ *  - vorhanden und geändert: E18 sperrt Inhaltsänderungen an freigegebenen
+ *    Rezepten (auch für service_role). Erlaubt ist der Weg des Admins (E16):
+ *    Status kurz auf 'pending', Inhalt ändern, wieder 'approved'. Die ID bleibt,
+ *    Stimmen und Wochenpläne bleiben erhalten. Bricht ein Schritt ab, wird der
+ *    Status best-effort zurückgesetzt; ein verbliebenes 'pending' korrigiert der
+ *    nächste Lauf.
+ * Schlägt schon das Lesen der vorhandenen Rezepte fehl, wird nichts geschrieben.
+ */
+async function applyRows(rows, supabaseUrl, serviceRoleKey, fetchFn, logger) {
+  const base = `${supabaseUrl}/rest/v1/recipes`;
+  const auth = {
     "Content-Type": "application/json",
     apikey: serviceRoleKey,
     Authorization: `Bearer ${serviceRoleKey}`,
-    Prefer: "resolution=merge-duplicates",
   };
+  const counts = { insertedCount: 0, updatedCount: 0, unchangedCount: 0, errorCount: 0 };
 
-  let successCount = 0;
-  let errorCount = 0;
-
-  async function upsertBatch(batch) {
-    const body = batch.map(({ row }) => row);
-    const res = await fetchFn(url, { method: "POST", headers, body: JSON.stringify(body) });
+  async function check(res) {
     if (!res.ok) throw new Error(`PostgREST-Fehler (HTTP ${res.status}): ${await res.text()}`);
   }
 
+  // 1. Vorhandene Rezepte lesen
+  let existing;
+  try {
+    const ids = rows.map((r) => r.externalId).join(",");
+    const select = ["external_id", "source", "status", ...CONTENT_FIELDS].join(",");
+    const res = await fetchFn(`${base}?select=${select}&external_id=in.(${ids})`, { method: "GET", headers: auth });
+    await check(res);
+    existing = new Map((await res.json()).map((e) => [e.external_id, e]));
+  } catch (e) {
+    logger.error(`Vorhandene Rezepte konnten nicht gelesen werden: ${e.message}`);
+    return { ...counts, errorCount: rows.length, successCount: 0 };
+  }
+
+  const toInsert = [];
+  const toUpdate = [];
+  for (const entry of rows) {
+    const found = existing.get(entry.externalId);
+    if (!found) toInsert.push(entry);
+    else if (found.source !== "own") {
+      logger.error(`"${entry.row.title}": external_id ${entry.externalId} gehört zu einer anderen Quelle (${found.source}) — übersprungen.`);
+      counts.errorCount++;
+    } else if (sameContent(entry.row, found) && found.status === "approved") counts.unchangedCount++;
+    else toUpdate.push({ entry, found });
+  }
+
+  // 2. Neue Rezepte (Upsert auf external_id)
+  async function upsertBatch(batch) {
+    const res = await fetchFn(`${base}?on_conflict=external_id`, {
+      method: "POST",
+      headers: { ...auth, Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify(batch.map(({ row }) => row)),
+    });
+    await check(res);
+  }
   const BATCH_SIZE = 50;
-  for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-    const batch = rows.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < toInsert.length; i += BATCH_SIZE) {
+    const batch = toInsert.slice(i, i + BATCH_SIZE);
     try {
       await upsertBatch(batch);
-      successCount += batch.length;
+      counts.insertedCount += batch.length;
     } catch {
       for (const entry of batch) {
-        try { await upsertBatch([entry]); successCount++; }
-        catch (e2) { logger.error(`Fehler bei "${entry.row.title}": ${e2.message}`); errorCount++; }
+        try { await upsertBatch([entry]); counts.insertedCount++; }
+        catch (e2) { logger.error(`Fehler bei "${entry.row.title}": ${e2.message}`); counts.errorCount++; }
       }
     }
   }
-  return { successCount, errorCount };
+
+  // 3. Geänderte Rezepte (pending -> ändern -> approved)
+  async function patch(externalId, body) {
+    await check(await fetchFn(`${base}?external_id=eq.${externalId}`, {
+      method: "PATCH",
+      headers: { ...auth, Prefer: "return=minimal" },
+      body: JSON.stringify(body),
+    }));
+  }
+  for (const { entry, found } of toUpdate) {
+    const { externalId, row } = entry;
+    const frozen = found.status !== "pending";
+    try {
+      if (frozen) await patch(externalId, { status: "pending" });
+      try {
+        await patch(externalId, contentOf(row));
+      } catch (e) {
+        if (frozen) { try { await patch(externalId, { status: "approved" }); } catch { /* nächster Lauf korrigiert */ } }
+        throw e;
+      }
+      await patch(externalId, { status: "approved" });
+      counts.updatedCount++;
+    } catch (e) {
+      logger.error(`Fehler beim Ändern von "${row.title}": ${e.message}`);
+      counts.errorCount++;
+    }
+  }
+
+  return {
+    ...counts,
+    successCount: counts.insertedCount + counts.updatedCount + counts.unchangedCount,
+  };
 }
 
 /* ── seedOwnRecipes (öffentliche API, testbar) ─────────────── */
@@ -180,10 +282,14 @@ export async function seedOwnRecipes({
 
   if (!apply) return { ok: true, rows: built.rows, dryRun: true, warnings: built.warnings };
 
-  const { successCount, errorCount } = await doUpsert(built.rows, supabaseUrl, serviceRoleKey, fetchFn, logger);
-  logger.info(`✅ ${successCount} Rezept(e) erfolgreich geschrieben.`);
+  const result = await applyRows(built.rows, supabaseUrl, serviceRoleKey, fetchFn, logger);
+  const { successCount, errorCount, insertedCount, updatedCount, unchangedCount } = result;
+  logger.info(`✅ ${insertedCount} neu, ${updatedCount} geändert, ${unchangedCount} unverändert.`);
   if (errorCount > 0) logger.error(`${errorCount} Rezept(e) fehlgeschlagen.`);
-  return { ok: errorCount === 0, rows: built.rows, successCount, errorCount, warnings: built.warnings };
+  return {
+    ok: errorCount === 0, rows: built.rows, successCount, errorCount,
+    insertedCount, updatedCount, unchangedCount, warnings: built.warnings,
+  };
 }
 
 /* ── CLI-Entry-Point ────────────────────────────────────────── */

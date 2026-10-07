@@ -33,19 +33,26 @@ const VALID_INPUT = [
   },
 ];
 
-/** Fake fetch that records requests and returns success. */
-function createFakeFetch() {
+/** Fake fetch: GET liefert `existing` (wird nicht in calls erfasst, sondern in reads),
+ *  alle Schreibzugriffe landen in calls. failOn(call) -> true lässt diesen Schreibzugriff scheitern. */
+function createFakeFetch(existing = [], { failOn } = {}) {
   const calls = [];
+  const reads = [];
   const fake = async (url, opts) => {
+    if (opts.method === "GET") {
+      reads.push({ url, headers: opts.headers });
+      return { ok: true, status: 200, json: async () => existing, text: async () => "" };
+    }
     const body = typeof opts.body === "string" ? JSON.parse(opts.body) : opts.body;
-    calls.push({ url, method: opts.method, headers: opts.headers, body });
-    return {
-      ok: true,
-      status: 201,
-      text: async () => "Created",
-    };
+    const call = { url, method: opts.method, headers: opts.headers, body };
+    calls.push(call);
+    if (failOn && failOn(call)) {
+      return { ok: false, status: 400, text: async () => "E18: content fields can only be modified while recipe status = pending" };
+    }
+    return { ok: true, status: 201, text: async () => "Created" };
   };
   fake.calls = calls;
+  fake.reads = reads;
   return fake;
 }
 
@@ -319,4 +326,112 @@ test("keine Secrets in log/output — fake URL verwendet", async () => {
   assert.equal(FAKE_KEY, "fake-service-role-key");
   // Die seedOwnRecipes-Funktion hat keine console.log-Seitenwirkung,
   // wenn log=SILENT_LOGGER übergeben wird — kein Output möglich.
+});
+
+/* ── Vorhandene Rezepte: unverändert / geändert (E18-Weg) ─────── */
+
+/** Baut "Datenbankzeilen" so, wie PostgREST sie für VALID_INPUT liefern würde. */
+async function existingRowsFor(recipes, over = () => ({})) {
+  const dry = await seedOwnRecipes({
+    recipes, apply: false, supabaseUrl: FAKE_URL, serviceRoleKey: FAKE_KEY,
+    fetch: createFakeFetch(), log: SILENT_LOGGER,
+  });
+  return dry.rows.map(({ externalId, row }, i) => ({
+    external_id: externalId, source: "own", status: "approved", ...row, ...over(i),
+  }));
+}
+
+async function run(recipes, fakeFetch) {
+  return seedOwnRecipes({
+    recipes, apply: true, supabaseUrl: FAKE_URL, serviceRoleKey: FAKE_KEY,
+    fetch: fakeFetch, log: SILENT_LOGGER,
+  });
+}
+
+test("vorhanden und unverändert → keine Schreibzugriffe (auch bei anderer jsonb-Schlüsselreihenfolge)", async () => {
+  const existing = await existingRowsFor(VALID_INPUT);
+  // jsonb liefert Schlüssel in anderer Reihenfolge
+  existing[0].ingredients = existing[0].ingredients.map((g) => ({ unit: g.unit, category: g.category, name: g.name, amount: g.amount }));
+  const fakeFetch = createFakeFetch(existing);
+  const result = await run(VALID_INPUT, fakeFetch);
+  assert.equal(result.ok, true);
+  assert.equal(fakeFetch.calls.length, 0, "unveränderte Rezepte dürfen nichts schreiben");
+  assert.equal(result.unchangedCount, 2);
+  assert.equal(result.insertedCount, 0);
+  assert.equal(result.updatedCount, 0);
+});
+
+test("vorhanden und geändert → pending, Inhalt ändern, approved (E18-Weg), unverändertes Rezept bleibt unberührt", async () => {
+  const existing = await existingRowsFor(VALID_INPUT, (i) => (i === 0 ? { contains_tags: [] } : {}));
+  const fakeFetch = createFakeFetch(existing);
+  const result = await run(VALID_INPUT, fakeFetch);
+  assert.equal(result.ok, true);
+  assert.equal(result.updatedCount, 1);
+  assert.equal(result.unchangedCount, 1);
+
+  const patches = fakeFetch.calls.filter((c) => c.method === "PATCH");
+  assert.equal(fakeFetch.calls.length, 3, "genau drei Schreibzugriffe für das geänderte Rezept");
+  assert.ok(patches.every((c) => c.url.includes("external_id=eq.own-haferflocken-porridge")));
+  assert.deepEqual(patches[0].body, { status: "pending" });
+  assert.deepEqual(patches[1].body.contains_tags, ["gluten"], "neuer Inhalt wird geschrieben");
+  assert.equal(patches[1].body.status, undefined, "Inhalts-PATCH ändert den Status nicht");
+  assert.deepEqual(patches[2].body, { status: "approved" });
+});
+
+test("Rest-pending von einem abgebrochenen Lauf → Inhalt schreiben und wieder freigeben (kein zweites pending)", async () => {
+  const existing = await existingRowsFor(VALID_INPUT, (i) => (i === 0 ? { status: "pending" } : {}));
+  const fakeFetch = createFakeFetch(existing);
+  const result = await run(VALID_INPUT, fakeFetch);
+  assert.equal(result.ok, true);
+  assert.equal(result.updatedCount, 1);
+  const bodies = fakeFetch.calls.map((c) => c.body);
+  assert.equal(bodies.filter((b) => b.status === "pending").length, 0, "bereits pending: nicht noch einmal setzen");
+  assert.deepEqual(bodies[bodies.length - 1], { status: "approved" });
+});
+
+test("Inhalts-PATCH scheitert → Status wird zurückgesetzt, Fehler gezählt", async () => {
+  const existing = await existingRowsFor(VALID_INPUT, (i) => (i === 0 ? { contains_tags: [] } : {}));
+  const fakeFetch = createFakeFetch(existing, {
+    failOn: (c) => c.method === "PATCH" && c.body.title !== undefined,
+  });
+  const result = await run(VALID_INPUT, fakeFetch);
+  assert.equal(result.ok, false);
+  assert.equal(result.errorCount, 1);
+  assert.equal(result.updatedCount, 0);
+  const statuses = fakeFetch.calls.filter((c) => c.body.status).map((c) => c.body.status);
+  assert.deepEqual(statuses, ["pending", "approved"], "nach dem Fehler wird wieder freigegeben");
+});
+
+test("neu und geändert gemischt: neues Rezept per Upsert, geändertes per PATCH", async () => {
+  const [, second] = await existingRowsFor(VALID_INPUT, (i) => (i === 1 ? { servings: 9 } : {}));
+  const fakeFetch = createFakeFetch([second]); // nur das zweite Rezept existiert (mit anderem Inhalt)
+  const result = await run(VALID_INPUT, fakeFetch);
+  assert.equal(result.ok, true);
+  assert.equal(result.insertedCount, 1);
+  assert.equal(result.updatedCount, 1);
+  const posts = fakeFetch.calls.filter((c) => c.method === "POST");
+  assert.equal(posts.length, 1);
+  assert.equal(posts[0].body.length, 1);
+  assert.ok(posts[0].url.includes("on_conflict=external_id"));
+});
+
+test("external_id gehört zu anderer Quelle → Fehler, kein Schreibzugriff darauf", async () => {
+  const existing = await existingRowsFor(VALID_INPUT, (i) => (i === 0 ? { source: "spoonacular" } : {}));
+  const fakeFetch = createFakeFetch(existing);
+  const result = await run(VALID_INPUT, fakeFetch);
+  assert.equal(result.ok, false);
+  assert.equal(result.errorCount, 1);
+  assert.equal(fakeFetch.calls.filter((c) => c.url.includes("haferflocken-porridge")).length, 0);
+});
+
+test("Lesen der vorhandenen Rezepte scheitert → nichts wird geschrieben", async () => {
+  const calls = [];
+  const fetchFn = async (url, opts) => {
+    calls.push(opts.method);
+    return { ok: false, status: 500, text: async () => "Internal Server Error" };
+  };
+  const result = await run(VALID_INPUT, fetchFn);
+  assert.equal(result.ok, false);
+  assert.equal(result.errorCount, 2);
+  assert.deepEqual(calls, ["GET"], "nach dem fehlgeschlagenen Lesen darf nichts geschrieben werden");
 });
