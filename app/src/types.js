@@ -301,3 +301,51 @@ export {};
  * Validierung auf App-Ebene, kein DB-Check (Migration 0059).
  * @typedef {Array<import("./core/nutrition-taxonomy").AllergenKey>} ProfileIntolerance
  */
+
+/* ── Nutrition result types (Fahrplan 23, E1+E2) ─────────── */
+
+/**
+ * Ergebnis von estimateDailyTarget().
+ * @typedef {Object} NutritionTargetResult
+ * @property {true} ok
+ * @property {number} bmr  kcal/Tag
+ * @property {"mifflin-st-jeor"} source
+ * @property {string} note  Schätzungshinweis (±100–400 kcal)
+ */
+
+/**
+ * Ergebnis von redSFloor().
+ * @typedef {Object} RedSFloorResult
+ * @property {true} ok
+ * @property {number} floorKcal
+ * @property {number} ffm
+ * @property {"ioc-reds-2023"} source
+ * @property {boolean} bodyFatAssumed
+ * @property {boolean} sexAssumed
+ * @property {string} note
+ */
+
+/**
+ * Ergebnis von estimateCarbTarget().
+ * @typedef {Object} CarbTargetResult
+ * @property {true} ok
+ * @property {[number,number]} band  g/kg-Band
+ * @property {[number,number]} gramRange  Gewicht x Band
+ * @property {"acsm-and-2016"} source
+ * @property {string} note
+ */
+
+/**
+ * Ergebnis von estimateDailyGoal().
+ * @typedef {Object} DailyGoalResult
+ * @property {true} ok
+ * @property {number} target  finales Tagesziel (kcal), ggf. durch RED-S-Floor gecapped
+ * @property {number} bmr  Grundumsatz (kcal)
+ * @property {number} adjustment  Anpassung aus pace_per_week_kg (kcal), 0 wenn keine
+ * @property {number|null} floor  RED-S-Floor (kcal), null wenn nicht berechenbar
+ * @property {boolean} capped  true, wenn target durch RED-S-Floor angehoben wurde
+ * @property {string[]} source  verwendete Quellen-Schlüssel
+ * @property {string} note  beschreibender Text
+ */
+
+export {};
