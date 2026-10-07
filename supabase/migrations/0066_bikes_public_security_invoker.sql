@@ -1,7 +1,7 @@
 -- migrate:up
 
 -- ============================================================
--- Dashboard 2.0 — Migration 0058: bikes_public mit security_invoker = off
+-- Dashboard 2.0 — Migration 0066: bikes_public mit security_invoker = off
 -- Einspielen: Supabase SQL-Editor / dbmate, dev-Projekt zuerst (dashboard-dev),
 --             danach der apps01-Self-Host-Stack
 -- Referenz: security-bot access-control audit, Fund 10
