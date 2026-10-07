@@ -3778,13 +3778,32 @@ if (!HAS_CREDS) {
       "Referenziertes Rezept wurde geloescht — FK on delete RESTRICT greift nicht"
     );
   });
-  // --- 12. profiles.sex / intolerances (0059): für niemanden lesbar --------
-  // Migration 0059: height_cm/sex sind Gesundheitsdaten, weder Basistabelle
-  // noch profiles_visible/profiles_own führen die neuen Spalten, kein
-  // UPDATE-Grant (Lese-/Schreibpfad kommt erst in E5). Der Schreibtest nutzt
-  // bewusst einen UNGÜLTIGEN Wert ('x' verletzt den check): so landet auch bei
-  // einem fehlerhaften Grant nie ein Wert im echten Profil — erwartet wird
-  // ein Berechtigungsfehler (42501), kein Check-Fehler (23514).
+  // --- 12. profiles.sex / intolerances (0059 -> 0067): owner-only Lese-/Schreibpfad ---
+  // Migration 0059 legte die Spalten an, Migration 0067 öffnet den Lesepfad
+  // (profiles_own) und den Schreibpfad (UPDATE-Grant) für den Eigentümer und gibt die
+  // durch 0039 verlorenen Self-Service-Grants wieder frei. Basistabelle: weiterhin KEIN
+  // select grant für sex/intolerances.
+  //
+  // Wichtig zum Verhalten: Nach 0067 hat jeder Athlet den Spalten-Grant, die Zeilen-
+  // Policy (id = auth.uid()) filtert fremde Zeilen STILL aus — ein PATCH auf eine fremde
+  // Zeile antwortet mit 200 und leerer Liste, NICHT mit 42501 (s. Kommentar bei rest()).
+  // Fremden-Tests schreiben deshalb einen UNGÜLTIGEN Wert ('x'): Ist die Zeilen-Policy
+  // kaputt, scheitert der Test am Check (23514), und es landet nie ein Wert im echten Profil.
+  // Alle Schreibtests merken sich die Originalwerte und stellen sie wieder her.
+
+  const sexPath = { checked: false, ready: false };
+  /** Ist 0067 eingespielt? (profiles_own liefert sex/intolerances) */
+  async function sexPathReady() {
+    if (!sexPath.checked) {
+      const probe = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
+        token: athlete.token,
+      });
+      sexPath.ready = probe.ok;
+      sexPath.checked = true;
+    }
+    return sexPath.ready;
+  }
+  const SEX_PATH_MISSING = "Migration 0067 (profiles_own mit sex/intolerances, UPDATE-Grant) noch nicht eingespielt";
 
   test("profiles: sex/intolerances sind weder für den Eigentümer noch für anon über die Basistabelle lesbar", async () => {
     const own = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
@@ -3797,39 +3816,121 @@ if (!HAS_CREDS) {
     assert.equal(anon.ok, false, "anon darf sex/intolerances nicht lesen");
   });
 
-  test("profiles: ein Fremder kann sex/intolerances eines anderen Athleten nicht lesen", async (t) => {
+  test("profiles: ein Fremder kann sex/intolerances eines anderen Athleten nicht über die Basistabelle lesen", async (t) => {
     if (strangerSkip()) return t.skip(strangerSkip());
     const read = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
       token: stranger.token,
     });
-    assert.equal(read.ok, false, "Fremder darf sex/intolerances von Athlet 1 nicht lesen");
+    assert.equal(read.ok, false, "Fremder darf sex/intolerances von Athlet 1 nicht lesen (kein select grant auf Basistabelle)");
   });
 
-  test("profiles_visible und profiles_own führen sex/intolerances nicht", async () => {
-    for (const view of ["profiles_visible", "profiles_own"]) {
-      const res = await rest("GET", `${view}?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
-      assert.equal(res.ok, true, `${view}-Read fehlgeschlagen: ${JSON.stringify(res.data)}`);
-      const row = res.data?.[0];
-      assert.ok(row, `${view} führt die eigene Zeile nicht`);
-      for (const col of ["sex", "intolerances"]) {
-        assert.equal(col in row, false, `${view} darf ${col} nicht ausliefern`);
-      }
+  test("profiles_own führt sex/intolerances für den Eigentümer (0067), profiles_visible nicht", async (t) => {
+    if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
+    const ownView = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
+    assert.equal(ownView.ok, true, `profiles_own-Read fehlgeschlagen: ${JSON.stringify(ownView.data)}`);
+    const ownRow = ownView.data?.[0];
+    assert.ok(ownRow, "profiles_own führt die eigene Zeile");
+    assert.ok("sex" in ownRow, "profiles_own muss sex ausliefern (0067)");
+    assert.ok("intolerances" in ownRow, "profiles_own muss intolerances ausliefern (0067)");
+
+    const visView = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
+    assert.equal(visView.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(visView.data)}`);
+    const visRow = visView.data?.[0];
+    assert.ok(visRow, "profiles_visible führt die eigene Zeile");
+    for (const col of ["sex", "intolerances"]) {
+      assert.equal(col in visRow, false, `profiles_visible darf ${col} nicht ausliefern`);
     }
   });
 
-  test("profiles: sex/intolerances sind nicht schreibbar (kein UPDATE-Grant, 42501)", async () => {
+  test("profiles_own: ein Fremder sieht die Gesundheitsdaten eines anderen Athleten nicht", async (t) => {
+    if (strangerSkip()) return t.skip(strangerSkip());
+    if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
+    const read = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
+      token: stranger.token,
+    });
+    assert.equal(read.ok, true);
+    assert.equal(read.data?.length ?? 0, 0, "profiles_own filtert auf auth.uid(): der Fremde darf die Zeile von Athlet 1 nicht sehen");
+  });
+
+  test("profiles: Eigentümer kann gültige sex/intolerances-Werte schreiben, Originalwerte werden wiederhergestellt", async (t) => {
+    if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
+    const before = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
+      token: athlete.token,
+    });
+    assert.equal(before.ok, true);
+    const original = { sex: before.data[0].sex ?? null, intolerances: before.data[0].intolerances ?? [] };
+    cleanupTasks.push(async () => {
+      await rest("PATCH", `profiles?id=eq.${athlete.userId}`, { token: athlete.token, body: original });
+    });
+
+    const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { sex: "m", intolerances: ["gluten"] },
+    });
+    assert.equal(upd.ok, true, `UPDATE auf sex/intolerances muss gelingen: ${JSON.stringify(upd.data)}`);
+    assert.equal(upd.data?.length, 1, "genau die eigene Zeile wird geändert");
+    const read = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
+      token: athlete.token,
+    });
+    assert.equal(read.data[0].sex, "m");
+    assert.deepEqual(read.data[0].intolerances, ["gluten"]);
+
+    const restore = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, { token: athlete.token, body: original });
+    assert.equal(restore.ok, true, `Originalwerte wiederherstellen: ${JSON.stringify(restore.data)}`);
+  });
+
+  test("profiles: ungültiger sex-Wert wird vom Check abgelehnt (23514, nicht 42501)", async (t) => {
+    if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
     const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
       token: athlete.token,
       body: { sex: "x" },
     });
-    assert.equal(upd.ok, false, "UPDATE auf profiles.sex muss scheitern");
-    assert.equal(upd.data?.code, "42501", `Ablehnung muss am fehlenden Grant liegen (42501), nicht am Check: ${JSON.stringify(upd.data)}`);
-    const upd2 = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
-      token: athlete.token,
-      body: { intolerances: ["gluten"] },
+    assert.equal(upd.ok, false, "UPDATE auf profiles.sex='x' muss scheitern");
+    assert.equal(upd.data?.code, "23514", `Ablehnung muss am Check liegen (23514), nicht am Grant: ${JSON.stringify(upd.data)}`);
+  });
+
+  test("profiles: ein Fremder kann sex/intolerances eines anderen Athleten nicht ändern (Zeilen-Policy: 0 Zeilen)", async (t) => {
+    if (strangerSkip()) return t.skip(strangerSkip());
+    if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
+    const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: stranger.token,
+      body: { sex: "x" }, // absichtlich ungültig: kann nie im echten Profil landen
     });
-    assert.equal(upd2.ok, false, "UPDATE auf profiles.intolerances muss scheitern");
-    assert.equal(upd2.data?.code, "42501", `Ablehnung muss am fehlenden Grant liegen (42501): ${JSON.stringify(upd2.data)}`);
+    assert.equal(upd.ok, true, `Zeilen-Policy muss still filtern (200, leere Liste), nicht am Check scheitern: ${JSON.stringify(upd.data)}`);
+    assert.equal(upd.data?.length ?? 0, 0, "kein Treffer: die Zeile von Athlet 1 ist für den Fremden nicht beschreibbar");
+  });
+
+  test("profiles: anon kann sex/intolerances weder lesen noch schreiben", async () => {
+    const read = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
+      token: null,
+    });
+    assert.equal(read.ok, false, "anon darf sex/intolerances nicht lesen");
+    const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: null,
+      body: { sex: "x" },
+    });
+    assert.equal(upd.ok, false, "anon darf profiles.sex nicht updaten");
+    const view = await rest("GET", `profiles_own?select=sex`, { token: null });
+    assert.equal(view.ok, false, "anon darf profiles_own nicht lesen (kein GRANT)");
+  });
+
+  test("profiles: die durch 0039 verlorenen Self-Service-Spalten sind für den Eigentümer wieder schreibbar (0067)", async (t) => {
+    if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
+    const cols = ["ladder_progression_enabled", "units_preference", "ftp_public", "plan_offset_weeks"];
+    const read = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=${cols.join(",")}`, {
+      token: athlete.token,
+    });
+    assert.equal(read.ok, true, `profiles_visible-Read: ${JSON.stringify(read.data)}`);
+    const row = read.data?.[0];
+    assert.ok(row, "eigene Zeile in profiles_visible");
+    for (const col of cols) {
+      // gleicher Wert zurückgeschrieben: ändert nichts, beweist nur den Grant
+      const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: { [col]: row[col] },
+      });
+      assert.equal(upd.ok, true, `${col} muss für den Eigentümer schreibbar sein (vor 0067: 42501): ${JSON.stringify(upd.data)}`);
+    }
   });
 
   // --- 13. recipe-images Bucket (0065) -------------------------------------

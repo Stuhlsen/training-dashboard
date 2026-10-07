@@ -163,6 +163,13 @@ export interface ProfileOwnFields {
   weightKg: number | null;
   hrMax: number | null;
   updatedAt: string;
+  /** Migration 0059/0067 — biologisches Geschlecht für RED-S-Formel (m/f).
+   *  NULL = "Keine Angabe" (E20). Separates Feld von `gender`
+   *  (Selbsteinschätzung: männlich/weiblich/divers). */
+  sex: "m" | "f" | null;
+  /** Migration 0059/0067 — EU-Allergen-Intoleranzen, Array der Keys aus
+   *  core/nutrition-taxonomy.js. Leeres Array = "keine Intoleranzen" (E21). */
+  intolerances: string[];
 }
 
 /** Eine Zeile der Admin-Nutzerübersicht (`GET /admin/users`, admin-api,
@@ -528,6 +535,29 @@ export type AllergenTag = AllergenKey;
  *  Leeres Array = "keine Intoleranzen" (E21).
  *  Validierung auf App-Ebene via core/nutrition-taxonomy.js (KEIN DB-Check). */
 export type ProfileIntolerance = AllergenTag[];
+
+/* ── Nutrition goals (Migration 0061, Fahrplan 23 E0/E5) ──────────
+   Append-only Tabelle. Die aktuell gültige Zeile ist die mit der
+   neuesten created_at (Consumer sortieren selbst).                  */
+
+export type NutritionGoalType = "lose" | "gain" | "maintain";
+
+export interface NutritionGoal {
+  id: string;
+  profileId: string;
+  goalType: NutritionGoalType;
+  targetWeightKg: number | null;
+  pacePerWeekKg: number | null;
+  targetDate: string | null;
+  createdAt: string;
+}
+
+export interface NutritionGoalInput {
+  goalType: NutritionGoalType;
+  targetWeightKg?: number | null;
+  pacePerWeekKg?: number | null;
+  targetDate?: string | null;
+}
 
 /** contains_tags-Eintrag eines Rezepts — Array von AllergenTag-Werten.
  *  Leeres Array = "unremarkable" (keine Exclusion). */

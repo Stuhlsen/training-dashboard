@@ -279,6 +279,8 @@ describe("useProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
       weightKg: 74.5,
       hrMax: 201,
       updatedAt: "2026-09-01T00:00:00Z",
+      sex: "f",
+      intolerances: ["gluten"],
     };
     const { wrapper } = createHarness({ userId: "user-1" });
     const view = renderHook(() => useProfileBasics(), { wrapper });
@@ -303,6 +305,8 @@ const BASELINE_BASICS: ProfileOwnFields = {
   weightKg: null,
   hrMax: null,
   updatedAt: "2026-09-01T00:00:00Z",
+  sex: null,
+  intolerances: [],
 };
 
 describe("Profil-Basisdaten-Update-Hooks (Migration 0039, Fahrplan 17 E3)", () => {

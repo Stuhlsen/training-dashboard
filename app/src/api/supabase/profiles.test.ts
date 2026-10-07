@@ -245,6 +245,8 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
           weight_kg: "74.5",
           hr_max: 201,
           updated_at: "2026-09-01T00:00:00Z",
+          sex: "f",
+          intolerances: ["gluten", "milk"],
         },
         error: null,
       };
@@ -262,7 +264,26 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
         weightKg: 74.5,
         hrMax: 201,
         updatedAt: "2026-09-01T00:00:00Z",
+        sex: "f",
+        intolerances: ["gluten", "milk"],
       },
     });
+  });
+
+  it("getProfileBasics: fehlendes sex bleibt null, fehlende intolerances werden []", async () => {
+    fakeClient.handlers.profiles_own = () => ({
+      data: {
+        id: "self-1", has_password: true, birthdate: null, resting_hr: null, gender: null,
+        height_cm: null, weight_kg: null, hr_max: null, updated_at: "2026-09-01T00:00:00Z",
+        sex: null, intolerances: null,
+      },
+      error: null,
+    });
+    const result = await getProfileBasics();
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.basics.sex).toBeNull();
+      expect(result.basics.intolerances).toEqual([]);
+    }
   });
 });

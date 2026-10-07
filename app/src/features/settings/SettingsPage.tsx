@@ -40,6 +40,7 @@ import { CoachLinkSection } from "./CoachLinkSection";
 import { DataExportSection } from "./DataExportSection";
 import { AccountDeletionSection } from "./AccountDeletionSection";
 import { CheckinDialog } from "./CheckinDialog";
+import { NutritionSection } from "./NutritionSection";
 
 interface NavEntry {
   id: string;
@@ -166,6 +167,7 @@ export function SettingsPage() {
                   <GoalsSection />
                   <ProfileBasicsSection />
                   <SportsSection />
+                  <NutritionSection />
                   <TrainingTargetsSection />
                   <BikesSection />
                   <CheckinSection />
