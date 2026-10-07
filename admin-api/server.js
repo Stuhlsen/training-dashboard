@@ -150,6 +150,9 @@ const server = http.createServer(async (req, res) => {
 });
 
 if (require.main === module) {
+  if (!ENV.SUPER_ADMIN_ID) {
+    console.warn("SUPER_ADMIN_ID nicht gesetzt: jeder Admin darf weitere Admins anlegen");
+  }
   server.listen(PORT, () => {
     console.log(`admin-api listening on :${PORT}`);
   });

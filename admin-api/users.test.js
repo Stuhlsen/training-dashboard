@@ -273,11 +273,16 @@ test("resendUserLink: has_password=true -> type recovery, action resend_recovery
 
 // Audit-Log-Fehler Faelle: deleteUser und resendUserLink muessen abbrechen
 
-function auditFailFetch() {
+// mode "throw": Netzwerkfehler; mode "http": PostgREST antwortet mit 403
+// (z. B. fehlender Grant) — fetch loest dann normal auf, ok ist false.
+function auditFailFetch(mode = "throw") {
   const calls = [];
   const impl = async (url, options) => {
     calls.push({ url, options });
     if (url.includes("/admin_audit_log")) {
+      if (mode === "http") {
+        return { ok: false, status: 403, json: async () => ({ message: "permission denied" }) };
+      }
       throw new Error("PostgREST nicht erreichbar");
     }
     if (url.includes("postgrest")) {
@@ -309,6 +314,26 @@ test("resendUserLink: Audit-Log-Fehler -> 502, kein generate_link", async () => 
   assert.equal(result.status, 502);
   assert.match(result.error.message, /Audit-Log/);
   // Kein generate_link, weil wir vorher abgebrochen sind
+  const genLinkCalls = calls.filter((c) => c.url.includes("generate_link"));
+  assert.equal(genLinkCalls.length, 0);
+});
+
+test("deleteUser: Audit-Insert mit HTTP 403 -> 502, kein GoTrue-DELETE", async () => {
+  const { impl, calls } = auditFailFetch("http");
+  const result = await deleteUser("u1", "u1@example.com", "admin-1", ENV, impl);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error.message, /Audit-Log/);
+  const deleteCalls = calls.filter((c) => c.url.includes("gotrue") && c.options?.method === "DELETE");
+  assert.equal(deleteCalls.length, 0);
+});
+
+test("resendUserLink: Audit-Insert mit HTTP 403 -> 502, kein generate_link", async () => {
+  const { impl, calls } = auditFailFetch("http");
+  const result = await resendUserLink("u1", "admin-1", ENV, impl);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error.message, /Audit-Log/);
   const genLinkCalls = calls.filter((c) => c.url.includes("generate_link"));
   assert.equal(genLinkCalls.length, 0);
 });

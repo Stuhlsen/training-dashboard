@@ -118,7 +118,7 @@ async function listUsers(env, fetchImpl = fetch) {
 // gegen die GoTrue-Daten geprueft werden, nicht allein aus dem Audit-Log.
 async function writeAuditLog(env, fetchImpl, { actorId, targetUserId, targetEmail, action, details }) {
   try {
-    await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/admin_audit_log`, {
+    const res = await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/admin_audit_log`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
@@ -134,6 +134,13 @@ async function writeAuditLog(env, fetchImpl, { actorId, targetUserId, targetEmai
         details: details ?? null,
       }),
     });
+    // fetch loest auch bei 4xx/5xx normal auf (z. B. fehlender Grant, RLS,
+    // Constraint) — ohne diesen Check gaelte ein abgelehnter Insert als
+    // geschrieben und delete/resend liefen ohne Audit-Eintrag weiter.
+    if (!res.ok) {
+      console.error(`admin_audit_log write failed: HTTP ${res.status}`);
+      return false;
+    }
     return true;
   } catch (err) {
     console.error("admin_audit_log write failed:", err);
