@@ -3859,31 +3859,45 @@ if (!HAS_CREDS) {
     });
     assert.equal(before.ok, true);
     const original = { sex: before.data[0].sex ?? null, intolerances: before.data[0].intolerances ?? [] };
+    // return=minimal: der rest()-Default return=representation liest die geschriebene
+    // Zeile per RETURNING zurück — dafür fehlt auf der Basistabelle bewusst das
+    // SELECT-Grant für sex/intolerances (42501). Die App schreibt ebenfalls ohne
+    // Rückgabe (204). Das Ergebnis wird deshalb über profiles_own geprüft.
     cleanupTasks.push(async () => {
-      await rest("PATCH", `profiles?id=eq.${athlete.userId}`, { token: athlete.token, body: original });
+      await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: original,
+        prefer: "return=minimal",
+      });
     });
 
     const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
       token: athlete.token,
       body: { sex: "m", intolerances: ["gluten"] },
+      prefer: "return=minimal",
     });
     assert.equal(upd.ok, true, `UPDATE auf sex/intolerances muss gelingen: ${JSON.stringify(upd.data)}`);
-    assert.equal(upd.data?.length, 1, "genau die eigene Zeile wird geändert");
     const read = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
       token: athlete.token,
     });
-    assert.equal(read.data[0].sex, "m");
+    assert.equal(read.data[0].sex, "m", "die eigene Zeile wurde geändert");
     assert.deepEqual(read.data[0].intolerances, ["gluten"]);
 
-    const restore = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, { token: athlete.token, body: original });
+    const restore = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: original,
+      prefer: "return=minimal",
+    });
     assert.equal(restore.ok, true, `Originalwerte wiederherstellen: ${JSON.stringify(restore.data)}`);
   });
 
   test("profiles: ungültiger sex-Wert wird vom Check abgelehnt (23514, nicht 42501)", async (t) => {
     if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
+    // return=minimal: ohne RETURNING greift nur der Check, nicht das fehlende SELECT-Grant.
     const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
       token: athlete.token,
       body: { sex: "x" },
+      prefer: "return=minimal",
     });
     assert.equal(upd.ok, false, "UPDATE auf profiles.sex='x' muss scheitern");
     assert.equal(upd.data?.code, "23514", `Ablehnung muss am Check liegen (23514), nicht am Grant: ${JSON.stringify(upd.data)}`);
@@ -3892,12 +3906,15 @@ if (!HAS_CREDS) {
   test("profiles: ein Fremder kann sex/intolerances eines anderen Athleten nicht ändern (Zeilen-Policy: 0 Zeilen)", async (t) => {
     if (strangerSkip()) return t.skip(strangerSkip());
     if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
+    // return=minimal: Trifft die Policy 0 Zeilen, gibt PostgREST 204 zurück und der Check
+    // läuft nie. Wäre die Zeile für den Fremden beschreibbar, scheiterte der Test am Check
+    // (23514, ok=false) — der Wert 'x' kann also nie im echten Profil landen.
     const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
       token: stranger.token,
       body: { sex: "x" }, // absichtlich ungültig: kann nie im echten Profil landen
+      prefer: "return=minimal",
     });
-    assert.equal(upd.ok, true, `Zeilen-Policy muss still filtern (200, leere Liste), nicht am Check scheitern: ${JSON.stringify(upd.data)}`);
-    assert.equal(upd.data?.length ?? 0, 0, "kein Treffer: die Zeile von Athlet 1 ist für den Fremden nicht beschreibbar");
+    assert.equal(upd.ok, true, `Zeilen-Policy muss still filtern (204, kein Treffer), nicht am Check scheitern: ${JSON.stringify(upd.data)}`);
   });
 
   test("profiles: anon kann sex/intolerances weder lesen noch schreiben", async () => {
@@ -3928,6 +3945,7 @@ if (!HAS_CREDS) {
       const upd = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
         token: athlete.token,
         body: { [col]: row[col] },
+        prefer: "return=minimal",
       });
       assert.equal(upd.ok, true, `${col} muss für den Eigentümer schreibbar sein (vor 0068: 42501): ${JSON.stringify(upd.data)}`);
     }
