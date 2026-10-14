@@ -246,7 +246,7 @@ describe("CookingDialog — Timer starten und zurücksetzen", () => {
     expect(screen.getByText("02:00")).toBeTruthy();
   });
 
-  test("Zuruecksetzen mit Bestätigung (zweiter Klick)", () => {
+  test("Zurücksetzen mit Bestätigung (zweiter Klick)", () => {
     renderDialog(BASE_RECIPE);
     fireEvent.click(screen.getByText("Weiter"));
 
@@ -255,11 +255,11 @@ describe("CookingDialog — Timer starten und zurücksetzen", () => {
     });
 
     // Erster Klick: Konfirmation anzeigen
-    fireEvent.click(screen.getByText("Zuruecksetzen"));
-    expect(screen.getByText("Wirklich zuruecksetzen?")).toBeTruthy();
+    fireEvent.click(screen.getByText("Zurücksetzen"));
+    expect(screen.getByText("Wirklich zurücksetzen?")).toBeTruthy();
 
     // Zweiter Klick: zurücksetzen
-    fireEvent.click(screen.getByText("Wirklich zuruecksetzen?"));
+    fireEvent.click(screen.getByText("Wirklich zurücksetzen?"));
     expect(screen.getByText("Starten (02:00)")).toBeTruthy();
   });
 
@@ -272,15 +272,15 @@ describe("CookingDialog — Timer starten und zurücksetzen", () => {
     });
 
     // Erster Klick: Konfirmation
-    fireEvent.click(screen.getByText("Zuruecksetzen"));
-    expect(screen.getByText("Wirklich zuruecksetzen?")).toBeTruthy();
+    fireEvent.click(screen.getByText("Zurücksetzen"));
+    expect(screen.getByText("Wirklich zurücksetzen?")).toBeTruthy();
 
     // 3.1s warten — Konfirmation verfällt
     act(() => {
       vi.advanceTimersByTime(3100);
     });
 
-    expect(screen.getByText("Zuruecksetzen")).toBeTruthy();
+    expect(screen.getByText("Zurücksetzen")).toBeTruthy();
   });
 
   test("timerSeconds >= 3600 zeigt Ruhezeit-Text, keinen Start-Button", () => {

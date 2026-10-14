@@ -408,7 +408,7 @@ function TimerInStep({
             style={pendingReset ? TIMER_CONFIRM_STYLE : TIMER_BUTTON_STYLE}
             onClick={handleReset}
           >
-            {pendingReset ? "Wirklich zuruecksetzen?" : "Zuruecksetzen"}
+            {pendingReset ? "Wirklich zurücksetzen?" : "Zurücksetzen"}
           </button>
         </div>
       );
@@ -422,7 +422,7 @@ function TimerInStep({
           style={pendingReset ? TIMER_CONFIRM_STYLE : TIMER_BUTTON_STYLE}
           onClick={handleReset}
         >
-          {pendingReset ? "Wirklich zuruecksetzen?" : "Zuruecksetzen"}
+          {pendingReset ? "Wirklich zurücksetzen?" : "Zurücksetzen"}
         </button>
       </div>
     );

@@ -206,8 +206,8 @@ function TimerItem({
             style={pendingReset ? CONFIRM_BTN_STYLE : BTN_STYLE}
           >
             {pendingReset
-              ? "Wirklich zuruecksetzen?"
-              : "Zuruecksetzen"}
+              ? "Wirklich zurücksetzen?"
+              : "Zurücksetzen"}
           </button>
         </>
       )}
