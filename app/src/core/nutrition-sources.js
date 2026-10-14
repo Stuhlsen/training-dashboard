@@ -35,6 +35,8 @@ export const SOURCE_KEYS = Object.freeze({
   KCAL_PER_KG_7700: "7700-kcal-per-kg",
   FAO_WHO_UNU_PAL: "fao-who-unu-pal",
   NEAT_GOSHOZONO_2024: "neat-goshozono-2024",
+  BLS_4_0: "bls-4-0",
+  USDA_FDC: "usda-fdc",
 });
 
 /** @type {ReadonlyArray<Readonly<SourceEntry>>} */
@@ -118,6 +120,18 @@ const ENTRIES = [
       "Goshozono et al.: Characteristics of non-exercise activity thermogenesis in male collegiate athletes under real-life conditions. Front Sports Act Living 2024",
     link: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10896989/",
     note: "Plausibilitäts-Gegenprobe zum PAL: Alltagsverbrauch ohne Sport ca. 10,4 kcal/kg/Tag (33 junge Männer, Beschleunigungssensor, kleine Stichprobe). Kein Rechenwert in der App.",
+  },
+  {
+    key: SOURCE_KEYS.BLS_4_0,
+    title: "Bundeslebensmittelschlüssel (BLS), Version 4.0",
+    link: "Max Rubner-Institut (2025): Bundeslebensmittelschlüssel (BLS), Version 4.0, DOI 10.25826/Data20251217-134202-0, https://blsdb.de",
+    note: "Nährwerte der Rezept-Zutaten (Energie, Eiweiß, Kohlenhydrate, Fett je 100 g). Kostenfrei, App-Nutzung laut blsdb.de/faq erlaubt. Rezept-Nährwerte sind aus den Zutaten gerechnet, nicht gemessen; Hersteller- und Rezeptvarianten können abweichen.",
+  },
+  {
+    key: SOURCE_KEYS.USDA_FDC,
+    title: "USDA FoodData Central",
+    link: "https://fdc.nal.usda.gov",
+    note: "Lückenfüller für Zutaten ohne BLS-Eintrag (einzelne Gewürze und Kräuter). Public Domain (CC0), Nennung erwünscht.",
   },
 ];
 
