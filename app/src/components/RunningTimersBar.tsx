@@ -8,17 +8,15 @@
    synchronisiert — jeder Tab hat seinen eigenen Timer-Zustand.
    ============================================================ */
 
-import { useCallback, useState, useEffect, useRef } from "react";
+import { useCallback } from "react";
 import { useCookTimers } from "./cook-timer-context";
+import { useConfirmTap } from "./useConfirmTap";
 import type { CookTimer } from "../types.js";
 import {
   remainingSeconds,
   formatRemaining,
   isExpired,
 } from "../core/cook-timer";
-
-/* ── Konfirmations-Timeout (Eigenes Ermessen, Issue #27) ── */
-const CONFIRM_MS = 3000;
 
 /* ── Inline-Styles (Projekt-Konvention: kein CSS-Modul) ── */
 
@@ -166,38 +164,9 @@ function TimerItem({
     now,
   );
 
-  // Konfirmations-Zustand per Timer mittels useState (kein useRef,
-  // da der Wert während des Render gelesen wird — Lint-Regel react-hooks/refs)
-  const [pendingReset, setPendingReset] = useState(false);
-  const confirmTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Beim Unmount aufräumen
-  useEffect(() => {
-    return () => {
-      if (confirmTimerRef.current != null) {
-        clearTimeout(confirmTimerRef.current);
-      }
-    };
-  }, []);
-
-  const handleReset = useCallback(() => {
-    if (pendingReset) {
-      // Zweiter Klick innerhalb des Zeitfensters → reset ausführen
-      if (confirmTimerRef.current != null) {
-        clearTimeout(confirmTimerRef.current);
-        confirmTimerRef.current = null;
-      }
-      setPendingReset(false);
-      onReset(id);
-    } else {
-      // Erster Klick → Konfirmation anzeigen
-      setPendingReset(true);
-      confirmTimerRef.current = setTimeout(() => {
-        setPendingReset(false);
-        confirmTimerRef.current = null;
-      }, CONFIRM_MS);
-    }
-  }, [id, onReset, pendingReset]);
+  const { pending: pendingReset, trigger: handleReset } = useConfirmTap(
+    useCallback(() => onReset(id), [id, onReset]),
+  );
 
   const handleDismiss = useCallback(() => {
     onDismiss(id);
