@@ -236,12 +236,15 @@ function dailyBaseline(bmr) {
  * aus nutrition_goals.pace_per_week_kg) und redSFloor (Minimalgrenze).
  *
  * @param {{
- *   profile: {weightKg?:number, heightCm?:number, age?:number, sex?:string, bodyFat?:number},
+ *   profile: {weightKg?:number, heightCm?:number, age?:number, sex?:string|null,
+ *             bodyFat?:number|null, bodyFatDate?:string|null},
  *   goal?: {goalType?:string, pacePerWeekKg?:number, targetWeightKg?:number},
  *   session?: {watt?:number, min?:number}
  * }} params
  * @returns {{
- *   ok:true, target:number, bmr:number, baseline:object, trainingKcal:number, adjustment:number,
+ *   ok:true, target:number, bmr:number, formula:"cunningham-1980"|"ten-haaf-2014", hints:string[],
+ *   bodyFatDate:string|null,
+ *   baseline:object, trainingKcal:number, adjustment:number,
  *   floor:number, eaFloorKcal:number, capped:boolean, bodyFatAssumed:boolean, sexAssumed:boolean,
  *   source:string[], note:string
  * }|{ok:false, hint:string}}
@@ -355,6 +358,11 @@ export function estimateDailyGoal(params) {
     ok: true,
     target,
     bmr,
+    // Formel, Unsicherheits-Hinweise und Datum des Körperfett-Werts reichen wir
+    // an die Anzeige durch (Tab zeigt Formelname + Datum, E33–E35)
+    formula: bmrResult.formula,
+    hints: bmrResult.hints,
+    bodyFatDate: bmrResult.bodyFatDate,
     baseline,
     trainingKcal,
     adjustment,
