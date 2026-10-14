@@ -150,6 +150,19 @@ describe("ShoppingListView — Abhaken", () => {
     expect(JSON.parse(localStorage.getItem("shopping-checked:u1") ?? "[]")).toEqual(["obst & gemüse|apfel|stück"]);
   });
 
+  it("'Haken zurücksetzen' erscheint nur bei Haken und leert Anzeige und Speicher", () => {
+    setData([entry(TODAY, "a")], [recipe("a", [APFEL])]);
+    renderList();
+    expect(screen.queryByRole("button", { name: "Haken zurücksetzen" })).toBeNull();
+
+    fireEvent.click(screen.getByLabelText(/Apfel/));
+    fireEvent.click(screen.getByRole("button", { name: "Haken zurücksetzen" }));
+
+    expect((screen.getByLabelText(/Apfel/) as HTMLInputElement).checked).toBe(false);
+    expect(JSON.parse(localStorage.getItem("shopping-checked:u1") ?? "null")).toEqual([]);
+    expect(screen.queryByRole("button", { name: "Haken zurücksetzen" })).toBeNull();
+  });
+
   it("kaputter Speicherinhalt bricht nichts: alles ungehakt", () => {
     localStorage.setItem("shopping-checked:u1", "{kein json");
     setData([entry(TODAY, "a")], [recipe("a", [APFEL])]);

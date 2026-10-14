@@ -102,6 +102,12 @@ export function ShoppingListView({
     writeChecked(userId, kept);
   }
 
+  function resetChecked() {
+    const none: ReadonlySet<string> = new Set();
+    setChecked(none);
+    writeChecked(userId, none);
+  }
+
   if (planLoading || recipesLoading) return <p style={META_STYLE}>Lade …</p>;
 
   if (datesWithEntries.size === 0) {
@@ -146,6 +152,11 @@ export function ShoppingListView({
             })}
           </div>
         </fieldset>
+        {checked.size > 0 && (
+          <button type="button" style={{ ...BUTTON_STYLE, marginTop: 14 }} onClick={resetChecked}>
+            Haken zurücksetzen
+          </button>
+        )}
       </GlassCard>
 
       {!hasRows && list.missingIngredients.length === 0 && (
