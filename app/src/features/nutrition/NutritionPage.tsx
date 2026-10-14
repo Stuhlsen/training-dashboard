@@ -22,6 +22,7 @@ import { SOURCE_BY_KEY } from "../../core/nutrition-sources.js";
 import { fmtDateFull, localISODate } from "../../core/format.js";
 import { useNutritionDay } from "./useNutritionDay";
 import type { NutritionDay } from "./nutrition-day-model";
+import { WeekView } from "./WeekView";
 
 const CARD_STYLE: CSSProperties = { padding: "28px 32px", marginBottom: 20 };
 const HEADING_STYLE: CSSProperties = {
@@ -149,7 +150,14 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
           </button>
         </GlassCard>
       )}
-      {day.ok ? <DayTargetCard day={day} /> : <ProfileCompleteCard day={day} />}
+      {day.ok ? (
+        <>
+          <DayTargetCard day={day} />
+          <WeekView athleteId={athleteId} userId={userId} todayISO={today} />
+        </>
+      ) : (
+        <ProfileCompleteCard day={day} />
+      )}
     </>
   );
 }

@@ -29,6 +29,9 @@ vi.mock("./useNutritionDay", () => ({
   },
 }));
 
+// Die Wochenansicht hat eigene Tests (WeekView.test.tsx) und eigene Hooks
+vi.mock("./WeekView", () => ({ WeekView: () => null }));
+
 const { NutritionPage } = await import("./NutritionPage");
 
 const OK_DAY: Extract<NutritionDay, { ok: true }> = {

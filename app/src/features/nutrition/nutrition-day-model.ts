@@ -33,6 +33,8 @@ export interface NutritionWellnessDay {
   weight?: number | null;
   /** Prozent (z. B. 18.5), wie scripts/lib/wellness.js es liefert */
   bodyFat?: number | null;
+  /** Aufgenommene kcal (Zufuhr) aus der Sync-Pipeline, falls getrackt */
+  kcalConsumed?: number | null;
 }
 
 export interface NutritionProfileInput {
