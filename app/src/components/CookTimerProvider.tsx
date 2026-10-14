@@ -93,8 +93,6 @@ function playAlarm(audioCtx: AudioContext | null): void {
       osc.start(start);
       osc.stop(end);
     }
-
-    setTimeout(() => audioCtx.close(), 2000);
   } catch {
     // Web Audio nicht verfügbar — kein Sound, kein Fehler
   }
@@ -207,8 +205,10 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
 
   const start = useCallback(
     (id: string, label: string, durationSeconds: number) => {
-      // AudioContext in der User-Geste initialisieren/aufwecken
-      if (audioCtxRef.current == null) {
+      // AudioContext in der User-Geste initialisieren/aufwecken.
+      // Ein geschlossener Context (state === "closed", z. B. nach
+      // vorherigem close()) wird als nicht vorhanden behandelt.
+      if (audioCtxRef.current == null || audioCtxRef.current.state === "closed") {
         try {
           audioCtxRef.current = new AudioContext();
         } catch {

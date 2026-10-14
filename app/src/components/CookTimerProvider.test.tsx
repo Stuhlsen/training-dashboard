@@ -9,6 +9,7 @@ import { render, renderHook, act, screen, fireEvent } from "@testing-library/rea
 import { useCookTimers } from "./cook-timer-context";
 import { CookTimerProvider } from "./CookTimerProvider";
 import { RunningTimersBar } from "./RunningTimersBar";
+import type { CookTimer } from "../types.js";
 
 /* ── AudioContext stub ─────────────────────────────────── */
 
@@ -535,10 +536,10 @@ describe("CookTimerProvider — abgelaufene Timer beim Laden", () => {
   });
 });
 
-/* ─── Test: nur einmaliger Alarm ──────────────────────── */
+/* ─── Test: zwei Timer nacheinander, Alarm beide Male ── */
 
-describe("CookTimerProvider — einmaliger Alarm", () => {
-  test("alarm nur einmal bei einem Timer", () => {
+describe("CookTimerProvider — zwei Timer nacheinander", () => {
+  test("zwei unabhaengige Timer laufen nacheinander ab, Alarm ertoent beide Male", () => {
     let start!: (id: string, label: string, secs: number) => void;
 
     function TestConsumer() {
@@ -554,27 +555,120 @@ describe("CookTimerProvider — einmaliger Alarm", () => {
     );
 
     act(() => {
+      start("a", "Kurz", 5);   // laeuft 5s
+      start("b", "Laenger", 8); // laeuft 8s
+    });
+
+    audioCtx.createOscillator.mockClear();
+
+    // Timer a laeuft nach 5s ab
+    for (let i = 0; i < 6; i++) {
+      act(() => { vi.advanceTimersByTime(1000); });
+    }
+
+    // Alarm fuer a muss ertoent sein
+    expect(audioCtx.createOscillator).toHaveBeenCalledTimes(3);
+
+    audioCtx.createOscillator.mockClear();
+
+    // Timer b laeuft nach 8s ab (2 weitere Sekunden)
+    for (let i = 0; i < 3; i++) {
+      act(() => { vi.advanceTimersByTime(1000); });
+    }
+
+    // Alarm fuer b muss ebenfalls ertoent sein
+    expect(audioCtx.createOscillator).toHaveBeenCalledTimes(3);
+  });
+});
+
+/* ─── Test: Route-Change ueberlebt ────────────────────── */
+
+describe("CookTimerProvider — Route-Change", () => {
+  test("Route-Wechsel (Kind neu mounten) stoppt Timer nicht", () => {
+    let start!: (id: string, label: string, secs: number) => void;
+    let timersFromCtx!: CookTimer[];
+
+    function TestConsumer() {
+      const ctx = useCookTimers();
+      start = ctx.start;
+      timersFromCtx = ctx.timers;
+      return <RunningTimersBar />;
+    }
+
+    const { rerender } = render(
+      <CookTimerProvider userId="user1">
+        <TestConsumer key="route-a" />
+      </CookTimerProvider>,
+    );
+
+    act(() => {
+      start("a", "Nudeln", 300);
+    });
+
+    expect(timersFromCtx).toHaveLength(1);
+    expect(screen.getByText("Nudeln")).toBeTruthy();
+
+    // Route-Wechsel simulieren: Kind-Komponente neu mounten, Provider bleibt
+    rerender(
+      <CookTimerProvider userId="user1">
+        <TestConsumer key="route-b" />
+      </CookTimerProvider>,
+    );
+
+    // Timer muss weiterhin sichtbar sein
+    expect(timersFromCtx).toHaveLength(1);
+    expect(timersFromCtx[0].id).toBe("a");
+    expect(screen.getByText("Nudeln")).toBeTruthy();
+  });
+});
+
+/* ─── Test: visibilitychange mit abgelaufenem Timer ───── */
+
+describe("CookTimerProvider — visibilitychange", () => {
+  test("Timer waehrend versteckter Seite abgelaufen: kein Sound, zeigt abgelaufen", () => {
+    let start!: (id: string, label: string, secs: number) => void;
+
+    function TestConsumer() {
+      const ctx = useCookTimers();
+      start = ctx.start;
+      return <RunningTimersBar />;
+    }
+
+    render(
+      <CookTimerProvider userId="user1">
+        <TestConsumer />
+      </CookTimerProvider>,
+    );
+
+    act(() => {
       start("a", "Kurz", 5);
     });
 
+    // Seite verstecken — sowohl Property als auch Event feuern
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+    fireEvent(document, new Event("visibilitychange"));
+
     audioCtx.createOscillator.mockClear();
 
-    // Timer läuft ab
-    for (let i = 0; i < 12; i++) {
-      act(() => {
-        vi.advanceTimersByTime(1000);
-      });
+    // Timer laeuft ab waehrend Seite versteckt ist
+    for (let i = 0; i < 8; i++) {
+      act(() => { vi.advanceTimersByTime(1000); });
     }
 
-    expect(audioCtx.createOscillator).toHaveBeenCalledTimes(3); // 3 Beeps
+    // Kein Alarm darf ertoent sein (Seite war versteckt)
+    expect(audioCtx.createOscillator).not.toHaveBeenCalled();
 
-    audioCtx.createOscillator.mockClear();
+    // Seite wieder sichtbar machen
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+    fireEvent(document, new Event("visibilitychange"));
 
-    // Weiteren Tick abwarten — kein weiterer Alarm
-    act(() => {
-      vi.advanceTimersByTime(3000);
-    });
+    // Re-Render triggern
+    act(() => { vi.advanceTimersByTime(1000); });
 
+    // "abgelaufen" muss im DOM sein
+    expect(screen.getByText("abgelaufen")).toBeTruthy();
+
+    // Immer noch kein Alarm (bereits abgelaufen, alreadyAlerted vom Pre-Seed)
     expect(audioCtx.createOscillator).not.toHaveBeenCalled();
   });
 });
