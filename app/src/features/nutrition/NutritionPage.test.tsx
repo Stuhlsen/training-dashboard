@@ -30,7 +30,14 @@ vi.mock("./useNutritionDay", () => ({
 }));
 
 // Die Wochenansicht hat eigene Tests (WeekView.test.tsx) und eigene Hooks
-vi.mock("./WeekView", () => ({ WeekView: () => null }));
+vi.mock("./WeekView", () => ({ WeekView: () => <p>Wochenansicht-Platzhalter</p> }));
+vi.mock("./ShoppingListView", () => ({
+  ShoppingListView: ({ onShowWeek }: { onShowWeek: () => void }) => (
+    <button type="button" onClick={onShowWeek}>
+      Einkaufsliste-Platzhalter
+    </button>
+  ),
+}));
 
 const { NutritionPage } = await import("./NutritionPage");
 
@@ -208,6 +215,34 @@ describe("NutritionPage — ok-Zustand", () => {
     expect(link.getAttribute("href")).toBe("https://pmc.ncbi.nlm.nih.gov/articles/PMC4183531/");
     expect(link.getAttribute("target")).toBe("_blank");
     expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+  });
+});
+
+describe("NutritionPage — Umschalter Woche | Einkaufsliste (E8)", () => {
+  it("startet mit der Woche und schaltet auf die Einkaufsliste und zurück", () => {
+    renderPage();
+    expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Woche" }).getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Einkaufsliste" }));
+    expect(screen.queryByText("Wochenansicht-Platzhalter")).toBeNull();
+    expect(screen.getByRole("button", { name: "Einkaufsliste" }).getAttribute("aria-pressed")).toBe("true");
+
+    fireEvent.click(screen.getByText("Einkaufsliste-Platzhalter")); // onShowWeek der Liste
+    expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
+  });
+
+  it("ohne Tagesziel (Profil unvollständig) gibt es keinen Umschalter", () => {
+    mockDay = { ok: false, missing: ["Gewicht"], hint: null };
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Einkaufsliste" })).toBeNull();
+  });
+
+  it("fremder Athlet (E28): weder Umschalter noch Liste", () => {
+    mockSelf = { isSelf: false, isLoading: false };
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Einkaufsliste" })).toBeNull();
+    expect(screen.queryByText("Einkaufsliste-Platzhalter")).toBeNull();
   });
 });
 
