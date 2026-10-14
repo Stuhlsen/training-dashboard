@@ -4,7 +4,7 @@
 
 services:
   postgres:
-    image: supabase/postgres:17.6.1.173
+    image: supabase/postgres:17.11.0.004
     environment:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -47,7 +47,7 @@ services:
   # Rollenmitgliedschafts-Zyklus, storage-api crash-loopt beim ersten Start.
   # Das REVOKE muss hier stehen, VOR storage-init.
   db-init:
-    image: supabase/postgres:17.6.1.173
+    image: supabase/postgres:17.11.0.004
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,7 +71,7 @@ services:
 
   # Storage-Schema vor dbmate-Migrationen anlegen
   storage-init:
-    image: supabase/storage-api:v1.79.14
+    image: supabase/storage-api:v1.79.38
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -162,6 +162,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       POSTGREST_INTERNAL_URL: http://postgrest:3000
       GOTRUE_INTERNAL_URL: http://gotrue:8081
+      SUPER_ADMIN_ID: ${SUPER_ADMIN_ID}
       # Lokaler service_role-JWT (signiert mit demselben JWT_SECRET wie
       # gotrue/postgrest), per "node scripts/generate-jwt-keys.js" erzeugt
       # und in die eigene .env kopiert — eigene Variable, NICHT die
@@ -175,7 +176,7 @@ services:
   # v1.16.0-Pin war ungewollt veraltet (Jan. 2025, ~58 Releases zurueck),
   # keine bewusste Festlegung auf die alte Version.
   storage-api:
-    image: supabase/storage-api:v1.79.14
+    image: supabase/storage-api:v1.79.38
     depends_on:
       postgres:
         condition: service_healthy

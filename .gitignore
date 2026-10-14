@@ -19,6 +19,9 @@ playwright-report/
 # Node
 node_modules/
 
+# Test-Temp-Dateien
+__fallback_test.js
+
 # Fallow / Agent-Skills-Installer — generierte Tooling-Artefakte, kein Quellcode
 # (package-lock.json bleibt versioniert für reproduzierbare Fallow-Version)
 .agents/
