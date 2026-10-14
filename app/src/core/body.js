@@ -233,6 +233,9 @@ export function estimateRestingEnergy({ weightKg, heightCm, age, sex, bodyFatPct
       };
     }
     hints.push("Körperfett-Wert passt nicht zu Gewicht und Größe, bitte prüfen");
+  } else if (bodyFatPct != null) {
+    // Wert übergeben, aber keine Zahl in (0, 100) — kein Normalfall ohne Messung (null/undefined)
+    hints.push("Körperfett-Wert ungültig, wird ignoriert");
   }
 
   if (age < TEN_HAAF_AGE_MIN || age > TEN_HAAF_AGE_MAX) {

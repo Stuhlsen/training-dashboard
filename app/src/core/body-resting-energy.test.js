@@ -99,16 +99,48 @@ describe("estimateRestingEnergy — Cunningham bei gemessenem Körperfett", () =
     expect(r.hints).toEqual([]);
   });
 
-  it.each([0, 100, -5, 120, NaN])("Körperfett %s % → ignoriert, Ten-Haaf ohne Hinweis", (bf) => {
-    const r = estimateRestingEnergy({ ...MAN, bodyFatPct: bf });
+  const INVALID_HINT = "Körperfett-Wert ungültig, wird ignoriert";
+  const IMPLAUSIBLE_HINT = "Körperfett-Wert passt nicht zu Gewicht und Größe, bitte prüfen";
+
+  it.each([0, 100, 120, -5, NaN])("Körperfett %s % → Hinweis 'ungültig', Ten-Haaf-Ergebnis", (bf) => {
+    const r = estimateRestingEnergy({ ...MAN, bodyFatPct: bf, bodyFatDate: "2026-09-01" });
     expect(r.formula).toBe("ten-haaf-2014");
     expect(r.kcal).toBe(1889);
-    expect(r.hints).toEqual([]);
+    expect(r.hints).toEqual([INVALID_HINT]);
+    expect(r.hints).not.toContain(IMPLAUSIBLE_HINT);
+    expect(r.bodyFatDate).toBeNull();
   });
 
-  it("kein Körperfett (null/undefined) → Ten-Haaf", () => {
-    expect(estimateRestingEnergy({ ...MAN, bodyFatPct: null }).formula).toBe("ten-haaf-2014");
-    expect(estimateRestingEnergy(MAN).formula).toBe("ten-haaf-2014");
+  it("ungültiges Körperfett kommt zusätzlich zu Alters- und Geschlechtshinweis", () => {
+    const r = estimateRestingEnergy({ ...MAN, age: 40, sex: null, bodyFatPct: 0 });
+    expect(r.hints).toEqual([
+      INVALID_HINT,
+      "Formel wurde an 18- bis 35-Jährigen geprüft, hier unsicherer",
+      "Geschlecht fehlt, Schätzung ungenauer",
+    ]);
+  });
+
+  it("kein Körperfett (null/undefined) → Ten-Haaf, KEIN Hinweis", () => {
+    for (const r of [
+      estimateRestingEnergy({ ...MAN, bodyFatPct: null }),
+      estimateRestingEnergy({ ...MAN, bodyFatPct: undefined }),
+      estimateRestingEnergy(MAN),
+    ]) {
+      expect(r.formula).toBe("ten-haaf-2014");
+      expect(r.hints).toEqual([]);
+    }
+  });
+
+  it("gültiger Wert liefert den 'ungültig'-Hinweis nicht", () => {
+    expect(estimateRestingEnergy({ ...MAN, bodyFatPct: BF_FFM_62 }).hints).not.toContain(INVALID_HINT);
+    expect(estimateRestingEnergy({ ...MAN, bodyFatPct: 60 }).hints).not.toContain(INVALID_HINT);
+  });
+
+  it("beide Körperfett-Hinweise erscheinen nie gleichzeitig", () => {
+    for (const bf of [null, undefined, 0, 100, 120, -5, NaN, 5, 12, 20, 38.6, 38.8, 60, 99]) {
+      const hints = estimateRestingEnergy({ ...MAN, bodyFatPct: bf }).hints;
+      expect(hints.includes(INVALID_HINT) && hints.includes(IMPLAUSIBLE_HINT)).toBe(false);
+    }
   });
 });
 
