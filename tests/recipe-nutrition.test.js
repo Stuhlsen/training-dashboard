@@ -322,4 +322,9 @@ test("echte Tabelle: bekannte versteckte Allergene sind hinterlegt", () => {
     assert.ok(z[dairy].allergene.includes("milk"), `${dairy} braucht milk`);
   }
   assert.ok(z.Eier.allergene.includes("eggs"));
+  // Im Zweifel mit Allergen gekennzeichnet (Entscheidung Alex, 2026-10-14)
+  assert.ok(z.Kokosmilch.allergene.includes("nuts"));
+  assert.ok(z.Datteln.allergene.includes("sulphites"));
+  assert.ok(z.Reiswaffeln.allergene.includes("sesame"));
+  assert.deepEqual([...z.Kakaopulver.allergene].sort(), ["milk", "nuts"]);
 });

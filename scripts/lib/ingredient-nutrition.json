@@ -140,11 +140,13 @@
    "protein": 2.64,
    "carbs": 79.3,
    "fat": 0.36,
-   "allergene": [],
+   "allergene": [
+    "sulphites"
+   ],
    "kategorie": "Obst & Gemüse",
    "quelle": "BLS:F504400",
    "bls_name": "Dattel getrocknet",
-   "hinweis": "getrocknet; Schwefelung herstellerabhängig (nicht gekennzeichnet)"
+   "hinweis": "getrocknet; Schwefelung herstellerabhängig, im Zweifel als Sulfite gekennzeichnet"
   },
   "Dill": {
    "kcal": 43,
@@ -417,13 +419,17 @@
    "protein": 22.61,
    "carbs": 10.9,
    "fat": 19.8,
-   "allergene": [],
+   "allergene": [
+    "milk",
+    "nuts"
+   ],
    "kategorie": "Öle, Gewürze & Vorrat",
    "einheiten": {
     "EL": 8
    },
    "quelle": "BLS:S711000",
-   "bls_name": "Kakaopulver schwach entölt"
+   "bls_name": "Kakaopulver schwach entölt",
+   "hinweis": "Spuren von Milch und Nüssen möglich, im Zweifel gekennzeichnet"
   },
   "Kartoffeln": {
    "kcal": 83,
@@ -485,11 +491,13 @@
    "protein": 2.77,
    "carbs": 2.1,
    "fat": 21.9,
-   "allergene": [],
+   "allergene": [
+    "nuts"
+   ],
    "kategorie": "Hülsenfrüchte & Konserven",
    "quelle": "BLS:H154000",
    "bls_name": "Kokosmilch/Kokosnussmilch",
-   "hinweis": "Kokos ist in der EU-Allergenliste keine Schalenfrucht, daher nicht gekennzeichnet"
+   "hinweis": "Kokos steht nicht auf der EU-Liste der Schalenfrüchte, im Zweifel trotzdem als nuts gekennzeichnet"
   },
   "Koriander": {
    "kcal": 33,
@@ -842,14 +850,16 @@
    "protein": 8,
    "carbs": 77.47,
    "fat": 2.42,
-   "allergene": [],
+   "allergene": [
+    "sesame"
+   ],
    "kategorie": "Getreide & Backwaren",
    "einheiten": {
     "Stück": 8
    },
    "quelle": "BLS:C532700",
    "bls_name": "Reiswaffeln ungesalzen",
-   "hinweis": "Hersteller teils mit Sesam oder Spuren Gluten, Etikett prüfen"
+   "hinweis": "Hersteller teils mit Sesam, im Zweifel als sesame gekennzeichnet"
   },
   "Rinderhackfleisch": {
    "kcal": 224,
