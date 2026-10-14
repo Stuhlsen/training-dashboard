@@ -383,7 +383,7 @@ describe("RunningTimersBar", () => {
     });
 
     expect(screen.getByText("Nudeln")).toBeTruthy();
-    expect(screen.getByText("Zuruecksetzen")).toBeTruthy();
+    expect(screen.getByText("Zurücksetzen")).toBeTruthy();
   });
 
   test("einmaliger Klick zeigt Konfirmation, kein Reset", () => {
@@ -392,10 +392,10 @@ describe("RunningTimersBar", () => {
       start()("a", "Nudeln", 300);
     });
 
-    const resetBtn = screen.getAllByText("Zuruecksetzen")[0];
+    const resetBtn = screen.getAllByText("Zurücksetzen")[0];
     fireEvent.click(resetBtn);
 
-    expect(screen.getByText("Wirklich zuruecksetzen?")).toBeTruthy();
+    expect(screen.getByText("Wirklich zurücksetzen?")).toBeTruthy();
   });
 
   test("zweiter Klick innerhalb 3s setzt zurueck", () => {
@@ -404,10 +404,10 @@ describe("RunningTimersBar", () => {
       start()("a", "Nudeln", 300);
     });
 
-    fireEvent.click(screen.getAllByText("Zuruecksetzen")[0]);
-    expect(screen.getByText("Wirklich zuruecksetzen?")).toBeTruthy();
+    fireEvent.click(screen.getAllByText("Zurücksetzen")[0]);
+    expect(screen.getByText("Wirklich zurücksetzen?")).toBeTruthy();
 
-    fireEvent.click(screen.getByText("Wirklich zuruecksetzen?"));
+    fireEvent.click(screen.getByText("Wirklich zurücksetzen?"));
 
     expect(screen.queryByText("Nudeln")).toBeNull();
   });
@@ -418,15 +418,15 @@ describe("RunningTimersBar", () => {
       start()("a", "Nudeln", 300);
     });
 
-    fireEvent.click(screen.getAllByText("Zuruecksetzen")[0]);
-    expect(screen.getByText("Wirklich zuruecksetzen?")).toBeTruthy();
+    fireEvent.click(screen.getAllByText("Zurücksetzen")[0]);
+    expect(screen.getByText("Wirklich zurücksetzen?")).toBeTruthy();
 
     act(() => {
       vi.advanceTimersByTime(3100);
     });
 
     expect(screen.getByText("Nudeln")).toBeTruthy();
-    expect(screen.getAllByText("Zuruecksetzen").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText("Zurücksetzen").length).toBeGreaterThanOrEqual(1);
   });
 
   test("einmaliger versehentlicher Klick laesst Timer laufen", () => {
@@ -435,8 +435,8 @@ describe("RunningTimersBar", () => {
       start()("a", "Nudeln", 300);
     });
 
-    fireEvent.click(screen.getAllByText("Zuruecksetzen")[0]);
-    expect(screen.getByText("Wirklich zuruecksetzen?")).toBeTruthy();
+    fireEvent.click(screen.getAllByText("Zurücksetzen")[0]);
+    expect(screen.getByText("Wirklich zurücksetzen?")).toBeTruthy();
 
     act(() => {
       vi.advanceTimersByTime(3100);

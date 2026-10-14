@@ -17,6 +17,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { fmtDate } from "../../core/format.js";
 import { composeDay, swapCandidates } from "../../core/nutrition-plan.js";
 import { SOURCE_BY_KEY } from "../../core/nutrition-sources.js";
+import { roundAmount, formatShoppingAmount } from "../../core/shopping-list.js";
 import type { MealPlanEntry, MealSlot, Recipe } from "../../api/types";
 import type { NutritionDay } from "./nutrition-day-model";
 import {
@@ -30,6 +31,7 @@ import {
   type SlotView,
 } from "./nutrition-week-model";
 import { SourceList } from "./SourceList";
+import { CookingDialog } from "./CookingDialog";
 import { BUTTON_DISABLED_STYLE, BUTTON_STYLE, HEADING_STYLE, META_STYLE, TEXT_STYLE } from "./nutrition-styles";
 
 export interface Choice {
@@ -106,9 +108,89 @@ function PlateIcon() {
   );
 }
 
+/* ── Details-Ansicht (Zutaten + Nährwerte) ─────────────── */
+const DETAILS_STYLE: CSSProperties = {
+  flexBasis: "100%",
+  paddingTop: 8,
+};
+const INGREDIENT_STYLE: CSSProperties = {
+  ...META_STYLE,
+  margin: "1px 0",
+};
+const NUTRITION_LABEL_STYLE: CSSProperties = {
+  ...META_STYLE,
+  fontWeight: 600,
+  color: "var(--ink-2)",
+  margin: "4px 0 2px",
+};
+const HINT_STYLE: CSSProperties = {
+  ...META_STYLE,
+  fontStyle: "italic",
+};
+
+/** Skaliert einen Zutatenwert auf die geplanten Portionen.
+ *  Faktor = entryServings / recipeServings. */
+function scaledIngredient(
+  amount: number,
+  unit: string,
+  entryServings: number,
+  recipeServings: number,
+): string {
+  // Fehlende/ungültige Rezept-Portionen: Menge unskaliert zeigen statt NaN
+  const factor = recipeServings > 0 ? entryServings / recipeServings : 1;
+  const scaled = amount * factor;
+  const rounded = roundAmount(scaled, unit);
+  return `${formatShoppingAmount(rounded)} ${unit}`;
+}
+
+function DetailsContent({ recipe, servings }: { recipe: Recipe; servings: number }) {
+  if (!recipe.nutrition && !recipe.ingredients) {
+    return (
+      <div style={DETAILS_STYLE}>
+        <p style={HINT_STYLE}>Keine Nährwertangaben und keine Zutaten hinterlegt</p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={DETAILS_STYLE}>
+      {recipe.ingredients && recipe.ingredients.length > 0 ? (
+        <div>
+          <p style={NUTRITION_LABEL_STYLE}>Zutaten</p>
+          {recipe.ingredients.map((ing, i) => (
+            <p key={i} style={INGREDIENT_STYLE}>
+              {scaledIngredient(ing.amount, ing.unit, servings, recipe.servings)} {ing.name}
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p style={HINT_STYLE}>Keine Zutaten hinterlegt</p>
+      )}
+
+      {recipe.nutrition && (
+        <div style={{ marginTop: 4 }}>
+          <p style={NUTRITION_LABEL_STYLE}>Nährwerte pro Portion</p>
+          <p style={INGREDIENT_STYLE}>
+            {Math.round(recipe.nutrition.kcal)} kcal · {Math.round(recipe.nutrition.protein)} g Eiweiß ·{" "}
+            {Math.round(recipe.nutrition.carbs)} g Kohlenhydrate · {Math.round(recipe.nutrition.fat)} g Fett
+          </p>
+          {servings !== recipe.servings && (
+            <p style={INGREDIENT_STYLE}>
+              Geplant: {fmtNum(servings)} Portion{servings === 1 ? "" : "en"} = {Math.round(recipe.nutrition.kcal * servings / recipe.servings)} kcal ·{" "}
+              {Math.round(recipe.nutrition.protein * servings / recipe.servings)} g Eiweiß
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function DayCard(props: DayCardProps) {
   const { dateISO, isToday, day, entries, recipes, recipesById, intolerances, busy, error } = props;
   const [openSlot, setOpenSlot] = useState<MealSlot | null>(null);
+  const [detailsSlot, setDetailsSlot] = useState<string | null>(null);
+  const [cookingRecipe, setCookingRecipe] = useState<{ recipe: Recipe; servings: number } | null>(null);
 
   const summary = useMemo(
     () =>
@@ -208,18 +290,38 @@ export function DayCard(props: DayCardProps) {
           >
             {entry ? "Tauschen" : "Wählen"}
           </button>
+          {entry && recipe && (
+            <>
+              <button
+                type="button"
+                style={BUTTON_STYLE}
+                aria-label={`${SLOT_LABELS[slot]}: Details`}
+                onClick={() => setDetailsSlot(detailsSlot === slot ? null : slot)}
+              >{detailsSlot === slot ? "Schließen" : "Details"}</button>
+              <button
+                type="button"
+                style={BUTTON_STYLE}
+                aria-label={`${SLOT_LABELS[slot]}: Kochen`}
+                onClick={() => setCookingRecipe({ recipe, servings: entry.servings })}
+              >Kochen</button>
+            </>
+          )}
           {entry && (
-            <button
-              type="button"
-              style={busy ? BUTTON_DISABLED_STYLE : BUTTON_STYLE}
-              disabled={busy}
-              aria-label={`${SLOT_LABELS[slot]}: entfernen`}
-              onClick={() => props.onRemove(dateISO, entry.id)}
-            >
-              Entfernen
-            </button>
+              <button
+                type="button"
+                style={busy ? BUTTON_DISABLED_STYLE : BUTTON_STYLE}
+                disabled={busy}
+                aria-label={`${SLOT_LABELS[slot]}: entfernen`}
+                onClick={() => props.onRemove(dateISO, entry.id)}
+              >
+                Entfernen
+              </button>
           )}
         </div>
+
+        {detailsSlot === slot && recipe && entry && (
+          <DetailsContent recipe={recipe} servings={entry.servings} />
+        )}
 
         {isOpen && (
           <div style={{ flexBasis: "100%" }}>
@@ -267,6 +369,7 @@ export function DayCard(props: DayCardProps) {
   }
 
   return (
+    <>
     <GlassCard style={{ padding: "20px 24px", marginBottom: 16 }}>
       <section aria-label={`Tag ${fmtDate(dateISO)}`}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 12 }}>
@@ -323,5 +426,12 @@ export function DayCard(props: DayCardProps) {
         </div>
       </section>
     </GlassCard>
-  );
+    {cookingRecipe && (
+      <CookingDialog
+        recipe={cookingRecipe.recipe}
+        servings={cookingRecipe.servings}
+        onClose={() => setCookingRecipe(null)}
+      />
+    )}
+  </>);
 }

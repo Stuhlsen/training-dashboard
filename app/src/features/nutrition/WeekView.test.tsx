@@ -302,3 +302,97 @@ describe("WeekView — Banner", () => {
     expect(screen.queryByText(/bitte wieder wiegen/)).toBeNull();
   });
 });
+
+/* ── Details/Kochen in DayCard (E7b) ───────────────────── */
+
+describe("WeekView — Rezept-Details", () => {
+  function recipeWithDetails(
+    id: string,
+    slot: MealSlot,
+    _kcal: number,
+    _protein: number,
+    ingredients: Recipe["ingredients"] = null,
+    instructions: Recipe["instructions"] = null,
+    nutrition: Recipe["nutrition"] = { kcal: 600, protein: 20, carbs: 80, fat: 15 },
+  ): Recipe {
+    return {
+      id,
+      status: "approved",
+      servings: 2,
+      title: `Rezept ${id}`,
+      mealType: [slot],
+      containsTags: [],
+      ingredients,
+      instructions,
+      nutrition,
+    } as unknown as Recipe;
+  }
+
+  function poolWithDetails(): Recipe[] {
+    const base = [
+      recipeWithDetails(
+        "breakfast-0",
+        "breakfast",
+        500,
+        25,
+        [{ name: "Haferflocken", amount: 80, unit: "g", category: "Getreide" }],
+        [{ text: "Haferflocken mit Wasser mischen" }],
+        { kcal: 500, protein: 25, carbs: 60, fat: 10 },
+      ),
+    ];
+    // Add 2 more breakfast options and all other slots
+    return [
+      ...base,
+      recipeWithDetails("breakfast-1", "breakfast", 550, 20),
+      recipeWithDetails("breakfast-2", "breakfast", 450, 30),
+      recipeWithDetails("lunch-0", "lunch", 800, 35),
+      recipeWithDetails("lunch-1", "lunch", 750, 40),
+      recipeWithDetails("lunch-2", "lunch", 850, 30),
+      recipeWithDetails("dinner-0", "dinner", 800, 35),
+      recipeWithDetails("dinner-1", "dinner", 750, 40),
+      recipeWithDetails("dinner-2", "dinner", 850, 30),
+      recipeWithDetails("snack-0", "snack", 200, 8),
+      recipeWithDetails("snack-1", "snack", 220, 10),
+      recipeWithDetails("snack-2", "snack", 180, 6),
+    ];
+  }
+
+  it("Details-Button zeigt Zutaten und Nährwerte", () => {
+    setWeek({ recipes: poolWithDetails(), entries: [entry("breakfast", "breakfast-0")] });
+    renderView();
+
+    // Details-Button click (use screen, not within, to avoid scoping issues)
+    fireEvent.click(screen.getByLabelText("Frühstück: Details"));
+
+    // Wait for re-render — the DetailsContent should now be in the DOM
+    expect(screen.getByText("Zutaten")).toBeTruthy();
+    // Use getAllByText with a function matcher for text spanning nodes
+    const matching = screen.getAllByText((_content: string, el: Element | null) => {
+      return (el?.textContent?.includes("g") || false) && (el?.textContent?.includes("Haferflocken") || false);
+    });
+    expect(matching.length).toBeGreaterThanOrEqual(1);
+    expect(matching.some((el) => el.textContent?.includes("40"))).toBe(true);
+    expect(screen.getByText(/Nährwerte pro Portion/)).toBeTruthy();
+    expect(screen.getAllByText(/25 g Eiweiß/).length).toBeGreaterThanOrEqual(2); // Zeile + Details
+  });
+
+  it("Details-Button toggle: zweiter Klick schließt", () => {
+    setWeek({ recipes: poolWithDetails(), entries: [entry("breakfast", "breakfast-0")] });
+    renderView();
+    const day = within(dayRegion());
+
+    fireEvent.click(day.getByLabelText("Frühstück: Details"));
+    expect(day.getByText("Zutaten")).toBeTruthy();
+
+    fireEvent.click(day.getByText("Schließen"));
+    expect(day.queryByText("Zutaten")).toBeNull();
+  });
+
+  it("Rezept ohne Zutaten zeigt dezenter Hinweis", () => {
+    setWeek({ recipes: poolWithDetails(), entries: [entry("lunch", "lunch-0")] });
+    renderView();
+    const day = within(dayRegion());
+    fireEvent.click(day.getByLabelText("Mittagessen: Details"));
+    expect(day.getByText("Keine Zutaten hinterlegt")).toBeTruthy();
+  });
+});
