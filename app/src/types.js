@@ -344,6 +344,9 @@ export {};
  * @property {true} ok
  * @property {number} target  finales Tagesziel (kcal), ggf. durch RED-S-Floor gecapped
  * @property {number} bmr  Grundumsatz (kcal)
+ * @property {"cunningham-1980"|"ten-haaf-2014"} formula  verwendete Grundumsatz-Formel
+ * @property {string[]} hints  Hinweise zur Unsicherheit der Formel (deutscher Wortlaut)
+ * @property {string|null} bodyFatDate  Datum des Körperfett-Werts (nur Cunningham), sonst null
  * @property {number} adjustment  Anpassung aus pace_per_week_kg (kcal), 0 wenn keine
  * @property {number|null} floor  RED-S-Floor (kcal), null wenn nicht berechenbar
  * @property {boolean} capped  true, wenn target durch RED-S-Floor angehoben wurde
@@ -361,6 +364,29 @@ export {};
  * @property {number|null} pacePerWeekKg
  * @property {string|null} targetDate
  * @property {string} createdAt
+ */
+
+/**
+ * Eintrag im Essensplan (meal_plan_entries, Migration 0064).
+ * @typedef {Object} MealPlanEntry
+ * @property {string} id
+ * @property {string} athleteId  Profil-UUID
+ * @property {string} date  ISO-Datum YYYY-MM-DD
+ * @property {"breakfast"|"lunch"|"dinner"|"snack"} mealSlot
+ * @property {string} recipeId
+ * @property {number} servings  > 0
+ * @property {string} createdAt
+ * @property {string} updatedAt
+ */
+
+/**
+ * Eingabe für einen Essensplan-Eintrag (Upsert auf athlete_id+date+meal_slot).
+ * @typedef {Object} MealPlanEntryInput
+ * @property {string} athleteId
+ * @property {string} date
+ * @property {"breakfast"|"lunch"|"dinner"|"snack"} mealSlot
+ * @property {string} recipeId
+ * @property {number} servings
  */
 
 /**

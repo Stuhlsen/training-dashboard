@@ -24,6 +24,9 @@ const BASE_NAV_ITEMS = [
   { to: "/app/log", label: "Fahrtenbuch" },
   { to: "/app/analysis", label: "Analyse" },
   { to: "/app/events", label: "Events" },
+  // Fahrplan 23 E29: für ALLE Athleten (nicht an hasCycling gebunden),
+  // hinter "Events", vor dem bedingten "Bike-Fit"
+  { to: "/app/nutrition", label: "Ernährung" },
 ];
 
 /** Gemeinsame Kopfzeile für alle Hauptseiten (Etappe 11a) — vorher nacktes

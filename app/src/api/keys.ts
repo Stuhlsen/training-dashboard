@@ -85,6 +85,15 @@ export const qk = {
   goals: (profileId: string) => ["goals", profileId] as const,
   /** Ernährung-Ziele (nutrition_goals, append-only). */
   nutritionGoals: (profileId: string) => ["nutrition-goals", profileId] as const,
+  /** Essensplan (meal_plan_entries, Migration 0064) des eingeloggten Profils
+   *  im Zeitraum [from, to]. Der Präfix `mealPlanAll` erlaubt, nach einem
+   *  Schreibzugriff alle Zeiträume eines Profils auf einmal zu invalidieren. */
+  mealPlanAll: (profileId: string) => ["meal-plan", profileId] as const,
+  mealPlan: (profileId: string, fromIso: string, toIso: string) =>
+    ["meal-plan", profileId, fromIso, toIso] as const,
+  /** Rezept-Pool (Tabelle recipes) je Status — gemeinsame Bibliothek, nicht
+   *  profilgebunden. */
+  recipes: (status: string) => ["recipes", status] as const,
   /** Formatkatalog + Aktiv-Status des eingeloggten Profils (Settings,
    *  Etappe 9) — anders als qk.ladderState() der VOLLE Katalog, nicht nur
    *  die aktiven Formate. */

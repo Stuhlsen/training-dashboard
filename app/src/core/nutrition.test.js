@@ -518,6 +518,42 @@ describe("estimateDailyGoal — Trainingsenergie der geplanten Einheit", () => {
   });
 });
 
+describe("estimateDailyGoal — Formel, Hinweise und Körperfett-Datum werden durchgereicht", () => {
+  const base = { weightKg: 80, heightCm: 180, age: 35, sex: "m" };
+
+  it("Körperfett nicht gemessen (null) → Ten-Haaf, kein Datum, keine Hinweise", () => {
+    const r = estimateDailyGoal({ profile: { ...base, bodyFat: null, bodyFatDate: null } });
+    expect(r.ok).toBe(true);
+    expect(r.formula).toBe("ten-haaf-2014");
+    expect(r.bmr).toBe(1949);
+    expect(r.bodyFatDate).toBeNull();
+    expect(r.hints).toEqual([]);
+    expect(r.bodyFatAssumed).toBe(true);
+  });
+
+  it("Körperfett fehlt ganz (undefined) → wie null", () => {
+    const r = estimateDailyGoal({ profile: base });
+    expect(r.formula).toBe("ten-haaf-2014");
+    expect(r.bodyFatDate).toBeNull();
+  });
+
+  it("gemessenes Körperfett → Cunningham, Datum steht in der Rückgabe", () => {
+    const r = estimateDailyGoal({ profile: { ...base, bodyFat: 0.12, bodyFatDate: "2026-10-10" } });
+    expect(r.formula).toBe("cunningham-1980");
+    expect(r.bodyFatDate).toBe("2026-10-10");
+    expect(r.hints).toEqual([]);
+  });
+
+  it("unbekanntes Geschlecht und Alter außerhalb 18–35 → beide Hinweise der Formel", () => {
+    const r = estimateDailyGoal({ profile: { ...base, sex: null, age: 40 } });
+    expect(r.formula).toBe("ten-haaf-2014");
+    expect(r.hints).toEqual([
+      "Formel wurde an 18- bis 35-Jährigen geprüft, hier unsicherer",
+      "Geschlecht fehlt, Schätzung ungenauer",
+    ]);
+  });
+});
+
 describe("Quellen-Schluessel bleiben synchron (kein Drift)", () => {
   it("jeder Wert in SOURCE_KEYS existiert in der Quellenliste", () => {
     for (const key of Object.values(SOURCE_KEYS)) {
