@@ -17,6 +17,8 @@ let updateHeightCmCalls: Array<{ userId: string; value: number | null }> = [];
 let updateWeightKgCalls: Array<{ userId: string; value: number | null }> = [];
 let updateHrMaxCalls: Array<{ userId: string; value: number | null }> = [];
 const updateSportsCalls: Array<{ userId: string; value: readonly string[] }> = [];
+const updateSexCalls: Array<{ userId: string; value: "m" | "f" | null }> = [];
+const updateIntolerancesCalls: Array<{ userId: string; value: string[] }> = [];
 
 vi.mock("../supabase/profiles", () => ({
   updateDisplayName: async (userId: string, name: string) => {
@@ -67,6 +69,14 @@ vi.mock("../supabase/profiles", () => ({
     updateSportsCalls.push({ userId, value });
     return { ok: true };
   },
+  updateSex: async (userId: string, value: "m" | "f" | null) => {
+    updateSexCalls.push({ userId, value });
+    return { ok: true };
+  },
+  updateIntolerances: async (userId: string, value: string[]) => {
+    updateIntolerancesCalls.push({ userId, value });
+    return { ok: true };
+  },
 }));
 
 let updatePasswordCalls: Array<{ currentPassword: string; newPassword: string }> = [];
@@ -94,6 +104,8 @@ const {
   useUpdateWeightKg,
   useUpdateHrMax,
   useUpdateSports,
+  useUpdateSex,
+  useUpdateIntolerances,
 } = await import("./useProfile");
 
 beforeEach(() => {
@@ -110,6 +122,8 @@ beforeEach(() => {
   updateHeightCmCalls = [];
   updateWeightKgCalls = [];
   updateHrMaxCalls = [];
+  updateSexCalls.length = 0;
+  updateIntolerancesCalls.length = 0;
 });
 
 describe("useUpdateDisplayName", () => {
@@ -417,5 +431,81 @@ describe("Profil-Basisdaten-Update-Hooks (Migration 0039, Fahrplan 17 E3)", () =
     });
     expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } });
     expect(updateHrMaxCalls).toEqual([]);
+  });
+});
+
+describe("useUpdateSex (Migration 0059/0068)", () => {
+  it("schreibt m und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateSex(), { wrapper });
+    await act(async () => {
+      await view.result.current.update("m");
+    });
+    expect(updateSexCalls).toEqual([{ userId: "user-1", value: "m" }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).sex).toBe("m");
+  });
+
+  it("ohne Session -> Fehler, kein Aufruf", async () => {
+    const { wrapper } = createHarness({ userId: null });
+    const view = renderHook(() => useUpdateSex(), { wrapper });
+    let result;
+    await act(async () => {
+      result = await view.result.current.update("m");
+    });
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } });
+    expect(updateSexCalls).toEqual([]);
+  });
+});
+
+describe("useUpdateIntolerances (Migration 0059/0068)", () => {
+  it("schreibt gültige Keys und aktualisiert den profileBasics-Cache", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateIntolerances(), { wrapper });
+    await act(async () => {
+      await view.result.current.update(["gluten", "milk"]);
+    });
+    expect(updateIntolerancesCalls).toEqual([{ userId: "user-1", value: ["gluten", "milk"] }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).intolerances).toEqual([
+      "gluten",
+      "milk",
+    ]);
+  });
+
+  it("lehrt unbekannte Keys ab und ruft den Adapter nicht auf", async () => {
+    const { wrapper } = createHarness({ userId: "user-1" });
+    const view = renderHook(() => useUpdateIntolerances(), { wrapper });
+    let result: Record<string, unknown> = undefined!;
+    await act(async () => {
+      result = await view.result.current.update(["unknown-key"]);
+    });
+    expect(result.ok).toBe(false);
+    expect(updateIntolerancesCalls).toEqual([]);
+  });
+
+  it("speichert leeres Array als 'keine'", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], BASELINE_BASICS);
+
+    const view = renderHook(() => useUpdateIntolerances(), { wrapper });
+    await act(async () => {
+      await view.result.current.update([]);
+    });
+    expect(updateIntolerancesCalls).toEqual([{ userId: "user-1", value: [] }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).intolerances).toEqual([]);
+  });
+
+  it("ohne Session -> Fehler, kein Aufruf", async () => {
+    const { wrapper } = createHarness({ userId: null });
+    const view = renderHook(() => useUpdateIntolerances(), { wrapper });
+    let result;
+    await act(async () => {
+      result = await view.result.current.update(["gluten"]);
+    });
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } });
+    expect(updateIntolerancesCalls).toEqual([]);
   });
 });

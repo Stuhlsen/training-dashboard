@@ -350,19 +350,23 @@ export function NutritionStep({ onComplete }: NutritionStepProps) {
         )}
       </div>
 
-      {/* Weiter-Button (kein Skip — dieser Schritt ist Pflicht) */}
+      {/* Weiter-Button (kein Skip — dieser Schritt ist Pflicht).
+          Deaktiviert, solange die Höhe fehlt oder ein Fehler
+          angezeigt wird (Höhe ist per Issue-Vorgabe Pflicht). */}
       <div style={{ display: "flex", gap: 10, marginTop: 20 }}>
         <button
           type="button"
           onClick={onComplete}
+          disabled={heightText.trim() === "" || heightError !== ""}
           style={{
             padding: "9px 18px",
             borderRadius: "var(--pill)",
             border: "none",
-            background: "var(--ss)",
-            color: "#17110a",
+            background: heightText.trim() === "" || heightError !== "" ? "var(--hair)" : "var(--ss)",
+            color: heightText.trim() === "" || heightError !== "" ? "var(--ink-3)" : "#17110a",
             fontWeight: 600,
-            cursor: "pointer",
+            cursor: heightText.trim() === "" || heightError !== "" ? "default" : "pointer",
+            opacity: heightText.trim() === "" || heightError !== "" ? 0.5 : 1,
           }}
         >
           Weiter

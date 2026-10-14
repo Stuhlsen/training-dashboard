@@ -72,7 +72,7 @@ function validateGoalInput(input: NutritionGoalInput): string | null {
 export async function getActiveNutritionGoal(
   profileId: string,
 ): Promise<Result<{ goal: NutritionGoal | null }>> {
-  if (!supabase) return { ok: true, goal: null };
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("nutrition_goals")
