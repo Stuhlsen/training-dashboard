@@ -9,7 +9,12 @@ const path = require("node:path");
 function makeJwt(sub, secret, expOffsetSec = 3600) {
   const header = Buffer.from(JSON.stringify({ alg: "HS256", typ: "JWT" })).toString("base64url");
   const payload = Buffer.from(
-    JSON.stringify({ sub, exp: Math.floor(Date.now() / 1000) + expOffsetSec })
+    JSON.stringify({
+      sub,
+      aud: "authenticated",
+      role: "authenticated",
+      exp: Math.floor(Date.now() / 1000) + expOffsetSec,
+    })
   ).toString("base64url");
   const signature = crypto.createHmac("sha256", secret).update(`${header}.${payload}`).digest("base64url");
   return `${header}.${payload}.${signature}`;
