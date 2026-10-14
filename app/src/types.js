@@ -398,4 +398,14 @@ export {};
  * @property {string|null} [targetDate]
  */
 
+/**
+ * Ein Koch-Timer (E7a).
+ * @typedef {Object} CookTimer
+ * @property {string} id          Eindeutige ID
+ * @property {string} label       Anzeigetext (z. B. "Nudeln kochen")
+ * @property {number} durationSeconds  Dauer in Sekunden
+ * @property {number} [endAt]     Unix-Timestamp (ms) des Ablaufzeitpunkts.
+ *                                Fehlt bei UNSTARTED (nach resetTimer).
+ */
+
 export {};

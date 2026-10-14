@@ -14,6 +14,8 @@ import { useAthleteSports } from "../api/hooks/useAthleteSports";
 // hooks/-Schicht: darf api/ laden (AGENTS.md). Damit muss UserMenu (components/)
 // den Namen nicht selbst aus api/hooks holen — bekommt ihn als Prop.
 import { useAccountLabel } from "../hooks/account-label";
+import { CookTimerProvider } from "./CookTimerProvider";
+import { RunningTimersBar } from "./RunningTimersBar";
 
 /** "Settings" bewusst NICHT hier — sitzt rechts bei den User-Funktionen
  *  (Abmelden/Anmelden), nicht bei den Inhalts-Tabs (Review-Kommentar,
@@ -50,52 +52,55 @@ export function Layout() {
   ];
 
   return (
-    <div>
-      <header className="app-header">
-        <nav className="app-header-nav">
-          <EnvBadge />
-          {navItems.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              style={({ isActive }) => ({
-                ...PILL_BUTTON_STYLE,
-                background: isActive ? "rgba(255,255,255,0.14)" : "transparent",
-                color: isActive ? "var(--ink)" : "var(--ink-3)",
-              })}
-            >
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
-        <div className="app-header-toggles">
-          <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
-          <SportToggle athleteId={activeAthleteId} />
-        </div>
-        <div className="app-header-actions">
-          {session ? (
-            // Name + Dropdown (Einstellungen / Abmelden) statt separater
-            // "Settings"-Pille — s. UserMenu.tsx.
-            <UserMenu label={accountLabel} onSignOut={() => void signOut()} />
-          ) : (
-            <NavLink
-              to="/app/login"
-              style={({ isActive }) => ({
-                ...PILL_BUTTON_STYLE,
-                background: isActive ? "rgba(255,255,255,0.14)" : "var(--hair)",
-                color: "var(--ink)",
-              })}
-            >
-              Anmelden
-            </NavLink>
-          )}
-        </div>
-      </header>
-      <main>
-        <Outlet />
-      </main>
-      <Footer />
-    </div>
+    <CookTimerProvider userId={session?.user?.id ?? null}>
+      <div>
+        <header className="app-header">
+          <nav className="app-header-nav">
+            <EnvBadge />
+            {navItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                style={({ isActive }) => ({
+                  ...PILL_BUTTON_STYLE,
+                  background: isActive ? "rgba(255,255,255,0.14)" : "transparent",
+                  color: isActive ? "var(--ink)" : "var(--ink-3)",
+                })}
+              >
+                {item.label}
+              </NavLink>
+            ))}
+          </nav>
+          <div className="app-header-toggles">
+            <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
+            <SportToggle athleteId={activeAthleteId} />
+          </div>
+          <div className="app-header-actions">
+            {session ? (
+              // Name + Dropdown (Einstellungen / Abmelden) statt separater
+              // "Settings"-Pille — s. UserMenu.tsx.
+              <UserMenu label={accountLabel} onSignOut={() => void signOut()} />
+            ) : (
+              <NavLink
+                to="/app/login"
+                style={({ isActive }) => ({
+                  ...PILL_BUTTON_STYLE,
+                  background: isActive ? "rgba(255,255,255,0.14)" : "var(--hair)",
+                  color: "var(--ink)",
+                })}
+              >
+                Anmelden
+              </NavLink>
+            )}
+          </div>
+        </header>
+        <RunningTimersBar />
+        <main>
+          <Outlet />
+        </main>
+        <Footer />
+      </div>
+    </CookTimerProvider>
   );
 }
