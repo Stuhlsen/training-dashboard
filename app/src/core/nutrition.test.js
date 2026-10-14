@@ -709,6 +709,12 @@ describe("weightMissingHint", () => {
     expect(hint).toMatch(/vor 8 Tagen/);
   });
 
+  it("nennt das Datum des letzten Eintrags als DD.MM.JJJJ (nicht ISO)", () => {
+    const hint = weightMissingHint([{ date: "2026-09-06", weight: 78.5 }], today);
+    expect(hint).toMatch(/am 06\.09\.2026 \(vor 32 Tagen\)/);
+    expect(hint).not.toMatch(/2026-09-06/);
+  });
+
   it("weight entry 14 days ago → hint with correct day count", () => {
     const w = [{ date: "2026-09-24", weight: 79.0 }];
     const hint = weightMissingHint(w, today);

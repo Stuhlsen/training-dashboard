@@ -12,6 +12,7 @@
    ============================================================ */
 
 import { estimateRestingEnergy, rideKJ } from "./body.js";
+import { fmtDateFull } from "./format.js";
 import { normalizeAllergenKeys } from "./nutrition-taxonomy.js";
 import { SOURCE_KEYS } from "./nutrition-sources.js";
 
@@ -480,7 +481,7 @@ export function weightMissingHint(wellness, todayISO) {
 
   // "Mehr als 7 Tage": > 7
   if (daysSince > 7) {
-    return `Letzter Gewichtseintrag am ${latestWeightDate} (vor ${daysSince} Tagen) — bitte wieder wiegen.`;
+    return `Letzter Gewichtseintrag am ${fmtDateFull(latestWeightDate)} (vor ${daysSince} Tagen) — bitte wieder wiegen.`;
   }
 
   return null;
