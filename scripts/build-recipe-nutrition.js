@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 import { buildAll, explainIngredients, validateIngredientTable } from "./lib/recipe-nutrition.js";
 import { coverageReport, mixReport, SLOTS } from "./lib/recipe-coverage.js";
 import { validateRecipes } from "./lib/validate-recipe.js";
+import { log } from "./lib/log.js";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DEFAULT_TABLE = path.join(here, "lib", "ingredient-nutrition.json");
@@ -89,30 +90,30 @@ export function renderSamples(titles, sources, recipes, table) {
 function printReport(recipes, sources) {
   const meta = new Map(sources.map((s) => [s.title, s]));
   const mix = mixReport(recipes, meta);
-  console.log(`\nRezepte: ${mix.count}`);
-  console.log(
+  log.info(`\nRezepte: ${mix.count}`);
+  log.info(
     `Slots (Mehrfachzugehörigkeit zählt je Slot): ${SLOTS.map((s) => `${s} ${mix.slots[s]}`).join(", ")}`
   );
-  console.log(
+  log.info(
     `Vegetarisch/vegan ${pct(mix.vegOrVegan)} · glutenfrei ${pct(mix.glutenFree)} · laktosefrei ${pct(mix.lactoseFree)}`
   );
-  console.log(`Höchstens 30 Min ${pct(mix.quick30)} · radsportspezifisch ${pct(mix.cycling)}`);
+  log.info(`Höchstens 30 Min ${pct(mix.quick30)} · radsportspezifisch ${pct(mix.cycling)}`);
   const cov = coverageReport(recipes);
-  console.log("\nAbdeckung nach Allergen-Filter (Rezepte je Slot):");
-  console.log(
+  log.info("\nAbdeckung nach Allergen-Filter (Rezepte je Slot):");
+  log.info(
     `  ${"ohne Filter".padEnd(14)}${SLOTS.map((s) => String(cov.total[s]).padStart(10)).join("")}`
   );
   for (const [key, counts] of Object.entries(cov.perAllergen)) {
-    console.log(`  ${key.padEnd(14)}${SLOTS.map((s) => String(counts[s]).padStart(10)).join("")}`);
+    log.info(`  ${key.padEnd(14)}${SLOTS.map((s) => String(counts[s]).padStart(10)).join("")}`);
   }
-  console.log(`  (Spalten: ${SLOTS.join(", ")})`);
+  log.info(`  (Spalten: ${SLOTS.join(", ")})`);
   return cov.shortfalls;
 }
 
 function main() {
   const args = parseArgs(process.argv.slice(2));
   if (!args.in) {
-    console.error("Fehlt: --in <quelle.json>");
+    log.error("Fehlt: --in <quelle.json>");
     process.exit(1);
   }
   const table = readJson(args.table ?? DEFAULT_TABLE);
@@ -121,11 +122,11 @@ function main() {
   const { recipes, errors } = buildAll(sources, table);
   const validation = recipes.length > 0 ? validateRecipes(recipes) : { ok: true };
   const problems = [...tableErrors, ...errors, ...(validation.ok ? [] : validation.errors)];
-  problems.forEach((p) => console.error(`FEHLER: ${p}`));
+  problems.forEach((p) => log.error(`FEHLER: ${p}`));
   if (problems.length > 0) process.exit(1);
 
   const shortfalls = printReport(recipes, sources);
-  shortfalls.forEach((s) => console.error(`ABDECKUNG: ${s}`));
+  shortfalls.forEach((s) => log.error(`ABDECKUNG: ${s}`));
 
   if (args.out) fs.writeFileSync(args.out, `${JSON.stringify(recipes, null, 2)}\n`);
   if (args.samples) {
