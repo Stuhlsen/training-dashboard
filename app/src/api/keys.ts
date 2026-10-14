@@ -83,6 +83,8 @@ export const qk = {
   ftpHistory: (profileId: string) => ["ftp-history", profileId] as const,
   /** Aktive Ziele des eingeloggten Profils (Settings, Etappe 9). */
   goals: (profileId: string) => ["goals", profileId] as const,
+  /** Ernährung-Ziele (nutrition_goals, append-only). */
+  nutritionGoals: (profileId: string) => ["nutrition-goals", profileId] as const,
   /** Formatkatalog + Aktiv-Status des eingeloggten Profils (Settings,
    *  Etappe 9) — anders als qk.ladderState() der VOLLE Katalog, nicht nur
    *  die aktiven Formate. */

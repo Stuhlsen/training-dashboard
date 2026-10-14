@@ -1,9 +1,10 @@
-/* Tests: OnboardingWizard (Fahrplan 21 E4) — Schritt-Reihenfolge.
- * Passwort (Pflicht) → Sportarten (Pflicht, neu, Q8 kein Skip) →
- * Profil-Basisdaten (überspringbar) → intervals.icu-Key (überspringbar).
- * Wir mocken die vier Schritt-Komponenten und prüfen, dass der Wizard
+/* Tests: OnboardingWizard (Fahrplan 21 E4 + Fahrplan 23 E5) — Schritt-Reihenfolge.
+ * Passwort (Pflicht) → Sportarten (Pflicht, Q8 kein Skip) →
+ * Profil-Basisdaten (überspringbar) → Ernährung (Pflicht, kein Skip) →
+ * intervals.icu-Key (überspringbar).
+ * Wir mocken die Schritt-Komponenten und prüfen, dass der Wizard
  * nach jedem onComplete den erwarteten nächsten Schritt mountet und dass
- * der Sports-Schritt bewusst KEIN onSkip erhält. */
+ * Sports- und Nutrition-Schritte bewusst KEIN onSkip erhalten. */
 
 import { render, screen, act } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
@@ -53,6 +54,14 @@ vi.mock("../settings/IntervalsSection", () => ({
   )),
 }));
 
+vi.mock("./NutritionStep", () => ({
+  NutritionStep: makeStepMock("nutrition", (p) => (
+    <div data-testid="step-nutrition">
+      <button onClick={() => p.onComplete?.()}>complete-nutrition</button>
+    </div>
+  )),
+}));
+
 const { OnboardingWizard } = await import("./OnboardingWizard");
 
 describe("OnboardingWizard step order (Fahrplan 21 E4)", () => {
@@ -60,6 +69,7 @@ describe("OnboardingWizard step order (Fahrplan 21 E4)", () => {
     captured.password = {};
     captured.sports = {};
     captured.profile = {};
+    captured.nutrition = {};
     captured.intervals = {};
   });
 
@@ -92,7 +102,7 @@ describe("OnboardingWizard step order (Fahrplan 21 E4)", () => {
     expect(typeof captured.profile.onSkip).toBe("function");
   });
 
-  it("zeigt nach Profil den intervals.icu-Schritt", () => {
+  it("zeigt nach Profil den Ernährungs-Schritt (Pflicht, KEIN onSkip)", () => {
     render(<OnboardingWizard onFinished={() => {}} />);
     act(() => {
       captured.password.onComplete?.();
@@ -102,6 +112,26 @@ describe("OnboardingWizard step order (Fahrplan 21 E4)", () => {
     });
     act(() => {
       captured.profile.onComplete?.();
+    });
+    expect(screen.getByTestId("step-nutrition")).toBeTruthy();
+    // E5: Nutrition-Schritt darf kein onSkip bekommen (Pflicht).
+    expect(captured.nutrition.onSkip).toBeUndefined();
+    expect(typeof captured.nutrition.onComplete).toBe("function");
+  });
+
+  it("zeigt nach Ernährung den intervals.icu-Schritt", () => {
+    render(<OnboardingWizard onFinished={() => {}} />);
+    act(() => {
+      captured.password.onComplete?.();
+    });
+    act(() => {
+      captured.sports.onComplete?.();
+    });
+    act(() => {
+      captured.profile.onComplete?.();
+    });
+    act(() => {
+      captured.nutrition.onComplete?.();
     });
     expect(screen.getByTestId("step-intervals")).toBeTruthy();
   });
@@ -119,12 +149,15 @@ describe("OnboardingWizard step order (Fahrplan 21 E4)", () => {
       captured.profile.onComplete?.();
     });
     act(() => {
+      captured.nutrition.onComplete?.();
+    });
+    act(() => {
       captured.intervals.onComplete?.();
     });
     expect(onFinished).toHaveBeenCalledTimes(1);
   });
 
-  it("ruft onFinished nach dem intervals-Schritt (skip)", () => {
+  it("ruft onFinished nach dem intervals-Schritt (skip, nutrition always passes through)", () => {
     const onFinished = vi.fn();
     render(<OnboardingWizard onFinished={onFinished} />);
     act(() => {
@@ -135,6 +168,10 @@ describe("OnboardingWizard step order (Fahrplan 21 E4)", () => {
     });
     act(() => {
       captured.profile.onSkip?.();
+    });
+    // Nutrition-Schritt ist Pflicht — muss durchlaufen werden
+    act(() => {
+      captured.nutrition.onComplete?.();
     });
     act(() => {
       captured.intervals.onSkip?.();

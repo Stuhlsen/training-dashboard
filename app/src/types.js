@@ -348,4 +348,25 @@ export {};
  * @property {string} note  beschreibender Text
  */
 
+/**
+ * Ernährungsziel (nutrition_goals, append-only).
+ * @typedef {Object} NutritionGoal
+ * @property {string} id
+ * @property {string} profileId
+ * @property {"lose"|"gain"|"maintain"} goalType
+ * @property {number|null} targetWeightKg
+ * @property {number|null} pacePerWeekKg
+ * @property {string|null} targetDate
+ * @property {string} createdAt
+ */
+
+/**
+ * Eingabe für ein neues Ernährungsziel.
+ * @typedef {Object} NutritionGoalInput
+ * @property {"lose"|"gain"|"maintain"} goalType
+ * @property {number|null} [targetWeightKg]
+ * @property {number|null} [pacePerWeekKg]
+ * @property {string|null} [targetDate]
+ */
+
 export {};

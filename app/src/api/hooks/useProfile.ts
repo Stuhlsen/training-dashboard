@@ -25,6 +25,8 @@ import {
   updateHeightCm as updateHeightCmAdapter,
   updateWeightKg as updateWeightKgAdapter,
   updateHrMax as updateHrMaxAdapter,
+  updateSex as updateSexAdapter,
+  updateIntolerances as updateIntolerancesAdapter,
   getProfileBasics,
 } from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter, setInitialPassword as setInitialPasswordAdapter } from "../supabase/auth";
@@ -446,6 +448,71 @@ export function useUpdateHrMax() {
 
   const update = useCallback(
     async (value: number | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+/** Migration 0059/0068 — biologisches Geschlecht für RED-S-Formel. */
+export function useUpdateSex() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: "m" | "f" | null) => {
+      unwrap(await updateSexAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, sex: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: "m" | "f" | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+/** Migration 0059/0068 — EU-Allergen-Intoleranzen.
+ *  Validiert keys gegen isValidAllergenKey VOR dem Schreiben (Schichtenregel:
+ *  api/ darf keine core/-Importe zur Laufzeit — hier in der Hook-Schicht
+ *  ist der Import erlaubt). Unbekannte Keys werden abgewiesen, nicht still
+ *  ignoriert. Leeres Array = "keine" (E21). */
+export function useUpdateIntolerances() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: string[]) => {
+      // Validierung VOR dem Schreiben — unbekannte Keys ablehnen
+      const { isValidAllergenKey } = await import("../../core/nutrition-taxonomy.js");
+      for (const k of value) {
+        if (!isValidAllergenKey(k)) {
+          throw new Error(`Unbekannter Allergen-Key: "${k}"`);
+        }
+      }
+      unwrap(await updateIntolerancesAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, intolerances: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: string[]): Promise<Result> => {
       if (!userId) return { ok: false, error: NOT_LOGGED_IN };
       return catchResult(() => mutation.mutateAsync(value));
     },

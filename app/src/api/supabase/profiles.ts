@@ -201,6 +201,8 @@ interface ProfileOwnRow {
   weight_kg: number | string | null;
   hr_max: number | null;
   updated_at: string;
+  sex: ProfileOwnFields["sex"];
+  intolerances: ProfileOwnFields["intolerances"];
 }
 
 function toProfileOwnFields(row: ProfileOwnRow): ProfileOwnFields {
@@ -214,6 +216,8 @@ function toProfileOwnFields(row: ProfileOwnRow): ProfileOwnFields {
     weightKg: row.weight_kg == null ? null : Number(row.weight_kg),
     hrMax: row.hr_max,
     updatedAt: row.updated_at,
+    sex: row.sex,
+    intolerances: row.intolerances ?? [],
   };
 }
 
@@ -227,7 +231,7 @@ export async function getProfileBasics(): Promise<Result<{ basics: ProfileOwnFie
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("profiles_own")
-    .select("id, has_password, birthdate, resting_hr, gender, height_cm, weight_kg, hr_max, updated_at")
+    .select("id, has_password, birthdate, resting_hr, gender, height_cm, weight_kg, hr_max, updated_at, sex, intolerances")
     .single<ProfileOwnRow>();
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true, basics: toProfileOwnFields(data) };
@@ -281,6 +285,31 @@ export async function updateHrMax(userId: string, value: number | null): Promise
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
   const { error } = await client.from("profiles").update({ hr_max: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+/** Migration 0059/0068 (Fahrplan 23 E5) — biologisches Geschlecht für die
+ *  RED-S-Formel. Schreiben auf der Basistabelle wie die übrigen Self-Service-
+ *  Felder; RLS lässt nur die eigene Zeile zu. "Keine Angabe" → null (E20). */
+export async function updateSex(userId: string, value: "m" | "f" | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ sex: value }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+/** Migration 0059/0068 (Fahrplan 23 E5) — EU-Allergen-Intoleranzen.
+ *  Validiert keys gegen core/nutrition-taxonomy.js::isValidAllergenKey
+ *  VOR dem Schreiben; unbekannte Keys werden abgewiesen (nicht still
+ *  ignoriert). Leeres Array → gespeichert als '{}' (E21).
+ *  Validierung erfolgt in der rufenden Hook-Schicht (useProfile.ts),
+ *  da api/ keine core/-Importe zur Laufzeit tätigen darf (Schichtenregel). */
+export async function updateIntolerances(userId: string, keys: string[]): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ intolerances: keys }).eq("id", userId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };
 }

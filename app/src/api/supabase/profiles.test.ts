@@ -29,6 +29,8 @@ const {
   updateWeightKg,
   updateHrMax,
   updateSports,
+  updateSex,
+  updateIntolerances,
 } = await import("./profiles");
 
 describe("updateUnitsPreference", () => {
@@ -229,6 +231,57 @@ describe("Profil-Basisdaten-Updates (Migration 0039, Fahrplan 17 E3)", () => {
   });
 });
 
+describe("updateSex (Migration 0059/0068)", () => {
+  it("schreibt sex für die eigene Zeile (m)", async () => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateSex("profile-1", "m");
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ sex: "m" });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+
+  it("schreibt sex als null (Keine Angabe)", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateSex("profile-1", null);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ sex: null });
+  });
+});
+
+describe("updateIntolerances (Migration 0059/0068)", () => {
+  it("schreibt ein Array von Intoleranzen für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateIntolerances("profile-1", ["gluten", "milk"]);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ intolerances: ["gluten", "milk"] });
+  });
+
+  it("schreibt leeres Array als {} (keine Intoleranzen)", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateIntolerances("profile-1", []);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ intolerances: [] });
+  });
+});
+
 describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
   it("liest die eigene Zeile über profiles_own, ohne zusätzlichen Filter (RLS filtert serverseitig auf auth.uid())", async () => {
     let seenTable = "";
@@ -245,6 +298,8 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
           weight_kg: "74.5",
           hr_max: 201,
           updated_at: "2026-09-01T00:00:00Z",
+          sex: "f",
+          intolerances: ["gluten", "milk"],
         },
         error: null,
       };
@@ -262,7 +317,26 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
         weightKg: 74.5,
         hrMax: 201,
         updatedAt: "2026-09-01T00:00:00Z",
+        sex: "f",
+        intolerances: ["gluten", "milk"],
       },
     });
+  });
+
+  it("getProfileBasics: fehlendes sex bleibt null, fehlende intolerances werden []", async () => {
+    fakeClient.handlers.profiles_own = () => ({
+      data: {
+        id: "self-1", has_password: true, birthdate: null, resting_hr: null, gender: null,
+        height_cm: null, weight_kg: null, hr_max: null, updated_at: "2026-09-01T00:00:00Z",
+        sex: null, intolerances: null,
+      },
+      error: null,
+    });
+    const result = await getProfileBasics();
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.basics.sex).toBeNull();
+      expect(result.basics.intolerances).toEqual([]);
+    }
   });
 });

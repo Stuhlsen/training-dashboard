@@ -18,9 +18,10 @@ import { GlassCard } from "../../components/GlassCard";
 import { SetPasswordStep } from "./SetPasswordStep";
 import { SportsSection } from "../settings/SportsSection";
 import { ProfileBasicsSection } from "../settings/ProfileBasicsSection";
+import { NutritionStep } from "./NutritionStep";
 import { IntervalsSection } from "../settings/IntervalsSection";
 
-type Step = "password" | "sports" | "profile" | "intervals";
+type Step = "password" | "sports" | "profile" | "nutrition" | "intervals";
 
 export interface OnboardingWizardProps {
   onFinished: () => void;
@@ -58,8 +59,9 @@ export function OnboardingWizard({ onFinished }: OnboardingWizardProps) {
           <SportsSection onComplete={() => setStep("profile")} />
         )}
         {step === "profile" && (
-          <ProfileBasicsSection onComplete={() => setStep("intervals")} onSkip={() => setStep("intervals")} />
+          <ProfileBasicsSection onComplete={() => setStep("nutrition")} onSkip={() => setStep("nutrition")} />
         )}
+        {step === "nutrition" && <NutritionStep onComplete={() => setStep("intervals")} />}
         {step === "intervals" && <IntervalsSection onComplete={onFinished} onSkip={onFinished} />}
       </GlassCard>
     </div>
