@@ -457,7 +457,7 @@ export function useUpdateHrMax() {
   return { update, isPending: mutation.isPending };
 }
 
-/** Migration 0059/0067 — biologisches Geschlecht für RED-S-Formel. */
+/** Migration 0059/0068 — biologisches Geschlecht für RED-S-Formel. */
 export function useUpdateSex() {
   const queryClient = useQueryClient();
   const userId = useAuthUserId();
@@ -484,7 +484,11 @@ export function useUpdateSex() {
   return { update, isPending: mutation.isPending };
 }
 
-/** Migration 0059/0067 — EU-Allergen-Intoleranzen. */
+/** Migration 0059/0068 — EU-Allergen-Intoleranzen.
+ *  Validiert keys gegen isValidAllergenKey VOR dem Schreiben (Schichtenregel:
+ *  api/ darf keine core/-Importe zur Laufzeit — hier in der Hook-Schicht
+ *  ist der Import erlaubt). Unbekannte Keys werden abgewiesen, nicht still
+ *  ignoriert. Leeres Array = "keine" (E21). */
 export function useUpdateIntolerances() {
   const queryClient = useQueryClient();
   const userId = useAuthUserId();
@@ -492,6 +496,13 @@ export function useUpdateIntolerances() {
 
   const mutation = useMutation({
     mutationFn: async (value: string[]) => {
+      // Validierung VOR dem Schreiben — unbekannte Keys ablehnen
+      const { isValidAllergenKey } = await import("../../core/nutrition-taxonomy.js");
+      for (const k of value) {
+        if (!isValidAllergenKey(k)) {
+          throw new Error(`Unbekannter Allergen-Key: "${k}"`);
+        }
+      }
       unwrap(await updateIntolerancesAdapter(userId!, value));
       return { value };
     },

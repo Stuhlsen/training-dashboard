@@ -289,7 +289,7 @@ export async function updateHrMax(userId: string, value: number | null): Promise
   return { ok: true };
 }
 
-/** Migration 0059/0067 (Fahrplan 23 E5) — biologisches Geschlecht für die
+/** Migration 0059/0068 (Fahrplan 23 E5) — biologisches Geschlecht für die
  *  RED-S-Formel. Schreiben auf der Basistabelle wie die übrigen Self-Service-
  *  Felder; RLS lässt nur die eigene Zeile zu. "Keine Angabe" → null (E20). */
 export async function updateSex(userId: string, value: "m" | "f" | null): Promise<Result> {
@@ -300,22 +300,14 @@ export async function updateSex(userId: string, value: "m" | "f" | null): Promis
   return { ok: true };
 }
 
-/** Migration 0059/0067 (Fahrplan 23 E5) — EU-Allergen-Intoleranzen.
+/** Migration 0059/0068 (Fahrplan 23 E5) — EU-Allergen-Intoleranzen.
  *  Validiert keys gegen core/nutrition-taxonomy.js::isValidAllergenKey
  *  VOR dem Schreiben; unbekannte Keys werden abgewiesen (nicht still
- *  ignoriert). Leeres Array → gespeichert als '{}' (E21). */
+ *  ignoriert). Leeres Array → gespeichert als '{}' (E21).
+ *  Validierung erfolgt in der rufenden Hook-Schicht (useProfile.ts),
+ *  da api/ keine core/-Importe zur Laufzeit tätigen darf (Schichtenregel). */
 export async function updateIntolerances(userId: string, keys: string[]): Promise<Result> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
-  // Import dynamic (ESM) — core/nutrition-taxonomy.js ist ein JS-Modul.
-  const { isValidAllergenKey } = await import("../../core/nutrition-taxonomy.js");
-  for (const k of keys) {
-    if (!isValidAllergenKey(k)) {
-      return {
-        ok: false,
-        error: { code: "SCHEMA" as const, message: `Unbekannter Allergen-Key: "${k}"` },
-      };
-    }
-  }
   const client = (await getAuthedClient()) ?? supabase;
   const { error } = await client.from("profiles").update({ intolerances: keys }).eq("id", userId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };

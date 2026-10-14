@@ -7,17 +7,16 @@
    Werte werden für die spätere Nährstoffberechnung gebraucht.
 
    Felder:
-   - Körpergröße (nur Anzeige, aus ProfileBasicsSection übernommen)
+   - Körpergröße (editierbar, prefilled aus ProfileBasicsSection)
    - Geschlecht für Berechnung (m/f/Keine Angabe)
    - Intoleranzen (Multi-Select aus core/nutrition-taxonomy.js)
    - Optional: Ernährungsziel (append-only)
 
-   Höhe wurde bereits im ProfileBasicsSection-Schritt erfasst und
-   wird hier nur angezeigt — kein zweites Eingabefeld.
+   Höhe wird hier editierbar angeboten (schreibt über updateHeightCm).
    ============================================================ */
 
 import { useState } from "react";
-import { useProfileBasics, useUpdateSex, useUpdateIntolerances } from "../../api/hooks/useProfile";
+import { useProfileBasics, useUpdateSex, useUpdateIntolerances, useUpdateHeightCm } from "../../api/hooks/useProfile";
 import { useAddNutritionGoal } from "../../api/hooks/useNutritionGoals";
 import { ALLERGEN_TAXONOMY } from "../../core/nutrition-taxonomy.js";
 import {
@@ -36,7 +35,13 @@ export function NutritionStep({ onComplete }: NutritionStepProps) {
   const { update: saveSex, isPending: sexPending } = useUpdateSex();
   const { update: saveIntolerances, isPending: intolerancesPending } = useUpdateIntolerances();
   const { add: saveGoal, isPending: goalPending } = useAddNutritionGoal();
+  const { update: saveHeightCm, isPending: heightPending } = useUpdateHeightCm();
 
+  // Eingabe des Nutzers; null = noch nicht angefasst, dann gilt der geladene Wert
+  const [heightEdit, setHeightEdit] = useState<string | null>(null);
+  const heightText =
+    heightEdit ?? (basics?.heightCm == null ? "" : String(basics.heightCm));
+  const [heightError, setHeightError] = useState("");
   const [sexError, setSexError] = useState("");
   const [goalOpen, setGoalOpen] = useState(false);
   const [goalType, setGoalType] = useState<NutritionGoalInput["goalType"]>("maintain");
@@ -44,6 +49,26 @@ export function NutritionStep({ onComplete }: NutritionStepProps) {
   const [pacePerWeek, setPacePerWeek] = useState("");
   const [targetDate, setTargetDate] = useState("");
   const [goalError, setGoalError] = useState("");
+
+  async function handleHeightBlur(eventTargetValue: string) {
+    setHeightError("");
+    const raw = eventTargetValue.trim();
+    if (raw === "") {
+      setHeightError("Körpergröße ist erforderlich.");
+      return;
+    }
+    const parsed = Number(raw);
+    if (Number.isNaN(parsed) || parsed < 100 || parsed > 250) {
+      setHeightError("Bitte eine gültige Größe zwischen 100 und 250 cm eingeben.");
+      return;
+    }
+    // Sync state to the validated value for visual consistency
+    setHeightEdit(raw);
+    const result = await saveHeightCm(parsed);
+    if (!result.ok) {
+      setHeightError(result.error?.message || "Konnte nicht gespeichert werden.");
+    }
+  }
 
   async function handleSexChange(value: string) {
     setSexError("");
@@ -92,15 +117,21 @@ export function NutritionStep({ onComplete }: NutritionStepProps) {
     <div>
       <p style={{ fontSize: ".85rem", color: "var(--ink-2)", margin: "0 0 20px", lineHeight: 1.5 }}>
         Diese Angaben werden für die Berechnung der Nährstoffempfehlungen verwendet.
-        Die Körpergröße wurde bereits im vorherigen Schritt erfasst.
       </p>
 
-      {/* Körpergröße (nur Anzeige) */}
+      {/* Körpergröße (editierbar) */}
       <div style={{ marginBottom: 16 }}>
         <label style={LABEL_STYLE}>Körpergröße (cm)</label>
-        <div style={{ fontSize: ".85rem", color: "var(--ink)", padding: "5px 0" }}>
-          {basics?.heightCm != null ? `${basics.heightCm} cm` : "— (nicht angegeben)"}
-        </div>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={heightText}
+          disabled={heightPending}
+          onChange={(e) => setHeightEdit(e.target.value)}
+          onBlur={(e) => void handleHeightBlur(e.currentTarget.value)}
+          style={{ ...INPUT_STYLE }}
+        />
+        {heightError && <div style={ERROR_STYLE}>{heightError}</div>}
       </div>
 
       {/* Geschlecht für Berechnung */}

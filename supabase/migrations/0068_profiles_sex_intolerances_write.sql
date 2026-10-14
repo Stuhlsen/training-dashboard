@@ -1,7 +1,7 @@
 -- migrate:up
 
 -- ============================================================
--- Dashboard 2.0 — Migration 0067: profiles.sex / intolerances
+-- Dashboard 2.0 — Migration 0068: profiles.sex / intolerances
 --             Read-Write-Pfad (E5 Settings-Formular)
 -- Einspielen: Supabase SQL-Editor / dbmate, dev-Projekt zuerst
 --             (dashboard-dev), danach der apps01-Self-Host-Stack

@@ -29,6 +29,8 @@ const {
   updateWeightKg,
   updateHrMax,
   updateSports,
+  updateSex,
+  updateIntolerances,
 } = await import("./profiles");
 
 describe("updateUnitsPreference", () => {
@@ -226,6 +228,57 @@ describe("Profil-Basisdaten-Updates (Migration 0039, Fahrplan 17 E3)", () => {
     expect(result).toEqual({ ok: true });
     expect(seen).toEqual({ sports: ["ride", "run", "swim"] });
     expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+});
+
+describe("updateSex (Migration 0059/0068)", () => {
+  it("schreibt sex für die eigene Zeile (m)", async () => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateSex("profile-1", "m");
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ sex: "m" });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+
+  it("schreibt sex als null (Keine Angabe)", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateSex("profile-1", null);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ sex: null });
+  });
+});
+
+describe("updateIntolerances (Migration 0059/0068)", () => {
+  it("schreibt ein Array von Intoleranzen für die eigene Zeile", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateIntolerances("profile-1", ["gluten", "milk"]);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ intolerances: ["gluten", "milk"] });
+  });
+
+  it("schreibt leeres Array als {} (keine Intoleranzen)", async () => {
+    let seen: Record<string, unknown> = {};
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      return { data: null, error: null };
+    };
+    const result = await updateIntolerances("profile-1", []);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ intolerances: [] });
   });
 });
 

@@ -44,17 +44,19 @@ function toNutritionGoal(row: NutritionGoalRow): NutritionGoal {
 }
 
 /** Validiert einen NutritionGoalInput auf App-Ebene (wie 0061-Kopfkommentar).
- *  Liefert einen Fehlertext oder null bei Gültigkeit. */
+ *  Liefert einen Fehlertext oder null bei Gültigkeit.
+ *  NaN (Number("")) wird als ungültig abgewiesen. */
 function validateGoalInput(input: NutritionGoalInput): string | null {
   if (input.goalType !== "lose" && input.goalType !== "gain" && input.goalType !== "maintain") {
     return "Ungültiger Zieltyp.";
   }
-  if (input.targetWeightKg != null && input.targetWeightKg <= 0) {
+  // NaN-Prüfung für Zahlenwerte — Number("") bzw. ungültige Eingaben werden abgewiesen
+  if (input.targetWeightKg != null && (Number.isNaN(input.targetWeightKg) || input.targetWeightKg <= 0)) {
     return "Zielgewicht muss größer als 0 sein.";
   }
   // pace_per_week_kg: für lose/gain erforderlich und > 0 (Betrag)
   if (input.goalType === "lose" || input.goalType === "gain") {
-    if (input.pacePerWeekKg == null) {
+    if (input.pacePerWeekKg == null || Number.isNaN(input.pacePerWeekKg)) {
       return `pace_per_week_kg ist für "${input.goalType}" erforderlich.`;
     }
     if (input.pacePerWeekKg <= 0) {

@@ -163,11 +163,11 @@ export interface ProfileOwnFields {
   weightKg: number | null;
   hrMax: number | null;
   updatedAt: string;
-  /** Migration 0059/0067 — biologisches Geschlecht für RED-S-Formel (m/f).
+  /** Migration 0059/0068 — biologisches Geschlecht für RED-S-Formel (m/f).
    *  NULL = "Keine Angabe" (E20). Separates Feld von `gender`
    *  (Selbsteinschätzung: männlich/weiblich/divers). */
   sex: "m" | "f" | null;
-  /** Migration 0059/0067 — EU-Allergen-Intoleranzen, Array der Keys aus
+  /** Migration 0059/0068 — EU-Allergen-Intoleranzen, Array der Keys aus
    *  core/nutrition-taxonomy.js. Leeres Array = "keine Intoleranzen" (E21). */
   intolerances: string[];
 }

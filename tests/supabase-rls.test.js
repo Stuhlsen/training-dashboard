@@ -3778,13 +3778,13 @@ if (!HAS_CREDS) {
       "Referenziertes Rezept wurde geloescht — FK on delete RESTRICT greift nicht"
     );
   });
-  // --- 12. profiles.sex / intolerances (0059 -> 0067): owner-only Lese-/Schreibpfad ---
-  // Migration 0059 legte die Spalten an, Migration 0067 öffnet den Lesepfad
+  // --- 12. profiles.sex / intolerances (0059 -> 0068): owner-only Lese-/Schreibpfad ---
+  // Migration 0059 legte die Spalten an, Migration 0068 öffnet den Lesepfad
   // (profiles_own) und den Schreibpfad (UPDATE-Grant) für den Eigentümer und gibt die
   // durch 0039 verlorenen Self-Service-Grants wieder frei. Basistabelle: weiterhin KEIN
   // select grant für sex/intolerances.
   //
-  // Wichtig zum Verhalten: Nach 0067 hat jeder Athlet den Spalten-Grant, die Zeilen-
+  // Wichtig zum Verhalten: Nach 0068 hat jeder Athlet den Spalten-Grant, die Zeilen-
   // Policy (id = auth.uid()) filtert fremde Zeilen STILL aus — ein PATCH auf eine fremde
   // Zeile antwortet mit 200 und leerer Liste, NICHT mit 42501 (s. Kommentar bei rest()).
   // Fremden-Tests schreiben deshalb einen UNGÜLTIGEN Wert ('x'): Ist die Zeilen-Policy
@@ -3792,7 +3792,7 @@ if (!HAS_CREDS) {
   // Alle Schreibtests merken sich die Originalwerte und stellen sie wieder her.
 
   const sexPath = { checked: false, ready: false };
-  /** Ist 0067 eingespielt? (profiles_own liefert sex/intolerances) */
+  /** Ist 0068 eingespielt? (profiles_own liefert sex/intolerances) */
   async function sexPathReady() {
     if (!sexPath.checked) {
       const probe = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
@@ -3803,7 +3803,7 @@ if (!HAS_CREDS) {
     }
     return sexPath.ready;
   }
-  const SEX_PATH_MISSING = "Migration 0067 (profiles_own mit sex/intolerances, UPDATE-Grant) noch nicht eingespielt";
+  const SEX_PATH_MISSING = "Migration 0068 (profiles_own mit sex/intolerances, UPDATE-Grant) noch nicht eingespielt";
 
   test("profiles: sex/intolerances sind weder für den Eigentümer noch für anon über die Basistabelle lesbar", async () => {
     const own = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
@@ -3824,14 +3824,14 @@ if (!HAS_CREDS) {
     assert.equal(read.ok, false, "Fremder darf sex/intolerances von Athlet 1 nicht lesen (kein select grant auf Basistabelle)");
   });
 
-  test("profiles_own führt sex/intolerances für den Eigentümer (0067), profiles_visible nicht", async (t) => {
+  test("profiles_own führt sex/intolerances für den Eigentümer (0068), profiles_visible nicht", async (t) => {
     if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
     const ownView = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
     assert.equal(ownView.ok, true, `profiles_own-Read fehlgeschlagen: ${JSON.stringify(ownView.data)}`);
     const ownRow = ownView.data?.[0];
     assert.ok(ownRow, "profiles_own führt die eigene Zeile");
-    assert.ok("sex" in ownRow, "profiles_own muss sex ausliefern (0067)");
-    assert.ok("intolerances" in ownRow, "profiles_own muss intolerances ausliefern (0067)");
+    assert.ok("sex" in ownRow, "profiles_own muss sex ausliefern (0068)");
+    assert.ok("intolerances" in ownRow, "profiles_own muss intolerances ausliefern (0068)");
 
     const visView = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
     assert.equal(visView.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(visView.data)}`);
@@ -3914,7 +3914,7 @@ if (!HAS_CREDS) {
     assert.equal(view.ok, false, "anon darf profiles_own nicht lesen (kein GRANT)");
   });
 
-  test("profiles: die durch 0039 verlorenen Self-Service-Spalten sind für den Eigentümer wieder schreibbar (0067)", async (t) => {
+  test("profiles: die durch 0039 verlorenen Self-Service-Spalten sind für den Eigentümer wieder schreibbar (0068)", async (t) => {
     if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
     const cols = ["ladder_progression_enabled", "units_preference", "ftp_public", "plan_offset_weeks"];
     const read = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=${cols.join(",")}`, {
@@ -3929,7 +3929,7 @@ if (!HAS_CREDS) {
         token: athlete.token,
         body: { [col]: row[col] },
       });
-      assert.equal(upd.ok, true, `${col} muss für den Eigentümer schreibbar sein (vor 0067: 42501): ${JSON.stringify(upd.data)}`);
+      assert.equal(upd.ok, true, `${col} muss für den Eigentümer schreibbar sein (vor 0068: 42501): ${JSON.stringify(upd.data)}`);
     }
   });
 
