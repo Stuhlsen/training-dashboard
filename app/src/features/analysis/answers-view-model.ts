@@ -28,7 +28,7 @@ import { eftpHistory, eftpHistoryFromWellness, mergeEftpHistories, forecastFtp }
 import { efficiencyTrend, decouplingTrend } from "../../core/efficiency.js";
 import { normalizeZoneTimes, bandZoneTimes, LOW_INTENSITY_TARGET } from "../../core/zones.js";
 import { ridesForSport } from "../../core/activity-sport.js";
-import { energyView, hydrationSeries, estimateBMR, wattsPerKg } from "../../core/body.js";
+import { energyView, hydrationSeries, estimateRestingEnergy, wattsPerKg } from "../../core/body.js";
 import { isoWeekKey } from "../../core/aggregate.js";
 import { fmt, fmtInt, fmtSigned, fmtDate, localISODate } from "../../core/format.js";
 import { tsbBandOf } from "../../core/trace-lanes.js";
@@ -287,7 +287,8 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const cadenceSharePct = kadSamples.length ? (kadSamples.filter((v) => v >= cadenceTarget).length / kadSamples.length) * 100 : null;
 
   // ── Energiebilanz ───────────────────────────────────────────────────
-  const estBmr = athleteCfg?.bmr ? estimateBMR(athleteCfg.bmr) : null;
+  const restingEst = athleteCfg?.bmr ? estimateRestingEnergy(athleteCfg.bmr) : null;
+  const estBmr = restingEst?.ok ? restingEst.kcal : null;
   const energy = energyView(wellness, estBmr);
   const ebalRows = (energy?.days ?? [])
     .map((d) => ({ dateISO: d.date, ebal: d.intake != null ? d.intake - d.burned : null }))

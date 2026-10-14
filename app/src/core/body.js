@@ -16,6 +16,8 @@
    plan-spezifische Sektionen).
    ============================================================ */
 
+import { SOURCE_KEYS } from "./nutrition-sources.js";
+
 /** Mindestdichte: so viele non-null-Tage in den letzten WINDOW_DAYS */
 export const MIN_POINTS = 5;
 export const WINDOW_DAYS = 30;
@@ -174,15 +176,80 @@ export function energyView(wellness, estBMR = null) {
   };
 }
 
+/** Ab dieser relativen Abweichung (bezogen auf Ten-Haaf) gilt ein gemessener
+ *  Körperfett-Wert als unplausibel. Eigene Setzung, Fahrplan 23 E34. */
+const BODYFAT_PLAUSIBILITY_TOLERANCE = 0.2;
+/** Altersbereich, an dem Ten-Haaf geprüft wurde (ten Haaf 2014). */
+const TEN_HAAF_AGE_MIN = 18;
+const TEN_HAAF_AGE_MAX = 35;
+
+const isPositive = (n) => typeof n === "number" && Number.isFinite(n) && n > 0;
+
+/** Ten Haaf 2014, gewichtsbasiert (kcal/Tag). sexFactor: m=1, f=0, unbekannt=0,5. */
+function tenHaaf(weightKg, heightCm, age, sexFactor) {
+  return (
+    11.936 * weightKg +
+    587.728 * (heightCm / 100) -
+    8.129 * age +
+    191.027 * sexFactor +
+    29.279
+  );
+}
+
 /**
- * Grundumsatz-Schätzung nach Mifflin-St-Jeor.
- * @param {{weightKg:number, heightCm:number, age:number, sex?:string}} p
- * @returns {number|null} kcal/Tag oder null bei fehlenden Angaben
+ * Grundumsatz-Schätzung nach Datenlage (Fahrplan 23 E33–E35):
+ * gemessenes Körperfett → Cunningham 1980, sonst Ten-Haaf 2014. Weichen beide
+ * um mehr als 20 % ab, gilt das Körperfett als unplausibel → Ten-Haaf + Hinweis.
+ * Für Sportler; Mifflin-St-Jeor liegt dort ~10 % zu niedrig (O'Neill 2023).
+ * `bodyFatPct` nur als GEMESSENER Wert übergeben, nie einen Standardwert.
+ *
+ * @param {{weightKg?:number, heightCm?:number, age?:number, sex?:string|null,
+ *          bodyFatPct?:number|null, bodyFatDate?:string|null}} p
+ * @returns {{ok:true, kcal:number, formula:"cunningham-1980"|"ten-haaf-2014", source:string,
+ *            note:string, hints:string[], bodyFatDate:string|null}|{ok:false, hint:string}}
  */
-export function estimateBMR({ weightKg, heightCm, age, sex }) {
-  if (!weightKg || !heightCm || !age) return null;
-  const s = sex === "f" || sex === "w" ? -161 : 5;
-  return Math.round(10 * weightKg + 6.25 * heightCm - 5 * age + s);
+export function estimateRestingEnergy({ weightKg, heightCm, age, sex, bodyFatPct, bodyFatDate } = {}) {
+  const missing = [];
+  if (!isPositive(weightKg)) missing.push("Gewicht (kg)");
+  if (!isPositive(heightCm)) missing.push("Größe (cm)");
+  if (!isPositive(age)) missing.push("Alter");
+  if (missing.length) return { ok: false, hint: `Profil ergänzen: ${missing.join(", ")}` };
+
+  const sexFactor = sex === "m" ? 1 : sex === "f" || sex === "w" ? 0 : 0.5;
+  const th = tenHaaf(weightKg, heightCm, age, sexFactor);
+  const hints = [];
+
+  if (isPositive(bodyFatPct) && bodyFatPct < 100) {
+    const cunningham = 500 + 22 * weightKg * (1 - bodyFatPct / 100);
+    if (Math.abs(cunningham - th) / th <= BODYFAT_PLAUSIBILITY_TOLERANCE) {
+      return {
+        ok: true,
+        kcal: Math.round(cunningham),
+        formula: "cunningham-1980",
+        source: SOURCE_KEYS.CUNNINGHAM_1980,
+        note: "Grundumsatz nach Cunningham 1980 (aus gemessenem Körperfett); Schätzung, kein exakter Wert.",
+        hints,
+        bodyFatDate: bodyFatDate ?? null,
+      };
+    }
+    hints.push("Körperfett-Wert passt nicht zu Gewicht und Größe, bitte prüfen");
+  }
+
+  if (age < TEN_HAAF_AGE_MIN || age > TEN_HAAF_AGE_MAX) {
+    hints.push("Formel wurde an 18- bis 35-Jährigen geprüft, hier unsicherer");
+  }
+  if (sex !== "m" && sex !== "f" && sex !== "w") {
+    hints.push("Geschlecht fehlt, Schätzung ungenauer");
+  }
+  return {
+    ok: true,
+    kcal: Math.round(th),
+    formula: "ten-haaf-2014",
+    source: SOURCE_KEYS.TEN_HAAF_2014,
+    note: "Grundumsatz nach Ten-Haaf 2014; Schätzung, kein exakter Wert.",
+    hints,
+    bodyFatDate: null,
+  };
 }
 
 /**

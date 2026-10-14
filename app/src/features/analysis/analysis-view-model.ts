@@ -17,7 +17,7 @@ import { cadenceCoach } from "../../core/cadence.js";
 import {
   availability,
   energyView,
-  estimateBMR,
+  estimateRestingEnergy,
   hydrationSeries,
   wattsPerKg,
   weightTrend,
@@ -542,7 +542,8 @@ export function buildBodyCards(
     if (bmr) {
       const wt = weightTrend(wellness);
       const recentWeight = wt?.points.length ? wt.points[wt.points.length - 1].weight : bmr.weightKg;
-      estBMR = estimateBMR({ weightKg: recentWeight, heightCm: bmr.heightCm, age: bmr.age, sex: bmr.sex });
+      const rest = estimateRestingEnergy({ weightKg: recentWeight, heightCm: bmr.heightCm, age: bmr.age, sex: bmr.sex });
+      estBMR = rest.ok ? rest.kcal : null;
     }
     const e = energyView(wellness, estBMR);
     if (e) {

@@ -11,7 +11,7 @@
    Deutsche Code-Kommentare, englische Commit-Subjects.
    ============================================================ */
 
-import { estimateBMR, rideKJ } from "./body.js";
+import { estimateRestingEnergy, rideKJ } from "./body.js";
 import { normalizeAllergenKeys } from "./nutrition-taxonomy.js";
 import { SOURCE_KEYS } from "./nutrition-sources.js";
 
@@ -114,52 +114,30 @@ function calcFFM(weightKg, bodyFat) {
 
 /**
  * Grundumsatzbasierte tägliche Kalorien-Schätzung.
- * Nutzt estimateBMR aus core/body.js (Mifflin-St-Jeor).
+ * Nutzt estimateRestingEnergy aus core/body.js (Cunningham bei gemessenem
+ * Körperfett, sonst Ten-Haaf). bodyFatPct nur als GEMESSENER Wert in Prozent.
  *
- * @param {{weightKg?:number, heightCm?:number, age?:number, sex?:string}} profile
- * @returns {{ok:true, bmr:number, source:string, note:string}|{ok:false, hint:string}}
+ * @param {{weightKg?:number, heightCm?:number, age?:number, sex?:string|null,
+ *          bodyFatPct?:number|null, bodyFatDate?:string|null}} profile
+ * @returns {{ok:true, bmr:number, formula:string, source:string, note:string,
+ *            hints:string[], bodyFatDate:string|null}|{ok:false, hint:string}}
  */
 export function estimateDailyTarget(profile) {
   if (!profile) {
     return { ok: false, hint: "Profil ergänzen" };
   }
 
-  // Negatives/ungültiges Gewicht früh abweisen, bevor estimateBMR
-  // aufgerufen wird (isValidNumber prüft > 0, rejects NaN/0/negative)
-  if (!isValidNumber(profile.weightKg)) {
-    const missing = [];
-    if (!isValidNumber(profile.weightKg)) missing.push("Gewicht (kg)");
-    if (!isValidNumber(profile.heightCm)) missing.push("Größe (cm)");
-    if (!isValidNumber(profile.age)) missing.push("Alter");
-    const hint = missing.length
-      ? `Profil ergänzen: ${missing.join(", ")}`
-      : "Profil ergänzen";
-    return { ok: false, hint };
-  }
-
-  const bmr = estimateBMR({
-    weightKg: profile.weightKg,
-    heightCm: profile.heightCm,
-    age: profile.age,
-    sex: profile.sex,
-  });
-
-  if (bmr == null) {
-    // Ermitteln, welches Feld fehlt (weightKg ist hier bereits validiert)
-    const missing = [];
-    if (!isValidNumber(profile.heightCm)) missing.push("Größe (cm)");
-    if (!isValidNumber(profile.age)) missing.push("Alter");
-    const hint = missing.length
-      ? `Profil ergänzen: ${missing.join(", ")}`
-      : "Profil ergänzen";
-    return { ok: false, hint };
-  }
+  const r = estimateRestingEnergy(profile);
+  if (!r.ok) return r;
 
   return {
     ok: true,
-    bmr,
-    source: SOURCE_KEYS.MIFFLIN_ST_JEOR,
-    note: `Schätzung ±100–400 kcal, kein exakter Wert (Grundumsatz nach Mifflin-St-Jeor).`,
+    bmr: r.kcal,
+    formula: r.formula,
+    source: r.source,
+    note: r.note,
+    hints: r.hints,
+    bodyFatDate: r.bodyFatDate,
   };
 }
 
@@ -280,6 +258,10 @@ export function estimateDailyGoal(params) {
     heightCm: profile.heightCm,
     age: profile.age,
     sex: profile.sex,
+    // profile.bodyFat ist Dezimal und nur gesetzt, wenn gemessen (null = Standardwert,
+    // der Cunningham nie auslösen darf)
+    bodyFatPct: profile.bodyFat != null ? profile.bodyFat * 100 : null,
+    bodyFatDate: profile.bodyFatDate,
   });
   if (!bmrResult.ok) return bmrResult;
 
@@ -337,7 +319,7 @@ export function estimateDailyGoal(params) {
 
   // Notiz zusammenbauen
   const parts = [];
-  const sourceSet = new Set([SOURCE_KEYS.MIFFLIN_ST_JEOR]);
+  const sourceSet = new Set([bmrResult.source]);
 
   parts.push(
     `Grundlage ${baseline.totalKcal} kcal (Grundumsatz ${baseline.restingKcal} berechnet + Alltag ${baseline.activityKcal} geschaetzt)`

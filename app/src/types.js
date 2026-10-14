@@ -309,8 +309,11 @@ export {};
  * @typedef {Object} NutritionTargetResult
  * @property {true} ok
  * @property {number} bmr  kcal/Tag
- * @property {"mifflin-st-jeor"} source
- * @property {string} note  Schätzungshinweis (±100–400 kcal)
+ * @property {"cunningham-1980"|"ten-haaf-2014"} formula  verwendete Formel
+ * @property {"cunningham-1980"|"ten-haaf-2014"} source  Schlüssel in nutrition-sources.js
+ * @property {string} note  Schätzungshinweis
+ * @property {string[]} hints  Hinweise zur Unsicherheit (deutscher Wortlaut)
+ * @property {string|null} bodyFatDate  Datum des Körperfett-Werts (nur Cunningham)
  */
 
 /**

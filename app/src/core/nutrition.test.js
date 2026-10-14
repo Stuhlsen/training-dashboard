@@ -23,8 +23,8 @@ import {
    Sources-Liste
    ────────────────────────────────────────────────────────── */
 describe("core/nutrition-sources", () => {
-  it("exports exactly 11 entries", () => {
-    expect(NUTRITION_SOURCES).toHaveLength(11);
+  it("exports exactly 13 entries", () => {
+    expect(NUTRITION_SOURCES).toHaveLength(13);
   });
 
   it("every source has key, title, link, note", () => {
@@ -53,15 +53,17 @@ describe("core/nutrition-sources", () => {
     expect(keys).toEqual([
       "7700-kcal-per-kg",
       "acsm-and-2016",
+      "cunningham-1980",
       "dge-konig-2020",
       "eu-allergen-reg",
       "fao-who-unu-pal",
       "ioc-reds-2023",
-      "mifflin-st-jeor",
       "neat-goshozono-2024",
+      "oneill-2023",
       "rethinking-ea-2026",
       "rueda-cordoba-2026",
       "standard-bodyfat",
+      "ten-haaf-2014",
     ].sort());
   });
 });
@@ -102,25 +104,35 @@ describe("ENERGY_PER_KG_BODY_MASS", () => {
    estimateDailyTarget
    ────────────────────────────────────────────────────────── */
 describe("estimateDailyTarget", () => {
-  // Referenz: Mann 80 kg, 180 cm, 35 Jahre
-  // BMR = 10*80 + 6.25*180 - 5*35 + 5 = 800 + 1125 - 175 + 5 = 1755
+  // Referenz: Mann 80 kg, 180 cm, 35 Jahre, ohne Körperfett → Ten-Haaf
+  // 11.936*80 + 587.728*1.8 - 8.129*35 + 191.027 + 29.279 = 1948.58 → 1949
   const validProfile = { weightKg: 80, heightCm: 180, age: 35, sex: "m" };
 
-  it("returns BMR with source key and note", () => {
+  it("returns BMR with formula, source key and note", () => {
     const r = estimateDailyTarget(validProfile);
     expect(r.ok).toBe(true);
-    expect(r.bmr).toBe(1755);
-    expect(r.source).toBe("mifflin-st-jeor");
-    expect(r.note).toContain("±100–400");
+    expect(r.bmr).toBe(1949);
+    expect(r.formula).toBe("ten-haaf-2014");
+    expect(r.source).toBe("ten-haaf-2014");
+    expect(r.note).toContain("Ten-Haaf");
+    expect(r.hints).toEqual([]);
   });
 
-  it("woman (sex=f) uses -161 adjustment", () => {
+  it("woman (sex=f) uses sex factor 0", () => {
     const r = estimateDailyTarget({
       weightKg: 65, heightCm: 165, age: 30, sex: "f",
     });
-    // 10*65 + 6.25*165 - 5*30 - 161 = 650 + 1031.25 - 150 - 161 = 1370.25 → 1370
+    // 11.936*65 + 587.728*1.65 - 8.129*30 + 29.279 = 1531.00 → 1531
     expect(r.ok).toBe(true);
-    expect(r.bmr).toBe(1370);
+    expect(r.bmr).toBe(1531);
+  });
+
+  it("gemessenes Körperfett → Cunningham, Datum in der Rückgabe", () => {
+    const r = estimateDailyTarget({ ...validProfile, bodyFatPct: 12, bodyFatDate: "2026-09-01" });
+    // 500 + 22 * 80 * 0.88 = 2048.8 → 2049
+    expect(r.bmr).toBe(2049);
+    expect(r.formula).toBe("cunningham-1980");
+    expect(r.bodyFatDate).toBe("2026-09-01");
   });
 
   it("returns ok:false + hint when weight missing", () => {
@@ -320,23 +332,23 @@ describe("redSFloor — Trainingsverbrauch hebt die Mindestaufnahme an (IOC 2023
    ────────────────────────────────────────────────────────── */
 describe("estimateDailyGoal", () => {
   const validProfile = { weightKg: 80, heightCm: 180, age: 35, sex: "m", bodyFat: 0.12 };
-  // BMR 1755, Alltag 965 (x 0,55) -> Grundlage 2720; Boden 1760 (FFM 70,4 x 25)
+  // BMR 1908, Alltag 1049 (x 0,55) -> Grundlage 2957; Boden 1760 (FFM 70,4 x 25)
   const roomyProfile = { ...validProfile, bodyFat: 0.2 };
   // roomyProfile: FFM 64, Boden 1600
 
   it("ohne Ziel: Ziel = Grundlage (Grundumsatz berechnet + Alltag geschaetzt), Boden nicht erreicht", () => {
     const r = estimateDailyGoal({ profile: roomyProfile });
     expect(r.ok).toBe(true);
-    expect(r.bmr).toBe(1755);
-    expect(r.baseline).toEqual({ restingKcal: 1755, activityKcal: 965, totalKcal: 2720 });
-    expect(r.target).toBe(2720);
+    expect(r.bmr).toBe(1908);
+    expect(r.baseline).toEqual({ restingKcal: 1908, activityKcal: 1049, totalKcal: 2957 });
+    expect(r.target).toBe(2957);
     expect(r.adjustment).toBe(0);
     expect(r.floor).toBe(1600);
     expect(r.eaFloorKcal).toBe(1600);
     expect(r.capped).toBe(false);
-    expect(r.source).toContain("mifflin-st-jeor");
+    expect(r.source).toContain("cunningham-1980");
     expect(r.source).toContain("fao-who-unu-pal");
-    expect(r.note).toContain("2720");
+    expect(r.note).toContain("2957");
     expect(r.note).toContain("geschaetzt");
   });
 
@@ -347,7 +359,7 @@ describe("estimateDailyGoal", () => {
       activeEnergy: 230,
     }));
     const r = estimateDailyGoal({ profile: roomyProfile, wellness, rides: [], todayISO: "2026-10-15" });
-    expect(r.target).toBe(2720);
+    expect(r.target).toBe(2957);
   });
 
   it("Erhalt/unbekannter Zieltyp/ohne Tempo/Tempo 0 -> keine Anpassung", () => {
@@ -359,20 +371,20 @@ describe("estimateDailyGoal", () => {
     ]) {
       const r = estimateDailyGoal({ profile: roomyProfile, goal });
       expect(r.ok).toBe(true);
-      expect(r.target).toBe(2720);
+      expect(r.target).toBe(2957);
       expect(r.adjustment).toBe(0);
     }
   });
 
-  it("abnehmen 0,5 kg/Woche: 2720 - 550 = 2170 (Boden 1600 nicht erreicht)", () => {
+  it("abnehmen 0,5 kg/Woche: 2957 - 550 = 2407 (Boden 1600 nicht erreicht)", () => {
     const r = estimateDailyGoal({ profile: roomyProfile, goal: { goalType: "lose", pacePerWeekKg: 0.5 } });
     expect(r.adjustment).toBe(550);
-    expect(r.target).toBe(2170);
+    expect(r.target).toBe(2407);
     expect(r.capped).toBe(false);
     expect(r.source).toContain("7700-kcal-per-kg");
   });
 
-  it("abnehmen 1,5 kg/Woche (1650 kcal Defizit): 2720 - 1650 = 1070 -> auf den Boden 1600 angehoben", () => {
+  it("abnehmen 1,5 kg/Woche (1650 kcal Defizit): 2957 - 1650 = 1307 -> auf den Boden 1600 angehoben", () => {
     const r = estimateDailyGoal({ profile: roomyProfile, goal: { goalType: "lose", pacePerWeekKg: 1.5 } });
     expect(r.target).toBe(1600);
     expect(r.floor).toBe(1600);
@@ -384,7 +396,7 @@ describe("estimateDailyGoal", () => {
   it("zunehmen: goalType bestimmt das Vorzeichen, nicht das Vorzeichen des Tempos (+0,5 -> +550)", () => {
     const r = estimateDailyGoal({ profile: roomyProfile, goal: { goalType: "gain", pacePerWeekKg: 0.5 } });
     expect(r.adjustment).toBe(-550);
-    expect(r.target).toBe(3270);
+    expect(r.target).toBe(3507);
   });
 
   it("fehlendes Profil -> Hinweis; fehlendes Gewicht -> Hinweis; kein NaN", () => {
@@ -441,23 +453,23 @@ describe("estimateDailyGoal — Trainingsenergie der geplanten Einheit", () => {
   it("ohne Einheit: trainingKcal 0", () => {
     const r = estimateDailyGoal({ profile });
     expect(r.trainingKcal).toBe(0);
-    expect(r.target).toBe(2720);
+    expect(r.target).toBe(2957);
   });
 
   it("200 W x 60 min = 720 kJ -> +720 kcal auf das Ziel", () => {
     const r = estimateDailyGoal({ profile, session: { watt: 200, min: 60 } });
     expect(r.trainingKcal).toBe(720);
-    expect(r.target).toBe(2720 + 720);
+    expect(r.target).toBe(2957 + 720);
     expect(r.note).toContain("Training +720");
   });
 
-  it("Training und Defizit werden verrechnet: 2720 + 720 - 550 = 2890", () => {
+  it("Training und Defizit werden verrechnet: 2957 + 720 - 550 = 3127", () => {
     const r = estimateDailyGoal({
       profile,
       goal: { goalType: "lose", pacePerWeekKg: 0.5 },
       session: { watt: 200, min: 60 },
     });
-    expect(r.target).toBe(2890);
+    expect(r.target).toBe(3127);
     expect(r.capped).toBe(false);
   });
 
@@ -470,8 +482,8 @@ describe("estimateDailyGoal — Trainingsenergie der geplanten Einheit", () => {
     }
   });
 
-  it("Boden an Trainingstagen: starkes Defizit mit 720-kcal-Fahrt -> Ziel 2320 statt 1790 (EA bleibt >= 25)", () => {
-    // ohne Anhebung waere das Ziel 2720 + 720 - 1650 = 1790 (EA = (1790 - 720) / 64 = 16,7 kcal/kg FFM)
+  it("Boden an Trainingstagen: starkes Defizit mit 720-kcal-Fahrt -> Ziel 2320 statt 2027 (EA bleibt >= 25)", () => {
+    // ohne Anhebung waere das Ziel 2957 + 720 - 1650 = 2027 (EA = (2027 - 720) / 64 = 20,4 kcal/kg FFM)
     const r = estimateDailyGoal({
       profile,
       goal: { goalType: "lose", pacePerWeekKg: 1.5 },
@@ -491,7 +503,7 @@ describe("estimateDailyGoal — Trainingsenergie der geplanten Einheit", () => {
       goal: { goalType: "lose", pacePerWeekKg: 1.5 }, // 1650 kcal Defizit
       session: { watt: 100, min: 30 }, // 180 kcal
     });
-    // 2720 + 180 - 1650 = 1250 -> auf Boden 1760 + 180 = 1940 angehoben
+    // 3176 + 180 - 1650 = 1706 -> auf Boden 1760 + 180 = 1940 angehoben
     expect(r.floor).toBe(1940);
     expect(r.target).toBe(1940);
     expect(r.capped).toBe(true);
