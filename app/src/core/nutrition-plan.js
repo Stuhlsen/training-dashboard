@@ -50,6 +50,10 @@ export const PROTEIN_MAX_G = 40;
 /* Heuristik-Gewichte der Suche (Oberflächen-Wahl, keine Literaturwerte): alles in "kcal-Äquivalenten". */
 const PROTEIN_SHORTFALL_KCAL_PER_G = 10;
 const RECENT_RECIPE_PENALTY_KCAL = 60;
+/** Weiche Strafe, wenn ein Rezept am selben Tag mehrfach vorkommt (Abwechslung). Bewusst KEIN Verbot:
+ *  einmal kochen, zweimal essen spart Zeit und Einkauf (Meal-Prep). Etwa 6 % eines 2400-kcal-Tages, also
+ *  deutlich unter dem grünen Band (10 %): eine Wiederholung gewinnt nur, wenn sie das Ziel klar besser trifft. */
+const SAME_DAY_REPEAT_PENALTY_KCAL = 150;
 const ROTATION_JITTER_KCAL = 25;
 const PRESELECT_PER_SLOT = 6;
 const MAX_PORTIONS_PER_RECIPE = 2;
@@ -195,10 +199,13 @@ function preselect(slot, options, ctx) {
 /** Gesamt-Score eines Tages (kleiner = besser); `chosen` folgt der Reihenfolge von MEAL_SLOTS. */
 function dayScore(chosen, ctx) {
   let score = Math.abs(sumTotals(chosen).kcal - ctx.target);
+  const seen = new Set();
   MEAL_SLOTS.forEach((slot, i) => {
     const o = chosen[i];
     if (!o) return;
     score += proteinPenalty(slot, o.nutrition.protein, ctx.proteinMin) + rotationPenalty(o, ctx.dateISO, ctx.recent);
+    if (seen.has(o.recipeId)) score += SAME_DAY_REPEAT_PENALTY_KCAL;
+    seen.add(o.recipeId);
   });
   return score;
 }
@@ -288,7 +295,8 @@ export function composeDay(params) {
  * Bis zu drei Alternativen für einen Slot; der Rest des Tages bleibt wie in `current`.
  *
  * @param {Parameters<typeof composeDay>[0] & {slot:Slot, current:Partial<Record<Slot,Choice|null>>}} params
- * @returns {Array<Choice & {totals:Totals, ampel:Ampel}>}
+ * @returns {Array<Choice & {totals:Totals, ampel:Ampel, repeat:boolean}>}
+ *   `repeat`: das Rezept steht am selben Tag schon in einer anderen Mahlzeit (bewusste Wiederholung, Meal-Prep).
  */
 export function swapCandidates(params) {
   const { slot, current } = params;
@@ -304,6 +312,7 @@ export function swapCandidates(params) {
   });
 
   const currentId = current?.[slot]?.recipeId;
+  const usedElsewhere = new Set(rest.filter(Boolean).map((o) => o.recipeId));
   const bestPerRecipe = new Map();
   for (const option of slotOptions(slot, ctx.pool)) {
     if (option.recipeId === currentId) continue;
@@ -311,19 +320,28 @@ export function swapCandidates(params) {
     day[slotIndex] = option;
     const score = dayScore(day, ctx);
     const known = bestPerRecipe.get(option.recipeId);
-    if (!known || score < known.score) bestPerRecipe.set(option.recipeId, { option, score, day });
+    if (!known || score < known.score) {
+      bestPerRecipe.set(option.recipeId, { option, score, day, repeat: usedElsewhere.has(option.recipeId) });
+    }
   }
 
-  return [...bestPerRecipe.values()]
-    .sort(byScoreThenId)
-    .slice(0, MAX_SWAPS)
-    .map(({ option, day }) => {
-      const totals = sumTotals(day);
-      return {
-        recipeId: option.recipeId,
-        servings: option.servings,
-        totals,
-        ampel: dayAmpel(totals.kcal, params.target, params.floor),
-      };
-    });
+  // Ein Rezept, das am selben Tag schon in einer anderen Mahlzeit steht, wird wegen der weichen Strafe
+  // sonst selten gezeigt. Damit bewusstes Wiederholen (Meal-Prep) immer möglich bleibt, bekommt die beste
+  // Wiederholung einen festen Platz in der Liste (höchstens MAX_SWAPS Einträge insgesamt).
+  const ranked = [...bestPerRecipe.values()].sort(byScoreThenId);
+  const repeats = ranked.filter((e) => e.repeat);
+  const fresh = ranked.filter((e) => !e.repeat);
+  const picked = repeats.length > 0 ? [...fresh.slice(0, MAX_SWAPS - 1), repeats[0]] : fresh.slice(0, MAX_SWAPS);
+  picked.sort(byScoreThenId);
+
+  return picked.map(({ option, day, repeat }) => {
+    const totals = sumTotals(day);
+    return {
+      recipeId: option.recipeId,
+      servings: option.servings,
+      totals,
+      ampel: dayAmpel(totals.kcal, params.target, params.floor),
+      repeat,
+    };
+  });
 }

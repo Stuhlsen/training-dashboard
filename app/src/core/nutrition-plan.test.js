@@ -289,3 +289,77 @@ describe("swapCandidates", () => {
     expect(swapCandidates({ ...BASE, recipes: tagged, slot: "lunch", current: {}, intolerances: ["eggs"] })).toEqual([]);
   });
 });
+
+/* ── Wiederholung desselben Rezepts am Tag (weich, nie verboten) ──
+   Mittag und Abend teilen sich Rezepte (mealType enthält beide Slots) — wie im echten Pool. */
+
+function sharedMainPool() {
+  const pool = [];
+  for (let i = 0; i < 8; i++) pool.push(recipe(`main-${i}`, ["lunch", "dinner"], 560 + i * 20, 34));
+  for (let i = 0; i < 6; i++) pool.push(recipe(`bf-${i}`, "breakfast", 380 + i * 15, 24));
+  for (let i = 0; i < 6; i++) pool.push(recipe(`sn-${i}`, "snack", 200 + i * 10, 10));
+  return pool;
+}
+
+describe("composeDay — dasselbe Rezept mehrfach am Tag", () => {
+  it("meidet Wiederholungen, wenn es Alternativen gibt (Abwechslung)", () => {
+    for (const dateISO of ["2026-10-14", "2026-10-15", "2026-10-16", "2026-10-17"]) {
+      const day = composeDay({ ...BASE, dateISO, recipes: sharedMainPool() });
+      const ids = Object.values(day.slots).map((c) => c.recipeId);
+      expect(ids).toHaveLength(4);
+      expect(new Set(ids).size).toBe(4);
+    }
+  });
+
+  it("verbietet Wiederholungen NICHT: ist nur ein Rezept für Mittag und Abend da, steht es in beiden Slots", () => {
+    const pool = [
+      recipe("main-only", ["lunch", "dinner"], 700, 36),
+      recipe("bf-1", "breakfast", 420, 26),
+      recipe("sn-1", "snack", 220, 12),
+    ];
+    const day = composeDay({ ...BASE, recipes: pool });
+    expect(day.slots.lunch.recipeId).toBe("main-only");
+    expect(day.slots.dinner.recipeId).toBe("main-only");
+    expect(day.flags.noMatch).toEqual([]);
+  });
+});
+
+describe("swapCandidates — bewusste Wiederholung (Meal-Prep)", () => {
+  const pool = sharedMainPool();
+  const current = {
+    breakfast: { recipeId: "bf-0", servings: 1 },
+    lunch: { recipeId: "main-0", servings: 1 },
+    dinner: { recipeId: "main-1", servings: 1 },
+    snack: { recipeId: "sn-0", servings: 1 },
+  };
+
+  it("bietet das Rezept der anderen Mahlzeit desselben Tages immer als markierte Wiederholung an", () => {
+    const swaps = swapCandidates({ ...BASE, recipes: pool, slot: "dinner", current });
+    const repeats = swaps.filter((s) => s.repeat);
+    expect(repeats).toHaveLength(1);
+    expect(repeats[0].recipeId).toBe("main-0");
+    expect(swaps.length).toBeLessThanOrEqual(3);
+    expect(new Set(swaps.map((s) => s.recipeId)).size).toBe(swaps.length);
+  });
+
+  it("die Wiederholung rechnet die neue Tagessumme mit (Rest des Tages + Wiederholung)", () => {
+    const swaps = swapCandidates({ ...BASE, recipes: pool, slot: "dinner", current });
+    const repeat = swaps.find((s) => s.repeat);
+    const kcal = (id, servings) => pool.find((r) => r.id === id).nutrition.kcal * servings;
+    const rest = kcal("bf-0", 1) + kcal("main-0", 1) + kcal("sn-0", 1);
+    expect(repeat.totals.kcal).toBe(Math.round(rest + kcal(repeat.recipeId, repeat.servings)));
+  });
+
+  it("ohne passendes Rezept in einer anderen Mahlzeit gibt es keine Wiederholung", () => {
+    const single = syntheticPool();
+    const day = composeDay({ ...BASE, recipes: single });
+    const swaps = swapCandidates({ ...BASE, recipes: single, slot: "lunch", current: day.slots });
+    expect(swaps.length).toBeGreaterThan(0);
+    expect(swaps.every((s) => s.repeat === false)).toBe(true);
+  });
+
+  it("alle übrigen Vorschläge sind keine Wiederholung", () => {
+    const swaps = swapCandidates({ ...BASE, recipes: pool, slot: "dinner", current });
+    for (const s of swaps.filter((x) => x.recipeId !== "main-0")) expect(s.repeat).toBe(false);
+  });
+});
