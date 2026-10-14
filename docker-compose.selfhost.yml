@@ -162,6 +162,7 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       POSTGREST_INTERNAL_URL: http://postgrest:3000
       GOTRUE_INTERNAL_URL: http://gotrue:8081
+      SUPER_ADMIN_ID: ${SUPER_ADMIN_ID}
       # Lokaler service_role-JWT (signiert mit demselben JWT_SECRET wie
       # gotrue/postgrest), per "node scripts/generate-jwt-keys.js" erzeugt
       # und in die eigene .env kopiert — eigene Variable, NICHT die
