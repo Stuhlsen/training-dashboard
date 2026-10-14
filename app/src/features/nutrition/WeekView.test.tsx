@@ -154,12 +154,13 @@ describe("WeekView — Ampel-Stufen (Text, nicht nur Farbe)", () => {
     expect(within(dayRegion()).getByText("abweichend")).toBeTruthy();
   });
 
-  it("rot: 'unter dem Boden' samt RED-S-Hinweis und Quelle", () => {
+  it("rot: 'unter der Mindestzufuhr' samt Hinweis und Quelle", () => {
     setWeek({ entries: FULL_DAY, days: [{ ...OK_DAY, floor: 2500 }] });
     renderView();
     const day = within(dayRegion());
-    expect(day.getByText("unter dem Boden")).toBeTruthy();
-    expect(day.getByText(/unter dem RED-S-Boden von 2500 kcal/)).toBeTruthy();
+    expect(day.getByText("unter der Mindestzufuhr")).toBeTruthy();
+    expect(day.getByText(/Die Summe liegt unter der Mindestzufuhr von 2500 kcal/)).toBeTruthy();
+    expect(day.queryByText(/RED-S-Boden/)).toBeNull();
     expect(day.getByText("ⓘ Quelle")).toBeTruthy();
   });
 

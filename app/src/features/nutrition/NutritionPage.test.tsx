@@ -145,15 +145,20 @@ describe("NutritionPage — ok-Zustand", () => {
   it("zeigt Ziel, RED-S-Boden und den Namen der Formel", () => {
     renderPage();
     expect(screen.getByText("3021 kcal")).toBeTruthy();
-    expect(screen.getByText("RED-S-Boden: 1760 kcal")).toBeTruthy();
-    expect(screen.getByText("Grundumsatz nach Ten Haaf (2014)")).toBeTruthy();
+    expect(screen.getByText("Mindestzufuhr: 1760 kcal")).toBeTruthy();
+    expect(screen.queryByText(/RED-S-Boden/)).toBeNull();
+    expect(
+      screen.getByText("Grundumsatz nach Ten Haaf (2014), in einer Studie von 2023 an Sportlern geprüft"),
+    ).toBeTruthy();
     expect(screen.queryByText(/Körperfett gemessen am/)).toBeNull();
   });
 
   it("Cunningham mit gemessenem Körperfett: Formelname und Datum (DD.MM.JJJJ — die Messung kann alt sein)", () => {
     mockDay = { ...OK_DAY, formula: "cunningham-1980", bodyFatDate: "2026-10-10" };
     renderPage();
-    expect(screen.getByText("Grundumsatz nach Cunningham (1980)")).toBeTruthy();
+    expect(
+      screen.getByText("Grundumsatz nach Cunningham (1980), in einer Studie von 2023 an Sportlern geprüft"),
+    ).toBeTruthy();
     expect(screen.getByText(/Körperfett gemessen am 10\.10\.2026/)).toBeTruthy();
   });
 
@@ -195,6 +200,14 @@ describe("NutritionPage — ok-Zustand", () => {
     renderPage();
     expect(screen.getByText("ⓘ Quelle")).toBeTruthy();
     expect(screen.getByText(/ten Haaf T, Weijs PJ/)).toBeTruthy();
+  });
+
+  it("Quellen mit stabiler Adresse sind klickbar und öffnen in neuem Tab", () => {
+    renderPage();
+    const link = screen.getByText(/ten Haaf T, Weijs PJ/).closest("a") as HTMLAnchorElement;
+    expect(link.getAttribute("href")).toBe("https://pmc.ncbi.nlm.nih.gov/articles/PMC4183531/");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
   });
 });
 

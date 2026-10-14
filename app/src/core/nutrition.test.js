@@ -709,6 +709,15 @@ describe("weightMissingHint", () => {
     expect(hint).toMatch(/vor 8 Tagen/);
   });
 
+  it("Quellen: jede Adresse ist https und gehört zu einem bekannten Eintrag", async () => {
+    const { NUTRITION_SOURCES } = await import("./nutrition-sources.js");
+    const withUrl = NUTRITION_SOURCES.filter((s) => s.url);
+    expect(withUrl.length).toBeGreaterThan(8);
+    for (const s of withUrl) expect(s.url).toMatch(/^https:\/\/\S+$/);
+    // Schätzwerte ohne Fundstelle bleiben ohne Link
+    expect(NUTRITION_SOURCES.find((s) => s.key === "standard-bodyfat")?.url).toBeUndefined();
+  });
+
   it("nennt das Datum des letzten Eintrags als DD.MM.JJJJ (nicht ISO)", () => {
     const hint = weightMissingHint([{ date: "2026-09-06", weight: 78.5 }], today);
     expect(hint).toMatch(/am 06\.09\.2026 \(vor 32 Tagen\)/);

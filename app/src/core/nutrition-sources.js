@@ -14,7 +14,8 @@
  * @typedef {Object} SourceEntry
  * @property {string} key
  * @property {string} title
- * @property {string} link
+ * @property {string} link   Zitat/Fundstelle als Text
+ * @property {string} [url]  klickbare Adresse, nur wo eine stabile existiert
  * @property {string} note
  */
 
@@ -135,10 +136,28 @@ const ENTRIES = [
   },
 ];
 
+/** Klickbare Adressen je Quelle. Nur Einträge mit stabiler Adresse (PMC, DOI,
+ *  PubMed, amtliche Seiten); Schätzwerte und Näherungen ohne Fundstelle bleiben
+ *  ohne Link. DOI-Adressen sind die in `link` genannten DOIs. */
+const URLS = {
+  [SOURCE_KEYS.TEN_HAAF_2014]: "https://pmc.ncbi.nlm.nih.gov/articles/PMC4183531/",
+  [SOURCE_KEYS.CUNNINGHAM_1980]: "https://doi.org/10.1093/ajcn/33.11.2372",
+  [SOURCE_KEYS.ONEILL_2023]: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10687135/",
+  [SOURCE_KEYS.IOC_REDS_2023]: "https://doi.org/10.1136/bjsports-2023-106994",
+  [SOURCE_KEYS.RETHINKING_EA_2026]: "https://pmc.ncbi.nlm.nih.gov/articles/PMC12899827/",
+  [SOURCE_KEYS.RUEDA_CORDOBA_2026]: "https://pubmed.ncbi.nlm.nih.gov/42091222/",
+  [SOURCE_KEYS.EU_ALLERGEN_REG]: "https://eur-lex.europa.eu/eli/reg/2011/1169/oj",
+  [SOURCE_KEYS.ACSM_AND_2016]: "https://doi.org/10.1016/j.jand.2015.12.006",
+  [SOURCE_KEYS.FAO_WHO_UNU_PAL]: "https://www.fao.org/4/y5686e/y5686e07.htm",
+  [SOURCE_KEYS.NEAT_GOSHOZONO_2024]: "https://pmc.ncbi.nlm.nih.gov/articles/PMC10896989/",
+  [SOURCE_KEYS.BLS_4_0]: "https://blsdb.de",
+  [SOURCE_KEYS.USDA_FDC]: "https://fdc.nal.usda.gov",
+};
+
 /** Gefrorener Array — einmal importiert, nie verändert.
  *  @type {ReadonlyArray<Readonly<SourceEntry>>} */
 export const NUTRITION_SOURCES = Object.freeze(
-  ENTRIES.map((e) => Object.freeze({ ...e }))
+  ENTRIES.map((e) => Object.freeze(URLS[e.key] ? { ...e, url: URLS[e.key] } : { ...e }))
 );
 
 /** Key→Source-Lookup.

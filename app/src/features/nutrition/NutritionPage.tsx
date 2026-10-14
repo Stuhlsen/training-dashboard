@@ -23,6 +23,7 @@ import { fmtDateFull, localISODate } from "../../core/format.js";
 import { useNutritionDay } from "./useNutritionDay";
 import type { NutritionDay } from "./nutrition-day-model";
 import { WeekView } from "./WeekView";
+import { SourceList } from "./SourceList";
 
 const CARD_STYLE: CSSProperties = { padding: "28px 32px", marginBottom: 20 };
 const HEADING_STYLE: CSSProperties = {
@@ -201,7 +202,7 @@ function DayTargetCard({ day }: { day: Extract<NutritionDay, { ok: true }> }) {
         {day.target} kcal
       </p>
       <p style={TEXT_STYLE}>
-        RED-S-Boden: {day.floor} kcal{day.capped ? " — das Ziel wurde auf diesen Wert angehoben" : ""}
+        Mindestzufuhr: {day.floor} kcal{day.capped ? " — das Ziel wurde auf diesen Wert angehoben" : ""}
       </p>
       {day.trainingKcal > 0 && <p style={TEXT_STYLE}>Training heute: +{day.trainingKcal} kcal</p>}
       {day.trainingUnknown && (
@@ -211,7 +212,9 @@ function DayTargetCard({ day }: { day: Extract<NutritionDay, { ok: true }> }) {
         </p>
       )}
 
-      <p style={META_STYLE}>Grundumsatz nach {FORMULA_NAMES[day.formula] ?? day.formula}</p>
+      <p style={META_STYLE}>
+        Grundumsatz nach {FORMULA_NAMES[day.formula] ?? day.formula}, in einer Studie von 2023 an Sportlern geprüft
+      </p>
       {day.bodyFatDate && <p style={META_STYLE}>Körperfett gemessen am {fmtDateFull(day.bodyFatDate)}</p>}
 
       {day.hints.map((h) => (
@@ -226,15 +229,7 @@ function DayTargetCard({ day }: { day: Extract<NutritionDay, { ok: true }> }) {
 
       <details style={{ marginTop: 12 }}>
         <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".85rem" }}>ⓘ Quelle</summary>
-        <ul style={{ margin: "10px 0 0", paddingLeft: 20, color: "var(--ink-3)", fontSize: ".8rem", lineHeight: 1.5 }}>
-          {sources.map((s) => (
-            <li key={s.key} style={{ marginBottom: 6 }}>
-              <strong style={{ color: "var(--ink-2)" }}>{s.title}</strong>
-              <br />
-              {s.link}
-            </li>
-          ))}
-        </ul>
+        <SourceList sources={sources} />
       </details>
     </GlassCard>
   );

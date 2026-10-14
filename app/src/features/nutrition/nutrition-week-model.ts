@@ -33,7 +33,7 @@ export type Ampel = "red" | "yellow" | "green";
 export const AMPEL_TEXT: Record<Ampel, string> = {
   green: "im Rahmen",
   yellow: "abweichend",
-  red: "unter dem Boden",
+  red: "unter der Mindestzufuhr",
 };
 
 export const AMPEL_TOOLTIP = "grob so genau wie die Rechnung selbst, keine medizinische Schwelle";

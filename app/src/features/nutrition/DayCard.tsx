@@ -29,6 +29,7 @@ import {
   type Ampel,
   type SlotView,
 } from "./nutrition-week-model";
+import { SourceList } from "./SourceList";
 import { BUTTON_DISABLED_STYLE, BUTTON_STYLE, HEADING_STYLE, META_STYLE, TEXT_STYLE } from "./nutrition-styles";
 
 export interface Choice {
@@ -286,20 +287,12 @@ export function DayCard(props: DayCardProps) {
           <div style={{ marginTop: 6 }}>
             <p style={{ ...TEXT_STYLE, margin: 0 }}>
               {summary.ampel === "red"
-                ? `Die Summe liegt unter dem RED-S-Boden von ${day.floor} kcal.`
-                : `Das Ziel wurde auf den RED-S-Boden (${day.floor} kcal) angehoben.`}
+                ? `Die Summe liegt unter der Mindestzufuhr von ${day.floor} kcal.`
+                : `Das Ziel wurde auf die Mindestzufuhr (${day.floor} kcal) angehoben.`}
             </p>
             <details>
               <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".8rem" }}>ⓘ Quelle</summary>
-              <ul style={{ margin: "8px 0 0", paddingLeft: 20, color: "var(--ink-3)", fontSize: ".78rem", lineHeight: 1.5 }}>
-                {sources.map((s) => (
-                  <li key={s.key} style={{ marginBottom: 4 }}>
-                    <strong style={{ color: "var(--ink-2)" }}>{s.title}</strong>
-                    <br />
-                    {s.link}
-                  </li>
-                ))}
-              </ul>
+              <SourceList sources={sources} />
             </details>
           </div>
         )}
