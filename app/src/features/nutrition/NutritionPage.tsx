@@ -3,8 +3,9 @@
    (Fahrplan 23, E6 PR A; Entscheidungen E28, E29, E30, E35)
 
    Nur-eigene-Daten (E28): Geschlecht und Intoleranzen sind owner-only,
-   deshalb zeigt der Tab nur beim eigenen Profil Inhalt. Wochenansicht,
-   Vorschläge und Ampel folgen in PR B.
+   deshalb zeigt der Tab nur beim eigenen Profil Inhalt. Darunter der
+   Umschalter Woche | Einkaufsliste (E8) — beide Ansichten sitzen hinter
+   demselben Guard.
 
    Zustände: Karte "Profil ergänzen" (fehlende Angaben) ODER das
    Tagesziel mit Boden, Formelname, Körperfett-Datum und Hinweisen.
@@ -23,6 +24,7 @@ import { fmtDateFull, localISODate } from "../../core/format.js";
 import { useNutritionDay } from "./useNutritionDay";
 import type { NutritionDay } from "./nutrition-day-model";
 import { WeekView } from "./WeekView";
+import { ShoppingListView } from "./ShoppingListView";
 import { SourceList } from "./SourceList";
 
 const CARD_STYLE: CSSProperties = { padding: "28px 32px", marginBottom: 20 };
@@ -59,6 +61,45 @@ const FORMULA_NAMES: Record<string, string> = {
 };
 
 const hintStorageKey = (userId: string) => `nutrition-profile-hint-dismissed:${userId}`;
+
+type NutritionView = "week" | "shopping";
+
+const VIEW_LABELS: Record<NutritionView, string> = { week: "Woche", shopping: "Einkaufsliste" };
+
+/* Umschalter Woche | Einkaufsliste. Sitzt direkt über dem Seitenhintergrund,
+   deshalb Glass-Fill statt reiner Haarlinie (DESIGN.md, Ghost-Regel). */
+function ViewSwitch({ view, onChange }: { view: NutritionView; onChange: (v: NutritionView) => void }) {
+  return (
+    <div role="group" aria-label="Ansicht" style={{ display: "flex", gap: 8, margin: "0 0 16px" }}>
+      {(Object.keys(VIEW_LABELS) as NutritionView[]).map((v) => {
+        const active = v === view;
+        return (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={active}
+            onClick={() => onChange(v)}
+            style={{
+              padding: "8px 18px",
+              borderRadius: 999,
+              border: active ? "1px solid var(--accent)" : "1px solid rgba(255,255,255,0.14)",
+              background: active ? "var(--accent)" : "var(--glass)",
+              backdropFilter: active ? undefined : "blur(16px)",
+              boxShadow: active ? undefined : "var(--e2)",
+              color: active ? "#17110a" : "var(--ink)",
+              fontFamily: "var(--font-disp)",
+              fontWeight: 600,
+              fontSize: ".85rem",
+              cursor: "pointer",
+            }}
+          >
+            {VIEW_LABELS[v]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
 
 /* ── Einstieg + Guard ─────────────────────────────────────── */
 
@@ -112,6 +153,7 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
     }
   }, [userId]);
   const [hintSessionDismissed, setHintSessionDismissed] = useState(false);
+  const [view, setView] = useState<NutritionView>("week");
 
   function dismissHint() {
     try {
@@ -154,7 +196,12 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
       {day.ok ? (
         <>
           <DayTargetCard day={day} />
-          <WeekView athleteId={athleteId} userId={userId} todayISO={today} />
+          <ViewSwitch view={view} onChange={setView} />
+          {view === "week" ? (
+            <WeekView athleteId={athleteId} userId={userId} todayISO={today} />
+          ) : (
+            <ShoppingListView userId={userId} todayISO={today} onShowWeek={() => setView("week")} />
+          )}
         </>
       ) : (
         <ProfileCompleteCard day={day} />
