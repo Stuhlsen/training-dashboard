@@ -122,6 +122,14 @@ describe("NutritionPage — Karte 'Profil ergänzen'", () => {
     expect(screen.getByText("Körperfett-Wert ungültig (150); bitte korrigieren.")).toBeTruthy();
   });
 
+  it("zeigt eine Fehlermeldung statt ewigem 'Lade …', wenn das Laden fertig ist, aber Daten fehlen", () => {
+    mockDay = null;
+    mockDayLoading = false;
+    renderPage();
+    expect(screen.getByText(/Deine Daten konnten nicht geladen werden/)).toBeTruthy();
+    expect(screen.queryByText("Lade …")).toBeNull();
+  });
+
   it("zeigt Lade-Anzeige, solange das Tagesziel lädt", () => {
     mockDay = null;
     mockDayLoading = true;

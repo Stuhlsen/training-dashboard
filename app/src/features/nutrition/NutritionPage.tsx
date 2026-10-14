@@ -120,7 +120,16 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
     setHintSessionDismissed(true);
   }
 
-  if (isLoading || !day || !basics) return <p style={META_STYLE}>Lade …</p>;
+  if (isLoading) return <p style={META_STYLE}>Lade …</p>;
+  // Laden beendet, aber keine Daten (Profil-Abfrage fehlgeschlagen) — nicht ewig "Lade …" zeigen
+  if (!day || !basics) {
+    return (
+      <GlassCard style={CARD_STYLE}>
+        <h2 style={HEADING_STYLE}>Ernährung</h2>
+        <p style={TEXT_STYLE}>Deine Daten konnten nicht geladen werden. Bitte lade die Seite neu.</p>
+      </GlassCard>
+    );
+  }
 
   // Bestandsathleten ohne Größe, Geschlecht oder Gewicht (E30)
   const profileIncomplete =
