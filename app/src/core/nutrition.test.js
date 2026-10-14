@@ -23,8 +23,8 @@ import {
    Sources-Liste
    ────────────────────────────────────────────────────────── */
 describe("core/nutrition-sources", () => {
-  it("exports exactly 11 entries", () => {
-    expect(NUTRITION_SOURCES).toHaveLength(11);
+  it("exports exactly 13 entries", () => {
+    expect(NUTRITION_SOURCES).toHaveLength(13);
   });
 
   it("every source has key, title, link, note", () => {
@@ -53,6 +53,7 @@ describe("core/nutrition-sources", () => {
     expect(keys).toEqual([
       "7700-kcal-per-kg",
       "acsm-and-2016",
+      "bls-4-0",
       "dge-konig-2020",
       "eu-allergen-reg",
       "fao-who-unu-pal",
@@ -62,6 +63,7 @@ describe("core/nutrition-sources", () => {
       "rethinking-ea-2026",
       "rueda-cordoba-2026",
       "standard-bodyfat",
+      "usda-fdc",
     ].sort());
   });
 });
