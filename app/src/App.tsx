@@ -14,6 +14,7 @@ import { LogbookPage } from "./features/logbook/LogbookPage";
 import { AnalysisPage } from "./features/analysis/AnalysisPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { BikefitPage } from "./features/bikefit/BikefitPage";
+import { NutritionPage } from "./features/nutrition/NutritionPage";
 
 const LandingPage = lazy(() => import("./features/landing").then((m) => ({ default: m.LandingPage })));
 
@@ -81,6 +82,7 @@ export default function App() {
               <Route path="analysis" element={<AnalysisPage />} />
               <Route path="events" element={<EventsPage />} />
               <Route path="bikefit" element={<BikefitPage />} />
+              <Route path="nutrition" element={<NutritionPage />} />
               <Route element={<ProtectedRoute />}>
                 <Route path="settings" element={<SettingsPage />} />
               </Route>
