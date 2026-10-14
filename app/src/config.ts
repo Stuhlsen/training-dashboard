@@ -74,7 +74,7 @@ export interface AthleteConfig {
    *  Sport-Umschalter (E8). Wird für Athlet 3 erst in E8 gefüllt. */
   sports?: readonly ("ride" | "run" | "swim" | "other")[];
   dataSources: string[];
-  /** Grundumsatz-Schätzgrundlage (Mifflin-St-Jeor), Analyse-Tab "Regeneration
+  /** Grundumsatz-Schätzgrundlage (Ten-Haaf 2014 über estimateRestingEnergy), Analyse-Tab "Regeneration
    *  & Körper" — nur Fallback, wenn Wellness keine `restingEnergy` trägt.
    *  1:1 aus `assets/js/state/config.js::athletes[].bmr`, nur bei Athlet 2
    *  gesetzt. */

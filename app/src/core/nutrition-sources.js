@@ -22,7 +22,9 @@
  *  nicht über getippte Strings (verhindert Drift gegen die Liste).
  *  @type {Readonly<Record<string,string>>} */
 export const SOURCE_KEYS = Object.freeze({
-  MIFFLIN_ST_JEOR: "mifflin-st-jeor",
+  TEN_HAAF_2014: "ten-haaf-2014",
+  CUNNINGHAM_1980: "cunningham-1980",
+  ONEILL_2023: "oneill-2023",
   IOC_REDS_2023: "ioc-reds-2023",
   RETHINKING_EA_2026: "rethinking-ea-2026",
   RUEDA_CORDOBA_2026: "rueda-cordoba-2026",
@@ -40,10 +42,22 @@ export const SOURCE_KEYS = Object.freeze({
 /** @type {ReadonlyArray<Readonly<SourceEntry>>} */
 const ENTRIES = [
   {
-    key: SOURCE_KEYS.MIFFLIN_ST_JEOR,
-    title: "Mifflin-St-Jeor — Grundumsatzformel",
-    link: "Mifflin MD et al., Am J Clin Nutr 1990;51:241-247",
-    note: "Standard-Formel zur BMR-Schätzung; Abweichung ±100–400 kcal zum gemessenen Wert.",
+    key: SOURCE_KEYS.TEN_HAAF_2014,
+    title: "ten Haaf T, Weijs PJ: Resting energy expenditure prediction in recreational athletes of 18–35 years",
+    link: "PLoS One 2014, https://pmc.ncbi.nlm.nih.gov/articles/PMC4183531/",
+    note: "Gewichtsbasierte Gleichung: 11,936·Gewicht[kg] + 587,728·Größe[m] − 8,129·Alter + 191,027·Geschlecht (m=1, f=0) + 29,279 kcal/Tag. Geprüft an 18- bis 35-jährigen Freizeitsportlern. Koeffizienten im Original nur als Bild; hier gegen die Tabelle in O'Neill 2023 übernommen.",
+  },
+  {
+    key: SOURCE_KEYS.CUNNINGHAM_1980,
+    title: "Cunningham JJ: A reanalysis of the factors influencing basal metabolic rate in normal adults",
+    link: "Am J Clin Nutr 1980;33:2372-2374; Formel 500 + 22 × FFM[kg] nach Tabelle 1 in ten Haaf 2014 (PMC4183531)",
+    note: "Braucht gemessene fettfreie Masse. Bei Sportlern streuen Einzelstudien von −16 % bis +10 %, deshalb nur mit gemessenem Körperfett und Plausibilitätsprüfung gegen Ten-Haaf.",
+  },
+  {
+    key: SOURCE_KEYS.ONEILL_2023,
+    title: "O'Neill JER, Corish CA, Horner K: Accuracy of resting metabolic rate prediction equations in athletes — systematic review and meta-analysis",
+    link: "Sports Med 2023, doi 10.1007/s40279-023-01896-z, https://pmc.ncbi.nlm.nih.gov/articles/PMC10687135/",
+    note: "Mifflin-St-Jeor liegt bei Sportlern signifikant daneben (gilt nur für die Allgemeinbevölkerung, ersetzt); Ten-Haaf am genauesten (80,2 % innerhalb ±10 %, andere 41–64 %).",
   },
   {
     key: SOURCE_KEYS.IOC_REDS_2023,
