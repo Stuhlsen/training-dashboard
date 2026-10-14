@@ -4,17 +4,13 @@
    setState, der das Projekt zweimal biss). Persistiert per
    logged-in user in localStorage.
    Kein roher console.*-Aufruf (Schichtenregel).
+
+   Bekannte Einschränkung (Issue #27, Edge Cases):
+   Zwei Browser-Tabs mit derselben App-URL werden NICHT
+   synchronisiert — jeder Tab hat seinen eigenen Timer-Zustand.
    ============================================================ */
 
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { CookTimer } from "../types.js";
 import {
@@ -23,6 +19,7 @@ import {
   serializeTimers,
   restoreTimers,
 } from "../core/cook-timer.js";
+import { CookTimerContext, type CookTimerContextValue } from "./cook-timer-context";
 
 /* ── localStorage keys ─────────────────────────────────── */
 
@@ -75,46 +72,33 @@ function saveMuted(muted: boolean): void {
 
 /* ── Alarm (Web Audio) ─────────────────────────────────── */
 
-function playAlarm(): void {
+
+function playAlarm(audioCtx: AudioContext | null): void {
+  if (!audioCtx) return;
   try {
-    const ctx = new AudioContext();
-    const t = ctx.currentTime;
+    const t = audioCtx.currentTime;
 
     // Drei kurze Sinus-Beeps (Eigenes Ermessen, Issue #27)
     // Frequenz 880 Hz (A5), 150 ms Länge, 250 ms Abstand
     for (let i = 0; i < 3; i++) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
       osc.type = "sine";
       osc.frequency.value = 880;
       gain.gain.value = 0.3;
       const start = t + i * 0.25;
       const end = start + 0.15;
       osc.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(audioCtx.destination);
       osc.start(start);
       osc.stop(end);
     }
 
-    setTimeout(() => ctx.close(), 2000);
+    setTimeout(() => audioCtx.close(), 2000);
   } catch {
     // Web Audio nicht verfügbar — kein Sound, kein Fehler
   }
 }
-
-/* ── Context type ──────────────────────────────────────── */
-
-export interface CookTimerContextValue {
-  timers: CookTimer[];
-  start: (id: string, label: string, durationSeconds: number) => void;
-  reset: (id: string) => void;
-  dismiss: (id: string) => void;
-  muted: boolean;
-  setMuted: (v: boolean) => void;
-  now: number;
-}
-
-export const CookTimerContext = createContext<CookTimerContextValue | null>(null);
 
 /* ── Provider ──────────────────────────────────────────── */
 
@@ -124,24 +108,49 @@ interface ProviderProps {
 }
 
 export function CookTimerProvider({ userId, children }: ProviderProps) {
-  /* Timer-Liste: lazy initial aus localStorage (kein Effect) */
-  const [timers, setTimers] = useState<CookTimer[]>(() => loadTimers(userId));
-
-  /* Mute: lazy initial */
-  const [muted, setMutedState] = useState<boolean>(() => loadMuted());
-
   /* Refs für Dinge, die keine Re-Renders auslösen sollen */
   const alreadyAlertedRef = useRef(new Set<string>());
   const pageVisibleRef = useRef(true);
+  const lastSavedRef = useRef("");
+  const audioCtxRef = useRef<AudioContext | null>(null);
+
+  /* Timer-Liste: lazy initial aus localStorage (kein Effect).
+   * Die alreadyAlertedRef-Pre-Seed (kein Sound für bereits abgelaufene
+   * Timer) erfolgt im useEffect unten, nicht im useState-Initializer
+   * (react-hooks/refs-Regel). */
+  const [timers, setTimers] = useState<CookTimer[]>(() => loadTimers(userId));
+
+  /* Pre-seed alreadyAlertedRef: Timer, die beim Laden bereits
+   * abgelaufen sind, sollen keinen Alarm auslösen — der Sound
+   * wurde bereits beim ursprünglichen Ablauf gespielt oder
+   * wäre bei Reload/hidden ohnehin nicht zu hören gewesen. */
+  /* eslint-disable react-hooks/exhaustive-deps */
+  useEffect(() => {
+    const now = Date.now();
+    for (const t of timers) {
+      if (t.endAt != null && t.endAt <= now) {
+        alreadyAlertedRef.current.add(t.id);
+      }
+    }
+  }, []);
+  /* eslint-enable react-hooks/exhaustive-deps */
+
+  /* Mute: lazy initial */
+  const [muted, setMutedState] = useState<boolean>(() => loadMuted());
 
   /* Aktuelle Systemzeit (wird vom Tick-Interval aktualisiert) zur
    * Verwendung in RunningTimersBar (kein Date.now() während des Render,
    * Lint-Regel react-hooks/purity). */
   const [now, setNow] = useState<number>(() => Date.now());
 
-  /* Persistenz: immer wenn sich timers oder userId ändern */
+  /* Persistenz: schreibt nur bei tatsächlichen Änderungen,
+   * nicht bei jedem 1s-Tick (der setTimers nur zum Re-Render zwingt). */
   useEffect(() => {
-    saveTimers(userId, timers);
+    const serialized = serializeTimers(timers);
+    if (serialized !== lastSavedRef.current) {
+      lastSavedRef.current = serialized;
+      saveTimers(userId, timers);
+    }
   }, [userId, timers]);
 
   /* Mute persistieren */
@@ -149,11 +158,13 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
     saveMuted(muted);
   }, [muted]);
 
-  /* Tick-Interval (1s): triggert Re-Render für Timer-Anzeige */
+  /* Tick-Interval (1s): triggert Re-Render für Timer-Anzeige,
+   * aktualisiert `now` (schreibt NICHT localStorage). */
   useEffect(() => {
     const id = setInterval(() => {
       const tick = Date.now();
       setNow(tick);
+      // Kopie erzeugen, damit abhängige Komponenten neu rendern
       setTimers((prev) => [...prev]);
     }, 1000);
     return () => clearInterval(id);
@@ -172,19 +183,23 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
     return () => document.removeEventListener("visibilitychange", handler);
   }, []);
 
-  /* Alarm-Check: nach jedem Render prüfen, ob ein Timer gerade abgelaufen ist */
+  /* Alarm-Check: nach jedem Render prüfen, ob ein Timer gerade abgelaufen ist.
+   * Neu abgelaufene IDs werden IMMER zum Set hinzugefügt (damit sie beim
+   * nächsten Durchlauf nicht erneut auslösen), aber der Sound wird nur
+   * abgespielt, wenn die Seite sichtbar und nicht stummgeschaltet ist. */
   useEffect(() => {
-    if (muted) return;
-    if (!pageVisibleRef.current) return;
-
-    const now = Date.now();
-    const expiredIds = newlyExpired(timers, now, alreadyAlertedRef.current);
+    const currentNow = Date.now();
+    const expiredIds = newlyExpired(timers, currentNow, alreadyAlertedRef.current);
 
     if (expiredIds.length > 0) {
       for (const id of expiredIds) {
         alreadyAlertedRef.current.add(id);
       }
-      playAlarm();
+
+      // Sound nur, wenn Seite sichtbar UND nicht stummgeschaltet
+      if (!muted && pageVisibleRef.current) {
+        playAlarm(audioCtxRef.current);
+      }
     }
   });
 
@@ -192,6 +207,18 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
 
   const start = useCallback(
     (id: string, label: string, durationSeconds: number) => {
+      // AudioContext in der User-Geste initialisieren/aufwecken
+      if (audioCtxRef.current == null) {
+        try {
+          audioCtxRef.current = new AudioContext();
+        } catch {
+          // Web Audio nicht verfügbar
+        }
+      }
+      if (audioCtxRef.current?.state === "suspended") {
+        audioCtxRef.current.resume().catch(() => {});
+      }
+
       setTimers((prev) => {
         // Bereits laufend mit dieser ID → no-op
         if (prev.some((t) => t.id === id && t.endAt != null)) return prev;
@@ -242,14 +269,4 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
       {children}
     </CookTimerContext.Provider>
   );
-}
-
-/* ── Hook ──────────────────────────────────────────────── */
-
-export function useCookTimers(): CookTimerContextValue {
-  const ctx = useContext(CookTimerContext);
-  if (!ctx) {
-    throw new Error("useCookTimers() must be used within a <CookTimerProvider>");
-  }
-  return ctx;
 }

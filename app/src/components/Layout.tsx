@@ -52,7 +52,7 @@ export function Layout() {
   ];
 
   return (
-    <CookTimerProvider userId={session?.user?.id ?? null}>
+    <CookTimerProvider key={session?.user?.id ?? ""} userId={session?.user?.id ?? null}>
       <div>
         <header className="app-header">
           <nav className="app-header-nav">

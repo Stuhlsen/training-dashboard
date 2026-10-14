@@ -2,10 +2,14 @@
    COMPONENTS/RUNNINGTIMERSBAR.TSX — Laufende-Timer-Leiste (E7a)
    Sichtbar in allen /app-Tabs, solange mindestens ein Timer läuft.
    Keine rohen console.*-Aufrufe (Schichtenregel).
+
+   Bekannte Einschränkung (Issue #27, Edge Cases):
+   Zwei Browser-Tabs mit derselben App-URL werden NICHT
+   synchronisiert — jeder Tab hat seinen eigenen Timer-Zustand.
    ============================================================ */
 
 import { useCallback, useState, useEffect, useRef } from "react";
-import { useCookTimers } from "./CookTimerProvider";
+import { useCookTimers } from "./cook-timer-context";
 import type { CookTimer } from "../types.js";
 import {
   remainingSeconds,
