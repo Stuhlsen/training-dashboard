@@ -601,3 +601,29 @@ export interface Recipe {
   createdAt: string;
   updatedAt: string;
 }
+
+/* ── Meal plan (Migration 0064, Fahrplan 23 E6 PR A) ──────────────
+   Ein Eintrag = ein Rezept in einem Slot eines Tages. UNIQUE
+   (athlete_id, date, meal_slot). `athleteId` ist die Profil-UUID.   */
+
+export type MealSlot = MealType;
+
+export interface MealPlanEntry {
+  id: string;
+  athleteId: string;
+  /** ISO-Datum YYYY-MM-DD */
+  date: string;
+  mealSlot: MealSlot;
+  recipeId: string;
+  servings: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MealPlanEntryInput {
+  athleteId: string;
+  date: string;
+  mealSlot: MealSlot;
+  recipeId: string;
+  servings: number;
+}
