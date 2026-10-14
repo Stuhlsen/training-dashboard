@@ -111,6 +111,11 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
   const pageVisibleRef = useRef(true);
   const lastSavedRef = useRef("");
   const audioCtxRef = useRef<AudioContext | null>(null);
+  /* Zeitpunkt, seit dem die Seite SICHTBAR ist (null = noch nicht gesetzt, wird beim ersten
+   * Alarm-Durchlauf auf "jetzt" gesetzt). Nur ein Timer, der NACH diesem Zeitpunkt abläuft,
+   * darf klingen — ein im Hintergrund abgelaufener bleibt auch dann still, wenn der Browser den
+   * 1-Sekunden-Takt im Hintergrund gedrosselt oder eingefroren hat (Handy). */
+  const visibleSinceRef = useRef<number | null>(null);
 
   /* Timer-Liste: lazy initial aus localStorage (kein Effect).
    * Die alreadyAlertedRef-Pre-Seed (kein Sound für bereits abgelaufene
@@ -173,6 +178,8 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
     const handler = () => {
       pageVisibleRef.current = !document.hidden;
       if (!document.hidden) {
+        // Ab jetzt sichtbar: alles, was bis hierher abgelaufen ist, war im Hintergrund und bleibt still.
+        visibleSinceRef.current = Date.now();
         // Re-Render, damit Anzeige aktuelle Restzeit zeigt
         setTimers((prev) => [...prev]);
       }
@@ -187,15 +194,22 @@ export function CookTimerProvider({ userId, children }: ProviderProps) {
    * abgespielt, wenn die Seite sichtbar und nicht stummgeschaltet ist. */
   useEffect(() => {
     const currentNow = Date.now();
+    if (visibleSinceRef.current === null) visibleSinceRef.current = currentNow;
+    const visibleSince = visibleSinceRef.current;
     const expiredIds = newlyExpired(timers, currentNow, alreadyAlertedRef.current);
 
     if (expiredIds.length > 0) {
+      // Klingen darf nur, wer NACH dem Sichtbar-Werden abgelaufen ist (im Hintergrund oder vor einem
+      // Neuladen Abgelaufenes bleibt still). Alle neuen IDs werden trotzdem als gemeldet markiert.
+      let ring = false;
       for (const id of expiredIds) {
         alreadyAlertedRef.current.add(id);
+        const endAt = timers.find((t) => t.id === id)?.endAt;
+        if (endAt != null && endAt >= visibleSince) ring = true;
       }
 
-      // Sound nur, wenn Seite sichtbar UND nicht stummgeschaltet
-      if (!muted && pageVisibleRef.current) {
+      // Sound nur, wenn die Seite sichtbar ist UND nicht stummgeschaltet
+      if (ring && !muted && pageVisibleRef.current) {
         playAlarm(audioCtxRef.current);
       }
     }

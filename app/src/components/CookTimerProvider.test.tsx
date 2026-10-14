@@ -13,25 +13,43 @@ import type { CookTimer } from "../types.js";
 
 /* ── AudioContext stub ─────────────────────────────────── */
 
+/* Verhält sich wie ein echter AudioContext: nach close() ist der Zustand "closed", und
+ * createOscillator/createGain/resume scheitern dann (InvalidStateError). Ein Stub, der nach
+ * close() weiter funktioniert, würde einen Provider durchwinken, der den gemeinsamen Context
+ * schließt und danach stumm bleibt (Fehler aus Runde 2 von E7a). */
 function stubAudio() {
-  return {
+  const ctx = {
     currentTime: 0,
-    state: "running",
-    resume: vi.fn().mockResolvedValue(undefined),
-    close: vi.fn(),
-    createOscillator: vi.fn(() => ({
-      type: "",
-      frequency: { value: 0 },
-      connect: vi.fn(),
-      start: vi.fn(),
-      stop: vi.fn(),
-    })),
-    createGain: vi.fn(() => ({
-      gain: { value: 0 },
-      connect: vi.fn(),
-    })),
+    state: "running" as string,
+    resume: vi.fn(() =>
+      ctx.state === "closed"
+        ? Promise.reject(new Error("InvalidStateError: closed"))
+        : Promise.resolve(),
+    ),
+    close: vi.fn(() => {
+      ctx.state = "closed";
+      return Promise.resolve();
+    }),
+    createOscillator: vi.fn(() => {
+      if (ctx.state === "closed") throw new Error("InvalidStateError: closed");
+      return {
+        type: "",
+        frequency: { value: 0 },
+        connect: vi.fn(),
+        start: vi.fn(),
+        stop: vi.fn(),
+      };
+    }),
+    createGain: vi.fn(() => {
+      if (ctx.state === "closed") throw new Error("InvalidStateError: closed");
+      return {
+        gain: { value: 0 },
+        connect: vi.fn(),
+      };
+    }),
     destination: {},
   };
+  return ctx;
 }
 
 let audioCtx: ReturnType<typeof stubAudio>;
@@ -670,5 +688,103 @@ describe("CookTimerProvider — visibilitychange", () => {
 
     // Immer noch kein Alarm (bereits abgelaufen, alreadyAlerted vom Pre-Seed)
     expect(audioCtx.createOscillator).not.toHaveBeenCalled();
+  });
+});
+
+/* ─── Web Audio und eingefrorener Hintergrund (Nachtrag zu E7a) ───────────────────────
+ * Der Stub oben verhält sich wie ein echter AudioContext (nach close() "closed", dann werfen
+ * createOscillator/resume). Damit schlägt der Test "zwei unabhängige Timer … beide Male" gegen
+ * die Fassung aus Runde 2 (Context nach 2 s geschlossen, Ref nie zurückgesetzt) tatsächlich fehl. */
+
+describe("CookTimerProvider — Web Audio und eingefrorener Hintergrund", () => {
+  function renderProvider() {
+    let start!: (id: string, label: string, secs: number) => void;
+
+    function TestConsumer() {
+      const ctx = useCookTimers();
+      start = ctx.start;
+      return <RunningTimersBar />;
+    }
+
+    render(
+      <CookTimerProvider userId="user1">
+        <TestConsumer />
+      </CookTimerProvider>,
+    );
+    return (id: string, label: string, secs: number) => start(id, label, secs);
+  }
+
+  const setHidden = (hidden: boolean) => {
+    Object.defineProperty(document, "hidden", { configurable: true, get: () => hidden });
+    fireEvent(document, new Event("visibilitychange"));
+  };
+
+  test("der gemeinsame AudioContext wird nach einem Alarm nicht geschlossen", () => {
+    const startTimer = renderProvider();
+    act(() => { startTimer("a", "Kurz", 3); });
+    audioCtx.createOscillator.mockClear();
+
+    for (let i = 0; i < 4; i++) act(() => { vi.advanceTimersByTime(1000); });
+    expect(audioCtx.createOscillator).toHaveBeenCalledTimes(3);
+
+    // länger als die frühere 2-Sekunden-Schließfrist
+    act(() => { vi.advanceTimersByTime(5000); });
+    expect(audioCtx.close).not.toHaveBeenCalled();
+    expect(audioCtx.state).toBe("running");
+  });
+
+  test("start() erzeugt einen neuen AudioContext, wenn der gemeinsame geschlossen ist, und der Alarm nutzt ihn", () => {
+    const startTimer = renderProvider();
+    act(() => { startTimer("a", "Erster", 60); });
+    expect(audioCtxConstructor).toHaveBeenCalledTimes(1);
+
+    // Der Browser (oder anderer Code) hat den gemeinsamen Context geschlossen.
+    audioCtx.state = "closed";
+    const fresh = stubAudio();
+    audioCtxConstructor.mockImplementation(function () { return fresh; });
+
+    act(() => { startTimer("b", "Zweiter", 5); });
+    expect(audioCtxConstructor).toHaveBeenCalledTimes(2);
+
+    for (let i = 0; i < 6; i++) act(() => { vi.advanceTimersByTime(1000); });
+    expect(fresh.createOscillator).toHaveBeenCalledTimes(3);
+  });
+
+  test("Timer im Hintergrund abgelaufen, Takt eingefroren: bei der Rückkehr kein Ton, 'abgelaufen' sichtbar", () => {
+    const startTimer = renderProvider();
+    act(() => { startTimer("a", "Nudeln", 60); });
+    audioCtx.createOscillator.mockClear();
+
+    try {
+      setHidden(true);
+      // Die Seite ist eingefroren (Handy): die Zeit läuft weiter, es feuert KEIN Takt.
+      vi.setSystemTime(Date.now() + 120_000);
+      setHidden(false); // Rückkehr: Re-Render, noch bevor der erste Takt wieder läuft
+
+      act(() => { vi.advanceTimersByTime(1000); });
+      expect(screen.getByText("abgelaufen")).toBeTruthy();
+      expect(audioCtx.createOscillator).not.toHaveBeenCalled();
+
+      act(() => { vi.advanceTimersByTime(3000); });
+      expect(audioCtx.createOscillator).not.toHaveBeenCalled();
+    } finally {
+      setHidden(false);
+    }
+  });
+
+  test("nach der Rückkehr abgelaufene Timer klingen weiterhin normal (Gegenprobe)", () => {
+    const startTimer = renderProvider();
+    act(() => { startTimer("a", "Nudeln", 30); });
+
+    try {
+      setHidden(true);
+      setHidden(false);
+      audioCtx.createOscillator.mockClear();
+
+      for (let i = 0; i < 32; i++) act(() => { vi.advanceTimersByTime(1000); });
+      expect(audioCtx.createOscillator).toHaveBeenCalledTimes(3);
+    } finally {
+      setHidden(false);
+    }
   });
 });
