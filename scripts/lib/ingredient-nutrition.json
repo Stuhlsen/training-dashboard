@@ -1,0 +1,1285 @@
+{
+ "_quelle": "Max Rubner-Institut (2025): Bundeslebensmittelschlüssel (BLS), Version 4.0, DOI 10.25826/Data20251217-134202-0, https://blsdb.de. Lückenfüller (Gewürze, Dill): USDA FoodData Central (CC0), https://fdc.nal.usda.gov. Werte je 100 g verzehrbarem Anteil (roh, soweit nicht anders vermerkt).",
+ "_hinweis": "Wird von scripts/lib/recipe-nutrition.js gelesen. Allergen-Schlüssel nach app/src/core/nutrition-taxonomy.js. tier (meat, fish, dairy, egg, honey) steuert die abgeleiteten Diät-Tags. einheiten = Gramm je Einheit (EL, TL, Stück, ...); einheiten.ml = Gramm je ml (Standard 1). Hersteller- und Rezeptvarianten können abweichen.",
+ "zutaten": {
+  "Apfelessig": {
+   "kcal": 18,
+   "protein": 0.2,
+   "carbs": 0.15,
+   "fat": 0,
+   "allergene": [
+    "sulphites"
+   ],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "EL": 15
+   },
+   "quelle": "BLS:R123100",
+   "bls_name": "Apfelessig",
+   "hinweis": "Sulfite: Essig enthält häufig Spuren, vorsichtshalber gekennzeichnet"
+  },
+  "Apfelmus": {
+   "kcal": 51,
+   "protein": 0.37,
+   "carbs": 10.2,
+   "fat": 0.44,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:Y864112",
+   "bls_name": "Apfelmus ungesüßt"
+  },
+  "Avocado": {
+   "kcal": 132,
+   "protein": 1.37,
+   "carbs": 1.37,
+   "fat": 12.5,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 150
+   },
+   "quelle": "BLS:F502100",
+   "bls_name": "Avocado roh"
+  },
+  "Banane": {
+   "kcal": 79,
+   "protein": 1.32,
+   "carbs": 15.89,
+   "fat": 0.4,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 120
+   },
+   "quelle": "BLS:F503100",
+   "bls_name": "Banane roh"
+  },
+  "Beeren": {
+   "kcal": 50,
+   "protein": 1.1,
+   "carbs": 7.9,
+   "fat": 0.3,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:F092100",
+   "bls_name": "Beerenmischung mit Sauerkirschen, ungesüßt, roh",
+   "hinweis": "Beerenmischung roh (BLS-Sammeleintrag)"
+  },
+  "Beeren (tiefgekühlt)": {
+   "kcal": 50,
+   "protein": 1.1,
+   "carbs": 7.9,
+   "fat": 0.3,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:F092100",
+   "bls_name": "Beerenmischung mit Sauerkirschen, ungesüßt, roh",
+   "hinweis": "Beerenmischung roh (BLS-Sammeleintrag)"
+  },
+  "Birnen": {
+   "kcal": 58,
+   "protein": 0.3,
+   "carbs": 13.16,
+   "fat": 0.29,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 150
+   },
+   "quelle": "BLS:F130100",
+   "bls_name": "Birne roh"
+  },
+  "Blattspinat": {
+   "kcal": 18,
+   "protein": 2.07,
+   "carbs": 0.93,
+   "fat": 0.3,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:G211100",
+   "bls_name": "Spinat roh"
+  },
+  "Brokkoli": {
+   "kcal": 35,
+   "protein": 3.62,
+   "carbs": 2.3,
+   "fat": 0.6,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:G312100",
+   "bls_name": "Broccoli roh"
+  },
+  "Chiasamen": {
+   "kcal": 479,
+   "protein": 22.11,
+   "carbs": 3.66,
+   "fat": 32.79,
+   "allergene": [],
+   "kategorie": "Nüsse & Samen",
+   "einheiten": {
+    "EL": 12
+   },
+   "quelle": "BLS:H480100",
+   "bls_name": "Chia-Samen"
+  },
+  "Chiliflocken": {
+   "kcal": 318,
+   "protein": 12,
+   "carbs": 56.6,
+   "fat": 17.3,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 2
+   },
+   "quelle": "USDA-FDC:170932",
+   "hinweis": "Spices, pepper, red or cayenne"
+  },
+  "Datteln": {
+   "kcal": 356,
+   "protein": 2.64,
+   "carbs": 79.3,
+   "fat": 0.36,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:F504400",
+   "bls_name": "Dattel getrocknet",
+   "hinweis": "getrocknet; Schwefelung herstellerabhängig (nicht gekennzeichnet)"
+  },
+  "Dill": {
+   "kcal": 43,
+   "protein": 3.46,
+   "carbs": 7.02,
+   "fat": 1.12,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Bund": 20
+   },
+   "quelle": "USDA-FDC:172233",
+   "hinweis": "Dill weed, fresh"
+  },
+  "Dosentomaten": {
+   "kcal": 24,
+   "protein": 1.2,
+   "carbs": 3.25,
+   "fat": 0.3,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:G568900",
+   "bls_name": "Tomate geschält, Konserve"
+  },
+  "Eier": {
+   "kcal": 135,
+   "protein": 13.18,
+   "carbs": 0.34,
+   "fat": 9,
+   "allergene": [
+    "eggs"
+   ],
+   "tier": "egg",
+   "kategorie": "Eier",
+   "einheiten": {
+    "Stück": 55
+   },
+   "quelle": "BLS:E111100",
+   "bls_name": "Hühnerei roh"
+  },
+  "Eisbergsalat": {
+   "kcal": 15,
+   "protein": 0.8,
+   "carbs": 1.62,
+   "fat": 0.2,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Kopf": 500
+   },
+   "quelle": "BLS:G103100",
+   "bls_name": "Eisbergsalat roh"
+  },
+  "Erbsen (tiefgekühlt)": {
+   "kcal": 77,
+   "protein": 4.9,
+   "carbs": 10,
+   "fat": 0.7,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:G760200",
+   "bls_name": "Erbse grün, tiefgefroren"
+  },
+  "Erdnussmus": {
+   "kcal": 620,
+   "protein": 29,
+   "carbs": 9.9,
+   "fat": 49.7,
+   "allergene": [
+    "peanuts"
+   ],
+   "kategorie": "Nüsse & Samen",
+   "einheiten": {
+    "EL": 16
+   },
+   "quelle": "BLS:H110800",
+   "bls_name": "Erdnussmus"
+  },
+  "Feta": {
+   "kcal": 284,
+   "protein": 15.68,
+   "carbs": 0,
+   "fat": 24.09,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:M012200",
+   "bls_name": "Feta mind. 45 % Fett i. Tr."
+  },
+  "Frühlingszwiebeln": {
+   "kcal": 27,
+   "protein": 1.9,
+   "carbs": 3,
+   "fat": 0.19,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Bund": 100
+   },
+   "quelle": "BLS:G482100",
+   "bls_name": "Frühlingszwiebel/Lauchzwiebel, roh"
+  },
+  "Garnelen": {
+   "kcal": 87,
+   "protein": 18.6,
+   "carbs": 0,
+   "fat": 1.44,
+   "allergene": [
+    "crustaceans"
+   ],
+   "tier": "fish",
+   "kategorie": "Fleisch & Fisch",
+   "quelle": "BLS:T753100",
+   "bls_name": "Garnele/Granat/Krabbe, roh"
+  },
+  "Gemüsebrühe": {
+   "kcal": 4,
+   "protein": 0.32,
+   "carbs": 0.54,
+   "fat": 0.1,
+   "allergene": [
+    "celery"
+   ],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "quelle": "BLS:X416243",
+   "bls_name": "Gemüsebrühe",
+   "hinweis": "Sellerie: Brühen enthalten häufig Sellerie, vorsichtshalber gekennzeichnet"
+  },
+  "Gouda": {
+   "kcal": 313,
+   "protein": 24.7,
+   "carbs": 0,
+   "fat": 23.4,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:M402500",
+   "bls_name": "Gouda mind. 40 % Fett i. Tr."
+  },
+  "Grüne Bohnen": {
+   "kcal": 28,
+   "protein": 2.24,
+   "carbs": 3.4,
+   "fat": 0.24,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:G710100",
+   "bls_name": "Bohne grün, roh"
+  },
+  "Gurke": {
+   "kcal": 16,
+   "protein": 1.06,
+   "carbs": 1.97,
+   "fat": 0.2,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 350
+   },
+   "quelle": "BLS:G520100",
+   "bls_name": "Gurke roh"
+  },
+  "Haferdrink": {
+   "kcal": 29,
+   "protein": 0.74,
+   "carbs": 4,
+   "fat": 1.01,
+   "allergene": [
+    "gluten"
+   ],
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:C660000",
+   "bls_name": "Haferdrink ungesüßt",
+   "hinweis": "Hafer: Gluten-Kreuzkontamination, als Gluten gerechnet"
+  },
+  "Haferflocken": {
+   "kcal": 348,
+   "protein": 13.22,
+   "carbs": 53.3,
+   "fat": 6.65,
+   "allergene": [
+    "gluten"
+   ],
+   "kategorie": "Getreide & Backwaren",
+   "quelle": "BLS:C133000",
+   "bls_name": "Hafer Flocken",
+   "hinweis": "Hafer: Gluten-Kreuzkontamination, als Gluten gerechnet"
+  },
+  "Hirse": {
+   "kcal": 352,
+   "protein": 11.79,
+   "carbs": 67.6,
+   "fat": 3.13,
+   "allergene": [],
+   "kategorie": "Getreide & Backwaren",
+   "quelle": "BLS:C332000",
+   "bls_name": "Hirse roh"
+  },
+  "Honig": {
+   "kcal": 305,
+   "protein": 0.4,
+   "carbs": 74.09,
+   "fat": 0,
+   "allergene": [],
+   "tier": "honey",
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 7,
+    "EL": 21
+   },
+   "quelle": "BLS:S120000",
+   "bls_name": "Honig"
+  },
+  "Hähnchenbrust": {
+   "kcal": 109,
+   "protein": 23.25,
+   "carbs": 0,
+   "fat": 1.81,
+   "allergene": [],
+   "tier": "meat",
+   "kategorie": "Fleisch & Fisch",
+   "quelle": "BLS:V416100",
+   "bls_name": "Hähnchen Brustfilet, roh"
+  },
+  "Hüttenkäse": {
+   "kcal": 73,
+   "protein": 11.8,
+   "carbs": 3,
+   "fat": 1.2,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:M711100",
+   "bls_name": "Körniger Frischkäse < 10 % Fett i. Tr."
+  },
+  "Ingwer": {
+   "kcal": 48,
+   "protein": 1.92,
+   "carbs": 6.8,
+   "fat": 0.75,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück (daumengroß)": 15
+   },
+   "quelle": "BLS:R211200",
+   "bls_name": "Ingwer/Ingwerwurzel, roh"
+  },
+  "Kabeljaufilet": {
+   "kcal": 79,
+   "protein": 17.8,
+   "carbs": 0,
+   "fat": 0.84,
+   "allergene": [
+    "fish"
+   ],
+   "tier": "fish",
+   "kategorie": "Fleisch & Fisch",
+   "quelle": "BLS:T204100",
+   "bls_name": "Dorsch/Kabeljau, roh"
+  },
+  "Kakaopulver": {
+   "kcal": 365,
+   "protein": 22.61,
+   "carbs": 10.9,
+   "fat": 19.8,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "EL": 8
+   },
+   "quelle": "BLS:S711000",
+   "bls_name": "Kakaopulver schwach entölt"
+  },
+  "Kartoffeln": {
+   "kcal": 83,
+   "protein": 1.94,
+   "carbs": 17.9,
+   "fat": 0.1,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:K110100",
+   "bls_name": "Kartoffel geschält, roh"
+  },
+  "Kichererbsen (Dose)": {
+   "kcal": 136,
+   "protein": 7.5,
+   "carbs": 15.5,
+   "fat": 2.7,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H720902",
+   "bls_name": "Kichererbse reif, Konserve, abgetropft",
+   "hinweis": "abgetropft"
+  },
+  "Kidneybohnen (Dose)": {
+   "kcal": 128,
+   "protein": 8.5,
+   "carbs": 15.1,
+   "fat": 1,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H742902",
+   "bls_name": "Kidneybohne reif, Konserve, abgetropft",
+   "hinweis": "abgetropft"
+  },
+  "Kirschtomaten": {
+   "kcal": 22,
+   "protein": 0.95,
+   "carbs": 3.25,
+   "fat": 0.11,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:G561100",
+   "bls_name": "Tomate roh"
+  },
+  "Knoblauch": {
+   "kcal": 97,
+   "protein": 6.05,
+   "carbs": 3,
+   "fat": 0.42,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Zehen": 3
+   },
+   "quelle": "BLS:G490100",
+   "bls_name": "Knoblauch roh"
+  },
+  "Kokosmilch": {
+   "kcal": 227,
+   "protein": 2.77,
+   "carbs": 2.1,
+   "fat": 21.9,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H154000",
+   "bls_name": "Kokosmilch/Kokosnussmilch",
+   "hinweis": "Kokos ist in der EU-Allergenliste keine Schalenfrucht, daher nicht gekennzeichnet"
+  },
+  "Koriander": {
+   "kcal": 33,
+   "protein": 4.09,
+   "carbs": 1.31,
+   "fat": 0.36,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Bund": 30
+   },
+   "quelle": "BLS:G250100",
+   "bls_name": "Petersilienblatt roh",
+   "hinweis": "kein Koriander-Eintrag gefunden: Petersilie als Ersatz"
+  },
+  "Kreuzkümmel": {
+   "kcal": 375,
+   "protein": 17.8,
+   "carbs": 44.2,
+   "fat": 22.3,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 2
+   },
+   "quelle": "USDA-FDC:170923",
+   "hinweis": "Spices, cumin seed"
+  },
+  "Kurkuma": {
+   "kcal": 312,
+   "protein": 9.68,
+   "carbs": 67.1,
+   "fat": 3.25,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 3
+   },
+   "quelle": "USDA-FDC:172231",
+   "hinweis": "Spices, turmeric, ground"
+  },
+  "Lachsfilet": {
+   "kcal": 180,
+   "protein": 19.9,
+   "carbs": 0,
+   "fat": 11.2,
+   "allergene": [
+    "fish"
+   ],
+   "tier": "fish",
+   "kategorie": "Fleisch & Fisch",
+   "quelle": "BLS:T410100",
+   "bls_name": "Lachs roh"
+  },
+  "Lauch": {
+   "kcal": 36,
+   "protein": 2.14,
+   "carbs": 5,
+   "fat": 0.25,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stangen": 150
+   },
+   "quelle": "BLS:G470100",
+   "bls_name": "Porree/Lauch, roh"
+  },
+  "Leinsamen": {
+   "kcal": 468,
+   "protein": 22.27,
+   "carbs": 1.7,
+   "fat": 36.5,
+   "allergene": [],
+   "kategorie": "Nüsse & Samen",
+   "einheiten": {
+    "EL": 10
+   },
+   "quelle": "BLS:H410400",
+   "bls_name": "Leinsamen geschrotet"
+  },
+  "Limette": {
+   "kcal": 28,
+   "protein": 0.5,
+   "carbs": 1.9,
+   "fat": 0.2,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 70
+   },
+   "quelle": "BLS:F602100",
+   "bls_name": "Limette roh"
+  },
+  "Limettensaft": {
+   "kcal": 24,
+   "protein": 0.45,
+   "carbs": 1.52,
+   "fat": 0.2,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "EL": 15
+   },
+   "quelle": "BLS:F602600",
+   "bls_name": "Limettensaft"
+  },
+  "Magerquark": {
+   "kcal": 66,
+   "protein": 11.85,
+   "carbs": 3.68,
+   "fat": 0.18,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:M713100",
+   "bls_name": "Speisequark Magerstufe, Magerquark < 10 % Fett i. Tr."
+  },
+  "Mais (Dose)": {
+   "kcal": 79,
+   "protein": 2.71,
+   "carbs": 10.84,
+   "fat": 1.94,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:G570902",
+   "bls_name": "Zuckermais Konserve, abgetropft",
+   "hinweis": "abgetropft"
+  },
+  "Mandelmus": {
+   "kcal": 559,
+   "protein": 25.3,
+   "carbs": 4.51,
+   "fat": 46.6,
+   "allergene": [
+    "nuts"
+   ],
+   "kategorie": "Nüsse & Samen",
+   "einheiten": {
+    "EL": 16
+   },
+   "quelle": "BLS:H212800",
+   "bls_name": "Mandelmus"
+  },
+  "Mandeln": {
+   "kcal": 544,
+   "protein": 22.33,
+   "carbs": 3.87,
+   "fat": 46.6,
+   "allergene": [
+    "nuts"
+   ],
+   "kategorie": "Nüsse & Samen",
+   "quelle": "BLS:H210100",
+   "bls_name": "Mandel süß"
+  },
+  "Mango": {
+   "kcal": 60,
+   "protein": 0.7,
+   "carbs": 12,
+   "fat": 0.45,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 250
+   },
+   "quelle": "BLS:F516100",
+   "bls_name": "Mango roh"
+  },
+  "Milch": {
+   "kcal": 62,
+   "protein": 3.55,
+   "carbs": 4.03,
+   "fat": 3.49,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "einheiten": {
+    "ml": 1.03
+   },
+   "quelle": "BLS:M111300",
+   "bls_name": "Vollmilch frisch, 3,5 % Fett, pasteurisiert"
+  },
+  "Möhren": {
+   "kcal": 40,
+   "protein": 0.84,
+   "carbs": 6.47,
+   "fat": 0.4,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 80
+   },
+   "quelle": "BLS:G620100",
+   "bls_name": "Karotte/Möhre, roh"
+  },
+  "Naturjoghurt": {
+   "kcal": 67,
+   "protein": 3.98,
+   "carbs": 4.13,
+   "fat": 3.46,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:M141300",
+   "bls_name": "Joghurt mild, mind. 3,5 % Fett"
+  },
+  "Olivenöl": {
+   "kcal": 899,
+   "protein": 0,
+   "carbs": 0,
+   "fat": 99.9,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "EL": 14
+   },
+   "quelle": "BLS:Q120000",
+   "bls_name": "Olivenöl"
+  },
+  "Oregano": {
+   "kcal": 265,
+   "protein": 9,
+   "carbs": 68.9,
+   "fat": 4.28,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 1
+   },
+   "quelle": "USDA-FDC:171328",
+   "hinweis": "Spices, oregano, dried"
+  },
+  "Paprika": {
+   "kcal": 36,
+   "protein": 1.02,
+   "carbs": 6.19,
+   "fat": 0.2,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 160
+   },
+   "quelle": "BLS:G543100",
+   "bls_name": "Gemüsepaprika rot, roh"
+  },
+  "Paprikapulver": {
+   "kcal": 282,
+   "protein": 14.1,
+   "carbs": 54,
+   "fat": 12.9,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 3
+   },
+   "quelle": "USDA-FDC:171329",
+   "hinweis": "Spices, paprika"
+  },
+  "Parmesan": {
+   "kcal": 391,
+   "protein": 35.6,
+   "carbs": 0.06,
+   "fat": 27.43,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:M306400",
+   "bls_name": "Parmesan mind. 30 % Fett i. Tr."
+  },
+  "Petersilie": {
+   "kcal": 33,
+   "protein": 4.09,
+   "carbs": 1.31,
+   "fat": 0.36,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Bund": 40
+   },
+   "quelle": "BLS:G250100",
+   "bls_name": "Petersilienblatt roh"
+  },
+  "Putenbrust": {
+   "kcal": 105,
+   "protein": 24.1,
+   "carbs": 0,
+   "fat": 0.99,
+   "allergene": [],
+   "tier": "meat",
+   "kategorie": "Fleisch & Fisch",
+   "quelle": "BLS:V486100",
+   "bls_name": "Pute Brust, ohne Haut, roh"
+  },
+  "Quinoa": {
+   "kcal": 361,
+   "protein": 12.56,
+   "carbs": 59.65,
+   "fat": 6.29,
+   "allergene": [],
+   "kategorie": "Getreide & Backwaren",
+   "quelle": "BLS:C118000",
+   "bls_name": "Quinoa weiß, roh"
+  },
+  "Rapsöl": {
+   "kcal": 900,
+   "protein": 0,
+   "carbs": 0,
+   "fat": 100,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "EL": 14
+   },
+   "quelle": "BLS:Q180000",
+   "bls_name": "Rapsöl/Rüböl"
+  },
+  "Reis (roh)": {
+   "kcal": 351,
+   "protein": 7.93,
+   "carbs": 77.1,
+   "fat": 0.62,
+   "allergene": [],
+   "kategorie": "Getreide & Backwaren",
+   "quelle": "BLS:C352000",
+   "bls_name": "Reis poliert, roh"
+  },
+  "Reisdrink": {
+   "kcal": 59,
+   "protein": 0,
+   "carbs": 12.31,
+   "fat": 1.04,
+   "allergene": [],
+   "kategorie": "Milchprodukte",
+   "einheiten": {
+    "ml": 1.03
+   },
+   "quelle": "BLS:C650000",
+   "bls_name": "Reisdrink ungesüßt"
+  },
+  "Reiswaffeln": {
+   "kcal": 371,
+   "protein": 8,
+   "carbs": 77.47,
+   "fat": 2.42,
+   "allergene": [],
+   "kategorie": "Getreide & Backwaren",
+   "einheiten": {
+    "Stück": 8
+   },
+   "quelle": "BLS:C532700",
+   "bls_name": "Reiswaffeln ungesalzen",
+   "hinweis": "Hersteller teils mit Sesam oder Spuren Gluten, Etikett prüfen"
+  },
+  "Rinderhackfleisch": {
+   "kcal": 224,
+   "protein": 19.1,
+   "carbs": 0,
+   "fat": 16.39,
+   "allergene": [],
+   "tier": "meat",
+   "kategorie": "Fleisch & Fisch",
+   "quelle": "BLS:U010100",
+   "bls_name": "Rind Hackfleisch, roh"
+  },
+  "Rote Linsen": {
+   "kcal": 334,
+   "protein": 25.6,
+   "carbs": 48.8,
+   "fat": 2.17,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H730000",
+   "bls_name": "Linse rot reif"
+  },
+  "Rundkornreis": {
+   "kcal": 351,
+   "protein": 7.93,
+   "carbs": 77.1,
+   "fat": 0.62,
+   "allergene": [],
+   "kategorie": "Getreide & Backwaren",
+   "quelle": "BLS:C352000",
+   "bls_name": "Reis poliert, roh",
+   "hinweis": "Reis poliert roh (gleiche Werte wie Reis (roh))"
+  },
+  "Salz und Pfeffer": {
+   "kcal": 304,
+   "protein": 10.92,
+   "carbs": 46.07,
+   "fat": 2.77,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "Prise": 0.5
+   },
+   "quelle": "BLS:R258100",
+   "bls_name": "Pfeffer schwarz, getrocknet",
+   "hinweis": "Pfeffer schwarz; Salz = 0 kcal; Prise = 0,5 g gerechnet"
+  },
+  "Schnittlauch": {
+   "kcal": 29,
+   "protein": 2.6,
+   "carbs": 1.54,
+   "fat": 0.74,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Bund": 25
+   },
+   "quelle": "BLS:G081100",
+   "bls_name": "Schnittlauch roh"
+  },
+  "Schwarze Bohnen (Dose)": {
+   "kcal": 130,
+   "protein": 9.04,
+   "carbs": 17.72,
+   "fat": 0.6,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H740902",
+   "bls_name": "Gartenbohne reif, Konserve, abgetropft",
+   "hinweis": "abgetropft; kein Eintrag für schwarze Bohnen: Gartenbohne reif (Konserve) als Ersatz"
+  },
+  "Schwarze Oliven": {
+   "kcal": 140,
+   "protein": 0.84,
+   "carbs": 0,
+   "fat": 14.84,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H520800",
+   "bls_name": "Oliven geschwärzt, in Salzlake, abgetropft"
+  },
+  "Senf": {
+   "kcal": 111,
+   "protein": 5.51,
+   "carbs": 2.94,
+   "fat": 6.96,
+   "allergene": [
+    "mustard"
+   ],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 5
+   },
+   "quelle": "BLS:R132000",
+   "bls_name": "Senf mittelscharf"
+  },
+  "Sesamsamen": {
+   "kcal": 565,
+   "protein": 20.9,
+   "carbs": 1.42,
+   "fat": 50.4,
+   "allergene": [
+    "sesame"
+   ],
+   "kategorie": "Nüsse & Samen",
+   "einheiten": {
+    "EL": 9
+   },
+   "quelle": "BLS:H420100",
+   "bls_name": "Sesam"
+  },
+  "Skyr": {
+   "kcal": 64,
+   "protein": 10.35,
+   "carbs": 3.19,
+   "fat": 0.84,
+   "allergene": [
+    "milk"
+   ],
+   "tier": "dairy",
+   "kategorie": "Milchprodukte",
+   "quelle": "BLS:M710100",
+   "bls_name": "Skyr, Frischkäse < 10 % Fett i. Tr."
+  },
+  "Sojadrink": {
+   "kcal": 30,
+   "protein": 3.22,
+   "carbs": 0.4,
+   "fat": 1.3,
+   "allergene": [
+    "soybeans"
+   ],
+   "kategorie": "Milchprodukte",
+   "einheiten": {
+    "ml": 1.03
+   },
+   "quelle": "BLS:H841100",
+   "bls_name": "Sojadrink ungesüßt"
+  },
+  "Sojasauce": {
+   "kcal": 66,
+   "protein": 6.3,
+   "carbs": 5.47,
+   "fat": 0.88,
+   "allergene": [
+    "soybeans",
+    "gluten"
+   ],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "EL": 18
+   },
+   "quelle": "BLS:R143000",
+   "bls_name": "Sojasauce/Sojasoße",
+   "hinweis": "Sojasauce enthält meist Weizen"
+  },
+  "Sonnenblumenkerne": {
+   "kcal": 564,
+   "protein": 26.11,
+   "carbs": 4.8,
+   "fat": 47.6,
+   "allergene": [],
+   "kategorie": "Nüsse & Samen",
+   "quelle": "BLS:H430100",
+   "bls_name": "Sonnenblumenkern"
+  },
+  "Staudensellerie": {
+   "kcal": 17,
+   "protein": 1.2,
+   "carbs": 1.5,
+   "fat": 0.1,
+   "allergene": [
+    "celery"
+   ],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stangen": 60
+   },
+   "quelle": "BLS:G220100",
+   "bls_name": "Bleichsellerie roh"
+  },
+  "Süßkartoffeln": {
+   "kcal": 119,
+   "protein": 1.63,
+   "carbs": 25.2,
+   "fat": 0.6,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "quelle": "BLS:K420100",
+   "bls_name": "Batate/Süßkartoffel, roh"
+  },
+  "Tahini": {
+   "kcal": 595,
+   "protein": 18,
+   "carbs": 0.7,
+   "fat": 56,
+   "allergene": [
+    "sesame"
+   ],
+   "kategorie": "Nüsse & Samen",
+   "einheiten": {
+    "EL": 15
+   },
+   "quelle": "BLS:Q901000",
+   "bls_name": "Tahin (Sesammus)"
+  },
+  "Tellerlinsen (getrocknet)": {
+   "kcal": 323,
+   "protein": 23.36,
+   "carbs": 44.8,
+   "fat": 1.7,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H725100",
+   "bls_name": "Linse reif"
+  },
+  "Thunfisch im eigenen Saft (Dose)": {
+   "kcal": 95,
+   "protein": 22.87,
+   "carbs": 0,
+   "fat": 0.41,
+   "allergene": [
+    "fish"
+   ],
+   "tier": "fish",
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:T121902",
+   "bls_name": "Thunfisch im eigenen Saft, Konserve, abgetropft",
+   "hinweis": "abgetropft"
+  },
+  "Tofu": {
+   "kcal": 115,
+   "protein": 15.51,
+   "carbs": 0,
+   "fat": 5.63,
+   "allergene": [
+    "soybeans"
+   ],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "quelle": "BLS:H861000",
+   "bls_name": "Tofu"
+  },
+  "Tomaten": {
+   "kcal": 22,
+   "protein": 0.95,
+   "carbs": 3.25,
+   "fat": 0.11,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 120
+   },
+   "quelle": "BLS:G561100",
+   "bls_name": "Tomate roh"
+  },
+  "Tomatenmark": {
+   "kcal": 81,
+   "protein": 3.4,
+   "carbs": 13.2,
+   "fat": 0.2,
+   "allergene": [],
+   "kategorie": "Hülsenfrüchte & Konserven",
+   "einheiten": {
+    "EL": 16
+   },
+   "quelle": "BLS:R160000",
+   "bls_name": "Tomatenmark"
+  },
+  "Vollkornbrot": {
+   "kcal": 193,
+   "protein": 6.04,
+   "carbs": 32.49,
+   "fat": 1.81,
+   "allergene": [
+    "gluten"
+   ],
+   "kategorie": "Getreide & Backwaren",
+   "einheiten": {
+    "Scheiben": 45
+   },
+   "quelle": "BLS:B121000",
+   "bls_name": "Roggenvollkornbrot",
+   "hinweis": "Roggenvollkornbrot als Näherung"
+  },
+  "Vollkornbrötchen": {
+   "kcal": 282,
+   "protein": 9.9,
+   "carbs": 48,
+   "fat": 3.18,
+   "allergene": [
+    "gluten"
+   ],
+   "kategorie": "Getreide & Backwaren",
+   "einheiten": {
+    "Stück": 70
+   },
+   "quelle": "BLS:B401000",
+   "bls_name": "Vollkornbrötchen"
+  },
+  "Vollkornmehl": {
+   "kcal": 339,
+   "protein": 12.76,
+   "carbs": 61.78,
+   "fat": 1.78,
+   "allergene": [
+    "gluten"
+   ],
+   "kategorie": "Getreide & Backwaren",
+   "quelle": "BLS:C211000",
+   "bls_name": "Weizen Vollkornmehl"
+  },
+  "Vollkornnudeln": {
+   "kcal": 356,
+   "protein": 14.3,
+   "carbs": 62.9,
+   "fat": 2.93,
+   "allergene": [
+    "gluten"
+   ],
+   "kategorie": "Getreide & Backwaren",
+   "quelle": "BLS:E510000",
+   "bls_name": "Vollkornteigwaren eifrei, roh",
+   "hinweis": "eifreie Vollkornteigware angenommen (Eiernudeln würden eggs ergänzen)"
+  },
+  "Vollkornwraps": {
+   "kcal": 296,
+   "protein": 8.85,
+   "carbs": 46.64,
+   "fat": 7.85,
+   "allergene": [
+    "gluten"
+   ],
+   "kategorie": "Getreide & Backwaren",
+   "einheiten": {
+    "Stück": 60
+   },
+   "quelle": "BLS:B783012",
+   "bls_name": "Weizentortilla",
+   "hinweis": "Weizentortilla (BLS hat keinen Vollkorn-Wrap)"
+  },
+  "Walnüsse": {
+   "kcal": 721,
+   "protein": 16.07,
+   "carbs": 3,
+   "fat": 70.6,
+   "allergene": [
+    "nuts"
+   ],
+   "kategorie": "Nüsse & Samen",
+   "quelle": "BLS:H120100",
+   "bls_name": "Walnuss"
+  },
+  "Zimt": {
+   "kcal": 247,
+   "protein": 3.99,
+   "carbs": 80.6,
+   "fat": 1.24,
+   "allergene": [],
+   "kategorie": "Öle, Gewürze & Vorrat",
+   "einheiten": {
+    "TL": 2.6,
+    "Prise": 0.5
+   },
+   "quelle": "USDA-FDC:171320",
+   "hinweis": "Spices, cinnamon, ground"
+  },
+  "Zitrone": {
+   "kcal": 40,
+   "protein": 0.7,
+   "carbs": 3.16,
+   "fat": 0.4,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 60
+   },
+   "quelle": "BLS:F601100",
+   "bls_name": "Zitrone roh"
+  },
+  "Zitronensaft": {
+   "kcal": 30,
+   "protein": 0.63,
+   "carbs": 1.7,
+   "fat": 0.3,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "EL": 15
+   },
+   "quelle": "BLS:F601600",
+   "bls_name": "Zitronensaft"
+  },
+  "Zucchini": {
+   "kcal": 22,
+   "protein": 1.3,
+   "carbs": 3,
+   "fat": 0.29,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 200
+   },
+   "quelle": "BLS:G582100",
+   "bls_name": "Zucchini roh"
+  },
+  "Zwiebel": {
+   "kcal": 34,
+   "protein": 1.16,
+   "carbs": 6.01,
+   "fat": 0.15,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 80
+   },
+   "quelle": "BLS:G480100",
+   "bls_name": "Speisezwiebel roh"
+  },
+  "Äpfel": {
+   "kcal": 58,
+   "protein": 0.42,
+   "carbs": 11.7,
+   "fat": 0.5,
+   "allergene": [],
+   "kategorie": "Obst & Gemüse",
+   "einheiten": {
+    "Stück": 150
+   },
+   "quelle": "BLS:F110100",
+   "bls_name": "Apfel roh"
+  }
+ }
+}
