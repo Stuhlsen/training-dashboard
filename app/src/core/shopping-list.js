@@ -5,6 +5,7 @@
    aggregateShoppingList → Zutaten der geplanten Rezepte, summiert und
                            nach Kategorie gruppiert
    formatShoppingAmount  → Menge mit deutschem Dezimalkomma
+   checkProgress         → Abhak-Fortschritt "x von y" (ohne Vorrat)
 
    Regeln:
    - Faktor = gegessene Portionen (Plan-Eintrag) ÷ Rezept-Portionen; die
@@ -151,4 +152,26 @@ export function aggregateShoppingList({ entries, recipes, excludedDates = [] }) 
     groups,
     missingIngredients: [...missing].sort((a, b) => a.localeCompare(b, "de")),
   };
+}
+
+/**
+ * Abhak-Fortschritt über die Einkaufszeilen (Fahrplan 25, R3).
+ * Der Vorrat zählt nicht mit: er ist eingeklappt ("Vorrat prüfen"), sonst
+ * wäre "alles abgehakt" nie erreichbar. Unbekannte Schlüssel in `checked`
+ * werden ignoriert.
+ * @param {ReadonlyArray<ShoppingGroup>} groups
+ * @param {ReadonlySet<string>} checked
+ * @returns {{ done: number, total: number }}
+ */
+export function checkProgress(groups, checked) {
+  let done = 0;
+  let total = 0;
+  for (const group of groups) {
+    if (group.isPantry) continue;
+    for (const row of group.rows) {
+      total += 1;
+      if (checked.has(row.key)) done += 1;
+    }
+  }
+  return { done, total };
 }

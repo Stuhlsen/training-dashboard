@@ -5,6 +5,7 @@
 import { describe, expect, it } from "vitest";
 import {
   aggregateShoppingList,
+  checkProgress,
   formatShoppingAmount,
   PANTRY_CATEGORY,
   roundAmount,
@@ -198,5 +199,34 @@ describe("formatShoppingAmount", () => {
     expect(formatShoppingAmount(1.5)).toBe("1,5");
     expect(formatShoppingAmount(2)).toBe("2");
     expect(formatShoppingAmount(250)).toBe("250");
+  });
+});
+
+describe("checkProgress", () => {
+  const group = (category, keys, isPantry = false) => ({
+    category,
+    isPantry,
+    rows: keys.map((key) => ({ key, name: key, amounts: [], rezepte: [] })),
+  });
+  const groups = [group("Obst & Gemüse", ["a", "b", "c"]), group(PANTRY_CATEGORY, ["salz"], true)];
+
+  it("zählt abgehakte und alle Zeilen", () => {
+    expect(checkProgress(groups, new Set(["a", "c"]))).toEqual({ done: 2, total: 3 });
+  });
+
+  it("ohne Haken: 0 von n", () => {
+    expect(checkProgress(groups, new Set())).toEqual({ done: 0, total: 3 });
+  });
+
+  it("Vorrat zählt weder als Gesamtzahl noch als erledigt", () => {
+    expect(checkProgress(groups, new Set(["salz"]))).toEqual({ done: 0, total: 3 });
+  });
+
+  it("unbekannte Schlüssel werden ignoriert", () => {
+    expect(checkProgress(groups, new Set(["alt", "b"]))).toEqual({ done: 1, total: 3 });
+  });
+
+  it("leere Liste: 0 von 0", () => {
+    expect(checkProgress([], new Set(["a"]))).toEqual({ done: 0, total: 0 });
   });
 });
