@@ -115,8 +115,9 @@ schreibt sie direkt ins mit dem Frontend geteilte Volume.
 Prefix + knappe Beschreibung, **auf Englisch**. Grund: `publish-images.yml`
 generiert bei jedem `v*`-Tag den GitHub-Release-Changelog automatisch aus den
 Commit-Subjects — soll für GitHub-/Portfolio-Besucher ohne Übersetzung lesbar
-sein. Betrifft NUR Commit-Nachrichten — Code-Kommentare, Doku und UI-Texte
-bleiben deutsch.
+sein. Gilt für **alles, was auf GitHub landet**: Commit-Nachrichten, PR-Titel
+und -Beschreibung, Issues, Kommentare, Release-Notes. Code-Kommentare, Doku und
+UI-Texte bleiben deutsch (zitierte UI-Texte stehen im PR im deutschen Original).
 - `fix:`    — Bugfix
 - `feat:`   — neues Feature
 - `design:` — reine CSS-/Styling-Änderung
