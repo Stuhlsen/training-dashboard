@@ -85,7 +85,15 @@ export const HERO_TILE_SIZE = {
   weather: { w: BIG, h: rowsFor(170) },
   briefing: { w: BIG, h: rowsFor(330) },
   ftpRings: { w: BIG, h: rowsFor(420) },
-  powerScale: { w: HERO_GRID_COLS, h: rowsFor(172) },
+  // Zonen-Erklärer (Fahrplan 24 E2), 15.10.2026, Chrome-DevTools-Messung gegen den
+  // Docker-Produktions-Build, Viewport 1900 und 2200px (Container >= 1800), alle fünf
+  // Zonen nacheinander gewählt. Die Beschreibungsfelder stapeln alle Zonentexte in einer
+  // Rasterzelle, die Höhe ist daher unabhängig von der gewählten Zone (= längster Text).
+  // Inhalt (offsetHeight inkl. 58px Padding): powerScale 410px, hrZones 433px. Rahmen mit
+  // Puffer: 430px bzw. 450px (20px-Raster). Das aufgeklappte "ⓘ Quelle" ist ein Overlay
+  // und zählt nicht zur Höhe.
+  powerScale: { w: HERO_GRID_COLS, h: rowsFor(430) },
+  hrZones: { w: HERO_GRID_COLS, h: rowsFor(450) },
   consistency: { w: BIG, h: rowsFor(204) },
   records: { w: BIG, h: rowsFor(380) },
   raceResults: { w: BIG, h: rowsFor(150) },
@@ -141,6 +149,7 @@ export const DEFAULT_HERO_TILE_ORDER = [
   "briefing",
   "ftpRings",
   "powerScale",
+  "hrZones",
   ...HERO_METRIC_KEYS,
   "consistency",
   "records",

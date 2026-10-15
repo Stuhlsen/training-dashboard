@@ -12,6 +12,8 @@ export interface SourceListItem {
   link: string;
   /** Klickbare Adresse, falls es eine stabile gibt */
   url?: string;
+  /** Kurzer Herkunftsvermerk (z. B. "Originalquelle gelesen"), optional */
+  status?: string;
 }
 
 const LIST_STYLE: CSSProperties = {
@@ -40,6 +42,12 @@ export function SourceList({ sources }: { sources: readonly SourceListItem[] }) 
             <>
               <br />
               {s.link}
+            </>
+          )}
+          {s.status && (
+            <>
+              <br />
+              <em>{s.status}</em>
             </>
           )}
         </li>

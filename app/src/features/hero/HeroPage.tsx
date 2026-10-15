@@ -25,6 +25,9 @@ import { FtpRings } from "./FtpRings";
 import { HeroTileGrid, type HeroTile } from "./HeroTileGrid";
 import { MetricTile } from "./MetricTile";
 import { PowerScale } from "./PowerScale";
+import { HrZonesTile } from "./HrZonesTile";
+import { buildCyclingHrZones, resolveHrMax } from "./zone-explainer-view-model";
+import { useProfileBasics } from "../../api/hooks/useProfile";
 import { RaceCountdownPill } from "./RaceCountdownPill";
 import { RaceResultsCard } from "./RaceResultsCard";
 import { buildRaceResults } from "./race-results-view-model";
@@ -150,6 +153,18 @@ export function HeroPage() {
   }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries, sports]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
+
+  // HFmax für die Herzfrequenz-Zonen-Kachel (Fahrplan 24 E2): eigener
+  // Profilwert (nur Eigenansicht, wie im Planungstab-Pulsband), dann
+  // config.ts, zuletzt die Sync-Schätzung aus rides.json — dieselbe, die der
+  // Analyse-Tab nutzt (`athleteData.hrMax`).
+  const { data: profileBasics } = useProfileBasics();
+  const { hrMax, estimated: hrMaxEstimated } = resolveHrMax({
+    profileHrMax: isSelf ? profileBasics?.hrMax : null,
+    configHrMax: athleteCfg?.hrMax,
+    payloadHrMax: athleteData?.hrMax,
+    payloadEstimated: athleteData?.hrEstimated,
+  });
 
   // Athlet 4 ("Bentastiic", Einsteiger) hat noch keine FTP (kein Test,
   // config-Felder null) und anfangs keine Fahrten — Leistungsskala und
@@ -288,6 +303,15 @@ export function HeroPage() {
           eftpVal={vm.eftp.value || null}
         />
       ),
+    });
+    // Herzfrequenz-Zonen (E2): gleiche Sichtbarkeit wie die Leistungsskala. Eine
+    // eigene Regel ist nicht nötig — ohne HFmax zeigt die Kachel selbst den
+    // degradierten Zustand, und der Wert (config/Profil) ist nicht FTP-gegatet,
+    // die Kachel hängt aber bewusst in derselben Rad-Gruppe.
+    tiles.push({
+      id: "hrZones",
+      wide: true,
+      node: <HrZonesTile vm={buildCyclingHrZones(hrMax)} hrMaxEstimated={hrMaxEstimated} />,
     });
   }
   // Jede Kennzahl ist seit der Rückfrage vom 2026-09-04 ihre eigene, einzeln

@@ -3,6 +3,9 @@ import { GlassCard } from "../../components/GlassCard";
 import { ChartTooltip } from "../../charts/ChartTooltip";
 import { InfoTooltip } from "../../components/InfoTooltip";
 import { powerScaleReadout, type HeroViewModel } from "./hero-view-model";
+import { EASY_ZONE_ID_BY_SPORT, EASY_ZONE_SHARE_SENTENCE, ZONE_EXPLANATIONS } from "../../core/zone-explanations.js";
+import { ZoneExplainer } from "./ZoneExplainer";
+import { powerExplainerZones } from "./zone-explainer-view-model";
 
 interface PowerScaleProps {
   powerScale: HeroViewModel["powerScale"];
@@ -36,6 +39,8 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
   const remaining = eftpVal != null ? Math.max(0, whatIfFtp - eftpVal) : null;
   const fillPct = ((whatIfFtp - whatIf.min) / (whatIf.max - whatIf.min)) * 100;
   const [hover, setHover] = useState<ScaleHover | null>(null);
+  // Zonen-Erklärer (Fahrplan 24, E2): Z2 (Easy) ist vorgewählt.
+  const [selectedZoneId, setSelectedZoneId] = useState<string>(EASY_ZONE_ID_BY_SPORT.cycling);
 
   function handleScaleMove(e: React.MouseEvent<HTMLDivElement>) {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -73,7 +78,17 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
         >
           <div style={{ display: "flex", height: 16, borderRadius: 9, overflow: "hidden" }}>
             {powerScale.segments.map((z) => (
-              <div key={z.id} style={{ flex: `0 0 ${z.pct.toFixed(2)}%`, background: z.color }} />
+              <div
+                key={z.id}
+                // Zeigerbedienung; die Tastatur läuft über die Auswahlleiste im ZoneExplainer.
+                onClick={() => setSelectedZoneId(z.id)}
+                style={{
+                  flex: `0 0 ${z.pct.toFixed(2)}%`,
+                  background: z.color,
+                  cursor: "pointer",
+                  boxShadow: z.id === selectedZoneId ? "inset 0 0 0 2px var(--ink)" : undefined,
+                }}
+              />
             ))}
           </div>
           {powerScale.sweetSpot && (
@@ -153,6 +168,16 @@ export function PowerScale({ powerScale, whatIf, whatIfFtp, onWhatIfChange, eftp
           ))}
           <span style={{ marginLeft: "auto", fontSize: ".78rem", color: "var(--ink-3)" }}>0 – {powerScale.scaleMax} W</span>
         </div>
+
+        <ZoneExplainer
+          zones={powerExplainerZones(powerScale.segments)}
+          explanations={ZONE_EXPLANATIONS.cycling.zonen}
+          selectedId={selectedZoneId}
+          onSelect={setSelectedZoneId}
+          degraded={false}
+          easyZoneId={EASY_ZONE_ID_BY_SPORT.cycling}
+          shareSentence={EASY_ZONE_SHARE_SENTENCE}
+        />
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 14, paddingLeft: "clamp(0px,2vw,28px)", borderLeft: "1px solid var(--hair)" }}>
