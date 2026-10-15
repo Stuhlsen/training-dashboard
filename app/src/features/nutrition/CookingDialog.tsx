@@ -15,6 +15,7 @@ import { useConfirmTap } from "../../components/useConfirmTap";
 import { roundAmount, formatShoppingAmount } from "../../core/shopping-list.js";
 import { remainingSeconds, formatRemaining, formatRestTime, isExpired } from "../../core/cook-timer.js";
 import type { Recipe } from "../../api/types";
+import { AllergenLine } from "./AllergenLine";
 
 /* ── Schwellwert: Timer-Start-Button vs. Ruhezeit-Text ────
  *  EIGENES ERMESSEN (Issue #28): Bei 3600 s oder mehr zeigen
@@ -78,6 +79,18 @@ const INGREDIENT_LINE_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: "1.1rem",
   margin: "4px 0",
+  textAlign: "center",
+};
+const ALLERGEN_LINE_STYLE: React.CSSProperties = {
+  fontSize: "1rem",
+  fontWeight: 600,
+  margin: "16px 0 4px",
+  textAlign: "center",
+};
+const ALLERGEN_NOTE_STYLE: React.CSSProperties = {
+  fontSize: ".8rem",
+  color: "var(--ink-3)",
+  margin: 0,
   textAlign: "center",
 };
 const FOOTER_STYLE: React.CSSProperties = {
@@ -311,6 +324,7 @@ function IngredientsPage({ recipe, servings }: { recipe: Recipe; servings: numbe
           </p>
         );
       })}
+      <AllergenLine tags={recipe.containsTags} lineStyle={ALLERGEN_LINE_STYLE} noteStyle={ALLERGEN_NOTE_STYLE} />
     </div>
   );
 }

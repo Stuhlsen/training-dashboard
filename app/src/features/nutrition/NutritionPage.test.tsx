@@ -304,3 +304,28 @@ describe("NutritionPage — einmaliger Hinweis für Bestandsathleten (E30)", () 
     expect(screen.queryByText(HINT)).toBeNull();
   });
 });
+
+describe("NutritionPage — Haftungshinweis (E10)", () => {
+  const NOTE = /Tagesziel und Vorschläge sind eine Orientierung und ersetzen keine Ernährungsberatung/;
+
+  it("Woche: Hinweis sichtbar", () => {
+    renderPage();
+    expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
+    expect(screen.getByText(NOTE)).toBeTruthy();
+    expect(screen.getByText("Wichtiger Hinweis:")).toBeTruthy();
+  });
+
+  it("Einkaufsliste: Hinweis bleibt sichtbar", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Einkaufsliste" }));
+    expect(screen.getByText("Einkaufsliste-Platzhalter")).toBeTruthy();
+    expect(screen.getByText(NOTE)).toBeTruthy();
+  });
+
+  it("Profil unvollständig: Hinweis fehlt nicht", () => {
+    mockDay = { ok: false, missing: ["Gewicht"], hint: null };
+    renderPage();
+    expect(screen.getByText("Profil ergänzen")).toBeTruthy();
+    expect(screen.getByText(NOTE)).toBeTruthy();
+  });
+});

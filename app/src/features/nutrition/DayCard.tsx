@@ -32,6 +32,7 @@ import {
 } from "./nutrition-week-model";
 import { SourceList } from "./SourceList";
 import { CookingDialog } from "./CookingDialog";
+import { AllergenLine } from "./AllergenLine";
 import { BUTTON_DISABLED_STYLE, BUTTON_STYLE, HEADING_STYLE, META_STYLE, TEXT_STYLE } from "./nutrition-styles";
 
 export interface Choice {
@@ -127,6 +128,10 @@ const HINT_STYLE: CSSProperties = {
   ...META_STYLE,
   fontStyle: "italic",
 };
+const ALLERGEN_LINE_STYLE: CSSProperties = {
+  ...NUTRITION_LABEL_STYLE,
+  margin: "8px 0 2px",
+};
 
 /** Skaliert einen Zutatenwert auf die geplanten Portionen.
  *  Faktor = entryServings / recipeServings. */
@@ -148,6 +153,7 @@ function DetailsContent({ recipe, servings }: { recipe: Recipe; servings: number
     return (
       <div style={DETAILS_STYLE}>
         <p style={HINT_STYLE}>Keine Nährwertangaben und keine Zutaten hinterlegt</p>
+        <AllergenLine tags={recipe.containsTags} lineStyle={ALLERGEN_LINE_STYLE} noteStyle={HINT_STYLE} />
       </div>
     );
   }
@@ -182,6 +188,8 @@ function DetailsContent({ recipe, servings }: { recipe: Recipe; servings: number
           )}
         </div>
       )}
+
+      <AllergenLine tags={recipe.containsTags} lineStyle={ALLERGEN_LINE_STYLE} noteStyle={HINT_STYLE} />
     </div>
   );
 }

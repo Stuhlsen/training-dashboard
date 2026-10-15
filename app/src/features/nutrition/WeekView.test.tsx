@@ -7,6 +7,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { MealPlanEntry, MealSlot, Recipe } from "../../api/types";
 import type { NutritionDay } from "./nutrition-day-model";
 import { AMPEL_TOOLTIP } from "./nutrition-week-model";
+import { allergenLabel } from "../../core/nutrition-taxonomy.js";
+import { ALLERGEN_NOTE } from "./allergen-text";
 
 const TODAY = "2026-10-14";
 const SLOTS: MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
@@ -394,5 +396,39 @@ describe("WeekView — Rezept-Details", () => {
     const day = within(dayRegion());
     fireEvent.click(day.getByLabelText("Mittagessen: Details"));
     expect(day.getByText("Keine Zutaten hinterlegt")).toBeTruthy();
+  });
+});
+
+/* ── Allergen-Zeile in den Details (E10) ───────────────── */
+
+describe("WeekView — Allergen-Zeile", () => {
+  function tagged(containsTags: string[]): Recipe[] {
+    return pool().map((r) => ({ ...r, containsTags }) as Recipe);
+  }
+
+  it("Details zeigen 'Enthält: …' mit mehreren Allergenen und den Orientierungs-Hinweis", () => {
+    setWeek({ recipes: tagged(["gluten", "milk"]), entries: [entry("lunch", "lunch-0")] });
+    renderView();
+    const day = within(dayRegion());
+    fireEvent.click(day.getByLabelText("Mittagessen: Details"));
+    expect(day.getByText(`Enthält: ${allergenLabel("gluten")}, ${allergenLabel("milk")}`)).toBeTruthy();
+    expect(day.getByText(ALLERGEN_NOTE)).toBeTruthy();
+  });
+
+  it("Rezept ohne Tags: 'Keine Allergene hinterlegt'", () => {
+    setWeek({ recipes: tagged([]), entries: [entry("lunch", "lunch-0")] });
+    renderView();
+    const day = within(dayRegion());
+    fireEvent.click(day.getByLabelText("Mittagessen: Details"));
+    expect(day.getByText("Keine Allergene hinterlegt")).toBeTruthy();
+  });
+
+  it("Listenzeilen tragen keine Allergen-Sätze (nur geöffnete Details)", () => {
+    setWeek({ recipes: tagged(["gluten"]), entries: [entry("lunch", "lunch-0")] });
+    renderView();
+    const day = within(dayRegion());
+    expect(day.queryByText(/Enthält:/)).toBeNull();
+    expect(day.queryByText(/Keine Allergene hinterlegt/)).toBeNull();
+    expect(day.queryByText(ALLERGEN_NOTE)).toBeNull();
   });
 });

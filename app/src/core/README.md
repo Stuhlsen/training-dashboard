@@ -68,3 +68,20 @@ Daraus folgt für die Übergangszeit:
   wandert **nicht** in den Vanilla-Baum zurück.
 - Alle übrigen Module sind unverändert byte-gleich und bleiben per `diff`
   vergleichbar.
+
+## Ernährung, Zonen-Erklärer, Hero-Layout (neuere Module)
+
+Direkt hier geschrieben, jeweils mit eigenem Test. Alle ohne I/O; Details
+und Entscheidungsnummern stehen im Kopfkommentar der Datei.
+
+| Modul | Aufgabe |
+|---|---|
+| `nutrition.js` | Tagesziel (`estimateDailyTarget`/`estimateDailyGoal`), RED-S-Boden (`redSFloor`), Kohlenhydrat-Ziel, Intoleranz-Filter (`filterByIntolerances`), Hinweise (Training, fehlendes Gewicht) |
+| `nutrition-plan.js` | Tageszusammenstellung: `composeDay`, Tausch-Alternativen `swapCandidates`, Tages-Ampel `dayAmpel` |
+| `nutrition-taxonomy.js` | Allergen-Taxonomie (14 EU-Hauptallergene + `sonstiges`) — gemeinsame Quelle für `profiles.intolerances` und `recipes.contains_tags`; `allergenLabel` liefert den deutschen Namen für die UI |
+| `nutrition-sources.js` | Kuratierte Quellenliste für Ernährungsangaben (`NUTRITION_SOURCES`, `SOURCE_BY_KEY`) |
+| `shopping-list.js` | Einkaufsliste aus dem Essensplan: `aggregateShoppingList`, `roundAmount`, `formatShoppingAmount` |
+| `cook-timer.js` | Kochmodus-Timer als reine Zustandsfunktionen (`startTimer`, `remainingSeconds`, `serializeTimers`/`restoreTimers`); `now` kommt immer von außen |
+| `zone-explanations.js` | Erklärtexte je Zone und Sportart (reine Daten), Zonengrenzen stehen in `../sports/` |
+| `zone-sources.js` | Quellenliste für die Zonen-Erklärtexte (`ZONE_SOURCES`) |
+| `hero-layout.js` | Platzierungslogik der Hero-Kacheln im Raster (`resolveTileLayout`), Speicherung in `api/supabase/hero-layout.ts` |
