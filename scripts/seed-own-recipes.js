@@ -311,7 +311,14 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
   const SERVICE_ROLE_KEY = KEY_OVERRIDE || (PROD ? ENV.SUPABASE_SERVICE_ROLE_KEY_PROD : ENV.SUPABASE_SERVICE_ROLE_KEY);
 
   if (URL_OVERRIDE) logModule.info("⚙️  URL/Service-Role-Key via Shell-Override (apps01-Pfad).");
-  logModule.info(`🌐 Ziel: ${URL_OVERRIDE ? "Shell-Override (apps01-Pfad)" : PROD ? "prod (supabase.co, Altlast)" : "dev"}`);
+  // Tatsächlicher Host der aufgelösten URL (nicht nur die Flags) — nie Schlüssel/Pfad loggen.
+  let zielHost = "unbekannt";
+  try {
+    zielHost = new URL(SUPABASE_URL).host;
+  } catch {
+    // ungültige URL: Platzhalter reicht, der Seed-Aufruf scheitert ohnehin
+  }
+  logModule.info(`🌐 Ziel: ${zielHost}${URL_OVERRIDE ? " (Shell-Override)" : PROD ? " (--env=prod)" : ""}`);
   logModule.info(APPLY ? "🚀 Seed eigener Rezepte (--apply) …" : "🔍 Dry-Run …");
 
   let raw;
