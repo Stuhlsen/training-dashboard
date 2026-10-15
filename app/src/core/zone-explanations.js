@@ -102,23 +102,23 @@ const SWIMMING_ZONEN = [
   z("s2", "Grundlage: ruhig und gleichmäßig.",
     "Du schwimmst entspannt und kannst den Rhythmus lange halten.",
     "Baut die Ausdauer auf, auf der das schnellere Schwimmen aufbaut.",
-    "Längere Strecken am Stück.",
-    []),
+    "Lange Strecken am Stück, etwa 40 Minuten und mehr.",
+    [K.FERNANDES_2024]),
   z("s3", "CSS: dein Dauertempo.",
     "Anstrengend, aber gleichmäßig. CSS (Critical Swim Speed) ist das Tempo, das du über längere Zeit halten kannst.",
     "Verbessert, wie lange du ein zügiges Tempo durchhältst.",
-    "Mittellange Abschnitte mit kurzer Pause.",
-    [K.SWIM_SMOOTH_CSS]),
+    "Abschnitte von etwa 10 bis 20 Minuten.",
+    [K.SWIM_SMOOTH_CSS, K.FERNANDES_2024, K.SWIMMING_CANADA_2024]),
   z("s4", "VO2max: schnell und fordernd.",
     "Die Atmung ist schwer, du schwimmst schneller als dein Dauertempo.",
     "Erhöht die größte Menge Sauerstoff, die dein Körper nutzen kann (VO2max).",
-    "Kürzere Abschnitte mit Pausen dazwischen.",
-    []),
+    "Abschnitte von etwa 3 bis 10 Minuten mit Pausen dazwischen.",
+    [K.FERNANDES_2024]),
   z("s5", "Sprint: so schnell wie möglich.",
     "Maximale Kraft über sehr kurze Zeit, danach brauchst du Pause.",
     "Trainiert Schnelligkeit und Kraft im Wasser.",
-    "Sehr kurze Strecken mit langen Pausen.",
-    []),
+    "Sehr kurze Strecken von unter etwa 2 Minuten, mit langen Pausen.",
+    [K.FERNANDES_2024]),
 ];
 
 /* ---------- Herzfrequenz-Zonen (% HFmax) ----------
@@ -131,7 +131,7 @@ const HF_TEXTE = [
   ["z4", "Hart.", "Der Puls ist hoch, die Atmung schnell, Reden fällt schwer.", "Trainiert, ein hohes Tempo länger zu halten.", "Abschnitte mit Pausen."],
   ["z5", "Sehr hart bis maximal.", "Der Puls ist nahe am Höchstwert, du hältst das nur kurz durch.", "Trainiert die obere Leistungsgrenze.", "Kurze Abschnitte mit langen Pausen."],
 ];
-const hfZonen = () => HF_TEXTE.map((t) => z(...t, [K.HR_PCT_UNBELEGT]));
+const hfZonen = () => HF_TEXTE.map((t) => z(...t, [K.HR_PCT_UNBELEGT, K.BISHOP_2025]));
 
 /** @type {Readonly<Record<"cycling"|"running"|"swimming", Readonly<{zonen: ReadonlyArray<Readonly<ZoneExplanation>>, hf: ReadonlyArray<Readonly<ZoneExplanation>>}>>>} */
 export const ZONE_EXPLANATIONS = Object.freeze({
