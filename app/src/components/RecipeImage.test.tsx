@@ -1,6 +1,6 @@
 /* Tests: RecipeImage — Bild da / fehlt / Ladefehler, Label nur bei KI-Quelle.
- * Die Quellenauflösung ist gemockt: heute liefert core/recipe-image.js noch
- * kein KI-Bild (kommt mit F3), das Label-Verhalten soll aber schon stehen. */
+ * Die Quellenauflösung ist gemockt (getestet in core/recipe-image.test.js);
+ * hier geht es nur um das Rendern je Quelle. */
 
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
