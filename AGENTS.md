@@ -308,7 +308,7 @@ app/                       → Vite + React + TypeScript, s. app/README.md
     hooks/                  → generische UI-Hooks (nicht datenbezogen)
     features/               → ein Verzeichnis je Tab/Bereich (hero, logbook,
                               planning, analysis, events, auth, settings,
-                              bikefit, landing, onboarding)
+                              bikefit, landing, onboarding, nutrition)
     styles/tokens.css       → Design-Tokens
 
 admin-api/                → schlanker Node.js-HTTP-Server, Admin-Accountverwaltung

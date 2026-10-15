@@ -95,6 +95,17 @@ alle Testfunktionen — hier die Stellen, an denen die Zahl bewusst abweicht:
   direkt aus. Ein Ladefehler ist jetzt sichtbar, statt hinter
   Beispieldaten zu verschwinden.
 
+## Ernährung (Fahrplan 23)
+
+Je Tabelle ein Adapter unter `supabase/`, Result-Konvention wie überall,
+Hooks unter `hooks/`:
+
+| Adapter | Tabelle | Hooks |
+|---|---|---|
+| `nutrition-goals.ts` | `nutrition_goals` (append-only, neueste Zeile gilt) | `useNutritionGoals.ts` (`useActiveNutritionGoal`, `useAddNutritionGoal`) |
+| `meal-plan.ts` | `meal_plan_entries` (je Athlet/Tag/Slot ein Rezept, Upsert) | `useMealPlan.ts` (`useMealPlan`, `useUpsertMealPlanEntry`, `useDeleteMealPlanEntry`) |
+| `recipes.ts` | `recipes` (`containsTags` aus den Zutaten abgeleitet) | `useRecipes.ts` (`useRecipes`) |
+
 ## JSON-Pipeline (Konzept 5.5)
 
 In dieser Etappe bestätigt: die per Cron erzeugten `data/*.json` bleiben
