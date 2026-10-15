@@ -37,7 +37,7 @@ function Harness({ degraded = false, hr = false }: { degraded?: boolean; hr?: bo
       degraded={degraded}
       easyZoneId={EASY}
       shareSentence={EASY_ZONE_SHARE_SENTENCE}
-      hint={hr ? HR_RICHTWERT_HINT : undefined}
+      hints={hr ? [HR_RICHTWERT_HINT] : undefined}
     />
   );
 }
@@ -149,7 +149,7 @@ describe("PowerScale (Rad-Watt-Kachel)", () => {
 
 describe("HrZonesTile (Rad-HF-Kachel)", () => {
   it("mit HFmax: bpm-Zahlen, Richtwert-Hinweis und 'HFmax geschätzt'", () => {
-    const { container } = render(<HrZonesTile vm={buildCyclingHrZones(190)} hrMaxEstimated />);
+    const { container } = render(<HrZonesTile sport="ride" vm={buildCyclingHrZones(190)} hrMaxEstimated />);
     expect(container.textContent).toMatch(/\d+ bpm/);
     expect(screen.getByText(HR_RICHTWERT_HINT.text)).toBeTruthy();
     expect(screen.getByText(/HFmax geschätzt/)).toBeTruthy();
@@ -157,13 +157,13 @@ describe("HrZonesTile (Rad-HF-Kachel)", () => {
   });
 
   it("vermerkt einen Profilwert nicht fälschlich als geschätzt", () => {
-    render(<HrZonesTile vm={buildCyclingHrZones(190)} hrMaxEstimated={false} />);
+    render(<HrZonesTile sport="ride" vm={buildCyclingHrZones(190)} hrMaxEstimated={false} />);
     expect(screen.queryByText(/HFmax geschätzt/)).toBeNull();
     expect(screen.getByText(/HFmax hinterlegt/)).toBeTruthy();
   });
 
   it("ohne HFmax: degradierter Balken ohne Zahlen, Texte und Hinweis bleiben", () => {
-    const { container } = render(<HrZonesTile vm={buildCyclingHrZones(null)} hrMaxEstimated={false} />);
+    const { container } = render(<HrZonesTile sport="ride" vm={buildCyclingHrZones(null)} hrMaxEstimated={false} />);
     expect(container.textContent).not.toMatch(/\d+\s?bpm/);
     expect(screen.getByText(/HFmax noch nicht bekannt/)).toBeTruthy();
     expect(screen.getByText(HR_RICHTWERT_HINT.text)).toBeTruthy();

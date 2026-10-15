@@ -93,7 +93,15 @@ export const HERO_TILE_SIZE = {
   // Puffer: 430px bzw. 450px (20px-Raster). Das aufgeklappte "ⓘ Quelle" ist ein Overlay
   // und zählt nicht zur Höhe.
   powerScale: { w: HERO_GRID_COLS, h: rowsFor(430) },
-  hrZones: { w: HERO_GRID_COLS, h: rowsFor(450) },
+  // E3 (Lauf/Schwimmen), 15.10.2026, Playwright gegen den Docker-Produktions-Build, Viewport
+  // 2200px (Kachelbreite 1860px), je Sport alle fünf Zonen nacheinander gewählt: die Höhe bleibt
+  // konstant (Stapel-Ansatz). Inhalt (offsetHeight): paceZones 429px (Lauf = Schwimmen, im
+  // degradierten Zustand ohne Schwelle gemessen; mit Schwelle entfällt der Hinweistext und die
+  // Tick-Zeile kommt dazu, nicht separat gemessen), hrZones Rad 435px, Lauf 435px, Schwimmen
+  // 486px (längerer Wasser-Hinweis). Der Rahmen kennt je Kachel-ID nur EINE Höhe, daher gilt für
+  // hrZones das Maximum: 486px + Puffer → 500px (Rad/Lauf haben etwas Leerraum).
+  hrZones: { w: HERO_GRID_COLS, h: rowsFor(500) },
+  paceZones: { w: HERO_GRID_COLS, h: rowsFor(450) },
   consistency: { w: BIG, h: rowsFor(204) },
   records: { w: BIG, h: rowsFor(380) },
   raceResults: { w: BIG, h: rowsFor(150) },
@@ -149,6 +157,7 @@ export const DEFAULT_HERO_TILE_ORDER = [
   "briefing",
   "ftpRings",
   "powerScale",
+  "paceZones",
   "hrZones",
   ...HERO_METRIC_KEYS,
   "consistency",

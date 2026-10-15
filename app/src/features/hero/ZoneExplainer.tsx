@@ -4,7 +4,7 @@
    Reiner UI-Teil: Zonenliste, Texte (core/zone-explanations.js) und der
    Auswahlzustand kommen vom Aufrufer (kontrolliert) — kein api/-Zugriff,
    keine eigene Berechnung. Rad (E2) und Lauf/Schwimmen (E3) docken über
-   dieselben Props an.
+   dieselben Props an (Lauf/Schwimmen: Pace- und HF-Kacheln, E3).
 
    Feste Höhe ohne Messen: ALLE Zonentexte liegen übereinander in derselben
    Rasterzelle, nur der gewählte ist sichtbar (`visibility`). Das Feld ist
@@ -52,8 +52,9 @@ export interface ZoneExplainerProps {
   /** Zone, für die zusätzlich `shareSentence` erscheint (Easy-Zone) */
   easyZoneId?: string;
   shareSentence?: ExplainerCallout;
-  /** Immer sichtbarer Hinweis unter dem Beschreibungsfeld (z. B. Richtwert) */
-  hint?: ExplainerCallout;
+  /** Immer sichtbare Hinweise unter dem Beschreibungsfeld (z. B. Richtwert,
+   *  Wasser-Herzfrequenz), in der gegebenen Reihenfolge */
+  hints?: readonly ExplainerCallout[];
 }
 
 const STATUS_TEXT: Readonly<Record<string, string>> = {
@@ -94,7 +95,7 @@ export function ZoneExplainer({
   degraded,
   easyZoneId,
   shareSentence,
-  hint,
+  hints = [],
 }: ZoneExplainerProps) {
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const textById = new Map(explanations.map((e) => [e.id, e]));
@@ -121,7 +122,7 @@ export function ZoneExplainer({
   const keys = [
     ...(selectedExplanation?.quelleKeys ?? []),
     ...(selectedIsEasy && shareSentence ? shareSentence.quelleKeys : []),
-    ...(hint?.quelleKeys ?? []),
+    ...hints.flatMap((h) => h.quelleKeys),
   ];
   const sources = sourceItems(keys);
   const ownWording = (selectedExplanation?.quelleKeys.length ?? 0) === 0;
@@ -215,7 +216,11 @@ export function ZoneExplainer({
         })}
       </div>
 
-      {hint && <p style={{ ...TEXT_STYLE, fontSize: ".78rem", color: "var(--ink-3)" }}>{hint.text}</p>}
+      {hints.map((h) => (
+        <p key={h.text} style={{ ...TEXT_STYLE, fontSize: ".78rem", color: "var(--ink-3)" }}>
+          {h.text}
+        </p>
+      ))}
 
       {/* Aufklappbereich als Overlay NACH OBEN: die Kachel hat eine feste
           Rasterhöhe, und eine Kachel darunter liegt im Stapel über jedem
