@@ -9,8 +9,18 @@ const ENV = {
   POSTGREST_INTERNAL_URL: process.env.POSTGREST_INTERNAL_URL,
   GOTRUE_INTERNAL_URL: process.env.GOTRUE_INTERNAL_URL,
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
-  SUPER_ADMIN_ID: process.env.SUPER_ADMIN_ID || null,
+  // Kommagetrennte Liste von User-IDs (eine ID bleibt gültig); leer → null
+  SUPER_ADMIN_IDS: parseIdList(process.env.SUPER_ADMIN_ID),
 };
+
+/** "id1, id2" → ["id1","id2"]; leer/fehlend → null (Opt-in-Einschränkung aus). */
+function parseIdList(raw) {
+  const ids = String(raw || "")
+    .split(",")
+    .map((x) => x.trim())
+    .filter(Boolean);
+  return ids.length > 0 ? ids : null;
+}
 
 function sendJson(res, status, body) {
   res.writeHead(status, { "Content-Type": "application/json" });
@@ -63,10 +73,10 @@ const server = http.createServer(async (req, res) => {
     const profileRole = body.role === "coach" ? "coach" : "athlete";
     const isAdmin = body.isAdmin === true;
 
-    // Opt-in super-admin restriction: wenn SUPER_ADMIN_ID gesetzt ist, darf
-    // nur dieser Admin weitere Admins anlegen (nicht jeder Admin).
-    if (isAdmin && ENV.SUPER_ADMIN_ID && admin.sub !== ENV.SUPER_ADMIN_ID) {
-      sendJson(res, 403, { ok: false, error: { code: "UNKNOWN", message: "nur der Super-Admin darf Admins anlegen" } });
+    // Opt-in super-admin restriction: wenn SUPER_ADMIN_ID gesetzt ist, dürfen
+    // nur die dort gelisteten Admins weitere Admins anlegen (nicht jeder Admin).
+    if (isAdmin && ENV.SUPER_ADMIN_IDS && !ENV.SUPER_ADMIN_IDS.includes(admin.sub)) {
+      sendJson(res, 403, { ok: false, error: { code: "UNKNOWN", message: "nur ein Super-Admin darf Admins anlegen" } });
       return;
     }
 
@@ -150,7 +160,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 if (require.main === module) {
-  if (!ENV.SUPER_ADMIN_ID) {
+  if (!ENV.SUPER_ADMIN_IDS) {
     console.warn("SUPER_ADMIN_ID nicht gesetzt: jeder Admin darf weitere Admins anlegen");
   }
   server.listen(PORT, () => {

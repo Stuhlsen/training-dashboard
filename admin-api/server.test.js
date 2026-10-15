@@ -23,11 +23,13 @@ function makeJwt(sub, secret, expOffsetSec = 3600) {
 const JWT_SECRET = "test-secret";
 const SUPER_ADMIN_ID = "super-1";
 const TOKEN_MATCHING = makeJwt(SUPER_ADMIN_ID, JWT_SECRET);
+const TOKEN_SECOND_SUPER = makeJwt("super-2", JWT_SECRET);
 const TOKEN_OTHER = makeJwt("other-admin", JWT_SECRET);
 
 // Setze ENV *bevor* server.js importiert wird
 process.env.JWT_SECRET = JWT_SECRET;
-process.env.SUPER_ADMIN_ID = SUPER_ADMIN_ID;
+// Liste mit Leerzeichen: zweiter Super-Admin + Trimmen werden mitgetestet
+process.env.SUPER_ADMIN_ID = `${SUPER_ADMIN_ID}, super-2`;
 process.env.POSTGREST_INTERNAL_URL = "http://postgrest";
 process.env.GOTRUE_INTERNAL_URL = "http://gotrue";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "srv-key";
@@ -119,6 +121,21 @@ test("invite: isAdmin=true + SUPER_ADMIN_ID + passender Admin.sub -> 200", async
       assert.equal(result.status, 200);
       assert.equal(result.body.ok, true);
       assert.ok(result.body.hashedToken);
+    });
+  } finally {
+    globalThis.fetch = origFetch;
+  }
+});
+
+test("invite: isAdmin=true + zweiter Super-Admin aus der Liste -> 200", async () => {
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = mockFetch();
+
+  try {
+    await withServer(async (port) => {
+      const result = await postInvite(port, { email: "admin@example.com", isAdmin: true }, TOKEN_SECOND_SUPER);
+      assert.equal(result.status, 200);
+      assert.equal(result.body.ok, true);
     });
   } finally {
     globalThis.fetch = origFetch;
