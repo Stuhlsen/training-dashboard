@@ -19,7 +19,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getProfileByDisplayName } from "../supabase/profiles";
-import { athleteConfig } from "../../config";
+import { athleteConfig, SELF_ATHLETE_ID } from "../../config";
 import type { Sport } from "../types";
 import { qk } from "../keys";
 import { unwrap } from "../result";
@@ -44,14 +44,17 @@ async function resolve(athleteId: string): Promise<readonly Sport[]> {
 export function useAthleteSports(athleteId: string): readonly Sport[] {
   const userId = useAuthUserId();
   const selfProfile = useCurrentProfile().data ?? null;
-  const isSelf = !!selfProfile && athleteConfig(athleteId)?.name === selfProfile.displayName;
+  // Eigener Eintrag eines Accounts ohne Platz: Sportarten stehen im eigenen Profil.
+  const isSelfEntry = athleteId === SELF_ATHLETE_ID;
+  const isSelf =
+    !!selfProfile && (isSelfEntry || athleteConfig(athleteId)?.name === selfProfile.displayName);
 
   const other = useQuery({
     queryKey: qk.athleteSports(userId ?? "anon", athleteId),
     queryFn: () => resolve(athleteId),
     // Nur bei einem gecoachten Fremdathleten (der Selbst-Fall kommt direkt
     // aus useCurrentProfile()).
-    enabled: !!userId && !isSelf,
+    enabled: !!userId && !isSelf && !isSelfEntry,
     staleTime: 5 * 60_000,
   });
 

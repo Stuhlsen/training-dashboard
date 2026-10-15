@@ -26,6 +26,14 @@ export function onAuthChange(callback: (session: Session | null) => void): Subsc
   return subscription;
 }
 
+/** `auth.uid()` des eingeloggten Users, sonst `null` — für Auflösungen
+ *  außerhalb der Render-Phase (queryFn), die keinen Hook nutzen können. */
+export async function getCurrentUserId(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data } = await supabase.auth.getSession();
+  return data.session?.user?.id ?? null;
+}
+
 /** Ändert das Passwort des eingeloggten Users — mit Re-Authentifizierung:
  *  eine aktive Session allein reicht Supabase für `updateUser()`, das prüft
  *  aber nicht, ob der Aufrufer das AKTUELLE Passwort kennt.

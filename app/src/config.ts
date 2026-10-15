@@ -90,6 +90,10 @@ export interface AthleteConfig {
 
 export const PRIMARY_ATHLETE_ID = "athlete1";
 
+/** Reservierte ID des eigenen Eintrags für Accounts ohne Platz in `ATHLETES`
+ *  (Definition + Logik: `core/athlete-selection.js`). */
+export { SELF_ATHLETE_ID } from "./core/athlete-selection.js";
+
 export const ATHLETES: readonly AthleteConfig[] = [
   {
     id: "athlete1",

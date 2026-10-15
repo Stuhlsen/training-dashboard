@@ -11,6 +11,7 @@ import { useAuth } from "../api/auth/useAuth";
 // I/O (AGENTS.md-Abhängigkeitstabelle).
 import { useActiveAthlete } from "../api/hooks/useActiveAthlete";
 import { useAthleteSports } from "../api/hooks/useAthleteSports";
+import { useAthleteOptions } from "../api/hooks/useAthleteOptions";
 // hooks/-Schicht: darf api/ laden (AGENTS.md). Damit muss UserMenu (components/)
 // den Namen nicht selbst aus api/hooks holen — bekommt ihn als Prop.
 import { useAccountLabel } from "../hooks/account-label";
@@ -42,6 +43,7 @@ export function Layout() {
   const { session, signOut } = useAuth();
   const { activeAthleteId, setActiveAthleteId } = useActiveAthlete();
   const accountLabel = useAccountLabel();
+  const athleteOptions = useAthleteOptions();
 
   const sports = useAthleteSports(activeAthleteId);
   const hasCycling = sports.includes("ride");
@@ -73,7 +75,11 @@ export function Layout() {
             ))}
           </nav>
           <div className="app-header-toggles">
-            <AthleteToggle activeAthleteId={activeAthleteId} onChange={setActiveAthleteId} />
+            <AthleteToggle
+              athletes={athleteOptions}
+              activeAthleteId={activeAthleteId}
+              onChange={setActiveAthleteId}
+            />
             <SportToggle athleteId={activeAthleteId} />
           </div>
           <div className="app-header-actions">

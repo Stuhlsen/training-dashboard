@@ -1,17 +1,19 @@
-import { ATHLETES } from "../config";
-
 interface AthleteToggleProps {
+  /** Einträge der Leiste (Plätze aus `config.ts`, ggf. plus eigener Eintrag) —
+   *  geliefert von `useAthleteOptions()`. */
+  athletes: ReadonlyArray<{ id: string; name: string }>;
   activeAthleteId: string;
   onChange: (id: string) => void;
 }
 
 /** Geteilter Pill-Toggle (Hero-Header, Etappe 4; wiederverwendet ab Etappe 5)
- *  — Athletennamen kommen aus `config.ts` (ATHLETES), keine hartkodierten
- *  Namen (Datenschutz-Konvention). */
-export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps) {
+ *  — Athletennamen kommen aus `config.ts` (ATHLETES) bzw. dem eigenen Profil
+ *  (Eintrag eines Accounts ohne Platz), keine hartkodierten Namen
+ *  (Datenschutz-Konvention). */
+export function AthleteToggle({ athletes, activeAthleteId, onChange }: AthleteToggleProps) {
   const activeIndex = Math.max(
     0,
-    ATHLETES.findIndex((a) => a.id === activeAthleteId),
+    athletes.findIndex((a) => a.id === activeAthleteId),
   );
 
   return (
@@ -33,7 +35,7 @@ export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps)
         // (index.css) fängt schmale Viewports stattdessen über
         // `max-width: 100%` + `overflow-x: auto` ab — Pillen bleiben lesbar,
         // bei Bedarf horizontal scrollbar statt zusammengequetscht.
-        width: ATHLETES.length * 124,
+        width: athletes.length * 124,
         backdropFilter: "blur(10px)",
         boxShadow: "inset 0 0 0 1px rgba(255,255,255,.08)",
       }}
@@ -44,7 +46,7 @@ export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps)
           top: 4,
           bottom: 4,
           left: 4,
-          width: `calc(${100 / ATHLETES.length}% - 4px)`,
+          width: `calc(${100 / athletes.length}% - 4px)`,
           borderRadius: "var(--pill)",
           background: "rgba(255,255,255,0.18)",
           boxShadow: "0 2px 10px rgba(0,0,0,.45)",
@@ -52,7 +54,7 @@ export function AthleteToggle({ activeAthleteId, onChange }: AthleteToggleProps)
           transition: "transform .28s cubic-bezier(.4,0,.2,1)",
         }}
       />
-      {ATHLETES.map((a) => (
+      {athletes.map((a) => (
         <button
           key={a.id}
           type="button"

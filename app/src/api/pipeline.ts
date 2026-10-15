@@ -135,6 +135,14 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
   };
 }
 
+/** Leerer Datensatz für einen Account ohne eigene `rides*.json` (kein
+ *  Athleten-Platz in `config.ts`). Kein Fehler: Planung, Ernährung & Co.
+ *  laufen über Supabase und brauchen nur ein leeres Gerüst statt eines
+ *  endlosen „Lade …"; Hero/Fahrtenbuch/Analyse fängt `TrainingDataGate` ab. */
+export function emptyAthleteData(): AthleteData {
+  return toAthleteData({ rides: [] }, []);
+}
+
 /** Lädt und normalisiert den Datensatz eines Athleten.
  *  `import.meta.env.BASE_URL` davor, damit der Pfad unter GitHub Pages
  *  (Projektseite mit Unterverzeichnis) genauso stimmt wie lokal. */

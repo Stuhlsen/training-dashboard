@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { loadAthleteData, type AthleteData } from "../pipeline";
+import { emptyAthleteData, loadAthleteData, type AthleteData } from "../pipeline";
+import { athleteConfig } from "../../config";
 import { qk } from "../keys";
 import { unwrap } from "../result";
 import { useEffectiveSport } from "./useActiveSport";
@@ -47,7 +48,12 @@ export function useRides(athleteId: string) {
   return useQuery({
     queryKey: qk.rides(athleteId),
     staleTime: 5 * 60_000,
-    queryFn: async (): Promise<AthleteData> => unwrap(await loadAthleteData(athleteId)).data,
+    // Kein Platz in config.ts (eigener Eintrag eines Accounts ohne Platz):
+    // leerer Datensatz statt Fehler, damit Supabase-Seiten nicht hängen.
+    queryFn: async (): Promise<AthleteData> =>
+      athleteConfig(athleteId)
+        ? unwrap(await loadAthleteData(athleteId)).data
+        : emptyAthleteData(),
     select,
   });
 }
