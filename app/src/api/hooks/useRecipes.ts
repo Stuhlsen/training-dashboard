@@ -25,5 +25,10 @@ export function useRecipes() {
     staleTime: 10 * 60_000,
     queryFn: async () => unwrap(await listRecipes()).recipes,
   });
-  return { recipes: query.data ?? EMPTY_RECIPES, isLoading: query.isLoading };
+  return {
+    recipes: query.data ?? EMPTY_RECIPES,
+    isLoading: query.isLoading,
+    isError: query.isError,
+    refetch: query.refetch,
+  };
 }

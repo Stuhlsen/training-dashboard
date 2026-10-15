@@ -1,6 +1,7 @@
-/* Tests: WeekView — leerer/gefüllter Tag, Ampel-Stufen, Zusammenstellen,
- * Tauschen, Entfernen, wenige/keine Kandidaten, sichtbare Fehler, Banner
- * wegklicken. Die Hooks (Wochen-Daten, Essensplan) sind gemockt. */
+/* Tests: WeekView (Tagesbühne) — leerer/gefüllter Tag, Ampel-Stufen,
+ * Zusammenstellen, Tauschen/Details/Kochen/Entfernen über das Kachel-Menü,
+ * wenige/keine Kandidaten, sichtbare Fehler, Banner wegklicken. Die Hooks
+ * (Wochen-Daten, Essensplan) sind gemockt. */
 
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -21,6 +22,16 @@ vi.mock("./useNutritionWeek", () => ({ useNutritionWeek: () => mockWeek }));
 vi.mock("../../api/hooks/useMealPlan", () => ({
   useUpsertMealPlanEntry: () => ({ upsert: upsertMock, isPending: false }),
   useDeleteMealPlanEntry: () => ({ remove: removeMock, isPending: false }),
+}));
+
+// Der Kochmodus braucht den Timer-Kontext und hat eigene Tests
+vi.mock("./CookingDialog", () => ({
+  CookingDialog: ({ recipe, onClose }: { recipe: { title: string }; onClose: () => void }) => (
+    <div role="dialog" aria-label="Kochmodus-Platzhalter">
+      {recipe.title}
+      <button type="button" onClick={onClose}>Kochmodus schließen</button>
+    </div>
+  ),
 }));
 
 const { WeekView } = await import("./WeekView");
@@ -101,6 +112,12 @@ function renderView() {
 
 const dayRegion = () => screen.getByRole("region", { name: "Tag 14.10" });
 
+/** Öffnet das "⋯"-Menü einer Kachel und wählt den Eintrag. */
+function menuAction(slotLabel: string, item: string) {
+  fireEvent.click(screen.getByRole("button", { name: `${slotLabel}: Aktionen` }));
+  fireEvent.click(screen.getByRole("menuitem", { name: item }));
+}
+
 beforeEach(() => {
   localStorage.clear();
   upsertMock.mockReset().mockResolvedValue({ ok: true, entry: {} });
@@ -116,24 +133,37 @@ afterEach(() => {
 /* ── Zustände ─────────────────────────────────────────────── */
 
 describe("WeekView — Tageskarten", () => {
-  it("leerer Tag: Datum, Ziel, vier leere Slots, weder Summe noch Ampel", () => {
+  it("leerer Tag: Datum, Ziel, Fortschritt 0, vier leere Kacheln, keine Ampel", () => {
     renderView();
     const day = within(dayRegion());
     expect(day.getByText(/14\.10 · Heute/)).toBeTruthy();
-    expect(day.getByText("Ziel 2300 kcal")).toBeTruthy();
-    expect(day.getAllByText("Noch nichts geplant")).toHaveLength(4);
-    expect(day.queryByText(/^Summe/)).toBeNull();
+    expect(day.getByText("2300 kcal")).toBeTruthy();
+    expect(day.getByText("Noch nichts geplant")).toBeTruthy();
+    for (const label of ["Frühstück", "Mittagessen", "Abendessen", "Snack"]) {
+      expect(day.getByRole("button", { name: `${label}: Rezept wählen` })).toBeTruthy();
+    }
+    expect(day.queryByText(/ kcal geplant/)).toBeNull();
     expect(day.queryByTitle(AMPEL_TOOLTIP)).toBeNull();
+    expect(day.getByRole("progressbar").getAttribute("aria-valuenow")).toBe("0");
   });
 
-  it("gefüllter Tag: Titel, kcal × Portion und Eiweiß je Slot, Summe, Ampel", () => {
+  it("zeigt nur den gewählten Tag (heute), nicht sieben Karten", () => {
+    setWeek({ dates: [TODAY, "2026-10-15"], days: [OK_DAY, OK_DAY] });
+    renderView();
+    expect(screen.getAllByRole("region", { name: /^Tag / })).toHaveLength(1);
+  });
+
+  it("gefüllter Tag: Titel, kcal × Portion und Eiweiß je Kachel, geplant / Ziel, Ampel, Fortschrittsbalken", () => {
     setWeek({ entries: [entry("breakfast", "breakfast-0", 1.5), ...FULL_DAY.slice(1)] });
     renderView();
     const day = within(dayRegion());
     expect(day.getByText("Rezept breakfast-0")).toBeTruthy();
     expect(day.getByText(/1,5 Portionen · 750 kcal · 38 g Eiweiß/)).toBeTruthy();
-    expect(day.getByText("Summe 2550 kcal")).toBeTruthy();
+    expect(day.getByText("2550 von 2300 kcal geplant")).toBeTruthy();
     expect(day.getByTitle(AMPEL_TOOLTIP)).toBeTruthy();
+    const bar = day.getByRole("progressbar");
+    expect(bar.getAttribute("aria-valuenow")).toBe("100"); // über dem Ziel: Balken voll
+    expect(bar.getAttribute("aria-valuetext")).toBe("2550 von 2300 kcal geplant");
   });
 
   it("zeigt Laden, solange die Wochen-Daten laden", () => {
@@ -163,13 +193,13 @@ describe("WeekView — Ampel-Stufen (Text, nicht nur Farbe)", () => {
     expect(day.getByText("unter der Mindestzufuhr")).toBeTruthy();
     expect(day.getByText(/Die Summe liegt unter der Mindestzufuhr von 2500 kcal/)).toBeTruthy();
     expect(day.queryByText(/RED-S-Boden/)).toBeNull();
-    expect(day.getByText("ⓘ Quelle")).toBeTruthy();
+    expect(day.getByText("ⓘ So rechnen wir")).toBeTruthy();
   });
 
   it("zeigt Hinweis, wenn eine Einheit geplant ist, ihre Energie aber nicht berechenbar", () => {
     setWeek({ days: [{ ...OK_DAY, trainingUnknown: true }] });
     renderView();
-    expect(screen.getByText("Einheit geplant, Energie nicht berechenbar")).toBeTruthy();
+    expect(screen.getByText(/Heute ist eine Einheit geplant, ihre Energie lässt sich ohne FTP/)).toBeTruthy();
   });
 
   it("dezenter Hinweis, wenn eine Hauptmahlzeit unter dem Eiweißbereich liegt", () => {
@@ -199,7 +229,7 @@ describe("WeekView — Tag zusammenstellen, Tauschen, Entfernen", () => {
   it("Tauschen: zeigt 2 bis 3 Alternativen mit neuer Tagessumme und Ampel; Auswahl schreibt", async () => {
     setWeek({ entries: FULL_DAY });
     renderView();
-    fireEvent.click(screen.getByLabelText("Frühstück: tauschen"));
+    menuAction("Frühstück", "Tauschen");
     const choose = screen.getAllByText("Übernehmen");
     expect(choose.length).toBeGreaterThanOrEqual(2);
     expect(choose.length).toBeLessThanOrEqual(3);
@@ -217,7 +247,7 @@ describe("WeekView — Tag zusammenstellen, Tauschen, Entfernen", () => {
   it("Entfernen: löscht den Eintrag über dessen id", async () => {
     setWeek({ entries: FULL_DAY });
     renderView();
-    fireEvent.click(screen.getByLabelText("Mittagessen: entfernen"));
+    menuAction("Mittagessen", "Entfernen");
     await waitFor(() => expect(removeMock).toHaveBeenCalledWith("e-lunch"));
   });
 
@@ -233,7 +263,7 @@ describe("WeekView — Tag zusammenstellen, Tauschen, Entfernen", () => {
     removeMock.mockResolvedValue({ ok: false, error: { code: "NETWORK", message: "offline" } });
     setWeek({ entries: FULL_DAY });
     renderView();
-    fireEvent.click(screen.getByLabelText("Snack: entfernen"));
+    menuAction("Snack", "Entfernen");
     expect((await screen.findByRole("alert")).textContent).toContain("offline");
   });
 });
@@ -359,14 +389,14 @@ describe("WeekView — Rezept-Details", () => {
     ];
   }
 
-  it("Details-Button zeigt Zutaten und Nährwerte", () => {
+  it("Antippen der Kachel öffnet das Detailblatt mit Zutaten und Nährwerten", () => {
     setWeek({ recipes: poolWithDetails(), entries: [entry("breakfast", "breakfast-0")] });
     renderView();
+    expect(screen.queryByRole("dialog")).toBeNull();
 
-    // Details-Button click (use screen, not within, to avoid scoping issues)
-    fireEvent.click(screen.getByLabelText("Frühstück: Details"));
+    fireEvent.click(screen.getByText("Rezept breakfast-0"));
 
-    // Wait for re-render — the DetailsContent should now be in the DOM
+    expect(screen.getByRole("dialog", { name: "Details: Rezept breakfast-0" })).toBeTruthy();
     expect(screen.getByText("Zutaten")).toBeTruthy();
     // Use getAllByText with a function matcher for text spanning nodes
     const matching = screen.getAllByText((_content: string, el: Element | null) => {
@@ -378,23 +408,49 @@ describe("WeekView — Rezept-Details", () => {
     expect(screen.getAllByText(/25 g Eiweiß/).length).toBeGreaterThanOrEqual(2); // Zeile + Details
   });
 
-  it("Details-Button toggle: zweiter Klick schließt", () => {
+  it("Menü → Details öffnet dasselbe Blatt; 'Schließen' und Escape schließen es", () => {
     setWeek({ recipes: poolWithDetails(), entries: [entry("breakfast", "breakfast-0")] });
     renderView();
-    const day = within(dayRegion());
 
-    fireEvent.click(day.getByLabelText("Frühstück: Details"));
-    expect(day.getByText("Zutaten")).toBeTruthy();
+    menuAction("Frühstück", "Details");
+    expect(screen.getByRole("dialog")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Schließen" }));
+    expect(screen.queryByRole("dialog")).toBeNull();
 
-    fireEvent.click(day.getByText("Schließen"));
-    expect(day.queryByText("Zutaten")).toBeNull();
+    menuAction("Frühstück", "Details");
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("Kochen aus dem Menü und aus dem Detailblatt öffnen den Kochmodus", () => {
+    setWeek({ recipes: poolWithDetails(), entries: [entry("breakfast", "breakfast-0")] });
+    renderView();
+
+    menuAction("Frühstück", "Kochen");
+    expect(screen.getByRole("dialog", { name: "Kochmodus-Platzhalter" })).toBeTruthy();
+    fireEvent.click(screen.getByText("Kochmodus schließen"));
+    expect(screen.queryByRole("dialog")).toBeNull();
+
+    fireEvent.click(screen.getByText("Rezept breakfast-0"));
+    fireEvent.click(screen.getByRole("button", { name: "Kochen" }));
+    expect(screen.getByRole("dialog", { name: "Kochmodus-Platzhalter" })).toBeTruthy();
+    // das Detailblatt ist dabei zu
+    expect(screen.queryByRole("dialog", { name: /^Details:/ })).toBeNull();
+  });
+
+  it("Kachel ohne auflösbares Rezept: Hinweis, Menü nur mit Tauschen und Entfernen", () => {
+    setWeek({ entries: [entry("lunch", "gibt-es-nicht")] });
+    renderView();
+    expect(screen.getByText("Dieses Rezept ist nicht mehr verfügbar")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Mittagessen: Aktionen" }));
+    expect(screen.getAllByRole("menuitem").map((i) => i.textContent)).toEqual(["Tauschen", "Entfernen"]);
   });
 
   it("Rezept ohne Zutaten zeigt dezenter Hinweis", () => {
     setWeek({ recipes: poolWithDetails(), entries: [entry("lunch", "lunch-0")] });
     renderView();
     const day = within(dayRegion());
-    fireEvent.click(day.getByLabelText("Mittagessen: Details"));
+    menuAction("Mittagessen", "Details");
     expect(day.getByText("Keine Zutaten hinterlegt")).toBeTruthy();
   });
 });
@@ -410,7 +466,7 @@ describe("WeekView — Allergen-Zeile", () => {
     setWeek({ recipes: tagged(["gluten", "milk"]), entries: [entry("lunch", "lunch-0")] });
     renderView();
     const day = within(dayRegion());
-    fireEvent.click(day.getByLabelText("Mittagessen: Details"));
+    menuAction("Mittagessen", "Details");
     expect(day.getByText(`Enthält: ${allergenLabel("gluten")}, ${allergenLabel("milk")}`)).toBeTruthy();
     expect(day.getByText(ALLERGEN_NOTE)).toBeTruthy();
   });
@@ -419,7 +475,7 @@ describe("WeekView — Allergen-Zeile", () => {
     setWeek({ recipes: tagged([]), entries: [entry("lunch", "lunch-0")] });
     renderView();
     const day = within(dayRegion());
-    fireEvent.click(day.getByLabelText("Mittagessen: Details"));
+    menuAction("Mittagessen", "Details");
     expect(day.getByText("Keine Allergene hinterlegt")).toBeTruthy();
   });
 
@@ -430,5 +486,109 @@ describe("WeekView — Allergen-Zeile", () => {
     expect(day.queryByText(/Enthält:/)).toBeNull();
     expect(day.queryByText(/Keine Allergene hinterlegt/)).toBeNull();
     expect(day.queryByText(ALLERGEN_NOTE)).toBeNull();
+  });
+});
+
+/* ── Wochenleiste + "Woche aufklappen" (Fahrplan 25, R1) ───── */
+
+describe("WeekView — Wochenleiste und Aufklappen", () => {
+  const NEXT = "2026-10-15";
+  const nextEntry = (slot: MealSlot): MealPlanEntry => ({ ...entry(slot), id: `n-${slot}`, date: NEXT });
+
+  function twoDays(over: Record<string, unknown> = {}) {
+    setWeek({
+      dates: [TODAY, NEXT],
+      days: [OK_DAY, { ...OK_DAY, dateISO: NEXT, target: 2500 }],
+      ...over,
+    });
+  }
+
+  it("zeigt die Leiste mit allen Tagen; heute ist die Bühne", () => {
+    twoDays();
+    renderView();
+    expect(screen.getByRole("navigation", { name: "Tage der Woche" })).toBeTruthy();
+    expect(screen.getAllByRole("button", { pressed: true })).toHaveLength(1);
+    expect(screen.getByRole("button", { name: /^Mi 14\.10, heute/ }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("region", { name: "Tag 14.10" })).toBeTruthy();
+  });
+
+  it("Antippen eines Tages wechselt die Bühne (Ziel und Datum des neuen Tages)", () => {
+    twoDays();
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /^Do 15\.10/ }));
+    const region = within(screen.getByRole("region", { name: "Tag 15.10" }));
+    expect(region.getByText("2500 kcal")).toBeTruthy();
+    expect(region.getByText("15.10")).toBeTruthy(); // nicht 'Heute'
+    expect(screen.queryByRole("region", { name: "Tag 14.10" })).toBeNull();
+  });
+
+  it("die Leiste zeigt den Stand der Tage (Summe, Ampel) auch für nicht gewählte Tage", () => {
+    twoDays({ entries: FULL_DAY.map((e) => nextEntry(e.mealSlot)) });
+    renderView();
+    expect(
+      screen.getByRole("button", { name: /^Do 15\.10: 2300 von 2500 kcal geplant, im Rahmen/ }),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: /^Mi 14\.10, heute: nichts geplant/ })).toBeTruthy();
+  });
+
+  it("Schreiben geht auf den gewählten Tag", async () => {
+    twoDays();
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: /^Do 15\.10/ }));
+    fireEvent.click(screen.getByText("Tag zusammenstellen"));
+    await waitFor(() => expect(upsertMock).toHaveBeenCalledTimes(4));
+    for (const call of upsertMock.mock.calls) expect(call[0].date).toBe(NEXT);
+  });
+
+  it("'Woche aufklappen' zeigt alle Tage untereinander, 'Woche zuklappen' kehrt zur Bühne zurück", () => {
+    twoDays();
+    renderView();
+    const toggle = screen.getByRole("button", { name: "Woche aufklappen" });
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+
+    fireEvent.click(toggle);
+    expect(screen.getAllByRole("region", { name: /^Tag / })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: "Woche zuklappen" }).getAttribute("aria-expanded")).toBe("true");
+    expect(screen.queryByRole("progressbar")).toBeNull(); // Bühne (Tagesziel-Karte) ist weg
+
+    fireEvent.click(screen.getByRole("button", { name: "Woche zuklappen" }));
+    expect(screen.getAllByRole("region", { name: /^Tag / })).toHaveLength(1);
+  });
+
+  it("aufgeklappt schreiben beide Darstellungen über dieselben Rückrufe", async () => {
+    twoDays({ entries: [...FULL_DAY, ...FULL_DAY.map((e) => nextEntry(e.mealSlot))] });
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Woche aufklappen" }));
+    const second = within(screen.getByRole("region", { name: "Tag 15.10" }));
+
+    fireEvent.click(second.getByRole("button", { name: "Mittagessen: Aktionen" }));
+    fireEvent.click(second.getByRole("menuitem", { name: "Entfernen" }));
+    await waitFor(() => expect(removeMock).toHaveBeenCalledWith("n-lunch"));
+
+    fireEvent.click(second.getByRole("button", { name: "Tag zusammenstellen" }));
+    await waitFor(() => expect(upsertMock).toHaveBeenCalledTimes(4));
+    for (const call of upsertMock.mock.calls) expect(call[0].date).toBe(NEXT);
+  });
+
+  it("ein Tipp auf einen Tag in der Leiste klappt die Woche wieder zu und zeigt dessen Bühne", () => {
+    twoDays();
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Woche aufklappen" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Do 15\.10/ }));
+    expect(screen.getAllByRole("region", { name: /^Tag / })).toHaveLength(1);
+    expect(screen.getByRole("region", { name: "Tag 15.10" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Woche aufklappen" })).toBeTruthy();
+  });
+
+  it("Fehler eines Tages bleibt sichtbar, wenn man den Tag wechselt und zurückkehrt", async () => {
+    upsertMock.mockResolvedValue({ ok: false, error: { code: "HTTP", message: "RLS verweigert" } });
+    twoDays();
+    renderView();
+    fireEvent.click(screen.getByText("Tag zusammenstellen"));
+    await screen.findByRole("alert");
+    fireEvent.click(screen.getByRole("button", { name: /^Do 15\.10/ }));
+    expect(screen.queryByRole("alert")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /^Mi 14\.10/ }));
+    expect(screen.getByRole("alert").textContent).toContain("RLS verweigert");
   });
 });

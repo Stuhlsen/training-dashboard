@@ -7,11 +7,12 @@
    Eiweiß-Hinweis je Hauptmahlzeit) und die Texte der Banner.
    ============================================================ */
 
-import { addDaysISO } from "../../core/format.js";
+import { addDaysISO, fmtDate } from "../../core/format.js";
 import { dayAmpel, proteinMinFor } from "../../core/nutrition-plan.js";
+import { dayProgress } from "../../core/nutrition-progress.js";
 import { trainingNutritionHint, weightMissingHint } from "../../core/nutrition.js";
 import type { MealPlanEntry, MealSlot, PlanCard, Recipe } from "../../api/types";
-import { sessionForDay, type NutritionWellnessDay } from "./nutrition-day-model";
+import { sessionForDay, type NutritionDay, type NutritionWellnessDay } from "./nutrition-day-model";
 
 /** Die Wochenansicht zeigt bis zu 7 Tage ab heute (E5). */
 export const WEEK_DAYS = 7;
@@ -35,6 +36,9 @@ export const AMPEL_TEXT: Record<Ampel, string> = {
   yellow: "abweichend",
   red: "unter der Mindestzufuhr",
 };
+
+/** Farb-Token je Stufe (L3): --ok / --warn / --danger, nie Zonenfarben */
+export const AMPEL_TOKEN: Record<Ampel, string> = { green: "--ok", yellow: "--warn", red: "--danger" };
 
 export const AMPEL_TOOLTIP = "grob so genau wie die Rechnung selbst, keine medizinische Schwelle";
 
@@ -102,6 +106,63 @@ export function summarizeDay(params: {
   totalKcal = Math.round(totalKcal);
   const ampel = filled > 0 ? (dayAmpel(totalKcal, target, floor) as Ampel) : null;
   return { slots, totalKcal, filled, ampel, proteinMin };
+}
+
+/* ── Wochenleiste (Fahrplan 25, R1) ─────────────────────── */
+
+const WEEKDAYS_SHORT = ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"];
+
+/** "2026-10-14" → "Mi" (kalendarisch, unabhängig von Zeitzone und Sommerzeit). */
+export function weekdayShort(dateISO: string): string {
+  const d = new Date(`${dateISO}T00:00:00Z`);
+  return Number.isNaN(d.getTime()) ? "" : WEEKDAYS_SHORT[d.getUTCDay()];
+}
+
+export interface WeekStripDay {
+  dateISO: string;
+  isToday: boolean;
+  weekday: string;
+  /** "14.10" */
+  dateLabel: string;
+  /** Anzahl Slots mit auflösbarem Rezept */
+  filled: number;
+  totalKcal: number;
+  /** null, wenn für den Tag kein Ziel berechenbar ist */
+  target: number | null;
+  /** 0…1 für den kleinen Fortschrittsbalken */
+  ratio: number;
+  /** null, solange der Tag leer ist */
+  ampel: Ampel | null;
+}
+
+/** Eine Zeile pro Tag der Leiste: Datum, Fortschritt, Ampel. */
+export function buildWeekStrip(params: {
+  dates: readonly string[];
+  todayISO: string;
+  days: readonly NutritionDay[];
+  entries: readonly MealPlanEntry[];
+  recipesById: ReadonlyMap<string, Recipe>;
+}): WeekStripDay[] {
+  const { dates, todayISO, days, entries, recipesById } = params;
+  return dates.map((dateISO, i): WeekStripDay => {
+    const base = {
+      dateISO,
+      isToday: dateISO === todayISO,
+      weekday: weekdayShort(dateISO),
+      dateLabel: fmtDate(dateISO) as string,
+    };
+    const day = days[i];
+    if (!day?.ok) return { ...base, filled: 0, totalKcal: 0, target: null, ratio: 0, ampel: null };
+    const s = summarizeDay({ dateISO, entries, recipesById, target: day.target, floor: day.floor, weightKg: day.weightKg });
+    return {
+      ...base,
+      filled: s.filled,
+      totalKcal: s.totalKcal,
+      target: day.target,
+      ratio: dayProgress(s.totalKcal, day.target).ratio as number,
+      ampel: s.ampel,
+    };
+  });
 }
 
 export interface Banner {

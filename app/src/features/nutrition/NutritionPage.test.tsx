@@ -39,6 +39,8 @@ vi.mock("./ShoppingListView", () => ({
   ),
 }));
 
+vi.mock("./RecipesView", () => ({ RecipesView: () => <p>Rezepte-Platzhalter</p> }));
+
 const { NutritionPage } = await import("./NutritionPage");
 
 const OK_DAY: Extract<NutritionDay, { ok: true }> = {
@@ -94,7 +96,8 @@ describe("NutritionPage — Guard (E28)", () => {
   it("eigener Athlet: Tagesziel statt Hinweis", () => {
     renderPage();
     expect(screen.queryByText("Ernährung ist nur in deinem eigenen Profil sichtbar")).toBeNull();
-    expect(screen.getByText("Tagesziel")).toBeTruthy();
+    // die Tagesziel-Karte sitzt in der Tagesbühne (WeekView, hier gemockt) — Details: DayTargetCard.test.tsx
+    expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
     expect(useNutritionDayMock).toHaveBeenCalledWith("athlete1", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
   });
 
@@ -148,76 +151,6 @@ describe("NutritionPage — Karte 'Profil ergänzen'", () => {
   });
 });
 
-describe("NutritionPage — ok-Zustand", () => {
-  it("zeigt Ziel, RED-S-Boden und den Namen der Formel", () => {
-    renderPage();
-    expect(screen.getByText("3021 kcal")).toBeTruthy();
-    expect(screen.getByText("Mindestzufuhr: 1760 kcal")).toBeTruthy();
-    expect(screen.queryByText(/RED-S-Boden/)).toBeNull();
-    expect(
-      screen.getByText("Grundumsatz nach Ten Haaf (2014), in einer Studie von 2023 an Sportlern geprüft"),
-    ).toBeTruthy();
-    expect(screen.queryByText(/Körperfett gemessen am/)).toBeNull();
-  });
-
-  it("Cunningham mit gemessenem Körperfett: Formelname und Datum (DD.MM.JJJJ — die Messung kann alt sein)", () => {
-    mockDay = { ...OK_DAY, formula: "cunningham-1980", bodyFatDate: "2026-10-10" };
-    renderPage();
-    expect(
-      screen.getByText("Grundumsatz nach Cunningham (1980), in einer Studie von 2023 an Sportlern geprüft"),
-    ).toBeTruthy();
-    expect(screen.getByText(/Körperfett gemessen am 10\.10\.2026/)).toBeTruthy();
-  });
-
-  it("zeigt die Hinweise der Formel im deutschen Wortlaut aus core", () => {
-    mockDay = { ...OK_DAY, hints: ["Geschlecht fehlt, Schätzung ungenauer"] };
-    renderPage();
-    expect(screen.getByText("Geschlecht fehlt, Schätzung ungenauer")).toBeTruthy();
-  });
-
-  it("bei unbekanntem Geschlecht steht zusätzlich der Mittelwert-Satz (E35)", () => {
-    mockDay = { ...OK_DAY, sexAssumed: true };
-    renderPage();
-    expect(
-      screen.getByText(
-        /Ohne Geschlechtsangabe rechnen wir mit einem Mittelwert\. Eine Körperfett-Messung macht die Schätzung unabhängig davon\./,
-      ),
-    ).toBeTruthy();
-  });
-
-  it("bei bekanntem Geschlecht fehlt dieser Satz", () => {
-    renderPage();
-    expect(screen.queryByText(/Ohne Geschlechtsangabe/)).toBeNull();
-  });
-
-  it("zeigt Trainingsenergie und, wenn der Boden greift, den Hinweis dazu", () => {
-    mockDay = { ...OK_DAY, trainingKcal: 540, capped: true };
-    renderPage();
-    expect(screen.getByText("Training heute: +540 kcal")).toBeTruthy();
-    expect(screen.getByText(/das Ziel wurde auf diesen Wert angehoben/)).toBeTruthy();
-  });
-
-  it("meldet eine geplante Einheit mit unbekannter Energie, statt sie still als Ruhetag zu zeigen", () => {
-    mockDay = { ...OK_DAY, trainingUnknown: true };
-    renderPage();
-    expect(screen.getByText(/Heute ist eine Einheit geplant/)).toBeTruthy();
-  });
-
-  it("'Quelle' klappt die Einträge aus core/nutrition-sources.js auf", () => {
-    renderPage();
-    expect(screen.getByText("ⓘ Quelle")).toBeTruthy();
-    expect(screen.getByText(/ten Haaf T, Weijs PJ/)).toBeTruthy();
-  });
-
-  it("Quellen mit stabiler Adresse sind klickbar und öffnen in neuem Tab", () => {
-    renderPage();
-    const link = screen.getByText(/ten Haaf T, Weijs PJ/).closest("a") as HTMLAnchorElement;
-    expect(link.getAttribute("href")).toBe("https://pmc.ncbi.nlm.nih.gov/articles/PMC4183531/");
-    expect(link.getAttribute("target")).toBe("_blank");
-    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
-  });
-});
-
 describe("NutritionPage — Umschalter Woche | Einkaufsliste (E8)", () => {
   it("startet mit der Woche und schaltet auf die Einkaufsliste und zurück", () => {
     renderPage();
@@ -230,6 +163,34 @@ describe("NutritionPage — Umschalter Woche | Einkaufsliste (E8)", () => {
 
     fireEvent.click(screen.getByText("Einkaufsliste-Platzhalter")); // onShowWeek der Liste
     expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
+  });
+
+  it("Einkaufsliste zeigt weiter die Tagesziel-Karte, aber ohne Fortschritt", () => {
+    renderPage();
+    expect(screen.queryByText("Tagesziel")).toBeNull(); // Woche: Karte kommt aus der Bühne
+    fireEvent.click(screen.getByRole("button", { name: "Einkaufsliste" }));
+    expect(screen.getByText("Tagesziel")).toBeTruthy();
+    expect(screen.getByText("3021 kcal")).toBeTruthy();
+    expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+
+  it("Rezepte (R2): dritte Ansicht, ohne Tagesziel-Karte, und zurück zur Woche", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Rezepte" }));
+    expect(screen.getByText("Rezepte-Platzhalter")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Rezepte" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByText("Wochenansicht-Platzhalter")).toBeNull();
+    expect(screen.queryByText("Tagesziel")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Woche" }));
+    expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
+    expect(screen.queryByText("Rezepte-Platzhalter")).toBeNull();
+  });
+
+  it("fremder Athlet (E28): kein Zugang zu den Rezepten über den Tab", () => {
+    mockSelf = { isSelf: false, isLoading: false };
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Rezepte" })).toBeNull();
   });
 
   it("ohne Tagesziel (Profil unvollständig) gibt es keinen Umschalter", () => {
