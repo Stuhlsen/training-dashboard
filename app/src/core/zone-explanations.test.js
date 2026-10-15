@@ -92,3 +92,11 @@ test("Easy-Satz, Wasser-HF-Hinweis und Richtwert-Hinweis haben Text und Quelle",
     assert.ok(c.quelleKeys.length > 0);
   }
 });
+
+test("80-%-Satz bleibt ehrlich: bezieht sich auf Ausdauersportler, behauptet nichts über 'deine Zeit'", () => {
+  const { text, quelleKeys } = EASY_ZONE_SHARE_SENTENCE;
+  assert.match(text, /Ausdauersportlern/);
+  assert.match(text, /\boft\b/);
+  assert.doesNotMatch(text, /deiner Zeit|deines Trainings/);
+  assert.deepEqual([...quelleKeys].sort(), ["seiler-2010", "stoggl-sperlich-2015"]);
+});

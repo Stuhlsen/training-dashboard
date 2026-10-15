@@ -148,11 +148,14 @@ export const EASY_ZONE_ID_BY_SPORT = Object.freeze({
 });
 
 /** Satz für die vorgewählte Zone (Q8). Grundlage: Seiler 2010 (etwa 80 % der
- *  Einheiten niedrigintensiv bei Spitzen-Ausdauersportlern), Stöggl & Sperlich
- *  2015 (etwa 80 % des Trainings). Gilt für Leistungssportler; für Einsteiger
- *  ist es ein Richtwert (= LOW_INTENSITY_TARGET im Code). */
+ *  EINHEITEN niedrigintensiv, bei Spitzen-Ausdauersportlern — nicht Zeit, nicht
+ *  Einsteiger), Stöggl & Sperlich 2015 (etwa 80 % des Trainings bei gut
+ *  trainierten und Elite-Ausdauersportlern). Deshalb ehrlich als "oft rund
+ *  80 %" bei Ausdauersportlern formuliert (Alex-Entscheidung nach der
+ *  E1-Prüfung); für Einsteiger ist es ein Richtwert (= LOW_INTENSITY_TARGET
+ *  im Code). */
 export const EASY_ZONE_SHARE_SENTENCE = Object.freeze({
-  text: "Ungefähr 80 % deiner Zeit gehört hierhin.",
+  text: "Bei Ausdauersportlern liegt oft rund 80 % des Trainings hier.",
   quelleKeys: Object.freeze([K.SEILER_2010, K.STOGGL_SPERLICH_2015]),
 });
 
