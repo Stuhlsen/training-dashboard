@@ -45,4 +45,11 @@ describe("useRecipes", () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.recipes).toEqual([]);
   });
+
+  it("meldet einen Adapter-Fehler über isError (nicht als leere Bibliothek)", async () => {
+    listRecipesMock.mockResolvedValue({ ok: false, error: { code: "UNKNOWN", message: "boom" } });
+    const { wrapper } = createHarness({ userId: "p1" });
+    const { result } = renderHook(() => useRecipes(), { wrapper });
+    await waitFor(() => expect(result.current.isError).toBe(true));
+  });
 });
