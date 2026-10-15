@@ -4,7 +4,7 @@
 
    Nur-eigene-Daten (E28): Geschlecht und Intoleranzen sind owner-only,
    deshalb zeigt der Tab nur beim eigenen Profil Inhalt. Darunter der
-   Umschalter Woche | Einkaufsliste (E8) — beide Ansichten sitzen hinter
+   Umschalter Woche | Einkaufsliste | Rezepte (E8, R2) — alle Ansichten sitzen hinter
    demselben Guard.
 
    Zustände: Karte "Profil ergänzen" (fehlende Angaben) ODER das
@@ -25,6 +25,7 @@ import type { NutritionDay } from "./nutrition-day-model";
 import { DayTargetCard } from "./DayTargetCard";
 import { WeekView } from "./WeekView";
 import { ShoppingListView } from "./ShoppingListView";
+import { RecipesView } from "./RecipesView";
 
 const CARD_STYLE: CSSProperties = { padding: "28px 32px", marginBottom: 20 };
 const HEADING_STYLE: CSSProperties = {
@@ -56,11 +57,11 @@ const BUTTON_STYLE: CSSProperties = {
 
 const hintStorageKey = (userId: string) => `nutrition-profile-hint-dismissed:${userId}`;
 
-type NutritionView = "week" | "shopping";
+type NutritionView = "week" | "shopping" | "recipes";
 
-const VIEW_LABELS: Record<NutritionView, string> = { week: "Woche", shopping: "Einkaufsliste" };
+const VIEW_LABELS: Record<NutritionView, string> = { week: "Woche", shopping: "Einkaufsliste", recipes: "Rezepte" };
 
-/* Umschalter Woche | Einkaufsliste. Sitzt direkt über dem Seitenhintergrund,
+/* Umschalter Woche | Einkaufsliste | Rezepte. Sitzt direkt über dem Seitenhintergrund,
    deshalb Glass-Fill statt reiner Haarlinie (DESIGN.md, Ghost-Regel). */
 function ViewSwitch({ view, onChange }: { view: NutritionView; onChange: (v: NutritionView) => void }) {
   return (
@@ -193,6 +194,8 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
           {view === "week" ? (
             // die Tagesziel-Karte sitzt im Kopf der Tagesbühne (WeekView)
             <WeekView athleteId={athleteId} userId={userId} todayISO={today} />
+          ) : view === "recipes" ? (
+            <RecipesView todayISO={today} />
           ) : (
             <>
               <DayTargetCard day={day} />

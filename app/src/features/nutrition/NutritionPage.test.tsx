@@ -39,6 +39,8 @@ vi.mock("./ShoppingListView", () => ({
   ),
 }));
 
+vi.mock("./RecipesView", () => ({ RecipesView: () => <p>Rezepte-Platzhalter</p> }));
+
 const { NutritionPage } = await import("./NutritionPage");
 
 const OK_DAY: Extract<NutritionDay, { ok: true }> = {
@@ -170,6 +172,25 @@ describe("NutritionPage — Umschalter Woche | Einkaufsliste (E8)", () => {
     expect(screen.getByText("Tagesziel")).toBeTruthy();
     expect(screen.getByText("3021 kcal")).toBeTruthy();
     expect(screen.queryByRole("progressbar")).toBeNull();
+  });
+
+  it("Rezepte (R2): dritte Ansicht, ohne Tagesziel-Karte, und zurück zur Woche", () => {
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Rezepte" }));
+    expect(screen.getByText("Rezepte-Platzhalter")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Rezepte" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.queryByText("Wochenansicht-Platzhalter")).toBeNull();
+    expect(screen.queryByText("Tagesziel")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Woche" }));
+    expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
+    expect(screen.queryByText("Rezepte-Platzhalter")).toBeNull();
+  });
+
+  it("fremder Athlet (E28): kein Zugang zu den Rezepten über den Tab", () => {
+    mockSelf = { isSelf: false, isLoading: false };
+    renderPage();
+    expect(screen.queryByRole("button", { name: "Rezepte" })).toBeNull();
   });
 
   it("ohne Tagesziel (Profil unvollständig) gibt es keinen Umschalter", () => {
