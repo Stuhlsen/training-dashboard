@@ -11,12 +11,12 @@
                    Fokus bleibt im Blatt und kehrt danach zurück.
    ============================================================ */
 
-import { useEffect, useRef, type CSSProperties, type KeyboardEvent } from "react";
+import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { RecipeImage } from "../../components/RecipeImage";
 import { roundAmount, formatShoppingAmount } from "../../core/shopping-list.js";
 import type { Recipe } from "../../api/types";
 import { AllergenLine } from "./AllergenLine";
-import { META_STYLE, PRIMARY_BUTTON_STYLE, TAP_BUTTON_STYLE } from "./nutrition-styles";
+import { META_STYLE, PRIMARY_BUTTON_STYLE, TAP_BUTTON_DISABLED_STYLE, TAP_BUTTON_STYLE } from "./nutrition-styles";
 
 /** 1.5 → "1,5" */
 const fmtNum = (n: number) => String(Math.round(n * 10) / 10).replace(".", ",");
@@ -124,18 +124,30 @@ const PANEL_STYLE: CSSProperties = {
   color: "var(--ink)",
 };
 
-const FOCUSABLE = 'button:not([disabled]), a[href], summary, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE = 'button:not([disabled]), select:not([disabled]), a[href], summary, [tabindex]:not([tabindex="-1"])';
 
 export function RecipeDetailsDialog({
   recipe,
   servings,
   onClose,
   onCook,
+  servingsText,
+  onAddToPlan,
+  addToPlanDisabledHint,
+  planPicker,
 }: {
   recipe: Recipe;
   servings: number;
   onClose: () => void;
   onCook: () => void;
+  /** Ersetzt "N Portionen geplant" (Rezeptliste: dort ist nichts geplant) */
+  servingsText?: string;
+  /** Rezeptliste: zeigt "In den Plan" neben "Kochen" */
+  onAddToPlan?: () => void;
+  /** Gesetzt = "In den Plan" ist gesperrt, der Text sagt warum */
+  addToPlanDisabledHint?: string | null;
+  /** Steht unter den Knöpfen, solange der Tag-/Slot-Wähler offen ist */
+  planPicker?: ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -184,17 +196,30 @@ export function RecipeDetailsDialog({
             {recipe.title}
           </h2>
           <p style={{ ...META_STYLE, margin: 0 }}>
-            {fmtNum(servings)} Portion{servings === 1 ? "" : "en"} geplant
+            {servingsText ?? `${fmtNum(servings)} Portion${servings === 1 ? "" : "en"} geplant`}
           </p>
           <DetailsContent recipe={recipe} servings={servings} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18 }}>
-            <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={onCook}>
+            {/* Eine Primäraktion je Ansicht: öffnet der Plan-Wähler, wird dessen Speichern-Knopf zur Primäraktion */}
+            <button type="button" style={planPicker ? TAP_BUTTON_STYLE : PRIMARY_BUTTON_STYLE} onClick={onCook}>
               Kochen
             </button>
+            {onAddToPlan && (
+              <button
+                type="button"
+                style={addToPlanDisabledHint ? TAP_BUTTON_DISABLED_STYLE : TAP_BUTTON_STYLE}
+                disabled={!!addToPlanDisabledHint}
+                onClick={onAddToPlan}
+              >
+                In den Plan
+              </button>
+            )}
             <button ref={closeRef} type="button" style={TAP_BUTTON_STYLE} onClick={onClose}>
               Schließen
             </button>
           </div>
+          {addToPlanDisabledHint && <p style={{ ...HINT_STYLE, margin: "8px 0 0" }}>{addToPlanDisabledHint}</p>}
+          {planPicker}
         </div>
       </div>
     </div>
