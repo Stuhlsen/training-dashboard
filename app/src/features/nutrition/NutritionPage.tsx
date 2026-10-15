@@ -19,13 +19,12 @@ import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import { useProfileBasics } from "../../api/hooks/useProfile";
-import { SOURCE_BY_KEY } from "../../core/nutrition-sources.js";
-import { fmtDateFull, localISODate } from "../../core/format.js";
+import { localISODate } from "../../core/format.js";
 import { useNutritionDay } from "./useNutritionDay";
 import type { NutritionDay } from "./nutrition-day-model";
+import { DayTargetCard } from "./DayTargetCard";
 import { WeekView } from "./WeekView";
 import { ShoppingListView } from "./ShoppingListView";
-import { SourceList } from "./SourceList";
 
 const CARD_STYLE: CSSProperties = { padding: "28px 32px", marginBottom: 20 };
 const HEADING_STYLE: CSSProperties = {
@@ -53,11 +52,6 @@ const BUTTON_STYLE: CSSProperties = {
   fontWeight: 600,
   fontSize: ".85rem",
   cursor: "pointer",
-};
-
-const FORMULA_NAMES: Record<string, string> = {
-  "cunningham-1980": "Cunningham (1980)",
-  "ten-haaf-2014": "Ten Haaf (2014)",
 };
 
 const hintStorageKey = (userId: string) => `nutrition-profile-hint-dismissed:${userId}`;
@@ -195,12 +189,15 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
       )}
       {day.ok ? (
         <>
-          <DayTargetCard day={day} />
           <ViewSwitch view={view} onChange={setView} />
           {view === "week" ? (
+            // die Tagesziel-Karte sitzt im Kopf der Tagesbühne (WeekView)
             <WeekView athleteId={athleteId} userId={userId} todayISO={today} />
           ) : (
-            <ShoppingListView userId={userId} todayISO={today} onShowWeek={() => setView("week")} />
+            <>
+              <DayTargetCard day={day} />
+              <ShoppingListView userId={userId} todayISO={today} onShowWeek={() => setView("week")} />
+            </>
           )}
         </>
       ) : (
@@ -256,53 +253,6 @@ function ProfileCompleteCard({ day }: { day: Extract<NutritionDay, { ok: false }
       <p style={TEXT_STYLE}>
         <Link to="/app/settings" style={LINK_STYLE}>Zu den Einstellungen</Link>
       </p>
-    </GlassCard>
-  );
-}
-
-/* ── Karte Tagesziel ──────────────────────────────────────── */
-
-function DayTargetCard({ day }: { day: Extract<NutritionDay, { ok: true }> }) {
-  const sources = day.sourceKeys
-    .map((key) => SOURCE_BY_KEY.get(key))
-    .filter((s): s is NonNullable<typeof s> => !!s);
-
-  return (
-    <GlassCard variant="strong" style={CARD_STYLE}>
-      <h2 style={HEADING_STYLE}>Tagesziel</h2>
-      <p style={{ margin: "0 0 4px", fontFamily: "var(--font-disp)", fontSize: "2.4rem", fontWeight: 600, color: "var(--ink)" }}>
-        {day.target} kcal
-      </p>
-      <p style={TEXT_STYLE}>
-        Mindestzufuhr: {day.floor} kcal{day.capped ? " — das Ziel wurde auf diesen Wert angehoben" : ""}
-      </p>
-      {day.trainingKcal > 0 && <p style={TEXT_STYLE}>Training heute: +{day.trainingKcal} kcal</p>}
-      {day.trainingUnknown && (
-        <p style={TEXT_STYLE}>
-          Heute ist eine Einheit geplant, ihre Energie lässt sich ohne FTP oder Intensitätsangabe nicht berechnen. Das
-          Ziel gilt wie an einem Ruhetag.
-        </p>
-      )}
-
-      <p style={META_STYLE}>
-        Grundumsatz nach {FORMULA_NAMES[day.formula] ?? day.formula}, in einer Studie von 2023 an Sportlern geprüft
-      </p>
-      {day.bodyFatDate && <p style={META_STYLE}>Körperfett gemessen am {fmtDateFull(day.bodyFatDate)}</p>}
-
-      {day.hints.map((h) => (
-        <p key={h} style={TEXT_STYLE}>{h}</p>
-      ))}
-      {day.sexAssumed && (
-        <p style={TEXT_STYLE}>
-          Ohne Geschlechtsangabe rechnen wir mit einem Mittelwert. Eine Körperfett-Messung macht die Schätzung
-          unabhängig davon.
-        </p>
-      )}
-
-      <details style={{ marginTop: 12 }}>
-        <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".85rem" }}>ⓘ Quelle</summary>
-        <SourceList sources={sources} />
-      </details>
     </GlassCard>
   );
 }

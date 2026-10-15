@@ -35,3 +35,31 @@ export const BUTTON_STYLE: CSSProperties = {
 };
 
 export const BUTTON_DISABLED_STYLE: CSSProperties = { ...BUTTON_STYLE, opacity: 0.5, cursor: "not-allowed" };
+
+/* ── Tippziel ≥ 44 px (Fahrplan 25, R1) — für alles Neue; BUTTON_STYLE
+   (30 px) bleibt für Bestehendes, das hier nicht angefasst wird. ── */
+export const TAP_MIN = 44;
+
+export const TAP_BUTTON_STYLE: CSSProperties = {
+  ...BUTTON_STYLE,
+  minHeight: TAP_MIN,
+  padding: "8px 18px",
+  fontSize: ".85rem",
+};
+
+export const TAP_BUTTON_DISABLED_STYLE: CSSProperties = { ...TAP_BUTTON_STYLE, opacity: 0.5, cursor: "not-allowed" };
+
+/** Die eine Primäraktion je Ansicht: Akzentfläche, dunkler Text (DESIGN.md, Primary). */
+export const PRIMARY_BUTTON_STYLE: CSSProperties = {
+  ...TAP_BUTTON_STYLE,
+  border: "1px solid var(--accent)",
+  background: "var(--accent)",
+  color: "#17110a",
+  padding: "9px 22px",
+};
+
+export const PRIMARY_BUTTON_DISABLED_STYLE: CSSProperties = {
+  ...PRIMARY_BUTTON_STYLE,
+  opacity: 0.5,
+  cursor: "not-allowed",
+};

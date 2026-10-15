@@ -2,7 +2,7 @@
    FEATURES/NUTRITION/WEEKVIEW.TSX — Wochenansicht (L1)
    (Fahrplan 23, E6 PR B; Entscheidungen E5, E12, E31, E32)
 
-   Bis zu 7 Tage ab heute als Karten untereinander. Hier liegen die
+   Tagesbühne für den gewählten Tag (Fahrplan 25, R1). Hier liegen die
    Schreibvorgänge: "Tag zusammenstellen" (Upsert je Slot), Tauschen
    (Upsert) und Entfernen (Delete) — gespeichert wird nur Rezept +
    Portion je Slot. Fehler aus den Hooks werden je Tag sichtbar
@@ -13,14 +13,27 @@
    Schlüssel je Nutzer, Hinweisart und Datum.
    ============================================================ */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useDeleteMealPlanEntry, useUpsertMealPlanEntry } from "../../api/hooks/useMealPlan";
 import type { MealSlot, Result } from "../../api/types";
-import { DayCard, type Choice } from "./DayCard";
+import { DayCard } from "./DayCard";
+import { DayStage } from "./DayStage";
+import { WeekStrip } from "./WeekStrip";
+import type { Choice } from "./useDayPlan";
+import type { NutritionDay } from "./nutrition-day-model";
 import { useNutritionWeek } from "./useNutritionWeek";
-import { SLOT_ORDER, type Banner } from "./nutrition-week-model";
-import { BUTTON_STYLE, HEADING_STYLE, META_STYLE, TEXT_STYLE } from "./nutrition-styles";
+import { SLOT_ORDER, buildWeekStrip, type Banner } from "./nutrition-week-model";
+import { BUTTON_STYLE, META_STYLE, TAP_BUTTON_STYLE, TEXT_STYLE } from "./nutrition-styles";
+
+/* Liegt direkt über dem Seitenhintergrund: Glas-Fill (DESIGN.md, Ghost-Regel) */
+const WEEK_TOGGLE_STYLE: CSSProperties = {
+  ...TAP_BUTTON_STYLE,
+  border: "1px solid rgba(255, 255, 255, 0.14)",
+  background: "var(--glass)",
+  backdropFilter: "blur(16px)",
+  boxShadow: "var(--e2)",
+};
 
 const bannerStorageKey = (userId: string, key: string, todayISO: string) =>
   `nutrition-banner-dismissed:${userId}:${key}:${todayISO}`;
@@ -63,6 +76,8 @@ export function WeekView({ athleteId, userId, todayISO }: { athleteId: string; u
   // Mehrere Tage können gleichzeitig schreiben — je Tag gesperrt, nicht global
   const [busyDates, setBusyDates] = useState<ReadonlySet<string>>(() => new Set());
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [selectedISO, setSelectedISO] = useState(todayISO);
+  const [expanded, setExpanded] = useState(false);
 
   const setBusy = (dateISO: string, busy: boolean) =>
     setBusyDates((prev) => {
@@ -105,10 +120,35 @@ export function WeekView({ athleteId, userId, todayISO }: { athleteId: string; u
 
   if (week.isLoading) return <p style={META_STYLE}>Lade …</p>;
 
+  // Bühne: der gewählte Tag (Standard heute); fällt weg, wenn er nicht mehr in der Woche liegt
+  const stageISO = week.dates.includes(selectedISO) ? selectedISO : todayISO;
+  const stageDay = week.days[week.dates.indexOf(stageISO)];
+  const strip = buildWeekStrip({
+    dates: week.dates,
+    todayISO,
+    days: week.days,
+    entries: week.entries,
+    recipesById: week.recipesById,
+  });
+
+  // Beide Darstellungen schreiben über dieselben Rückrufe (handleCompose/Choose/Remove)
+  const dayProps = (dateISO: string, day: Extract<NutritionDay, { ok: true }>) => ({
+    dateISO,
+    isToday: dateISO === todayISO,
+    day,
+    entries: week.entries,
+    recipes: week.recipes,
+    recipesById: week.recipesById,
+    intolerances: week.intolerances as string[],
+    busy: busyDates.has(dateISO),
+    error: errors[dateISO] || null,
+    onCompose: handleCompose,
+    onChoose: handleChoose,
+    onRemove: handleRemove,
+  });
+
   return (
     <section aria-label="Woche">
-      <h2 style={{ ...HEADING_STYLE, margin: "24px 0 12px" }}>Woche</h2>
-
       {week.banners.map((banner) => (
         <DismissibleBanner
           key={banner.key}
@@ -117,27 +157,33 @@ export function WeekView({ athleteId, userId, todayISO }: { athleteId: string; u
         />
       ))}
 
-      {week.days.map((day, i) => {
-        if (!day.ok) return null;
-        const dateISO = week.dates[i];
-        return (
-          <DayCard
-            key={dateISO}
-            dateISO={dateISO}
-            isToday={dateISO === todayISO}
-            day={day}
-            entries={week.entries}
-            recipes={week.recipes}
-            recipesById={week.recipesById}
-            intolerances={week.intolerances as string[]}
-            busy={busyDates.has(dateISO)}
-            error={errors[dateISO] || null}
-            onCompose={handleCompose}
-            onChoose={handleChoose}
-            onRemove={handleRemove}
-          />
-        );
-      })}
+      <WeekStrip
+        days={strip}
+        selectedISO={stageISO}
+        onSelect={(dateISO) => {
+          // ein Tipp auf einen Tag bringt immer dessen Bühne nach vorn
+          setSelectedISO(dateISO);
+          setExpanded(false);
+        }}
+      />
+      <div style={{ display: "flex", justifyContent: "flex-end", margin: "-4px 0 12px" }}>
+        <button
+          type="button"
+          aria-expanded={expanded}
+          style={WEEK_TOGGLE_STYLE}
+          onClick={() => setExpanded(!expanded)}
+        >
+          {expanded ? "Woche zuklappen" : "Woche aufklappen"}
+        </button>
+      </div>
+
+      {expanded
+        ? week.days.map((day, i) => {
+            if (!day.ok) return null;
+            const dateISO = week.dates[i];
+            return <DayCard key={dateISO} {...dayProps(dateISO, day)} />;
+          })
+        : stageDay?.ok && <DayStage key={stageISO} {...dayProps(stageISO, stageDay)} />}
     </section>
   );
 }

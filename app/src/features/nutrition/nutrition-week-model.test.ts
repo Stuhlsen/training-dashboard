@@ -165,3 +165,107 @@ describe("buildBanners (E12)", () => {
     expect(banners.find((b) => b.key === "training")).toBeUndefined();
   });
 });
+
+/* ── Wochenleiste (Fahrplan 25, R1) ───────────────────────── */
+
+import { buildWeekStrip, weekdayShort } from "./nutrition-week-model";
+import type { NutritionDay } from "./nutrition-day-model";
+
+describe("weekdayShort", () => {
+  it("liefert den deutschen Kurznamen des Kalendertags", () => {
+    expect(weekdayShort("2026-10-12")).toBe("Mo");
+    expect(weekdayShort("2026-10-14")).toBe("Mi");
+    expect(weekdayShort("2026-10-18")).toBe("So");
+  });
+
+  it("bleibt am Wechsel der Sommerzeit beim richtigen Tag", () => {
+    expect(weekdayShort("2026-10-25")).toBe("So");
+    expect(weekdayShort("2026-10-26")).toBe("Mo");
+  });
+
+  it("ungültiges Datum: leer statt Absturz", () => {
+    expect(weekdayShort("kein-datum")).toBe("");
+  });
+});
+
+describe("buildWeekStrip", () => {
+  const okDay = (dateISO: string, over: Partial<Extract<NutritionDay, { ok: true }>> = {}) =>
+    ({ ok: true, dateISO, target: 2300, floor: 1700, weightKg: 80, ...over }) as unknown as NutritionDay;
+  const DATES = [TODAY, "2026-10-15", "2026-10-16"];
+
+  it("eine Zeile je Tag mit Wochentag, Datum und Heute-Markierung", () => {
+    const strip = buildWeekStrip({
+      dates: DATES,
+      todayISO: TODAY,
+      days: DATES.map((d) => okDay(d)),
+      entries: [],
+      recipesById: RECIPES,
+    });
+    expect(strip.map((d) => [d.weekday, d.dateLabel, d.isToday])).toEqual([
+      ["Mi", "14.10", true],
+      ["Do", "15.10", false],
+      ["Fr", "16.10", false],
+    ]);
+  });
+
+  it("leerer Tag: nichts geplant, Fortschritt 0, keine Ampel", () => {
+    const [day] = buildWeekStrip({
+      dates: [TODAY],
+      todayISO: TODAY,
+      days: [okDay(TODAY)],
+      entries: [],
+      recipesById: RECIPES,
+    });
+    expect(day).toMatchObject({ filled: 0, totalKcal: 0, target: 2300, ratio: 0, ampel: null });
+  });
+
+  it("gefüllter Tag: Summe, Anteil am Ziel und Ampel aus denselben Regeln wie die Bühne", () => {
+    const entries = [entry(TODAY, "breakfast", "b"), entry(TODAY, "lunch", "l"), entry(TODAY, "dinner", "d")];
+    const [day] = buildWeekStrip({
+      dates: [TODAY],
+      todayISO: TODAY,
+      days: [okDay(TODAY)],
+      entries,
+      recipesById: RECIPES,
+    });
+    // 500 + 800 + 800 = 2100 von 2300: im Rahmen
+    expect(day.filled).toBe(3);
+    expect(day.totalKcal).toBe(2100);
+    expect(day.ratio).toBeCloseTo(2100 / 2300, 6);
+    expect(day.ampel).toBe(summarizeDay({ ...base, entries }).ampel);
+  });
+
+  it("unter der Mindestzufuhr: rot", () => {
+    const [day] = buildWeekStrip({
+      dates: [TODAY],
+      todayISO: TODAY,
+      days: [okDay(TODAY)],
+      entries: [entry(TODAY, "snack", "s")],
+      recipesById: RECIPES,
+    });
+    expect(day.ampel).toBe("red");
+  });
+
+  it("zählt nur Einträge des eigenen Tages", () => {
+    const strip = buildWeekStrip({
+      dates: [TODAY, "2026-10-15"],
+      todayISO: TODAY,
+      days: [okDay(TODAY), okDay("2026-10-15")],
+      entries: [entry("2026-10-15", "lunch", "l")],
+      recipesById: RECIPES,
+    });
+    expect(strip[0].filled).toBe(0);
+    expect(strip[1].filled).toBe(1);
+  });
+
+  it("Tag ohne berechenbares Ziel: kein Ziel, nichts erfunden", () => {
+    const [day] = buildWeekStrip({
+      dates: [TODAY],
+      todayISO: TODAY,
+      days: [{ ok: false, missing: ["Gewicht"], hint: null }],
+      entries: [entry(TODAY, "lunch", "l")],
+      recipesById: RECIPES,
+    });
+    expect(day).toMatchObject({ target: null, filled: 0, ratio: 0, ampel: null });
+  });
+});
