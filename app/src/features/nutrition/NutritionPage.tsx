@@ -221,7 +221,7 @@ function DisclaimerNote() {
       role="note"
       style={{
         padding: "12px 18px",
-        borderRadius: "var(--radius-md)",
+        borderRadius: "var(--radius)",
         background: "rgba(224, 138, 60, 0.08)",
         border: "1px solid rgba(224, 138, 60, 0.25)",
         fontSize: ".8rem",
