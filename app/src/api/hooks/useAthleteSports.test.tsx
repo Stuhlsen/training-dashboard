@@ -44,6 +44,44 @@ describe("useAthleteSports", () => {
     await waitFor(() => expect(result.current).toEqual(["ride", "run", "swim"]));
   });
 
+  it("eigener Eintrag ohne Platz: Sportarten kommen aus dem eigenen Profil", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-x" });
+    queryClient.setQueryData(["profile", "user-x"], {
+      id: "user-x",
+      displayName: "gamma",
+      role: "athlete",
+      coachId: null,
+      wellbeingPublic: false,
+      ftpPublic: true,
+      isAdmin: false,
+      ladderProgressionEnabled: false,
+      unitsPreference: "km",
+      planOffsetWeeks: 0,
+      sports: ["run"],
+    });
+    const { result } = renderHook(() => useAthleteSports("self"), { wrapper });
+    await waitFor(() => expect(result.current).toEqual(["run"]));
+  });
+
+  it("eigener Eintrag ohne Platz und ohne Sportarten im Profil: Rad", async () => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-y" });
+    queryClient.setQueryData(["profile", "user-y"], {
+      id: "user-y",
+      displayName: "gamma",
+      role: "athlete",
+      coachId: null,
+      wellbeingPublic: false,
+      ftpPublic: true,
+      isAdmin: false,
+      ladderProgressionEnabled: false,
+      unitsPreference: "km",
+      planOffsetWeeks: 0,
+      sports: null,
+    });
+    const { result } = renderHook(() => useAthleteSports("self"), { wrapper });
+    await waitFor(() => expect(result.current).toEqual(["ride"]));
+  });
+
   it("liest den DB-Wert eines gecoachten Fremdathleten über getProfileByDisplayName", async () => {
     const { wrapper } = createHarness({ userId: "user-coach" });
     const { result } = renderHook(() => useAthleteSports("athlete3"), { wrapper });

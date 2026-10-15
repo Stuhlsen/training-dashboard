@@ -12,6 +12,7 @@ vi.mock("../api/hooks/useActiveAthlete", () => ({
   useActiveAthlete: () => ({ activeAthleteId: "athlete1", setActiveAthleteId: vi.fn() }),
 }));
 vi.mock("../api/hooks/useAthleteSports", () => ({ useAthleteSports: () => mockSports }));
+vi.mock("../api/hooks/useAthleteOptions", () => ({ useAthleteOptions: () => [] }));
 vi.mock("../hooks/account-label", () => ({ useAccountLabel: () => "" }));
 vi.mock("./EnvBadge", () => ({ EnvBadge: () => null }));
 vi.mock("./Footer", () => ({ Footer: () => null }));
