@@ -206,7 +206,32 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
       ) : (
         <ProfileCompleteCard day={day} />
       )}
+      <DisclaimerNote />
     </>
+  );
+}
+
+/* ── Haftungshinweis (E10) ────────────────────────────────────
+   Steht unter allen Ansichten des Tabs (Woche, Einkaufsliste, auch
+   "Profil ergänzen"). Muster: Bikefit-Hinweis. */
+
+function DisclaimerNote() {
+  return (
+    <div
+      role="note"
+      style={{
+        padding: "12px 18px",
+        borderRadius: "var(--radius-md)",
+        background: "rgba(224, 138, 60, 0.08)",
+        border: "1px solid rgba(224, 138, 60, 0.25)",
+        fontSize: ".8rem",
+        color: "var(--ink-2)",
+        lineHeight: 1.5,
+      }}
+    >
+      <strong>Wichtiger Hinweis:</strong> Tagesziel und Vorschläge sind eine Orientierung und ersetzen keine
+      Ernährungsberatung.
+    </div>
   );
 }
 

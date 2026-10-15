@@ -6,6 +6,8 @@ import { render, act, screen, fireEvent } from "@testing-library/react";
 import { CookingDialog } from "./CookingDialog";
 import { CookTimerProvider } from "../../components/CookTimerProvider";
 import type { Recipe } from "../../api/types";
+import { allergenLabel } from "../../core/nutrition-taxonomy.js";
+import { ALLERGEN_NOTE } from "./allergen-text";
 
 /* ── AudioContext stub ─────────────────────────────────── */
 function stubAudio() {
@@ -316,5 +318,23 @@ describe("CookingDialog — Fokus", () => {
       vi.advanceTimersByTime(0);
     });
     expect(document.activeElement).toBe(dialog);
+  });
+});
+describe("CookingDialog — Allergen-Zeile (E10)", () => {
+  test("Zutaten-Seite nennt mehrere Allergene und den Orientierungs-Hinweis", () => {
+    renderDialog({ ...BASE_RECIPE, containsTags: ["gluten", "eggs"] });
+    expect(screen.getByText(`Enthält: ${allergenLabel("gluten")}, ${allergenLabel("eggs")}`)).toBeTruthy();
+    expect(screen.getByText(ALLERGEN_NOTE)).toBeTruthy();
+  });
+
+  test("Rezept ohne Tags: 'Keine Allergene hinterlegt' statt Leere", () => {
+    renderDialog({ ...BASE_RECIPE, containsTags: [] });
+    expect(screen.getByText("Keine Allergene hinterlegt")).toBeTruthy();
+  });
+
+  test("Schritt-Seiten tragen die Allergen-Zeile nicht", () => {
+    renderDialog({ ...BASE_RECIPE, containsTags: ["gluten"] });
+    fireEvent.click(screen.getByText("Weiter"));
+    expect(screen.queryByText(/Enthält:/)).toBeNull();
   });
 });
