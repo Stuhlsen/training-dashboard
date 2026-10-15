@@ -45,15 +45,15 @@ const FILL_STYLE: CSSProperties = { position: "absolute", inset: 0, width: "100%
 
 const LABEL_STYLE: CSSProperties = {
   position: "absolute",
-  left: 8,
-  bottom: 8,
-  maxWidth: "calc(100% - 16px)",
-  padding: "2px 8px",
-  borderRadius: 6,
+  left: 6,
+  bottom: 6,
+  maxWidth: "calc(100% - 12px)",
+  padding: "1px 6px",
+  borderRadius: 4,
   background: "rgba(8, 9, 12, 0.78)",
   color: "var(--ink)",
   fontFamily: "var(--font-mono)",
-  fontSize: ".68rem",
+  fontSize: ".56rem",
   lineHeight: 1.4,
   pointerEvents: "none",
 };
