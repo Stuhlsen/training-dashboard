@@ -338,3 +338,89 @@ describe("CookingDialog — Allergen-Zeile (E10)", () => {
     expect(screen.queryByText(/Enthält:/)).toBeNull();
   });
 });
+
+describe("CookingDialog — Neugestaltung (R3)", () => {
+  test("Zutaten-Seite: großes Foto als Platzhalter, wenn es noch kein Bild gibt", () => {
+    renderDialog(BASE_RECIPE);
+    expect(screen.getByTestId("recipe-image-placeholder")).toBeTruthy();
+  });
+
+  test("Allergen-Zeile steht vor der Zutatenliste, nicht darunter", () => {
+    renderDialog({ ...BASE_RECIPE, containsTags: ["gluten"] });
+    const allergen = screen.getByTestId("allergen-line");
+    const intro = screen.getByText("Zutaten bereitlegen");
+    expect(allergen.compareDocumentPosition(intro) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  test("Zutaten sind nach Kategorie gegliedert, Menge und Name getrennt", () => {
+    renderDialog(BASE_RECIPE);
+    expect(screen.getByRole("heading", { name: "Getreide & Backwaren" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Eier" })).toBeTruthy();
+    expect(screen.getByText("500 g")).toBeTruthy();
+    expect(screen.getByText("Mehl")).toBeTruthy();
+  });
+
+  test("nur eine Kategorie: keine Überschriften", () => {
+    renderDialog({
+      ...BASE_RECIPE,
+      ingredients: [{ name: "Mehl", amount: 500, unit: "g", category: "Getreide & Backwaren" }],
+    });
+    expect(screen.queryByRole("heading", { level: 3 })).toBeNull();
+  });
+
+  test("Portionen werden umgerechnet und genannt", () => {
+    renderDialog(BASE_RECIPE, 4);
+    expect(screen.getByText("für 4 Port.")).toBeTruthy();
+    expect(screen.getByText("1000 g")).toBeTruthy();
+  });
+
+  test("Rezept ohne Zutaten: startet beim ersten Schritt, ohne Foto-Seite", () => {
+    renderDialog({ ...BASE_RECIPE, ingredients: null });
+    expect(screen.getByText("Mehl und Eier vermengen")).toBeTruthy();
+    expect(screen.queryByText("Zutaten bereitlegen")).toBeNull();
+    expect(screen.queryByTestId("recipe-image-placeholder")).toBeNull();
+  });
+
+  test("Rezept ohne Schritte, aber mit Zutaten: Zutaten-Seite, 'Fertig' schließt", () => {
+    const onClose = vi.fn();
+    renderDialog({ ...BASE_RECIPE, instructions: null }, 2, onClose);
+    expect(screen.getByText("Zutaten bereitlegen")).toBeTruthy();
+    fireEvent.click(screen.getByText("Fertig"));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  test("sehr langer Titel: ganzer Titel im Tooltip, Kopfzeile bricht um", () => {
+    const title = "Überbackene Vollkorn-Pasta mit geröstetem Wurzelgemüse, Feta und frischen Kräutern aus dem Ofen";
+    renderDialog({ ...BASE_RECIPE, title });
+    const heading = screen.getByRole("heading", { level: 2 });
+    expect(heading.getAttribute("title")).toBe(title);
+    expect(heading.style.overflowWrap).toBe("anywhere");
+  });
+
+  test("Schritt ohne Timer: kein Timer-Feld, kein Start-Button", () => {
+    renderDialog(BASE_RECIPE);
+    fireEvent.click(screen.getByText("Weiter"));
+    fireEvent.click(screen.getByText("Weiter"));
+    expect(screen.getByText("Teig kneten")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Starten|Zurücksetzen/ })).toBeNull();
+  });
+
+  test("Schritt-Seite nennt die Schrittnummer", () => {
+    renderDialog(BASE_RECIPE);
+    fireEvent.click(screen.getByText("Weiter"));
+    expect(screen.getByText("Schritt 1")).toBeTruthy();
+  });
+
+  test("Timer abgelaufen: das Wort 'Abgelaufen' steht da, Zurücksetzen bleibt", () => {
+    renderDialog(BASE_RECIPE);
+    fireEvent.click(screen.getByText("Weiter"));
+    act(() => {
+      fireEvent.click(screen.getByText("Starten (02:00)"));
+    });
+    act(() => {
+      vi.advanceTimersByTime(125_000);
+    });
+    expect(screen.getByText("Abgelaufen")).toBeTruthy();
+    expect(screen.getByText("Zurücksetzen")).toBeTruthy();
+  });
+});

@@ -204,3 +204,65 @@ describe("ShoppingListView — Vorrat, Lücken, Leerzustand", () => {
     expect(screen.getByText("Lade …")).toBeTruthy();
   });
 });
+
+describe("ShoppingListView — Fortschritt (R3)", () => {
+  beforeEach(() => {
+    setData([entry(TODAY, "a")], [recipe("a", [APFEL, BIRNE, SALZ])]);
+  });
+
+  it("zeigt '0 von 2' ohne Haken; der Vorrat zählt nicht mit", () => {
+    renderList();
+    expect(screen.getByTestId("shopping-progress").textContent).toBe("0 von 2");
+    const bar = screen.getByRole("progressbar", { name: "Eingekauft" });
+    expect(bar.getAttribute("aria-valuenow")).toBe("0");
+    expect(bar.getAttribute("aria-valuemax")).toBe("2");
+  });
+
+  it("zählt beim Abhaken hoch, auch je Kategorie", () => {
+    renderList();
+    fireEvent.click(screen.getByLabelText(/Apfel/));
+    expect(screen.getByTestId("shopping-progress").textContent).toBe("1 von 2");
+    // Kategorie-Kopf trägt dieselbe Zählung
+    expect(screen.getAllByText("1 von 2")).toHaveLength(2);
+  });
+
+  it("alles abgehakt: sagt es ausdrücklich, nicht nur per Farbe", () => {
+    renderList();
+    fireEvent.click(screen.getByLabelText(/Apfel/));
+    fireEvent.click(screen.getByLabelText(/Birne/));
+    expect(screen.getByTestId("shopping-progress").textContent).toBe("Alles abgehakt · 2 von 2");
+    expect(screen.getByRole("button", { name: "Haken zurücksetzen" })).toBeTruthy();
+  });
+
+  it("Zeilen und Tage-Schalter haben mindestens 44 px Tippfläche", () => {
+    renderList();
+    const row = screen.getByLabelText(/Apfel/).closest("label") as HTMLElement;
+    expect(parseInt(row.style.minHeight, 10)).toBeGreaterThanOrEqual(44);
+    const day = screen.getByLabelText(/14\.10/).closest("label") as HTMLElement;
+    expect(parseInt(day.style.minHeight, 10)).toBeGreaterThanOrEqual(44);
+  });
+});
+
+describe("ShoppingListView — Zustände (R3)", () => {
+  it("nichts ausgewählt: 'Alle Tage wählen' füllt die Liste wieder", () => {
+    setData([entry(TODAY, "a")], [recipe("a", [APFEL])]);
+    renderList();
+    fireEvent.click(screen.getByLabelText(/14\.10/));
+    expect(screen.queryByTestId("shopping-progress")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Alle Tage wählen" }));
+    expect(screen.getByText("Apfel")).toBeTruthy();
+  });
+
+  it("nur Rezepte ohne Zutaten: kein Fortschritt, nur der Hinweis", () => {
+    setData([entry(TODAY, "n")], [{ ...recipe("n", null), title: "Ohne Zutaten" } as Recipe]);
+    renderList();
+    expect(screen.queryByTestId("shopping-progress")).toBeNull();
+    expect(screen.getByText("Zutaten fehlen bei Ohne Zutaten")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Alle Tage wählen" })).toBeNull();
+  });
+
+  it("leere Woche: genau eine Primäraktion 'Zur Woche'", () => {
+    renderList();
+    expect(screen.getAllByRole("button")).toHaveLength(1);
+  });
+});
