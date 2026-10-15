@@ -3,6 +3,12 @@
    Full-Screen-Overlay ohne Fullscreen API. Startet Timer aus
    einem Schritt und zeigt ihre Restzeit an.
 
+   Neugestaltung Fahrplan 25, R3 — NUR Darstellung: großes Foto
+   (RecipeImage, Platzhalter bis F3) und die Allergen-Zeile oben auf
+   der Zutaten-Seite, Zutaten nach Kategorie gegliedert, Schritt-Text
+   groß, Timer in einem eigenen Feld. Timer-, Wake-Lock-, Fokus- und
+   Tastatur-Logik sind unverändert.
+
    Layer-Regel: Nutzt useCookTimers (components/hooks), keine
    direkten api/-Aufrufe.
    Kein roher console.*-Aufruf.
@@ -12,6 +18,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWakeLock } from "../../hooks/useWakeLock";
 import { useCookTimers } from "../../components/cook-timer-context";
 import { useConfirmTap } from "../../components/useConfirmTap";
+import { PlateIcon, RecipeImage } from "../../components/RecipeImage";
 import { roundAmount, formatShoppingAmount } from "../../core/shopping-list.js";
 import { remainingSeconds, formatRemaining, formatRestTime, isExpired } from "../../core/cook-timer.js";
 import type { Recipe } from "../../api/types";
@@ -26,6 +33,9 @@ import { AllergenLine } from "./AllergenLine";
 const LONG_REST_THRESHOLD_S = 3600;
 
 /* ── Inline-Stile (Projekt-Konvention) ──────────────────── */
+/* Lesbar auf Armlänge (Küche, Handy): große Schrift, Tippziele ≥ 44 px.
+   Der Overlay scrollt nicht selbst — nur der Body —, damit Kopf- und
+   Fußleiste mit Zurück/Weiter immer sichtbar bleiben. */
 const OVERLAY_STYLE: React.CSSProperties = {
   position: "fixed",
   inset: 0,
@@ -35,69 +45,121 @@ const OVERLAY_STYLE: React.CSSProperties = {
   background: "var(--surface-page)",
   color: "var(--ink)",
   fontFamily: "var(--font-disp)",
-  overflow: "auto",
+  overflow: "hidden",
 };
 const HEADER_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "16px 20px",
+  gap: 12,
+  padding: "12px 20px",
   borderBottom: "1px solid var(--hair)",
 };
+/* Sehr lange Titel: höchstens zwei Zeilen, nie breiter als der Bildschirm */
 const HEADER_TITLE_STYLE: React.CSSProperties = {
-  fontSize: "1rem",
+  fontSize: "1.05rem",
   fontWeight: 600,
+  lineHeight: 1.3,
   margin: 0,
+  minWidth: 0,
+  overflowWrap: "anywhere",
+  display: "-webkit-box",
+  WebkitLineClamp: 2,
+  WebkitBoxOrient: "vertical",
+  overflow: "hidden",
 };
 const BODY_STYLE: React.CSSProperties = {
   flex: 1,
+  minHeight: 0,
+  overflowY: "auto",
   display: "flex",
   flexDirection: "column",
-  alignItems: "center",
-  justifyContent: "center",
   padding: "20px",
-  gap: 24,
 };
+const CONTENT_STYLE: React.CSSProperties = {
+  width: "100%",
+  maxWidth: 640,
+  margin: "0 auto",
+  display: "flex",
+  flexDirection: "column",
+  gap: 20,
+};
+/* Schritte stehen mittig im freien Raum, die Zutaten-Seite oben */
+const CENTERED_CONTENT_STYLE: React.CSSProperties = { ...CONTENT_STYLE, marginBlock: "auto" };
 const STEP_COUNTER_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
   fontSize: ".85rem",
   color: "var(--ink-3)",
 };
-const STEP_TEXT_STYLE: React.CSSProperties = {
-  fontSize: "1.4rem",
-  lineHeight: 1.6,
-  maxWidth: "600px",
-  textAlign: "center",
+const STEP_LABEL_STYLE: React.CSSProperties = {
+  ...STEP_COUNTER_STYLE,
   margin: 0,
+  letterSpacing: ".04em",
+};
+const STEP_TEXT_STYLE: React.CSSProperties = {
+  fontSize: "clamp(1.4rem, 5vw, 1.9rem)",
+  lineHeight: 1.5,
+  margin: 0,
+  overflowWrap: "anywhere",
+};
+const EMPTY_TEXT_STYLE: React.CSSProperties = { ...STEP_TEXT_STYLE, textAlign: "center", color: "var(--ink-2)" };
+const INGREDIENT_HEAD_STYLE: React.CSSProperties = {
+  display: "flex",
+  alignItems: "baseline",
+  justifyContent: "space-between",
+  gap: 12,
 };
 const INGREDIENT_INTRO_STYLE: React.CSSProperties = {
   fontSize: "1.4rem",
   fontWeight: 600,
   margin: 0,
 };
+const INGREDIENT_CATEGORY_STYLE: React.CSSProperties = {
+  ...STEP_COUNTER_STYLE,
+  margin: "0 0 4px",
+  letterSpacing: ".04em",
+};
 const INGREDIENT_LINE_STYLE: React.CSSProperties = {
+  display: "grid",
+  gridTemplateColumns: "minmax(88px, max-content) minmax(0, 1fr)",
+  alignItems: "baseline",
+  columnGap: 16,
+  minHeight: 48,
+  margin: 0,
+  padding: "8px 0",
+  borderTop: "1px solid var(--hair)",
+  fontSize: "1.2rem",
+  lineHeight: 1.35,
+  overflowWrap: "anywhere",
+};
+const INGREDIENT_AMOUNT_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
-  fontSize: "1.1rem",
-  margin: "4px 0",
-  textAlign: "center",
+  fontWeight: 600,
+};
+/* Die Allergen-Zeile steht direkt unter dem Foto — nie unter der Zutatenliste,
+   damit sie ohne Scrollen im Blick bleibt (Entscheidung E10). */
+const ALLERGEN_BOX_STYLE: React.CSSProperties = {
+  padding: "12px 16px",
+  borderRadius: 14,
+  border: "1px solid var(--hair)",
+  background: "var(--surface-tile)",
 };
 const ALLERGEN_LINE_STYLE: React.CSSProperties = {
   fontSize: "1rem",
   fontWeight: 600,
-  margin: "16px 0 4px",
-  textAlign: "center",
+  lineHeight: 1.4,
+  margin: 0,
 };
 const ALLERGEN_NOTE_STYLE: React.CSSProperties = {
   fontSize: ".8rem",
   color: "var(--ink-3)",
-  margin: 0,
-  textAlign: "center",
+  margin: "4px 0 0",
 };
 const FOOTER_STYLE: React.CSSProperties = {
   display: "flex",
   alignItems: "center",
   justifyContent: "space-between",
-  padding: "16px 20px",
+  padding: "12px 20px max(12px, env(safe-area-inset-bottom))",
   borderTop: "1px solid var(--hair)",
   gap: 12,
 };
@@ -107,38 +169,60 @@ const NAV_BUTTON_STYLE: React.CSSProperties = {
   color: "var(--ink)",
   fontFamily: "var(--font-disp)",
   fontWeight: 600,
-  fontSize: ".9rem",
+  fontSize: "1rem",
   cursor: "pointer",
   padding: "12px 24px",
-  borderRadius: 8,
-  minHeight: 44,
-  minWidth: 44,
+  borderRadius: 999,
+  minHeight: 48,
+  minWidth: 48,
+};
+/* Die eine Primäraktion der Ansicht: Weiter / Fertig */
+const NAV_PRIMARY_STYLE: React.CSSProperties = {
+  ...NAV_BUTTON_STYLE,
+  border: "1px solid var(--accent)",
+  background: "var(--accent)",
+  color: "#17110a",
+  padding: "12px 32px",
 };
 const CLOSE_BUTTON_STYLE: React.CSSProperties = {
   ...NAV_BUTTON_STYLE,
-  minWidth: 44,
+  flexShrink: 0,
   padding: "8px 16px",
 };
 const TIMER_BUTTON_STYLE: React.CSSProperties = {
   ...NAV_BUTTON_STYLE,
-  minHeight: 48,
+  minHeight: 52,
   padding: "12px 32px",
   background: "var(--glass-2)",
   borderColor: "var(--accent)",
   color: "var(--accent)",
-  fontSize: "1rem",
+  fontSize: "1.05rem",
 };
 const TIMER_CONFIRM_STYLE: React.CSSProperties = {
   ...TIMER_BUTTON_STYLE,
   color: "var(--warn)",
   borderColor: "var(--warn)",
 };
+/* Eigenes Feld für den Timer — deutlich abgesetzt vom Schritt-Text */
+const TIMER_PANEL_STYLE: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 12,
+  padding: "20px 16px",
+  borderRadius: 18,
+  border: "1px solid var(--hair)",
+  background: "var(--surface-tile)",
+};
 const TIME_REMAINING_STYLE: React.CSSProperties = {
   fontFamily: "var(--font-mono)",
-  fontSize: "1.2rem",
+  fontSize: "2.6rem",
+  lineHeight: 1.1,
   fontWeight: 600,
   color: "var(--accent)",
 };
+/* Abgelaufen = Zeitdruck → --warn, und das Wort steht im Text (nicht nur Farbe) */
+const TIME_EXPIRED_STYLE: React.CSSProperties = { ...TIME_REMAINING_STYLE, color: "var(--warn)", fontSize: "2rem" };
 
 interface CookingDialogProps {
   recipe: Recipe;
@@ -242,7 +326,9 @@ export function CookingDialog({ recipe, servings, onClose }: CookingDialogProps)
     >
       {/* Header */}
       <div style={HEADER_STYLE}>
-        <h2 style={HEADER_TITLE_STYLE}>{recipe.title}</h2>
+        <h2 style={HEADER_TITLE_STYLE} title={recipe.title}>
+          {recipe.title}
+        </h2>
         <button
           type="button"
           onClick={onClose}
@@ -256,14 +342,16 @@ export function CookingDialog({ recipe, servings, onClose }: CookingDialogProps)
       {/* Body */}
       <div style={BODY_STYLE}>
         {totalPages === 0 ? (
-          <p style={STEP_TEXT_STYLE}>Keine Schritte vorhanden</p>
+          <div style={{ ...CENTERED_CONTENT_STYLE, alignItems: "center" }}>
+            <PlateIcon size={48} />
+            <p style={EMPTY_TEXT_STYLE}>Keine Schritte vorhanden</p>
+          </div>
         ) : page === 0 && hasIngredients ? (
           <IngredientsPage recipe={recipe} servings={servings} />
         ) : (
           <StepPage
             recipe={recipe}
             stepIndex={hasIngredients ? page - 1 : page}
-            servings={servings}
             timers={timers}
             now={now}
             onStart={start}
@@ -299,7 +387,7 @@ export function CookingDialog({ recipe, servings, onClose }: CookingDialogProps)
                 onClose();
               }
             }}
-            style={NAV_BUTTON_STYLE}
+            style={NAV_PRIMARY_STYLE}
           >
             {page < totalPages - 1 ? "Weiter" : "Fertig"}
           </button>
@@ -310,21 +398,56 @@ export function CookingDialog({ recipe, servings, onClose }: CookingDialogProps)
 }
 
 /* ── Zutaten-Seite ─────────────────────────────────────── */
+type RecipeIngredient = NonNullable<Recipe["ingredients"]>[number];
+
+/** Zutaten nach Kategorie, in der Reihenfolge des Rezepts (keine Sortierung) */
+function groupByCategory(ingredients: readonly RecipeIngredient[]) {
+  const groups = new Map<string, RecipeIngredient[]>();
+  for (const ing of ingredients) {
+    const category = (ing.category ?? "").trim();
+    const list = groups.get(category);
+    if (list) list.push(ing);
+    else groups.set(category, [ing]);
+  }
+  return [...groups.entries()];
+}
+
 function IngredientsPage({ recipe, servings }: { recipe: Recipe; servings: number }) {
+  const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
+  const groups = groupByCategory(recipe.ingredients!);
+  // Kategorie-Überschriften nur, wenn es etwas zu gliedern gibt
+  const showCategories = groups.length > 1;
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-      <p style={INGREDIENT_INTRO_STYLE}>Zutaten bereitlegen</p>
-      {recipe.ingredients!.map((ing, i) => {
-        const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
-        const scaled = ing.amount * factor;
-        const rounded = roundAmount(scaled, ing.unit);
-        return (
-          <p key={i} style={INGREDIENT_LINE_STYLE}>
-            {formatShoppingAmount(rounded)} {ing.unit} {ing.name}
-          </p>
-        );
-      })}
-      <AllergenLine tags={recipe.containsTags} lineStyle={ALLERGEN_LINE_STYLE} noteStyle={ALLERGEN_NOTE_STYLE} />
+    <div style={CONTENT_STYLE}>
+      {/* Foto groß; ohne Bild derselbe Rahmen mit Platzhalter — kein Layoutsprung */}
+      <RecipeImage recipe={recipe} ratio="16 / 9" alt="" style={{ borderRadius: 18, maxHeight: "34vh" }} />
+
+      <div style={ALLERGEN_BOX_STYLE}>
+        <AllergenLine tags={recipe.containsTags} lineStyle={ALLERGEN_LINE_STYLE} noteStyle={ALLERGEN_NOTE_STYLE} />
+      </div>
+
+      <div style={INGREDIENT_HEAD_STYLE}>
+        <p style={INGREDIENT_INTRO_STYLE}>Zutaten bereitlegen</p>
+        <span style={{ ...STEP_COUNTER_STYLE, flexShrink: 0, whiteSpace: "nowrap" }}>für {formatShoppingAmount(servings)} Port.</span>
+      </div>
+
+      {groups.map(([category, items]) => (
+        <section key={category} aria-label={category || "Zutaten"}>
+          {showCategories && <h3 style={INGREDIENT_CATEGORY_STYLE}>{category || "Sonstiges"}</h3>}
+          {items.map((ing, i) => {
+            const rounded = roundAmount(ing.amount * factor, ing.unit);
+            return (
+              <p key={i} style={INGREDIENT_LINE_STYLE}>
+                <span style={INGREDIENT_AMOUNT_STYLE}>
+                  {formatShoppingAmount(rounded)} {ing.unit}
+                </span>
+                <span>{ing.name}</span>
+              </p>
+            );
+          })}
+        </section>
+      ))}
     </div>
   );
 }
@@ -333,7 +456,6 @@ function IngredientsPage({ recipe, servings }: { recipe: Recipe; servings: numbe
 interface StepPageProps {
   recipe: Recipe;
   stepIndex: number;
-  servings: number;
   timers: import("../../types.js").CookTimer[];
   now: number;
   onStart: (id: string, label: string, durationSeconds: number) => void;
@@ -342,12 +464,13 @@ interface StepPageProps {
 
 function StepPage({ recipe, stepIndex, timers, now, onStart, onReset }: StepPageProps) {
   const step = recipe.instructions?.[stepIndex];
-  if (!step) return <p style={STEP_TEXT_STYLE}>Schritt nicht gefunden</p>;
+  if (!step) return <p style={EMPTY_TEXT_STYLE}>Schritt nicht gefunden</p>;
 
   const timerSeconds = step.timerSeconds;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 16 }}>
+    <div style={CENTERED_CONTENT_STYLE}>
+      <p style={STEP_LABEL_STYLE}>Schritt {stepIndex + 1}</p>
       <p style={STEP_TEXT_STYLE}>{step.text}</p>
 
       {timerSeconds != null && timerSeconds > 0 && (
@@ -405,7 +528,11 @@ function TimerInStep({
 
   // Lange Timer (>= 3600 s) → no start button, show rest time text
   if (timerSeconds >= LONG_REST_THRESHOLD_S) {
-    return <p style={STEP_COUNTER_STYLE}>{formatRestTime(timerSeconds)}</p>;
+    return (
+      <div style={TIMER_PANEL_STYLE}>
+        <p style={{ ...STEP_COUNTER_STYLE, fontSize: "1.05rem", margin: 0 }}>{formatRestTime(timerSeconds)}</p>
+      </div>
+    );
   }
 
   // Timer läuft bereits → show remaining time
@@ -413,24 +540,13 @@ function TimerInStep({
     const expired = isExpired(existingTimer, now);
     const remaining = remainingSeconds(existingTimer, now);
 
-    if (expired) {
-      return (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-          <span style={TIME_REMAINING_STYLE}>Abgelaufen</span>
-          <button
-            type="button"
-            style={pendingReset ? TIMER_CONFIRM_STYLE : TIMER_BUTTON_STYLE}
-            onClick={handleReset}
-          >
-            {pendingReset ? "Wirklich zurücksetzen?" : "Zurücksetzen"}
-          </button>
-        </div>
-      );
-    }
-
     return (
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-        <span style={TIME_REMAINING_STYLE}>{formatRemaining(remaining)}</span>
+      <div style={TIMER_PANEL_STYLE}>
+        {expired ? (
+          <span style={TIME_EXPIRED_STYLE}>Abgelaufen</span>
+        ) : (
+          <span style={TIME_REMAINING_STYLE}>{formatRemaining(remaining)}</span>
+        )}
         <button
           type="button"
           style={pendingReset ? TIMER_CONFIRM_STYLE : TIMER_BUTTON_STYLE}
@@ -445,8 +561,10 @@ function TimerInStep({
   // No timer running yet → show "Starten"
 
   return (
-    <button type="button" style={TIMER_BUTTON_STYLE} onClick={handleStart}>
-      Starten ({formatRemaining(timerSeconds)})
-    </button>
+    <div style={TIMER_PANEL_STYLE}>
+      <button type="button" style={TIMER_BUTTON_STYLE} onClick={handleStart}>
+        Starten ({formatRemaining(timerSeconds)})
+      </button>
+    </div>
   );
 }
