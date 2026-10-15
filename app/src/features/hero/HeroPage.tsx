@@ -26,7 +26,9 @@ import { HeroTileGrid, type HeroTile } from "./HeroTileGrid";
 import { MetricTile } from "./MetricTile";
 import { PowerScale } from "./PowerScale";
 import { HrZonesTile } from "./HrZonesTile";
-import { buildCyclingHrZones, resolveHrMax } from "./zone-explainer-view-model";
+import { PaceZonesTile } from "./PaceZonesTile";
+import { buildPaceSection } from "../analysis/pace-section-view-model";
+import { buildCyclingHrZones, buildHrZones, heroZoneTileIds, resolveHrMax } from "./zone-explainer-view-model";
 import { useProfileBasics } from "../../api/hooks/useProfile";
 import { RaceCountdownPill } from "./RaceCountdownPill";
 import { RaceResultsCard } from "./RaceResultsCard";
@@ -206,6 +208,13 @@ export function HeroPage() {
     () => (effectiveSport === "run" ? estimateThresholdSpeed(rides) : null),
     [effectiveSport, rides],
   );
+  // Pace-Zonen-Kachel (Fahrplan 24 E3): dasselbe View-Model wie die Pace-Sektion
+  // im Analyse-Tab (gleiche Schwellenschätzung, nichts neu gerechnet). Nur auf
+  // dem Lauf-/Schwimm-Tab; auf dem Rad-Tab entfällt die Rechnung.
+  const paceSection = useMemo(
+    () => (effectiveSport === "run" || effectiveSport === "swim" ? buildPaceSection({ rides, sport: effectiveSport }) : null),
+    [effectiveSport, rides],
+  );
   // Absolvierte Rennen mit erfasstem Ergebnis (Migration 0027) — reine
   // Ableitung aus der ohnehin geladenen Event-Liste, kein Request.
   const raceResults = useMemo(() => buildRaceResults(events ?? [], TODAY), [events]);
@@ -286,7 +295,8 @@ export function HeroPage() {
   // Leistungsskala/FTP-Ringe sind rad-spezifisch (Coggan-Zonen aus der FTP).
   // Auf einem Lauf-/Schwimm-Tab (Fahrplan 10 E8a) ausblenden — nie Rad-Zonen
   // auf Nicht-Rad. Für Athlet 1/2/4 ist `effectiveSport` immer "ride".
-  if (hasFtpData && effectiveSport === "ride") {
+  const zoneTileIds = heroZoneTileIds(effectiveSport, hasFtpData);
+  if (zoneTileIds.includes("powerScale")) {
     tiles.push({
       id: "ftpRings",
       node: <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />,
@@ -311,7 +321,32 @@ export function HeroPage() {
     tiles.push({
       id: "hrZones",
       wide: true,
-      node: <HrZonesTile vm={buildCyclingHrZones(hrMax)} hrMaxEstimated={hrMaxEstimated} />,
+      node: <HrZonesTile sport="ride" vm={buildCyclingHrZones(hrMax)} hrMaxEstimated={hrMaxEstimated} />,
+    });
+  }
+  // Lauf/Schwimmen (E3): Pace- und HF-Zonen-Kachel. Sichtbarkeitsregel: genau
+  // dann, wenn die Sportart der effektive Tab ist — `effectiveSport` ist schon
+  // auf die Sportarten des Athleten geklemmt (useAthleteSports), ein Athlet
+  // ohne die Sportart landet auf "ride" und sieht diese Kacheln nie. Fehlen
+  // nur die DATEN (keine Schwelle, kein HFmax), zeigt die Kachel selbst den
+  // degradierten Zustand statt zu verschwinden. Nicht FTP-gegatet (kein Watt).
+  if (paceSection && effectiveSport !== "ride" && zoneTileIds.includes("paceZones")) {
+    tiles.push({
+      id: "paceZones",
+      wide: true,
+      node: <PaceZonesTile key={effectiveSport} pace={paceSection} />,
+    });
+    tiles.push({
+      id: "hrZones",
+      wide: true,
+      node: (
+        <HrZonesTile
+          key={effectiveSport}
+          sport={effectiveSport}
+          vm={buildHrZones(effectiveSport, hrMax)}
+          hrMaxEstimated={hrMaxEstimated}
+        />
+      ),
     });
   }
   // Jede Kennzahl ist seit der Rückfrage vom 2026-09-04 ihre eigene, einzeln

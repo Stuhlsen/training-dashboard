@@ -6,12 +6,18 @@
    (core/zones.js), die HF-Prozentgrenzen aus sports/cycling/metrics.ts
    (HR_ZONES) × HFmax — dieselbe Multiplikation wie
    analysis/pace-section-view-model.ts (dort nur für Lauf).
+
+   E3 (Lauf/Schwimmen): HF-Zonen je Sportart (RUNNING_HR_ZONES /
+   SWIMMING_HR_ZONES aus den metrics.ts der Sportprofile) und die Pace-Zonen-Kachel. Die
+   Pace-Zonen kommen unverändert aus buildPaceSection() (Analyse-Tab, dieselbe
+   Schwellenschätzung) — hier wird nur umbenannt/formatiert.
    ============================================================ */
 
+import { fmtPace } from "../../core/format.js";
 import { sportProfileFor } from "../../sports";
 import { COGGAN_ZONE_META } from "../../sports/cycling/zones";
-import type { HrZone } from "../analysis/pace-section-view-model";
-import type { ExplainerZone } from "./ZoneExplainer";
+import type { HrZone, PaceSectionViewModel, PaceZone } from "../analysis/pace-section-view-model";
+import type { ExplainerCallout, ExplainerZone } from "./ZoneExplainer";
 import type { HeroZoneSegment } from "./hero-view-model";
 
 /** Bereichstext einer Zone: "bis 120 W" (unterste Zone), sonst "120–160 W". */
@@ -60,10 +66,30 @@ export interface HrZonesViewModel {
   explainerZones: ExplainerZone[];
 }
 
-/** Rad-HF-Zonen (HR_ZONES in % HFmax) × HFmax. Ohne HFmax: degradiert, die
- *  Erklärer-Zonen tragen dann nur Label/Farbe, keine Zahlen. */
-export function buildCyclingHrZones(hrMax: number | null): HrZonesViewModel {
-  const pct = sportProfileFor("ride")?.metrics.hrZones ?? {};
+/** Hero-Sportart (Umschalter) → Sportart-Schlüssel der Erklärtexte. */
+export const EXPLAINER_SPORT = { ride: "cycling", run: "running", swim: "swimming" } as const;
+export type HeroZoneSport = keyof typeof EXPLAINER_SPORT;
+
+/** Welche Zonen-Kacheln ein Hero-Tab zeigt (Fahrplan 24). `sport` ist der
+ *  EFFEKTIVE Tab (auf die Sportarten des Athleten geklemmt, s.
+ *  useEffectiveSport): ein Athlet ohne Lauf/Schwimmen landet auf "ride" und
+ *  bekommt diese Kacheln nie. Rad: nur mit FTP-Daten (Watt-Skala); Lauf/
+ *  Schwimmen: immer — fehlende Schwelle/HFmax zeigt die Kachel selbst als
+ *  degradierten Zustand, statt zu verschwinden. */
+export function heroZoneTileIds(sport: HeroZoneSport, hasFtpData: boolean): readonly string[] {
+  if (sport === "ride") return hasFtpData ? ["powerScale", "hrZones"] : [];
+  return ["paceZones", "hrZones"];
+}
+
+/** Rad-HF-Zonen (E2) — Kurzform von buildHrZones("ride", …). */
+export const buildCyclingHrZones = (hrMax: number | null): HrZonesViewModel => buildHrZones("ride", hrMax);
+
+/** HF-Zonen (% HFmax je Sportart, sports/*) × HFmax. Ohne HFmax: degradiert,
+ *  die Erklärer-Zonen tragen dann nur Label/Farbe, keine Zahlen. Die
+ *  Anzeigenamen sind sportartübergreifend "Z1 Recovery"…"Z5 VO2max"
+ *  (COGGAN_ZONE_META; deckungsgleich mit HR_ZONE_META im Analyse-Tab). */
+export function buildHrZones(sport: HeroZoneSport, hrMax: number | null): HrZonesViewModel {
+  const pct = sportProfileFor(sport)?.metrics.hrZones ?? {};
   const metaById = new Map(COGGAN_ZONE_META.map((m) => [m.id, m]));
   const ids = Object.keys(pct);
   const hasMax = isValid(hrMax);
@@ -89,4 +115,49 @@ export function buildCyclingHrZones(hrMax: number | null): HrZonesViewModel {
     };
   });
   return { zones, degraded: !hasMax, explainerZones };
+}
+
+/** Pflichthinweis der Pace-Kachel (Fahrplan 24, Q5): fester Text, immer
+ *  sichtbar. Gilt für Schwelle und Zonengrenzen, nicht für die Erklärtexte. */
+export const PACE_RICHTWERT_HINT: ExplainerCallout = {
+  text: "Richtwert, nicht an deinen Daten geprüft. Das gilt für die geschätzte Schwelle und die Zonengrenzen, nicht für die Beschreibungen.",
+  quelleKeys: [],
+};
+
+/** Bereichstext einer Pace-Zone, schnellere Grenze zuletzt: "5:30–5:00 min/km".
+ *  Unterste Zone (keine langsamere Grenze): "langsamer als 6:20 min/km". */
+export function paceRangeText(vonPaceSec: number | null, bisPaceSec: number | null, unit: string): string | null {
+  if (bisPaceSec == null) return null;
+  return vonPaceSec == null ? `langsamer als ${fmtPace(bisPaceSec)} ${unit}` : `${fmtPace(vonPaceSec)}–${fmtPace(bisPaceSec)} ${unit}`;
+}
+
+export interface PaceZonesViewModel {
+  /** Zonen für PaceZoneScale (Sekunden je Anzeige-Einheit: s/km bzw. s/100 m) */
+  scaleZones: PaceZone[];
+  degraded: boolean;
+  explainerZones: ExplainerZone[];
+}
+
+/** Pace-Zonen-Kachel aus dem Pace-View-Model des Analyse-Tabs. buildPaceSection()
+ *  rechnet die Pace immer in s/km (PACE_FROM_KMH); fürs Schwimmen (min/100 m)
+ *  also durch 10. Ohne Schwelle: keine Zahlen, Labels/Farben aus dem
+ *  Sportprofil (sports/*), damit die Beschreibungen lesbar bleiben (Q7). */
+export function buildPaceZonesViewModel(pace: PaceSectionViewModel): PaceZonesViewModel {
+  const divisor = pace.sport === "swim" ? 10 : 1;
+  const scale = (sec: number | null) => (sec == null ? null : sec / divisor);
+  const scaleZones: PaceZone[] = pace.zones.map((z) => ({
+    ...z,
+    vonPaceSec: scale(z.vonPaceSec),
+    bisPaceSec: scale(z.bisPaceSec),
+  }));
+  const degraded = pace.degraded;
+  const explainerZones: ExplainerZone[] = degraded
+    ? (sportProfileFor(pace.sport)?.zones.meta ?? []).map((m) => ({ id: m.id, label: m.label, color: m.farbe, range: null }))
+    : scaleZones.map((z) => ({
+        id: z.id,
+        label: z.label,
+        color: z.farbe,
+        range: paceRangeText(z.vonPaceSec, z.bisPaceSec, pace.thresholdUnit),
+      }));
+  return { scaleZones, degraded, explainerZones };
 }
