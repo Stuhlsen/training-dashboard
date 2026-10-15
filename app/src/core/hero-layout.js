@@ -92,6 +92,8 @@ export const HERO_TILE_SIZE = {
   weekReview: { w: BIG, h: rowsFor(190) },
   wellbeing: { w: BIG, h: rowsFor(90) },
   readiness: { w: BIG, h: rowsFor(380) },
+  // E9: Starthöhe geschätzt — gegen echte Playwright-Messung bei >= 1800px prüfen (s. Kommentar oben)
+  nutrition: { w: BIG, h: rowsFor(230) },
   // Kennzahlen (Etappe "Kennzahlen einzeln verschiebbar", Rückfrage
   // 2026-09-04) — seit hero-view-model.ts::buildHeroMetrics()s `key`-Feld
   // ist jede Kennzahl ihre eigene, kleine Kachel (2 von 12 Spalten, 6 pro
@@ -143,6 +145,7 @@ export const DEFAULT_HERO_TILE_ORDER = [
   "raceResults",
   "weekReview",
   "wellbeing",
+  "nutrition",
   "readiness",
 ];
 

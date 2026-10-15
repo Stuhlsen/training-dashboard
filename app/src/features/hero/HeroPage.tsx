@@ -33,6 +33,7 @@ import { SessionCard } from "./SessionCard";
 import { WeatherCard } from "./WeatherCard";
 import { WeekReviewCard } from "./WeekReviewCard";
 import { WellbeingCard } from "./WellbeingCard";
+import { NutritionCard } from "./NutritionCard";
 import { buildHeroCore, buildHeroMetrics, buildPowerScale, type HeroCoreInput } from "./hero-view-model";
 import { useHeroLayout } from "../../api/hooks/useHeroLayout";
 import { resolveTileLayout } from "../../core/hero-layout.js";
@@ -363,6 +364,8 @@ export function HeroPage() {
   if (raceResults.length > 0) tiles.push({ id: "raceResults", node: <RaceResultsCard rows={raceResults} /> });
   tiles.push({ id: "weekReview", node: <WeekReviewCard review={weekReview} /> });
   tiles.push({ id: "wellbeing", node: <WellbeingCard activeAthleteId={activeAthleteId} /> });
+  // E9: Ernährungsdaten sind owner-only (E28) — Kachel nur im eigenen Profil
+  if (isSelf) tiles.push({ id: "nutrition", node: <NutritionCard athleteId={activeAthleteId} /> });
   tiles.push({
     id: "readiness",
     node: <ReadinessCard readiness={vm.readiness} briefing={vm.briefing} subjective={readinessSubjective} />,
