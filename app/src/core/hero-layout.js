@@ -92,8 +92,10 @@ export const HERO_TILE_SIZE = {
   weekReview: { w: BIG, h: rowsFor(190) },
   wellbeing: { w: BIG, h: rowsFor(90) },
   readiness: { w: BIG, h: rowsFor(380) },
-  // E9: Starthöhe geschätzt — gegen echte Playwright-Messung bei >= 1800px prüfen (s. Kommentar oben)
-  nutrition: { w: BIG, h: rowsFor(230) },
+  // E9, 15.10.2026 (Playwright, 2200px): Inhalt nur mit Ziel 150px; mit Plan-Zeile + Ampel
+  // und "gegessen" je ca. +22px → ca. 195px. Der volle Fall wurde NICHT live gemessen
+  // (hätte einen Plan-Eintrag in die Dev-DB geschrieben), sondern aus den Zeilenhöhen gerechnet.
+  nutrition: { w: BIG, h: rowsFor(210) },
   // Kennzahlen (Etappe "Kennzahlen einzeln verschiebbar", Rückfrage
   // 2026-09-04) — seit hero-view-model.ts::buildHeroMetrics()s `key`-Feld
   // ist jede Kennzahl ihre eigene, kleine Kachel (2 von 12 Spalten, 6 pro
