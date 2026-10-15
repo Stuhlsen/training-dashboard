@@ -9,8 +9,9 @@ import {
   EASY_ZONE_ID_BY_SPORT,
   EASY_ZONE_SHARE_SENTENCE,
   SWIMMING_HR_HINT,
+  HR_RICHTWERT_HINT,
 } from "./zone-explanations.js";
-import { SOURCE_BY_KEY, ZONE_SOURCES } from "./zone-sources.js";
+import { SOURCE_BY_KEY, ZONE_SOURCES, ZONE_SOURCE_STATUS } from "./zone-sources.js";
 import { cyclingZones } from "../sports/cycling/zones.js";
 import { runningZones } from "../sports/running/zones.js";
 import { swimmingZones } from "../sports/swimming/zones.js";
@@ -57,7 +58,7 @@ test("alle quelleKeys verweisen auf vorhandene Quellen", () => {
   const all = [];
   for (const s of Object.values(ZONE_EXPLANATIONS)) all.push(...s.zonen, ...s.hf);
   for (const e of all) for (const k of e.quelleKeys) assert.ok(SOURCE_BY_KEY.has(k), `unbekannter Schlüssel ${k}`);
-  for (const k of [...EASY_ZONE_SHARE_SENTENCE.quelleKeys, ...SWIMMING_HR_HINT.quelleKeys]) {
+  for (const k of [...EASY_ZONE_SHARE_SENTENCE.quelleKeys, ...SWIMMING_HR_HINT.quelleKeys, ...HR_RICHTWERT_HINT.quelleKeys]) {
     assert.ok(SOURCE_BY_KEY.has(k), `unbekannter Schlüssel ${k}`);
   }
 });
@@ -70,8 +71,23 @@ test("Quellenliste: Schlüssel eindeutig, Pflichtfelder gefüllt", () => {
   }
 });
 
-test("Easy-Satz und Wasser-HF-Hinweis haben Text und Quelle", () => {
-  for (const c of [EASY_ZONE_SHARE_SENTENCE, SWIMMING_HR_HINT]) {
+test("Quellen sind im Dashboard nachvollziehbar: gültiger Status, belegte Quellen haben einen https-Link", () => {
+  const valid = new Set(Object.values(ZONE_SOURCE_STATUS));
+  for (const s of ZONE_SOURCES) {
+    assert.ok(valid.has(s.status), `${s.key}: Status fehlt oder ungültig`);
+    if (s.status === ZONE_SOURCE_STATUS.UNBELEGT) assert.equal(s.url, undefined, `${s.key}: unbelegt darf keinen Link tragen`);
+    else assert.match(s.url ?? "", /^https:\/\//, `${s.key}: belegte Quelle ohne Link`);
+  }
+});
+
+test("jeder Wert ist einer Herkunft zuordenbar: HF-Zonen führen mindestens eine Quelle (belegt oder 'nicht belegt')", () => {
+  for (const s of Object.values(ZONE_EXPLANATIONS)) {
+    for (const e of s.hf) assert.ok(e.quelleKeys.length > 0, `hf/${e.id}: keine Herkunft`);
+  }
+});
+
+test("Easy-Satz, Wasser-HF-Hinweis und Richtwert-Hinweis haben Text und Quelle", () => {
+  for (const c of [EASY_ZONE_SHARE_SENTENCE, SWIMMING_HR_HINT, HR_RICHTWERT_HINT]) {
     assert.ok(c.text.trim().length > 0);
     assert.ok(c.quelleKeys.length > 0);
   }

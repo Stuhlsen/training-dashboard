@@ -156,6 +156,14 @@ export const EASY_ZONE_SHARE_SENTENCE = Object.freeze({
   quelleKeys: Object.freeze([K.SEILER_2010, K.STOGGL_SPERLICH_2015]),
 });
 
+/** Hinweis für alle Puls-Zonen-Kacheln: feste Prozente von HFmax sind nur ein
+ *  grober Richtwert. Belegt durch Bishop et al. 2025 (ACSM/ESSA); die
+ *  Prozentgrenzen selbst sind übernommene Wahl (K.HR_PCT_UNBELEGT). */
+export const HR_RICHTWERT_HINT = Object.freeze({
+  text: "Die Pulszonen sind ein grober Richtwert: Bei gleichem Prozentwert deines Höchstpulses liegen Menschen unterschiedlich weit von ihrer eigenen Belastungsschwelle entfernt.",
+  quelleKeys: Object.freeze([K.BISHOP_2025, K.HR_PCT_UNBELEGT]),
+});
+
 /** Hinweis zur Wasser-Herzfrequenz (Q6) für die Schwimm-HF-Kachel.
  *  Belegt durch Olstad 2019 (6,7 ± 5,3 bpm niedriger als beim Laufen, 12 junge
  *  Spitzenschwimmer) — bewusst vorsichtig formuliert, ohne feste Korrektur. */

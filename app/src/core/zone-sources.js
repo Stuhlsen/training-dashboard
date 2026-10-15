@@ -18,6 +18,7 @@
  * @property {string} link   Zitat/Fundstelle als Text
  * @property {string} [url]  klickbare Adresse, nur wo eine stabile existiert
  * @property {string} note
+ * @property {"primaer"|"sekundaer"|"unbelegt"} status  Herkunft, s. ZONE_SOURCE_STATUS
  */
 
 /** Einzige Quelle der Schlüssel: zone-explanations.js verweist über diese
@@ -113,9 +114,34 @@ const URLS = {
   [ZONE_SOURCE_KEYS.STOGGL_SPERLICH_2015]: "https://doi.org/10.3389/fphys.2015.00295",
 };
 
+/** Herkunft je Quelle, damit die UI immer ehrlich zeigen kann, woher ein Wert
+ *  kommt: "primaer" = Original (Studie/Autorenartikel) gelesen,
+ *  "sekundaer" = nur Zusammenfassung/Leitfaden gelesen, "unbelegt" = übernommene
+ *  Wahl ohne Quelle (kein Link, UI zeigt 'nicht belegt'). */
+export const ZONE_SOURCE_STATUS = Object.freeze({
+  PRIMAER: "primaer",
+  SEKUNDAER: "sekundaer",
+  UNBELEGT: "unbelegt",
+});
+
+const STATUS = {
+  [ZONE_SOURCE_KEYS.COGGAN_POWER_LEVELS]: ZONE_SOURCE_STATUS.PRIMAER,
+  [ZONE_SOURCE_KEYS.SEILER_2010]: ZONE_SOURCE_STATUS.PRIMAER,
+  [ZONE_SOURCE_KEYS.STOGGL_SPERLICH_2015]: ZONE_SOURCE_STATUS.PRIMAER,
+  [ZONE_SOURCE_KEYS.OLSTAD_2019]: ZONE_SOURCE_STATUS.PRIMAER,
+  [ZONE_SOURCE_KEYS.BISHOP_2025]: ZONE_SOURCE_STATUS.PRIMAER,
+  [ZONE_SOURCE_KEYS.FERNANDES_2024]: ZONE_SOURCE_STATUS.PRIMAER,
+  [ZONE_SOURCE_KEYS.DANIELS_RUNNING_FORMULA]: ZONE_SOURCE_STATUS.SEKUNDAER,
+  [ZONE_SOURCE_KEYS.SWIM_SMOOTH_CSS]: ZONE_SOURCE_STATUS.SEKUNDAER,
+  [ZONE_SOURCE_KEYS.SWIMMING_CANADA_2024]: ZONE_SOURCE_STATUS.SEKUNDAER,
+  [ZONE_SOURCE_KEYS.HR_PCT_UNBELEGT]: ZONE_SOURCE_STATUS.UNBELEGT,
+};
+
 /** @type {ReadonlyArray<Readonly<ZoneSourceEntry>>} */
 export const ZONE_SOURCES = Object.freeze(
-  ENTRIES.map((e) => Object.freeze(URLS[e.key] ? { ...e, url: URLS[e.key] } : { ...e }))
+  ENTRIES.map((e) =>
+    Object.freeze({ ...e, ...(URLS[e.key] ? { url: URLS[e.key] } : {}), status: STATUS[e.key] })
+  )
 );
 
 /** Key→Source-Lookup.
