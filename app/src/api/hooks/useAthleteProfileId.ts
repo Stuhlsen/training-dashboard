@@ -1,6 +1,7 @@
 import { useQuery, type QueryClient } from "@tanstack/react-query";
 import { findProfileIdByDisplayName } from "../supabase/profiles";
-import { athleteConfig } from "../../config";
+import { getCurrentUserId } from "../supabase/auth";
+import { athleteConfig, SELF_ATHLETE_ID } from "../../config";
 import { qk } from "../keys";
 import { unwrap } from "../result";
 
@@ -17,6 +18,10 @@ import { unwrap } from "../result";
  *  state/plan-cards.js — hier übernimmt der Query-Cache das Cachen, und
  *  weil die Zuordnung sich praktisch nie ändert, mit `staleTime: Infinity`. */
 async function resolve(athleteId: string): Promise<string | null> {
+  // Eigener Eintrag ohne Platz in config.ts: die UUID ist die des
+  // eingeloggten Users. Der Cache wird bei Login/Logout/Kontowechsel
+  // geleert (AuthContext), "self" kann also nie fremde Accounts überleben.
+  if (athleteId === SELF_ATHLETE_ID) return getCurrentUserId();
   const name = athleteConfig(athleteId)?.name;
   if (!name) return null;
   const { id } = unwrap(await findProfileIdByDisplayName(name));

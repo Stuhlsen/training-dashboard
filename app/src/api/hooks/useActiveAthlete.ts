@@ -1,15 +1,19 @@
 import { useCallback, useSyncExternalStore } from "react";
-import { ATHLETES, PRIMARY_ATHLETE_ID } from "../../config";
+import { ATHLETES, PRIMARY_ATHLETE_ID, SELF_ATHLETE_ID } from "../../config";
+import { findSlotId, resolveActiveAthleteId } from "../../core/athlete-selection.js";
+import { useAuthUserId, useCurrentProfile } from "./useSession";
 
 const STORAGE_KEY = "active_athlete";
+const VALID_IDS = ATHLETES.map((a) => a.id);
 
-/** Alte/unbekannte IDs (aus früheren Versionen) fallen auf den
- *  Primär-Athleten zurück — Pattern wie Vanilla app.js beim Boot. */
-function readStoredAthlete(): string {
+/** Gespeicherte Wahl oder `null`. Alte/unbekannte IDs (aus früheren
+ *  Versionen) werden verworfen — danach entscheidet `resolveActiveAthleteId`
+ *  (Primär-Athlet bzw. der eigene Eintrag eines Accounts ohne Platz). */
+function readStoredAthlete(): string | null {
   const saved = localStorage.getItem(STORAGE_KEY);
-  const valid = ATHLETES.some((a) => a.id === saved);
+  const valid = saved === SELF_ATHLETE_ID || VALID_IDS.includes(saved ?? "");
   if (saved && !valid) localStorage.removeItem(STORAGE_KEY);
-  return valid ? saved! : PRIMARY_ATHLETE_ID;
+  return valid ? saved : null;
 }
 
 /** Modul-weiter Zustand statt separatem `useState` je Aufrufer: vor dem
@@ -20,12 +24,12 @@ function readStoredAthlete(): string {
  *  einen React-Context einzuführen (Alex' Vorgabe: kein globaler Store, wo
  *  der geteilte `localStorage`-Schlüssel reicht — dieser bleibt weiter die
  *  Quelle der Wahrheit, nur das Nachziehen über mehrere Komponenten fehlte). */
-let currentAthleteId = readStoredAthlete();
+let storedAthleteId = readStoredAthlete();
 const listeners = new Set<() => void>();
 
 function setStoredAthlete(id: string) {
   localStorage.setItem(STORAGE_KEY, id);
-  currentAthleteId = id;
+  storedAthleteId = id;
   listeners.forEach((listener) => listener());
 }
 
@@ -35,11 +39,27 @@ function subscribe(listener: () => void) {
 }
 
 function getSnapshot() {
-  return currentAthleteId;
+  return storedAthleteId;
 }
 
+/** Aktiver Athlet. Die gespeicherte Wahl wird mit dem Account verrechnet
+ *  (`core/athlete-selection.js`): Ein Account ohne Platz in `ATHLETES`
+ *  startet auf seinem eigenen Eintrag (`SELF_ATHLETE_ID`), alle anderen wie
+ *  bisher. Reine Ableitung beim Rendern — kein Effekt, kein Zustand. */
 export function useActiveAthlete() {
-  const activeAthleteId = useSyncExternalStore(subscribe, getSnapshot);
+  const stored = useSyncExternalStore(subscribe, getSnapshot);
+  const userKnown = useAuthUserId() !== null;
+  const selfProfile = useCurrentProfile().data ?? null;
+  const slotId = findSlotId(ATHLETES, selfProfile?.displayName);
+
+  const activeAthleteId = resolveActiveAthleteId({
+    stored,
+    validIds: VALID_IDS,
+    primaryId: PRIMARY_ATHLETE_ID,
+    userKnown,
+    selfProfile,
+    slotId,
+  });
   const setActiveAthleteId = useCallback((id: string) => {
     setStoredAthlete(id);
   }, []);

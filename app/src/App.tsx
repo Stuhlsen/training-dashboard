@@ -15,6 +15,7 @@ import { AnalysisPage } from "./features/analysis/AnalysisPage";
 import { SettingsPage } from "./features/settings/SettingsPage";
 import { BikefitPage } from "./features/bikefit/BikefitPage";
 import { NutritionPage } from "./features/nutrition/NutritionPage";
+import { TrainingDataGate } from "./features/training-data/TrainingDataGate";
 
 const LandingPage = lazy(() => import("./features/landing").then((m) => ({ default: m.LandingPage })));
 
@@ -71,15 +72,15 @@ export default function App() {
               beim gezielten Settings-Aufruf (Fahrplan 17 E7). */}
           <Route path="/app" element={<OnboardingGate />}>
             <Route element={<Layout />}>
-              <Route index element={<HeroPage />} />
+              <Route index element={<TrainingDataGate><HeroPage /></TrainingDataGate>} />
               <Route path="planning" element={<PlanningPage />} />
               {/* Explorer war bis Etappe Layout-Merge 2026-08-20 eine eigene
                   Route — jetzt der "Verläufe"-Tab in AnalysisPage.tsx (Critique-
                   Fund P1: "Analyse" hatte keine Charts). Redirect für alte
                   Lesezeichen/Links. */}
               <Route path="explorer" element={<ExplorerRedirect />} />
-              <Route path="log" element={<LogbookPage />} />
-              <Route path="analysis" element={<AnalysisPage />} />
+              <Route path="log" element={<TrainingDataGate><LogbookPage /></TrainingDataGate>} />
+              <Route path="analysis" element={<TrainingDataGate><AnalysisPage /></TrainingDataGate>} />
               <Route path="events" element={<EventsPage />} />
               <Route path="bikefit" element={<BikefitPage />} />
               <Route path="nutrition" element={<NutritionPage />} />
