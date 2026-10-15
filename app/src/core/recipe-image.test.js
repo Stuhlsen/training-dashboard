@@ -22,7 +22,33 @@ describe("recipeImageSource", () => {
     expect(recipeImageSource(undefined)).toBeNull();
   });
 
-  it("externalId allein erzeugt noch kein Bild (KI-Manifest kommt mit F3)", () => {
+  it("externalId ohne Manifest-Eintrag erzeugt kein Bild", () => {
     expect(recipeImageSource({ imageUrl: null, externalId: "own-haferbrei" })).toBeNull();
+    expect(recipeImageSource({ imageUrl: null, externalId: "own-haferbrei" }, new Set(["own-anderes"]))).toBeNull();
+  });
+
+  it("externalId im Manifest: KI-Bild unter <baseUrl>recipe-images/<id>.webp", () => {
+    const manifest = new Set(["own-haferbrei"]);
+    expect(recipeImageSource({ imageUrl: null, externalId: "own-haferbrei" }, manifest)).toEqual({
+      src: "/recipe-images/own-haferbrei.webp",
+      ai: true,
+    });
+    expect(recipeImageSource({ externalId: "own-haferbrei" }, manifest, "/training-dashboard/")).toEqual({
+      src: "/training-dashboard/recipe-images/own-haferbrei.webp",
+      ai: true,
+    });
+  });
+
+  it("Athleten-Foto hat Vorrang und trägt kein KI-Label", () => {
+    const manifest = new Set(["own-haferbrei"]);
+    expect(
+      recipeImageSource({ imageUrl: "https://example.com/foto.webp", externalId: "own-haferbrei" }, manifest),
+    ).toEqual({ src: "https://example.com/foto.webp", ai: false });
+  });
+
+  it("leere/fehlende externalId trifft nie das Manifest", () => {
+    const manifest = new Set([""]);
+    expect(recipeImageSource({ externalId: "" }, manifest)).toBeNull();
+    expect(recipeImageSource({ externalId: null }, manifest)).toBeNull();
   });
 });

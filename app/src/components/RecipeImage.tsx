@@ -9,12 +9,16 @@
    nur, wenn die Quelle ein KI-Bild ist UND das Bild wirklich zu
    sehen ist.
 
-   Die Quelle löst `core/recipe-image.js` auf — F3 hängt dort die
-   KI-Bilder ein, diese Komponente bleibt gleich.
+   Die Quelle löst `core/recipe-image.js` auf: Athleten-Foto, sonst
+   KI-Bild laut Manifest (F3, `scripts/build-recipe-images.js`), sonst
+   Platzhalter.
    ============================================================ */
 
 import { useState, type CSSProperties } from "react";
+import manifest from "../core/recipe-images-manifest.json";
 import { recipeImageSource } from "../core/recipe-image.js";
+
+const AI_IMAGE_IDS: ReadonlySet<string> = new Set(manifest);
 
 export const AI_IMAGE_LABEL = "Serviervorschlag (KI-Bild)";
 
@@ -41,15 +45,15 @@ const FILL_STYLE: CSSProperties = { position: "absolute", inset: 0, width: "100%
 
 const LABEL_STYLE: CSSProperties = {
   position: "absolute",
-  left: 8,
-  bottom: 8,
-  maxWidth: "calc(100% - 16px)",
-  padding: "2px 8px",
-  borderRadius: 6,
+  left: 6,
+  bottom: 6,
+  maxWidth: "calc(100% - 12px)",
+  padding: "1px 6px",
+  borderRadius: 4,
   background: "rgba(8, 9, 12, 0.78)",
   color: "var(--ink)",
   fontFamily: "var(--font-mono)",
-  fontSize: ".68rem",
+  fontSize: ".56rem",
   lineHeight: 1.4,
   pointerEvents: "none",
 };
@@ -111,7 +115,7 @@ function LoadedImage({ src, ai, alt, compact }: { src: string; ai: boolean; alt:
 }
 
 export function RecipeImage({ recipe, ratio = "4 / 3", alt, compact = false, style }: RecipeImageProps) {
-  const source = recipeImageSource(recipe);
+  const source = recipeImageSource(recipe, AI_IMAGE_IDS, import.meta.env.BASE_URL);
 
   return (
     <div style={{ ...FRAME_STYLE, aspectRatio: ratio, ...style }}>
