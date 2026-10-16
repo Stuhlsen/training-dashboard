@@ -60,9 +60,9 @@ async function fetchIsAdmin(token, sub, postgrestUrl, fetchImpl = fetch) {
   return Array.isArray(rows) && rows.length > 0 && rows[0].is_admin === true;
 }
 
-// V1/V2 komplett: liefert { ok: true, sub } oder { ok: false, status, error }
-// mit den Statuscodes aus V1 (401/403/502).
-async function requireAdmin(authorizationHeader, env, fetchImpl = fetch) {
+// Gueltiges User-JWT (HS256, aud/role = authenticated), Admin NICHT noetig.
+// Liefert { ok: true, sub, token } oder { ok: false, status: 401, error }.
+function requireUser(authorizationHeader, env) {
   const match =
     typeof authorizationHeader === "string" ? authorizationHeader.match(/^Bearer (.+)$/) : null;
   if (!match) {
@@ -78,10 +78,18 @@ async function requireAdmin(authorizationHeader, env, fetchImpl = fetch) {
       error: { code: "TOKEN_INVALID", message: "ungueltiges oder abgelaufenes Token" },
     };
   }
+  return { ok: true, sub: payload.sub, token };
+}
+
+// V1/V2 komplett: liefert { ok: true, sub } oder { ok: false, status, error }
+// mit den Statuscodes aus V1 (401/403/502).
+async function requireAdmin(authorizationHeader, env, fetchImpl = fetch) {
+  const user = requireUser(authorizationHeader, env);
+  if (!user.ok) return user;
 
   let admin;
   try {
-    admin = await fetchIsAdmin(token, payload.sub, env.POSTGREST_INTERNAL_URL, fetchImpl);
+    admin = await fetchIsAdmin(user.token, user.sub, env.POSTGREST_INTERNAL_URL, fetchImpl);
   } catch {
     return { ok: false, status: 502, error: { code: "NETWORK", message: "PostgREST nicht erreichbar" } };
   }
@@ -90,7 +98,7 @@ async function requireAdmin(authorizationHeader, env, fetchImpl = fetch) {
     return { ok: false, status: 403, error: { code: "UNKNOWN", message: "kein Admin" } };
   }
 
-  return { ok: true, sub: payload.sub };
+  return { ok: true, sub: user.sub };
 }
 
-module.exports = { verifyJwt, fetchIsAdmin, requireAdmin };
+module.exports = { verifyJwt, fetchIsAdmin, requireUser, requireAdmin };

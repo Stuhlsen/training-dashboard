@@ -32,6 +32,20 @@ handle /admin/* {
 }
 ```
 
+Seit Fahrplan 25 S1a kommen zwei weitere Pfade dazu, ebenfalls ohne Prefix-Strip:
+
+```
+handle /api/recipes* {
+    reverse_proxy admin-api:3001
+}
+handle /api/ingredients* {
+    reverse_proxy admin-api:3001
+}
+```
+
+**Hinweis für Tony:** neues `admin-api`-Image deployen und diese zwei Caddy-Regeln
+eintragen. Keine Migration, keine neuen Env-Variablen.
+
 Lokale Referenz: `Caddyfile.local` (Root-Repo). Beim Abgleich gegen die
 apps01-Ansible-Rolle prüfen, dass dort ebenfalls kein Prefix-Strip passiert —
 die Endpunkte im Server erwarten den vollen `/admin/...`-Pfad in `req.url`.
@@ -48,6 +62,43 @@ die Endpunkte im Server erwarten den vollen `/admin/...`-Pfad in `req.url`.
 
 Alle Endpunkte außer `/admin/health` verlangen `Authorization: Bearer <JWT>`
 und prüfen `profiles_visible.is_admin`.
+
+### Rezept-Einreichung (`/api/*`, Fahrplan 25 S1a)
+
+Gültiges JWT (HS256, `aud`/`role` = `authenticated`) genügt, **Admin ist nicht nötig**.
+Der Dienst schreibt mit der Service-Rolle (`source=athlete`, `status=pending`,
+`submitted_by` = JWT-`sub`, `external_id` = `athlete-<uuid>`). Nährwerte, `contains_tags`
+und `diet_tags` werden **abgeleitet**, nie vom Client übernommen.
+
+| Methode | Pfad | Zweck |
+|---|---|---|
+| GET | `/api/ingredients?q=` | Zutaten-Suche (höchstens 20 Treffer, Groß/Klein und Umlaute egal), liefert Name, Kategorie, Einheiten |
+| POST | `/api/recipes/preview` | prüft und rechnet wie Einreichen, speichert nichts; liefert `nutrition`, `contains_tags`, `diet_tags`, `ingredients` (mit Kategorie) |
+| POST | `/api/recipes` | einreichen (201, `{ ok, recipe }`) |
+| DELETE | `/api/recipes/:id` | eigenes `pending`-Rezept zurückziehen (Stimmen gehen per `ON DELETE CASCADE` mit) |
+
+Nicht in S1a: `PUT /api/recipes/:id` und `POST /api/ingredient-requests` (kommen in S1b
+mit der Migration). Grund für PUT: der Trigger `recipes_check_content_update` (0062)
+lehnt Inhaltsänderungen ab, wenn `auth.uid()` nicht der Einreicher ist — der Service-Key
+hat kein `sub`.
+
+Body für preview/POST: `{ title, meal_type[], servings, ingredients: [{ name, amount, unit }],
+instructions: [{ text, timerSeconds? }], image_url? }`. Grenzen: höchstens 5 offene Rezepte
+je Athlet, 30 Zutaten, 20 Schritte, Titel 100, Schritt 500 Zeichen. `image_url` ist ein
+Storage-Pfad `<JWT-sub>/<datei>` im Bucket `recipe-images`. Unbekannte Zutat oder Einheit
+ist ein Fehler, kein Raten.
+
+Fehler: `{ ok: false, error: { code, message } }`; Formularfehler (HTTP 422, bei zu vielen
+offenen Rezepten 409) haben Code `VALIDATION` und `error.details` je Feld
+(`{ feld: [meldung, …] }`).
+
+### Build-Kontext = Repo-Wurzel
+
+Das Image enthält neben `admin-api/*` gezielt vier Dateien aus `scripts/lib`
+(`recipe-nutrition.js`, `validate-recipe.js`, `ingredient-nutrition.json`,
+`core/nutrition-taxonomy.js`) — dieselbe Quelle wie das Seed-Skript. Bauen:
+`docker build -f admin-api/Dockerfile .` (Wurzel!). `admin-api` bleibt CommonJS und lädt
+die ESM-Module per `import()`.
 
 ## SMTP-Entscheidung: keine E-Mail, nur Link
 
