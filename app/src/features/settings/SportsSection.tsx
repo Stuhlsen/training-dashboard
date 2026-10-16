@@ -31,9 +31,9 @@ export interface SportsSectionProps {
 }
 
 const ALL_SPORTS: { id: Sport; label: string }[] = [
-  { id: "ride", label: "Rad" },
-  { id: "run", label: "Lauf" },
-  { id: "swim", label: "Schwimm" },
+  { id: "ride", label: "Radfahren" },
+  { id: "run", label: "Laufen" },
+  { id: "swim", label: "Schwimmen" },
 ];
 
 export function SportsSection({ onComplete }: SportsSectionProps) {

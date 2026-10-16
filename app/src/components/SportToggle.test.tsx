@@ -26,17 +26,17 @@ describe("SportToggle", () => {
     const { SportToggle } = await load();
     const { wrapper } = createHarness();
     render(<SportToggle athleteId="athlete3" />, { wrapper });
-    expect(screen.getByRole("button", { name: "Rad" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Lauf" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Schwimm" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Radfahren" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Laufen" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Schwimmen" })).toBeTruthy();
   });
 
   it("markiert die aktive Sportart und schaltet bei Klick um", async () => {
     const { SportToggle } = await load();
     const { wrapper } = createHarness();
     render(<SportToggle athleteId="athlete3" />, { wrapper });
-    const rad = screen.getByRole("button", { name: "Rad" });
-    const lauf = screen.getByRole("button", { name: "Lauf" });
+    const rad = screen.getByRole("button", { name: "Radfahren" });
+    const lauf = screen.getByRole("button", { name: "Laufen" });
     expect(rad.getAttribute("aria-pressed")).toBe("true");
     expect(lauf.getAttribute("aria-pressed")).toBe("false");
 

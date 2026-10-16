@@ -85,9 +85,9 @@ const TODAY = localISODate();
 const CURRENT_WEEK_KEY = isoWeekKey(TODAY);
 
 const VOLUME_SPORT_LABEL: Record<"ride" | "run" | "swim", string> = {
-  ride: "Rad",
-  run: "Lauf",
-  swim: "Schwimm",
+  ride: "Radfahren",
+  run: "Laufen",
+  swim: "Schwimmen",
 };
 
 type DialogState = "closed" | "new" | PlanCardT;
