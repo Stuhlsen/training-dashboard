@@ -98,7 +98,7 @@ describe("ZoneExplainer — Auswahl", () => {
 describe("ZoneExplainer — Quellen", () => {
   it("bietet 'ⓘ Quelle' mit klickbarem Link und Herkunftsvermerk", () => {
     render(<Harness />);
-    expect(screen.getByText("ⓘ Quelle")).toBeTruthy();
+    expect(screen.getByText("Quelle")).toBeTruthy();
     const link = screen.getAllByRole("link").find((a) => a.getAttribute("href")?.startsWith("https://"));
     expect(link).toBeTruthy();
     expect(link!.getAttribute("target")).toBe("_blank");

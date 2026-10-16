@@ -43,7 +43,7 @@ describe("DayTargetCard — Inhalt", () => {
 
   it("Methodik (Formel, Körperfett-Datum, Quelle) liegt hinter dem 'ⓘ'", () => {
     render(<DayTargetCard day={{ ...OK_DAY, formula: "cunningham-1980", bodyFatDate: "2026-10-10" }} />);
-    const summary = screen.getByText("ⓘ So rechnen wir");
+    const summary = screen.getByText("So rechnen wir");
     const details = summary.closest("details") as HTMLDetailsElement;
     expect(details.open).toBe(false);
     for (const text of [

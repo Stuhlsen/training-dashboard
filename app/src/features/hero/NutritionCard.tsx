@@ -11,6 +11,7 @@ import { SourceList } from "../nutrition/SourceList";
 import { useNutritionDay } from "../nutrition/useNutritionDay";
 import { buildHeroNutrition } from "../nutrition/nutrition-hero-model";
 import type { NutritionWellnessDay } from "../nutrition/nutrition-day-model";
+import { InfoIcon } from "../../components/InfoIcon";
 
 const AMPEL_COLOR = { green: "var(--ok)", yellow: "var(--warn)", red: "var(--danger)" } as const;
 const NEUTRAL_COLOR = "var(--ink-3)";
@@ -89,7 +90,7 @@ export function NutritionCard({ athleteId }: { athleteId: string }) {
           )}
           {view.consumed != null && <p style={META_STYLE}>gegessen {view.consumed} kcal</p>}
           <details style={{ marginTop: 8 }}>
-            <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".8rem" }}>ⓘ Quelle</summary>
+            <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".8rem" }}><InfoIcon style={{ marginRight: "0.35em" }} />Quelle</summary>
             <SourceList
               sources={view.sourceKeys.map((k) => SOURCE_BY_KEY.get(k)).filter((s): s is NonNullable<typeof s> => !!s)}
             />

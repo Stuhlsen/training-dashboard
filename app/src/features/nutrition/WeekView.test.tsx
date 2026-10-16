@@ -193,7 +193,7 @@ describe("WeekView — Ampel-Stufen (Text, nicht nur Farbe)", () => {
     expect(day.getByText("unter der Mindestzufuhr")).toBeTruthy();
     expect(day.getByText(/Die Summe liegt unter der Mindestzufuhr von 2500 kcal/)).toBeTruthy();
     expect(day.queryByText(/RED-S-Boden/)).toBeNull();
-    expect(day.getByText("ⓘ So rechnen wir")).toBeTruthy();
+    expect(day.getByText("So rechnen wir")).toBeTruthy();
   });
 
   it("zeigt Hinweis, wenn eine Einheit geplant ist, ihre Energie aber nicht berechenbar", () => {

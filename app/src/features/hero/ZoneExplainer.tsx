@@ -19,6 +19,7 @@
 import { useRef, type CSSProperties, type KeyboardEvent } from "react";
 import { SourceList, type SourceListItem } from "../nutrition/SourceList";
 import { SOURCE_BY_KEY, ZONE_SOURCE_STATUS } from "../../core/zone-sources.js";
+import { InfoIcon } from "../../components/InfoIcon";
 
 export interface ExplainerZone {
   id: string;
@@ -227,7 +228,7 @@ export function ZoneExplainer({
           Overlay, das nach unten über den Rand hinausragt (im Docker-Build
           geprüft). Nach oben bleibt es innerhalb der eigenen Kachel. */}
       <details style={{ position: "relative" }}>
-        <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".8rem" }}>ⓘ Quelle</summary>
+        <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".8rem" }}><InfoIcon style={{ marginRight: "0.35em" }} />Quelle</summary>
         <div
           style={{
             position: "absolute",

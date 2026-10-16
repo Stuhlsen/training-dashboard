@@ -17,6 +17,7 @@
 import { useId, useRef, useState, type ReactNode } from "react";
 import { ChartTooltip } from "../charts/ChartTooltip";
 import { glossaryEntry } from "../glossary";
+import { InfoIcon } from "./InfoIcon";
 
 interface InfoTooltipProps {
   /** Glossar-Key (`app/src/glossary.ts`). */
@@ -96,7 +97,7 @@ export function InfoTooltip({ termKey, children, width = 240, underline = true }
         aria-hidden="true"
         style={{ marginLeft: "0.25em", fontSize: "0.7em", color: "var(--ink-3)" }}
       >
-        ⓘ
+        <InfoIcon />
       </span>
       {pos && (
         <ChartTooltip x={pos.x} y={pos.y} width={width} id={id}>
