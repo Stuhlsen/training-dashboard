@@ -191,7 +191,7 @@ export function LogbookPage() {
                           >
                             {c.termKey ? <InfoTooltip termKey={c.termKey}>{c.label}</InfoTooltip> : c.label}
                             {!c.noSort && (
-                              <span style={{ opacity: sorted_ ? 1 : 0.35, marginLeft: 3, fontSize: ".65rem" }}>{icon}</span>
+                              <span style={{ opacity: sorted_ ? 1 : 0.6, marginLeft: 3, fontSize: ".65rem" }}>{icon}</span>
                             )}
                           </th>
                         );

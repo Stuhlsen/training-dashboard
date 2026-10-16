@@ -35,9 +35,9 @@ export const PLAN_TYPE_COLOR: Record<string, string> = {
   "Z1 Recovery": "#4a9a6e",
   Gruppenfahrt: "#c9a84c",
   "FTP-Test": "#c9a84c",
-  Ruhetag: "#6b7280",
-  Notiz: "#6b7280",
-  NLS: "#6b7280",
+  Ruhetag: "#9ca3af",
+  Notiz: "#9ca3af",
+  NLS: "#9ca3af",
   Z1: "#4a9a6e",
   Z2: "#4a7fa8",
   Rennen: "#c9a84c",
@@ -64,7 +64,7 @@ export const PLAN_TYPE_ICON: Record<string, string> = {
 };
 
 export function typeColor(typ: string | null): string {
-  return (typ && PLAN_TYPE_COLOR[typ]) || "#6b7280";
+  return (typ && PLAN_TYPE_COLOR[typ]) || "#9ca3af";
 }
 
 export function typeIcon(typ: string | null): string {

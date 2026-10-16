@@ -26,11 +26,24 @@ export function Footer() {
         fontFamily: "var(--font-mono)",
         fontSize: ".72rem",
         color: "var(--ink-3)",
-        opacity: 0.6,
       }}
     >
-      {athleteCfg?.name}
-      {sources ? ` · ${sources}` : ""} · {__APP_VERSION__} · gebaut am {fmtDateFull(__BUILD_DATE__.slice(0, 10))}
+      {/* Leichte Glas-Kachel hinter dem Text: der Footer liegt direkt über dem
+          Hintergrundfoto, dort reichte die Textfarbe allein nicht für Kontrast. */}
+      <span
+        style={{
+          display: "inline-block",
+          maxWidth: "100%",
+          padding: "8px 16px",
+          borderRadius: "var(--radius)",
+          border: "1px solid var(--hair)",
+          background: "var(--glass)",
+          backdropFilter: "blur(10px)",
+        }}
+      >
+        {athleteCfg?.name}
+        {sources ? ` · ${sources}` : ""} · {__APP_VERSION__} · gebaut am {fmtDateFull(__BUILD_DATE__.slice(0, 10))}
+      </span>
     </footer>
   );
 }

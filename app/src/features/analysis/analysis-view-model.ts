@@ -212,8 +212,8 @@ const TYP_COLORS: Record<string, string> = {
   VO2max: "#a24ad0",
   Gruppenfahrt: "#c9a84c",
   Etappe: "#c9a84c",
-  Ausserplanmaessig: "#6b7280",
-  Freestyle: "#6b7280",
+  Ausserplanmaessig: "#9ca3af",
+  Freestyle: "#9ca3af",
   "FTP-Test": "#c9a84c",
 };
 
@@ -238,7 +238,7 @@ export function buildTypDistribution(rides: Ride[]): TypDistributionRow[] {
       count: d.count,
       km: Math.round(d.km),
       pct: totalKm > 0 ? (d.km / totalKm) * 100 : 0,
-      color: TYP_COLORS[typ] || "#6b7280",
+      color: TYP_COLORS[typ] || "#9ca3af",
     }));
 }
 

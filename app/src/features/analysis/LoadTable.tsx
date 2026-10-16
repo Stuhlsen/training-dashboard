@@ -10,7 +10,7 @@ const RISK_COLOR: Record<LoadRow["risk"], string> = {
 
 const ROW_STYLE: React.CSSProperties = {
   display: "grid",
-  // 4 links → +6px, damit "Monot."/"Strain" im echten IBM Plex Mono bei
+  // 4 links → +6px, damit "Monot."/"Strain" im echten JetBrains Mono bei
   // .72rem nicht mehr an den Track-Rand stossen (waren zuvor auf System-
   // Mono-Fallback abgestimmt, s. Etappe Typeset 2026-08-19).
   gridTemplateColumns: "66px 52px 52px 62px 62px 1fr",
