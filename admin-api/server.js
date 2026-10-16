@@ -1,5 +1,6 @@
 const http = require("node:http");
-const { requireAdmin } = require("./auth.js");
+const { requireAdmin, requireUser } = require("./auth.js");
+const { searchIngredients, previewRecipe, submitRecipe, deleteRecipe } = require("./recipes.js");
 const { sendInvite } = require("./invite.js");
 const { listUsers, banUser, unbanUser, deleteUser, resendUserLink } = require("./users.js");
 
@@ -27,11 +28,17 @@ function sendJson(res, status, body) {
   res.end(JSON.stringify(body));
 }
 
+const MAX_BODY_CHARS = 256 * 1024;
+
 function readJsonBody(req) {
   return new Promise((resolve, reject) => {
     let raw = "";
     req.on("data", (chunk) => {
       raw += chunk;
+      if (raw.length > MAX_BODY_CHARS) {
+        reject(new Error("Body zu gross"));
+        req.destroy();
+      }
     });
     req.on("end", () => {
       if (!raw) {
@@ -48,7 +55,66 @@ function readJsonBody(req) {
   });
 }
 
+// Fahrplan 25 S1a — /api/*: jeder eingeloggte User (kein Admin noetig).
+async function handleApi(req, res, url) {
+  const route =
+    req.method === "GET" && url.pathname === "/api/ingredients"
+      ? "ingredients"
+      : req.method === "POST" && url.pathname === "/api/recipes/preview"
+        ? "preview"
+        : req.method === "POST" && url.pathname === "/api/recipes"
+          ? "submit"
+          : req.method === "DELETE" && /^\/api\/recipes\/[^/]+$/.test(url.pathname)
+            ? "delete"
+            : null;
+  if (!route) return false;
+
+  const user = requireUser(req.headers.authorization, ENV);
+  if (!user.ok) {
+    sendJson(res, user.status, { ok: false, error: user.error });
+    return true;
+  }
+
+  try {
+    if (route === "ingredients") {
+      sendJson(res, 200, { ok: true, ingredients: await searchIngredients(url.searchParams.get("q")) });
+      return true;
+    }
+    if (route === "delete") {
+      const id = decodeURIComponent(url.pathname.split("/")[3]);
+      const result = await deleteRecipe(id, user.sub, ENV);
+      sendJson(res, result.status, result.ok ? { ok: true } : { ok: false, error: result.error });
+      return true;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendJson(res, 400, { ok: false, error: { code: "SCHEMA", message: "ungueltiger Request-Body" } });
+      return true;
+    }
+    const result =
+      route === "preview"
+        ? await previewRecipe(body, user.sub)
+        : await submitRecipe(body, user.sub, ENV);
+    if (!result.ok) {
+      sendJson(res, result.status, { ok: false, error: result.error });
+    } else if (route === "preview") {
+      sendJson(res, 200, { ok: true, ...result.preview });
+    } else {
+      sendJson(res, 201, { ok: true, recipe: result.recipe });
+    }
+  } catch {
+    sendJson(res, 500, { ok: false, error: { code: "UNKNOWN", message: "interner Fehler" } });
+  }
+  return true;
+}
+
 const server = http.createServer(async (req, res) => {
+  const url = new URL(req.url, "http://localhost");
+  if (await handleApi(req, res, url)) return;
+
   if (req.method === "GET" && req.url === "/admin/health") {
     sendJson(res, 200, { ok: true });
     return;

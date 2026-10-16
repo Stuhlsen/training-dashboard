@@ -151,7 +151,9 @@ services:
   # Fahrplan 15, E2 — Admin-Pruefung (V2) gegen PostgREST, Invite noch Stub.
   admin-api:
     build:
-      context: ./admin-api
+      # Kontext = Repo-Wurzel: das Image enthaelt auch scripts/lib (Fahrplan 25 S1a)
+      context: .
+      dockerfile: admin-api/Dockerfile
     depends_on:
       postgrest:
         condition: service_started

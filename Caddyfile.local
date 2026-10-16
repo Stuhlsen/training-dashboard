@@ -38,6 +38,18 @@
             header_down Access-Control-Allow-Origin "http://localhost:8080"
         }
     }
+    # Fahrplan 25 S1a: Rezept-Einreichung, volle Pfade ohne Prefix-Strip
+    # (wie /admin/*). Zutaten-Suche braucht ein eingeloggtes JWT, kein Admin.
+    handle /api/recipes* {
+        reverse_proxy admin-api:3001 {
+            header_down Access-Control-Allow-Origin "http://localhost:8080"
+        }
+    }
+    handle /api/ingredients* {
+        reverse_proxy admin-api:3001 {
+            header_down Access-Control-Allow-Origin "http://localhost:8080"
+        }
+    }
     handle /storage/v1/* {
         uri strip_prefix /storage/v1
         reverse_proxy storage-api:5000 {

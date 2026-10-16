@@ -27,6 +27,7 @@ on:
       - "app/**"
       - "scripts/**"
       - "supabase/**"
+      - "admin-api/**"
       - ".github/workflows/publish-images.yml"
 
 permissions:
@@ -140,7 +141,8 @@ jobs:
 
       - uses: docker/build-push-action@v7
         with:
-          context: ./admin-api
+          context: .
+          file: admin-api/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
