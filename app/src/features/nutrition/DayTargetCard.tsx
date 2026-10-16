@@ -22,6 +22,7 @@ import { AMPEL_TOKEN, type Ampel } from "./nutrition-week-model";
 import { AmpelBadge } from "./AmpelBadge";
 import { SourceList } from "./SourceList";
 import { HEADING_STYLE, META_STYLE, TEXT_STYLE } from "./nutrition-styles";
+import { InfoIcon } from "../../components/InfoIcon";
 
 const FORMULA_NAMES: Record<string, string> = {
   "cunningham-1980": "Cunningham (1980)",
@@ -153,7 +154,7 @@ export function DayTargetCard({ day, dateISO, isToday = false, summary, notes, a
 
       <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 12, marginTop: 6 }}>
         <details style={{ flex: "1 1 220px" }}>
-          <summary style={SUMMARY_STYLE}>ⓘ So rechnen wir</summary>
+          <summary style={SUMMARY_STYLE}><InfoIcon style={{ marginRight: "0.35em" }} />So rechnen wir</summary>
           <p style={META_ON_PHOTO}>
             Grundumsatz nach {FORMULA_NAMES[day.formula] ?? day.formula}, in einer Studie von 2023 an Sportlern geprüft
           </p>

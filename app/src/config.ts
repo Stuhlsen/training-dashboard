@@ -202,7 +202,7 @@ export const PHASES: Record<string, PhaseInfo> = {
   // Notion-Ära (Athlet 1, historisch)
   Vorbereitung: { color: "#c9a84c", label: "Vorbereitung" },
   Vor: { color: "#c9a84c", label: "Vorbereitung" },
-  "Phase 1": { color: "#6b7280", label: "Phase 1 — Basisaufbau" },
+  "Phase 1": { color: "#9ca3af", label: "Phase 1 — Basisaufbau" },
   "Phase 2": { color: "#4a7fa8", label: "Phase 2 — Volumenaufbau" },
   "Phase 3": { color: "#7c5cbf", label: "Phase 3 — Leistungsaufbau" },
   // Trainingsblock-Phasen (Athlet 1, intervals.icu-Ära)
@@ -237,7 +237,7 @@ export const PHASES: Record<string, PhaseInfo> = {
 };
 
 export function phaseColor(phase: string | null | undefined): string {
-  return (phase ? PHASES[phase] : undefined)?.color ?? "#6b7280";
+  return (phase ? PHASES[phase] : undefined)?.color ?? "#9ca3af";
 }
 
 /** 1:1 aus `assets/js/state/config.js::weekOrder` — Sortier-Fallback für

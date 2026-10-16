@@ -15,7 +15,7 @@
      Flächen, Ampelfarben für die Belastungsempfehlung) */
   --ink: oklch(0.98 0.005 260);
   --ink-2: oklch(0.86 0.008 260);
-  --ink-3: oklch(0.68 0.012 260);
+  --ink-3: oklch(0.78 0.012 260);
   --accent: oklch(0.72 0.12 250);
   --accent-2: oklch(0.85 0.08 250);
   --ok: oklch(0.75 0.13 155);
@@ -54,9 +54,9 @@
 
   /* Textleiter */
   --text-ink: #f0f2f5;
-  --text-soft: #9aa0a8;
-  --text-label: #6b7178;
-  --text-faint: #565b62;
+  --text-soft: #b4bac2;
+  --text-label: #98a0a9;
+  --text-faint: #7d848c;
 
   /* Zonenfarben (bestehend, assets/css/main.css) */
   --z1: #4a9a6e;
@@ -78,7 +78,7 @@
 
   /* Fonts */
   --font-disp: "Sora", system-ui, -apple-system, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", monospace;
   --font-body: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
 
   /* Label-Groessen (Etappe Typeset 2026-08-19) — ein Wert je Rolle statt

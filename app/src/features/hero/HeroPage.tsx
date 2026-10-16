@@ -465,7 +465,10 @@ export function HeroPage() {
         // über die Viewport-Breite hinaus und erzeugte dadurch einen
         // dauerhaften horizontalen Scrollbalken (Critique-Fund) — die
         // Kippung selbst bleibt, nur ihr unsichtbarer Rand wird geclippt.
-        overflowX: "hidden",
+        // `clip` statt `hidden`: `hidden` zwingt overflow-y auf `auto` und macht
+        // den Container zum zweiten Scrollbereich (Doppelbalken, Mausrad
+        // scrollt je nach Mausposition Container oder Seite).
+        overflowX: "clip",
       }}
     >
       <div

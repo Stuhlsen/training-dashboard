@@ -20,6 +20,26 @@ const BACKGROUND_BY_SPORT: Record<"ride" | "run" | "swim", string> = {
   swim: "background-swim.png",
 };
 
+/** Schwimmen = zwei Fotos mit identischem Horizont/Licht: See (Basis, links
+ *  Freiwasserschwimmer) + Freibad-Becken (Overlay, Schwimmer bei ~68 %),
+ *  das ab ~45 % weich einblendet und ab ~62 % voll steht. Kein KI-Panorama,
+ *  weil der Bildgenerator beim Schwimmen immer harte Streifen lieferte. */
+const OVERLAY_BY_SPORT: Partial<Record<"ride" | "run" | "swim", string>> = {
+  swim: "background-swim-pool.png",
+};
+
+const OVERLAY_MASK = "linear-gradient(90deg, transparent 45%, #000 62%)";
+
+/** Rad-Foto: Bikepacker steht im Bild bei ~33 % von links, also am Rand der
+ *  Dashboard-Mitte. Zoom 1.2 mit Anker rechts schiebt ihn auf ~19 % und lässt
+ *  das Rennfeld am rechten Rand stehen. Nur `background-position` würde auf
+ *  16:9 nichts ändern (Bild ist fast gleich breit wie der Viewport). */
+const PHOTO_FRAMING: Record<"ride" | "run" | "swim", { transform?: string; transformOrigin?: string }> = {
+  ride: { transform: "scale(1.2)", transformOrigin: "100% 60%" },
+  run: {},
+  swim: {},
+};
+
 const BASE_SCALE = "scale(1.06)";
 
 /** Viewport-weiter Hintergrund (Foto + zwei Gradient-Overlays), einmal in
@@ -48,6 +68,8 @@ export function AppBackground() {
   const isLanding = location.pathname === "/";
   const backgroundImage = isLanding ? "none" : `url(${import.meta.env.BASE_URL}${BACKGROUND_BY_SPORT[effectiveSport]})`;
 
+  const overlayFile = OVERLAY_BY_SPORT[effectiveSport];
+
   return (
     <div style={{ position: "fixed", inset: "-6% -4%", zIndex: 0 }} aria-hidden="true">
       <div style={{ position: "absolute", inset: 0, transform: BASE_SCALE }}>
@@ -58,8 +80,22 @@ export function AppBackground() {
             backgroundImage,
             backgroundSize: "cover",
             backgroundPosition: "center",
+            ...PHOTO_FRAMING[effectiveSport],
           }}
         />
+        {overlayFile && !isLanding && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundImage: `url(${import.meta.env.BASE_URL}${overlayFile})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              maskImage: OVERLAY_MASK,
+              WebkitMaskImage: OVERLAY_MASK,
+            }}
+          />
+        )}
         <div
           style={{
             position: "absolute",

@@ -8,9 +8,9 @@ interface SportToggleProps {
 }
 
 const SPORT_LABEL: Record<ActiveSport, string> = {
-  ride: "Rad",
-  run: "Lauf",
-  swim: "Schwimm",
+  ride: "Radfahren",
+  run: "Laufen",
+  swim: "Schwimmen",
 };
 
 /** Sport-Umschalter unter dem Athleten-Toggle (Fahrplan 10 E8a). Sichtbar NUR

@@ -28,7 +28,7 @@ describe("SportsSection (Q4: keine ride-Pflicht)", () => {
     updateMock = vi.fn(async () => ({ ok: true }));
     const { unmount } = render(<SportsSection />);
 
-    const swim = screen.getByLabelText("Schwimm") as HTMLInputElement;
+    const swim = screen.getByLabelText("Schwimmen") as HTMLInputElement;
     expect(swim.checked).toBe(true);
     expect(swim.disabled).toBe(true);
 
@@ -44,7 +44,7 @@ describe("SportsSection (Q4: keine ride-Pflicht)", () => {
     updateMock = vi.fn(async () => ({ ok: true }));
     const { unmount } = render(<SportsSection />);
 
-    const ride = screen.getByLabelText("Rad") as HTMLInputElement;
+    const ride = screen.getByLabelText("Radfahren") as HTMLInputElement;
     expect(ride.checked).toBe(true);
     expect(ride.disabled).toBe(false);
 
@@ -60,7 +60,7 @@ describe("SportsSection (Q4: keine ride-Pflicht)", () => {
     updateMock = vi.fn(async () => ({ ok: true }));
     const { unmount } = render(<SportsSection />);
 
-    const run = screen.getByLabelText("Lauf") as HTMLInputElement;
+    const run = screen.getByLabelText("Laufen") as HTMLInputElement;
     await act(async () => {
       fireEvent.click(run);
     });
@@ -73,7 +73,7 @@ describe("SportsSection (Q4: keine ride-Pflicht)", () => {
     updateMock = vi.fn(async () => ({ ok: true }));
     const { unmount } = render(<SportsSection />);
 
-    const ride = screen.getByLabelText("Rad") as HTMLInputElement;
+    const ride = screen.getByLabelText("Radfahren") as HTMLInputElement;
     expect(ride.disabled).toBe(true);
     await act(async () => {
       fireEvent.click(ride);

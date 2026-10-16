@@ -186,7 +186,7 @@ describe("buildTypDistribution", () => {
     const rows = buildTypDistribution([ride({ typ: "Neuer Typ" }), ride({ typ: undefined })]);
     const unknown = rows.find((r) => r.typ === "Neuer Typ");
     const missing = rows.find((r) => r.typ === "Sonstige");
-    expect(unknown?.color).toBe("#6b7280");
+    expect(unknown?.color).toBe("#9ca3af");
     expect(missing).toBeDefined();
   });
 

@@ -418,7 +418,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneFitness = lane(
     "fitness",
     { kind: "fitness", ctlVals, atlVals, todayIdx },
-    { title: "Fitness & Ermüdung", sub: "CTL · ATL", titleTermKey: "ctl", colorVar: "var(--role-primary)", legend: [{ label: "CTL Fitness", colorVar: "var(--role-primary)", shape: "line" }, { label: "ATL Ermüdung", colorVar: "var(--role-secondary)", shape: "line" }, { label: "Prognose", colorVar: "#6b7280", shape: "line" }], note: "CTL ist die Langzeitfitness (42 Tage), ATL die frische Ermüdung (7 Tage). Ab heute gestrichelt: Prognose aus dem geplanten Training." },
+    { title: "Fitness & Ermüdung", sub: "CTL · ATL", titleTermKey: "ctl", colorVar: "var(--role-primary)", legend: [{ label: "CTL Fitness", colorVar: "var(--role-primary)", shape: "line" }, { label: "ATL Ermüdung", colorVar: "var(--role-secondary)", shape: "line" }, { label: "Prognose", colorVar: "#9ca3af", shape: "line" }], note: "CTL ist die Langzeitfitness (42 Tage), ATL die frische Ermüdung (7 Tage). Ab heute gestrichelt: Prognose aus dem geplanten Training." },
     88,
     (v) => fmt(v, 0),
     staticUnit("CTL"),
@@ -440,7 +440,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const laneTss = lane(
     "tss",
     { kind: "tssBars", vals: tssVals, todayIdx },
-    { title: "Tageslast", sub: "TSS je Tag", titleTermKey: "tss", colorVar: "var(--ss)", legend: [{ label: "gefahren", colorVar: "var(--ss)", shape: "block" }, { label: "geplant", colorVar: "#6b7280", shape: "block" }], note: "Balken bis heute sind gefahren, danach geplant." },
+    { title: "Tageslast", sub: "TSS je Tag", titleTermKey: "tss", colorVar: "var(--ss)", legend: [{ label: "gefahren", colorVar: "var(--ss)", shape: "block" }, { label: "geplant", colorVar: "#9ca3af", shape: "block" }], note: "Balken bis heute sind gefahren, danach geplant." },
     54,
     (v) => fmtInt(v),
     (rk) => (rk === "planned" ? "TSS geplant" : rk === "sum7" ? "TSS letzte 7 Tage" : "TSS"),

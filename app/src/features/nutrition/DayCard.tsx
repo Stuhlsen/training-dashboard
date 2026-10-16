@@ -29,6 +29,7 @@ import { SwapList } from "./SwapList";
 import { RecipeDetailsDialog } from "./RecipeDetails";
 import { CookingDialog } from "./CookingDialog";
 import { SourceList } from "./SourceList";
+import { InfoIcon } from "../../components/InfoIcon";
 import {
   HEADING_STYLE,
   META_STYLE,
@@ -214,7 +215,7 @@ export function DayCard(props: DayCardProps) {
                   : `Das Ziel wurde auf die Mindestzufuhr (${day.floor} kcal) angehoben.`}
               </p>
               <details>
-                <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".8rem" }}>ⓘ Quelle</summary>
+                <summary style={{ cursor: "pointer", color: "var(--ink-3)", fontSize: ".8rem" }}><InfoIcon style={{ marginRight: "0.35em" }} />Quelle</summary>
                 <SourceList sources={sources} />
               </details>
             </div>

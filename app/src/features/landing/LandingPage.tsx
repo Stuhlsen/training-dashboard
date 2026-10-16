@@ -333,8 +333,8 @@ function MultiSportStoryBlock() {
   const x = useTransform(scrollYProgress, [0, 0.4, 1], [64, 0, 0]);
   const opacity = useTransform(scrollYProgress, [0, 0.2, 0.8, 1], [0, 1, 1, 0.8]);
   const labels: Record<"ride" | "run" | "swim", string> = {
-    ride: "Rad",
-    run: "Lauf",
+    ride: "Radfahren",
+    run: "Laufen",
     swim: "Schwimmen",
   };
 

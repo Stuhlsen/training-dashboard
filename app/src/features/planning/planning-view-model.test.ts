@@ -62,7 +62,7 @@ describe("typeColor/typeIcon", () => {
   });
 
   it("fällt für einen unbekannten/fehlenden Typ auf den Default zurück", () => {
-    expect(typeColor("Unbekannt")).toBe("#6b7280");
+    expect(typeColor("Unbekannt")).toBe("#9ca3af");
     expect(typeIcon(null)).toBe("📅");
   });
 });
