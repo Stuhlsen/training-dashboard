@@ -249,19 +249,13 @@ if (!HAS_CREDS) {
     nutritionGoalsTableReady = ngProbe.ok;
 
     // recipe_votes (0063): Tabelle lesbar? (Migration eingespielt) — steuert unten den Skip.
-    const rvProbe = await rest(
-      "GET",
-      `recipe_votes?select=id&limit=1`,
-      { token: athlete.token }
-    );
+    const rvProbe = await rest("GET", `recipe_votes?select=id&limit=1`, { token: athlete.token });
     recipeVotesTableReady = rvProbe.ok;
 
     // meal_plan_entries (0064): Tabelle lesbar? (Migration eingespielt)
-    const mpeProbe = await rest(
-      "GET",
-      `meal_plan_entries?select=id&limit=1`,
-      { token: athlete.token }
-    );
+    const mpeProbe = await rest("GET", `meal_plan_entries?select=id&limit=1`, {
+      token: athlete.token,
+    });
     mealPlanEntriesTableReady = mpeProbe.ok;
   });
 
@@ -2587,7 +2581,11 @@ if (!HAS_CREDS) {
 
     // Zeile ist noch da
     const stillThere = await rest("GET", `nutrition_goals?id=eq.${id}`, { token: athlete.token });
-    assert.equal(stillThere.data.length, 1, "nutrition_goals-Zeile wurde durch Trainer-Operation entfernt");
+    assert.equal(
+      stillThere.data.length,
+      1,
+      "nutrition_goals-Zeile wurde durch Trainer-Operation entfernt"
+    );
   });
 
   test("nutrition_goals: Athlet kann NICHT aktualisieren (Append-Only, kein update-GRANT), aber löschen", async (t) => {
@@ -2670,7 +2668,9 @@ if (!HAS_CREDS) {
         token: ENV.SUPABASE_SERVICE_ROLE_KEY,
       });
       if (!del.ok)
-        throw new Error(`recipe_votes-Test-Rezept ${recipeId} nicht geloescht: ${JSON.stringify(del.data)}`);
+        throw new Error(
+          `recipe_votes-Test-Rezept ${recipeId} nicht geloescht: ${JSON.stringify(del.data)}`
+        );
     });
     return recipeId;
   }
@@ -2950,14 +2950,17 @@ if (!HAS_CREDS) {
   }
 
   test("recipes: Tabelle ist lesbar (0062 eingespielt?)", async () => {
-    const probe = await rest(
-      "GET",
-      "recipes?select=id,title&limit=1",
-      { token: athlete.token }
-    );
+    const probe = await rest("GET", "recipes?select=id,title&limit=1", { token: athlete.token });
     // Status 404/Relation does not exist = Migration fehlt in dashboard-dev
-    if (probe.status === 404 || (probe.data && typeof probe.data === "object" && probe.data.message?.includes?.("does not exist"))) {
-      console.warn("Migration 0062_recipes_rls.sql noch nicht in dashboard-dev eingespielt — alle recipes-Tests uebersprungen");
+    if (
+      probe.status === 404 ||
+      (probe.data &&
+        typeof probe.data === "object" &&
+        probe.data.message?.includes?.("does not exist"))
+    ) {
+      console.warn(
+        "Migration 0062_recipes_rls.sql noch nicht in dashboard-dev eingespielt — alle recipes-Tests uebersprungen"
+      );
       recipesTableReady = false;
       return;
     }
@@ -2975,7 +2978,8 @@ if (!HAS_CREDS) {
   const nonAdminActorSkip = () => {
     const base = recipesSkip();
     if (base) return base;
-    if (testTrainerIsAdmin) return "Trainer-Test-Account hat is_admin=true — Verbotstests brauchen einen Nicht-Admin";
+    if (testTrainerIsAdmin)
+      return "Trainer-Test-Account hat is_admin=true — Verbotstests brauchen einen Nicht-Admin";
     return false;
   };
 
@@ -2996,7 +3000,9 @@ if (!HAS_CREDS) {
     cleanupTasks.push(async () => {
       // Loeschen nur via service_role (Athlet darf nicht loeschen)
       if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-        await rest("DELETE", `recipes?id=eq.${pendingId}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+        await rest("DELETE", `recipes?id=eq.${pendingId}`, {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        });
       }
     });
 
@@ -3011,13 +3017,18 @@ if (!HAS_CREDS) {
         servings: 2,
       },
     });
-    assert.equal(approved.ok || (approved.status >= 200 && approved.status < 300), true,
-      `approved-Rezept anlegen (service_role): ${JSON.stringify(approved.data)}`);
+    assert.equal(
+      approved.ok || (approved.status >= 200 && approved.status < 300),
+      true,
+      `approved-Rezept anlegen (service_role): ${JSON.stringify(approved.data)}`
+    );
     const approvedId = Array.isArray(approved.data) ? approved.data[0]?.id : approved.data?.id;
     assert.ok(approvedId, "approved-Rezept hat keine id");
     cleanupTasks.push(async () => {
       if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-        await rest("DELETE", `recipes?id=eq.${approvedId}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+        await rest("DELETE", `recipes?id=eq.${approvedId}`, {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        });
       }
     });
 
@@ -3033,13 +3044,18 @@ if (!HAS_CREDS) {
         servings: 2,
       },
     });
-    assert.equal(rejected.ok || (rejected.status >= 200 && rejected.status < 300), true,
-      `rejected-Rezept anlegen (service_role): ${JSON.stringify(rejected.data)}`);
+    assert.equal(
+      rejected.ok || (rejected.status >= 200 && rejected.status < 300),
+      true,
+      `rejected-Rezept anlegen (service_role): ${JSON.stringify(rejected.data)}`
+    );
     const rejectedId = Array.isArray(rejected.data) ? rejected.data[0]?.id : rejected.data?.id;
     assert.ok(rejectedId, "rejected-Rezept hat keine id");
     cleanupTasks.push(async () => {
       if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-        await rest("DELETE", `recipes?id=eq.${rejectedId}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+        await rest("DELETE", `recipes?id=eq.${rejectedId}`, {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        });
       }
     });
 
@@ -3051,17 +3067,29 @@ if (!HAS_CREDS) {
     assert.equal(ownPending.data.length, 1, "Athlet sieht eigenes pending-Rezept nicht");
 
     // Athlet sieht approved (anderes)
-    const athleteApproved = await rest("GET", `recipes?id=eq.${approvedId}&select=id,title,status`, {
-      token: trainer.token,
-    });
+    const athleteApproved = await rest(
+      "GET",
+      `recipes?id=eq.${approvedId}&select=id,title,status`,
+      {
+        token: trainer.token,
+      }
+    );
     assert.equal(athleteApproved.ok, true);
-    assert.equal(athleteApproved.data.length, 1, "Athlet sieht approved-Rezept eines anderen nicht (sollte approved+pending fuer alle sein)");
+    assert.equal(
+      athleteApproved.data.length,
+      1,
+      "Athlet sieht approved-Rezept eines anderen nicht (sollte approved+pending fuer alle sein)"
+    );
     assert.equal(athleteApproved.data[0].status, "approved");
 
     // Nicht-Admin sieht fremdes rejected nicht (submitted_by != auth.uid())
-    const athleteRejected = await rest("GET", `recipes?id=eq.${rejectedId}&select=id,title,status`, {
-      token: trainer.token,
-    });
+    const athleteRejected = await rest(
+      "GET",
+      `recipes?id=eq.${rejectedId}&select=id,title,status`,
+      {
+        token: trainer.token,
+      }
+    );
     assert.equal(athleteRejected.ok, true);
     assert.equal(
       athleteRejected.data.length,
@@ -3081,7 +3109,8 @@ if (!HAS_CREDS) {
     // Loesung: eigenes pending-Rezept, dann status per service_role auf
     // rejected setzen + rejection_reason hinzufuegen.
     const ownPending = await insertRecipeRow(athlete.token, { title: "RLS-Test-Rejected-By-Me" });
-    if (!ownPending.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen — Test uebersprungen");
+    if (!ownPending.ok)
+      return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen — Test uebersprungen");
     const ownId = ownPending.data[0].id;
     cleanupTasks.push(async () => {
       if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
@@ -3095,14 +3124,26 @@ if (!HAS_CREDS) {
       body: { status: "rejected", rejection_reason: "RLS-Test: Ablehnungsgrund sichtbar?" },
       prefer: "return=representation",
     });
-    assert.equal(adminReject.ok, true, `Admin-Reject fehlgeschlagen: ${JSON.stringify(adminReject.data)}`);
+    assert.equal(
+      adminReject.ok,
+      true,
+      `Admin-Reject fehlgeschlagen: ${JSON.stringify(adminReject.data)}`
+    );
 
     // Athlet sieht sein eigenes rejected + reason
-    const ownRejected = await rest("GET", `recipes?id=eq.${ownId}&select=id,title,status,rejection_reason`, {
-      token: athlete.token,
-    });
+    const ownRejected = await rest(
+      "GET",
+      `recipes?id=eq.${ownId}&select=id,title,status,rejection_reason`,
+      {
+        token: athlete.token,
+      }
+    );
     assert.equal(ownRejected.ok, true);
-    assert.equal(ownRejected.data.length, 1, "Athlet sieht eigenes rejected-Rezept nicht (E16/E17)");
+    assert.equal(
+      ownRejected.data.length,
+      1,
+      "Athlet sieht eigenes rejected-Rezept nicht (E16/E17)"
+    );
     assert.equal(ownRejected.data[0].status, "rejected");
     assert.equal(ownRejected.data[0].rejection_reason, "RLS-Test: Ablehnungsgrund sichtbar?");
   });
@@ -3125,11 +3166,17 @@ if (!HAS_CREDS) {
       title: "RLS-Test-Insert-Approved",
       status: "approved",
     });
-    assert.equal(insert.ok, false, "Insert mit status=approved haette scheitern muessen (WITH CHECK)");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert mit status=approved haette scheitern muessen (WITH CHECK)"
+    );
     if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
       cleanupTasks.push(async () => {
         if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, {
+            token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          });
         }
       });
     }
@@ -3146,7 +3193,9 @@ if (!HAS_CREDS) {
     if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
       cleanupTasks.push(async () => {
         if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, {
+            token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          });
         }
       });
     }
@@ -3158,11 +3207,17 @@ if (!HAS_CREDS) {
       title: "RLS-Test-Insert-Foreign",
       submitted_by: trainer.userId,
     });
-    assert.equal(insert.ok, false, "Insert mit fremdem submitted_by haette scheitern muessen (WITH CHECK)");
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert mit fremdem submitted_by haette scheitern muessen (WITH CHECK)"
+    );
     if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
       cleanupTasks.push(async () => {
         if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, {
+            token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          });
         }
       });
     }
@@ -3215,8 +3270,11 @@ if (!HAS_CREDS) {
         servings: 1,
       },
     });
-    assert.equal(other.ok || (other.status >= 200 && other.status < 300), true,
-      `Fremdes pending-Rezept anlegen: ${JSON.stringify(other.data)}`);
+    assert.equal(
+      other.ok || (other.status >= 200 && other.status < 300),
+      true,
+      `Fremdes pending-Rezept anlegen: ${JSON.stringify(other.data)}`
+    );
     const otherId = Array.isArray(other.data) ? other.data[0]?.id : other.data?.id;
     assert.ok(otherId, "Fremdes Rezept hat keine id");
     cleanupTasks.push(async () => {
@@ -3240,7 +3298,10 @@ if (!HAS_CREDS) {
 
   test("recipes: Nicht-Admin UPDATE status — 0 rows (WITH CHECK / Trigger E16)", async (t) => {
     if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
-    const own = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId, title: "RLS-Test-Update-Status" });
+    const own = await insertRecipeRow(trainer.token, {
+      submitted_by: trainer.userId,
+      title: "RLS-Test-Update-Status",
+    });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -3265,7 +3326,10 @@ if (!HAS_CREDS) {
 
   test("recipes: Nicht-Admin UPDATE rejection_reason — 0 rows (Trigger E16, Review Finding 1)", async (t) => {
     if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
-    const own = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId, title: "RLS-Test-Update-Rejection" });
+    const own = await insertRecipeRow(trainer.token, {
+      submitted_by: trainer.userId,
+      title: "RLS-Test-Update-Rejection",
+    });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -3372,7 +3436,11 @@ if (!HAS_CREDS) {
       body: { status: "approved" },
       prefer: "return=representation",
     });
-    assert.equal(approve.ok, true, `service_role Approve fehlgeschlagen: ${JSON.stringify(approve.data)}`);
+    assert.equal(
+      approve.ok,
+      true,
+      `service_role Approve fehlgeschlagen: ${JSON.stringify(approve.data)}`
+    );
     assert.equal(approve.data?.[0]?.status, "approved", "Status wurde nicht auf approved gesetzt");
 
     // Service-Role setzt rejection_reason und rejected (beides admin-only)
@@ -3381,14 +3449,25 @@ if (!HAS_CREDS) {
       body: { status: "rejected", rejection_reason: "Test via service_role" },
       prefer: "return=representation",
     });
-    assert.equal(reject.ok, true, `service_role Reject fehlgeschlagen: ${JSON.stringify(reject.data)}`);
+    assert.equal(
+      reject.ok,
+      true,
+      `service_role Reject fehlgeschlagen: ${JSON.stringify(reject.data)}`
+    );
     assert.equal(reject.data?.[0]?.status, "rejected", "Status wurde nicht auf rejected gesetzt");
-    assert.equal(reject.data?.[0]?.rejection_reason, "Test via service_role", "rejection_reason wurde nicht gesetzt");
+    assert.equal(
+      reject.data?.[0]?.rejection_reason,
+      "Test via service_role",
+      "rejection_reason wurde nicht gesetzt"
+    );
   });
 
   test("recipes: Nicht-Admin DELETE — 0 rows (admin-only)", async (t) => {
     if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
-    const own = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId, title: "RLS-Test-Delete" });
+    const own = await insertRecipeRow(trainer.token, {
+      submitted_by: trainer.userId,
+      title: "RLS-Test-Delete",
+    });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     // Cleanup ueber service_role, falls der Athlet-DELETE nicht loescht
@@ -3434,7 +3513,9 @@ if (!HAS_CREDS) {
     if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
       cleanupTasks.push(async () => {
         if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+          await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, {
+            token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          });
         }
       });
     }
@@ -3486,7 +3567,9 @@ if (!HAS_CREDS) {
         token: ENV.SUPABASE_SERVICE_ROLE_KEY,
       });
       if (!del.ok)
-        throw new Error(`meal_plan_entries-Test-Rezept ${recipeId} nicht geloescht: ${JSON.stringify(del.data)}`);
+        throw new Error(
+          `meal_plan_entries-Test-Rezept ${recipeId} nicht geloescht: ${JSON.stringify(del.data)}`
+        );
     });
     return recipeId;
   }
@@ -3524,12 +3607,18 @@ if (!HAS_CREDS) {
       token,
       body: mealPlanEntryBody(recipeId, over),
     });
-    assert.equal(insert.ok, true, `meal_plan_entries-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
+    assert.equal(
+      insert.ok,
+      true,
+      `meal_plan_entries-Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`
+    );
     const id = insert.data[0].id;
     cleanupTasks.push(async () => {
       const del = await rest("DELETE", `meal_plan_entries?id=eq.${id}`, { token: athlete.token });
       if (!del.ok)
-        throw new Error(`meal_plan_entries-Testzeile ${id} nicht geloescht: ${JSON.stringify(del.data)}`);
+        throw new Error(
+          `meal_plan_entries-Testzeile ${id} nicht geloescht: ${JSON.stringify(del.data)}`
+        );
     });
     return id;
   }
@@ -3537,15 +3626,21 @@ if (!HAS_CREDS) {
   test("meal_plan_entries: Athlet legt eigenen Eintrag an, liest ihn, aktualisiert ihn, loescht ihn", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
     const id = await insertMealPlanEntryRow(athlete.token, recipeId);
 
     // Lesen
-    const ownRead = await rest("GET", `meal_plan_entries?id=eq.${id}&select=id,meal_slot,servings`, {
-      token: athlete.token,
-    });
+    const ownRead = await rest(
+      "GET",
+      `meal_plan_entries?id=eq.${id}&select=id,meal_slot,servings`,
+      {
+        token: athlete.token,
+      }
+    );
     assert.equal(ownRead.ok, true);
     assert.equal(ownRead.data.length, 1, "Athlet liest den eigenen meal_plan_entry nicht");
     assert.equal(ownRead.data[0].meal_slot, "breakfast");
@@ -3570,7 +3665,9 @@ if (!HAS_CREDS) {
   test("meal_plan_entries: Coach UPDATE bestaetigt (0011 parity), INSERT verweigert, DELETE verweigert", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
     if (!coachLinkOk) return t.skip(coachSkip());
 
     const recipeId = await ensureMealPlanTestRecipe();
@@ -3594,7 +3691,11 @@ if (!HAS_CREDS) {
       token: trainer.token,
       body: { servings: 3 },
     });
-    assert.equal(coachUpdate.data?.length ?? 0, 1, "Coach konnte den Eintrag seines Athleten nicht updaten (sollte 1 Zeile treffen)");
+    assert.equal(
+      coachUpdate.data?.length ?? 0,
+      1,
+      "Coach konnte den Eintrag seines Athleten nicht updaten (sollte 1 Zeile treffen)"
+    );
 
     // DELETE als Coach (soll 0 rows — 0011 parity, kein coach DELETE)
     const coachDelete = await rest("DELETE", `meal_plan_entries?id=eq.${id}`, {
@@ -3610,14 +3711,20 @@ if (!HAS_CREDS) {
     const stillThere = await rest("GET", `meal_plan_entries?id=eq.${id}&select=id`, {
       token: athlete.token,
     });
-    assert.equal(stillThere.data?.length ?? 0, 1, "Eintrag wurde trotz blockiertem Coach-DELETE entfernt");
+    assert.equal(
+      stillThere.data?.length ?? 0,
+      1,
+      "Eintrag wurde trotz blockiertem Coach-DELETE entfernt"
+    );
   });
 
   test("meal_plan_entries: Athlet B kann A's Eintraege lesen (viewer) aber nicht schreiben", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (strangerSkip()) return t.skip(strangerSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
     // Eintrag als Athlet A (der Test-Account) anlegen
@@ -3655,7 +3762,9 @@ if (!HAS_CREDS) {
   test("meal_plan_entries: anon kann weder lesen noch schreiben (kein GRANT)", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein anon-INSERT-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein anon-INSERT-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
 
@@ -3672,7 +3781,9 @@ if (!HAS_CREDS) {
   test("meal_plan_entries: meal_slot-Check weist ungueltige Werte ab", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
     const bad = await rest("POST", "meal_plan_entries", {
@@ -3694,7 +3805,9 @@ if (!HAS_CREDS) {
   test("meal_plan_entries: servings <= 0 wird vom CHECK-Constraint abgewiesen", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
     const bad = await rest("POST", "meal_plan_entries", {
@@ -3716,7 +3829,9 @@ if (!HAS_CREDS) {
   test("meal_plan_entries: unique (athlete_id, date, meal_slot) verhindert doppelten Eintrag", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
     // Selbes recipe fuer zwei unterschiedliche Slots (soll gehen)
@@ -3744,11 +3859,16 @@ if (!HAS_CREDS) {
   test("meal_plan_entries: selbes recipe in zwei verschiedenen Slots ist erlaubt", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
     const date = nextMealPlanDate();
-    const id1 = await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "breakfast", date });
+    const id1 = await insertMealPlanEntryRow(athlete.token, recipeId, {
+      meal_slot: "breakfast",
+      date,
+    });
     const id2 = await insertMealPlanEntryRow(athlete.token, recipeId, { meal_slot: "lunch", date });
 
     const both = await rest(
@@ -3757,13 +3877,19 @@ if (!HAS_CREDS) {
       { token: athlete.token }
     );
     assert.equal(both.ok, true);
-    assert.equal(both.data.length, 2, "Beide Eintraege mit selbem recipe in verschiedenen Slots sollten sichtbar sein");
+    assert.equal(
+      both.data.length,
+      2,
+      "Beide Eintraege mit selbem recipe in verschiedenen Slots sollten sichtbar sein"
+    );
   });
 
   test("meal_plan_entries: FK restrict auf recipes verhindert Loeschen eines referenzierten Rezepts", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)
-      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test");
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
 
     const recipeId = await ensureMealPlanTestRecipe();
     await insertMealPlanEntryRow(athlete.token, recipeId);
@@ -3795,21 +3921,30 @@ if (!HAS_CREDS) {
   /** Ist 0068 eingespielt? (profiles_own liefert sex/intolerances) */
   async function sexPathReady() {
     if (!sexPath.checked) {
-      const probe = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
-        token: athlete.token,
-      });
+      const probe = await rest(
+        "GET",
+        `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`,
+        {
+          token: athlete.token,
+        }
+      );
       sexPath.ready = probe.ok;
       sexPath.checked = true;
     }
     return sexPath.ready;
   }
-  const SEX_PATH_MISSING = "Migration 0068 (profiles_own mit sex/intolerances, UPDATE-Grant) noch nicht eingespielt";
+  const SEX_PATH_MISSING =
+    "Migration 0068 (profiles_own mit sex/intolerances, UPDATE-Grant) noch nicht eingespielt";
 
   test("profiles: sex/intolerances sind weder für den Eigentümer noch für anon über die Basistabelle lesbar", async () => {
     const own = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
       token: athlete.token,
     });
-    assert.equal(own.ok, false, "Eigentümer darf sex/intolerances nicht aus der Basistabelle lesen (kein Spalten-Grant)");
+    assert.equal(
+      own.ok,
+      false,
+      "Eigentümer darf sex/intolerances nicht aus der Basistabelle lesen (kein Spalten-Grant)"
+    );
     const anon = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
       token: null,
     });
@@ -3821,20 +3956,36 @@ if (!HAS_CREDS) {
     const read = await rest("GET", `profiles?id=eq.${athlete.userId}&select=id,sex,intolerances`, {
       token: stranger.token,
     });
-    assert.equal(read.ok, false, "Fremder darf sex/intolerances von Athlet 1 nicht lesen (kein select grant auf Basistabelle)");
+    assert.equal(
+      read.ok,
+      false,
+      "Fremder darf sex/intolerances von Athlet 1 nicht lesen (kein select grant auf Basistabelle)"
+    );
   });
 
   test("profiles_own führt sex/intolerances für den Eigentümer (0068), profiles_visible nicht", async (t) => {
     if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
-    const ownView = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
-    assert.equal(ownView.ok, true, `profiles_own-Read fehlgeschlagen: ${JSON.stringify(ownView.data)}`);
+    const ownView = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=*`, {
+      token: athlete.token,
+    });
+    assert.equal(
+      ownView.ok,
+      true,
+      `profiles_own-Read fehlgeschlagen: ${JSON.stringify(ownView.data)}`
+    );
     const ownRow = ownView.data?.[0];
     assert.ok(ownRow, "profiles_own führt die eigene Zeile");
     assert.ok("sex" in ownRow, "profiles_own muss sex ausliefern (0068)");
     assert.ok("intolerances" in ownRow, "profiles_own muss intolerances ausliefern (0068)");
 
-    const visView = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=*`, { token: athlete.token });
-    assert.equal(visView.ok, true, `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(visView.data)}`);
+    const visView = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=*`, {
+      token: athlete.token,
+    });
+    assert.equal(
+      visView.ok,
+      true,
+      `profiles_visible-Read fehlgeschlagen: ${JSON.stringify(visView.data)}`
+    );
     const visRow = visView.data?.[0];
     assert.ok(visRow, "profiles_visible führt die eigene Zeile");
     for (const col of ["sex", "intolerances"]) {
@@ -3849,16 +4000,27 @@ if (!HAS_CREDS) {
       token: stranger.token,
     });
     assert.equal(read.ok, true);
-    assert.equal(read.data?.length ?? 0, 0, "profiles_own filtert auf auth.uid(): der Fremde darf die Zeile von Athlet 1 nicht sehen");
+    assert.equal(
+      read.data?.length ?? 0,
+      0,
+      "profiles_own filtert auf auth.uid(): der Fremde darf die Zeile von Athlet 1 nicht sehen"
+    );
   });
 
   test("profiles: Eigentümer kann gültige sex/intolerances-Werte schreiben, Originalwerte werden wiederhergestellt", async (t) => {
     if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
-    const before = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
-      token: athlete.token,
-    });
+    const before = await rest(
+      "GET",
+      `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`,
+      {
+        token: athlete.token,
+      }
+    );
     assert.equal(before.ok, true);
-    const original = { sex: before.data[0].sex ?? null, intolerances: before.data[0].intolerances ?? [] };
+    const original = {
+      sex: before.data[0].sex ?? null,
+      intolerances: before.data[0].intolerances ?? [],
+    };
     // return=minimal: der rest()-Default return=representation liest die geschriebene
     // Zeile per RETURNING zurück — dafür fehlt auf der Basistabelle bewusst das
     // SELECT-Grant für sex/intolerances (42501). Die App schreibt ebenfalls ohne
@@ -3876,7 +4038,11 @@ if (!HAS_CREDS) {
       body: { sex: "m", intolerances: ["gluten"] },
       prefer: "return=minimal",
     });
-    assert.equal(upd.ok, true, `UPDATE auf sex/intolerances muss gelingen: ${JSON.stringify(upd.data)}`);
+    assert.equal(
+      upd.ok,
+      true,
+      `UPDATE auf sex/intolerances muss gelingen: ${JSON.stringify(upd.data)}`
+    );
     const read = await rest("GET", `profiles_own?id=eq.${athlete.userId}&select=sex,intolerances`, {
       token: athlete.token,
     });
@@ -3888,7 +4054,11 @@ if (!HAS_CREDS) {
       body: original,
       prefer: "return=minimal",
     });
-    assert.equal(restore.ok, true, `Originalwerte wiederherstellen: ${JSON.stringify(restore.data)}`);
+    assert.equal(
+      restore.ok,
+      true,
+      `Originalwerte wiederherstellen: ${JSON.stringify(restore.data)}`
+    );
   });
 
   test("profiles: ungültiger sex-Wert wird vom Check abgelehnt (23514, nicht 42501)", async (t) => {
@@ -3900,7 +4070,11 @@ if (!HAS_CREDS) {
       prefer: "return=minimal",
     });
     assert.equal(upd.ok, false, "UPDATE auf profiles.sex='x' muss scheitern");
-    assert.equal(upd.data?.code, "23514", `Ablehnung muss am Check liegen (23514), nicht am Grant: ${JSON.stringify(upd.data)}`);
+    assert.equal(
+      upd.data?.code,
+      "23514",
+      `Ablehnung muss am Check liegen (23514), nicht am Grant: ${JSON.stringify(upd.data)}`
+    );
   });
 
   test("profiles: ein Fremder kann sex/intolerances eines anderen Athleten nicht ändern (Zeilen-Policy: 0 Zeilen)", async (t) => {
@@ -3914,7 +4088,11 @@ if (!HAS_CREDS) {
       body: { sex: "x" }, // absichtlich ungültig: kann nie im echten Profil landen
       prefer: "return=minimal",
     });
-    assert.equal(upd.ok, true, `Zeilen-Policy muss still filtern (204, kein Treffer), nicht am Check scheitern: ${JSON.stringify(upd.data)}`);
+    assert.equal(
+      upd.ok,
+      true,
+      `Zeilen-Policy muss still filtern (204, kein Treffer), nicht am Check scheitern: ${JSON.stringify(upd.data)}`
+    );
   });
 
   test("profiles: anon kann sex/intolerances weder lesen noch schreiben", async () => {
@@ -3933,10 +4111,19 @@ if (!HAS_CREDS) {
 
   test("profiles: die durch 0039 verlorenen Self-Service-Spalten sind für den Eigentümer wieder schreibbar (0068)", async (t) => {
     if (!(await sexPathReady())) return t.skip(SEX_PATH_MISSING);
-    const cols = ["ladder_progression_enabled", "units_preference", "ftp_public", "plan_offset_weeks"];
-    const read = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=${cols.join(",")}`, {
-      token: athlete.token,
-    });
+    const cols = [
+      "ladder_progression_enabled",
+      "units_preference",
+      "ftp_public",
+      "plan_offset_weeks",
+    ];
+    const read = await rest(
+      "GET",
+      `profiles_visible?id=eq.${athlete.userId}&select=${cols.join(",")}`,
+      {
+        token: athlete.token,
+      }
+    );
     assert.equal(read.ok, true, `profiles_visible-Read: ${JSON.stringify(read.data)}`);
     const row = read.data?.[0];
     assert.ok(row, "eigene Zeile in profiles_visible");
@@ -3947,7 +4134,11 @@ if (!HAS_CREDS) {
         body: { [col]: row[col] },
         prefer: "return=minimal",
       });
-      assert.equal(upd.ok, true, `${col} muss für den Eigentümer schreibbar sein (vor 0068: 42501): ${JSON.stringify(upd.data)}`);
+      assert.equal(
+        upd.ok,
+        true,
+        `${col} muss für den Eigentümer schreibbar sein (vor 0068: 42501): ${JSON.stringify(upd.data)}`
+      );
     }
   });
 
@@ -3990,15 +4181,19 @@ if (!HAS_CREDS) {
     });
     cleanupTasks.push(async () => {
       if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-        await storage("DELETE", `object/recipe-images/${path}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+        await storage("DELETE", `object/recipe-images/${path}`, {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        });
       }
     });
     return res;
   }
 
   const recipeImagesSkip = () => {
-    if (!HAS_SERVICE_ROLE) return "SUPABASE_SERVICE_ROLE_KEY fehlt — ohne Aufräumpfad keine Storage-Tests";
-    if (!recipeImagesBucketReady) return "Bucket recipe-images nicht vorhanden — Migration 0065 vermutlich noch nicht eingespielt";
+    if (!HAS_SERVICE_ROLE)
+      return "SUPABASE_SERVICE_ROLE_KEY fehlt — ohne Aufräumpfad keine Storage-Tests";
+    if (!recipeImagesBucketReady)
+      return "Bucket recipe-images nicht vorhanden — Migration 0065 vermutlich noch nicht eingespielt";
     return false;
   };
 
@@ -4006,9 +4201,13 @@ if (!HAS_CREDS) {
 
   test("recipe-images: Bucket existiert und ist privat (0065 eingespielt?)", async (t) => {
     if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt");
-    const bucket = await storage("GET", "bucket/recipe-images", { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    const bucket = await storage("GET", "bucket/recipe-images", {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
     if (!bucket.ok) {
-      console.warn("Bucket recipe-images fehlt auf dashboard-dev — Migration 0065 noch nicht eingespielt, Bucket-Tests übersprungen");
+      console.warn(
+        "Bucket recipe-images fehlt auf dashboard-dev — Migration 0065 noch nicht eingespielt, Bucket-Tests übersprungen"
+      );
       recipeImagesBucketReady = false;
       return;
     }
@@ -4027,7 +4226,11 @@ if (!HAS_CREDS) {
     if (recipeImagesSkip()) return t.skip(recipeImagesSkip());
     if (testTrainerIsAdmin) return t.skip("Trainer-Account ist Admin");
     const up = await uploadRecipeImage(trainer.token, imgPath(athlete.userId, "foreign"));
-    assert.equal(up.ok, false, "Upload unter dem Prefix eines anderen Athleten muss scheitern (WITH CHECK)");
+    assert.equal(
+      up.ok,
+      false,
+      "Upload unter dem Prefix eines anderen Athleten muss scheitern (WITH CHECK)"
+    );
   });
 
   test("recipe-images: anon darf weder hochladen noch lesen", async (t) => {
@@ -4039,10 +4242,16 @@ if (!HAS_CREDS) {
     const path = imgPath(trainer.userId, "anon-read");
     const seeded = await uploadRecipeImage(trainer.token, path);
     assert.equal(seeded.ok, true, `Testobjekt anlegen: ${JSON.stringify(seeded.data)}`);
-    const anonRead = await storage("GET", `object/authenticated/recipe-images/${path}`, { token: null });
+    const anonRead = await storage("GET", `object/authenticated/recipe-images/${path}`, {
+      token: null,
+    });
     assert.equal(anonRead.ok, false, "anon darf nicht lesen");
     const publicRead = await storage("GET", `object/public/recipe-images/${path}`, { token: null });
-    assert.equal(publicRead.ok, false, "Bucket ist privat — der public-Pfad darf kein Bild liefern");
+    assert.equal(
+      publicRead.ok,
+      false,
+      "Bucket ist privat — der public-Pfad darf kein Bild liefern"
+    );
   });
 
   test("recipe-images: jeder eingeloggte Athlet darf Bilder lesen (SELECT using bucket_id)", async (t) => {
@@ -4052,7 +4261,9 @@ if (!HAS_CREDS) {
     const path = imgPath(trainer.userId, "read-all");
     const seeded = await uploadRecipeImage(trainer.token, path);
     assert.equal(seeded.ok, true, `Testobjekt anlegen: ${JSON.stringify(seeded.data)}`);
-    const read = await storage("GET", `object/authenticated/recipe-images/${path}`, { token: stranger.token });
+    const read = await storage("GET", `object/authenticated/recipe-images/${path}`, {
+      token: stranger.token,
+    });
     assert.equal(read.ok, true, `Fremder muss das Bild lesen können: ${read.status}`);
   });
 
@@ -4093,7 +4304,8 @@ if (!HAS_CREDS) {
   // Verschärfung bewusst geschieht.
 
   test("recipe_votes: Self-Vote auf eigenes pending-Rezept ist erlaubt", async (t) => {
-    if (!recipeVotesTableReady || !recipesTableReady) return t.skip("recipes/recipe_votes nicht lesbar — Migration fehlt");
+    if (!recipeVotesTableReady || !recipesTableReady)
+      return t.skip("recipes/recipe_votes nicht lesbar — Migration fehlt");
     if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
     const recipe = await insertRecipeRow(athlete.token, { title: "RLS-Test-Self-Vote" });
     assert.equal(recipe.ok, true, `Rezept anlegen: ${JSON.stringify(recipe.data)}`);
@@ -4119,7 +4331,8 @@ if (!HAS_CREDS) {
 
   const recipesSeedSkip = () => {
     if (!recipesTableReady) return "recipes nicht lesbar — Migration 0060/0062 fehlt";
-    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return "SUPABASE_SERVICE_ROLE_KEY fehlt — kein Schreib-/Aufräumpfad";
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
+      return "SUPABASE_SERVICE_ROLE_KEY fehlt — kein Schreib-/Aufräumpfad";
     return false;
   };
 
@@ -4152,11 +4365,17 @@ if (!HAS_CREDS) {
     assert.equal(first.ok, true, `erster Upsert: ${JSON.stringify(first.data)}`);
     const again = await upsert("RLS-Test-Upsert"); // gleicher Inhalt
     assert.equal(again.ok, true, `zweiter Upsert (gleicher Inhalt): ${JSON.stringify(again.data)}`);
-    const read = await rest("GET", `recipes?external_id=eq.${externalId}&select=id`, { token: service });
+    const read = await rest("GET", `recipes?external_id=eq.${externalId}&select=id`, {
+      token: service,
+    });
     assert.equal(read.data?.length, 1, "derselbe external_id darf nur eine Zeile ergeben");
 
     const changed = await upsert("RLS-Test-Upsert-geaendert");
-    assert.equal(changed.ok, false, "geänderter Inhalt an freigegebenem Rezept muss von E18 abgelehnt werden");
+    assert.equal(
+      changed.ok,
+      false,
+      "geänderter Inhalt an freigegebenem Rezept muss von E18 abgelehnt werden"
+    );
     assert.equal(changed.data?.code, "P0001");
     assert.match(changed.data?.message ?? "", /E18/);
   });
@@ -4191,7 +4410,11 @@ if (!HAS_CREDS) {
         log: silent,
       });
     const read = async () => {
-      const r = await rest("GET", `recipes?external_id=eq.${externalId}&select=id,status,contains_tags,title`, { token: service });
+      const r = await rest(
+        "GET",
+        `recipes?external_id=eq.${externalId}&select=id,status,contains_tags,title`,
+        { token: service }
+      );
       return r.data?.[0];
     };
 
@@ -4215,5 +4438,265 @@ if (!HAS_CREDS) {
     assert.equal(afterUpdate.id, afterInsert.id, "die Rezept-ID muss stabil bleiben");
     assert.equal(afterUpdate.status, "approved", "nach der Änderung wieder freigegeben");
     assert.deepEqual(afterUpdate.contains_tags, ["gluten"]);
+  });
+
+  // --- 16. recipes: Service-Rolle darf Inhalt ändern (0069, Fahrplan 25 S1b) ---
+  // admin-api (PUT /api/recipes/:id) schreibt mit dem Service-Key (kein sub).
+  // 0069 nimmt dafür nur die Einreicher-Prüfung des E18-Triggers aus; die
+  // Statusregel (Inhalt nur bei pending) gilt weiter für ALLE Rollen.
+
+  test("recipes: service_role ändert Inhalt eines fremden pending-Rezepts (0069), nach Freigabe weiter gesperrt (E18)", async (t) => {
+    if (recipesSeedSkip()) return t.skip(recipesSeedSkip());
+    const service = ENV.SUPABASE_SERVICE_ROLE_KEY;
+    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-0069" });
+    if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
+    const id = own.data[0].id;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?id=eq.${id}`, { token: service });
+    });
+
+    const edit = await rest("PATCH", `recipes?id=eq.${id}`, {
+      token: service,
+      body: { title: "RLS-Test-0069-geaendert", servings: 3 },
+    });
+    if (/only the submitter/.test(edit.data?.message ?? "")) {
+      return t.skip(
+        "Migration 0069 (Service-Rolle im Trigger recipes_check_content_update) noch nicht eingespielt"
+      );
+    }
+    assert.equal(edit.ok, true, `service_role-Inhaltsänderung: ${JSON.stringify(edit.data)}`);
+    assert.equal(edit.data?.[0]?.title, "RLS-Test-0069-geaendert");
+    assert.equal(edit.data?.[0]?.submitted_by, athlete.userId, "Einreicher bleibt unverändert");
+
+    const approve = await rest("PATCH", `recipes?id=eq.${id}`, {
+      token: service,
+      body: { status: "approved" },
+    });
+    assert.equal(approve.ok, true, JSON.stringify(approve.data));
+    const afterApproval = await rest("PATCH", `recipes?id=eq.${id}`, {
+      token: service,
+      body: { title: "RLS-Test-0069-nach-Freigabe" },
+    });
+    assert.equal(afterApproval.ok, false, "E18 gilt auch für service_role nach der Freigabe");
+    assert.match(afterApproval.data?.message ?? "", /E18/);
+  });
+
+  test("recipes: Trainer (kein Einreicher) ändert fremdes pending-Rezept weiterhin NICHT (0069 öffnet nur service_role)", async (t) => {
+    if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-0069-fremd" });
+    if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
+    const id = own.data[0].id;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?id=eq.${id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    });
+    const edit = await rest("PATCH", `recipes?id=eq.${id}`, {
+      token: trainer.token,
+      body: { title: "Trainer-Versuch" },
+    });
+    assert.equal(edit.data?.length ?? 0, 0, "Nicht-Einreicher darf Inhalt nicht ändern");
+    const read = await rest("GET", `recipes?id=eq.${id}&select=title`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(read.data?.[0]?.title, "RLS-Test-0069-fremd");
+  });
+
+  // --- 17. ingredient_requests (0070, Fahrplan 25 S1b) --------------------------
+  // Athlet legt eigene an; Admin liest alle, Nicht-Admin nur die eigenen;
+  // kein UPDATE/DELETE für authenticated; anon nichts; höchstens 20 je Athlet.
+
+  const IR_PREFIX = "RLS-Test-Zutat";
+  let ingredientRequestsReady = false;
+
+  test("ingredient_requests: Tabelle ist lesbar (0070 eingespielt?)", async () => {
+    const probe = await rest("GET", "ingredient_requests?select=id&limit=1", {
+      token: athlete.token,
+    });
+    ingredientRequestsReady = probe.ok;
+    if (!probe.ok) {
+      console.warn(
+        "Migration 0070_ingredient_requests.sql noch nicht in dashboard-dev eingespielt — ingredient_requests-Tests übersprungen"
+      );
+    }
+  });
+
+  const irSkip = () =>
+    !ingredientRequestsReady
+      ? "ingredient_requests nicht lesbar — Migration 0070 vermutlich noch nicht eingespielt"
+      : false;
+
+  async function insertRequestRow(actor, over = {}) {
+    const insert = await rest("POST", "ingredient_requests", {
+      token: actor.token,
+      body: { requested_by: actor.userId, name: `${IR_PREFIX} ${Date.now()}`, ...over },
+    });
+    if (insert.ok && insert.data?.[0]?.id) {
+      const id = insert.data[0].id;
+      // Kein DELETE-Grant für authenticated: Aufräumen über die Service-Rolle.
+      cleanupTasks.push(async () => {
+        if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
+          await rest("DELETE", `ingredient_requests?id=eq.${id}`, {
+            token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          });
+        }
+      });
+    }
+    return insert;
+  }
+
+  test("ingredient_requests: Athlet legt eigenen Wunsch an und liest ihn, anon liest/schreibt nichts (kein GRANT)", async (t) => {
+    if (irSkip()) return t.skip(irSkip());
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    const insert = await insertRequestRow(athlete, { note: "Testhinweis" });
+    assert.equal(insert.ok, true, JSON.stringify(insert.data));
+    const id = insert.data[0].id;
+
+    const own = await rest("GET", `ingredient_requests?id=eq.${id}&select=name,note`, {
+      token: athlete.token,
+    });
+    assert.equal(own.data?.length, 1);
+    assert.equal(own.data[0].note, "Testhinweis");
+
+    const anonRead = await rest("GET", `ingredient_requests?id=eq.${id}`, { token: null });
+    assert.equal(anonRead.ok, false, "anon darf ingredient_requests nicht lesen");
+    const anonInsert = await rest("POST", "ingredient_requests", {
+      token: null,
+      body: { requested_by: athlete.userId, name: `${IR_PREFIX} anon` },
+    });
+    assert.equal(anonInsert.ok, false, "anon darf ingredient_requests nicht einfügen");
+  });
+
+  test("ingredient_requests: Wunsch für fremde requested_by scheitert (WITH CHECK)", async (t) => {
+    if (irSkip()) return t.skip(irSkip());
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    const insert = await insertRequestRow(athlete, { requested_by: trainer.userId });
+    assert.equal(
+      insert.ok,
+      false,
+      "Insert im Namen eines anderen hätte an der WITH-CHECK-Policy scheitern müssen"
+    );
+  });
+
+  test("ingredient_requests: Nicht-Admin sieht nur eigene Wünsche, Admin sieht alle", async (t) => {
+    if (irSkip()) return t.skip(irSkip());
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    const mine = await insertRequestRow(trainer, { name: `${IR_PREFIX} trainer` });
+    assert.equal(mine.ok, true, JSON.stringify(mine.data));
+    const theirs = await insertRequestRow(athlete, { name: `${IR_PREFIX} athlet` });
+    assert.equal(theirs.ok, true, JSON.stringify(theirs.data));
+    const trainerRowId = mine.data[0].id;
+    const athleteRowId = theirs.data[0].id;
+
+    if (!testTrainerIsAdmin) {
+      const trainerSeesOther = await rest("GET", `ingredient_requests?id=eq.${athleteRowId}`, {
+        token: trainer.token,
+      });
+      assert.equal(trainerSeesOther.ok, true);
+      assert.equal(
+        trainerSeesOther.data?.length ?? 0,
+        0,
+        "Nicht-Admin sieht den Wunsch eines anderen"
+      );
+      const trainerSeesOwn = await rest("GET", `ingredient_requests?id=eq.${trainerRowId}`, {
+        token: trainer.token,
+      });
+      assert.equal(trainerSeesOwn.data?.length, 1);
+    }
+    if (testAthleteIsAdmin) {
+      const adminSeesOther = await rest("GET", `ingredient_requests?id=eq.${trainerRowId}`, {
+        token: athlete.token,
+      });
+      assert.equal(adminSeesOther.data?.length, 1, "Admin muss alle Wünsche lesen");
+    }
+    if (testTrainerIsAdmin && !testAthleteIsAdmin) {
+      return t.skip(
+        "Weder Trainer- noch Athlet-Account ist Nicht-Admin bzw. Admin in passender Rolle"
+      );
+    }
+  });
+
+  test("ingredient_requests: kein UPDATE/DELETE für authenticated (kein GRANT)", async (t) => {
+    if (irSkip()) return t.skip(irSkip());
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    const insert = await insertRequestRow(athlete);
+    assert.equal(insert.ok, true, JSON.stringify(insert.data));
+    const id = insert.data[0].id;
+    const patch = await rest("PATCH", `ingredient_requests?id=eq.${id}`, {
+      token: athlete.token,
+      body: { name: "geändert" },
+    });
+    assert.equal(patch.ok, false, "PATCH hätte ohne UPDATE-GRANT scheitern müssen");
+    const del = await rest("DELETE", `ingredient_requests?id=eq.${id}`, { token: athlete.token });
+    assert.equal(del.ok, false, "DELETE hätte ohne DELETE-GRANT scheitern müssen");
+    const still = await rest("GET", `ingredient_requests?id=eq.${id}&select=name`, {
+      token: athlete.token,
+    });
+    assert.equal(still.data?.[0]?.name?.startsWith(IR_PREFIX), true);
+  });
+
+  test("ingredient_requests: leerer/zu langer Name und zu lange Notiz scheitern am Check-Constraint", async (t) => {
+    if (irSkip()) return t.skip(irSkip());
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    for (const over of [
+      { name: "" },
+      { name: "   " },
+      { name: "x".repeat(101) },
+      { name: `${IR_PREFIX} n`, note: "y".repeat(301) },
+    ]) {
+      const bad = await insertRequestRow(athlete, over);
+      assert.equal(
+        bad.ok,
+        false,
+        `Constraint hätte ${JSON.stringify(over).slice(0, 40)} ablehnen müssen`
+      );
+    }
+    const edge = await insertRequestRow(athlete, { name: "x".repeat(100), note: "y".repeat(300) });
+    assert.equal(edge.ok, true, JSON.stringify(edge.data));
+  });
+
+  test("ingredient_requests: höchstens 20 je Athlet — der 21. scheitert am Trigger", async (t) => {
+    if (irSkip()) return t.skip(irSkip());
+    const service = ENV.SUPABASE_SERVICE_ROLE_KEY;
+    if (!service) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
+    // Trainer-Account: hat sonst keine Wünsche; alle Testzeilen tragen den Präfix.
+    cleanupTasks.push(async () => {
+      await rest(
+        "DELETE",
+        `ingredient_requests?requested_by=eq.${trainer.userId}&name=like.${encodeURIComponent(IR_PREFIX)}*`,
+        {
+          token: service,
+        }
+      );
+    });
+    const existing = await rest(
+      "GET",
+      `ingredient_requests?requested_by=eq.${trainer.userId}&select=id`,
+      { token: service }
+    );
+    const free = 20 - (existing.data?.length ?? 0);
+    if (free < 0) return t.skip("Trainer-Account hat schon mehr als 20 Wünsche");
+    if (free > 0) {
+      const fill = await rest("POST", "ingredient_requests", {
+        token: service,
+        body: Array.from({ length: free }, (_, i) => ({
+          requested_by: trainer.userId,
+          name: `${IR_PREFIX} fill ${i}`,
+        })),
+        prefer: "return=minimal",
+      });
+      assert.equal(fill.ok, true, JSON.stringify(fill.data));
+    }
+    const over = await rest("POST", "ingredient_requests", {
+      token: trainer.token,
+      body: { requested_by: trainer.userId, name: `${IR_PREFIX} 21` },
+    });
+    assert.equal(over.ok, false, "der 21. Wunsch hätte am Limit-Trigger scheitern müssen");
+    assert.match(over.data?.message ?? "", /limit of 20/);
   });
 }
