@@ -46,6 +46,11 @@ handle /api/ingredients* {
 **Hinweis für Tony:** neues `admin-api`-Image deployen und diese zwei Caddy-Regeln
 eintragen. Keine Migration, keine neuen Env-Variablen.
 
+**Vorgeschaltetes haproxy (apps01):** Dort muss `/api` ebenfalls in der ACL stehen,
+sonst landet `/api/*` im Frontend (SPA) statt bei `admin-api` — Caddy sieht die
+Anfrage dann gar nicht. Abnahmetest: `GET /api/ingredients?q=hafer` ohne Token
+muss `401` liefern (nicht `404`, nicht die Landingpage).
+
 Lokale Referenz: `Caddyfile.local` (Root-Repo). Beim Abgleich gegen die
 apps01-Ansible-Rolle prüfen, dass dort ebenfalls kein Prefix-Strip passiert —
 die Endpunkte im Server erwarten den vollen `/admin/...`-Pfad in `req.url`.
