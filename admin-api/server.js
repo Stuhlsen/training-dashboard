@@ -1,6 +1,13 @@
 const http = require("node:http");
 const { requireAdmin, requireUser } = require("./auth.js");
-const { searchIngredients, previewRecipe, submitRecipe, deleteRecipe } = require("./recipes.js");
+const {
+  searchIngredients,
+  previewRecipe,
+  submitRecipe,
+  updateRecipe,
+  deleteRecipe,
+  submitIngredientRequest,
+} = require("./recipes.js");
 const { sendInvite } = require("./invite.js");
 const { listUsers, banUser, unbanUser, deleteUser, resendUserLink } = require("./users.js");
 
@@ -55,18 +62,21 @@ function readJsonBody(req) {
   });
 }
 
-// Fahrplan 25 S1a — /api/*: jeder eingeloggte User (kein Admin noetig).
+const RECIPE_ID_PATH = /^\/api\/recipes\/[^/]+$/;
+
+function matchApiRoute(method, pathname) {
+  if (method === "GET" && pathname === "/api/ingredients") return "ingredients";
+  if (method === "POST" && pathname === "/api/recipes/preview") return "preview";
+  if (method === "POST" && pathname === "/api/recipes") return "submit";
+  if (method === "PUT" && RECIPE_ID_PATH.test(pathname)) return "update";
+  if (method === "DELETE" && RECIPE_ID_PATH.test(pathname)) return "delete";
+  if (method === "POST" && pathname === "/api/ingredient-requests") return "ingredient-request";
+  return null;
+}
+
+// Fahrplan 25 S1a/S1b — /api/*: jeder eingeloggte User (kein Admin noetig).
 async function handleApi(req, res, url) {
-  const route =
-    req.method === "GET" && url.pathname === "/api/ingredients"
-      ? "ingredients"
-      : req.method === "POST" && url.pathname === "/api/recipes/preview"
-        ? "preview"
-        : req.method === "POST" && url.pathname === "/api/recipes"
-          ? "submit"
-          : req.method === "DELETE" && /^\/api\/recipes\/[^/]+$/.test(url.pathname)
-            ? "delete"
-            : null;
+  const route = matchApiRoute(req.method, url.pathname);
   if (!route) return false;
 
   const user = requireUser(req.headers.authorization, ENV);
@@ -94,14 +104,22 @@ async function handleApi(req, res, url) {
       sendJson(res, 400, { ok: false, error: { code: "SCHEMA", message: "ungueltiger Request-Body" } });
       return true;
     }
-    const result =
-      route === "preview"
-        ? await previewRecipe(body, user.sub)
-        : await submitRecipe(body, user.sub, ENV);
+    let result;
+    if (route === "preview") result = await previewRecipe(body, user.sub);
+    else if (route === "update") {
+      result = await updateRecipe(decodeURIComponent(url.pathname.split("/")[3]), body, user.sub, ENV);
+    } else if (route === "ingredient-request") {
+      result = await submitIngredientRequest(body, user.sub, ENV);
+    } else result = await submitRecipe(body, user.sub, ENV);
+
     if (!result.ok) {
       sendJson(res, result.status, { ok: false, error: result.error });
     } else if (route === "preview") {
       sendJson(res, 200, { ok: true, ...result.preview });
+    } else if (route === "update") {
+      sendJson(res, 200, { ok: true, recipe: result.recipe });
+    } else if (route === "ingredient-request") {
+      sendJson(res, 201, { ok: true, request: result.request });
     } else {
       sendJson(res, 201, { ok: true, recipe: result.recipe });
     }

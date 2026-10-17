@@ -7,9 +7,10 @@
 // admin-api bleibt CommonJS und laedt sie per dynamischem import(). Der relative
 // Pfad ../scripts/lib stimmt im Repo und im Image (s. admin-api/Dockerfile).
 //
-// PUT (Rezept aendern) fehlt bewusst: der Trigger recipes_check_content_update
-// (0062) lehnt Inhaltsaenderungen ab, wenn auth.uid() nicht der Einreicher ist —
-// der Service-Key hat kein sub. Kommt in S1b mit einer Migration.
+// S1b: PUT (Rezept aendern) braucht Migration 0069 — der Trigger
+// recipes_check_content_update (0062) lehnte Inhaltsaenderungen ab, wenn
+// auth.uid() nicht der Einreicher ist, und der Service-Key hat kein sub.
+// Zutaten-Wuensche (POST /api/ingredient-requests) brauchen Migration 0070.
 
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -26,6 +27,9 @@ const LIMITS = {
   stepText: 500,
   servings: 50,
   maxTimerSeconds: 86400,
+  ingredientRequests: 20,
+  requestName: 100,
+  requestNote: 300,
 };
 const MEAL_TYPES = ["breakfast", "lunch", "dinner", "snack"];
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -265,6 +269,21 @@ async function countOpenRecipes(sub, env, fetchImpl) {
   return { count: Array.isArray(rows) ? rows.length : 0 };
 }
 
+/** Die Inhaltsspalten eines abgeleiteten Rezepts (Einreichen und Aendern teilen sie). */
+function contentFields(recipe) {
+  return {
+    title: recipe.title,
+    meal_type: recipe.meal_type,
+    diet_tags: recipe.diet_tags,
+    contains_tags: recipe.contains_tags,
+    servings: recipe.servings,
+    ingredients: recipe.ingredients,
+    instructions: recipe.instructions,
+    nutrition: recipe.nutrition,
+    image_url: recipe.image_url ?? null,
+  };
+}
+
 /** Einreichen: validieren, ableiten, als source=athlete/pending speichern. */
 async function submitRecipe(body, sub, env, fetchImpl = fetch) {
   const derived = await deriveRecipe(body, sub);
@@ -295,15 +314,7 @@ async function submitRecipe(body, sub, env, fetchImpl = fetch) {
     status: "pending",
     submitted_by: sub,
     external_id: `athlete-${crypto.randomUUID()}`,
-    title: recipe.title,
-    meal_type: recipe.meal_type,
-    diet_tags: recipe.diet_tags,
-    contains_tags: recipe.contains_tags,
-    servings: recipe.servings,
-    ingredients: recipe.ingredients,
-    instructions: recipe.instructions,
-    nutrition: recipe.nutrition,
-    image_url: recipe.image_url ?? null,
+    ...contentFields(recipe),
   };
 
   let res;
@@ -321,10 +332,19 @@ async function submitRecipe(body, sub, env, fetchImpl = fetch) {
   return { ok: true, status: 201, recipe: Array.isArray(rows) ? rows[0] : rows };
 }
 
-/** Eigenes pending-Rezept zurueckziehen; Stimmen gehen per ON DELETE CASCADE mit. */
-async function deleteRecipe(id, sub, env, fetchImpl = fetch) {
-  const notFound = { ok: false, status: 404, error: { code: "NO_DATA", message: "Rezept nicht gefunden" } };
-  if (!UUID_RE.test(id)) return notFound;
+const recipeNotFound = () => ({
+  ok: false,
+  status: 404,
+  error: { code: "NO_DATA", message: "Rezept nicht gefunden" },
+});
+const notPending = (message) => ({ ok: false, status: 409, error: { code: "VALIDATION", message } });
+
+/**
+ * Laedt das Rezept und prueft Besitz + Status (gemeinsam fuer PUT und DELETE).
+ * Liefert { ok: true } oder die fertige Fehlerantwort (404 fremd/fehlend, 409 nicht pending).
+ */
+async function checkOwnPending(id, sub, env, fetchImpl, notPendingMessage) {
+  if (!UUID_RE.test(id)) return recipeNotFound();
 
   let rows;
   try {
@@ -340,14 +360,61 @@ async function deleteRecipe(id, sub, env, fetchImpl = fetch) {
 
   const row = Array.isArray(rows) ? rows[0] : null;
   // Fremdes Rezept sieht aus wie ein fehlendes — nichts ueber andere verraten.
-  if (!row || row.submitted_by !== sub) return notFound;
-  if (row.status !== "pending") {
-    return {
-      ok: false,
-      status: 409,
-      error: { code: "VALIDATION", message: "nur offene Rezepte koennen zurueckgezogen werden" },
-    };
+  if (!row || row.submitted_by !== sub) return recipeNotFound();
+  if (row.status !== "pending") return notPending(notPendingMessage);
+  return { ok: true };
+}
+
+/**
+ * Eigenes pending-Rezept aendern: wie Einreichen pruefen und neu ableiten, dann ersetzen.
+ * Alle Stimmen zum Rezept werden geloescht (S1-10) — sie bezogen sich auf den alten Inhalt.
+ */
+async function updateRecipe(id, body, sub, env, fetchImpl = fetch) {
+  const own = await checkOwnPending(id, sub, env, fetchImpl, "nur offene Rezepte koennen geaendert werden");
+  if (!own.ok) return own;
+
+  const derived = await deriveRecipe(body, sub);
+  if (!derived.ok) return derived;
+
+  let rows;
+  try {
+    // Filter wiederholt Besitzer + Status: kein Fenster zwischen Pruefen und Schreiben.
+    const res = await fetchImpl(
+      `${env.POSTGREST_INTERNAL_URL}/recipes?id=eq.${id}&submitted_by=eq.${encodeURIComponent(sub)}&status=eq.pending`,
+      {
+        method: "PATCH",
+        headers: serviceHeaders(env, { "Content-Type": "application/json", Prefer: "return=representation" }),
+        body: JSON.stringify(contentFields(derived.recipe)),
+      }
+    );
+    if (!res.ok) return httpFailure("PostgREST", res.status);
+    rows = await res.json();
+  } catch {
+    return networkFailure("PostgREST");
   }
+  // Leer = zwischen Pruefen und Schreiben entschieden/zurueckgezogen.
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return notPending("nur offene Rezepte koennen geaendert werden");
+  }
+
+  // Erst nach dem erfolgreichen Schreiben: scheitert dies hier, ist der Inhalt neu und
+  // die alten Stimmen bleiben stehen — ein erneutes PUT raeumt sie dann ab.
+  try {
+    const res = await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/recipe_votes?recipe_id=eq.${id}`, {
+      method: "DELETE",
+      headers: serviceHeaders(env),
+    });
+    if (!res.ok) return httpFailure("PostgREST", res.status);
+  } catch {
+    return networkFailure("PostgREST");
+  }
+  return { ok: true, status: 200, recipe: rows[0] };
+}
+
+/** Eigenes pending-Rezept zurueckziehen; Stimmen gehen per ON DELETE CASCADE mit. */
+async function deleteRecipe(id, sub, env, fetchImpl = fetch) {
+  const own = await checkOwnPending(id, sub, env, fetchImpl, "nur offene Rezepte koennen zurueckgezogen werden");
+  if (!own.ok) return own;
 
   try {
     // Filter wiederholt Besitzer + Status: kein Fenster zwischen Pruefen und Loeschen.
@@ -362,12 +429,74 @@ async function deleteRecipe(id, sub, env, fetchImpl = fetch) {
   return { ok: true, status: 200 };
 }
 
+/** Formularpruefung fuer einen Zutaten-Wunsch: { name, note? }. */
+function checkRequestInput(body) {
+  const details = {};
+  const input = isPlainObject(body) ? body : {};
+
+  const name = typeof input.name === "string" ? input.name.trim() : "";
+  if (!name) addDetail(details, "name", "Name fehlt");
+  else if (name.length > LIMITS.requestName) addDetail(details, "name", `Name hoechstens ${LIMITS.requestName} Zeichen`);
+
+  let note = null;
+  if (input.note !== undefined && input.note !== null) {
+    if (typeof input.note !== "string") addDetail(details, "note", "note muss ein Text sein");
+    else if (input.note.trim().length > LIMITS.requestNote) {
+      addDetail(details, "note", `Hinweis hoechstens ${LIMITS.requestNote} Zeichen`);
+    } else note = input.note.trim() || null;
+  }
+
+  if (Object.keys(details).length > 0) return { ok: false, details };
+  return { ok: true, name, note };
+}
+
+/** Zutaten-Wunsch speichern (Migration 0070); hoechstens 20 je Athlet. */
+async function submitIngredientRequest(body, sub, env, fetchImpl = fetch) {
+  const checked = checkRequestInput(body);
+  if (!checked.ok) return validationFailure(checked.details);
+
+  let res;
+  try {
+    res = await fetchImpl(
+      `${env.POSTGREST_INTERNAL_URL}/ingredient_requests?requested_by=eq.${encodeURIComponent(sub)}` +
+        `&select=id&limit=${LIMITS.ingredientRequests}`,
+      { headers: serviceHeaders(env) }
+    );
+    if (!res.ok) return httpFailure("PostgREST", res.status);
+    const existing = await res.json();
+    if (Array.isArray(existing) && existing.length >= LIMITS.ingredientRequests) {
+      return {
+        ok: false,
+        status: 409,
+        error: {
+          code: "VALIDATION",
+          message: "zu viele Zutaten-Wuensche",
+          details: { requests: [`hoechstens ${LIMITS.ingredientRequests} Wuensche je Athlet`] },
+        },
+      };
+    }
+
+    res = await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/ingredient_requests`, {
+      method: "POST",
+      headers: serviceHeaders(env, { "Content-Type": "application/json", Prefer: "return=representation" }),
+      body: JSON.stringify({ requested_by: sub, name: checked.name, note: checked.note }),
+    });
+  } catch {
+    return networkFailure("PostgREST");
+  }
+  if (!res.ok) return httpFailure("PostgREST", res.status);
+  const rows = await res.json();
+  return { ok: true, status: 201, request: Array.isArray(rows) ? rows[0] : rows };
+}
+
 module.exports = {
   LIMITS,
   searchIngredients,
   previewRecipe,
   submitRecipe,
+  updateRecipe,
   deleteRecipe,
+  submitIngredientRequest,
   deriveRecipe,
   foldText,
   loadDerivation,

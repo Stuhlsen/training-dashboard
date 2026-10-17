@@ -50,6 +50,12 @@
             header_down Access-Control-Allow-Origin "http://localhost:8080"
         }
     }
+    # Fahrplan 25 S1b: Zutaten-Wuensche (eigener Pfad, /api/ingredients* trifft ihn nicht)
+    handle /api/ingredient-requests* {
+        reverse_proxy admin-api:3001 {
+            header_down Access-Control-Allow-Origin "http://localhost:8080"
+        }
+    }
     handle /storage/v1/* {
         uri strip_prefix /storage/v1
         reverse_proxy storage-api:5000 {
