@@ -17,7 +17,7 @@
     handle @cors_preflight {
         header Access-Control-Allow-Origin "http://localhost:8080"
         header Access-Control-Allow-Methods "GET, POST, PATCH, PUT, DELETE, OPTIONS"
-        header Access-Control-Allow-Headers "authorization, apikey, content-type, prefer, x-client-info, x-supabase-api-version, accept-profile, content-profile, range, x-retry-count"
+        header Access-Control-Allow-Headers "authorization, apikey, content-type, prefer, x-client-info, x-supabase-api-version, accept-profile, content-profile, range, x-retry-count, x-upsert"
         respond "" 204
     }
 
