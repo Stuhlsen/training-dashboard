@@ -1,10 +1,12 @@
 import type { AllergenKey } from "../core/nutrition-taxonomy.js";
 
-export type ErrorCode = "HTTP" | "NETWORK" | "TOKEN_INVALID" | "SCHEMA" | "NO_DATA" | "UNKNOWN";
+export type ErrorCode = "HTTP" | "NETWORK" | "TOKEN_INVALID" | "SCHEMA" | "NO_DATA" | "VALIDATION" | "UNKNOWN";
 
 export interface ResultError {
   code: ErrorCode;
   message: string;
+  /** Formularfehler je Feld (admin-api, Code VALIDATION): { feld: [meldung, …] } */
+  details?: Record<string, string[]>;
 }
 
 export type Result<T extends object = object> =

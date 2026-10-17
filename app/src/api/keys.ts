@@ -94,6 +94,9 @@ export const qk = {
   /** Rezept-Pool (Tabelle recipes) je Status — gemeinsame Bibliothek, nicht
    *  profilgebunden. */
   recipes: (status: string) => ["recipes", status] as const,
+  /** Zutaten-Suche der Rezept-Einreichung (admin-api GET /api/ingredients) —
+   *  Tabelle ist für alle gleich, deshalb nur der Suchtext im Key. */
+  ingredientSearch: (query: string) => ["ingredient-search", query] as const,
   /** Formatkatalog + Aktiv-Status des eingeloggten Profils (Settings,
    *  Etappe 9) — anders als qk.ladderState() der VOLLE Katalog, nicht nur
    *  die aktiven Formate. */
