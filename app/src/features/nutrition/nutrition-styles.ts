@@ -49,6 +49,37 @@ export const TAP_BUTTON_STYLE: CSSProperties = {
 
 export const TAP_BUTTON_DISABLED_STYLE: CSSProperties = { ...TAP_BUTTON_STYLE, opacity: 0.5, cursor: "not-allowed" };
 
+/* Liegt direkt über dem Seitenhintergrund: Glas-Fill statt reiner Haarlinie (DESIGN.md, Ghost-Regel) */
+export const GLASS: CSSProperties = {
+  border: "1px solid rgba(255, 255, 255, 0.14)",
+  background: "var(--glass)",
+  backdropFilter: "blur(16px)",
+  boxShadow: "var(--e2)",
+};
+
+export const FIELD_STYLE: CSSProperties = {
+  ...GLASS,
+  minHeight: TAP_MIN,
+  padding: "8px 14px",
+  borderRadius: "var(--radius)",
+  color: "var(--ink)",
+  fontFamily: "var(--font-disp)",
+  fontSize: ".9rem",
+};
+
+/** Feldbeschriftung über Eingabefeldern (Formulare). */
+export const LABEL_STYLE: CSSProperties = {
+  display: "block",
+  margin: "0 0 6px",
+  fontFamily: "var(--font-disp)",
+  fontSize: ".85rem",
+  fontWeight: 600,
+  color: "var(--ink)",
+};
+
+/** Fehlermeldung unter einem Feld (Farbe = Bedeutung: Gefahr). */
+export const FIELD_ERROR_STYLE: CSSProperties = { margin: "6px 0 0", fontSize: ".82rem", color: "var(--danger)" };
+
 /** Die eine Primäraktion je Ansicht: Akzentfläche, dunkler Text (DESIGN.md, Primary). */
 export const PRIMARY_BUTTON_STYLE: CSSProperties = {
   ...TAP_BUTTON_STYLE,

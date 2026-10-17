@@ -25,27 +25,12 @@ import { RecipeCard } from "./RecipeCard";
 import { RecipeDetailsDialog } from "./RecipeDetails";
 import { PlanPicker } from "./PlanPicker";
 import { CookingDialog } from "./CookingDialog";
-import { HEADING_STYLE, META_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
+import { FIELD_STYLE, GLASS, HEADING_STYLE, META_STYLE, PRIMARY_BUTTON_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
+import { RecipeSubmissionForm } from "./RecipeSubmissionForm";
 import "./nutrition.css";
 
 const NO_INTOLERANCES: readonly string[] = [];
 
-/* Liegt direkt über dem Seitenhintergrund: Glas-Fill statt reiner Haarlinie (DESIGN.md, Ghost-Regel) */
-const GLASS: CSSProperties = {
-  border: "1px solid rgba(255, 255, 255, 0.14)",
-  background: "var(--glass)",
-  backdropFilter: "blur(16px)",
-  boxShadow: "var(--e2)",
-};
-const FIELD_STYLE: CSSProperties = {
-  ...GLASS,
-  minHeight: TAP_MIN,
-  padding: "8px 14px",
-  borderRadius: "var(--radius)",
-  color: "var(--ink)",
-  fontFamily: "var(--font-disp)",
-  fontSize: ".9rem",
-};
 const CARD_STYLE: CSSProperties = { padding: "24px 28px", marginBottom: 16 };
 
 function chipStyle(active: boolean): CSSProperties {
@@ -72,6 +57,7 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   const [picking, setPicking] = useState(false);
   const [cooking, setCooking] = useState<Recipe | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
   const filters = useMemo(() => ({ query, mealType, dietTag }), [query, mealType, dietTag]);
   const result = useMemo(() => browseRecipes(recipes, { filters, intolerances }), [recipes, filters, intolerances]);
@@ -98,6 +84,9 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
     closeDetails();
     setCooking(recipe);
   }
+
+  // Einreichen braucht den Rezeptpool nicht — früh zurück, vor Lade-/Fehlerzuständen
+  if (submitting) return <RecipeSubmissionForm onClose={() => setSubmitting(false)} />;
 
   if (isLoading) return <p style={META_STYLE}>Lade …</p>;
 
@@ -128,6 +117,11 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
 
   return (
     <section aria-label="Rezepte">
+      <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 12px" }}>
+        <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={() => setSubmitting(true)}>
+          Rezept einreichen
+        </button>
+      </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "0 0 12px" }}>
         <input
           type="search"

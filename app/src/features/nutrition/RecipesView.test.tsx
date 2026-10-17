@@ -40,6 +40,17 @@ vi.mock("./CookingDialog", () => ({
   ),
 }));
 
+// Das Einreichformular hat eigene Tests (RecipeSubmissionForm.test.tsx)
+vi.mock("./RecipeSubmissionForm", () => ({
+  RecipeSubmissionForm: ({ onClose }: { onClose: () => void }) => (
+    <div role="form" aria-label="Formular-Platzhalter">
+      <button type="button" onClick={onClose}>
+        Formular schließen
+      </button>
+    </div>
+  ),
+}));
+
 const { RecipesView } = await import("./RecipesView");
 
 function recipe(id: string, title: string, extra: Partial<Recipe> = {}): Recipe {
@@ -93,6 +104,17 @@ beforeEach(() => {
   setPool();
 });
 afterEach(cleanup);
+
+describe("RecipesView — Einreichen", () => {
+  it("'Rezept einreichen' öffnet das Formular anstelle der Liste, Schließen bringt die Liste zurück", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    expect(screen.getByRole("form", { name: "Formular-Platzhalter" })).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Rezepte" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Formular schließen" }));
+    expect(screen.getByRole("list", { name: "Rezepte" })).toBeTruthy();
+  });
+});
 
 describe("RecipesView — Liste", () => {
   it("zeigt je Rezept einen Bild-Platzhalter, Mahlzeit, kcal und Eiweiß pro Portion", () => {
