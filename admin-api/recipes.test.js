@@ -41,23 +41,47 @@ const validBody = () => ({
 // Minimaler PostgREST-Ersatz: genau die Aufrufe, die recipes.js macht. Jede
 // andere URL (z. B. profiles_visible = Admin-Check) wirft — so beweist ein
 // gruener Test, dass der Dienst keinen Admin voraussetzt.
-function fakePostgrest(initialRows = []) {
-  const store = { rows: [...initialRows], calls: [] };
+function fakePostgrest(initialRows = [], { votes = [], requests = [] } = {}) {
+  const store = { rows: [...initialRows], votes: [...votes], requests: [...requests], calls: [] };
   const fetchImpl = async (url, options = {}) => {
     const u = new URL(url);
     const method = options.method ?? "GET";
     store.calls.push({ method, url, headers: options.headers });
-    if (u.origin !== "http://postgrest" || u.pathname !== "/recipes") {
-      throw new Error(`unerwartete URL in Test: ${url}`);
-    }
     const q = u.searchParams;
     const eq = (name) => (q.get(name) ?? "").replace(/^eq\./, "");
+    const reply = (status, body) => ({ ok: status < 300, status, json: async () => body });
+    if (u.origin !== "http://postgrest") throw new Error(`unerwartete URL in Test: ${url}`);
+
+    if (u.pathname === "/recipe_votes") {
+      if (method !== "DELETE") throw new Error(`unerwartete Methode: ${method}`);
+      store.votes = store.votes.filter((v) => v.recipe_id !== eq("recipe_id"));
+      return reply(204, null);
+    }
+    if (u.pathname === "/ingredient_requests") {
+      if (method === "GET") {
+        const limit = Number(q.get("limit") ?? Infinity);
+        return reply(200, store.requests.filter((r) => r.requested_by === eq("requested_by")).slice(0, limit));
+      }
+      if (method === "POST") {
+        const saved = { id: crypto.randomUUID(), ...JSON.parse(options.body) };
+        store.requests.push(saved);
+        return reply(201, [saved]);
+      }
+      throw new Error(`unerwartete Methode: ${method}`);
+    }
+    if (u.pathname !== "/recipes") throw new Error(`unerwartete URL in Test: ${url}`);
+
     const matches = (row) =>
       (!q.has("id") || row.id === eq("id")) &&
       (!q.has("submitted_by") || row.submitted_by === eq("submitted_by")) &&
       (!q.has("status") || row.status === eq("status"));
-    const reply = (status, body) => ({ ok: status < 300, status, json: async () => body });
 
+    if (method === "PATCH") {
+      // Spiegelt Trigger 0069: Inhalt nur bei status=pending (hier schon durch den Filter).
+      const hit = store.rows.filter(matches);
+      hit.forEach((row) => Object.assign(row, JSON.parse(options.body)));
+      return reply(200, hit);
+    }
     if (method === "GET") {
       const limit = Number(q.get("limit") ?? Infinity);
       return reply(200, store.rows.filter(matches).slice(0, limit));
@@ -107,8 +131,8 @@ function request(port, method, path, { token, body, rawBody } = {}) {
   });
 }
 
-async function withService(rows, callback, fetchImpl) {
-  const fake = fakePostgrest(rows);
+async function withService(rows, callback, fetchImpl, seed) {
+  const fake = fakePostgrest(rows, seed);
   const origFetch = globalThis.fetch;
   globalThis.fetch = fetchImpl ?? fake.fetchImpl;
   await new Promise((resolve, reject) => {
@@ -150,11 +174,13 @@ test("alle /api-Endpunkte: ohne/ungueltiges/abgelaufenes/falsches Token -> 401",
     ["POST", "/api/recipes/preview"],
     ["POST", "/api/recipes"],
     ["DELETE", `/api/recipes/${RECIPE_ID}`],
+    ["PUT", `/api/recipes/${RECIPE_ID}`],
+    ["POST", "/api/ingredient-requests"],
   ];
   await withService([], async (port, store) => {
     for (const token of bad) {
       for (const [method, path] of calls) {
-        const res = await request(port, method, path, { token, body: method === "POST" ? validBody() : undefined });
+        const res = await request(port, method, path, { token, body: method === "GET" || method === "DELETE" ? undefined : validBody() });
         assert.equal(res.status, 401, `${method} ${path}`);
         assert.equal(res.body.ok, false);
         assert.equal(res.body.error.code, "TOKEN_INVALID");
@@ -171,12 +197,6 @@ test("normaler User-Token reicht, kein Admin-Check (fake wirft bei profiles_visi
   });
 });
 
-test("PUT /api/recipes/:id gibt es in S1a nicht -> 404", async () => {
-  await withService([pendingRow(RECIPE_ID, ALICE)], async (port) => {
-    const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
-    assert.equal(res.status, 404);
-  });
-});
 
 // ---------------------------------------------------------------- Zutaten-Suche
 
@@ -400,6 +420,287 @@ test("DELETE: unbekannte oder ungueltige ID -> 404", async () => {
     }
     assert.equal(store.calls.filter((c) => c.method === "DELETE").length, 0);
   });
+});
+
+// ---------------------------------------------------------------- Aendern (PUT)
+
+const OTHER_RECIPE_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+const votesFor = (recipeId) => [
+  { id: "v1", recipe_id: recipeId, athlete_id: BOB, vote: "up" },
+  { id: "v2", recipe_id: recipeId, athlete_id: ALICE, vote: "down" },
+];
+
+test("PUT: eigenes pending-Rezept wird neu abgeleitet und ALLE Stimmen dazu geloescht", async () => {
+  const rows = [
+    pendingRow(RECIPE_ID, ALICE, { title: "Alt", status: "pending", external_id: "athlete-x" }),
+    pendingRow(OTHER_RECIPE_ID, BOB),
+  ];
+  const votes = [...votesFor(RECIPE_ID), ...votesFor(OTHER_RECIPE_ID)];
+  await withService(
+    rows,
+    async (port, store) => {
+      const body = {
+        ...validBody(),
+        title: "Neu",
+        // Vom Client mitgeschickt, darf nichts bewirken:
+        status: "approved",
+        source: "own",
+        submitted_by: BOB,
+        external_id: "own-hack",
+        nutrition: { kcal: 1, protein: 1, carbs: 1, fat: 1 },
+        contains_tags: [],
+      };
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.ok, true);
+
+      const row = store.rows.find((r) => r.id === RECIPE_ID);
+      assert.equal(row.title, "Neu");
+      assert.ok(row.nutrition.kcal > 100, "Naehrwerte serverseitig neu abgeleitet");
+      assert.ok(row.contains_tags.includes("gluten"));
+      assert.equal(row.status, "pending");
+      assert.equal(row.source, "athlete");
+      assert.equal(row.submitted_by, ALICE);
+      assert.equal(row.external_id, "athlete-x");
+      assert.equal(res.body.recipe.id, RECIPE_ID);
+
+      assert.deepEqual(
+        store.votes.map((v) => v.recipe_id),
+        [OTHER_RECIPE_ID, OTHER_RECIPE_ID],
+        "nur die Stimmen dieses Rezepts weg"
+      );
+      const patch = store.calls.find((c) => c.method === "PATCH");
+      const q = new URL(patch.url).searchParams;
+      assert.equal(q.get("submitted_by"), `eq.${ALICE}`);
+      assert.equal(q.get("status"), "eq.pending");
+      assert.equal(patch.headers.Authorization, "Bearer srv-key");
+    },
+    undefined,
+    { votes }
+  );
+});
+
+test("PUT: Foto im eigenen Ordner geht, fehlendes Foto setzt image_url auf null", async () => {
+  await withService([pendingRow(RECIPE_ID, ALICE, { image_url: `${ALICE}/alt.webp` })], async (port, store) => {
+    let res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, {
+      token: TOKEN_ALICE,
+      body: { ...validBody(), image_url: `${ALICE}/neu.webp` },
+    });
+    assert.equal(res.status, 200);
+    assert.equal(store.rows[0].image_url, `${ALICE}/neu.webp`);
+    res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+    assert.equal(res.status, 200);
+    assert.equal(store.rows[0].image_url, null);
+  });
+});
+
+test("PUT: fremdes oder fehlendes Rezept -> 404, nichts geschrieben, Stimmen bleiben", async () => {
+  await withService(
+    [pendingRow(RECIPE_ID, ALICE)],
+    async (port, store) => {
+      for (const [token, id] of [
+        [TOKEN_BOB, RECIPE_ID],
+        [TOKEN_ALICE, OTHER_RECIPE_ID],
+        [TOKEN_ALICE, "kein-uuid"],
+      ]) {
+        const res = await request(port, "PUT", `/api/recipes/${id}`, { token, body: validBody() });
+        assert.equal(res.status, 404, id);
+        assert.equal(res.body.error.code, "NO_DATA");
+      }
+      assert.equal(store.calls.filter((c) => c.method === "PATCH").length, 0);
+      assert.equal(store.votes.length, 2);
+      assert.notEqual(store.rows[0].title, validBody().title);
+    },
+    undefined,
+    { votes: votesFor(RECIPE_ID) }
+  );
+});
+
+test("PUT: nicht-pending -> 409, nichts geschrieben, Stimmen bleiben", async () => {
+  for (const status of ["approved", "rejected"]) {
+    await withService(
+      [pendingRow(RECIPE_ID, ALICE, { status, title: "Alt" })],
+      async (port, store) => {
+        const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+        assert.equal(res.status, 409, status);
+        assert.equal(res.body.error.code, "VALIDATION");
+        assert.equal(store.rows[0].title, "Alt");
+        assert.equal(store.votes.length, 2);
+      },
+      undefined,
+      { votes: votesFor(RECIPE_ID) }
+    );
+  }
+});
+
+test("PUT: ungueltige Eingabe -> 422 mit details, Stimmen bleiben", async () => {
+  await withService(
+    [pendingRow(RECIPE_ID, ALICE, { title: "Alt" })],
+    async (port, store) => {
+      const bad = validBody();
+      bad.ingredients.push({ name: "Einhornstaub", amount: 5, unit: "g" });
+      let res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: bad });
+      assert.equal(res.status, 422);
+      assert.match(res.body.error.details.ingredients[0], /Einhornstaub/);
+
+      res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, {
+        token: TOKEN_ALICE,
+        body: { ...validBody(), title: "x".repeat(101) },
+      });
+      assert.equal(res.status, 422);
+      assert.ok(res.body.error.details.title);
+
+      res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, {
+        token: TOKEN_ALICE,
+        body: { ...validBody(), image_url: `${BOB}/foto.webp` },
+      });
+      assert.equal(res.status, 422);
+      assert.ok(res.body.error.details.image_url);
+
+      assert.equal(store.rows[0].title, "Alt");
+      assert.equal(store.calls.filter((c) => c.method === "PATCH").length, 0);
+      assert.equal(store.votes.length, 2);
+    },
+    undefined,
+    { votes: votesFor(RECIPE_ID) }
+  );
+});
+
+test("PUT: Rezept wurde zwischen Pruefen und Schreiben entschieden -> 409, Stimmen bleiben", async () => {
+  // PATCH trifft nichts mehr (Filter status=pending), weil der Admin dazwischen entschied.
+  const votes = votesFor(RECIPE_ID);
+  const fake = fakePostgrest([pendingRow(RECIPE_ID, ALICE)], { votes });
+  const racing = async (url, options = {}) => {
+    if ((options.method ?? "GET") === "PATCH") fake.store.rows[0].status = "approved";
+    return fake.fetchImpl(url, options);
+  };
+  await withService(
+    [],
+    async (port) => {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 409);
+      assert.equal(fake.store.votes.length, 2);
+    },
+    racing
+  );
+});
+
+test("PUT: ungueltiger Body -> 400 SCHEMA", async () => {
+  await withService([pendingRow(RECIPE_ID, ALICE)], async (port) => {
+    const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, rawBody: "{kaputt" });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error.code, "SCHEMA");
+  });
+});
+
+test("PUT: PostgREST nicht erreichbar -> 502 NETWORK", async () => {
+  const down = async () => {
+    throw new Error("down");
+  };
+  await withService(
+    [],
+    async (port) => {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 502);
+      assert.equal(res.body.error.code, "NETWORK");
+    },
+    down
+  );
+});
+
+// ---------------------------------------------------------------- Zutaten-Wuensche
+
+test("POST /api/ingredient-requests: speichert fuer den JWT-User, Admin nicht noetig", async () => {
+  await withService([], async (port, store) => {
+    const res = await request(port, "POST", "/api/ingredient-requests", {
+      token: TOKEN_ALICE,
+      body: { name: "  Quinoa  ", note: "gern als Trockenware", requested_by: BOB },
+    });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.ok, true);
+    assert.equal(store.requests.length, 1);
+    assert.equal(store.requests[0].requested_by, ALICE, "requested_by kommt aus dem JWT");
+    assert.equal(store.requests[0].name, "Quinoa");
+    assert.equal(store.requests[0].note, "gern als Trockenware");
+    assert.equal(res.body.request.id, store.requests[0].id);
+  });
+});
+
+test("ingredient-requests: note ist optional, leere note wird null", async () => {
+  await withService([], async (port, store) => {
+    for (const note of [undefined, null, "   "]) {
+      const res = await request(port, "POST", "/api/ingredient-requests", {
+        token: TOKEN_ALICE,
+        body: { name: "Quinoa", note },
+      });
+      assert.equal(res.status, 201);
+    }
+    assert.ok(store.requests.every((r) => r.note === null));
+  });
+});
+
+test("ingredient-requests: Grenzen -> 422 mit details, nichts gespeichert", async () => {
+  await withService([], async (port, store) => {
+    const cases = [
+      ["name", {}],
+      ["name", { name: "   " }],
+      ["name", { name: 42 }],
+      ["name", { name: "x".repeat(101) }],
+      ["note", { name: "Quinoa", note: "y".repeat(301) }],
+      ["note", { name: "Quinoa", note: 7 }],
+    ];
+    for (const [field, body] of cases) {
+      const res = await request(port, "POST", "/api/ingredient-requests", { token: TOKEN_ALICE, body });
+      assert.equal(res.status, 422, JSON.stringify(body));
+      assert.equal(res.body.error.code, "VALIDATION");
+      assert.ok(res.body.error.details[field], field);
+    }
+    assert.equal(store.requests.length, 0);
+
+    const edge = await request(port, "POST", "/api/ingredient-requests", {
+      token: TOKEN_ALICE,
+      body: { name: "x".repeat(100), note: "y".repeat(300) },
+    });
+    assert.equal(edge.status, 201);
+  });
+});
+
+test("ingredient-requests: der 21. Wunsch wird abgelehnt, fremde zaehlen nicht", async () => {
+  const mine = Array.from({ length: 20 }, (_, i) => ({ id: `r${i}`, requested_by: ALICE, name: `Z${i}` }));
+  await withService(
+    [],
+    async (port, store) => {
+      const bob = await request(port, "POST", "/api/ingredient-requests", { token: TOKEN_BOB, body: { name: "Quinoa" } });
+      assert.equal(bob.status, 201);
+      const alice = await request(port, "POST", "/api/ingredient-requests", { token: TOKEN_ALICE, body: { name: "Quinoa" } });
+      assert.equal(alice.status, 409);
+      assert.equal(alice.body.error.code, "VALIDATION");
+      assert.ok(alice.body.error.details.requests);
+      assert.equal(store.requests.filter((r) => r.requested_by === ALICE).length, 20);
+    },
+    undefined,
+    { requests: mine }
+  );
+});
+
+test("ingredient-requests: ungueltiger Body -> 400, PostgREST down -> 502", async () => {
+  await withService([], async (port) => {
+    const res = await request(port, "POST", "/api/ingredient-requests", { token: TOKEN_ALICE, rawBody: "{kaputt" });
+    assert.equal(res.status, 400);
+    assert.equal(res.body.error.code, "SCHEMA");
+  });
+  const down = async () => {
+    throw new Error("down");
+  };
+  await withService(
+    [],
+    async (port) => {
+      const res = await request(port, "POST", "/api/ingredient-requests", { token: TOKEN_ALICE, body: { name: "Quinoa" } });
+      assert.equal(res.status, 502);
+      assert.equal(res.body.error.code, "NETWORK");
+    },
+    down
+  );
 });
 
 test("PostgREST nicht erreichbar -> 502 NETWORK", async () => {

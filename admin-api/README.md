@@ -43,8 +43,22 @@ handle /api/ingredients* {
 }
 ```
 
-**Hinweis für Tony:** neues `admin-api`-Image deployen und diese zwei Caddy-Regeln
+Seit S1b kommt eine dritte Regel dazu (`/api/ingredients*` trifft `/api/ingredient-requests`
+**nicht**, der Pfad braucht eine eigene Zeile):
+
+```
+handle /api/ingredient-requests* {
+    reverse_proxy admin-api:3001
+}
+```
+
+**Hinweis für Tony (S1a):** neues `admin-api`-Image deployen und die zwei Caddy-Regeln
 eintragen. Keine Migration, keine neuen Env-Variablen.
+
+**Hinweis für Tony (S1b):** zuerst die Migrationen `0069` und `0070` einspielen (dbmate,
+beide idempotent), dann das neue `admin-api`-Image deployen und die Caddy-Regel
+`/api/ingredient-requests*` eintragen. Keine neuen Env-Variablen. Abnahmetest:
+`POST /api/ingredient-requests` ohne Token muss `401` liefern.
 
 **Vorgeschaltetes haproxy (apps01):** Dort muss `/api` ebenfalls in der ACL stehen,
 sonst landet `/api/*` im Frontend (SPA) statt bei `admin-api` — Caddy sieht die
@@ -68,7 +82,7 @@ die Endpunkte im Server erwarten den vollen `/admin/...`-Pfad in `req.url`.
 Alle Endpunkte außer `/admin/health` verlangen `Authorization: Bearer <JWT>`
 und prüfen `profiles_visible.is_admin`.
 
-### Rezept-Einreichung (`/api/*`, Fahrplan 25 S1a)
+### Rezept-Einreichung (`/api/*`, Fahrplan 25 S1a/S1b)
 
 Gültiges JWT (HS256, `aud`/`role` = `authenticated`) genügt, **Admin ist nicht nötig**.
 Der Dienst schreibt mit der Service-Rolle (`source=athlete`, `status=pending`,
@@ -80,14 +94,29 @@ und `diet_tags` werden **abgeleitet**, nie vom Client übernommen.
 | GET | `/api/ingredients?q=` | Zutaten-Suche (höchstens 20 Treffer, Groß/Klein und Umlaute egal), liefert Name, Kategorie, Einheiten |
 | POST | `/api/recipes/preview` | prüft und rechnet wie Einreichen, speichert nichts; liefert `nutrition`, `contains_tags`, `diet_tags`, `ingredients` (mit Kategorie) |
 | POST | `/api/recipes` | einreichen (201, `{ ok, recipe }`) |
+| PUT | `/api/recipes/:id` | eigenes `pending`-Rezept ersetzen (200, `{ ok, recipe }`); prüft und leitet wie POST ab, löscht **alle** Stimmen zum Rezept (S1-10) |
 | DELETE | `/api/recipes/:id` | eigenes `pending`-Rezept zurückziehen (Stimmen gehen per `ON DELETE CASCADE` mit) |
+| POST | `/api/ingredient-requests` | Zutaten-Wunsch, Body `{ name, note? }` (201, `{ ok, request }`) |
 
-Nicht in S1a: `PUT /api/recipes/:id` und `POST /api/ingredient-requests` (kommen in S1b
-mit der Migration). Grund für PUT: der Trigger `recipes_check_content_update` (0062)
-lehnt Inhaltsänderungen ab, wenn `auth.uid()` nicht der Einreicher ist — der Service-Key
-hat kein `sub`.
+`PUT` braucht Migration `0069`: der Trigger `recipes_check_content_update` (0062) lehnte
+Inhaltsänderungen ab, wenn `auth.uid()` nicht der Einreicher ist — der Service-Key hat kein
+`sub`. `0069` nimmt nur diese Einreicher-Prüfung für `service_role` aus; die Regel „Inhalt nur
+bei `pending`“ gilt weiter für alle Rollen. `POST /api/ingredient-requests` braucht `0070`
+(Tabelle `ingredient_requests`: Admin liest alle, Athlet nur die eigenen, kein UPDATE/DELETE
+für `authenticated`).
 
-Body für preview/POST: `{ title, meal_type[], servings, ingredients: [{ name, amount, unit }],
+Fehler bei `PUT`: `404 NO_DATA` für fremdes oder fehlendes Rezept (nichts über andere
+verraten), `409 VALIDATION` wenn nicht mehr `pending` (auch wenn der Admin zwischen Prüfen und
+Schreiben entscheidet), `422 VALIDATION` mit `details` je Feld. Die Stimmen werden erst **nach**
+dem erfolgreichen Schreiben gelöscht; scheitert das Löschen, ist der Inhalt neu und ein
+erneutes `PUT` räumt sie ab. Die direkte RLS-Sperre für Athleten-Writes auf `recipes` ist
+bewusst **nicht** Teil von S1b (Entscheidung S1-12, kommt nach S2).
+
+Wünsche: `name` 1 bis 100 Zeichen, `note` optional bis 300 (leer wird `null`), höchstens 20
+Wünsche je Athlet (409 `VALIDATION`, `details.requests`; zusätzlich harter Trigger in der DB).
+`requested_by` kommt immer aus dem JWT, nie aus dem Body.
+
+Body für preview/POST/PUT: `{ title, meal_type[], servings, ingredients: [{ name, amount, unit }],
 instructions: [{ text, timerSeconds? }], image_url? }`. Grenzen: höchstens 5 offene Rezepte
 je Athlet, 30 Zutaten, 20 Schritte, Titel 100, Schritt 500 Zeichen. `image_url` ist ein
 Storage-Pfad `<JWT-sub>/<datei>` im Bucket `recipe-images`. Unbekannte Zutat oder Einheit
