@@ -80,6 +80,10 @@ describe("splitFieldErrors", () => {
     expect(fields).toEqual({ title: ["Titel fehlt"] });
     expect(rest).toEqual(["Kalorien unplausibel", "zu viele"]);
   });
+  it("ersetzt den technischen Mahlzeit-Text durch einen verständlichen", () => {
+    const { fields } = splitFieldErrors({ meal_type: ["meal_type: mindestens einer aus breakfast, lunch, dinner, snack"] });
+    expect(fields).toEqual({ meal_type: ["Wähle mindestens eine Mahlzeit."] });
+  });
   it("verträgt fehlende details", () => {
     expect(splitFieldErrors(undefined)).toEqual({ fields: {}, rest: [] });
   });

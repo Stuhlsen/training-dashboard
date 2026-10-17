@@ -114,6 +114,17 @@ describe("RecipesView — Einreichen", () => {
     fireEvent.click(screen.getByRole("button", { name: "Formular schließen" }));
     expect(screen.getByRole("list", { name: "Rezepte" })).toBeTruthy();
   });
+
+  it("der Einstieg ins Formular fehlt auch bei leerer Bibliothek oder Ladefehler nicht", () => {
+    mockRecipes = [];
+    renderView();
+    expect(screen.getByRole("button", { name: "Rezept einreichen" })).toBeTruthy();
+    cleanup();
+    mockRecipes = [];
+    mockState = { isLoading: false, isError: true };
+    renderView();
+    expect(screen.getByRole("button", { name: "Rezept einreichen" })).toBeTruthy();
+  });
 });
 
 describe("RecipesView — Liste", () => {

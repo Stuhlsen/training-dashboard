@@ -88,6 +88,13 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   // Einreichen braucht den Rezeptpool nicht — früh zurück, vor Lade-/Fehlerzuständen
   if (submitting) return <RecipeSubmissionForm onClose={() => setSubmitting(false)} />;
 
+  // Einstieg ins Formular — in jedem Zustand erreichbar, auch wenn der Pool leer ist oder nicht lädt
+  const submitButton = (
+    <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={() => setSubmitting(true)}>
+      Rezept einreichen
+    </button>
+  );
+
   if (isLoading) return <p style={META_STYLE}>Lade …</p>;
 
   if (isError) {
@@ -97,9 +104,12 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
         <p role="alert" style={{ ...TEXT_STYLE, color: "var(--danger)" }}>
           Die Rezepte konnten nicht geladen werden.
         </p>
-        <button type="button" style={TAP_BUTTON_STYLE} onClick={() => void refetch()}>
-          Erneut versuchen
-        </button>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+          <button type="button" style={TAP_BUTTON_STYLE} onClick={() => void refetch()}>
+            Erneut versuchen
+          </button>
+          {submitButton}
+        </div>
       </GlassCard>
     );
   }
@@ -109,6 +119,7 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
       <GlassCard style={CARD_STYLE}>
         <h2 style={HEADING_STYLE}>Rezepte</h2>
         <p style={TEXT_STYLE}>Noch keine Rezepte vorhanden.</p>
+        {submitButton}
       </GlassCard>
     );
   }
@@ -117,11 +128,7 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
 
   return (
     <section aria-label="Rezepte">
-      <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 12px" }}>
-        <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={() => setSubmitting(true)}>
-          Rezept einreichen
-        </button>
-      </div>
+      <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 12px" }}>{submitButton}</div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "0 0 12px" }}>
         <input
           type="search"

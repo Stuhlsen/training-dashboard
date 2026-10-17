@@ -10,6 +10,8 @@
 /** Längste Bildkante nach der Verkleinerung im Browser (Q9). */
 export const PHOTO_MAX_EDGE = 1200;
 
+const MEAL_TYPE_MESSAGE = "Wähle mindestens eine Mahlzeit.";
+
 /** Formularfelder, für die der Server Fehler je Feld liefert. */
 export const FIELD_ORDER = ["title", "meal_type", "servings", "ingredients", "instructions", "image_url"];
 
@@ -90,7 +92,8 @@ export function splitFieldErrors(details) {
   const rest = [];
   for (const [key, messages] of Object.entries(details ?? {})) {
     const list = Array.isArray(messages) ? messages.map(String) : [];
-    if (FIELD_ORDER.includes(key)) fields[key] = list;
+    if (key === "meal_type") fields[key] = [MEAL_TYPE_MESSAGE]; // Servertext nennt die englischen Schlüssel
+    else if (FIELD_ORDER.includes(key)) fields[key] = list;
     else rest.push(...list);
   }
   return { fields, rest };
