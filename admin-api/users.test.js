@@ -1,6 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { listUsers, banUser, unbanUser, deleteUser, resendUserLink } = require("./users.js");
+const { listUsers, banUser, unbanUser, deleteUser, resendUserLink, setVerifiedAuthor } = require("./users.js");
 
 const ENV = {
   GOTRUE_INTERNAL_URL: "http://gotrue",
@@ -45,7 +45,7 @@ test("listUsers: liefert alle Rollen (kein role=eq.athlete-Filter mehr), inkl. r
     [
       "/profiles?",
       [
-        { id: "u1", display_name: "Stuhlsen", has_password: true, role: "athlete", is_admin: false, updated_at: "2026-09-01T00:00:00Z" },
+        { id: "u1", display_name: "Stuhlsen", has_password: true, role: "athlete", is_admin: false, is_verified_author: true, updated_at: "2026-09-01T00:00:00Z" },
         { id: "u2", display_name: "Coach", has_password: true, role: "coach", is_admin: true, updated_at: "2026-09-02T00:00:00Z" },
       ],
     ],
@@ -62,6 +62,7 @@ test("listUsers: liefert alle Rollen (kein role=eq.athlete-Filter mehr), inkl. r
       displayName: "Stuhlsen",
       role: "athlete",
       isAdmin: false,
+      isVerifiedAuthor: true,
       hasPassword: true,
       bannedUntil: null,
       lastSignInAt: "2026-09-10T08:00:00Z",
@@ -74,6 +75,7 @@ test("listUsers: liefert alle Rollen (kein role=eq.athlete-Filter mehr), inkl. r
       displayName: "Coach",
       role: "coach",
       isAdmin: true,
+      isVerifiedAuthor: false,
       hasPassword: true,
       bannedUntil: "2126-01-01T00:00:00Z",
       lastSignInAt: "2026-09-11T08:00:00Z",
@@ -336,4 +338,99 @@ test("resendUserLink: Audit-Insert mit HTTP 403 -> 502, kein generate_link", asy
   assert.match(result.error.message, /Audit-Log/);
   const genLinkCalls = calls.filter((c) => c.url.includes("generate_link"));
   assert.equal(genLinkCalls.length, 0);
+});
+
+// ---------------------------------------------------------------- Fahrplan 29 V2: verifizierte Autoren
+
+const TARGET = "33333333-3333-4333-8333-333333333333";
+
+/** Zeichnet alle Aufrufe auf; `overrides` ersetzt die Antwort einzelner Endpunkte. */
+function verifyFetch({ profileRows = [{ id: TARGET }], auditOk = true, patchOk = true, readOk = true } = {}) {
+  const calls = [];
+  const impl = async (url, options = {}) => {
+    calls.push({ url, method: options.method ?? "GET", options });
+    if (url.startsWith("http://postgrest/profiles?id=") && !options.method) {
+      return { ok: readOk, status: readOk ? 200 : 500, json: async () => profileRows };
+    }
+    if (url === "http://postgrest/admin_audit_log") {
+      return { ok: auditOk, status: auditOk ? 201 : 400, json: async () => ({}) };
+    }
+    if (url.startsWith("http://postgrest/profiles?id=") && options.method === "PATCH") {
+      return { ok: patchOk, status: patchOk ? 204 : 403, json: async () => null };
+    }
+    throw new Error(`unerwartete URL in Test: ${url}`);
+  };
+  return { impl, calls };
+}
+
+test("setVerifiedAuthor: schreibt zuerst das Audit-Log, setzt dann das Flag mit return=minimal", async () => {
+  const { impl, calls } = verifyFetch();
+  const result = await setVerifiedAuthor(TARGET, true, "admin-1", ENV, impl);
+  assert.deepEqual(result, { ok: true, isVerifiedAuthor: true });
+
+  const audit = calls.findIndex((c) => c.url === "http://postgrest/admin_audit_log");
+  const patch = calls.findIndex((c) => c.method === "PATCH");
+  assert.ok(audit >= 0 && patch > audit, "Audit-Log muss VOR der Aenderung geschrieben werden");
+
+  const auditBody = JSON.parse(calls[audit].options.body);
+  assert.equal(auditBody.actor_id, "admin-1");
+  assert.equal(auditBody.target_user_id, TARGET);
+  assert.equal(auditBody.action, "verify_author");
+  assert.deepEqual(auditBody.details, { isVerifiedAuthor: true });
+
+  assert.equal(calls[patch].url, `http://postgrest/profiles?id=eq.${TARGET}`);
+  assert.deepEqual(JSON.parse(calls[patch].options.body), { is_verified_author: true });
+  assert.equal(calls[patch].options.headers.Prefer, "return=minimal");
+  assert.equal(calls[patch].options.headers.apikey, "srv-key");
+});
+
+test("setVerifiedAuthor: Entzug schreibt unverify_author und setzt false", async () => {
+  const { impl, calls } = verifyFetch();
+  const result = await setVerifiedAuthor(TARGET, false, "admin-1", ENV, impl);
+  assert.deepEqual(result, { ok: true, isVerifiedAuthor: false });
+  const auditBody = JSON.parse(calls.find((c) => c.url === "http://postgrest/admin_audit_log").options.body);
+  assert.equal(auditBody.action, "unverify_author");
+  assert.deepEqual(JSON.parse(calls.find((c) => c.method === "PATCH").options.body), { is_verified_author: false });
+});
+
+test("setVerifiedAuthor: keine UUID -> 404 ohne jeden Aufruf (kein Filter-Einschleusen)", async () => {
+  for (const bad of ["u1", `${TARGET}&select=*`, "", null, undefined, 42]) {
+    const { impl, calls } = verifyFetch();
+    const result = await setVerifiedAuthor(bad, true, "admin-1", ENV, impl);
+    assert.equal(result.ok, false);
+    assert.equal(result.status, 404);
+    assert.equal(calls.length, 0, `Aufrufe fuer ${String(bad)}`);
+  }
+});
+
+test("setVerifiedAuthor: unbekanntes Profil -> 404, weder Audit-Log noch Aenderung", async () => {
+  const { impl, calls } = verifyFetch({ profileRows: [] });
+  const result = await setVerifiedAuthor(TARGET, true, "admin-1", ENV, impl);
+  assert.equal(result.status, 404);
+  assert.equal(result.error.code, "NO_DATA");
+  assert.equal(calls.some((c) => c.url === "http://postgrest/admin_audit_log" || c.method === "PATCH"), false);
+});
+
+test("setVerifiedAuthor: Audit-Log nicht schreibbar -> 502 und nichts wird geaendert", async () => {
+  const { impl, calls } = verifyFetch({ auditOk: false });
+  const result = await setVerifiedAuthor(TARGET, true, "admin-1", ENV, impl);
+  assert.equal(result.ok, false);
+  assert.equal(result.status, 502);
+  assert.match(result.error.message, /Audit-Log/);
+  assert.equal(calls.some((c) => c.method === "PATCH"), false);
+});
+
+test("setVerifiedAuthor: Fehler beim Setzen -> 502 HTTP; Lesefehler -> 502 NETWORK", async () => {
+  const patchFail = await setVerifiedAuthor(TARGET, true, "admin-1", ENV, verifyFetch({ patchOk: false }).impl);
+  assert.equal(patchFail.status, 502);
+  assert.equal(patchFail.error.code, "HTTP");
+
+  const readFail = await setVerifiedAuthor(TARGET, true, "admin-1", ENV, verifyFetch({ readOk: false }).impl);
+  assert.equal(readFail.status, 502);
+  assert.equal(readFail.error.code, "NETWORK");
+
+  const down = await setVerifiedAuthor(TARGET, true, "admin-1", ENV, async () => {
+    throw new Error("connection refused");
+  });
+  assert.equal(down.status, 502);
 });

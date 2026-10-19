@@ -77,6 +77,7 @@ die Endpunkte im Server erwarten den vollen `/admin/...`-Pfad in `req.url`.
 | POST | `/admin/invite` | legt Account an (Verhalten s. unten), Body `{ email, role?, isAdmin? }` |
 | GET | `/admin/users` | Nutzerliste |
 | POST | `/admin/users/:id/ban` \| `/unban` \| `/resend` | Account-Aktionen |
+| POST | `/admin/users/:id/verify-author` \| `/unverify-author` | Verifizierten Autor setzen/entziehen (Fahrplan 29), Antwort `{ ok, isVerifiedAuthor }` |
 | DELETE | `/admin/users/:id` | Account löschen, Body `{ confirmEmail }` |
 
 Alle Endpunkte außer `/admin/health` verlangen `Authorization: Bearer <JWT>`
@@ -125,6 +126,37 @@ ist ein Fehler, kein Raten.
 Fehler: `{ ok: false, error: { code, message } }`; Formularfehler (HTTP 422, bei zu vielen
 offenen Rezepten 409) haben Code `VALIDATION` und `error.details` je Feld
 (`{ feld: [meldung, …] }`).
+
+### Verifizierte Autoren (Fahrplan 29)
+
+Der Admin setzt `profiles.is_verified_author` über `POST /admin/users/:id/verify-author` bzw.
+`/unverify-author` (nur Admin, `GET /admin/users` liefert `isVerifiedAuthor`). Beide Aktionen
+stehen im `admin_audit_log` (`verify_author` / `unverify_author`); der Eintrag wird **vor** der
+Änderung geschrieben, ist er nicht schreibbar, passiert nichts (502). Die ID muss eine UUID sein
+(sonst 404), ein unbekanntes Profil ist 404. Das Flag wird mit `Prefer: return=minimal` gesetzt:
+der Dienst hat nur Spaltenrechte auf `profiles`.
+
+Wirkung auf die Rezept-Endpunkte (die Prüfung läuft bei **jedem** Aufruf neu, ein Entzug wirkt sofort):
+
+| Endpunkt | Nicht verifiziert | Verifiziert |
+|---|---|---|
+| `POST /api/recipes` | `pending`, höchstens 5 offene | sofort `approved`, kein Limit offener Rezepte |
+| `PUT /api/recipes/:id` | eigenes `pending` | eigenes `pending` **oder** `approved` (Status bleibt, Stimmen werden gelöscht) |
+| `DELETE /api/recipes/:id` | eigenes `pending` | eigenes `pending` **oder** `approved`, aber nicht, solange das Rezept in einem Essensplan liegt |
+
+Liegt ein freigegebenes Rezept in einem Essensplan (`meal_plan_entries.recipe_id` ist `on delete
+restrict`), antwortet `DELETE` mit `409 VALIDATION` und `details.in_meal_plans`; das gilt auch,
+wenn der Eintrag erst zwischen Prüfen und Löschen dazukommt. Ein `PUT`/`DELETE` auf ein
+freigegebenes Rezept ohne Verifizierung bleibt `409 VALIDATION` (ohne `details`), ein
+abgelehntes ebenfalls. Entzug (V-5): bereits freigegebene Rezepte bleiben `approved`, nur der
+Admin kann sie dann noch ändern.
+
+Rollout: Die Migrationen `0071` (Spalte, Trigger, RLS-Sperre) und `0072` (Audit-Aktionen) laufen
+beim Pod-Start im `migrate`-Container, im selben Release wie dieses Image (auf apps01 deployt
+ein Versions-Bump alle Container zusammen). Das Image braucht beide: ohne `0071` scheitert
+`GET /admin/users` (die Spalte fehlt), ohne `0072` lehnt das Verifizieren sauber mit 502 ab. Ein
+kurzes Fenster mit altem Schema ist also harmlos (nur der Admin-Bereich meldet einen Fehler),
+und es entsteht keine halbe Änderung.
 
 ### Build-Kontext = Repo-Wurzel
 
