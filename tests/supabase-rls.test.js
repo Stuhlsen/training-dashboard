@@ -37,6 +37,11 @@
    handelnde Person besitzt oder coacht. Eine echte Cross-Tenant-Isolation
    zwischen zwei ATHLETEN ist damit nicht abgedeckt.
 
+   Rezepte: seit 0071 (Fahrplan 29 V1, Sperre S1-12) schreiben Athleten `recipes`
+   nicht mehr direkt. Setup-Zeilen legt deshalb der Service-Key an
+   (insertRecipeSetup); die Tests, die den Athleten-Zugriff prüfen, nutzen weiter
+   den Athleten-Token und erwarten die Sperre.
+
    Aufräumen: jede Testzeile wird über `cleanupTasks` nachverfolgt und im
    after()-Hook wieder entfernt bzw. der Originalzustand (wellbeing_public,
    trainer_view_prefs) wiederhergestellt — s. Kopfkommentar-Anforderung
@@ -2949,6 +2954,36 @@ if (!HAS_CREDS) {
     return insert;
   }
 
+  /** Setup-Zeile: ein Athleten-Rezept (pending, submitted_by = Test-Athlet) über den Service-Key.
+   *  Seit 0071 dürfen Athleten selbst nicht mehr einfügen. `over` überschreibt Felder.
+   *  Ohne Service-Key liefert die Funktion ein nicht-ok-Ergebnis → der Aufrufer überspringt. */
+  async function insertRecipeSetup(over = {}) {
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return { ok: false, status: 0, data: null };
+    return insertRecipeRow(ENV.SUPABASE_SERVICE_ROLE_KEY, over);
+  }
+
+  /** Setzt profiles.is_verified_author (nur Service-Key) und stellt den Ausgangswert im Cleanup wieder her. */
+  async function setVerifiedAuthor(profileId, value) {
+    const before = await rest("GET", `profiles?id=eq.${profileId}&select=is_verified_author`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    const original = before.data?.[0]?.is_verified_author ?? false;
+    // return=minimal: der Dienst hat nur Spaltenrechte auf profiles, "return=representation"
+    // würde alle Spalten zurücklesen wollen und mit 42501 scheitern (gilt auch für admin-api).
+    cleanupTasks.push(async () => {
+      await rest("PATCH", `profiles?id=eq.${profileId}`, {
+        token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        body: { is_verified_author: original },
+        prefer: "return=minimal",
+      });
+    });
+    return rest("PATCH", `profiles?id=eq.${profileId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { is_verified_author: value },
+      prefer: "return=minimal",
+    });
+  }
+
   test("recipes: Tabelle ist lesbar (0062 eingespielt?)", async () => {
     const probe = await rest("GET", "recipes?select=id,title&limit=1", { token: athlete.token });
     // Status 404/Relation does not exist = Migration fehlt in dashboard-dev
@@ -2994,7 +3029,7 @@ if (!HAS_CREDS) {
 
     // Drei Rezepte anlegen: pending (eigenes), approved (via service_role),
     // rejected (via service_role)
-    const pending = await insertRecipeRow(trainer.token, { submitted_by: trainer.userId });
+    const pending = await insertRecipeSetup({ submitted_by: trainer.userId });
     assert.equal(pending.ok, true, `pending-Rezept anlegen: ${JSON.stringify(pending.data)}`);
     const pendingId = pending.data[0].id;
     cleanupTasks.push(async () => {
@@ -3108,7 +3143,7 @@ if (!HAS_CREDS) {
     //
     // Loesung: eigenes pending-Rezept, dann status per service_role auf
     // rejected setzen + rejection_reason hinzufuegen.
-    const ownPending = await insertRecipeRow(athlete.token, { title: "RLS-Test-Rejected-By-Me" });
+    const ownPending = await insertRecipeSetup({ title: "RLS-Test-Rejected-By-Me" });
     if (!ownPending.ok)
       return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen — Test uebersprungen");
     const ownId = ownPending.data[0].id;
@@ -3148,16 +3183,18 @@ if (!HAS_CREDS) {
     assert.equal(ownRejected.data[0].rejection_reason, "RLS-Test: Ablehnungsgrund sichtbar?");
   });
 
-  test("recipes: Athlet INSERT valid (source=athlete, status=pending, submitted_by=self)", async (t) => {
+  test("recipes: Athlet INSERT ist gesperrt, auch der früher gültige Fall (0071, S1-12)", async (t) => {
     if (recipesSkip()) return t.skip(recipesSkip());
-    const insert = await insertRecipeRow(athlete.token, { title: "RLS-Test-Insert-Valid" });
-    assert.equal(insert.ok, true, `Gültiger Insert fehlgeschlagen: ${JSON.stringify(insert.data)}`);
-    const id = insert.data[0].id;
-    cleanupTasks.push(async () => {
-      if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-        await rest("DELETE", `recipes?id=eq.${id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
-      }
-    });
+    // Früher gültig: source=athlete, status=pending, submitted_by=self. Seit 0071 gibt es keine
+    // INSERT-Policy für authenticated mehr — der einzige Schreibpfad ist der Dienst (admin-api).
+    const insert = await insertRecipeRow(athlete.token, { title: "RLS-Test-Insert-Gesperrt" });
+    assert.equal(insert.ok, false, "Direkter Athleten-Insert muss gesperrt sein (0071)");
+    assert.equal(insert.status, 403, `erwartet 403 (RLS), war ${insert.status}: ${JSON.stringify(insert.data)}`);
+    if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
+      cleanupTasks.push(async () => {
+        await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+      });
+    }
   });
 
   test("recipes: Athlet INSERT fails — status=approved (WITH CHECK)", async (t) => {
@@ -3223,28 +3260,24 @@ if (!HAS_CREDS) {
     }
   });
 
-  test("recipes: Athlet UPDATE content on own pending — OK", async (t) => {
+  test("recipes: Athlet UPDATE content on own pending — 0 rows (0071, S1-12: Änderung nur über den Dienst)", async (t) => {
     if (recipesSkip()) return t.skip(recipesSkip());
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Update-Content" });
-    assert.equal(own.ok, true);
+    const own = await insertRecipeSetup({ title: "RLS-Test-Update-Content" });
+    if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen (Service-Key fehlt?)");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
-      if (ENV.SUPABASE_SERVICE_ROLE_KEY) {
-        await rest("DELETE", `recipes?id=eq.${id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
-      }
+      await rest("DELETE", `recipes?id=eq.${id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
     });
 
-    // Submitter aendert title
+    // Früher durfte der Einreicher den Titel ändern. Seit 0071 fehlt die UPDATE-Policy:
+    // PostgREST liefert 200 mit leerer Liste (RLS blendet die Zeile aus), nichts ändert sich.
     const update = await rest("PATCH", `recipes?id=eq.${id}`, {
       token: athlete.token,
       body: { title: RECIPE_UPDATED_TITLE },
     });
-    assert.equal(update.ok, true);
-    assert.equal(
-      update.data?.[0]?.title,
-      RECIPE_UPDATED_TITLE,
-      "Submitter konnte title des eigenen pending nicht aendern"
-    );
+    assert.equal(update.data?.length ?? 0, 0, "Athlet darf den Inhalt nicht mehr direkt ändern (0071)");
+    const readBack = await rest("GET", `recipes?id=eq.${id}&select=title`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    assert.equal(readBack.data?.[0]?.title, "RLS-Test-Update-Content", "Titel darf unverändert sein");
   });
 
   test("recipes: Athlet UPDATE content on foreign pending — 0 rows (RLS)", async (t) => {
@@ -3298,7 +3331,7 @@ if (!HAS_CREDS) {
 
   test("recipes: Nicht-Admin UPDATE status — 0 rows (WITH CHECK / Trigger E16)", async (t) => {
     if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
-    const own = await insertRecipeRow(trainer.token, {
+    const own = await insertRecipeSetup({
       submitted_by: trainer.userId,
       title: "RLS-Test-Update-Status",
     });
@@ -3313,20 +3346,24 @@ if (!HAS_CREDS) {
     // Athlet versucht status auf approved zu setzen
     // E16-Trigger blockt — da der Trigger VOR dem RLS-Using-Check feuert,
     // ist das ein harter Fehler (42501), kein stilles 0-Rows.
+    // Seit 0071 gibt es für Athleten keine UPDATE-Policy mehr: RLS blendet die Zeile aus
+    // (200 mit leerer Liste), der Trigger wird gar nicht erst erreicht. Entscheidend bleibt:
+    // der Status ändert sich nicht.
     const updateStatus = await rest("PATCH", `recipes?id=eq.${id}`, {
       token: trainer.token,
       body: { status: "approved" },
     });
-    assert.equal(
-      updateStatus.ok,
-      false,
-      "Athlet konnte status am eigenen pending setzen — E16-Trigger greift nicht"
+    assert.ok(
+      !updateStatus.ok || (updateStatus.data?.length ?? 0) === 0,
+      "Athlet konnte status am eigenen pending setzen"
     );
+    const readBack = await rest("GET", `recipes?id=eq.${id}&select=status`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    assert.equal(readBack.data?.[0]?.status, "pending", "Status muss pending bleiben");
   });
 
   test("recipes: Nicht-Admin UPDATE rejection_reason — 0 rows (Trigger E16, Review Finding 1)", async (t) => {
     if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
-    const own = await insertRecipeRow(trainer.token, {
+    const own = await insertRecipeSetup({
       submitted_by: trainer.userId,
       title: "RLS-Test-Update-Rejection",
     });
@@ -3341,15 +3378,17 @@ if (!HAS_CREDS) {
     // Athlet versucht rejection_reason zu setzen
     // E16-Trigger blockt mit Exception (42501) — rejection_reason darf
     // nicht durch Athlet gesetzt werden, auch nicht am eigenen pending.
+    // Seit 0071 greift schon die RLS (keine UPDATE-Policy für Athleten): leere Liste statt Trigger-Fehler.
     const updateReason = await rest("PATCH", `recipes?id=eq.${id}`, {
       token: trainer.token,
       body: { rejection_reason: "Eigenmaechtig" },
     });
-    assert.equal(
-      updateReason.ok,
-      false,
-      "Athlet konnte rejection_reason am eigenen pending setzen — E16-Trigger greift nicht"
+    assert.ok(
+      !updateReason.ok || (updateReason.data?.length ?? 0) === 0,
+      "Athlet konnte rejection_reason am eigenen pending setzen"
     );
+    const readBack = await rest("GET", `recipes?id=eq.${id}&select=rejection_reason`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    assert.equal(readBack.data?.[0]?.rejection_reason ?? null, null, "rejection_reason muss leer bleiben");
   });
 
   test("recipes: Athlet UPDATE content after approval blocked (E18 Trigger, race condition edge case #16)", async (t) => {
@@ -3367,7 +3406,7 @@ if (!HAS_CREDS) {
     // content nicht aendern, auch wenn es sein eigenes waere (nach approval
     // blockt E18). Deshalb Rezept ueber service_role auf pending setzen,
     // dann service_role approved, dann Athlet versucht content-Edit.
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-E18" });
+    const own = await insertRecipeSetup({ title: "RLS-Test-E18" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -3412,7 +3451,7 @@ if (!HAS_CREDS) {
     // moeglich ist. Da kein Athlet-Admin-Account in den Test-Credentials
     // existiert, wird service_role als Stellvertreter genutzt (RLS-Bypass).
     if (recipesSkip()) return t.skip(recipesSkip());
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-Admin-Status" });
+    const own = await insertRecipeSetup({ title: "RLS-Test-Admin-Status" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -3464,7 +3503,7 @@ if (!HAS_CREDS) {
 
   test("recipes: Nicht-Admin DELETE — 0 rows (admin-only)", async (t) => {
     if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
-    const own = await insertRecipeRow(trainer.token, {
+    const own = await insertRecipeSetup({
       submitted_by: trainer.userId,
       title: "RLS-Test-Delete",
     });
@@ -4307,7 +4346,7 @@ if (!HAS_CREDS) {
     if (!recipeVotesTableReady || !recipesTableReady)
       return t.skip("recipes/recipe_votes nicht lesbar — Migration fehlt");
     if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
-    const recipe = await insertRecipeRow(athlete.token, { title: "RLS-Test-Self-Vote" });
+    const recipe = await insertRecipeSetup({ title: "RLS-Test-Self-Vote" });
     assert.equal(recipe.ok, true, `Rezept anlegen: ${JSON.stringify(recipe.data)}`);
     const recipeId = recipe.data[0].id;
     // Rezept-Löschung räumt die Votes per ON DELETE CASCADE mit auf
@@ -4448,7 +4487,7 @@ if (!HAS_CREDS) {
   test("recipes: service_role ändert Inhalt eines fremden pending-Rezepts (0069), nach Freigabe weiter gesperrt (E18)", async (t) => {
     if (recipesSeedSkip()) return t.skip(recipesSeedSkip());
     const service = ENV.SUPABASE_SERVICE_ROLE_KEY;
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-0069" });
+    const own = await insertRecipeSetup({ title: "RLS-Test-0069" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -4485,7 +4524,7 @@ if (!HAS_CREDS) {
     if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
     if (!ENV.SUPABASE_SERVICE_ROLE_KEY)
       return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
-    const own = await insertRecipeRow(athlete.token, { title: "RLS-Test-0069-fremd" });
+    const own = await insertRecipeSetup({ title: "RLS-Test-0069-fremd" });
     if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
@@ -4500,6 +4539,181 @@ if (!HAS_CREDS) {
       token: ENV.SUPABASE_SERVICE_ROLE_KEY,
     });
     assert.equal(read.data?.[0]?.title, "RLS-Test-0069-fremd");
+  });
+
+  // --- 18. verifizierte Autoren + RLS-Sperre (0071, Fahrplan 29 V1) -------
+  // Geprüft: das Flag setzt nur der Dienst; die Sofort-Freigabe (approved beim Insert) und das
+  // Ändern freigegebener Rezepte gehen nur über den Dienst UND nur für (noch) verifizierte
+  // Autoren; Athleten bleiben überall gesperrt; die Hilfsfunktion ruft nur der Dienst auf.
+  // Voraussetzung: SUPABASE_SERVICE_ROLE_KEY. Das Flag des Test-Athleten wird im Cleanup
+  // auf den Ausgangswert zurückgesetzt.
+
+  let verifiedColumnReady = false;
+
+  test("verified-author: Spalte vorhanden (0071 eingespielt?)", async () => {
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return;
+    const probe = await rest("GET", `profiles?id=eq.${athlete.userId}&select=is_verified_author`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    verifiedColumnReady = probe.ok;
+  });
+
+  const verifiedSkip = () => {
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return "SUPABASE_SERVICE_ROLE_KEY fehlt in .env";
+    if (recipesSkip()) return recipesSkip();
+    if (!verifiedColumnReady) return "profiles.is_verified_author nicht lesbar — Migration 0071 vermutlich noch nicht eingespielt";
+    return false;
+  };
+
+  const SERVICE = () => ({ token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+  const deleteRecipeLater = (id) =>
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?id=eq.${id}`, SERVICE());
+    });
+
+  test("verified-author: Athlet kann das Flag weder setzen noch an der Basistabelle lesen", async (t) => {
+    if (verifiedSkip()) return t.skip(verifiedSkip());
+    const original = (
+      await rest("GET", `profiles?id=eq.${athlete.userId}&select=is_verified_author`, SERVICE())
+    ).data?.[0]?.is_verified_author;
+
+    const set = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { is_verified_author: true },
+    });
+    assert.equal(set.ok, false, `Setzen muss an den Spaltenrechten scheitern: ${JSON.stringify(set.data)}`);
+    const read = await rest("GET", `profiles?id=eq.${athlete.userId}&select=is_verified_author`, {
+      token: athlete.token,
+    });
+    assert.equal(read.ok, false, "Basistabelle: kein Select-Recht auf die Spalte für authenticated");
+
+    const after = await rest("GET", `profiles?id=eq.${athlete.userId}&select=is_verified_author`, SERVICE());
+    assert.equal(after.data?.[0]?.is_verified_author, original, "Flag darf sich nicht geändert haben");
+  });
+
+  test("verified-author: Athlet liest den eigenen Status über profiles_visible, der Coach den seiner Athleten, anon nichts", async (t) => {
+    if (verifiedSkip()) return t.skip(verifiedSkip());
+    const set = await setVerifiedAuthor(athlete.userId, true);
+    assert.equal(set.ok, true, `service_role setzt das Flag: ${JSON.stringify(set.data)}`);
+
+    const own = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`, {
+      token: athlete.token,
+    });
+    assert.equal(own.data?.[0]?.is_verified_author, true, "Athlet sieht den eigenen Status");
+
+    if (coachLinkOk) {
+      const viaCoach = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`, {
+        token: trainer.token,
+      });
+      assert.equal(viaCoach.data?.[0]?.is_verified_author, true, "Coach sieht den Status seines Athleten");
+    }
+
+    const anon = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`, {
+      token: null,
+    });
+    assert.equal(anon.ok, false, "anon hat keinen Zugriff auf profiles_visible");
+  });
+
+  test("verified-author: die Hilfsfunktion is_verified_author() ruft nur der Dienst auf", async (t) => {
+    if (verifiedSkip()) return t.skip(verifiedSkip());
+    const body = { p_profile_id: athlete.userId };
+    const asAthlete = await rest("POST", "rpc/is_verified_author", { token: athlete.token, body });
+    assert.equal(asAthlete.ok, false, "authenticated darf die Funktion nicht aufrufen");
+    const asAnon = await rest("POST", "rpc/is_verified_author", { token: null, body });
+    assert.equal(asAnon.ok, false, "anon darf die Funktion nicht aufrufen");
+    const asService = await rest("POST", "rpc/is_verified_author", { ...SERVICE(), body });
+    assert.equal(asService.ok, true, `Dienst ruft sie auf: ${JSON.stringify(asService.data)}`);
+    assert.equal(typeof asService.data, "boolean");
+  });
+
+  test("verified-author: Nicht-Verifizierter — der Dienst darf approved NICHT einfügen, pending schon", async (t) => {
+    if (verifiedSkip()) return t.skip(verifiedSkip());
+    await setVerifiedAuthor(athlete.userId, false);
+
+    const approved = await insertRecipeSetup({ title: "RLS-Test-0071-Nicht-Verifiziert", status: "approved" });
+    if (approved.ok) deleteRecipeLater(approved.data[0].id);
+    assert.equal(approved.ok, false, "Sofort-Freigabe nur für verifizierte Autoren (Trigger)");
+    assert.match(JSON.stringify(approved.data), /status = 'pending'/, "Fehlertext des Triggers erwartet");
+
+    const pending = await insertRecipeSetup({ title: "RLS-Test-0071-Pending" });
+    assert.equal(pending.ok, true, `pending bleibt möglich: ${JSON.stringify(pending.data)}`);
+    deleteRecipeLater(pending.data[0].id);
+    assert.equal(pending.data[0].status, "pending");
+  });
+
+  test("verified-author: Verifizierter — der Dienst fügt sofort approved ein, alle Athleten lesen es", async (t) => {
+    if (verifiedSkip()) return t.skip(verifiedSkip());
+    await setVerifiedAuthor(athlete.userId, true);
+
+    const created = await insertRecipeSetup({ title: "RLS-Test-0071-Sofort-Freigabe", status: "approved" });
+    assert.equal(created.ok, true, `Sofort-Freigabe für Verifizierte: ${JSON.stringify(created.data)}`);
+    const id = created.data[0].id;
+    deleteRecipeLater(id);
+    assert.equal(created.data[0].status, "approved");
+
+    const seenByTrainer = await rest("GET", `recipes?id=eq.${id}&select=status`, { token: trainer.token });
+    assert.equal(seenByTrainer.data?.[0]?.status, "approved", "Freigegebenes Rezept ist für alle lesbar");
+  });
+
+  test("verified-author: Ändern eines approved-Rezepts nur Dienst + verifiziert; Athlet nie; nach Entzug wieder gesperrt (E18)", async (t) => {
+    if (verifiedSkip()) return t.skip(verifiedSkip());
+    await setVerifiedAuthor(athlete.userId, true);
+    const created = await insertRecipeSetup({ title: "RLS-Test-0071-Aendern", status: "approved" });
+    assert.equal(created.ok, true, JSON.stringify(created.data));
+    const id = created.data[0].id;
+    deleteRecipeLater(id);
+
+    const byService = await rest("PATCH", `recipes?id=eq.${id}`, {
+      ...SERVICE(),
+      body: { title: "RLS-Test-0071-Geaendert" },
+    });
+    assert.equal(byService.ok, true, `Dienst ändert das Rezept eines Verifizierten: ${JSON.stringify(byService.data)}`);
+    assert.equal(byService.data?.[0]?.title, "RLS-Test-0071-Geaendert");
+    assert.equal(byService.data?.[0]?.status, "approved", "Status bleibt freigegeben");
+
+    const byAthlete = await rest("PATCH", `recipes?id=eq.${id}`, {
+      token: athlete.token,
+      body: { title: "RLS-Test-0071-Athlet" },
+    });
+    assert.equal(byAthlete.data?.length ?? 0, 0, "Der Athlet selbst ändert nie direkt (keine UPDATE-Policy)");
+
+    // Entzug (V-5): das Rezept bleibt approved, ist aber für den Dienst wieder gesperrt
+    await setVerifiedAuthor(athlete.userId, false);
+    const afterRevoke = await rest("PATCH", `recipes?id=eq.${id}`, {
+      ...SERVICE(),
+      body: { title: "RLS-Test-0071-Nach-Entzug" },
+    });
+    assert.equal(afterRevoke.ok, false, "Nach dem Entzug greift E18 wieder");
+    assert.match(JSON.stringify(afterRevoke.data), /E18/);
+
+    const readBack = await rest("GET", `recipes?id=eq.${id}&select=title,status`, SERVICE());
+    assert.equal(readBack.data?.[0]?.title, "RLS-Test-0071-Geaendert");
+    assert.equal(readBack.data?.[0]?.status, "approved", "Das Rezept bleibt nach dem Entzug freigegeben");
+  });
+
+  test("verified-author: Rezept ohne Einreicher (Seed, source=own) bleibt auch für den Dienst unveränderlich", async (t) => {
+    if (verifiedSkip()) return t.skip(verifiedSkip());
+    await setVerifiedAuthor(athlete.userId, true); // irrelevant für Rezepte ohne submitted_by
+    const seed = await rest("POST", "recipes", {
+      ...SERVICE(),
+      body: {
+        source: "own",
+        status: "approved",
+        title: "RLS-Test-0071-Seed",
+        meal_type: ["lunch"],
+        servings: 1,
+        external_id: `rls-0071-${Date.now()}`,
+      },
+    });
+    assert.equal(seed.ok, true, JSON.stringify(seed.data));
+    const id = seed.data[0].id;
+    deleteRecipeLater(id);
+
+    const change = await rest("PATCH", `recipes?id=eq.${id}`, {
+      ...SERVICE(),
+      body: { title: "RLS-Test-0071-Seed-Geaendert" },
+    });
+    assert.equal(change.ok, false, "Seed-Rezepte bleiben nach der Freigabe unveränderlich (E18)");
   });
 
   // --- 17. ingredient_requests (0070, Fahrplan 25 S1b) --------------------------
