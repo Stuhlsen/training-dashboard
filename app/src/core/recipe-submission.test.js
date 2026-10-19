@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSubmissionBody,
+  draftFromRecipe,
   fitWithin,
+  formatAmount,
   openRecipesMessage,
   parseAmount,
   splitFieldErrors,
@@ -56,6 +58,49 @@ describe("buildSubmissionBody", () => {
     const copy = JSON.parse(JSON.stringify(draft));
     buildSubmissionBody(draft);
     expect(draft).toEqual(copy);
+  });
+});
+
+describe("formatAmount / draftFromRecipe", () => {
+  it("schreibt Zahlen mit Komma und höchstens zwei Nachkommastellen", () => {
+    expect(formatAmount(80)).toBe("80");
+    expect(formatAmount(80.5)).toBe("80,5");
+    expect(formatAmount(1.6666)).toBe("1,67");
+  });
+
+  const recipe = {
+    title: "Haferbrei",
+    servings: 2,
+    mealType: ["breakfast"],
+    ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "g", category: "Getreide" }],
+    instructions: [{ text: "Kochen", timerSeconds: 90 }, { text: "Servieren" }],
+  };
+
+  it("belegt das Formular aus dem gespeicherten Rezept vor", () => {
+    expect(draftFromRecipe(recipe)).toEqual({
+      title: "Haferbrei",
+      servings: "2",
+      mealTypes: ["breakfast"],
+      ingredients: [{ name: "Haferflocken", amount: "80,5", unit: "g" }],
+      steps: [
+        { text: "Kochen", timerMinutes: "1,5" },
+        { text: "Servieren", timerMinutes: "" },
+      ],
+    });
+  });
+
+  it("ergibt beim Zurückrechnen denselben Body (Rundreise)", () => {
+    const body = buildSubmissionBody(draftFromRecipe(recipe));
+    expect(body.ingredients).toEqual([{ name: "Haferflocken", amount: 80.5, unit: "g" }]);
+    expect(body.instructions).toEqual([{ text: "Kochen", timerSeconds: 90 }, { text: "Servieren" }]);
+    expect(body.servings).toBe(2);
+  });
+
+  it("verträgt ein Rezept ohne Zutaten/Schritte und lässt einen leeren Schritt stehen", () => {
+    const draft = draftFromRecipe({ title: "Leer", servings: 1, mealType: null, ingredients: null, instructions: null });
+    expect(draft.ingredients).toEqual([]);
+    expect(draft.mealTypes).toEqual([]);
+    expect(draft.steps).toEqual([{ text: "", timerMinutes: "" }]);
   });
 });
 

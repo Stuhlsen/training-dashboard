@@ -12,7 +12,7 @@ vi.mock("./client", () => ({
   isSupabaseConfigured: true,
 }));
 
-const { listRecipes } = await import("./recipes");
+const { listRecipes, listMySubmissions } = await import("./recipes");
 
 const ROW_DEFAULT = {
   id: "r1",
@@ -124,6 +124,41 @@ describe("listRecipes", () => {
     const result = await listRecipes({ status: "pending" });
     expect(result.ok).toBe(true);
     expect(filters).toContainEqual({ op: "eq", col: "status", val: "pending" });
+  });
+});
+
+describe("listMySubmissions", () => {
+  it("filtert auf den Einreicher, ohne Status-Filter, neueste zuerst", async () => {
+    let calls: { filters: unknown[]; order?: unknown } = { filters: [] };
+    fakeClient.handlers.recipes = (c) => {
+      calls = c;
+      return { data: [{ ...ROW_DEFAULT, status: "pending", submitted_by: "u1" }], error: null };
+    };
+    const result = await listMySubmissions("u1");
+    expect(result.ok).toBe(true);
+    expect(calls.filters).toEqual([{ op: "eq", col: "submitted_by", val: "u1" }]);
+    expect(calls.order).toEqual({ col: "created_at", ascending: false });
+  });
+
+  it("liefert alle Status samt Ablehnungsgrund gemappt", async () => {
+    fakeClient.handlers.recipes = () => ({
+      data: [
+        { ...ROW_DEFAULT, id: "a", status: "pending" },
+        { ...ROW_DEFAULT, id: "b", status: "rejected", rejection_reason: "zu einfach" },
+      ],
+      error: null,
+    });
+    const result = await listMySubmissions("u1");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.recipes.map((r) => r.status)).toEqual(["pending", "rejected"]);
+      expect(result.recipes[1].rejectionReason).toBe("zu einfach");
+    }
+  });
+
+  it("meldet einen DB-Fehler als Result", async () => {
+    fakeClient.handlers.recipes = () => ({ data: null, error: { message: "RLS verweigert" } });
+    expect(await listMySubmissions("u1")).toEqual({ ok: false, error: { code: "UNKNOWN", message: "RLS verweigert" } });
   });
 });
 

@@ -17,7 +17,9 @@ const PREVIEW = {
 
 const previewMock = vi.fn();
 const submitMock = vi.fn();
+const requestMock = vi.fn();
 let mockHits = [HIT];
+let mockUnits = new Map<string, string[]>();
 
 vi.mock("../../api/hooks/useRecipeSubmission", () => ({
   MIN_SEARCH_CHARS: 2,
@@ -27,6 +29,8 @@ vi.mock("../../api/hooks/useRecipeSubmission", () => ({
   },
   useRecipePreview: () => ({ preview: previewMock, isPending: false }),
   useSubmitRecipe: () => ({ submit: submitMock, isPending: false }),
+  useIngredientRequest: () => ({ request: requestMock, isPending: false }),
+  useIngredientUnits: () => mockUnits,
 }));
 
 class PhotoErrorMock extends Error {}
@@ -42,8 +46,11 @@ const onClose = vi.fn();
 beforeEach(() => {
   previewMock.mockReset();
   submitMock.mockReset();
+  requestMock.mockReset();
   onClose.mockReset();
   mockHits = [HIT];
+  mockUnits = new Map();
+  requestMock.mockResolvedValue({ ok: true, request: { id: "q1", name: "Quinoa" } });
   previewMock.mockResolvedValue(PREVIEW);
   submitMock.mockResolvedValue({ ok: true, recipe: { id: "r1", status: "pending", title: "Haferbrei" } });
   vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: () => "blob:x", revokeObjectURL: () => {} }));
@@ -174,5 +181,154 @@ describe("RecipeSubmissionForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
     expect(onClose).toHaveBeenCalled();
     expect(submitMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("RecipeSubmissionForm — Zutaten-Wunsch (S2b)", () => {
+  async function searchNothing() {
+    mockHits = [];
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "quinoa" } });
+    fireEvent.click(await screen.findByRole("button", { name: "Diese Zutat wünschen" }));
+  }
+
+  it("bietet bei 'keine Zutat gefunden' den Wunsch an, vorbelegt mit dem Suchtext", async () => {
+    await searchNothing();
+    expect((screen.getByLabelText("Name der Zutat") as HTMLInputElement).value).toBe("quinoa");
+  });
+
+  it("zeigt den Wunsch-Knopf nicht, solange es Treffer gibt", async () => {
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    fireEvent.change(screen.getByRole("combobox"), { target: { value: "hafer" } });
+    await screen.findByRole("option", { name: /Haferflocken/ });
+    expect(screen.queryByRole("button", { name: "Diese Zutat wünschen" })).toBeNull();
+  });
+
+  it("sendet Name und Hinweis, bestätigt und schließt", async () => {
+    await searchNothing();
+    fireEvent.change(screen.getByLabelText("Name der Zutat"), { target: { value: " Quinoa " } });
+    fireEvent.change(screen.getByLabelText("Hinweis (optional)"), { target: { value: "  Bio  " } });
+    fireEvent.click(screen.getByRole("button", { name: "Wunsch senden" }));
+    expect(await screen.findByText(/„Quinoa“ ist als Wunsch angekommen/)).toBeTruthy();
+    expect(requestMock).toHaveBeenCalledWith({ name: "Quinoa", note: "Bio" });
+    fireEvent.click(screen.getByRole("button", { name: "Schließen" }));
+    expect(screen.queryByLabelText("Name der Zutat")).toBeNull();
+  });
+
+  it("lässt den Hinweis weg, wenn er leer ist, und sendet mit Enter nur den Wunsch (nicht das Rezept)", async () => {
+    await searchNothing();
+    fireEvent.keyDown(screen.getByLabelText("Name der Zutat"), { key: "Enter" });
+    await waitFor(() => expect(requestMock).toHaveBeenCalledWith({ name: "quinoa" }));
+    expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  it("meldet das Limit von 20 Wünschen verständlich", async () => {
+    requestMock.mockResolvedValue({
+      ok: false,
+      error: { code: "VALIDATION", message: "x", details: { requests: ["hoechstens 20 Wuensche je Athlet"] } },
+    });
+    await searchNothing();
+    fireEvent.click(screen.getByRole("button", { name: "Wunsch senden" }));
+    expect(await screen.findByText(/schon 20 Wünsche offen/)).toBeTruthy();
+  });
+
+  it("zeigt Feldfehler am Namen und Netzwerkfehler in Klartext", async () => {
+    requestMock.mockResolvedValueOnce({
+      ok: false,
+      error: { code: "VALIDATION", message: "x", details: { name: ["Name fehlt"] } },
+    });
+    await searchNothing();
+    fireEvent.click(screen.getByRole("button", { name: "Wunsch senden" }));
+    expect(await screen.findByText("Name fehlt")).toBeTruthy();
+    expect(screen.getByLabelText("Name der Zutat").getAttribute("aria-invalid")).toBe("true");
+
+    requestMock.mockResolvedValueOnce({ ok: false, error: { code: "NETWORK", message: "Failed to fetch" } });
+    fireEvent.click(screen.getByRole("button", { name: "Wunsch senden" }));
+    expect(await screen.findByText(/Keine Verbindung zum Server/)).toBeTruthy();
+  });
+});
+
+describe("RecipeSubmissionForm — Bearbeiten (S2b)", () => {
+  const RECIPE = {
+    id: "r1",
+    title: "Haferbrei",
+    status: "pending",
+    mealType: ["breakfast"],
+    servings: 2,
+    ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "ml", category: "Getreide" }],
+    instructions: [{ text: "Kochen", timerSeconds: 300 }],
+    imageUrl: "u1/foto.webp",
+  } as unknown as import("../../api/types").Recipe;
+
+  it("belegt das Formular aus dem gespeicherten Rezept vor", () => {
+    mockUnits = new Map([["Haferflocken", ["g", "ml", "EL"]]]);
+    render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
+    expect(screen.getByRole("heading", { name: "Rezept bearbeiten" })).toBeTruthy();
+    expect((screen.getByLabelText("Titel") as HTMLInputElement).value).toBe("Haferbrei");
+    expect((screen.getByLabelText("Menge Haferflocken") as HTMLInputElement).value).toBe("80,5");
+    const unit = screen.getByLabelText("Einheit Haferflocken") as HTMLSelectElement;
+    expect(unit.value).toBe("ml");
+    expect([...unit.options].map((o) => o.value)).toEqual(["g", "ml", "EL"]);
+    expect((screen.getByLabelText("Schritt 1") as HTMLTextAreaElement).value).toBe("Kochen");
+    expect((screen.getByLabelText("Timer (Minuten, optional)") as HTMLInputElement).value).toBe("5");
+    expect((screen.getByRole("checkbox", { name: SLOT_LABELS.breakfast }) as HTMLInputElement).checked).toBe(true);
+    expect(screen.getByText(/bisherige Stimmen dazu gelöscht/)).toBeTruthy();
+  });
+
+  it("behält die gewählte Einheit, auch wenn die Einheitenliste noch nicht geladen ist", () => {
+    render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
+    expect((screen.getByLabelText("Einheit Haferflocken") as HTMLSelectElement).value).toBe("ml");
+  });
+
+  it("speichert per Update mit Rezept-ID und behält das bisherige Foto", async () => {
+    render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
+    expect(screen.getByText(/bisheriges Foto bleibt erhalten/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+    await waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
+    const [body, photo, options] = submitMock.mock.calls[0];
+    expect(body).toMatchObject({ title: "Haferbrei", servings: 2, ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "ml" }] });
+    expect(photo).toBeNull();
+    expect(options).toEqual({ recipeId: "r1", keepImagePath: "u1/foto.webp" });
+  });
+
+  it("entfernt das bisherige Foto auf Wunsch (kein Pfad wird mitgeschickt)", async () => {
+    render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Bisheriges Foto entfernen" }));
+    expect(screen.getByText(/Foto wird beim Speichern entfernt/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+    await waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
+    expect(submitMock.mock.calls[0][2]).toEqual({ recipeId: "r1", keepImagePath: null });
+  });
+
+  it("weist nach dem Speichern darauf hin, dass bisherige Stimmen gelöscht wurden", async () => {
+    render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+    expect(await screen.findByText(/Bisherige Stimmen zu diesem Rezept wurden gelöscht/)).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Änderungen gespeichert" })).toBeTruthy();
+  });
+
+  it("zeigt den Server-Fehler, wenn das Rezept inzwischen entschieden wurde (409)", async () => {
+    submitMock.mockResolvedValue({
+      ok: false,
+      error: { code: "VALIDATION", message: "nur offene Rezepte koennen geaendert werden" },
+    });
+    render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+    expect(await screen.findByText(/inzwischen entschieden und lässt sich nicht mehr ändern/)).toBeTruthy();
+    expect(screen.queryByText(/markierten Felder/)).toBeNull();
+  });
+
+  it("erklärt, wenn das Rezept inzwischen gelöscht wurde (404)", async () => {
+    submitMock.mockResolvedValue({ ok: false, error: { code: "NO_DATA", message: "Rezept nicht gefunden" } });
+    render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+    expect(await screen.findByText(/gibt es nicht mehr/)).toBeTruthy();
+  });
+
+  it("neues Rezept: keine Update-Optionen", async () => {
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    await waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
+    expect(submitMock.mock.calls[0][2]).toEqual({});
   });
 });

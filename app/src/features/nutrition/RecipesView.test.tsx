@@ -42,10 +42,22 @@ vi.mock("./CookingDialog", () => ({
 
 // Das Einreichformular hat eigene Tests (RecipeSubmissionForm.test.tsx)
 vi.mock("./RecipeSubmissionForm", () => ({
-  RecipeSubmissionForm: ({ onClose }: { onClose: () => void }) => (
+  RecipeSubmissionForm: ({ onClose, recipe }: { onClose: () => void; recipe?: { title: string } }) => (
     <div role="form" aria-label="Formular-Platzhalter">
+      {recipe ? `Bearbeite ${recipe.title}` : "Neues Rezept"}
       <button type="button" onClick={onClose}>
         Formular schließen
+      </button>
+    </div>
+  ),
+}));
+// "Meine Einreichungen" hat eigene Tests (MySubmissionsView.test.tsx)
+vi.mock("./MySubmissionsView", () => ({
+  MySubmissionsView: ({ onEdit }: { onEdit: (r: { id: string; title: string }) => void }) => (
+    <div>
+      Einreichungen-Platzhalter
+      <button type="button" onClick={() => onEdit({ id: "x", title: "Offenes Rezept" })}>
+        Platzhalter bearbeiten
       </button>
     </div>
   ),
@@ -124,6 +136,48 @@ describe("RecipesView — Einreichen", () => {
     mockState = { isLoading: false, isError: true };
     renderView();
     expect(screen.getByRole("button", { name: "Rezept einreichen" })).toBeTruthy();
+  });
+});
+
+describe("RecipesView — Meine Einreichungen (S2b)", () => {
+  it("der Umschalter wechselt zwischen allen Rezepten und den eigenen Einreichungen", () => {
+    renderView();
+    expect(screen.getByRole("button", { name: "Alle Rezepte" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Meine Einreichungen" }));
+    expect(screen.getByText(/Einreichungen-Platzhalter/)).toBeTruthy();
+    expect(screen.queryByRole("list", { name: "Rezepte" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Meine Einreichungen" }).getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(screen.getByRole("button", { name: "Alle Rezepte" }));
+    expect(screen.getByRole("list", { name: "Rezepte" })).toBeTruthy();
+  });
+
+  it("die eigenen Einreichungen warten nicht auf die Rezeptbibliothek", () => {
+    mockState = { isLoading: true, isError: false };
+    renderView();
+    // beim Laden noch keine Kopfzeile ...
+    expect(screen.queryByRole("button", { name: "Meine Einreichungen" })).toBeNull();
+    // ... aber sobald der Umschalter gewählt war, hängt die Ansicht nicht am Pool
+    cleanup();
+    mockState = { isLoading: false, isError: true };
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Meine Einreichungen" }));
+    expect(screen.getByText(/Einreichungen-Platzhalter/)).toBeTruthy();
+  });
+
+  it("'Bearbeiten' öffnet das Formular mit dem Rezept; Schließen führt zurück zu den Einreichungen", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Meine Einreichungen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Platzhalter bearbeiten" }));
+    expect(screen.getByText(/Bearbeite Offenes Rezept/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Formular schließen" }));
+    expect(screen.getByText(/Einreichungen-Platzhalter/)).toBeTruthy();
+  });
+
+  it("der Einreich-Knopf öffnet ein neues Formular auch aus den Einreichungen heraus", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Meine Einreichungen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    expect(screen.getByText(/Neues Rezept/)).toBeTruthy();
   });
 });
 

@@ -11,7 +11,7 @@ vi.mock("./supabase/client", () => ({
 }));
 vi.mock("./supabase/config", () => ({ getConfig: () => ({ projectUrl: "https://example.test" }) }));
 
-const { previewRecipe, searchIngredients, submitRecipe } = await import("./recipe-submission");
+const { createIngredientRequest, previewRecipe, searchIngredients, submitRecipe, updateRecipe, withdrawRecipe } = await import("./recipe-submission");
 
 const BODY = {
   title: "Haferbrei",
@@ -77,6 +77,48 @@ describe("recipe-submission API", () => {
   it("meldet NETWORK, wenn fetch wirft", async () => {
     fetchMock.mockRejectedValue(new Error("offline"));
     expect(await submitRecipe(BODY)).toMatchObject({ ok: false, error: { code: "NETWORK", message: "offline" } });
+  });
+
+  it("ändert per PUT auf die Rezept-ID (kodiert) mit Body", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { ok: true, recipe: { id: "r 1", status: "pending", title: "Haferbrei" } }));
+    await updateRecipe("r 1", BODY);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://example.test/api/recipes/r%201");
+    expect(init.method).toBe("PUT");
+    expect(JSON.parse(init.body)).toEqual(BODY);
+  });
+
+  it("zieht per DELETE zurück, ohne Body und ohne Content-Type", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { ok: true }));
+    expect(await withdrawRecipe("r1")).toEqual({ ok: true });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://example.test/api/recipes/r1");
+    expect(init.method).toBe("DELETE");
+    expect(init.body).toBeUndefined();
+    expect(init.headers["Content-Type"]).toBeUndefined();
+    expect(init.headers.Authorization).toBe("Bearer tok");
+  });
+
+  it("reicht 404 und 409 beim Ändern/Zurückziehen unverändert durch", async () => {
+    const notFound = { code: "NO_DATA", message: "Rezept nicht gefunden" };
+    fetchMock.mockResolvedValueOnce(jsonResponse(404, { ok: false, error: notFound }));
+    expect(await withdrawRecipe("x")).toEqual({ ok: false, error: notFound });
+    const notPending = { code: "VALIDATION", message: "nur offene Rezepte koennen geaendert werden" };
+    fetchMock.mockResolvedValueOnce(jsonResponse(409, { ok: false, error: notPending }));
+    expect(await updateRecipe("x", BODY)).toEqual({ ok: false, error: notPending });
+  });
+
+  it("schickt einen Zutaten-Wunsch per POST und reicht das Limit (409) durch", async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse(201, { ok: true, request: { id: "q1", name: "Quinoa" } }));
+    expect(await createIngredientRequest({ name: "Quinoa", note: "Bio" })).toMatchObject({ ok: true, request: { id: "q1" } });
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("https://example.test/api/ingredient-requests");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toEqual({ name: "Quinoa", note: "Bio" });
+
+    const limit = { code: "VALIDATION", message: "x", details: { requests: ["hoechstens 20 Wuensche je Athlet"] } };
+    fetchMock.mockResolvedValueOnce(jsonResponse(409, { ok: false, error: limit }));
+    expect(await createIngredientRequest({ name: "Hirse" })).toEqual({ ok: false, error: limit });
   });
 
   it("meldet UNKNOWN bei Antwort ohne JSON oder in fremdem Format", async () => {

@@ -65,6 +65,37 @@ export function buildSubmissionBody(draft, imagePath = null) {
 }
 
 /**
+ * Zahl → Eingabetext mit Komma ("80,5"); höchstens zwei Nachkommastellen.
+ * @param {number} n
+ * @returns {string}
+ */
+export function formatAmount(n) {
+  return String(Math.round(n * 100) / 100).replace(".", ",");
+}
+
+/**
+ * Gespeichertes Rezept → Formularstand fürs Bearbeiten. Umkehrung von
+ * buildSubmissionBody (Menge als Text, Timer in Minuten).
+ * @param {{ title?: string, servings?: number, mealType?: string[] | null,
+ *   ingredients?: { name: string, amount: number, unit: string }[] | null,
+ *   instructions?: { text: string, timerSeconds?: number }[] | null }} recipe
+ * @returns {SubmissionDraft}
+ */
+export function draftFromRecipe(recipe) {
+  const steps = (recipe.instructions ?? []).map((s) => ({
+    text: s.text,
+    timerMinutes: s.timerSeconds ? formatAmount(s.timerSeconds / 60) : "",
+  }));
+  return {
+    title: recipe.title ?? "",
+    servings: formatAmount(recipe.servings ?? 1),
+    mealTypes: [...(recipe.mealType ?? [])],
+    ingredients: (recipe.ingredients ?? []).map((i) => ({ name: i.name, amount: formatAmount(i.amount), unit: i.unit })),
+    steps: steps.length > 0 ? steps : [{ text: "", timerMinutes: "" }],
+  };
+}
+
+/**
  * Zielgröße bei Verkleinerung: längste Kante ≤ max, Seitenverhältnis bleibt,
  * kleinere Bilder werden nie vergrößert.
  * @param {number} width

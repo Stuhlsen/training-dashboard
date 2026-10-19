@@ -58,6 +58,27 @@ function toRecipe(row: RecipeRow): Recipe {
   };
 }
 
+/* ── listMySubmissions ──────────────────────────────────────── */
+
+/**
+ * Eigene Einreichungen des eingeloggten Profils in allen Status (neueste zuerst).
+ * Lesen darf der Einreicher eigene pending-, approved- und rejected-Rezepte (RLS).
+ * Fahrplan 25 S2b — Schreiben läuft über admin-api, nicht hier.
+ */
+export async function listMySubmissions(userId: string): Promise<Result<{ recipes: Recipe[] }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("recipes")
+    .select("*")
+    .eq("submitted_by", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, recipes: ((data as RecipeRow[]) || []).map(toRecipe) };
+}
+
 /* ── listRecipes ────────────────────────────────────────────── */
 
 /**
