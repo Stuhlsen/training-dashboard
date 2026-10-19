@@ -41,8 +41,20 @@ const validBody = () => ({
 // Minimaler PostgREST-Ersatz: genau die Aufrufe, die recipes.js macht. Jede
 // andere URL (z. B. profiles_visible = Admin-Check) wirft — so beweist ein
 // gruener Test, dass der Dienst keinen Admin voraussetzt.
-function fakePostgrest(initialRows = [], { votes = [], requests = [] } = {}) {
-  const store = { rows: [...initialRows], votes: [...votes], requests: [...requests], calls: [] };
+//
+// Fahrplan 29: `verified` (Set von Profil-IDs) spielt profiles.is_verified_author, `plans` (Liste
+// von Rezept-IDs) meal_plan_entries. Der Fake spiegelt die Regeln aus 0071/0064: Sofort-Freigabe
+// beim Insert und Inhaltsaenderung bei approved nur fuer verifizierte Einreicher, Loeschen eines
+// Rezepts in einem Essensplan scheitert mit 409 (FK restrict).
+function fakePostgrest(initialRows = [], { votes = [], requests = [], verified = [], plans = [] } = {}) {
+  const store = {
+    rows: [...initialRows],
+    votes: [...votes],
+    requests: [...requests],
+    verified: new Set(verified),
+    plans: [...plans],
+    calls: [],
+  };
   const fetchImpl = async (url, options = {}) => {
     const u = new URL(url);
     const method = options.method ?? "GET";
@@ -56,6 +68,14 @@ function fakePostgrest(initialRows = [], { votes = [], requests = [] } = {}) {
       if (method !== "DELETE") throw new Error(`unerwartete Methode: ${method}`);
       store.votes = store.votes.filter((v) => v.recipe_id !== eq("recipe_id"));
       return reply(204, null);
+    }
+    if (u.pathname === "/profiles") {
+      if (method !== "GET") throw new Error(`unerwartete Methode: ${method}`);
+      return reply(200, [{ is_verified_author: store.verified.has(eq("id")) }]);
+    }
+    if (u.pathname === "/meal_plan_entries") {
+      if (method !== "GET") throw new Error(`unerwartete Methode: ${method}`);
+      return reply(200, store.plans.filter((recipeId) => recipeId === eq("recipe_id")).map((recipe_id) => ({ id: "plan", recipe_id })));
     }
     if (u.pathname === "/ingredient_requests") {
       if (method === "GET") {
@@ -77,8 +97,11 @@ function fakePostgrest(initialRows = [], { votes = [], requests = [] } = {}) {
       (!q.has("status") || row.status === eq("status"));
 
     if (method === "PATCH") {
-      // Spiegelt Trigger 0069: Inhalt nur bei status=pending (hier schon durch den Filter).
+      // Spiegelt Trigger 0071: Inhalt bei approved nur fuer einen verifizierten Einreicher (E18).
       const hit = store.rows.filter(matches);
+      if (hit.some((row) => row.status !== "pending" && !store.verified.has(row.submitted_by))) {
+        return reply(400, { message: "E18: content fields can only be modified while recipe status = pending" });
+      }
       hit.forEach((row) => Object.assign(row, JSON.parse(options.body)));
       return reply(200, hit);
     }
@@ -88,8 +111,10 @@ function fakePostgrest(initialRows = [], { votes = [], requests = [] } = {}) {
     }
     if (method === "POST") {
       const row = JSON.parse(options.body);
-      // Spiegelt Constraint/Trigger aus 0060: athlete => pending + submitted_by.
-      if (row.source === "athlete" && (row.status !== "pending" || !row.submitted_by)) {
+      // Spiegelt Constraint/Trigger aus 0060 + 0071: athlete => pending + submitted_by; approved
+      // nur fuer einen verifizierten Einreicher.
+      const instantApproval = row.status === "approved" && store.verified.has(row.submitted_by);
+      if (row.source === "athlete" && ((row.status !== "pending" && !instantApproval) || !row.submitted_by)) {
         return reply(400, { message: "constraint" });
       }
       const saved = { id: crypto.randomUUID(), ...row };
@@ -97,6 +122,10 @@ function fakePostgrest(initialRows = [], { votes = [], requests = [] } = {}) {
       return reply(201, [saved]);
     }
     if (method === "DELETE") {
+      // Spiegelt meal_plan_entries.recipe_id on delete restrict (0064): 409 / 23503.
+      if (store.rows.some((r) => matches(r) && store.plans.includes(r.id))) {
+        return reply(409, { code: "23503", message: "violates foreign key constraint" });
+      }
       store.rows = store.rows.filter((r) => !matches(r));
       return reply(204, null);
     }
@@ -715,5 +744,241 @@ test("PostgREST nicht erreichbar -> 502 NETWORK", async () => {
       assert.equal(res.body.error.code, "NETWORK");
     },
     down
+  );
+});
+
+// ---------------------------------------------------------------- Fahrplan 29 V2: verifizierte Autoren
+
+const approvedRow = (id, owner, extra = {}) => ({ ...pendingRow(id, owner, extra), status: "approved" });
+const profileCalls = (store) => store.calls.filter((c) => c.url.includes("/profiles"));
+const planCalls = (store) => store.calls.filter((c) => c.url.includes("/meal_plan_entries"));
+
+test("POST: verifizierter Autor -> sofort approved, ohne Limit offener Rezepte", async () => {
+  const pending = Array.from({ length: 5 }, (_, i) => pendingRow(crypto.randomUUID(), ALICE, { title: `offen ${i}` }));
+  await withService(
+    pending,
+    async (port, store) => {
+      const res = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 201);
+      assert.equal(res.body.recipe.status, "approved");
+      assert.equal(res.body.recipe.submitted_by, ALICE);
+      assert.equal(store.rows.at(-1).status, "approved");
+      assert.equal(store.rows.length, 6, "kein Limit fuer Verifizierte");
+      assert.equal(profileCalls(store).length, 1);
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("POST: Nicht-Verifizierter bleibt pending und hat weiter das Limit", async () => {
+  await withService([], async (port, store) => {
+    const res = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body: validBody() });
+    assert.equal(res.status, 201);
+    assert.equal(res.body.recipe.status, "pending");
+    assert.equal(profileCalls(store).length, 1);
+  });
+});
+
+test("POST: die Verifizierung wird bei jedem Aufruf neu gelesen (Entzug wirkt sofort)", async () => {
+  await withService(
+    [],
+    async (port, store) => {
+      let res = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.body.recipe.status, "approved");
+      store.verified.delete(ALICE);
+      res = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.body.recipe.status, "pending");
+      assert.equal(store.rows[0].status, "approved", "das schon freigegebene Rezept bleibt freigegeben (V-5)");
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("POST: Verifizierung eines anderen Athleten gilt nicht", async () => {
+  await withService(
+    [],
+    async (port) => {
+      const res = await request(port, "POST", "/api/recipes", { token: TOKEN_BOB, body: validBody() });
+      assert.equal(res.body.recipe.status, "pending");
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("POST: Profil-Lesefehler -> 502, nichts gespeichert", async () => {
+  const fake = fakePostgrest([]);
+  const failing = async (url, options) => {
+    if (url.includes("/profiles")) return { ok: false, status: 500, json: async () => ({}) };
+    return fake.fetchImpl(url, options);
+  };
+  await withService(
+    [],
+    async (port) => {
+      const res = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 502);
+      assert.equal(fake.store.rows.length, 0);
+    },
+    failing
+  );
+});
+
+test("PUT: verifizierter Autor aendert sein freigegebenes Rezept; Status bleibt, Stimmen sind weg", async () => {
+  await withService(
+    [approvedRow(RECIPE_ID, ALICE, { title: "alt" })],
+    async (port, store) => {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.recipe.status, "approved");
+      assert.equal(res.body.recipe.title, "Haferbrei");
+      const patch = store.calls.find((c) => c.method === "PATCH");
+      assert.match(patch.url, /status=eq\.approved/, "Filter wiederholt den geprueften Status");
+      assert.equal(store.votes.length, 0, "alle Stimmen geloescht (S1-10)");
+    },
+    undefined,
+    { verified: [ALICE], votes: [{ recipe_id: RECIPE_ID, athlete_id: BOB, vote: "up" }] }
+  );
+});
+
+test("PUT: freigegebenes Rezept eines Nicht-Verifizierten -> 409, nichts geschrieben", async () => {
+  await withService(
+    [approvedRow(RECIPE_ID, ALICE, { title: "alt" })],
+    async (port, store) => {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 409);
+      assert.equal(res.body.error.code, "VALIDATION");
+      assert.equal(store.rows[0].title, "alt");
+      assert.equal(store.calls.some((c) => c.method === "PATCH"), false);
+      assert.equal(store.votes.length, 1, "Stimmen bleiben");
+    },
+    undefined,
+    { votes: [{ recipe_id: RECIPE_ID, athlete_id: BOB, vote: "up" }] }
+  );
+});
+
+test("PUT: freigegebenes Rezept eines anderen -> 404, auch wenn der Aufrufer verifiziert ist", async () => {
+  await withService(
+    [approvedRow(RECIPE_ID, BOB)],
+    async (port, store) => {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 404);
+      assert.equal(store.calls.some((c) => c.method === "PATCH"), false);
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("PUT: abgelehntes Rezept bleibt auch fuer Verifizierte gesperrt (409)", async () => {
+  await withService(
+    [{ ...pendingRow(RECIPE_ID, ALICE), status: "rejected" }],
+    async (port) => {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 409);
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("PUT: offenes Rezept eines Verifizierten geht weiter wie bisher (pending, ohne Profil-Aufruf)", async () => {
+  await withService(
+    [pendingRow(RECIPE_ID, ALICE)],
+    async (port, store) => {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: validBody() });
+      assert.equal(res.status, 200);
+      assert.equal(res.body.recipe.status, "pending");
+      assert.match(store.calls.find((c) => c.method === "PATCH").url, /status=eq\.pending/);
+      assert.equal(profileCalls(store).length, 0);
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("DELETE: verifizierter Autor zieht sein freigegebenes Rezept zurueck, wenn es in keinem Plan liegt", async () => {
+  await withService(
+    [approvedRow(RECIPE_ID, ALICE)],
+    async (port, store) => {
+      const res = await request(port, "DELETE", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE });
+      assert.equal(res.status, 200);
+      assert.equal(store.rows.length, 0);
+      assert.equal(planCalls(store).length, 1, "Plan-Pruefung vor dem Loeschen");
+      assert.match(store.calls.find((c) => c.method === "DELETE").url, /status=eq\.approved/);
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("DELETE: freigegebenes Rezept in einem Essensplan -> 409 mit details.in_meal_plans, nichts geloescht", async () => {
+  await withService(
+    [approvedRow(RECIPE_ID, ALICE)],
+    async (port, store) => {
+      const res = await request(port, "DELETE", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE });
+      assert.equal(res.status, 409);
+      assert.equal(res.body.error.code, "VALIDATION");
+      assert.match(res.body.error.message, /Essensplaen/);
+      assert.deepEqual(res.body.error.details.in_meal_plans, [res.body.error.message]);
+      assert.equal(store.rows.length, 1);
+      assert.equal(store.calls.some((c) => c.method === "DELETE"), false, "kein Loesch-Versuch");
+    },
+    undefined,
+    { verified: [ALICE], plans: [RECIPE_ID] }
+  );
+});
+
+test("DELETE: Plan-Eintrag kommt zwischen Pruefen und Loeschen dazu -> FK-409 wird zur selben Meldung", async () => {
+  const inner = fakePostgrest([approvedRow(RECIPE_ID, ALICE)], { verified: [ALICE], plans: [RECIPE_ID] });
+  // Die Plan-Pruefung sieht noch nichts, das Loeschen scheitert dann am FK
+  const racy = async (url, options) =>
+    url.includes("/meal_plan_entries") ? { ok: true, status: 200, json: async () => [] } : inner.fetchImpl(url, options);
+  await withService(
+    [],
+    async (port) => {
+      const res = await request(port, "DELETE", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE });
+      assert.equal(res.status, 409);
+      assert.deepEqual(Object.keys(res.body.error.details), ["in_meal_plans"]);
+      assert.equal(inner.store.rows.length, 1);
+    },
+    racy
+  );
+});
+
+test("DELETE: freigegebenes Rezept eines Nicht-Verifizierten -> 409, nichts geloescht, kein Plan-Aufruf", async () => {
+  await withService([approvedRow(RECIPE_ID, ALICE)], async (port, store) => {
+    const res = await request(port, "DELETE", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE });
+    assert.equal(res.status, 409);
+    assert.equal(store.rows.length, 1);
+    assert.equal(planCalls(store).length, 0);
+  });
+});
+
+test("DELETE: offenes Rezept eines Verifizierten loescht ohne Plan-Pruefung", async () => {
+  await withService(
+    [pendingRow(RECIPE_ID, ALICE)],
+    async (port, store) => {
+      const res = await request(port, "DELETE", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE });
+      assert.equal(res.status, 200);
+      assert.equal(store.rows.length, 0);
+      assert.equal(planCalls(store).length, 0);
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("DELETE: fremdes freigegebenes Rezept -> 404, auch fuer Verifizierte", async () => {
+  await withService(
+    [approvedRow(RECIPE_ID, BOB)],
+    async (port, store) => {
+      const res = await request(port, "DELETE", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE });
+      assert.equal(res.status, 404);
+      assert.equal(store.rows.length, 1);
+    },
+    undefined,
+    { verified: [ALICE] }
   );
 });
