@@ -13,7 +13,7 @@ import { athleteConfig, ATHLETES } from "../../config";
 import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useRides } from "../../api/hooks/useRides";
 import { fmtDate } from "../../core/format.js";
-import { HEADING_STYLE } from "./section-styles";
+import { HEADING_STYLE, SECTION_DESC_STYLE, SECTION_STYLE } from "./section-styles";
 
 type Ride = import("../../types.js").Ride;
 type WellnessDay = import("../../types.js").WellnessDay;
@@ -36,8 +36,11 @@ export function DataSourcesSection() {
   const lastDate = latestDataDate(rides, wellness);
 
   return (
-    <div style={{ padding: "18px 0" }}>
+    <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Datenquellen · {athleteName}</div>
+      <p style={SECTION_DESC_STYLE}>
+        Woher die Daten dieses Athleten kommen und wann die neuesten Daten eingegangen sind.
+      </p>
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {sources.map((src) => (
           <div key={src} style={{ display: "flex", alignItems: "center", gap: 8 }}>
