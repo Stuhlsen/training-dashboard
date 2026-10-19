@@ -80,8 +80,25 @@ export function useRecomputeRemainingPlan(athleteId: string) {
 
         unwrap(await createPlanCards(profileId, planId, flattenPlanCards(args.generated)));
 
+        // Die tatsächlich bespielten Tage der ersten neu gerechneten Woche
+        // (bei schwacher Planerfüllung kann der Generator einen streichen) —
+        // wie in plan-persist.ts muss die Spalte zum week_model passen.
+        const weekModel = (args.generated.weekModel ?? []) as WeekModelEntry[];
+        const tail = weekModel.find((w) => w.start >= regenerateFrom);
+        const tailWeekdays = tail?.trainingWeekdays?.length ? [...tail.trainingWeekdays] : undefined;
+
+        // `params.form` mitziehen, damit ein späterer Recompute die geänderten
+        // Tage / festen Tage / das Häkchen wieder vorfindet.
+        const oldForm = ((args.plan.params as { form?: Record<string, unknown> } | null)?.form ??
+          {}) as Record<string, unknown>;
         const params = {
           ...(args.plan.params ?? {}),
+          form: {
+            ...oldForm,
+            trainingWeekdays: args.input.trainingWeekdays,
+            fixedDays: args.input.fixedDays ?? [],
+            keepAllTrainingDays: args.input.keepAllTrainingDays === true,
+          },
           history: (args.input.history as unknown) ?? null,
           warnings: args.generated.warnings,
           recomputedAt: localISODate(),
@@ -89,8 +106,9 @@ export function useRecomputeRemainingPlan(athleteId: string) {
         };
         unwrap(
           await updateTrainingPlan(planId, {
-            weekModel: (args.generated.weekModel ?? []) as WeekModelEntry[],
+            weekModel,
             params,
+            ...(tailWeekdays ? { trainingWeekdays: tailWeekdays } : {}),
           }),
         );
 

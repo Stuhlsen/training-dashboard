@@ -73,6 +73,62 @@ describe("buildRecomputeInput", () => {
     expect(res.input.ftpTarget).toBe(210);
   });
 
+  it("gewählte Trainingstage ersetzen die bisherigen; ohne Wahl gelten die Tage des Plans", () => {
+    const base = { plan: plan(), todayISO: "2026-10-07", athleteDefaults: defaults };
+    const keep = buildRecomputeInput(base);
+    const changed = buildRecomputeInput({ ...base, trainingWeekdays: [6, 2] });
+    expect(keep.ok && keep.input.trainingWeekdays).toEqual([2, 4, 6]);
+    expect(changed.ok && changed.input.trainingWeekdays).toEqual([2, 6]);
+  });
+
+  it("weniger als zwei Trainingstage → ok:false", () => {
+    const res = buildRecomputeInput({
+      plan: plan(),
+      todayISO: "2026-10-07",
+      athleteDefaults: defaults,
+      trainingWeekdays: [3],
+    });
+    expect(res.ok).toBe(false);
+  });
+
+  it("feste Tage aus params.form werden durchgereicht; Tag abgewählt → entfällt und wird gemeldet", () => {
+    const withFixed = plan({
+      params: {
+        form: {
+          fixedDays: [
+            { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: true },
+            { weekday: 4, typ: "Z2 Dauer", keepInRecoveryWeek: false },
+            { weekday: 9, typ: "kaputt", keepInRecoveryWeek: false },
+          ],
+        },
+      },
+    });
+    const base = { plan: withFixed, todayISO: "2026-10-07", athleteDefaults: defaults };
+
+    const same = buildRecomputeInput(base);
+    expect(same.ok && same.input.fixedDays?.map((d) => d.weekday)).toEqual([2, 4]);
+    expect(same.ok && same.droppedFixedWeekdays).toEqual([]);
+
+    const fewer = buildRecomputeInput({ ...base, trainingWeekdays: [2, 6] });
+    expect(fewer.ok && fewer.input.fixedDays?.map((d) => d.weekday)).toEqual([2]);
+    expect(fewer.ok && fewer.droppedFixedWeekdays).toEqual([4]);
+  });
+
+  it("keepAllTrainingDays: Argument gewinnt, sonst der gespeicherte Wert; Lauf bekommt keine festen Tage", () => {
+    const saved = plan({ params: { form: { keepAllTrainingDays: true } } });
+    const base = { todayISO: "2026-10-07", athleteDefaults: defaults };
+    const fromSaved = buildRecomputeInput({ ...base, plan: saved });
+    const overridden = buildRecomputeInput({ ...base, plan: saved, keepAllTrainingDays: false });
+    expect(fromSaved.ok && fromSaved.input.keepAllTrainingDays).toBe(true);
+    expect(overridden.ok && overridden.input.keepAllTrainingDays).toBeUndefined();
+
+    const run = buildRecomputeInput({
+      ...base,
+      plan: plan({ sport: "run", params: { form: { fixedDays: [{ weekday: 2, typ: "Z2 Dauer" }] } } }),
+    });
+    expect(run.ok && run.input.fixedDays).toEqual([]);
+  });
+
   it("event-Modus: eventDate = plan.endDate", () => {
     const res = buildRecomputeInput({
       plan: plan({ mode: "event", endDate: "2026-10-26" }),
