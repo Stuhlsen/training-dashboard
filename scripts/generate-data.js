@@ -43,6 +43,7 @@ import {
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
 import { loadFtpHistory, ftpAt } from "./lib/ftp-history.js";
+import { loadFtpGoal } from "./lib/goals.js";
 import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
 import { loadPlanCards, buildPlanCardTypeIndex } from "./lib/plan-cards-fetch.js";
 import { attachCompliance } from "./lib/compliance.js";
@@ -100,14 +101,18 @@ function percentile(nums, p) {
  * @param {number|null} scalarFallback  Fallback für das skalare `ftp`-Feld
  *   (Athlet 2: geschätzte FTP; Athlet 1/4: null)
  * @param {string} todayISO
+ * @param {number|null} [ftpGoal]  aktuelles FTP-Ziel aus `goals` (scripts/lib/goals.js);
+ *   folgt dem `ftpPublic`-Schalter, `null` = keins gesetzt (Frontend nimmt dann
+ *   den config.ts-Wert)
  */
-function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO) {
+function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO, ftpGoal = null) {
   if (!ftpPublic) return { ftpPublic: false };
   const rampTests = (ftpHistory || []).filter((h) => h.source === "ramp-test");
   const current = ftpAt(rampTests, todayISO, scalarFallback);
   return {
     ftpPublic: true,
     ftp: current.ftpWatt ?? null,
+    ftpGoal,
     // Synthetische, stabile id aus validFrom (pro Profil eindeutig, DB 0009) —
     // keine echten ftp_history-UUIDs und kein `note`-Freitext im öffentlichen
     // Payload.
@@ -404,7 +409,8 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     ftpHistory,
     cfg?.ftpPublic ?? true,
     entry.publicFtpScalarFromEffective ? effectiveFtp : null,
-    today
+    today,
+    (cfg?.ftpPublic ?? true) ? await loadFtpGoal(svc) : null
   );
   log.info(
     ftpPublicFields.ftpPublic
@@ -584,7 +590,10 @@ async function main() {
     // Öffentliche FTP-Felder (0025): gemessene FTP + Ramp-Test-Zeitstrahl,
     // nur wenn der Athlet sie freigegeben hat. Skalar-Fallback null — für
     // Athlet 1 deckt config.ts::ftpMeasured die Planungs-/Analyse-Sicht ab.
-    ftpPublicFields1 = publicFtpFields(ftpHistory, cfg1?.ftpPublic ?? true, null, today);
+    const ftpGoal1 = (cfg1?.ftpPublic ?? true)
+      ? await loadFtpGoal({ profileId: cfg1.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY })
+      : null;
+    ftpPublicFields1 = publicFtpFields(ftpHistory, cfg1?.ftpPublic ?? true, null, today, ftpGoal1);
     log.info(
       ftpPublicFields1.ftpPublic
         ? `✅ FTP öffentlich: ${ftpPublicFields1.ftp ?? "–"}W · ${ftpPublicFields1.ftpHistory.length} Ramp-Test(s) im Payload`
