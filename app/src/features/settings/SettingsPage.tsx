@@ -1,14 +1,19 @@
 /* ============================================================
    FEATURES/SETTINGS/SETTINGSPAGE.TSX — Etappe 9, Redesign (Sprung-
-   Navigation, 6 Bereiche)
+   Navigation); Gruppen neu geordnet (Settings-Neuordnung)
 
-   Ersetzt die frühere flache Ein-Karte-Liste. Links eine fixierte
-   Anker-Navigation (Scrollspy per scroll-Listener), rechts sechs
-   GlassCard-Bereiche: Profil / Konto & Sicherheit / Benachrichtigungen /
-   Training / Daten / Datenschutz & Account. Training/Daten bleiben
-   athletengated wie zuvor — bei einem Coach werden Karte UND Nav-Link
-   komplett weggelassen (nicht leer angezeigt), Scrollspy iteriert nur über
-   tatsächlich gemountete Anker.
+   Links eine fixierte Anker-Navigation (Scrollspy per scroll-Listener),
+   rechts je Gruppe eine GlassCard. Jede Gruppe beantwortet eine Frage:
+     Profil                  Wer bin ich? (Name, Basisdaten)
+     Training                Wie trainiere ich? (Sportarten, Ziele, FTP, Räder, Formate)
+     Ernährung & Befinden    Was esse ich, wie geht es mir?
+     Datenquellen            Woher kommen meine Daten? (Quellen, intervals.icu, Standort, Einheiten)
+     Konto & Sicherheit      Zugang
+     Benachrichtigungen      (noch ohne Funktion, bleibt als Platzhalter)
+     Datenschutz & Freigaben Wer sieht was? (Sichtbarkeit, Trainer, Export, Löschen)
+   Training/Ernährung/Daten sind athletengated — bei einem Coach werden Karte
+   UND Nav-Link komplett weggelassen (nicht leer angezeigt), Scrollspy
+   iteriert nur über tatsächlich gemountete Anker.
    ============================================================ */
 
 import { useEffect, useRef, useState } from "react";
@@ -41,6 +46,8 @@ import { DataExportSection } from "./DataExportSection";
 import { AccountDeletionSection } from "./AccountDeletionSection";
 import { CheckinDialog } from "./CheckinDialog";
 import { NutritionSection } from "./NutritionSection";
+import { SharingSection } from "./SharingSection";
+import { ProgressionSection } from "./ProgressionSection";
 
 interface NavEntry {
   id: string;
@@ -65,14 +72,15 @@ export function SettingsPage() {
 
   const navEntries: NavEntry[] = [
     { id: "sec-profil", label: "Profil" },
+    ...(isAthlete ? [{ id: "sec-training", label: "Training" }] : []),
+    ...(isAthlete ? [{ id: "sec-ernaehrung", label: "Ernährung & Befinden" }] : []),
+    ...(isAthlete ? [{ id: "sec-daten", label: "Datenquellen" }] : []),
     { id: "sec-konto", label: "Konto & Sicherheit" },
     { id: "sec-benachrichtigungen", label: "Benachrichtigungen" },
-    ...(isAthlete ? [{ id: "sec-training", label: "Training" }] : []),
-    ...(isAthlete ? [{ id: "sec-daten", label: "Daten" }] : []),
+    { id: "sec-datenschutz", label: "Datenschutz & Freigaben" },
     ...(isAdmin ? [{ id: "sec-katalog", label: "Formatkatalog" }] : []),
     ...(isAdmin ? [{ id: "sec-einladen", label: "Nutzer" }] : []),
     { id: "sec-feedback", label: "Feedback" },
-    { id: "sec-datenschutz", label: "Datenschutz & Account" },
   ];
 
   // Scrollspy: welcher Abschnitt ist gerade oben im Blick. Per
@@ -146,8 +154,40 @@ export function SettingsPage() {
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
               <GlassCard id="sec-profil" variant="soft" style={CARD_STYLE}>
                 <h2 style={CARD_HEADING_STYLE}>Profil</h2>
-                <ProfileSection onOpenCheckin={() => setCheckinOpen(true)} />
+                <ProfileSection />
+                {isAthlete && <ProfileBasicsSection />}
               </GlassCard>
+
+              {isAthlete && (
+                <GlassCard id="sec-training" variant="soft" style={CARD_STYLE}>
+                  <h2 style={CARD_HEADING_STYLE}>Training</h2>
+                  <SportsSection />
+                  <GoalsSection />
+                  <TrainingTargetsSection />
+                  <ProgressionSection />
+                  <FtpHistorySection />
+                  <BikesSection />
+                  <FormatsSection />
+                </GlassCard>
+              )}
+
+              {isAthlete && (
+                <GlassCard id="sec-ernaehrung" variant="soft" style={CARD_STYLE}>
+                  <h2 style={CARD_HEADING_STYLE}>Ernährung &amp; Befinden</h2>
+                  <NutritionSection />
+                  <CheckinSection onOpenCheckin={() => setCheckinOpen(true)} />
+                </GlassCard>
+              )}
+
+              {isAthlete && (
+                <GlassCard id="sec-daten" variant="soft" style={CARD_STYLE}>
+                  <h2 style={CARD_HEADING_STYLE}>Datenquellen</h2>
+                  <DataSourcesSection />
+                  <IntervalsSection />
+                  <SyncLocationSection />
+                  <UnitsSection />
+                </GlassCard>
+              )}
 
               <GlassCard id="sec-konto" variant="soft" style={CARD_STYLE}>
                 <h2 style={CARD_HEADING_STYLE}>Konto &amp; Sicherheit</h2>
@@ -161,31 +201,13 @@ export function SettingsPage() {
                 <NotificationsSection />
               </GlassCard>
 
-              {isAthlete && (
-                <GlassCard id="sec-training" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Training</h2>
-                  <GoalsSection />
-                  <ProfileBasicsSection />
-                  <SportsSection />
-                  <NutritionSection />
-                  <TrainingTargetsSection />
-                  <BikesSection />
-                  <CheckinSection />
-                  <FtpHistorySection />
-                  <FormatsSection />
-                </GlassCard>
-              )}
-
-              {isAthlete && (
-                <GlassCard id="sec-daten" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Daten</h2>
-                  <DataSourcesSection />
-                  <IntervalsSection />
-                  <SyncLocationSection />
-                  <UnitsSection />
-                  <CoachLinkSection />
-                </GlassCard>
-              )}
+              <GlassCard id="sec-datenschutz" variant="soft" style={CARD_STYLE}>
+                <h2 style={CARD_HEADING_STYLE}>Datenschutz &amp; Freigaben</h2>
+                {isAthlete && <SharingSection />}
+                {isAthlete && <CoachLinkSection />}
+                <DataExportSection />
+                <AccountDeletionSection />
+              </GlassCard>
 
               {isAdmin && (
                 <GlassCard id="sec-katalog" variant="soft" style={CARD_STYLE}>
@@ -205,12 +227,6 @@ export function SettingsPage() {
               <GlassCard id="sec-feedback" variant="soft" style={CARD_STYLE}>
                 <h2 style={CARD_HEADING_STYLE}>Feedback</h2>
                 <FeedbackSection />
-              </GlassCard>
-
-              <GlassCard id="sec-datenschutz" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Datenschutz &amp; Account</h2>
-                <DataExportSection />
-                <AccountDeletionSection />
               </GlassCard>
             </div>
           </div>

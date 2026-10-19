@@ -3,7 +3,7 @@
 
    Bisher hatte der React-Port KEINE UI für den täglichen Befinden-
    Check-in — useTodayCheckin()/useSaveCheckin() (Etappe 2b) existierten
-   unbenutzt. Erreichbar über ProfileSection ("Befinden anpassen") und als
+   unbenutzt. Erreichbar über CheckinSection ("Befinden anpassen") und als
    tägliches Auto-Popup über dem Hero (WellbeingCard.tsx::SelfCard).
 
    Zwei Layout-Bugs behoben (2026-09-08):
