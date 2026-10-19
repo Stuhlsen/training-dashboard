@@ -64,6 +64,10 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {number} weeklyHours
  * @property {number|null} currentFtp  nur sport === "ride"
  * @property {string|null} ftpMeasuredDate  nur sport === "ride"
+ * @property {boolean} [startWithFtpTest]  nur sport === "ride": true/false erzwingt bzw. unterdrückt den
+ *   FTP-Test in Woche 1; fehlt es, entscheidet das Messdatum (fehlt/älter als ~42 Tage → Test)
+ * @property {boolean} [keepAllTrainingDays]  true: bei schwacher Planerfüllung trotzdem alle gewählten
+ *   Trainingstage behalten (nur die flachere Aufbaurampe greift); Default false
  * @property {number|null} ftpTarget  nur sport === "ride"
  * @property {number|null} [currentThresholdSpeed]  km/h — nur "run"/"swim" (E2/E3)
  * @property {string|null} [thresholdSpeedMeasuredDate]  nur "run"/"swim" (E2/E3)
@@ -714,7 +718,9 @@ export function generatePlan(input) {
   const rampTarget = lowAdherence ? 4 : CONFLICT_THRESHOLDS.ctlRampInfo;
   const weeklyGrowth = lowAdherence ? 1.04 : 1.08;
   let effectiveWeekdays = [...input.trainingWeekdays].sort((x, y) => x - y);
-  if (lowAdherence && effectiveWeekdays.length > 2) {
+  if (lowAdherence && input.keepAllTrainingDays) {
+    warnings.push(`Planerfüllung zuletzt unter 70 % — flachere Aufbaurampe, alle gewählten Trainingstage bleiben.`);
+  } else if (lowAdherence && effectiveWeekdays.length > 2) {
     effectiveWeekdays = effectiveWeekdays.slice(0, -1);
     warnings.push(`Planerfüllung zuletzt unter 70 % — ein Trainingstag weniger, flachere Aufbaurampe.`);
   }
@@ -769,6 +775,12 @@ export function generatePlan(input) {
   const thresholdSpeed = input.currentThresholdSpeed ?? null;
   const formats = input.formats || [];
   const testWeeks = strategy.testWeeks(totalWeeks, startDate, input.ftpMeasuredDate, cut);
+  // Start-FTP-Test explizit an/aus (nur Rad, nur Erstberechnung — in der
+  // Restberechnung `cut > 0` gibt es keine Woche 0 mehr).
+  if (strategy.sport === "ride" && cut === 0 && typeof input.startWithFtpTest === "boolean") {
+    if (input.startWithFtpTest) testWeeks.add(0);
+    else testWeeks.delete(0);
+  }
   const quality = qualityWeekdays(effectiveWeekdays);
   const fixedDays = input.fixedDays || [];
   // Mehr feste harte Tage als automatische Qualitätstage/Woche (quality.length,

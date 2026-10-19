@@ -265,6 +265,31 @@ test("planAdherence < 0.7: ein Trainingstag weniger + flachere Rampe", () => {
   assert.ok(peak(weak) < peak(strong));
 });
 
+test("keepAllTrainingDays: schwache Planerfüllung streicht keinen Tag, Rampe bleibt flacher", () => {
+  const history = { ...eventInput().history, planAdherence: 0.5 };
+  const kept = generatePlan(eventInput({ history, keepAllTrainingDays: true }));
+  const dropped = generatePlan(eventInput({ history }));
+  const strong = generatePlan(eventInput());
+
+  assert.equal(kept.weekModel[0].trainingWeekdays.length, 4);
+  assert.ok(kept.warnings.some((w) => w.includes("alle gewählten Trainingstage bleiben")));
+  const peak = (p) => Math.max(...p.weeks.filter((w) => !w.isRecovery && w.phase !== "Taper").map((w) => w.targetTss));
+  assert.equal(peak(kept), peak(dropped), "Rampe muss unabhängig vom Tag-Schalter flach bleiben");
+  assert.ok(peak(kept) < peak(strong));
+});
+
+test("startWithFtpTest: false unterdrückt, true erzwingt den Test in Woche 1", () => {
+  const stale = { ftpMeasuredDate: "2026-01-01" };
+  const fresh = { ftpMeasuredDate: "2026-09-01" };
+  const week1Test = (p) => p.weeks[0].cards.some((c) => c.isTest);
+
+  assert.equal(week1Test(generatePlan(eventInput({ ...stale, startWithFtpTest: false }))), false);
+  assert.equal(week1Test(generatePlan(eventInput({ ...fresh, startWithFtpTest: true }))), true);
+  // Ohne Angabe bleibt die Automatik
+  assert.equal(week1Test(generatePlan(eventInput(stale))), true);
+  assert.equal(week1Test(generatePlan(eventInput(fresh))), false);
+});
+
 test("FTP-Testtag: veraltete FTP → Test in Woche 1, Plan-Ende hat einen Test", () => {
   const plan = generatePlan(eventInput({ ftpMeasuredDate: "2026-01-01" })); // > 42 Tage alt
   const week1Test = plan.weeks[0].cards.find((c) => c.isTest);
