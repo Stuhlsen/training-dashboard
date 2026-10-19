@@ -158,6 +158,9 @@ export interface HeroCoreInput {
    *  export-briefing-view-model.ts), ohne Eintrag Fallback auf
    *  `athleteCfg.ftpMeasured`. */
   ftpHistoryEntries?: FtpHistoryEntry[];
+  /** Aufgelöstes FTP-Ziel (`useFtpGoal()`: Settings-Ziel → Payload → config.ts).
+   *  Fehlt ⇒ der `config.ts`-Wert (Tests/Altaufrufer). */
+  ftpGoal?: number | null;
 }
 
 export interface HeroViewModelInput extends HeroCoreInput {
@@ -555,7 +558,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const ftpMeasuredDate = currentFtpEntryVal?.validFrom ?? athleteCfg?.ftpMeasuredDate ?? null;
   const eftpVal = eftpValue(rides, wellness, athleteCfg);
   const base = athleteCfg ? ringBase(athleteCfg) : 0;
-  const goal = athleteCfg?.ftpGoal ?? 0;
+  const goal = input.ftpGoal ?? athleteCfg?.ftpGoal ?? 0;
 
   const doneDates = doneDatesOf(rides);
   const session = buildSession(planCards, doneDates, ftpVal, todayISO);
@@ -569,6 +572,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
     ? buildMilestones(
         {
           ...athleteCfg,
+          ftpGoal: goal || null,
           ftpMeasured: ftpVal ?? athleteCfg.ftpMeasured ?? undefined,
           ftpMeasuredDate,
         },

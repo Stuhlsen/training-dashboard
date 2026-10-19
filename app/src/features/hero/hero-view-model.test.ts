@@ -134,6 +134,18 @@ describe("buildHeroViewModel", () => {
     expect(vm.milestones.map((m) => m.label)).toEqual(["Start-FTP", "Ramp-Test", "Aktuelle eFTP", "Saisonziel"]);
   });
 
+  it("ftpGoal-Eingabe schlägt den config.ts-Wert: Saisonziel-Zeile und Ring-Prozente folgen dem neuen Ziel", () => {
+    const vm = buildHeroViewModel({ ...BASE_INPUT, ftpGoal: 260 });
+    expect(vm.milestones.find((m) => m.label === "Saisonziel")?.value).toBe(260);
+    // athlete1: seasonStartFtp 166, ftpMeasured 193 — Ziel jetzt 260 statt 210
+    expect(vm.ramp.progress).toBeCloseTo((193 - 166) / (260 - 166));
+  });
+
+  it("ftpGoal null/fehlend → config.ts-Ziel (210) bleibt", () => {
+    const vm = buildHeroViewModel({ ...BASE_INPUT, ftpGoal: null });
+    expect(vm.milestones.find((m) => m.label === "Saisonziel")?.value).toBe(210);
+  });
+
   it("Session: keine Plankarten → session null", () => {
     const vm = buildHeroViewModel(BASE_INPUT);
     expect(vm.session).toBe(null);

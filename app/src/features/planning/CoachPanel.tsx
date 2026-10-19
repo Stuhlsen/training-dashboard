@@ -29,6 +29,7 @@ import {
   type ExportPreset,
 } from "../../api/hooks/useLadderState";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
+import { useFtpGoal } from "../../api/hooks/useFtpGoal";
 import { useExportPrefs } from "../../api/hooks/useExportPrefs";
 import { nextRaceEvent, isUpcomingEvent } from "../../api/hooks/useEvents";
 import {
@@ -181,6 +182,8 @@ export function CoachPanel({
   const profile = useSessionProfile();
   const userId = useAuthUserId();
   const athleteCfg = athleteConfig(athleteId);
+  // FTP-Ziel: Settings-Ziel (isSelf) → öffentliches Payload-Ziel → config.ts.
+  const { ftpGoal } = useFtpGoal(athleteId);
   // Fahrplan 12 E6: folgt dem aktiven Sport-Umschalter, kein eigener
   // Selektor im Panel (G24). Swim fällt mangels eigener Vorlage auf Rad
   // zurück (außerhalb des Fahrplan-12-Scopes).
@@ -339,7 +342,7 @@ export function CoachPanel({
       const ctx = buildExportBriefingCtx(userId ?? athleteId, {
         displayName: profile?.displayName ?? null,
         ftp,
-        ftpGoal: athleteCfg?.ftpGoal ?? null,
+        ftpGoal,
         dataSources: athleteCfg?.dataSources ?? [],
         events,
         cards,
@@ -398,7 +401,7 @@ export function CoachPanel({
     getPresetSuggestion,
     profile?.displayName,
     ftp,
-    athleteCfg?.ftpGoal,
+    ftpGoal,
     athleteCfg?.dataSources,
   ]);
 

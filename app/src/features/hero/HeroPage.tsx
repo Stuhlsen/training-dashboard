@@ -8,6 +8,7 @@ import { useTodayCheckin } from "../../api/hooks/useWellbeing";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useEvents, raceCountdown } from "../../api/hooks/useEvents";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
+import { useFtpGoal } from "../../api/hooks/useFtpGoal";
 import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { athleteConfig } from "../../config";
 import { localISODate, fmtPace } from "../../core/format.js";
@@ -76,6 +77,9 @@ export function HeroPage() {
   // Athleten-Toggle — nur bei isSelf anwenden, sonst würde ein Toggle auf
   // den anderen Athleten dessen Ring mit der eigenen FTP-Historie zeigen.
   const { entries: ftpHistoryEntries } = useFtpHistory();
+  // FTP-Ziel: eigenes Settings-Ziel (isSelf) → öffentliches Payload-Ziel →
+  // config.ts. Eine Quelle für Ringe, Zeitstrahl und What-if-Startwert.
+  const { ftpGoal } = useFtpGoal(activeAthleteId);
   // Sichtbarkeits-Matrix (docs/phase-6-konzept-sichtbarkeit.md): die
   // Governor-/Belastungsempfehlung erbt die Sichtbarkeit ihrer sensibelsten
   // Quelle (Befinden) und ist für Besucher grundsätzlich ❌ — unabhängig
@@ -89,7 +93,7 @@ export function HeroPage() {
   // und Zeitstrahl komplett — dasselbe Verhalten wie beim Befinden-Schalter.
   const ftpGateOpen = isSelf || (athleteData?.ftpPublic ?? true);
 
-  const [whatIfFtp, setWhatIfFtp] = useState(athleteCfg?.ftpGoal ?? 210);
+  const [whatIfFtp, setWhatIfFtp] = useState(ftpGoal ?? 210);
 
   // Athletenwechsel muss den Slider auf den NEUEN Athleten zurücksetzen —
   // sonst bleibt z.B. Athlet 1s Ziel-FTP (210 W) nach dem Toggle auf
@@ -100,7 +104,7 @@ export function HeroPage() {
   const [lastAthleteId, setLastAthleteId] = useState(activeAthleteId);
   if (activeAthleteId !== lastAthleteId) {
     setLastAthleteId(activeAthleteId);
-    setWhatIfFtp(athleteCfg?.ftpGoal ?? 210);
+    setWhatIfFtp(ftpGoal ?? 210);
   }
 
   // Subjektiver Morgen-Check-in: nur der EIGENE des eingeloggten Athleten
@@ -148,11 +152,12 @@ export function HeroPage() {
       // eingeloggte. Beide Zweige sind stabile Referenzen (react-query-Cache
       // bzw. Hook-Konstante), kein Neu-Array pro Render.
       ftpHistoryEntries: isSelf ? ftpHistoryEntries : (athleteData?.ftpHistory ?? []),
+      ftpGoal,
       // Aktive Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts —
       // steuert multiSport für die gemeinsame Last-/Cross-Sport-Anzeige.
       sports,
     });
-  }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries, sports]);
+  }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries, ftpGoal, sports]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
 
@@ -176,7 +181,7 @@ export function HeroPage() {
   // bleiben Kachel/Ringe/Skala für Besucher komplett aus.
   const hasFtpData =
     ftpGateOpen &&
-    ((athleteCfg?.ftpMeasured ?? athleteCfg?.eFTP ?? athleteCfg?.ftpGoal ?? null) != null ||
+    ((athleteCfg?.ftpMeasured ?? athleteCfg?.eFTP ?? ftpGoal ?? null) != null ||
       core.ramp.value > 0 ||
       core.eftp.value > 0);
 
@@ -299,7 +304,7 @@ export function HeroPage() {
   if (zoneTileIds.includes("powerScale")) {
     tiles.push({
       id: "ftpRings",
-      node: <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={athleteCfg?.ftpGoal ?? 0} />,
+      node: <FtpRings eftp={vm.eftp} ramp={vm.ramp} ftpPrimary={vm.ftpPrimary} milestones={vm.milestones} goal={ftpGoal ?? 0} />,
     });
     tiles.push({
       id: "powerScale",
