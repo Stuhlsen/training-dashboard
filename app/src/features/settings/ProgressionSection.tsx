@@ -9,7 +9,7 @@
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useUpdateLadderProgressionEnabled } from "../../api/hooks/useProfile";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { HEADING_STYLE, SECTION_STYLE } from "./section-styles";
+import { HEADING_STYLE, SECTION_DESC_STYLE, SECTION_STYLE } from "./section-styles";
 
 export function ProgressionSection() {
   const profile = useSessionProfile();
@@ -20,6 +20,7 @@ export function ProgressionSection() {
   return (
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Stufenvorschlag</div>
+      <p style={SECTION_DESC_STYLE}>Schlägt dir automatisch die nächste Stufe der Qualitätseinheiten vor.</p>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 14 }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)", lineHeight: 1.5 }}>
           Stufenvorschlag (Auto-Progression)

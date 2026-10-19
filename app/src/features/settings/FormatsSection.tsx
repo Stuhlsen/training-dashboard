@@ -12,7 +12,7 @@ import { useState } from "react";
 import { useAthleteFormats, useSetAthleteFormatActive } from "../../api/hooks/useAthleteFormats";
 import { blockedByLimit } from "./formats-view-model";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { SECTION_STYLE, HEADING_STYLE, ERROR_STYLE } from "./section-styles";
+import { SECTION_STYLE, SECTION_DESC_STYLE, HEADING_STYLE, ERROR_STYLE } from "./section-styles";
 
 const EVIDENCE_GRADE_LABEL: Record<string, string> = { studienlage: "Studienlage", "coaching-konsens": "Coaching-Konsens" };
 
@@ -38,6 +38,9 @@ export function FormatsSection() {
   return (
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Trainingsformate</div>
+      <p style={SECTION_DESC_STYLE}>
+        Welche Intervall-Formate dir der Plan vorschlagen darf. Pro Blockziel sind höchstens zwei aktiv.
+      </p>
 
       {isLoading && <p style={{ color: "var(--ink-3)", fontSize: ".78rem", margin: 0 }}>Lädt …</p>}
 

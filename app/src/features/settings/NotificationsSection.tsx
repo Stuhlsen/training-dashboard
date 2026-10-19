@@ -6,7 +6,7 @@ import { ComingSoonNote } from "./ComingSoonNote";
 export function NotificationsSection() {
   return (
     <ComingSoonNote
-      heading="Benachrichtigungen"
+      heading="E-Mail-Hinweise"
       body="E-Mail-Hinweise (z. B. bei erreichtem Ziel oder als Check-in-Erinnerung) sind geplant, brauchen aber noch einen E-Mail-Versand, den es im Projekt bisher nicht gibt."
     />
   );

@@ -16,7 +16,8 @@
    iteriert nur über tatsächlich gemountete Anker.
    ============================================================ */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { SECTION_STACK_STYLE } from "./section-styles";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { useSessionProfile } from "../../api/hooks/useSession";
@@ -62,6 +63,17 @@ const CARD_HEADING_STYLE = {
   fontWeight: 600,
   color: "var(--ink)",
 };
+
+/** Eine Gruppe: große Karte mit Titel, darin die Abschnitte als gestapelte
+ *  eigene Karten (SECTION_STYLE) — so grenzen sie sich klar voneinander ab. */
+function SettingsGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <GlassCard id={id} variant="soft" style={CARD_STYLE}>
+      <h2 style={CARD_HEADING_STYLE}>{title}</h2>
+      <div style={SECTION_STACK_STYLE}>{children}</div>
+    </GlassCard>
+  );
+}
 
 export function SettingsPage() {
   const profile = useSessionProfile();
@@ -152,15 +164,13 @@ export function SettingsPage() {
             </nav>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <GlassCard id="sec-profil" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Profil</h2>
+              <SettingsGroup id="sec-profil" title="Profil">
                 <ProfileSection />
                 {isAthlete && <ProfileBasicsSection />}
-              </GlassCard>
+              </SettingsGroup>
 
               {isAthlete && (
-                <GlassCard id="sec-training" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Training</h2>
+                <SettingsGroup id="sec-training" title="Training">
                   <SportsSection />
                   <GoalsSection />
                   <TrainingTargetsSection />
@@ -168,66 +178,58 @@ export function SettingsPage() {
                   <FtpHistorySection />
                   <BikesSection />
                   <FormatsSection />
-                </GlassCard>
+                </SettingsGroup>
               )}
 
               {isAthlete && (
-                <GlassCard id="sec-ernaehrung" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Ernährung &amp; Befinden</h2>
+                <SettingsGroup id="sec-ernaehrung" title="Ernährung &amp; Befinden">
                   <NutritionSection />
                   <CheckinSection onOpenCheckin={() => setCheckinOpen(true)} />
-                </GlassCard>
+                </SettingsGroup>
               )}
 
               {isAthlete && (
-                <GlassCard id="sec-daten" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Datenquellen</h2>
+                <SettingsGroup id="sec-daten" title="Datenquellen">
                   <DataSourcesSection />
                   <IntervalsSection />
                   <SyncLocationSection />
                   <UnitsSection />
-                </GlassCard>
+                </SettingsGroup>
               )}
 
-              <GlassCard id="sec-konto" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Konto &amp; Sicherheit</h2>
+              <SettingsGroup id="sec-konto" title="Konto &amp; Sicherheit">
                 <PasswordSection />
                 <TwoFactorSection />
                 <SessionsSection />
-              </GlassCard>
+              </SettingsGroup>
 
-              <GlassCard id="sec-benachrichtigungen" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Benachrichtigungen</h2>
+              <SettingsGroup id="sec-benachrichtigungen" title="Benachrichtigungen">
                 <NotificationsSection />
-              </GlassCard>
+              </SettingsGroup>
 
-              <GlassCard id="sec-datenschutz" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Datenschutz &amp; Freigaben</h2>
+              <SettingsGroup id="sec-datenschutz" title="Datenschutz &amp; Freigaben">
                 {isAthlete && <SharingSection />}
                 {isAthlete && <CoachLinkSection />}
                 <DataExportSection />
                 <AccountDeletionSection />
-              </GlassCard>
+              </SettingsGroup>
 
               {isAdmin && (
-                <GlassCard id="sec-katalog" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Formatkatalog</h2>
+                <SettingsGroup id="sec-katalog" title="Formatkatalog">
                   <FormatCatalogSection />
-                </GlassCard>
+                </SettingsGroup>
               )}
 
               {isAdmin && (
-                <GlassCard id="sec-einladen" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Nutzerverwaltung</h2>
+                <SettingsGroup id="sec-einladen" title="Nutzerverwaltung">
                   <AdminUsersTable />
                   <InviteAthleteSection />
-                </GlassCard>
+                </SettingsGroup>
               )}
 
-              <GlassCard id="sec-feedback" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Feedback</h2>
+              <SettingsGroup id="sec-feedback" title="Feedback">
                 <FeedbackSection />
-              </GlassCard>
+              </SettingsGroup>
             </div>
           </div>
         )}

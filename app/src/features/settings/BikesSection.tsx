@@ -2,6 +2,7 @@ import { useState, useTransition } from "react";
 import { useOwnBikes } from "../../api/hooks/useBikes";
 import type { Bike, BikeType } from "../../api/supabase/bikes";
 import { GlassCard } from "../../components/GlassCard";
+import { HEADING_STYLE, SECTION_STYLE } from "./section-styles";
 
 const BIKE_TYPE_LABELS: Record<BikeType, string> = {
   road: "Rennrad",
@@ -118,21 +119,11 @@ export function BikesSection() {
   };
 
   return (
-    <div style={{ marginTop: 24, paddingTop: 20, borderTop: "1px solid var(--border)" }}>
+    <div style={SECTION_STYLE}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <div>
-          <h3
-            style={{
-              margin: 0,
-              fontFamily: "var(--font-disp)",
-              fontSize: "0.95rem",
-              fontWeight: 600,
-              color: "var(--ink)",
-            }}
-          >
-            Meine Räder & Ausrüstung
-          </h3>
-          <p style={{ margin: "4px 0 0", fontSize: ".8rem", color: "var(--ink-3)" }}>
+          <div style={{ ...HEADING_STYLE, marginBottom: 4 }}>Meine Räder & Ausrüstung</div>
+          <p style={{ margin: 0, fontSize: ".78rem", lineHeight: 1.5, color: "var(--ink-3)" }}>
             Grundlage für Bike-Fitting, Cockpit-Geometrie und Ausrüstungs-Historie.
           </p>
         </div>

@@ -11,7 +11,15 @@ import { useState } from "react";
 import { useFtpHistory, useSaveFtpEntry } from "../../api/hooks/useFtpHistory";
 import { currentFtpEntry } from "../../core/ftp-history.js";
 import { fmtDate, localISODate } from "../../core/format.js";
-import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, LINK_BUTTON_STYLE, HEADING_STYLE, ERROR_STYLE } from "./section-styles";
+import {
+  SECTION_STYLE,
+  SECTION_DESC_STYLE,
+  LABEL_STYLE,
+  INPUT_STYLE,
+  LINK_BUTTON_STYLE,
+  HEADING_STYLE,
+  ERROR_STYLE,
+} from "./section-styles";
 import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
 
 const FTP_SOURCE_LABEL: Record<string, string> = { "ramp-test": "Ramp-Test", schaetzung: "Schätzung" };
@@ -53,6 +61,9 @@ export function FtpHistorySection() {
   return (
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>FTP-Historie</div>
+      <p style={SECTION_DESC_STYLE}>
+        Gemessene FTP-Werte mit Datum. Der neueste Eintrag bis heute gilt als aktuelle FTP.
+      </p>
 
       {isLoading && <p style={{ color: "var(--ink-3)", fontSize: ".78rem", margin: "0 0 10px" }}>Lädt …</p>}
 
