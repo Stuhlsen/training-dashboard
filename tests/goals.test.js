@@ -10,7 +10,10 @@ test("pickFtpGoal: kein passendes Ziel → null", () => {
 
 test("pickFtpGoal: Art enthält 'ftp' (Groß-/Kleinschreibung egal)", () => {
   assert.equal(pickFtpGoal([{ kind: "FTP", targetValue: 250, createdAt: "2026-01-01" }]), 250);
-  assert.equal(pickFtpGoal([{ kind: "mein Ftp ziel", targetValue: 240, createdAt: "2026-01-01" }]), 240);
+  assert.equal(
+    pickFtpGoal([{ kind: "mein Ftp ziel", targetValue: 240, createdAt: "2026-01-01" }]),
+    240
+  );
 });
 
 test("pickFtpGoal: bei mehreren gewinnt das zuletzt angelegte", () => {

@@ -15,7 +15,12 @@
 
 import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
-import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBlocks } from "./lib/plan2.js";
+import {
+  PLAN2_SCHEDULE,
+  PLANNED_SESSIONS,
+  getPlan2Blocks,
+  getRecentComparisonBlocks,
+} from "./lib/plan2.js";
 import { SECONDARY_ATHLETES } from "./lib/athletes.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
 import { loadActiveTrainingPlan } from "./lib/training-plan-fetch.js";
@@ -337,10 +342,19 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     // danach. hrMax/hrRest (Migration 0035 bzw. oben aus den Daten geschätzt)
     // speisen den Multi-Sport-TRIMP-Pfad in mapActivity2 für Nicht-Rad-Zeilen.
     rides = activities.map((act) =>
-      mapActivity2(act, wellness, weatherMap, effectiveFtp, effectivePlan, ftpHistory, intervalBlockCache, {
-        hrMax,
-        hrRest,
-      })
+      mapActivity2(
+        act,
+        wellness,
+        weatherMap,
+        effectiveFtp,
+        effectivePlan,
+        ftpHistory,
+        intervalBlockCache,
+        {
+          hrMax,
+          hrRest,
+        }
+      )
     );
 
     // Gezipptes Rad-Subset aus DEMSELBEN Prädikat wie oben (rides[i] gehört zu
@@ -511,7 +525,12 @@ async function main() {
   const weatherEndDate = new Date();
   weatherEndDate.setDate(weatherEndDate.getDate() - 2); // Archive hat ~2 Tage Verzögerung
   const weatherEnd = weatherEndDate.toISOString().split("T")[0];
-  const weatherData = await getHistoricalWeather(PLAN1_FIRST_DATE, weatherEnd, cfg1?.lat, cfg1?.lon);
+  const weatherData = await getHistoricalWeather(
+    PLAN1_FIRST_DATE,
+    weatherEnd,
+    cfg1?.lat,
+    cfg1?.lon
+  );
   const weatherMap = buildWeatherMap(weatherData);
   // Forecast-API für die letzten 2 Tage (überbrückt Archive-Delay)
   const recentData = await getRecentWeather(cfg1?.lat, cfg1?.lon);
@@ -590,9 +609,13 @@ async function main() {
     // Öffentliche FTP-Felder (0025): gemessene FTP + Ramp-Test-Zeitstrahl,
     // nur wenn der Athlet sie freigegeben hat. Skalar-Fallback null — für
     // Athlet 1 deckt config.ts::ftpMeasured die Planungs-/Analyse-Sicht ab.
-    const ftpGoal1 = (cfg1?.ftpPublic ?? true)
-      ? await loadFtpGoal({ profileId: cfg1.profileId, serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY })
-      : null;
+    const ftpGoal1 =
+      (cfg1?.ftpPublic ?? true)
+        ? await loadFtpGoal({
+            profileId: cfg1.profileId,
+            serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          })
+        : null;
     ftpPublicFields1 = publicFtpFields(ftpHistory, cfg1?.ftpPublic ?? true, null, today, ftpGoal1);
     log.info(
       ftpPublicFields1.ftpPublic
@@ -630,7 +653,15 @@ async function main() {
       ...buildPlanCardTypeIndex(planCards),
     };
     plan2 = activities.map((act) =>
-      mapActivity(act, wellness, subjective, weatherMap, effectivePlan, ftpHistory, intervalBlockCache)
+      mapActivity(
+        act,
+        wellness,
+        subjective,
+        weatherMap,
+        effectivePlan,
+        ftpHistory,
+        intervalBlockCache
+      )
     );
     // Ausrollen nach einem harten Workout (gleicher Tag, kurz, deutlich
     // niedrigere Leistung) erbt sonst dieselbe Tages-Plankarte — analog zum
@@ -641,7 +672,15 @@ async function main() {
 
     // Soll-Ist-Matching + Compliance-Ampel (Progressionssteuerung C1/C2) —
     // nutzt dieselben planCards wie effectivePlan oben (kein zweiter Fetch).
-    const complianceCounts = attachCompliance(plan2, activities, planCards, intervalBlockCache, ftpHistory, DEFAULT_FTP, formatCatalog);
+    const complianceCounts = attachCompliance(
+      plan2,
+      activities,
+      planCards,
+      intervalBlockCache,
+      ftpHistory,
+      DEFAULT_FTP,
+      formatCatalog
+    );
     log.info(
       `✅ Compliance (Athlet 1): ${complianceCounts.evaluated} Fahrten ausgewertet ` +
         `(🟢 ${complianceCounts.green} · 🟡 ${complianceCounts.yellow} · 🔴 ${complianceCounts.red}, ` +
@@ -751,7 +790,9 @@ async function main() {
   }
 
   writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);
-  log.info(`✅ ${Object.keys(intervalBlockCache).length} Aktivitäten im Blockerkennung-Cache → ${INTERVAL_BLOCKS_FILE}`);
+  log.info(
+    `✅ ${Object.keys(intervalBlockCache).length} Aktivitäten im Blockerkennung-Cache → ${INTERVAL_BLOCKS_FILE}`
+  );
 
   log.summary();
   if (log.counts.errors > 0) process.exit(1);
