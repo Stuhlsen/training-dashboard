@@ -48,6 +48,7 @@ import {
   FOCUS_LABELS,
   FIXED_DAY_TYPES,
   FIXED_INTERVAL_TYP,
+  ftpTestAtStartAuto,
   LEVEL_DESCRIPTIONS,
   MODEL_BLOCK_SHARES,
   MODEL_DESCRIPTIONS,
@@ -161,6 +162,11 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   ) {
     patch({ currentFtp: measuredFtp.ftpMeasured, ftpMeasuredDate: measuredFtp.ftpMeasuredDate });
   }
+
+  const startWithFtpTest =
+    form.startWithFtpTest ?? ftpTestAtStartAuto(form.startDate, form.ftpMeasuredDate);
+  const lowAdherence =
+    ((aggregate as { planAdherence?: number | null } | null)?.planAdherence ?? 1) < 0.7;
 
   // „Übernehmen" ersetzt künftige Karten, sobald es welche gibt — ein aktiver
   // erzeugter Plan ODER noch-geplante Vorlagen-/Handkarten ab heute. Bestimmt
@@ -535,6 +541,27 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 );
               })}
             </div>
+            {lowAdherence && form.trainingWeekdays.length > 2 && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 6,
+                  fontSize: ".76rem",
+                  color: "var(--ink-3)",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={form.keepAllTrainingDays ?? false}
+                  onChange={(e) => patch({ keepAllTrainingDays: e.target.checked })}
+                />
+                <span>
+                  Zuletzt unter 70 % Planerfüllung — der Plan würde einen Trainingstag streichen.
+                  Alle {form.trainingWeekdays.length} gewählten Tage trotzdem behalten.
+                </span>
+              </label>
+            )}
           </div>
 
           {/* Feste Tage — nur Rad, FIXED_DAY_TYPES kennt nur das Rad-Vokabular. */}
@@ -643,6 +670,25 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
               />
             </label>
           </div>
+
+          {effectiveSport === "ride" && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                fontSize: ".82rem",
+                color: "var(--ink-2)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={startWithFtpTest}
+                onChange={(e) => patch({ startWithFtpTest: e.target.checked })}
+              />
+              Plan beginnt mit FTP-Test
+            </label>
+          )}
 
           {effectiveSport === "ride" ? (
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>

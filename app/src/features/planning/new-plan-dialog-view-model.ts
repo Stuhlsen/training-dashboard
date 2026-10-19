@@ -118,6 +118,10 @@ export interface PlanGeneratorInput {
   currentFtp: number | null;
   /** nur sport === "ride" */
   ftpMeasuredDate: string | null;
+  /** nur sport === "ride": erzwingt/unterdrückt den FTP-Test in Woche 1; fehlt → Automatik. */
+  startWithFtpTest?: boolean;
+  /** true: bei schwacher Planerfüllung keinen Trainingstag streichen. */
+  keepAllTrainingDays?: boolean;
   /** nur sport === "ride" */
   ftpTarget: number | null;
   /** km/h — nur "run"/"swim" (Fahrplan 14 V1) */
@@ -160,6 +164,11 @@ export interface NewPlanFormState {
    *  im Generator den Start-FTP-Test (Entscheidung 23: Test zu Beginn, wenn
    *  die Messung fehlt oder älter als ~42 Tage ist). */
   ftpMeasuredDate: string | null;
+  /** FTP-Test in Woche 1: `null` = Automatik (s. `ftpTestAtStartAuto`), sonst die Wahl des Athleten. */
+  startWithFtpTest?: boolean | null;
+  /** true: schwache Planerfüllung streicht keinen gewählten Trainingstag.
+   *  Optional, weil ältere gespeicherte `params` die Felder nicht kennen. */
+  keepAllTrainingDays?: boolean;
   /** leer → Generator leitet das FTP-Ziel selbst ab (V4 `ftpTarget`). */
   ftpTarget: number | null;
   /** km/h — nur "run"/"swim". Kein config.ts-Startwert wie bei FTP (kein
@@ -365,6 +374,12 @@ export function resolveMeasuredFtp(
   return { ftpMeasured: cfg?.ftpMeasured ?? null, ftpMeasuredDate: cfg?.ftpMeasuredDate ?? null };
 }
 
+/** Automatik-Vorgabe für „Plan beginnt mit FTP-Test": derselbe Maßstab wie
+ *  `ftpTestWeeks()` im Generator (Messung fehlt oder ist älter als 42 Tage). */
+export function ftpTestAtStartAuto(startDate: string, ftpMeasuredDate: string | null): boolean {
+  return !ftpMeasuredDate || diffDays(startDate, ftpMeasuredDate) > 42;
+}
+
 /** Startzustand des Formulars. `todayISO` = heute (lokal); Plan startet am
  *  nächsten Montag, damit die erste Woche voll ist. `ftpHistoryEntries` (Default
  *  leer) kommt vom aufrufenden NewPlanDialog nur für den eingeloggten Athleten
@@ -392,6 +407,8 @@ export function defaultFormState(
     weeklyHours,
     currentFtp: measured.ftpMeasured ?? cfg?.eFTP ?? null,
     ftpMeasuredDate: measured.ftpMeasuredDate,
+    startWithFtpTest: null,
+    keepAllTrainingDays: false,
     ftpTarget: null,
     currentThresholdSpeed: null,
     thresholdSpeedMeasuredDate: null,
@@ -487,6 +504,10 @@ export function buildGeneratorInput(
       weeklyHours: state.weeklyHours,
       currentFtp: sport === "ride" ? state.currentFtp : null,
       ftpMeasuredDate: sport === "ride" ? state.ftpMeasuredDate : null,
+      ...(sport === "ride" && state.startWithFtpTest != null
+        ? { startWithFtpTest: state.startWithFtpTest }
+        : {}),
+      ...(state.keepAllTrainingDays ? { keepAllTrainingDays: true } : {}),
       ftpTarget: sport === "ride" ? state.ftpTarget : null,
       currentThresholdSpeed: sport === "ride" ? null : state.currentThresholdSpeed,
       thresholdSpeedMeasuredDate: sport === "ride" ? null : state.thresholdSpeedMeasuredDate,
