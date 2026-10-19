@@ -6,12 +6,17 @@
    Status per aria-live). Gewählte Zutaten stehen darunter als Zeilen mit
    Menge und Einheit; auf dem Handy brechen die Felder um. Die Suche selbst
    macht der Server, hier wird nur entprellt.
+
+   S2b: Findet die Suche nichts, kann der Athlet die Zutat als Wunsch melden
+   (IngredientWishForm). Beim Bearbeiten liefert `unitsByName` die wählbaren
+   Einheiten gespeicherter Zeilen.
    ============================================================ */
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { MIN_SEARCH_CHARS, useIngredientSearch } from "../../api/hooks/useRecipeSubmission";
 import type { IngredientHit } from "../../api/recipe-submission";
 import { FIELD_ERROR_STYLE, FIELD_STYLE, GLASS, LABEL_STYLE, META_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
+import { IngredientWishForm } from "./IngredientWishForm";
 
 /** Formularzeile: Entwurf (Name/Menge/Einheit) plus die wählbaren Einheiten der Zutat. */
 export interface IngredientRow {
@@ -27,13 +32,16 @@ interface Props {
   rows: IngredientRow[];
   onChange: (rows: IngredientRow[]) => void;
   errors?: string[];
+  /** Wählbare Einheiten je Zutatenname (beim Bearbeiten nachgeladen); sonst gelten `row.units`. */
+  unitsByName?: ReadonlyMap<string, string[]>;
 }
 
-export function IngredientPicker({ rows, onChange, errors }: Props) {
+export function IngredientPicker({ rows, onChange, errors, unitsByName }: Props) {
   const [text, setText] = useState("");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
+  const [wishOpen, setWishOpen] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingFocus = useRef<number | null>(null);
   const listId = useId();
@@ -64,6 +72,7 @@ export function IngredientPicker({ rows, onChange, errors }: Props) {
     setText("");
     setQuery("");
     setOpen(false);
+    setWishOpen(false);
   }
 
   function onKeyDown(e: KeyboardEvent<HTMLInputElement>) {
@@ -89,6 +98,14 @@ export function IngredientPicker({ rows, onChange, errors }: Props) {
   function remove(index: number) {
     onChange(rows.filter((_, i) => i !== index));
   }
+
+  /** Einheiten der Zeile: nachgeladene Liste oder die der Suche; die gewählte Einheit steht immer drin. */
+  function unitOptions(row: IngredientRow): string[] {
+    const base = unitsByName?.get(row.name) ?? row.units;
+    return base.includes(row.unit) ? base : [row.unit, ...base];
+  }
+
+  const noHit = showList && searched && hits.length === 0;
 
   let status = "";
   if (showList) {
@@ -173,6 +190,12 @@ export function IngredientPicker({ rows, onChange, errors }: Props) {
         <p role="status" aria-live="polite" style={{ ...META_STYLE, margin: "6px 0 0", minHeight: "1em" }}>
           {status}
         </p>
+        {noHit && !wishOpen && (
+          <button type="button" style={TAP_BUTTON_STYLE} onClick={() => setWishOpen(true)}>
+            Diese Zutat wünschen
+          </button>
+        )}
+        {wishOpen && <IngredientWishForm defaultName={query.trim() || text.trim()} onClose={() => setWishOpen(false)} />}
       </div>
 
       {rows.length === 0 ? (
@@ -205,7 +228,7 @@ export function IngredientPicker({ rows, onChange, errors }: Props) {
                 onChange={(e) => update(i, { unit: e.target.value })}
                 style={{ ...FIELD_STYLE, width: 96 }}
               >
-                {row.units.map((u) => (
+                {unitOptions(row).map((u) => (
                   <option key={u} value={u}>
                     {u}
                   </option>

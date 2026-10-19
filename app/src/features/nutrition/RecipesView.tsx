@@ -8,9 +8,10 @@
    Klick öffnet die Details; von dort "Kochen" (ohne Plan-Eintrag, nichts
    wird gespeichert) und "In den Plan" (PlanPicker, bestehender Upsert-Weg).
 
-   Platz für spätere Umschalter ("In Prüfung", "Meine Einreichungen" —
-   S2/S3): die Kopfzeile der Liste ist ein eigener Block, nichts davon
-   ist hier gebaut.
+   Kopfzeile (in jedem Zustand): Umschalter "Alle Rezepte | Meine Einreichungen"
+   (S2b) und der Einstieg ins Einreichformular. "Meine Einreichungen" und das
+   Formular (Neu und Bearbeiten) brauchen den Rezeptpool nicht. "In Prüfung"
+   folgt in S3.
    ============================================================ */
 
 import { useMemo, useState, type CSSProperties } from "react";
@@ -27,6 +28,7 @@ import { PlanPicker } from "./PlanPicker";
 import { CookingDialog } from "./CookingDialog";
 import { FIELD_STYLE, GLASS, HEADING_STYLE, META_STYLE, PRIMARY_BUTTON_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
 import { RecipeSubmissionForm } from "./RecipeSubmissionForm";
+import { MySubmissionsView } from "./MySubmissionsView";
 import "./nutrition.css";
 
 const NO_INTOLERANCES: readonly string[] = [];
@@ -57,7 +59,9 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   const [picking, setPicking] = useState(false);
   const [cooking, setCooking] = useState<Recipe | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  // Formular offen? `{}` = neues Rezept, `{ recipe }` = ein offenes Rezept bearbeiten
+  const [form, setForm] = useState<{ recipe?: Recipe } | null>(null);
+  const [view, setView] = useState<"all" | "mine">("all");
 
   const filters = useMemo(() => ({ query, mealType, dietTag }), [query, mealType, dietTag]);
   const result = useMemo(() => browseRecipes(recipes, { filters, intolerances }), [recipes, filters, intolerances]);
@@ -85,42 +89,65 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
     setCooking(recipe);
   }
 
-  // Einreichen braucht den Rezeptpool nicht — früh zurück, vor Lade-/Fehlerzuständen
-  if (submitting) return <RecipeSubmissionForm onClose={() => setSubmitting(false)} />;
+  // Einreichen/Bearbeiten braucht den Rezeptpool nicht — früh zurück, vor Lade-/Fehlerzuständen
+  if (form) {
+    return <RecipeSubmissionForm key={form.recipe?.id ?? "new"} recipe={form.recipe} onClose={() => setForm(null)} />;
+  }
 
-  // Einstieg ins Formular — in jedem Zustand erreichbar, auch wenn der Pool leer ist oder nicht lädt
-  const submitButton = (
-    <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={() => setSubmitting(true)}>
-      Rezept einreichen
-    </button>
+  // Kopfzeile in jedem Zustand erreichbar: Umschalter + Einstieg ins Formular
+  const header = (
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 10, margin: "0 0 12px" }}>
+      <div role="group" aria-label="Rezeptbereich" style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        <button type="button" aria-pressed={view === "all"} style={chipStyle(view === "all")} onClick={() => setView("all")}>
+          Alle Rezepte
+        </button>
+        <button type="button" aria-pressed={view === "mine"} style={chipStyle(view === "mine")} onClick={() => setView("mine")}>
+          Meine Einreichungen
+        </button>
+      </div>
+      <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={() => setForm({})}>
+        Rezept einreichen
+      </button>
+    </div>
   );
+
+  if (view === "mine") {
+    return (
+      <section aria-label="Rezepte">
+        {header}
+        <MySubmissionsView onEdit={(recipe) => setForm({ recipe })} />
+      </section>
+    );
+  }
 
   if (isLoading) return <p style={META_STYLE}>Lade …</p>;
 
   if (isError) {
     return (
-      <GlassCard style={CARD_STYLE}>
-        <h2 style={HEADING_STYLE}>Rezepte</h2>
-        <p role="alert" style={{ ...TEXT_STYLE, color: "var(--danger)" }}>
-          Die Rezepte konnten nicht geladen werden.
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+      <section aria-label="Rezepte">
+        {header}
+        <GlassCard style={CARD_STYLE}>
+          <h2 style={HEADING_STYLE}>Rezepte</h2>
+          <p role="alert" style={{ ...TEXT_STYLE, color: "var(--danger)" }}>
+            Die Rezepte konnten nicht geladen werden.
+          </p>
           <button type="button" style={TAP_BUTTON_STYLE} onClick={() => void refetch()}>
             Erneut versuchen
           </button>
-          {submitButton}
-        </div>
-      </GlassCard>
+        </GlassCard>
+      </section>
     );
   }
 
   if (recipes.length === 0) {
     return (
-      <GlassCard style={CARD_STYLE}>
-        <h2 style={HEADING_STYLE}>Rezepte</h2>
-        <p style={TEXT_STYLE}>Noch keine Rezepte vorhanden.</p>
-        {submitButton}
-      </GlassCard>
+      <section aria-label="Rezepte">
+        {header}
+        <GlassCard style={CARD_STYLE}>
+          <h2 style={HEADING_STYLE}>Rezepte</h2>
+          <p style={TEXT_STYLE}>Noch keine Rezepte vorhanden.</p>
+        </GlassCard>
+      </section>
     );
   }
 
@@ -128,7 +155,7 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
 
   return (
     <section aria-label="Rezepte">
-      <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 12px" }}>{submitButton}</div>
+      {header}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, margin: "0 0 12px" }}>
         <input
           type="search"

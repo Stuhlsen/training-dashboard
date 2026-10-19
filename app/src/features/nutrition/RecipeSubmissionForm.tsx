@@ -9,16 +9,22 @@
    Gerechnet wird nichts: Vorschau und Einreichen gehen an admin-api, das
    Nährwerte, Allergene und Diät-Tags aus der Zutatentabelle ableitet.
    Formularfehler (422, details je Feld) stehen am Feld, das Limit offener
-   Rezepte (409) als Klartext oben. Zurückziehen/Bearbeiten: S2b.
+   Rezepte (409) als Klartext oben.
+
+   S2b: Mit `recipe` wird ein offenes (`pending`) Rezept bearbeitet. Das Formular
+   ist dann vorbelegt, speichern ersetzt das Rezept per PUT (der Server löscht
+   dabei alle Stimmen, S1-10) und das bisherige Foto bleibt, wenn kein neues
+   gewählt oder es nicht entfernt wird.
    ============================================================ */
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { GlassCard } from "../../components/GlassCard";
-import { useRecipePreview, useSubmitRecipe } from "../../api/hooks/useRecipeSubmission";
+import { useIngredientUnits, useRecipePreview, useSubmitRecipe } from "../../api/hooks/useRecipeSubmission";
 import type { RecipePreview } from "../../api/recipe-submission";
-import type { ResultError } from "../../api/types";
+import type { Recipe, ResultError } from "../../api/types";
 import {
   buildSubmissionBody,
+  draftFromRecipe,
   openRecipesMessage,
   splitFieldErrors,
   type StepDraft,
@@ -44,27 +50,38 @@ import {
 
 const CARD_STYLE = { padding: "24px 28px", marginBottom: 16 } as const;
 const PHOTO_RIGHTS_MISSING = "Bitte bestätige zuerst, dass du das Foto verwenden darfst.";
+const NO_NAMES: readonly string[] = [];
+const NOT_PENDING =
+  "Dieses Rezept wurde inzwischen entschieden und lässt sich nicht mehr ändern. Lade die Seite neu, um den aktuellen Stand zu sehen.";
 
 /** Verständlicher Text für Fehler ohne Feldbezug. */
 function describeError(error: ResultError): string {
   if (error.code === "NETWORK") return "Keine Verbindung zum Server. Bitte versuche es gleich noch einmal.";
   if (error.code === "TOKEN_INVALID") return "Du bist nicht angemeldet. Bitte melde dich neu an.";
+  if (error.code === "NO_DATA") return "Dieses Rezept gibt es nicht mehr (zurückgezogen oder gelöscht).";
   return error.message;
 }
 
-export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
+export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void; recipe?: Recipe }) {
   const titleId = useId();
   const servingsId = useId();
   const titleErrorId = useId();
   const servingsErrorId = useId();
   const summaryRef = useRef<HTMLDivElement>(null);
 
-  const [title, setTitle] = useState("");
-  const [servings, setServings] = useState("2");
-  const [mealTypes, setMealTypes] = useState<string[]>([]);
-  const [rows, setRows] = useState<IngredientRow[]>([]);
-  const [steps, setSteps] = useState<StepDraft[]>([{ text: "", timerMinutes: "" }]);
+  const editing = !!recipe;
+  const initial = recipe ? draftFromRecipe(recipe) : null;
+  const existingPath = recipe?.imageUrl ?? null;
+
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [servings, setServings] = useState(initial?.servings ?? "2");
+  const [mealTypes, setMealTypes] = useState<string[]>(initial?.mealTypes ?? []);
+  const [rows, setRows] = useState<IngredientRow[]>(() =>
+    (initial?.ingredients ?? []).map((i) => ({ ...i, units: [i.unit] })),
+  );
+  const [steps, setSteps] = useState<StepDraft[]>(initial?.steps ?? [{ text: "", timerMinutes: "" }]);
   const [photo, setPhoto] = useState<Blob | null>(null);
+  const [keepPhoto, setKeepPhoto] = useState(true); // Bearbeiten: bisheriges Foto behalten
   const [rights, setRights] = useState(false);
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
@@ -76,6 +93,8 @@ export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
   const { preview, isPending: previewing } = useRecipePreview();
   const { submit, isPending: submitting } = useSubmitRecipe();
   const busy = previewing || submitting;
+  // Beim Bearbeiten tragen die gespeicherten Zeilen nur die gewählte Einheit; die übrigen kommen aus der Suche
+  const unitsByName = useIngredientUnits(editing ? rows.map((r) => r.name) : NO_NAMES);
 
   const body = buildSubmissionBody({ title, servings, mealTypes, ingredients: rows, steps });
   const bodyKey = JSON.stringify(body);
@@ -95,7 +114,11 @@ export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
       const { fields, rest } = splitFieldErrors(error.details);
       const limit = openRecipesMessage(error.details);
       setFieldErrors(fields);
-      setSummary(limit ? [limit] : rest.length > 0 ? rest : ["Bitte prüfe die markierten Felder."]);
+      if (limit) setSummary([limit]);
+      else if (rest.length > 0) setSummary(rest);
+      else if (Object.keys(fields).length > 0) setSummary(["Bitte prüfe die markierten Felder."]);
+      // Ohne Feldfehler: beim Bearbeiten heißt das 409 "nicht mehr offen" — der Servertext wäre technisch
+      else setSummary([editing ? NOT_PENDING : error.message]);
     } else {
       setFieldErrors({});
       setSummary([describeError(error)]);
@@ -120,7 +143,8 @@ export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
       setErrorTick((t) => t + 1);
       return;
     }
-    const result = await submit(body, photo);
+    const options = recipe ? { recipeId: recipe.id, keepImagePath: keepPhoto ? existingPath : null } : {};
+    const result = await submit(body, photo, options);
     if (result.ok) setSubmittedTitle(title.trim());
     else applyError(result.error);
   }
@@ -132,9 +156,11 @@ export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
   if (submittedTitle !== null) {
     return (
       <GlassCard style={CARD_STYLE}>
-        <h2 style={HEADING_STYLE}>Rezept eingereicht</h2>
+        <h2 style={HEADING_STYLE}>{editing ? "Änderungen gespeichert" : "Rezept eingereicht"}</h2>
         <p role="status" style={TEXT_STYLE}>
-          „{submittedTitle}“ wartet jetzt auf die Prüfung. Nährwerte und Allergene hat das System aus deinen Zutaten berechnet.
+          {editing
+            ? `„${submittedTitle}“ wurde aktualisiert und wartet weiter auf die Prüfung. Bisherige Stimmen zu diesem Rezept wurden gelöscht, weil sich der Inhalt geändert hat.`
+            : `„${submittedTitle}“ wartet jetzt auf die Prüfung. Nährwerte und Allergene hat das System aus deinen Zutaten berechnet.`}
         </p>
         <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={onClose}>
           Zurück zu den Rezepten
@@ -147,9 +173,14 @@ export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
   const servingsErrors = fieldErrors.servings;
 
   return (
-    <form onSubmit={(e) => void handleSubmit(e)} noValidate aria-label="Rezept einreichen">
+    <form onSubmit={(e) => void handleSubmit(e)} noValidate aria-label={editing ? "Rezept bearbeiten" : "Rezept einreichen"}>
       <GlassCard style={CARD_STYLE}>
-        <h2 style={HEADING_STYLE}>Rezept einreichen</h2>
+        <h2 style={HEADING_STYLE}>{editing ? "Rezept bearbeiten" : "Rezept einreichen"}</h2>
+        {editing && (
+          <p style={TEXT_STYLE}>
+            Du bearbeitest ein Rezept, das noch auf die Prüfung wartet. Mit dem Speichern werden bisherige Stimmen dazu gelöscht.
+          </p>
+        )}
         <p style={TEXT_STYLE}>
           Wähle Zutaten aus der Liste und gib Mengen an. Nährwerte, Allergene und Ernährungsform berechnet das System selbst; ein
           Admin prüft dein Rezept, bevor es für alle sichtbar wird.
@@ -240,9 +271,18 @@ export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
             ))}
           </fieldset>
 
-          <IngredientPicker rows={rows} onChange={setRows} errors={fieldErrors.ingredients} />
+          <IngredientPicker rows={rows} onChange={setRows} errors={fieldErrors.ingredients} unitsByName={unitsByName} />
           <StepsEditor steps={steps} onChange={setSteps} errors={fieldErrors.instructions} />
-          <PhotoField photo={photo} rights={rights} onPhoto={setPhoto} onRights={setRights} errors={fieldErrors.image_url} />
+          <PhotoField
+            photo={photo}
+            rights={rights}
+            onPhoto={setPhoto}
+            onRights={setRights}
+            errors={fieldErrors.image_url}
+            existing={!!existingPath && keepPhoto}
+            existingRemoved={!!existingPath && !keepPhoto}
+            onRemoveExisting={() => setKeepPhoto(false)}
+          />
         </div>
       </GlassCard>
 
@@ -258,7 +298,7 @@ export function RecipeSubmissionForm({ onClose }: { onClose: () => void }) {
             {previewing ? "Berechne …" : "Vorschau berechnen"}
           </button>
           <button type="submit" disabled={busy} style={busy ? PRIMARY_BUTTON_DISABLED_STYLE : PRIMARY_BUTTON_STYLE}>
-            {submitting ? "Reiche ein …" : "Rezept einreichen"}
+            {submitting ? (editing ? "Speichere …" : "Reiche ein …") : editing ? "Änderungen speichern" : "Rezept einreichen"}
           </button>
           <button type="button" disabled={busy} style={busy ? TAP_BUTTON_DISABLED_STYLE : TAP_BUTTON_STYLE} onClick={onClose}>
             Abbrechen

@@ -3,11 +3,13 @@
    (Fahrplan 25, S2a; Q9) — Verkleinerung auf WebP ≤ 1200 px im Browser,
    Pflicht-Haken zu den Rechten. Kein KI-Label auf Athleten-Fotos.
    Hochgeladen wird erst beim Absenden (useSubmitRecipe), nicht beim Wählen.
+   S2b (Bearbeiten): ein schon gespeichertes Foto bleibt, wenn kein neues gewählt
+   wird; es lässt sich auch entfernen (der Server ersetzt das Rezept ganz).
    ============================================================ */
 
 import { useEffect, useId, useMemo, useState } from "react";
 import { PhotoError, shrinkToWebp } from "./recipe-photo";
-import { FIELD_ERROR_STYLE, LABEL_STYLE, META_STYLE, TAP_BUTTON_STYLE, TAP_MIN } from "./nutrition-styles";
+import { FIELD_ERROR_STYLE, LABEL_STYLE, META_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
 
 interface Props {
   photo: Blob | null;
@@ -15,9 +17,14 @@ interface Props {
   onPhoto: (photo: Blob | null) => void;
   onRights: (rights: boolean) => void;
   errors?: string[];
+  /** Beim Bearbeiten: es gibt ein gespeichertes Foto, das erhalten bleibt */
+  existing?: boolean;
+  /** Beim Bearbeiten: das gespeicherte Foto wurde zum Entfernen markiert */
+  existingRemoved?: boolean;
+  onRemoveExisting?: () => void;
 }
 
-export function PhotoField({ photo, rights, onPhoto, onRights, errors }: Props) {
+export function PhotoField({ photo, rights, onPhoto, onRights, errors, existing, existingRemoved, onRemoveExisting }: Props) {
   const inputId = useId();
   const rightsId = useId();
   const errorId = useId();
@@ -55,6 +62,20 @@ export function PhotoField({ photo, rights, onPhoto, onRights, errors }: Props) 
           alt="Vorschau deines Fotos"
           style={{ display: "block", maxWidth: "100%", maxHeight: 220, borderRadius: "var(--radius)", margin: "0 0 10px" }}
         />
+      )}
+
+      {existing && !photo && (
+        <div style={{ margin: "0 0 10px" }}>
+          <p style={TEXT_STYLE}>Dein bisheriges Foto bleibt erhalten, wenn du kein neues wählst.</p>
+          <button type="button" style={TAP_BUTTON_STYLE} onClick={onRemoveExisting}>
+            Bisheriges Foto entfernen
+          </button>
+        </div>
+      )}
+      {existingRemoved && !photo && (
+        <p role="status" style={TEXT_STYLE}>
+          Das bisherige Foto wird beim Speichern entfernt.
+        </p>
       )}
 
       <label htmlFor={inputId} style={{ ...TAP_BUTTON_STYLE, display: "inline-flex", alignItems: "center" }}>

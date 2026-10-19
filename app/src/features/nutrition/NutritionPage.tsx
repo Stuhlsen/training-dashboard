@@ -9,6 +9,9 @@
 
    Zustände: Karte "Profil ergänzen" (fehlende Angaben) ODER das
    Tagesziel mit Boden, Formelname, Körperfett-Datum und Hinweisen.
+
+   S2b: über den Ansichten steht das Banner "Dein Rezept wurde entschieden"
+   (DecisionBanner), solange es ungesehene Entscheidungen gibt.
    ============================================================ */
 
 import { useMemo, useState, type CSSProperties } from "react";
@@ -27,6 +30,7 @@ import { DayTargetCard } from "./DayTargetCard";
 import { WeekView } from "./WeekView";
 import { ShoppingListView } from "./ShoppingListView";
 import { RecipesView } from "./RecipesView";
+import { DecisionBanner } from "./DecisionBanner";
 
 const CARD_STYLE: CSSProperties = { padding: "28px 32px", marginBottom: 20 };
 const HEADING_STYLE: CSSProperties = {
@@ -193,6 +197,7 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
       )}
       {day.ok ? (
         <>
+          <DecisionBanner key={userId} userId={userId} />
           <ViewSwitch view={view} onChange={setView} />
           {view === "week" ? (
             // die Tagesziel-Karte sitzt im Kopf der Tagesbühne (WeekView)

@@ -40,6 +40,8 @@ vi.mock("./ShoppingListView", () => ({
 }));
 
 vi.mock("./RecipesView", () => ({ RecipesView: () => <p>Rezepte-Platzhalter</p> }));
+// Das Entscheidungs-Banner hat eigene Tests (DecisionBanner.test.tsx)
+vi.mock("./DecisionBanner", () => ({ DecisionBanner: ({ userId }: { userId: string }) => <p>Banner-Platzhalter {userId}</p> }));
 
 const { NutritionPage } = await import("./NutritionPage");
 
@@ -99,6 +101,17 @@ describe("NutritionPage — Guard (E28)", () => {
     // die Tagesziel-Karte sitzt in der Tagesbühne (WeekView, hier gemockt) — Details: DayTargetCard.test.tsx
     expect(screen.getByText("Wochenansicht-Platzhalter")).toBeTruthy();
     expect(useNutritionDayMock).toHaveBeenCalledWith("athlete1", expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+  });
+
+  it("eigener Athlet: das Entscheidungs-Banner steht über den Ansichten, mit der Nutzer-ID", () => {
+    renderPage();
+    expect(screen.getByText("Banner-Platzhalter u1")).toBeTruthy();
+  });
+
+  it("fremder Athlet: kein Banner", () => {
+    mockSelf = { isSelf: false, isLoading: false };
+    renderPage();
+    expect(screen.queryByText(/Banner-Platzhalter/)).toBeNull();
   });
 
   it("ausgeloggt: Anmelde-Link, keine Datenabfrage", () => {
