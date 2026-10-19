@@ -151,9 +151,12 @@ freigegebenes Rezept ohne Verifizierung bleibt `409 VALIDATION` (ohne `details`)
 abgelehntes ebenfalls. Entzug (V-5): bereits freigegebene Rezepte bleiben `approved`, nur der
 Admin kann sie dann noch ändern.
 
-Rollout-Reihenfolge: Migration `0071` (Spalte, Trigger, RLS-Sperre) und `0072` (Audit-Aktionen)
-**vor** diesem Image. Ohne `0071` scheitert schon `GET /admin/users` (die Spalte fehlt), ohne
-`0072` lehnt das Verifizieren sauber mit 502 ab.
+Rollout: Die Migrationen `0071` (Spalte, Trigger, RLS-Sperre) und `0072` (Audit-Aktionen) laufen
+beim Pod-Start im `migrate`-Container, im selben Release wie dieses Image (auf apps01 deployt
+ein Versions-Bump alle Container zusammen). Das Image braucht beide: ohne `0071` scheitert
+`GET /admin/users` (die Spalte fehlt), ohne `0072` lehnt das Verifizieren sauber mit 502 ab. Ein
+kurzes Fenster mit altem Schema ist also harmlos (nur der Admin-Bereich meldet einen Fehler),
+und es entsteht keine halbe Änderung.
 
 ### Build-Kontext = Repo-Wurzel
 
