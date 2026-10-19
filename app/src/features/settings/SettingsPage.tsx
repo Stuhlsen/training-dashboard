@@ -17,7 +17,9 @@
    ============================================================ */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { SECTION_STACK_STYLE } from "./section-styles";
+import { HEADING_STYLE, SECTION_DESC_STYLE, SECTION_STACK_STYLE } from "./section-styles";
+import { ToggleSwitch } from "./ToggleSwitch";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { useSessionProfile } from "../../api/hooks/useSession";
@@ -77,6 +79,7 @@ function SettingsGroup({ id, title, children }: { id: string; title: string; chi
 
 export function SettingsPage() {
   const profile = useSessionProfile();
+  const { enabled: streamerMode, setEnabled: setStreamerMode } = useStreamerMode();
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [activeId, setActiveId] = useState("sec-profil");
   const isAthlete = profile?.role === "athlete";
@@ -164,6 +167,23 @@ export function SettingsPage() {
             </nav>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <GlassCard variant="soft" style={{ padding: "16px 24px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                  <div>
+                    <div style={{ ...HEADING_STYLE, marginBottom: 2 }}>Streamer-Modus</div>
+                    <p style={{ ...SECTION_DESC_STYLE, margin: 0 }}>
+                      Verdeckt persönliche Angaben auf dieser Seite, damit du sie zeigen kannst. Gilt nur in
+                      diesem Browser; im Modus sind die verdeckten Felder gesperrt.
+                    </p>
+                  </div>
+                  <ToggleSwitch
+                    on={streamerMode}
+                    onChange={() => setStreamerMode(!streamerMode)}
+                    label="Streamer-Modus aktiv"
+                  />
+                </div>
+              </GlassCard>
+
               <SettingsGroup id="sec-profil" title="Profil">
                 <ProfileSection />
                 {isAthlete && <ProfileBasicsSection />}

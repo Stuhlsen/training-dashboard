@@ -17,6 +17,8 @@ import { useActiveNutritionGoal, useAddNutritionGoal } from "../../api/hooks/use
 import { ALLERGEN_TAXONOMY } from "../../core/nutrition-taxonomy.js";
 import { BiologicalSexField } from "./BiologicalSexField";
 import { SavedCheck } from "./SavedCheck";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
+import { MASK, MaskedInput, StreamerNote } from "./streamer-mask";
 import { fmtDate } from "../../core/format.js";
 import {
   SECTION_STYLE,
@@ -33,6 +35,8 @@ export function NutritionSection() {
   const { update: saveIntolerances, isPending: intolerancesPending } = useUpdateIntolerances();
   const { goal, isLoading: goalLoading } = useActiveNutritionGoal();
   const { add: saveGoal, isPending: goalPending } = useAddNutritionGoal();
+  // Streamer-Modus: Intoleranzen, Zielgewicht und Tempo verdeckt, Ziel-Formular gesperrt.
+  const { enabled: streamer } = useStreamerMode();
 
   const [sexSaved, setSexSaved] = useState(false);
   const [intolerancesSaved, setIntolerancesSaved] = useState(false);
@@ -99,17 +103,22 @@ export function NutritionSection() {
       </p>
 
       {/* Nur bei divers / keine Angabe — sonst leitet die Formel aus dem Geschlecht der Basisdaten ab */}
-      <BiologicalSexField
-        gender={basics?.gender}
-        sex={basics?.sex}
-        onChange={(next) => void handleSexChange(next)}
-        pending={sexPending}
-        saved={sexSaved}
-      />
+      {!streamer && (
+        <BiologicalSexField
+          gender={basics?.gender}
+          sex={basics?.sex}
+          onChange={(next) => void handleSexChange(next)}
+          pending={sexPending}
+          saved={sexSaved}
+        />
+      )}
 
       {/* Intoleranzen */}
       <div style={{ marginBottom: 16 }}>
         <label style={LABEL_STYLE}>Intoleranzen / Allergene</label>
+        {streamer ? (
+          <MaskedInput label="Intoleranzen / Allergene" />
+        ) : (
         <div
           style={{
             display: "flex",
@@ -181,6 +190,7 @@ export function NutritionSection() {
             {!basics?.intolerances?.length ? "✓ " : ""}Keine
           </div>
         </div>
+        )}
         {intolerancesSaved && <SavedCheck />}
       </div>
 
@@ -205,14 +215,14 @@ export function NutritionSection() {
               {goal.goalType === "lose" && "Abnehmen"}
               {goal.goalType === "gain" && "Aufbauen"}
               {goal.goalType === "maintain" && "Halten"}
-              {goal.targetWeightKg ? ` · ${goal.targetWeightKg} kg` : ""}
-              {goal.pacePerWeekKg ? ` · ${goal.pacePerWeekKg} kg/Woche` : ""}
+              {goal.targetWeightKg ? ` · ${streamer ? MASK : `${goal.targetWeightKg} kg`}` : ""}
+              {goal.pacePerWeekKg ? ` · ${streamer ? MASK : `${goal.pacePerWeekKg} kg/Woche`}` : ""}
               {goal.targetDate ? ` · bis ${fmtDate(goal.targetDate)}` : ""}
             </span>
           </div>
         )}
 
-        {!goalOpen && (
+        {!goalOpen && !streamer && (
           <button
             type="button"
             onClick={() => setGoalOpen(true)}
@@ -230,7 +240,7 @@ export function NutritionSection() {
           </button>
         )}
 
-        {goalOpen && (
+        {goalOpen && !streamer && (
           <form
             onSubmit={(e) => void handleGoalSubmit(e)}
             style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}
@@ -326,6 +336,7 @@ export function NutritionSection() {
           </form>
         )}
       </div>
+      {streamer && <StreamerNote />}
     </div>
   );
 }

@@ -8,8 +8,17 @@
 
 import { useState } from "react";
 import { useIntervalsCredentials, useUpdateIntervalsCredentials } from "../../api/hooks/useIntervalsCredentials";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
 import { SavedCheck } from "./SavedCheck";
-import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, HEADING_STYLE, ERROR_STYLE } from "./section-styles";
+import { MaskedInput, StreamerNote } from "./streamer-mask";
+import {
+  SECTION_STYLE,
+  LABEL_STYLE,
+  INPUT_STYLE,
+  HEADING_STYLE,
+  ERROR_STYLE,
+  LINK_BUTTON_STYLE,
+} from "./section-styles";
 
 export interface IntervalsSectionProps {
   /** Nur relevant, wenn diese Sektion als Onboarding-Wizard-Schritt läuft
@@ -22,6 +31,10 @@ export interface IntervalsSectionProps {
 export function IntervalsSection({ onComplete, onSkip }: IntervalsSectionProps = {}) {
   const { credentials } = useIntervalsCredentials();
   const { update, isPending } = useUpdateIntervalsCredentials();
+  const { enabled: streamer } = useStreamerMode();
+  // Eine gespeicherte Athlete-ID zeigt nur Punkte (wie der Key), bis jemand
+  // „Ändern" klickt — im Streamer-Modus ist auch das gesperrt.
+  const [editingId, setEditingId] = useState(false);
 
   const [apiKey, setApiKey] = useState("");
   const [athleteId, setAthleteId] = useState(credentials?.athleteId ?? "");
@@ -53,6 +66,7 @@ export function IntervalsSection({ onComplete, onSkip }: IntervalsSectionProps =
       return;
     }
     setApiKey("");
+    setEditingId(false);
     if (onComplete) {
       onComplete();
       return;
@@ -79,16 +93,32 @@ export function IntervalsSection({ onComplete, onSkip }: IntervalsSectionProps =
             style={INPUT_STYLE}
           />
         </label>
-        <label style={LABEL_STYLE}>
-          Athlete-ID (z. B. i12345)
-          <input
-            type="text"
-            autoComplete="off"
-            value={athleteId}
-            onChange={(e) => setAthleteId(e.target.value)}
-            style={INPUT_STYLE}
-          />
-        </label>
+        {credentials?.athleteId && (!editingId || streamer) ? (
+          <div>
+            <label style={LABEL_STYLE}>
+              Athlete-ID
+              <MaskedInput label="Athlete-ID" />
+            </label>
+            {streamer ? (
+              <StreamerNote />
+            ) : (
+              <button type="button" onClick={() => setEditingId(true)} style={{ ...LINK_BUTTON_STYLE, marginTop: 6 }}>
+                Ändern
+              </button>
+            )}
+          </div>
+        ) : (
+          <label style={LABEL_STYLE}>
+            Athlete-ID (z. B. i12345)
+            <input
+              type="text"
+              autoComplete="off"
+              value={athleteId}
+              onChange={(e) => setAthleteId(e.target.value)}
+              style={INPUT_STYLE}
+            />
+          </label>
+        )}
         {error && <div style={ERROR_STYLE}>{error}</div>}
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
           <button
