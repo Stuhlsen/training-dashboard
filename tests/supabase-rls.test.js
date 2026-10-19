@@ -3189,10 +3189,16 @@ if (!HAS_CREDS) {
     // INSERT-Policy für authenticated mehr — der einzige Schreibpfad ist der Dienst (admin-api).
     const insert = await insertRecipeRow(athlete.token, { title: "RLS-Test-Insert-Gesperrt" });
     assert.equal(insert.ok, false, "Direkter Athleten-Insert muss gesperrt sein (0071)");
-    assert.equal(insert.status, 403, `erwartet 403 (RLS), war ${insert.status}: ${JSON.stringify(insert.data)}`);
+    assert.equal(
+      insert.status,
+      403,
+      `erwartet 403 (RLS), war ${insert.status}: ${JSON.stringify(insert.data)}`
+    );
     if (insert.ok && Array.isArray(insert.data) && insert.data[0]?.id) {
       cleanupTasks.push(async () => {
-        await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+        await rest("DELETE", `recipes?id=eq.${insert.data[0].id}`, {
+          token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+        });
       });
     }
   });
@@ -3261,9 +3267,15 @@ if (!HAS_CREDS) {
   });
 
   test("recipes: Athlet UPDATE content on own pending — 0 rows (0071, S1-12: Änderung nur über den Dienst)", async (t) => {
-    if (recipesSkip()) return t.skip(recipesSkip());
-    const own = await insertRecipeSetup({ title: "RLS-Test-Update-Content" });
-    if (!own.ok) return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen (Service-Key fehlt?)");
+    // Nicht-Admin-Identität = der Trainer (der Test-Athlet ist auf dashboard-dev Admin und darf
+    // laut recipes_update_status_admin ohnehin ändern).
+    if (nonAdminActorSkip()) return t.skip(nonAdminActorSkip());
+    const own = await insertRecipeSetup({
+      submitted_by: trainer.userId,
+      title: "RLS-Test-Update-Content",
+    });
+    if (!own.ok)
+      return t.skip("Eigenes pending-Rezept anlegen fehlgeschlagen (Service-Key fehlt?)");
     const id = own.data[0].id;
     cleanupTasks.push(async () => {
       await rest("DELETE", `recipes?id=eq.${id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
@@ -3272,12 +3284,22 @@ if (!HAS_CREDS) {
     // Früher durfte der Einreicher den Titel ändern. Seit 0071 fehlt die UPDATE-Policy:
     // PostgREST liefert 200 mit leerer Liste (RLS blendet die Zeile aus), nichts ändert sich.
     const update = await rest("PATCH", `recipes?id=eq.${id}`, {
-      token: athlete.token,
+      token: trainer.token,
       body: { title: RECIPE_UPDATED_TITLE },
     });
-    assert.equal(update.data?.length ?? 0, 0, "Athlet darf den Inhalt nicht mehr direkt ändern (0071)");
-    const readBack = await rest("GET", `recipes?id=eq.${id}&select=title`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
-    assert.equal(readBack.data?.[0]?.title, "RLS-Test-Update-Content", "Titel darf unverändert sein");
+    assert.equal(
+      update.data?.length ?? 0,
+      0,
+      "Ein Nicht-Admin darf den Inhalt nicht mehr direkt ändern (0071)"
+    );
+    const readBack = await rest("GET", `recipes?id=eq.${id}&select=title`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(
+      readBack.data?.[0]?.title,
+      "RLS-Test-Update-Content",
+      "Titel darf unverändert sein"
+    );
   });
 
   test("recipes: Athlet UPDATE content on foreign pending — 0 rows (RLS)", async (t) => {
@@ -3357,7 +3379,9 @@ if (!HAS_CREDS) {
       !updateStatus.ok || (updateStatus.data?.length ?? 0) === 0,
       "Athlet konnte status am eigenen pending setzen"
     );
-    const readBack = await rest("GET", `recipes?id=eq.${id}&select=status`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    const readBack = await rest("GET", `recipes?id=eq.${id}&select=status`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
     assert.equal(readBack.data?.[0]?.status, "pending", "Status muss pending bleiben");
   });
 
@@ -3387,8 +3411,14 @@ if (!HAS_CREDS) {
       !updateReason.ok || (updateReason.data?.length ?? 0) === 0,
       "Athlet konnte rejection_reason am eigenen pending setzen"
     );
-    const readBack = await rest("GET", `recipes?id=eq.${id}&select=rejection_reason`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
-    assert.equal(readBack.data?.[0]?.rejection_reason ?? null, null, "rejection_reason muss leer bleiben");
+    const readBack = await rest("GET", `recipes?id=eq.${id}&select=rejection_reason`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(
+      readBack.data?.[0]?.rejection_reason ?? null,
+      null,
+      "rejection_reason muss leer bleiben"
+    );
   });
 
   test("recipes: Athlet UPDATE content after approval blocked (E18 Trigger, race condition edge case #16)", async (t) => {
@@ -4561,7 +4591,8 @@ if (!HAS_CREDS) {
   const verifiedSkip = () => {
     if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return "SUPABASE_SERVICE_ROLE_KEY fehlt in .env";
     if (recipesSkip()) return recipesSkip();
-    if (!verifiedColumnReady) return "profiles.is_verified_author nicht lesbar — Migration 0071 vermutlich noch nicht eingespielt";
+    if (!verifiedColumnReady)
+      return "profiles.is_verified_author nicht lesbar — Migration 0071 vermutlich noch nicht eingespielt";
     return false;
   };
 
@@ -4581,14 +4612,30 @@ if (!HAS_CREDS) {
       token: athlete.token,
       body: { is_verified_author: true },
     });
-    assert.equal(set.ok, false, `Setzen muss an den Spaltenrechten scheitern: ${JSON.stringify(set.data)}`);
+    assert.equal(
+      set.ok,
+      false,
+      `Setzen muss an den Spaltenrechten scheitern: ${JSON.stringify(set.data)}`
+    );
     const read = await rest("GET", `profiles?id=eq.${athlete.userId}&select=is_verified_author`, {
       token: athlete.token,
     });
-    assert.equal(read.ok, false, "Basistabelle: kein Select-Recht auf die Spalte für authenticated");
+    assert.equal(
+      read.ok,
+      false,
+      "Basistabelle: kein Select-Recht auf die Spalte für authenticated"
+    );
 
-    const after = await rest("GET", `profiles?id=eq.${athlete.userId}&select=is_verified_author`, SERVICE());
-    assert.equal(after.data?.[0]?.is_verified_author, original, "Flag darf sich nicht geändert haben");
+    const after = await rest(
+      "GET",
+      `profiles?id=eq.${athlete.userId}&select=is_verified_author`,
+      SERVICE()
+    );
+    assert.equal(
+      after.data?.[0]?.is_verified_author,
+      original,
+      "Flag darf sich nicht geändert haben"
+    );
   });
 
   test("verified-author: Athlet liest den eigenen Status über profiles_visible, der Coach den seiner Athleten, anon nichts", async (t) => {
@@ -4596,21 +4643,37 @@ if (!HAS_CREDS) {
     const set = await setVerifiedAuthor(athlete.userId, true);
     assert.equal(set.ok, true, `service_role setzt das Flag: ${JSON.stringify(set.data)}`);
 
-    const own = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`, {
-      token: athlete.token,
-    });
+    const own = await rest(
+      "GET",
+      `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`,
+      {
+        token: athlete.token,
+      }
+    );
     assert.equal(own.data?.[0]?.is_verified_author, true, "Athlet sieht den eigenen Status");
 
     if (coachLinkOk) {
-      const viaCoach = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`, {
-        token: trainer.token,
-      });
-      assert.equal(viaCoach.data?.[0]?.is_verified_author, true, "Coach sieht den Status seines Athleten");
+      const viaCoach = await rest(
+        "GET",
+        `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`,
+        {
+          token: trainer.token,
+        }
+      );
+      assert.equal(
+        viaCoach.data?.[0]?.is_verified_author,
+        true,
+        "Coach sieht den Status seines Athleten"
+      );
     }
 
-    const anon = await rest("GET", `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`, {
-      token: null,
-    });
+    const anon = await rest(
+      "GET",
+      `profiles_visible?id=eq.${athlete.userId}&select=is_verified_author`,
+      {
+        token: null,
+      }
+    );
     assert.equal(anon.ok, false, "anon hat keinen Zugriff auf profiles_visible");
   });
 
@@ -4630,10 +4693,17 @@ if (!HAS_CREDS) {
     if (verifiedSkip()) return t.skip(verifiedSkip());
     await setVerifiedAuthor(athlete.userId, false);
 
-    const approved = await insertRecipeSetup({ title: "RLS-Test-0071-Nicht-Verifiziert", status: "approved" });
+    const approved = await insertRecipeSetup({
+      title: "RLS-Test-0071-Nicht-Verifiziert",
+      status: "approved",
+    });
     if (approved.ok) deleteRecipeLater(approved.data[0].id);
     assert.equal(approved.ok, false, "Sofort-Freigabe nur für verifizierte Autoren (Trigger)");
-    assert.match(JSON.stringify(approved.data), /status = 'pending'/, "Fehlertext des Triggers erwartet");
+    assert.match(
+      JSON.stringify(approved.data),
+      /status = 'pending'/,
+      "Fehlertext des Triggers erwartet"
+    );
 
     const pending = await insertRecipeSetup({ title: "RLS-Test-0071-Pending" });
     assert.equal(pending.ok, true, `pending bleibt möglich: ${JSON.stringify(pending.data)}`);
@@ -4645,14 +4715,27 @@ if (!HAS_CREDS) {
     if (verifiedSkip()) return t.skip(verifiedSkip());
     await setVerifiedAuthor(athlete.userId, true);
 
-    const created = await insertRecipeSetup({ title: "RLS-Test-0071-Sofort-Freigabe", status: "approved" });
-    assert.equal(created.ok, true, `Sofort-Freigabe für Verifizierte: ${JSON.stringify(created.data)}`);
+    const created = await insertRecipeSetup({
+      title: "RLS-Test-0071-Sofort-Freigabe",
+      status: "approved",
+    });
+    assert.equal(
+      created.ok,
+      true,
+      `Sofort-Freigabe für Verifizierte: ${JSON.stringify(created.data)}`
+    );
     const id = created.data[0].id;
     deleteRecipeLater(id);
     assert.equal(created.data[0].status, "approved");
 
-    const seenByTrainer = await rest("GET", `recipes?id=eq.${id}&select=status`, { token: trainer.token });
-    assert.equal(seenByTrainer.data?.[0]?.status, "approved", "Freigegebenes Rezept ist für alle lesbar");
+    const seenByTrainer = await rest("GET", `recipes?id=eq.${id}&select=status`, {
+      token: trainer.token,
+    });
+    assert.equal(
+      seenByTrainer.data?.[0]?.status,
+      "approved",
+      "Freigegebenes Rezept ist für alle lesbar"
+    );
   });
 
   test("verified-author: Ändern eines approved-Rezepts nur Dienst + verifiziert; Athlet nie; nach Entzug wieder gesperrt (E18)", async (t) => {
@@ -4667,15 +4750,26 @@ if (!HAS_CREDS) {
       ...SERVICE(),
       body: { title: "RLS-Test-0071-Geaendert" },
     });
-    assert.equal(byService.ok, true, `Dienst ändert das Rezept eines Verifizierten: ${JSON.stringify(byService.data)}`);
+    assert.equal(
+      byService.ok,
+      true,
+      `Dienst ändert das Rezept eines Verifizierten: ${JSON.stringify(byService.data)}`
+    );
     assert.equal(byService.data?.[0]?.title, "RLS-Test-0071-Geaendert");
     assert.equal(byService.data?.[0]?.status, "approved", "Status bleibt freigegeben");
 
+    // Nicht-Admin-Identität: der Test-Athlet ist auf dashboard-dev Admin (recipes_update_status_admin
+    // erlaubt Admins das Ändern); dort prüft der Trainer die Sperre, sonst der Einreicher selbst.
+    const nonAdmin = testAthleteIsAdmin ? trainer : athlete;
     const byAthlete = await rest("PATCH", `recipes?id=eq.${id}`, {
-      token: athlete.token,
+      token: nonAdmin.token,
       body: { title: "RLS-Test-0071-Athlet" },
     });
-    assert.equal(byAthlete.data?.length ?? 0, 0, "Der Athlet selbst ändert nie direkt (keine UPDATE-Policy)");
+    assert.equal(
+      byAthlete.data?.length ?? 0,
+      0,
+      "Ein Nicht-Admin ändert nie direkt (keine UPDATE-Policy)"
+    );
 
     // Entzug (V-5): das Rezept bleibt approved, ist aber für den Dienst wieder gesperrt
     await setVerifiedAuthor(athlete.userId, false);
@@ -4688,7 +4782,11 @@ if (!HAS_CREDS) {
 
     const readBack = await rest("GET", `recipes?id=eq.${id}&select=title,status`, SERVICE());
     assert.equal(readBack.data?.[0]?.title, "RLS-Test-0071-Geaendert");
-    assert.equal(readBack.data?.[0]?.status, "approved", "Das Rezept bleibt nach dem Entzug freigegeben");
+    assert.equal(
+      readBack.data?.[0]?.status,
+      "approved",
+      "Das Rezept bleibt nach dem Entzug freigegeben"
+    );
   });
 
   test("verified-author: Rezept ohne Einreicher (Seed, source=own) bleibt auch für den Dienst unveränderlich", async (t) => {
