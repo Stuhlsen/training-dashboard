@@ -3,6 +3,10 @@
 // zusaetzlich role/isAdmin/bannedUntil je Zeile. Neu dazu: banUser/
 // unbanUser/deleteUser/resendUserLink, jede schreibt eine
 // admin_audit_log-Zeile (Migration 0044).
+//
+// Fahrplan 29 V2: setVerifiedAuthor() schaltet profiles.is_verified_author (Migration 0071) —
+// verifizierte Autoren veroeffentlichen Rezepte ohne Admin-Freigabe. Die Aktion steht im
+// Audit-Log (Migration 0072) und wird VOR der Aenderung aufgezeichnet.
 
 async function fetchJson(url, env, fetchImpl, label, init = {}) {
   let res;
@@ -55,7 +59,7 @@ async function listUsers(env, fetchImpl = fetch) {
     [usersBody, profiles, planCardRows, syncConfigRows] = await Promise.all([
       fetchJson(`${env.GOTRUE_INTERNAL_URL}/admin/users`, env, fetchImpl, "GoTrue"),
       fetchJson(
-        `${env.POSTGREST_INTERNAL_URL}/profiles?select=id,display_name,has_password,role,is_admin,updated_at`,
+        `${env.POSTGREST_INTERNAL_URL}/profiles?select=id,display_name,has_password,role,is_admin,is_verified_author,updated_at`,
         env,
         fetchImpl,
         "PostgREST"
@@ -96,6 +100,7 @@ async function listUsers(env, fetchImpl = fetch) {
       displayName: profile.display_name ?? null,
       role: profile.role,
       isAdmin: profile.is_admin === true,
+      isVerifiedAuthor: profile.is_verified_author === true,
       hasPassword: profile.has_password === true,
       bannedUntil: user?.banned_until ?? null,
       lastSignInAt: user?.last_sign_in_at ?? null,
@@ -192,6 +197,61 @@ async function unbanUser(userId, actorId, env, fetchImpl = fetch) {
   }
   await writeAuditLog(env, fetchImpl, { actorId, targetUserId: userId, action: "unban" });
   return { ok: true };
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Verifizierter Autor an/aus (Fahrplan 29 V-2). Die Rolle des Zielprofils spielt keine Rolle.
+// Das Audit-Log wird VOR der Aenderung geschrieben (wie delete/resend): eine vertrauensbildende
+// Aktion ohne Aufzeichnung gibt es nicht, bei Fehler wird nichts geaendert. PostgREST bekommt
+// `return=minimal`: der Dienst hat nur Spaltenrechte auf profiles, "return=representation"
+// wuerde alle Spalten zurueckgeben wollen und mit 42501 scheitern.
+async function setVerifiedAuthor(userId, value, actorId, env, fetchImpl = fetch) {
+  const notFound = { ok: false, status: 404, error: { code: "NO_DATA", message: "Nutzer nicht gefunden" } };
+  if (typeof userId !== "string" || !UUID_RE.test(userId)) return notFound;
+
+  let rows;
+  try {
+    rows = await fetchJson(
+      `${env.POSTGREST_INTERNAL_URL}/profiles?id=eq.${userId}&select=id`,
+      env,
+      fetchImpl,
+      "PostgREST"
+    );
+  } catch (err) {
+    return { ok: false, status: 502, error: { code: "NETWORK", message: err.message } };
+  }
+  if (!Array.isArray(rows) || rows.length === 0) return notFound;
+
+  const auditWritten = await writeAuditLog(env, fetchImpl, {
+    actorId,
+    targetUserId: userId,
+    action: value ? "verify_author" : "unverify_author",
+    details: { isVerifiedAuthor: value },
+  });
+  if (!auditWritten) {
+    return { ok: false, status: 502, error: { code: "NETWORK", message: "Audit-Log nicht schreibbar" } };
+  }
+
+  let res;
+  try {
+    res = await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/profiles?id=eq.${userId}`, {
+      method: "PATCH",
+      headers: {
+        Authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}`,
+        apikey: env.SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({ is_verified_author: value }),
+    });
+  } catch {
+    return { ok: false, status: 502, error: { code: "NETWORK", message: "PostgREST nicht erreichbar" } };
+  }
+  if (!res.ok) {
+    return { ok: false, status: 502, error: { code: "HTTP", message: `PostgREST antwortete mit ${res.status}` } };
+  }
+  return { ok: true, isVerifiedAuthor: value };
 }
 
 // confirmEmail wird serverseitig geprueft (nicht nur clientseitig) — sonst
@@ -348,4 +408,4 @@ async function resendUserLink(userId, actorId, env, fetchImpl = fetch) {
   return { ok: true, hashedToken: body?.hashed_token ?? null, type };
 }
 
-module.exports = { listUsers, banUser, unbanUser, deleteUser, resendUserLink };
+module.exports = { listUsers, banUser, unbanUser, deleteUser, resendUserLink, setVerifiedAuthor };

@@ -9,7 +9,7 @@ const {
   submitIngredientRequest,
 } = require("./recipes.js");
 const { sendInvite } = require("./invite.js");
-const { listUsers, banUser, unbanUser, deleteUser, resendUserLink } = require("./users.js");
+const { listUsers, banUser, unbanUser, deleteUser, resendUserLink, setVerifiedAuthor } = require("./users.js");
 
 const PORT = process.env.PORT || 3001;
 const ENV = {
@@ -190,7 +190,9 @@ const server = http.createServer(async (req, res) => {
   }
 
   const actionMatch =
-    req.method === "POST" ? req.url.match(/^\/admin\/users\/([^/]+)\/(ban|unban|resend)$/) : null;
+    req.method === "POST"
+      ? req.url.match(/^\/admin\/users\/([^/]+)\/(ban|unban|resend|verify-author|unverify-author)$/)
+      : null;
   if (actionMatch) {
     const admin = await requireAdmin(req.headers.authorization, ENV);
     if (!admin.ok) {
@@ -199,7 +201,13 @@ const server = http.createServer(async (req, res) => {
     }
 
     const [, userId, action] = actionMatch;
-    const fn = { ban: banUser, unban: unbanUser, resend: resendUserLink }[action];
+    const fn = {
+      ban: banUser,
+      unban: unbanUser,
+      resend: resendUserLink,
+      "verify-author": (id, actorId, env) => setVerifiedAuthor(id, true, actorId, env),
+      "unverify-author": (id, actorId, env) => setVerifiedAuthor(id, false, actorId, env),
+    }[action];
     const result = await fn(userId, admin.sub, ENV);
     if (!result.ok) {
       sendJson(res, result.status, { ok: false, error: result.error });
@@ -207,6 +215,10 @@ const server = http.createServer(async (req, res) => {
     }
     if (action === "resend") {
       sendJson(res, 200, { ok: true, hashedToken: result.hashedToken, type: result.type });
+      return;
+    }
+    if (action === "verify-author" || action === "unverify-author") {
+      sendJson(res, 200, { ok: true, isVerifiedAuthor: result.isVerifiedAuthor });
       return;
     }
     sendJson(res, 200, { ok: true });

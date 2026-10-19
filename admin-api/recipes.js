@@ -11,6 +11,13 @@
 // recipes_check_content_update (0062) lehnte Inhaltsaenderungen ab, wenn
 // auth.uid() nicht der Einreicher ist, und der Service-Key hat kein sub.
 // Zutaten-Wuensche (POST /api/ingredient-requests) brauchen Migration 0070.
+//
+// Fahrplan 29 V2 (braucht Migration 0071): verifizierte Autoren (profiles.is_verified_author,
+// vom Admin gesetzt) veroeffentlichen sofort — POST legt ihr Rezept als 'approved' an — und
+// duerfen ihre eigenen freigegebenen Rezepte aendern (PUT) und zurueckziehen (DELETE). Das
+// Zurueckziehen scheitert, solange das Rezept in einem Essensplan liegt (FK restrict, 0064).
+// Alle anderen bleiben bei 'pending'. Die Pruefung laeuft bei jedem Aufruf neu, ein Entzug
+// wirkt also sofort (freigegebene Rezepte bleiben dabei freigegeben, V-5).
 
 const crypto = require("node:crypto");
 const fs = require("node:fs");
@@ -259,6 +266,35 @@ const httpFailure = (what, status) => ({
   error: { code: "HTTP", message: `${what} antwortete mit ${status}` },
 });
 
+/** Ist der Einreicher ein verifizierter Autor? (Migration 0071) Liefert { verified } oder { error }. */
+async function isVerifiedAuthor(sub, env, fetchImpl) {
+  const res = await fetchImpl(
+    `${env.POSTGREST_INTERNAL_URL}/profiles?id=eq.${encodeURIComponent(sub)}&select=is_verified_author`,
+    { headers: serviceHeaders(env) }
+  );
+  if (!res.ok) return { error: httpFailure("PostgREST", res.status) };
+  const rows = await res.json();
+  return { verified: Array.isArray(rows) && rows[0]?.is_verified_author === true };
+}
+
+const IN_MEAL_PLANS_MESSAGE =
+  "Das Rezept liegt in Essensplaenen und laesst sich nicht zurueckziehen. Bitte den Admin fragen.";
+const inMealPlans = () => ({
+  ok: false,
+  status: 409,
+  error: { code: "VALIDATION", message: IN_MEAL_PLANS_MESSAGE, details: { in_meal_plans: [IN_MEAL_PLANS_MESSAGE] } },
+});
+
+/** Liegt das Rezept in irgendeinem Essensplan? (meal_plan_entries.recipe_id: on delete restrict, 0064) */
+async function isInMealPlan(id, env, fetchImpl) {
+  const res = await fetchImpl(`${env.POSTGREST_INTERNAL_URL}/meal_plan_entries?recipe_id=eq.${id}&select=id&limit=1`, {
+    headers: serviceHeaders(env),
+  });
+  if (!res.ok) return { error: httpFailure("PostgREST", res.status) };
+  const rows = await res.json();
+  return { used: Array.isArray(rows) && rows.length > 0 };
+}
+
 async function countOpenRecipes(sub, env, fetchImpl) {
   const url =
     `${env.POSTGREST_INTERNAL_URL}/recipes?submitted_by=eq.${encodeURIComponent(sub)}` +
@@ -289,13 +325,24 @@ async function submitRecipe(body, sub, env, fetchImpl = fetch) {
   const derived = await deriveRecipe(body, sub);
   if (!derived.ok) return derived;
 
-  let open;
+  // Fahrplan 29 V-3: verifizierte Autoren veroeffentlichen sofort und haben kein Limit offener Rezepte.
+  let author;
   try {
-    open = await countOpenRecipes(sub, env, fetchImpl);
+    author = await isVerifiedAuthor(sub, env, fetchImpl);
   } catch {
     return networkFailure("PostgREST");
   }
-  if (open.error) return open.error;
+  if (author.error) return author.error;
+
+  let open = { count: 0 };
+  if (!author.verified) {
+    try {
+      open = await countOpenRecipes(sub, env, fetchImpl);
+    } catch {
+      return networkFailure("PostgREST");
+    }
+    if (open.error) return open.error;
+  }
   if (open.count >= LIMITS.openRecipes) {
     return {
       ok: false,
@@ -311,7 +358,7 @@ async function submitRecipe(body, sub, env, fetchImpl = fetch) {
   const { recipe } = derived;
   const row = {
     source: "athlete",
-    status: "pending",
+    status: author.verified ? "approved" : "pending",
     submitted_by: sub,
     external_id: `athlete-${crypto.randomUUID()}`,
     ...contentFields(recipe),
@@ -341,9 +388,11 @@ const notPending = (message) => ({ ok: false, status: 409, error: { code: "VALID
 
 /**
  * Laedt das Rezept und prueft Besitz + Status (gemeinsam fuer PUT und DELETE).
- * Liefert { ok: true } oder die fertige Fehlerantwort (404 fremd/fehlend, 409 nicht pending).
+ * Offen ist ein eigenes pending-Rezept; ein freigegebenes (approved) nur fuer einen verifizierten
+ * Autor (Fahrplan 29 V-4). Liefert { ok: true, status } mit dem geprueften Status oder die fertige
+ * Fehlerantwort (404 fremd/fehlend, 409 nicht mehr aenderbar).
  */
-async function checkOwnPending(id, sub, env, fetchImpl, notPendingMessage) {
+async function checkOwnRecipe(id, sub, env, fetchImpl, notPendingMessage) {
   if (!UUID_RE.test(id)) return recipeNotFound();
 
   let rows;
@@ -361,8 +410,19 @@ async function checkOwnPending(id, sub, env, fetchImpl, notPendingMessage) {
   const row = Array.isArray(rows) ? rows[0] : null;
   // Fremdes Rezept sieht aus wie ein fehlendes — nichts ueber andere verraten.
   if (!row || row.submitted_by !== sub) return recipeNotFound();
-  if (row.status !== "pending") return notPending(notPendingMessage);
-  return { ok: true };
+  if (row.status === "pending") return { ok: true, status: "pending" };
+
+  if (row.status === "approved") {
+    let author;
+    try {
+      author = await isVerifiedAuthor(sub, env, fetchImpl);
+    } catch {
+      return networkFailure("PostgREST");
+    }
+    if (author.error) return author.error;
+    if (author.verified) return { ok: true, status: "approved" };
+  }
+  return notPending(notPendingMessage);
 }
 
 /**
@@ -370,7 +430,7 @@ async function checkOwnPending(id, sub, env, fetchImpl, notPendingMessage) {
  * Alle Stimmen zum Rezept werden geloescht (S1-10) — sie bezogen sich auf den alten Inhalt.
  */
 async function updateRecipe(id, body, sub, env, fetchImpl = fetch) {
-  const own = await checkOwnPending(id, sub, env, fetchImpl, "nur offene Rezepte koennen geaendert werden");
+  const own = await checkOwnRecipe(id, sub, env, fetchImpl, "nur offene Rezepte koennen geaendert werden");
   if (!own.ok) return own;
 
   const derived = await deriveRecipe(body, sub);
@@ -380,7 +440,7 @@ async function updateRecipe(id, body, sub, env, fetchImpl = fetch) {
   try {
     // Filter wiederholt Besitzer + Status: kein Fenster zwischen Pruefen und Schreiben.
     const res = await fetchImpl(
-      `${env.POSTGREST_INTERNAL_URL}/recipes?id=eq.${id}&submitted_by=eq.${encodeURIComponent(sub)}&status=eq.pending`,
+      `${env.POSTGREST_INTERNAL_URL}/recipes?id=eq.${id}&submitted_by=eq.${encodeURIComponent(sub)}&status=eq.${own.status}`,
       {
         method: "PATCH",
         headers: serviceHeaders(env, { "Content-Type": "application/json", Prefer: "return=representation" }),
@@ -411,17 +471,29 @@ async function updateRecipe(id, body, sub, env, fetchImpl = fetch) {
   return { ok: true, status: 200, recipe: rows[0] };
 }
 
-/** Eigenes pending-Rezept zurueckziehen; Stimmen gehen per ON DELETE CASCADE mit. */
+/**
+ * Eigenes Rezept zurueckziehen (pending; freigegeben nur als verifizierter Autor). Stimmen gehen
+ * per ON DELETE CASCADE mit. Ein freigegebenes Rezept, das in einem Essensplan liegt, laesst sich
+ * nicht loeschen (FK restrict, 0064) — das melden wir vorher als 409 statt eines rohen FK-Fehlers.
+ */
 async function deleteRecipe(id, sub, env, fetchImpl = fetch) {
-  const own = await checkOwnPending(id, sub, env, fetchImpl, "nur offene Rezepte koennen zurueckgezogen werden");
+  const own = await checkOwnRecipe(id, sub, env, fetchImpl, "nur offene Rezepte koennen zurueckgezogen werden");
   if (!own.ok) return own;
 
   try {
+    if (own.status === "approved") {
+      const plan = await isInMealPlan(id, env, fetchImpl);
+      if (plan.error) return plan.error;
+      if (plan.used) return inMealPlans();
+    }
+
     // Filter wiederholt Besitzer + Status: kein Fenster zwischen Pruefen und Loeschen.
     const res = await fetchImpl(
-      `${env.POSTGREST_INTERNAL_URL}/recipes?id=eq.${id}&submitted_by=eq.${encodeURIComponent(sub)}&status=eq.pending`,
+      `${env.POSTGREST_INTERNAL_URL}/recipes?id=eq.${id}&submitted_by=eq.${encodeURIComponent(sub)}&status=eq.${own.status}`,
       { method: "DELETE", headers: serviceHeaders(env) }
     );
+    // 409 = FK-Verletzung: zwischen Pruefen und Loeschen kam ein Essensplan-Eintrag dazu.
+    if (res.status === 409) return inMealPlans();
     if (!res.ok) return httpFailure("PostgREST", res.status);
   } catch {
     return networkFailure("PostgREST");
