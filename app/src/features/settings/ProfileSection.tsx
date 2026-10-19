@@ -1,18 +1,16 @@
 /* ============================================================
-   FEATURES/SETTINGS/PROFILESECTION.TSX — Name, Befinden-öffentlich-Toggle,
-   Check-in-Kurzeinstieg (Port von ui/settings-panel.js::
-   buildProfileSection())
+   FEATURES/SETTINGS/PROFILESECTION.TSX — Anzeigename (Port von
+   ui/settings-panel.js::buildProfileSection())
+
+   Nur noch der Name. Die Schalter, die hier früher mitstanden, leben jetzt
+   dort, wo sie fachlich hingehören: „Befinden/FTP öffentlich" in
+   SharingSection (Datenschutz & Freigaben), „Stufenvorschlag" in
+   ProgressionSection (Training), „Befinden anpassen" in CheckinSection.
    ============================================================ */
 
 import { useState } from "react";
 import { useSessionProfile } from "../../api/hooks/useSession";
-import {
-  useUpdateDisplayName,
-  useUpdateWellbeingPublic,
-  useUpdateFtpPublic,
-  useUpdateLadderProgressionEnabled,
-} from "../../api/hooks/useProfile";
-import { ToggleSwitch } from "./ToggleSwitch";
+import { useUpdateDisplayName } from "../../api/hooks/useProfile";
 import { SavedCheck } from "./SavedCheck";
 import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE } from "./section-styles";
 
@@ -26,16 +24,9 @@ function initials(name: string | null): string {
     .join("");
 }
 
-interface ProfileSectionProps {
-  onOpenCheckin: () => void;
-}
-
-export function ProfileSection({ onOpenCheckin }: ProfileSectionProps) {
+export function ProfileSection() {
   const profile = useSessionProfile();
   const { update: updateName, isPending: savingName } = useUpdateDisplayName();
-  const { update: updateWellbeing } = useUpdateWellbeingPublic();
-  const { update: updateFtpPublic } = useUpdateFtpPublic();
-  const { update: updateLadderProgression } = useUpdateLadderProgressionEnabled();
 
   const [name, setName] = useState(profile?.displayName ?? "");
   const [nameSaved, setNameSaved] = useState(false);
@@ -65,11 +56,10 @@ export function ProfileSection({ onOpenCheckin }: ProfileSectionProps) {
   }
 
   if (!profile) return null;
-  const isAthlete = profile.role === "athlete";
 
   return (
     <div style={SECTION_STYLE}>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <div
           style={{
             flexShrink: 0,
@@ -106,59 +96,8 @@ export function ProfileSection({ onOpenCheckin }: ProfileSectionProps) {
       </div>
 
       {error && (
-        <div style={{ color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: ".62rem", marginBottom: 10 }}>
+        <div style={{ color: "var(--danger)", fontFamily: "var(--font-mono)", fontSize: ".62rem", marginTop: 10 }}>
           {error}
-        </div>
-      )}
-
-      {isAthlete && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <button
-            type="button"
-            onClick={onOpenCheckin}
-            style={{
-              alignSelf: "flex-start",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              fontFamily: "var(--font-mono)",
-              fontSize: ".62rem",
-              color: "var(--ss)",
-              padding: 0,
-            }}
-          >
-            Befinden anpassen
-          </button>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>
-              Befinden öffentlich
-            </span>
-            <ToggleSwitch
-              on={profile.wellbeingPublic}
-              onChange={() => void updateWellbeing(!profile.wellbeingPublic)}
-              label="Befinden öffentlich sichtbar"
-            />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>
-              FTP öffentlich
-            </span>
-            <ToggleSwitch
-              on={profile.ftpPublic}
-              onChange={() => void updateFtpPublic(!profile.ftpPublic)}
-              label="FTP öffentlich sichtbar"
-            />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".65rem", color: "var(--ink-3)" }}>
-              Stufenvorschlag (Auto-Progression)
-            </span>
-            <ToggleSwitch
-              on={profile.ladderProgressionEnabled}
-              onChange={() => void updateLadderProgression(!profile.ladderProgressionEnabled)}
-              label="Stufenvorschlag aktiv"
-            />
-          </div>
         </div>
       )}
     </div>

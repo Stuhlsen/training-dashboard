@@ -1,17 +1,25 @@
 /* ============================================================
    FEATURES/SETTINGS/SETTINGSPAGE.TSX — Etappe 9, Redesign (Sprung-
-   Navigation, 6 Bereiche)
+   Navigation); Gruppen neu geordnet (Settings-Neuordnung)
 
-   Ersetzt die frühere flache Ein-Karte-Liste. Links eine fixierte
-   Anker-Navigation (Scrollspy per scroll-Listener), rechts sechs
-   GlassCard-Bereiche: Profil / Konto & Sicherheit / Benachrichtigungen /
-   Training / Daten / Datenschutz & Account. Training/Daten bleiben
-   athletengated wie zuvor — bei einem Coach werden Karte UND Nav-Link
-   komplett weggelassen (nicht leer angezeigt), Scrollspy iteriert nur über
-   tatsächlich gemountete Anker.
+   Links eine fixierte Anker-Navigation (Scrollspy per scroll-Listener),
+   rechts je Gruppe eine GlassCard. Jede Gruppe beantwortet eine Frage:
+     Profil                  Wer bin ich? (Name, Basisdaten)
+     Training                Wie trainiere ich? (Sportarten, Ziele, FTP, Räder, Formate)
+     Ernährung & Befinden    Was esse ich, wie geht es mir?
+     Datenquellen            Woher kommen meine Daten? (Quellen, intervals.icu, Standort, Einheiten)
+     Konto & Sicherheit      Zugang
+     Benachrichtigungen      (noch ohne Funktion, bleibt als Platzhalter)
+     Datenschutz & Freigaben Wer sieht was? (Sichtbarkeit, Trainer, Export, Löschen)
+   Training/Ernährung/Daten sind athletengated — bei einem Coach werden Karte
+   UND Nav-Link komplett weggelassen (nicht leer angezeigt), Scrollspy
+   iteriert nur über tatsächlich gemountete Anker.
    ============================================================ */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { HEADING_STYLE, SECTION_DESC_STYLE, SECTION_STACK_STYLE } from "./section-styles";
+import { ToggleSwitch } from "./ToggleSwitch";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
 import { GlassCard } from "../../components/GlassCard";
 import { PageShell } from "../../components/PageShell";
 import { useSessionProfile } from "../../api/hooks/useSession";
@@ -41,6 +49,8 @@ import { DataExportSection } from "./DataExportSection";
 import { AccountDeletionSection } from "./AccountDeletionSection";
 import { CheckinDialog } from "./CheckinDialog";
 import { NutritionSection } from "./NutritionSection";
+import { SharingSection } from "./SharingSection";
+import { ProgressionSection } from "./ProgressionSection";
 
 interface NavEntry {
   id: string;
@@ -56,8 +66,20 @@ const CARD_HEADING_STYLE = {
   color: "var(--ink)",
 };
 
+/** Eine Gruppe: große Karte mit Titel, darin die Abschnitte als gestapelte
+ *  eigene Karten (SECTION_STYLE) — so grenzen sie sich klar voneinander ab. */
+function SettingsGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
+  return (
+    <GlassCard id={id} variant="soft" style={CARD_STYLE}>
+      <h2 style={CARD_HEADING_STYLE}>{title}</h2>
+      <div style={SECTION_STACK_STYLE}>{children}</div>
+    </GlassCard>
+  );
+}
+
 export function SettingsPage() {
   const profile = useSessionProfile();
+  const { enabled: streamerMode, setEnabled: setStreamerMode } = useStreamerMode();
   const [checkinOpen, setCheckinOpen] = useState(false);
   const [activeId, setActiveId] = useState("sec-profil");
   const isAthlete = profile?.role === "athlete";
@@ -65,14 +87,15 @@ export function SettingsPage() {
 
   const navEntries: NavEntry[] = [
     { id: "sec-profil", label: "Profil" },
+    ...(isAthlete ? [{ id: "sec-training", label: "Training" }] : []),
+    ...(isAthlete ? [{ id: "sec-ernaehrung", label: "Ernährung & Befinden" }] : []),
+    ...(isAthlete ? [{ id: "sec-daten", label: "Datenquellen" }] : []),
     { id: "sec-konto", label: "Konto & Sicherheit" },
     { id: "sec-benachrichtigungen", label: "Benachrichtigungen" },
-    ...(isAthlete ? [{ id: "sec-training", label: "Training" }] : []),
-    ...(isAthlete ? [{ id: "sec-daten", label: "Daten" }] : []),
+    { id: "sec-datenschutz", label: "Datenschutz & Freigaben" },
     ...(isAdmin ? [{ id: "sec-katalog", label: "Formatkatalog" }] : []),
     ...(isAdmin ? [{ id: "sec-einladen", label: "Nutzer" }] : []),
     { id: "sec-feedback", label: "Feedback" },
-    { id: "sec-datenschutz", label: "Datenschutz & Account" },
   ];
 
   // Scrollspy: welcher Abschnitt ist gerade oben im Blick. Per
@@ -144,74 +167,89 @@ export function SettingsPage() {
             </nav>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <GlassCard id="sec-profil" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Profil</h2>
-                <ProfileSection onOpenCheckin={() => setCheckinOpen(true)} />
+              <GlassCard variant="soft" style={{ padding: "16px 24px" }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16 }}>
+                  <div>
+                    <div style={{ ...HEADING_STYLE, marginBottom: 2 }}>Streamer-Modus</div>
+                    <p style={{ ...SECTION_DESC_STYLE, margin: 0 }}>
+                      Verdeckt persönliche Angaben auf dieser Seite, damit du sie zeigen kannst. Gilt nur in
+                      diesem Browser; im Modus sind die verdeckten Felder gesperrt.
+                    </p>
+                  </div>
+                  <ToggleSwitch
+                    on={streamerMode}
+                    onChange={() => setStreamerMode(!streamerMode)}
+                    label="Streamer-Modus aktiv"
+                  />
+                </div>
               </GlassCard>
 
-              <GlassCard id="sec-konto" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Konto &amp; Sicherheit</h2>
-                <PasswordSection />
-                <TwoFactorSection />
-                <SessionsSection />
-              </GlassCard>
-
-              <GlassCard id="sec-benachrichtigungen" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Benachrichtigungen</h2>
-                <NotificationsSection />
-              </GlassCard>
+              <SettingsGroup id="sec-profil" title="Profil">
+                <ProfileSection />
+                {isAthlete && <ProfileBasicsSection />}
+              </SettingsGroup>
 
               {isAthlete && (
-                <GlassCard id="sec-training" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Training</h2>
-                  <GoalsSection />
-                  <ProfileBasicsSection />
+                <SettingsGroup id="sec-training" title="Training">
                   <SportsSection />
-                  <NutritionSection />
+                  <GoalsSection />
                   <TrainingTargetsSection />
-                  <BikesSection />
-                  <CheckinSection />
+                  <ProgressionSection />
                   <FtpHistorySection />
+                  <BikesSection />
                   <FormatsSection />
-                </GlassCard>
+                </SettingsGroup>
               )}
 
               {isAthlete && (
-                <GlassCard id="sec-daten" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Daten</h2>
+                <SettingsGroup id="sec-ernaehrung" title="Ernährung &amp; Befinden">
+                  <NutritionSection />
+                  <CheckinSection onOpenCheckin={() => setCheckinOpen(true)} />
+                </SettingsGroup>
+              )}
+
+              {isAthlete && (
+                <SettingsGroup id="sec-daten" title="Datenquellen">
                   <DataSourcesSection />
                   <IntervalsSection />
                   <SyncLocationSection />
                   <UnitsSection />
-                  <CoachLinkSection />
-                </GlassCard>
+                </SettingsGroup>
               )}
 
-              {isAdmin && (
-                <GlassCard id="sec-katalog" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Formatkatalog</h2>
-                  <FormatCatalogSection />
-                </GlassCard>
-              )}
+              <SettingsGroup id="sec-konto" title="Konto &amp; Sicherheit">
+                <PasswordSection />
+                <TwoFactorSection />
+                <SessionsSection />
+              </SettingsGroup>
 
-              {isAdmin && (
-                <GlassCard id="sec-einladen" variant="soft" style={CARD_STYLE}>
-                  <h2 style={CARD_HEADING_STYLE}>Nutzerverwaltung</h2>
-                  <AdminUsersTable />
-                  <InviteAthleteSection />
-                </GlassCard>
-              )}
+              <SettingsGroup id="sec-benachrichtigungen" title="Benachrichtigungen">
+                <NotificationsSection />
+              </SettingsGroup>
 
-              <GlassCard id="sec-feedback" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Feedback</h2>
-                <FeedbackSection />
-              </GlassCard>
-
-              <GlassCard id="sec-datenschutz" variant="soft" style={CARD_STYLE}>
-                <h2 style={CARD_HEADING_STYLE}>Datenschutz &amp; Account</h2>
+              <SettingsGroup id="sec-datenschutz" title="Datenschutz &amp; Freigaben">
+                {isAthlete && <SharingSection />}
+                {isAthlete && <CoachLinkSection />}
                 <DataExportSection />
                 <AccountDeletionSection />
-              </GlassCard>
+              </SettingsGroup>
+
+              {isAdmin && (
+                <SettingsGroup id="sec-katalog" title="Formatkatalog">
+                  <FormatCatalogSection />
+                </SettingsGroup>
+              )}
+
+              {isAdmin && (
+                <SettingsGroup id="sec-einladen" title="Nutzerverwaltung">
+                  <AdminUsersTable />
+                  <InviteAthleteSection />
+                </SettingsGroup>
+              )}
+
+              <SettingsGroup id="sec-feedback" title="Feedback">
+                <FeedbackSection />
+              </SettingsGroup>
             </div>
           </div>
         )}

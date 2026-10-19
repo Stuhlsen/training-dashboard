@@ -6,7 +6,15 @@
 import { useState } from "react";
 import { useGoals, useSaveGoal, useDeactivateGoal } from "../../api/hooks/useGoals";
 import { fmtDate } from "../../core/format.js";
-import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, LINK_BUTTON_STYLE, ERROR_STYLE } from "./section-styles";
+import {
+  SECTION_STYLE,
+  SECTION_DESC_STYLE,
+  HEADING_STYLE,
+  LABEL_STYLE,
+  INPUT_STYLE,
+  LINK_BUTTON_STYLE,
+  ERROR_STYLE,
+} from "./section-styles";
 
 function goalUnitLabel(kind: string): string {
   return kind === "ftp" || kind === "watt" ? "W" : "";
@@ -51,6 +59,11 @@ export function GoalsSection() {
 
   return (
     <div style={SECTION_STYLE}>
+      <div style={HEADING_STYLE}>Ziele</div>
+      <p style={SECTION_DESC_STYLE}>
+        Ziele mit Zielwert und optionalem Datum. Ein Ziel der Art „FTP“ erscheint als Saisonziel im
+        Hero-Tab. Klick auf ein Ziel deaktiviert es.
+      </p>
       {isLoading && <p style={{ color: "var(--ink-3)", fontSize: ".78rem", margin: "0 0 10px" }}>Lädt …</p>}
 
       {!isLoading && (

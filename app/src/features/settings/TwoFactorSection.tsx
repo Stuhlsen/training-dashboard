@@ -5,7 +5,7 @@ import {
   useVerifyTotpFactor,
   useUnenrollTotpFactor,
 } from "../../api/hooks/useMfaFactors";
-import { ERROR_STYLE, HEADING_STYLE, INPUT_STYLE, SECTION_STYLE } from "./section-styles";
+import { ERROR_STYLE, HEADING_STYLE, INPUT_STYLE, SECTION_DESC_STYLE, SECTION_STYLE } from "./section-styles";
 
 /** Einrichten/Verwalten eines TOTP-Faktors — bewusst NICHT scharf geschaltet:
  *  LoginPage.tsx fragt den Code (noch) nicht ab, s. Hinweistext unten und
@@ -54,6 +54,10 @@ export function TwoFactorSection() {
   return (
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Zwei-Faktor-Login</div>
+      <p style={SECTION_DESC_STYLE}>
+        Zusätzlicher Code aus einer Authenticator-App. Der Code wird beim Login noch nicht abgefragt —
+        du kannst ihn schon einrichten.
+      </p>
 
       {isLoading && <p style={{ color: "var(--ink-3)", fontSize: ".8rem", margin: 0 }}>Lädt …</p>}
 
@@ -159,10 +163,6 @@ export function TwoFactorSection() {
       )}
 
       {error && <div style={{ ...ERROR_STYLE, marginTop: 8 }}>{error}</div>}
-
-      <p style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: "var(--ink-3)", margin: "12px 0 0" }}>
-        Wird beim nächsten Login noch nicht abgefragt.
-      </p>
     </div>
   );
 }

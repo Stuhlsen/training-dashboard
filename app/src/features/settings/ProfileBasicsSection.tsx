@@ -27,9 +27,21 @@ import {
   parseBirthdateInput,
   type NumberFieldParse,
 } from "./profile-basics-input";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
 import { SavedCheck } from "./SavedCheck";
+import { MaskedInput, StreamerNote } from "./streamer-mask";
 import { LABEL_STYLE, INPUT_STYLE, HEADING_STYLE, ERROR_STYLE, SECTION_STYLE } from "./section-styles";
 import type { Result, ProfileOwnFields } from "../../api/types";
+
+/** Felder, die der Streamer-Modus verdeckt (Reihenfolge wie im Formular). */
+const STREAMER_FIELD_LABELS = [
+  "Geburtsdatum",
+  "Ruhepuls (bpm)",
+  "Maximalherzfrequenz (bpm)",
+  "Größe (cm)",
+  "Gewicht (kg)",
+  "Geschlecht",
+];
 
 /** Gestern, als YYYY-MM-DD — Obergrenze fürs Geburtsdatum (Migration 0035:
  *  `birthdate < current_date`). Modul-Konstante statt `Date.now()` im JSX,
@@ -129,6 +141,10 @@ export function ProfileBasicsSection({ onComplete, onSkip }: ProfileBasicsSectio
   const { update: saveHeightCm } = useUpdateHeightCm();
   const { update: saveWeightKg } = useUpdateWeightKg();
   const { update: saveHrMax } = useUpdateHrMax();
+  // Streamer-Modus gilt nur in den Einstellungen — im Onboarding (`onComplete`)
+  // schaltet ihn niemand, dort bleiben die Felder bedienbar.
+  const { enabled: streamerMode } = useStreamerMode();
+  const streamer = streamerMode && !onComplete;
 
   const birthdate = useImmediateFieldEditor<string | null>(basics?.birthdate, saveBirthdate);
   const gender = useImmediateFieldEditor<ProfileOwnFields["gender"]>(basics?.gender, saveGender);
@@ -149,6 +165,19 @@ export function ProfileBasicsSection({ onComplete, onSkip }: ProfileBasicsSectio
         gebraucht.
       </p>
 
+      {streamer ? (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
+            {STREAMER_FIELD_LABELS.map((label) => (
+              <div key={label}>
+                <label style={LABEL_STYLE}>{label}</label>
+                <MaskedInput label={label} />
+              </div>
+            ))}
+          </div>
+          <StreamerNote />
+        </>
+      ) : (
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 14 }}>
         <div>
           <label style={LABEL_STYLE}>Geburtsdatum</label>
@@ -267,6 +296,7 @@ export function ProfileBasicsSection({ onComplete, onSkip }: ProfileBasicsSectio
           {gender.error && <div style={ERROR_STYLE}>{gender.error}</div>}
         </div>
       </div>
+      )}
 
       {onComplete && (
         <div style={{ display: "flex", gap: 10, marginTop: 20 }}>

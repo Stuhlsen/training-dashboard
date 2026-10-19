@@ -19,6 +19,8 @@ import { useCallback, useEffect, useState } from "react";
 import { banUser, deleteUser, fetchAdminUsers, resendUserLink, unbanUser } from "../../api/admin-athletes";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import type { AdminUserRow, ResultError } from "../../api/types";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
+import { MASK } from "./streamer-mask";
 import { HEADING_STYLE, ERROR_STYLE } from "./section-styles";
 
 const TABLE_STYLE = {
@@ -119,6 +121,9 @@ function translateError(error: ResultError): string {
 }
 
 export function AdminUsersTable() {
+  // Streamer-Modus: E-Mail-Adressen zeigen nur die Maske; das Löschen (E-Mail
+  // eintippen) ist damit absichtlich gesperrt, die Adresse wäre nicht lesbar.
+  const { enabled: streamer } = useStreamerMode();
   const ownUserId = useAuthUserId();
   const [rows, setRows] = useState<AdminUserRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -252,7 +257,7 @@ export function AdminUsersTable() {
                 return (
                   <tr key={row.id}>
                     <td style={TD_STYLE}>{row.displayName ?? "–"}</td>
-                    <td style={TD_STYLE}>{row.email ?? "–"}</td>
+                    <td style={TD_STYLE}>{streamer ? MASK : (row.email ?? "–")}</td>
                     <td style={TD_STYLE}>{roleLabel(row)}</td>
                     <td style={{ ...TD_STYLE, color: row.hasPassword ? "var(--ink)" : "var(--danger)" }}>
                       {row.hasPassword ? "gesetzt" : "fehlt"}
@@ -335,10 +340,11 @@ export function AdminUsersTable() {
                           }}
                         >
                           <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: "var(--danger)" }}>
-                            Zum Bestätigen die E-Mail eintippen: {row.email ?? "–"}
+                            Zum Bestätigen die E-Mail eintippen: {streamer ? MASK : (row.email ?? "–")}
                           </span>
                           <input
                             type="email"
+                            disabled={streamer}
                             value={deleteEmail}
                             onChange={(e) => setDeleteEmail(e.target.value)}
                             style={{

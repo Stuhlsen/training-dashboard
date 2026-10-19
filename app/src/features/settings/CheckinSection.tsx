@@ -6,9 +6,14 @@
 
 import { useCheckinEnabled } from "../../hooks/useCheckinEnabled";
 import { ToggleSwitch } from "./ToggleSwitch";
-import { HEADING_STYLE, SECTION_STYLE } from "./section-styles";
+import { HEADING_STYLE, LINK_BUTTON_STYLE, SECTION_STYLE } from "./section-styles";
 
-export function CheckinSection() {
+interface CheckinSectionProps {
+  /** Öffnet den CheckinDialog („Befinden anpassen", früher in ProfileSection). */
+  onOpenCheckin: () => void;
+}
+
+export function CheckinSection({ onOpenCheckin }: CheckinSectionProps) {
   const { enabled, setEnabled } = useCheckinEnabled();
 
   return (
@@ -25,6 +30,9 @@ export function CheckinSection() {
           label="Morgen-Check-in aktiv"
         />
       </div>
+      <button type="button" onClick={onOpenCheckin} style={{ ...LINK_BUTTON_STYLE, marginTop: 12 }}>
+        Befinden anpassen
+      </button>
     </div>
   );
 }

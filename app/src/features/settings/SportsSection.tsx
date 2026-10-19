@@ -22,6 +22,7 @@ import { useState } from "react";
 import { useCurrentProfile } from "../../api/hooks/useSession";
 import { useUpdateSports } from "../../api/hooks/useProfile";
 import { SavedCheck } from "./SavedCheck";
+import { HEADING_STYLE, SECTION_DESC_STYLE, SECTION_STYLE } from "./section-styles";
 import type { Sport } from "../../api/types";
 
 export interface SportsSectionProps {
@@ -68,20 +69,11 @@ export function SportsSection({ onComplete }: SportsSectionProps) {
   }
 
   return (
-    <div style={{ padding: "18px 0", borderBottom: "1px solid var(--hair)" }}>
-      <label
-        style={{
-          display: "block",
-          fontFamily: "var(--font-mono)",
-          fontSize: ".62rem",
-          textTransform: "uppercase",
-          letterSpacing: ".06em",
-          color: "var(--ink-3)",
-          marginBottom: 10,
-        }}
-      >
-        Sportarten
-      </label>
+    <div style={SECTION_STYLE}>
+      <div style={HEADING_STYLE}>Sportarten</div>
+      <p style={SECTION_DESC_STYLE}>
+        Welche Sportarten du in der App nutzt. Mindestens eine bleibt immer aktiv.
+      </p>
 
       {profile.isLoading ? (
         <div style={{ color: "var(--ink-3)", fontFamily: "var(--font-mono)", fontSize: ".8rem" }}>

@@ -2,7 +2,7 @@
  * Mocks the hooks used by the component and verifies the UI renders
  * and state changes correctly. */
 
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock the hooks
@@ -70,6 +70,50 @@ describe("NutritionSection", () => {
       fireEvent.change(sexSelect, { target: { value: "m" } });
     });
     expect(mockSaveSex).toHaveBeenCalledWith("m");
+  });
+
+  it("fragt das biologische Geschlecht NICHT, wenn die Basisdaten männlich/weiblich sagen", () => {
+    for (const gender of ["maennlich", "weiblich"]) {
+      mockBasics = { sex: null, gender, intolerances: [], heightCm: 180 };
+      const { container, unmount } = render(<NutritionSection />);
+      expect(within(container).queryByText("Biologisches Geschlecht für die Berechnung")).toBeNull();
+      unmount();
+    }
+  });
+
+  it("fragt das biologische Geschlecht bei divers und bei keiner Angabe", () => {
+    for (const gender of ["divers", null]) {
+      mockBasics = { sex: null, gender, intolerances: [], heightCm: 180 };
+      const { container, unmount } = render(<NutritionSection />);
+      expect(within(container).getByText("Biologisches Geschlecht für die Berechnung")).toBeTruthy();
+      unmount();
+    }
+  });
+
+  it("Streamer-Modus: Intoleranzen und Zielgewicht verdeckt, Ziel-Formular gesperrt", async () => {
+    const { useStreamerMode } = await import("../../hooks/useStreamerMode");
+    mockBasics = { sex: null, gender: "maennlich", intolerances: ["gluten"], heightCm: 180 };
+    mockGoal = { goalType: "lose", targetWeightKg: 77, pacePerWeekKg: 0.4, targetDate: null };
+    const hook = renderHook(() => useStreamerMode());
+    act(() => hook.result.current.setEnabled(true));
+    // unmount VOR dem Zurücksetzen: die älteren Tests räumen ihr DOM nicht auf,
+    // ein stehengebliebener Render würde ihnen dazwischenfunken.
+    const { container, unmount } = render(<NutritionSection />);
+    try {
+      expect(container.textContent).not.toContain("Gluten");
+      expect(container.textContent).not.toContain("77");
+      expect(container.textContent).toContain("Abnehmen");
+      expect(within(container).queryByText("Neues Ziel setzen")).toBeNull();
+      expect(container.textContent).toContain("Streamer-Modus aktiv");
+    } finally {
+      unmount();
+      // Test-Daten zurücksetzen, BEVOR der Modus ausgeht: die stehengebliebenen
+      // Renders der älteren Tests hören auf den Streamer-Zustand und zeichnen
+      // sich dabei mit den dann aktuellen Mock-Daten neu.
+      mockBasics = { sex: null, intolerances: [], heightCm: 180 };
+      mockGoal = null;
+      act(() => hook.result.current.setEnabled(false));
+    }
   });
 
   it("zeigt Intoleranz-Checkboxen aus der Taxonomie", () => {

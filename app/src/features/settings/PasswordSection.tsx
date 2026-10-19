@@ -6,7 +6,15 @@
 import { useState } from "react";
 import { useUpdatePassword } from "../../api/hooks/useProfile";
 import { SavedCheck } from "./SavedCheck";
-import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, LINK_BUTTON_STYLE, HEADING_STYLE, ERROR_STYLE } from "./section-styles";
+import {
+  SECTION_STYLE,
+  SECTION_DESC_STYLE,
+  LABEL_STYLE,
+  INPUT_STYLE,
+  LINK_BUTTON_STYLE,
+  HEADING_STYLE,
+  ERROR_STYLE,
+} from "./section-styles";
 
 export function PasswordSection() {
   const { update, isPending } = useUpdatePassword();
@@ -45,6 +53,7 @@ export function PasswordSection() {
   return (
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Passwort</div>
+      <p style={SECTION_DESC_STYLE}>Dein Passwort für den Login ändern. Es braucht mindestens 6 Zeichen.</p>
       {!open && (
         <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
           <button type="button" onClick={() => setOpen(true)} style={LINK_BUTTON_STYLE}>

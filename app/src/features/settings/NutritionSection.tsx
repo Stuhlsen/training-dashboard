@@ -1,20 +1,24 @@
 /* ============================================================
    FEATURES/SETTINGS/NUTRITIONSECTION.TSX — Ernährungsdaten
-   (Geschlecht für Berechnung, Intoleranzen, Ernährungsziel)
+   (Intoleranzen, Ernährungsziel; Rückfrage nach dem biologischen
+   Geschlecht nur bei divers / keine Angabe)
    Fahrplan 23 E5.
 
-   Sex und intolerances speichern sofort (wie Gender/UnitsSection),
-   das Ernährungsziel wird über ein einfaches Formular gesetzt und
-   legt eine neue Zeile an (append-only). Höhe wird hier nur als
-   Hinweis angezeigt — die tatsächliche Eingabe bleibt in
-   ProfileBasicsSection (dort kein Duplikat).
+   Geschlecht, Größe und Gewicht werden NUR in ProfileBasicsSection
+   erfragt (dort kein Duplikat) — die Ernährungs-Formeln leiten ihr
+   m/f daraus ab (core/profile-sex.js). Sex und intolerances speichern
+   sofort (wie Gender/UnitsSection), das Ernährungsziel wird über ein
+   einfaches Formular gesetzt und legt eine neue Zeile an (append-only).
    ============================================================ */
 
 import { useState } from "react";
 import { useProfileBasics, useUpdateSex, useUpdateIntolerances } from "../../api/hooks/useProfile";
 import { useActiveNutritionGoal, useAddNutritionGoal } from "../../api/hooks/useNutritionGoals";
 import { ALLERGEN_TAXONOMY } from "../../core/nutrition-taxonomy.js";
+import { BiologicalSexField } from "./BiologicalSexField";
 import { SavedCheck } from "./SavedCheck";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
+import { MASK, MaskedInput, StreamerNote } from "./streamer-mask";
 import { fmtDate } from "../../core/format.js";
 import {
   SECTION_STYLE,
@@ -31,6 +35,8 @@ export function NutritionSection() {
   const { update: saveIntolerances, isPending: intolerancesPending } = useUpdateIntolerances();
   const { goal, isLoading: goalLoading } = useActiveNutritionGoal();
   const { add: saveGoal, isPending: goalPending } = useAddNutritionGoal();
+  // Streamer-Modus: Intoleranzen, Zielgewicht und Tempo verdeckt, Ziel-Formular gesperrt.
+  const { enabled: streamer } = useStreamerMode();
 
   const [sexSaved, setSexSaved] = useState(false);
   const [intolerancesSaved, setIntolerancesSaved] = useState(false);
@@ -41,8 +47,7 @@ export function NutritionSection() {
   const [targetDate, setTargetDate] = useState("");
   const [goalError, setGoalError] = useState("");
 
-  async function handleSexChange(value: string) {
-    const next = value === "" ? null : (value as "m" | "f");
+  async function handleSexChange(next: "m" | "f" | null) {
     const result = await saveSex(next);
     if (result.ok) {
       setSexSaved(true);
@@ -94,32 +99,26 @@ export function NutritionSection() {
       <div style={HEADING_STYLE}>Ernährung</div>
       <p style={{ fontSize: ".72rem", color: "var(--ink-3)", margin: "0 0 12px" }}>
         Diese Daten werden für die Berechnung der Nährstoffempfehlungen verwendet.
-        Die Körpergröße kann im Bereich „Profil-Basisdaten" oben geändert werden.
+        Größe, Gewicht und Geschlecht stehen in den „Profil-Basisdaten".
       </p>
 
-      {/* Geschlecht für Berechnung */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={LABEL_STYLE}>
-          Geschlecht für die Berechnung der Mindestzufuhr (biologisch)
-        </label>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-          <select
-            value={basics?.sex ?? ""}
-            onChange={(e) => void handleSexChange(e.target.value)}
-            disabled={sexPending}
-            style={{ ...INPUT_STYLE, flex: 1 }}
-          >
-            <option value="">Keine Angabe</option>
-            <option value="m">Männlich</option>
-            <option value="f">Weiblich</option>
-          </select>
-          {sexSaved && <SavedCheck />}
-        </span>
-      </div>
+      {/* Nur bei divers / keine Angabe — sonst leitet die Formel aus dem Geschlecht der Basisdaten ab */}
+      {!streamer && (
+        <BiologicalSexField
+          gender={basics?.gender}
+          sex={basics?.sex}
+          onChange={(next) => void handleSexChange(next)}
+          pending={sexPending}
+          saved={sexSaved}
+        />
+      )}
 
       {/* Intoleranzen */}
       <div style={{ marginBottom: 16 }}>
         <label style={LABEL_STYLE}>Intoleranzen / Allergene</label>
+        {streamer ? (
+          <MaskedInput label="Intoleranzen / Allergene" />
+        ) : (
         <div
           style={{
             display: "flex",
@@ -191,6 +190,7 @@ export function NutritionSection() {
             {!basics?.intolerances?.length ? "✓ " : ""}Keine
           </div>
         </div>
+        )}
         {intolerancesSaved && <SavedCheck />}
       </div>
 
@@ -215,14 +215,14 @@ export function NutritionSection() {
               {goal.goalType === "lose" && "Abnehmen"}
               {goal.goalType === "gain" && "Aufbauen"}
               {goal.goalType === "maintain" && "Halten"}
-              {goal.targetWeightKg ? ` · ${goal.targetWeightKg} kg` : ""}
-              {goal.pacePerWeekKg ? ` · ${goal.pacePerWeekKg} kg/Woche` : ""}
+              {goal.targetWeightKg ? ` · ${streamer ? MASK : `${goal.targetWeightKg} kg`}` : ""}
+              {goal.pacePerWeekKg ? ` · ${streamer ? MASK : `${goal.pacePerWeekKg} kg/Woche`}` : ""}
               {goal.targetDate ? ` · bis ${fmtDate(goal.targetDate)}` : ""}
             </span>
           </div>
         )}
 
-        {!goalOpen && (
+        {!goalOpen && !streamer && (
           <button
             type="button"
             onClick={() => setGoalOpen(true)}
@@ -240,7 +240,7 @@ export function NutritionSection() {
           </button>
         )}
 
-        {goalOpen && (
+        {goalOpen && !streamer && (
           <form
             onSubmit={(e) => void handleGoalSubmit(e)}
             style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}
@@ -336,6 +336,7 @@ export function NutritionSection() {
           </form>
         )}
       </div>
+      {streamer && <StreamerNote />}
     </div>
   );
 }

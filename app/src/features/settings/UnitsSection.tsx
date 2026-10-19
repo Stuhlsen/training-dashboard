@@ -1,6 +1,6 @@
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useUpdateUnitsPreference } from "../../api/hooks/useProfile";
-import { HEADING_STYLE, SECTION_STYLE } from "./section-styles";
+import { HEADING_STYLE, SECTION_DESC_STYLE, SECTION_STYLE } from "./section-styles";
 
 const PILL_BASE = {
   padding: "8px 18px",
@@ -23,6 +23,7 @@ export function UnitsSection() {
   return (
     <div style={SECTION_STYLE}>
       <div style={HEADING_STYLE}>Einheiten</div>
+      <p style={SECTION_DESC_STYLE}>Entfernungen in Kilometern oder Meilen anzeigen.</p>
       <div style={{ display: "inline-flex", background: "rgba(255,255,255,.06)", borderRadius: "var(--pill)", padding: 3 }}>
         <button
           type="button"

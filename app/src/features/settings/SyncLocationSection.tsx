@@ -10,14 +10,29 @@
    gespeichert (numeric(x,2), ~1,1 km) und ausschließlich vom Sync gelesen —
    nie über einen Frontend-Lesepfad ausgeliefert, nie in rides.json. Der
    Hinweis darauf steht sichtbar im Formular.
+
+   MASKIERT: Ein gespeicherter Ort wird nie im Klartext gezeigt (nur Punkte,
+   wie der Intervals-Key) — damit die Seite gezeigt/gestreamt werden kann.
+   „Ändern" öffnet das normale Formular samt Suche und Koordinaten-Zeile;
+   nach dem Speichern ist es wieder maskiert. Im Streamer-Modus ist auch
+   „Ändern" gesperrt.
    ============================================================ */
 
 import { useEffect, useState } from "react";
 import { useSyncLocation } from "../../api/hooks/useSyncLocation";
 import { roundCoord } from "../../api/supabase/athlete-sync-config";
 import { formatCityLabel, searchCities, type CityMatch } from "../../api/geocoding";
+import { useStreamerMode } from "../../hooks/useStreamerMode";
 import { SavedCheck } from "./SavedCheck";
-import { SECTION_STYLE, LABEL_STYLE, INPUT_STYLE, HEADING_STYLE, ERROR_STYLE } from "./section-styles";
+import { MaskedInput, StreamerNote } from "./streamer-mask";
+import {
+  SECTION_STYLE,
+  LABEL_STYLE,
+  INPUT_STYLE,
+  HEADING_STYLE,
+  ERROR_STYLE,
+  LINK_BUTTON_STYLE,
+} from "./section-styles";
 
 const SEARCH_DEBOUNCE_MS = 350;
 
@@ -29,8 +44,11 @@ interface Picked {
 
 export function SyncLocationSection() {
   const { location, isLoading, update, isPending } = useSyncLocation();
+  const { enabled: streamer } = useStreamerMode();
 
   const [hydrated, setHydrated] = useState(false);
+  // Gespeicherter Ort → maskiert, bis jemand „Ändern" klickt; ohne Ort gleich das Formular.
+  const [editing, setEditing] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [picked, setPicked] = useState<Picked | null>(null);
@@ -44,6 +62,7 @@ export function SyncLocationSection() {
   if (!hydrated && !isLoading) {
     setHydrated(true);
     const label = location.locationLabel ?? "";
+    setEditing(location.lat === null || location.lon === null);
     setQuery(label);
     setPicked(
       location.lat !== null && location.lon !== null ? { lat: location.lat, lon: location.lon, label } : null,
@@ -96,6 +115,7 @@ export function SyncLocationSection() {
         return;
       }
       setPicked(null);
+      // Nichts mehr gespeichert → nichts zu maskieren, das Formular bleibt offen.
       finishSaved();
       return;
     }
@@ -110,7 +130,21 @@ export function SyncLocationSection() {
       setError(result.error?.message || "Konnte nicht gespeichert werden.");
       return;
     }
+    setEditing(false);
     finishSaved();
+  }
+
+  function cancelEdit() {
+    // Zurück auf den gespeicherten Stand, damit beim nächsten „Ändern" nicht
+    // ein halb getippter Text steht.
+    const label = location.locationLabel ?? "";
+    setQuery(label);
+    setPicked(
+      location.lat !== null && location.lon !== null ? { lat: location.lat, lon: location.lon, label } : null,
+    );
+    setMatches([]);
+    setError("");
+    setEditing(false);
   }
 
   function finishSaved() {
@@ -135,6 +169,24 @@ export function SyncLocationSection() {
         im Planungstab gelesen. Nie öffentlich sichtbar, nie in exportierten Daten. Feld leeren und
         speichern entfernt den Standort wieder.
       </p>
+      {!editing || streamer ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <label style={LABEL_STYLE}>
+            Stadt
+            {location.locationLabel ? <MaskedInput label="Stadt" /> : <MaskedInputEmpty />}
+          </label>
+          {streamer ? (
+            <StreamerNote />
+          ) : (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+              <button type="button" onClick={() => setEditing(true)} style={LINK_BUTTON_STYLE}>
+                Ändern
+              </button>
+              {saved && <SavedCheck />}
+            </span>
+          )}
+        </div>
+      ) : (
       <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         <label style={LABEL_STYLE}>
           Stadt
@@ -217,8 +269,19 @@ export function SyncLocationSection() {
             {isPending ? "Speichern …" : "Speichern"}
           </button>
           {saved && <SavedCheck />}
+          {location.lat !== null && (
+            <button type="button" onClick={cancelEdit} style={LINK_BUTTON_STYLE}>
+              Abbrechen
+            </button>
+          )}
         </span>
       </form>
+      )}
     </div>
   );
+}
+
+/** Kein Ort gespeichert: nichts zu verdecken, das Feld ist nur ein Platzhalter. */
+function MaskedInputEmpty() {
+  return <input type="text" value="" placeholder="nicht gesetzt" readOnly disabled style={INPUT_STYLE} />;
 }

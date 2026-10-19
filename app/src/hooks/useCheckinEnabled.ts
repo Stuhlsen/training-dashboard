@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 
-/** Schalter „Morgen-Check-in" (Settings → Training). Rein lokal pro Browser,
+/** Schalter „Morgen-Check-in" (Settings → Ernährung & Befinden). Rein lokal pro Browser,
  *  kein Backend — bewusst wie `useActiveAthlete` (modul-weiter Zustand +
  *  `useSyncExternalStore`), damit Settings-Toggle und Hero-Kachel sofort
  *  synchron sind, ohne React-Context. Default `true`: bestehendes Verhalten
@@ -8,7 +8,7 @@ import { useCallback, useSyncExternalStore } from "react";
  *
  *  Aus = kein tägliches Auto-Popup (WellbeingCard.tsx) und keine
  *  „Befinden heute"-Kachel im Hero. Der manuelle Weg „Befinden anpassen"
- *  in ProfileSection bleibt unberührt. */
+ *  in CheckinSection bleibt unberührt. */
 const STORAGE_KEY = "checkin_enabled";
 
 function readStored(): boolean {
