@@ -101,3 +101,26 @@ export function previewRecipe(body: RecipeSubmissionBody): Promise<Result<Recipe
 export function submitRecipe(body: RecipeSubmissionBody): Promise<Result<{ recipe: SubmittedRecipeRow }>> {
   return call("POST", "/api/recipes", body);
 }
+
+/** Ersetzt ein eigenes `pending`-Rezept (S1-10: der Server löscht dabei alle Stimmen).
+ *  Ohne `image_url` im Body entfällt das Foto, mit dem bisherigen Pfad bleibt es. */
+export function updateRecipe(id: string, body: RecipeSubmissionBody): Promise<Result<{ recipe: SubmittedRecipeRow }>> {
+  return call("PUT", `/api/recipes/${encodeURIComponent(id)}`, body);
+}
+
+/** Zieht ein eigenes `pending`-Rezept zurück (nicht umkehrbar). */
+export function withdrawRecipe(id: string): Promise<Result> {
+  return call("DELETE", `/api/recipes/${encodeURIComponent(id)}`);
+}
+
+export interface IngredientRequestInput {
+  name: string;
+  note?: string;
+}
+
+/** Meldet eine fehlende Zutat als Wunsch an den Admin (höchstens 20 je Athlet). */
+export function createIngredientRequest(
+  input: IngredientRequestInput,
+): Promise<Result<{ request: { id: string; name: string } }>> {
+  return call("POST", "/api/ingredient-requests", input);
+}

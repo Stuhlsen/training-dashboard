@@ -94,6 +94,9 @@ export const qk = {
   /** Rezept-Pool (Tabelle recipes) je Status — gemeinsame Bibliothek, nicht
    *  profilgebunden. */
   recipes: (status: string) => ["recipes", status] as const,
+  /** Eigene Einreichungen (alle Status). Beginnt mit "recipes", damit jede
+   *  Einreich-/Änderungs-/Rückzugs-Mutation sie mit ["recipes"] mit invalidiert. */
+  mySubmissions: (userId: string) => ["recipes", "mine", userId] as const,
   /** Zutaten-Suche der Rezept-Einreichung (admin-api GET /api/ingredients) —
    *  Tabelle ist für alle gleich, deshalb nur der Suchtext im Key. */
   ingredientSearch: (query: string) => ["ingredient-search", query] as const,
