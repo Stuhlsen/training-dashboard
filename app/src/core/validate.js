@@ -134,6 +134,8 @@ const PAYLOAD_SCHEMA = {
   // hier bisher, obwohl Athlet 2 es seit jeher liefert — mit ergänzt.
   ftp: "number?",
   ftpPublic: "boolean?",
+  // Aktuelles FTP-Ziel aus `goals` (scripts/lib/goals.js), nur bei ftpPublic.
+  ftpGoal: "number?",
   ftpHistory: "array?",
   plannedSessions: "array?",
   adjustments: "object?",

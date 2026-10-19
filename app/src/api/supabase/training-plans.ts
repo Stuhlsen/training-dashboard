@@ -184,13 +184,23 @@ export async function setTrainingPlanActive(
  *  Warnungen) ziehen nach. Kein neuer Plan, kein `is_active`-Flip. */
 export async function updateTrainingPlan(
   id: string,
-  patch: { weekModel: WeekModelEntry[]; params: Record<string, unknown> },
+  patch: {
+    weekModel: WeekModelEntry[];
+    params: Record<string, unknown>;
+    /** Nur setzen, wenn sich die Trainingstage geändert haben — die Spalte
+     *  muss zum frischen `week_model` passen. */
+    trainingWeekdays?: number[];
+  },
 ): Promise<Result<{ plan: TrainingPlan }>> {
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("training_plans")
-    .update({ week_model: patch.weekModel, params: patch.params })
+    .update({
+      week_model: patch.weekModel,
+      params: patch.params,
+      ...(patch.trainingWeekdays ? { training_weekdays: patch.trainingWeekdays } : {}),
+    })
     .eq("id", id)
     .select(SELECT_COLS)
     .single<TrainingPlanRow>();

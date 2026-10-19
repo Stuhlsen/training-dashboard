@@ -15,9 +15,51 @@
    Stand von damals).
    ============================================================ */
 
-import { mondayOf } from "./new-plan-dialog-view-model";
-import type { PlanGeneratorInput, AthleteDefaults } from "./new-plan-dialog-view-model";
+import { FIXED_DAY_TYPES, mondayOf } from "./new-plan-dialog-view-model";
+import type { PlanGeneratorInput, AthleteDefaults, FixedDay } from "./new-plan-dialog-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
+
+/** Gespeichertes Roh-Formular des Plans (`params.form`, s. plan-persist.ts).
+ *  Nur die Felder, die der Recompute braucht — alles optional, ältere Pläne
+ *  kennen sie nicht. */
+interface SavedForm {
+  fixedDays?: unknown;
+  keepAllTrainingDays?: unknown;
+  startWithFtpTest?: unknown;
+}
+
+function savedForm(plan: TrainingPlan): SavedForm {
+  const form = (plan.params as { form?: unknown } | null | undefined)?.form;
+  return form && typeof form === "object" ? (form as SavedForm) : {};
+}
+
+/** Feste Tage aus `params.form` — nur wohlgeformte Einträge (Wochentag 1..7,
+ *  bekannter Typ). Kaputte/fremde Einträge werden still verworfen statt den
+ *  Recompute zu blockieren. */
+function savedFixedDays(plan: TrainingPlan): FixedDay[] {
+  const raw = savedForm(plan).fixedDays;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (d): d is FixedDay =>
+        !!d &&
+        typeof d === "object" &&
+        Number.isInteger((d as FixedDay).weekday) &&
+        (d as FixedDay).weekday >= 1 &&
+        (d as FixedDay).weekday <= 7 &&
+        FIXED_DAY_TYPES.includes((d as FixedDay).typ)
+    )
+    .map((d) => ({ weekday: d.weekday, typ: d.typ, keepInRecoveryWeek: d.keepInRecoveryWeek === true }));
+}
+
+/** Die Trainingstage, die der Plan ab der Restberechnung heute nutzt
+ *  (Vorbelegung der Tage-Auswahl im Dialog). */
+export function currentTailWeekdays(plan: TrainingPlan, todayISO: string): number[] {
+  const base = (plan.weekModel ?? []) as WeekModelEntry[];
+  const cut = base.findIndex((w) => w.start >= mondayOf(todayISO));
+  const fromModel = cut >= 0 ? base[cut]?.trainingWeekdays : undefined;
+  return fromModel?.length ? [...fromModel] : [...(plan.trainingWeekdays ?? [])];
+}
 
 export interface RecomputeArgs {
   plan: TrainingPlan;
@@ -34,6 +76,12 @@ export interface RecomputeArgs {
    *  bei FTP) keinen statischen Startwert, deshalb ein eigenes Argument statt
    *  Teil von `athleteDefaults` (Fahrplan 14 E7). */
   currentThresholdSpeed?: number | null;
+  /** Vom Athleten im Dialog gewählte Trainingstage (ISO 1..7). Fehlt → die
+   *  Tage, die der Plan heute nutzt. */
+  trainingWeekdays?: number[];
+  /** Häkchen „alle Tage behalten" (bei schwacher Planerfüllung). Fehlt → der
+   *  beim Erstellen gespeicherte Wert, sonst false. */
+  keepAllTrainingDays?: boolean;
 }
 
 export type RecomputeInput =
@@ -43,6 +91,9 @@ export type RecomputeInput =
       regenerateFromISO: string;
       /** Zahl der neu zu rechnenden Wochen (für den Dialog-Hinweis). */
       affectedWeeks: number;
+      /** Wochentage fester Tage, die entfallen, weil der Athlet den Tag
+       *  abgewählt hat (für den Hinweis im Dialog). */
+      droppedFixedWeekdays: number[];
     }
   | { ok: false; reason: string };
 
@@ -71,11 +122,27 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
   }
   const affectedWeeks = base.length - cut;
 
-  // Die bespielten Wochentage der ersten neu zu rechnenden Woche sind der
-  // maßgebliche Wert; Fallback auf die Plan-Spalte.
-  const tailWeekdays = base[cut]?.trainingWeekdays?.length
-    ? [...base[cut].trainingWeekdays]
-    : [...(plan.trainingWeekdays ?? [])];
+  // Die Wahl des Athleten gewinnt; sonst sind die bespielten Wochentage der
+  // ersten neu zu rechnenden Woche maßgeblich (Fallback: Plan-Spalte).
+  const chosen = args.trainingWeekdays
+    ? [...new Set(args.trainingWeekdays)].filter((d) => d >= 1 && d <= 7).sort((a, b) => a - b)
+    : null;
+  if (chosen && chosen.length < 2) {
+    return { ok: false, reason: "Mindestens zwei Trainingstage wählen." };
+  }
+  const tailWeekdays = chosen ?? currentTailWeekdays(plan, todayISO);
+
+  // Feste Tage nur für Rad (FIXED_DAY_TYPES kennt nur das Rad-Vokabular). Ein
+  // fester Tag auf einem abgewählten Wochentag entfällt (Entscheidung Q6).
+  const allFixed = sport === "ride" ? savedFixedDays(plan) : [];
+  const fixedDays = allFixed.filter((d) => tailWeekdays.includes(d.weekday));
+  const droppedFixedWeekdays = allFixed
+    .filter((d) => !tailWeekdays.includes(d.weekday))
+    .map((d) => d.weekday);
+
+  const form = savedForm(plan);
+  const keepAllTrainingDays =
+    args.keepAllTrainingDays ?? (form.keepAllTrainingDays === true);
 
   const input: PlanGeneratorInput = {
     sport,
@@ -84,6 +151,11 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     ...(plan.mode === "event" && plan.endDate ? { eventDate: plan.endDate } : {}),
     weeks: plan.weeks,
     trainingWeekdays: tailWeekdays,
+    fixedDays,
+    ...(keepAllTrainingDays ? { keepAllTrainingDays: true } : {}),
+    ...(sport === "ride" && typeof form.startWithFtpTest === "boolean"
+      ? { startWithFtpTest: form.startWithFtpTest }
+      : {}),
     weeklyHours: plan.weeklyHours ?? 6,
     // Aktuelle FTP zuerst; erst dahinter der (u. U. veraltete) Erstell-Stand.
     // Nur sport === "ride" (V1) — für Lauf/Schwimm bleibt es null.
@@ -113,5 +185,5 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     baseWeekModel: base,
   };
 
-  return { ok: true, input, regenerateFromISO, affectedWeeks };
+  return { ok: true, input, regenerateFromISO, affectedWeeks, droppedFixedWeekdays };
 }

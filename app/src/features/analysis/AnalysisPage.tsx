@@ -25,6 +25,7 @@ import { useEvents } from "../../api/hooks/useEvents";
 import { useExplorerRange } from "../../api/hooks/useExplorerRange";
 import { useTodayCheckin } from "../../api/hooks/useWellbeing";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
+import { useFtpGoal } from "../../api/hooks/useFtpGoal";
 import { useCadenceTarget } from "../../api/hooks/useCadenceTarget";
 import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics";
 import { weekSortIndex } from "../../core/aggregate.js";
@@ -124,6 +125,8 @@ export function AnalysisPage() {
   const eventList = useMemo(() => events ?? [], [events]);
   const ownPlan = useMemo(() => rides.some((r) => r.week), [rides]);
   const ftp = resolvePlanningFtp(activeAthleteId, athleteData?.athleteFtp ?? null);
+  // FTP-Ziel: Settings-Ziel (isSelf) → öffentliches Payload-Ziel → config.ts.
+  const { ftpGoal } = useFtpGoal(activeAthleteId);
 
   const vm = useMemo(
     () =>
@@ -132,7 +135,7 @@ export function AnalysisPage() {
         wellness,
         planCards: cards,
         events: eventList,
-        athleteCfg,
+        athleteCfg: athleteCfg ? { ...athleteCfg, ftpGoal } : athleteCfg,
         athleteFtp: athleteData?.athleteFtp ?? null,
         athleteWeightKg: (athleteData?.athleteWeight as number | null | undefined) ?? null,
         powerCurves: athleteData?.powerCurves ?? null,
@@ -145,7 +148,7 @@ export function AnalysisPage() {
         // Aktive Sportarten aus der DB (Fahrplan 21 E2), nicht mehr aus config.ts.
         sports,
       }),
-    [rides, wellness, cards, eventList, athleteCfg, athleteData, unit, cadenceTarget, ridesAll, sports],
+    [rides, wellness, cards, eventList, athleteCfg, ftpGoal, athleteData, unit, cadenceTarget, ridesAll, sports],
   );
 
   // Dieselbe Belastungsempfehlung wie auf der Hero-Seite (buildBriefingInfo()
@@ -218,11 +221,11 @@ export function AnalysisPage() {
         weight: (athleteData?.athleteWeight as number | null | undefined) ?? null,
         ftpMeasured: athleteCfg?.ftpMeasured ?? null,
         ftpMeasuredDate: athleteCfg?.ftpMeasuredDate ?? null,
-        ftpGoal: athleteCfg?.ftpGoal ?? null,
+        ftpGoal,
         ownPlan,
         retestDateISO: RETEST_DATE,
       }),
-    [rides, wellness, athleteData, athleteCfg, ownPlan],
+    [rides, wellness, athleteData, athleteCfg, ftpGoal, ownPlan],
   );
   const records = useMemo(() => buildRecordChips(rides), [rides]);
   const bodyCards = useMemo(() => buildBodyCards(wellness, TODAY, athleteCfg?.ftpMeasured ?? null, athleteCfg?.bmr), [wellness, athleteCfg]);

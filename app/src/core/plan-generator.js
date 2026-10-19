@@ -221,7 +221,9 @@ function deriveFtpTarget(input, weeks) {
 
 /**
  * Zwei Qualitäts-Wochentage: erster Trainingstag + spätester Tag mit ≥ 2
- * Tagen Abstand (mind. ein lockerer Tag dazwischen). Fällt auf den letzten
+ * Tagen Abstand (mind. ein lockerer Tag dazwischen). Der Abstand zählt auch
+ * über den Wochenwechsel: Mo + So lägen mit So → Mo (nächste Woche) direkt
+ * hintereinander und werden nicht gepaart. Fällt auf den letzten
  * Trainingstag zurück, wenn kein Tag den Abstand erfüllt.
  * @param {number[]} weekdays  ISO 1..7, aufsteigend
  * @returns {number[]}  0, 1 oder 2 Einträge
@@ -231,7 +233,9 @@ export function qualityWeekdays(weekdays) {
   const first = weekdays[0];
   let second = null;
   for (let i = weekdays.length - 1; i >= 1; i--) {
-    if (weekdays[i] - first >= 2) {
+    const gap = weekdays[i] - first;
+    const wrapGap = 7 - gap; // Abstand vom späteren Tag bis zum ersten der Folgewoche
+    if (gap >= 2 && wrapGap >= 2) {
       second = weekdays[i];
       break;
     }

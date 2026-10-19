@@ -15,7 +15,12 @@
 
 import { ENV, requireEnv } from "./lib/env.js";
 import { log } from "./lib/log.js";
-import { PLAN2_SCHEDULE, PLANNED_SESSIONS, getPlan2Blocks, getRecentComparisonBlocks } from "./lib/plan2.js";
+import {
+  PLAN2_SCHEDULE,
+  PLANNED_SESSIONS,
+  getPlan2Blocks,
+  getRecentComparisonBlocks,
+} from "./lib/plan2.js";
 import { SECONDARY_ATHLETES } from "./lib/athletes.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
 import { loadActiveTrainingPlan } from "./lib/training-plan-fetch.js";
@@ -43,6 +48,7 @@ import {
   DEFAULT_FTP,
 } from "./lib/map-activity.js";
 import { loadFtpHistory, ftpAt } from "./lib/ftp-history.js";
+import { loadFtpGoal } from "./lib/goals.js";
 import { updateIntervalBlockCache } from "./lib/interval-blocks.js";
 import { loadPlanCards, buildPlanCardTypeIndex } from "./lib/plan-cards-fetch.js";
 import { attachCompliance } from "./lib/compliance.js";
@@ -100,14 +106,18 @@ function percentile(nums, p) {
  * @param {number|null} scalarFallback  Fallback für das skalare `ftp`-Feld
  *   (Athlet 2: geschätzte FTP; Athlet 1/4: null)
  * @param {string} todayISO
+ * @param {number|null} [ftpGoal]  aktuelles FTP-Ziel aus `goals` (scripts/lib/goals.js);
+ *   folgt dem `ftpPublic`-Schalter, `null` = keins gesetzt (Frontend nimmt dann
+ *   den config.ts-Wert)
  */
-function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO) {
+function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO, ftpGoal = null) {
   if (!ftpPublic) return { ftpPublic: false };
   const rampTests = (ftpHistory || []).filter((h) => h.source === "ramp-test");
   const current = ftpAt(rampTests, todayISO, scalarFallback);
   return {
     ftpPublic: true,
     ftp: current.ftpWatt ?? null,
+    ftpGoal,
     // Synthetische, stabile id aus validFrom (pro Profil eindeutig, DB 0009) —
     // keine echten ftp_history-UUIDs und kein `note`-Freitext im öffentlichen
     // Payload.
@@ -332,10 +342,19 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     // danach. hrMax/hrRest (Migration 0035 bzw. oben aus den Daten geschätzt)
     // speisen den Multi-Sport-TRIMP-Pfad in mapActivity2 für Nicht-Rad-Zeilen.
     rides = activities.map((act) =>
-      mapActivity2(act, wellness, weatherMap, effectiveFtp, effectivePlan, ftpHistory, intervalBlockCache, {
-        hrMax,
-        hrRest,
-      })
+      mapActivity2(
+        act,
+        wellness,
+        weatherMap,
+        effectiveFtp,
+        effectivePlan,
+        ftpHistory,
+        intervalBlockCache,
+        {
+          hrMax,
+          hrRest,
+        }
+      )
     );
 
     // Gezipptes Rad-Subset aus DEMSELBEN Prädikat wie oben (rides[i] gehört zu
@@ -404,7 +423,8 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     ftpHistory,
     cfg?.ftpPublic ?? true,
     entry.publicFtpScalarFromEffective ? effectiveFtp : null,
-    today
+    today,
+    (cfg?.ftpPublic ?? true) ? await loadFtpGoal(svc) : null
   );
   log.info(
     ftpPublicFields.ftpPublic
@@ -505,7 +525,12 @@ async function main() {
   const weatherEndDate = new Date();
   weatherEndDate.setDate(weatherEndDate.getDate() - 2); // Archive hat ~2 Tage Verzögerung
   const weatherEnd = weatherEndDate.toISOString().split("T")[0];
-  const weatherData = await getHistoricalWeather(PLAN1_FIRST_DATE, weatherEnd, cfg1?.lat, cfg1?.lon);
+  const weatherData = await getHistoricalWeather(
+    PLAN1_FIRST_DATE,
+    weatherEnd,
+    cfg1?.lat,
+    cfg1?.lon
+  );
   const weatherMap = buildWeatherMap(weatherData);
   // Forecast-API für die letzten 2 Tage (überbrückt Archive-Delay)
   const recentData = await getRecentWeather(cfg1?.lat, cfg1?.lon);
@@ -584,7 +609,14 @@ async function main() {
     // Öffentliche FTP-Felder (0025): gemessene FTP + Ramp-Test-Zeitstrahl,
     // nur wenn der Athlet sie freigegeben hat. Skalar-Fallback null — für
     // Athlet 1 deckt config.ts::ftpMeasured die Planungs-/Analyse-Sicht ab.
-    ftpPublicFields1 = publicFtpFields(ftpHistory, cfg1?.ftpPublic ?? true, null, today);
+    const ftpGoal1 =
+      (cfg1?.ftpPublic ?? true)
+        ? await loadFtpGoal({
+            profileId: cfg1.profileId,
+            serviceRoleKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+          })
+        : null;
+    ftpPublicFields1 = publicFtpFields(ftpHistory, cfg1?.ftpPublic ?? true, null, today, ftpGoal1);
     log.info(
       ftpPublicFields1.ftpPublic
         ? `✅ FTP öffentlich: ${ftpPublicFields1.ftp ?? "–"}W · ${ftpPublicFields1.ftpHistory.length} Ramp-Test(s) im Payload`
@@ -621,7 +653,15 @@ async function main() {
       ...buildPlanCardTypeIndex(planCards),
     };
     plan2 = activities.map((act) =>
-      mapActivity(act, wellness, subjective, weatherMap, effectivePlan, ftpHistory, intervalBlockCache)
+      mapActivity(
+        act,
+        wellness,
+        subjective,
+        weatherMap,
+        effectivePlan,
+        ftpHistory,
+        intervalBlockCache
+      )
     );
     // Ausrollen nach einem harten Workout (gleicher Tag, kurz, deutlich
     // niedrigere Leistung) erbt sonst dieselbe Tages-Plankarte — analog zum
@@ -632,7 +672,15 @@ async function main() {
 
     // Soll-Ist-Matching + Compliance-Ampel (Progressionssteuerung C1/C2) —
     // nutzt dieselben planCards wie effectivePlan oben (kein zweiter Fetch).
-    const complianceCounts = attachCompliance(plan2, activities, planCards, intervalBlockCache, ftpHistory, DEFAULT_FTP, formatCatalog);
+    const complianceCounts = attachCompliance(
+      plan2,
+      activities,
+      planCards,
+      intervalBlockCache,
+      ftpHistory,
+      DEFAULT_FTP,
+      formatCatalog
+    );
     log.info(
       `✅ Compliance (Athlet 1): ${complianceCounts.evaluated} Fahrten ausgewertet ` +
         `(🟢 ${complianceCounts.green} · 🟡 ${complianceCounts.yellow} · 🔴 ${complianceCounts.red}, ` +
@@ -742,7 +790,9 @@ async function main() {
   }
 
   writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);
-  log.info(`✅ ${Object.keys(intervalBlockCache).length} Aktivitäten im Blockerkennung-Cache → ${INTERVAL_BLOCKS_FILE}`);
+  log.info(
+    `✅ ${Object.keys(intervalBlockCache).length} Aktivitäten im Blockerkennung-Cache → ${INTERVAL_BLOCKS_FILE}`
+  );
 
   log.summary();
   if (log.counts.errors > 0) process.exit(1);

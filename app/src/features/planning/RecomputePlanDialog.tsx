@@ -23,8 +23,10 @@ import { athleteConfig } from "../../config";
 import { fmtDate, localISODate } from "../../core/format.js";
 import { generatePlan } from "../../core/plan-generator.js";
 import { PlanPreview } from "./PlanPreview";
-import { buildRecomputeInput } from "./recompute-plan-view-model";
+import { buildRecomputeInput, currentTailWeekdays } from "./recompute-plan-view-model";
 import { useRecomputeRemainingPlan } from "./useRecomputeRemainingPlan";
+import { WEEKDAY_LABELS } from "./new-plan-dialog-view-model";
+import { PILL_STYLE, PRIMARY_BTN_STYLE as PICKED_PILL_STYLE } from "./new-plan-dialog-styles";
 import type { GeneratedPlan } from "./new-plan-dialog-view-model";
 
 interface RecomputePlanDialogProps {
@@ -62,6 +64,24 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
   const { recompute, isPending } = useRecomputeRemainingPlan(athleteId);
 
   const [saveError, setSaveError] = useState<string | null>(null);
+  // `null` = noch nicht angefasst → Tage des Plans bzw. gespeicherter Wert.
+  const [pickedDays, setPickedDays] = useState<number[] | null>(null);
+  const [keepAllDays, setKeepAllDays] = useState<boolean | null>(null);
+
+  const shownDays = pickedDays ?? (activePlan ? currentTailWeekdays(activePlan, today) : []);
+  const lowAdherence =
+    ((aggregate as { planAdherence?: number | null } | null)?.planAdherence ?? 1) < 0.7;
+  const savedKeepAll =
+    (activePlan?.params as { form?: { keepAllTrainingDays?: unknown } } | undefined)?.form
+      ?.keepAllTrainingDays === true;
+
+  function toggleDay(iso: number) {
+    const next = shownDays.includes(iso)
+      ? shownDays.filter((d) => d !== iso)
+      : [...shownDays, iso].sort((a, b) => a - b);
+    setPickedDays(next);
+    setSaveError(null);
+  }
 
   // Input + Vorschau in einem Zug ableiten — der Dialog rechnet sofort, es gibt
   // keinen „Vorschau erstellen"-Zwischenschritt (die Rahmenbedingungen stehen
@@ -75,6 +95,8 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
       athleteDefaults: athleteConfig(athleteId),
       currentThresholdSpeed: (aggregate as { currentThresholdSpeed?: number | null } | null)
         ?.currentThresholdSpeed,
+      ...(pickedDays ? { trainingWeekdays: pickedDays } : {}),
+      ...(keepAllDays != null ? { keepAllTrainingDays: keepAllDays } : {}),
     });
     if (!res.ok) return { error: res.reason };
     const run = generatePlan as (input: unknown) => GeneratedPlan;
@@ -89,8 +111,9 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
       preview: { ...generated, weeks: tailWeeks } as GeneratedPlan,
       regenerateFromISO: res.regenerateFromISO,
       affectedWeeks: res.affectedWeeks,
+      droppedFixedWeekdays: res.droppedFixedWeekdays,
     };
-  }, [activePlan, aggregate, athleteId, formatEntries, today]);
+  }, [activePlan, aggregate, athleteId, formatEntries, today, pickedDays, keepAllDays]);
 
   async function handleApply() {
     if (!activePlan || !built || "error" in built || isPending) return;
@@ -137,6 +160,58 @@ export function RecomputePlanDialog({ athleteId, onClose }: RecomputePlanDialogP
         </p>
 
         {planLoading && <p style={{ color: "var(--ink-3)", fontSize: ".85rem" }}>Lädt …</p>}
+
+        {!planLoading && activePlan && (
+          <div style={{ margin: "0 0 16px", display: "flex", flexDirection: "column", gap: 8 }}>
+            <div style={{ fontSize: ".78rem", color: "var(--ink-3)" }}>Trainingstage</div>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {WEEKDAY_LABELS.map((d) => {
+                const on = shownDays.includes(d.iso);
+                return (
+                  <button
+                    key={d.iso}
+                    type="button"
+                    aria-pressed={on}
+                    style={on ? { ...PILL_STYLE, ...PICKED_PILL_STYLE, padding: "6px 12px" } : PILL_STYLE}
+                    onClick={() => toggleDay(d.iso)}
+                  >
+                    {d.short}
+                  </button>
+                );
+              })}
+            </div>
+            {lowAdherence && shownDays.length > 2 && (
+              <label
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  gap: 6,
+                  fontSize: ".76rem",
+                  color: "var(--ink-3)",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={keepAllDays ?? savedKeepAll}
+                  onChange={(e) => setKeepAllDays(e.target.checked)}
+                />
+                <span>
+                  Zuletzt unter 70 % Planerfüllung — der Plan würde einen Trainingstag streichen.
+                  Alle {shownDays.length} gewählten Tage trotzdem behalten.
+                </span>
+              </label>
+            )}
+            {built && !("error" in built) && built.droppedFixedWeekdays.length > 0 && (
+              <div style={{ fontSize: ".76rem", color: "var(--ink-3)" }}>
+                Fester Tag entfällt:{" "}
+                {built.droppedFixedWeekdays
+                  .map((iso) => WEEKDAY_LABELS.find((w) => w.iso === iso)?.short)
+                  .join(", ")}{" "}
+                (kein Trainingstag mehr).
+              </div>
+            )}
+          </div>
+        )}
 
         {!planLoading && built && "error" in built && (
           <p style={{ color: "var(--ink-3)", fontSize: ".85rem" }}>{built.error}</p>

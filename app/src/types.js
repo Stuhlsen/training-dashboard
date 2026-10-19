@@ -87,8 +87,10 @@
  * ftp_history-Zeile OHNE `note` (privater Freitext), mit synthetischer,
  * stabiler `id` (`ramp-<validFrom>`) statt der echten UUID.
  * Begleitende Payload-Top-Level-Felder: `ftp` (aktuelle gemessene FTP,
- * number|null) und `ftpPublic` (boolean, Default true) — bei `ftpPublic:
- * false` liefert der Sync weder `ftp` noch `ftpHistory`.
+ * number|null), `ftpGoal` (aktuelles FTP-Ziel aus der `goals`-Tabelle,
+ * number|null — das zuletzt angelegte aktive Ziel, dessen Art „ftp" enthält)
+ * und `ftpPublic` (boolean, Default true) — bei `ftpPublic: false` liefert der
+ * Sync weder `ftp` noch `ftpGoal` noch `ftpHistory`.
  * @typedef {Object} PublicFtpEntry
  * @property {string} id          synthetisch: "ramp-" + validFrom
  * @property {number} ftpWatt

@@ -18,6 +18,10 @@ export function GoalsSection() {
   const { deactivate } = useDeactivateGoal();
 
   const [open, setOpen] = useState(false);
+  // „FTP" ist die Art, die die Hero-Kachel & Co. als FTP-Ziel erkennen
+  // (core/ftp-goal.js::pickFtpGoal) — als feste Auswahl, damit niemand
+  // „Ftp ziel" o. ä. tippt und unerkannt bleibt. „Sonstiges" = Freitext.
+  const [kindChoice, setKindChoice] = useState<"ftp" | "other">("ftp");
   const [kind, setKind] = useState("");
   const [targetValue, setTargetValue] = useState("");
   const [targetDate, setTargetDate] = useState("");
@@ -28,7 +32,7 @@ export function GoalsSection() {
     e.preventDefault();
     setError("");
     const result = await save({
-      kind,
+      kind: kindChoice === "ftp" ? "FTP" : kind.trim(),
       targetValue: targetValue ? Number(targetValue) : null,
       targetDate: targetDate || null,
       note: note || null,
@@ -37,6 +41,7 @@ export function GoalsSection() {
       setError("Ziel konnte nicht gespeichert werden.");
       return;
     }
+    setKindChoice("ftp");
     setKind("");
     setTargetValue("");
     setTargetDate("");
@@ -92,9 +97,22 @@ export function GoalsSection() {
           style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}
         >
           <label style={LABEL_STYLE}>
-            Art (z. B. FTP)
-            <input type="text" required value={kind} onChange={(e) => setKind(e.target.value)} style={INPUT_STYLE} />
+            Art
+            <select
+              value={kindChoice}
+              onChange={(e) => setKindChoice(e.target.value as "ftp" | "other")}
+              style={INPUT_STYLE}
+            >
+              <option value="ftp">FTP (zeigt sich im Hero-Tab)</option>
+              <option value="other">Sonstiges</option>
+            </select>
           </label>
+          {kindChoice === "other" && (
+            <label style={LABEL_STYLE}>
+              Bezeichnung
+              <input type="text" required value={kind} onChange={(e) => setKind(e.target.value)} style={INPUT_STYLE} />
+            </label>
+          )}
           <label style={LABEL_STYLE}>
             Zielwert
             <input

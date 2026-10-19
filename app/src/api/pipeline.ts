@@ -34,6 +34,9 @@ export interface RidesPayload {
   powerCurveBlocks?: unknown[];
   athleteWeight?: number | null;
   ftp?: number | null;
+  /** Aktuelles FTP-Ziel (scripts/lib/goals.js) — nur bei `ftpPublic !== false`
+   *  befüllt, `null`/fehlend = keins gesetzt. */
+  ftpGoal?: number | null;
   /** Sichtbarkeits-Flag (Migration 0025 `profiles.ftp_public`). Fehlt in
    *  Alt-Payloads → als `true` behandeln. Bei `false` liefert der Sync weder
    *  `ftp` noch `ftpHistory`. */
@@ -70,6 +73,8 @@ export interface AthleteData {
   powerCurveBlocks: unknown[];
   athleteWeight: number | null;
   athleteFtp: number | null;
+  /** Öffentliches FTP-Ziel aus dem Payload (`ftpGoal`), `null` = keins. */
+  athleteFtpGoal: number | null;
   /** `false` = der Athlet hat die FTP-Anzeige abgeschaltet; die Hero-Seite
    *  blendet Leistungsskala/Ringe/Zeitstrahl für Besucher dann komplett aus.
    *  Alt-Payload ohne Feld → `true`. */
@@ -114,6 +119,7 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
     powerCurveBlocks: json.powerCurveBlocks ?? [],
     athleteWeight: json.athleteWeight ?? null,
     athleteFtp: json.ftp ?? null,
+    athleteFtpGoal: json.ftpGoal ?? null,
     ftpPublic: json.ftpPublic ?? true,
     // `note` gibt es im öffentlichen Payload bewusst nicht — fix null. Cast
     // wie bei rides/wellness: validateRidesPayload() hat die Struktur geprüft.

@@ -85,6 +85,9 @@ test("qualityWeekdays: erster Tag + spätester mit ≥ 2 Tagen Abstand", () => {
   assert.deepEqual(qualityWeekdays([2, 3, 4, 6, 7]), [2, 7]);
   assert.deepEqual(qualityWeekdays([3, 4]), [3, 4]); // kein Abstand ≥ 2 → letzter Tag
   assert.deepEqual(qualityWeekdays([5]), [5]);
+  // Wochenwechsel: So → Mo wären zwei harte Tage hintereinander
+  assert.deepEqual(qualityWeekdays([1, 3, 5, 7]), [1, 5]);
+  assert.deepEqual(qualityWeekdays([1, 4, 7]), [1, 4]);
 });
 
 test("weekLoadContext: Einordnung relativ zur CTL zu Wochenbeginn", () => {
