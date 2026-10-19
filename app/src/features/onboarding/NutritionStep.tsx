@@ -8,7 +8,9 @@
 
    Felder:
    - Körpergröße (editierbar, prefilled aus ProfileBasicsSection)
-   - Geschlecht für Berechnung (m/f/Keine Angabe)
+   - Biologisches Geschlecht — NUR bei divers / keine Angabe im Profil-
+     Schritt (sonst leitet die Berechnung es aus dem Geschlecht ab,
+     core/profile-sex.js)
    - Intoleranzen (Multi-Select aus core/nutrition-taxonomy.js)
    - Optional: Ernährungsziel (append-only)
 
@@ -19,6 +21,7 @@ import { useState } from "react";
 import { useProfileBasics, useUpdateSex, useUpdateIntolerances, useUpdateHeightCm } from "../../api/hooks/useProfile";
 import { useAddNutritionGoal } from "../../api/hooks/useNutritionGoals";
 import { ALLERGEN_TAXONOMY } from "../../core/nutrition-taxonomy.js";
+import { BiologicalSexField } from "../settings/BiologicalSexField";
 import {
   LABEL_STYLE,
   INPUT_STYLE,
@@ -70,9 +73,8 @@ export function NutritionStep({ onComplete }: NutritionStepProps) {
     }
   }
 
-  async function handleSexChange(value: string) {
+  async function handleSexChange(next: "m" | "f" | null) {
     setSexError("");
-    const next = value === "" ? null : (value as "m" | "f");
     const result = await saveSex(next);
     if (!result.ok) {
       setSexError(result.error?.message || "Konnte nicht gespeichert werden.");
@@ -134,25 +136,14 @@ export function NutritionStep({ onComplete }: NutritionStepProps) {
         {heightError && <div style={ERROR_STYLE}>{heightError}</div>}
       </div>
 
-      {/* Geschlecht für Berechnung */}
-      <div style={{ marginBottom: 16 }}>
-        <label style={LABEL_STYLE}>
-          Geschlecht für die Berechnung der Mindestzufuhr (biologisch)
-        </label>
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, width: "100%" }}>
-          <select
-            value={basics?.sex ?? ""}
-            onChange={(e) => void handleSexChange(e.target.value)}
-            disabled={sexPending}
-            style={{ ...INPUT_STYLE, flex: 1 }}
-          >
-            <option value="">Keine Angabe</option>
-            <option value="m">Männlich</option>
-            <option value="f">Weiblich</option>
-          </select>
-        </span>
-        {sexError && <div style={ERROR_STYLE}>{sexError}</div>}
-      </div>
+      {/* Nur bei divers / keine Angabe — das Geschlecht fragt schon der Profil-Schritt */}
+      <BiologicalSexField
+        gender={basics?.gender}
+        sex={basics?.sex}
+        onChange={(next) => void handleSexChange(next)}
+        pending={sexPending}
+        error={sexError}
+      />
 
       {/* Intoleranzen */}
       <div style={{ marginBottom: 16 }}>

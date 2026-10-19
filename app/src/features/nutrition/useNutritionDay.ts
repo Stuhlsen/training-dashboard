@@ -17,6 +17,7 @@ import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { athleteConfig } from "../../config";
 import { currentFtpEntry } from "../../core/ftp-history.js";
+import { effectiveSex } from "../../core/profile-sex.js";
 import type { PlanCard } from "../../api/types";
 import {
   buildNutritionDay,
@@ -56,7 +57,7 @@ export function useNutritionDay(athleteId: string, dateISO: string) {
         heightCm: basicsData.heightCm,
         birthdate: basicsData.birthdate,
         weightKg: basicsData.weightKg,
-        sex: basicsData.sex,
+        sex: effectiveSex(basicsData.gender, basicsData.sex),
       },
       wellness,
       goal,

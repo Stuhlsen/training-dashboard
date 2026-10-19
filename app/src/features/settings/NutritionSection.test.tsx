@@ -2,7 +2,7 @@
  * Mocks the hooks used by the component and verifies the UI renders
  * and state changes correctly. */
 
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
 // Mock the hooks
@@ -70,6 +70,24 @@ describe("NutritionSection", () => {
       fireEvent.change(sexSelect, { target: { value: "m" } });
     });
     expect(mockSaveSex).toHaveBeenCalledWith("m");
+  });
+
+  it("fragt das biologische Geschlecht NICHT, wenn die Basisdaten männlich/weiblich sagen", () => {
+    for (const gender of ["maennlich", "weiblich"]) {
+      mockBasics = { sex: null, gender, intolerances: [], heightCm: 180 };
+      const { container, unmount } = render(<NutritionSection />);
+      expect(within(container).queryByText("Biologisches Geschlecht für die Berechnung")).toBeNull();
+      unmount();
+    }
+  });
+
+  it("fragt das biologische Geschlecht bei divers und bei keiner Angabe", () => {
+    for (const gender of ["divers", null]) {
+      mockBasics = { sex: null, gender, intolerances: [], heightCm: 180 };
+      const { container, unmount } = render(<NutritionSection />);
+      expect(within(container).getByText("Biologisches Geschlecht für die Berechnung")).toBeTruthy();
+      unmount();
+    }
   });
 
   it("zeigt Intoleranz-Checkboxen aus der Taxonomie", () => {

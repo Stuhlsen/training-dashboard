@@ -20,6 +20,7 @@ import { useMealPlan } from "../../api/hooks/useMealPlan";
 import { useRecipes } from "../../api/hooks/useRecipes";
 import { athleteConfig } from "../../config";
 import { currentFtpEntry } from "../../core/ftp-history.js";
+import { effectiveSex } from "../../core/profile-sex.js";
 import type { PlanCard } from "../../api/types";
 import { buildNutritionDay, type NutritionDay, type NutritionWellnessDay } from "./nutrition-day-model";
 import { buildBanners, weekDates } from "./nutrition-week-model";
@@ -57,7 +58,7 @@ export function useNutritionWeek(athleteId: string, todayISO: string) {
           heightCm: basicsData.heightCm,
           birthdate: basicsData.birthdate,
           weightKg: basicsData.weightKg,
-          sex: basicsData.sex,
+          sex: effectiveSex(basicsData.gender, basicsData.sex),
         },
         wellness,
         goal,

@@ -19,6 +19,7 @@ import { useActiveAthlete } from "../../api/hooks/useActiveAthlete";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import { useProfileBasics } from "../../api/hooks/useProfile";
+import { effectiveSex } from "../../core/profile-sex.js";
 import { localISODate } from "../../core/format.js";
 import { useNutritionDay } from "./useNutritionDay";
 import type { NutritionDay } from "./nutrition-day-model";
@@ -172,7 +173,9 @@ function NutritionDayView({ athleteId, userId }: { athleteId: string; userId: st
 
   // Bestandsathleten ohne Größe, Geschlecht oder Gewicht (E30)
   const profileIncomplete =
-    basics.heightCm == null || basics.sex == null || (!day.ok && day.missing.includes("Gewicht"));
+    basics.heightCm == null ||
+    effectiveSex(basics.gender, basics.sex) == null ||
+    (!day.ok && day.missing.includes("Gewicht"));
   const showHint = profileIncomplete && !hintStoredDismissed && !hintSessionDismissed;
 
   return (
