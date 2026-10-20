@@ -84,6 +84,10 @@ export const DEMO_ROSTER = [
   },
 ];
 
+/** Festes, dokumentiertes Passwort aller Demo-Accounts (Q13). Nur in der
+ *  lokalen Demo-Datenbank gültig — kein echtes Geheimnis. */
+export const DEMO_PASSWORD = "demo-lokal-2026";
+
 /** Trainer der Demo — ohne eigenen Datenslot. */
 export const DEMO_COACH = {
   displayName: "Coach Mara",

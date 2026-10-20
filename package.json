@@ -8,6 +8,8 @@
     "test": "node --test --experimental-test-module-mocks \"tests/**/*.test.js\" \"admin-api/*.test.js\"",
     "sync": "node scripts/generate-data.js",
     "demo:generate": "node scripts/demo/generate.js",
+    "demo:seed": "node scripts/demo/seed.js",
+    "demo:reset": "node scripts/demo/reset.js",
     "lint": "npx --yes eslint@9 scripts tests",
     "format": "npx --yes prettier@3 --write \"scripts/**/*.js\" \"tests/**/*.js\""
   },
