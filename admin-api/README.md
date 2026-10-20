@@ -122,7 +122,7 @@ instructions: [{ text, timerSeconds? }], image_url? }`. Grenzen: höchstens 5 of
 je Athlet, 30 Zutaten, 20 Schritte, Titel 100, Schritt 500 Zeichen. `image_url` ist ein
 Storage-Pfad `<JWT-sub>/<datei>` im Bucket `recipe-images`. Unbekannte Zutat oder Einheit
 ist ein Fehler, kein Raten.
-`prep_minutes` (Zubereitungszeit gesamt, ganze Minuten 1 bis 600) ist bei POST und PUT Pflicht, auch
+`prep_minutes` (aktive Zubereitungszeit ohne Wartezeit, ganze Minuten 1 bis 600) ist bei POST und PUT Pflicht, auch
 für verifizierte Autoren; die Vorschau rechnet auch ohne, prüft einen mitgeschickten Wert aber.
 
 Fehler: `{ ok: false, error: { code, message } }`; Formularfehler (HTTP 422, bei zu vielen

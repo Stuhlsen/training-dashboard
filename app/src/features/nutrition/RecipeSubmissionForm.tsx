@@ -290,7 +290,7 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
               aria-describedby={prepErrors ? prepErrorId : undefined}
               style={{ ...FIELD_STYLE, width: 110, boxSizing: "border-box" }}
             />
-            <p style={{ ...META_STYLE, margin: "4px 0 0" }}>Gesamtzeit inklusive Ruhe- und Wartezeit, 1 bis 600 Minuten.</p>
+            <p style={{ ...META_STYLE, margin: "4px 0 0" }}>Nur die aktive Zubereitung, ohne Warte- und Ruhezeiten (1 bis 600 Minuten).</p>
             {prepErrors?.map((m) => (
               <p key={m} id={prepErrorId} style={FIELD_ERROR_STYLE}>
                 {m}

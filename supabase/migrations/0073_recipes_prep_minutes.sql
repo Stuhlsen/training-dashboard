@@ -8,11 +8,11 @@
 -- Referenz: planning/fahrplan-30-bewertung-zeit-portionen.md — B1 (Z-1 .. Z-3)
 --
 -- ZIEL
---   1. recipes.prep_minutes: Zubereitungszeit in Minuten gesamt (inkl. Ruhezeit),
---      ganze Zahl 1..600. NULL nur fuer Bestand ohne Schaetzung; neue und
+--   1. recipes.prep_minutes: aktive Zubereitungszeit in Minuten (ohne Warte- und Ruhezeit),
+--      ganze Zahl 1..600. Wartezeiten stehen in den Schritt-Timern. NULL nur fuer Bestand ohne Schaetzung; neue und
 --      geaenderte Rezepte verlangt der Dienst (admin-api) mit Wert.
 --   2. Die 60 eigenen Bestandsrezepte (source = 'own', external_id = 'own-<slug>')
---      bekommen eine Schaetzung aus Seed-Minuten und Schritt-Timern. Rezepte,
+--      bekommen eine Schaetzung aus den Seed-Minuten (aktive Zeit). Rezepte,
 --      die es in der Datenbank nicht gibt, werden schlicht nicht getroffen.
 --   3. Die Zeit zaehlt wie ein Inhaltsfeld (E18): freigegebene Rezepte sind
 --      gesperrt, ausser fuer den Dienst bei verifizierten Autoren (V-4).
@@ -38,7 +38,7 @@ end
 $$;
 
 comment on column public.recipes.prep_minutes is
-  'Fahrplan 30 B1: Zubereitungszeit in Minuten gesamt (inkl. Ruhezeit), 1..600. NULL nur im Bestand ohne Schaetzung.';
+  'Fahrplan 30 B1: aktive Zubereitungszeit in Minuten (ohne Warte- und Ruhezeit), 1..600. NULL nur im Bestand ohne Schaetzung.';
 
 -- ------------------------------------------------------------
 -- 2. Schaetzung fuer die Bestandsrezepte
@@ -50,11 +50,11 @@ update public.recipes r
   from (values
     ('own-haferbrei-mit-banane-und-walnuessen', 15),
     ('own-ruehrei-mit-vollkornbrot-und-tomaten', 15),
-    ('own-overnight-oats-mit-skyr-und-beeren', 490),
+    ('own-overnight-oats-mit-skyr-und-beeren', 10),
     ('own-vollkorn-pfannkuchen-mit-quark-und-apfel', 25),
     ('own-linsen-bolognese-mit-vollkornnudeln', 35),
     ('own-haehnchen-reis-pfanne-mit-paprika-und-brokkoli', 30),
-    ('own-lachs-mit-kartoffeln-und-gruenen-bohnen', 40),
+    ('own-lachs-mit-kartoffeln-und-gruenen-bohnen', 35),
     ('own-kichererbsen-gemuese-curry-mit-reis', 35),
     ('own-thunfisch-vollkornwrap-mit-salat', 15),
     ('own-ofenkartoffeln-mit-kraeuterquark', 50),
@@ -62,7 +62,7 @@ update public.recipes r
     ('own-skyr-mit-beeren-und-mandeln', 5),
     ('own-suesskartoffel-bohnen-bowl', 40),
     ('own-nudelsalat-mit-feta-und-gemuese', 25),
-    ('own-chia-pudding-mit-kokosmilch-und-mango', 130),
+    ('own-chia-pudding-mit-kokosmilch-und-mango', 10),
     ('own-bratkartoffeln-mit-spiegelei', 25),
     ('own-porridge-mit-haferdrink-apfel-und-zimt', 10),
     ('own-joghurt-bowl-mit-obst-und-leinsamen', 5),
