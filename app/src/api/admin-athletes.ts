@@ -81,6 +81,17 @@ export async function deleteUser(userId: string, confirmEmail: string): Promise<
   });
 }
 
+/** Fahrplan 29 V2: Autor verifizieren — verifizierte Autoren veröffentlichen Rezepte ohne
+ *  Admin-Freigabe. Nur Admin; der Server schreibt vorher das Audit-Log. */
+export async function verifyAuthor(userId: string): Promise<Result<{ isVerifiedAuthor: boolean }>> {
+  return adminFetch(`/admin/users/${userId}/verify-author`, { method: "POST" });
+}
+
+/** Verifizierung entziehen. Bereits freigegebene Rezepte bleiben freigegeben. */
+export async function unverifyAuthor(userId: string): Promise<Result<{ isVerifiedAuthor: boolean }>> {
+  return adminFetch(`/admin/users/${userId}/unverify-author`, { method: "POST" });
+}
+
 export async function resendUserLink(
   userId: string
 ): Promise<Result<{ hashedToken: string; type: "invite" | "recovery" }>> {

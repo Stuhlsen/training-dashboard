@@ -79,6 +79,7 @@ describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
           wellbeing_public: false,
           ftp_public: true,
           is_admin: false,
+          is_verified_author: true,
           ladder_progression_enabled: true,
           units_preference: "km",
           plan_offset_weeks: 2,
@@ -98,12 +99,41 @@ describe("Lesepfade über profiles_visible (Migration 0022, #32)", () => {
         wellbeingPublic: false,
         ftpPublic: true,
         isAdmin: false,
+        isVerifiedAuthor: true,
         ladderProgressionEnabled: true,
         unitsPreference: "km",
         planOffsetWeeks: 2,
         sports: ["ride"],
       },
     });
+  });
+
+  it("getProfile liest is_verified_author mit (Migration 0071) und macht aus fehlend/null ein false", async () => {
+    let selectCols = "";
+    for (const value of [undefined, null, false]) {
+      fakeClient.handlers.profiles_visible = (calls) => {
+        selectCols = String(calls.select);
+        return {
+          data: {
+            id: "self-1",
+            display_name: "x",
+            role: "athlete",
+            coach_id: null,
+            wellbeing_public: false,
+            ftp_public: true,
+            is_admin: false,
+            is_verified_author: value,
+            ladder_progression_enabled: false,
+            units_preference: "km",
+            plan_offset_weeks: 0,
+          },
+          error: null,
+        };
+      };
+      const result = await getProfile("self-1");
+      expect(result.ok && result.profile.isVerifiedAuthor).toBe(false);
+    }
+    expect(selectCols).toContain("is_verified_author");
   });
 
   it("getProfileByDisplayName liefert null, wenn die View keine Zeile zeigt (kein Coach)", async () => {

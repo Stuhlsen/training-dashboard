@@ -15,11 +15,17 @@
    ist dann vorbelegt, speichern ersetzt das Rezept per PUT (der Server löscht
    dabei alle Stimmen, S1-10) und das bisherige Foto bleibt, wenn kein neues
    gewählt oder es nicht entfernt wird.
+
+   Fahrplan 29 V3: Für verifizierte Autoren veröffentlicht der Server sofort
+   (Antwort-Status `approved`) und sie dürfen auch freigegebene Rezepte bearbeiten.
+   Die Texte richten sich nach dem Status der ANTWORT, nicht nach dem Profil. Die
+   eigene Sofort-Freigabe wird als gesehen markiert, damit das Banner sie nicht meldet.
    ============================================================ */
 
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useIngredientUnits, useRecipePreview, useSubmitRecipe } from "../../api/hooks/useRecipeSubmission";
+import { useAuthUserId, useSessionProfile } from "../../api/hooks/useSession";
 import type { RecipePreview } from "../../api/recipe-submission";
 import type { Recipe, ResultError } from "../../api/types";
 import {
@@ -30,6 +36,7 @@ import {
   type StepDraft,
 } from "../../core/recipe-submission.js";
 import { SLOT_LABELS, SLOT_ORDER } from "./nutrition-week-model";
+import { markDecisionSeen } from "./decision-seen-storage";
 import { IngredientPicker, type IngredientRow } from "./IngredientPicker";
 import { StepsEditor } from "./StepsEditor";
 import { PhotoField } from "./PhotoField";
@@ -88,7 +95,11 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
   const [summary, setSummary] = useState<string[]>([]);
   const [errorTick, setErrorTick] = useState(0);
   const [previewState, setPreviewState] = useState<{ key: string; data: RecipePreview } | null>(null);
-  const [submittedTitle, setSubmittedTitle] = useState<string | null>(null);
+  const [saved, setSaved] = useState<{ title: string; status: string } | null>(null);
+
+  const userId = useAuthUserId();
+  // Verifizierte Autoren veröffentlichen sofort; das gilt auch beim Bearbeiten eines freigegebenen Rezepts
+  const publishesInstantly = useSessionProfile()?.isVerifiedAuthor === true || recipe?.status === "approved";
 
   const { preview, isPending: previewing } = useRecipePreview();
   const { submit, isPending: submitting } = useSubmitRecipe();
@@ -145,22 +156,38 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
     }
     const options = recipe ? { recipeId: recipe.id, keepImagePath: keepPhoto ? existingPath : null } : {};
     const result = await submit(body, photo, options);
-    if (result.ok) setSubmittedTitle(title.trim());
-    else applyError(result.error);
+    if (!result.ok) {
+      applyError(result.error);
+      return;
+    }
+    // Sofort-Freigabe: das Banner soll sie nicht melden, der Autor hat sie gerade selbst ausgelöst
+    if (userId && result.recipe.status === "approved") markDecisionSeen(userId, result.recipe);
+    setSaved({ title: title.trim(), status: result.recipe.status });
   }
 
   function toggleMeal(slot: string) {
     setMealTypes((prev) => (prev.includes(slot) ? prev.filter((s) => s !== slot) : [...prev, slot]));
   }
 
-  if (submittedTitle !== null) {
+  if (saved !== null) {
+    const live = saved.status === "approved"; // sofort für alle sichtbar (verifizierter Autor)
+    let heading = "Rezept eingereicht";
+    let text = `„${saved.title}“ wartet jetzt auf die Prüfung. Nährwerte und Allergene hat das System aus deinen Zutaten berechnet.`;
+    if (live && editing) {
+      heading = "Änderungen gespeichert";
+      text = `„${saved.title}“ wurde aktualisiert und ist weiter für alle sichtbar. Bisherige Stimmen zu diesem Rezept wurden gelöscht, weil sich der Inhalt geändert hat.`;
+    } else if (live) {
+      heading = "Rezept veröffentlicht";
+      text = `„${saved.title}“ ist jetzt für alle sichtbar. Nährwerte und Allergene hat das System aus deinen Zutaten berechnet.`;
+    } else if (editing) {
+      heading = "Änderungen gespeichert";
+      text = `„${saved.title}“ wurde aktualisiert und wartet weiter auf die Prüfung. Bisherige Stimmen zu diesem Rezept wurden gelöscht, weil sich der Inhalt geändert hat.`;
+    }
     return (
       <GlassCard style={CARD_STYLE}>
-        <h2 style={HEADING_STYLE}>{editing ? "Änderungen gespeichert" : "Rezept eingereicht"}</h2>
+        <h2 style={HEADING_STYLE}>{heading}</h2>
         <p role="status" style={TEXT_STYLE}>
-          {editing
-            ? `„${submittedTitle}“ wurde aktualisiert und wartet weiter auf die Prüfung. Bisherige Stimmen zu diesem Rezept wurden gelöscht, weil sich der Inhalt geändert hat.`
-            : `„${submittedTitle}“ wartet jetzt auf die Prüfung. Nährwerte und Allergene hat das System aus deinen Zutaten berechnet.`}
+          {text}
         </p>
         <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={onClose}>
           Zurück zu den Rezepten
@@ -178,12 +205,16 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
         <h2 style={HEADING_STYLE}>{editing ? "Rezept bearbeiten" : "Rezept einreichen"}</h2>
         {editing && (
           <p style={TEXT_STYLE}>
-            Du bearbeitest ein Rezept, das noch auf die Prüfung wartet. Mit dem Speichern werden bisherige Stimmen dazu gelöscht.
+            {recipe?.status === "approved"
+              ? "Du bearbeitest ein freigegebenes Rezept. Änderungen sind sofort für alle sichtbar, auch in Essensplänen, in denen es liegt. Mit dem Speichern werden bisherige Stimmen dazu gelöscht."
+              : "Du bearbeitest ein Rezept, das noch auf die Prüfung wartet. Mit dem Speichern werden bisherige Stimmen dazu gelöscht."}
           </p>
         )}
         <p style={TEXT_STYLE}>
-          Wähle Zutaten aus der Liste und gib Mengen an. Nährwerte, Allergene und Ernährungsform berechnet das System selbst; ein
-          Admin prüft dein Rezept, bevor es für alle sichtbar wird.
+          Wähle Zutaten aus der Liste und gib Mengen an. Nährwerte, Allergene und Ernährungsform berechnet das System selbst;{" "}
+          {publishesInstantly
+            ? "als verifizierter Autor ist dein Rezept sofort für alle sichtbar."
+            : "ein Admin prüft dein Rezept, bevor es für alle sichtbar wird."}
         </p>
 
         {summary.length > 0 && (
@@ -304,7 +335,9 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
             Abbrechen
           </button>
         </div>
-        <p style={{ ...META_STYLE, marginTop: 12 }}>Bis zu 5 Rezepte können gleichzeitig auf ihre Prüfung warten.</p>
+        {!publishesInstantly && (
+          <p style={{ ...META_STYLE, marginTop: 12 }}>Bis zu 5 Rezepte können gleichzeitig auf ihre Prüfung warten.</p>
+        )}
       </GlassCard>
     </form>
   );

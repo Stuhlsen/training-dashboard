@@ -20,6 +20,12 @@ const submitMock = vi.fn();
 const requestMock = vi.fn();
 let mockHits = [HIT];
 let mockUnits = new Map<string, string[]>();
+let mockProfile: { isVerifiedAuthor: boolean } | null = { isVerifiedAuthor: false };
+
+vi.mock("../../api/hooks/useSession", () => ({
+  useSessionProfile: () => mockProfile,
+  useAuthUserId: () => "u1",
+}));
 
 vi.mock("../../api/hooks/useRecipeSubmission", () => ({
   MIN_SEARCH_CHARS: 2,
@@ -50,6 +56,8 @@ beforeEach(() => {
   onClose.mockReset();
   mockHits = [HIT];
   mockUnits = new Map();
+  mockProfile = { isVerifiedAuthor: false };
+  localStorage.clear();
   requestMock.mockResolvedValue({ ok: true, request: { id: "q1", name: "Quinoa" } });
   previewMock.mockResolvedValue(PREVIEW);
   submitMock.mockResolvedValue({ ok: true, recipe: { id: "r1", status: "pending", title: "Haferbrei" } });
@@ -245,6 +253,94 @@ describe("RecipeSubmissionForm — Zutaten-Wunsch (S2b)", () => {
     requestMock.mockResolvedValueOnce({ ok: false, error: { code: "NETWORK", message: "Failed to fetch" } });
     fireEvent.click(screen.getByRole("button", { name: "Wunsch senden" }));
     expect(await screen.findByText(/Keine Verbindung zum Server/)).toBeTruthy();
+  });
+});
+
+describe("RecipeSubmissionForm — Verifizierte Autoren (Fahrplan 29 V3)", () => {
+  const SEEN_KEY = "recipe-decisions-seen:u1";
+  const APPROVED = { id: "r9", status: "approved", title: "Haferbrei" };
+
+  it("verifiziert: der Text sagt, dass das Rezept sofort sichtbar ist, und die 5er-Grenze entfällt", () => {
+    mockProfile = { isVerifiedAuthor: true };
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    expect(screen.getByText(/als verifizierter Autor ist dein Rezept sofort für alle sichtbar/)).toBeTruthy();
+    expect(screen.queryByText(/ein Admin prüft dein Rezept/)).toBeNull();
+    expect(screen.queryByText(/Bis zu 5 Rezepte/)).toBeNull();
+  });
+
+  it("nicht verifiziert: Admin-Prüfung und 5er-Grenze stehen wie bisher da", () => {
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    expect(screen.getByText(/ein Admin prüft dein Rezept/)).toBeTruthy();
+    expect(screen.getByText(/Bis zu 5 Rezepte/)).toBeTruthy();
+  });
+
+  it("Sofort-Freigabe (Antwort approved): 'veröffentlicht' und das Banner wird nicht ausgelöst", async () => {
+    mockProfile = { isVerifiedAuthor: true };
+    submitMock.mockResolvedValue({ ok: true, recipe: APPROVED });
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    await fillValidForm();
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    expect(await screen.findByRole("heading", { name: "Rezept veröffentlicht" })).toBeTruthy();
+    expect(screen.getByText(/„Haferbrei“ ist jetzt für alle sichtbar/)).toBeTruthy();
+    expect(screen.queryByText(/wartet jetzt auf die Prüfung/)).toBeNull();
+    expect(JSON.parse(localStorage.getItem(SEEN_KEY)!)).toEqual({ r9: "approved" });
+  });
+
+  it("die Texte richten sich nach der ANTWORT: kommt trotz Verifizierung pending zurück, steht 'wartet auf die Prüfung'", async () => {
+    mockProfile = { isVerifiedAuthor: true };
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    await fillValidForm();
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    expect(await screen.findByText(/„Haferbrei“ wartet jetzt auf die Prüfung/)).toBeTruthy();
+    expect(localStorage.getItem(SEEN_KEY)).toBeNull();
+  });
+
+  it("ein offenes Rezept (pending) markiert nichts als gesehen", async () => {
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    await fillValidForm();
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    await screen.findByText(/wartet jetzt auf die Prüfung/);
+    expect(localStorage.getItem(SEEN_KEY)).toBeNull();
+  });
+
+  it("ein freigegebenes Rezept bearbeiten: Hinweis 'sofort für alle sichtbar', keine Admin-Prüfung, keine 5er-Grenze", () => {
+    mockProfile = { isVerifiedAuthor: true };
+    const recipe = {
+      id: "r9",
+      title: "Haferbrei",
+      status: "approved",
+      mealType: ["breakfast"],
+      servings: 2,
+      ingredients: [{ name: "Haferflocken", amount: 80, unit: "g", category: "Getreide" }],
+      instructions: [{ text: "Kochen" }],
+      imageUrl: null,
+    } as unknown as import("../../api/types").Recipe;
+    render(<RecipeSubmissionForm recipe={recipe} onClose={onClose} />);
+    expect(screen.getByText(/Du bearbeitest ein freigegebenes Rezept. Änderungen sind sofort für alle sichtbar/)).toBeTruthy();
+    expect(screen.queryByText(/noch auf die Prüfung wartet/)).toBeNull();
+    expect(screen.queryByText(/ein Admin prüft dein Rezept/)).toBeNull();
+    expect(screen.queryByText(/Bis zu 5 Rezepte/)).toBeNull();
+  });
+
+  it("ein freigegebenes Rezept speichern: 'weiter für alle sichtbar', Stimmen-Hinweis, gesehen markiert", async () => {
+    mockProfile = { isVerifiedAuthor: true };
+    submitMock.mockResolvedValue({ ok: true, recipe: APPROVED });
+    const recipe = {
+      id: "r9",
+      title: "Haferbrei",
+      status: "approved",
+      mealType: ["breakfast"],
+      servings: 2,
+      ingredients: [{ name: "Haferflocken", amount: 80, unit: "g", category: "Getreide" }],
+      instructions: [{ text: "Kochen" }],
+      imageUrl: null,
+    } as unknown as import("../../api/types").Recipe;
+    render(<RecipeSubmissionForm recipe={recipe} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Änderungen speichern" }));
+    expect(await screen.findByRole("heading", { name: "Änderungen gespeichert" })).toBeTruthy();
+    expect(screen.getByText(/wurde aktualisiert und ist weiter für alle sichtbar/)).toBeTruthy();
+    expect(screen.getByText(/Bisherige Stimmen zu diesem Rezept wurden gelöscht/)).toBeTruthy();
+    expect(JSON.parse(localStorage.getItem(SEEN_KEY)!)).toEqual({ r9: "approved" });
   });
 });
 
