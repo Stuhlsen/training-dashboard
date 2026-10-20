@@ -22,6 +22,7 @@ import { SLOT_LABELS } from "./nutrition-week-model";
 import { RecipeDetailsDialog } from "./RecipeDetails";
 import { RecipeReviewPanel, type Decision } from "./RecipeReviewPanel";
 import { RecipeVotes } from "./RecipeVotes";
+import { RecipeComments } from "./RecipeComments";
 import { HEADING_STYLE, META_STYLE, TAP_BUTTON_STYLE, TEXT_STYLE } from "./nutrition-styles";
 
 const CARD_STYLE: CSSProperties = { padding: "24px 28px", marginBottom: 16 };
@@ -169,6 +170,7 @@ export function PendingRecipesView() {
             <>
               <RecipeSteps recipe={detailsLive} />
               <RecipeVotes recipe={detailsLive} />
+              <RecipeComments recipe={detailsLive} />
               {isAdmin && <RecipeReviewPanel recipe={detailsLive} onDecided={(d) => onDecided(detailsLive, d)} />}
             </>
           }
