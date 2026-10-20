@@ -45,6 +45,12 @@ skills-lock.json
 # befüllen. Historie der alten Stände bleibt im Repo (git show <sha>:data/…).
 data/*.json
 
+# Demo-Daten (Fahrplan 31) — fiktive rides-demo*.json aus `npm run demo:generate`
+# und die lokalen Schlüssel des Demo-Stacks (`.env.demo`, deckt `.env.*` oben
+# schon ab, hier ausdrücklich genannt). Beides nie committen.
+data-demo/
+.env.demo
+
 # OS
 .DS_Store
 Thumbs.db
