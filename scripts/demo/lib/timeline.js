@@ -27,7 +27,7 @@ import { demoAthlete } from "./roster.js";
 
 export const CYCLE_DAYS = 84;
 const CYCLES_PER_SEASON = 4;
-const WINDOW_PAST_DAYS = 365;
+export const WINDOW_PAST_DAYS = 365;
 const WINDOW_FUTURE_DAYS = 42;
 const SICK_SEASON_POS = 1;
 const SICK_WEEK_INDEX = 5;
@@ -49,12 +49,26 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  */
 
 /**
+ * Plan eines Zyklus für eine Sportart — Grundlage der `training_plans`-Zeilen
+ * in E2 (Fahrplan 31 E2, Q1 A).
+ * @typedef {Object} CyclePlan
+ * @property {"ride"|"run"|"swim"} sport
+ * @property {ReturnType<typeof planInput>} input  generatePlan()-Eingabe
+ * @property {number} weeks
+ * @property {string} endDate
+ * @property {Array<object>} weekModel
+ * @property {number|null} ftpTarget
+ * @property {string[]} warnings
+ */
+
+/**
  * @typedef {Object} DemoTimeline  (V3)
+ * @property {string|number} seed  Startwert — E2 zieht daraus seinen Zufall
  * @property {"demo1"|"demo2"} athleteId
  * @property {string} epoch
  * @property {string} windowStart
  * @property {string} windowEnd
- * @property {Array<{ start: string, raceDate: string, raceName: string, priority: "main"|"secondary" }>} cycles
+ * @property {Array<{ start: string, raceDate: string, raceName: string, priority: "main"|"secondary", plans: CyclePlan[] }>} cycles
  * @property {Array<{ date: string, watts: number, source: "test" }>} ftpSteps
  * @property {Array<{ start: string, end: string }>} sickWindows
  * @property {Array<{ date: string, phase: string, isRecoveryWeek: boolean, isSick: boolean,
@@ -116,14 +130,26 @@ function planInput(athlete, sp, cycle) {
 /**
  * Plant einen Zyklus für alle Sportarten des Athleten.
  * Die Wochen-Einordnung (Phase/Erholung) kommt aus dem ersten Sportplan.
- * @returns {{ byDate: Map<string, PlannedSession[]>, weeks: Map<string, { phase: string, isRecovery: boolean }> }}
+ * @returns {{ byDate: Map<string, PlannedSession[]>, weeks: Map<string, { phase: string, isRecovery: boolean }>, plans: CyclePlan[] }}
  */
 function planCycle(athlete, cycle) {
   /** @type {Map<string, PlannedSession[]>} */
   const byDate = new Map();
   const weeks = new Map();
+  /** @type {CyclePlan[]} */
+  const plans = [];
   athlete.plans.forEach((sp, i) => {
-    const plan = generatePlan(planInput(athlete, sp, cycle));
+    const input = planInput(athlete, sp, cycle);
+    const plan = generatePlan(input);
+    plans.push({
+      sport: sp.sport,
+      input,
+      weeks: plan.weeks.length,
+      endDate: plan.weeks.at(-1)?.end ?? cycle.raceDate,
+      weekModel: plan.weekModel,
+      ftpTarget: plan.ftpTarget ?? null,
+      warnings: plan.warnings,
+    });
     for (const week of plan.weeks) {
       if (i === 0) weeks.set(week.isoWeek, { phase: week.phase, isRecovery: week.isRecovery });
       for (const card of week.cards) {
@@ -133,7 +159,7 @@ function planCycle(athlete, cycle) {
       }
     }
   });
-  return { byDate, weeks };
+  return { byDate, weeks, plans };
 }
 
 /**
@@ -209,6 +235,7 @@ export function buildDemoTimeline(input) {
   }
 
   return {
+    seed,
     athleteId,
     epoch,
     windowStart,
@@ -218,6 +245,7 @@ export function buildDemoTimeline(input) {
       raceDate: c.raceDate,
       raceName: athlete.raceNames[c.pos],
       priority: c.pos === CYCLES_PER_SEASON - 1 ? "main" : "secondary",
+      plans: plans.get(c.k).plans,
     })),
     ftpSteps: ftpStepsFor(athlete, cycles),
     sickWindows,
