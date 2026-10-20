@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { browseRecipes, hasActiveFilters, normalizeSearch } from "./recipe-browse.js";
+import { browseRecipes, formatPrepTime, hasActiveFilters, normalizeSearch } from "./recipe-browse.js";
 
 const r = (id, title, extra = {}) => ({
   id,
@@ -79,12 +79,61 @@ describe("browseRecipes", () => {
   });
 });
 
+describe("browseRecipes: Dauer (Fahrplan 30 B1)", () => {
+  const TIMED = [
+    r("a", "Anders", { prepMinutes: 30 }),
+    r("b", "Bowl", { prepMinutes: 5 }),
+    r("c", "Curry", { prepMinutes: 45 }),
+    r("d", "Dessert", { prepMinutes: null }),
+    r("e", "Eintopf", { prepMinutes: 5 }),
+    r("f", "Fisch", { prepMinutes: 490 }),
+  ];
+
+  it("Filter 'bis N Min' nimmt Rezepte bis einschließlich N und lässt Rezepte ohne Zeit weg", () => {
+    expect(browseRecipes(TIMED, { filters: { maxMinutes: 15 } }).visible.map((x) => x.id)).toEqual(["b", "e"]);
+    expect(browseRecipes(TIMED, { filters: { maxMinutes: 30 } }).visible.map((x) => x.id)).toEqual(["a", "b", "e"]);
+    expect(browseRecipes(TIMED, { filters: { maxMinutes: 45 } }).visible.map((x) => x.id)).toEqual(["a", "b", "c", "e"]);
+  });
+
+  it("zählt 'available' unabhängig vom Zeitfilter (Leerzustand bleibt 'kein Rezept passt')", () => {
+    expect(browseRecipes(TIMED, { filters: { maxMinutes: 15 } }).available).toBe(6);
+  });
+
+  it("Sortierung 'fastest': kürzeste zuerst, Gleichstand nach Titel, ohne Zeit zuletzt", () => {
+    const { visible } = browseRecipes(TIMED, { sort: "fastest" });
+    expect(visible.map((x) => x.id)).toEqual(["b", "e", "a", "c", "f", "d"]);
+  });
+
+  it("Standard bleibt nach Titel", () => {
+    expect(browseRecipes(TIMED).visible.map((x) => x.id)).toEqual(["a", "b", "c", "d", "e", "f"]);
+  });
+
+  it("Zeitfilter und Suche greifen zusammen", () => {
+    const { visible } = browseRecipes(TIMED, { filters: { maxMinutes: 30, query: "bowl" } });
+    expect(visible.map((x) => x.id)).toEqual(["b"]);
+  });
+});
+
+describe("formatPrepTime", () => {
+  it("zeigt Minuten, ab 60 Stunden und Minuten", () => {
+    expect(formatPrepTime(25)).toBe("25 min");
+    expect(formatPrepTime(60)).toBe("1 h");
+    expect(formatPrepTime(130)).toBe("2 h 10 min");
+    expect(formatPrepTime(490)).toBe("8 h 10 min");
+  });
+  it("gibt ohne gültigen Wert null zurück", () => {
+    for (const bad of [null, undefined, 0, -3, NaN]) expect(formatPrepTime(bad)).toBeNull();
+  });
+});
+
 describe("hasActiveFilters", () => {
-  it("erkennt Suche, Mahlzeit, Form; Leerraum zählt nicht", () => {
+  it("erkennt Suche, Mahlzeit, Form, Dauer; Leerraum zählt nicht", () => {
     expect(hasActiveFilters({})).toBe(false);
     expect(hasActiveFilters({ query: "   " })).toBe(false);
     expect(hasActiveFilters({ query: "a" })).toBe(true);
     expect(hasActiveFilters({ mealType: "lunch" })).toBe(true);
     expect(hasActiveFilters({ dietTag: "vegan" })).toBe(true);
+    expect(hasActiveFilters({ maxMinutes: 30 })).toBe(true);
+    expect(hasActiveFilters({ maxMinutes: null })).toBe(false);
   });
 });

@@ -602,6 +602,8 @@ export interface Recipe {
   dietTags: DietTag[] | null;
   containsTags: AllergenTag[];
   servings: number;
+  /** Zubereitungszeit in Minuten gesamt (Fahrplan 30 B1); null im Bestand ohne Schätzung */
+  prepMinutes: number | null;
   ingredients: RecipeIngredient[] | null;
   instructions: RecipeInstruction[] | null;
   nutrition: RecipeNutrition | null;

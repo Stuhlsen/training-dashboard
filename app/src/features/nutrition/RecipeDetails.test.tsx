@@ -41,6 +41,17 @@ describe("RecipeDetailsDialog", () => {
     expect(screen.getByText("1 Portion geplant")).toBeTruthy();
   });
 
+  it("zeigt die Zubereitungszeit neben den Portionen, ohne Zeit nichts", () => {
+    render(<RecipeDetailsDialog recipe={{ ...RECIPE, prepMinutes: 25 }} servings={1} onClose={vi.fn()} onCook={vi.fn()} />);
+    expect(screen.getByText("1 Portion geplant · 25 min")).toBeTruthy();
+    cleanup();
+    render(<RecipeDetailsDialog recipe={{ ...RECIPE, prepMinutes: 490 }} servings={1} onClose={vi.fn()} onCook={vi.fn()} />);
+    expect(screen.getByText("1 Portion geplant · 8 h 10 min")).toBeTruthy();
+    cleanup();
+    render(<RecipeDetailsDialog recipe={{ ...RECIPE, prepMinutes: null }} servings={1} onClose={vi.fn()} onCook={vi.fn()} />);
+    expect(screen.getByText("1 Portion geplant")).toBeTruthy();
+  });
+
   it("ohne Bild steht der Platzhalter da (kein kaputtes Bild)", () => {
     setup();
     expect(screen.getByTestId("recipe-image-placeholder")).toBeTruthy();

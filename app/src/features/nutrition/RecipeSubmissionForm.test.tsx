@@ -70,6 +70,7 @@ afterEach(() => {
 
 async function fillValidForm() {
   fireEvent.change(screen.getByLabelText("Titel"), { target: { value: "Haferbrei" } });
+  fireEvent.change(screen.getByLabelText("Zubereitungszeit (Minuten)"), { target: { value: "25" } });
   fireEvent.click(screen.getByRole("checkbox", { name: SLOT_LABELS.breakfast }));
   fireEvent.change(screen.getByRole("combobox"), { target: { value: "hafer" } });
   fireEvent.click(await screen.findByRole("option", { name: /Haferflocken/ }));
@@ -119,6 +120,7 @@ describe("RecipeSubmissionForm", () => {
       expect.objectContaining({
         title: "Haferbrei",
         meal_type: ["breakfast"],
+        prep_minutes: 25,
         ingredients: [{ name: "Haferflocken", amount: 80, unit: "g" }],
         instructions: [{ text: "Kochen" }],
       }),
@@ -139,6 +141,30 @@ describe("RecipeSubmissionForm", () => {
     expect(screen.getByText("mindestens eine Zutat")).toBeTruthy();
     expect(screen.getByLabelText("Titel").getAttribute("aria-invalid")).toBe("true");
     expect(screen.getByRole("alert").textContent).toMatch(/markierten Felder/);
+  });
+
+  it("zeigt den Zeit-Fehler (422) am Feld Zubereitungszeit und setzt aria-invalid", async () => {
+    submitMock.mockResolvedValue({
+      ok: false,
+      error: { code: "VALIDATION", message: "Rezept ungueltig", details: { prep_minutes: ["Zubereitungszeit fehlt"] } },
+    });
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    const message = await screen.findByText("Zubereitungszeit fehlt");
+    const field = screen.getByLabelText("Zubereitungszeit (Minuten)");
+    expect(field.getAttribute("aria-invalid")).toBe("true");
+    expect(field.getAttribute("aria-describedby")).toBe(message.id);
+    expect(screen.getByRole("alert").textContent).toMatch(/markierten Felder/);
+  });
+
+  it("schickt die Zeit als ganze Zahl mit und meldet eine unlesbare Eingabe als 0 an den Server", async () => {
+    submitMock.mockResolvedValue({ ok: true, recipe: { id: "n1", status: "pending", title: "Haferbrei" } });
+    render(<RecipeSubmissionForm onClose={onClose} />);
+    await fillValidForm();
+    fireEvent.change(screen.getByLabelText("Zubereitungszeit (Minuten)"), { target: { value: "abc" } });
+    fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
+    await waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
+    expect(submitMock.mock.calls[0][0]).toMatchObject({ prep_minutes: 0 });
   });
 
   it("meldet das Limit offener Rezepte (409) verständlich", async () => {
@@ -351,6 +377,7 @@ describe("RecipeSubmissionForm — Bearbeiten (S2b)", () => {
     status: "pending",
     mealType: ["breakfast"],
     servings: 2,
+    prepMinutes: 25,
     ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "ml", category: "Getreide" }],
     instructions: [{ text: "Kochen", timerSeconds: 300 }],
     imageUrl: "u1/foto.webp",
@@ -361,6 +388,7 @@ describe("RecipeSubmissionForm — Bearbeiten (S2b)", () => {
     render(<RecipeSubmissionForm recipe={RECIPE} onClose={onClose} />);
     expect(screen.getByRole("heading", { name: "Rezept bearbeiten" })).toBeTruthy();
     expect((screen.getByLabelText("Titel") as HTMLInputElement).value).toBe("Haferbrei");
+    expect((screen.getByLabelText("Zubereitungszeit (Minuten)") as HTMLInputElement).value).toBe("25");
     expect((screen.getByLabelText("Menge Haferflocken") as HTMLInputElement).value).toBe("80,5");
     const unit = screen.getByLabelText("Einheit Haferflocken") as HTMLSelectElement;
     expect(unit.value).toBe("ml");
@@ -382,7 +410,7 @@ describe("RecipeSubmissionForm — Bearbeiten (S2b)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Änderungen speichern" }));
     await waitFor(() => expect(submitMock).toHaveBeenCalledTimes(1));
     const [body, photo, options] = submitMock.mock.calls[0];
-    expect(body).toMatchObject({ title: "Haferbrei", servings: 2, ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "ml" }] });
+    expect(body).toMatchObject({ title: "Haferbrei", servings: 2, prep_minutes: 25, ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "ml" }] });
     expect(photo).toBeNull();
     expect(options).toEqual({ recipeId: "r1", keepImagePath: "u1/foto.webp" });
   });

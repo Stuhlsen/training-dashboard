@@ -79,6 +79,7 @@ const BASE_RECIPE: Recipe = {
   dietTags: null,
   containsTags: [],
   servings: 2,
+  prepMinutes: 25,
   ingredients: [
     { name: "Mehl", amount: 500, unit: "g", category: "Getreide & Backwaren" },
     { name: "Eier", amount: 3, unit: "Stück", category: "Eier" },

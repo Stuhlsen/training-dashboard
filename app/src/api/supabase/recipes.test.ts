@@ -25,6 +25,7 @@ const ROW_DEFAULT = {
   diet_tags: ["veg", "vegan"],
   contains_tags: ["gluten"],
   servings: 2,
+  prep_minutes: 25,
   ingredients: [
     { name: "Haferflocken", amount: 100, unit: "g", category: "Getreide" },
   ],
@@ -74,6 +75,7 @@ describe("listRecipes", () => {
       expect(result.recipes).toHaveLength(1);
       expect(result.recipes[0].title).toBe("Haferflocken-Porridge");
       expect(result.recipes[0].status).toBe("approved");
+      expect(result.recipes[0].prepMinutes).toBe(25);
     }
     expect(filters).toContainEqual({ op: "eq", col: "status", val: "approved" });
     expect(order).toEqual({ col: "title", ascending: true });
@@ -191,6 +193,7 @@ describe("listRecipes — mapper", () => {
       expect(r.externalId).toBeNull();
       expect(r.submittedBy).toBeNull();
       expect(r.rejectionReason).toBe("zu einfach");
+      expect(r.prepMinutes).toBeNull(); // Bestand ohne Schätzung: Spalte fehlt/NULL
       expect(r.dietTags).toBeNull();
       expect(r.imageUrl).toBe("https://example.com/eier.jpg");
       expect(r.ingredients).toBeNull();

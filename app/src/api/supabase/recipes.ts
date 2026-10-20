@@ -16,6 +16,7 @@ interface RecipeRow {
   diet_tags: string[] | null;
   contains_tags: string[] | null;
   servings: number;
+  prep_minutes: number | null;
   ingredients: unknown[] | null;
   instructions: unknown[] | null;
   nutrition: unknown | null;
@@ -49,6 +50,7 @@ function toRecipe(row: RecipeRow): Recipe {
     dietTags: (row.diet_tags ?? null) as Recipe["dietTags"],
     containsTags: (Array.isArray(row.contains_tags) ? row.contains_tags.filter(Boolean) : []) as AllergenTag[],
     servings: row.servings,
+    prepMinutes: row.prep_minutes ?? null,
     ingredients: row.ingredients as Recipe["ingredients"],
     instructions: row.instructions as Recipe["instructions"],
     nutrition: row.nutrition as Recipe["nutrition"],

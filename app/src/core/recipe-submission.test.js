@@ -6,6 +6,7 @@ import {
   formatAmount,
   openRecipesMessage,
   parseAmount,
+  parseMinutes,
   splitFieldErrors,
 } from "./recipe-submission.js";
 
@@ -20,10 +21,21 @@ describe("parseAmount", () => {
   });
 });
 
+describe("parseMinutes", () => {
+  it("liest ganze Minuten", () => {
+    expect(parseMinutes("25")).toBe(25);
+    expect(parseMinutes(" 600 ")).toBe(600);
+  });
+  it("lehnt leer, Text, 0, negativ und Kommazahlen ab", () => {
+    for (const bad of ["", "abc", "0", "-5", "12,5", "12.5", "1e2"]) expect(parseMinutes(bad)).toBeNull();
+  });
+});
+
 describe("buildSubmissionBody", () => {
   const draft = {
     title: "  Haferbrei ",
     servings: "2",
+    prepMinutes: "25",
     mealTypes: ["breakfast"],
     ingredients: [{ name: "Haferflocken", amount: "80,5", unit: "g" }],
     steps: [
@@ -38,9 +50,16 @@ describe("buildSubmissionBody", () => {
       title: "Haferbrei",
       meal_type: ["breakfast"],
       servings: 2,
+      prep_minutes: 25,
       ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "g" }],
       instructions: [{ text: "Kochen", timerSeconds: 300 }, { text: "Servieren" }],
     });
+  });
+
+  it("gibt eine unlesbare oder fehlende Zeit als 0 weiter, damit der Server sie meldet", () => {
+    for (const prepMinutes of ["", "abc", "12,5"]) {
+      expect(buildSubmissionBody({ ...draft, prepMinutes }).prep_minutes).toBe(0);
+    }
   });
 
   it("setzt image_url nur mit Pfad", () => {
@@ -71,6 +90,7 @@ describe("formatAmount / draftFromRecipe", () => {
   const recipe = {
     title: "Haferbrei",
     servings: 2,
+    prepMinutes: 25,
     mealType: ["breakfast"],
     ingredients: [{ name: "Haferflocken", amount: 80.5, unit: "g", category: "Getreide" }],
     instructions: [{ text: "Kochen", timerSeconds: 90 }, { text: "Servieren" }],
@@ -80,6 +100,7 @@ describe("formatAmount / draftFromRecipe", () => {
     expect(draftFromRecipe(recipe)).toEqual({
       title: "Haferbrei",
       servings: "2",
+      prepMinutes: "25",
       mealTypes: ["breakfast"],
       ingredients: [{ name: "Haferflocken", amount: "80,5", unit: "g" }],
       steps: [
@@ -94,6 +115,11 @@ describe("formatAmount / draftFromRecipe", () => {
     expect(body.ingredients).toEqual([{ name: "Haferflocken", amount: 80.5, unit: "g" }]);
     expect(body.instructions).toEqual([{ text: "Kochen", timerSeconds: 90 }, { text: "Servieren" }]);
     expect(body.servings).toBe(2);
+    expect(body.prep_minutes).toBe(25);
+  });
+
+  it("belegt die Zeit leer vor, wenn das Rezept (Bestand) keine hat", () => {
+    expect(draftFromRecipe({ ...recipe, prepMinutes: null }).prepMinutes).toBe("");
   });
 
   it("verträgt ein Rezept ohne Zutaten/Schritte und lässt einen leeren Schritt stehen", () => {
@@ -128,6 +154,11 @@ describe("splitFieldErrors", () => {
   it("ersetzt den technischen Mahlzeit-Text durch einen verständlichen", () => {
     const { fields } = splitFieldErrors({ meal_type: ["meal_type: mindestens einer aus breakfast, lunch, dinner, snack"] });
     expect(fields).toEqual({ meal_type: ["Wähle mindestens eine Mahlzeit."] });
+  });
+  it("hält den Zeit-Fehler als Feldfehler fest", () => {
+    const { fields, rest } = splitFieldErrors({ prep_minutes: ["Zubereitungszeit fehlt"] });
+    expect(fields).toEqual({ prep_minutes: ["Zubereitungszeit fehlt"] });
+    expect(rest).toEqual([]);
   });
   it("verträgt fehlende details", () => {
     expect(splitFieldErrors(undefined)).toEqual({ fields: {}, rest: [] });

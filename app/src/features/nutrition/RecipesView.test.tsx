@@ -371,3 +371,55 @@ describe("RecipesView — Details, Kochen, In den Plan", () => {
     expect(upsertMock).not.toHaveBeenCalled();
   });
 });
+
+describe("RecipesView — Dauer (Fahrplan 30 B1)", () => {
+  function setTimedPool() {
+    mockRecipes = [
+      recipe("a", "Anders", { prepMinutes: 30 }),
+      recipe("b", "Bowl", { prepMinutes: 5 }),
+      recipe("c", "Curry", { prepMinutes: 45 }),
+      recipe("d", "Dessert", { prepMinutes: null }),
+    ];
+  }
+  const titlesInOrder = () =>
+    within(screen.getByRole("list", { name: "Rezepte" }))
+      .getAllByRole("listitem")
+      .map((li) => ["Anders", "Bowl", "Curry", "Dessert"].find((t) => li.textContent?.includes(t)));
+
+  it("die Karte zeigt die Zeit hinter der Mahlzeit, ohne Zeit steht nur die Mahlzeit da", () => {
+    setTimedPool();
+    renderView();
+    expect(screen.getByText("Mittagessen · 30 min")).toBeTruthy();
+    expect(screen.getByText("Mittagessen · 5 min")).toBeTruthy();
+    expect(within(screen.getByRole("list", { name: "Rezepte" })).getAllByText("Mittagessen")).toHaveLength(1); // Dessert ohne Zeit
+  });
+
+  it("'bis 15 Min' zeigt nur Rezepte bis 15 Minuten; erneutes Antippen hebt den Filter auf", () => {
+    setTimedPool();
+    renderView();
+    const chip = screen.getByRole("button", { name: "bis 15 Min" });
+    fireEvent.click(chip);
+    expect(chip.getAttribute("aria-pressed")).toBe("true");
+    expect(titlesInOrder()).toEqual(["Bowl"]);
+    fireEvent.click(chip);
+    expect(cardCount()).toBe(4);
+  });
+
+  it("'bis 45 Min' schließt 45 ein und lässt Rezepte ohne Zeit weg; 'Filter zurücksetzen' leert ihn", () => {
+    setTimedPool();
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "bis 45 Min" }));
+    expect(titlesInOrder()).toEqual(["Anders", "Bowl", "Curry"]);
+    fireEvent.click(screen.getByRole("button", { name: "Filter zurücksetzen" }));
+    expect(cardCount()).toBe(4);
+    expect(screen.getByRole("button", { name: "Jede Dauer" }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("Sortierung 'Schnellste' ordnet nach Zeit, Rezepte ohne Zeit zuletzt", () => {
+    setTimedPool();
+    renderView();
+    expect(titlesInOrder()).toEqual(["Anders", "Bowl", "Curry", "Dessert"]);
+    fireEvent.change(screen.getByLabelText("Sortierung"), { target: { value: "fastest" } });
+    expect(titlesInOrder()).toEqual(["Bowl", "Anders", "Curry", "Dessert"]);
+  });
+});
