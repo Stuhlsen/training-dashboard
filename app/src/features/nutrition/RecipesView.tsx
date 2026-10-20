@@ -8,10 +8,10 @@
    Klick öffnet die Details; von dort "Kochen" (ohne Plan-Eintrag, nichts
    wird gespeichert) und "In den Plan" (PlanPicker, bestehender Upsert-Weg).
 
-   Kopfzeile (in jedem Zustand): Umschalter "Alle Rezepte | Meine Einreichungen"
-   (S2b) und der Einstieg ins Einreichformular. "Meine Einreichungen" und das
-   Formular (Neu und Bearbeiten) brauchen den Rezeptpool nicht. "In Prüfung"
-   folgt in S3.
+   Kopfzeile (in jedem Zustand): Umschalter "Alle Rezepte | Meine Einreichungen |
+   In Prüfung" (S2b, Fahrplan 30 B4) und der Einstieg ins Einreichformular.
+   "Meine Einreichungen", "In Prüfung" und das Formular (Neu und Bearbeiten)
+   brauchen den Rezeptpool nicht.
    ============================================================ */
 
 import { useMemo, useState, type CSSProperties } from "react";
@@ -39,6 +39,7 @@ import { CookingDialog } from "./CookingDialog";
 import { FIELD_STYLE, GLASS, HEADING_STYLE, META_STYLE, PRIMARY_BUTTON_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
 import { RecipeSubmissionForm } from "./RecipeSubmissionForm";
 import { MySubmissionsView } from "./MySubmissionsView";
+import { PendingRecipesView } from "./PendingRecipesView";
 import "./nutrition.css";
 
 const NO_INTOLERANCES: readonly string[] = [];
@@ -75,7 +76,7 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   const [notice, setNotice] = useState<string | null>(null);
   // Formular offen? `{}` = neues Rezept, `{ recipe }` = ein offenes Rezept bearbeiten
   const [form, setForm] = useState<{ recipe?: Recipe } | null>(null);
-  const [view, setView] = useState<"all" | "mine">("all");
+  const [view, setView] = useState<"all" | "mine" | "review">("all");
 
   const filters = useMemo(() => ({ query, mealType, dietTag, maxMinutes }), [query, mealType, dietTag, maxMinutes]);
   const result = useMemo(
@@ -127,6 +128,9 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
         <button type="button" aria-pressed={view === "mine"} style={chipStyle(view === "mine")} onClick={() => setView("mine")}>
           Meine Einreichungen
         </button>
+        <button type="button" aria-pressed={view === "review"} style={chipStyle(view === "review")} onClick={() => setView("review")}>
+          In Prüfung
+        </button>
       </div>
       <button type="button" style={PRIMARY_BUTTON_STYLE} onClick={() => setForm({})}>
         Rezept einreichen
@@ -139,6 +143,15 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
       <section aria-label="Rezepte">
         {header}
         <MySubmissionsView onEdit={(recipe) => setForm({ recipe })} />
+      </section>
+    );
+  }
+
+  if (view === "review") {
+    return (
+      <section aria-label="Rezepte">
+        {header}
+        <PendingRecipesView />
       </section>
     );
   }

@@ -83,6 +83,11 @@ vi.mock("./MySubmissionsView", () => ({
   ),
 }));
 
+// "In Prüfung" hat eigene Tests (PendingRecipesView.test.tsx)
+vi.mock("./PendingRecipesView", () => ({
+  PendingRecipesView: () => <div>In-Prüfung-Platzhalter</div>,
+}));
+
 const { RecipesView } = await import("./RecipesView");
 
 function recipe(id: string, title: string, extra: Partial<Recipe> = {}): Recipe {
@@ -198,6 +203,26 @@ describe("RecipesView — Meine Einreichungen (S2b)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Meine Einreichungen" }));
     fireEvent.click(screen.getByRole("button", { name: "Rezept einreichen" }));
     expect(screen.getByText(/Neues Rezept/)).toBeTruthy();
+  });
+});
+
+describe("RecipesView — In Prüfung (Fahrplan 30 B4)", () => {
+  it("der dritte Umschalter zeigt die Rezepte in Prüfung, ohne die Liste", () => {
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "In Prüfung" }));
+    expect(screen.getByText("In-Prüfung-Platzhalter")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "In Prüfung" }).getAttribute("aria-pressed")).toBe("true");
+    expect(screen.getByRole("button", { name: "Alle Rezepte" }).getAttribute("aria-pressed")).toBe("false");
+    expect(screen.queryByRole("list", { name: "Rezepte" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Alle Rezepte" }));
+    expect(screen.getByRole("list", { name: "Rezepte" })).toBeTruthy();
+  });
+
+  it("'In Prüfung' wartet nicht auf die Rezeptbibliothek", () => {
+    mockState = { isLoading: false, isError: true };
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "In Prüfung" }));
+    expect(screen.getByText("In-Prüfung-Platzhalter")).toBeTruthy();
   });
 });
 

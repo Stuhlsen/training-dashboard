@@ -141,7 +141,8 @@ export function RecipeDetailsDialog({
   recipe: Recipe;
   servings: number;
   onClose: () => void;
-  onCook: () => void;
+  /** Fehlt = kein "Kochen" im Blatt (Rezepte in Prüfung lassen sich noch nicht kochen) */
+  onCook?: () => void;
   /** Rezeptliste: Sterne (RecipeRating) unter den Details; fehlt = keine Bewertung im Blatt */
   ratingSlot?: ReactNode;
   /** Ersetzt "N Portionen geplant" (Rezeptliste: dort ist nichts geplant) */
@@ -208,9 +209,11 @@ export function RecipeDetailsDialog({
           {ratingSlot}
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18 }}>
             {/* Eine Primäraktion je Ansicht: öffnet der Plan-Wähler, wird dessen Speichern-Knopf zur Primäraktion */}
-            <button type="button" style={planPicker ? TAP_BUTTON_STYLE : PRIMARY_BUTTON_STYLE} onClick={onCook}>
-              Kochen
-            </button>
+            {onCook && (
+              <button type="button" style={planPicker ? TAP_BUTTON_STYLE : PRIMARY_BUTTON_STYLE} onClick={onCook}>
+                Kochen
+              </button>
+            )}
             {onAddToPlan && (
               <button
                 type="button"
