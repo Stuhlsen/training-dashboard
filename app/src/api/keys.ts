@@ -107,6 +107,10 @@ export const qk = {
   recipeVoteStats: () => ["recipes", "vote-stats"] as const,
   /** Eigene Daumen (nur die eigene Zeile ist lesbar). */
   myRecipeVotes: (userId: string) => ["recipes", "my-votes", userId] as const,
+  /** Kommentare eines Rezepts samt Daumen-Zahlen und eigenem Daumen (View recipe_comment_feed).
+   *  Beginnt mit "recipes", damit eine Rezept-Entscheidung (Ablehnen blendet die Kommentare aus)
+   *  sie mit ["recipes"] mit invalidiert. */
+  recipeComments: (recipeId: string) => ["recipes", "comments", recipeId] as const,
   /** Zutaten-Suche der Rezept-Einreichung (admin-api GET /api/ingredients) —
    *  Tabelle ist für alle gleich, deshalb nur der Suchtext im Key. */
   ingredientSearch: (query: string) => ["ingredient-search", query] as const,
