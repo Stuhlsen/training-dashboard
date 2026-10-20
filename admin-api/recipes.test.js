@@ -423,15 +423,14 @@ test("Zubereitungszeit: fehlend oder ausserhalb 1..600 / nicht ganzzahlig -> 422
   });
 });
 
-test("Zubereitungszeit: die Vorschau rechnet auch ohne Zeit, prueft einen mitgeschickten Wert aber", async () => {
+test("Zubereitungszeit: die Vorschau rechnet ohne Zeit und ignoriert auch den Platzhalter 0 des Formulars", async () => {
   await withService([], async (port) => {
     const body = validBody();
     delete body.prep_minutes;
     const without = await request(port, "POST", "/api/recipes/preview", { token: TOKEN_ALICE, body });
     assert.equal(without.status, 200);
-    const bad = await request(port, "POST", "/api/recipes/preview", { token: TOKEN_ALICE, body: { ...validBody(), prep_minutes: 0 } });
-    assert.equal(bad.status, 422);
-    assert.ok(bad.body.error.details.prep_minutes);
+    const empty = await request(port, "POST", "/api/recipes/preview", { token: TOKEN_ALICE, body: { ...validBody(), prep_minutes: 0 } });
+    assert.equal(empty.status, 200);
   });
 });
 

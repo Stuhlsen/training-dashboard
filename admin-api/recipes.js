@@ -134,8 +134,8 @@ function addDetail(details, field, message) {
 
 /**
  * Formularpruefung (Grenzen, Typen) — liefert die Quelle fuer buildRecipe.
- * prep_minutes ist beim Einreichen und Aendern Pflicht; die Vorschau rechnet ohne Zeit
- * (requirePrep = false), prueft einen mitgeschickten Wert aber trotzdem.
+ * prep_minutes ist beim Einreichen und Aendern Pflicht (requirePrep); die Vorschau rechnet
+ * ohne Zeit und ignoriert einen mitgeschickten Wert (das Formular schickt 0, solange das Feld leer ist).
  */
 function checkInput(body, sub, requirePrep = true) {
   const details = {};
@@ -155,9 +155,9 @@ function checkInput(body, sub, requirePrep = true) {
     addDetail(details, "servings", `Portionen: Zahl groesser 0, hoechstens ${LIMITS.servings}`);
   }
 
-  const prepMinutes = input.prep_minutes;
+  const prepMinutes = requirePrep ? input.prep_minutes : undefined;
   const hasPrep = prepMinutes !== undefined && prepMinutes !== null;
-  if (!hasPrep && requirePrep) {
+  if (requirePrep && !hasPrep) {
     addDetail(details, "prep_minutes", "Zubereitungszeit fehlt");
   } else if (hasPrep && (!Number.isInteger(prepMinutes) || prepMinutes < 1 || prepMinutes > LIMITS.prepMinutes)) {
     addDetail(details, "prep_minutes", `Zubereitungszeit: ganze Minuten von 1 bis ${LIMITS.prepMinutes}`);

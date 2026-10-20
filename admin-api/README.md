@@ -123,7 +123,7 @@ je Athlet, 30 Zutaten, 20 Schritte, Titel 100, Schritt 500 Zeichen. `image_url` 
 Storage-Pfad `<JWT-sub>/<datei>` im Bucket `recipe-images`. Unbekannte Zutat oder Einheit
 ist ein Fehler, kein Raten.
 `prep_minutes` (aktive Zubereitungszeit ohne Wartezeit, ganze Minuten 1 bis 600) ist bei POST und PUT Pflicht, auch
-für verifizierte Autoren; die Vorschau rechnet auch ohne, prüft einen mitgeschickten Wert aber.
+für verifizierte Autoren; die Vorschau rechnet ohne Zeit und ignoriert einen mitgeschickten Wert.
 
 Fehler: `{ ok: false, error: { code, message } }`; Formularfehler (HTTP 422, bei zu vielen
 offenen Rezepten 409) haben Code `VALIDATION` und `error.details` je Feld
