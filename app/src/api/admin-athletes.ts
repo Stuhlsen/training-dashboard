@@ -20,7 +20,7 @@ function isResultShape<T extends object>(body: unknown): body is Result<T> {
   return !!body && typeof body === "object" && "ok" in body;
 }
 
-async function adminFetch<T extends object = object>(path: string, init: RequestInit = {}): Promise<Result<T>> {
+export async function adminFetch<T extends object = object>(path: string, init: RequestInit = {}): Promise<Result<T>> {
   const config = getConfig();
   if (!supabase || !config) {
     return { ok: false, error: { code: "UNKNOWN", message: "Supabase nicht konfiguriert" } };

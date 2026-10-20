@@ -614,6 +614,26 @@ export interface Recipe {
   ratingAvg?: number | null;
   /** Anzahl der Bewertungen; 0 = noch nicht bewertet. Fehlt, solange die Statistik nicht geladen ist. */
   ratingCount?: number;
+  /** Daumen hoch / runter bei Rezepten in Prüfung (Fahrplan 30 B4); fehlt, solange die Zahlen nicht geladen sind. */
+  voteUp?: number;
+  voteDown?: number;
+}
+
+/** Daumen eines Athleten auf ein Rezept in Prüfung (Tabelle recipe_votes, Migration 0063/0076). */
+export type RecipeVote = "up" | "down";
+
+/** Daumen-Zahlen eines Rezepts in Prüfung (View recipe_vote_stats, Migration 0076).
+ *  Nie mit Athlet-ID — wer wie abgestimmt hat, sieht höchstens der Admin. */
+export interface RecipeVoteStat {
+  recipeId: string;
+  up: number;
+  down: number;
+}
+
+/** Eigener Daumen auf ein Rezept (Tabelle recipe_votes, nur die eigene Zeile lesbar). */
+export interface MyRecipeVote {
+  recipeId: string;
+  vote: RecipeVote;
 }
 
 /** Schnitt und Anzahl der Sterne eines freigegebenen Rezepts (View recipe_rating_stats, Migration 0075).
