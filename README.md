@@ -63,17 +63,25 @@ Built for cycling first, with running and swimming as first-class sports for tri
 
 ## How training data steers the plan
 
+Five lanes — training, recovery, planning, nutrition and bike fit — from raw signal to decision. *Click the image to enlarge.*
+
+<a href="assets/coaching-flow-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/coaching-flow-dark.png">
-  <img alt="Data flow: activities and recovery data feed a load model and a readiness score; these produce a plan forecast and a daily briefing; a coach or Claude sends proposals that the athlete accepts into the training plan, which in turn sets daily fuel targets." src="assets/coaching-flow-light.png">
+  <img alt="Data flow in five lanes. Activities feed a load model, which drives the plan forecast and the daily briefing. Recovery data and the morning check-in feed readiness, which feeds the daily briefing and the analysis view. Events feed the plan generator, which drafts a plan for the athlete. A coach or Claude sends proposals; the athlete accepts them into the training plan, which can be pushed to intervals.icu or exported as .zwo. Body profile feeds energy needs, fuel targets and the meal plan. A bike photo yields joint angles and fit advice." src="assets/coaching-flow-light.png">
 </picture>
+</a>
 
 ## System architecture
 
+*Click the image to enlarge.*
+
+<a href="assets/architecture-system-light.png">
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="assets/architecture-system-dark.png">
-  <img alt="System architecture: a sync service pulls intervals.icu and Open-Meteo every 15 minutes into a shared data volume read by the React app; browser traffic goes through Caddy to the static app, GoTrue, PostgREST and an Admin API, all backed by PostgreSQL with Row Level Security, inside a self-hosted Podman stack." src="assets/architecture-system-light.png">
+  <img alt="System architecture. A sync service pulls intervals.icu and Open-Meteo every 15 minutes into a shared data volume read by the React app. Browser traffic goes through Caddy to the static app, GoTrue, PostgREST, an Admin API and a Storage API for recipe photos, backed by PostgreSQL with Row Level Security. Migrations run at pod start. The browser pushes workouts directly to intervals.icu and exchanges briefings with a Claude chat by copy and paste. GitHub Actions publishes versioned images to GHCR, and production pulls pinned tags." src="assets/architecture-system-light.png">
 </picture>
+</a>
 
 The platform uses **two data paths**:
 
