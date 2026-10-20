@@ -79,6 +79,7 @@ die Endpunkte im Server erwarten den vollen `/admin/...`-Pfad in `req.url`.
 | POST | `/admin/users/:id/ban` \| `/unban` \| `/resend` | Account-Aktionen |
 | POST | `/admin/users/:id/verify-author` \| `/unverify-author` | Verifizierten Autor setzen/entziehen (Fahrplan 29), Antwort `{ ok, isVerifiedAuthor }` |
 | POST | `/admin/recipes/:id/approve` \| `/reject` | Rezept in Prüfung freigeben oder ablehnen (Fahrplan 30 B4). `reject` braucht Body `{ reason }` (1–500 Zeichen), `approve` ignoriert den Body. Audit-Eintrag (`approve_recipe`/`reject_recipe`) VOR der Änderung; nur Rezepte mit `status = pending` (sonst 409). Antwort `{ ok, status }` |
+| DELETE | `/admin/recipe-comments/:id` | Kommentar zu einem Rezept löschen (Fahrplan 30 B5). Audit-Eintrag `delete_recipe_comment` (nur IDs, nie der Text) VOR dem Löschen; entfernt per cascade auch die Daumen auf den Kommentar. Der Schreiber löscht den eigenen Kommentar selbst per RLS. Antwort `{ ok }`, unbekannte ID 404 |
 | DELETE | `/admin/users/:id` | Account löschen, Body `{ confirmEmail }` |
 
 Alle Endpunkte außer `/admin/health` verlangen `Authorization: Bearer <JWT>`

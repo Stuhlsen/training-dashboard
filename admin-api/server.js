@@ -11,6 +11,7 @@ const {
 const { sendInvite } = require("./invite.js");
 const { listUsers, banUser, unbanUser, deleteUser, resendUserLink, setVerifiedAuthor } = require("./users.js");
 const { decideRecipe } = require("./recipe-review.js");
+const { deleteRecipeComment } = require("./recipe-comments.js");
 
 const PORT = process.env.PORT || 3001;
 const ENV = {
@@ -215,6 +216,25 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     sendJson(res, 200, { ok: true, status: result.status });
+    return;
+  }
+
+  // Fahrplan 30 B5: Kommentar zu einem Rezept löschen (nur Admin, mit Audit-Eintrag)
+  const commentDeleteMatch =
+    req.method === "DELETE" ? req.url.match(/^\/admin\/recipe-comments\/([^/]+)$/) : null;
+  if (commentDeleteMatch) {
+    const admin = await requireAdmin(req.headers.authorization, ENV);
+    if (!admin.ok) {
+      sendJson(res, admin.status, { ok: false, error: admin.error });
+      return;
+    }
+
+    const result = await deleteRecipeComment(commentDeleteMatch[1], admin.sub, ENV);
+    if (!result.ok) {
+      sendJson(res, result.status, { ok: false, error: result.error });
+      return;
+    }
+    sendJson(res, 200, { ok: true });
     return;
   }
 
