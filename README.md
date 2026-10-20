@@ -7,7 +7,7 @@
 ![Tests](https://img.shields.io/badge/tests-3%2C700%2B-blue)
 ![License](https://img.shields.io/badge/license-proprietary-lightgrey)
 
-🔗 **Live:** [training-dashboard.clear-solutions-it.com](https://training-dashboard.clear-solutions-it.com) — public landing page with waitlist, dashboard behind login.
+🔗 **Live:** [training-dashboard.clear-solutions-it.com](https://training-dashboard.clear-solutions-it.com) — public landing page, dashboard behind login.
 
 ---
 
@@ -129,7 +129,7 @@ Training Dashboard is in **private beta** and in daily use by a small group of a
 - ✅ Coaching layer, planner, generator, analysis, nutrition, bike fit
 - ✅ Multi-sport (cycling, running, swimming)
 - ✅ Self-hosted production stack with versioned releases
-- 🔜 Public sign-up — **join the waitlist on the [landing page](https://training-dashboard.clear-solutions-it.com)**
+- 🔜 Public sign-up — see the [landing page](https://training-dashboard.clear-solutions-it.com) for updates
 - 🔜 Direct device integrations, reducing the dependency on third-party data platforms
 
 ## About
