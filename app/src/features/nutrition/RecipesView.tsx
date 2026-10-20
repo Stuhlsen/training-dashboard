@@ -26,12 +26,14 @@ import {
   RECIPE_SORT_OPTIONS,
   browseRecipes,
   hasActiveFilters,
+  type RecipeSort,
 } from "../../core/recipe-browse.js";
 import type { MealSlot, Recipe } from "../../api/types";
 import { findPlanEntryForRecipe, totalPortions } from "../../core/portions.js";
 import { SLOT_LABELS, SLOT_ORDER, weekDates, weekdayShort } from "./nutrition-week-model";
 import { RecipeCard } from "./RecipeCard";
 import { RecipeDetailsDialog } from "./RecipeDetails";
+import { RecipeRating } from "./RecipeRating";
 import { PlanPicker } from "./PlanPicker";
 import { CookingDialog } from "./CookingDialog";
 import { FIELD_STYLE, GLASS, HEADING_STYLE, META_STYLE, PRIMARY_BUTTON_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
@@ -64,8 +66,10 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   const [mealType, setMealType] = useState<MealSlot | null>(null);
   const [dietTag, setDietTag] = useState<string | null>(null);
   const [maxMinutes, setMaxMinutes] = useState<number | null>(null);
-  const [sort, setSort] = useState<"title" | "fastest">("title");
+  const [sort, setSort] = useState<RecipeSort>("title");
   const [details, setDetails] = useState<Recipe | null>(null);
+  // Das Blatt zeigt immer den frischen Stand aus der Liste (Schnitt/Anzahl ändern sich nach dem Bewerten)
+  const detailsLive = details ? (recipes.find((r) => r.id === details.id) ?? details) : null;
   const [picking, setPicking] = useState(false);
   const [cooking, setCooking] = useState<Recipe | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -200,7 +204,7 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
         <select
           aria-label="Sortierung"
           value={sort}
-          onChange={(e) => setSort(e.target.value as "title" | "fastest")}
+          onChange={(e) => setSort(e.target.value as RecipeSort)}
           style={{ ...FIELD_STYLE, flex: "0 1 180px" }}
         >
           {RECIPE_SORT_OPTIONS.map((o: { value: string; label: string }) => (
@@ -300,13 +304,14 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
 
       {details && (
         <RecipeDetailsDialog
-          recipe={details}
+          recipe={detailsLive ?? details}
           servings={details.servings}
           servingsText={`Rezept für ${plural(details.servings, "Portion", "Portionen")}`}
           onClose={closeDetails}
           onCook={() => startCooking(details)}
           onAddToPlan={() => setPicking(true)}
           addToPlanDisabledHint={details.nutrition ? null : "Ohne Nährwerte lässt sich das Rezept nicht planen."}
+          ratingSlot={<RecipeRating recipe={detailsLive ?? details} />}
           planPicker={
             picking && details.nutrition ? (
               <PlanPicker

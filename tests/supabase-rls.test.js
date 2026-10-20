@@ -3920,14 +3920,22 @@ if (!HAS_CREDS) {
       token: athlete.token,
     });
     assert.equal(read.ok, true);
-    assert.equal(Number(read.data[0].extra_servings), 0, "extra_servings muss standardmaessig 0 sein");
+    assert.equal(
+      Number(read.data[0].extra_servings),
+      0,
+      "extra_servings muss standardmaessig 0 sein"
+    );
 
     const update = await rest("PATCH", `meal_plan_entries?id=eq.${id}`, {
       token: athlete.token,
       body: { extra_servings: 4.5 },
     });
     assert.equal(update.ok, true);
-    assert.equal(Number(update.data?.[0]?.extra_servings), 4.5, "Athlet konnte extra_servings nicht setzen");
+    assert.equal(
+      Number(update.data?.[0]?.extra_servings),
+      4.5,
+      "Athlet konnte extra_servings nicht setzen"
+    );
     assert.equal(Number(update.data?.[0]?.servings), 1, "servings darf sich nicht aendern");
   });
 
@@ -3946,10 +3954,16 @@ if (!HAS_CREDS) {
         token: athlete.token,
         body: mealPlanEntryBody(recipeId, { extra_servings: bad }),
       });
-      assert.equal(res.ok, false, `extra_servings=${bad} haette am CHECK-Constraint scheitern muessen`);
+      assert.equal(
+        res.ok,
+        false,
+        `extra_servings=${bad} haette am CHECK-Constraint scheitern muessen`
+      );
       if (res.ok && Array.isArray(res.data) && res.data[0]?.id) {
         cleanupTasks.push(async () => {
-          await rest("DELETE", `meal_plan_entries?id=eq.${res.data[0].id}`, { token: athlete.token });
+          await rest("DELETE", `meal_plan_entries?id=eq.${res.data[0].id}`, {
+            token: athlete.token,
+          });
         });
       }
     }
@@ -5070,5 +5084,246 @@ if (!HAS_CREDS) {
     });
     assert.equal(over.ok, false, "der 21. Wunsch hätte am Limit-Trigger scheitern müssen");
     assert.match(over.data?.message ?? "", /limit of 20/);
+  });
+
+  // --- 19. recipe_ratings (0075, Fahrplan 30 B3) ---------------------------------
+  // Sterne 1-5 nur auf freigegebene Rezepte, nicht auf das eigene, je Athlet und Rezept
+  // eine Zeile. Einzelzeilen sind nur dem Bewerter lesbar; Schnitt und Anzahl kommen aus
+  // der View recipe_rating_stats (ohne Athlet-ID). Setup-Rezepte legt der Service-Key an.
+  // "Fremd" ist der Trainer-Account (zweite echte Identität, nicht Admin).
+
+  let ratingsReady = false;
+
+  test("recipe_ratings: Tabelle und View sind lesbar (0075 eingespielt?)", async () => {
+    const probe = await rest("GET", "recipe_ratings?select=id&limit=1", { token: athlete.token });
+    const view = await rest("GET", "recipe_rating_stats?select=recipe_id&limit=1", {
+      token: athlete.token,
+    });
+    ratingsReady = probe.ok && view.ok;
+    if (!ratingsReady) {
+      console.warn("recipe_ratings/recipe_rating_stats nicht lesbar — Migration 0075 fehlt?");
+    }
+  });
+
+  const ratingsSkip = () =>
+    !ratingsReady
+      ? "recipe_ratings nicht lesbar — Migration 0075 vermutlich noch nicht eingespielt"
+      : !ENV.SUPABASE_SERVICE_ROLE_KEY
+        ? "SUPABASE_SERVICE_ROLE_KEY fehlt — kein Setup-/Aufräumpfad"
+        : false;
+
+  /** Setup: ein Rezept (source=own) mit Status und Einreicher, Aufräumen per Service-Key. */
+  async function ratingRecipe(over = {}) {
+    const res = await insertRecipeRow(ENV.SUPABASE_SERVICE_ROLE_KEY, {
+      source: "own",
+      status: "approved",
+      submitted_by: null,
+      ...over,
+    });
+    assert.equal(res.ok, true, `Setup-Rezept fehlgeschlagen: ${JSON.stringify(res.data)}`);
+    const id = res.data[0].id;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?id=eq.${id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    });
+    return id;
+  }
+
+  const rate = (who, recipeId, stars, over = {}) =>
+    rest("POST", "recipe_ratings", {
+      token: who.token,
+      body: { recipe_id: recipeId, athlete_id: who.userId, stars, ...over },
+    });
+
+  test("recipe_ratings: Athlet legt eigene Bewertung an, liest sie, ändert sie und nimmt sie zurück", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const recipeId = await ratingRecipe();
+
+    const created = await rate(athlete, recipeId, 4);
+    assert.equal(created.ok, true, JSON.stringify(created.data));
+    const id = created.data[0].id;
+
+    const own = await rest("GET", `recipe_ratings?recipe_id=eq.${recipeId}&select=stars`, {
+      token: athlete.token,
+    });
+    assert.deepEqual(own.data, [{ stars: 4 }]);
+
+    const changed = await rest("PATCH", `recipe_ratings?id=eq.${id}`, {
+      token: athlete.token,
+      body: { stars: 2 },
+    });
+    assert.equal(changed.data?.[0]?.stars, 2, "Athlet konnte die eigene Bewertung nicht ändern");
+
+    const removed = await rest("DELETE", `recipe_ratings?id=eq.${id}`, { token: athlete.token });
+    assert.equal(removed.data?.length, 1, "Athlet konnte die eigene Bewertung nicht zurücknehmen");
+    const gone = await rest("GET", `recipe_ratings?id=eq.${id}`, { token: athlete.token });
+    assert.deepEqual(gone.data, []);
+  });
+
+  test("recipe_ratings: fremde Zeile ist weder lesbar noch änderbar noch löschbar", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const recipeId = await ratingRecipe();
+    const created = await rate(athlete, recipeId, 5);
+    assert.equal(created.ok, true, JSON.stringify(created.data));
+    const id = created.data[0].id;
+
+    // PATCH/DELETE ohne RLS-Treffer liefern HTTP 200 mit [] — Zeilenzahl prüfen, nicht .ok
+    const read = await rest("GET", `recipe_ratings?id=eq.${id}`, { token: trainer.token });
+    assert.deepEqual(read.data, [], "fremde Einzelbewertung darf nicht lesbar sein");
+    const patch = await rest("PATCH", `recipe_ratings?id=eq.${id}`, {
+      token: trainer.token,
+      body: { stars: 1 },
+    });
+    assert.deepEqual(patch.data, [], "fremde Zeile darf nicht änderbar sein");
+    const del = await rest("DELETE", `recipe_ratings?id=eq.${id}`, { token: trainer.token });
+    assert.deepEqual(del.data, [], "fremde Zeile darf nicht löschbar sein");
+
+    const still = await rest("GET", `recipe_ratings?id=eq.${id}&select=stars`, {
+      token: athlete.token,
+    });
+    assert.deepEqual(still.data, [{ stars: 5 }]);
+  });
+
+  test("recipe_ratings: Bewertung unter fremder athlete_id scheitert an WITH CHECK", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const recipeId = await ratingRecipe();
+    const res = await rate(athlete, recipeId, 3, { athlete_id: trainer.userId });
+    assert.equal(res.ok, false, "Bewertung im Namen eines anderen hätte scheitern müssen");
+  });
+
+  test("recipe_ratings: das eigene Rezept lässt sich nicht bewerten", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    // Athleten-Rezepte starten als pending; die Freigabe setzt der Dienst (wie der Admin)
+    const recipeId = await ratingRecipe({
+      source: "athlete",
+      status: "pending",
+      submitted_by: athlete.userId,
+    });
+    const approve = await rest("PATCH", `recipes?id=eq.${recipeId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { status: "approved" },
+    });
+    assert.equal(approve.ok, true, JSON.stringify(approve.data));
+    const res = await rate(athlete, recipeId, 5);
+    assert.equal(res.ok, false, "Bewertung des eigenen Rezepts hätte scheitern müssen");
+    assert.match(res.data?.message ?? "", /own recipe/);
+    const other = await rate(trainer, recipeId, 5);
+    assert.equal(other.ok, true, "ein anderer darf dieses Rezept bewerten");
+  });
+
+  test("recipe_ratings: nur freigegebene Rezepte (pending und rejected werden abgelehnt)", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const pending = await ratingRecipe({
+      source: "athlete",
+      status: "pending",
+      submitted_by: trainer.userId,
+    });
+    const rejected = await ratingRecipe({ status: "rejected", rejection_reason: "RLS-Test" });
+    for (const id of [pending, rejected]) {
+      const res = await rate(athlete, id, 4);
+      assert.equal(res.ok, false, "Sterne auf nicht freigegebenes Rezept hätten scheitern müssen");
+    }
+  });
+
+  test("recipe_ratings: Rezept einer Bewertung lässt sich nicht auf ein nicht freigegebenes umbiegen", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const approved = await ratingRecipe();
+    const pending = await ratingRecipe({
+      source: "athlete",
+      status: "pending",
+      submitted_by: trainer.userId,
+    });
+    const created = await rate(athlete, approved, 4);
+    assert.equal(created.ok, true, JSON.stringify(created.data));
+    const move = await rest("PATCH", `recipe_ratings?id=eq.${created.data[0].id}`, {
+      token: athlete.token,
+      body: { recipe_id: pending },
+    });
+    assert.equal(move.ok, false, "UPDATE von recipe_id auf pending hätte scheitern müssen");
+  });
+
+  test("recipe_ratings: Sterne 0 und 6 werden abgelehnt, 1 und 5 sind erlaubt", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const recipeId = await ratingRecipe();
+    for (const bad of [0, 6]) {
+      const res = await rate(athlete, recipeId, bad);
+      assert.equal(res.ok, false, `stars=${bad} hätte am CHECK scheitern müssen`);
+    }
+    const low = await rate(athlete, recipeId, 1);
+    assert.equal(low.ok, true, JSON.stringify(low.data));
+    const high = await rest("PATCH", `recipe_ratings?id=eq.${low.data[0].id}`, {
+      token: athlete.token,
+      body: { stars: 5 },
+    });
+    assert.equal(high.data?.[0]?.stars, 5);
+  });
+
+  test("recipe_ratings: zweite Bewertung desselben Athleten für dasselbe Rezept scheitert (unique)", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const recipeId = await ratingRecipe();
+    assert.equal((await rate(athlete, recipeId, 3)).ok, true);
+    const dup = await rate(athlete, recipeId, 4);
+    assert.equal(dup.ok, false, "zweiter Insert hätte am unique-Constraint scheitern müssen");
+  });
+
+  test("recipe_ratings: anon kommt weder an die Tabelle noch an die View", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const recipeId = await ratingRecipe();
+    assert.equal((await rate(athlete, recipeId, 4)).ok, true);
+    const table = await rest("GET", "recipe_ratings?select=id", { token: null });
+    assert.equal(table.ok, false, "anon darf recipe_ratings nicht lesen (kein GRANT)");
+    const view = await rest("GET", "recipe_rating_stats?select=recipe_id", { token: null });
+    assert.equal(view.ok, false, "anon darf recipe_rating_stats nicht lesen (kein GRANT)");
+    const insert = await rest("POST", "recipe_ratings", {
+      token: null,
+      body: { recipe_id: recipeId, athlete_id: athlete.userId, stars: 1 },
+    });
+    assert.equal(insert.ok, false, "anon darf nicht bewerten");
+  });
+
+  test("recipe_rating_stats: Schnitt und Anzahl für alle, aber ohne Athlet-ID und nur freigegeben", async (t) => {
+    if (ratingsSkip()) return t.skip(ratingsSkip());
+    const recipeId = await ratingRecipe();
+    const unrated = await ratingRecipe();
+    assert.equal((await rate(athlete, recipeId, 5)).ok, true);
+    assert.equal((await rate(trainer, recipeId, 4)).ok, true);
+
+    // Jeder Angemeldete sieht Schnitt und Anzahl — auch wer selbst nicht bewertet hat
+    const stats = await rest("GET", `recipe_rating_stats?recipe_id=eq.${recipeId}`, {
+      token: athlete.token,
+    });
+    assert.equal(stats.ok, true);
+    assert.equal(stats.data.length, 1);
+    assert.deepEqual(Object.keys(stats.data[0]).sort(), ["avg_stars", "rating_count", "recipe_id"]);
+    assert.equal(stats.data[0].rating_count, 2);
+    assert.equal(Number(stats.data[0].avg_stars), 4.5);
+    assert.equal(JSON.stringify(stats.data).includes(athlete.userId), false);
+    assert.equal(JSON.stringify(stats.data).includes(trainer.userId), false);
+
+    // Rezept ohne Bewertung: keine Zeile (die App zeigt "noch nicht bewertet", keine Null)
+    const none = await rest("GET", `recipe_rating_stats?recipe_id=eq.${unrated}`, {
+      token: athlete.token,
+    });
+    assert.deepEqual(none.data, []);
+
+    // Der Trainer sieht an der Basistabelle nur die eigene Zeile, nicht die des Athleten
+    const rows = await rest(
+      "GET",
+      `recipe_ratings?recipe_id=eq.${recipeId}&select=athlete_id,stars`,
+      {
+        token: trainer.token,
+      }
+    );
+    assert.deepEqual(rows.data, [{ athlete_id: trainer.userId, stars: 4 }]);
+
+    // Verliert das Rezept die Freigabe, verschwindet es aus der View
+    const revoke = await rest("PATCH", `recipes?id=eq.${recipeId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { status: "rejected", rejection_reason: "RLS-Test" },
+    });
+    assert.equal(revoke.ok, true, JSON.stringify(revoke.data));
+    const hidden = await rest("GET", `recipe_rating_stats?recipe_id=eq.${recipeId}`, {
+      token: athlete.token,
+    });
+    assert.deepEqual(hidden.data, []);
   });
 }

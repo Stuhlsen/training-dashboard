@@ -610,6 +610,24 @@ export interface Recipe {
   imageUrl: string | null;
   createdAt: string;
   updatedAt: string;
+  /** Schnitt der Sterne (1–5), null = noch nicht bewertet (Fahrplan 30 B3). Fehlt, solange die Statistik nicht geladen ist. */
+  ratingAvg?: number | null;
+  /** Anzahl der Bewertungen; 0 = noch nicht bewertet. Fehlt, solange die Statistik nicht geladen ist. */
+  ratingCount?: number;
+}
+
+/** Schnitt und Anzahl der Sterne eines freigegebenen Rezepts (View recipe_rating_stats, Migration 0075).
+ *  Nie mit Athlet-ID — fremde Einzelwerte werden nicht ausgeliefert. */
+export interface RecipeRatingStat {
+  recipeId: string;
+  avg: number;
+  count: number;
+}
+
+/** Eigene Bewertung eines Rezepts (Tabelle recipe_ratings, nur die eigene Zeile lesbar). */
+export interface MyRecipeRating {
+  recipeId: string;
+  stars: number;
 }
 
 /* ── Meal plan (Migration 0064, Fahrplan 23 E6 PR A) ──────────────
