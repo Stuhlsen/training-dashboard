@@ -117,11 +117,13 @@ Wünsche: `name` 1 bis 100 Zeichen, `note` optional bis 300 (leer wird `null`), 
 Wünsche je Athlet (409 `VALIDATION`, `details.requests`; zusätzlich harter Trigger in der DB).
 `requested_by` kommt immer aus dem JWT, nie aus dem Body.
 
-Body für preview/POST/PUT: `{ title, meal_type[], servings, ingredients: [{ name, amount, unit }],
+Body für preview/POST/PUT: `{ title, meal_type[], servings, prep_minutes, ingredients: [{ name, amount, unit }],
 instructions: [{ text, timerSeconds? }], image_url? }`. Grenzen: höchstens 5 offene Rezepte
 je Athlet, 30 Zutaten, 20 Schritte, Titel 100, Schritt 500 Zeichen. `image_url` ist ein
 Storage-Pfad `<JWT-sub>/<datei>` im Bucket `recipe-images`. Unbekannte Zutat oder Einheit
 ist ein Fehler, kein Raten.
+`prep_minutes` (Zubereitungszeit gesamt, ganze Minuten 1 bis 600) ist bei POST und PUT Pflicht, auch
+für verifizierte Autoren; die Vorschau rechnet auch ohne, prüft einen mitgeschickten Wert aber.
 
 Fehler: `{ ok: false, error: { code, message } }`; Formularfehler (HTTP 422, bei zu vielen
 offenen Rezepten 409) haben Code `VALIDATION` und `error.details` je Feld

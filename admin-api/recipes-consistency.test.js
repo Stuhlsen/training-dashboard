@@ -32,6 +32,7 @@ test(
         title: seed.title,
         meal_type: seed.meal_type,
         servings: seed.servings,
+        prep_minutes: 25, // Pflichtfeld des Dienstes; der Test vergleicht nur Naehrwerte und Tags
         ingredients: seed.ingredients.map(({ name, amount, unit }) => ({ name, amount, unit })),
         instructions: seed.instructions,
       };

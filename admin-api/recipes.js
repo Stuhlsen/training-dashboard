@@ -33,6 +33,7 @@ const LIMITS = {
   title: 100,
   stepText: 500,
   servings: 50,
+  prepMinutes: 600,
   maxTimerSeconds: 86400,
   ingredientRequests: 20,
   requestName: 100,
@@ -131,8 +132,12 @@ function addDetail(details, field, message) {
   (details[field] ??= []).push(message);
 }
 
-/** Formularpruefung (Grenzen, Typen) — liefert die Quelle fuer buildRecipe. */
-function checkInput(body, sub) {
+/**
+ * Formularpruefung (Grenzen, Typen) — liefert die Quelle fuer buildRecipe.
+ * prep_minutes ist beim Einreichen und Aendern Pflicht; die Vorschau rechnet ohne Zeit
+ * (requirePrep = false), prueft einen mitgeschickten Wert aber trotzdem.
+ */
+function checkInput(body, sub, requirePrep = true) {
   const details = {};
   const input = isPlainObject(body) ? body : {};
 
@@ -148,6 +153,14 @@ function checkInput(body, sub) {
   const servings = input.servings;
   if (typeof servings !== "number" || !Number.isFinite(servings) || servings <= 0 || servings > LIMITS.servings) {
     addDetail(details, "servings", `Portionen: Zahl groesser 0, hoechstens ${LIMITS.servings}`);
+  }
+
+  const prepMinutes = input.prep_minutes;
+  const hasPrep = prepMinutes !== undefined && prepMinutes !== null;
+  if (!hasPrep && requirePrep) {
+    addDetail(details, "prep_minutes", "Zubereitungszeit fehlt");
+  } else if (hasPrep && (!Number.isInteger(prepMinutes) || prepMinutes < 1 || prepMinutes > LIMITS.prepMinutes)) {
+    addDetail(details, "prep_minutes", `Zubereitungszeit: ganze Minuten von 1 bis ${LIMITS.prepMinutes}`);
   }
 
   const ingredients = [];
@@ -206,7 +219,15 @@ function checkInput(body, sub) {
   if (Object.keys(details).length > 0) return { ok: false, details };
   return {
     ok: true,
-    source: { title, meal_type: mealType, servings, ingredients, instructions, image_url: imageUrl },
+    source: {
+      title,
+      meal_type: mealType,
+      servings,
+      prep_minutes: hasPrep ? prepMinutes : undefined,
+      ingredients,
+      instructions,
+      image_url: imageUrl,
+    },
   };
 }
 
@@ -219,8 +240,8 @@ function validationFailure(details) {
 }
 
 /** Prueft und rechnet wie das Einreichen; speichert nichts. */
-async function deriveRecipe(body, sub) {
-  const checked = checkInput(body, sub);
+async function deriveRecipe(body, sub, requirePrep = true) {
+  const checked = checkInput(body, sub, requirePrep);
   if (!checked.ok) return validationFailure(checked.details);
 
   const { buildRecipe, validateRecipes, table } = await loadDerivation();
@@ -229,7 +250,8 @@ async function deriveRecipe(body, sub) {
 
   const validation = validateRecipes([built.recipe]);
   if (!validation.ok) return validationFailure({ recipe: validation.errors });
-  return { ok: true, recipe: built.recipe };
+  // Die Zeit ist kein Ableitungsergebnis: unveraendert aus der Eingabe, nach der Seed-Validierung
+  return { ok: true, recipe: { ...built.recipe, prep_minutes: checked.source.prep_minutes } };
 }
 
 function previewOf(recipe) {
@@ -242,7 +264,7 @@ function previewOf(recipe) {
 }
 
 async function previewRecipe(body, sub) {
-  const derived = await deriveRecipe(body, sub);
+  const derived = await deriveRecipe(body, sub, false);
   if (!derived.ok) return derived;
   return { ok: true, status: 200, preview: previewOf(derived.recipe) };
 }
@@ -313,6 +335,7 @@ function contentFields(recipe) {
     diet_tags: recipe.diet_tags,
     contains_tags: recipe.contains_tags,
     servings: recipe.servings,
+    prep_minutes: recipe.prep_minutes ?? null,
     ingredients: recipe.ingredients,
     instructions: recipe.instructions,
     nutrition: recipe.nutrition,
