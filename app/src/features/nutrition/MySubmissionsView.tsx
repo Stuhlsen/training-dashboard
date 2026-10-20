@@ -6,13 +6,20 @@
    Nur solange `pending` lassen sie sich bearbeiten oder zurückziehen.
    Zurückziehen ist nicht umkehrbar und fragt deshalb direkt in der Karte nach
    (kein Dialog). Gelesen wird über den Supabase-Adapter, geschrieben über
-   admin-api (PUT/DELETE) — die RLS-Sperre für direkte Writes folgt später.
+   admin-api (PUT/DELETE); direkte Athleten-Writes auf recipes sind seit
+   Migration 0071 gesperrt.
+
+   Fahrplan 29 V3: Ein verifizierter Autor darf auch seine FREIGEGEBENEN Rezepte
+   bearbeiten und zurückziehen (der Server prüft das bei jedem Aufruf neu). Liegt
+   ein freigegebenes Rezept in einem Essensplan, lehnt der Server das Zurückziehen
+   ab (details.in_meal_plans) — das melden wir verständlich.
    ============================================================ */
 
 import { useState, type CSSProperties } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useMySubmissions } from "../../api/hooks/useMySubmissions";
 import { useWithdrawRecipe } from "../../api/hooks/useRecipeSubmission";
+import { useSessionProfile } from "../../api/hooks/useSession";
 import type { Recipe, RecipeStatus, ResultError } from "../../api/types";
 import { SLOT_LABELS } from "./nutrition-week-model";
 import { HEADING_STYLE, META_STYLE, TAP_BUTTON_STYLE, TEXT_STYLE } from "./nutrition-styles";
@@ -38,6 +45,9 @@ const STATUS: Record<RecipeStatus, { label: string; color: string }> = {
 const germanDate = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 
 function withdrawErrorText(error: ResultError): string {
+  if (error.code === "VALIDATION" && error.details?.in_meal_plans) {
+    return "Das Rezept liegt in Essensplänen und lässt sich nicht zurückziehen. Bitte den Admin fragen.";
+  }
   if (error.code === "VALIDATION") return "Das Rezept wurde inzwischen entschieden und lässt sich nicht mehr zurückziehen.";
   if (error.code === "NO_DATA") return "Dieses Rezept gibt es nicht mehr.";
   if (error.code === "NETWORK") return "Keine Verbindung zum Server. Bitte versuche es gleich noch einmal.";
@@ -48,6 +58,8 @@ function withdrawErrorText(error: ResultError): string {
 export function MySubmissionsView({ onEdit }: { onEdit: (recipe: Recipe) => void }) {
   const { recipes, isLoading, isError, refetch } = useMySubmissions();
   const { withdraw, isPending } = useWithdrawRecipe();
+  // Verifizierte Autoren verwalten auch ihre freigegebenen Rezepte (Fahrplan 29, V-4)
+  const canManageApproved = useSessionProfile()?.isVerifiedAuthor === true;
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
@@ -111,6 +123,7 @@ export function MySubmissionsView({ onEdit }: { onEdit: (recipe: Recipe) => void
         {recipes.map((recipe) => {
           const status = STATUS[recipe.status];
           const confirming = confirmId === recipe.id;
+          const manageable = recipe.status === "pending" || (recipe.status === "approved" && canManageApproved);
           return (
             <li key={recipe.id} style={ITEM_STYLE}>
               <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: 8, justifyContent: "space-between" }}>
@@ -143,10 +156,14 @@ export function MySubmissionsView({ onEdit }: { onEdit: (recipe: Recipe) => void
                 </p>
               )}
 
-              {recipe.status === "pending" &&
+              {manageable &&
                 (confirming ? (
                   <div role="group" aria-label={`Rückzug von ${recipe.title} bestätigen`} style={{ marginTop: 12 }}>
-                    <p style={TEXT_STYLE}>Wirklich zurückziehen? Das lässt sich nicht rückgängig machen.</p>
+                    <p style={TEXT_STYLE}>
+                      {recipe.status === "approved"
+                        ? "Wirklich zurückziehen? Das Rezept verschwindet für alle und das lässt sich nicht rückgängig machen."
+                        : "Wirklich zurückziehen? Das lässt sich nicht rückgängig machen."}
+                    </p>
                     <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
                       <button
                         type="button"

@@ -7,8 +7,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Recipe } from "../../api/types";
 
 let mockState = { recipes: [] as Recipe[], isLoading: false, isError: false };
+let mockProfile: { isVerifiedAuthor: boolean } | null = { isVerifiedAuthor: false };
 const refetchMock = vi.fn();
 const withdrawMock = vi.fn();
+
+vi.mock("../../api/hooks/useSession", () => ({ useSessionProfile: () => mockProfile }));
 
 vi.mock("../../api/hooks/useMySubmissions", () => ({
   useMySubmissions: () => ({ ...mockState, refetch: refetchMock }),
@@ -35,6 +38,7 @@ function recipe(id: string, title: string, status: Recipe["status"], extra: Part
 const onEdit = vi.fn();
 
 beforeEach(() => {
+  mockProfile = { isVerifiedAuthor: false };
   mockState = { recipes: [], isLoading: false, isError: false };
   refetchMock.mockReset();
   withdrawMock.mockReset();
@@ -106,6 +110,79 @@ describe("MySubmissionsView — Liste", () => {
     render(<MySubmissionsView onEdit={onEdit} />);
     fireEvent.click(screen.getByRole("button", { name: "Haferbrei bearbeiten" }));
     expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: "a", title: "Haferbrei" }));
+  });
+});
+
+describe("MySubmissionsView — Verifizierte Autoren (Fahrplan 29 V3)", () => {
+  beforeEach(() => {
+    mockState = {
+      recipes: [recipe("a", "Haferbrei", "approved"), recipe("b", "Sandwich", "rejected"), recipe("c", "Suppe", "pending")],
+      isLoading: false,
+      isError: false,
+    };
+  });
+
+  it("ohne Verifizierung bleiben freigegebene Rezepte ohne Knöpfe (nur das offene hat welche)", () => {
+    render(<MySubmissionsView onEdit={onEdit} />);
+    expect(screen.queryByRole("button", { name: "Haferbrei bearbeiten" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Haferbrei zurückziehen" })).toBeNull();
+    expect(screen.getByRole("button", { name: "Suppe bearbeiten" })).toBeTruthy();
+  });
+
+  it("solange das Profil nicht geladen ist, gibt es keine Knöpfe für freigegebene Rezepte", () => {
+    mockProfile = null;
+    render(<MySubmissionsView onEdit={onEdit} />);
+    expect(screen.queryByRole("button", { name: "Haferbrei bearbeiten" })).toBeNull();
+  });
+
+  it("verifiziert: freigegebene und offene Rezepte lassen sich bearbeiten und zurückziehen, abgelehnte nicht", () => {
+    mockProfile = { isVerifiedAuthor: true };
+    render(<MySubmissionsView onEdit={onEdit} />);
+    expect(screen.getByRole("button", { name: "Haferbrei bearbeiten" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Haferbrei zurückziehen" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Suppe bearbeiten" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Sandwich bearbeiten" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "Sandwich zurückziehen" })).toBeNull();
+  });
+
+  it("verifiziert: 'Bearbeiten' eines freigegebenen Rezepts reicht es an die Aufrufstelle", () => {
+    mockProfile = { isVerifiedAuthor: true };
+    render(<MySubmissionsView onEdit={onEdit} />);
+    fireEvent.click(screen.getByRole("button", { name: "Haferbrei bearbeiten" }));
+    expect(onEdit).toHaveBeenCalledWith(expect.objectContaining({ id: "a", status: "approved" }));
+  });
+
+  it("die Rückfrage beim Zurückziehen sagt bei freigegebenen Rezepten, dass es für alle verschwindet", () => {
+    mockProfile = { isVerifiedAuthor: true };
+    render(<MySubmissionsView onEdit={onEdit} />);
+    fireEvent.click(screen.getByRole("button", { name: "Haferbrei zurückziehen" }));
+    expect(screen.getByText(/verschwindet für alle/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Suppe zurückziehen" }));
+    expect(screen.queryByText(/verschwindet für alle/)).toBeNull();
+    expect(screen.getByText(/Das lässt sich nicht rückgängig machen/)).toBeTruthy();
+  });
+
+  it("ein Rezept in einem Essensplan: verständliche Meldung statt 'inzwischen entschieden'", async () => {
+    mockProfile = { isVerifiedAuthor: true };
+    withdrawMock.mockResolvedValue({
+      ok: false,
+      error: { code: "VALIDATION", message: "x", details: { in_meal_plans: ["x"] } },
+    });
+    render(<MySubmissionsView onEdit={onEdit} />);
+    fireEvent.click(screen.getByRole("button", { name: "Haferbrei zurückziehen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ja, zurückziehen" }));
+    expect(await screen.findByText(/liegt in Essensplänen und lässt sich nicht zurückziehen. Bitte den Admin fragen/)).toBeTruthy();
+    expect(screen.queryByText(/inzwischen entschieden/)).toBeNull();
+  });
+
+  it("ein 409 ohne details bleibt 'inzwischen entschieden' (z. B. Verifizierung entzogen)", async () => {
+    mockProfile = { isVerifiedAuthor: true };
+    withdrawMock.mockResolvedValue({ ok: false, error: { code: "VALIDATION", message: "nur offene Rezepte" } });
+    render(<MySubmissionsView onEdit={onEdit} />);
+    fireEvent.click(screen.getByRole("button", { name: "Haferbrei zurückziehen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Ja, zurückziehen" }));
+    expect(await screen.findByText(/inzwischen entschieden/)).toBeTruthy();
   });
 });
 
