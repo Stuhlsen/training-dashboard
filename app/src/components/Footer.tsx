@@ -43,6 +43,24 @@ export function Footer() {
       >
         {athleteCfg?.name}
         {sources ? ` · ${sources}` : ""} · {__APP_VERSION__} · gebaut am {fmtDateFull(__BUILD_DATE__.slice(0, 10))}
+        <br />
+        {/* Pflichtangaben: Open-Meteo-Daten stehen unter CC BY 4.0 (Quelle +
+            Lizenz nennen), die Hintergrundbilder sind KI-generiert (EU AI Act
+            Art. 50). */}
+        Wetterdaten:{" "}
+        <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>
+          Open-Meteo.com
+        </a>{" "}
+        (
+        <a
+          href="https://creativecommons.org/licenses/by/4.0/"
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "inherit" }}
+        >
+          CC BY 4.0
+        </a>
+        ) · Hintergrundbilder: KI-generiert
       </span>
     </footer>
   );

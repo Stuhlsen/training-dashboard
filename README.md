@@ -141,6 +141,6 @@ Designed and built by **Alex Müller** — product, architecture, implementation
 
 ## License
 
-Copyright © 2026 Alex Müller. **All rights reserved.**
+Copyright © 2026 Alexander Müller. **All rights reserved.**
 
 The source code is publicly visible for evaluation and portfolio purposes only. No permission is granted to use, copy, modify or distribute it without prior written consent. See [LICENSE](LICENSE).

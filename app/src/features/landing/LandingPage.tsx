@@ -760,6 +760,7 @@ export function LandingPage() {
       <LandingBackdrop />
 
       <section className="landing-hero" aria-labelledby="landing-title">
+        <p className="landing-ai-note">Hintergrund-Video &amp; -Bilder: KI-generiert</p>
         <div className="landing-hero__copy">
           <p className="landing-eyebrow">Trainingsdashboard für Ausdauersport</p>
           <h1 id="landing-title">
