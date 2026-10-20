@@ -27,6 +27,13 @@ vi.mock("../../api/hooks/useRecipeReview", () => ({
   useDecideRecipe: () => ({ approve: approveMock, reject: rejectMock, isPending: false }),
 }));
 
+// Die Kommentare im Blatt haben eigene Tests (RecipeComments.test.tsx)
+vi.mock("./RecipeComments", () => ({
+  RecipeComments: ({ recipe }: { recipe: { id: string } }) => (
+    <div data-testid="comments-slot">Kommentare für {recipe.id}</div>
+  ),
+}));
+
 const { PendingRecipesView } = await import("./PendingRecipesView");
 
 function recipe(id: string, title: string, extra: Partial<Recipe> = {}): Recipe {

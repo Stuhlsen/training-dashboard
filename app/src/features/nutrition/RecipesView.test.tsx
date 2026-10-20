@@ -60,6 +60,13 @@ vi.mock("./RecipeRating", () => ({
   ),
 }));
 
+// Die Kommentare im Detailblatt haben eigene Tests (RecipeComments.test.tsx)
+vi.mock("./RecipeComments", () => ({
+  RecipeComments: ({ recipe }: { recipe: { id: string } }) => (
+    <div data-testid="comments-slot">Kommentare für {recipe.id}</div>
+  ),
+}));
+
 // Das Einreichformular hat eigene Tests (RecipeSubmissionForm.test.tsx)
 vi.mock("./RecipeSubmissionForm", () => ({
   RecipeSubmissionForm: ({ onClose, recipe }: { onClose: () => void; recipe?: { title: string } }) => (

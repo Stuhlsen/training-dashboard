@@ -34,6 +34,7 @@ import { SLOT_LABELS, SLOT_ORDER, weekDates, weekdayShort } from "./nutrition-we
 import { RecipeCard } from "./RecipeCard";
 import { RecipeDetailsDialog } from "./RecipeDetails";
 import { RecipeRating } from "./RecipeRating";
+import { RecipeComments } from "./RecipeComments";
 import { PlanPicker } from "./PlanPicker";
 import { CookingDialog } from "./CookingDialog";
 import { FIELD_STYLE, GLASS, HEADING_STYLE, META_STYLE, PRIMARY_BUTTON_STYLE, TAP_BUTTON_STYLE, TAP_MIN, TEXT_STYLE } from "./nutrition-styles";
@@ -324,7 +325,12 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
           onCook={() => startCooking(details)}
           onAddToPlan={() => setPicking(true)}
           addToPlanDisabledHint={details.nutrition ? null : "Ohne Nährwerte lässt sich das Rezept nicht planen."}
-          ratingSlot={<RecipeRating recipe={detailsLive ?? details} />}
+          ratingSlot={
+            <>
+              <RecipeRating recipe={detailsLive ?? details} />
+              <RecipeComments recipe={detailsLive ?? details} />
+            </>
+          }
           planPicker={
             picking && details.nutrition ? (
               <PlanPicker

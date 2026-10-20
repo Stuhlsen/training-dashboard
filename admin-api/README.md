@@ -79,6 +79,7 @@ die Endpunkte im Server erwarten den vollen `/admin/...`-Pfad in `req.url`.
 | POST | `/admin/users/:id/ban` \| `/unban` \| `/resend` | Account-Aktionen |
 | POST | `/admin/users/:id/verify-author` \| `/unverify-author` | Verifizierten Autor setzen/entziehen (Fahrplan 29), Antwort `{ ok, isVerifiedAuthor }` |
 | POST | `/admin/recipes/:id/approve` \| `/reject` | Rezept in Prüfung freigeben oder ablehnen (Fahrplan 30 B4). `reject` braucht Body `{ reason }` (1–500 Zeichen), `approve` ignoriert den Body. Audit-Eintrag (`approve_recipe`/`reject_recipe`) VOR der Änderung; nur Rezepte mit `status = pending` (sonst 409). Antwort `{ ok, status }` |
+| DELETE | `/admin/recipe-comments/:id` | Kommentar zu einem Rezept löschen (Fahrplan 30 B5). Audit-Eintrag `delete_recipe_comment` (nur IDs, nie der Text) VOR dem Löschen; entfernt per cascade auch die Daumen auf den Kommentar. Der Schreiber löscht den eigenen Kommentar selbst per RLS. Antwort `{ ok }`, unbekannte ID 404 |
 | DELETE | `/admin/users/:id` | Account löschen, Body `{ confirmEmail }` |
 
 Alle Endpunkte außer `/admin/health` verlangen `Authorization: Bearer <JWT>`
@@ -153,6 +154,10 @@ wenn der Eintrag erst zwischen Prüfen und Löschen dazukommt. Ein `PUT`/`DELETE
 freigegebenes Rezept ohne Verifizierung bleibt `409 VALIDATION` (ohne `details`), ein
 abgelehntes ebenfalls. Entzug (V-5): bereits freigegebene Rezepte bleiben `approved`, nur der
 Admin kann sie dann noch ändern.
+
+Rollout Kommentare (Fahrplan 30 B5): Migration `0077` (Tabellen, View, Audit-Aktion
+`delete_recipe_comment`) kommt VOR dem Image mit `DELETE /admin/recipe-comments/:id`. Ohne sie lehnt
+der Dienst das Löschen sauber mit 502 ab (Audit-Log nicht schreibbar).
 
 Rollout: Die Migrationen `0071` (Spalte, Trigger, RLS-Sperre) und `0072` (Audit-Aktionen) laufen
 beim Pod-Start im `migrate`-Container, im selben Release wie dieses Image (auf apps01 deployt

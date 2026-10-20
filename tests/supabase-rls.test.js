@@ -5522,4 +5522,439 @@ if (!HAS_CREDS) {
       assert.equal(call.ok, false, "recipe_votes_check_rules darf nicht per RPC aufrufbar sein");
     }
   });
+
+  // --- 21. recipe_comments + recipe_comment_votes (0077, Fahrplan 30 B5) ---------
+  // Kommentare auf Rezepte in Prüfung und freigegebene: 1-500 Zeichen, nicht nur Leerraum,
+  // nur mit gesetztem Pseudonym. Basistabellen nur eigene Zeile (Admin alle); die Anzeige
+  // liest die View recipe_comment_feed ohne Athlet-ID. Daumen auf Kommentare: nicht auf den
+  // eigenen, nicht zurücknehmbar. "Fremd" ist der Trainer-Account (Nicht-Admin).
+
+  let commentsReady = false;
+  let commentNamesOk = false; // beide Test-Accounts haben ein eigenes Pseudonym (nicht den E-Mail-Teil)
+
+  const emailLocal = (email) =>
+    String(email ?? "")
+      .split("@")[0]
+      .toLowerCase();
+  async function displayNameOf(who) {
+    const r = await rest("GET", `profiles?id=eq.${who.userId}&select=display_name`, {
+      token: who.token,
+    });
+    return r.data?.[0]?.display_name ?? "";
+  }
+
+  test("recipe_comments: View recipe_comment_feed ist lesbar (0077 eingespielt?)", async () => {
+    const view = await rest("GET", "recipe_comment_feed?select=id&limit=1", {
+      token: athlete.token,
+    });
+    commentsReady = view.ok;
+    if (!commentsReady) {
+      console.warn("recipe_comment_feed nicht lesbar — Migration 0077 fehlt?");
+      return;
+    }
+    const names = [
+      [await displayNameOf(athlete), SUPABASE_ATHLETE1_EMAIL],
+      [await displayNameOf(trainer), SUPABASE_TRAINER_EMAIL],
+    ];
+    commentNamesOk = names.every(
+      ([name, email]) => name.trim() !== "" && name.trim().toLowerCase() !== emailLocal(email)
+    );
+  });
+
+  const commentsSkip = () =>
+    !commentsReady
+      ? "recipe_comment_feed nicht lesbar — Migration 0077 vermutlich noch nicht eingespielt"
+      : !ENV.SUPABASE_SERVICE_ROLE_KEY
+        ? "SUPABASE_SERVICE_ROLE_KEY fehlt — kein Setup-/Aufräumpfad"
+        : testTrainerIsAdmin
+          ? "Trainer-Test-Account hat is_admin=true — Fremden-Tests brauchen einen Nicht-Admin"
+          : !commentNamesOk
+            ? "Ein Test-Account hat kein eigenes Pseudonym (Anzeigename leer oder gleich dem E-Mail-Teil)"
+            : false;
+
+  /** Setup-Rezept (Service-Key); Aufräumen löscht per cascade Kommentare und Daumen mit. */
+  const commentRecipe = (over = {}) => reviewRecipe({ status: "approved", ...over });
+  const say = (who, recipeId, body, over = {}) =>
+    rest("POST", "recipe_comments", {
+      token: who.token,
+      body: { recipe_id: recipeId, athlete_id: who.userId, body, ...over },
+    });
+  const feed = (who, recipeId) =>
+    rest("GET", `recipe_comment_feed?recipe_id=eq.${recipeId}&order=created_at.asc`, {
+      token: who.token,
+    });
+  const react = (who, commentId, vote, over = {}) =>
+    rest("POST", "recipe_comment_votes", {
+      token: who.token,
+      body: { comment_id: commentId, athlete_id: who.userId, vote, ...over },
+    });
+  const asService = (path) => rest("GET", path, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+
+  test("recipe_comments: mehrere Kommentare je Athlet auf Rezepte in Prüfung und freigegebene, Anzeige mit Pseudonym", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    for (const status of ["pending", "approved"]) {
+      const recipeId = await commentRecipe({ status });
+      const first = await say(athlete, recipeId, "Erster Kommentar");
+      const second = await say(athlete, recipeId, "Zweiter Kommentar");
+      assert.equal(first.ok, true, JSON.stringify(first.data));
+      assert.equal(second.ok, true, JSON.stringify(second.data));
+
+      const own = await feed(athlete, recipeId);
+      assert.deepEqual(
+        own.data.map((r) => r.body),
+        ["Erster Kommentar", "Zweiter Kommentar"]
+      );
+      assert.equal(own.data[0].is_mine, true);
+      assert.equal(own.data[0].author_name, await displayNameOf(athlete));
+
+      // Der Fremde sieht dieselben Kommentare mit dem Pseudonym, aber nicht als seine
+      const other = await feed(trainer, recipeId);
+      assert.equal(other.data.length, 2);
+      assert.equal(other.data[0].is_mine, false);
+      assert.equal(other.data[0].author_name, await displayNameOf(athlete));
+    }
+  });
+
+  test("recipe_comment_feed: nie eine Athlet-ID, nur die vereinbarten Spalten", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    assert.equal((await say(athlete, recipeId, "Text")).ok, true);
+    const seen = await feed(trainer, recipeId);
+    assert.deepEqual(Object.keys(seen.data[0]).sort(), [
+      "author_name",
+      "body",
+      "created_at",
+      "down_count",
+      "id",
+      "is_mine",
+      "my_vote",
+      "recipe_id",
+      "up_count",
+    ]);
+    assert.equal(JSON.stringify(seen.data).includes(athlete.userId), false);
+    assert.equal(JSON.stringify(seen.data).includes(trainer.userId), false);
+  });
+
+  test("recipe_comments: Text 1-500 Zeichen, Leerraum und zu lang scheitern, HTML bleibt wörtlich", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    for (const bad of ["", "   ", "\n\t \n"]) {
+      const res = await say(athlete, recipeId, bad);
+      assert.equal(res.ok, false, `Leerer Text ${JSON.stringify(bad)} hätte scheitern müssen`);
+    }
+    const tooLong = await say(athlete, recipeId, "a".repeat(501));
+    assert.equal(tooLong.ok, false, "501 Zeichen hätten scheitern müssen");
+    assert.equal(
+      (await say(athlete, recipeId, "a".repeat(500))).ok,
+      true,
+      "500 Zeichen sind erlaubt"
+    );
+
+    const html = '<img src=x onerror="alert(1)"><b>fett</b>';
+    assert.equal((await say(athlete, recipeId, html)).ok, true);
+    const back = await feed(athlete, recipeId);
+    assert.ok(
+      back.data.some((r) => r.body === html),
+      "HTML wird unverändert als Text gespeichert"
+    );
+  });
+
+  test("recipe_comments: abgelehnte und unbekannte Rezepte nehmen keine Kommentare, der Autor darf unter dem eigenen schreiben", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const rejected = await commentRecipe({ status: "rejected", rejection_reason: "Test" });
+    const denied = await say(athlete, rejected, "Hallo");
+    assert.equal(denied.ok, false);
+    assert.match(denied.data?.message ?? "", /in review or approved/);
+
+    const ghost = await say(athlete, "00000000-0000-4000-8000-000000000000", "Hallo");
+    assert.equal(ghost.ok, false, "Kommentar auf ein unbekanntes Rezept hätte scheitern müssen");
+
+    const own = await commentRecipe({
+      source: "athlete",
+      status: "pending",
+      submitted_by: athlete.userId,
+    });
+    assert.equal((await say(athlete, own, "Antwort auf Kritik")).ok, true);
+  });
+
+  test("recipe_comments: wird ein Rezept abgelehnt, verschwinden seine Kommentare aus der Anzeige", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe({ status: "pending" });
+    assert.equal((await say(athlete, recipeId, "Noch sichtbar")).ok, true);
+    assert.equal((await feed(trainer, recipeId)).data.length, 1);
+    const reject = await rest("PATCH", `recipes?id=eq.${recipeId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { status: "rejected", rejection_reason: "Test" },
+    });
+    assert.equal(reject.ok, true, JSON.stringify(reject.data));
+    assert.deepEqual((await feed(trainer, recipeId)).data, []);
+    // Die Zeile bleibt in der Basistabelle (Nachvollziehbarkeit)
+    assert.equal((await asService(`recipe_comments?recipe_id=eq.${recipeId}`)).data.length, 1);
+  });
+
+  test("recipe_comments: nur die eigene Zeile an der Basistabelle (Fremder sieht nichts, Admin alles)", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    assert.equal((await say(trainer, recipeId, "Vom Trainer")).ok, true);
+    const stranger = await rest(
+      "GET",
+      `recipe_comments?recipe_id=eq.${recipeId}&select=athlete_id,body`,
+      {
+        token: athlete.token,
+      }
+    );
+    if (testAthleteIsAdmin) {
+      assert.deepEqual(stranger.data, [{ athlete_id: trainer.userId, body: "Vom Trainer" }]);
+    } else {
+      assert.deepEqual(stranger.data, [], "Ein Nicht-Admin sieht fremde Basiszeilen nicht");
+    }
+    const mine = await rest("GET", `recipe_comments?recipe_id=eq.${recipeId}&select=body`, {
+      token: trainer.token,
+    });
+    assert.deepEqual(mine.data, [{ body: "Vom Trainer" }]);
+  });
+
+  test("recipe_comments: Kommentar im Namen eines anderen und anon scheitern", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    const foreign = await say(athlete, recipeId, "Fremd", { athlete_id: trainer.userId });
+    assert.equal(foreign.ok, false, "Kommentar im Namen eines anderen hätte scheitern müssen");
+    const anon = await rest("POST", "recipe_comments", {
+      token: null,
+      body: { recipe_id: recipeId, athlete_id: athlete.userId, body: "Anon" },
+    });
+    assert.equal(anon.ok, false, "anon darf nicht kommentieren (kein GRANT)");
+    for (const path of [
+      "recipe_comments?select=id",
+      "recipe_comment_feed?select=id",
+      "recipe_comment_votes?select=id",
+    ]) {
+      const read = await rest("GET", path, { token: null });
+      assert.equal(read.ok, false, `anon darf ${path} nicht lesen (kein GRANT)`);
+    }
+  });
+
+  test("recipe_comments: kein Ändern, nur der Schreiber löscht den eigenen", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    const created = await say(athlete, recipeId, "Original");
+    const id = created.data[0].id;
+
+    const edit = await rest("PATCH", `recipe_comments?id=eq.${id}`, {
+      token: athlete.token,
+      body: { body: "Neu" },
+    });
+    assert.equal(edit.data?.length > 0, false, "Ändern darf nichts treffen (kein UPDATE-Grant)");
+    assert.equal(
+      (await asService(`recipe_comments?id=eq.${id}&select=body`)).data[0].body,
+      "Original"
+    );
+
+    const foreignDelete = await rest("DELETE", `recipe_comments?id=eq.${id}`, {
+      token: trainer.token,
+    });
+    assert.equal(foreignDelete.data?.length ?? 0, 0, "Fremdes Löschen darf nichts treffen");
+    assert.equal((await asService(`recipe_comments?id=eq.${id}`)).data.length, 1);
+
+    const ownDelete = await rest("DELETE", `recipe_comments?id=eq.${id}`, { token: athlete.token });
+    assert.equal(
+      ownDelete.data?.length,
+      1,
+      "Der Schreiber konnte den eigenen Kommentar nicht löschen"
+    );
+    assert.equal((await asService(`recipe_comments?id=eq.${id}`)).data.length, 0);
+  });
+
+  test("recipe_comments: ohne eigenes Pseudonym (leer oder E-Mail-Teil) wird nicht kommentiert", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    const original = await displayNameOf(athlete);
+    const setName = (name) =>
+      rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: { display_name: name },
+        prefer: "return=minimal", // Athleten dürfen nur einzelne profiles-Spalten lesen (0022)
+      });
+    cleanupTasks.push(async () => {
+      await setName(original);
+    });
+    try {
+      for (const name of [
+        emailLocal(SUPABASE_ATHLETE1_EMAIL),
+        emailLocal(SUPABASE_ATHLETE1_EMAIL).toUpperCase(),
+        "   ",
+      ]) {
+        const set = await setName(name);
+        assert.equal(
+          set.ok,
+          true,
+          `Setup: Anzeigename ${JSON.stringify(name)} nicht setzbar: ${JSON.stringify(set.data)}`
+        );
+        const res = await say(athlete, recipeId, "Mit E-Mail-Namen");
+        assert.equal(
+          res.ok,
+          false,
+          `Kommentar mit Namen ${JSON.stringify(name)} hätte scheitern müssen`
+        );
+        assert.match(res.data?.message ?? "", /display name/);
+      }
+    } finally {
+      await setName(original);
+    }
+    assert.equal((await say(athlete, recipeId, "Mit Pseudonym")).ok, true);
+  });
+
+  test("recipe_comment_votes: Daumen auf fremde Kommentare — anlegen, ändern, kein Löschen, Zahlen und eigener Daumen in der Anzeige", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    const commentId = (await say(athlete, recipeId, "Bewerte mich")).data[0].id;
+
+    const up = await react(trainer, commentId, "up");
+    assert.equal(up.ok, true, JSON.stringify(up.data));
+    const voteId = up.data[0].id;
+
+    let seen = await feed(trainer, recipeId);
+    assert.equal(seen.data[0].up_count, 1);
+    assert.equal(seen.data[0].down_count, 0);
+    assert.equal(seen.data[0].my_vote, "up");
+    // Der Schreiber sieht die Zahl, aber nicht den Daumen des Trainers als seinen
+    seen = await feed(athlete, recipeId);
+    assert.equal(seen.data[0].up_count, 1);
+    assert.equal(seen.data[0].my_vote, null);
+    assert.equal(JSON.stringify(seen.data).includes(trainer.userId), false);
+
+    const changed = await rest("PATCH", `recipe_comment_votes?id=eq.${voteId}`, {
+      token: trainer.token,
+      body: { vote: "down" },
+    });
+    assert.equal(changed.data?.[0]?.vote, "down");
+    seen = await feed(trainer, recipeId);
+    assert.equal(seen.data[0].up_count, 0);
+    assert.equal(seen.data[0].down_count, 1);
+
+    const removed = await rest("DELETE", `recipe_comment_votes?id=eq.${voteId}`, {
+      token: trainer.token,
+    });
+    assert.equal(
+      removed.ok && removed.data?.length > 0,
+      false,
+      "Ein Daumen lässt sich nicht zurücknehmen"
+    );
+    assert.equal((await asService(`recipe_comment_votes?id=eq.${voteId}`)).data.length, 1);
+  });
+
+  test("recipe_comment_votes: nicht auf den eigenen Kommentar, nicht im Namen anderer, nur up oder down, einmal je Paar", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    const commentId = (await say(athlete, recipeId, "Mein Kommentar")).data[0].id;
+
+    const own = await react(athlete, commentId, "up");
+    assert.equal(own.ok, false, "Daumen auf den eigenen Kommentar hätte scheitern müssen");
+    assert.match(own.data?.message ?? "", /own comment/);
+
+    const foreign = await react(athlete, commentId, "up", { athlete_id: trainer.userId });
+    assert.equal(foreign.ok, false, "Daumen im Namen eines anderen hätte scheitern müssen");
+    const anon = await rest("POST", "recipe_comment_votes", {
+      token: null,
+      body: { comment_id: commentId, athlete_id: trainer.userId, vote: "up" },
+    });
+    assert.equal(anon.ok, false, "anon darf keinen Daumen geben");
+
+    const bad = await react(trainer, commentId, "sideways");
+    assert.equal(bad.ok, false, "Unbekannter Wert hätte am CHECK scheitern müssen");
+
+    assert.equal((await react(trainer, commentId, "up")).ok, true);
+    const dup = await react(trainer, commentId, "down");
+    assert.equal(
+      dup.ok,
+      false,
+      "Zweite Zeile für dasselbe Paar hätte am unique-Constraint scheitern müssen"
+    );
+  });
+
+  test("recipe_comment_votes: nach der Ablehnung des Rezepts weder neuer noch geänderter Daumen", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe({ status: "pending" });
+    const commentId = (await say(athlete, recipeId, "Offen")).data[0].id;
+    const voteId = (await react(trainer, commentId, "up")).data[0].id;
+
+    const reject = await rest("PATCH", `recipes?id=eq.${recipeId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { status: "rejected", rejection_reason: "Test" },
+    });
+    assert.equal(reject.ok, true, JSON.stringify(reject.data));
+
+    const change = await rest("PATCH", `recipe_comment_votes?id=eq.${voteId}`, {
+      token: trainer.token,
+      body: { vote: "down" },
+    });
+    assert.equal(
+      change.ok,
+      false,
+      "Ein reiner Wechsel des Daumens hätte nach der Ablehnung scheitern müssen"
+    );
+    assert.equal(
+      (await asService(`recipe_comment_votes?id=eq.${voteId}&select=vote`)).data[0].vote,
+      "up"
+    );
+  });
+
+  test("recipe_comment_votes: Fremde lesen keine Einzel-Daumen an der Basistabelle", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    const commentId = (await say(athlete, recipeId, "Text")).data[0].id;
+    assert.equal((await react(trainer, commentId, "up")).ok, true);
+    const rows = await rest(
+      "GET",
+      `recipe_comment_votes?comment_id=eq.${commentId}&select=athlete_id,vote`,
+      {
+        token: athlete.token,
+      }
+    );
+    assert.deepEqual(rows.data, [], "Der Schreiber sieht fremde Einzel-Daumen nicht");
+    const mine = await rest("GET", `recipe_comment_votes?comment_id=eq.${commentId}&select=vote`, {
+      token: trainer.token,
+    });
+    assert.deepEqual(mine.data, [{ vote: "up" }]);
+  });
+
+  test("recipe_comments: Löschen eines Kommentars entfernt seine Daumen per cascade", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const recipeId = await commentRecipe();
+    const commentId = (await say(athlete, recipeId, "Text")).data[0].id;
+    assert.equal((await react(trainer, commentId, "up")).ok, true);
+    const del = await rest("DELETE", `recipe_comments?id=eq.${commentId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    });
+    assert.equal(del.ok, true, JSON.stringify(del.data));
+    assert.deepEqual((await asService(`recipe_comment_votes?comment_id=eq.${commentId}`)).data, []);
+  });
+
+  test("recipe_comments: die Trigger-Funktionen sind für Athleten und anon nicht aufrufbar", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    for (const fn of ["recipe_comments_check_rules", "recipe_comment_votes_check_rules"]) {
+      for (const token of [athlete.token, null]) {
+        const call = await rest("POST", `rpc/${fn}`, { token, body: {} });
+        assert.equal(call.ok, false, `${fn} darf nicht per RPC aufrufbar sein`);
+      }
+    }
+  });
+
+  test("admin_audit_log: eine erfundene Aktion scheitert weiterhin am CHECK, Athleten schreiben den Log nicht", async (t) => {
+    if (commentsSkip()) return t.skip(commentsSkip());
+    const bogus = await rest("POST", "admin_audit_log", {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { actor_id: athlete.userId, target_user_id: athlete.userId, action: "erfunden" },
+    });
+    assert.equal(bogus.ok, false, "Eine unbekannte Audit-Aktion hätte scheitern müssen");
+    const byAthlete = await rest("POST", "admin_audit_log", {
+      token: athlete.token,
+      body: {
+        actor_id: athlete.userId,
+        target_user_id: trainer.userId,
+        action: "delete_recipe_comment",
+      },
+    });
+    assert.equal(byAthlete.ok, false, "Athleten dürfen den Audit-Log nicht schreiben");
+  });
 }

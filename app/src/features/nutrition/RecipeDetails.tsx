@@ -125,7 +125,8 @@ const PANEL_STYLE: CSSProperties = {
   color: "var(--ink)",
 };
 
-const FOCUSABLE = 'button:not([disabled]), select:not([disabled]), a[href], summary, [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'button:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href], summary, [tabindex]:not([tabindex="-1"])';
 
 export function RecipeDetailsDialog({
   recipe,

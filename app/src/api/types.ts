@@ -636,6 +636,22 @@ export interface MyRecipeVote {
   vote: RecipeVote;
 }
 
+/** Kommentar zu einem Rezept in Prüfung oder einem freigegebenen Rezept (View recipe_comment_feed,
+ *  Migration 0077). Nie mit Athlet-ID: der Autor erscheint nur als Pseudonym, die eigene
+ *  Zugehörigkeit als `isMine`, der eigene Daumen als `myVote`. `body` ist Nutzertext und wird
+ *  nur als Text angezeigt. */
+export interface RecipeComment {
+  id: string;
+  recipeId: string;
+  authorName: string;
+  isMine: boolean;
+  body: string;
+  createdAt: string;
+  up: number;
+  down: number;
+  myVote: RecipeVote | null;
+}
+
 /** Schnitt und Anzahl der Sterne eines freigegebenen Rezepts (View recipe_rating_stats, Migration 0075).
  *  Nie mit Athlet-ID — fremde Einzelwerte werden nicht ausgeliefert. */
 export interface RecipeRatingStat {
