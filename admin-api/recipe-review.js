@@ -4,6 +4,8 @@
 // Entscheidung ohne Aufzeichnung gibt es nicht, bei Fehler wird nichts geaendert.
 // Der PATCH filtert zusaetzlich auf status=pending, damit zwei gleichzeitige
 // Entscheidungen nicht aufeinander laufen; trifft er keine Zeile, ist das ein 409.
+// Ein Audit-Eintrag dokumentiert daher einen VERSUCH (wie bei delete/resend in users.js):
+// im seltenen Rennen zweier Admins steht der Eintrag des Verlierers trotz 409 im Log.
 // Daumen (recipe_votes) bleiben bei der Entscheidung stehen — die View blendet das
 // Rezept danach aus.
 const { fetchJson, writeAuditLog } = require("./users.js");

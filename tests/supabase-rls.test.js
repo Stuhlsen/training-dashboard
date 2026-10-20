@@ -5414,6 +5414,28 @@ if (!HAS_CREDS) {
     assert.equal(move.ok, false, "UPDATE von recipe_id auf approved hätte scheitern müssen");
   });
 
+  test("recipe_votes: nach der Entscheidung lässt sich der Daumen auch per direktem PATCH nicht mehr ändern", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    const recipeId = await reviewRecipe();
+    const created = await thumb(athlete, recipeId, "up");
+    assert.equal(created.ok, true, JSON.stringify(created.data));
+    const decide = await rest("PATCH", `recipes?id=eq.${recipeId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { status: "approved" },
+    });
+    assert.equal(decide.ok, true, JSON.stringify(decide.data));
+    const change = await rest("PATCH", `recipe_votes?id=eq.${created.data[0].id}`, {
+      token: athlete.token,
+      body: { vote: "down" },
+    });
+    assert.equal(
+      change.ok,
+      false,
+      "Änderung des Daumens auf ein entschiedenes Rezept hätte scheitern müssen"
+    );
+    assert.match(change.data?.message ?? "", /in review/);
+  });
+
   test("recipe_votes: auf das eigene Rezept in Prüfung gibt es keinen Daumen, andere dürfen", async (t) => {
     if (votesReviewSkip()) return t.skip(votesReviewSkip());
     const recipeId = await reviewRecipe({ source: "athlete", submitted_by: athlete.userId });

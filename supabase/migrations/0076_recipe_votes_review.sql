@@ -19,7 +19,9 @@
 --      jeder Angemeldete alle Zeilen MIT Athlet-ID lesen (0063) -- wer wie
 --      abgestimmt hat, sieht damit hoechstens der Admin.
 --   3. Trigger recipe_votes_check_rules: nur auf Rezepte in Pruefung, nicht auf
---      das eigene Rezept (auch bei UPDATE von recipe_id).
+--      das eigene Rezept. Er feuert bei JEDEM Insert und Update (auch wenn nur
+--      `vote` geaendert wird), damit ein Daumen auf ein schon entschiedenes
+--      Rezept nicht mehr geaendert werden kann.
 --   4. View recipe_vote_stats: Daumen-Zahlen je Rezept in Pruefung, ohne
 --      Athlet-ID, nur fuer authenticated.
 --
@@ -96,7 +98,7 @@ grant execute on function public.recipe_votes_check_rules() to service_role;
 
 drop trigger if exists recipe_votes_check_rules on public.recipe_votes;
 create trigger recipe_votes_check_rules
-  before insert or update of recipe_id, athlete_id on public.recipe_votes
+  before insert or update on public.recipe_votes
   for each row execute function public.recipe_votes_check_rules();
 
 -- ------------------------------------------------------------
