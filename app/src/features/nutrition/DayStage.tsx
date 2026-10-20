@@ -21,6 +21,7 @@ import { MealTile } from "./MealTile";
 import { SwapList } from "./SwapList";
 import { RecipeDetailsDialog } from "./RecipeDetails";
 import { CookingDialog } from "./CookingDialog";
+import { totalPortions } from "../../core/portions.js";
 import {
   HEADING_STYLE,
   PRIMARY_BUTTON_DISABLED_STYLE,
@@ -51,7 +52,7 @@ export function DayStage(props: DayStageProps) {
   const { dateISO, isToday, day, entries, recipes, recipesById, intolerances, busy, error } = props;
   const [openSlot, setOpenSlot] = useState<MealSlot | null>(null);
   const [detailsSlot, setDetailsSlot] = useState<MealSlot | null>(null);
-  const [cooking, setCooking] = useState<{ recipe: Recipe; servings: number } | null>(null);
+  const [cooking, setCooking] = useState<{ recipe: Recipe; entry: MealPlanEntry } | null>(null);
 
   const { summary, suggestion, swaps, nothingFits } = useDayPlan({
     dateISO,
@@ -98,7 +99,7 @@ export function DayStage(props: DayStageProps) {
               proteinMin={summary.proteinMin}
               onDetails={() => setDetailsSlot(view.slot)}
               onSwap={() => setOpenSlot(openSlot === view.slot ? null : view.slot)}
-              onCook={() => view.recipe && view.entry && setCooking({ recipe: view.recipe, servings: view.entry.servings })}
+              onCook={() => view.recipe && view.entry && setCooking({ recipe: view.recipe, entry: view.entry })}
               onRemove={() => view.entry && props.onRemove(dateISO, view.entry.id)}
             />
           </li>
@@ -141,14 +142,19 @@ export function DayStage(props: DayStageProps) {
           servings={detailsView.entry.servings}
           onClose={() => setDetailsSlot(null)}
           onCook={() => {
-            setCooking({ recipe: detailsView.recipe!, servings: detailsView.entry!.servings });
+            setCooking({ recipe: detailsView.recipe!, entry: detailsView.entry! });
             setDetailsSlot(null);
           }}
         />
       )}
 
       {cooking && (
-        <CookingDialog recipe={cooking.recipe} servings={cooking.servings} onClose={() => setCooking(null)} />
+        <CookingDialog
+          recipe={cooking.recipe}
+          servings={totalPortions(cooking.entry)}
+          plan={{ entry: cooking.entry, recipes: props.recipes }}
+          onClose={() => setCooking(null)}
+        />
       )}
     </section>
   );

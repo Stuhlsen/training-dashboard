@@ -425,3 +425,44 @@ describe("CookingDialog — Neugestaltung (R3)", () => {
     expect(screen.getByText("Zurücksetzen")).toBeTruthy();
   });
 });
+
+/* ── Portionen (Fahrplan 30, B2) ───────────────────────── */
+describe("CookingDialog — Portionswahl", () => {
+  test("Plus erhöht in Halbschritten und die Mengen rechnen live um", () => {
+    renderDialog(BASE_RECIPE, 2);
+    expect(screen.getByText("500 g")).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Eine halbe Portion mehr" }));
+    expect(screen.getByText("für 2,5 Port.")).toBeTruthy();
+    expect(screen.getByText("625 g")).toBeTruthy();
+    for (let i = 0; i < 7; i++) fireEvent.click(screen.getByRole("button", { name: "Eine halbe Portion mehr" }));
+    expect(screen.getByText("für 6 Port.")).toBeTruthy();
+    expect(screen.getByText("1500 g")).toBeTruthy();
+  });
+
+  test("Minus senkt die Menge", () => {
+    renderDialog(BASE_RECIPE, 2);
+    fireEvent.click(screen.getByRole("button", { name: "Eine halbe Portion weniger" }));
+    expect(screen.getByText("für 1,5 Port.")).toBeTruthy();
+    expect(screen.getByText("375 g")).toBeTruthy();
+  });
+
+  test("Untergrenze 0,5: Minus ist gesperrt", () => {
+    renderDialog(BASE_RECIPE, 0.5);
+    const minus = screen.getByRole("button", { name: "Eine halbe Portion weniger" }) as HTMLButtonElement;
+    expect(minus.disabled).toBe(true);
+    expect(screen.getByText("für 0,5 Port.")).toBeTruthy();
+  });
+
+  test("Obergrenze 12: Plus ist gesperrt, größerer Startwert wird auf 12 geklemmt", () => {
+    renderDialog(BASE_RECIPE, 30);
+    const plus = screen.getByRole("button", { name: "Eine halbe Portion mehr" }) as HTMLButtonElement;
+    expect(plus.disabled).toBe(true);
+    expect(screen.getByText("für 12 Port.")).toBeTruthy();
+  });
+
+  test("ohne Plan-Bezug gibt es keine Plan-Aktionen", () => {
+    renderDialog(BASE_RECIPE, 2);
+    expect(screen.queryByText(/Im Plan/)).toBeNull();
+    expect(screen.queryByText("Zum Plan hinzufügen")).toBeNull();
+  });
+});

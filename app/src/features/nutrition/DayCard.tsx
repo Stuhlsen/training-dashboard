@@ -18,7 +18,7 @@ import { GlassCard } from "../../components/GlassCard";
 import { RecipeImage } from "../../components/RecipeImage";
 import { fmtDate } from "../../core/format.js";
 import { SOURCE_BY_KEY } from "../../core/nutrition-sources.js";
-import type { MealSlot, Recipe } from "../../api/types";
+import type { MealPlanEntry, MealSlot, Recipe } from "../../api/types";
 import { SLOT_LABELS, type SlotView } from "./nutrition-week-model";
 import { poolNote, useDayPlan } from "./useDayPlan";
 import type { DayStageProps } from "./DayStage";
@@ -28,6 +28,7 @@ import { buildSlotMenuItems } from "./slot-menu-items";
 import { SwapList } from "./SwapList";
 import { RecipeDetailsDialog } from "./RecipeDetails";
 import { CookingDialog } from "./CookingDialog";
+import { totalPortions } from "../../core/portions.js";
 import { SourceList } from "./SourceList";
 import { InfoIcon } from "../../components/InfoIcon";
 import {
@@ -149,7 +150,7 @@ function MealRow({
           <span style={{ ...META_STYLE, display: "block", margin: 0 }}>{label}</span>
           <span style={{ display: "block", color: "var(--ink)", fontWeight: 600 }}>{recipe.title}</span>
           <span style={{ ...META_STYLE, display: "block", margin: "2px 0 0" }}>
-            {fmtNum(entry.servings)} Portion{entry.servings === 1 ? "" : "en"} · {Math.round(view.kcal ?? 0)} kcal ·{" "}
+            {fmtNum(entry.servings)} Portion{entry.servings === 1 ? "" : "en"}{entry.extraServings > 0 && ` + ${fmtNum(entry.extraServings)} Gäste`} · {Math.round(view.kcal ?? 0)} kcal ·{" "}
             {Math.round(view.protein ?? 0)} g Eiweiß
           </span>
           {view.proteinLow && (
@@ -168,7 +169,7 @@ export function DayCard(props: DayCardProps) {
   const { dateISO, isToday, day, entries, recipes, recipesById, intolerances, busy, error } = props;
   const [openSlot, setOpenSlot] = useState<MealSlot | null>(null);
   const [detailsSlot, setDetailsSlot] = useState<MealSlot | null>(null);
-  const [cooking, setCooking] = useState<{ recipe: Recipe; servings: number } | null>(null);
+  const [cooking, setCooking] = useState<{ recipe: Recipe; entry: MealPlanEntry } | null>(null);
 
   const { summary, suggestion, swaps, nothingFits } = useDayPlan({
     dateISO,
@@ -236,7 +237,7 @@ export function DayCard(props: DayCardProps) {
                 proteinMin={summary.proteinMin}
                 onDetails={() => setDetailsSlot(view.slot)}
                 onSwap={() => setOpenSlot(openSlot === view.slot ? null : view.slot)}
-                onCook={() => view.recipe && view.entry && setCooking({ recipe: view.recipe, servings: view.entry.servings })}
+                onCook={() => view.recipe && view.entry && setCooking({ recipe: view.recipe, entry: view.entry })}
                 onRemove={() => view.entry && props.onRemove(dateISO, view.entry.id)}
               />
             ))}
@@ -289,13 +290,18 @@ export function DayCard(props: DayCardProps) {
           servings={detailsView.entry.servings}
           onClose={() => setDetailsSlot(null)}
           onCook={() => {
-            setCooking({ recipe: detailsView.recipe!, servings: detailsView.entry!.servings });
+            setCooking({ recipe: detailsView.recipe!, entry: detailsView.entry! });
             setDetailsSlot(null);
           }}
         />
       )}
       {cooking && (
-        <CookingDialog recipe={cooking.recipe} servings={cooking.servings} onClose={() => setCooking(null)} />
+        <CookingDialog
+          recipe={cooking.recipe}
+          servings={totalPortions(cooking.entry)}
+          plan={{ entry: cooking.entry, recipes: props.recipes }}
+          onClose={() => setCooking(null)}
+        />
       )}
     </>
   );

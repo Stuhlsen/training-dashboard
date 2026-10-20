@@ -125,7 +125,7 @@ export function MealTile({ slot, view, note, busy, proteinMin, onDetails, onSwap
             <span style={EYEBROW_STYLE}>{label}</span>
             <span style={TITLE_STYLE}>{recipe.title}</span>
             <span style={META_LINE_STYLE}>
-              {fmtNum(entry.servings)} Portion{entry.servings === 1 ? "" : "en"} · {Math.round(view.kcal ?? 0)} kcal ·{" "}
+              {fmtNum(entry.servings)} Portion{entry.servings === 1 ? "" : "en"}{entry.extraServings > 0 && ` + ${fmtNum(entry.extraServings)} Gäste`} · {Math.round(view.kcal ?? 0)} kcal ·{" "}
               {Math.round(view.protein ?? 0)} g Eiweiß
             </span>
             {view.proteinLow && (

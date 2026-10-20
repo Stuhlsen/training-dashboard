@@ -18,6 +18,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { GlassCard } from "../../components/GlassCard";
 import { useRecipes } from "../../api/hooks/useRecipes";
+import { useMealPlan } from "../../api/hooks/useMealPlan";
 import { useProfileBasics } from "../../api/hooks/useProfile";
 import {
   DIET_FILTER_OPTIONS,
@@ -27,7 +28,8 @@ import {
   hasActiveFilters,
 } from "../../core/recipe-browse.js";
 import type { MealSlot, Recipe } from "../../api/types";
-import { SLOT_LABELS, SLOT_ORDER, weekdayShort } from "./nutrition-week-model";
+import { findPlanEntryForRecipe, totalPortions } from "../../core/portions.js";
+import { SLOT_LABELS, SLOT_ORDER, weekDates, weekdayShort } from "./nutrition-week-model";
 import { RecipeCard } from "./RecipeCard";
 import { RecipeDetailsDialog } from "./RecipeDetails";
 import { PlanPicker } from "./PlanPicker";
@@ -77,6 +79,11 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
     [recipes, filters, intolerances, sort],
   );
   const filtered = hasActiveFilters(filters);
+
+  // Kochmodus aus der Liste: gehört das Rezept zum Plan (diese Woche)? Dann passt der Dialog den Eintrag an
+  const weekISO = useMemo(() => weekDates(todayISO), [todayISO]);
+  const { entries: planEntries, isLoading: planLoading } = useMealPlan(weekISO[0], weekISO[weekISO.length - 1]);
+  const cookingEntry = cooking ? findPlanEntryForRecipe(planEntries, cooking.id, todayISO) : null;
 
   function resetFilters() {
     setQuery("");
@@ -319,7 +326,14 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
         />
       )}
 
-      {cooking && <CookingDialog recipe={cooking} servings={cooking.servings} onClose={() => setCooking(null)} />}
+      {cooking && (
+        <CookingDialog
+          recipe={cooking}
+          servings={cookingEntry ? totalPortions(cookingEntry) : cooking.servings}
+          plan={planLoading ? undefined : { entry: cookingEntry, todayISO, recipes }}
+          onClose={() => setCooking(null)}
+        />
+      )}
     </section>
   );
 }
