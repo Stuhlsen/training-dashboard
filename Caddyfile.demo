@@ -1,0 +1,65 @@
+# Fahrplan 31 E6 — Proxy des lokalen Demo-Stacks (docker-compose.demo.yml,
+# vom Rechner aus http://localhost:8000). Routen wie Caddyfile.local, das
+# für den normalen Selfhost-Stack unverändert bleibt.
+#
+# Unterschied: zwei erlaubte Origins — Frontend-Container (:8080) UND
+# Vite-Dev-Server (:5173, `npm run dev` im Demo-Modus). Access-Control-
+# Allow-Origin darf nur EINEN Wert tragen, darum spiegelt die map unten den
+# Origin der Anfrage zurück, wenn er erlaubt ist; sonst bleibt :8080 (der
+# Browser blockt dann wie gewünscht). "header_down" ersetzt den "*", den
+# GoTrue/PostgREST selbst setzen (sonst doppelter Header, s. Caddyfile.local).
+
+(api) {
+	reverse_proxy {args[0]} {
+		header_down Access-Control-Allow-Origin {cors_origin}
+		header_down Vary Origin
+	}
+}
+
+:80 {
+	map {http.request.header.Origin} {cors_origin} {
+		http://localhost:8080 http://localhost:8080
+		http://localhost:5173 http://localhost:5173
+		default http://localhost:8080
+	}
+
+	@cors_preflight {
+		method OPTIONS
+	}
+	handle @cors_preflight {
+		header Access-Control-Allow-Origin {cors_origin}
+		header Vary Origin
+		header Access-Control-Allow-Methods "GET, POST, PATCH, PUT, DELETE, OPTIONS"
+		header Access-Control-Allow-Headers "authorization, apikey, content-type, prefer, x-client-info, x-supabase-api-version, accept-profile, content-profile, range, x-retry-count, x-upsert"
+		respond "" 204
+	}
+
+	handle /auth/v1/* {
+		uri strip_prefix /auth/v1
+		import api gotrue:8081
+	}
+	handle /rest/v1/* {
+		uri strip_prefix /rest/v1
+		import api postgrest:3000
+	}
+	handle /storage/v1/* {
+		uri strip_prefix /storage/v1
+		import api storage-api:5000
+	}
+	# admin-api: volle Pfade ohne Prefix-Strip (wie Caddyfile.local)
+	handle /admin/* {
+		import api admin-api:3001
+	}
+	handle /api/recipes* {
+		import api admin-api:3001
+	}
+	handle /api/ingredients* {
+		import api admin-api:3001
+	}
+	handle /api/ingredient-requests* {
+		import api admin-api:3001
+	}
+	handle {
+		respond "Demo-Stack: nur /auth/v1, /rest/v1, /storage/v1, /admin und /api sind geroutet." 404
+	}
+}

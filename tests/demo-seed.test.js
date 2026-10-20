@@ -30,12 +30,14 @@ const TABLES = [
 /** Fake-Backend: hält Users/Profile/Tabellen, protokolliert jeden Request.
  *  maxRows kappt jede GET-Antwort wie PGRST_DB_MAX_ROWS; withoutGrants
  *  simuliert einen Stack ohne scripts/demo/grants.sql. */
+const newProfile = (id) => ({ id, coach_id: null, sports: ["ride"], has_password: false });
+
 function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } = {}) {
   let n = 0;
   const uid = () => `00000000-0000-0000-0000-${String(++n).padStart(12, "0")}`;
   const db = {
     users: [...users],
-    profiles: new Map(users.map((u) => [u.id, { id: u.id, coach_id: null, sports: ["ride"] }])),
+    profiles: new Map(users.map((u) => [u.id, newProfile(u.id)])),
     tables: Object.fromEntries(TABLES.map((t) => [t, []])),
   };
   const calls = [];
@@ -77,6 +79,7 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
       path: u.pathname,
       search: u.search,
       prefer: init.headers.Prefer,
+      auth: init.headers.Authorization,
       body,
     });
     const { method } = init;
@@ -85,8 +88,20 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
       if (method === "GET") return res(200, { users: db.users });
       const user = { id: uid(), email: body.email };
       db.users.push(user);
-      db.profiles.set(user.id, { id: user.id, coach_id: null, sports: ["ride"] });
+      db.profiles.set(user.id, newProfile(user.id));
       return res(200, user);
+    }
+    if (u.pathname === "/auth/v1/token" && method === "POST") {
+      const user = db.users.find((x) => x.email === body.email);
+      return user ? res(200, { access_token: `user-token:${user.id}` }) : res(400, {});
+    }
+    if (u.pathname === "/rest/v1/rpc/mark_password_set" && method === "POST") {
+      // wie die echte RPC: wirkt nur auf den eingeloggten Account (auth.uid())
+      const id = init.headers.Authorization?.replace(/^Bearer user-token:/, "");
+      const p = db.profiles.get(id);
+      if (!p) return res(401, {});
+      p.has_password = true;
+      return res(204);
     }
     if (u.pathname.startsWith("/auth/v1/admin/users/") && method === "DELETE") {
       const id = decodeURIComponent(u.pathname.split("/").pop());
@@ -452,6 +467,24 @@ test("Netzwerkfehler nennen Methode und Pfad, nie den Key", async () => {
     assert.ok(!err.message.includes(KEY));
     return true;
   });
+});
+
+test("Passwort: jeder Demo-Account wird als eingeloggter User markiert, nur einmal", async () => {
+  const { db, calls, fetchImpl } = fakeBackend();
+  const first = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
+
+  assert.equal(first.passwordsMarked, 3);
+  assert.ok([...db.profiles.values()].every((p) => p.has_password === true));
+  const logins = calls.filter((c) => c.path === "/auth/v1/token");
+  assert.equal(logins.length, 3);
+  assert.ok(logins.every((c) => c.auth === undefined && c.body.email.endsWith("@demo.local")));
+  const rpcs = calls.filter((c) => c.path === "/rest/v1/rpc/mark_password_set");
+  assert.ok(rpcs.every((c) => c.auth.startsWith("Bearer user-token:")));
+
+  calls.length = 0;
+  const second = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
+  assert.equal(second.passwordsMarked, 0);
+  assert.equal(calls.filter((c) => c.path === "/auth/v1/token").length, 0);
 });
 
 // ── Reset ────────────────────────────────────────────────────

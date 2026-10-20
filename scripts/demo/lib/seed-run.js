@@ -2,7 +2,8 @@
    DEMO/LIB/SEED-RUN.JS — Seed + Reset der lokalen Demo-DB
    (Fahrplan 31 E4, Verträge V1/V2/V4)
 
-   runSeed:  Rechte-Check → Accounts (GoTrue-Admin) → Profile →
+   runSeed:  Rechte-Check → Accounts (GoTrue-Admin) → "Passwort
+             gesetzt" (Login + mark_password_set, E6) → Profile →
              Tabellen per PostgREST. Ergänzt (Q15): Tabellen mit
              Unique-Schlüssel per on_conflict + ignore-duplicates, die
              übrigen über einen fachlichen Schlüssel (vorhandene lesen,
@@ -160,6 +161,33 @@ const refreshGoal = (db, want) =>
     ? { target_date: want.target_date }
     : null;
 
+/**
+ * "Passwort gesetzt" markieren, sonst landet der Login im Onboarding-Schritt
+ * "Passwort festlegen" (E6). Über den echten App-Weg statt eines neuen
+ * Rechts: als der Demo-Account einloggen und mark_password_set aufrufen
+ * (wirkt nur auf auth.uid()). Nur, solange has_password noch false ist.
+ * @returns {Promise<number>} 1 = neu markiert, 0 = war schon gesetzt
+ */
+async function ensurePasswordMarked(client, profileId, email) {
+  assertDemoAccount(email);
+  const [profile] = await client.request(
+    "GET",
+    `/rest/v1/profiles?id=${eq(profileId)}&select=has_password`
+  );
+  if (!profile) throw new Error(`Profil zu ${email} fehlt (Trigger handle_new_user?)`);
+  if (profile.has_password) return 0;
+  const session = await client.request("POST", "/auth/v1/token?grant_type=password", {
+    body: { email, password: DEMO_PASSWORD },
+    bearer: null,
+  });
+  if (!session?.access_token) throw new Error(`Login als ${email} lieferte kein Token`);
+  await client.request("POST", "/rest/v1/rpc/mark_password_set", {
+    body: {},
+    bearer: session.access_token,
+  });
+  return 1;
+}
+
 const sameSet = (a, b) =>
   Array.isArray(a) && a.length === b.length && b.every((x) => a.includes(x));
 
@@ -301,7 +329,7 @@ async function seedPlansAndCards(client, profileId, rows, eventIdByRef) {
 /**
  * @param {{ url: string, serviceKey: string, fetchImpl?: typeof fetch,
  *           rowsFor: (athlete: import("./roster.js").DemoAthlete) => Record<string, object[]> }} opts
- * @returns {Promise<{ accountsCreated: number, profiles: number,
+ * @returns {Promise<{ accountsCreated: number, profiles: number, passwordsMarked: number,
  *                     tables: Record<string, { added: number, updated: number }> }>}
  *   neu angelegte bzw. geänderte Einträge — beim zweiten Lauf am selben Tag überall 0
  */
@@ -311,7 +339,7 @@ export async function runSeed({ url, serviceKey, fetchImpl, rowsFor }) {
   const client = createDemoClient({ url, serviceKey, fetchImpl });
   await assertDemoGrants(client);
   const users = await listUsers(client);
-  const summary = { accountsCreated: 0, profiles: 0, tables: {} };
+  const summary = { accountsCreated: 0, profiles: 0, passwordsMarked: 0, tables: {} };
 
   const coach = await ensureUser(client, users, {
     email: DEMO_COACH.email,
@@ -319,6 +347,7 @@ export async function runSeed({ url, serviceKey, fetchImpl, rowsFor }) {
     role: "coach",
   });
   summary.accountsCreated += Number(coach.created);
+  summary.passwordsMarked += await ensurePasswordMarked(client, coach.id, DEMO_COACH.email);
 
   for (const athlete of DEMO_ROSTER) {
     const user = await ensureUser(client, users, {
@@ -327,6 +356,7 @@ export async function runSeed({ url, serviceKey, fetchImpl, rowsFor }) {
       role: "athlete",
     });
     summary.accountsCreated += Number(user.created);
+    summary.passwordsMarked += await ensurePasswordMarked(client, user.id, athlete.email);
     const coachId = DEMO_COACH.coachOf.includes(athlete.id) ? coach.id : null;
     summary.profiles += await seedProfile(client, user.id, athlete, {
       coachId,

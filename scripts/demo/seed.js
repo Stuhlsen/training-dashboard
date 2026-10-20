@@ -30,7 +30,10 @@ async function main() {
     rowsFor,
   });
 
-  log.info(`✓ Accounts neu: ${summary.accountsCreated} · Profile ergänzt: ${summary.profiles}`);
+  log.info(
+    `✓ Accounts neu: ${summary.accountsCreated} · Profile ergänzt: ${summary.profiles}` +
+      ` · Passwort markiert: ${summary.passwordsMarked}`
+  );
   for (const [table, { added, updated }] of Object.entries(summary.tables)) {
     log.info(`  ${table}: +${added} neu · ${updated} nachgezogen`);
   }

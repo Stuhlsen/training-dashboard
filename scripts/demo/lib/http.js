@@ -27,7 +27,10 @@ export class DemoHttpError extends Error {
 
 /**
  * @param {{ url: string, serviceKey: string, fetchImpl?: typeof fetch }} opts
- * @returns {{ request: (method: string, path: string, opts?: { body?: unknown, prefer?: string }) => Promise<any> }}
+ * @returns {{ request: (method: string, path: string, opts?: { body?: unknown, prefer?: string, bearer?: string | null }) => Promise<any> }}
+ *   `bearer`: Token für den Authorization-Header — Standard ist der
+ *   service_role-Key, `null` lässt den Header weg (Login), ein User-Token
+ *   ruft als dieser Account auf (mark_password_set wirkt nur auf auth.uid()).
  */
 export function createDemoClient({ url, serviceKey, fetchImpl = fetch }) {
   assertDemoTarget(url);
@@ -36,8 +39,9 @@ export function createDemoClient({ url, serviceKey, fetchImpl = fetch }) {
   }
   const base = url.replace(/\/+$/, "");
 
-  async function request(method, path, { body, prefer } = {}) {
-    const headers = { apikey: serviceKey, Authorization: `Bearer ${serviceKey}` };
+  async function request(method, path, { body, prefer, bearer = serviceKey } = {}) {
+    const headers = { apikey: serviceKey };
+    if (bearer) headers.Authorization = `Bearer ${bearer}`;
     if (body !== undefined) headers["Content-Type"] = "application/json";
     if (prefer) headers.Prefer = prefer;
     const pathname = path.split("?")[0];
