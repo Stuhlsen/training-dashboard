@@ -2658,6 +2658,8 @@ if (!HAS_CREDS) {
       token: ENV.SUPABASE_SERVICE_ROLE_KEY,
       body: {
         source: "own",
+        // Seit 0076 gibt es Daumen nur auf Rezepte in Pruefung
+        status: "pending",
         title: "RLS-Test-Rezept",
         meal_type: ["dinner"],
       },
@@ -2727,26 +2729,23 @@ if (!HAS_CREDS) {
     assert.equal(anonRead.ok, false, "anon darf recipe_votes nicht lesen (kein GRANT)");
   });
 
-  test("recipe_votes: alle authenticated lesen alle Votes (SELECT using(true))", async (t) => {
+  test("recipe_votes: ein anderer Athlet liest fremde Votes NICHT (0076: eigene Zeile, Admin alle)", async (t) => {
     if (rvSkip()) return t.skip(rvSkip());
     if (!HAS_SERVICE_ROLE)
       return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Aufraeumen kein Insert-Test");
     if (!coachLinkOk) return t.skip("Coach-Verknuepfung fehlt — Trainer-Login nicht verfuegbar");
+    if (testTrainerIsAdmin)
+      return t.skip("Trainer-Test-Account hat is_admin=true — der Admin sieht alle Votes");
 
     const recipeId = await ensureTestRecipe();
     const id = await insertVoteRow(recipeId);
 
-    // Trainer (authenticated, nicht der Athlet) muss den Vote ebenfalls sehen
+    // Trainer (authenticated, nicht der Athlet, kein Admin) sieht den Vote des Athleten nicht
     const trainerRead = await rest("GET", `recipe_votes?id=eq.${id}&select=vote,athlete_id`, {
       token: trainer.token,
     });
     assert.equal(trainerRead.ok, true);
-    assert.equal(
-      trainerRead.data.length,
-      1,
-      "Trainer sollte den Vote des Athleten lesen koennen (SELECT all auth)"
-    );
-    assert.equal(trainerRead.data[0].athlete_id, athlete.userId);
+    assert.deepEqual(trainerRead.data, [], "fremder Vote (mit Athlet-ID) darf nicht lesbar sein");
   });
 
   test("recipe_votes: UPDATE des eigenen Votes aendert vote-Wert (up->down)", async (t) => {
@@ -4440,13 +4439,11 @@ if (!HAS_CREDS) {
   });
 
   // --- 14. recipe_votes: Self-Vote (Edge Case aus Issue #21) ----------------
-  // Entscheidung: Ein Athlet DARF auf sein eigenes pending-Rezept stimmen. Die
-  // Policy prüft nur athlete_id = auth.uid(), keine Beziehung zum Rezept
-  // (E15: „alle Athleten", Votes sind reine Meinungsäußerung ohne Approval-
-  // Effekt). Dieser Test hält das Verhalten fest, damit eine spätere
-  // Verschärfung bewusst geschieht.
+  // Ursprünglich erlaubt (Votes = reine Meinung ohne Approval-Effekt). Seit 0076
+  // (Fahrplan 30 B4) lehnt der Trigger recipe_votes_check_rules einen Daumen auf das
+  // eigene Rezept ab — bewusste Verschärfung, dieser Test hält sie fest.
 
-  test("recipe_votes: Self-Vote auf eigenes pending-Rezept ist erlaubt", async (t) => {
+  test("recipe_votes: Self-Vote auf eigenes pending-Rezept wird abgelehnt (0076)", async (t) => {
     if (!recipeVotesTableReady || !recipesTableReady)
       return t.skip("recipes/recipe_votes nicht lesbar — Migration fehlt");
     if (!HAS_SERVICE_ROLE) return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt — kein Aufräumpfad");
@@ -4461,7 +4458,8 @@ if (!HAS_CREDS) {
       token: athlete.token,
       body: { recipe_id: recipeId, athlete_id: athlete.userId, vote: "up" },
     });
-    assert.equal(vote.ok, true, `Self-Vote muss erlaubt sein: ${JSON.stringify(vote.data)}`);
+    assert.equal(vote.ok, false, "Self-Vote hätte am Trigger scheitern müssen");
+    assert.match(vote.data?.message ?? "", /own recipe/);
   });
 
   // --- 15. recipes.external_id eindeutig (0066) + Seed-Skript gegen die echte DB ---
@@ -5325,5 +5323,181 @@ if (!HAS_CREDS) {
       token: athlete.token,
     });
     assert.deepEqual(hidden.data, []);
+  });
+
+  // --- 20. recipe_votes für Rezepte in Prüfung (0076, Fahrplan 30 B4) ------------
+  // Daumen nur auf pending, nicht auf das eigene Rezept. Lesen: eigene Zeile, der Admin
+  // alle; Zahlen für alle über die View recipe_vote_stats (ohne Athlet-ID).
+  // "Fremd" ist der Trainer-Account; er ist die Nicht-Admin-Identität (s. nonAdminActorSkip).
+
+  let votesReviewReady = false;
+
+  test("recipe_votes: View recipe_vote_stats ist lesbar (0076 eingespielt?)", async () => {
+    const view = await rest("GET", "recipe_vote_stats?select=recipe_id&limit=1", {
+      token: athlete.token,
+    });
+    votesReviewReady = view.ok;
+    if (!votesReviewReady) console.warn("recipe_vote_stats nicht lesbar — Migration 0076 fehlt?");
+  });
+
+  const votesReviewSkip = () =>
+    !votesReviewReady
+      ? "recipe_vote_stats nicht lesbar — Migration 0076 vermutlich noch nicht eingespielt"
+      : !ENV.SUPABASE_SERVICE_ROLE_KEY
+        ? "SUPABASE_SERVICE_ROLE_KEY fehlt — kein Setup-/Aufräumpfad"
+        : false;
+
+  /** Setup: ein Rezept (source=own) mit Status und Einreicher, Aufräumen per Service-Key. */
+  async function reviewRecipe(over = {}) {
+    const res = await insertRecipeRow(ENV.SUPABASE_SERVICE_ROLE_KEY, {
+      source: "own",
+      status: "pending",
+      submitted_by: null,
+      ...over,
+    });
+    assert.equal(res.ok, true, `Setup-Rezept fehlgeschlagen: ${JSON.stringify(res.data)}`);
+    const id = res.data[0].id;
+    cleanupTasks.push(async () => {
+      await rest("DELETE", `recipes?id=eq.${id}`, { token: ENV.SUPABASE_SERVICE_ROLE_KEY });
+    });
+    return id;
+  }
+
+  const thumb = (who, recipeId, vote, over = {}) =>
+    rest("POST", "recipe_votes", {
+      token: who.token,
+      body: { recipe_id: recipeId, athlete_id: who.userId, vote, ...over },
+    });
+
+  test("recipe_votes: Daumen auf ein Rezept in Prüfung — anlegen, ändern, kein Löschen", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    const recipeId = await reviewRecipe();
+    const created = await thumb(athlete, recipeId, "up");
+    assert.equal(created.ok, true, JSON.stringify(created.data));
+    const id = created.data[0].id;
+
+    const changed = await rest("PATCH", `recipe_votes?id=eq.${id}`, {
+      token: athlete.token,
+      body: { vote: "down" },
+    });
+    assert.equal(changed.data?.[0]?.vote, "down");
+
+    const removed = await rest("DELETE", `recipe_votes?id=eq.${id}`, { token: athlete.token });
+    assert.equal(removed.ok, false, "Athleten dürfen Daumen nicht löschen (kein DELETE-Recht)");
+    const still = await rest("GET", `recipe_votes?id=eq.${id}&select=vote`, {
+      token: athlete.token,
+    });
+    assert.deepEqual(still.data, [{ vote: "down" }]);
+  });
+
+  test("recipe_votes: freigegebene und abgelehnte Rezepte nehmen keine Daumen an", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    const approved = await reviewRecipe({ status: "approved" });
+    const rejected = await reviewRecipe({ status: "rejected", rejection_reason: "RLS-Test" });
+    for (const id of [approved, rejected]) {
+      const res = await thumb(athlete, id, "up");
+      assert.equal(res.ok, false, "Daumen auf nicht offenes Rezept hätte scheitern müssen");
+      assert.match(res.data?.message ?? "", /in review/);
+    }
+  });
+
+  test("recipe_votes: Rezept eines Daumens lässt sich nicht auf ein nicht offenes umbiegen", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    const pending = await reviewRecipe();
+    const approved = await reviewRecipe({ status: "approved" });
+    const created = await thumb(athlete, pending, "up");
+    assert.equal(created.ok, true, JSON.stringify(created.data));
+    const move = await rest("PATCH", `recipe_votes?id=eq.${created.data[0].id}`, {
+      token: athlete.token,
+      body: { recipe_id: approved },
+    });
+    assert.equal(move.ok, false, "UPDATE von recipe_id auf approved hätte scheitern müssen");
+  });
+
+  test("recipe_votes: auf das eigene Rezept in Prüfung gibt es keinen Daumen, andere dürfen", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    const recipeId = await reviewRecipe({ source: "athlete", submitted_by: athlete.userId });
+    const own = await thumb(athlete, recipeId, "up");
+    assert.equal(own.ok, false, "Daumen auf das eigene Rezept hätte scheitern müssen");
+    assert.match(own.data?.message ?? "", /own recipe/);
+    const other = await thumb(trainer, recipeId, "up");
+    assert.equal(other.ok, true, JSON.stringify(other.data));
+  });
+
+  test("recipe_votes: Daumen im Namen eines anderen und anon scheitern", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    const recipeId = await reviewRecipe();
+    const foreign = await thumb(athlete, recipeId, "up", { athlete_id: trainer.userId });
+    assert.equal(foreign.ok, false, "Daumen im Namen eines anderen hätte scheitern müssen");
+    const anon = await rest("POST", "recipe_votes", {
+      token: null,
+      body: { recipe_id: recipeId, athlete_id: athlete.userId, vote: "up" },
+    });
+    assert.equal(anon.ok, false, "anon darf keinen Daumen geben");
+    const anonRead = await rest("GET", "recipe_vote_stats?select=recipe_id", { token: null });
+    assert.equal(anonRead.ok, false, "anon darf recipe_vote_stats nicht lesen (kein GRANT)");
+  });
+
+  test("recipe_vote_stats: Zahlen für alle ohne Athlet-ID, fremde Zeilen bleiben verborgen", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    if (testTrainerIsAdmin) return t.skip("Trainer-Test-Account hat is_admin=true");
+    const recipeId = await reviewRecipe();
+    const empty = await reviewRecipe();
+    assert.equal((await thumb(athlete, recipeId, "up")).ok, true);
+    assert.equal((await thumb(trainer, recipeId, "down")).ok, true);
+
+    // Der Trainer sieht beide Zahlen, aber keine Athlet-ID
+    const stats = await rest("GET", `recipe_vote_stats?recipe_id=eq.${recipeId}`, {
+      token: trainer.token,
+    });
+    assert.equal(stats.ok, true);
+    assert.deepEqual(Object.keys(stats.data[0]).sort(), ["down_count", "recipe_id", "up_count"]);
+    assert.equal(stats.data[0].up_count, 1);
+    assert.equal(stats.data[0].down_count, 1);
+    assert.equal(JSON.stringify(stats.data).includes(athlete.userId), false);
+    assert.equal(JSON.stringify(stats.data).includes(trainer.userId), false);
+
+    // Rezept ohne Daumen: keine Zeile (die App zeigt 0 und 0)
+    const none = await rest("GET", `recipe_vote_stats?recipe_id=eq.${empty}`, {
+      token: trainer.token,
+    });
+    assert.deepEqual(none.data, []);
+
+    // An der Basistabelle sieht der Trainer nur die eigene Zeile
+    const rows = await rest("GET", `recipe_votes?recipe_id=eq.${recipeId}&select=athlete_id,vote`, {
+      token: trainer.token,
+    });
+    assert.deepEqual(rows.data, [{ athlete_id: trainer.userId, vote: "down" }]);
+
+    // Verlässt das Rezept die Prüfung, verschwindet es aus der View
+    const decide = await rest("PATCH", `recipes?id=eq.${recipeId}`, {
+      token: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      body: { status: "approved" },
+    });
+    assert.equal(decide.ok, true, JSON.stringify(decide.data));
+    const hidden = await rest("GET", `recipe_vote_stats?recipe_id=eq.${recipeId}`, {
+      token: trainer.token,
+    });
+    assert.deepEqual(hidden.data, []);
+  });
+
+  test("recipe_votes: der Admin sieht alle Daumen mit Athlet-ID", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    if (!testAthleteIsAdmin) return t.skip("Test-Athlet ist kein Admin — Admin-Pfad nicht prüfbar");
+    if (testTrainerIsAdmin) return t.skip("Trainer-Test-Account hat is_admin=true");
+    const recipeId = await reviewRecipe();
+    assert.equal((await thumb(trainer, recipeId, "up")).ok, true);
+    const seen = await rest("GET", `recipe_votes?recipe_id=eq.${recipeId}&select=athlete_id,vote`, {
+      token: athlete.token,
+    });
+    assert.deepEqual(seen.data, [{ athlete_id: trainer.userId, vote: "up" }]);
+  });
+
+  test("recipe_votes: die Trigger-Funktion ist für Athleten nicht aufrufbar", async (t) => {
+    if (votesReviewSkip()) return t.skip(votesReviewSkip());
+    for (const token of [athlete.token, null]) {
+      const call = await rest("POST", "rpc/recipe_votes_check_rules", { token, body: {} });
+      assert.equal(call.ok, false, "recipe_votes_check_rules darf nicht per RPC aufrufbar sein");
+    }
   });
 }
