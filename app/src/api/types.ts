@@ -123,6 +123,10 @@ export interface Profile {
    *  wellbeing_public, Default true. */
   ftpPublic: boolean;
   isAdmin: boolean;
+  /** Migration 0071 (Fahrplan 29) — vom Admin gesetzt: verifizierte Autoren
+   *  veröffentlichen Rezepte ohne Admin-Freigabe und dürfen eigene
+   *  freigegebene Rezepte ändern/zurückziehen. Kein Self-Service. */
+  isVerifiedAuthor: boolean;
   /** D4b (Migration 0016) — Freigabe der scharfen Leiter-Fortschreibung,
    *  athletenweit wie is_admin, kein Self-Service. */
   ladderProgressionEnabled: boolean;
@@ -188,6 +192,8 @@ export interface AdminUserRow {
   displayName: string | null;
   role: Role;
   isAdmin: boolean;
+  /** Fahrplan 29 V2 — verifizierter Autor (`profiles.is_verified_author`). */
+  isVerifiedAuthor: boolean;
   hasPassword: boolean;
   /** ISO-Zeitstempel, bis zu dem GoTrue den Account sperrt — null = nicht
    *  gesperrt (`banned_until` liegt praktisch in der Ferne, s. Nicht-Ziele:

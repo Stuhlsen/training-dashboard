@@ -3,7 +3,7 @@ import type { Profile, ProfileOwnFields, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 const SELECT_COLS =
-  "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, ladder_progression_enabled, units_preference, plan_offset_weeks, sports";
+  "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, is_verified_author, ladder_progression_enabled, units_preference, plan_offset_weeks, sports";
 
 interface ProfileRow {
   id: string;
@@ -13,6 +13,7 @@ interface ProfileRow {
   wellbeing_public: boolean;
   ftp_public: boolean;
   is_admin: boolean;
+  is_verified_author: boolean | null;
   ladder_progression_enabled: boolean;
   units_preference: Profile["unitsPreference"];
   plan_offset_weeks: number;
@@ -28,6 +29,7 @@ function toProfile(row: ProfileRow): Profile {
     wellbeingPublic: row.wellbeing_public,
     ftpPublic: row.ftp_public,
     isAdmin: row.is_admin,
+    isVerifiedAuthor: row.is_verified_author === true,
     ladderProgressionEnabled: row.ladder_progression_enabled,
     unitsPreference: row.units_preference,
     planOffsetWeeks: row.plan_offset_weeks ?? 0,

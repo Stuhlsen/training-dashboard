@@ -13,10 +13,23 @@
    eigenen Account betrifft), Link erneut senden (Invite- oder Recovery-Link
    as Fall des jeweiligen `hasPassword`-Stands, kein SMTP im Stack — Link
    wird wie beim Einladen selbst kopiert und verschickt).
+
+   Fahrplan 29 V3: "Verifizieren" / "Verifizierung entziehen" (verifizierte
+   Autoren veröffentlichen Rezepte ohne Admin-Freigabe). Verifizieren gilt
+   sofort; der Entzug fragt in der Zeile nach, weil er Folgen für neue Rezepte
+   hat (bereits freigegebene bleiben freigegeben).
    ============================================================ */
 
 import { useCallback, useEffect, useState } from "react";
-import { banUser, deleteUser, fetchAdminUsers, resendUserLink, unbanUser } from "../../api/admin-athletes";
+import {
+  banUser,
+  deleteUser,
+  fetchAdminUsers,
+  resendUserLink,
+  unbanUser,
+  unverifyAuthor,
+  verifyAuthor,
+} from "../../api/admin-athletes";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import type { AdminUserRow, ResultError } from "../../api/types";
 import { useStreamerMode } from "../../hooks/useStreamerMode";
@@ -99,7 +112,8 @@ function fmtTimestamp(iso: string | null): string {
 
 function roleLabel(row: AdminUserRow): string {
   const base = row.role === "coach" ? "Trainer" : "Athlet";
-  return row.isAdmin ? `${base} · Admin` : base;
+  const withAdmin = row.isAdmin ? `${base} · Admin` : base;
+  return row.isVerifiedAuthor ? `${withAdmin} · Verifiziert` : withAdmin;
 }
 
 // bannedUntil steht bei einer aktiven Sperre praktisch in der Ferne
@@ -134,6 +148,7 @@ export function AdminUsersTable() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [deleteEmail, setDeleteEmail] = useState("");
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [revokeConfirmId, setRevokeConfirmId] = useState<string | null>(null);
 
   const applyLoadResult = useCallback((result: Awaited<ReturnType<typeof fetchAdminUsers>>) => {
     if (!result.ok) {
@@ -167,7 +182,32 @@ export function AdminUsersTable() {
     setResendResult(null);
     setDeleteConfirmId(null);
     setDeleteEmail("");
+    setRevokeConfirmId(null);
     setActionError(null);
+  }
+
+  // Verifizieren/Entziehen: die Aktion selbst macht admin-api (Audit-Log vor der Änderung);
+  // danach neu laden, damit die Zeile den Stand des Servers zeigt.
+  async function setVerified(row: AdminUserRow, value: boolean) {
+    setBusyId(row.id);
+    const result = value ? await verifyAuthor(row.id) : await unverifyAuthor(row.id);
+    setBusyId(null);
+    if (!result.ok) {
+      setActionError({ id: row.id, message: translateError(result.error) });
+      return;
+    }
+    closeAllPanels();
+    await reload();
+  }
+
+  async function handleVerify(row: AdminUserRow) {
+    closeAllPanels();
+    await setVerified(row, true);
+  }
+
+  function startRevoke(row: AdminUserRow) {
+    closeAllPanels();
+    setRevokeConfirmId(row.id);
   }
 
   async function handleBanToggle(row: AdminUserRow) {
@@ -289,6 +329,19 @@ export function AdminUsersTable() {
                         <button
                           type="button"
                           disabled={busy}
+                          aria-label={
+                            row.isVerifiedAuthor
+                              ? `Verifizierung für ${row.displayName ?? "diesen Nutzer"} entziehen`
+                              : `${row.displayName ?? "Diesen Nutzer"} verifizieren`
+                          }
+                          onClick={() => (row.isVerifiedAuthor ? startRevoke(row) : void handleVerify(row))}
+                          style={{ ...ACTION_BUTTON_STYLE, opacity: busy ? 0.6 : 1, cursor: busy ? "default" : "pointer" }}
+                        >
+                          {row.isVerifiedAuthor ? "Verifizierung entziehen" : "Verifizieren"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={busy}
                           onClick={() => void handleResend(row)}
                           style={{ ...ACTION_BUTTON_STYLE, opacity: busy ? 0.6 : 1, cursor: busy ? "default" : "pointer" }}
                         >
@@ -310,6 +363,28 @@ export function AdminUsersTable() {
                       </div>
 
                       {actionError?.id === row.id && <div style={ROW_ERROR_STYLE}>{actionError.message}</div>}
+
+                      {revokeConfirmId === row.id && (
+                        <div role="group" aria-label="Entzug bestätigen" style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 6, minWidth: 220 }}>
+                          <span style={{ fontFamily: "var(--font-mono)", fontSize: ".62rem", color: "var(--ink-2)" }}>
+                            Verifizierung wirklich entziehen? Bereits freigegebene Rezepte bleiben freigegeben, neue
+                            Rezepte brauchen wieder deine Prüfung.
+                          </span>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              type="button"
+                              disabled={busy}
+                              onClick={() => void setVerified(row, false)}
+                              style={{ ...PRIMARY_DANGER_BUTTON_STYLE, opacity: busy ? 0.7 : 1, cursor: busy ? "default" : "pointer" }}
+                            >
+                              {busy ? "Wird entzogen …" : "Ja, entziehen"}
+                            </button>
+                            <button type="button" onClick={closeAllPanels} style={ACTION_BUTTON_STYLE}>
+                              Abbrechen
+                            </button>
+                          </div>
+                        </div>
+                      )}
 
                       {resendResult?.id === row.id && (
                         <div>
