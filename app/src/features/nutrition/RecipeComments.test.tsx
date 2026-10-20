@@ -230,6 +230,15 @@ describe("RecipeComments — Löschen", () => {
     await waitFor(() => expect(removeMock).toHaveBeenCalledWith(c));
   });
 
+  it("hält den Fokus: die Rückfrage startet auf Abbrechen, nach dem Abbrechen kehrt er auf Löschen zurück", () => {
+    mockComments = [comment({ isMine: true })];
+    renderIt();
+    fireEvent.click(screen.getByRole("button", { name: /löschen/ }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Abbrechen" }));
+    fireEvent.click(screen.getByRole("button", { name: "Abbrechen" }));
+    expect(document.activeElement).toBe(screen.getByRole("button", { name: /löschen/ }));
+  });
+
   it("bricht die Rückfrage ab, ohne zu löschen", () => {
     mockComments = [comment({ isMine: true })];
     renderIt();

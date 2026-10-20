@@ -155,6 +155,10 @@ freigegebenes Rezept ohne Verifizierung bleibt `409 VALIDATION` (ohne `details`)
 abgelehntes ebenfalls. Entzug (V-5): bereits freigegebene Rezepte bleiben `approved`, nur der
 Admin kann sie dann noch ändern.
 
+Rollout Kommentare (Fahrplan 30 B5): Migration `0077` (Tabellen, View, Audit-Aktion
+`delete_recipe_comment`) kommt VOR dem Image mit `DELETE /admin/recipe-comments/:id`. Ohne sie lehnt
+der Dienst das Löschen sauber mit 502 ab (Audit-Log nicht schreibbar).
+
 Rollout: Die Migrationen `0071` (Spalte, Trigger, RLS-Sperre) und `0072` (Audit-Aktionen) laufen
 beim Pod-Start im `migrate`-Container, im selben Release wie dieses Image (auf apps01 deployt
 ein Versions-Bump alle Container zusammen). Das Image braucht beide: ohne `0071` scheitert

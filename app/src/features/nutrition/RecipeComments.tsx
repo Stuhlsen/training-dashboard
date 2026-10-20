@@ -17,7 +17,7 @@
    Klartext-Namen und aria-pressed.
    ============================================================ */
 
-import { useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Link } from "react-router-dom";
 import { useAuthUserId, useIsAdmin } from "../../api/hooks/useSession";
 import {
@@ -99,6 +99,18 @@ function CommentItem({ comment, userId, isAdmin, onVote, onRemove }: ItemProps) 
   const canVote = canVoteComment(comment, userId);
   const canRemove = canDeleteComment(comment, isAdmin);
 
+  // Fokus nicht verlieren: der Knopf "Löschen" wird in der Rückfrage ersetzt. Ohne Nachführen fiele der
+  // Fokus auf die Seite, und Escape/Tab im Blatt griffen nicht mehr. Die Rückfrage startet auf dem
+  // harmlosen "Abbrechen"; nach dem Abbrechen kehrt der Fokus auf "Löschen" zurück.
+  const removeRef = useRef<HTMLButtonElement>(null);
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const wasConfirming = useRef(false);
+  useEffect(() => {
+    if (confirming) cancelRef.current?.focus();
+    else if (wasConfirming.current) removeRef.current?.focus();
+    wasConfirming.current = confirming;
+  }, [confirming]);
+
   return (
     <li style={ITEM_STYLE}>
       <div>
@@ -130,6 +142,7 @@ function CommentItem({ comment, userId, isAdmin, onVote, onRemove }: ItemProps) 
 
         {canRemove && !confirming && (
           <button
+            ref={removeRef}
             type="button"
             style={TAP_BUTTON_STYLE}
             aria-label={`Kommentar von ${comment.authorName} löschen`}
@@ -150,7 +163,7 @@ function CommentItem({ comment, userId, isAdmin, onVote, onRemove }: ItemProps) 
             >
               Ja, löschen
             </button>
-            <button type="button" style={TAP_BUTTON_STYLE} onClick={() => setConfirming(false)}>
+            <button ref={cancelRef} type="button" style={TAP_BUTTON_STYLE} onClick={() => setConfirming(false)}>
               Abbrechen
             </button>
           </>

@@ -104,7 +104,8 @@ export function useVoteComment(recipeId: string) {
 
   const mutation = useMutation({
     mutationFn: async ({ commentId, vote }: VoteVars) => unwrap(await setCommentVote(commentId, userId!, vote)),
-    onSuccess: () => {
+    // Auch bei Fehler neu laden: war der Kommentar inzwischen gelöscht, verschwindet er so aus der Liste
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: qk.recipeComments(recipeId) });
     },
   });
@@ -134,7 +135,8 @@ export function useDeleteComment(recipeId: string) {
     mutationFn: async (comment: RecipeComment) =>
       // Den eigenen Kommentar löscht der Schreiber per RLS; fremde nur der Admin über die admin-api.
       unwrap(comment.isMine ? await deleteOwnRecipeComment(comment.id) : await deleteRecipeCommentAsAdmin(comment.id)),
-    onSuccess: () => {
+    // Auch bei Fehler neu laden: war der Kommentar schon weg (404), soll er nicht stehen bleiben
+    onSettled: () => {
       void queryClient.invalidateQueries({ queryKey: qk.recipeComments(recipeId) });
     },
   });

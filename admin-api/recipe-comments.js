@@ -5,6 +5,8 @@
 // ein Löschen ohne Aufzeichnung gibt es nicht, bei Fehler bleibt der Kommentar stehen.
 // Im Log stehen nur IDs (Kommentar, Rezept), nie der Text — der ist Nutzertext und nach dem
 // Löschen ohnehin weg. Das Löschen entfernt per FK-cascade auch die Daumen auf den Kommentar.
+// Ein Audit-Eintrag dokumentiert daher einen VERSUCH (wie bei decideRecipe): löscht der Schreiber den
+// Kommentar im selben Moment selbst, steht der Eintrag trotz 404 im Log.
 const { fetchJson, writeAuditLog } = require("./users.js");
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
