@@ -10,6 +10,7 @@ const {
 } = require("./recipes.js");
 const { sendInvite } = require("./invite.js");
 const { listUsers, banUser, unbanUser, deleteUser, resendUserLink, setVerifiedAuthor } = require("./users.js");
+const { decideRecipe } = require("./recipe-review.js");
 
 const PORT = process.env.PORT || 3001;
 const ENV = {
@@ -186,6 +187,34 @@ const server = http.createServer(async (req, res) => {
       return;
     }
     sendJson(res, 200, { ok: true, users: result.users });
+    return;
+  }
+
+  // Fahrplan 30 B4: Rezept in Pruefung freigeben / mit Grund ablehnen (nur Admin)
+  const decisionMatch =
+    req.method === "POST" ? req.url.match(/^\/admin\/recipes\/([^/]+)\/(approve|reject)$/) : null;
+  if (decisionMatch) {
+    const admin = await requireAdmin(req.headers.authorization, ENV);
+    if (!admin.ok) {
+      sendJson(res, admin.status, { ok: false, error: admin.error });
+      return;
+    }
+
+    let body;
+    try {
+      body = await readJsonBody(req);
+    } catch {
+      sendJson(res, 400, { ok: false, error: { code: "SCHEMA", message: "ungueltiger Request-Body" } });
+      return;
+    }
+
+    const [, recipeId, decision] = decisionMatch;
+    const result = await decideRecipe(recipeId, decision, body.reason, admin.sub, ENV);
+    if (!result.ok) {
+      sendJson(res, result.status, { ok: false, error: result.error });
+      return;
+    }
+    sendJson(res, 200, { ok: true, status: result.status });
     return;
   }
 

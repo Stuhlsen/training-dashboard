@@ -408,4 +408,13 @@ async function resendUserLink(userId, actorId, env, fetchImpl = fetch) {
   return { ok: true, hashedToken: body?.hashed_token ?? null, type };
 }
 
-module.exports = { listUsers, banUser, unbanUser, deleteUser, resendUserLink, setVerifiedAuthor };
+module.exports = {
+  listUsers,
+  banUser,
+  unbanUser,
+  deleteUser,
+  resendUserLink,
+  setVerifiedAuthor,
+  fetchJson,
+  writeAuditLog,
+};
