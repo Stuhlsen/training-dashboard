@@ -3895,6 +3895,66 @@ if (!HAS_CREDS) {
     }
   });
 
+  // Migration 0074: extra_servings (Gaeste-Portionen). Skipt, wenn die Spalte fehlt.
+  async function extraServingsSkip() {
+    const probe = await rest("GET", "meal_plan_entries?select=extra_servings&limit=1", {
+      token: athlete.token,
+    });
+    return probe.ok
+      ? false
+      : "meal_plan_entries.extra_servings nicht lesbar — Migration 0074 vermutlich noch nicht eingespielt";
+  }
+
+  test("meal_plan_entries: extra_servings hat Standard 0 und laesst sich vom Athleten setzen", async (t) => {
+    if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
+    const skip = await extraServingsSkip();
+    if (skip) return t.skip(skip);
+
+    const recipeId = await ensureMealPlanTestRecipe();
+    const id = await insertMealPlanEntryRow(athlete.token, recipeId);
+    const read = await rest("GET", `meal_plan_entries?id=eq.${id}&select=servings,extra_servings`, {
+      token: athlete.token,
+    });
+    assert.equal(read.ok, true);
+    assert.equal(Number(read.data[0].extra_servings), 0, "extra_servings muss standardmaessig 0 sein");
+
+    const update = await rest("PATCH", `meal_plan_entries?id=eq.${id}`, {
+      token: athlete.token,
+      body: { extra_servings: 4.5 },
+    });
+    assert.equal(update.ok, true);
+    assert.equal(Number(update.data?.[0]?.extra_servings), 4.5, "Athlet konnte extra_servings nicht setzen");
+    assert.equal(Number(update.data?.[0]?.servings), 1, "servings darf sich nicht aendern");
+  });
+
+  test("meal_plan_entries: extra_servings ausserhalb 0..20 wird vom CHECK-Constraint abgewiesen", async (t) => {
+    if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
+    if (!HAS_SERVICE_ROLE)
+      return t.skip(
+        "SUPABASE_SERVICE_ROLE_KEY fehlt in .env — ohne Referenz-Recipe kein Insert-Test"
+      );
+    const skip = await extraServingsSkip();
+    if (skip) return t.skip(skip);
+
+    const recipeId = await ensureMealPlanTestRecipe();
+    for (const bad of [-1, 21]) {
+      const res = await rest("POST", "meal_plan_entries", {
+        token: athlete.token,
+        body: mealPlanEntryBody(recipeId, { extra_servings: bad }),
+      });
+      assert.equal(res.ok, false, `extra_servings=${bad} haette am CHECK-Constraint scheitern muessen`);
+      if (res.ok && Array.isArray(res.data) && res.data[0]?.id) {
+        cleanupTasks.push(async () => {
+          await rest("DELETE", `meal_plan_entries?id=eq.${res.data[0].id}`, { token: athlete.token });
+        });
+      }
+    }
+  });
+
   test("meal_plan_entries: unique (athlete_id, date, meal_slot) verhindert doppelten Eintrag", async (t) => {
     if (mealPlanEntriesSkip()) return t.skip(mealPlanEntriesSkip());
     if (!HAS_SERVICE_ROLE)

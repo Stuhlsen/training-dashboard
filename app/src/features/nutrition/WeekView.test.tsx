@@ -65,6 +65,7 @@ function entry(slot: MealSlot, recipeId = `${slot}-0`, servings = 1): MealPlanEn
     mealSlot: slot,
     recipeId,
     servings,
+    extraServings: 0,
     createdAt: "",
     updatedAt: "",
   };

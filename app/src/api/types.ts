@@ -625,7 +625,10 @@ export interface MealPlanEntry {
   date: string;
   mealSlot: MealSlot;
   recipeId: string;
+  /** Eigene Portionen des Athleten — nur sie zählen für kcal/Eiweiß */
   servings: number;
+  /** Gäste-Portionen (Migration 0074): zählen für Kochmenge und Einkaufsliste, nicht für die Nährwerte */
+  extraServings: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -636,4 +639,6 @@ export interface MealPlanEntryInput {
   mealSlot: MealSlot;
   recipeId: string;
   servings: number;
+  /** Fehlt = 0 (ein Upsert setzt die Gäste-Portionen damit zurück) */
+  extraServings?: number;
 }

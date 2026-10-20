@@ -20,6 +20,7 @@ function recipe(id: string, slot: MealSlot, kcal: number): Recipe {
     mealType: [slot],
     containsTags: [],
     servings: 1,
+    extraServings: 0,
     imageUrl: null,
     nutrition: { kcal, protein: 30, carbs: 40, fat: 10 },
   } as unknown as Recipe;
@@ -54,6 +55,7 @@ const entry = (slot: MealSlot): MealPlanEntry => ({
   mealSlot: slot,
   recipeId: `${slot}-0`,
   servings: 1,
+  extraServings: 0,
   createdAt: "",
   updatedAt: "",
 });

@@ -20,7 +20,10 @@ import type { MealPlanEntry, MealPlanEntryInput, MealSlot, Result } from "../typ
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
 
-const COLUMNS = "id, athlete_id, date, meal_slot, recipe_id, servings, created_at, updated_at";
+const COLUMNS = "id, athlete_id, date, meal_slot, recipe_id, servings, extra_servings, created_at, updated_at";
+
+/** Obergrenze der Gäste-Portionen — deckungsgleich mit dem CHECK aus Migration 0074 */
+const MAX_EXTRA_SERVINGS = 20;
 
 const MEAL_SLOTS: readonly MealSlot[] = ["breakfast", "lunch", "dinner", "snack"];
 
@@ -31,6 +34,7 @@ interface MealPlanRow {
   meal_slot: MealSlot;
   recipe_id: string;
   servings: number | string;
+  extra_servings: number | string | null;
   created_at: string;
   updated_at: string;
 }
@@ -44,6 +48,7 @@ function toMealPlanEntry(row: MealPlanRow): MealPlanEntry {
     recipeId: row.recipe_id,
     // numeric kann je nach Treiber als String ankommen
     servings: Number(row.servings),
+    extraServings: Number(row.extra_servings ?? 0),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -64,6 +69,10 @@ function validateEntryInput(input: MealPlanEntryInput): string | null {
   if (!isISODate(input.date)) return "Ungültiges Datum.";
   if (typeof input.servings !== "number" || !Number.isFinite(input.servings) || input.servings <= 0) {
     return "Portionen müssen größer als 0 sein.";
+  }
+  const extra = input.extraServings ?? 0;
+  if (typeof extra !== "number" || !Number.isFinite(extra) || extra < 0 || extra > MAX_EXTRA_SERVINGS) {
+    return `Gäste-Portionen müssen zwischen 0 und ${MAX_EXTRA_SERVINGS} liegen.`;
   }
   return null;
 }
@@ -113,6 +122,8 @@ export async function upsertMealPlanEntry(
         meal_slot: input.mealSlot,
         recipe_id: input.recipeId,
         servings: input.servings,
+        // immer mitschreiben: ein Tausch/neues Rezept setzt Gäste-Portionen zurück
+        extra_servings: input.extraServings ?? 0,
       },
       { onConflict: "athlete_id,date,meal_slot" },
     )
