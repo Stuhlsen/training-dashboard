@@ -12,6 +12,7 @@ vi.mock("../../api/hooks/useMySubmissions", () => ({
 }));
 
 const { DecisionBanner } = await import("./DecisionBanner");
+const { markDecisionSeen } = await import("./decision-seen-storage");
 
 function recipe(id: string, title: string, status: Recipe["status"], rejectionReason: string | null = null): Recipe {
   return { id, title, status, rejectionReason } as unknown as Recipe;
@@ -71,6 +72,25 @@ describe("DecisionBanner", () => {
     unmount();
     render(<DecisionBanner userId="u2" />);
     expect(screen.getByText(/freigegeben/)).toBeTruthy();
+  });
+
+  it("meldet eine Freigabe nicht, die das Formular vor dem Neuladen der Liste als gesehen markiert hat", () => {
+    // Sofort-Freigabe eines verifizierten Autors (Fahrplan 29 V3): erst fehlt das Rezept in der
+    // Liste, dann merkt das Formular den Status, dann kommt die neue Liste mit dem Rezept.
+    const { container, rerender } = render(<DecisionBanner userId="u1" />);
+    expect(container.textContent).toBe("");
+    markDecisionSeen("u1", { id: "a", status: "approved" });
+    mockRecipes = [recipe("a", "Haferbrei", "approved")];
+    rerender(<DecisionBanner userId="u1" />);
+    expect(container.textContent).toBe("");
+  });
+
+  it("meldet eine Entscheidung, die niemand als gesehen markiert hat, auch bei später geladener Liste", () => {
+    const { container, rerender } = render(<DecisionBanner userId="u1" />);
+    expect(container.textContent).toBe("");
+    mockRecipes = [recipe("a", "Haferbrei", "approved")];
+    rerender(<DecisionBanner userId="u1" />);
+    expect(container.textContent).toMatch(/freigegeben/);
   });
 
   it("bleibt bedienbar, wenn localStorage nicht verfügbar ist (Lesen und Schreiben werfen)", () => {
