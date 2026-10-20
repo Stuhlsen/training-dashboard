@@ -13,7 +13,7 @@ export const PHOTO_MAX_EDGE = 1200;
 const MEAL_TYPE_MESSAGE = "Wähle mindestens eine Mahlzeit.";
 
 /** Formularfelder, für die der Server Fehler je Feld liefert. */
-export const FIELD_ORDER = ["title", "meal_type", "servings", "ingredients", "instructions", "image_url"];
+export const FIELD_ORDER = ["title", "meal_type", "servings", "prep_minutes", "ingredients", "instructions", "image_url"];
 
 /**
  * "1,5" / "1.5" / " 2 " → Zahl; alles andere (leer, Text, ≤ 0) → null.
@@ -28,16 +28,28 @@ export function parseAmount(text) {
 }
 
 /**
+ * "25" / " 25 " → ganze Minuten; alles andere (leer, Text, Komma, ≤ 0) → null.
+ * @param {string} text
+ * @returns {number | null}
+ */
+export function parseMinutes(text) {
+  const cleaned = String(text ?? "").trim();
+  if (!/^\d+$/.test(cleaned)) return null;
+  const n = Number(cleaned);
+  return n > 0 ? n : null;
+}
+
+/**
  * @typedef {{ name: string, amount: string, unit: string }} IngredientDraft
  * @typedef {{ text: string, timerMinutes: string }} StepDraft
  * @typedef {{
- *   title: string, servings: string, mealTypes: string[],
+ *   title: string, servings: string, prepMinutes: string, mealTypes: string[],
  *   ingredients: IngredientDraft[], steps: StepDraft[]
  * }} SubmissionDraft
  */
 
 /**
- * Formularstand → Body für preview/POST/PUT. Unlesbare Mengen gehen als 0
+ * Formularstand → Body für preview/POST/PUT. Unlesbare Mengen und Zeiten gehen als 0
  * weiter, damit der Server sie als Feldfehler meldet, statt dass hier geraten
  * wird; Schritte ohne Text fallen weg.
  * @param {SubmissionDraft} draft
@@ -48,6 +60,7 @@ export function buildSubmissionBody(draft, imagePath = null) {
     title: draft.title.trim(),
     meal_type: [...draft.mealTypes],
     servings: parseAmount(draft.servings) ?? 0,
+    prep_minutes: parseMinutes(draft.prepMinutes) ?? 0,
     ingredients: draft.ingredients.map((ing) => ({
       name: ing.name,
       amount: parseAmount(ing.amount) ?? 0,
@@ -76,7 +89,7 @@ export function formatAmount(n) {
 /**
  * Gespeichertes Rezept → Formularstand fürs Bearbeiten. Umkehrung von
  * buildSubmissionBody (Menge als Text, Timer in Minuten).
- * @param {{ title?: string, servings?: number, mealType?: string[] | null,
+ * @param {{ title?: string, servings?: number, prepMinutes?: number | null, mealType?: string[] | null,
  *   ingredients?: { name: string, amount: number, unit: string }[] | null,
  *   instructions?: { text: string, timerSeconds?: number }[] | null }} recipe
  * @returns {SubmissionDraft}
@@ -89,6 +102,7 @@ export function draftFromRecipe(recipe) {
   return {
     title: recipe.title ?? "",
     servings: formatAmount(recipe.servings ?? 1),
+    prepMinutes: recipe.prepMinutes ? String(recipe.prepMinutes) : "",
     mealTypes: [...(recipe.mealType ?? [])],
     ingredients: (recipe.ingredients ?? []).map((i) => ({ name: i.name, amount: formatAmount(i.amount), unit: i.unit })),
     steps: steps.length > 0 ? steps : [{ text: "", timerMinutes: "" }],

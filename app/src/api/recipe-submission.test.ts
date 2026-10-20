@@ -17,6 +17,7 @@ const BODY = {
   title: "Haferbrei",
   meal_type: ["breakfast"],
   servings: 2,
+  prep_minutes: 25,
   ingredients: [{ name: "Haferflocken", amount: 80, unit: "g" }],
   instructions: [{ text: "Kochen" }],
 };

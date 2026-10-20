@@ -3,7 +3,7 @@
    (Fahrplan 25, S2a; Q6, Q9, S1-3 bis S1-11)
 
    Eigene Unter-Ansicht im Rezepte-Bereich (kein Dialog: langes Formular,
-   auf dem Handy öffnet die Tastatur). Aufbau: Titel, Portionen, Mahlzeit,
+   auf dem Handy öffnet die Tastatur). Aufbau: Titel, Portionen, Zubereitungszeit, Mahlzeit,
    Zutaten (Suche), Schritte, Foto, Vorschau, Absenden.
 
    Gerechnet wird nichts: Vorschau und Einreichen gehen an admin-api, das
@@ -74,6 +74,8 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
   const servingsId = useId();
   const titleErrorId = useId();
   const servingsErrorId = useId();
+  const prepId = useId();
+  const prepErrorId = useId();
   const summaryRef = useRef<HTMLDivElement>(null);
 
   const editing = !!recipe;
@@ -82,6 +84,7 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
 
   const [title, setTitle] = useState(initial?.title ?? "");
   const [servings, setServings] = useState(initial?.servings ?? "2");
+  const [prepMinutes, setPrepMinutes] = useState(initial?.prepMinutes ?? "");
   const [mealTypes, setMealTypes] = useState<string[]>(initial?.mealTypes ?? []);
   const [rows, setRows] = useState<IngredientRow[]>(() =>
     (initial?.ingredients ?? []).map((i) => ({ ...i, units: [i.unit] })),
@@ -107,7 +110,7 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
   // Beim Bearbeiten tragen die gespeicherten Zeilen nur die gewählte Einheit; die übrigen kommen aus der Suche
   const unitsByName = useIngredientUnits(editing ? rows.map((r) => r.name) : NO_NAMES);
 
-  const body = buildSubmissionBody({ title, servings, mealTypes, ingredients: rows, steps });
+  const body = buildSubmissionBody({ title, servings, prepMinutes, mealTypes, ingredients: rows, steps });
   const bodyKey = JSON.stringify(body);
 
   // Fehler nach vorn holen: Fokus auf die Fehlerübersicht, damit Screenreader sie vorlesen
@@ -198,6 +201,7 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
 
   const titleErrors = fieldErrors.title;
   const servingsErrors = fieldErrors.servings;
+  const prepErrors = fieldErrors.prep_minutes;
 
   return (
     <form onSubmit={(e) => void handleSubmit(e)} noValidate aria-label={editing ? "Rezept bearbeiten" : "Rezept einreichen"}>
@@ -268,6 +272,27 @@ export function RecipeSubmissionForm({ onClose, recipe }: { onClose: () => void;
             />
             {servingsErrors?.map((m) => (
               <p key={m} id={servingsErrorId} style={FIELD_ERROR_STYLE}>
+                {m}
+              </p>
+            ))}
+          </div>
+
+          <div>
+            <label htmlFor={prepId} style={LABEL_STYLE}>
+              Zubereitungszeit (Minuten)
+            </label>
+            <input
+              id={prepId}
+              inputMode="numeric"
+              value={prepMinutes}
+              onChange={(e) => setPrepMinutes(e.target.value)}
+              aria-invalid={!!prepErrors}
+              aria-describedby={prepErrors ? prepErrorId : undefined}
+              style={{ ...FIELD_STYLE, width: 110, boxSizing: "border-box" }}
+            />
+            <p style={{ ...META_STYLE, margin: "4px 0 0" }}>Nur die aktive Zubereitung (1 bis 600 Minuten). Wartezeiten schreibst du in den passenden Schritt, z. B. „8 Stunden im Kühlschrank ruhen lassen“.</p>
+            {prepErrors?.map((m) => (
+              <p key={m} id={prepErrorId} style={FIELD_ERROR_STYLE}>
                 {m}
               </p>
             ))}

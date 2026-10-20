@@ -13,6 +13,7 @@
 import { useState, type CSSProperties } from "react";
 import { RecipeImage } from "../../components/RecipeImage";
 import type { Recipe } from "../../api/types";
+import { formatPrepTime } from "../../core/recipe-browse.js";
 import { SLOT_LABELS } from "./nutrition-week-model";
 import { SlotMenu, type SlotMenuItem } from "./SlotMenu";
 import { META_STYLE, TAP_MIN } from "./nutrition-styles";
@@ -58,9 +59,11 @@ const TITLE_STYLE: CSSProperties = {
 };
 const META_LINE_STYLE: CSSProperties = { ...META_STYLE, display: "block", margin: "4px 0 0" };
 
-/** "Frühstück · Snack" — reiner Text, keine Farbe */
-function mealTypesText(recipe: Pick<Recipe, "mealType">): string {
-  return (recipe.mealType ?? []).map((m) => SLOT_LABELS[m] ?? m).join(" · ");
+/** "Frühstück · Snack · 25 min" — reiner Text, keine Farbe */
+function mealTypesText(recipe: Pick<Recipe, "mealType" | "prepMinutes">): string {
+  const meals = (recipe.mealType ?? []).map((m) => SLOT_LABELS[m] ?? m).join(" · ");
+  const time = formatPrepTime(recipe.prepMinutes);
+  return [meals || "Rezept", time].filter(Boolean).join(" · ");
 }
 
 export function RecipeCard({
@@ -90,7 +93,7 @@ export function RecipeCard({
       <button type="button" style={OPEN_BUTTON_STYLE} aria-haspopup="dialog" onClick={onDetails}>
         <RecipeImage recipe={recipe} ratio="4 / 3" alt="" compact style={IMAGE_FRAME} />
         <span style={CAPTION_STYLE}>
-          <span style={EYEBROW_STYLE}>{mealTypesText(recipe) || "Rezept"}</span>
+          <span style={EYEBROW_STYLE}>{mealTypesText(recipe)}</span>
           <span style={TITLE_STYLE} title={recipe.title}>
             {recipe.title}
           </span>

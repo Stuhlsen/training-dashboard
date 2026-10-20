@@ -13,6 +13,7 @@
 
 import { useEffect, useRef, type CSSProperties, type KeyboardEvent, type ReactNode } from "react";
 import { RecipeImage } from "../../components/RecipeImage";
+import { formatPrepTime } from "../../core/recipe-browse.js";
 import { roundAmount, formatShoppingAmount } from "../../core/shopping-list.js";
 import type { Recipe } from "../../api/types";
 import { AllergenLine } from "./AllergenLine";
@@ -150,6 +151,7 @@ export function RecipeDetailsDialog({
   planPicker?: ReactNode;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const prepTime = formatPrepTime(recipe.prepMinutes);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   // Fokus ins Blatt holen und danach dorthin zurückgeben, wo er herkam
@@ -197,6 +199,7 @@ export function RecipeDetailsDialog({
           </h2>
           <p style={{ ...META_STYLE, margin: 0 }}>
             {servingsText ?? `${fmtNum(servings)} Portion${servings === 1 ? "" : "en"} geplant`}
+            {prepTime && ` · ${prepTime}`}
           </p>
           <DetailsContent recipe={recipe} servings={servings} />
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18 }}>

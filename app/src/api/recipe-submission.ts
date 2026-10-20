@@ -18,6 +18,7 @@ export interface RecipeSubmissionBody {
   title: string;
   meal_type: string[];
   servings: number;
+  prep_minutes: number;
   ingredients: { name: string; amount: number; unit: string }[];
   instructions: { text: string; timerSeconds?: number }[];
   image_url?: string;

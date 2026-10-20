@@ -19,7 +19,13 @@ import { Link } from "react-router-dom";
 import { GlassCard } from "../../components/GlassCard";
 import { useRecipes } from "../../api/hooks/useRecipes";
 import { useProfileBasics } from "../../api/hooks/useProfile";
-import { DIET_FILTER_OPTIONS, browseRecipes, hasActiveFilters } from "../../core/recipe-browse.js";
+import {
+  DIET_FILTER_OPTIONS,
+  PREP_FILTER_OPTIONS,
+  RECIPE_SORT_OPTIONS,
+  browseRecipes,
+  hasActiveFilters,
+} from "../../core/recipe-browse.js";
 import type { MealSlot, Recipe } from "../../api/types";
 import { SLOT_LABELS, SLOT_ORDER, weekdayShort } from "./nutrition-week-model";
 import { RecipeCard } from "./RecipeCard";
@@ -55,6 +61,8 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   const [query, setQuery] = useState("");
   const [mealType, setMealType] = useState<MealSlot | null>(null);
   const [dietTag, setDietTag] = useState<string | null>(null);
+  const [maxMinutes, setMaxMinutes] = useState<number | null>(null);
+  const [sort, setSort] = useState<"title" | "fastest">("title");
   const [details, setDetails] = useState<Recipe | null>(null);
   const [picking, setPicking] = useState(false);
   const [cooking, setCooking] = useState<Recipe | null>(null);
@@ -63,14 +71,18 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   const [form, setForm] = useState<{ recipe?: Recipe } | null>(null);
   const [view, setView] = useState<"all" | "mine">("all");
 
-  const filters = useMemo(() => ({ query, mealType, dietTag }), [query, mealType, dietTag]);
-  const result = useMemo(() => browseRecipes(recipes, { filters, intolerances }), [recipes, filters, intolerances]);
+  const filters = useMemo(() => ({ query, mealType, dietTag, maxMinutes }), [query, mealType, dietTag, maxMinutes]);
+  const result = useMemo(
+    () => browseRecipes(recipes, { filters, intolerances, sort }),
+    [recipes, filters, intolerances, sort],
+  );
   const filtered = hasActiveFilters(filters);
 
   function resetFilters() {
     setQuery("");
     setMealType(null);
     setDietTag(null);
+    setMaxMinutes(null);
   }
 
   function openDetails(recipe: Recipe, withPicker: boolean) {
@@ -178,6 +190,18 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
             </option>
           ))}
         </select>
+        <select
+          aria-label="Sortierung"
+          value={sort}
+          onChange={(e) => setSort(e.target.value as "title" | "fastest")}
+          style={{ ...FIELD_STYLE, flex: "0 1 180px" }}
+        >
+          {RECIPE_SORT_OPTIONS.map((o: { value: string; label: string }) => (
+            <option key={o.value} value={o.value}>
+              {o.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div role="group" aria-label="Mahlzeit" style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 12px" }}>
@@ -193,6 +217,23 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
             onClick={() => setMealType(mealType === slot ? null : slot)}
           >
             {SLOT_LABELS[slot]}
+          </button>
+        ))}
+      </div>
+
+      <div role="group" aria-label="Dauer" style={{ display: "flex", flexWrap: "wrap", gap: 8, margin: "0 0 12px" }}>
+        <button type="button" aria-pressed={maxMinutes === null} style={chipStyle(maxMinutes === null)} onClick={() => setMaxMinutes(null)}>
+          Jede Dauer
+        </button>
+        {PREP_FILTER_OPTIONS.map((o: { value: number; label: string }) => (
+          <button
+            key={o.value}
+            type="button"
+            aria-pressed={maxMinutes === o.value}
+            style={chipStyle(maxMinutes === o.value)}
+            onClick={() => setMaxMinutes(maxMinutes === o.value ? null : o.value)}
+          >
+            {o.label}
           </button>
         ))}
       </div>

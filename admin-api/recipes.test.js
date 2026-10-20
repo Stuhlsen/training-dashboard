@@ -30,6 +30,7 @@ const validBody = () => ({
   title: "Haferbrei",
   meal_type: ["breakfast"],
   servings: 2,
+  prep_minutes: 25,
   ingredients: [
     { name: "Haferflocken", amount: 80, unit: "g" },
     { name: "Milch", amount: 400, unit: "ml" },
@@ -386,6 +387,50 @@ test("Grenzen: Titel, Zutaten, Schritte, Schritt-Laenge -> 422 mit details je Fe
     const ok = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body: edge });
     assert.equal(ok.status, 201);
     assert.equal(store.rows.length, 1);
+  });
+});
+
+test("Zubereitungszeit: fehlend oder ausserhalb 1..600 / nicht ganzzahlig -> 422 an prep_minutes (POST und PUT)", async () => {
+  const rows = [pendingRow(RECIPE_ID, ALICE)];
+  await withService(rows, async (port, store) => {
+    const missing = validBody();
+    delete missing.prep_minutes;
+    const bodies = [missing, { ...validBody(), prep_minutes: null }];
+    for (const bad of [0, -5, 601, 12.5, "25", true]) bodies.push({ ...validBody(), prep_minutes: bad });
+    for (const [method, path] of [
+      ["POST", "/api/recipes"],
+      ["PUT", `/api/recipes/${RECIPE_ID}`],
+    ]) {
+      for (const body of bodies) {
+        const res = await request(port, method, path, { token: TOKEN_ALICE, body });
+        assert.equal(res.status, 422, `${method} ${String(body.prep_minutes)}`);
+        assert.equal(res.body.error.code, "VALIDATION");
+        assert.ok(res.body.error.details.prep_minutes, `${method} ${String(body.prep_minutes)}`);
+      }
+    }
+    assert.equal(store.rows.length, 1, "nichts gespeichert");
+    assert.equal(store.rows[0].prep_minutes, undefined);
+
+    // Grenzen 1 und 600 gehen durch und landen in der Zeile.
+    for (const prep_minutes of [1, 600]) {
+      const res = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body: { ...validBody(), prep_minutes } });
+      assert.equal(res.status, 200, String(prep_minutes));
+      assert.equal(store.rows[0].prep_minutes, prep_minutes);
+    }
+    const created = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body: validBody() });
+    assert.equal(created.status, 201);
+    assert.equal(store.rows.at(-1).prep_minutes, 25);
+  });
+});
+
+test("Zubereitungszeit: die Vorschau rechnet ohne Zeit und ignoriert auch den Platzhalter 0 des Formulars", async () => {
+  await withService([], async (port) => {
+    const body = validBody();
+    delete body.prep_minutes;
+    const without = await request(port, "POST", "/api/recipes/preview", { token: TOKEN_ALICE, body });
+    assert.equal(without.status, 200);
+    const empty = await request(port, "POST", "/api/recipes/preview", { token: TOKEN_ALICE, body: { ...validBody(), prep_minutes: 0 } });
+    assert.equal(empty.status, 200);
   });
 });
 
@@ -765,6 +810,26 @@ test("POST: verifizierter Autor -> sofort approved, ohne Limit offener Rezepte",
       assert.equal(store.rows.at(-1).status, "approved");
       assert.equal(store.rows.length, 6, "kein Limit fuer Verifizierte");
       assert.equal(profileCalls(store).length, 1);
+    },
+    undefined,
+    { verified: [ALICE] }
+  );
+});
+
+test("Verifizierte Autoren brauchen die Zubereitungszeit genauso (POST und PUT -> 422, nichts gespeichert)", async () => {
+  await withService(
+    [approvedRow(RECIPE_ID, ALICE)],
+    async (port, store) => {
+      const body = validBody();
+      delete body.prep_minutes;
+      const post = await request(port, "POST", "/api/recipes", { token: TOKEN_ALICE, body });
+      assert.equal(post.status, 422);
+      assert.ok(post.body.error.details.prep_minutes);
+      const put = await request(port, "PUT", `/api/recipes/${RECIPE_ID}`, { token: TOKEN_ALICE, body });
+      assert.equal(put.status, 422);
+      assert.ok(put.body.error.details.prep_minutes);
+      assert.equal(store.rows.length, 1);
+      assert.notEqual(store.rows[0].title, validBody().title);
     },
     undefined,
     { verified: [ALICE] }
