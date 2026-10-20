@@ -23,6 +23,7 @@ const ROW = {
   meal_slot: "lunch",
   recipe_id: "r1",
   servings: 1.5,
+  extra_servings: 4.5,
   created_at: "2026-10-14T08:00:00Z",
   updated_at: "2026-10-14T08:00:00Z",
 };
@@ -34,6 +35,7 @@ const ENTRY = {
   mealSlot: "lunch",
   recipeId: "r1",
   servings: 1.5,
+  extraServings: 4.5,
   createdAt: "2026-10-14T08:00:00Z",
   updatedAt: "2026-10-14T08:00:00Z",
 };
@@ -47,6 +49,12 @@ const INPUT = {
 };
 
 describe("listMealPlan", () => {
+  it("liest fehlende Gäste-Portionen (NULL/alte Zeile) als 0", async () => {
+    fakeClient.handlers.meal_plan_entries = () => ({ data: [{ ...ROW, extra_servings: null }], error: null });
+    const result = await listMealPlan("p1", "2026-10-12", "2026-10-18");
+    expect(result.ok && result.entries[0].extraServings).toBe(0);
+  });
+
   it("filtert auf Athlet und Zeitraum, sortiert nach Datum und mappt die Zeilen", async () => {
     let seen: FakeCall | undefined;
     fakeClient.handlers.meal_plan_entries = (calls) => {
@@ -111,7 +119,18 @@ describe("upsertMealPlanEntry", () => {
       meal_slot: "lunch",
       recipe_id: "r1",
       servings: 1.5,
+      extra_servings: 0,
     });
+  });
+
+  it("schreibt Gäste-Portionen mit", async () => {
+    let seen: FakeCall | undefined;
+    fakeClient.handlers.meal_plan_entries = (calls) => {
+      seen = calls;
+      return { data: ROW, error: null };
+    };
+    await upsertMealPlanEntry({ ...INPUT, extraServings: 4.5 });
+    expect((seen?.payload as { extra_servings: number }).extra_servings).toBe(4.5);
   });
 
   it.each([
@@ -120,6 +139,9 @@ describe("upsertMealPlanEntry", () => {
     ["Portionen negativ", { servings: -1 }],
     ["Portionen NaN", { servings: Number.NaN }],
     ["Portionen Infinity", { servings: Number.POSITIVE_INFINITY }],
+    ["Gäste-Portionen negativ", { extraServings: -1 }],
+    ["Gäste-Portionen über 20", { extraServings: 21 }],
+    ["Gäste-Portionen NaN", { extraServings: Number.NaN }],
     ["Datum kein ISO", { date: "14.10.2026" }],
     ["Datum nicht im Kalender", { date: "2026-02-30" }],
     ["Rezept fehlt", { recipeId: "" }],

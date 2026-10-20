@@ -9,8 +9,13 @@
    groß, Timer in einem eigenen Feld. Timer-, Wake-Lock-, Fokus- und
    Tastatur-Logik sind unverändert.
 
+   Portionen (Fahrplan 30, B2): Auf der Zutaten-Seite wählt ein Stepper die
+   Gesamt-Portionen, die Mengen rechnen live um. Mit `plan` bietet der Dialog
+   zusätzlich an, den Plan-Eintrag anzupassen bzw. das Rezept zum Plan
+   hinzuzufügen (CookingPortions.tsx). Ohne `plan` bleibt es beim Umrechnen.
+
    Layer-Regel: Nutzt useCookTimers (components/hooks), keine
-   direkten api/-Aufrufe.
+   direkten api/-Aufrufe (der Plan-Teil geht über api/hooks, s. CookingPortions).
    Kein roher console.*-Aufruf.
    ============================================================ */
 
@@ -20,9 +25,11 @@ import { useCookTimers } from "../../components/cook-timer-context";
 import { useConfirmTap } from "../../components/useConfirmTap";
 import { PlateIcon, RecipeImage } from "../../components/RecipeImage";
 import { roundAmount, formatShoppingAmount } from "../../core/shopping-list.js";
+import { clampCookPortions } from "../../core/portions.js";
 import { remainingSeconds, formatRemaining, formatRestTime, isExpired } from "../../core/cook-timer.js";
 import type { Recipe } from "../../api/types";
 import { AllergenLine } from "./AllergenLine";
+import { PortionPlanAction, PortionStepper, type CookingPlanContext } from "./CookingPortions";
 
 /* ── Schwellwert: Timer-Start-Button vs. Ruhezeit-Text ────
  *  EIGENES ERMESSEN (Issue #28): Bei 3600 s oder mehr zeigen
@@ -226,13 +233,17 @@ const TIME_EXPIRED_STYLE: React.CSSProperties = { ...TIME_REMAINING_STYLE, color
 
 interface CookingDialogProps {
   recipe: Recipe;
+  /** Start-Portionen (gesamt, also eigene + Gäste) */
   servings: number;
+  /** Plan-Bezug: ohne ihn rechnet der Dialog nur um und schreibt nichts */
+  plan?: CookingPlanContext;
   onClose: () => void;
 }
 
-export function CookingDialog({ recipe, servings, onClose }: CookingDialogProps) {
+export function CookingDialog({ recipe, servings, plan, onClose }: CookingDialogProps) {
   const { timers, start, reset, now } = useCookTimers();
   const [page, setPage] = useState(0);
+  const [portions, setPortions] = useState(() => clampCookPortions(servings));
   useWakeLock(true);
 
   // Focus Trap + Keyboard
@@ -276,11 +287,13 @@ export function CookingDialog({ recipe, servings, onClose }: CookingDialogProps)
         onClose();
         return;
       }
-      if (e.key === "ArrowLeft") {
+      // Pfeiltasten in Auswahlfeldern (PlanPicker) gehören dem Feld, nicht dem Seitenwechsel
+      const inField = (e.target as HTMLElement).tagName === "SELECT" || (e.target as HTMLElement).tagName === "INPUT";
+      if (e.key === "ArrowLeft" && !inField) {
         setPage((p) => Math.max(0, p - 1));
         return;
       }
-      if (e.key === "ArrowRight") {
+      if (e.key === "ArrowRight" && !inField) {
         const maxPage = totalPages - 1;
         setPage((p) => Math.min(maxPage, p + 1));
         return;
@@ -347,7 +360,7 @@ export function CookingDialog({ recipe, servings, onClose }: CookingDialogProps)
             <p style={EMPTY_TEXT_STYLE}>Keine Schritte vorhanden</p>
           </div>
         ) : page === 0 && hasIngredients ? (
-          <IngredientsPage recipe={recipe} servings={servings} />
+          <IngredientsPage recipe={recipe} portions={portions} onPortionsChange={setPortions} plan={plan} />
         ) : (
           <StepPage
             recipe={recipe}
@@ -412,8 +425,18 @@ function groupByCategory(ingredients: readonly RecipeIngredient[]) {
   return [...groups.entries()];
 }
 
-function IngredientsPage({ recipe, servings }: { recipe: Recipe; servings: number }) {
-  const factor = recipe.servings > 0 ? servings / recipe.servings : 1;
+function IngredientsPage({
+  recipe,
+  portions,
+  onPortionsChange,
+  plan,
+}: {
+  recipe: Recipe;
+  portions: number;
+  onPortionsChange: (next: number) => void;
+  plan?: CookingPlanContext;
+}) {
+  const factor = recipe.servings > 0 ? portions / recipe.servings : 1;
   const groups = groupByCategory(recipe.ingredients!);
   // Kategorie-Überschriften nur, wenn es etwas zu gliedern gibt
   const showCategories = groups.length > 1;
@@ -429,7 +452,7 @@ function IngredientsPage({ recipe, servings }: { recipe: Recipe; servings: numbe
 
       <div style={INGREDIENT_HEAD_STYLE}>
         <p style={INGREDIENT_INTRO_STYLE}>Zutaten bereitlegen</p>
-        <span style={{ ...STEP_COUNTER_STYLE, flexShrink: 0, whiteSpace: "nowrap" }}>für {formatShoppingAmount(servings)} Port.</span>
+        <PortionStepper value={portions} onChange={onPortionsChange} />
       </div>
 
       {groups.map(([category, items]) => (
@@ -448,6 +471,8 @@ function IngredientsPage({ recipe, servings }: { recipe: Recipe; servings: numbe
           })}
         </section>
       ))}
+
+      {plan && <PortionPlanAction recipe={recipe} portions={portions} plan={plan} />}
     </div>
   );
 }

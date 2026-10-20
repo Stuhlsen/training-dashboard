@@ -72,7 +72,7 @@ function categoryRank(category) {
 
 /**
  * @param {{
- *   entries: ReadonlyArray<{ date: string, recipeId: string, servings: number }>,
+ *   entries: ReadonlyArray<{ date: string, recipeId: string, servings: number, extraServings?: number }>,
  *   recipes: ReadonlyArray<{ id: string, title: string, servings: number,
  *     ingredients: ReadonlyArray<{ name: string, amount: number, unit: string, category: string }> | null }>,
  *   excludedDates?: ReadonlyArray<string>,
@@ -98,7 +98,8 @@ export function aggregateShoppingList({ entries, recipes, excludedDates = [] }) 
       continue;
     }
 
-    const factor = entry.servings / recipe.servings;
+    // Kochmenge = eigene + Gäste-Portionen (Nährwerte zählen nur servings)
+    const factor = (entry.servings + (entry.extraServings ?? 0)) / recipe.servings;
     if (!Number.isFinite(factor) || factor <= 0) continue;
 
     for (const line of lines) {

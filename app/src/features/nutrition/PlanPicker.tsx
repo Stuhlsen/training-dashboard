@@ -12,7 +12,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { useMealPlan, useUpsertMealPlanEntry } from "../../api/hooks/useMealPlan";
 import { PORTION_STEPS } from "../../core/nutrition-plan.js";
-import type { MealSlot, Recipe } from "../../api/types";
+import { COOK_PORTION_MAX, COOK_PORTION_STEP } from "../../core/portions.js";
+import type { MealPlanEntry, MealSlot, Recipe } from "../../api/types";
 import { SLOT_LABELS, SLOT_ORDER, weekDates, weekdayShort } from "./nutrition-week-model";
 import {
   META_STYLE,
@@ -40,6 +41,12 @@ const SELECT_STYLE: CSSProperties = {
 /** 1.5 → "1,5" */
 const fmtNum = (n: number) => String(Math.round(n * 10) / 10).replace(".", ",");
 
+/** Auswahl der Gäste-Portionen: 0 … 11,5 in Halbschritten (eigene Portion mindestens 0,5) */
+const GUEST_STEPS: readonly number[] = Array.from(
+  { length: Math.round((COOK_PORTION_MAX - COOK_PORTION_STEP) / COOK_PORTION_STEP) + 1 },
+  (_, i) => i * COOK_PORTION_STEP,
+);
+
 /** "Mi 14.10." bzw. "Heute 14.10." */
 function dayLabel(dateISO: string, todayISO: string): string {
   const lead = dateISO === todayISO ? "Heute" : weekdayShort(dateISO);
@@ -55,6 +62,8 @@ export function PlanPicker({
   recipe,
   recipes,
   todayISO,
+  initialServings,
+  initialExtraServings,
   onCancel,
   onDone,
 }: {
@@ -62,15 +71,26 @@ export function PlanPicker({
   /** Pool zum Auflösen des Titels eines Rezepts, das ersetzt würde */
   recipes: readonly Recipe[];
   todayISO: string;
+  /** Vorbelegung der eigenen Portionen (Standard 1), z. B. aus dem Kochmodus */
+  initialServings?: number;
+  /** Vorbelegung der Gäste-Portionen (Standard 0) */
+  initialExtraServings?: number;
   onCancel: () => void;
-  onDone: (result: { dateISO: string; slot: MealSlot; servings: number }) => void;
+  onDone: (result: {
+    dateISO: string;
+    slot: MealSlot;
+    servings: number;
+    extraServings: number;
+    entry: MealPlanEntry;
+  }) => void;
 }) {
   const dates = weekDates(todayISO);
   const plan = useMealPlan(dates[0], dates[dates.length - 1]);
   const { upsert } = useUpsertMealPlanEntry();
   const [dateISO, setDateISO] = useState(todayISO);
   const [slot, setSlot] = useState<MealSlot>(() => defaultSlot(recipe));
-  const [servings, setServings] = useState(1);
+  const [servings, setServings] = useState(initialServings ?? 1);
+  const [extraServings, setExtraServings] = useState(initialExtraServings ?? 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const firstRef = useRef<HTMLSelectElement>(null);
@@ -81,19 +101,23 @@ export function PlanPicker({
 
   const existing = plan.entries.find((e) => e.date === dateISO && e.mealSlot === slot);
   const existingTitle = existing ? (recipes.find((r) => r.id === existing.recipeId)?.title ?? "ein anderes Rezept") : null;
-  const replacesSame = !!existing && existing.recipeId === recipe.id && existing.servings === servings;
+  const replacesSame =
+    !!existing &&
+    existing.recipeId === recipe.id &&
+    existing.servings === servings &&
+    (existing.extraServings ?? 0) === extraServings;
   const blocked = saving || plan.isLoading;
 
   async function submit() {
     setSaving(true);
     setError(null);
-    const result = await upsert({ date: dateISO, mealSlot: slot, recipeId: recipe.id, servings });
+    const result = await upsert({ date: dateISO, mealSlot: slot, recipeId: recipe.id, servings, extraServings });
     setSaving(false);
     if (!result.ok) {
       setError(`Speichern fehlgeschlagen: ${result.error.message}`);
       return;
     }
-    onDone({ dateISO, slot, servings });
+    onDone({ dateISO, slot, servings, extraServings, entry: result.entry });
   }
 
   return (
@@ -129,7 +153,26 @@ export function PlanPicker({
             ))}
           </select>
         </label>
+        <label style={FIELD_STYLE}>
+          <span style={LABEL_STYLE}>Gäste-Portionen</span>
+          <select
+            style={SELECT_STYLE}
+            value={extraServings}
+            onChange={(e) => setExtraServings(Number(e.target.value))}
+          >
+            {GUEST_STEPS.map((p) => (
+              <option key={p} value={p}>
+                {fmtNum(p)}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
+      {extraServings > 0 && (
+        <p style={{ ...META_STYLE, margin: "8px 0 0" }}>
+          Gäste zählen für Kochmenge und Einkaufsliste, nicht für deine Tageswerte.
+        </p>
+      )}
 
       {existingTitle && !replacesSame && (
         <p style={{ ...TEXT_STYLE, margin: "10px 0 0" }}>

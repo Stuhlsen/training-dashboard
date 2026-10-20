@@ -15,7 +15,7 @@ const OBST = "Obst & Gemüse";
 
 const ing = (name, amount, unit, category = OBST) => ({ name, amount, unit, category });
 const recipe = (id, servings, ingredients, title = `Rezept ${id}`) => ({ id, title, servings, ingredients });
-const entry = (date, recipeId, servings = 1) => ({ date, recipeId, servings });
+const entry = (date, recipeId, servings = 1, extraServings = 0) => ({ date, recipeId, servings, extraServings });
 
 /** Einzige Zeile einer Liste (für Ein-Zutat-Fälle). */
 function onlyRow(list) {
@@ -64,6 +64,31 @@ describe("aggregateShoppingList — Zusammenrechnen", () => {
     const recipes = [recipe("a", 1, [ing("Mix", 1, "Stück", OBST), ing("Mix", 1, "Stück", "Eier")])];
     const list = aggregateShoppingList({ entries: [entry("2026-10-14", "a")], recipes });
     expect(list.groups.map((g) => g.category)).toEqual([OBST, "Eier"]);
+  });
+});
+
+describe("aggregateShoppingList — Gäste-Portionen", () => {
+  it("rechnet eigene + Gäste-Portionen in die Menge", () => {
+    const recipes = [recipe("a", 2, [ing("Nudeln", 200, "g")])];
+    const list = aggregateShoppingList({ entries: [entry("2026-10-14", "a", 1, 5)], recipes });
+    expect(onlyRow(list).amounts).toEqual([{ unit: "g", amount: 600 }]);
+  });
+
+  it("ohne extraServings (alter Eintrag) gilt nur servings", () => {
+    const recipes = [recipe("a", 2, [ing("Nudeln", 200, "g")])];
+    const list = aggregateShoppingList({
+      entries: [{ date: "2026-10-14", recipeId: "a", servings: 1 }],
+      recipes,
+    });
+    expect(onlyRow(list).amounts).toEqual([{ unit: "g", amount: 100 }]);
+  });
+
+  it("folgt einem geänderten Eintrag: gleicher Plan, mehr Gäste, größere Liste", () => {
+    const recipes = [recipe("a", 2, [ing("Nudeln", 200, "g")])];
+    const before = aggregateShoppingList({ entries: [entry("2026-10-14", "a", 1, 0)], recipes });
+    const after = aggregateShoppingList({ entries: [entry("2026-10-14", "a", 1, 3)], recipes });
+    expect(onlyRow(before).amounts).toEqual([{ unit: "g", amount: 100 }]);
+    expect(onlyRow(after).amounts).toEqual([{ unit: "g", amount: 400 }]);
   });
 });
 

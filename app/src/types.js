@@ -376,7 +376,8 @@ export {};
  * @property {string} date  ISO-Datum YYYY-MM-DD
  * @property {"breakfast"|"lunch"|"dinner"|"snack"} mealSlot
  * @property {string} recipeId
- * @property {number} servings  > 0
+ * @property {number} servings  > 0, eigene Portionen (zählen für kcal/Eiweiß)
+ * @property {number} extraServings  >= 0, Gäste-Portionen (Migration 0074; Kochmenge + Einkaufsliste)
  * @property {string} createdAt
  * @property {string} updatedAt
  */
@@ -389,6 +390,7 @@ export {};
  * @property {"breakfast"|"lunch"|"dinner"|"snack"} mealSlot
  * @property {string} recipeId
  * @property {number} servings
+ * @property {number} [extraServings]  Standard 0
  */
 
 /**

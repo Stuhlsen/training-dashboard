@@ -80,7 +80,8 @@ und Entscheidungsnummern stehen im Kopfkommentar der Datei.
 | `nutrition-plan.js` | Tageszusammenstellung: `composeDay`, Tausch-Alternativen `swapCandidates`, Tages-Ampel `dayAmpel` |
 | `nutrition-taxonomy.js` | Allergen-Taxonomie (14 EU-Hauptallergene + `sonstiges`) — gemeinsame Quelle für `profiles.intolerances` und `recipes.contains_tags`; `allergenLabel` liefert den deutschen Namen für die UI |
 | `nutrition-sources.js` | Kuratierte Quellenliste für Ernährungsangaben (`NUTRITION_SOURCES`, `SOURCE_BY_KEY`) |
-| `shopping-list.js` | Einkaufsliste aus dem Essensplan: `aggregateShoppingList`, `roundAmount`, `formatShoppingAmount` |
+| `shopping-list.js` | Einkaufsliste aus dem Essensplan: `aggregateShoppingList` (Menge aus `servings` + `extraServings`), `roundAmount`, `formatShoppingAmount` |
+| `portions.js` | Portionen im Kochmodus: Halbschritte 0,5–12 (`clampCookPortions`, `stepCookPortions`), Aufteilung in eigene und Gäste-Portionen (`splitPortions`, `totalPortions`), Plan-Eintrag zu einem Rezept (`findPlanEntryForRecipe`) |
 | `cook-timer.js` | Kochmodus-Timer als reine Zustandsfunktionen (`startTimer`, `remainingSeconds`, `serializeTimers`/`restoreTimers`); `now` kommt immer von außen |
 | `zone-explanations.js` | Erklärtexte je Zone und Sportart (reine Daten), Zonengrenzen stehen in `../sports/` |
 | `zone-sources.js` | Quellenliste für die Zonen-Erklärtexte (`ZONE_SOURCES`) |

@@ -34,6 +34,7 @@ const entry = (date: string, recipeId: string, servings = 2): MealPlanEntry => (
   mealSlot: "lunch",
   recipeId,
   servings,
+  extraServings: 0,
   createdAt: "",
   updatedAt: "",
 });
@@ -72,6 +73,23 @@ describe("ShoppingListView — Inhalt", () => {
     expect(screen.getByRole("heading", { name: "Obst & Gemüse" })).toBeTruthy();
     expect(screen.getByText("Apfel")).toBeTruthy();
     expect(screen.getByText("1,5 Stück")).toBeTruthy();
+  });
+
+  it("Gäste-Portionen vergrößern die Liste: 1 eigene + 5 Gäste bei Rezept für 2 → Faktor 3", () => {
+    // Apfel 2 Stück je 2 Portionen; (1 + 5) / 2 = 3 → 6 Stück
+    setData([{ ...entry(TODAY, "a", 1), extraServings: 5 }], [recipe("a", [APFEL])]);
+    renderList();
+    expect(screen.getByText("6 Stück")).toBeTruthy();
+  });
+
+  it("folgt einem geänderten Eintrag: neue Gäste-Zahl → neue Menge nach dem Neuzeichnen", () => {
+    setData([entry(TODAY, "a", 2)], [recipe("a", [APFEL])]);
+    const { rerender } = renderList();
+    expect(screen.getByText("2 Stück")).toBeTruthy();
+
+    setData([{ ...entry(TODAY, "a", 2), extraServings: 2 }], [recipe("a", [APFEL])]);
+    rerender(<ShoppingListView userId="u1" todayISO={TODAY} onShowWeek={onShowWeek} />);
+    expect(screen.getByText("4 Stück")).toBeTruthy();
   });
 
   it("gleiche Zutat mit mehreren Einheiten: eine Zeile, '1 EL + 1 TL'", () => {

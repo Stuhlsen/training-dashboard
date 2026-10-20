@@ -30,9 +30,20 @@ vi.mock("../../api/hooks/useMealPlan", () => ({
 
 // Der Kochmodus braucht den Timer-Kontext und hat eigene Tests
 vi.mock("./CookingDialog", () => ({
-  CookingDialog: ({ recipe, servings, onClose }: { recipe: { title: string }; servings: number; onClose: () => void }) => (
+  CookingDialog: ({
+    recipe,
+    servings,
+    plan,
+    onClose,
+  }: {
+    recipe: { title: string };
+    servings: number;
+    plan?: { entry: { id: string } | null; todayISO?: string };
+    onClose: () => void;
+  }) => (
     <div role="dialog" aria-label="Kochmodus-Platzhalter">
       {recipe.title} für {servings}
+      <span data-testid="cook-plan">{plan ? `Plan: ${plan.entry?.id ?? "kein Eintrag"} · heute ${plan.todayISO ?? "?"}` : "kein Plan-Bezug"}</span>
       <button type="button" onClick={onClose}>
         Kochmodus schließen
       </button>
@@ -305,6 +316,28 @@ describe("RecipesView — Details, Kochen, In den Plan", () => {
     expect(upsertMock).not.toHaveBeenCalled();
   });
 
+  it("Kochen: Rezept nicht im Plan → Dialog bekommt Rezept-Portionen und keinen Plan-Eintrag", () => {
+    mockRecipes = [recipe("a", "Haferbrei")];
+    mockEntries = [];
+    renderView();
+    fireEvent.click(screen.getByTitle("Haferbrei"));
+    fireEvent.click(screen.getByRole("button", { name: "Kochen" }));
+    expect(screen.getByRole("dialog", { name: "Kochmodus-Platzhalter" }).textContent).toContain("Haferbrei für 2");
+    expect(screen.getByTestId("cook-plan").textContent).toBe(`Plan: kein Eintrag · heute ${TODAY}`);
+  });
+
+  it("Kochen: Rezept im Plan → Dialog startet mit eigenen + Gäste-Portionen und bekommt den Eintrag", () => {
+    mockRecipes = [recipe("a", "Haferbrei")];
+    mockEntries = [
+      { id: "e-a", athleteId: "u1", date: TODAY, mealSlot: "lunch", recipeId: "a", servings: 1, extraServings: 5 } as MealPlanEntry,
+    ];
+    renderView();
+    fireEvent.click(screen.getByTitle("Haferbrei"));
+    fireEvent.click(screen.getByRole("button", { name: "Kochen" }));
+    expect(screen.getByRole("dialog", { name: "Kochmodus-Platzhalter" }).textContent).toContain("Haferbrei für 6");
+    expect(screen.getByTestId("cook-plan").textContent).toContain("Plan: e-a");
+  });
+
   it("Kochen aus dem Kachel-Menü funktioniert ebenfalls ohne Schreiben", () => {
     mockRecipes = [recipe("a", "Haferbrei")];
     renderView();
@@ -329,7 +362,7 @@ describe("RecipesView — Details, Kochen, In den Plan", () => {
     fireEvent.click(screen.getByRole("button", { name: "In den Plan legen" }));
 
     await waitFor(() =>
-      expect(upsertMock).toHaveBeenCalledWith({ date: "2026-10-16", mealSlot: "dinner", recipeId: "a", servings: 1.5 }),
+      expect(upsertMock).toHaveBeenCalledWith({ date: "2026-10-16", mealSlot: "dinner", recipeId: "a", servings: 1.5, extraServings: 0 }),
     );
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     expect(screen.getByText(/„Haferbrei“ liegt jetzt im Plan: Fr 16\.10\., Abendessen, 1,5 Portionen\./)).toBeTruthy();

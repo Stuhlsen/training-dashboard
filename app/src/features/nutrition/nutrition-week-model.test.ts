@@ -12,7 +12,7 @@ function recipe(id: string, mealType: Recipe["mealType"], kcal: number, protein:
 }
 
 function entry(date: string, mealSlot: MealPlanEntry["mealSlot"], recipeId: string, servings = 1): MealPlanEntry {
-  return { id: `${date}-${mealSlot}`, athleteId: "u1", date, mealSlot, recipeId, servings, createdAt: "", updatedAt: "" };
+  return { id: `${date}-${mealSlot}`, athleteId: "u1", date, mealSlot, recipeId, servings, extraServings: 0, createdAt: "", updatedAt: "" };
 }
 
 const RECIPES = new Map<string, Recipe>(

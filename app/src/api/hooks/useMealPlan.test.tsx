@@ -14,6 +14,7 @@ const ENTRY: MealPlanEntry = {
   mealSlot: "lunch",
   recipeId: "r1",
   servings: 1,
+  extraServings: 0,
   createdAt: "2026-10-14T08:00:00Z",
   updatedAt: "2026-10-14T08:00:00Z",
 };
@@ -71,6 +72,7 @@ describe("useUpsertMealPlanEntry", () => {
     mealSlot: "lunch",
     recipeId: "r1",
     servings: 1,
+    extraServings: 0,
   };
 
   it("setzt die athleteId aus der Session und gibt ein ok-Result zurück", async () => {

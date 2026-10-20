@@ -30,7 +30,7 @@ function recipe(id: string, kcal: number): Recipe {
 }
 
 function entry(slot: MealPlanEntry["mealSlot"], recipeId: string, date = TODAY): MealPlanEntry {
-  return { id: `${date}-${slot}`, athleteId: "u1", date, mealSlot: slot, recipeId, servings: 1, createdAt: "", updatedAt: "" };
+  return { id: `${date}-${slot}`, athleteId: "u1", date, mealSlot: slot, recipeId, servings: 1, extraServings: 0, createdAt: "", updatedAt: "" };
 }
 
 const RECIPES = new Map<string, Recipe>([["l", recipe("l", 2300)]]);

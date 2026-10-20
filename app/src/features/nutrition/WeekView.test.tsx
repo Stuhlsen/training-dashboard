@@ -26,9 +26,20 @@ vi.mock("../../api/hooks/useMealPlan", () => ({
 
 // Der Kochmodus braucht den Timer-Kontext und hat eigene Tests
 vi.mock("./CookingDialog", () => ({
-  CookingDialog: ({ recipe, onClose }: { recipe: { title: string }; onClose: () => void }) => (
+  CookingDialog: ({
+    recipe,
+    servings,
+    plan,
+    onClose,
+  }: {
+    recipe: { title: string };
+    servings: number;
+    plan?: { entry: { id: string } | null };
+    onClose: () => void;
+  }) => (
     <div role="dialog" aria-label="Kochmodus-Platzhalter">
       {recipe.title}
+      <span data-testid="cook-info">{`für ${servings} · Plan ${plan?.entry?.id ?? "-"}`}</span>
       <button type="button" onClick={onClose}>Kochmodus schließen</button>
     </div>
   ),
@@ -65,6 +76,7 @@ function entry(slot: MealSlot, recipeId = `${slot}-0`, servings = 1): MealPlanEn
     mealSlot: slot,
     recipeId,
     servings,
+    extraServings: 0,
     createdAt: "",
     updatedAt: "",
   };
@@ -436,6 +448,47 @@ describe("WeekView — Rezept-Details", () => {
     expect(screen.getByRole("dialog", { name: "Kochmodus-Platzhalter" })).toBeTruthy();
     // das Detailblatt ist dabei zu
     expect(screen.queryByRole("dialog", { name: /^Details:/ })).toBeNull();
+  });
+
+  it("Kochen aus der Tagesbühne: Start-Portionen = eigene + Gäste, Dialog bekommt den Plan-Eintrag", () => {
+    setWeek({
+      recipes: poolWithDetails(),
+      entries: [{ ...entry("breakfast", "breakfast-0"), extraServings: 5 }],
+    });
+    renderView();
+    menuAction("Frühstück", "Kochen");
+    expect(screen.getByTestId("cook-info").textContent).toBe("für 6 · Plan e-breakfast");
+  });
+
+  it("Kochen aus der aufgeklappten Woche (DayCard): ebenfalls mit Gäste-Portionen und Plan-Eintrag", () => {
+    setWeek({
+      recipes: poolWithDetails(),
+      entries: [{ ...entry("breakfast", "breakfast-0"), extraServings: 5 }],
+    });
+    renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Woche aufklappen" }));
+    menuAction("Frühstück", "Kochen");
+    expect(screen.getByTestId("cook-info").textContent).toBe("für 6 · Plan e-breakfast");
+  });
+
+  it("Kochen aus dem Detailblatt: gleiche Start-Portionen wie aus dem Menü", () => {
+    setWeek({
+      recipes: poolWithDetails(),
+      entries: [{ ...entry("breakfast", "breakfast-0"), extraServings: 2 }],
+    });
+    renderView();
+    fireEvent.click(screen.getByText("Rezept breakfast-0"));
+    fireEvent.click(screen.getByRole("button", { name: "Kochen" }));
+    expect(screen.getByTestId("cook-info").textContent).toBe("für 3 · Plan e-breakfast");
+  });
+
+  it("Kachel zeigt Gäste neben den eigenen Portionen", () => {
+    setWeek({
+      recipes: poolWithDetails(),
+      entries: [{ ...entry("breakfast", "breakfast-0"), extraServings: 5 }],
+    });
+    renderView();
+    expect(screen.getByText(/1 Portion \+ 5 Gäste/)).toBeTruthy();
   });
 
   it("Kachel ohne auflösbares Rezept: Hinweis, Menü nur mit Tauschen und Entfernen", () => {
