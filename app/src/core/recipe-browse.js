@@ -30,7 +30,10 @@ export const PREP_FILTER_OPTIONS = Object.freeze([
 export const RECIPE_SORT_OPTIONS = Object.freeze([
   { value: "title", label: "Titel A–Z" },
   { value: "fastest", label: "Schnellste" },
+  { value: "best", label: "Beste Bewertung" },
 ]);
+
+/** @typedef {"title"|"fastest"|"best"} RecipeSort */
 
 /**
  * Zubereitungszeit als Text: "25 min", "1 h", "8 h 10 min". Ohne Wert (Bestand
@@ -68,19 +71,33 @@ export function hasActiveFilters(filters) {
 
 const byTitle = (a, b) => String(a.title ?? "").localeCompare(String(b.title ?? ""), "de") || (a.id < b.id ? -1 : 1);
 
-/** "fastest": kürzeste Zeit zuerst, Rezepte ohne Zeit zuletzt; Gleichstand nach Titel. */
+/** Bewertet = Anzahl > 0 und ein endlicher Schnitt; alles andere zählt als unbewertet. */
+const isRated = (r) => r.ratingCount > 0 && Number.isFinite(r.ratingAvg);
+
+/**
+ * "fastest": kürzeste Zeit zuerst, Rezepte ohne Zeit zuletzt.
+ * "best": höchster Schnitt zuerst, bei gleichem Schnitt mehr Bewertungen zuerst,
+ * unbewertete zuletzt. Gleichstand jeweils nach Titel.
+ */
 function compareRecipes(a, b, sort) {
   if (sort === "fastest") {
     const am = typeof a.prepMinutes === "number" ? a.prepMinutes : Infinity;
     const bm = typeof b.prepMinutes === "number" ? b.prepMinutes : Infinity;
     if (am !== bm) return am < bm ? -1 : 1;
   }
+  if (sort === "best") {
+    const ar = isRated(a);
+    const br = isRated(b);
+    if (ar !== br) return ar ? -1 : 1;
+    if (ar && a.ratingAvg !== b.ratingAvg) return b.ratingAvg - a.ratingAvg;
+    if (ar && a.ratingCount !== b.ratingCount) return b.ratingCount - a.ratingCount;
+  }
   return byTitle(a, b);
 }
 
 /**
  * @param {Array<object>} recipes  genehmigter Pool (ungefiltert)
- * @param {{filters?:RecipeFilters, intolerances?:string[], sort?:"title"|"fastest"}} [params]
+ * @param {{filters?:RecipeFilters, intolerances?:string[], sort?:RecipeSort}} [params]
  * @returns {{visible:Array<object>, hiddenByIntolerance:number, available:number}}
  *   `available`: Rezepte nach den Unverträglichkeiten, vor Suche/Filter.
  */

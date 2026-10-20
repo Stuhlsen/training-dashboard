@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { browseRecipes, formatPrepTime, hasActiveFilters, normalizeSearch } from "./recipe-browse.js";
+import {
+  RECIPE_SORT_OPTIONS,
+  browseRecipes,
+  formatPrepTime,
+  hasActiveFilters,
+  normalizeSearch,
+} from "./recipe-browse.js";
 
 const r = (id, title, extra = {}) => ({
   id,
@@ -106,6 +112,32 @@ describe("browseRecipes: Dauer (Fahrplan 30 B1)", () => {
 
   it("Standard bleibt nach Titel", () => {
     expect(browseRecipes(TIMED).visible.map((x) => x.id)).toEqual(["a", "b", "c", "d", "e", "f"]);
+  });
+
+  it("Sortierung 'best': Schnitt absteigend, bei Gleichstand mehr Bewertungen, unbewertete zuletzt", () => {
+    const rated = [
+      r("a", "Auflauf", { ratingAvg: 4.0, ratingCount: 3 }),
+      r("b", "Bowl", { ratingAvg: null, ratingCount: 0 }),
+      r("c", "Curry", { ratingAvg: 4.5, ratingCount: 2 }),
+      r("d", "Dessert"), // Felder fehlen ganz (Rezept ohne Statistik)
+      r("e", "Eintopf", { ratingAvg: 4.5, ratingCount: 9 }),
+      r("f", "Fisch", { ratingAvg: 4.0, ratingCount: 3 }),
+    ];
+    expect(browseRecipes(rated, { sort: "best" }).visible.map((x) => x.id)).toEqual(["e", "c", "a", "f", "b", "d"]);
+  });
+
+  it("Sortierung 'best' behandelt Anzahl 0 oder fehlenden Schnitt als unbewertet", () => {
+    const odd = [
+      r("a", "Auflauf", { ratingAvg: 5, ratingCount: 0 }),
+      r("b", "Bowl", { ratingAvg: Number.NaN, ratingCount: 4 }),
+      r("c", "Curry", { ratingAvg: 2, ratingCount: 1 }),
+    ];
+    expect(browseRecipes(odd, { sort: "best" }).visible.map((x) => x.id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("bietet 'Beste Bewertung' neben 'Schnellste' an", () => {
+    expect(RECIPE_SORT_OPTIONS.map((o) => o.value)).toEqual(["title", "fastest", "best"]);
+    expect(RECIPE_SORT_OPTIONS.find((o) => o.value === "best")?.label).toBe("Beste Bewertung");
   });
 
   it("Zeitfilter und Suche greifen zusammen", () => {
