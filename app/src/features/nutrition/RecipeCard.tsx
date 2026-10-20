@@ -14,6 +14,7 @@ import { useState, type CSSProperties } from "react";
 import { RecipeImage } from "../../components/RecipeImage";
 import type { Recipe } from "../../api/types";
 import { formatPrepTime } from "../../core/recipe-browse.js";
+import { formatRating } from "../../core/recipe-rating.js";
 import { SLOT_LABELS } from "./nutrition-week-model";
 import { SlotMenu, type SlotMenuItem } from "./SlotMenu";
 import { META_STYLE, TAP_MIN } from "./nutrition-styles";
@@ -100,6 +101,7 @@ export function RecipeCard({
           <span style={META_LINE_STYLE}>
             {n ? `${Math.round(n.kcal)} kcal · ${Math.round(n.protein)} g Eiweiß pro Portion` : "Keine Nährwerte"}
           </span>
+          <span style={META_LINE_STYLE}>{formatRating(recipe.ratingAvg, recipe.ratingCount)}</span>
         </span>
       </button>
       <div style={{ position: "absolute", top: 6, right: 6, minWidth: TAP_MIN }}>

@@ -97,6 +97,11 @@ export const qk = {
   /** Eigene Einreichungen (alle Status). Beginnt mit "recipes", damit jede
    *  Einreich-/Änderungs-/Rückzugs-Mutation sie mit ["recipes"] mit invalidiert. */
   mySubmissions: (userId: string) => ["recipes", "mine", userId] as const,
+  /** Schnitt + Anzahl der Sterne je freigegebenem Rezept (View recipe_rating_stats).
+   *  Beginnt mit "recipes", damit eine Bewertung mit ["recipes"] mit invalidiert wird. */
+  recipeRatingStats: () => ["recipes", "rating-stats"] as const,
+  /** Eigene Sterne-Bewertungen (nur die eigene Zeile ist lesbar). */
+  myRecipeRatings: (userId: string) => ["recipes", "my-ratings", userId] as const,
   /** Zutaten-Suche der Rezept-Einreichung (admin-api GET /api/ingredients) —
    *  Tabelle ist für alle gleich, deshalb nur der Suchtext im Key. */
   ingredientSearch: (query: string) => ["ingredient-search", query] as const,

@@ -51,6 +51,11 @@ vi.mock("./CookingDialog", () => ({
   ),
 }));
 
+// Die Sterne im Detailblatt haben eigene Tests (RecipeRating.test.tsx)
+vi.mock("./RecipeRating", () => ({
+  RecipeRating: ({ recipe }: { recipe: { id: string } }) => <div data-testid="rating-slot">Sterne für {recipe.id}</div>,
+}));
+
 // Das Einreichformular hat eigene Tests (RecipeSubmissionForm.test.tsx)
 vi.mock("./RecipeSubmissionForm", () => ({
   RecipeSubmissionForm: ({ onClose, recipe }: { onClose: () => void; recipe?: { title: string } }) => (
@@ -454,5 +459,46 @@ describe("RecipesView — Dauer (Fahrplan 30 B1)", () => {
     expect(titlesInOrder()).toEqual(["Anders", "Bowl", "Curry", "Dessert"]);
     fireEvent.change(screen.getByLabelText("Sortierung"), { target: { value: "fastest" } });
     expect(titlesInOrder()).toEqual(["Bowl", "Anders", "Curry", "Dessert"]);
+  });
+});
+
+describe("RecipesView — Sterne (Fahrplan 30 B3)", () => {
+  function setRatedPool() {
+    mockRecipes = [
+      recipe("a", "Anders", { ratingAvg: 4.0, ratingCount: 3 }),
+      recipe("b", "Bowl", { ratingAvg: null, ratingCount: 0 }),
+      recipe("c", "Curry", { ratingAvg: 4.5, ratingCount: 7 }),
+      recipe("d", "Dessert", { ratingAvg: 4.3, ratingCount: 7 }),
+    ];
+  }
+
+  const titlesInOrder = () =>
+    within(screen.getByRole("list", { name: "Rezepte" }))
+      .getAllByRole("listitem")
+      .map((li) => ["Anders", "Bowl", "Curry", "Dessert"].find((t) => li.textContent?.includes(t)));
+
+  it("die Karte zeigt Schnitt und Anzahl, ohne Bewertung 'noch nicht bewertet'", () => {
+    setRatedPool();
+    renderView();
+    expect(screen.getByText("4,5 ★ (7)")).toBeTruthy();
+    expect(screen.getByText("4,0 ★ (3)")).toBeTruthy();
+    expect(screen.getAllByText("noch nicht bewertet")).toHaveLength(1);
+  });
+
+  it("Sortierung 'Beste Bewertung': höchster Schnitt zuerst, unbewertete zuletzt", () => {
+    setRatedPool();
+    renderView();
+    const option = within(screen.getByLabelText("Sortierung")).getByRole("option", { name: "Beste Bewertung" });
+    expect(option).toBeTruthy();
+    fireEvent.change(screen.getByLabelText("Sortierung"), { target: { value: "best" } });
+    expect(titlesInOrder()).toEqual(["Curry", "Dessert", "Anders", "Bowl"]);
+  });
+
+  it("das Detailblatt bekommt die Sterne des geöffneten Rezepts", () => {
+    setRatedPool();
+    renderView();
+    expect(screen.queryByTestId("rating-slot")).toBeNull();
+    fireEvent.click(screen.getByTitle("Curry"));
+    expect(screen.getByTestId("rating-slot").textContent).toBe("Sterne für c");
   });
 });
