@@ -53,7 +53,11 @@ vi.mock("./CookingDialog", () => ({
 
 // Die Sterne im Detailblatt haben eigene Tests (RecipeRating.test.tsx)
 vi.mock("./RecipeRating", () => ({
-  RecipeRating: ({ recipe }: { recipe: { id: string } }) => <div data-testid="rating-slot">Sterne für {recipe.id}</div>,
+  RecipeRating: ({ recipe }: { recipe: { id: string; ratingCount?: number } }) => (
+    <div data-testid="rating-slot">
+      Sterne für {recipe.id} ({recipe.ratingCount ?? 0})
+    </div>
+  ),
 }));
 
 // Das Einreichformular hat eigene Tests (RecipeSubmissionForm.test.tsx)
@@ -499,6 +503,20 @@ describe("RecipesView — Sterne (Fahrplan 30 B3)", () => {
     renderView();
     expect(screen.queryByTestId("rating-slot")).toBeNull();
     fireEvent.click(screen.getByTitle("Curry"));
-    expect(screen.getByTestId("rating-slot").textContent).toBe("Sterne für c");
+    expect(screen.getByTestId("rating-slot").textContent).toBe("Sterne für c (7)");
+  });
+
+  it("das offene Detailblatt zeigt nach dem Bewerten den frischen Stand (Liste lädt neu)", () => {
+    setRatedPool();
+    const view = renderView();
+    fireEvent.click(screen.getByTitle("Curry"));
+    expect(screen.getByTestId("rating-slot").textContent).toBe("Sterne für c (7)");
+    mockRecipes = mockRecipes.map((r) => (r.id === "c" ? { ...r, ratingAvg: 4.6, ratingCount: 8 } : r));
+    view.rerender(
+      <MemoryRouter>
+        <RecipesView todayISO={TODAY} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId("rating-slot").textContent).toBe("Sterne für c (8)");
   });
 });

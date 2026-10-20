@@ -68,6 +68,8 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
   const [maxMinutes, setMaxMinutes] = useState<number | null>(null);
   const [sort, setSort] = useState<RecipeSort>("title");
   const [details, setDetails] = useState<Recipe | null>(null);
+  // Das Blatt zeigt immer den frischen Stand aus der Liste (Schnitt/Anzahl ändern sich nach dem Bewerten)
+  const detailsLive = details ? (recipes.find((r) => r.id === details.id) ?? details) : null;
   const [picking, setPicking] = useState(false);
   const [cooking, setCooking] = useState<Recipe | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -302,14 +304,14 @@ export function RecipesView({ todayISO }: { todayISO: string }) {
 
       {details && (
         <RecipeDetailsDialog
-          recipe={details}
+          recipe={detailsLive ?? details}
           servings={details.servings}
           servingsText={`Rezept für ${plural(details.servings, "Portion", "Portionen")}`}
           onClose={closeDetails}
           onCook={() => startCooking(details)}
           onAddToPlan={() => setPicking(true)}
           addToPlanDisabledHint={details.nutrition ? null : "Ohne Nährwerte lässt sich das Rezept nicht planen."}
-          ratingSlot={<RecipeRating recipe={details} />}
+          ratingSlot={<RecipeRating recipe={detailsLive ?? details} />}
           planPicker={
             picking && details.nutrition ? (
               <PlanPicker

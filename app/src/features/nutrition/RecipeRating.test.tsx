@@ -10,12 +10,12 @@ let mockUserId: string | null = "u1";
 let mockMine = new Map<string, number>();
 const rateMock = vi.fn();
 const unrateMock = vi.fn();
-let mockPending = false;
+let mockMineFailed = false;
 
 vi.mock("../../api/hooks/useSession", () => ({ useAuthUserId: () => mockUserId }));
 vi.mock("../../api/hooks/useRecipeRatings", () => ({
-  useMyRatings: () => ({ mine: mockMine, isLoading: false, isError: false }),
-  useRateRecipe: () => ({ rate: rateMock, unrate: unrateMock, isPending: mockPending }),
+  useMyRatings: () => ({ mine: mockMine, isLoading: false, isError: mockMineFailed }),
+  useRateRecipe: () => ({ rate: rateMock, unrate: unrateMock, isPending: false }),
 }));
 
 const { RecipeRating } = await import("./RecipeRating");
@@ -35,7 +35,7 @@ function recipe(extra: Partial<Recipe> = {}): Recipe {
 beforeEach(() => {
   mockUserId = "u1";
   mockMine = new Map();
-  mockPending = false;
+  mockMineFailed = false;
   rateMock.mockReset();
   unrateMock.mockReset();
   rateMock.mockResolvedValue({ ok: true });
@@ -114,10 +114,37 @@ describe("RecipeRating — Bedienung", () => {
     await waitFor(() => expect(screen.queryByRole("alert")).toBeNull());
   });
 
-  it("sperrt die Knöpfe, solange gespeichert wird", () => {
-    mockPending = true;
+  it("sperrt die Knöpfe nie (ein gesperrter Knopf verliert den Fokus), fängt aber Doppelklicks ab", async () => {
+    let finish: (v: { ok: true }) => void = () => {};
+    rateMock.mockReturnValueOnce(new Promise((resolve) => (finish = resolve)));
     render(<RecipeRating recipe={recipe()} />);
-    expect(screen.getByRole("button", { name: "3 von 5 Sternen" }).hasAttribute("disabled")).toBe(true);
+    const star = screen.getByRole("button", { name: "3 von 5 Sternen" });
+    star.focus();
+    fireEvent.click(star);
+    fireEvent.click(star);
+    expect(star.hasAttribute("disabled")).toBe(false);
+    expect(document.activeElement).toBe(star);
+    expect(rateMock).toHaveBeenCalledTimes(1);
+    finish({ ok: true });
+    // Nach Abschluss ist der nächste Klick wieder erlaubt
+    await waitFor(() => {
+      fireEvent.click(star);
+      expect(rateMock.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  it("nach dem Zurücknehmen wandert der Fokus auf den ersten Stern (der Knopf verschwindet)", async () => {
+    mockMine = new Map([["r1", 3]]);
+    render(<RecipeRating recipe={recipe()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Bewertung zurücknehmen" }));
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByRole("button", { name: "1 von 5 Sternen" })));
+  });
+
+  it("sagt Bescheid, wenn die eigene Bewertung nicht geladen werden konnte, und bietet die Sterne weiter an", () => {
+    mockMineFailed = true;
+    render(<RecipeRating recipe={recipe()} />);
+    expect(screen.getByRole("status").textContent).toMatch(/nicht geladen werden/);
+    expect(screen.getByRole("button", { name: "2 von 5 Sternen" })).toBeTruthy();
   });
 });
 

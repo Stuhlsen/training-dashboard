@@ -13,7 +13,7 @@
    freigegebene Rezepte bieten keine Sterne an (die Datenbank lehnt sie ohnehin ab).
    ============================================================ */
 
-import { useState, type CSSProperties } from "react";
+import { useRef, useState, type CSSProperties } from "react";
 import { useAuthUserId } from "../../api/hooks/useSession";
 import { useMyRatings, useRateRecipe } from "../../api/hooks/useRecipeRatings";
 import type { Recipe } from "../../api/types";
@@ -51,25 +51,34 @@ const starsLabel = (n: number) => `${n} von ${RATING_MAX} Sternen`;
 
 export function RecipeRating({ recipe }: { recipe: Recipe }) {
   const userId = useAuthUserId();
-  const { mine } = useMyRatings();
-  const { rate, unrate, isPending } = useRateRecipe();
+  const { mine, isError: mineFailed } = useMyRatings();
+  const { rate, unrate } = useRateRecipe();
   const [failed, setFailed] = useState(false);
+  // Doppelklicks abfangen, ohne die Knöpfe zu sperren: ein gesperrter Knopf verliert
+  // den Fokus, und Tastaturnutzer landen auf der Seite statt im Blatt.
+  const busy = useRef(false);
+  const firstStar = useRef<HTMLButtonElement>(null);
 
   const own = mine.get(recipe.id) ?? null;
   const canRate = canRateRecipe(recipe, userId);
   const isOwnRecipe = !!userId && recipe.submittedBy === userId;
 
-  async function onPick(stars: number) {
+  async function run(action: () => ReturnType<typeof rate>, afterOk?: () => void) {
+    if (busy.current) return;
+    busy.current = true;
     setFailed(false);
-    const result = await rate(recipe.id, stars);
-    if (!result.ok) setFailed(true);
+    try {
+      const result = await action();
+      if (result.ok) afterOk?.();
+      else setFailed(true);
+    } finally {
+      busy.current = false;
+    }
   }
 
-  async function onWithdraw() {
-    setFailed(false);
-    const result = await unrate(recipe.id);
-    if (!result.ok) setFailed(true);
-  }
+  const onPick = (stars: number) => run(() => rate(recipe.id, stars));
+  // Der Knopf verschwindet mit der Bewertung — der Fokus zieht auf den ersten Stern um
+  const onWithdraw = () => run(() => unrate(recipe.id), () => firstStar.current?.focus());
 
   return (
     <div>
@@ -84,10 +93,10 @@ export function RecipeRating({ recipe }: { recipe: Recipe }) {
               return (
                 <button
                   key={n}
+                  ref={n === 1 ? firstStar : undefined}
                   type="button"
                   aria-label={starsLabel(n)}
                   aria-pressed={own === n}
-                  disabled={isPending}
                   style={starStyle(filled)}
                   onClick={() => void onPick(n)}
                 >
@@ -99,7 +108,7 @@ export function RecipeRating({ recipe }: { recipe: Recipe }) {
           {own !== null ? (
             <p style={HINT_STYLE}>
               Deine Bewertung: {starsLabel(own)}.{" "}
-              <button type="button" style={TAP_BUTTON_STYLE} disabled={isPending} onClick={() => void onWithdraw()}>
+              <button type="button" style={TAP_BUTTON_STYLE} onClick={() => void onWithdraw()}>
                 Bewertung zurücknehmen
               </button>
             </p>
@@ -110,6 +119,12 @@ export function RecipeRating({ recipe }: { recipe: Recipe }) {
       )}
 
       {isOwnRecipe && <p style={HINT_STYLE}>Dein eigenes Rezept kannst du nicht bewerten.</p>}
+
+      {canRate && mineFailed && (
+        <p role="status" style={HINT_STYLE}>
+          Deine bisherige Bewertung konnte nicht geladen werden. Neue Sterne speichern trotzdem.
+        </p>
+      )}
 
       {failed && (
         <p role="alert" style={{ ...HINT_STYLE, color: "var(--danger)" }}>
