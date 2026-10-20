@@ -3920,14 +3920,22 @@ if (!HAS_CREDS) {
       token: athlete.token,
     });
     assert.equal(read.ok, true);
-    assert.equal(Number(read.data[0].extra_servings), 0, "extra_servings muss standardmaessig 0 sein");
+    assert.equal(
+      Number(read.data[0].extra_servings),
+      0,
+      "extra_servings muss standardmaessig 0 sein"
+    );
 
     const update = await rest("PATCH", `meal_plan_entries?id=eq.${id}`, {
       token: athlete.token,
       body: { extra_servings: 4.5 },
     });
     assert.equal(update.ok, true);
-    assert.equal(Number(update.data?.[0]?.extra_servings), 4.5, "Athlet konnte extra_servings nicht setzen");
+    assert.equal(
+      Number(update.data?.[0]?.extra_servings),
+      4.5,
+      "Athlet konnte extra_servings nicht setzen"
+    );
     assert.equal(Number(update.data?.[0]?.servings), 1, "servings darf sich nicht aendern");
   });
 
@@ -3946,10 +3954,16 @@ if (!HAS_CREDS) {
         token: athlete.token,
         body: mealPlanEntryBody(recipeId, { extra_servings: bad }),
       });
-      assert.equal(res.ok, false, `extra_servings=${bad} haette am CHECK-Constraint scheitern muessen`);
+      assert.equal(
+        res.ok,
+        false,
+        `extra_servings=${bad} haette am CHECK-Constraint scheitern muessen`
+      );
       if (res.ok && Array.isArray(res.data) && res.data[0]?.id) {
         cleanupTasks.push(async () => {
-          await rest("DELETE", `meal_plan_entries?id=eq.${res.data[0].id}`, { token: athlete.token });
+          await rest("DELETE", `meal_plan_entries?id=eq.${res.data[0].id}`, {
+            token: athlete.token,
+          });
         });
       }
     }
@@ -5071,7 +5085,6 @@ if (!HAS_CREDS) {
     assert.equal(over.ok, false, "der 21. Wunsch hätte am Limit-Trigger scheitern müssen");
     assert.match(over.data?.message ?? "", /limit of 20/);
   });
-}
 
   // --- 19. recipe_ratings (0075, Fahrplan 30 B3) ---------------------------------
   // Sterne 1-5 nur auf freigegebene Rezepte, nicht auf das eigene, je Athlet und Rezept
@@ -5313,3 +5326,4 @@ if (!HAS_CREDS) {
     });
     assert.deepEqual(hidden.data, []);
   });
+}
