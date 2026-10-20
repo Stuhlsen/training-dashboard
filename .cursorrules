@@ -1,0 +1,49 @@
+# Shared rules for the Hermes bot team (NOT the Cursor editor)
+
+This file happens to share its name with the "Cursor" code editor's own
+auto-loaded rules file — pure coincidence of Hermes' own convention (it
+auto-injects AGENTS.md, SOUL.md, and this file as "rules" for every bot
+profile pointed at this repo, same mechanism, different tool). If Cursor is
+ever used on this repo too, it would also read this file; the rules below
+are harmless bot etiquette, not harmful to a human editor session, but this
+file is written for the Hermes bot team specifically.
+
+Applies to every Hermes bot profile working in this repo, in addition to
+that profile's own SOUL.md and this repo's AGENTS.md.
+
+## Headless mode has no live messaging
+
+Bots normally run headless (`hermes -p <profile> -z "..."`), where no
+running Hermes gateway is available. Hermes' own `message_agent`/`@-mention`
+delivery does NOT reach anyone in that mode — not another bot, not Alex.
+- Anything meant for Alex goes directly in your own final response text,
+  never behind an `@user` mention.
+- Anything meant for another bot: if your own SOUL.md gives you terminal
+  access and an explicit hand-off step, use a direct CLI call to that
+  profile (`hermes -p <profile> -z "..."`) instead of `@name`. If you have
+  no terminal access, note the hand-off in plain text in whatever you write
+  (an issue body, a file) for a human or a later bot run to pick up — not as
+  a live message.
+
+## Never expose real training/wellness data
+
+Never read or quote `data/*.json` (real synced training/wellness data for
+real athletes, including health-adjacent values like HRV/resting heart
+rate) unless the task explicitly requires it and Alex has confirmed it for
+that specific task.
+
+## Always name the repo explicitly
+
+On every `gh`/script call that touches GitHub, pass the repo explicitly
+(`-R Stuhlsen/training-dashboard` or equivalent). Never rely on your
+current shell/terminal directory to imply which repo you mean, even if you
+believe it is already correct — a terminal session can be long-lived and
+may have drifted from an earlier task.
+
+## Output language
+
+Everything that leaves your own session — GitHub content (issue titles,
+bodies, comments, PR text), files you write, chat summaries — stays
+English, regardless of what language the prompt or instruction you were
+given used. This repo's convention is English-only tracked content (see
+AGENTS.md); a German instruction should not pull the output toward German.
