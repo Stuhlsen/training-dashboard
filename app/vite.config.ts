@@ -101,6 +101,9 @@ export default defineConfig(({ command }) => ({
           include: ["src/**/*.test.{js,ts,tsx}"],
           exclude: ["src/core/**"],
           environment: "jsdom",
+          // Unmountet nach jedem Test (s. Kopf von setup.ts) — verhindert
+          // sporadische "window is not defined"-Fehler nach dem jsdom-Abbau.
+          setupFiles: ["./src/test/setup.ts"],
         },
       },
     ],

@@ -57,9 +57,12 @@ describe("NutritionSection", () => {
 
   it("rendert das Geschlecht-Feld mit Keine Angabe als Standard", () => {
     render(<NutritionSection />);
-    const selects = screen.getAllByRole("combobox");
-    // Das zweite select (nach Zieltyp) ist das Geschlecht-select
-    expect(selects.length).toBeGreaterThanOrEqual(2);
+    // Zieltyp-select liegt seit #182 im eingeklappten Ziel-Formular — offen
+    // ist nur das Geschlecht-select. (Bis zum globalen cleanup() lief der
+    // Test nur grün, weil der Render des Vortests noch im DOM hing.)
+    const sexSelect = screen.getByRole("combobox") as HTMLSelectElement;
+    expect(sexSelect.value).toBe("");
+    expect(sexSelect.selectedOptions[0]?.textContent).toBe("Keine Angabe");
   });
 
   it("ruft saveSex beim Ändern des Geschlechts", async () => {
