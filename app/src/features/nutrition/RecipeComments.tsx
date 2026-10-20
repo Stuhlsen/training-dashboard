@@ -116,12 +116,13 @@ function CommentItem({ comment, userId, isAdmin, onVote, onRemove }: ItemProps) 
               <button
                 key={c.value}
                 type="button"
+                aria-label={c.label}
                 aria-pressed={comment.myVote === c.value}
                 style={choiceStyle(comment.myVote === c.value)}
                 onClick={() => void onVote(comment, c.value)}
               >
-                <span aria-hidden="true">{c.symbol} </span>
-                {c.label}
+                {/* Das Emoji allein sagt, wofür man wertet; der Name steht nur für Screenreader da */}
+                <span aria-hidden="true">{c.symbol}</span>
               </button>
             ))}
           </div>

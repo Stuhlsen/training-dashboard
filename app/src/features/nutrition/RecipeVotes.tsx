@@ -81,12 +81,13 @@ export function RecipeVotes({ recipe }: { recipe: Recipe }) {
               <button
                 key={c.value}
                 type="button"
+                aria-label={c.label}
                 aria-pressed={own === c.value}
                 style={choiceStyle(own === c.value)}
                 onClick={() => void onPick(c.value)}
               >
-                <span aria-hidden="true">{c.symbol} </span>
-                {c.label}
+                {/* Das Emoji allein sagt, wofür man wertet; der Name steht nur für Screenreader da */}
+                <span aria-hidden="true">{c.symbol}</span>
               </button>
             ))}
           </div>
