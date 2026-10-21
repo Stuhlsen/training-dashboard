@@ -1,0 +1,261 @@
+# Fahrplan 31 E6, Vertrag V6 — lokaler Demo-Stack mit fiktiven Daten
+# (Vor-Commit-Check). Start/Stopp NUR über die npm-Skripte:
+#
+#   npm run demo:init        # einmalig: .env.demo
+#   npm run demo:up          # = docker compose --env-file .env.demo -f docker-compose.demo.yml up -d --build
+#   npm run demo:down        # anhalten; leeren: npm run demo:down -- -v
+#   → http://localhost:8080, Login z. B. lena.rides@demo.local
+#
+# Regel Nr. 1 (Fahrplan 31): echte Daten verschwinden nie.
+# - Eigenes Compose-Projekt "training-dashboard-demo" → eigene Container,
+#   eigenes Netz, eigene Volumes (training-dashboard-demo_demo_*). Kein
+#   Verweis auf training-dashboard_data, pgdata oder die echte .env.
+# - Warum --env-file: ohne liest Compose zur ${…}-Ersetzung automatisch die
+#   .env im Repo-Ordner, also die ECHTE. Empirisch geprüft (E6): auch ein
+#   "include" mit eigener env_file lässt deren Werte gewinnen. Nur
+#   --env-file sperrt die echte .env ganz aus.
+# - Zweites Schloss: jede Variable heißt DEMO_* und ist Pflicht (:?). Wer
+#   den Stack ohne --env-file startet, bekommt einen lauten Abbruch statt
+#   echter Werte.
+#
+# Supabase-Teil wie docker-compose.selfhost.yml (Begründungen der einzelnen
+# Schritte stehen dort), Frontend wie docker-compose.dev.yml. Unterschiede:
+# eigene Volumes, Proxy auf 8000 mit Caddyfile.demo, GoTrue erlaubt
+# zusätzlich den Vite-Dev-Server (:5173), plus demo-grants und demo-seed.
+# Nichts davon geht nach publish-images.yml oder auf apps01.
+name: training-dashboard-demo
+
+services:
+  postgres:
+    image: supabase/postgres:17.11.0.004
+    environment:
+      POSTGRES_PASSWORD: ${DEMO_POSTGRES_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      JWT_SECRET: ${DEMO_JWT_SECRET:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+    volumes:
+      - demo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Rollen-Passwörter, Standardrechte entziehen, Storage-Rechte,
+  # Rollen-Zyklus lösen — 1:1 wie db-init in docker-compose.selfhost.yml.
+  db-init:
+    image: supabase/postgres:17.11.0.004
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${DEMO_POSTGRES_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      AUTHENTICATOR_PASSWORD: ${DEMO_AUTHENTICATOR_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      AUTH_ADMIN_PASSWORD: ${DEMO_AUTH_ADMIN_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+    entrypoint: ["bash", "-c"]
+    command:
+      - >
+        psql -h postgres -U supabase_admin -d postgres -c
+        "ALTER ROLE authenticator WITH PASSWORD '$$AUTHENTICATOR_PASSWORD' LOGIN;" &&
+        psql -h postgres -U supabase_admin -d postgres -c
+        "ALTER ROLE supabase_auth_admin WITH PASSWORD '$$AUTH_ADMIN_PASSWORD';" &&
+        psql -h postgres -U supabase_admin -d postgres -c
+        "ALTER DEFAULT PRIVILEGES FOR ROLE postgres IN SCHEMA public REVOKE ALL ON TABLES FROM anon, authenticated, service_role;" &&
+        psql -h postgres -U supabase_admin -d postgres -c
+        "GRANT ALL ON SCHEMA storage TO postgres, supabase_storage_admin; GRANT ALL ON ALL TABLES IN SCHEMA storage TO postgres, supabase_storage_admin;" &&
+        psql -h postgres -U supabase_admin -d postgres -c
+        "REVOKE authenticator FROM postgres;"
+
+  storage-init:
+    image: supabase/storage-api:v1.82.0
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      PGRST_JWT_SECRET: ${DEMO_JWT_SECRET:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      DATABASE_URL: postgres://supabase_admin:${DEMO_POSTGRES_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}@postgres:5432/postgres?sslmode=disable
+    entrypoint: ["node", "dist/scripts/migrate-call.js"]
+
+  migrate:
+    build:
+      context: ./supabase
+    depends_on:
+      storage-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://postgres:${DEMO_POSTGRES_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}@postgres:5432/postgres?sslmode=disable
+
+  # Schmale Schreibrechte für demo-seed (scripts/demo/grants.sql, V1/E4).
+  # Bewusst KEINE Migration — läuft nur hier, nie auf apps01. GRANT ist
+  # idempotent, der Schritt läuft bei jedem "up" erneut.
+  demo-grants:
+    image: supabase/postgres:17.11.0.004
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      PGPASSWORD: ${DEMO_POSTGRES_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+    volumes:
+      - ./scripts/demo/grants.sql:/demo/grants.sql:ro
+    entrypoint:
+      [
+        "psql",
+        "-h",
+        "postgres",
+        "-U",
+        "supabase_admin",
+        "-d",
+        "postgres",
+        "-v",
+        "ON_ERROR_STOP=1",
+        "-f",
+        "/demo/grants.sql",
+      ]
+
+  gotrue:
+    image: supabase/gotrue:v2.197.0
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      GOTRUE_DB_DRIVER: postgres
+      GOTRUE_DB_DATABASE_URL: postgres://supabase_auth_admin:${DEMO_AUTH_ADMIN_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}@postgres:5432/postgres?sslmode=disable
+      GOTRUE_SITE_URL: http://localhost:8080
+      # Container-Frontend UND Vite-Dev-Server (npm run dev im Demo-Modus)
+      GOTRUE_URI_ALLOW_LIST: http://localhost:8080,http://localhost:5173
+      GOTRUE_JWT_SECRET: ${DEMO_JWT_SECRET:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      GOTRUE_JWT_AUD: authenticated
+      GOTRUE_JWT_EXP: "3600"
+      GOTRUE_DISABLE_SIGNUP: "true"
+      GOTRUE_MAILER_AUTOCONFIRM: "true"
+      API_EXTERNAL_URL: http://localhost:8000/auth/v1
+      GOTRUE_EXTERNAL_EMAIL_ENABLED: "true"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgrest:
+    image: postgrest/postgrest:v16.4
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      PGRST_DB_URI: postgres://authenticator:${DEMO_AUTHENTICATOR_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}@postgres:5432/postgres
+      PGRST_DB_SCHEMAS: public
+      PGRST_DB_ANON_ROLE: anon
+      PGRST_JWT_SECRET: ${DEMO_JWT_SECRET:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+
+  admin-api:
+    build:
+      context: .
+      dockerfile: admin-api/Dockerfile
+    depends_on:
+      postgrest:
+        condition: service_started
+      gotrue:
+        condition: service_healthy
+    environment:
+      PORT: "3001"
+      JWT_SECRET: ${DEMO_JWT_SECRET:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      POSTGREST_INTERNAL_URL: http://postgrest:3000
+      GOTRUE_INTERNAL_URL: http://gotrue:8081
+      SUPABASE_SERVICE_ROLE_KEY: ${DEMO_SERVICE_ROLE_KEY:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+
+  storage-api:
+    image: supabase/storage-api:v1.82.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      db-init:
+        condition: service_completed_successfully
+    environment:
+      ANON_KEY: ${DEMO_ANON_KEY:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      SERVICE_KEY: ${DEMO_SERVICE_ROLE_KEY:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      POSTGREST_URL: http://postgrest:3000
+      PGRST_JWT_SECRET: ${DEMO_JWT_SECRET:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      DATABASE_URL: postgres://supabase_admin:${DEMO_POSTGRES_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}@postgres:5432/postgres?sslmode=disable
+      UPLOAD_FILE_SIZE_LIMIT: "15728640" # 15MB
+      STORAGE_BACKEND: file
+      STORAGE_FILE_BACKEND_PATH: /var/lib/storage
+      TENANT_ID: default
+      REGION: local
+      GLOBAL_S3_BUCKET: bikefit-photos
+      IMAGE_TRANSFORMATION_ENABLED: "false"
+    volumes:
+      - demo_storage:/var/lib/storage
+
+  # Port 8000 statt 80: der normale Selfhost-Stack (Port 80) kann parallel
+  # laufen, beide berühren sich nie.
+  proxy:
+    image: caddy:2.11-alpine
+    depends_on:
+      gotrue:
+        condition: service_healthy
+      postgrest:
+        condition: service_started
+      admin-api:
+        condition: service_started
+      storage-api:
+        condition: service_started
+    # nur 127.0.0.1: das Demo-Passwort ist dokumentiert, der Stack soll
+    # nicht aus dem Heimnetz erreichbar sein
+    ports:
+      - "127.0.0.1:8000:80"
+    volumes:
+      - ./Caddyfile.demo:/etc/caddy/Caddyfile:ro
+
+  # Einmal sofort, dann alle 24 h: demo:generate + demo:seed (s.
+  # scripts/demo/docker-entrypoint.sh). Nur lokaler Build.
+  # network_mode "service:proxy": demo-seed teilt den Netz-Namespace des
+  # Proxys, "http://localhost" IST damit der Proxy. So hält die Ziel-Sperre
+  # (nur localhost/127.0.0.1, V1) ungelockert.
+  demo-seed:
+    build:
+      context: .
+      dockerfile: scripts/demo/Dockerfile
+    network_mode: "service:proxy"
+    depends_on:
+      demo-grants:
+        condition: service_completed_successfully
+      proxy:
+        condition: service_started
+    environment:
+      DEMO_SUPABASE_URL: http://localhost
+      DEMO_SERVICE_ROLE_KEY: ${DEMO_SERVICE_ROLE_KEY:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      # "heute" des Generators = lokales Datum (localToday() in lib/cli.js)
+      TZ: Europe/Berlin
+    volumes:
+      - demo_data:/demo/data-demo
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./app
+      args:
+        VITE_APP_VERSION: ${VITE_APP_VERSION:-dev}
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      SUPABASE_URL: ${DEMO_SUPABASE_URL:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      SUPABASE_ANON_KEY: ${DEMO_ANON_KEY:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      # einziger Weg in den Demo-Modus der App (V5: nur env "demo")
+      RUNTIME_ENV: demo
+    volumes:
+      - demo_data:/usr/share/nginx/html/data:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  demo_pgdata:
+  demo_data:
+  demo_storage:

@@ -23,6 +23,8 @@
    die selbstgewählten Pseudonyme (GitHub-Handles).
    ============================================================ */
 
+import { getEnvironment, type Environment } from "./api/supabase/config";
+
 export interface AthleteConfig {
   id: string;
   /** Selbstgewähltes Pseudonym — zugleich `profiles.display_name` in
@@ -88,13 +90,11 @@ export interface AthleteConfig {
   generatedPlan?: boolean;
 }
 
-export const PRIMARY_ATHLETE_ID = "athlete1";
-
 /** Reservierte ID des eigenen Eintrags für Accounts ohne Platz in `ATHLETES`
  *  (Definition + Logik: `core/athlete-selection.js`). */
 export { SELF_ATHLETE_ID } from "./core/athlete-selection.js";
 
-export const ATHLETES: readonly AthleteConfig[] = [
+const REAL_ATHLETES: readonly AthleteConfig[] = [
   {
     id: "athlete1",
     name: "Stuhlsen",
@@ -172,6 +172,61 @@ export const ATHLETES: readonly AthleteConfig[] = [
     generatedPlan: true,
   },
 ];
+
+/** Demo-Besetzung (Fahrplan 31, Vertrag V2) — rein fiktiv. IDs und Namen
+ *  exakt wie `scripts/demo/lib/roster.js` (`name` = `profiles.display_name`,
+ *  sonst findet `findSlotId()` den Platz nicht). FTP: Start = erster Wert
+ *  aus `ftpSeason`, gemessen = letzter (der Generator wechselt je Zyklus,
+ *  die Config ist fest). Kein `generatedPlan`: im Demo-Modus gibt es keinen
+ *  Sync, der eine Vorlage mitverschiebt. */
+export const DEMO_ATHLETES: readonly AthleteConfig[] = [
+  {
+    id: "demo1",
+    name: "lena.rides",
+    endpoint: "data/rides-demo1.json",
+    ftpMeasured: 222,
+    ftpMeasuredDate: null,
+    eFTP: null,
+    ftpGoal: 232,
+    seasonStartFtp: 205,
+    hrMax: 188,
+    hrRest: 50,
+    sports: ["ride"],
+    dataSources: ["Wahoo", "Garmin"],
+  },
+  {
+    id: "demo2",
+    name: "tri_jonas",
+    endpoint: "data/rides-demo2.json",
+    ftpMeasured: 252,
+    ftpMeasuredDate: null,
+    eFTP: null,
+    ftpGoal: 262,
+    seasonStartFtp: 238,
+    hrMax: 182,
+    hrRest: 46,
+    sports: ["ride", "run", "swim"],
+    dataSources: ["Garmin"],
+  },
+];
+
+/** Welche Besetzung gilt: `DEMO_ATHLETES` genau dann, wenn die Umgebung
+ *  "demo" ist (V5) — sonst die echte Liste. Rein, damit testbar. */
+export function rosterFor(env: Environment): readonly AthleteConfig[] {
+  return env === "demo" ? DEMO_ATHLETES : REAL_ATHLETES;
+}
+
+/** Die Umgebung steht pro Seitenaufruf fest (index.html setzt
+ *  `__RUNTIME_CONFIG__` vor dem App-Bundle) — darum wird die Liste einmal
+ *  beim Laden gewählt, und ALLE Leser von `ATHLETES`/`athleteConfig()`
+ *  sehen im Demo-Modus nur die Demo-Besetzung, ohne eigene Weiche.
+ *  `typeof window`: Node-Kontexte ohne DOM bekommen die echte Liste. */
+const ACTIVE_ENV: Environment = typeof window === "undefined" ? "unknown" : getEnvironment();
+
+export const ATHLETES: readonly AthleteConfig[] = rosterFor(ACTIVE_ENV);
+
+/** Erster Platz der aktiven Besetzung — Start-Athlet ohne gespeicherte Wahl. */
+export const PRIMARY_ATHLETE_ID = ATHLETES[0].id;
 
 export function athleteConfig(id: string): AthleteConfig | null {
   return ATHLETES.find((a) => a.id === id) ?? null;

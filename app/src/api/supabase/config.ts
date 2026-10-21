@@ -1,4 +1,4 @@
-export type Environment = "dev" | "prod" | "unknown";
+export type Environment = "dev" | "prod" | "demo" | "unknown";
 
 interface SupabaseHostConfig {
   env: Environment;
@@ -14,7 +14,7 @@ declare global {
     __RUNTIME_CONFIG__?: {
       supabaseUrl?: string;
       supabaseAnonKey?: string;
-      env?: "dev" | "prod";
+      env?: "dev" | "prod" | "demo";
     };
   }
 }
@@ -34,6 +34,21 @@ const SUPABASE_CONFIG: Record<string, SupabaseHostConfig> = {
   },
 };
 
+/** Nur http(s) auf localhost/127.0.0.1 (Port beliebig) — dieselbe Regel
+ *  wie die Ziel-Sperre der Demo-Skripte (`scripts/demo/lib/guards.js`). */
+function isLocalUrl(raw: string): boolean {
+  try {
+    const u = new URL(raw);
+    return (
+      (u.protocol === "http:" || u.protocol === "https:") &&
+      !u.username &&
+      (u.hostname === "localhost" || u.hostname === "127.0.0.1")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /** Liest den SUPABASE_CONFIG-Eintrag für den aktuellen Hostname (roh, ohne
  *  Vollständigkeitsprüfung) — von getConfig() und getEnvironment() geteilt,
  *  damit die Host/Port-Auflösung nur an einer Stelle steht.
@@ -48,6 +63,24 @@ const SUPABASE_CONFIG: Record<string, SupabaseHostConfig> = {
  *  echte Prod-Instanz mit dem entwarnenden dev-Badge zeigen. */
 function resolveEntry(): SupabaseHostConfig | null {
   const runtime = window.__RUNTIME_CONFIG__;
+  // Demo (Fahrplan 31, V5): NUR ein ausdrückliches env "demo" ergibt Demo
+  // (Q17) — weder Hostname noch Port noch ein fehlendes env. Fehlen URL
+  // oder Key, oder zeigt die URL nicht auf localhost, bleibt die Config
+  // leer (getConfig() → null, kein Supabase-Client). Bewusst KEIN Rückfall
+  // auf die Hostname-Tabelle: deren localhost-Zeile ist dashboard-dev mit
+  // echten Daten (Regel Nr. 1).
+  if (runtime?.env === "demo") {
+    const url = runtime.supabaseUrl ?? "";
+    const key = runtime.supabaseAnonKey ?? "";
+    const ok = isLocalUrl(url) && !!key;
+    return { env: "demo", projectUrl: ok ? url : "", anonKey: ok ? key : "" };
+  }
+  // Zweiter Riegel: der Vite-Dev-Server im Modus "demo" (`npm run dev`)
+  // schreibt die Demo-Config selbst in index.html (vite.config.ts). Fehlt
+  // sie trotzdem, gibt es auch hier keinen Rückfall auf dashboard-dev.
+  if (import.meta.env.MODE === "demo") {
+    return { env: "unknown", projectUrl: "", anonKey: "" };
+  }
   if (runtime?.supabaseUrl && runtime?.supabaseAnonKey) {
     const env: Environment =
       runtime.env === "prod" ? "prod" : !runtime.env || runtime.env === "dev" ? "dev" : "unknown";

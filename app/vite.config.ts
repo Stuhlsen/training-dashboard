@@ -1,10 +1,11 @@
 /// <reference types="vitest/config" />
 import { execSync } from "node:child_process";
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { parseEnvFile, resolveDemoRuntime, type DemoRuntimeConfig } from "./src/dev-server/demo-runtime.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -47,18 +48,19 @@ function resolveVersion(): string {
  *  Bewusst kein Symlink und kein `publicDir: "../data"`: ersteres braucht
  *  unter Windows erhöhte Rechte, letzteres würde Vites eigenes `public/`
  *  verdrängen. */
-function serveRepoData(): Plugin {
+function serveRepoData(dataDir: "data" | "data-demo"): Plugin {
+  const root = path.join(REPO_ROOT, dataDir);
   return {
     name: "serve-repo-data",
     apply: "serve",
     configureServer(server) {
       server.middlewares.use("/data", (req, res, next) => {
         const name = path.basename(decodeURIComponent((req.url ?? "").split("?")[0]));
-        const file = path.join(REPO_ROOT, "data", name);
+        const file = path.join(root, name);
         // basename() oben schneidet jeden Pfadanteil weg — ein
         // "../../.env" kann hier gar nicht erst ankommen. Die Prüfung
         // bleibt trotzdem stehen, falls die Zeile darüber je gelockert wird.
-        if (!name.endsWith(".json") || !file.startsWith(path.join(REPO_ROOT, "data"))) {
+        if (!name.endsWith(".json") || !file.startsWith(root + path.sep)) {
           return next();
         }
         if (!existsSync(file)) return next();
@@ -69,13 +71,59 @@ function serveRepoData(): Plugin {
   };
 }
 
+/** Laufzeit-Config des Demo-Modus (Fahrplan 31, E5) — Prüfung und Regeln in
+ *  `src/dev-server/demo-runtime.ts` (getestet). Hier nur das I/O: Umgebung
+ *  plus NUR `<repo>/.env.demo`. Bewusst nicht Vites `loadEnv()`: das läse
+ *  die echte `.env` mit (Fahrplan 31, E4: die echte .env wird nie geladen).
+ *  Fehlt etwas, wirft resolveDemoRuntime() — der Dev-Server startet nicht. */
+function demoRuntimeConfig(): DemoRuntimeConfig {
+  const file = path.join(REPO_ROOT, ".env.demo");
+  const fileVars = existsSync(file) ? parseEnvFile(readFileSync(file, "utf8")) : {};
+  return resolveDemoRuntime(process.env, fileVars);
+}
+
+/** Demo-Modus im Dev-Server (`npm run dev` = `vite --mode demo`): schreibt
+ *  `window.__RUNTIME_CONFIG__` direkt in index.html — derselbe Endpunkt wie
+ *  im Container (config.json), aber ohne Request, der scheitern kann
+ *  (index.html überspringt config.json auf Port 5173). `/config.json` liefert
+ *  zusätzlich dieselben Werte, falls Vite auf einen anderen Port ausweicht
+ *  und index.html dort doch nachlädt. */
+function serveDemoRuntimeConfig(runtime: DemoRuntimeConfig): Plugin {
+  const json = JSON.stringify(runtime);
+  return {
+    name: "serve-demo-runtime-config",
+    apply: "serve",
+    transformIndexHtml() {
+      return [
+        {
+          tag: "script",
+          attrs: { "data-cookieconsent": "ignore" },
+          children: `window.__RUNTIME_CONFIG__ = ${json.replace(/</g, "\\u003c")};`,
+          injectTo: "head-prepend",
+        },
+      ];
+    },
+    configureServer(server) {
+      server.middlewares.use("/config.json", (_req, res) => {
+        res.setHeader("Content-Type", "application/json");
+        res.end(json);
+      });
+    },
+  };
+}
+
 // https://vite.dev/config/
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command, mode }) => ({
   // GitHub Pages liefert die Projektseite unter /training-dashboard/ (Etappe
   // 10c). Nur im Build setzen, nicht im Dev-Server, sonst müsste lokal unter
   // /training-dashboard/ statt / entwickelt werden.
   base: command === "build" ? "/training-dashboard/" : "/",
-  plugins: [react(), serveRepoData()],
+  // Modus "demo" nur im Dev-Server: /data aus data-demo/ (nie data/), Demo-
+  // Config in index.html. Jeder andere Modus verhält sich wie bisher.
+  plugins:
+    command === "serve" && mode === "demo"
+      ? [react(), serveRepoData("data-demo"), serveDemoRuntimeConfig(demoRuntimeConfig())]
+      : [react(), serveRepoData("data")],
   define: {
     __APP_VERSION__: JSON.stringify(resolveVersion()),
     __BUILD_DATE__: JSON.stringify(new Date().toISOString()),

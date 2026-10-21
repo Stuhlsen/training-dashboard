@@ -1,0 +1,10 @@
+# Fahrplan 31 E6 — Allowlist NUR für scripts/demo/Dockerfile (BuildKit liest
+# diese Datei statt der Root-.dockerignore). Alles aus, dann gezielt rein.
+# So landen weder .env/.env.demo noch data/ oder data-demo/ im Image.
+*
+!package.json
+!scripts/
+!app/src/core/
+!app/src/sports/
+**/*.test.js
+**/*.test.ts

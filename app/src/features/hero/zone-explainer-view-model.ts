@@ -139,17 +139,12 @@ export interface PaceZonesViewModel {
 }
 
 /** Pace-Zonen-Kachel aus dem Pace-View-Model des Analyse-Tabs. buildPaceSection()
- *  rechnet die Pace immer in s/km (PACE_FROM_KMH); fürs Schwimmen (min/100 m)
- *  also durch 10. Ohne Schwelle: keine Zahlen, Labels/Farben aus dem
- *  Sportprofil (sports/*), damit die Beschreibungen lesbar bleiben (Q7). */
+ *  liefert die Pace schon in der Anzeige-Einheit (s/km Lauf, s/100 m Schwimm —
+ *  seit Fahrplan 31 E7, vorher teilte diese Funktion selbst durch 10). Ohne
+ *  Schwelle: keine Zahlen, Labels/Farben aus dem Sportprofil (sports/*),
+ *  damit die Beschreibungen lesbar bleiben (Q7). */
 export function buildPaceZonesViewModel(pace: PaceSectionViewModel): PaceZonesViewModel {
-  const divisor = pace.sport === "swim" ? 10 : 1;
-  const scale = (sec: number | null) => (sec == null ? null : sec / divisor);
-  const scaleZones: PaceZone[] = pace.zones.map((z) => ({
-    ...z,
-    vonPaceSec: scale(z.vonPaceSec),
-    bisPaceSec: scale(z.bisPaceSec),
-  }));
+  const scaleZones: PaceZone[] = pace.zones;
   const degraded = pace.degraded;
   const explainerZones: ExplainerZone[] = degraded
     ? (sportProfileFor(pace.sport)?.zones.meta ?? []).map((m) => ({ id: m.id, label: m.label, color: m.farbe, range: null }))

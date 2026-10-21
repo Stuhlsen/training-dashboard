@@ -30,16 +30,22 @@ import {
 afterEach(cleanup);
 
 /** Pace-View-Model mit Schwelle: Basis ist der echte Analyse-Tab-Weg ohne
- *  Rides (degradiert), Zonen/Skala kommen aus denselben core-Funktionen. */
+ *  Rides (degradiert), Zonen/Skala kommen aus denselben core-Funktionen —
+ *  wie buildPaceSection in der Anzeige-Einheit (s/100 m beim Schwimmen,
+ *  Fahrplan 31 E7). */
 function paceWithThreshold(sport: "run" | "swim", kmh: number): PaceSectionViewModel {
   const base = buildPaceSection({ rides: [], sport });
   const zoneSource = sportProfileFor(sport)!.zones;
+  const toPace = (v: number) => {
+    const perKm = PACE_FROM_KMH(v);
+    return perKm == null ? null : sport === "swim" ? perKm / 10 : perKm;
+  };
   return {
     ...base,
     thresholdSpeed: kmh,
-    thresholdPaceSec: PACE_FROM_KMH(kmh),
+    thresholdPaceSec: toPace(kmh),
     degraded: false,
-    zones: computePaceZones(kmh, zoneSource, PACE_FROM_KMH) as PaceSectionViewModel["zones"],
+    zones: computePaceZones(kmh, zoneSource, toPace) as PaceSectionViewModel["zones"],
     scaleMaxSpeed: paceScaleMax(kmh, zoneSource),
   };
 }
@@ -68,12 +74,11 @@ describe("buildPaceZonesViewModel", () => {
     expect(vm.scaleZones.map((z) => z.bisPaceSec)).toEqual(pace.zones.map((z) => z.bisPaceSec));
   });
 
-  it("Schwimmen mit Schwelle: Pace je 100 m (s/km ÷ 10), Einheit min/100 m", () => {
+  it("Schwimmen mit Schwelle: Pace je 100 m kommt durch, Einheit min/100 m", () => {
     const pace = paceWithThreshold("swim", 3);
     const vm = buildPaceZonesViewModel(pace);
-    vm.scaleZones.forEach((z, i) => {
-      expect(z.bisPaceSec).toBeCloseTo(pace.zones[i].bisPaceSec! / 10);
-    });
+    // Kein zweites ÷ 10: das View-Model liefert schon s/100 m (Fahrplan 31 E7).
+    expect(vm.scaleZones.map((z) => z.bisPaceSec)).toEqual(pace.zones.map((z) => z.bisPaceSec));
     expect(vm.explainerZones.every((z) => z.range?.endsWith("min/100 m"))).toBe(true);
     // 3 km/h = 2:00 pro 100 m — die Schwelle selbst (Zone s3, obere Grenze 100 %)
     const css = vm.explainerZones.find((z) => z.id === "s3")!;

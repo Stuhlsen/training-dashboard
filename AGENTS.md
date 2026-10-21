@@ -60,7 +60,14 @@ node -c scripts/<pfad>/<datei>.js
 npm run lint
 npm run format
 
-# /app/: Dev-Server (http://localhost:5173), liefert auch data/*.json aus dem Repo-Root aus
+# Repo-Root: lokaler Demo-Stack (fiktive Daten, Standard für den Vor-Commit-Check)
+npm run demo:init        # einmalig: .env.demo
+npm run demo:up          # http://localhost:8080
+npm run demo:down        # anhalten · leeren: npm run demo:down -- -v
+npm run demo:generate    # data-demo/*.json für npm run dev
+
+# /app/: Dev-Server (http://localhost:5173) im Demo-Modus gegen den Demo-Stack,
+# liefert /data aus data-demo/ · echte Daten nur bewusst: npm run dev:real
 cd app
 npm install
 npm run dev
@@ -97,18 +104,44 @@ eigene `.env` — Supabase-URLs/anon-Keys stehen (bewusst, RLS-geschützt) in
    müssen grün sein (CI prüft beides getrennt)
 4. Betroffene Ansicht lokal prüfen — `npm run dev` (`/app/`) für schnelle
    Zwischenstände während der Arbeit, aber als **letzter Check vor dem
-   Commit-Vorschlag zwingend zusätzlich gegen den lokalen Docker-Container**
-   (`docker compose -f docker-compose.dev.yml up -d`, Frontend auf
-   `http://localhost:8080` — Details `planning/docs/docker-lokal-einrichten.md`).
-   Grund: nur der Container durchläuft den echten Produktions-Build
-   (Vite-Build + nginx + `window.__RUNTIME_CONFIG__`-Laufzeitpfad) — der
-   Vite-Dev-Server mit HMR kann Fehler verdecken, die erst im gebauten
-   Static-Bundle auftreten.
+   Commit-Vorschlag zwingend zusätzlich gegen den lokalen Demo-Stack**
+   (`npm run demo:up`, Frontend auf `http://localhost:8080`, Demo-Login —
+   s. „Demo-Stack" unten). Grund: nur der Container durchläuft den echten
+   Produktions-Build (Vite-Build + nginx + `window.__RUNTIME_CONFIG__`-
+   Laufzeitpfad) — der Vite-Dev-Server mit HMR kann Fehler verdecken, die
+   erst im gebauten Static-Bundle auftreten. `docker-compose.dev.yml` (echte
+   Daten) nur noch bewusst, z. B. zum Debuggen eines Sync-Fehlers.
 5. Commit mit Konvention (siehe unten)
 6. `git sync`
 
 `data/*.json` NICHT committen (`.gitignore`) — der apps01-Sync-Container
 schreibt sie direkt ins mit dem Frontend geteilte Volume.
+
+## Demo-Stack (lokal, Standard)
+
+Lokal wird gegen **fiktive Daten** gearbeitet, nicht gegen echte (Fahrplan 31).
+`docker-compose.demo.yml` ist ein eigenes Compose-Projekt
+(`training-dashboard-demo`) mit Selfhost-Supabase (Proxy `:8000`), Frontend
+(`:8080`, `RUNTIME_ENV=demo`) und dem Dienst `demo-seed` (erzeugt beim Start
+und dann alle 24 h Demo-JSON + Demo-DB-Zeilen, ergänzt nur).
+
+- **Logins** (nur lokal gültig, kein Geheimnis): `lena.rides@demo.local`
+  (Rad), `tri_jonas@demo.local` (Triathlon), `coach.mara@demo.local`
+  (Trainer beider), Passwort für alle `demo-lokal-2026`.
+- **Start/Stopp nur über `npm run demo:up` / `demo:down`.** Die Skripte
+  setzen `--env-file .env.demo`. Ohne diese Option liest Compose die echte
+  `.env` im Repo-Ordner — der Stack nutzt darum nur `DEMO_*`-Variablen als
+  Pflichtwerte und bricht ohne `.env.demo` laut ab.
+- **`.env.demo`** erzeugt `npm run demo:init` einmalig (gitignored, eigene
+  lokale Schlüssel). Neu anfangen: `npm run demo:down -- -v`, dann
+  `.env.demo` löschen.
+- **Regel Nr. 1:** echte Daten verschwinden nie. Der Demo-Stack hat nur
+  eigene Volumes (`training-dashboard-demo_demo_*`); `down -v` nie für ein
+  anderes Projekt. Sperren in `scripts/demo/lib/guards.js` (nur localhost,
+  nie `data/`, nur `@demo.local`) werden nicht gelockert.
+- **`npm run dev`** (`/app/`) läuft im Demo-Modus gegen denselben Stack,
+  liest `data-demo/` von der Platte → vorher `npm run demo:generate`.
+- Nichts davon kommt nach `publish-images.yml` oder auf apps01.
 
 ## Commit-Konvention
 

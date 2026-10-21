@@ -39,9 +39,9 @@
 Kurz benennen, wie das Ergebnis verifiziert wird, bevor losgeschrieben wird:
 `core/`-Logik → welcher Test in `tests/`; UI-Änderung → `npm run build` +
 `npm run dev` für schnelle Zwischenstände, **vor dem Commit-Vorschlag
-zusätzlich einmal gegen den lokalen Docker-Container** (`docker compose
--f docker-compose.dev.yml up -d`, `http://localhost:8080` — s. „Arbeitsweise"
-unten) + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
+zusätzlich einmal gegen den lokalen Demo-Stack** (`npm run demo:up`,
+`http://localhost:8080`, Demo-Login — s. „Arbeitsweise" unten) + zu
+prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
 (scripts/, core/validate.js, types.js) einzeln nennen; Standort/Athletennamen
 → explizit gegenprüfen, dass nichts davon in Code/JSON/Commit landet.
 
@@ -63,13 +63,21 @@ unten) + zu prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
 - Vor jedem Commit-Vorschlag: `node -c` → `npm test` → `/code-review` auf den
   Diff (prüft dabei auch gegen Schichtenregel, Result-Konvention und fehlende
   Tests in `core/`) → bei UI-Änderungen zwingend einmal gegen den lokalen
-  Docker-Container prüfen (`docker compose -f docker-compose.dev.yml up -d`,
-  `http://localhost:8080`) — **nicht nur `npm run dev`**: nur der Container
+  Demo-Stack prüfen (`npm run demo:up`, `http://localhost:8080`, Login
+  `lena.rides@demo.local` / `demo-lokal-2026`, Details AGENTS.md
+  „Demo-Stack") — **nicht nur `npm run dev`**: nur der Container
   läuft durch den echten Produktions-Build (Vite-Build + nginx +
   `window.__RUNTIME_CONFIG__`-Laufzeitpfad), der Vite-Dev-Server mit HMR kann
   Fehler verdecken, die erst im gebauten Static-Bundle auftreten. `npm run dev`
   bleibt für schnelle Zwischenstände während der Arbeit erlaubt, ersetzt aber
   nicht diesen finalen Check. Erst danach Commit-Befehl vorschlagen.
+  `docker-compose.dev.yml` = echte Daten, nur bewusst (z. B. Sync-Fehler
+  debuggen), nicht mehr der Standard-Check.
+- **Demo-Stack nur über die npm-Skripte** (`demo:up`/`demo:down`), nie
+  `docker compose -f docker-compose.demo.yml …` ohne `--env-file .env.demo`.
+  `down -v` nur für das Projekt `training-dashboard-demo`; blockiert ein
+  anderer Stack (Selfhost, `docker-compose.dev.yml`) einen Port: Alex
+  fragen, nicht selbst stoppen.
   Testlücken nur benennen, nicht ungefragt auffüllen.
 - `data/*.json`, `.agents/`, `agent/`, `data/skills/`, `skills-lock.json`
   **nie** selbst stagen/committen, auch nicht mit `git add -A`.
