@@ -2,6 +2,8 @@ import { supabase, getAuthedClient } from "./client";
 import type { Profile, ProfileOwnFields, Result } from "../types";
 
 const NOT_CONFIGURED = { code: "UNKNOWN" as const, message: "Supabase nicht konfiguriert" };
+/** PostgREST-Code für `.single()` ohne Treffer. */
+const NO_ROW = "PGRST116";
 const SELECT_COLS =
   "id, display_name, role, coach_id, wellbeing_public, ftp_public, is_admin, is_verified_author, ladder_progression_enabled, units_preference, plan_offset_weeks, sports";
 
@@ -235,6 +237,9 @@ export async function getProfileBasics(): Promise<Result<{ basics: ProfileOwnFie
     .from("profiles_own")
     .select("id, has_password, birthdate, resting_hr, gender, height_cm, weight_kg, hr_max, updated_at, sex, intolerances")
     .single<ProfileOwnRow>();
+  // PGRST116 = keine Zeile: Login ohne Profil (z. B. Konto gelöscht, Browser
+  // noch angemeldet). Eigener Code, damit OnboardingGate sauber abmeldet.
+  if (error?.code === NO_ROW) return { ok: false, error: { code: "NO_DATA", message: "Zu diesem Login gibt es kein Profil." } };
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true, basics: toProfileOwnFields(data) };
 }

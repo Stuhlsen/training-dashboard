@@ -25,17 +25,37 @@
    Login als andere Person, ohne vollen Reload).
    ============================================================ */
 
-import { useRef, useState } from "react";
-import { Outlet } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../api/auth/useAuth";
 import { useProfileBasics } from "../../api/hooks/useProfile";
+import { toResultError } from "../../api/result";
+import { ACCOUNT_MISSING_NOTICE } from "../auth/login-notice";
 import { OnboardingWizard } from "./OnboardingWizard";
 
 export function OnboardingGate() {
-  const { session, loading: authLoading } = useAuth();
-  const { data: basics, isLoading: basicsLoading, isError: basicsError } = useProfileBasics();
+  const { session, loading: authLoading, signOut } = useAuth();
+  const {
+    data: basics,
+    isLoading: basicsLoading,
+    isError: basicsError,
+    error: basicsErr,
+    errorUpdateCount,
+  } = useProfileBasics();
   const [showWizard, setShowWizard] = useState<boolean | null>(null);
   const decidedForUserId = useRef<string | null>(null);
+  const navigate = useNavigate();
+  // Login ohne Profil (Konto gelöscht, Browser noch angemeldet): abmelden,
+  // danach zur Login-Seite mit Hinweis.
+  const profileMissing =
+    !!session && basicsError && toResultError(basicsErr).code === "NO_DATA";
+
+  useEffect(() => {
+    if (!profileMissing) return;
+    void signOut().then(() =>
+      navigate("/app/login", { replace: true, state: { notice: ACCOUNT_MISSING_NOTICE } })
+    );
+  }, [profileMissing, signOut, navigate]);
 
   const userId = session?.user?.id ?? null;
   if (decidedForUserId.current !== userId) {
@@ -45,7 +65,11 @@ export function OnboardingGate() {
 
   if (authLoading) return <p>Lade Session…</p>;
   if (!session) return <Outlet />;
-  if (basicsLoading) return <p>Lade Session…</p>;
+  if (profileMissing) return <p>Abmelden…</p>;
+  // Lade-Bildschirm nur beim ERSTEN Laden: nach einem Fehler würde er die
+  // Seite abbauen, deren Wiederaufbau den Abruf neu startet — eine
+  // Endlosschleife (Live-Fund: dutzende 406 auf profiles_own pro Sekunde).
+  if (basicsLoading && errorUpdateCount === 0) return <p>Lade Session…</p>;
   // Fail open bei Ladefehler (z. B. Netzwerk-Hänger) — die App soll nicht
   // dauerhaft blockieren, nur weil dieser eine Read scheitert.
   if (basicsError || !basics) return <Outlet />;
