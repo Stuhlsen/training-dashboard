@@ -334,3 +334,28 @@ export async function getCoachDisplayName(coachId: string): Promise<Result<{ nam
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true, name: data?.display_name ?? null };
 }
+
+/* --- Trainingsdaten für alle Eingeloggten sichtbar (Migration 0078, Fahrplan 26) ---
+   Lesen über `profiles_visible` (die Basistabelle hat für `authenticated`
+   keinen Spalten-Select auf diese Spalte), Schreiben über die RPC
+   `set_training_data_public` (Athlet selbst oder Admin). Standard: aus. */
+
+export async function getTrainingDataPublic(userId: string): Promise<Result<{ value: boolean }>> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { data, error } = await client
+    .from("profiles_visible")
+    .select("training_data_public")
+    .eq("id", userId)
+    .maybeSingle<{ training_data_public: boolean | null }>();
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true, value: data?.training_data_public === true };
+}
+
+export async function setTrainingDataPublic(userId: string, value: boolean): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.rpc("set_training_data_public", { aid: userId, val: value });
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}

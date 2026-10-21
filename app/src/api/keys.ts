@@ -135,6 +135,7 @@ export const qk = {
   /** Grober Standort des eingeloggten Users für die Sync-Wettervorschau
    *  (Tabelle athlete_sync_config, Migration 0023, Fahrplan 7 CRED2). */
   syncLocation: (userId: string) => ["sync-location", userId] as const,
+  trainingDataPublic: (userId: string) => ["training-data-public", userId] as const,
   /** Intervall-Kadenz-Ziel des eingeloggten Users (Push-Text, .zwo,
    *  Analyse-Anzeige — Tabelle athlete_sync_config, Migration 0036,
    *  Fahrplan 11). */
