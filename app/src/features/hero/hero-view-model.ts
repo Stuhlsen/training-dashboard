@@ -124,6 +124,16 @@ export function doneDatesOf(rides: Ride[]): Set<string> {
 const withoutNonTrainingCards = (cards: PlanCard[]): PlanCard[] =>
   cards.filter((c) => !isNonTrainingCard(c));
 
+/** Kopfzeile „2026-KW43 · Aufbau": Woche von HEUTE + Phase aus den Plankarten
+ *  dieser Woche. Vorher Woche/Phase der letzten plan-zugeordneten Fahrt — die
+ *  blieb nach Planende stehen (Live-Fund „KW38 · Taper" in KW43). Ohne
+ *  Plankarte mit Phase in dieser Woche: leer, die Zeile entfällt. */
+export function currentWeekEyebrow(planCards: PlanCard[], todayISO: string): string {
+  const week = isoWeekKey(todayISO);
+  const phase = planCards.find((c) => c.phase && c.date && isoWeekKey(c.date) === week)?.phase;
+  return phase ? `${week} · ${phase}` : "";
+}
+
 export interface HeroCoreInput {
   athleteId: string;
   rides: Ride[];
@@ -540,8 +550,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
   const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   const first = sorted[0];
   const last = sorted[sorted.length - 1];
-  const ownPlan = rides.some((r) => r.week);
-  const lastWithWeek = ownPlan ? sorted.findLast((r) => r.week) : null;
+  const eyebrow = currentWeekEyebrow(planCards, todayISO);
 
   // Gemessene FTP bevorzugt aus ftp_history (nur "ramp-test"-Quellen — hält
   // den Dreiklang gemessen/geschätzt/Ziel auseinander, s. Kommentar bei
@@ -600,7 +609,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
     // Datenquelle steht seit dem Hero-Tab-Redesign (Review-Kommentar
     // 23.08.2026) im Footer (Footer.tsx, athletenbezogen dort selbst
     // berechnet) statt hier — kein Konsument mehr für dieses Feld.
-    eyebrow: lastWithWeek?.phase ? `${lastWithWeek.week} · ${lastWithWeek.phase}` : "",
+    eyebrow,
     dateRangeLabel: first && last ? `${fmtDate(first.dateISO)} – ${fmtDate(last.dateISO)}` : "",
     session,
     weatherToday,
