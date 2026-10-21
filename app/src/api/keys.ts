@@ -72,6 +72,8 @@ export const qk = {
 
   /** JSON-Pipeline (5.5): die per Cron erzeugten data/*.json */
   rides: (athleteId: string) => ["rides", athleteId] as const,
+  /** Stammdaten eines Eintrags ohne Platz in config.ts (Fahrplan 26 E3). */
+  athleteConfig: (athleteId: string) => ["athlete-config", athleteId] as const,
 
   /** Export-Richtungsvorgabe (Etappe 7c) — Preset+Zielevent, ein Eintrag pro
    *  eingeloggtem Profil. */

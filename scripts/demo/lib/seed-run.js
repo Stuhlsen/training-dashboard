@@ -26,7 +26,7 @@
 
 import { assertDemoAccount, assertDemoTarget } from "./guards.js";
 import { createDemoClient } from "./http.js";
-import { DEMO_COACH, DEMO_PASSWORD, DEMO_ROSTER } from "./roster.js";
+import { ALL_DEMO_ATHLETES, DEMO_COACH, DEMO_PASSWORD } from "./roster.js";
 import { saveTrainingData } from "../../lib/training-store.js";
 
 /** Zeilen je POST — PostgREST-Body bleibt klein. */
@@ -39,7 +39,7 @@ const USERS_PER_PAGE = 1000;
 /** Alle Demo-E-Mails, Athleten vor dem Trainer (Reset-Reihenfolge:
  *  profiles.coach_id hat kein "on delete cascade"). */
 export function demoEmails() {
-  const emails = [...DEMO_ROSTER.map((a) => a.email), DEMO_COACH.email];
+  const emails = [...ALL_DEMO_ATHLETES.map((a) => a.email), DEMO_COACH.email];
   emails.forEach(assertDemoAccount);
   return emails;
 }
@@ -412,7 +412,7 @@ export async function runSeed({ url, serviceKey, fetchImpl, rowsFor, payloadFor 
   summary.accountsCreated += Number(coach.created);
   summary.passwordsMarked += await ensurePasswordMarked(client, coach.id, DEMO_COACH.email);
 
-  for (const athlete of DEMO_ROSTER) {
+  for (const athlete of ALL_DEMO_ATHLETES) {
     const user = await ensureUser(client, users, {
       email: athlete.email,
       displayName: athlete.displayName,

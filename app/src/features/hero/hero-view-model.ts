@@ -136,6 +136,10 @@ export function currentWeekEyebrow(planCards: PlanCard[], todayISO: string): str
 
 export interface HeroCoreInput {
   athleteId: string;
+  /** Stammdaten des Athleten, wenn der Aufrufer sie schon hat (Fahrplan 26 E3:
+   *  Einträge ohne Platz in `config.ts` bekommen sie aus der DB). Fehlt das
+   *  Feld, gilt wie bisher `athleteConfig(athleteId)`. */
+  athleteCfg?: AthleteConfig | null;
   rides: Ride[];
   wellness: WellnessDay[];
   forecast: Record<
@@ -546,7 +550,7 @@ export function buildHeroCore(input: HeroCoreInput): HeroCore {
     ftpHistoryEntries,
     pmcRides,
   } = input;
-  const athleteCfg = athleteConfig(athleteId);
+  const athleteCfg = input.athleteCfg !== undefined ? input.athleteCfg : athleteConfig(athleteId);
   const sorted = [...rides].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   const first = sorted[0];
   const last = sorted[sorted.length - 1];

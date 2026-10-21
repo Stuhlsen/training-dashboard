@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { runReset, runSeed } from "../scripts/demo/lib/seed-run.js";
-import { DEMO_COACH, DEMO_ROSTER } from "../scripts/demo/lib/roster.js";
+import { ALL_DEMO_ATHLETES, DEMO_COACH, DEMO_ROSTER } from "../scripts/demo/lib/roster.js";
 
 const { Response } = globalThis;
 const URL_OK = "http://localhost:8000";
@@ -252,7 +252,7 @@ test("Seed: legt Accounts mit role authenticated an und verknüpft den Trainer",
   const { db, calls, fetchImpl } = fakeBackend();
   const summary = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
 
-  assert.equal(summary.accountsCreated, 3);
+  assert.equal(summary.accountsCreated, 4);
   const created = calls.filter((c) => c.method === "POST" && c.path === "/auth/v1/admin/users");
   for (const c of created) {
     assert.equal(c.body.role, "authenticated");
@@ -289,7 +289,7 @@ test("Seed: payloadFor füllt training_*-Tabellen je Demo-Profil — nur Upsert,
   });
   const summary = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor, payloadFor });
 
-  const ids = DEMO_ROSTER.map((a) => be.db.users.find((u) => u.email === a.email).id);
+  const ids = ALL_DEMO_ATHLETES.map((a) => be.db.users.find((u) => u.email === a.email).id);
   assert.deepEqual([...new Set(training.map((t) => t.body[0].profile_id))].sort(), [...ids].sort());
   assert.deepEqual([...new Set(training.map((t) => t.table))].sort(), [
     "training_profile_data",
@@ -301,7 +301,7 @@ test("Seed: payloadFor füllt training_*-Tabellen je Demo-Profil — nur Upsert,
     "kein Löschen/Lesen auf training_*"
   );
   assert.ok(training.every((t) => t.auth === `Bearer ${KEY}`));
-  assert.equal(summary.tables.training_data.updated, DEMO_ROSTER.length * 3);
+  assert.equal(summary.tables.training_data.updated, ALL_DEMO_ATHLETES.length * 3);
 });
 
 test("Seed: ohne payloadFor bleiben die training_*-Tabellen unberührt", async () => {
@@ -484,7 +484,7 @@ test("Zeilenlimit: vorhandene Zeilen werden seitenweise gelesen, nichts doppelt"
   await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: many });
   const second = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: many });
   assert.equal(second.tables.plan_cards.added, 0);
-  assert.equal(db.tables.plan_cards.length, 2400);
+  assert.equal(db.tables.plan_cards.length, 1200 * ALL_DEMO_ATHLETES.length);
 });
 
 test("Sportarten: nur beim Anlegen gesetzt, lokale Änderung bleibt", async () => {
@@ -522,10 +522,10 @@ test("Passwort: jeder Demo-Account wird als eingeloggter User markiert, nur einm
   const { db, calls, fetchImpl } = fakeBackend();
   const first = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
 
-  assert.equal(first.passwordsMarked, 3);
+  assert.equal(first.passwordsMarked, 4);
   assert.ok([...db.profiles.values()].every((p) => p.has_password === true));
   const logins = calls.filter((c) => c.path === "/auth/v1/token");
-  assert.equal(logins.length, 3);
+  assert.equal(logins.length, 4);
   assert.ok(logins.every((c) => c.auth === undefined && c.body.email.endsWith("@demo.local")));
   const rpcs = calls.filter((c) => c.path === "/rest/v1/rpc/mark_password_set");
   assert.ok(rpcs.every((c) => c.auth.startsWith("Bearer user-token:")));
@@ -537,7 +537,7 @@ test("Passwort: jeder Demo-Account wird als eingeloggter User markiert, nur einm
   // Nur noch der Profil-Check (E7) loggt die Athleten ein — der Trainer nicht.
   assert.deepEqual(
     calls.filter((c) => c.path === "/auth/v1/token").map((c) => c.body.email),
-    DEMO_ROSTER.map((a) => a.email)
+    ALL_DEMO_ATHLETES.map((a) => a.email)
   );
 });
 
@@ -546,7 +546,7 @@ test("Profil-Grunddaten (E7): nur leere Felder, als eingeloggter Athlet", async 
   await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
 
   const byEmail = new Map(db.users.map((u) => [u.email, db.profiles.get(u.id)]));
-  for (const a of DEMO_ROSTER) {
+  for (const a of ALL_DEMO_ATHLETES) {
     const p = byEmail.get(a.email);
     assert.equal(p.birthdate, a.profile.birthdate);
     assert.equal(p.height_cm, a.profile.heightCm);
@@ -582,9 +582,9 @@ test("Reset: löscht nur die @demo.local-Accounts der Besetzung, Athleten vor Tr
   calls.length = 0;
   const deleted = await runReset({ url: URL_OK, serviceKey: KEY, fetchImpl });
 
-  assert.deepEqual(deleted, [...DEMO_ROSTER.map((a) => a.email), DEMO_COACH.email]);
+  assert.deepEqual(deleted, [...ALL_DEMO_ATHLETES.map((a) => a.email), DEMO_COACH.email]);
   const deletes = calls.filter((c) => c.method === "DELETE");
-  assert.equal(deletes.length, 3);
+  assert.equal(deletes.length, 4);
   assert.ok(deletes.every((c) => c.path.startsWith("/auth/v1/admin/users/")));
   assert.deepEqual(
     db.users.map((u) => u.id),
@@ -601,4 +601,10 @@ test("Reset ohne Demo-Accounts löscht nichts", async () => {
   const deleted = await runReset({ url: URL_OK, serviceKey: KEY, fetchImpl });
   assert.deepEqual(deleted, []);
   assert.equal(calls.filter((c) => c.method === "DELETE").length, 0);
+});
+
+test("Roster: jeder Demo-Athlet hat einen Rennnamen je Zyklus (sonst bricht das Event-Insert)", () => {
+  for (const a of ALL_DEMO_ATHLETES) {
+    assert.equal(a.raceNames.length, 4, `${a.id}: raceNames`);
+  }
 });

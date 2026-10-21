@@ -32,7 +32,8 @@ import { weekSortIndex } from "../../core/aggregate.js";
 import { fmt, fmtInt, localISODate } from "../../core/format.js";
 import { presetWindow } from "../../core/brush.js";
 import { projectLoad } from "../../core/projection.js";
-import { athleteConfig, RETEST_DATE, weekIndex } from "../../config";
+import { RETEST_DATE, weekIndex } from "../../config";
+import { useAthleteConfig } from "../../api/hooks/useAthleteConfig";
 import { resolvePlanningFtp } from "../planning/planning-view-model";
 import { buildBriefingInfo, doneDatesOf, type HeroBriefing, type HeroBriefingSignal } from "../hero/hero-view-model";
 import { LEVEL_COLOR } from "../hero/briefing-levels";
@@ -87,7 +88,7 @@ const HERO_STAT_TERMS: Record<string, string> = {
 
 export function AnalysisPage() {
   const { activeAthleteId } = useActiveAthlete();
-  const athleteCfg = athleteConfig(activeAthleteId);
+  const athleteCfg = useAthleteConfig(activeAthleteId);
   const { effectiveSport } = useEffectiveSport(activeAthleteId);
   // Eigenlast-Wochendeckel des Governors nur für Athleten mit > 1 Sportart
   // (Fahrplan 10 E8a) — für 1/2/4 exakt das Verhalten vor E6.
