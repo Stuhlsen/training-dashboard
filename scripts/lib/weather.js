@@ -66,8 +66,8 @@ export async function getRecentWeather(lat = null, lon = null) {
 }
 
 /**
- * 16-Tage-Forecast für den Planungs-Tab — aggregiert auf Tagesdurchschnitte
- * (08–18 Uhr). Läuft serverseitig damit der Standort nie im Frontend-Code
+ * 16-Tage-Forecast für den Planungs-Tab — aggregiert je Tag (08–18 Uhr,
+ * s. aggregateDaytimeForecast). Läuft serverseitig damit der Standort nie im Frontend-Code
  * oder im Browser-Request sichtbar wird.
  */
 export async function getPlanningForecast(lat = null, lon = null) {
@@ -91,8 +91,23 @@ export async function getPlanningForecast(lat = null, lon = null) {
   );
   if (!data?.hourly?.time) return null;
 
+  const result = aggregateDaytimeForecast(data.hourly);
+  log.info(`   ... Forecast für ${Object.keys(result).length} Tage aggregiert`);
+  return result;
+}
+
+/**
+ * Stundenwerte (Open-Meteo `hourly`) → ein Eintrag je Tag, nur 08–18 Uhr.
+ * Mittelwerte für Temperatur/Wind/Feuchte; Wettercode und Regenwahrschein-
+ * lichkeit als MAXIMUM — beide beschreiben „das Schlimmste am Tag". Vorher
+ * war die Wahrscheinlichkeit ein Mittel: eine Regenstunde gab das Regen-
+ * Symbol, daneben stand „Regen 1 %" (Live-Fund).
+ * @param {Record<string, Array<number|null>> & { time: string[] }} h
+ * @returns {Record<string, {temp: number, tempFeel: number, humidity: number, windSpeed: number,
+ *   windDir: number, precipProb: number, weatherCode: number, uvMax: number|null}>}
+ */
+export function aggregateDaytimeForecast(h) {
   const map = {};
-  const h = data.hourly;
   for (let i = 0; i < h.time.length; i++) {
     const [date, time] = h.time[i].split("T");
     const hour = parseInt(time);
@@ -127,12 +142,12 @@ export async function getPlanningForecast(lat = null, lon = null) {
       humidity: Math.round(mean(v.humidity)),
       windSpeed: Math.round(mean(v.wind) * 10) / 10,
       windDir: Math.round(mean(v.windDir)),
-      precipProb: Math.round(mean(v.precipProb)),
+      // ohne Werte 0 wie bisher (Planungs-Badge erwartet immer eine Zahl)
+      precipProb: v.precipProb.length ? Math.max(...v.precipProb) : 0,
       weatherCode: Math.max(...v.code),
       uvMax: v.uv.length ? Math.round(Math.max(...v.uv) * 10) / 10 : null,
     };
   }
-  log.info(`   ... Forecast für ${Object.keys(result).length} Tage aggregiert`);
   return result;
 }
 
