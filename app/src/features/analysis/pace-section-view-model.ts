@@ -5,7 +5,7 @@
    Reine Funktion auf bereits geladenen Rides — kein Hook, kein DOM
    (Muster wie answers-view-model.ts). Verdrahtet die vier E7-`core/`-
    Module (unverändert konsumiert):
-     - critical-speed.js  → estimateThresholdSpeed (nur Lauf; 2-Punkt-CS)
+     - critical-speed.js  → estimateThresholdSpeed (Lauf + Schwimm; 2-Punkt-CS)
      - pace-zones.js      → computePaceZones / paceScaleMax
      - pace-curve.js      → buildPaceCurve (beste Ø-Pace je Distanz-Bucket)
    pace-decoupling.js bleibt bewusst UNVERDRAHTET (rides-N.json trägt weder
@@ -28,7 +28,7 @@
    ============================================================ */
 
 import { ridesForSport } from "../../core/activity-sport.js";
-import { estimateThresholdSpeed } from "../../core/critical-speed.js";
+import { estimateThresholdSpeed, STANDARD_SWIM_DISTANCES_KM } from "../../core/critical-speed.js";
 import { computePaceZones, paceScaleMax, PACE_FROM_KMH } from "../../core/pace-zones.js";
 import { buildPaceCurve } from "../../core/pace-curve.js";
 import { sportProfileFor } from "../../sports";
@@ -84,8 +84,9 @@ export interface PaceSectionViewModel {
    *  belastbare Schätzung möglich ist (kein erschöpfender Effort / keine
    *  Datenbasis). */
   thresholdSpeed: number | null;
-  /** Schwellenpace in Sekunden je Distanz-Einheit (für die Anzeige) — `null`
-   *  wenn `thresholdSpeed` null ist. */
+  /** Schwellenpace in Sekunden je Anzeige-Einheit (s/km Lauf, s/100 m
+   *  Schwimm — gilt ebenso für `zones` und `curve`) — `null` wenn
+   *  `thresholdSpeed` null ist. */
   thresholdPaceSec: number | null;
   /** true, wenn die Pace-Zonen-Skala mangels Schwelle degradiert gerendert
    *  werden muss (Zonen-Labels ohne Zahlen + Hinweistext). */
@@ -143,26 +144,42 @@ export function buildPaceSection({
   const nActivities = subset.length;
   const emptySport = nActivities === 0;
 
-  // Schwellenschätzung: nur Lauf trägt eine rides-basierte 2-Punkt-CS
-  // (estimateThresholdSpeed filtert intern selbst auf "run"). Schwimmen hat
-  // keine `rides`-Schätzung — CSS bräuchte zwei Distanz-Zeit-Punkte, und der
-  // Account trägt 0 Schwimm-Einheiten (E0). Dann bleibt die Skala degradiert.
-  const est = sport === "run" ? estimateThresholdSpeed(rides) : null;
+  // Schwellenschätzung: 2-Punkt-CS für Lauf UND Schwimmen (Schwimm-CSS
+  // braucht zwei Efforts verschiedener Distanz, z. B. 400 + 200 m; ohne sie
+  // bleibt die Skala degradiert). Fahrplan 31 E7: vorher nur Lauf.
+  const est = estimateThresholdSpeed(rides, { sport });
   const thresholdSpeed =
     est && typeof est.speed === "number" && est.speed > 0 ? est.speed : null;
   const degradedReason =
     est && typeof est.reason === "string" ? est.reason : null;
 
+  // Alle Pace-Werte in der ANZEIGE-Einheit: s/km beim Lauf, s/100 m beim
+  // Schwimmen (Fahrplan 31 E7 — vorher stand s/km unter "min/100 m").
+  const isSwim = sport === "swim";
+  const toPaceSec = (kmh: number) => {
+    const perKm = PACE_FROM_KMH(kmh);
+    return perKm == null ? null : isSwim ? perKm / 10 : perKm;
+  };
+
   const zoneSource = profile?.zones ?? null;
   const zones: PaceZone[] =
     thresholdSpeed != null && zoneSource
-      ? (computePaceZones(thresholdSpeed, zoneSource, PACE_FROM_KMH) as PaceZone[])
+      ? (computePaceZones(thresholdSpeed, zoneSource, toPaceSec) as PaceZone[])
       : [];
   const scaleMaxSpeed =
     thresholdSpeed != null && zoneSource ? paceScaleMax(thresholdSpeed, zoneSource) : 0;
-  const thresholdPaceSec = thresholdSpeed != null ? PACE_FROM_KMH(thresholdSpeed) : null;
+  const thresholdPaceSec = thresholdSpeed != null ? toPaceSec(thresholdSpeed) : null;
 
-  const curve = buildPaceCurve(subset) as PaceCurvePoint[];
+  const rawCurve = (
+    isSwim ? buildPaceCurve(subset, STANDARD_SWIM_DISTANCES_KM) : buildPaceCurve(subset)
+  ) as PaceCurvePoint[];
+  const curve = isSwim
+    ? rawCurve.map((p) => ({
+        ...p,
+        paceSec: Math.round(p.paceSec / 10),
+        label: `${Math.round(p.distance * 1000)} m`,
+      }))
+    : rawCurve;
 
   // HF-bpm-Zonen: nur Lauf (G19-Nicht-Ziel für Schwimm), unabhängig von der
   // Pace-Schwellenschätzung oben — hängt allein am Athleten-hrMax.

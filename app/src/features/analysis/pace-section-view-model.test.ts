@@ -69,6 +69,26 @@ describe("buildPaceSection", () => {
     expect(vm.thresholdUnit).toBe("min/100 m");
   });
 
+  it("Schwimmen mit CSS-Test (400 + 200 m) → CSS-Zonen und Kurve in s/100 m (Fahrplan 31 E7)", () => {
+    const rides = [
+      ride({ km: 0.2, min: 3, sport: "swim", typ: "Intervalle" }), // 1:30/100 m
+      ride({ km: 0.4, min: 7, sport: "swim", typ: "Intervalle" }), // 1:45/100 m
+      ride({ km: 2.0, min: 40, sport: "swim", typ: "Longswim" }), // 2:00/100 m
+    ];
+    const vm = buildPaceSection({ rides, sport: "swim" });
+
+    expect(vm.degraded).toBe(false);
+    expect(vm.zones).toHaveLength(5);
+    // Schwelle ~2:03/100 m — nicht ~20 min (s/km unter "min/100 m")
+    expect(vm.thresholdPaceSec as number).toBeGreaterThan(90);
+    expect(vm.thresholdPaceSec as number).toBeLessThan(150);
+    expect(vm.curve.map((p) => p.label)).toEqual(["200 m", "400 m", "1500 m"]);
+    expect(vm.curve.map((p) => p.paceSec)).toEqual([90, 105, 120]);
+    for (const z of vm.zones) {
+      if (z.bisPaceSec != null) expect(z.bisPaceSec).toBeLessThan(300);
+    }
+  });
+
   it("Sport-Gate: reine Radliste unter sport=run → nichts durchgelassen", () => {
     const rides = [
       ride({ km: 40, min: 80, sport: "ride", typ: "Z2 Dauer" }),
