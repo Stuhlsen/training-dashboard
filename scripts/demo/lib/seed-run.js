@@ -27,6 +27,7 @@
 import { assertDemoAccount, assertDemoTarget } from "./guards.js";
 import { createDemoClient } from "./http.js";
 import { DEMO_COACH, DEMO_PASSWORD, DEMO_ROSTER } from "./roster.js";
+import { saveTrainingData } from "../../lib/training-store.js";
 
 /** Zeilen je POST — PostgREST-Body bleibt klein. */
 const CHUNK = 500;
@@ -373,13 +374,29 @@ async function seedPlansAndCards(client, profileId, rows, eventIdByRef) {
 }
 
 /**
+ * training_*-Tabellen (Fahrplan 26 E2) mit dem Demo-Payload füllen. Wie der
+ * Rest des Seeds ergänzend: Upsert je Fahrt/Tag, aber nie Löschen (kein
+ * `window`). Läuft nur gegen das schon geprüfte localhost-Ziel.
+ * @returns {Promise<{ added: number, updated: number }>}
+ */
+async function seedTrainingTables({ url, serviceKey, fetchImpl, profileId, payload }) {
+  assertDemoTarget(url);
+  const res = await saveTrainingData({ url, serviceKey, profileId, payload, fetchImpl });
+  if (!res.ok) throw new Error(`training_*: ${res.error.code} — ${res.error.message}`);
+  // Ein Upsert unterscheidet nicht zwischen neu und geändert — als "nachgezogen" melden.
+  return { added: 0, updated: res.counts.rides + res.counts.wellness + 1 };
+}
+
+/**
  * @param {{ url: string, serviceKey: string, fetchImpl?: typeof fetch,
- *           rowsFor: (athlete: import("./roster.js").DemoAthlete) => Record<string, object[]> }} opts
+ *           rowsFor: (athlete: import("./roster.js").DemoAthlete) => Record<string, object[]>,
+ *           payloadFor?: (athlete: import("./roster.js").DemoAthlete) => object }} opts
+ *   `payloadFor` (optional): füllt zusätzlich training_rides/-wellness/-profile_data.
  * @returns {Promise<{ accountsCreated: number, profiles: number, passwordsMarked: number,
  *                     tables: Record<string, { added: number, updated: number }> }>}
  *   neu angelegte bzw. geänderte Einträge — beim zweiten Lauf am selben Tag überall 0
  */
-export async function runSeed({ url, serviceKey, fetchImpl, rowsFor }) {
+export async function runSeed({ url, serviceKey, fetchImpl, rowsFor, payloadFor }) {
   assertDemoTarget(url);
   demoEmails();
   const client = createDemoClient({ url, serviceKey, fetchImpl });
@@ -416,6 +433,17 @@ export async function runSeed({ url, serviceKey, fetchImpl, rowsFor }) {
       ...(await seedUniqueTables(client, user.id, rows)),
       ...linked.counts,
       ...(await seedPlansAndCards(client, user.id, rows, linked.eventIdByRef)),
+      ...(payloadFor
+        ? {
+            training_data: await seedTrainingTables({
+              url,
+              serviceKey,
+              fetchImpl,
+              profileId: user.id,
+              payload: payloadFor(athlete),
+            }),
+          }
+        : {}),
     };
     for (const [table, { added, updated }] of Object.entries(counts)) {
       const sum = summary.tables[table] ?? { added: 0, updated: 0 };

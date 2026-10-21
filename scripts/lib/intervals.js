@@ -25,7 +25,8 @@ export const RIDE_TYPES = [
  *    athlete_sync_config)
  *  @returns {Promise<Object|Array|null>} */
 export async function intervalsGet(endpoint, key) {
-  const url = `https://intervals.icu/api/v1${endpoint}`;
+  // INTERVALS_BASE_URL: nur für tests/sync-accounts.test.js (lokaler Fake-Server).
+  const url = `${process.env.INTERVALS_BASE_URL || "https://intervals.icu/api/v1"}${endpoint}`;
   const auth = Buffer.from(`API_KEY:${key}`).toString("base64");
   return await fetchJson(
     url,

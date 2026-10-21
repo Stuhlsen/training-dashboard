@@ -267,6 +267,49 @@ test("Seed: legt Accounts mit role authenticated an und verknüpft den Trainer",
   }
 });
 
+test("Seed: payloadFor füllt training_*-Tabellen je Demo-Profil — nur Upsert, nie Löschen (Fahrplan 26 E2)", async () => {
+  const be = fakeBackend();
+  const training = [];
+  const fetchImpl = async (url, init) => {
+    const u = new URL(url);
+    const m = u.pathname.match(/^\/rest\/v1\/(training_(?:rides|wellness|profile_data))$/);
+    if (!m) return be.fetchImpl(url, init);
+    training.push({
+      method: init.method,
+      table: m[1],
+      auth: init.headers.Authorization,
+      body: JSON.parse(init.body ?? "null"),
+    });
+    return new Response(null, { status: 201 });
+  };
+  const payloadFor = () => ({
+    ftpPublic: true,
+    rides: [{ date: "2026-10-01", activityId: "demo-1" }],
+    wellness: [{ date: "2026-10-01", hrv: 60 }],
+  });
+  const summary = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor, payloadFor });
+
+  const ids = DEMO_ROSTER.map((a) => be.db.users.find((u) => u.email === a.email).id);
+  assert.deepEqual([...new Set(training.map((t) => t.body[0].profile_id))].sort(), [...ids].sort());
+  assert.deepEqual([...new Set(training.map((t) => t.table))].sort(), [
+    "training_profile_data",
+    "training_rides",
+    "training_wellness",
+  ]);
+  assert.ok(
+    training.every((t) => t.method === "POST"),
+    "kein Löschen/Lesen auf training_*"
+  );
+  assert.ok(training.every((t) => t.auth === `Bearer ${KEY}`));
+  assert.equal(summary.tables.training_data.updated, DEMO_ROSTER.length * 3);
+});
+
+test("Seed: ohne payloadFor bleiben die training_*-Tabellen unberührt", async () => {
+  const be = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl: be.fetchImpl, rowsFor });
+  assert.ok(!be.calls.some((c) => /training_(rides|wellness|profile_data)/.test(c.path)));
+});
+
 test("Seed: übersetzt _-Verweise in Fremdschlüssel und entfernt sie", async () => {
   const { db, fetchImpl } = fakeBackend();
   await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });

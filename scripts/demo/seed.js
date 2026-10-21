@@ -13,7 +13,7 @@
 
 import { assertDemoTarget } from "./lib/guards.js";
 import { demoEmails, runSeed } from "./lib/seed-run.js";
-import { loadRowsFor, localToday, parseArgs } from "./lib/cli.js";
+import { loadSeedSources, localToday, parseArgs } from "./lib/cli.js";
 import { log } from "../lib/log.js";
 
 async function main() {
@@ -23,11 +23,12 @@ async function main() {
 
   const { seed } = parseArgs(process.argv.slice(2));
   const today = localToday();
-  const rowsFor = await loadRowsFor({ seed, today });
+  const { rowsFor, payloadFor } = await loadSeedSources({ seed, today });
   const summary = await runSeed({
     url: process.env.DEMO_SUPABASE_URL,
     serviceKey: process.env.DEMO_SERVICE_ROLE_KEY,
     rowsFor,
+    payloadFor,
   });
 
   log.info(

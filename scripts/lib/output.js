@@ -10,7 +10,11 @@ import { fileURLToPath } from "node:url";
 import { log } from "./log.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, "..", "..", "data");
+// SYNC_DATA_DIR: nur für Tests (tests/sync-accounts.test.js), damit ein Testlauf
+// nie in das echte data/-Verzeichnis schreibt. Ohne Wert gilt data/ wie bisher.
+const DATA_DIR = process.env.SYNC_DATA_DIR
+  ? path.resolve(process.env.SYNC_DATA_DIR)
+  : path.join(__dirname, "..", "..", "data");
 
 export const OUT_FILE = path.join(DATA_DIR, "rides.json");
 export const OUT_FILE_2 = path.join(DATA_DIR, "rides-2.json");
