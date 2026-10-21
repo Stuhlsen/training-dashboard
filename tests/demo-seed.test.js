@@ -111,6 +111,12 @@ function fakeBackend({ users = [], maxRows = Infinity, withoutGrants = false } =
       return res(200, {});
     }
     const table = u.pathname.replace("/rest/v1/", "");
+    if (table === "profiles_own" && method === "GET") {
+      // wie die echte View: nur die eigene Zeile (auth.uid())
+      const id = init.headers.Authorization?.replace(/^Bearer user-token:/, "");
+      const p = db.profiles.get(id);
+      return res(200, p ? [p] : []);
+    }
     if (table === "profiles") {
       if (withoutGrants && u.searchParams.get("select")?.includes("coach_id")) {
         return res(403, { code: "42501", message: "permission denied for table profiles" });
@@ -484,7 +490,38 @@ test("Passwort: jeder Demo-Account wird als eingeloggter User markiert, nur einm
   calls.length = 0;
   const second = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
   assert.equal(second.passwordsMarked, 0);
-  assert.equal(calls.filter((c) => c.path === "/auth/v1/token").length, 0);
+  assert.equal(calls.filter((c) => c.path === "/rest/v1/rpc/mark_password_set").length, 0);
+  // Nur noch der Profil-Check (E7) loggt die Athleten ein — der Trainer nicht.
+  assert.deepEqual(
+    calls.filter((c) => c.path === "/auth/v1/token").map((c) => c.body.email),
+    DEMO_ROSTER.map((a) => a.email)
+  );
+});
+
+test("Profil-Grunddaten (E7): nur leere Felder, als eingeloggter Athlet", async () => {
+  const { db, calls, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
+
+  const byEmail = new Map(db.users.map((u) => [u.email, db.profiles.get(u.id)]));
+  for (const a of DEMO_ROSTER) {
+    const p = byEmail.get(a.email);
+    assert.equal(p.birthdate, a.profile.birthdate);
+    assert.equal(p.height_cm, a.profile.heightCm);
+    assert.equal(p.sex, a.profile.sex);
+    assert.equal(p.hr_max, a.hrMax);
+    assert.equal(p.weight_kg, a.weightKg);
+  }
+  const coach = byEmail.get(DEMO_COACH.email);
+  assert.equal(coach.birthdate, undefined, "Trainer bekommt keine Athleten-Grunddaten");
+  const patches = calls.filter((c) => c.method === "PATCH" && c.body?.birthdate);
+  assert.ok(patches.every((c) => c.auth.startsWith("Bearer user-token:")));
+
+  // Lokal geänderter Wert bleibt, zweiter Lauf patcht nichts mehr.
+  byEmail.get(DEMO_ROSTER[0].email).height_cm = 170;
+  calls.length = 0;
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor });
+  assert.equal(byEmail.get(DEMO_ROSTER[0].email).height_cm, 170);
+  assert.equal(calls.filter((c) => c.method === "PATCH" && c.body?.birthdate).length, 0);
 });
 
 // ── Reset ────────────────────────────────────────────────────

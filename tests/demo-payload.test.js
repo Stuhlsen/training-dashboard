@@ -340,3 +340,102 @@ test("Generator-Code: kein Math.random(), kein Date.now()", () => {
     assert.doesNotMatch(code, /Math\.random\(|Date\.now\(/, f);
   }
 });
+
+// ── Abnahme E7: Plausibilität ────────────────────────────────
+
+const { getSubjectiveReadiness } = await import("../app/src/core/readiness.js");
+const { energyView, hydrationSeries } = await import("../app/src/core/body.js");
+const { buildPaceCurve } = await import("../app/src/core/pace-curve.js");
+const { estimateThresholdSpeed } = await import("../app/src/core/critical-speed.js");
+const { shortenActivity } = await import("../scripts/demo/lib/rides.js");
+
+test("Morgen-Check-in (E7): gesunde Tage meist fit, Krankheitswoche nie", () => {
+  for (const { rows, timeline } of BOTH) {
+    const sick = new Map(timeline.days.map((d) => [d.date, d.isSick]));
+    const levels = { healthy: [], sick: [] };
+    for (const w of rows.wellbeing) {
+      const { level } = getSubjectiveReadiness(
+        [{ date: w.date, energy: w.energy, muscleFeel: w.muscle_feel, mood: w.mood }],
+        w.date
+      );
+      levels[sick.get(w.date) ? "sick" : "healthy"].push(level);
+    }
+    const green = levels.healthy.filter((l) => l === "green").length / levels.healthy.length;
+    assert.ok(green >= 0.5, `nur ${Math.round(green * 100)} % grüne Tage`);
+    assert.ok(levels.sick.length > 0 && !levels.sick.includes("green"));
+  }
+});
+
+test("FTP-Ziel (E7): goals, json.ftpGoal und Besetzung stimmen überein", () => {
+  for (const { rows, json, timeline } of BOTH) {
+    const { ftpGoal } = demoAthlete(timeline.athleteId);
+    assert.equal(rows.goals[0].target_value, ftpGoal);
+    assert.equal(json.ftpGoal, ftpGoal);
+  }
+});
+
+test("FTP-Historie (E7): kein Eintrag nach heute, DB-Zeilen = JSON", () => {
+  for (const { rows, json } of BOTH) {
+    assert.ok(json.ftpHistory.every((f) => f.validFrom <= TODAY));
+    assert.deepEqual(
+      rows.ftp_history.map((r) => r.valid_from),
+      json.ftpHistory.map((f) => f.validFrom)
+    );
+  }
+});
+
+test("Energiebilanz und Trinkmenge (E7): Analyse-Kacheln haben Daten", () => {
+  for (const { json } of BOTH) {
+    const e = energyView(json.wellness);
+    assert.ok(e?.hasIntake && e.hasResting, "Energiebilanz leer");
+    assert.ok(e.avgIntake > 1200 && e.avgIntake < 4500, `Zufuhr ${e.avgIntake}`);
+    assert.ok(Math.abs(e.avgIntake - e.avgBurned) < 300, "Bilanz unplausibel");
+    assert.equal(hydrationSeries(json.wellness)?.field, "hydrationVolume");
+  }
+});
+
+test("Lauf (E7): Pace-Kurve wird von kurz nach lang langsamer, Testlauf je Zyklus", () => {
+  const runs = A2.json.rides.filter((r) => r.sport === "run");
+  const curve = buildPaceCurve(runs);
+  assert.ok(curve.length >= 4);
+  for (let i = 1; i < curve.length; i++) {
+    assert.ok(curve[i].paceSec >= curve[i - 1].paceSec, `${curve[i].label} schneller als davor`);
+  }
+  assert.ok(runs.some((r) => r.name.startsWith("Testlauf")));
+});
+
+test("Schwimmen (E7): CSS-Test 400 + 200 m macht die CSS schätzbar", () => {
+  const swims = A2.json.rides.filter((r) => r.sport === "swim");
+  const tests = swims.filter((r) => r.name.startsWith("CSS-Test"));
+  assert.ok(tests.some((r) => r.km === 0.4) && tests.some((r) => r.km === 0.2));
+  const est = estimateThresholdSpeed(A2.json.rides, { sport: "swim" });
+  // Schwelle 3,6 km/h ≈ 1:40/100 m — die Schätzung liegt in der Nähe
+  assert.ok(est.speed > 3 && est.speed < 3.9, `CSS ${est.speed}`);
+  assert.equal(new Set(A2.json.rides.map((r) => r.activityId)).size, A2.json.rides.length);
+});
+
+test("shortenActivity verlängert nie (kurze Testeinheiten bleiben kurz)", () => {
+  const athlete = demoAthlete("demo2");
+  const swim = A2.json.rides.find((r) => r.name === "CSS-Test 200 m");
+  assert.equal(shortenActivity(swim, 0.5, athlete).min, swim.min);
+});
+
+test("Grundlagenanteil (E7): Wochen im Schnitt ≥ 78 % Z1+Z2, harte Einheit nicht nur Zielzone", async () => {
+  const { weeklyZoneShares } = await import("../app/src/core/zones.js");
+  const mondayOf = (r) => {
+    const d = new Date(`${r.date}T00:00:00`);
+    return addDaysISO(r.date, -((d.getDay() + 6) % 7));
+  };
+  for (const { json } of BOTH) {
+    const weeks = weeklyZoneShares(json.rides, mondayOf, (a, b) => a.localeCompare(b));
+    const avg = mean(weeks.map((w) => w.lowShare));
+    assert.ok(avg >= 0.78, `Ø Grundlagenanteil ${Math.round(avg * 100)} %`);
+    const vo2 = json.rides.find((r) => r.sport === "ride" && r.typ === "VO2max");
+    const z = Object.fromEntries(vo2.zoneTimes.map((x) => [x.id, x.secs]));
+    assert.ok((z.Z1 + z.Z2) / (vo2.min * 60) >= 0.5, "VO2max-Einheit ohne Ein-/Ausfahren");
+    for (const r of json.rides.filter((x) => x.zoneTimes)) {
+      const sum = r.zoneTimes.filter((x) => x.id !== "SS").reduce((s, x) => s + x.secs, 0);
+      assert.equal(sum, r.min * 60);
+    }
+  }
+});

@@ -134,3 +134,23 @@ test("ungültige Eingaben werfen", () => {
   assert.throws(() => buildDemoTimeline({ ...base, seed: "" }), /seed/);
   assert.throws(() => buildDemoTimeline({ ...base, athleteId: "athlete1" }), /Unbekannter/);
 });
+
+test("FTP-Stufen (E7): nichts nach heute, ein Anstieg sitzt am gefahrenen FTP-Test", () => {
+  for (const t of [T1, T2]) {
+    assert.ok(t.ftpSteps.every((s) => s.date <= TODAY), "FTP-Wert aus der Zukunft");
+    const starts = new Set(t.cycles.map((c) => c.start));
+    const byDate = new Map(t.days.map((d) => [d.date, d]));
+    for (let i = 1; i < t.ftpSteps.length; i++) {
+      const s = t.ftpSteps[i];
+      if (starts.has(s.date)) continue; // Rückfall oder kein Test gefunden
+      const day = byDate.get(s.date);
+      assert.ok(s.watts > t.ftpSteps[i - 1].watts, "nur Anstiege sitzen am Testtag");
+      assert.ok(day.planned.some((c) => c.typ === "FTP-Test"), `${s.date} ohne FTP-Test`);
+      assert.ok(day.fulfilment !== "skipped");
+    }
+  }
+  assert.ok(
+    [T1, T2].some((t) => t.ftpSteps.some((s) => !t.cycles.some((c) => c.start === s.date))),
+    "kein einziger Anstieg am Testtag"
+  );
+});

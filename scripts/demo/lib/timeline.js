@@ -188,12 +188,41 @@ function assertInput({ seed, epoch, today }) {
   if (new Date(`${epoch}T00:00:00`).getDay() !== 1) throw new Error("epoch muss ein Montag sein");
 }
 
-/** FTP-Stufen ab dem ersten Zyklus im Fenster, danach nur bei Wertänderung. */
-function ftpStepsFor(athlete, cycles) {
+/** Wie weit vor einem Zyklusstart ein FTP-Test noch als „der Test für den
+ *  neuen Wert" zählt (Taper + Rennwoche des Vorzyklus). */
+const FTP_TEST_LOOKBACK_DAYS = 28;
+
+/** Jüngster gefahrener FTP-Test in [from, before) — oder null. */
+function lastDoneFtpTest(days, from, before) {
+  for (let i = days.length - 1; i >= 0; i--) {
+    const d = days[i];
+    if (d.date >= before || d.date < from) continue;
+    const done = d.fulfilment !== "skipped" && d.fulfilment !== "rest";
+    if (done && d.planned.some((c) => c.sport === "ride" && c.typ === "FTP-Test")) return d.date;
+  }
+  return null;
+}
+
+/**
+ * FTP-Stufen ab dem ersten Zyklus im Fenster, danach nur bei Wertänderung —
+ * und nur bis `today` (E7: kein „gemessener" Wert aus der Zukunft).
+ * Ein Anstieg sitzt am letzten gefahrenen FTP-Test vor dem Zyklusstart
+ * (E7: Historie passt zu den Testfahrten), sonst am Zyklusstart. Der
+ * Saison-Rückfall bleibt am Zyklusstart (Pause nach dem A-Rennen, kein Test).
+ */
+function ftpStepsFor(athlete, cycles, days, today) {
   const steps = [];
   for (const c of cycles) {
     const watts = ftpForPos(athlete, c.pos);
-    if (steps.at(-1)?.watts !== watts) steps.push({ date: c.start, watts, source: "test" });
+    const prev = steps.at(-1)?.watts;
+    if (prev === watts) continue;
+    const test =
+      prev != null && watts > prev
+        ? lastDoneFtpTest(days, addDaysISO(c.start, -FTP_TEST_LOOKBACK_DAYS), c.start)
+        : null;
+    const date = test ?? c.start;
+    if (date > today) break;
+    steps.push({ date, watts, source: "test" });
   }
   return steps;
 }
@@ -247,7 +276,7 @@ export function buildDemoTimeline(input) {
       priority: c.pos === CYCLES_PER_SEASON - 1 ? "main" : "secondary",
       plans: plans.get(c.k).plans,
     })),
-    ftpSteps: ftpStepsFor(athlete, cycles),
+    ftpSteps: ftpStepsFor(athlete, cycles, days, today),
     sickWindows,
     days,
   };

@@ -176,14 +176,60 @@ async function ensurePasswordMarked(client, profileId, email) {
   );
   if (!profile) throw new Error(`Profil zu ${email} fehlt (Trigger handle_new_user?)`);
   if (profile.has_password) return 0;
+  await client.request("POST", "/rest/v1/rpc/mark_password_set", {
+    body: {},
+    bearer: await loginAs(client, email),
+  });
+  return 1;
+}
+
+/** Tokens je Client (= je Seed-Lauf): höchstens ein Login pro Account. */
+const tokenCache = new WeakMap();
+
+/** Als Demo-Account einloggen. @returns {Promise<string>} Access-Token */
+async function loginAs(client, email) {
+  assertDemoAccount(email);
+  const tokens = tokenCache.get(client) ?? new Map();
+  tokenCache.set(client, tokens);
+  if (tokens.has(email)) return tokens.get(email);
   const session = await client.request("POST", "/auth/v1/token?grant_type=password", {
     body: { email, password: DEMO_PASSWORD },
     bearer: null,
   });
   if (!session?.access_token) throw new Error(`Login als ${email} lieferte kein Token`);
-  await client.request("POST", "/rest/v1/rpc/mark_password_set", {
-    body: {},
-    bearer: session.access_token,
+  tokens.set(email, session.access_token);
+  return session.access_token;
+}
+
+/**
+ * Profil-Grunddaten (E7): sonst fehlen Größe/Geburtsdatum für das
+ * Ernährungsziel und HFmax gilt als geschätzt. Wie bei mark_password_set
+ * über den eingeloggten Account (eigene Zeile, vorhandene Spaltenrechte) —
+ * kein neues service_role-Recht. Nur leere Felder werden gefüllt.
+ * @returns {Promise<number>} 1 = ergänzt, 0 = nichts zu tun
+ */
+async function ensureProfileBasics(client, profileId, athlete) {
+  const token = await loginAs(client, athlete.email);
+  const want = {
+    birthdate: athlete.profile.birthdate,
+    height_cm: athlete.profile.heightCm,
+    sex: athlete.profile.sex,
+    gender: athlete.profile.gender,
+    weight_kg: athlete.weightKg,
+    resting_hr: athlete.hrRest,
+    hr_max: athlete.hrMax,
+  };
+  const [own] = await client.request(
+    "GET",
+    `/rest/v1/profiles_own?select=${Object.keys(want).join(",")}`,
+    { bearer: token }
+  );
+  if (!own) throw new Error(`Eigenes Profil zu ${athlete.email} nicht lesbar`);
+  const patch = Object.fromEntries(Object.entries(want).filter(([k]) => own[k] == null));
+  if (Object.keys(patch).length === 0) return 0;
+  await client.request("PATCH", `/rest/v1/profiles?id=${eq(profileId)}`, {
+    body: patch,
+    bearer: token,
   });
   return 1;
 }
@@ -362,6 +408,7 @@ export async function runSeed({ url, serviceKey, fetchImpl, rowsFor }) {
       coachId,
       created: user.created,
     });
+    summary.profiles += await ensureProfileBasics(client, user.id, athlete);
 
     const rows = rowsFor(athlete);
     const linked = await seedGoalsAndEvents(client, user.id, rows);

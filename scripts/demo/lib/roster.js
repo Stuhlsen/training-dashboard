@@ -23,6 +23,9 @@
  * @property {string} endpoint  URL-Pfad, den die App abruft (nie <repo>/data/ auf der Platte)
  * @property {Array<"ride"|"run"|"swim">} sports
  * @property {[number, number, number]} ftpSeason  FTP Saisonstart → nach Sprung 1 → nach Sprung 2
+ * @property {number} ftpGoal  = DEMO_ATHLETES[].ftpGoal (E7: eine Quelle für Ziel-Ring und goals)
+ * @property {{ birthdate: string, heightCm: number, sex: "m"|"f", gender: "maennlich"|"weiblich" }} profile
+ *   erfundene Profil-Grunddaten (E7) — der Seed ergänzt damit leere Felder
  * @property {number} weightKg
  * @property {number} hrMax
  * @property {number} hrRest
@@ -43,6 +46,8 @@ export const DEMO_ROSTER = [
     endpoint: "data/rides-demo1.json",
     sports: ["ride"],
     ftpSeason: [205, 214, 222],
+    ftpGoal: 232,
+    profile: { birthdate: "1995-04-12", heightCm: 168, sex: "f", gender: "weiblich" },
     weightKg: 64,
     hrMax: 188,
     hrRest: 50,
@@ -67,6 +72,8 @@ export const DEMO_ROSTER = [
     endpoint: "data/rides-demo2.json",
     sports: ["ride", "run", "swim"],
     ftpSeason: [238, 246, 252],
+    ftpGoal: 262,
+    profile: { birthdate: "1991-09-03", heightCm: 181, sex: "m", gender: "maennlich" },
     weightKg: 73,
     hrMax: 182,
     hrRest: 46,

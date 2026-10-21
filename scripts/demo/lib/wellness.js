@@ -21,6 +21,22 @@ const TSB_DIP_FACTOR = 0.92;
 const HARD_DAY_TSS = 100;
 const SLEEP_MIN = 6.5;
 const SLEEP_MAX = 8.5;
+/** Zufuhr minus Verbrauch je Tag (kcal) — im Mittel ein kleines Defizit,
+ *  damit Energiebilanz und Trinkrate in der Analyse nicht leer bleiben (E7). */
+const KCAL_BALANCE_RANGE = [-300, 150];
+/** Trinkmenge (ml): Grundbedarf + Zuschlag je TSS. */
+const HYDRATION_BASE_ML = 2000;
+const HYDRATION_ML_PER_TSS = 8;
+
+/**
+ * Grundumsatz nach Mifflin-St Jeor aus den erfundenen Profildaten.
+ * @param {import("./roster.js").DemoAthlete} athlete @param {string} date
+ */
+function restingKcal(athlete, date) {
+  const { birthdate, heightCm, sex } = athlete.profile;
+  const age = Number(date.slice(0, 4)) - Number(birthdate.slice(0, 4));
+  return 10 * athlete.weightKg + 6.25 * heightCm - 5 * age + (sex === "m" ? 5 : -161);
+}
 
 /** @param {number} v @param {number} lo @param {number} hi */
 const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
@@ -77,6 +93,17 @@ export function buildWellness({ timeline, athlete, today, tssByDate, pmcByDate }
       clamp(60 + (sleepHours - SLEEP_MIN) * 12 + between(rng, -5, 5) - (sick ? 10 : 0), 50, 98)
     );
 
+    const dayTss = tssByDate.get(date) ?? 0;
+    const activeEnergy = Math.round(250 + dayTss * 8);
+    const restingEnergy = Math.round(restingKcal(athlete, date) + between(rng, -30, 30));
+    const kcalConsumed = Math.round(
+      restingEnergy + activeEnergy + between(rng, ...KCAL_BALANCE_RANGE)
+    );
+    const hydrationVolume =
+      Math.round(
+        (HYDRATION_BASE_ML + dayTss * HYDRATION_ML_PER_TSS + between(rng, -300, 300)) / 50
+      ) * 50;
+
     out.push({
       date,
       sleepHours,
@@ -87,11 +114,11 @@ export function buildWellness({ timeline, athlete, today, tssByDate, pmcByDate }
       hrvMethod: "rmssd",
       weight: round(athlete.weightKg + between(rng, -0.4, 0.4), 1),
       bodyFat: null,
-      activeEnergy: Math.round(250 + (tssByDate.get(date) ?? 0) * 8),
-      restingEnergy: null,
-      kcalConsumed: null,
+      activeEnergy,
+      restingEnergy,
+      kcalConsumed,
       hydration: null,
-      hydrationVolume: null,
+      hydrationVolume,
       eftp: eftpAt(ftpSteps, date, seed, athlete.id),
     });
   }

@@ -48,8 +48,13 @@ const CURVE_DAYS = 90;
 const FORECAST_DAYS = 7;
 /** Trittfrequenz-Ziel für Intervalle (athlete_sync_config). */
 const CADENCE_TARGET = 88;
-/** Aufschlag aufs höchste Saison-FTP für das FTP-Ziel. */
-const FTP_GOAL_PLUS = 8;
+/** Morgen-Check-in: Mitte der 1–5-Skala an einem normalen Tag. Die App
+ *  zeigt „fit" erst ab einem Schnitt von 4,0 (core/readiness.js
+ *  SUBJECTIVE_READINESS_CONFIG) — mit 3 als Mitte war fast jeder Tag
+ *  „durchwachsen" (E7). */
+const WELLBEING_CENTER = 4.3;
+/** Abzug in der Krankheitswoche (zusätzlich zur HRV-Delle). */
+const WELLBEING_SICK_PENALTY = 1.5;
 
 /** CTL-Anstieg über 7 Tage, den die Rampen-Bremse nicht überschreiten lässt
  *  (Regel: ≤ 8/Woche, mit Abstand für die Rundung auf 0,1). */
@@ -194,7 +199,8 @@ function forecastFor(seed, athleteId, today) {
 /** Morgen-Check-in (1–5) aus HRV-Verhältnis + Krankheit. */
 function wellbeingRow(w, athlete, sick, seed) {
   const rng = rngFor(seed, athlete.id, "wellbeing", w.date);
-  const base = 3 + (w.hrv / athlete.hrvBase - 1) * 8 - (sick ? 1.5 : 0);
+  const base =
+    WELLBEING_CENTER + (w.hrv / athlete.hrvBase - 1) * 8 - (sick ? WELLBEING_SICK_PENALTY : 0);
   const score = () => Math.min(5, Math.max(1, Math.round(base + between(rng, -0.7, 0.7))));
   return { date: w.date, energy: score(), muscle_feel: score(), mood: score(), note: null };
 }
@@ -297,7 +303,7 @@ function buildRows({ timeline, athlete, today, rides, wellness }) {
     goals: [
       {
         kind: "FTP",
-        target_value: Math.max(...athlete.ftpSeason) + FTP_GOAL_PLUS,
+        target_value: athlete.ftpGoal,
         target_date: nextMain?.raceDate ?? null,
         note: null,
         is_active: true,

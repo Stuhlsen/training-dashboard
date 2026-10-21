@@ -13,6 +13,7 @@ interface RosterEntry {
   hrMax: number;
   hrRest: number;
   ftpSeason: number[];
+  ftpGoal: number;
 }
 const rosterModules = import.meta.glob<{ DEMO_ROSTER: RosterEntry[] }>("../../scripts/demo/lib/roster.js", {
   eager: true,
@@ -47,6 +48,12 @@ describe("DEMO_ATHLETES (Fahrplan 31, V2)", () => {
       const a = DEMO_ATHLETES.find((x) => x.id === r.id);
       expect(a?.seasonStartFtp).toBe(r.ftpSeason[0]);
       expect(a?.ftpMeasured).toBe(r.ftpSeason[r.ftpSeason.length - 1]);
+    }
+  });
+
+  it("FTP-Ziel: eine Quelle für Ziel-Ring (config) und goals-Zeile (Seed) — Fahrplan 31 E7", () => {
+    for (const r of DEMO_ROSTER) {
+      expect(DEMO_ATHLETES.find((x) => x.id === r.id)?.ftpGoal).toBe(r.ftpGoal);
     }
   });
 });

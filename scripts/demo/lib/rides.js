@@ -17,7 +17,7 @@
 
 import { inferTypFromIF } from "../../lib/map-activity.js";
 import { banisterTrimp } from "../../lib/core/trimp.js";
-import { diffDays } from "../../../app/src/core/format.js";
+import { addDaysISO, diffDays } from "../../../app/src/core/format.js";
 import { rngFor } from "./prng.js";
 
 /** Session-IF (NP ÷ FTP) je Plan-Typ beim Rad — so gewählt, dass
@@ -36,10 +36,17 @@ const RIDE_IF_DEFAULT = 0.7;
 
 /** Tempo-IF (Geschwindigkeit ÷ Schwellengeschwindigkeit) je Plan-Typ. */
 const PACE_IF = {
-  run: { Dauerlauf: 0.78, Longrun: 0.76, Tempolauf: 0.9, Intervalle: 0.93 },
+  // Ø-Tempo der ganzen Einheit inkl. Ein-/Auslaufen und Pausen (E7)
+  run: { Dauerlauf: 0.78, Longrun: 0.76, Tempolauf: 0.87, Intervalle: 0.88 },
   swim: { Longswim: 0.8, Technik: 0.7, Intervalle: 0.9 },
 };
 const PACE_IF_DEFAULT = 0.78;
+
+/** Lauf: je länger, desto langsamer (E7) — Obergrenze der Tempo-IF über
+ *  die Dauer, damit die Pace-Kurve von kurz nach lang abfällt. */
+const runIfCap = (min) => 1.08 - 0.0025 * min;
+/** „Härter gefahren" als Tempo-Zuschlag bei Lauf/Schwimm (Rad: 0,05). */
+const PACE_HARDER_ADD = 0.02;
 
 /** Renn-Aktivitäten am Renntag (Q3 A): Rad-Athlet eine, Triathlet drei. */
 const RACE_LEGS = {
@@ -47,9 +54,26 @@ const RACE_LEGS = {
   tri: [
     { sport: "swim", min: 28, if: 0.92 },
     { sport: "ride", min: 75, if: 0.86 },
-    { sport: "run", min: 45, if: 0.95 },
+    // Lauf nach dem Rad: langsamer als ein freier 10-km-Lauf (E7, Pace-Kurve)
+    { sport: "run", min: 45, if: 0.9 },
   ],
 };
+
+/** Testtag je Zyklus (E7): ersetzt die erste Intervall-Einheit ab Woche 2.
+ *  Liefert kurze, schnelle Efforts — sonst fällt die Pace-Kurve nicht von
+ *  kurz nach lang ab und die CSS-Schätzung (Schwimm-Pace-Zonen) hat keine
+ *  zwei Distanzen. Dauer so gewählt, dass die Strecke nach dem Runden auf
+ *  0,1 km beim Lauf im 2-km-Block (3,5 km) und beim Schwimmen genau
+ *  0,4/0,2 km ergibt. */
+const TEST_EFFORTS = {
+  // 15 min: kürzeste Dauer, die core/critical-speed.js beim Lauf zählt
+  run: [{ name: "Testlauf 15 min", min: 15, if: 1.04 }],
+  swim: [
+    { name: "CSS-Test 400 m", min: 7, if: 1.0 },
+    { name: "CSS-Test 200 m", min: 3, if: 1.04 },
+  ],
+};
+const TEST_WEEK_OFFSET_DAYS = 7;
 
 /** Grund-km/h beim Rad bei IF 0,6, plus Anstieg je IF-Punkt. */
 const RIDE_KMH_BASE = 22;
@@ -59,6 +83,11 @@ const RIDE_KMH_PER_IF = 14;
 const EFTP_LAG_DAYS = 14;
 
 const ZONE_IDS = ["Z1", "Z2", "Z3", "Z4", "Z5", "Z6", "Z7"];
+/** Wie scharf die Zeit um eine Zone gebündelt ist (größer = enger). */
+const ZONE_DECAY = 2.4;
+/** Arbeitsanteil einer Einheit in ihrer Zielzone, je Schwerpunkt-Zone
+ *  (Index wie ZONE_IDS): Tempo/Sweet Spot, Schwelle, VO2max. */
+const ZONE_WORK_SHARE = { 2: 0.4, 3: 0.3, 4: 0.2 };
 
 /** @param {number} v @param {number} [digits] */
 export const round = (v, digits = 0) => {
@@ -142,11 +171,21 @@ export function fakeWeather(seed, athleteId, date) {
 function zoneTimesFor(min, ifVal, rng) {
   const total = min * 60;
   const center = ifVal < 0.75 ? 1 : ifVal < 0.9 ? 2 : ifVal < 1.05 ? 3 : 4;
-  const weights = ZONE_IDS.map(
-    (_, z) => Math.exp(-1.3 * Math.abs(z - center)) * between(rng, 0.8, 1.2)
-  );
-  const sum = weights.reduce((a, b) => a + b, 0);
-  const secs = weights.map((w) => Math.round((w / sum) * total));
+  // E7: Eine harte Einheit liegt nur mit ihrem Arbeitsanteil in der
+  // Zielzone — Ein-/Ausfahren und Pausen zählen als Grundlage (Z1/Z2).
+  // Vorher lag die ganze Einheit um die Zielzone, der Grundlagenanteil
+  // fiel in Wochen mit zwei harten Einheiten auf ~40 %.
+  const workShare = ZONE_WORK_SHARE[center] ?? 0;
+  const profile = (c) => {
+    const w = ZONE_IDS.map(
+      (_, z) => Math.exp(-ZONE_DECAY * Math.abs(z - c)) * between(rng, 0.8, 1.2)
+    );
+    const s = w.reduce((a, b) => a + b, 0);
+    return w.map((x) => x / s);
+  };
+  const easy = profile(1);
+  const work = workShare > 0 ? profile(center) : easy;
+  const secs = easy.map((e, z) => Math.round((e * (1 - workShare) + work[z] * workShare) * total));
   secs[center] += total - secs.reduce((a, b) => a + b, 0);
   const ssShare = ifVal >= 0.85 && ifVal < 0.97 ? 0.35 : 0.05;
   return [
@@ -282,7 +321,8 @@ function activity(p) {
  * @param {import("./roster.js").DemoAthlete} athlete
  */
 export function shortenActivity(a, factor, athlete) {
-  const min = Math.max(10, Math.round(a.min * factor));
+  // Nie verlängern: kurze Testeinheiten (3 min) blieben sonst nicht kurz.
+  const min = Math.min(a.min, Math.max(10, Math.round(a.min * factor)));
   const f = min / a.min;
   const km = round(a.km * f, 1);
   const hoehe = Math.round(a.hoehe * f);
@@ -309,6 +349,32 @@ export function shortenActivity(a, factor, athlete) {
 }
 
 /**
+ * Testtage je Zyklus und Sportart (Lauf/Schwimm): erster gefahrener,
+ * gesunder Tag ab Woche 2 mit einer Intervall-Karte dieser Sportart.
+ * @param {import("./timeline.js").DemoTimeline} timeline
+ * @returns {Set<string>} Schlüssel `${date}|${sport}`
+ */
+export function testDaysFor(timeline) {
+  const keys = new Set();
+  for (const c of timeline.cycles) {
+    const from = addDaysISO(c.start, TEST_WEEK_OFFSET_DAYS);
+    for (const sport of Object.keys(TEST_EFFORTS)) {
+      const day = timeline.days.find(
+        (d) =>
+          d.date >= from &&
+          d.date < c.raceDate &&
+          !d.isSick &&
+          d.fulfilment !== "skipped" &&
+          d.fulfilment !== "rest" &&
+          d.planned.some((p) => p.sport === sport && p.typ === "Intervalle")
+      );
+      if (day) keys.add(`${day.date}|${sport}`);
+    }
+  }
+  return keys;
+}
+
+/**
  * Alle Aktivitäten der Zeitachse VOR `today` (heute ist noch nicht gefahren).
  * Renntage aus `cycles` bekommen die Renn-Aktivitäten (Q3 A).
  * @param {import("./timeline.js").DemoTimeline} timeline
@@ -319,6 +385,7 @@ export function shortenActivity(a, factor, athlete) {
 export function buildActivities(timeline, athlete, today) {
   const { seed, ftpSteps } = timeline;
   const races = new Map(timeline.cycles.map((c) => [c.raceDate, c]));
+  const testDays = testDaysFor(timeline);
   const out = [];
 
   for (const day of timeline.days) {
@@ -355,18 +422,37 @@ export function buildActivities(timeline, athlete, today) {
     if (day.fulfilment === "skipped" || day.fulfilment === "rest") continue;
     day.planned.forEach((card, index) => {
       const rng = rngFor(seed, athlete.id, "ride", day.date, index);
+      if (card.typ === "Intervalle" && testDays.has(`${day.date}|${card.sport}`)) {
+        TEST_EFFORTS[card.sport].forEach((t, j) => {
+          const a = activity({
+            ...ctx,
+            sport: card.sport,
+            index,
+            min: t.min,
+            ifVal: t.if,
+            name: t.name,
+            typPlanned: card.typ,
+            rng,
+          });
+          out.push(j === 0 ? a : { ...a, activityId: `${a.activityId}-t${j}` });
+        });
+        return;
+      }
       const f = fulfilmentFactors(day.fulfilment, rng);
-      const base =
-        card.sport === "ride"
-          ? (RIDE_IF[card.typ] ?? RIDE_IF_DEFAULT)
-          : (PACE_IF[card.sport]?.[card.typ] ?? PACE_IF_DEFAULT);
+      const isRide = card.sport === "ride";
+      const base = isRide
+        ? (RIDE_IF[card.typ] ?? RIDE_IF_DEFAULT)
+        : (PACE_IF[card.sport]?.[card.typ] ?? PACE_IF_DEFAULT);
+      const min = Math.max(15, Math.round(card.durationMin * f.dur));
+      const add = isRide || f.ifAdd === 0 ? f.ifAdd : PACE_HARDER_ADD;
+      const ifRaw = base + add + between(rng, -0.02, 0.02);
       out.push(
         activity({
           ...ctx,
           sport: card.sport,
           index,
-          min: Math.max(15, Math.round(card.durationMin * f.dur)),
-          ifVal: base + f.ifAdd + between(rng, -0.02, 0.02),
+          min,
+          ifVal: card.sport === "run" ? Math.min(ifRaw, runIfCap(min)) : ifRaw,
           name: card.name,
           typPlanned: card.typ,
           rng,
