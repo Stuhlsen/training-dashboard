@@ -87,9 +87,11 @@ export function wins({ efDeltaPct, hrvVsBaselinePct, gaShareDeltaPct, gaShare, g
       note: "Watt je Herzschlag verbessert sich über vergleichbare Grundlagenfahrten.",
     });
   }
-  if (hrvVsBaselinePct != null && hrvVsBaselinePct > 0) {
+  // Gerundet vergleichen: +0,3 % wäre sonst eine Erfolgs-Karte „+0 %".
+  const hrvPct = hrvVsBaselinePct != null ? Math.round(hrvVsBaselinePct) : null;
+  if (hrvPct != null && hrvPct > 0) {
     out.push({
-      value: `+${Math.round(hrvVsBaselinePct)} %`,
+      value: `+${hrvPct} %`,
       delta: "über Basis",
       label: "HRV über Basis",
       note: "Der 7-Tage-Schnitt liegt über der 42-Tage-Baseline — die Reize werden angenommen.",
@@ -212,11 +214,15 @@ export function recoveryVerdict({ hrvVsBaselinePct, rhrDeltaBpm, shortNightsCoun
     return { verdict: "unklar", color: "neutral", answer: "Noch keine ausreichende HRV-/Ruhepuls-Baseline für ein Urteil." };
   }
   const parts = [];
-  if (hrvVsBaselinePct != null) {
+  // Gerundet vergleichen: bei 0 % weder „über" noch „unter" (Live-Fund „+0 % über Basis").
+  const hrvPct = hrvVsBaselinePct != null ? Math.round(hrvVsBaselinePct) : null;
+  if (hrvPct != null) {
     parts.push(
-      hrvVsBaselinePct >= 0
-        ? `Die HRV liegt ${Math.round(hrvVsBaselinePct)} % über der eigenen Basis — der Körper nimmt die Reize an.`
-        : `Die HRV liegt ${Math.round(Math.abs(hrvVsBaselinePct))} % unter der eigenen Basis.`
+      hrvPct > 0
+        ? `Die HRV liegt ${hrvPct} % über der eigenen Basis — der Körper nimmt die Reize an.`
+        : hrvPct < 0
+          ? `Die HRV liegt ${Math.abs(hrvPct)} % unter der eigenen Basis.`
+          : "Die HRV liegt auf Höhe der eigenen Basis."
     );
   }
   if (rhrDeltaBpm != null) {
@@ -235,7 +241,7 @@ export function recoveryVerdict({ hrvVsBaselinePct, rhrDeltaBpm, shortNightsCoun
   }
 
   const bad = (hrvVsBaselinePct ?? 0) < -5 || (rhrDeltaBpm ?? 0) > 3;
-  const mixed = shortNightsCount >= 2 || (hrvVsBaselinePct ?? 1) < 0 || (rhrDeltaBpm ?? -1) > 0;
+  const mixed = shortNightsCount >= 2 || (hrvPct ?? 1) < 0 || (rhrDeltaBpm ?? -1) > 0;
   const verdict = bad ? "angeschlagen" : mixed ? "durchwachsen" : "gut";
   const color = /** @type {VerdictColor} */ (bad ? "warn" : mixed ? "status" : "pos");
   return { verdict, color, answer: parts.join(" ") };

@@ -77,6 +77,18 @@ test("loadVerdict: Text nennt das 4-Wochen-Fenster, nie 'in Folge' (Live-Fund)",
   assert.doesNotMatch(two.answer, /in Folge/);
 });
 
+test("HRV bei gerundet 0 %: kein 'über'/'unter', keine '+0 %'-Karte (Live-Fund)", () => {
+  for (const pct of [0, 0.3, -0.4]) {
+    const v = recoveryVerdict({ hrvVsBaselinePct: pct, rhrDeltaBpm: 0, shortNightsCount: 0, sleepTargetH: 7 });
+    assert.match(v.answer, /^Die HRV liegt auf Höhe der eigenen Basis\./);
+    assert.equal(v.verdict, "gut");
+    const w = wins({ efDeltaPct: null, hrvVsBaselinePct: pct, gaShareDeltaPct: null, gaShare: null, gaTarget: 0.8, bestEffort: null });
+    assert.equal(w.length, 0);
+  }
+  const up = wins({ efDeltaPct: null, hrvVsBaselinePct: 4.6, gaShareDeltaPct: null, gaShare: null, gaTarget: 0.8, bestEffort: null });
+  assert.equal(up[0].value, "+5 %");
+});
+
 test("loadVerdict: alles im Korridor -> 'im Korridor'/pos", () => {
   const v = loadVerdict({ rampWeeksOverBand: 0, tsb: -10, tsbBand: "build", gaShare: 0.85, gaTarget: 0.8 });
   assert.equal(v.verdict, "im Korridor");
