@@ -25,6 +25,20 @@ Built for cycling first, with running and swimming as first-class sports for tri
 
 ---
 
+## Screenshots
+
+All screenshots show **fictional demo data** from the local demo stack: invented athletes, generated training history, no real people or places.
+
+![Overview: today's session, weather, daily recommendation and FTP progress](docs/screenshots/overview.png)
+
+| Planning | Analysis |
+|---|---|
+| ![Weekly planner with the upcoming sessions of the current training block](docs/screenshots/planning.png) | ![Analysis view answering "Am I getting stronger?" with fitness, form and eFTP](docs/screenshots/analysis.png) |
+| **Coach view** | **Landing page** |
+| ![Coach view: check-in, daily recommendation and form of an athlete above their plan](docs/screenshots/coach.png) | ![Public landing page with a live fitness and form chart](docs/screenshots/landing.png) |
+
+---
+
 ## Features
 
 ### Daily guidance
