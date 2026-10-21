@@ -296,6 +296,20 @@ describe("legacyWorkoutSegments", () => {
     expect(result?.totalMin).toBe(10 + 8 * 4 + 3 * 3 + 10);
   });
 
+  it("ohne Warm-up/Cool-down: keine 0-min-Abschnitte, kein 0 min im Text", () => {
+    const result = legacyWorkoutSegments({ intervals: 1, duration: 54, pct: [60, 70] });
+    expect(result?.segments.map((s) => s.type)).toEqual(["interval"]);
+    expect(result?.summary).toBe("1× 54 min @ 60–70% FTP · 54 min gesamt");
+    expect(result?.summary).not.toMatch(/\b0 min/);
+  });
+
+  it("Text mit Warm-up, Pausen und Cool-down bleibt vollständig", () => {
+    const result = legacyWorkoutSegments({ intervals: 2, duration: 8, warmup: 10, rest: 3, cooldown: 5, pct: [90, 95] });
+    expect(result?.summary).toBe(
+      "10 min Warm-up → 2× 8 min @ 90–95% FTP (Pause: 3 min) → 5 min Cool-down · 34 min gesamt",
+    );
+  });
+
   it("null für das neue Block-Format", () => {
     expect(legacyWorkoutSegments({ blocks: [{ type: "interval", text: "4x8'" }] })).toBeNull();
   });

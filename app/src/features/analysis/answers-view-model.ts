@@ -30,9 +30,18 @@ import { normalizeZoneTimes, bandZoneTimes, LOW_INTENSITY_TARGET } from "../../c
 import { ridesForSport } from "../../core/activity-sport.js";
 import { energyView, hydrationSeries, estimateRestingEnergy, wattsPerKg } from "../../core/body.js";
 import { isoWeekKey } from "../../core/aggregate.js";
+import { assessReadiness } from "../../core/readiness.js";
 import { fmt, fmtInt, fmtSigned, fmtDate, localISODate } from "../../core/format.js";
 import { tsbBandOf } from "../../core/trace-lanes.js";
-import { heroVerdict, wins as buildWins, strongerVerdict, loadVerdict, recoveryVerdict, blockerVerdict } from "../../core/analysis-narrative.js";
+import {
+  heroVerdict,
+  wins as buildWins,
+  strongerVerdict,
+  loadVerdict,
+  recoveryVerdict,
+  blockerVerdict,
+  RAMP_WINDOW_WEEKS,
+} from "../../core/analysis-narrative.js";
 import { raceCountdown } from "../../api/hooks/useEvents";
 import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics";
 import type { AthleteConfig } from "../../config";
@@ -331,7 +340,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const loadWeeks = buildLoadGuard(loadGuardRides, (r) => isoWeekKey(r.dateISO), (a, b) => a.localeCompare(b), {
     multiSport: isMultiSport,
   });
-  const rampWeeksOverBand = loadWeeks.slice(-4).filter((w) => w.ramp != null && w.ramp > 6).length;
+  const rampWeeksOverBand = loadWeeks.slice(-RAMP_WINDOW_WEEKS).filter((w) => w.ramp != null && w.ramp > 6).length;
 
   // ── CTL-Trend (4 Wochen) ───────────────────────────────────────────
   const ctlNow = ctlVals[todayIdx];
@@ -376,7 +385,21 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   // ── Leitfragen-Verdikte ─────────────────────────────────────────────
   const v1 = strongerVerdict({ eftpSlopePerWeek: eftpForecast?.slopePerWeek ?? null, efDeltaPct, ftpGoalGapW });
   const v2 = loadVerdict({ rampWeeksOverBand, tsb, tsbBand, gaShare: gaShareRecentAvg, gaTarget: GA_TARGET });
-  const v3 = recoveryVerdict({ hrvVsBaselinePct, rhrDeltaBpm, shortNightsCount, sleepTargetH: SLEEP_TARGET_H });
+  // Dasselbe Urteil wie die Tagesform-Kachel (z-Score je Metrik) — nur
+  // Metriken mit aktuellem Wert zählen, wie in core/briefing.js.
+  const readiness = assessReadiness(wellness, todayISO);
+  const markerStatus = (key: string) => {
+    const m = readiness?.metrics.find((x) => x.key === key);
+    return m && m.confidence === "vorhanden" ? (m.status as "ok" | "caution" | "alert" | "nodata") : null;
+  };
+  const v3 = recoveryVerdict({
+    hrvVsBaselinePct,
+    rhrDeltaBpm,
+    shortNightsCount,
+    sleepTargetH: SLEEP_TARGET_H,
+    hrvStatus: markerStatus("hrv"),
+    rhrStatus: markerStatus("restingHR"),
+  });
   const v4 = blockerVerdict({
     decouplingStableSharePct: dec ? dec.stableShare : null,
     cadenceSharePct,

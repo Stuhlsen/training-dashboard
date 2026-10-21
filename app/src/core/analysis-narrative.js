@@ -19,6 +19,9 @@
 
 /** @typedef {"pos"|"status"|"warn"|"neutral"} VerdictColor */
 
+/** Fenster (Wochen), über das der Aufrufer `rampWeeksOverBand` zählt. */
+export const RAMP_WINDOW_WEEKS = 4;
+
 /**
  * @param {{ctlTrendDirection: "steigend"|"fallend"|"stabil"|null, tsb: number|null,
  *   tsbBand: "overload"|"build"|"neutral"|"fresh"|"too-fresh"|null, daysToEvent: number|null}} facts
@@ -84,9 +87,11 @@ export function wins({ efDeltaPct, hrvVsBaselinePct, gaShareDeltaPct, gaShare, g
       note: "Watt je Herzschlag verbessert sich über vergleichbare Grundlagenfahrten.",
     });
   }
-  if (hrvVsBaselinePct != null && hrvVsBaselinePct > 0) {
+  // Gerundet vergleichen: +0,3 % wäre sonst eine Erfolgs-Karte „+0 %".
+  const hrvPct = hrvVsBaselinePct != null ? Math.round(hrvVsBaselinePct) : null;
+  if (hrvPct != null && hrvPct > 0) {
     out.push({
-      value: `+${Math.round(hrvVsBaselinePct)} %`,
+      value: `+${hrvPct} %`,
       delta: "über Basis",
       label: "HRV über Basis",
       note: "Der 7-Tage-Schnitt liegt über der 42-Tage-Baseline — die Reize werden angenommen.",
@@ -166,9 +171,11 @@ export function loadVerdict({ rampWeeksOverBand, tsb, tsbBand, gaShare, gaTarget
   const parts = [];
   if (rampWeeksOverBand > 0) {
     parts.push(
+      // Gezählt werden die letzten RAMP_WINDOW_WEEKS Wochen, nicht „in Folge" —
+      // und nicht die aktuelle Woche allein (die zeigt loadSignal in briefing.js).
       rampWeeksOverBand === 1
-        ? "Eine Woche lag über dem sicheren Ramp-Zielband."
-        : `${rampWeeksOverBand} Wochen in Folge lagen über dem sicheren Ramp-Zielband.`
+        ? `In den letzten ${RAMP_WINDOW_WEEKS} Wochen lag eine Woche über dem sicheren Ramp-Zielband.`
+        : `In den letzten ${RAMP_WINDOW_WEEKS} Wochen lagen ${rampWeeksOverBand} Wochen über dem sicheren Ramp-Zielband.`
     );
   } else {
     parts.push("Der Fitness-Aufbau lief zuletzt innerhalb des sicheren Ramp-Zielbands.");
@@ -196,29 +203,49 @@ export function loadVerdict({ rampWeeksOverBand, tsb, tsbBand, gaShare, gaTarget
   return { verdict, color, answer: parts.join(" ") };
 }
 
+/** @typedef {"ok"|"caution"|"alert"|"nodata"|null} MarkerStatus */
+
 /**
  * Frage 3: „Wie erhole ich mich?"
+ * `hrvStatus`/`rhrStatus` = Status derselben Metrik aus core/readiness.js
+ * (z-Score gegen die eigene Streuung, wie die Tagesform-Kachel). Liegt einer
+ * vor, urteilt die Antwort danach — sonst widersprachen sich Tagesform
+ * („im Normalbereich") und Analyse („angeschlagen") bei derselben HRV
+ * (Live-Fund). Ohne Status gelten die festen %-/bpm-Grenzen wie bisher.
  * @param {{hrvVsBaselinePct: number|null, rhrDeltaBpm: number|null,
- *   shortNightsCount: number, sleepTargetH: number}} facts
+ *   shortNightsCount: number, sleepTargetH: number,
+ *   hrvStatus?: MarkerStatus, rhrStatus?: MarkerStatus}} facts
  * @returns {{verdict: string, color: VerdictColor, answer: string}}
  */
-export function recoveryVerdict({ hrvVsBaselinePct, rhrDeltaBpm, shortNightsCount, sleepTargetH }) {
+export function recoveryVerdict({
+  hrvVsBaselinePct,
+  rhrDeltaBpm,
+  shortNightsCount,
+  sleepTargetH,
+  hrvStatus = null,
+  rhrStatus = null,
+}) {
   if (hrvVsBaselinePct == null && rhrDeltaBpm == null) {
     return { verdict: "unklar", color: "neutral", answer: "Noch keine ausreichende HRV-/Ruhepuls-Baseline für ein Urteil." };
   }
   const parts = [];
-  if (hrvVsBaselinePct != null) {
+  const WITHIN_NORMAL = " — im Rahmen deiner üblichen Schwankung";
+  // Gerundet vergleichen: bei 0 % weder „über" noch „unter" (Live-Fund „+0 % über Basis").
+  const hrvPct = hrvVsBaselinePct != null ? Math.round(hrvVsBaselinePct) : null;
+  if (hrvPct != null) {
     parts.push(
-      hrvVsBaselinePct >= 0
-        ? `Die HRV liegt ${Math.round(hrvVsBaselinePct)} % über der eigenen Basis — der Körper nimmt die Reize an.`
-        : `Die HRV liegt ${Math.round(Math.abs(hrvVsBaselinePct))} % unter der eigenen Basis.`
+      hrvPct > 0
+        ? `Die HRV liegt ${hrvPct} % über der eigenen Basis — der Körper nimmt die Reize an.`
+        : hrvPct < 0
+          ? `Die HRV liegt ${Math.abs(hrvPct)} % unter der eigenen Basis${hrvStatus === "ok" ? WITHIN_NORMAL : ""}.`
+          : "Die HRV liegt auf Höhe der eigenen Basis."
     );
   }
   if (rhrDeltaBpm != null) {
     parts.push(
       rhrDeltaBpm <= 0
         ? "Der Ruhepuls ist nicht gestiegen."
-        : `Der Ruhepuls liegt ${Math.round(rhrDeltaBpm)} bpm über dem Ausgangswert.`
+        : `Der Ruhepuls liegt ${Math.round(rhrDeltaBpm)} bpm über dem Ausgangswert${rhrStatus === "ok" ? WITHIN_NORMAL : ""}.`
     );
   }
   if (shortNightsCount > 0) {
@@ -229,8 +256,16 @@ export function recoveryVerdict({ hrvVsBaselinePct, rhrDeltaBpm, shortNightsCoun
     parts.push(`Der Schlaf liegt durchgehend nahe am Ziel von ${sleepTargetH} h.`);
   }
 
-  const bad = (hrvVsBaselinePct ?? 0) < -5 || (rhrDeltaBpm ?? 0) > 3;
-  const mixed = shortNightsCount >= 2 || (hrvVsBaselinePct ?? 1) < 0 || (rhrDeltaBpm ?? -1) > 0;
+  const statuses = [hrvStatus, rhrStatus];
+  const fromReadiness = statuses.some((s) => s != null && s !== "nodata");
+  const bad = fromReadiness
+    ? statuses.includes("alert")
+    : (hrvVsBaselinePct ?? 0) < -5 || (rhrDeltaBpm ?? 0) > 3;
+  const mixed =
+    shortNightsCount >= 2 ||
+    (fromReadiness
+      ? statuses.includes("caution")
+      : (hrvPct ?? 1) < 0 || (rhrDeltaBpm ?? -1) > 0);
   const verdict = bad ? "angeschlagen" : mixed ? "durchwachsen" : "gut";
   const color = /** @type {VerdictColor} */ (bad ? "warn" : mixed ? "status" : "pos");
   return { verdict, color, answer: parts.join(" ") };

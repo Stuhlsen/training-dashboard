@@ -429,9 +429,10 @@ export function legacyWorkoutSegments(workout: unknown): LegacyWorkoutTimeline |
       ? `${w.watts[0]}–${w.watts[1]}W`
       : "";
 
-  const segments: LegacySegment[] = [
-    { type: "warmup", widthPct: pctOf(warmup), label: "WU", title: `Warm-up ${warmup} min` },
-  ];
+  // 0-min-Abschnitte weglassen (Live-Fund: „Warm-up 0 min" bei Z2-Dauer).
+  const segments: LegacySegment[] = warmup
+    ? [{ type: "warmup", widthPct: pctOf(warmup), label: "WU", title: `Warm-up ${warmup} min` }]
+    : [];
   for (let i = 0; i < w.intervals; i++) {
     segments.push({
       type: "interval",
@@ -443,9 +444,18 @@ export function legacyWorkoutSegments(workout: unknown): LegacyWorkoutTimeline |
       segments.push({ type: "rest", widthPct: pctOf(rest), label: `${rest}'`, title: `Pause ${rest} min` });
     }
   }
-  segments.push({ type: "cooldown", widthPct: pctOf(cooldown), label: "CD", title: `Cool-down ${cooldown} min` });
+  if (cooldown) {
+    segments.push({ type: "cooldown", widthPct: pctOf(cooldown), label: "CD", title: `Cool-down ${cooldown} min` });
+  }
 
-  const summary = `${warmup} min Warm-up → ${w.intervals}× ${w.duration} min @ ${intensityLabel} (Pause: ${rest} min) → ${cooldown} min Cool-down · ${totalMin} min gesamt`;
+  const summary = [
+    warmup ? `${warmup} min Warm-up` : null,
+    `${w.intervals}× ${w.duration} min @ ${intensityLabel}${w.intervals > 1 ? ` (Pause: ${rest} min)` : ""}`,
+    cooldown ? `${cooldown} min Cool-down` : null,
+  ]
+    .filter(Boolean)
+    .join(" → ")
+    .concat(` · ${totalMin} min gesamt`);
   const wattsLine = w.watts ? `${w.watts[0]}–${w.watts[1]}W · Ziel: ${Math.round((w.watts[0] + w.watts[1]) / 2)}W` : null;
 
   return { label: w.label ?? "", segments, summary, totalMin, wattsLine };

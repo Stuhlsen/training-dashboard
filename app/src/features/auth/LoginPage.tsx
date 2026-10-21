@@ -3,6 +3,7 @@ import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../api/auth/useAuth";
 import { GlassCard } from "../../components/GlassCard";
 import type { Location } from "react-router-dom";
+import { ACCOUNT_MISSING_NOTICE } from "./login-notice";
 
 /* ============================================================
    FEATURES/AUTH/LOGINPAGE.TSX — Etappe 11g
@@ -56,6 +57,9 @@ export function LoginPage() {
   // statt immer fest auf die Hero-Seite (Bug-Report: kein Weg zurück aus
   // /login außer dem Browser-Zurück-Button).
   const from = (location.state as { from?: Location } | null)?.from;
+  // OnboardingGate meldet einen Login ohne Profil ab und schickt hierher.
+  const accountMissing =
+    (location.state as { notice?: string } | null)?.notice === ACCOUNT_MISSING_NOTICE;
   const redirectTo = from ? `${from.pathname}${from.search}${from.hash}` : "/app";
 
   if (!loading && session) return <Navigate to={redirectTo} replace />;
@@ -105,6 +109,11 @@ export function LoginPage() {
         >
           Anmelden
         </h1>
+        {accountMissing && (
+          <p role="status" style={{ margin: "0 0 16px", fontSize: ".86rem", color: "var(--ink-2)", textAlign: "center" }}>
+            Du wurdest abgemeldet. Bitte melde dich neu an.
+          </p>
+        )}
         <form onSubmit={(e) => void handleSubmit(e)} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <label style={LABEL_STYLE}>
             E-Mail

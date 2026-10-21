@@ -3,7 +3,7 @@
    Berechnungen dahinter sind bereits in core/*.test.js abgedeckt. */
 
 import { describe, expect, it } from "vitest";
-import { buildBriefingInfo, buildHeroMetrics, buildHeroViewModel, buildPowerScale, powerScaleReadout, type HeroViewModelInput } from "./hero-view-model";
+import { buildBriefingInfo, buildHeroMetrics, buildHeroViewModel, buildPowerScale, currentWeekEyebrow, powerScaleReadout, type HeroViewModelInput } from "./hero-view-model";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -400,5 +400,25 @@ describe("buildBriefingInfo", () => {
   it("ohne multiSport bleibt pmcRides für den Lastdeckel unberücksichtigt (Golden-Master 1/2/4)", () => {
     const b = buildBriefingInfo(rides, [], [], new Set(), null, "2026-02-18", { multiSport: false, pmcRides });
     expect(loadStatus(b)).toBe("ok");
+  });
+});
+
+describe("currentWeekEyebrow (Live-Fund: KW38 · Taper in KW43)", () => {
+  it("Woche von heute + Phase der Plankarten dieser Woche", () => {
+    const cards = [
+      planCard({ id: "a", date: "2026-07-14", phase: "Sweet Spot" }),
+      planCard({ id: "b", date: "2026-07-24", phase: "Erholung" }),
+    ];
+    expect(currentWeekEyebrow(cards, "2026-07-23")).toBe("2026-KW30 · Erholung");
+  });
+
+  it("ohne Plankarte in dieser Woche: leer — auch wenn alte Fahrten eine Woche tragen", () => {
+    const cards = [planCard({ id: "a", date: "2026-07-14", phase: "Taper" })];
+    expect(currentWeekEyebrow(cards, "2026-07-23")).toBe("");
+    expect(buildHeroViewModel({ ...BASE_INPUT, planCards: cards }).eyebrow).toBe("");
+  });
+
+  it("Karte ohne Phase zählt nicht", () => {
+    expect(currentWeekEyebrow([planCard({ date: "2026-07-24", phase: null })], "2026-07-23")).toBe("");
   });
 });

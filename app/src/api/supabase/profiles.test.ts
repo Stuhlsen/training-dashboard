@@ -353,6 +353,21 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
     });
   });
 
+  it("getProfileBasics: keine Zeile (PGRST116, Login ohne Profil) → NO_DATA, sonst UNKNOWN", async () => {
+    fakeClient.handlers.profiles_own = () => ({
+      data: null,
+      error: { code: "PGRST116", message: "JSON object requested, multiple (or no) rows returned" },
+    });
+    const missing = await getProfileBasics();
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) expect(missing.error.code).toBe("NO_DATA");
+
+    fakeClient.handlers.profiles_own = () => ({ data: null, error: { code: "08006", message: "connection failure" } });
+    const broken = await getProfileBasics();
+    expect(broken.ok).toBe(false);
+    if (!broken.ok) expect(broken.error.code).toBe("UNKNOWN");
+  });
+
   it("getProfileBasics: fehlendes sex bleibt null, fehlende intolerances werden []", async () => {
     fakeClient.handlers.profiles_own = () => ({
       data: {
