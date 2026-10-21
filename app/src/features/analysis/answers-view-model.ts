@@ -32,7 +32,15 @@ import { energyView, hydrationSeries, estimateRestingEnergy, wattsPerKg } from "
 import { isoWeekKey } from "../../core/aggregate.js";
 import { fmt, fmtInt, fmtSigned, fmtDate, localISODate } from "../../core/format.js";
 import { tsbBandOf } from "../../core/trace-lanes.js";
-import { heroVerdict, wins as buildWins, strongerVerdict, loadVerdict, recoveryVerdict, blockerVerdict } from "../../core/analysis-narrative.js";
+import {
+  heroVerdict,
+  wins as buildWins,
+  strongerVerdict,
+  loadVerdict,
+  recoveryVerdict,
+  blockerVerdict,
+  RAMP_WINDOW_WEEKS,
+} from "../../core/analysis-narrative.js";
 import { raceCountdown } from "../../api/hooks/useEvents";
 import { CADENCE_TARGET_RPM } from "../../sports/cycling/metrics";
 import type { AthleteConfig } from "../../config";
@@ -331,7 +339,7 @@ export function buildAnswersViewModel(input: AnswersViewModelInput): AnswersView
   const loadWeeks = buildLoadGuard(loadGuardRides, (r) => isoWeekKey(r.dateISO), (a, b) => a.localeCompare(b), {
     multiSport: isMultiSport,
   });
-  const rampWeeksOverBand = loadWeeks.slice(-4).filter((w) => w.ramp != null && w.ramp > 6).length;
+  const rampWeeksOverBand = loadWeeks.slice(-RAMP_WINDOW_WEEKS).filter((w) => w.ramp != null && w.ramp > 6).length;
 
   // ── CTL-Trend (4 Wochen) ───────────────────────────────────────────
   const ctlNow = ctlVals[todayIdx];

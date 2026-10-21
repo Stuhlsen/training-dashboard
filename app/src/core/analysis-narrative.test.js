@@ -69,6 +69,14 @@ test("loadVerdict: zwei Ramp-Wochen über Band -> 'grenzwertig'/warn", () => {
   assert.equal(v.color, "warn");
 });
 
+test("loadVerdict: Text nennt das 4-Wochen-Fenster, nie 'in Folge' (Live-Fund)", () => {
+  const one = loadVerdict({ rampWeeksOverBand: 1, tsb: 5, tsbBand: "fresh", gaShare: null, gaTarget: 0.8 });
+  assert.match(one.answer, /^In den letzten 4 Wochen lag eine Woche über dem sicheren Ramp-Zielband\./);
+  const two = loadVerdict({ rampWeeksOverBand: 2, tsb: 5, tsbBand: "fresh", gaShare: null, gaTarget: 0.8 });
+  assert.match(two.answer, /In den letzten 4 Wochen lagen 2 Wochen über/);
+  assert.doesNotMatch(two.answer, /in Folge/);
+});
+
 test("loadVerdict: alles im Korridor -> 'im Korridor'/pos", () => {
   const v = loadVerdict({ rampWeeksOverBand: 0, tsb: -10, tsbBand: "build", gaShare: 0.85, gaTarget: 0.8 });
   assert.equal(v.verdict, "im Korridor");

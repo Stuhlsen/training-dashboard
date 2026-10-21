@@ -19,6 +19,9 @@
 
 /** @typedef {"pos"|"status"|"warn"|"neutral"} VerdictColor */
 
+/** Fenster (Wochen), über das der Aufrufer `rampWeeksOverBand` zählt. */
+export const RAMP_WINDOW_WEEKS = 4;
+
 /**
  * @param {{ctlTrendDirection: "steigend"|"fallend"|"stabil"|null, tsb: number|null,
  *   tsbBand: "overload"|"build"|"neutral"|"fresh"|"too-fresh"|null, daysToEvent: number|null}} facts
@@ -166,9 +169,11 @@ export function loadVerdict({ rampWeeksOverBand, tsb, tsbBand, gaShare, gaTarget
   const parts = [];
   if (rampWeeksOverBand > 0) {
     parts.push(
+      // Gezählt werden die letzten RAMP_WINDOW_WEEKS Wochen, nicht „in Folge" —
+      // und nicht die aktuelle Woche allein (die zeigt loadSignal in briefing.js).
       rampWeeksOverBand === 1
-        ? "Eine Woche lag über dem sicheren Ramp-Zielband."
-        : `${rampWeeksOverBand} Wochen in Folge lagen über dem sicheren Ramp-Zielband.`
+        ? `In den letzten ${RAMP_WINDOW_WEEKS} Wochen lag eine Woche über dem sicheren Ramp-Zielband.`
+        : `In den letzten ${RAMP_WINDOW_WEEKS} Wochen lagen ${rampWeeksOverBand} Wochen über dem sicheren Ramp-Zielband.`
     );
   } else {
     parts.push("Der Fitness-Aufbau lief zuletzt innerhalb des sicheren Ramp-Zielbands.");
