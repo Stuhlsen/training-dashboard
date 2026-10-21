@@ -89,6 +89,34 @@ test("HRV bei gerundet 0 %: kein 'über'/'unter', keine '+0 %'-Karte (Live-Fund)
   assert.equal(up[0].value, "+5 %");
 });
 
+test("recoveryVerdict mit Tagesform-Status: HRV -9 % aber Status ok -> nicht 'angeschlagen' (Live-Fund)", () => {
+  const v = recoveryVerdict({
+    hrvVsBaselinePct: -9, rhrDeltaBpm: 0, shortNightsCount: 0, sleepTargetH: 7,
+    hrvStatus: "ok", rhrStatus: "ok",
+  });
+  assert.equal(v.verdict, "gut");
+  assert.match(v.answer, /9 % unter der eigenen Basis — im Rahmen deiner üblichen Schwankung\./);
+});
+
+test("recoveryVerdict mit Tagesform-Status: alert -> angeschlagen, caution oder kurze Nächte -> durchwachsen", () => {
+  const base = { hrvVsBaselinePct: -2, rhrDeltaBpm: 1, shortNightsCount: 0, sleepTargetH: 7 };
+  assert.equal(recoveryVerdict({ ...base, hrvStatus: "alert", rhrStatus: "ok" }).verdict, "angeschlagen");
+  assert.equal(recoveryVerdict({ ...base, hrvStatus: "ok", rhrStatus: "caution" }).verdict, "durchwachsen");
+  assert.equal(
+    recoveryVerdict({ ...base, shortNightsCount: 4, hrvStatus: "ok", rhrStatus: "ok" }).verdict,
+    "durchwachsen"
+  );
+});
+
+test("recoveryVerdict ohne Status (keine Basis) -> alte feste Grenzen", () => {
+  const v = recoveryVerdict({
+    hrvVsBaselinePct: -9, rhrDeltaBpm: 0, shortNightsCount: 0, sleepTargetH: 7,
+    hrvStatus: "nodata", rhrStatus: null,
+  });
+  assert.equal(v.verdict, "angeschlagen");
+  assert.doesNotMatch(v.answer, /üblichen Schwankung/);
+});
+
 test("loadVerdict: alles im Korridor -> 'im Korridor'/pos", () => {
   const v = loadVerdict({ rampWeeksOverBand: 0, tsb: -10, tsbBand: "build", gaShare: 0.85, gaTarget: 0.8 });
   assert.equal(v.verdict, "im Korridor");
