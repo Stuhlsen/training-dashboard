@@ -8,6 +8,18 @@ export const LABEL_STYLE: React.CSSProperties = {
   color: "var(--ink-3)",
 };
 
+export const FIELD_STYLE: React.CSSProperties = {
+  background: "rgba(255,255,255,.04)",
+  border: "1px solid var(--hair)",
+  borderRadius: "var(--radius-sm)",
+  padding: "7px 9px",
+  color: "var(--ink)",
+  font: "inherit",
+  fontSize: ".82rem",
+  width: "100%",
+  boxSizing: "border-box",
+};
+
 export const BTN_STYLE: React.CSSProperties = {
   border: "1px solid var(--hair)",
   borderRadius: "var(--pill)",

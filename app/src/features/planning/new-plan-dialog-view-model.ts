@@ -19,7 +19,14 @@ import { currentFtpEntry } from "../../core/ftp-history.js";
  * training-plans-Adapter braucht sie und darf nicht in features/ greifen).
  * Hier importiert (für die Typen unten) UND re-exportiert, damit die
  * Dialog-Bausteine sie weiter aus dem View-Model beziehen können. */
-import type { PlanMode, PlanFocus, PlanLevel, PlanModel, WeekModelEntry } from "../../api/types";
+import type {
+  PlanMode,
+  PlanFocus,
+  PlanLevel,
+  PlanModel,
+  TrainingPlan,
+  WeekModelEntry,
+} from "../../api/types";
 export type { PlanMode, PlanFocus, PlanLevel, PlanModel };
 
 /* Sportart des Generator-Inputs — bewusst `ActiveSport` (Sport-Umschalter,
@@ -494,6 +501,76 @@ export function planSummaryRows(args: {
   ];
   if (args.ftp) rows.push({ label: "FTP-Test", value: args.ftp.text });
   return rows;
+}
+
+/** Gespeichertes Roh-Formular eines Plans (`training_plans.params.form`, s.
+ *  plan-persist.ts). Alles optional und ungeprüft — ältere Pläne kennen die
+ *  Felder nicht, `savedPlanForm()` liefert dann `{}`. */
+export interface SavedPlanForm {
+  dayEnvironment?: unknown;
+  hasIndoorTrainer?: unknown;
+  fixedDays?: unknown;
+  keepAllTrainingDays?: unknown;
+  startWithFtpTest?: unknown;
+}
+
+export function savedPlanForm(plan: TrainingPlan): SavedPlanForm {
+  const form = (plan.params as { form?: unknown } | null | undefined)?.form;
+  return form && typeof form === "object" ? (form as SavedPlanForm) : {};
+}
+
+/** Feste Tage aus `params.form` — nur wohlgeformte Einträge (Wochentag 1..7,
+ *  bekannter Typ). Kaputte/fremde Einträge werden still verworfen statt den
+ *  Aufrufer (Recompute, Vorausfüllen) zu blockieren. */
+export function savedFixedDays(plan: TrainingPlan): FixedDay[] {
+  const raw = savedPlanForm(plan).fixedDays;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (d): d is FixedDay =>
+        !!d &&
+        typeof d === "object" &&
+        Number.isInteger((d as FixedDay).weekday) &&
+        (d as FixedDay).weekday >= 1 &&
+        (d as FixedDay).weekday <= 7 &&
+        FIXED_DAY_TYPES.includes((d as FixedDay).typ)
+    )
+    .map((d) => ({
+      weekday: d.weekday,
+      typ: d.typ,
+      keepInRecoveryWeek: d.keepInRecoveryWeek === true,
+      ...(d.typ !== FIXED_INTERVAL_TYP && isValidFixedDuration(d.durationMin)
+        ? { durationMin: d.durationMin }
+        : {}),
+    }));
+}
+
+/** Vorausfüllung des Formulars aus dem letzten (aktiven) Plan (Fahrplan 32
+ *  E6, PF17). Nur das, was für einen Folgeplan sinnvoll mitwandert: Rahmen
+ *  (Tage, Stunden, Level, Fokus), feste Tage und Drinnen/Draußen — nicht
+ *  Start, FTP, FTP-Ziel, Modell (das richtet sich wieder nach Level/Länge/
+ *  Stunden). Ältere Pläne ohne `params.form`-Felder laufen über die Spalten. */
+export function formFromLastPlan(plan: TrainingPlan): Partial<NewPlanFormState> {
+  const sport = plan.sport ?? "ride";
+  const form = savedPlanForm(plan);
+  const weekdays = [...new Set(plan.trainingWeekdays ?? [])].filter((d) => d >= 1 && d <= 7);
+  const out: Partial<NewPlanFormState> = {
+    // Ein Event-Plan hat seine Länge aus dem Renntag — die passt nicht zum nächsten Plan.
+    ...(plan.mode === "open" && plan.weeks >= MIN_PLAN_WEEKS && plan.weeks <= MAX_PLAN_WEEKS
+      ? { weeks: plan.weeks }
+      : {}),
+    level: plan.level,
+    focus: plan.focus,
+    ...(weekdays.length >= 2 ? { trainingWeekdays: weekdays } : {}),
+    ...(plan.weeklyHours != null && plan.weeklyHours > 0 ? { weeklyHours: plan.weeklyHours } : {}),
+    fixedDays: sport === "ride" ? savedFixedDays(plan) : [],
+  };
+  if (sport === "ride") {
+    const env = activeDayEnvironment(form.dayEnvironment, [1, 2, 3, 4, 5, 6, 7]);
+    if (env) out.dayEnvironment = env;
+    if (typeof form.hasIndoorTrainer === "boolean") out.hasIndoorTrainer = form.hasIndoorTrainer;
+  }
+  return out;
 }
 
 /** Startzustand des Formulars. `todayISO` = heute (lokal); Plan startet am

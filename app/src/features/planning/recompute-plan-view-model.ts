@@ -17,55 +17,12 @@
 
 import {
   activeDayEnvironment,
-  FIXED_DAY_TYPES,
-  FIXED_INTERVAL_TYP,
-  isValidFixedDuration,
   mondayOf,
+  savedFixedDays,
+  savedPlanForm,
 } from "./new-plan-dialog-view-model";
-import type { PlanGeneratorInput, AthleteDefaults, FixedDay } from "./new-plan-dialog-view-model";
+import type { PlanGeneratorInput, AthleteDefaults } from "./new-plan-dialog-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
-
-/** Gespeichertes Roh-Formular des Plans (`params.form`, s. plan-persist.ts).
- *  Nur die Felder, die der Recompute braucht — alles optional, ältere Pläne
- *  kennen sie nicht. */
-interface SavedForm {
-  dayEnvironment?: unknown;
-  hasIndoorTrainer?: unknown;
-  fixedDays?: unknown;
-  keepAllTrainingDays?: unknown;
-  startWithFtpTest?: unknown;
-}
-
-function savedForm(plan: TrainingPlan): SavedForm {
-  const form = (plan.params as { form?: unknown } | null | undefined)?.form;
-  return form && typeof form === "object" ? (form as SavedForm) : {};
-}
-
-/** Feste Tage aus `params.form` — nur wohlgeformte Einträge (Wochentag 1..7,
- *  bekannter Typ). Kaputte/fremde Einträge werden still verworfen statt den
- *  Recompute zu blockieren. */
-function savedFixedDays(plan: TrainingPlan): FixedDay[] {
-  const raw = savedForm(plan).fixedDays;
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter(
-      (d): d is FixedDay =>
-        !!d &&
-        typeof d === "object" &&
-        Number.isInteger((d as FixedDay).weekday) &&
-        (d as FixedDay).weekday >= 1 &&
-        (d as FixedDay).weekday <= 7 &&
-        FIXED_DAY_TYPES.includes((d as FixedDay).typ)
-    )
-    .map((d) => ({
-      weekday: d.weekday,
-      typ: d.typ,
-      keepInRecoveryWeek: d.keepInRecoveryWeek === true,
-      ...(d.typ !== FIXED_INTERVAL_TYP && isValidFixedDuration(d.durationMin)
-        ? { durationMin: d.durationMin }
-        : {}),
-    }));
-}
 
 /** Die Trainingstage, die der Plan ab der Restberechnung heute nutzt
  *  (Vorbelegung der Tage-Auswahl im Dialog). */
@@ -155,7 +112,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     .filter((d) => !tailWeekdays.includes(d.weekday))
     .map((d) => d.weekday);
 
-  const form = savedForm(plan);
+  const form = savedPlanForm(plan);
   // Drinnen/Draußen (Fahrplan 32 V5): nur Rad mit gespeicherter Rolle = true;
   // abgewählte Wochentage und kaputte Einträge fallen heraus.
   const dayEnvironment =

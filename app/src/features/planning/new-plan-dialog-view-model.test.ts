@@ -4,6 +4,7 @@ import {
   defaultFormState,
   FIXED_INTERVAL_TYP,
   FOCUS_DESCRIPTIONS,
+  formFromLastPlan,
   ftpTestAutoReason,
   ftpTestNote,
   LEVEL_DESCRIPTIONS,
@@ -21,6 +22,7 @@ import {
   type PlanModel,
 } from "./new-plan-dialog-view-model";
 import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
+import type { TrainingPlan } from "../../api/types";
 
 describe("mondayOf", () => {
   it("gibt den Montag derselben Woche zurück", () => {
@@ -539,5 +541,85 @@ describe("planSummaryRows", () => {
     const rows = planSummaryRows({ startDate: "2026-09-07", weeks: 8, weeklyHours: 5, ftp: null });
     expect(rows.map((r) => r.label)).toEqual(["Start", "Wochen", "Stunden/Woche"]);
     expect(rows[2].value).toBe("5 h");
+  });
+});
+
+describe("formFromLastPlan (Fahrplan 32 E6, PF17)", () => {
+  const basePlan = {
+    id: "p1",
+    mode: "open",
+    weeks: 10,
+    level: "einsteiger",
+    focus: "berg",
+    trainingWeekdays: [1, 3, 5],
+    weeklyHours: 5.5,
+    sport: "ride",
+    params: {},
+  } as unknown as TrainingPlan;
+
+  it("übernimmt Spalten und neue params.form-Felder", () => {
+    const plan = {
+      ...basePlan,
+      params: {
+        form: {
+          fixedDays: [{ weekday: 3, typ: "Z2 Dauer", keepInRecoveryWeek: true, durationMin: 90 }],
+          dayEnvironment: { 1: "indoor", 3: "any", 5: "outdoor" },
+          hasIndoorTrainer: true,
+        },
+      },
+    } as unknown as TrainingPlan;
+    expect(formFromLastPlan(plan)).toEqual({
+      weeks: 10,
+      level: "einsteiger",
+      focus: "berg",
+      trainingWeekdays: [1, 3, 5],
+      weeklyHours: 5.5,
+      fixedDays: [{ weekday: 3, typ: "Z2 Dauer", keepInRecoveryWeek: true, durationMin: 90 }],
+      dayEnvironment: { 1: "indoor", 5: "outdoor" },
+      hasIndoorTrainer: true,
+    });
+  });
+
+  it("funktioniert mit alten Plänen ohne params.form", () => {
+    expect(formFromLastPlan(basePlan)).toEqual({
+      weeks: 10,
+      level: "einsteiger",
+      focus: "berg",
+      trainingWeekdays: [1, 3, 5],
+      weeklyHours: 5.5,
+      fixedDays: [],
+    });
+  });
+
+  it("lässt Planlänge eines Event-Plans weg (aus Renntag abgeleitet) und ignoriert kaputte Felder", () => {
+    const plan = {
+      ...basePlan,
+      mode: "event",
+      weeklyHours: null,
+      params: { form: { fixedDays: "kaputt", dayEnvironment: 7, hasIndoorTrainer: "ja" } },
+    } as unknown as TrainingPlan;
+    const form = formFromLastPlan(plan);
+    expect(form).not.toHaveProperty("weeks");
+    expect(form).not.toHaveProperty("weeklyHours");
+    expect(form).not.toHaveProperty("dayEnvironment");
+    expect(form).not.toHaveProperty("hasIndoorTrainer");
+    expect(form.fixedDays).toEqual([]);
+  });
+
+  it("übernimmt feste Tage und Umgebung nur beim Rad-Plan", () => {
+    const plan = {
+      ...basePlan,
+      sport: "run",
+      params: {
+        form: {
+          fixedDays: [{ weekday: 3, typ: "Z2 Dauer", keepInRecoveryWeek: false }],
+          dayEnvironment: { 1: "indoor" },
+          hasIndoorTrainer: true,
+        },
+      },
+    } as unknown as TrainingPlan;
+    const form = formFromLastPlan(plan);
+    expect(form.fixedDays).toEqual([]);
+    expect(form).not.toHaveProperty("dayEnvironment");
   });
 });
