@@ -12,6 +12,7 @@ import {
   qualityWeekdays,
   weekLoadContext,
   distributeLooseMinutes,
+  INDOOR_LOOSE_MAX_MIN,
   FIXED_INTERVAL_TYP,
 } from "./plan-generator.js";
 import { CONFLICT_THRESHOLDS, TYPE_DEFAULT_TSS } from "./plan-config.js";
@@ -920,6 +921,76 @@ test("fixedDays: mehr feste harte Tage als automatische Qualitätstage → Warnu
   assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 3))?.typ, "Sweet Spot");
 });
 
+/* ── Dauer für feste Tage (Fahrplan 32 E2) ───────────────────────────── */
+
+function fixedTuesdayCards(fixedDay, overrides = {}) {
+  const plan = generatePlan(eventInput({ fixedDays: [fixedDay], ...overrides }));
+  return plan.weeks
+    .filter((wk) => !wk.isRecovery && wk.phase !== "Taper" && !wk.cards.some((c) => c.isTest))
+    .map((wk) => wk.cards.find((c) => c.date === addDaysISO(wk.start, 1)));
+}
+
+test("fixedDays Dauer: gesetzte Dauer wird übernommen, TSS = Dauer × Profil-IF²", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 });
+  assert.ok(cards.length);
+  for (const c of cards) {
+    assert.equal(c.typ, "Gruppenfahrt");
+    assert.equal(c.durationMin, 60);
+    assert.equal(c.workout.duration, 60);
+    assert.equal(c.workoutStructure.steps[0].duration_s, 3600);
+    // Gruppenfahrt = Klasse "moderat" (IF 0.75): 1 h → 100 × 0.75² ≈ 56 TSS.
+    assert.equal(c.tssPlanned, Math.round(100 * 0.75 ** 2));
+  }
+});
+
+test("fixedDays Dauer: ohne Dauer bleibt das bisherige Verhalten (TSS-Default)", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false });
+  assert.equal(cards[0].tssPlanned, TYPE_DEFAULT_TSS.Gruppenfahrt);
+});
+
+test("fixedDays Dauer: lange feste Dauer (300 min) bleibt erhalten, kein Deckel bei 240", () => {
+  const cards = fixedTuesdayCards(
+    { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 300 },
+    { weeklyHours: 12 }
+  );
+  assert.equal(cards[0].durationMin, 300);
+});
+
+test("fixedDays Dauer: Werte außerhalb 15..300 werden im Core begrenzt", () => {
+  const low = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 5 });
+  const high = fixedTuesdayCards(
+    { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 900 },
+    { weeklyHours: 12 }
+  );
+  assert.equal(low[0].durationMin, 15);
+  assert.equal(high[0].durationMin, 300);
+});
+
+test("fixedDays Dauer: feste Dauer zählt ins Zeitbudget, lockere Tage weichen auf 30 min", () => {
+  const plan = generatePlan(
+    eventInput({
+      weeklyHours: 6,
+      fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 240 }],
+    })
+  );
+  const w = plan.weeks.find((wk) => !wk.isRecovery && wk.phase !== "Taper" && !wk.cards.some((c) => c.isTest));
+  const fixed = w.cards.find((c) => c.typ === "Gruppenfahrt");
+  assert.equal(fixed.durationMin, 240);
+  const loose = w.cards.filter((c) => !c.isQuality && c !== fixed);
+  assert.ok(loose.length, "keine lockeren Tage in der Testwoche");
+  const budget = 6 * 60;
+  const sum = w.cards.reduce((s, c) => s + c.durationMin, 0);
+  assert.ok(
+    sum <= budget || loose.every((c) => c.durationMin === 30),
+    `Wochensumme ${sum} min sprengt das Budget, ohne dass lockere Tage auf 30 min stehen`
+  );
+});
+
+test("fixedDays Dauer: Ruhetag-Typ bleibt 0 min, auch mit Dauer", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Ruhetag", keepInRecoveryWeek: false, durationMin: 60 });
+  assert.equal(cards[0].durationMin, 0);
+});
+
 /* ── Fester Intervalltag (Alex-Feedback 23.09.2026) ──────────────────── */
 
 test("fixedDays Intervalle: Do wird fester Qualitätstag, Di-Gruppenfahrt-Slot geht nicht verloren", () => {
@@ -985,4 +1056,212 @@ test("fixedDays Intervalle: harter fester Tag verdrängt den gepinnten Intervall
   );
   assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 5))?.typ, "Schwelle");
   assert.equal(w.cards.filter((c) => c.isQuality).length, 2);
+});
+
+/* ── Fahrplan 32 E1: Wochenstunden sind eine Obergrenze (V1) ─────── */
+
+const weekMin = (w) => w.cards.reduce((s, c) => s + c.durationMin, 0);
+const weekTssSum = (w) => w.cards.reduce((s, c) => s + c.tssPlanned, 0);
+const budgetMin = (hours, isRecovery) => Math.floor(hours * 60 * (isRecovery ? 0.7 : 1) + 1e-6);
+const NO_HISTORY = () => ({ history: emptyHistory() });
+
+test("Zeitbudget: mit Historie sind 4 h und 8 h unterscheidbar, beide Wochensummen ≤ Budget", () => {
+  const four = generatePlan(eventInput({ weeklyHours: 4 }));
+  const eight = generatePlan(eventInput({ weeklyHours: 8 }));
+  assert.ok(weekMin(four.weeks[0]) < weekMin(eight.weeks[0]));
+  for (const w of four.weeks) assert.ok(weekMin(w) <= budgetMin(4, w.isRecovery), `4 h, Woche ${w.index}`);
+  for (const w of eight.weeks) assert.ok(weekMin(w) <= budgetMin(8, w.isRecovery), `8 h, Woche ${w.index}`);
+});
+
+test("Zeitbudget: ohne Historie, 4 h → Woche-0-Summe ≤ 240 min", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  assert.ok(weekMin(plan.weeks[0]) <= 240, `war ${weekMin(plan.weeks[0])}`);
+});
+
+test("Zeitbudget: ohne Historie, 8 h → Woche-0-Summe ≤ 480 min, alle Wochen ≤ Budget", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 8, ...NO_HISTORY() }));
+  assert.ok(weekMin(plan.weeks[0]) <= 480, `war ${weekMin(plan.weeks[0])}`);
+  for (const w of plan.weeks) assert.ok(weekMin(w) <= budgetMin(8, w.isRecovery), `Woche ${w.index}`);
+});
+
+test("Zeitbudget: Erholungswochen bleiben ≤ 70 % des Budgets", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 6, ...NO_HISTORY() }));
+  const recovery = plan.weeks.filter((w) => w.isRecovery && w.cards.length);
+  assert.ok(recovery.length > 0);
+  for (const w of recovery) assert.ok(weekMin(w) <= budgetMin(6, true), `Woche ${w.index}: ${weekMin(w)}`);
+});
+
+test("Zeitbudget: das Budget wird nie überschritten, die Ziel-TSS aber nie über-erfüllt", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  for (const w of plan.weeks) assert.ok(weekTssSum(w) <= w.targetTss * 1.15, `Woche ${w.index}`);
+});
+
+test("Zeitbudget: week.targetTss bleibt der Rampen-Sollwert, auch wenn das Budget ihn nicht trägt", () => {
+  const tight = generatePlan(eventInput({ weeklyHours: 3 }));
+  const roomy = generatePlan(eventInput({ weeklyHours: 12 }));
+  assert.deepEqual(
+    tight.weekModel.map((w) => w.targetTss),
+    roomy.weekModel.map((w) => w.targetTss)
+  );
+});
+
+test("Zeitbudget: lockere Tage nie unter 30 min", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 2, ...NO_HISTORY() }));
+  for (const w of plan.weeks)
+    for (const c of w.cards) if (!c.isQuality && !c.isTest) assert.ok(c.durationMin >= 30, `${c.date}: ${c.durationMin}`);
+});
+
+test("Zeitbudget: feste Tage über Budget → lockere Tage 30 min + Hinweis", () => {
+  const fixedDays = [2, 3].map((weekday) => ({ weekday, typ: "Gruppenfahrt", keepInRecoveryWeek: true }));
+  const plan = generatePlan(
+    eventInput({ weeklyHours: 2, trainingWeekdays: [1, 2, 3, 5, 6], fixedDays, ...NO_HISTORY() })
+  );
+  const w = plan.weeks[2];
+  const loose = w.cards.filter((c) => !c.isQuality && !c.isTest && c.typ !== "Gruppenfahrt");
+  assert.ok(loose.length > 0);
+  for (const c of loose) assert.equal(c.durationMin, 30);
+  const hits = plan.warnings.filter((x) => x.startsWith("Feste Tage und harte Einheiten brauchen"));
+  assert.equal(hits.length, 1);
+  assert.match(hits[0], /mehr als das Budget von [\d,]+ h/);
+  assert.match(hits[0], /auf 30 min/);
+});
+
+test("Zeitbudget: Hinweis 'reicht nicht' erscheint einmal pro Plan, nennt Stunden und Wochen", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  const hits = plan.warnings.filter((x) => x.startsWith("Dein Zeitbudget von 4 h pro Woche reicht nicht"));
+  assert.equal(hits.length, 1);
+  assert.match(hits[0], /\(in \d+ von \d+ Wochen\)/);
+  assert.match(hits[0], /mehr Stunden pro Woche/);
+});
+
+test("Zeitbudget: kein 'reicht nicht'-Hinweis, wenn das Budget reichlich ist", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 20 }));
+  assert.equal(plan.warnings.filter((x) => x.includes("reicht nicht")).length, 0);
+});
+
+test("Zeitbudget: Hinweis 'nutzt nur X von Y h' nur, wenn Woche 1 unter 85 % des Budgets liegt", () => {
+  const generous = generatePlan(eventInput({ weeklyHours: 20 }));
+  assert.equal(generous.warnings.filter((x) => x.startsWith("In Woche 1 nutzt der Plan nur")).length, 1);
+  const tight = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  assert.equal(tight.warnings.filter((x) => x.startsWith("In Woche 1 nutzt der Plan nur")).length, 0);
+});
+
+test("Zeitbudget: Lauf-Plan hält das Budget ein", () => {
+  const plan = generatePlan(runInput({ weeklyHours: 3, ...NO_HISTORY() }));
+  for (const w of plan.weeks) assert.ok(weekMin(w) <= budgetMin(3, w.isRecovery), `Woche ${w.index}: ${weekMin(w)}`);
+});
+
+test("Zeitbudget: Schwimm-Plan hält das Budget ein", () => {
+  const plan = generatePlan(swimInput({ weeklyHours: 3, ...NO_HISTORY() }));
+  for (const w of plan.weeks) assert.ok(weekMin(w) <= budgetMin(3, w.isRecovery), `Woche ${w.index}: ${weekMin(w)}`);
+});
+
+test("distributeLooseMinutes: langer Tag verdrängt die übrigen Tage nicht unter 30 min", () => {
+  const perDay = distributeLooseMinutes([2, 4, 6], 100);
+  assert.equal(perDay[2], 30);
+  assert.equal(perDay[4], 30);
+  assert.equal(perDay[6], 40);
+});
+
+/* ── Drinnen/Draußen je Trainingstag (Fahrplan 32 E3) ────────── */
+
+const isoWeekday = (date) => ((new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7) + 1;
+const NO_INDOOR_HINT = "Kein Drinnen-Tag frei für harte Einheiten — Intervalle liegen auf Draußen-Tagen.";
+const INDOOR_CAP_HINT = "Drinnen-Tage tragen höchstens 90 min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.";
+
+test("dayEnvironment: fehlt, leer oder nur 'egal' → Ausgabe identisch zu ohne Feld", () => {
+  const plain = generatePlan(eventInput());
+  const days = [1, 2, 4, 6];
+  assert.deepEqual(generatePlan(eventInput({ dayEnvironment: {} })), plain);
+  assert.deepEqual(generatePlan(eventInput({ dayEnvironment: Object.fromEntries(days.map((d) => [d, "any"])) })), plain);
+});
+
+test("dayEnvironment: Lauf und Schwimmen ignorieren das Feld", () => {
+  const env = { 2: "indoor", 6: "outdoor", 4: "indoor" };
+  assert.deepEqual(generatePlan(runInput({ dayEnvironment: env })), generatePlan(runInput()));
+  assert.deepEqual(generatePlan(swimInput({ dayEnvironment: env })), generatePlan(swimInput()));
+});
+
+test("qualityWeekdays: Drinnen-Tage gewinnen unter den gültigen Paaren, Gleichstand → bisheriges Paar", () => {
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6]), [1, 6]);
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6], { 2: "indoor", 6: "outdoor" }), [2, 4]);
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6], { 1: "any", 2: "any" }), [1, 6]);
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6], { 6: "outdoor" }), [1, 4]);
+});
+
+test("qualityWeekdays: Abstandsregel hat Vorrang vor der Umgebung", () => {
+  // Mo + Di drinnen, aber direkt hintereinander → kein gültiges Paar daraus
+  const q = qualityWeekdays([1, 2, 5], { 1: "indoor", 2: "indoor" });
+  assert.ok(!(q.includes(1) && q.includes(2)));
+  // Wochenwechsel: Mo + So bleiben ungepaart, auch wenn beide drinnen sind
+  assert.deepEqual(qualityWeekdays([1, 4, 7], { 1: "indoor", 7: "indoor" }), [1, 4]);
+  // kein gültiges Paar → bisheriger Rückfall
+  assert.deepEqual(qualityWeekdays([3, 4], { 3: "outdoor", 4: "indoor" }), [3, 4]);
+});
+
+test("dayEnvironment: Di drinnen, Sa draußen → harte Einheiten auf Di, lange lockere Fahrt auf Sa", () => {
+  const plan = generatePlan(eventInput({ dayEnvironment: { 1: "any", 2: "indoor", 4: "any", 6: "outdoor" } }));
+  for (const w of plan.weeks) {
+    if (w.isRecovery) continue;
+    const q = w.cards.filter((c) => c.isQuality && !c.isTest).map((c) => isoWeekday(c.date));
+    if (q.length === 2) assert.deepEqual(q, [2, 4]);
+    else if (q.length) assert.ok(q.includes(2) || q.includes(4), `Woche ${w.index}: ${q}`);
+    const loose = w.cards.filter((c) => !c.isQuality && !c.isTest);
+    const sat = loose.find((c) => isoWeekday(c.date) === 6);
+    for (const c of loose) assert.ok(sat.durationMin >= c.durationMin, `Woche ${w.index}: ${c.date}`);
+  }
+  assert.equal(plan.warnings.filter((x) => x === NO_INDOOR_HINT).length, 0);
+});
+
+test("distributeLooseMinutes: langer Tag bevorzugt Draußen (Wochenende vor Wochentag), sonst bisheriges Verhalten", () => {
+  const long = (days, env) => {
+    const p = distributeLooseMinutes(days, 200, "allgemein", env); // klein genug, dass der Drinnen-Deckel nicht greift
+    return Number(Object.keys(p).reduce((a, b) => (p[b] > p[a] ? b : a)));
+  };
+  assert.equal(long([2, 4, 6, 7], undefined), 6);
+  assert.equal(long([2, 4, 6, 7], { 6: "indoor", 7: "outdoor" }), 7);
+  assert.equal(long([2, 4, 7], { 2: "outdoor", 7: "indoor" }), 2); // draußen schlägt Wochenende
+  assert.equal(long([2, 4, 6, 7], { 6: "indoor", 7: "any" }), 7); // sonst "egal"
+  assert.equal(long([2, 4, 6, 7], { 6: "indoor", 7: "indoor" }), 6); // sonst bisher
+});
+
+test("distributeLooseMinutes: Drinnen-Tag max. 90 min, Überschuss geht auf die anderen lockeren Tage", () => {
+  assert.equal(INDOOR_LOOSE_MAX_MIN, 90);
+  const base = distributeLooseMinutes([2, 4, 6], 400);
+  assert.ok(base[2] > 90);
+  const perDay = distributeLooseMinutes([2, 4, 6], 400, "allgemein", { 2: "indoor" });
+  assert.equal(perDay[2], 90);
+  assert.equal(perDay[2] + perDay[4] + perDay[6], 400);
+  assert.ok(perDay[4] > base[4]);
+});
+
+test("dayEnvironment: nur Drinnen-Tage → lockere Karten ≤ 90 min, Budget bleibt eingehalten, ein Hinweis", () => {
+  const env = { 1: "indoor", 2: "indoor", 3: "indoor", 4: "indoor", 5: "indoor" };
+  const plan = generatePlan(
+    eventInput({ weeklyHours: 12, trainingWeekdays: [1, 2, 3, 4, 5], dayEnvironment: env, ...NO_HISTORY() })
+  );
+  for (const w of plan.weeks) {
+    assert.ok(weekMin(w) <= budgetMin(12, w.isRecovery), `Woche ${w.index}`);
+    for (const c of w.cards) if (!c.isQuality && !c.isTest) assert.ok(c.durationMin <= 90, `${c.date}: ${c.durationMin}`);
+  }
+  assert.equal(plan.warnings.filter((x) => x === INDOOR_CAP_HINT).length, 1);
+  assert.equal(plan.warnings.filter((x) => x === NO_INDOOR_HINT).length, 0);
+});
+
+test("dayEnvironment: kein Drinnen-Tag frei → Intervalle trotzdem gesetzt, ein Hinweis, kein Fehler", () => {
+  const env = { 1: "outdoor", 2: "outdoor", 4: "outdoor", 6: "outdoor" };
+  const plan = generatePlan(eventInput({ dayEnvironment: env }));
+  assert.equal(plan.warnings.filter((x) => x === NO_INDOOR_HINT).length, 1);
+  assert.ok(plan.weeks.some((w) => w.cards.some((c) => c.isQuality)));
+});
+
+test("dayEnvironment: feste Tage bleiben unberührt, auch auf Drinnen-Tagen", () => {
+  const fixedDays = [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: true, durationMin: 150 }];
+  const env = { 2: "indoor", 1: "indoor", 4: "indoor", 6: "indoor" };
+  const plan = generatePlan(eventInput({ fixedDays, dayEnvironment: env, weeklyHours: 12 }));
+  for (const w of plan.weeks) {
+    const f = w.cards.find((c) => isoWeekday(c.date) === 2);
+    assert.equal(f.typ, "Gruppenfahrt");
+    assert.equal(f.durationMin, 150);
+  }
 });

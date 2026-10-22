@@ -203,6 +203,10 @@ export function PlanningPage() {
 
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [shiftOpen, setShiftOpen] = useState(false);
+  // Hinweis „Falscher Start? → Plan verschieben…" direkt nach dem Erstellen eines Plans.
+  // Merkt sich den Athleten, für den der Plan erstellt wurde — beim Wechsel
+  // des Athleten verschwindet der Hinweis damit von selbst.
+  const [shiftHintFor, setShiftHintFor] = useState<string | null>(null);
   const [newPlanOpen, setNewPlanOpen] = useState(false);
   const [recomputeOpen, setRecomputeOpen] = useState(false);
   const [ftpRescaleOpen, setFtpRescaleOpen] = useState(false);
@@ -249,6 +253,8 @@ export function PlanningPage() {
   // profiles-Zeile (RLS), ein Trainer kann ihn nicht für den Athleten setzen.
   const { isSelf } = useIsSelfAthlete(activeAthleteId);
   const editable = canEditPlanCards(isSelf, isTrainer);
+  // Dieselbe Bedingung wie beim Knopf „Plan verschieben…" (self + generierter Plan).
+  const canShiftPlan = isSelf && hasGeneratedPlan(activeAthleteId);
   const activeCard = (cards ?? []).find((c) => c.id === activeId) ?? null;
 
   // Intervall-Kadenzziel: session-gebunden, greift nur beim Blick auf den
@@ -714,13 +720,52 @@ export function PlanningPage() {
             </div>
           </GlassCard>
 
+          {shiftHintFor === activeAthleteId && editable && canShiftPlan && (
+            <GlassCard
+              variant="strong"
+              radius="14px"
+              style={{
+                padding: "12px 16px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+                flexWrap: "wrap",
+              }}
+            >
+              <span style={{ fontSize: ".84rem", color: "var(--ink-2)" }}>
+                Plan erstellt. Falscher Start?
+              </span>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  style={SECTION_ACTION_BTN_STYLE}
+                  onClick={() => {
+                    setShiftHintFor(null);
+                    setShiftOpen(true);
+                  }}
+                >
+                  Plan verschieben…
+                </button>
+                <button
+                  type="button"
+                  style={SECTION_ACTION_BTN_STYLE}
+                  onClick={() => setShiftHintFor(null)}
+                  aria-label="Hinweis schließen"
+                >
+                  ×
+                </button>
+              </div>
+            </GlassCard>
+          )}
+
           {weekGrid.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
               <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
                 <span style={SECTION_TITLE_STYLE}>📅 Ausstehend — {sections.stats.upcomingCount} Sessions</span>
                 {editable && (
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    {isSelf && hasGeneratedPlan(activeAthleteId) && (
+                    {canShiftPlan && (
                       <button type="button" onClick={() => setShiftOpen(true)} style={SECTION_ACTION_BTN_STYLE}>
                         Plan verschieben…
                       </button>
@@ -829,7 +874,11 @@ export function PlanningPage() {
       )}
 
       {newPlanOpen && (
-        <NewPlanDialog athleteId={activeAthleteId} onClose={() => setNewPlanOpen(false)} />
+        <NewPlanDialog
+          athleteId={activeAthleteId}
+          onClose={() => setNewPlanOpen(false)}
+          onCreated={() => setShiftHintFor(activeAthleteId)}
+        />
       )}
 
       {recomputeOpen && (

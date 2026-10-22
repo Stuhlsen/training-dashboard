@@ -12,14 +12,21 @@
    Rest wählt der Athlet aktiv.
    ============================================================ */
 
-import { addDaysISO, diffDays } from "../../core/format.js";
+import { addDaysISO, diffDays, fmtDateFull } from "../../core/format.js";
 import { currentFtpEntry } from "../../core/ftp-history.js";
 
 /* Kanonische Fassung der Plan-String-Unions liegt in api/types.ts (der
  * training-plans-Adapter braucht sie und darf nicht in features/ greifen).
  * Hier importiert (für die Typen unten) UND re-exportiert, damit die
  * Dialog-Bausteine sie weiter aus dem View-Model beziehen können. */
-import type { PlanMode, PlanFocus, PlanLevel, PlanModel, WeekModelEntry } from "../../api/types";
+import type {
+  PlanMode,
+  PlanFocus,
+  PlanLevel,
+  PlanModel,
+  TrainingPlan,
+  WeekModelEntry,
+} from "../../api/types";
 export type { PlanMode, PlanFocus, PlanLevel, PlanModel };
 
 /* Sportart des Generator-Inputs — bewusst `ActiveSport` (Sport-Umschalter,
@@ -35,8 +42,19 @@ import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
  * Rad-Zonen-Vokabular wie der Karten-Dialog zurück (plan-card-form-view-model.ts
  * nutzt für den dortigen Typ-Select denselben Re-Export). */
 import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
-import { FIXED_INTERVAL_TYP } from "../../core/plan-generator.js";
-export { KNOWN_PLAN_TYPES, FIXED_INTERVAL_TYP };
+import {
+  FIXED_INTERVAL_TYP,
+  FIXED_DURATION_MIN_MIN,
+  FIXED_DURATION_MAX_MIN,
+} from "../../core/plan-generator.js";
+export { KNOWN_PLAN_TYPES, FIXED_INTERVAL_TYP, FIXED_DURATION_MIN_MIN, FIXED_DURATION_MAX_MIN };
+
+/** Gültige Dauer eines festen Tags: ganze Minuten, 15..300. */
+export function isValidFixedDuration(v: unknown): v is number {
+  return (
+    typeof v === "number" && Number.isInteger(v) && v >= FIXED_DURATION_MIN_MIN && v <= FIXED_DURATION_MAX_MIN
+  );
+}
 
 /** Auswahl im "Feste Tage"-Select: der Intervall-Platzhalter (Typ wählt der
  *  Plan passend zur Phase) zuerst, dann die festen Kartentypen. */
@@ -102,6 +120,23 @@ export interface FixedDay {
   typ: string;
   /** Default false — sonst pausiert die Fixierung in Erholungswochen. */
   keepInRecoveryWeek: boolean;
+  /** Optional, 15..300 min (Fahrplan 32 E2); fehlt → der Generator wählt die Dauer.
+   *  Ohne Wirkung bei FIXED_INTERVAL_TYP. */
+  durationMin?: number;
+}
+
+/** Drinnen/Draußen-Wunsch je Trainingstag (Fahrplan 32 V2); nur Rad. */
+export type DayEnvironment = "indoor" | "outdoor" | "any";
+export type DayEnvironmentMap = Record<number, DayEnvironment>;
+
+export const DAY_ENVIRONMENT_LABELS: ReadonlyArray<{ value: DayEnvironment; label: string }> = [
+  { value: "indoor", label: "Drinnen" },
+  { value: "outdoor", label: "Draußen" },
+  { value: "any", label: "Egal" },
+];
+
+export function isDayEnvironment(v: unknown): v is DayEnvironment {
+  return v === "indoor" || v === "outdoor" || v === "any";
 }
 
 export interface PlanGeneratorInput {
@@ -130,7 +165,10 @@ export interface PlanGeneratorInput {
   thresholdSpeedMeasuredDate?: string | null;
   /** km/h — nur "run"/"swim" */
   thresholdSpeedTarget?: number | null;
-  indoorShare: number;
+  /** nur sport === "ride": Drinnen/Draußen je Wochentag; fehlt → alle "egal" (V2). */
+  dayEnvironment?: DayEnvironmentMap;
+  /** @deprecated seit Fahrplan 32 E5 — der Generator ignoriert den Wert, der Dialog sendet ihn nicht mehr. */
+  indoorShare?: number;
   focus: PlanFocus;
   level: PlanLevel;
   model: PlanModel;
@@ -179,7 +217,11 @@ export interface NewPlanFormState {
   thresholdSpeedMeasuredDate: string | null;
   /** km/h, optional — nur "run"/"swim", analog `ftpTarget`. */
   thresholdSpeedTarget: number | null;
-  indoorPct: number; // 0..100 im Formular, /100 im Input
+  /** Drinnen/Draußen je Trainingstag (Fahrplan 32 E5) — wirkt nur bei Rad + Rolle. */
+  dayEnvironment?: DayEnvironmentMap;
+  /** Plan-lokale Kopie der Rolle (V5): der Profilwert, sonst der Schalter im
+   *  Formular. Trainer können den Profilwert nicht lesen (PF18). */
+  hasIndoorTrainer?: boolean | null;
   focus: PlanFocus;
   level: PlanLevel;
   model: PlanModel;
@@ -380,6 +422,157 @@ export function ftpTestAtStartAuto(startDate: string, ftpMeasuredDate: string | 
   return !ftpMeasuredDate || diffDays(startDate, ftpMeasuredDate) > 42;
 }
 
+/** Warum der FTP-Test automatisch an/aus ist (Fahrplan 32 V6). */
+export type FtpTestReason = "keine-ftp" | "ftp-aelter-6-wochen" | "ftp-aktuell";
+
+export function ftpTestAutoReason(
+  startDate: string,
+  ftpMeasuredDate: string | null
+): { on: boolean; reason: FtpTestReason } {
+  if (!ftpMeasuredDate) return { on: true, reason: "keine-ftp" };
+  return ftpTestAtStartAuto(startDate, ftpMeasuredDate)
+    ? { on: true, reason: "ftp-aelter-6-wochen" }
+    : { on: false, reason: "ftp-aktuell" };
+}
+
+/** Anzeige für den FTP-Test: Zustand + Text. `manual` ist die Wahl des
+ *  Athleten (`startWithFtpTest`); weicht sie von der Automatik ab, steht dort
+ *  „von dir geändert", sonst der Grund der Automatik. */
+export function ftpTestNote(
+  startDate: string,
+  ftpMeasuredDate: string | null,
+  manual: boolean | null | undefined
+): { on: boolean; text: string } {
+  const auto = ftpTestAutoReason(startDate, ftpMeasuredDate);
+  if (manual != null && manual !== auto.on) {
+    return { on: manual, text: `${manual ? "an" : "aus"} — von dir geändert` };
+  }
+  const date = fmtDateFull(ftpMeasuredDate);
+  const text =
+    auto.reason === "keine-ftp"
+      ? "an — noch keine FTP gemessen"
+      : auto.reason === "ftp-aelter-6-wochen"
+        ? `an — letzte FTP älter als 6 Wochen (${date})`
+        : `aus — FTP vom ${date} ist aktuell`;
+  return { on: auto.on, text };
+}
+
+/** Rolle für den Plan: der Profilwert gewinnt, sonst die plan-lokale Kopie. */
+export function resolveHasIndoorTrainer(
+  profileValue: boolean | null,
+  formValue: boolean | null | undefined
+): boolean | null {
+  return profileValue ?? formValue ?? null;
+}
+
+/** Nur Trainingstage mit gültigem, von „egal" verschiedenem Wunsch; `undefined`,
+ *  wenn nichts übrig bleibt (dann ist die Ausgabe byte-gleich zu ohne Feld, V2). */
+export function activeDayEnvironment(
+  raw: unknown,
+  weekdays: readonly number[]
+): DayEnvironmentMap | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const out: DayEnvironmentMap = {};
+  for (const day of weekdays) {
+    const value = (raw as Record<number, unknown>)[day];
+    if (isDayEnvironment(value) && value !== "any") out[day] = value;
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
+export interface PlanSummaryRow {
+  label: string;
+  value: string;
+  strong?: boolean;
+}
+
+/** Zeilen der Bestätigungsübersicht vor „Übernehmen": Start fett, Wochen,
+ *  Stunden/Woche und (nur Rad) FTP-Test samt Grund. */
+export function planSummaryRows(args: {
+  startDate: string;
+  weeks: number;
+  weeklyHours: number;
+  ftp: { on: boolean; text: string } | null;
+}): PlanSummaryRow[] {
+  const rows: PlanSummaryRow[] = [
+    { label: "Start", value: fmtDateFull(args.startDate), strong: true },
+    { label: "Wochen", value: String(args.weeks) },
+    { label: "Stunden/Woche", value: `${String(args.weeklyHours).replace(".", ",")} h` },
+  ];
+  if (args.ftp) rows.push({ label: "FTP-Test", value: args.ftp.text });
+  return rows;
+}
+
+/** Gespeichertes Roh-Formular eines Plans (`training_plans.params.form`, s.
+ *  plan-persist.ts). Alles optional und ungeprüft — ältere Pläne kennen die
+ *  Felder nicht, `savedPlanForm()` liefert dann `{}`. */
+export interface SavedPlanForm {
+  dayEnvironment?: unknown;
+  hasIndoorTrainer?: unknown;
+  fixedDays?: unknown;
+  keepAllTrainingDays?: unknown;
+  startWithFtpTest?: unknown;
+}
+
+export function savedPlanForm(plan: TrainingPlan): SavedPlanForm {
+  const form = (plan.params as { form?: unknown } | null | undefined)?.form;
+  return form && typeof form === "object" ? (form as SavedPlanForm) : {};
+}
+
+/** Feste Tage aus `params.form` — nur wohlgeformte Einträge (Wochentag 1..7,
+ *  bekannter Typ). Kaputte/fremde Einträge werden still verworfen statt den
+ *  Aufrufer (Recompute, Vorausfüllen) zu blockieren. */
+export function savedFixedDays(plan: TrainingPlan): FixedDay[] {
+  const raw = savedPlanForm(plan).fixedDays;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter(
+      (d): d is FixedDay =>
+        !!d &&
+        typeof d === "object" &&
+        Number.isInteger((d as FixedDay).weekday) &&
+        (d as FixedDay).weekday >= 1 &&
+        (d as FixedDay).weekday <= 7 &&
+        FIXED_DAY_TYPES.includes((d as FixedDay).typ)
+    )
+    .map((d) => ({
+      weekday: d.weekday,
+      typ: d.typ,
+      keepInRecoveryWeek: d.keepInRecoveryWeek === true,
+      ...(d.typ !== FIXED_INTERVAL_TYP && isValidFixedDuration(d.durationMin)
+        ? { durationMin: d.durationMin }
+        : {}),
+    }));
+}
+
+/** Vorausfüllung des Formulars aus dem letzten (aktiven) Plan (Fahrplan 32
+ *  E6, PF17). Nur das, was für einen Folgeplan sinnvoll mitwandert: Rahmen
+ *  (Tage, Stunden, Level, Fokus), feste Tage und Drinnen/Draußen — nicht
+ *  Start, FTP, FTP-Ziel, Modell (das richtet sich wieder nach Level/Länge/
+ *  Stunden). Ältere Pläne ohne `params.form`-Felder laufen über die Spalten. */
+export function formFromLastPlan(plan: TrainingPlan): Partial<NewPlanFormState> {
+  const sport = plan.sport ?? "ride";
+  const form = savedPlanForm(plan);
+  const weekdays = [...new Set(plan.trainingWeekdays ?? [])].filter((d) => d >= 1 && d <= 7);
+  const out: Partial<NewPlanFormState> = {
+    // Ein Event-Plan hat seine Länge aus dem Renntag — die passt nicht zum nächsten Plan.
+    ...(plan.mode === "open" && plan.weeks >= MIN_PLAN_WEEKS && plan.weeks <= MAX_PLAN_WEEKS
+      ? { weeks: plan.weeks }
+      : {}),
+    level: plan.level,
+    focus: plan.focus,
+    ...(weekdays.length >= 2 ? { trainingWeekdays: weekdays } : {}),
+    ...(plan.weeklyHours != null && plan.weeklyHours > 0 ? { weeklyHours: plan.weeklyHours } : {}),
+    fixedDays: sport === "ride" ? savedFixedDays(plan) : [],
+  };
+  if (sport === "ride") {
+    const env = activeDayEnvironment(form.dayEnvironment, [1, 2, 3, 4, 5, 6, 7]);
+    if (env) out.dayEnvironment = env;
+    if (typeof form.hasIndoorTrainer === "boolean") out.hasIndoorTrainer = form.hasIndoorTrainer;
+  }
+  return out;
+}
+
 /** Startzustand des Formulars. `todayISO` = heute (lokal); Plan startet am
  *  nächsten Montag, damit die erste Woche voll ist. `ftpHistoryEntries` (Default
  *  leer) kommt vom aufrufenden NewPlanDialog nur für den eingeloggten Athleten
@@ -413,7 +606,6 @@ export function defaultFormState(
     currentThresholdSpeed: null,
     thresholdSpeedMeasuredDate: null,
     thresholdSpeedTarget: null,
-    indoorPct: 40,
     focus: "allgemein",
     level,
     model: suggestModel({ level, weeks, weeklyHours }),
@@ -454,7 +646,14 @@ export function buildGeneratorInput(
     .sort((a, b) => a - b);
   if (weekdays.length < 2) errors.trainingWeekdays = "Mindestens zwei Trainingstage wählen.";
 
-  const fixedDays = sport === "ride" ? state.fixedDays : [];
+  const rawFixedDays = sport === "ride" ? state.fixedDays : [];
+  if (rawFixedDays.some((d) => d.durationMin !== undefined && !isValidFixedDuration(d.durationMin))) {
+    errors.fixedDayDuration = `Dauer eines festen Tages: ganze Minuten zwischen ${FIXED_DURATION_MIN_MIN} und ${FIXED_DURATION_MAX_MIN}, oder leer lassen.`;
+  }
+  // Ein fester Intervalltag ist keine feste Karte — eine Dauer hätte dort keine Wirkung.
+  const fixedDays = rawFixedDays.map(({ durationMin, ...rest }) =>
+    durationMin !== undefined && rest.typ !== FIXED_INTERVAL_TYP ? { ...rest, durationMin } : rest
+  );
   const fixedWeekdaySet = new Set(fixedDays.map((d) => d.weekday));
   if (
     fixedWeekdaySet.size !== fixedDays.length ||
@@ -491,6 +690,11 @@ export function buildGeneratorInput(
 
   if (Object.keys(errors).length) return { ok: false, errors };
 
+  const dayEnvironment =
+    sport === "ride" && state.hasIndoorTrainer === true
+      ? activeDayEnvironment(state.dayEnvironment, weekdays)
+      : undefined;
+
   return {
     ok: true,
     input: {
@@ -512,7 +716,7 @@ export function buildGeneratorInput(
       currentThresholdSpeed: sport === "ride" ? null : state.currentThresholdSpeed,
       thresholdSpeedMeasuredDate: sport === "ride" ? null : state.thresholdSpeedMeasuredDate,
       thresholdSpeedTarget: sport === "ride" ? null : state.thresholdSpeedTarget,
-      indoorShare: Math.min(1, Math.max(0, state.indoorPct / 100)),
+      ...(dayEnvironment ? { dayEnvironment } : {}),
       // "focus" ist Rad-Vokabular und wird von der Lauf-/Schwimm-Strategie
       // ignoriert (Fahrplan 14 Feinentscheidung) — fester Default, unabhängig
       // davon, was im (weiter sichtbaren) Fokus-Dropdown steht.

@@ -57,8 +57,14 @@ export function flattenPlanCards(plan: GeneratedPlan): PlanCardBulkDraft[] {
 
 /** Formularzustand serialisierbar machen (nur Primitive/Arrays — reicht für
  *  das `params`-jsonb, das rein der Reproduzierbarkeit dient). */
-function serialiseForm(form: NewPlanFormState): Record<string, unknown> {
-  return { ...form, trainingWeekdays: [...form.trainingWeekdays] };
+function serialiseForm(form: NewPlanFormState, input: PlanGeneratorInput): Record<string, unknown> {
+  // dayEnvironment kommt aus dem Generator-Input (schon auf Rad + Rolle +
+  // Trainingstage bereinigt), nicht aus dem Rohformular — sonst stünden
+  // Wünsche in params, die der Generator nie gesehen hat (V5).
+  const saved: Record<string, unknown> = { ...form, trainingWeekdays: [...form.trainingWeekdays] };
+  if (input.dayEnvironment) saved.dayEnvironment = { ...input.dayEnvironment };
+  else delete saved.dayEnvironment;
+  return saved;
 }
 
 /**
@@ -112,7 +118,8 @@ export function trainingPlanDraft(
     level: input.level,
     trainingWeekdays,
     weeklyHours: Number.isFinite(input.weeklyHours) ? input.weeklyHours : null,
-    indoorShare: Number.isFinite(input.indoorShare) ? input.indoorShare : null,
+    // Fahrplan 32 E5 (PF9): der Prozent-Regler ist weg; die Spalte bleibt, wird aber nicht mehr gefüllt.
+    indoorShare: null,
     ftpAtCreation: input.currentFtp ?? null,
     ftpTarget: plan.ftpTarget ?? null,
     sport,
@@ -122,7 +129,7 @@ export function trainingPlanDraft(
     thresholdSpeedAtCreation: input.currentThresholdSpeed ?? null,
     thresholdSpeedTarget: input.thresholdSpeedTarget ?? null,
     params: {
-      form: serialiseForm(form),
+      form: serialiseForm(form, input),
       history: (input.history as unknown) ?? null,
       warnings: plan.warnings,
     },

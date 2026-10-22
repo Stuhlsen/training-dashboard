@@ -17,7 +17,7 @@
    einer späteren Etappe überlassen.
    ============================================================ */
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useEvents } from "../../api/hooks/useEvents";
@@ -30,6 +30,7 @@ import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
+import { useProfileBasics, useUpdateHasIndoorTrainer } from "../../api/hooks/useProfile";
 import { useCreateTrainingPlan } from "./useCreateTrainingPlan";
 import { athleteConfig } from "../../config";
 import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.js";
@@ -39,25 +40,33 @@ import { PlanPreview } from "./PlanPreview";
 import { ModelBlockBar } from "./ModelBlockBar";
 import { MiniPlanPreview } from "./MiniPlanPreview";
 import { GuidedPlanQuestions } from "./GuidedPlanQuestions";
+import { applyWizardResult, type WizardResult } from "./guided-wizard-view-model";
 import { CompareModelsDialog } from "./CompareModelsDialog";
 import {
   AVAILABLE_MODELS,
   buildGeneratorInput,
+  DAY_ENVIRONMENT_LABELS,
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
   FIXED_DAY_TYPES,
+  FIXED_DURATION_MAX_MIN,
+  FIXED_DURATION_MIN_MIN,
   FIXED_INTERVAL_TYP,
-  ftpTestAtStartAuto,
+  formFromLastPlan,
+  ftpTestNote,
   LEVEL_DESCRIPTIONS,
   MODEL_BLOCK_SHARES,
   MODEL_DESCRIPTIONS,
   MODEL_LABELS,
   mondayOf,
   parseDescriptionSegments,
+  planSummaryRows,
+  resolveHasIndoorTrainer,
   resolveMeasuredFtp,
   suggestModel,
   WEEKDAY_LABELS,
+  type DayEnvironment,
   type FixedDay,
   type GeneratedPlan,
   type NewPlanFormState,
@@ -66,7 +75,13 @@ import {
   type PlanLevel,
   type PlanModel,
 } from "./new-plan-dialog-view-model";
-import { LABEL_STYLE, PRIMARY_BTN_STYLE, PILL_STYLE, BTN_STYLE } from "./new-plan-dialog-styles";
+import {
+  BTN_STYLE,
+  FIELD_STYLE,
+  LABEL_STYLE,
+  PILL_STYLE,
+  PRIMARY_BTN_STYLE,
+} from "./new-plan-dialog-styles";
 
 /** Vorschau + der Input/Formularstand, aus dem sie erzeugt wurde — im selben
  *  Zug übernommen, damit die geschriebene `training_plans`-Zeile (params,
@@ -83,23 +98,13 @@ type Ride = import("../../types.js").Ride;
 interface NewPlanDialogProps {
   athleteId: string;
   onClose: () => void;
+  /** Nach erfolgreichem Speichern, direkt vor `onClose` — für den Hinweis „Plan verschieben…". */
+  onCreated?: () => void;
 }
 
 const NEW_EVENT_VALUE = "__new__";
 
-const FIELD_STYLE: React.CSSProperties = {
-  background: "rgba(255,255,255,.04)",
-  border: "1px solid var(--hair)",
-  borderRadius: "var(--radius-sm)",
-  padding: "7px 9px",
-  color: "var(--ink)",
-  font: "inherit",
-  fontSize: ".82rem",
-  width: "100%",
-  boxSizing: "border-box",
-};
-
-export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
+export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogProps) {
   useEscapeToClose(onClose);
 
   const today = localISODate();
@@ -109,7 +114,12 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const { data: rideData } = useRides(athleteId);
   const { aggregate } = usePlanHistoryAggregate(athleteId, effectiveSport);
   const { entries: formatEntries } = useAthleteFormats();
-  const { data: activePlan } = useActiveTrainingPlan(athleteId);
+  // Plan der gewählten Sportart: ersetzt wird nur dieser, und er liefert die
+  // Vorausfüllung (PF17). Der Start-Modus hängt daran, ob es einen gibt.
+  const { data: activePlan, isLoading: planLoading } = useActiveTrainingPlan(
+    athleteId,
+    effectiveSport
+  );
   const { data: existingCards } = usePlanCards(athleteId);
   const profile = useSessionProfile();
   const { createPlan, isPending: saving } = useCreateTrainingPlan(athleteId);
@@ -133,13 +143,25 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   const [form, setForm] = useState<NewPlanFormState>(() =>
     defaultFormState(cfg, today, ftpHistoryEntries)
   );
-  const [guidedMode, setGuidedMode] = useState(true);
+  // Wizard oder Formular: `null` = noch nicht gewählt → kein bisheriger Plan:
+  // Wizard, sonst Formular (PF17). „Geführt"/„Erweitert" überstimmt das.
+  const [guidedChoice, setGuidedChoice] = useState<boolean | null>(null);
+  const [prefilledPlanId, setPrefilledPlanId] = useState<string | null>(null);
   const [modelTouched, setModelTouched] = useState(false);
   const [comparing, setComparing] = useState(false);
   const [ftpTouched, setFtpTouched] = useState(false);
   const [preview, setPreview] = useState<PreviewBundle | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
+  const { update: updateIndoorTrainer } = useUpdateHasIndoorTrainer();
+
+  // Folgeplan: Formular einmal aus dem letzten (aktiven) Plan vorbefüllen (PF17).
+  // State-Anpassung WÄHREND des Renders statt im Effect (wie unten bei
+  // prefilledSpeed), sonst react-hooks/set-state-in-effect.
+  if (activePlan && prefilledPlanId !== activePlan.id) {
+    setPrefilledPlanId(activePlan.id);
+    setForm((f) => ({ ...f, ...formFromLastPlan(activePlan) }));
+  }
 
   // FTP-Historie lädt asynchron — beim allerersten Render greift der
   // Startzustand oben (defaultFormState()) meist nur auf den config.ts-
@@ -163,8 +185,23 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
     patch({ currentFtp: measuredFtp.ftpMeasured, ftpMeasuredDate: measuredFtp.ftpMeasuredDate });
   }
 
-  const startWithFtpTest =
-    form.startWithFtpTest ?? ftpTestAtStartAuto(form.startDate, form.ftpMeasuredDate);
+  const ftpNote = ftpTestNote(form.startDate, form.ftpMeasuredDate, form.startWithFtpTest);
+  const startWithFtpTest = ftpNote.on;
+
+  // Rolle „Smart-Trainer/Rolle" (Fahrplan 32 PF5/PF18): der Profilwert gilt nur
+  // beim Athleten selbst — ein Trainer kann ihn nicht lesen, und sein EIGENES
+  // Profil gehört nicht zu diesem Plan. Ist der Wert null, bietet das Formular
+  // einen plan-lokalen Schalter (params.form), ohne das Profil zu beschreiben.
+  const { data: profileBasics, isLoading: basicsLoading } = useProfileBasics();
+  const profileRole = isSelf ? (profileBasics?.hasIndoorTrainer ?? null) : null;
+  const roleLoading = isSelfLoading || (isSelf && basicsLoading);
+  // Wizard erst zeigen, wenn Plan und Rolle bekannt sind — sonst flackert die
+  // Schrittfolge (Rolle-Schritt) bzw. der Start-Modus springt.
+  const guidedMode = guidedChoice ?? !activePlan;
+  const waiting = guidedChoice !== false && (planLoading || roleLoading);
+  const hasIndoorTrainer = resolveHasIndoorTrainer(profileRole, form.hasIndoorTrainer);
+  const showEnvironmentPills = effectiveSport === "ride" && hasIndoorTrainer === true;
+  const showRoleSwitch = effectiveSport === "ride" && !roleLoading && profileRole === null;
   const lowAdherence =
     ((aggregate as { planAdherence?: number | null } | null)?.planAdherence ?? 1) < 0.7;
 
@@ -281,7 +318,10 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   }, [form.level, form.focus, effectiveModel]);
 
   function handlePreview() {
-    const effForm: NewPlanFormState = { ...form, model: effectiveModel };
+    // hasIndoorTrainer: die wirksame Rolle (Profil, sonst Schalter) wird als
+    // plan-lokale Kopie eingefroren — „Rest neu berechnen" und der Trainer-Fall
+    // lesen sie aus params.form (V5).
+    const effForm: NewPlanFormState = { ...form, model: effectiveModel, hasIndoorTrainer };
     const built = buildGeneratorInput(effForm, resolveEventDate, effectiveSport, aggregate);
     if (!built.ok) {
       setErrors(built.errors);
@@ -314,7 +354,30 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
       setSaveError(result.error.message);
       return;
     }
+    onCreated?.();
     onClose();
+  }
+
+  /** Wizard fertig → Antworten ins Formular (Erweitert); die Rolle-Antwort
+   *  zusätzlich ins eigene Profil, aber nur beim Athleten selbst (PF18). */
+  async function handleWizardComplete(result: WizardResult) {
+    setForm((f) => applyWizardResult(f, result));
+    setPreview(null);
+    setSaveError(null);
+    // FTP aus dem Wizard nicht von der nachladenden Historie überschreiben lassen.
+    if ("currentFtp" in result.form || "ftpMeasuredDate" in result.form) setFtpTouched(true);
+    setGuidedChoice(false);
+    const role = result.form.hasIndoorTrainer;
+    if (result.saveIndoorTrainerToProfile && role != null) {
+      const saved = await updateIndoorTrainer(role);
+      if (!saved.ok) {
+        setSaveError(`Rolle konnte nicht im Profil gespeichert werden: ${saved.error.message}`);
+      }
+    }
+  }
+
+  function setDayEnvironment(iso: number, value: DayEnvironment) {
+    patch({ dayEnvironment: { ...(form.dayEnvironment ?? {}), [iso]: value } });
   }
 
   function toggleWeekday(iso: number) {
@@ -415,359 +478,447 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
             <button
               type="button"
               style={guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              onClick={() => setGuidedMode(true)}
+              disabled={planLoading || roleLoading}
+              onClick={() => setGuidedChoice(true)}
             >
               Geführt
             </button>
             <button
               type="button"
               style={!guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              onClick={() => setGuidedMode(false)}
+              // Erst wenn Plan und Rolle bekannt sind: sonst würde das spätere
+              // Vorausfüllen aus dem letzten Plan schon getippte Eingaben überschreiben.
+              disabled={planLoading || roleLoading}
+              onClick={() => setGuidedChoice(false)}
             >
               Erweitert
             </button>
           </div>
 
-          {/* Modus */}
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              type="button"
-              style={form.mode === "open" ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              onClick={() => patch({ mode: "open" })}
-            >
-              Ohne festes Ende
-            </button>
-            <button
-              type="button"
-              style={form.mode === "event" ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              onClick={() => patch({ mode: "event" })}
-            >
-              Auf ein Event hin
-            </button>
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={LABEL_STYLE}>
-              Startdatum (Montag)
-              <input
-                type="date"
-                style={FIELD_STYLE}
-                value={form.startDate}
-                onChange={(e) => patch({ startDate: e.target.value })}
-              />
-            </label>
-
-            {form.mode === "open" ? (
-              <label style={LABEL_STYLE}>
-                Planlänge (Wochen)
-                <input
-                  type="number"
-                  min={3}
-                  max={40}
-                  style={FIELD_STYLE}
-                  value={form.weeks}
-                  onChange={(e) => patch({ weeks: Number(e.target.value) || 0 })}
-                />
-              </label>
-            ) : (
-              <label style={LABEL_STYLE}>
-                Ziel-Event
-                <select
-                  style={FIELD_STYLE}
-                  value={form.eventId || NEW_EVENT_VALUE}
-                  onChange={(e) => {
-                    const v = e.target.value;
-                    if (v === NEW_EVENT_VALUE) {
-                      patch({ eventId: "" });
-                    } else {
-                      const ev = eventOptions.find((x) => x.id === v);
-                      patch({ eventId: v, ftpTarget: form.ftpTarget ?? ev?.ftpGoal ?? null });
-                    }
-                  }}
-                >
-                  {eventOptions.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {fmtDate(e.eventDate)} — {e.title}
-                      {e.priority ? ` (${e.priority})` : ""}
-                    </option>
-                  ))}
-                  <option value={NEW_EVENT_VALUE}>Anderes Event anlegen …</option>
-                </select>
-              </label>
-            )}
-          </div>
-
-          {form.mode === "event" && !form.eventId && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <label style={LABEL_STYLE}>
-                Renntag
-                <input
-                  type="date"
-                  style={FIELD_STYLE}
-                  value={form.newEventDate}
-                  onChange={(e) => patch({ newEventDate: e.target.value })}
-                />
-              </label>
-              <label style={LABEL_STYLE}>
-                Event-Name
-                <input
-                  type="text"
-                  style={FIELD_STYLE}
-                  value={form.newEventName}
-                  onChange={(e) => patch({ newEventName: e.target.value })}
-                  placeholder="z. B. GFNY Hamburg"
-                />
-              </label>
-            </div>
-          )}
-
-          {/* Trainingstage */}
-          <div style={LABEL_STYLE}>
-            Trainingstage
-            <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-              {WEEKDAY_LABELS.map((d) => {
-                const on = form.trainingWeekdays.includes(d.iso);
-                return (
-                  <button
-                    key={d.iso}
-                    type="button"
-                    style={
-                      on ? { ...PILL_STYLE, ...PRIMARY_BTN_STYLE, padding: "6px 12px" } : PILL_STYLE
-                    }
-                    onClick={() => toggleWeekday(d.iso)}
-                  >
-                    {d.short}
-                  </button>
-                );
-              })}
-            </div>
-            {lowAdherence && form.trainingWeekdays.length > 2 && (
-              <label
-                style={{
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 6,
-                  fontSize: ".76rem",
-                  color: "var(--ink-3)",
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={form.keepAllTrainingDays ?? false}
-                  onChange={(e) => patch({ keepAllTrainingDays: e.target.checked })}
-                />
-                <span>
-                  Zuletzt unter 70 % Planerfüllung — der Plan würde einen Trainingstag streichen.
-                  Alle {form.trainingWeekdays.length} gewählten Tage trotzdem behalten.
-                </span>
-              </label>
-            )}
-          </div>
-
-          {/* Feste Tage — nur Rad, FIXED_DAY_TYPES kennt nur das Rad-Vokabular. */}
-          {effectiveSport === "ride" && (
-            <div style={LABEL_STYLE}>
-              Feste Tage (optional)
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                {form.fixedDays.map((fd, i) => (
-                  <div
-                    key={i}
-                    style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
-                  >
-                    <select
-                      style={{ ...FIELD_STYLE, width: "auto" }}
-                      value={fd.weekday}
-                      onChange={(e) => updateFixedDay(i, { weekday: Number(e.target.value) })}
-                    >
-                      {form.trainingWeekdays
-                        .filter(
-                          (iso) =>
-                            iso === fd.weekday || !form.fixedDays.some((f) => f.weekday === iso)
-                        )
-                        .map((iso) => (
-                          <option key={iso} value={iso}>
-                            {WEEKDAY_LABELS.find((w) => w.iso === iso)?.short}
-                          </option>
-                        ))}
-                    </select>
-                    <select
-                      style={{ ...FIELD_STYLE, width: "auto", flex: 1, minWidth: 120 }}
-                      value={fd.typ}
-                      onChange={(e) => updateFixedDay(i, { typ: e.target.value })}
-                    >
-                      {FIXED_DAY_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t === FIXED_INTERVAL_TYP ? "Intervalle (passend zur Phase)" : t}
-                        </option>
-                      ))}
-                    </select>
-                    {/* Intervalltage entfallen in Erholungswochen immer (keine
-                        Qualitätstage dort) — die Checkbox hätte keine Wirkung. */}
-                    {fd.typ !== FIXED_INTERVAL_TYP && (
-                      <label
-                        style={{
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 4,
-                          fontSize: ".76rem",
-                          color: "var(--ink-3)",
-                        }}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={fd.keepInRecoveryWeek}
-                          onChange={(e) =>
-                            updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })
-                          }
-                        />
-                        auch in Erholungswochen
-                      </label>
-                    )}
-                    <button
-                      type="button"
-                      style={PILL_STYLE}
-                      onClick={() => removeFixedDay(i)}
-                      aria-label="Festen Tag entfernen"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  style={PILL_STYLE}
-                  onClick={addFixedDay}
-                  disabled={form.fixedDays.length >= form.trainingWeekdays.length}
-                >
-                  + Fester Tag
-                </button>
-              </div>
-            </div>
-          )}
-
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={LABEL_STYLE}>
-              Zeitbudget (h/Woche)
-              <input
-                type="number"
-                min={1}
-                max={25}
-                step={0.5}
-                style={FIELD_STYLE}
-                value={form.weeklyHours}
-                onChange={(e) => patch({ weeklyHours: Number(e.target.value) || 0 })}
-              />
-            </label>
-            <label style={LABEL_STYLE}>
-              Indoor-Anteil ({form.indoorPct} %)
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={form.indoorPct}
-                onChange={(e) => patch({ indoorPct: Number(e.target.value) })}
-              />
-            </label>
-          </div>
-
-          {effectiveSport === "ride" && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                fontSize: ".82rem",
-                color: "var(--ink-2)",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={startWithFtpTest}
-                onChange={(e) => patch({ startWithFtpTest: e.target.checked })}
-              />
-              Plan beginnt mit FTP-Test
-            </label>
-          )}
-
-          {effectiveSport === "ride" ? (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <label style={LABEL_STYLE}>
-                Aktuelle FTP (W)
-                <input
-                  type="number"
-                  min={80}
-                  max={500}
-                  style={FIELD_STYLE}
-                  value={form.currentFtp ?? ""}
-                  onChange={(e) => {
-                    setFtpTouched(true);
-                    patch({ currentFtp: e.target.value ? Number(e.target.value) : null });
-                  }}
-                />
-                {isSelf && (
-                  <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
-                    Wirkt nur für diesen Plan · dauerhaft hinterlegen: Settings → FTP-Historie
-                  </span>
-                )}
-              </label>
-              <label style={LABEL_STYLE}>
-                FTP-Ziel (W, optional)
-                <input
-                  type="number"
-                  min={80}
-                  max={500}
-                  style={FIELD_STYLE}
-                  value={form.ftpTarget ?? ""}
-                  placeholder={forecastHint != null ? `Prognose ${forecastHint}` : "wird berechnet"}
-                  onChange={(e) =>
-                    patch({ ftpTarget: e.target.value ? Number(e.target.value) : null })
-                  }
-                />
-              </label>
-            </div>
-          ) : (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <label style={LABEL_STYLE}>
-                Aktuelle Schwellenpace (km/h)
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  step={0.1}
-                  style={FIELD_STYLE}
-                  value={form.currentThresholdSpeed ?? ""}
-                  onChange={(e) =>
-                    patch({ currentThresholdSpeed: e.target.value ? Number(e.target.value) : null })
-                  }
-                />
-              </label>
-              <label style={LABEL_STYLE}>
-                Schwellenpace-Ziel (km/h, optional)
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  step={0.1}
-                  style={FIELD_STYLE}
-                  value={form.thresholdSpeedTarget ?? ""}
-                  onChange={(e) =>
-                    patch({ thresholdSpeedTarget: e.target.value ? Number(e.target.value) : null })
-                  }
-                />
-              </label>
-            </div>
-          )}
-
-          {guidedMode ? (
+          {waiting ? (
+            <p style={{ fontSize: ".82rem", color: "var(--ink-3)" }}>Lade …</p>
+          ) : guidedMode ? (
             <GuidedPlanQuestions
-              onComplete={({ level, focus }) => {
-                patch({ level, focus });
-                setGuidedMode(false);
-              }}
+              sport={effectiveSport}
+              profileRole={profileRole}
+              canSaveRoleToProfile={isSelf}
+              prefilled={!!activePlan}
+              initialForm={form}
+              events={eventOptions}
+              todayISO={today}
+              onComplete={handleWizardComplete}
             />
           ) : (
             <>
+              {/* Modus */}
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  type="button"
+                  style={form.mode === "open" ? PRIMARY_BTN_STYLE : PILL_STYLE}
+                  onClick={() => patch({ mode: "open" })}
+                >
+                  Ohne festes Ende
+                </button>
+                <button
+                  type="button"
+                  style={form.mode === "event" ? PRIMARY_BTN_STYLE : PILL_STYLE}
+                  onClick={() => patch({ mode: "event" })}
+                >
+                  Auf ein Event hin
+                </button>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <label style={LABEL_STYLE}>
+                  Startdatum (Montag)
+                  <input
+                    type="date"
+                    style={FIELD_STYLE}
+                    value={form.startDate}
+                    onChange={(e) => patch({ startDate: e.target.value })}
+                  />
+                </label>
+
+                {form.mode === "open" ? (
+                  <label style={LABEL_STYLE}>
+                    Planlänge (Wochen)
+                    <input
+                      type="number"
+                      min={3}
+                      max={40}
+                      style={FIELD_STYLE}
+                      value={form.weeks}
+                      onChange={(e) => patch({ weeks: Number(e.target.value) || 0 })}
+                    />
+                  </label>
+                ) : (
+                  <label style={LABEL_STYLE}>
+                    Ziel-Event
+                    <select
+                      style={FIELD_STYLE}
+                      value={form.eventId || NEW_EVENT_VALUE}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === NEW_EVENT_VALUE) {
+                          patch({ eventId: "" });
+                        } else {
+                          const ev = eventOptions.find((x) => x.id === v);
+                          patch({ eventId: v, ftpTarget: form.ftpTarget ?? ev?.ftpGoal ?? null });
+                        }
+                      }}
+                    >
+                      {eventOptions.map((e) => (
+                        <option key={e.id} value={e.id}>
+                          {fmtDate(e.eventDate)} — {e.title}
+                          {e.priority ? ` (${e.priority})` : ""}
+                        </option>
+                      ))}
+                      <option value={NEW_EVENT_VALUE}>Anderes Event anlegen …</option>
+                    </select>
+                  </label>
+                )}
+              </div>
+
+              {form.mode === "event" && !form.eventId && (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <label style={LABEL_STYLE}>
+                    Renntag
+                    <input
+                      type="date"
+                      style={FIELD_STYLE}
+                      value={form.newEventDate}
+                      onChange={(e) => patch({ newEventDate: e.target.value })}
+                    />
+                  </label>
+                  <label style={LABEL_STYLE}>
+                    Event-Name
+                    <input
+                      type="text"
+                      style={FIELD_STYLE}
+                      value={form.newEventName}
+                      onChange={(e) => patch({ newEventName: e.target.value })}
+                      placeholder="z. B. GFNY Hamburg"
+                    />
+                  </label>
+                </div>
+              )}
+
+              {/* Trainingstage */}
+              <div style={LABEL_STYLE}>
+                Trainingstage
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {WEEKDAY_LABELS.map((d) => {
+                    const on = form.trainingWeekdays.includes(d.iso);
+                    return (
+                      <button
+                        key={d.iso}
+                        type="button"
+                        style={
+                          on ? { ...PILL_STYLE, ...PRIMARY_BTN_STYLE, padding: "6px 12px" } : PILL_STYLE
+                        }
+                        onClick={() => toggleWeekday(d.iso)}
+                      >
+                        {d.short}
+                      </button>
+                    );
+                  })}
+                </div>
+                {lowAdherence && form.trainingWeekdays.length > 2 && (
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 6,
+                      fontSize: ".76rem",
+                      color: "var(--ink-3)",
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={form.keepAllTrainingDays ?? false}
+                      onChange={(e) => patch({ keepAllTrainingDays: e.target.checked })}
+                    />
+                    <span>
+                      Zuletzt unter 70 % Planerfüllung — der Plan würde einen Trainingstag streichen.
+                      Alle {form.trainingWeekdays.length} gewählten Tage trotzdem behalten.
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              {/* Rolle + Drinnen/Draußen je Trainingstag — nur Rad (Fahrplan 32 E5). */}
+              {showRoleSwitch && (
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 6,
+                    fontSize: ".82rem",
+                    color: "var(--ink-2)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={form.hasIndoorTrainer === true}
+                    onChange={(e) => patch({ hasIndoorTrainer: e.target.checked })}
+                  />
+                  <span>
+                    Rolle / Smart-Trainer vorhanden? (nur für diesen Plan)
+                    {isSelf && (
+                      <span style={{ display: "block", fontSize: ".72rem", color: "var(--ink-3)" }}>
+                        Dauerhaft festlegen: Einstellungen → Profil
+                      </span>
+                    )}
+                  </span>
+                </label>
+              )}
+
+              {showEnvironmentPills && (
+                <div style={LABEL_STYLE}>
+                  Drinnen oder draußen? (pro Trainingstag)
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {form.trainingWeekdays.map((iso) => {
+                      const current = form.dayEnvironment?.[iso] ?? "any";
+                      const dayLabel = WEEKDAY_LABELS.find((w) => w.iso === iso)?.short;
+                      return (
+                        <div
+                          key={iso}
+                          role="group"
+                          aria-label={`Drinnen oder draußen am ${dayLabel}`}
+                          style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
+                        >
+                          <span style={{ width: 26, color: "var(--ink-2)", fontSize: ".82rem" }}>
+                            {dayLabel}
+                          </span>
+                          {DAY_ENVIRONMENT_LABELS.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              aria-pressed={current === opt.value}
+                              style={
+                                current === opt.value
+                                  ? { ...PILL_STYLE, ...PRIMARY_BTN_STYLE, padding: "6px 12px" }
+                                  : PILL_STYLE
+                              }
+                              onClick={() => setDayEnvironment(iso, opt.value)}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Feste Tage — nur Rad, FIXED_DAY_TYPES kennt nur das Rad-Vokabular. */}
+              {effectiveSport === "ride" && (
+                <div style={LABEL_STYLE}>
+                  Feste Tage (optional)
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {form.fixedDays.map((fd, i) => (
+                      <div
+                        key={i}
+                        style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
+                      >
+                        <select
+                          style={{ ...FIELD_STYLE, width: "auto" }}
+                          value={fd.weekday}
+                          onChange={(e) => updateFixedDay(i, { weekday: Number(e.target.value) })}
+                        >
+                          {form.trainingWeekdays
+                            .filter(
+                              (iso) =>
+                                iso === fd.weekday || !form.fixedDays.some((f) => f.weekday === iso)
+                            )
+                            .map((iso) => (
+                              <option key={iso} value={iso}>
+                                {WEEKDAY_LABELS.find((w) => w.iso === iso)?.short}
+                              </option>
+                            ))}
+                        </select>
+                        <select
+                          style={{ ...FIELD_STYLE, width: "auto", flex: 1, minWidth: 120 }}
+                          value={fd.typ}
+                          onChange={(e) => updateFixedDay(i, { typ: e.target.value })}
+                        >
+                          {FIXED_DAY_TYPES.map((t) => (
+                            <option key={t} value={t}>
+                              {t === FIXED_INTERVAL_TYP ? "Intervalle (passend zur Phase)" : t}
+                            </option>
+                          ))}
+                        </select>
+                        {/* Dauer nur für feste Karten — ein Intervalltag bekommt seine
+                            Dauer aus Phase und Zeitbudget. Leer = Generator wählt. */}
+                        {fd.typ !== FIXED_INTERVAL_TYP && (
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min={FIXED_DURATION_MIN_MIN}
+                            max={FIXED_DURATION_MAX_MIN}
+                            step={1}
+                            placeholder="Dauer (min)"
+                            aria-label="Dauer in Minuten (optional)"
+                            style={{ ...FIELD_STYLE, width: 110 }}
+                            value={fd.durationMin ?? ""}
+                            onChange={(e) =>
+                              updateFixedDay(i, {
+                                durationMin: e.target.value === "" ? undefined : Number(e.target.value),
+                              })
+                            }
+                          />
+                        )}
+                        {/* Intervalltage entfallen in Erholungswochen immer (keine
+                            Qualitätstage dort) — die Checkbox hätte keine Wirkung. */}
+                        {fd.typ !== FIXED_INTERVAL_TYP && (
+                          <label
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 4,
+                              fontSize: ".76rem",
+                              color: "var(--ink-3)",
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={fd.keepInRecoveryWeek}
+                              onChange={(e) =>
+                                updateFixedDay(i, { keepInRecoveryWeek: e.target.checked })
+                              }
+                            />
+                            auch in Erholungswochen
+                          </label>
+                        )}
+                        <button
+                          type="button"
+                          style={PILL_STYLE}
+                          onClick={() => removeFixedDay(i)}
+                          aria-label="Festen Tag entfernen"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    <button
+                      type="button"
+                      style={PILL_STYLE}
+                      onClick={addFixedDay}
+                      disabled={form.fixedDays.length >= form.trainingWeekdays.length}
+                    >
+                      + Fester Tag
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <label style={LABEL_STYLE}>
+                Zeitbudget (h/Woche)
+                <input
+                  type="number"
+                  min={1}
+                  max={25}
+                  step={0.5}
+                  style={{ ...FIELD_STYLE, maxWidth: 200 }}
+                  value={form.weeklyHours}
+                  onChange={(e) => patch({ weeklyHours: Number(e.target.value) || 0 })}
+                />
+              </label>
+
+              {effectiveSport === "ride" && (
+                <label
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 6,
+                    fontSize: ".82rem",
+                    color: "var(--ink-2)",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={startWithFtpTest}
+                    onChange={(e) => patch({ startWithFtpTest: e.target.checked })}
+                  />
+                  <span>
+                    Plan beginnt mit FTP-Test
+                    <span style={{ display: "block", fontSize: ".72rem", color: "var(--ink-3)" }}>
+                      {ftpNote.text}
+                    </span>
+                  </span>
+                </label>
+              )}
+
+              {effectiveSport === "ride" ? (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <label style={LABEL_STYLE}>
+                    Aktuelle FTP (W)
+                    <input
+                      type="number"
+                      min={80}
+                      max={500}
+                      style={FIELD_STYLE}
+                      value={form.currentFtp ?? ""}
+                      onChange={(e) => {
+                        setFtpTouched(true);
+                        patch({ currentFtp: e.target.value ? Number(e.target.value) : null });
+                      }}
+                    />
+                    {isSelf && (
+                      <span style={{ fontSize: ".72rem", color: "var(--ink-3)" }}>
+                        Wirkt nur für diesen Plan · dauerhaft hinterlegen: Settings → FTP-Historie
+                      </span>
+                    )}
+                  </label>
+                  <label style={LABEL_STYLE}>
+                    FTP-Ziel (W, optional)
+                    <input
+                      type="number"
+                      min={80}
+                      max={500}
+                      style={FIELD_STYLE}
+                      value={form.ftpTarget ?? ""}
+                      placeholder={forecastHint != null ? `Prognose ${forecastHint}` : "wird berechnet"}
+                      onChange={(e) =>
+                        patch({ ftpTarget: e.target.value ? Number(e.target.value) : null })
+                      }
+                    />
+                  </label>
+                </div>
+              ) : (
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                  <label style={LABEL_STYLE}>
+                    Aktuelle Schwellenpace (km/h)
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      step={0.1}
+                      style={FIELD_STYLE}
+                      value={form.currentThresholdSpeed ?? ""}
+                      onChange={(e) =>
+                        patch({ currentThresholdSpeed: e.target.value ? Number(e.target.value) : null })
+                      }
+                    />
+                  </label>
+                  <label style={LABEL_STYLE}>
+                    Schwellenpace-Ziel (km/h, optional)
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      step={0.1}
+                      style={FIELD_STYLE}
+                      value={form.thresholdSpeedTarget ?? ""}
+                      onChange={(e) =>
+                        patch({ thresholdSpeedTarget: e.target.value ? Number(e.target.value) : null })
+                      }
+                    />
+                  </label>
+                </div>
+              )}
+
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
                 <label style={LABEL_STYLE}>
                   Erfahrungslevel
@@ -872,36 +1023,77 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                   <MiniPlanPreview plan={miniPreviewPlan} />
                 </div>
               )}
+
+              {(Object.keys(errors).length > 0 || saveError) && (
+                <ul
+                  style={{
+                    margin: 0,
+                    padding: "8px 12px 8px 26px",
+                    borderRadius: "var(--radius-sm)",
+                    background: "rgba(217,79,79,.10)",
+                    border: "1px solid rgba(217,79,79,.35)",
+                    color: "var(--danger)",
+                    fontSize: ".78rem",
+                  }}
+                >
+                  {Object.values(errors).map((msg, i) => (
+                    <li key={i}>{msg}</li>
+                  ))}
+                  {saveError && <li>{saveError}</li>}
+                </ul>
+              )}
+
+              {preview && (
+                <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 14 }}>
+                  <PlanPreview
+                    plan={preview.plan}
+                    sport={preview.input.sport ?? "ride"}
+                    thresholdSpeedTarget={preview.input.thresholdSpeedTarget ?? null}
+                  />
+                  <dl
+                    aria-label="Zusammenfassung"
+                    style={{
+                      margin: "14px 0 0",
+                      padding: "10px 14px",
+                      borderRadius: "var(--radius-sm)",
+                      background: "rgba(255,255,255,.04)",
+                      border: "1px solid var(--hair)",
+                      display: "grid",
+                      gridTemplateColumns: "auto 1fr",
+                      gap: "4px 14px",
+                      fontSize: ".82rem",
+                    }}
+                  >
+                    {planSummaryRows({
+                      startDate: preview.input.startDate,
+                      weeks: preview.plan.weeks.length,
+                      weeklyHours: preview.input.weeklyHours,
+                      ftp:
+                        (preview.input.sport ?? "ride") === "ride"
+                          ? ftpTestNote(
+                              preview.form.startDate,
+                              preview.form.ftpMeasuredDate,
+                              preview.form.startWithFtpTest
+                            )
+                          : null,
+                    }).map((row) => (
+                      <Fragment key={row.label}>
+                        <dt style={{ color: "var(--ink-3)" }}>{row.label}</dt>
+                        <dd
+                          style={{
+                            margin: 0,
+                            color: row.strong ? "var(--ink)" : "var(--ink-2)",
+                            fontWeight: row.strong ? 700 : 400,
+                          }}
+                        >
+                          {row.value}
+                        </dd>
+                      </Fragment>
+                    ))}
+                  </dl>
+                </div>
+              )}
             </>
-          )}
-
-          {(Object.keys(errors).length > 0 || saveError) && (
-            <ul
-              style={{
-                margin: 0,
-                padding: "8px 12px 8px 26px",
-                borderRadius: "var(--radius-sm)",
-                background: "rgba(217,79,79,.10)",
-                border: "1px solid rgba(217,79,79,.35)",
-                color: "var(--danger)",
-                fontSize: ".78rem",
-              }}
-            >
-              {Object.values(errors).map((msg, i) => (
-                <li key={i}>{msg}</li>
-              ))}
-              {saveError && <li>{saveError}</li>}
-            </ul>
-          )}
-
-          {preview && (
-            <div style={{ borderTop: "1px solid var(--hair)", paddingTop: 14 }}>
-              <PlanPreview
-                plan={preview.plan}
-                sport={preview.input.sport ?? "ride"}
-                thresholdSpeedTarget={preview.input.thresholdSpeedTarget ?? null}
-              />
-            </div>
           )}
         </div>
 
@@ -909,22 +1101,26 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
           <button type="button" style={BTN_STYLE} onClick={onClose} disabled={saving}>
             Abbrechen
           </button>
-          <button type="button" style={BTN_STYLE} onClick={handlePreview} disabled={saving}>
-            Vorschau erstellen
-          </button>
-          <button
-            type="button"
-            style={
-              preview && !saving
-                ? PRIMARY_BTN_STYLE
-                : { ...PRIMARY_BTN_STYLE, opacity: 0.5, cursor: "not-allowed" }
-            }
-            disabled={!preview || saving}
-            onClick={handleAdopt}
-            title={preview ? undefined : "Erst eine Vorschau erstellen"}
-          >
-            {saving ? "Speichert…" : willReplace ? "Plan ersetzen" : "Übernehmen"}
-          </button>
+          {!guidedMode && (
+            <>
+              <button type="button" style={BTN_STYLE} onClick={handlePreview} disabled={saving}>
+                Vorschau erstellen
+              </button>
+              <button
+                type="button"
+                style={
+                  preview && !saving
+                    ? PRIMARY_BTN_STYLE
+                    : { ...PRIMARY_BTN_STYLE, opacity: 0.5, cursor: "not-allowed" }
+                }
+                disabled={!preview || saving}
+                onClick={handleAdopt}
+                title={preview ? undefined : "Erst eine Vorschau erstellen"}
+              >
+                {saving ? "Speichert…" : willReplace ? "Plan ersetzen" : "Übernehmen"}
+              </button>
+            </>
+          )}
         </div>
       </GlassCard>
 

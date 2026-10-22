@@ -130,7 +130,6 @@ const form = {
   currentFtp: 193,
   ftpMeasuredDate: null,
   ftpTarget: null,
-  indoorPct: 40,
   focus: "allgemein" as const,
   level: "fortgeschritten" as const,
   model: "linear" as const,

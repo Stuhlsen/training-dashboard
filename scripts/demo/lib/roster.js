@@ -84,7 +84,7 @@ export const DEMO_ROSTER = [
     // 6 Trainingstage (Mo frei), Doppel-Tage Di/Fr/So
     plans: [
       { sport: "ride", trainingWeekdays: [2, 4, 6, 7], weeklyHours: 5, thresholdSpeed: null },
-      { sport: "run", trainingWeekdays: [3, 5, 7], weeklyHours: 3, thresholdSpeed: 13.5 },
+      { sport: "run", trainingWeekdays: [3, 5, 7], weeklyHours: 4, thresholdSpeed: 13.5 },
       { sport: "swim", trainingWeekdays: [2, 5], weeklyHours: 2, thresholdSpeed: 3.6 },
     ],
     raceNames: ["Sprint-Triathlon", "Duathlon-Cup", "Olympische Distanz", "Mitteldistanz"],

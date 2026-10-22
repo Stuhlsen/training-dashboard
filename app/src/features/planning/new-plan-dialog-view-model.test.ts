@@ -4,11 +4,16 @@ import {
   defaultFormState,
   FIXED_INTERVAL_TYP,
   FOCUS_DESCRIPTIONS,
+  formFromLastPlan,
+  ftpTestAutoReason,
+  ftpTestNote,
   LEVEL_DESCRIPTIONS,
   levelFromExperience,
   MODEL_DESCRIPTIONS,
   mondayOf,
   parseDescriptionSegments,
+  planSummaryRows,
+  resolveHasIndoorTrainer,
   resolveMeasuredFtp,
   suggestModel,
   type NewPlanFormState,
@@ -17,6 +22,7 @@ import {
   type PlanModel,
 } from "./new-plan-dialog-view-model";
 import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
+import type { TrainingPlan } from "../../api/types";
 
 describe("mondayOf", () => {
   it("gibt den Montag derselben Woche zurück", () => {
@@ -163,7 +169,6 @@ const BASE: NewPlanFormState = {
   currentThresholdSpeed: null,
   thresholdSpeedMeasuredDate: null,
   thresholdSpeedTarget: null,
-  indoorPct: 40,
   focus: "allgemein",
   level: "fortgeschritten",
   model: "pyramidal",
@@ -180,12 +185,66 @@ describe("buildGeneratorInput", () => {
     expect(res.input.mode).toBe("open");
     expect(res.input.weeks).toBe(12);
     expect(res.input.eventDate).toBeUndefined();
-    expect(res.input.indoorShare).toBeCloseTo(0.4);
+    // Fahrplan 32 E5: der Indoor-Prozent-Regler ist weg, kein Wert im Input.
+    expect("indoorShare" in res.input).toBe(false);
   });
 
   it("fester Intervalltag (FIXED_INTERVAL_TYP) ist ein gültiger fester Tag", () => {
     const res = buildGeneratorInput(
       { ...BASE, fixedDays: [{ weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false }] },
+      noEvent
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.fixedDays).toEqual([
+      { weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false },
+    ]);
+  });
+
+  it("fester Tag mit Dauer: Dauer geht in den Generator-Input", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 }] },
+      noEvent
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.fixedDays).toEqual([
+      { weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 },
+    ]);
+  });
+
+  it("fester Tag ohne Dauer: Input trägt kein durationMin-Feld", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false }] },
+      noEvent
+    );
+    expect(res.ok && "durationMin" in res.input.fixedDays![0]).toBe(false);
+  });
+
+  it("Dauer außerhalb 15..300 oder nicht ganzzahlig -> Fehler", () => {
+    for (const durationMin of [14, 301, 45.5, Number.NaN]) {
+      const res = buildGeneratorInput(
+        { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin }] },
+        noEvent
+      );
+      expect(res.ok, `durationMin ${durationMin}`).toBe(false);
+      if (!res.ok) expect(res.errors.fixedDayDuration).toBeTruthy();
+    }
+  });
+
+  it("Grenzwerte 15 und 300 sind gültig", () => {
+    for (const durationMin of [15, 300]) {
+      const res = buildGeneratorInput(
+        { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin }] },
+        noEvent
+      );
+      expect(res.ok, `durationMin ${durationMin}`).toBe(true);
+    }
+  });
+
+  it("fester Intervalltag: Dauer wird nicht an den Generator gereicht", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false, durationMin: 60 }] },
       noEvent
     );
     expect(res.ok).toBe(true);
@@ -337,5 +396,230 @@ describe("parseDescriptionSegments", () => {
         expect(seg.text.startsWith("−")).toBe(false);
       }
     }
+  });
+});
+
+describe("ftpTestAutoReason (V6)", () => {
+  it("keine gemessene FTP -> an, 'keine-ftp'", () => {
+    expect(ftpTestAutoReason("2026-09-07", null)).toEqual({ on: true, reason: "keine-ftp" });
+  });
+
+  it("Messung genau 42 Tage vor dem Start -> aus (Grenze: erst >42 Tage ist 'älter')", () => {
+    expect(ftpTestAutoReason("2026-09-07", "2026-07-27")).toEqual({
+      on: false,
+      reason: "ftp-aktuell",
+    });
+  });
+
+  it("Messung 43 Tage vor dem Start -> an, 'ftp-aelter-6-wochen'", () => {
+    expect(ftpTestAutoReason("2026-09-07", "2026-07-26")).toEqual({
+      on: true,
+      reason: "ftp-aelter-6-wochen",
+    });
+  });
+
+  it("frische Messung -> aus, 'ftp-aktuell'", () => {
+    expect(ftpTestAutoReason("2026-09-07", "2026-08-30")).toEqual({
+      on: false,
+      reason: "ftp-aktuell",
+    });
+  });
+});
+
+describe("ftpTestNote", () => {
+  it("Automatik: Text nennt den Grund samt Datum", () => {
+    expect(ftpTestNote("2026-09-07", null, null)).toEqual({
+      on: true,
+      text: "an — noch keine FTP gemessen",
+    });
+    expect(ftpTestNote("2026-09-07", "2026-06-24", undefined)).toEqual({
+      on: true,
+      text: "an — letzte FTP älter als 6 Wochen (24.06.2026)",
+    });
+    expect(ftpTestNote("2026-09-07", "2026-08-30", null)).toEqual({
+      on: false,
+      text: "aus — FTP vom 30.08.2026 ist aktuell",
+    });
+  });
+
+  it("manuell gegen die Automatik umgestellt -> 'von dir geändert'", () => {
+    expect(ftpTestNote("2026-09-07", "2026-08-30", true)).toEqual({
+      on: true,
+      text: "an — von dir geändert",
+    });
+    expect(ftpTestNote("2026-09-07", null, false)).toEqual({
+      on: false,
+      text: "aus — von dir geändert",
+    });
+  });
+
+  it("manuelle Wahl gleich der Automatik -> normaler Grund", () => {
+    expect(ftpTestNote("2026-09-07", null, true).text).toBe("an — noch keine FTP gemessen");
+  });
+});
+
+describe("resolveHasIndoorTrainer", () => {
+  it("Profilwert gewinnt, auch false", () => {
+    expect(resolveHasIndoorTrainer(true, false)).toBe(true);
+    expect(resolveHasIndoorTrainer(false, true)).toBe(false);
+  });
+
+  it("Profil null -> plan-lokale Kopie, sonst null", () => {
+    expect(resolveHasIndoorTrainer(null, true)).toBe(true);
+    expect(resolveHasIndoorTrainer(null, false)).toBe(false);
+    expect(resolveHasIndoorTrainer(null, null)).toBeNull();
+    expect(resolveHasIndoorTrainer(null, undefined)).toBeNull();
+  });
+});
+
+describe("buildGeneratorInput — dayEnvironment (V2/V5)", () => {
+  const ENV = { 2: "indoor", 4: "any", 6: "outdoor" } as const;
+
+  it("Rad + Rolle = true -> nur Nicht-'egal'-Tage im Input", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { ...ENV } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && res.input.dayEnvironment).toEqual({ 2: "indoor", 6: "outdoor" });
+  });
+
+  it("Tage, die nicht (mehr) Trainingstage sind, fallen heraus", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { 2: "indoor", 5: "outdoor" } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && res.input.dayEnvironment).toEqual({ 2: "indoor" });
+  });
+
+  it("alles 'egal' -> kein dayEnvironment-Feld", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { 2: "any", 4: "any" } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && "dayEnvironment" in res.input).toBe(false);
+  });
+
+  it.each([false, null, undefined])("Rolle = %s -> kein dayEnvironment", (role) => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: role, dayEnvironment: { ...ENV } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && "dayEnvironment" in res.input).toBe(false);
+  });
+
+  it.each(["run", "swim"] as const)("Sport %s -> kein dayEnvironment trotz Rolle", (sport) => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { ...ENV } },
+      noEvent,
+      sport
+    );
+    expect(res.ok && "dayEnvironment" in res.input).toBe(false);
+  });
+});
+
+describe("planSummaryRows", () => {
+  it("Start fett, dann Wochen, Stunden/Woche und FTP-Test samt Grund", () => {
+    const rows = planSummaryRows({
+      startDate: "2026-09-07",
+      weeks: 12,
+      weeklyHours: 6.5,
+      ftp: { on: true, text: "an — noch keine FTP gemessen" },
+    });
+    expect(rows).toEqual([
+      { label: "Start", value: "07.09.2026", strong: true },
+      { label: "Wochen", value: "12" },
+      { label: "Stunden/Woche", value: "6,5 h" },
+      { label: "FTP-Test", value: "an — noch keine FTP gemessen" },
+    ]);
+  });
+
+  it("ohne FTP-Zeile (Lauf/Schwimmen) fehlt die Zeile; ganze Stunden ohne Komma", () => {
+    const rows = planSummaryRows({ startDate: "2026-09-07", weeks: 8, weeklyHours: 5, ftp: null });
+    expect(rows.map((r) => r.label)).toEqual(["Start", "Wochen", "Stunden/Woche"]);
+    expect(rows[2].value).toBe("5 h");
+  });
+});
+
+describe("formFromLastPlan (Fahrplan 32 E6, PF17)", () => {
+  const basePlan = {
+    id: "p1",
+    mode: "open",
+    weeks: 10,
+    level: "einsteiger",
+    focus: "berg",
+    trainingWeekdays: [1, 3, 5],
+    weeklyHours: 5.5,
+    sport: "ride",
+    params: {},
+  } as unknown as TrainingPlan;
+
+  it("übernimmt Spalten und neue params.form-Felder", () => {
+    const plan = {
+      ...basePlan,
+      params: {
+        form: {
+          fixedDays: [{ weekday: 3, typ: "Z2 Dauer", keepInRecoveryWeek: true, durationMin: 90 }],
+          dayEnvironment: { 1: "indoor", 3: "any", 5: "outdoor" },
+          hasIndoorTrainer: true,
+        },
+      },
+    } as unknown as TrainingPlan;
+    expect(formFromLastPlan(plan)).toEqual({
+      weeks: 10,
+      level: "einsteiger",
+      focus: "berg",
+      trainingWeekdays: [1, 3, 5],
+      weeklyHours: 5.5,
+      fixedDays: [{ weekday: 3, typ: "Z2 Dauer", keepInRecoveryWeek: true, durationMin: 90 }],
+      dayEnvironment: { 1: "indoor", 5: "outdoor" },
+      hasIndoorTrainer: true,
+    });
+  });
+
+  it("funktioniert mit alten Plänen ohne params.form", () => {
+    expect(formFromLastPlan(basePlan)).toEqual({
+      weeks: 10,
+      level: "einsteiger",
+      focus: "berg",
+      trainingWeekdays: [1, 3, 5],
+      weeklyHours: 5.5,
+      fixedDays: [],
+    });
+  });
+
+  it("lässt Planlänge eines Event-Plans weg (aus Renntag abgeleitet) und ignoriert kaputte Felder", () => {
+    const plan = {
+      ...basePlan,
+      mode: "event",
+      weeklyHours: null,
+      params: { form: { fixedDays: "kaputt", dayEnvironment: 7, hasIndoorTrainer: "ja" } },
+    } as unknown as TrainingPlan;
+    const form = formFromLastPlan(plan);
+    expect(form).not.toHaveProperty("weeks");
+    expect(form).not.toHaveProperty("weeklyHours");
+    expect(form).not.toHaveProperty("dayEnvironment");
+    expect(form).not.toHaveProperty("hasIndoorTrainer");
+    expect(form.fixedDays).toEqual([]);
+  });
+
+  it("übernimmt feste Tage und Umgebung nur beim Rad-Plan", () => {
+    const plan = {
+      ...basePlan,
+      sport: "run",
+      params: {
+        form: {
+          fixedDays: [{ weekday: 3, typ: "Z2 Dauer", keepInRecoveryWeek: false }],
+          dayEnvironment: { 1: "indoor" },
+          hasIndoorTrainer: true,
+        },
+      },
+    } as unknown as TrainingPlan;
+    const form = formFromLastPlan(plan);
+    expect(form.fixedDays).toEqual([]);
+    expect(form).not.toHaveProperty("dayEnvironment");
   });
 });

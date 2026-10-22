@@ -1,124 +1,193 @@
 /* ============================================================
-   FEATURES/PLANNING/GUIDEDPLANQUESTIONS.TSX — geführter Einstieg im „Neuer
-   Plan"-Dialog (Fahrplan 20 E4). Ersetzt im geführten Modus den Level/
-   Fokus/Modell-Block: zwei einfache Fragen statt drei Dropdowns, leitet
-   Level (levelFromExperience) und Fokus direkt aus den Antworten ab.
+   FEATURES/PLANNING/GUIDEDPLANQUESTIONS.TSX — Schritt-für-Schritt-Wizard im
+   „Neuer Plan"-Dialog (Fahrplan 32 E6; vorher zwei Fragen aus Fahrplan 20 E4).
 
-   Reine Darstellungs-/Ablauflogik, kein Fetch — Pill-Buttons im selben
-   Stil wie die bestehenden Modus-/Wochentag-Pillen in NewPlanDialog.tsx
-   (LABEL_STYLE/PILL_STYLE/PRIMARY_BTN_STYLE von dort wiederverwendet statt
-   neu erfunden).
-
-   Der angezeigte Modell-Vorschlag ist nur zur Orientierung — suggestModel()
-   braucht Wochen/Zeitbudget, die hier (bewusst reine Props: nur onComplete)
-   nicht vorliegen; verwendet die defaultFormState()-Richtwerte
-   (12 Wochen/6h). Das tatsächliche Modell schlägt NewPlanDialog.tsx nach
-   dem Sprung ins Erweitert-Formular ohnehin mit den echten Werten neu vor.
+   Ein Schritt pro Bildschirm, Zurück/Weiter, „Schritt x von y". Reine
+   Darstellungs-/Ablauflogik, kein Fetch: Schrittfolge, Prüfung und das
+   Ergebnis (`Partial<NewPlanFormState>`, V7) kommen aus
+   guided-wizard-view-model.ts, die einzelnen Bildschirme aus
+   GuidedPlanSteps.tsx. Der Wizard speichert nichts — der Dialog übernimmt das
+   Ergebnis ins Formular und legt eine Rolle-Antwort bei Bedarf ins Profil.
    ============================================================ */
 
 import { useState } from "react";
-import { LABEL_STYLE, PILL_STYLE, PRIMARY_BTN_STYLE } from "./new-plan-dialog-styles";
+import { HINT_STYLE, PILL_STYLE, PRIMARY_BTN_STYLE } from "./new-plan-dialog-styles";
 import {
-  FOCUS_LABELS,
-  levelFromExperience,
-  MODEL_LABELS,
-  suggestModel,
-  type PlanFocus,
-  type PlanLevel,
-} from "./new-plan-dialog-view-model";
+  buildWizardResult,
+  initialWizardAnswers,
+  wizardStepError,
+  wizardSteps,
+  type WizardAnswers,
+  type WizardContext,
+  type WizardResult,
+  type WizardStepId,
+} from "./guided-wizard-view-model";
+import {
+  EnvironmentStep,
+  ExperienceStep,
+  FocusStep,
+  FtpStep,
+  GoalStep,
+  PaceStep,
+  RoleStep,
+  ScheduleStep,
+} from "./GuidedPlanSteps";
+import type { NewPlanFormState } from "./new-plan-dialog-view-model";
+import type { ActiveSport } from "../../api/hooks/useActiveSport";
+import type { EventItem } from "../../api/types";
 
-type Experience = "unter1Jahr" | "ueber1Jahr";
-
-const EXPERIENCE_OPTIONS: ReadonlyArray<{ value: Experience; label: string }> = [
-  { value: "unter1Jahr", label: "Unter 1 Jahr" },
-  { value: "ueber1Jahr", label: "Über 1 Jahr" },
-];
-
-const LEVEL_LABELS: Record<PlanLevel, string> = {
-  einsteiger: "Einsteiger",
-  fortgeschritten: "Fortgeschritten",
+const STEP_TITLES: Record<Exclude<WizardStepId, "threshold">, string> = {
+  goal: "Worauf trainierst du hin?",
+  experience: "Wie lange trainierst du schon strukturiert?",
+  focus: "Was ist dir am wichtigsten?",
+  schedule: "Wann und wie viel willst du trainieren?",
+  role: "Hast du eine Rolle oder einen Smart-Trainer?",
+  environment: "Welche Tage drinnen, welche draußen?",
 };
 
-/** Richtwerte für die illustrative Modell-Empfehlung, s. Kopfkommentar. */
-const GUIDED_MODEL_HINT_WEEKS = 12;
-const GUIDED_MODEL_HINT_WEEKLY_HOURS = 6;
+const HEADING_STYLE: React.CSSProperties = {
+  fontFamily: "var(--font-disp)",
+  fontWeight: 700,
+  fontSize: ".95rem",
+  color: "var(--ink)",
+  margin: 0,
+};
 
 export interface GuidedPlanQuestionsProps {
-  onComplete: (result: { level: PlanLevel; focus: PlanFocus }) => void;
+  sport: ActiveSport;
+  /** Rolle aus dem Profil; `null` = nie angegeben oder (Trainer) nicht lesbar. */
+  profileRole: boolean | null;
+  /** true nur beim Athleten selbst — dann landet die Rolle-Antwort im Profil. */
+  canSaveRoleToProfile: boolean;
+  /** Formular wurde aus einem letzten Plan vorbelegt (Erfahrung/Fokus vorgewählt). */
+  prefilled: boolean;
+  /** Formularstand beim Öffnen — Startwerte der Antworten. */
+  initialForm: NewPlanFormState;
+  events: ReadonlyArray<Pick<EventItem, "id" | "title" | "eventDate" | "priority" | "ftpGoal">>;
+  /** Heute (lokal, ISO) — Obergrenze für das FTP-Messdatum. */
+  todayISO: string;
+  onComplete: (result: WizardResult) => void;
 }
 
-export function GuidedPlanQuestions({ onComplete }: GuidedPlanQuestionsProps) {
-  const [experience, setExperience] = useState<Experience | null>(null);
-  const [focus, setFocus] = useState<PlanFocus | null>(null);
+function stepTitle(step: WizardStepId, sport: ActiveSport): string {
+  if (step !== "threshold") return STEP_TITLES[step];
+  return sport === "ride" ? "Kennst du deine FTP?" : "Kennst du deine Schwellenpace?";
+}
 
-  const level = experience ? levelFromExperience(experience) : null;
-  const suggestedModel =
-    level != null
-      ? suggestModel({
-          level,
-          weeks: GUIDED_MODEL_HINT_WEEKS,
-          weeklyHours: GUIDED_MODEL_HINT_WEEKLY_HOURS,
-        })
-      : null;
+export function GuidedPlanQuestions({
+  sport,
+  profileRole,
+  canSaveRoleToProfile,
+  prefilled,
+  initialForm,
+  events,
+  todayISO,
+  onComplete,
+}: GuidedPlanQuestionsProps) {
+  const [answers, setAnswers] = useState<WizardAnswers>(() =>
+    initialWizardAnswers(initialForm, { prefilled, role: profileRole })
+  );
+  const [index, setIndex] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+
+  const ctx: WizardContext = { sport, profileRole, roleAnswer: answers.role };
+  const steps = wizardSteps(ctx);
+  const current = Math.min(index, steps.length - 1);
+  const step = steps[current];
+  const isLast = current === steps.length - 1;
+
+  function set(next: Partial<WizardAnswers>) {
+    setAnswers((a) => ({ ...a, ...next }));
+    setError(null);
+  }
+
+  function next() {
+    const problem = wizardStepError(step, answers, ctx, todayISO);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    if (isLast) {
+      onComplete(buildWizardResult(answers, ctx, { canSaveRoleToProfile, events }));
+      return;
+    }
+    setError(null);
+    setIndex(current + 1);
+  }
+
+  function back() {
+    setError(null);
+    setIndex(Math.max(0, current - 1));
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={LABEL_STYLE}>
-        Wie lange trainierst du schon strukturiert?
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {EXPERIENCE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              style={experience === opt.value ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              onClick={() => setExperience(opt.value)}
-            >
-              {opt.label}
-            </button>
-          ))}
+      <div>
+        <div aria-live="polite" style={{ ...HINT_STYLE, marginBottom: 6 }}>
+          Schritt {current + 1} von {steps.length}
         </div>
-      </div>
-
-      <div style={LABEL_STYLE}>
-        Was ist dir am wichtigsten?
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          {(Object.keys(FOCUS_LABELS) as PlanFocus[]).map((f) => (
-            <button
-              key={f}
-              type="button"
-              style={focus === f ? PRIMARY_BTN_STYLE : PILL_STYLE}
-              onClick={() => setFocus(f)}
-            >
-              {FOCUS_LABELS[f]}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {level != null && focus != null && suggestedModel != null && (
         <div
-          style={{
-            padding: "10px 14px",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--hair)",
-            background: "rgba(255,255,255,.04)",
-            display: "flex",
-            flexDirection: "column",
-            gap: 10,
-          }}
+          role="progressbar"
+          aria-label="Fortschritt im Wizard"
+          aria-valuemin={1}
+          aria-valuemax={steps.length}
+          aria-valuenow={current + 1}
+          style={{ height: 3, borderRadius: 2, background: "var(--hair)" }}
         >
-          <span style={{ fontSize: ".78rem", color: "var(--ink-2)" }}>
-            Empfehlung: <strong>{LEVEL_LABELS[level]}</strong> · <strong>{FOCUS_LABELS[focus]}</strong>{" "}
-            · Modell <strong>{MODEL_LABELS[suggestedModel]}</strong>
-          </span>
-          <button
-            type="button"
-            style={{ ...PRIMARY_BTN_STYLE, alignSelf: "flex-start" }}
-            onClick={() => onComplete({ level, focus })}
-          >
-            Übernehmen
-          </button>
+          <div
+            style={{
+              height: "100%",
+              borderRadius: 2,
+              width: `${((current + 1) / steps.length) * 100}%`,
+              background: "var(--ss)",
+            }}
+          />
         </div>
+      </div>
+
+      <h3 style={HEADING_STYLE}>{stepTitle(step, sport)}</h3>
+
+      {step === "goal" && <GoalStep answers={answers} set={set} events={events} />}
+      {step === "experience" && <ExperienceStep answers={answers} set={set} />}
+      {step === "focus" && <FocusStep answers={answers} set={set} />}
+      {step === "schedule" && <ScheduleStep answers={answers} set={set} />}
+      {step === "role" && (
+        <RoleStep answers={answers} set={set} canSaveRoleToProfile={canSaveRoleToProfile} />
+      )}
+      {step === "environment" && <EnvironmentStep answers={answers} set={set} />}
+      {step === "threshold" &&
+        (sport === "ride" ? (
+          <FtpStep answers={answers} set={set} todayISO={todayISO} />
+        ) : (
+          <PaceStep answers={answers} set={set} />
+        ))}
+
+      {error && (
+        <div role="alert" style={{ color: "var(--danger)", fontSize: ".78rem" }}>
+          {error}
+        </div>
+      )}
+
+      <div
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}
+      >
+        <button
+          type="button"
+          style={current === 0 ? { ...PILL_STYLE, opacity: 0.5, cursor: "not-allowed" } : PILL_STYLE}
+          disabled={current === 0}
+          onClick={back}
+        >
+          Zurück
+        </button>
+        <button type="button" style={PRIMARY_BTN_STYLE} onClick={next}>
+          {isLast ? "Zum Formular" : "Weiter"}
+        </button>
+      </div>
+      {isLast && (
+        <p style={HINT_STYLE}>
+          Im Formular siehst du Startdatum, FTP-Test und Stunden als Übersicht, bevor etwas
+          gespeichert wird.
+        </p>
       )}
     </div>
   );

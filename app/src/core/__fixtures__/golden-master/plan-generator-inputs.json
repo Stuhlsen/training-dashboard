@@ -174,5 +174,45 @@
       "ageYears": null,
       "powerCurveWeakness": null
     }
+  },
+  "indoor-outdoor-days": {
+    "startDate": "2026-09-07",
+    "mode": "event",
+    "eventDate": "2026-11-29",
+    "trainingWeekdays": [
+      1,
+      2,
+      4,
+      6,
+      7
+    ],
+    "weeklyHours": 9,
+    "currentFtp": 250,
+    "ftpMeasuredDate": "2026-08-20",
+    "ftpTarget": null,
+    "indoorShare": 0.4,
+    "focus": "allgemein",
+    "level": "fortgeschritten",
+    "model": "pyramidal",
+    "dayEnvironment": {
+      "1": "indoor",
+      "2": "indoor",
+      "4": "indoor",
+      "6": "outdoor",
+      "7": "outdoor"
+    },
+    "history": {
+      "weeklyActualTss": [
+        420,
+        440,
+        455,
+        460
+      ],
+      "currentCtl": 62,
+      "currentEftp": 255,
+      "planAdherence": 0.85,
+      "ageYears": 34,
+      "powerCurveWeakness": null
+    }
   }
 }

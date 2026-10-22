@@ -1,7 +1,8 @@
 /* ============================================================
    FEATURES/SETTINGS/PROFILEBASICSSECTION.TSX — Geburtsdatum, Ruhepuls,
    Maximalherzfrequenz, Größe, Gewicht, Geschlecht (Migration 0039,
-   Fahrplan 17 E3). Alle Felder einzeln speicherbar, alle optional.
+   Fahrplan 17 E3) und „Rolle / Smart-Trainer“ (Migration 0079, Fahrplan 32
+   E4). Alle Felder einzeln speicherbar, alle optional.
 
    Läuft auch als Wizard-Schritt im Onboarding-Assistenten (E7, V5-Contract,
    s. OnboardingWizard.tsx) — ohne Änderung an der Feldlogik hier: die
@@ -18,6 +19,7 @@ import {
   useUpdateHeightCm,
   useUpdateWeightKg,
   useUpdateHrMax,
+  useUpdateHasIndoorTrainer,
 } from "../../api/hooks/useProfile";
 import {
   parseRestingHrInput,
@@ -141,6 +143,7 @@ export function ProfileBasicsSection({ onComplete, onSkip }: ProfileBasicsSectio
   const { update: saveHeightCm } = useUpdateHeightCm();
   const { update: saveWeightKg } = useUpdateWeightKg();
   const { update: saveHrMax } = useUpdateHrMax();
+  const { update: saveHasIndoorTrainer } = useUpdateHasIndoorTrainer();
   // Streamer-Modus gilt nur in den Einstellungen — im Onboarding (`onComplete`)
   // schaltet ihn niemand, dort bleiben die Felder bedienbar.
   const { enabled: streamerMode } = useStreamerMode();
@@ -152,6 +155,7 @@ export function ProfileBasicsSection({ onComplete, onSkip }: ProfileBasicsSectio
   const hrMax = useNumberFieldEditor(basics?.hrMax, parseHrMaxInput, saveHrMax);
   const heightCm = useNumberFieldEditor(basics?.heightCm, parseHeightCmInput, saveHeightCm);
   const weightKg = useNumberFieldEditor(basics?.weightKg, parseWeightKgInput, saveWeightKg);
+  const indoorTrainer = useImmediateFieldEditor<boolean | null>(basics?.hasIndoorTrainer, saveHasIndoorTrainer);
 
   if (isLoading) return null;
 
@@ -297,6 +301,31 @@ export function ProfileBasicsSection({ onComplete, onSkip }: ProfileBasicsSectio
         </div>
       </div>
       )}
+
+      {/* Kein Gesundheitswert → auch im Streamer-Modus sichtbar. */}
+      <div style={{ marginTop: 14 }}>
+        <label htmlFor="profile-indoor-trainer" style={LABEL_STYLE}>
+          Ich habe eine Rolle / einen Smart-Trainer
+        </label>
+        <p style={{ fontSize: ".72rem", color: "var(--ink-3)", margin: "0 0 6px" }}>
+          Der Plangenerator bietet dann pro Trainingstag „drinnen“ oder „draußen“ an. Nur du siehst
+          diese Angabe.
+        </p>
+        <span style={{ display: "inline-flex", alignItems: "center", width: "100%", gap: 6 }}>
+          <select
+            id="profile-indoor-trainer"
+            value={indoorTrainer.value === null ? "" : indoorTrainer.value ? "ja" : "nein"}
+            onChange={(e) => void indoorTrainer.commit(e.target.value === "" ? null : e.target.value === "ja")}
+            style={{ ...INPUT_STYLE, flex: 1 }}
+          >
+            <option value="">— nicht angegeben —</option>
+            <option value="ja">ja</option>
+            <option value="nein">nein</option>
+          </select>
+          {indoorTrainer.saved && <SavedCheck />}
+        </span>
+        {indoorTrainer.error && <div style={ERROR_STYLE}>{indoorTrainer.error}</div>}
+      </div>
 
       {onComplete && (
         <div style={{ display: "flex", gap: 10, marginTop: 20 }}>

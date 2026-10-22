@@ -15,42 +15,14 @@
    Stand von damals).
    ============================================================ */
 
-import { FIXED_DAY_TYPES, mondayOf } from "./new-plan-dialog-view-model";
-import type { PlanGeneratorInput, AthleteDefaults, FixedDay } from "./new-plan-dialog-view-model";
+import {
+  activeDayEnvironment,
+  mondayOf,
+  savedFixedDays,
+  savedPlanForm,
+} from "./new-plan-dialog-view-model";
+import type { PlanGeneratorInput, AthleteDefaults } from "./new-plan-dialog-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
-
-/** Gespeichertes Roh-Formular des Plans (`params.form`, s. plan-persist.ts).
- *  Nur die Felder, die der Recompute braucht — alles optional, ältere Pläne
- *  kennen sie nicht. */
-interface SavedForm {
-  fixedDays?: unknown;
-  keepAllTrainingDays?: unknown;
-  startWithFtpTest?: unknown;
-}
-
-function savedForm(plan: TrainingPlan): SavedForm {
-  const form = (plan.params as { form?: unknown } | null | undefined)?.form;
-  return form && typeof form === "object" ? (form as SavedForm) : {};
-}
-
-/** Feste Tage aus `params.form` — nur wohlgeformte Einträge (Wochentag 1..7,
- *  bekannter Typ). Kaputte/fremde Einträge werden still verworfen statt den
- *  Recompute zu blockieren. */
-function savedFixedDays(plan: TrainingPlan): FixedDay[] {
-  const raw = savedForm(plan).fixedDays;
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .filter(
-      (d): d is FixedDay =>
-        !!d &&
-        typeof d === "object" &&
-        Number.isInteger((d as FixedDay).weekday) &&
-        (d as FixedDay).weekday >= 1 &&
-        (d as FixedDay).weekday <= 7 &&
-        FIXED_DAY_TYPES.includes((d as FixedDay).typ)
-    )
-    .map((d) => ({ weekday: d.weekday, typ: d.typ, keepInRecoveryWeek: d.keepInRecoveryWeek === true }));
-}
 
 /** Die Trainingstage, die der Plan ab der Restberechnung heute nutzt
  *  (Vorbelegung der Tage-Auswahl im Dialog). */
@@ -140,7 +112,13 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     .filter((d) => !tailWeekdays.includes(d.weekday))
     .map((d) => d.weekday);
 
-  const form = savedForm(plan);
+  const form = savedPlanForm(plan);
+  // Drinnen/Draußen (Fahrplan 32 V5): nur Rad mit gespeicherter Rolle = true;
+  // abgewählte Wochentage und kaputte Einträge fallen heraus.
+  const dayEnvironment =
+    sport === "ride" && form.hasIndoorTrainer === true
+      ? activeDayEnvironment(form.dayEnvironment, tailWeekdays)
+      : undefined;
   const keepAllTrainingDays =
     args.keepAllTrainingDays ?? (form.keepAllTrainingDays === true);
 
@@ -152,6 +130,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     weeks: plan.weeks,
     trainingWeekdays: tailWeekdays,
     fixedDays,
+    ...(dayEnvironment ? { dayEnvironment } : {}),
     ...(keepAllTrainingDays ? { keepAllTrainingDays: true } : {}),
     ...(sport === "ride" && typeof form.startWithFtpTest === "boolean"
       ? { startWithFtpTest: form.startWithFtpTest }
@@ -176,7 +155,6 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     thresholdSpeedMeasuredDate: null,
     // Ziel-Pace des Ur-Plans beibehalten, analog ftpTarget.
     thresholdSpeedTarget: sport === "ride" ? null : (plan.thresholdSpeedTarget ?? null),
-    indoorShare: plan.indoorShare ?? 0,
     focus: plan.focus,
     level: plan.level,
     model: plan.model,

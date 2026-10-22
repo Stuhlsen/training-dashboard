@@ -27,7 +27,7 @@ function plan(over: Partial<TrainingPlan> = {}): TrainingPlan {
     level: "fortgeschritten",
     trainingWeekdays: [2, 4, 6],
     weeklyHours: 6,
-    indoorShare: 0.4,
+    indoorShare: null,
     ftpAtCreation: 190,
     ftpTarget: 210,
     thresholdSpeedAtCreation: null,
@@ -112,6 +112,22 @@ describe("buildRecomputeInput", () => {
     const fewer = buildRecomputeInput({ ...base, trainingWeekdays: [2, 6] });
     expect(fewer.ok && fewer.input.fixedDays?.map((d) => d.weekday)).toEqual([2]);
     expect(fewer.ok && fewer.droppedFixedWeekdays).toEqual([4]);
+  });
+
+  it("feste Tage: gespeicherte Dauer wird gelesen, kaputte Dauer still verworfen", () => {
+    const saved = plan({
+      params: {
+        form: {
+          fixedDays: [
+            { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 },
+            { weekday: 4, typ: "Z2 Dauer", keepInRecoveryWeek: false, durationMin: 9 },
+            { weekday: 6, typ: "Z2 Lang", keepInRecoveryWeek: false, durationMin: "lang" },
+          ],
+        },
+      },
+    });
+    const res = buildRecomputeInput({ plan: saved, todayISO: "2026-10-07", athleteDefaults: defaults });
+    expect(res.ok && res.input.fixedDays?.map((d) => d.durationMin)).toEqual([60, undefined, undefined]);
   });
 
   it("keepAllTrainingDays: Argument gewinnt, sonst der gespeicherte Wert; Lauf bekommt keine festen Tage", () => {
@@ -218,5 +234,52 @@ describe("buildRecomputeInput", () => {
     if (!res.ok) return;
     expect(res.input.sport).toBe("ride");
     expect(res.input.currentThresholdSpeed).toBeNull();
+  });
+});
+
+describe("buildRecomputeInput — dayEnvironment (Fahrplan 32 E5)", () => {
+  const base = { todayISO: "2026-10-07", athleteDefaults: defaults };
+  const saved = (form: Record<string, unknown>) => plan({ params: { form } });
+
+  it("reicht gespeichertes dayEnvironment an den Generator weiter (Round-trip)", () => {
+    const res = buildRecomputeInput({
+      ...base,
+      plan: saved({ hasIndoorTrainer: true, dayEnvironment: { 2: "indoor", 6: "outdoor" } }),
+    });
+    expect(res.ok && res.input.dayEnvironment).toEqual({ 2: "indoor", 6: "outdoor" });
+  });
+
+  it("Tage, die der Athlet abgewählt hat, entfallen; kaputte Einträge werden verworfen", () => {
+    const res = buildRecomputeInput({
+      ...base,
+      trainingWeekdays: [2, 4],
+      plan: saved({
+        hasIndoorTrainer: true,
+        dayEnvironment: { 2: "indoor", 6: "outdoor", 9: "indoor", 4: "kaputt" },
+      }),
+    });
+    expect(res.ok && res.input.dayEnvironment).toEqual({ 2: "indoor" });
+  });
+
+  it("alte Pläne ohne die Felder laufen wie bisher (kein dayEnvironment, kein indoorShare)", () => {
+    const res = buildRecomputeInput({ ...base, plan: plan() });
+    expect(res.ok && "dayEnvironment" in res.input).toBe(false);
+    expect(res.ok && "indoorShare" in res.input).toBe(false);
+  });
+
+  it("Rolle false oder Lauf-Plan -> dayEnvironment wird nicht weitergereicht", () => {
+    const off = buildRecomputeInput({
+      ...base,
+      plan: saved({ hasIndoorTrainer: false, dayEnvironment: { 2: "indoor" } }),
+    });
+    const run = buildRecomputeInput({
+      ...base,
+      plan: plan({
+        sport: "run",
+        params: { form: { hasIndoorTrainer: true, dayEnvironment: { 2: "indoor" } } },
+      }),
+    });
+    expect(off.ok && "dayEnvironment" in off.input).toBe(false);
+    expect(run.ok && "dayEnvironment" in run.input).toBe(false);
   });
 });
