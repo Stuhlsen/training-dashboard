@@ -266,6 +266,14 @@ function makeCard(date, phase, isoWeek, b, { isQuality = false, isTest = false }
   };
 }
 
+/** Untergrenze für lockere Tage (Minuten) — Verteilung und Skalierung. */
+const MIN_LOOSE_MIN = 30;
+/** Ab diesem Verhältnis Soll-/Basis-TSS gilt eine Woche als zeitbudget-begrenzt
+ *  (5 % Toleranz gegen Rundungsrauschen der Z2-Karten). */
+const BUDGET_LIMIT_TOLERANCE = 1.05;
+/** Woche-1-Auslastung, unter der der Hinweis „Plan nutzt X von Y h" erscheint. */
+const UNDERUSE_HINT_RATIO = 0.85;
+
 /** Lockere Restminuten auf die lockeren Tage verteilen: langer Tag (Wochenende,
  *  falls Trainingstag) bekommt den halben Rest (45–210 min), der Rest wird
  *  gleichmäßig verteilt. Jeder Tag mindestens 30 min. Fokus "langstrecke"
@@ -283,28 +291,37 @@ export function distributeLooseMinutes(looseDays, looseMin, focus = "allgemein")
   const longShare = focus === "langstrecke" ? 0.65 : 0.5;
   const longCap = focus === "langstrecke" ? 300 : 210;
   if (longDay != null && looseDays.length > 1) {
-    perDay[longDay] = clamp(looseMin * longShare, 45, longCap);
+    // Der lange Tag darf die übrigen nicht unter MIN_LOOSE_MIN drücken und das
+    // Zeitbudget nicht sprengen (V1) — passt beides nicht, gewinnt die Untergrenze.
+    const maxLong = looseMin - MIN_LOOSE_MIN * (looseDays.length - 1);
+    perDay[longDay] = Math.max(MIN_LOOSE_MIN, Math.min(clamp(looseMin * longShare, 45, longCap), maxLong));
     const rest = (looseMin - perDay[longDay]) / (looseDays.length - 1);
-    for (const wd of looseDays) if (wd !== longDay) perDay[wd] = Math.max(30, rest);
+    for (const wd of looseDays) if (wd !== longDay) perDay[wd] = Math.max(MIN_LOOSE_MIN, rest);
   } else {
-    for (const wd of looseDays) perDay[wd] = Math.max(30, looseMin / looseDays.length);
+    for (const wd of looseDays) perDay[wd] = Math.max(MIN_LOOSE_MIN, looseMin / looseDays.length);
   }
   return perDay;
 }
 
 /** Lockere Karten so umskalieren, dass ihre TSS-Summe ≈ `looseTargetTss`
- *  trifft (Faktor auf die Z2-Dauer, auf 0.5–1.8 begrenzt). Mutiert die Karten.
- *  `strategy.looseWorkout()` kapselt die Sport-Verzweigung (Rad → FTP,
- *  Lauf/Schwimm → Schwellengeschwindigkeit) vollständig — plan-generator.js
+ *  trifft — aber nur stauchen (Faktor auf die Z2-Dauer, auf 0.5–1.0 begrenzt):
+ *  das Zeitbudget (`weeklyHours`) ist eine Obergrenze, Strecken darüber hinaus
+ *  ist verboten (Fahrplan 32 V1). Jede Karte bleibt ≥ MIN_LOOSE_MIN. Mutiert
+ *  die Karten. `strategy.looseWorkout()` kapselt die Sport-Verzweigung (Rad →
+ *  FTP, Lauf/Schwimm → Schwellengeschwindigkeit) vollständig — plan-generator.js
  *  selbst kennt keinen Sportnamen mehr (Fahrplan-14-Review).
  *  @param {PlanCardDraft[]} looseCards @param {number} looseTargetTss
- *  @param {number|null} ftp @param {number|null} thresholdSpeed @param {object} strategy */
+ *  @param {number|null} ftp @param {number|null} thresholdSpeed @param {object} strategy
+ *  @returns {boolean}  true, wenn die Ziel-TSS mehr Zeit bräuchte, als das Budget hergibt */
 function scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, thresholdSpeed, strategy) {
   const base = looseCards.reduce((s, c) => s + c.tssPlanned, 0);
-  if (base <= 0) return;
-  const factor = clamp(looseTargetTss / base, 0.5, 1.8);
+  if (base <= 0) return false;
+  const wanted = looseTargetTss / base;
+  const factor = clamp(wanted, 0.5, 1.0);
   for (const c of looseCards) {
-    const scaled = strategy.looseWorkout(c.durationMin * factor, ftp, thresholdSpeed, strategy);
+    // floor statt round: Rundungsdrift darf das Zeitbudget nicht um Minuten sprengen.
+    const minutes = Math.max(MIN_LOOSE_MIN, Math.floor(c.durationMin * factor));
+    const scaled = strategy.looseWorkout(minutes, ftp, thresholdSpeed, strategy);
     Object.assign(c, {
       name: scaled.name,
       typ: scaled.typ,
@@ -314,6 +331,7 @@ function scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, thresholdSpeed
       durationMin: scaled.durationMin,
     });
   }
+  return wanted > BUDGET_LIMIT_TOLERANCE;
 }
 
 /**
@@ -510,7 +528,9 @@ function fixedDayCard(typ, ftp) {
  * @param {"einsteiger"|"fortgeschritten"} c.level
  * @param {Array<object>} c.formats  session_formats-Zeilen (leer → eingebaute Startbelegung)
  * @param {object} c.strategy  Sport-Strategie (`plan-generator-sport.js`)
- * @returns {PlanCardDraft[]}
+ * @returns {{ cards: PlanCardDraft[], limited: boolean, overBudget: boolean, budgetMin: number }}
+ *   `limited`: Ziel-TSS bräuchte mehr Zeit als das Budget (V1-Hinweis);
+ *   `overBudget`: Qualitäts- + feste Tage sprengen das Budget schon allein.
  */
 function buildWeekCards(c) {
   const { weekStart, isoWeek, phase, isRecovery, effectiveWeekdays, quality, weeklyHours, targetTss, ftp, isTestWeek } = c;
@@ -585,20 +605,9 @@ function buildWeekCards(c) {
     );
   }
 
-  const weeklyMin = weeklyHours * 60 * (isRecovery ? 0.7 : 1);
-  const looseMin = Math.max(0, weeklyMin - cards.reduce((s, x) => s + x.durationMin, 0));
-  const perDayMin = distributeLooseMinutes(looseDays, looseMin, focus);
-  const looseCards = looseDays.map((wd) =>
-    makeCard(
-      addDaysISO(weekStart, wd - 1),
-      phase,
-      isoWeek,
-      strategy.looseWorkout(perDayMin[wd], ftp, thresholdSpeed, strategy)
-    )
-  );
-  scaleLooseCardsToTarget(looseCards, Math.max(0, targetTss - qTss), ftp, thresholdSpeed, strategy);
-  cards.push(...looseCards);
-
+  // Testtag: die Testkarte hat eine feste Dauer und ersetzt, was an dem Tag
+  // läge — sie wird vorab eingeplant, damit das Zeitbudget sie mitzählt (V1).
+  let testWd = null;
   if (isTestWeek && effectiveWeekdays.length) {
     // Sicherheitsnetz statt stiller Degradation: eine Strategie, deren
     // testWeeks() eine echte Testwoche liefert, MUSS ein testCard mitbringen
@@ -612,26 +621,72 @@ function buildWeekCards(c) {
           `strategy.testCard fehlt (sport "${strategy.sport}").`
       );
     }
-    const testWd = effectiveQuality.length && !isRecovery ? effectiveQuality[0] : effectiveWeekdays[0];
+    testWd = effectiveQuality.length && !isRecovery ? effectiveQuality[0] : effectiveWeekdays[0];
     const testDate = addDaysISO(weekStart, testWd - 1);
+    for (let i = cards.length - 1; i >= 0; i--) {
+      if (cards[i].date === testDate) {
+        qTss -= cards[i].tssPlanned;
+        cards.splice(i, 1);
+      }
+    }
     const testCard = makeCard(
       testDate,
       phase,
       isoWeek,
-      {
-        ...strategy.testCard,
-        workout: null,
-        workoutStructure: null,
-      },
+      { ...strategy.testCard, workout: null, workoutStructure: null },
       { isTest: true }
     );
-    const idx = cards.findIndex((x) => x.date === testDate);
-    if (idx >= 0) cards[idx] = testCard;
-    else cards.push(testCard);
+    qTss += testCard.tssPlanned;
+    cards.push(testCard);
   }
+  const freeLooseDays = looseDays.filter((wd) => wd !== testWd);
+
+  // +1e-6: 6 h × 60 × 0.7 ergibt sonst 251.999…, das Budget wäre 1 min zu klein.
+  const weeklyMin = Math.floor(weeklyHours * 60 * (isRecovery ? 0.7 : 1) + 1e-6);
+  const nonLooseMin = cards.reduce((s, x) => s + x.durationMin, 0);
+  const looseMin = Math.max(0, weeklyMin - nonLooseMin);
+  // Qualitäts-, feste und Testtage lassen den lockeren Tagen nicht einmal ihre
+  // Mindestdauer: sie bleiben unverändert, die lockeren gehen auf MIN_LOOSE_MIN.
+  const overBudget = freeLooseDays.length > 0 && nonLooseMin + MIN_LOOSE_MIN * freeLooseDays.length > weeklyMin;
+  const perDayMin = distributeLooseMinutes(freeLooseDays, looseMin, focus);
+  const looseCards = freeLooseDays.map((wd) =>
+    makeCard(
+      addDaysISO(weekStart, wd - 1),
+      phase,
+      isoWeek,
+      strategy.looseWorkout(Math.floor(perDayMin[wd]), ftp, thresholdSpeed, strategy)
+    )
+  );
+  const limited = scaleLooseCardsToTarget(looseCards, Math.max(0, targetTss - qTss), ftp, thresholdSpeed, strategy);
+  cards.push(...looseCards);
 
   cards.sort((x, y) => x.date.localeCompare(y.date));
-  return cards;
+  return { cards, limited, overBudget, budgetMin: weeklyMin };
+}
+
+/** Stunden-Text mit deutschem Komma, eine Nachkommastelle. @param {number} min */
+const fmtHours = (min) => (min / 60).toFixed(1).replace(".", ",");
+
+/** Zeitbudget-Hinweise (Fahrplan 32 V1) — je höchstens einer pro Plan.
+ *  @param {{built:number, limited:number, over:{min:number,budgetMin:number}|null, first:{min:number,budgetMin:number}|null}} b
+ *  @param {number} cut  Index der ersten gebauten Woche (Restberechnung > 0)
+ *  @returns {string[]} */
+function timeBudgetWarnings(b, cut) {
+  const out = [];
+  if (b.over) {
+    out.push(
+      `Feste Tage und Qualitätseinheiten übersteigen dein Zeitbudget (${fmtHours(b.over.min)} von ${fmtHours(b.over.budgetMin)} h).`
+    );
+  }
+  if (b.limited > 0) {
+    out.push(`Zeitbudget begrenzt die Last in ${b.limited} von ${b.built} Wochen — mehr Last nur über mehr Stunden.`);
+  }
+  if (b.first && b.first.min < b.first.budgetMin * UNDERUSE_HINT_RATIO) {
+    out.push(
+      `Plan nutzt in Woche ${cut + 1} ${fmtHours(b.first.min)} von ${fmtHours(b.first.budgetMin)} h — steigt mit deiner Form.`
+    );
+  }
+  return out;
 }
 
 /* ── Hauptfunktion ───────────────────────────────────────────── */
@@ -801,6 +856,17 @@ export function generatePlan(input) {
       `${hartFixedCount} feste harte Tage, aber nur ${quality.length} automatische Qualitätstage/Woche — zusätzliche Belastung prüfen.`
     );
   }
+  // Sammelt je gebauter Woche die Zeitbudget-Befunde (V1); die Hinweise
+  // entstehen einmal pro Plan nach der Schleife, nicht pro Woche.
+  const budget = { built: 0, limited: 0, over: null, first: null };
+  const takeCards = (r) => {
+    budget.built += 1;
+    if (r.limited) budget.limited += 1;
+    const min = r.cards.reduce((s, x) => s + x.durationMin, 0);
+    if (budget.first == null) budget.first = { min, budgetMin: r.budgetMin };
+    if (r.overBudget && budget.over == null) budget.over = { min, budgetMin: r.budgetMin };
+    return r.cards;
+  };
   const weeks = seq.phases.map((phase, i) => {
     const weekStart = addDaysISO(startDate, i * 7);
     const isoWeek = isoWeekKey(weekStart);
@@ -835,7 +901,7 @@ export function generatePlan(input) {
       targetTss,
       isRecovery: seq.isRecovery[i],
       loadContext: weekLoadContext(targetTss, ctlAt(i)),
-      cards: buildWeekCards({
+      cards: takeCards(buildWeekCards({
         weekStart,
         isoWeek,
         phase,
@@ -853,9 +919,10 @@ export function generatePlan(input) {
         level: input.level,
         formats,
         strategy,
-      }),
+      })),
     };
   });
+  warnings.push(...timeBudgetWarnings(budget, cut));
 
   // 8) Wochenmodell (V4) --------------------------------------------
   const weekModel = weeks.map((w, i) => ({

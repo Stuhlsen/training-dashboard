@@ -986,3 +986,104 @@ test("fixedDays Intervalle: harter fester Tag verdrängt den gepinnten Intervall
   assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 5))?.typ, "Schwelle");
   assert.equal(w.cards.filter((c) => c.isQuality).length, 2);
 });
+
+/* ── Fahrplan 32 E1: Wochenstunden sind eine Obergrenze (V1) ─────── */
+
+const weekMin = (w) => w.cards.reduce((s, c) => s + c.durationMin, 0);
+const weekTssSum = (w) => w.cards.reduce((s, c) => s + c.tssPlanned, 0);
+const budgetMin = (hours, isRecovery) => Math.floor(hours * 60 * (isRecovery ? 0.7 : 1) + 1e-6);
+const NO_HISTORY = () => ({ history: emptyHistory() });
+
+test("Zeitbudget: mit Historie sind 4 h und 8 h unterscheidbar, beide Wochensummen ≤ Budget", () => {
+  const four = generatePlan(eventInput({ weeklyHours: 4 }));
+  const eight = generatePlan(eventInput({ weeklyHours: 8 }));
+  assert.ok(weekMin(four.weeks[0]) < weekMin(eight.weeks[0]));
+  for (const w of four.weeks) assert.ok(weekMin(w) <= budgetMin(4, w.isRecovery), `4 h, Woche ${w.index}`);
+  for (const w of eight.weeks) assert.ok(weekMin(w) <= budgetMin(8, w.isRecovery), `8 h, Woche ${w.index}`);
+});
+
+test("Zeitbudget: ohne Historie, 4 h → Woche-0-Summe ≤ 240 min", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  assert.ok(weekMin(plan.weeks[0]) <= 240, `war ${weekMin(plan.weeks[0])}`);
+});
+
+test("Zeitbudget: ohne Historie, 8 h → Woche-0-Summe ≤ 480 min, alle Wochen ≤ Budget", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 8, ...NO_HISTORY() }));
+  assert.ok(weekMin(plan.weeks[0]) <= 480, `war ${weekMin(plan.weeks[0])}`);
+  for (const w of plan.weeks) assert.ok(weekMin(w) <= budgetMin(8, w.isRecovery), `Woche ${w.index}`);
+});
+
+test("Zeitbudget: Erholungswochen bleiben ≤ 70 % des Budgets", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 6, ...NO_HISTORY() }));
+  const recovery = plan.weeks.filter((w) => w.isRecovery && w.cards.length);
+  assert.ok(recovery.length > 0);
+  for (const w of recovery) assert.ok(weekMin(w) <= budgetMin(6, true), `Woche ${w.index}: ${weekMin(w)}`);
+});
+
+test("Zeitbudget: das Budget wird nie überschritten, die Ziel-TSS aber nie über-erfüllt", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  for (const w of plan.weeks) assert.ok(weekTssSum(w) <= w.targetTss * 1.15, `Woche ${w.index}`);
+});
+
+test("Zeitbudget: week.targetTss bleibt der Rampen-Sollwert, auch wenn das Budget ihn nicht trägt", () => {
+  const tight = generatePlan(eventInput({ weeklyHours: 3 }));
+  const roomy = generatePlan(eventInput({ weeklyHours: 12 }));
+  assert.deepEqual(
+    tight.weekModel.map((w) => w.targetTss),
+    roomy.weekModel.map((w) => w.targetTss)
+  );
+});
+
+test("Zeitbudget: lockere Tage nie unter 30 min", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 2, ...NO_HISTORY() }));
+  for (const w of plan.weeks)
+    for (const c of w.cards) if (!c.isQuality && !c.isTest) assert.ok(c.durationMin >= 30, `${c.date}: ${c.durationMin}`);
+});
+
+test("Zeitbudget: feste Tage über Budget → lockere Tage 30 min + Hinweis", () => {
+  const fixedDays = [2, 3].map((weekday) => ({ weekday, typ: "Gruppenfahrt", keepInRecoveryWeek: true }));
+  const plan = generatePlan(
+    eventInput({ weeklyHours: 2, trainingWeekdays: [1, 2, 3, 5, 6], fixedDays, ...NO_HISTORY() })
+  );
+  const w = plan.weeks[2];
+  const loose = w.cards.filter((c) => !c.isQuality && !c.isTest && c.typ !== "Gruppenfahrt");
+  assert.ok(loose.length > 0);
+  for (const c of loose) assert.equal(c.durationMin, 30);
+  assert.equal(plan.warnings.filter((x) => x.startsWith("Feste Tage und Qualitätseinheiten übersteigen dein Zeitbudget")).length, 1);
+});
+
+test("Zeitbudget: Hinweis 'begrenzt die Last' erscheint einmal pro Plan, nicht pro Woche", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  const hits = plan.warnings.filter((x) => x.startsWith("Zeitbudget begrenzt die Last"));
+  assert.equal(hits.length, 1);
+  assert.match(hits[0], /in \d+ von \d+ Wochen/);
+});
+
+test("Zeitbudget: kein Begrenzungs-Hinweis, wenn das Budget reichlich ist", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 20 }));
+  assert.equal(plan.warnings.filter((x) => x.startsWith("Zeitbudget begrenzt")).length, 0);
+});
+
+test("Zeitbudget: Hinweis 'nutzt X von Y h' nur, wenn Woche 1 unter 85 % des Budgets liegt", () => {
+  const generous = generatePlan(eventInput({ weeklyHours: 20 }));
+  assert.equal(generous.warnings.filter((x) => x.startsWith("Plan nutzt in Woche 1")).length, 1);
+  const tight = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  assert.equal(tight.warnings.filter((x) => x.startsWith("Plan nutzt in Woche 1")).length, 0);
+});
+
+test("Zeitbudget: Lauf-Plan hält das Budget ein", () => {
+  const plan = generatePlan(runInput({ weeklyHours: 3, ...NO_HISTORY() }));
+  for (const w of plan.weeks) assert.ok(weekMin(w) <= budgetMin(3, w.isRecovery), `Woche ${w.index}: ${weekMin(w)}`);
+});
+
+test("Zeitbudget: Schwimm-Plan hält das Budget ein", () => {
+  const plan = generatePlan(swimInput({ weeklyHours: 3, ...NO_HISTORY() }));
+  for (const w of plan.weeks) assert.ok(weekMin(w) <= budgetMin(3, w.isRecovery), `Woche ${w.index}: ${weekMin(w)}`);
+});
+
+test("distributeLooseMinutes: langer Tag verdrängt die übrigen Tage nicht unter 30 min", () => {
+  const perDay = distributeLooseMinutes([2, 4, 6], 100);
+  assert.equal(perDay[2], 30);
+  assert.equal(perDay[4], 30);
+  assert.equal(perDay[6], 40);
+});
