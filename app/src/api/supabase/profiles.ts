@@ -207,6 +207,7 @@ interface ProfileOwnRow {
   updated_at: string;
   sex: ProfileOwnFields["sex"];
   intolerances: ProfileOwnFields["intolerances"];
+  has_indoor_trainer: boolean | null;
 }
 
 function toProfileOwnFields(row: ProfileOwnRow): ProfileOwnFields {
@@ -222,6 +223,7 @@ function toProfileOwnFields(row: ProfileOwnRow): ProfileOwnFields {
     updatedAt: row.updated_at,
     sex: row.sex,
     intolerances: row.intolerances ?? [],
+    hasIndoorTrainer: row.has_indoor_trainer ?? null,
   };
 }
 
@@ -235,7 +237,7 @@ export async function getProfileBasics(): Promise<Result<{ basics: ProfileOwnFie
   const client = (await getAuthedClient()) ?? supabase;
   const { data, error } = await client
     .from("profiles_own")
-    .select("id, has_password, birthdate, resting_hr, gender, height_cm, weight_kg, hr_max, updated_at, sex, intolerances")
+    .select("id, has_password, birthdate, resting_hr, gender, height_cm, weight_kg, hr_max, updated_at, sex, intolerances, has_indoor_trainer")
     .single<ProfileOwnRow>();
   // PGRST116 = keine Zeile: Login ohne Profil (z. B. Konto gelöscht, Browser
   // noch angemeldet). Eigener Code, damit OnboardingGate sauber abmeldet.
@@ -317,6 +319,18 @@ export async function updateIntolerances(userId: string, keys: string[]): Promis
   if (!supabase) return { ok: false, error: NOT_CONFIGURED };
   const client = (await getAuthedClient()) ?? supabase;
   const { error } = await client.from("profiles").update({ intolerances: keys }).eq("id", userId);
+  if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
+  return { ok: true };
+}
+
+/** Migration 0079 (Fahrplan 32 E4) — "Ich habe eine Rolle / einen
+ *  Smart-Trainer": true = ja, false = nein, null = nicht angegeben.
+ *  Schreiben auf der Basistabelle wie die übrigen Self-Service-Felder; RLS
+ *  lässt nur die eigene Zeile zu. */
+export async function updateHasIndoorTrainer(userId: string, value: boolean | null): Promise<Result> {
+  if (!supabase) return { ok: false, error: NOT_CONFIGURED };
+  const client = (await getAuthedClient()) ?? supabase;
+  const { error } = await client.from("profiles").update({ has_indoor_trainer: value }).eq("id", userId);
   if (error) return { ok: false, error: { code: "UNKNOWN", message: error.message } };
   return { ok: true };
 }

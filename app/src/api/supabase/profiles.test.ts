@@ -31,6 +31,7 @@ const {
   updateSports,
   updateSex,
   updateIntolerances,
+  updateHasIndoorTrainer,
 } = await import("./profiles");
 
 describe("updateUnitsPreference", () => {
@@ -288,6 +289,50 @@ describe("updateSex (Migration 0059/0068)", () => {
   });
 });
 
+describe("updateHasIndoorTrainer (Migration 0079)", () => {
+  it.each([true, false, null])("schreibt has_indoor_trainer=%s für die eigene Zeile", async (value) => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateHasIndoorTrainer("profile-1", value);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ has_indoor_trainer: value });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+
+  it("reicht einen Datenbankfehler als UNKNOWN weiter", async () => {
+    fakeClient.handlers.profiles = () => ({ data: null, error: { message: "boom" } });
+    const result = await updateHasIndoorTrainer("profile-1", true);
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "boom" } });
+  });
+});
+
+describe("updateHasIndoorTrainer (Migration 0079)", () => {
+  it.each([true, false, null])("schreibt has_indoor_trainer=%s für die eigene Zeile", async (value) => {
+    let seen: Record<string, unknown> = {};
+    let seenFilters: Array<{ op: string; col: string; val: unknown }> = [];
+    fakeClient.handlers.profiles = (calls) => {
+      seen = calls.payload as Record<string, unknown>;
+      seenFilters = calls.filters;
+      return { data: null, error: null };
+    };
+    const result = await updateHasIndoorTrainer("profile-1", value);
+    expect(result).toEqual({ ok: true });
+    expect(seen).toEqual({ has_indoor_trainer: value });
+    expect(seenFilters).toEqual([{ op: "eq", col: "id", val: "profile-1" }]);
+  });
+
+  it("reicht einen Datenbankfehler als UNKNOWN weiter", async () => {
+    fakeClient.handlers.profiles = () => ({ data: null, error: { message: "boom" } });
+    const result = await updateHasIndoorTrainer("profile-1", true);
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "boom" } });
+  });
+});
+
 describe("updateIntolerances (Migration 0059/0068)", () => {
   it("schreibt ein Array von Intoleranzen für die eigene Zeile", async () => {
     let seen: Record<string, unknown> = {};
@@ -330,6 +375,7 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
           updated_at: "2026-09-01T00:00:00Z",
           sex: "f",
           intolerances: ["gluten", "milk"],
+          has_indoor_trainer: true,
         },
         error: null,
       };
@@ -349,6 +395,7 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
         updatedAt: "2026-09-01T00:00:00Z",
         sex: "f",
         intolerances: ["gluten", "milk"],
+        hasIndoorTrainer: true,
       },
     });
   });
@@ -373,7 +420,7 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
       data: {
         id: "self-1", has_password: true, birthdate: null, resting_hr: null, gender: null,
         height_cm: null, weight_kg: null, hr_max: null, updated_at: "2026-09-01T00:00:00Z",
-        sex: null, intolerances: null,
+        sex: null, intolerances: null, has_indoor_trainer: null,
       },
       error: null,
     });
@@ -382,6 +429,20 @@ describe("getProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
     if (result.ok) {
       expect(result.basics.sex).toBeNull();
       expect(result.basics.intolerances).toEqual([]);
+      expect(result.basics.hasIndoorTrainer).toBeNull();
     }
+  });
+
+  it("getProfileBasics: has_indoor_trainer=false bleibt false (nicht null)", async () => {
+    fakeClient.handlers.profiles_own = () => ({
+      data: {
+        id: "self-1", has_password: true, birthdate: null, resting_hr: null, gender: null,
+        height_cm: null, weight_kg: null, hr_max: null, updated_at: "2026-09-01T00:00:00Z",
+        sex: null, intolerances: [], has_indoor_trainer: false,
+      },
+      error: null,
+    });
+    const result = await getProfileBasics();
+    expect(result.ok && result.basics.hasIndoorTrainer).toBe(false);
   });
 });

@@ -27,6 +27,7 @@ import {
   updateHrMax as updateHrMaxAdapter,
   updateSex as updateSexAdapter,
   updateIntolerances as updateIntolerancesAdapter,
+  updateHasIndoorTrainer as updateHasIndoorTrainerAdapter,
   getProfileBasics,
 } from "../supabase/profiles";
 import { updatePassword as updatePasswordAdapter, setInitialPassword as setInitialPasswordAdapter } from "../supabase/auth";
@@ -475,6 +476,33 @@ export function useUpdateSex() {
 
   const update = useCallback(
     async (value: "m" | "f" | null): Promise<Result> => {
+      if (!userId) return { ok: false, error: NOT_LOGGED_IN };
+      return catchResult(() => mutation.mutateAsync(value));
+    },
+    [mutation, userId],
+  );
+
+  return { update, isPending: mutation.isPending };
+}
+
+/** Migration 0079 (Fahrplan 32 E4) — Smart-Trainer-Flag: true/false/null. */
+export function useUpdateHasIndoorTrainer() {
+  const queryClient = useQueryClient();
+  const userId = useAuthUserId();
+  const key = qk.profileBasics(userId ?? "anonymous");
+
+  const mutation = useMutation({
+    mutationFn: async (value: boolean | null) => {
+      unwrap(await updateHasIndoorTrainerAdapter(userId!, value));
+      return { value };
+    },
+    onSuccess: ({ value }) => {
+      queryClient.setQueryData<ProfileOwnFields>(key, (basics) => (basics ? { ...basics, hasIndoorTrainer: value } : basics));
+    },
+  });
+
+  const update = useCallback(
+    async (value: boolean | null): Promise<Result> => {
       if (!userId) return { ok: false, error: NOT_LOGGED_IN };
       return catchResult(() => mutation.mutateAsync(value));
     },

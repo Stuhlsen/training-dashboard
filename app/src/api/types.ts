@@ -176,6 +176,10 @@ export interface ProfileOwnFields {
   /** Migration 0059/0068 — EU-Allergen-Intoleranzen, Array der Keys aus
    *  core/nutrition-taxonomy.js. Leeres Array = "keine Intoleranzen" (E21). */
   intolerances: string[];
+  /** Migration 0079 (Fahrplan 32 E4) — "Ich habe eine Rolle / einen
+   *  Smart-Trainer". NULL = nie gefragt / nicht angegeben. Nur der Besitzer
+   *  liest (profiles_own); im Trainer-Fall gibt es keinen Lesepfad → null. */
+  hasIndoorTrainer: boolean | null;
 }
 
 /** Eine Zeile der Admin-Nutzerübersicht (`GET /admin/users`, admin-api,

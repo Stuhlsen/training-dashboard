@@ -1877,6 +1877,7 @@ if (!HAS_CREDS) {
       "weight_kg",
       "hr_max",
       "updated_at",
+      "has_indoor_trainer",
     ]) {
       assert.equal(col in row, true, `profiles_own muss ${col} führen`);
     }
@@ -1914,6 +1915,121 @@ if (!HAS_CREDS) {
       0,
       "Trainer konnte die neuen Basisdaten-Spalten des Athleten schreiben — RLS 'eigenes Profil ändern' greift nicht"
     );
+  });
+
+  // --- 12b. profiles.has_indoor_trainer (0079, Fahrplan 32 E4) ------------
+  // Wie hr_max/sex: Schreiben nur der Besitzer über die Basistabelle, Lesen nur
+  // über die self-only View profiles_own. Trainer liest den Wert NICHT (kein
+  // neuer Lesepfad, V4) — im Trainer-Fall gilt in der App null.
+
+  test("profiles.has_indoor_trainer: Besitzer schreibt true/false/null und liest es über profiles_own zurück", async () => {
+    const before = await rest("GET", "profiles_own?select=has_indoor_trainer", {
+      token: athlete.token,
+    });
+    assert.equal(
+      before.ok,
+      true,
+      `profiles_own-Read fehlgeschlagen: ${JSON.stringify(before.data)}`
+    );
+    const original = before.data[0]?.has_indoor_trainer ?? null;
+    cleanupTasks.push(async () => {
+      const restore = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: { has_indoor_trainer: original },
+        prefer: "return=minimal",
+      });
+      if (!restore.ok)
+        throw new Error(`profiles.has_indoor_trainer nicht zurückgesetzt (Original: ${original})`);
+    });
+
+    for (const value of [true, false, null]) {
+      const write = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: { has_indoor_trainer: value },
+        prefer: "return=minimal",
+      });
+      assert.equal(
+        write.ok,
+        true,
+        `Besitzer konnte has_indoor_trainer=${value} nicht schreiben: ${JSON.stringify(write.data)}`
+      );
+      const read = await rest("GET", "profiles_own?select=has_indoor_trainer", {
+        token: athlete.token,
+      });
+      assert.equal(read.ok, true);
+      assert.equal(read.data.length, 1);
+      assert.equal(
+        read.data[0].has_indoor_trainer,
+        value,
+        `has_indoor_trainer=${value} kam nicht zurück`
+      );
+    }
+  });
+
+  test("profiles.has_indoor_trainer: nur boolean oder null (Text wird abgewiesen)", async () => {
+    const bad = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { has_indoor_trainer: "vielleicht" },
+      prefer: "return=minimal",
+    });
+    assert.equal(bad.ok, false, "has_indoor_trainer darf keinen Text annehmen");
+  });
+
+  test("profiles.has_indoor_trainer: fremder PATCH (Trainer) ändert nichts (RLS id = auth.uid())", async (t) => {
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const foreign = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: trainer.token,
+      body: { has_indoor_trainer: true },
+      prefer: "return=representation",
+    });
+    assert.equal(
+      foreign.data?.length ?? 0,
+      0,
+      "Trainer konnte has_indoor_trainer des Athleten schreiben — RLS 'eigenes Profil ändern' greift nicht"
+    );
+  });
+
+  test("profiles.has_indoor_trainer: anon kann weder lesen noch schreiben", async () => {
+    const read = await rest("GET", "profiles?select=has_indoor_trainer", { token: null });
+    assert.equal(read.ok, false, "anon darf has_indoor_trainer nicht über die Basistabelle lesen");
+    const viaOwn = await rest("GET", "profiles_own?select=has_indoor_trainer", { token: null });
+    assert.equal(viaOwn.ok, false, "anon darf profiles_own nicht lesen (kein GRANT)");
+    const write = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: null,
+      body: { has_indoor_trainer: true },
+      prefer: "return=minimal",
+    });
+    assert.equal(write.ok, false, "anon darf has_indoor_trainer nicht schreiben");
+  });
+
+  test("profiles.has_indoor_trainer: weder über die Basistabelle noch profiles_visible lesbar (auch nicht für den Trainer)", async (t) => {
+    const base = await rest("GET", `profiles?id=eq.${athlete.userId}&select=has_indoor_trainer`, {
+      token: athlete.token,
+    });
+    assert.equal(
+      base.ok,
+      false,
+      "Basistabelle darf has_indoor_trainer nicht ausliefern (kein Spalten-Grant)"
+    );
+    const visible = await rest("GET", "profiles_visible?select=*", { token: athlete.token });
+    assert.equal(visible.ok, true);
+    for (const row of visible.data) {
+      assert.equal(
+        "has_indoor_trainer" in row,
+        false,
+        "profiles_visible darf has_indoor_trainer nicht führen"
+      );
+    }
+    if (!coachLinkOk) return t.skip(coachSkip());
+    const trainerVisible = await rest("GET", "profiles_visible?select=*", { token: trainer.token });
+    assert.equal(trainerVisible.ok, true);
+    for (const row of trainerVisible.data) {
+      assert.equal(
+        "has_indoor_trainer" in row,
+        false,
+        "Trainer darf has_indoor_trainer über profiles_visible nicht sehen"
+      );
+    }
   });
 
   test("profiles_own: has_password ist nicht direkt schreibbar (kein Grant, nur mark_password_set() darf setzen)", async () => {

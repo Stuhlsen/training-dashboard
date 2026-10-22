@@ -19,6 +19,7 @@ let updateHrMaxCalls: Array<{ userId: string; value: number | null }> = [];
 const updateSportsCalls: Array<{ userId: string; value: readonly string[] }> = [];
 const updateSexCalls: Array<{ userId: string; value: "m" | "f" | null }> = [];
 const updateIntolerancesCalls: Array<{ userId: string; value: string[] }> = [];
+const updateHasIndoorTrainerCalls: Array<{ userId: string; value: boolean | null }> = [];
 
 vi.mock("../supabase/profiles", () => ({
   updateDisplayName: async (userId: string, name: string) => {
@@ -77,6 +78,10 @@ vi.mock("../supabase/profiles", () => ({
     updateIntolerancesCalls.push({ userId, value });
     return { ok: true };
   },
+  updateHasIndoorTrainer: async (userId: string, value: boolean | null) => {
+    updateHasIndoorTrainerCalls.push({ userId, value });
+    return { ok: true };
+  },
 }));
 
 let updatePasswordCalls: Array<{ currentPassword: string; newPassword: string }> = [];
@@ -106,6 +111,7 @@ const {
   useUpdateSports,
   useUpdateSex,
   useUpdateIntolerances,
+  useUpdateHasIndoorTrainer,
 } = await import("./useProfile");
 
 beforeEach(() => {
@@ -124,6 +130,7 @@ beforeEach(() => {
   updateHrMaxCalls = [];
   updateSexCalls.length = 0;
   updateIntolerancesCalls.length = 0;
+  updateHasIndoorTrainerCalls.length = 0;
 });
 
 describe("useUpdateDisplayName", () => {
@@ -299,6 +306,7 @@ describe("useProfileBasics (Migration 0039, Fahrplan 17 E2)", () => {
       updatedAt: "2026-09-01T00:00:00Z",
       sex: "f",
       intolerances: ["gluten"],
+      hasIndoorTrainer: true,
     };
     const { wrapper } = createHarness({ userId: "user-1" });
     const view = renderHook(() => useProfileBasics(), { wrapper });
@@ -325,6 +333,7 @@ const BASELINE_BASICS: ProfileOwnFields = {
   updatedAt: "2026-09-01T00:00:00Z",
   sex: null,
   intolerances: [],
+  hasIndoorTrainer: null,
 };
 
 describe("Profil-Basisdaten-Update-Hooks (Migration 0039, Fahrplan 17 E3)", () => {
@@ -460,6 +469,31 @@ describe("useUpdateSex (Migration 0059/0068)", () => {
     });
     expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } });
     expect(updateSexCalls).toEqual([]);
+  });
+});
+
+describe("useUpdateHasIndoorTrainer (Migration 0079)", () => {
+  it.each([true, false, null])("schreibt %s und aktualisiert den profileBasics-Cache", async (value) => {
+    const { wrapper, queryClient } = createHarness({ userId: "user-1" });
+    queryClient.setQueryData(["profile-basics", "user-1"], { ...BASELINE_BASICS, hasIndoorTrainer: !value });
+
+    const view = renderHook(() => useUpdateHasIndoorTrainer(), { wrapper });
+    await act(async () => {
+      await view.result.current.update(value);
+    });
+    expect(updateHasIndoorTrainerCalls).toEqual([{ userId: "user-1", value }]);
+    expect((queryClient.getQueryData(["profile-basics", "user-1"]) as ProfileOwnFields).hasIndoorTrainer).toBe(value);
+  });
+
+  it("ohne Session -> Fehler, kein Aufruf", async () => {
+    const { wrapper } = createHarness({ userId: null });
+    const view = renderHook(() => useUpdateHasIndoorTrainer(), { wrapper });
+    let result;
+    await act(async () => {
+      result = await view.result.current.update(true);
+    });
+    expect(result).toEqual({ ok: false, error: { code: "UNKNOWN", message: "Nicht eingeloggt" } });
+    expect(updateHasIndoorTrainerCalls).toEqual([]);
   });
 });
 
