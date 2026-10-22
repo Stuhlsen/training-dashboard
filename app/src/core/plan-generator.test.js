@@ -12,6 +12,7 @@ import {
   qualityWeekdays,
   weekLoadContext,
   distributeLooseMinutes,
+  INDOOR_LOOSE_MAX_MIN,
   FIXED_INTERVAL_TYP,
 } from "./plan-generator.js";
 import { CONFLICT_THRESHOLDS, TYPE_DEFAULT_TSS } from "./plan-config.js";
@@ -1160,4 +1161,107 @@ test("distributeLooseMinutes: langer Tag verdrängt die übrigen Tage nicht unte
   assert.equal(perDay[2], 30);
   assert.equal(perDay[4], 30);
   assert.equal(perDay[6], 40);
+});
+
+/* ── Drinnen/Draußen je Trainingstag (Fahrplan 32 E3) ────────── */
+
+const isoWeekday = (date) => ((new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7) + 1;
+const NO_INDOOR_HINT = "Kein Drinnen-Tag frei für harte Einheiten — Intervalle liegen auf Draußen-Tagen.";
+const INDOOR_CAP_HINT = "Drinnen-Tage tragen höchstens 90 min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.";
+
+test("dayEnvironment: fehlt, leer oder nur 'egal' → Ausgabe identisch zu ohne Feld", () => {
+  const plain = generatePlan(eventInput());
+  const days = [1, 2, 4, 6];
+  assert.deepEqual(generatePlan(eventInput({ dayEnvironment: {} })), plain);
+  assert.deepEqual(generatePlan(eventInput({ dayEnvironment: Object.fromEntries(days.map((d) => [d, "any"])) })), plain);
+});
+
+test("dayEnvironment: Lauf und Schwimmen ignorieren das Feld", () => {
+  const env = { 2: "indoor", 6: "outdoor", 4: "indoor" };
+  assert.deepEqual(generatePlan(runInput({ dayEnvironment: env })), generatePlan(runInput()));
+  assert.deepEqual(generatePlan(swimInput({ dayEnvironment: env })), generatePlan(swimInput()));
+});
+
+test("qualityWeekdays: Drinnen-Tage gewinnen unter den gültigen Paaren, Gleichstand → bisheriges Paar", () => {
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6]), [1, 6]);
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6], { 2: "indoor", 6: "outdoor" }), [2, 4]);
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6], { 1: "any", 2: "any" }), [1, 6]);
+  assert.deepEqual(qualityWeekdays([1, 2, 4, 6], { 6: "outdoor" }), [1, 4]);
+});
+
+test("qualityWeekdays: Abstandsregel hat Vorrang vor der Umgebung", () => {
+  // Mo + Di drinnen, aber direkt hintereinander → kein gültiges Paar daraus
+  const q = qualityWeekdays([1, 2, 5], { 1: "indoor", 2: "indoor" });
+  assert.ok(!(q.includes(1) && q.includes(2)));
+  // Wochenwechsel: Mo + So bleiben ungepaart, auch wenn beide drinnen sind
+  assert.deepEqual(qualityWeekdays([1, 4, 7], { 1: "indoor", 7: "indoor" }), [1, 4]);
+  // kein gültiges Paar → bisheriger Rückfall
+  assert.deepEqual(qualityWeekdays([3, 4], { 3: "outdoor", 4: "indoor" }), [3, 4]);
+});
+
+test("dayEnvironment: Di drinnen, Sa draußen → harte Einheiten auf Di, lange lockere Fahrt auf Sa", () => {
+  const plan = generatePlan(eventInput({ dayEnvironment: { 1: "any", 2: "indoor", 4: "any", 6: "outdoor" } }));
+  for (const w of plan.weeks) {
+    if (w.isRecovery) continue;
+    const q = w.cards.filter((c) => c.isQuality && !c.isTest).map((c) => isoWeekday(c.date));
+    if (q.length === 2) assert.deepEqual(q, [2, 4]);
+    else if (q.length) assert.ok(q.includes(2) || q.includes(4), `Woche ${w.index}: ${q}`);
+    const loose = w.cards.filter((c) => !c.isQuality && !c.isTest);
+    const sat = loose.find((c) => isoWeekday(c.date) === 6);
+    for (const c of loose) assert.ok(sat.durationMin >= c.durationMin, `Woche ${w.index}: ${c.date}`);
+  }
+  assert.equal(plan.warnings.filter((x) => x === NO_INDOOR_HINT).length, 0);
+});
+
+test("distributeLooseMinutes: langer Tag bevorzugt Draußen (Wochenende vor Wochentag), sonst bisheriges Verhalten", () => {
+  const long = (days, env) => {
+    const p = distributeLooseMinutes(days, 200, "allgemein", env); // klein genug, dass der Drinnen-Deckel nicht greift
+    return Number(Object.keys(p).reduce((a, b) => (p[b] > p[a] ? b : a)));
+  };
+  assert.equal(long([2, 4, 6, 7], undefined), 6);
+  assert.equal(long([2, 4, 6, 7], { 6: "indoor", 7: "outdoor" }), 7);
+  assert.equal(long([2, 4, 7], { 2: "outdoor", 7: "indoor" }), 2); // draußen schlägt Wochenende
+  assert.equal(long([2, 4, 6, 7], { 6: "indoor", 7: "any" }), 7); // sonst "egal"
+  assert.equal(long([2, 4, 6, 7], { 6: "indoor", 7: "indoor" }), 6); // sonst bisher
+});
+
+test("distributeLooseMinutes: Drinnen-Tag max. 90 min, Überschuss geht auf die anderen lockeren Tage", () => {
+  assert.equal(INDOOR_LOOSE_MAX_MIN, 90);
+  const base = distributeLooseMinutes([2, 4, 6], 400);
+  assert.ok(base[2] > 90);
+  const perDay = distributeLooseMinutes([2, 4, 6], 400, "allgemein", { 2: "indoor" });
+  assert.equal(perDay[2], 90);
+  assert.equal(perDay[2] + perDay[4] + perDay[6], 400);
+  assert.ok(perDay[4] > base[4]);
+});
+
+test("dayEnvironment: nur Drinnen-Tage → lockere Karten ≤ 90 min, Budget bleibt eingehalten, ein Hinweis", () => {
+  const env = { 1: "indoor", 2: "indoor", 3: "indoor", 4: "indoor", 5: "indoor" };
+  const plan = generatePlan(
+    eventInput({ weeklyHours: 12, trainingWeekdays: [1, 2, 3, 4, 5], dayEnvironment: env, ...NO_HISTORY() })
+  );
+  for (const w of plan.weeks) {
+    assert.ok(weekMin(w) <= budgetMin(12, w.isRecovery), `Woche ${w.index}`);
+    for (const c of w.cards) if (!c.isQuality && !c.isTest) assert.ok(c.durationMin <= 90, `${c.date}: ${c.durationMin}`);
+  }
+  assert.equal(plan.warnings.filter((x) => x === INDOOR_CAP_HINT).length, 1);
+  assert.equal(plan.warnings.filter((x) => x === NO_INDOOR_HINT).length, 0);
+});
+
+test("dayEnvironment: kein Drinnen-Tag frei → Intervalle trotzdem gesetzt, ein Hinweis, kein Fehler", () => {
+  const env = { 1: "outdoor", 2: "outdoor", 4: "outdoor", 6: "outdoor" };
+  const plan = generatePlan(eventInput({ dayEnvironment: env }));
+  assert.equal(plan.warnings.filter((x) => x === NO_INDOOR_HINT).length, 1);
+  assert.ok(plan.weeks.some((w) => w.cards.some((c) => c.isQuality)));
+});
+
+test("dayEnvironment: feste Tage bleiben unberührt, auch auf Drinnen-Tagen", () => {
+  const fixedDays = [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: true, durationMin: 150 }];
+  const env = { 2: "indoor", 1: "indoor", 4: "indoor", 6: "indoor" };
+  const plan = generatePlan(eventInput({ fixedDays, dayEnvironment: env, weeklyHours: 12 }));
+  for (const w of plan.weeks) {
+    const f = w.cards.find((c) => isoWeekday(c.date) === 2);
+    assert.equal(f.typ, "Gruppenfahrt");
+    assert.equal(f.durationMin, 150);
+  }
 });

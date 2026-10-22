@@ -72,6 +72,10 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {number|null} [currentThresholdSpeed]  km/h — nur "run"/"swim" (E2/E3)
  * @property {string|null} [thresholdSpeedMeasuredDate]  nur "run"/"swim" (E2/E3)
  * @property {number|null} [thresholdSpeedTarget]  nur "run"/"swim" (E2/E3)
+ * @property {Record<number, "indoor"|"outdoor"|"any">} [dayEnvironment]  Fahrplan 32 E3: je Wochentag
+ *   (ISO 1..7) drinnen/draußen/egal — nur sport === "ride", sonst ignoriert; fehlt oder alles "any" →
+ *   Ausgabe wie ohne Feld. Harte Einheiten bevorzugt auf Drinnen-Tage, langer lockerer Tag auf einen
+ *   Draußen-Tag, lockere Karten an Drinnen-Tagen höchstens INDOOR_LOOSE_MAX_MIN.
  * @property {number} indoorShare  0..1
  * @property {"allgemein"|"berg"|"langstrecke"|"crit"} focus
  * @property {"einsteiger"|"fortgeschritten"} level
@@ -230,20 +234,54 @@ function deriveFtpTarget(input, weeks) {
  * @param {number[]} weekdays  ISO 1..7, aufsteigend
  * @returns {number[]}  0, 1 oder 2 Einträge
  */
-export function qualityWeekdays(weekdays) {
+export function qualityWeekdays(weekdays, env = null) {
   if (weekdays.length < 2) return weekdays.slice();
   const first = weekdays[0];
   let second = null;
   for (let i = weekdays.length - 1; i >= 1; i--) {
-    const gap = weekdays[i] - first;
-    const wrapGap = 7 - gap; // Abstand vom späteren Tag bis zum ersten der Folgewoche
-    if (gap >= 2 && wrapGap >= 2) {
+    if (isSpacedPair(first, weekdays[i])) {
       second = weekdays[i];
       break;
     }
   }
   if (second == null) second = weekdays[weekdays.length - 1];
-  return [first, second];
+  const base = [first, second];
+  return env ? preferIndoorPair(weekdays, base, env) : base;
+}
+
+/** Zwei Tage erfüllen die Abstandsregel: ≥ 2 Tage Abstand, auch über den
+ *  Wochenwechsel (Abstand vom späteren Tag bis zum ersten der Folgewoche). */
+const isSpacedPair = (a, b) => b - a >= 2 && 7 - (b - a) >= 2;
+
+/** Drinnen/Draußen-Wertung eines Tags: Drinnen +1, Draußen −1, sonst 0. */
+const envScore = (env, wd) => (env[wd] === "indoor" ? 1 : env[wd] === "outdoor" ? -1 : 0);
+
+/** Unter allen Paaren, die die Abstandsregel erfüllen, das mit den meisten
+ *  Drinnen-Tagen (Fahrplan 32 V3). Gleichstand → das bisherige Paar `base`;
+ *  erfüllt kein Paar die Regel, bleibt `base`.
+ *  @param {number[]} weekdays @param {number[]} base @param {Record<number,string>} env */
+function preferIndoorPair(weekdays, base, env) {
+  const score = (p) => envScore(env, p[0]) + envScore(env, p[1]);
+  let best = isSpacedPair(base[0], base[1]) ? base : null;
+  for (let i = 0; i < weekdays.length; i++) {
+    for (let j = i + 1; j < weekdays.length; j++) {
+      const pair = [weekdays[i], weekdays[j]];
+      if (isSpacedPair(pair[0], pair[1]) && (best == null || score(pair) > score(best))) best = pair;
+    }
+  }
+  return best ?? base;
+}
+
+/** Nur Rad (V2): die für Trainingstage gesetzten "indoor"/"outdoor"-Einträge,
+ *  sonst `null` — dann läuft alles exakt wie ohne Feld (Golden Master).
+ *  @param {Record<number,string>|undefined} env @param {number[]} weekdays @param {string} sport
+ *  @returns {Record<number, "indoor"|"outdoor">|null} */
+function activeDayEnvironment(env, weekdays, sport) {
+  if (sport !== "ride" || !env) return null;
+  /** @type {Record<number, "indoor"|"outdoor">} */
+  const out = {};
+  for (const wd of weekdays) if (env[wd] === "indoor" || env[wd] === "outdoor") out[wd] = env[wd];
+  return Object.keys(out).length ? out : null;
 }
 
 /** Karten-Rohobjekt (V4 `PlanCardDraft`) aus einem Workout-Bündel bauen.
@@ -281,15 +319,66 @@ const UNDERUSE_HINT_RATIO = 0.85;
  *  gleichmäßig verteilt. Jeder Tag mindestens 30 min. Fokus "langstrecke"
  *  gibt dem langen Tag einen größeren Anteil (0.65 statt 0.5) und eine
  *  höhere Obergrenze (300 statt 210 min) — alle anderen Fokus-Werte
- *  verhalten sich exakt wie bisher.
+ *  verhalten sich exakt wie bisher. Mit `env` (nur Rad, Fahrplan 32 V3) bekommt
+ *  ein Draußen-Tag den langen Anteil und ein Drinnen-Tag höchstens
+ *  INDOOR_LOOSE_MAX_MIN; ohne `env` bleibt alles wie bisher.
  *  @param {number[]} looseDays @param {number} looseMin
  *  @param {"allgemein"|"berg"|"langstrecke"|"crit"} [focus]
+ *  @param {Record<number, "indoor"|"outdoor">|null} [env]
  *  @returns {Record<number, number>} */
-export function distributeLooseMinutes(looseDays, looseMin, focus = "allgemein") {
+export function distributeLooseMinutes(looseDays, looseMin, focus = "allgemein", env = null) {
+  return distributeLoose(looseDays, looseMin, focus, env).perDay;
+}
+
+/** Karte an einem Drinnen-Tag: höchstens so lang (Fahrplan 32 V3, eigene Setzung). */
+export const INDOOR_LOOSE_MAX_MIN = 90;
+
+/** Langer lockerer Tag: Draußen-Tag (Wochenende vor Wochentag), sonst ein
+ *  "egal"-Wochenendtag, sonst der bisherige erste Wochenendtag.
+ *  @param {number[]} looseDays @param {Record<number,string>|null} env */
+function pickLongDay(looseDays, env) {
+  const weekend = looseDays.find((wd) => wd >= 6);
+  if (!env) return weekend;
+  const outdoor = looseDays.filter((wd) => env[wd] === "outdoor");
+  return (
+    outdoor.find((wd) => wd >= 6) ??
+    outdoor[outdoor.length - 1] ??
+    looseDays.find((wd) => wd >= 6 && env[wd] !== "indoor") ??
+    weekend
+  );
+}
+
+/** Drinnen-Tage auf INDOOR_LOOSE_MAX_MIN kürzen; der Überschuss geht gleichmäßig
+ *  auf die übrigen Tage (Obergrenze `dayCap`, nie unter ihren heutigen Wert).
+ *  Mutiert `perDay`. @returns {number} nicht unterbrachte Minuten */
+function capIndoorDays(perDay, looseDays, env, dayCap) {
+  const caps = {};
+  let overflow = 0;
+  for (const wd of looseDays) {
+    caps[wd] = env[wd] === "indoor" ? INDOOR_LOOSE_MAX_MIN : Math.max(dayCap, perDay[wd]);
+    if (perDay[wd] > caps[wd]) {
+      overflow += perDay[wd] - caps[wd];
+      perDay[wd] = caps[wd];
+    }
+  }
+  for (let room = looseDays.filter((wd) => perDay[wd] < caps[wd] - 1e-9); overflow > 1e-9 && room.length; ) {
+    const share = overflow / room.length;
+    for (const wd of room) {
+      const add = Math.min(share, caps[wd] - perDay[wd]);
+      perDay[wd] += add;
+      overflow -= add;
+    }
+    room = looseDays.filter((wd) => perDay[wd] < caps[wd] - 1e-9);
+  }
+  return overflow;
+}
+
+/** @returns {{ perDay: Record<number, number>, unplacedMin: number }} */
+function distributeLoose(looseDays, looseMin, focus, env) {
   /** @type {Record<number, number>} */
   const perDay = {};
-  if (!looseDays.length) return perDay;
-  const longDay = looseDays.find((wd) => wd >= 6);
+  if (!looseDays.length) return { perDay, unplacedMin: 0 };
+  const longDay = pickLongDay(looseDays, env);
   const longShare = focus === "langstrecke" ? 0.65 : 0.5;
   const longCap = focus === "langstrecke" ? 300 : 210;
   if (longDay != null && looseDays.length > 1) {
@@ -302,7 +391,8 @@ export function distributeLooseMinutes(looseDays, looseMin, focus = "allgemein")
   } else {
     for (const wd of looseDays) perDay[wd] = Math.max(MIN_LOOSE_MIN, looseMin / looseDays.length);
   }
-  return perDay;
+  const unplacedMin = env ? capIndoorDays(perDay, looseDays, env, longCap) : 0;
+  return { perDay, unplacedMin };
 }
 
 /** Lockere Karten so umskalieren, dass ihre TSS-Summe ≈ `looseTargetTss`
@@ -542,13 +632,15 @@ function fixedDayCard(typ, ftp, fixedMin) {
  * @param {"einsteiger"|"fortgeschritten"} c.level
  * @param {Array<object>} c.formats  session_formats-Zeilen (leer → eingebaute Startbelegung)
  * @param {object} c.strategy  Sport-Strategie (`plan-generator-sport.js`)
- * @returns {{ cards: PlanCardDraft[], limited: boolean, overBudget: boolean, budgetMin: number }}
+ * @param {Record<number, "indoor"|"outdoor">|null} [c.dayEnv]  nur Rad (V2/V3), sonst null
+ * @returns {{ cards: PlanCardDraft[], limited: boolean, overBudget: boolean, indoorCapped: boolean, budgetMin: number }}
  *   `limited`: Ziel-TSS bräuchte mehr Zeit als das Budget (V1-Hinweis);
- *   `overBudget`: Qualitäts- + feste Tage sprengen das Budget schon allein.
+ *   `overBudget`: Qualitäts- + feste Tage sprengen das Budget schon allein;
+ *   `indoorCapped`: der Drinnen-Deckel ließ lockere Minuten ungenutzt (V3-Hinweis).
  */
 function buildWeekCards(c) {
   const { weekStart, isoWeek, phase, isRecovery, effectiveWeekdays, quality, weeklyHours, targetTss, ftp, isTestWeek } = c;
-  const { weekIndexInPhase, focus, level, formats, strategy, thresholdSpeed = null, fixedDays = [] } = c;
+  const { weekIndexInPhase, focus, level, formats, strategy, thresholdSpeed = null, fixedDays = [], dayEnv = null } = c;
 
   // "Feste Tage": nur aktiv, wenn der Wochentag ein Trainingstag ist UND
   // (keine Erholungswoche ODER der Eintrag trägt `keepInRecoveryWeek: true`).
@@ -662,7 +754,8 @@ function buildWeekCards(c) {
   // Qualitäts-, feste und Testtage lassen den lockeren Tagen nicht einmal ihre
   // Mindestdauer: sie bleiben unverändert, die lockeren gehen auf MIN_LOOSE_MIN.
   const overBudget = freeLooseDays.length > 0 && nonLooseMin + MIN_LOOSE_MIN * freeLooseDays.length > weeklyMin;
-  const perDayMin = distributeLooseMinutes(freeLooseDays, looseMin, focus);
+  const { perDay: perDayMin, unplacedMin } = distributeLoose(freeLooseDays, looseMin, focus, dayEnv);
+  const looseBaseTss = () => looseCards.reduce((s, x) => s + x.tssPlanned, 0);
   const looseCards = freeLooseDays.map((wd) =>
     makeCard(
       addDaysISO(weekStart, wd - 1),
@@ -671,11 +764,15 @@ function buildWeekCards(c) {
       strategy.looseWorkout(Math.floor(perDayMin[wd]), ftp, thresholdSpeed, strategy)
     )
   );
-  const limited = scaleLooseCardsToTarget(looseCards, Math.max(0, targetTss - qTss), ftp, thresholdSpeed, strategy);
+  const looseTargetTss = Math.max(0, targetTss - qTss);
+  // Der Drinnen-Deckel kostet nur dann Zeit, wenn die Ziel-TSS nicht ohnehin
+  // gestaucht wird (dann bliebe die Zeit auch ohne Deckel ungenutzt).
+  const indoorCapped = unplacedMin >= 1 && looseTargetTss >= looseBaseTss();
+  const limited = scaleLooseCardsToTarget(looseCards, looseTargetTss, ftp, thresholdSpeed, strategy);
   cards.push(...looseCards);
 
   cards.sort((x, y) => x.date.localeCompare(y.date));
-  return { cards, limited, overBudget, budgetMin: weeklyMin };
+  return { cards, limited, overBudget, indoorCapped, budgetMin: weeklyMin };
 }
 
 /** Stunden-Text mit deutschem Komma, eine Nachkommastelle. @param {number} min */
@@ -858,7 +955,11 @@ export function generatePlan(input) {
     if (input.startWithFtpTest) testWeeks.add(0);
     else testWeeks.delete(0);
   }
-  const quality = qualityWeekdays(effectiveWeekdays);
+  const dayEnv = activeDayEnvironment(input.dayEnvironment, effectiveWeekdays, strategy.sport);
+  const quality = qualityWeekdays(effectiveWeekdays, dayEnv);
+  if (dayEnv && quality.some((wd) => dayEnv[wd] === "outdoor")) {
+    warnings.push("Kein Drinnen-Tag frei für harte Einheiten — Intervalle liegen auf Draußen-Tagen.");
+  }
   const fixedDays = input.fixedDays || [];
   // Mehr feste harte Tage als automatische Qualitätstage/Woche (quality.length,
   // i.d.R. 2): buildWeekCards() ersetzt dann nicht mehr genug Slots, die
@@ -877,9 +978,11 @@ export function generatePlan(input) {
   // Sammelt je gebauter Woche die Zeitbudget-Befunde (V1); die Hinweise
   // entstehen einmal pro Plan nach der Schleife, nicht pro Woche.
   const budget = { built: 0, limited: 0, over: null, first: null };
+  let indoorCapped = false;
   const takeCards = (r) => {
     budget.built += 1;
     if (r.limited) budget.limited += 1;
+    if (r.indoorCapped) indoorCapped = true;
     const min = r.cards.reduce((s, x) => s + x.durationMin, 0);
     if (budget.first == null) budget.first = { min, budgetMin: r.budgetMin };
     if (r.overBudget && budget.over == null) budget.over = { min, budgetMin: r.budgetMin };
@@ -937,10 +1040,16 @@ export function generatePlan(input) {
         level: input.level,
         formats,
         strategy,
+        dayEnv,
       })),
     };
   });
   warnings.push(...timeBudgetWarnings(budget, cut, input.weeklyHours));
+  if (indoorCapped) {
+    warnings.push(
+      `Drinnen-Tage tragen höchstens ${INDOOR_LOOSE_MAX_MIN} min — das Zeitbudget wird in manchen Wochen nicht ausgeschöpft.`
+    );
+  }
 
   // 8) Wochenmodell (V4) --------------------------------------------
   const weekModel = weeks.map((w, i) => ({
