@@ -920,6 +920,76 @@ test("fixedDays: mehr feste harte Tage als automatische Qualitätstage → Warnu
   assert.equal(w.cards.find((c) => c.date === addDaysISO(w.start, 3))?.typ, "Sweet Spot");
 });
 
+/* ── Dauer für feste Tage (Fahrplan 32 E2) ───────────────────────────── */
+
+function fixedTuesdayCards(fixedDay, overrides = {}) {
+  const plan = generatePlan(eventInput({ fixedDays: [fixedDay], ...overrides }));
+  return plan.weeks
+    .filter((wk) => !wk.isRecovery && wk.phase !== "Taper" && !wk.cards.some((c) => c.isTest))
+    .map((wk) => wk.cards.find((c) => c.date === addDaysISO(wk.start, 1)));
+}
+
+test("fixedDays Dauer: gesetzte Dauer wird übernommen, TSS = Dauer × Profil-IF²", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 });
+  assert.ok(cards.length);
+  for (const c of cards) {
+    assert.equal(c.typ, "Gruppenfahrt");
+    assert.equal(c.durationMin, 60);
+    assert.equal(c.workout.duration, 60);
+    assert.equal(c.workoutStructure.steps[0].duration_s, 3600);
+    // Gruppenfahrt = Klasse "moderat" (IF 0.75): 1 h → 100 × 0.75² ≈ 56 TSS.
+    assert.equal(c.tssPlanned, Math.round(100 * 0.75 ** 2));
+  }
+});
+
+test("fixedDays Dauer: ohne Dauer bleibt das bisherige Verhalten (TSS-Default)", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false });
+  assert.equal(cards[0].tssPlanned, TYPE_DEFAULT_TSS.Gruppenfahrt);
+});
+
+test("fixedDays Dauer: lange feste Dauer (300 min) bleibt erhalten, kein Deckel bei 240", () => {
+  const cards = fixedTuesdayCards(
+    { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 300 },
+    { weeklyHours: 12 }
+  );
+  assert.equal(cards[0].durationMin, 300);
+});
+
+test("fixedDays Dauer: Werte außerhalb 15..300 werden im Core begrenzt", () => {
+  const low = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 5 });
+  const high = fixedTuesdayCards(
+    { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 900 },
+    { weeklyHours: 12 }
+  );
+  assert.equal(low[0].durationMin, 15);
+  assert.equal(high[0].durationMin, 300);
+});
+
+test("fixedDays Dauer: feste Dauer zählt ins Zeitbudget, lockere Tage weichen auf 30 min", () => {
+  const plan = generatePlan(
+    eventInput({
+      weeklyHours: 6,
+      fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 240 }],
+    })
+  );
+  const w = plan.weeks.find((wk) => !wk.isRecovery && wk.phase !== "Taper" && !wk.cards.some((c) => c.isTest));
+  const fixed = w.cards.find((c) => c.typ === "Gruppenfahrt");
+  assert.equal(fixed.durationMin, 240);
+  const loose = w.cards.filter((c) => !c.isQuality && c !== fixed);
+  assert.ok(loose.length, "keine lockeren Tage in der Testwoche");
+  const budget = 6 * 60;
+  const sum = w.cards.reduce((s, c) => s + c.durationMin, 0);
+  assert.ok(
+    sum <= budget || loose.every((c) => c.durationMin === 30),
+    `Wochensumme ${sum} min sprengt das Budget, ohne dass lockere Tage auf 30 min stehen`
+  );
+});
+
+test("fixedDays Dauer: Ruhetag-Typ bleibt 0 min, auch mit Dauer", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Ruhetag", keepInRecoveryWeek: false, durationMin: 60 });
+  assert.equal(cards[0].durationMin, 0);
+});
+
 /* ── Fester Intervalltag (Alex-Feedback 23.09.2026) ──────────────────── */
 
 test("fixedDays Intervalle: Do wird fester Qualitätstag, Di-Gruppenfahrt-Slot geht nicht verloren", () => {
@@ -1049,26 +1119,30 @@ test("Zeitbudget: feste Tage über Budget → lockere Tage 30 min + Hinweis", ()
   const loose = w.cards.filter((c) => !c.isQuality && !c.isTest && c.typ !== "Gruppenfahrt");
   assert.ok(loose.length > 0);
   for (const c of loose) assert.equal(c.durationMin, 30);
-  assert.equal(plan.warnings.filter((x) => x.startsWith("Feste Tage und Qualitätseinheiten übersteigen dein Zeitbudget")).length, 1);
-});
-
-test("Zeitbudget: Hinweis 'begrenzt die Last' erscheint einmal pro Plan, nicht pro Woche", () => {
-  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
-  const hits = plan.warnings.filter((x) => x.startsWith("Zeitbudget begrenzt die Last"));
+  const hits = plan.warnings.filter((x) => x.startsWith("Feste Tage und harte Einheiten brauchen"));
   assert.equal(hits.length, 1);
-  assert.match(hits[0], /in \d+ von \d+ Wochen/);
+  assert.match(hits[0], /mehr als das Budget von [\d,]+ h/);
+  assert.match(hits[0], /auf 30 min/);
 });
 
-test("Zeitbudget: kein Begrenzungs-Hinweis, wenn das Budget reichlich ist", () => {
+test("Zeitbudget: Hinweis 'reicht nicht' erscheint einmal pro Plan, nennt Stunden und Wochen", () => {
+  const plan = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
+  const hits = plan.warnings.filter((x) => x.startsWith("Dein Zeitbudget von 4 h pro Woche reicht nicht"));
+  assert.equal(hits.length, 1);
+  assert.match(hits[0], /\(in \d+ von \d+ Wochen\)/);
+  assert.match(hits[0], /mehr Stunden pro Woche/);
+});
+
+test("Zeitbudget: kein 'reicht nicht'-Hinweis, wenn das Budget reichlich ist", () => {
   const plan = generatePlan(eventInput({ weeklyHours: 20 }));
-  assert.equal(plan.warnings.filter((x) => x.startsWith("Zeitbudget begrenzt")).length, 0);
+  assert.equal(plan.warnings.filter((x) => x.includes("reicht nicht")).length, 0);
 });
 
-test("Zeitbudget: Hinweis 'nutzt X von Y h' nur, wenn Woche 1 unter 85 % des Budgets liegt", () => {
+test("Zeitbudget: Hinweis 'nutzt nur X von Y h' nur, wenn Woche 1 unter 85 % des Budgets liegt", () => {
   const generous = generatePlan(eventInput({ weeklyHours: 20 }));
-  assert.equal(generous.warnings.filter((x) => x.startsWith("Plan nutzt in Woche 1")).length, 1);
+  assert.equal(generous.warnings.filter((x) => x.startsWith("In Woche 1 nutzt der Plan nur")).length, 1);
   const tight = generatePlan(eventInput({ weeklyHours: 4, ...NO_HISTORY() }));
-  assert.equal(tight.warnings.filter((x) => x.startsWith("Plan nutzt in Woche 1")).length, 0);
+  assert.equal(tight.warnings.filter((x) => x.startsWith("In Woche 1 nutzt der Plan nur")).length, 0);
 });
 
 test("Zeitbudget: Lauf-Plan hält das Budget ein", () => {

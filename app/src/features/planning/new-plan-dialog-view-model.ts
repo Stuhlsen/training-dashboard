@@ -35,8 +35,19 @@ import type { FtpHistoryEntry } from "../../api/supabase/ftp-history";
  * Rad-Zonen-Vokabular wie der Karten-Dialog zurück (plan-card-form-view-model.ts
  * nutzt für den dortigen Typ-Select denselben Re-Export). */
 import { KNOWN_PLAN_TYPES } from "../../core/plan-config.js";
-import { FIXED_INTERVAL_TYP } from "../../core/plan-generator.js";
-export { KNOWN_PLAN_TYPES, FIXED_INTERVAL_TYP };
+import {
+  FIXED_INTERVAL_TYP,
+  FIXED_DURATION_MIN_MIN,
+  FIXED_DURATION_MAX_MIN,
+} from "../../core/plan-generator.js";
+export { KNOWN_PLAN_TYPES, FIXED_INTERVAL_TYP, FIXED_DURATION_MIN_MIN, FIXED_DURATION_MAX_MIN };
+
+/** Gültige Dauer eines festen Tags: ganze Minuten, 15..300. */
+export function isValidFixedDuration(v: unknown): v is number {
+  return (
+    typeof v === "number" && Number.isInteger(v) && v >= FIXED_DURATION_MIN_MIN && v <= FIXED_DURATION_MAX_MIN
+  );
+}
 
 /** Auswahl im "Feste Tage"-Select: der Intervall-Platzhalter (Typ wählt der
  *  Plan passend zur Phase) zuerst, dann die festen Kartentypen. */
@@ -102,6 +113,9 @@ export interface FixedDay {
   typ: string;
   /** Default false — sonst pausiert die Fixierung in Erholungswochen. */
   keepInRecoveryWeek: boolean;
+  /** Optional, 15..300 min (Fahrplan 32 E2); fehlt → der Generator wählt die Dauer.
+   *  Ohne Wirkung bei FIXED_INTERVAL_TYP. */
+  durationMin?: number;
 }
 
 export interface PlanGeneratorInput {
@@ -454,7 +468,14 @@ export function buildGeneratorInput(
     .sort((a, b) => a - b);
   if (weekdays.length < 2) errors.trainingWeekdays = "Mindestens zwei Trainingstage wählen.";
 
-  const fixedDays = sport === "ride" ? state.fixedDays : [];
+  const rawFixedDays = sport === "ride" ? state.fixedDays : [];
+  if (rawFixedDays.some((d) => d.durationMin !== undefined && !isValidFixedDuration(d.durationMin))) {
+    errors.fixedDayDuration = `Dauer eines festen Tages: ganze Minuten zwischen ${FIXED_DURATION_MIN_MIN} und ${FIXED_DURATION_MAX_MIN}, oder leer lassen.`;
+  }
+  // Ein fester Intervalltag ist keine feste Karte — eine Dauer hätte dort keine Wirkung.
+  const fixedDays = rawFixedDays.map(({ durationMin, ...rest }) =>
+    durationMin !== undefined && rest.typ !== FIXED_INTERVAL_TYP ? { ...rest, durationMin } : rest
+  );
   const fixedWeekdaySet = new Set(fixedDays.map((d) => d.weekday));
   if (
     fixedWeekdaySet.size !== fixedDays.length ||

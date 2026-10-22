@@ -87,6 +87,8 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  * @property {number} weekday  ISO 1..7, muss in trainingWeekdays enthalten sein
  * @property {string} typ  aus KNOWN_PLAN_TYPES (plan-config.js) oder FIXED_INTERVAL_TYP
  * @property {boolean} keepInRecoveryWeek  Default false — sonst pausiert die Fixierung in Erholungswochen
+ * @property {number} [durationMin]  15..300 (Fahrplan 32 E2); fehlt → Ableitung aus TYPE_DEFAULT_TSS.
+ *   Ohne Wirkung bei FIXED_INTERVAL_TYP (kein fester Karten-Tag)
  */
 
 /**
@@ -479,19 +481,31 @@ const FIXED_DAY_PROFILE = {
   locker: { pctBand: [60, 70], assumedIF: 0.65 },
 };
 
+/** Grenzen der optionalen Dauer eines festen Tags (V2, Fahrplan 32 E2) — gleiche
+ *  Spanne wie die Formularvalidierung. */
+export const FIXED_DURATION_MIN_MIN = 15;
+export const FIXED_DURATION_MAX_MIN = 300;
+
 /** Karte für einen "festen Tag" (V2 `fixedDays`, Alex-Feedback 21.09.2026 —
  *  z.B. "Dienstag ist immer Gruppenfahrt"): TSS-Vorgabe aus
  *  `TYPE_DEFAULT_TSS[typ]`, Dauer aus TSS + einer pauschalen IF-Schätzung je
  *  Intensitätsklasse zurückgerechnet (TSS = Std × IF² × 100).
+ *  Mit `fixedMin` (Fahrplan 32 E2) dreht sich das um: die gesetzte Dauer gilt
+ *  (begrenzt auf FIXED_DURATION_MIN_MIN..MAX_MIN), die TSS folgt aus Dauer × IF².
  *  @param {string} typ  aus KNOWN_PLAN_TYPES @param {number|null} ftp
+ *  @param {number} [fixedMin]  fehlt → Ableitung aus `TYPE_DEFAULT_TSS`
  *  @returns {{name:string, typ:string, workout:object|null, workoutStructure:object|null, tssPlanned:number, durationMin:number}} */
-function fixedDayCard(typ, ftp) {
-  const tssPlanned = TYPE_DEFAULT_TSS[typ] ?? 50;
-  if (tssPlanned <= 0) {
+function fixedDayCard(typ, ftp, fixedMin) {
+  const defaultTss = TYPE_DEFAULT_TSS[typ] ?? 50;
+  if (defaultTss <= 0) {
     return { name: typ, typ, workout: null, workoutStructure: null, tssPlanned: 0, durationMin: 0 };
   }
   const profile = FIXED_DAY_PROFILE[intensityClass(typ)] ?? FIXED_DAY_PROFILE.moderat;
-  const durationMin = clamp(Math.round((tssPlanned / (100 * profile.assumedIF ** 2)) * 60), 20, 240);
+  const hasFixedMin = Number.isFinite(fixedMin);
+  const durationMin = hasFixedMin
+    ? clamp(Math.round(fixedMin), FIXED_DURATION_MIN_MIN, FIXED_DURATION_MAX_MIN)
+    : clamp(Math.round((defaultTss / (100 * profile.assumedIF ** 2)) * 60), 20, 240);
+  const tssPlanned = hasFixedMin ? Math.round((durationMin / 60) * 100 * profile.assumedIF ** 2) : defaultTss;
   const pct = profile.pctBand;
   const watts = ftp != null ? [Math.round((pct[0] / 100) * ftp), Math.round((pct[1] / 100) * ftp)] : undefined;
   const workout = {
@@ -598,7 +612,7 @@ function buildWeekCards(c) {
   for (const wd of effectiveWeekdays) {
     if (!dayIsFixed(wd)) continue;
     const entry = fixedByWeekday.get(wd);
-    const f = fixedDayCard(entry.typ, ftp);
+    const f = fixedDayCard(entry.typ, ftp, entry.durationMin);
     qTss += f.tssPlanned;
     cards.push(
       makeCard(addDaysISO(weekStart, wd - 1), phase, isoWeek, f, { isQuality: intensityClass(entry.typ) === "hart" })
@@ -665,25 +679,29 @@ function buildWeekCards(c) {
 }
 
 /** Stunden-Text mit deutschem Komma, eine Nachkommastelle. @param {number} min */
-const fmtHours = (min) => (min / 60).toFixed(1).replace(".", ",");
+const fmtHours = (min) => (min / 60).toFixed(1).replace(".", ",").replace(/,0$/, "");
 
 /** Zeitbudget-Hinweise (Fahrplan 32 V1) — je höchstens einer pro Plan.
  *  @param {{built:number, limited:number, over:{min:number,budgetMin:number}|null, first:{min:number,budgetMin:number}|null}} b
  *  @param {number} cut  Index der ersten gebauten Woche (Restberechnung > 0)
+ *  @param {number} weeklyHours  Wochen-Zeitbudget des Nutzers (ohne Erholungsabschlag)
  *  @returns {string[]} */
-function timeBudgetWarnings(b, cut) {
+function timeBudgetWarnings(b, cut, weeklyHours) {
   const out = [];
   if (b.over) {
     out.push(
-      `Feste Tage und Qualitätseinheiten übersteigen dein Zeitbudget (${fmtHours(b.over.min)} von ${fmtHours(b.over.budgetMin)} h).`
+      `Feste Tage und harte Einheiten brauchen in manchen Wochen allein ${fmtHours(b.over.min)} h — mehr als das Budget von ${fmtHours(b.over.budgetMin)} h. Die lockeren Tage werden deshalb auf 30 min gekürzt.`
     );
   }
   if (b.limited > 0) {
-    out.push(`Zeitbudget begrenzt die Last in ${b.limited} von ${b.built} Wochen — mehr Last nur über mehr Stunden.`);
+    const h = fmtHours(weeklyHours * 60);
+    out.push(
+      `Dein Zeitbudget von ${h} h pro Woche reicht nicht für die geplante Steigerung (in ${b.limited} von ${b.built} Wochen). Der Plan bleibt bei ${h} h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum.`
+    );
   }
   if (b.first && b.first.min < b.first.budgetMin * UNDERUSE_HINT_RATIO) {
     out.push(
-      `Plan nutzt in Woche ${cut + 1} ${fmtHours(b.first.min)} von ${fmtHours(b.first.budgetMin)} h — steigt mit deiner Form.`
+      `In Woche ${cut + 1} nutzt der Plan nur ${fmtHours(b.first.min)} von ${fmtHours(b.first.budgetMin)} h deines Zeitbudgets. Die Belastung steigt Woche für Woche, die Stunden dann mit.`
     );
   }
   return out;
@@ -922,7 +940,7 @@ export function generatePlan(input) {
       })),
     };
   });
-  warnings.push(...timeBudgetWarnings(budget, cut));
+  warnings.push(...timeBudgetWarnings(budget, cut, input.weeklyHours));
 
   // 8) Wochenmodell (V4) --------------------------------------------
   const weekModel = weeks.map((w, i) => ({

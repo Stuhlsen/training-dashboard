@@ -47,6 +47,8 @@ import {
   FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
   FIXED_DAY_TYPES,
+  FIXED_DURATION_MAX_MIN,
+  FIXED_DURATION_MIN_MIN,
   FIXED_INTERVAL_TYP,
   ftpTestAtStartAuto,
   LEVEL_DESCRIPTIONS,
@@ -601,6 +603,26 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                         </option>
                       ))}
                     </select>
+                    {/* Dauer nur für feste Karten — ein Intervalltag bekommt seine
+                        Dauer aus Phase und Zeitbudget. Leer = Generator wählt. */}
+                    {fd.typ !== FIXED_INTERVAL_TYP && (
+                      <input
+                        type="number"
+                        inputMode="numeric"
+                        min={FIXED_DURATION_MIN_MIN}
+                        max={FIXED_DURATION_MAX_MIN}
+                        step={1}
+                        placeholder="Dauer (min)"
+                        aria-label="Dauer in Minuten (optional)"
+                        style={{ ...FIELD_STYLE, width: 110 }}
+                        value={fd.durationMin ?? ""}
+                        onChange={(e) =>
+                          updateFixedDay(i, {
+                            durationMin: e.target.value === "" ? undefined : Number(e.target.value),
+                          })
+                        }
+                      />
+                    )}
                     {/* Intervalltage entfallen in Erholungswochen immer (keine
                         Qualitätstage dort) — die Checkbox hätte keine Wirkung. */}
                     {fd.typ !== FIXED_INTERVAL_TYP && (

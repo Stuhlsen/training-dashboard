@@ -2475,7 +2475,7 @@
     ],
     "ftpTarget": 255,
     "warnings": [
-      "Zeitbudget begrenzt die Last in 10 von 12 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 8 h pro Woche reicht nicht für die geplante Steigerung (in 10 von 12 Wochen). Der Plan bleibt bei 8 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   },
   "pyramidal-open-einsteiger": {
@@ -4277,7 +4277,7 @@
     ],
     "ftpTarget": null,
     "warnings": [
-      "Zeitbudget begrenzt die Last in 6 von 10 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 6 h pro Woche reicht nicht für die geplante Steigerung (in 6 von 10 Wochen). Der Plan bleibt bei 6 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   },
   "linear-open-fortgeschritten": {
@@ -7670,7 +7670,7 @@
     ],
     "ftpTarget": 300,
     "warnings": [
-      "Zeitbudget begrenzt die Last in 14 von 14 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 10 h pro Woche reicht nicht für die geplante Steigerung (in 14 von 14 Wochen). Der Plan bleibt bei 10 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   },
   "polarized-event": {
@@ -9205,7 +9205,7 @@
     ],
     "ftpTarget": 223,
     "warnings": [
-      "Zeitbudget begrenzt die Last in 5 von 7 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 7 h pro Woche reicht nicht für die geplante Steigerung (in 5 von 7 Wochen). Der Plan bleibt bei 7 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   },
   "block-open": {
@@ -10980,7 +10980,7 @@
     ],
     "ftpTarget": 244,
     "warnings": [
-      "Zeitbudget begrenzt die Last in 7 von 9 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 9 h pro Woche reicht nicht für die geplante Steigerung (in 7 von 9 Wochen). Der Plan bleibt bei 9 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   },
   "low-adherence": {
@@ -13460,7 +13460,7 @@
     "ftpTarget": 255,
     "warnings": [
       "Planerfüllung zuletzt unter 70 % — ein Trainingstag weniger, flachere Aufbaurampe.",
-      "Zeitbudget begrenzt die Last in 9 von 12 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 8 h pro Woche reicht nicht für die geplante Steigerung (in 9 von 12 Wochen). Der Plan bleibt bei 8 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   },
   "power-curve-weakness": {
@@ -15870,7 +15870,7 @@
     "ftpTarget": 250,
     "warnings": [
       "Power-Kurve: schwächste Dauer „VO2max\" — eine Woche mehr zulasten „Sweet Spot\".",
-      "Zeitbudget begrenzt die Last in 12 von 12 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 8 h pro Woche reicht nicht für die geplante Steigerung (in 12 von 12 Wochen). Der Plan bleibt bei 8 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   },
   "short-plan-warning": {
@@ -16261,7 +16261,7 @@
     "warnings": [
       "Plan zu kurz (2 Wochen) — auf 3 Wochen angehoben.",
       "Nur 2 Aufbau-Woche(n) — nicht jede Phase (Grundlage/Sweet Spot/Schwelle/VO2max) hat eine eigene Woche.",
-      "Zeitbudget begrenzt die Last in 2 von 3 Wochen — mehr Last nur über mehr Stunden."
+      "Dein Zeitbudget von 5 h pro Woche reicht nicht für die geplante Steigerung (in 2 von 3 Wochen). Der Plan bleibt bei 5 h und fällt dafür kürzer oder leichter aus — mehr Stunden pro Woche geben mehr Spielraum."
     ]
   }
 }

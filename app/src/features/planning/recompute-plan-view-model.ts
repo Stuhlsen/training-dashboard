@@ -15,7 +15,12 @@
    Stand von damals).
    ============================================================ */
 
-import { FIXED_DAY_TYPES, mondayOf } from "./new-plan-dialog-view-model";
+import {
+  FIXED_DAY_TYPES,
+  FIXED_INTERVAL_TYP,
+  isValidFixedDuration,
+  mondayOf,
+} from "./new-plan-dialog-view-model";
 import type { PlanGeneratorInput, AthleteDefaults, FixedDay } from "./new-plan-dialog-view-model";
 import type { TrainingPlan, WeekModelEntry } from "../../api/types";
 
@@ -49,7 +54,14 @@ function savedFixedDays(plan: TrainingPlan): FixedDay[] {
         (d as FixedDay).weekday <= 7 &&
         FIXED_DAY_TYPES.includes((d as FixedDay).typ)
     )
-    .map((d) => ({ weekday: d.weekday, typ: d.typ, keepInRecoveryWeek: d.keepInRecoveryWeek === true }));
+    .map((d) => ({
+      weekday: d.weekday,
+      typ: d.typ,
+      keepInRecoveryWeek: d.keepInRecoveryWeek === true,
+      ...(d.typ !== FIXED_INTERVAL_TYP && isValidFixedDuration(d.durationMin)
+        ? { durationMin: d.durationMin }
+        : {}),
+    }));
 }
 
 /** Die Trainingstage, die der Plan ab der Restberechnung heute nutzt

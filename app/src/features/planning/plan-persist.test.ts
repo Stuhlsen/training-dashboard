@@ -156,6 +156,17 @@ describe("trainingPlanDraft", () => {
     expect(d.endDate).toBe("2026-12-06");
   });
 
+  it("hält die Dauer fester Tage im Roh-Formular (params.form.fixedDays[].durationMin)", () => {
+    const form: NewPlanFormState = {
+      ...FORM,
+      fixedDays: [{ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 }],
+    };
+    const d = trainingPlanDraft(INPUT, form, PLAN, null);
+    expect((d.params.form as NewPlanFormState).fixedDays).toEqual([
+      { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 },
+    ]);
+  });
+
   it("nimmt trainingWeekdays aus dem weekModel des Generators (nicht dem Rohformular)", () => {
     // Generator hat bei schwacher Planerfüllung einen Tag rausgeworfen:
     // weekModel trägt [2, 4], das Formular noch [2, 4, 6].

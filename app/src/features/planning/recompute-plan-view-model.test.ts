@@ -114,6 +114,22 @@ describe("buildRecomputeInput", () => {
     expect(fewer.ok && fewer.droppedFixedWeekdays).toEqual([4]);
   });
 
+  it("feste Tage: gespeicherte Dauer wird gelesen, kaputte Dauer still verworfen", () => {
+    const saved = plan({
+      params: {
+        form: {
+          fixedDays: [
+            { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 },
+            { weekday: 4, typ: "Z2 Dauer", keepInRecoveryWeek: false, durationMin: 9 },
+            { weekday: 6, typ: "Z2 Lang", keepInRecoveryWeek: false, durationMin: "lang" },
+          ],
+        },
+      },
+    });
+    const res = buildRecomputeInput({ plan: saved, todayISO: "2026-10-07", athleteDefaults: defaults });
+    expect(res.ok && res.input.fixedDays?.map((d) => d.durationMin)).toEqual([60, undefined, undefined]);
+  });
+
   it("keepAllTrainingDays: Argument gewinnt, sonst der gespeicherte Wert; Lauf bekommt keine festen Tage", () => {
     const saved = plan({ params: { form: { keepAllTrainingDays: true } } });
     const base = { todayISO: "2026-10-07", athleteDefaults: defaults };

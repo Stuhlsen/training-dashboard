@@ -195,6 +195,59 @@ describe("buildGeneratorInput", () => {
     ]);
   });
 
+  it("fester Tag mit Dauer: Dauer geht in den Generator-Input", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 }] },
+      noEvent
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.fixedDays).toEqual([
+      { weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 },
+    ]);
+  });
+
+  it("fester Tag ohne Dauer: Input trägt kein durationMin-Feld", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false }] },
+      noEvent
+    );
+    expect(res.ok && "durationMin" in res.input.fixedDays![0]).toBe(false);
+  });
+
+  it("Dauer außerhalb 15..300 oder nicht ganzzahlig -> Fehler", () => {
+    for (const durationMin of [14, 301, 45.5, Number.NaN]) {
+      const res = buildGeneratorInput(
+        { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin }] },
+        noEvent
+      );
+      expect(res.ok, `durationMin ${durationMin}`).toBe(false);
+      if (!res.ok) expect(res.errors.fixedDayDuration).toBeTruthy();
+    }
+  });
+
+  it("Grenzwerte 15 und 300 sind gültig", () => {
+    for (const durationMin of [15, 300]) {
+      const res = buildGeneratorInput(
+        { ...BASE, fixedDays: [{ weekday: 4, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin }] },
+        noEvent
+      );
+      expect(res.ok, `durationMin ${durationMin}`).toBe(true);
+    }
+  });
+
+  it("fester Intervalltag: Dauer wird nicht an den Generator gereicht", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, fixedDays: [{ weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false, durationMin: 60 }] },
+      noEvent
+    );
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.input.fixedDays).toEqual([
+      { weekday: 4, typ: FIXED_INTERVAL_TYP, keepInRecoveryWeek: false },
+    ]);
+  });
+
   it("fester Tag mit unbekanntem Typ -> Fehler", () => {
     const res = buildGeneratorInput(
       { ...BASE, fixedDays: [{ weekday: 4, typ: "Quatsch", keepInRecoveryWeek: false }] },
