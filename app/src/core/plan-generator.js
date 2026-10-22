@@ -76,7 +76,8 @@ import { getSportStrategy } from "./plan-generator-sport.js";
  *   (ISO 1..7) drinnen/draußen/egal — nur sport === "ride", sonst ignoriert; fehlt oder alles "any" →
  *   Ausgabe wie ohne Feld. Harte Einheiten bevorzugt auf Drinnen-Tage, langer lockerer Tag auf einen
  *   Draußen-Tag, lockere Karten an Drinnen-Tagen höchstens INDOOR_LOOSE_MAX_MIN.
- * @property {number} indoorShare  0..1
+ * @property {number} [indoorShare]  0..1 — DEPRECATED (Fahrplan 32 E5): optional, wird ignoriert;
+ *   die Drinnen/Draußen-Verteilung steuert `dayEnvironment`.
  * @property {"allgemein"|"berg"|"langstrecke"|"crit"} focus
  * @property {"einsteiger"|"fortgeschritten"} level
  * @property {"pyramidal"|"polarized"|"block"|"linear"|"reverse"} model

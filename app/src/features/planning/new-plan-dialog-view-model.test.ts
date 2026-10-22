@@ -4,11 +4,15 @@ import {
   defaultFormState,
   FIXED_INTERVAL_TYP,
   FOCUS_DESCRIPTIONS,
+  ftpTestAutoReason,
+  ftpTestNote,
   LEVEL_DESCRIPTIONS,
   levelFromExperience,
   MODEL_DESCRIPTIONS,
   mondayOf,
   parseDescriptionSegments,
+  planSummaryRows,
+  resolveHasIndoorTrainer,
   resolveMeasuredFtp,
   suggestModel,
   type NewPlanFormState,
@@ -163,7 +167,6 @@ const BASE: NewPlanFormState = {
   currentThresholdSpeed: null,
   thresholdSpeedMeasuredDate: null,
   thresholdSpeedTarget: null,
-  indoorPct: 40,
   focus: "allgemein",
   level: "fortgeschritten",
   model: "pyramidal",
@@ -180,7 +183,8 @@ describe("buildGeneratorInput", () => {
     expect(res.input.mode).toBe("open");
     expect(res.input.weeks).toBe(12);
     expect(res.input.eventDate).toBeUndefined();
-    expect(res.input.indoorShare).toBeCloseTo(0.4);
+    // Fahrplan 32 E5: der Indoor-Prozent-Regler ist weg, kein Wert im Input.
+    expect("indoorShare" in res.input).toBe(false);
   });
 
   it("fester Intervalltag (FIXED_INTERVAL_TYP) ist ein gültiger fester Tag", () => {
@@ -390,5 +394,150 @@ describe("parseDescriptionSegments", () => {
         expect(seg.text.startsWith("−")).toBe(false);
       }
     }
+  });
+});
+
+describe("ftpTestAutoReason (V6)", () => {
+  it("keine gemessene FTP -> an, 'keine-ftp'", () => {
+    expect(ftpTestAutoReason("2026-09-07", null)).toEqual({ on: true, reason: "keine-ftp" });
+  });
+
+  it("Messung genau 42 Tage vor dem Start -> aus (Grenze: erst >42 Tage ist 'älter')", () => {
+    expect(ftpTestAutoReason("2026-09-07", "2026-07-27")).toEqual({
+      on: false,
+      reason: "ftp-aktuell",
+    });
+  });
+
+  it("Messung 43 Tage vor dem Start -> an, 'ftp-aelter-6-wochen'", () => {
+    expect(ftpTestAutoReason("2026-09-07", "2026-07-26")).toEqual({
+      on: true,
+      reason: "ftp-aelter-6-wochen",
+    });
+  });
+
+  it("frische Messung -> aus, 'ftp-aktuell'", () => {
+    expect(ftpTestAutoReason("2026-09-07", "2026-08-30")).toEqual({
+      on: false,
+      reason: "ftp-aktuell",
+    });
+  });
+});
+
+describe("ftpTestNote", () => {
+  it("Automatik: Text nennt den Grund samt Datum", () => {
+    expect(ftpTestNote("2026-09-07", null, null)).toEqual({
+      on: true,
+      text: "an — noch keine FTP gemessen",
+    });
+    expect(ftpTestNote("2026-09-07", "2026-06-24", undefined)).toEqual({
+      on: true,
+      text: "an — letzte FTP älter als 6 Wochen (24.06.2026)",
+    });
+    expect(ftpTestNote("2026-09-07", "2026-08-30", null)).toEqual({
+      on: false,
+      text: "aus — FTP vom 30.08.2026 ist aktuell",
+    });
+  });
+
+  it("manuell gegen die Automatik umgestellt -> 'von dir geändert'", () => {
+    expect(ftpTestNote("2026-09-07", "2026-08-30", true)).toEqual({
+      on: true,
+      text: "an — von dir geändert",
+    });
+    expect(ftpTestNote("2026-09-07", null, false)).toEqual({
+      on: false,
+      text: "aus — von dir geändert",
+    });
+  });
+
+  it("manuelle Wahl gleich der Automatik -> normaler Grund", () => {
+    expect(ftpTestNote("2026-09-07", null, true).text).toBe("an — noch keine FTP gemessen");
+  });
+});
+
+describe("resolveHasIndoorTrainer", () => {
+  it("Profilwert gewinnt, auch false", () => {
+    expect(resolveHasIndoorTrainer(true, false)).toBe(true);
+    expect(resolveHasIndoorTrainer(false, true)).toBe(false);
+  });
+
+  it("Profil null -> plan-lokale Kopie, sonst null", () => {
+    expect(resolveHasIndoorTrainer(null, true)).toBe(true);
+    expect(resolveHasIndoorTrainer(null, false)).toBe(false);
+    expect(resolveHasIndoorTrainer(null, null)).toBeNull();
+    expect(resolveHasIndoorTrainer(null, undefined)).toBeNull();
+  });
+});
+
+describe("buildGeneratorInput — dayEnvironment (V2/V5)", () => {
+  const ENV = { 2: "indoor", 4: "any", 6: "outdoor" } as const;
+
+  it("Rad + Rolle = true -> nur Nicht-'egal'-Tage im Input", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { ...ENV } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && res.input.dayEnvironment).toEqual({ 2: "indoor", 6: "outdoor" });
+  });
+
+  it("Tage, die nicht (mehr) Trainingstage sind, fallen heraus", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { 2: "indoor", 5: "outdoor" } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && res.input.dayEnvironment).toEqual({ 2: "indoor" });
+  });
+
+  it("alles 'egal' -> kein dayEnvironment-Feld", () => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { 2: "any", 4: "any" } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && "dayEnvironment" in res.input).toBe(false);
+  });
+
+  it.each([false, null, undefined])("Rolle = %s -> kein dayEnvironment", (role) => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: role, dayEnvironment: { ...ENV } },
+      noEvent,
+      "ride"
+    );
+    expect(res.ok && "dayEnvironment" in res.input).toBe(false);
+  });
+
+  it.each(["run", "swim"] as const)("Sport %s -> kein dayEnvironment trotz Rolle", (sport) => {
+    const res = buildGeneratorInput(
+      { ...BASE, hasIndoorTrainer: true, dayEnvironment: { ...ENV } },
+      noEvent,
+      sport
+    );
+    expect(res.ok && "dayEnvironment" in res.input).toBe(false);
+  });
+});
+
+describe("planSummaryRows", () => {
+  it("Start fett, dann Wochen, Stunden/Woche und FTP-Test samt Grund", () => {
+    const rows = planSummaryRows({
+      startDate: "2026-09-07",
+      weeks: 12,
+      weeklyHours: 6.5,
+      ftp: { on: true, text: "an — noch keine FTP gemessen" },
+    });
+    expect(rows).toEqual([
+      { label: "Start", value: "07.09.2026", strong: true },
+      { label: "Wochen", value: "12" },
+      { label: "Stunden/Woche", value: "6,5 h" },
+      { label: "FTP-Test", value: "an — noch keine FTP gemessen" },
+    ]);
+  });
+
+  it("ohne FTP-Zeile (Lauf/Schwimmen) fehlt die Zeile; ganze Stunden ohne Komma", () => {
+    const rows = planSummaryRows({ startDate: "2026-09-07", weeks: 8, weeklyHours: 5, ftp: null });
+    expect(rows.map((r) => r.label)).toEqual(["Start", "Wochen", "Stunden/Woche"]);
+    expect(rows[2].value).toBe("5 h");
   });
 });

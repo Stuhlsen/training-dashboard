@@ -16,6 +16,7 @@
    ============================================================ */
 
 import {
+  activeDayEnvironment,
   FIXED_DAY_TYPES,
   FIXED_INTERVAL_TYP,
   isValidFixedDuration,
@@ -28,6 +29,8 @@ import type { TrainingPlan, WeekModelEntry } from "../../api/types";
  *  Nur die Felder, die der Recompute braucht — alles optional, ältere Pläne
  *  kennen sie nicht. */
 interface SavedForm {
+  dayEnvironment?: unknown;
+  hasIndoorTrainer?: unknown;
   fixedDays?: unknown;
   keepAllTrainingDays?: unknown;
   startWithFtpTest?: unknown;
@@ -153,6 +156,12 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     .map((d) => d.weekday);
 
   const form = savedForm(plan);
+  // Drinnen/Draußen (Fahrplan 32 V5): nur Rad mit gespeicherter Rolle = true;
+  // abgewählte Wochentage und kaputte Einträge fallen heraus.
+  const dayEnvironment =
+    sport === "ride" && form.hasIndoorTrainer === true
+      ? activeDayEnvironment(form.dayEnvironment, tailWeekdays)
+      : undefined;
   const keepAllTrainingDays =
     args.keepAllTrainingDays ?? (form.keepAllTrainingDays === true);
 
@@ -164,6 +173,7 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     weeks: plan.weeks,
     trainingWeekdays: tailWeekdays,
     fixedDays,
+    ...(dayEnvironment ? { dayEnvironment } : {}),
     ...(keepAllTrainingDays ? { keepAllTrainingDays: true } : {}),
     ...(sport === "ride" && typeof form.startWithFtpTest === "boolean"
       ? { startWithFtpTest: form.startWithFtpTest }
@@ -188,7 +198,6 @@ export function buildRecomputeInput(args: RecomputeArgs): RecomputeInput {
     thresholdSpeedMeasuredDate: null,
     // Ziel-Pace des Ur-Plans beibehalten, analog ftpTarget.
     thresholdSpeedTarget: sport === "ride" ? null : (plan.thresholdSpeedTarget ?? null),
-    indoorShare: plan.indoorShare ?? 0,
     focus: plan.focus,
     level: plan.level,
     model: plan.model,

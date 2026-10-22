@@ -78,7 +78,6 @@ const FORM: NewPlanFormState = {
   currentThresholdSpeed: null,
   thresholdSpeedMeasuredDate: null,
   thresholdSpeedTarget: null,
-  indoorPct: 40,
   focus: "allgemein",
   level: "fortgeschritten",
   model: "pyramidal",
@@ -93,7 +92,6 @@ const INPUT: PlanGeneratorInput = {
   currentFtp: 193,
   ftpMeasuredDate: "2026-06-01",
   ftpTarget: null,
-  indoorShare: 0.4,
   focus: "allgemein",
   level: "fortgeschritten",
   model: "pyramidal",
@@ -138,7 +136,7 @@ describe("trainingPlanDraft", () => {
     expect(d.ftpAtCreation).toBe(193);
     expect(d.ftpTarget).toBe(210);
     expect(d.goalEventId).toBe("event-123");
-    expect(d.indoorShare).toBe(0.4);
+    expect(d.indoorShare).toBeNull(); // Fahrplan 32 E5: Regler entfällt
     expect((d.params.form as NewPlanFormState).trainingWeekdays).toEqual([2, 4, 6]);
     expect(d.params.history).toEqual({ weeklyActualTss: [300, 320], currentCtl: 45 });
     expect(d.params.warnings).toEqual(PLAN.warnings);
@@ -165,6 +163,35 @@ describe("trainingPlanDraft", () => {
     expect((d.params.form as NewPlanFormState).fixedDays).toEqual([
       { weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 },
     ]);
+  });
+
+  it("schreibt indoorShare immer als null, auch wenn ein alter Input noch einen Wert trägt", () => {
+    const d = trainingPlanDraft({ ...INPUT, indoorShare: 0.4 }, FORM, PLAN, null);
+    expect(d.indoorShare).toBeNull();
+  });
+
+  it("hält dayEnvironment (aus dem Input) und die Rollen-Kopie in params.form", () => {
+    const d = trainingPlanDraft(
+      { ...INPUT, dayEnvironment: { 2: "indoor", 6: "outdoor" } },
+      { ...FORM, hasIndoorTrainer: true, dayEnvironment: { 2: "indoor", 4: "any", 6: "outdoor" } },
+      PLAN,
+      null,
+    );
+    const saved = d.params.form as Record<string, unknown>;
+    expect(saved.dayEnvironment).toEqual({ 2: "indoor", 6: "outdoor" });
+    expect(saved.hasIndoorTrainer).toBe(true);
+  });
+
+  it("ohne dayEnvironment im Input steht auch keins in params.form (Rolle false)", () => {
+    const d = trainingPlanDraft(
+      INPUT,
+      { ...FORM, hasIndoorTrainer: false, dayEnvironment: { 2: "indoor" } },
+      PLAN,
+      null,
+    );
+    const saved = d.params.form as Record<string, unknown>;
+    expect("dayEnvironment" in saved).toBe(false);
+    expect(saved.hasIndoorTrainer).toBe(false);
   });
 
   it("nimmt trainingWeekdays aus dem weekModel des Generators (nicht dem Rohformular)", () => {

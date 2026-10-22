@@ -17,7 +17,7 @@
    einer späteren Etappe überlassen.
    ============================================================ */
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { GlassCard } from "../../components/GlassCard";
 import { useEscapeToClose } from "../../hooks/useEscapeToClose";
 import { useEvents } from "../../api/hooks/useEvents";
@@ -30,6 +30,7 @@ import { usePlanCards } from "../../api/hooks/usePlanCards";
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
+import { useProfileBasics } from "../../api/hooks/useProfile";
 import { useCreateTrainingPlan } from "./useCreateTrainingPlan";
 import { athleteConfig } from "../../config";
 import { localISODate, addDaysISO, diffDays, fmtDate } from "../../core/format.js";
@@ -43,6 +44,7 @@ import { CompareModelsDialog } from "./CompareModelsDialog";
 import {
   AVAILABLE_MODELS,
   buildGeneratorInput,
+  DAY_ENVIRONMENT_LABELS,
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
@@ -50,16 +52,19 @@ import {
   FIXED_DURATION_MAX_MIN,
   FIXED_DURATION_MIN_MIN,
   FIXED_INTERVAL_TYP,
-  ftpTestAtStartAuto,
+  ftpTestNote,
   LEVEL_DESCRIPTIONS,
   MODEL_BLOCK_SHARES,
   MODEL_DESCRIPTIONS,
   MODEL_LABELS,
   mondayOf,
   parseDescriptionSegments,
+  planSummaryRows,
+  resolveHasIndoorTrainer,
   resolveMeasuredFtp,
   suggestModel,
   WEEKDAY_LABELS,
+  type DayEnvironment,
   type FixedDay,
   type GeneratedPlan,
   type NewPlanFormState,
@@ -85,6 +90,8 @@ type Ride = import("../../types.js").Ride;
 interface NewPlanDialogProps {
   athleteId: string;
   onClose: () => void;
+  /** Nach erfolgreichem Speichern, direkt vor `onClose` — für den Hinweis „Plan verschieben…". */
+  onCreated?: () => void;
 }
 
 const NEW_EVENT_VALUE = "__new__";
@@ -101,7 +108,7 @@ const FIELD_STYLE: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
-export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
+export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogProps) {
   useEscapeToClose(onClose);
 
   const today = localISODate();
@@ -165,8 +172,19 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
     patch({ currentFtp: measuredFtp.ftpMeasured, ftpMeasuredDate: measuredFtp.ftpMeasuredDate });
   }
 
-  const startWithFtpTest =
-    form.startWithFtpTest ?? ftpTestAtStartAuto(form.startDate, form.ftpMeasuredDate);
+  const ftpNote = ftpTestNote(form.startDate, form.ftpMeasuredDate, form.startWithFtpTest);
+  const startWithFtpTest = ftpNote.on;
+
+  // Rolle „Smart-Trainer/Rolle" (Fahrplan 32 PF5/PF18): der Profilwert gilt nur
+  // beim Athleten selbst — ein Trainer kann ihn nicht lesen, und sein EIGENES
+  // Profil gehört nicht zu diesem Plan. Ist der Wert null, bietet das Formular
+  // einen plan-lokalen Schalter (params.form), ohne das Profil zu beschreiben.
+  const { data: profileBasics, isLoading: basicsLoading } = useProfileBasics();
+  const profileRole = isSelf ? (profileBasics?.hasIndoorTrainer ?? null) : null;
+  const roleLoading = isSelfLoading || (isSelf && basicsLoading);
+  const hasIndoorTrainer = resolveHasIndoorTrainer(profileRole, form.hasIndoorTrainer);
+  const showEnvironmentPills = effectiveSport === "ride" && hasIndoorTrainer === true;
+  const showRoleSwitch = effectiveSport === "ride" && !roleLoading && profileRole === null;
   const lowAdherence =
     ((aggregate as { planAdherence?: number | null } | null)?.planAdherence ?? 1) < 0.7;
 
@@ -283,7 +301,10 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
   }, [form.level, form.focus, effectiveModel]);
 
   function handlePreview() {
-    const effForm: NewPlanFormState = { ...form, model: effectiveModel };
+    // hasIndoorTrainer: die wirksame Rolle (Profil, sonst Schalter) wird als
+    // plan-lokale Kopie eingefroren — „Rest neu berechnen" und der Trainer-Fall
+    // lesen sie aus params.form (V5).
+    const effForm: NewPlanFormState = { ...form, model: effectiveModel, hasIndoorTrainer };
     const built = buildGeneratorInput(effForm, resolveEventDate, effectiveSport, aggregate);
     if (!built.ok) {
       setErrors(built.errors);
@@ -316,7 +337,12 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
       setSaveError(result.error.message);
       return;
     }
+    onCreated?.();
     onClose();
+  }
+
+  function setDayEnvironment(iso: number, value: DayEnvironment) {
+    patch({ dayEnvironment: { ...(form.dayEnvironment ?? {}), [iso]: value } });
   }
 
   function toggleWeekday(iso: number) {
@@ -566,6 +592,72 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
             )}
           </div>
 
+          {/* Rolle + Drinnen/Draußen je Trainingstag — nur Rad (Fahrplan 32 E5). */}
+          {showRoleSwitch && (
+            <label
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                gap: 6,
+                fontSize: ".82rem",
+                color: "var(--ink-2)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={form.hasIndoorTrainer === true}
+                onChange={(e) => patch({ hasIndoorTrainer: e.target.checked })}
+              />
+              <span>
+                Rolle / Smart-Trainer vorhanden? (nur für diesen Plan)
+                {isSelf && (
+                  <span style={{ display: "block", fontSize: ".72rem", color: "var(--ink-3)" }}>
+                    Dauerhaft festlegen: Einstellungen → Profil
+                  </span>
+                )}
+              </span>
+            </label>
+          )}
+
+          {showEnvironmentPills && (
+            <div style={LABEL_STYLE}>
+              Drinnen oder draußen? (pro Trainingstag)
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {form.trainingWeekdays.map((iso) => {
+                  const current = form.dayEnvironment?.[iso] ?? "any";
+                  const dayLabel = WEEKDAY_LABELS.find((w) => w.iso === iso)?.short;
+                  return (
+                    <div
+                      key={iso}
+                      role="group"
+                      aria-label={`Drinnen oder draußen am ${dayLabel}`}
+                      style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}
+                    >
+                      <span style={{ width: 26, color: "var(--ink-2)", fontSize: ".82rem" }}>
+                        {dayLabel}
+                      </span>
+                      {DAY_ENVIRONMENT_LABELS.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          aria-pressed={current === opt.value}
+                          style={
+                            current === opt.value
+                              ? { ...PILL_STYLE, ...PRIMARY_BTN_STYLE, padding: "6px 12px" }
+                              : PILL_STYLE
+                          }
+                          onClick={() => setDayEnvironment(iso, opt.value)}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Feste Tage — nur Rad, FIXED_DAY_TYPES kennt nur das Rad-Vokabular. */}
           {effectiveSport === "ride" && (
             <div style={LABEL_STYLE}>
@@ -667,37 +759,24 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
             </div>
           )}
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            <label style={LABEL_STYLE}>
-              Zeitbudget (h/Woche)
-              <input
-                type="number"
-                min={1}
-                max={25}
-                step={0.5}
-                style={FIELD_STYLE}
-                value={form.weeklyHours}
-                onChange={(e) => patch({ weeklyHours: Number(e.target.value) || 0 })}
-              />
-            </label>
-            <label style={LABEL_STYLE}>
-              Indoor-Anteil ({form.indoorPct} %)
-              <input
-                type="range"
-                min={0}
-                max={100}
-                step={5}
-                value={form.indoorPct}
-                onChange={(e) => patch({ indoorPct: Number(e.target.value) })}
-              />
-            </label>
-          </div>
+          <label style={LABEL_STYLE}>
+            Zeitbudget (h/Woche)
+            <input
+              type="number"
+              min={1}
+              max={25}
+              step={0.5}
+              style={{ ...FIELD_STYLE, maxWidth: 200 }}
+              value={form.weeklyHours}
+              onChange={(e) => patch({ weeklyHours: Number(e.target.value) || 0 })}
+            />
+          </label>
 
           {effectiveSport === "ride" && (
             <label
               style={{
                 display: "flex",
-                alignItems: "center",
+                alignItems: "flex-start",
                 gap: 6,
                 fontSize: ".82rem",
                 color: "var(--ink-2)",
@@ -708,7 +787,12 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 checked={startWithFtpTest}
                 onChange={(e) => patch({ startWithFtpTest: e.target.checked })}
               />
-              Plan beginnt mit FTP-Test
+              <span>
+                Plan beginnt mit FTP-Test
+                <span style={{ display: "block", fontSize: ".72rem", color: "var(--ink-3)" }}>
+                  {ftpNote.text}
+                </span>
+              </span>
             </label>
           )}
 
@@ -923,6 +1007,47 @@ export function NewPlanDialog({ athleteId, onClose }: NewPlanDialogProps) {
                 sport={preview.input.sport ?? "ride"}
                 thresholdSpeedTarget={preview.input.thresholdSpeedTarget ?? null}
               />
+              <dl
+                aria-label="Zusammenfassung"
+                style={{
+                  margin: "14px 0 0",
+                  padding: "10px 14px",
+                  borderRadius: "var(--radius-sm)",
+                  background: "rgba(255,255,255,.04)",
+                  border: "1px solid var(--hair)",
+                  display: "grid",
+                  gridTemplateColumns: "auto 1fr",
+                  gap: "4px 14px",
+                  fontSize: ".82rem",
+                }}
+              >
+                {planSummaryRows({
+                  startDate: preview.input.startDate,
+                  weeks: preview.plan.weeks.length,
+                  weeklyHours: preview.input.weeklyHours,
+                  ftp:
+                    (preview.input.sport ?? "ride") === "ride"
+                      ? ftpTestNote(
+                          preview.form.startDate,
+                          preview.form.ftpMeasuredDate,
+                          preview.form.startWithFtpTest
+                        )
+                      : null,
+                }).map((row) => (
+                  <Fragment key={row.label}>
+                    <dt style={{ color: "var(--ink-3)" }}>{row.label}</dt>
+                    <dd
+                      style={{
+                        margin: 0,
+                        color: row.strong ? "var(--ink)" : "var(--ink-2)",
+                        fontWeight: row.strong ? 700 : 400,
+                      }}
+                    >
+                      {row.value}
+                    </dd>
+                  </Fragment>
+                ))}
+              </dl>
             </div>
           )}
         </div>
