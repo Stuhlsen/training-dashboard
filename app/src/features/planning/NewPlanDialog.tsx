@@ -478,6 +478,7 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
             <button
               type="button"
               style={guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
+              disabled={planLoading || roleLoading}
               onClick={() => setGuidedChoice(true)}
             >
               Geführt
@@ -485,6 +486,9 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
             <button
               type="button"
               style={!guidedMode ? PRIMARY_BTN_STYLE : PILL_STYLE}
+              // Erst wenn Plan und Rolle bekannt sind: sonst würde das spätere
+              // Vorausfüllen aus dem letzten Plan schon getippte Eingaben überschreiben.
+              disabled={planLoading || roleLoading}
               onClick={() => setGuidedChoice(false)}
             >
               Erweitert

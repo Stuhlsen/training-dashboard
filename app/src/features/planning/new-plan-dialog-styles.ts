@@ -20,6 +20,12 @@ export const FIELD_STYLE: React.CSSProperties = {
   boxSizing: "border-box",
 };
 
+export const HINT_STYLE: React.CSSProperties = {
+  fontSize: ".74rem",
+  color: "var(--ink-3)",
+  margin: 0,
+};
+
 export const BTN_STYLE: React.CSSProperties = {
   border: "1px solid var(--hair)",
   borderRadius: "var(--pill)",

@@ -28,12 +28,14 @@ function renderWizard(over: Partial<GuidedPlanQuestionsProps> = {}) {
 const click = (name: string | RegExp) => fireEvent.click(screen.getByRole("button", { name }));
 
 /** Ziel (Vorgabe) → Erfahrung → Fokus → Tage + Stunden (Vorgaben) durchklicken. */
-function throughSchedule(experience: "Unter 1 Jahr" | "Über 1 Jahr" = "Über 1 Jahr") {
+function throughSchedule(experience: "Unter 1 Jahr" | "Über 1 Jahr" = "Über 1 Jahr", withFocus = true) {
   click("Weiter");
   click(experience);
   click("Weiter");
-  click("Allgemein");
-  click("Weiter");
+  if (withFocus) {
+    click("Allgemein");
+    click("Weiter");
+  }
   click("Weiter");
 }
 
@@ -120,10 +122,10 @@ describe("GuidedPlanQuestions", () => {
     expect(onComplete.mock.calls[0][0].form.hasIndoorTrainer).toBe(false);
   });
 
-  it("Lauf: keine Rolle, letzter Schritt ist die optionale Schwellenpace", () => {
+  it("Lauf: weder Fokus noch Rolle, letzter Schritt ist die optionale Schwellenpace", () => {
     const onComplete = renderWizard({ sport: "run" });
-    expect(screen.getByText("Schritt 1 von 5")).toBeTruthy();
-    throughSchedule();
+    expect(screen.getByText("Schritt 1 von 4")).toBeTruthy();
+    throughSchedule("Über 1 Jahr", false);
     expect(screen.getByRole("heading", { name: "Kennst du deine Schwellenpace?" })).toBeTruthy();
     click("Zum Formular"); // leer lassen ist erlaubt
     expect(onComplete.mock.calls[0][0].form).not.toHaveProperty("hasIndoorTrainer");
@@ -138,6 +140,24 @@ describe("GuidedPlanQuestions", () => {
     expect(screen.getByRole("button", { name: "Unter 1 Jahr" }).getAttribute("aria-pressed")).toBe(
       "true"
     );
+  });
+
+  it("Fortschrittsbalken meldet Schritt und Gesamtzahl", () => {
+    renderWizard();
+    const bar = screen.getByRole("progressbar");
+    expect(bar.getAttribute("aria-valuenow")).toBe("1");
+    expect(bar.getAttribute("aria-valuemax")).toBe("6");
+  });
+
+  it("Event-Ziel mit vorhandenen Events: erstes Event ist vorgewählt", () => {
+    const onComplete = renderWizard({
+      events: [{ id: "e1", title: "Rennen", eventDate: "2027-05-01", priority: "main", ftpGoal: 280 }],
+    });
+    click("Auf ein Event hin");
+    expect((screen.getByLabelText("Ziel-Event") as HTMLSelectElement).value).toBe("e1");
+    click("Weiter");
+    expect(screen.getByText("Schritt 2 von 6")).toBeTruthy();
+    expect(onComplete).not.toHaveBeenCalled();
   });
 
   it("Event-Ziel ohne Event: verlangt Renntag und Name", () => {

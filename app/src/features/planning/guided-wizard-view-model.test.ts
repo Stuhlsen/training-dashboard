@@ -71,12 +71,11 @@ describe("wizardSteps", () => {
     expect(steps).not.toContain("environment");
   });
 
-  it("Lauf/Schwimmen: weder Rolle noch Umgebung, Schwellen-Schritt bleibt", () => {
+  it("Lauf/Schwimmen: weder Fokus (wirkt dort nicht) noch Rolle noch Umgebung, Schwellen-Schritt bleibt", () => {
     for (const sport of ["run", "swim"] as const) {
       expect(wizardSteps({ sport, profileRole: null, roleAnswer: true })).toEqual([
         "goal",
         "experience",
-        "focus",
         "schedule",
         "threshold",
       ]);
@@ -272,6 +271,7 @@ describe("buildWizardResult", () => {
     expect(res.form).not.toHaveProperty("ftpMeasuredDate");
     expect(res.form).not.toHaveProperty("hasIndoorTrainer");
     expect(res.form).not.toHaveProperty("dayEnvironment");
+    expect(res.form).not.toHaveProperty("focus");
     expect(res.saveIndoorTrainerToProfile).toBe(false);
   });
 });

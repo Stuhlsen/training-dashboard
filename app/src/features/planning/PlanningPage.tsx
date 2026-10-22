@@ -204,7 +204,9 @@ export function PlanningPage() {
   const [dialog, setDialog] = useState<DialogState>("closed");
   const [shiftOpen, setShiftOpen] = useState(false);
   // Hinweis „Falscher Start? → Plan verschieben…" direkt nach dem Erstellen eines Plans.
-  const [shiftHintOpen, setShiftHintOpen] = useState(false);
+  // Merkt sich den Athleten, für den der Plan erstellt wurde — beim Wechsel
+  // des Athleten verschwindet der Hinweis damit von selbst.
+  const [shiftHintFor, setShiftHintFor] = useState<string | null>(null);
   const [newPlanOpen, setNewPlanOpen] = useState(false);
   const [recomputeOpen, setRecomputeOpen] = useState(false);
   const [ftpRescaleOpen, setFtpRescaleOpen] = useState(false);
@@ -718,7 +720,7 @@ export function PlanningPage() {
             </div>
           </GlassCard>
 
-          {shiftHintOpen && editable && canShiftPlan && (
+          {shiftHintFor === activeAthleteId && editable && canShiftPlan && (
             <GlassCard
               variant="strong"
               radius="14px"
@@ -739,7 +741,7 @@ export function PlanningPage() {
                   type="button"
                   style={SECTION_ACTION_BTN_STYLE}
                   onClick={() => {
-                    setShiftHintOpen(false);
+                    setShiftHintFor(null);
                     setShiftOpen(true);
                   }}
                 >
@@ -748,7 +750,7 @@ export function PlanningPage() {
                 <button
                   type="button"
                   style={SECTION_ACTION_BTN_STYLE}
-                  onClick={() => setShiftHintOpen(false)}
+                  onClick={() => setShiftHintFor(null)}
                   aria-label="Hinweis schließen"
                 >
                   ×
@@ -875,7 +877,7 @@ export function PlanningPage() {
         <NewPlanDialog
           athleteId={activeAthleteId}
           onClose={() => setNewPlanOpen(false)}
-          onCreated={() => setShiftHintOpen(true)}
+          onCreated={() => setShiftHintFor(activeAthleteId)}
         />
       )}
 

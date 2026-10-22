@@ -88,7 +88,8 @@ function effectiveRole(ctx: WizardContext): boolean | null {
  *  Rad die FTP, sonst die Schwellenpace. */
 export function wizardSteps(ctx: WizardContext): WizardStepId[] {
   const isRide = ctx.sport === "ride";
-  const steps: WizardStepId[] = ["goal", "experience", "focus", "schedule"];
+  // Der Fokus ist Rad-Vokabular; Lauf/Schwimmen ignorieren ihn (buildGeneratorInput).
+  const steps: WizardStepId[] = ["goal", "experience", ...(isRide ? ["focus" as const] : []), "schedule"];
   if (isRide && ctx.profileRole === null) steps.push("role");
   if (isRide && effectiveRole(ctx) === true) steps.push("environment");
   steps.push("threshold");
@@ -199,7 +200,7 @@ export function buildWizardResult(
     trainingWeekdays: weekdays,
     weeklyHours: a.weeklyHours,
     ...(a.experience ? { level: levelFromExperience(a.experience) } : {}),
-    ...(a.focus ? { focus: a.focus } : {}),
+    ...(isRide && a.focus ? { focus: a.focus } : {}),
   };
 
   if (a.mode === "event") {
