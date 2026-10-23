@@ -122,8 +122,10 @@ function structureZwoSegments(structure, cadenceTarget) {
 
 /** @param {{name?: string|null, date: string, workout?: unknown, workoutStructure?: unknown, details?: string|null}} card
  *  @param {number} [cadenceTarget] Intervall-Kadenzziel des Athleten (Default 90).
+ *  @param {string} [guideText] Fertiger Guide-Klartext (Fahrplan 34, E5); wird
+ *  unter `card.details` in die <description> gehängt, leer = unverändert.
  *  @returns {{ok: true, xml: string, filename: string}|{ok: false, error: {code: string, message: string}}} */
-export function buildZwoWorkout(card, cadenceTarget = 90) {
+export function buildZwoWorkout(card, cadenceTarget = 90, guideText = "") {
   const structure = usableStructure(card);
   let segments;
   if (structure) segments = structureZwoSegments(structure, cadenceTarget);
@@ -134,7 +136,7 @@ export function buildZwoWorkout(card, cadenceTarget = 90) {
       error: { code: "NO_DATA", message: "Kein vollständiges Intervall-Workout mit %FTP-Werten — Dateiexport nicht möglich." },
     };
   }
-  return { ok: true, ...wrapZwo(card, segments) };
+  return { ok: true, ...wrapZwo(card, segments, guideText) };
 }
 
 /** .zwo-Schritte aus der groben, numerischen Workout-Form (Plan-2-Karten,
@@ -176,14 +178,14 @@ function numericZwoSegments(w, cadenceTarget) {
 }
 
 /** Schritte in die .zwo-Datei einbetten. @returns {{xml: string, filename: string}} */
-function wrapZwo(card, segments) {
+function wrapZwo(card, segments, guideText) {
   // Datum vorne im angezeigten Titel (ISO, sortiert sich in Zwifts Workout-
   // Liste chronologisch) — beim Zug aus intervals.icu/Datei geht der
   // Kalendertag sonst verloren. Gleicher Präfix wie der intervals.icu-Push
   // (api/intervals/push.ts).
   const title = `${card.date} · ${card.name || "Training"}`;
   const name = xmlEscape(title);
-  const description = xmlEscape(card.details || "");
+  const description = xmlEscape([card.details, guideText].filter(Boolean).join("\n\n"));
 
   const xml =
     `<?xml version="1.0" encoding="UTF-8"?>\n` +

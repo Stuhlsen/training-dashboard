@@ -6,7 +6,7 @@
    dann rendert die UI nichts.
    ============================================================ */
 
-import { buildSessionGuide } from "../../core/session-guide.js";
+import { buildSessionGuide, sessionGuideText } from "../../core/session-guide.js";
 import { GUIDE_SOURCE_BY_KEY } from "../../core/session-guide-sources.js";
 import { ZONE_SOURCE_STATUS } from "../../core/zone-sources.js";
 import { resolveWeight, type NutritionWellnessDay } from "../nutrition/nutrition-day-model";
@@ -84,4 +84,14 @@ export function guideWeightKg(params: {
 }): number | null {
   if (!params.isSelf) return null;
   return resolveWeight(params.wellness, params.profileWeightKg, params.todayISO)?.weightKg ?? null;
+}
+
+/** Klartext-Guide für .zwo und intervals.icu-Push (Fahrplan 34, E5). Wird an
+ *  der Aufrufstelle gebaut und als fertiger String durchgereicht, damit
+ *  core/zwo-export.js rein bleibt und api/ nichts über den Guide weiß.
+ *  Ohne Gewicht (kein Gramm-Wert im Export); abgesagte Karten und Karten ohne
+ *  Guide ergeben "" — Export/Push bleiben dann unverändert. */
+export function sessionGuideExportText(card: PlanCard, cadenceTarget: number | null): string {
+  if (card.cancelled) return "";
+  return sessionGuideText(buildSessionGuide(card, { cadenceTarget, weightKg: null }));
 }

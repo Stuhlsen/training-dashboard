@@ -14,7 +14,7 @@ import { RecoveryBlock } from "./RecoveryBlock";
 import { WeatherBadge } from "./WeatherBadge";
 import { Z2Block } from "./Z2Block";
 import { SessionGuide } from "./SessionGuide";
-import { buildSessionGuideView } from "./session-guide-view-model";
+import { buildSessionGuideView, sessionGuideExportText } from "./session-guide-view-model";
 import {
   asWorkoutBlocks,
   doneDatesOf,
@@ -105,7 +105,7 @@ export interface WeekGridDetailRowProps {
   /** Push bleibt athletenexklusiv, wie in PlanCard.tsx — Trainer sehen den
    *  Button nicht (canPush wird an der Aufrufstelle entsprechend gesetzt). */
   canPush?: boolean;
-  onPush?: (id: string, token: string, athleteId: string) => Promise<Result>;
+  onPush?: (id: string, token: string, athleteId: string, guideText: string) => Promise<Result>;
   /** Intervall-Kadenzziel des Athleten für den .zwo-Export (Fahrplan 11).
    *  Kommt von PlanningPage (useCadenceTarget, nur bei eigenem Login);
    *  Default 90 = CADENCE_TARGET_RPM. */
@@ -265,7 +265,12 @@ export function WeekGridDetailRow({
 
     setPushing(true);
     setPushResult(null);
-    const result = await onPush(card.id, intervalsCredentials.apiKey, intervalsCredentials.athleteId);
+    const result = await onPush(
+      card.id,
+      intervalsCredentials.apiKey,
+      intervalsCredentials.athleteId,
+      sessionGuideExportText(card, cadenceTarget),
+    );
     setPushing(false);
     setPushResult(
       result.ok
@@ -280,7 +285,7 @@ export function WeekGridDetailRow({
    *  unterscheidet sich je Auswahl. */
   function handleExport(target: "zwift" | "mywhoosh") {
     closeExportMenu();
-    const built = buildZwoWorkout(card, cadenceTarget);
+    const built = buildZwoWorkout(card, cadenceTarget, sessionGuideExportText(card, cadenceTarget));
     if (!built.ok) {
       setExportResult({ ok: false, message: "❌ " + built.error.message });
       return;

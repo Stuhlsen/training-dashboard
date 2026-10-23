@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildSessionGuideView, guideWeightKg } from "./session-guide-view-model";
+import { buildSessionGuideView, guideWeightKg, sessionGuideExportText } from "./session-guide-view-model";
 import type { PlanCard } from "../../api/types";
 
 function card(overrides: Partial<PlanCard> = {}): PlanCard {
@@ -112,5 +112,27 @@ describe("guideWeightKg", () => {
 
   it("liefert null ohne jede Gewichtsquelle", () => {
     expect(guideWeightKg({ isSelf: true, wellness: [], profileWeightKg: null, todayISO: "2026-10-23" })).toBeNull();
+  });
+});
+
+describe("sessionGuideExportText", () => {
+  it("baut den Klartext: Ziel, RPE, Cue, Kadenz, Essen", () => {
+    const text = sessionGuideExportText(card(), 90);
+    expect(text).toMatch(/^Ziel: /);
+    expect(text).toMatch(/\nRPE \d+(–\d+)?: /);
+    expect(text).toContain("\nKadenz: ");
+    expect(text).toContain("\nEssen während: ");
+  });
+
+  it("nennt nie eine persönliche Gramm-Zahl und keine Markdown-Zeichen", () => {
+    const text = sessionGuideExportText(card({ durationMin: 200 }), 90);
+    expect(text).not.toMatch(/bei dir|Körpergewicht/);
+    expect(text).not.toMatch(/[*_`#]/);
+  });
+
+  it("liefert leeren String ohne Guide (unbekannter Typ, Lauf, abgesagt)", () => {
+    expect(sessionGuideExportText(card({ typ: "Irgendwas" }), 90)).toBe("");
+    expect(sessionGuideExportText(card({ sport: "run" }), 90)).toBe("");
+    expect(sessionGuideExportText(card({ cancelled: true }), 90)).toBe("");
   });
 });

@@ -49,7 +49,12 @@ function isBlockWorkout(w: unknown): w is BlockWorkout {
   return !!w && typeof w === "object" && Array.isArray((w as BlockWorkout).blocks);
 }
 
-function legacyDescription(w: LegacyWorkout, details: string | null | undefined, cadenceTarget: number): string {
+function legacyDescription(
+  w: LegacyWorkout,
+  details: string | null | undefined,
+  cadenceTarget: number,
+  guideText: string,
+): string {
   // Kadenz-rpm NUR bei echtem Intervallsatz (>1 Wiederholung). Warmup `T-5`,
   // Intervalle `T`, Pausen + Cooldown `T-10` — Abstand aus dem Athleten-
   // Kadenzziel (Fahrplan 11, useCadenceTarget). Eine freie Ein-Block-Fahrt
@@ -74,7 +79,7 @@ function legacyDescription(w: LegacyWorkout, details: string | null | undefined,
   lines.push(`- ${w.cooldown}m 50%-40%${rpm(cadenceTarget - 10)}`);
 
   const workoutText = lines.join("\n");
-  const label = w.label + (details ? `\n${details}` : "");
+  const label = withGuide(w.label + (details ? `\n${details}` : ""), guideText);
   return `${label}\n\n${workoutText}`;
 }
 
@@ -97,9 +102,17 @@ function blockDescription(blocks: WorkoutBlock[], details?: string | null): stri
   return details ? `${details}\n\n${text}` : text;
 }
 
+/** Guide-Klartext (Fahrplan 34, E5) direkt unter den Kopf (Label/details), vor
+ *  den Workout-Schritten. Leer → Kopf unverändert. */
+function withGuide(head: string, guideText: string): string {
+  if (!guideText) return head;
+  return head ? `${head}\n\n${guideText}` : guideText;
+}
+
 function buildDescription(
   card: Pick<PlanCard, "workout" | "workoutStructure" | "details" | "name">,
   cadenceTarget: number,
+  guideText: string,
 ): Result<{ description: string }> {
   // Generator-Karten: die genaue Struktur gilt vor der groben `workout`-Form
   // (Over-Under/30-15 sind dort nicht abbildbar, s. core/workout-structure-format.js).
@@ -107,7 +120,7 @@ function buildDescription(
   if (structure) {
     const label = (card.workout as { label?: string } | null)?.label ?? card.name ?? "";
     const head = label + (card.details ? `\n${card.details}` : "");
-    return { ok: true, description: `${head}\n\n${structureIntervalsText(structure, cadenceTarget)}` };
+    return { ok: true, description: `${withGuide(head, guideText)}\n\n${structureIntervalsText(structure, cadenceTarget)}` };
   }
   const w = card.workout;
   if (!w) {
@@ -118,7 +131,7 @@ function buildDescription(
       return { ok: false, error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" } };
     }
     // Freitext-Blöcke tragen keine rpm-Zahl — cadenceTarget wirkt hier nicht.
-    return { ok: true, description: blockDescription(w.blocks, card.details) };
+    return { ok: true, description: blockDescription(w.blocks, withGuide(card.details ?? "", guideText)) };
   }
   const legacy = w as LegacyWorkout;
   // Altes Format: intervals.icu-Workout-Text braucht %FTP (pct) — nicht
@@ -129,21 +142,24 @@ function buildDescription(
       error: { code: "NO_DATA", message: "Workout ohne %FTP-Angabe (pct) — Push nicht möglich" },
     };
   }
-  return { ok: true, description: legacyDescription(legacy, card.details, cadenceTarget) };
+  return { ok: true, description: legacyDescription(legacy, card.details, cadenceTarget, guideText) };
 }
 
 /** Pusht das Workout einer Karte als Kalender-Event zu intervals.icu.
  *  `card` trägt das bereits aufgelöste Datum (inkl. Verschiebung).
  *  `cadenceTarget` ist das Intervall-Kadenzziel des Athleten (Fahrplan 11);
  *  der Aufrufer reicht es aus useCadenceTarget durch, Default in der Kette
- *  ist DEFAULT_CADENCE_TARGET_RPM (90). */
+ *  ist DEFAULT_CADENCE_TARGET_RPM (90). `guideText` ist der fertige Guide-
+ *  Klartext (Fahrplan 34, E5), den die Aufrufstelle baut; er landet unter
+ *  `details` in der description, leer = unverändert. */
 export async function pushCardWorkout(
   card: PlanCard,
   token: string,
   athleteId: string,
   cadenceTarget = 90,
+  guideText = "",
 ): Promise<Result> {
-  const built = buildDescription(card, cadenceTarget);
+  const built = buildDescription(card, cadenceTarget, guideText);
   if (!built.ok) return built;
 
   const event = {

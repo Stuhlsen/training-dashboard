@@ -214,3 +214,31 @@ test("canExportCardZwo: Strukturkarte auch ohne numerisches workout exportierbar
   assert.equal(canExportCardZwo({ workout: NUMERIC_CARD.workout, workoutStructure: null }), true);
   assert.equal(canExportCardZwo({ workout: { blocks: [] }, workoutStructure: null }), false);
 });
+
+const GUIDE = "Ziel: Schwelle – sauber & ruhig.\nRPE 7–8: hart, aber kontrolliert.";
+
+test("buildZwoWorkout: Guide-Text steht nach details, getrennt durch eine Leerzeile", () => {
+  const result = buildZwoWorkout(NUMERIC_CARD, 90, GUIDE);
+  assert.equal(result.ok, true);
+  assert.match(result.xml, /<description>SS-Erhaltung\n\nZiel: Schwelle – sauber &amp; ruhig\.\nRPE 7–8: hart, aber kontrolliert\.<\/description>/);
+});
+
+test("buildZwoWorkout: Guide-Text ohne details steht allein in der description", () => {
+  const result = buildZwoWorkout({ ...NUMERIC_CARD, details: null }, 90, GUIDE);
+  assert.match(result.xml, /<description>Ziel: Schwelle/);
+});
+
+test("buildZwoWorkout: ohne Guide-Text (fehlt / leer) byte-gleich wie bisher", () => {
+  const base = buildZwoWorkout(NUMERIC_CARD, 90);
+  assert.equal(buildZwoWorkout(NUMERIC_CARD, 90, "").xml, base.xml);
+  assert.equal(buildZwoWorkout(NUMERIC_CARD, 90, undefined).xml, base.xml);
+  assert.match(base.xml, /<description>SS-Erhaltung<\/description>/);
+});
+
+test("buildZwoWorkout: Guide-Text ändert nur die description, Strukturkarte inklusive", () => {
+  const plain = buildZwoWorkout(OVER_UNDER_CARD, 90).xml;
+  const withGuide = buildZwoWorkout(OVER_UNDER_CARD, 90, GUIDE).xml;
+  assert.notEqual(plain, withGuide);
+  const strip = (xml) => xml.replace(/<description>[\s\S]*?<\/description>/, "");
+  assert.equal(strip(withGuide), strip(plain));
+});

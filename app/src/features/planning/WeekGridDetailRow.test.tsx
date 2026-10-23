@@ -130,8 +130,21 @@ describe("WeekGridDetailRow — Verschieben/Ausfallen/Push-Verdrahtung", () => {
         intervalsCredentials: CREDENTIALS,
       });
       fireEvent.click(screen.getByText("📤 Auf Wahoo pushen"));
-      await vi.waitFor(() => expect(onPush).toHaveBeenCalledWith("d", "token-abc", "i123"));
+      await vi.waitFor(() =>
+        expect(onPush).toHaveBeenCalledWith("d", "token-abc", "i123", expect.stringMatching(/^Ziel: /)),
+      );
       await screen.findByText("✅ Gepusht!");
+    });
+
+    it("reicht für eine Karte ohne Guide einen leeren Guide-Text durch", async () => {
+      const onPush = vi.fn().mockResolvedValue({ ok: true });
+      renderRow(card({ id: "e", typ: "Irgendwas", workout: { blocks: [] } }), {
+        canPush: true,
+        onPush,
+        intervalsCredentials: CREDENTIALS,
+      });
+      fireEvent.click(screen.getByText("📤 Auf Wahoo pushen"));
+      await vi.waitFor(() => expect(onPush).toHaveBeenCalledWith("e", "token-abc", "i123", ""));
     });
 
     it("zeigt den Push-Button nicht ohne canPush", () => {

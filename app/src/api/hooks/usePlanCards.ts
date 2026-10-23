@@ -463,11 +463,11 @@ export function usePushPlanCard(athleteId: string) {
   const cadenceTarget = isSelf ? ownCadenceTarget : 90;
 
   const push = useCallback(
-    async (id: string, token: string, intervalsAthleteId: string): Promise<Result> => {
+    async (id: string, token: string, intervalsAthleteId: string, guideText = ""): Promise<Result> => {
       const card = snapshot().find((c) => c.id === id);
       if (!card) return { ok: false, error: CARD_NOT_FOUND };
 
-      const result = await pushCardWorkout(card, token, intervalsAthleteId, cadenceTarget);
+      const result = await pushCardWorkout(card, token, intervalsAthleteId, cadenceTarget, guideText);
       if (!result.ok) return result;
 
       try {
