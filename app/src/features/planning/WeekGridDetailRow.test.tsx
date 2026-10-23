@@ -130,8 +130,21 @@ describe("WeekGridDetailRow — Verschieben/Ausfallen/Push-Verdrahtung", () => {
         intervalsCredentials: CREDENTIALS,
       });
       fireEvent.click(screen.getByText("📤 Auf Wahoo pushen"));
-      await vi.waitFor(() => expect(onPush).toHaveBeenCalledWith("d", "token-abc", "i123"));
+      await vi.waitFor(() =>
+        expect(onPush).toHaveBeenCalledWith("d", "token-abc", "i123", expect.stringMatching(/^Ziel: /)),
+      );
       await screen.findByText("✅ Gepusht!");
+    });
+
+    it("reicht für eine Karte ohne Guide einen leeren Guide-Text durch", async () => {
+      const onPush = vi.fn().mockResolvedValue({ ok: true });
+      renderRow(card({ id: "e", typ: "Irgendwas", workout: { blocks: [] } }), {
+        canPush: true,
+        onPush,
+        intervalsCredentials: CREDENTIALS,
+      });
+      fireEvent.click(screen.getByText("📤 Auf Wahoo pushen"));
+      await vi.waitFor(() => expect(onPush).toHaveBeenCalledWith("e", "token-abc", "i123", ""));
     });
 
     it("zeigt den Push-Button nicht ohne canPush", () => {
@@ -170,6 +183,18 @@ describe("WeekGridDetailRow — Verschieben/Ausfallen/Push-Verdrahtung", () => {
         { canPush: true },
       );
       expect(screen.queryByTitle("Trainingsdatei für Zwift oder MyWhoosh herunterladen")).toBeNull();
+    });
+
+    it("Lauf- und Schwimmkarten bekommen weder .zwo-Export noch Wahoo-Push (Fahrplan 34 Q16)", () => {
+      for (const [id, sport, typ] of [
+        ["z1", "run", "Tempolauf"],
+        ["z2", "swim", "Intervalle"],
+      ] as const) {
+        renderRow(card({ id, sport, typ, workout: NUMERIC_WORKOUT }), { canPush: true, onPush: vi.fn() });
+        expect(screen.queryByTitle("Trainingsdatei für Zwift oder MyWhoosh herunterladen")).toBeNull();
+        expect(screen.queryByText("📤 Auf Wahoo pushen")).toBeNull();
+        cleanup();
+      }
     });
 
     it("löst bei numerischem Workout einen Zwift-Download aus und zeigt den Zielordner-Hinweis", async () => {
@@ -232,5 +257,90 @@ describe("WeekGridDetailRow — Ruhetag-gefahren-Hinweis", () => {
   it("zeigt keinen Hinweis-Chip für einen nicht gefahrenen Ruhetag", () => {
     renderRow(card({ id: "g", typ: "Ruhetag", date: TODAY }), { rides: [] });
     expect(screen.queryByText("1 Hinweis")).toBeNull();
+  });
+});
+
+describe("WeekGridDetailRow — Trainings-Guide (Fahrplan 34 E3)", () => {
+  const long = { durationMin: 120 };
+
+  it("zeigt die Zielzeile sofort, den Rest eingeklappt", () => {
+    const { container } = renderRow(card({ id: "g1", ...long }));
+    const guide = container.querySelector("[data-session-guide]")!;
+    expect(guide.textContent).toMatch(/Ziel/);
+    const details = guide.querySelector("details")!;
+    expect(details.open).toBe(false);
+    expect(screen.getByText("Warum & wie")).toBeTruthy();
+  });
+
+  it("enthält RPE-Band im Titel und die Quelle im aufklappbaren Teil", () => {
+    const { container } = renderRow(card({ id: "g2", ...long }));
+    expect(container.textContent).toMatch(/RPE \d+(–\d+)?/);
+    expect(container.textContent).toMatch(/Eigene Setzung/);
+  });
+
+  it("zeigt die Gramm-Zahl nur mit Gewicht", () => {
+    const withWeight = renderRow(card({ id: "g3", ...long }), { weightKg: 70 });
+    expect(withWeight.container.textContent).toMatch(/bei dir ca\. 70–280 g/);
+    cleanup();
+    const without = renderRow(card({ id: "g4", ...long }));
+    expect(without.container.textContent).not.toMatch(/bei dir/);
+    expect(without.container.textContent).toMatch(/1–4 g KH pro kg/);
+  });
+
+  it("rendert nichts bei Karten ohne Guide (unbekannter Typ, Rekom)", () => {
+    const unknown = renderRow(card({ id: "g5", typ: "Irgendwas" }));
+    expect(unknown.container.querySelector("[data-session-guide]")).toBeNull();
+    cleanup();
+    const run = renderRow(card({ id: "g6", sport: "run", typ: "Rekom" }));
+    expect(run.container.querySelector("[data-session-guide]")).toBeNull();
+  });
+
+  it("zeigt den Guide auch für Lauf- und Schwimmkarten (E6)", () => {
+    const run = renderRow(card({ id: "g8", sport: "run", typ: "Tempolauf", durationMin: 50 }));
+    const runGuide = run.container.querySelector("[data-session-guide]")!;
+    expect(runGuide.textContent).toMatch(/Ziel/);
+    expect(runGuide.textContent).toMatch(/Schrittfrequenz/);
+    expect(runGuide.textContent).not.toMatch(/Kadenz/);
+    cleanup();
+    const swim = renderRow(card({ id: "g9", sport: "swim", typ: "Longswim", durationMin: 60 }));
+    const swimGuide = swim.container.querySelector("[data-session-guide]")!;
+    expect(swimGuide.textContent).toMatch(/So schwimmst du es/);
+    expect(swimGuide.textContent).not.toMatch(/Kadenz|Schrittfrequenz|Essen während/);
+  });
+
+  it("zeigt bei ausgefallenen Karten keinen Guide", () => {
+    const { container } = renderRow(card({ id: "g7", cancelled: true, ...long }));
+    expect(container.querySelector("[data-session-guide]")).toBeNull();
+  });
+});
+
+describe("WeekGridDetailRow — Ziel vs. Ist-RPE (Fahrplan 34 E7)", () => {
+  const long = { durationMin: 120, date: "2026-08-14" };
+
+  it("zeigt „Ziel … · gefahren N“, wenn die zugeordnete Fahrt ein RPE hat", () => {
+    const ride = { date: "2026-08-14", dataSource: "intervals", rpe: 8 } as never;
+    const { container } = renderRow(card({ id: "r1", ...long }), { rides: [ride] });
+    expect(container.querySelector("[data-session-guide]")!.textContent).toMatch(/Ziel \d(–\d)? · gefahren 8/);
+  });
+
+  it("ohne Ist-RPE bleibt es bei der Zielzeile", () => {
+    const ride = { date: "2026-08-14", dataSource: "intervals", rpe: null } as never;
+    const { container } = renderRow(card({ id: "r2", ...long }), { rides: [ride] });
+    expect(container.textContent).not.toMatch(/gefahren \d/);
+  });
+
+  it("Fahrt eines anderen Tages zählt nicht", () => {
+    const ride = { date: "2026-08-13", dataSource: "intervals", rpe: 8 } as never;
+    const { container } = renderRow(card({ id: "r3", ...long }), { rides: [ride] });
+    expect(container.textContent).not.toMatch(/gefahren \d/);
+  });
+
+  it("nutzt die Hauptfahrt des Tages (wie die Compliance-Zuordnung), nicht Ein-/Ausrollen", () => {
+    const rides = [
+      { date: "2026-08-14", dataSource: "intervals", name: "Einrollen", tss: 5, durationMin: 10, rpe: 2 },
+      { date: "2026-08-14", dataSource: "intervals", name: "Rennen", tss: 90, durationMin: 120, rpe: 9 },
+    ] as never[];
+    const { container } = renderRow(card({ id: "r4", ...long }), { rides });
+    expect(container.textContent).toMatch(/gefahren 9/);
   });
 });

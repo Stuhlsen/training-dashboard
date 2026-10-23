@@ -66,6 +66,8 @@ import { DoneDetailChart } from "./DoneDetailChart";
 import { useIntervalsCredentials } from "../../api/hooks/useIntervalsCredentials";
 import { useCadenceTarget } from "../../api/hooks/useCadenceTarget";
 import { useProfileBasics } from "../../api/hooks/useProfile";
+import type { NutritionWellnessDay } from "../nutrition/nutrition-day-model";
+import { guideWeightKg } from "./session-guide-view-model";
 import { buildDoneRows, gapsChips, planFidelitySummary } from "./done-table-view-model";
 import {
   buildPlanningSections,
@@ -345,6 +347,14 @@ export function PlanningPage() {
 
   const forecast = (rideData?.forecast as Record<string, unknown> | undefined) ?? {};
   const wellness = (rideData?.wellness as WellnessDay[] | undefined) ?? [];
+  // Gewicht für „Essen vorher" (Fahrplan 34 E3): nur Eigenansicht, s. guideWeightKg.
+  const weightKg = guideWeightKg({
+    isSelf,
+    wellness: wellness as NutritionWellnessDay[],
+    profileWeightKg: profileBasics?.weightKg ?? null,
+    todayISO: TODAY,
+  });
+
   const plannedSessions = (rideData?.plannedSessions as PlannedSessionRef[] | undefined) ?? [];
   // Für TrainerBar (Etappe 7a) — die beiden useMemo-Blöcke oben halten ihr
   // eigenes, lokal geshadowtes `rides` bewusst unverändert, daher hier ein
@@ -812,6 +822,7 @@ export function PlanningPage() {
                           canPush={editable && !isTrainer}
                           onPush={push}
                           cadenceTarget={cadenceTarget}
+                          weightKg={weightKg}
                           intervalsCredentials={intervalsCredentials}
                           trainerProposalMode={trainerProposalMode}
                           rides={allRides}

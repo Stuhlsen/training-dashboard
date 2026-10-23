@@ -45,6 +45,7 @@ import {
 } from "../../core/ftp-progress.js";
 import { computeZones, sweetSpotBand, whatIfScaleMax } from "../../core/zones.js";
 import { sportProfileFor } from "../../sports";
+import { buildSessionGuideView } from "../planning/session-guide-view-model";
 import { currentFtpEntry } from "../../core/ftp-history.js";
 import {
   durDe,
@@ -220,6 +221,12 @@ export interface HeroSession {
    *  geparst, das bleibt Freitext in `detailParts`. */
   chips: string[];
   detailParts: string[];
+  /** Fahrplan 34 E4: Ziel-Zeile und Ziel-RPE ("RPE 6–7") aus dem Trainings-
+   *  Guide — null ohne Guide (unbekannter Typ, Rekom), dann
+   *  rendert SessionCard.tsx nichts. Bewusst nur diese zwei Felder: kein
+   *  Gewicht, kein Fueling, keine Quellen (Q4). */
+  guideGoal: string | null;
+  guideRpe: string | null;
 }
 
 /** "Wetter · heute" — bewusst immer HEUTE (nicht ans Datum der nächsten
@@ -383,6 +390,8 @@ function buildSession(
         month: "2-digit",
       });
   const color = typeColor(next.typ);
+  // Goal und RPE hängen weder an Kadenz noch Gewicht — beides bleibt null.
+  const guide = buildSessionGuideView(next, { cadenceTarget: null, weightKg: null, ftp: ftpVal });
 
   // Ruhetage sind seit Fahrplan 6 (RUH2/RUH4) abgeleitet, keine Karten mehr —
   // `withoutNonTrainingCards()` oben entfernt migrierte Ruhetag-Alt-Karten
@@ -462,6 +471,8 @@ function buildSession(
     interval,
     chips,
     detailParts,
+    guideGoal: guide?.goal ?? null,
+    guideRpe: guide?.rpeLabel ?? null,
   };
 }
 

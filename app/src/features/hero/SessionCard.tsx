@@ -1,4 +1,5 @@
 import { GlassCard } from "../../components/GlassCard";
+import { InfoTooltip } from "../../components/InfoTooltip";
 import type { HeroSession } from "./hero-view-model";
 
 /** "Was steht heute an" — Port des Design-Canvas-Entwurfs vom 23.08.2026
@@ -41,6 +42,19 @@ export function SessionCard({ session, statusColor }: { session: HeroSession; st
           </span>
         )}
       </div>
+
+      {session.guideGoal && (
+        <p data-session-goal style={{ margin: 0, fontSize: ".86rem", lineHeight: 1.45, color: "var(--ink-2)" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: ".66rem", letterSpacing: ".1em", textTransform: "uppercase", color: "var(--ink-3)" }}>Ziel </span>
+          {session.guideGoal}
+          {session.guideRpe && (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: ".74rem", color: "var(--ink-3)", whiteSpace: "nowrap" }}>
+              {" · "}
+              <InfoTooltip termKey="rpe">{session.guideRpe}</InfoTooltip>
+            </span>
+          )}
+        </p>
+      )}
 
       {session.interval && (
         <>

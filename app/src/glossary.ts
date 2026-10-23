@@ -38,6 +38,10 @@ export const GLOSSARY = {
     title: "TSS — Trainingsbelastung",
     text: "Belastungspunkte einer Einheit aus Intensität und Dauer; eine Stunde exakt an der FTP ergibt 100.",
   },
+  rpe: {
+    title: "RPE — gefühlte Anstrengung",
+    text: "Wie hart sich die Einheit anfühlt, von 1 (sehr leicht) bis 10 (volle Kraft). Hilft, wenn Watt oder Puls mal nicht passen.",
+  },
   trimp: {
     title: "TRIMP",
     text: "Herzfrequenz-basiertes Belastungsmaß pro Einheit — die Alternative zur wattbasierten TSS.",

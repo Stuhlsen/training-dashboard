@@ -9,6 +9,12 @@ describe("glossaryEntry", () => {
     expect(e?.text.length).toBeGreaterThan(0);
   });
 
+  it("erklärt RPE für Einsteiger mit der Skala 1–10", () => {
+    const e = glossaryEntry("rpe");
+    expect(e?.title).toMatch(/RPE/);
+    expect(e?.text).toMatch(/1.*10/);
+  });
+
   it("liefert null für unbekannte Keys und den Leerstring", () => {
     expect(glossaryEntry("gibt-es-nicht")).toBeNull();
     expect(glossaryEntry("")).toBeNull();

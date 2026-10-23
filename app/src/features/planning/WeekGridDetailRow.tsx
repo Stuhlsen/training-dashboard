@@ -13,12 +13,15 @@ import { LegacyWorkoutTimeline } from "./LegacyWorkoutTimeline";
 import { RecoveryBlock } from "./RecoveryBlock";
 import { WeatherBadge } from "./WeatherBadge";
 import { Z2Block } from "./Z2Block";
+import { SessionGuide } from "./SessionGuide";
+import { buildSessionGuideView, sessionGuideExportText } from "./session-guide-view-model";
 import {
   asWorkoutBlocks,
   doneDatesOf,
   isRecoveryType,
   isRestDay,
   isZ2Type,
+  matchRideForCard,
   cardWorkoutTimeline,
   planTypeTermKey,
   typeColor,
@@ -103,11 +106,15 @@ export interface WeekGridDetailRowProps {
   /** Push bleibt athletenexklusiv, wie in PlanCard.tsx — Trainer sehen den
    *  Button nicht (canPush wird an der Aufrufstelle entsprechend gesetzt). */
   canPush?: boolean;
-  onPush?: (id: string, token: string, athleteId: string) => Promise<Result>;
+  onPush?: (id: string, token: string, athleteId: string, guideText: string) => Promise<Result>;
   /** Intervall-Kadenzziel des Athleten für den .zwo-Export (Fahrplan 11).
    *  Kommt von PlanningPage (useCadenceTarget, nur bei eigenem Login);
    *  Default 90 = CADENCE_TARGET_RPM. */
   cadenceTarget?: number;
+  /** Körpergewicht für die persönliche Gramm-Zahl unter „Essen vorher" —
+   *  nur gesetzt, wo der Ernährungs-Tab das Gewicht auch zeigt (eigene
+   *  Ansicht). Ohne Wert steht dort nur „1–4 g KH pro kg". */
+  weightKg?: number | null;
   /** intervals.icu-Zugangsdaten des eingeloggten Users (Settings,
    *  Migration 0019) — `null` ohne hinterlegte Werte. Ersetzt das frühere
    *  localStorage/window.prompt()-Muster. */
@@ -155,6 +162,7 @@ export function WeekGridDetailRow({
   canPush,
   onPush,
   cadenceTarget = 90,
+  weightKg = null,
   intervalsCredentials,
   trainerProposalMode,
   rides,
@@ -258,7 +266,12 @@ export function WeekGridDetailRow({
 
     setPushing(true);
     setPushResult(null);
-    const result = await onPush(card.id, intervalsCredentials.apiKey, intervalsCredentials.athleteId);
+    const result = await onPush(
+      card.id,
+      intervalsCredentials.apiKey,
+      intervalsCredentials.athleteId,
+      sessionGuideExportText(card, cadenceTarget),
+    );
     setPushing(false);
     setPushResult(
       result.ok
@@ -273,7 +286,7 @@ export function WeekGridDetailRow({
    *  unterscheidet sich je Auswahl. */
   function handleExport(target: "zwift" | "mywhoosh") {
     closeExportMenu();
-    const built = buildZwoWorkout(card, cadenceTarget);
+    const built = buildZwoWorkout(card, cadenceTarget, sessionGuideExportText(card, cadenceTarget));
     if (!built.ok) {
       setExportResult({ ok: false, message: "❌ " + built.error.message });
       return;
@@ -334,6 +347,12 @@ export function WeekGridDetailRow({
   );
   const dayForecast = forecast[card.date] as DayForecast | undefined;
   const hasLegacyTimeline = !!cardWorkoutTimeline(card, ftp);
+  // Fahrplan 34 E3/E6: kein Guide (unbekannter Typ, Rekom) → nichts rendern.
+  // E7: Ist-RPE aus derselben Zuordnung wie die Compliance-Tabelle (matchRideForCard).
+  const actualRpe = matchRideForCard(rides, card, canEdit)?.rpe ?? null;
+  const guideView = card.cancelled
+    ? null
+    : buildSessionGuideView(card, { cadenceTarget, weightKg, ftp: ftp ?? null, actualRpe });
 
   return (
     <div
@@ -572,6 +591,8 @@ export function WeekGridDetailRow({
         card.details &&
         !(isZ2Type(card.typ) && card.km) &&
         !isRecoveryType(card.typ) && <div style={{ fontSize: ".8rem", color: "var(--ink-2)" }}>{card.details}</div>}
+
+      {guideView && <SessionGuide view={guideView} />}
 
       {openForm === "move" && (
         <form

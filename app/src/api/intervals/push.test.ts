@@ -119,3 +119,68 @@ describe("pushCardWorkout — Generator-Karte mit genauer workout_structure", ()
     expect(sentDescription(spy)).not.toContain("105%");
   });
 });
+
+describe("pushCardWorkout — Guide-Text (Fahrplan 34, E5)", () => {
+  const GUIDE = "Ziel: Schwelle halten.\nRPE 7–8: hart, aber kontrolliert.";
+
+  test("Legacy-Karte: Guide steht nach details, vor dem Workout-Text", async () => {
+    const spy = stubFetchOk();
+    const card = { ...LEGACY_CARD, details: "Notiz" } as PlanCard;
+    await pushCardWorkout(card, "tok", "i123", 90, GUIDE);
+    const d = sentDescription(spy);
+    expect(d.startsWith(`3×8 @ 83–90%\nNotiz\n\n${GUIDE}\n\nWarmup\n`)).toBe(true);
+  });
+
+  test("Blockform: Guide steht nach details, vor den Blöcken", async () => {
+    const spy = stubFetchOk();
+    const card = {
+      ...LEGACY_CARD,
+      details: "Notiz",
+      workout: { blocks: [{ type: "interval", text: "3x10 frei" }] },
+    } as unknown as PlanCard;
+    await pushCardWorkout(card, "tok", "i123", 90, GUIDE);
+    expect(sentDescription(spy)).toBe(`Notiz\n\n${GUIDE}\n\nMain Set\n- 3x10 frei`);
+  });
+
+  test("Blockform ohne details: Guide steht vorn", async () => {
+    const spy = stubFetchOk();
+    const card = { ...LEGACY_CARD, workout: { blocks: [{ type: "interval", text: "x" }] } } as unknown as PlanCard;
+    await pushCardWorkout(card, "tok", "i123", 90, GUIDE);
+    expect(sentDescription(spy)).toBe(`${GUIDE}\n\nMain Set\n- x`);
+  });
+
+  test("Strukturkarte: Guide nach Kopf, vor den Segmenten", async () => {
+    const spy = stubFetchOk();
+    const card = {
+      ...LEGACY_CARD,
+      details: "Notiz",
+      workout: { ...(LEGACY_CARD.workout as object), label: "OU" },
+      workoutStructure: {
+        version: 1,
+        steps: [
+          { kind: "warmup", duration_s: 900, target_pct_ftp: 55 },
+          { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+        ],
+      },
+    } as unknown as PlanCard;
+    await pushCardWorkout(card, "tok", "i123", 90, GUIDE);
+    expect(sentDescription(spy).startsWith(`OU\nNotiz\n\n${GUIDE}\n\n`)).toBe(true);
+  });
+
+  test("ohne Guide-Text (fehlt / leer): Beschreibung byte-gleich wie bisher", async () => {
+    const spy = stubFetchOk();
+    await pushCardWorkout(LEGACY_CARD, "tok", "i123", 90);
+    const base = sentDescription(spy);
+    for (const g of ["", undefined]) {
+      const s = stubFetchOk();
+      await pushCardWorkout(LEGACY_CARD, "tok", "i123", 90, g);
+      expect(sentDescription(s)).toBe(base);
+    }
+  });
+
+  test("Karte ohne Workout bleibt NO_DATA, auch mit Guide", async () => {
+    stubFetchOk();
+    const res = await pushCardWorkout({ ...LEGACY_CARD, workout: null } as unknown as PlanCard, "t", "i", 90, GUIDE);
+    expect(res.ok).toBe(false);
+  });
+});
