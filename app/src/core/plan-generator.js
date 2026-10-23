@@ -27,7 +27,7 @@
    dorthin umziehen / von dort re-exportieren.
    ============================================================ */
 
-import { addDaysISO, diffDays } from "./format.js";
+import { addDaysISO, diffDays, fmtMinutesShort } from "./format.js";
 import { isoWeekKey } from "./aggregate.js";
 import { avg } from "./stats.js";
 import { CTL_DAYS, ATL_DAYS } from "./pmc.js";
@@ -572,6 +572,9 @@ const FIXED_DAY_PROFILE = {
   locker: { pctBand: [60, 70], assumedIF: 0.65 },
 };
 
+/** Feste Typen, deren Kartenname die Dauer trägt statt des Typs. */
+const Z2_FIXED_TYPES = new Set(["Z2 Lang", "Z2 Dauer"]);
+
 /** Grenzen der optionalen Dauer eines festen Tags (V2, Fahrplan 32 E2) — gleiche
  *  Spanne wie die Formularvalidierung. */
 export const FIXED_DURATION_MIN_MIN = 15;
@@ -599,6 +602,9 @@ function fixedDayCard(typ, ftp, fixedMin) {
   const tssPlanned = hasFixedMin ? Math.round((durationMin / 60) * 100 * profile.assumedIF ** 2) : defaultTss;
   const pct = profile.pctBand;
   const watts = ftp != null ? [Math.round((pct[0] / 100) * ftp), Math.round((pct[1] / 100) * ftp)] : undefined;
+  // Z2-Tage heißen nach ihrer Dauer ("Z2 · 60 min") statt nach dem gewählten
+  // Typ — der Typ bleibt unverändert (Stats/Matching/Altdaten).
+  const name = Z2_FIXED_TYPES.has(typ) ? `Z2 · ${fmtMinutesShort(durationMin)}` : typ;
   const workout = {
     warmup: 0,
     intervals: 1,
@@ -608,13 +614,13 @@ function fixedDayCard(typ, ftp, fixedMin) {
     zone: typ,
     pct,
     ...(watts ? { watts } : {}),
-    label: typ,
+    label: name,
   };
   const workoutStructure = {
     version: 1,
     steps: [{ kind: "steady", duration_s: durationMin * 60, target_pct_ftp: Math.round((pct[0] + pct[1]) / 2) }],
   };
-  return { name: typ, typ, workout, workoutStructure, tssPlanned, durationMin };
+  return { name, typ, workout, workoutStructure, tssPlanned, durationMin };
 }
 
 /**

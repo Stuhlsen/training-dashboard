@@ -16,7 +16,7 @@
    `sport: "run"`/`"swim"` ist kein Programmierfehler mehr.
    ============================================================ */
 
-import { diffDays } from "./format.js";
+import { diffDays, fmtMinutesShort } from "./format.js";
 import { estimateSessionTSS } from "./ftp-progress.js";
 import { TYPE_DEFAULT_TSS } from "../sports/cycling/session-types.js";
 import { selectWorkout } from "./plan-workout-select.js";
@@ -60,6 +60,9 @@ function z2Workout(minutes, ftp, strategy) {
   const min = Math.max(20, Math.round(minutes));
   const pct = /** @type {[number,number]} */ ([60, 70]);
   const isLong = min >= 150;
+  // Der sichtbare Name folgt der Dauer ("Z2 · 60 min"), der interne `typ`
+  // bleibt Lang/Dauer — Stats, Matching und Altdaten hängen daran.
+  const name = `Z2 · ${fmtMinutesShort(min)}`;
   const band = strategy.wattBand(pct, ftp);
   const workout = {
     warmup: 0,
@@ -70,14 +73,14 @@ function z2Workout(minutes, ftp, strategy) {
     zone: "Z2",
     pct,
     ...(band ? { watts: band } : {}),
-    label: isLong ? "Z2 Lang" : "Z2 Dauer",
+    label: name,
   };
   const workoutStructure = {
     version: 1,
     steps: [{ kind: "steady", duration_s: min * 60, target_pct_ftp: 65 }],
   };
   return {
-    name: isLong ? "Z2 Lang" : "Z2 Dauer",
+    name,
     typ: isLong ? "Z2 Lang" : "Z2 Dauer",
     workout,
     workoutStructure,

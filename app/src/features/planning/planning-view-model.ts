@@ -545,6 +545,15 @@ export function cardWorkoutTimeline(
   };
 }
 
+/** Anzeigename eines Kartentyps (Badge): beide Z2-Typen als "Z2" — der
+ *  Kartenname trägt die Dauer ("Z2 · 60 min"). Der Typ selbst bleibt
+ *  unverändert (Stats, Matching). Die Analyse zeigt weiter "Z2 Lang"/
+ *  "Z2 Dauer": dort sind das die Einstufungen gefahrener Fahrten. */
+export function typeLabel(typ: string | null | undefined): string {
+  if (typ === "Z2 Lang" || typ === "Z2 Dauer") return "Z2";
+  return typ ?? "—";
+}
+
 /** 1:1 aus ui/planned.js::_renderCard Z. 931/934. */
 export function isZ2Type(typ: string | null): boolean {
   return typ === "Z2 Lang" || typ === "Z2 Dauer";

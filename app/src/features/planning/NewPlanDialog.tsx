@@ -49,10 +49,12 @@ import {
   defaultFormState,
   FOCUS_DESCRIPTIONS,
   FOCUS_LABELS,
+  FIXED_DAY_OPTIONS,
   FIXED_DAY_TYPES,
   FIXED_DURATION_MAX_MIN,
   FIXED_DURATION_MIN_MIN,
   FIXED_INTERVAL_TYP,
+  fixedDayPickerValue,
   formFromLastPlan,
   ftpTestNote,
   LEVEL_DESCRIPTIONS,
@@ -740,12 +742,12 @@ export function NewPlanDialog({ athleteId, onClose, onCreated }: NewPlanDialogPr
                         </select>
                         <select
                           style={{ ...FIELD_STYLE, width: "auto", flex: 1, minWidth: 120 }}
-                          value={fd.typ}
+                          value={fixedDayPickerValue(fd.typ)}
                           onChange={(e) => updateFixedDay(i, { typ: e.target.value })}
                         >
-                          {FIXED_DAY_TYPES.map((t) => (
-                            <option key={t} value={t}>
-                              {t === FIXED_INTERVAL_TYP ? "Intervalle (passend zur Phase)" : t}
+                          {FIXED_DAY_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>
+                              {o.label}
                             </option>
                           ))}
                         </select>

@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildGeneratorInput,
   defaultFormState,
+  FIXED_DAY_OPTIONS,
+  FIXED_DAY_TYPES,
   FIXED_INTERVAL_TYP,
+  fixedDayPickerValue,
   FOCUS_DESCRIPTIONS,
   formFromLastPlan,
   ftpTestAutoReason,
@@ -15,6 +18,7 @@ import {
   planSummaryRows,
   resolveHasIndoorTrainer,
   resolveMeasuredFtp,
+  savedFixedDays,
   suggestModel,
   type NewPlanFormState,
   type PlanFocus,
@@ -621,5 +625,48 @@ describe("formFromLastPlan (Fahrplan 32 E6, PF17)", () => {
     const form = formFromLastPlan(plan);
     expect(form.fixedDays).toEqual([]);
     expect(form).not.toHaveProperty("dayEnvironment");
+  });
+});
+
+describe("Feste Tage: ein Z2-Eintrag statt Lang/Dauer", () => {
+  it("Picker bietet genau einen Z2-Eintrag (Wert \"Z2 Dauer\", Label \"Z2\"), kein \"Z2 Lang\"", () => {
+    const z2 = FIXED_DAY_OPTIONS.filter((o) => o.value.startsWith("Z2"));
+    expect(z2).toEqual([{ value: "Z2 Dauer", label: "Z2" }]);
+    expect(FIXED_DAY_OPTIONS.some((o) => o.value === "Z2 Lang")).toBe(false);
+  });
+
+  it("Picker enthält sonst alle festen Typen, Intervall-Platzhalter mit Erklärung", () => {
+    const values = FIXED_DAY_OPTIONS.map((o) => o.value);
+    expect(values).toEqual(FIXED_DAY_TYPES.filter((t) => t !== "Z2 Lang"));
+    expect(FIXED_DAY_OPTIONS.find((o) => o.value === FIXED_INTERVAL_TYP)?.label).toBe("Intervalle (passend zur Phase)");
+  });
+
+  it("fixedDayPickerValue: \"Z2 Lang\" aus alten Formularen zeigt den Z2-Eintrag, alles andere bleibt", () => {
+    expect(fixedDayPickerValue("Z2 Lang")).toBe("Z2 Dauer");
+    expect(fixedDayPickerValue("Z2 Dauer")).toBe("Z2 Dauer");
+    expect(fixedDayPickerValue("Gruppenfahrt")).toBe("Gruppenfahrt");
+  });
+
+  const planWith = (fixedDays: unknown[]) =>
+    ({ params: { form: { fixedDays } } }) as unknown as TrainingPlan;
+
+  it("savedFixedDays: gespeichertes \"Z2 Lang\" ohne Minuten bekommt den früheren Standard sichtbar als Dauer, Typ bleibt", () => {
+    const out = savedFixedDays(planWith([{ weekday: 2, typ: "Z2 Lang", keepInRecoveryWeek: false }]));
+    expect(out).toEqual([{ weekday: 2, typ: "Z2 Lang", keepInRecoveryWeek: false, durationMin: 210 }]);
+  });
+
+  it("savedFixedDays: \"Z2 Lang\" mit Minuten, \"Z2 Dauer\" und andere Typen bleiben unverändert", () => {
+    const out = savedFixedDays(
+      planWith([
+        { weekday: 2, typ: "Z2 Lang", keepInRecoveryWeek: false, durationMin: 60 },
+        { weekday: 4, typ: "Z2 Dauer", keepInRecoveryWeek: true },
+        { weekday: 6, typ: "Gruppenfahrt", keepInRecoveryWeek: false },
+      ]),
+    );
+    expect(out).toEqual([
+      { weekday: 2, typ: "Z2 Lang", keepInRecoveryWeek: false, durationMin: 60 },
+      { weekday: 4, typ: "Z2 Dauer", keepInRecoveryWeek: true },
+      { weekday: 6, typ: "Gruppenfahrt", keepInRecoveryWeek: false },
+    ]);
   });
 });

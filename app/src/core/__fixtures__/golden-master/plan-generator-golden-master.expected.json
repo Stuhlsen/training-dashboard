@@ -69,7 +69,7 @@
           },
           {
             "date": "2026-09-08",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -91,7 +91,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -108,7 +108,7 @@
           },
           {
             "date": "2026-09-10",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -130,7 +130,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -271,7 +271,7 @@
           },
           {
             "date": "2026-09-15",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -293,7 +293,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -310,7 +310,7 @@
           },
           {
             "date": "2026-09-17",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -332,7 +332,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -473,7 +473,7 @@
           },
           {
             "date": "2026-09-22",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -495,7 +495,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -512,7 +512,7 @@
           },
           {
             "date": "2026-09-24",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -534,7 +534,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -619,7 +619,7 @@
         "cards": [
           {
             "date": "2026-09-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -641,7 +641,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -658,7 +658,7 @@
           },
           {
             "date": "2026-09-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -680,7 +680,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -697,7 +697,7 @@
           },
           {
             "date": "2026-10-01",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -719,7 +719,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -736,7 +736,7 @@
           },
           {
             "date": "2026-10-03",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:48 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -758,7 +758,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:48 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -843,7 +843,7 @@
           },
           {
             "date": "2026-10-06",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -865,7 +865,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -882,7 +882,7 @@
           },
           {
             "date": "2026-10-08",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -904,7 +904,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1045,7 +1045,7 @@
           },
           {
             "date": "2026-10-13",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:51 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -1067,7 +1067,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:51 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1084,7 +1084,7 @@
           },
           {
             "date": "2026-10-15",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:51 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -1106,7 +1106,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:51 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1253,7 +1253,7 @@
           },
           {
             "date": "2026-10-20",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -1275,7 +1275,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1292,7 +1292,7 @@
           },
           {
             "date": "2026-10-22",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -1314,7 +1314,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1419,7 +1419,7 @@
           },
           {
             "date": "2026-10-27",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 70 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -1441,7 +1441,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 70 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -1458,7 +1458,7 @@
           },
           {
             "date": "2026-10-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 70 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -1480,7 +1480,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 70 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -1497,7 +1497,7 @@
           },
           {
             "date": "2026-10-31",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:20 h",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -1519,7 +1519,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:20 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1604,7 +1604,7 @@
           },
           {
             "date": "2026-11-03",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:08 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -1626,7 +1626,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:08 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1643,7 +1643,7 @@
           },
           {
             "date": "2026-11-05",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:08 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -1665,7 +1665,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:08 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1812,7 +1812,7 @@
           },
           {
             "date": "2026-11-10",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:02 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -1834,7 +1834,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:02 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -1851,7 +1851,7 @@
           },
           {
             "date": "2026-11-12",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:02 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -1873,7 +1873,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:02 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -2020,7 +2020,7 @@
           },
           {
             "date": "2026-11-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:10 h",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW47",
@@ -2042,7 +2042,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:10 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -2059,7 +2059,7 @@
           },
           {
             "date": "2026-11-19",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:10 h",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW47",
@@ -2081,7 +2081,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:10 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -2180,7 +2180,7 @@
           },
           {
             "date": "2026-11-24",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 85 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW48",
@@ -2202,7 +2202,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 85 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2219,7 +2219,7 @@
           },
           {
             "date": "2026-11-26",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 85 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW48",
@@ -2241,7 +2241,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 85 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2506,7 +2506,7 @@
           },
           {
             "date": "2026-09-10",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 115 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -2524,7 +2524,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 115 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2541,7 +2541,7 @@
           },
           {
             "date": "2026-09-12",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 115 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -2559,7 +2559,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 115 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2692,7 +2692,7 @@
           },
           {
             "date": "2026-09-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 99 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -2710,7 +2710,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 99 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2727,7 +2727,7 @@
           },
           {
             "date": "2026-09-19",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 99 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -2745,7 +2745,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 99 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2826,7 +2826,7 @@
         "cards": [
           {
             "date": "2026-09-22",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 37 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -2844,7 +2844,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 37 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2861,7 +2861,7 @@
           },
           {
             "date": "2026-09-24",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 37 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -2879,7 +2879,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 37 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2896,7 +2896,7 @@
           },
           {
             "date": "2026-09-26",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 112 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -2914,7 +2914,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 112 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -2931,7 +2931,7 @@
           },
           {
             "date": "2026-09-27",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 37 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -2949,7 +2949,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 37 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3030,7 +3030,7 @@
           },
           {
             "date": "2026-10-01",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 105 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW40",
@@ -3048,7 +3048,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 105 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3065,7 +3065,7 @@
           },
           {
             "date": "2026-10-03",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 105 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW40",
@@ -3083,7 +3083,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 105 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3216,7 +3216,7 @@
           },
           {
             "date": "2026-10-08",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 99 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -3234,7 +3234,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 99 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3251,7 +3251,7 @@
           },
           {
             "date": "2026-10-10",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 99 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -3269,7 +3269,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 99 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3350,7 +3350,7 @@
         "cards": [
           {
             "date": "2026-10-13",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 38 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW42",
@@ -3368,7 +3368,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 38 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3385,7 +3385,7 @@
           },
           {
             "date": "2026-10-15",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 38 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW42",
@@ -3403,7 +3403,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 38 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3420,7 +3420,7 @@
           },
           {
             "date": "2026-10-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 115 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW42",
@@ -3438,7 +3438,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 115 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3455,7 +3455,7 @@
           },
           {
             "date": "2026-10-18",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 38 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW42",
@@ -3473,7 +3473,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 38 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3554,7 +3554,7 @@
           },
           {
             "date": "2026-10-22",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 111 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -3572,7 +3572,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 111 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3589,7 +3589,7 @@
           },
           {
             "date": "2026-10-24",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 111 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -3607,7 +3607,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 111 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3708,7 +3708,7 @@
           },
           {
             "date": "2026-10-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 118 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW44",
@@ -3726,7 +3726,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 118 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3743,7 +3743,7 @@
           },
           {
             "date": "2026-10-31",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 118 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW44",
@@ -3761,7 +3761,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 118 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3848,7 +3848,7 @@
         "cards": [
           {
             "date": "2026-11-03",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 38 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW45",
@@ -3866,7 +3866,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 38 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3883,7 +3883,7 @@
           },
           {
             "date": "2026-11-05",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 38 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW45",
@@ -3901,7 +3901,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 38 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3918,7 +3918,7 @@
           },
           {
             "date": "2026-11-07",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 115 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW45",
@@ -3936,7 +3936,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 115 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -3953,7 +3953,7 @@
           },
           {
             "date": "2026-11-08",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 38 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW45",
@@ -3971,7 +3971,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 38 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -4014,7 +4014,7 @@
           },
           {
             "date": "2026-11-12",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:07 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -4032,7 +4032,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:07 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -4049,7 +4049,7 @@
           },
           {
             "date": "2026-11-14",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:07 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -4067,7 +4067,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:07 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -4308,7 +4308,7 @@
           },
           {
             "date": "2026-09-09",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:07 h",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -4330,7 +4330,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:07 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -4347,7 +4347,7 @@
           },
           {
             "date": "2026-09-11",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:07 h",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -4369,7 +4369,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:07 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -4442,7 +4442,7 @@
           },
           {
             "date": "2026-09-13",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -4464,7 +4464,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -4549,7 +4549,7 @@
           },
           {
             "date": "2026-09-16",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 114 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -4571,7 +4571,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 114 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -4588,7 +4588,7 @@
           },
           {
             "date": "2026-09-18",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 114 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -4610,7 +4610,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 114 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -4683,7 +4683,7 @@
           },
           {
             "date": "2026-09-20",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -4705,7 +4705,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -4790,7 +4790,7 @@
           },
           {
             "date": "2026-09-23",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 114 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW39",
@@ -4812,7 +4812,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 114 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -4829,7 +4829,7 @@
           },
           {
             "date": "2026-09-25",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 114 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW39",
@@ -4851,7 +4851,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 114 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -4924,7 +4924,7 @@
           },
           {
             "date": "2026-09-27",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW39",
@@ -4946,7 +4946,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -4975,7 +4975,7 @@
         "cards": [
           {
             "date": "2026-09-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -4997,7 +4997,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5014,7 +5014,7 @@
           },
           {
             "date": "2026-09-30",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -5036,7 +5036,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5053,7 +5053,7 @@
           },
           {
             "date": "2026-10-02",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -5075,7 +5075,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5092,7 +5092,7 @@
           },
           {
             "date": "2026-10-03",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -5114,7 +5114,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -5131,7 +5131,7 @@
           },
           {
             "date": "2026-10-04",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -5153,7 +5153,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5238,7 +5238,7 @@
           },
           {
             "date": "2026-10-07",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 114 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW41",
@@ -5260,7 +5260,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 114 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5277,7 +5277,7 @@
           },
           {
             "date": "2026-10-09",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 114 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW41",
@@ -5299,7 +5299,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 114 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5372,7 +5372,7 @@
           },
           {
             "date": "2026-10-11",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW41",
@@ -5394,7 +5394,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -5479,7 +5479,7 @@
           },
           {
             "date": "2026-10-14",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 105 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
@@ -5501,7 +5501,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 105 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5518,7 +5518,7 @@
           },
           {
             "date": "2026-10-16",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 105 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
@@ -5540,7 +5540,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 105 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5613,7 +5613,7 @@
           },
           {
             "date": "2026-10-18",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW42",
@@ -5635,7 +5635,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -5720,7 +5720,7 @@
           },
           {
             "date": "2026-10-21",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 101 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
@@ -5742,7 +5742,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 101 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5759,7 +5759,7 @@
           },
           {
             "date": "2026-10-23",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 101 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
@@ -5781,7 +5781,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 101 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5854,7 +5854,7 @@
           },
           {
             "date": "2026-10-25",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:22 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW43",
@@ -5876,7 +5876,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:22 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -5919,7 +5919,7 @@
           },
           {
             "date": "2026-10-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 60 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -5941,7 +5941,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 60 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5958,7 +5958,7 @@
           },
           {
             "date": "2026-10-30",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 60 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -5980,7 +5980,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 60 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -5997,7 +5997,7 @@
           },
           {
             "date": "2026-10-31",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:02 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -6019,7 +6019,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:02 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6036,7 +6036,7 @@
           },
           {
             "date": "2026-11-01",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 60 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -6058,7 +6058,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 60 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -6143,7 +6143,7 @@
           },
           {
             "date": "2026-11-04",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 112 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
@@ -6165,7 +6165,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 112 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -6182,7 +6182,7 @@
           },
           {
             "date": "2026-11-06",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 112 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
@@ -6204,7 +6204,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 112 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -6277,7 +6277,7 @@
           },
           {
             "date": "2026-11-08",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
@@ -6299,7 +6299,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6384,7 +6384,7 @@
           },
           {
             "date": "2026-11-11",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:06 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
@@ -6406,7 +6406,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:06 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6423,7 +6423,7 @@
           },
           {
             "date": "2026-11-13",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:06 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
@@ -6445,7 +6445,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:06 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6524,7 +6524,7 @@
           },
           {
             "date": "2026-11-15",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW46",
@@ -6546,7 +6546,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6631,7 +6631,7 @@
           },
           {
             "date": "2026-11-18",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW47",
@@ -6653,7 +6653,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6670,7 +6670,7 @@
           },
           {
             "date": "2026-11-20",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW47",
@@ -6692,7 +6692,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6771,7 +6771,7 @@
           },
           {
             "date": "2026-11-22",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW47",
@@ -6793,7 +6793,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6822,7 +6822,7 @@
         "cards": [
           {
             "date": "2026-11-23",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW48",
@@ -6844,7 +6844,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -6861,7 +6861,7 @@
           },
           {
             "date": "2026-11-25",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW48",
@@ -6883,7 +6883,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -6900,7 +6900,7 @@
           },
           {
             "date": "2026-11-27",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW48",
@@ -6922,7 +6922,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -6939,7 +6939,7 @@
           },
           {
             "date": "2026-11-28",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW48",
@@ -6961,7 +6961,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -6978,7 +6978,7 @@
           },
           {
             "date": "2026-11-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 52 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW48",
@@ -7000,7 +7000,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 52 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -7085,7 +7085,7 @@
           },
           {
             "date": "2026-12-02",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:23 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW49",
@@ -7107,7 +7107,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:23 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7124,7 +7124,7 @@
           },
           {
             "date": "2026-12-04",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:23 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW49",
@@ -7146,7 +7146,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:23 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7225,7 +7225,7 @@
           },
           {
             "date": "2026-12-06",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW49",
@@ -7247,7 +7247,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7290,7 +7290,7 @@
           },
           {
             "date": "2026-12-09",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:19 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW50",
@@ -7312,7 +7312,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:19 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7329,7 +7329,7 @@
           },
           {
             "date": "2026-12-11",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:19 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW50",
@@ -7351,7 +7351,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:19 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7430,7 +7430,7 @@
           },
           {
             "date": "2026-12-13",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW50",
@@ -7452,7 +7452,7 @@
                 168,
                 196
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7743,7 +7743,7 @@
           },
           {
             "date": "2026-09-08",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:09 h",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -7765,7 +7765,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:09 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7782,7 +7782,7 @@
           },
           {
             "date": "2026-09-10",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:09 h",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -7804,7 +7804,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:09 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7958,7 +7958,7 @@
           },
           {
             "date": "2026-09-15",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:15 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW38",
@@ -7980,7 +7980,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:15 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -7997,7 +7997,7 @@
           },
           {
             "date": "2026-09-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:15 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW38",
@@ -8019,7 +8019,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:15 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -8123,7 +8123,7 @@
         "cards": [
           {
             "date": "2026-09-21",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 49 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -8145,7 +8145,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 49 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -8162,7 +8162,7 @@
           },
           {
             "date": "2026-09-22",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 49 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -8184,7 +8184,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 49 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -8201,7 +8201,7 @@
           },
           {
             "date": "2026-09-24",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 49 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -8223,7 +8223,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 49 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -8240,7 +8240,7 @@
           },
           {
             "date": "2026-09-26",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:27 h",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW39",
@@ -8262,7 +8262,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:27 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -8347,7 +8347,7 @@
           },
           {
             "date": "2026-09-29",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:32 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW40",
@@ -8369,7 +8369,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:32 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -8386,7 +8386,7 @@
           },
           {
             "date": "2026-10-01",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:32 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW40",
@@ -8408,7 +8408,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:32 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -8568,7 +8568,7 @@
           },
           {
             "date": "2026-10-06",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:07 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW41",
@@ -8590,7 +8590,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:07 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -8607,7 +8607,7 @@
           },
           {
             "date": "2026-10-08",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:07 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW41",
@@ -8629,7 +8629,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:07 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -8789,7 +8789,7 @@
           },
           {
             "date": "2026-10-13",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 93 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW42",
@@ -8811,7 +8811,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 93 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -8828,7 +8828,7 @@
           },
           {
             "date": "2026-10-15",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 93 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW42",
@@ -8850,7 +8850,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 93 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -8962,7 +8962,7 @@
           },
           {
             "date": "2026-10-20",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 66 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW43",
@@ -8984,7 +8984,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 66 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -9001,7 +9001,7 @@
           },
           {
             "date": "2026-10-22",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 66 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW43",
@@ -9023,7 +9023,7 @@
                 132,
                 154
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 66 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -9236,7 +9236,7 @@
           },
           {
             "date": "2026-09-09",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:23 h",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -9258,7 +9258,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:23 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -9331,7 +9331,7 @@
           },
           {
             "date": "2026-09-13",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:26 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -9353,7 +9353,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:26 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -9438,7 +9438,7 @@
           },
           {
             "date": "2026-09-16",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:32 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW38",
@@ -9460,7 +9460,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:32 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -9539,7 +9539,7 @@
           },
           {
             "date": "2026-09-20",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:44 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW38",
@@ -9561,7 +9561,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:44 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -9646,7 +9646,7 @@
           },
           {
             "date": "2026-09-23",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:28 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW39",
@@ -9668,7 +9668,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:28 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -9747,7 +9747,7 @@
           },
           {
             "date": "2026-09-27",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:36 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW39",
@@ -9769,7 +9769,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:36 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -9798,7 +9798,7 @@
         "cards": [
           {
             "date": "2026-09-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 44 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -9820,7 +9820,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 44 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -9837,7 +9837,7 @@
           },
           {
             "date": "2026-09-30",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 44 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -9859,7 +9859,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 44 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -9876,7 +9876,7 @@
           },
           {
             "date": "2026-10-02",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 44 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -9898,7 +9898,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 44 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -9915,7 +9915,7 @@
           },
           {
             "date": "2026-10-04",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:05 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -9937,7 +9937,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:05 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10022,7 +10022,7 @@
           },
           {
             "date": "2026-10-07",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:21 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW41",
@@ -10044,7 +10044,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:21 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10123,7 +10123,7 @@
           },
           {
             "date": "2026-10-11",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:21 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW41",
@@ -10145,7 +10145,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:21 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10230,7 +10230,7 @@
           },
           {
             "date": "2026-10-14",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:16 h",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -10252,7 +10252,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:16 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10331,7 +10331,7 @@
           },
           {
             "date": "2026-10-18",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:13 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -10353,7 +10353,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:13 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10382,7 +10382,7 @@
         "cards": [
           {
             "date": "2026-10-19",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 44 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
@@ -10404,7 +10404,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 44 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -10421,7 +10421,7 @@
           },
           {
             "date": "2026-10-21",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 44 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
@@ -10443,7 +10443,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 44 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -10460,7 +10460,7 @@
           },
           {
             "date": "2026-10-23",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 44 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
@@ -10482,7 +10482,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 44 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -10499,7 +10499,7 @@
           },
           {
             "date": "2026-10-25",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:05 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW43",
@@ -10521,7 +10521,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:05 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10564,7 +10564,7 @@
           },
           {
             "date": "2026-10-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:23 h",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW44",
@@ -10586,7 +10586,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:23 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10659,7 +10659,7 @@
           },
           {
             "date": "2026-11-01",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:26 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW44",
@@ -10681,7 +10681,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:26 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10724,7 +10724,7 @@
           },
           {
             "date": "2026-11-04",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:21 h",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
@@ -10746,7 +10746,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:21 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -10819,7 +10819,7 @@
           },
           {
             "date": "2026-11-08",
-            "name": "Z2 Lang",
+            "name": "Z2 · 4:22 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW45",
@@ -10841,7 +10841,7 @@
                 144,
                 168
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 4:22 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11053,7 +11053,7 @@
           },
           {
             "date": "2026-09-08",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -11075,7 +11075,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11092,7 +11092,7 @@
           },
           {
             "date": "2026-09-09",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -11114,7 +11114,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11255,7 +11255,7 @@
           },
           {
             "date": "2026-09-15",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -11277,7 +11277,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11294,7 +11294,7 @@
           },
           {
             "date": "2026-09-16",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -11316,7 +11316,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11457,7 +11457,7 @@
           },
           {
             "date": "2026-09-22",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -11479,7 +11479,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11496,7 +11496,7 @@
           },
           {
             "date": "2026-09-23",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -11518,7 +11518,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11603,7 +11603,7 @@
         "cards": [
           {
             "date": "2026-09-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 82 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -11625,7 +11625,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 82 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -11642,7 +11642,7 @@
           },
           {
             "date": "2026-09-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 82 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -11664,7 +11664,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 82 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -11681,7 +11681,7 @@
           },
           {
             "date": "2026-09-30",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 82 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -11703,7 +11703,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 82 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -11720,7 +11720,7 @@
           },
           {
             "date": "2026-10-01",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 82 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -11742,7 +11742,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 82 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -11827,7 +11827,7 @@
           },
           {
             "date": "2026-10-06",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -11849,7 +11849,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -11866,7 +11866,7 @@
           },
           {
             "date": "2026-10-07",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -11888,7 +11888,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12029,7 +12029,7 @@
           },
           {
             "date": "2026-10-13",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:51 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -12051,7 +12051,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:51 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12068,7 +12068,7 @@
           },
           {
             "date": "2026-10-14",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:51 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -12090,7 +12090,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:51 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12237,7 +12237,7 @@
           },
           {
             "date": "2026-10-20",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -12259,7 +12259,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12276,7 +12276,7 @@
           },
           {
             "date": "2026-10-21",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -12298,7 +12298,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12403,7 +12403,7 @@
           },
           {
             "date": "2026-10-27",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 93 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -12425,7 +12425,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 93 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -12442,7 +12442,7 @@
           },
           {
             "date": "2026-10-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 93 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -12464,7 +12464,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 93 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -12481,7 +12481,7 @@
           },
           {
             "date": "2026-10-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 93 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -12503,7 +12503,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 93 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -12588,7 +12588,7 @@
           },
           {
             "date": "2026-11-03",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:08 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -12610,7 +12610,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:08 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12627,7 +12627,7 @@
           },
           {
             "date": "2026-11-04",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:08 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -12649,7 +12649,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:08 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12796,7 +12796,7 @@
           },
           {
             "date": "2026-11-10",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:02 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -12818,7 +12818,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:02 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -12835,7 +12835,7 @@
           },
           {
             "date": "2026-11-11",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:02 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -12857,7 +12857,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:02 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -13004,7 +13004,7 @@
           },
           {
             "date": "2026-11-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 106 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW47",
@@ -13026,7 +13026,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 106 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -13043,7 +13043,7 @@
           },
           {
             "date": "2026-11-18",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 106 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW47",
@@ -13065,7 +13065,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 106 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -13164,7 +13164,7 @@
           },
           {
             "date": "2026-11-24",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 85 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW48",
@@ -13186,7 +13186,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 85 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -13203,7 +13203,7 @@
           },
           {
             "date": "2026-11-25",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 85 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW48",
@@ -13225,7 +13225,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 85 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -13491,7 +13491,7 @@
           },
           {
             "date": "2026-09-08",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:55 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -13513,7 +13513,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:55 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -13530,7 +13530,7 @@
           },
           {
             "date": "2026-09-10",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:55 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -13552,7 +13552,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:55 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -13693,7 +13693,7 @@
           },
           {
             "date": "2026-09-15",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -13715,7 +13715,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -13732,7 +13732,7 @@
           },
           {
             "date": "2026-09-17",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -13754,7 +13754,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -13895,7 +13895,7 @@
           },
           {
             "date": "2026-09-22",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW39",
@@ -13917,7 +13917,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -13934,7 +13934,7 @@
           },
           {
             "date": "2026-09-24",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:39 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW39",
@@ -13956,7 +13956,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:39 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14041,7 +14041,7 @@
         "cards": [
           {
             "date": "2026-09-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -14063,7 +14063,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -14080,7 +14080,7 @@
           },
           {
             "date": "2026-09-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -14102,7 +14102,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -14119,7 +14119,7 @@
           },
           {
             "date": "2026-10-01",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -14141,7 +14141,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -14158,7 +14158,7 @@
           },
           {
             "date": "2026-10-03",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:48 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -14180,7 +14180,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:48 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14265,7 +14265,7 @@
           },
           {
             "date": "2026-10-06",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -14287,7 +14287,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14304,7 +14304,7 @@
           },
           {
             "date": "2026-10-08",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -14326,7 +14326,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14467,7 +14467,7 @@
           },
           {
             "date": "2026-10-13",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:51 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -14489,7 +14489,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:51 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14506,7 +14506,7 @@
           },
           {
             "date": "2026-10-15",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:51 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -14528,7 +14528,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:51 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14675,7 +14675,7 @@
           },
           {
             "date": "2026-10-20",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -14697,7 +14697,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14714,7 +14714,7 @@
           },
           {
             "date": "2026-10-22",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:45 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -14736,7 +14736,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:45 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -14841,7 +14841,7 @@
           },
           {
             "date": "2026-10-27",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 70 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -14863,7 +14863,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 70 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -14880,7 +14880,7 @@
           },
           {
             "date": "2026-10-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 70 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -14902,7 +14902,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 70 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -14919,7 +14919,7 @@
           },
           {
             "date": "2026-10-31",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:20 h",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -14941,7 +14941,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:20 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15026,7 +15026,7 @@
           },
           {
             "date": "2026-11-03",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:08 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -15048,7 +15048,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:08 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15065,7 +15065,7 @@
           },
           {
             "date": "2026-11-05",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:08 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -15087,7 +15087,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:08 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15234,7 +15234,7 @@
           },
           {
             "date": "2026-11-10",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:02 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -15256,7 +15256,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:02 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15273,7 +15273,7 @@
           },
           {
             "date": "2026-11-12",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:02 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -15295,7 +15295,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:02 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15386,7 +15386,7 @@
         "cards": [
           {
             "date": "2026-11-16",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW47",
@@ -15408,7 +15408,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -15425,7 +15425,7 @@
           },
           {
             "date": "2026-11-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW47",
@@ -15447,7 +15447,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -15464,7 +15464,7 @@
           },
           {
             "date": "2026-11-19",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 56 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW47",
@@ -15486,7 +15486,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 56 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -15503,7 +15503,7 @@
           },
           {
             "date": "2026-11-21",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:48 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW47",
@@ -15525,7 +15525,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:48 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15568,7 +15568,7 @@
           },
           {
             "date": "2026-11-24",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW48",
@@ -15590,7 +15590,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15607,7 +15607,7 @@
           },
           {
             "date": "2026-11-26",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW48",
@@ -15629,7 +15629,7 @@
                 147,
                 172
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -15901,7 +15901,7 @@
           },
           {
             "date": "2026-09-10",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:50 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -15919,7 +15919,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:50 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -16000,7 +16000,7 @@
         "cards": [
           {
             "date": "2026-09-15",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 48 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW38",
@@ -16018,7 +16018,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 48 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16035,7 +16035,7 @@
           },
           {
             "date": "2026-09-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 48 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW38",
@@ -16053,7 +16053,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 48 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16070,7 +16070,7 @@
           },
           {
             "date": "2026-09-19",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 97 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW38",
@@ -16088,7 +16088,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 97 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16131,7 +16131,7 @@
           },
           {
             "date": "2026-09-24",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:50 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -16149,7 +16149,7 @@
                 60,
                 70
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:50 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -16334,7 +16334,7 @@
           },
           {
             "date": "2026-09-08",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -16356,7 +16356,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16429,7 +16429,7 @@
           },
           {
             "date": "2026-09-12",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:18 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -16451,7 +16451,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:18 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -16468,7 +16468,7 @@
           },
           {
             "date": "2026-09-13",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 101 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW37",
@@ -16490,7 +16490,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 101 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16575,7 +16575,7 @@
           },
           {
             "date": "2026-09-15",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -16597,7 +16597,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16670,7 +16670,7 @@
           },
           {
             "date": "2026-09-19",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:11 h",
             "typ": "Z2 Lang",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -16692,7 +16692,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:11 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -16709,7 +16709,7 @@
           },
           {
             "date": "2026-09-20",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 96 min",
             "typ": "Z2 Dauer",
             "phase": "Grundlage",
             "isoWeek": "2026-KW38",
@@ -16731,7 +16731,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 96 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16816,7 +16816,7 @@
           },
           {
             "date": "2026-09-22",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -16838,7 +16838,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -16911,7 +16911,7 @@
           },
           {
             "date": "2026-09-26",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:18 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -16933,7 +16933,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:18 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -16950,7 +16950,7 @@
           },
           {
             "date": "2026-09-27",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 101 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW39",
@@ -16972,7 +16972,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 101 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17001,7 +17001,7 @@
         "cards": [
           {
             "date": "2026-09-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 47 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -17023,7 +17023,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 47 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17040,7 +17040,7 @@
           },
           {
             "date": "2026-09-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 47 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -17062,7 +17062,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 47 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17079,7 +17079,7 @@
           },
           {
             "date": "2026-10-01",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 47 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -17101,7 +17101,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 47 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17118,7 +17118,7 @@
           },
           {
             "date": "2026-10-03",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:09 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -17140,7 +17140,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:09 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -17157,7 +17157,7 @@
           },
           {
             "date": "2026-10-04",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 47 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW40",
@@ -17179,7 +17179,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 47 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17264,7 +17264,7 @@
           },
           {
             "date": "2026-10-06",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -17286,7 +17286,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17359,7 +17359,7 @@
           },
           {
             "date": "2026-10-10",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:11 h",
             "typ": "Z2 Lang",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -17381,7 +17381,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:11 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -17398,7 +17398,7 @@
           },
           {
             "date": "2026-10-11",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 96 min",
             "typ": "Z2 Dauer",
             "phase": "Sweet Spot",
             "isoWeek": "2026-KW41",
@@ -17420,7 +17420,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 96 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17505,7 +17505,7 @@
           },
           {
             "date": "2026-10-13",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -17527,7 +17527,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17606,7 +17606,7 @@
           },
           {
             "date": "2026-10-17",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:26 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -17628,7 +17628,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:26 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -17645,7 +17645,7 @@
           },
           {
             "date": "2026-10-18",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 106 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW42",
@@ -17667,7 +17667,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 106 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17752,7 +17752,7 @@
           },
           {
             "date": "2026-10-20",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -17774,7 +17774,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17853,7 +17853,7 @@
           },
           {
             "date": "2026-10-24",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:18 h",
             "typ": "Z2 Lang",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -17875,7 +17875,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:18 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -17892,7 +17892,7 @@
           },
           {
             "date": "2026-10-25",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 101 min",
             "typ": "Z2 Dauer",
             "phase": "Schwelle",
             "isoWeek": "2026-KW43",
@@ -17914,7 +17914,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 101 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17957,7 +17957,7 @@
           },
           {
             "date": "2026-10-27",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 53 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -17979,7 +17979,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 53 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -17996,7 +17996,7 @@
           },
           {
             "date": "2026-10-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 53 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -18018,7 +18018,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 53 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -18035,7 +18035,7 @@
           },
           {
             "date": "2026-10-31",
-            "name": "Z2 Lang",
+            "name": "Z2 · 2:41 h",
             "typ": "Z2 Lang",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -18057,7 +18057,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 2:41 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -18074,7 +18074,7 @@
           },
           {
             "date": "2026-11-01",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 53 min",
             "typ": "Z2 Dauer",
             "phase": "Erholung",
             "isoWeek": "2026-KW44",
@@ -18096,7 +18096,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 53 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -18181,7 +18181,7 @@
           },
           {
             "date": "2026-11-03",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -18203,7 +18203,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -18282,7 +18282,7 @@
           },
           {
             "date": "2026-11-07",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -18304,7 +18304,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -18321,7 +18321,7 @@
           },
           {
             "date": "2026-11-08",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:17 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW45",
@@ -18343,7 +18343,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:17 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -18428,7 +18428,7 @@
           },
           {
             "date": "2026-11-10",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 90 min",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -18450,7 +18450,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 90 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -18529,7 +18529,7 @@
           },
           {
             "date": "2026-11-14",
-            "name": "Z2 Lang",
+            "name": "Z2 · 3:30 h",
             "typ": "Z2 Lang",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -18551,7 +18551,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Lang"
+              "label": "Z2 · 3:30 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -18568,7 +18568,7 @@
           },
           {
             "date": "2026-11-15",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:05 h",
             "typ": "Z2 Dauer",
             "phase": "VO2max",
             "isoWeek": "2026-KW46",
@@ -18590,7 +18590,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:05 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -18675,7 +18675,7 @@
           },
           {
             "date": "2026-11-17",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 58 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW47",
@@ -18697,7 +18697,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 58 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -18770,7 +18770,7 @@
           },
           {
             "date": "2026-11-21",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 2:13 h",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW47",
@@ -18792,7 +18792,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 2:13 h"
             },
             "workoutStructure": {
               "version": 1,
@@ -18809,7 +18809,7 @@
           },
           {
             "date": "2026-11-22",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 68 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW47",
@@ -18831,7 +18831,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 68 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -18874,7 +18874,7 @@
           },
           {
             "date": "2026-11-24",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 45 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW48",
@@ -18896,7 +18896,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 45 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -18969,7 +18969,7 @@
           },
           {
             "date": "2026-11-28",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 103 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW48",
@@ -18991,7 +18991,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 103 min"
             },
             "workoutStructure": {
               "version": 1,
@@ -19008,7 +19008,7 @@
           },
           {
             "date": "2026-11-29",
-            "name": "Z2 Dauer",
+            "name": "Z2 · 53 min",
             "typ": "Z2 Dauer",
             "phase": "Taper",
             "isoWeek": "2026-KW48",
@@ -19030,7 +19030,7 @@
                 150,
                 175
               ],
-              "label": "Z2 Dauer"
+              "label": "Z2 · 53 min"
             },
             "workoutStructure": {
               "version": 1,

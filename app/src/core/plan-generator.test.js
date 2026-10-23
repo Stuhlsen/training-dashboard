@@ -1265,3 +1265,59 @@ test("dayEnvironment: feste Tage bleiben unberührt, auch auf Drinnen-Tagen", ()
     assert.equal(f.durationMin, 150);
   }
 });
+
+/* ── Z2-Namen nach Dauer statt „Lang"/„Dauer" ─────────────────────────── */
+
+const Z2_NAME = /^Z2 · (\d+ min|\d+ h|\d+:\d{2} h)$/;
+const z2Cards = (plan) => plan.weeks.flatMap((wk) => wk.cards.filter((c) => c.workout?.zone === "Z2"));
+const expectedZ2Name = (min) =>
+  min < 120 ? `Z2 · ${min} min` : `Z2 · ${Math.floor(min / 60)}${min % 60 ? `:${String(min % 60).padStart(2, "0")}` : ""} h`;
+
+test("Z2-Name: lockere Karten heißen „Z2 · <Dauer>\" mit ihrer echten Minutenzahl, auch nach dem Stauchen", () => {
+  const plan = generatePlan(eventInput());
+  const cards = z2Cards(plan);
+  assert.ok(cards.length > 10);
+  for (const c of cards) {
+    assert.match(c.name, Z2_NAME, `${c.date}: ${c.name}`);
+    assert.equal(c.name, expectedZ2Name(c.durationMin), `${c.date}: Name passt nicht zur Dauer ${c.durationMin}`);
+    assert.equal(c.workout.label, c.name);
+  }
+});
+
+test("Z2-Name: der interne typ bleibt Z2 Lang ab 150 min, sonst Z2 Dauer", () => {
+  const cards = z2Cards(generatePlan(eventInput()));
+  assert.ok(cards.some((c) => c.durationMin >= 150) && cards.some((c) => c.durationMin < 150));
+  for (const c of cards) assert.equal(c.typ, c.durationMin >= 150 ? "Z2 Lang" : "Z2 Dauer");
+});
+
+test("Z2-Name: Erholungswoche — gestauchte Karte trägt ihre echte Minutenzahl, kein „Dauer\" neben „Lang\"", () => {
+  const plan = generatePlan(eventInput());
+  const rec = plan.weeks.filter((w) => w.isRecovery);
+  assert.ok(rec.length);
+  for (const w of rec) {
+    for (const c of w.cards.filter((x) => x.workout?.zone === "Z2")) {
+      assert.equal(c.name, expectedZ2Name(c.durationMin));
+    }
+  }
+});
+
+test("Z2-Name: fester Z2-Tag mit Minuten — Name aus der Dauer, typ bleibt der gewählte", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Z2 Lang", keepInRecoveryWeek: false, durationMin: 60 });
+  assert.ok(cards.length);
+  for (const c of cards) {
+    assert.equal(c.name, "Z2 · 60 min");
+    assert.equal(c.typ, "Z2 Lang");
+    assert.equal(c.workout.label, "Z2 · 60 min");
+    assert.equal(c.durationMin, 60);
+  }
+  const long = fixedTuesdayCards({ weekday: 2, typ: "Z2 Dauer", keepInRecoveryWeek: false, durationMin: 180 });
+  for (const c of long) {
+    assert.equal(c.name, "Z2 · 3 h");
+    assert.equal(c.typ, "Z2 Dauer");
+  }
+});
+
+test("Z2-Name: andere feste Typen behalten ihren Namen", () => {
+  const cards = fixedTuesdayCards({ weekday: 2, typ: "Gruppenfahrt", keepInRecoveryWeek: false, durationMin: 60 });
+  for (const c of cards) assert.equal(c.name, "Gruppenfahrt");
+});

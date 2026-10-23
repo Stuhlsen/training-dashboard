@@ -13,6 +13,7 @@ import {
   latestWellness,
   legacyWorkoutSegments,
   cardWorkoutTimeline,
+  typeLabel,
   matchRideForCard,
   nextLoadAfter,
   planTypeTermKey,
@@ -707,5 +708,17 @@ describe("cardWorkoutTimeline", () => {
   it("ohne nutzbare Struktur: alter Weg über legacyWorkoutSegments", () => {
     const t = cardWorkoutTimeline({ workout: COARSE, workoutStructure: null }, 180);
     expect(t).toEqual(legacyWorkoutSegments(COARSE));
+  });
+});
+
+describe("typeLabel", () => {
+  it("beide Z2-Typen werden als \"Z2\" angezeigt (Name trägt die Dauer)", () => {
+    expect(typeLabel("Z2 Lang")).toBe("Z2");
+    expect(typeLabel("Z2 Dauer")).toBe("Z2");
+  });
+  it("andere Typen bleiben, null wird zum Strich", () => {
+    expect(typeLabel("Sweet Spot")).toBe("Sweet Spot");
+    expect(typeLabel("Z1 Recovery")).toBe("Z1 Recovery");
+    expect(typeLabel(null)).toBe("—");
   });
 });

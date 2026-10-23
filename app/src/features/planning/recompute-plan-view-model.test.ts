@@ -127,7 +127,9 @@ describe("buildRecomputeInput", () => {
       },
     });
     const res = buildRecomputeInput({ plan: saved, todayISO: "2026-10-07", athleteDefaults: defaults });
-    expect(res.ok && res.input.fixedDays?.map((d) => d.durationMin)).toEqual([60, undefined, undefined]);
+    // "Z2 Lang" ohne gültige Dauer bekommt den früheren Standard (210 min) sichtbar
+    // eingetragen — vorher wirkte er still über TYPE_DEFAULT_TSS (≈ 207 min).
+    expect(res.ok && res.input.fixedDays?.map((d) => d.durationMin)).toEqual([60, undefined, 210]);
   });
 
   it("keepAllTrainingDays: Argument gewinnt, sonst der gespeicherte Wert; Lauf bekommt keine festen Tage", () => {

@@ -8,7 +8,7 @@ import { useEvents } from "../../api/hooks/useEvents";
 import { useAthletePlanOffset } from "../../api/hooks/useAthletePlanOffset";
 import { useAthleteSports } from "../../api/hooks/useAthleteSports";
 import { localISODate, fmtDate, fmtDateFull } from "../../core/format.js";
-import { resolvePlanningFtp } from "./planning-view-model";
+import { resolvePlanningFtp, typeLabel } from "./planning-view-model";
 import { asWorkoutBlocks } from "./planning-view-model";
 import { impactDetail, sidesFor, type CompareCardData } from "./proposal-review-view-model";
 import type { Proposal } from "../../api/types";
@@ -66,7 +66,7 @@ function Card({ data, accent, changed }: { data: CompareCardData | null; accent?
       <div style={{ fontSize: ".9rem", fontWeight: 600, color: mark("name") }}>{data.name || "–"}</div>
       <div style={{ display: "flex", gap: 10, fontSize: ".76rem" }}>
         <span style={{ color: mark("date") }}>{data.date ? fmtDate(data.date) : "–"}</span>
-        <span style={{ color: mark("typ") }}>{data.typ || "–"}</span>
+        <span style={{ color: mark("typ") }}>{data.typ ? typeLabel(data.typ) : "–"}</span>
       </div>
       {data.tssPlanned != null && <div style={{ fontSize: ".76rem", color: mark("tssPlanned") }}>{data.tssPlanned} TSS</div>}
       {blocks && (

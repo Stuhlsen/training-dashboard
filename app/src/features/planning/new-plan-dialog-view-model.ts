@@ -60,6 +60,27 @@ export function isValidFixedDuration(v: unknown): v is number {
  *  Plan passend zur Phase) zuerst, dann die festen Kartentypen. */
 export const FIXED_DAY_TYPES: readonly string[] = [FIXED_INTERVAL_TYP, ...KNOWN_PLAN_TYPES];
 
+/** Einträge des "Feste Tage"-Selects. Z2 gibt es nur einmal ("Z2", Wert
+ *  "Z2 Dauer"): der Kartenname trägt die Dauer ("Z2 · 60 min"), wer eine
+ *  Langfahrt will, trägt Minuten ein. "Z2 Lang" bleibt als Typ gültig
+ *  (FIXED_DAY_TYPES, alte Formulare), wird aber nicht mehr angeboten. */
+export const FIXED_DAY_OPTIONS: ReadonlyArray<{ value: string; label: string }> = FIXED_DAY_TYPES.filter(
+  (t) => t !== "Z2 Lang"
+).map((t) => ({
+  value: t,
+  label: t === FIXED_INTERVAL_TYP ? "Intervalle (passend zur Phase)" : t === "Z2 Dauer" ? "Z2" : t,
+}));
+
+/** Wert, den das Select für einen gespeicherten Typ anzeigt — ein altes
+ *  "Z2 Lang" erscheint als der eine Z2-Eintrag. */
+export function fixedDayPickerValue(typ: string): string {
+  return typ === "Z2 Lang" ? "Z2 Dauer" : typ;
+}
+
+/** Früherer Standard eines festen "Z2 Lang"-Tags ohne Minuten (≈ 207 min aus
+ *  TYPE_DEFAULT_TSS) — für alte Formulare sichtbar als Dauer eingetragen. */
+const LEGACY_Z2_LANG_MIN = 210;
+
 /** Ober-/Untergrenze für die Planlänge — im `open`-Modus als Formularfeld,
  *  im `event`-Modus aus `start..event` abgeleitet und hier gegengeprüft
  *  (sonst würde ein Renntag Jahre in der Zukunft z. B. 78 Wochen erzeugen). */
@@ -535,14 +556,19 @@ export function savedFixedDays(plan: TrainingPlan): FixedDay[] {
         (d as FixedDay).weekday <= 7 &&
         FIXED_DAY_TYPES.includes((d as FixedDay).typ)
     )
-    .map((d) => ({
-      weekday: d.weekday,
-      typ: d.typ,
-      keepInRecoveryWeek: d.keepInRecoveryWeek === true,
-      ...(d.typ !== FIXED_INTERVAL_TYP && isValidFixedDuration(d.durationMin)
-        ? { durationMin: d.durationMin }
-        : {}),
-    }));
+    .map((d) => {
+      const hasDuration = d.typ !== FIXED_INTERVAL_TYP && isValidFixedDuration(d.durationMin);
+      return {
+        weekday: d.weekday,
+        typ: d.typ,
+        keepInRecoveryWeek: d.keepInRecoveryWeek === true,
+        ...(hasDuration
+          ? { durationMin: d.durationMin }
+          : d.typ === "Z2 Lang"
+            ? { durationMin: LEGACY_Z2_LANG_MIN }
+            : {}),
+      };
+    });
 }
 
 /** Vorausfüllung des Formulars aus dem letzten (aktiven) Plan (Fahrplan 32
