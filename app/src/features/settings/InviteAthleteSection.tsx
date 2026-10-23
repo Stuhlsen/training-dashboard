@@ -5,7 +5,7 @@
    Nur für `profile.isAdmin` gemountet (SettingsPage). E-Mail eingeben →
    „Einladen" → admin-api ruft GoTrues generate_link auf und liefert
    `hashedToken` zurück (kein SMTP, s. Nachtrag V1 in
-   planning/fahrplan-15-einladungs-onboarding.md) — die Sektion baut daraus
+   planning/archiv/fahrplan-15-einladungs-onboarding.md) — die Sektion baut daraus
    selbst einen Link auf die eigene Onboarding-Seite (nicht auf GoTrue
    direkt, s. V2-Kommentar in admin-api/invite.js: ein GoTrue-`action_link`
    verbraucht sich schon durch einen stillen Linkvorschau-Abruf, bevor die

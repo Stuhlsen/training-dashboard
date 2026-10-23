@@ -2,7 +2,7 @@
    CORE/PLAN-WORKOUT-SELECT-GENERIC.JS — Qualitätstag-Workout Lauf/Schwimm
    (kein DOM, kein I/O, kein React)
 
-   Fahrplan 14 E2/E3 (planning/fahrplan-14-plan-generator-multisport.md,
+   Fahrplan 14 E2/E3 (planning/archiv/fahrplan-14-plan-generator-multisport.md,
    Vertrag V4). Pendant zu plan-workout-select.js::selectWorkout() für
    Nicht-Rad-Sportarten — bewusst OHNE session_formats-/Ladder-Maschinerie
    (Nicht-Ziel: keine Wochen-für-Wochen-Progressionsstufen für Lauf/Schwimm).

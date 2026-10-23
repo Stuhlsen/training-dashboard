@@ -2,7 +2,7 @@
    CORE/PLAN-GENERATOR-SPORT.JS — Sport-Strategie-Tabelle für generatePlan()
    (kein DOM, kein I/O, kein React)
 
-   Fahrplan 14 E1 (planning/fahrplan-14-plan-generator-multisport.md, Vertrag
+   Fahrplan 14 E1 (planning/archiv/fahrplan-14-plan-generator-multisport.md, Vertrag
    V1). Kapselt alles, was zwischen Rad/Lauf/Schwimm variiert (Workout-Band-
    Funktion, Testtag-Regel + -Karte, Quality-Day-Auswahl), damit
    plan-generator.js selbst sportagnostisch bleibt.

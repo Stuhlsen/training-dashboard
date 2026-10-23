@@ -1,8 +1,8 @@
 # docs/ — Wegweiser
 
 **Seit 2026-09-19:** Fahrplan-Historie, Konzeptdokumente und das Archiv leben
-nicht mehr hier, sondern im privaten `planning`-Repo (`planning/docs/` bzw.
-`planning/docs/archiv/`) — lokal im selben Arbeitsverzeichnis unter
+nicht mehr hier, sondern im privaten `planning`-Repo (`planning/fahrplaene/` bzw.
+`planning/archiv/`) — lokal im selben Arbeitsverzeichnis unter
 `planning/` eingecheckt, aber nicht Teil dieses öffentlichen Repos. Grund:
 LP2 (`planning/ideen-backlog.md`) — der öffentliche Verlauf beschriebener
 Fahrpläne zeigte über die Zeit mehr von der Vorgehensweise/Roadmap, als für
@@ -20,9 +20,9 @@ Wahrheit, nicht `docs/`.
 
 ## Wo die Doku jetzt liegt
 
-- **`planning/docs/`** — die bisherigen laufenden Fahrpläne, Anleitungen
+- **`planning/fahrplaene/`, `planning/konzepte/`** — offene Fahrpläne und Konzepte
   (Docker, Sync-Handoff) und Konzeptdokumente.
-- **`planning/docs/archiv/`** — abgeschlossene Phasen-Konzepte, überholte
+- **`planning/archiv/`** — abgeschlossene Phasen-Konzepte, überholte
   Fahrpläne, Vanilla-Ära-Grundlagendokumente.
 - **`planning/ideen-backlog.md`** — Ideen-Backlog, wie zuvor.
 

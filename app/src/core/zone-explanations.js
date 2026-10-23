@@ -11,7 +11,7 @@
    Texte: einfache Worte für Anfänger, beschreiben die Zone, geben aber
    KEINE Trainingsbefehle. Die Zonengrenzen (Prozentwerte) stehen NICHT
    hier, sondern in sports/*; Texte nennen daher keine Prozentzahlen.
-   Belegt vs. eigene Formulierung: planning/research_notes/zonen-e1-belege.md
+   Belegt vs. eigene Formulierung: planning/recherche/zonen-e1-belege.md
    (privat). `quelleKeys` verweist auf core/zone-sources.js; eine leere
    Liste heißt: eigene Formulierung ohne Quelle.
    ============================================================ */
