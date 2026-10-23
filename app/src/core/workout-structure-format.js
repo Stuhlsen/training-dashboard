@@ -102,6 +102,35 @@ export function structureHardPctRange(structure) {
   return pcts.length ? [Math.min(...pcts), Math.max(...pcts)] : null;
 }
 
+/**
+ * Der erste Intervallschritt (`set`/`alternating`) als Kurzfassung: Anzahl
+ * Wiederholungen, Dauer einer Wiederholung in s und %FTP-Spanne der harten
+ * Phasen. Bei `alternating` ist eine Wiederholung ein Block aus `cycles`
+ * Über/Unter-Paaren. `null` ohne Intervallschritt.
+ * @param {{steps?: Array<any>}|null|undefined} structure
+ * @returns {{reps: number, workS: number, pctRange: [number, number]}|null}
+ */
+export function mainIntervalSummary(structure) {
+  const steps = Array.isArray(structure?.steps) ? structure.steps : [];
+  const step = steps.find((s) => s && INTERVAL_KINDS.has(s.kind));
+  if (!step) return null;
+  const isSet = step.kind === "set";
+  const workS = isSet ? step.work.duration_s : step.cycles * (step.over.duration_s + step.under.duration_s);
+  const pcts = (isSet ? [step.work] : [step.over, step.under])
+    .map((p, i) => (isSet || i === 0 || p.target_pct_ftp >= EASY_UNDER_PCT ? p.target_pct_ftp : null))
+    .filter((p) => typeof p === "number");
+  if (!pcts.length) return null;
+  return { reps: step.reps, workS, pctRange: [Math.min(...pcts), Math.max(...pcts)] };
+}
+
+/** Anzahl der Sprints (`accessory` mit `target: "max"`), sonst `null`.
+ *  @param {{steps?: Array<any>}|null|undefined} structure @returns {number|null} */
+export function sprintReps(structure) {
+  const steps = Array.isArray(structure?.steps) ? structure.steps : [];
+  const step = steps.find((s) => s?.kind === "accessory" && s.work?.target === "max");
+  return step && Number.isInteger(step.reps) ? step.reps : null;
+}
+
 /** Die Pausen zwischen Wiederholungen/Sätzen, wenn sie einheitlich sind
  *  (gleiche Dauer und %FTP) — sonst `null`. Lockere Unter-Phasen eines 30/15
  *  gehören zum Satz und zählen hier nicht.
