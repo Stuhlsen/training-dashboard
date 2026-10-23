@@ -346,7 +346,7 @@ export function WeekGridDetailRow({
   );
   const dayForecast = forecast[card.date] as DayForecast | undefined;
   const hasLegacyTimeline = !!cardWorkoutTimeline(card, ftp);
-  // Fahrplan 34 E3: kein Guide (unbekannter Typ, Lauf/Schwimmen bis E6) → nichts rendern.
+  // Fahrplan 34 E3/E6: kein Guide (unbekannter Typ, Rekom) → nichts rendern.
   const guideView = card.cancelled ? null : buildSessionGuideView(card, { cadenceTarget, weightKg, ftp: ftp ?? null });
 
   return (

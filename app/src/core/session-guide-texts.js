@@ -1,7 +1,7 @@
 /* ============================================================
    CORE/SESSION-GUIDE-TEXTS.JS — Erklärtexte je Trainingskarten-Familie
    (reine Daten, kein I/O)
-   (Fahrplan 34, Etappe E1: nur Rad; Lauf/Schwimmen kommt in E6)
+   (Fahrplan 34, Etappe E1: Rad · E6: Lauf und Schwimmen)
 
    Schlüssel = `${sport}:${familie|typ}` aus core/session-guide-key.js.
    Je Eintrag:
@@ -13,6 +13,9 @@
                 OHNE Lücken für den Fall, dass ein Wert fehlt
    - `abbruch`  neutrale Abbruchregel, ohne Druck
    - `quelleKeys` Schlüssel aus core/session-guide-sources.js
+   - `rpeByPhase` (nur swim:intervalle, Q15): Ziel-RPE + Gefühls-Satz je
+                Plan-Phase; `rpe`/`gefuehl` des Eintrags gelten als Default
+                (Phase Schwelle), wenn die Karte keine bekannte Phase trägt
 
    RPE-Bänder und Gefühls-Sätze sind EIGENE SETZUNG (Beleg §2c, privat:
    planning/recherche/trainingskarten-erklaeren-belege.md): Es gibt keine
@@ -20,6 +23,14 @@
    Wattbereich der Karte, nie allein. Cues und Abbruchregeln sind eigene
    Formulierungen ohne Zahl; Watt- und Prozentwerte kommen nur über die
    Lücken aus der Karte. Der Ton ist ruhig, ohne Druck.
+
+   Lauf und Schwimmen (E6): Die Karten tragen keine Struktur im Rad-Format,
+   darum gibt es dort keine Lücken — Vorlage und Fallback sind derselbe Satz.
+   Die Bänder stehen im Beleg §2c; die Läufer-/Schwimm-Bänder sind wie beim
+   Rad EIGENE SETZUNG (keine validierte Kopplung RPE↔Tempo). Der Tempolauf
+   verweist zusätzlich auf Nuuttila 2025 (Läufer, Anstrengung an der
+   Schwelle um „schwer", große Streuung). Schwimmen: Longswim/Technik
+   bekommen statt des Sprechtests nur „Ruhig, Fokus auf saubere Züge."
    ============================================================ */
 
 import { GUIDE_SOURCE_KEYS as S } from "./session-guide-sources.js";
@@ -41,6 +52,10 @@ const ABBRUCH_HART =
   "Steigt die Leistung über den Zielbereich oder wird es deutlich härter als gedacht: nimm etwas Druck raus.";
 const ABBRUCH_LOCKER = "Fühlt es sich schwerer an als locker: nimm etwas Druck raus.";
 
+/** RPE-Variante je Plan-Phase (nur swim:intervalle).
+ *  @param {[number,number]} rpe @param {string} gefuehl */
+const phaseRpe = (rpe, gefuehl) => Object.freeze({ min: rpe[0], max: rpe[1], gefuehl });
+
 /** @param {string} ziel @param {[number,number]} rpe @param {string} gefuehl
  *  @param {string} template @param {string} fallback @param {string} abbruch
  *  @param {string[]} quelleKeys
@@ -58,6 +73,17 @@ const entry = (ziel, rpe, gefuehl, template, fallback, abbruch, quelleKeys) =>
 /** Ohne Lücken: Vorlage und Fallback sind derselbe Satz. */
 const plainEntry = (ziel, rpe, gefuehl, cue, abbruch, quelleKeys) =>
   entry(ziel, rpe, gefuehl, cue, cue, abbruch, quelleKeys);
+
+const ABBRUCH_LAUF_HART =
+  "Wird es deutlich härter als gedacht oder läuft das Tempo davon: werde langsamer oder geh ein Stück.";
+const ABBRUCH_LAUF_LOCKER = "Fühlt es sich schwerer an als locker: werde langsamer oder geh ein Stück.";
+const ABBRUCH_SCHWIMM_HART =
+  "Wird die Technik deutlich schlechter oder fühlt es sich härter an als geplant: verlängere die Pause oder schwimm eine Wiederholung locker.";
+const ABBRUCH_SCHWIMM_LOCKER = "Wird die Technik schlechter oder du wirst müde: mach eine kurze Pause oder höre früher auf.";
+
+const GEFUEHL_LOCKER = "Locker, du kannst ganze Sätze sprechen.";
+const GEFUEHL_SCHWELLE = "Hart, aber gleichmäßig haltbar. Sprechen nur in kurzen Sätzen.";
+const GEFUEHL_VO2 = "Sehr hart. Die letzte Minute jedes Intervalls ist schwer.";
 
 const EIGENE = S.EIGENE_SETZUNG;
 const SCHWELLE_BELEG = [S.EIGENE_SETZUNG, S.NUUTTILA_2025];
@@ -161,4 +187,77 @@ export const SESSION_GUIDE_TEXTS = Object.freeze({
     "Fühlst du dich krank oder sehr müde: verschiebe den Test auf einen anderen Tag. Ein Test mit müden Beinen sagt wenig aus.",
     [EIGENE]
   ),
+
+  /* ---- Lauf (E6) ---- */
+  "run:dauerlauf": plainEntry(
+    "Du baust mit ruhigem Laufen deine Ausdauer auf und gewöhnst Muskeln, Sehnen und Gelenke Schritt für Schritt an die Belastung.",
+    [2, 3],
+    GEFUEHL_LOCKER,
+    "Laufe gleichmäßig in einem Tempo, bei dem du ganze Sätze sprechen kannst. Gehpausen sind in Ordnung.",
+    ABBRUCH_LAUF_LOCKER,
+    [EIGENE]
+  ),
+
+  "run:longrun": plainEntry(
+    "Du übst, lange locker auf den Beinen zu bleiben. Das stärkt deine Ausdauer und gewöhnt dich an viele Minuten Belastung.",
+    [2, 3],
+    GEFUEHL_LOCKER,
+    "Starte bewusst ruhig und halte das lockere Tempo bis zum Schluss. Die letzten Kilometer sollen sich so entspannt anfühlen wie die ersten.",
+    ABBRUCH_LAUF_LOCKER,
+    [EIGENE]
+  ),
+
+  "run:tempolauf": plainEntry(
+    "Du läufst gleichmäßig an deiner Schwelle. So lernst du, ein flottes Tempo länger zu halten.",
+    [6, 7],
+    GEFUEHL_SCHWELLE,
+    "Laufe den Hauptteil im Zielbereich der Karte und halte das Tempo gleichmäßig. Starte eher einen Hauch zu ruhig: Die letzten Minuten sollen so rund laufen wie die ersten.",
+    ABBRUCH_LAUF_HART,
+    SCHWELLE_BELEG
+  ),
+
+  "run:intervalle": plainEntry(
+    "Du reizt deine maximale Sauerstoffaufnahme mit harten Abschnitten und Pausen dazwischen. Das hebt die Obergrenze, auf der dein Ausdauertempo aufbaut.",
+    [8, 9],
+    GEFUEHL_VO2,
+    "Laufe die harten Abschnitte im Zielbereich der Karte und fang nicht zu schnell an, sonst fehlt dir am Ende die Kraft. In den Pausen trabst du ganz locker oder gehst.",
+    ABBRUCH_LAUF_HART,
+    [EIGENE]
+  ),
+
+  /* ---- Schwimmen (E6) ---- */
+  "swim:longswim": plainEntry(
+    "Du schwimmst lange am Stück in ruhigem Tempo. Das baut Ausdauer auf und festigt deine Technik, auch wenn du müder wirst.",
+    [2, 4],
+    "Ruhig, Fokus auf saubere Züge.",
+    "Schwimm gleichmäßig und ruhig. Lässt die Technik nach, mach eine kurze Pause und schwimm dann wieder sauber weiter.",
+    ABBRUCH_SCHWIMM_LOCKER,
+    [EIGENE]
+  ),
+
+  "swim:technik": plainEntry(
+    "Du übst einzelne Teile deiner Technik bei niedriger Belastung. Saubere Bewegungen zahlen sich später bei jedem Tempo aus.",
+    [2, 4],
+    "Ruhig, Fokus auf saubere Züge.",
+    "Wähle pro Bahn einen Punkt, auf den du achtest, und schwimm dabei bewusst langsam. Lange Pausen sind erlaubt.",
+    ABBRUCH_SCHWIMM_LOCKER,
+    [EIGENE]
+  ),
+
+  /* Q15: ein Text, das RPE-Band hängt an der Plan-Phase (Karte.phase).
+     `rpe`/`gefuehl` = Default (Schwelle) für Karten ohne bekannte Phase. */
+  "swim:intervalle": Object.freeze({
+    ...plainEntry(
+      "Du schwimmst Wiederholungen in hohem Tempo mit Pausen dazwischen. So hältst du später schnelleres Tempo länger durch.",
+      [6, 7],
+      GEFUEHL_SCHWELLE,
+      "Schwimm die Wiederholungen im Zielbereich der Karte und teile dir die Kraft ein: Die letzte soll so sauber sein wie die erste. In den Pausen atmest du ruhig durch.",
+      ABBRUCH_SCHWIMM_HART,
+      [EIGENE]
+    ),
+    rpeByPhase: Object.freeze({
+      Schwelle: phaseRpe([6, 7], GEFUEHL_SCHWELLE),
+      VO2max: phaseRpe([8, 9], GEFUEHL_VO2),
+    }),
+  }),
 });

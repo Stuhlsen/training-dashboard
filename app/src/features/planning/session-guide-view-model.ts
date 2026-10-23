@@ -2,7 +2,7 @@
    FEATURES/PLANNING/SESSION-GUIDE-VIEW-MODEL.TS — Trainings-Guide für die
    Planungskarte (Fahrplan 34, E3). Reine Aufbereitung: ruft
    core/session-guide.js auf und macht daraus Zielzeile, Abschnitte und
-   Quellen-Items. Kein Guide (unbekannter Typ, Lauf/Schwimmen bis E6) → null,
+   Quellen-Items. Kein Guide (unbekannter Typ, Rekom) → null,
    dann rendert die UI nichts.
    ============================================================ */
 

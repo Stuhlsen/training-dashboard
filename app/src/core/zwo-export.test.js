@@ -242,3 +242,38 @@ test("buildZwoWorkout: Guide-Text ändert nur die description, Strukturkarte ink
   const strip = (xml) => xml.replace(/<description>[\s\S]*?<\/description>/, "");
   assert.equal(strip(withGuide), strip(plain));
 });
+
+/* Fahrplan 34 E6, Q16: .zwo gibt es nur fürs Rad — Lauf und Schwimmen
+   bekommen weder den Export noch einen Guide-Text darin. */
+const RUN_CARD = {
+  date: "2026-07-03",
+  name: "Tempolauf",
+  typ: "Tempolauf",
+  sport: "run",
+  // reale Form aus plan-workout-select-generic.js: Pace-Band, keine Rad-Struktur
+  workout: { duration: 40, zone: "Schwelle", pct: [95, 105], speedTarget: [11, 12], label: "Tempolauf" },
+  workoutStructure: null,
+};
+
+test("Lauf/Schwimmen: generierte Karten sind nicht als .zwo exportierbar", () => {
+  assert.equal(canExportCardZwo(RUN_CARD), false);
+  assert.equal(canExportCardZwo({ ...RUN_CARD, sport: "swim", typ: "Intervalle" }), false);
+  const built = buildZwoWorkout(RUN_CARD, 90, "Ziel: nicht im Export");
+  assert.equal(built.ok, false);
+  assert.equal(built.error.code, "NO_DATA");
+});
+
+test("Lauf/Schwimmen: auch eine Karte mit Rad-förmigem Workout bleibt vom .zwo-Export ausgeschlossen", () => {
+  for (const sport of ["run", "swim"]) {
+    const card = { ...NUMERIC_CARD, sport };
+    assert.equal(canExportCardZwo(card), false, sport);
+    const built = buildZwoWorkout(card, 90, "Ziel: nicht im Export");
+    assert.equal(built.ok, false, sport);
+    assert.equal(JSON.stringify(built).includes("nicht im Export"), false, sport);
+  }
+});
+
+test("Rad bleibt exportierbar, mit und ohne explizites sport: ride", () => {
+  assert.equal(canExportCardZwo({ ...NUMERIC_CARD, sport: "ride" }), true);
+  assert.equal(buildZwoWorkout({ ...NUMERIC_CARD, sport: "ride" }).ok, true);
+});

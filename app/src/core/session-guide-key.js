@@ -9,7 +9,9 @@
    Migration. Unbekannter Typ → `null` = kein Guide (die Karte bleibt
    unverändert).
 
-   E1 kennt nur Rad (`sport` fehlt oder `ride`). Lauf/Schwimmen: E6.
+   Rad (`sport` fehlt oder `ride`) wird über Typ + Struktur abgeleitet, Lauf
+   und Schwimmen (E6) nur über den Typ: ihre Karten tragen keine
+   `workoutStructure` im Rad-Format. Ein Typ gilt nur für seine Sportart.
 
    Die `typ`-Strings sind gegen sports/cycling/session-types.ts
    (KNOWN_PLAN_TYPES), plan-workout-select.js::PHASE_PLAN,
@@ -21,15 +23,30 @@
 
 import { usableStructure } from "./workout-structure-format.js";
 
-/** Normalisierter Typ (klein, Leerraum gekappt) → Schlüssel ohne Struktur-Unterscheidung. */
+/** Normalisierter Typ (klein, Leerraum gekappt) → Schlüssel ohne Struktur-Unterscheidung,
+ *  je Sportart. Lauf-/Schwimm-Typen stehen in sports/{running,swimming}/session-types.ts;
+ *  "Rekom" bekommt bewusst keinen Guide (nicht raten). */
 const KEY_BY_TYP = Object.freeze({
-  "sweet spot": "ride:sweetspot-long",
-  schwelle: "ride:threshold-long",
-  vo2max: "ride:vo2-long",
-  "ftp-test": "ride:ftp-test",
-  "z2 lang": "ride:z2-lang",
-  "z2 dauer": "ride:z2-dauer",
-  "z1 recovery": "ride:z1-recovery",
+  ride: Object.freeze({
+    "sweet spot": "ride:sweetspot-long",
+    schwelle: "ride:threshold-long",
+    vo2max: "ride:vo2-long",
+    "ftp-test": "ride:ftp-test",
+    "z2 lang": "ride:z2-lang",
+    "z2 dauer": "ride:z2-dauer",
+    "z1 recovery": "ride:z1-recovery",
+  }),
+  run: Object.freeze({
+    dauerlauf: "run:dauerlauf",
+    longrun: "run:longrun",
+    tempolauf: "run:tempolauf",
+    intervalle: "run:intervalle",
+  }),
+  swim: Object.freeze({
+    longswim: "swim:longswim",
+    technik: "swim:technik",
+    intervalle: "swim:intervalle",
+  }),
 });
 
 /** Typen, bei denen ein `alternating`-Schritt die Familie wechselt. */
@@ -51,8 +68,11 @@ function stepsOf(card) {
  */
 export function guideKeyFor(card) {
   if (!card || typeof card.typ !== "string") return null;
-  if (card.sport != null && card.sport !== "ride") return null;
-  const base = KEY_BY_TYP[/** @type {keyof typeof KEY_BY_TYP} */ (card.typ.trim().toLowerCase())];
+  const sport = card.sport == null ? "ride" : card.sport;
+  if (typeof sport !== "string" || !Object.hasOwn(KEY_BY_TYP, sport)) return null;
+  const typ = card.typ.trim().toLowerCase();
+  const table = KEY_BY_TYP[/** @type {keyof typeof KEY_BY_TYP} */ (sport)];
+  const base = Object.hasOwn(table, typ) ? table[/** @type {keyof typeof table} */ (typ)] : null;
   if (!base) return null;
   const alternatingKey = ALTERNATING_KEY[/** @type {keyof typeof ALTERNATING_KEY} */ (base)];
   if (alternatingKey && stepsOf(card).some((s) => s.kind === "alternating")) return alternatingKey;

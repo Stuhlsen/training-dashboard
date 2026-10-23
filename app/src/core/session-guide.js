@@ -1,7 +1,7 @@
 /* ============================================================
    CORE/SESSION-GUIDE.JS — Trainings-Guide einer Karte bauen
    (rein, deterministisch, kein DOM, kein I/O)
-   (Fahrplan 34, Etappe E2: nur Rad; Lauf/Schwimmen kommt in E6)
+   (Fahrplan 34, Etappe E2: Rad · E6: Lauf und Schwimmen)
 
    `buildSessionGuide(card, ctx)` nimmt den Text aus
    session-guide-texts.js (Schlüssel aus session-guide-key.js), füllt die
@@ -14,8 +14,15 @@
    Untergrenze 60 g/h über 150 min sind EIGENE SETZUNG (Beleg §2a, privat:
    planning/recherche/trainingskarten-erklaeren-belege.md).
 
-   `ctx` = { cadenceTarget, weightKg, ftp, phase? }. `phase` ist für E6
-   (Schwimm-Intervalle) reserviert und wird hier noch nicht gelesen.
+   Lauf und Schwimmen (E6): keine Lücken (die Karten tragen keine Rad-
+   Struktur) — der Cue ist immer die Fallback-Fassung. Lauf zeigt statt der
+   Kadenz einen Schrittfrequenz-Satz (Figueiredo 2025), Schwimmen weder
+   Kadenz noch „Essen während“ (Q12, Q13).
+
+   `ctx` = { cadenceTarget, weightKg, ftp, phase? }. `phase` wählt das RPE-
+   Band der Schwimm-Intervalle (Q15). Sie kommt von der Karte (`card.phase`,
+   vom Plan-Generator gesetzt); `ctx.phase` springt nur ein, wenn die Karte
+   keine trägt. Ohne bekannte Phase gilt der Default (Schwelle).
    ============================================================ */
 
 import { SESSION_GUIDE_TEXTS, GUIDE_CUE_PLACEHOLDERS } from "./session-guide-texts.js";
@@ -37,10 +44,23 @@ const PRE_MEAL_NORMAL_MAX_MIN = 60;
 const SPRINT_KEY = "ride:sprint-accessory";
 const REPS_WORDS = Object.freeze(["", "", "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn", "elf", "zwölf"]);
 
+/** Titel der Abschnitte „cue“ und „kadenz“ je Sportart. */
+const SPORT_TITLES = Object.freeze({
+  ride: Object.freeze({ cue: "So fährst du es", kadenz: "Kadenz" }),
+  run: Object.freeze({ cue: "So läufst du es", kadenz: "Schrittfrequenz" }),
+  swim: Object.freeze({ cue: "So schwimmst du es", kadenz: null }),
+});
+
+/** Lauf: vorsichtig formuliert, die Autoren der Übersichtsarbeit fordern
+ *  bessere Langzeitstudien (figueiredo-2025). */
+const SCHRITTFREQUENZ_TEXT =
+  "Kurze, schnelle Schritte sind meist schonender für die Gelenke. Wenn du deine Schrittfrequenz kennst, kann etwas mehr (etwa 5–10 %) die Belastung senken.";
+
 const KADENZ_GENERAL = "Wähle eine flüssige Trittfrequenz, die du im ganzen Intervall gleich halten kannst.";
 const PRE_MEAL_TEXT =
   "Iss 1–4 Stunden vorher eine kohlenhydratreiche Mahlzeit, z. B. 2–3 Stunden vorher Brot mit Marmelade oder Reis. Wenig Fett und Ballaststoffe, nicht zu viel Eiweiß.";
 const HINT_BIG_RIDERS = "Größere, kräftigere Fahrer vertragen oft eher das obere Ende.";
+const HINT_BIG_RUNNERS = "Größere, kräftigere Läufer vertragen oft eher das obere Ende.";
 const HINT_UP_TO_120 = "Bis 120 g/h nur, wenn dein Magen das im Training gelernt hat.";
 
 /**
@@ -104,6 +124,15 @@ function kadenzText(cadenceTarget) {
     : KADENZ_GENERAL;
 }
 
+/** Hinweis „größere Athleten“ + Quellen: Ijaz 2025 untersuchte Radfahrer.
+ *  Für Läufer ist es eine Übertragung — darum dort zusätzlich als eigene
+ *  Setzung markiert. */
+function sizeHint(sport) {
+  return sport === "run"
+    ? { hint: HINT_BIG_RUNNERS, extraSources: [S.EIGENE_SETZUNG] }
+    : { hint: HINT_BIG_RIDERS, extraSources: [] };
+}
+
 /**
  * Essen während der Einheit nach Dauer (Fahrplan 34, V4).
  * @param {number|null|undefined} durationMin
@@ -122,16 +151,17 @@ export function fuelingDuring(durationMin, sport) {
       quelleKeys: [S.ACSM_2016],
     };
   }
+  const { hint, extraSources } = sizeHint(sport);
   if (durationMin <= FUEL_LONG_MIN) {
     return {
       text: "30–60 g KH pro Stunde",
-      hint: HINT_BIG_RIDERS,
-      quelleKeys: [S.ACSM_2016, S.MORTON_2026, S.IJAZ_2025],
+      hint,
+      quelleKeys: [S.ACSM_2016, S.MORTON_2026, S.IJAZ_2025, ...extraSources],
     };
   }
   return {
     text: "60–90 g KH pro Stunde",
-    hint: `${HINT_UP_TO_120} ${HINT_BIG_RIDERS}`,
+    hint: `${HINT_UP_TO_120} ${hint}`,
     quelleKeys: [S.ACSM_2016, S.MORTON_2026, S.IJAZ_2025, S.EIGENE_SETZUNG],
   };
 }
@@ -159,6 +189,25 @@ export function fuelingBefore(durationMin, weightKg) {
   return { text: PRE_MEAL_TEXT, hint, quelleKeys: [S.ACSM_2016] };
 }
 
+/** RPE-Band + Gefühls-Satz: bei swim:intervalle nach Plan-Phase (Q15), sonst
+ *  der Default des Eintrags. Phase kommt von der Karte, ctx springt ein.
+ *  `Object.hasOwn`, damit "constructor" & Co. nie ein Band liefern. */
+function rpeVariant(entry, cardPhase, ctxPhase) {
+  const phase = typeof cardPhase === "string" && cardPhase ? cardPhase : ctxPhase;
+  const byPhase = entry.rpeByPhase;
+  if (byPhase && typeof phase === "string" && Object.hasOwn(byPhase, phase)) return byPhase[phase];
+  return { min: entry.rpe.min, max: entry.rpe.max, gefuehl: entry.gefuehl };
+}
+
+/** Schritt „Kadenz“ je Sportart: Rad Zahl/Satz, Lauf Schrittfrequenz, Schwimmen entfällt. */
+function kadenzSection(sport, titles, cadenceTarget) {
+  if (sport === "swim" || !titles.kadenz) return [];
+  if (sport === "run") {
+    return [{ id: "kadenz", title: titles.kadenz, text: SCHRITTFREQUENZ_TEXT, quelleKeys: [S.FIGUEIREDO_2025, S.EIGENE_SETZUNG] }];
+  }
+  return [{ id: "kadenz", title: titles.kadenz, text: kadenzText(cadenceTarget), quelleKeys: [S.EIGENE_SETZUNG] }];
+}
+
 /** Dauer der Karte in Minuten: Feld der Karte, sonst aus der Struktur. */
 function cardDurationMin(card, structure) {
   if (isPositive(card.durationMin)) return card.durationMin;
@@ -172,8 +221,8 @@ function fuelSection(advice, id, title) {
 
 /**
  * Trainings-Guide einer Karte (Fahrplan 34, V1). `null`, wenn es für die
- * Karte keinen Guide gibt (unbekannter Typ, Lauf/Schwimmen bis E6).
- * @param {{typ?: unknown, sport?: unknown, durationMin?: number|null, workout?: unknown, workoutStructure?: unknown}|null|undefined} card
+ * Karte keinen Guide gibt (unbekannter Typ, Rekom).
+ * @param {{typ?: unknown, sport?: unknown, phase?: unknown, durationMin?: number|null, workout?: unknown, workoutStructure?: unknown}|null|undefined} card
  * @param {{cadenceTarget?: number|null, weightKg?: number|null, ftp?: number|null, phase?: string|null}} [ctx]
  * @returns {SessionGuide|null}
  */
@@ -182,25 +231,29 @@ export function buildSessionGuide(card, ctx = {}) {
   const entry = key ? SESSION_GUIDE_TEXTS[key] : null;
   if (!card || !key || !entry) return null;
 
+  const sport = key.slice(0, key.indexOf(":"));
+  const titles = SPORT_TITLES[sport];
+  const isRide = sport === "ride";
   const structure = usableStructure(card);
-  const cueParts = [fillCue(entry.cue, cueValues(structure, ctx.ftp))];
-  if (hasSprintStep(card)) {
+  // Lauf/Schwimmen: keine Lücken — immer die Fallback-Fassung des Cues.
+  const cueParts = [isRide ? fillCue(entry.cue, cueValues(structure, ctx.ftp)) : entry.cue.fallback];
+  if (isRide && hasSprintStep(card)) {
     const sprint = SESSION_GUIDE_TEXTS[SPRINT_KEY];
     cueParts.push(fillCue(sprint.cue, { "{reps}": repsWord(sprintReps(structure)) }));
   }
   cueParts.push(entry.abbruch);
 
   const durationMin = cardDurationMin(card, structure);
-  const sport = typeof card.sport === "string" ? card.sport : "ride";
+  const rpe = rpeVariant(entry, card.phase, ctx.phase);
 
   return {
     key,
-    rpe: { min: entry.rpe.min, max: entry.rpe.max },
+    rpe: { min: rpe.min, max: rpe.max },
     sections: [
       { id: "ziel", title: "Ziel der Einheit", text: entry.ziel, quelleKeys: [] },
-      { id: "rpe", title: "RPE", text: entry.gefuehl, quelleKeys: [...entry.quelleKeys] },
-      { id: "cue", title: "So fährst du es", text: cueParts.join(" "), quelleKeys: [] },
-      { id: "kadenz", title: "Kadenz", text: kadenzText(ctx.cadenceTarget), quelleKeys: [S.EIGENE_SETZUNG] },
+      { id: "rpe", title: "RPE", text: rpe.gefuehl, quelleKeys: [...entry.quelleKeys] },
+      { id: "cue", title: titles.cue, text: cueParts.join(" "), quelleKeys: [] },
+      ...kadenzSection(sport, titles, ctx.cadenceTarget),
       ...fuelSection(fuelingBefore(durationMin, ctx.weightKg), "fuelPre", "Essen vorher"),
       ...fuelSection(fuelingDuring(durationMin, sport), "fuelInter", "Essen während"),
     ],
@@ -229,8 +282,8 @@ export function sessionGuideText(guide) {
   const line = {
     ziel: (s) => `Ziel: ${s.text}`,
     rpe: (s) => `${rpeLabel(guide.rpe)}: ${s.text}`,
-    cue: (s) => `So fährst du es: ${s.text}`,
-    kadenz: (s) => `Kadenz: ${s.text}`,
+    cue: (s) => `${s.title}: ${s.text}`,
+    kadenz: (s) => `${s.title}: ${s.text}`,
     fuelPre: (s) => `Essen vorher: ${withHint(s.text, plainPreHint(s.hint ?? null))}`,
     fuelInter: (s) => `Essen während: ${withHint(s.text, s.hint ?? null)}`,
   };

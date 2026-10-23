@@ -31,8 +31,41 @@ describe("buildSessionGuideView", () => {
     expect(buildSessionGuideView(card({ typ: "Irgendwas" }), CTX)).toBeNull();
   });
 
-  it("liefert null für Lauf-Karten (Guide kommt erst mit E6)", () => {
-    expect(buildSessionGuideView(card({ sport: "run" }), CTX)).toBeNull();
+  it("liefert null für Lauf/Schwimm-Karten ohne Guide-Typ (Rekom, Rad-Typ)", () => {
+    expect(buildSessionGuideView(card({ sport: "run", typ: "Rekom" }), CTX)).toBeNull();
+    expect(buildSessionGuideView(card({ sport: "swim", typ: "Rekom" }), CTX)).toBeNull();
+    expect(buildSessionGuideView(card({ sport: "run" }), CTX)).toBeNull(); // „Sweet Spot“ ist kein Lauf-Typ
+  });
+
+  it("Lauf-Karte: Ziel, RPE und Schrittfrequenz statt Kadenz (E6)", () => {
+    const view = buildSessionGuideView(card({ sport: "run", typ: "Tempolauf", durationMin: 50 }), CTX)!;
+    expect(view.goal.length).toBeGreaterThan(0);
+    expect(view.rpeLabel).toBe("RPE 6–7");
+    expect(view.sections.map((s) => s.title)).toEqual(
+      expect.arrayContaining(["RPE 6–7", "So läufst du es", "Schrittfrequenz"]),
+    );
+    expect(view.sections.map((s) => s.title)).not.toContain("Kadenz");
+    expect(view.sources.map((s) => s.key)).toContain("figueiredo-2025");
+  });
+
+  it("Schwimm-Karte: weder Kadenz noch „Essen während“, Phase bestimmt das RPE-Band (E6)", () => {
+    const base = { sport: "swim" as const, typ: "Intervalle", durationMin: 60 };
+    const schwelle = buildSessionGuideView(card({ ...base, phase: "Schwelle" }), CTX)!;
+    const vo2 = buildSessionGuideView(card({ ...base, phase: "VO2max" }), CTX)!;
+    expect(schwelle.rpeLabel).toBe("RPE 6–7");
+    expect(vo2.rpeLabel).toBe("RPE 8–9");
+    expect(buildSessionGuideView(card({ ...base, phase: "Aufbau 2" }), CTX)!.rpeLabel).toBe("RPE 6–7");
+    const ids = schwelle.sections.map((s) => s.id);
+    expect(ids).not.toContain("kadenz");
+    expect(ids).not.toContain("fuelInter");
+  });
+
+  it("Gewicht bleibt auch bei Lauf an der Gewichtsregel: ohne weightKg keine Gramm-Zahl", () => {
+    const long = card({ sport: "run", typ: "Longrun", durationMin: 120 });
+    const without = buildSessionGuideView(long, { ...CTX, weightKg: null })!;
+    expect(JSON.stringify(without)).not.toMatch(/bei dir/);
+    const withWeight = buildSessionGuideView(long, { ...CTX, weightKg: 70 })!;
+    expect(JSON.stringify(withWeight)).toMatch(/bei dir ca\. 70–280 g/);
   });
 
   it("trennt Zielzeile und übrige Abschnitte", () => {
@@ -130,9 +163,19 @@ describe("sessionGuideExportText", () => {
     expect(text).not.toMatch(/[*_`#]/);
   });
 
-  it("liefert leeren String ohne Guide (unbekannter Typ, Lauf, abgesagt)", () => {
+  it("liefert leeren String ohne Guide (unbekannter Typ, Rekom, abgesagt)", () => {
     expect(sessionGuideExportText(card({ typ: "Irgendwas" }), 90)).toBe("");
-    expect(sessionGuideExportText(card({ sport: "run" }), 90)).toBe("");
+    expect(sessionGuideExportText(card({ sport: "run", typ: "Rekom" }), 90)).toBe("");
     expect(sessionGuideExportText(card({ cancelled: true }), 90)).toBe("");
+  });
+
+  it("Lauf/Schwimmen: Klartext läuft über denselben Weg mit (E6), ohne Gramm-Zahl", () => {
+    const run = sessionGuideExportText(card({ sport: "run", typ: "Longrun", durationMin: 120 }), 90);
+    expect(run).toMatch(/^Ziel: /);
+    expect(run).toContain("\nSchrittfrequenz: ");
+    expect(run).not.toMatch(/bei dir|U\/min/);
+    const swim = sessionGuideExportText(card({ sport: "swim", typ: "Longswim", durationMin: 90 }), 90);
+    expect(swim).toContain("\nSo schwimmst du es: ");
+    expect(swim).not.toMatch(/Kadenz|Schrittfrequenz|Essen während/);
   });
 });

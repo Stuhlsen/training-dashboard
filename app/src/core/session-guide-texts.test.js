@@ -24,8 +24,21 @@ const RIDE_KEYS = [
   "ride:z1-recovery",
 ];
 
+const RUN_KEYS = ["run:dauerlauf", "run:longrun", "run:tempolauf", "run:intervalle"];
+const SWIM_KEYS = ["swim:longswim", "swim:technik", "swim:intervalle"];
+const ALL_KEYS = [...RIDE_KEYS, ...RUN_KEYS, ...SWIM_KEYS];
+/** Rad-Familien mit Lücken in der Vorlage. */
+const INTERVAL_KEYS = ["ride:sweetspot-long", "ride:threshold-long", "ride:over-under", "ride:vo2-long", "ride:vo2-short"];
+
 /* Beleg §2c, 1:1 */
 const EXPECTED_RPE = {
+  "run:dauerlauf": [2, 3],
+  "run:longrun": [2, 3],
+  "run:tempolauf": [6, 7],
+  "run:intervalle": [8, 9],
+  "swim:longswim": [2, 4],
+  "swim:technik": [2, 4],
+  "swim:intervalle": [6, 7], // Default = Phase Schwelle, s. rpeByPhase
   "ride:z1-recovery": [1, 2],
   "ride:z2-dauer": [2, 3],
   "ride:z2-lang": [2, 3],
@@ -39,6 +52,13 @@ const EXPECTED_RPE = {
 };
 
 const EXPECTED_GEFUEHL = {
+  "run:dauerlauf": "Locker, du kannst ganze Sätze sprechen.",
+  "run:longrun": "Locker, du kannst ganze Sätze sprechen.",
+  "run:tempolauf": "Hart, aber gleichmäßig haltbar. Sprechen nur in kurzen Sätzen.",
+  "run:intervalle": "Sehr hart. Die letzte Minute jedes Intervalls ist schwer.",
+  "swim:longswim": "Ruhig, Fokus auf saubere Züge.",
+  "swim:technik": "Ruhig, Fokus auf saubere Züge.",
+  "swim:intervalle": "Hart, aber gleichmäßig haltbar. Sprechen nur in kurzen Sätzen.",
   "ride:z1-recovery": "Ganz locker, du könntest ewig weiterfahren.",
   "ride:z2-dauer": "Locker, du kannst ganze Sätze sprechen.",
   "ride:z2-lang": "Locker, du kannst ganze Sätze sprechen.",
@@ -54,13 +74,13 @@ const EXPECTED_GEFUEHL = {
 const textFields = (e) => [e.ziel, e.gefuehl, e.cue.template, e.cue.fallback, e.abbruch];
 
 describe("SESSION_GUIDE_TEXTS — Aufbau", () => {
-  test("genau die Rad-Schlüssel aus V2", () => {
-    assert.deepEqual(Object.keys(SESSION_GUIDE_TEXTS).sort(), [...RIDE_KEYS].sort());
+  test("genau die Schlüssel aus V2 (Rad, Lauf, Schwimmen)", () => {
+    assert.deepEqual(Object.keys(SESSION_GUIDE_TEXTS).sort(), [...ALL_KEYS].sort());
   });
 
   test("Tabelle und Einträge sind eingefroren", () => {
     assert.ok(Object.isFrozen(SESSION_GUIDE_TEXTS));
-    for (const key of RIDE_KEYS) {
+    for (const key of ALL_KEYS) {
       const e = SESSION_GUIDE_TEXTS[key];
       assert.ok(Object.isFrozen(e), key);
       assert.ok(Object.isFrozen(e.rpe), key);
@@ -69,7 +89,7 @@ describe("SESSION_GUIDE_TEXTS — Aufbau", () => {
     }
   });
 
-  for (const key of RIDE_KEYS) {
+  for (const key of ALL_KEYS) {
     test(`${key}: alle Pflichtfelder gefüllt`, () => {
       const e = SESSION_GUIDE_TEXTS[key];
       for (const f of textFields(e)) {
@@ -88,7 +108,7 @@ describe("SESSION_GUIDE_TEXTS — Aufbau", () => {
 });
 
 describe("SESSION_GUIDE_TEXTS — Inhalte aus dem Beleg", () => {
-  for (const key of RIDE_KEYS) {
+  for (const key of ALL_KEYS) {
     test(`${key}: RPE-Band und Gefühls-Satz wie Beleg §2c`, () => {
       const e = SESSION_GUIDE_TEXTS[key];
       assert.deepEqual([e.rpe.min, e.rpe.max], EXPECTED_RPE[key]);
@@ -99,7 +119,7 @@ describe("SESSION_GUIDE_TEXTS — Inhalte aus dem Beleg", () => {
 
 describe("SESSION_GUIDE_TEXTS — Lücken und Zahlen", () => {
   test("Vorlagen nutzen nur {reps}, {workMin}, {wattRange}", () => {
-    for (const key of RIDE_KEYS) {
+    for (const key of ALL_KEYS) {
       const found = SESSION_GUIDE_TEXTS[key].cue.template.match(/\{[^}]*\}/g) ?? [];
       for (const p of found) {
         assert.ok(GUIDE_CUE_PLACEHOLDERS.includes(p), `${key}: ${p}`);
@@ -108,7 +128,7 @@ describe("SESSION_GUIDE_TEXTS — Lücken und Zahlen", () => {
   });
 
   test("Fallback-Fassung und alle übrigen Texte enthalten keine Lücke", () => {
-    for (const key of RIDE_KEYS) {
+    for (const key of ALL_KEYS) {
       const e = SESSION_GUIDE_TEXTS[key];
       for (const f of [e.ziel, e.gefuehl, e.cue.fallback, e.abbruch]) {
         assert.ok(!/[{}]|undefined|null/.test(f), `${key}: ${f}`);
@@ -117,7 +137,7 @@ describe("SESSION_GUIDE_TEXTS — Lücken und Zahlen", () => {
   });
 
   test("keine Prozent- oder Watt-Zahlen in den Texten (die kommen nur über Lücken)", () => {
-    for (const key of RIDE_KEYS) {
+    for (const key of ALL_KEYS) {
       for (const f of textFields(SESSION_GUIDE_TEXTS[key])) {
         assert.ok(!/%|\d\s*(W|Watt)\b/.test(f), `${key}: ${f}`);
       }
@@ -125,13 +145,13 @@ describe("SESSION_GUIDE_TEXTS — Lücken und Zahlen", () => {
   });
 
   test("Vorlagen enthalten keine feste Zahl außer den Lücken", () => {
-    for (const key of RIDE_KEYS) {
+    for (const key of ALL_KEYS) {
       assert.ok(!/\d/.test(SESSION_GUIDE_TEXTS[key].cue.template), key);
     }
   });
 
   test("Intervall-Familien haben mindestens eine Lücke in der Vorlage", () => {
-    for (const key of ["ride:sweetspot-long", "ride:threshold-long", "ride:over-under", "ride:vo2-long", "ride:vo2-short"]) {
+    for (const key of INTERVAL_KEYS) {
       assert.ok(/\{(reps|workMin|wattRange)\}/.test(SESSION_GUIDE_TEXTS[key].cue.template), key);
     }
   });
@@ -139,7 +159,7 @@ describe("SESSION_GUIDE_TEXTS — Lücken und Zahlen", () => {
 
 describe("SESSION_GUIDE_TEXTS — Ton", () => {
   test("Abbruchregel ist neutral: kein Druck, keine Schuld", () => {
-    for (const key of RIDE_KEYS) {
+    for (const key of ALL_KEYS) {
       const a = SESSION_GUIDE_TEXTS[key].abbruch;
       assert.ok(!/musst|versagt|schwach|nur wer|durchbeißen|aufgeben/i.test(a), key);
     }
@@ -148,7 +168,7 @@ describe("SESSION_GUIDE_TEXTS — Ton", () => {
 
 describe("Quellen", () => {
   test("jeder quelleKey der Texte existiert in session-guide-sources.js", () => {
-    for (const key of RIDE_KEYS) {
+    for (const key of ALL_KEYS) {
       for (const q of SESSION_GUIDE_TEXTS[key].quelleKeys) {
         assert.ok(GUIDE_SOURCE_BY_KEY.has(q), `${key}: ${q}`);
       }
@@ -194,5 +214,47 @@ describe("Quellen", () => {
       Object.values(GUIDE_SOURCE_KEYS).sort(),
       SESSION_GUIDE_SOURCES.map((s) => s.key).sort()
     );
+  });
+});
+
+describe("SESSION_GUIDE_TEXTS — Lauf und Schwimmen (E6)", () => {
+  test("Lauf und Schwimmen haben keine Lücken: Vorlage == Fallback", () => {
+    for (const key of [...RUN_KEYS, ...SWIM_KEYS]) {
+      const { template, fallback } = SESSION_GUIDE_TEXTS[key].cue;
+      assert.equal(template, fallback, key);
+    }
+  });
+
+  test("Lauf und Schwimmen tragen eine Fußnote zur eigenen Setzung", () => {
+    for (const key of [...RUN_KEYS, ...SWIM_KEYS]) {
+      assert.ok(SESSION_GUIDE_TEXTS[key].quelleKeys.includes("eigene-setzung"), key);
+    }
+  });
+
+  test("Tempolauf trägt die Läufer-Studie zur Schwelle (nuuttila-2025)", () => {
+    assert.ok(SESSION_GUIDE_TEXTS["run:tempolauf"].quelleKeys.includes("nuuttila-2025"));
+  });
+
+  test("nur swim:intervalle hat rpeByPhase", () => {
+    for (const key of ALL_KEYS) {
+      assert.equal("rpeByPhase" in SESSION_GUIDE_TEXTS[key], key === "swim:intervalle", key);
+    }
+  });
+
+  test("swim:intervalle: Schwelle 6–7, VO2max 8–9, eingefroren, Default == Schwelle", () => {
+    const e = SESSION_GUIDE_TEXTS["swim:intervalle"];
+    assert.deepEqual([e.rpeByPhase.Schwelle.min, e.rpeByPhase.Schwelle.max], [6, 7]);
+    assert.deepEqual([e.rpeByPhase.VO2max.min, e.rpeByPhase.VO2max.max], [8, 9]);
+    assert.deepEqual([e.rpe.min, e.rpe.max], [e.rpeByPhase.Schwelle.min, e.rpeByPhase.Schwelle.max]);
+    assert.equal(e.gefuehl, e.rpeByPhase.Schwelle.gefuehl);
+    assert.ok(Object.isFrozen(e.rpeByPhase) && Object.isFrozen(e.rpeByPhase.VO2max));
+    assert.equal(e.rpeByPhase.VO2max.gefuehl, "Sehr hart. Die letzte Minute jedes Intervalls ist schwer.");
+  });
+
+  test("Phasen-Varianten sind gültig: ganze Zahlen 1–10, Text gefüllt", () => {
+    for (const v of Object.values(SESSION_GUIDE_TEXTS["swim:intervalle"].rpeByPhase)) {
+      assert.ok(Number.isInteger(v.min) && Number.isInteger(v.max) && v.min >= 1 && v.min <= v.max && v.max <= 10);
+      assert.ok(v.gefuehl.trim().length > 0 && !/[{}]|undefined|null/.test(v.gefuehl));
+    }
   });
 });

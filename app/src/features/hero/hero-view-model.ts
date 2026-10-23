@@ -222,7 +222,7 @@ export interface HeroSession {
   chips: string[];
   detailParts: string[];
   /** Fahrplan 34 E4: Ziel-Zeile und Ziel-RPE ("RPE 6–7") aus dem Trainings-
-   *  Guide — null ohne Guide (unbekannter Typ, Lauf/Schwimmen bis E6), dann
+   *  Guide — null ohne Guide (unbekannter Typ, Rekom), dann
    *  rendert SessionCard.tsx nichts. Bewusst nur diese zwei Felder: kein
    *  Gewicht, kein Fueling, keine Quellen (Q4). */
   guideGoal: string | null;

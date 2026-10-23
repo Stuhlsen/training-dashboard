@@ -1,5 +1,5 @@
 /* Tests: Familien-Ableitung für Trainings-Guides (core/session-guide-key.js)
-   — Fahrplan 34, E1. Jede Zeile der V2-Tabelle (nur Rad) ein Fall. */
+   — Fahrplan 34, E1 (Rad) und E6 (Lauf/Schwimmen). Jede Zeile der V2-Tabelle ein Fall. */
 
 import { test, describe } from "vitest";
 import assert from "node:assert/strict";
@@ -85,9 +85,38 @@ describe("guideKeyFor — Sportart und Unbekanntes", () => {
   test("sport: ride explizit", () => {
     assert.equal(guideKeyFor({ typ: "Z2 Lang", sport: "ride" }), "ride:z2-lang");
   });
-  test("Lauf/Schwimmen sind in E1 noch nicht dabei → null", () => {
-    assert.equal(guideKeyFor({ typ: "Dauerlauf", sport: "run" }), null);
-    assert.equal(guideKeyFor({ typ: "Longswim", sport: "swim" }), null);
+  test("Lauf-Typen (E6) → run:*", () => {
+    const cases = [
+      ["Dauerlauf", "run:dauerlauf"],
+      ["Longrun", "run:longrun"],
+      ["Tempolauf", "run:tempolauf"],
+      ["Intervalle", "run:intervalle"],
+    ];
+    for (const [typ, key] of cases) assert.equal(guideKeyFor({ typ, sport: "run" }), key, typ);
+  });
+  test("Schwimm-Typen (E6) → swim:*", () => {
+    const cases = [
+      ["Longswim", "swim:longswim"],
+      ["Technik", "swim:technik"],
+      ["Intervalle", "swim:intervalle"],
+    ];
+    for (const [typ, key] of cases) assert.equal(guideKeyFor({ typ, sport: "swim" }), key, typ);
+  });
+  test("Lauf: Schreibweise egal, Struktur ändert den Schlüssel nicht", () => {
+    assert.equal(guideKeyFor({ typ: " tempolauf ", sport: "run" }), "run:tempolauf");
+    const alt = card("Intervalle", struct(ALT), { sport: "run" });
+    assert.equal(guideKeyFor(alt), "run:intervalle");
+  });
+  test("Lauf/Schwimmen: Rekom und fremde Typen → null, Typen gelten nur für ihre Sportart", () => {
+    assert.equal(guideKeyFor({ typ: "Rekom", sport: "run" }), null);
+    assert.equal(guideKeyFor({ typ: "Rekom", sport: "swim" }), null);
+    assert.equal(guideKeyFor({ typ: "Longswim", sport: "run" }), null);
+    assert.equal(guideKeyFor({ typ: "Dauerlauf", sport: "swim" }), null);
+    assert.equal(guideKeyFor({ typ: "Intervalle" }), null); // Rad kennt keinen Typ „Intervalle"
+    assert.equal(guideKeyFor({ typ: "Dauerlauf", sport: "ride" }), null);
+  });
+  test("unbekannte Sportart → null", () => {
+    assert.equal(guideKeyFor({ typ: "Z2 Lang", sport: "other" }), null);
   });
   test("unbekannter Typ → null", () => {
     assert.equal(guideKeyFor(card("Gruppenfahrt", null)), null);

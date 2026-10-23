@@ -76,8 +76,9 @@ describe("buildSessionGuide — Grundform", () => {
     assert.equal(buildSessionGuide(null, ctx()), null);
   });
 
-  test("Lauf-Karte (E6) → null", () => {
-    assert.equal(buildSessionGuide(card("Dauerlauf", null, { sport: "run" }), ctx()), null);
+  test("Rekom (Lauf, Schwimmen) → null", () => {
+    assert.equal(buildSessionGuide(card("Rekom", null, { sport: "run" }), ctx()), null);
+    assert.equal(buildSessionGuide(card("Rekom", null, { sport: "swim" }), ctx()), null);
   });
 
   test("Abschnitte in fester Reihenfolge", () => {
@@ -369,5 +370,183 @@ describe("sessionGuideText (V6)", () => {
       sections: [{ id: "rpe", title: "RPE", text: "Mittel.", quelleKeys: [] }],
     });
     assert.equal(text, "RPE 5: Mittel.");
+  });
+});
+
+/* ---------- E6: Lauf + Schwimmen ---------- */
+
+const run = (typ, extra = {}) => card(typ, null, { sport: "run", ...extra });
+const swim = (typ, extra = {}) => card(typ, null, { sport: "swim", ...extra });
+const ids = (guide) => guide.sections.map((x) => x.id);
+
+describe("buildSessionGuide — Lauf (E6)", () => {
+  test("alle vier Lauf-Typen liefern einen Guide mit festem Abschnitts-Gerüst", () => {
+    for (const typ of ["Dauerlauf", "Longrun", "Tempolauf", "Intervalle"]) {
+      const guide = buildSessionGuide(run(typ), ctx());
+      assert.equal(guide.key, `run:${typ.toLowerCase()}`, typ);
+      assert.deepEqual(ids(guide), ["ziel", "rpe", "cue", "kadenz", "fuelPre", "fuelInter"], typ);
+    }
+  });
+
+  test("RPE-Bänder: Dauerlauf 2–3, Tempolauf 6–7, Intervalle 8–9", () => {
+    assert.deepEqual(buildSessionGuide(run("Dauerlauf"), ctx()).rpe, { min: 2, max: 3 });
+    assert.deepEqual(buildSessionGuide(run("Tempolauf"), ctx()).rpe, { min: 6, max: 7 });
+    assert.deepEqual(buildSessionGuide(run("Intervalle"), ctx()).rpe, { min: 8, max: 9 });
+  });
+
+  test("Schrittfrequenz-Satz statt Kadenz: vorsichtig, mit figueiredo-2025", () => {
+    const k = section(buildSessionGuide(run("Dauerlauf"), ctx()), "kadenz");
+    assert.equal(k.title, "Schrittfrequenz");
+    assert.match(k.text, /Schrittfrequenz/);
+    assert.match(k.text, /5–10 %/);
+    assert.ok(k.quelleKeys.includes("figueiredo-2025"));
+    assert.ok(!/garantier|verhindert|schützt|heilt/i.test(k.text), "kein Medizin-Versprechen");
+  });
+
+  test("Rad-Kadenzziel (U/min) wirkt auf Lauf nicht", () => {
+    const k = section(buildSessionGuide(run("Dauerlauf"), ctx({ cadenceTarget: 90 })), "kadenz");
+    assert.ok(!/90|U\/min/.test(k.text));
+    assert.equal(k.text, section(buildSessionGuide(run("Dauerlauf"), ctx({ cadenceTarget: null })), "kadenz").text);
+  });
+
+  test("Lauf-Cue ist immer die Fallback-Fassung, auch mit Rad-Struktur und FTP", () => {
+    const withStruct = run("Intervalle", { workoutStructure: struct(WARM, SS_SET, COOL) });
+    const guide = buildSessionGuide(withStruct, ctx({ ftp: 250 }));
+    const plain = buildSessionGuide(run("Intervalle"), ctx({ ftp: null }));
+    assert.equal(section(guide, "cue").text, section(plain, "cue").text);
+    assert.ok(!/[{}]|undefined|null|\d\s*W\b/.test(section(guide, "cue").text));
+    assert.equal(section(guide, "cue").title, "So läufst du es");
+  });
+
+  test("Sprint-Zusatz gibt es nur beim Rad", () => {
+    const sprintRun = run("Dauerlauf", { workoutStructure: struct(SS_SET, SPRINT) });
+    assert.ok(!/Sprint/.test(section(buildSessionGuide(sprintRun, ctx()), "cue").text));
+  });
+
+  test("Kurzeinheit (30 min): „Wasser reicht.“, normale Mahlzeit vorher", () => {
+    const guide = buildSessionGuide(run("Dauerlauf", { durationMin: 30 }), ctx());
+    assert.equal(section(guide, "fuelInter").text, "Wasser reicht.");
+    assert.equal(section(guide, "fuelPre").text, "Deine normale Mahlzeit reicht.");
+  });
+
+  test("langer Lauf: g/h nach Dauer, Hinweis spricht Läufer an (nicht „Fahrer“)", () => {
+    const fuel = section(buildSessionGuide(run("Longrun", { durationMin: 120 }), ctx()), "fuelInter");
+    assert.equal(fuel.text, "30–60 g KH pro Stunde");
+    assert.match(fuel.hint, /Läufer/);
+    assert.ok(!/Fahrer/.test(fuel.hint));
+    assert.ok(fuel.quelleKeys.includes("eigene-setzung"), "Übertragung von Rad-Studie ehrlich markiert");
+    const ultra = section(buildSessionGuide(run("Longrun", { durationMin: 170 }), ctx()), "fuelInter");
+    assert.equal(ultra.text, "60–90 g KH pro Stunde");
+    assert.ok(!/Fahrer/.test(ultra.hint));
+  });
+
+  test("Rad-Hinweis bleibt „Fahrer“ und ohne eigene-setzung bei 60–150 min", () => {
+    const fuel = section(buildSessionGuide(card("Z2 Lang", null, { durationMin: 120 }), ctx()), "fuelInter");
+    assert.match(fuel.hint, /Fahrer/);
+    assert.ok(!fuel.quelleKeys.includes("eigene-setzung"));
+  });
+
+  test("Essen vorher bei langem Lauf mit Gewicht: persönliche Gramm-Spanne", () => {
+    const pre = section(buildSessionGuide(run("Longrun", { durationMin: 120 }), ctx({ weightKg: 70 })), "fuelPre");
+    assert.match(pre.hint, /70–280 g/);
+  });
+
+  test("alle quelleKeys der Lauf-Abschnitte existieren", () => {
+    const guide = buildSessionGuide(run("Tempolauf", { durationMin: 200 }), ctx());
+    for (const x of guide.sections) for (const k of x.quelleKeys) assert.ok(GUIDE_SOURCE_BY_KEY.has(k), k);
+  });
+});
+
+describe("buildSessionGuide — Schwimmen (E6)", () => {
+  test("ohne Kadenz und ohne „Essen während“ (Q12, Q13) — auch bei langer Einheit", () => {
+    for (const typ of ["Longswim", "Technik", "Intervalle"]) {
+      const guide = buildSessionGuide(swim(typ, { durationMin: 200 }), ctx());
+      assert.equal(guide.key, `swim:${typ.toLowerCase()}`);
+      assert.deepEqual(ids(guide), ["ziel", "rpe", "cue", "fuelPre"], typ);
+    }
+  });
+
+  test("Kurzeinheit: „Essen vorher“ ist die normale Mahlzeit", () => {
+    const guide = buildSessionGuide(swim("Technik", { durationMin: 30 }), ctx());
+    assert.deepEqual(ids(guide), ["ziel", "rpe", "cue", "fuelPre"]);
+    assert.equal(section(guide, "fuelPre").text, "Deine normale Mahlzeit reicht.");
+  });
+
+  test("Cue-Titel für Schwimmen, ohne Lücken/Watt", () => {
+    const c = section(buildSessionGuide(swim("Intervalle", { workoutStructure: struct(SS_SET) }), ctx()), "cue");
+    assert.equal(c.title, "So schwimmst du es");
+    assert.ok(!/[{}]|undefined|null|\d\s*W\b/.test(c.text));
+  });
+
+  test("Longswim/Technik: RPE 2–4", () => {
+    assert.deepEqual(buildSessionGuide(swim("Longswim"), ctx()).rpe, { min: 2, max: 4 });
+    assert.deepEqual(buildSessionGuide(swim("Technik"), ctx()).rpe, { min: 2, max: 4 });
+  });
+});
+
+describe("buildSessionGuide — swim:intervalle nach Phase (Q15)", () => {
+  const rpeOf = (c, extraCtx = {}) => buildSessionGuide(c, ctx(extraCtx)).rpe;
+
+  test("Phase Schwelle → 6–7", () => {
+    assert.deepEqual(rpeOf(swim("Intervalle", { phase: "Schwelle" })), { min: 6, max: 7 });
+  });
+
+  test("Phase VO2max → 8–9, auch im RPE-Text", () => {
+    const guide = buildSessionGuide(swim("Intervalle", { phase: "VO2max" }), ctx());
+    assert.deepEqual(guide.rpe, { min: 8, max: 9 });
+    assert.match(section(guide, "rpe").text, /Sehr hart/);
+  });
+
+  test("ohne Phase, unbekannte Phase oder Prototyp-Name → Default Schwelle", () => {
+    for (const phase of [undefined, null, "", "Grundlage", "Taper", "constructor", "__proto__"]) {
+      const guide = buildSessionGuide(swim("Intervalle", { phase }), ctx());
+      assert.deepEqual(guide.rpe, { min: 6, max: 7 }, String(phase));
+      assert.match(section(guide, "rpe").text, /gleichmäßig haltbar/, String(phase));
+    }
+  });
+
+  test("ctx.phase springt ein, wenn die Karte keine Phase trägt; die Karte gewinnt", () => {
+    assert.deepEqual(rpeOf(swim("Intervalle"), { phase: "VO2max" }), { min: 8, max: 9 });
+    assert.deepEqual(rpeOf(swim("Intervalle", { phase: "Schwelle" }), { phase: "VO2max" }), { min: 6, max: 7 });
+  });
+
+  test("andere Typen ignorieren die Phase (Lauf-Intervalle 8–9, Tempolauf 6–7, Rad Schwelle 6–7)", () => {
+    assert.deepEqual(rpeOf(run("Intervalle", { phase: "Schwelle" })), { min: 8, max: 9 });
+    assert.deepEqual(rpeOf(run("Tempolauf", { phase: "VO2max" })), { min: 6, max: 7 });
+    assert.deepEqual(rpeOf(card("Schwelle", null, { phase: "VO2max" })), { min: 6, max: 7 });
+  });
+
+  test("gibt kein veränderbares Band aus der Tabelle heraus", () => {
+    const guide = buildSessionGuide(swim("Intervalle", { phase: "VO2max" }), ctx());
+    guide.rpe.min = 1;
+    assert.deepEqual(buildSessionGuide(swim("Intervalle", { phase: "VO2max" }), ctx()).rpe, { min: 8, max: 9 });
+  });
+});
+
+describe("sessionGuideText — Lauf und Schwimmen (E6)", () => {
+  test("Lauf: Zeilen mit Titel der Sportart, ohne Quellen und ohne persönliche Gramm-Zahl", () => {
+    const text = sessionGuideText(buildSessionGuide(run("Longrun", { durationMin: 120 }), ctx({ weightKg: 70 })));
+    const labels = text.split("\n").map((l) => l.split(":")[0]);
+    assert.deepEqual(labels, ["Ziel", "RPE 2–3", "So läufst du es", "Schrittfrequenz", "Essen vorher", "Essen während"]);
+    assert.ok(!/280|bei dir/.test(text));
+    assert.ok(!/doi|Quelle/i.test(text));
+  });
+
+  test("Schwimmen: weder Kadenz- noch „Essen während“-Zeile", () => {
+    const text = sessionGuideText(buildSessionGuide(swim("Longswim", { durationMin: 90 }), ctx()));
+    assert.ok(!/Kadenz|Schrittfrequenz|Essen während/.test(text));
+    assert.match(text, /^Ziel: /);
+    assert.match(text, /\nSo schwimmst du es: /);
+  });
+
+  test("Schwimm-Intervalle VO2max: RPE-Zeile trägt das Phasen-Band", () => {
+    const text = sessionGuideText(buildSessionGuide(swim("Intervalle", { phase: "VO2max" }), ctx()));
+    assert.match(text, /\nRPE 8–9: /);
+  });
+
+  test("Rad-Export bleibt unverändert („So fährst du es“, „Kadenz“)", () => {
+    const text = sessionGuideText(buildSessionGuide(overUnder(), ctx()));
+    assert.match(text, /\nSo fährst du es: /);
+    assert.match(text, /\nKadenz: /);
   });
 });

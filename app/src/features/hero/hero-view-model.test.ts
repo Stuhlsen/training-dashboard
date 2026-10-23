@@ -170,6 +170,23 @@ describe("buildHeroViewModel", () => {
     expect(vm.session?.guideRpe).toMatch(/^RPE \d+(–\d+)?$/);
   });
 
+  it("Session: Lauf- und Schwimmkarte tragen Ziel-Zeile und Ziel-RPE (Fahrplan 34 E6)", () => {
+    const run = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [planCard({ date: "2026-07-24", sport: "run", typ: "Longrun", name: "Longrun" })],
+    });
+    expect(run.session?.guideGoal).toEqual(expect.any(String));
+    expect(run.session?.guideGoal).not.toBe("");
+    expect(run.session?.guideRpe).toBe("RPE 2–3");
+    const swim = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [
+        planCard({ date: "2026-07-24", sport: "swim", typ: "Intervalle", name: "Intervalle", phase: "VO2max" }),
+      ],
+    });
+    expect(swim.session?.guideRpe).toBe("RPE 8–9");
+  });
+
   it("Session: Karte ohne Guide (unbekannter Typ) → guideGoal/guideRpe null (Fahrplan 34 E4)", () => {
     const vm = buildHeroViewModel({
       ...BASE_INPUT,

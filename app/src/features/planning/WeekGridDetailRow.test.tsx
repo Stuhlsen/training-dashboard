@@ -185,6 +185,18 @@ describe("WeekGridDetailRow — Verschieben/Ausfallen/Push-Verdrahtung", () => {
       expect(screen.queryByTitle("Trainingsdatei für Zwift oder MyWhoosh herunterladen")).toBeNull();
     });
 
+    it("Lauf- und Schwimmkarten bekommen weder .zwo-Export noch Wahoo-Push (Fahrplan 34 Q16)", () => {
+      for (const [id, sport, typ] of [
+        ["z1", "run", "Tempolauf"],
+        ["z2", "swim", "Intervalle"],
+      ] as const) {
+        renderRow(card({ id, sport, typ, workout: NUMERIC_WORKOUT }), { canPush: true, onPush: vi.fn() });
+        expect(screen.queryByTitle("Trainingsdatei für Zwift oder MyWhoosh herunterladen")).toBeNull();
+        expect(screen.queryByText("📤 Auf Wahoo pushen")).toBeNull();
+        cleanup();
+      }
+    });
+
     it("löst bei numerischem Workout einen Zwift-Download aus und zeigt den Zielordner-Hinweis", async () => {
       const createObjectURL = vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:mock");
       const revokeObjectURL = vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => {});
@@ -275,12 +287,25 @@ describe("WeekGridDetailRow — Trainings-Guide (Fahrplan 34 E3)", () => {
     expect(without.container.textContent).toMatch(/1–4 g KH pro kg/);
   });
 
-  it("rendert nichts bei Karten ohne Guide (unbekannter Typ, Lauf)", () => {
+  it("rendert nichts bei Karten ohne Guide (unbekannter Typ, Rekom)", () => {
     const unknown = renderRow(card({ id: "g5", typ: "Irgendwas" }));
     expect(unknown.container.querySelector("[data-session-guide]")).toBeNull();
     cleanup();
-    const run = renderRow(card({ id: "g6", sport: "run" }));
+    const run = renderRow(card({ id: "g6", sport: "run", typ: "Rekom" }));
     expect(run.container.querySelector("[data-session-guide]")).toBeNull();
+  });
+
+  it("zeigt den Guide auch für Lauf- und Schwimmkarten (E6)", () => {
+    const run = renderRow(card({ id: "g8", sport: "run", typ: "Tempolauf", durationMin: 50 }));
+    const runGuide = run.container.querySelector("[data-session-guide]")!;
+    expect(runGuide.textContent).toMatch(/Ziel/);
+    expect(runGuide.textContent).toMatch(/Schrittfrequenz/);
+    expect(runGuide.textContent).not.toMatch(/Kadenz/);
+    cleanup();
+    const swim = renderRow(card({ id: "g9", sport: "swim", typ: "Longswim", durationMin: 60 }));
+    const swimGuide = swim.container.querySelector("[data-session-guide]")!;
+    expect(swimGuide.textContent).toMatch(/So schwimmst du es/);
+    expect(swimGuide.textContent).not.toMatch(/Kadenz|Schrittfrequenz|Essen während/);
   });
 
   it("zeigt bei ausgefallenen Karten keinen Guide", () => {

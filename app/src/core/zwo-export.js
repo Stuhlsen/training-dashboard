@@ -43,6 +43,7 @@
    ============================================================ */
 
 import { usableStructure, structureSegments } from "./workout-structure-format.js";
+import { isCyclingActivity } from "./activity-sport.js";
 
 function isNumericWorkout(w) {
   return !!w && typeof w === "object" && !Array.isArray(w.blocks) && Number.isFinite(w.warmup) && Number.isFinite(w.cooldown);
@@ -97,7 +98,15 @@ export function canExportZwo(workout) {
  *  exportierbar. @param {{workout?: unknown, workoutStructure?: unknown}} card
  *  @returns {boolean} */
 export function canExportCardZwo(card) {
+  if (!isRideCard(card)) return false;
   return !!usableStructure(card) || canExportZwo(card?.workout);
+}
+
+/** .zwo ist ein Rad-Format (%FTP): Lauf und Schwimmen bekommen nie einen
+ *  Export, auch wenn ihr Workout zufällig Rad-förmig aussähe (Fahrplan 34 Q16).
+ *  @param {{sport?: string|null}|null|undefined} card @returns {boolean} */
+function isRideCard(card) {
+  return !!card && isCyclingActivity(card);
 }
 
 /** .zwo-Schritte aus der genauen Struktur — ein Element je Segment
@@ -126,6 +135,7 @@ function structureZwoSegments(structure, cadenceTarget) {
  *  unter `card.details` in die <description> gehängt, leer = unverändert.
  *  @returns {{ok: true, xml: string, filename: string}|{ok: false, error: {code: string, message: string}}} */
 export function buildZwoWorkout(card, cadenceTarget = 90, guideText = "") {
+  if (!isRideCard(card)) return { ok: false, error: { code: "NO_DATA", message: "Dateiexport gibt es nur für Radkarten." } };
   const structure = usableStructure(card);
   let segments;
   if (structure) segments = structureZwoSegments(structure, cadenceTarget);
