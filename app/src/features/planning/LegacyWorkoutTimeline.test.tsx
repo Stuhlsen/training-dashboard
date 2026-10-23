@@ -32,3 +32,36 @@ describe("LegacyWorkoutTimeline", () => {
     expect(container.firstChild).toBeNull();
   });
 });
+
+describe("LegacyWorkoutTimeline — Generator-Karte mit workoutStructure", () => {
+  it("zeigt Over-Under als Wechsel über/unter mit Wattzeile aus der aktuellen FTP", () => {
+    render(
+      <LegacyWorkoutTimeline
+        workout={{ label: "Over-Under 3×9", warmup: 15, intervals: 3, duration: 9, rest: 3, cooldown: 10, pct: [88, 105] }}
+        workoutStructure={{
+          version: 1,
+          steps: [
+            { kind: "warmup", duration_s: 900, target_pct_ftp: 55 },
+            {
+              kind: "alternating",
+              reps: 3,
+              cycles: 3,
+              duration_s: 540,
+              over: { duration_s: 120, target_pct_ftp: 105 },
+              under: { duration_s: 60, target_pct_ftp: 88 },
+              recovery: { duration_s: 180, target_pct_ftp: 50 },
+            },
+            { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+          ],
+        }}
+        ftp={180}
+        accentColor="#e08a3c"
+      />,
+    );
+    screen.getByText("🏋 Over-Under 3×9");
+    expect(screen.getAllByTitle("2 min @ 105 % FTP (über)")).toHaveLength(9);
+    expect(screen.getAllByTitle("1 min @ 88 % FTP (unter)")).toHaveLength(9);
+    screen.getByText("Über 189 W · Unter 158 W");
+    expect(screen.queryByText(/9' /)).toBeNull();
+  });
+});

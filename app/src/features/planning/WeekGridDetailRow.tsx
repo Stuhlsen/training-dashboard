@@ -5,7 +5,7 @@ import { activitySport, sportEmoji } from "../../core/activity-sport.js";
 import { cardImpact, conflictsForCard, restDayRiddenSignal } from "../../core/plan-feedback.js";
 import { projectLoad } from "../../core/projection.js";
 import { detectConflicts } from "../../core/conflicts.js";
-import { buildZwoWorkout, canExportZwo } from "../../core/zwo-export.js";
+import { buildZwoWorkout, canExportCardZwo } from "../../core/zwo-export.js";
 import { EventBadge } from "../events/EventBadge";
 import { InfoTooltip } from "../../components/InfoTooltip";
 import { HintChip, type HintItem } from "./HintChip";
@@ -19,7 +19,7 @@ import {
   isRecoveryType,
   isRestDay,
   isZ2Type,
-  legacyWorkoutSegments,
+  cardWorkoutTimeline,
   planTypeTermKey,
   typeColor,
   typeIcon,
@@ -332,7 +332,7 @@ export function WeekGridDetailRow({
     { ftp },
   );
   const dayForecast = forecast[card.date] as DayForecast | undefined;
-  const hasLegacyTimeline = !!legacyWorkoutSegments(card.workout);
+  const hasLegacyTimeline = !!cardWorkoutTimeline(card, ftp);
 
   return (
     <div
@@ -415,7 +415,7 @@ export function WeekGridDetailRow({
                 {pushing ? "⏳ Wird gepusht…" : "📤 Auf Wahoo pushen"}
               </button>
             )}
-            {canPush && canExportZwo(card.workout) && (
+            {canPush && canExportCardZwo(card) && (
               <div ref={exportMenuRef} style={{ position: "relative" }}>
                 <button
                   type="button"
@@ -544,7 +544,9 @@ export function WeekGridDetailRow({
         </div>
       )}
 
-      {!workoutBlocks && hasLegacyTimeline && <LegacyWorkoutTimeline workout={card.workout} accentColor={color} />}
+      {!workoutBlocks && hasLegacyTimeline && (
+        <LegacyWorkoutTimeline workout={card.workout} workoutStructure={card.workoutStructure} ftp={ftp} accentColor={color} />
+      )}
 
       {!workoutBlocks && !hasLegacyTimeline && card.details && isZ2Type(card.typ) && card.km && (
         <Z2Block typ={card.typ} km={card.km} details={card.details} />

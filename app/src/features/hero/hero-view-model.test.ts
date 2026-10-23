@@ -207,6 +207,44 @@ describe("buildHeroViewModel", () => {
     expect(vm.session?.detailParts[0]).toBe("Watt bei Warmup/Pause/Cooldown geschätzt (60/50 % FTP) — im Plan nicht einzeln hinterlegt.");
   });
 
+  it("Session: Generator-Karte 30/15 — Dauer, TSS, Pause und Warmup/Cooldown aus der genauen workoutStructure", () => {
+    const vm = buildHeroViewModel({
+      ...BASE_INPUT,
+      planCards: [
+        planCard({
+          date: "2026-07-24",
+          typ: "VO2max",
+          name: "VO2max 30/15 2×10",
+          // grobe Form, wie der Generator sie zusätzlich speichert (Satzpause fehlt)
+          workout: { pct: [108, 112], warmup: 15, intervals: 20, duration: 0.5, rest: 0.25, cooldown: 10 },
+          workoutStructure: {
+            version: 1,
+            steps: [
+              { kind: "warmup", duration_s: 900, target_pct_ftp: 55 },
+              {
+                kind: "alternating",
+                reps: 2,
+                cycles: 10,
+                duration_s: 450,
+                over: { duration_s: 30, target_pct_ftp: 110 },
+                under: { duration_s: 15, target_pct_ftp: 50 },
+                recovery: { duration_s: 300, target_pct_ftp: 50 },
+              },
+              { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+            ],
+          },
+        }),
+      ],
+    });
+    // ftpMeasured (Athlet 1) = 193 W
+    expect(vm.session?.interval?.wattRange).toEqual([212, 212]);
+    expect(vm.session?.interval?.warmupLabel).toBe("15' · ~106 W");
+    expect(vm.session?.interval?.cooldownLabel).toBe("10' · ~97 W");
+    expect(vm.session?.chips).toEqual(["~45 min gesamt", "TSS ~36", "Pause 1× 5 min · ~97 W"]);
+    // Werte stehen exakt im Plan — kein Schätz-Hinweis.
+    expect(vm.session?.detailParts).toEqual([]);
+  });
+
   it("Session: workout ohne intervals/duration (reine Z2-Fahrt) → Watt-Range als Chip, kein Segment-Balken", () => {
     const vm = buildHeroViewModel({
       ...BASE_INPUT,
