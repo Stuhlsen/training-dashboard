@@ -117,6 +117,14 @@ eigene `.env` — Supabase-URLs/anon-Keys stehen (bewusst, RLS-geschützt) in
 `data/*.json` NICHT committen (`.gitignore`) — der apps01-Sync-Container
 schreibt sie direkt ins mit dem Frontend geteilte Volume.
 
+## Tests (TDD)
+
+Neue oder geänderte Logik in `app/src/core/`, `scripts/lib/` und `admin-api/`
+entsteht testgetrieben: erst ein fehlschlagender Test, dann die
+Implementierung, dann aufräumen. Ziel sind mindestens 80 % Abdeckung für den
+geänderten Code. Fehlende Tests in diesen Bereichen werden ergänzt, nicht nur
+benannt — reine UI-/CSS-Änderungen sind davon ausgenommen.
+
 ## Demo-Stack (lokal, Standard)
 
 Lokal wird gegen **fiktive Daten** gearbeitet, nicht gegen echte (Fahrplan 31).
@@ -210,21 +218,10 @@ fehlende/leere `rides` sind fatal.
 
 ## Codebase-Qualität (Fallow)
 
-`npx fallow` analysiert das Repo als System (Dependency-Graph): Health Score,
-Circular Deps, Duplication, Dead Code, Complexity Hotspots. Deterministisch,
-keine KI im Analyzer.
-
-- **CI**: eigener Job `code-quality` in `ci.yml`, **non-blocking**
-  (`continue-on-error: true`, Schwellwerte noch nicht kalibriert). Report als
-  Artefakt (`fallow-report.json`, 30 Tage).
-- **Lokal**: `npx fallow health --score` für den schnellen Check, `--hotspots
-  --circular-deps` für Details — Circular Deps kann direkt die Schichtenregel
-  verletzen.
-- **Skill**: `.claude/skills/fallow` — erlaubt Anfragen wie "check code health"
-  oder "find circular dependencies" direkt in Claude Code.
-- Ein Diff-scoped `fallow audit --base <ref>` ist für die PR-Bewertung
-  aussagekräftiger als der Vollrepo-Score; Kalibrierung neuer Schwellwerte
-  steht weiter aus.
+CI-Job `code-quality` in `ci.yml` ist bewusst **non-blocking** (Schwellwerte
+noch nicht kalibriert). Circular Deps können direkt die Schichtenregel
+verletzen; für PRs ist `fallow audit --base <ref>` aussagekräftiger als der
+Vollrepo-Score. Bedienung: Skill `.claude/skills/fallow`.
 
 ## Supabase — Dev/Prod (Sicherheitshinweis)
 
@@ -299,6 +296,15 @@ Alex' eigene Einschätzung. `check-version-tag.yml` warnt nur (kein
 `exit 1`) bei fehlendem Tag — verhindert keinen Merge. Der Produktivserver
 zieht bewusst nie `:latest`, sondern eine feste Version.
 
+**Fahrpläne: ein Branch, ein Commit pro Etappe, ein PR am Ende.** Alle
+Etappen eines Fahrplans laufen nacheinander auf **einem** gemeinsamen Branch
+(`feat/f<nr>-<thema>`), je Etappe genau **ein** Commit (Fixture-/Golden-
+Master-Updates gehören in den Commit ihrer Etappe). PR und `git merge-tag`
+erst nach der letzten Etappe — ein Release pro Fahrplan, Migrationen gehen
+gemeinsam raus. Jede neue Etappe holt zuerst den aktuellen `origin/main`
+in den Branch, damit er nicht wegdriftet. Ausnahme nur auf Alex' Ansage:
+ein dringender Fix darf vorab als eigener PR + Tag raus.
+
 **JavaScript/TypeScript:**
 - Kein globales `Data`-Singleton mehr — Zustand lebt in React-Query-Caches,
   Aufrufstellen sind Hooks unter `app/src/api/hooks/`.
@@ -311,66 +317,14 @@ zieht bewusst nie `:latest`, sondern eine feste Version.
 Kriterium: IF < 0.75 + ≥120min → "Z2 Lang", ≥60min → "Z2 Dauer", <60min →
 "Z1 Recovery". Grenzwerte sind in `tests/typ-inferenz.test.js` festgeschrieben.
 
-## Skills (`.claude/skills/`)
-
-Vor Rohbefehlen/eigener Recherche prüfen, ob eines dieser Themen zutrifft —
-sie laden nur bei Bedarf und halten diese Datei kurz:
-- **fallow** — Codebase Intelligence ("check code health", "find circular deps").
-- **grilling** — bei Unklarheit in Anforderung/Design/Vorgehen Frage für
-  Frage klären statt zu raten oder vorsichtshalber alles zu bauen.
-- **chart-labels** — Label-/Datums-/Merge-Konvention für Charts.
-- **sync-pipeline** — Datenquellen-Mix, `athlete_sync_config`, Secrets-Layout,
-  Supabase-Migrationsworkflow, RLS-Testsuite.
-- **playwright-mcp** — wann Playwright MCP statt Unit-Test gerechtfertigt ist.
-
 ## Dateistruktur
 
-Tiefe Details stehen bewusst NICHT hier, sondern in READMEs direkt im
-jeweiligen Verzeichnis. Diese Übersicht zeigt nur die Form.
-
-```
-app/                       → Vite + React + TypeScript, s. app/README.md
-  src/
-    main.tsx, App.tsx      → Einstiegspunkt + Routing/Gates
-    config.ts              → Athleten-Stammdaten, Phasen/Farben
-    types.js                → Reine JSDoc-Typen
-    core/                   → Reine Berechnung — Details: src/core/README.md
-    api/                    → I/O-Grenze — Details: src/api/README.md
-    sports/                 → Multi-Sport-Zonen/Metriken — Details: src/sports/README.md
-    charts/                 → Chart-Engine — Details: src/charts/README.md
-    components/             → Layout, GlassCard, AthleteToggle, ProgressRing, …
-    hooks/                  → generische UI-Hooks (nicht datenbezogen)
-    features/               → ein Verzeichnis je Tab/Bereich (hero, logbook,
-                              planning, analysis, events, auth, settings,
-                              bikefit, landing, onboarding, nutrition)
-    styles/tokens.css       → Design-Tokens
-
-admin-api/                → schlanker Node.js-HTTP-Server, Admin-Accountverwaltung
-                            gegen GoTrue/PostgREST, eigenes Image/Dockerfile/Tests
-
-data/                     → generierte JSON-Dateien, NICHT manuell committen
-
-supabase/migrations/       → SQL-Migrationen, laufnummeriert
-
-scripts/
-  generate-data.js         → Dünner Orchestrator (Sync-Container + `npm run sync`)
-  lib/                     → Sync-Module (plan2, plan-athlete2/4, intervals, weather,
-                             map-activity, wellness, sync-config-fetch, …) — Details
-                             und Einmal-Skripte: Kopfkommentare je Datei
-  Dockerfile                → Container-Build für den Sync-Job
-
-tests/                    → node:test-Suiten für scripts/lib/* + supabase-rls.test.js
-
-.github/workflows/         → ci.yml, ci-app.yml, publish-images.yml,
-                            check-version-tag.yml, sync-data.yml (s. „Stack")
-
-.claude/skills/             → fallow, grilling, chart-labels, sync-pipeline,
-                            playwright-mcp — repo-versioniert (s. „Skills")
-
-planning/                  → GITIGNORED, eigenes privates Git-Repo. Ideen +
-                            Fahrpläne (planning/ideen-backlog.md, planning/docs/).
-                            Das öffentliche Repo behält nur docs/README.md.
-```
+Layout ergibt sich aus den Ordnern; Details stehen in den READMEs je
+Verzeichnis (`app/README.md`, `app/src/{core,api,sports,charts}/README.md`)
+und in den Kopfkommentaren unter `scripts/lib/`. Nicht aus dem Code
+ersichtlich: `planning/` ist **gitignored** und ein eigenes privates Git-Repo
+(Ideen + Fahrpläne, `planning/ideen-backlog.md`, `planning/README.md` = Wegweiser) — das
+öffentliche Repo behält nur `docs/README.md`.
 
 ## Equipment (Athlet 1)
 

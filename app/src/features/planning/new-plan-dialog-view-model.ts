@@ -274,7 +274,7 @@ export const MODEL_LABELS: Record<PlanModel, string> = {
 };
 
 /** Kurzbeschreibung je Modell für neue Athleten (Alex-Feedback 21.09.2026) —
- *  Substanz aus planning/docs/fahrplan-8-plan-generator.md, für die UI
+ *  Substanz aus planning/archiv/fahrplan-8-plan-generator.md, für die UI
  *  sprachlich vereinfacht (kein interner Planungsjargon). Seit Fahrplan 20 E1
  *  im V1-Markup (s. dort): jeder Teilsatz startet mit „+" (positiver Effekt)
  *  oder „−" (U+2212, logische Konsequenz), Trenner " · " —

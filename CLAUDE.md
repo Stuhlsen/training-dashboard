@@ -54,7 +54,7 @@ prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
   klaren Bruchkanten geschnitten ist — jede Etappe in **einem**
   Claude-Code-Fenster machbar (nur ihr Etappen-Block + die geteilten Verträge
   als Kontext), um Token zu sparen. Muster:
-  `planning/docs/fahrplan-8-plan-generator.md`.
+  `planning/archiv/fahrplan-8-plan-generator.md`.
 - **Plan Mode** vor Änderungen an `app/src/core/*.js`, die mehr als eine
   Funktion betreffen, oder die die Schichtenregel
   (`components/charts/features → hooks/api → core`) berühren.
@@ -64,21 +64,16 @@ prüfende Seite/Tab; neues Datenfeld → alle 3 Pflichtstellen
   Diff (prüft dabei auch gegen Schichtenregel, Result-Konvention und fehlende
   Tests in `core/`) → bei UI-Änderungen zwingend einmal gegen den lokalen
   Demo-Stack prüfen (`npm run demo:up`, `http://localhost:8080`, Login
-  `lena.rides@demo.local` / `demo-lokal-2026`, Details AGENTS.md
-  „Demo-Stack") — **nicht nur `npm run dev`**: nur der Container
-  läuft durch den echten Produktions-Build (Vite-Build + nginx +
-  `window.__RUNTIME_CONFIG__`-Laufzeitpfad), der Vite-Dev-Server mit HMR kann
-  Fehler verdecken, die erst im gebauten Static-Bundle auftreten. `npm run dev`
-  bleibt für schnelle Zwischenstände während der Arbeit erlaubt, ersetzt aber
-  nicht diesen finalen Check. Erst danach Commit-Befehl vorschlagen.
-  `docker-compose.dev.yml` = echte Daten, nur bewusst (z. B. Sync-Fehler
-  debuggen), nicht mehr der Standard-Check.
+  `lena.rides@demo.local` / `demo-lokal-2026`) — **nicht nur `npm run dev`**
+  (Begründung: AGENTS.md „Workflow vor jedem Commit", Schritt 4). Erst danach
+  Commit-Befehl vorschlagen.
 - **Demo-Stack nur über die npm-Skripte** (`demo:up`/`demo:down`), nie
   `docker compose -f docker-compose.demo.yml …` ohne `--env-file .env.demo`.
   `down -v` nur für das Projekt `training-dashboard-demo`; blockiert ein
   anderer Stack (Selfhost, `docker-compose.dev.yml`) einen Port: Alex
   fragen, nicht selbst stoppen.
-  Testlücken nur benennen, nicht ungefragt auffüllen.
+- **Tests:** TDD + 80 % Abdeckung, s. AGENTS.md „Tests (TDD)" (bewusst
+  gewählt, 2026-10-22).
 - `data/*.json`, `.agents/`, `agent/`, `data/skills/`, `skills-lock.json`
   **nie** selbst stagen/committen, auch nicht mit `git add -A`.
 
