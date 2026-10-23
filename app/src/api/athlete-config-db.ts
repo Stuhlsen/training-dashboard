@@ -38,7 +38,6 @@ export function buildDbAthleteConfig(id: string, input: DbAthleteConfigInput): A
     id,
     name: profile?.displayName?.trim() || SELF_FALLBACK_NAME,
     // Keine Datei: die Daten kommen aus den Tabellen (training-payload.ts).
-    endpoint: "",
     ftpMeasured: extras?.ftpMeasured ?? num(m.ftp),
     ftpMeasuredDate: extras?.ftpMeasuredDate ?? null,
     eFTP: extras?.eFTP ?? null,

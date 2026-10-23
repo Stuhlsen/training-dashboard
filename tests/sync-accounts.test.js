@@ -125,7 +125,7 @@ function runSync(url, dataDir, extraEnv = {}) {
 const profilesWritten = (writes, table) =>
   new Set(writes.filter((w) => w.table === table).map((w) => w.rows[0].profile_id));
 
-test("Sync: alle Accounts in die Tabellen, Dateien nur für die Bestandsathleten", async () => {
+test("Sync: alle Accounts in die Tabellen, keine rides*.json mehr", async () => {
   const fake = await startFake();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sync-accounts-"));
   try {
@@ -142,9 +142,8 @@ test("Sync: alle Accounts in die Tabellen, Dateien nur für die Bestandsathleten
       .flatMap((w) => w.rows);
     assert.deepEqual(newRides.map((r) => r.ride_key).sort(), ["i101", "i102"]);
 
-    // Dateien: athlete1 (rides.json) und athlete4 (rides-4.json, plan-only) — sonst nichts.
-    const files = fs.readdirSync(dir).filter((f) => f.startsWith("rides"));
-    assert.deepEqual(files.sort(), ["rides-4.json", "rides.json"]);
+    // Fahrplan 26 E5: nirgends eine rides*.json — nur die Tabellen.
+    assert.deepEqual(fs.readdirSync(dir).filter((f) => f.startsWith("rides")), []);
 
     // Nichts im Log verrät Namen oder Schlüssel des neuen Accounts.
     assert.doesNotMatch(out, /neuer_account/);
@@ -155,24 +154,21 @@ test("Sync: alle Accounts in die Tabellen, Dateien nur für die Bestandsathleten
   }
 });
 
-test("Sync: Dateiinhalt der Bestandsathleten entspricht dem Payload, der in die Tabellen geht", async () => {
+test("Sync: athlete1 schreibt Fahrten (Plan-1-Historie) mit eindeutigen Schlüsseln und passenden Meta-Zahlen in die Tabellen", async () => {
   const fake = await startFake();
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sync-accounts-"));
   try {
     const { code, out } = await runSync(fake.url, dir);
     assert.equal(code, 0, out);
-    const file = JSON.parse(fs.readFileSync(path.join(dir, "rides.json"), "utf-8"));
     const row = fake.writes.find(
       (w) => w.table === "training_profile_data" && w.rows[0].profile_id === PROFILES[0].id
     ).rows[0];
-    assert.equal(row.meta.count, file.count);
-    assert.equal(row.meta.source, file.source);
-    assert.equal(row.meta.updated, file.updated);
     const rideRows = fake.writes
       .filter((w) => w.table === "training_rides" && w.rows[0].profile_id === PROFILES[0].id)
       .flatMap((w) => w.rows);
-    assert.equal(rideRows.length, file.rides.length);
-    assert.ok(file.rides.length > 0, "Plan-1-Historie muss Fahrten liefern");
+    assert.ok(rideRows.length > 0, "Plan-1-Historie muss Fahrten liefern");
+    assert.equal(row.meta.count, rideRows.length);
+    assert.ok(row.meta.source && row.meta.updated);
     assert.equal(new Set(rideRows.map((r) => r.ride_key)).size, rideRows.length);
   } finally {
     fake.close();
@@ -180,7 +176,7 @@ test("Sync: Dateiinhalt der Bestandsathleten entspricht dem Payload, der in die 
   }
 });
 
-test("Sync: Schreibfehler eines Accounts stoppt die anderen nicht (Exit-Code 1, Dateien trotzdem da)", async () => {
+test("Sync: Schreibfehler eines Accounts stoppt die anderen nicht (Exit-Code 1)", async () => {
   const fake = await startFake({ failFor: PROFILES[1].id });
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "sync-accounts-"));
   try {
@@ -191,7 +187,6 @@ test("Sync: Schreibfehler eines Accounts stoppt die anderen nicht (Exit-Code 1, 
     assert.equal(written.has(PROFILES[1].id), false);
     assert.equal(written.has(PROFILES[0].id), true);
     assert.equal(written.has(PROFILES[2].id), true);
-    assert.ok(fs.existsSync(path.join(dir, "rides-4.json")));
   } finally {
     fake.close();
     fs.rmSync(dir, { recursive: true, force: true });

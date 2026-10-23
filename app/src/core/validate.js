@@ -1,6 +1,6 @@
 /* ============================================================
    CORE/VALIDATE.JS — Leichte Laufzeit-Schema-Validierung (kein DOM)
-   Warnt früh, wenn sich das Schema von rides.json/rides-2.json
+   Warnt früh, wenn sich das Schema der Trainingsdaten-Payload
    unbeabsichtigt ändert — statt dass Charts einfach leer bleiben.
 
    Schema-Syntax: "typ" oder "typ?" (nullable/optional).
@@ -149,7 +149,7 @@ const PAYLOAD_SCHEMA = {
 };
 
 /**
- * Validiert das komplette rides.json/rides-2.json-Payload.
+ * Validiert das komplette Trainingsdaten-Payload.
  * Prüft Top-Level-Felder plus stichprobenartig die ersten Einträge der
  * Listen (Vollprüfung wäre bei jedem Load unnötig teuer).
  * @param {Object|null|undefined} json

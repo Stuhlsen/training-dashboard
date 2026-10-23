@@ -43,7 +43,7 @@ import { getAthleteFormats } from "../../api/supabase/athlete-formats";
 import { getHeroLayout } from "../../api/supabase/hero-layout";
 import { getLadderHistory } from "../../api/supabase/ladder";
 import { getExportPrefs } from "../../api/supabase/export-prefs";
-import { loadAthleteData } from "../../api/pipeline";
+import { loadProfileTrainingData } from "../../api/training-payload";
 import { catchResult, unwrap } from "../../api/result";
 import { localISODate } from "../../core/format.js";
 import { buildExportManifest, type ExportFile } from "./export-manifest";
@@ -58,12 +58,9 @@ const SYNC_CONFIG_HINWEIS =
 
 async function collectOwnData(userId: string): Promise<ExportFile[]> {
   const profile = unwrap(await getProfile(userId)).profile;
-  // Auflösung Login → Pipeline-Athlet wie überall: display_name →
-  // ATHLETES[].name → interne ID.
-  const athleteId = ATHLETES.find((a) => a.name === profile.displayName)?.id ?? null;
 
   // Alles parallel: die 10 Konto-Abfragen, die 3 Hero-Layout-Tabs und
-  // (falls zugeordnet) die Lesedaten-Pipeline. Die Pipeline geht bewusst
+  // die Trainingsdaten aus den Tabellen. Der Abruf geht bewusst
   // OHNE `unwrap()` in den Batch — ihr Fehler soll den Export nicht werfen.
   const [main, heroRows, readDataRes] = await Promise.all([
     Promise.all([
@@ -79,7 +76,7 @@ async function collectOwnData(userId: string): Promise<ExportFile[]> {
       getExportPrefs(userId).then(unwrap),
     ]),
     Promise.all(ATHLETES.map((a) => getHeroLayout(userId, a.id).then(unwrap))),
-    athleteId ? loadAthleteData(athleteId) : Promise.resolve(null),
+    loadProfileTrainingData(userId),
   ]);
 
   const [goals, events, planCards, checkins, ftp, proposals, plan, formats, ladder, prefs] = main;
@@ -91,7 +88,9 @@ async function collectOwnData(userId: string): Promise<ExportFile[]> {
 
   let trainingsdaten = null;
   let trainingsdatenError: string | null = null;
-  if (readDataRes) {
+  if (readDataRes.ok && readDataRes.data.trainingDataEmpty) {
+    // Noch keine Trainingsdaten (Sync nicht gelaufen): wie bisher weglassen.
+  } else {
     if (readDataRes.ok) {
       const d = readDataRes.data;
       trainingsdaten = {

@@ -15,7 +15,7 @@ Zwei getrennte Teile im selben Repo, mit eigenen Tests und eigenem CI-Job:
 
 - **Repo-Root** (`scripts/`, `tests/`) — reines Node.js, kein Framework. Liest
   intervals.icu/Open-Meteo (+ die eingefrorene Plan-1-Historie,
-  `scripts/lib/plan1-history.js`) und schreibt `data/*.json`. Kein
+  `scripts/lib/plan1-history.js`) und schreibt die Trainingsdaten in die Tabellen `training_*` (nur Eingaben/Caches bleiben in `data/*.json`). Kein
   `npm install` nötig (einzige Ausnahme: `fallow` als `devDependency`, s.
   „Codebase-Qualität"). Tests mit dem eingebauten `node:test`.
 - **`/app/`** — Vite + React + TypeScript, die einzige Oberfläche. Eigenes
@@ -114,8 +114,9 @@ eigene `.env` — Supabase-URLs/anon-Keys stehen (bewusst, RLS-geschützt) in
 5. Commit mit Konvention (siehe unten)
 6. `git sync`
 
-`data/*.json` NICHT committen (`.gitignore`) — der apps01-Sync-Container
-schreibt sie direkt ins mit dem Frontend geteilte Volume.
+`data/*.json` NICHT committen (`.gitignore`) — Eingaben/Caches (`subjective`,
+`adjustments*`, `interval-blocks`) schreibt der apps01-Sync-Container direkt ins
+Volume; Trainingsdaten liegen in den Tabellen `training_*`.
 
 ## Tests (TDD)
 
@@ -210,7 +211,7 @@ Fehlerkanal. UI-Aufrufstellen prüfen `result.ok`/`isError`. Keine rohen
 
 ## Schema-Validierung
 
-`app/src/core/validate.js` prüft geladene `rides.json`-Payloads zur Laufzeit.
+`app/src/core/validate.js` prüft die aus den Tabellen `training_*` zusammengesetzten Payloads (Form der früheren `rides.json`) zur Laufzeit.
 **Neues Feld im Datenformat → an DREI Stellen ergänzen:**
 1. `scripts/` (Erzeugung), 2. `app/src/core/validate.js` (Schema),
 3. `app/src/types.js` (JSDoc-Typ). Abweichungen werden als Warnung geloggt;
@@ -260,7 +261,7 @@ UI-Elemente über dem Seitenhintergrund: `DESIGN.md`.
   gerundet (~1,1 km Unschärfe) in `athlete_sync_config` — owner-only, kein
   anon-Grant, nie über einen Frontend-Lesepfad ausgeliefert.
 - Wetter-Forecast wird serverseitig im Sync berechnet → nur Wetterwerte in
-  `rides.json`, nie Koordinaten.
+  den Trainingsdaten, nie Koordinaten.
 - Keine echten Namen von Athleten in Code, Kommentaren, Config, Templates oder
   Commit-Messages — intern `athlete1`–`athlete4`, in der UI die
   selbstgewählten Pseudonyme aus `app/src/config.ts` → `athletes[].name`.

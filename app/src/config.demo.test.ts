@@ -2,13 +2,12 @@ import { describe, it, expect, afterEach, vi } from "vitest";
 import { DEMO_ATHLETES, rosterFor } from "./config";
 
 // Generator-Seite der Demo-Besetzung (Fahrplan 31, V2) — die App-Liste muss
-// Namen/IDs/Endpoints exakt spiegeln, sonst findet findSlotId() keinen Platz.
+// Namen/IDs exakt spiegeln, sonst findet findSlotId() keinen Platz.
 // Über import.meta.glob statt statischem Import: `tsc -b` folgt dem nicht. Der
 // Docker-Build sieht nur `./app`, ein statischer Import aus `scripts/` bräche dort.
 interface RosterEntry {
   id: string;
   displayName: string;
-  endpoint: string;
   sports: string[];
   hrMax: number;
   hrRest: number;
@@ -37,9 +36,9 @@ afterEach(() => {
 });
 
 describe("DEMO_ATHLETES (Fahrplan 31, V2)", () => {
-  it("spiegelt scripts/demo/lib/roster.js — IDs, Namen, Endpoints, Sportarten, Puls", () => {
-    expect(DEMO_ATHLETES.map((a) => [a.id, a.name, a.endpoint, a.sports, a.hrMax, a.hrRest])).toEqual(
-      DEMO_ROSTER.map((r) => [r.id, r.displayName, r.endpoint, r.sports, r.hrMax, r.hrRest]),
+  it("spiegelt scripts/demo/lib/roster.js — IDs, Namen, Sportarten, Puls", () => {
+    expect(DEMO_ATHLETES.map((a) => [a.id, a.name, a.sports, a.hrMax, a.hrRest])).toEqual(
+      DEMO_ROSTER.map((r) => [r.id, r.displayName, r.sports, r.hrMax, r.hrRest]),
     );
   });
 

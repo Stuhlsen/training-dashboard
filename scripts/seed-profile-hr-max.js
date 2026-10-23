@@ -12,7 +12,7 @@
    zu seeden (Skript überspringt sie mit einer Log-Zeile).
 
    ACHTUNG: dieser Wert MUSS mit app/src/config.ts::ATHLETES[].hrMax
-   übereinstimmen (Spiegel-Prinzip wie NAME_TO_SLUG in
+   übereinstimmen (Spiegel-Prinzip wie sync-profiles.js in
    scripts/lib/sync-config-fetch.js) — bei einer künftigen Änderung dort
    NICHT dieses Skript erneut laufen lassen (die DB-Zeile ist dann längst
    die echte Quelle, nicht mehr config.ts).

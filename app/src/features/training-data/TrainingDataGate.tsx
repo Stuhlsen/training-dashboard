@@ -4,15 +4,13 @@ import { useIntervalsCredentials } from "../../api/hooks/useIntervalsCredentials
 import { useRides } from "../../api/hooks/useRides";
 import { useIsSelfAthlete } from "../../api/hooks/useWriteAuthorization";
 import { toResultError } from "../../api/result";
-import { athleteConfig } from "../../config";
 import { GlassCard } from "../../components/GlassCard";
 import { NoTrainingData } from "./NoTrainingData";
 import { pickNoDataReason } from "./no-data-reason";
 
 /** Schaltet vor Seiten, die Trainingsdaten brauchen (Hero, Fahrtenbuch,
- *  Analyse). Ein Platz aus `config.ts` liest weiter seine Datei und kommt
- *  ohne Prüfung durch. Jeder andere Eintrag (Account ohne Platz) liest über
- *  die Profil-UUID die Tabellen (Fahrplan 26 E3):
+ *  Analyse). Jeder Eintrag (Platz aus `config.ts` oder `self`) liest über die
+ *  Profil-UUID die Tabellen (Fahrplan 26 E3/E5):
  *  - lädt noch → Hinweis „Lädt …"
  *  - Lesefehler → Fehlermeldung (kein Leerzustand)
  *  - Tabellen leer → Leer-Hinweis; beim eigenen Profil mit Weg in die
@@ -24,7 +22,6 @@ export function TrainingDataGate({ children }: { children: ReactNode }) {
   const { activeAthleteId } = useActiveAthlete();
   // Dieselbe Query wie die Seite darunter (gleicher Key) — kein zweiter Abruf.
   const { data, isLoading, error } = useRides(activeAthleteId);
-  if (athleteConfig(activeAthleteId)) return <>{children}</>;
   if (isLoading) return <GateMessage>Lädt …</GateMessage>;
   if (error) {
     return (
@@ -38,7 +35,7 @@ export function TrainingDataGate({ children }: { children: ReactNode }) {
 }
 
 /** Eigene Komponente, damit die Zugangsdaten nur im Leerfall geladen werden
- *  (nicht für jeden Seitenaufruf, auch nicht für Bestandsathleten). */
+ *  (nicht für jeden Seitenaufruf). */
 function EmptyHint({ athleteId }: { athleteId: string }) {
   const { isSelf } = useIsSelfAthlete(athleteId);
   const { credentials, isLoading: credentialsLoading } = useIntervalsCredentials();

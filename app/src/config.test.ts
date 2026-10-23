@@ -10,7 +10,6 @@ describe("ATHLETES", () => {
     const a3 = athleteConfig("athlete3");
     expect(a3).not.toBeNull();
     expect(a3?.name).toBe("Hendrik");
-    expect(a3?.endpoint).toBe("data/rides-3.json");
     expect(a3?.sports).toEqual(["ride", "run", "swim"]);
     expect(a3?.ftpMeasured).toBeNull();
     expect(a3?.eFTP).toBeNull();
@@ -31,7 +30,6 @@ describe("ATHLETES", () => {
     const a4 = athleteConfig("athlete4");
     expect(a4).not.toBeNull();
     expect(a4?.name).toBe("bentastiic");
-    expect(a4?.endpoint).toBe("data/rides-4.json");
     expect(a4?.ftpMeasured).toBeNull();
     expect(a4?.eFTP).toBeNull();
     expect(a4?.ftpGoal).toBeNull();

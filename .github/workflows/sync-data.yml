@@ -4,9 +4,9 @@
 # laeuft seither als Dauer-Container auf apps01 und schreibt data/*.json
 # direkt ins mit dem Frontend geteilte Volume — kein Commit-und-Poll-Umweg
 # mehr, data/*.json ist nicht mehr versioniert. Dieser Workflow generiert
-# rides.json aus der Plan-1-Historie (scripts/lib/plan1-history.js) und
-# intervals.icu (Plan 2) und committet
-# die Daten; er bleibt nur als Rueckfahrkarte im Repo und laeuft ausschliesslich
+# die Trainingsdaten aus der Plan-1-Historie (scripts/lib/plan1-history.js) und
+# intervals.icu (Plan 2) in die Tabellen (seit Fahrplan 26 E5 keine rides*.json
+# mehr) und committet die Hilfsdateien; er bleibt nur als Rueckfahrkarte im Repo und laeuft ausschliesslich
 # auf manuellen Anstoss (workflow_dispatch). Wieder scharfschalten =
 # schedule/push-Trigger unten wieder eintragen UND data/*.json wieder ins Repo
 # aufnehmen (Eintrag in .gitignore entfernen), sonst schlaegt der "Commit
@@ -60,7 +60,7 @@ jobs:
         with:
           node-version: "24"
 
-      - name: Generate rides.json
+      - name: Generate training data
         env:
           # Seit Fahrplan 7 CRED5 der komplette Sync-Zugang. intervals.icu-Key/
           # -ID + grobe Koordinaten je Athlet liest der Sync per Service-Role
@@ -91,8 +91,7 @@ jobs:
           # fehlschlagen (Datei noch nicht im Remote-Branch vorhanden).
           git cat-file -e "origin/$GITHUB_REF_NAME:data/adjustments-2.json" 2>/dev/null && \
             git checkout "origin/$GITHUB_REF_NAME" -- data/adjustments-2.json
-          git add data/rides.json data/adjustments.json data/subjective.json
-          [ -f data/rides-2.json ] && git add data/rides-2.json
+          git add data/adjustments.json data/subjective.json
           [ -f data/adjustments-2.json ] && git add data/adjustments-2.json
           # interval-blocks.json (Blockerkennung-Cache, scripts/lib/interval-blocks.js):
           # wird von generate-data.js selbst geladen+ergänzt+geschrieben, kein

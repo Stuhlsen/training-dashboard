@@ -41,7 +41,6 @@ describe("buildDbAthleteConfig", () => {
     expect(cfg).toMatchObject({
       id: "self",
       name: "demo.person",
-      endpoint: "",
       ftpMeasured: 200,
       ftpGoal: 210,
       dataSources: ["Garmin", "Wahoo"],

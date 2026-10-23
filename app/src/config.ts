@@ -4,7 +4,8 @@
    Bewusst NUR der Teil von state/config.js, den die Zugriffsschicht
    tatsächlich braucht: die Athletenliste (der Anzeigename ist der
    Schlüssel, über den athlete1/athlete2 auf die Supabase-Profil-UUID
-   aufgelöst wird) plus die JSON-Endpoints der Pipeline (5.5).
+   aufgelöst wird). Die Trainingsdaten selbst liegen seit Fahrplan 26 E5 in
+   den Tabellen `training_*`, nicht mehr in Dateien.
 
    `hrZones` und `cadenceTarget` sind mit Etappe 3 nach `sports/cycling/
    metrics.ts` gewandert (Konzept G5). Die globalen FTP-Singletons wandern
@@ -30,12 +31,6 @@ export interface AthleteConfig {
   /** Selbstgewähltes Pseudonym — zugleich `profiles.display_name` in
    *  Supabase und damit der Schlüssel der UUID-Auflösung. */
   name: string;
-  /** JSON-Pipeline (5.5): die per Cron erzeugte Datei dieses Athleten,
-   *  OHNE führenden Slash — der Loader setzt `import.meta.env.BASE_URL`
-   *  davor. Ein absoluter `/data/…`-Pfad wäre auf GitHub Pages falsch
-   *  (Projektseite liegt unter /training-dashboard/), ein relativer
-   *  `./data/…` bräche bei tiefen Client-Routen wie /planning. */
-  endpoint: string;
   /** Per Ramp-Test GEMESSEN — nie mit dem laufend geschätzten eFTP
    *  aus intervals.icu vermischen (FTP-Dreiklang, s. AGENTS.md).
    *  `null` bei einem Einsteiger ohne Leistungstest (Athlet 4) — alle
@@ -98,7 +93,6 @@ const REAL_ATHLETES: readonly AthleteConfig[] = [
   {
     id: "athlete1",
     name: "Stuhlsen",
-    endpoint: "data/rides.json",
     ftpMeasured: 193,
     ftpMeasuredDate: "2026-06-12",
     eFTP: 199,
@@ -111,7 +105,6 @@ const REAL_ATHLETES: readonly AthleteConfig[] = [
   {
     id: "athlete2",
     name: "hc_diZee",
-    endpoint: "data/rides-2.json",
     ftpMeasured: 265,
     ftpMeasuredDate: "2026-06-24",
     eFTP: 261,
@@ -135,7 +128,6 @@ const REAL_ATHLETES: readonly AthleteConfig[] = [
     // Pseudonym, die einzige Quelle des Anzeigenamens.
     id: "athlete3",
     name: "Hendrik",
-    endpoint: "data/rides-3.json",
     ftpMeasured: null,
     ftpMeasuredDate: null,
     eFTP: null,
@@ -155,7 +147,6 @@ const REAL_ATHLETES: readonly AthleteConfig[] = [
     // KW47) — FTP-Felder `null`, die Hero-FTP-Widgets blenden sich dann aus.
     id: "athlete4",
     name: "bentastiic",
-    endpoint: "data/rides-4.json",
     ftpMeasured: null,
     ftpMeasuredDate: null,
     eFTP: null,
@@ -183,7 +174,6 @@ export const DEMO_ATHLETES: readonly AthleteConfig[] = [
   {
     id: "demo1",
     name: "lena.rides",
-    endpoint: "data/rides-demo1.json",
     ftpMeasured: 222,
     ftpMeasuredDate: null,
     eFTP: null,
@@ -197,7 +187,6 @@ export const DEMO_ATHLETES: readonly AthleteConfig[] = [
   {
     id: "demo2",
     name: "tri_jonas",
-    endpoint: "data/rides-demo2.json",
     ftpMeasured: 252,
     ftpMeasuredDate: null,
     eFTP: null,

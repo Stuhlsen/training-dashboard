@@ -43,12 +43,23 @@ function renderGate() {
 }
 
 describe("TrainingDataGate", () => {
-  it("Platz in config.ts: zeigt die Seite, keinen Hinweis — auch während die Datei lädt", () => {
+  it("Platz in config.ts: lädt wie jeder Eintrag aus den Tabellen — Lade-Hinweis, dann Seite", () => {
     mockActive = "athlete1";
     mockRides = { data: undefined, isLoading: true, error: null };
     renderGate();
+    expect(screen.getByText("Lädt …")).toBeTruthy();
+    expect(screen.queryByText("Seite")).toBeNull();
+    cleanup();
+    mockRides = { data: { trainingDataEmpty: false }, isLoading: false, error: null };
+    renderGate();
     expect(screen.getByText("Seite")).toBeTruthy();
-    expect(screen.queryByText(NO_TRAINING_DATA_TEXT)).toBeNull();
+  });
+
+  it("Platz in config.ts mit leeren Tabellen: Leer-Hinweis statt Seite", () => {
+    mockActive = "athlete2";
+    mockRides = { data: { trainingDataEmpty: true }, isLoading: false, error: null };
+    renderGate();
+    expect(screen.queryByText("Seite")).toBeNull();
   });
 
   it("ohne Platz, Tabellen laden noch: Lade-Hinweis statt Leer-Hinweis", () => {

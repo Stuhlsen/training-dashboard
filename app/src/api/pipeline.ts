@@ -1,23 +1,14 @@
 /* ============================================================
-   API/PIPELINE.TS — JSON-Pipeline (Konzept 5.5, Etappe 2b bestätigt)
+   API/PIPELINE.TS — Payload-Form der Trainingsdaten
 
-   Die per GitHub-Action alle 6h erzeugten `data/*.json` bleiben die Quelle
-   der LESEDATEN (Fahrten, Wellness, Power-Kurven, Wetter-Forecast). Weder
-   `scripts/generate-data.js` noch das Dateiformat werden angefasst — die
-   React-App liest dieselben Dateien wie die Vanilla-Seite. Eine spätere
-   Ablösung nach Supabase wäre ein eigenes Vorhaben.
-
-   Unterschied zur Vanilla-`state/data.js`: kein STATIC_RIDES-Fallback.
-   Der existierte, weil `file://` keine Fetches erlaubt; der Vite-Dev-Server
-   liefert `/data/` direkt aus (s. serveRepoData() in vite.config.ts), der
-   Fallback hätte hier keinen Auslöser mehr. Ein Ladefehler ist jetzt ein
-   Ladefehler und wird als solcher sichtbar, statt hinter Beispieldaten zu
-   verschwinden.
+   Seit Fahrplan 26 E5 liest die App die Trainingsdaten aller Athleten aus
+   den Tabellen `training_*` (`training-payload.ts` baut daraus die
+   `rides.json`-Form). Diese Datei prüft (`validate.js`) und normalisiert
+   die fertige Payload; Dateien `data/rides*.json` liest die App nicht mehr.
    ============================================================ */
 
 import { normalizeRide, normalizeWellness } from "../core/normalize.js";
 import { validateRidesPayload } from "../core/validate.js";
-import { athleteConfig } from "../config";
 import type { Result } from "./types";
 import type { FtpHistoryEntry } from "./supabase/ftp-history";
 
@@ -62,7 +53,7 @@ export interface AthleteData {
   rides: unknown[];
   /** Die ungefilterte Aktivitätsliste ALLER Sportarten. Nur `api/hooks/useRides.ts`
    *  füllt dieses Feld in seinem `select` (neben dem sport-gefilterten `rides`) —
-   *  `loadAthleteData()` / `toAthleteData()` lassen es `undefined`. Die
+   *  `toAthleteData()` lassen es `undefined`. Die
    *  gemeinsame CTL/ATL/TSB-Anzeige (Fahrplan 10 E8b) verankert „heute"
    *  darüber, damit Fitness/Form auf jedem Sportart-Tab identisch sind. Für
    *  Athlet 1/2/4 (Single-Sport) ist es deckungsgleich mit `rides`. */
@@ -95,7 +86,7 @@ export interface AthleteData {
   hrEstimated: boolean;
   /** Nur der Tabellen-Pfad (Fahrplan 26 E3, `training-payload.ts`) setzt das
    *  Feld: `true`, solange für das Profil noch nichts in den Tabellen steht
-   *  (Sync nicht gelaufen). Datei-Athleten lassen es `undefined`; darauf
+   *  (Sync nicht gelaufen). Nur wo kein Tabellen-Lauf stattfand, bleibt es `undefined`; darauf
    *  stützt sich `TrainingDataGate`. */
   trainingDataEmpty?: boolean;
   /** Nicht-fatale Schema-Abweichungen aus core/validate.js — der Aufrufer
@@ -116,7 +107,7 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
     // `rides`-Array nach der im Umschalter aktiven Sportart
     // (`useEffectiveSport`). `api/` ist damit sportart-blind und liefert immer
     // ALLE Aktivitäten (Rad/Lauf/Schwimm) — nötig u. a. für den Datenexport
-    // ("meine Daten"), der `loadAthleteData()` direkt aufruft.
+    // ("meine Daten"), der `loadProfileTrainingData()` direkt aufruft.
     rides: json.rides.map((r) => normalizeRide(r as object)),
     wellness: (json.wellness ?? []).map((w) => normalizeWellness(w as object)),
     wellnessMeta: json.wellnessMeta ?? null,
@@ -146,7 +137,7 @@ function toAthleteData(json: RidesPayload, warnings: string[]): AthleteData {
   };
 }
 
-/** Leerer Datensatz für einen Account ohne eigene `rides*.json` (kein
+/** Leerer Datensatz für einen Account ohne auflösbares Profil (kein
  *  Athleten-Platz in `config.ts`). Kein Fehler: Planung, Ernährung & Co.
  *  laufen über Supabase und brauchen nur ein leeres Gerüst statt eines
  *  endlosen „Lade …"; Hero/Fahrtenbuch/Analyse fängt `TrainingDataGate` ab. */
@@ -154,36 +145,8 @@ export function emptyAthleteData(): AthleteData {
   return toAthleteData({ rides: [] }, []);
 }
 
-/** Lädt und normalisiert den Datensatz eines Athleten.
- *  `import.meta.env.BASE_URL` davor, damit der Pfad unter GitHub Pages
- *  (Projektseite mit Unterverzeichnis) genauso stimmt wie lokal. */
-export async function loadAthleteData(athleteId: string): Promise<Result<{ data: AthleteData }>> {
-  const cfg = athleteConfig(athleteId);
-  if (!cfg) {
-    return { ok: false, error: { code: "UNKNOWN", message: `Unbekannter Athlet: ${athleteId}` } };
-  }
-  const url = `${import.meta.env.BASE_URL}${cfg.endpoint}?_=${Date.now()}`;
-
-  let json: RidesPayload;
-  try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      return { ok: false, error: { code: "HTTP", message: `HTTP ${res.status} für ${cfg.endpoint}` } };
-    }
-    json = (await res.json()) as RidesPayload;
-  } catch (err) {
-    return {
-      ok: false,
-      error: { code: "NETWORK", message: err instanceof Error ? err.message : String(err) },
-    };
-  }
-
-  return parseRidesPayload(json);
-}
-
 /** Schema-Prüfung + Normalisierung einer fertigen Payload — gemeinsamer
- *  Endpunkt für die Datei-Pipeline (`loadAthleteData`) und den Tabellen-Pfad
- *  (`training-payload.ts`, Fahrplan 26 E3). */
+ *  Endpunkt des Tabellen-Pfads (`training-payload.ts`, Fahrplan 26 E3). */
 export function parseRidesPayload(json: RidesPayload): Result<{ data: AthleteData }> {
   // Schema-Prüfung: ein FEHLENDES/kaputtes `rides`-Feld (kein Array) ist
   // fatal, alles andere nur eine Abweichung. Ein LEERES `rides`-Array ist
