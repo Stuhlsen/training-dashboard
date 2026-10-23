@@ -6,7 +6,7 @@
    dann rendert die UI nichts.
    ============================================================ */
 
-import { buildSessionGuide, sessionGuideText } from "../../core/session-guide.js";
+import { buildSessionGuide, rpeCompareText, sessionGuideText } from "../../core/session-guide.js";
 import { GUIDE_SOURCE_BY_KEY } from "../../core/session-guide-sources.js";
 import { ZONE_SOURCE_STATUS } from "../../core/zone-sources.js";
 import { resolveWeight, type NutritionWellnessDay } from "../nutrition/nutrition-day-model";
@@ -18,6 +18,8 @@ export interface SessionGuideContext {
   /** Nur gesetzt, wo der Ernährungs-Tab das Gewicht auch zeigt (eigene Ansicht). */
   weightKg: number | null;
   ftp: number | null;
+  /** RPE der schon zugeordneten Fahrt (vergangene Karte), sonst weglassen. */
+  actualRpe?: number | null;
 }
 
 export interface SessionGuideSectionView {
@@ -32,6 +34,8 @@ export interface SessionGuideView {
   goal: string;
   /** z. B. "RPE 6–7". */
   rpeLabel: string;
+  /** „Ziel 6–7 · gefahren 8" — nur mit gültigem Ist-RPE, sonst null. Kein Urteil. */
+  rpeCompare: string | null;
   /** Eingeklappter Teil in fester Reihenfolge, ohne Ziel. */
   sections: SessionGuideSectionView[];
   sources: SourceListItem[];
@@ -56,9 +60,13 @@ function sourceItems(keys: readonly string[]): SourceListItem[] {
 }
 
 /** Mit Hinweis dahinter muss der Satz enden (Fueling-Texte tragen keinen Punkt). */
-const endSentence = (text: string, hint: string | null) => (hint && !/[.!?]$/.test(text) ? `${text}.` : text);
+const endSentence = (text: string, hint: string | null) =>
+  hint && !/[.!?]$/.test(text) ? `${text}.` : text;
 
-export function buildSessionGuideView(card: PlanCard, ctx: SessionGuideContext): SessionGuideView | null {
+export function buildSessionGuideView(
+  card: PlanCard,
+  ctx: SessionGuideContext
+): SessionGuideView | null {
   const guide = buildSessionGuide(card, ctx);
   if (!guide) return null;
   const { min, max } = guide.rpe;
@@ -68,9 +76,20 @@ export function buildSessionGuideView(card: PlanCard, ctx: SessionGuideContext):
     .filter((s) => s.id !== "ziel")
     .map((s) => {
       const hint = s.hint ?? null;
-      return { id: s.id, title: s.id === "rpe" ? rpeLabel : s.title, text: endSentence(s.text, hint), hint };
+      return {
+        id: s.id,
+        title: s.id === "rpe" ? rpeLabel : s.title,
+        text: endSentence(s.text, hint),
+        hint,
+      };
     });
-  return { goal, rpeLabel, sections, sources: sourceItems(guide.sections.flatMap((s) => s.quelleKeys)) };
+  return {
+    goal,
+    rpeLabel,
+    rpeCompare: rpeCompareText(guide.rpe, ctx.actualRpe),
+    sections,
+    sources: sourceItems(guide.sections.flatMap((s) => s.quelleKeys)),
+  };
 }
 
 /** Gewicht für „Essen vorher": dieselbe Quelle wie der Ernährungs-Tab

@@ -36,6 +36,7 @@ export function SessionGuide({ view }: { view: SessionGuideView }) {
         <span style={LABEL_STYLE}>Ziel </span>
         {view.goal}
       </p>
+      {view.rpeCompare && <p style={TEXT_STYLE}>{view.rpeCompare}</p>}
       {view.sections.length > 0 && (
         <details>
           <summary style={SUMMARY_STYLE}>Warum &amp; wie</summary>

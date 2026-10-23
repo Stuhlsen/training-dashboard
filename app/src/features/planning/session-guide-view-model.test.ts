@@ -179,3 +179,35 @@ describe("sessionGuideExportText", () => {
     expect(swim).not.toMatch(/Kadenz|Schrittfrequenz|Essen während/);
   });
 });
+
+describe("buildSessionGuideView — Ist-RPE (E7)", () => {
+  it("ohne Ist-RPE: kein Vergleichstext", () => {
+    expect(buildSessionGuideView(card(), CTX)!.rpeCompare).toBeNull();
+    expect(buildSessionGuideView(card(), { ...CTX, actualRpe: null })!.rpeCompare).toBeNull();
+  });
+
+  it("mit Ist-RPE: Ziel-Band der Karte + gefahrener Wert", () => {
+    const view = buildSessionGuideView(card(), { ...CTX, actualRpe: 8 })!;
+    expect(view.rpeCompare).toBe(`Ziel ${view.rpeLabel.replace("RPE ", "")} · gefahren 8`);
+  });
+
+  it("Lauf: gleiche Zeile über dieselbe Funktion", () => {
+    const view = buildSessionGuideView(card({ sport: "run", typ: "Tempolauf", durationMin: 50 }), {
+      ...CTX,
+      actualRpe: 7,
+    })!;
+    expect(view.rpeCompare).toBe("Ziel 6–7 · gefahren 7");
+  });
+
+  it("Schwimm-Intervalle: Band hängt an der Phase, nicht an der Tabelle", () => {
+    const view = buildSessionGuideView(card({ sport: "swim", typ: "Intervalle", phase: "VO2max" }), {
+      ...CTX,
+      actualRpe: 8,
+    })!;
+    expect(view.rpeCompare).toBe("Ziel 8–9 · gefahren 8");
+  });
+
+  it("Ist-RPE außerhalb 1–10: ignoriert", () => {
+    expect(buildSessionGuideView(card(), { ...CTX, actualRpe: 12 })!.rpeCompare).toBeNull();
+  });
+});

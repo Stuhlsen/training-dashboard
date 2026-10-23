@@ -292,3 +292,18 @@ export function sessionGuideText(guide) {
     .map((s) => line[s.id](s))
     .join("\n");
 }
+
+/**
+ * Vergleichszeile für vergangene Karten (Fahrplan 34, E7): „Ziel 6–7 ·
+ * gefahren 8". Reiner Text, ohne Urteil über die Anstrengung. Ist-RPE
+ * außerhalb 1–10 oder keine ganze Zahl → null (dann zeigt die UI nur das Ziel).
+ * @param {{min:number, max:number}|null|undefined} targetRpe  Band aus guide.rpe
+ * @param {unknown} actualRpe  RPE der zugeordneten Fahrt
+ * @returns {string|null}
+ */
+export function rpeCompareText(targetRpe, actualRpe) {
+  if (typeof actualRpe !== "number" || !Number.isInteger(actualRpe) || actualRpe < 1 || actualRpe > 10) return null;
+  if (!targetRpe || !Number.isFinite(targetRpe.min) || !Number.isFinite(targetRpe.max)) return null;
+  const { min, max } = targetRpe;
+  return `Ziel ${min === max ? min : `${min}–${max}`} · gefahren ${actualRpe}`;
+}

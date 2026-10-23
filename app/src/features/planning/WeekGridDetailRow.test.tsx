@@ -313,3 +313,34 @@ describe("WeekGridDetailRow — Trainings-Guide (Fahrplan 34 E3)", () => {
     expect(container.querySelector("[data-session-guide]")).toBeNull();
   });
 });
+
+describe("WeekGridDetailRow — Ziel vs. Ist-RPE (Fahrplan 34 E7)", () => {
+  const long = { durationMin: 120, date: "2026-08-14" };
+
+  it("zeigt „Ziel … · gefahren N“, wenn die zugeordnete Fahrt ein RPE hat", () => {
+    const ride = { date: "2026-08-14", dataSource: "intervals", rpe: 8 } as never;
+    const { container } = renderRow(card({ id: "r1", ...long }), { rides: [ride] });
+    expect(container.querySelector("[data-session-guide]")!.textContent).toMatch(/Ziel \d(–\d)? · gefahren 8/);
+  });
+
+  it("ohne Ist-RPE bleibt es bei der Zielzeile", () => {
+    const ride = { date: "2026-08-14", dataSource: "intervals", rpe: null } as never;
+    const { container } = renderRow(card({ id: "r2", ...long }), { rides: [ride] });
+    expect(container.textContent).not.toMatch(/gefahren \d/);
+  });
+
+  it("Fahrt eines anderen Tages zählt nicht", () => {
+    const ride = { date: "2026-08-13", dataSource: "intervals", rpe: 8 } as never;
+    const { container } = renderRow(card({ id: "r3", ...long }), { rides: [ride] });
+    expect(container.textContent).not.toMatch(/gefahren \d/);
+  });
+
+  it("nutzt die Hauptfahrt des Tages (wie die Compliance-Zuordnung), nicht Ein-/Ausrollen", () => {
+    const rides = [
+      { date: "2026-08-14", dataSource: "intervals", name: "Einrollen", tss: 5, durationMin: 10, rpe: 2 },
+      { date: "2026-08-14", dataSource: "intervals", name: "Rennen", tss: 90, durationMin: 120, rpe: 9 },
+    ] as never[];
+    const { container } = renderRow(card({ id: "r4", ...long }), { rides });
+    expect(container.textContent).toMatch(/gefahren 9/);
+  });
+});

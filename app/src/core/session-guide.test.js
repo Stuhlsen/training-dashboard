@@ -8,6 +8,7 @@ import {
   fuelingDuring,
   fuelingBefore,
   sessionGuideText,
+  rpeCompareText,
   FUEL_NOT_NEEDED_MAX_MIN,
   FUEL_SMALL_MAX_MIN,
   FUEL_LONG_MIN,
@@ -548,5 +549,42 @@ describe("sessionGuideText — Lauf und Schwimmen (E6)", () => {
     const text = sessionGuideText(buildSessionGuide(overUnder(), ctx()));
     assert.match(text, /\nSo fährst du es: /);
     assert.match(text, /\nKadenz: /);
+  });
+});
+
+describe("rpeCompareText (E7)", () => {
+  const band = { min: 6, max: 7 };
+
+  test("Band + Ist-RPE: reiner Text, ohne Urteil", () => {
+    assert.equal(rpeCompareText(band, 8), "Ziel 6–7 · gefahren 8");
+  });
+
+  test("einzelner Wert statt Band", () => {
+    assert.equal(rpeCompareText({ min: 5, max: 5 }, 5), "Ziel 5 · gefahren 5");
+  });
+
+  test("ohne Ist-RPE: null", () => {
+    assert.equal(rpeCompareText(band, null), null);
+    assert.equal(rpeCompareText(band, undefined), null);
+  });
+
+  test("Ist-RPE außerhalb 1–10 oder keine ganze Zahl: ignorieren", () => {
+    for (const bad of [0, 11, -1, 7.5, NaN, Infinity, "8", true]) {
+      assert.equal(rpeCompareText(band, bad), null, String(bad));
+    }
+  });
+
+  test("Randwerte 1 und 10 zählen", () => {
+    assert.equal(rpeCompareText(band, 1), "Ziel 6–7 · gefahren 1");
+    assert.equal(rpeCompareText(band, 10), "Ziel 6–7 · gefahren 10");
+  });
+
+  test("ungültiges Band: null", () => {
+    assert.equal(rpeCompareText(null, 8), null);
+    assert.equal(rpeCompareText({ min: NaN, max: 7 }, 8), null);
+  });
+
+  test("Text enthält nie „zu hart“/„zu leicht“", () => {
+    for (let r = 1; r <= 10; r++) assert.doesNotMatch(rpeCompareText(band, r), /zu hart|zu leicht/i);
   });
 });

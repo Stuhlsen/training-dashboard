@@ -21,6 +21,7 @@ import {
   isRecoveryType,
   isRestDay,
   isZ2Type,
+  matchRideForCard,
   cardWorkoutTimeline,
   planTypeTermKey,
   typeColor,
@@ -347,7 +348,11 @@ export function WeekGridDetailRow({
   const dayForecast = forecast[card.date] as DayForecast | undefined;
   const hasLegacyTimeline = !!cardWorkoutTimeline(card, ftp);
   // Fahrplan 34 E3/E6: kein Guide (unbekannter Typ, Rekom) → nichts rendern.
-  const guideView = card.cancelled ? null : buildSessionGuideView(card, { cadenceTarget, weightKg, ftp: ftp ?? null });
+  // E7: Ist-RPE aus derselben Zuordnung wie die Compliance-Tabelle (matchRideForCard).
+  const actualRpe = matchRideForCard(rides, card, canEdit)?.rpe ?? null;
+  const guideView = card.cancelled
+    ? null
+    : buildSessionGuideView(card, { cadenceTarget, weightKg, ftp: ftp ?? null, actualRpe });
 
   return (
     <div
