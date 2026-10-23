@@ -1,20 +1,17 @@
 import { useCallback } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { emptyAthleteData, loadAthleteData, type AthleteData } from "../pipeline";
+import { emptyAthleteData, type AthleteData } from "../pipeline";
 import { loadProfileTrainingData } from "../training-payload";
 import { fetchAthleteProfileId } from "./useAthleteProfileId";
-import { athleteConfig } from "../../config";
 import { qk } from "../keys";
 import { unwrap } from "../result";
 import { useEffectiveSport } from "./useActiveSport";
 import { ridesForSport } from "../../core/activity-sport.js";
 
 /** Die Lesedaten eines Athleten (Fahrten, Wellness, Power-Kurven,
- *  Wetter-Forecast) — Konzept 5.5, in Etappe 2b bestätigt: für die Plätze
- *  aus `config.ts` bleiben die per Cron erzeugten `data/*.json` die Quelle.
- *  Fahrplan 26 E3: der Eintrag `self` (Account ohne Platz) liest stattdessen
- *  über seine Profil-UUID die Tabellen `training_*` (`training-payload.ts`);
- *  die Plätze ziehen in E5 nach.
+ *  Wetter-Forecast) — seit Fahrplan 26 E5 für ALLE Einträge (Plätze aus
+ *  `config.ts` und `self`) aus den Tabellen `training_*` über die Profil-UUID
+ *  (`training-payload.ts`); `data/rides*.json` liest die App nicht mehr.
  *
  *  `staleTime` fünf Minuten: die Dateien ändern sich nur alle sechs Stunden
  *  (Cron), häufiger nachzuladen bringt nichts.
@@ -53,12 +50,10 @@ export function useRides(athleteId: string) {
   return useQuery({
     queryKey: qk.rides(athleteId),
     staleTime: 5 * 60_000,
-    // Platz in config.ts: weiter die Datei (bis Fahrplan 26 E5). Sonst
-    // (eigener Eintrag eines Accounts ohne Platz): über die Profil-UUID aus
-    // den Tabellen. Ohne auflösbares Profil ein leerer Datensatz statt eines
-    // Fehlers, damit Supabase-Seiten nicht hängen.
+    // Alle Einträge über die Profil-UUID aus den Tabellen. Ohne auflösbares
+    // Profil ein leerer Datensatz statt eines Fehlers, damit Supabase-Seiten
+    // nicht hängen.
     queryFn: async (): Promise<AthleteData> => {
-      if (athleteConfig(athleteId)) return unwrap(await loadAthleteData(athleteId)).data;
       const profileId = await fetchAthleteProfileId(queryClient, athleteId);
       if (!profileId) return { ...emptyAthleteData(), trainingDataEmpty: true };
       return unwrap(await loadProfileTrainingData(profileId)).data;

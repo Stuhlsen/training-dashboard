@@ -1,7 +1,8 @@
 /* ============================================================
    SCRIPTS/LIB/OUTPUT.JS — Lokale Dateien lesen/schreiben
    subjective.json/adjustments.json laden und die generierten
-   rides.json/rides-2.json schreiben.
+   Blockerkennung-Cache schreiben (rides*.json gibt es seit Fahrplan 26 E5
+   nicht mehr, die Trainingsdaten liegen in den Tabellen training_*).
    ============================================================ */
 
 import fs from "node:fs";
@@ -16,13 +17,6 @@ const DATA_DIR = process.env.SYNC_DATA_DIR
   ? path.resolve(process.env.SYNC_DATA_DIR)
   : path.join(__dirname, "..", "..", "data");
 
-export const OUT_FILE = path.join(DATA_DIR, "rides.json");
-export const OUT_FILE_2 = path.join(DATA_DIR, "rides-2.json");
-// Dritter Athlet ("Hendrik"), Triathlet mit eigenem intervals.icu-Account —
-// Fahrplan 10 E4 (Sync + Speicherung, noch keine Auswertung).
-export const OUT_FILE_3 = path.join(DATA_DIR, "rides-3.json");
-// Vierter Athlet ("Bentastiic", Einsteiger).
-export const OUT_FILE_4 = path.join(DATA_DIR, "rides-4.json");
 const SUBJECTIVE_FILE = path.join(DATA_DIR, "subjective.json");
 const ADJUSTMENTS_FILE = path.join(DATA_DIR, "adjustments.json");
 // Athlet 2 hat kein Befinden (kein subjective-2), aber einen eigenen Plan

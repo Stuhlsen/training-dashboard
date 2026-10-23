@@ -10,13 +10,13 @@
      map-activity.js  Mapping                output.js  Dateien lesen/schreiben
 
    Ablauf: Plan 1 (eingefroren) → Wetter → Plan 2 (intervals.icu)
-   → mergen/sortieren → rides.json → Athlet 2 → rides-2.json → …
+   → mergen/sortieren → Tabellen → Athlet 2 → Tabellen → …
 
-   Fahrplan 26 E2: Jeder Account läuft einzeln mit Zeitlimit und eigener
+   Fahrplan 26 E2/E5: Jeder Account läuft einzeln mit Zeitlimit und eigener
    Fehlerisolation (runAccount). Die Ergebnisse gehen für ALLE Accounts per
-   Upsert in die Tabellen training_* (persistTraining); die vier
-   Bestandsathleten schreiben zusätzlich weiter ihre rides*.json. Accounts
-   ohne festen Platz kommen aus athlete_sync_config (listGenericAccounts).
+   Upsert in die Tabellen training_* (persistTraining) — Dateien rides*.json
+   gibt es nicht mehr. Accounts ohne eigenes Sync-Verhalten kommen aus
+   athlete_sync_config (listGenericAccounts).
    ============================================================ */
 
 import { ENV, requireEnv } from "./lib/env.js";
@@ -27,7 +27,7 @@ import {
   getPlan2Blocks,
   getRecentComparisonBlocks,
 } from "./lib/plan2.js";
-import { SECONDARY_ATHLETES, listGenericAccounts } from "./lib/athletes.js";
+import { PROFILE_SYNC_ENTRIES, listGenericAccounts } from "./lib/athletes.js";
 import { runAccount, accountTimeoutMs, logTimings } from "./lib/account-runner.js";
 import { saveTrainingData } from "./lib/training-store.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
@@ -76,7 +76,6 @@ import {
   loadAdjustments,
   loadIntervalBlocks,
   writeOutput,
-  OUT_FILE,
   INTERVAL_BLOCKS_FILE,
 } from "./lib/output.js";
 
@@ -87,7 +86,7 @@ requireEnv(["SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY"]);
 
 // Athlet 2 + 4 (Anzeigename, feste FTP, Plan-Vorlage, …) sind seit Fahrplan 10
 // E3 Einträge in scripts/lib/athletes.js — sie teilen sich den Rumpf
-// syncSecondaryAthlete() unten. Athlet 1 behält seinen eigenen Pfad in main().
+// syncSyncEntry() unten. Athlet 1 behält seinen eigenen Pfad in main().
 
 // Fahrplan 10 E6 (Q6): NP-basierte FTP-Notschätzung (npFallbackFtp) über ein
 // hohes Perzentil statt Math.max — ein einzelner kaputter Power-Datenpunkt
@@ -103,7 +102,7 @@ function percentile(nums, p) {
 }
 
 /**
- * Öffentliche FTP-Felder fürs rides*.json-Payload (Aufgabe "FTP-Anzeige im
+ * Öffentliche FTP-Felder fürs Trainingsdaten-Payload (Aufgabe "FTP-Anzeige im
  * Hero für alle gleich", Migration 0025 `profiles.ftp_public`). Bei
  * `ftpPublic === false` wird NUR das Flag geschrieben — das Frontend blendet
  * die FTP-Widgets (Leistungsskala, Ringe, Zeitstrahl) für Besucher dann
@@ -151,7 +150,7 @@ function weatherEndISO() {
  * Bestandsathleten sind zu diesem Zeitpunkt schon geschrieben.
  * @param {string} label  Log-Label (Slug / gekürzte Profil-ID)
  * @param {string|null|undefined} profileId  fehlt bei athlete_key-Zeilen ohne Login
- * @param {object} payload  dasselbe Objekt wie in rides*.json
+ * @param {object} payload  das Payload-Objekt (Form wie früher rides*.json)
  * @param {{ rides?: {from: string, to: string}|null, wellness?: {from: string, to: string}|null }} window
  *   bei intervals.icu geladener Zeitraum — nur darin wird gelöscht
  * @param {AbortSignal} [signal]
@@ -182,15 +181,15 @@ async function persistTraining(label, profileId, payload, window, signal) {
 }
 
 /**
- * Sync-Rumpf für einen Sekundär-Athleten (2 / 4 / … — nicht Athlet 1).
+ * Sync-Rumpf für jeden Account außer Athlet 1.
  * Alle athletenspezifischen Unterschiede kommen aus `entry`
  * (scripts/lib/athletes.js), nicht aus kopiertem Code. Erzeugt
- * `entry.outfile` mit `mapActivity2` + der Athlet-2/4-Output-Form
+ * `mapActivity2` + der Athlet-2/4-Output-Form
  * (`athleteName` + `...ftpPublic` + rides/wellness/…).
  *
  * `entry.requireCreds`: true (Athlet 2) → ohne intervals.icu-Key/-ID wird
- * der Athlet komplett übersprungen, keine Datei. false (Athlet 4) → die
- * Datei wird trotzdem geschrieben (nur Plan, keine Fahrten,
+ * der Athlet komplett übersprungen (nichts wird geschrieben). false (Athlet 4) → der Plan
+ * wird trotzdem geschrieben (nur Plan, keine Fahrten,
  * `source:"plan-only"`).
  *
  * @param {import("./lib/athletes.js").SecondaryAthlete} entry
@@ -510,10 +509,6 @@ async function syncSecondaryAthlete(entry, cfg, ctx) {
     count: rides.length,
   };
 
-  if (entry.outfile) {
-    writeOutput(entry.outfile, output);
-    log.info(`✅ ${rides.length} Fahrten (${entry.name}) → ${entry.outfile}`);
-  }
   // Nur ein tatsächlich geladener Zeitraum darf Zeilen löschen.
   const loaded = creds ? { from: entry.oldest, to: today } : null;
   await persistTraining(
@@ -651,7 +646,7 @@ async function syncPrimaryAthlete(cfg1, ctx) {
     log.info(
       ftpPublicFields1.ftpPublic
         ? `✅ FTP öffentlich: ${ftpPublicFields1.ftp ?? "–"}W · ${ftpPublicFields1.ftpHistory.length} Ramp-Test(s) im Payload`
-        : `ℹ️  FTP öffentlich: abgeschaltet (profiles.ftp_public=false) — keine FTP-Werte in rides.json`
+        : `ℹ️  FTP öffentlich: abgeschaltet (profiles.ftp_public=false) — keine FTP-Werte in den Trainingsdaten`
     );
 
     // Blockerkennung (Fetch/Cache-Zwischenschritt, v2-Ist-Typerkennung) —
@@ -775,7 +770,7 @@ async function syncPrimaryAthlete(cfg1, ctx) {
   const dataSources = [...new Set(rides.map((r) => r.dataSource))].filter(Boolean).sort();
 
   // Planungs-Forecast serverseitig laden (Standort aus athlete_sync_config,
-  // nie im Frontend, nie in rides.json)
+  // nie im Frontend, nie in den Trainingsdaten)
   const planningForecast = await getPlanningForecast(cfg1?.lat, cfg1?.lon);
 
   const output = {
@@ -797,9 +792,8 @@ async function syncPrimaryAthlete(cfg1, ctx) {
     count: rides.length,
   };
 
-  writeOutput(OUT_FILE, output);
-
-  log.info(`\n✅ ${rides.length} Fahrten → ${OUT_FILE}`);
+  log.info(`
+✅ ${rides.length} Fahrten (athlete1)`);
   log.info(`   Datenquellen: ${dataSources.join(", ")}`);
   log.info(
     `   Zeitraum: ${rides[0]?.dateISO || "?"} bis ${rides[rides.length - 1]?.dateISO || "?"}`
@@ -831,18 +825,18 @@ async function main() {
   // Athlet 1 ist der Primärathlet — eine fehlende Zeile ist eine
   // Fehlkonfiguration, kein gültiger Zustand (anders als bei Athlet 2/4, die
   // legitim nicht eingerichtet sein können). Ohne diesen harten Abbruch würde
-  // rides.json still auf "nur Plan-1-Historie" zurückfallen (kein stiller
+  // die Trainingsdaten still auf "nur Plan-1-Historie" zurückfallen (kein stiller
   // Fallback, s. Fahrplan 7 CRED3).
   if (!cfg1) {
     log.error(
-      "athlete_sync_config: keine Zeile für Athlet 1 — rides.json würde nur die Plan-1-Historie enthalten. Abbruch."
+      "athlete_sync_config: keine Zeile für Athlet 1 — die Trainingsdaten würden nur die Plan-1-Historie enthalten. Abbruch."
     );
     process.exitCode = 1;
     return;
   }
   if (!cfg1.apiKey || !cfg1.athleteId) {
     log.warn(
-      "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit der Plan-1-Historie"
+      "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — diesmal nur die Plan-1-Historie"
     );
   }
 
@@ -871,7 +865,7 @@ async function main() {
   // 2. Sekundär-Athleten (2 + 3 + 4) — ein gemeinsamer Rumpf, je Athlet über
   //    die Felder in scripts/lib/athletes.js parametrisiert. Jeder Account
   //    läuft mit Zeitlimit; ein Fehler stoppt die anderen nicht.
-  for (const entry of SECONDARY_ATHLETES) {
+  for (const entry of PROFILE_SYNC_ENTRIES) {
     await run(entry.slug, (signal) =>
       syncSecondaryAthlete(entry, syncConfig.get(entry.slug), {
         today,
@@ -883,8 +877,7 @@ async function main() {
     );
   }
 
-  // 3. Alle weiteren Accounts aus athlete_sync_config (Fahrplan 26 E2) — nur
-  //    in die Tabellen, keine Datei.
+  // 3. Alle weiteren Accounts aus athlete_sync_config (Fahrplan 26 E2).
   for (const { entry, cfg } of listGenericAccounts(syncConfig, today)) {
     await run(entry.shortLabel, (signal) =>
       syncSecondaryAthlete(entry, cfg, { today, weatherEnd, formatCatalog, intervalBlockCache, signal })

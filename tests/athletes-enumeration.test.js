@@ -1,5 +1,5 @@
 /* Tests: Athleten aus athlete_sync_config aufzählen (Fahrplan 26 E2)
-   - loadSyncConfig(): Bestandsathleten über NAME_TO_SLUG, alle anderen unter
+   - loadSyncConfig(): Sonderprofile über slugForName (sync-profiles.js), alle anderen unter
      `profile:<id>`; profiles.sports wird mitgeliefert
    - listGenericAccounts()/genericAthleteEntry()/activityTypesForSports() */
 
@@ -9,8 +9,7 @@ import assert from "node:assert/strict";
 process.env.SUPABASE_URL = "http://localhost:9";
 process.env.SUPABASE_SERVICE_ROLE_KEY = "svc";
 
-const { loadSyncConfig, profileKey, LEGACY_SLUGS } =
-  await import("../scripts/lib/sync-config-fetch.js");
+const { loadSyncConfig, profileKey } = await import("../scripts/lib/sync-config-fetch.js");
 const { listGenericAccounts, genericAthleteEntry, activityTypesForSports, GENERIC_WINDOW_DAYS } =
   await import("../scripts/lib/athletes.js");
 const { RIDE_TYPES } = await import("../scripts/lib/intervals.js");
@@ -86,7 +85,7 @@ test("listGenericAccounts: nur Accounts ohne festen Platz und mit Profil", async
       generic.map((g) => g.entry.slug).sort(),
       [profileKey("p8"), profileKey("p9")].sort()
     );
-    for (const key of LEGACY_SLUGS)
+    for (const key of ["athlete1", "athlete2", "athlete3", "athlete4"])
       assert.equal(
         generic.some((g) => g.entry.slug === key),
         false
@@ -101,13 +100,13 @@ test("listGenericAccounts: athlete_key-Zeile ohne Profil bekommt keinen Tabellen
   assert.deepEqual(listGenericAccounts(cfg, TODAY), []);
 });
 
-test("genericAthleteEntry: keine Datei, nur Rad ohne Sportangabe, 12-Monats-Fenster, Label ohne Namen", () => {
+test("genericAthleteEntry: keine Ausgabedatei, nur Rad ohne Sportangabe, 12-Monats-Fenster, Label ohne Namen", () => {
   const e = genericAthleteEntry(
     "profile:abcdef123456",
     { profileId: "abcdef123456", sports: null },
     TODAY
   );
-  assert.equal(e.outfile, null);
+  assert.equal("outfile" in e, false);
   assert.equal(e.requireCreds, true);
   assert.equal(e.activityTypes, undefined);
   assert.equal(e.oldest, "2025-10-21");

@@ -39,14 +39,17 @@ fehlschlagender Aufräumschritt wirft mit einer Liste der Reste statt zu schweig
 
 # Datenquellen-Mix (lesen/schreiben)
 
-- **Lesedaten** (`data/rides-*.json`, `data/wellbeing*.json`, RHR, HRV, Wetter) →
-  JSON-Pipeline (`scripts/generate-data.js`, alle 15 Min als Dauer-Container auf
-  apps01, nicht mehr GitHub Actions).
+- **Lesedaten** (Fahrten, Wellness, RHR, HRV, Wetter) → Tabellen `training_rides`/
+  `training_wellness`/`training_profile_data` (`scripts/generate-data.js`, alle 15 Min
+  als Dauer-Container auf apps01, nicht mehr GitHub Actions). Seit Fahrplan 26 E5
+  schreibt der Sync **keine** `rides*.json` mehr und das Frontend liest keine. In
+  `data/` bleiben nur Eingaben/Caches (`subjective.json`, `adjustments*.json`,
+  `interval-blocks.json`).
 - **Schreibdaten** (Ziele, Events, Befinden-Check-ins, Trainingskarten, Vorschläge,
   Feedback) → Supabase (RLS, Session-basiert).
 - **Der Sync liest selbst lesend aus Supabase zurück:** `plan_cards` +
-  `ftp_history` fließen in die JSON-Pipeline zurück, damit `rides.json` den
-  echten Plan-Stand widerspiegelt (Athlet 1 und 2). Jeder Supabase-Zugriff des
+  `ftp_history` fließen in den Sync zurück, damit die Trainingsdaten den
+  echten Plan-Stand widerspiegeln (Athlet 1 und 2). Jeder Supabase-Zugriff des
   Sync läuft über **einen** `SUPABASE_SERVICE_ROLE_KEY` (RLS-Bypass):
   `scripts/lib/sync-config-fetch.js` liest in einem Aufruf `athlete_sync_config`
   (intervals.icu-Key + Athlete-ID + grober, serverseitig auf 2 Nachkommastellen
@@ -55,16 +58,18 @@ fehlschlagender Aufräumschritt wirft mit einer Liste der Reste statt zu schweig
 - **Zeilenmodell in `athlete_sync_config`:** Alle Athleten mit eigenem Login
   haben eine normale `profile_id`-Zeile (owner-only RLS), gepflegt self-service
   über **Settings**. Fehlt die Zeile eines Nebenathleten, schreibt
-  `generate-data.js` dessen `rides-N.json` trotzdem (nur Plan-Baseline, keine
+  `generate-data.js` dessen Plan-Baseline trotzdem in die Tabellen (keine
   Fahrten), `source: "plan-only"`.
 - **Onboarding neuer Athlet:** anmelden → in Settings intervals.icu-Key +
   Athlete-ID + groben Standort eintragen → nächster Sync-Lauf nimmt ihn
   automatisch auf (Fahrplan 26 E2): jede `athlete_sync_config`-Zeile mit Profil
   wird gelesen, Daten gehen per Upsert in `training_rides`/`training_wellness`/
   `training_profile_data` (`scripts/lib/training-store.js`), 12 Monate rollierend,
-  Sportarten nach `profiles.sports`. Keine Datei, kein `NAME_TO_SLUG`-Eintrag nötig.
-  `NAME_TO_SLUG` + `ATHLETES[]` in `app/src/config.ts` gelten nur noch für die
-  vier Bestandsathleten (deren `rides*.json` bis E5 weiter geschrieben werden).
+  Sportarten nach `profiles.sports`. Kein Code-Eintrag nötig.
+  `scripts/lib/sync-profiles.js` (Anzeigename → `athlete1`–`athlete4`) und
+  `scripts/lib/athletes.js` (`PROFILE_SYNC_ENTRIES`) tragen nur noch das
+  Sync-**Verhalten** der vier Profile mit eigener Plan-Vorlage/FTP; `ATHLETES[]`
+  in `app/src/config.ts` nur ihre Stammdaten. Dateien gibt es nicht mehr.
 - **Zeitlimit je Account:** `scripts/lib/account-runner.js`, Standard 5 min,
   `SYNC_ACCOUNT_TIMEOUT_MS` überschreibt; ein hängender oder fehlerhafter
   Account stoppt die anderen nicht (Exit-Code 1 am Ende). Laufzeit je Account

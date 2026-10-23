@@ -12,54 +12,26 @@
    Owner-only-RLS, self-service über Settings) ODER einen athlete_key
    ("athlete2" — Vergleichsathlet ohne Login, admin-gepflegt). loadSyncConfig()
    löst beide auf denselben internen Slug ("athlete1" …) auf: profile_id →
-   profiles.display_name → NAME_TO_SLUG, athlete_key → der Key selbst.
+   profiles.display_name → slugForName() (sync-profiles.js), athlete_key → der Key selbst.
 
    FEHLERVERHALTEN — bewusst FATAL (throw), anders als scripts/lib/http.js::
    fetchJson ("return null, Aufrufer entscheidet"): fehlt der Service-Role-
    Key oder scheitert der Tabellen-Read, hat der Sync ohne Config nichts zu
    tun. Ein stiller Fallback würde nur alten/leeren Stand schreiben.
    generate-data.js fängt den Wurf in main().catch → process.exit(1), bevor
-   irgendein writeOutput() gelaufen ist.
+   irgendein Tabellen-Schreiben gelaufen ist.
    ============================================================ */
 
 import { ENV } from "./env.js";
 import { fetchJson } from "./http.js";
 import { log } from "./log.js";
 import { tanakaHrMax } from "./hr.js";
+import { slugForName, hasOwnSyncBehavior } from "./sync-profiles.js";
 
-/** Anzeigename (profiles.display_name in Supabase) → interne Athleten-ID.
- *  Spiegel von app/src/config.ts::ATHLETES[].name — bei einem neuen Athleten
- *  BEIDE Stellen pflegen. Keine Klarnamen, nur die selbstgewählten Pseudonyme.
- *  Lookup läuft über slugForName() case-insensitiv + getrimmt: display_name ist
- *  vom Nutzer in Settings editierbar, ein Tippfehler in Groß/Kleinschreibung
- *  darf einen Athleten nicht aus dem Sync fallen lassen.
- *
- *  Ausnahme (Fahrplan 10 E4): `Hendrik`/`athlete3` (Triathlet) ist bewusst nur
- *  sync-seitig verdrahtet — sein `ATHLETES`-Eintrag + die Umschalter-Pille im
- *  Frontend folgen in E8 (Sport-Umschalter). Bis dahin erzeugt der Sync
- *  `rides-3.json`, das Frontend zeigt Athlet 3 noch nicht. */
-export const NAME_TO_SLUG = {
-  Stuhlsen: "athlete1",
-  hc_diZee: "athlete2",
-  Hendrik: "athlete3",
-  bentastiic: "athlete4",
-};
-
-const SLUG_BY_LC = new Map(
-  Object.entries(NAME_TO_SLUG).map(([name, slug]) => [name.trim().toLowerCase(), slug]),
-);
-
-/** Schlüssel der Bestandsathleten (deren Dateien rides*.json bleiben bis E5). */
-export const LEGACY_SLUGS = new Set(Object.values(NAME_TO_SLUG));
+export { slugForName };
 
 /** Schlüssel eines Accounts ohne festen Platz (Fahrplan 26 E2): die Profil-ID. */
 export const profileKey = (profileId) => `profile:${profileId}`;
-
-/** display_name → Slug, tolerant gegen Groß/Kleinschreibung + Randleerzeichen. */
-export function slugForName(displayName) {
-  if (!displayName) return undefined;
-  return SLUG_BY_LC.get(displayName.trim().toLowerCase());
-}
 
 /** PostgREST liefert numeric je nach Zeile als Zahl oder String — auf
  *  `number | null` normalisieren (Muster wie
@@ -91,7 +63,7 @@ async function getOrThrow(url, key, label) {
  *   athleteId: string|null, lat: number|null, lon: number|null,
  *   ftpPublic: boolean, planOffsetWeeks: number,
  *   hrMax: number|null, hrRest: number|null, sports: string[]|null}>>}
- *   Key = interne Athleten-ID ("athlete1" …) für die vier Bestandsathleten,
+ *   Key = interne Athleten-ID ("athlete1" …) für Profile mit eigenem Sync-Verhalten (sync-profiles.js),
  *   sonst `profile:<profile_id>` (Fahrplan 26 E2, `profileKey()`). `ftpPublic` steuert, ob der
  *   Sync die gemessene FTP + Ramp-Test-Historie in rides*.json schreibt
  *   (profiles.ftp_public, Migration 0025) — Default true, wenn keine
@@ -155,8 +127,8 @@ export async function loadSyncConfig() {
         );
         continue;
       }
-      // Bestandsathlet → fester Slug (seine rides-N.json); jeder andere Account
-      // wird unter seiner Profil-ID geführt und nur in die Tabellen geschrieben.
+      // Profil mit eigenem Sync-Verhalten → fester Slug; jeder andere Account
+      // wird unter seiner Profil-ID geführt (beide landen in den Tabellen).
       slug = slugForName(nameById.get(row.profile_id)) ?? profileKey(row.profile_id);
     } else if (row.athlete_key) {
       slug = row.athlete_key;
@@ -194,10 +166,10 @@ export async function loadSyncConfig() {
     });
   }
 
-  const known = [...bySlug.keys()].filter((k) => LEGACY_SLUGS.has(k));
+  const known = [...bySlug.keys()].filter((k) => hasOwnSyncBehavior(k));
   log.info(
     `✅ athlete_sync_config: ${bySlug.size} Athleten-Zeile(n) geladen ` +
-      `(${known.join(", ") || "keine Bestandsathleten"}${bySlug.size > known.length ? ` + ${bySlug.size - known.length} weitere` : ""})`
+      `(${known.join(", ") || "keine Sonderprofile"}${bySlug.size > known.length ? ` + ${bySlug.size - known.length} weitere` : ""})`
   );
   return bySlug;
 }

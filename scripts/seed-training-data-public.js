@@ -7,7 +7,7 @@
    false, Migration 0078). Der Schalter der vier wird NICHT in der Migration
    gesetzt — das bräuchte Namen oder UUIDs in SQL. Stattdessen löst dieses
    Skript die Profile über dieselben Pseudonyme auf, die schon in
-   scripts/lib/sync-config-fetch.js::NAME_TO_SLUG stehen. Keine UUID, kein
+   scripts/lib/sync-profiles.js stehen. Keine UUID, kein
    Schlüssel im Code.
 
    Wann: einmal gegen den apps01-Stack, BEVOR das Frontend in E5 die Tabellen

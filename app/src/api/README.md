@@ -11,7 +11,8 @@ api/
   queryClient.ts        QueryClient-Fabrik (je Test frisch, in main.tsx einmal)
   result.ts             Umschaltstelle Result-Konvention ↔ React Querys Fehlerkanal
   write-guard.ts        Reihenfolgeschutz für nebenläufige Mutationen
-  pipeline.ts           JSON-Pipeline (data/*.json), Konzept 5.5
+  pipeline.ts           Payload-Prüfung/-Normalisierung (rides.json-Form)
+  training-payload.ts   Trainingsdaten je Profil aus den Tabellen training_*
   write-authorization.ts canWriteForAthlete / isSelfAthlete (UI-Gates)
   supabase/             Adapter: eine Datei je Tabelle, Row-Mapping + Result
   intervals/push.ts     intervals.icu-Push (Etappe 6d) — kein Supabase-Bezug,
@@ -106,16 +107,13 @@ Hooks unter `hooks/`:
 | `meal-plan.ts` | `meal_plan_entries` (je Athlet/Tag/Slot ein Rezept, Upsert) | `useMealPlan.ts` (`useMealPlan`, `useUpsertMealPlanEntry`, `useDeleteMealPlanEntry`) |
 | `recipes.ts` | `recipes` (`containsTags` aus den Zutaten abgeleitet) | `useRecipes.ts` (`useRecipes`) |
 
-## JSON-Pipeline (Konzept 5.5)
+## Trainingsdaten (Fahrplan 26)
 
-In dieser Etappe bestätigt: die per Cron erzeugten `data/*.json` bleiben
-unangetastet, die React-App liest dieselben Dateien. Lokal liefert eine
-Dev-Middleware (`serveRepoData()` in `vite.config.ts`) sie unter `/data`
-aus — der Dev-Server wurzelt in `/app/`, die Dateien liegen daneben. In
-Produktion (Etappe 10) liegt `/data/` neben der gebauten App, der URL-Pfad
-stimmt dort ohne Zutun.
-
-Pfade werden mit `import.meta.env.BASE_URL` gebildet: ein absoluter
-`/data/…`-Pfad wäre auf GitHub Pages falsch (Projektseite unter
-`/training-dashboard/`), ein relativer `./data/…` bräche bei tiefen
-Client-Routen wie `/planning`.
+Alle Athleten (Plätze aus `config.ts` und `self`) lesen ihre Lesedaten über die
+Profil-UUID aus den Tabellen `training_rides`, `training_wellness` und
+`training_profile_data` (Adapter unter `supabase/training-*.ts`).
+`training-payload.ts::assemblePayload()` baut daraus die `rides.json`-Form,
+`pipeline.ts::parseRidesPayload()` prüft (`validate.js`) und normalisiert.
+`useRides` ist der einzige Einstieg. Dateien `data/rides*.json` liest die App
+seit E5 nicht mehr (die Dev-Middleware `serveRepoData()` liefert `/data` nur
+noch für Demo-/Hilfsdateien).

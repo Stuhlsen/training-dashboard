@@ -25,7 +25,7 @@ import type {
  * **Neuberechnung (01.08.2026, docs/konzept-progressionssteuerung.md B0):**
  * Die frühere Behauptung, TRIMP sei ein verifizierter TSS-Proxy, war nie
  * geprüft worden. Gegenprobe auf allen 158 Ist-Fahrten mit BEIDEN Feldern
- * (`data/rides.json` + `rides-2.json`, `ride.tss` = `icu_training_load`
+ * (Trainingsdaten von Athlet 1 + 2, `ride.tss` = `icu_training_load`
  * leistungsbasiert, `ride.trimp` = `act.trimp` herzfrequenzbasiert) zeigt:
  * TRIMP liegt nicht 10–20 % unter TSS (frühere n=4-Vermutung), sondern
  * durchgängig 30–70 % ÜBER TSS (Median-Verhältnis TSS/TRIMP je Typ 0.31–1.06,
