@@ -23,6 +23,7 @@ import {
   planTypeTermKey,
   typeColor,
   typeIcon,
+  typeLabel,
   type DayForecast,
   type PlannedSessionRef,
 } from "./planning-view-model";
@@ -389,10 +390,10 @@ export function WeekGridDetailRow({
         <span style={{ fontSize: ".92rem", fontWeight: 500, color: "var(--ink)" }}>{card.name}</span>
         {planTypeTermKey(card.typ) ? (
           <InfoTooltip termKey={planTypeTermKey(card.typ) as string} underline={false}>
-            <EventBadge label={card.typ ?? "—"} color={color} />
+            <EventBadge label={typeLabel(card.typ)} color={color} />
           </InfoTooltip>
         ) : (
-          <EventBadge label={card.typ ?? "—"} color={color} />
+          <EventBadge label={typeLabel(card.typ)} color={color} />
         )}
         {card.originalDate && (
           <span style={{ fontSize: ".68rem", color: "var(--ink-3)" }}>

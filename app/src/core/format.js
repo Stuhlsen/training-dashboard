@@ -127,6 +127,17 @@ export const fmtDuration = (minutes) => {
   return `${h}:${String(m).padStart(2, "0")}h`;
 };
 
+/** Dauer für Kartennamen: unter 120 min "60 min", ab 120 min Stunden
+ *  ("3 h", "2:30 h"). Rundet auf ganze Minuten.
+ *  @param {number} minutes @returns {string} */
+export const fmtMinutesShort = (minutes) => {
+  const total = Math.round(minutes);
+  if (total < 120) return `${total} min`;
+  const h = Math.floor(total / 60);
+  const m = total % 60;
+  return m ? `${h}:${String(m).padStart(2, "0")} h` : `${h} h`;
+};
+
 /** Bricht einen Text an Wortgrenzen auf mehrere Zeilen um (max. ~maxChars pro Zeile)
  *  @param {string} text @param {number} maxChars @returns {string[]} */
 export const wrapText = (text, maxChars) => {
