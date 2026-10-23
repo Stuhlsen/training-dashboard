@@ -234,3 +234,44 @@ describe("WeekGridDetailRow — Ruhetag-gefahren-Hinweis", () => {
     expect(screen.queryByText("1 Hinweis")).toBeNull();
   });
 });
+
+describe("WeekGridDetailRow — Trainings-Guide (Fahrplan 34 E3)", () => {
+  const long = { durationMin: 120 };
+
+  it("zeigt die Zielzeile sofort, den Rest eingeklappt", () => {
+    const { container } = renderRow(card({ id: "g1", ...long }));
+    const guide = container.querySelector("[data-session-guide]")!;
+    expect(guide.textContent).toMatch(/Ziel/);
+    const details = guide.querySelector("details")!;
+    expect(details.open).toBe(false);
+    expect(screen.getByText("Warum & wie")).toBeTruthy();
+  });
+
+  it("enthält RPE-Band im Titel und die Quelle im aufklappbaren Teil", () => {
+    const { container } = renderRow(card({ id: "g2", ...long }));
+    expect(container.textContent).toMatch(/RPE \d+(–\d+)?/);
+    expect(container.textContent).toMatch(/Eigene Setzung/);
+  });
+
+  it("zeigt die Gramm-Zahl nur mit Gewicht", () => {
+    const withWeight = renderRow(card({ id: "g3", ...long }), { weightKg: 70 });
+    expect(withWeight.container.textContent).toMatch(/bei dir ca\. 70–280 g/);
+    cleanup();
+    const without = renderRow(card({ id: "g4", ...long }));
+    expect(without.container.textContent).not.toMatch(/bei dir/);
+    expect(without.container.textContent).toMatch(/1–4 g KH pro kg/);
+  });
+
+  it("rendert nichts bei Karten ohne Guide (unbekannter Typ, Lauf)", () => {
+    const unknown = renderRow(card({ id: "g5", typ: "Irgendwas" }));
+    expect(unknown.container.querySelector("[data-session-guide]")).toBeNull();
+    cleanup();
+    const run = renderRow(card({ id: "g6", sport: "run" }));
+    expect(run.container.querySelector("[data-session-guide]")).toBeNull();
+  });
+
+  it("zeigt bei ausgefallenen Karten keinen Guide", () => {
+    const { container } = renderRow(card({ id: "g7", cancelled: true, ...long }));
+    expect(container.querySelector("[data-session-guide]")).toBeNull();
+  });
+});

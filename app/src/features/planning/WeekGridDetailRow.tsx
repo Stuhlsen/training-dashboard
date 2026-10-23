@@ -13,6 +13,8 @@ import { LegacyWorkoutTimeline } from "./LegacyWorkoutTimeline";
 import { RecoveryBlock } from "./RecoveryBlock";
 import { WeatherBadge } from "./WeatherBadge";
 import { Z2Block } from "./Z2Block";
+import { SessionGuide } from "./SessionGuide";
+import { buildSessionGuideView } from "./session-guide-view-model";
 import {
   asWorkoutBlocks,
   doneDatesOf,
@@ -108,6 +110,10 @@ export interface WeekGridDetailRowProps {
    *  Kommt von PlanningPage (useCadenceTarget, nur bei eigenem Login);
    *  Default 90 = CADENCE_TARGET_RPM. */
   cadenceTarget?: number;
+  /** Körpergewicht für die persönliche Gramm-Zahl unter „Essen vorher" —
+   *  nur gesetzt, wo der Ernährungs-Tab das Gewicht auch zeigt (eigene
+   *  Ansicht). Ohne Wert steht dort nur „1–4 g KH pro kg". */
+  weightKg?: number | null;
   /** intervals.icu-Zugangsdaten des eingeloggten Users (Settings,
    *  Migration 0019) — `null` ohne hinterlegte Werte. Ersetzt das frühere
    *  localStorage/window.prompt()-Muster. */
@@ -155,6 +161,7 @@ export function WeekGridDetailRow({
   canPush,
   onPush,
   cadenceTarget = 90,
+  weightKg = null,
   intervalsCredentials,
   trainerProposalMode,
   rides,
@@ -334,6 +341,8 @@ export function WeekGridDetailRow({
   );
   const dayForecast = forecast[card.date] as DayForecast | undefined;
   const hasLegacyTimeline = !!cardWorkoutTimeline(card, ftp);
+  // Fahrplan 34 E3: kein Guide (unbekannter Typ, Lauf/Schwimmen bis E6) → nichts rendern.
+  const guideView = card.cancelled ? null : buildSessionGuideView(card, { cadenceTarget, weightKg, ftp: ftp ?? null });
 
   return (
     <div
@@ -572,6 +581,8 @@ export function WeekGridDetailRow({
         card.details &&
         !(isZ2Type(card.typ) && card.km) &&
         !isRecoveryType(card.typ) && <div style={{ fontSize: ".8rem", color: "var(--ink-2)" }}>{card.details}</div>}
+
+      {guideView && <SessionGuide view={guideView} />}
 
       {openForm === "move" && (
         <form
