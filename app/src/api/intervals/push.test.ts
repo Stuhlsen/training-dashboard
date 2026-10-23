@@ -76,3 +76,46 @@ test("pushCardWorkout: Datum vorne im Eintrags-Titel (ISO, gleicher Präfix wie 
   await pushCardWorkout(LEGACY_CARD, "tok", "i123");
   expect(sentEvent(spy).name).toBe("2026-09-10 · 3×8 Min Tempo");
 });
+
+describe("pushCardWorkout — Generator-Karte mit genauer workout_structure", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  const OVER_UNDER_CARD = {
+    ...LEGACY_CARD,
+    name: "Over-Under 3×9",
+    workout: { warmup: 15, intervals: 3, duration: 9, rest: 3, cooldown: 10, pct: [88, 105], label: "Over-Under 3×9" },
+    workoutStructure: {
+      version: 1,
+      steps: [
+        { kind: "warmup", duration_s: 900, target_pct_ftp: 55 },
+        {
+          kind: "alternating",
+          reps: 3,
+          cycles: 3,
+          duration_s: 540,
+          over: { duration_s: 120, target_pct_ftp: 105 },
+          under: { duration_s: 60, target_pct_ftp: 88 },
+          recovery: { duration_s: 180, target_pct_ftp: 50 },
+        },
+        { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+      ],
+    },
+  } as unknown as PlanCard;
+
+  test("Over-Under geht als echte Wechsel raus, nicht als 3× 9m 88-105%", async () => {
+    const spy = stubFetchOk();
+    await pushCardWorkout(OVER_UNDER_CARD, "token", "i1", 90);
+    const description = sentDescription(spy);
+    expect(description.startsWith("Over-Under 3×9\n\n")).toBe(true);
+    expect(description).toContain("Main Set 3x\n- 2m 105% 90rpm\n- 1m 88% 80rpm");
+    expect(description).not.toContain("9m 88-105%");
+  });
+
+  test("editierte Karte (Blockform) gewinnt über die alte Struktur", async () => {
+    const spy = stubFetchOk();
+    const edited = { ...OVER_UNDER_CARD, workout: { blocks: [{ type: "interval", text: "3x10 frei" }] } } as unknown as PlanCard;
+    await pushCardWorkout(edited, "token", "i1", 90);
+    expect(sentDescription(spy)).toContain("- 3x10 frei");
+    expect(sentDescription(spy)).not.toContain("105%");
+  });
+});

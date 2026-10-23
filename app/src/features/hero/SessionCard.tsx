@@ -6,7 +6,7 @@ import type { HeroSession } from "./hero-view-model";
  *  jetzt in einer freien Zeile UNTER dem Balken statt im abgerundeten,
  *  clippenden Segment selbst; "Warmup"/"Cooldown" bewusst englisch belassen).
  *  Ersetzt die reine Fließtext-Zeile aus dem vorherigen Stand — Segmente
- *  kommen aus `legacyWorkoutSegments()` (Planungstab), nur die Watt-Werte
+ *  kommen aus `cardWorkoutTimeline()` (Planungstab), nur die Watt-Werte
  *  sind Hero-eigen (aktuelle FTP statt %FTP/Autorenzeit-Watt). */
 export function SessionCard({ session, statusColor }: { session: HeroSession; statusColor: string }) {
   const hero = session.interval
@@ -51,7 +51,14 @@ export function SessionCard({ session, statusColor }: { session: HeroSession; st
                 title={seg.title}
                 style={{
                   flex: `0 0 ${seg.widthPct}%`,
-                  background: seg.type === "interval" ? session.color : seg.type === "rest" ? "rgba(255,255,255,.04)" : "rgba(255,255,255,.09)",
+                  background:
+                    seg.type === "interval"
+                      ? session.color
+                      : seg.type === "under"
+                        ? `color-mix(in oklab, ${session.color} 55%, transparent)`
+                        : seg.type === "rest"
+                          ? "rgba(255,255,255,.04)"
+                          : "rgba(255,255,255,.09)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

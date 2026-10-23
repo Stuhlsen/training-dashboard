@@ -4,7 +4,7 @@
 
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { buildZwoWorkout, canExportZwo } from "./zwo-export.js";
+import { buildZwoWorkout, canExportZwo, canExportCardZwo } from "./zwo-export.js";
 import { CADENCE_TARGET_RPM } from "../sports/cycling/metrics.js";
 
 // Drift-Guard: buildZwoWorkout() hat einen bare `90`-Default (core/ darf
@@ -138,4 +138,79 @@ test("buildZwoWorkout: Name/Details mit XML-Sonderzeichen werden escaped", () =>
   assert.equal(result.ok, true);
   assert.match(result.xml, /<name>2026-07-02 · Test &amp; &lt;Intervalle&gt; &quot;hart&quot;<\/name>/);
   assert.match(result.xml, /<description>A &amp; B<\/description>/);
+});
+
+/* ── Generator-Karten mit genauer workout_structure ─────────────────────── */
+
+const OVER_UNDER_CARD = {
+  date: "2026-12-13",
+  name: "Over-Under 3×9",
+  details: null,
+  // Grobe Form, wie der Generator sie zusätzlich speichert — darf NICHT gewinnen.
+  workout: { warmup: 15, intervals: 3, duration: 9, rest: 3, cooldown: 10, pct: [88, 105] },
+  workoutStructure: {
+    version: 1,
+    steps: [
+      { kind: "warmup", duration_s: 900, target_pct_ftp: 55 },
+      {
+        kind: "alternating",
+        reps: 3,
+        cycles: 3,
+        duration_s: 540,
+        over: { duration_s: 120, target_pct_ftp: 105 },
+        under: { duration_s: 60, target_pct_ftp: 88 },
+        recovery: { duration_s: 180, target_pct_ftp: 50 },
+      },
+      { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+    ],
+  },
+};
+
+const SPRINT_CARD = {
+  ...OVER_UNDER_CARD,
+  name: "Sweet Spot 3×10 + Sprint",
+  workoutStructure: {
+    version: 1,
+    steps: [
+      { kind: "warmup", duration_s: 720, target_pct_ftp: 55 },
+      { kind: "set", reps: 3, work: { duration_s: 600, target_pct_ftp: 90 }, recovery: { duration_s: 300, target_pct_ftp: 50 } },
+      { kind: "accessory", subtype: "sprint", reps: 2, work: { duration_s: 12, target: "max" }, recovery: { duration_s: 240, target_pct_ftp: 40 } },
+      { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+    ],
+  },
+};
+
+const xmlSteps = (xml) => xml.match(/<(SteadyState|Cooldown|FreeRide|IntervalsT)\b[^>]*>/g) ?? [];
+
+test("buildZwoWorkout: Over-Under aus der Struktur — echte Wechsel über/unter statt 3×9 konstant", () => {
+  const result = buildZwoWorkout(OVER_UNDER_CARD, 90);
+  assert.equal(result.ok, true);
+  const steps = xmlSteps(result.xml);
+  // Warm-up + 3 Blöcke × 6 Wechsel + 2 Pausen + Cool-down
+  assert.equal(steps.length, 1 + 18 + 2 + 1);
+  assert.equal(steps.filter((s) => /Duration="120" Power="1\.05" Cadence="90"/.test(s)).length, 9);
+  assert.equal(steps.filter((s) => /Duration="60" Power="0\.88" Cadence="80"/.test(s)).length, 9);
+  assert.equal(steps.filter((s) => /Duration="180" Power="0\.50" Cadence="80"/.test(s)).length, 2);
+  assert.match(steps[0], /<SteadyState Duration="900" Power="0\.55" Cadence="85"\/>/);
+  assert.match(steps.at(-1), /<Cooldown Duration="600" PowerLow="0\.50" PowerHigh="0\.40" Cadence="80"\/>/);
+  // Die grobe Mittelwert-Form (0.97 konstant) taucht nicht auf.
+  assert.doesNotMatch(result.xml, /0\.97/);
+});
+
+test("buildZwoWorkout: Sprints als FreeRide mit Hinweis, keine erfundene Wattzahl", () => {
+  const result = buildZwoWorkout(SPRINT_CARD, 90);
+  assert.equal(result.ok, true);
+  assert.equal((result.xml.match(/<FreeRide Duration="12">/g) ?? []).length, 2);
+  assert.match(result.xml, /<textevent timeoffset="0" message="Sprint max"\/>/);
+});
+
+test("buildZwoWorkout: Blockform gewinnt über eine stehengebliebene Struktur (editierte Karte)", () => {
+  const edited = { ...OVER_UNDER_CARD, workout: { blocks: [{ type: "interval", text: "frei" }] } };
+  assert.equal(buildZwoWorkout(edited).ok, false);
+});
+
+test("canExportCardZwo: Strukturkarte auch ohne numerisches workout exportierbar, sonst wie canExportZwo", () => {
+  assert.equal(canExportCardZwo({ ...OVER_UNDER_CARD, workout: null }), true);
+  assert.equal(canExportCardZwo({ workout: NUMERIC_CARD.workout, workoutStructure: null }), true);
+  assert.equal(canExportCardZwo({ workout: { blocks: [] }, workoutStructure: null }), false);
 });

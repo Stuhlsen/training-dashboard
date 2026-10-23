@@ -18,6 +18,14 @@ import { pickPrimaryRide } from "../../core/compliance-match.js";
 import { COGGAN_ZONE_UPPER_PCT } from "../../sports/cycling/zones.js";
 import { HR_ZONES } from "../../sports/cycling/metrics.js";
 import { targetBandFromCompliance } from "./done-detail-chart-view-model";
+import {
+  EASY_UNDER_PCT,
+  durDe,
+  structureSegments,
+  structureSummary,
+  structureTotalMin,
+  usableStructure,
+} from "../../core/workout-structure-format.js";
 import type { PlanCard } from "../../api/types";
 
 type Ride = import("../../types.js").Ride;
@@ -375,7 +383,8 @@ export function uvLabel(uvMax: number | null): { text: string; color: string } |
   return { text, color };
 }
 
-export type LegacySegmentType = "warmup" | "interval" | "rest" | "cooldown";
+/** `under` = Unter-Phase eines Over-Under-Blocks (nur aus `workoutStructure`). */
+export type LegacySegmentType = "warmup" | "interval" | "under" | "rest" | "cooldown";
 
 export interface LegacySegment {
   type: LegacySegmentType;
@@ -459,6 +468,81 @@ export function legacyWorkoutSegments(workout: unknown): LegacyWorkoutTimeline |
   const wattsLine = w.watts ? `${w.watts[0]}–${w.watts[1]}W · Ziel: ${Math.round((w.watts[0] + w.watts[1]) / 2)}W` : null;
 
   return { label: w.label ?? "", segments, summary, totalMin, wattsLine };
+}
+
+/** Unter dieser Breite (in % des Balkens) bekommt ein Segment kein Label —
+ *  sonst quetschen sich z. B. 20 × „30 s" eines 30/15-Workouts übereinander
+ *  (Überlappungsschutz, Skill chart-labels). Der Tooltip bleibt immer. */
+const MIN_LABEL_WIDTH_PCT = 6;
+
+type StructureRole = ReturnType<typeof structureSegments>[number]["role"];
+
+function structureSegmentType(role: StructureRole, pct: number | null): LegacySegmentType {
+  if (role === "warmup" || role === "cooldown") return role;
+  if (role === "recovery") return "rest";
+  if (role === "under") return pct != null && pct >= EASY_UNDER_PCT ? "under" : "rest";
+  return "interval";
+}
+
+function structureSegmentTitle(role: StructureRole, type: LegacySegmentType, durationS: number, pct: number | null): string {
+  const dur = durDe(durationS);
+  if (role === "warmup") return `Warm-up ${dur}`;
+  if (role === "cooldown") return `Cool-down ${dur}`;
+  if (role === "sprint") return `Sprint ${dur} max`;
+  if (type === "rest") return `Pause ${dur}${pct != null ? ` @ ${pct} %` : ""}`;
+  const suffix = role === "over" ? " (über)" : role === "under" ? " (unter)" : "";
+  return `${dur} @ ${pct} % FTP${suffix}`;
+}
+
+/**
+ * Timeline einer Plankarte: aus der genauen `workoutStructure`, wenn sie gilt
+ * (`usableStructure()`, z. B. Over-Under/30-15 vom Generator), sonst wie
+ * bisher aus `legacyWorkoutSegments(card.workout)`. Watt aus der aktuellen
+ * FTP (Struktur ist %FTP-relativ), ohne FTP keine Wattzeile.
+ */
+export function cardWorkoutTimeline(
+  card: { workout?: unknown; workoutStructure?: unknown },
+  ftp: number | null | undefined,
+): LegacyWorkoutTimeline | null {
+  const structure = usableStructure(card);
+  if (!structure) return legacyWorkoutSegments(card.workout);
+
+  // Nur echtes Over-Under (harte Unter-Phase) heißt „über/unter" — bei 30/15
+  // ist die Unter-Phase lockere Erholung, die „An"-Phase ein normales Intervall.
+  const segs = structureSegments(structure);
+  const isOverUnder = segs.some((s) => s.role === "under" && s.pct != null && s.pct >= EASY_UNDER_PCT);
+  const raw = isOverUnder ? segs : segs.map((s) => (s.role === "over" ? { ...s, role: "work" as const } : s));
+  const totalS = raw.reduce((sum, s) => sum + s.durationS, 0);
+  const segments: LegacySegment[] = raw.map((s) => {
+    const type = structureSegmentType(s.role, s.pct);
+    const widthPct = Math.round((s.durationS / totalS) * 1000) / 10;
+    const short = type === "warmup" ? "WU" : type === "cooldown" ? "CD" : durDe(s.durationS).replace(" min", "'");
+    return {
+      type,
+      widthPct,
+      label: widthPct >= MIN_LABEL_WIDTH_PCT ? short : "",
+      title: structureSegmentTitle(s.role, type, s.durationS, s.pct),
+    };
+  });
+
+  const WATT_LABEL: Partial<Record<StructureRole, string>> = { work: "Intervall", over: "Über", under: "Unter" };
+  const watts = new Map<string, number>();
+  if (ftp) {
+    raw.forEach((s, i) => {
+      const name = WATT_LABEL[s.role];
+      if (name && s.pct != null && segments[i].type !== "rest" && !watts.has(name)) {
+        watts.set(name, Math.round((s.pct / 100) * ftp));
+      }
+    });
+  }
+
+  return {
+    label: (card.workout as { label?: string } | null | undefined)?.label ?? "",
+    segments,
+    summary: structureSummary(structure),
+    totalMin: structureTotalMin(structure),
+    wattsLine: watts.size ? [...watts].map(([name, w]) => `${name} ${w} W`).join(" · ") : null,
+  };
 }
 
 /** 1:1 aus ui/planned.js::_renderCard Z. 931/934. */

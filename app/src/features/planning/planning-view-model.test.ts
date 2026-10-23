@@ -12,6 +12,7 @@ import {
   isZ2Type,
   latestWellness,
   legacyWorkoutSegments,
+  cardWorkoutTimeline,
   matchRideForCard,
   nextLoadAfter,
   planTypeTermKey,
@@ -634,5 +635,77 @@ describe("buildDoneCompareRows", () => {
   it("leere Liste ohne jegliche Ist-Werte", () => {
     const c = card({ id: "a", date: "2026-08-06", typ: "Z2 Dauer" });
     expect(buildDoneCompareRows(c, doneRide(), A1, FTP)).toEqual([]);
+  });
+});
+
+describe("cardWorkoutTimeline", () => {
+  const OVER_UNDER_STRUCTURE = {
+    version: 1,
+    steps: [
+      { kind: "warmup", duration_s: 900, target_pct_ftp: 55 },
+      {
+        kind: "alternating",
+        reps: 3,
+        cycles: 3,
+        duration_s: 540,
+        over: { duration_s: 120, target_pct_ftp: 105 },
+        under: { duration_s: 60, target_pct_ftp: 88 },
+        recovery: { duration_s: 180, target_pct_ftp: 50 },
+      },
+      { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+    ],
+  };
+  const THIRTY_FIFTEEN_STRUCTURE = {
+    version: 1,
+    steps: [
+      { kind: "warmup", duration_s: 900, target_pct_ftp: 55 },
+      {
+        kind: "alternating",
+        reps: 2,
+        cycles: 10,
+        duration_s: 450,
+        over: { duration_s: 30, target_pct_ftp: 110 },
+        under: { duration_s: 15, target_pct_ftp: 50 },
+        recovery: { duration_s: 300, target_pct_ftp: 50 },
+      },
+      { kind: "cooldown", duration_s: 600, target_pct_ftp: 50 },
+    ],
+  };
+  const COARSE = { warmup: 15, intervals: 3, duration: 9, rest: 3, cooldown: 10, pct: [88, 105], watts: [158, 189], label: "Over-Under 3×9" };
+
+  it("Over-Under: Über/Unter-Segmente statt 3 konstanter 9-min-Blöcke", () => {
+    const t = cardWorkoutTimeline({ workout: COARSE, workoutStructure: OVER_UNDER_STRUCTURE }, 180)!;
+    expect(t.segments.filter((s) => s.type === "interval")).toHaveLength(9);
+    expect(t.segments.filter((s) => s.type === "under")).toHaveLength(9);
+    expect(t.segments.filter((s) => s.type === "rest")).toHaveLength(2);
+    expect(t.segments[1].title).toBe("2 min @ 105 % FTP (über)");
+    expect(t.segments[2].title).toBe("1 min @ 88 % FTP (unter)");
+    expect(t.summary).toBe(
+      "15 min Warm-up → 3× [3× (2 min @ 105 % / 1 min @ 88 %)] (Pause 3 min) → 10 min Cool-down · 58 min gesamt",
+    );
+    expect(t.totalMin).toBe(58);
+    expect(t.label).toBe("Over-Under 3×9");
+    expect(t.wattsLine).toBe("Über 189 W · Unter 158 W");
+  });
+
+  it("30/15: lockere 15 s zählen als Pause, keine gequetschten Labels auf schmalen Segmenten", () => {
+    const t = cardWorkoutTimeline({ workout: COARSE, workoutStructure: THIRTY_FIFTEEN_STRUCTURE }, 180)!;
+    expect(t.segments.filter((s) => s.type === "interval")).toHaveLength(20);
+    expect(t.segments.filter((s) => s.type === "under")).toHaveLength(0);
+    for (const s of t.segments.filter((x) => x.type === "interval")) expect(s.label).toBe("");
+    expect(t.segments[0].label).toBe("WU");
+    expect(t.segments.at(-1)!.label).toBe("CD");
+    // Kein Over-Under (Unter-Phase ist locker) → normale Intervall-Beschriftung.
+    expect(t.wattsLine).toBe("Intervall 198 W");
+    expect(t.segments[1].title).toBe("30 s @ 110 % FTP");
+  });
+
+  it("ohne FTP keine Wattzeile", () => {
+    expect(cardWorkoutTimeline({ workout: COARSE, workoutStructure: OVER_UNDER_STRUCTURE }, null)!.wattsLine).toBeNull();
+  });
+
+  it("ohne nutzbare Struktur: alter Weg über legacyWorkoutSegments", () => {
+    const t = cardWorkoutTimeline({ workout: COARSE, workoutStructure: null }, 180);
+    expect(t).toEqual(legacyWorkoutSegments(COARSE));
   });
 });

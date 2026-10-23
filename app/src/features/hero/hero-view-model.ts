@@ -46,14 +46,22 @@ import {
 import { computeZones, sweetSpotBand, whatIfScaleMax } from "../../core/zones.js";
 import { sportProfileFor } from "../../sports";
 import { currentFtpEntry } from "../../core/ftp-history.js";
+import {
+  durDe,
+  structureHardPctRange,
+  structureRecoveries,
+  structureTotalMin,
+  structureTss,
+  usableStructure,
+} from "../../core/workout-structure-format.js";
 // Wiederverwendung statt Neubau (CLAUDE.md: bestehendes Modul prüfen) — die
 // Segment-Balken-Zerlegung für Intervall-Workouts existiert schon für die
 // Planungstab-Kachel (`LegacyWorkoutTimeline`). Hero nutzt hier nur die
 // GEOMETRIE (Segmente/Breiten) daraus; die Watt-Range kommt weiterhin aus
 // `workoutWattRange()` (auf die AKTUELLE FTP umgerechnet), nicht aus
-// `legacyWorkoutSegments()`s eigenem %FTP-/Autorenzeit-Text.
+// `cardWorkoutTimeline()`s eigenem %FTP-/Autorenzeit-Text.
 import {
-  legacyWorkoutSegments,
+  cardWorkoutTimeline,
   typeColor,
   isNonTrainingCard,
   type LegacySegment,
@@ -179,8 +187,8 @@ export interface HeroViewModelInput extends HeroCoreInput {
 }
 
 /** Segment-Balken-Daten für ein strukturiertes Intervall-Workout (nur
- *  vorhanden, wenn `legacyWorkoutSegments()` welche liefert, d.h. workout
- *  trägt `intervals`+`duration`). `warmupLabel`/`cooldownLabel` sind
+ *  vorhanden, wenn `cardWorkoutTimeline()` welche liefert, d.h. die Karte hat eine
+ *  nutzbare workoutStructure oder ein workout mit `intervals`+`duration`). `warmupLabel`/`cooldownLabel` sind
  *  Watt-SCHÄTZUNGEN (60/50 % der aktuellen FTP, dieselbe Annahme wie
  *  `estimateSessionTSS()`), nicht im Plan hinterlegt — SessionCard.tsx
  *  markiert das entsprechend. */
@@ -319,6 +327,41 @@ export interface HeroViewModel extends HeroCore {
 
 const fmtSigned = (x: number) => (x > 0 ? "+" : x < 0 ? "−" : "") + Math.abs(x);
 
+/** Hero-Kennzahlen einer Generator-Karte aus ihrer genauen Struktur.
+ *  @returns Segment-Balken + Chips (Dauer, TSS, einheitliche Pause). */
+function structureSession(
+  card: PlanCard,
+  structure: NonNullable<ReturnType<typeof usableStructure>>,
+  ftp: number,
+): { interval: HeroSessionInterval | null; chips: string[] } {
+  const watts = (pct: number) => Math.round((ftp * pct) / 100);
+  const steps = structure.steps as Array<{ kind: string; duration_s?: number; target_pct_ftp?: number }>;
+  const edgeLabel = (step: (typeof steps)[number] | undefined) =>
+    step?.duration_s && step.target_pct_ftp != null
+      ? `${Math.round(step.duration_s / 60)}' · ~${watts(step.target_pct_ftp)} W`
+      : null;
+
+  const range = structureHardPctRange(structure);
+  const segments = cardWorkoutTimeline(card, ftp)?.segments ?? null;
+  const interval =
+    range && segments
+      ? {
+          segments,
+          wattRange: [watts(range[0]), watts(range[1])] as [number, number],
+          warmupLabel: edgeLabel(steps.find((st) => st.kind === "warmup")),
+          cooldownLabel: edgeLabel(steps.find((st) => st.kind === "cooldown")),
+        }
+      : null;
+
+  const chips = [`~${structureTotalMin(structure)} min gesamt`, `TSS ~${structureTss(structure)}`];
+  const rec = structureRecoveries(structure);
+  if (rec) {
+    const recWatt = rec.pct != null ? ` · ~${watts(rec.pct)} W` : "";
+    chips.push(`Pause ${rec.count}× ${durDe(rec.durationS)}${recWatt}`);
+  }
+  return { interval, chips };
+}
+
 function buildSession(
   planCards: PlanCard[],
   doneDates: Set<string>,
@@ -346,16 +389,24 @@ function buildSession(
   const chips: string[] = [];
   const detailParts: string[] = [];
   let interval: HeroSessionInterval | null = null;
+  const structure = ftpVal ? usableStructure(next) : null;
 
-  if (workout && ftpVal) {
+  if (structure && ftpVal) {
+    // Generator-Karte (Over-Under/30-15): alle Kennzahlen aus der genauen
+    // workoutStructure — die grobe workout-Form verliert z. B. die 30/15-
+    // Satzpause. Warmup/Pause/Cooldown-Watt stehen dort exakt, kein Schätz-Hinweis.
+    const built = structureSession(next, structure, ftpVal);
+    interval = built.interval;
+    chips.push(...built.chips);
+  } else if (workout && ftpVal) {
     const wattRange = workoutWattRange(workout, ftpVal);
     const minutes = workoutDurationMinutes(workout);
     const tss = estimateSessionTSS(workout, ftpVal);
     // Nur die SEGMENT-GEOMETRIE (Breiten/Reihenfolge) aus der bestehenden
     // Planungstab-Logik übernehmen — Watt-Werte kommen weiter aus
     // workoutWattRange()/TSS_ASSUMED_IF oben, nicht aus dem %FTP-/
-    // Autorenzeit-Text, den legacyWorkoutSegments() selbst mitliefert.
-    const segments = legacyWorkoutSegments(workout)?.segments ?? null;
+    // Autorenzeit-Text, den cardWorkoutTimeline() selbst mitliefert.
+    const segments = cardWorkoutTimeline(next, ftpVal)?.segments ?? null;
 
     if (segments && wattRange) {
       interval = {

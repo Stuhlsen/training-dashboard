@@ -17,6 +17,7 @@
    ============================================================ */
 
 import type { PlanCard, Result } from "../types";
+import { structureIntervalsText, usableStructure } from "../../core/workout-structure-format.js";
 
 function authHeader(token: string): Record<string, string> {
   return { Authorization: "Basic " + btoa("API_KEY:" + token) };
@@ -97,9 +98,17 @@ function blockDescription(blocks: WorkoutBlock[], details?: string | null): stri
 }
 
 function buildDescription(
-  card: Pick<PlanCard, "workout" | "details">,
+  card: Pick<PlanCard, "workout" | "workoutStructure" | "details" | "name">,
   cadenceTarget: number,
 ): Result<{ description: string }> {
+  // Generator-Karten: die genaue Struktur gilt vor der groben `workout`-Form
+  // (Over-Under/30-15 sind dort nicht abbildbar, s. core/workout-structure-format.js).
+  const structure = usableStructure(card);
+  if (structure) {
+    const label = (card.workout as { label?: string } | null)?.label ?? card.name ?? "";
+    const head = label + (card.details ? `\n${card.details}` : "");
+    return { ok: true, description: `${head}\n\n${structureIntervalsText(structure, cadenceTarget)}` };
+  }
   const w = card.workout;
   if (!w) {
     return { ok: false, error: { code: "NO_DATA", message: "Kein strukturiertes Workout definiert" } };
