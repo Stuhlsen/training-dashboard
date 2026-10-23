@@ -10,7 +10,7 @@ import { useEvents, raceCountdown } from "../../api/hooks/useEvents";
 import { useFtpHistory } from "../../api/hooks/useFtpHistory";
 import { useFtpGoal } from "../../api/hooks/useFtpGoal";
 import { useAthleteSports } from "../../api/hooks/useAthleteSports";
-import { athleteConfig } from "../../config";
+import { useAthleteConfig } from "../../api/hooks/useAthleteConfig";
 import { localISODate, fmtPace } from "../../core/format.js";
 import { estimateThresholdSpeed } from "../../core/critical-speed.js";
 import { PACE_FROM_KMH } from "../../core/pace-zones.js";
@@ -57,7 +57,7 @@ const BASE_ROTATE_X = 1.6;
 
 export function HeroPage() {
   const { activeAthleteId } = useActiveAthlete();
-  const athleteCfg = athleteConfig(activeAthleteId);
+  const athleteCfg = useAthleteConfig(activeAthleteId);
   const { effectiveSport } = useEffectiveSport(activeAthleteId);
   const { data: athleteData, isLoading, error, refetch } = useRides(activeAthleteId);
   const { data: planCards } = usePlanCards(activeAthleteId);
@@ -134,6 +134,7 @@ export function HeroPage() {
     const forecast = (athleteData?.forecast as HeroCoreInput["forecast"] | undefined) ?? {};
     return buildHeroCore({
       athleteId: activeAthleteId,
+      athleteCfg,
       rides,
       // Ungefilterte Aktivitätsliste ALLER Sportarten (Fahrplan 10 E8b) —
       // verankert die gemeinsame CTL/ATL/TSB-Anzeige, damit Fitness/Form auf
@@ -157,7 +158,7 @@ export function HeroPage() {
       // steuert multiSport für die gemeinsame Last-/Cross-Sport-Anzeige.
       sports,
     });
-  }, [activeAthleteId, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries, ftpGoal, sports]);
+  }, [activeAthleteId, athleteCfg, athleteData, planCards, isSelf, readinessSubjective, ftpHistoryEntries, ftpGoal, sports]);
   const powerScale = buildPowerScale(core.ramp.value, core.eftp.value, whatIfFtp);
   const vm = { ...core, powerScale };
 

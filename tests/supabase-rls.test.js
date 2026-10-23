@@ -6073,4 +6073,301 @@ if (!HAS_CREDS) {
     });
     assert.equal(byAthlete.ok, false, "Athleten dürfen den Audit-Log nicht schreiben");
   });
+
+  // --- Trainingsdaten je Profil (Migration 0078, Fahrplan 26 E1) -----------
+  // training_rides / training_wellness / training_profile_data /
+  // athlete_profile_extras: lesen self + Trainer + Admin, zusätzlich alle
+  // Eingeloggten bei profiles.training_data_public; schreiben nur service_role.
+  // Setup-Zeilen legt der Service-Key an und räumt sie wieder weg.
+
+  const TD_TABLES = [
+    "training_rides",
+    "training_wellness",
+    "training_profile_data",
+    "athlete_profile_extras",
+  ];
+  const TD_STAMP = Date.now();
+  let tdSeeded = false;
+  let tdOriginalSwitch; // undefined = noch nicht gelesen
+
+  const tdSkip = () => {
+    if (!ENV.SUPABASE_SERVICE_ROLE_KEY) return "SUPABASE_SERVICE_ROLE_KEY fehlt in .env";
+    if (!strangerUsable) return "Dritte Identität (Athlet 2) fehlt oder ist Admin/Coach";
+    return false;
+  };
+
+  const svcWrite = (method, path, body, prefer) =>
+    rest(method, path, { token: ENV.SUPABASE_SERVICE_ROLE_KEY, body, prefer });
+
+  // profiles hat nur Spalten-Grants: PATCH ohne return=minimal scheitert am
+  // fehlenden SELECT auf alle Spalten. Ob ein fremder PATCH gegriffen hat,
+  // zeigt deshalb nur ein Lesen des Schalters.
+  async function ownSwitch() {
+    const r = await rest(
+      "GET",
+      `profiles_visible?id=eq.${athlete.userId}&select=training_data_public`,
+      { token: athlete.token }
+    );
+    return r.data?.[0]?.training_data_public;
+  }
+
+  async function setSwitch(value) {
+    const r = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+      token: athlete.token,
+      body: { training_data_public: value },
+      prefer: "return=minimal",
+    });
+    assert.equal(r.ok, true, `Schalter setzen fehlgeschlagen: ${JSON.stringify(r.data)}`);
+  }
+
+  /** Legt je Tabelle eine Zeile für Athlet 1 an; false, wenn 0078 fehlt oder echte Zeilen existieren. */
+  async function seedTrainingData() {
+    if (tdSeeded) return true;
+    for (const table of TD_TABLES) {
+      const existing = await svcWrite(
+        "GET",
+        `${table}?profile_id=eq.${athlete.userId}&select=profile_id&limit=1`
+      );
+      if (!existing.ok) return false; // Migration 0078 nicht eingespielt
+      if (existing.data.length) return false; // echte Daten: nicht anfassen
+    }
+    tdOriginalSwitch = await ownSwitch();
+    const rows = {
+      training_rides: {
+        profile_id: athlete.userId,
+        ride_key: `rls-test-${TD_STAMP}`,
+        ride_date: "2026-01-01",
+        data: { dateISO: "2026-01-01", km: 10 },
+      },
+      training_wellness: { profile_id: athlete.userId, day: "2026-01-01", data: { hrv: 50 } },
+      training_profile_data: { profile_id: athlete.userId, meta: { source: "rls-test" } },
+      athlete_profile_extras: { profile_id: athlete.userId, ftp_measured: 200 },
+    };
+    cleanupTasks.push(async () => {
+      if (tdOriginalSwitch === undefined) return;
+      const r = await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: { training_data_public: tdOriginalSwitch },
+        prefer: "return=minimal",
+      });
+      if (!r.ok)
+        throw new Error(`training_data_public nicht zurückgesetzt: ${JSON.stringify(r.data)}`);
+    });
+    for (const [table, body] of Object.entries(rows)) {
+      cleanupTasks.push(async () => {
+        const del = await svcWrite("DELETE", `${table}?profile_id=eq.${athlete.userId}`);
+        if (!del.ok)
+          throw new Error(`${table}-Testzeile nicht gelöscht: ${JSON.stringify(del.data)}`);
+      });
+      const ins = await svcWrite("POST", table, body);
+      assert.equal(ins.ok, true, `Setup ${table} fehlgeschlagen: ${JSON.stringify(ins.data)}`);
+    }
+    tdSeeded = true;
+    return true;
+  }
+
+  async function tdReady(t) {
+    const skip = tdSkip();
+    if (skip) {
+      t.skip(skip);
+      return false;
+    }
+    if (!(await seedTrainingData())) {
+      t.skip(
+        "Migration 0078 fehlt oder Athlet 1 hat schon echte Trainingsdaten — Setup übersprungen"
+      );
+      return false;
+    }
+    return true;
+  }
+
+  const rowCount = async (table, token) => {
+    const r = await rest("GET", `${table}?profile_id=eq.${athlete.userId}&select=profile_id`, {
+      token,
+    });
+    return r.ok ? r.data.length : -1;
+  };
+
+  test("training_*: Athlet liest die eigenen Zeilen, Fremde und anon bei ausgeschaltetem Schalter nicht", async (t) => {
+    if (!(await tdReady(t))) return;
+    await setSwitch(false);
+    for (const table of TD_TABLES) {
+      assert.ok((await rowCount(table, athlete.token)) >= 1, `${table}: eigene Zeile fehlt`);
+      assert.equal(
+        await rowCount(table, stranger.token),
+        0,
+        `${table}: Fremder sieht Zeile (Schalter aus)`
+      );
+      const anon = await rest("GET", `${table}?select=profile_id`, { token: null });
+      assert.equal(anon.ok, false, `${table}: anon darf nicht lesen`);
+    }
+  });
+
+  test("training_*: Trainer liest die Zeilen seines Athleten", async (t) => {
+    if (coachSkip()) return t.skip(coachSkip());
+    if (!(await tdReady(t))) return;
+    await setSwitch(false);
+    for (const table of TD_TABLES) {
+      assert.ok((await rowCount(table, trainer.token)) >= 1, `${table}: Trainer sieht Zeile nicht`);
+    }
+  });
+
+  test("training_*: Schalter an → alle Eingeloggten lesen, anon weiter nicht; Schalter aus → wieder gesperrt", async (t) => {
+    if (!(await tdReady(t))) return;
+    await setSwitch(true);
+    for (const table of TD_TABLES) {
+      assert.ok(
+        (await rowCount(table, stranger.token)) >= 1,
+        `${table}: Fremder sieht Zeile trotz Schalter an nicht`
+      );
+      const anon = await rest("GET", `${table}?select=profile_id`, { token: null });
+      assert.equal(anon.ok, false, `${table}: anon darf auch bei Schalter an nicht lesen`);
+    }
+    await setSwitch(false);
+    for (const table of TD_TABLES) {
+      assert.equal(
+        await rowCount(table, stranger.token),
+        0,
+        `${table}: Fremder sieht Zeile nach Ausschalten`
+      );
+    }
+  });
+
+  test("training_*: Athlet, Trainer und Fremde schreiben keine dieser Tabellen", async (t) => {
+    if (!(await tdReady(t))) return;
+    const bodies = {
+      training_rides: {
+        profile_id: athlete.userId,
+        ride_key: "rls-x",
+        ride_date: "2026-01-02",
+        data: {},
+      },
+      training_wellness: { profile_id: athlete.userId, day: "2026-01-02", data: {} },
+      training_profile_data: { profile_id: athlete.userId },
+      athlete_profile_extras: { profile_id: athlete.userId },
+    };
+    const actors = [athlete, stranger, ...(coachLinkOk ? [trainer] : [])];
+    for (const table of TD_TABLES) {
+      for (const who of actors) {
+        const ins = await rest("POST", table, { token: who.token, body: bodies[table] });
+        assert.equal(ins.ok, false, `${table}: Insert durch Nicht-Service hätte scheitern müssen`);
+        // PATCH/DELETE: blockiert heißt Fehler ODER leere Trefferliste (s. rest()-Kommentar).
+        const patch = await rest("PATCH", `${table}?profile_id=eq.${athlete.userId}`, {
+          token: who.token,
+          body: { updated_at: new Date().toISOString() },
+        });
+        assert.ok(
+          !patch.ok || patch.data.length === 0,
+          `${table}: Update durch Nicht-Service ging durch`
+        );
+        const del = await rest("DELETE", `${table}?profile_id=eq.${athlete.userId}`, {
+          token: who.token,
+        });
+        assert.ok(
+          !del.ok || del.data.length === 0,
+          `${table}: Delete durch Nicht-Service ging durch`
+        );
+      }
+    }
+    for (const table of TD_TABLES) {
+      assert.ok((await rowCount(table, athlete.token)) >= 1, `${table}: Zeile ist verschwunden`);
+    }
+  });
+
+  test("profiles.training_data_public: Athlet setzt ihn selbst, Fremde und Trainer nicht", async (t) => {
+    if (!(await tdReady(t))) return;
+    assert.equal(
+      typeof (await ownSwitch()),
+      "boolean",
+      "profiles_visible trägt training_data_public nicht"
+    );
+    await setSwitch(true);
+    assert.equal(await ownSwitch(), true);
+    await setSwitch(false);
+    assert.equal(await ownSwitch(), false);
+
+    for (const who of [stranger, ...(coachLinkOk ? [trainer] : [])]) {
+      await rest("PATCH", `profiles?id=eq.${athlete.userId}`, {
+        token: who.token,
+        body: { training_data_public: true },
+        prefer: "return=minimal",
+      });
+      assert.equal(await ownSwitch(), false, "Fremder/Trainer darf den Schalter nicht setzen");
+      const rpc = await rest("POST", "rpc/set_training_data_public", {
+        token: who.token,
+        body: { aid: athlete.userId, val: true },
+      });
+      assert.equal(rpc.ok, false, "RPC für fremdes Profil hätte scheitern müssen");
+    }
+    assert.equal(await ownSwitch(), false, "Schalter wurde trotz Sperre geändert");
+
+    const anon = await rest("POST", "rpc/set_training_data_public", {
+      token: null,
+      body: { aid: athlete.userId, val: true },
+    });
+    assert.equal(anon.ok, false, "anon darf die RPC nicht aufrufen");
+  });
+
+  test("profiles.training_data_public: der Athlet nutzt die RPC für sich selbst", async (t) => {
+    if (!(await tdReady(t))) return;
+    const on = await rest("POST", "rpc/set_training_data_public", {
+      token: athlete.token,
+      body: { aid: athlete.userId, val: true },
+    });
+    assert.equal(on.ok, true, `RPC (self) fehlgeschlagen: ${JSON.stringify(on.data)}`);
+    assert.equal(await ownSwitch(), true);
+    await setSwitch(false);
+  });
+
+  test("training_*: Admin liest alles und legt den Schalter fremder Profile um", async (t) => {
+    if (!(await tdReady(t))) return;
+    const authHeaders = {
+      apikey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+      Authorization: `Bearer ${ENV.SUPABASE_SERVICE_ROLE_KEY}`,
+      "Content-Type": "application/json",
+    };
+    const email = `rls-test-td-admin-${TD_STAMP}@example.com`;
+    const password = "rls-test-Passw0rd-9x!";
+    const created = await fetch(`${SUPABASE_URL}/auth/v1/admin/generate_link`, {
+      method: "POST",
+      headers: authHeaders,
+      body: JSON.stringify({ type: "invite", email }),
+    });
+    const body = await created.json();
+    assert.equal(created.ok, true, `generate_link fehlgeschlagen: ${JSON.stringify(body)}`);
+    const adminId = body.id;
+    cleanupTasks.push(async () => {
+      const del = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${adminId}`, {
+        method: "DELETE",
+        headers: authHeaders,
+      });
+      if (!del.ok) throw new Error(`Test-Admin ${adminId} nicht gelöscht: ${await del.text()}`);
+    });
+    const pw = await fetch(`${SUPABASE_URL}/auth/v1/admin/users/${adminId}`, {
+      method: "PUT",
+      headers: authHeaders,
+      body: JSON.stringify({ password, role: "authenticated", email_confirm: true }),
+    });
+    assert.equal(pw.ok, true, "Passwort für Test-Admin nicht gesetzt");
+    const promote = await svcWrite(
+      "PATCH",
+      `profiles?id=eq.${adminId}`,
+      { is_admin: true },
+      "return=minimal"
+    );
+    assert.equal(promote.ok, true, `Test-Admin nicht befördert: ${JSON.stringify(promote.data)}`);
+
+    const admin = await signIn(email, password);
+    await setSwitch(false);
+    for (const table of TD_TABLES) {
+      assert.ok((await rowCount(table, admin.token)) >= 1, `${table}: Admin sieht Zeile nicht`);
+    }
+    const rpc = await rest("POST", "rpc/set_training_data_public", {
+      token: admin.token,
+      body: { aid: athlete.userId, val: true },
+    });
+    assert.equal(rpc.ok, true, `Admin-RPC fehlgeschlagen: ${JSON.stringify(rpc.data)}`);
+    assert.equal(await ownSwitch(), true);
+    await setSwitch(false);
+  });
 }

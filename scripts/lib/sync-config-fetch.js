@@ -49,6 +49,12 @@ const SLUG_BY_LC = new Map(
   Object.entries(NAME_TO_SLUG).map(([name, slug]) => [name.trim().toLowerCase(), slug]),
 );
 
+/** Schlüssel der Bestandsathleten (deren Dateien rides*.json bleiben bis E5). */
+export const LEGACY_SLUGS = new Set(Object.values(NAME_TO_SLUG));
+
+/** Schlüssel eines Accounts ohne festen Platz (Fahrplan 26 E2): die Profil-ID. */
+export const profileKey = (profileId) => `profile:${profileId}`;
+
 /** display_name → Slug, tolerant gegen Groß/Kleinschreibung + Randleerzeichen. */
 export function slugForName(displayName) {
   if (!displayName) return undefined;
@@ -84,8 +90,9 @@ async function getOrThrow(url, key, label) {
  * @returns {Promise<Map<string, {profileId: string|null, apiKey: string|null,
  *   athleteId: string|null, lat: number|null, lon: number|null,
  *   ftpPublic: boolean, planOffsetWeeks: number,
- *   hrMax: number|null, hrRest: number|null}>>}
- *   Key = interne Athleten-ID ("athlete1" …). `ftpPublic` steuert, ob der
+ *   hrMax: number|null, hrRest: number|null, sports: string[]|null}>>}
+ *   Key = interne Athleten-ID ("athlete1" …) für die vier Bestandsathleten,
+ *   sonst `profile:<profile_id>` (Fahrplan 26 E2, `profileKey()`). `ftpPublic` steuert, ob der
  *   Sync die gemessene FTP + Ramp-Test-Historie in rides*.json schreibt
  *   (profiles.ftp_public, Migration 0025) — Default true, wenn keine
  *   profiles-Zeile zugeordnet ist. `planOffsetWeeks` (profiles.plan_offset_weeks,
@@ -114,11 +121,14 @@ export async function loadSyncConfig() {
     "athlete_sync_config: Abruf"
   );
   const profiles = await getOrThrow(
-    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public,plan_offset_weeks,birthdate,resting_hr,hr_max`,
+    `${ENV.SUPABASE_URL}/rest/v1/profiles?select=id,display_name,ftp_public,plan_offset_weeks,birthdate,resting_hr,hr_max,sports`,
     key,
     "profiles: Abruf"
   );
   const nameById = new Map(profiles.map((p) => [p.id, p.display_name]));
+  // profiles.sports (Fahrplan 21) — steuert bei Accounts ohne festen Platz,
+  // welche Aktivitätstypen der Sync holt. Fehlt der Wert: nur Rad.
+  const sportsById = new Map(profiles.map((p) => [p.id, Array.isArray(p.sports) ? p.sports : null]));
   // profiles.ftp_public (Migration 0025) — steuert das FTP-Gating im Sync.
   const ftpPublicById = new Map(profiles.map((p) => [p.id, p.ftp_public !== false]));
   // profiles.plan_offset_weeks (Migration 0026) — Ganzwochen-Verschiebung der
@@ -139,15 +149,15 @@ export async function loadSyncConfig() {
   for (const row of rows) {
     let slug;
     if (row.profile_id) {
-      const name = nameById.get(row.profile_id);
-      slug = slugForName(name);
-      if (!slug) {
+      if (!nameById.has(row.profile_id)) {
         log.warn(
-          `athlete_sync_config: Zeile für profile_id ${row.profile_id} (display_name ${name ?? "?"}) ` +
-            `keinem bekannten Athleten zugeordnet — übersprungen (NAME_TO_SLUG prüfen)`
+          `athlete_sync_config: Zeile für profile_id ${row.profile_id} ohne profiles-Zeile — übersprungen`
         );
         continue;
       }
+      // Bestandsathlet → fester Slug (seine rides-N.json); jeder andere Account
+      // wird unter seiner Profil-ID geführt und nur in die Tabellen geschrieben.
+      slug = slugForName(nameById.get(row.profile_id)) ?? profileKey(row.profile_id);
     } else if (row.athlete_key) {
       slug = row.athlete_key;
     } else {
@@ -179,12 +189,15 @@ export async function loadSyncConfig() {
         ? (measuredHrMaxById.get(row.profile_id) ?? tanakaHrMax(birthdateById.get(row.profile_id) ?? null, todayISO))
         : null,
       hrRest: row.profile_id ? (restingHrById.get(row.profile_id) ?? null) : null,
+      // profiles.sports — null ohne Profil-Zeile bzw. ohne Wert.
+      sports: row.profile_id ? (sportsById.get(row.profile_id) ?? null) : null,
     });
   }
 
+  const known = [...bySlug.keys()].filter((k) => LEGACY_SLUGS.has(k));
   log.info(
     `✅ athlete_sync_config: ${bySlug.size} Athleten-Zeile(n) geladen ` +
-      `(${[...bySlug.keys()].join(", ") || "keine"})`
+      `(${known.join(", ") || "keine Bestandsathleten"}${bySlug.size > known.length ? ` + ${bySlug.size - known.length} weitere` : ""})`
   );
   return bySlug;
 }

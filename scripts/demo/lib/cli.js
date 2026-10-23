@@ -5,7 +5,7 @@
    Kein I/O außer dem dynamischen Laden von app/src/core/.
    ============================================================ */
 
-import { DEMO_ROSTER } from "./roster.js";
+import { ALL_DEMO_ATHLETES } from "./roster.js";
 import { epochForSeed } from "./epoch.js";
 
 export const DEFAULT_SEED = "demo";
@@ -35,18 +35,25 @@ export function localToday() {
 
 /**
  * Lädt Lade-Hook, Zeitachse (E1) und Payload (E2) und liefert je Athlet
- * die Supabase-Zeilen (V4). Dieselbe Epoche wie demo:generate (V3/E3).
+ * die Supabase-Zeilen (V4) und das Payload-Objekt (dasselbe wie in
+ * rides-demo*.json, für die training_*-Tabellen, Fahrplan 26 E2).
+ * Dieselbe Epoche wie demo:generate (V3/E3).
  * @param {{ seed: string, today: string }} opts
- * @returns {Promise<(athlete: import("./roster.js").DemoAthlete) => Record<string, object[]>>}
+ * @returns {Promise<{ rowsFor: (athlete: import("./roster.js").DemoAthlete) => Record<string, object[]>,
+ *   payloadFor: (athlete: import("./roster.js").DemoAthlete) => object }>}
  */
-export async function loadRowsFor({ seed, today }) {
+export async function loadSeedSources({ seed, today }) {
   const epoch = epochForSeed(seed);
   await import("./register-app-core.js");
   const { buildDemoTimeline } = await import("./timeline.js");
   const { buildDemoAthlete } = await import("./payload.js");
-  return (athlete) => {
-    if (!DEMO_ROSTER.includes(athlete)) throw new Error(`Kein Demo-Athlet: ${athlete?.id}`);
+  const build = (athlete) => {
+    if (!ALL_DEMO_ATHLETES.includes(athlete)) throw new Error(`Kein Demo-Athlet: ${athlete?.id}`);
     const timeline = buildDemoTimeline({ seed, athleteId: athlete.id, epoch, today });
-    return buildDemoAthlete(timeline, athlete).rows;
+    return buildDemoAthlete(timeline, athlete);
+  };
+  return {
+    rowsFor: (athlete) => build(athlete).rows,
+    payloadFor: (athlete) => build(athlete).json,
   };
 }

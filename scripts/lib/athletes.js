@@ -30,6 +30,7 @@ import { PLANNED_SESSIONS_ATHLETE2 } from "./plan-athlete2.js";
 import { shiftPlannedSessions4 } from "./plan-athlete4.js";
 import { DEFAULT_FTP } from "./map-activity.js";
 import { RIDE_TYPES } from "./intervals.js";
+import { LEGACY_SLUGS } from "./sync-config-fetch.js";
 
 /**
  * @typedef {Object} SecondaryAthlete
@@ -40,8 +41,9 @@ import { RIDE_TYPES } from "./intervals.js";
  * @property {string|null} templateModule  Dateiname der Code-Vorlage (nur für den
  *                                    "wird übersprungen"-Log bei aktivem DB-Plan);
  *                                    null → kein Vorlage-Modul (Athlet 3)
- * @property {string} outfile      Zielpfad (aus output.js)
- * @property {string} ridesFileName  Basename von `outfile` (nur für Log-Texte)
+ * @property {string|null} outfile  Zielpfad (aus output.js); null → keine Datei,
+ *                                    nur die Tabellen (Accounts ohne festen Platz)
+ * @property {string|null} ridesFileName  Basename von `outfile` (nur für Log-Texte)
  * @property {string} oldest       ISO-Startdatum für activities/wellness/planCards/Wetter
  * @property {(cfg: object, todayISO: string) => Record<string, object>} buildTemplate
  *                                 Statische Plan-Vorlage (Datum → Session)
@@ -140,3 +142,84 @@ export const SECONDARY_ATHLETES = [
     requireCreds: false,
   },
 ];
+
+/* ------------------------------------------------------------
+   Accounts ohne festen Platz (Fahrplan 26, E2)
+
+   Jede athlete_sync_config-Zeile, die keinem der vier Bestandsathleten
+   gehört, bekommt zur Laufzeit einen Eintrag im selben Format — ohne
+   Datei, ohne Code-Plan-Vorlage. Die Daten landen nur in den Tabellen
+   (training-store.js). Sportarten kommen aus profiles.sports.
+   ------------------------------------------------------------ */
+
+/** Rollierendes Fenster für neue Accounts (Entscheidung E2: 12 Monate). */
+export const GENERIC_WINDOW_DAYS = 365;
+
+const SPORT_ACTIVITY_TYPES = {
+  ride: RIDE_TYPES,
+  run: ["Run", "TrailRun", "VirtualRun"],
+  swim: ["Swim", "OpenWaterSwim"],
+};
+
+/**
+ * intervals.icu-Typen für die Sportarten eines Profils. `undefined` heißt
+ * "nur Rad wie bisher" (kein Multi-Sport-Zweig im Sync): ohne Angabe, bei
+ * unbekannten Werten oder reinem Rad.
+ * @param {string[]|null|undefined} sports
+ * @returns {string[]|undefined}
+ */
+export function activityTypesForSports(sports) {
+  const known = (sports ?? []).filter((s) => SPORT_ACTIVITY_TYPES[s]);
+  if (known.length === 0 || (known.length === 1 && known[0] === "ride")) return undefined;
+  return [...new Set(known.flatMap((s) => SPORT_ACTIVITY_TYPES[s]))];
+}
+
+/** @param {string} dateISO @param {number} days */
+function shiftDays(dateISO, days) {
+  const d = new Date(`${dateISO}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * @param {string} key  Schlüssel aus loadSyncConfig() (`profile:<id>`)
+ * @param {{ profileId: string, sports?: string[]|null }} cfg
+ * @param {string} todayISO
+ * @returns {SecondaryAthlete}
+ */
+export function genericAthleteEntry(key, cfg, todayISO) {
+  const label = `Profil ${String(cfg.profileId).slice(0, 8)}`;
+  const activityTypes = activityTypesForSports(cfg.sports);
+  return {
+    slug: key,
+    name: label,
+    label,
+    shortLabel: label,
+    templateModule: null,
+    outfile: null,
+    ridesFileName: null,
+    oldest: shiftDays(todayISO, -GENERIC_WINDOW_DAYS),
+    buildTemplate: () => ({}),
+    loadAdjustments: () => ({}),
+    adjustmentsLabel: null,
+    fixedFtp: null,
+    npFallbackFtp: true,
+    logFtp: false,
+    publicFtpScalarFromEffective: false,
+    requireCreds: true,
+    ...(activityTypes ? { activityTypes } : {}),
+  };
+}
+
+/**
+ * Alle Accounts aus athlete_sync_config, die kein Bestandsathlet sind und ein
+ * Profil haben (nur dann gibt es eine profile_id für die Tabellen).
+ * @param {Map<string, {profileId: string|null, sports?: string[]|null}>} syncConfig
+ * @param {string} todayISO
+ * @returns {Array<{ entry: SecondaryAthlete, cfg: object }>}
+ */
+export function listGenericAccounts(syncConfig, todayISO) {
+  return [...syncConfig.entries()]
+    .filter(([key, cfg]) => !LEGACY_SLUGS.has(key) && cfg.profileId)
+    .map(([key, cfg]) => ({ entry: genericAthleteEntry(key, cfg, todayISO), cfg }));
+}

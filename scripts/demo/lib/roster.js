@@ -17,7 +17,7 @@
 
 /**
  * @typedef {Object} DemoAthlete
- * @property {"demo1"|"demo2"} id
+ * @property {"demo1"|"demo2"|"demo3"} id
  * @property {string} displayName  = profiles.display_name = DEMO_ATHLETES[].name
  * @property {string} email
  * @property {string} endpoint  URL-Pfad, den die App abruft (nie <repo>/data/ auf der Platte)
@@ -91,6 +91,41 @@ export const DEMO_ROSTER = [
   },
 ];
 
+/**
+ * Demo-Athleten OHNE festen Platz in app/src/config.ts (Fahrplan 26 E3): kein
+ * `rides-demo*.json`, die App liest sie über ihre Profil-UUID aus den
+ * training_*-Tabellen — wie ein echter Account ohne Platz. Bewusst NICHT in
+ * DEMO_ROSTER: generate.js schreibt nur Dateien für DEMO_ROSTER, und
+ * config.demo.test.ts hält DEMO_ROSTER und DEMO_ATHLETES deckungsgleich.
+ * Rein fiktiv; kein Trainer (self-only, wie ein Account ohne Platz).
+ * @type {DemoAthlete[]}
+ */
+export const DEMO_TABLE_ONLY = [
+  {
+    id: "demo3",
+    displayName: "nora.tables",
+    email: "nora.tables@demo.local",
+    endpoint: "",
+    sports: ["ride"],
+    ftpSeason: [190, 196, 203],
+    ftpGoal: 212,
+    profile: { birthdate: "1999-02-20", heightCm: 171, sex: "f", gender: "weiblich" },
+    weightKg: 60,
+    hrMax: 190,
+    hrRest: 52,
+    hrvBase: 66,
+    weeklyTss: { base: 300, peak: 460 },
+    sourceLabel: "Wahoo",
+    level: "einsteiger",
+    plans: [{ sport: "ride", trainingWeekdays: [3, 6, 7], weeklyHours: 5, thresholdSpeed: null }],
+    // Genau CYCLES_PER_SEASON (4) Namen — ein fehlender macht das Event-Insert ungleich.
+    raceNames: ["Stadtrunde-Kriterium", "Uferweg-Rennen", "Sommer-Rundfahrt", "Herbst-Tour"],
+  },
+];
+
+/** Alle Demo-Athleten (mit und ohne Platz in config.ts). */
+export const ALL_DEMO_ATHLETES = [...DEMO_ROSTER, ...DEMO_TABLE_ONLY];
+
 /** Festes, dokumentiertes Passwort aller Demo-Accounts (Q13). Nur in der
  *  lokalen Demo-Datenbank gültig — kein echtes Geheimnis. */
 export const DEMO_PASSWORD = "demo-lokal-2026";
@@ -107,7 +142,7 @@ export const DEMO_COACH = {
  * @returns {DemoAthlete}
  */
 export function demoAthlete(athleteId) {
-  const a = DEMO_ROSTER.find((x) => x.id === athleteId);
+  const a = ALL_DEMO_ATHLETES.find((x) => x.id === athleteId);
   if (!a) throw new Error(`Unbekannter Demo-Athlet: ${athleteId}`);
   return a;
 }

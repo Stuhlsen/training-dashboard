@@ -14,6 +14,7 @@ export interface FakeCall {
   select?: string;
   order?: { col: string; ascending?: boolean };
   limit?: number;
+  range?: { from: number; to: number };
   method?: "upsert" | "insert" | "update" | "delete";
   payload?: never | Record<string, unknown> | Record<string, unknown>[];
   upsertOpts?: { onConflict?: string };
@@ -75,6 +76,10 @@ export function createFakeSupabaseClient() {
       },
       limit(n: number) {
         calls.limit = n;
+        return api;
+      },
+      range(from: number, to: number) {
+        calls.range = { from, to };
         return api;
       },
       upsert(payload: FakeCall["payload"], opts?: { onConflict?: string }) {

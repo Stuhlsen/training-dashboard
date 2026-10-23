@@ -1,5 +1,5 @@
 import { fmtDateFull } from "../core/format.js";
-import { athleteConfig } from "../config";
+import { useAthleteConfig } from "../api/hooks/useAthleteConfig";
 // api/ direkt statt über hooks/-Orchestrierung: schmale, bewusste Ausnahme
 // wie `config`/`auth` (AGENTS.md-Abhängigkeitstabelle) — useActiveAthlete
 // ist ein reiner localStorage-Hook ohne I/O, kein Unterschied zur
@@ -15,7 +15,7 @@ import { useActiveAthlete } from "../api/hooks/useActiveAthlete";
  *  zur Build-Zeit fest eingesetzt — kein Laufzeit-Fetch nötig. */
 export function Footer() {
   const { activeAthleteId } = useActiveAthlete();
-  const athleteCfg = athleteConfig(activeAthleteId);
+  const athleteCfg = useAthleteConfig(activeAthleteId);
   const sources = (athleteCfg?.dataSources ?? []).join(" + ");
 
   return (

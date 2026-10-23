@@ -1,6 +1,7 @@
 /* ============================================================
    FEATURES/SETTINGS/SHARINGSECTION.TSX — Sichtbarkeit für Trainer und
-   Besucher: „Befinden öffentlich" und „FTP öffentlich" (Athleten).
+   Besucher: „Befinden öffentlich", „FTP öffentlich" (Athleten) und seit
+   Fahrplan 26 E4 „Trainingsdaten für alle Eingeloggten sichtbar".
 
    Bis zur Settings-Neuordnung standen die Schalter unter „Profil"
    (ProfileSection). Sie gehören zu „Datenschutz & Freigaben": es geht um
@@ -9,6 +10,7 @@
 
 import { useSessionProfile } from "../../api/hooks/useSession";
 import { useUpdateWellbeingPublic, useUpdateFtpPublic } from "../../api/hooks/useProfile";
+import { useTrainingDataPublic } from "../../api/hooks/useTrainingDataPublic";
 import { ToggleSwitch } from "./ToggleSwitch";
 import { HEADING_STYLE, SECTION_DESC_STYLE, SECTION_STYLE } from "./section-styles";
 
@@ -19,6 +21,7 @@ export function SharingSection() {
   const profile = useSessionProfile();
   const { update: updateWellbeing } = useUpdateWellbeingPublic();
   const { update: updateFtpPublic } = useUpdateFtpPublic();
+  const trainingData = useTrainingDataPublic();
 
   if (!profile) return null;
 
@@ -46,6 +49,24 @@ export function SharingSection() {
             label="FTP öffentlich sichtbar"
           />
         </div>
+        <div style={ROW_STYLE}>
+          <span style={LABEL_TEXT_STYLE}>Trainingsdaten für alle Eingeloggten sichtbar</span>
+          <ToggleSwitch
+            on={trainingData.isPublic}
+            disabled={trainingData.isLoading || trainingData.isPending || trainingData.isError}
+            onChange={() => void trainingData.update(!trainingData.isPublic)}
+            label="Trainingsdaten für alle Eingeloggten sichtbar"
+          />
+        </div>
+        <p style={{ ...SECTION_DESC_STYLE, margin: 0 }}>
+          Aus: nur du, dein Trainer und Admins sehen deine Fahrten und Wellness-Werte. An: jede eingeloggte
+          Person kann sie sehen. Die FTP-Freigabe oben bleibt ein eigener Schalter.
+        </p>
+        {trainingData.isError && (
+          <p role="alert" style={{ ...SECTION_DESC_STYLE, margin: 0 }}>
+            Der aktuelle Stand konnte nicht geladen werden. Bitte die Seite neu laden.
+          </p>
+        )}
       </div>
     </div>
   );

@@ -10,7 +10,7 @@
 
 import { assertDemoTarget } from "./lib/guards.js";
 import { demoEmails, runReset, runSeed } from "./lib/seed-run.js";
-import { loadRowsFor, localToday, parseArgs } from "./lib/cli.js";
+import { loadSeedSources, localToday, parseArgs } from "./lib/cli.js";
 import { log } from "../lib/log.js";
 
 async function main() {
@@ -21,7 +21,7 @@ async function main() {
   const { seed } = parseArgs(process.argv.slice(2));
   const today = localToday();
   // Zeilen vor dem Löschen bauen: scheitert der Generator, bleibt die DB, wie sie ist.
-  const rowsFor = await loadRowsFor({ seed, today });
+  const { rowsFor, payloadFor } = await loadSeedSources({ seed, today });
   const target = {
     url: process.env.DEMO_SUPABASE_URL,
     serviceKey: process.env.DEMO_SERVICE_ROLE_KEY,
@@ -30,7 +30,7 @@ async function main() {
   const deleted = await runReset(target);
   log.info(`✓ Gelöscht: ${deleted.length ? deleted.join(", ") : "nichts (keine Demo-Accounts)"}`);
 
-  const summary = await runSeed({ ...target, rowsFor });
+  const summary = await runSeed({ ...target, rowsFor, payloadFor });
   log.info(`✓ Neu angelegt: ${summary.accountsCreated} Accounts`);
   for (const [table, { added }] of Object.entries(summary.tables))
     log.info(`  ${table}: +${added}`);

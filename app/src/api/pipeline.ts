@@ -93,6 +93,11 @@ export interface AthleteData {
   hrMax: number | null;
   hrRest: number | null;
   hrEstimated: boolean;
+  /** Nur der Tabellen-Pfad (Fahrplan 26 E3, `training-payload.ts`) setzt das
+   *  Feld: `true`, solange für das Profil noch nichts in den Tabellen steht
+   *  (Sync nicht gelaufen). Datei-Athleten lassen es `undefined`; darauf
+   *  stützt sich `TrainingDataGate`. */
+  trainingDataEmpty?: boolean;
   /** Nicht-fatale Schema-Abweichungen aus core/validate.js — der Aufrufer
    *  entscheidet, ob und wie er sie anzeigt. Fatale (fehlende/leere
    *  `rides`) kommen als `{ ok: false }` zurück, nicht hier. */
@@ -173,6 +178,13 @@ export async function loadAthleteData(athleteId: string): Promise<Result<{ data:
     };
   }
 
+  return parseRidesPayload(json);
+}
+
+/** Schema-Prüfung + Normalisierung einer fertigen Payload — gemeinsamer
+ *  Endpunkt für die Datei-Pipeline (`loadAthleteData`) und den Tabellen-Pfad
+ *  (`training-payload.ts`, Fahrplan 26 E3). */
+export function parseRidesPayload(json: RidesPayload): Result<{ data: AthleteData }> {
   // Schema-Prüfung: ein FEHLENDES/kaputtes `rides`-Feld (kein Array) ist
   // fatal, alles andere nur eine Abweichung. Ein LEERES `rides`-Array ist
   // seit Athlet 4 (Einsteiger, Plan-only bis der erste intervals.icu-Sync

@@ -10,7 +10,13 @@
      map-activity.js  Mapping                output.js  Dateien lesen/schreiben
 
    Ablauf: Plan 1 (eingefroren) → Wetter → Plan 2 (intervals.icu)
-   → mergen/sortieren → rides.json → Athlet 2 → rides-2.json
+   → mergen/sortieren → rides.json → Athlet 2 → rides-2.json → …
+
+   Fahrplan 26 E2: Jeder Account läuft einzeln mit Zeitlimit und eigener
+   Fehlerisolation (runAccount). Die Ergebnisse gehen für ALLE Accounts per
+   Upsert in die Tabellen training_* (persistTraining); die vier
+   Bestandsathleten schreiben zusätzlich weiter ihre rides*.json. Accounts
+   ohne festen Platz kommen aus athlete_sync_config (listGenericAccounts).
    ============================================================ */
 
 import { ENV, requireEnv } from "./lib/env.js";
@@ -21,7 +27,9 @@ import {
   getPlan2Blocks,
   getRecentComparisonBlocks,
 } from "./lib/plan2.js";
-import { SECONDARY_ATHLETES } from "./lib/athletes.js";
+import { SECONDARY_ATHLETES, listGenericAccounts } from "./lib/athletes.js";
+import { runAccount, accountTimeoutMs, logTimings } from "./lib/account-runner.js";
+import { saveTrainingData } from "./lib/training-store.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
 import { loadActiveTrainingPlan } from "./lib/training-plan-fetch.js";
 import { loadPlan1History } from "./lib/plan1-history.js";
@@ -130,6 +138,49 @@ function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO, ftpGoa
   };
 }
 
+/** Open-Meteo-Archiv hat ~2 Tage Verzögerung — letzter abrufbarer Tag (ISO). */
+function weatherEndISO() {
+  const d = new Date();
+  d.setDate(d.getDate() - 2);
+  return d.toISOString().split("T")[0];
+}
+
+/**
+ * Ergebnis eines Accounts per Upsert in die Tabellen schreiben (Fahrplan 26 E2).
+ * Fehler werden geloggt (Result-Format), nicht geworfen — die Dateien der
+ * Bestandsathleten sind zu diesem Zeitpunkt schon geschrieben.
+ * @param {string} label  Log-Label (Slug / gekürzte Profil-ID)
+ * @param {string|null|undefined} profileId  fehlt bei athlete_key-Zeilen ohne Login
+ * @param {object} payload  dasselbe Objekt wie in rides*.json
+ * @param {{ rides?: {from: string, to: string}|null, wellness?: {from: string, to: string}|null }} window
+ *   bei intervals.icu geladener Zeitraum — nur darin wird gelöscht
+ * @param {AbortSignal} [signal]
+ */
+async function persistTraining(label, profileId, payload, window, signal) {
+  if (!profileId) {
+    log.info(`ℹ️  ${label}: keine profile_id (athlete_key-Zeile) — Tabellen übersprungen`);
+    return;
+  }
+  const res = await saveTrainingData({
+    url: ENV.SUPABASE_URL,
+    serviceKey: ENV.SUPABASE_SERVICE_ROLE_KEY,
+    profileId,
+    payload,
+    window,
+    signal,
+  });
+  if (!res.ok) {
+    log.error(`${label}: Tabellen schreiben fehlgeschlagen — ${res.error.code}: ${res.error.message}`);
+    return;
+  }
+  const c = res.counts;
+  const skipped = c.skipped.rides + c.skipped.wellness;
+  log.info(
+    `✅ ${label}: Tabellen — ${c.rides} Fahrten (−${c.deletedRides}), ${c.wellness} Wellness-Tage ` +
+      `(−${c.deletedWellness})${skipped ? ` · übersprungen: ${c.skipped.rides}+${c.skipped.wellness}` : ""}`
+  );
+}
+
 /**
  * Sync-Rumpf für einen Sekundär-Athleten (2 / 4 / … — nicht Athlet 1).
  * Alle athletenspezifischen Unterschiede kommen aus `entry`
@@ -143,13 +194,12 @@ function publicFtpFields(ftpHistory, ftpPublic, scalarFallback, todayISO, ftpGoa
  * `source:"plan-only"`).
  *
  * @param {import("./lib/athletes.js").SecondaryAthlete} entry
- * @param {Map<string, object>} syncConfig  aus loadSyncConfig()
+ * @param {object|undefined} cfg  Zeile aus loadSyncConfig() (fehlt → übersprungen)
  * @param {{ today: string, weatherEnd: string, formatCatalog: Array<object>,
- *   intervalBlockCache: object }} ctx  geteilte Sync-Zustände aus main()
+ *   intervalBlockCache: object, signal?: AbortSignal }} ctx  geteilte Sync-Zustände aus main()
  */
-async function syncSecondaryAthlete(entry, syncConfig, ctx) {
-  const { today, weatherEnd, formatCatalog, intervalBlockCache } = ctx;
-  const cfg = syncConfig.get(entry.slug);
+async function syncSecondaryAthlete(entry, cfg, ctx) {
+  const { today, weatherEnd, formatCatalog, intervalBlockCache, signal } = ctx;
   const creds =
     cfg && cfg.apiKey && cfg.athleteId ? { apiKey: cfg.apiKey, athleteId: cfg.athleteId } : null;
 
@@ -430,7 +480,7 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     ftpPublicFields.ftpPublic
       ? `✅ FTP öffentlich (${entry.name}): ${ftpPublicFields.ftp ?? "–"}W · ` +
           `${ftpPublicFields.ftpHistory.length} Ramp-Test(s)`
-      : `ℹ️  FTP öffentlich (${entry.name}): abgeschaltet — keine FTP-Werte in ${entry.ridesFileName}`
+      : `ℹ️  FTP öffentlich (${entry.name}): abgeschaltet — keine FTP-Werte im Payload`
   );
 
   const output = {
@@ -460,51 +510,29 @@ async function syncSecondaryAthlete(entry, syncConfig, ctx) {
     count: rides.length,
   };
 
-  writeOutput(entry.outfile, output);
-  log.info(`✅ ${rides.length} Fahrten (${entry.name}) → ${entry.outfile}`);
+  if (entry.outfile) {
+    writeOutput(entry.outfile, output);
+    log.info(`✅ ${rides.length} Fahrten (${entry.name}) → ${entry.outfile}`);
+  }
+  // Nur ein tatsächlich geladener Zeitraum darf Zeilen löschen.
+  const loaded = creds ? { from: entry.oldest, to: today } : null;
+  await persistTraining(
+    entry.shortLabel,
+    cfg.profileId,
+    output,
+    { rides: loaded, wellness: loaded },
+    signal
+  );
 }
 
-async function main() {
-  // Blockerkennung-Cache (scripts/lib/interval-blocks.js) — einmal geladen,
-  // von beiden Athleten ergänzt, einmal am Ende geschrieben. Bereits
-  // gecachte Aktivitäten werden nicht erneut abgerufen (unveränderlich).
-  const intervalBlockCache = loadIntervalBlocks();
-
-  // Alle Sync-Zugangsdaten je Athlet aus athlete_sync_config (Migration
-  // 0023) — EIN Service-Role-Aufruf statt Login pro Athlet. Wirft bei
-  // fehlendem Key / HTTP-Fehler (fatal, s. sync-config-fetch.js) → der
-  // catch von main() bricht ab, bevor ein writeOutput() lief.
-  const syncConfig = await loadSyncConfig();
-  const cfg1 = syncConfig.get("athlete1");
-
-  // Athlet 1 ist der Primärathlet — eine fehlende Zeile ist eine
-  // Fehlkonfiguration, kein gültiger Zustand (anders als bei Athlet 2/4, die
-  // legitim nicht eingerichtet sein können). Ohne diesen harten Abbruch würde
-  // rides.json still auf "nur Plan-1-Historie" zurückfallen (kein stiller
-  // Fallback, s. Fahrplan 7 CRED3).
-  if (!cfg1) {
-    log.error(
-      "athlete_sync_config: keine Zeile für Athlet 1 — rides.json würde nur die Plan-1-Historie enthalten. Abbruch."
-    );
-    process.exitCode = 1;
-    return;
-  }
-  if (!cfg1.apiKey || !cfg1.athleteId) {
-    log.warn(
-      "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit der Plan-1-Historie"
-    );
-  }
-
-  // Ride↔Format-Brücke (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte
-  // Sperre" Schritt 1) — athletenunabhängiger Katalog, öffentlich lesbar,
-  // einmal geladen und an alle attachCompliance()-Aufrufe weitergereicht
-  // (Athlet 1 unten, die Sekundär-Athleten über ctx).
-  const formatCatalog = await loadSessionFormats();
-  log.info(
-    formatCatalog.length
-      ? `✅ Formatkatalog (session_formats): ${formatCatalog.length} Einträge`
-      : `ℹ️  Formatkatalog (session_formats): keine Einträge/Credentials — Ride↔Format-Brücke bleibt für diesen Lauf unbesetzt`
-  );
+/**
+ * Primärathlet (athlete1): eigener Pfad mit eingefrorener Plan-1-Historie,
+ * Power-Curve-Blöcken, subjective.json und eigener Output-Form (s. athletes.js).
+ * @param {object} cfg1  Zeile aus loadSyncConfig()
+ * @param {{ formatCatalog: Array<object>, intervalBlockCache: object, signal?: AbortSignal }} ctx
+ */
+async function syncPrimaryAthlete(cfg1, ctx) {
+  const { formatCatalog, intervalBlockCache, signal } = ctx;
 
   // 1. Plan 1: eingefrorene Historie (früher Notion-API, s. plan1-history.js)
   const plan1 = loadPlan1History();
@@ -518,13 +546,14 @@ async function main() {
   // Öffentliche FTP-Felder (0025) — im intervals-Block unten aus der geladenen
   // ftp_history befüllt; ohne intervals-Key bleibt es beim reinen Flag.
   let ftpPublicFields1 = { ftpPublic: cfg1?.ftpPublic ?? true };
+  // Bei intervals.icu tatsächlich geladene Zeiträume (nur darin wird gelöscht).
+  let ridesWindow = null;
+  let wellnessWindow = null;
 
   // 2a. Wetter: Open-Meteo für gesamten Zeitraum (unabhängig von intervals.icu)
   const PLAN1_START = "2026-03-24";
   const PLAN1_FIRST_DATE = plan1.length > 0 ? plan1[0].date : PLAN1_START;
-  const weatherEndDate = new Date();
-  weatherEndDate.setDate(weatherEndDate.getDate() - 2); // Archive hat ~2 Tage Verzögerung
-  const weatherEnd = weatherEndDate.toISOString().split("T")[0];
+  const weatherEnd = weatherEndISO(); // Archive hat ~2 Tage Verzögerung
   const weatherData = await getHistoricalWeather(
     PLAN1_FIRST_DATE,
     weatherEnd,
@@ -544,6 +573,8 @@ async function main() {
     // Kein Kappen aufs Plan-2-Ende mehr: Fahrten danach bekommen über
     // getPlan2WeekPhase() einfach week/phase = null (wie Athlet 2/4).
     const newest = today;
+    ridesWindow = { from: oldest, to: newest };
+    wellnessWindow = { from: PLAN1_START, to: newest };
 
     const activities = await getIntervalsActivities(
       oldest,
@@ -775,18 +806,89 @@ async function main() {
   );
   log.info(`   Quelle: ${output.source}`);
 
-  // 5. Sekundär-Athleten (2 + 4, künftig 3) — ein gemeinsamer Rumpf, je
-  //    Athlet über die Felder in scripts/lib/athletes.js parametrisiert.
-  //    Athlet 1 oben hat bewusst einen eigenen Pfad (Plan-1-Historie,
-  //    Power-Curve-Blöcke, subjective.js/mapActivity, eigene Output-Form).
+  await persistTraining(
+    "athlete1",
+    cfg1.profileId,
+    output,
+    { rides: ridesWindow, wellness: wellnessWindow },
+    signal
+  );
+}
+
+async function main() {
+  // Blockerkennung-Cache (scripts/lib/interval-blocks.js) — einmal geladen,
+  // von beiden Athleten ergänzt, einmal am Ende geschrieben. Bereits
+  // gecachte Aktivitäten werden nicht erneut abgerufen (unveränderlich).
+  const intervalBlockCache = loadIntervalBlocks();
+
+  // Alle Sync-Zugangsdaten je Athlet aus athlete_sync_config (Migration
+  // 0023) — EIN Service-Role-Aufruf statt Login pro Athlet. Wirft bei
+  // fehlendem Key / HTTP-Fehler (fatal, s. sync-config-fetch.js) → der
+  // catch von main() bricht ab, bevor ein writeOutput() lief.
+  const syncConfig = await loadSyncConfig();
+  const cfg1 = syncConfig.get("athlete1");
+
+  // Athlet 1 ist der Primärathlet — eine fehlende Zeile ist eine
+  // Fehlkonfiguration, kein gültiger Zustand (anders als bei Athlet 2/4, die
+  // legitim nicht eingerichtet sein können). Ohne diesen harten Abbruch würde
+  // rides.json still auf "nur Plan-1-Historie" zurückfallen (kein stiller
+  // Fallback, s. Fahrplan 7 CRED3).
+  if (!cfg1) {
+    log.error(
+      "athlete_sync_config: keine Zeile für Athlet 1 — rides.json würde nur die Plan-1-Historie enthalten. Abbruch."
+    );
+    process.exitCode = 1;
+    return;
+  }
+  if (!cfg1.apiKey || !cfg1.athleteId) {
+    log.warn(
+      "athlete_sync_config: Athlet-1-Zeile ohne intervals_api_key/-athlete_id — rides.json diesmal nur mit der Plan-1-Historie"
+    );
+  }
+
+  // Ride↔Format-Brücke (Auftrag "Ride↔Format-Brücke, Verdrahtung, echte
+  // Sperre" Schritt 1) — athletenunabhängiger Katalog, öffentlich lesbar,
+  // einmal geladen und an alle attachCompliance()-Aufrufe weitergereicht
+  // (Athlet 1 unten, die Sekundär-Athleten über ctx).
+  const formatCatalog = await loadSessionFormats();
+  log.info(
+    formatCatalog.length
+      ? `✅ Formatkatalog (session_formats): ${formatCatalog.length} Einträge`
+      : `ℹ️  Formatkatalog (session_formats): keine Einträge/Credentials — Ride↔Format-Brücke bleibt für diesen Lauf unbesetzt`
+  );
+
+  const timings = [];
+  const timeoutMs = accountTimeoutMs();
   const today = new Date().toISOString().split("T")[0];
+  const weatherEnd = weatherEndISO();
+  const run = (label, task) => runAccount(label, task, { timeoutMs, timings });
+
+  // 1. Primärathlet (athlete1) — eigener Pfad, s. syncPrimaryAthlete().
+  await run("athlete1", (signal) =>
+    syncPrimaryAthlete(cfg1, { formatCatalog, intervalBlockCache, signal })
+  );
+
+  // 2. Sekundär-Athleten (2 + 3 + 4) — ein gemeinsamer Rumpf, je Athlet über
+  //    die Felder in scripts/lib/athletes.js parametrisiert. Jeder Account
+  //    läuft mit Zeitlimit; ein Fehler stoppt die anderen nicht.
   for (const entry of SECONDARY_ATHLETES) {
-    await syncSecondaryAthlete(entry, syncConfig, {
-      today,
-      weatherEnd,
-      formatCatalog,
-      intervalBlockCache,
-    });
+    await run(entry.slug, (signal) =>
+      syncSecondaryAthlete(entry, syncConfig.get(entry.slug), {
+        today,
+        weatherEnd,
+        formatCatalog,
+        intervalBlockCache,
+        signal,
+      })
+    );
+  }
+
+  // 3. Alle weiteren Accounts aus athlete_sync_config (Fahrplan 26 E2) — nur
+  //    in die Tabellen, keine Datei.
+  for (const { entry, cfg } of listGenericAccounts(syncConfig, today)) {
+    await run(entry.shortLabel, (signal) =>
+      syncSecondaryAthlete(entry, cfg, { today, weatherEnd, formatCatalog, intervalBlockCache, signal })
+    );
   }
 
   writeOutput(INTERVAL_BLOCKS_FILE, intervalBlockCache);
@@ -794,6 +896,7 @@ async function main() {
     `✅ ${Object.keys(intervalBlockCache).length} Aktivitäten im Blockerkennung-Cache → ${INTERVAL_BLOCKS_FILE}`
   );
 
+  logTimings(timings);
   log.summary();
   if (log.counts.errors > 0) process.exit(1);
 }

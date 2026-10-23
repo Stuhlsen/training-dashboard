@@ -59,8 +59,16 @@ fehlschlagender Aufräumschritt wirft mit einer Liste der Reste statt zu schweig
   Fahrten), `source: "plan-only"`.
 - **Onboarding neuer Athlet:** anmelden → in Settings intervals.icu-Key +
   Athlete-ID + groben Standort eintragen → nächster Sync-Lauf nimmt ihn
-  automatisch auf. Zusätzlich `NAME_TO_SLUG` in `scripts/lib/sync-config-fetch.js`
-  **und** `ATHLETES[]` in `app/src/config.ts` pflegen.
+  automatisch auf (Fahrplan 26 E2): jede `athlete_sync_config`-Zeile mit Profil
+  wird gelesen, Daten gehen per Upsert in `training_rides`/`training_wellness`/
+  `training_profile_data` (`scripts/lib/training-store.js`), 12 Monate rollierend,
+  Sportarten nach `profiles.sports`. Keine Datei, kein `NAME_TO_SLUG`-Eintrag nötig.
+  `NAME_TO_SLUG` + `ATHLETES[]` in `app/src/config.ts` gelten nur noch für die
+  vier Bestandsathleten (deren `rides*.json` bis E5 weiter geschrieben werden).
+- **Zeitlimit je Account:** `scripts/lib/account-runner.js`, Standard 5 min,
+  `SYNC_ACCOUNT_TIMEOUT_MS` überschreibt; ein hängender oder fehlerhafter
+  Account stoppt die anderen nicht (Exit-Code 1 am Ende). Laufzeit je Account
+  steht am Ende des Logs.
 
 # Secrets / Env-Layout
 
