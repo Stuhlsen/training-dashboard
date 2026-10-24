@@ -27,7 +27,7 @@ name: training-dashboard-demo
 
 services:
   postgres:
-    image: supabase/postgres:17.11.0.004
+    image: supabase/postgres:17.11.0.006
     environment:
       POSTGRES_PASSWORD: ${DEMO_POSTGRES_PASSWORD:?fehlt — npm run demo:init, Start nur per npm run demo:up}
       JWT_SECRET: ${DEMO_JWT_SECRET:?fehlt — npm run demo:init, Start nur per npm run demo:up}
@@ -42,7 +42,7 @@ services:
   # Rollen-Passwörter, Standardrechte entziehen, Storage-Rechte,
   # Rollen-Zyklus lösen — 1:1 wie db-init in docker-compose.selfhost.yml.
   db-init:
-    image: supabase/postgres:17.11.0.004
+    image: supabase/postgres:17.11.0.006
     depends_on:
       postgres:
         condition: service_healthy
@@ -87,7 +87,7 @@ services:
   # Bewusst KEINE Migration — läuft nur hier, nie auf apps01. GRANT ist
   # idempotent, der Schritt läuft bei jedem "up" erneut.
   demo-grants:
-    image: supabase/postgres:17.11.0.004
+    image: supabase/postgres:17.11.0.006
     depends_on:
       migrate:
         condition: service_completed_successfully
