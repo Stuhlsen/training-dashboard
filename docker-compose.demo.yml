@@ -137,7 +137,7 @@ services:
       retries: 10
 
   postgrest:
-    image: postgrest/postgrest:v16.4
+    image: postgrest/postgrest:v16.5
     depends_on:
       migrate:
         condition: service_completed_successfully
