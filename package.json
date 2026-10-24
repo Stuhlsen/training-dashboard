@@ -17,6 +17,6 @@
     "format": "npx --yes prettier@3 --write \"scripts/**/*.js\" \"tests/**/*.js\""
   },
   "devDependencies": {
-    "fallow": "^3.33.1"
+    "fallow": "^3.34.1"
   }
 }
