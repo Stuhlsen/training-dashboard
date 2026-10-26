@@ -65,7 +65,7 @@ services:
         "REVOKE authenticator FROM postgres;"
 
   storage-init:
-    image: supabase/storage-api:v1.84.13
+    image: supabase/storage-api:v1.84.23
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -166,7 +166,7 @@ services:
       SUPABASE_SERVICE_ROLE_KEY: ${DEMO_SERVICE_ROLE_KEY:?fehlt — npm run demo:init, Start nur per npm run demo:up}
 
   storage-api:
-    image: supabase/storage-api:v1.84.13
+    image: supabase/storage-api:v1.84.23
     depends_on:
       postgres:
         condition: service_healthy
