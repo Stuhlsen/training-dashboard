@@ -70,6 +70,10 @@ export const ENV = {
   // gebraucht.
   SUPABASE_ATHLETE4_EMAIL: process.env.SUPABASE_ATHLETE4_EMAIL || "",
   SUPABASE_ATHLETE4_PASSWORD: process.env.SUPABASE_ATHLETE4_PASSWORD || "",
+  // Wahoo Cloud API (Fahrplan 19 B4) — OAuth-App-Zugang für den Token-Refresh
+  // im Sync (scripts/lib/wahoo-fetch.js). Fehlt einer, wird Wahoo übersprungen.
+  WAHOO_CLIENT_ID: process.env.WAHOO_CLIENT_ID || "",
+  WAHOO_CLIENT_SECRET: process.env.WAHOO_CLIENT_SECRET || "",
   // Nur für tests/supabase-rls.test.js (Live-RLS-Check gegen dashboard-dev,
   // Account "Trainer-ST", coacht dort den SUPABASE_ATHLETE1_EMAIL-Account
   // "Stuhlsen") — s. .claude/skills/sync-pipeline "RLS-Testsuite".

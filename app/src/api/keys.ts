@@ -151,6 +151,8 @@ export const qk = {
   /** Account-Löschantrag des eingeloggten Profils (Settings, Bereich
    *  "Datenschutz & Account"), Migration 0021. */
   accountDeletionRequest: (userId: string) => ["account-deletion-request", userId] as const,
+  /** Wahoo-Verbindungsstatus des eingeloggten Users (Settings, Fahrplan 19 B3). */
+  wahooStatus: (userId: string) => ["wahoo-status", userId] as const,
   /** Hero-Kachel-Anordnung (2D-Positionen) des eingeloggten Profils, JE
    *  angesehenem Athleten-Tab (athleteId = interne App-Kennung, "athlete1"
    *  etc. — Migration 0030 + 0032 + 0033). */

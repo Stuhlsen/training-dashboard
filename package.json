@@ -7,6 +7,7 @@
   "scripts": {
     "test": "node --test --experimental-test-module-mocks \"tests/**/*.test.js\" \"admin-api/*.test.js\"",
     "sync": "node scripts/generate-data.js",
+    "compare:wahoo": "node scripts/compare-wahoo.js",
     "demo:generate": "node scripts/demo/generate.js",
     "demo:init": "node scripts/demo/init.js",
     "demo:up": "docker compose --env-file .env.demo -f docker-compose.demo.yml up -d --build",

@@ -171,6 +171,11 @@ services:
       # SUPABASE_SERVICE_ROLE_KEY aus .env (die gehoert dem Cloud-Projekt
       # dashboard-dev und ist mit dessen eigenem Secret signiert).
       SUPABASE_SERVICE_ROLE_KEY: ${SELFHOST_SERVICE_ROLE_KEY}
+      # Fahrplan 19 B2 — Wahoo-OAuth, alle optional (leer → /api/wahoo/* antwortet 503)
+      WAHOO_CLIENT_ID: ${WAHOO_CLIENT_ID:-}
+      WAHOO_CLIENT_SECRET: ${WAHOO_CLIENT_SECRET:-}
+      WAHOO_REDIRECT_URI: ${WAHOO_REDIRECT_URI:-}
+      WAHOO_RETURN_URL: ${WAHOO_RETURN_URL:-}
     # KEIN "ports:" hier — von aussen nur ueber den Proxy erreichbar (wie postgres)
 
   # Fahrplan 16, E1 — Supabase Storage API fuer Bikefit-Fotos (und spaetere Medien)

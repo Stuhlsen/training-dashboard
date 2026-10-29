@@ -23,6 +23,9 @@ export const OUT_FILE_2 = path.join(DATA_DIR, "rides-2.json");
 export const OUT_FILE_3 = path.join(DATA_DIR, "rides-3.json");
 // Vierter Athlet ("Bentastiic", Einsteiger).
 export const OUT_FILE_4 = path.join(DATA_DIR, "rides-4.json");
+// Wahoo-Cloud-Fahrten von Athlet 1 (Fahrplan 19 B4) — nur Metadaten,
+// rides.json bleibt unberührt.
+export const WAHOO_FILE_1 = path.join(DATA_DIR, "wahoo-1.json");
 const SUBJECTIVE_FILE = path.join(DATA_DIR, "subjective.json");
 const ADJUSTMENTS_FILE = path.join(DATA_DIR, "adjustments.json");
 // Athlet 2 hat kein Befinden (kein subjective-2), aber einen eigenen Plan

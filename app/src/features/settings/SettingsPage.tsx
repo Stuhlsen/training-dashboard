@@ -38,6 +38,8 @@ import { FtpHistorySection } from "./FtpHistorySection";
 import { FormatsSection } from "./FormatsSection";
 import { FormatCatalogSection } from "./FormatCatalogSection";
 import { InviteAthleteSection } from "./InviteAthleteSection";
+import { WahooSection } from "./WahooSection";
+import { isWahooAvailable } from "../../api/hooks/useWahoo";
 import { AdminUsersTable } from "./AdminUsersTable";
 import { FeedbackSection } from "./FeedbackSection";
 import { DataSourcesSection } from "./DataSourcesSection";
@@ -84,6 +86,8 @@ export function SettingsPage() {
   const [activeId, setActiveId] = useState("sec-profil");
   const isAthlete = profile?.role === "athlete";
   const isAdmin = !!profile?.isAdmin;
+  // Wahoo-Anbindung: nur Admin, im Demo-Stack ausgeblendet (Fahrplan 19, Entscheidung 9).
+  const showWahoo = isAdmin && isWahooAvailable();
 
   const navEntries: NavEntry[] = [
     { id: "sec-profil", label: "Profil" },
@@ -212,6 +216,7 @@ export function SettingsPage() {
                 <SettingsGroup id="sec-daten" title="Datenquellen">
                   <DataSourcesSection />
                   <IntervalsSection />
+                  {showWahoo && <WahooSection />}
                   <SyncLocationSection />
                   <UnitsSection />
                 </SettingsGroup>

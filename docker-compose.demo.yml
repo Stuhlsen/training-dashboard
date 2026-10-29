@@ -164,6 +164,12 @@ services:
       POSTGREST_INTERNAL_URL: http://postgrest:3000
       GOTRUE_INTERNAL_URL: http://gotrue:8081
       SUPABASE_SERVICE_ROLE_KEY: ${DEMO_SERVICE_ROLE_KEY:?fehlt — npm run demo:init, Start nur per npm run demo:up}
+      # Wahoo bleibt im Demo-Stack bewusst aus: fest leer, nie aus der Host-Umgebung
+      # (→ /api/wahoo/* antwortet 503, keine echten Zugangsdaten).
+      WAHOO_CLIENT_ID: ""
+      WAHOO_CLIENT_SECRET: ""
+      WAHOO_REDIRECT_URI: ""
+      WAHOO_RETURN_URL: ""
 
   storage-api:
     image: supabase/storage-api:v1.84.23

@@ -17,6 +17,13 @@ die apps01-Ansible-Rolle.
 | `GOTRUE_INTERNAL_URL` | interner GoTrue-Host für `/admin/generate_link`, `/admin/users/*` | `http://gotrue:8081` (Container-Netz) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-Role-JWT gegen GoTrue/PostgREST | **eigene, lokal signierte Variable** — lokal `SELFHOST_SERVICE_ROLE_KEY` (per `scripts/generate-jwt-keys.js` erzeugt), NICHT die `SUPABASE_SERVICE_ROLE_KEY` aus der Root-`.env` (die gehört dem Cloud-Projekt `dashboard-dev`) |
 | `SUPER_ADMIN_ID` | user ID(s) der Admins, die weitere Admins anlegen dürfen — mehrere kommagetrennt (`id1,id2`), eine einzelne ID bleibt gültig (opt-in: leer/fehlend → jeder Admin darf) | apps01-Ansible-Rolle muss den Wert explizit setzen; lokal `${SUPER_ADMIN_ID}` aus `.env` |
+| `WAHOO_CLIENT_ID` | Client-ID der Wahoo-Cloud-API-App (Fahrplan 19) — optional | Wahoo Developer-Portal; `docker-compose.selfhost.yml` reicht sie leer/optional durch, der Demo-Stack setzt sie fest leer |
+| `WAHOO_CLIENT_SECRET` | Client-Secret derselben App; signiert zugleich den OAuth-`state` — optional, **nie ins Frontend** | wie oben |
+| `WAHOO_REDIRECT_URI` | Rückkehr-Adresse, **identisch** zur Eintragung im Wahoo-Portal, z. B. `https://training-dashboard.clear-solutions-it.com/api/wahoo/callback` — optional | wie oben |
+| `WAHOO_RETURN_URL` | Ziel nach dem Verbinden (`?wahoo=connected` bzw. `?wahoo=error&reason=…`) — optional, Standard: Ursprung von `WAHOO_REDIRECT_URI` + `/app/settings` | wie oben |
+
+Fehlt eine der drei Pflichtwerte (`WAHOO_CLIENT_ID`, `WAHOO_CLIENT_SECRET`, `WAHOO_REDIRECT_URI`), startet die
+admin-api normal und `/api/wahoo/*` antwortet `503`.
 
 Kein `ports:`-Mapping auf dem Container — von außen ausschließlich über den
 Proxy erreichbar (wie `postgres`/`storage-api`).
@@ -59,6 +66,19 @@ eintragen. Keine Migration, keine neuen Env-Variablen.
 beide idempotent), dann das neue `admin-api`-Image deployen und die Caddy-Regel
 `/api/ingredient-requests*` eintragen. Keine neuen Env-Variablen. Abnahmetest:
 `POST /api/ingredient-requests` ohne Token muss `401` liefern.
+
+Seit Fahrplan 19 B2 kommt eine vierte Regel dazu, ebenfalls ohne Prefix-Strip (`/api/wahoo/callback`
+wird per Browser-Redirect von Wahoo aufgerufen, nicht vom Frontend):
+
+```
+handle /api/wahoo* {
+    reverse_proxy admin-api:3001
+}
+```
+
+**Hinweis für Tony (F19 B2):** Caddy-Regel `/api/wahoo*` eintragen und die vier `WAHOO_*`-Variablen an den
+`admin-api`-Container geben. Keine Migration (die Tabelle `athlete_wahoo_tokens` kam mit `0080`). Abnahmetest:
+`POST /api/wahoo/start` ohne Token muss `401` liefern.
 
 **Vorgeschaltetes haproxy (apps01):** Dort muss `/api` ebenfalls in der ACL stehen,
 sonst landet `/api/*` im Frontend (SPA) statt bei `admin-api` — Caddy sieht die
@@ -130,6 +150,23 @@ für verifizierte Autoren; die Vorschau rechnet ohne Zeit und ignoriert einen mi
 Fehler: `{ ok: false, error: { code, message } }`; Formularfehler (HTTP 422, bei zu vielen
 offenen Rezepten 409) haben Code `VALIDATION` und `error.details` je Feld
 (`{ feld: [meldung, …] }`).
+
+### Wahoo-Anbindung (`/api/wahoo/*`, Fahrplan 19 B2)
+
+Verbindet einen Athleten per OAuth2 mit der Wahoo Cloud API (Scopes `user_read workouts_read`). Die
+Tokens landen in `athlete_wahoo_tokens` (nur `service_role`) und werden **nie** ausgegeben. Zugriff vorerst nur
+für Admins, das Gate ist die eine Funktion `requireWahooAccess` in `wahoo.js`. Verbunden oder getrennt wird immer
+nur die `profile_id` aus dem JWT. Token-Erneuerung macht allein der Sync (B4), die admin-api nur das erste Verbinden.
+
+| Methode | Pfad | Zweck |
+|---|---|---|
+| POST | `/api/wahoo/start` | Bearer-Login. Antwort `{ ok, url }` mit der fertigen Authorize-URL (der Browser kann bei einer Weiterleitung keinen Header senden, das Frontend leitet selbst weiter). `state` = `base64url("<profileId>.<ablaufMs>")` + `.` + HMAC-SHA256 (Schlüssel `WAHOO_CLIENT_SECRET`), 10 Minuten gültig |
+| GET | `/api/wahoo/callback` | **Kein** Bearer (Browser-Redirect von Wahoo). Prüft `state`, tauscht den Code, schreibt die Zeile per Upsert (`on_conflict=profile_id`), dann `302` auf `WAHOO_RETURN_URL` mit `?wahoo=connected` oder `?wahoo=error&reason=…` (`state_invalid`, `state_expired`, `denied`, `missing_code`, `exchange`, `storage`) |
+| POST | `/api/wahoo/disconnect` | Bearer-Login. Widerruf bei Wahoo (`DELETE https://api.wahooligan.com/v1/permissions`, best effort), danach Zeile löschen. Antwort `{ ok, revoked }`, auch `200`, wenn keine Zeile da war |
+| GET | `/api/wahoo/status` | Bearer-Login. Antwort `{ ok, connected, scope, expiresAt }` |
+
+Der Widerruf braucht ein gültiges Access-Token; ist es schon abgelaufen, meldet Wahoo einen Fehler,
+`revoked` ist dann `false` und nur die Zeile wird gelöscht (die admin-api erneuert keine Tokens).
 
 ### Verifizierte Autoren (Fahrplan 29)
 

@@ -6370,4 +6370,80 @@ if (!HAS_CREDS) {
     assert.equal(await ownSwitch(), true);
     await setSwitch(false);
   });
+
+  // --- athlete_wahoo_tokens (0080, Fahrplan 19 B1) ----------------------
+  // Tokens der Wahoo-Cloud-API: nur service_role, kein Grant für
+  // authenticated/anon. Fehlender Grant liefert einen echten Fehler (403),
+  // keinen leeren 200 — `.ok` ist hier ein verlässlicher Test.
+  test("athlete_wahoo_tokens: nur service_role darf lesen/schreiben, Athlet und anon nicht", async (t) => {
+    const svc = ENV.SUPABASE_SERVICE_ROLE_KEY;
+    if (!svc) {
+      return t.skip("SUPABASE_SERVICE_ROLE_KEY fehlt in .env — Wahoo-Token-Test übersprungen");
+    }
+    const existing = await rest("GET", `athlete_wahoo_tokens?profile_id=eq.${athlete.userId}`, {
+      token: svc,
+    });
+    assert.equal(
+      existing.ok,
+      true,
+      `Tabelle athlete_wahoo_tokens fehlt (0080 eingespielt?): ${JSON.stringify(existing.data)}`
+    );
+    if (existing.data.length > 0) {
+      return t.skip(
+        "echte Wahoo-Verbindung für den Test-Athleten vorhanden — Zeile wird nicht angetastet"
+      );
+    }
+
+    const row = {
+      profile_id: athlete.userId,
+      access_token: "test-access",
+      refresh_token: "test-refresh",
+      expires_at: "2099-01-01T00:00:00Z",
+      scope: "user_read workouts_read",
+    };
+    try {
+      const insert = await rest("POST", "athlete_wahoo_tokens", { token: svc, body: row });
+      assert.equal(insert.ok, true, `service_role darf anlegen: ${JSON.stringify(insert.data)}`);
+
+      const read = await rest("GET", `athlete_wahoo_tokens?profile_id=eq.${athlete.userId}`, {
+        token: svc,
+      });
+      assert.equal(read.data?.[0]?.access_token, "test-access", "service_role liest die Zeile");
+
+      const ownRead = await rest("GET", `athlete_wahoo_tokens?profile_id=eq.${athlete.userId}`, {
+        token: athlete.token,
+      });
+      assert.equal(ownRead.ok, false, "Athlet darf eigene Wahoo-Tokens nicht lesen (kein GRANT)");
+
+      const ownWrite = await rest("POST", "athlete_wahoo_tokens?on_conflict=profile_id", {
+        token: athlete.token,
+        body: { ...row, access_token: "hijack" },
+        prefer: "resolution=merge-duplicates,return=representation",
+      });
+      assert.equal(ownWrite.ok, false, "Athlet darf Wahoo-Tokens nicht schreiben (kein GRANT)");
+
+      const ownPatch = await rest("PATCH", `athlete_wahoo_tokens?profile_id=eq.${athlete.userId}`, {
+        token: athlete.token,
+        body: { access_token: "hijack" },
+      });
+      assert.ok(
+        !ownPatch.ok || (ownPatch.data?.length ?? 0) === 0,
+        "Athlet darf Wahoo-Tokens nicht ändern"
+      );
+
+      const anonRead = await rest("GET", "athlete_wahoo_tokens");
+      assert.equal(anonRead.ok, false, "anon darf Wahoo-Tokens nicht lesen (kein GRANT)");
+
+      const after = await rest("GET", `athlete_wahoo_tokens?profile_id=eq.${athlete.userId}`, {
+        token: svc,
+      });
+      assert.equal(after.data?.[0]?.access_token, "test-access", "Zeile blieb unverändert");
+    } finally {
+      const del = await rest("DELETE", `athlete_wahoo_tokens?profile_id=eq.${athlete.userId}`, {
+        token: svc,
+        prefer: "return=minimal",
+      });
+      if (!del.ok) throw new Error("athlete_wahoo_tokens-Testzeile nicht gelöscht");
+    }
+  });
 }
