@@ -12,6 +12,7 @@ const { sendInvite } = require("./invite.js");
 const { listUsers, banUser, unbanUser, deleteUser, resendUserLink, setVerifiedAuthor } = require("./users.js");
 const { decideRecipe } = require("./recipe-review.js");
 const { deleteRecipeComment } = require("./recipe-comments.js");
+const { handleWahooRequest } = require("./wahoo.js");
 
 const PORT = process.env.PORT || 3001;
 const ENV = {
@@ -21,6 +22,11 @@ const ENV = {
   SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
   // Kommagetrennte Liste von User-IDs (eine ID bleibt gültig); leer → null
   SUPER_ADMIN_IDS: parseIdList(process.env.SUPER_ADMIN_ID),
+  // Fahrplan 19 B2 — alle optional; fehlen sie, antworten /api/wahoo/* mit 503
+  WAHOO_CLIENT_ID: process.env.WAHOO_CLIENT_ID,
+  WAHOO_CLIENT_SECRET: process.env.WAHOO_CLIENT_SECRET,
+  WAHOO_REDIRECT_URI: process.env.WAHOO_REDIRECT_URI,
+  WAHOO_RETURN_URL: process.env.WAHOO_RETURN_URL,
 };
 
 /** "id1, id2" → ["id1","id2"]; leer/fehlend → null (Opt-in-Einschränkung aus). */
@@ -134,6 +140,7 @@ async function handleApi(req, res, url) {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   if (await handleApi(req, res, url)) return;
+  if (await handleWahooRequest(req, res, url, ENV)) return;
 
   if (req.method === "GET" && req.url === "/admin/health") {
     sendJson(res, 200, { ok: true });
