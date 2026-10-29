@@ -203,7 +203,7 @@ Typen: **TypeScript** in `app/`; `app/src/core/` bleibt JS + JSDoc (per
 Fehlbare Operationen (Laden, Supabase-Write, intervals.icu-Push) geben
 einheitlich `{ ok: true, ... }` oder `{ ok: false, error: { code, message } }`
 zurück (Typ `Result`; Codes: HTTP, NETWORK, TOKEN_INVALID, SCHEMA, NO_DATA,
-UNKNOWN). In `app/src/api/` gilt die Konvention nach außen weiter,
+VALIDATION, NOT_CONFIGURED, UNKNOWN). In `app/src/api/` gilt die Konvention nach außen weiter,
 `api/result.ts` ist die Umschaltstelle zu React Querys wurf-basiertem
 Fehlerkanal. UI-Aufrufstellen prüfen `result.ok`/`isError`. Keine rohen
 `console.*`-Aufrufe in neuen Dateien.
