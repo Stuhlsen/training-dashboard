@@ -31,6 +31,7 @@ import { SECONDARY_ATHLETES, listGenericAccounts } from "./lib/athletes.js";
 import { runAccount, accountTimeoutMs, logTimings } from "./lib/account-runner.js";
 import { saveTrainingData } from "./lib/training-store.js";
 import { loadSyncConfig } from "./lib/sync-config-fetch.js";
+import { syncWahoo } from "./lib/wahoo-fetch.js";
 import { loadActiveTrainingPlan } from "./lib/training-plan-fetch.js";
 import { loadPlan1History } from "./lib/plan1-history.js";
 import {
@@ -170,7 +171,9 @@ async function persistTraining(label, profileId, payload, window, signal) {
     signal,
   });
   if (!res.ok) {
-    log.error(`${label}: Tabellen schreiben fehlgeschlagen — ${res.error.code}: ${res.error.message}`);
+    log.error(
+      `${label}: Tabellen schreiben fehlgeschlagen — ${res.error.code}: ${res.error.message}`
+    );
     return;
   }
   const c = res.counts;
@@ -868,6 +871,10 @@ async function main() {
     syncPrimaryAthlete(cfg1, { formatCatalog, intervalBlockCache, signal })
   );
 
+  // 1b. Wahoo-Fahrten von Athlet 1 → data/wahoo-1.json (Fahrplan 19 B4).
+  //     Nicht fatal, intervals.icu bleibt führend; ohne Env/Verbindung ein No-op.
+  await run("wahoo", () => syncWahoo({ profileId: cfg1.profileId }));
+
   // 2. Sekundär-Athleten (2 + 3 + 4) — ein gemeinsamer Rumpf, je Athlet über
   //    die Felder in scripts/lib/athletes.js parametrisiert. Jeder Account
   //    läuft mit Zeitlimit; ein Fehler stoppt die anderen nicht.
@@ -887,7 +894,13 @@ async function main() {
   //    in die Tabellen, keine Datei.
   for (const { entry, cfg } of listGenericAccounts(syncConfig, today)) {
     await run(entry.shortLabel, (signal) =>
-      syncSecondaryAthlete(entry, cfg, { today, weatherEnd, formatCatalog, intervalBlockCache, signal })
+      syncSecondaryAthlete(entry, cfg, {
+        today,
+        weatherEnd,
+        formatCatalog,
+        intervalBlockCache,
+        signal,
+      })
     );
   }
 
