@@ -5,7 +5,7 @@
 FROM node:22-alpine
 LABEL org.opencontainers.image.source="https://github.com/Stuhlsen/training-dashboard"
 WORKDIR /srv/admin-api
-COPY admin-api/package.json admin-api/server.js admin-api/auth.js admin-api/invite.js admin-api/users.js admin-api/recipes.js admin-api/recipe-review.js admin-api/recipe-comments.js ./
+COPY admin-api/package.json admin-api/server.js admin-api/auth.js admin-api/invite.js admin-api/users.js admin-api/recipes.js admin-api/recipe-review.js admin-api/recipe-comments.js admin-api/wahoo.js ./
 # Relativer Pfad ../scripts/lib wie im Repo. Die ESM-Module brauchen ein
 # package.json mit "type": "module", sonst liest Node sie als CommonJS.
 COPY scripts/lib/recipe-nutrition.js scripts/lib/validate-recipe.js scripts/lib/ingredient-nutrition.json /srv/scripts/lib/
