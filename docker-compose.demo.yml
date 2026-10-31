@@ -65,7 +65,7 @@ services:
         "REVOKE authenticator FROM postgres;"
 
   storage-init:
-    image: supabase/storage-api:v1.84.23
+    image: supabase/storage-api:v1.84.32
     depends_on:
       db-init:
         condition: service_completed_successfully
@@ -172,7 +172,7 @@ services:
       WAHOO_RETURN_URL: ""
 
   storage-api:
-    image: supabase/storage-api:v1.84.23
+    image: supabase/storage-api:v1.84.32
     depends_on:
       postgres:
         condition: service_healthy
