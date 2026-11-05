@@ -14,6 +14,7 @@
    Druck, keine Dringlichkeit.
    ============================================================ */
 
+import { suggestSportHours } from "../../core/goal-hours.js";
 import { goalPlanProfile, goalsForSport } from "../../core/goals.js";
 import { assessFtpGoal } from "../../core/goal-check.js";
 import { LOW_START_VOLUME_FACTOR } from "../../core/plan-generator.js";
@@ -38,6 +39,25 @@ export function activeGoalsForPlan(
 export function planGoalProfile(goals: readonly Goal[], sport: Sport): GoalPlanProfile {
   const { main, side } = activeGoalsForPlan(goals, sport);
   return goalPlanProfile(main, side);
+}
+
+/* ── Stunden-Vorschlag für eine dazukommende Sportart (Fahrplan 44 E7) ── */
+
+export interface HoursSuggestion {
+  hours: number;
+  /** Kurzer Hinweis neben dem Feld, nur wenn ein Ziel den Wert gesetzt hat. */
+  note: string | null;
+}
+
+/** Nur ein Vorschlag: der Nutzer überschreibt die Zahl frei. Rad bleibt unberührt,
+ *  ohne passendes Ziel bleibt `defaultHours` exakt. Rechnen tut `core/goal-hours.js`. */
+export function suggestedSportHours(goals: readonly Goal[], sport: Sport, defaultHours: number): HoursSuggestion {
+  const { main, side } = groupGoals(goals);
+  const r = suggestSportHours({ sport, defaultHours, main, side });
+  return {
+    hours: r.hours,
+    note: r.fromGoal ? "Vorschlag aus deinem Ziel „Laufen starten“. Du kannst die Zahl ändern." : null,
+  };
 }
 
 /* ── Was ändert sich? ───────────────────────────────────────────── */

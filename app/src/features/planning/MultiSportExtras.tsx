@@ -22,12 +22,14 @@ export type MultiSportController = ReturnType<typeof useMultiSportPlan>;
 interface SectionProps {
   sport: ActiveSport;
   draft: SportDraft;
+  /** Kurzer Hinweis, wenn die Stunden aus einem Ziel vorgeschlagen sind. */
+  hoursNote: string | null;
   onChange: (next: Partial<SportDraft>) => void;
 }
 
 const numberOrNull = (v: string): number | null => (v ? Number(v) : null);
 
-function ExtraSportSection({ sport, draft, onChange }: SectionProps) {
+function ExtraSportSection({ sport, draft, hoursNote, onChange }: SectionProps) {
   const badge = sportBadge(sport);
   const label = MULTI_SPORT_LABEL[sport];
 
@@ -69,6 +71,7 @@ function ExtraSportSection({ sport, draft, onChange }: SectionProps) {
             value={draft.hours}
             onChange={(e) => onChange({ hours: Number(e.target.value) || 0 })}
           />
+          {hoursNote && <span style={{ fontSize: ".72rem", color: "var(--ink-2)" }}>{hoursNote}</span>}
         </label>
         <label style={LABEL_STYLE}>
           Erfahrungslevel
@@ -152,6 +155,7 @@ export function MultiSportExtras({ ctl }: { ctl: MultiSportController }) {
           key={sport}
           sport={sport}
           draft={ctl.drafts[sport]}
+          hoursNote={ctl.hoursNote(sport)}
           onChange={(next) => ctl.setDraft(sport, next)}
         />
       ))}

@@ -87,4 +87,5 @@ und Entscheidungsnummern stehen im Kopfkommentar der Datei.
 | `zone-sources.js` | Quellenliste für die Zonen-Erklärtexte (`ZONE_SOURCES`) |
 | `hero-layout.js` | Platzierungslogik der Hero-Kacheln im Raster (`resolveTileLayout`), Speicherung in `api/supabase/hero-layout.ts` |
 | `goals.js` | Ziel-Katalog (`GOAL_CATALOG`), Konflikthinweise (`goalConflicts`), Zuordnung Ziel → Plan-/Ernährungsprofil (`goalPlanProfile`, `goalNutritionProfile`, `goalsForSport`) — Fahrplan 43 |
+| `goal-hours.js` | Stunden-Vorschlag für eine dazukommende Sportart aus den Zielen (`suggestSportHours`): „Laufen starten“ senkt den Lauf-Start, Rad bleibt unberührt, nur Vorschlag — Fahrplan 44 E7 |
 | `goal-check.js` | Ziel-Check für FTP-Ziele (`assessFtpGoal`): Trend, nötiges Tempo, Prognose und Zwischenziel aus der eigenen eFTP-Historie, keine zweite Prognose — Fahrplan 43 |

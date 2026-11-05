@@ -7,6 +7,7 @@ import {
   newPlanFormPatch,
   newPlanPresets,
   planGoalProfile,
+  suggestedSportHours,
 } from "./goal-plan-view-model";
 import type { Goal, TrainingPlan } from "../../api/types";
 
@@ -194,5 +195,28 @@ describe("ftpTargetSuggestion", () => {
   it("ohne aktuelle FTP oder ohne FTP-Ziel → null", () => {
     expect(ftpTargetSuggestion({ goals: [ftpMain], sport: "ride", current: null, history, todayISO: today })).toBeNull();
     expect(ftpTargetSuggestion({ goals: [enduranceMain], sport: "ride", current: 250, history, todayISO: today })).toBeNull();
+  });
+});
+
+describe("suggestedSportHours (Fahrplan 44 E7)", () => {
+  it("Laufen starten: niedrigerer Start mit Hinweis, dass der Wert aus dem Ziel kommt", () => {
+    const r = suggestedSportHours([runMain], "run", 3);
+    expect(r.hours).toBe(2);
+    expect(r.note).toContain("Ziel");
+  });
+
+  it("ohne passendes Ziel: Vorbelegung unverändert, kein Hinweis", () => {
+    expect(suggestedSportHours([], "run", 3)).toEqual({ hours: 3, note: null });
+    expect(suggestedSportHours([enduranceMain], "run", 3)).toEqual({ hours: 3, note: null });
+  });
+
+  it("Rad bleibt unberührt, Sportfilter hält das Ziel von Schwimmen fern", () => {
+    expect(suggestedSportHours([runMain], "ride", 6)).toEqual({ hours: 6, note: null });
+    expect(suggestedSportHours([runMain], "swim", 2)).toEqual({ hours: 2, note: null });
+  });
+
+  it("Altziele ohne Rolle zählen nicht", () => {
+    const legacy = goal({ id: "x", goalKey: "laufen_starten", role: null });
+    expect(suggestedSportHours([legacy], "run", 3)).toEqual({ hours: 3, note: null });
   });
 });

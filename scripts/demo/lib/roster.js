@@ -34,6 +34,8 @@
  * @property {string} sourceLabel  Datenquellen-Text
  * @property {"einsteiger"|"fortgeschritten"} level
  * @property {DemoSportPlan[]} plans
+ * @property {Array<"ride"|"run"|"swim">} [planGroup]  Sportarten, deren Pläne eine gemeinsame
+ *   plan_group_id tragen (Fahrplan 44 E7); fehlt = keine Gruppe
  * @property {string[]} raceNames  fiktive Rennnamen, ohne Ortsbezug
  * @property {DemoGoal[]} goals  Hauptziel zuerst, höchstens ein Nebenziel (Fahrplan 43 E7)
  * @property {DemoNutritionGoal|null} nutritionGoal  Ernährungsziel passend zu "Fett verlieren", sonst null
@@ -59,6 +61,10 @@
  * @property {number} targetWeightKg
  * @property {number} pacePerWeekKg
  */
+
+/** Feste, erfundene uuid der Demo-Plangruppe (Fahrplan 44 E7). Fest statt
+ *  zufällig, damit der ergänzende Seed sie bei jedem Lauf wiederfindet. */
+export const DEMO_PLAN_GROUP_ID = "d3a0c0de-0000-4000-8000-000000000044";
 
 /** @type {DemoAthlete[]} */
 export const DEMO_ROSTER = [
@@ -115,6 +121,8 @@ export const DEMO_ROSTER = [
       { sport: "run", trainingWeekdays: [3, 5, 7], weeklyHours: 4, thresholdSpeed: 13.5 },
       { sport: "swim", trainingWeekdays: [2, 5], weeklyHours: 2, thresholdSpeed: 3.6 },
     ],
+    // Rad + Laufen sind verknüpft (eine plan_group_id), Schwimmen läuft frei daneben.
+    planGroup: ["ride", "run"],
     raceNames: ["Sprint-Triathlon", "Duathlon-Cup", "Olympische Distanz", "Mitteldistanz"],
     // Ausdauer als Hauptziel; "Fett verlieren" als Nebenziel füllt die offene Energie-Zeile
     // (goalNutritionProfile) — dazu passt die lose-Zeile in nutrition_goals.

@@ -317,6 +317,11 @@ async function rollActivePlans(client, profileId, planRows, plans, planKey) {
   return changed;
 }
 
+/** Seed-Plan ohne Gruppe bekommt sie nachgetragen (Fahrplan 44 E7). Nur wenn die Zeile
+ *  noch KEINE Gruppe trägt — eine lokal gesetzte oder geänderte Gruppe bleibt. */
+const refreshPlanGroup = (db, want) =>
+  want.plan_group_id && db.plan_group_id == null ? { plan_group_id: want.plan_group_id } : null;
+
 /** Zeilen mit Unique-Schlüssel: on_conflict + ignore-duplicates. */
 async function seedUniqueTables(client, profileId, rows) {
   const owner = (r) => ({ ...strip(r), athlete_id: profileId });
@@ -400,8 +405,9 @@ async function seedPlansAndCards(client, profileId, rows, eventIdByRef) {
   // Neue Pläne immer inaktiv anlegen, aktiv setzt sie danach rollActivePlans.
   const plans = await addMissing(client, "training_plans", {
     profileId,
-    select: "id,sport,start_date,is_active",
+    select: "id,sport,start_date,is_active,plan_group_id",
     keyOf: planKey,
+    refresh: refreshPlanGroup,
     rows: rows.training_plans.map((p) => ({
       ...owner(p),
       created_by: profileId,
@@ -426,7 +432,7 @@ async function seedPlansAndCards(client, profileId, rows, eventIdByRef) {
     refresh: refreshCard,
   });
   return {
-    training_plans: { added: plans.added, updated: rolled },
+    training_plans: { added: plans.added, updated: rolled + plans.updated },
     plan_cards: { added: cards.added, updated: cards.updated },
   };
 }

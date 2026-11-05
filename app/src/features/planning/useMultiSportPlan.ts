@@ -25,7 +25,7 @@ import type { ActiveSport } from "../../api/hooks/useActiveSport";
 import type { Result } from "../../api/types";
 import { localISODate } from "../../core/format.js";
 import { generatePlan } from "../../core/plan-generator.js";
-import { newPlanPresets } from "./goal-plan-view-model";
+import { newPlanPresets, suggestedSportHours } from "./goal-plan-view-model";
 import {
   buildMultiSportInputs,
   defaultSportDrafts,
@@ -109,6 +109,8 @@ export function useMultiSportPlan({
   // Entwurf je Sportart: erste = Formular; weitere = Standard + Ziel-Level +
   // Historien-Pace, darüber die eigenen Eingaben.
   const defaults = defaultSportDrafts(form);
+  // Stunden-Vorschlag aus den Zielen (Fahrplan 44 E7): nur Vorbelegung, Eingaben gewinnen.
+  const hoursSuggestion = (s: ActiveSport) => suggestedSportHours(goals, s, defaults[s].hours);
   const drafts = Object.fromEntries(
     ALL_SPORTS.map((s) => {
       if (s === primary) return [s, primaryDraft(form)];
@@ -117,6 +119,7 @@ export function useMultiSportPlan({
         s,
         {
           ...defaults[s],
+          hours: hoursSuggestion(s).hours,
           level: goalLevel ?? form.level,
           currentThresholdSpeed: speedFrom(history[s]),
           ...overrides[s],
@@ -193,6 +196,9 @@ export function useMultiSportPlan({
     extras: sports.slice(1),
     drafts,
     setDraft,
+    /** Hinweis „Wert kommt aus dem Ziel", solange der Athlet die Stunden nicht selbst geändert hat. */
+    hoursNote: (s: ActiveSport): string | null =>
+      overrides[s]?.hours === undefined ? hoursSuggestion(s).note : null,
     /** Hinweise der Verteilung (live, auch bei Eingabefehlern). */
     hints: build ? (build.ok ? build.hints : (build.hints ?? [])) : [],
     errors,

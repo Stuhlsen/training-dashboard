@@ -29,6 +29,7 @@ import {
   round,
   shortenActivity,
 } from "./rides.js";
+import { DEMO_PLAN_GROUP_ID } from "./roster.js";
 import { buildWellness, wellnessMetaFor } from "./wellness.js";
 
 /** Tage am Fensteranfang, deren mittlere Last den PMC-Startwert setzt —
@@ -233,7 +234,7 @@ function eventRows(cycles, ridesByDate, today) {
 }
 
 /** Ein Plan je Zyklus und Sportart; aktiv ist der Zyklus von heute (Q2 A). */
-function trainingPlanRows(cycles, today) {
+function trainingPlanRows(cycles, today, athlete) {
   const current = cycleOf(cycles, today);
   return cycles.flatMap((c) =>
     c.plans.map((p) => ({
@@ -257,6 +258,11 @@ function trainingPlanRows(cycles, today) {
       threshold_speed_target: p.input.thresholdSpeedTarget,
       params: { form: null, history: null, warnings: p.warnings },
       week_model: p.weekModel,
+      // Athleten mit Gruppe: das Feld steht in JEDER Zeile (null für freie Sportarten) —
+      // PostgREST verlangt bei einem Sammel-Insert gleiche Schlüssel. Ohne Gruppe fehlt es ganz.
+      ...(athlete.planGroup
+        ? { plan_group_id: athlete.planGroup.includes(p.sport) ? DEMO_PLAN_GROUP_ID : null }
+        : {}),
     }))
   );
 }
@@ -292,7 +298,7 @@ function buildRows({ timeline, athlete, today, rides, wellness }) {
   const sickByDate = new Map(timeline.days.map((d) => [d.date, d.isSick]));
   const nextMain = cycles.find((c) => c.priority === "main" && c.raceDate >= today);
   return {
-    training_plans: trainingPlanRows(cycles, today),
+    training_plans: trainingPlanRows(cycles, today, athlete),
     plan_cards: planCardRows(timeline, today),
     wellbeing: wellness.map((w) => wellbeingRow(w, athlete, sickByDate.get(w.date) ?? false, seed)),
     events: eventRows(

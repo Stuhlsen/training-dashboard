@@ -26,7 +26,7 @@ import {
   hasTrainingHistory,
   nextMondayISO,
 } from "./add-sport-view-model";
-import { planGoalProfile } from "./goal-plan-view-model";
+import { planGoalProfile, suggestedSportHours } from "./goal-plan-view-model";
 import { defaultSportDrafts, type SportDraft } from "./multi-sport-plan-view-model";
 import { useAddSportToPlan } from "./useAddSportToPlan";
 import { useGoalPlanContext } from "./useGoalPlanContext";
@@ -87,9 +87,15 @@ export function useAddSportFlow(athleteId: string) {
   const [overrides, setOverrides] = useState<Partial<Record<ActiveSport, DraftOverride>>>({});
   const [saveError, setSaveError] = useState<string | null>(null);
   const defaults = defaultSportDrafts({ weeklyHours: 6, trainingWeekdays: [2, 4, 6], level: "fortgeschritten" });
+  // Stunden-Vorschlag aus dem Ziel (Fahrplan 44 E7): nur bei sanftem Einstieg, nur Vorbelegung.
+  const suggestion = sport
+    ? suggestedSportHours(gentleOn ? goals : [], sport, defaults[sport].hours)
+    : null;
+  const hoursNote = overrides[sport ?? "run"]?.hours === undefined ? (suggestion?.note ?? null) : null;
   const draft: SportDraft | null = sport
     ? {
         ...defaults[sport],
+        hours: suggestion?.hours ?? defaults[sport].hours,
         currentThresholdSpeed: aggregateOf(history[sport]).currentThresholdSpeed ?? null,
         ...overrides[sport],
         level: gentleOn ? "einsteiger" : (activePlans[0]?.level ?? "fortgeschritten"),
@@ -168,6 +174,8 @@ export function useAddSportFlow(athleteId: string) {
       setSaveError(null);
     },
     draft,
+    /** Hinweis „Wert kommt aus dem Ziel", solange die Stunden nicht selbst geändert sind. */
+    hoursNote,
     setDraft,
     gentle,
     gentleOn,

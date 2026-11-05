@@ -188,6 +188,9 @@ export function AddSportFlow({ athleteId, onBack, onClose }: AddSportFlowProps) 
                     value={draft.hours}
                     onChange={(e) => flow.setDraft({ hours: Number(e.target.value) || 0 })}
                   />
+                  {flow.hoursNote && (
+                    <span style={{ fontSize: ".72rem", color: "var(--ink-2)" }}>{flow.hoursNote}</span>
+                  )}
                 </label>
 
                 <div style={LABEL_STYLE}>

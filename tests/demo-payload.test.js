@@ -463,3 +463,35 @@ test("Grundlagenanteil (E7): Wochen im Schnitt ≥ 78 % Z1+Z2, harte Einheit nic
     }
   }
 });
+
+// ── Plan-Gruppe (Fahrplan 44 E7) ─────────────────────────────
+
+const { DEMO_PLAN_GROUP_ID } = await import("../scripts/demo/lib/roster.js");
+
+test("Plan-Gruppe: tri_jonas — aktive Rad- und Laufpläne tragen dieselbe feste uuid, Schwimmen nicht", () => {
+  assert.match(DEMO_PLAN_GROUP_ID, /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+  const active = A2.rows.training_plans.filter((p) => p.is_active);
+  const bySport = Object.fromEntries(active.map((p) => [p.sport, p.plan_group_id ?? null]));
+  assert.equal(bySport.ride, DEMO_PLAN_GROUP_ID);
+  assert.equal(bySport.run, DEMO_PLAN_GROUP_ID);
+  assert.equal(bySport.swim, null);
+});
+
+test("Plan-Gruppe: deterministisch — gleicher Seed, gleiche Zeilen", () => {
+  const again = build("demo2");
+  assert.deepEqual(
+    again.rows.training_plans.map((p) => p.plan_group_id ?? null),
+    A2.rows.training_plans.map((p) => p.plan_group_id ?? null)
+  );
+});
+
+test("Plan-Gruppe: Rad-only (lena) bleibt unverändert — kein plan_group_id-Feld", () => {
+  for (const p of A1.rows.training_plans) assert.ok(!("plan_group_id" in p));
+});
+
+test("Plan-Gruppe: alle training_plans-Zeilen eines Athleten haben dieselben Schlüssel (PostgREST-Sammel-Insert)", () => {
+  for (const { rows } of BOTH) {
+    const shapes = new Set(rows.training_plans.map((p) => Object.keys(p).sort().join(",")));
+    assert.equal(shapes.size, 1, [...shapes].join(" | "));
+  }
+});

@@ -807,3 +807,81 @@ test("Roster: jeder Demo-Athlet hat einen Rennnamen je Zyklus (sonst bricht das 
     assert.equal(a.raceNames.length, 4, `${a.id}: raceNames`);
   }
 });
+
+// ── Plan-Gruppe (Fahrplan 44 E7, Fallen A + B) ───────────────
+
+const GROUP = "d3a0c0de-0000-4000-8000-000000000044";
+const jonasPlans = (db) => {
+  const id = db.users.find((u) => u.email === DEMO_ROSTER[1].email).id;
+  return db.tables.training_plans.filter((p) => p.athlete_id === id);
+};
+
+/** Wie rowsFor, aber tri_jonas hat Rad + Laufen (+ Schwimmen); Rad/Lauf mit Gruppe.
+ *  `cycle`: "old" = nur der erste Zyklus aktiv, "new" = Folgezyklus aktiv. */
+const groupedRowsFor =
+  ({ withGroup = true, cycle = "old" } = {}) =>
+  (athlete) => {
+    const rows = rowsFor(athlete);
+    if (!athlete.planGroup) return rows;
+    const start = cycle === "old" ? "2026-09-28" : "2026-12-21";
+    rows.training_plans = ["ride", "run", "swim"].map((sport) => ({
+      _ref: `${sport}-${start}`,
+      _goalEventRef: "race-2026-12-20",
+      sport,
+      start_date: start,
+      is_active: true,
+      ...(withGroup && athlete.planGroup.includes(sport) ? { plan_group_id: GROUP } : {}),
+    }));
+    rows.plan_cards = [];
+    return rows;
+  };
+
+test("Plan-Gruppe: tri_jonas führt eine Gruppe über Rad und Laufen, Schwimmen bleibt frei", () => {
+  const jonas = DEMO_ROSTER[1];
+  assert.deepEqual(jonas.planGroup, ["ride", "run"]);
+  assert.equal(DEMO_ROSTER[0].planGroup, undefined);
+});
+
+test("Plan-Gruppe (Falle A): zweiter Lauf läuft fehlerfrei und ändert nichts", async () => {
+  const { db, calls, fetchImpl } = fakeBackend();
+  const rf = groupedRowsFor();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: rf });
+  const grouped = jonasPlans(db).filter((p) => p.plan_group_id === GROUP);
+  assert.deepEqual(grouped.map((p) => p.sport).sort(), ["ride", "run"]);
+
+  const snapshot = JSON.parse(JSON.stringify(db.tables));
+  calls.length = 0;
+  const second = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: rf });
+  assert.equal(second.tables.training_plans.added, 0);
+  assert.equal(second.tables.training_plans.updated, 0);
+  assert.deepEqual(db.tables, snapshot);
+  assert.equal(calls.filter((c) => c.method === "PATCH").length, 0);
+});
+
+test("Plan-Gruppe (Falle B): nach dem Umschalten tragen die neuen aktiven Pläne die Gruppe", async () => {
+  const { db, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: groupedRowsFor({ cycle: "old" }) });
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: groupedRowsFor({ cycle: "new" }) });
+
+  const active = jonasPlans(db).filter((p) => p.is_active);
+  assert.deepEqual(active.map((p) => p.sport).sort(), ["ride", "run", "swim"]);
+  assert.equal(active.find((p) => p.sport === "ride").plan_group_id, GROUP);
+  assert.equal(active.find((p) => p.sport === "run").plan_group_id, GROUP);
+  assert.equal(active.find((p) => p.sport === "swim").plan_group_id, undefined);
+});
+
+test("Plan-Gruppe (Falle B): Seed-Zeilen ohne Gruppe bekommen sie nachgetragen, fremde Gruppen bleiben", async () => {
+  const { db, fetchImpl } = fakeBackend();
+  await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: groupedRowsFor({ withGroup: false }) });
+  assert.ok(jonasPlans(db).every((p) => p.plan_group_id == null));
+  // lokal vom Athleten gesetzt: eine eigene Gruppe auf dem Laufplan
+  const LOCAL = "11111111-1111-4111-8111-111111111111";
+  jonasPlans(db).find((p) => p.sport === "run").plan_group_id = LOCAL;
+
+  const res = await runSeed({ url: URL_OK, serviceKey: KEY, fetchImpl, rowsFor: groupedRowsFor() });
+  const byS = Object.fromEntries(jonasPlans(db).map((p) => [p.sport, p.plan_group_id ?? null]));
+  assert.equal(byS.ride, GROUP);
+  assert.equal(byS.run, LOCAL);
+  assert.equal(byS.swim, null);
+  assert.ok(res.tables.training_plans.updated >= 1);
+});
